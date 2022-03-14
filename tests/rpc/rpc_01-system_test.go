@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils"
 	"github.com/stretchr/testify/require"
 )
@@ -89,7 +90,8 @@ func TestSystemRPC(t *testing.T) {
 	}
 
 	t.Log("starting gossamer...")
-	nodes, err := utils.InitializeAndStartNodes(t, 3, utils.GenesisDefault, utils.ConfigDefault)
+	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
+	nodes, err := utils.InitializeAndStartNodes(t, 3, genesisPath, utils.ConfigDefault)
 
 	//use only first server for tests
 	require.NoError(t, err)

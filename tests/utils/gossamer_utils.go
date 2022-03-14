@@ -47,11 +47,6 @@ var (
 	// secondary VRF slots enabled
 	GenesisTwoAuthsSecondaryVRF0_9_10 = filepath.Join(currentDir, "../utils/genesis_two_auths_secondaryvrf_0_9_10.json")
 
-	// GenesisDefault is the default gssmr genesis file
-	GenesisDefault = filepath.Join(currentDir, "../..", "chain/gssmr/genesis.json")
-	// GenesisDev is the default dev genesis file
-	GenesisDev = filepath.Join(currentDir, "../..", "chain/dev/genesis-spec.json")
-
 	// ConfigDefault is the default config file
 	ConfigDefault = filepath.Join(currentDir, "../utils/config_default.toml")
 	// ConfigLogGrandpa is a config file where log levels are set to CRIT except for GRANDPA
@@ -301,8 +296,13 @@ func InitNodes(num int, config string) (nodes []Node, err error) {
 		return nil, err
 	}
 
+	genesisPath, err := utils.GetGssmrGenesisRawPath()
+	if err != nil {
+		return nil, fmt.Errorf("cannot get genesis path: %w", err)
+	}
+
 	for i := 0; i < num; i++ {
-		node, err := InitGossamer(i, tempDir+strconv.Itoa(i), GenesisDefault, config)
+		node, err := InitGossamer(i, tempDir+strconv.Itoa(i), genesisPath, config)
 		if err != nil {
 			Logger.Errorf("failed to initialise Gossamer for node index %d", i)
 			return nil, err

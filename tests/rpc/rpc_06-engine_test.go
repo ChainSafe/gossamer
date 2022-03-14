@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils"
 	"github.com/stretchr/testify/require"
 )
@@ -32,7 +33,9 @@ func TestEngineRPC(t *testing.T) {
 	}
 
 	t.Log("starting gossamer...")
-	nodes, err := utils.InitializeAndStartNodes(t, 1, utils.GenesisDefault, utils.ConfigDefault)
+	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
+
+	nodes, err := utils.InitializeAndStartNodes(t, 1, genesisPath, utils.ConfigDefault)
 	require.NoError(t, err)
 
 	time.Sleep(time.Second) // give server a second to start

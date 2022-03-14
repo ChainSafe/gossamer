@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -26,7 +27,8 @@ func TestStartGossamerAndPolkadotAPI(t *testing.T) {
 	utils.CreateDefaultConfig()
 	defer os.Remove(utils.ConfigDefault)
 
-	nodes, err := utils.InitializeAndStartNodesWebsocket(t, 1, utils.GenesisDev, utils.ConfigDefault)
+	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
+	nodes, err := utils.InitializeAndStartNodesWebsocket(t, 1, genesisPath, utils.ConfigDefault)
 	require.NoError(t, err)
 
 	command := "npx mocha ./test --timeout 30000"

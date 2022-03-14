@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/require"
@@ -58,7 +59,8 @@ func TestChainRPC(t *testing.T) {
 	}
 
 	t.Log("starting gossamer...")
-	nodes, err := utils.InitializeAndStartNodes(t, 1, utils.GenesisDev, utils.ConfigDefault)
+	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
+	nodes, err := utils.InitializeAndStartNodes(t, 1, genesisPath, utils.ConfigDefault)
 	require.NoError(t, err)
 
 	time.Sleep(time.Second * 5) // give server a few seconds to start
@@ -178,7 +180,8 @@ func TestChainSubscriptionRPC(t *testing.T) {
 	}
 
 	t.Log("starting gossamer...")
-	nodes, err := utils.InitializeAndStartNodesWebsocket(t, 1, utils.GenesisDev, utils.ConfigDefault)
+	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
+	nodes, err := utils.InitializeAndStartNodesWebsocket(t, 1, genesisPath, utils.ConfigDefault)
 	require.NoError(t, err)
 
 	time.Sleep(time.Second) // give server a second to start
