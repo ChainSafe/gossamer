@@ -12,6 +12,7 @@ import (
 
 	"github.com/centrifuge/go-substrate-rpc-client/v3/scale"
 
+	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils"
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v3"
 	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
@@ -133,7 +134,8 @@ func TestAuthorRPC(t *testing.T) {
 	}
 
 	t.Log("starting gossamer...")
-	nodes, err := utils.InitializeAndStartNodes(t, 1, utils.GenesisDefault, utils.ConfigDefault)
+	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
+	nodes, err := utils.InitializeAndStartNodes(t, 1, genesisPath, utils.ConfigDefault)
 	require.NoError(t, err)
 
 	time.Sleep(time.Second) // give server a second to start

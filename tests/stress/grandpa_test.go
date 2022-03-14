@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils"
 	"github.com/stretchr/testify/require"
 )
@@ -100,7 +101,8 @@ func TestStress_Grandpa_NineAuthorities(t *testing.T) {
 	defer os.Remove(utils.ConfigLogGrandpa)
 
 	numNodes := 9
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisDefault, utils.ConfigLogGrandpa)
+	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes, genesisPath, utils.ConfigLogGrandpa)
 	require.NoError(t, err)
 
 	defer func() {

@@ -11,6 +11,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/lib/common"
+	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils"
 	"github.com/stretchr/testify/require"
 )
@@ -22,8 +23,9 @@ func TestStateRPCResponseValidation(t *testing.T) {
 	}
 
 	t.Log("starting gossamer...")
+	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
 
-	nodes, err := utils.InitializeAndStartNodes(t, 1, utils.GenesisDefault, utils.ConfigDefault)
+	nodes, err := utils.InitializeAndStartNodes(t, 1, genesisPath, utils.ConfigDefault)
 	require.NoError(t, err)
 
 	defer func() {
@@ -139,7 +141,8 @@ func TestStateRPCAPI(t *testing.T) {
 	}
 
 	t.Log("starting gossamer...")
-	nodes, err := utils.InitializeAndStartNodes(t, 1, utils.GenesisDefault, utils.ConfigDefault)
+	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
+	nodes, err := utils.InitializeAndStartNodes(t, 1, genesisPath, utils.ConfigDefault)
 	require.NoError(t, err)
 
 	defer func() {

@@ -24,6 +24,7 @@ import (
 	gosstypes "github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
+	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils"
 )
 
@@ -133,7 +134,9 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 }
 
 func TestSync_Basic(t *testing.T) {
-	nodes, err := utils.InitializeAndStartNodes(t, 3, utils.GenesisDefault, utils.ConfigDefault)
+	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
+
+	nodes, err := utils.InitializeAndStartNodes(t, 3, genesisPath, utils.ConfigDefault)
 	require.NoError(t, err)
 
 	defer func() {
@@ -150,11 +153,12 @@ func TestSync_Basic(t *testing.T) {
 
 func TestSync_MultipleEpoch(t *testing.T) {
 	t.Skip("skipping TestSync_MultipleEpoch")
+	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
 	numNodes := 3
 	utils.Logger.Patch(log.SetLevel(log.Info))
 
 	// wait and start rest of nodes - if they all start at the same time the first round usually doesn't complete since
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisDefault, utils.ConfigDefault)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes, genesisPath, utils.ConfigDefault)
 	require.NoError(t, err)
 
 	defer func() {
@@ -342,15 +346,16 @@ func TestSync_Restart(t *testing.T) {
 
 	// start block producing node first
 	blockProducingNodeBasePath := t.TempDir()
+	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
 	node, err := utils.RunGossamer(t, numNodes-1,
 		blockProducingNodeBasePath,
-		utils.GenesisDefault, utils.ConfigDefault,
+		genesisPath, utils.ConfigDefault,
 		false, true)
 	require.NoError(t, err)
 
 	// wait and start rest of nodes
 	time.Sleep(time.Second * 5)
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, utils.GenesisDefault, utils.ConfigNoBABE)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, genesisPath, utils.ConfigNoBABE)
 	require.NoError(t, err)
 	nodes = append(nodes, node)
 
