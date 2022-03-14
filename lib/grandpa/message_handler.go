@@ -193,7 +193,8 @@ func (h *MessageHandler) handleCatchUpRequest(msg *CatchUpRequest, from peer.ID)
 	}
 
 	if msg.Round > h.grandpa.state.round {
-		return ErrInvalidCatchUpRound
+		return fmt.Errorf("%w: received %d and grandpa state round is %d",
+			ErrInvalidCatchUpRound, msg.Round, h.grandpa.state.round)
 	}
 
 	// We don't necessarily have to reply with the round asked in the request, we can reply
