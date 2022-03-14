@@ -72,7 +72,7 @@ func (c *catchUp) sendCatchUpRequest(to peer.ID, req *CatchUpRequest) error {
 	_, ok := c.requestsSent[to]
 	c.lock.Unlock()
 	if ok {
-		logger.Debugf("ignoring neighbour message since we already sent a catch request to this peer: %s", to)
+		logger.Debugf("ignoring neighbour message since we already sent a catch-up request to this peer: %s", to)
 		return nil
 	}
 
