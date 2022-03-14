@@ -5,6 +5,7 @@ package utils
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -196,10 +197,20 @@ func startGossamer(t *testing.T, node *Node, websocket bool) error {
 		}
 	}()
 
+	ctx := context.Background()
+
 	var started bool
 	for i := 0; i < maxRetries; i++ {
 		time.Sleep(time.Second * 5)
-		if err = checkNodeStarted(t, "http://"+HOSTNAME+":"+node.RPCPort); err == nil {
+
+		const checkNodeStartedTimeout = time.Second
+		checkNodeCtx, cancel := context.WithTimeout(ctx, checkNodeStartedTimeout)
+
+		err = checkNodeStarted(checkNodeCtx, t, "http://"+HOSTNAME+":"+node.RPCPort)
+
+		cancel()
+
+		if err == nil {
 			started = true
 			break
 		}
@@ -239,10 +250,10 @@ func RunGossamer(t *testing.T, idx int, basepath, genesis, config string, websoc
 }
 
 // checkNodeStarted check if gossamer node is started
-func checkNodeStarted(t *testing.T, gossamerHost string) error {
-	method := "system_health"
-
-	respBody, err := PostRPC(method, gossamerHost, "{}")
+func checkNodeStarted(ctx context.Context, t *testing.T, gossamerHost string) error {
+	const method = "system_health"
+	const params = "{}"
+	respBody, err := PostRPC(ctx, gossamerHost, method, params)
 	if err != nil {
 		return err
 	}

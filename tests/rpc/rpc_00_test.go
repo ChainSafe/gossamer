@@ -4,6 +4,7 @@
 package rpc
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"reflect"
@@ -38,13 +39,14 @@ type testCase struct {
 	skip        bool
 }
 
-func getResponse(t *testing.T, test *testCase) interface{} {
+func getResponse(ctx context.Context, t *testing.T, test *testCase) interface{} {
 	if test.skip {
 		t.Skip("RPC endpoint not yet implemented")
 		return nil
 	}
 
-	respBody, err := utils.PostRPC(test.method, utils.NewEndpoint(currentPort), test.params)
+	endpoint := utils.NewEndpoint(currentPort)
+	respBody, err := utils.PostRPC(ctx, endpoint, test.method, test.params)
 	require.NoError(t, err)
 
 	target := reflect.New(reflect.TypeOf(test.expected)).Interface()

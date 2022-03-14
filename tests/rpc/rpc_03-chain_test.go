@@ -4,6 +4,7 @@
 package rpc
 
 import (
+	"context"
 	"log"
 	"testing"
 	"time"
@@ -72,7 +73,11 @@ func TestChainRPC(t *testing.T) {
 				test.params = "[\"" + chainBlockHeaderHash + "\"]"
 			}
 
-			target := getResponse(t, test)
+			ctx := context.Background()
+
+			getResponseCtx, cancel := context.WithTimeout(ctx, time.Second)
+			target := getResponse(getResponseCtx, t, test)
+			cancel()
 
 			switch v := target.(type) {
 			case *modules.ChainBlockHeaderResponse:

@@ -21,53 +21,68 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// PostRPC utils for sending payload to endpoint and getting []byte back
-func PostRPC(method, host, params string) ([]byte, error) {
-	data := []byte(`{"jsonrpc":"2.0","method":"` + method + `","params":` + params + `,"id":1}`)
-	buf := &bytes.Buffer{}
-	_, err := buf.Write(data)
+// PostRPC sends a payload using the method, host and params string given.
+// It returns the response bytes and an eventual error.
+func PostRPC(ctx context.Context, endpoint, method, params string) (data []byte, err error) {
+	requestBody := fmt.Sprintf(`{"jsonrpc":"2.0","method":"%s","params":%s,"id":1}`, method, params)
+	requestBuffer := bytes.NewBuffer([]byte(requestBody))
+
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, requestBuffer)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot create HTTP request: %w", err)
 	}
 
-	r, err := http.NewRequest("POST", host, buf)
-	if err != nil {
-		return nil, err
-	}
-	r.Header.Set("Content-Type", ContentTypeJSON)
-	r.Header.Set("Accept", ContentTypeJSON)
+	const contentType = "application/json"
+	request.Header.Set("Content-Type", contentType)
+	request.Header.Set("Accept", contentType)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
-	r = r.WithContext(ctx)
-
-	resp, err := httpClient.Do(r)
+	response, err := http.DefaultClient.Do(request)
 	if err != nil {
-		return nil, err
-	} else if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("status code not OK")
+		return nil, fmt.Errorf("cannot do HTTP request: %w", err)
 	}
 
-	defer func() {
-		_ = resp.Body.Close()
-	}()
+	data, err = io.ReadAll(response.Body)
+	if err != nil {
+		_ = response.Body.Close()
+		return nil, fmt.Errorf("cannot read HTTP response body: %w", err)
+	}
 
-	respBody, err := io.ReadAll(resp.Body)
+	err = response.Body.Close()
+	if err != nil {
+		return nil, fmt.Errorf("cannot close HTTP response body: %w", err)
+	}
 
-	return respBody, err
-
+	return data, nil
 }
 
-// PostRPCWithRetry is a wrapper around `PostRPC` that calls it `retry` number of times.
-func PostRPCWithRetry(method, host, params string, retry int) ([]byte, error) {
-	count := 0
+// PostRPCWithRetry repeatitively calls `PostRPC` repeatitively
+// until it succeeds within the requestWait duration or returns
+// the last error if the context is canceled.
+func PostRPCWithRetry(ctx context.Context, endpoint, method, params string,
+	requestWait time.Duration) (data []byte, err error) {
+	try := 0
 	for {
-		resp, err := PostRPC(method, host, params)
-		if err == nil || count >= retry {
-			return resp, err
+		try++
+
+		postRPCCtx, postRPCCancel := context.WithTimeout(ctx, requestWait)
+
+		data, err := PostRPC(postRPCCtx, endpoint, method, params)
+
+		postRPCCancel()
+		if err == nil {
+			return data, nil
 		}
-		time.Sleep(200 * time.Millisecond)
-		count++
+
+		if ctx.Err() == nil {
+			continue
+		}
+
+		totalTime := time.Duration(try) * requestWait
+		tryWord := "try"
+		if try > 1 {
+			tryWord = "tries"
+		}
+		return nil, fmt.Errorf("after %d %s totalling %s: %w", try, tryWord, totalTime, err)
 	}
 }
 

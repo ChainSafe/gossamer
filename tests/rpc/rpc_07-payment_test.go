@@ -4,6 +4,7 @@
 package rpc
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -33,7 +34,10 @@ func TestPaymentRPC(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(test.description, func(t *testing.T) {
-			_ = getResponse(t, test)
+			ctx := context.Background()
+			getResponseCtx, cancel := context.WithTimeout(ctx, time.Second)
+			_ = getResponse(getResponseCtx, t, test)
+			cancel()
 		})
 	}
 
