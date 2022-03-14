@@ -142,7 +142,7 @@ func (c *catchUp) handleCatchUpResponse(msg *CatchUpResponse) error {
 
 	// set prevotes and precommits in db
 	if err = c.grandpa.grandpaState.SetPrevotes(msg.Round, msg.SetID, msg.PreVoteJustification); err != nil {
-		return err
+		return fmt.Errorf("cannot set pre votes in grandpa state: %w", err)
 	}
 
 	if err = c.grandpa.grandpaState.SetPrecommits(msg.Round, msg.SetID, msg.PreCommitJustification); err != nil {
