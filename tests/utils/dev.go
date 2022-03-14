@@ -6,12 +6,10 @@ package utils
 import (
 	"context"
 	"encoding/binary"
-	"strconv"
-	"testing"
+	"fmt"
 	"time"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/stretchr/testify/require"
 )
 
 // PauseBABE calls the endpoint dev_control with the params ["babe", "stop"]
@@ -23,40 +21,55 @@ func PauseBABE(ctx context.Context, rpcPort string) error {
 }
 
 // SlotDuration Calls dev endpoint for slot duration
-func SlotDuration(ctx context.Context, t *testing.T, rpcPort string) time.Duration {
+func SlotDuration(ctx context.Context, rpcPort string) (
+	slotDuration time.Duration, err error) {
 	endpoint := NewEndpoint(rpcPort)
 	const method = "dev_slotDuration"
 	const params = "[]"
-	slotDuration, err := PostRPC(ctx, endpoint, method, params)
-
+	data, err := PostRPC(ctx, endpoint, method, params)
 	if err != nil {
-		require.NoError(t, err)
+		return 0, fmt.Errorf("cannot post RPC: %w", err)
 	}
 
-	slotDurationDecoded := new(string)
-	err = DecodeRPC(slotDuration, slotDurationDecoded)
-	require.NoError(t, err)
+	var slotDurationString string
+	err = DecodeRPC(data, &slotDurationString)
+	if err != nil {
+		return 0, fmt.Errorf("cannot decode RPC response: %w", err)
+	}
 
-	slotDurationParsed := binary.LittleEndian.Uint64(common.MustHexToBytes(*slotDurationDecoded))
-	duration, err := time.ParseDuration(strconv.Itoa(int(slotDurationParsed)) + "ms")
-	require.NoError(t, err)
-	return duration
+	b, err := common.HexToBytes(slotDurationString)
+	if err != nil {
+		return 0, fmt.Errorf("malformed slot duration hex string: %w", err)
+	}
+
+	slotDurationUint64 := binary.LittleEndian.Uint64(b)
+
+	slotDuration = time.Millisecond * time.Duration(slotDurationUint64)
+
+	return slotDuration, nil
 }
 
 // EpochLength Calls dev endpoint for epoch length
-func EpochLength(ctx context.Context, t *testing.T, rpcPort string) uint64 {
+func EpochLength(ctx context.Context, rpcPort string) (epochLength uint64, err error) {
 	endpoint := NewEndpoint(rpcPort)
 	const method = "dev_epochLength"
 	const params = "[]"
-	epochLength, err := PostRPC(ctx, endpoint, method, params)
+	data, err := PostRPC(ctx, endpoint, method, params)
 	if err != nil {
-		require.NoError(t, err)
+		return 0, fmt.Errorf("cannot post RPC: %w", err)
 	}
 
-	epochLengthDecoded := new(string)
-	err = DecodeRPC(epochLength, epochLengthDecoded)
-	require.NoError(t, err)
+	var epochLengthHexString string
+	err = DecodeRPC(data, &epochLengthHexString)
+	if err != nil {
+		return 0, fmt.Errorf("cannot decode RPC response: %w", err)
+	}
 
-	epochLengthParsed := binary.LittleEndian.Uint64(common.MustHexToBytes(*epochLengthDecoded))
-	return epochLengthParsed
+	b, err := common.HexToBytes(epochLengthHexString)
+	if err != nil {
+		return 0, fmt.Errorf("malformed epoch length hex string: %w", err)
+	}
+
+	epochLength = binary.LittleEndian.Uint64(b)
+	return epochLength, nil
 }

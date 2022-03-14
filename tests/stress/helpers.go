@@ -26,13 +26,16 @@ var (
 
 // compareChainHeads calls getChainHead for each node in the array
 // it returns a map of chainHead hashes to node key names, and an error if the hashes don't all match
-func compareChainHeads(ctx context.Context, t *testing.T, nodes []utils.Node,
+func compareChainHeads(ctx context.Context, nodes []utils.Node,
 	getChainHeadTimeout time.Duration) (hashes map[common.Hash][]string, err error) {
 	hashes = make(map[common.Hash][]string)
 	for _, node := range nodes {
 		getChainHeadCtx, cancel := context.WithTimeout(ctx, getChainHeadTimeout)
-		header := utils.GetChainHead(getChainHeadCtx, t, node.RPCPort)
+		header, err := utils.GetChainHead(getChainHeadCtx, node.RPCPort)
 		cancel()
+		if err != nil {
+			return nil, fmt.Errorf("cannot get chain head for node index %d: %w", node.Idx, err)
+		}
 
 		logger.Infof("got header with hash %s from node with key %s", header.Hash(), node.Key)
 		hashes[header.Hash()] = append(hashes[header.Hash()], node.Key)
@@ -45,14 +48,15 @@ func compareChainHeads(ctx context.Context, t *testing.T, nodes []utils.Node,
 	return hashes, err
 }
 
-// compareChainHeadsWithRetry calls compareChainHeads, retrying up to maxRetries times if it errors.
-func compareChainHeadsWithRetry(ctx context.Context, t *testing.T, nodes []utils.Node,
+// compareChainHeadsWithRetry calls compareChainHeads,
+// retrying until the context gets canceled.
+func compareChainHeadsWithRetry(ctx context.Context, nodes []utils.Node,
 	getChainHeadTimeout time.Duration) error {
 	var hashes map[common.Hash][]string
 	var err error
 
 	for i := 0; i < maxRetries; i++ {
-		hashes, err = compareChainHeads(ctx, t, nodes, getChainHeadTimeout)
+		hashes, err = compareChainHeads(ctx, nodes, getChainHeadTimeout)
 		if err == nil {
 			break
 		}
@@ -93,7 +97,7 @@ func compareBlocksByNumber(ctx context.Context, t *testing.T, nodes []utils.Node
 			}
 
 			for { // retry until context gets canceled
-				result.hash, result.err = utils.GetBlockHash(ctx, t, node.RPCPort, num)
+				result.hash, result.err = utils.GetBlockHash(ctx, node.RPCPort, num)
 
 				if err := ctx.Err(); err != nil {
 					result.err = err
@@ -140,8 +144,9 @@ func compareFinalizedHeads(ctx context.Context, t *testing.T, nodes []utils.Node
 	hashes = make(map[common.Hash][]string)
 	for _, node := range nodes {
 		getFinalizedHeadCtx, cancel := context.WithTimeout(ctx, getFinalizedHeadTimeout)
-		hash := utils.GetFinalizedHead(getFinalizedHeadCtx, t, node.RPCPort)
+		hash, err := utils.GetFinalizedHead(getFinalizedHeadCtx, node.RPCPort)
 		cancel()
+		require.NoError(t, err)
 
 		logger.Infof("got finalised head with hash %s from node with key %s", hash, node.Key)
 		hashes[hash] = append(hashes[hash], node.Key)
@@ -160,17 +165,17 @@ func compareFinalizedHeads(ctx context.Context, t *testing.T, nodes []utils.Node
 
 // compareFinalizedHeadsByRound calls getFinalizedHeadByRound for each node in the array
 // it returns a map of finalisedHead hashes to node key names, and an error if the hashes don't all match
-func compareFinalizedHeadsByRound(ctx context.Context, t *testing.T, nodes []utils.Node,
+func compareFinalizedHeadsByRound(ctx context.Context, nodes []utils.Node,
 	round uint64, getFinalizedHeadByRoundTimeout time.Duration) (
 	hashes map[common.Hash][]string, err error) {
 	hashes = make(map[common.Hash][]string)
 	for _, node := range nodes {
 		getFinalizedHeadByRoundCtx, cancel := context.WithTimeout(ctx, getFinalizedHeadByRoundTimeout)
-		hash, err := utils.GetFinalizedHeadByRound(getFinalizedHeadByRoundCtx, t, node.RPCPort, round)
+		hash, err := utils.GetFinalizedHeadByRound(getFinalizedHeadByRoundCtx, node.RPCPort, round)
 		cancel()
 
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("cannot get finalized head for round %d: %w", round, err)
 		}
 
 		logger.Infof("got finalised head with hash %s from node with key %s at round %d", hash, node.Key, round)
@@ -190,14 +195,12 @@ func compareFinalizedHeadsByRound(ctx context.Context, t *testing.T, nodes []uti
 
 // compareFinalizedHeadsWithRetry calls compareFinalizedHeadsByRound, retrying up to maxRetries times if it errors.
 // it returns the finalised hash if it succeeds
-func compareFinalizedHeadsWithRetry(ctx context.Context, t *testing.T,
-	nodes []utils.Node, round uint64,
-	getFinalizedHeadByRoundTimeout time.Duration) (
-	hash common.Hash, err error) {
+func compareFinalizedHeadsWithRetry(ctx context.Context, nodes []utils.Node, round uint64,
+	getFinalizedHeadByRoundTimeout time.Duration) (hash common.Hash, err error) {
 	var hashes map[common.Hash][]string
 
 	for i := 0; i < maxRetries; i++ {
-		hashes, err = compareFinalizedHeadsByRound(ctx, t, nodes, round, getFinalizedHeadByRoundTimeout)
+		hashes, err = compareFinalizedHeadsByRound(ctx, nodes, round, getFinalizedHeadByRoundTimeout)
 		if err == nil {
 			break
 		}

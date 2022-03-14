@@ -29,7 +29,7 @@ func TestStress_Grandpa_OneAuthority(t *testing.T) {
 	ctx := context.Background()
 
 	const getChainHeadTimeout = time.Second
-	compareChainHeadsWithRetry(ctx, t, nodes, getChainHeadTimeout)
+	compareChainHeadsWithRetry(ctx, nodes, getChainHeadTimeout)
 
 	const getFinalizedHeadTimeout = time.Second
 	prev, _ := compareFinalizedHeads(ctx, t, nodes, getFinalizedHeadTimeout)
@@ -59,7 +59,7 @@ func TestStress_Grandpa_ThreeAuthorities(t *testing.T) {
 	numRounds := 5
 	for i := 1; i < numRounds+1; i++ {
 		const getFinalizedHeadByRoundTimeout = time.Second
-		fin, err := compareFinalizedHeadsWithRetry(ctx, t,
+		fin, err := compareFinalizedHeadsWithRetry(ctx,
 			nodes, uint64(i), getFinalizedHeadByRoundTimeout)
 		require.NoError(t, err)
 		t.Logf("finalised hash in round %d: %s", i, fin)
@@ -85,7 +85,7 @@ func TestStress_Grandpa_SixAuthorities(t *testing.T) {
 	numRounds := 10
 	for i := 1; i < numRounds+1; i++ {
 		const getFinalizedHeadByRoundTimeout = time.Second
-		fin, err := compareFinalizedHeadsWithRetry(ctx, t, nodes,
+		fin, err := compareFinalizedHeadsWithRetry(ctx, nodes,
 			uint64(i), getFinalizedHeadByRoundTimeout)
 		require.NoError(t, err)
 		t.Logf("finalised hash in round %d: %s", i, fin)
@@ -114,7 +114,7 @@ func TestStress_Grandpa_NineAuthorities(t *testing.T) {
 	numRounds := 3
 	for i := 1; i < numRounds+1; i++ {
 		const getFinalizedHeadByRoundTimeout = time.Second
-		fin, err := compareFinalizedHeadsWithRetry(ctx, t, nodes,
+		fin, err := compareFinalizedHeadsWithRetry(ctx, nodes,
 			uint64(i), getFinalizedHeadByRoundTimeout)
 		require.NoError(t, err)
 		t.Logf("finalised hash in round %d: %s", i, fin)
@@ -152,7 +152,7 @@ func TestStress_Grandpa_CatchUp(t *testing.T) {
 	numRounds := 10
 	for i := 1; i < numRounds+1; i++ {
 		const getFinalizedHeadByRoundTimeout = time.Second
-		fin, err := compareFinalizedHeadsWithRetry(ctx, t, nodes, uint64(i), getFinalizedHeadByRoundTimeout)
+		fin, err := compareFinalizedHeadsWithRetry(ctx, nodes, uint64(i), getFinalizedHeadByRoundTimeout)
 		require.NoError(t, err)
 		t.Logf("finalised hash in round %d: %s", i, fin)
 	}

@@ -145,7 +145,7 @@ func TestSync_Basic(t *testing.T) {
 	ctx := context.Background()
 	const getChainHeadTimeout = time.Second
 
-	err = compareChainHeadsWithRetry(ctx, t, nodes, getChainHeadTimeout)
+	err = compareChainHeadsWithRetry(ctx, nodes, getChainHeadTimeout)
 	require.NoError(t, err)
 }
 
@@ -168,20 +168,23 @@ func TestSync_MultipleEpoch(t *testing.T) {
 	ctx := context.Background()
 
 	slotDurationCtx, cancel := context.WithTimeout(ctx, time.Second)
-	slotDuration := utils.SlotDuration(slotDurationCtx, t, nodes[0].RPCPort)
+	slotDuration, err := utils.SlotDuration(slotDurationCtx, nodes[0].RPCPort)
 	cancel()
+	require.NoError(t, err)
 
 	epochLengthCtx, cancel := context.WithTimeout(ctx, time.Second)
-	epochLength := utils.EpochLength(epochLengthCtx, t, nodes[0].RPCPort)
+	epochLength, err := utils.EpochLength(epochLengthCtx, nodes[0].RPCPort)
 	cancel()
+	require.NoError(t, err)
 
 	// Wait for epoch to pass
 	time.Sleep(time.Duration(uint64(slotDuration.Nanoseconds()) * epochLength))
 
 	// Just checking that everythings operating as expected
 	getChainHeadCtx, cancel := context.WithTimeout(ctx, time.Second)
-	header := utils.GetChainHead(getChainHeadCtx, t, nodes[0].RPCPort)
+	header, err := utils.GetChainHead(getChainHeadCtx, nodes[0].RPCPort)
 	cancel()
+	require.NoError(t, err)
 
 	currentHeight := header.Number
 	for i := uint(0); i < currentHeight; i++ {
@@ -250,7 +253,7 @@ func TestSync_Bench(t *testing.T) {
 
 	for {
 		getChainHeadCtx, cancel := context.WithTimeout(ctx, time.Second)
-		header, err := utils.GetChainHeadWithError(getChainHeadCtx, t, alice.RPCPort)
+		header, err := utils.GetChainHead(getChainHeadCtx, alice.RPCPort)
 		cancel()
 		if err != nil {
 			continue
@@ -293,7 +296,7 @@ func TestSync_Bench(t *testing.T) {
 		}
 
 		getChainHeadCtx, getChainHeadCancel := context.WithTimeout(ctx, time.Second)
-		head, err := utils.GetChainHeadWithError(getChainHeadCtx, t, bob.RPCPort)
+		head, err := utils.GetChainHead(getChainHeadCtx, bob.RPCPort)
 		getChainHeadCancel()
 
 		if err != nil {
@@ -472,8 +475,9 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 
 	// get starting header so that we can lookup blocks by number later
 	getChainHeadCtx, getChainHeadCancel := context.WithTimeout(ctx, time.Second)
-	prevHeader := utils.GetChainHead(getChainHeadCtx, t, nodes[idx].RPCPort)
+	prevHeader, err := utils.GetChainHead(getChainHeadCtx, nodes[idx].RPCPort)
 	getChainHeadCancel()
+	require.NoError(t, err)
 
 	// Send the extrinsic
 	hash, err := api.RPC.Author.SubmitExtrinsic(ext)
@@ -496,8 +500,9 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 	}
 
 	getChainHeadCtx, cancel := context.WithTimeout(ctx, time.Second)
-	header := utils.GetChainHead(getChainHeadCtx, t, nodes[idx].RPCPort)
+	header, err := utils.GetChainHead(getChainHeadCtx, nodes[idx].RPCPort)
 	cancel()
+	require.NoError(t, err)
 
 	// search from child -> parent blocks for extrinsic
 	var (
@@ -507,8 +512,9 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 
 	for i := 0; i < maxRetries; i++ {
 		getBlockCtx, getBlockCancel := context.WithTimeout(ctx, time.Second)
-		block := utils.GetBlock(getBlockCtx, t, nodes[idx].RPCPort, header.ParentHash)
+		block, err := utils.GetBlock(getBlockCtx, nodes[idx].RPCPort, header.ParentHash)
 		getBlockCancel()
+		require.NoError(t, err)
 
 		if block == nil {
 			// couldn't get block, increment retry counter
@@ -744,14 +750,15 @@ func TestStress_SecondarySlotProduction(t *testing.T) {
 				fmt.Printf("%d iteration\n", i)
 
 				getBlockHashCtx, cancel := context.WithTimeout(ctx, time.Second)
-				hash, err := utils.GetBlockHash(getBlockHashCtx, t, nodes[0].RPCPort, fmt.Sprintf("%d", i))
+				hash, err := utils.GetBlockHash(getBlockHashCtx, nodes[0].RPCPort, fmt.Sprintf("%d", i))
 				cancel()
 
 				require.NoError(t, err)
 
 				getBlockCtx, cancel := context.WithTimeout(ctx, time.Second)
-				block := utils.GetBlock(getBlockCtx, t, nodes[0].RPCPort, hash)
+				block, err := utils.GetBlock(getBlockCtx, nodes[0].RPCPort, hash)
 				cancel()
+				require.NoError(t, err)
 
 				header := block.Header
 

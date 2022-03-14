@@ -33,8 +33,10 @@ func TestNetwork_MaxPeers(t *testing.T) {
 	for i, node := range nodes {
 		const getPeersTimeout = time.Second
 		getPeersCtx, cancel := context.WithTimeout(ctx, getPeersTimeout)
-		peers := utils.GetPeers(getPeersCtx, t, node.RPCPort)
+		peers, err := utils.GetPeers(getPeersCtx, node.RPCPort)
 		cancel()
+
+		require.NoError(t, err)
 
 		t.Logf("node %d: peer count=%d", i, len(peers))
 		require.LessOrEqual(t, len(peers), 5)
