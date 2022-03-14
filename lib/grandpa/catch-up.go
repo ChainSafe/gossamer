@@ -41,8 +41,7 @@ func (c *catchUp) do(to peer.ID, round uint64, setID uint64) error {
 	if err := c.sendCatchUpRequest(
 		to, newCatchUpRequest(round, setID),
 	); err != nil {
-		logger.Debugf("failed to send catch up request: %s", err.Error())
-		return err
+		return fmt.Errorf("failed to send catch up request: %w", err)
 	}
 
 	logger.Debugf("successfully sent a catch up request to node %s, for round number %d and set ID %d",
