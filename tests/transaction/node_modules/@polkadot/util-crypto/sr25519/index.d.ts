@@ -1,9 +1,0 @@
-export { sr25519Agreement } from './agreement';
-export { sr25519DeriveHard } from './deriveHard';
-export { sr25519DerivePublic } from './derivePublic';
-export { sr25519DeriveSoft } from './deriveSoft';
-export { sr25519PairFromSeed } from './pair/fromSeed';
-export { sr25519Sign } from './sign';
-export { sr25519Verify } from './verify';
-export { sr25519VrfSign } from './vrfSign';
-export { sr25519VrfVerify } from './vrfVerify';
