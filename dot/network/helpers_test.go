@@ -111,7 +111,7 @@ func (s *testStreamHandler) readStream(stream libp2pnetwork.Stream,
 	}
 }
 
-var starting, _ = variadic.NewUint64OrHash(uint64(1))
+var starting, _ = variadic.NewUint32OrHash(uint32(1))
 
 var one = uint32(1)
 

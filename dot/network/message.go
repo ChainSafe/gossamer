@@ -76,7 +76,7 @@ func (sd SyncDirection) String() string {
 // BlockRequestMessage is sent to request some blocks from a peer
 type BlockRequestMessage struct {
 	RequestedData byte
-	StartingBlock variadic.Uint64OrHash // first byte 0 = block hash (32 byte), first byte 1 = block number (int64)
+	StartingBlock variadic.Uint32OrHash // first byte 0 = block hash (32 byte), first byte 1 = block number (uint32)
 	EndBlockHash  *common.Hash
 	Direction     SyncDirection // 0 = ascending, 1 = descending
 	Max           *uint32
@@ -133,14 +133,14 @@ func (bm *BlockRequestMessage) Encode() ([]byte, error) {
 		msg.FromBlock = &pb.BlockRequest_Hash{
 			Hash: hash[:],
 		}
-	} else if bm.StartingBlock.IsUint64() {
-		buf := make([]byte, 8)
-		binary.LittleEndian.PutUint64(buf, bm.StartingBlock.Uint64())
+	} else if bm.StartingBlock.IsUint32() {
+		buf := make([]byte, 4)
+		binary.LittleEndian.PutUint32(buf, bm.StartingBlock.Uint32())
 		msg.FromBlock = &pb.BlockRequest_Number{
 			Number: buf,
 		}
 	} else {
-		return nil, errors.New("invalid StartingBlock in messsage")
+		return nil, errInvalidStartingBlockType
 	}
 
 	return proto.Marshal(msg)
@@ -155,21 +155,21 @@ func (bm *BlockRequestMessage) Decode(in []byte) error {
 	}
 
 	var (
-		startingBlock *variadic.Uint64OrHash
+		startingBlock *variadic.Uint32OrHash
 		endBlockHash  *common.Hash
 		max           *uint32
 	)
 
 	switch from := msg.FromBlock.(type) {
 	case *pb.BlockRequest_Hash:
-		startingBlock, err = variadic.NewUint64OrHash(common.BytesToHash(from.Hash))
+		startingBlock, err = variadic.NewUint32OrHash(common.BytesToHash(from.Hash))
 	case *pb.BlockRequest_Number:
-		// TODO: we are receiving block requests w/ 4-byte From field; this should probably be
-		// 4-bytes as it represents a block number which is uint32 (#1854)
-		if len(from.Number) != 8 {
-			return errors.New("invalid BlockResponseMessage.From; uint64 is not 8 bytes")
+		if len(from.Number) != 4 {
+			return fmt.Errorf("%w expected 4 bytes, got %d bytes", errBlockRequestFromNumberInvalid, len(from.Number))
 		}
-		startingBlock, err = variadic.NewUint64OrHash(binary.LittleEndian.Uint64(from.Number))
+
+		number := binary.LittleEndian.Uint32(from.Number)
+		startingBlock, err = variadic.NewUint32OrHash(number)
 	default:
 		err = errors.New("invalid StartingBlock")
 	}
