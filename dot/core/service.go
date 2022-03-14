@@ -385,7 +385,9 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 				continue
 			}
 
-			externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))
+			externalExt := make(types.Extrinsic, 1, 1+len(ext))
+			externalExt[0] = byte(types.TxnExternal)
+			externalExt = append(externalExt, ext...)
 			txv, err := rt.ValidateTransaction(externalExt)
 			if err != nil {
 				logger.Debugf("failed to validate transaction for extrinsic %s: %s", ext, err)

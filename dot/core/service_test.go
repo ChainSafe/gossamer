@@ -80,12 +80,12 @@ func generateExtrinsic(t *testing.T) (ext types.Extrinsic, externExt types.Extri
 
 	// Create the extrinsic
 	extrinsic := ctypes.NewExtrinsic(call)
-	genHash, err := ctypes.NewHashFromHexString("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
+	testGenHash := ctypes.NewHash(common.Hash{}.ToBytes())
 	require.NoError(t, err)
 	o := ctypes.SignatureOptions{
-		BlockHash:          genHash,
+		BlockHash:          testGenHash,
 		Era:                ctypes.ExtrinsicEra{IsImmortalEra: true},
-		GenesisHash:        genHash,
+		GenesisHash:        testGenHash,
 		Nonce:              ctypes.NewUCompactFromUInt(uint64(0)),
 		SpecVersion:        ctypes.U32(rv.SpecVersion()),
 		Tip:                ctypes.NewUCompactFromUInt(0),

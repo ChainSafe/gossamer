@@ -1,0 +1,14 @@
+import type { AsmCreator, WasmCryptoInstance } from './types';
+declare type PopFirst<T extends unknown[]> = T extends [WasmCryptoInstance, ...infer N] ? N : [];
+export declare function initWasm(wasmBytes: Uint8Array | null, asmFn: AsmCreator | null, wbg: Record<string, WebAssembly.ImportValue>): Promise<void>;
+export declare function withWasm<T, F extends (wasm: WasmCryptoInstance, ...params: never[]) => T>(fn: F): (...params: PopFirst<Parameters<F>>) => ReturnType<F>;
+export declare function getWasm(): WasmCryptoInstance;
+export declare function getInt32(): Int32Array;
+export declare function getUint8(): Uint8Array;
+export declare function getU8a(ptr: number, len: number): Uint8Array;
+export declare function getString(ptr: number, len: number): string;
+export declare function allocU8a(arg: Uint8Array): [number, number];
+export declare function allocString(arg: string): [number, number];
+export declare function resultU8a(): Uint8Array;
+export declare function resultString(): string;
+export {};

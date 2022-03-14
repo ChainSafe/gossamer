@@ -1,0 +1,10 @@
+export declare function __wbindgen_is_undefined(idx: number): boolean;
+export declare function __wbindgen_throw(ptr: number, len: number): boolean;
+export declare function __wbg_self_1b7a39e3a92c949c(): number;
+export declare function __wbg_require_604837428532a733(ptr: number, len: number): never;
+export declare function __wbg_crypto_968f1772287e2df0(_idx: number): number;
+export declare function __wbg_getRandomValues_a3d34b4fee3c2869(_idx: number): number;
+export declare function __wbg_getRandomValues_f5e14ab7ac8e995d(_arg0: number, ptr: number, len: number): void;
+export declare function __wbg_randomFillSync_d5bd2d655fdf256a(_idx: number, _ptr: number, _len: number): never;
+export declare function __wbindgen_object_drop_ref(idx: number): void;
+export declare function abort(): never;

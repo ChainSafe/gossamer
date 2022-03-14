@@ -1,0 +1,77 @@
+{
+  "author": "Jaco Greeff <jacogr@gmail.com>",
+  "bugs": "https://github.com/polkadot-js/wasm/issues",
+  "contributors": [],
+  "description": "A wasm interface layer for use by @polkadot/util-crypto",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "homepage": "https://github.com/polkadot-js/wasm/tree/master/packages/wasm-crypto#readme",
+  "license": "Apache-2.0",
+  "maintainers": [],
+  "name": "@polkadot/wasm-crypto",
+  "repository": {
+    "directory": "packages/wasm-crypto",
+    "type": "git",
+    "url": "https://github.com/polkadot-js/wasm.git"
+  },
+  "sideEffects": [
+    "./detectPackage.js",
+    "./detectPackage.cjs"
+  ],
+  "type": "module",
+  "version": "4.5.1",
+  "main": "index.js",
+  "dependencies": {
+    "@babel/runtime": "^7.16.3",
+    "@polkadot/wasm-crypto-asmjs": "^4.5.1",
+    "@polkadot/wasm-crypto-wasm": "^4.5.1"
+  },
+  "devDependencies": {
+    "@polkadot/util": "^8.0.5",
+    "@polkadot/x-randomvalues": "^8.0.5"
+  },
+  "peerDependencies": {
+    "@polkadot/util": "*",
+    "@polkadot/x-randomvalues": "*"
+  },
+  "exports": {
+    ".": {
+      "require": "./index.cjs",
+      "default": "./index.js"
+    },
+    "./bridge": {
+      "require": "./bridge.cjs",
+      "default": "./bridge.js"
+    },
+    "./bridge.d.ts": "./bridge.d.ts",
+    "./bundle": {
+      "require": "./bundle.cjs",
+      "default": "./bundle.js"
+    },
+    "./bundle.d.ts": "./bundle.d.ts",
+    "./detectPackage": {
+      "require": "./detectPackage.cjs",
+      "default": "./detectPackage.js"
+    },
+    "./detectPackage.d.ts": "./detectPackage.d.ts",
+    "./imports": {
+      "require": "./imports.cjs",
+      "default": "./imports.js"
+    },
+    "./imports.d.ts": "./imports.d.ts",
+    "./index.d.ts": "./index.d.ts",
+    "./package.json": "./package.json",
+    "./packageInfo": {
+      "require": "./packageInfo.cjs",
+      "default": "./packageInfo.js"
+    },
+    "./packageInfo.d.ts": "./packageInfo.d.ts",
+    "./README.md": "./README.md",
+    "./types": {
+      "require": "./types.cjs",
+      "default": "./types.js"
+    },
+    "./types.d.ts": "./types.d.ts"
+  }
+}

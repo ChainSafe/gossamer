@@ -1,0 +1,10 @@
+import type { Struct, bool, u8 } from '@polkadot/types-codec';
+import type { Balance, Perbill } from '@polkadot/types/interfaces/runtime';
+/** @name WeightToFeeCoefficient */
+export interface WeightToFeeCoefficient extends Struct {
+    readonly coeffInteger: Balance;
+    readonly coeffFrac: Perbill;
+    readonly negative: bool;
+    readonly degree: u8;
+}
+export declare type PHANTOM_SUPPORT = 'support';

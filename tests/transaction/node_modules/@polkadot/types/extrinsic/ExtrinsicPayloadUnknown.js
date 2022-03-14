@@ -1,0 +1,18 @@
+// Copyright 2017-2022 @polkadot/types authors & contributors
+// SPDX-License-Identifier: Apache-2.0
+import { Struct } from '@polkadot/types-codec';
+/**
+ * @name GenericExtrinsicPayloadUnknown
+ * @description
+ * A default handler for payloads where the version is not known (default throw)
+ */
+
+export class GenericExtrinsicPayloadUnknown extends Struct {
+  constructor(registry, value, {
+    version = 0
+  } = {}) {
+    super(registry, {});
+    throw new Error(`Unsupported extrinsic payload version ${version}`);
+  }
+
+}

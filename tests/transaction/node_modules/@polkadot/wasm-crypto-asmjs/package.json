@@ -1,0 +1,63 @@
+{
+  "author": "Jaco Greeff <jacogr@gmail.com>",
+  "bugs": "https://github.com/polkadot-js/wasm/issues",
+  "contributors": [],
+  "description": "Asm.js content for wasm-crypto",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "homepage": "https://github.com/polkadot-js/wasm/tree/master/packages/wasm-crypto-asmjs#readme",
+  "license": "Apache-2.0",
+  "maintainers": [],
+  "name": "@polkadot/wasm-crypto-asmjs",
+  "repository": {
+    "directory": "packages/wasm-crypto-asmjs",
+    "type": "git",
+    "url": "https://github.com/polkadot-js/wasm.git"
+  },
+  "sideEffects": false,
+  "type": "module",
+  "version": "4.5.1",
+  "browser": "empty.js",
+  "main": "empty.js",
+  "react-native": "data.js",
+  "dependencies": {
+    "@babel/runtime": "^7.16.3"
+  },
+  "exports": {
+    ".": {
+      "browser": {
+        "require": "./empty.cjs",
+        "default": "./empty.js"
+      },
+      "node": {
+        "require": "./empty.cjs",
+        "default": "./empty.js"
+      },
+      "react-native": {
+        "require": "./data.cjs",
+        "default": "./data.js"
+      }
+    },
+    "./cjs/data": "./cjs/data.js",
+    "./cjs/data.d.ts": "./cjs/data.d.ts",
+    "./cjs/package.json": "./cjs/package.json",
+    "./data": {
+      "require": "./data.cjs",
+      "default": "./data.js"
+    },
+    "./data.d.ts": "./data.d.ts",
+    "./empty": {
+      "require": "./empty.cjs",
+      "default": "./empty.js"
+    },
+    "./empty.d.ts": "./empty.d.ts",
+    "./index.d.ts": "./empty.d.ts",
+    "./package.json": "./package.json",
+    "./packageInfo": {
+      "require": "./packageInfo.cjs",
+      "default": "./packageInfo.js"
+    },
+    "./packageInfo.d.ts": "./packageInfo.d.ts"
+  }
+}

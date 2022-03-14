@@ -11,17 +11,16 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
-	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/sync"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -34,7 +33,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/golang/mock/gomock"
-	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -49,8 +47,8 @@ type testAccountData struct {
 	FreeFrozen *scale.Uint128
 }
 
-func balanceKey(t *testing.T, pub []byte) []byte {
-	var bKey []byte
+func balanceKey(t *testing.T, pub []byte) (bKey []byte) {
+	t.Helper()
 	h0, err := common.Twox128Hash([]byte("System"))
 	require.NoError(t, err)
 	bKey = append(bKey, h0...)
@@ -61,23 +59,13 @@ func balanceKey(t *testing.T, pub []byte) []byte {
 	require.NoError(t, err)
 	bKey = append(bKey, h2...)
 	bKey = append(bKey, pub...)
-	return bKey
+	return
 }
 
 func newTestDigest(t *testing.T, slotNumber uint64) scale.VaryingDataTypeSlice {
+	t.Helper()
 	testBabeDigest := types.NewBabeDigest()
-	err := testBabeDigest.Set(types.BabePrimaryPreDigest{
-		VRFOutput: [sr25519.VRFOutputLength]byte{
-			0, 91, 50, 25, 214, 94, 119, 36, 71, 216, 33,
-			152, 85, 184, 34, 120, 61, 161, 164, 223, 76,
-			53, 40, 246, 76, 38, 235, 204, 43, 31, 179, 28},
-		VRFProof: [sr25519.VRFProofLength]byte{
-			120, 23, 235, 159, 115, 122, 207, 206, 123, 232,
-			75, 243, 115, 255, 131, 181, 219, 241, 200, 206,
-			21, 22, 238, 16, 68, 49, 86, 99, 76, 139, 39, 0,
-			102, 106, 181, 136, 97, 141, 187, 1, 234, 183, 241,
-			28, 27, 229, 133, 8, 32, 246, 245, 206, 199, 142,
-			134, 124, 226, 217, 95, 30, 176, 246, 5, 3},
+	err := testBabeDigest.Set(types.BabeSecondaryPlainPreDigest{
 		AuthorityIndex: 17,
 		SlotNumber:     slotNumber,
 	})
@@ -104,7 +92,8 @@ func newTestDigest(t *testing.T, slotNumber uint64) scale.VaryingDataTypeSlice {
 }
 
 func generateTestValidRemarkTxns(t *testing.T, pubKey []byte, accInfo types.AccountInfo) ([]byte, runtime.Instance) {
-	projectRootPath := utils.GetProjectRootPathTest(t) + "/chain/gssmr/genesis.json"
+	t.Helper()
+	projectRootPath := filepath.Join(utils.GetProjectRootPathTest(t), "chain/gssmr/genesis.json")
 	gen, err := genesis.NewGenesisFromJSONRaw(projectRootPath)
 	require.NoError(t, err)
 
@@ -114,8 +103,9 @@ func generateTestValidRemarkTxns(t *testing.T, pubKey []byte, accInfo types.Acco
 	genState, err := storage.NewTrieState(genTrie)
 	require.NoError(t, err)
 
-	nodeStorage := runtime.NodeStorage{}
-	nodeStorage.BaseDB = runtime.NewInMemoryDB(t)
+	nodeStorage := runtime.NodeStorage{
+		BaseDB: runtime.NewInMemoryDB(t),
+	}
 	cfg := &wasmer.Config{
 		InstanceConfig: runtime.InstanceConfig{
 			Storage:     genState,
@@ -142,11 +132,13 @@ func generateTestValidRemarkTxns(t *testing.T, pubKey []byte, accInfo types.Acco
 	}
 
 	// Hash of encrypted centrifuge extrinsic
+	testCallArguments := []byte{0xab, 0xcd}
 	extHex := runtime.NewTestExtrinsic(t, rt, genesisHeader.Hash(), genesisHeader.Hash(),
-		0, "System.remark", []byte{0xab, 0xcd})
+		0, "System.remark", testCallArguments)
 
 	extBytes := common.MustHexToBytes(extHex)
-	extBytes = append([]byte{byte(types.TxnExternal)}, extBytes...)
+	const txnType = byte(types.TxnExternal)
+	extBytes = append([]byte{txnType}, extBytes...)
 
 	runtime.InitializeRuntimeToTest(t, rt, genesisHeader.Hash())
 	return extBytes, rt
@@ -319,12 +311,7 @@ func TestService_HasKey_UnknownType(t *testing.T) {
 		Keystore: ks,
 	}
 
-	ctrl := gomock.NewController(t)
-	digestHandler := NewMockDigestHandler(ctrl)
-	cfg.DigestHandler = digestHandler
-
 	s := NewTestService(t, cfg)
-
 	res, err := s.HasKey(kr.Alice().Public().Hex(), "xxxx")
 	require.EqualError(t, err, "invalid keystore name")
 	require.False(t, res)
@@ -586,7 +573,7 @@ func TestMaintainTransactionPool_BlockWithExtrinsics(t *testing.T) {
 		res = append(res, tx)
 	}
 	// Extrinsic is removed. so empty res
-	require.Equal(t, []*transaction.ValidTransaction{}, res)
+	require.Empty(t, res)
 }
 
 func TestService_GetRuntimeVersion(t *testing.T) {
@@ -610,12 +597,7 @@ func TestService_HandleSubmittedExtrinsic(t *testing.T) {
 	cfg.DigestHandler = digestHandler
 
 	net := NewMockNetwork(ctrl)
-	net.EXPECT().GossipMessage(gomock.AssignableToTypeOf(new(network.TransactionMessage))).AnyTimes()
-	net.EXPECT().IsSynced().Return(true).AnyTimes()
-	net.EXPECT().ReportPeer(
-		gomock.AssignableToTypeOf(peerset.ReputationChange{}),
-		gomock.AssignableToTypeOf(peer.ID("")),
-	).AnyTimes()
+	net.EXPECT().GossipMessage(gomock.AssignableToTypeOf(new(network.TransactionMessage)))
 	cfg.Network = net
 	s := NewTestService(t, cfg)
 
