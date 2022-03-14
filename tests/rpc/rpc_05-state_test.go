@@ -37,7 +37,7 @@ func TestStateRPCResponseValidation(t *testing.T) {
 	ctx := context.Background()
 
 	getBlockHashCtx, cancel := context.WithTimeout(ctx, time.Second)
-	blockHash, err := utils.GetBlockHash(getBlockHashCtx, t, nodes[0].RPCPort, "")
+	blockHash, err := utils.GetBlockHash(getBlockHashCtx, nodes[0].RPCPort, "")
 	cancel()
 	require.NoError(t, err)
 
@@ -153,7 +153,7 @@ func TestStateRPCAPI(t *testing.T) {
 	ctx := context.Background()
 
 	getBlockHashCtx, cancel := context.WithTimeout(ctx, time.Second)
-	blockHash, err := utils.GetBlockHash(getBlockHashCtx, t, nodes[0].RPCPort, "")
+	blockHash, err := utils.GetBlockHash(getBlockHashCtx, nodes[0].RPCPort, "")
 	cancel()
 	require.NoError(t, err)
 

@@ -11,14 +11,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-
-	"github.com/stretchr/testify/require"
 )
 
 // PostRPC sends a payload using the method, host and params string given.
@@ -129,29 +126,37 @@ func DecodeRPC(body []byte, target interface{}) error {
 }
 
 // DecodeWebsocket will decode body into target interface
-func DecodeWebsocket(t *testing.T, body []byte, target interface{}) error {
+func DecodeWebsocket(body []byte, target interface{}) error {
 	decoder := json.NewDecoder(bytes.NewReader(body))
 	decoder.DisallowUnknownFields()
 
 	var response WebsocketResponse
 	err := decoder.Decode(&response)
-	require.Nil(t, err, string(body))
-	require.Equal(t, response.Version, "2.0")
+	if err != nil {
+		return fmt.Errorf("cannot decode websocket response: %w", err)
+	}
+
+	if response.Version != "2.0" {
+		return fmt.Errorf("%w: %s", ErrResponseVersion, response.Version)
+	}
 
 	if response.Error != nil {
-		return errors.New(response.Error.Message)
+		return fmt.Errorf("%w: %s (error code %d)",
+			ErrResponseError, response.Error.Message, response.Error.ErrorCode)
 	}
 
-	if response.Result != nil {
-		decoder = json.NewDecoder(bytes.NewReader(response.Result))
-	} else {
-		decoder = json.NewDecoder(bytes.NewReader(response.Params))
+	jsonRawMessage := response.Result
+	if jsonRawMessage == nil {
+		jsonRawMessage = response.Params
 	}
-
+	decoder = json.NewDecoder(bytes.NewReader(jsonRawMessage))
 	decoder.DisallowUnknownFields()
 
 	err = decoder.Decode(target)
-	require.Nil(t, err, string(body))
+	if err != nil {
+		return fmt.Errorf("cannot decode result or params of websocket response: %w", err)
+	}
+
 	return nil
 }
 
@@ -182,20 +187,26 @@ func NewEndpoint(port string) string {
 	return "http://" + HOSTNAME + ":" + port
 }
 
-func rpcLogsToDigest(t *testing.T, logs []string) scale.VaryingDataTypeSlice {
-	digest := types.NewDigest()
+func rpcLogsToDigest(logs []string) (digest scale.VaryingDataTypeSlice, err error) {
+	digest = types.NewDigest()
 
 	for _, l := range logs {
 		itemBytes, err := common.HexToBytes(l)
-		require.NoError(t, err)
+		if err != nil {
+			return digest, fmt.Errorf("malformed digest item hex string: %w", err)
+		}
 
-		var di = types.NewDigestItem()
+		di := types.NewDigestItem()
 		err = scale.Unmarshal(itemBytes, &di)
-		require.NoError(t, err)
+		if err != nil {
+			return digest, fmt.Errorf("malformed digest item bytes: %w", err)
+		}
 
 		err = digest.Add(di.Value())
-		require.NoError(t, err)
+		if err != nil {
+			return digest, fmt.Errorf("cannot add digest item to digest: %w", err)
+		}
 	}
 
-	return digest
+	return digest, nil
 }
