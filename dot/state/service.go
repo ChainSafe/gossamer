@@ -5,24 +5,18 @@ package state
 
 import (
 	"fmt"
-	"math/big"
 	"path/filepath"
 
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/internal/metrics"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/ChainSafe/chaindb"
-)
-
-const (
-	readyPoolTransactionsMetrics   = "gossamer/ready/pool/transaction/metrics"
-	readyPriorityQueueTransactions = "gossamer/ready/queue/transaction/metrics"
-	substrateNumberLeaves          = "gossamer/substrate_number_leaves/metrics"
 )
 
 var logger = log.NewFromGlobal(
@@ -43,14 +37,12 @@ type Service struct {
 	Grandpa     *GrandpaState
 	closeCh     chan interface{}
 
+	PrunerCfg pruner.Config
+	Telemetry telemetry.Client
+
 	// Below are for testing only.
 	BabeThresholdNumerator   uint64
 	BabeThresholdDenominator uint64
-
-	// Below are for state trie online pruner
-	PrunerCfg pruner.Config
-
-	Telemetry telemetry.Client
 }
 
 // Config is the default configuration used by state service.
@@ -59,6 +51,7 @@ type Config struct {
 	LogLevel  log.Level
 	PrunerCfg pruner.Config
 	Telemetry telemetry.Client
+	Metrics   metrics.IntervalConfig
 }
 
 // NewService create a new instance of Service
@@ -120,9 +113,13 @@ func (s *Service) Start() error {
 		return nil
 	}
 
-	var err error
+	tries, err := NewTries(trie.NewEmptyTrie())
+	if err != nil {
+		return fmt.Errorf("cannot create tries: %w", err)
+	}
+
 	// create block state
-	s.Block, err = NewBlockState(s.db, s.Telemetry)
+	s.Block, err = NewBlockState(s.db, tries, s.Telemetry)
 	if err != nil {
 		return fmt.Errorf("failed to create block state: %w", err)
 	}
@@ -142,7 +139,7 @@ func (s *Service) Start() error {
 	}
 
 	// create storage state
-	s.Storage, err = NewStorageState(s.db, s.Block, trie.NewEmptyTrie(), pr)
+	s.Storage, err = NewStorageState(s.db, s.Block, tries, pr)
 	if err != nil {
 		return fmt.Errorf("failed to create storage state: %w", err)
 	}
@@ -168,21 +165,18 @@ func (s *Service) Start() error {
 	}
 
 	num, _ := s.Block.BestBlockNumber()
-	logger.Info("created state service with head " +
-		s.Block.BestBlockHash().String() +
-		", highest number " + num.String() +
-		" and genesis hash " + s.Block.genesisHash.String())
+	logger.Infof(
+		"created state service with head %s, highest number %d and genesis hash %s",
+		s.Block.BestBlockHash(), num, s.Block.genesisHash.String())
 
-	// Start background goroutine to GC pruned keys.
-	go s.Storage.pruneStorage(s.closeCh)
 	return nil
 }
 
 // Rewind rewinds the chain to the given block number.
 // If the given number of blocks is greater than the chain height, it will rewind to genesis.
-func (s *Service) Rewind(toBlock int64) error {
+func (s *Service) Rewind(toBlock uint) error {
 	num, _ := s.Block.BestBlockNumber()
-	if toBlock > num.Int64() {
+	if toBlock > num {
 		return fmt.Errorf("cannot rewind, given height is higher than our current height")
 	}
 
@@ -190,7 +184,7 @@ func (s *Service) Rewind(toBlock int64) error {
 		"rewinding state from current height %s to desired height %d...",
 		num, toBlock)
 
-	root, err := s.Block.GetBlockByNumber(big.NewInt(toBlock))
+	root, err := s.Block.GetBlockByNumber(toBlock)
 	if err != nil {
 		return err
 	}
@@ -356,13 +350,4 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 	}
 
 	return s.db.Close()
-}
-
-// CollectGauge exports 2 metrics related to valid transaction pool and queue
-func (s *Service) CollectGauge() map[string]int64 {
-	return map[string]int64{
-		readyPoolTransactionsMetrics:   int64(s.Transaction.pool.Len()),
-		readyPriorityQueueTransactions: int64(s.Transaction.queue.Len()),
-		substrateNumberLeaves:          int64(len(s.Block.Leaves())),
-	}
 }

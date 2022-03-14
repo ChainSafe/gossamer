@@ -41,7 +41,7 @@ func Test_Branch_Copy(t *testing.T) {
 					nil, nil, &Leaf{Key: []byte{9}},
 				},
 				Dirty:      true,
-				hashDigest: []byte{5},
+				HashDigest: []byte{5},
 				Encoding:   []byte{6},
 			},
 			expectedBranch: &Branch{
@@ -51,7 +51,7 @@ func Test_Branch_Copy(t *testing.T) {
 					nil, nil, &Leaf{Key: []byte{9}},
 				},
 				Dirty:      true,
-				hashDigest: []byte{5},
+				HashDigest: []byte{5},
 				Encoding:   []byte{6},
 			},
 		},
@@ -83,7 +83,7 @@ func Test_Branch_Copy(t *testing.T) {
 			assert.Equal(t, testCase.expectedBranch, branchCopy)
 			testForSliceModif(t, testCase.branch.Key, branchCopy.Key)
 			testForSliceModif(t, testCase.branch.Value, branchCopy.Value)
-			testForSliceModif(t, testCase.branch.hashDigest, branchCopy.hashDigest)
+			testForSliceModif(t, testCase.branch.HashDigest, branchCopy.HashDigest)
 			testForSliceModif(t, testCase.branch.Encoding, branchCopy.Encoding)
 
 			testCase.branch.Children[15] = &Leaf{Key: []byte("modified")}
@@ -108,14 +108,14 @@ func Test_Leaf_Copy(t *testing.T) {
 				Key:        []byte{1, 2},
 				Value:      []byte{3, 4},
 				Dirty:      true,
-				hashDigest: []byte{5},
+				HashDigest: []byte{5},
 				Encoding:   []byte{6},
 			},
 			expectedLeaf: &Leaf{
 				Key:        []byte{1, 2},
 				Value:      []byte{3, 4},
 				Dirty:      true,
-				hashDigest: []byte{5},
+				HashDigest: []byte{5},
 				Encoding:   []byte{6},
 			},
 		},
@@ -135,7 +135,7 @@ func Test_Leaf_Copy(t *testing.T) {
 			assert.Equal(t, testCase.expectedLeaf, leafCopy)
 			testForSliceModif(t, testCase.leaf.Key, leafCopy.Key)
 			testForSliceModif(t, testCase.leaf.Value, leafCopy.Value)
-			testForSliceModif(t, testCase.leaf.hashDigest, leafCopy.hashDigest)
+			testForSliceModif(t, testCase.leaf.HashDigest, leafCopy.HashDigest)
 			testForSliceModif(t, testCase.leaf.Encoding, leafCopy.Encoding)
 		})
 	}

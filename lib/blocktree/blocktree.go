@@ -5,7 +5,6 @@ package blocktree
 
 import (
 	"fmt"
-	"math/big"
 	"sync"
 	"time"
 
@@ -13,7 +12,15 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/disiqueira/gotree"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
+
+var leavesGauge = promauto.NewGauge(prometheus.GaugeOpts{
+	Namespace: "gossamer_block",
+	Name:      "leaves_total",
+	Help:      "total number of blocktree leaves",
+})
 
 // Hash common.Hash
 type Hash = common.Hash
@@ -23,15 +30,15 @@ type BlockTree struct {
 	root   *node
 	leaves *leafMap
 	sync.RWMutex
-	runtime *sync.Map // map[Hash]runtime.Instance
+	runtimes *hashToRuntime
 }
 
 // NewEmptyBlockTree creates a BlockTree with a nil head
 func NewEmptyBlockTree() *BlockTree {
 	return &BlockTree{
-		root:    nil,
-		leaves:  newEmptyLeafMap(),
-		runtime: &sync.Map{},
+		root:     nil,
+		leaves:   newEmptyLeafMap(),
+		runtimes: newHashToRuntime(),
 	}
 }
 
@@ -47,15 +54,15 @@ func NewBlockTreeFromRoot(root *types.Header) *BlockTree {
 	}
 
 	return &BlockTree{
-		root:    n,
-		leaves:  newLeafMap(n),
-		runtime: &sync.Map{},
+		root:     n,
+		leaves:   newLeafMap(n),
+		runtimes: newHashToRuntime(),
 	}
 }
 
 // AddBlock inserts the block as child of its parent node
 // Note: Assumes block has no children
-func (bt *BlockTree) AddBlock(header *types.Header, arrivalTime time.Time) error {
+func (bt *BlockTree) AddBlock(header *types.Header, arrivalTime time.Time) (err error) {
 	bt.Lock()
 	defer bt.Unlock()
 
@@ -69,11 +76,18 @@ func (bt *BlockTree) AddBlock(header *types.Header, arrivalTime time.Time) error
 		return ErrBlockExists
 	}
 
-	number := big.NewInt(0)
-	number.Add(parent.number, big.NewInt(1))
+	number := parent.number + 1
 
-	if number.Cmp(header.Number) != 0 {
+	if number != header.Number {
 		return errUnexpectedNumber
+	}
+
+	var isPrimary bool
+	if header.Number != 0 {
+		isPrimary, err = types.IsPrimary(header)
+		if err != nil {
+			return fmt.Errorf("failed to check if block was primary: %w", err)
+		}
 	}
 
 	n := &node{
@@ -82,10 +96,13 @@ func (bt *BlockTree) AddBlock(header *types.Header, arrivalTime time.Time) error
 		children:    []*node{},
 		number:      number,
 		arrivalTime: arrivalTime,
+		isPrimary:   isPrimary,
 	}
 
 	parent.addChild(n)
 	bt.leaves.replace(parent, n)
+
+	leavesGauge.Set(float64(len(bt.leaves.nodes())))
 	return nil
 }
 
@@ -99,9 +116,9 @@ func (bt *BlockTree) GetAllBlocksAtNumber(hash common.Hash) (hashes []common.Has
 		return hashes
 	}
 
-	number := big.NewInt(0).Add(bt.getNode(hash).number, big.NewInt(1))
+	number := bt.getNode(hash).number + 1
 
-	if bt.root.number.Cmp(number) == 0 {
+	if bt.root.number == number {
 		hashes = append(hashes, bt.root.hash)
 		return hashes
 	}
@@ -157,9 +174,10 @@ func (bt *BlockTree) Prune(finalised Hash) (pruned []Hash) {
 	}
 
 	for _, hash := range pruned {
-		bt.runtime.Delete(hash)
+		bt.runtimes.delete(hash)
 	}
 
+	leavesGauge.Set(float64(len(bt.leaves.nodes())))
 	return pruned
 }
 
@@ -186,18 +204,6 @@ func (bt *BlockTree) String() string {
 	metadata := fmt.Sprintf("Leaves:\n %s", leaves)
 
 	return fmt.Sprintf("%s\n%s\n", metadata, tree.Print())
-}
-
-// longestPath returns the path from the root to the deepest leaf in the blocktree
-func (bt *BlockTree) longestPath() []*node {
-	dl := bt.deepestLeaf()
-	var path []*node
-	for curr := dl; ; curr = curr.parent {
-		path = append([]*node{curr}, path...)
-		if curr.parent == nil {
-			return path
-		}
-	}
 }
 
 // subChain returns the path from the node with Hash start to the node with Hash end
@@ -230,27 +236,31 @@ func (bt *BlockTree) SubBlockchain(start, end Hash) ([]Hash, error) {
 
 }
 
-// deepestLeaf returns the deepest leaf in the block tree.
-func (bt *BlockTree) deepestLeaf() *node {
-	return bt.leaves.deepestLeaf()
+// best returns the best node in the block tree using the fork choice rule.
+func (bt *BlockTree) best() *node {
+	return bt.leaves.bestBlock()
 }
 
-// DeepestBlockHash returns the hash of the deepest block in the blocktree
-// If there is multiple deepest blocks, it returns the one with the earliest arrival time.
-func (bt *BlockTree) DeepestBlockHash() Hash {
+// BestBlockHash returns the hash of the block that is considered "best" based on the
+// fork-choice rule. It returns the head of the chain with the most primary blocks.
+// If there are multiple chains with the same number of primaries, it returns the one
+// with the highest head number.
+// If there are multiple chains with the same number of primaries and the same height,
+// it returns the one with the head block that arrived the earliest.
+func (bt *BlockTree) BestBlockHash() Hash {
 	bt.RLock()
 	defer bt.RUnlock()
 
 	if bt.leaves == nil {
+		// this shouldn't happen
 		return Hash{}
 	}
 
-	deepest := bt.leaves.deepestLeaf()
-	if deepest == nil {
-		return Hash{}
+	if len(bt.root.children) == 0 {
+		return bt.root.hash
 	}
 
-	return deepest.hash
+	return bt.best().hash
 }
 
 // IsDescendantOf returns true if the child is a descendant of parent, false otherwise.
@@ -322,34 +332,34 @@ func (bt *BlockTree) GetAllBlocks() []Hash {
 
 // GetHashByNumber returns the block hash with the given number that is on the best chain.
 // If the number is lower or higher than the numbers in the blocktree, an error is returned.
-func (bt *BlockTree) GetHashByNumber(num *big.Int) (common.Hash, error) {
+func (bt *BlockTree) GetHashByNumber(num uint) (common.Hash, error) {
 	bt.RLock()
 	defer bt.RUnlock()
 
-	deepest := bt.leaves.deepestLeaf()
-	if deepest.number.Cmp(num) == -1 {
+	best := bt.leaves.bestBlock()
+	if best.number < num {
 		return common.Hash{}, ErrNumGreaterThanHighest
 	}
 
-	if deepest.number.Cmp(num) == 0 {
-		return deepest.hash, nil
+	if best.number == num {
+		return best.hash, nil
 	}
 
-	if bt.root.number.Cmp(num) == 1 {
+	if bt.root.number > num {
 		return common.Hash{}, ErrNumLowerThanRoot
 	}
 
-	if bt.root.number.Cmp(num) == 0 {
+	if bt.root.number == num {
 		return bt.root.hash, nil
 	}
 
-	curr := deepest.parent
+	curr := best.parent
 	for {
 		if curr == nil {
 			return common.Hash{}, ErrNodeNotFound
 		}
 
-		if curr.number.Cmp(num) == 0 {
+		if curr.number == num {
 			return curr.hash, nil
 		}
 
@@ -397,14 +407,14 @@ func (bt *BlockTree) DeepCopy() *BlockTree {
 
 // StoreRuntime stores the runtime for corresponding block hash.
 func (bt *BlockTree) StoreRuntime(hash common.Hash, in runtime.Instance) {
-	bt.runtime.Store(hash, in)
+	bt.runtimes.set(hash, in)
 }
 
 // GetBlockRuntime returns block runtime for corresponding block hash.
 func (bt *BlockTree) GetBlockRuntime(hash common.Hash) (runtime.Instance, error) {
-	ins, ok := bt.runtime.Load(hash)
-	if !ok {
+	ins := bt.runtimes.get(hash)
+	if ins == nil {
 		return nil, ErrFailedToGetRuntime
 	}
-	return ins.(runtime.Instance), nil
+	return ins, nil
 }

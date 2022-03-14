@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math/big"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -21,19 +20,23 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 const (
-	finalityGrandpaRoundMetrics = "gossamer/finality/grandpa/round"
-	defaultGrandpaInterval      = time.Second
+	defaultGrandpaInterval = time.Second
 )
 
 var (
 	logger = log.NewFromGlobal(log.AddContext("pkg", "grandpa"))
-)
 
-var (
 	ErrUnsupportedSubround = errors.New("unsupported subround")
+	roundGauge             = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "gossamer_grandpa",
+		Name:      "round",
+		Help:      "current grandpa round",
+	})
 )
 
 // Service represents the current state of the grandpa protocol
@@ -192,12 +195,18 @@ func (s *Service) Start() error {
 	s.tracker.start()
 
 	go func() {
-		if err := s.initiate(); err != nil {
-			logger.Criticalf("failed to initiate: %s", err)
+		for {
+			// TODO: sometimes grandpa fails to initiate due to a "Key not found"
+			// error, this shouldn't happen.
+			if err := s.initiate(); err != nil {
+				logger.Criticalf("failed to initiate: %s", err)
+			}
+			time.Sleep(s.interval)
 		}
 	}()
 
 	go s.sendNeighbourMessage()
+
 	return nil
 }
 
@@ -230,16 +239,6 @@ func (s *Service) authorities() []*types.Authority {
 	return ad
 }
 
-// CollectGauge returns the map between metrics label and value
-func (s *Service) CollectGauge() map[string]int64 {
-	s.roundLock.Lock()
-	defer s.roundLock.Unlock()
-
-	return map[string]int64{
-		finalityGrandpaRoundMetrics: int64(s.state.round),
-	}
-}
-
 // updateAuthorities updates the grandpa voter set, increments the setID, and resets the round numbers
 func (s *Service) updateAuthorities() error {
 	currSetID, err := s.grandpaState.GetCurrentSetID()
@@ -263,6 +262,7 @@ func (s *Service) updateAuthorities() error {
 	// setting to 0 before incrementing indicates
 	// the setID has been increased
 	s.state.round = 0
+	roundGauge.Set(float64(s.state.round))
 
 	s.sendTelemetryAuthoritySet()
 
@@ -312,6 +312,7 @@ func (s *Service) initiateRound() error {
 			"found block finalised in higher round, updating our round to be %d...",
 			round)
 		s.state.round = round
+		roundGauge.Set(float64(s.state.round))
 		err = s.grandpaState.SetLatestRound(round)
 		if err != nil {
 			return err
@@ -355,7 +356,7 @@ func (s *Service) initiateRound() error {
 		return err
 	}
 
-	if best.Number.Int64() > 0 {
+	if best.Number > 0 {
 		return nil
 	}
 
@@ -374,7 +375,7 @@ func (s *Service) initiate() error {
 		}
 
 		err = s.playGrandpaRound()
-		if err == ErrServicePaused {
+		if errors.Is(err, ErrServicePaused) {
 			logger.Info("service paused")
 			// wait for service to un-pause
 			<-s.resumed
@@ -400,7 +401,7 @@ func (s *Service) waitForFirstBlock() {
 	for {
 		select {
 		case block := <-ch:
-			if block != nil && block.Header.Number.Int64() > 0 {
+			if block != nil && block.Header.Number > 0 {
 				return
 			}
 		case <-s.ctx.Done():
@@ -419,7 +420,7 @@ func (s *Service) handleIsPrimary() (bool, error) {
 		return false, nil
 	}
 
-	if s.head.Number.Int64() > 0 {
+	if s.head.Number > 0 {
 		s.primaryBroadcastCommitMessage()
 	}
 
@@ -430,7 +431,7 @@ func (s *Service) handleIsPrimary() (bool, error) {
 
 	pv := &Vote{
 		Hash:   best.Hash(),
-		Number: uint32(best.Number.Int64()),
+		Number: uint32(best.Number),
 	}
 
 	// send primary prevote message to network
@@ -618,7 +619,7 @@ func (s *Service) attemptToFinalize() error {
 			return err
 		}
 
-		if bfc.Number < uint32(s.head.Number.Int64()) || pc <= s.state.threshold() {
+		if bfc.Number < uint32(s.head.Number) || pc <= s.state.threshold() {
 			continue
 		}
 
@@ -647,7 +648,7 @@ func (s *Service) attemptToFinalize() error {
 
 		s.telemetry.SendMessage(telemetry.NewAfgFinalizedBlocksUpTo(
 			s.head.Hash(),
-			s.head.Number.String(),
+			fmt.Sprint(s.head.Number),
 		))
 
 		return nil
@@ -693,7 +694,7 @@ func (s *Service) determinePreVote() (*Vote, error) {
 	// otherwise, we simply choose the head of our chain.
 	primary := s.derivePrimary()
 	prm, has := s.loadVote(primary.PublicKeyBytes(), prevote)
-	if has && prm.Vote.Number >= uint32(s.head.Number.Int64()) {
+	if has && prm.Vote.Number >= uint32(s.head.Number) {
 		vote = &prm.Vote
 	} else {
 		header, err := s.blockState.BestBlockHeader()
@@ -705,9 +706,8 @@ func (s *Service) determinePreVote() (*Vote, error) {
 	}
 
 	nextChange := s.digestHandler.NextGrandpaAuthorityChange()
-	if uint64(vote.Number) > nextChange {
-		headerNum := new(big.Int).SetUint64(nextChange)
-		header, err := s.blockState.GetHeaderByNumber(headerNum)
+	if uint(vote.Number) > nextChange {
+		header, err := s.blockState.GetHeaderByNumber(nextChange)
 		if err != nil {
 			return nil, err
 		}
@@ -730,8 +730,8 @@ func (s *Service) determinePreCommit() (*Vote, error) {
 	s.mapLock.Unlock()
 
 	nextChange := s.digestHandler.NextGrandpaAuthorityChange()
-	if uint64(pvb.Number) > nextChange {
-		header, err := s.blockState.GetHeaderByNumber(big.NewInt(int64(nextChange)))
+	if uint(pvb.Number) > nextChange {
+		header, err := s.blockState.GetHeaderByNumber(nextChange)
 		if err != nil {
 			return nil, err
 		}
@@ -1160,7 +1160,7 @@ func (s *Service) getPossibleSelectedAncestors(votes []Vote, curr common.Hash,
 
 		// find common ancestor, check if votes for it is >threshold or not
 		pred, err := s.blockState.HighestCommonAncestor(v.Hash, curr)
-		if err == blocktree.ErrNodeNotFound {
+		if errors.Is(err, blocktree.ErrNodeNotFound) {
 			continue
 		} else if err != nil {
 			return nil, err
@@ -1182,7 +1182,7 @@ func (s *Service) getPossibleSelectedAncestors(votes []Vote, curr common.Hash,
 				return nil, err
 			}
 
-			selected[pred] = uint32(h.Number.Int64())
+			selected[pred] = uint32(h.Number)
 		} else {
 			selected, err = s.getPossibleSelectedAncestors(votes, pred, selected, stage, threshold)
 			if err != nil {
@@ -1309,9 +1309,10 @@ func (s *Service) GetSetID() uint64 {
 
 // GetRound return the current round number
 func (s *Service) GetRound() uint64 {
+	// Tim: I don't think we need to lock in this case.  Reading an int will
+	// not produce a concurrent read/write panic
 	s.roundLock.Lock()
 	defer s.roundLock.Unlock()
-
 	return s.state.round
 }
 

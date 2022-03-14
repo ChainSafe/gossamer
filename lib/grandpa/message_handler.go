@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"math/big"
 	"reflect"
 
 	"github.com/ChainSafe/chaindb"
@@ -89,7 +88,7 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourMessage, from peer
 	}
 
 	// ignore neighbour messages where our best finalised number is greater than theirs
-	if uint32(currFinalized.Number.Int64()) >= msg.Number {
+	if currFinalized.Number >= uint(msg.Number) {
 		return nil
 	}
 
@@ -103,7 +102,7 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourMessage, from peer
 	// we shouldn't send a catch up request for blocks we haven't synced yet
 	// as we won't be able to process them. We also receive neighbour messages
 	// each time a new block is finalized, so we get them very often.
-	if int64(msg.Number) > head.Int64() {
+	if msg.Number > uint32(head) {
 		logger.Debug("ignoring neighbour message, because we have not synced to this block number")
 		return nil
 	}
@@ -121,11 +120,9 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourMessage, from peer
 	}
 
 	// catch up only if we are behind by more than catchup threshold
-	if int(msg.Round - highestRound) > catchupThreshold {
+	if int(msg.Round-highestRound) > catchupThreshold {
 		logger.Debugf("lagging behind by %d rounds", msg.Round-highestRound)
 		return h.catchUp.do(from, msg.Round, msg.SetID)
-	} else {
-		logger.Debugf("not lagging behind by more than threshold rounds, msg.Round: %d, highestRound: %d", msg.Round, highestRound)
 	}
 
 	return nil
@@ -337,7 +334,7 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 		return err
 	}
 
-	setID, err := s.grandpaState.GetSetIDByBlockNumber(big.NewInt(int64(fj.Commit.Number)))
+	setID, err := s.grandpaState.GetSetIDByBlockNumber(uint(fj.Commit.Number))
 	if err != nil {
 		return fmt.Errorf("cannot get set ID from block number: %w", err)
 	}

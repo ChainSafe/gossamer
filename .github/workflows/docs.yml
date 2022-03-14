@@ -3,9 +3,11 @@ on:
   push:
     branches:
       - development
-    paths:
-      - .github/workflows/docs.yml
-      - "docs/**"
+    # Commented paths to avoid skipping required workflow
+    # See https://github.community/t/feature-request-conditional-required-checks/16761
+    # paths:
+    #   - .github/workflows/docs.yml
+    #   - "docs/**"
 
 jobs:
   build:
@@ -13,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout main
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Deploy docs
         uses: mhausenblas/mkdocs-deploy-gh-pages@master

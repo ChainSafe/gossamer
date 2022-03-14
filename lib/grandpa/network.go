@@ -186,7 +186,7 @@ func (s *Service) sendNeighbourMessage() {
 				Version: 1,
 				Round:   info.Round,
 				SetID:   info.SetID,
-				Number:  uint32(info.Header.Number.Int64()),
+				Number:  uint32(info.Header.Number),
 			}
 		}
 

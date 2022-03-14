@@ -7,7 +7,15 @@ import (
 	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
+
+var transactionPoolGauge = promauto.NewGauge(prometheus.GaugeOpts{
+	Namespace: "gossamer_state_transaction",
+	Name:      "pool_total",
+	Help:      "total number of transactions in ready pool",
+})
 
 // Pool represents the transaction pool
 type Pool struct {
@@ -20,6 +28,14 @@ func NewPool() *Pool {
 	return &Pool{
 		transactions: make(map[common.Hash]*ValidTransaction),
 	}
+}
+
+// Get returns a pointer to ValidTransaction or nil given an extinsic hash
+func (p *Pool) Get(extHash common.Hash) *ValidTransaction {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+
+	return p.transactions[extHash]
 }
 
 // Transactions returns all the transactions in the pool
@@ -43,6 +59,7 @@ func (p *Pool) Insert(tx *ValidTransaction) common.Hash {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.transactions[hash] = tx
+	transactionPoolGauge.Set(float64(len(p.transactions)))
 	return hash
 }
 
@@ -51,6 +68,7 @@ func (p *Pool) Remove(hash common.Hash) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	delete(p.transactions, hash)
+	transactionPoolGauge.Set(float64(len(p.transactions)))
 }
 
 // Len return the current length of the pool

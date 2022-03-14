@@ -6,7 +6,6 @@ package runtime
 import (
 	"context"
 	"io"
-	"math/big"
 	"net/http"
 	"os"
 	"path"
@@ -192,7 +191,7 @@ func NewTestExtrinsic(t *testing.T, rt Instance, genHash, blockHash common.Hash,
 
 	ext := ctypes.NewExtrinsic(c)
 	o := ctypes.SignatureOptions{
-		BlockHash:          ctypes.Hash(genHash),
+		BlockHash:          ctypes.Hash(blockHash),
 		Era:                ctypes.ExtrinsicEra{IsImmortalEra: false},
 		GenesisHash:        ctypes.Hash(genHash),
 		Nonce:              ctypes.NewUCompactFromUInt(nonce),
@@ -217,7 +216,7 @@ func InitializeRuntimeToTest(t *testing.T, instance Instance, parentHash common.
 
 	header := &types.Header{
 		ParentHash: parentHash,
-		Number:     big.NewInt(1),
+		Number:     1,
 		Digest:     types.NewDigest(),
 	}
 
@@ -225,7 +224,7 @@ func InitializeRuntimeToTest(t *testing.T, instance Instance, parentHash common.
 	require.NoError(t, err)
 
 	idata := types.NewInherentsData()
-	err = idata.SetInt64Inherent(types.Timstap0, uint64(time.Now().Unix()))
+	err = idata.SetInt64Inherent(types.Timstap0, 1)
 	require.NoError(t, err)
 
 	err = idata.SetInt64Inherent(types.Babeslot, 1)
@@ -263,7 +262,7 @@ func InitializeRuntimeToTest(t *testing.T, instance Instance, parentHash common.
 	require.NoError(t, err)
 	data, err := scale.Marshal(babeDigest)
 	require.NoError(t, err)
-	preDigest := types.NewBABEPreRuntimeDigest(data)
+	preDigest := *types.NewBABEPreRuntimeDigest(data)
 
 	digest := types.NewDigest()
 	err = digest.Add(preDigest)
@@ -272,7 +271,7 @@ func InitializeRuntimeToTest(t *testing.T, instance Instance, parentHash common.
 
 	expected := &types.Header{
 		ParentHash: header.ParentHash,
-		Number:     big.NewInt(1),
+		Number:     1,
 		Digest:     digest,
 	}
 

@@ -4,8 +4,6 @@
 package modules
 
 import (
-	"math/big"
-
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -41,7 +39,7 @@ type BlockAPI interface {
 	GetHeader(hash common.Hash) (*types.Header, error)
 	BestBlockHash() common.Hash
 	GetBlockByHash(hash common.Hash) (*types.Block, error)
-	GetHashByNumber(blockNumber *big.Int) (common.Hash, error)
+	GetHashByNumber(blockNumber uint) (common.Hash, error)
 	GetFinalisedHash(uint64, uint64) (common.Hash, error)
 	GetHighestFinalisedHash() (common.Hash, error)
 	HasJustification(hash common.Hash) (bool, error)
@@ -67,11 +65,12 @@ type NetworkAPI interface {
 	Stop() error
 	Start() error
 	IsStopped() bool
-	HighestBlock() int64
 	StartingBlock() int64
 	AddReservedPeers(addrs ...string) error
 	RemoveReservedPeers(addrs ...string) error
 }
+
+//go:generate mockery --name BlockProducerAPI --structname BlockProducerAPI --case underscore --keeptree
 
 // BlockProducerAPI is the interface for BlockProducer methods
 type BlockProducerAPI interface {
@@ -152,4 +151,11 @@ type RuntimeStorageAPI interface {
 // SyncStateAPI is the interface to interact with sync state.
 type SyncStateAPI interface {
 	GenSyncSpec(raw bool) (*genesis.Genesis, error)
+}
+
+//go:generate mockgen -destination=mock_sync_api_test.go -package $GOPACKAGE . SyncAPI
+
+// SyncAPI is the interface to interact with the sync service
+type SyncAPI interface {
+	HighestBlock() uint
 }

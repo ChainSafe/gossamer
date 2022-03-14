@@ -9,7 +9,6 @@ package modules
 import (
 	"encoding/hex"
 	"fmt"
-	"math/big"
 	"testing"
 
 	"github.com/ChainSafe/chaindb"
@@ -266,11 +265,18 @@ func setupChildStateStorage(t *testing.T) (*ChildStateModule, common.Hash) {
 	err = st.Storage.StoreTrie(tr, nil)
 	require.NoError(t, err)
 
+	digest := types.NewDigest()
+	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest.Add(*prd)
+	require.NoError(t, err)
+
 	b := &types.Block{
 		Header: types.Header{
 			ParentHash: bb.Header.Hash(),
-			Number:     big.NewInt(0).Add(big.NewInt(1), bb.Header.Number),
+			Number:     bb.Header.Number + 1,
 			StateRoot:  stateRoot,
+			Digest:     digest,
 		},
 		Body: types.Body{},
 	}

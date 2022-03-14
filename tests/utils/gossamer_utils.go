@@ -45,6 +45,10 @@ var (
 	GenesisOneAuth = filepath.Join(currentDir, "../utils/genesis_oneauth.json")
 	// GenesisThreeAuths is the genesis file that has 3 authorities
 	GenesisThreeAuths = filepath.Join(currentDir, "../utils/genesis_threeauths.json")
+	// GenesisTwoAuthsSecondaryVRF0_9_10 is the genesis file that has 2 authorities and block production by
+	// secondary VRF slots enabled
+	GenesisTwoAuthsSecondaryVRF0_9_10 = filepath.Join(currentDir, "../utils/genesis_two_auths_secondaryvrf_0_9_10.json")
+
 	// GenesisSixAuths is the genesis file that has 6 authorities
 	GenesisSixAuths = filepath.Join(currentDir, "../utils/genesis_sixauths.json")
 	// GenesisDefault is the default gssmr genesis file
@@ -135,6 +139,7 @@ func startGossamer(t *testing.T, node *Node, websocket bool) error {
 
 	node.Key = key
 
+	Logger.Infof("node basepath: %s", node.basePath)
 	// create log file
 	outfile, err := os.Create(filepath.Join(node.basePath, "log.out"))
 	if err != nil {
@@ -396,7 +401,12 @@ func TestDir(t *testing.T, name string) string {
 
 // GenerateGenesisThreeAuth generates Genesis file with three authority.
 func GenerateGenesisThreeAuth() {
-	bs, err := dot.BuildFromGenesis(utils.GetGssmrGenesisPath(), 3)
+	genesisPath, err := utils.GetGssmrGenesisPath()
+	if err != nil {
+		panic(err)
+	}
+
+	bs, err := dot.BuildFromGenesis(genesisPath, 3)
 	if err != nil {
 		Logger.Errorf("genesis file not found: %s", err)
 		os.Exit(1)
@@ -405,8 +415,8 @@ func GenerateGenesisThreeAuth() {
 }
 
 // GenerateGenesisSixAuth generates Genesis file with six authority.
-func GenerateGenesisSixAuth() {
-	bs, err := dot.BuildFromGenesis(utils.GetGssmrGenesisPath(), 6)
+func GenerateGenesisSixAuth(t *testing.T) {
+	bs, err := dot.BuildFromGenesis(utils.GetGssmrGenesisPathTest(t), 6)
 	if err != nil {
 		Logger.Errorf("genesis file not found: %s", err)
 		os.Exit(1)

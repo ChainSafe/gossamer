@@ -5,9 +5,8 @@ package node
 
 import (
 	"fmt"
-	"sync"
 
-	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/qdm12/gotree"
 )
 
 var _ Node = (*Leaf)(nil)
@@ -20,15 +19,13 @@ type Leaf struct {
 	// Dirty is true when the branch differs
 	// from the node stored in the database.
 	Dirty      bool
-	hashDigest []byte
+	HashDigest []byte
 	Encoding   []byte
-	encodingMu sync.RWMutex
 	// Generation is incremented on every trie Snapshot() call.
 	// Each node also contain a certain Generation number,
 	// which is updated to match the trie Generation once they are
 	// inserted, moved or iterated over.
 	Generation uint64
-	sync.RWMutex
 }
 
 // NewLeaf creates a new leaf using the arguments given.
@@ -47,8 +44,28 @@ func (l *Leaf) Type() Type {
 }
 
 func (l *Leaf) String() string {
-	if len(l.Value) > 1024 {
-		return fmt.Sprintf("leaf key=0x%x value (hashed)=0x%x dirty=%t", l.Key, common.MustBlake2bHash(l.Value), l.Dirty)
+	return l.StringNode().String()
+}
+
+// StringNode returns a gotree compatible node for String methods.
+func (l *Leaf) StringNode() (stringNode *gotree.Node) {
+	stringNode = gotree.New("Leaf")
+	stringNode.Appendf("Generation: %d", l.Generation)
+	stringNode.Appendf("Dirty: %t", l.Dirty)
+	stringNode.Appendf("Key: " + bytesToString(l.Key))
+	stringNode.Appendf("Value: " + bytesToString(l.Value))
+	stringNode.Appendf("Calculated encoding: " + bytesToString(l.Encoding))
+	stringNode.Appendf("Calculated digest: " + bytesToString(l.HashDigest))
+	return stringNode
+}
+
+func bytesToString(b []byte) (s string) {
+	switch {
+	case b == nil:
+		return "nil"
+	case len(b) <= 20:
+		return fmt.Sprintf("0x%x", b)
+	default:
+		return fmt.Sprintf("0x%x...%x", b[:8], b[len(b)-8:])
 	}
-	return fmt.Sprintf("leaf key=0x%x value=0x%x dirty=%t", l.Key, l.Value, l.Dirty)
 }

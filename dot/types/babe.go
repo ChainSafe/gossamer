@@ -10,6 +10,19 @@ import (
 // RandomnessLength is the length of the epoch randomness (32 bytes)
 const RandomnessLength = 32
 
+// AllowedSlots tells in what ways a slot can be claimed.
+type AllowedSlots byte
+
+// https://github.com/paritytech/substrate/blob/ded44948e2d5a398abcb4e342b0513cb690961bb/primitives/consensus/babe/src/lib.rs#L219-L226
+const (
+	// PrimarySlots only allows primary slots.
+	PrimarySlots AllowedSlots = iota
+	// PrimaryAndSecondaryPlainSlots allow primary and secondary plain slots.
+	PrimaryAndSecondaryPlainSlots
+	// PrimaryAndSecondaryVRFSlots allows primary and secondary VRF slots.
+	PrimaryAndSecondaryVRFSlots
+)
+
 // BabeConfiguration contains the genesis data for BABE
 //nolint:lll
 // see: https://github.com/paritytech/substrate/blob/426c26b8bddfcdbaf8d29f45b128e0864b57de1c/core/consensus/babe/primitives/src/lib.rs#L132
@@ -113,4 +126,32 @@ func GetSlotFromHeader(header *Header) (uint64, error) {
 	}
 
 	return slotNumber, nil
+}
+
+// IsPrimary returns true if the block was authored in a primary slot, false otherwise.
+func IsPrimary(header *Header) (bool, error) {
+	if header == nil {
+		return false, fmt.Errorf("cannot have nil header")
+	}
+
+	if len(header.Digest.Types) == 0 {
+		return false, fmt.Errorf("chain head missing digest")
+	}
+
+	preDigest, ok := header.Digest.Types[0].Value().(PreRuntimeDigest)
+	if !ok {
+		return false, fmt.Errorf("first digest item is not pre-digest: type=%T", header.Digest.Types[0].Value())
+	}
+
+	digest, err := DecodeBabePreDigest(preDigest.Data)
+	if err != nil {
+		return false, fmt.Errorf("cannot decode BabePreDigest from pre-digest: %s", err)
+	}
+
+	switch digest.(type) {
+	case BabePrimaryPreDigest:
+		return true, nil
+	default:
+		return false, nil
+	}
 }

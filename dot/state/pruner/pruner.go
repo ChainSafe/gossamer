@@ -4,6 +4,7 @@
 package pruner
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -355,7 +356,7 @@ func (p *FullNode) storeLastPrunedIndex(blockNum int64) error {
 
 func (p *FullNode) getLastPrunedIndex() (int64, error) {
 	val, err := p.journalDB.Get([]byte(lastPrunedKey))
-	if err == chaindb.ErrKeyNotFound {
+	if errors.Is(err, chaindb.ErrKeyNotFound) {
 		return 0, nil
 	}
 

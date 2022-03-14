@@ -25,6 +25,7 @@ type SystemModule struct {
 	storageAPI StorageAPI
 	txStateAPI TransactionStateAPI
 	blockAPI   BlockAPI
+	syncAPI    SyncAPI
 }
 
 // EmptyRequest represents an RPC request with no fields
@@ -67,7 +68,8 @@ type SyncStateResponse struct {
 
 // NewSystemModule creates a new API instance
 func NewSystemModule(net NetworkAPI, sys SystemAPI, core CoreAPI,
-	storage StorageAPI, txAPI TransactionStateAPI, blockAPI BlockAPI) *SystemModule {
+	storage StorageAPI, txAPI TransactionStateAPI, blockAPI BlockAPI,
+	syncAPI SyncAPI) *SystemModule {
 	return &SystemModule{
 		networkAPI: net,
 		systemAPI:  sys,
@@ -75,6 +77,7 @@ func NewSystemModule(net NetworkAPI, sys SystemAPI, core CoreAPI,
 		storageAPI: storage,
 		txStateAPI: txAPI,
 		blockAPI:   blockAPI,
+		syncAPI:    syncAPI,
 	}
 }
 
@@ -232,8 +235,8 @@ func (sm *SystemModule) SyncState(r *http.Request, req *EmptyRequest, res *SyncS
 	}
 
 	*res = SyncStateResponse{
-		CurrentBlock:  uint32(h.Number.Int64()),
-		HighestBlock:  uint32(sm.networkAPI.HighestBlock()),
+		CurrentBlock:  uint32(h.Number),
+		HighestBlock:  uint32(sm.syncAPI.HighestBlock()),
 		StartingBlock: uint32(sm.networkAPI.StartingBlock()),
 	}
 	return nil

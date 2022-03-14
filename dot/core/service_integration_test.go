@@ -9,13 +9,11 @@ package core
 import (
 	"errors"
 	"fmt"
-	"math/big"
 	"os"
 	"sort"
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/core/mocks"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/sync"
@@ -63,7 +61,8 @@ func TestStartService(t *testing.T) {
 }
 
 func TestAnnounceBlock(t *testing.T) {
-	net := new(mocks.Network)
+	ctrl := gomock.NewController(t)
+	net := NewMockNetwork(ctrl)
 	cfg := &Config{
 		Network: net,
 	}
@@ -82,7 +81,7 @@ func TestAnnounceBlock(t *testing.T) {
 
 	newBlock := types.Block{
 		Header: types.Header{
-			Number:     big.NewInt(1),
+			Number:     1,
 			ParentHash: s.blockState.BestBlockHash(),
 			Digest:     digest,
 		},
@@ -98,7 +97,7 @@ func TestAnnounceBlock(t *testing.T) {
 		BestBlock:      true,
 	}
 
-	net.On("GossipMessage", expected)
+	net.EXPECT().GossipMessage(expected)
 
 	state, err := s.storageState.TrieState(nil)
 	require.NoError(t, err)
@@ -107,7 +106,6 @@ func TestAnnounceBlock(t *testing.T) {
 	require.NoError(t, err)
 
 	time.Sleep(time.Second)
-	net.AssertCalled(t, "GossipMessage", expected)
 }
 
 func TestService_InsertKey(t *testing.T) {
@@ -153,9 +151,9 @@ func TestService_InsertKey(t *testing.T) {
 			err := s.InsertKey(kr.Alice(), c.keystoreType)
 
 			if c.err == nil {
-				require.Nil(t, err)
+				require.NoError(t, err)
 				res, err := s.HasKey(kr.Alice().Public().Hex(), c.keystoreType)
-				require.Nil(t, err)
+				require.NoError(t, err)
 				require.True(t, res)
 			} else {
 				require.NotNil(t, err)
@@ -276,10 +274,10 @@ func TestHandleChainReorg_WithReorg_Trans(t *testing.T) {
 
 func TestHandleChainReorg_WithReorg_NoTransactions(t *testing.T) {
 	s := NewTestService(t, nil)
-	height := 5
-	branch := 3
-	branches := map[int]int{branch: 1}
-	state.AddBlocksToStateWithFixedBranches(t, s.blockState.(*state.BlockState), height, branches, 0)
+	const height = 5
+	const branch = 3
+	branches := map[uint]int{branch: 1}
+	state.AddBlocksToStateWithFixedBranches(t, s.blockState.(*state.BlockState), height, branches)
 
 	leaves := s.blockState.(*state.BlockState).Leaves()
 	require.Equal(t, 2, len(leaves))
@@ -304,8 +302,8 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	}
 
 	s := NewTestService(t, cfg)
-	height := 5
-	branch := 3
+	const height = 5
+	const branch = 3
 	state.AddBlocksToState(t, s.blockState.(*state.BlockState), height, false)
 
 	// create extrinsic
@@ -322,7 +320,7 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	require.NoError(t, err)
 
 	// get common ancestor
-	ancestor, err := s.blockState.(*state.BlockState).GetBlockByNumber(big.NewInt(int64(branch - 1)))
+	ancestor, err := s.blockState.(*state.BlockState).GetBlockByNumber(branch - 1)
 	require.NoError(t, err)
 
 	// build "re-org" chain
@@ -331,7 +329,7 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	block := &types.Block{
 		Header: types.Header{
 			ParentHash: ancestor.Header.Hash(),
-			Number:     big.NewInt(0).Add(ancestor.Header.Number, big.NewInt(1)),
+			Number:     ancestor.Header.Number + 1,
 			Digest:     digest,
 		},
 		Body: types.Body([]types.Extrinsic{tx}),
@@ -536,7 +534,7 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	newBlock1 := &types.Block{
 		Header: types.Header{
 			ParentHash: hash,
-			Number:     big.NewInt(1),
+			Number:     1,
 			Digest:     types.NewDigest()},
 		Body: *types.NewBody([]types.Extrinsic{[]byte("Old Runtime")}),
 	}
@@ -544,7 +542,7 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	newBlockRTUpdate := &types.Block{
 		Header: types.Header{
 			ParentHash: hash,
-			Number:     big.NewInt(1),
+			Number:     1,
 			Digest:     digest,
 		},
 		Body: *types.NewBody([]types.Extrinsic{[]byte("Updated Runtime")}),
@@ -610,7 +608,7 @@ func TestService_HandleCodeSubstitutes(t *testing.T) {
 	ts, err := rtstorage.NewTrieState(trie.NewEmptyTrie())
 	require.NoError(t, err)
 
-	err = s.handleCodeSubstitution(blockHash, ts)
+	err = s.handleCodeSubstitution(blockHash, ts, wasmer.NewInstance)
 	require.NoError(t, err)
 	codSub := s.codeSubstitutedState.LoadCodeSubstitutedBlockHash()
 	require.Equal(t, blockHash, codSub)
@@ -630,7 +628,7 @@ func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 	newBlock := &types.Block{
 		Header: types.Header{
 			ParentHash: blockHash,
-			Number:     big.NewInt(1),
+			Number:     1,
 			Digest:     types.NewDigest(),
 		},
 		Body: *body,
@@ -639,7 +637,7 @@ func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 	ts, err := rtstorage.NewTrieState(trie.NewEmptyTrie())
 	require.NoError(t, err)
 
-	err = s.handleCodeSubstitution(blockHash, ts)
+	err = s.handleCodeSubstitution(blockHash, ts, wasmer.NewInstance)
 	require.NoError(t, err)
 	require.Equal(t, codeHashBefore, parentRt.GetCodeHash()) // codeHash should remain unchanged after code substitute
 
@@ -675,7 +673,7 @@ func TestTryQueryStore_WhenThereIsDataToRetrieve(t *testing.T) {
 	require.NoError(t, err)
 
 	header, err := types.NewHeader(s.blockState.GenesisHash(), storageStateTrie.MustRoot(),
-		common.Hash{}, big.NewInt(1), types.NewDigest())
+		common.Hash{}, 1, types.NewDigest())
 	require.NoError(t, err)
 
 	err = s.storageState.StoreTrie(storageStateTrie, header)
@@ -705,7 +703,7 @@ func TestTryQueryStore_WhenDoesNotHaveDataToRetrieve(t *testing.T) {
 	require.NoError(t, err)
 
 	header, err := types.NewHeader(s.blockState.GenesisHash(), storageStateTrie.MustRoot(),
-		common.Hash{}, big.NewInt(1), types.NewDigest())
+		common.Hash{}, 1, types.NewDigest())
 	require.NoError(t, err)
 
 	err = s.storageState.StoreTrie(storageStateTrie, header)
@@ -736,7 +734,7 @@ func TestTryQueryState_WhenDoesNotHaveStateRoot(t *testing.T) {
 	header, err := types.NewHeader(
 		s.blockState.GenesisHash(),
 		common.Hash{}, common.Hash{},
-		big.NewInt(1), types.NewDigest())
+		1, types.NewDigest())
 	require.NoError(t, err)
 
 	testBlock := &types.Block{
@@ -813,7 +811,7 @@ func TestQueryStorate_WhenBlocksHasData(t *testing.T) {
 
 func createNewBlockAndStoreDataAtBlock(t *testing.T, s *Service,
 	key, value []byte, parentHash common.Hash,
-	number int64) *types.Block {
+	number uint) *types.Block {
 	t.Helper()
 
 	storageStateTrie, err := rtstorage.NewTrieState(trie.NewTrie(nil))
@@ -821,7 +819,7 @@ func createNewBlockAndStoreDataAtBlock(t *testing.T, s *Service,
 	require.NoError(t, err)
 
 	header, err := types.NewHeader(parentHash, storageStateTrie.MustRoot(),
-		common.Hash{}, big.NewInt(number), types.NewDigest())
+		common.Hash{}, number, types.NewDigest())
 	require.NoError(t, err)
 
 	err = s.storageState.StoreTrie(storageStateTrie, header)
@@ -839,18 +837,20 @@ func createNewBlockAndStoreDataAtBlock(t *testing.T, s *Service,
 }
 
 func TestDecodeSessionKeys(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
 	mockInstance := new(runtimemocks.Instance)
 	mockInstance.On("DecodeSessionKeys", mock.AnythingOfType("[]uint8")).Return([]byte{}, nil).Once()
 
-	mockBlockState := new(mocks.BlockState)
-	mockBlockState.On("GetRuntime", mock.AnythingOfType("*common.Hash")).Return(mockInstance, nil).Once()
+	mockBlockState := NewMockBlockState(ctrl)
+	mockBlockState.EXPECT().GetRuntime(gomock.AssignableToTypeOf(new(common.Hash))).
+		Return(mockInstance, nil)
 
 	coreservice := new(Service)
 	coreservice.blockState = mockBlockState
 
 	b, err := coreservice.DecodeSessionKeys([]byte{})
 
-	mockBlockState.AssertCalled(t, "GetRuntime", mock.AnythingOfType("*common.Hash"))
 	mockInstance.AssertCalled(t, "DecodeSessionKeys", []uint8{})
 
 	require.NoError(t, err)
@@ -858,15 +858,17 @@ func TestDecodeSessionKeys(t *testing.T) {
 }
 
 func TestDecodeSessionKeys_WhenGetRuntimeReturnError(t *testing.T) {
-	mockBlockState := new(mocks.BlockState)
-	mockBlockState.On("GetRuntime", mock.AnythingOfType("*common.Hash")).Return(nil, errors.New("problems")).Once()
+	ctrl := gomock.NewController(t)
+
+	mockBlockState := NewMockBlockState(ctrl)
+	mockBlockState.EXPECT().GetRuntime(gomock.AssignableToTypeOf(new(common.Hash))).
+		Return(nil, errors.New("problems"))
 
 	coreservice := new(Service)
 	coreservice.blockState = mockBlockState
 
 	b, err := coreservice.DecodeSessionKeys([]byte{})
 
-	mockBlockState.AssertCalled(t, "GetRuntime", mock.AnythingOfType("*common.Hash"))
 	require.Error(t, err, "problems")
 	require.Nil(t, b)
 }
@@ -876,16 +878,18 @@ func TestGetReadProofAt(t *testing.T) {
 	mockedProofs := [][]byte{[]byte("proof01"), []byte("proof02")}
 
 	t.Run("When Has Block Is Empty", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+
 		mockedStateRootHash := common.NewHash([]byte("state root hash"))
 		expectedBlockHash := common.NewHash([]byte("expected block hash"))
 
-		mockBlockState := new(mocks.BlockState)
-		mockBlockState.On("BestBlockHash").Return(expectedBlockHash)
-		mockBlockState.On("GetBlockStateRoot", expectedBlockHash).
+		mockBlockState := NewMockBlockState(ctrl)
+		mockBlockState.EXPECT().BestBlockHash().Return(expectedBlockHash)
+		mockBlockState.EXPECT().GetBlockStateRoot(expectedBlockHash).
 			Return(mockedStateRootHash, nil)
 
-		mockStorageStage := new(mocks.StorageState)
-		mockStorageStage.On("GenerateTrieProof", mockedStateRootHash, keysToProof).
+		mockStorageStage := NewMockStorageState(ctrl)
+		mockStorageStage.EXPECT().GenerateTrieProof(mockedStateRootHash, keysToProof).
 			Return(mockedProofs, nil)
 
 		s := &Service{
@@ -897,17 +901,15 @@ func TestGetReadProofAt(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, p, mockedProofs)
 		require.Equal(t, expectedBlockHash, b)
-
-		mockBlockState.AssertCalled(t, "BestBlockHash")
-		mockBlockState.AssertCalled(t, "GetBlockStateRoot", expectedBlockHash)
-		mockStorageStage.AssertCalled(t, "GenerateTrieProof", mockedStateRootHash, keysToProof)
 	})
 
 	t.Run("When GetStateRoot fails", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+
 		mockedBlockHash := common.NewHash([]byte("fake block hash"))
 
-		mockBlockState := new(mocks.BlockState)
-		mockBlockState.On("GetBlockStateRoot", mockedBlockHash).
+		mockBlockState := NewMockBlockState(ctrl)
+		mockBlockState.EXPECT().GetBlockStateRoot(mockedBlockHash).
 			Return(common.Hash{}, errors.New("problems while getting state root"))
 
 		s := &Service{
@@ -921,15 +923,17 @@ func TestGetReadProofAt(t *testing.T) {
 	})
 
 	t.Run("When GenerateTrieProof fails", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+
 		mockedBlockHash := common.NewHash([]byte("fake block hash"))
 		mockedStateRootHash := common.NewHash([]byte("state root hash"))
 
-		mockBlockState := new(mocks.BlockState)
-		mockBlockState.On("GetBlockStateRoot", mockedBlockHash).
-			Return(mockedStateRootHash, nil)
+		mockBlockState := NewMockBlockState(ctrl)
+		mockBlockState.EXPECT().GetBlockStateRoot(mockedBlockHash).
+			Return(common.Hash{}, errors.New("problems while getting state root"))
 
-		mockStorageStage := new(mocks.StorageState)
-		mockStorageStage.On("GenerateTrieProof", mockedStateRootHash, keysToProof).
+		mockStorageStage := NewMockStorageState(ctrl)
+		mockStorageStage.EXPECT().GenerateTrieProof(mockedStateRootHash, keysToProof).
 			Return(nil, errors.New("problems to generate trie proof"))
 
 		s := &Service{

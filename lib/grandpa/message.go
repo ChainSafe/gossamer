@@ -224,7 +224,7 @@ func newCatchUpRequest(round, setID uint64) *CatchUpRequest {
 // Index Returns VDT index
 func (r CatchUpRequest) Index() uint { return 3 }
 
-func (v CatchUpRequest) Type() GrandpaMessageType { return CatchUpRequestMessageType }
+func (r CatchUpRequest) Type() GrandpaMessageType { return CatchUpRequestMessageType }
 
 // ToConsensusMessage converts the catchUpRequest into a network-level consensus message
 func (r *CatchUpRequest) ToConsensusMessage() (*ConsensusMessage, error) {
@@ -276,14 +276,14 @@ func (s *Service) newCatchUpResponse(round, setID uint64) (*CatchUpResponse, err
 		PreVoteJustification:   pvs,
 		PreCommitJustification: pcs,
 		Hash:                   header.Hash(),
-		Number:                 uint32(header.Number.Uint64()),
+		Number:                 uint32(header.Number),
 	}, nil
 }
 
 // Index Returns VDT index
 func (r CatchUpResponse) Index() uint { return 4 }
 
-func (v CatchUpResponse) Type() GrandpaMessageType { return CatchUpResponseMessageType }
+func (r CatchUpResponse) Type() GrandpaMessageType { return CatchUpResponseMessageType }
 
 // ToConsensusMessage converts the catchUpResponse into a network-level consensus message
 func (r *CatchUpResponse) ToConsensusMessage() (*ConsensusMessage, error) {

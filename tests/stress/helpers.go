@@ -4,6 +4,7 @@
 package stress
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"testing"
@@ -113,7 +114,7 @@ func compareBlocksByNumberWithRetry(t *testing.T, nodes []*utils.Node, num strin
 	var hashes map[common.Hash][]string
 	var err error
 
-	timeout := time.After(30 * time.Second)
+	timeout := time.After(120 * time.Second)
 doneBlockProduction:
 	for {
 		time.Sleep(time.Second)
@@ -194,7 +195,7 @@ func compareFinalizedHeadsWithRetry(t *testing.T, nodes []*utils.Node, round uin
 			break
 		}
 
-		if err == errFinalizedBlockMismatch {
+		if errors.Is(err, errFinalizedBlockMismatch) {
 			return common.Hash{}, fmt.Errorf("%w: round=%d hashes=%v", err, round, hashes)
 		}
 
@@ -212,6 +213,7 @@ func compareFinalizedHeadsWithRetry(t *testing.T, nodes []*utils.Node, round uin
 	return common.Hash{}, nil
 }
 
+//nolint
 func getPendingExtrinsics(t *testing.T, node *utils.Node) []string {
 	respBody, err := utils.PostRPC(utils.AuthorPendingExtrinsics, utils.NewEndpoint(node.RPCPort), "[]")
 	require.NoError(t, err)

@@ -26,7 +26,7 @@ import (
 
 // newTestGenesis returns a test genesis instance using "gssmr" raw data
 func newTestGenesis(t *testing.T) *genesis.Genesis {
-	fp := utils.GetGssmrGenesisRawPath()
+	fp := utils.GetGssmrGenesisRawPathTest(t)
 
 	gssmrGen, err := genesis.NewGenesisFromJSONRaw(fp)
 	require.NoError(t, err)
@@ -44,10 +44,10 @@ func newTestGenesis(t *testing.T) *genesis.Genesis {
 func NewTestGenesisRawFile(t *testing.T, cfg *Config) (filename string) {
 	filename = filepath.Join(t.TempDir(), "genesis.json")
 
-	fp := utils.GetGssmrGenesisRawPath()
+	fp := utils.GetGssmrGenesisRawPathTest(t)
 
 	gssmrGen, err := genesis.NewGenesisFromJSONRaw(fp)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	gen := &genesis.Genesis{
 		Name:       cfg.Global.Name,
@@ -58,7 +58,7 @@ func NewTestGenesisRawFile(t *testing.T, cfg *Config) (filename string) {
 	}
 
 	b, err := json.Marshal(gen)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	err = os.WriteFile(filename, b, os.ModePerm)
 	require.NoError(t, err)
@@ -68,10 +68,10 @@ func NewTestGenesisRawFile(t *testing.T, cfg *Config) (filename string) {
 
 // newTestGenesisFile returns a human-readable test genesis file using "gssmr" human readable data
 func newTestGenesisFile(t *testing.T, cfg *Config) (filename string) {
-	fp := utils.GetGssmrGenesisPath()
+	fp := utils.GetGssmrGenesisPathTest(t)
 
 	gssmrGen, err := genesis.NewGenesisFromJSON(fp, 0)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	gen := &genesis.Genesis{
 		Name:       cfg.Global.Name,
@@ -98,7 +98,7 @@ func NewTestGenesisAndRuntime(t *testing.T) (filename string) {
 	runtimeFilePath := runtime.GetAbsolutePath(runtime.NODE_RUNTIME_FP)
 
 	runtimeData, err := os.ReadFile(filepath.Clean(runtimeFilePath))
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	gen := newTestGenesis(t)
 	hex := hex.EncodeToString(runtimeData)

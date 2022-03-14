@@ -57,7 +57,7 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 				Key: []byte{5},
 				Children: [16]Node{
 					&Leaf{
-						hashDigest: []byte{0x41, 0x9, 0x4, 0xa},
+						HashDigest: []byte{0x41, 0x9, 0x4, 0xa},
 					},
 				},
 				Dirty: true,

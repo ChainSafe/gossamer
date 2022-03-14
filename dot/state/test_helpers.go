@@ -16,6 +16,7 @@ import (
 	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/stretchr/testify/require"
 )
@@ -35,14 +36,31 @@ func NewInMemoryDB(t *testing.T) chaindb.Database {
 	return db
 }
 
+func createPrimaryBABEDigest(t *testing.T) scale.VaryingDataTypeSlice {
+	babeDigest := types.NewBabeDigest()
+	err := babeDigest.Set(types.BabePrimaryPreDigest{AuthorityIndex: 0})
+	require.NoError(t, err)
+
+	bdEnc, err := scale.Marshal(babeDigest)
+	require.NoError(t, err)
+
+	digest := types.NewDigest()
+	err = digest.Add(types.PreRuntimeDigest{
+		ConsensusEngineID: types.BabeEngineID,
+		Data:              bdEnc,
+	})
+	require.NoError(t, err)
+	return digest
+}
+
 // branch tree randomly
 type testBranch struct {
 	hash  common.Hash
-	depth int
+	depth uint
 }
 
 // AddBlocksToState adds `depth` number of blocks to the BlockState, optionally with random branches
-func AddBlocksToState(t *testing.T, blockState *BlockState, depth int,
+func AddBlocksToState(t *testing.T, blockState *BlockState, depth uint,
 	withBranches bool) ([]*types.Header, []*types.Header) {
 	var (
 		currentChain, branchChains []*types.Header
@@ -55,7 +73,7 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int,
 	previousHash := head.Hash()
 
 	// create base tree
-	startNum := int(head.Number.Int64())
+	startNum := head.Number
 	for i := startNum + 1; i <= depth+startNum; i++ {
 		d := types.NewBabePrimaryPreDigest(0, uint64(i), [32]byte{}, [64]byte{})
 		digest := types.NewDigest()
@@ -67,18 +85,17 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int,
 		block := &types.Block{
 			Header: types.Header{
 				ParentHash: previousHash,
-				Number:     big.NewInt(int64(i)),
+				Number:     i,
 				StateRoot:  trie.EmptyHash,
 				Digest:     digest,
 			},
 			Body: types.Body{},
 		}
-
 		currentChain = append(currentChain, &block.Header)
 
 		hash := block.Header.Hash()
 		err = blockState.AddBlockWithArrivalTime(block, arrivalTime)
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		previousHash = hash
 
@@ -111,7 +128,7 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int,
 			block := &types.Block{
 				Header: types.Header{
 					ParentHash: previousHash,
-					Number:     big.NewInt(int64(i) + 1),
+					Number:     i + 1,
 					StateRoot:  trie.EmptyHash,
 					Digest:     digest,
 				},
@@ -122,7 +139,7 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int,
 
 			hash := block.Header.Hash()
 			err := blockState.AddBlockWithArrivalTime(block, arrivalTime)
-			require.Nil(t, err)
+			require.NoError(t, err)
 
 			previousHash = hash
 			arrivalTime = arrivalTime.Add(inc)
@@ -134,7 +151,7 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int,
 
 // AddBlocksToStateWithFixedBranches adds blocks to a BlockState up to depth, with fixed branches
 // branches are provided with a map of depth -> # of branches
-func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, depth int, branches map[int]int, r byte) {
+func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, depth uint, branches map[uint]int) {
 	previousHash := blockState.BestBlockHash()
 	tb := []testBranch{}
 	arrivalTime := time.Now()
@@ -146,7 +163,7 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 	require.NoError(t, err)
 
 	// create base tree
-	startNum := int(head.Number.Int64())
+	startNum := head.Number
 	for i := startNum + 1; i <= depth; i++ {
 		d, err := types.NewBabePrimaryPreDigest(0, uint64(i), [32]byte{}, [64]byte{}).ToPreRuntimeDigest()
 		require.NoError(t, err)
@@ -157,7 +174,7 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 		block := &types.Block{
 			Header: types.Header{
 				ParentHash: previousHash,
-				Number:     big.NewInt(int64(i)),
+				Number:     i,
 				StateRoot:  trie.EmptyHash,
 				Digest:     digest,
 			},
@@ -166,7 +183,7 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 
 		hash := block.Header.Hash()
 		err = blockState.AddBlockWithArrivalTime(block, arrivalTime)
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		blockState.StoreRuntime(hash, rt)
 
@@ -190,15 +207,16 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 		previousHash = branch.hash
 
 		for i := branch.depth; i < depth; i++ {
+			d, err := types.NewBabePrimaryPreDigest(0, uint64(i+uint(j)+99), [32]byte{}, [64]byte{}).ToPreRuntimeDigest()
+			require.NoError(t, err)
+			require.NotNil(t, d)
 			digest := types.NewDigest()
-			_ = digest.Add(types.PreRuntimeDigest{
-				Data: []byte{byte(i), byte(j), r},
-			})
+			_ = digest.Add(*d)
 
 			block := &types.Block{
 				Header: types.Header{
 					ParentHash: previousHash,
-					Number:     big.NewInt(int64(i) + 1),
+					Number:     i + 1,
 					StateRoot:  trie.EmptyHash,
 					Digest:     digest,
 				},
@@ -206,8 +224,8 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 			}
 
 			hash := block.Header.Hash()
-			err := blockState.AddBlockWithArrivalTime(block, arrivalTime)
-			require.Nil(t, err)
+			err = blockState.AddBlockWithArrivalTime(block, arrivalTime)
+			require.NoError(t, err)
 
 			blockState.StoreRuntime(hash, rt)
 
@@ -218,7 +236,7 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 }
 
 func generateBlockWithRandomTrie(t *testing.T, serv *Service,
-	parent *common.Hash, bNum int64) (*types.Block, *runtime.TrieState) {
+	parent *common.Hash, bNum uint) (*types.Block, *runtime.TrieState) {
 	trieState, err := serv.Storage.TrieState(nil)
 	require.NoError(t, err)
 
@@ -242,8 +260,9 @@ func generateBlockWithRandomTrie(t *testing.T, serv *Service,
 	block := &types.Block{
 		Header: types.Header{
 			ParentHash: *parent,
-			Number:     big.NewInt(bNum),
+			Number:     bNum,
 			StateRoot:  trieStateRoot,
+			Digest:     createPrimaryBABEDigest(t),
 		},
 		Body: *body,
 	}

@@ -10,10 +10,18 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 // ErrTransactionExists is returned when trying to add a transaction to the queue that already exists
 var ErrTransactionExists = errors.New("transaction is already in queue")
+
+var transactionQueueGauge = promauto.NewGauge(prometheus.GaugeOpts{
+	Namespace: "gossamer_state_transaction",
+	Name:      "queue_total",
+	Help:      "total number of transactions in ready queue",
+})
 
 // An Item is something we manage in a priority queue.
 type Item struct {
@@ -101,6 +109,12 @@ func (spq *PriorityQueue) RemoveExtrinsic(ext types.Extrinsic) {
 	delete(spq.txs, hash)
 }
 
+// Exists returns true if a hash is in the txs map, false otherwise
+func (spq *PriorityQueue) Exists(extHash common.Hash) bool {
+	_, ok := spq.txs[extHash]
+	return ok
+}
+
 // Push inserts a valid transaction with priority p into the queue
 func (spq *PriorityQueue) Push(txn *ValidTransaction) (common.Hash, error) {
 	spq.Lock()
@@ -121,6 +135,7 @@ func (spq *PriorityQueue) Push(txn *ValidTransaction) (common.Hash, error) {
 	heap.Push(&spq.pq, item)
 	spq.txs[hash] = item
 
+	transactionQueueGauge.Set(float64(spq.pq.Len()))
 	return hash, nil
 }
 
@@ -135,6 +150,8 @@ func (spq *PriorityQueue) Pop() *ValidTransaction {
 
 	item := heap.Pop(&spq.pq).(*Item)
 	delete(spq.txs, item.hash)
+
+	transactionQueueGauge.Set(float64(spq.pq.Len()))
 	return item.data
 }
 

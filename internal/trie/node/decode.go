@@ -106,7 +106,7 @@ func decodeBranch(reader io.Reader, header byte) (branch *Branch, err error) {
 		}
 
 		branch.Children[i] = &Leaf{
-			hashDigest: hash,
+			HashDigest: hash,
 		}
 	}
 

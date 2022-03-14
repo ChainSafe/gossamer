@@ -6,27 +6,27 @@ package blocktree
 import (
 	"bytes"
 	"fmt"
-	"math/big"
 	"math/rand"
-	"reflect"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 var zeroHash, _ = common.HexToHash("0x00")
 var testHeader = &types.Header{
 	ParentHash: zeroHash,
-	Number:     big.NewInt(0),
+	Number:     0,
 	Digest:     types.NewDigest(),
 }
 
 type testBranch struct {
 	hash        Hash
-	number      *big.Int
+	number      uint
 	arrivalTime int64
 }
 
@@ -37,7 +37,24 @@ func newBlockTreeFromNode(root *node) *BlockTree {
 	}
 }
 
-func createTestBlockTree(t *testing.T, header *types.Header, number int) (*BlockTree, []testBranch) {
+func createPrimaryBABEDigest(t *testing.T) scale.VaryingDataTypeSlice {
+	babeDigest := types.NewBabeDigest()
+	err := babeDigest.Set(types.BabePrimaryPreDigest{AuthorityIndex: 0})
+	require.NoError(t, err)
+
+	bdEnc, err := scale.Marshal(babeDigest)
+	require.NoError(t, err)
+
+	digest := types.NewDigest()
+	err = digest.Add(types.PreRuntimeDigest{
+		ConsensusEngineID: types.BabeEngineID,
+		Data:              bdEnc,
+	})
+	require.NoError(t, err)
+	return digest
+}
+
+func createTestBlockTree(t *testing.T, header *types.Header, number uint) (*BlockTree, []testBranch) {
 	bt := NewBlockTreeFromRoot(header)
 	previousHash := header.Hash()
 
@@ -48,11 +65,11 @@ func createTestBlockTree(t *testing.T, header *types.Header, number int) (*Block
 	at := int64(0)
 
 	// create base tree
-	for i := 1; i <= number; i++ {
+	for i := uint(1); i <= number; i++ {
 		header := &types.Header{
 			ParentHash: previousHash,
-			Number:     big.NewInt(int64(i)),
-			Digest:     types.NewDigest(),
+			Number:     i,
+			Digest:     createPrimaryBABEDigest(t),
 		}
 
 		hash := header.Hash()
@@ -78,12 +95,12 @@ func createTestBlockTree(t *testing.T, header *types.Header, number int) (*Block
 		at := branch.arrivalTime
 		previousHash = branch.hash
 
-		for i := int(branch.number.Uint64()); i <= number; i++ {
+		for i := branch.number; i <= number; i++ {
 			header := &types.Header{
 				ParentHash: previousHash,
-				Number:     big.NewInt(int64(i) + 1),
+				Number:     i + 1,
 				StateRoot:  common.Hash{0x1},
-				Digest:     types.NewDigest(),
+				Digest:     createPrimaryBABEDigest(t),
 			}
 
 			hash := header.Hash()
@@ -99,25 +116,29 @@ func createTestBlockTree(t *testing.T, header *types.Header, number int) (*Block
 	return bt, branches
 }
 
-func createFlatTree(t *testing.T, number int) (*BlockTree, []common.Hash) {
-	bt := NewBlockTreeFromRoot(testHeader)
-	require.NotNil(t, bt)
+func createFlatTree(t *testing.T, number uint) (*BlockTree, []common.Hash) {
+	rootHeader := &types.Header{
+		ParentHash: zeroHash,
+		Digest:     createPrimaryBABEDigest(t),
+	}
 
+	bt := NewBlockTreeFromRoot(rootHeader)
+	require.NotNil(t, bt)
 	previousHash := bt.root.hash
 
 	hashes := []common.Hash{bt.root.hash}
-	for i := 1; i <= number; i++ {
+	for i := uint(1); i <= number; i++ {
 		header := &types.Header{
 			ParentHash: previousHash,
-			Number:     big.NewInt(int64(i)),
-			Digest:     types.NewDigest(),
+			Number:     i,
+			Digest:     createPrimaryBABEDigest(t),
 		}
 
 		hash := header.Hash()
 		hashes = append(hashes, hash)
 
 		err := bt.AddBlock(header, time.Unix(0, 0))
-		require.Nil(t, err)
+		require.NoError(t, err)
 		previousHash = hash
 	}
 
@@ -161,12 +182,13 @@ func TestBlockTree_AddBlock(t *testing.T) {
 
 	header := &types.Header{
 		ParentHash: hashes[1],
-		Number:     big.NewInt(2),
+		Number:     2,
+		Digest:     createPrimaryBABEDigest(t),
 	}
 
 	hash := header.Hash()
 	err := bt.AddBlock(header, time.Unix(0, 0))
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	node := bt.getNode(hash)
 
@@ -197,28 +219,6 @@ func TestNode_isDecendantOf(t *testing.T) {
 	}
 }
 
-func TestBlockTree_LongestPath(t *testing.T) {
-	bt, hashes := createFlatTree(t, 3)
-
-	// Insert a block to create a competing path
-	header := &types.Header{
-		ParentHash: hashes[0],
-		Number:     big.NewInt(1),
-	}
-
-	header.Hash()
-	err := bt.AddBlock(header, time.Unix(0, 0))
-	require.NotNil(t, err)
-
-	longestPath := bt.longestPath()
-
-	for i, n := range longestPath {
-		if n.hash != hashes[i] {
-			t.Errorf("expected Hash: 0x%X got: 0x%X\n", hashes[i], n.hash)
-		}
-	}
-}
-
 func TestBlockTree_Subchain(t *testing.T) {
 	bt, hashes := createFlatTree(t, 4)
 	expectedPath := hashes[1:]
@@ -226,8 +226,8 @@ func TestBlockTree_Subchain(t *testing.T) {
 	// Insert a block to create a competing path
 	extraBlock := &types.Header{
 		ParentHash: hashes[0],
-		Number:     big.NewInt(1),
-		Digest:     types.NewDigest(),
+		Number:     1,
+		Digest:     createPrimaryBABEDigest(t),
 	}
 
 	extraBlock.Hash()
@@ -246,18 +246,18 @@ func TestBlockTree_Subchain(t *testing.T) {
 	}
 }
 
-func TestBlockTree_DeepestLeaf(t *testing.T) {
+func TestBlockTree_Best_AllPrimary(t *testing.T) {
 	arrivalTime := int64(256)
 	var expected Hash
 
 	bt, _ := createTestBlockTree(t, testHeader, 8)
 
-	deepest := big.NewInt(0)
+	var deepest uint
 
 	for leaf, node := range bt.leaves.toMap() {
 		node.arrivalTime = time.Unix(arrivalTime, 0)
 		arrivalTime--
-		if node.number.Cmp(deepest) >= 0 {
+		if node.number >= deepest {
 			deepest = node.number
 			expected = leaf
 		}
@@ -265,10 +265,7 @@ func TestBlockTree_DeepestLeaf(t *testing.T) {
 		t.Logf("leaf=%s number=%d arrivalTime=%s", leaf, node.number, node.arrivalTime)
 	}
 
-	deepestLeaf := bt.deepestLeaf()
-	if deepestLeaf.hash != expected {
-		t.Fatalf("Fail: got %s expected %s", deepestLeaf.hash, expected)
-	}
+	require.Equal(t, expected, bt.best().hash)
 }
 
 func TestBlockTree_GetNode(t *testing.T) {
@@ -277,8 +274,9 @@ func TestBlockTree_GetNode(t *testing.T) {
 	for _, branch := range branches {
 		header := &types.Header{
 			ParentHash: branch.hash,
-			Number:     big.NewInt(0).Add(branch.number, big.NewInt(1)),
+			Number:     branch.number + 1,
 			StateRoot:  Hash{0x2},
+			Digest:     createPrimaryBABEDigest(t),
 		}
 
 		err := bt.AddBlock(header, time.Unix(0, 0))
@@ -291,14 +289,14 @@ func TestBlockTree_GetNode(t *testing.T) {
 
 func TestBlockTree_GetAllBlocksAtNumber(t *testing.T) {
 	bt, _ := createTestBlockTree(t, testHeader, 8)
-	hashes := bt.root.getNodesWithNumber(big.NewInt(10), []common.Hash{})
+	hashes := bt.root.getNodesWithNumber(10, []common.Hash{})
 
 	expected := []common.Hash{}
 	require.Equal(t, expected, hashes)
 
 	// create one-path tree
-	btNumber := 8
-	desiredNumber := 6
+	const btNumber uint = 8
+	const desiredNumber uint = 6
 	bt, btHashes := createFlatTree(t, btNumber)
 
 	expected = []common.Hash{btHashes[desiredNumber]}
@@ -306,21 +304,16 @@ func TestBlockTree_GetAllBlocksAtNumber(t *testing.T) {
 	// add branch
 	previousHash := btHashes[4]
 
-	for i := 4; i <= btNumber; i++ {
-		digest := types.NewDigest()
-		err := digest.Add(types.ConsensusDigest{
-			ConsensusEngineID: types.BabeEngineID,
-			Data:              common.MustHexToBytes("0x0118ca239392960473fe1bc65f94ee27d890a49c1b200c006ff5dcc525330ecc16770100000000000000b46f01874ce7abbb5220e8fd89bede0adad14c73039d91e28e881823433e723f0100000000000000d684d9176d6eb69887540c9a89fa6097adea82fc4b0ff26d1062b488f352e179010000000000000068195a71bdde49117a616424bdc60a1733e96acb1da5aeab5d268cf2a572e94101000000000000001a0575ef4ae24bdfd31f4cb5bd61239ae67c12d4e64ae51ac756044aa6ad8200010000000000000018168f2aad0081a25728961ee00627cfe35e39833c805016632bf7c14da5800901000000000000000000000000000000000000000000000000000000000000000000000000000000"), //nolint:lll
-		})
-		require.NoError(t, err)
+	for i := uint(4); i <= btNumber; i++ {
 		header := &types.Header{
 			ParentHash: previousHash,
-			Number:     big.NewInt(int64(i) + 1),
-			Digest:     digest,
+			StateRoot:  common.Hash{0x99},
+			Number:     i + 1,
+			Digest:     createPrimaryBABEDigest(t),
 		}
 
 		hash := header.Hash()
-		err = bt.AddBlock(header, time.Unix(0, 0))
+		err := bt.AddBlock(header, time.Unix(0, 0))
 		require.NoError(t, err)
 		previousHash = hash
 
@@ -332,21 +325,16 @@ func TestBlockTree_GetAllBlocksAtNumber(t *testing.T) {
 	// add another branch
 	previousHash = btHashes[2]
 
-	for i := 2; i <= btNumber; i++ {
-		digest := types.NewDigest()
-		err := digest.Add(types.SealDigest{
-			ConsensusEngineID: types.BabeEngineID,
-			Data:              common.MustHexToBytes("0x4625284883e564bc1e4063f5ea2b49846cdddaa3761d04f543b698c1c3ee935c40d25b869247c36c6b8a8cbbd7bb2768f560ab7c276df3c62df357a7e3b1ec8d"), //nolint:lll
-		})
-		require.NoError(t, err)
+	for i := uint(2); i <= btNumber; i++ {
 		header := &types.Header{
 			ParentHash: previousHash,
-			Number:     big.NewInt(int64(i) + 1),
-			Digest:     digest,
+			StateRoot:  common.Hash{0x88},
+			Number:     i + 1,
+			Digest:     createPrimaryBABEDigest(t),
 		}
 
 		hash := header.Hash()
-		err = bt.AddBlock(header, time.Unix(0, 0))
+		err := bt.AddBlock(header, time.Unix(0, 0))
 		require.NoError(t, err)
 		previousHash = hash
 
@@ -355,10 +343,8 @@ func TestBlockTree_GetAllBlocksAtNumber(t *testing.T) {
 		}
 	}
 
-	hashes = bt.root.getNodesWithNumber(big.NewInt(int64(desiredNumber)), []common.Hash{})
-	if !reflect.DeepEqual(hashes, expected) {
-		t.Fatalf("Fail: did not get all expected hashes got %v expected %v", hashes, expected)
-	}
+	hashes = bt.root.getNodesWithNumber(desiredNumber, []common.Hash{})
+	require.Equal(t, expected, hashes)
 }
 
 func TestBlockTree_IsDecendantOf(t *testing.T) {
@@ -458,33 +444,30 @@ func TestBlockTree_Prune(t *testing.T) {
 
 func TestBlockTree_GetHashByNumber(t *testing.T) {
 	bt, _ := createTestBlockTree(t, testHeader, 8)
-	best := bt.DeepestBlockHash()
+	best := bt.BestBlockHash()
 	bn := bt.getNode(best)
 
-	for i := int64(0); i < bn.number.Int64(); i++ {
-		hash, err := bt.GetHashByNumber(big.NewInt(i))
+	for i := uint(0); i < bn.number; i++ {
+		hash, err := bt.GetHashByNumber(i)
 		require.NoError(t, err)
-		require.Equal(t, big.NewInt(i), bt.getNode(hash).number)
+		require.Equal(t, i, bt.getNode(hash).number)
 		desc, err := bt.IsDescendantOf(hash, best)
 		require.NoError(t, err)
 		require.True(t, desc, fmt.Sprintf("index %d failed, got hash=%s", i, hash))
 	}
 
-	_, err := bt.GetHashByNumber(big.NewInt(-1))
-	require.Error(t, err)
-
-	_, err = bt.GetHashByNumber(big.NewInt(0).Add(bn.number, big.NewInt(1)))
+	_, err := bt.GetHashByNumber(bn.number + 1)
 	require.Error(t, err)
 }
 
-func TestBlockTree_AllLeavesHasSameNumberAndArrivalTime_DeepestBlockHash_ShouldHasConsistentOutput(t *testing.T) {
+func TestBlockTree_BestBlockHash_AllChainsEqual(t *testing.T) {
 	bt := NewBlockTreeFromRoot(testHeader)
 	previousHash := testHeader.Hash()
 
 	branches := []testBranch{}
 
 	const fixedArrivalTime = 99
-	const deep = 8
+	const depth uint = 4
 
 	// create a base tree with a fixed amount of blocks
 	// and all block with the same arrival time
@@ -503,11 +486,11 @@ func TestBlockTree_AllLeavesHasSameNumberAndArrivalTime_DeepestBlockHash_ShouldH
 		|> c -> d -> e -> f -> g -> h (2)
 	**/
 
-	for i := 1; i <= deep; i++ {
+	for i := uint(1); i <= depth; i++ {
 		header := &types.Header{
 			ParentHash: previousHash,
-			Number:     big.NewInt(int64(i)),
-			Digest:     types.NewDigest(),
+			Number:     i,
+			Digest:     createPrimaryBABEDigest(t),
 		}
 
 		hash := header.Hash()
@@ -518,7 +501,7 @@ func TestBlockTree_AllLeavesHasSameNumberAndArrivalTime_DeepestBlockHash_ShouldH
 		previousHash = hash
 
 		// the last block on the base tree should not generates a branch
-		if i < deep {
+		if i < depth {
 			branches = append(branches, testBranch{
 				hash:   hash,
 				number: bt.getNode(hash).number,
@@ -530,12 +513,12 @@ func TestBlockTree_AllLeavesHasSameNumberAndArrivalTime_DeepestBlockHash_ShouldH
 	for _, branch := range branches {
 		previousHash = branch.hash
 
-		for i := int(branch.number.Uint64()); i < deep; i++ {
+		for i := branch.number; i < depth; i++ {
 			header := &types.Header{
 				ParentHash: previousHash,
-				Number:     big.NewInt(int64(i) + 1),
+				Number:     i + 1,
 				StateRoot:  common.Hash{0x1},
-				Digest:     types.NewDigest(),
+				Digest:     createPrimaryBABEDigest(t),
 			}
 
 			hash := header.Hash()
@@ -556,74 +539,162 @@ func TestBlockTree_AllLeavesHasSameNumberAndArrivalTime_DeepestBlockHash_ShouldH
 		require.Equal(t, curr.arrivalTime, next.arrivalTime)
 	}
 
-	require.Len(t, leaves, deep)
+	require.Len(t, leaves, int(depth))
+	require.Contains(t, leaves, bt.best())
 
-	// expects currentDeepestLeaf nil till call deepestLeaf() function
-	require.Nil(t, bt.leaves.currentDeepestLeaf)
-	deepestLeaf := bt.deepestLeaf()
+	// check that highest returned was one with lowest hash
+	expected := leaves[0].hash
+	for _, leaf := range leaves {
+		if bytes.Compare(leaf.hash[:], expected[:]) < 0 {
+			expected = leaf.hash
+		}
+	}
 
-	require.Equal(t, deepestLeaf, bt.leaves.currentDeepestLeaf)
-	require.Contains(t, leaves, deepestLeaf)
+	require.Equal(t, bt.best().hash, expected)
 
-	// adding a new node with a greater number, should update the currentDeepestLeaf
+	// adding a new node with a greater number should update the best block
 	header := &types.Header{
 		ParentHash: previousHash,
-		Number:     big.NewInt(int64(deepestLeaf.number.Uint64() + 1)),
+		Number:     bt.best().number + 1,
 		StateRoot:  common.Hash{0x1},
-		Digest:     types.NewDigest(),
+		Digest:     createPrimaryBABEDigest(t),
 	}
 
 	hash := header.Hash()
 	err := bt.AddBlock(header, time.Unix(0, fixedArrivalTime))
 	require.NoError(t, err)
-
-	deepestLeaf = bt.deepestLeaf()
-	require.Equal(t, hash, deepestLeaf.hash)
-	require.Equal(t, hash, bt.leaves.currentDeepestLeaf.hash)
+	require.Equal(t, hash, bt.best().hash)
 }
 
 func TestBlockTree_DeepCopy(t *testing.T) {
 	bt, _ := createFlatTree(t, 8)
 
 	btCopy := bt.DeepCopy()
-	require.True(t, equalNodeValue(bt.root, btCopy.root), "BlockTree heads not equal")
-	require.True(t, equalLeaves(bt.leaves, btCopy.leaves), "BlockTree leaves not equal")
+	equalNodeValue(t, bt.root, btCopy.root)
+	equalLeaves(t, bt.leaves, btCopy.leaves)
 
 	btCopy.root = &node{}
 	require.NotEqual(t, bt.root, btCopy.root)
 }
 
-func equalNodeValue(nd *node, ndCopy *node) bool {
-	if nd.hash != ndCopy.hash {
-		return false
-	}
-	if nd.number.Cmp(ndCopy.number) != 0 {
-		return false
-	}
-	if nd.arrivalTime != ndCopy.arrivalTime {
-		return false
-	}
+func equalNodeValue(t *testing.T, nd *node, ndCopy *node) {
+	t.Helper()
+	assert.Equal(t, nd.hash, ndCopy.hash, "hash not equal")
+	assert.Equal(t, nd.number, ndCopy.number, "number not equal")
+	assert.Equal(t, nd.arrivalTime, ndCopy.arrivalTime, "arrivalTime not equal")
 	for i, child := range nd.children {
-		return equalNodeValue(child, ndCopy.children[i])
+		equalNodeValue(t, child, ndCopy.children[i])
 	}
-	if nd.parent.hash != ndCopy.parent.hash {
-		return false
+	if nd.parent != nil {
+		assert.Equal(t, nd.parent.hash, ndCopy.parent.hash, "parent hash not equal")
+		assert.Equal(t, nd.parent.arrivalTime, ndCopy.parent.arrivalTime, "parent arrival time not equal")
+		assert.Equal(t, nd.parent.number, ndCopy.parent.number, "parent number not equal")
+	} else {
+		assert.Nil(t, ndCopy.parent, "parent not nil")
 	}
-	if nd.parent.arrivalTime != ndCopy.parent.arrivalTime {
-		return false
-	}
-	if nd.parent.number.Cmp(ndCopy.parent.number) != 0 {
-		return false
-	}
-	return true
 }
 
-func equalLeaves(lm *leafMap, lmCopy *leafMap) bool {
+func equalLeaves(t *testing.T, lm *leafMap, lmCopy *leafMap) {
 	lmm := lm.toMap()
 	lmCopyM := lmCopy.toMap()
 	for key, val := range lmm {
 		lmCopyVal := lmCopyM[key]
-		return equalNodeValue(val, lmCopyVal)
+		equalNodeValue(t, val, lmCopyVal)
 	}
-	return true
+}
+
+func TestBlockTree_best(t *testing.T) {
+	// test basic case where two chains have different amount of primaries
+	bt := NewEmptyBlockTree()
+	bt.root = &node{
+		hash: common.Hash{0},
+	}
+
+	bt.root.children = []*node{
+		{
+			hash:      common.Hash{1},
+			parent:    bt.root,
+			isPrimary: true,
+		},
+		{
+			hash:      common.Hash{2},
+			parent:    bt.root,
+			isPrimary: false,
+		},
+	}
+
+	bt.leaves = newEmptyLeafMap()
+	bt.leaves.store(bt.root.children[0].hash, bt.root.children[0])
+	bt.leaves.store(bt.root.children[1].hash, bt.root.children[1])
+	require.Equal(t, bt.root.children[0].hash, bt.BestBlockHash())
+
+	// test case where two chains have the same amount of primaries
+	// and the head numbers are also equal
+	// should pick the chain with the lowest arrival time or block hash
+	bt = NewEmptyBlockTree()
+	bt.root = &node{
+		hash: common.Hash{0},
+	}
+
+	bt.root.children = []*node{
+		{
+			hash:      common.Hash{1},
+			parent:    bt.root,
+			number:    1,
+			isPrimary: true,
+		},
+		{
+			hash:      common.Hash{2},
+			parent:    bt.root,
+			isPrimary: false,
+		},
+	}
+
+	bt.root.children[1].children = []*node{
+		{
+			hash:      common.Hash{3},
+			parent:    bt.root.children[1],
+			number:    1,
+			isPrimary: true,
+		},
+	}
+
+	bt.leaves = newEmptyLeafMap()
+	bt.leaves.store(bt.root.children[0].hash, bt.root.children[0])
+	bt.leaves.store(bt.root.children[1].children[0].hash, bt.root.children[1].children[0])
+	require.Equal(t, bt.root.children[0].hash, bt.BestBlockHash())
+
+	// test case where three chains have the same amount of primaries
+	// and the head numbers are also equal
+	// should pick the chain with the lowest arrival time or block hash
+	bt = NewEmptyBlockTree()
+	bt.root = &node{
+		hash: common.Hash{0},
+	}
+
+	bt.root.children = []*node{
+		{
+			hash:      common.Hash{3},
+			parent:    bt.root,
+			number:    1,
+			isPrimary: true,
+		},
+		{
+			hash:      common.Hash{2},
+			parent:    bt.root,
+			isPrimary: false,
+		},
+		{
+			hash:      common.Hash{1},
+			parent:    bt.root,
+			number:    1,
+			isPrimary: true,
+		},
+	}
+
+	bt.leaves = newEmptyLeafMap()
+	bt.leaves.store(bt.root.children[0].hash, bt.root.children[0])
+	bt.leaves.store(bt.root.children[1].hash, bt.root.children[1])
+	bt.leaves.store(bt.root.children[2].hash, bt.root.children[2])
+	require.Equal(t, bt.root.children[2].hash, bt.BestBlockHash())
 }

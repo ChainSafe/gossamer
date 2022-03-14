@@ -4,7 +4,6 @@
 package state
 
 import (
-	"math/big"
 	"sync"
 	"testing"
 	"time"
@@ -18,7 +17,7 @@ import (
 var testMessageTimeout = time.Second * 3
 
 func TestImportChannel(t *testing.T) {
-	bs := newTestBlockState(t, testGenesisHeader)
+	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
 	ch := bs.GetImportedBlockNotifierChannel()
 
 	defer bs.FreeImportedBlockNotifierChannel(ch)
@@ -35,7 +34,7 @@ func TestImportChannel(t *testing.T) {
 }
 
 func TestFreeImportedBlockNotifierChannel(t *testing.T) {
-	bs := newTestBlockState(t, testGenesisHeader)
+	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
 	ch := bs.GetImportedBlockNotifierChannel()
 	require.Equal(t, 1, len(bs.imported))
 
@@ -44,7 +43,7 @@ func TestFreeImportedBlockNotifierChannel(t *testing.T) {
 }
 
 func TestFinalizedChannel(t *testing.T) {
-	bs := newTestBlockState(t, testGenesisHeader)
+	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
 
 	ch := bs.GetFinalisedNotifierChannel()
 
@@ -66,7 +65,7 @@ func TestFinalizedChannel(t *testing.T) {
 }
 
 func TestImportChannel_Multi(t *testing.T) {
-	bs := newTestBlockState(t, testGenesisHeader)
+	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
 
 	num := 5
 	chs := make([]chan *types.Block, num)
@@ -83,7 +82,7 @@ func TestImportChannel_Multi(t *testing.T) {
 		go func(i int, ch <-chan *types.Block) {
 			select {
 			case b := <-ch:
-				require.Equal(t, big.NewInt(1), b.Header.Number)
+				require.Equal(t, uint(1), b.Header.Number)
 			case <-time.After(testMessageTimeout):
 				t.Error("did not receive imported block: ch=", i)
 			}
@@ -95,11 +94,10 @@ func TestImportChannel_Multi(t *testing.T) {
 	time.Sleep(time.Millisecond * 10)
 	AddBlocksToState(t, bs, 1, false)
 	wg.Wait()
-
 }
 
 func TestFinalizedChannel_Multi(t *testing.T) {
-	bs := newTestBlockState(t, testGenesisHeader)
+	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
 
 	num := 5
 	chs := make([]chan *types.FinalisationInfo, num)
@@ -136,7 +134,7 @@ func TestFinalizedChannel_Multi(t *testing.T) {
 }
 
 func TestService_RegisterUnRegisterRuntimeUpdatedChannel(t *testing.T) {
-	bs := newTestBlockState(t, testGenesisHeader)
+	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
 	ch := make(chan<- runtime.Version)
 	chID, err := bs.RegisterRuntimeUpdatedChannel(ch)
 	require.NoError(t, err)
@@ -147,7 +145,7 @@ func TestService_RegisterUnRegisterRuntimeUpdatedChannel(t *testing.T) {
 }
 
 func TestService_RegisterUnRegisterConcurrentCalls(t *testing.T) {
-	bs := newTestBlockState(t, testGenesisHeader)
+	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
 
 	go func() {
 		for i := 0; i < 100; i++ {

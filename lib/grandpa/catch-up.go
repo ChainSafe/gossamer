@@ -5,6 +5,7 @@ package grandpa
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -111,11 +112,13 @@ func (c *catchUp) handleCatchUpResponse(msg *CatchUpResponse) error {
 	}
 
 	if msg.SetID != c.grandpa.state.setID {
-		return fmt.Errorf("%w: received set id %d but have set id %d in state", ErrSetIDMismatch, msg.SetID, c.grandpa.state.setID)
+		return fmt.Errorf("%w: received set id %d but have set id %d in state",
+			ErrSetIDMismatch, msg.SetID, c.grandpa.state.setID)
 	}
 
 	if msg.Round <= c.grandpa.state.round {
-		return fmt.Errorf("%w: received round %d but grandpa round in state is %d", ErrInvalidCatchUpResponseRound, msg.Round, c.grandpa.state.round)
+		return fmt.Errorf("%w: received round %d but grandpa round in state is %d",
+			ErrInvalidCatchUpResponseRound, msg.Round, c.grandpa.state.round)
 	}
 
 	if c.bestResponse.Load().(*CatchUpResponse).Round >= msg.Round {
@@ -145,14 +148,14 @@ func (c *catchUp) handleCatchUpResponse(msg *CatchUpResponse) error {
 	}
 
 	if err = c.grandpa.grandpaState.SetPrecommits(msg.Round, msg.SetID, msg.PreCommitJustification); err != nil {
-		return return fmt.Errorf("cannot set pre commits in grandpa state: %w", err)
+		return fmt.Errorf("cannot set pre commits in grandpa state: %w", err)
 	}
 
 	// update state and signal to grandpa we are ready to initiate
 	head, err := c.grandpa.blockState.GetHeader(msg.Hash)
 	if err != nil {
 		logger.Debugf("failed to process catch up response for round %d, storing the catch up response to retry", msg.Round)
-		return return fmt.Errorf("cannot get header from grandpa block state: %w", err)
+		return fmt.Errorf("cannot get header from grandpa block state: %w", err)
 	}
 
 	c.grandpa.head = head
