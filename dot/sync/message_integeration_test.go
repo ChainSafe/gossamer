@@ -35,7 +35,7 @@ func addTestBlocksToState(t *testing.T, depth uint, blockState BlockState) {
 				ParentHash: previousHash,
 				Number:     previousNum + i,
 				StateRoot:  trie.EmptyHash,
-				Digest:     types.NewDigest(),
+				Digest:     digest,
 			},
 			Body: types.Body{},
 		}
