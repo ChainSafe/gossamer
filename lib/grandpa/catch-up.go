@@ -112,7 +112,7 @@ func (c *catchUp) handleCatchUpResponse(msg *CatchUpResponse) error {
 	}
 
 	if msg.SetID != c.grandpa.state.setID {
-		return ErrSetIDMismatch
+		return fmt.Errorf("%w: received set id %d but have set id %d in state", ErrSetIDMismatch, msg.SetID, c.grandpa.state.setID)
 	}
 
 	if msg.Round <= c.grandpa.state.round {
