@@ -125,7 +125,7 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourMessage, from peer
 		logger.Debugf("lagging behind by %d rounds", msg.Round-highestRound)
 		return h.catchUp.do(from, msg.Round, msg.SetID)
 	} else {
-		logger.Debugf("not lagging behind by more than threshold rounds, msg.Round: %d, highestRound: %d", int(msg.Round), int(highestRound))
+		logger.Debugf("not lagging behind by more than threshold rounds, msg.Round: %d, highestRound: %d", msg.Round, highestRound)
 	}
 
 	return nil
