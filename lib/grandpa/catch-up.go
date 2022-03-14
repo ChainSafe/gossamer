@@ -137,7 +137,7 @@ func (c *catchUp) handleCatchUpResponse(msg *CatchUpResponse) error {
 	}
 
 	if err = c.verifyCatchUpResponseCompletability(prevote, msg.Hash); err != nil {
-		return err
+		return fmt.Errorf("cannot verify catch-up response completability: %w", err)
 	}
 
 	// set prevotes and precommits in db
