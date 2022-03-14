@@ -29,7 +29,7 @@ func (b *Branch) GetHash() []byte {
 // the blake2b hash digest of the encoding of the branch.
 // If the encoding is less than 32 bytes, the hash returned
 // is the encoding and not the hash of the encoding.
-func (b *Branch) EncodeAndHash() (encoding, hash []byte, err error) {
+func (b *Branch) EncodeAndHash(isRoot bool) (encoding, hash []byte, err error) {
 	if !b.Dirty && b.Encoding != nil && b.HashDigest != nil {
 		return b.Encoding, b.HashDigest, nil
 	}
@@ -49,7 +49,7 @@ func (b *Branch) EncodeAndHash() (encoding, hash []byte, err error) {
 	copy(b.Encoding, bufferBytes)
 	encoding = b.Encoding // no need to copy
 
-	if buffer.Len() < 32 {
+	if !isRoot && buffer.Len() < 32 {
 		b.HashDigest = make([]byte, len(bufferBytes))
 		copy(b.HashDigest, bufferBytes)
 		hash = b.HashDigest // no need to copy
@@ -86,7 +86,7 @@ func (l *Leaf) GetHash() []byte {
 // the blake2b hash digest of the encoding of the leaf.
 // If the encoding is less than 32 bytes, the hash returned
 // is the encoding and not the hash of the encoding.
-func (l *Leaf) EncodeAndHash() (encoding, hash []byte, err error) {
+func (l *Leaf) EncodeAndHash(isRoot bool) (encoding, hash []byte, err error) {
 	if !l.IsDirty() && l.Encoding != nil && l.HashDigest != nil {
 		return l.Encoding, l.HashDigest, nil
 	}
@@ -108,7 +108,7 @@ func (l *Leaf) EncodeAndHash() (encoding, hash []byte, err error) {
 	copy(l.Encoding, bufferBytes)
 	encoding = l.Encoding // no need to copy
 
-	if len(bufferBytes) < 32 {
+	if !isRoot && len(bufferBytes) < 32 {
 		l.HashDigest = make([]byte, len(bufferBytes))
 		copy(l.HashDigest, bufferBytes)
 		hash = l.HashDigest // no need to copy

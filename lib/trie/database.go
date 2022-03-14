@@ -46,7 +46,7 @@ func (t *Trie) store(db chaindb.Batch, n Node) error {
 		return nil
 	}
 
-	encoding, hash, err := n.EncodeAndHash()
+	encoding, hash, err := n.EncodeAndHash(n == t.root)
 	if err != nil {
 		return err
 	}
@@ -97,7 +97,7 @@ func (t *Trie) loadFromProof(rawProof [][]byte, rootHash []byte) error {
 		decodedNode.SetDirty(dirty)
 		decodedNode.SetEncodingAndHash(rawNode, nil)
 
-		_, hash, err := decodedNode.EncodeAndHash()
+		_, hash, err := decodedNode.EncodeAndHash(false)
 		if err != nil {
 			return fmt.Errorf("cannot encode and hash node at index %d: %w", i, err)
 		}
@@ -370,21 +370,11 @@ func (t *Trie) writeDirty(db chaindb.Batch, n Node) error {
 		return nil
 	}
 
-	encoding, hash, err := n.EncodeAndHash()
+	encoding, hash, err := n.EncodeAndHash(n == t.root)
 	if err != nil {
 		return fmt.Errorf(
 			"cannot encode and hash node with hash 0x%x: %w",
 			n.GetHash(), err)
-	}
-
-	if n == t.root {
-		// hash root node even if its encoding is under 32 bytes
-		encodingDigest, err := common.Blake2bHash(encoding)
-		if err != nil {
-			return fmt.Errorf("cannot hash root node encoding: %w", err)
-		}
-
-		hash = encodingDigest[:]
 	}
 
 	err = db.Put(hash, encoding)
@@ -446,21 +436,11 @@ func (t *Trie) getInsertedNodeHashes(n Node, hashes map[common.Hash]struct{}) (e
 		return nil
 	}
 
-	encoding, hash, err := n.EncodeAndHash()
+	_, hash, err := n.EncodeAndHash(n == t.root)
 	if err != nil {
 		return fmt.Errorf(
 			"cannot encode and hash node with hash 0x%x: %w",
 			n.GetHash(), err)
-	}
-
-	if n == t.root && len(encoding) < 32 {
-		// hash root node even if its encoding is under 32 bytes
-		encodingDigest, err := common.Blake2bHash(encoding)
-		if err != nil {
-			return fmt.Errorf("cannot hash root node encoding: %w", err)
-		}
-
-		hash = encodingDigest[:]
 	}
 
 	hashes[common.BytesToHash(hash)] = struct{}{}
