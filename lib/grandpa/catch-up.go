@@ -14,7 +14,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-const catchUpResponseTimeout = time.Second * 5
+const catchUpResponseTimeout = 5 * time.Second
 
 type catchUp struct {
 	lock sync.Mutex // applied on requestsSent
