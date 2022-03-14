@@ -19,6 +19,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer/testdata"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/stretchr/testify/require"
@@ -38,7 +39,7 @@ func TestInstance_Version_NodeRuntime_v098(t *testing.T) {
 	instance := NewTestInstance(t, runtime.NODE_RUNTIME_v098)
 
 	version, err := instance.Version()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	t.Logf("SpecName: %s\n", version.SpecName())
 	t.Logf("ImplName: %s\n", version.ImplName())
@@ -101,7 +102,7 @@ func TestInstance_Version_PolkadotRuntime(t *testing.T) {
 	instance := NewTestInstance(t, runtime.POLKADOT_RUNTIME)
 
 	version, err := instance.Version()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	t.Logf("SpecName: %s\n", version.SpecName())
 	t.Logf("ImplName: %s\n", version.ImplName())
@@ -120,7 +121,8 @@ func TestInstance_Version_PolkadotRuntime(t *testing.T) {
 }
 
 func TestInstance_Version_KusamaRuntime(t *testing.T) {
-	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/kusama/genesis.json")
+	genesisPath := utils.GetKusamaGenesisPath(t)
+	gen, err := genesis.NewGenesisFromJSONRaw(genesisPath)
 	require.NoError(t, err)
 
 	genTrie, err := genesis.NewTrieFromGenesis(gen)
@@ -183,7 +185,7 @@ func TestInstance_Version_NodeRuntime(t *testing.T) {
 	instance := NewTestInstance(t, runtime.NODE_RUNTIME)
 
 	version, err := instance.Version()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	t.Logf("SpecName: %s\n", version.SpecName())
 	t.Logf("ImplName: %s\n", version.ImplName())
@@ -215,7 +217,7 @@ func TestInstance_Version_DevRuntime(t *testing.T) {
 	instance := NewTestInstance(t, runtime.DEV_RUNTIME)
 
 	version, err := instance.Version()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	t.Logf("SpecName: %s\n", version.SpecName())
 	t.Logf("ImplName: %s\n", version.ImplName())
@@ -244,7 +246,8 @@ func balanceKey(t *testing.T, pub []byte) []byte {
 }
 
 func TestNodeRuntime_ValidateTransaction(t *testing.T) {
-	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/gssmr/genesis.json")
+	genesisPath := utils.GetGssmrGenesisRawPathTest(t)
+	gen, err := genesis.NewGenesisFromJSONRaw(genesisPath)
 	require.NoError(t, err)
 
 	genTrie, err := genesis.NewTrieFromGenesis(gen)
@@ -290,7 +293,7 @@ func TestNodeRuntime_ValidateTransaction(t *testing.T) {
 	rt.(*Instance).ctx.Storage.Set(common.UpgradedToDualRefKey, []byte{1})
 
 	genesisHeader := &types.Header{
-		Number:    big.NewInt(0),
+		Number:    0,
 		StateRoot: genTrie.MustHash(),
 	}
 
@@ -437,7 +440,7 @@ func TestInstance_InitializeBlock_NodeRuntime(t *testing.T) {
 	rt := NewTestInstance(t, runtime.NODE_RUNTIME)
 
 	header := &types.Header{
-		Number: big.NewInt(1),
+		Number: 1,
 		Digest: types.NewDigest(),
 	}
 
@@ -449,7 +452,7 @@ func TestInstance_InitializeBlock_PolkadotRuntime(t *testing.T) {
 	rt := NewTestInstance(t, runtime.POLKADOT_RUNTIME)
 
 	header := &types.Header{
-		Number: big.NewInt(1),
+		Number: 1,
 		Digest: types.NewDigest(),
 	}
 
@@ -478,7 +481,8 @@ func TestInstance_ExecuteBlock_NodeRuntime(t *testing.T) {
 
 func TestInstance_ExecuteBlock_GossamerRuntime(t *testing.T) {
 	t.Skip() // TODO: this fails with "syscall frame is no longer valid" (#1026)
-	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/gssmr/genesis.json")
+	genesisPath := utils.GetGssmrGenesisRawPathTest(t)
+	gen, err := genesis.NewGenesisFromJSONRaw(genesisPath)
 	require.NoError(t, err)
 
 	genTrie, err := genesis.NewTrieFromGenesis(gen)
@@ -508,7 +512,8 @@ func TestInstance_ExecuteBlock_GossamerRuntime(t *testing.T) {
 
 func TestInstance_ApplyExtrinsic_GossamerRuntime(t *testing.T) {
 	t.Skip() // TODO: this fails with "syscall frame is no longer valid" (#1026)
-	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/gssmr/genesis.json")
+	genesisPath := utils.GetGssmrGenesisRawPathTest(t)
+	gen, err := genesis.NewGenesisFromJSONRaw(genesisPath)
 	require.NoError(t, err)
 
 	genTrie, err := genesis.NewTrieFromGenesis(gen)
@@ -531,7 +536,7 @@ func TestInstance_ApplyExtrinsic_GossamerRuntime(t *testing.T) {
 	instance.SetContextStorage(parentState)
 
 	parentHash := common.Hash{}
-	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), types.NewDigest())
+	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, 1, types.NewDigest())
 	require.NoError(t, err)
 	err = instance.InitializeBlock(header)
 	require.NoError(t, err)
@@ -566,7 +571,8 @@ func TestInstance_ExecuteBlock_PolkadotRuntime(t *testing.T) {
 }
 
 func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
-	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/polkadot/genesis.json")
+	genesisPath := utils.GetPolkadotGenesisPath(t)
+	gen, err := genesis.NewGenesisFromJSONRaw(genesisPath)
 	require.NoError(t, err)
 
 	genTrie, err := genesis.NewTrieFromGenesis(gen)
@@ -604,7 +610,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 	block := &types.Block{
 		Header: types.Header{
 			ParentHash:     common.MustHexToHash("0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3"),
-			Number:         big.NewInt(1),
+			Number:         1,
 			StateRoot:      common.MustHexToHash("0xc56fcd6e7a757926ace3e1ecff9b4010fc78b90d459202a339266a7f6360002f"),
 			ExtrinsicsRoot: common.MustHexToHash("0x9a87f6af64ef97aff2d31bebfdd59f8fe2ef6019278b634b2515a38f1c4c2420"),
 			Digest:         digest,
@@ -617,7 +623,8 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 }
 
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
-	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/kusama/genesis.json")
+	genesisPath := utils.GetKusamaGenesisPath(t)
+	gen, err := genesis.NewGenesisFromJSONRaw(genesisPath)
 	require.NoError(t, err)
 
 	genTrie, err := genesis.NewTrieFromGenesis(gen)
@@ -655,7 +662,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 	block := &types.Block{
 		Header: types.Header{
 			ParentHash:     common.MustHexToHash("0xb0a8d493285c2df73290dfb7e61f870f17b41801197a149ca93654499ea3dafe"),
-			Number:         big.NewInt(1),
+			Number:         1,
 			StateRoot:      common.MustHexToHash("0xfabb0c6e92d29e8bb2167f3c6fb0ddeb956a4278a3cf853661af74a076fc9cb7"),
 			ExtrinsicsRoot: common.MustHexToHash("0xa35fb7f7616f5c979d48222b3d2fa7cb2331ef73954726714d91ca945cc34fd8"),
 			Digest:         digest,
@@ -701,7 +708,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock3784(t *testing.T) {
 	block := &types.Block{
 		Header: types.Header{
 			ParentHash:     common.MustHexToHash("0x4843b4aa38cf2e3e2f6fae401b98dd705bed668a82dd3751dc38f1601c814ca8"),
-			Number:         big.NewInt(3784),
+			Number:         3784,
 			StateRoot:      common.MustHexToHash("0xac44cc18ec22f0f3fca39dfe8725c0383af1c982a833e081fbb2540e46eb09a5"),
 			ExtrinsicsRoot: common.MustHexToHash("0x52b7d4852fc648cb8f908901e1e36269593c25050c31718454bca74b69115d12"),
 			Digest:         digest,
@@ -747,7 +754,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock901442(t *testing.T) {
 	block := &types.Block{
 		Header: types.Header{
 			ParentHash:     common.MustHexToHash("0x68d9c5f75225f09d7ce493eff8aabac7bae8b65cb81a2fd532a99fbb8c663931"),
-			Number:         big.NewInt(901442),
+			Number:         901442,
 			StateRoot:      common.MustHexToHash("0x6ea065f850894c5b58cb1a73ec887e56842851943641149c57cea357cae4f596"),
 			ExtrinsicsRoot: common.MustHexToHash("0x13483a4c148fff5f072e86b5af52bf031556514e9c87ea19f9e31e7b13c0c414"),
 			Digest:         digest,
@@ -793,7 +800,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1377831(t *testing.T) {
 	block := &types.Block{
 		Header: types.Header{
 			ParentHash:     common.MustHexToHash("0xca387b3cc045e8848277069d8794cbf077b08218c0b55f74d81dd750b14e768c"),
-			Number:         big.NewInt(1377831),
+			Number:         1377831,
 			StateRoot:      common.MustHexToHash("0x7e5569e652c4b1a3cecfcf5e5e64a97fe55071d34bab51e25626ec20cae05a02"),
 			ExtrinsicsRoot: common.MustHexToHash("0x7f3ea0ed63b4053d9b75e7ee3e5b3f6ce916e8f59b7b6c5e966b7a56ea0a563a"),
 			Digest:         digest,
@@ -840,7 +847,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1482003(t *testing.T) {
 	block := &types.Block{
 		Header: types.Header{
 			ParentHash:     common.MustHexToHash("0x587f6da1bfa71a675f10dfa0f63edfcf168e8ece97eb5f526aaf0e8a8e82db3f"),
-			Number:         big.NewInt(1482003),
+			Number:         1482003,
 			StateRoot:      common.MustHexToHash("0xd2de750002f33968437bdd54912dd4f55c3bddc5a391a8e0b8332568e1efea8d"),
 			ExtrinsicsRoot: common.MustHexToHash("0xdf5da95780b77e83ad0bf820d5838f07a0d5131aa95a75f8dfbd01fbccb300bd"),
 			Digest:         digest,
@@ -884,7 +891,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock4939774(t *testing.T) {
 	block := &types.Block{
 		Header: types.Header{
 			ParentHash:     common.MustHexToHash("0xac08290f49cb9760a3a4c5a49351af76ba9432add29178e5cc27d4451f9126c9"),
-			Number:         big.NewInt(4939774),
+			Number:         4939774,
 			StateRoot:      common.MustHexToHash("0x5d66f43cdbf1740b8ca41f0cd016602f1648fb08b74fe49f5f078845071d0a54"),
 			ExtrinsicsRoot: common.MustHexToHash("0x5d887e118ee6320aca38e49cbd98adc25472c6efbf77a695ab0d6c476a4ec6e9"),
 			Digest:         digest,
@@ -929,7 +936,7 @@ func TestInstance_ExecuteBlock_PolkadotBlock1089328(t *testing.T) {
 	block := &types.Block{
 		Header: types.Header{
 			ParentHash:     common.MustHexToHash("0x21dc35454805411be396debf3e1d5aad8d6e9d0d7679cce0cc632ba8a647d07c"),
-			Number:         big.NewInt(1089328),
+			Number:         1089328,
 			StateRoot:      common.MustHexToHash("0x257b1a7f6bc0287fcbf50676dd29817f2f7ae193cb65b31962e351917406fa23"),
 			ExtrinsicsRoot: common.MustHexToHash("0x950173af1d9fdcd0be5428fc3eaf05d5f34376bd3882d9a61b348fa2dc641012"),
 			Digest:         digest,

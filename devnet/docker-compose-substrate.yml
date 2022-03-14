@@ -1,16 +1,4 @@
 services:
-  prometheus:
-    image: prom/prometheus:v2.33.1
-    volumes:
-    - ./../prometheus.yml:/etc/prometheus/prometheus.yml:ro
-    command:
-    - '--storage.tsdb.path=/prometheus'
-    - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-    - '--web.console.templates=/usr/share/prometheus/consoles'
-    ports:
-    - 9090
-    restart: always
-
   alice:
     platform: linux/amd64
     build:

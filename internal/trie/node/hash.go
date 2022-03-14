@@ -29,7 +29,7 @@ func (b *Branch) GetHash() []byte {
 // the blake2b hash digest of the encoding of the branch.
 // If the encoding is less than 32 bytes, the hash returned
 // is the encoding and not the hash of the encoding.
-func (b *Branch) EncodeAndHash() (encoding, hash []byte, err error) {
+func (b *Branch) EncodeAndHash(isRoot bool) (encoding, hash []byte, err error) {
 	if !b.Dirty && b.Encoding != nil && b.HashDigest != nil {
 		return b.Encoding, b.HashDigest, nil
 	}
@@ -49,7 +49,7 @@ func (b *Branch) EncodeAndHash() (encoding, hash []byte, err error) {
 	copy(b.Encoding, bufferBytes)
 	encoding = b.Encoding // no need to copy
 
-	if buffer.Len() < 32 {
+	if !isRoot && buffer.Len() < 32 {
 		b.HashDigest = make([]byte, len(bufferBytes))
 		copy(b.HashDigest, bufferBytes)
 		hash = b.HashDigest // no need to copy
@@ -70,9 +70,7 @@ func (b *Branch) EncodeAndHash() (encoding, hash []byte, err error) {
 // SetEncodingAndHash sets the encoding and hash slices
 // given to the branch. Note it does not copy them, so beware.
 func (l *Leaf) SetEncodingAndHash(enc, hash []byte) {
-	l.encodingMu.Lock()
 	l.Encoding = enc
-	l.encodingMu.Unlock()
 	l.HashDigest = hash
 }
 
@@ -88,13 +86,10 @@ func (l *Leaf) GetHash() []byte {
 // the blake2b hash digest of the encoding of the leaf.
 // If the encoding is less than 32 bytes, the hash returned
 // is the encoding and not the hash of the encoding.
-func (l *Leaf) EncodeAndHash() (encoding, hash []byte, err error) {
-	l.encodingMu.RLock()
+func (l *Leaf) EncodeAndHash(isRoot bool) (encoding, hash []byte, err error) {
 	if !l.IsDirty() && l.Encoding != nil && l.HashDigest != nil {
-		l.encodingMu.RUnlock()
 		return l.Encoding, l.HashDigest, nil
 	}
-	l.encodingMu.RUnlock()
 
 	buffer := pools.EncodingBuffers.Get().(*bytes.Buffer)
 	buffer.Reset()
@@ -107,15 +102,13 @@ func (l *Leaf) EncodeAndHash() (encoding, hash []byte, err error) {
 
 	bufferBytes := buffer.Bytes()
 
-	l.encodingMu.Lock()
 	// TODO remove this copying since it defeats the purpose of `buffer`
 	// and the sync.Pool.
 	l.Encoding = make([]byte, len(bufferBytes))
 	copy(l.Encoding, bufferBytes)
-	l.encodingMu.Unlock()
 	encoding = l.Encoding // no need to copy
 
-	if len(bufferBytes) < 32 {
+	if !isRoot && len(bufferBytes) < 32 {
 		l.HashDigest = make([]byte, len(bufferBytes))
 		copy(l.HashDigest, bufferBytes)
 		hash = l.HashDigest // no need to copy

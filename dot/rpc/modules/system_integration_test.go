@@ -21,7 +21,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/ChainSafe/gossamer/dot/core"
-	coremocks "github.com/ChainSafe/gossamer/dot/core/mocks"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -328,7 +327,7 @@ func setupSystemModule(t *testing.T) *SystemModule {
 
 	err = chain.Block.AddBlock(&types.Block{
 		Header: types.Header{
-			Number:     big.NewInt(3),
+			Number:     3,
 			ParentHash: chain.Block.BestBlockHash(),
 			StateRoot:  ts.MustRoot(),
 			Digest:     digest,
@@ -350,6 +349,8 @@ func setupSystemModule(t *testing.T) *SystemModule {
 	txQueue := state.NewTransactionState(telemetryMock)
 	return NewSystemModule(net, nil, core, chain.Storage, txQueue, nil, nil)
 }
+
+//go:generate mockgen -destination=mock_network_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/core Network
 
 func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 	// setup service
@@ -373,8 +374,12 @@ func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 		srvc = newTestStateService(t)
 	}
 
-	mocknet := new(coremocks.Network)
-	mocknet.On("GossipMessage", mock.AnythingOfType("network.NotificationsMessage"))
+	ctrl := gomock.NewController(t)
+
+	mocknet := NewMockNetwork(ctrl)
+	mocknet.EXPECT().GossipMessage(
+		gomock.AssignableToTypeOf(new(network.TransactionMessage))).
+		AnyTimes()
 
 	digestHandlerMock := NewMockDigestHandler(nil)
 
@@ -399,7 +404,7 @@ func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 func TestSyncState(t *testing.T) {
 	fakeCommonHash := common.NewHash([]byte("fake"))
 	fakeHeader := &types.Header{
-		Number: big.NewInt(int64(49)),
+		Number: 49,
 	}
 
 	blockapiMock := new(mocks.BlockAPI)
@@ -411,7 +416,7 @@ func TestSyncState(t *testing.T) {
 
 	syncapiCtrl := gomock.NewController(t)
 	syncapiMock := NewMockSyncAPI(syncapiCtrl)
-	syncapiMock.EXPECT().HighestBlock().Return(int64(90))
+	syncapiMock.EXPECT().HighestBlock().Return(uint(90))
 
 	sysmodule := new(SystemModule)
 	sysmodule.blockAPI = blockapiMock

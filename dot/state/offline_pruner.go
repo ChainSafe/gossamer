@@ -41,9 +41,14 @@ func NewOfflinePruner(inputDBPath, prunedDBPath string, bloomSize uint64,
 		return nil, fmt.Errorf("failed to load DB %w", err)
 	}
 
+	tries, err := NewTries(trie.NewEmptyTrie())
+	if err != nil {
+		return nil, fmt.Errorf("cannot setup tries: %w", err)
+	}
+
 	// create blockState state
 	// NewBlockState on pruner execution does not use telemetry
-	blockState, err := NewBlockState(db, nil)
+	blockState, err := NewBlockState(db, tries, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create block state: %w", err)
 	}
@@ -60,7 +65,7 @@ func NewOfflinePruner(inputDBPath, prunedDBPath string, bloomSize uint64,
 	}
 
 	// load storage state
-	storageState, err := NewStorageState(db, blockState, trie.NewEmptyTrie(), pruner.Config{})
+	storageState, err := NewStorageState(db, blockState, tries, pruner.Config{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new storage state %w", err)
 	}
@@ -101,17 +106,17 @@ func (p *OfflinePruner) SetBloomFilter() (err error) {
 		return fmt.Errorf("failed to get highest finalised header: %w", err)
 	}
 
-	latestBlockNum := header.Number.Int64()
+	latestBlockNum := header.Number
 	keys := make(map[common.Hash]struct{})
 
 	logger.Infof("Latest block number is %d", latestBlockNum)
 
-	if latestBlockNum-p.retainBlockNum <= 0 {
+	if latestBlockNum-uint(p.retainBlockNum) <= 0 {
 		return fmt.Errorf("not enough block to perform pruning")
 	}
 
 	// loop from latest to last `retainBlockNum` blocks
-	for blockNum := header.Number.Int64(); blockNum > 0 && blockNum >= latestBlockNum-p.retainBlockNum; {
+	for blockNum := header.Number; blockNum > 0 && blockNum >= latestBlockNum-uint(p.retainBlockNum); {
 		var tr *trie.Trie
 		tr, err = p.storageState.LoadFromDB(header.StateRoot)
 		if err != nil {
@@ -125,7 +130,7 @@ func (p *OfflinePruner) SetBloomFilter() (err error) {
 		if err != nil {
 			return err
 		}
-		blockNum = header.Number.Int64()
+		blockNum = header.Number
 	}
 
 	for key := range keys {

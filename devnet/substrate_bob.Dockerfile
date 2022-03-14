@@ -1,42 +1,67 @@
-FROM parity/polkadot:v0.9.10 AS polkadot
-FROM golang:1.17
+# Copyright 2022 ChainSafe Systems (ON)
+# SPDX-License-Identifier: LGPL-3.0-only
+ARG POLKADOT_VERSION=v0.9.10
+FROM golang:1.17 as openmetrics
 
-ARG key
-ARG CHAIN=cross-client
-ARG DD_API_KEY=somekey
 ARG METRICS_NAMESPACE=substrate.local.devnet
 
-ENV key=${key}
-ENV CHAIN=${CHAIN}
-ENV DD_API_KEY=${DD_API_KEY}
+WORKDIR /devnet
 
-RUN test -n "$key"
-RUN DD_AGENT_MAJOR_VERSION=7 DD_INSTALL_ONLY=true DD_SITE="datadoghq.com" bash -c "$(curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script.sh)"
-
-COPY --from=polkadot /usr/bin/polkadot /usr/bin/polkadot
-
-WORKDIR /gossamer
-
-COPY go.mod go.sum ./
+COPY ./devnet/go.mod ./devnet/go.sum ./
 RUN go mod download
 
-COPY . . 
+COPY ./devnet .
+RUN go run cmd/update-dd-agent-confd/main.go -n=${METRICS_NAMESPACE} -t=key:alice > conf.yaml
 
-WORKDIR /gossamer/devnet
+FROM parity/polkadot:${POLKADOT_VERSION}
 
-RUN go run cmd/update-dd-agent-confd/main.go -n=${METRICS_NAMESPACE} -t=key:$key > /etc/datadog-agent/conf.d/openmetrics.d/conf.yaml
+ARG POLKADOT_VERSION
+# Using a genesis file with 3 authority nodes (alice, bob, charlie) generated using polkadot $POLKADOT_VERSION
+ARG CHAIN=3-auth-node-${POLKADOT_VERSION}
+ARG DD_API_KEY=somekey
+ARG key
 
-ENTRYPOINT sleep 30s && service datadog-agent start && /usr/bin/polkadot \
+ENV DD_API_KEY=${DD_API_KEY}
+ENV CHAIN=${CHAIN}
+ENV key=${key}
+
+USER root
+RUN gpg --recv-keys --keyserver hkps://keys.mailvelope.com 9D4B2B6EB8F97156D19669A9FF0812D491B96798
+RUN gpg --export 9D4B2B6EB8F97156D19669A9FF0812D491B96798 > /usr/share/keyrings/parity.gpg
+
+RUN apt update && apt install -y curl && rm -r /var/cache/* /var/lib/apt/lists/*
+
+WORKDIR /cross-client
+
+RUN curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script.sh --output install_script.sh && \
+    chmod +x ./install_script.sh
+
+RUN DD_AGENT_MAJOR_VERSION=7 DD_INSTALL_ONLY=true DD_SITE="datadoghq.com" ./install_script.sh
+COPY --from=openmetrics /devnet/conf.yaml /etc/datadog-agent/conf.d/openmetrics.d/
+
+USER polkadot
+
+COPY ./devnet/chain ./chain/
+
+ENTRYPOINT service datadog-agent start && /usr/bin/polkadot \
     --bootnodes /dns/alice/tcp/7001/p2p/12D3KooWMER5iow67nScpWeVqEiRRx59PJ3xMMAYPTACYPRQbbWU \
     --chain chain/$CHAIN/genesis-raw.json \
     --port 7001 \
     --rpc-port 8545 \
     --ws-port 8546 \
+<<<<<<< HEAD
     --$key \
+=======
+    --${key} \
+>>>>>>> development
     --tmp \
     --prometheus-external \
     --prometheus-port 9876 \
     --unsafe-rpc-external \
     --unsafe-ws-external
 
+<<<<<<< HEAD
 EXPOSE 7001/tcp 8545/tcp 8546/tcp 9876/tcp
+=======
+EXPOSE 7001/tcp 8545/tcp 8546/tcp 9876/tcp
+>>>>>>> development

@@ -4,7 +4,6 @@
 package core
 
 import (
-	"math/big"
 	"sync"
 
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -24,7 +23,7 @@ import (
 type BlockState interface {
 	BestBlockHash() common.Hash
 	BestBlockHeader() (*types.Header, error)
-	BestBlockNumber() (*big.Int, error)
+	BestBlockNumber() (blockNumber uint, err error)
 	BestBlockStateRoot() (common.Hash, error)
 	BestBlock() (*types.Block, error)
 	AddBlock(*types.Block) error

@@ -54,11 +54,11 @@ func TestStableNetworkRPC(t *testing.T) {
 	for _, test := range testsCases {
 		t.Run(test.description, func(t *testing.T) {
 			respBody, err := utils.PostRPC(test.method, "http://"+utils.HOSTNAME+":"+utils.PORT, "{}")
-			require.Nil(t, err)
+			require.NoError(t, err)
 
 			target := reflect.New(reflect.TypeOf(test.expected)).Interface()
 			err = utils.DecodeRPC(t, respBody, target)
-			require.Nil(t, err)
+			require.NoError(t, err)
 
 			switch v := target.(type) {
 			case *modules.SystemHealthResponse:

@@ -1,16 +1,16 @@
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
+//go:build integration
+// +build integration
+
 package dot
 
 import (
-	"math/big"
-	"reflect"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
-	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -19,9 +19,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/golang/mock/gomock"
-
-	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/require"
 )
 
@@ -35,6 +33,11 @@ func TestInitNode(t *testing.T) {
 
 	err := InitNode(cfg)
 	require.NoError(t, err)
+
+	// confirm database was setup
+	db, err := utils.SetupDatabase(cfg.Global.BasePath, false)
+	require.NoError(t, err)
+	require.NotNil(t, db)
 }
 
 func TestInitNode_GenesisSpec(t *testing.T) {
@@ -47,9 +50,12 @@ func TestInitNode_GenesisSpec(t *testing.T) {
 
 	err := InitNode(cfg)
 	require.NoError(t, err)
+	// confirm database was setup
+	db, err := utils.SetupDatabase(cfg.Global.BasePath, false)
+	require.NoError(t, err)
+	require.NotNil(t, db)
 }
 
-// TestNodeInitialized
 func TestNodeInitialized(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
@@ -58,17 +64,16 @@ func TestNodeInitialized(t *testing.T) {
 
 	cfg.Init.Genesis = genFile
 
-	expected := NodeInitialized(cfg.Global.BasePath)
-	require.Equal(t, expected, false)
+	result := NodeInitialized(cfg.Global.BasePath)
+	require.False(t, result)
 
 	err := InitNode(cfg)
 	require.NoError(t, err)
 
-	expected = NodeInitialized(cfg.Global.BasePath)
-	require.Equal(t, expected, true)
+	result = NodeInitialized(cfg.Global.BasePath)
+	require.True(t, result)
 }
 
-// TestNewNode
 func TestNewNode(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
@@ -92,9 +97,9 @@ func TestNewNode(t *testing.T) {
 	require.NoError(t, err)
 
 	bp := node.Services.Get(&babe.Service{})
-	require.NotNil(t, bp)
+	require.IsType(t, &babe.Service{}, bp)
 	fg := node.Services.Get(&grandpa.Service{})
-	require.NotNil(t, fg)
+	require.IsType(t, &grandpa.Service{}, fg)
 }
 
 func TestNewNode_Authority(t *testing.T) {
@@ -127,7 +132,6 @@ func TestNewNode_Authority(t *testing.T) {
 	require.NotNil(t, fg)
 }
 
-// TestStartNode
 func TestStartNode(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
@@ -136,7 +140,6 @@ func TestStartNode(t *testing.T) {
 
 	cfg.Init.Genesis = genFile
 	cfg.Core.GrandpaAuthority = false
-	cfg.Core.BABELead = true
 
 	err := InitNode(cfg)
 	require.NoError(t, err)
@@ -152,24 +155,17 @@ func TestStartNode(t *testing.T) {
 	node, err := NewNode(cfg, ks)
 	require.NoError(t, err)
 
-	go func() {
-		<-node.started
-		node.Stop()
-	}()
-
 	err = node.Start()
 	require.NoError(t, err)
+	<-node.started
+	node.Stop()
 }
 
-//go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
-
-// TestInitNode_LoadGenesisData
 func TestInitNode_LoadGenesisData(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
 	genPath := NewTestGenesisAndRuntime(t)
-	require.NotNil(t, genPath)
 
 	cfg.Init.Genesis = genPath
 	cfg.Core.GrandpaAuthority = false
@@ -177,22 +173,8 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 	err := InitNode(cfg)
 	require.NoError(t, err)
 
-	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
-
-	expectedArg := &telemetry.NotifyFinalized{
-		Best:   common.MustHexToHash("0x336743aadf42654d4ef91294b61a167c9ed8a42f7f327d08d1e3c99541047392"),
-		Height: "0",
-	}
-
-	telemetryMock.EXPECT().SendMessage(expectedArg)
-
-	require.NoError(t, err)
-
 	config := state.Config{
-		Path:      cfg.Global.BasePath,
-		LogLevel:  log.Info,
-		Telemetry: telemetryMock,
+		Path: cfg.Global.BasePath,
 	}
 	stateSrvc := state.NewService(config)
 
@@ -203,22 +185,19 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 	require.NoError(t, err)
 
 	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}),
-		genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.NewDigest())
+		genTrie.MustHash(), trie.EmptyHash, 0, types.NewDigest())
 	require.NoError(t, err)
 
 	err = stateSrvc.Initialise(gen, genesisHeader, genTrie)
 	require.NoError(t, err)
 
-	err = stateSrvc.SetupBase()
-	require.NoError(t, err)
-
 	err = stateSrvc.Start()
 	require.NoError(t, err)
 
-	defer func() {
+	t.Cleanup(func() {
 		err = stateSrvc.Stop()
 		require.NoError(t, err)
-	}()
+	})
 
 	gendata, err := stateSrvc.Base.LoadGenesisData()
 	require.NoError(t, err)
@@ -238,18 +217,16 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 
 	stateRoot := genesisHeader.StateRoot
 	expectedHeader, err := types.NewHeader(common.NewHash([]byte{0}),
-		stateRoot, trie.EmptyHash, big.NewInt(0), types.NewDigest())
+		stateRoot, trie.EmptyHash, 0, types.NewDigest())
 	require.NoError(t, err)
 	require.Equal(t, expectedHeader.Hash(), genesisHeader.Hash())
 }
 
-// TestInitNode_LoadStorageRoot
 func TestInitNode_LoadStorageRoot(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
 	genPath := NewTestGenesisAndRuntime(t)
-	require.NotNil(t, genPath)
 
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false
@@ -270,10 +247,6 @@ func TestInitNode_LoadStorageRoot(t *testing.T) {
 	node, err := NewNode(cfg, ks)
 	require.NoError(t, err)
 
-	if reflect.TypeOf(node) != reflect.TypeOf(&Node{}) {
-		t.Fatalf("failed to return correct type: got %v expected %v", reflect.TypeOf(node), reflect.TypeOf(&Node{}))
-	}
-
 	expected := &trie.Trie{}
 	err = expected.LoadFromMap(gen.GenesisFields().Raw["top"])
 	require.NoError(t, err)
@@ -281,14 +254,10 @@ func TestInitNode_LoadStorageRoot(t *testing.T) {
 	expectedRoot, err := expected.Hash()
 	require.NoError(t, err)
 
-	mgr := node.Services.Get(&core.Service{})
+	coreServiceInterface := node.Services.Get(&core.Service{})
 
-	var coreSrvc *core.Service
-	var ok bool
-
-	if coreSrvc, ok = mgr.(*core.Service); !ok {
-		t.Fatal("could not find core service")
-	}
+	coreSrvc, ok := coreServiceInterface.(*core.Service)
+	require.True(t, ok, "could not find core service")
 	require.NotNil(t, coreSrvc)
 
 	stateRoot, err := coreSrvc.StorageRoot()
@@ -296,10 +265,9 @@ func TestInitNode_LoadStorageRoot(t *testing.T) {
 	require.Equal(t, expectedRoot, stateRoot)
 }
 
-// balanceKey returns the storage trie key for the balance of the account with the given public key
-func balanceKey(t *testing.T, key [32]byte) []byte {
-	accKey := append([]byte("balance:"), key[:]...)
-	hash, err := common.Blake2bHash(accKey)
+func balanceKey(t *testing.T, publicKey [32]byte) (storageTrieKey []byte) {
+	accountKey := append([]byte("balance:"), publicKey[:]...)
+	hash, err := common.Blake2bHash(accountKey)
 	require.NoError(t, err)
 	return hash[:]
 }
@@ -309,7 +277,6 @@ func TestInitNode_LoadBalances(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	genPath := NewTestGenesisAndRuntime(t)
-	require.NotNil(t, genPath)
 
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false
@@ -326,18 +293,10 @@ func TestInitNode_LoadBalances(t *testing.T) {
 	node, err := NewNode(cfg, ks)
 	require.NoError(t, err)
 
-	if reflect.TypeOf(node) != reflect.TypeOf(&Node{}) {
-		t.Fatalf("failed to return correct type: got %v expected %v", reflect.TypeOf(node), reflect.TypeOf(&Node{}))
-	}
-
 	mgr := node.Services.Get(&state.Service{})
 
-	var stateSrv *state.Service
-	var ok bool
-
-	if stateSrv, ok = mgr.(*state.Service); !ok {
-		t.Fatal("could not find core service")
-	}
+	stateSrv, ok := mgr.(*state.Service)
+	require.True(t, ok, "could not find core service")
 	require.NotNil(t, stateSrv)
 
 	kr, _ := keystore.NewSr25519Keyring()
@@ -346,8 +305,9 @@ func TestInitNode_LoadBalances(t *testing.T) {
 	bal, err := stateSrv.Storage.GetStorage(nil, balanceKey(t, alice))
 	require.NoError(t, err)
 
-	genbal := "0x0000000000000001"
-	expected, _ := common.HexToBytes(genbal)
+	const genesisBalance = "0x0000000000000001"
+	expected, err := common.HexToBytes(genesisBalance)
+	require.NoError(t, err)
 	require.Equal(t, expected, bal)
 }
 
@@ -356,20 +316,16 @@ func TestNode_PersistGlobalName_WhenInitialize(t *testing.T) {
 
 	cfg := NewTestConfig(t)
 	cfg.Global.Name = globalName
-	require.NotNil(t, cfg)
-
-	genPath := NewTestGenesisAndRuntime(t)
-	require.NotNil(t, genPath)
 
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
-	cfg.Init.Genesis = genPath
+	cfg.Init.Genesis = NewTestGenesisAndRuntime(t)
 
 	err := InitNode(cfg)
 	require.NoError(t, err)
 
 	storedName, err := LoadGlobalNodeName(cfg.Global.BasePath)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, globalName, storedName)
 }

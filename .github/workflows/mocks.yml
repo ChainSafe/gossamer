@@ -3,15 +3,17 @@ on:
   pull_request:
     branches:
       - development
-    paths:
-      - .github/workflows/mocks.yml
-      - "**/*.go"
+    # Commented paths to avoid skipping required workflow
+    # See https://github.community/t/feature-request-conditional-required-checks/16761
+    # paths:
+    #   - .github/workflows/mocks.yml
+    #   - "**/*.go"
 
 jobs:
   mocks-check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - uses: actions/setup-go@v2
         with:
@@ -21,9 +23,16 @@ jobs:
 
       - run: go install github.com/golang/mock/mockgen@v1.6.0
 
-      - run: go generate -run "mockery" ./...
+      - name: Check devnet module
+        run: |
+          cd devnet && \
+          go generate -run "mockery" -tags integration ./... && \
+          go generate -run "mockgen" -tags integration ./... && \
+          git diff --exit-code && \
+          cd ..
 
-      - run: go generate -run "mockgen" ./...
-
-      - name: mocks updated check
-        run: git diff --exit-code
+      - name: Check Gossamer module
+        run: |
+          go generate -run "mockery" -tags integration ./... && \
+          go generate -run "mockgen" -tags integration ./... && \
+          git diff --exit-code

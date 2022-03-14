@@ -32,7 +32,7 @@ func TestEngineRPC(t *testing.T) {
 
 	t.Log("starting gossamer...")
 	nodes, err := utils.InitializeAndStartNodes(t, 1, utils.GenesisDefault, utils.ConfigDefault)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	time.Sleep(time.Second) // give server a second to start
 

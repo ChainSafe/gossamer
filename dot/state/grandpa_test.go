@@ -4,7 +4,6 @@
 package state
 
 import (
-	"math/big"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -36,7 +35,7 @@ func TestNewGrandpaStateFromGenesis(t *testing.T) {
 
 	num, err := gs.GetSetIDChange(0)
 	require.NoError(t, err)
-	require.Equal(t, big.NewInt(0), num)
+	require.Equal(t, uint(0), num)
 }
 
 func TestGrandpaState_SetNextChange(t *testing.T) {
@@ -44,7 +43,7 @@ func TestGrandpaState_SetNextChange(t *testing.T) {
 	gs, err := NewGrandpaStateFromGenesis(db, testAuths)
 	require.NoError(t, err)
 
-	err = gs.SetNextChange(testAuths, big.NewInt(1))
+	err = gs.SetNextChange(testAuths, 1)
 	require.NoError(t, err)
 
 	auths, err := gs.GetAuthorities(genesisSetID + 1)
@@ -53,7 +52,7 @@ func TestGrandpaState_SetNextChange(t *testing.T) {
 
 	atBlock, err := gs.GetSetIDChange(genesisSetID + 1)
 	require.NoError(t, err)
-	require.Equal(t, big.NewInt(1), atBlock)
+	require.Equal(t, uint(1), atBlock)
 }
 
 func TestGrandpaState_IncrementSetID(t *testing.T) {
@@ -74,29 +73,29 @@ func TestGrandpaState_GetSetIDByBlockNumber(t *testing.T) {
 	gs, err := NewGrandpaStateFromGenesis(db, testAuths)
 	require.NoError(t, err)
 
-	err = gs.SetNextChange(testAuths, big.NewInt(100))
+	err = gs.SetNextChange(testAuths, 100)
 	require.NoError(t, err)
 
-	setID, err := gs.GetSetIDByBlockNumber(big.NewInt(50))
-	require.NoError(t, err)
-	require.Equal(t, genesisSetID, setID)
-
-	setID, err = gs.GetSetIDByBlockNumber(big.NewInt(100))
+	setID, err := gs.GetSetIDByBlockNumber(50)
 	require.NoError(t, err)
 	require.Equal(t, genesisSetID, setID)
 
-	setID, err = gs.GetSetIDByBlockNumber(big.NewInt(101))
+	setID, err = gs.GetSetIDByBlockNumber(100)
+	require.NoError(t, err)
+	require.Equal(t, genesisSetID, setID)
+
+	setID, err = gs.GetSetIDByBlockNumber(101)
 	require.NoError(t, err)
 	require.Equal(t, genesisSetID+1, setID)
 
 	err = gs.IncrementSetID()
 	require.NoError(t, err)
 
-	setID, err = gs.GetSetIDByBlockNumber(big.NewInt(100))
+	setID, err = gs.GetSetIDByBlockNumber(100)
 	require.NoError(t, err)
 	require.Equal(t, genesisSetID, setID)
 
-	setID, err = gs.GetSetIDByBlockNumber(big.NewInt(101))
+	setID, err = gs.GetSetIDByBlockNumber(101)
 	require.NoError(t, err)
 	require.Equal(t, genesisSetID+1, setID)
 }

@@ -11,23 +11,23 @@ require (
 	github.com/dgraph-io/badger/v2 v2.2007.4
 	github.com/dgraph-io/ristretto v0.0.3-0.20200630154024-f66de99634de
 	github.com/disiqueira/gotree v1.0.0
-	github.com/docker/docker v20.10.12+incompatible
-	github.com/ethereum/go-ethereum v1.10.15
+	github.com/docker/docker v20.10.13+incompatible
+	github.com/ethereum/go-ethereum v1.10.16
 	github.com/fatih/color v1.13.0
-	github.com/go-playground/validator/v10 v10.10.0
+	github.com/go-playground/validator/v10 v10.10.1
 	github.com/golang/mock v1.6.0
 	github.com/golang/protobuf v1.5.2
 	github.com/google/go-cmp v0.5.7
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/rpc v1.2.0
-	github.com/gorilla/websocket v1.4.2
+	github.com/gorilla/websocket v1.5.0
 	github.com/gtank/merlin v0.1.1
 	github.com/holiman/bloomfilter/v2 v2.0.3
 	github.com/ipfs/go-ds-badger2 v0.1.1
 	github.com/ipfs/go-ipns v0.1.2 //indirect
 	github.com/jpillora/ipfilter v1.2.3
-	github.com/klauspost/compress v1.14.2
+	github.com/klauspost/compress v1.15.1
 	github.com/libp2p/go-libp2p v0.15.1
 	github.com/libp2p/go-libp2p-core v0.9.0
 	github.com/libp2p/go-libp2p-discovery v0.5.1
@@ -41,12 +41,15 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/urfave/cli v1.22.5
 	github.com/wasmerio/go-ext-wasm v0.3.2-0.20200326095750-0a32be6068ec
-	golang.org/x/crypto v0.0.0-20210813211128-0a44fdfbc16e
+	golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3
 	golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1
 	google.golang.org/protobuf v1.27.1
 )
 
-require github.com/prometheus/client_golang v1.12.1
+require (
+	github.com/prometheus/client_golang v1.12.1
+	github.com/prometheus/client_model v0.2.0
+)
 
 require (
 	github.com/ChainSafe/log15 v1.0.0 // indirect
@@ -58,7 +61,7 @@ require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/davidlazar/go-crypto v0.0.0-20200604182044-b73af7476f6c // indirect
-	github.com/deckarep/golang-set v1.7.1 // indirect
+	github.com/deckarep/golang-set v1.8.0 // indirect
 	github.com/decred/base58 v1.0.3 // indirect
 	github.com/decred/dcrd/crypto/blake256 v1.0.0 // indirect
 	github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2 // indirect
@@ -153,7 +156,6 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/polydawn/refmt v0.0.0-20190807091052-3d65705ee9f1 // indirect
-	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.32.1 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/rs/cors v1.7.0 // indirect
@@ -174,7 +176,7 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
 	go.uber.org/zap v1.19.0 // indirect
-	golang.org/x/net v0.0.0-20210813160813-60bc85c4be6d // indirect
+	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
 	golang.org/x/sys v0.0.0-20220114195835-da31bd327af9 // indirect
 	golang.org/x/text v0.3.7 // indirect

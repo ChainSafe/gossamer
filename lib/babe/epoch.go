@@ -6,9 +6,9 @@ package babe
 import (
 	"errors"
 	"fmt"
-	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 )
 
 // initiateEpoch sets the epochData for the given epoch, runs the lottery for the slots in the epoch,
@@ -56,7 +56,7 @@ func (b *Service) checkAndSetFirstSlot() error {
 		return fmt.Errorf("cannot set first slot: %w", err)
 	}
 
-	block, err := b.blockState.GetBlockByNumber(big.NewInt(1))
+	block, err := b.blockState.GetBlockByNumber(1)
 	if err != nil {
 		return fmt.Errorf("cannot get block with number 1: %w", err)
 	}
@@ -138,6 +138,7 @@ func (b *Service) getEpochDataAndStartSlot(epoch uint64) (*epochData, uint64, er
 		authorities:    data.Authorities,
 		authorityIndex: idx,
 		threshold:      threshold,
+		allowedSlots:   types.AllowedSlots(cfgData.SecondarySlots),
 	}
 
 	startSlot, err := b.epochState.GetStartSlotForEpoch(epoch)
@@ -164,6 +165,8 @@ func (b *Service) getLatestEpochData() (resEpochData *epochData, error error) {
 		return nil, fmt.Errorf("cannot get epoch state latest config data: %w", err)
 	}
 
+	resEpochData.allowedSlots = types.AllowedSlots(configData.SecondarySlots)
+
 	resEpochData.threshold, err = CalculateThreshold(configData.C1, configData.C2, len(resEpochData.authorities))
 	if err != nil {
 		return nil, fmt.Errorf("cannot calculate threshold: %w", err)
@@ -184,11 +187,10 @@ func (b *Service) getLatestEpochData() (resEpochData *epochData, error error) {
 func (b *Service) getFirstAuthoringSlot(epoch uint64, epochData *epochData) (uint64, error) {
 	startSlot := getCurrentSlot(b.constants.slotDuration)
 	for i := startSlot; i < startSlot+b.constants.epochLength; i++ {
-		_, err := b.runLottery(i, epoch, epochData)
-		if err != nil {
-			if errors.Is(err, errOverPrimarySlotThreshold) {
-				continue
-			}
+		_, err := claimSlot(epoch, i, epochData, b.keypair)
+		if errors.Is(err, errOverPrimarySlotThreshold) || errors.Is(err, errNotOurTurnToPropose) {
+			continue
+		} else if err != nil {
 			return 0, fmt.Errorf("error running slot lottery at slot %d: error %w", i, err)
 		}
 
@@ -215,18 +217,70 @@ func (b *Service) incrementEpoch() (uint64, error) {
 	return next, nil
 }
 
-// runLottery runs the lottery for a specific slot number.
+// claimSlot attempts to claim a slot for a specific slot number.
 // It returns an encoded VrfOutputAndProof if the validator is authorised
 // to produce a block for that slot.
 // It returns the wrapped error errOverPrimarySlotThreshold
 // if it is not authorised.
 // output = return[0:32]; proof = return[32:96]
-func (b *Service) runLottery(slot, epoch uint64, epochData *epochData) (*VrfOutputAndProof, error) {
-	return claimPrimarySlot(
+func claimSlot(epochNumber uint64, slotNumber uint64, epochData *epochData, keypair *sr25519.Keypair,
+) (*types.PreRuntimeDigest, error) {
+	proof, err := claimPrimarySlot(
 		epochData.randomness,
-		slot,
-		epoch,
+		slotNumber,
+		epochNumber,
 		epochData.threshold,
-		b.keypair,
+		keypair,
 	)
+
+	if err == nil {
+		babePrimaryPreDigest := types.NewBabePrimaryPreDigest(epochData.authorityIndex, slotNumber, proof.output, proof.proof)
+		preRuntimeDigest, err := babePrimaryPreDigest.ToPreRuntimeDigest()
+		if err != nil {
+			return nil, fmt.Errorf("error converting babe primary pre-digest to pre-runtime digest: %w", err)
+		}
+		logger.Debugf("epoch %d: claimed primary slot %d", epochNumber, slotNumber)
+		return preRuntimeDigest, nil
+	} else if !errors.Is(err, errOverPrimarySlotThreshold) {
+		return nil, fmt.Errorf("error running slot lottery at slot %d: %w", slotNumber, err)
+	}
+
+	switch epochData.allowedSlots {
+	case types.PrimarySlots:
+		return nil, errNotOurTurnToPropose
+	case types.PrimaryAndSecondaryVRFSlots:
+		proof, err := claimSecondarySlotVRF(
+			epochData.randomness, slotNumber, epochNumber, epochData.authorities, keypair, epochData.authorityIndex)
+		if err != nil {
+			return nil, fmt.Errorf("cannot claim secondary vrf slot at %d: %w", slotNumber, err)
+		}
+		babeSecondaryVRFPreDigest := types.NewBabeSecondaryVRFPreDigest(
+			epochData.authorityIndex, slotNumber, proof.output, proof.proof)
+		preRuntimeDigest, err := babeSecondaryVRFPreDigest.ToPreRuntimeDigest()
+		if err != nil {
+			return nil, fmt.Errorf("error converting babe secondary vrf pre-digest to pre-runtime digest: %w", err)
+		}
+
+		logger.Debugf("epoch %d: claimed secondary vrf slot %d", epochNumber, slotNumber)
+		return preRuntimeDigest, nil
+	case types.PrimaryAndSecondaryPlainSlots:
+		err = claimSecondarySlotPlain(
+			epochData.randomness, slotNumber, epochData.authorities, epochData.authorityIndex)
+		if err != nil {
+			return nil, fmt.Errorf("cannot claim secondary plain slot at %d: %w", slotNumber, err)
+		}
+
+		preRuntimeDigest, err := types.NewBabeSecondaryPlainPreDigest(
+			epochData.authorityIndex, slotNumber).ToPreRuntimeDigest()
+		if err != nil {
+			return nil, fmt.Errorf(
+				"failed to get preruntime digest from babe secondary plain predigest for slot %d: %w", slotNumber, err)
+		}
+
+		logger.Debugf("epoch %d: claimed secondary plain slot %d", epochNumber, slotNumber)
+		return preRuntimeDigest, nil
+	default:
+		// this should never occur
+		return nil, errInvalidSlotTechnique
+	}
 }

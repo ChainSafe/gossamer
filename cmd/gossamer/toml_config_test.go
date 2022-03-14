@@ -4,18 +4,14 @@
 package main
 
 import (
+	"path/filepath"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot"
+	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/stretchr/testify/require"
 )
-
-const GssmrConfigPath = "../../chain/gssmr/config.toml"
-const GssmrGenesisPath = "../../chain/gssmr/genesis.json"
-
-const KusamaConfigPath = "../../chain/kusama/config.toml"
-const KusamaGenesisPath = "../../chain/kusama/genesis.json"
 
 // TestLoadConfig tests loading a toml configuration file
 func TestLoadConfig(t *testing.T) {
@@ -27,10 +23,10 @@ func TestLoadConfig(t *testing.T) {
 	cfg.Init.Genesis = genFile
 
 	err := dot.InitNode(cfg)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	err = loadConfig(dotConfigToToml(cfg), cfgFile.Name())
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, cfg)
 }
 
@@ -40,13 +36,16 @@ func TestLoadConfigGssmr(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	cfg.Global.BasePath = t.TempDir()
-	cfg.Init.Genesis = GssmrGenesisPath
+	cfg.Init.Genesis = utils.GetGssmrGenesisPathTest(t)
 
 	err := dot.InitNode(cfg)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
-	err = loadConfig(dotConfigToToml(cfg), GssmrConfigPath)
-	require.Nil(t, err)
+	projectRootPath := utils.GetProjectRootPathTest(t)
+	gssmrConfigPath := filepath.Join(projectRootPath, "./chain/gssmr/config.toml")
+
+	err = loadConfig(dotConfigToToml(cfg), gssmrConfigPath)
+	require.NoError(t, err)
 	require.NotNil(t, cfg)
 }
 
@@ -55,11 +54,14 @@ func TestLoadConfigKusama(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	cfg.Global.BasePath = t.TempDir()
-	cfg.Init.Genesis = KusamaGenesisPath
+	cfg.Init.Genesis = utils.GetKusamaGenesisPath(t)
 
 	err := dot.InitNode(cfg)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
-	err = loadConfig(dotConfigToToml(cfg), KusamaConfigPath)
-	require.Nil(t, err)
+	projectRootPath := utils.GetProjectRootPathTest(t)
+	kusamaConfigPath := filepath.Join(projectRootPath, "./chain/kusama/config.toml")
+
+	err = loadConfig(dotConfigToToml(cfg), kusamaConfigPath)
+	require.NoError(t, err)
 }

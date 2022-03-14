@@ -4,16 +4,17 @@
 package state
 
 import (
-	"math/big"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/trie"
 
 	"github.com/stretchr/testify/require"
 )
 
 func TestHighestRoundAndSetID(t *testing.T) {
-	bs := newTestBlockState(t, testGenesisHeader)
+	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
 	round, setID, err := bs.GetHighestRoundAndSetID()
 	require.NoError(t, err)
 	require.Equal(t, uint64(0), round)
@@ -61,7 +62,7 @@ func TestHighestRoundAndSetID(t *testing.T) {
 }
 
 func TestBlockState_SetFinalisedHash(t *testing.T) {
-	bs := newTestBlockState(t, testGenesisHeader)
+	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
 	h, err := bs.GetFinalisedHash(0, 0)
 	require.NoError(t, err)
 	require.Equal(t, testGenesisHeader.Hash(), h)
@@ -72,10 +73,13 @@ func TestBlockState_SetFinalisedHash(t *testing.T) {
 	require.NotNil(t, di)
 	err = digest.Add(*di)
 	require.NoError(t, err)
+
+	someStateRoot := common.Hash{1, 1}
 	header := &types.Header{
 		ParentHash: testGenesisHeader.Hash(),
-		Number:     big.NewInt(1),
+		Number:     1,
 		Digest:     digest,
+		StateRoot:  someStateRoot,
 	}
 
 	testhash := header.Hash()
@@ -88,6 +92,9 @@ func TestBlockState_SetFinalisedHash(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	// set tries with some state root
+	bs.tries.softSet(someStateRoot, trie.NewEmptyTrie())
+
 	err = bs.SetFinalisedHash(testhash, 1, 1)
 	require.NoError(t, err)
 
@@ -97,7 +104,7 @@ func TestBlockState_SetFinalisedHash(t *testing.T) {
 }
 
 func TestSetFinalisedHash_setFirstSlotOnFinalisation(t *testing.T) {
-	bs := newTestBlockState(t, testGenesisHeader)
+	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
 	firstSlot := uint64(42069)
 
 	digest := types.NewDigest()
@@ -114,13 +121,13 @@ func TestSetFinalisedHash_setFirstSlotOnFinalisation(t *testing.T) {
 	require.NoError(t, err)
 
 	header1 := types.Header{
-		Number:     big.NewInt(1),
+		Number:     1,
 		Digest:     digest,
 		ParentHash: testGenesisHeader.Hash(),
 	}
 
 	header2 := types.Header{
-		Number:     big.NewInt(2),
+		Number:     2,
 		Digest:     digest2,
 		ParentHash: header1.Hash(),
 	}
