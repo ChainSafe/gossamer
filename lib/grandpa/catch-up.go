@@ -146,7 +146,7 @@ func (c *catchUp) handleCatchUpResponse(msg *CatchUpResponse) error {
 	}
 
 	if err = c.grandpa.grandpaState.SetPrecommits(msg.Round, msg.SetID, msg.PreCommitJustification); err != nil {
-		return err
+		return return fmt.Errorf("cannot set pre commits in grandpa state: %w", err)
 	}
 
 	// update state and signal to grandpa we are ready to initiate
