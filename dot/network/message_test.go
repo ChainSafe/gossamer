@@ -25,7 +25,7 @@ func TestEncodeBlockRequestMessage(t *testing.T) {
 	var one uint32 = 1
 	bm := &BlockRequestMessage{
 		RequestedData: 1,
-		StartingBlock: *variadic.NewUint64OrHashFromBytes(append([]byte{0}, genesisHash...)),
+		StartingBlock: *variadic.NewUint32OrHashFromBytes(append([]byte{0}, genesisHash...)),
 		EndBlockHash:  &endBlock,
 		Direction:     1,
 		Max:           &one,
@@ -51,7 +51,7 @@ func TestEncodeBlockRequestMessage_BlockHash(t *testing.T) {
 	var one uint32 = 1
 	bm := &BlockRequestMessage{
 		RequestedData: 1,
-		StartingBlock: *variadic.NewUint64OrHashFromBytes(append([]byte{0}, genesisHash...)),
+		StartingBlock: *variadic.NewUint32OrHashFromBytes(append([]byte{0}, genesisHash...)),
 		EndBlockHash:  &endBlock,
 		Direction:     1,
 		Max:           &one,
@@ -74,7 +74,7 @@ func TestEncodeBlockRequestMessage_BlockNumber(t *testing.T) {
 	var one uint32 = 1
 	bm := &BlockRequestMessage{
 		RequestedData: 1,
-		StartingBlock: *variadic.NewUint64OrHashFromBytes([]byte{1, 1}),
+		StartingBlock: *variadic.NewUint32OrHashFromBytes([]byte{1, 1}),
 		EndBlockHash:  &endBlock,
 		Direction:     1,
 		Max:           &one,
@@ -96,7 +96,7 @@ func TestBlockRequestString(t *testing.T) {
 
 	bm := &BlockRequestMessage{
 		RequestedData: 1,
-		StartingBlock: *variadic.NewUint64OrHashFromBytes(append([]byte{0}, genesisHash...)),
+		StartingBlock: *variadic.NewUint32OrHashFromBytes(append([]byte{0}, genesisHash...)),
 		EndBlockHash:  nil,
 		Direction:     1,
 		Max:           nil,
@@ -116,7 +116,7 @@ func TestEncodeBlockRequestMessage_NoOptionals(t *testing.T) {
 
 	bm := &BlockRequestMessage{
 		RequestedData: 1,
-		StartingBlock: *variadic.NewUint64OrHashFromBytes(append([]byte{0}, genesisHash...)),
+		StartingBlock: *variadic.NewUint32OrHashFromBytes(append([]byte{0}, genesisHash...)),
 		EndBlockHash:  nil,
 		Direction:     1,
 		Max:           nil,
