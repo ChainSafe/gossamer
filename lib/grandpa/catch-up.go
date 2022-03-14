@@ -17,7 +17,7 @@ import (
 const catchUpResponseTimeout = time.Second * 5
 
 type catchUp struct {
-	lock sync.Mutex // applied on requestsSent and bestResponse
+	lock sync.Mutex // applied on requestsSent
 
 	requestsSent map[peer.ID]CatchUpRequest
 	bestResponse *atomic.Value // *CatchUpResponse
