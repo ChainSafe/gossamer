@@ -185,7 +185,7 @@ func (c *catchUp) verifyCatchUpResponseCompletability(prevote, precommit common.
 	// check if the current block is a descendant of prevoted block
 	isDescendant, err := c.grandpa.blockState.IsDescendantOf(prevote, precommit)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot find descendance between prevote and precommit: %w", err)
 	}
 
 	if !isDescendant {
