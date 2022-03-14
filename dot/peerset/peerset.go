@@ -693,8 +693,7 @@ func (ps *PeerSet) disconnect(setIdx int, reason DropReason, peers ...peer.ID) e
 }
 
 // start handles all the action for the peerSet.
-func (ps *PeerSet) start(ctx context.Context, processor MessageProcessor) {
-	ps.processor = processor
+func (ps *PeerSet) start(ctx context.Context) {
 	go ps.doWork(ctx)
 }
 

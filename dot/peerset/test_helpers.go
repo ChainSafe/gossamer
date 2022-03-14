@@ -44,7 +44,7 @@ func newTestPeerSet(t *testing.T, in, out uint32, bootNodes,
 	handler, err := NewPeerSetHandler(con)
 	require.NoError(t, err)
 
-	handler.Start(context.Background(), processor)
+	handler.Start(context.Background())
 
 	handler.AddPeer(0, bootNodes...)
 	handler.AddReservedPeer(0, reservedPeers...)

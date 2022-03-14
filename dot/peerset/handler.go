@@ -118,9 +118,13 @@ func (h *Handler) PeerReputation(peerID peer.ID) (Reputation, error) {
 	return n.rep, nil
 }
 
+func (h *Handler) SetMessageProcessor(processor MessageProcessor) {
+	h.peerSet.processor = processor
+}
+
 // Start starts peerSet processing
-func (h *Handler) Start(ctx context.Context, processor MessageProcessor) {
-	h.peerSet.start(ctx, processor)
+func (h *Handler) Start(ctx context.Context) {
+	h.peerSet.start(ctx)
 }
 
 // SortedPeers returns a sorted peer ID slice for connected peers in the peerSet.

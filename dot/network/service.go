@@ -135,8 +135,7 @@ type Service struct {
 
 	blockResponseBuf   []byte
 	blockResponseBufMu sync.Mutex
-
-	telemetry telemetry.Client
+	telemetry          telemetry.Client
 }
 
 // NewService creates a new network service from the configuration and message channels
@@ -674,44 +673,9 @@ func (s *Service) ReportPeer(change peerset.ReputationChange, p peer.ID) {
 }
 
 func (s *Service) startPeerSetHandler() {
-	s.host.cm.peerSetHandler.Start(s.ctx, s)
+	s.host.cm.peerSetHandler.Start(s.ctx)
 	// wait for peerSetHandler to start.
 	if !s.noBootstrap {
 		s.host.bootstrap()
-	}
-}
-
-// Process will connect, drop or reject a peer based on a peerset message
-func (s *Service) Process(msg peerset.Message) {
-	peerID := msg.PeerID
-	if peerID == "" {
-		logger.Errorf("found empty peer id in peerset message")
-		return
-	}
-	switch msg.Status {
-	case peerset.Connect:
-		addrInfo := s.host.h.Peerstore().PeerInfo(peerID)
-		if len(addrInfo.Addrs) == 0 {
-			var err error
-			addrInfo, err = s.host.discovery.findPeer(peerID)
-			if err != nil {
-				logger.Warnf("failed to find peer id %s: %s", peerID, err)
-				return
-			}
-		}
-
-		err := s.host.connect(addrInfo)
-		if err != nil {
-			logger.Warnf("failed to open connection for peer %s: %s", peerID, err)
-			return
-		}
-		logger.Debugf("connection successful with peer %s", peerID)
-	case peerset.Drop, peerset.Reject:
-		err := s.host.closePeer(peerID)
-		if err != nil {
-			logger.Warnf("failed to close connection with peer %s: %s", peerID, err)
-			return
-		}
-		logger.Debugf("connection dropped successfully for peer %s", peerID)
 	}
 }

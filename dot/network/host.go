@@ -223,6 +223,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	}
 
 	cm.host = host
+	cm.peerSetHandler.SetMessageProcessor(host)
 	return host, nil
 }
 
@@ -435,5 +436,40 @@ func (h *host) closeProtocolStream(pID protocol.ID, p peer.ID) {
 				logger.Tracef("Failed to close stream for protocol %s: %s", pID, err)
 			}
 		}
+	}
+}
+
+// Process will connect, drop or reject a peer based on a peerset message
+func (h *host) Process(msg peerset.Message) {
+	peerID := msg.PeerID
+	if peerID == "" {
+		logger.Errorf("found empty peer id in peerset message")
+		return
+	}
+	switch msg.Status {
+	case peerset.Connect:
+		addrInfo := h.h.Peerstore().PeerInfo(peerID)
+		if len(addrInfo.Addrs) == 0 {
+			var err error
+			addrInfo, err = h.discovery.findPeer(peerID)
+			if err != nil {
+				logger.Warnf("failed to find peer id %s: %s", peerID, err)
+				return
+			}
+		}
+
+		err := h.connect(addrInfo)
+		if err != nil {
+			logger.Warnf("failed to open connection for peer %s: %s", peerID, err)
+			return
+		}
+		logger.Debugf("connection successful with peer %s", peerID)
+	case peerset.Drop, peerset.Reject:
+		err := h.closePeer(peerID)
+		if err != nil {
+			logger.Warnf("failed to close connection with peer %s: %s", peerID, err)
+			return
+		}
+		logger.Debugf("connection dropped successfully for peer %s", peerID)
 	}
 }
