@@ -49,19 +49,11 @@ ENTRYPOINT service datadog-agent start && /usr/bin/polkadot \
     --port 7001 \
     --rpc-port 8545 \
     --ws-port 8546 \
-<<<<<<< HEAD
-    --$key \
-=======
     --${key} \
->>>>>>> development
     --tmp \
     --prometheus-external \
     --prometheus-port 9876 \
     --unsafe-rpc-external \
     --unsafe-ws-external
 
-<<<<<<< HEAD
 EXPOSE 7001/tcp 8545/tcp 8546/tcp 9876/tcp
-=======
-EXPOSE 7001/tcp 8545/tcp 8546/tcp 9876/tcp
->>>>>>> development

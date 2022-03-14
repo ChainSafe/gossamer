@@ -5,7 +5,6 @@ services:
       context: ./../..
       dockerfile: devnet/alice.Dockerfile
       args:
-        CHAIN: cross-client
         DD_API_KEY: ${DD_API_KEY}
     ports:
       - 7001
@@ -22,7 +21,6 @@ services:
       dockerfile: devnet/bob.Dockerfile
       args:
         key: bob
-        CHAIN: cross-client
         DD_API_KEY: ${DD_API_KEY}
     ports:
       - 7001
@@ -39,7 +37,6 @@ services:
       dockerfile: devnet/substrate_bob.Dockerfile
       args:
         key: charlie
-        CHAIN: cross-client
         DD_API_KEY: ${DD_API_KEY}
     ports:
       - 7001
