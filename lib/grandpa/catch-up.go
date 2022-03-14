@@ -63,7 +63,7 @@ func (c *catchUp) do(to peer.ID, round uint64, setID uint64) error {
 
 func (c *catchUp) sendCatchUpRequest(to peer.ID, req *CatchUpRequest) error {
 	if c.bestResponse.Load() != nil {
-		logger.Debugf("ignoring neighbour message since we are already processing a catch response")
+		logger.Debug("ignoring neighbour message since we are already processing a catch-up response")
 		return nil
 	}
 
