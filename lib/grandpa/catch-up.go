@@ -85,7 +85,7 @@ func (c *catchUp) sendCatchUpRequest(to peer.ID, req *CatchUpRequest) error {
 
 	err = c.grandpa.network.SendMessage(to, cm)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot send grandpa message: %w", err)
 	}
 
 	c.lock.Lock()
