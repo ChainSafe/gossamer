@@ -125,7 +125,7 @@ func (c *catchUp) handleCatchUpResponse(msg *CatchUpResponse) error {
 
 	prevote, err := c.verifyPreVoteJustification(msg)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot verify pre vote justification: %w", err)
 	}
 
 	if err = c.verifyPreCommitJustification(msg); err != nil {
