@@ -115,7 +115,7 @@ func (h *Handler) PeerReputation(peerID peer.ID) (Reputation, error) {
 	if err != nil {
 		return 0, err
 	}
-	return n.rep, nil
+	return n.reputation, nil
 }
 
 func (h *Handler) SetMessageProcessor(processor MessageProcessor) {

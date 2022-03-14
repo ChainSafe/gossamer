@@ -373,9 +373,9 @@ func (ps *PeerSet) allocSlots(setIdx int) error {
 			return fmt.Errorf("cannot get node using peer id %s: %w", reservePeer, err)
 		}
 
-		if node.rep < BannedThresholdValue {
+		if node.reputation < BannedThresholdValue {
 			logger.Warnf("reputation is lower than banned threshold value, reputation: %d, banned threshold value: %d",
-				node.rep, BannedThresholdValue)
+				node.reputation, BannedThresholdValue)
 			break
 		}
 
@@ -404,7 +404,7 @@ func (ps *PeerSet) allocSlots(setIdx int) error {
 		}
 
 		n := peerState.nodes[peerID]
-		if n.rep < BannedThresholdValue {
+		if n.reputation < BannedThresholdValue {
 			logger.Critical("highest rated peer is below bannedThresholdValue")
 			break
 		}
@@ -601,7 +601,7 @@ func (ps *PeerSet) incoming(setID int, peers ...peer.ID) error {
 		state.RLock()
 		node, has := state.nodes[pid]
 		if has {
-			nodeReputation = node.rep
+			nodeReputation = node.reputation
 		}
 		state.RUnlock()
 
@@ -694,10 +694,10 @@ func (ps *PeerSet) disconnect(setIdx int, reason DropReason, peers ...peer.ID) e
 
 // start handles all the action for the peerSet.
 func (ps *PeerSet) start(ctx context.Context) {
-	go ps.doWork(ctx)
+	go ps.periodicallyAllocateSlots(ctx)
 }
 
-func (ps *PeerSet) doWork(ctx context.Context) {
+func (ps *PeerSet) periodicallyAllocateSlots(ctx context.Context) {
 	ticker := time.NewTicker(ps.nextPeriodicAllocSlots)
 	defer ticker.Stop()
 

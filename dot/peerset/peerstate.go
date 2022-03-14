@@ -69,7 +69,7 @@ type node struct {
 	lastConnected []time.Time
 
 	// Reputation of the node, between int32 MIN and int32 MAX.
-	rep Reputation
+	reputation Reputation
 }
 
 // newNode creates a node with n number of sets and 0 reputation.
@@ -89,8 +89,8 @@ func newNode(n int) *node {
 }
 
 func (n *node) addReputation(modifier Reputation) Reputation {
-	n.rep = n.rep.add(modifier)
-	return n.rep
+	n.reputation = n.reputation.add(modifier)
+	return n.reputation
 }
 
 // PeersState struct contains a list of nodes, where each node
@@ -202,7 +202,7 @@ func (ps *PeersState) sortedPeers(idx int) peer.IDSlice {
 		if isPeerConnected(state) {
 			connectedPeersReps = append(connectedPeersReps, connectedPeerReputation{
 				peerID:     peerID,
-				reputation: node.rep,
+				reputation: node.reputation,
 			})
 		}
 	}
@@ -228,9 +228,9 @@ func (ps *PeersState) updateReputationByTick(peerID peer.ID) (after Reputation, 
 		return 0, ErrPeerDoesNotExist
 	}
 
-	after = reputationTick(node.rep)
+	after = reputationTick(node.reputation)
 
-	node.rep = after
+	node.reputation = after
 	ps.nodes[peerID] = node
 
 	return after, nil
@@ -266,7 +266,7 @@ func (ps *PeersState) highestNotConnectedPeer(set int) peer.ID {
 			continue
 		}
 
-		val := int(node.rep)
+		val := int(node.reputation)
 		if val >= maxRep {
 			maxRep = val
 			higestPeerID = peerID
@@ -419,7 +419,7 @@ func (ps *PeersState) forgetPeer(set int, peerID peer.ID) error {
 		node.state[set] = notMember
 	}
 
-	if node.rep != 0 {
+	if node.reputation != 0 {
 		return nil
 	}
 

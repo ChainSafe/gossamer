@@ -18,7 +18,7 @@ services:
     platform: linux/amd64
     build:
       context: ./..
-      dockerfile: devnet/substrate_bob.Dockerfile
+      dockerfile: devnet/bob.Dockerfile
       args:
         DD_API_KEY: ${DD_API_KEY}
         key: bob
@@ -29,12 +29,14 @@ services:
       - 8540
       - 9876
       - 6060
+    depends_on:
+      - alice
 
   charlie:
     platform: linux/amd64
     build:
       context: ./..
-      dockerfile: devnet/substrate_bob.Dockerfile
+      dockerfile: devnet/bob.Dockerfile
       args:
         DD_API_KEY: ${DD_API_KEY}
         key: charlie
@@ -44,3 +46,5 @@ services:
       - 8546
       - 8540
       - 9876
+    depends_on:
+      - alice
