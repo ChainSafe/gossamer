@@ -129,7 +129,7 @@ func (c *catchUp) handleCatchUpResponse(msg *CatchUpResponse) error {
 	}
 
 	if err = c.verifyPreCommitJustification(msg); err != nil {
-		return err
+		return fmt.Errorf("cannot verify pre commit justification: %w", err)
 	}
 
 	if msg.Hash.IsEmpty() || msg.Number == 0 {
