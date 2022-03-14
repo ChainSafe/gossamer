@@ -4,9 +4,10 @@
 package digest
 
 import (
-	"sync"
 	"testing"
 	"time"
+
+	"context"
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -18,7 +19,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/golang/mock/gomock"
-	"golang.org/x/net/context"
 
 	"github.com/stretchr/testify/require"
 )
@@ -426,11 +426,10 @@ func TestHandler_HandleNextEpochData(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	var wg sync.WaitGroup
-	wg.Add(1)
+	doneCh := make(chan struct{})
 
 	go func() {
-		defer wg.Done()
+		defer close(doneCh)
 		handler.handleBlockFinalisation(ctx)
 	}()
 
@@ -444,9 +443,9 @@ func TestHandler_HandleNextEpochData(t *testing.T) {
 	}
 
 	// Before check the epoch data was stored
-	// we need to wait for both handle functions finish
+	// we need to wait for both handle functions to finish
 	cancel()
-	wg.Wait()
+	<-doneCh
 
 	stored, err := handler.epochState.(*state.EpochState).GetEpochData(1)
 	require.NoError(t, err)
@@ -487,11 +486,9 @@ func TestHandler_HandleNextConfigData(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	var wg sync.WaitGroup
-	wg.Add(1)
-
+	doneCh := make(chan struct{})
 	go func() {
-		defer wg.Done()
+		defer close(doneCh)
 		handler.handleBlockFinalisation(ctx)
 	}()
 
@@ -507,7 +504,7 @@ func TestHandler_HandleNextConfigData(t *testing.T) {
 	// Before check the config data was stored
 	// we need to wait for both handle functions finish
 	cancel()
-	wg.Wait()
+	<-doneCh
 
 	act, ok := digest.Value().(types.NextConfigData)
 	if !ok {
