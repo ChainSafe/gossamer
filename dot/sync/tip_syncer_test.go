@@ -4,7 +4,6 @@
 package sync
 
 import (
-	"math/big"
 	"reflect"
 	"testing"
 
@@ -23,7 +22,7 @@ func Test_tipSyncer_handleNewPeerState(t *testing.T) {
 
 	mockBlockState := NewMockBlockState(ctrl)
 	mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(&types.Header{
-		Number: big.NewInt(2),
+		Number: 2,
 	}, nil).Times(2)
 
 	type fields struct {
@@ -46,7 +45,7 @@ func Test_tipSyncer_handleNewPeerState(t *testing.T) {
 			fields: fields{
 				blockState: mockBlockState,
 			},
-			args: args{ps: &peerState{number: big.NewInt(1)}},
+			args: args{ps: &peerState{number: 1}},
 			want: nil,
 		},
 		{
@@ -54,10 +53,10 @@ func Test_tipSyncer_handleNewPeerState(t *testing.T) {
 			fields: fields{
 				blockState: mockBlockState,
 			},
-			args: args{ps: &peerState{number: big.NewInt(3)}},
+			args: args{ps: &peerState{number: 3}},
 			want: &worker{
-				startNumber:  big.NewInt(3),
-				targetNumber: big.NewInt(3),
+				startNumber:  uintPtr(3),
+				targetNumber: uintPtr(3),
 				requestData:  bootstrapRequestData,
 			},
 		},
@@ -91,26 +90,26 @@ func Test_tipSyncer_handleTick(t *testing.T) {
 	mockDisjointBlockSet := NewMockDisjointBlockSet(ctrl)
 	mockDisjointBlockSet.EXPECT().size().Return(1).Times(2)
 	pendingBlock2 := &pendingBlock{
-		number: big.NewInt(3),
+		number: 3,
 	}
 	pendingBlock3 := &pendingBlock{
 		hash:   common.Hash{},
-		number: big.NewInt(4),
+		number: 4,
 		header: &types.Header{
-			Number: big.NewInt(4),
+			Number: 4,
 		},
 	}
 	pendingBlock4 := &pendingBlock{
 		hash:   common.Hash{},
-		number: big.NewInt(5),
+		number: 5,
 		header: &types.Header{
-			Number: big.NewInt(5),
+			Number: 5,
 		},
 		body: &types.Body{},
 	}
 	mockDisjointBlockSet.EXPECT().getBlocks().Return([]*pendingBlock{
 		{
-			number: big.NewInt(2),
+			number: 2,
 		},
 		pendingBlock2,
 		pendingBlock3,
@@ -120,7 +119,7 @@ func Test_tipSyncer_handleTick(t *testing.T) {
 
 	mockBlockState := NewMockBlockState(ctrl)
 	mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(&types.Header{
-		Number: big.NewInt(2),
+		Number: 2,
 	}, nil)
 	mockBlockState.EXPECT().HasHeader(common.Hash{}).Return(false, nil)
 
@@ -144,8 +143,8 @@ func Test_tipSyncer_handleTick(t *testing.T) {
 			},
 			want: []*worker{
 				{
-					startNumber:  big.NewInt(3),
-					targetNumber: big.NewInt(2),
+					startNumber:  uintPtr(3),
+					targetNumber: uintPtr(2),
 					targetHash: common.Hash{5, 189, 204, 69, 79, 96, 160, 141, 66, 125, 5, 231, 241,
 						159, 36, 15, 220, 57, 31, 87, 10, 183, 111, 203, 150, 236, 202, 11, 88, 35, 211, 191},
 					pendingBlock: pendingBlock2,
@@ -153,14 +152,14 @@ func Test_tipSyncer_handleTick(t *testing.T) {
 					direction:    network.Descending,
 				},
 				{
-					startNumber:  big.NewInt(4),
-					targetNumber: big.NewInt(4),
+					startNumber:  uintPtr(4),
+					targetNumber: uintPtr(4),
 					pendingBlock: pendingBlock3,
 					requestData:  network.RequestedDataBody + network.RequestedDataJustification,
 				},
 				{
-					startNumber:  big.NewInt(4),
-					targetNumber: big.NewInt(2),
+					startNumber:  uintPtr(4),
+					targetNumber: uintPtr(2),
 					direction:    network.Descending,
 					pendingBlock: pendingBlock4,
 					requestData:  bootstrapRequestData,
@@ -197,7 +196,7 @@ func Test_tipSyncer_handleWorkerResult(t *testing.T) {
 
 	mockBlockState := NewMockBlockState(ctrl)
 	mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(&types.Header{
-		Number: big.NewInt(2),
+		Number: 2,
 	}, nil).Times(4)
 
 	type fields struct {
@@ -235,7 +234,7 @@ func Test_tipSyncer_handleWorkerResult(t *testing.T) {
 				blockState: mockBlockState,
 			},
 			args: args{res: &worker{
-				targetNumber: big.NewInt(1),
+				targetNumber: uintPtr(1),
 				direction:    network.Ascending,
 				err:          &workerError{},
 			}},
@@ -248,14 +247,14 @@ func Test_tipSyncer_handleWorkerResult(t *testing.T) {
 				blockState: mockBlockState,
 			},
 			args: args{res: &worker{
-				startNumber:  big.NewInt(1),
-				targetNumber: big.NewInt(3),
+				startNumber:  uintPtr(1),
+				targetNumber: uintPtr(3),
 				direction:    network.Ascending,
 				err:          &workerError{},
 			}},
 			want: &worker{
-				startNumber:  big.NewInt(3),
-				targetNumber: big.NewInt(3),
+				startNumber:  uintPtr(3),
+				targetNumber: uintPtr(3),
 			},
 			err: nil,
 		},
@@ -265,7 +264,7 @@ func Test_tipSyncer_handleWorkerResult(t *testing.T) {
 				blockState: mockBlockState,
 			},
 			args: args{res: &worker{
-				startNumber: big.NewInt(1),
+				startNumber: uintPtr(1),
 				direction:   network.Descending,
 				err:         &workerError{},
 			}},
@@ -278,14 +277,14 @@ func Test_tipSyncer_handleWorkerResult(t *testing.T) {
 				blockState: mockBlockState,
 			},
 			args: args{res: &worker{
-				startNumber:  big.NewInt(3),
-				targetNumber: big.NewInt(1),
+				startNumber:  uintPtr(3),
+				targetNumber: uintPtr(1),
 				direction:    network.Descending,
 				err:          &workerError{},
 			}},
 			want: &worker{
-				startNumber:  big.NewInt(3),
-				targetNumber: big.NewInt(3),
+				startNumber:  uintPtr(3),
+				targetNumber: uintPtr(3),
 				direction:    network.Descending,
 			},
 			err: nil,
@@ -314,22 +313,22 @@ func Test_tipSyncer_hasCurrentWorker(t *testing.T) {
 
 	testWorker1 := &worker{
 		direction:    network.Ascending,
-		targetNumber: big.NewInt(3),
-		startNumber:  big.NewInt(3),
+		targetNumber: uintPtr(3),
+		startNumber:  uintPtr(3),
 	}
 	testWorker2 := &worker{
 		direction:    network.Ascending,
-		targetNumber: big.NewInt(3),
-		startNumber:  big.NewInt(1),
+		targetNumber: uintPtr(3),
+		startNumber:  uintPtr(1),
 	}
 	testWorker3 := &worker{
-		startNumber:  big.NewInt(3),
-		targetNumber: big.NewInt(3),
+		startNumber:  uintPtr(3),
+		targetNumber: uintPtr(3),
 		direction:    network.Descending,
 	}
 	testWorker4 := &worker{
-		startNumber:  big.NewInt(3),
-		targetNumber: big.NewInt(1),
+		startNumber:  uintPtr(3),
+		targetNumber: uintPtr(1),
 		direction:    network.Descending,
 	}
 
@@ -351,8 +350,8 @@ func Test_tipSyncer_hasCurrentWorker(t *testing.T) {
 			args: args{
 				w: &worker{
 					direction:    network.Ascending,
-					startNumber:  big.NewInt(2),
-					targetNumber: big.NewInt(2),
+					startNumber:  uintPtr(2),
+					targetNumber: uintPtr(2),
 				},
 				workers: map[uint64]*worker{
 					1: testWorker1,
@@ -365,8 +364,8 @@ func Test_tipSyncer_hasCurrentWorker(t *testing.T) {
 			args: args{
 				w: &worker{
 					direction:    network.Ascending,
-					startNumber:  big.NewInt(2),
-					targetNumber: big.NewInt(2),
+					startNumber:  uintPtr(2),
+					targetNumber: uintPtr(2),
 				},
 				workers: map[uint64]*worker{
 					1: testWorker2,
@@ -379,8 +378,8 @@ func Test_tipSyncer_hasCurrentWorker(t *testing.T) {
 			args: args{
 				w: &worker{
 					direction:    network.Descending,
-					startNumber:  big.NewInt(2),
-					targetNumber: big.NewInt(2),
+					startNumber:  uintPtr(2),
+					targetNumber: uintPtr(2),
 				},
 				workers: map[uint64]*worker{
 					1: testWorker3,
@@ -393,8 +392,8 @@ func Test_tipSyncer_hasCurrentWorker(t *testing.T) {
 			args: args{
 				w: &worker{
 					direction:    network.Descending,
-					startNumber:  big.NewInt(2),
-					targetNumber: big.NewInt(2),
+					startNumber:  uintPtr(2),
+					targetNumber: uintPtr(2),
 				},
 				workers: map[uint64]*worker{
 					1: testWorker4,

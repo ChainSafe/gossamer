@@ -5,7 +5,6 @@ package sync
 
 import (
 	"errors"
-	"math/big"
 	"testing"
 	"time"
 
@@ -17,11 +16,11 @@ import (
 var (
 	testBlock1 = &pendingBlock{
 		hash:   common.Hash{1},
-		number: big.NewInt(1),
+		number: 1,
 	}
 	testBlock10 = &pendingBlock{
 		hash:   common.Hash{10},
-		number: big.NewInt(10),
+		number: 10,
 	}
 )
 
@@ -46,7 +45,7 @@ func Test_disjointBlockSet_addBlock(t *testing.T) {
 			fields: fields{},
 			args: args{block: &types.Block{
 				Header: types.Header{
-					Number: big.NewInt(1),
+					Number: 1,
 				},
 			}},
 			err: errors.New("cannot add block; set is at capacity"),
@@ -61,7 +60,7 @@ func Test_disjointBlockSet_addBlock(t *testing.T) {
 			},
 			args: args{block: &types.Block{
 				Header: types.Header{
-					Number: big.NewInt(1),
+					Number: 1,
 				},
 			}},
 			err: nil,
@@ -105,7 +104,7 @@ func Test_disjointBlockSet_addHeader(t *testing.T) {
 			name:   "add header beyond capactiy",
 			fields: fields{},
 			args: args{header: &types.Header{
-				Number: big.NewInt(1),
+				Number: 1,
 			}},
 			err: errors.New("cannot add block; set is at capacity"),
 		},
@@ -118,7 +117,7 @@ func Test_disjointBlockSet_addHeader(t *testing.T) {
 				parentToChildren: make(map[common.Hash]map[common.Hash]struct{}),
 			},
 			args: args{header: &types.Header{
-				Number: big.NewInt(1),
+				Number: 1,
 			}},
 			err: nil,
 		},
@@ -223,13 +222,11 @@ func Test_disjointBlockSet_removeLowerBlocks(t *testing.T) {
 	type fields struct {
 		blocks map[common.Hash]*pendingBlock
 	}
-	type args struct {
-		num *big.Int
-	}
+
 	tests := []struct {
 		name      string
 		fields    fields
-		args      args
+		num       uint
 		remaining int
 	}{
 		{
@@ -240,7 +237,7 @@ func Test_disjointBlockSet_removeLowerBlocks(t *testing.T) {
 					common.Hash{10}: testBlock10,
 				},
 			},
-			args:      args{big.NewInt(0)},
+			num:       0,
 			remaining: 2,
 		},
 		{
@@ -251,7 +248,7 @@ func Test_disjointBlockSet_removeLowerBlocks(t *testing.T) {
 					common.Hash{10}: testBlock10,
 				},
 			},
-			args:      args{big.NewInt(1)},
+			num:       1,
 			remaining: 1,
 		},
 		{
@@ -262,7 +259,7 @@ func Test_disjointBlockSet_removeLowerBlocks(t *testing.T) {
 					common.Hash{10}: testBlock10,
 				},
 			},
-			args:      args{big.NewInt(11)},
+			num:       11,
 			remaining: 0,
 		},
 	}
@@ -271,7 +268,7 @@ func Test_disjointBlockSet_removeLowerBlocks(t *testing.T) {
 			s := &disjointBlockSet{
 				blocks: tt.fields.blocks,
 			}
-			s.removeLowerBlocks(tt.args.num)
+			s.removeLowerBlocks(tt.num)
 			assert.Equal(t, tt.remaining, len(s.blocks))
 		})
 	}

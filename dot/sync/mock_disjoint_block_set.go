@@ -5,7 +5,6 @@
 package sync
 
 import (
-	big "math/big"
 	reflect "reflect"
 
 	types "github.com/ChainSafe/gossamer/dot/types"
@@ -51,7 +50,7 @@ func (mr *MockDisjointBlockSetMockRecorder) addBlock(arg0 interface{}) *gomock.C
 }
 
 // addHashAndNumber mocks base method.
-func (m *MockDisjointBlockSet) addHashAndNumber(arg0 common.Hash, arg1 *big.Int) error {
+func (m *MockDisjointBlockSet) addHashAndNumber(arg0 common.Hash, arg1 uint) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "addHashAndNumber", arg0, arg1)
 	ret0, _ := ret[0].(error)
@@ -175,7 +174,7 @@ func (mr *MockDisjointBlockSetMockRecorder) removeBlock(arg0 interface{}) *gomoc
 }
 
 // removeLowerBlocks mocks base method.
-func (m *MockDisjointBlockSet) removeLowerBlocks(arg0 *big.Int) {
+func (m *MockDisjointBlockSet) removeLowerBlocks(arg0 uint) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "removeLowerBlocks", arg0)
 }

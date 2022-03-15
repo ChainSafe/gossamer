@@ -30,12 +30,12 @@ func TestService_CreateBlockResponse(t *testing.T) {
 	mockBlockState.EXPECT().IsDescendantOf(gomock.AssignableToTypeOf(common.Hash{}),
 		gomock.AssignableToTypeOf(common.Hash{})).Return(true, nil).Times(4)
 	mockBlockState.EXPECT().GetHeader(gomock.AssignableToTypeOf(common.Hash{})).Return(&types.Header{
-		Number: big.NewInt(1),
+		Number: 1,
 	}, nil).Times(4)
 	mockBlockState.EXPECT().SubChain(gomock.AssignableToTypeOf(common.Hash{}),
 		gomock.AssignableToTypeOf(common.Hash{})).Return([]common.Hash{{1, 2}}, nil).Times(4)
 	mockBlockState.EXPECT().GetHeaderByNumber(big.NewInt(1)).Return(&types.Header{
-		Number: big.NewInt(1),
+		Number: 1,
 	}, nil)
 
 	type fields struct {
@@ -65,7 +65,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				blockState: mockBlockState,
 			},
 			args: args{req: &network.BlockRequestMessage{
-				StartingBlock: *variadic.MustNewUint64OrHash(0),
+				StartingBlock: *variadic.MustNewUint32OrHash(0),
 				Direction:     network.Ascending,
 			}},
 			want: &network.BlockResponseMessage{BlockData: []*types.BlockData{{
@@ -78,7 +78,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				blockState: mockBlockState,
 			},
 			args: args{req: &network.BlockRequestMessage{
-				StartingBlock: *variadic.MustNewUint64OrHash(2),
+				StartingBlock: *variadic.MustNewUint32OrHash(2),
 				Direction:     network.Ascending,
 			}},
 			err:  errRequestStartTooHigh,
@@ -90,7 +90,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				blockState: mockBlockState,
 			},
 			args: args{req: &network.BlockRequestMessage{
-				StartingBlock: *variadic.MustNewUint64OrHash(0),
+				StartingBlock: *variadic.MustNewUint32OrHash(0),
 				EndBlockHash:  &common.Hash{1, 2, 3},
 				Direction:     network.Ascending,
 			}},
@@ -104,7 +104,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				blockState: mockBlockState,
 			},
 			args: args{req: &network.BlockRequestMessage{
-				StartingBlock: *variadic.MustNewUint64OrHash(0),
+				StartingBlock: *variadic.MustNewUint32OrHash(0),
 				Direction:     network.Descending,
 			}},
 			want: &network.BlockResponseMessage{BlockData: []*types.BlockData{}},
@@ -115,7 +115,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				blockState: mockBlockState,
 			},
 			args: args{req: &network.BlockRequestMessage{
-				StartingBlock: *variadic.MustNewUint64OrHash(2),
+				StartingBlock: *variadic.MustNewUint32OrHash(2),
 				Direction:     network.Descending,
 			}},
 			err: nil,
@@ -129,7 +129,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				blockState: mockBlockState,
 			},
 			args: args{req: &network.BlockRequestMessage{
-				StartingBlock: *variadic.MustNewUint64OrHash(0),
+				StartingBlock: *variadic.MustNewUint32OrHash(0),
 				EndBlockHash:  &common.Hash{1, 2, 3},
 				Direction:     network.Descending,
 			}},
@@ -143,7 +143,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				blockState: mockBlockState,
 			},
 			args: args{req: &network.BlockRequestMessage{
-				StartingBlock: *variadic.MustNewUint64OrHash(common.Hash{}),
+				StartingBlock: *variadic.MustNewUint32OrHash(common.Hash{}),
 				Direction:     network.Ascending,
 			}},
 			want: &network.BlockResponseMessage{BlockData: []*types.BlockData{{
@@ -156,7 +156,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				blockState: mockBlockState,
 			},
 			args: args{req: &network.BlockRequestMessage{
-				StartingBlock: *variadic.MustNewUint64OrHash(common.Hash{}),
+				StartingBlock: *variadic.MustNewUint32OrHash(common.Hash{}),
 				Direction:     network.Descending,
 			}},
 			want: &network.BlockResponseMessage{BlockData: []*types.BlockData{{
@@ -202,7 +202,7 @@ func TestService_checkOrGetDescendantHash(t *testing.T) {
 	type args struct {
 		ancestor         common.Hash
 		descendant       *common.Hash
-		descendantNumber *big.Int
+		descendantNumber uint
 	}
 	tests := []struct {
 		name    string
@@ -242,7 +242,7 @@ func TestService_getBlockData(t *testing.T) {
 	mockBlockState := NewMockBlockState(ctrl)
 	mockBlockState.EXPECT().GetHeader(common.Hash{}).Return(nil, errors.New("empty hash"))
 	mockBlockState.EXPECT().GetHeader(common.Hash{1}).Return(&types.Header{
-		Number: big.NewInt(2),
+		Number: 2,
 	}, nil)
 	mockBlockState.EXPECT().GetBlockBody(common.Hash{}).Return(nil, errors.New("empty hash"))
 	mockBlockState.EXPECT().GetBlockBody(common.Hash{1}).Return(&types.Body{[]byte{1}}, nil)
@@ -297,7 +297,7 @@ func TestService_getBlockData(t *testing.T) {
 			want: &types.BlockData{
 				Hash: common.Hash{1},
 				Header: &types.Header{
-					Number: big.NewInt(2),
+					Number: 2,
 				},
 			},
 		},
@@ -397,7 +397,7 @@ func TestService_getBlockDataByNumber(t *testing.T) {
 		network        Network
 	}
 	type args struct {
-		num           *big.Int
+		num           uint
 		requestedData byte
 	}
 	tests := []struct {
@@ -437,8 +437,8 @@ func TestService_handleAscendingByNumber(t *testing.T) {
 		network        Network
 	}
 	type args struct {
-		start         uint64
-		end           uint64
+		start         uint
+		end           uint
 		requestedData byte
 	}
 	tests := []struct {
@@ -519,7 +519,7 @@ func TestService_handleChainByHash(t *testing.T) {
 	type args struct {
 		ancestor      common.Hash
 		descendant    common.Hash
-		max           uint32
+		max           uint
 		requestedData byte
 		direction     network.SyncDirection
 	}
@@ -561,8 +561,8 @@ func TestService_handleDescendingByNumber(t *testing.T) {
 		network        Network
 	}
 	type args struct {
-		start         uint64
-		end           uint64
+		start         uint
+		end           uint
 		requestedData byte
 	}
 	tests := []struct {

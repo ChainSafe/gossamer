@@ -25,13 +25,13 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 	defer ctrl.Finish()
 	mockBlockState := NewMockBlockState(ctrl)
 	mockHeader := &types.Header{
-		Number:    big.NewInt(0),
+		Number:    0,
 		StateRoot: trie.EmptyHash,
 	}
 	mockHeaderHash := mockHeader.Hash()
 	mockBlock := &types.Block{
 		Header: types.Header{
-			Number: big.NewInt(0),
+			Number: 0,
 		},
 		Body: types.Body{},
 	}
@@ -81,7 +81,7 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 			args: args{
 				block: &types.Block{
 					Header: types.Header{
-						Number: big.NewInt(0),
+						Number: 0,
 					},
 					Body: types.Body{},
 				},
@@ -184,7 +184,7 @@ func Test_chainProcessor_handleHeader(t *testing.T) {
 				babeVerifier: mockBabeVerifier,
 			},
 			args: args{header: &types.Header{
-				Number: big.NewInt(0),
+				Number: 0,
 			}},
 		},
 	}
@@ -246,7 +246,7 @@ func Test_chainProcessor_handleJustification(t *testing.T) {
 			},
 			args: args{
 				header: &types.Header{
-					Number: big.NewInt(0),
+					Number: 0,
 				},
 				justification: []byte(`x`),
 			},
@@ -259,7 +259,7 @@ func Test_chainProcessor_handleJustification(t *testing.T) {
 			},
 			args: args{
 				header: &types.Header{
-					Number: big.NewInt(0),
+					Number: 0,
 				},
 				justification: []byte(`xx`),
 			},
@@ -272,7 +272,7 @@ func Test_chainProcessor_handleJustification(t *testing.T) {
 			},
 			args: args{
 				header: &types.Header{
-					Number: big.NewInt(0),
+					Number: 0,
 				},
 				justification: []byte(`1234`),
 			},
@@ -317,20 +317,21 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 		num.SetBytes(hash[0:1])
 		block := &types.Block{
 			Header: types.Header{
-				Number: num,
+				// todo (ed): replace with num
+				Number: 0,
 			},
 		}
 		return block, nil
 	}).Times(2)
 	mockBlockState.EXPECT().AddBlockToBlockTree(gomock.AssignableToTypeOf(&types.Block{})).DoAndReturn(func(
 		block *types.Block) error {
-		if block.Header.Number.Cmp(big.NewInt(1)) == 0 {
+		if block.Header.Number == 1 {
 			return errors.New("fake error adding block")
 		}
 		return nil
 	}).Times(2)
 	mockBlockState.EXPECT().GetHeader(gomock.AssignableToTypeOf(common.Hash{})).Return(&types.Header{
-		Number:    big.NewInt(0),
+		Number:    0,
 		StateRoot: common.MustHexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314"),
 	}, nil).Times(2)
 	mockInstance := mocks.NewMockInstance(ctrl)
@@ -417,7 +418,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 			name: "handle header",
 			args: args{bd: &types.BlockData{
 				Header: &types.Header{
-					Number: big.NewInt(0),
+					Number: 0,
 				},
 				Body: &types.Body{},
 			}},
@@ -432,7 +433,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 			name: "handle justification",
 			args: args{bd: &types.BlockData{
 				Header: &types.Header{
-					Number: big.NewInt(0),
+					Number: 0,
 				},
 				Body:          &types.Body{},
 				Justification: &mockJustification,

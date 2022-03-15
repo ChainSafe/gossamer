@@ -151,7 +151,7 @@ func TestService_HandleBlockAnnounce(t *testing.T) {
 				from: peer.ID("1"),
 				msg: &network.BlockAnnounceMessage{
 					ParentHash:     common.Hash{},
-					Number:         big.NewInt(1),
+					Number:         1,
 					StateRoot:      common.Hash{},
 					ExtrinsicsRoot: common.Hash{},
 					Digest:         scale.VaryingDataTypeSlice{},
@@ -175,7 +175,7 @@ func TestService_HandleBlockAnnounce(t *testing.T) {
 
 func newMockChainSync(ctrl *gomock.Controller) ChainSync {
 	mock := NewMockChainSync(ctrl)
-	header, _ := types.NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, big.NewInt(1),
+	header, _ := types.NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, 1,
 		scale.VaryingDataTypeSlice{})
 
 	mock.EXPECT().setBlockAnnounce(peer.ID("1"), header).Return(nil).AnyTimes()

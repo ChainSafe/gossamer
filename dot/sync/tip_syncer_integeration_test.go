@@ -7,7 +7,6 @@
 package sync
 
 import (
-	"math/big"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -21,7 +20,7 @@ import (
 )
 
 func newTestTipSyncer(t *testing.T) *tipSyncer {
-	finHeader, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(200),
+	finHeader, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, 200,
 		types.NewDigest())
 	require.NoError(t, err)
 
@@ -39,7 +38,7 @@ func TestTipSyncer_handleNewPeerState(t *testing.T) {
 
 	// peer reports state lower than our highest finalised, we should ignore
 	ps := &peerState{
-		number: big.NewInt(1),
+		number: 1,
 	}
 
 	w, err := s.handleNewPeerState(ps)
@@ -47,15 +46,15 @@ func TestTipSyncer_handleNewPeerState(t *testing.T) {
 	require.Nil(t, w)
 
 	ps = &peerState{
-		number: big.NewInt(201),
+		number: 201,
 		hash:   common.Hash{0xa, 0xb},
 	}
 
 	// otherwise, return a worker
 	expected := &worker{
-		startNumber:  ps.number,
+		startNumber:  uintPtr(ps.number),
 		startHash:    ps.hash,
-		targetNumber: ps.number,
+		targetNumber: uintPtr(ps.number),
 		targetHash:   ps.hash,
 		requestData:  bootstrapRequestData,
 	}
@@ -82,14 +81,14 @@ func TestTipSyncer_handleWorkerResult(t *testing.T) {
 
 	// worker is for blocks lower than finalised
 	w, err = s.handleWorkerResult(&worker{
-		targetNumber: big.NewInt(199),
+		targetNumber: uintPtr(199),
 	})
 	require.NoError(t, err)
 	require.Nil(t, w)
 
 	w, err = s.handleWorkerResult(&worker{
 		direction:   network.Descending,
-		startNumber: big.NewInt(199),
+		startNumber: uintPtr(199),
 	})
 	require.NoError(t, err)
 	require.Nil(t, w)
@@ -97,15 +96,15 @@ func TestTipSyncer_handleWorkerResult(t *testing.T) {
 	// worker start is lower than finalised, start should be updated
 	expected := &worker{
 		direction:    network.Ascending,
-		startNumber:  big.NewInt(201),
-		targetNumber: big.NewInt(300),
+		startNumber:  uintPtr(201),
+		targetNumber: uintPtr(300),
 		requestData:  bootstrapRequestData,
 	}
 
 	w, err = s.handleWorkerResult(&worker{
 		direction:    network.Ascending,
-		startNumber:  big.NewInt(199),
-		targetNumber: big.NewInt(300),
+		startNumber:  uintPtr(199),
+		targetNumber: uintPtr(300),
 		requestData:  bootstrapRequestData,
 		err:          &workerError{},
 	})
@@ -114,15 +113,15 @@ func TestTipSyncer_handleWorkerResult(t *testing.T) {
 
 	expected = &worker{
 		direction:    network.Descending,
-		startNumber:  big.NewInt(300),
-		targetNumber: big.NewInt(201),
+		startNumber:  uintPtr(300),
+		targetNumber: uintPtr(201),
 		requestData:  bootstrapRequestData,
 	}
 
 	w, err = s.handleWorkerResult(&worker{
 		direction:    network.Descending,
-		startNumber:  big.NewInt(300),
-		targetNumber: big.NewInt(199),
+		startNumber:  uintPtr(300),
+		targetNumber: uintPtr(199),
 		requestData:  bootstrapRequestData,
 		err:          &workerError{},
 	})
@@ -132,18 +131,18 @@ func TestTipSyncer_handleWorkerResult(t *testing.T) {
 	// start and target are higher than finalised, don't modify
 	expected = &worker{
 		direction:    network.Descending,
-		startNumber:  big.NewInt(300),
+		startNumber:  uintPtr(300),
 		startHash:    common.Hash{0xa, 0xb},
-		targetNumber: big.NewInt(201),
+		targetNumber: uintPtr(201),
 		targetHash:   common.Hash{0xc, 0xd},
 		requestData:  bootstrapRequestData,
 	}
 
 	w, err = s.handleWorkerResult(&worker{
 		direction:    network.Descending,
-		startNumber:  big.NewInt(300),
+		startNumber:  uintPtr(300),
 		startHash:    common.Hash{0xa, 0xb},
-		targetNumber: big.NewInt(201),
+		targetNumber: uintPtr(201),
 		targetHash:   common.Hash{0xc, 0xd},
 		requestData:  bootstrapRequestData,
 		err:          &workerError{},
@@ -163,14 +162,14 @@ func TestTipSyncer_handleTick_case1(t *testing.T) {
 
 	// add pending blocks w/ only hash and number, lower than finalised should be removed
 	s.pendingBlocks.addHashAndNumber(common.Hash{0xa}, fin.Number)
-	s.pendingBlocks.addHashAndNumber(common.Hash{0xb}, big.NewInt(0).Add(fin.Number, big.NewInt(1)))
+	s.pendingBlocks.addHashAndNumber(common.Hash{0xb}, fin.Number+1)
 
 	expected := []*worker{
 		{
 			startHash:    common.Hash{0xb},
-			startNumber:  big.NewInt(0).Add(fin.Number, big.NewInt(1)),
+			startNumber:  uintPtr(fin.Number + 1),
 			targetHash:   fin.Hash(),
-			targetNumber: fin.Number,
+			targetNumber: uintPtr(fin.Number),
 			direction:    network.Descending,
 			requestData:  bootstrapRequestData,
 		},
@@ -189,16 +188,16 @@ func TestTipSyncer_handleTick_case2(t *testing.T) {
 
 	// add pending blocks w/ only header
 	header := &types.Header{
-		Number: big.NewInt(0).Add(fin.Number, big.NewInt(1)),
+		Number: fin.Number + 1,
 	}
 	s.pendingBlocks.addHeader(header)
 
 	expected := []*worker{
 		{
 			startHash:    header.Hash(),
-			startNumber:  header.Number,
+			startNumber:  uintPtr(header.Number),
 			targetHash:   header.Hash(),
-			targetNumber: header.Number,
+			targetNumber: uintPtr(header.Number),
 			direction:    network.Ascending,
 			requestData:  network.RequestedDataBody + network.RequestedDataJustification,
 		},
@@ -215,7 +214,7 @@ func TestTipSyncer_handleTick_case3(t *testing.T) {
 
 	// add pending block w/ full block, HasHeader will return true, so the block will be processed
 	header := &types.Header{
-		Number: big.NewInt(0).Add(fin.Number, big.NewInt(1)),
+		Number: fin.Number + 1,
 	}
 	block := &types.Block{
 		Header: *header,
@@ -236,7 +235,7 @@ func TestTipSyncer_handleTick_case3(t *testing.T) {
 	s.blockState = bs
 
 	header = &types.Header{
-		Number: big.NewInt(0).Add(fin.Number, big.NewInt(100)),
+		Number: fin.Number + 100,
 	}
 	block = &types.Block{
 		Header: *header,
@@ -247,8 +246,8 @@ func TestTipSyncer_handleTick_case3(t *testing.T) {
 	expected := []*worker{
 		{
 			startHash:    header.ParentHash,
-			startNumber:  big.NewInt(0).Sub(header.Number, big.NewInt(1)),
-			targetNumber: fin.Number,
+			startNumber:  uintPtr(header.Number - 1),
+			targetNumber: uintPtr(fin.Number),
 			direction:    network.Descending,
 			requestData:  bootstrapRequestData,
 		},
@@ -274,64 +273,64 @@ func TestTipSyncer_handleTick_case3(t *testing.T) {
 func TestTipSyncer_hasCurrentWorker(t *testing.T) {
 	s := newTestTipSyncer(t)
 	require.False(t, s.hasCurrentWorker(&worker{
-		startNumber:  big.NewInt(0),
-		targetNumber: big.NewInt(0),
+		startNumber:  uintPtr(0),
+		targetNumber: uintPtr(0),
 	}, nil))
 
 	workers := make(map[uint64]*worker)
 	workers[0] = &worker{
-		startNumber:  big.NewInt(1),
-		targetNumber: big.NewInt(128),
+		startNumber:  uintPtr(1),
+		targetNumber: uintPtr(128),
 	}
 	require.False(t, s.hasCurrentWorker(&worker{
-		startNumber:  big.NewInt(1),
-		targetNumber: big.NewInt(129),
+		startNumber:  uintPtr(1),
+		targetNumber: uintPtr(129),
 	}, workers))
 	require.True(t, s.hasCurrentWorker(&worker{
-		startNumber:  big.NewInt(1),
-		targetNumber: big.NewInt(128),
+		startNumber:  uintPtr(1),
+		targetNumber: uintPtr(128),
 	}, workers))
 	require.True(t, s.hasCurrentWorker(&worker{
-		startNumber:  big.NewInt(1),
-		targetNumber: big.NewInt(127),
+		startNumber:  uintPtr(1),
+		targetNumber: uintPtr(127),
 	}, workers))
 
 	workers[0] = &worker{
-		startNumber:  big.NewInt(128),
-		targetNumber: big.NewInt(255),
+		startNumber:  uintPtr(128),
+		targetNumber: uintPtr(255),
 	}
 	require.False(t, s.hasCurrentWorker(&worker{
-		startNumber:  big.NewInt(127),
-		targetNumber: big.NewInt(255),
+		startNumber:  uintPtr(127),
+		targetNumber: uintPtr(255),
 	}, workers))
 	require.True(t, s.hasCurrentWorker(&worker{
-		startNumber:  big.NewInt(128),
-		targetNumber: big.NewInt(255),
+		startNumber:  uintPtr(128),
+		targetNumber: uintPtr(255),
 	}, workers))
 
 	workers[0] = &worker{
-		startNumber:  big.NewInt(128),
-		targetNumber: big.NewInt(1),
+		startNumber:  uintPtr(128),
+		targetNumber: uintPtr(1),
 		direction:    network.Descending,
 	}
 	require.False(t, s.hasCurrentWorker(&worker{
-		startNumber:  big.NewInt(129),
-		targetNumber: big.NewInt(1),
+		startNumber:  uintPtr(129),
+		targetNumber: uintPtr(1),
 		direction:    network.Descending,
 	}, workers))
 	require.True(t, s.hasCurrentWorker(&worker{
-		startNumber:  big.NewInt(128),
-		targetNumber: big.NewInt(1),
+		startNumber:  uintPtr(128),
+		targetNumber: uintPtr(1),
 		direction:    network.Descending,
 	}, workers))
 	require.True(t, s.hasCurrentWorker(&worker{
-		startNumber:  big.NewInt(128),
-		targetNumber: big.NewInt(2),
+		startNumber:  uintPtr(128),
+		targetNumber: uintPtr(2),
 		direction:    network.Descending,
 	}, workers))
 	require.True(t, s.hasCurrentWorker(&worker{
-		startNumber:  big.NewInt(127),
-		targetNumber: big.NewInt(1),
+		startNumber:  uintPtr(127),
+		targetNumber: uintPtr(1),
 		direction:    network.Descending,
 	}, workers))
 }

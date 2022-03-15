@@ -30,20 +30,17 @@ func Test_getMedian(t *testing.T) {
 }
 
 func Test_removeOutliers(t *testing.T) {
-	type args struct {
-		dataArr []*big.Int
-	}
 	tests := []struct {
 		name      string
-		args      args
+		dataArr   []uint
 		wantSum   *big.Int
-		wantCount int64
+		wantCount uint
 	}{
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotSum, gotCount := removeOutliers(tt.args.dataArr)
+			gotSum, gotCount := removeOutliers(tt.dataArr)
 			if !reflect.DeepEqual(gotSum, tt.wantSum) {
 				t.Errorf("removeOutliers() gotSum = %v, want %v", gotSum, tt.wantSum)
 			}

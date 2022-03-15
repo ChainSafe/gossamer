@@ -5,7 +5,6 @@
 package sync
 
 import (
-	big "math/big"
 	reflect "reflect"
 
 	network "github.com/ChainSafe/gossamer/dot/network"
@@ -99,10 +98,10 @@ func (mr *MockBlockStateMockRecorder) BestBlockHeader() *gomock.Call {
 }
 
 // BestBlockNumber mocks base method.
-func (m *MockBlockState) BestBlockNumber() (*big.Int, error) {
+func (m *MockBlockState) BestBlockNumber() (uint, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "BestBlockNumber")
-	ret0, _ := ret[0].(*big.Int)
+	ret0, _ := ret[0].(uint)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -128,7 +127,7 @@ func (mr *MockBlockStateMockRecorder) CompareAndSetBlockData(arg0 interface{}) *
 }
 
 // GetAllBlocksAtNumber mocks base method.
-func (m *MockBlockState) GetAllBlocksAtNumber(arg0 *big.Int) ([]common.Hash, error) {
+func (m *MockBlockState) GetAllBlocksAtNumber(arg0 uint) ([]common.Hash, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAllBlocksAtNumber", arg0)
 	ret0, _ := ret[0].([]common.Hash)
@@ -173,7 +172,7 @@ func (mr *MockBlockStateMockRecorder) GetBlockByHash(arg0 interface{}) *gomock.C
 }
 
 // GetBlockByNumber mocks base method.
-func (m *MockBlockState) GetBlockByNumber(arg0 *big.Int) (*types.Block, error) {
+func (m *MockBlockState) GetBlockByNumber(arg0 uint) (*types.Block, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetBlockByNumber", arg0)
 	ret0, _ := ret[0].(*types.Block)
@@ -202,7 +201,7 @@ func (mr *MockBlockStateMockRecorder) GetFinalisedNotifierChannel() *gomock.Call
 }
 
 // GetHashByNumber mocks base method.
-func (m *MockBlockState) GetHashByNumber(arg0 *big.Int) (common.Hash, error) {
+func (m *MockBlockState) GetHashByNumber(arg0 uint) (common.Hash, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetHashByNumber", arg0)
 	ret0, _ := ret[0].(common.Hash)
@@ -232,7 +231,7 @@ func (mr *MockBlockStateMockRecorder) GetHeader(arg0 interface{}) *gomock.Call {
 }
 
 // GetHeaderByNumber mocks base method.
-func (m *MockBlockState) GetHeaderByNumber(arg0 *big.Int) (*types.Header, error) {
+func (m *MockBlockState) GetHeaderByNumber(arg0 uint) (*types.Header, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetHeaderByNumber", arg0)
 	ret0, _ := ret[0].(*types.Header)
