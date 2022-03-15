@@ -15,16 +15,16 @@ import (
 )
 
 // PauseBABE calls the endpoint dev_control with the params ["babe", "stop"]
-func PauseBABE(ctx context.Context, node *Node) error {
-	endpoint := NewEndpoint(node.RPCPort)
+func PauseBABE(ctx context.Context, rpcPort string) error {
+	endpoint := NewEndpoint(rpcPort)
 	const params = `["babe", "stop"]`
 	_, err := PostRPC(ctx, endpoint, DevControl, params)
 	return err
 }
 
 // SlotDuration Calls dev endpoint for slot duration
-func SlotDuration(ctx context.Context, t *testing.T, node *Node) time.Duration {
-	endpoint := NewEndpoint(node.RPCPort)
+func SlotDuration(ctx context.Context, t *testing.T, rpcPort string) time.Duration {
+	endpoint := NewEndpoint(rpcPort)
 	const method = "dev_slotDuration"
 	const params = "[]"
 	slotDuration, err := PostRPC(ctx, endpoint, method, params)
@@ -44,8 +44,8 @@ func SlotDuration(ctx context.Context, t *testing.T, node *Node) time.Duration {
 }
 
 // EpochLength Calls dev endpoint for epoch length
-func EpochLength(ctx context.Context, t *testing.T, node *Node) uint64 {
-	endpoint := NewEndpoint(node.RPCPort)
+func EpochLength(ctx context.Context, t *testing.T, rpcPort string) uint64 {
+	endpoint := NewEndpoint(rpcPort)
 	const method = "dev_epochLength"
 	const params = "[]"
 	epochLength, err := PostRPC(ctx, endpoint, method, params)
