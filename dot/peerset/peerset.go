@@ -308,7 +308,8 @@ func (ps *PeerSet) updateTime() error {
 // be disconnected and a drop message for the peer is sent in order to disconnect.
 func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
 	// we want reputations to be up-to-date before adjusting them.
-	if err := ps.updateTime(); err != nil {
+	err := ps.updateTime()
+	if err != nil {
 		return fmt.Errorf("cannot update time: %w", err)
 	}
 
@@ -565,7 +566,8 @@ func (ps *PeerSet) removePeer(setID int, peers ...peer.ID) error {
 // either with a corresponding `Accept` or `Reject`, except if we were already
 // connected to this peer.
 func (ps *PeerSet) incoming(setID int, peers ...peer.ID) error {
-	if err := ps.updateTime(); err != nil {
+	err := ps.updateTime()
+	if err != nil {
 		return fmt.Errorf("cannot update time: %w", err)
 	}
 

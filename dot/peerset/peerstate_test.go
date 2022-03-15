@@ -197,33 +197,3 @@ func TestHighestNotConnectedPeer(t *testing.T) {
 
 	require.Equal(t, peer1, state.highestNotConnectedPeer(0))
 }
-
-func TestSortedPeers(t *testing.T) {
-	t.Parallel()
-
-	const msgChanSize = 1
-	state := newTestPeerState(t, 2, 1)
-	state.nodes[peer1] = newNode(1)
-
-	err := state.addNoSlotNode(0, peer1)
-	require.NoError(t, err)
-
-	state.discover(0, peer1)
-	err = state.tryAcceptIncoming(0, peer1)
-	require.NoError(t, err)
-
-	require.Equal(t, connectedPeer, state.peerStatus(0, peer1))
-
-	// discover peer2
-	state.discover(0, peer2)
-	// try to make peer2 as an incoming connection.
-	err = state.tryAcceptIncoming(0, peer2)
-	require.NoError(t, err)
-
-	require.Equal(t, connectedPeer, state.peerStatus(0, peer1))
-
-	peerCh := make(chan peer.IDSlice, msgChanSize)
-	peerCh <- state.sortedPeers(0)
-	peers := <-peerCh
-	require.Equal(t, 2, len(peers))
-}
