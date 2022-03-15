@@ -34,7 +34,7 @@ func SlotDuration(ctx context.Context, t *testing.T, rpcPort string) time.Durati
 	}
 
 	slotDurationDecoded := new(string)
-	err = DecodeRPC(t, slotDuration, slotDurationDecoded)
+	err = DecodeRPC(slotDuration, slotDurationDecoded)
 	require.NoError(t, err)
 
 	slotDurationParsed := binary.LittleEndian.Uint64(common.MustHexToBytes(*slotDurationDecoded))
@@ -54,7 +54,7 @@ func EpochLength(ctx context.Context, t *testing.T, rpcPort string) uint64 {
 	}
 
 	epochLengthDecoded := new(string)
-	err = DecodeRPC(t, epochLength, epochLengthDecoded)
+	err = DecodeRPC(epochLength, epochLengthDecoded)
 	require.NoError(t, err)
 
 	epochLengthParsed := binary.LittleEndian.Uint64(common.MustHexToBytes(*epochLengthDecoded))
