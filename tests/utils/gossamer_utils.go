@@ -6,6 +6,7 @@ package utils
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -209,7 +210,7 @@ func startGossamer(t *testing.T, node Node, websocket bool) (
 		checkNodeCtx, cancel := context.WithTimeout(ctx, checkNodeStartedTimeout)
 
 		addr := fmt.Sprintf("http://%s:%s", HOSTNAME, node.RPCPort)
-		err = checkNodeStarted(checkNodeCtx, t, addr)
+		err = checkNodeStarted(checkNodeCtx, addr)
 
 		cancel()
 
@@ -251,23 +252,27 @@ func RunGossamer(t *testing.T, idx int, basepath, genesis, config string, websoc
 	return node, nil
 }
 
+var (
+	errNodeNotExpectingPeers = errors.New("node should expect to have peers")
+)
+
 // checkNodeStarted check if gossamer node is started
-func checkNodeStarted(ctx context.Context, t *testing.T, gossamerHost string) error {
+func checkNodeStarted(ctx context.Context, gossamerHost string) error {
 	const method = "system_health"
 	const params = "{}"
 	respBody, err := PostRPC(ctx, gossamerHost, method, params)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot post RPC: %w", err)
 	}
 
 	target := new(modules.SystemHealthResponse)
-	err = DecodeRPC(t, respBody, target)
+	err = DecodeRPC(respBody, target)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot decode RPC: %w", err)
 	}
 
 	if !target.ShouldHavePeers {
-		return fmt.Errorf("no peers")
+		return errNodeNotExpectingPeers
 	}
 
 	return nil

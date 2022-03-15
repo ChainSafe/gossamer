@@ -24,7 +24,7 @@ func GetChainHead(ctx context.Context, t *testing.T, rpcPort string) *types.Head
 	require.NoError(t, err)
 
 	header := new(modules.ChainBlockHeaderResponse)
-	err = DecodeRPC(t, respBody, header)
+	err = DecodeRPC(respBody, header)
 	require.NoError(t, err)
 
 	return headerResponseToHeader(t, header)
@@ -38,9 +38,9 @@ func GetChainHeadWithError(ctx context.Context, t *testing.T, rpcPort string) (*
 	require.NoError(t, err)
 
 	header := new(modules.ChainBlockHeaderResponse)
-	err = DecodeRPC(t, respBody, header)
+	err = DecodeRPC(respBody, header)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot decode RPC response: %w", err)
 	}
 
 	return headerResponseToHeader(t, header), nil
@@ -56,7 +56,7 @@ func GetBlockHash(ctx context.Context, t *testing.T, rpcPort, num string) (commo
 	require.NoError(t, err)
 
 	var hash string
-	err = DecodeRPC(t, respBody, &hash)
+	err = DecodeRPC(respBody, &hash)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -72,7 +72,7 @@ func GetFinalizedHead(ctx context.Context, t *testing.T, rpcPort string) common.
 	require.NoError(t, err)
 
 	var hash string
-	err = DecodeRPC(t, respBody, &hash)
+	err = DecodeRPC(respBody, &hash)
 	require.NoError(t, err)
 	return common.MustHexToHash(hash)
 }
@@ -88,7 +88,7 @@ func GetFinalizedHeadByRound(ctx context.Context, t *testing.T, rpcPort string, 
 	require.NoError(t, err)
 
 	var hash string
-	err = DecodeRPC(t, respBody, &hash)
+	err = DecodeRPC(respBody, &hash)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -105,7 +105,7 @@ func GetBlock(ctx context.Context, t *testing.T, rpcPort string, hash common.Has
 	require.NoError(t, err)
 
 	block := new(modules.ChainBlockResponse)
-	err = DecodeRPC(t, respBody, block)
+	err = DecodeRPC(respBody, block)
 	if err != nil {
 		return nil
 	}
