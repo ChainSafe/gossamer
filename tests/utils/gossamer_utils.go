@@ -233,8 +233,7 @@ func startGossamer(t *testing.T, node *Node, websocket bool) error {
 func RunGossamer(t *testing.T, idx int, basepath, genesis, config string, websocket, babeLead bool) (*Node, error) {
 	node, err := InitGossamer(idx, basepath, genesis, config)
 	if err != nil {
-		Logger.Criticalf("could not initialise gossamer: %s", err)
-		os.Exit(1)
+		return nil, fmt.Errorf("could not initialise gossamer: %w", err)
 	}
 
 	if idx == 0 || babeLead {
@@ -243,8 +242,7 @@ func RunGossamer(t *testing.T, idx int, basepath, genesis, config string, websoc
 
 	err = startGossamer(t, node, websocket)
 	if err != nil {
-		Logger.Criticalf("could not start gossamer: %s", err)
-		os.Exit(1)
+		return nil, fmt.Errorf("could not start gossamer: %w", err)
 	}
 
 	return node, nil
@@ -314,11 +312,10 @@ func StartNodes(t *testing.T, nodes []*Node) error {
 }
 
 // InitializeAndStartNodes will spin up `num` gossamer nodes
-func InitializeAndStartNodes(t *testing.T, num int, genesis, config string) ([]*Node, error) {
-	var nodes []*Node
-
+func InitializeAndStartNodes(t *testing.T, num int, genesis, config string) (
+	nodes []*Node, err error) {
 	var wg sync.WaitGroup
-	var nodeMu sync.Mutex
+	var nodesMutex, errMutex sync.Mutex
 	wg.Add(num)
 
 	for i := 0; i < num; i++ {
@@ -327,28 +324,39 @@ func InitializeAndStartNodes(t *testing.T, num int, genesis, config string) ([]*
 			if i < len(KeyList) {
 				name = KeyList[i]
 			}
-			node, err := RunGossamer(t, i, TestDir(t, name), genesis, config, false, false)
-			if err != nil {
-				Logger.Errorf("failed to run Gossamer for node index %d", i)
+			node, runErr := RunGossamer(t, i, TestDir(t, name), genesis, config, false, false)
+			if runErr != nil {
+				errMutex.Lock()
+				if err == nil {
+					err = fmt.Errorf("failed to run Gossamer for node index %d: %w", i, runErr)
+				}
+				errMutex.Unlock()
+				return
 			}
 
-			nodeMu.Lock()
+			nodesMutex.Lock()
 			nodes = append(nodes, node)
-			nodeMu.Unlock()
+			nodesMutex.Unlock()
 			wg.Done()
 		}(i)
 	}
 
 	wg.Wait()
+
+	if err != nil {
+		_ = StopNodes(t, nodes)
+		return nil, err
+	}
 
 	return nodes, nil
 }
 
 // InitializeAndStartNodesWebsocket will spin up `num` gossamer nodes running with Websocket rpc enabled
-func InitializeAndStartNodesWebsocket(t *testing.T, num int, genesis, config string) ([]*Node, error) {
-	var nodes []*Node
-
+func InitializeAndStartNodesWebsocket(t *testing.T, num int, genesis, config string) (
+	nodes []*Node, err error) {
+	var nodesMutex, errMutex sync.Mutex
 	var wg sync.WaitGroup
+
 	wg.Add(num)
 
 	for i := 0; i < num; i++ {
@@ -357,17 +365,30 @@ func InitializeAndStartNodesWebsocket(t *testing.T, num int, genesis, config str
 			if i < len(KeyList) {
 				name = KeyList[i]
 			}
-			node, err := RunGossamer(t, i, TestDir(t, name), genesis, config, true, false)
-			if err != nil {
-				Logger.Errorf("failed to run Gossamer for node index %d", i)
+			node, runErr := RunGossamer(t, i, TestDir(t, name), genesis, config, true, false)
+			if runErr != nil {
+				errMutex.Lock()
+				if err == nil {
+					err = fmt.Errorf("failed to run Gossamer for node index %d: %w", i, runErr)
+				}
+				errMutex.Unlock()
+				return
 			}
 
+			nodesMutex.Lock()
 			nodes = append(nodes, node)
+			nodesMutex.Unlock()
+
 			wg.Done()
 		}(i)
 	}
 
 	wg.Wait()
+
+	if err != nil {
+		_ = StopNodes(t, nodes)
+		return nil, err
+	}
 
 	return nodes, nil
 }
