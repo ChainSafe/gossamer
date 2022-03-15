@@ -50,8 +50,8 @@ func getResponse(ctx context.Context, t *testing.T, test *testCase) interface{} 
 	require.NoError(t, err)
 
 	target := reflect.New(reflect.TypeOf(test.expected)).Interface()
-	err = utils.DecodeRPC(t, respBody, target)
-	require.Nil(t, err, "Could not DecodeRPC", string(respBody))
+	err = utils.DecodeRPC(respBody, target)
+	require.NoError(t, err)
 
 	require.NotNil(t, target)
 

@@ -63,7 +63,7 @@ func TestStableNetworkRPC(t *testing.T) {
 			require.NoError(t, err)
 
 			target := reflect.New(reflect.TypeOf(test.expected)).Interface()
-			err = utils.DecodeRPC(t, respBody, target)
+			err = utils.DecodeRPC(respBody, target)
 			require.NoError(t, err)
 
 			switch v := target.(type) {

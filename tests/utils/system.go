@@ -21,7 +21,7 @@ func GetPeers(ctx context.Context, t *testing.T, rpcPort string) []common.PeerIn
 	require.NoError(t, err)
 
 	resp := new(modules.SystemPeersResponse)
-	err = DecodeRPC(t, respBody, resp)
+	err = DecodeRPC(respBody, resp)
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 

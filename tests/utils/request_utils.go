@@ -90,25 +90,41 @@ func PostRPCWithRetry(ctx context.Context, endpoint, method, params string,
 	return nil, fmt.Errorf("after %d %s totalling %s: %w", try, tryWord, totalTime, err)
 }
 
-// DecodeRPC will decode []body into target interface
-func DecodeRPC(t *testing.T, body []byte, target interface{}) error {
+var (
+	ErrResponseVersion = errors.New("unexpected response version received")
+	ErrResponseError   = errors.New("response error received")
+)
+
+// DecodeRPC decodes []body into the target interface.
+func DecodeRPC(body []byte, target interface{}) error {
 	decoder := json.NewDecoder(bytes.NewReader(body))
 	decoder.DisallowUnknownFields()
 
 	var response ServerResponse
 	err := decoder.Decode(&response)
-	require.Nil(t, err, string(body))
-	require.Equal(t, response.Version, "2.0")
+	if err != nil {
+		return fmt.Errorf("cannot decode response: %s: %w",
+			string(body), err)
+	}
+
+	if response.Version != "2.0" {
+		return fmt.Errorf("%w: %s", ErrResponseVersion, response.Version)
+	}
 
 	if response.Error != nil {
-		return errors.New(response.Error.Message)
+		return fmt.Errorf("%w: %s (error code %d)",
+			ErrResponseError, response.Error.Message, response.Error.ErrorCode)
 	}
 
 	decoder = json.NewDecoder(bytes.NewReader(response.Result))
 	decoder.DisallowUnknownFields()
 
 	err = decoder.Decode(target)
-	require.Nil(t, err, string(body))
+	if err != nil {
+		return fmt.Errorf("cannot decode response result: %s: %w",
+			string(response.Result), err)
+	}
+
 	return nil
 }
 

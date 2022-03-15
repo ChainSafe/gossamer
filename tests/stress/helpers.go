@@ -228,7 +228,7 @@ func getPendingExtrinsics(ctx context.Context, t *testing.T, node utils.Node) []
 	require.NoError(t, err)
 
 	exts := new(modules.PendingExtrinsicsResponse)
-	err = utils.DecodeRPC(t, respBody, exts)
+	err = utils.DecodeRPC(respBody, exts)
 	require.NoError(t, err)
 
 	return *exts
