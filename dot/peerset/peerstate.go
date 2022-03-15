@@ -112,7 +112,7 @@ func (ps *PeersState) getNode(p peer.ID) (*node, error) {
 		return n, nil
 	}
 
-	return nil, ErrPeerDoesNotExist
+	return nil, fmt.Errorf("%w: for peer id %s", ErrPeerDoesNotExist, p)
 }
 
 // NewPeerState initiates a new PeersState
@@ -194,7 +194,7 @@ func (ps *PeersState) sortedPeers(idx int) peer.IDSlice {
 		reputation Reputation
 	}
 
-	connectedPeersReps := make([]connectedPeerReputation, 0)
+	connectedPeersReps := make([]connectedPeerReputation, 0, len(ps.nodes))
 
 	for peerID, node := range ps.nodes {
 		state := node.state[idx]
@@ -219,21 +219,21 @@ func (ps *PeersState) sortedPeers(idx int) peer.IDSlice {
 	return peerIDs
 }
 
-func (ps *PeersState) updateReputationByTick(peerID peer.ID) (after Reputation, err error) {
+func (ps *PeersState) updateReputationByTick(peerID peer.ID) (newReputation Reputation, err error) {
 	ps.Lock()
 	defer ps.Unlock()
 
 	node, has := ps.nodes[peerID]
 	if !has {
-		return 0, ErrPeerDoesNotExist
+		return 0, fmt.Errorf("%w: for peer id %s", ErrPeerDoesNotExist, peerID)
 	}
 
-	after = reputationTick(node.reputation)
+	newReputation = reputationTick(node.reputation)
 
-	node.reputation = after
+	node.reputation = newReputation
 	ps.nodes[peerID] = node
 
-	return after, nil
+	return newReputation, nil
 }
 
 func (ps *PeersState) addReputation(peerID peer.ID, change ReputationChange) (
@@ -244,7 +244,7 @@ func (ps *PeersState) addReputation(peerID peer.ID, change ReputationChange) (
 
 	node, has := ps.nodes[peerID]
 	if !has {
-		return 0, ErrPeerDoesNotExist
+		return 0, fmt.Errorf("%w: for peer id %s", ErrPeerDoesNotExist, peerID)
 	}
 
 	newReputation = node.addReputation(change.Value)
@@ -302,7 +302,7 @@ func (ps *PeersState) addNoSlotNode(idx int, peerID peer.ID) error {
 
 	node, has := ps.nodes[peerID]
 	if !has {
-		return fmt.Errorf("could not get node for peer id %s: %w", peerID, ErrPeerDoesNotExist)
+		return fmt.Errorf("%w: for peer id %s", ErrPeerDoesNotExist, peerID)
 	}
 
 	switch node.state[idx] {
@@ -328,7 +328,7 @@ func (ps *PeersState) removeNoSlotNode(idx int, peerID peer.ID) error {
 
 	node, has := ps.nodes[peerID]
 	if !has {
-		return fmt.Errorf("could not get node for peer id %s: %w", peerID, ErrPeerDoesNotExist)
+		return fmt.Errorf("%w: for peer id %s", ErrPeerDoesNotExist, peerID)
 	}
 
 	switch node.state[idx] {
@@ -350,7 +350,7 @@ func (ps *PeersState) disconnect(idx int, peerID peer.ID) error {
 	info := ps.sets[idx]
 	node, has := ps.nodes[peerID]
 	if !has {
-		return ErrPeerDoesNotExist
+		return fmt.Errorf("%w: for peer id %s", ErrPeerDoesNotExist, peerID)
 	}
 
 	_, has = info.noSlotNodes[peerID]
@@ -395,7 +395,7 @@ func (ps *PeersState) lastConnectedAndDiscovered(set int, peerID peer.ID) (time.
 
 	node, has := ps.nodes[peerID]
 	if !has {
-		return time.Time{}, ErrPeerDoesNotExist
+		return time.Time{}, fmt.Errorf("%w: for peer id %s", ErrPeerDoesNotExist, peerID)
 	}
 
 	if node.state[set] == notConnected {
@@ -412,7 +412,7 @@ func (ps *PeersState) forgetPeer(set int, peerID peer.ID) error {
 
 	node, has := ps.nodes[peerID]
 	if !has {
-		return ErrPeerDoesNotExist
+		return fmt.Errorf("%w: for peer id %s", ErrPeerDoesNotExist, peerID)
 	}
 
 	if node.state[set] != notMember {
@@ -455,7 +455,7 @@ func (ps *PeersState) tryOutgoing(setID int, peerID peer.ID) error {
 
 	node, has := ps.nodes[peerID]
 	if !has {
-		return ErrPeerDoesNotExist
+		return fmt.Errorf("%w: for peer id %s", ErrPeerDoesNotExist, peerID)
 	}
 
 	node.state[setID] = outgoing
@@ -487,7 +487,7 @@ func (ps *PeersState) tryAcceptIncoming(setID int, peerID peer.ID) error {
 	node, has := ps.nodes[peerID]
 	if !has {
 		// state inconsistency tryOutgoing on an unknown node
-		return ErrPeerDoesNotExist
+		return fmt.Errorf("%w: for peer id %s", ErrPeerDoesNotExist, peerID)
 	}
 
 	node.state[setID] = ingoing
