@@ -27,7 +27,6 @@ import (
 
 // Logger is the utils package local logger.
 var Logger = log.NewFromGlobal(log.AddContext("pkg", "test/utils"))
-var maxRetries = 24
 
 var (
 	// KeyList is the list of built-in keys
@@ -202,25 +201,8 @@ func startGossamer(t *testing.T, node Node, websocket bool) (
 
 	ctx := context.Background()
 
-	var started bool
-	for i := 0; i < maxRetries; i++ {
-		time.Sleep(time.Second * 5)
-
-		const checkNodeStartedTimeout = time.Second
-		checkNodeCtx, cancel := context.WithTimeout(ctx, checkNodeStartedTimeout)
-
-		addr := fmt.Sprintf("http://%s:%s", HOSTNAME, node.RPCPort)
-		err = checkNodeStarted(checkNodeCtx, addr)
-
-		cancel()
-
-		if err == nil {
-			started = true
-			break
-		}
-	}
-
-	if started {
+	err = waitForNode(ctx, node.RPCPort)
+	if err == nil {
 		Logger.Infof("node started with key %s and cmd.Process.Pid %d", key, node.Process.Process.Pid)
 	} else {
 		Logger.Criticalf("node didn't start: %s", err)
@@ -250,6 +232,36 @@ func RunGossamer(t *testing.T, idx int, basepath, genesis, config string, websoc
 	}
 
 	return node, nil
+}
+
+func waitForNode(ctx context.Context, rpcPort string) (err error) {
+	tries := 0
+	const checkNodeStartedTimeout = time.Second
+	const retryWait = time.Second
+	for ctx.Err() == nil {
+		tries++
+
+		checkNodeCtx, checkNodeCancel := context.WithTimeout(ctx, checkNodeStartedTimeout)
+
+		addr := fmt.Sprintf("http://%s:%s", HOSTNAME, rpcPort)
+		err = checkNodeStarted(checkNodeCtx, addr)
+		checkNodeCancel()
+		if err == nil {
+			return nil
+		}
+
+		retryWaitCtx, retryWaitCancel := context.WithTimeout(ctx, retryWait)
+		<-retryWaitCtx.Done()
+		retryWaitCancel()
+	}
+
+	totalTryTime := time.Duration(tries) * checkNodeStartedTimeout
+	tryWord := "try"
+	if tries > 1 {
+		tryWord = "tries"
+	}
+	return fmt.Errorf("node did not start after %d %s during %s: %w",
+		tries, tryWord, totalTryTime, err)
 }
 
 var (
