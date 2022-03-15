@@ -131,8 +131,6 @@ func TestReAllocAfterBanned(t *testing.T) {
 	// Check that an incoming connection from that node gets refused.
 	processor.EXPECT().Process(Message{Status: Connect, setID: 0, PeerID: peer1})
 	handler.Incoming(0, peer1)
-	time.Sleep(time.Second * 2)
-
 }
 
 func TestRemovePeer(t *testing.T) {
