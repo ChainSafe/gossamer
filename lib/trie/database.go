@@ -336,12 +336,18 @@ func getFromDB(db chaindb.Database, n Node, key []byte) (
 
 	// childIndex is the nibble after the common prefix length in the key being searched.
 	childIndex := key[commonPrefixLength]
-	childWithHashOnly := branch.Children[childIndex]
-	if childWithHashOnly == nil {
+	child := branch.Children[childIndex]
+	if child == nil {
 		return nil, nil
 	}
 
-	childHash := childWithHashOnly.GetHash()
+	// Child can be either inlined or a hash pointer.
+	childHash := child.GetHash()
+	_, isLeaf := child.(*node.Leaf)
+	if len(childHash) == 0 && isLeaf {
+		return getFromDB(db, child, key[commonPrefixLength+1:])
+	}
+
 	encodedChild, err := db.Get(childHash)
 	if err != nil {
 		return nil, fmt.Errorf(
