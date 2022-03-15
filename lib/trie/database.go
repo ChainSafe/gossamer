@@ -210,7 +210,6 @@ func (t *Trie) load(db chaindb.Database, n Node) error {
 	for _, key := range t.GetKeysWithPrefix(ChildStorageKeyPrefix) {
 		childTrie := NewEmptyTrie()
 		value := t.Get(key)
-		// TODO: Tests this error
 		rootHash := common.BytesToHash(value)
 		err := childTrie.Load(db, rootHash)
 		if err != nil {
