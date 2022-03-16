@@ -95,7 +95,7 @@ func TestNewService(t *testing.T) {
 			name: "working example",
 			args: args{cfg: &Config{
 				Network:            NewMockNetwork(ctrl),
-				BlockState:         newMockBlockState(ctrl),
+				BlockState:         newMockBlockState(ctrl, 0, 0, 0, 0, 0, 1, 0, 0, 0),
 				StorageState:       NewMockStorageState(ctrl),
 				FinalityGadget:     NewMockFinalityGadget(ctrl),
 				TransactionState:   NewMockTransactionState(ctrl),
@@ -120,11 +120,12 @@ func TestNewService(t *testing.T) {
 	}
 }
 
-func newMockBlockState(ctrl *gomock.Controller) BlockState {
-	mock := NewMockBlockState(ctrl)
-	mock.EXPECT().GetFinalisedNotifierChannel().Return(make(chan *types.FinalisationInfo))
-	return mock
-}
+// TODO (ed) remove
+//func newMockBlockState(ctrl *gomock.Controller) BlockState {
+//	mock := NewMockBlockState(ctrl)
+//	mock.EXPECT().GetFinalisedNotifierChannel().Return(make(chan *types.FinalisationInfo))
+//	return mock
+//}
 
 func TestService_HandleBlockAnnounce(t *testing.T) {
 	ctrl := gomock.NewController(t)

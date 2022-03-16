@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/big"
 	"testing"
 	"time"
 
@@ -276,33 +275,32 @@ func TestChainSync_sync_resultQueue(t *testing.T) {
 
 func TestChainSync_getTarget(t *testing.T) {
 	cs, _ := newTestChainSync(t)
-	require.Equal(t, big.NewInt(2<<32-1), cs.getTarget())
 
 	cs.peerState = map[peer.ID]*peerState{
 		"a": {
 			number: 0, // outlier
 		},
 		"b": {
-			number: 10,
+			number: 110,
 		},
 		"c": {
-			number: 20,
+			number: 120,
 		},
 		"d": {
-			number: 30,
+			number: 130,
 		},
 		"e": {
-			number: 40,
+			number: 140,
 		},
 		"f": {
-			number: 50,
+			number: 150,
 		},
 		"g": {
 			number: 1000, // outlier
 		},
 	}
 
-	require.Equal(t, uint(30), cs.getTarget()) // sum:150/count:5 = avg:30
+	require.Equal(t, uint(130), cs.getTarget()) // sum:650/count:5 = avg:130
 
 	cs.peerState = map[peer.ID]*peerState{
 		"testA": {
@@ -313,7 +311,7 @@ func TestChainSync_getTarget(t *testing.T) {
 		},
 	}
 
-	require.Equal(t, 1500, cs.getTarget())
+	require.Equal(t, uint(1500), cs.getTarget())
 }
 
 func TestWorkerToRequests(t *testing.T) {
@@ -344,7 +342,6 @@ func TestWorkerToRequests(t *testing.T) {
 		max128 = uint32(128)
 		max9   = uint32(9)
 		max64  = uint32(64)
-		max1   = uint32(1)
 	)
 
 	testCases := []testCase{
@@ -402,7 +399,7 @@ func TestWorkerToRequests(t *testing.T) {
 					StartingBlock: *variadic.MustNewUint32OrHash(1),
 					EndBlockHash:  nil,
 					Direction:     network.Ascending,
-					Max:           &max9,
+					Max:           &max128,
 				},
 			},
 		},
@@ -443,7 +440,7 @@ func TestWorkerToRequests(t *testing.T) {
 					StartingBlock: *variadic.MustNewUint32OrHash(1 + maxResponseSize),
 					EndBlockHash:  nil,
 					Direction:     network.Ascending,
-					Max:           &max64,
+					Max:           &max128,
 				},
 			},
 		},
@@ -461,7 +458,7 @@ func TestWorkerToRequests(t *testing.T) {
 					StartingBlock: *variadic.MustNewUint32OrHash(1),
 					EndBlockHash:  &(common.Hash{0xa}),
 					Direction:     network.Ascending,
-					Max:           &max9,
+					Max:           &max128,
 				},
 			},
 		},
@@ -480,7 +477,7 @@ func TestWorkerToRequests(t *testing.T) {
 					StartingBlock: *variadic.MustNewUint32OrHash(common.Hash{0xb}),
 					EndBlockHash:  &(common.Hash{0xc}),
 					Direction:     network.Ascending,
-					Max:           &max9,
+					Max:           &max128,
 				},
 			},
 		},
@@ -496,7 +493,7 @@ func TestWorkerToRequests(t *testing.T) {
 					RequestedData: bootstrapRequestData,
 					StartingBlock: *variadic.MustNewUint32OrHash(10),
 					Direction:     network.Ascending,
-					Max:           &max1,
+					Max:           &max128,
 				},
 			},
 		},
@@ -957,4 +954,4 @@ func Test_chainSync_logSyncSpeed(t *testing.T) {
 			cancel()
 		})
 	}
-} //nolint:govet
+}
