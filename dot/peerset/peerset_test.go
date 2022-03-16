@@ -20,30 +20,45 @@ func Test_Ban_Reject_Accept_Peer(t *testing.T) {
 
 	handler := newTestPeerSet(t, 25, 25, nil, nil, false, processor)
 
+	const setID = 0
 	ps := handler.peerSet
-	require.Equal(t, unknownPeer, ps.peerState.peerStatus(0, peer1))
-	ps.peerState.discover(0, peer1)
+
+	require.Equal(t, uint32(0), ps.peerState.sets[setID].numIn)
+	require.Equal(t, unknownPeer, ps.peerState.peerStatus(setID, peer1))
+
+	ps.peerState.discover(setID, peer1)
 	// adding peer1 with incoming slot.
-	err := ps.peerState.tryAcceptIncoming(0, peer1)
+	err := ps.peerState.tryAcceptIncoming(setID, peer1)
 	require.NoError(t, err)
+
+	require.Equal(t, uint32(1), ps.peerState.sets[setID].numIn)
+	require.Equal(t, connectedPeer, ps.peerState.peerStatus(setID, peer1))
 
 	// we ban a node by setting its reputation under the threshold.
 	rpc := newReputationChange(BannedThresholdValue-1, "")
 
 	// we need one for the message to be processed.
-	processor.EXPECT().Process(Message{Status: Drop, setID: 0x0, PeerID: "testPeer1"})
+	processor.EXPECT().Process(Message{Status: Drop, setID: setID, PeerID: "testPeer1"})
+	// report peer will disconnect the peer and set the `lastConnected` to time.Now
 	handler.ReportPeer(rpc, peer1)
-	time.Sleep(time.Millisecond * 100)
+	require.Equal(t, uint32(0), ps.peerState.sets[setID].numIn)
+	require.Equal(t, notConnectedPeer, ps.peerState.peerStatus(setID, peer1))
+
+	disconectedAt := ps.peerState.nodes[peer1].lastConnected
 
 	// check that an incoming connection from that node gets refused.
-	processor.EXPECT().Process(Message{Status: Reject, setID: 0x0, PeerID: "testPeer1"})
+	processor.EXPECT().Process(Message{Status: Reject, setID: setID, PeerID: "testPeer1"})
+	// incoming should update the lastConnected time
 	handler.Incoming(0, peer1)
+
+	triedToConnectAt := ps.peerState.nodes[peer1].lastConnected
+	require.Greater(t, triedToConnectAt, disconectedAt)
 
 	// wait a bit for the node's reputation to go above the threshold.
 	time.Sleep(time.Millisecond * 1200)
 
 	// try again. This time the node should be accepted.
-	processor.EXPECT().Process(Message{Status: Accept, setID: 0x0, PeerID: "testPeer1"})
+	processor.EXPECT().Process(Message{Status: Accept, setID: setID, PeerID: "testPeer1"})
 	handler.Incoming(0, peer1)
 }
 
@@ -61,8 +76,6 @@ func TestAddReservedPeers(t *testing.T) {
 
 	handler.AddReservedPeer(0, reservedPeer)
 	handler.AddReservedPeer(0, reservedPeer2)
-
-	time.Sleep(time.Millisecond * 200)
 
 	require.Equal(t, uint32(1), ps.peerState.sets[0].numOut)
 }
@@ -112,25 +125,24 @@ func TestReAllocAfterBanned(t *testing.T) {
 	handler := newTestPeerSet(t, 25, 25, []peer.ID{}, []peer.ID{}, false, processor)
 
 	ps := handler.peerSet
-	// adding peer1 with incoming slot.
-	if ps.peerState.peerStatus(0, peer1) == unknownPeer {
-		ps.peerState.discover(0, peer1)
-		err := ps.peerState.tryAcceptIncoming(0, peer1)
-		require.NoError(t, err)
-	}
+	require.Equal(t, unknownPeer, ps.peerState.peerStatus(0, peer1))
+
+	ps.peerState.discover(0, peer1)
+	err := ps.peerState.tryAcceptIncoming(0, peer1)
+	require.NoError(t, err)
 
 	// We ban a node by setting its reputation under the threshold.
 	processor.EXPECT().Process(Message{Status: Drop, setID: 0, PeerID: peer1})
 	rep := newReputationChange(BannedThresholdValue-1, "")
-
-	// we need one for the message to be processed.
-	processor.EXPECT().Process(Message{Status: Reject, setID: 0, PeerID: peer1})
 	handler.ReportPeer(rep, peer1)
-	time.Sleep(time.Millisecond * 100)
 
 	// Check that an incoming connection from that node gets refused.
-	processor.EXPECT().Process(Message{Status: Connect, setID: 0, PeerID: peer1})
+	processor.EXPECT().Process(Message{Status: Reject, setID: 0, PeerID: peer1})
 	handler.Incoming(0, peer1)
+
+	// wait a bit for the node's reputation to go above the threshold.
+	processor.EXPECT().Process(Message{Status: Connect, setID: 0, PeerID: peer1})
+	<-time.After(allocTimeDuration + time.Second)
 }
 
 func TestRemovePeer(t *testing.T) {
@@ -145,7 +157,6 @@ func TestRemovePeer(t *testing.T) {
 		nil, false, processor)
 
 	ps := handler.peerSet
-	time.Sleep(time.Millisecond * 500)
 
 	processor.EXPECT().Process(Message{Status: Drop, setID: 0, PeerID: "testDiscovered1"})
 	processor.EXPECT().Process(Message{Status: Drop, setID: 0, PeerID: "testDiscovered2"})

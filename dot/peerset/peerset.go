@@ -702,8 +702,8 @@ func (ps *PeerSet) periodicallyAllocateSlots(ctx context.Context) {
 			// TODO: log context error?
 			return
 		case <-ticker.C:
-			l := ps.peerState.getSetLength()
-			for i := 0; i < l; i++ {
+			setsAmount := ps.peerState.getSetLength()
+			for i := 0; i < setsAmount; i++ {
 				if err := ps.allocSlots(i); err != nil {
 					logger.Warnf("failed to do action on peerSet: %s", err)
 				}
