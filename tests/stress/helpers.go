@@ -4,9 +4,9 @@
 package stress
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	"sync"
 	"testing"
 	"time"
 
@@ -65,74 +65,60 @@ func compareChainHeadsWithRetry(t *testing.T, nodes []*utils.Node) error {
 
 // compareBlocksByNumber calls getBlockByNumber for each node in the array
 // it returns a map of block hashes to node key names, and an error if the hashes don't all match
-func compareBlocksByNumber(t *testing.T, nodes []*utils.Node, num string) (map[common.Hash][]string, error) {
-	hashes := make(map[common.Hash][]string)
-	var errs []error
-	var mapMu sync.Mutex
-	var wg sync.WaitGroup
-	wg.Add(len(nodes))
+func compareBlocksByNumber(ctx context.Context, t *testing.T, nodes []*utils.Node,
+	num string) (hashToKeys map[common.Hash][]string) {
+	type resultContainer struct {
+		hash    common.Hash
+		nodeKey string
+		err     error
+	}
+	results := make(chan resultContainer)
 
 	for _, node := range nodes {
 		go func(node *utils.Node) {
-			logger.Debugf("calling chain_getBlockHash for node index %d", node.Idx)
-			hash, err := utils.GetBlockHash(t, node, num)
-			mapMu.Lock()
-			defer func() {
-				mapMu.Unlock()
-				wg.Done()
-			}()
-			if err != nil {
-				errs = append(errs, err)
-				return
+			result := resultContainer{
+				nodeKey: node.Key,
 			}
-			logger.Debugf("got hash %s from node with key %s", hash, node.Key)
 
-			hashes[hash] = append(hashes[hash], node.Key)
+			for { // retry until context gets canceled
+				result.hash, result.err = utils.GetBlockHash(t, node, num)
+
+				if err := ctx.Err(); err != nil {
+					result.err = err
+					break
+				}
+
+				if result.err == nil {
+					break
+				}
+			}
+
+			results <- result
 		}(node)
 	}
 
-	wg.Wait()
-
 	var err error
-	if len(errs) != 0 {
-		err = fmt.Errorf("%v", errs)
-	}
-
-	if len(hashes) == 0 {
-		err = errNoBlockAtNumber
-	}
-
-	if len(hashes) > 1 {
-		err = errBlocksAtNumberMismatch
-	}
-
-	return hashes, err
-}
-
-// compareBlocksByNumberWithRetry calls compareChainHeads, retrying up to maxRetries times if it errors.
-func compareBlocksByNumberWithRetry(t *testing.T, nodes []*utils.Node, num string) (map[common.Hash][]string, error) {
-	var hashes map[common.Hash][]string
-	var err error
-
-	timeout := time.After(120 * time.Second)
-doneBlockProduction:
-	for {
-		time.Sleep(time.Second)
-		select {
-		case <-timeout:
-			break doneBlockProduction
-		default:
-			hashes, err = compareBlocksByNumber(t, nodes, num)
-			if err == nil {
-				break doneBlockProduction
-			}
+	hashToKeys = make(map[common.Hash][]string, len(nodes))
+	for range nodes {
+		result := <-results
+		if err != nil {
+			continue // one failed, we don't care anymore
 		}
+
+		if result.err != nil {
+			err = result.err
+			continue
+		}
+
+		hashToKeys[result.hash] = append(hashToKeys[result.hash], result.nodeKey)
 	}
 
-	if err != nil {
-		err = fmt.Errorf("%w: hashes=%v", err, hashes)
-	}
-	return hashes, err
+	require.NoError(t, err)
+	require.Lenf(t, hashToKeys, 1,
+		"expected 1 block found for number %s but got %d block(s)",
+		num, len(hashToKeys))
+
+	return hashToKeys
 }
 
 // compareFinalizedHeads calls getFinalizedHeadByRound for each node in the array
