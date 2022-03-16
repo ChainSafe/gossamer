@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	triemetrics "github.com/ChainSafe/gossamer/internal/trie/metrics"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
@@ -93,7 +94,8 @@ func TestBlockState_SetFinalisedHash(t *testing.T) {
 	require.NoError(t, err)
 
 	// set tries with some state root
-	bs.tries.softSet(someStateRoot, trie.NewEmptyTrie())
+	trieMetrics := triemetrics.NewNoop()
+	bs.tries.softSet(someStateRoot, trie.NewEmptyTrie(trieMetrics))
 
 	err = bs.SetFinalisedHash(testhash, 1, 1)
 	require.NoError(t, err)

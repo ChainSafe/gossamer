@@ -19,6 +19,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/sync"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
+	triemetrics "github.com/ChainSafe/gossamer/internal/trie/metrics"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -605,7 +606,10 @@ func TestService_HandleCodeSubstitutes(t *testing.T) {
 
 	s.blockState.StoreRuntime(blockHash, rt)
 
-	ts, err := rtstorage.NewTrieState(trie.NewEmptyTrie())
+	trieMetrics := triemetrics.NewNoop()
+	emptyTrie := trie.NewEmptyTrie(trieMetrics)
+
+	ts, err := rtstorage.NewTrieState(emptyTrie)
 	require.NoError(t, err)
 
 	err = s.handleCodeSubstitution(blockHash, ts, wasmer.NewInstance)
@@ -634,7 +638,10 @@ func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 		Body: *body,
 	}
 
-	ts, err := rtstorage.NewTrieState(trie.NewEmptyTrie())
+	trieMetrics := triemetrics.NewNoop()
+	emptyTrie := trie.NewEmptyTrie(trieMetrics)
+
+	ts, err := rtstorage.NewTrieState(emptyTrie)
 	require.NoError(t, err)
 
 	err = s.handleCodeSubstitution(blockHash, ts, wasmer.NewInstance)
@@ -665,8 +672,11 @@ func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 }
 
 func TestTryQueryStore_WhenThereIsDataToRetrieve(t *testing.T) {
+	trieMetrics := triemetrics.NewNoop()
+	emptyTrie := trie.NewEmptyTrie(trieMetrics)
+
 	s := NewTestService(t, nil)
-	storageStateTrie, err := rtstorage.NewTrieState(trie.NewTrie(nil))
+	storageStateTrie, err := rtstorage.NewTrieState(emptyTrie)
 
 	testKey, testValue := []byte("to"), []byte("0x1723712318238AB12312")
 	storageStateTrie.Set(testKey, testValue)
@@ -699,7 +709,11 @@ func TestTryQueryStore_WhenThereIsDataToRetrieve(t *testing.T) {
 
 func TestTryQueryStore_WhenDoesNotHaveDataToRetrieve(t *testing.T) {
 	s := NewTestService(t, nil)
-	storageStateTrie, err := rtstorage.NewTrieState(trie.NewTrie(nil))
+
+	trieMetrics := triemetrics.NewNoop()
+	emptyTrie := trie.NewEmptyTrie(trieMetrics)
+
+	storageStateTrie, err := rtstorage.NewTrieState(emptyTrie)
 	require.NoError(t, err)
 
 	header, err := types.NewHeader(s.blockState.GenesisHash(), storageStateTrie.MustRoot(),
@@ -814,7 +828,10 @@ func createNewBlockAndStoreDataAtBlock(t *testing.T, s *Service,
 	number uint) *types.Block {
 	t.Helper()
 
-	storageStateTrie, err := rtstorage.NewTrieState(trie.NewTrie(nil))
+	trieMetrics := triemetrics.NewNoop()
+	emptyTrie := trie.NewEmptyTrie(trieMetrics)
+
+	storageStateTrie, err := rtstorage.NewTrieState(emptyTrie)
 	storageStateTrie.Set(key, value)
 	require.NoError(t, err)
 

@@ -12,6 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/metrics"
+	triemetrics "github.com/ChainSafe/gossamer/internal/trie/metrics"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
@@ -113,7 +114,13 @@ func (s *Service) Start() error {
 		return nil
 	}
 
-	tries, err := NewTries(trie.NewEmptyTrie())
+	trieMetrics, err := triemetrics.NewPrometheus()
+	if err != nil {
+		return fmt.Errorf("cannot setup trie metrics: %w", err)
+	}
+
+	emptyTrie := trie.NewEmptyTrie(trieMetrics)
+	tries, err := NewTries(emptyTrie)
 	if err != nil {
 		return fmt.Errorf("cannot create tries: %w", err)
 	}
@@ -139,7 +146,7 @@ func (s *Service) Start() error {
 	}
 
 	// create storage state
-	s.Storage, err = NewStorageState(s.db, s.Block, tries, pr)
+	s.Storage, err = NewStorageState(s.db, s.Block, tries, pr, trieMetrics)
 	if err != nil {
 		return fmt.Errorf("failed to create storage state: %w", err)
 	}

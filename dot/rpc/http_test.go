@@ -25,6 +25,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
+	triemetrics "github.com/ChainSafe/gossamer/internal/trie/metrics"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -374,7 +375,8 @@ func newCoreServiceTest(t *testing.T) *core.Service {
 
 	testDatadirPath := t.TempDir()
 
-	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	trieMetrics := triemetrics.NewNoop()
+	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t, trieMetrics)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)

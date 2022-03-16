@@ -9,6 +9,7 @@ package dot
 import (
 	"testing"
 
+	triemetrics "github.com/ChainSafe/gossamer/internal/trie/metrics"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/stretchr/testify/require"
@@ -23,7 +24,8 @@ func TestTrieSnapshot(t *testing.T) {
 	genRaw, err := genesis.NewGenesisFromJSONRaw(genRawFile)
 	require.NoError(t, err)
 
-	tri := trie.NewEmptyTrie()
+	trieMetrics := triemetrics.NewNoop()
+	tri := trie.NewEmptyTrie(trieMetrics)
 	key := []byte("key")
 	value := []byte("value")
 

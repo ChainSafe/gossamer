@@ -15,6 +15,7 @@ import (
 	"reflect"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	triemetrics "github.com/ChainSafe/gossamer/internal/trie/metrics"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -60,9 +61,9 @@ func NewGenesisFromJSONRaw(file string) (*Genesis, error) {
 }
 
 // NewTrieFromGenesis creates a new trie from the raw genesis data
-func NewTrieFromGenesis(g *Genesis) (*trie.Trie, error) {
-	t := trie.NewEmptyTrie()
-
+// using the trie metrics given.
+func NewTrieFromGenesis(g *Genesis, trieMetrics triemetrics.Metrics) (*trie.Trie, error) {
+	t := trie.NewEmptyTrie(trieMetrics)
 	r := g.GenesisFields().Raw["top"]
 
 	err := t.LoadFromMap(r)

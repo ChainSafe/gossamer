@@ -7,11 +7,14 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/internal/trie/metrics"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
 
 func TestProofGeneration(t *testing.T) {
 	t.Parallel()
+	ctrl := gomock.NewController(t)
 
 	tmp := t.TempDir()
 
@@ -26,7 +29,17 @@ func TestProofGeneration(t *testing.T) {
 
 	expectedValue := generateRandBytes(t, size, generator)
 
-	trie := NewEmptyTrie()
+	metrics := NewMockMetrics(ctrl)
+	var previousCall *gomock.Call
+	for _, n := range []uint32{1, 1, 2, 2, 1} {
+		call := metrics.EXPECT().NodesAdd(n)
+		if previousCall != nil {
+			call.After(previousCall)
+		}
+		previousCall = call
+	}
+
+	trie := NewEmptyTrie(metrics)
 	trie.Put([]byte("cat"), generateRandBytes(t, size, generator))
 	trie.Put([]byte("catapulta"), generateRandBytes(t, size, generator))
 	trie.Put([]byte("catapora"), expectedValue)
@@ -53,7 +66,8 @@ func TestProofGeneration(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func testGenerateProof(t *testing.T, entries []Pair, keys [][]byte) ([]byte, [][]byte, []Pair) {
+func testGenerateProof(t *testing.T, entries []Pair, keys [][]byte, metrics metrics.Metrics) (
+	root []byte, proof [][]byte, items []Pair) {
 	t.Helper()
 
 	tmp := t.TempDir()
@@ -64,7 +78,7 @@ func testGenerateProof(t *testing.T, entries []Pair, keys [][]byte) ([]byte, [][
 	})
 	require.NoError(t, err)
 
-	trie := NewEmptyTrie()
+	trie := NewEmptyTrie(metrics)
 	for _, e := range entries {
 		trie.Put(e.Key, e.Value)
 	}
@@ -72,11 +86,11 @@ func testGenerateProof(t *testing.T, entries []Pair, keys [][]byte) ([]byte, [][
 	err = trie.Store(memdb)
 	require.NoError(t, err)
 
-	root := trie.root.GetHash()
-	proof, err := GenerateProof(root, keys, memdb)
+	root = trie.root.GetHash()
+	proof, err = GenerateProof(root, keys, memdb)
 	require.NoError(t, err)
 
-	items := make([]Pair, len(keys))
+	items = make([]Pair, len(keys))
 	for idx, key := range keys {
 		value := trie.Get(key)
 		require.NotNil(t, value)
@@ -92,6 +106,7 @@ func testGenerateProof(t *testing.T, entries []Pair, keys [][]byte) ([]byte, [][
 
 func TestVerifyProof_ShouldReturnTrue(t *testing.T) {
 	t.Parallel()
+	ctrl := gomock.NewController(t)
 
 	entries := []Pair{
 		{Key: []byte("alpha"), Value: make([]byte, 32)},
@@ -109,7 +124,17 @@ func TestVerifyProof_ShouldReturnTrue(t *testing.T) {
 		[]byte("dogeb"),
 	}
 
-	root, proof, pairs := testGenerateProof(t, entries, keys)
+	metrics := NewMockMetrics(ctrl)
+	var previousCall *gomock.Call
+	for _, n := range []uint32{1, 2, 1, 1, 2, 1, 2} {
+		call := metrics.EXPECT().NodesAdd(n)
+		if previousCall != nil {
+			call.After(previousCall)
+		}
+		previousCall = call
+	}
+
+	root, proof, pairs := testGenerateProof(t, entries, keys, metrics)
 	v, err := VerifyProof(proof, root, pairs)
 
 	require.NoError(t, err)
@@ -131,6 +156,7 @@ func TestVerifyProof_ShouldReturnDuplicateKeysError(t *testing.T) {
 
 func TestVerifyProof_ShouldReturnTrueWithouCompareValues(t *testing.T) {
 	t.Parallel()
+	ctrl := gomock.NewController(t)
 
 	entries := []Pair{
 		{Key: []byte("alpha"), Value: make([]byte, 32)},
@@ -148,7 +174,17 @@ func TestVerifyProof_ShouldReturnTrueWithouCompareValues(t *testing.T) {
 		[]byte("doge"),
 	}
 
-	root, proof, _ := testGenerateProof(t, entries, keys)
+	metrics := NewMockMetrics(ctrl)
+	var previousCall *gomock.Call
+	for _, n := range []uint32{1, 2, 1, 1, 1, 1, 2} {
+		call := metrics.EXPECT().NodesAdd(n)
+		if previousCall != nil {
+			call.After(previousCall)
+		}
+		previousCall = call
+	}
+
+	root, proof, _ := testGenerateProof(t, entries, keys, metrics)
 
 	pl := []Pair{
 		{Key: []byte("do"), Value: nil},
@@ -162,6 +198,8 @@ func TestVerifyProof_ShouldReturnTrueWithouCompareValues(t *testing.T) {
 }
 
 func TestBranchNodes_SameHash_DiferentPaths_GenerateAndVerifyProof(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
 	value := []byte("somevalue")
 	entries := []Pair{
 		{Key: []byte("d"), Value: value},
@@ -181,7 +219,17 @@ func TestBranchNodes_SameHash_DiferentPaths_GenerateAndVerifyProof(t *testing.T)
 		[]byte("bxyzi"),
 	}
 
-	root, proof, pairs := testGenerateProof(t, entries, keys)
+	metrics := NewMockMetrics(ctrl)
+	var previousCall *gomock.Call
+	for _, n := range []uint32{1, 2, 1, 1, 1, 1} {
+		call := metrics.EXPECT().NodesAdd(n)
+		if previousCall != nil {
+			call.After(previousCall)
+		}
+		previousCall = call
+	}
+
+	root, proof, pairs := testGenerateProof(t, entries, keys, metrics)
 
 	ok, err := VerifyProof(proof, root, pairs)
 	require.NoError(t, err)
@@ -189,6 +237,7 @@ func TestBranchNodes_SameHash_DiferentPaths_GenerateAndVerifyProof(t *testing.T)
 }
 
 func TestLeafNodes_SameHash_DifferentPaths_GenerateAndVerifyProof(t *testing.T) {
+	ctrl := gomock.NewController(t)
 	tmp := t.TempDir()
 
 	memdb, err := chaindb.NewBadgerDB(&chaindb.Config{
@@ -203,7 +252,11 @@ func TestLeafNodes_SameHash_DifferentPaths_GenerateAndVerifyProof(t *testing.T) 
 		key2  = []byte("worldb")
 	)
 
-	tt := NewEmptyTrie()
+	metrics := NewMockMetrics(ctrl)
+	previousCall := metrics.EXPECT().NodesAdd(1)
+	metrics.EXPECT().NodesAdd(2).After(previousCall)
+
+	tt := NewEmptyTrie(metrics)
 	tt.Put(key1, value)
 	tt.Put(key2, value)
 

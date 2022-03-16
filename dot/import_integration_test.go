@@ -16,6 +16,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
+	triemetrics "github.com/ChainSafe/gossamer/internal/trie/metrics"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
@@ -64,7 +65,8 @@ func setupHeaderFile(t *testing.T) string {
 
 func TestNewTrieFromPairs(t *testing.T) {
 	fp := setupStateFile(t)
-	trie, err := newTrieFromPairs(fp)
+	trieMetrics := triemetrics.NewNoop()
+	trie, err := newTrieFromPairs(fp, trieMetrics)
 	require.NoError(t, err)
 
 	expectedRoot := common.MustHexToHash("0x09f9ca28df0560c2291aa16b56e15e07d1e1927088f51356d522722aa90ca7cb")

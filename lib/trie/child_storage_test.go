@@ -7,13 +7,20 @@ import (
 	"bytes"
 	"reflect"
 	"testing"
+
+	"github.com/golang/mock/gomock"
 )
 
 func TestPutAndGetChild(t *testing.T) {
-	childKey := []byte("default")
-	childTrie := buildSmallTrie()
-	parentTrie := NewEmptyTrie()
+	ctrl := gomock.NewController(t)
 
+	metrics := NewMockMetrics(ctrl)
+
+	childKey := []byte("default")
+	childTrie := buildSmallTrie(metrics)
+	parentTrie := NewEmptyTrie(metrics)
+
+	metrics.EXPECT().NodesAdd(1)
 	err := parentTrie.PutChild(childKey, childTrie)
 	if err != nil {
 		t.Fatal(err)
@@ -30,9 +37,15 @@ func TestPutAndGetChild(t *testing.T) {
 }
 
 func TestPutAndGetFromChild(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	metrics := NewMockMetrics(ctrl)
+
 	childKey := []byte("default")
-	childTrie := buildSmallTrie()
-	parentTrie := NewEmptyTrie()
+	childTrie := buildSmallTrie(metrics)
+	parentTrie := NewEmptyTrie(metrics)
+
+	metrics.EXPECT().NodesAdd(1)
 
 	err := parentTrie.PutChild(childKey, childTrie)
 	if err != nil {
@@ -41,6 +54,7 @@ func TestPutAndGetFromChild(t *testing.T) {
 
 	testKey := []byte("child_key")
 	testValue := []byte("child_value")
+	metrics.EXPECT().NodesAdd(1)
 	err = parentTrie.PutIntoChild(childKey, testKey, testValue)
 	if err != nil {
 		t.Fatal(err)
@@ -55,6 +69,7 @@ func TestPutAndGetFromChild(t *testing.T) {
 		t.Fatalf("Fail: got %x expected %x", valueRes, testValue)
 	}
 
+	metrics.EXPECT().NodesAdd(1)
 	testKey = []byte("child_key_again")
 	testValue = []byte("child_value_again")
 	err = parentTrie.PutIntoChild(childKey, testKey, testValue)

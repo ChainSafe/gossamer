@@ -14,17 +14,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/btcsuite/btcutil/base58"
-	"github.com/golang/mock/gomock"
-	"github.com/multiformats/go-multiaddr"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
-
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	triemetrics "github.com/ChainSafe/gossamer/internal/trie/metrics"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -33,6 +28,11 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/btcsuite/btcutil/base58"
+	"github.com/golang/mock/gomock"
+	"github.com/multiformats/go-multiaddr"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -220,7 +220,8 @@ func TestSystemModule_Properties(t *testing.T) {
 }
 
 func TestSystemModule_AccountNextIndex_StoragePending(t *testing.T) {
-	sys := setupSystemModule(t)
+	trieMetrics := triemetrics.NewNoop()
+	sys := setupSystemModule(t, trieMetrics)
 	expectedStored := U64Response(uint64(3))
 
 	res := new(U64Response)
@@ -248,7 +249,8 @@ func TestSystemModule_AccountNextIndex_StoragePending(t *testing.T) {
 }
 
 func TestSystemModule_AccountNextIndex_Storage(t *testing.T) {
-	sys := setupSystemModule(t)
+	trieMetrics := triemetrics.NewNoop()
+	sys := setupSystemModule(t, trieMetrics)
 	expectedStored := U64Response(uint64(3))
 
 	res := new(U64Response)
@@ -262,7 +264,8 @@ func TestSystemModule_AccountNextIndex_Storage(t *testing.T) {
 }
 
 func TestSystemModule_AccountNextIndex_Pending(t *testing.T) {
-	sys := setupSystemModule(t)
+	trieMetrics := triemetrics.NewNoop()
+	sys := setupSystemModule(t, trieMetrics)
 	res := new(U64Response)
 	req := StringRequest{
 		String: "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
@@ -284,10 +287,10 @@ func TestSystemModule_AccountNextIndex_Pending(t *testing.T) {
 	require.Equal(t, expectedPending, *res)
 }
 
-func setupSystemModule(t *testing.T) *SystemModule {
+func setupSystemModule(t *testing.T, trieMetrics triemetrics.Metrics) *SystemModule {
 	// setup service
 	net := newNetworkService(t)
-	chain := newTestStateService(t)
+	chain := newTestStateService(t, trieMetrics)
 	// init storage with test data
 	ts, err := chain.Storage.TrieState(nil)
 	require.NoError(t, err)
@@ -336,7 +339,7 @@ func setupSystemModule(t *testing.T) *SystemModule {
 	})
 	require.NoError(t, err)
 
-	core := newCoreService(t, chain)
+	core := newCoreService(t, chain, trieMetrics)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
@@ -352,9 +355,9 @@ func setupSystemModule(t *testing.T) *SystemModule {
 
 //go:generate mockgen -destination=mock_network_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/core Network
 
-func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
+func newCoreService(t *testing.T, srvc *state.Service, trieMetrics triemetrics.Metrics) *core.Service {
 	// setup service
-	tt := trie.NewEmptyTrie()
+	tt := trie.NewEmptyTrie(trieMetrics)
 	rt := wasmer.NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt)
 	ks := keystore.NewGlobalKeystore()
 	t.Cleanup(func() {
@@ -371,7 +374,7 @@ func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 	ks.Acco.Insert(kr.Alice())
 
 	if srvc == nil {
-		srvc = newTestStateService(t)
+		srvc = newTestStateService(t, trieMetrics)
 	}
 
 	ctrl := gomock.NewController(t)

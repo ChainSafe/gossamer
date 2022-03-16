@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"math/big"
 
+	triemetrics "github.com/ChainSafe/gossamer/internal/trie/metrics"
 	"github.com/ChainSafe/gossamer/lib/common"
 	rtype "github.com/ChainSafe/gossamer/lib/common/types"
 	"github.com/ChainSafe/gossamer/lib/crypto"
@@ -481,7 +482,9 @@ func ext_trie_blake2_256_ordered_root_version_1(vm *exec.VirtualMachine) int64 {
 	memory := vm.Memory
 	data := asMemorySlice(memory, dataSpan)
 
-	t := trie.NewEmptyTrie()
+	metrics := triemetrics.NewNoop()
+	t := trie.NewEmptyTrie(metrics)
+
 	var v [][]byte
 	err := scale.Unmarshal(data, &v)
 	if err != nil {
@@ -1293,7 +1296,8 @@ func ext_trie_blake2_256_root_version_1(vm *exec.VirtualMachine) int64 {
 
 	data := asMemorySlice(memory, dataSpan)
 
-	t := trie.NewEmptyTrie()
+	metrics := triemetrics.NewNoop()
+	t := trie.NewEmptyTrie(metrics)
 
 	// this function is expecting an array of (key, value) tuples
 	type kv struct {

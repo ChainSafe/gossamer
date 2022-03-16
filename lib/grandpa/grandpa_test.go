@@ -11,6 +11,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	triemetrics "github.com/ChainSafe/gossamer/internal/trie/metrics"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -58,7 +59,8 @@ func newTestState(t *testing.T) *state.Service {
 
 	t.Cleanup(func() { db.Close() })
 
-	_, genTrie, _ := genesis.NewTestGenesisWithTrieAndHeader(t)
+	trieMetrics := triemetrics.NewNoop()
+	_, genTrie, _ := genesis.NewTestGenesisWithTrieAndHeader(t, trieMetrics)
 	tries, err := state.NewTries(genTrie)
 	require.NoError(t, err)
 	block, err := state.NewBlockStateFromGenesis(db, tries, testGenesisHeader, telemetryMock)

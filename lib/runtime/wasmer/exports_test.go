@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	triemetrics "github.com/ChainSafe/gossamer/internal/trie/metrics"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -125,7 +126,8 @@ func TestInstance_Version_KusamaRuntime(t *testing.T) {
 	gen, err := genesis.NewGenesisFromJSONRaw(genesisPath)
 	require.NoError(t, err)
 
-	genTrie, err := genesis.NewTrieFromGenesis(gen)
+	trieMetrics := triemetrics.NewNoop()
+	genTrie, err := genesis.NewTrieFromGenesis(gen, trieMetrics)
 	require.NoError(t, err)
 
 	expectedGenesisRoot := common.MustHexToHash("0xb0006203c3a6e6bd2c6a17b1d4ae8ca49a31da0f4579da950b127774b44aef6b")
@@ -250,7 +252,8 @@ func TestNodeRuntime_ValidateTransaction(t *testing.T) {
 	gen, err := genesis.NewGenesisFromJSONRaw(genesisPath)
 	require.NoError(t, err)
 
-	genTrie, err := genesis.NewTrieFromGenesis(gen)
+	trieMetrics := triemetrics.NewNoop()
+	genTrie, err := genesis.NewTrieFromGenesis(gen, trieMetrics)
 	require.NoError(t, err)
 
 	// set state to genesis state
@@ -309,7 +312,8 @@ func TestNodeRuntime_ValidateTransaction(t *testing.T) {
 }
 
 func TestInstance_GrandpaAuthorities_NodeRuntime(t *testing.T) {
-	tt := trie.NewEmptyTrie()
+	trieMetrics := triemetrics.NewNoop()
+	tt := trie.NewEmptyTrie(trieMetrics)
 
 	value, err := common.HexToBytes("0x0108eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640100000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000") //nolint:lll
 	require.NoError(t, err)
@@ -336,7 +340,8 @@ func TestInstance_GrandpaAuthorities_NodeRuntime(t *testing.T) {
 }
 
 func TestInstance_GrandpaAuthorities_PolkadotRuntime(t *testing.T) {
-	tt := trie.NewEmptyTrie()
+	trieMetrics := triemetrics.NewNoop()
+	tt := trie.NewEmptyTrie(trieMetrics)
 
 	value, err := common.HexToBytes("0x0108eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640100000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000") //nolint:lll
 	require.NoError(t, err)
@@ -399,7 +404,8 @@ func TestInstance_BabeConfiguration_DevRuntime_NoAuthorities(t *testing.T) {
 }
 
 func TestInstance_BabeConfiguration_NodeRuntime_WithAuthorities(t *testing.T) {
-	tt := trie.NewEmptyTrie()
+	trieMetrics := triemetrics.NewNoop()
+	tt := trie.NewEmptyTrie(trieMetrics)
 
 	rvalue, err := common.HexToHash("0x01")
 	require.NoError(t, err)
@@ -470,7 +476,9 @@ func TestInstance_ExecuteBlock_NodeRuntime(t *testing.T) {
 	block := runtime.InitializeRuntimeToTest(t, instance, common.Hash{})
 
 	// reset state back to parent state before executing
-	parentState, err := storage.NewTrieState(nil)
+	trieMetrics := triemetrics.NewNoop()
+	trie := trie.NewEmptyTrie(trieMetrics)
+	parentState, err := storage.NewTrieState(trie)
 	require.NoError(t, err)
 	instance.SetContextStorage(parentState)
 
@@ -485,7 +493,8 @@ func TestInstance_ExecuteBlock_GossamerRuntime(t *testing.T) {
 	gen, err := genesis.NewGenesisFromJSONRaw(genesisPath)
 	require.NoError(t, err)
 
-	genTrie, err := genesis.NewTrieFromGenesis(gen)
+	metrics := triemetrics.NewNoop()
+	genTrie, err := genesis.NewTrieFromGenesis(gen, metrics)
 	require.NoError(t, err)
 
 	// set state to genesis state
@@ -516,7 +525,8 @@ func TestInstance_ApplyExtrinsic_GossamerRuntime(t *testing.T) {
 	gen, err := genesis.NewGenesisFromJSONRaw(genesisPath)
 	require.NoError(t, err)
 
-	genTrie, err := genesis.NewTrieFromGenesis(gen)
+	metrics := triemetrics.NewNoop()
+	genTrie, err := genesis.NewTrieFromGenesis(gen, metrics)
 	require.NoError(t, err)
 
 	// set state to genesis state
@@ -561,7 +571,9 @@ func TestInstance_ExecuteBlock_PolkadotRuntime(t *testing.T) {
 	block := runtime.InitializeRuntimeToTest(t, instance, common.Hash{})
 
 	// reset state back to parent state before executing
-	parentState, err := storage.NewTrieState(nil)
+	trieMetrics := triemetrics.NewNoop()
+	emptyTrie := trie.NewEmptyTrie(trieMetrics)
+	parentState, err := storage.NewTrieState(emptyTrie)
 	require.NoError(t, err)
 	instance.SetContextStorage(parentState)
 
@@ -575,7 +587,8 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 	gen, err := genesis.NewGenesisFromJSONRaw(genesisPath)
 	require.NoError(t, err)
 
-	genTrie, err := genesis.NewTrieFromGenesis(gen)
+	trieMetrics := triemetrics.NewNoop()
+	genTrie, err := genesis.NewTrieFromGenesis(gen, trieMetrics)
 	require.NoError(t, err)
 
 	expectedGenesisRoot := common.MustHexToHash("0x29d0d972cd27cbc511e9589fcb7a4506d5eb6a9e8df205f00472e5ab354a4e17")
@@ -627,7 +640,8 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 	gen, err := genesis.NewGenesisFromJSONRaw(genesisPath)
 	require.NoError(t, err)
 
-	genTrie, err := genesis.NewTrieFromGenesis(gen)
+	trieMetrics := triemetrics.NewNoop()
+	genTrie, err := genesis.NewTrieFromGenesis(gen, trieMetrics)
 	require.NoError(t, err)
 
 	expectedGenesisRoot := common.MustHexToHash("0xb0006203c3a6e6bd2c6a17b1d4ae8ca49a31da0f4579da950b127774b44aef6b")
@@ -1047,7 +1061,8 @@ func newTrieFromPairs(t *testing.T, filename string) *trie.Trie {
 		entries[pairArr[0].(string)] = pairArr[1].(string)
 	}
 
-	tr := trie.NewEmptyTrie()
+	trieMetrics := triemetrics.NewNoop()
+	tr := trie.NewEmptyTrie(trieMetrics)
 	err = tr.LoadFromMap(entries)
 	require.NoError(t, err)
 	return tr

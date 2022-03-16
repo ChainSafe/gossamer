@@ -12,6 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	triemetrics "github.com/ChainSafe/gossamer/internal/trie/metrics"
 	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -181,7 +182,9 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 	gen, err := genesis.NewGenesisFromJSONRaw(genPath)
 	require.NoError(t, err)
 
-	genTrie, err := genesis.NewTrieFromGenesis(gen)
+	trieMetrics := triemetrics.NewNoop()
+
+	genTrie, err := genesis.NewTrieFromGenesis(gen, trieMetrics)
 	require.NoError(t, err)
 
 	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}),

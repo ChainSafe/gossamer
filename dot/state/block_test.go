@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	triemetrics "github.com/ChainSafe/gossamer/internal/trie/metrics"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -39,7 +40,8 @@ func newTestBlockState(t *testing.T, header *types.Header, tries *Tries) *BlockS
 
 	// loads in-memory tries with genesis state root, should be deleted
 	// after another block is finalised
-	tr := trie.NewEmptyTrie()
+	trieMetrics := triemetrics.NewNoop()
+	tr := trie.NewEmptyTrie(trieMetrics)
 	err = tr.Load(bs.db, header.StateRoot)
 	require.NoError(t, err)
 	bs.tries.softSet(header.StateRoot, tr)

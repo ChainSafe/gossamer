@@ -10,6 +10,7 @@ import (
 	"sort"
 	"testing"
 
+	triemetrics "github.com/ChainSafe/gossamer/internal/trie/metrics"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/stretchr/testify/require"
@@ -17,7 +18,9 @@ import (
 
 // newTestTrieState returns an initialised TrieState
 func newTestTrieState(t *testing.T) *TrieState {
-	ts, err := NewTrieState(nil)
+	trieMetrics := triemetrics.NewNoop()
+	emptyTrie := trie.NewEmptyTrie(trieMetrics)
+	ts, err := NewTrieState(emptyTrie)
 	require.NoError(t, err)
 	return ts
 }
@@ -103,7 +106,9 @@ func TestTrieState_ClearPrefix(t *testing.T) {
 
 func TestTrieState_ClearPrefixInChild(t *testing.T) {
 	ts := newTestTrieState(t)
-	child := trie.NewEmptyTrie()
+
+	trieMetrics := triemetrics.NewNoop()
+	child := trie.NewEmptyTrie(trieMetrics)
 
 	keys := []string{
 		"noot",
@@ -189,7 +194,9 @@ func TestTrieState_RollbackStorageTransaction(t *testing.T) {
 
 func TestTrieState_DeleteChildLimit(t *testing.T) {
 	ts := newTestTrieState(t)
-	child := trie.NewEmptyTrie()
+
+	trieMetrics := triemetrics.NewNoop()
+	child := trie.NewEmptyTrie(trieMetrics)
 
 	keys := []string{
 		"key3",

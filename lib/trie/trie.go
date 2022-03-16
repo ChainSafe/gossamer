@@ -8,13 +8,14 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/internal/trie/codec"
+	"github.com/ChainSafe/gossamer/internal/trie/metrics"
 	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/internal/trie/pools"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 // EmptyHash is the empty trie hash.
-var EmptyHash, _ = NewEmptyTrie().Hash()
+var EmptyHash, _ = new(Trie).Hash()
 
 // Trie is a base 16 modified Merkle Patricia trie.
 type Trie struct {
@@ -22,20 +23,24 @@ type Trie struct {
 	root        Node
 	childTries  map[common.Hash]*Trie
 	deletedKeys map[common.Hash]struct{}
+	metrics     metrics.Metrics
 }
 
-// NewEmptyTrie creates a trie with a nil root
-func NewEmptyTrie() *Trie {
-	return NewTrie(nil)
+// NewEmptyTrie creates a trie with a nil root and uses
+// the metrics given as argument.
+func NewEmptyTrie(metrics metrics.Metrics) (trie *Trie) {
+	return NewTrie(nil, metrics)
 }
 
-// NewTrie creates a trie with an existing root node
-func NewTrie(root Node) *Trie {
+// NewTrie creates a trie with an existing root node and uses
+// the metrics given as argument.
+func NewTrie(root Node, metrics metrics.Metrics) (trie *Trie) {
 	return &Trie{
 		root:        root,
 		childTries:  make(map[common.Hash]*Trie),
 		generation:  0, // Initially zero but increases after every snapshot.
 		deletedKeys: make(map[common.Hash]struct{}),
+		metrics:     metrics,
 	}
 }
 
@@ -59,6 +64,7 @@ func (t *Trie) Snapshot() (newTrie *Trie) {
 		root:        t.root,
 		childTries:  childTries,
 		deletedKeys: make(map[common.Hash]struct{}),
+		metrics:     t.metrics,
 	}
 }
 
@@ -120,6 +126,7 @@ func (t *Trie) DeepCopy() (trieCopy *Trie) {
 
 	trieCopy = &Trie{
 		generation: t.generation,
+		metrics:    t.metrics,
 	}
 
 	if t.deletedKeys != nil {
@@ -326,7 +333,9 @@ func (t *Trie) Put(keyLE, value []byte) {
 }
 
 func (t *Trie) put(key, value []byte) {
-	t.root, _ = t.insert(t.root, key, value)
+	var nodesCreated uint32
+	t.root, nodesCreated = t.insert(t.root, key, value)
+	t.metrics.NodesAdd(int(nodesCreated))
 }
 
 // insert inserts a value in the trie at the key specified.
@@ -668,7 +677,9 @@ func (t *Trie) ClearPrefixLimit(prefixLE []byte, limit uint32) (deleted uint32, 
 	prefix := codec.KeyLEToNibbles(prefixLE)
 	prefix = bytes.TrimSuffix(prefix, []byte{0})
 
-	t.root, deleted, _, allDeleted = t.clearPrefixLimit(t.root, prefix, limit)
+	var nodesRemoved uint32
+	t.root, deleted, nodesRemoved, allDeleted = t.clearPrefixLimit(t.root, prefix, limit)
+	t.metrics.NodesAdd(-int(nodesRemoved))
 	return deleted, allDeleted
 }
 
@@ -845,14 +856,21 @@ func (t *Trie) deleteNodesLimit(parent Node, prefix []byte, limit uint32) (
 // prefix given in little Endian format.
 func (t *Trie) ClearPrefix(prefixLE []byte) {
 	if len(prefixLE) == 0 {
+		nodesDelta := -getNodesCount(t.root)
+		t.metrics.NodesAdd(nodesDelta)
+
 		t.root = nil
+
 		return
 	}
 
 	prefix := codec.KeyLEToNibbles(prefixLE)
 	prefix = bytes.TrimSuffix(prefix, []byte{0})
 
-	t.root, _ = t.clearPrefix(t.root, prefix)
+	var nodesRemoved uint32
+	t.root, nodesRemoved = t.clearPrefix(t.root, prefix)
+
+	t.metrics.NodesAdd(-int(nodesRemoved))
 }
 
 func (t *Trie) clearPrefix(parent Node, prefix []byte) (
@@ -931,7 +949,9 @@ func (t *Trie) clearPrefix(parent Node, prefix []byte) (
 // If no node is found at this key, nothing is deleted.
 func (t *Trie) Delete(keyLE []byte) {
 	key := codec.KeyLEToNibbles(keyLE)
-	t.root, _, _ = t.delete(t.root, key)
+	var nodesRemoved uint32
+	t.root, _, nodesRemoved = t.delete(t.root, key)
+	t.metrics.NodesAdd(-int(nodesRemoved))
 }
 
 func (t *Trie) delete(parent Node, key []byte) (
@@ -1115,4 +1135,17 @@ func concatenateSlices(sliceOne, sliceTwo []byte, otherSlices ...[]byte) (concat
 
 func intToByteSlice(n int) (slice []byte) {
 	return []byte{byte(n)}
+}
+
+func getNodesCount(root Node) int {
+	if root == nil {
+		return 0
+	}
+
+	if root.Type() == node.LeafType {
+		return 1
+	}
+
+	rootBranch := root.(*node.Branch)
+	return 1 + int(rootBranch.Descendants)
 }

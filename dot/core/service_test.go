@@ -10,6 +10,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
+	triemetrics "github.com/ChainSafe/gossamer/internal/trie/metrics"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -29,7 +30,9 @@ var errTestDummyError = errors.New("test dummy error")
 
 func Test_Service_StorageRoot(t *testing.T) {
 	t.Parallel()
-	emptyTrie := trie.NewEmptyTrie()
+
+	trieMetrics := triemetrics.NewNoop()
+	emptyTrie := trie.NewEmptyTrie(trieMetrics)
 	ts, err := rtstorage.NewTrieState(emptyTrie)
 	require.NoError(t, err)
 	tests := []struct {
@@ -199,7 +202,8 @@ func Test_Service_handleBlock(t *testing.T) {
 
 	t.Run("storeTrie error", func(t *testing.T) {
 		t.Parallel()
-		emptyTrie := trie.NewEmptyTrie()
+		trieMetrics := triemetrics.NewNoop()
+		emptyTrie := trie.NewEmptyTrie(trieMetrics)
 		trieState, err := rtstorage.NewTrieState(emptyTrie)
 		require.NoError(t, err)
 
@@ -217,7 +221,8 @@ func Test_Service_handleBlock(t *testing.T) {
 
 	t.Run("addBlock quit error", func(t *testing.T) {
 		t.Parallel()
-		emptyTrie := trie.NewEmptyTrie()
+		trieMetrics := triemetrics.NewNoop()
+		emptyTrie := trie.NewEmptyTrie(trieMetrics)
 		trieState, err := rtstorage.NewTrieState(emptyTrie)
 		require.NoError(t, err)
 
@@ -240,7 +245,8 @@ func Test_Service_handleBlock(t *testing.T) {
 
 	t.Run("addBlock parent not found error", func(t *testing.T) {
 		t.Parallel()
-		emptyTrie := trie.NewEmptyTrie()
+		trieMetrics := triemetrics.NewNoop()
+		emptyTrie := trie.NewEmptyTrie(trieMetrics)
 		trieState, err := rtstorage.NewTrieState(emptyTrie)
 		require.NoError(t, err)
 
@@ -263,7 +269,8 @@ func Test_Service_handleBlock(t *testing.T) {
 
 	t.Run("addBlock error continue", func(t *testing.T) {
 		t.Parallel()
-		emptyTrie := trie.NewEmptyTrie()
+		trieMetrics := triemetrics.NewNoop()
+		emptyTrie := trie.NewEmptyTrie(trieMetrics)
 		trieState, err := rtstorage.NewTrieState(emptyTrie)
 		require.NoError(t, err)
 
@@ -290,7 +297,8 @@ func Test_Service_handleBlock(t *testing.T) {
 
 	t.Run("handle runtime changes error", func(t *testing.T) {
 		t.Parallel()
-		emptyTrie := trie.NewEmptyTrie()
+		trieMetrics := triemetrics.NewNoop()
+		emptyTrie := trie.NewEmptyTrie(trieMetrics)
 		trieState, err := rtstorage.NewTrieState(emptyTrie)
 		require.NoError(t, err)
 
@@ -320,7 +328,8 @@ func Test_Service_handleBlock(t *testing.T) {
 
 	t.Run("code substitution ok", func(t *testing.T) {
 		t.Parallel()
-		emptyTrie := trie.NewEmptyTrie()
+		trieMetrics := triemetrics.NewNoop()
+		emptyTrie := trie.NewEmptyTrie(trieMetrics)
 		trieState, err := rtstorage.NewTrieState(emptyTrie)
 		require.NoError(t, err)
 
@@ -366,7 +375,8 @@ func Test_Service_HandleBlockProduced(t *testing.T) {
 
 	t.Run("happy path", func(t *testing.T) {
 		t.Parallel()
-		emptyTrie := trie.NewEmptyTrie()
+		trieMetrics := triemetrics.NewNoop()
+		emptyTrie := trie.NewEmptyTrie(trieMetrics)
 		trieState, err := rtstorage.NewTrieState(emptyTrie)
 		require.NoError(t, err)
 

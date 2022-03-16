@@ -22,10 +22,6 @@ type TrieState struct {
 
 // NewTrieState returns a new TrieState with the given trie
 func NewTrieState(t *trie.Trie) (*TrieState, error) {
-	if t == nil {
-		t = trie.NewEmptyTrie()
-	}
-
 	ts := &TrieState{
 		t: t,
 	}

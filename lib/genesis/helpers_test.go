@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	triemetrics "github.com/ChainSafe/gossamer/internal/trie/metrics"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -306,10 +307,12 @@ func TestNewTrieFromGenesis(t *testing.T) {
 		Raw: raw,
 	}
 
-	expTrie := trie.NewEmptyTrie()
+	trieMetrics := triemetrics.NewNoop()
+
+	expTrie := trie.NewEmptyTrie(trieMetrics)
 	expTrie.Put([]byte(`:code`), []byte{1, 2})
 
-	trie, err := NewTrieFromGenesis(rawGenesis)
+	trie, err := NewTrieFromGenesis(rawGenesis, trieMetrics)
 	require.NoError(t, err)
 
 	require.Equal(t, expTrie, trie)

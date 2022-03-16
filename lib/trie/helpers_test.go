@@ -5,10 +5,13 @@ package trie
 
 import (
 	"errors"
+	"fmt"
 	"math/rand"
+	"strings"
 	"testing"
 	"time"
 
+	gomock "github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -87,4 +90,25 @@ func generateRandBytes(tb testing.TB, size int,
 	_, err := generator.Read(b)
 	require.NoError(tb, err)
 	return b
+}
+
+// configMockMetricsPrinter is a helper function to configure the metrics
+// mock to print all arguments that were passed to NodesAdd and NodesSub.
+// This is to be used to debug tests and to set the right slices for
+// configMockMetrics above.
+func configMockMetricsPrinter(t *testing.T, metrics *MockMetrics) { //nolint:deadcode,unused
+	var adds []int
+	intsToString := func(x []int) string {
+		ss := make([]string, len(x))
+		for i := range x {
+			ss[i] = fmt.Sprint(x[i])
+		}
+		return "[]int{" + strings.Join(ss, ", ") + "}"
+	}
+	t.Cleanup(func() {
+		t.Log("Trie metrics NodesAdd argument calls:", intsToString(adds))
+	})
+	metrics.EXPECT().NodesAdd(gomock.Any()).Do(func(n int) {
+		adds = append(adds, n)
+	}).AnyTimes()
 }

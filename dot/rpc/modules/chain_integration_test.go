@@ -13,6 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
+	triemetrics "github.com/ChainSafe/gossamer/internal/trie/metrics"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -35,7 +36,9 @@ var (
 )
 
 func TestChainGetHeader_Genesis(t *testing.T) {
-	state := newTestStateService(t)
+	trieMetrics := triemetrics.NewNoop()
+
+	state := newTestStateService(t, trieMetrics)
 	svc := NewChainModule(state.Block)
 
 	header, err := state.Block.BestBlockHeader()
@@ -71,7 +74,9 @@ func TestChainGetHeader_Genesis(t *testing.T) {
 }
 
 func TestChainGetHeader_Latest(t *testing.T) {
-	state := newTestStateService(t)
+	trieMetrics := triemetrics.NewNoop()
+
+	state := newTestStateService(t, trieMetrics)
 	svc := NewChainModule(state.Block)
 
 	header, err := state.Block.BestBlockHeader()
@@ -105,7 +110,9 @@ func TestChainGetHeader_Latest(t *testing.T) {
 }
 
 func TestChainGetHeader_NotFound(t *testing.T) {
-	chain := newTestStateService(t)
+	trieMetrics := triemetrics.NewNoop()
+
+	chain := newTestStateService(t, trieMetrics)
 	svc := NewChainModule(chain.Block)
 
 	bhash, err := common.HexToHash("0xea374832a2c3997280d2772c10e6e5b0b493ccd3d09c0ab14050320e34076c2c")
@@ -119,7 +126,9 @@ func TestChainGetHeader_NotFound(t *testing.T) {
 }
 
 func TestChainGetBlock_Genesis(t *testing.T) {
-	state := newTestStateService(t)
+	trieMetrics := triemetrics.NewNoop()
+
+	state := newTestStateService(t, trieMetrics)
 	svc := NewChainModule(state.Block)
 
 	header, err := state.Block.BestBlockHeader()
@@ -163,7 +172,9 @@ func TestChainGetBlock_Genesis(t *testing.T) {
 }
 
 func TestChainGetBlock_Latest(t *testing.T) {
-	state := newTestStateService(t)
+	trieMetrics := triemetrics.NewNoop()
+
+	state := newTestStateService(t, trieMetrics)
 	svc := NewChainModule(state.Block)
 
 	header, err := state.Block.BestBlockHeader()
@@ -204,7 +215,9 @@ func TestChainGetBlock_Latest(t *testing.T) {
 }
 
 func TestChainGetBlock_NoFound(t *testing.T) {
-	state := newTestStateService(t)
+	trieMetrics := triemetrics.NewNoop()
+
+	state := newTestStateService(t, trieMetrics)
 	svc := NewChainModule(state.Block)
 
 	bhash, err := common.HexToHash("0xea374832a2c3997280d2772c10e6e5b0b493ccd3d09c0ab14050320e34076c2c")
@@ -218,7 +231,9 @@ func TestChainGetBlock_NoFound(t *testing.T) {
 }
 
 func TestChainGetBlockHash_Latest(t *testing.T) {
-	state := newTestStateService(t)
+	trieMetrics := triemetrics.NewNoop()
+
+	state := newTestStateService(t, trieMetrics)
 	svc := NewChainModule(state.Block)
 
 	resString := string("")
@@ -233,7 +248,9 @@ func TestChainGetBlockHash_Latest(t *testing.T) {
 }
 
 func TestChainGetBlockHash_ByNumber(t *testing.T) {
-	state := newTestStateService(t)
+	trieMetrics := triemetrics.NewNoop()
+
+	state := newTestStateService(t, trieMetrics)
 	svc := NewChainModule(state.Block)
 
 	resString := string("")
@@ -249,7 +266,9 @@ func TestChainGetBlockHash_ByNumber(t *testing.T) {
 }
 
 func TestChainGetBlockHash_ByHex(t *testing.T) {
-	state := newTestStateService(t)
+	trieMetrics := triemetrics.NewNoop()
+
+	state := newTestStateService(t, trieMetrics)
 	svc := NewChainModule(state.Block)
 
 	resString := string("")
@@ -265,7 +284,9 @@ func TestChainGetBlockHash_ByHex(t *testing.T) {
 }
 
 func TestChainGetBlockHash_Array(t *testing.T) {
-	state := newTestStateService(t)
+	trieMetrics := triemetrics.NewNoop()
+
+	state := newTestStateService(t, trieMetrics)
 	svc := NewChainModule(state.Block)
 
 	resString := string("")
@@ -289,9 +310,11 @@ func TestChainGetBlockHash_Array(t *testing.T) {
 }
 
 func TestChainGetFinalizedHead(t *testing.T) {
-	state := newTestStateService(t)
+	trieMetrics := triemetrics.NewNoop()
+
+	state := newTestStateService(t, trieMetrics)
 	svc := NewChainModule(state.Block)
-	_, _, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	_, _, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t, trieMetrics)
 	var res ChainHashResponse
 	err := svc.GetFinalizedHead(nil, &EmptyRequest{}, &res)
 	require.NoError(t, err)
@@ -301,7 +324,9 @@ func TestChainGetFinalizedHead(t *testing.T) {
 }
 
 func TestChainGetFinalizedHeadByRound(t *testing.T) {
-	state := newTestStateService(t)
+	trieMetrics := triemetrics.NewNoop()
+
+	state := newTestStateService(t, trieMetrics)
 	svc := NewChainModule(state.Block)
 
 	var res ChainHashResponse
@@ -309,7 +334,7 @@ func TestChainGetFinalizedHeadByRound(t *testing.T) {
 	err := svc.GetFinalizedHeadByRound(nil, &req, &res)
 	require.NoError(t, err)
 
-	_, _, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	_, _, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t, trieMetrics)
 	expected := genesisHeader.Hash()
 	require.Equal(t, common.BytesToHex(expected[:]), res)
 
@@ -339,7 +364,7 @@ func TestChainGetFinalizedHeadByRound(t *testing.T) {
 	require.Equal(t, common.BytesToHex(testhash[:]), res)
 }
 
-func newTestStateService(t *testing.T) *state.Service {
+func newTestStateService(t *testing.T, trieMetrics triemetrics.Metrics) *state.Service {
 	testDatadirPath := t.TempDir()
 
 	ctrl := gomock.NewController(t)
@@ -354,7 +379,7 @@ func newTestStateService(t *testing.T) *state.Service {
 	stateSrvc := state.NewService(config)
 	stateSrvc.UseMemDB()
 
-	gen, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	gen, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t, trieMetrics)
 
 	err := stateSrvc.Initialise(gen, genesisHeader, genTrie)
 	require.NoError(t, err)

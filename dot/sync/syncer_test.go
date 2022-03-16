@@ -14,6 +14,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	triemetrics "github.com/ChainSafe/gossamer/internal/trie/metrics"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -84,7 +85,9 @@ func newTestSyncer(t *testing.T) *Service {
 	stateSrvc := state.NewService(scfg)
 	stateSrvc.UseMemDB()
 
-	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
+	trieMetrics := triemetrics.NewNoop()
+	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t, trieMetrics)
+
 	err := stateSrvc.Initialise(gen, genHeader, genTrie)
 	require.NoError(t, err)
 
@@ -154,12 +157,13 @@ func newTestSyncer(t *testing.T) *Service {
 	return syncer
 }
 
-func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie, *types.Header) {
+func newTestGenesisWithTrieAndHeader(t *testing.T, trieMetrics triemetrics.Metrics) (
+	*genesis.Genesis, *trie.Trie, *types.Header) {
 	fp := utils.GetGssmrGenesisRawPathTest(t)
 	gen, err := genesis.NewGenesisFromJSONRaw(fp)
 	require.NoError(t, err)
 
-	genTrie, err := genesis.NewTrieFromGenesis(gen)
+	genTrie, err := genesis.NewTrieFromGenesis(gen, trieMetrics)
 	require.NoError(t, err)
 
 	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}),

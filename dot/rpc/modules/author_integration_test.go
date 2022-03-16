@@ -19,6 +19,7 @@ import (
 	telemetry "github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
+	triemetrics "github.com/ChainSafe/gossamer/internal/trie/metrics"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -593,7 +594,8 @@ type integrationTestController struct {
 func setupStateAndRuntime(t *testing.T, basepath string, useInstance useRuntimeInstace) *integrationTestController {
 	t.Helper()
 
-	gen, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	trieMetrics := triemetrics.NewNoop()
+	gen, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t, trieMetrics)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
@@ -653,7 +655,8 @@ func setupStateAndPopulateTrieState(t *testing.T, basepath string,
 	useInstance useRuntimeInstace) *integrationTestController {
 	t.Helper()
 
-	gen, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	trieMetrics := triemetrics.NewNoop()
+	gen, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t, trieMetrics)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)

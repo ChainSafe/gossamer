@@ -12,6 +12,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	triemetrics "github.com/ChainSafe/gossamer/internal/trie/metrics"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -23,7 +24,9 @@ import (
 var kr, _ = keystore.NewEd25519Keyring()
 
 func TestGrandpaProveFinality(t *testing.T) {
-	testStateService := newTestStateService(t)
+	trieMetrics := triemetrics.NewNoop()
+
+	testStateService := newTestStateService(t, trieMetrics)
 
 	state.AddBlocksToState(t, testStateService.Block, 3, false)
 	bestBlock, err := testStateService.Block.BestBlock()

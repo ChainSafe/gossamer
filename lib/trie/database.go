@@ -147,6 +147,7 @@ func (t *Trie) loadProof(proofHashToNode map[string]Node, n Node) {
 // It is used when restarting the node to load the current state trie.
 func (t *Trie) Load(db chaindb.Database, rootHash common.Hash) error {
 	if rootHash == EmptyHash {
+		t.metrics.NodesAdd(-getNodesCount(t.root))
 		t.root = nil
 		return nil
 	}
@@ -163,7 +164,20 @@ func (t *Trie) Load(db chaindb.Database, rootHash common.Hash) error {
 	if err != nil {
 		return fmt.Errorf("cannot decode root node: %w", err)
 	}
+
+	t.metrics.NodesAdd(-getNodesCount(t.root))
+
 	t.root = root
+
+	if t.root == nil {
+		return nil
+	} else if t.root.Type() == node.LeafType {
+		t.metrics.NodesAdd(1)
+	} else {
+		rootBranch := t.root.(*node.Branch)
+		t.metrics.NodesAdd(1 + int(rootBranch.GetDescendants()))
+	}
+
 	t.root.SetDirty(false)
 	t.root.SetEncodingAndHash(encodedNode, rootHashBytes)
 
@@ -207,7 +221,8 @@ func (t *Trie) load(db chaindb.Database, n Node) error {
 	}
 
 	for _, key := range t.GetKeysWithPrefix(ChildStorageKeyPrefix) {
-		childTrie := NewEmptyTrie()
+		childTrie := NewEmptyTrie(t.metrics)
+
 		value := t.Get(key)
 		err := childTrie.Load(db, common.NewHash(value))
 		if err != nil {

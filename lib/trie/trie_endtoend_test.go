@@ -17,10 +17,12 @@ import (
 	"time"
 
 	"github.com/ChainSafe/chaindb"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ChainSafe/gossamer/internal/trie/codec"
+	"github.com/ChainSafe/gossamer/internal/trie/metrics"
 	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
@@ -57,8 +59,14 @@ func writeFailedData(t *testing.T, kv map[string][]byte, path string) {
 	require.NoError(t, err)
 }
 
-func buildSmallTrie() *Trie {
-	trie := NewEmptyTrie()
+func buildSmallTrie(metrics *MockMetrics) *Trie {
+	metrics.EXPECT().NodesAdd(1)
+	metrics.EXPECT().NodesAdd(1)
+	metrics.EXPECT().NodesAdd(2)
+	metrics.EXPECT().NodesAdd(2)
+	metrics.EXPECT().NodesAdd(1)
+
+	trie := NewEmptyTrie(metrics)
 	trie.Put([]byte{0x01, 0x35}, []byte("pen"))
 	trie.Put([]byte{0x01, 0x35, 0x79}, []byte("penguin"))
 	trie.Put([]byte{0xf2}, []byte("feather"))
@@ -86,7 +94,15 @@ func runTests(t *testing.T, trie *Trie, tests []Test) {
 }
 
 func TestPutAndGetBranch(t *testing.T) {
-	trie := NewEmptyTrie()
+	ctrl := gomock.NewController(t)
+
+	metrics := NewMockMetrics(ctrl)
+	call := metrics.EXPECT().NodesAdd(1)
+	call = metrics.EXPECT().NodesAdd(1).After(call)
+	call = metrics.EXPECT().NodesAdd(2).After(call)
+	metrics.EXPECT().NodesAdd(2).After(call)
+
+	trie := NewEmptyTrie(metrics)
 
 	tests := []Test{
 		{key: []byte{0x01, 0x35}, value: []byte("spaghetti"), op: put},
@@ -105,7 +121,16 @@ func TestPutAndGetBranch(t *testing.T) {
 }
 
 func TestPutAndGetOddKeyLengths(t *testing.T) {
-	trie := NewEmptyTrie()
+	ctrl := gomock.NewController(t)
+
+	metrics := NewMockMetrics(ctrl)
+	call := metrics.EXPECT().NodesAdd(1)
+	call = metrics.EXPECT().NodesAdd(2).After(call)
+	call = metrics.EXPECT().NodesAdd(2).After(call)
+	call = metrics.EXPECT().NodesAdd(1).After(call)
+	metrics.EXPECT().NodesAdd(2).After(call)
+
+	trie := NewEmptyTrie(metrics)
 
 	tests := []Test{
 		{key: []byte{0x43, 0xc1}, value: []byte("noot"), op: put},
@@ -139,7 +164,9 @@ func Test_Trie_PutAndGet(t *testing.T) {
 func testPutAndGetKeyValues(t *testing.T, kv map[string][]byte) {
 	t.Helper()
 
-	trie := NewEmptyTrie()
+	metrics := metrics.NewNoop() // we don't care here
+
+	trie := NewEmptyTrie(metrics)
 
 	for keyString, value := range kv {
 		key := []byte(keyString)
@@ -200,7 +227,19 @@ func Test_Trie_PutAndGet_FailedData(t *testing.T) {
 }
 
 func TestGetPartialKey(t *testing.T) {
-	trie := NewEmptyTrie()
+	ctrl := gomock.NewController(t)
+
+	metrics := NewMockMetrics(ctrl)
+	call := metrics.EXPECT().NodesAdd(1)
+	call = metrics.EXPECT().NodesAdd(1).After(call)
+	call = metrics.EXPECT().NodesAdd(1).After(call)
+	call = metrics.EXPECT().NodesAdd(1).After(call)
+	call = metrics.EXPECT().NodesAdd(-1).After(call)
+	call = metrics.EXPECT().NodesAdd(1).After(call)
+	call = metrics.EXPECT().NodesAdd(1).After(call)
+	metrics.EXPECT().NodesAdd(2).After(call)
+
+	trie := NewEmptyTrie(metrics)
 
 	tests := []Test{
 		{key: []byte{0x01, 0x35}, value: []byte("pen"), op: put},
@@ -225,7 +264,16 @@ func TestGetPartialKey(t *testing.T) {
 }
 
 func TestDeleteSmall(t *testing.T) {
-	trie := buildSmallTrie()
+	ctrl := gomock.NewController(t)
+
+	metrics := NewMockMetrics(ctrl)
+
+	trie := buildSmallTrie(metrics)
+
+	var totalNodesDelta int
+	metrics.EXPECT().NodesAdd(gomock.Any()).Do(func(n int) {
+		totalNodesDelta += n
+	}).AnyTimes()
 
 	tests := []Test{
 		{key: []byte{}, value: []byte("floof"), op: del},
@@ -266,10 +314,21 @@ func TestDeleteSmall(t *testing.T) {
 	}
 
 	runTests(t, trie, tests)
+
+	const expectedTotalNodesDelta = -1
+	assert.Equal(t, expectedTotalNodesDelta, totalNodesDelta)
 }
 
 func TestDeleteCombineBranch(t *testing.T) {
-	trie := buildSmallTrie()
+	ctrl := gomock.NewController(t)
+
+	metrics := NewMockMetrics(ctrl)
+
+	trie := buildSmallTrie(metrics)
+
+	call := metrics.EXPECT().NodesAdd(1)
+	call = metrics.EXPECT().NodesAdd(1).After(call)
+	metrics.EXPECT().NodesAdd(2).After(call)
 
 	tests := []Test{
 		{key: []byte{0x01, 0x35, 0x46}, value: []byte("raccoon"), op: put},
@@ -282,7 +341,16 @@ func TestDeleteCombineBranch(t *testing.T) {
 }
 
 func TestDeleteFromBranch(t *testing.T) {
-	trie := NewEmptyTrie()
+	ctrl := gomock.NewController(t)
+
+	metrics := NewMockMetrics(ctrl)
+
+	var totalNodes int
+	metrics.EXPECT().NodesAdd(gomock.Any()).Do(func(n int) {
+		totalNodes += n
+	}).AnyTimes()
+
+	trie := NewEmptyTrie(metrics)
 
 	tests := []Test{
 		{key: []byte{0x06, 0x15, 0xfc}, value: []byte("noot"), op: put},
@@ -304,10 +372,21 @@ func TestDeleteFromBranch(t *testing.T) {
 	}
 
 	runTests(t, trie, tests)
+
+	const expectedTotalNodes uint32 = 3
+	assert.Equal(t, expectedTotalNodes, totalNodes)
 }
 
 func TestDeleteOddKeyLengths(t *testing.T) {
-	trie := NewEmptyTrie()
+	ctrl := gomock.NewController(t)
+
+	metrics := NewMockMetrics(ctrl)
+	var totalNodes int
+	metrics.EXPECT().NodesAdd(gomock.Any()).Do(func(n int) {
+		totalNodes += n
+	}).AnyTimes()
+
+	trie := NewEmptyTrie(metrics)
 
 	tests := []Test{
 		{key: []byte{0x43, 0xc1}, value: []byte("noot"), op: put},
@@ -327,9 +406,14 @@ func TestDeleteOddKeyLengths(t *testing.T) {
 	}
 
 	runTests(t, trie, tests)
+
+	const expectedTotalNodes uint32 = 6
+	assert.Equal(t, expectedTotalNodes, totalNodes)
 }
 
 func TestTrieDiff(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
 	cfg := &chaindb.Config{
 		DataDir: t.TempDir(),
 	}
@@ -348,7 +432,15 @@ func TestTrieDiff(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	trie := NewEmptyTrie()
+	metrics := NewMockMetrics(ctrl)
+	call := metrics.EXPECT().NodesAdd(1)
+	call = metrics.EXPECT().NodesAdd(1).After(call)
+	call = metrics.EXPECT().NodesAdd(2).After(call)
+	call = metrics.EXPECT().NodesAdd(1).After(call)
+	call = metrics.EXPECT().NodesAdd(1).After(call)
+	metrics.EXPECT().NodesAdd(1).After(call)
+
+	trie := NewEmptyTrie(metrics)
 
 	keyValues := []keyValue{
 		{key: []byte("testKey"), value: []byte("testKey")},
@@ -386,13 +478,17 @@ func TestTrieDiff(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	dbTrie := NewEmptyTrie()
+	metrics.EXPECT().NodesAdd(1).After(call)
+
+	dbTrie := NewEmptyTrie(metrics)
 	err = dbTrie.Load(storageDB, common.BytesToHash(newTrie.root.GetHash()))
 	require.NoError(t, err)
 }
 
 func TestDelete(t *testing.T) {
-	trie := NewEmptyTrie()
+	metrics := metrics.NewNoop() // random values so cannot predict them
+
+	trie := NewEmptyTrie(metrics)
 
 	generator := newGenerator()
 	const kvSize = 100
@@ -467,43 +563,56 @@ func TestClearPrefix(t *testing.T) {
 	}
 
 	testCases := map[string]struct {
-		prefixToClear []byte
+		prefixToClear   []byte
+		metricsNodesAdd int
 	}{
 		"empty prefix": {
-			prefixToClear: []byte{},
+			prefixToClear:   []byte{},
+			metricsNodesAdd: -14,
 		},
 		"0 prefix": {
-			prefixToClear: []byte{0x0},
+			prefixToClear:   []byte{0x0},
+			metricsNodesAdd: -2,
 		},
 		"1 prefix": {
-			prefixToClear: []byte{0x01},
+			prefixToClear:   []byte{0x01},
+			metricsNodesAdd: -2,
 		},
 		"0x0130 prefix": {
-			prefixToClear: []byte{0x01, 0x30},
+			prefixToClear:   []byte{0x01, 0x30},
+			metricsNodesAdd: -5,
 		},
 		"0x0135 prefix": {
-			prefixToClear: []byte{0x01, 0x35},
+			prefixToClear:   []byte{0x01, 0x35},
+			metricsNodesAdd: -5,
 		},
 		"0x013570 prefix": {
-			prefixToClear: []byte{0x01, 0x35, 0x70},
+			prefixToClear:   []byte{0x01, 0x35, 0x70},
+			metricsNodesAdd: -1,
 		},
 		"0x013579 prefix": {
-			prefixToClear: []byte{0x01, 0x35, 0x79},
+			prefixToClear:   []byte{0x01, 0x35, 0x79},
+			metricsNodesAdd: -3,
 		},
 		"0x013579ab prefix": {
-			prefixToClear: []byte{0x01, 0x35, 0x79, 0xab},
+			prefixToClear:   []byte{0x01, 0x35, 0x79, 0xab},
+			metricsNodesAdd: -2,
 		},
 		"0x07 prefix": {
-			prefixToClear: []byte{0x07},
+			prefixToClear:   []byte{0x07},
+			metricsNodesAdd: -2,
 		},
 		"0x0730 prefix": {
-			prefixToClear: []byte{0x07, 0x30},
+			prefixToClear:   []byte{0x07, 0x30},
+			metricsNodesAdd: -4,
 		},
 		"0xf0 prefix": {
-			prefixToClear: []byte{0xf0},
+			prefixToClear:   []byte{0xf0},
+			metricsNodesAdd: -2,
 		},
 		"0xffeeddccbb11 prefix": {
-			prefixToClear: []byte{0xff, 0xee, 0xdd, 0xcc, 0xbb, 0x11},
+			prefixToClear:   []byte{0xff, 0xee, 0xdd, 0xcc, 0xbb, 0x11},
+			metricsNodesAdd: -2,
 		},
 	}
 
@@ -511,8 +620,19 @@ func TestClearPrefix(t *testing.T) {
 		testCase := testCase
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
+			ctrl := gomock.NewController(t)
 
-			trie := NewEmptyTrie()
+			metrics := NewMockMetrics(ctrl)
+			var previousCall *gomock.Call
+			for _, n := range []int{1, 1, 1, 1, 2, 2, 2, 2, 2} {
+				call := metrics.EXPECT().NodesAdd(n)
+				if previousCall != nil {
+					call.After(previousCall)
+				}
+				previousCall = call
+			}
+
+			trie := NewEmptyTrie(metrics)
 
 			for _, test := range trieKeyValues {
 				trie.Put(test.key, test.value)
@@ -537,6 +657,7 @@ func TestClearPrefix(t *testing.T) {
 			require.Equal(t, tHash, dcTrieHash)
 			require.Equal(t, dcTrieHash, ssTrieHash)
 
+			metrics.EXPECT().NodesAdd(testCase.metricsNodesAdd).After(previousCall)
 			ssTrie.ClearPrefix(testCase.prefixToClear)
 			prefixNibbles := codec.KeyLEToNibbles(testCase.prefixToClear)
 			if len(prefixNibbles) > 0 && prefixNibbles[len(prefixNibbles)-1] == 0 {
@@ -570,17 +691,26 @@ func TestClearPrefix(t *testing.T) {
 			require.NotEqual(t, ssTrieHash, tHash)
 			require.Equal(t, dcTrieHash, tHash)
 		})
+
 	}
 }
 
 func TestClearPrefix_Small(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
 	keys := []string{
 		"noot",
 		"noodle",
 		"other",
 	}
 
-	trie := NewEmptyTrie()
+	metrics := NewMockMetrics(ctrl)
+	call := metrics.EXPECT().NodesAdd(1)
+	call = metrics.EXPECT().NodesAdd(2).After(call)
+	call = metrics.EXPECT().NodesAdd(2).After(call)
+	metrics.EXPECT().NodesAdd(-4).After(call)
+
+	trie := NewEmptyTrie(metrics)
 
 	dcTrie := trie.DeepCopy()
 
@@ -665,8 +795,10 @@ func TestTrie_ClearPrefixVsDelete(t *testing.T) {
 			}
 
 			for _, prefix := range prefixes {
-				trieDelete := NewEmptyTrie()
-				trieClearPrefix := NewEmptyTrie()
+				metrics := metrics.NewNoop()
+
+				trieDelete := NewEmptyTrie(metrics)
+				trieClearPrefix := NewEmptyTrie(metrics)
 
 				for _, keyValue := range testCase.keyValues {
 					trieDelete.Put(keyValue.key, keyValue.value)
@@ -688,6 +820,7 @@ func TestTrie_ClearPrefixVsDelete(t *testing.T) {
 
 func TestSnapshot(t *testing.T) {
 	t.Parallel()
+	ctrl := gomock.NewController(t)
 
 	keyValues := []keyValue{
 		{key: []byte{0x01, 0x35}, value: []byte("spaghetti")},
@@ -699,13 +832,31 @@ func TestSnapshot(t *testing.T) {
 		{key: []byte{0xf2}, value: []byte("pho")},
 	}
 
-	expectedTrie := NewEmptyTrie()
+	metrics := NewMockMetrics(ctrl)
+	var previousCall *gomock.Call
+	for _, n := range []int{1, 1, 1, 1, 2, 2, 2} {
+		call := metrics.EXPECT().NodesAdd(n)
+		if previousCall != nil {
+			call.After(previousCall)
+		}
+		previousCall = call
+	}
+
+	expectedTrie := NewEmptyTrie(metrics)
 	for _, keyValue := range keyValues {
 		expectedTrie.Put(keyValue.key, keyValue.value)
 	}
 
 	// put all keys except first
-	parentTrie := NewEmptyTrie()
+	for _, n := range []int{1, 1, 1, 2, 2, 2, 1} {
+		call := metrics.EXPECT().NodesAdd(n)
+		if previousCall != nil {
+			call.After(previousCall)
+		}
+		previousCall = call
+	}
+
+	parentTrie := NewEmptyTrie(metrics)
 	for i, keyValue := range keyValues {
 		if i == 0 {
 			continue
@@ -722,8 +873,9 @@ func TestSnapshot(t *testing.T) {
 
 func Test_Trie_NextKey_Random(t *testing.T) {
 	generator := newGenerator()
+	metrics := metrics.NewNoop() // random values so cannot predict them
 
-	trie := NewEmptyTrie()
+	trie := NewEmptyTrie(metrics)
 
 	const minKVSize, maxKVSize = 1000, 10000
 	kvSize := minKVSize + generator.Intn(maxKVSize-minKVSize)
@@ -761,7 +913,8 @@ func Benchmark_Trie_Hash(b *testing.B) {
 	const kvSize = 1000000
 	kv := generateKeyValues(b, generator, kvSize)
 
-	trie := NewEmptyTrie()
+	metrics := metrics.NewNoop()
+	trie := NewEmptyTrie(metrics)
 	for keyString, value := range kv {
 		key := []byte(keyString)
 		trie.Put(key, value)
@@ -787,6 +940,8 @@ func bToMb(b uint64) uint64 {
 }
 
 func TestTrie_ConcurrentSnapshotWrites(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
 	generator := newGenerator()
 	const size = 1000
 	const workers = 4
@@ -796,7 +951,9 @@ func TestTrie_ConcurrentSnapshotWrites(t *testing.T) {
 
 	for i := 0; i < workers; i++ {
 		testCases[i] = make([]Test, size)
-		expectedTries[i] = buildSmallTrie()
+		mockMetrics := NewMockMetrics(ctrl)
+		expectedTries[i] = buildSmallTrie(mockMetrics)
+		mockMetrics.EXPECT().NodesAdd(gomock.AssignableToTypeOf(0)).AnyTimes()
 		for j := 0; j < size; j++ {
 			k := make([]byte, 2)
 			_, err := generator.Read(k)
@@ -825,8 +982,12 @@ func TestTrie_ConcurrentSnapshotWrites(t *testing.T) {
 	finishWg.Add(workers)
 	snapshotedTries := make([]*Trie, workers)
 
+	var builtTrie *Trie
 	for i := 0; i < workers; i++ {
-		snapshotedTries[i] = buildSmallTrie().Snapshot()
+		mockMetrics := NewMockMetrics(ctrl)
+		builtTrie = buildSmallTrie(mockMetrics)
+		builtTrie.metrics = metrics.NewNoop() // so it's fast
+		snapshotedTries[i] = builtTrie.Snapshot()
 
 		go func(trie *Trie, operations []Test,
 			startWg, finishWg *sync.WaitGroup) {
@@ -908,7 +1069,8 @@ func TestTrie_ClearPrefixLimit(t *testing.T) {
 				}
 
 				for lim := 0; lim < len(testCase.keyValues)+1; lim++ {
-					trieClearPrefix := NewEmptyTrie()
+					metrics := metrics.NewNoop() // hard to predict with prefix for loop
+					trieClearPrefix := NewEmptyTrie(metrics)
 
 					for _, keyValue := range testCase.keyValues {
 						trieClearPrefix.Put(keyValue.key, keyValue.value)
@@ -1002,7 +1164,8 @@ func TestTrie_ClearPrefixLimitSnapshot(t *testing.T) {
 				}
 
 				for lim := 0; lim < len(testCase.keyValues)+1; lim++ {
-					trieClearPrefix := NewEmptyTrie()
+					metrics := metrics.NewNoop() // hard to predict with prefix for loop
+					trieClearPrefix := NewEmptyTrie(metrics)
 
 					for _, keyValue := range testCase.keyValues {
 						trieClearPrefix.Put(keyValue.key, keyValue.value)
@@ -1084,7 +1247,8 @@ func Test_encodeRoot_fuzz(t *testing.T) {
 
 	generator := newGenerator()
 
-	trie := NewEmptyTrie()
+	metrics := metrics.NewNoop() // random values so cannot predict them
+	trie := NewEmptyTrie(metrics)
 
 	const randomBatches = 3
 
@@ -1140,7 +1304,7 @@ func Test_Trie_Descendants_Fuzz(t *testing.T) {
 	const kvSize = 5000
 	kv := generateKeyValues(t, generator, kvSize)
 
-	trie := NewEmptyTrie()
+	trie := NewEmptyTrie(metrics.NewNoop())
 
 	keys := make([][]byte, 0, len(kv))
 	for key := range kv {
