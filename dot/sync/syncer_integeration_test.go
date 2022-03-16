@@ -126,9 +126,9 @@ func newTestSyncer(t *testing.T) *Service {
 		})
 
 	cfg.TransactionState = stateSrvc.Transaction
-	cfg.BabeVerifier = newMockBabeVerifier()
+	cfg.BabeVerifier = newMockBabeVerifier(ctrl)
 	cfg.LogLvl = log.Trace
-	cfg.FinalityGadget = newMockFinalityGadget()
+	cfg.FinalityGadget = newMockFinalityGadget(ctrl)
 	cfg.Network = newMockNetwork()
 	cfg.Telemetry = mockTelemetryClient
 

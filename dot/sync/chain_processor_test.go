@@ -371,7 +371,7 @@ func newMockBlockImportHandler(ctrl *gomock.Controller) BlockImportHandler {
 
 func newMockBabeVerifier(ctrl *gomock.Controller) BabeVerifier {
 	mock := NewMockBabeVerifier(ctrl)
-	mock.EXPECT().VerifyBlock(gomock.AssignableToTypeOf(&types.Header{}))
+	mock.EXPECT().VerifyBlock(gomock.AssignableToTypeOf(&types.Header{})).AnyTimes()
 
 	return mock
 }
@@ -379,7 +379,7 @@ func newMockBabeVerifier(ctrl *gomock.Controller) BabeVerifier {
 func newMockFinalityGadget(ctrl *gomock.Controller) FinalityGadget {
 	mock := NewMockFinalityGadget(ctrl)
 	mock.EXPECT().VerifyBlockJustification(gomock.AssignableToTypeOf(common.Hash{}),
-		gomock.AssignableToTypeOf([]byte{}))
+		gomock.AssignableToTypeOf([]byte{})).AnyTimes()
 
 	return mock
 }

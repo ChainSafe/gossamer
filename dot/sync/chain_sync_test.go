@@ -694,6 +694,7 @@ func TestChainSync_doSync(t *testing.T) {
 	resp := &network.BlockResponseMessage{
 		BlockData: []*types.BlockData{
 			{
+				Hash: common.Hash{0x1},
 				Header: &types.Header{
 					Number: 1,
 				},
@@ -718,6 +719,7 @@ func TestChainSync_doSync(t *testing.T) {
 	resp = &network.BlockResponseMessage{
 		BlockData: []*types.BlockData{
 			{
+				Hash: common.Hash{0x3},
 				Header: &types.Header{
 					ParentHash: parent,
 					Number:     3,
@@ -725,6 +727,7 @@ func TestChainSync_doSync(t *testing.T) {
 				Body: &types.Body{},
 			},
 			{
+				Hash: common.Hash{0x2},
 				Header: &types.Header{
 					Number: 2,
 				},
