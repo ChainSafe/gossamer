@@ -46,10 +46,13 @@ func NewTrie(root Node) *Trie {
 // the set of deleted hashes.
 func (t *Trie) Snapshot() (newTrie *Trie) {
 	childTries := make(map[common.Hash]*Trie, len(t.childTries))
+	rootCopySettings := node.CopySettings{
+		CopyCached: true,
+	}
 	for rootHash, childTrie := range t.childTries {
 		childTries[rootHash] = &Trie{
 			generation:  childTrie.generation + 1,
-			root:        childTrie.root.Copy(false),
+			root:        childTrie.root.Copy(rootCopySettings),
 			deletedKeys: make(map[common.Hash]struct{}),
 		}
 	}
@@ -62,26 +65,28 @@ func (t *Trie) Snapshot() (newTrie *Trie) {
 	}
 }
 
-func (t *Trie) prepLeafForMutation(currentLeaf *node.Leaf) (newLeaf *node.Leaf) {
+func (t *Trie) prepLeafForMutation(currentLeaf *node.Leaf,
+	copySettings node.CopySettings) (newLeaf *node.Leaf) {
 	if currentLeaf.Generation == t.generation {
 		// no need to deep copy and update generation
 		// of current leaf.
 		newLeaf = currentLeaf
 	} else {
-		newNode := updateGeneration(currentLeaf, t.generation, t.deletedKeys)
+		newNode := updateGeneration(currentLeaf, t.generation, t.deletedKeys, copySettings)
 		newLeaf = newNode.(*node.Leaf)
 	}
 	newLeaf.SetDirty(true)
 	return newLeaf
 }
 
-func (t *Trie) prepBranchForMutation(currentBranch *node.Branch) (newBranch *node.Branch) {
+func (t *Trie) prepBranchForMutation(currentBranch *node.Branch,
+	copySettings node.CopySettings) (newBranch *node.Branch) {
 	if currentBranch.Generation == t.generation {
 		// no need to deep copy and update generation
 		// of current branch.
 		newBranch = currentBranch
 	} else {
-		newNode := updateGeneration(currentBranch, t.generation, t.deletedKeys)
+		newNode := updateGeneration(currentBranch, t.generation, t.deletedKeys, copySettings)
 		newBranch = newNode.(*node.Branch)
 	}
 	newBranch.SetDirty(true)
@@ -92,9 +97,9 @@ func (t *Trie) prepBranchForMutation(currentBranch *node.Branch) (newBranch *nod
 // an older trie generation (snapshot) so we deep copy the
 // node and update the generation on the newer copy.
 func updateGeneration(currentNode Node, trieGeneration uint64,
-	deletedHashes map[common.Hash]struct{}) (newNode Node) {
-	const copyChildren = false
-	newNode = currentNode.Copy(copyChildren)
+	deletedHashes map[common.Hash]struct{}, copySettings node.CopySettings) (
+	newNode Node) {
+	newNode = currentNode.Copy(copySettings)
 	newNode.SetGeneration(trieGeneration)
 
 	// The hash of the node from a previous snapshotted trie
@@ -137,8 +142,11 @@ func (t *Trie) DeepCopy() (trieCopy *Trie) {
 	}
 
 	if t.root != nil {
-		const copyChildren = true
-		trieCopy.root = t.root.Copy(copyChildren)
+		copySettings := node.CopySettings{
+			CopyChildren: true,
+			CopyCached:   true,
+		}
+		trieCopy.root = t.root.Copy(copySettings)
 	}
 
 	return trieCopy
@@ -146,8 +154,10 @@ func (t *Trie) DeepCopy() (trieCopy *Trie) {
 
 // RootNode returns a copy of the root node of the trie.
 func (t *Trie) RootNode() Node {
-	const copyChildren = false
-	return t.root.Copy(copyChildren)
+	copySettings := node.CopySettings{
+		CopyCached: true,
+	}
+	return t.root.Copy(copySettings)
 }
 
 // encodeRoot writes the encoding of the root node to the buffer.
@@ -360,7 +370,10 @@ func (t *Trie) insertInLeaf(parentLeaf *node.Leaf, key,
 			return parentLeaf
 		}
 
-		parentLeaf = t.prepLeafForMutation(parentLeaf)
+		copySettings := node.CopySettings{
+			LeaveValueEmpty: true,
+		}
+		parentLeaf = t.prepLeafForMutation(parentLeaf, copySettings)
 		parentLeaf.Value = value
 		return parentLeaf
 	}
@@ -381,7 +394,8 @@ func (t *Trie) insertInLeaf(parentLeaf *node.Leaf, key,
 
 		if len(key) < len(parentLeafKey) {
 			// Move the current leaf parent as a child to the new branch.
-			parentLeaf = t.prepLeafForMutation(parentLeaf)
+			copySettings := node.CopySettings{}
+			parentLeaf = t.prepLeafForMutation(parentLeaf, copySettings)
 			childIndex := parentLeafKey[commonPrefixLength]
 			parentLeaf.Key = parentLeaf.Key[commonPrefixLength+1:]
 			newBranchParent.Children[childIndex] = parentLeaf
@@ -395,7 +409,8 @@ func (t *Trie) insertInLeaf(parentLeaf *node.Leaf, key,
 		newBranchParent.Value = parentLeaf.Value
 	} else {
 		// make the leaf a child of the new branch
-		parentLeaf = t.prepLeafForMutation(parentLeaf)
+		copySettings := node.CopySettings{}
+		parentLeaf = t.prepLeafForMutation(parentLeaf, copySettings)
 		childIndex := parentLeafKey[commonPrefixLength]
 		parentLeaf.Key = parentLeaf.Key[commonPrefixLength+1:]
 		newBranchParent.Children[childIndex] = parentLeaf
@@ -412,7 +427,8 @@ func (t *Trie) insertInLeaf(parentLeaf *node.Leaf, key,
 }
 
 func (t *Trie) insertInBranch(parentBranch *node.Branch, key, value []byte) (newParent Node) {
-	parentBranch = t.prepBranchForMutation(parentBranch)
+	copySettings := node.CopySettings{}
+	parentBranch = t.prepBranchForMutation(parentBranch, copySettings)
 
 	if bytes.Equal(key, parentBranch.Key) {
 		parentBranch.Value = value
@@ -715,7 +731,8 @@ func (t *Trie) clearPrefixLimitBranch(branch *node.Branch, prefix []byte, limit 
 		return branch, valuesDeleted, allDeleted
 	}
 
-	branch = t.prepBranchForMutation(branch)
+	copySettings := node.CopySettings{}
+	branch = t.prepBranchForMutation(branch, copySettings)
 	branch.Children[childIndex] = child
 	newParent = handleDeletion(branch, prefix)
 	return newParent, valuesDeleted, allDeleted
@@ -741,7 +758,8 @@ func (t *Trie) clearPrefixLimitChild(branch *node.Branch, prefix []byte, limit u
 		return branch, valuesDeleted, allDeleted
 	}
 
-	branch = t.prepBranchForMutation(branch)
+	copySettings := node.CopySettings{}
+	branch = t.prepBranchForMutation(branch, copySettings)
 	branch.Children[childIndex] = child
 
 	newParent = handleDeletion(branch, prefix)
@@ -776,7 +794,8 @@ func (t *Trie) deleteNodesLimit(parent Node, prefix []byte, limit uint32) (
 			continue
 		}
 
-		branch = t.prepBranchForMutation(branch)
+		copySettings := node.CopySettings{}
+		branch = t.prepBranchForMutation(branch, copySettings)
 		branch.Children[i], newDeleted = t.deleteNodesLimit(child, fullKey, limit)
 		if branch.Children[i] == nil {
 			nilChildren++
@@ -842,7 +861,8 @@ func (t *Trie) clearPrefix(parent Node, prefix []byte) (
 			return parent, false
 		}
 
-		branch = t.prepBranchForMutation(branch)
+		copySettings := node.CopySettings{}
+		branch = t.prepBranchForMutation(branch, copySettings)
 		branch.Children[childIndex] = nil
 		newParent = handleDeletion(branch, prefix)
 		return newParent, true
@@ -863,7 +883,8 @@ func (t *Trie) clearPrefix(parent Node, prefix []byte) (
 		return parent, false
 	}
 
-	branch = t.prepBranchForMutation(branch)
+	copySettings := node.CopySettings{}
+	branch = t.prepBranchForMutation(branch, copySettings)
 	branch.Children[childIndex] = child
 	newParent = handleDeletion(branch, prefix)
 	return newParent, true
@@ -902,7 +923,12 @@ func deleteLeaf(parent Node, key []byte) (newParent Node) {
 
 func (t *Trie) deleteBranch(branch *node.Branch, key []byte) (newParent Node, deleted bool) {
 	if len(key) == 0 || bytes.Equal(branch.Key, key) {
-		branch = t.prepBranchForMutation(branch)
+		copySettings := node.CopySettings{
+			LeaveValueEmpty: true,
+		}
+		branch = t.prepBranchForMutation(branch, copySettings)
+		// we need to set to nil if the branch has the same generation
+		// as the current trie.
 		branch.Value = nil
 		return handleDeletion(branch, key), true
 	}
@@ -917,7 +943,8 @@ func (t *Trie) deleteBranch(branch *node.Branch, key []byte) (newParent Node, de
 		return branch, false
 	}
 
-	branch = t.prepBranchForMutation(branch)
+	copySettings := node.CopySettings{}
+	branch = t.prepBranchForMutation(branch, copySettings)
 	branch.Children[childIndex] = newChild
 	newParent = handleDeletion(branch, key)
 	return newParent, true

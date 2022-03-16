@@ -4,6 +4,7 @@
 package node
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -12,8 +13,7 @@ import (
 
 func testForSliceModif(t *testing.T, original, copied []byte) {
 	t.Helper()
-	require.Equal(t, len(original), len(copied))
-	if len(copied) == 0 {
+	if !reflect.DeepEqual(original, copied) || len(copied) == 0 {
 		// cannot test for modification
 		return
 	}
@@ -26,7 +26,7 @@ func Test_Branch_Copy(t *testing.T) {
 
 	testCases := map[string]struct {
 		branch         *Branch
-		copyChildren   bool
+		settings       CopySettings
 		expectedBranch *Branch
 	}{
 		"empty branch": {
@@ -50,9 +50,7 @@ func Test_Branch_Copy(t *testing.T) {
 				Children: [16]Node{
 					nil, nil, &Leaf{Key: []byte{9}},
 				},
-				Dirty:      true,
-				HashDigest: []byte{5},
-				Encoding:   []byte{6},
+				Dirty: true,
 			},
 		},
 		"branch with children copied": {
@@ -61,7 +59,9 @@ func Test_Branch_Copy(t *testing.T) {
 					nil, nil, &Leaf{Key: []byte{9}},
 				},
 			},
-			copyChildren: true,
+			settings: CopySettings{
+				CopyChildren: true,
+			},
 			expectedBranch: &Branch{
 				Children: [16]Node{
 					nil, nil, &Leaf{Key: []byte{9}},
@@ -75,7 +75,7 @@ func Test_Branch_Copy(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			nodeCopy := testCase.branch.Copy(testCase.copyChildren)
+			nodeCopy := testCase.branch.Copy(testCase.settings)
 
 			branchCopy, ok := nodeCopy.(*Branch)
 			require.True(t, ok)
@@ -97,6 +97,7 @@ func Test_Leaf_Copy(t *testing.T) {
 
 	testCases := map[string]struct {
 		leaf         *Leaf
+		settings     CopySettings
 		expectedLeaf *Leaf
 	}{
 		"empty leaf": {
@@ -112,11 +113,9 @@ func Test_Leaf_Copy(t *testing.T) {
 				Encoding:   []byte{6},
 			},
 			expectedLeaf: &Leaf{
-				Key:        []byte{1, 2},
-				Value:      []byte{3, 4},
-				Dirty:      true,
-				HashDigest: []byte{5},
-				Encoding:   []byte{6},
+				Key:   []byte{1, 2},
+				Value: []byte{3, 4},
+				Dirty: true,
 			},
 		},
 	}
@@ -126,8 +125,7 @@ func Test_Leaf_Copy(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			const copyChildren = false
-			nodeCopy := testCase.leaf.Copy(copyChildren)
+			nodeCopy := testCase.leaf.Copy(testCase.settings)
 
 			leafCopy, ok := nodeCopy.(*Leaf)
 			require.True(t, ok)
