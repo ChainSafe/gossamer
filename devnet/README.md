@@ -23,7 +23,7 @@ docker-compose down
 
 > **_NOTE:_**  The devnet is not stateful, so subsequent runs will start from the genesis block.
 
-## Running Cross Client Devnet
+## Running a Manual Cross Client Devnet
 
 A cross-client devnet is network of gossamer node(s) and substrate node(s).
 
