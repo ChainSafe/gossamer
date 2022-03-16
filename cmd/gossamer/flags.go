@@ -128,10 +128,10 @@ var (
 		Usage: "Publish node metrics",
 	}
 
-	// MetricsPortFlag set metric listen port
-	MetricsPortFlag = cli.StringFlag{
-		Name:  "metrics-port",
-		Usage: "Set metric listening port ",
+	// MetricsAddressFlag sets the metric server listening address
+	MetricsAddressFlag = cli.StringFlag{
+		Name:  "metrics-address",
+		Usage: "Set the metric server listening address",
 	}
 
 	// NoTelemetryFlag stops publishing telemetry to default defined in genesis.json
@@ -442,7 +442,7 @@ var (
 
 		// metrics flag
 		PublishMetricsFlag,
-		MetricsPortFlag,
+		MetricsAddressFlag,
 
 		// telemetry flags
 		NoTelemetryFlag,

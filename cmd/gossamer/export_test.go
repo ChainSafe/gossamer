@@ -47,7 +47,7 @@ func TestExportCommand(t *testing.T) {
 					BasePath:       testCfg.Global.BasePath,
 					LogLvl:         log.Info,
 					PublishMetrics: testCfg.Global.PublishMetrics,
-					MetricsPort:    testCfg.Global.MetricsPort,
+					MetricsAddress: testCfg.Global.MetricsAddress,
 				},
 				Log: dot.LogConfig{
 					CoreLvl:           log.Info,
