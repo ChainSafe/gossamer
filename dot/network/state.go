@@ -71,6 +71,6 @@ type PeerRemove interface {
 
 // Peer is the interface used by the PeerSetHandler to get the peer data from peerSet.
 type Peer interface {
-	SortedPeers(idx int) chan peer.IDSlice
+	SortedPeers(idx int) peer.IDSlice
 	PeerReputation(peer.ID) (peerset.Reputation, error)
 }
