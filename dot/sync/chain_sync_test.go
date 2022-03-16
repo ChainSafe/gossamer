@@ -119,7 +119,7 @@ func TestChainSync_SetPeerHead_Integration(t *testing.T) {
 		types.NewDigest())
 	require.NoError(t, err)
 	cs.blockState.(*syncmocks.BlockState).On("GetHighestFinalisedHeader").Return(fin, nil)
-	cs.blockState.(*syncmocks.BlockState).On("GetHashByNumber", mock.AnythingOfType("*big.Int")).Return(hash, nil)
+	cs.blockState.(*syncmocks.BlockState).On("GetHashByNumber", mock.AnythingOfType("uint")).Return(hash, nil)
 
 	err = cs.setPeerHead(testPeer, hash, number-1)
 	require.NoError(t, err)
@@ -142,7 +142,7 @@ func TestChainSync_SetPeerHead_Integration(t *testing.T) {
 		types.NewDigest())
 	require.NoError(t, err)
 	cs.blockState.(*syncmocks.BlockState).On("GetHighestFinalisedHeader").Return(fin, nil)
-	cs.blockState.(*syncmocks.BlockState).On("GetHashByNumber", mock.AnythingOfType("*big.Int")).Return(common.Hash{}, nil)
+	cs.blockState.(*syncmocks.BlockState).On("GetHashByNumber", mock.AnythingOfType("uint")).Return(common.Hash{}, nil)
 
 	err = cs.setPeerHead(testPeer, hash, number-1)
 	require.True(t, errors.Is(err, errPeerOnInvalidFork))
@@ -165,7 +165,7 @@ func TestChainSync_SetPeerHead_Integration(t *testing.T) {
 		types.NewDigest())
 	require.NoError(t, err)
 	cs.blockState.(*syncmocks.BlockState).On("GetHighestFinalisedHeader").Return(fin, nil)
-	cs.blockState.(*syncmocks.BlockState).On("GetHashByNumber", mock.AnythingOfType("*big.Int")).Return(common.
+	cs.blockState.(*syncmocks.BlockState).On("GetHashByNumber", mock.AnythingOfType("uint")).Return(common.
 		Hash{}, nil)
 	cs.blockState.(*syncmocks.BlockState).On("HasHeader", mock.AnythingOfType("common.Hash")).Return(true, nil)
 
@@ -315,16 +315,6 @@ func TestChainSync_getTarget(t *testing.T) {
 }
 
 func TestWorkerToRequests(t *testing.T) {
-	// TODO (ed) consider removing
-	//_, err := workerToRequests(&worker{})
-	//require.Equal(t, errWorkerMissingStartNumber, err)
-	//
-	//w := &worker{
-	//	startNumber: big.NewInt(1),
-	//}
-	//_, err = workerToRequests(w)
-	//require.Equal(t, errWorkerMissingTargetNumber, err)
-
 	w := &worker{
 		startNumber:  uintPtr(10),
 		targetNumber: uintPtr(1),
