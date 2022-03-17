@@ -92,12 +92,9 @@ func (h *Handler) ReportPeer(rep ReputationChange, peers ...peer.ID) {
 }
 
 // Incoming calls when we have an incoming connection from peer.
-func (h *Handler) Incoming(setID int, peers ...peer.ID) {
-	err := h.peerSet.incoming(setID, peers...)
-	if err != nil {
-		msg := fmt.Sprintf(logStringPattern, incoming, setID, "", stringfyPeers(peers))
-		logger.Errorf("failed to do action %s on peerSet: %s", msg, err)
-	}
+func (h *Handler) Incoming(setID int, peers ...peer.ID) (status []Status, err error) {
+	peersStatus, err := h.peerSet.incoming(setID, peers...)
+	return peersStatus, err
 }
 
 // DisconnectPeer calls for disconnecting a connection from peer.

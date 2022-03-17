@@ -25,13 +25,13 @@ const (
 	peer2         = peer.ID("testPeer2")
 )
 
-const allocTimeDuration = time.Second * 2
+const allocTimeDuration = 2 * time.Second
 
 //go:generate mockgen -destination=mock_message_processor_test.go -package $GOPACKAGE . MessageProcessor
-
 func newTestPeerSet(t *testing.T, maxIn, maxOut uint32, bootNodes,
 	reservedPeers []peer.ID, reservedOnly bool, processor MessageProcessor) *Handler {
 	t.Helper()
+
 	con := &ConfigSet{
 		Set: []*config{
 			{

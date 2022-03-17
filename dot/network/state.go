@@ -56,7 +56,7 @@ type PeerSetHandler interface {
 
 // PeerAdd is the interface used by the PeerSetHandler to add peers in peerSet.
 type PeerAdd interface {
-	Incoming(int, ...peer.ID)
+	Incoming(int, ...peer.ID) ([]peerset.Status, error)
 	AddReservedPeer(int, ...peer.ID)
 	AddPeer(int, ...peer.ID)
 	SetReservedPeer(int, ...peer.ID)

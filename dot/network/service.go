@@ -439,7 +439,31 @@ func (s *Service) sentBlockIntervalTelemetry() {
 
 func (s *Service) handleConn(conn libp2pnetwork.Conn) {
 	// TODO: currently we only have one set so setID is 0, change this once we have more set in peerSet.
-	s.host.cm.peerSetHandler.Incoming(0, conn.RemotePeer())
+	results, err := s.host.cm.peerSetHandler.Incoming(0, conn.RemotePeer())
+	if err != nil {
+		logger.Errorf("cannot accept incoming peer: %w", err)
+		err := conn.Close()
+		if err != nil {
+			logger.Errorf("cannot close connection with peer: %w", err)
+		}
+		return
+	}
+
+	if len(results) == 0 {
+		logger.Errorf("got an empty incoming status list")
+		return
+	}
+
+	incomingPeerResult := results[0]
+	switch incomingPeerResult {
+	case peerset.Drop, peerset.Reject:
+		logger.Warnf("connection rejected with peer %s", conn.RemotePeer())
+		err := conn.Close()
+		if err != nil {
+			logger.Errorf("cannot close connection with peer: %w", err)
+		}
+		return
+	}
 
 	// exchange BlockAnnounceHandshake with peer so we can start to
 	// sync if necessary.

@@ -571,22 +571,26 @@ func (ps *PeerSet) removePeer(setID int, peers ...peer.ID) error {
 // incoming indicates that we have received an incoming connection. Must be answered
 // either with a corresponding `Accept` or `Reject`, except if we were already
 // connected to this peer.
-func (ps *PeerSet) incoming(setID int, peers ...peer.ID) error {
+func (ps *PeerSet) incoming(setID int, peers ...peer.ID) ([]Status, error) {
 	err := ps.updateTime()
 	if err != nil {
-		return fmt.Errorf("cannot update time: %w", err)
+		return nil, fmt.Errorf("cannot update time: %w", err)
 	}
 
-	for _, pid := range peers {
+	peersStatus := make([]Status, len(peers))
+
+	for idx, pid := range peers {
 		if ps.isReservedOnly {
-			if _, ok := ps.reservedNode[pid]; !ok {
-				rejectMessage := Message{
+			_, has := ps.reservedNode[pid]
+			if !has {
+				message := Message{
 					Status: Reject,
 					setID:  uint64(setID),
 					PeerID: pid,
 				}
 
-				ps.processor.Process(rejectMessage)
+				peersStatus[idx] = message.Status
+				ps.processor.Process(message)
 				continue
 			}
 		}
@@ -612,39 +616,30 @@ func (ps *PeerSet) incoming(setID int, peers ...peer.ID) error {
 		}
 		state.RUnlock()
 
-		var message Message
+		message := Message{
+			setID:  uint64(setID),
+			PeerID: pid,
+		}
 
 		switch {
 		case nodeReputation < BannedThresholdValue:
-			message = Message{
-				Status: Reject,
-				setID:  uint64(setID),
-				PeerID: pid,
-			}
+			message.Status = Reject
 		default:
 			err := state.tryAcceptIncoming(setID, pid)
 			if err != nil {
 				logger.Errorf("cannot accept incomming peer %pid: %w", pid, err)
-
-				message = Message{
-					Status: Reject,
-					setID:  uint64(setID),
-					PeerID: pid,
-				}
+				message.Status = Reject
 			} else {
 				logger.Debugf("incoming connection accepted from peer %s", pid)
-				message = Message{
-					Status: Accept,
-					setID:  uint64(setID),
-					PeerID: pid,
-				}
+				message.Status = Accept
 			}
 		}
 
 		ps.processor.Process(message)
+		peersStatus[idx] = message.Status
 	}
 
-	return nil
+	return peersStatus, nil
 }
 
 // DropReason represents reason for disconnection of the peer
