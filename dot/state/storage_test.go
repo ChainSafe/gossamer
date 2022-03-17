@@ -202,7 +202,6 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 
 	trieState, err := runtime.NewTrieState(genTrie)
 	require.NoError(t, err)
-	fmt.Printf("genTrie.RootNode().GetHash() %s\n", genTrie.RootNode().GetHash())
 
 	header, err := types.NewHeader(blockState.GenesisHash(), trieState.MustRoot(),
 		common.Hash{}, 1, types.NewDigest())
