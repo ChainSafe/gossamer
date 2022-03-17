@@ -29,14 +29,14 @@ const allocTimeDuration = time.Second * 2
 
 //go:generate mockgen -destination=mock_message_processor_test.go -package $GOPACKAGE . MessageProcessor
 
-func newTestPeerSet(t *testing.T, in, out uint32, bootNodes,
+func newTestPeerSet(t *testing.T, maxIn, maxOut uint32, bootNodes,
 	reservedPeers []peer.ID, reservedOnly bool, processor MessageProcessor) *Handler {
 	t.Helper()
 	con := &ConfigSet{
 		Set: []*config{
 			{
-				maxInPeers:        in,
-				maxOutPeers:       out,
+				maxInPeers:        maxIn,
+				maxOutPeers:       maxOut,
 				reservedOnly:      reservedOnly,
 				periodicAllocTime: allocTimeDuration,
 			},

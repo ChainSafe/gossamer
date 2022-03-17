@@ -259,7 +259,7 @@ func (ps *PeersState) highestNotConnectedPeer(set int) peer.ID {
 	defer ps.RUnlock()
 
 	maxRep := math.MinInt32
-	var higestPeerID peer.ID
+	var highestPeerID peer.ID
 
 	for peerID, node := range ps.nodes {
 		if node.state[set] != notConnected {
@@ -269,11 +269,11 @@ func (ps *PeersState) highestNotConnectedPeer(set int) peer.ID {
 		val := int(node.reputation)
 		if val >= maxRep {
 			maxRep = val
-			higestPeerID = peerID
+			highestPeerID = peerID
 		}
 	}
 
-	return higestPeerID
+	return highestPeerID
 }
 
 func (ps *PeersState) hasFreeOutgoingSlot(set int) bool {
@@ -302,6 +302,7 @@ func (ps *PeersState) addNoSlotNode(idx int, peerID peer.ID) error {
 
 	node, has := ps.nodes[peerID]
 	if !has {
+		fmt.Println("error here")
 		return fmt.Errorf("%w: for peer id %s", ErrPeerDoesNotExist, peerID)
 	}
 
@@ -459,6 +460,7 @@ func (ps *PeersState) tryOutgoing(setID int, peerID peer.ID) error {
 	}
 
 	node.state[setID] = outgoing
+
 	if !isNoSlotNode {
 		ps.sets[setID].numOut++
 	}
@@ -474,10 +476,7 @@ func (ps *PeersState) tryAcceptIncoming(setID int, peerID peer.ID) error {
 	ps.Lock()
 	defer ps.Unlock()
 
-	var isNoSlotOccupied bool
-	if _, ok := ps.sets[setID].noSlotNodes[peerID]; ok {
-		isNoSlotOccupied = true
-	}
+	_, isNoSlotOccupied := ps.sets[setID].noSlotNodes[peerID]
 
 	// if slot is not available and the node is not a reserved node then error
 	if ps.hasFreeIncomingSlot(setID) && !isNoSlotOccupied {

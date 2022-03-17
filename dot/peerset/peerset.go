@@ -507,11 +507,17 @@ func (ps *PeerSet) setReservedPeer(setID int, peers ...peer.ID) error {
 		toRemove = append(toRemove, pid)
 	}
 
-	if err := ps.addReservedPeers(setID, toInsert...); err != nil {
-		return err
+	err := ps.addReservedPeers(setID, toInsert...)
+	if err != nil {
+		return fmt.Errorf("cannot add reserved peers: %w", err)
 	}
 
-	return ps.removeReservedPeers(setID, toRemove...)
+	err = ps.removeReservedPeers(setID, toRemove...)
+	if err != nil {
+		return fmt.Errorf("cannot remove reserved peers: %w", err)
+	}
+
+	return nil
 }
 
 func (ps *PeerSet) addPeer(setID int, peers peer.IDSlice) error {
@@ -615,20 +621,23 @@ func (ps *PeerSet) incoming(setID int, peers ...peer.ID) error {
 				setID:  uint64(setID),
 				PeerID: pid,
 			}
-
-		case state.tryAcceptIncoming(setID, pid) != nil:
-			message = Message{
-				Status: Reject,
-				setID:  uint64(setID),
-				PeerID: pid,
-			}
-
 		default:
-			logger.Debugf("incoming connection accepted from peer %s", pid)
-			message = Message{
-				Status: Accept,
-				setID:  uint64(setID),
-				PeerID: pid,
+			err := state.tryAcceptIncoming(setID, pid)
+			if err != nil {
+				logger.Errorf("cannot accept incomming peer %pid: %w", pid, err)
+
+				message = Message{
+					Status: Reject,
+					setID:  uint64(setID),
+					PeerID: pid,
+				}
+			} else {
+				logger.Debugf("incoming connection accepted from peer %s", pid)
+				message = Message{
+					Status: Accept,
+					setID:  uint64(setID),
+					PeerID: pid,
+				}
 			}
 		}
 
@@ -702,8 +711,8 @@ func (ps *PeerSet) periodicallyAllocateSlots(ctx context.Context) {
 			// TODO: log context error?
 			return
 		case <-ticker.C:
-			setsAmount := ps.peerState.getSetLength()
-			for i := 0; i < setsAmount; i++ {
+			setLen := ps.peerState.getSetLength()
+			for i := 0; i < setLen; i++ {
 				if err := ps.allocSlots(i); err != nil {
 					logger.Warnf("failed to do action on peerSet: %s", err)
 				}
