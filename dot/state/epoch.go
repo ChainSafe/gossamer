@@ -48,7 +48,10 @@ type EpochState struct {
 	epochLength uint64 // measured in slots
 	skipToEpoch uint64
 
-	nextEpochLock  sync.RWMutex
+	nextEpochLock sync.RWMutex
+
+	// nextEpochData and nextConfigData is splited into
+	// epoch (uint64) and the block hash (common.Hash) that contains the digest
 	nextEpochData  map[uint64]map[common.Hash]types.NextEpochData
 	nextConfigData map[uint64]map[common.Hash]types.NextConfigData
 }
@@ -471,8 +474,10 @@ func (s *EpochState) StoreBABENextConfigData(epoch uint64, hash common.Hash, val
 	s.nextConfigData[epoch][hash] = val
 }
 
-// FinalizeBABENextEpochData retrieves the types.NextEpochData by epoch and hash keys
-// and delete all the entries for the epoch
+// FinalizeBABENextEpochData stores the right types.NextEpochData by
+// getting the set of hashes from the received epoch and for each hash
+// check if the header is in the database then it's been finalized and
+// thus we can also set the corresponding EpochData in the database
 func (s *EpochState) FinalizeBABENextEpochData(epoch uint64) error {
 	s.nextEpochLock.RLock()
 	defer s.nextEpochLock.RUnlock()
@@ -504,9 +509,11 @@ func (s *EpochState) FinalizeBABENextEpochData(epoch uint64) error {
 	return nil
 }
 
-// FinalizeBABENextConfigDataToFinalize retrieves the types.NextConfigData by epoch and hash keys
-// and delete all the entries for the epoch
-func (s *EpochState) FinalizeBABENextConfigDataToFinalize(epoch uint64) error {
+// FinalizeBABENextConfigData stores the right types.NextConfigData by
+// getting the set of hashes from the received epoch and for each hash
+// check if the header is in the database then it's been finalized and
+// thus we can also set the corresponding NextConfigData in the database
+func (s *EpochState) FinalizeBABENextConfigData(epoch uint64) error {
 	s.nextEpochLock.RLock()
 	defer s.nextEpochLock.RUnlock()
 

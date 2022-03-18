@@ -265,7 +265,7 @@ func (h *Handler) setBABEDigestsOnFinalization(finalizedHeader *types.Header) er
 		return err
 	}
 
-	err = h.epochState.FinalizeBABENextConfigDataToFinalize(nextEpoch)
+	err = h.epochState.FinalizeBABENextConfigData(nextEpoch)
 	if err != nil {
 		h.logger.Debugf("failed to store BABENextConfigData for block number %d (%s): %w",
 			finalizedHeader.Number, finalizedHeader.Hash(), err)
