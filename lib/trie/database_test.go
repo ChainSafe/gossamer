@@ -22,7 +22,7 @@ func newTestDB(t *testing.T) chaindb.Database {
 }
 
 func TestTrie_DatabaseStoreAndLoad(t *testing.T) {
-	cases := [][]Test{
+	cases := [][]keyValues{
 		{
 			{key: []byte{0x01, 0x35}, value: []byte("pen")},
 			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
@@ -77,7 +77,7 @@ func TestTrie_DatabaseStoreAndLoad(t *testing.T) {
 }
 
 func TestTrie_WriteDirty_Put(t *testing.T) {
-	cases := [][]Test{
+	cases := [][]keyValues{
 		{
 			{key: []byte{0x01, 0x35}, value: []byte("pen")},
 			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
@@ -155,7 +155,7 @@ func TestTrie_WriteDirty_Put(t *testing.T) {
 }
 
 func TestTrie_WriteDirty_PutReplace(t *testing.T) {
-	cases := [][]Test{
+	cases := [][]keyValues{
 		{
 			{key: []byte{0x01, 0x35}, value: []byte("pen")},
 			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
@@ -218,7 +218,7 @@ func TestTrie_WriteDirty_PutReplace(t *testing.T) {
 }
 
 func TestTrie_WriteDirty_Delete(t *testing.T) {
-	cases := [][]Test{
+	cases := [][]keyValues{
 		{
 			{key: []byte{0x01, 0x35}, value: []byte("pen")},
 			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
@@ -285,7 +285,7 @@ func TestTrie_WriteDirty_Delete(t *testing.T) {
 }
 
 func TestTrie_WriteDirty_ClearPrefix(t *testing.T) {
-	cases := [][]Test{
+	cases := [][]keyValues{
 		{
 			{key: []byte{0x01, 0x35}, value: []byte("pen")},
 			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
@@ -338,7 +338,7 @@ func TestTrie_WriteDirty_ClearPrefix(t *testing.T) {
 }
 
 func TestTrie_GetFromDB(t *testing.T) {
-	cases := [][]Test{
+	cases := [][]keyValues{
 		{
 			{key: []byte{0x01, 0x35}, value: []byte("pen")},
 			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
@@ -390,7 +390,7 @@ func TestTrie_GetFromDB(t *testing.T) {
 }
 
 func TestStoreAndLoadWithChildTries(t *testing.T) {
-	testCase := []Test{
+	keyValue := []keyValues{
 		{key: []byte{0xf2, 0x3}, value: []byte("f")},
 		{key: []byte{0x09, 0xd3}, value: []byte("noot")},
 		{key: []byte{0x07}, value: []byte("ramen")},
@@ -420,7 +420,7 @@ func TestStoreAndLoadWithChildTries(t *testing.T) {
 		for _, keyToChild := range keysToTest {
 			trie := NewEmptyTrie()
 
-			for _, test := range testCase {
+			for _, test := range keyValue {
 				trie.Put(test.key, test.value)
 			}
 
