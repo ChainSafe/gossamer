@@ -238,11 +238,11 @@ func TestReAllocAfterBanned(t *testing.T) {
 
 	checkNodePeerMembershipState(t, ps.peerState, peer1, testSetID, notConnected)
 
-	node, exists := getNodePeer(t, ps.peerState, peer1)
+	n, exists := getNodePeer(t, ps.peerState, peer1)
 	require.True(t, exists)
 
 	// when the peer1 was banned we updated its lastConnected field to time.Now()
-	lastTimeConnected := node.lastConnected[testSetID]
+	lastTimeConnected := n.lastConnected[testSetID]
 
 	// Check that an incoming connection from that node gets refused.
 	processor.EXPECT().Process(Message{Status: Reject, setID: testSetID, PeerID: peer1})
@@ -250,10 +250,10 @@ func TestReAllocAfterBanned(t *testing.T) {
 
 	// when calling Incoming method the peer1 is with status notConnectedPeer
 	// so we update its lastConnected field to time.Now() again
-	node, exists = getNodePeer(t, ps.peerState, peer1)
+	n, exists = getNodePeer(t, ps.peerState, peer1)
 	require.True(t, exists)
 
-	currentLastTimeConnected := node.lastConnected[testSetID]
+	currentLastTimeConnected := n.lastConnected[testSetID]
 	require.True(t, lastTimeConnected.Before(currentLastTimeConnected))
 
 	// wait a bit for the node's reputation to go above the threshold.
@@ -313,6 +313,8 @@ func TestSetReservePeer(t *testing.T) {
 }
 
 func getNodePeer(t *testing.T, ps *PeersState, pid peer.ID) (node, bool) {
+	t.Helper()
+
 	ps.RLock()
 	defer ps.RUnlock()
 
@@ -365,6 +367,7 @@ func checkPeerIsInNoSlotsNode(t *testing.T, ps *PeersState, pid peer.ID, setID i
 	require.True(t, exists)
 }
 
+//nolint:unparam
 func checkPeerStateSetNumOut(t *testing.T, ps *PeersState, setID int, expectedNumOut uint32) {
 	ps.RLock()
 	defer ps.RUnlock()
@@ -373,6 +376,7 @@ func checkPeerStateSetNumOut(t *testing.T, ps *PeersState, setID int, expectedNu
 	require.Equal(t, expectedNumOut, gotNumOut)
 }
 
+//nolint:unparam
 func checkPeerStateSetNumIn(t *testing.T, ps *PeersState, setID int, expectedNumIn uint32) {
 	ps.RLock()
 	defer ps.RUnlock()
