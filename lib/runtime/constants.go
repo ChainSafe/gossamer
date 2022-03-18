@@ -7,7 +7,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-var runtimes = []string{HOST_API_TEST_RUNTIME, POLKADOT_RUNTIME, NODE_RUNTIME, DEV_RUNTIME}
+var runtimes = []string{HOST_API_TEST_RUNTIME, POLKADOT_RUNTIME, POLKADOT_RUNTIME_v0917, NODE_RUNTIME, DEV_RUNTIME}
 
 //nolint:revive
 const (
@@ -25,6 +25,11 @@ const (
 	POLKADOT_RUNTIME_v0910     = "polkadot_runtime-v9100"
 	POLKADOT_RUNTIME_FP_v0910  = "polkadot_runtime-v9100.compact.wasm"
 	POLKADOT_RUNTIME_URL_v0910 = "https://github.com/paritytech/polkadot/releases/download/v0.9.10/polkadot_runtime-v9100.compact.wasm?raw=true" //nolint:lll
+
+	// v0.9.17 polkadot runtime
+	POLKADOT_RUNTIME_v0917     = "polkadot_runtime-v917"
+	POLKADOT_RUNTIME_FP_v0917  = "polkadot_runtime-v917.compact.wasm"
+	POLKADOT_RUNTIME_URL_v0917 = "https://github.com/paritytech/polkadot/releases/download/v0.9.17/polkadot_runtime-v9170.compact.wasm?raw=true" //nolint:lll
 
 	// v0.8 polkadot runtime
 	POLKADOT_RUNTIME     = "polkadot_runtime"
