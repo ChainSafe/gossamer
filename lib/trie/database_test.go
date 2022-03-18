@@ -66,7 +66,6 @@ func TestTrie_DatabaseStoreAndLoad(t *testing.T) {
 		res := NewEmptyTrie()
 		err = res.Load(db, trie.MustHash())
 		require.NoError(t, err)
-		require.Equal(t, trie.MustHash(), res.MustHash())
 		require.Equal(t, trie.String(), res.String())
 
 		for _, test := range testCase {
@@ -408,6 +407,8 @@ func TestStoreAndLoadWithChildTries(t *testing.T) {
 	const generation = 0
 
 	t.Run("happy path, tries being loaded are same as trie being read", func(t *testing.T) {
+		t.Parallel()
+
 		// hash could be different for keys smaller than 32 and larger than 32 bits.
 		// thus, testing with keys of different sizes.
 		keysToTest := [][]byte{

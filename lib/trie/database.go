@@ -218,7 +218,7 @@ func (t *Trie) load(db chaindb.Database, n Node) error {
 
 		hash, err := childTrie.Hash()
 		if err != nil {
-			return err
+			return fmt.Errorf("cannot hash chilld trie at key 0x%x: %w", key, err)
 		}
 		t.childTries[hash] = childTrie
 	}

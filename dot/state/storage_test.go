@@ -4,7 +4,6 @@
 package state
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -181,11 +180,7 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 		"0",
 	))
 
-	key := []byte{1, 2}
-	value := []byte{3, 4}
-	const dirty = true
-	const generation = 0
-	testChildTrie := trie.NewTrie(node.NewLeaf(key, value, dirty, generation))
+	testChildTrie := trie.NewTrie(node.NewLeaf([]byte{1, 2}, []byte{3, 4}, true, 0))
 
 	testChildTrie.Put([]byte("keyInsidechild"), []byte("voila"))
 
@@ -222,7 +217,7 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	_, err = storage.GetStorageChild(&rootHash, []byte("keyToChild"))
 	require.NoError(t, err)
 
-	value, err = storage.GetStorageFromChild(&rootHash, []byte("keyToChild"), []byte("keyInsidechild"))
+	value, err := storage.GetStorageFromChild(&rootHash, []byte("keyToChild"), []byte("keyInsidechild"))
 	require.NoError(t, err)
 
 	require.Equal(t, []byte("voila"), value)
