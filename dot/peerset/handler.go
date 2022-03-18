@@ -115,7 +115,8 @@ func (h *Handler) PeerReputation(peerID peer.ID) (Reputation, error) {
 	return n.reputation, nil
 }
 
-// SetMessageProcessor set a processor to process peerset messages
+// SetMessageProcessor sets the peerset processor of the handler
+// to process peerset messages. 
 func (h *Handler) SetMessageProcessor(processor MessageProcessor) {
 	h.peerSet.processor = processor
 }
