@@ -9,6 +9,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 
@@ -179,4 +180,51 @@ func TestMessageTracker_MapInsideMap(t *testing.T) {
 
 	_, ok = voteMsgs[authorityID]
 	require.True(t, ok)
+}
+
+func TestMessageTracker_handleTick(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	gs, in, _, _ := setupGrandpa(t, kr.Bob().(*ed25519.Keypair))
+	gs.tracker = newTracker(gs.blockState, gs.messageHandler)
+
+	msg := &VoteMessage{
+		Round: 100,
+	}
+	gs.tracker.addVote(&networkVoteMessage{
+		msg: msg,
+	})
+
+	gs.tracker.handleTick()
+
+	select {
+	case v := <-in:
+		require.Equal(t, msg, v.msg)
+	case <-time.After(testTimeout):
+		t.Errorf("did not receive vote message")
+	}
+
+	// shouldn't be deleted as round in message >= grandpa round
+	require.Equal(t, 1, len(gs.tracker.voteMessages[common.Hash{}]))
+
+	gs.state.round = 1
+	msg = &VoteMessage{
+		Round: 0,
+	}
+	gs.tracker.addVote(&networkVoteMessage{
+		msg: msg,
+	})
+
+	gs.tracker.handleTick()
+
+	select {
+	case v := <-in:
+		require.Equal(t, msg, v.msg)
+	case <-time.After(testTimeout):
+		t.Errorf("did not receive vote message")
+	}
+
+	// should be deleted as round in message < grandpa round
+	require.Equal(t, 0, len(gs.tracker.voteMessages[common.Hash{}]))
 }
