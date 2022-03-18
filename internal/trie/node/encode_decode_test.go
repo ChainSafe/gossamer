@@ -5,7 +5,6 @@ package node
 
 import (
 	"bytes"
-	"log"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -127,7 +126,6 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 			resultBranch, err := decodeBranch(buffer, header)
 			require.NoError(t, err)
 
-			log.Println(resultBranch)
 			assert.Equal(t, testCase.branchDecoded, resultBranch)
 		})
 	}
