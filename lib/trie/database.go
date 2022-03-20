@@ -436,14 +436,14 @@ func (t *Trie) writeDirty(db chaindb.Batch, n Node) error {
 // We need to compute the hash values of each newly inserted node.
 func (t *Trie) GetInsertedNodeHashes() (hashesSet map[common.Hash]struct{}, err error) {
 	hashesSet = make(map[common.Hash]struct{})
-	err = t.getInsertedNodeHashes(t.root, hashesSet)
+	err = t._getInsertedNodeHashes(t.root, hashesSet)
 	if err != nil {
 		return nil, err
 	}
 	return hashesSet, nil
 }
 
-func (t *Trie) getInsertedNodeHashes(n Node, hashes map[common.Hash]struct{}) (err error) {
+func (t *Trie) _getInsertedNodeHashes(n Node, hashes map[common.Hash]struct{}) (err error) {
 	// TODO pass map of hashes or slice as argument to avoid copying
 	// and using more memory.
 	if n == nil || !n.IsDirty() {
@@ -472,7 +472,7 @@ func (t *Trie) getInsertedNodeHashes(n Node, hashes map[common.Hash]struct{}) (e
 			continue
 		}
 
-		err := t.getInsertedNodeHashes(child, hashes)
+		err := t._getInsertedNodeHashes(child, hashes)
 		if err != nil {
 			// Note: do not wrap error since this is called recursively.
 			return err
