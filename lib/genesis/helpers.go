@@ -43,6 +43,8 @@ const (
 	phantom                  = "Phantom"
 )
 
+var errKeyArrayTooShort = errors.New("key array less than 2")
+
 // NewGenesisFromJSONRaw parses a JSON formatted genesis file
 func NewGenesisFromJSONRaw(file string) (*Genesis, error) {
 	fp, err := filepath.Abs(file)
@@ -75,7 +77,6 @@ func NewTrieFromGenesis(g *Genesis) (*trie.Trie, error) {
 
 // NewGenesisBlockFromTrie creates a genesis block from the provided trie
 func NewGenesisBlockFromTrie(t *trie.Trie) (*types.Header, error) {
-
 	// create state root from trie hash
 	stateRoot, err := t.Hash()
 	if err != nil {
@@ -211,8 +212,8 @@ func generatePalletKeyValue(k string, v map[string]interface{}, res map[string]s
 	if err = json.Unmarshal(jsonBody, s); err != nil {
 		return false, err
 	}
-	err = generateKeyValue(s, k, res)
 
+	err = generateKeyValue(s, k, res)
 	if err != nil {
 		return false, err
 	}
@@ -222,6 +223,10 @@ func generatePalletKeyValue(k string, v map[string]interface{}, res map[string]s
 func buildRawMap(m map[string]map[string]interface{}) (map[string]string, error) {
 	res := make(map[string]string)
 	for k, v := range m {
+		if v == nil {
+			continue
+		}
+
 		kv := new(keyValue)
 		kv.key = append(kv.key, k)
 
@@ -246,7 +251,7 @@ func buildRawMap(m map[string]map[string]interface{}) (map[string]string, error)
 			continue
 		}
 
-		key, err := formatKey(kv)
+		key, err := formatKeys(kv)
 		if err != nil {
 			return nil, err
 		}
@@ -255,7 +260,7 @@ func buildRawMap(m map[string]map[string]interface{}) (map[string]string, error)
 		if err != nil {
 			return nil, err
 		}
-		res[key] = value
+		res[key[0]] = value
 	}
 
 	res[common.BytesToHex(common.UpgradedToDualRefKey)] = "0x01"
@@ -288,7 +293,15 @@ func buildRawArrayInterface(a []interface{}, kv *keyValue) error {
 			}
 		case string:
 			// TODO: check to confirm it's an address (#1865)
-			tba := crypto.PublicAddressToByteArray(common.Address(v2))
+			if len(v2) != crypto.AddressStringLength {
+				continue
+			}
+
+			tba, err := crypto.PublicAddressToByteArray(common.Address(v2))
+			if err != nil {
+				return err
+			}
+
 			kv.value = kv.value + fmt.Sprintf("%x", tba)
 			kv.iVal = append(kv.iVal, tba)
 		case float64:
@@ -333,7 +346,12 @@ func generateStorageValue(i interface{}, idx int) ([]byte, error) {
 		enc := make([][32]byte, len(t))
 		var accAddr accountAddr
 		for index, add := range t {
-			copy(accAddr[:], crypto.PublicAddressToByteArray(common.Address(add.(string))))
+			addr, err := crypto.PublicAddressToByteArray(common.Address(add.(string)))
+			if err != nil {
+				return nil, err
+			}
+
+			copy(accAddr[:], addr)
 			enc[index] = accAddr
 		}
 		encode, err = scale.Marshal(enc)
@@ -342,7 +360,11 @@ func generateStorageValue(i interface{}, idx int) ([]byte, error) {
 		}
 	case []string:
 		for _, add := range t {
-			accID := crypto.PublicAddressToByteArray(common.Address(add))
+			accID, err := crypto.PublicAddressToByteArray(common.Address(add))
+			if err != nil {
+				return nil, err
+			}
+
 			encode = append(encode, accID...)
 		}
 		encode, err = scale.Marshal(encode)
@@ -372,7 +394,12 @@ func generateStorageValue(i interface{}, idx int) ([]byte, error) {
 				var accAddr accountAddr
 				switch v1 := v.(type) {
 				case string:
-					copy(accAddr[:], crypto.PublicAddressToByteArray(common.Address(v1)))
+					addr, err := crypto.PublicAddressToByteArray(common.Address(v1))
+					if err != nil {
+						return nil, err
+					}
+
+					copy(accAddr[:], addr)
 					encode = append(encode, accAddr[:]...)
 				case float64:
 					var bytesVal []byte
@@ -381,6 +408,8 @@ func generateStorageValue(i interface{}, idx int) ([]byte, error) {
 						return nil, err
 					}
 					encode = append(encode, bytesVal...)
+				default:
+					return nil, errors.New("unsupported value")
 				}
 			}
 		}
@@ -389,6 +418,8 @@ func generateStorageValue(i interface{}, idx int) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
+	case nil:
+		return nil, nil
 	default:
 		return nil, fmt.Errorf("invalid value type")
 	}
@@ -430,12 +461,16 @@ func generateKeyValue(s interface{}, prefixKey string, res map[string]string) er
 			continue
 		}
 
-		key, err := generateStorageKey(prefixKey, storageKey)
+		value, err := generateStorageValue(s, i)
 		if err != nil {
 			return err
 		}
 
-		value, err := generateStorageValue(s, i)
+		if value == nil {
+			continue
+		}
+
+		key, err := generateStorageKey(prefixKey, storageKey)
 		if err != nil {
 			return err
 		}
@@ -445,21 +480,32 @@ func generateKeyValue(s interface{}, prefixKey string, res map[string]string) er
 	return nil
 }
 
-func formatKey(kv *keyValue) (string, error) {
-	switch {
-	case reflect.DeepEqual([]string{"Grandpa", "Authorities"}, kv.key):
-		kb := []byte(`:grandpa_authorities`)
-		return common.BytesToHex(kb), nil
-	case reflect.DeepEqual([]string{"System", "code"}, kv.key):
-		kb := []byte(`:code`)
-		return common.BytesToHex(kb), nil
-	default:
-		if len(kv.key) < 2 {
-			return "", errors.New("key array less than 2")
-		}
+func formatKeys(kv *keyValue) ([]string, error) {
+	fmt.Println(kv.key)
 
-		return generateStorageKey(kv.key[0], kv.key[1])
+	if len(kv.key) < 2 {
+		return nil, fmt.Errorf("%w: key array %v", errKeyArrayTooShort, kv.key)
 	}
+
+	var err error
+	keys := make([]string, len(kv.key[1:]))
+	for i, subkey := range kv.key[1:] {
+		switch {
+		case kv.key[0] == "grandpa" && subkey == "authorities":
+			kb := []byte(`:grandpa_authorities`)
+			keys[i] = common.BytesToHex(kb)
+		case kv.key[0] == "system" && subkey == "code":
+			kb := []byte(`:code`)
+			keys[i] = common.BytesToHex(kb)
+		default:
+			keys[i], err = generateStorageKey(kv.key[0], subkey)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return keys, nil
 }
 
 func generateSessionKeyValue(s *session, prefixKey string, res map[string]string) error {
@@ -485,7 +531,11 @@ func generateSessionKeyValue(s *session, prefixKey string, res map[string]string
 					return err
 				}
 
-				validatorAccID = crypto.PublicAddressToByteArray(common.Address(t))
+				validatorAccID, err = crypto.PublicAddressToByteArray(common.Address(t))
+				if err != nil {
+					return err
+				}
+
 				var accIDHash []byte
 				accIDHash, err = common.Twox64(validatorAccID)
 				if err != nil {
@@ -540,7 +590,11 @@ func generateSessionKeyValue(s *session, prefixKey string, res map[string]string
 }
 
 func generateAddressHash(accAddr, key string) ([]byte, error) {
-	acc := crypto.PublicAddressToByteArray(common.Address(accAddr))
+	acc, err := crypto.PublicAddressToByteArray(common.Address(accAddr))
+	if err != nil {
+		return nil, err
+	}
+
 	encodeAcc, _ := scale.Marshal(acc)
 	storageKey := append([]byte(key), encodeAcc...)
 	addersHash, err := common.Twox64(storageKey)
@@ -551,8 +605,10 @@ func generateAddressHash(accAddr, key string) ([]byte, error) {
 	return append(addersHash, storageKey...), err
 }
 func formatValue(kv *keyValue) (string, error) {
+	fmt.Println(kv.value)
+
 	switch {
-	case reflect.DeepEqual([]string{"Grandpa", "Authorities"}, kv.key):
+	case reflect.DeepEqual([]string{"grandpa", "authorities"}, kv.key):
 		if kv.valueLen != nil {
 			lenEnc, err := scale.Marshal(kv.valueLen)
 			if err != nil {
@@ -562,10 +618,32 @@ func formatValue(kv *keyValue) (string, error) {
 			return fmt.Sprintf("0x01%x%v", lenEnc, kv.value), nil
 		}
 		return "", fmt.Errorf("error formatting value for grandpa authorities")
-	case reflect.DeepEqual([]string{"System", "code"}, kv.key):
+	case reflect.DeepEqual([]string{"system", "changesTrieConfig", "code"}, kv.key):
 		return kv.value, nil
-	case reflect.DeepEqual([]string{"Sudo", "Key"}, kv.key):
-		return common.BytesToHex(crypto.PublicAddressToByteArray(common.Address(kv.value))), nil
+	case reflect.DeepEqual([]string{"sudo", "key"}, kv.key):
+		addr, err := crypto.PublicAddressToByteArray(common.Address(kv.value))
+		if err != nil {
+			return "", err
+		}
+
+		return common.BytesToHex(addr), nil
+	case kv.key[0] == "staking":
+		var value uint8
+		switch kv.value {
+		case notForcing:
+			value = 0
+		case forceNew:
+			value = 1
+		case forceNone:
+			value = 2
+		case forceAlways:
+			value = 3
+		}
+		enc, err := scale.Marshal(value)
+		if err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("0x%x", enc), nil
 	default:
 		if kv.valueLen != nil {
 			lenEnc, err := scale.Marshal(kv.valueLen)
@@ -623,7 +701,6 @@ func BuildFromMap(m map[string][]byte, gen *Genesis) error {
 	for k, v := range m {
 		key := fmt.Sprintf("0x%x", k)
 		switch key {
-
 		case "0x3a636f6465":
 			// handle :code
 			addCodeValue(v, gen)
