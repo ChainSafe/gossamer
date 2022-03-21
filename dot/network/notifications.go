@@ -293,6 +293,10 @@ func (s *Service) sendHandshake(peer peer.ID, hs Handshake, info *notificationsP
 	// so we cannot have a method on peersData to lock and unlock the mutex
 	// from the map
 	peerMutex := info.peersData.getMutex(peer)
+	if peerMutex == nil {
+		return nil, fmt.Errorf("got a nil mutex for peer id %s (TODO)", peer)
+	}
+
 	peerMutex.Lock()
 	defer peerMutex.Unlock()
 
