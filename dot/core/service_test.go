@@ -36,6 +36,13 @@ import (
 
 var errTestDummyError = errors.New("test dummy error")
 
+const (
+	authoringVersion   = 0
+	specVersion        = 25
+	implVersion        = 0
+	transactionVersion = 0
+)
+
 func generateTestCentrifugeMetadata(t *testing.T) *ctypes.Metadata {
 	t.Helper()
 	metadataHex := testdata.NewTestMetadata()
@@ -59,12 +66,6 @@ func generateExtrinsic(t *testing.T) (extrinsic, externalExtrinsic types.Extrins
 		Name: [8]byte{1, 2, 3, 4, 5, 6, 7, 8},
 		Ver:  99,
 	}
-	const (
-		authoringVersion   = 0
-		specVersion        = 25
-		implVersion        = 0
-		transactionVersion = 0
-	)
 	rv := runtime.NewVersionData(
 		[]byte("polkadot"),
 		[]byte("parity-polkadot"),
@@ -846,7 +847,7 @@ func TestServiceInsertKey(t *testing.T) {
 			},
 			args: args{
 				kp:           aliceKeypair,
-				keystoreType: (string)(keystore.BabeName),
+				keystoreType: string(keystore.BabeName),
 			},
 		},
 		{
@@ -856,7 +857,7 @@ func TestServiceInsertKey(t *testing.T) {
 			},
 			args: args{
 				kp:           aliceKeypair,
-				keystoreType: "jimbo",
+				keystoreType: "test",
 			},
 			expErr:    keystore.ErrInvalidKeystoreName,
 			expErrMsg: keystore.ErrInvalidKeystoreName.Error(),
@@ -912,7 +913,7 @@ func TestServiceHasKey(t *testing.T) {
 			},
 			args: args{
 				pubKeyStr:    aliceKeypair.Public().Hex(),
-				keystoreType: "jimbo",
+				keystoreType: "test",
 			},
 			expErr:    keystore.ErrInvalidKeystoreName,
 			expErrMsg: keystore.ErrInvalidKeystoreName.Error(),
@@ -978,11 +979,11 @@ func TestServiceGetRuntimeVersion(t *testing.T) {
 	rv := runtime.NewVersionData(
 		[]byte("polkadot"),
 		[]byte("parity-polkadot"),
-		0,
-		25,
-		0,
+		authoringVersion,
+		specVersion,
+		implVersion,
 		[]runtime.APIItem{testAPIItem},
-		5,
+		transactionVersion,
 	)
 	emptyTrie := trie.NewEmptyTrie()
 	ts, err := rtstorage.NewTrieState(emptyTrie)

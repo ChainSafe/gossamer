@@ -4,11 +4,11 @@
 package core
 
 import (
-	"github.com/ChainSafe/gossamer/dot/digest"
-	"github.com/ChainSafe/gossamer/dot/network"
 	"path/filepath"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/dot/digest"
+	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
