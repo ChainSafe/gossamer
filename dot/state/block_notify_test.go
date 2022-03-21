@@ -4,17 +4,13 @@
 package state
 
 import (
-	"math/big"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	runtimemocks "github.com/ChainSafe/gossamer/lib/runtime/mocks"
-	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -47,16 +43,7 @@ func TestFreeImportedBlockNotifierChannel(t *testing.T) {
 }
 
 func TestFinalizedChannel(t *testing.T) {
-	ctrl := gomock.NewController(t)
-
-	triesGauge := NewMockGauge(ctrl)
-	triesGauge.EXPECT().Set(0.00).Times(3)
-	tries := &Tries{
-		rootToTrie: make(map[common.Hash]*trie.Trie),
-		triesGauge: triesGauge,
-	}
-
-	bs := newTestBlockState(t, testGenesisHeader, tries)
+	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
 
 	ch := bs.GetFinalisedNotifierChannel()
 
@@ -95,7 +82,7 @@ func TestImportChannel_Multi(t *testing.T) {
 		go func(i int, ch <-chan *types.Block) {
 			select {
 			case b := <-ch:
-				require.Equal(t, big.NewInt(1), b.Header.Number)
+				require.Equal(t, uint(1), b.Header.Number)
 			case <-time.After(testMessageTimeout):
 				t.Error("did not receive imported block: ch=", i)
 			}
@@ -107,20 +94,10 @@ func TestImportChannel_Multi(t *testing.T) {
 	time.Sleep(time.Millisecond * 10)
 	AddBlocksToState(t, bs, 1, false)
 	wg.Wait()
-
 }
 
 func TestFinalizedChannel_Multi(t *testing.T) {
-	ctrl := gomock.NewController(t)
-
-	triesGauge := NewMockGauge(ctrl)
-	triesGauge.EXPECT().Set(0.00)
-	tries := &Tries{
-		rootToTrie: make(map[common.Hash]*trie.Trie),
-		triesGauge: triesGauge,
-	}
-
-	bs := newTestBlockState(t, testGenesisHeader, tries)
+	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
 
 	num := 5
 	chs := make([]chan *types.FinalisationInfo, num)

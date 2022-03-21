@@ -6,7 +6,6 @@ package network
 import (
 	"errors"
 	"fmt"
-	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -24,7 +23,7 @@ var (
 // BlockAnnounceMessage is a state block header
 type BlockAnnounceMessage struct {
 	ParentHash     common.Hash
-	Number         *big.Int
+	Number         uint
 	StateRoot      common.Hash
 	ExtrinsicsRoot common.Hash
 	Digest         scale.VaryingDataTypeSlice
@@ -94,7 +93,6 @@ func decodeBlockAnnounceHandshake(in []byte) (Handshake, error) {
 
 func decodeBlockAnnounceMessage(in []byte) (NotificationsMessage, error) {
 	msg := BlockAnnounceMessage{
-		Number: big.NewInt(0),
 		Digest: types.NewDigest(),
 	}
 	err := msg.Decode(in)
@@ -164,7 +162,7 @@ func (s *Service) getBlockAnnounceHandshake() (Handshake, error) {
 
 	return &BlockAnnounceHandshake{
 		Roles:           s.cfg.Roles,
-		BestBlockNumber: uint32(latestBlock.Number.Uint64()),
+		BestBlockNumber: uint32(latestBlock.Number),
 		BestBlockHash:   latestBlock.Hash(),
 		GenesisHash:     s.blockState.GenesisHash(),
 	}, nil
@@ -192,10 +190,10 @@ func (s *Service) validateBlockAnnounceHandshake(from peer.ID, hs Handshake) err
 
 	// don't need to lock here, since function is always called inside the func returned by
 	// `createNotificationsMessageHandler` which locks the map beforehand.
-	data, ok := np.getInboundHandshakeData(from)
-	if ok {
+	data := np.peersData.getInboundHandshakeData(from)
+	if data != nil {
 		data.handshake = hs
-		np.inboundHandshakeData.Store(from, data)
+		np.peersData.setInboundHandshakeData(from, data)
 	}
 
 	// if peer has higher best block than us, begin syncing
@@ -204,10 +202,8 @@ func (s *Service) validateBlockAnnounceHandshake(from peer.ID, hs Handshake) err
 		return err
 	}
 
-	bestBlockNum := big.NewInt(int64(bhs.BestBlockNumber))
-
 	// check if peer block number is greater than host block number
-	if latestHeader.Number.Cmp(bestBlockNum) >= 0 {
+	if latestHeader.Number >= uint(bhs.BestBlockNumber) {
 		return nil
 	}
 

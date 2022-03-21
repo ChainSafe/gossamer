@@ -5,7 +5,6 @@ package state
 
 import (
 	"fmt"
-	"math/big"
 	"path/filepath"
 
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
@@ -166,19 +165,18 @@ func (s *Service) Start() error {
 	}
 
 	num, _ := s.Block.BestBlockNumber()
-	logger.Info("created state service with head " +
-		s.Block.BestBlockHash().String() +
-		", highest number " + num.String() +
-		" and genesis hash " + s.Block.genesisHash.String())
+	logger.Infof(
+		"created state service with head %s, highest number %d and genesis hash %s",
+		s.Block.BestBlockHash(), num, s.Block.genesisHash.String())
 
 	return nil
 }
 
 // Rewind rewinds the chain to the given block number.
 // If the given number of blocks is greater than the chain height, it will rewind to genesis.
-func (s *Service) Rewind(toBlock int64) error {
+func (s *Service) Rewind(toBlock uint) error {
 	num, _ := s.Block.BestBlockNumber()
-	if toBlock > num.Int64() {
+	if toBlock > num {
 		return fmt.Errorf("cannot rewind, given height is higher than our current height")
 	}
 
@@ -186,7 +184,7 @@ func (s *Service) Rewind(toBlock int64) error {
 		"rewinding state from current height %s to desired height %d...",
 		num, toBlock)
 
-	root, err := s.Block.GetBlockByNumber(big.NewInt(toBlock))
+	root, err := s.Block.GetBlockByNumber(toBlock)
 	if err != nil {
 		return err
 	}

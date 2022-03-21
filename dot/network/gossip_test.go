@@ -4,7 +4,6 @@
 package network
 
 import (
-	"math/big"
 	"testing"
 	"time"
 
@@ -81,7 +80,7 @@ func TestGossip(t *testing.T) {
 	require.NoError(t, err)
 
 	announceMessage := &BlockAnnounceMessage{
-		Number: big.NewInt(128 * 7),
+		Number: 128 * 7,
 		Digest: types.NewDigest(),
 	}
 

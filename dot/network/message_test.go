@@ -5,7 +5,6 @@ package network
 
 import (
 	"encoding/hex"
-	"math/big"
 	"regexp"
 	"testing"
 
@@ -26,7 +25,7 @@ func TestEncodeBlockRequestMessage(t *testing.T) {
 	var one uint32 = 1
 	bm := &BlockRequestMessage{
 		RequestedData: 1,
-		StartingBlock: *variadic.NewUint64OrHashFromBytes(append([]byte{0}, genesisHash...)),
+		StartingBlock: *variadic.NewUint32OrHashFromBytes(append([]byte{0}, genesisHash...)),
 		EndBlockHash:  &endBlock,
 		Direction:     1,
 		Max:           &one,
@@ -52,7 +51,7 @@ func TestEncodeBlockRequestMessage_BlockHash(t *testing.T) {
 	var one uint32 = 1
 	bm := &BlockRequestMessage{
 		RequestedData: 1,
-		StartingBlock: *variadic.NewUint64OrHashFromBytes(append([]byte{0}, genesisHash...)),
+		StartingBlock: *variadic.NewUint32OrHashFromBytes(append([]byte{0}, genesisHash...)),
 		EndBlockHash:  &endBlock,
 		Direction:     1,
 		Max:           &one,
@@ -75,7 +74,7 @@ func TestEncodeBlockRequestMessage_BlockNumber(t *testing.T) {
 	var one uint32 = 1
 	bm := &BlockRequestMessage{
 		RequestedData: 1,
-		StartingBlock: *variadic.NewUint64OrHashFromBytes([]byte{1, 1}),
+		StartingBlock: *variadic.NewUint32OrHashFromBytes([]byte{1, 1}),
 		EndBlockHash:  &endBlock,
 		Direction:     1,
 		Max:           &one,
@@ -97,7 +96,7 @@ func TestBlockRequestString(t *testing.T) {
 
 	bm := &BlockRequestMessage{
 		RequestedData: 1,
-		StartingBlock: *variadic.NewUint64OrHashFromBytes(append([]byte{0}, genesisHash...)),
+		StartingBlock: *variadic.NewUint32OrHashFromBytes(append([]byte{0}, genesisHash...)),
 		EndBlockHash:  nil,
 		Direction:     1,
 		Max:           nil,
@@ -117,7 +116,7 @@ func TestEncodeBlockRequestMessage_NoOptionals(t *testing.T) {
 
 	bm := &BlockRequestMessage{
 		RequestedData: 1,
-		StartingBlock: *variadic.NewUint64OrHashFromBytes(append([]byte{0}, genesisHash...)),
+		StartingBlock: *variadic.NewUint32OrHashFromBytes(append([]byte{0}, genesisHash...)),
 		EndBlockHash:  nil,
 		Direction:     1,
 		Max:           nil,
@@ -174,7 +173,7 @@ func TestEncodeBlockResponseMessage_WithBody(t *testing.T) {
 		0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
 		0xa, 0xb, 0xc, 0xd, 0xe, 0xf})
 
-	header, err := types.NewHeader(testHash, testHash, testHash, big.NewInt(1), types.NewDigest())
+	header, err := types.NewHeader(testHash, testHash, testHash, 1, types.NewDigest())
 	require.NoError(t, err)
 
 	exts := [][]byte{{1, 3, 5, 7}, {9, 1, 2}, {3, 4, 5}}
@@ -226,7 +225,7 @@ func TestEncodeBlockResponseMessage_WithAll(t *testing.T) {
 		0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
 		0xa, 0xb, 0xc, 0xd, 0xe, 0xf})
 
-	header, err := types.NewHeader(testHash, testHash, testHash, big.NewInt(1), types.NewDigest())
+	header, err := types.NewHeader(testHash, testHash, testHash, 1, types.NewDigest())
 	require.NoError(t, err)
 
 	exts := [][]byte{{1, 3, 5, 7}, {9, 1, 2}, {3, 4, 5}}
@@ -290,7 +289,7 @@ func TestEncodeBlockAnnounceMessage(t *testing.T) {
 
 	bhm := &BlockAnnounceMessage{
 		ParentHash:     parentHash,
-		Number:         big.NewInt(1),
+		Number:         1,
 		StateRoot:      stateRoot,
 		ExtrinsicsRoot: extrinsicsRoot,
 		Digest:         types.NewDigest(),
@@ -307,7 +306,7 @@ func TestDecode_BlockAnnounceMessage(t *testing.T) {
 	announceMessage := common.MustHexToBytes("0x454545454545454545454545454545454545454545454545454545454545454504b3266de137d20a5d0ff3a6401eb57127525fd9b2693701f0bf5a8a853fa3ebe003170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c1113140000") //nolint:lll
 
 	bhm := BlockAnnounceMessage{
-		Number: big.NewInt(0),
+		Number: 0,
 		Digest: types.NewDigest(),
 	}
 
@@ -322,7 +321,7 @@ func TestDecode_BlockAnnounceMessage(t *testing.T) {
 
 	expected := BlockAnnounceMessage{
 		ParentHash:     parentHash,
-		Number:         big.NewInt(1),
+		Number:         1,
 		StateRoot:      stateRoot,
 		ExtrinsicsRoot: extrinsicsRoot,
 		Digest:         types.NewDigest(),

@@ -4,7 +4,6 @@
 package utils
 
 import (
-	"math/big"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
@@ -20,7 +19,7 @@ func headerResponseToHeader(t *testing.T, header *modules.ChainBlockHeaderRespon
 
 	nb, err := common.HexToBytes(header.Number)
 	require.NoError(t, err)
-	number := big.NewInt(0).SetBytes(nb)
+	number := common.BytesToUint(nb)
 
 	stateRoot, err := common.HexToHash(header.StateRoot)
 	require.NoError(t, err)

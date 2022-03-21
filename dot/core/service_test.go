@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"math/big"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -295,7 +294,7 @@ func Test_Service_handleBlock(t *testing.T) {
 
 		testHeader := types.NewEmptyHeader()
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
-		block.Header.Number = big.NewInt(21)
+		block.Header.Number = 21
 
 		ctrl := gomock.NewController(t)
 		mockStorageState := NewMockStorageState(ctrl)
@@ -313,7 +312,7 @@ func Test_Service_handleBlock(t *testing.T) {
 
 		testHeader := types.NewEmptyHeader()
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
-		block.Header.Number = big.NewInt(21)
+		block.Header.Number = 21
 
 		ctrl := gomock.NewController(t)
 		mockStorageState := NewMockStorageState(ctrl)
@@ -336,7 +335,7 @@ func Test_Service_handleBlock(t *testing.T) {
 
 		testHeader := types.NewEmptyHeader()
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
-		block.Header.Number = big.NewInt(21)
+		block.Header.Number = 21
 
 		ctrl := gomock.NewController(t)
 		mockStorageState := NewMockStorageState(ctrl)
@@ -359,7 +358,7 @@ func Test_Service_handleBlock(t *testing.T) {
 
 		testHeader := types.NewEmptyHeader()
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
-		block.Header.Number = big.NewInt(21)
+		block.Header.Number = 21
 
 		ctrl := gomock.NewController(t)
 		mockStorageState := NewMockStorageState(ctrl)
@@ -386,7 +385,7 @@ func Test_Service_handleBlock(t *testing.T) {
 
 		testHeader := types.NewEmptyHeader()
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
-		block.Header.Number = big.NewInt(21)
+		block.Header.Number = 21
 
 		ctrl := gomock.NewController(t)
 		runtimeMock := new(mocksruntime.Instance)
@@ -416,7 +415,7 @@ func Test_Service_handleBlock(t *testing.T) {
 
 		testHeader := types.NewEmptyHeader()
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
-		block.Header.Number = big.NewInt(21)
+		block.Header.Number = 21
 
 		ctrl := gomock.NewController(t)
 		runtimeMock := new(mocksruntime.Instance)
@@ -470,7 +469,7 @@ func Test_Service_HandleBlockProduced(t *testing.T) {
 
 		testHeader := types.NewEmptyHeader()
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
-		block.Header.Number = big.NewInt(21)
+		block.Header.Number = 21
 		block.Header.Digest = digest
 		msg := &network.BlockAnnounceMessage{
 			ParentHash:     block.Header.ParentHash,
@@ -511,7 +510,7 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 		t.Parallel()
 		testHeader := types.NewEmptyHeader()
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
-		block.Header.Number = big.NewInt(21)
+		block.Header.Number = 21
 
 		validity := &transaction.Validity{
 			Priority: 0x3e8,
@@ -545,7 +544,7 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 		t.Parallel()
 		testHeader := types.NewEmptyHeader()
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
-		block.Header.Number = big.NewInt(21)
+		block.Header.Number = 21
 
 		validity := &transaction.Validity{
 			Priority: 0x3e8,
@@ -648,7 +647,7 @@ func Test_Service_handleBlocksAsync(t *testing.T) {
 
 		testHeader := types.NewEmptyHeader()
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
-		block.Header.Number = big.NewInt(21)
+		block.Header.Number = 21
 
 		ctrl := gomock.NewController(t)
 		runtimeMock := new(mocksruntime.Instance)

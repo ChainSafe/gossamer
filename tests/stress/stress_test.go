@@ -4,6 +4,7 @@
 package stress
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"math/rand"
@@ -17,6 +18,7 @@ import (
 	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
 	"github.com/centrifuge/go-substrate-rpc-client/v3/types"
 	"github.com/gorilla/websocket"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	gosstypes "github.com/ChainSafe/gossamer/dot/types"
@@ -102,7 +104,7 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 	require.NoError(t, err)
 	nodes = append(nodes, node)
 
-	time.Sleep(time.Second * 60)
+	time.Sleep(time.Second * 30)
 
 	defer func() {
 		errList := utils.StopNodes(t, nodes)
@@ -110,14 +112,18 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 	}()
 
 	numCmps := 10
+	ctx := context.Background()
+
 	for i := 0; i < numCmps; i++ {
 		time.Sleep(3 * time.Second)
 		t.Log("comparing...", i)
-		hashes, err := compareBlocksByNumberWithRetry(t, nodes, strconv.Itoa(i))
-		if len(hashes) > 1 || len(hashes) == 0 {
-			require.NoError(t, err, i)
-			continue
-		}
+
+		const comparisonTimeout = 5 * time.Second
+		compareCtx, cancel := context.WithTimeout(ctx, comparisonTimeout)
+
+		hashes := compareBlocksByNumber(compareCtx, t, nodes, strconv.Itoa(i))
+
+		cancel()
 
 		// there will only be one key in the mapping
 		for _, nodesWithHash := range hashes {
@@ -162,13 +168,20 @@ func TestSync_MultipleEpoch(t *testing.T) {
 	// Wait for epoch to pass
 	time.Sleep(time.Duration(uint64(slotDuration.Nanoseconds()) * epochLength))
 
+	ctx := context.Background()
+
 	// Just checking that everythings operating as expected
 	header := utils.GetChainHead(t, nodes[0])
-	currentHeight := header.Number.Int64()
-	for i := int64(0); i < currentHeight; i++ {
+	currentHeight := header.Number
+	for i := uint(0); i < currentHeight; i++ {
 		t.Log("comparing...", i)
-		_, err = compareBlocksByNumberWithRetry(t, nodes, strconv.Itoa(int(i)))
-		require.NoError(t, err, i)
+
+		const compareTimeout = 5 * time.Second
+		compareCtx, cancel := context.WithTimeout(ctx, compareTimeout)
+
+		_ = compareBlocksByNumber(compareCtx, t, nodes, strconv.Itoa(int(i)))
+
+		cancel()
 	}
 }
 
@@ -196,17 +209,24 @@ func TestSync_SingleSyncingNode(t *testing.T) {
 		require.Len(t, errList, 0)
 	}()
 
+	ctx := context.Background()
+
 	numCmps := 100
 	for i := 0; i < numCmps; i++ {
 		t.Log("comparing...", i)
-		_, err = compareBlocksByNumberWithRetry(t, nodes, strconv.Itoa(i))
-		require.NoError(t, err, i)
+
+		const compareTimeout = 5 * time.Second
+		compareCtx, cancel := context.WithTimeout(ctx, compareTimeout)
+
+		_ = compareBlocksByNumber(compareCtx, t, nodes, strconv.Itoa(i))
+
+		cancel()
 	}
 }
 
 func TestSync_Bench(t *testing.T) {
 	utils.Logger.Patch(log.SetLevel(log.Info))
-	numBlocks := 64
+	const numBlocks uint = 64
 
 	// start block producing node
 	alice, err := utils.RunGossamer(t, 0,
@@ -221,7 +241,7 @@ func TestSync_Bench(t *testing.T) {
 			continue
 		}
 
-		if header.Number.Int64() >= int64(numBlocks) {
+		if header.Number >= numBlocks {
 			break
 		}
 
@@ -245,7 +265,7 @@ func TestSync_Bench(t *testing.T) {
 	}()
 
 	// see how long it takes to sync to block numBlocks
-	last := big.NewInt(int64(numBlocks))
+	last := numBlocks
 	start := time.Now()
 	var end time.Time
 
@@ -259,7 +279,7 @@ func TestSync_Bench(t *testing.T) {
 			continue
 		}
 
-		if head.Number.Cmp(last) >= 0 {
+		if head.Number >= last {
 			end = time.Now()
 			break
 		}
@@ -276,8 +296,16 @@ func TestSync_Bench(t *testing.T) {
 
 	// assert block is correct
 	t.Log("comparing block...", numBlocks)
-	_, err = compareBlocksByNumberWithRetry(t, nodes, strconv.Itoa(numBlocks))
-	require.NoError(t, err, numBlocks)
+
+	ctx := context.Background()
+
+	const compareTimeout = 5 * time.Second
+	compareCtx, cancel := context.WithTimeout(ctx, compareTimeout)
+
+	_ = compareBlocksByNumber(compareCtx, t, nodes, fmt.Sprint(numBlocks))
+
+	cancel()
+
 	time.Sleep(time.Second * 3)
 }
 
@@ -327,11 +355,19 @@ func TestSync_Restart(t *testing.T) {
 		}
 	}()
 
+	ctx := context.Background()
+
 	numCmps := 12
 	for i := 0; i < numCmps; i++ {
 		t.Log("comparing...", i)
-		_, err = compareBlocksByNumberWithRetry(t, nodes, strconv.Itoa(i))
-		require.NoError(t, err, i)
+
+		const compareTimeout = 5 * time.Second
+		compareCtx, cancel := context.WithTimeout(ctx, compareTimeout)
+
+		_ = compareBlocksByNumber(compareCtx, t, nodes, strconv.Itoa(i))
+
+		cancel()
+
 		time.Sleep(time.Second * 5)
 	}
 	close(done)
@@ -437,7 +473,7 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 	// search from child -> parent blocks for extrinsic
 	var (
 		resExts    []gosstypes.Extrinsic
-		extInBlock *big.Int
+		extInBlock uint
 	)
 
 	for i := 0; i < maxRetries; i++ {
@@ -475,8 +511,14 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 
 	require.True(t, included)
 
-	hashes, err := compareBlocksByNumberWithRetry(t, nodes, extInBlock.String())
-	require.NoError(t, err, hashes)
+	ctx := context.Background()
+
+	const compareTimeout = 5 * time.Second
+	compareCtx, cancel := context.WithTimeout(ctx, compareTimeout)
+
+	_ = compareBlocksByNumber(compareCtx, t, nodes, fmt.Sprint(extInBlock))
+
+	cancel()
 }
 
 func Test_SubmitAndWatchExtrinsic(t *testing.T) {
@@ -640,5 +682,72 @@ func TestSync_SubmitExtrinsicLoad(t *testing.T) {
 
 		t.Logf("Balance transferred from Alice to Bob: %v\n", bal.String())
 		// Output: Balance transferred from Alice to Bob: 100000000000000
+	}
+}
+
+func TestStress_SecondarySlotProduction(t *testing.T) {
+	testcases := []struct {
+		description  string
+		genesis      string
+		allowedSlots gosstypes.AllowedSlots
+	}{
+		{
+			description:  "with secondary vrf slots enabled",
+			genesis:      utils.GenesisTwoAuthsSecondaryVRF0_9_10,
+			allowedSlots: gosstypes.PrimaryAndSecondaryVRFSlots,
+		},
+	}
+	const numNodes = 2
+	for _, c := range testcases {
+		t.Run(c.description, func(t *testing.T) {
+			nodes, err := utils.InitializeAndStartNodes(t, numNodes, c.genesis, utils.ConfigDefault)
+			require.NoError(t, err)
+			defer utils.StopNodes(t, nodes)
+
+			primaryCount := 0
+			secondaryPlainCount := 0
+			secondaryVRFCount := 0
+
+			for i := 1; i < 10; i++ {
+				fmt.Printf("%d iteration\n", i)
+				hash, err := utils.GetBlockHash(t, nodes[0], fmt.Sprintf("%d", i))
+				require.NoError(t, err)
+
+				block := utils.GetBlock(t, nodes[0], hash)
+				header := block.Header
+
+				preDigestItem := header.Digest.Types[0]
+
+				preDigest, ok := preDigestItem.Value().(gosstypes.PreRuntimeDigest)
+				require.True(t, ok)
+
+				babePreDigest, err := gosstypes.DecodeBabePreDigest(preDigest.Data)
+				require.NoError(t, err)
+
+				switch babePreDigest.(type) {
+				case gosstypes.BabePrimaryPreDigest:
+					primaryCount++
+				case gosstypes.BabeSecondaryVRFPreDigest:
+					secondaryVRFCount++
+				case gosstypes.BabeSecondaryPlainPreDigest:
+					secondaryPlainCount++
+				}
+				require.NotNil(t, babePreDigest)
+
+				time.Sleep(10 * time.Second)
+			}
+
+			switch c.allowedSlots {
+			case gosstypes.PrimaryAndSecondaryPlainSlots:
+				assert.Greater(t, secondaryPlainCount, 0)
+				assert.Empty(t, secondaryVRFCount)
+			case gosstypes.PrimaryAndSecondaryVRFSlots:
+				assert.Greater(t, secondaryVRFCount, 0)
+				assert.Empty(t, secondaryPlainCount)
+			case gosstypes.PrimarySlots:
+				assert.Empty(t, secondaryPlainCount)
+				assert.Empty(t, secondaryVRFCount)
+			}
+		})
 	}
 }
