@@ -504,6 +504,7 @@ func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
 	s := NewTestService(t, cfg)
 	s.transactionState = ts
 
+	// provides is a list of transaction hashes that depend on this tx, see:
 	// https://github.com/paritytech/substrate/blob/5420de3face1349a97eb954ae71c5b0b940c31de/core/sr-primitives/src/transaction_validity.rs#L195
 	provides := common.MustHexToBytes("0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d00000000")
 	val := &transaction.Validity{

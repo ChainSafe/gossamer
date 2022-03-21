@@ -681,6 +681,8 @@ func TestService_handleChainReorg(t *testing.T) {
 	testCurrentHash := common.MustHexToHash("0x02")
 	testAncestorHash := common.MustHexToHash("0x03")
 	testSubChain := []common.Hash{testPrevHash, testCurrentHash, testAncestorHash}
+
+	// A valid extrinsic is needed since it will be validated in handleChainReorg
 	ext, externExt, body := generateExtrinsic(t)
 	testValidity := &transaction.Validity{Propagate: true}
 	vtx := transaction.NewValidTransaction(ext, testValidity)
