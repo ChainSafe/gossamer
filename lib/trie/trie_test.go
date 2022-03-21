@@ -159,19 +159,6 @@ func Test_Trie_updateGeneration(t *testing.T) {
 			}
 		})
 	}
-
-	t.Run("panic on same generation", func(t *testing.T) {
-		t.Parallel()
-		node := &node.Leaf{Generation: 1}
-		const trieGenration = 1
-		assert.PanicsWithValue(t,
-			"current node has the same generation 1 as the trie generation, "+
-				"make sure the caller properly checks for the node generation to "+
-				"be smaller than the trie generation.",
-			func() {
-				updateGeneration(node, trieGenration, nil)
-			})
-	})
 }
 
 func getPointer(x interface{}) (pointer uintptr, ok bool) {
@@ -1204,9 +1191,8 @@ func Test_Trie_insert(t *testing.T) {
 			key:   []byte{1},
 			value: []byte("same"),
 			newNode: &node.Leaf{
-				Key:        []byte{1},
-				Value:      []byte("same"),
-				Generation: 1,
+				Key:   []byte{1},
+				Value: []byte("same"),
 			},
 		},
 		"write leaf as child to parent leaf": {
@@ -2517,6 +2503,26 @@ func Test_Trie_clearPrefixLimit(t *testing.T) {
 			},
 			valuesDeleted: 2,
 			allDeleted:    true,
+		},
+		"delete child of branch with limit reached": {
+			trie: Trie{
+				generation: 1,
+			},
+			parent: &node.Branch{
+				Key:   []byte{1},
+				Value: []byte{1},
+				Children: [16]node.Node{
+					&node.Leaf{Key: []byte{3}},
+				},
+			},
+			prefix: []byte{1, 0},
+			newParent: &node.Branch{
+				Key:   []byte{1},
+				Value: []byte{1},
+				Children: [16]node.Node{
+					&node.Leaf{Key: []byte{3}},
+				},
+			},
 		},
 	}
 

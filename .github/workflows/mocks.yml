@@ -19,7 +19,7 @@ jobs:
         with:
           go-version: "^1.17"
 
-      - run: go install github.com/vektra/mockery/v2@v2.9.4
+      - run: go install github.com/vektra/mockery/v2@v2.10.0
 
       - run: go install github.com/golang/mock/mockgen@v1.6.0
 
