@@ -21,3 +21,11 @@ type AccountInfo struct {
 		FreeFrozen *scale.Uint128
 	}
 }
+
+// AccountData represents account data of an account. Currently is used in core tests
+type AccountData struct {
+	Free       *scale.Uint128
+	Reserved   *scale.Uint128
+	MiscFrozen *scale.Uint128
+	FreeFrozen *scale.Uint128
+}

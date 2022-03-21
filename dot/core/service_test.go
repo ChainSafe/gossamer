@@ -38,9 +38,11 @@ var errTestDummyError = errors.New("test dummy error")
 
 func generateTestCentrifugeMetadata(t *testing.T) *ctypes.Metadata {
 	t.Helper()
-	rawMeta := common.MustHexToBytes(testdata.NewTestMetadata())
+	metadataHex := testdata.NewTestMetadata()
+	rawMeta, err := common.HexToBytes(metadataHex)
+	require.NoError(t, err)
 	var decoded []byte
-	err := scale.Unmarshal(rawMeta, &decoded)
+	err = scale.Unmarshal(rawMeta, &decoded)
 	require.NoError(t, err)
 
 	meta := &ctypes.Metadata{}
@@ -49,7 +51,7 @@ func generateTestCentrifugeMetadata(t *testing.T) *ctypes.Metadata {
 	return meta
 }
 
-func generateExtrinsic(t *testing.T) (ext types.Extrinsic, externExt types.Extrinsic, body *types.Body) {
+func generateExtrinsic(t *testing.T) (extrinsic, externalExtrinsic types.Extrinsic, body *types.Body) {
 	t.Helper()
 	meta := generateTestCentrifugeMetadata(t)
 
@@ -57,14 +59,20 @@ func generateExtrinsic(t *testing.T) (ext types.Extrinsic, externExt types.Extri
 		Name: [8]byte{1, 2, 3, 4, 5, 6, 7, 8},
 		Ver:  99,
 	}
+	const (
+		authoringVersion   = 0
+		specVersion        = 25
+		implVersion        = 0
+		transactionVersion = 0
+	)
 	rv := runtime.NewVersionData(
 		[]byte("polkadot"),
 		[]byte("parity-polkadot"),
-		0,
-		25,
-		0,
+		authoringVersion,
+		specVersion,
+		implVersion,
 		[]runtime.APIItem{testAPIItem},
-		5,
+		transactionVersion,
 	)
 
 	keyring, err := keystore.NewSr25519Keyring()
@@ -79,7 +87,7 @@ func generateExtrinsic(t *testing.T) (ext types.Extrinsic, externExt types.Extri
 	require.NoError(t, err)
 
 	// Create the extrinsic
-	extrinsic := ctypes.NewExtrinsic(call)
+	centrifugeExtrinsic := ctypes.NewExtrinsic(call)
 	testGenHash := ctypes.NewHash(common.Hash{}.ToBytes())
 	require.NoError(t, err)
 	o := ctypes.SignatureOptions{
@@ -93,13 +101,13 @@ func generateExtrinsic(t *testing.T) (ext types.Extrinsic, externExt types.Extri
 	}
 
 	// Sign the transaction using Alice's default account
-	err = extrinsic.Sign(signature.TestKeyringPairAlice, o)
+	err = centrifugeExtrinsic.Sign(signature.TestKeyringPairAlice, o)
 	require.NoError(t, err)
 
 	// Encode the signed extrinsic
 	extEnc := bytes.Buffer{}
 	encoder := cscale.NewEncoder(&extEnc)
-	err = extrinsic.Encode(*encoder)
+	err = centrifugeExtrinsic.Encode(*encoder)
 	require.NoError(t, err)
 
 	encExt := []types.Extrinsic{extEnc.Bytes()}

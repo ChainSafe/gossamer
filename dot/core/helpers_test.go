@@ -4,6 +4,8 @@
 package core
 
 import (
+	"github.com/ChainSafe/gossamer/dot/digest"
+	"github.com/ChainSafe/gossamer/dot/network"
 	"path/filepath"
 	"testing"
 
@@ -31,7 +33,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	}
 
 	if cfg.DigestHandler == nil {
-		cfg.DigestHandler = NewMockDigestHandler(ctrl)
+		cfg.DigestHandler = &digest.Handler{} // only for nil check in NewService
 	}
 
 	if cfg.Keystore == nil {
@@ -120,7 +122,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), cfg.Runtime)
 
 	if cfg.Network == nil {
-		cfg.Network = NewMockNetwork(ctrl)
+		cfg.Network = new(network.Service) // only for nil check in NewService
 	}
 
 	if cfg.CodeSubstitutes == nil {

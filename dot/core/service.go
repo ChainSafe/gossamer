@@ -385,8 +385,8 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 				continue
 			}
 
-			externalExt := make(types.Extrinsic, 1, 1+len(ext))
-			externalExt[0] = byte(types.TxnExternal)
+			externalExt := make(types.Extrinsic, 0, 1+len(ext))
+			externalExt = append(externalExt, byte(types.TxnExternal))
 			externalExt = append(externalExt, ext...)
 			txv, err := rt.ValidateTransaction(externalExt)
 			if err != nil {

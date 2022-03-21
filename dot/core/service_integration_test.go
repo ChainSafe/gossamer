@@ -25,7 +25,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	runtimemocks "github.com/ChainSafe/gossamer/lib/runtime/mocks"
-	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/transaction"
@@ -39,16 +38,11 @@ import (
 
 //go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
 
-//nolint
-type testAccountData struct {
-	Free       *scale.Uint128
-	Reserved   *scale.Uint128
-	MiscFrozen *scale.Uint128
-	FreeFrozen *scale.Uint128
-}
+const testSlotNumber = 21
 
 func balanceKey(t *testing.T, pub []byte) (bKey []byte) {
 	t.Helper()
+
 	h0, err := common.Twox128Hash([]byte("System"))
 	require.NoError(t, err)
 	bKey = append(bKey, h0...)
@@ -100,7 +94,7 @@ func generateTestValidRemarkTxns(t *testing.T, pubKey []byte, accInfo types.Acco
 	genTrie, err := genesis.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
-	genState, err := storage.NewTrieState(genTrie)
+	genState, err := rtstorage.NewTrieState(genTrie)
 	require.NoError(t, err)
 
 	nodeStorage := runtime.NodeStorage{
@@ -473,9 +467,9 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 }
 
 func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
-	accInfo := types.AccountInfo{
+	accountInfo := types.AccountInfo{
 		Nonce: 0,
-		Data: testAccountData{
+		Data: types.AccountData{
 			Free:       scale.MustNewUint128(big.NewInt(1152921504606846976)),
 			Reserved:   scale.MustNewUint128(big.NewInt(0)),
 			MiscFrozen: scale.MustNewUint128(big.NewInt(0)),
@@ -485,53 +479,53 @@ func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
 	keyring, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 	alicePub := common.MustHexToBytes(keyring.Alice().Public().Hex())
-	encExt, rt := generateTestValidRemarkTxns(t, alicePub, accInfo)
+	encExt, runtimeInstance := generateTestValidRemarkTxns(t, alicePub, accountInfo)
 	cfg := &Config{
-		Runtime: rt,
+		Runtime: runtimeInstance,
 	}
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
-	ts := state.NewTransactionState(telemetryMock)
+	transactionState := state.NewTransactionState(telemetryMock)
 	tx := &transaction.ValidTransaction{
 		Extrinsic: types.Extrinsic(encExt),
 		Validity:  &transaction.Validity{Priority: 1},
 	}
-	_ = ts.AddToPool(tx)
+	_ = transactionState.AddToPool(tx)
 
-	s := NewTestService(t, cfg)
-	s.transactionState = ts
+	service := NewTestService(t, cfg)
+	service.transactionState = transactionState
 
 	// provides is a list of transaction hashes that depend on this tx, see:
 	// https://github.com/paritytech/substrate/blob/5420de3face1349a97eb954ae71c5b0b940c31de/core/sr-primitives/src/transaction_validity.rs#L195
 	provides := common.MustHexToBytes("0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d00000000")
-	val := &transaction.Validity{
+	txnValidity := &transaction.Validity{
 		Priority:  39325240425794630,
 		Provides:  [][]byte{provides},
 		Longevity: 18446744073709551614,
 		Propagate: true,
 	}
 
-	expTxn := transaction.NewValidTransaction(tx.Extrinsic, val)
+	expectedTx := transaction.NewValidTransaction(tx.Extrinsic, txnValidity)
 
-	s.maintainTransactionPool(&types.Block{
+	service.maintainTransactionPool(&types.Block{
 		Body: *types.NewBody([]types.Extrinsic{}),
 	})
 
-	res := ts.Pop()
-	require.Equal(t, expTxn, res)
+	resultTx := transactionState.Pop()
+	require.Equal(t, expectedTx, resultTx)
 
-	ts.RemoveExtrinsic(tx.Extrinsic)
-	head := ts.Pop()
+	transactionState.RemoveExtrinsic(tx.Extrinsic)
+	head := transactionState.Pop()
 	require.Nil(t, head)
 }
 
 func TestMaintainTransactionPool_BlockWithExtrinsics(t *testing.T) {
-	accInfo := types.AccountInfo{
+	accountInfo := types.AccountInfo{
 		Nonce: 0,
-		Data: testAccountData{
+		Data: types.AccountData{
 			Free:       scale.MustNewUint128(big.NewInt(1152921504606846976)),
 			Reserved:   scale.MustNewUint128(big.NewInt(0)),
 			MiscFrozen: scale.MustNewUint128(big.NewInt(0)),
@@ -541,7 +535,7 @@ func TestMaintainTransactionPool_BlockWithExtrinsics(t *testing.T) {
 	keyring, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 	alicePub := common.MustHexToBytes(keyring.Alice().Public().Hex())
-	encExt, _ := generateTestValidRemarkTxns(t, alicePub, accInfo)
+	extrinsicBytes, _ := generateTestValidRemarkTxns(t, alicePub, accountInfo)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
@@ -551,7 +545,7 @@ func TestMaintainTransactionPool_BlockWithExtrinsics(t *testing.T) {
 
 	// Maybe replace validity
 	tx := &transaction.ValidTransaction{
-		Extrinsic: types.Extrinsic(encExt),
+		Extrinsic: types.Extrinsic(extrinsicBytes),
 		Validity:  &transaction.Validity{Priority: 1},
 	}
 
@@ -562,7 +556,7 @@ func TestMaintainTransactionPool_BlockWithExtrinsics(t *testing.T) {
 	}
 
 	s.maintainTransactionPool(&types.Block{
-		Body: types.Body([]types.Extrinsic{encExt}),
+		Body: types.Body([]types.Extrinsic{extrinsicBytes}),
 	})
 
 	res := []*transaction.ValidTransaction{}
@@ -794,7 +788,7 @@ func TestTryQueryStore_WhenThereIsDataToRetrieve(t *testing.T) {
 	storageStateTrie.Set(testKey, testValue)
 	require.NoError(t, err)
 
-	digest := newTestDigest(t, 420)
+	digest := newTestDigest(t, testSlotNumber)
 	header, err := types.NewHeader(s.blockState.GenesisHash(), storageStateTrie.MustRoot(),
 		common.Hash{}, big.NewInt(1), digest)
 	require.NoError(t, err)
@@ -825,7 +819,7 @@ func TestTryQueryStore_WhenDoesNotHaveDataToRetrieve(t *testing.T) {
 	storageStateTrie, err := rtstorage.NewTrieState(trie.NewTrie(nil))
 	require.NoError(t, err)
 
-	digest := newTestDigest(t, 420)
+	digest := newTestDigest(t, testSlotNumber)
 	header, err := types.NewHeader(s.blockState.GenesisHash(), storageStateTrie.MustRoot(),
 		common.Hash{}, big.NewInt(1), digest)
 	require.NoError(t, err)
@@ -855,7 +849,7 @@ func TestTryQueryStore_WhenDoesNotHaveDataToRetrieve(t *testing.T) {
 func TestTryQueryState_WhenDoesNotHaveStateRoot(t *testing.T) {
 	s := NewTestService(t, nil)
 
-	digest := newTestDigest(t, 420)
+	digest := newTestDigest(t, testSlotNumber)
 	header, err := types.NewHeader(
 		s.blockState.GenesisHash(),
 		common.Hash{}, common.Hash{},
