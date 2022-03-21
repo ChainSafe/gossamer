@@ -17,6 +17,11 @@ import (
 )
 
 var (
+	errEpochNotFound         = errors.New("epoch not found at in memory map")
+	errNextEpochHashNotFound = errors.New("finalized hash not found at database")
+)
+
+var (
 	epochPrefix         = "epoch"
 	epochLengthKey      = []byte("epochlength")
 	currentEpochKey     = []byte("current")
@@ -479,31 +484,34 @@ func (s *EpochState) StoreBABENextConfigData(epoch uint64, hash common.Hash, val
 // check if the header is in the database then it's been finalized and
 // thus we can also set the corresponding EpochData in the database
 func (s *EpochState) FinalizeBABENextEpochData(epoch uint64) error {
-	s.nextEpochLock.RLock()
-	defer s.nextEpochLock.RUnlock()
+	s.nextEpochLock.Lock()
+	defer s.nextEpochLock.Unlock()
 
-	epochData, has := s.nextEpochData[epoch]
-	if !has {
-		return nil
+	finalizedNextEpochData, err := s.lookForPersistedHashForEpochData(epoch)
+	if err != nil {
+		return fmt.Errorf("cannot find next epoch data: %w", err)
 	}
 
-	for hash, nextEpochData := range epochData {
-		persisted, err := s.blockState.HasHeaderInDatabase(hash)
-		if err != nil {
-			return fmt.Errorf("failed to check header exists at database: %w", err)
-		}
+	ed, err := finalizedNextEpochData.ToEpochData()
+	if err != nil {
+		return fmt.Errorf("cannot transform epoch data: %w", err)
+	}
 
-		if !persisted {
-			continue
-		}
+	err = s.SetEpochData(epoch, ed)
+	if err != nil {
+		return fmt.Errorf("cannot set epoch data: %w", err)
+	}
 
-		epochData, err := nextEpochData.ToEpochData()
-		if err != nil {
-			return fmt.Errorf("cannot transform epoch data: %w", err)
+	// remove previous epochs from the memory
+	epochsToDelete := make([]uint64, 0)
+	for e := range s.nextEpochData {
+		if e <= epoch {
+			epochsToDelete = append(epochsToDelete, e)
 		}
+	}
 
-		delete(s.nextEpochData, epoch)
-		return s.SetEpochData(epoch, epochData)
+	for _, e := range epochsToDelete {
+		delete(s.nextEpochData, e)
 	}
 
 	return nil
@@ -514,28 +522,75 @@ func (s *EpochState) FinalizeBABENextEpochData(epoch uint64) error {
 // check if the header is in the database then it's been finalized and
 // thus we can also set the corresponding NextConfigData in the database
 func (s *EpochState) FinalizeBABENextConfigData(epoch uint64) error {
-	s.nextEpochLock.RLock()
-	defer s.nextEpochLock.RUnlock()
+	s.nextEpochLock.Lock()
+	defer s.nextEpochLock.Unlock()
 
-	epochData, has := s.nextConfigData[epoch]
-	if !has {
-		return nil
+	finalizedNextConfigData, err := s.lookForPersistedHashForConfigData(epoch)
+	if err != nil {
+		return fmt.Errorf("cannot find next config data: %w", err)
 	}
 
-	for hash, nextConfigData := range epochData {
+	cd := finalizedNextConfigData.ToConfigData()
+	err = s.SetConfigData(epoch, cd)
+	if err != nil {
+		return fmt.Errorf("cannot set config data: %w", err)
+	}
+
+	// remove previous epochs from the memory
+	epochsToDelete := make([]uint64, 0)
+	for e := range s.nextConfigData {
+		if e <= epoch {
+			epochsToDelete = append(epochsToDelete, e)
+		}
+	}
+
+	for _, e := range epochsToDelete {
+		delete(s.nextConfigData, e)
+	}
+
+	return nil
+}
+
+func (s *EpochState) lookForPersistedHashForEpochData(epoch uint64) (types.NextEpochData, error) {
+	epochData, has := s.nextEpochData[epoch]
+	if !has {
+		return types.NextEpochData{}, errEpochNotFound
+	}
+
+	for hash, inMemoryEpochData := range epochData {
 		persisted, err := s.blockState.HasHeaderInDatabase(hash)
 		if err != nil {
-			return fmt.Errorf("failed to check header exists at database: %w", err)
+			return types.NextEpochData{}, fmt.Errorf("failed to check header exists at database: %w", err)
 		}
 
 		if !persisted {
 			continue
 		}
 
-		configData := nextConfigData.ToConfigData()
-		delete(s.nextConfigData, epoch)
-		return s.SetConfigData(epoch, configData)
+		return inMemoryEpochData, nil
 	}
 
-	return nil
+	return types.NextEpochData{}, errNextEpochHashNotFound
+}
+
+func (s *EpochState) lookForPersistedHashForConfigData(epoch uint64) (types.NextConfigData, error) {
+	configData, has := s.nextConfigData[epoch]
+	if !has {
+		return types.NextConfigData{}, errEpochNotFound
+	}
+
+	for hash, inMemoryNextConfigData := range configData {
+		persisted, err := s.blockState.HasHeaderInDatabase(hash)
+		if err != nil {
+			return types.NextConfigData{}, fmt.Errorf("failed to check header exists at database: %w", err)
+		}
+
+		if !persisted {
+			continue
+		}
+
+		return inMemoryNextConfigData, nil
+	}
+
+	return types.NextConfigData{}, errNextEpochHashNotFound
 }

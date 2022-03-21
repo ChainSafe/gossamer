@@ -9,12 +9,44 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/stretchr/testify/require"
 )
+
+var keyring, _ = keystore.NewSr25519Keyring()
+var authoritiesRaw = []types.AuthorityRaw{
+	{
+		Key: keyring.KeyAlice.Public().(*sr25519.PublicKey).AsBytes(),
+	},
+	{
+		Key: keyring.KeyBob.Public().(*sr25519.PublicKey).AsBytes(),
+	},
+	{
+		Key: keyring.KeyCharlie.Public().(*sr25519.PublicKey).AsBytes(),
+	},
+	{
+		Key: keyring.KeyDave.Public().(*sr25519.PublicKey).AsBytes(),
+	},
+	{
+		Key: keyring.KeyEve.Public().(*sr25519.PublicKey).AsBytes(),
+	},
+	{
+		Key: keyring.KeyFerdie.Public().(*sr25519.PublicKey).AsBytes(),
+	},
+	{
+		Key: keyring.KeyGeorge.Public().(*sr25519.PublicKey).AsBytes(),
+	},
+	{
+		Key: keyring.KeyHeather.Public().(*sr25519.PublicKey).AsBytes(),
+	},
+	{
+		Key: keyring.KeyIan.Public().(*sr25519.PublicKey).AsBytes(),
+	},
+}
 
 var genesisBABEConfig = &types.BabeConfiguration{
 	SlotDuration:       1000,
@@ -223,4 +255,367 @@ func TestEpochState_GetEpochFromTime(t *testing.T) {
 	epoch, err = s.GetEpochFromTime(start.Add(epochDuration*100 - 1))
 	require.NoError(t, err)
 	require.Equal(t, uint64(99), epoch)
+}
+
+type inMemoryNextEpochData struct {
+	epoch          uint64
+	hashes         []common.Hash
+	nextEpochDatas []types.NextEpochData
+}
+
+func TestStoreAndFinalizeBabeNextEpochData(t *testing.T) {
+	tests := map[string]struct {
+		finalizeHash         common.Hash
+		inMemoryEpoch        []inMemoryNextEpochData
+		finalizeEpoch        uint64
+		expectErr            error
+		shouldRemainInMemory int
+	}{
+		"store_and_finalize_succesfully": {
+			shouldRemainInMemory: 1,
+			finalizeEpoch:        2,
+			finalizeHash:         common.MustHexToHash("0x68a27df5a52ff2251df2cc8368f7dcefb305a13bb3d89b65c8fb070f23877f2c"),
+			inMemoryEpoch: []inMemoryNextEpochData{
+				{
+					epoch: 1,
+					hashes: []common.Hash{
+						common.MustHexToHash("0x9da3ce2785da743bfbc13449db7dcb7a69c07ca914276d839abe7bedc6ac8fed"),
+						common.MustHexToHash("0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3"),
+						common.MustHexToHash("0xc0096358534ec8d21d01d34b836eed476a1c343f8724fa2153dc0725ad797a90"),
+					},
+					nextEpochDatas: []types.NextEpochData{
+						{
+							Authorities: authoritiesRaw[:3],
+							Randomness:  [32]byte{1},
+						},
+						{
+							Authorities: authoritiesRaw[3:6],
+							Randomness:  [32]byte{2},
+						},
+						{
+							Authorities: authoritiesRaw[6:],
+							Randomness:  [32]byte{3},
+						},
+					},
+				},
+				{
+					epoch: 2,
+					hashes: []common.Hash{
+						common.MustHexToHash("0x5b940c7fc0a1c5a58e4d80c5091dd003303b8f18e90a989f010c1be6f392bed1"),
+						common.MustHexToHash("0xd380bee22de487a707cbda65dd9d4e2188f736908c42cf390c8919d4f7fc547c"),
+						common.MustHexToHash("0x68a27df5a52ff2251df2cc8368f7dcefb305a13bb3d89b65c8fb070f23877f2c"),
+					},
+					nextEpochDatas: []types.NextEpochData{
+						{
+							Authorities: authoritiesRaw[6:],
+							Randomness:  [32]byte{1},
+						},
+						{
+							Authorities: authoritiesRaw[:3],
+							Randomness:  [32]byte{2},
+						},
+						{
+							Authorities: authoritiesRaw[3:6],
+							Randomness:  [32]byte{3},
+						},
+					},
+				},
+				{
+					epoch: 3,
+					hashes: []common.Hash{
+						common.MustHexToHash("0xab5c9230a7dde8bb90a6728ba4a0165423294dac14336b1443f865b796ff682c"),
+					},
+					nextEpochDatas: []types.NextEpochData{
+						{
+							Authorities: authoritiesRaw[6:],
+							Randomness:  [32]byte{1},
+						},
+					},
+				},
+			},
+		},
+		"cannot_finalize_hash_not_stored": {
+			shouldRemainInMemory: 1,
+			finalizeEpoch:        1,
+			finalizeHash:         common.Hash{}, // finalize when the hash does not exists
+			expectErr:            errNextEpochHashNotFound,
+			inMemoryEpoch: []inMemoryNextEpochData{
+				{
+					epoch: 1,
+					hashes: []common.Hash{
+						common.MustHexToHash("0x9da3ce2785da743bfbc13449db7dcb7a69c07ca914276d839abe7bedc6ac8fed"),
+						common.MustHexToHash("0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3"),
+						common.MustHexToHash("0xc0096358534ec8d21d01d34b836eed476a1c343f8724fa2153dc0725ad797a90"),
+					},
+					nextEpochDatas: []types.NextEpochData{
+						{
+							Authorities: authoritiesRaw[:3],
+							Randomness:  [32]byte{1},
+						},
+						{
+							Authorities: authoritiesRaw[3:6],
+							Randomness:  [32]byte{2},
+						},
+						{
+							Authorities: authoritiesRaw[6:],
+							Randomness:  [32]byte{3},
+						},
+					},
+				},
+			},
+		},
+		"cannot_finalize_in_memory_epoch_not_found": {
+			shouldRemainInMemory: 1,
+			finalizeEpoch:        3, // try to finalize a epoch that does not exists
+			finalizeHash:         common.Hash{},
+			expectErr:            errEpochNotFound,
+			inMemoryEpoch: []inMemoryNextEpochData{
+				{
+					epoch: 1,
+					hashes: []common.Hash{
+						common.MustHexToHash("0x9da3ce2785da743bfbc13449db7dcb7a69c07ca914276d839abe7bedc6ac8fed"),
+						common.MustHexToHash("0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3"),
+						common.MustHexToHash("0xc0096358534ec8d21d01d34b836eed476a1c343f8724fa2153dc0725ad797a90"),
+					},
+					nextEpochDatas: []types.NextEpochData{
+						{
+							Authorities: authoritiesRaw[:3],
+							Randomness:  [32]byte{1},
+						},
+						{
+							Authorities: authoritiesRaw[3:6],
+							Randomness:  [32]byte{2},
+						},
+						{
+							Authorities: authoritiesRaw[6:],
+							Randomness:  [32]byte{3},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for testName, tt := range tests {
+		t.Run(testName, func(t *testing.T) {
+			epochState := newEpochStateFromGenesis(t)
+
+			for _, e := range tt.inMemoryEpoch {
+				for i, hash := range e.hashes {
+					epochState.StoreBABENextEpochData(e.epoch, hash, e.nextEpochDatas[i])
+				}
+			}
+
+			require.Len(t, epochState.nextEpochData, len(tt.inMemoryEpoch))
+
+			expectedNextEpochData := epochState.nextEpochData[tt.finalizeEpoch][tt.finalizeHash]
+
+			err := epochState.blockState.db.Put(headerKey(tt.finalizeHash), []byte{})
+			require.NoError(t, err)
+
+			err = epochState.FinalizeBABENextEpochData(tt.finalizeEpoch)
+			if tt.expectErr != nil {
+				require.ErrorIs(t, err, tt.expectErr)
+			} else {
+				require.NoError(t, err)
+
+				expected, err := expectedNextEpochData.ToEpochData()
+				require.NoError(t, err)
+
+				gotNextEpochData, err := epochState.GetEpochData(tt.finalizeEpoch)
+				require.NoError(t, err)
+
+				require.Equal(t, expected, gotNextEpochData)
+			}
+
+			// should delete previous epochs since the most up to date epoch is stored
+			require.Len(t, epochState.nextEpochData, tt.shouldRemainInMemory)
+		})
+	}
+}
+
+type inMemotyNextConfighData struct {
+	epoch           uint64
+	hashes          []common.Hash
+	nextConfigDatas []types.NextConfigData
+}
+
+func TestStoreAndFinalizeBabeNextConfigData(t *testing.T) {
+	tests := map[string]struct {
+		finalizeHash         common.Hash
+		inMemoryEpoch        []inMemotyNextConfighData
+		finalizeEpoch        uint64
+		expectErr            error
+		shouldRemainInMemory int
+	}{
+		"store_and_finalize_succesfully": {
+			shouldRemainInMemory: 1,
+			finalizeEpoch:        2,
+			finalizeHash:         common.MustHexToHash("0x68a27df5a52ff2251df2cc8368f7dcefb305a13bb3d89b65c8fb070f23877f2c"),
+			inMemoryEpoch: []inMemotyNextConfighData{
+				{
+					epoch: 1,
+					hashes: []common.Hash{
+						common.MustHexToHash("0x9da3ce2785da743bfbc13449db7dcb7a69c07ca914276d839abe7bedc6ac8fed"),
+						common.MustHexToHash("0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3"),
+						common.MustHexToHash("0xc0096358534ec8d21d01d34b836eed476a1c343f8724fa2153dc0725ad797a90"),
+					},
+					nextConfigDatas: []types.NextConfigData{
+						{
+							C1:             1,
+							C2:             2,
+							SecondarySlots: 0,
+						},
+						{
+							C1:             2,
+							C2:             3,
+							SecondarySlots: 1,
+						},
+						{
+							C1:             3,
+							C2:             4,
+							SecondarySlots: 0,
+						},
+					},
+				},
+				{
+					epoch: 2,
+					hashes: []common.Hash{
+						common.MustHexToHash("0x5b940c7fc0a1c5a58e4d80c5091dd003303b8f18e90a989f010c1be6f392bed1"),
+						common.MustHexToHash("0xd380bee22de487a707cbda65dd9d4e2188f736908c42cf390c8919d4f7fc547c"),
+						common.MustHexToHash("0x68a27df5a52ff2251df2cc8368f7dcefb305a13bb3d89b65c8fb070f23877f2c"),
+					},
+					nextConfigDatas: []types.NextConfigData{
+						{
+							C1:             1,
+							C2:             2,
+							SecondarySlots: 0,
+						},
+						{
+							C1:             2,
+							C2:             3,
+							SecondarySlots: 1,
+						},
+						{
+							C1:             3,
+							C2:             4,
+							SecondarySlots: 0,
+						},
+					},
+				},
+				{
+					epoch: 3,
+					hashes: []common.Hash{
+						common.MustHexToHash("0xab5c9230a7dde8bb90a6728ba4a0165423294dac14336b1443f865b796ff682c"),
+					},
+					nextConfigDatas: []types.NextConfigData{
+						{
+							C1:             1,
+							C2:             2,
+							SecondarySlots: 0,
+						},
+					},
+				},
+			},
+		},
+		"cannot_finalize_hash_doesnt_exists": {
+			shouldRemainInMemory: 1,
+			finalizeEpoch:        1,
+			finalizeHash:         common.Hash{}, // finalize when the hash does not exists
+			expectErr:            errNextEpochHashNotFound,
+			inMemoryEpoch: []inMemotyNextConfighData{
+				{
+					epoch: 1,
+					hashes: []common.Hash{
+						common.MustHexToHash("0x9da3ce2785da743bfbc13449db7dcb7a69c07ca914276d839abe7bedc6ac8fed"),
+						common.MustHexToHash("0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3"),
+						common.MustHexToHash("0xc0096358534ec8d21d01d34b836eed476a1c343f8724fa2153dc0725ad797a90"),
+					},
+					nextConfigDatas: []types.NextConfigData{
+						{
+							C1:             1,
+							C2:             2,
+							SecondarySlots: 0,
+						},
+						{
+							C1:             2,
+							C2:             3,
+							SecondarySlots: 1,
+						},
+						{
+							C1:             3,
+							C2:             4,
+							SecondarySlots: 0,
+						},
+					},
+				},
+			},
+		},
+		"cannot_finalize_in_memory_epoch_not_found": {
+			shouldRemainInMemory: 1,
+			finalizeEpoch:        3, // try to finalize a epoch that does not exists
+			finalizeHash:         common.Hash{},
+			expectErr:            errEpochNotFound,
+			inMemoryEpoch: []inMemotyNextConfighData{
+				{
+					epoch: 1,
+					hashes: []common.Hash{
+						common.MustHexToHash("0x9da3ce2785da743bfbc13449db7dcb7a69c07ca914276d839abe7bedc6ac8fed"),
+						common.MustHexToHash("0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3"),
+						common.MustHexToHash("0xc0096358534ec8d21d01d34b836eed476a1c343f8724fa2153dc0725ad797a90"),
+					},
+					nextConfigDatas: []types.NextConfigData{
+						{
+							C1:             1,
+							C2:             2,
+							SecondarySlots: 0,
+						},
+						{
+							C1:             2,
+							C2:             3,
+							SecondarySlots: 1,
+						},
+						{
+							C1:             3,
+							C2:             4,
+							SecondarySlots: 0,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for testName, tt := range tests {
+		t.Run(testName, func(t *testing.T) {
+			epochState := newEpochStateFromGenesis(t)
+
+			for _, e := range tt.inMemoryEpoch {
+				for i, hash := range e.hashes {
+					epochState.StoreBABENextConfigData(e.epoch, hash, e.nextConfigDatas[i])
+				}
+			}
+
+			require.Len(t, epochState.nextConfigData, len(tt.inMemoryEpoch))
+
+			expectedConfigData := epochState.nextConfigData[tt.finalizeEpoch][tt.finalizeHash]
+
+			err := epochState.blockState.db.Put(headerKey(tt.finalizeHash), []byte{})
+			require.NoError(t, err)
+
+			err = epochState.FinalizeBABENextConfigData(tt.finalizeEpoch)
+			if tt.expectErr != nil {
+				require.ErrorIs(t, err, tt.expectErr)
+			} else {
+				require.NoError(t, err)
+
+				gotConfigData, err := epochState.GetConfigData(tt.finalizeEpoch)
+				require.NoError(t, err)
+				require.Equal(t, expectedConfigData.ToConfigData(), gotConfigData)
+			}
+
+			// should delete previous epochs since the most up to date epoch is stored
+			require.Len(t, epochState.nextConfigData, tt.shouldRemainInMemory)
+		})
+	}
 }

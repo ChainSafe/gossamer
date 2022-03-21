@@ -166,8 +166,8 @@ func (s *GrandpaState) IncrementSetID() (newSetID uint64, err error) {
 		return 0, fmt.Errorf("cannot get current set ID: %w", err)
 	}
 
-	nextSetID := currSetID + 1
-	err = s.setCurrentSetID(nextSetID)
+	newSetID = currSetID + 1
+	err = s.setCurrentSetID(newSetID)
 	if err != nil {
 		return 0, fmt.Errorf("cannot set current set ID: %w", err)
 	}
