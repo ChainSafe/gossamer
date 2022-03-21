@@ -284,6 +284,8 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 	}, peer)
 }
 
+var errPeerDisconnected = errors.New("peer disconnected")
+
 func (s *Service) sendHandshake(peer peer.ID, hs Handshake, info *notificationsProtocol) (libp2pnetwork.Stream, error) {
 	// multiple processes could each call this upcoming section, opening multiple streams and
 	// sending multiple handshakes. thus, we need to have a per-peer and per-protocol lock
@@ -294,7 +296,9 @@ func (s *Service) sendHandshake(peer peer.ID, hs Handshake, info *notificationsP
 	// from the map
 	peerMutex := info.peersData.getMutex(peer)
 	if peerMutex == nil {
-		return nil, fmt.Errorf("got a nil mutex for peer id %s (TODO)", peer)
+		// Note: the only place the mutex is deleted is when the peer disconnects.
+		// If it doesn't exist, the peer never connected either.
+		return nil, fmt.Errorf("%w: peer id %s", errPeerDisconnected, peer)
 	}
 
 	peerMutex.Lock()
