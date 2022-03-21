@@ -164,6 +164,7 @@ func headerKey(hash common.Hash) []byte {
 }
 
 // headerHashKey = headerHashPrefix + num (uint64 big endian)
+// TODO: Shouldn't we change this block number to uint32?
 func headerHashKey(number uint64) []byte {
 	return append(headerHashPrefix, encodeBlockNumber(number)...)
 }
