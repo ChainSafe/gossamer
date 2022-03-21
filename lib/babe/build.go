@@ -257,6 +257,10 @@ func buildBlockInherents(slot Slot, rt runtime.Instance) ([][]byte, error) {
 		return nil, err
 	}
 
+	// add parachn0 and newheads
+	_ = idata.SetBytesInherent(types.Parachn0, []byte{0})
+	_ = idata.SetBytesInherent(types.Newheads, []byte{0})
+
 	// Call BlockBuilder_inherent_extrinsics which returns the inherents as extrinsics
 	inherentExts, err := rt.InherentExtrinsics(ienc)
 	if err != nil {
