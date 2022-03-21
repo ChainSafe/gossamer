@@ -99,12 +99,7 @@ func TestInstance_Version_PolkadotRuntime_v0917(t *testing.T) {
 		11,
 	)
 
-	// _, cfg := setupConfig(t, runtime.POLKADOT_RUNTIME_v0917, nil, DefaultTestLogLvl, 0)
-	// instance, err := NewInstanceFromFile("/home/e/polkadot/target/release/wbuild/polkadot-runtime/polkadot_runtime.wasm", cfg)
-	// require.NoError(t, err)
 	instance := NewTestInstance(t, runtime.POLKADOT_RUNTIME_v0917)
-
-	//instance := NewTestInstance(t, runtime.POLKADOT_RUNTIME_v0917)
 	version, err := instance.Version()
 	require.NoError(t, err)
 
