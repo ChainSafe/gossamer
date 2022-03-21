@@ -949,11 +949,9 @@ func ext_misc_runtime_version_version_1(context unsafe.Pointer, dataSpan C.int64
 		return 0
 	}
 
-	// instance version is set and cached in NewInstance
-	version := instance.version
-
-	if version == nil {
-		logger.Error("failed to get runtime version")
+	version, err := instance.Version()
+	if err != nil {
+		logger.Errorf("failed to get runtime version: %s", err)
 		out, _ := toWasmMemoryOptional(instanceContext, nil)
 		return C.int64_t(out)
 	}
