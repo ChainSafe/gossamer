@@ -46,17 +46,6 @@ var (
 	// GenesisTwoAuthsSecondaryVRF0_9_10 is the genesis file that has 2 authorities and block production by
 	// secondary VRF slots enabled
 	GenesisTwoAuthsSecondaryVRF0_9_10 = filepath.Join(currentDir, "../utils/genesis_two_auths_secondaryvrf_0_9_10.json")
-
-	// ConfigDefault is the default config file
-	ConfigDefault = filepath.Join(currentDir, "../utils/config_default.toml")
-	// ConfigLogGrandpa is a config file where log levels are set to CRIT except for GRANDPA
-	ConfigLogGrandpa = filepath.Join(currentDir, "../utils/config_log_grandpa.toml")
-	// ConfigNoBABE is a config file with BABE disabled
-	ConfigNoBABE = filepath.Join(currentDir, "../utils/config_nobabe.toml")
-	// ConfigNoGrandpa is a config file with grandpa disabled
-	ConfigNoGrandpa = filepath.Join(currentDir, "../utils/config_nograndpa.toml")
-	// ConfigNotAuthority is a config file with no authority functionality
-	ConfigNotAuthority = filepath.Join(currentDir, "../utils/config_notauthority.toml")
 )
 
 // Node represents a gossamer process
@@ -501,16 +490,16 @@ func generateDefaultConfig() *ctoml.Config {
 	}
 }
 
-// CreateDefaultConfig generates and creates default config file.
-func CreateDefaultConfig() {
+// CreateDefaultConfig generates a default config and writes
+// it to a temporary file for the current test.
+func CreateDefaultConfig(t *testing.T) (configPath string) {
 	cfg := generateDefaultConfig()
-	err := dot.ExportTomlConfig(cfg, ConfigDefault)
-	if err != nil {
-		panic(err)
-	}
+	return writeTestTOMLConfig(t, cfg)
 }
 
-func generateConfigLogGrandpa() *ctoml.Config {
+// CreateConfigLogGrandpa generates a grandpa config and writes
+// it to a temporary file for the current test.
+func CreateConfigLogGrandpa(t *testing.T) (configPath string) {
 	cfg := generateDefaultConfig()
 	cfg.Log = ctoml.LogConfig{
 		CoreLvl:           "crit",
@@ -519,69 +508,48 @@ func generateConfigLogGrandpa() *ctoml.Config {
 		BlockProducerLvl:  "info",
 		FinalityGadgetLvl: "debug",
 	}
-	return cfg
+	return writeTestTOMLConfig(t, cfg)
 }
 
-// CreateConfigLogGrandpa generates and creates grandpa config file.
-func CreateConfigLogGrandpa() {
-	cfg := generateConfigLogGrandpa()
-	err := dot.ExportTomlConfig(cfg, ConfigLogGrandpa)
-	if err != nil {
-		panic(err)
-	}
-}
-
-func generateConfigNoBabe() *ctoml.Config {
+// CreateConfigNoBabe generates a no-babe config and writes
+// it to a temporary file for the current test.
+func CreateConfigNoBabe(t *testing.T) (configPath string) {
 	cfg := generateDefaultConfig()
 	cfg.Global.LogLvl = "info"
 	cfg.Log = ctoml.LogConfig{
 		SyncLvl:    "debug",
 		NetworkLvl: "debug",
 	}
-
 	cfg.Core.BabeAuthority = false
-	return cfg
+	return writeTestTOMLConfig(t, cfg)
 }
 
-// CreateConfigNoBabe generates and creates no babe config file.
-func CreateConfigNoBabe() {
-	cfg := generateConfigNoBabe()
-	err := dot.ExportTomlConfig(cfg, ConfigNoBABE)
-	if err != nil {
-		panic(err)
-	}
-}
-
-func generateConfigNoGrandpa() *ctoml.Config {
+// CreateConfigNoGrandpa generates an no-grandpa config and writes
+// it to a temporary file for the current test.
+func CreateConfigNoGrandpa(t *testing.T) (configPath string) {
+	t.Helper()
 	cfg := generateDefaultConfig()
 	cfg.Core.GrandpaAuthority = false
 	cfg.Core.BABELead = true
 	cfg.Core.GrandpaInterval = 1
-	return cfg
+	return writeTestTOMLConfig(t, cfg)
 }
 
-// CreateConfigNoGrandpa generates and creates no grandpa config file.
-func CreateConfigNoGrandpa() {
-	cfg := generateConfigNoGrandpa()
-	err := dot.ExportTomlConfig(cfg, ConfigNoGrandpa)
-	if err != nil {
-		panic(err)
-	}
-}
-
-func generateConfigNotAuthority() *ctoml.Config {
+// CreateConfigNotAuthority generates an non-authority config and writes
+// it to a temporary file for the current test.
+func CreateConfigNotAuthority(t *testing.T) (configPath string) {
+	t.Helper()
 	cfg := generateDefaultConfig()
 	cfg.Core.Roles = 1
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
-	return cfg
+	return writeTestTOMLConfig(t, cfg)
 }
 
-// CreateConfigNotAuthority generates and creates non-authority config file.
-func CreateConfigNotAuthority() {
-	cfg := generateConfigNotAuthority()
-	err := dot.ExportTomlConfig(cfg, ConfigNotAuthority)
-	if err != nil {
-		panic(err)
-	}
+func writeTestTOMLConfig(t *testing.T, cfg *ctoml.Config) (configPath string) {
+	t.Helper()
+	configPath = filepath.Join(t.TempDir(), "config.toml")
+	err := dot.ExportTomlConfig(cfg, configPath)
+	require.NoError(t, err)
+	return configPath
 }

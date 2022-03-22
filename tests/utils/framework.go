@@ -21,9 +21,11 @@ type Framework struct {
 }
 
 // InitFramework creates given quanity of nodes
-func InitFramework(qtyNodes int) (*Framework, error) {
+func InitFramework(t *testing.T, qtyNodes int) (*Framework, error) {
 	f := &Framework{}
-	nodes, err := InitNodes(qtyNodes, ConfigDefault)
+	configPath := CreateDefaultConfig(t)
+
+	nodes, err := InitNodes(qtyNodes, configPath)
 	if err != nil {
 		return nil, err
 	}

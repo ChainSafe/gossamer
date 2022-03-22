@@ -57,7 +57,7 @@ func TestMain(m *testing.M) {
 func TestCalls(t *testing.T) {
 	ctx := context.Background()
 
-	framework, err := utils.InitFramework(3)
+	framework, err := utils.InitFramework(t, 3)
 	require.NoError(t, err)
 
 	errs := framework.StartNodes(t)

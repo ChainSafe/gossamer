@@ -23,9 +23,6 @@ var (
 func TestMain(m *testing.M) {
 	fmt.Println("Going to start RPC suite test")
 
-	utils.CreateDefaultConfig()
-	defer os.Remove(utils.ConfigDefault)
-
 	// Start all tests
 	code := m.Run()
 	os.Exit(code)

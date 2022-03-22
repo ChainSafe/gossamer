@@ -91,7 +91,8 @@ func TestSystemRPC(t *testing.T) {
 
 	t.Log("starting gossamer...")
 	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
-	nodes, err := utils.InitializeAndStartNodes(t, 3, genesisPath, utils.ConfigDefault)
+	config := utils.CreateDefaultConfig(t)
+	nodes, err := utils.InitializeAndStartNodes(t, 3, genesisPath, config)
 
 	//use only first server for tests
 	require.NoError(t, err)

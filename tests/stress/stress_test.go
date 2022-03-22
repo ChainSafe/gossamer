@@ -38,18 +38,6 @@ func TestMain(m *testing.M) {
 		utils.HOSTNAME = "localhost"
 	}
 
-	utils.CreateConfigNoBabe()
-	utils.CreateDefaultConfig()
-	utils.CreateConfigNoGrandpa()
-	utils.CreateConfigNotAuthority()
-
-	defer func() {
-		os.Remove(utils.ConfigNoBABE)
-		os.Remove(utils.ConfigDefault)
-		os.Remove(utils.ConfigNoGrandpa)
-		os.Remove(utils.ConfigNotAuthority)
-	}()
-
 	logLvl := log.Info
 	if utils.LOGLEVEL != "" {
 		var err error
@@ -69,7 +57,8 @@ func TestMain(m *testing.M) {
 
 func TestRestartNode(t *testing.T) {
 	numNodes := 1
-	nodes, err := utils.InitNodes(numNodes, utils.ConfigDefault)
+	config := utils.CreateDefaultConfig(t)
+	nodes, err := utils.InitNodes(numNodes, config)
 	require.NoError(t, err)
 
 	err = utils.StartNodes(t, nodes)
@@ -92,16 +81,19 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 	// start block producing node first
 	basePath := t.TempDir()
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
+	configNoGrandpa := utils.CreateConfigNoGrandpa(t)
 	node, err := utils.RunGossamer(t, numNodes-1,
 		basePath,
-		genesisPath, utils.ConfigNoGrandpa,
+		genesisPath, configNoGrandpa,
 		false, true)
 	require.NoError(t, err)
+
+	configNoAuthority := utils.CreateConfigNotAuthority(t)
 
 	// wait and start rest of nodes - if they all start at the same time the first round usually doesn't complete since
 	// all nodes vote for different blocks.
 	time.Sleep(time.Second * 15)
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, genesisPath, utils.ConfigNotAuthority)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, genesisPath, configNoAuthority)
 	require.NoError(t, err)
 	nodes = append(nodes, node)
 
@@ -137,7 +129,8 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 func TestSync_Basic(t *testing.T) {
 	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
 
-	nodes, err := utils.InitializeAndStartNodes(t, 3, genesisPath, utils.ConfigDefault)
+	config := utils.CreateDefaultConfig(t)
+	nodes, err := utils.InitializeAndStartNodes(t, 3, genesisPath, config)
 	require.NoError(t, err)
 
 	defer func() {
@@ -159,7 +152,8 @@ func TestSync_MultipleEpoch(t *testing.T) {
 	utils.Logger.Patch(log.SetLevel(log.Info))
 
 	// wait and start rest of nodes - if they all start at the same time the first round usually doesn't complete since
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes, genesisPath, utils.ConfigDefault)
+	config := utils.CreateDefaultConfig(t)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes, genesisPath, config)
 	require.NoError(t, err)
 
 	defer func() {
@@ -211,17 +205,19 @@ func TestSync_SingleSyncingNode(t *testing.T) {
 	// start block producing node
 	blockProducingNodebasePath := t.TempDir()
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
+	config := utils.CreateDefaultConfig(t)
 	alice, err := utils.RunGossamer(t, 0,
 		blockProducingNodebasePath, genesisPath,
-		utils.ConfigDefault, false, true)
+		config, false, true)
 	require.NoError(t, err)
 	time.Sleep(time.Second * 15)
 
 	// start syncing node
 	syncingNodeBasePath := t.TempDir()
+	configPath := utils.CreateConfigNoBabe(t)
 	bob, err := utils.RunGossamer(t, 1,
 		syncingNodeBasePath, genesisPath,
-		utils.ConfigNoBABE, false, false)
+		configPath, false, false)
 	require.NoError(t, err)
 
 	nodes := []utils.Node{alice, bob}
@@ -252,9 +248,10 @@ func TestSync_Bench(t *testing.T) {
 	// start block producing node
 	blockProducingNodebasePath := t.TempDir()
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
+	configNoGrandpa := utils.CreateConfigNoGrandpa(t)
 	alice, err := utils.RunGossamer(t, 0,
 		blockProducingNodebasePath,
-		genesisPath, utils.ConfigNoGrandpa,
+		genesisPath, configNoGrandpa,
 		false, true)
 	require.NoError(t, err)
 
@@ -284,9 +281,10 @@ func TestSync_Bench(t *testing.T) {
 
 	// start syncing node
 	syncingNodeBasePath := t.TempDir()
+	configNoAuthority := utils.CreateConfigNotAuthority(t)
 	bob, err := utils.RunGossamer(t, 1,
 		syncingNodeBasePath, genesisPath,
-		utils.ConfigNotAuthority, false, true)
+		configNoAuthority, false, true)
 	require.NoError(t, err)
 
 	nodes := []utils.Node{alice, bob}
@@ -350,15 +348,17 @@ func TestSync_Restart(t *testing.T) {
 	// start block producing node first
 	blockProducingNodeBasePath := t.TempDir()
 	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
+	config := utils.CreateDefaultConfig(t)
 	node, err := utils.RunGossamer(t, numNodes-1,
 		blockProducingNodeBasePath,
-		genesisPath, utils.ConfigDefault,
+		genesisPath, config,
 		false, true)
 	require.NoError(t, err)
 
 	// wait and start rest of nodes
 	time.Sleep(time.Second * 5)
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, genesisPath, utils.ConfigNoBABE)
+	configPath := utils.CreateConfigNoBabe(t)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, genesisPath, configPath)
 	require.NoError(t, err)
 	nodes = append(nodes, node)
 
@@ -417,23 +417,26 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 	// start block producing node first
 	blockProducingNodeBasePath := t.TempDir()
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
+	configNoGrandpa := utils.CreateConfigNoGrandpa(t)
 	node, err := utils.RunGossamer(t, 0,
 		blockProducingNodeBasePath, genesisPath,
-		utils.ConfigNoGrandpa, false, true)
+		configNoGrandpa, false, true)
 	require.NoError(t, err)
 	nodes := []utils.Node{node}
+
+	configNoAuthority := utils.CreateConfigNotAuthority(t)
 
 	// Start rest of nodes
 	basePath2 := t.TempDir()
 	node, err = utils.RunGossamer(t, 1,
 		basePath2, genesisPath,
-		utils.ConfigNotAuthority, false, false)
+		configNoAuthority, false, false)
 	require.NoError(t, err)
 	nodes = append(nodes, node)
 	basePath3 := t.TempDir()
 	node, err = utils.RunGossamer(t, 2,
 		basePath3, genesisPath,
-		utils.ConfigNotAuthority, false, false)
+		configNoAuthority, false, false)
 	require.NoError(t, err)
 	nodes = append(nodes, node)
 
@@ -582,9 +585,10 @@ func Test_SubmitAndWatchExtrinsic(t *testing.T) {
 	// start block producing node first
 	blockProducingNodeBasePath := t.TempDir()
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
+	configNoGrandpa := utils.CreateConfigNoGrandpa(t)
 	node, err := utils.RunGossamer(t, 0,
 		blockProducingNodeBasePath,
-		genesisPath, utils.ConfigNoGrandpa, true, true)
+		genesisPath, configNoGrandpa, true, true)
 	require.NoError(t, err)
 	nodes := []utils.Node{node}
 
@@ -754,7 +758,8 @@ func TestStress_SecondarySlotProduction(t *testing.T) {
 	const numNodes = 2
 	for _, c := range testcases {
 		t.Run(c.description, func(t *testing.T) {
-			nodes, err := utils.InitializeAndStartNodes(t, numNodes, c.genesis, utils.ConfigDefault)
+			config := utils.CreateDefaultConfig(t)
+			nodes, err := utils.InitializeAndStartNodes(t, numNodes, c.genesis, config)
 			require.NoError(t, err)
 			defer utils.StopNodes(t, nodes)
 

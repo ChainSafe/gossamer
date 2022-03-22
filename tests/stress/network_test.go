@@ -19,7 +19,8 @@ func TestNetwork_MaxPeers(t *testing.T) {
 	numNodes := 9 // 9 block producers
 	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
 	utils.Logger.Patch(log.SetLevel(log.Info))
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes, genesisPath, utils.ConfigDefault)
+	config := utils.CreateDefaultConfig(t)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes, genesisPath, config)
 	require.NoError(t, err)
 
 	defer func() {
