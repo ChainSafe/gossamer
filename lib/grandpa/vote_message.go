@@ -181,7 +181,7 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 
 	vote := NewVote(m.Message.Hash, m.Message.Number)
 
-	// if the vote is from ourselves, ignore
+	// if the vote is from ourselves, return an error
 	kb := [32]byte(s.publicKeyBytes())
 	if bytes.Equal(m.Message.AuthorityID[:], kb[:]) {
 		return nil, errVoteFromSelf
