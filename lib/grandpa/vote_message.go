@@ -217,7 +217,6 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 		s.prevotes.Store(pk.AsBytes(), just)
 	case precommit:
 		s.precommits.Store(pk.AsBytes(), just)
-		logger.Debugf("stored precommit: num=%d", s.lenVotes(precommit))
 	}
 
 	return vote, nil

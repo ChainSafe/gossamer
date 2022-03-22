@@ -83,7 +83,9 @@ func (t *tracker) addCatchUpResponse(cr *CatchUpResponse) {
 }
 
 func (t *tracker) handleBlocks() {
-	ticker := time.NewTicker(time.Second)
+	const timeout = time.Second
+	ticker := time.NewTicker(timeout)
+	defer ticker.Stop()
 
 	for {
 		select {

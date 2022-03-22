@@ -86,11 +86,12 @@ func TestMessageTracker_SendMessage(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	const testTimeout = time.Second
 	select {
 	case v := <-in:
 		require.Equal(t, msg, v.msg)
 	case <-time.After(testTimeout):
-		t.Errorf("did not receive vote message")
+		t.Errorf("did not receive vote message %v", msg)
 	}
 }
 
@@ -189,8 +190,12 @@ func TestMessageTracker_handleTick(t *testing.T) {
 	gs, in, _, _ := setupGrandpa(t, kr.Bob().(*ed25519.Keypair))
 	gs.tracker = newTracker(gs.blockState, gs.messageHandler)
 
+	var testHash common.Hash = [32]byte{1, 2, 3}
 	msg := &VoteMessage{
 		Round: 100,
+		Message: SignedMessage{
+			Hash: testHash,
+		},
 	}
 	gs.tracker.addVote(&networkVoteMessage{
 		msg: msg,
@@ -198,15 +203,16 @@ func TestMessageTracker_handleTick(t *testing.T) {
 
 	gs.tracker.handleTick()
 
+	const testTimeout = time.Second
 	select {
 	case v := <-in:
 		require.Equal(t, msg, v.msg)
 	case <-time.After(testTimeout):
-		t.Errorf("did not receive vote message")
+		t.Errorf("did not receive vote message %v", msg)
 	}
 
 	// shouldn't be deleted as round in message >= grandpa round
-	require.Equal(t, 1, len(gs.tracker.voteMessages[common.Hash{}]))
+	require.Equal(t, 1, len(gs.tracker.voteMessages[testHash]))
 
 	gs.state.round = 1
 	msg = &VoteMessage{
@@ -222,9 +228,9 @@ func TestMessageTracker_handleTick(t *testing.T) {
 	case v := <-in:
 		require.Equal(t, msg, v.msg)
 	case <-time.After(testTimeout):
-		t.Errorf("did not receive vote message")
+		t.Errorf("did not receive vote message %v", msg)
 	}
 
 	// should be deleted as round in message < grandpa round
-	require.Equal(t, 0, len(gs.tracker.voteMessages[common.Hash{}]))
+	require.Empty(t, len(gs.tracker.voteMessages[testHash]))
 }
