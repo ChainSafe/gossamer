@@ -764,9 +764,9 @@ func (cs *chainSync) handleReadyBlock(bd *types.BlockData) {
 
 // determineSyncPeers returns a list of peers that likely have the blocks in the given block request.
 func (cs *chainSync) determineSyncPeers(req *network.BlockRequestMessage, peersTried map[peer.ID]struct{}) []peer.ID {
-	var start uint64
-	if req.StartingBlock.IsUint64() {
-		start = req.StartingBlock.Uint64()
+	var start uint32
+	if req.StartingBlock.IsUint32() {
+		start = req.StartingBlock.Uint32()
 	}
 
 	cs.RLock()
@@ -796,7 +796,7 @@ func (cs *chainSync) determineSyncPeers(req *network.BlockRequestMessage, peersT
 
 		// if peer definitely doesn't have any blocks we want in the request,
 		// don't request from them
-		if start > 0 && uint64(state.number) < start {
+		if start > 0 && uint32(state.number) < start {
 			continue
 		}
 
@@ -1005,18 +1005,18 @@ func workerToRequests(w *worker) ([]*network.BlockRequestMessage, error) {
 			max = uint32(size)
 		}
 
-		var start *variadic.Uint64OrHash
+		var start *variadic.Uint32OrHash
 		if w.startHash.IsEmpty() {
 			// worker startHash is unspecified if we are in bootstrap mode
-			start = variadic.MustNewUint64OrHash(uint64(startNumber))
+			start = variadic.MustNewUint32OrHash(uint32(startNumber))
 		} else {
 			// in tip-syncing mode, we know the hash of the block on the fork we wish to sync
-			start = variadic.MustNewUint64OrHash(w.startHash)
+			start = variadic.MustNewUint32OrHash(w.startHash)
 
 			// if we're doing descending requests and not at the last (highest starting) request,
 			// then use number as start block
 			if w.direction == network.Descending && i != numRequests-1 {
-				start = variadic.MustNewUint64OrHash(startNumber)
+				start = variadic.MustNewUint32OrHash(startNumber)
 			}
 		}
 

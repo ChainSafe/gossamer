@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 //go:build integration
-// +build integration
 
 package babe
 

@@ -49,7 +49,7 @@ func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 	addTestBlocksToState(t, maxResponseSize*2, s.blockState)
 
 	// test ascending
-	start, err := variadic.NewUint64OrHash(uint64(1))
+	start, err := variadic.NewUint32OrHash(1)
 	require.NoError(t, err)
 
 	req := &network.BlockRequestMessage{
@@ -97,7 +97,7 @@ func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 	require.Equal(t, uint(16), resp.BlockData[15].Number())
 
 	// test descending
-	start, err = variadic.NewUint64OrHash(uint64(128))
+	start, err = variadic.NewUint32OrHash(uint32(128))
 	require.NoError(t, err)
 
 	req = &network.BlockRequestMessage{
@@ -115,7 +115,7 @@ func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 	require.Equal(t, uint(1), resp.BlockData[127].Number())
 
 	max = uint32(maxResponseSize + 100)
-	start, err = variadic.NewUint64OrHash(uint64(256))
+	start, err = variadic.NewUint32OrHash(uint32(256))
 	require.NoError(t, err)
 
 	req = &network.BlockRequestMessage{
@@ -156,7 +156,7 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 	startHash, err := s.blockState.GetHashByNumber(1)
 	require.NoError(t, err)
 
-	start, err := variadic.NewUint64OrHash(startHash)
+	start, err := variadic.NewUint32OrHash(startHash)
 	require.NoError(t, err)
 
 	req := &network.BlockRequestMessage{
@@ -195,7 +195,7 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 	startHash, err = s.blockState.GetHashByNumber(16)
 	require.NoError(t, err)
 
-	start, err = variadic.NewUint64OrHash(startHash)
+	start, err = variadic.NewUint32OrHash(startHash)
 	require.NoError(t, err)
 
 	req = &network.BlockRequestMessage{
@@ -234,7 +234,7 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 	startHash, err = s.blockState.GetHashByNumber(256)
 	require.NoError(t, err)
 
-	start, err = variadic.NewUint64OrHash(startHash)
+	start, err = variadic.NewUint32OrHash(startHash)
 	require.NoError(t, err)
 
 	req = &network.BlockRequestMessage{
@@ -254,7 +254,7 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 	startHash, err = s.blockState.GetHashByNumber(128)
 	require.NoError(t, err)
 
-	start, err = variadic.NewUint64OrHash(startHash)
+	start, err = variadic.NewUint32OrHash(startHash)
 	require.NoError(t, err)
 
 	req = &network.BlockRequestMessage{
@@ -278,7 +278,7 @@ func TestService_CreateBlockResponse_Ascending_EndHash(t *testing.T) {
 	addTestBlocksToState(t, uint(maxResponseSize+1), s.blockState)
 
 	// should error if end < start
-	start, err := variadic.NewUint64OrHash(uint64(128))
+	start, err := variadic.NewUint32OrHash(uint32(128))
 	require.NoError(t, err)
 
 	end, err := s.blockState.GetHashByNumber(1)
@@ -296,7 +296,7 @@ func TestService_CreateBlockResponse_Ascending_EndHash(t *testing.T) {
 	require.Error(t, err)
 
 	// base case
-	start, err = variadic.NewUint64OrHash(uint64(1))
+	start, err = variadic.NewUint32OrHash(uint32(1))
 	require.NoError(t, err)
 
 	end, err = s.blockState.GetHashByNumber(128)
@@ -322,7 +322,7 @@ func TestService_CreateBlockResponse_Descending_EndHash(t *testing.T) {
 	addTestBlocksToState(t, uint(maxResponseSize+1), s.blockState)
 
 	// should error if start < end
-	start, err := variadic.NewUint64OrHash(uint64(1))
+	start, err := variadic.NewUint32OrHash(uint32(1))
 	require.NoError(t, err)
 
 	end, err := s.blockState.GetHashByNumber(128)
@@ -340,7 +340,7 @@ func TestService_CreateBlockResponse_Descending_EndHash(t *testing.T) {
 	require.Error(t, err)
 
 	// base case
-	start, err = variadic.NewUint64OrHash(uint64(128))
+	start, err = variadic.NewUint32OrHash(uint32(128))
 	require.NoError(t, err)
 
 	end, err = s.blockState.GetHashByNumber(1)
@@ -476,7 +476,7 @@ func TestService_CreateBlockResponse_Fields(t *testing.T) {
 	}
 
 	endHash := s.blockState.BestBlockHash()
-	start, err := variadic.NewUint64OrHash(uint64(1))
+	start, err := variadic.NewUint32OrHash(uint32(1))
 	require.NoError(t, err)
 
 	err = s.blockState.CompareAndSetBlockData(bds)

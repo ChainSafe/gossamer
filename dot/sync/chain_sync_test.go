@@ -274,7 +274,7 @@ func TestWorkerToRequests(t *testing.T) {
 			expected: []*network.BlockRequestMessage{
 				{
 					RequestedData: bootstrapRequestData,
-					StartingBlock: *variadic.MustNewUint64OrHash(1),
+					StartingBlock: *variadic.MustNewUint32OrHash(1),
 					EndBlockHash:  nil,
 					Direction:     network.Ascending,
 					Max:           &max128,
@@ -291,14 +291,14 @@ func TestWorkerToRequests(t *testing.T) {
 			expected: []*network.BlockRequestMessage{
 				{
 					RequestedData: bootstrapRequestData,
-					StartingBlock: *variadic.MustNewUint64OrHash(1),
+					StartingBlock: *variadic.MustNewUint32OrHash(1),
 					EndBlockHash:  nil,
 					Direction:     network.Ascending,
 					Max:           &max128,
 				},
 				{
 					RequestedData: network.RequestedDataHeader + network.RequestedDataBody + network.RequestedDataJustification,
-					StartingBlock: *variadic.MustNewUint64OrHash(1 + maxResponseSize),
+					StartingBlock: *variadic.MustNewUint32OrHash(1 + maxResponseSize),
 					EndBlockHash:  nil,
 					Direction:     network.Ascending,
 					Max:           &max128,
@@ -315,7 +315,7 @@ func TestWorkerToRequests(t *testing.T) {
 			expected: []*network.BlockRequestMessage{
 				{
 					RequestedData: bootstrapRequestData,
-					StartingBlock: *variadic.MustNewUint64OrHash(1),
+					StartingBlock: *variadic.MustNewUint32OrHash(1),
 					EndBlockHash:  nil,
 					Direction:     network.Ascending,
 					Max:           &max128,
@@ -332,7 +332,7 @@ func TestWorkerToRequests(t *testing.T) {
 			expected: []*network.BlockRequestMessage{
 				{
 					RequestedData: bootstrapRequestData,
-					StartingBlock: *variadic.MustNewUint64OrHash(10),
+					StartingBlock: *variadic.MustNewUint32OrHash(10),
 					EndBlockHash:  nil,
 					Direction:     network.Descending,
 					Max:           &max9,
@@ -349,14 +349,14 @@ func TestWorkerToRequests(t *testing.T) {
 			expected: []*network.BlockRequestMessage{
 				{
 					RequestedData: bootstrapRequestData,
-					StartingBlock: *variadic.MustNewUint64OrHash(1),
+					StartingBlock: *variadic.MustNewUint32OrHash(1),
 					EndBlockHash:  nil,
 					Direction:     network.Ascending,
 					Max:           &max128,
 				},
 				{
 					RequestedData: network.RequestedDataHeader + network.RequestedDataBody + network.RequestedDataJustification,
-					StartingBlock: *variadic.MustNewUint64OrHash(1 + maxResponseSize),
+					StartingBlock: *variadic.MustNewUint32OrHash(1 + maxResponseSize),
 					EndBlockHash:  nil,
 					Direction:     network.Ascending,
 					Max:           &max128,
@@ -374,7 +374,7 @@ func TestWorkerToRequests(t *testing.T) {
 			expected: []*network.BlockRequestMessage{
 				{
 					RequestedData: bootstrapRequestData,
-					StartingBlock: *variadic.MustNewUint64OrHash(1),
+					StartingBlock: *variadic.MustNewUint32OrHash(1),
 					EndBlockHash:  &(common.Hash{0xa}),
 					Direction:     network.Ascending,
 					Max:           &max128,
@@ -393,7 +393,7 @@ func TestWorkerToRequests(t *testing.T) {
 			expected: []*network.BlockRequestMessage{
 				{
 					RequestedData: bootstrapRequestData,
-					StartingBlock: *variadic.MustNewUint64OrHash(common.Hash{0xb}),
+					StartingBlock: *variadic.MustNewUint32OrHash(common.Hash{0xb}),
 					EndBlockHash:  &(common.Hash{0xc}),
 					Direction:     network.Ascending,
 					Max:           &max128,
@@ -410,7 +410,7 @@ func TestWorkerToRequests(t *testing.T) {
 			expected: []*network.BlockRequestMessage{
 				{
 					RequestedData: bootstrapRequestData,
-					StartingBlock: *variadic.MustNewUint64OrHash(10),
+					StartingBlock: *variadic.MustNewUint32OrHash(10),
 					Direction:     network.Ascending,
 					Max:           &max128,
 				},
@@ -426,14 +426,14 @@ func TestWorkerToRequests(t *testing.T) {
 			expected: []*network.BlockRequestMessage{
 				{
 					RequestedData: network.RequestedDataHeader + network.RequestedDataBody + network.RequestedDataJustification,
-					StartingBlock: *variadic.MustNewUint64OrHash(1 + (maxResponseSize / 2)),
+					StartingBlock: *variadic.MustNewUint32OrHash(1 + (maxResponseSize / 2)),
 					EndBlockHash:  nil,
 					Direction:     network.Descending,
 					Max:           &max64,
 				},
 				{
 					RequestedData: bootstrapRequestData,
-					StartingBlock: *variadic.MustNewUint64OrHash(1 + maxResponseSize + (maxResponseSize / 2)),
+					StartingBlock: *variadic.MustNewUint32OrHash(1 + maxResponseSize + (maxResponseSize / 2)),
 					EndBlockHash:  nil,
 					Direction:     network.Descending,
 					Max:           &max128,
@@ -626,7 +626,7 @@ func TestChainSync_doSync(t *testing.T) {
 	max := uint32(1)
 	req := &network.BlockRequestMessage{
 		RequestedData: bootstrapRequestData,
-		StartingBlock: *variadic.MustNewUint64OrHash(1),
+		StartingBlock: *variadic.MustNewUint32OrHash(1),
 		EndBlockHash:  nil,
 		Direction:     network.Ascending,
 		Max:           &max,
@@ -798,7 +798,7 @@ func TestChainSync_determineSyncPeers(t *testing.T) {
 	require.Equal(t, 0, len(cs.ignorePeers))
 
 	// test peer's best block below number case, shouldn't include that peer
-	start, err := variadic.NewUint64OrHash(130)
+	start, err := variadic.NewUint32OrHash(130)
 	require.NoError(t, err)
 	req.StartingBlock = *start
 	peers = cs.determineSyncPeers(req, peersTried)
@@ -807,7 +807,7 @@ func TestChainSync_determineSyncPeers(t *testing.T) {
 
 	// test peer tried case, should ignore peer already tried
 	peersTried[testPeerA] = struct{}{}
-	req.StartingBlock = variadic.Uint64OrHash{}
+	req.StartingBlock = variadic.Uint32OrHash{}
 	peers = cs.determineSyncPeers(req, peersTried)
 	require.Equal(t, 1, len(peers))
 	require.Equal(t, []peer.ID{testPeerB}, peers)
