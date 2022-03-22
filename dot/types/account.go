@@ -14,15 +14,10 @@ type AccountInfo struct {
 	Consumers uint32
 	Producers uint32
 	// The additional data that belongs to this account. Used to store the balance(s) in a lot of chains.
-	Data struct {
-		Free       *scale.Uint128
-		Reserved   *scale.Uint128
-		MiscFrozen *scale.Uint128
-		FreeFrozen *scale.Uint128
-	}
+	Data AccountData
 }
 
-// AccountData represents account data of an account. Currently is used in core tests
+// AccountData represents the data of the AccountInfo
 type AccountData struct {
 	Free       *scale.Uint128
 	Reserved   *scale.Uint128

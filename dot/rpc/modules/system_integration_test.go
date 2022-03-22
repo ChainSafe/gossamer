@@ -299,12 +299,7 @@ func setupSystemModule(t *testing.T) *SystemModule {
 	aliceAcctInfo := types.AccountInfo{
 		Nonce: 3,
 		//RefCount: 0,
-		Data: struct {
-			Free       *scale.Uint128
-			Reserved   *scale.Uint128
-			MiscFrozen *scale.Uint128
-			FreeFrozen *scale.Uint128
-		}{
+		Data: types.AccountData{
 			Free:       scale.MustNewUint128(big.NewInt(0)),
 			Reserved:   scale.MustNewUint128(big.NewInt(0)),
 			MiscFrozen: scale.MustNewUint128(big.NewInt(0)),
