@@ -217,6 +217,9 @@ func TestMessageTracker_handleTick(t *testing.T) {
 	gs.state.round = 1
 	msg = &VoteMessage{
 		Round: 0,
+		Message: SignedMessage{
+			Hash: testHash,
+		},
 	}
 	gs.tracker.addVote(&networkVoteMessage{
 		msg: msg,
