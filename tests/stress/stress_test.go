@@ -40,12 +40,10 @@ func TestMain(m *testing.M) {
 
 	utils.CreateConfigNoBabe()
 	utils.CreateDefaultConfig()
-	utils.CreateConfigNoGrandpa()
 
 	defer func() {
 		os.Remove(utils.ConfigNoBABE)
 		os.Remove(utils.ConfigDefault)
-		os.Remove(utils.ConfigNoGrandpa)
 	}()
 
 	logLvl := log.Info
@@ -90,9 +88,10 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 	// start block producing node first
 	basePath := t.TempDir()
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
+	configNoGrandpa := utils.CreateConfigNoGrandpa(t)
 	node, err := utils.RunGossamer(t, numNodes-1,
 		basePath,
-		genesisPath, utils.ConfigNoGrandpa,
+		genesisPath, configNoGrandpa,
 		false, true)
 	require.NoError(t, err)
 
@@ -252,9 +251,10 @@ func TestSync_Bench(t *testing.T) {
 	// start block producing node
 	blockProducingNodebasePath := t.TempDir()
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
+	configNoGrandpa := utils.CreateConfigNoGrandpa(t)
 	alice, err := utils.RunGossamer(t, 0,
 		blockProducingNodebasePath,
-		genesisPath, utils.ConfigNoGrandpa,
+		genesisPath, configNoGrandpa,
 		false, true)
 	require.NoError(t, err)
 
@@ -418,9 +418,10 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 	// start block producing node first
 	blockProducingNodeBasePath := t.TempDir()
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
+	configNoGrandpa := utils.CreateConfigNoGrandpa(t)
 	node, err := utils.RunGossamer(t, 0,
 		blockProducingNodeBasePath, genesisPath,
-		utils.ConfigNoGrandpa, false, true)
+		configNoGrandpa, false, true)
 	require.NoError(t, err)
 	nodes := []utils.Node{node}
 
@@ -585,9 +586,10 @@ func Test_SubmitAndWatchExtrinsic(t *testing.T) {
 	// start block producing node first
 	blockProducingNodeBasePath := t.TempDir()
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
+	configNoGrandpa := utils.CreateConfigNoGrandpa(t)
 	node, err := utils.RunGossamer(t, 0,
 		blockProducingNodeBasePath,
-		genesisPath, utils.ConfigNoGrandpa, true, true)
+		genesisPath, configNoGrandpa, true, true)
 	require.NoError(t, err)
 	nodes := []utils.Node{node}
 

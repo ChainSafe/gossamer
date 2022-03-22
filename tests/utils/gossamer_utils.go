@@ -53,8 +53,6 @@ var (
 	ConfigLogGrandpa = filepath.Join(currentDir, "../utils/config_log_grandpa.toml")
 	// ConfigNoBABE is a config file with BABE disabled
 	ConfigNoBABE = filepath.Join(currentDir, "../utils/config_nobabe.toml")
-	// ConfigNoGrandpa is a config file with grandpa disabled
-	ConfigNoGrandpa = filepath.Join(currentDir, "../utils/config_nograndpa.toml")
 )
 
 // Node represents a gossamer process
@@ -541,18 +539,15 @@ func CreateConfigNoBabe() {
 	_ = dot.ExportTomlConfig(cfg, ConfigNoBABE)
 }
 
-func generateConfigNoGrandpa() *ctoml.Config {
+// CreateConfigNoGrandpa generates an no-grandpa config and writes
+// it to a temporary file for the current test.
+func CreateConfigNoGrandpa(t *testing.T) (configPath string) {
+	t.Helper()
 	cfg := generateDefaultConfig()
 	cfg.Core.GrandpaAuthority = false
 	cfg.Core.BABELead = true
 	cfg.Core.GrandpaInterval = 1
-	return cfg
-}
-
-// CreateConfigNoGrandpa generates and creates no grandpa config file.
-func CreateConfigNoGrandpa() {
-	cfg := generateConfigNoGrandpa()
-	_ = dot.ExportTomlConfig(cfg, ConfigNoGrandpa)
+	return writeTestTOMLConfig(t, cfg)
 }
 
 // CreateConfigNotAuthority generates an non-authority config and writes
