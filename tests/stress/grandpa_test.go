@@ -5,7 +5,6 @@ package stress
 
 import (
 	"context"
-	"os"
 	"testing"
 	"time"
 
@@ -17,7 +16,8 @@ import (
 func TestStress_Grandpa_OneAuthority(t *testing.T) {
 	numNodes := 1
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes, genesisPath, utils.ConfigDefault)
+	config := utils.CreateDefaultConfig(t)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes, genesisPath, config)
 	require.NoError(t, err)
 
 	defer func() {
@@ -47,7 +47,8 @@ func TestStress_Grandpa_ThreeAuthorities(t *testing.T) {
 
 	genesisPath := utils.GenerateGenesisAuths(t, numNodes)
 
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes, genesisPath, utils.ConfigDefault)
+	config := utils.CreateDefaultConfig(t)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes, genesisPath, config)
 	require.NoError(t, err)
 
 	defer func() {
@@ -73,7 +74,8 @@ func TestStress_Grandpa_SixAuthorities(t *testing.T) {
 	const numNodes = 6
 	genesisPath := utils.GenerateGenesisAuths(t, numNodes)
 
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes, genesisPath, utils.ConfigDefault)
+	config := utils.CreateDefaultConfig(t)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes, genesisPath, config)
 	require.NoError(t, err)
 
 	defer func() {
@@ -98,12 +100,11 @@ func TestStress_Grandpa_NineAuthorities(t *testing.T) {
 		t.Skip("skipping TestStress_Grandpa_NineAuthorities")
 	}
 
-	utils.CreateConfigLogGrandpa()
-	defer os.Remove(utils.ConfigLogGrandpa)
+	grandpaConfig := utils.CreateConfigLogGrandpa(t)
 
 	numNodes := 9
 	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes, genesisPath, utils.ConfigLogGrandpa)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes, genesisPath, grandpaConfig)
 	require.NoError(t, err)
 
 	defer func() {
@@ -131,7 +132,8 @@ func TestStress_Grandpa_CatchUp(t *testing.T) {
 	const numNodes = 6
 	genesisPath := utils.GenerateGenesisAuths(t, numNodes)
 
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, genesisPath, utils.ConfigDefault)
+	config := utils.CreateDefaultConfig(t)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, genesisPath, config)
 	require.NoError(t, err)
 
 	defer func() {
@@ -144,7 +146,7 @@ func TestStress_Grandpa_CatchUp(t *testing.T) {
 	basePath := t.TempDir()
 	node, err := utils.RunGossamer(t, numNodes-1,
 		basePath,
-		genesisPath, utils.ConfigDefault,
+		genesisPath, config,
 		false, false)
 	require.NoError(t, err)
 	nodes = append(nodes, node)
