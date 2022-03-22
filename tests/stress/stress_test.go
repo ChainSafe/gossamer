@@ -41,13 +41,11 @@ func TestMain(m *testing.M) {
 	utils.CreateConfigNoBabe()
 	utils.CreateDefaultConfig()
 	utils.CreateConfigNoGrandpa()
-	utils.CreateConfigNotAuthority()
 
 	defer func() {
 		os.Remove(utils.ConfigNoBABE)
 		os.Remove(utils.ConfigDefault)
 		os.Remove(utils.ConfigNoGrandpa)
-		os.Remove(utils.ConfigNotAuthority)
 	}()
 
 	logLvl := log.Info
@@ -98,10 +96,12 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 		false, true)
 	require.NoError(t, err)
 
+	configNoAuthority := utils.CreateConfigNotAuthority(t)
+
 	// wait and start rest of nodes - if they all start at the same time the first round usually doesn't complete since
 	// all nodes vote for different blocks.
 	time.Sleep(time.Second * 15)
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, genesisPath, utils.ConfigNotAuthority)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, genesisPath, configNoAuthority)
 	require.NoError(t, err)
 	nodes = append(nodes, node)
 
@@ -284,9 +284,10 @@ func TestSync_Bench(t *testing.T) {
 
 	// start syncing node
 	syncingNodeBasePath := t.TempDir()
+	configNoAuthority := utils.CreateConfigNotAuthority(t)
 	bob, err := utils.RunGossamer(t, 1,
 		syncingNodeBasePath, genesisPath,
-		utils.ConfigNotAuthority, false, true)
+		configNoAuthority, false, true)
 	require.NoError(t, err)
 
 	nodes := []utils.Node{alice, bob}
@@ -423,17 +424,19 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 	require.NoError(t, err)
 	nodes := []utils.Node{node}
 
+	configNoAuthority := utils.CreateConfigNotAuthority(t)
+
 	// Start rest of nodes
 	basePath2 := t.TempDir()
 	node, err = utils.RunGossamer(t, 1,
 		basePath2, genesisPath,
-		utils.ConfigNotAuthority, false, false)
+		configNoAuthority, false, false)
 	require.NoError(t, err)
 	nodes = append(nodes, node)
 	basePath3 := t.TempDir()
 	node, err = utils.RunGossamer(t, 2,
 		basePath3, genesisPath,
-		utils.ConfigNotAuthority, false, false)
+		configNoAuthority, false, false)
 	require.NoError(t, err)
 	nodes = append(nodes, node)
 

@@ -55,8 +55,6 @@ var (
 	ConfigNoBABE = filepath.Join(currentDir, "../utils/config_nobabe.toml")
 	// ConfigNoGrandpa is a config file with grandpa disabled
 	ConfigNoGrandpa = filepath.Join(currentDir, "../utils/config_nograndpa.toml")
-	// ConfigNotAuthority is a config file with no authority functionality
-	ConfigNotAuthority = filepath.Join(currentDir, "../utils/config_notauthority.toml")
 )
 
 // Node represents a gossamer process
@@ -557,16 +555,21 @@ func CreateConfigNoGrandpa() {
 	_ = dot.ExportTomlConfig(cfg, ConfigNoGrandpa)
 }
 
-func generateConfigNotAuthority() *ctoml.Config {
+// CreateConfigNotAuthority generates an non-authority config and writes
+// it to a temporary file for the current test.
+func CreateConfigNotAuthority(t *testing.T) (configPath string) {
+	t.Helper()
 	cfg := generateDefaultConfig()
 	cfg.Core.Roles = 1
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
-	return cfg
+	return writeTestTOMLConfig(t, cfg)
 }
 
-// CreateConfigNotAuthority generates and creates non-authority config file.
-func CreateConfigNotAuthority() {
-	cfg := generateConfigNotAuthority()
-	_ = dot.ExportTomlConfig(cfg, ConfigNotAuthority)
+func writeTestTOMLConfig(t *testing.T, cfg *ctoml.Config) (configPath string) {
+	t.Helper()
+	configPath = filepath.Join(t.TempDir(), "config.toml")
+	err := dot.ExportTomlConfig(cfg, configPath)
+	require.NoError(t, err)
+	return configPath
 }
