@@ -5,7 +5,6 @@ package stress
 
 import (
 	"context"
-	"os"
 	"testing"
 	"time"
 
@@ -98,12 +97,11 @@ func TestStress_Grandpa_NineAuthorities(t *testing.T) {
 		t.Skip("skipping TestStress_Grandpa_NineAuthorities")
 	}
 
-	utils.CreateConfigLogGrandpa()
-	defer os.Remove(utils.ConfigLogGrandpa)
+	grandpaConfig := utils.CreateConfigLogGrandpa(t)
 
 	numNodes := 9
 	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes, genesisPath, utils.ConfigLogGrandpa)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes, genesisPath, grandpaConfig)
 	require.NoError(t, err)
 
 	defer func() {

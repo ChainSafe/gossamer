@@ -49,8 +49,6 @@ var (
 
 	// ConfigDefault is the default config file
 	ConfigDefault = filepath.Join(currentDir, "../utils/config_default.toml")
-	// ConfigLogGrandpa is a config file where log levels are set to CRIT except for GRANDPA
-	ConfigLogGrandpa = filepath.Join(currentDir, "../utils/config_log_grandpa.toml")
 )
 
 // Node represents a gossamer process
@@ -501,7 +499,9 @@ func CreateDefaultConfig() {
 	_ = dot.ExportTomlConfig(cfg, ConfigDefault)
 }
 
-func generateConfigLogGrandpa() *ctoml.Config {
+// CreateConfigLogGrandpa generates a grandpa config and writes
+// it to a temporary file for the current test.
+func CreateConfigLogGrandpa(t *testing.T) (configPath string) {
 	cfg := generateDefaultConfig()
 	cfg.Log = ctoml.LogConfig{
 		CoreLvl:           "crit",
@@ -510,13 +510,7 @@ func generateConfigLogGrandpa() *ctoml.Config {
 		BlockProducerLvl:  "info",
 		FinalityGadgetLvl: "debug",
 	}
-	return cfg
-}
-
-// CreateConfigLogGrandpa generates and creates grandpa config file.
-func CreateConfigLogGrandpa() {
-	cfg := generateConfigLogGrandpa()
-	_ = dot.ExportTomlConfig(cfg, ConfigLogGrandpa)
+	return writeTestTOMLConfig(t, cfg)
 }
 
 // CreateConfigNoBabe generates a no-babe config and writes
