@@ -44,6 +44,7 @@ func Test_Branch_Copy(t *testing.T) {
 				HashDigest: []byte{5},
 				Encoding:   []byte{6},
 			},
+			settings: DefaultCopySettings(),
 			expectedBranch: &Branch{
 				Key:   []byte{1, 2},
 				Value: []byte{3, 4},
@@ -66,6 +67,29 @@ func Test_Branch_Copy(t *testing.T) {
 				Children: [16]Node{
 					nil, nil, &Leaf{Key: []byte{9}},
 				},
+			},
+		},
+		"deep copy": {
+			branch: &Branch{
+				Key:   []byte{1, 2},
+				Value: []byte{3, 4},
+				Children: [16]Node{
+					nil, nil, &Leaf{Key: []byte{9}},
+				},
+				Dirty:      true,
+				HashDigest: []byte{5},
+				Encoding:   []byte{6},
+			},
+			settings: DeepCopySettings(),
+			expectedBranch: &Branch{
+				Key:   []byte{1, 2},
+				Value: []byte{3, 4},
+				Children: [16]Node{
+					nil, nil, &Leaf{Key: []byte{9}},
+				},
+				Dirty:      true,
+				HashDigest: []byte{5},
+				Encoding:   []byte{6},
 			},
 		},
 	}
@@ -102,6 +126,7 @@ func Test_Leaf_Copy(t *testing.T) {
 	}{
 		"empty leaf": {
 			leaf:         &Leaf{},
+			settings:     DefaultCopySettings(),
 			expectedLeaf: &Leaf{},
 		},
 		"non empty leaf": {
@@ -112,10 +137,28 @@ func Test_Leaf_Copy(t *testing.T) {
 				HashDigest: []byte{5},
 				Encoding:   []byte{6},
 			},
+			settings: DefaultCopySettings(),
 			expectedLeaf: &Leaf{
 				Key:   []byte{1, 2},
 				Value: []byte{3, 4},
 				Dirty: true,
+			},
+		},
+		"deep copy": {
+			leaf: &Leaf{
+				Key:        []byte{1, 2},
+				Value:      []byte{3, 4},
+				Dirty:      true,
+				HashDigest: []byte{5},
+				Encoding:   []byte{6},
+			},
+			settings: DeepCopySettings(),
+			expectedLeaf: &Leaf{
+				Key:        []byte{1, 2},
+				Value:      []byte{3, 4},
+				Dirty:      true,
+				HashDigest: []byte{5},
+				Encoding:   []byte{6},
 			},
 		},
 	}

@@ -3,12 +3,36 @@
 
 package node
 
+// DefaultCopySettings returns the following copy settings:
+// - children are NOT deep copied recursively
+// - the HashDigest field is left empty on the copy
+// - the Encoding field is left empty on the copy
+// - the key field is deep copied
+// - the value field is deep copied
+func DefaultCopySettings() CopySettings {
+	return CopySettings{
+		CopyKey:   true,
+		CopyValue: true,
+	}
+}
+
+// DeepCopySettings returns the following copy settings:
+// - children are deep copied recursively
+// - the HashDigest field is deep copied
+// - the Encoding field is deep copied
+// - the key field is deep copied
+// - the value field is deep copied
+func DeepCopySettings() CopySettings {
+	return CopySettings{
+		CopyChildren: true,
+		CopyCached:   true,
+		CopyKey:      true,
+		CopyValue:    true,
+	}
+}
+
 // CopySettings contains settings to configure the deep copy
-// of a node. By default, it:
-// - does not deep copy children recrursively
-// - does not copy cached fields HashDigest and Encoding
-// - deep copies the key field
-// - deep copies the value field
+// of a node.
 type CopySettings struct {
 	// CopyChildren can be set to true to recursively deep copy the eventual
 	// children of the node. This is false by default and should only be used
@@ -20,14 +44,14 @@ type CopySettings struct {
 	// when it is about to be mutated, hence making its cached fields
 	// no longer valid.
 	CopyCached bool
-	// LeaveKeyEmpty can be set to true to not deep copy the key field of
-	// the node. This is useful if the key is about to be assigned after the
-	// Copy operation, to save a memory operation.
-	LeaveKeyEmpty bool
-	// LeaveValueEmpty can be set to true to not deep copy the value field of
-	// the node. This is useful if the value is about to be assigned after the
-	// Copy operation, to save a memory operation.
-	LeaveValueEmpty bool
+	// CopyKey can be set to true to deep copy the key field of
+	// the node. This is useful when false if the key is about to
+	// be assigned after the Copy operation, to save a memory operation.
+	CopyKey bool
+	// CopyValue can be set to true to deep copy the value field of
+	// the node. This is useful when false if the value is about to
+	// be assigned after the Copy operation, to save a memory operation.
+	CopyValue bool
 }
 
 // Copy deep copies the branch.
@@ -40,23 +64,28 @@ func (b *Branch) Copy(settings CopySettings) Node {
 	}
 
 	if settings.CopyChildren {
+		// Copy all fields of children if we deep copy children
+		childSettings := settings
+		childSettings.CopyKey = true
+		childSettings.CopyValue = true
+		childSettings.CopyCached = true
 		for i, child := range b.Children {
 			if child == nil {
 				continue
 			}
-			cpy.Children[i] = child.Copy(settings)
+			cpy.Children[i] = child.Copy(childSettings)
 		}
 	} else {
 		cpy.Children = b.Children // copy interface pointers only
 	}
 
-	if !settings.LeaveKeyEmpty && b.Key != nil {
+	if settings.CopyKey && b.Key != nil {
 		cpy.Key = make([]byte, len(b.Key))
 		copy(cpy.Key, b.Key)
 	}
 
 	// nil and []byte{} are encoded differently, watch out!
-	if !settings.LeaveValueEmpty && b.Value != nil {
+	if settings.CopyValue && b.Value != nil {
 		cpy.Value = make([]byte, len(b.Value))
 		copy(cpy.Value, b.Value)
 	}
@@ -83,13 +112,13 @@ func (l *Leaf) Copy(settings CopySettings) Node {
 		Generation: l.Generation,
 	}
 
-	if !settings.LeaveKeyEmpty && l.Key != nil {
+	if settings.CopyKey && l.Key != nil {
 		cpy.Key = make([]byte, len(l.Key))
 		copy(cpy.Key, l.Key)
 	}
 
 	// nil and []byte{} are encoded differently, watch out!
-	if !settings.LeaveValueEmpty && l.Value != nil {
+	if settings.CopyValue && l.Value != nil {
 		cpy.Value = make([]byte, len(l.Value))
 		copy(cpy.Value, l.Value)
 	}

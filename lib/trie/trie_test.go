@@ -110,6 +110,7 @@ func Test_Trie_updateGeneration(t *testing.T) {
 				Generation: 1,
 				Key:        []byte{1},
 			},
+			copySettings: node.DefaultCopySettings(),
 			newNode: &node.Leaf{
 				Generation: 2,
 				Key:        []byte{1},
@@ -124,6 +125,7 @@ func Test_Trie_updateGeneration(t *testing.T) {
 				Key:        []byte{1},
 				HashDigest: []byte{1, 2, 3},
 			},
+			copySettings: node.DefaultCopySettings(),
 			newNode: &node.Leaf{
 				Generation: 2,
 				Key:        []byte{1},
@@ -2043,10 +2045,7 @@ func Test_retrieve(t *testing.T) {
 			t.Parallel()
 
 			// Check no mutation was done
-			copySettings := node.CopySettings{
-				CopyChildren: true,
-				CopyCached:   true,
-			}
+			copySettings := node.DeepCopySettings()
 			var expectedParent Node
 			if testCase.parent != nil {
 				expectedParent = testCase.parent.Copy(copySettings)
