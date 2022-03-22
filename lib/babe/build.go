@@ -238,9 +238,9 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt runtime.Instance) []*t
 }
 
 type UncheckedSignedAvailabilityBitfield struct {
-	Payload []byte
+	Payload        []byte
 	ValidatorIndex uint32
-	Signature []byte
+	Signature      []byte
 }
 
 // /// A unique descriptor of the candidate receipt.
@@ -271,7 +271,6 @@ type UncheckedSignedAvailabilityBitfield struct {
 // }
 
 type CandidateDescriptor struct {
-
 }
 
 // /// Commitments made in a `CandidateReceipt`. Many of these are outputs of validation.
@@ -293,27 +292,26 @@ type CandidateDescriptor struct {
 // }
 
 type CandidateCommitments struct {
-
 }
 
 type CommittedCandidateReceipt struct {
-	Descriptor *CandidateDescriptor
+	Descriptor  *CandidateDescriptor
 	Commitments *CandidateCommitments
 }
 
-type ValidityAttestation struct {}
+type ValidityAttestation struct{}
 
 type BackedCandidate struct {
-	Candidate *CommittedCandidateReceipt
-	ValidityVotes []*ValidityAttestation
+	Candidate        *CommittedCandidateReceipt
+	ValidityVotes    []*ValidityAttestation
 	ValidatorIndices []byte
 }
 
 type ParachainInherentData struct {
-	Bitfields []*UncheckedSignedAvailabilityBitfield
+	Bitfields        []*UncheckedSignedAvailabilityBitfield
 	BackedCandidates []*BackedCandidate
-	Disputes []byte
-	ParentHeader *types.Header
+	Disputes         []byte
+	ParentHeader     *types.Header
 }
 
 func buildBlockInherents(slot Slot, rt runtime.Instance) ([][]byte, error) {
