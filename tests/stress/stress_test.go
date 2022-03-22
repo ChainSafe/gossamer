@@ -38,11 +38,9 @@ func TestMain(m *testing.M) {
 		utils.HOSTNAME = "localhost"
 	}
 
-	utils.CreateConfigNoBabe()
 	utils.CreateDefaultConfig()
 
 	defer func() {
-		os.Remove(utils.ConfigNoBABE)
 		os.Remove(utils.ConfigDefault)
 	}()
 
@@ -218,9 +216,10 @@ func TestSync_SingleSyncingNode(t *testing.T) {
 
 	// start syncing node
 	syncingNodeBasePath := t.TempDir()
+	configPath := utils.CreateConfigNoBabe(t)
 	bob, err := utils.RunGossamer(t, 1,
 		syncingNodeBasePath, genesisPath,
-		utils.ConfigNoBABE, false, false)
+		configPath, false, false)
 	require.NoError(t, err)
 
 	nodes := []utils.Node{alice, bob}
@@ -359,7 +358,8 @@ func TestSync_Restart(t *testing.T) {
 
 	// wait and start rest of nodes
 	time.Sleep(time.Second * 5)
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, genesisPath, utils.ConfigNoBABE)
+	configPath := utils.CreateConfigNoBabe(t)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, genesisPath, configPath)
 	require.NoError(t, err)
 	nodes = append(nodes, node)
 

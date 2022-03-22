@@ -51,8 +51,6 @@ var (
 	ConfigDefault = filepath.Join(currentDir, "../utils/config_default.toml")
 	// ConfigLogGrandpa is a config file where log levels are set to CRIT except for GRANDPA
 	ConfigLogGrandpa = filepath.Join(currentDir, "../utils/config_log_grandpa.toml")
-	// ConfigNoBABE is a config file with BABE disabled
-	ConfigNoBABE = filepath.Join(currentDir, "../utils/config_nobabe.toml")
 )
 
 // Node represents a gossamer process
@@ -521,22 +519,17 @@ func CreateConfigLogGrandpa() {
 	_ = dot.ExportTomlConfig(cfg, ConfigLogGrandpa)
 }
 
-func generateConfigNoBabe() *ctoml.Config {
+// CreateConfigNoBabe generates a no-babe config and writes
+// it to a temporary file for the current test.
+func CreateConfigNoBabe(t *testing.T) (configPath string) {
 	cfg := generateDefaultConfig()
 	cfg.Global.LogLvl = "info"
 	cfg.Log = ctoml.LogConfig{
 		SyncLvl:    "debug",
 		NetworkLvl: "debug",
 	}
-
 	cfg.Core.BabeAuthority = false
-	return cfg
-}
-
-// CreateConfigNoBabe generates and creates no babe config file.
-func CreateConfigNoBabe() {
-	cfg := generateConfigNoBabe()
-	_ = dot.ExportTomlConfig(cfg, ConfigNoBABE)
+	return writeTestTOMLConfig(t, cfg)
 }
 
 // CreateConfigNoGrandpa generates an no-grandpa config and writes
