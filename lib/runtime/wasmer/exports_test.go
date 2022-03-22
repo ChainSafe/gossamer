@@ -22,6 +22,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -89,34 +90,42 @@ func TestInstance_Version_PolkadotRuntime_v0910(t *testing.T) {
 }
 
 func TestInstance_Version_PolkadotRuntime_v0917(t *testing.T) {
-	expected := runtime.NewVersionData(
-		[]byte("polkadot"),
-		[]byte("parity-polkadot"),
-		0,
-		9170,
-		0,
-		nil,
-		11,
-	)
-
 	instance := NewTestInstance(t, runtime.POLKADOT_RUNTIME_v0917)
 	version, err := instance.Version()
 	require.NoError(t, err)
 
-	t.Logf("SpecName: %s\n", version.SpecName())
-	t.Logf("ImplName: %s\n", version.ImplName())
-	t.Logf("AuthoringVersion: %d\n", version.AuthoringVersion())
-	t.Logf("SpecVersion: %d\n", version.SpecVersion())
-	t.Logf("ImplVersion: %d\n", version.ImplVersion())
-	t.Logf("TransactionVersion: %d\n", version.TransactionVersion())
+	expectedSpecName := []byte("polkadot")
+	expectedImplName := []byte("parity-polkadot")
+	const (
+		expectedAuthoringVersion   uint32 = 0
+		expectedSpecVersion        uint32 = 9170
+		expectedImplVersion        uint32 = 0
+		expectedTransactionVersion uint32 = 11
+	)
+	expectedAPIItems := []runtime.APIItem{
+		{Name: [8]uint8{0xdf, 0x6a, 0xcb, 0x68, 0x99, 0x7, 0x60, 0x9b}, Ver: 0x4},
+		{Name: [8]uint8{0x37, 0xe3, 0x97, 0xfc, 0x7c, 0x91, 0xf5, 0xe4}, Ver: 0x1},
+		{Name: [8]uint8{0x40, 0xfe, 0x3a, 0xd4, 0x1, 0xf8, 0x95, 0x9a}, Ver: 0x5},
+		{Name: [8]uint8{0xd2, 0xbc, 0x98, 0x97, 0xee, 0xd0, 0x8f, 0x15}, Ver: 0x3},
+		{Name: [8]uint8{0xf7, 0x8b, 0x27, 0x8b, 0xe5, 0x3f, 0x45, 0x4c}, Ver: 0x2},
+		{Name: [8]uint8{0xaf, 0x2c, 0x2, 0x97, 0xa2, 0x3e, 0x6d, 0x3d}, Ver: 0x2},
+		{Name: [8]uint8{0x49, 0xea, 0xaf, 0x1b, 0x54, 0x8a, 0xc, 0xb0}, Ver: 0x1},
+		{Name: [8]uint8{0x91, 0xd5, 0xdf, 0x18, 0xb0, 0xd2, 0xcf, 0x58}, Ver: 0x1},
+		{Name: [8]uint8{0xed, 0x99, 0xc5, 0xac, 0xb2, 0x5e, 0xed, 0xf5}, Ver: 0x3},
+		{Name: [8]uint8{0xcb, 0xca, 0x25, 0xe3, 0x9f, 0x14, 0x23, 0x87}, Ver: 0x2},
+		{Name: [8]uint8{0x68, 0x7a, 0xd4, 0x4a, 0xd3, 0x7f, 0x3, 0xc2}, Ver: 0x1},
+		{Name: [8]uint8{0xab, 0x3c, 0x5, 0x72, 0x29, 0x1f, 0xeb, 0x8b}, Ver: 0x1},
+		{Name: [8]uint8{0xbc, 0x9d, 0x89, 0x90, 0x4f, 0x5b, 0x92, 0x3f}, Ver: 0x1},
+		{Name: [8]uint8{0x37, 0xc8, 0xbb, 0x13, 0x50, 0xa9, 0xa2, 0xa8}, Ver: 0x1},
+	}
 
-	require.Equal(t, 14, len(version.APIItems()))
-	require.Equal(t, expected.SpecName(), version.SpecName())
-	require.Equal(t, expected.ImplName(), version.ImplName())
-	require.Equal(t, expected.AuthoringVersion(), version.AuthoringVersion())
-	require.Equal(t, expected.SpecVersion(), version.SpecVersion())
-	require.Equal(t, expected.ImplVersion(), version.ImplVersion())
-	require.Equal(t, expected.TransactionVersion(), version.TransactionVersion())
+	assert.Equal(t, expectedAPIItems, version.APIItems())
+	assert.Equal(t, expectedSpecName, version.SpecName())
+	assert.Equal(t, expectedImplName, version.ImplName())
+	assert.Equal(t, expectedAuthoringVersion, version.AuthoringVersion())
+	assert.Equal(t, expectedSpecVersion, version.SpecVersion())
+	assert.Equal(t, expectedImplVersion, version.ImplVersion())
+	assert.Equal(t, expectedTransactionVersion, version.TransactionVersion())
 }
 
 func TestInstance_Version_PolkadotRuntime(t *testing.T) {
