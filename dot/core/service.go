@@ -4,6 +4,7 @@
 package core
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"sync"
@@ -20,7 +21,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-	"github.com/ChainSafe/gossamer/pkg/scale"
+	cscale "github.com/centrifuge/go-substrate-rpc-client/v3/scale"
+	ctypes "github.com/centrifuge/go-substrate-rpc-client/v3/types"
 )
 
 var (
@@ -369,14 +371,9 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 
 		for _, ext := range *body {
 			logger.Tracef("validating transaction on re-org chain for extrinsic %s", ext)
-			encExt, err := scale.Marshal(ext)
-			if err != nil {
-				return err
-			}
-
-			// decode extrinsic and make sure it's not an inherent.
-			decExt := &types.ExtrinsicData{}
-			if err = decExt.DecodeVersion(encExt); err != nil {
+			decExt := &ctypes.Extrinsic{}
+			decoder := cscale.NewDecoder(bytes.NewReader(ext))
+			if err = decoder.Decode(&decExt); err != nil {
 				continue
 			}
 
@@ -385,14 +382,15 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 				continue
 			}
 
-			externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, encExt...))
+			externalExt := make(types.Extrinsic, 0, 1+len(ext))
+			externalExt = append(externalExt, byte(types.TxnExternal))
+			externalExt = append(externalExt, ext...)
 			txv, err := rt.ValidateTransaction(externalExt)
 			if err != nil {
 				logger.Debugf("failed to validate transaction for extrinsic %s: %s", ext, err)
 				continue
 			}
-
-			vtx := transaction.NewValidTransaction(encExt, txv)
+			vtx := transaction.NewValidTransaction(ext, txv)
 			s.transactionState.AddToPool(vtx)
 		}
 	}
