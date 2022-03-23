@@ -450,7 +450,7 @@ func TestHandler_HandleNextEpochData(t *testing.T) {
 	// we need to wait for both handle functions to finish
 	<-ctx.Done()
 
-	stored, err := handler.epochState.(*state.EpochState).GetEpochData(targetEpoch)
+	stored, err := handler.epochState.(*state.EpochState).GetEpochData(targetEpoch, nil)
 	require.NoError(t, err)
 
 	act, ok := digest.Value().(types.NextEpochData)
@@ -519,7 +519,7 @@ func TestHandler_HandleNextConfigData(t *testing.T) {
 		t.Fatal()
 	}
 
-	stored, err := handler.epochState.(*state.EpochState).GetConfigData(targetEpoch)
+	stored, err := handler.epochState.(*state.EpochState).GetConfigData(targetEpoch, nil)
 	require.NoError(t, err)
 	require.Equal(t, act.ToConfigData(), stored)
 }

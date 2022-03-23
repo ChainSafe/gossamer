@@ -4,11 +4,9 @@
 package babe
 
 import (
-	"errors"
 	"fmt"
 	"sync"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -199,13 +197,8 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 }
 
 func (v *VerificationManager) getVerifierInfo(epoch uint64, header *types.Header) (*verifierInfo, error) {
-	epochData, err := v.epochState.GetEpochData(epoch)
-	if errors.Is(chaindb.ErrKeyNotFound, err) {
-		epochData, err = v.epochState.GetEpochDataForHeader(epoch, header)
-		if err != nil {
-			return nil, fmt.Errorf("epoch data was not found for epoch %d: %w", epoch, err)
-		}
-	} else if err != nil {
+	epochData, err := v.epochState.GetEpochData(epoch, header)
+	if err != nil {
 		return nil, fmt.Errorf("failed to get epoch data for epoch %d: %w", epoch, err)
 	}
 
@@ -236,15 +229,7 @@ func (v *VerificationManager) getConfigData(epoch uint64, header *types.Header) 
 			continue
 		}
 
-		configData, err := v.epochState.GetConfigData(uint64(i))
-		if errors.Is(chaindb.ErrKeyNotFound, err) {
-			configData, err = v.epochState.GetConfigDataForHeader(epoch, header)
-			if err != nil {
-				return nil, fmt.Errorf("config data was not found for epoch %d: %w", epoch, err)
-			}
-		}
-
-		return configData, err
+		return v.epochState.GetConfigData(uint64(i), header)
 	}
 
 	return nil, errNoConfigData

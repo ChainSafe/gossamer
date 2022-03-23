@@ -740,7 +740,7 @@ func TestVerificationManager_getConfigData(t *testing.T) {
 	mockEpochStateEmpty.EXPECT().HasConfigData(uint64(0)).Return(false, nil)
 	mockEpochStateHasErr.EXPECT().HasConfigData(uint64(0)).Return(false, errNoConfigData)
 	mockEpochStateGetErr.EXPECT().HasConfigData(uint64(0)).Return(true, nil)
-	mockEpochStateGetErr.EXPECT().GetConfigData(uint64(0)).Return(nil, errNoConfigData)
+	mockEpochStateGetErr.EXPECT().GetConfigData(uint64(0), nil).Return(nil, errNoConfigData)
 
 	vm0, err := NewVerificationManager(mockBlockState, mockEpochStateEmpty)
 	assert.NoError(t, err)
@@ -793,22 +793,22 @@ func TestVerificationManager_getVerifierInfo(t *testing.T) {
 	mockEpochStateThresholdErr := NewMockEpochState(ctrl)
 	mockEpochStateOk := NewMockEpochState(ctrl)
 
-	mockEpochStateGetErr.EXPECT().GetEpochData(uint64(0)).Return(nil, errNoConfigData)
+	mockEpochStateGetErr.EXPECT().GetEpochData(uint64(0), nil).Return(nil, errNoConfigData)
 
-	mockEpochStateHasErr.EXPECT().GetEpochData(uint64(0)).Return(&types.EpochData{}, nil)
+	mockEpochStateHasErr.EXPECT().GetEpochData(uint64(0), nil).Return(&types.EpochData{}, nil)
 	mockEpochStateHasErr.EXPECT().HasConfigData(uint64(0)).Return(false, errNoConfigData)
 
-	mockEpochStateThresholdErr.EXPECT().GetEpochData(uint64(0)).Return(&types.EpochData{}, nil)
+	mockEpochStateThresholdErr.EXPECT().GetEpochData(uint64(0), nil).Return(&types.EpochData{}, nil)
 	mockEpochStateThresholdErr.EXPECT().HasConfigData(uint64(0)).Return(true, nil)
-	mockEpochStateThresholdErr.EXPECT().GetConfigData(uint64(0)).
+	mockEpochStateThresholdErr.EXPECT().GetConfigData(uint64(0), nil).
 		Return(&types.ConfigData{
 			C1: 3,
 			C2: 1,
 		}, nil)
 
-	mockEpochStateOk.EXPECT().GetEpochData(uint64(0)).Return(&types.EpochData{}, nil)
+	mockEpochStateOk.EXPECT().GetEpochData(uint64(0), nil).Return(&types.EpochData{}, nil)
 	mockEpochStateOk.EXPECT().HasConfigData(uint64(0)).Return(true, nil)
-	mockEpochStateOk.EXPECT().GetConfigData(uint64(0)).
+	mockEpochStateOk.EXPECT().GetConfigData(uint64(0), nil).
 		Return(&types.ConfigData{
 			C1: 1,
 			C2: 3,
@@ -905,15 +905,15 @@ func TestVerificationManager_VerifyBlock(t *testing.T) {
 		Return(uint64(0), errGetEpoch)
 
 	mockEpochStateSkipVerifyErr.EXPECT().GetEpochForBlock(testBlockHeaderEmpty).Return(uint64(1), nil)
-	mockEpochStateSkipVerifyErr.EXPECT().GetEpochData(uint64(1)).Return(nil, errGetEpochData)
+	mockEpochStateSkipVerifyErr.EXPECT().GetEpochData(uint64(1), nil).Return(nil, errGetEpochData)
 	mockEpochStateSkipVerifyErr.EXPECT().SkipVerify(testBlockHeaderEmpty).Return(false, errSkipVerify)
 
 	mockEpochStateSkipVerifyTrue.EXPECT().GetEpochForBlock(testBlockHeaderEmpty).Return(uint64(1), nil)
-	mockEpochStateSkipVerifyTrue.EXPECT().GetEpochData(uint64(1)).Return(nil, errGetEpochData)
+	mockEpochStateSkipVerifyTrue.EXPECT().GetEpochData(uint64(1), nil).Return(nil, errGetEpochData)
 	mockEpochStateSkipVerifyTrue.EXPECT().SkipVerify(testBlockHeaderEmpty).Return(true, nil)
 
 	mockEpochStateGetVerifierInfoErr.EXPECT().GetEpochForBlock(testBlockHeaderEmpty).Return(uint64(1), nil)
-	mockEpochStateGetVerifierInfoErr.EXPECT().GetEpochData(uint64(1)).
+	mockEpochStateGetVerifierInfoErr.EXPECT().GetEpochData(uint64(1), nil).
 		Return(nil, errGetEpochData)
 	mockEpochStateGetVerifierInfoErr.EXPECT().SkipVerify(testBlockHeaderEmpty).Return(false, nil)
 
@@ -1065,7 +1065,7 @@ func TestVerificationManager_SetOnDisabled(t *testing.T) {
 	mockEpochStateGetEpochErr.EXPECT().GetEpochForBlock(types.NewEmptyHeader()).Return(uint64(0), errGetEpoch)
 
 	mockEpochStateGetEpochDataErr.EXPECT().GetEpochForBlock(types.NewEmptyHeader()).Return(uint64(0), nil)
-	mockEpochStateGetEpochDataErr.EXPECT().GetEpochData(uint64(0)).Return(nil, errGetEpochData)
+	mockEpochStateGetEpochDataErr.EXPECT().GetEpochData(uint64(0), nil).Return(nil, errGetEpochData)
 
 	mockEpochStateIndexLenErr.EXPECT().GetEpochForBlock(types.NewEmptyHeader()).Return(uint64(2), nil)
 

@@ -104,7 +104,7 @@ func TestEpochState_EpochData(t *testing.T) {
 
 	err = s.SetEpochData(1, info)
 	require.NoError(t, err)
-	res, err := s.GetEpochData(1)
+	res, err := s.GetEpochData(1, nil)
 	require.NoError(t, err)
 	require.Equal(t, info.Randomness, res.Randomness)
 
@@ -159,7 +159,7 @@ func TestEpochState_ConfigData(t *testing.T) {
 	err := s.SetConfigData(1, data)
 	require.NoError(t, err)
 
-	ret, err := s.GetConfigData(1)
+	ret, err := s.GetConfigData(1, nil)
 	require.NoError(t, err)
 	require.Equal(t, data, ret)
 
@@ -422,7 +422,7 @@ func TestStoreAndFinalizeBabeNextEpochData(t *testing.T) {
 				expected, err := expectedNextEpochData.ToEpochData()
 				require.NoError(t, err)
 
-				gotNextEpochData, err := epochState.GetEpochData(tt.finalizeEpoch)
+				gotNextEpochData, err := epochState.GetEpochData(tt.finalizeEpoch, nil)
 				require.NoError(t, err)
 
 				require.Equal(t, expected, gotNextEpochData)
@@ -609,7 +609,7 @@ func TestStoreAndFinalizeBabeNextConfigData(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 
-				gotConfigData, err := epochState.GetConfigData(tt.finalizeEpoch)
+				gotConfigData, err := epochState.GetConfigData(tt.finalizeEpoch, nil)
 				require.NoError(t, err)
 				require.Equal(t, expectedConfigData.ToConfigData(), gotConfigData)
 			}
