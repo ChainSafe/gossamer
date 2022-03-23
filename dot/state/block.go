@@ -183,8 +183,8 @@ func (bs *BlockState) GenesisHash() common.Hash {
 	return bs.genesisHash
 }
 
-// HasHeader returns if the hash are stored in the memory unfinalised blocks or
-// persisted in database
+// HasHeader returns true if the hash is part of the unfinalised blocks in-memory or
+// persisted in the database.
 func (bs *BlockState) HasHeader(hash common.Hash) (bool, error) {
 	if bs.unfinalisedBlocks.getBlock(hash) != nil {
 		return true, nil
