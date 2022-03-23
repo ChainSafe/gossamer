@@ -190,7 +190,7 @@ func TestMessageTracker_handleTick(t *testing.T) {
 	gs, in, _, _ := setupGrandpa(t, kr.Bob().(*ed25519.Keypair))
 	gs.tracker = newTracker(gs.blockState, gs.messageHandler)
 
-	var testHash common.Hash = [32]byte{1, 2, 3}
+	testHash := common.Hash{1, 2, 3}
 	msg := &VoteMessage{
 		Round: 100,
 		Message: SignedMessage{
