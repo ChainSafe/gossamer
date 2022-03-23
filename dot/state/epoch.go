@@ -17,8 +17,9 @@ import (
 )
 
 var (
-	ErrEpochNotFound = errors.New("epoch not found at in memory map")
-	errNotPersisted  = errors.New("hash with next epoch not found in database")
+	ErrEpochNotInMemory = errors.New("epoch not found in memory map")
+	errHashNotInMemory  = errors.New("hash not found in memory map")
+	errNotPersisted     = errors.New("hash with next epoch not found in database")
 )
 
 var (
@@ -55,9 +56,9 @@ type EpochState struct {
 
 	nextEpochLock sync.RWMutex
 
-	// nextEpochData and nextConfigData is splited into
-	// epoch (uint64) and the block hash (common.Hash) that contains the digest
-	nextEpochData  map[uint64]map[common.Hash]types.NextEpochData
+	// nextEpochData follows the format map[epoch]map[block hash]next epoch data
+	nextEpochData map[uint64]map[common.Hash]types.NextEpochData
+	// nextConfigData follows the format map[epoch]map[block hash]next config data
 	nextConfigData map[uint64]map[common.Hash]types.NextConfigData
 }
 
@@ -261,7 +262,7 @@ func (s *EpochState) GetEpochDataForHeader(epoch uint64, header *types.Header) (
 
 	atEpoch, has := s.nextEpochData[epoch]
 	if !has {
-		return nil, fmt.Errorf("epoch %d not found in memory stored epoch data", epoch)
+		return nil, fmt.Errorf("%w: %d", ErrEpochNotInMemory, epoch)
 	}
 
 	headerHash := header.Hash()
@@ -277,7 +278,7 @@ func (s *EpochState) GetEpochDataForHeader(epoch uint64, header *types.Header) (
 		}
 	}
 
-	return nil, fmt.Errorf("cannot find epoch data for header %s", headerHash)
+	return nil, fmt.Errorf("%w: %s", errHashNotInMemory, headerHash)
 }
 
 // GetLatestEpochData returns the EpochData for the current epoch
@@ -293,15 +294,19 @@ func (s *EpochState) GetLatestEpochData() (*types.EpochData, error) {
 // HasEpochData returns whether epoch data exists for a given epoch
 func (s *EpochState) HasEpochData(epoch uint64) (bool, error) {
 	has, err := s.db.Has(epochDataKey(epoch))
-	if errors.Is(chaindb.ErrKeyNotFound, err) {
-		s.nextEpochLock.Lock()
-		defer s.nextEpochLock.Unlock()
-
-		_, has = s.nextEpochData[epoch]
+	if err == nil && has {
 		return has, nil
 	}
 
-	return has, err
+	if !errors.Is(chaindb.ErrKeyNotFound, err) {
+		return false, fmt.Errorf("cannot check database for epoch key %d: %w", epoch, err)
+	}
+
+	s.nextEpochLock.Lock()
+	defer s.nextEpochLock.Unlock()
+
+	_, has = s.nextEpochData[epoch]
+	return has, nil
 }
 
 // SetConfigData sets the BABE config data for a given epoch
@@ -348,7 +353,7 @@ func (s *EpochState) GetConfigDataForHeader(epoch uint64, header *types.Header) 
 
 	atEpoch, has := s.nextConfigData[epoch]
 	if !has {
-		return nil, fmt.Errorf("epoch %d not found in memory stored config data", epoch)
+		return nil, fmt.Errorf("%w: %d", ErrEpochNotInMemory, epoch)
 	}
 
 	headerHash := header.Hash()
@@ -364,7 +369,7 @@ func (s *EpochState) GetConfigDataForHeader(epoch uint64, header *types.Header) 
 		}
 	}
 
-	return nil, fmt.Errorf("cannot find config data for header %s", headerHash)
+	return nil, fmt.Errorf("%w: %s", errHashNotInMemory, headerHash)
 }
 
 // GetLatestConfigData returns the most recently set ConfigData
@@ -381,16 +386,19 @@ func (s *EpochState) GetLatestConfigData() (*types.ConfigData, error) {
 // HasConfigData returns whether config data exists for a given epoch
 func (s *EpochState) HasConfigData(epoch uint64) (bool, error) {
 	has, err := s.db.Has(configDataKey(epoch))
-
-	if !has || errors.Is(chaindb.ErrKeyNotFound, err) {
-		s.nextEpochLock.Lock()
-		defer s.nextEpochLock.Unlock()
-
-		_, has = s.nextConfigData[epoch]
+	if err == nil && has {
 		return has, nil
 	}
 
-	return has, err
+	if !errors.Is(chaindb.ErrKeyNotFound, err) {
+		return false, fmt.Errorf("cannot check database for epoch key %d: %w", epoch, err)
+	}
+
+	s.nextEpochLock.Lock()
+	defer s.nextEpochLock.Unlock()
+
+	_, has = s.nextConfigData[epoch]
+	return has, nil
 }
 
 // GetStartSlotForEpoch returns the first slot in the given epoch.
@@ -554,7 +562,7 @@ func (s *EpochState) FinalizeBABENextConfigData(epoch uint64) error {
 func (s *EpochState) lookForPersistedHashForEpochData(epoch uint64) (types.NextEpochData, error) {
 	epochData, has := s.nextEpochData[epoch]
 	if !has {
-		return types.NextEpochData{}, ErrEpochNotFound
+		return types.NextEpochData{}, ErrEpochNotInMemory
 	}
 
 	for hash, inMemoryEpochData := range epochData {
@@ -576,7 +584,7 @@ func (s *EpochState) lookForPersistedHashForEpochData(epoch uint64) (types.NextE
 func (s *EpochState) lookForPersistedHashForConfigData(epoch uint64) (types.NextConfigData, error) {
 	configData, has := s.nextConfigData[epoch]
 	if !has {
-		return types.NextConfigData{}, ErrEpochNotFound
+		return types.NextConfigData{}, ErrEpochNotInMemory
 	}
 
 	for hash, inMemoryNextConfigData := range configData {
