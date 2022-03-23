@@ -193,7 +193,7 @@ func (bs *BlockState) HasHeader(hash common.Hash) (bool, error) {
 	return bs.db.Has(headerKey(hash))
 }
 
-// HasHeaderInDatabase returns if only database contains a header with the given hash
+// HasHeaderInDatabase returns true if the database contains a header with the given hash
 func (bs *BlockState) HasHeaderInDatabase(hash common.Hash) (bool, error) {
 	return bs.db.Has(headerKey(hash))
 }
