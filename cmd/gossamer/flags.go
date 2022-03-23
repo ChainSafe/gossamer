@@ -456,7 +456,7 @@ var (
 // local flag sets for the root gossamer command and all subcommands
 var (
 	// RootFlags are the flags that are valid for use with the root gossamer command
-	RootFlags = append(GlobalFlags, StartupFlags...)
+	RootFlags = append(append(GlobalFlags, StartupFlags...), GenesisFlag)
 
 	// InitFlags are flags that are valid for use with the init subcommand
 	InitFlags = append([]cli.Flag{
