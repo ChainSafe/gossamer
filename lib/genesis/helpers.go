@@ -595,12 +595,7 @@ func buildBalances(kv *keyValue, res map[string]string) error {
 			accInfo := types.AccountInfo{
 				Nonce: 0,
 				//RefCount: 0,
-				Data: struct {
-					Free       *scale.Uint128
-					Reserved   *scale.Uint128
-					MiscFrozen *scale.Uint128
-					FreeFrozen *scale.Uint128
-				}{
+				Data: types.AccountData{
 					Free:       scale.MustNewUint128(kv.iVal[i+1].(*big.Int)),
 					Reserved:   scale.MustNewUint128(big.NewInt(0)),
 					MiscFrozen: scale.MustNewUint128(big.NewInt(0)),
