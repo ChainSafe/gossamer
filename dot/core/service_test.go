@@ -4,14 +4,18 @@
 package core
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	testdata "github.com/ChainSafe/gossamer/dot/rpc/modules/test_data"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	mocksruntime "github.com/ChainSafe/gossamer/lib/runtime/mocks"
@@ -19,6 +23,10 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/pkg/scale"
+	cscale "github.com/centrifuge/go-substrate-rpc-client/v3/scale"
+	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
+	ctypes "github.com/centrifuge/go-substrate-rpc-client/v3/types"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -26,6 +34,87 @@ import (
 )
 
 var errTestDummyError = errors.New("test dummy error")
+
+const (
+	authoringVersion   = 0
+	specVersion        = 25
+	implVersion        = 0
+	transactionVersion = 0
+)
+
+func generateTestCentrifugeMetadata(t *testing.T) *ctypes.Metadata {
+	t.Helper()
+	metadataHex := testdata.NewTestMetadata()
+	rawMeta, err := common.HexToBytes(metadataHex)
+	require.NoError(t, err)
+	var decoded []byte
+	err = scale.Unmarshal(rawMeta, &decoded)
+	require.NoError(t, err)
+
+	meta := &ctypes.Metadata{}
+	err = ctypes.DecodeFromBytes(decoded, meta)
+	require.NoError(t, err)
+	return meta
+}
+
+func generateExtrinsic(t *testing.T) (extrinsic, externalExtrinsic types.Extrinsic, body *types.Body) {
+	t.Helper()
+	meta := generateTestCentrifugeMetadata(t)
+
+	testAPIItem := runtime.APIItem{
+		Name: [8]byte{1, 2, 3, 4, 5, 6, 7, 8},
+		Ver:  99,
+	}
+	rv := runtime.NewVersionData(
+		[]byte("polkadot"),
+		[]byte("parity-polkadot"),
+		authoringVersion,
+		specVersion,
+		implVersion,
+		[]runtime.APIItem{testAPIItem},
+		transactionVersion,
+	)
+
+	keyring, err := keystore.NewSr25519Keyring()
+	require.NoError(t, err)
+	bobPub := keyring.Bob().Public().Hex()
+
+	bob, err := ctypes.NewMultiAddressFromHexAccountID(bobPub)
+	require.NoError(t, err)
+
+	const balanceTransfer = "Balances.transfer"
+	call, err := ctypes.NewCall(meta, balanceTransfer, bob, ctypes.NewUCompactFromUInt(12345))
+	require.NoError(t, err)
+
+	// Create the extrinsic
+	centrifugeExtrinsic := ctypes.NewExtrinsic(call)
+	testGenHash := ctypes.NewHash(common.Hash{}.ToBytes())
+	require.NoError(t, err)
+	o := ctypes.SignatureOptions{
+		BlockHash:          testGenHash,
+		Era:                ctypes.ExtrinsicEra{IsImmortalEra: true},
+		GenesisHash:        testGenHash,
+		Nonce:              ctypes.NewUCompactFromUInt(uint64(0)),
+		SpecVersion:        ctypes.U32(rv.SpecVersion()),
+		Tip:                ctypes.NewUCompactFromUInt(0),
+		TransactionVersion: ctypes.U32(rv.TransactionVersion()),
+	}
+
+	// Sign the transaction using Alice's default account
+	err = centrifugeExtrinsic.Sign(signature.TestKeyringPairAlice, o)
+	require.NoError(t, err)
+
+	// Encode the signed extrinsic
+	extEnc := bytes.Buffer{}
+	encoder := cscale.NewEncoder(&extEnc)
+	err = centrifugeExtrinsic.Encode(*encoder)
+	require.NoError(t, err)
+
+	encExt := []types.Extrinsic{extEnc.Bytes()}
+	testExternalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, encExt[0]...))
+	testUnencryptedBody := types.NewBody(encExt)
+	return encExt[0], testExternalExt, testUnencryptedBody
+}
 
 func Test_Service_StorageRoot(t *testing.T) {
 	t.Parallel()
@@ -68,15 +157,15 @@ func Test_Service_StorageRoot(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			s := tt.service
+			service := tt.service
 			if tt.trieStateCall {
 				ctrl := gomock.NewController(t)
 				mockStorageState := NewMockStorageState(ctrl)
 				mockStorageState.EXPECT().TrieState(nil).Return(tt.retTrieState, tt.retErr)
-				s.storageState = mockStorageState
+				service.storageState = mockStorageState
 			}
 
-			res, err := s.StorageRoot()
+			res, err := service.StorageRoot()
 			assert.ErrorIs(t, err, tt.expErr)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErrMsg)
@@ -102,8 +191,8 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 	testRuntime := []byte{21}
 	t.Run("nil value", func(t *testing.T) {
 		t.Parallel()
-		s := &Service{codeSubstitute: map[common.Hash]string{}}
-		err := s.handleCodeSubstitution(common.Hash{}, nil, newTestInstance)
+		service := &Service{codeSubstitute: map[common.Hash]string{}}
+		err := service.handleCodeSubstitution(common.Hash{}, nil, newTestInstance)
 		assert.NoError(t, err)
 	})
 
@@ -118,11 +207,11 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().GetRuntime(&blockHash).Return(nil, errTestDummyError)
-		s := &Service{
+		service := &Service{
 			codeSubstitute: testCodeSubstitute,
 			blockState:     mockBlockState,
 		}
-		execTest(t, s, blockHash, errTestDummyError)
+		execTest(t, service, blockHash, errTestDummyError)
 	})
 
 	t.Run("code substitute error", func(t *testing.T) {
@@ -144,12 +233,12 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 		mockBlockState.EXPECT().GetRuntime(&blockHash).Return(runtimeMock, nil)
 		mockCodeSubState := NewMockCodeSubstitutedState(ctrl)
 		mockCodeSubState.EXPECT().StoreCodeSubstitutedBlockHash(blockHash).Return(errTestDummyError)
-		s := &Service{
+		service := &Service{
 			codeSubstitute:       testCodeSubstitute,
 			blockState:           mockBlockState,
 			codeSubstitutedState: mockCodeSubState,
 		}
-		execTest(t, s, blockHash, errTestDummyError)
+		execTest(t, service, blockHash, errTestDummyError)
 	})
 
 	t.Run("happyPath", func(t *testing.T) {
@@ -172,12 +261,12 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 		mockBlockState.EXPECT().StoreRuntime(blockHash, gomock.Any())
 		mockCodeSubState := NewMockCodeSubstitutedState(ctrl)
 		mockCodeSubState.EXPECT().StoreCodeSubstitutedBlockHash(blockHash).Return(nil)
-		s := &Service{
+		service := &Service{
 			codeSubstitute:       testCodeSubstitute,
 			blockState:           mockBlockState,
 			codeSubstitutedState: mockCodeSubState,
 		}
-		err := s.handleCodeSubstitution(blockHash, nil, newTestInstance)
+		err := service.handleCodeSubstitution(blockHash, nil, newTestInstance)
 		assert.NoError(t, err)
 	})
 }
@@ -193,8 +282,8 @@ func Test_Service_handleBlock(t *testing.T) {
 	}
 	t.Run("nil input", func(t *testing.T) {
 		t.Parallel()
-		s := &Service{}
-		execTest(t, s, nil, nil, ErrNilBlockHandlerParameter)
+		service := &Service{}
+		execTest(t, service, nil, nil, ErrNilBlockHandlerParameter)
 	})
 
 	t.Run("storeTrie error", func(t *testing.T) {
@@ -211,8 +300,8 @@ func Test_Service_handleBlock(t *testing.T) {
 		mockStorageState := NewMockStorageState(ctrl)
 		mockStorageState.EXPECT().StoreTrie(trieState, &block.Header).Return(errTestDummyError)
 
-		s := &Service{storageState: mockStorageState}
-		execTest(t, s, &block, trieState, errTestDummyError)
+		service := &Service{storageState: mockStorageState}
+		execTest(t, service, &block, trieState, errTestDummyError)
 	})
 
 	t.Run("addBlock quit error", func(t *testing.T) {
@@ -231,11 +320,11 @@ func Test_Service_handleBlock(t *testing.T) {
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().AddBlock(&block).Return(errTestDummyError)
 
-		s := &Service{
+		service := &Service{
 			storageState: mockStorageState,
 			blockState:   mockBlockState,
 		}
-		execTest(t, s, &block, trieState, errTestDummyError)
+		execTest(t, service, &block, trieState, errTestDummyError)
 	})
 
 	t.Run("addBlock parent not found error", func(t *testing.T) {
@@ -254,11 +343,11 @@ func Test_Service_handleBlock(t *testing.T) {
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().AddBlock(&block).Return(blocktree.ErrParentNotFound)
 
-		s := &Service{
+		service := &Service{
 			storageState: mockStorageState,
 			blockState:   mockBlockState,
 		}
-		execTest(t, s, &block, trieState, blocktree.ErrParentNotFound)
+		execTest(t, service, &block, trieState, blocktree.ErrParentNotFound)
 	})
 
 	t.Run("addBlock error continue", func(t *testing.T) {
@@ -280,12 +369,12 @@ func Test_Service_handleBlock(t *testing.T) {
 		mockDigestHandler := NewMockDigestHandler(ctrl)
 		mockDigestHandler.EXPECT().HandleDigests(&block.Header)
 
-		s := &Service{
+		service := &Service{
 			storageState:  mockStorageState,
 			blockState:    mockBlockState,
 			digestHandler: mockDigestHandler,
 		}
-		execTest(t, s, &block, trieState, errTestDummyError)
+		execTest(t, service, &block, trieState, errTestDummyError)
 	})
 
 	t.Run("handle runtime changes error", func(t *testing.T) {
@@ -310,12 +399,12 @@ func Test_Service_handleBlock(t *testing.T) {
 		mockDigestHandler := NewMockDigestHandler(ctrl)
 		mockDigestHandler.EXPECT().HandleDigests(&block.Header)
 
-		s := &Service{
+		service := &Service{
 			storageState:  mockStorageState,
 			blockState:    mockBlockState,
 			digestHandler: mockDigestHandler,
 		}
-		execTest(t, s, &block, trieState, errTestDummyError)
+		execTest(t, service, &block, trieState, errTestDummyError)
 	})
 
 	t.Run("code substitution ok", func(t *testing.T) {
@@ -339,13 +428,13 @@ func Test_Service_handleBlock(t *testing.T) {
 		mockDigestHandler := NewMockDigestHandler(ctrl)
 		mockDigestHandler.EXPECT().HandleDigests(&block.Header)
 
-		s := &Service{
+		service := &Service{
 			storageState:  mockStorageState,
 			blockState:    mockBlockState,
 			digestHandler: mockDigestHandler,
 			ctx:           context.Background(),
 		}
-		execTest(t, s, &block, trieState, nil)
+		execTest(t, service, &block, trieState, nil)
 	})
 }
 
@@ -360,8 +449,8 @@ func Test_Service_HandleBlockProduced(t *testing.T) {
 	}
 	t.Run("nil input", func(t *testing.T) {
 		t.Parallel()
-		s := &Service{}
-		execTest(t, s, nil, nil, ErrNilBlockHandlerParameter)
+		service := &Service{}
+		execTest(t, service, nil, nil, ErrNilBlockHandlerParameter)
 	})
 
 	t.Run("happy path", func(t *testing.T) {
@@ -404,14 +493,14 @@ func Test_Service_HandleBlockProduced(t *testing.T) {
 		mockNetwork := NewMockNetwork(ctrl)
 		mockNetwork.EXPECT().GossipMessage(msg)
 
-		s := &Service{
+		service := &Service{
 			storageState:  mockStorageState,
 			blockState:    mockBlockState,
 			digestHandler: mockDigestHandler,
 			net:           mockNetwork,
 			ctx:           context.Background(),
 		}
-		execTest(t, s, &block, trieState, nil)
+		execTest(t, service, &block, trieState, nil)
 	})
 }
 
@@ -444,11 +533,11 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 		mockTxnState.EXPECT().PendingInPool().Return([]*transaction.ValidTransaction{vt})
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().GetRuntime(nil).Return(runtimeMock, nil)
-		s := &Service{
+		service := &Service{
 			transactionState: mockTxnState,
 			blockState:       mockBlockState,
 		}
-		s.maintainTransactionPool(&block)
+		service.maintainTransactionPool(&block)
 	})
 
 	t.Run("Validate Transaction ok", func(t *testing.T) {
@@ -482,11 +571,11 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 		mockTxnState.EXPECT().RemoveExtrinsicFromPool(types.Extrinsic{21})
 		mockBlockStateOk := NewMockBlockState(ctrl)
 		mockBlockStateOk.EXPECT().GetRuntime(nil).Return(runtimeMock, nil)
-		s := &Service{
+		service := &Service{
 			transactionState: mockTxnState,
 			blockState:       mockBlockStateOk,
 		}
-		s.maintainTransactionPool(&block)
+		service.maintainTransactionPool(&block)
 	})
 }
 
@@ -500,12 +589,12 @@ func Test_Service_handleBlocksAsync(t *testing.T) {
 		blockAddChan := make(chan *types.Block)
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
-		s := &Service{
+		service := &Service{
 			blockState: mockBlockState,
 			blockAddCh: blockAddChan,
 			ctx:        ctx,
 		}
-		s.handleBlocksAsync()
+		service.handleBlocksAsync()
 	})
 
 	t.Run("channel not ok", func(t *testing.T) {
@@ -515,12 +604,12 @@ func Test_Service_handleBlocksAsync(t *testing.T) {
 		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{})
 		blockAddChan := make(chan *types.Block)
 		close(blockAddChan)
-		s := &Service{
+		service := &Service{
 			blockState: mockBlockState,
 			blockAddCh: blockAddChan,
 			ctx:        context.Background(),
 		}
-		s.handleBlocksAsync()
+		service.handleBlocksAsync()
 	})
 
 	t.Run("nil block", func(t *testing.T) {
@@ -533,12 +622,12 @@ func Test_Service_handleBlocksAsync(t *testing.T) {
 			blockAddChan <- nil
 			close(blockAddChan)
 		}()
-		s := &Service{
+		service := &Service{
 			blockState: mockBlockState,
 			blockAddCh: blockAddChan,
 			ctx:        context.Background(),
 		}
-		s.handleBlocksAsync()
+		service.handleBlocksAsync()
 	})
 
 	t.Run("handleChainReorg error", func(t *testing.T) {
@@ -576,12 +665,710 @@ func Test_Service_handleBlocksAsync(t *testing.T) {
 			blockAddChan <- &block
 			close(blockAddChan)
 		}()
-		s := &Service{
+		service := &Service{
 			blockState:       mockBlockState,
 			transactionState: mockTxnStateErr,
 			blockAddCh:       blockAddChan,
 			ctx:              context.Background(),
 		}
-		s.handleBlocksAsync()
+		service.handleBlocksAsync()
+	})
+}
+
+func TestService_handleChainReorg(t *testing.T) {
+	t.Parallel()
+	execTest := func(t *testing.T, s *Service, prevHash common.Hash, currHash common.Hash, expErr error) {
+		err := s.handleChainReorg(prevHash, currHash)
+		assert.ErrorIs(t, err, expErr)
+		if expErr != nil {
+			assert.EqualError(t, err, expErr.Error())
+		}
+	}
+
+	testPrevHash := common.MustHexToHash("0x01")
+	testCurrentHash := common.MustHexToHash("0x02")
+	testAncestorHash := common.MustHexToHash("0x03")
+	testSubChain := []common.Hash{testPrevHash, testCurrentHash, testAncestorHash}
+
+	// A valid extrinsic is needed since it will be validated in handleChainReorg
+	ext, externExt, body := generateExtrinsic(t)
+	testValidity := &transaction.Validity{Propagate: true}
+	vtx := transaction.NewValidTransaction(ext, testValidity)
+
+	t.Run("highest common ancestor err", func(t *testing.T) {
+		t.Parallel()
+		ctrl := gomock.NewController(t)
+		mockBlockState := NewMockBlockState(ctrl)
+		mockBlockState.EXPECT().HighestCommonAncestor(testPrevHash, testCurrentHash).
+			Return(common.Hash{}, errDummyErr)
+
+		service := &Service{
+			blockState: mockBlockState,
+		}
+		execTest(t, service, testPrevHash, testCurrentHash, errDummyErr)
+	})
+
+	t.Run("highest common ancestor err", func(t *testing.T) {
+		t.Parallel()
+		ctrl := gomock.NewController(t)
+		mockBlockState := NewMockBlockState(ctrl)
+		mockBlockState.EXPECT().HighestCommonAncestor(testPrevHash, testCurrentHash).
+			Return(common.Hash{}, errDummyErr)
+
+		service := &Service{
+			blockState: mockBlockState,
+		}
+		execTest(t, service, testPrevHash, testCurrentHash, errDummyErr)
+	})
+
+	t.Run("ancestor eq priv", func(t *testing.T) {
+		t.Parallel()
+		ctrl := gomock.NewController(t)
+		mockBlockState := NewMockBlockState(ctrl)
+		mockBlockState.EXPECT().HighestCommonAncestor(testPrevHash, testCurrentHash).
+			Return(testPrevHash, nil)
+
+		service := &Service{
+			blockState: mockBlockState,
+		}
+		execTest(t, service, testPrevHash, testCurrentHash, nil)
+	})
+
+	t.Run("subchain err", func(t *testing.T) {
+		t.Parallel()
+		ctrl := gomock.NewController(t)
+		mockBlockState := NewMockBlockState(ctrl)
+		mockBlockState.EXPECT().HighestCommonAncestor(testPrevHash, testCurrentHash).
+			Return(testAncestorHash, nil)
+		mockBlockState.EXPECT().SubChain(testAncestorHash, testPrevHash).Return([]common.Hash{}, errDummyErr)
+
+		service := &Service{
+			blockState: mockBlockState,
+		}
+		execTest(t, service, testPrevHash, testCurrentHash, errDummyErr)
+	})
+
+	t.Run("empty subchain", func(t *testing.T) {
+		t.Parallel()
+		ctrl := gomock.NewController(t)
+		mockBlockState := NewMockBlockState(ctrl)
+		mockBlockState.EXPECT().HighestCommonAncestor(testPrevHash, testCurrentHash).
+			Return(testAncestorHash, nil)
+		mockBlockState.EXPECT().SubChain(testAncestorHash, testPrevHash).Return([]common.Hash{}, nil)
+
+		service := &Service{
+			blockState: mockBlockState,
+		}
+		execTest(t, service, testPrevHash, testCurrentHash, nil)
+	})
+
+	t.Run("get runtime err", func(t *testing.T) {
+		t.Parallel()
+		ctrl := gomock.NewController(t)
+		mockBlockState := NewMockBlockState(ctrl)
+		mockBlockState.EXPECT().HighestCommonAncestor(testPrevHash, testCurrentHash).
+			Return(testAncestorHash, nil)
+		mockBlockState.EXPECT().SubChain(testAncestorHash, testPrevHash).Return(testSubChain, nil)
+		mockBlockState.EXPECT().GetRuntime(nil).Return(nil, errDummyErr)
+
+		service := &Service{
+			blockState: mockBlockState,
+		}
+		execTest(t, service, testPrevHash, testCurrentHash, errDummyErr)
+	})
+
+	t.Run("invalid transaction", func(t *testing.T) {
+		t.Parallel()
+		ctrl := gomock.NewController(t)
+		runtimeMockErr := new(mocksruntime.Instance)
+		mockBlockState := NewMockBlockState(ctrl)
+		mockBlockState.EXPECT().HighestCommonAncestor(testPrevHash, testCurrentHash).
+			Return(testAncestorHash, nil)
+		mockBlockState.EXPECT().SubChain(testAncestorHash, testPrevHash).Return(testSubChain, nil)
+		mockBlockState.EXPECT().GetRuntime(nil).Return(runtimeMockErr, nil)
+		mockBlockState.EXPECT().GetBlockBody(testCurrentHash).Return(nil, errDummyErr)
+		mockBlockState.EXPECT().GetBlockBody(testAncestorHash).Return(body, nil)
+		runtimeMockErr.On("ValidateTransaction", externExt).Return(nil, errTestDummyError)
+
+		service := &Service{
+			blockState: mockBlockState,
+		}
+		execTest(t, service, testPrevHash, testCurrentHash, nil)
+	})
+
+	t.Run("happy path", func(t *testing.T) {
+		t.Parallel()
+		ctrl := gomock.NewController(t)
+		runtimeMockOk := new(mocksruntime.Instance)
+		mockBlockState := NewMockBlockState(ctrl)
+		mockBlockState.EXPECT().HighestCommonAncestor(testPrevHash, testCurrentHash).
+			Return(testAncestorHash, nil)
+		mockBlockState.EXPECT().SubChain(testAncestorHash, testPrevHash).Return(testSubChain, nil)
+		mockBlockState.EXPECT().GetRuntime(nil).Return(runtimeMockOk, nil)
+		mockBlockState.EXPECT().GetBlockBody(testCurrentHash).Return(nil, errDummyErr)
+		mockBlockState.EXPECT().GetBlockBody(testAncestorHash).Return(body, nil)
+		runtimeMockOk.On("ValidateTransaction", externExt).
+			Return(testValidity, nil)
+		mockTxnStateOk := NewMockTransactionState(ctrl)
+		mockTxnStateOk.EXPECT().AddToPool(vtx).Return(common.Hash{})
+
+		service := &Service{
+			blockState:       mockBlockState,
+			transactionState: mockTxnStateOk,
+		}
+		execTest(t, service, testPrevHash, testCurrentHash, nil)
+	})
+}
+
+func TestServiceInsertKey(t *testing.T) {
+	t.Parallel()
+	keyStore := keystore.GlobalKeystore{
+		Babe: keystore.NewBasicKeystore(keystore.BabeName, crypto.Sr25519Type),
+	}
+
+	keyring, _ := keystore.NewSr25519Keyring()
+	aliceKeypair := keyring.Alice().(*sr25519.Keypair)
+	type args struct {
+		kp           crypto.Keypair
+		keystoreType string
+	}
+	tests := []struct {
+		name      string
+		service   *Service
+		args      args
+		expErr    error
+		expErrMsg string
+	}{
+		{
+			name: "ok case",
+			service: &Service{
+				keys: &keyStore,
+			},
+			args: args{
+				kp:           aliceKeypair,
+				keystoreType: string(keystore.BabeName),
+			},
+		},
+		{
+			name: "err case",
+			service: &Service{
+				keys: &keyStore,
+			},
+			args: args{
+				kp:           aliceKeypair,
+				keystoreType: "test",
+			},
+			expErr:    keystore.ErrInvalidKeystoreName,
+			expErrMsg: keystore.ErrInvalidKeystoreName.Error(),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			service := tt.service
+			err := service.InsertKey(tt.args.kp, tt.args.keystoreType)
+			assert.ErrorIs(t, err, tt.expErr)
+			if tt.expErr != nil {
+				assert.EqualError(t, err, tt.expErrMsg)
+			}
+		})
+	}
+}
+
+func TestServiceHasKey(t *testing.T) {
+	t.Parallel()
+	keyStore := keystore.GlobalKeystore{
+		Babe: keystore.NewBasicKeystore(keystore.BabeName, crypto.Sr25519Type),
+	}
+
+	keyring, _ := keystore.NewSr25519Keyring()
+	aliceKeypair := keyring.Alice().(*sr25519.Keypair)
+	type args struct {
+		pubKeyStr    string
+		keystoreType string
+	}
+	tests := []struct {
+		name      string
+		service   *Service
+		args      args
+		exp       bool
+		expErr    error
+		expErrMsg string
+	}{
+		{
+			name: "ok case",
+			service: &Service{
+				keys: &keyStore,
+			},
+			args: args{
+				pubKeyStr:    aliceKeypair.Public().Hex(),
+				keystoreType: string(keystore.BabeName),
+			},
+		},
+		{
+			name: "err case",
+			service: &Service{
+				keys: &keyStore,
+			},
+			args: args{
+				pubKeyStr:    aliceKeypair.Public().Hex(),
+				keystoreType: "test",
+			},
+			expErr:    keystore.ErrInvalidKeystoreName,
+			expErrMsg: keystore.ErrInvalidKeystoreName.Error(),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			service := tt.service
+			res, err := service.HasKey(tt.args.pubKeyStr, tt.args.keystoreType)
+			assert.ErrorIs(t, err, tt.expErr)
+			if tt.expErr != nil {
+				assert.EqualError(t, err, tt.expErrMsg)
+			}
+			assert.Equal(t, tt.exp, res)
+		})
+	}
+}
+
+func TestService_DecodeSessionKeys(t *testing.T) {
+	t.Parallel()
+	testEncKeys := []byte{1, 2, 3, 4}
+	execTest := func(t *testing.T, s *Service, enc []byte, exp []byte, expErr error) {
+		res, err := s.DecodeSessionKeys(enc)
+		assert.ErrorIs(t, err, expErr)
+		if expErr != nil {
+			assert.EqualError(t, err, expErr.Error())
+		}
+		assert.Equal(t, exp, res)
+	}
+
+	t.Run("ok case", func(t *testing.T) {
+		t.Parallel()
+		ctrl := gomock.NewController(t)
+		runtimeMock := new(mocksruntime.Instance)
+		runtimeMock.On("DecodeSessionKeys", testEncKeys).Return(testEncKeys, nil)
+		mockBlockState := NewMockBlockState(ctrl)
+		mockBlockState.EXPECT().GetRuntime(nil).Return(runtimeMock, nil)
+		service := &Service{
+			blockState: mockBlockState,
+		}
+		execTest(t, service, testEncKeys, testEncKeys, nil)
+	})
+
+	t.Run("err case", func(t *testing.T) {
+		t.Parallel()
+		ctrl := gomock.NewController(t)
+		mockBlockState := NewMockBlockState(ctrl)
+		mockBlockState.EXPECT().GetRuntime(nil).Return(nil, errDummyErr)
+		service := &Service{
+			blockState: mockBlockState,
+		}
+		execTest(t, service, testEncKeys, nil, errDummyErr)
+	})
+}
+
+func TestServiceGetRuntimeVersion(t *testing.T) {
+	t.Parallel()
+	testAPIItem := runtime.APIItem{
+		Name: [8]byte{1, 2, 3, 4, 5, 6, 7, 8},
+		Ver:  99,
+	}
+	rv := runtime.NewVersionData(
+		[]byte("polkadot"),
+		[]byte("parity-polkadot"),
+		authoringVersion,
+		specVersion,
+		implVersion,
+		[]runtime.APIItem{testAPIItem},
+		transactionVersion,
+	)
+	emptyTrie := trie.NewEmptyTrie()
+	ts, err := rtstorage.NewTrieState(emptyTrie)
+	require.NoError(t, err)
+
+	execTest := func(t *testing.T, s *Service, bhash *common.Hash, exp runtime.Version, expErr error) {
+		res, err := s.GetRuntimeVersion(bhash)
+		assert.ErrorIs(t, err, expErr)
+		if expErr != nil {
+			assert.EqualError(t, err, expErr.Error())
+		}
+		assert.Equal(t, exp, res)
+	}
+
+	t.Run("get state root err", func(t *testing.T) {
+		t.Parallel()
+		ctrl := gomock.NewController(t)
+		mockStorageState := NewMockStorageState(ctrl)
+		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(nil, errDummyErr)
+		service := &Service{
+			storageState: mockStorageState,
+		}
+		execTest(t, service, &common.Hash{}, nil, errDummyErr)
+	})
+
+	t.Run("trie state err", func(t *testing.T) {
+		t.Parallel()
+		ctrl := gomock.NewController(t)
+		mockStorageState := NewMockStorageState(ctrl)
+		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(&common.Hash{}, nil)
+		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(nil, errDummyErr)
+		service := &Service{
+			storageState: mockStorageState,
+		}
+		execTest(t, service, &common.Hash{}, nil, errDummyErr)
+	})
+
+	t.Run("get runtime err", func(t *testing.T) {
+		t.Parallel()
+		ctrl := gomock.NewController(t)
+		mockStorageState := NewMockStorageState(ctrl)
+		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(&common.Hash{}, nil)
+		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(ts, nil).MaxTimes(2)
+
+		mockBlockState := NewMockBlockState(ctrl)
+		mockBlockState.EXPECT().GetRuntime(&common.Hash{}).Return(nil, errDummyErr)
+		service := &Service{
+			storageState: mockStorageState,
+			blockState:   mockBlockState,
+		}
+		execTest(t, service, &common.Hash{}, nil, errDummyErr)
+	})
+
+	t.Run("happy path", func(t *testing.T) {
+		t.Parallel()
+		ctrl := gomock.NewController(t)
+		mockStorageState := NewMockStorageState(ctrl)
+		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(&common.Hash{}, nil).MaxTimes(2)
+		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(ts, nil).MaxTimes(2)
+
+		runtimeMock := new(mocksruntime.Instance)
+		mockBlockState := NewMockBlockState(ctrl)
+		mockBlockState.EXPECT().GetRuntime(&common.Hash{}).Return(runtimeMock, nil)
+		runtimeMock.On("SetContextStorage", ts)
+		runtimeMock.On("Version").Return(rv, nil)
+		service := &Service{
+			storageState: mockStorageState,
+			blockState:   mockBlockState,
+		}
+		execTest(t, service, &common.Hash{}, rv, nil)
+	})
+}
+
+func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
+	t.Parallel()
+	ext := types.Extrinsic{}
+	externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))
+	execTest := func(t *testing.T, s *Service, ext types.Extrinsic, expErr error) {
+		err := s.HandleSubmittedExtrinsic(ext)
+		assert.ErrorIs(t, err, expErr)
+		if expErr != nil {
+			assert.EqualError(t, err, expErr.Error())
+		}
+	}
+
+	t.Run("nil network", func(t *testing.T) {
+		t.Parallel()
+		service := &Service{}
+		execTest(t, service, nil, nil)
+	})
+
+	t.Run("trie state err", func(t *testing.T) {
+		t.Parallel()
+		ctrl := gomock.NewController(t)
+		mockStorageState := NewMockStorageState(ctrl)
+		mockStorageState.EXPECT().TrieState(nil).Return(nil, errDummyErr)
+		mockTxnState := NewMockTransactionState(ctrl)
+		mockTxnState.EXPECT().Exists(nil)
+		service := &Service{
+			storageState:     mockStorageState,
+			transactionState: mockTxnState,
+			net:              NewMockNetwork(ctrl),
+		}
+		execTest(t, service, nil, errDummyErr)
+	})
+
+	t.Run("get runtime err", func(t *testing.T) {
+		t.Parallel()
+		ctrl := gomock.NewController(t)
+		mockStorageState := NewMockStorageState(ctrl)
+		mockStorageState.EXPECT().TrieState(nil).Return(&rtstorage.TrieState{}, nil)
+		mockBlockState := NewMockBlockState(ctrl)
+		mockBlockState.EXPECT().GetRuntime(nil).Return(nil, errDummyErr)
+		mockTxnState := NewMockTransactionState(ctrl)
+		mockTxnState.EXPECT().Exists(nil).MaxTimes(2)
+		service := &Service{
+			storageState:     mockStorageState,
+			transactionState: mockTxnState,
+			blockState:       mockBlockState,
+			net:              NewMockNetwork(ctrl),
+		}
+		execTest(t, service, nil, errDummyErr)
+	})
+
+	t.Run("validate txn err", func(t *testing.T) {
+		t.Parallel()
+		ctrl := gomock.NewController(t)
+		mockStorageState := NewMockStorageState(ctrl)
+		mockStorageState.EXPECT().TrieState(nil).Return(&rtstorage.TrieState{}, nil)
+		mockTxnState := NewMockTransactionState(ctrl)
+		mockTxnState.EXPECT().Exists(types.Extrinsic{})
+		runtimeMockErr := new(mocksruntime.Instance)
+		mockBlockState := NewMockBlockState(ctrl)
+		mockBlockState.EXPECT().GetRuntime(nil).Return(runtimeMockErr, nil).MaxTimes(2)
+		runtimeMockErr.On("SetContextStorage", &rtstorage.TrieState{})
+		runtimeMockErr.On("ValidateTransaction", externalExt).Return(nil, errDummyErr)
+		service := &Service{
+			storageState:     mockStorageState,
+			transactionState: mockTxnState,
+			blockState:       mockBlockState,
+			net:              NewMockNetwork(ctrl),
+		}
+		execTest(t, service, types.Extrinsic{}, errDummyErr)
+	})
+
+	t.Run("happy path", func(t *testing.T) {
+		t.Parallel()
+		ctrl := gomock.NewController(t)
+		mockStorageState := NewMockStorageState(ctrl)
+		mockStorageState.EXPECT().TrieState(nil).Return(&rtstorage.TrieState{}, nil)
+		runtimeMock := new(mocksruntime.Instance)
+		mockBlockState := NewMockBlockState(ctrl)
+		mockBlockState.EXPECT().GetRuntime(nil).Return(runtimeMock, nil).MaxTimes(2)
+		runtimeMock.On("SetContextStorage", &rtstorage.TrieState{})
+		runtimeMock.On("ValidateTransaction", externalExt).
+			Return(&transaction.Validity{Propagate: true}, nil)
+		mockTxnState := NewMockTransactionState(ctrl)
+		mockTxnState.EXPECT().Exists(types.Extrinsic{}).MaxTimes(2)
+		mockTxnState.EXPECT().AddToPool(transaction.NewValidTransaction(ext, &transaction.Validity{Propagate: true}))
+		mockNetState := NewMockNetwork(ctrl)
+		mockNetState.EXPECT().GossipMessage(&network.TransactionMessage{Extrinsics: []types.Extrinsic{ext}})
+		service := &Service{
+			storageState:     mockStorageState,
+			transactionState: mockTxnState,
+			blockState:       mockBlockState,
+			net:              mockNetState,
+		}
+		execTest(t, service, types.Extrinsic{}, nil)
+	})
+}
+
+func TestServiceGetMetadata(t *testing.T) {
+	t.Parallel()
+	execTest := func(t *testing.T, s *Service, bhash *common.Hash, exp []byte, expErr error) {
+		res, err := s.GetMetadata(bhash)
+		assert.ErrorIs(t, err, expErr)
+		if expErr != nil {
+			assert.EqualError(t, err, expErr.Error())
+		}
+		assert.Equal(t, exp, res)
+	}
+
+	t.Run("get state root error", func(t *testing.T) {
+		t.Parallel()
+		ctrl := gomock.NewController(t)
+		mockStorageState := NewMockStorageState(ctrl)
+		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(nil, errDummyErr)
+		service := &Service{
+			storageState: mockStorageState,
+		}
+		execTest(t, service, &common.Hash{}, nil, errDummyErr)
+	})
+
+	t.Run("trie state error", func(t *testing.T) {
+		t.Parallel()
+		ctrl := gomock.NewController(t)
+		mockStorageState := NewMockStorageState(ctrl)
+		mockStorageState.EXPECT().TrieState(nil).Return(nil, errDummyErr)
+		service := &Service{
+			storageState: mockStorageState,
+		}
+		execTest(t, service, nil, nil, errDummyErr)
+	})
+
+	t.Run("get runtime error", func(t *testing.T) {
+		t.Parallel()
+		ctrl := gomock.NewController(t)
+		mockStorageState := NewMockStorageState(ctrl)
+		mockStorageState.EXPECT().TrieState(nil).Return(&rtstorage.TrieState{}, nil)
+		mockBlockState := NewMockBlockState(ctrl)
+		mockBlockState.EXPECT().GetRuntime(nil).Return(nil, errDummyErr)
+		service := &Service{
+			storageState: mockStorageState,
+			blockState:   mockBlockState,
+		}
+		execTest(t, service, nil, nil, errDummyErr)
+	})
+
+	t.Run("happy path", func(t *testing.T) {
+		t.Parallel()
+		ctrl := gomock.NewController(t)
+		mockStorageState := NewMockStorageState(ctrl)
+		mockStorageState.EXPECT().TrieState(nil).Return(&rtstorage.TrieState{}, nil)
+		runtimeMockOk := new(mocksruntime.Instance)
+		mockBlockState := NewMockBlockState(ctrl)
+		mockBlockState.EXPECT().GetRuntime(nil).Return(runtimeMockOk, nil)
+		runtimeMockOk.On("SetContextStorage", &rtstorage.TrieState{})
+		runtimeMockOk.On("Metadata").Return([]byte{1, 2, 3}, nil)
+		service := &Service{
+			storageState: mockStorageState,
+			blockState:   mockBlockState,
+		}
+		execTest(t, service, nil, []byte{1, 2, 3}, nil)
+	})
+}
+
+func TestService_tryQueryStorage(t *testing.T) {
+	t.Parallel()
+	execTest := func(t *testing.T, s *Service, block common.Hash, keys []string, exp QueryKeyValueChanges, expErr error) {
+		res, err := s.tryQueryStorage(block, keys...)
+		assert.ErrorIs(t, err, expErr)
+		if expErr != nil {
+			assert.EqualError(t, err, expErr.Error())
+		}
+		assert.Equal(t, exp, res)
+	}
+
+	t.Run("get state root error", func(t *testing.T) {
+		t.Parallel()
+		ctrl := gomock.NewController(t)
+		mockStorageState := NewMockStorageState(ctrl)
+		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(nil, errDummyErr)
+		service := &Service{
+			storageState: mockStorageState,
+		}
+		execTest(t, service, common.Hash{}, nil, nil, errDummyErr)
+	})
+
+	t.Run("get storage error", func(t *testing.T) {
+		t.Parallel()
+		ctrl := gomock.NewController(t)
+		mockStorageState := NewMockStorageState(ctrl)
+		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(&common.Hash{}, nil)
+		mockStorageState.EXPECT().GetStorage(&common.Hash{}, common.MustHexToBytes("0x01")).Return(nil, errDummyErr)
+		service := &Service{
+			storageState: mockStorageState,
+		}
+		execTest(t, service, common.Hash{}, []string{"0x01"}, nil, errDummyErr)
+	})
+
+	t.Run("happy path", func(t *testing.T) {
+		t.Parallel()
+		ctrl := gomock.NewController(t)
+		mockStorageState := NewMockStorageState(ctrl)
+		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(&common.Hash{}, nil)
+		mockStorageState.EXPECT().GetStorage(&common.Hash{}, common.MustHexToBytes("0x01")).
+			Return([]byte{1, 2, 3}, nil)
+		expChanges := make(QueryKeyValueChanges)
+		expChanges["0x01"] = common.BytesToHex([]byte{1, 2, 3})
+		service := &Service{
+			storageState: mockStorageState,
+		}
+		execTest(t, service, common.Hash{}, []string{"0x01"}, expChanges, nil)
+	})
+}
+
+func TestService_QueryStorage(t *testing.T) {
+	t.Parallel()
+	execTest := func(t *testing.T, s *Service, from common.Hash, to common.Hash,
+		keys []string, exp map[common.Hash]QueryKeyValueChanges, expErr error) {
+		res, err := s.QueryStorage(from, to, keys...)
+		assert.ErrorIs(t, err, expErr)
+		if expErr != nil {
+			assert.EqualError(t, err, expErr.Error())
+		}
+		assert.Equal(t, exp, res)
+	}
+
+	t.Run("subchain error", func(t *testing.T) {
+		t.Parallel()
+		ctrl := gomock.NewController(t)
+		mockBlockState := NewMockBlockState(ctrl)
+		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{2})
+		mockBlockState.EXPECT().SubChain(common.Hash{1}, common.Hash{2}).Return(nil, errDummyErr)
+		service := &Service{
+			blockState: mockBlockState,
+		}
+		execTest(t, service, common.Hash{1}, common.Hash{}, nil, nil, errDummyErr)
+	})
+
+	t.Run("happy path", func(t *testing.T) {
+		t.Parallel()
+		ctrl := gomock.NewController(t)
+		mockBlockState := NewMockBlockState(ctrl)
+		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{2})
+		mockBlockState.EXPECT().SubChain(common.Hash{1}, common.Hash{2}).Return([]common.Hash{{0x01}}, nil)
+		mockStorageState := NewMockStorageState(ctrl)
+		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{0x01}).Return(&common.Hash{}, nil)
+		mockStorageState.EXPECT().GetStorage(&common.Hash{}, common.MustHexToBytes("0x01")).
+			Return([]byte{1, 2, 3}, nil)
+		expChanges := make(QueryKeyValueChanges)
+		expChanges["0x01"] = common.BytesToHex([]byte{1, 2, 3})
+		expQueries := make(map[common.Hash]QueryKeyValueChanges)
+		expQueries[common.Hash{0x01}] = expChanges
+		service := &Service{
+			blockState:   mockBlockState,
+			storageState: mockStorageState,
+		}
+		execTest(t, service, common.Hash{1}, common.Hash{}, []string{"0x01"}, expQueries, nil)
+	})
+}
+
+func TestService_GetReadProofAt(t *testing.T) {
+	t.Parallel()
+	execTest := func(t *testing.T, s *Service, block common.Hash, keys [][]byte,
+		expHash common.Hash, expProofForKeys [][]byte, expErr error) {
+		resHash, resProofForKeys, err := s.GetReadProofAt(block, keys)
+		assert.ErrorIs(t, err, expErr)
+		if expErr != nil {
+			assert.EqualError(t, err, expErr.Error())
+		}
+		assert.Equal(t, expHash, resHash)
+		assert.Equal(t, expProofForKeys, resProofForKeys)
+	}
+
+	t.Run("get block state root error", func(t *testing.T) {
+		t.Parallel()
+		ctrl := gomock.NewController(t)
+		mockBlockState := NewMockBlockState(ctrl)
+		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{2})
+		mockBlockState.EXPECT().GetBlockStateRoot(common.Hash{2}).Return(common.Hash{}, errDummyErr)
+		service := &Service{
+			blockState: mockBlockState,
+		}
+		execTest(t, service, common.Hash{}, nil, common.Hash{}, nil, errDummyErr)
+	})
+
+	t.Run("generate trie proof error", func(t *testing.T) {
+		t.Parallel()
+		ctrl := gomock.NewController(t)
+		mockBlockState := NewMockBlockState(ctrl)
+		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{2})
+		mockBlockState.EXPECT().GetBlockStateRoot(common.Hash{2}).Return(common.Hash{3}, nil)
+		mockStorageState := NewMockStorageState(ctrl)
+		mockStorageState.EXPECT().GenerateTrieProof(common.Hash{3}, [][]byte{{1}}).
+			Return([][]byte{}, errDummyErr)
+		service := &Service{
+			blockState:   mockBlockState,
+			storageState: mockStorageState,
+		}
+		execTest(t, service, common.Hash{}, [][]byte{{1}}, common.Hash{}, nil, errDummyErr)
+	})
+
+	t.Run("happy path", func(t *testing.T) {
+		t.Parallel()
+		ctrl := gomock.NewController(t)
+		mockBlockState := NewMockBlockState(ctrl)
+		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{2})
+		mockBlockState.EXPECT().GetBlockStateRoot(common.Hash{2}).Return(common.Hash{3}, nil)
+		mockStorageState := NewMockStorageState(ctrl)
+		mockStorageState.EXPECT().GenerateTrieProof(common.Hash{3}, [][]byte{{1}}).
+			Return([][]byte{{2}}, nil)
+		service := &Service{
+			blockState:   mockBlockState,
+			storageState: mockStorageState,
+		}
+		execTest(t, service, common.Hash{}, [][]byte{{1}}, common.Hash{2}, [][]byte{{2}}, nil)
 	})
 }
