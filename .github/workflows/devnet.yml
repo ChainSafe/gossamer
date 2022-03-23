@@ -3,15 +3,18 @@ on:
   push:
     branches:
       - devnet
-      
+
 jobs:
   update:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
       - uses: actions/setup-go@v2
         with:
-          go-version: '^1.17.0'
+          go-version: 1.18
+          stable: true
+          check-latest: true
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -65,7 +68,7 @@ jobs:
           docker build --progress=plain \
           -t=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t=$ECR_REGISTRY/$ECR_REPOSITORY:latest \
           --build-arg key=charlie --build-arg DD_API_KEY=$DD_API_KEY --build-arg METRICS_NAMESPACE=gossamer.ecs.devnet \
-          -f=devnet/bob.Dockerfile . 
+          -f=devnet/bob.Dockerfile .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
@@ -74,7 +77,7 @@ jobs:
         working-directory: ./devnet/cmd/scale-down-ecs-service
         run: |
           go run . -c gssmr-ecs -s="gssmr-ecs-(Charlie|Bob)Service-.+$"
-      
+
       - name: docker compose up
         id: docker-compose-up
         working-directory: ./devnet/gssmr-ecs

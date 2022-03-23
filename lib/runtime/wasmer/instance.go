@@ -187,6 +187,11 @@ func (in *Instance) GetCodeHash() common.Hash {
 	return in.codeHash
 }
 
+// GetContext returns the context of the instance
+func (in *Instance) GetContext() *runtime.Context {
+	return in.ctx
+}
+
 // UpdateRuntimeCode updates the runtime instance to run the given code
 func (in *Instance) UpdateRuntimeCode(code []byte) error {
 	in.Stop()
