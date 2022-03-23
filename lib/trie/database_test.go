@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/require"
 )
@@ -21,7 +22,7 @@ func newTestDB(t *testing.T) chaindb.Database {
 }
 
 func TestTrie_DatabaseStoreAndLoad(t *testing.T) {
-	cases := [][]Test{
+	cases := [][]keyValues{
 		{
 			{key: []byte{0x01, 0x35}, value: []byte("pen")},
 			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
@@ -65,7 +66,7 @@ func TestTrie_DatabaseStoreAndLoad(t *testing.T) {
 		res := NewEmptyTrie()
 		err = res.Load(db, trie.MustHash())
 		require.NoError(t, err)
-		require.Equal(t, trie.MustHash(), res.MustHash())
+		require.Equal(t, trie.String(), res.String())
 
 		for _, test := range testCase {
 			val, err := GetFromDB(db, trie.MustHash(), test.key)
@@ -76,7 +77,7 @@ func TestTrie_DatabaseStoreAndLoad(t *testing.T) {
 }
 
 func TestTrie_WriteDirty_Put(t *testing.T) {
-	cases := [][]Test{
+	cases := [][]keyValues{
 		{
 			{key: []byte{0x01, 0x35}, value: []byte("pen")},
 			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
@@ -154,7 +155,7 @@ func TestTrie_WriteDirty_Put(t *testing.T) {
 }
 
 func TestTrie_WriteDirty_PutReplace(t *testing.T) {
-	cases := [][]Test{
+	cases := [][]keyValues{
 		{
 			{key: []byte{0x01, 0x35}, value: []byte("pen")},
 			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
@@ -217,7 +218,7 @@ func TestTrie_WriteDirty_PutReplace(t *testing.T) {
 }
 
 func TestTrie_WriteDirty_Delete(t *testing.T) {
-	cases := [][]Test{
+	cases := [][]keyValues{
 		{
 			{key: []byte{0x01, 0x35}, value: []byte("pen")},
 			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
@@ -284,7 +285,7 @@ func TestTrie_WriteDirty_Delete(t *testing.T) {
 }
 
 func TestTrie_WriteDirty_ClearPrefix(t *testing.T) {
-	cases := [][]Test{
+	cases := [][]keyValues{
 		{
 			{key: []byte{0x01, 0x35}, value: []byte("pen")},
 			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
@@ -337,7 +338,7 @@ func TestTrie_WriteDirty_ClearPrefix(t *testing.T) {
 }
 
 func TestTrie_GetFromDB(t *testing.T) {
-	cases := [][]Test{
+	cases := [][]keyValues{
 		{
 			{key: []byte{0x01, 0x35}, value: []byte("pen")},
 			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
@@ -386,4 +387,62 @@ func TestTrie_GetFromDB(t *testing.T) {
 			require.Equal(t, test.value, val)
 		}
 	}
+}
+
+func TestStoreAndLoadWithChildTries(t *testing.T) {
+	keyValue := []keyValues{
+		{key: []byte{0xf2, 0x3}, value: []byte("f")},
+		{key: []byte{0x09, 0xd3}, value: []byte("noot")},
+		{key: []byte{0x07}, value: []byte("ramen")},
+		{key: []byte{0}, value: nil},
+		{
+			key:   []byte("The boxed moved. That was a problem."),
+			value: []byte("The question now was whether or not Peter was going to open it up and look inside to see why it had moved."), // nolint
+		},
+	}
+
+	key := []byte{1, 2}
+	value := []byte{3, 4}
+	const dirty = true
+	const generation = 0
+
+	t.Run("happy path, tries being loaded are same as trie being read", func(t *testing.T) {
+		t.Parallel()
+
+		// hash could be different for keys smaller than 32 and larger than 32 bits.
+		// thus, testing with keys of different sizes.
+		keysToTest := [][]byte{
+			[]byte("This handout will help you understand how paragraphs are formed, how to develop stronger paragraphs."),
+			[]byte("This handout"),
+			[]byte("test"),
+		}
+
+		for _, keyToChild := range keysToTest {
+			trie := NewEmptyTrie()
+
+			for _, test := range keyValue {
+				trie.Put(test.key, test.value)
+			}
+
+			db := newTestDB(t)
+
+			sampleChildTrie := NewTrie(node.NewLeaf(key, value, dirty, generation))
+
+			err := trie.PutChild(keyToChild, sampleChildTrie)
+			require.NoError(t, err)
+
+			err = trie.Store(db)
+			require.NoError(t, err)
+
+			res := NewEmptyTrie()
+
+			err = res.Load(db, trie.MustHash())
+			require.NoError(t, err)
+
+			require.Equal(t, trie.childTries, res.childTries)
+			require.Equal(t, trie.String(), res.String())
+		}
+
+	})
+
 }

@@ -20,7 +20,7 @@ type writeCall struct {
 
 var errTest = errors.New("test error")
 
-type Test struct {
+type keyValues struct {
 	key   []byte
 	value []byte
 	op    int
