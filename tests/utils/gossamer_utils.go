@@ -42,10 +42,6 @@ var (
 
 	currentDir, _ = os.Getwd()
 	gossamerCMD   = filepath.Join(currentDir, "../..", "bin/gossamer")
-
-	// GenesisTwoAuthsSecondaryVRF0_9_10 is the genesis file that has 2 authorities and block production by
-	// secondary VRF slots enabled
-	GenesisTwoAuthsSecondaryVRF0_9_10 = filepath.Join(currentDir, "../utils/genesis_two_auths_secondaryvrf_0_9_10.json")
 )
 
 // Node represents a gossamer process
