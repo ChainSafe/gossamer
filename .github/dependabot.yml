@@ -4,11 +4,17 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    labels:
+      - "dependabot"
   - package-ecosystem: docker
     directory: /
     schedule:
       interval: "weekly"
+    labels:
+      - "dependabot"
   - package-ecosystem: gomod
     directory: /
     schedule:
       interval: "weekly"
+    labels:
+      - "dependabot"
