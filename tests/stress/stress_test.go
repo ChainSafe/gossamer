@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"math/rand"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -744,6 +745,13 @@ func TestSync_SubmitExtrinsicLoad(t *testing.T) {
 }
 
 func TestStress_SecondarySlotProduction(t *testing.T) {
+	rootPath, err := libutils.GetProjectRootPath()
+	require.NoError(t, err)
+
+	// genesis_two_auths_secondaryvrf_0_9_10.json has 2 authorities and block production by
+	// secondary VRF slots enabled
+	genesisTwoAuthsSecondaryVRF0_9_10 := filepath.Join(rootPath, "tests/utils/genesis_two_auths_secondaryvrf_0_9_10.json")
+
 	testcases := []struct {
 		description  string
 		genesis      string
@@ -751,7 +759,7 @@ func TestStress_SecondarySlotProduction(t *testing.T) {
 	}{
 		{
 			description:  "with secondary vrf slots enabled",
-			genesis:      utils.GenesisTwoAuthsSecondaryVRF0_9_10,
+			genesis:      genesisTwoAuthsSecondaryVRF0_9_10,
 			allowedSlots: gosstypes.PrimaryAndSecondaryVRFSlots,
 		},
 	}
