@@ -3,33 +3,31 @@
 
 package node
 
-// DefaultCopySettings returns the following copy settings:
-// - children are NOT deep copied recursively
-// - the HashDigest field is left empty on the copy
-// - the Encoding field is left empty on the copy
-// - the key field is deep copied
-// - the value field is deep copied
-func DefaultCopySettings() CopySettings {
-	return CopySettings{
+var (
+	// DefaultCopySettings contains the following copy settings:
+	// - children are NOT deep copied recursively
+	// - the HashDigest field is left empty on the copy
+	// - the Encoding field is left empty on the copy
+	// - the key field is deep copied
+	// - the value field is deep copied
+	DefaultCopySettings = CopySettings{
 		CopyKey:   true,
 		CopyValue: true,
 	}
-}
 
-// DeepCopySettings returns the following copy settings:
-// - children are deep copied recursively
-// - the HashDigest field is deep copied
-// - the Encoding field is deep copied
-// - the key field is deep copied
-// - the value field is deep copied
-func DeepCopySettings() CopySettings {
-	return CopySettings{
+	// DeepCopySettings returns the following copy settings:
+	// - children are deep copied recursively
+	// - the HashDigest field is deep copied
+	// - the Encoding field is deep copied
+	// - the key field is deep copied
+	// - the value field is deep copied
+	DeepCopySettings = CopySettings{
 		CopyChildren: true,
 		CopyCached:   true,
 		CopyKey:      true,
 		CopyValue:    true,
 	}
-}
+)
 
 // CopySettings contains settings to configure the deep copy
 // of a node.

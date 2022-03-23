@@ -44,7 +44,7 @@ func Test_Branch_Copy(t *testing.T) {
 				HashDigest: []byte{5},
 				Encoding:   []byte{6},
 			},
-			settings: DefaultCopySettings(),
+			settings: DefaultCopySettings,
 			expectedBranch: &Branch{
 				Key:   []byte{1, 2},
 				Value: []byte{3, 4},
@@ -80,7 +80,7 @@ func Test_Branch_Copy(t *testing.T) {
 				HashDigest: []byte{5},
 				Encoding:   []byte{6},
 			},
-			settings: DeepCopySettings(),
+			settings: DeepCopySettings,
 			expectedBranch: &Branch{
 				Key:   []byte{1, 2},
 				Value: []byte{3, 4},
@@ -126,7 +126,7 @@ func Test_Leaf_Copy(t *testing.T) {
 	}{
 		"empty leaf": {
 			leaf:         &Leaf{},
-			settings:     DefaultCopySettings(),
+			settings:     DefaultCopySettings,
 			expectedLeaf: &Leaf{},
 		},
 		"non empty leaf": {
@@ -137,7 +137,7 @@ func Test_Leaf_Copy(t *testing.T) {
 				HashDigest: []byte{5},
 				Encoding:   []byte{6},
 			},
-			settings: DefaultCopySettings(),
+			settings: DefaultCopySettings,
 			expectedLeaf: &Leaf{
 				Key:   []byte{1, 2},
 				Value: []byte{3, 4},
@@ -152,7 +152,7 @@ func Test_Leaf_Copy(t *testing.T) {
 				HashDigest: []byte{5},
 				Encoding:   []byte{6},
 			},
-			settings: DeepCopySettings(),
+			settings: DeepCopySettings,
 			expectedLeaf: &Leaf{
 				Key:        []byte{1, 2},
 				Value:      []byte{3, 4},
