@@ -7,28 +7,35 @@ import (
 	"sync"
 
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 // gossip submodule
 type gossip struct {
-	logger log.LeveledLogger
-	seen   *sync.Map
+	logger    log.LeveledLogger
+	seenMap   map[common.Hash]struct{}
+	seenMutex sync.RWMutex
 }
 
 // newGossip creates a new gossip message tracker
 func newGossip() *gossip {
 	return &gossip{
-		logger: log.NewFromGlobal(log.AddContext("module", "gossip")),
-		seen:   &sync.Map{},
+		logger:  log.NewFromGlobal(log.AddContext("module", "gossip")),
+		seenMap: make(map[common.Hash]struct{}),
 	}
 }
 
 // hasSeen broadcasts messages that have not been seen
 func (g *gossip) hasSeen(msg NotificationsMessage) bool {
 	// check if message has not been seen
-	if seen, ok := g.seen.Load(msg.Hash()); !ok || !seen.(bool) {
+	msgHash := msg.Hash()
+	g.seenMutex.Lock()
+	defer g.seenMutex.Unlock()
+
+	_, ok := g.seenMap[msgHash]
+	if !ok {
 		// set message to has been seen
-		g.seen.Store(msg.Hash(), true)
+		g.seenMap[msgHash] = struct{}{}
 		return false
 	}
 
