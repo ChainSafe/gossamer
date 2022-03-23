@@ -17,8 +17,8 @@ import (
 )
 
 var (
-	ErrEpochNotFound         = errors.New("epoch not found at in memory map")
-	errNextEpochHashNotFound = errors.New("finalized hash not found at database")
+	ErrEpochNotFound = errors.New("epoch not found at in memory map")
+	errNotPersisted  = errors.New("hash with next epoch not found in database")
 )
 
 var (
@@ -570,7 +570,7 @@ func (s *EpochState) lookForPersistedHashForEpochData(epoch uint64) (types.NextE
 		return inMemoryEpochData, nil
 	}
 
-	return types.NextEpochData{}, errNextEpochHashNotFound
+	return types.NextEpochData{}, errNotPersisted
 }
 
 func (s *EpochState) lookForPersistedHashForConfigData(epoch uint64) (types.NextConfigData, error) {
@@ -592,5 +592,5 @@ func (s *EpochState) lookForPersistedHashForConfigData(epoch uint64) (types.Next
 		return inMemoryNextConfigData, nil
 	}
 
-	return types.NextConfigData{}, errNextEpochHashNotFound
+	return types.NextConfigData{}, errNotPersisted
 }
