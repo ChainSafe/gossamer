@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	errEpochNotFound         = errors.New("epoch not found at in memory map")
+	errEpochNotFound         = errors.New("epoch not found in memory map")
 	errNextEpochHashNotFound = errors.New("finalized hash not found at database")
 )
 
