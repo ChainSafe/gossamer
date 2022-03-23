@@ -17,37 +17,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var keyring, _ = keystore.NewSr25519Keyring()
-var authoritiesRaw = []types.AuthorityRaw{
-	{
-		Key: keyring.KeyAlice.Public().(*sr25519.PublicKey).AsBytes(),
-	},
-	{
-		Key: keyring.KeyBob.Public().(*sr25519.PublicKey).AsBytes(),
-	},
-	{
-		Key: keyring.KeyCharlie.Public().(*sr25519.PublicKey).AsBytes(),
-	},
-	{
-		Key: keyring.KeyDave.Public().(*sr25519.PublicKey).AsBytes(),
-	},
-	{
-		Key: keyring.KeyEve.Public().(*sr25519.PublicKey).AsBytes(),
-	},
-	{
-		Key: keyring.KeyFerdie.Public().(*sr25519.PublicKey).AsBytes(),
-	},
-	{
-		Key: keyring.KeyGeorge.Public().(*sr25519.PublicKey).AsBytes(),
-	},
-	{
-		Key: keyring.KeyHeather.Public().(*sr25519.PublicKey).AsBytes(),
-	},
-	{
-		Key: keyring.KeyIan.Public().(*sr25519.PublicKey).AsBytes(),
-	},
-}
-
 var genesisBABEConfig = &types.BabeConfiguration{
 	SlotDuration:       1000,
 	EpochLength:        200,
@@ -264,6 +233,25 @@ type inMemoryNextEpochData struct {
 }
 
 func TestStoreAndFinalizeBabeNextEpochData(t *testing.T) {
+	/*
+	* Setup the services: StateService, DigestHandler, EpochState
+	* and VerificationManager
+	 */
+
+	keyring, _ := keystore.NewSr25519Keyring()
+	keyPairs := []*sr25519.Keypair{
+		keyring.KeyAlice, keyring.KeyBob, keyring.KeyCharlie,
+		keyring.KeyDave, keyring.KeyEve, keyring.KeyFerdie,
+		keyring.KeyGeorge, keyring.KeyHeather, keyring.KeyIan,
+	}
+
+	authorities := make([]types.AuthorityRaw, len(keyPairs))
+	for i, keyPair := range keyPairs {
+		authorities[i] = types.AuthorityRaw{
+			Key: keyPair.Public().(*sr25519.PublicKey).AsBytes(),
+		}
+	}
+
 	tests := map[string]struct {
 		finalizeHash         common.Hash
 		inMemoryEpoch        []inMemoryNextEpochData
@@ -285,15 +273,15 @@ func TestStoreAndFinalizeBabeNextEpochData(t *testing.T) {
 					},
 					nextEpochDatas: []types.NextEpochData{
 						{
-							Authorities: authoritiesRaw[:3],
+							Authorities: authorities[:3],
 							Randomness:  [32]byte{1},
 						},
 						{
-							Authorities: authoritiesRaw[3:6],
+							Authorities: authorities[3:6],
 							Randomness:  [32]byte{2},
 						},
 						{
-							Authorities: authoritiesRaw[6:],
+							Authorities: authorities[6:],
 							Randomness:  [32]byte{3},
 						},
 					},
@@ -307,15 +295,15 @@ func TestStoreAndFinalizeBabeNextEpochData(t *testing.T) {
 					},
 					nextEpochDatas: []types.NextEpochData{
 						{
-							Authorities: authoritiesRaw[6:],
+							Authorities: authorities[6:],
 							Randomness:  [32]byte{1},
 						},
 						{
-							Authorities: authoritiesRaw[:3],
+							Authorities: authorities[:3],
 							Randomness:  [32]byte{2},
 						},
 						{
-							Authorities: authoritiesRaw[3:6],
+							Authorities: authorities[3:6],
 							Randomness:  [32]byte{3},
 						},
 					},
@@ -327,7 +315,7 @@ func TestStoreAndFinalizeBabeNextEpochData(t *testing.T) {
 					},
 					nextEpochDatas: []types.NextEpochData{
 						{
-							Authorities: authoritiesRaw[6:],
+							Authorities: authorities[6:],
 							Randomness:  [32]byte{1},
 						},
 					},
@@ -349,15 +337,15 @@ func TestStoreAndFinalizeBabeNextEpochData(t *testing.T) {
 					},
 					nextEpochDatas: []types.NextEpochData{
 						{
-							Authorities: authoritiesRaw[:3],
+							Authorities: authorities[:3],
 							Randomness:  [32]byte{1},
 						},
 						{
-							Authorities: authoritiesRaw[3:6],
+							Authorities: authorities[3:6],
 							Randomness:  [32]byte{2},
 						},
 						{
-							Authorities: authoritiesRaw[6:],
+							Authorities: authorities[6:],
 							Randomness:  [32]byte{3},
 						},
 					},
@@ -379,15 +367,15 @@ func TestStoreAndFinalizeBabeNextEpochData(t *testing.T) {
 					},
 					nextEpochDatas: []types.NextEpochData{
 						{
-							Authorities: authoritiesRaw[:3],
+							Authorities: authorities[:3],
 							Randomness:  [32]byte{1},
 						},
 						{
-							Authorities: authoritiesRaw[3:6],
+							Authorities: authorities[3:6],
 							Randomness:  [32]byte{2},
 						},
 						{
-							Authorities: authoritiesRaw[6:],
+							Authorities: authorities[6:],
 							Randomness:  [32]byte{3},
 						},
 					},

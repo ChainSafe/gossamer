@@ -438,34 +438,17 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 	* Setup the services: StateService, DigestHandler, EpochState
 	* and VerificationManager
 	 */
-	authorities := []types.AuthorityRaw{
-		{
-			Key: keyring.KeyAlice.Public().(*sr25519.PublicKey).AsBytes(),
-		},
-		{
-			Key: keyring.KeyBob.Public().(*sr25519.PublicKey).AsBytes(),
-		},
-		{
-			Key: keyring.KeyCharlie.Public().(*sr25519.PublicKey).AsBytes(),
-		},
-		{
-			Key: keyring.KeyDave.Public().(*sr25519.PublicKey).AsBytes(),
-		},
-		{
-			Key: keyring.KeyEve.Public().(*sr25519.PublicKey).AsBytes(),
-		},
-		{
-			Key: keyring.KeyFerdie.Public().(*sr25519.PublicKey).AsBytes(),
-		},
-		{
-			Key: keyring.KeyGeorge.Public().(*sr25519.PublicKey).AsBytes(),
-		},
-		{
-			Key: keyring.KeyHeather.Public().(*sr25519.PublicKey).AsBytes(),
-		},
-		{
-			Key: keyring.KeyIan.Public().(*sr25519.PublicKey).AsBytes(),
-		},
+	keyPairs := []*sr25519.Keypair{
+		keyring.KeyAlice, keyring.KeyBob, keyring.KeyCharlie,
+		keyring.KeyDave, keyring.KeyEve, keyring.KeyFerdie,
+		keyring.KeyGeorge, keyring.KeyHeather, keyring.KeyIan,
+	}
+
+	authorities := make([]types.AuthorityRaw, len(keyPairs))
+	for i, keyPair := range keyPairs {
+		authorities[i] = types.AuthorityRaw{
+			Key: keyPair.Public().(*sr25519.PublicKey).AsBytes(),
+		}
 	}
 
 	// starts with only 3 authorities in the authority set
@@ -659,6 +642,8 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 func issueConsensusDigestsBlockFromGenesis(t *testing.T, genesisHeader *types.Header,
 	kp *sr25519.Keypair, stateService *state.Service,
 	nextEpoch types.NextEpochData, nextConfig types.NextConfigData) *types.Header {
+	t.Helper()
+
 	output, proof, err := kp.VrfSign(makeTranscript(Randomness{}, uint64(0), 0))
 	require.NoError(t, err)
 
@@ -714,6 +699,8 @@ func issueConsensusDigestsBlockFromGenesis(t *testing.T, genesisHeader *types.He
 // issueNewBlockFrom will create and store a new block following a chain
 func issueNewBlockFrom(t *testing.T, parentHeader *types.Header,
 	kp *sr25519.Keypair, stateService *state.Service) *types.Header {
+	t.Helper()
+
 	output, proof, err := kp.VrfSign(makeTranscript(Randomness{}, uint64(1), 1))
 	require.NoError(t, err)
 
