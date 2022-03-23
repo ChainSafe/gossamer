@@ -260,16 +260,14 @@ func (h *Handler) setBABEDigestsOnFinalization(finalizedHeader *types.Header) er
 
 	err = h.epochState.FinalizeBABENextEpochData(nextEpoch)
 	if err != nil {
-		h.logger.Debugf("failed to store BABENextEpochData for block number %d (%s): %w",
+		return fmt.Errorf("cannot finalize babe next epoch data for block number %d (%s): %w",
 			finalizedHeader.Number, finalizedHeader.Hash(), err)
-		return err
 	}
 
 	err = h.epochState.FinalizeBABENextConfigData(nextEpoch)
 	if err != nil {
-		h.logger.Debugf("failed to store BABENextConfigData for block number %d (%s): %w",
+		return fmt.Errorf("cannot finalize babe next config data for block number %d (%s): %w",
 			finalizedHeader.Number, finalizedHeader.Hash(), err)
-		return err
 	}
 
 	return nil
