@@ -54,10 +54,11 @@ type EpochState struct {
 	epochLength uint64 // measured in slots
 	skipToEpoch uint64
 
-	nextEpochLock sync.RWMutex
-
+	nextEpochDataLock sync.RWMutex
 	// nextEpochData follows the format map[epoch]map[block hash]next epoch data
 	nextEpochData map[uint64]map[common.Hash]types.NextEpochData
+
+	nextConfigDataLock sync.RWMutex
 	// nextConfigData follows the format map[epoch]map[block hash]next config data
 	nextConfigData map[uint64]map[common.Hash]types.NextConfigData
 }
@@ -257,8 +258,8 @@ func (s *EpochState) GetEpochData(epoch uint64) (*types.EpochData, error) {
 
 // GetEpochDataForHeader retrieves the right epoch data that belongs to the header parameter
 func (s *EpochState) GetEpochDataForHeader(epoch uint64, header *types.Header) (*types.EpochData, error) {
-	s.nextEpochLock.RLock()
-	defer s.nextEpochLock.RUnlock()
+	s.nextEpochDataLock.RLock()
+	defer s.nextEpochDataLock.RUnlock()
 
 	atEpoch, has := s.nextEpochData[epoch]
 	if !has {
@@ -302,8 +303,8 @@ func (s *EpochState) HasEpochData(epoch uint64) (bool, error) {
 		return false, fmt.Errorf("cannot check database for epoch key %d: %w", epoch, err)
 	}
 
-	s.nextEpochLock.Lock()
-	defer s.nextEpochLock.Unlock()
+	s.nextEpochDataLock.Lock()
+	defer s.nextEpochDataLock.Unlock()
 
 	_, has = s.nextEpochData[epoch]
 	return has, nil
@@ -348,8 +349,8 @@ func (s *EpochState) GetConfigData(epoch uint64) (*types.ConfigData, error) {
 
 // GetConfigDataForHeader retrieves the right epoch configuration data that belongs to the header parameter
 func (s *EpochState) GetConfigDataForHeader(epoch uint64, header *types.Header) (*types.ConfigData, error) {
-	s.nextEpochLock.RLock()
-	defer s.nextEpochLock.RUnlock()
+	s.nextConfigDataLock.RLock()
+	defer s.nextConfigDataLock.RUnlock()
 
 	atEpoch, has := s.nextConfigData[epoch]
 	if !has {
@@ -394,8 +395,8 @@ func (s *EpochState) HasConfigData(epoch uint64) (bool, error) {
 		return false, fmt.Errorf("cannot check database for epoch key %d: %w", epoch, err)
 	}
 
-	s.nextEpochLock.Lock()
-	defer s.nextEpochLock.Unlock()
+	s.nextConfigDataLock.Lock()
+	defer s.nextConfigDataLock.Unlock()
 
 	_, has = s.nextConfigData[epoch]
 	return has, nil
@@ -464,27 +465,27 @@ func (s *EpochState) SkipVerify(header *types.Header) (bool, error) {
 }
 
 // StoreBABENextEpochData stores the types.NextEpochData under epoch and hash keys
-func (s *EpochState) StoreBABENextEpochData(epoch uint64, hash common.Hash, val types.NextEpochData) {
-	s.nextEpochLock.Lock()
-	defer s.nextEpochLock.Unlock()
+func (s *EpochState) StoreBABENextEpochData(epoch uint64, hash common.Hash, nextEpochData types.NextEpochData) {
+	s.nextEpochDataLock.Lock()
+	defer s.nextEpochDataLock.Unlock()
 
 	_, has := s.nextEpochData[epoch]
 	if !has {
 		s.nextEpochData[epoch] = make(map[common.Hash]types.NextEpochData)
 	}
-	s.nextEpochData[epoch][hash] = val
+	s.nextEpochData[epoch][hash] = nextEpochData
 }
 
 // StoreBABENextConfigData stores the types.NextConfigData under epoch and hash keys
-func (s *EpochState) StoreBABENextConfigData(epoch uint64, hash common.Hash, val types.NextConfigData) {
-	s.nextEpochLock.Lock()
-	defer s.nextEpochLock.Unlock()
+func (s *EpochState) StoreBABENextConfigData(epoch uint64, hash common.Hash, nextConfigData types.NextConfigData) {
+	s.nextConfigDataLock.Lock()
+	defer s.nextConfigDataLock.Unlock()
 
 	_, has := s.nextConfigData[epoch]
 	if !has {
 		s.nextConfigData[epoch] = make(map[common.Hash]types.NextConfigData)
 	}
-	s.nextConfigData[epoch][hash] = val
+	s.nextConfigData[epoch][hash] = nextConfigData
 }
 
 // FinalizeBABENextEpochData stores the right types.NextEpochData by
@@ -492,8 +493,8 @@ func (s *EpochState) StoreBABENextConfigData(epoch uint64, hash common.Hash, val
 // check if the header is in the database then it's been finalized and
 // thus we can also set the corresponding EpochData in the database
 func (s *EpochState) FinalizeBABENextEpochData(epoch uint64) error {
-	s.nextEpochLock.Lock()
-	defer s.nextEpochLock.Unlock()
+	s.nextEpochDataLock.Lock()
+	defer s.nextEpochDataLock.Unlock()
 
 	finalizedNextEpochData, err := s.lookForPersistedHashForEpochData(epoch)
 	if err != nil {
@@ -530,8 +531,8 @@ func (s *EpochState) FinalizeBABENextEpochData(epoch uint64) error {
 // check if the header is in the database then it's been finalized and
 // thus we can also set the corresponding NextConfigData in the database
 func (s *EpochState) FinalizeBABENextConfigData(epoch uint64) error {
-	s.nextEpochLock.Lock()
-	defer s.nextEpochLock.Unlock()
+	s.nextConfigDataLock.Lock()
+	defer s.nextConfigDataLock.Unlock()
 
 	finalizedNextConfigData, err := s.lookForPersistedHashForConfigData(epoch)
 	if err != nil {
