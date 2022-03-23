@@ -312,12 +312,7 @@ func TestNodeRuntime_ValidateTransaction(t *testing.T) {
 
 	accInfo := types.AccountInfo{
 		Nonce: 0,
-		Data: struct {
-			Free       *scale.Uint128
-			Reserved   *scale.Uint128
-			MiscFrozen *scale.Uint128
-			FreeFrozen *scale.Uint128
-		}{
+		Data: types.AccountData{
 			Free:       scale.MustNewUint128(big.NewInt(1152921504606846976)),
 			Reserved:   scale.MustNewUint128(big.NewInt(0)),
 			MiscFrozen: scale.MustNewUint128(big.NewInt(0)),

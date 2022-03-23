@@ -150,8 +150,7 @@ func (t *Trie) Load(db chaindb.Database, rootHash common.Hash) error {
 		t.root = nil
 		return nil
 	}
-
-	rootHashBytes := rootHash[:]
+	rootHashBytes := rootHash.ToBytes()
 
 	encodedNode, err := db.Get(rootHashBytes)
 	if err != nil {
@@ -163,6 +162,7 @@ func (t *Trie) Load(db chaindb.Database, rootHash common.Hash) error {
 	if err != nil {
 		return fmt.Errorf("cannot decode root node: %w", err)
 	}
+
 	t.root = root
 	t.root.SetDirty(false)
 	t.root.SetEncodingAndHash(encodedNode, rootHashBytes)
@@ -185,6 +185,7 @@ func (t *Trie) load(db chaindb.Database, n Node) error {
 		}
 
 		hash := child.GetHash()
+
 		encodedNode, err := db.Get(hash)
 		if err != nil {
 			return fmt.Errorf("cannot find child node key 0x%x in database: %w", hash, err)
@@ -209,16 +210,17 @@ func (t *Trie) load(db chaindb.Database, n Node) error {
 	for _, key := range t.GetKeysWithPrefix(ChildStorageKeyPrefix) {
 		childTrie := NewEmptyTrie()
 		value := t.Get(key)
-		err := childTrie.Load(db, common.NewHash(value))
+		rootHash := common.BytesToHash(value)
+		err := childTrie.Load(db, rootHash)
 		if err != nil {
-			return fmt.Errorf("failed to load child trie with root hash=0x%x: %w", value, err)
+			return fmt.Errorf("failed to load child trie with root hash=%s: %w", rootHash, err)
 		}
 
-		err = t.PutChild(value, childTrie)
+		hash, err := childTrie.Hash()
 		if err != nil {
-			return fmt.Errorf("failed to insert child trie with root hash=0x%x into main trie: %w",
-				childTrie.root.GetHash(), err)
+			return fmt.Errorf("cannot hash chilld trie at key 0x%x: %w", key, err)
 		}
+		t.childTries[hash] = childTrie
 	}
 
 	return nil

@@ -7,10 +7,9 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/dot/digest"
 	"github.com/ChainSafe/gossamer/dot/network"
-	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/state"
-	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -21,7 +20,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/golang/mock/gomock"
-	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/require"
 )
 
@@ -35,9 +33,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	}
 
 	if cfg.DigestHandler == nil {
-		digestHandler := NewMockDigestHandler(ctrl)
-		digestHandler.EXPECT().HandleDigests(gomock.AssignableToTypeOf(new(types.Header)))
-		cfg.DigestHandler = digestHandler
+		cfg.DigestHandler = &digest.Handler{} // only for nil check in NewService
 	}
 
 	if cfg.Keystore == nil {
@@ -126,14 +122,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), cfg.Runtime)
 
 	if cfg.Network == nil {
-		net := NewMockNetwork(ctrl)
-		net.EXPECT().GossipMessage(gomock.AssignableToTypeOf(new(network.TransactionMessage)))
-		net.EXPECT().IsSynced().Return(true)
-		net.EXPECT().ReportPeer(
-			gomock.AssignableToTypeOf(peerset.ReputationChange{}),
-			gomock.AssignableToTypeOf(peer.ID("")),
-		)
-		cfg.Network = net
+		cfg.Network = new(network.Service) // only for nil check in NewService
 	}
 
 	if cfg.CodeSubstitutes == nil {
