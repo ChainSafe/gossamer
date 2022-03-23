@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	errEpochNotFound         = errors.New("epoch not found at in memory map")
+	ErrEpochNotFound         = errors.New("epoch not found at in memory map")
 	errNextEpochHashNotFound = errors.New("finalized hash not found at database")
 )
 
@@ -554,7 +554,7 @@ func (s *EpochState) FinalizeBABENextConfigData(epoch uint64) error {
 func (s *EpochState) lookForPersistedHashForEpochData(epoch uint64) (types.NextEpochData, error) {
 	epochData, has := s.nextEpochData[epoch]
 	if !has {
-		return types.NextEpochData{}, errEpochNotFound
+		return types.NextEpochData{}, ErrEpochNotFound
 	}
 
 	for hash, inMemoryEpochData := range epochData {
@@ -576,7 +576,7 @@ func (s *EpochState) lookForPersistedHashForEpochData(epoch uint64) (types.NextE
 func (s *EpochState) lookForPersistedHashForConfigData(epoch uint64) (types.NextConfigData, error) {
 	configData, has := s.nextConfigData[epoch]
 	if !has {
-		return types.NextConfigData{}, errEpochNotFound
+		return types.NextConfigData{}, ErrEpochNotFound
 	}
 
 	for hash, inMemoryNextConfigData := range configData {

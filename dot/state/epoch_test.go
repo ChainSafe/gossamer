@@ -368,7 +368,7 @@ func TestStoreAndFinalizeBabeNextEpochData(t *testing.T) {
 			shouldRemainInMemory: 1,
 			finalizeEpoch:        3, // try to finalize a epoch that does not exists
 			finalizeHash:         common.Hash{},
-			expectErr:            errEpochNotFound,
+			expectErr:            ErrEpochNotFound,
 			inMemoryEpoch: []inMemoryNextEpochData{
 				{
 					epoch: 1,
@@ -555,7 +555,7 @@ func TestStoreAndFinalizeBabeNextConfigData(t *testing.T) {
 			shouldRemainInMemory: 1,
 			finalizeEpoch:        3, // try to finalize a epoch that does not exists
 			finalizeHash:         common.Hash{},
-			expectErr:            errEpochNotFound,
+			expectErr:            ErrEpochNotFound,
 			inMemoryEpoch: []inMemotyNextConfighData{
 				{
 					epoch: 1,

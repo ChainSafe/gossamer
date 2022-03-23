@@ -25,7 +25,7 @@ import (
 
 //go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
 
-func newTestHandler(t *testing.T) *Handler {
+func newTestHandler(t *testing.T) (*Handler, *state.Service) {
 	testDatadirPath := t.TempDir()
 
 	ctrl := gomock.NewController(t)
@@ -51,11 +51,11 @@ func newTestHandler(t *testing.T) *Handler {
 
 	dh, err := NewHandler(log.Critical, stateSrvc.Block, stateSrvc.Epoch, stateSrvc.Grandpa)
 	require.NoError(t, err)
-	return dh
+	return dh, stateSrvc
 }
 
 func TestHandler_GrandpaScheduledChange(t *testing.T) {
-	handler := newTestHandler(t)
+	handler, _ := newTestHandler(t)
 	handler.Start()
 	defer handler.Stop()
 
@@ -114,7 +114,7 @@ func TestHandler_GrandpaScheduledChange(t *testing.T) {
 }
 
 func TestHandler_GrandpaForcedChange(t *testing.T) {
-	handler := newTestHandler(t)
+	handler, _ := newTestHandler(t)
 	handler.Start()
 	defer handler.Stop()
 
@@ -163,7 +163,7 @@ func TestHandler_GrandpaForcedChange(t *testing.T) {
 }
 
 func TestHandler_GrandpaPauseAndResume(t *testing.T) {
-	handler := newTestHandler(t)
+	handler, _ := newTestHandler(t)
 	handler.Start()
 	defer handler.Stop()
 
@@ -226,7 +226,7 @@ func TestHandler_GrandpaPauseAndResume(t *testing.T) {
 }
 
 func TestNextGrandpaAuthorityChange_OneChange(t *testing.T) {
-	handler := newTestHandler(t)
+	handler, _ := newTestHandler(t)
 	handler.Start()
 	defer handler.Stop()
 
@@ -266,7 +266,7 @@ func TestNextGrandpaAuthorityChange_OneChange(t *testing.T) {
 }
 
 func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
-	handler := newTestHandler(t)
+	handler, _ := newTestHandler(t)
 	handler.Start()
 	defer handler.Stop()
 
@@ -339,7 +339,7 @@ func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
 }
 
 func TestHandler_HandleBABEOnDisabled(t *testing.T) {
-	handler := newTestHandler(t)
+	handler, _ := newTestHandler(t)
 	header := &types.Header{
 		Number: 1,
 	}
@@ -400,11 +400,13 @@ func TestHandler_HandleNextEpochData(t *testing.T) {
 		Weight: 1,
 	}
 
-	var digest = types.NewBabeConsensusDigest()
-	err = digest.Set(types.NextEpochData{
+	nextEpochData := types.NextEpochData{
 		Authorities: []types.AuthorityRaw{authA, authB},
 		Randomness:  [32]byte{77, 88, 99},
-	})
+	}
+
+	digest := types.NewBabeConsensusDigest()
+	err = digest.Set(nextEpochData)
 	require.NoError(t, err)
 
 	data, err := scale.Marshal(digest)
@@ -418,36 +420,37 @@ func TestHandler_HandleNextEpochData(t *testing.T) {
 	}
 
 	header := createHeaderWithPreDigest(t, 10)
-
-	finalisedCh := make(chan *types.FinalisationInfo)
-
-	handler := newTestHandler(t)
-	handler.finalised = finalisedCh
-
-	ctx, cancel := context.WithCancel(context.Background())
-
-	doneCh := make(chan struct{})
-
-	go func() {
-		defer close(doneCh)
-		handler.handleBlockFinalisation(ctx)
-	}()
+	handler, stateSrv := newTestHandler(t)
 
 	err = handler.handleConsensusDigest(d, header)
 	require.NoError(t, err)
 
-	finalisedCh <- &types.FinalisationInfo{
+	const targetEpoch = 1
+
+	blockHeaderKey := append([]byte("hdr"), header.Hash().ToBytes()...)
+	blockHeaderKey = append([]byte("block"), blockHeaderKey...)
+	err = stateSrv.DB().Put(blockHeaderKey, []byte{})
+	require.NoError(t, err)
+
+	handler.finalised = make(chan *types.FinalisationInfo, 1)
+
+	const timeout = 1 * time.Second
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	handler.finalised <- &types.FinalisationInfo{
 		Header: *header,
 		Round:  1,
 		SetID:  1,
 	}
 
+	handler.handleBlockFinalisation(ctx)
+
 	// Before check the epoch data was stored
 	// we need to wait for both handle functions to finish
-	cancel()
-	<-doneCh
+	<-ctx.Done()
 
-	stored, err := handler.epochState.(*state.EpochState).GetEpochData(1)
+	stored, err := handler.epochState.(*state.EpochState).GetEpochData(targetEpoch)
 	require.NoError(t, err)
 
 	act, ok := digest.Value().(types.NextEpochData)
@@ -462,11 +465,13 @@ func TestHandler_HandleNextEpochData(t *testing.T) {
 
 func TestHandler_HandleNextConfigData(t *testing.T) {
 	var digest = types.NewBabeConsensusDigest()
-	err := digest.Set(types.NextConfigData{
+	nextConfigData := types.NextConfigData{
 		C1:             1,
 		C2:             8,
 		SecondarySlots: 1,
-	})
+	}
+
+	err := digest.Set(nextConfigData)
 	require.NoError(t, err)
 
 	data, err := scale.Marshal(digest)
@@ -479,39 +484,42 @@ func TestHandler_HandleNextConfigData(t *testing.T) {
 
 	header := createHeaderWithPreDigest(t, 10)
 
-	finalisedCh := make(chan *types.FinalisationInfo)
-
-	handler := newTestHandler(t)
-	handler.finalised = finalisedCh
-
-	ctx, cancel := context.WithCancel(context.Background())
-
-	doneCh := make(chan struct{})
-	go func() {
-		defer close(doneCh)
-		handler.handleBlockFinalisation(ctx)
-	}()
+	handler, stateSrv := newTestHandler(t)
 
 	err = handler.handleConsensusDigest(d, header)
 	require.NoError(t, err)
 
-	finalisedCh <- &types.FinalisationInfo{
+	const targetEpoch = 1
+
+	blockHeaderKey := append([]byte("hdr"), header.Hash().ToBytes()...)
+	blockHeaderKey = append([]byte("block"), blockHeaderKey...)
+	err = stateSrv.DB().Put(blockHeaderKey, []byte{})
+	require.NoError(t, err)
+
+	handler.finalised = make(chan *types.FinalisationInfo, 1)
+
+	const timeout = 1 * time.Second
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	handler.finalised <- &types.FinalisationInfo{
 		Header: *header,
 		Round:  1,
 		SetID:  1,
 	}
 
+	handler.handleBlockFinalisation(ctx)
+
 	// Before check the config data was stored
 	// we need to wait for both handle functions finish
-	cancel()
-	<-doneCh
+	<-ctx.Done()
 
 	act, ok := digest.Value().(types.NextConfigData)
 	if !ok {
 		t.Fatal()
 	}
 
-	stored, err := handler.epochState.(*state.EpochState).GetConfigData(1)
+	stored, err := handler.epochState.(*state.EpochState).GetConfigData(targetEpoch)
 	require.NoError(t, err)
 	require.Equal(t, act.ToConfigData(), stored)
 }

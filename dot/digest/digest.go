@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/services"
@@ -16,6 +17,8 @@ import (
 
 var (
 	_ services.Service = &Handler{}
+
+	ErrCannotDefineNextEpoch = errors.New("cannot define next epoch data and config")
 )
 
 // Handler is used to handle consensus messages and relevant authority updates to BABE and GRANDPA
@@ -197,7 +200,7 @@ func (h *Handler) handleBabeConsensusDigest(digest scale.VaryingDataType, header
 		return h.handleBABEOnDisabled(val, header)
 
 	case types.NextConfigData:
-		h.logger.Debugf("stored BABENextConfigData data: %v for hash: %s to epoch: %d", digest, headerHash, nextEpoch)
+		h.logger.Debugf("stored BABENextConfigData data: %v for hash: %s to epoch: %d\n", digest, headerHash, nextEpoch)
 		h.epochState.StoreBABENextConfigData(nextEpoch, headerHash, val)
 		return nil
 	}
@@ -234,7 +237,7 @@ func (h *Handler) handleBlockFinalisation(ctx context.Context) {
 
 			err := h.setBABEDigestsOnFinalization(&info.Header)
 			if err != nil {
-				h.logger.Errorf("failed to store babe next epoch digest: %s", err)
+				h.logger.Errorf("failed to store babe next epoch digest: %s\n", err)
 			}
 
 			err = h.handleGrandpaChangesOnFinalization(info.Header.Number)
@@ -248,7 +251,7 @@ func (h *Handler) handleBlockFinalisation(ctx context.Context) {
 }
 
 // setBABEDigestsOnFinalization is called only when a block is finalised
-// and defines the correct next epoch data and next config data
+// and defines the correct next epoch data and next config data.
 func (h *Handler) setBABEDigestsOnFinalization(finalizedHeader *types.Header) error {
 	currEpoch, err := h.epochState.GetEpochForBlock(finalizedHeader)
 	if err != nil {
@@ -259,18 +262,19 @@ func (h *Handler) setBABEDigestsOnFinalization(finalizedHeader *types.Header) er
 	nextEpoch := currEpoch + 1
 
 	err = h.epochState.FinalizeBABENextEpochData(nextEpoch)
-	if err != nil {
+	if !errors.Is(err, state.ErrEpochNotFound) {
 		return fmt.Errorf("cannot finalize babe next epoch data for block number %d (%s): %w",
 			finalizedHeader.Number, finalizedHeader.Hash(), err)
 	}
 
 	err = h.epochState.FinalizeBABENextConfigData(nextEpoch)
-	if err != nil {
+	if !errors.Is(err, state.ErrEpochNotFound) {
 		return fmt.Errorf("cannot finalize babe next config data for block number %d (%s): %w",
 			finalizedHeader.Number, finalizedHeader.Hash(), err)
 	}
 
-	return nil
+	// the epoch state does not contains any information about the next epoch
+	return ErrCannotDefineNextEpoch
 }
 
 func (h *Handler) handleGrandpaChangesOnImport(num uint) error {
