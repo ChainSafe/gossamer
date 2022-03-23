@@ -46,9 +46,6 @@ var (
 	// GenesisTwoAuthsSecondaryVRF0_9_10 is the genesis file that has 2 authorities and block production by
 	// secondary VRF slots enabled
 	GenesisTwoAuthsSecondaryVRF0_9_10 = filepath.Join(currentDir, "../utils/genesis_two_auths_secondaryvrf_0_9_10.json")
-
-	// ConfigDefault is the default config file
-	ConfigDefault = filepath.Join(currentDir, "../utils/config_default.toml")
 )
 
 // Node represents a gossamer process
@@ -493,10 +490,11 @@ func generateDefaultConfig() *ctoml.Config {
 	}
 }
 
-// CreateDefaultConfig generates and creates default config file.
-func CreateDefaultConfig() {
+// CreateDefaultConfig generates a default config and writes
+// it to a temporary file for the current test.
+func CreateDefaultConfig(t *testing.T) (configPath string) {
 	cfg := generateDefaultConfig()
-	_ = dot.ExportTomlConfig(cfg, ConfigDefault)
+	return writeTestTOMLConfig(t, cfg)
 }
 
 // CreateConfigLogGrandpa generates a grandpa config and writes

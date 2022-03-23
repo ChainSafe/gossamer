@@ -28,7 +28,8 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 
 	t.Log("starting gossamer...")
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
-	nodes, err := utils.InitializeAndStartNodes(t, 1, genesisPath, utils.ConfigDefault)
+	config := utils.CreateDefaultConfig(t)
+	nodes, err := utils.InitializeAndStartNodes(t, 1, genesisPath, config)
 	require.NoError(t, err)
 
 	defer func() {
@@ -135,7 +136,8 @@ func TestAuthorRPC(t *testing.T) {
 
 	t.Log("starting gossamer...")
 	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
-	nodes, err := utils.InitializeAndStartNodes(t, 1, genesisPath, utils.ConfigDefault)
+	config := utils.CreateDefaultConfig(t)
+	nodes, err := utils.InitializeAndStartNodes(t, 1, genesisPath, config)
 	require.NoError(t, err)
 
 	time.Sleep(time.Second) // give server a second to start

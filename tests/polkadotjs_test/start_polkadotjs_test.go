@@ -4,7 +4,6 @@
 package polkadotjs_test
 
 import (
-	"os"
 	"os/exec"
 	"strings"
 	"testing"
@@ -24,11 +23,10 @@ func TestStartGossamerAndPolkadotAPI(t *testing.T) {
 	}
 	t.Log("starting gossamer for polkadot.js/api tests...")
 
-	utils.CreateDefaultConfig()
-	defer os.Remove(utils.ConfigDefault)
+	config := utils.CreateDefaultConfig(t)
 
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
-	nodes, err := utils.InitializeAndStartNodesWebsocket(t, 1, genesisPath, utils.ConfigDefault)
+	nodes, err := utils.InitializeAndStartNodesWebsocket(t, 1, genesisPath, config)
 	require.NoError(t, err)
 
 	command := "npx mocha ./test --timeout 30000"
