@@ -427,12 +427,12 @@ func GenerateGenesisSixAuth(t *testing.T) {
 func generateDefaultConfig() *ctoml.Config {
 	return &ctoml.Config{
 		Global: ctoml.GlobalConfig{
-			Name:         "Gossamer",
-			ID:           "gssmr",
-			LogLvl:       "crit",
-			MetricsPort:  9876,
-			RetainBlocks: 256,
-			Pruning:      "archive",
+			Name:           "Gossamer",
+			ID:             "gssmr",
+			LogLvl:         "crit",
+			MetricsAddress: "localhost:9876",
+			RetainBlocks:   256,
+			Pruning:        "archive",
 		},
 		Log: ctoml.LogConfig{
 			CoreLvl: "info",

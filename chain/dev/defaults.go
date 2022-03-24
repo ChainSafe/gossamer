@@ -21,8 +21,8 @@ var (
 	// DefaultBasePath is the node base directory path
 	DefaultBasePath = string("~/.gossamer/dev")
 
-	// DefaultMetricsPort is the metrics server port
-	DefaultMetricsPort = uint32(9876)
+	// DefaultMetricsAddress is the default metrics server listening address.
+	DefaultMetricsAddress = ":9876"
 
 	// DefaultLvl is the default log level
 	DefaultLvl = log.Info

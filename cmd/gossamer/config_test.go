@@ -136,7 +136,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				BasePath:       testCfg.Global.BasePath,
 				LogLvl:         log.Info,
 				PublishMetrics: testCfg.Global.PublishMetrics,
-				MetricsPort:    testCfg.Global.MetricsPort,
+				MetricsAddress: testCfg.Global.MetricsAddress,
 			},
 		},
 		{
@@ -149,7 +149,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				BasePath:       dot.KusamaConfig().Global.BasePath,
 				LogLvl:         log.Info,
 				PublishMetrics: testCfg.Global.PublishMetrics,
-				MetricsPort:    testCfg.Global.MetricsPort,
+				MetricsAddress: testCfg.Global.MetricsAddress,
 			},
 		},
 		{
@@ -162,7 +162,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				BasePath:       testCfg.Global.BasePath,
 				LogLvl:         log.Info,
 				PublishMetrics: testCfg.Global.PublishMetrics,
-				MetricsPort:    testCfg.Global.MetricsPort,
+				MetricsAddress: testCfg.Global.MetricsAddress,
 			},
 		},
 		{
@@ -175,7 +175,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				BasePath:       "test_basepath",
 				LogLvl:         log.Info,
 				PublishMetrics: testCfg.Global.PublishMetrics,
-				MetricsPort:    testCfg.Global.MetricsPort,
+				MetricsAddress: testCfg.Global.MetricsAddress,
 			},
 		},
 		{
@@ -188,7 +188,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				BasePath:       testCfg.Global.BasePath,
 				LogLvl:         log.Info,
 				PublishMetrics: testCfg.Global.PublishMetrics,
-				MetricsPort:    testCfg.Global.MetricsPort,
+				MetricsAddress: testCfg.Global.MetricsAddress,
 			},
 		},
 		{
@@ -201,20 +201,20 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				BasePath:       testCfg.Global.BasePath,
 				LogLvl:         log.Info,
 				PublishMetrics: true,
-				MetricsPort:    testCfg.Global.MetricsPort,
+				MetricsAddress: testCfg.Global.MetricsAddress,
 			},
 		},
 		{
-			"Test gossamer --metrics-port",
-			[]string{"config", "metrics-port", "name"},
-			[]interface{}{testCfgFile.Name(), "9871", testCfg.Global.Name},
+			"Test gossamer --metrics-address",
+			[]string{"config", "metrics-address", "name"},
+			[]interface{}{testCfgFile.Name(), ":9871", testCfg.Global.Name},
 			dot.GlobalConfig{
 				Name:           testCfg.Global.Name,
 				ID:             testCfg.Global.ID,
 				BasePath:       testCfg.Global.BasePath,
 				LogLvl:         log.Info,
 				PublishMetrics: testCfg.Global.PublishMetrics,
-				MetricsPort:    uint32(9871),
+				MetricsAddress: ":9871",
 			},
 		},
 		{
@@ -227,7 +227,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				BasePath:       testCfg.Global.BasePath,
 				LogLvl:         log.Info,
 				PublishMetrics: testCfg.Global.PublishMetrics,
-				MetricsPort:    testCfg.Global.MetricsPort,
+				MetricsAddress: testCfg.Global.MetricsAddress,
 				NoTelemetry:    true,
 			},
 		},
@@ -245,7 +245,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				BasePath:       testCfg.Global.BasePath,
 				LogLvl:         log.Info,
 				PublishMetrics: testCfg.Global.PublishMetrics,
-				MetricsPort:    testCfg.Global.MetricsPort,
+				MetricsAddress: testCfg.Global.MetricsAddress,
 				NoTelemetry:    false,
 				TelemetryURLs: []genesis.TelemetryEndpoint{
 					{Endpoint: "ws://localhost:8001/submit", Verbosity: 0},
@@ -783,7 +783,7 @@ func TestUpdateConfigFromGenesisJSON(t *testing.T) {
 			BasePath:       testCfg.Global.BasePath,
 			LogLvl:         testCfg.Global.LogLvl,
 			PublishMetrics: testCfg.Global.PublishMetrics,
-			MetricsPort:    testCfg.Global.MetricsPort,
+			MetricsAddress: testCfg.Global.MetricsAddress,
 			TelemetryURLs:  testCfg.Global.TelemetryURLs,
 		},
 		Log: dot.LogConfig{
@@ -837,7 +837,7 @@ func TestUpdateConfigFromGenesisJSON_Default(t *testing.T) {
 			BasePath:       testCfg.Global.BasePath,
 			LogLvl:         testCfg.Global.LogLvl,
 			PublishMetrics: testCfg.Global.PublishMetrics,
-			MetricsPort:    testCfg.Global.MetricsPort,
+			MetricsAddress: testCfg.Global.MetricsAddress,
 			TelemetryURLs:  testCfg.Global.TelemetryURLs,
 		},
 		Log: dot.LogConfig{
@@ -887,7 +887,7 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 			BasePath:       testCfg.Global.BasePath,
 			LogLvl:         testCfg.Global.LogLvl,
 			PublishMetrics: testCfg.Global.PublishMetrics,
-			MetricsPort:    testCfg.Global.MetricsPort,
+			MetricsAddress: testCfg.Global.MetricsAddress,
 			TelemetryURLs:  testCfg.Global.TelemetryURLs,
 		},
 		Log: dot.LogConfig{
