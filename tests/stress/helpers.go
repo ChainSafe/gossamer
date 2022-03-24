@@ -14,6 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/tests/utils"
+	"github.com/ChainSafe/gossamer/tests/utils/rpc"
 
 	"github.com/stretchr/testify/require"
 )
@@ -31,7 +32,7 @@ func compareChainHeads(ctx context.Context, nodes []utils.Node,
 	hashes = make(map[common.Hash][]string)
 	for _, node := range nodes {
 		getChainHeadCtx, cancel := context.WithTimeout(ctx, getChainHeadTimeout)
-		header, err := utils.GetChainHead(getChainHeadCtx, node.RPCPort)
+		header, err := rpc.GetChainHead(getChainHeadCtx, node.RPCPort)
 		cancel()
 		if err != nil {
 			return nil, fmt.Errorf("cannot get chain head for node index %d: %w", node.Idx, err)
@@ -97,7 +98,7 @@ func compareBlocksByNumber(ctx context.Context, t *testing.T, nodes []utils.Node
 			}
 
 			for { // retry until context gets canceled
-				result.hash, result.err = utils.GetBlockHash(ctx, node.RPCPort, num)
+				result.hash, result.err = rpc.GetBlockHash(ctx, node.RPCPort, num)
 
 				if err := ctx.Err(); err != nil {
 					result.err = err
@@ -144,7 +145,7 @@ func compareFinalizedHeads(ctx context.Context, t *testing.T, nodes []utils.Node
 	hashes = make(map[common.Hash][]string)
 	for _, node := range nodes {
 		getFinalizedHeadCtx, cancel := context.WithTimeout(ctx, getFinalizedHeadTimeout)
-		hash, err := utils.GetFinalizedHead(getFinalizedHeadCtx, node.RPCPort)
+		hash, err := rpc.GetFinalizedHead(getFinalizedHeadCtx, node.RPCPort)
 		cancel()
 		require.NoError(t, err)
 
@@ -171,7 +172,7 @@ func compareFinalizedHeadsByRound(ctx context.Context, nodes []utils.Node,
 	hashes = make(map[common.Hash][]string)
 	for _, node := range nodes {
 		getFinalizedHeadByRoundCtx, cancel := context.WithTimeout(ctx, getFinalizedHeadByRoundTimeout)
-		hash, err := utils.GetFinalizedHeadByRound(getFinalizedHeadByRoundCtx, node.RPCPort, round)
+		hash, err := rpc.GetFinalizedHeadByRound(getFinalizedHeadByRoundCtx, node.RPCPort, round)
 		cancel()
 
 		if err != nil {
@@ -224,14 +225,14 @@ func compareFinalizedHeadsWithRetry(ctx context.Context, nodes []utils.Node, rou
 }
 
 func getPendingExtrinsics(ctx context.Context, t *testing.T, node utils.Node) []string {
-	endpoint := utils.NewEndpoint(node.RPCPort)
+	endpoint := rpc.NewEndpoint(node.RPCPort)
 	const method = "author_pendingExtrinsics"
 	const params = "[]"
-	respBody, err := utils.PostRPC(ctx, endpoint, method, params)
+	respBody, err := rpc.Post(ctx, endpoint, method, params)
 	require.NoError(t, err)
 
 	exts := new(modules.PendingExtrinsicsResponse)
-	err = utils.DecodeRPC(respBody, exts)
+	err = rpc.Decode(respBody, exts)
 	require.NoError(t, err)
 
 	return *exts

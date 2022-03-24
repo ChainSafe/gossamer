@@ -13,6 +13,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils"
+	"github.com/ChainSafe/gossamer/tests/utils/config"
+	"github.com/ChainSafe/gossamer/tests/utils/rpc"
 	"github.com/stretchr/testify/require"
 )
 
@@ -24,7 +26,7 @@ func TestStateRPCResponseValidation(t *testing.T) {
 
 	t.Log("starting gossamer...")
 	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
-	config := utils.CreateDefaultConfig(t)
+	config := config.CreateDefault(t)
 	nodes, err := utils.InitializeAndStartNodes(t, 1, genesisPath, config)
 	require.NoError(t, err)
 
@@ -39,7 +41,7 @@ func TestStateRPCResponseValidation(t *testing.T) {
 	ctx := context.Background()
 
 	getBlockHashCtx, cancel := context.WithTimeout(ctx, time.Second)
-	blockHash, err := utils.GetBlockHash(getBlockHashCtx, nodes[0].RPCPort, "")
+	blockHash, err := rpc.GetBlockHash(getBlockHashCtx, nodes[0].RPCPort, "")
 	cancel()
 	require.NoError(t, err)
 
@@ -142,7 +144,7 @@ func TestStateRPCAPI(t *testing.T) {
 
 	t.Log("starting gossamer...")
 	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
-	config := utils.CreateDefaultConfig(t)
+	config := config.CreateDefault(t)
 	nodes, err := utils.InitializeAndStartNodes(t, 1, genesisPath, config)
 	require.NoError(t, err)
 
@@ -157,7 +159,7 @@ func TestStateRPCAPI(t *testing.T) {
 	ctx := context.Background()
 
 	getBlockHashCtx, cancel := context.WithTimeout(ctx, time.Second)
-	blockHash, err := utils.GetBlockHash(getBlockHashCtx, nodes[0].RPCPort, "")
+	blockHash, err := rpc.GetBlockHash(getBlockHashCtx, nodes[0].RPCPort, "")
 	cancel()
 	require.NoError(t, err)
 
@@ -337,8 +339,8 @@ func TestStateRPCAPI(t *testing.T) {
 		t.Run(test.description, func(t *testing.T) {
 			ctx := context.Background()
 			postRPCCtx, cancel := context.WithTimeout(ctx, time.Second)
-			endpoint := utils.NewEndpoint(nodes[0].RPCPort)
-			respBody, err := utils.PostRPC(postRPCCtx, endpoint, test.method, test.params)
+			endpoint := rpc.NewEndpoint(nodes[0].RPCPort)
+			respBody, err := rpc.Post(postRPCCtx, endpoint, test.method, test.params)
 			cancel()
 			require.NoError(t, err)
 
@@ -355,7 +357,7 @@ func TestRPCStructParamUnmarshal(t *testing.T) {
 
 	t.Log("starting gossamer...")
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
-	config := utils.CreateDefaultConfig(t)
+	config := config.CreateDefault(t)
 	nodes, err := utils.InitializeAndStartNodes(t, 1, genesisPath, config)
 	require.NoError(t, err)
 
@@ -376,8 +378,8 @@ func TestRPCStructParamUnmarshal(t *testing.T) {
 		ctx := context.Background()
 
 		postRPCCtx, cancel := context.WithTimeout(ctx, time.Second)
-		endpoint := utils.NewEndpoint(nodes[0].RPCPort)
-		respBody, err := utils.PostRPC(postRPCCtx, endpoint, test.method, test.params)
+		endpoint := rpc.NewEndpoint(nodes[0].RPCPort)
+		respBody, err := rpc.Post(postRPCCtx, endpoint, test.method, test.params)
 		cancel()
 		require.NoError(t, err)
 		require.NotContains(t, string(respBody), "json: cannot unmarshal")

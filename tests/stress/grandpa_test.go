@@ -10,13 +10,14 @@ import (
 
 	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils"
+	"github.com/ChainSafe/gossamer/tests/utils/config"
 	"github.com/stretchr/testify/require"
 )
 
 func TestStress_Grandpa_OneAuthority(t *testing.T) {
 	numNodes := 1
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
-	config := utils.CreateDefaultConfig(t)
+	config := config.CreateDefault(t)
 	nodes, err := utils.InitializeAndStartNodes(t, numNodes, genesisPath, config)
 	require.NoError(t, err)
 
@@ -47,7 +48,7 @@ func TestStress_Grandpa_ThreeAuthorities(t *testing.T) {
 
 	genesisPath := utils.GenerateGenesisAuths(t, numNodes)
 
-	config := utils.CreateDefaultConfig(t)
+	config := config.CreateDefault(t)
 	nodes, err := utils.InitializeAndStartNodes(t, numNodes, genesisPath, config)
 	require.NoError(t, err)
 
@@ -74,7 +75,7 @@ func TestStress_Grandpa_SixAuthorities(t *testing.T) {
 	const numNodes = 6
 	genesisPath := utils.GenerateGenesisAuths(t, numNodes)
 
-	config := utils.CreateDefaultConfig(t)
+	config := config.CreateDefault(t)
 	nodes, err := utils.InitializeAndStartNodes(t, numNodes, genesisPath, config)
 	require.NoError(t, err)
 
@@ -100,7 +101,7 @@ func TestStress_Grandpa_NineAuthorities(t *testing.T) {
 		t.Skip("skipping TestStress_Grandpa_NineAuthorities")
 	}
 
-	grandpaConfig := utils.CreateConfigLogGrandpa(t)
+	grandpaConfig := config.CreateLogGrandpa(t)
 
 	numNodes := 9
 	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
@@ -132,7 +133,7 @@ func TestStress_Grandpa_CatchUp(t *testing.T) {
 	const numNodes = 6
 	genesisPath := utils.GenerateGenesisAuths(t, numNodes)
 
-	config := utils.CreateDefaultConfig(t)
+	config := config.CreateDefault(t)
 	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, genesisPath, config)
 	require.NoError(t, err)
 

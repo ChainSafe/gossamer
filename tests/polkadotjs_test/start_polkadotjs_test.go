@@ -10,6 +10,7 @@ import (
 
 	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils"
+	"github.com/ChainSafe/gossamer/tests/utils/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -23,7 +24,7 @@ func TestStartGossamerAndPolkadotAPI(t *testing.T) {
 	}
 	t.Log("starting gossamer for polkadot.js/api tests...")
 
-	config := utils.CreateDefaultConfig(t)
+	config := config.CreateDefault(t)
 
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
 	nodes, err := utils.InitializeAndStartNodesWebsocket(t, 1, genesisPath, config)

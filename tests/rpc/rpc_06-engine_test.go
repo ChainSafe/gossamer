@@ -10,6 +10,7 @@ import (
 
 	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils"
+	"github.com/ChainSafe/gossamer/tests/utils/config"
 	"github.com/stretchr/testify/require"
 )
 
@@ -34,7 +35,7 @@ func TestEngineRPC(t *testing.T) {
 
 	t.Log("starting gossamer...")
 	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
-	config := utils.CreateDefaultConfig(t)
+	config := config.CreateDefault(t)
 	nodes, err := utils.InitializeAndStartNodes(t, 1, genesisPath, config)
 	require.NoError(t, err)
 

@@ -1,7 +1,7 @@
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package utils
+package rpc
 
 import (
 	"context"
@@ -17,7 +17,7 @@ func PauseBABE(ctx context.Context, rpcPort string) error {
 	endpoint := NewEndpoint(rpcPort)
 	const method = "dev_control"
 	const params = `["babe", "stop"]`
-	_, err := PostRPC(ctx, endpoint, method, params)
+	_, err := Post(ctx, endpoint, method, params)
 	return err
 }
 
@@ -27,13 +27,13 @@ func SlotDuration(ctx context.Context, rpcPort string) (
 	endpoint := NewEndpoint(rpcPort)
 	const method = "dev_slotDuration"
 	const params = "[]"
-	data, err := PostRPC(ctx, endpoint, method, params)
+	data, err := Post(ctx, endpoint, method, params)
 	if err != nil {
 		return 0, fmt.Errorf("cannot post RPC: %w", err)
 	}
 
 	var slotDurationString string
-	err = DecodeRPC(data, &slotDurationString)
+	err = Decode(data, &slotDurationString)
 	if err != nil {
 		return 0, fmt.Errorf("cannot decode RPC response: %w", err)
 	}
@@ -55,13 +55,13 @@ func EpochLength(ctx context.Context, rpcPort string) (epochLength uint64, err e
 	endpoint := NewEndpoint(rpcPort)
 	const method = "dev_epochLength"
 	const params = "[]"
-	data, err := PostRPC(ctx, endpoint, method, params)
+	data, err := Post(ctx, endpoint, method, params)
 	if err != nil {
 		return 0, fmt.Errorf("cannot post RPC: %w", err)
 	}
 
 	var epochLengthHexString string
-	err = DecodeRPC(data, &epochLengthHexString)
+	err = Decode(data, &epochLengthHexString)
 	if err != nil {
 		return 0, fmt.Errorf("cannot decode RPC response: %w", err)
 	}

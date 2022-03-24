@@ -1,7 +1,7 @@
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package utils
+package rpc
 
 import (
 	"context"
@@ -19,13 +19,13 @@ func GetChainHead(ctx context.Context, rpcPort string) (header *types.Header, er
 	endpoint := NewEndpoint(rpcPort)
 	const method = "chain_getHeader"
 	const params = "[]"
-	respBody, err := PostRPC(ctx, endpoint, method, params)
+	respBody, err := Post(ctx, endpoint, method, params)
 	if err != nil {
 		return nil, fmt.Errorf("cannot post RPC: %w", err)
 	}
 
 	var rpcHeader modules.ChainBlockHeaderResponse
-	err = DecodeRPC(respBody, &rpcHeader)
+	err = Decode(respBody, &rpcHeader)
 	if err != nil {
 		return nil, fmt.Errorf("cannot decode RPC response: %w", err)
 	}
@@ -45,7 +45,7 @@ func GetBlockHash(ctx context.Context, rpcPort, num string) (hash common.Hash, e
 	const method = "chain_getBlockHash"
 	params := "[" + num + "]"
 	const requestWait = time.Second
-	respBody, err := PostRPCWithRetry(ctx, endpoint, method, params, requestWait)
+	respBody, err := PostWithRetry(ctx, endpoint, method, params, requestWait)
 	if err != nil {
 		return hash, fmt.Errorf("cannot post RPC: %w", err)
 	}
@@ -59,7 +59,7 @@ func GetFinalizedHead(ctx context.Context, rpcPort string) (
 	endpoint := NewEndpoint(rpcPort)
 	const method = "chain_getFinalizedHead"
 	const params = "[]"
-	respBody, err := PostRPC(ctx, endpoint, method, params)
+	respBody, err := Post(ctx, endpoint, method, params)
 	if err != nil {
 		return hash, fmt.Errorf("cannot post RPC: %w", err)
 	}
@@ -75,7 +75,7 @@ func GetFinalizedHeadByRound(ctx context.Context, rpcPort string, round uint64) 
 	endpoint := NewEndpoint(rpcPort)
 	const method = "chain_getFinalizedHeadByRound"
 	params := "[" + p + ",1]"
-	respBody, err := PostRPC(ctx, endpoint, method, params)
+	respBody, err := Post(ctx, endpoint, method, params)
 	if err != nil {
 		return hash, fmt.Errorf("cannot post RPC: %w", err)
 	}
@@ -89,13 +89,13 @@ func GetBlock(ctx context.Context, rpcPort string, hash common.Hash) (
 	endpoint := NewEndpoint(rpcPort)
 	const method = "chain_getBlock"
 	params := fmt.Sprintf(`["%s"]`, hash)
-	respBody, err := PostRPC(ctx, endpoint, method, params)
+	respBody, err := Post(ctx, endpoint, method, params)
 	if err != nil {
 		return nil, fmt.Errorf("cannot post RPC: %w", err)
 	}
 
 	rpcBlock := new(modules.ChainBlockResponse)
-	err = DecodeRPC(respBody, rpcBlock)
+	err = Decode(respBody, rpcBlock)
 	if err != nil {
 		return nil, fmt.Errorf("cannot decode RPC response body: %w", err)
 	}
@@ -119,7 +119,7 @@ func GetBlock(ctx context.Context, rpcPort string, hash common.Hash) (
 
 func hexStringBodyToHash(body []byte) (hash common.Hash, err error) {
 	var hexHashString string
-	err = DecodeRPC(body, &hexHashString)
+	err = Decode(body, &hexHashString)
 	if err != nil {
 		return common.Hash{}, fmt.Errorf("cannot decode RPC: %w", err)
 	}

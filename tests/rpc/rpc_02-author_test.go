@@ -14,6 +14,7 @@ import (
 
 	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils"
+	"github.com/ChainSafe/gossamer/tests/utils/config"
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v3"
 	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
 	"github.com/centrifuge/go-substrate-rpc-client/v3/types"
@@ -28,7 +29,7 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 
 	t.Log("starting gossamer...")
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
-	config := utils.CreateDefaultConfig(t)
+	config := config.CreateDefault(t)
 	nodes, err := utils.InitializeAndStartNodes(t, 1, genesisPath, config)
 	require.NoError(t, err)
 
@@ -136,7 +137,7 @@ func TestAuthorRPC(t *testing.T) {
 
 	t.Log("starting gossamer...")
 	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
-	config := utils.CreateDefaultConfig(t)
+	config := config.CreateDefault(t)
 	nodes, err := utils.InitializeAndStartNodes(t, 1, genesisPath, config)
 	require.NoError(t, err)
 

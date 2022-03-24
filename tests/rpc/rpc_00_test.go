@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/tests/utils"
+	"github.com/ChainSafe/gossamer/tests/utils/rpc"
 	"github.com/stretchr/testify/require"
 )
 
@@ -42,12 +43,12 @@ func getResponse(ctx context.Context, t *testing.T, test *testCase) interface{} 
 		return nil
 	}
 
-	endpoint := utils.NewEndpoint(currentPort)
-	respBody, err := utils.PostRPC(ctx, endpoint, test.method, test.params)
+	endpoint := rpc.NewEndpoint(currentPort)
+	respBody, err := rpc.Post(ctx, endpoint, test.method, test.params)
 	require.NoError(t, err)
 
 	target := reflect.New(reflect.TypeOf(test.expected)).Interface()
-	err = utils.DecodeRPC(respBody, target)
+	err = rpc.Decode(respBody, target)
 	require.NoError(t, err)
 
 	require.NotNil(t, target)
