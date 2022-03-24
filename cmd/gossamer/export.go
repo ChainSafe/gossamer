@@ -67,13 +67,13 @@ func dotConfigToToml(dcfg *dot.Config) *ctoml.Config {
 	}
 
 	cfg.Global = ctoml.GlobalConfig{
-		Name:         dcfg.Global.Name,
-		ID:           dcfg.Global.ID,
-		BasePath:     dcfg.Global.BasePath,
-		LogLvl:       dcfg.Global.LogLvl.String(),
-		MetricsPort:  dcfg.Global.MetricsPort,
-		RetainBlocks: dcfg.Global.RetainBlocks,
-		Pruning:      string(dcfg.Global.Pruning),
+		Name:           dcfg.Global.Name,
+		ID:             dcfg.Global.ID,
+		BasePath:       dcfg.Global.BasePath,
+		LogLvl:         dcfg.Global.LogLvl.String(),
+		MetricsAddress: dcfg.Global.MetricsAddress,
+		RetainBlocks:   dcfg.Global.RetainBlocks,
+		Pruning:        string(dcfg.Global.Pruning),
 	}
 
 	cfg.Log = ctoml.LogConfig{

@@ -25,8 +25,6 @@ lint:
 clean:
 	rm -fr ./bin
 
-format:
-	./scripts/goimports.sh
 
 proto:
 	go install google.golang.org/protobuf/cmd/protoc-gen-go
