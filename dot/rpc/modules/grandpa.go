@@ -65,7 +65,7 @@ func (gm *GrandpaModule) ProveFinality(r *http.Request, req *ProveFinalityReques
 	}
 
 	// Leaving check in for linter
-	if req.authorityID != uint64(0) { // nolint:staticcheck
+	if req.authorityID != uint64(0) { //// nolint:staticcheck
 		// TODO: Check if functionality relevant (#1404)
 	}
 
