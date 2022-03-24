@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/tests/utils/rpc"
 	scribble "github.com/nanobox-io/golang-scribble"
 )
 
@@ -68,12 +69,12 @@ func (fw *Framework) CallRPC(ctx context.Context, idx int, method, params string
 		return nil, fmt.Errorf("node index greater than quantity of nodes")
 	}
 	node := fw.nodes[idx]
-	respBody, err := PostRPC(ctx, NewEndpoint(node.RPCPort), method, params)
+	respBody, err := rpc.Post(ctx, rpc.NewEndpoint(node.RPCPort), method, params)
 	if err != nil {
 		return nil, err
 	}
 
-	err = DecodeRPC(respBody, &respJSON)
+	err = rpc.Decode(respBody, &respJSON)
 	if err != nil {
 		return nil, fmt.Errorf("error making RPC call %v", err)
 	}

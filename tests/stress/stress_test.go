@@ -27,6 +27,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils"
+	"github.com/ChainSafe/gossamer/tests/utils/rpc"
 )
 
 func TestMain(m *testing.M) {
@@ -163,12 +164,12 @@ func TestSync_MultipleEpoch(t *testing.T) {
 	ctx := context.Background()
 
 	slotDurationCtx, cancel := context.WithTimeout(ctx, time.Second)
-	slotDuration, err := utils.SlotDuration(slotDurationCtx, nodes[0].RPCPort)
+	slotDuration, err := rpc.SlotDuration(slotDurationCtx, nodes[0].RPCPort)
 	cancel()
 	require.NoError(t, err)
 
 	epochLengthCtx, cancel := context.WithTimeout(ctx, time.Second)
-	epochLength, err := utils.EpochLength(epochLengthCtx, nodes[0].RPCPort)
+	epochLength, err := rpc.EpochLength(epochLengthCtx, nodes[0].RPCPort)
 	cancel()
 	require.NoError(t, err)
 
@@ -177,7 +178,7 @@ func TestSync_MultipleEpoch(t *testing.T) {
 
 	// Just checking that everythings operating as expected
 	getChainHeadCtx, cancel := context.WithTimeout(ctx, time.Second)
-	header, err := utils.GetChainHead(getChainHeadCtx, nodes[0].RPCPort)
+	header, err := rpc.GetChainHead(getChainHeadCtx, nodes[0].RPCPort)
 	cancel()
 	require.NoError(t, err)
 
@@ -256,7 +257,7 @@ func TestSync_Bench(t *testing.T) {
 
 	for {
 		getChainHeadCtx, cancel := context.WithTimeout(ctx, time.Second)
-		header, err := utils.GetChainHead(getChainHeadCtx, alice.RPCPort)
+		header, err := rpc.GetChainHead(getChainHeadCtx, alice.RPCPort)
 		cancel()
 		if err != nil {
 			continue
@@ -270,7 +271,7 @@ func TestSync_Bench(t *testing.T) {
 	}
 
 	pauseBabeCtx, cancel := context.WithTimeout(ctx, time.Second)
-	err = utils.PauseBABE(pauseBabeCtx, alice.RPCPort)
+	err = rpc.PauseBABE(pauseBabeCtx, alice.RPCPort)
 	cancel()
 
 	require.NoError(t, err)
@@ -301,7 +302,7 @@ func TestSync_Bench(t *testing.T) {
 		}
 
 		getChainHeadCtx, getChainHeadCancel := context.WithTimeout(ctx, time.Second)
-		head, err := utils.GetChainHead(getChainHeadCtx, bob.RPCPort)
+		head, err := rpc.GetChainHead(getChainHeadCtx, bob.RPCPort)
 		getChainHeadCancel()
 
 		if err != nil {
@@ -491,7 +492,7 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 
 	// get starting header so that we can lookup blocks by number later
 	getChainHeadCtx, getChainHeadCancel := context.WithTimeout(ctx, time.Second)
-	prevHeader, err := utils.GetChainHead(getChainHeadCtx, nodes[idx].RPCPort)
+	prevHeader, err := rpc.GetChainHead(getChainHeadCtx, nodes[idx].RPCPort)
 	getChainHeadCancel()
 	require.NoError(t, err)
 
@@ -516,7 +517,7 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 	}
 
 	getChainHeadCtx, cancel := context.WithTimeout(ctx, time.Second)
-	header, err := utils.GetChainHead(getChainHeadCtx, nodes[idx].RPCPort)
+	header, err := rpc.GetChainHead(getChainHeadCtx, nodes[idx].RPCPort)
 	cancel()
 	require.NoError(t, err)
 
@@ -528,7 +529,7 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 
 	for i := 0; i < maxRetries; i++ {
 		getBlockCtx, getBlockCancel := context.WithTimeout(ctx, time.Second)
-		block, err := utils.GetBlock(getBlockCtx, nodes[idx].RPCPort, header.ParentHash)
+		block, err := rpc.GetBlock(getBlockCtx, nodes[idx].RPCPort, header.ParentHash)
 		getBlockCancel()
 		require.NoError(t, err)
 
@@ -777,13 +778,13 @@ func TestStress_SecondarySlotProduction(t *testing.T) {
 				fmt.Printf("%d iteration\n", i)
 
 				getBlockHashCtx, cancel := context.WithTimeout(ctx, time.Second)
-				hash, err := utils.GetBlockHash(getBlockHashCtx, nodes[0].RPCPort, fmt.Sprintf("%d", i))
+				hash, err := rpc.GetBlockHash(getBlockHashCtx, nodes[0].RPCPort, fmt.Sprintf("%d", i))
 				cancel()
 
 				require.NoError(t, err)
 
 				getBlockCtx, cancel := context.WithTimeout(ctx, time.Second)
-				block, err := utils.GetBlock(getBlockCtx, nodes[0].RPCPort, hash)
+				block, err := rpc.GetBlock(getBlockCtx, nodes[0].RPCPort, hash)
 				cancel()
 				require.NoError(t, err)
 

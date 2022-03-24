@@ -22,6 +22,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/ChainSafe/gossamer/tests/utils/rpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -246,13 +247,13 @@ var (
 func checkNodeStarted(ctx context.Context, gossamerHost string) error {
 	const method = "system_health"
 	const params = "{}"
-	respBody, err := PostRPC(ctx, gossamerHost, method, params)
+	respBody, err := rpc.Post(ctx, gossamerHost, method, params)
 	if err != nil {
 		return fmt.Errorf("cannot post RPC: %w", err)
 	}
 
 	target := new(modules.SystemHealthResponse)
-	err = DecodeRPC(respBody, target)
+	err = rpc.Decode(respBody, target)
 	if err != nil {
 		return fmt.Errorf("cannot decode RPC: %w", err)
 	}

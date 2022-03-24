@@ -11,6 +11,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/tests/utils"
+	"github.com/ChainSafe/gossamer/tests/utils/rpc"
 
 	"github.com/stretchr/testify/require"
 )
@@ -56,13 +57,13 @@ func TestStableNetworkRPC(t *testing.T) {
 		t.Run(test.description, func(t *testing.T) {
 			ctx := context.Background()
 
-			endpoint := utils.NewEndpoint(utils.PORT)
+			endpoint := rpc.NewEndpoint(utils.PORT)
 			const params = "{}"
-			respBody, err := utils.PostRPC(ctx, endpoint, test.method, params)
+			respBody, err := rpc.Post(ctx, endpoint, test.method, params)
 			require.NoError(t, err)
 
 			target := reflect.New(reflect.TypeOf(test.expected)).Interface()
-			err = utils.DecodeRPC(respBody, target)
+			err = rpc.Decode(respBody, target)
 			require.NoError(t, err)
 
 			switch v := target.(type) {

@@ -12,6 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils"
+	"github.com/ChainSafe/gossamer/tests/utils/rpc"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/require"
 )
@@ -231,13 +232,13 @@ func callWebsocket(t *testing.T, test *testCase) {
 			case int:
 				// check for result subscription number
 				resNum := 0
-				err = utils.DecodeWebsocket(v, &resNum)
+				err = rpc.DecodeWebsocket(v, &resNum)
 				require.NoError(t, err)
 
 			case map[string]interface{}:
 				// check result map response
 				resMap := make(map[string]interface{})
-				err = utils.DecodeWebsocket(v, &resMap)
+				err = rpc.DecodeWebsocket(v, &resMap)
 				require.NoError(t, err)
 
 				// check values in map are expected type

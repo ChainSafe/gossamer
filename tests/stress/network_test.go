@@ -10,6 +10,7 @@ import (
 
 	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils"
+	"github.com/ChainSafe/gossamer/tests/utils/rpc"
 
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/stretchr/testify/require"
@@ -36,7 +37,7 @@ func TestNetwork_MaxPeers(t *testing.T) {
 	for i, node := range nodes {
 		const getPeersTimeout = time.Second
 		getPeersCtx, cancel := context.WithTimeout(ctx, getPeersTimeout)
-		peers, err := utils.GetPeers(getPeersCtx, node.RPCPort)
+		peers, err := rpc.GetPeers(getPeersCtx, node.RPCPort)
 		cancel()
 
 		require.NoError(t, err)
