@@ -200,7 +200,7 @@ func (h *Handler) handleBabeConsensusDigest(digest scale.VaryingDataType, header
 		return h.handleBABEOnDisabled(val, header)
 
 	case types.NextConfigData:
-		h.logger.Debugf("stored BABENextConfigData data: %v for hash: %s to epoch: %d\n", digest, headerHash, nextEpoch)
+		h.logger.Debugf("stored BABENextConfigData data: %v for hash: %s to epoch: %d", digest, headerHash, nextEpoch)
 		h.epochState.StoreBABENextConfigData(nextEpoch, headerHash, val)
 		return nil
 	}
@@ -237,7 +237,7 @@ func (h *Handler) handleBlockFinalisation(ctx context.Context) {
 
 			err := h.setBABEDigestsOnFinalization(&info.Header)
 			if err != nil {
-				h.logger.Errorf("failed to store babe next epoch digest: %s\n", err)
+				h.logger.Errorf("failed to store babe next epoch digest: %s", err)
 			}
 
 			err = h.handleGrandpaChangesOnFinalization(info.Header.Number)
