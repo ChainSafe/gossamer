@@ -12,6 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils"
+	"github.com/ChainSafe/gossamer/tests/utils/config"
 	websocketutils "github.com/ChainSafe/gossamer/tests/utils/websocket"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/require"
@@ -61,7 +62,7 @@ func TestChainRPC(t *testing.T) {
 
 	t.Log("starting gossamer...")
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
-	config := utils.CreateDefaultConfig(t)
+	config := config.CreateDefault(t)
 	nodes, err := utils.InitializeAndStartNodes(t, 1, genesisPath, config)
 	require.NoError(t, err)
 
@@ -183,7 +184,7 @@ func TestChainSubscriptionRPC(t *testing.T) {
 
 	t.Log("starting gossamer...")
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
-	config := utils.CreateDefaultConfig(t)
+	config := config.CreateDefault(t)
 	nodes, err := utils.InitializeAndStartNodesWebsocket(t, 1, genesisPath, config)
 	require.NoError(t, err)
 
