@@ -1,15 +1,21 @@
-package rpc
+package websocket
 
 import "encoding/json"
 
-// ServerResponse wraps the RPC response
-type ServerResponse struct {
+// Response is a websocket response structure.
+type Response struct {
 	// JSON-RPC Version
 	Version string `json:"jsonrpc"`
+	// Method name called
+	Method string `json:"method"`
 	// Resulting values
 	Result json.RawMessage `json:"result"`
+	// Params values including results
+	Params json.RawMessage `json:"params"`
 	// Any generated errors
 	Error *Error `json:"error"`
+	// Request id
+	Subscription *json.RawMessage `json:"subscription"`
 	// Request id
 	ID *json.RawMessage `json:"id"`
 }
