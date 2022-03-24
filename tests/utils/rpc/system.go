@@ -1,7 +1,7 @@
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package utils
+package rpc
 
 import (
 	"context"
@@ -16,13 +16,13 @@ func GetPeers(ctx context.Context, rpcPort string) (peers []common.PeerInfo, err
 	endpoint := NewEndpoint(rpcPort)
 	const method = "system_peers"
 	const params = "[]"
-	respBody, err := PostRPC(ctx, endpoint, method, params)
+	respBody, err := Post(ctx, endpoint, method, params)
 	if err != nil {
 		return nil, fmt.Errorf("cannot post RPC: %w", err)
 	}
 
 	var peersResponse modules.SystemPeersResponse
-	err = DecodeRPC(respBody, &peersResponse)
+	err = Decode(respBody, &peersResponse)
 	if err != nil {
 		return nil, fmt.Errorf("cannot decode RPC: %w", err)
 	}

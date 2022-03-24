@@ -1,7 +1,7 @@
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package utils
+package rpc
 
 import (
 	"bytes"
@@ -18,9 +18,9 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-// PostRPC sends a payload using the method, host and params string given.
+// Post sends a payload using the method, host and params string given.
 // It returns the response bytes and an eventual error.
-func PostRPC(ctx context.Context, endpoint, method, params string) (data []byte, err error) {
+func Post(ctx context.Context, endpoint, method, params string) (data []byte, err error) {
 	requestBody := fmt.Sprintf(`{"jsonrpc":"2.0","method":"%s","params":%s,"id":1}`, method, params)
 	requestBuffer := bytes.NewBuffer([]byte(requestBody))
 
@@ -52,10 +52,10 @@ func PostRPC(ctx context.Context, endpoint, method, params string) (data []byte,
 	return data, nil
 }
 
-// PostRPCWithRetry repeatitively calls `PostRPC` repeatitively
+// PostWithRetry repeatitively calls `Post` repeatitively
 // until it succeeds within the requestWait duration or returns
 // the last error if the context is canceled.
-func PostRPCWithRetry(ctx context.Context, endpoint, method, params string,
+func PostWithRetry(ctx context.Context, endpoint, method, params string,
 	requestWait time.Duration) (data []byte, err error) {
 	try := 0
 	for {
@@ -63,7 +63,7 @@ func PostRPCWithRetry(ctx context.Context, endpoint, method, params string,
 
 		postRPCCtx, postRPCCancel := context.WithTimeout(ctx, requestWait)
 
-		data, err = PostRPC(postRPCCtx, endpoint, method, params)
+		data, err = Post(postRPCCtx, endpoint, method, params)
 
 		if err == nil {
 			postRPCCancel()
@@ -92,8 +92,8 @@ var (
 	ErrResponseError   = errors.New("response error received")
 )
 
-// DecodeRPC decodes []body into the target interface.
-func DecodeRPC(body []byte, target interface{}) error {
+// Decode decodes []body into the target interface.
+func Decode(body []byte, target interface{}) error {
 	decoder := json.NewDecoder(bytes.NewReader(body))
 	decoder.DisallowUnknownFields()
 
@@ -120,41 +120,6 @@ func DecodeRPC(body []byte, target interface{}) error {
 	if err != nil {
 		return fmt.Errorf("cannot decode response result: %s: %w",
 			string(response.Result), err)
-	}
-
-	return nil
-}
-
-// DecodeWebsocket will decode body into target interface
-func DecodeWebsocket(body []byte, target interface{}) error {
-	decoder := json.NewDecoder(bytes.NewReader(body))
-	decoder.DisallowUnknownFields()
-
-	var response WebsocketResponse
-	err := decoder.Decode(&response)
-	if err != nil {
-		return fmt.Errorf("cannot decode websocket response: %w", err)
-	}
-
-	if response.Version != "2.0" {
-		return fmt.Errorf("%w: %s", ErrResponseVersion, response.Version)
-	}
-
-	if response.Error != nil {
-		return fmt.Errorf("%w: %s (error code %d)",
-			ErrResponseError, response.Error.Message, response.Error.ErrorCode)
-	}
-
-	jsonRawMessage := response.Result
-	if jsonRawMessage == nil {
-		jsonRawMessage = response.Params
-	}
-	decoder = json.NewDecoder(bytes.NewReader(jsonRawMessage))
-	decoder.DisallowUnknownFields()
-
-	err = decoder.Decode(target)
-	if err != nil {
-		return fmt.Errorf("cannot decode result or params of websocket response: %w", err)
 	}
 
 	return nil
