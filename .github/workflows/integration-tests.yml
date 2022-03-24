@@ -23,6 +23,7 @@ jobs:
       matrix:
         packages:
           [
+            github.com/ChainSafe/gossamer/dot/core,
             github.com/ChainSafe/gossamer/dot/rpc/modules,
             github.com/ChainSafe/gossamer/lib/babe,
           ]
@@ -35,7 +36,10 @@ jobs:
 
       - uses: actions/setup-go@v2
         with:
-          go-version: 1.17.x
+          go-version: 1.18
+          stable: true
+          check-latest: true
+
       - uses: actions/checkout@v3
 
       # cache go build cache

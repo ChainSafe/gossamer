@@ -60,7 +60,7 @@ func writeFailedData(t *testing.T, kv map[string][]byte, path string) {
 func buildSmallTrie() *Trie {
 	trie := NewEmptyTrie()
 
-	tests := []Test{
+	tests := []keyValues{
 		{key: []byte{0x01, 0x35}, value: []byte("pen")},
 		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
 		{key: []byte{0xf2}, value: []byte("feather")},
@@ -76,7 +76,7 @@ func buildSmallTrie() *Trie {
 	return trie
 }
 
-func runTests(t *testing.T, trie *Trie, tests []Test) {
+func runTests(t *testing.T, trie *Trie, tests []keyValues) {
 	for _, test := range tests {
 		switch test.op {
 		case put:
@@ -96,7 +96,7 @@ func runTests(t *testing.T, trie *Trie, tests []Test) {
 func TestPutAndGetBranch(t *testing.T) {
 	trie := NewEmptyTrie()
 
-	tests := []Test{
+	tests := []keyValues{
 		{key: []byte{0x01, 0x35}, value: []byte("spaghetti"), op: put},
 		{key: []byte{0x01, 0x35, 0x79}, value: []byte("gnocchi"), op: put},
 		{key: []byte{0x07}, value: []byte("ramen"), op: put},
@@ -115,7 +115,7 @@ func TestPutAndGetBranch(t *testing.T) {
 func TestPutAndGetOddKeyLengths(t *testing.T) {
 	trie := NewEmptyTrie()
 
-	tests := []Test{
+	tests := []keyValues{
 		{key: []byte{0x43, 0xc1}, value: []byte("noot"), op: put},
 		{key: []byte{0x49, 0x29}, value: []byte("nootagain"), op: put},
 		{key: []byte{0x43, 0x0c}, value: []byte("odd"), op: put},
@@ -210,7 +210,7 @@ func Test_Trie_PutAndGet_FailedData(t *testing.T) {
 func TestGetPartialKey(t *testing.T) {
 	trie := NewEmptyTrie()
 
-	tests := []Test{
+	tests := []keyValues{
 		{key: []byte{0x01, 0x35}, value: []byte("pen"), op: put},
 		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: put},
 		{key: []byte{0x01, 0x35, 0x07}, value: []byte("odd"), op: put},
@@ -235,7 +235,7 @@ func TestGetPartialKey(t *testing.T) {
 func TestDeleteSmall(t *testing.T) {
 	trie := buildSmallTrie()
 
-	tests := []Test{
+	tests := []keyValues{
 		{key: []byte{}, value: []byte("floof"), op: del},
 		{key: []byte{}, value: nil, op: get},
 		{key: []byte{}, value: []byte("floof"), op: put},
@@ -279,7 +279,7 @@ func TestDeleteSmall(t *testing.T) {
 func TestDeleteCombineBranch(t *testing.T) {
 	trie := buildSmallTrie()
 
-	tests := []Test{
+	tests := []keyValues{
 		{key: []byte{0x01, 0x35, 0x46}, value: []byte("raccoon"), op: put},
 		{key: []byte{0x01, 0x35, 0x46, 0x77}, value: []byte("rat"), op: put},
 		{key: []byte{0x09, 0xd3}, value: []byte("noot"), op: del},
@@ -292,7 +292,7 @@ func TestDeleteCombineBranch(t *testing.T) {
 func TestDeleteFromBranch(t *testing.T) {
 	trie := NewEmptyTrie()
 
-	tests := []Test{
+	tests := []keyValues{
 		{key: []byte{0x06, 0x15, 0xfc}, value: []byte("noot"), op: put},
 		{key: []byte{0x06, 0x2b, 0xa9}, value: []byte("nootagain"), op: put},
 		{key: []byte{0x06, 0xaf, 0xb1}, value: []byte("odd"), op: put},
@@ -317,7 +317,7 @@ func TestDeleteFromBranch(t *testing.T) {
 func TestDeleteOddKeyLengths(t *testing.T) {
 	trie := NewEmptyTrie()
 
-	tests := []Test{
+	tests := []keyValues{
 		{key: []byte{0x43, 0xc1}, value: []byte("noot"), op: put},
 		{key: []byte{0x43, 0xc1}, value: []byte("noot"), op: get},
 		{key: []byte{0x49, 0x29}, value: []byte("nootagain"), op: put},
@@ -360,7 +360,7 @@ func TestTrieDiff(t *testing.T) {
 
 	var testKey = []byte("testKey")
 
-	tests := []Test{
+	tests := []keyValues{
 		{key: testKey, value: testKey},
 		{key: []byte("testKey1"), value: []byte("testKey1")},
 		{key: []byte("testKey2"), value: []byte("testKey2")},
@@ -374,7 +374,7 @@ func TestTrieDiff(t *testing.T) {
 	err = trie.Store(storageDB)
 	require.NoError(t, err)
 
-	tests = []Test{
+	tests = []keyValues{
 		{key: testKey, value: []byte("newTestKey2")},
 		{key: []byte("testKey2"), value: []byte("newKey")},
 		{key: []byte("testKey3"), value: []byte("testKey3")},
@@ -462,7 +462,7 @@ func TestDelete(t *testing.T) {
 }
 
 func TestClearPrefix(t *testing.T) {
-	tests := []Test{
+	tests := []keyValues{
 		{key: []byte{0x01, 0x35}, value: []byte("spaghetti"), op: put},
 		{key: []byte{0x01, 0x35, 0x79}, value: []byte("gnocchi"), op: put},
 		{key: []byte{0x01, 0x35, 0x79, 0xab}, value: []byte("spaghetti"), op: put},
@@ -627,7 +627,7 @@ func TestTrie_ClearPrefixVsDelete(t *testing.T) {
 		[]byte("a"),
 	}
 
-	cases := [][]Test{
+	cases := [][]keyValues{
 		{
 			{key: []byte{0x01, 0x35}, value: []byte("pen")},
 			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
@@ -681,7 +681,7 @@ func TestTrie_ClearPrefixVsDelete(t *testing.T) {
 }
 
 func TestSnapshot(t *testing.T) {
-	tests := []Test{
+	tests := []keyValues{
 		{key: []byte{0x01, 0x35}, value: []byte("spaghetti"), op: put},
 		{key: []byte{0x01, 0x35, 0x79}, value: []byte("gnocchi"), op: put},
 		{key: []byte{0x01, 0x35, 0x79, 0xab}, value: []byte("spaghetti"), op: put},
@@ -784,11 +784,11 @@ func TestTrie_ConcurrentSnapshotWrites(t *testing.T) {
 	const size = 1000
 	const workers = 4
 
-	testCases := make([][]Test, workers)
+	testCases := make([][]keyValues, workers)
 	expectedTries := make([]*Trie, workers)
 
 	for i := 0; i < workers; i++ {
-		testCases[i] = make([]Test, size)
+		testCases[i] = make([]keyValues, size)
 		expectedTries[i] = buildSmallTrie()
 		for j := 0; j < size; j++ {
 			k := make([]byte, 2)
@@ -805,7 +805,7 @@ func TestTrie_ConcurrentSnapshotWrites(t *testing.T) {
 				expectedTries[i].ClearPrefix(k)
 			}
 
-			testCases[i][j] = Test{
+			testCases[i][j] = keyValues{
 				key: k,
 				op:  op,
 			}
@@ -821,7 +821,7 @@ func TestTrie_ConcurrentSnapshotWrites(t *testing.T) {
 	for i := 0; i < workers; i++ {
 		snapshotedTries[i] = buildSmallTrie().Snapshot()
 
-		go func(trie *Trie, operations []Test,
+		go func(trie *Trie, operations []keyValues,
 			startWg, finishWg *sync.WaitGroup) {
 			defer finishWg.Done()
 			startWg.Done()
@@ -864,7 +864,7 @@ func TestTrie_ClearPrefixLimit(t *testing.T) {
 		{0x09},
 	}
 
-	cases := [][]Test{
+	cases := [][]keyValues{
 		{
 			{key: []byte{0x01, 0x35}, value: []byte("pen")},
 			{key: []byte{0x01, 0x36}, value: []byte("pencil")},
@@ -900,7 +900,7 @@ func TestTrie_ClearPrefixLimit(t *testing.T) {
 		},
 	}
 
-	testFn := func(t *testing.T, testCase []Test, prefix []byte) {
+	testFn := func(t *testing.T, testCase []keyValues, prefix []byte) {
 		prefixNibbles := codec.KeyLEToNibbles(prefix)
 		if len(prefixNibbles) > 0 && prefixNibbles[len(prefixNibbles)-1] == 0 {
 			prefixNibbles = prefixNibbles[:len(prefixNibbles)-1]
@@ -965,7 +965,7 @@ func TestTrie_ClearPrefixLimitSnapshot(t *testing.T) {
 		{0x09},
 	}
 
-	cases := [][]Test{
+	cases := [][]keyValues{
 		{
 			{key: []byte{0x01}, value: []byte("feather")},
 		},

@@ -458,7 +458,7 @@ func setDotGlobalConfigFromToml(tomlCfg *ctoml.Config, cfg *dot.GlobalConfig) {
 			}
 		}
 
-		cfg.MetricsPort = tomlCfg.Global.MetricsPort
+		cfg.MetricsAddress = tomlCfg.Global.MetricsAddress
 
 		cfg.RetainBlocks = tomlCfg.Global.RetainBlocks
 		cfg.Pruning = pruner.Mode(tomlCfg.Global.Pruning)
@@ -485,9 +485,9 @@ func setDotGlobalConfigFromFlags(ctx *cli.Context, cfg *dot.GlobalConfig) error 
 
 	cfg.PublishMetrics = ctx.Bool("publish-metrics")
 
-	// check --metrics-port flag and update node configuration
-	if metricsPort := ctx.GlobalUint(MetricsPortFlag.Name); metricsPort != 0 {
-		cfg.MetricsPort = uint32(metricsPort)
+	// check --metrics-address flag and update node configuration
+	if metricsAddress := ctx.GlobalString(MetricsAddressFlag.Name); metricsAddress != "" {
+		cfg.MetricsAddress = metricsAddress
 	}
 
 	cfg.RetainBlocks = ctx.Int64(RetainBlockNumberFlag.Name)

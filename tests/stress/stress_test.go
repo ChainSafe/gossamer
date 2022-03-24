@@ -4,6 +4,7 @@
 package stress
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"math/rand"
@@ -111,14 +112,18 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 	}()
 
 	numCmps := 10
+	ctx := context.Background()
+
 	for i := 0; i < numCmps; i++ {
 		time.Sleep(3 * time.Second)
 		t.Log("comparing...", i)
-		hashes, err := compareBlocksByNumberWithRetry(t, nodes, strconv.Itoa(i))
-		if len(hashes) > 1 || len(hashes) == 0 {
-			require.NoError(t, err, i)
-			continue
-		}
+
+		const comparisonTimeout = 5 * time.Second
+		compareCtx, cancel := context.WithTimeout(ctx, comparisonTimeout)
+
+		hashes := compareBlocksByNumber(compareCtx, t, nodes, strconv.Itoa(i))
+
+		cancel()
 
 		// there will only be one key in the mapping
 		for _, nodesWithHash := range hashes {
@@ -163,13 +168,20 @@ func TestSync_MultipleEpoch(t *testing.T) {
 	// Wait for epoch to pass
 	time.Sleep(time.Duration(uint64(slotDuration.Nanoseconds()) * epochLength))
 
+	ctx := context.Background()
+
 	// Just checking that everythings operating as expected
 	header := utils.GetChainHead(t, nodes[0])
 	currentHeight := header.Number
 	for i := uint(0); i < currentHeight; i++ {
 		t.Log("comparing...", i)
-		_, err = compareBlocksByNumberWithRetry(t, nodes, strconv.Itoa(int(i)))
-		require.NoError(t, err, i)
+
+		const compareTimeout = 5 * time.Second
+		compareCtx, cancel := context.WithTimeout(ctx, compareTimeout)
+
+		_ = compareBlocksByNumber(compareCtx, t, nodes, strconv.Itoa(int(i)))
+
+		cancel()
 	}
 }
 
@@ -197,11 +209,18 @@ func TestSync_SingleSyncingNode(t *testing.T) {
 		require.Len(t, errList, 0)
 	}()
 
+	ctx := context.Background()
+
 	numCmps := 100
 	for i := 0; i < numCmps; i++ {
 		t.Log("comparing...", i)
-		_, err = compareBlocksByNumberWithRetry(t, nodes, strconv.Itoa(i))
-		require.NoError(t, err, i)
+
+		const compareTimeout = 5 * time.Second
+		compareCtx, cancel := context.WithTimeout(ctx, compareTimeout)
+
+		_ = compareBlocksByNumber(compareCtx, t, nodes, strconv.Itoa(i))
+
+		cancel()
 	}
 }
 
@@ -277,8 +296,16 @@ func TestSync_Bench(t *testing.T) {
 
 	// assert block is correct
 	t.Log("comparing block...", numBlocks)
-	_, err = compareBlocksByNumberWithRetry(t, nodes, fmt.Sprint(numBlocks))
-	require.NoError(t, err, numBlocks)
+
+	ctx := context.Background()
+
+	const compareTimeout = 5 * time.Second
+	compareCtx, cancel := context.WithTimeout(ctx, compareTimeout)
+
+	_ = compareBlocksByNumber(compareCtx, t, nodes, fmt.Sprint(numBlocks))
+
+	cancel()
+
 	time.Sleep(time.Second * 3)
 }
 
@@ -328,11 +355,19 @@ func TestSync_Restart(t *testing.T) {
 		}
 	}()
 
+	ctx := context.Background()
+
 	numCmps := 12
 	for i := 0; i < numCmps; i++ {
 		t.Log("comparing...", i)
-		_, err = compareBlocksByNumberWithRetry(t, nodes, strconv.Itoa(i))
-		require.NoError(t, err, i)
+
+		const compareTimeout = 5 * time.Second
+		compareCtx, cancel := context.WithTimeout(ctx, compareTimeout)
+
+		_ = compareBlocksByNumber(compareCtx, t, nodes, strconv.Itoa(i))
+
+		cancel()
+
 		time.Sleep(time.Second * 5)
 	}
 	close(done)
@@ -476,8 +511,14 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 
 	require.True(t, included)
 
-	hashes, err := compareBlocksByNumberWithRetry(t, nodes, fmt.Sprint(extInBlock))
-	require.NoError(t, err, hashes)
+	ctx := context.Background()
+
+	const compareTimeout = 5 * time.Second
+	compareCtx, cancel := context.WithTimeout(ctx, compareTimeout)
+
+	_ = compareBlocksByNumber(compareCtx, t, nodes, fmt.Sprint(extInBlock))
+
+	cancel()
 }
 
 func Test_SubmitAndWatchExtrinsic(t *testing.T) {

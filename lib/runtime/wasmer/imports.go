@@ -35,6 +35,7 @@ package wasmer
 //
 // extern int32_t ext_trie_blake2_256_root_version_1(void *context, int64_t a);
 // extern int32_t ext_trie_blake2_256_ordered_root_version_1(void *context, int64_t a);
+// extern int32_t ext_trie_blake2_256_ordered_root_version_2(void *context, int64_t a, int32_t b);
 // extern int32_t ext_trie_blake2_256_verify_proof_version_1(void *context, int32_t a, int64_t b, int64_t c, int64_t d);
 //
 // extern int64_t ext_misc_runtime_version_version_1(void *context, int64_t a);
@@ -91,6 +92,7 @@ package wasmer
 // extern int64_t ext_storage_read_version_1(void *context, int64_t a, int64_t b, int32_t c);
 // extern void ext_storage_rollback_transaction_version_1(void *context);
 // extern int64_t ext_storage_root_version_1(void *context);
+// extern int64_t ext_storage_root_version_2(void *context, int32_t a);
 // extern void ext_storage_set_version_1(void *context, int64_t a, int64_t b);
 // extern void ext_storage_start_transaction_version_1(void *context);
 //
@@ -869,6 +871,12 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 	logger.Debugf("[ext_trie_blake2_256_ordered_root_version_1]: root hash is %s", hash)
 	copy(memory[ptr:ptr+32], hash[:])
 	return C.int32_t(ptr)
+}
+
+//export ext_trie_blake2_256_ordered_root_version_2
+func ext_trie_blake2_256_ordered_root_version_2(context unsafe.Pointer, dataSpan C.int64_t, version C.int32_t) C.int32_t {
+	// TODO: update to use state trie version 1 (#2418)
+	return ext_trie_blake2_256_ordered_root_version_1(context, dataSpan)
 }
 
 //export ext_trie_blake2_256_verify_proof_version_1
@@ -2055,6 +2063,12 @@ func ext_storage_root_version_1(context unsafe.Pointer) C.int64_t {
 	return C.int64_t(rootSpan)
 }
 
+//export ext_storage_root_version_2
+func ext_storage_root_version_2(context unsafe.Pointer, version C.int32_t) C.int64_t {
+	// TODO: update to use state trie version 1 (#2418)
+	return ext_storage_root_version_1(context)
+}
+
 //export ext_storage_set_version_1
 func ext_storage_set_version_1(context unsafe.Pointer, keySpan, valueSpan C.int64_t) {
 	logger.Trace("executing...")
@@ -2530,6 +2544,10 @@ func ImportsNodeRuntime() (*wasm.Imports, error) { //nolint:gocyclo
 	if err != nil {
 		return nil, err
 	}
+	_, err = imports.Append("ext_storage_root_version_2", ext_storage_root_version_2, C.ext_storage_root_version_2)
+	if err != nil {
+		return nil, err
+	}
 	_, err = imports.Append("ext_storage_set_version_1", ext_storage_set_version_1, C.ext_storage_set_version_1)
 	if err != nil {
 		return nil, err
@@ -2540,6 +2558,10 @@ func ImportsNodeRuntime() (*wasm.Imports, error) { //nolint:gocyclo
 	}
 
 	_, err = imports.Append("ext_trie_blake2_256_ordered_root_version_1", ext_trie_blake2_256_ordered_root_version_1, C.ext_trie_blake2_256_ordered_root_version_1)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_trie_blake2_256_ordered_root_version_2", ext_trie_blake2_256_ordered_root_version_2, C.ext_trie_blake2_256_ordered_root_version_2)
 	if err != nil {
 		return nil, err
 	}
