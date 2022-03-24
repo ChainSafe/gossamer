@@ -259,7 +259,7 @@ func TestStoreAndFinalizeBabeNextEpochData(t *testing.T) {
 		expectErr            error
 		shouldRemainInMemory int
 	}{
-		"store_and_finalize_succesfully": {
+		"store_and_finalize_successfully": {
 			shouldRemainInMemory: 1,
 			finalizeEpoch:        2,
 			finalizeHash:         common.MustHexToHash("0x68a27df5a52ff2251df2cc8368f7dcefb305a13bb3d89b65c8fb070f23877f2c"),
@@ -436,7 +436,7 @@ func TestStoreAndFinalizeBabeNextConfigData(t *testing.T) {
 		expectErr            error
 		shouldRemainInMemory int
 	}{
-		"store_and_finalize_succesfully": {
+		"store_and_finalize_successfully": {
 			shouldRemainInMemory: 1,
 			finalizeEpoch:        2,
 			finalizeHash:         common.MustHexToHash("0x68a27df5a52ff2251df2cc8368f7dcefb305a13bb3d89b65c8fb070f23877f2c"),

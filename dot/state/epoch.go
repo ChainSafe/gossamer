@@ -262,7 +262,7 @@ func (s *EpochState) GetEpochData(epoch uint64, header *types.Header) (*types.Ep
 	return epochData, nil
 }
 
-// GetEpochData returns the epoch data for a given epoch persisted in database
+// GetEpochDataInDatabase returns the epoch data for a given epoch persisted in database
 func (s *EpochState) GetEpochDataInDatabase(epoch uint64) (*types.EpochData, error) {
 	enc, err := s.db.Get(epochDataKey(epoch))
 	if err != nil {
@@ -608,7 +608,6 @@ func (s *EpochState) FinalizeBABENextConfigData(epoch uint64) error {
 // which contains the right configuration to be persisted and safely used
 func lookupForNextEpochPersistedHash[T types.NextConfigData | types.NextEpochData](
 	nextEpochMap map[uint64]map[common.Hash]T, es *EpochState, epoch uint64) (next *T, err error) {
-
 	hashes, has := nextEpochMap[epoch]
 	if !has {
 		return nil, ErrEpochNotInMemory
