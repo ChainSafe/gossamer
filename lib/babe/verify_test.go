@@ -737,10 +737,12 @@ func TestVerificationManager_getConfigData(t *testing.T) {
 	mockEpochStateHasErr := NewMockEpochState(ctrl)
 	mockEpochStateGetErr := NewMockEpochState(ctrl)
 
+	testHeader := types.NewEmptyHeader()
+
 	mockEpochStateEmpty.EXPECT().HasConfigData(uint64(0)).Return(false, nil)
 	mockEpochStateHasErr.EXPECT().HasConfigData(uint64(0)).Return(false, errNoConfigData)
 	mockEpochStateGetErr.EXPECT().HasConfigData(uint64(0)).Return(true, nil)
-	mockEpochStateGetErr.EXPECT().GetConfigData(uint64(0), nil).Return(nil, errNoConfigData)
+	mockEpochStateGetErr.EXPECT().GetConfigData(uint64(0), testHeader).Return(nil, errNoConfigData)
 
 	vm0, err := NewVerificationManager(mockBlockState, mockEpochStateEmpty)
 	assert.NoError(t, err)
@@ -774,7 +776,7 @@ func TestVerificationManager_getConfigData(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			v := tt.vm
-			res, err := v.getConfigData(tt.epoch, types.NewEmptyHeader())
+			res, err := v.getConfigData(tt.epoch, testHeader)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
@@ -793,22 +795,24 @@ func TestVerificationManager_getVerifierInfo(t *testing.T) {
 	mockEpochStateThresholdErr := NewMockEpochState(ctrl)
 	mockEpochStateOk := NewMockEpochState(ctrl)
 
-	mockEpochStateGetErr.EXPECT().GetEpochData(uint64(0), nil).Return(nil, errNoConfigData)
+	testHeader := types.NewEmptyHeader()
 
-	mockEpochStateHasErr.EXPECT().GetEpochData(uint64(0), nil).Return(&types.EpochData{}, nil)
+	mockEpochStateGetErr.EXPECT().GetEpochData(uint64(0), testHeader).Return(nil, errNoConfigData)
+
+	mockEpochStateHasErr.EXPECT().GetEpochData(uint64(0), testHeader).Return(&types.EpochData{}, nil)
 	mockEpochStateHasErr.EXPECT().HasConfigData(uint64(0)).Return(false, errNoConfigData)
 
-	mockEpochStateThresholdErr.EXPECT().GetEpochData(uint64(0), nil).Return(&types.EpochData{}, nil)
+	mockEpochStateThresholdErr.EXPECT().GetEpochData(uint64(0), testHeader).Return(&types.EpochData{}, nil)
 	mockEpochStateThresholdErr.EXPECT().HasConfigData(uint64(0)).Return(true, nil)
-	mockEpochStateThresholdErr.EXPECT().GetConfigData(uint64(0), nil).
+	mockEpochStateThresholdErr.EXPECT().GetConfigData(uint64(0), testHeader).
 		Return(&types.ConfigData{
 			C1: 3,
 			C2: 1,
 		}, nil)
 
-	mockEpochStateOk.EXPECT().GetEpochData(uint64(0), nil).Return(&types.EpochData{}, nil)
+	mockEpochStateOk.EXPECT().GetEpochData(uint64(0), testHeader).Return(&types.EpochData{}, nil)
 	mockEpochStateOk.EXPECT().HasConfigData(uint64(0)).Return(true, nil)
-	mockEpochStateOk.EXPECT().GetConfigData(uint64(0), nil).
+	mockEpochStateOk.EXPECT().GetConfigData(uint64(0), testHeader).
 		Return(&types.ConfigData{
 			C1: 1,
 			C2: 3,
@@ -856,7 +860,7 @@ func TestVerificationManager_getVerifierInfo(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			v := tt.vm
-			res, err := v.getVerifierInfo(tt.epoch, types.NewEmptyHeader())
+			res, err := v.getVerifierInfo(tt.epoch, testHeader)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
@@ -1065,7 +1069,7 @@ func TestVerificationManager_SetOnDisabled(t *testing.T) {
 	mockEpochStateGetEpochErr.EXPECT().GetEpochForBlock(types.NewEmptyHeader()).Return(uint64(0), errGetEpoch)
 
 	mockEpochStateGetEpochDataErr.EXPECT().GetEpochForBlock(types.NewEmptyHeader()).Return(uint64(0), nil)
-	mockEpochStateGetEpochDataErr.EXPECT().GetEpochData(uint64(0), nil).Return(nil, errGetEpochData)
+	mockEpochStateGetEpochDataErr.EXPECT().GetEpochData(uint64(0), types.NewEmptyHeader()).Return(nil, errGetEpochData)
 
 	mockEpochStateIndexLenErr.EXPECT().GetEpochForBlock(types.NewEmptyHeader()).Return(uint64(2), nil)
 

@@ -434,7 +434,7 @@ func TestHandler_HandleNextEpochData(t *testing.T) {
 
 	handler.finalised = make(chan *types.FinalisationInfo, 1)
 
-	const timeout = 1 * time.Second
+	const timeout = time.Second
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -445,10 +445,6 @@ func TestHandler_HandleNextEpochData(t *testing.T) {
 	}
 
 	handler.handleBlockFinalisation(ctx)
-
-	// Before check the epoch data was stored
-	// we need to wait for both handle functions to finish
-	<-ctx.Done()
 
 	stored, err := handler.epochState.(*state.EpochState).GetEpochData(targetEpoch, nil)
 	require.NoError(t, err)
@@ -498,7 +494,7 @@ func TestHandler_HandleNextConfigData(t *testing.T) {
 
 	handler.finalised = make(chan *types.FinalisationInfo, 1)
 
-	const timeout = 1 * time.Second
+	const timeout = time.Second
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -509,10 +505,6 @@ func TestHandler_HandleNextConfigData(t *testing.T) {
 	}
 
 	handler.handleBlockFinalisation(ctx)
-
-	// Before check the config data was stored
-	// we need to wait for both handle functions finish
-	<-ctx.Done()
 
 	act, ok := digest.Value().(types.NextConfigData)
 	if !ok {
