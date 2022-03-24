@@ -76,7 +76,7 @@ func newTestConfig(t *testing.T) *dot.Config {
 			BasePath:       dir,
 			LogLvl:         log.Info,
 			PublishMetrics: dot.GssmrConfig().Global.PublishMetrics,
-			MetricsPort:    dot.GssmrConfig().Global.MetricsPort,
+			MetricsAddress: dot.GssmrConfig().Global.MetricsAddress,
 			RetainBlocks:   dot.GssmrConfig().Global.RetainBlocks,
 			Pruning:        dot.GssmrConfig().Global.Pruning,
 			TelemetryURLs:  dot.GssmrConfig().Global.TelemetryURLs,

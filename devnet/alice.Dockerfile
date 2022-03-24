@@ -38,6 +38,6 @@ RUN go run cmd/update-dd-agent-confd/main.go -n=${METRICS_NAMESPACE} -t=key:alic
 
 WORKDIR /gossamer
 
-ENTRYPOINT service datadog-agent start && gossamer --key=alice --babe-lead --publish-metrics --rpc --rpc-external=true --pubdns=alice --port 7001
+ENTRYPOINT service datadog-agent start && gossamer --key=alice --babe-lead --publish-metrics  --metrics-address=":9876" --rpc --rpc-external=true --pubdns=alice --port 7001
 
 EXPOSE 7001/tcp 8545/tcp 8546/tcp 8540/tcp 9876/tcp 6060/tcp
