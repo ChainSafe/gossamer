@@ -393,7 +393,7 @@ func (cm *ConsensusMessage) Hash() (common.Hash, error) {
 	// scale encode each extrinsic
 	encMsg, err := cm.Encode()
 	if err != nil {
-		return common.Hash{}, err
+		return common.Hash{}, fmt.Errorf("cannot encode message: %w", err)
 	}
 	return common.Blake2bHash(encMsg)
 }
