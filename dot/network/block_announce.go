@@ -73,7 +73,7 @@ func (bm *BlockAnnounceMessage) Hash() (common.Hash, error) {
 	// scale encode each extrinsic
 	encMsg, err := bm.Encode()
 	if err != nil {
-		return common.Hash{}, err
+		return common.Hash{}, fmt.Errorf("cannot encode message: %w", err)
 	}
 
 	return common.Blake2bHash(encMsg)
