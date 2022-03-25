@@ -55,7 +55,7 @@ func (m *messageCache) put(peer peer.ID, msg NotificationsMessage) (bool, error)
 func (m *messageCache) exists(peer peer.ID, msg NotificationsMessage) bool {
 	key, err := generateCacheKey(peer, msg)
 	if err != nil {
-		logger.Errorf("could not generate cache key: %w", err)
+		logger.Errorf("could not generate cache key: %s", err)
 		return false
 	}
 
