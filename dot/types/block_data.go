@@ -28,7 +28,7 @@ func NewEmptyBlockData() *BlockData {
 
 // Number returns the block header number.
 func (bd *BlockData) Number() uint {
-	return uint(bd.Header.Number)
+	return bd.Header.Number
 }
 
 func (bd *BlockData) String() string {
