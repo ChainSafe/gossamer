@@ -79,7 +79,7 @@ linters-settings:
 
 linters:
   enable:
-    - bodyclose
+    # - bodyclose
     - depguard
     - errcheck
     - exportloopref
@@ -96,13 +96,13 @@ linters:
     - megacheck
     - megacheck
     - misspell
-    - nilerr
+    # - nilerr
     - nilnil
     - nolintlint
     - revive
-    - staticcheck
+    # - staticcheck
     - unconvert
-    - unparam
+    # - unparam
     - varcheck
 
   fast: false
@@ -165,6 +165,10 @@ issues:
     - linters:
         - nolintlint
       source: "^//nolint:revive"
+    
+    - linters:
+        - nolintlint
+      source: "^?//nolint(:staticcheck)?"
 
     # Exclude lll issues for long lines with go:generate
     - linters:

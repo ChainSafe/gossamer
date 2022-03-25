@@ -19,7 +19,7 @@ import (
 var DefaultTestLogLvl = log.Info
 
 // newTestInstance will create a new runtime instance using the given target runtime
-func newTestInstance(t *testing.T, targetRuntime string) *Instance { ////nolint:unparam
+func newTestInstance(t *testing.T, targetRuntime string) *Instance { //nolint:unparam
 	return newTestInstanceWithTrie(t, runtime.HOST_API_TEST_RUNTIME, nil, DefaultTestLogLvl)
 }
 
