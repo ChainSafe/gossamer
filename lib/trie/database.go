@@ -189,6 +189,12 @@ func (t *Trie) load(db chaindb.Database, n Node) error {
 		_, isLeaf := child.(*node.Leaf)
 		if len(hash) == 0 && isLeaf {
 			// node has already been loaded inline
+			// just set encoding + hash digest
+			_, _, err := child.EncodeAndHash(false)
+			if err != nil {
+				return err
+			}
+			child.SetDirty(false)
 			continue
 		}
 
