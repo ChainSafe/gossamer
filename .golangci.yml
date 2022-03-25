@@ -165,10 +165,6 @@ issues:
     - linters:
         - nolintlint
       source: "^//nolint:revive"
-    
-    - linters:
-        - nolintlint
-      source: "//nolint:(staticcheck|nilerr|unparam|bodyclose)"
 
     # Exclude lll issues for long lines with go:generate
     - linters:
