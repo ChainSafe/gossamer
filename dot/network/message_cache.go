@@ -70,7 +70,7 @@ func generateCacheKey(peer peer.ID, msg NotificationsMessage) ([]byte, error) {
 
 	msgHash, err := msg.Hash()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot hash notification message: %w", err)
 	}
 
 	peerMsgHash, err := common.Blake2bHash(append([]byte(peer), msgHash.ToBytes()...))
