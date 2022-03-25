@@ -57,7 +57,7 @@ func (tm *TransactionMessage) Decode(in []byte) error {
 func (tm *TransactionMessage) Hash() (common.Hash, error) {
 	encMsg, err := tm.Encode()
 	if err != nil {
-		return common.Hash{}, nil
+		return common.Hash{}, fmt.Errorf("could not encode message: %w", err)
 	}
 	return common.Blake2bHash(encMsg)
 }
@@ -131,7 +131,7 @@ func (s *Service) startTxnBatchProcessing(txnBatchCh chan *BatchMessage, slotDur
 				case txnMsg := <-txnBatchCh:
 					propagate, err := s.handleTransactionMessage(txnMsg.peer, txnMsg.msg)
 					if err != nil {
-						logger.Warnf("could not handle transaction message: %s ", err)
+						logger.Warnf("could not handle transaction message: %s", err)
 						s.host.closeProtocolStream(protocolID, txnMsg.peer)
 						continue
 					}

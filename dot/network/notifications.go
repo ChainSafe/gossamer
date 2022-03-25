@@ -245,9 +245,7 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 
 	support, err := s.host.supportsProtocol(peer, info.protocolID)
 	if err != nil {
-		logger.Criticalf("could not check if protocol %s is supported by peer %s: %s", info.protocolID, peer, err)
-	} else if !support {
-		logger.Criticalf("protocol %s is not supported by peer %s", info.protocolID, peer)
+		logger.Errorf("could not check if protocol %s is supported by peer %s: %s", info.protocolID, peer, err)
 	}
 
 	if err != nil || !support {
