@@ -5,6 +5,7 @@ package network
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/ChainSafe/gossamer/lib/common"
