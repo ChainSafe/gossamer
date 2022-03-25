@@ -50,7 +50,6 @@ type Service struct {
 	storageState     StorageState
 	transactionState TransactionState
 	net              Network
-	digestHandler    DigestHandler
 
 	// map of code substitutions keyed by block hash
 	codeSubstitute       map[common.Hash]string
@@ -71,7 +70,6 @@ type Config struct {
 	Network          Network
 	Keystore         *keystore.GlobalKeystore
 	Runtime          runtime.Instance
-	DigestHandler    DigestHandler
 
 	CodeSubstitutes      map[common.Hash]string
 	CodeSubstitutedState CodeSubstitutedState
@@ -96,10 +94,6 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, ErrNilNetwork
 	}
 
-	if cfg.DigestHandler == nil {
-		return nil, ErrNilDigestHandler
-	}
-
 	if cfg.CodeSubstitutedState == nil {
 		return nil, errNilCodeSubstitutedState
 	}
@@ -121,7 +115,6 @@ func NewService(cfg *Config) (*Service, error) {
 		blockAddCh:           blockAddCh,
 		codeSubstitute:       cfg.CodeSubstitutes,
 		codeSubstitutedState: cfg.CodeSubstitutedState,
-		digestHandler:        cfg.DigestHandler,
 	}
 
 	return srv, nil

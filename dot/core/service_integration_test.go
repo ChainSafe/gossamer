@@ -167,10 +167,6 @@ func TestAnnounceBlock(t *testing.T) {
 		Network: net,
 	}
 
-	digestHandler := NewMockDigestHandler(ctrl)
-	digestHandler.EXPECT().HandleDigests(gomock.AssignableToTypeOf(new(types.Header)))
-	cfg.DigestHandler = digestHandler
-
 	s := NewTestService(t, cfg)
 	err := s.Start()
 	require.NoError(t, err)
@@ -583,9 +579,6 @@ func TestService_GetRuntimeVersion(t *testing.T) {
 func TestService_HandleSubmittedExtrinsic(t *testing.T) {
 	cfg := &Config{}
 	ctrl := gomock.NewController(t)
-	digestHandler := NewMockDigestHandler(ctrl)
-	digestHandler.EXPECT().HandleDigests(gomock.AssignableToTypeOf(new(types.Header)))
-	cfg.DigestHandler = digestHandler
 
 	net := NewMockNetwork(ctrl)
 	net.EXPECT().GossipMessage(gomock.AssignableToTypeOf(new(network.TransactionMessage)))

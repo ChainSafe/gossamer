@@ -407,12 +407,6 @@ func newCoreServiceTest(t *testing.T) *core.Service {
 		CodeSubstitutedState: stateSrvc.Base,
 	}
 
-	digestHandler := NewMockDigestHandler(ctrl)
-	digestHandler.EXPECT().
-		HandleDigests(gomock.AssignableToTypeOf(new(types.Header))).
-		AnyTimes()
-	cfg.DigestHandler = digestHandler
-
 	cfg.Keystore = keystore.NewGlobalKeystore()
 	kp, err := sr25519.GenerateKeypair()
 	require.NoError(t, err)

@@ -727,7 +727,6 @@ func newAuthorModule(t *testing.T, integrationTestController *integrationTestCon
 	t.Helper()
 
 	codeSubstitutedStateMock := NewMockCodeSubstitutedState(nil)
-	digestHandlerMock := NewMockDigestHandler(nil)
 
 	cfg := &core.Config{
 		TransactionState:     integrationTestController.stateSrv.Transaction,
@@ -736,7 +735,6 @@ func newAuthorModule(t *testing.T, integrationTestController *integrationTestCon
 		Network:              integrationTestController.network,
 		Keystore:             integrationTestController.keystore,
 		CodeSubstitutedState: codeSubstitutedStateMock,
-		DigestHandler:        digestHandlerMock,
 	}
 
 	core2test, err := core.NewService(cfg)
