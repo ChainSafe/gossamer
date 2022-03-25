@@ -17,7 +17,9 @@ jobs:
 
       - uses: actions/setup-go@v2
         with:
-          go-version: "^1.17"
+          go-version: 1.18
+          stable: true
+          check-latest: true
 
       - run: go install github.com/vektra/mockery/v2@v2.10.0
 
@@ -26,6 +28,7 @@ jobs:
       - name: Check devnet module
         run: |
           cd devnet && \
+          go mod download && \
           go generate -run "mockery" -tags integration ./... && \
           go generate -run "mockgen" -tags integration ./... && \
           git diff --exit-code && \
@@ -33,6 +36,7 @@ jobs:
 
       - name: Check Gossamer module
         run: |
+          go mod download && \
           go generate -run "mockery" -tags integration ./... && \
           go generate -run "mockgen" -tags integration ./... && \
           git diff --exit-code

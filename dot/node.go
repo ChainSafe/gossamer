@@ -354,10 +354,8 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 	}
 
 	if cfg.Global.PublishMetrics {
-		address := fmt.Sprintf("%s:%d", cfg.RPC.Host, cfg.Global.MetricsPort)
-		logger.Info("Enabling stand-alone metrics HTTP endpoint at address " + address)
-		node.metricsServer = metrics.NewServer(address)
-		err := node.metricsServer.Start(address)
+		node.metricsServer = metrics.NewServer(cfg.Global.MetricsAddress)
+		err := node.metricsServer.Start(cfg.Global.MetricsAddress)
 		if err != nil {
 			return nil, fmt.Errorf("cannot start metrics server: %w", err)
 		}

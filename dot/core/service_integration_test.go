@@ -2,15 +2,14 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 //go:build integration
-// +build integration
 
 package core
 
 import (
-	"errors"
 	"fmt"
+	"math/big"
 	"os"
-	"sort"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -20,20 +19,120 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	runtimemocks "github.com/ChainSafe/gossamer/lib/runtime/mocks"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
 //go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
+
+const testSlotNumber = 21
+
+func balanceKey(t *testing.T, pub []byte) (bKey []byte) {
+	t.Helper()
+
+	h0, err := common.Twox128Hash([]byte("System"))
+	require.NoError(t, err)
+	bKey = append(bKey, h0...)
+	h1, err := common.Twox128Hash([]byte("Account"))
+	require.NoError(t, err)
+	bKey = append(bKey, h1...)
+	h2, err := common.Blake2b128(pub)
+	require.NoError(t, err)
+	bKey = append(bKey, h2...)
+	bKey = append(bKey, pub...)
+	return
+}
+
+func newTestDigest(t *testing.T, slotNumber uint64) scale.VaryingDataTypeSlice {
+	t.Helper()
+	testBabeDigest := types.NewBabeDigest()
+	err := testBabeDigest.Set(types.BabeSecondaryPlainPreDigest{
+		AuthorityIndex: 17,
+		SlotNumber:     slotNumber,
+	})
+	require.NoError(t, err)
+	data, err := scale.Marshal(testBabeDigest)
+	require.NoError(t, err)
+	vdts := types.NewDigest()
+	err = vdts.Add(
+		types.PreRuntimeDigest{
+			ConsensusEngineID: types.BabeEngineID,
+			Data:              data,
+		},
+		types.ConsensusDigest{
+			ConsensusEngineID: types.BabeEngineID,
+			Data:              data,
+		},
+		types.SealDigest{
+			ConsensusEngineID: types.BabeEngineID,
+			Data:              data,
+		},
+	)
+	require.NoError(t, err)
+	return vdts
+}
+
+func generateTestValidRemarkTxns(t *testing.T, pubKey []byte, accInfo types.AccountInfo) ([]byte, runtime.Instance) {
+	t.Helper()
+	projectRootPath := filepath.Join(utils.GetProjectRootPathTest(t), "chain/gssmr/genesis.json")
+	gen, err := genesis.NewGenesisFromJSONRaw(projectRootPath)
+	require.NoError(t, err)
+
+	genTrie, err := genesis.NewTrieFromGenesis(gen)
+	require.NoError(t, err)
+
+	genState, err := rtstorage.NewTrieState(genTrie)
+	require.NoError(t, err)
+
+	nodeStorage := runtime.NodeStorage{
+		BaseDB: runtime.NewInMemoryDB(t),
+	}
+	cfg := &wasmer.Config{
+		InstanceConfig: runtime.InstanceConfig{
+			Storage:     genState,
+			LogLvl:      log.Error,
+			NodeStorage: nodeStorage,
+		},
+		Imports: nil,
+	}
+
+	rt, err := wasmer.NewRuntimeFromGenesis(cfg)
+	require.NoError(t, err)
+
+	aliceBalanceKey := balanceKey(t, pubKey)
+	encBal, err := scale.Marshal(accInfo)
+	require.NoError(t, err)
+
+	rt.(*wasmer.Instance).GetContext().Storage.Set(aliceBalanceKey, encBal)
+	// this key is System.UpgradedToDualRefCount -> set to true since all accounts have been upgraded to v0.9 format
+	rt.(*wasmer.Instance).GetContext().Storage.Set(common.UpgradedToDualRefKey, []byte{1})
+
+	genesisHeader := &types.Header{
+		Number:    0,
+		StateRoot: genTrie.MustHash(),
+	}
+
+	// Hash of encrypted centrifuge extrinsic
+	testCallArguments := []byte{0xab, 0xcd}
+	extHex := runtime.NewTestExtrinsic(t, rt, genesisHeader.Hash(), genesisHeader.Hash(),
+		0, "System.remark", testCallArguments)
+
+	extBytes := common.MustHexToBytes(extHex)
+	const txnType = byte(types.TxnExternal)
+	extBytes = append([]byte{txnType}, extBytes...)
+
+	runtime.InitializeRuntimeToTest(t, rt, genesisHeader.Hash())
+	return extBytes, rt
+}
 
 func TestMain(m *testing.M) {
 	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
@@ -63,9 +162,14 @@ func TestStartService(t *testing.T) {
 func TestAnnounceBlock(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	net := NewMockNetwork(ctrl)
+
 	cfg := &Config{
 		Network: net,
 	}
+
+	digestHandler := NewMockDigestHandler(ctrl)
+	digestHandler.EXPECT().HandleDigests(gomock.AssignableToTypeOf(new(types.Header)))
+	cfg.DigestHandler = digestHandler
 
 	s := NewTestService(t, cfg)
 	err := s.Start()
@@ -196,8 +300,8 @@ func TestService_HasKey_UnknownType(t *testing.T) {
 	cfg := &Config{
 		Keystore: ks,
 	}
-	s := NewTestService(t, cfg)
 
+	s := NewTestService(t, cfg)
 	res, err := s.HasKey(kr.Alice().Public().Hex(), "xxxx")
 	require.EqualError(t, err, "invalid keystore name")
 	require.False(t, res)
@@ -359,97 +463,96 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 }
 
 func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
-	// TODO: update these to real extrinsics on update to v0.9 (#904)
-	txs := []*transaction.ValidTransaction{
-		{
-			Extrinsic: []byte("a"),
-			Validity:  &transaction.Validity{Priority: 1},
+	accountInfo := types.AccountInfo{
+		Nonce: 0,
+		Data: types.AccountData{
+			Free:       scale.MustNewUint128(big.NewInt(1152921504606846976)),
+			Reserved:   scale.MustNewUint128(big.NewInt(0)),
+			MiscFrozen: scale.MustNewUint128(big.NewInt(0)),
+			FreeFrozen: scale.MustNewUint128(big.NewInt(0)),
 		},
-		{
-			Extrinsic: []byte("b"),
-			Validity:  &transaction.Validity{Priority: 4},
-		},
-		{
-			Extrinsic: []byte("c"),
-			Validity:  &transaction.Validity{Priority: 2},
-		},
-		{
-			Extrinsic: []byte("d"),
-			Validity:  &transaction.Validity{Priority: 17},
-		},
-		{
-			Extrinsic: []byte("e"),
-			Validity:  &transaction.Validity{Priority: 2},
-		},
+	}
+	keyring, err := keystore.NewSr25519Keyring()
+	require.NoError(t, err)
+	alicePub := common.MustHexToBytes(keyring.Alice().Public().Hex())
+	encExt, runtimeInstance := generateTestValidRemarkTxns(t, alicePub, accountInfo)
+	cfg := &Config{
+		Runtime: runtimeInstance,
 	}
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
-	ts := state.NewTransactionState(telemetryMock)
-	hashes := make([]common.Hash, len(txs))
+	transactionState := state.NewTransactionState(telemetryMock)
+	tx := &transaction.ValidTransaction{
+		Extrinsic: types.Extrinsic(encExt),
+		Validity:  &transaction.Validity{Priority: 1},
+	}
+	_ = transactionState.AddToPool(tx)
 
-	for i, tx := range txs {
-		h := ts.AddToPool(tx)
-		hashes[i] = h
+	service := NewTestService(t, cfg)
+	service.transactionState = transactionState
+
+	// provides is a list of transaction hashes that depend on this tx, see:
+	// https://github.com/paritytech/substrate/blob/5420de3face1349a97eb954ae71c5b0b940c31de/core/sr-primitives/src/transaction_validity.rs#L195
+	provides := common.MustHexToBytes("0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d00000000")
+	txnValidity := &transaction.Validity{
+		Priority:  39325240425794630,
+		Provides:  [][]byte{provides},
+		Longevity: 18446744073709551614,
+		Propagate: true,
 	}
 
-	s := &Service{
-		transactionState: ts,
-	}
+	expectedTx := transaction.NewValidTransaction(tx.Extrinsic, txnValidity)
 
-	s.maintainTransactionPool(&types.Block{
+	service.maintainTransactionPool(&types.Block{
 		Body: *types.NewBody([]types.Extrinsic{}),
 	})
 
-	res := make([]*transaction.ValidTransaction, len(txs))
-	for i := range txs {
-		res[i] = ts.Pop()
-	}
+	resultTx := transactionState.Pop()
+	require.Equal(t, expectedTx, resultTx)
 
-	sort.Slice(res, func(i, j int) bool {
-		return res[i].Extrinsic[0] < res[j].Extrinsic[0]
-	})
-	require.Equal(t, txs, res)
-
-	for _, tx := range txs {
-		ts.RemoveExtrinsic(tx.Extrinsic)
-	}
-	head := ts.Pop()
+	transactionState.RemoveExtrinsic(tx.Extrinsic)
+	head := transactionState.Pop()
 	require.Nil(t, head)
 }
 
 func TestMaintainTransactionPool_BlockWithExtrinsics(t *testing.T) {
-	txs := []*transaction.ValidTransaction{
-		{
-			Extrinsic: []byte("a"),
-			Validity:  &transaction.Validity{Priority: 1},
-		},
-		{
-			Extrinsic: []byte("b"),
-			Validity:  &transaction.Validity{Priority: 4},
+	accountInfo := types.AccountInfo{
+		Nonce: 0,
+		Data: types.AccountData{
+			Free:       scale.MustNewUint128(big.NewInt(1152921504606846976)),
+			Reserved:   scale.MustNewUint128(big.NewInt(0)),
+			MiscFrozen: scale.MustNewUint128(big.NewInt(0)),
+			FreeFrozen: scale.MustNewUint128(big.NewInt(0)),
 		},
 	}
+	keyring, err := keystore.NewSr25519Keyring()
+	require.NoError(t, err)
+	alicePub := common.MustHexToBytes(keyring.Alice().Public().Hex())
+	extrinsicBytes, _ := generateTestValidRemarkTxns(t, alicePub, accountInfo)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	ts := state.NewTransactionState(telemetryMock)
-	hashes := make([]common.Hash, len(txs))
 
-	for i, tx := range txs {
-		h := ts.AddToPool(tx)
-		hashes[i] = h
+	// Maybe replace validity
+	tx := &transaction.ValidTransaction{
+		Extrinsic: types.Extrinsic(extrinsicBytes),
+		Validity:  &transaction.Validity{Priority: 1},
 	}
+
+	ts.AddToPool(tx)
 
 	s := &Service{
 		transactionState: ts,
 	}
 
 	s.maintainTransactionPool(&types.Block{
-		Body: types.Body([]types.Extrinsic{txs[0].Extrinsic}),
+		Body: types.Body([]types.Extrinsic{extrinsicBytes}),
 	})
 
 	res := []*transaction.ValidTransaction{}
@@ -460,8 +563,8 @@ func TestMaintainTransactionPool_BlockWithExtrinsics(t *testing.T) {
 		}
 		res = append(res, tx)
 	}
-	require.Equal(t, 1, len(res))
-	require.Equal(t, res[0], txs[1])
+	// Extrinsic is removed. so empty res
+	require.Empty(t, res)
 }
 
 func TestService_GetRuntimeVersion(t *testing.T) {
@@ -478,7 +581,16 @@ func TestService_GetRuntimeVersion(t *testing.T) {
 }
 
 func TestService_HandleSubmittedExtrinsic(t *testing.T) {
-	s := NewTestService(t, nil)
+	cfg := &Config{}
+	ctrl := gomock.NewController(t)
+	digestHandler := NewMockDigestHandler(ctrl)
+	digestHandler.EXPECT().HandleDigests(gomock.AssignableToTypeOf(new(types.Header)))
+	cfg.DigestHandler = digestHandler
+
+	net := NewMockNetwork(ctrl)
+	net.EXPECT().GossipMessage(gomock.AssignableToTypeOf(new(network.TransactionMessage)))
+	cfg.Network = net
+	s := NewTestService(t, cfg)
 
 	genHeader, err := s.blockState.BestBlockHeader()
 	require.NoError(t, err)
@@ -672,8 +784,9 @@ func TestTryQueryStore_WhenThereIsDataToRetrieve(t *testing.T) {
 	storageStateTrie.Set(testKey, testValue)
 	require.NoError(t, err)
 
-	header, err := types.NewHeader(s.blockState.GenesisHash(), storageStateTrie.MustRoot(),
-		common.Hash{}, 1, types.NewDigest())
+	digest := newTestDigest(t, testSlotNumber)
+	header, err := types.NewHeader(s.blockState.GenesisHash(), storageStateTrie.MustRoot(), common.Hash{}, 1, digest)
+
 	require.NoError(t, err)
 
 	err = s.storageState.StoreTrie(storageStateTrie, header)
@@ -702,8 +815,8 @@ func TestTryQueryStore_WhenDoesNotHaveDataToRetrieve(t *testing.T) {
 	storageStateTrie, err := rtstorage.NewTrieState(trie.NewTrie(nil))
 	require.NoError(t, err)
 
-	header, err := types.NewHeader(s.blockState.GenesisHash(), storageStateTrie.MustRoot(),
-		common.Hash{}, 1, types.NewDigest())
+	digest := newTestDigest(t, testSlotNumber)
+	header, err := types.NewHeader(s.blockState.GenesisHash(), storageStateTrie.MustRoot(), common.Hash{}, 1, digest)
 	require.NoError(t, err)
 
 	err = s.storageState.StoreTrie(storageStateTrie, header)
@@ -731,10 +844,10 @@ func TestTryQueryStore_WhenDoesNotHaveDataToRetrieve(t *testing.T) {
 func TestTryQueryState_WhenDoesNotHaveStateRoot(t *testing.T) {
 	s := NewTestService(t, nil)
 
+	digest := newTestDigest(t, testSlotNumber)
 	header, err := types.NewHeader(
 		s.blockState.GenesisHash(),
-		common.Hash{}, common.Hash{},
-		1, types.NewDigest())
+		common.Hash{}, common.Hash{}, 1, digest)
 	require.NoError(t, err)
 
 	testBlock := &types.Block{
@@ -818,8 +931,8 @@ func createNewBlockAndStoreDataAtBlock(t *testing.T, s *Service,
 	storageStateTrie.Set(key, value)
 	require.NoError(t, err)
 
-	header, err := types.NewHeader(parentHash, storageStateTrie.MustRoot(),
-		common.Hash{}, number, types.NewDigest())
+	digest := newTestDigest(t, 421)
+	header, err := types.NewHeader(parentHash, storageStateTrie.MustRoot(), common.Hash{}, number, digest)
 	require.NoError(t, err)
 
 	err = s.storageState.StoreTrie(storageStateTrie, header)
@@ -834,116 +947,4 @@ func createNewBlockAndStoreDataAtBlock(t *testing.T, s *Service,
 	require.NoError(t, err)
 
 	return testBlock
-}
-
-func TestDecodeSessionKeys(t *testing.T) {
-	ctrl := gomock.NewController(t)
-
-	mockInstance := new(runtimemocks.Instance)
-	mockInstance.On("DecodeSessionKeys", mock.AnythingOfType("[]uint8")).Return([]byte{}, nil).Once()
-
-	mockBlockState := NewMockBlockState(ctrl)
-	mockBlockState.EXPECT().GetRuntime(gomock.AssignableToTypeOf(new(common.Hash))).
-		Return(mockInstance, nil)
-
-	coreservice := new(Service)
-	coreservice.blockState = mockBlockState
-
-	b, err := coreservice.DecodeSessionKeys([]byte{})
-
-	mockInstance.AssertCalled(t, "DecodeSessionKeys", []uint8{})
-
-	require.NoError(t, err)
-	require.Equal(t, b, []byte{})
-}
-
-func TestDecodeSessionKeys_WhenGetRuntimeReturnError(t *testing.T) {
-	ctrl := gomock.NewController(t)
-
-	mockBlockState := NewMockBlockState(ctrl)
-	mockBlockState.EXPECT().GetRuntime(gomock.AssignableToTypeOf(new(common.Hash))).
-		Return(nil, errors.New("problems"))
-
-	coreservice := new(Service)
-	coreservice.blockState = mockBlockState
-
-	b, err := coreservice.DecodeSessionKeys([]byte{})
-
-	require.Error(t, err, "problems")
-	require.Nil(t, b)
-}
-
-func TestGetReadProofAt(t *testing.T) {
-	keysToProof := [][]byte{[]byte("first_key"), []byte("another_key")}
-	mockedProofs := [][]byte{[]byte("proof01"), []byte("proof02")}
-
-	t.Run("When Has Block Is Empty", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-
-		mockedStateRootHash := common.NewHash([]byte("state root hash"))
-		expectedBlockHash := common.NewHash([]byte("expected block hash"))
-
-		mockBlockState := NewMockBlockState(ctrl)
-		mockBlockState.EXPECT().BestBlockHash().Return(expectedBlockHash)
-		mockBlockState.EXPECT().GetBlockStateRoot(expectedBlockHash).
-			Return(mockedStateRootHash, nil)
-
-		mockStorageStage := NewMockStorageState(ctrl)
-		mockStorageStage.EXPECT().GenerateTrieProof(mockedStateRootHash, keysToProof).
-			Return(mockedProofs, nil)
-
-		s := &Service{
-			blockState:   mockBlockState,
-			storageState: mockStorageStage,
-		}
-
-		b, p, err := s.GetReadProofAt(common.Hash{}, keysToProof)
-		require.NoError(t, err)
-		require.Equal(t, p, mockedProofs)
-		require.Equal(t, expectedBlockHash, b)
-	})
-
-	t.Run("When GetStateRoot fails", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-
-		mockedBlockHash := common.NewHash([]byte("fake block hash"))
-
-		mockBlockState := NewMockBlockState(ctrl)
-		mockBlockState.EXPECT().GetBlockStateRoot(mockedBlockHash).
-			Return(common.Hash{}, errors.New("problems while getting state root"))
-
-		s := &Service{
-			blockState: mockBlockState,
-		}
-
-		b, p, err := s.GetReadProofAt(mockedBlockHash, keysToProof)
-		require.True(t, b.IsEmpty())
-		require.Nil(t, p)
-		require.Error(t, err)
-	})
-
-	t.Run("When GenerateTrieProof fails", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-
-		mockedBlockHash := common.NewHash([]byte("fake block hash"))
-		mockedStateRootHash := common.NewHash([]byte("state root hash"))
-
-		mockBlockState := NewMockBlockState(ctrl)
-		mockBlockState.EXPECT().GetBlockStateRoot(mockedBlockHash).
-			Return(common.Hash{}, errors.New("problems while getting state root"))
-
-		mockStorageStage := NewMockStorageState(ctrl)
-		mockStorageStage.EXPECT().GenerateTrieProof(mockedStateRootHash, keysToProof).
-			Return(nil, errors.New("problems to generate trie proof"))
-
-		s := &Service{
-			blockState:   mockBlockState,
-			storageState: mockStorageStage,
-		}
-
-		b, p, err := s.GetReadProofAt(mockedBlockHash, keysToProof)
-		require.True(t, b.IsEmpty())
-		require.Nil(t, p)
-		require.Error(t, err)
-	})
 }

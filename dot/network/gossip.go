@@ -8,19 +8,21 @@ import (
 	"sync"
 
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 // gossip submodule
 type gossip struct {
-	logger log.LeveledLogger
-	seen   *sync.Map
+	logger    log.LeveledLogger
+	seenMap   map[common.Hash]struct{}
+	seenMutex sync.RWMutex
 }
 
 // newGossip creates a new gossip message tracker
 func newGossip() *gossip {
 	return &gossip{
-		logger: log.NewFromGlobal(log.AddContext("module", "gossip")),
-		seen:   &sync.Map{},
+		logger:  log.NewFromGlobal(log.AddContext("module", "gossip")),
+		seenMap: make(map[common.Hash]struct{}),
 	}
 }
 
@@ -31,9 +33,14 @@ func (g *gossip) hasSeen(msg NotificationsMessage) (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf("could not hash notification message: %w", err)
 	}
-	if seen, ok := g.seen.Load(msgHash); !ok || !seen.(bool) {
+
+	g.seenMutex.Lock()
+	defer g.seenMutex.Unlock()
+
+	_, ok := g.seenMap[msgHash]
+	if !ok {
 		// set message to has been seen
-		g.seen.Store(msgHash, true)
+		g.seenMap[msgHash] = struct{}{}
 		return false, nil
 	}
 
