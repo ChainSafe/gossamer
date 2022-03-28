@@ -14,7 +14,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
-	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -167,68 +166,6 @@ func TestStartStopNode(t *testing.T) {
 	}()
 	err = node.Start()
 	require.NoError(t, err)
-}
-
-func TestInitNode_LoadGenesisData(t *testing.T) {
-	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
-
-	genPath := newTestGenesisAndRuntime(t)
-
-	cfg.Init.Genesis = genPath
-	cfg.Core.GrandpaAuthority = false
-
-	err := InitNode(cfg)
-	require.NoError(t, err)
-
-	config := state.Config{
-		Path:      cfg.Global.BasePath,
-		Telemetry: telemetry.NoopClient{},
-	}
-	stateSrvc := state.NewService(config)
-
-	gen, err := genesis.NewGenesisFromJSONRaw(genPath)
-	require.NoError(t, err)
-
-	genTrie, err := genesis.NewTrieFromGenesis(gen)
-	require.NoError(t, err)
-
-	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}),
-		genTrie.MustHash(), trie.EmptyHash, 0, types.NewDigest())
-	require.NoError(t, err)
-
-	err = stateSrvc.Initialise(gen, genesisHeader, genTrie)
-	require.NoError(t, err)
-
-	err = stateSrvc.Start()
-	require.NoError(t, err)
-
-	t.Cleanup(func() {
-		err = stateSrvc.Stop()
-		require.NoError(t, err)
-	})
-
-	gendata, err := stateSrvc.Base.LoadGenesisData()
-	require.NoError(t, err)
-
-	testGenesis := newTestGenesis(t)
-
-	expected := &genesis.Data{
-		Name:       testGenesis.Name,
-		ID:         testGenesis.ID,
-		Bootnodes:  common.StringArrayToBytes(testGenesis.Bootnodes),
-		ProtocolID: testGenesis.ProtocolID,
-	}
-	require.Equal(t, expected, gendata)
-
-	genesisHeader, err = stateSrvc.Block.BestBlockHeader()
-	require.NoError(t, err)
-
-	stateRoot := genesisHeader.StateRoot
-	expectedHeader, err := types.NewHeader(common.NewHash([]byte{0}),
-		stateRoot, trie.EmptyHash, 0, types.NewDigest())
-	require.NoError(t, err)
-	require.Equal(t, expectedHeader.Hash(), genesisHeader.Hash())
 }
 
 func TestInitNode_LoadStorageRoot(t *testing.T) {
