@@ -105,7 +105,7 @@ id = ""
 base_path = ""
 log_lvl = 0
 publish_metrics = false
-metrics_port = 0
+metrics_address = ""
 no_telemetry = false
 telemetry_urls = []
 retain_blocks = 0
@@ -249,7 +249,7 @@ func TestNewTestConfig(t *testing.T) {
 					BasePath:       incBasePath,
 					LogLvl:         3,
 					PublishMetrics: false,
-					MetricsPort:    0,
+					MetricsAddress: "",
 					NoTelemetry:    true,
 					TelemetryURLs:  nil,
 					RetainBlocks:   0,

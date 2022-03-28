@@ -14,6 +14,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -181,7 +182,8 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 	require.NoError(t, err)
 
 	config := state.Config{
-		Path: cfg.Global.BasePath,
+		Path:      cfg.Global.BasePath,
+		Telemetry: telemetry.NoopClient{},
 	}
 	stateSrvc := state.NewService(config)
 

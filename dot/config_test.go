@@ -24,13 +24,13 @@ func TestConfig(t *testing.T) {
 			name: "dev default",
 			want: &Config{
 				Global: GlobalConfig{
-					Name:         "Gossamer",
-					ID:           "dev",
-					BasePath:     "~/.gossamer/dev",
-					LogLvl:       log.Info,
-					MetricsPort:  9876,
-					RetainBlocks: 512,
-					Pruning:      "archive",
+					Name:           "Gossamer",
+					ID:             "dev",
+					BasePath:       "~/.gossamer/dev",
+					LogLvl:         log.Info,
+					MetricsAddress: ":9876",
+					RetainBlocks:   512,
+					Pruning:        "archive",
 				},
 				Log: LogConfig{
 					CoreLvl:           log.Info,
@@ -85,13 +85,13 @@ func TestConfig(t *testing.T) {
 			name: "gossamer default",
 			want: &Config{
 				Global: GlobalConfig{
-					Name:         "Gossamer",
-					ID:           "gssmr",
-					BasePath:     "~/.gossamer/gssmr",
-					LogLvl:       log.Info,
-					MetricsPort:  9876,
-					RetainBlocks: 512,
-					Pruning:      "archive",
+					Name:           "Gossamer",
+					ID:             "gssmr",
+					BasePath:       "~/.gossamer/gssmr",
+					LogLvl:         log.Info,
+					MetricsAddress: "localhost:9876",
+					RetainBlocks:   512,
+					Pruning:        "archive",
 				},
 				Log: LogConfig{
 					CoreLvl:           log.Info,
@@ -146,13 +146,13 @@ func TestConfig(t *testing.T) {
 			name: "kusama default",
 			want: &Config{
 				Global: GlobalConfig{
-					Name:         "Kusama",
-					ID:           "ksmcc3",
-					BasePath:     "~/.gossamer/kusama",
-					LogLvl:       log.Info,
-					MetricsPort:  9876,
-					RetainBlocks: 512,
-					Pruning:      "archive",
+					Name:           "Kusama",
+					ID:             "ksmcc3",
+					BasePath:       "~/.gossamer/kusama",
+					LogLvl:         log.Info,
+					MetricsAddress: "localhost:9876",
+					RetainBlocks:   512,
+					Pruning:        "archive",
 				},
 				Log: LogConfig{
 					CoreLvl:           log.Info,
@@ -206,13 +206,13 @@ func TestConfig(t *testing.T) {
 			name: "polkadot default",
 			want: &Config{
 				Global: GlobalConfig{
-					Name:         "Polkadot",
-					ID:           "polkadot",
-					BasePath:     "~/.gossamer/polkadot",
-					LogLvl:       log.Info,
-					MetricsPort:  9876,
-					RetainBlocks: 512,
-					Pruning:      "archive",
+					Name:           "Polkadot",
+					ID:             "polkadot",
+					BasePath:       "~/.gossamer/polkadot",
+					LogLvl:         log.Info,
+					MetricsAddress: "localhost:9876",
+					RetainBlocks:   512,
+					Pruning:        "archive",
 				},
 				Log: LogConfig{
 					CoreLvl:           log.Info,
