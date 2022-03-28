@@ -181,17 +181,17 @@ func (h *Handler) handleGrandpaConsensusDigest(digest scale.VaryingDataType, hea
 }
 
 func (h *Handler) handleBabeConsensusDigest(digest scale.VaryingDataType, header *types.Header) error {
-	currEpoch, err := h.epochState.GetEpochForBlock(header)
-	if err != nil {
-		return fmt.Errorf("cannot get epoch for block %d (%s): %w",
-			header.Number, header.Hash(), err)
-	}
-
-	nextEpoch := currEpoch + 1
 	headerHash := header.Hash()
 
 	switch val := digest.Value().(type) {
 	case types.NextEpochData:
+		currEpoch, err := h.epochState.GetEpochForBlock(header)
+		if err != nil {
+			return fmt.Errorf("cannot get epoch for block %d (%s): %w",
+				header.Number, header.Hash(), err)
+		}
+
+		nextEpoch := currEpoch + 1
 		h.logger.Debugf("stored BABENextEpochData data: %v for hash: %s to epoch: %d", digest, headerHash, nextEpoch)
 		h.epochState.StoreBABENextEpochData(nextEpoch, headerHash, val)
 		return nil
@@ -200,6 +200,13 @@ func (h *Handler) handleBabeConsensusDigest(digest scale.VaryingDataType, header
 		return h.handleBABEOnDisabled(val, header)
 
 	case types.NextConfigData:
+		currEpoch, err := h.epochState.GetEpochForBlock(header)
+		if err != nil {
+			return fmt.Errorf("cannot get epoch for block %d (%s): %w",
+				header.Number, header.Hash(), err)
+		}
+
+		nextEpoch := currEpoch + 1
 		h.logger.Debugf("stored BABENextConfigData data: %v for hash: %s to epoch: %d", digest, headerHash, nextEpoch)
 		h.epochState.StoreBABENextConfigData(nextEpoch, headerHash, val)
 		return nil
