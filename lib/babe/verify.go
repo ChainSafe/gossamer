@@ -5,6 +5,7 @@ package babe
 
 import (
 	"fmt"
+	"reflect"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -49,7 +50,7 @@ func NewVerificationManager(blockState BlockState, epochState EpochState) (*Veri
 		return nil, ErrNilBlockState
 	}
 
-	if epochState == nil {
+	if reflect.ValueOf(epochState).IsNil() {
 		return nil, errNilEpochState
 	}
 

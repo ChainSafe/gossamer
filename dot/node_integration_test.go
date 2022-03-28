@@ -6,6 +6,10 @@
 package dot
 
 import (
+	"encoding/hex"
+	"encoding/json"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/core"
@@ -17,16 +21,17 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/require"
 )
 
-func TestInitNode(t *testing.T) {
+func TestInitNode_Integration(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
-	genFile := NewTestGenesisRawFile(t, cfg)
+	genFile := newTestGenesisRawFile(t, cfg)
 
 	cfg.Init.Genesis = genFile
 
@@ -55,11 +60,11 @@ func TestInitNode_GenesisSpec(t *testing.T) {
 	require.NotNil(t, db)
 }
 
-func TestNodeInitialized(t *testing.T) {
+func TestNodeInitializedIntegration(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
-	genFile := NewTestGenesisRawFile(t, cfg)
+	genFile := newTestGenesisRawFile(t, cfg)
 
 	cfg.Init.Genesis = genFile
 
@@ -73,11 +78,11 @@ func TestNodeInitialized(t *testing.T) {
 	require.True(t, result)
 }
 
-func TestNewNode(t *testing.T) {
+func TestNewNodeIntegration(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
-	genFile := NewTestGenesisRawFile(t, cfg)
+	genFile := newTestGenesisRawFile(t, cfg)
 
 	cfg.Init.Genesis = genFile
 
@@ -95,9 +100,9 @@ func TestNewNode(t *testing.T) {
 	node, err := NewNode(cfg, ks)
 	require.NoError(t, err)
 
-	bp := node.Services.Get(&babe.Service{})
+	bp := node.ServiceRegistry.Get(&babe.Service{})
 	require.IsType(t, &babe.Service{}, bp)
-	fg := node.Services.Get(&grandpa.Service{})
+	fg := node.ServiceRegistry.Get(&grandpa.Service{})
 	require.IsType(t, &grandpa.Service{}, fg)
 }
 
@@ -105,7 +110,7 @@ func TestNewNode_Authority(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
-	genFile := NewTestGenesisRawFile(t, cfg)
+	genFile := newTestGenesisRawFile(t, cfg)
 
 	cfg.Init.Genesis = genFile
 
@@ -125,20 +130,21 @@ func TestNewNode_Authority(t *testing.T) {
 	node, err := NewNode(cfg, ks)
 	require.NoError(t, err)
 
-	bp := node.Services.Get(&babe.Service{})
+	bp := node.ServiceRegistry.Get(&babe.Service{})
 	require.NotNil(t, bp)
-	fg := node.Services.Get(&grandpa.Service{})
+	fg := node.ServiceRegistry.Get(&grandpa.Service{})
 	require.NotNil(t, fg)
 }
 
-func TestStartNode(t *testing.T) {
+func TestStartStopNode(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
-	genFile := NewTestGenesisRawFile(t, cfg)
+	genFile := newTestGenesisRawFile(t, cfg)
 
 	cfg.Init.Genesis = genFile
 	cfg.Core.GrandpaAuthority = false
+	cfg.Core.BabeAuthority = false
 
 	err := InitNode(cfg)
 	require.NoError(t, err)
@@ -154,17 +160,19 @@ func TestStartNode(t *testing.T) {
 	node, err := NewNode(cfg, ks)
 	require.NoError(t, err)
 
+	go func() {
+		<-node.started
+		node.Stop()
+	}()
 	err = node.Start()
 	require.NoError(t, err)
-	<-node.started
-	node.Stop()
 }
 
 func TestInitNode_LoadGenesisData(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
-	genPath := NewTestGenesisAndRuntime(t)
+	genPath := newTestGenesisAndRuntime(t)
 
 	cfg.Init.Genesis = genPath
 	cfg.Core.GrandpaAuthority = false
@@ -225,7 +233,7 @@ func TestInitNode_LoadStorageRoot(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
-	genPath := NewTestGenesisAndRuntime(t)
+	genPath := newTestGenesisAndRuntime(t)
 
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false
@@ -253,7 +261,7 @@ func TestInitNode_LoadStorageRoot(t *testing.T) {
 	expectedRoot, err := expected.Hash()
 	require.NoError(t, err)
 
-	coreServiceInterface := node.Services.Get(&core.Service{})
+	coreServiceInterface := node.ServiceRegistry.Get(&core.Service{})
 
 	coreSrvc, ok := coreServiceInterface.(*core.Service)
 	require.True(t, ok, "could not find core service")
@@ -275,7 +283,7 @@ func TestInitNode_LoadBalances(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
-	genPath := NewTestGenesisAndRuntime(t)
+	genPath := newTestGenesisAndRuntime(t)
 
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false
@@ -292,7 +300,7 @@ func TestInitNode_LoadBalances(t *testing.T) {
 	node, err := NewNode(cfg, ks)
 	require.NoError(t, err)
 
-	mgr := node.Services.Get(&state.Service{})
+	mgr := node.ServiceRegistry.Get(&state.Service{})
 
 	stateSrv, ok := mgr.(*state.Service)
 	require.True(t, ok, "could not find core service")
@@ -319,7 +327,7 @@ func TestNode_PersistGlobalName_WhenInitialize(t *testing.T) {
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
-	cfg.Init.Genesis = NewTestGenesisAndRuntime(t)
+	cfg.Init.Genesis = newTestGenesisAndRuntime(t)
 
 	err := InitNode(cfg)
 	require.NoError(t, err)
@@ -327,4 +335,34 @@ func TestNode_PersistGlobalName_WhenInitialize(t *testing.T) {
 	storedName, err := LoadGlobalNodeName(cfg.Global.BasePath)
 	require.NoError(t, err)
 	require.Equal(t, globalName, storedName)
+}
+
+// newTestGenesisAndRuntime create a new test runtime and a new test genesis
+// file with the test runtime stored in raw data and returns the genesis file
+func newTestGenesisAndRuntime(t *testing.T) (filename string) {
+	runtimeFilePath := filepath.Join(t.TempDir(), "runtime")
+	_, testRuntimeURL := runtime.GetRuntimeVars(runtime.NODE_RUNTIME)
+	err := runtime.GetRuntimeBlob(runtimeFilePath, testRuntimeURL)
+	require.NoError(t, err)
+	runtimeData, err := os.ReadFile(runtimeFilePath)
+	require.NoError(t, err)
+
+	gen := NewTestGenesis(t)
+	hex := hex.EncodeToString(runtimeData)
+
+	gen.Genesis.Raw = map[string]map[string]string{
+		"top": {
+			"0x3a636f6465": "0x" + hex,
+			"0xcf722c0832b5231d35e29f319ff27389f5032bfc7bfc3ba5ed7839f2042fb99f": "0x0000000000000001",
+		},
+	}
+
+	genData, err := json.Marshal(gen)
+	require.NoError(t, err)
+
+	filename = filepath.Join(t.TempDir(), "genesis.json")
+	err = os.WriteFile(filename, genData, os.ModePerm)
+	require.NoError(t, err)
+
+	return filename
 }

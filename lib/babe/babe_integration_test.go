@@ -226,8 +226,11 @@ func TestService_SlotDuration(t *testing.T) {
 }
 
 func TestService_ProducesBlocks(t *testing.T) {
-	babeService := createTestService(t, nil)
-	babeService.lead = true
+	cfg := &ServiceConfig{
+		Authority: true,
+		Lead:      true,
+	}
+	babeService := createTestService(t, cfg)
 
 	err := babeService.Start()
 	require.NoError(t, err)
@@ -236,7 +239,7 @@ func TestService_ProducesBlocks(t *testing.T) {
 	}()
 
 	time.Sleep(babeService.constants.slotDuration * 2)
-	babeService.blockImportHandler.(*mocks.BlockImportHandler).
+	babeService.GetBlockImportHandler().(*mocks.BlockImportHandler).
 		AssertCalled(t, "HandleBlockProduced",
 			mock.AnythingOfType("*types.Block"),
 			mock.AnythingOfType("*storage.TrieState"))

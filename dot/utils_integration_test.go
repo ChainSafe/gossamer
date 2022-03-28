@@ -17,7 +17,7 @@ func TestTrieSnapshot(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
-	genRawFile := NewTestGenesisRawFile(t, cfg)
+	genRawFile := newTestGenesisRawFile(t, cfg)
 
 	genRaw, err := genesis.NewGenesisFromJSONRaw(genRawFile)
 	require.NoError(t, err)
