@@ -26,9 +26,8 @@ func newGossip() *gossip {
 	}
 }
 
-// hasSeen broadcasts messages that have not been seen
+// hasSeen checks if we have seen given message before.
 func (g *gossip) hasSeen(msg NotificationsMessage) (bool, error) {
-	// check if message has not been seen
 	msgHash, err := msg.Hash()
 	if err != nil {
 		return false, fmt.Errorf("could not hash notification message: %w", err)
@@ -37,6 +36,7 @@ func (g *gossip) hasSeen(msg NotificationsMessage) (bool, error) {
 	g.seenMutex.Lock()
 	defer g.seenMutex.Unlock()
 
+	// check if message has not been seen
 	_, ok := g.seenMap[msgHash]
 	if !ok {
 		// set message to has been seen
