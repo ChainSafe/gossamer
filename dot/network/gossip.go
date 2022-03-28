@@ -26,7 +26,7 @@ func newGossip() *gossip {
 	}
 }
 
-// hasSeen checks if we have seen given message before.
+// hasSeen checks if we have seen the given message before.
 func (g *gossip) hasSeen(msg NotificationsMessage) (bool, error) {
 	msgHash, err := msg.Hash()
 	if err != nil {
