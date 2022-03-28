@@ -9,6 +9,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 
@@ -85,11 +86,12 @@ func TestMessageTracker_SendMessage(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	const testTimeout = time.Second
 	select {
 	case v := <-in:
 		require.Equal(t, msg, v.msg)
 	case <-time.After(testTimeout):
-		t.Errorf("did not receive vote message")
+		t.Errorf("did not receive vote message %v", msg)
 	}
 }
 
@@ -179,4 +181,59 @@ func TestMessageTracker_MapInsideMap(t *testing.T) {
 
 	_, ok = voteMsgs[authorityID]
 	require.True(t, ok)
+}
+
+func TestMessageTracker_handleTick(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	gs, in, _, _ := setupGrandpa(t, kr.Bob().(*ed25519.Keypair))
+	gs.tracker = newTracker(gs.blockState, gs.messageHandler)
+
+	testHash := common.Hash{1, 2, 3}
+	msg := &VoteMessage{
+		Round: 100,
+		Message: SignedMessage{
+			Hash: testHash,
+		},
+	}
+	gs.tracker.addVote(&networkVoteMessage{
+		msg: msg,
+	})
+
+	gs.tracker.handleTick()
+
+	const testTimeout = time.Second
+	select {
+	case v := <-in:
+		require.Equal(t, msg, v.msg)
+	case <-time.After(testTimeout):
+		t.Errorf("did not receive vote message %v", msg)
+	}
+
+	// shouldn't be deleted as round in message >= grandpa round
+	require.Equal(t, 1, len(gs.tracker.voteMessages[testHash]))
+
+	gs.state.round = 1
+	msg = &VoteMessage{
+		Round: 0,
+		Message: SignedMessage{
+			Hash: testHash,
+		},
+	}
+	gs.tracker.addVote(&networkVoteMessage{
+		msg: msg,
+	})
+
+	gs.tracker.handleTick()
+
+	select {
+	case v := <-in:
+		require.Equal(t, msg, v.msg)
+	case <-time.After(testTimeout):
+		t.Errorf("did not receive vote message %v", msg)
+	}
+
+	// should be deleted as round in message < grandpa round
+	require.Empty(t, len(gs.tracker.voteMessages[testHash]))
 }

@@ -4,7 +4,6 @@
 package life
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"strings"
@@ -141,12 +140,6 @@ func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 
 	// remove seal digest only
 	for _, d := range block.Header.Digest.Types {
-		// hack since substrate node_runtime can't seem to handle BABE pre-runtime digests
-		// with type prefix (ie Primary, Secondary...)
-		if bytes.Equal(in.version.SpecName(), []byte("node")) {
-			break
-		}
-
 		switch d.Value().(type) {
 		case types.SealDigest:
 			continue
