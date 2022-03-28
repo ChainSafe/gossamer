@@ -192,7 +192,7 @@ func compareFinalizedHeadsByRound(ctx context.Context, t *testing.T, nodes []*ut
 // it returns the finalised hash if it succeeds
 func compareFinalizedHeadsWithRetry(ctx context.Context, t *testing.T,
 	nodes []*utils.Node, round uint64,
-	getFinalizedHeadByRoundTimeout time.Duration) ( //nolint:unparam
+	getFinalizedHeadByRoundTimeout time.Duration) (
 	hash common.Hash, err error) {
 	var hashes map[common.Hash][]string
 
