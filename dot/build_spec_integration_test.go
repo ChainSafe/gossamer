@@ -7,7 +7,6 @@ package dot
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -67,17 +66,6 @@ func TestBuildFromGenesis_WhenGenesisDoesNotExists(t *testing.T) {
 	bs, err := BuildFromGenesis("/not/exists/genesis.json", 0)
 	require.Nil(t, bs)
 	require.ErrorIs(t, err, os.ErrNotExist)
-}
-
-func TestWriteGenesisSpecFileWhenFileAlreadyExists(t *testing.T) {
-	t.Parallel()
-
-	filePath := filepath.Join(t.TempDir(), "genesis.raw")
-	someBytes := []byte("Testing some bytes")
-	err := WriteGenesisSpecFile(someBytes, filePath)
-
-	require.EqualError(t, err,
-		fmt.Sprintf("file %s already exists, rename to avoid overwriting", filePath))
 }
 
 func TestWriteGenesisSpecFile_Integration(t *testing.T) {
