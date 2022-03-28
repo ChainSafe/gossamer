@@ -6,6 +6,9 @@ services:
       dockerfile: devnet/alice.Dockerfile
       args:
         DD_API_KEY: ${DD_API_KEY}
+    # we map ports on the host to random available ports such that one Gossamer instance do not conflict 
+    # with another instance, and we can use local tooling to interact with Gossamer through this port mapping. 
+    # You can find the port mapping with docker ps
     ports:
       - 7001
       - 8545
