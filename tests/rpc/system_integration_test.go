@@ -5,6 +5,7 @@ package rpc
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"strconv"
 	"testing"
@@ -56,7 +57,7 @@ func TestStableNetworkRPC(t *testing.T) {
 		t.Run(test.description, func(t *testing.T) {
 			ctx := context.Background()
 
-			endpoint := "http://" + utils.HOSTNAME + ":" + utils.PORT
+			endpoint := fmt.Sprintf("http://%s:%s", utils.HOSTNAME, utils.PORT)
 			const params = "{}"
 			respBody, err := utils.PostRPC(ctx, endpoint, test.method, params)
 			require.NoError(t, err)
