@@ -32,3 +32,9 @@ type Client interface {
 type Message interface {
 	MarshalJSON() ([]byte, error)
 }
+
+// NoopClient used for minimal implementation of the Client interface
+type NoopClient struct{}
+
+// SendMessage is an empty implementation used for testing
+func (NoopClient) SendMessage(msg Message) {}

@@ -68,7 +68,101 @@ type ServiceConfig struct {
 	Telemetry          telemetry.Client
 }
 
-// NewService returns a new Babe Service using the provided VRF keys and runtime
+// Validate returns error if config does not contain required attributes
+func (sc *ServiceConfig) Validate() error {
+	if sc.Keypair == nil && sc.Authority {
+		return errNoBABEAuthorityKeyProvided
+	}
+
+	if sc.BlockState == nil {
+		return ErrNilBlockState
+	}
+
+	if sc.EpochState == nil {
+		return errNilEpochState
+	}
+
+	if sc.BlockImportHandler == nil {
+		return errNilBlockImportHandler
+	}
+
+	return nil
+}
+
+// ServiceIFace interface that defines methods available to BabeService
+type ServiceIFace interface {
+	Start() error
+	Stop() error
+	EpochLength() uint64
+	Pause() error
+	IsPaused() bool
+	Resume() error
+	SlotDuration() uint64
+}
+
+// ServiceBuilder interface to define the building of babe service
+type ServiceBuilder interface {
+	NewServiceIFace(cfg *ServiceConfig) (ServiceIFace, error)
+}
+
+var _ ServiceBuilder = (*Builder)(nil)
+
+// Builder struct to hold babe builder functions
+type Builder struct{}
+
+//NewServiceIFace returns a new Babe Service using the provided VRF keys and runtime
+func (Builder) NewServiceIFace(cfg *ServiceConfig) (ServiceIFace, error) {
+	if err := cfg.Validate(); err != nil {
+		return nil, fmt.Errorf("could not verify service config: %w", err)
+	}
+
+	logger.Patch(log.SetLevel(cfg.LogLvl))
+
+	slotDuration, err := cfg.EpochState.GetSlotDuration()
+	if err != nil {
+		return nil, fmt.Errorf("cannot get slot duration: %w", err)
+	}
+
+	epochLength, err := cfg.EpochState.GetEpochLength()
+	if err != nil {
+		return nil, fmt.Errorf("cannot get epoch length: %w", err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	babeService := &Service{
+		ctx:                ctx,
+		cancel:             cancel,
+		blockState:         cfg.BlockState,
+		storageState:       cfg.StorageState,
+		epochState:         cfg.EpochState,
+		keypair:            cfg.Keypair,
+		transactionState:   cfg.TransactionState,
+		pause:              make(chan struct{}),
+		authority:          cfg.Authority,
+		dev:                cfg.IsDev,
+		blockImportHandler: cfg.BlockImportHandler,
+		lead:               cfg.Lead,
+		constants: constants{
+			slotDuration: slotDuration,
+			epochLength:  epochLength,
+		},
+		telemetry: cfg.Telemetry,
+	}
+
+	logger.Debugf(
+		"created service with block producer ID=%v, slot duration %s, epoch length (slots) %d",
+		cfg.Authority, babeService.constants.slotDuration, babeService.constants.epochLength,
+	)
+
+	if cfg.Lead {
+		logger.Debug("node designated to build block 1")
+	}
+
+	return babeService, nil
+}
+
+// NewService function to create babe service
 func NewService(cfg *ServiceConfig) (*Service, error) {
 	if cfg.Keypair == nil && cfg.Authority {
 		return nil, errors.New("cannot create BABE service as authority; no keypair provided")
@@ -200,6 +294,11 @@ func (b *Service) SlotDuration() uint64 {
 // EpochLength returns the current service epoch duration
 func (b *Service) EpochLength() uint64 {
 	return b.constants.epochLength
+}
+
+// GetBlockImportHandler returns the block import handler of the service.
+func (b *Service) GetBlockImportHandler() BlockImportHandler {
+	return b.blockImportHandler
 }
 
 // Pause pauses the service ie. halts block production

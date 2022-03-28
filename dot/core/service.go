@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"reflect"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -92,7 +93,7 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, ErrNilStorageState
 	}
 
-	if cfg.Network == nil {
+	if reflect.ValueOf(cfg.Network).IsNil() {
 		return nil, ErrNilNetwork
 	}
 
