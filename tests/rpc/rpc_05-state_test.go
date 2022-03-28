@@ -125,8 +125,8 @@ func TestStateRPCResponseValidation(t *testing.T) {
 		t.Run(test.description, func(t *testing.T) {
 			ctx := context.Background()
 			getResponseCtx, cancel := context.WithTimeout(ctx, time.Second)
-			_ = getResponse(getResponseCtx, t, test)
 			cancel()
+			_ = getResponse(getResponseCtx, t, test)
 		})
 	}
 

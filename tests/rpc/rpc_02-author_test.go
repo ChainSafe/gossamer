@@ -142,8 +142,8 @@ func TestAuthorRPC(t *testing.T) {
 		t.Run(test.description, func(t *testing.T) {
 			ctx := context.Background()
 			getResponseCtx, cancel := context.WithTimeout(ctx, time.Second)
+			defer cancel()
 			_ = getResponse(getResponseCtx, t, test)
-			cancel()
 		})
 	}
 
