@@ -1,4 +1,4 @@
-FROM golang:1.17
+FROM golang:1.18
 
 ARG chain="polkadot"
 ARG basepath="~/.gossamer"
@@ -23,5 +23,5 @@ RUN go get ./...
 RUN go build github.com/ChainSafe/gossamer/cmd/gossamer
 
 RUN ["sh", "-c", "gossamer init --chain=${chain}"]
-ENTRYPOINT ["sh", "-c", "service datadog-agent restart && gossamer --chain=${chain} --basepath=${basepath}/${chain} --publish-metrics --pprofserver --pprofaddress=\":6060\""]
+ENTRYPOINT ["sh", "-c", "service datadog-agent restart && gossamer --chain=${chain} --basepath=${basepath}/${chain} --publish-metrics --metrics-address=\":9876\" --pprofserver --pprofaddress=\":6060\""]
 EXPOSE 7001 8546 8540 9876 6060

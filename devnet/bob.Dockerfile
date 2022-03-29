@@ -1,8 +1,7 @@
 # Copyright 2021 ChainSafe Systems (ON)
 # SPDX-License-Identifier: LGPL-3.0-only
 
-
-FROM golang:1.17
+FROM golang:1.18
 
 ARG POLKADOT_VERSION=v0.9.10
 
@@ -43,6 +42,7 @@ WORKDIR /gossamer
 ENTRYPOINT service datadog-agent start && gossamer --key=${key} \
     --bootnodes=/dns/alice/tcp/7001/p2p/12D3KooWMER5iow67nScpWeVqEiRRx59PJ3xMMAYPTACYPRQbbWU \
     --publish-metrics \
+    --metrics-address=":9876" \
     --rpc \
     --port 7001 \
     --pubdns=${key}

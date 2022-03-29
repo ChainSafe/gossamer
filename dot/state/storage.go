@@ -167,7 +167,7 @@ func (s *StorageState) loadTrie(root *common.Hash) (*trie.Trie, error) {
 
 	tr, err := s.LoadFromDB(*root)
 	if err != nil {
-		return nil, errTrieDoesNotExist(*root)
+		return nil, fmt.Errorf("trie does not exist at root %s: %w", *root, err)
 	}
 
 	return tr, nil

@@ -16,7 +16,7 @@ type Leaf struct {
 	// Partial key bytes in nibbles (0 to f in hexadecimal)
 	Key   []byte
 	Value []byte
-	// Dirty is true when the branch differs
+	// Dirty is true when the leaf differs
 	// from the node stored in the database.
 	Dirty      bool
 	HashDigest []byte

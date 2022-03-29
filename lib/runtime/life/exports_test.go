@@ -206,6 +206,8 @@ func TestInstance_FinalizeBlock_NodeRuntime(t *testing.T) {
 }
 
 func TestInstance_ExecuteBlock_GossamerRuntime(t *testing.T) {
+	t.Skip("Broken due to outdated runtime")
+
 	instance := newInstanceFromGenesis(t)
 	block := buildBlock(t, instance)
 
