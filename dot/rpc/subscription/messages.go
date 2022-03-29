@@ -3,6 +3,8 @@
 
 package subscription
 
+import "strconv"
+
 // BaseResponseJSON for base json response
 type BaseResponseJSON struct {
 	Jsonrpc string `json:"jsonrpc"`
@@ -13,7 +15,7 @@ type BaseResponseJSON struct {
 // Params for json param response
 type Params struct {
 	Result         interface{} `json:"result"`
-	SubscriptionID uint32      `json:"subscription"`
+	SubscriptionID string      `json:"subscription"`
 }
 
 // InvalidRequestCode error code returned for invalid request parameters, value derived from Substrate node output
@@ -34,16 +36,16 @@ func newSubscriptionResponse(method string, subID uint32, result interface{}) Ba
 		Method:  method,
 		Params: Params{
 			Result:         result,
-			SubscriptionID: subID,
+			SubscriptionID: strconv.Itoa(int(subID)),
 		},
 	}
 }
 
 // ResponseJSON for json subscription responses
 type ResponseJSON struct {
-	Jsonrpc string  `json:"jsonrpc"`
-	Result  uint32  `json:"result"`
-	ID      float64 `json:"id"`
+	Jsonrpc string `json:"jsonrpc"`
+	Result  uint32 `json:"result"`
+	ID      string `json:"id"`
 }
 
 // NewSubscriptionResponseJSON builds a Response JSON object
@@ -51,7 +53,7 @@ func NewSubscriptionResponseJSON(subID uint32, reqID float64) ResponseJSON {
 	return ResponseJSON{
 		Jsonrpc: "2.0",
 		Result:  subID,
-		ID:      reqID,
+		ID:      strconv.Itoa(int(reqID)),
 	}
 }
 

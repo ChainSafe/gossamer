@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v3"
+	"github.com/centrifuge/go-substrate-rpc-client/v3/rpc/author"
 	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
 	"github.com/centrifuge/go-substrate-rpc-client/v3/types"
 )
@@ -142,13 +143,16 @@ func main() {
 	//fmt.Printf("Transfer sent with hash %#x\n", hash)
 
 	//// Do the transfer and track the actual status
-	sub, err := api.RPC.Author.SubmitAndWatchExtrinsic(ext)
+	var sub *author.ExtrinsicStatusSubscription
+	sub, err = api.RPC.Author.SubmitAndWatchExtrinsic(ext)
 	if err != nil {
 		panic(err)
 	}
+	fmt.Println("here1")
 	defer sub.Unsubscribe()
 
 	for {
+		fmt.Println("here")
 		status := <-sub.Chan()
 		fmt.Printf("Transaction status: %#v\n", status)
 
