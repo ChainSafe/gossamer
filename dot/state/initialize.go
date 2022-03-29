@@ -89,7 +89,7 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 		return fmt.Errorf("failed to load grandpa authorities: %w", err)
 	}
 
-	grandpaState, err := NewGrandpaStateFromGenesis(db, grandpaAuths)
+	grandpaState, err := NewGrandpaStateFromGenesis(db, blockState, grandpaAuths)
 	if err != nil {
 		return fmt.Errorf("failed to create grandpa state: %s", err)
 	}

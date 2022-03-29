@@ -73,7 +73,7 @@ func newTestState(t *testing.T) *state.Service {
 	require.NoError(t, err)
 	block.StoreRuntime(block.BestBlockHash(), rt)
 
-	grandpa, err := state.NewGrandpaStateFromGenesis(db, voters)
+	grandpa, err := state.NewGrandpaStateFromGenesis(db, nil, voters)
 	require.NoError(t, err)
 
 	return &state.Service{

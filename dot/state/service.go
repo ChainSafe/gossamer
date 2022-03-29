@@ -159,7 +159,7 @@ func (s *Service) Start() error {
 		return fmt.Errorf("failed to create epoch state: %w", err)
 	}
 
-	s.Grandpa, err = NewGrandpaState(s.db)
+	s.Grandpa, err = NewGrandpaState(s.db, s.Block)
 	if err != nil {
 		return fmt.Errorf("failed to create grandpa state: %w", err)
 	}

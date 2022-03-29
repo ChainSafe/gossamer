@@ -6,12 +6,23 @@ package state
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+)
+
+type grandpaChangeType byte
+
+const (
+	grnpaScheduledChange grandpaChangeType = iota
+	grnpaForcedChange
+	grnpaOnDisabled
+	grnpaPause
+	grnpaResume
 )
 
 var (
@@ -24,33 +35,34 @@ var (
 	currentSetIDKey   = []byte("setID")
 )
 
-type GrandpaChanges interface {
-	types.GrandpaScheduledChange |
-		types.GrandpaForcedChange |
-		types.GrandpaOnDisabled |
-		types.GrandpaPause |
-		types.GrandpaResume
-}
+var (
+	ErrAlreadyHasForcedChanges = errors.New("already has a forced change")
+)
 
-type ForkLinkedList struct {
-	Hash             common.Hash
-	ConsensusMessage scale.VaryingDataType
-	Next             *ForkLinkedList
+type ForkNode struct {
+	nodeType grandpaChangeType
+	header   *types.Header
+	Change   scale.VaryingDataType
+	Next     *ForkNode
 }
 
 // GrandpaState tracks information related to grandpa
 type GrandpaState struct {
-	db chaindb.Database
+	db         chaindb.Database
+	blockState *BlockState
 
-	forkLock sync.RWMutex
-	forks    map[common.Hash]*ForkLinkedList
+	forksLock sync.RWMutex
+	forks     map[common.Hash]*ForkNode
 }
 
 // NewGrandpaStateFromGenesis returns a new GrandpaState given the grandpa genesis authorities
-func NewGrandpaStateFromGenesis(db chaindb.Database, genesisAuthorities []types.GrandpaVoter) (*GrandpaState, error) {
+func NewGrandpaStateFromGenesis(db chaindb.Database, bs *BlockState,
+	genesisAuthorities []types.GrandpaVoter) (*GrandpaState, error) {
 	grandpaDB := chaindb.NewTable(db, grandpaPrefix)
 	s := &GrandpaState{
-		db: grandpaDB,
+		db:         grandpaDB,
+		blockState: bs,
+		forks:      make(map[common.Hash]*ForkNode),
 	}
 
 	if err := s.setCurrentSetID(genesisSetID); err != nil {
@@ -72,13 +84,108 @@ func NewGrandpaStateFromGenesis(db chaindb.Database, genesisAuthorities []types.
 	return s, nil
 }
 
-func (g *GrandpaState) Import()
-
 // NewGrandpaState returns a new GrandpaState
-func NewGrandpaState(db chaindb.Database) (*GrandpaState, error) {
+func NewGrandpaState(db chaindb.Database, bs *BlockState) (*GrandpaState, error) {
 	return &GrandpaState{
-		db: chaindb.NewTable(db, grandpaPrefix),
+		db:         chaindb.NewTable(db, grandpaPrefix),
+		blockState: bs,
+		forks:      make(map[common.Hash]*ForkNode),
 	}, nil
+}
+
+func (gs *GrandpaState) ImportGrandpaChange(header *types.Header, change scale.VaryingDataType) error {
+	gs.forksLock.Lock()
+	defer gs.forksLock.Unlock()
+
+	headerHash := header.Hash()
+	node := createNode(header, change)
+
+	fmt.Printf("number: %d\n", header.Number)
+
+	for inMemoryHash, linkedList := range gs.forks {
+		is, err := gs.blockState.IsDescendantOf(inMemoryHash, headerHash)
+		if err != nil {
+			return fmt.Errorf("cannot check ancestry while import grandpa change: %w", err)
+		}
+
+		if !is {
+			// try the other way around as the block might not be in the right order
+			is, err = gs.blockState.IsDescendantOf(headerHash, inMemoryHash)
+			if err != nil {
+				return fmt.Errorf("cannot check ancestry while import grandpa change: %w", err)
+			}
+
+			if !is {
+				continue
+			}
+		}
+
+		alreadyHasForcedChanges := searchForForcedChanges(linkedList)
+		if alreadyHasForcedChanges {
+			return fmt.Errorf("cannot import block %s (%d): %w",
+				headerHash, header.Number, ErrAlreadyHasForcedChanges)
+		}
+
+		node.Next = linkedList
+		gs.forks[inMemoryHash] = node
+
+		keepDecreasingOrdered(node)
+		return nil
+	}
+
+	gs.forks[headerHash] = node
+	return nil
+}
+
+func searchForForcedChanges(node *ForkNode) (hasForcedChanges bool) {
+	if node == nil {
+		return false
+	}
+
+	if node.nodeType == grnpaForcedChange {
+		return true
+	}
+
+	return searchForForcedChanges(node.Next)
+}
+
+// keepDecreasingOrdered receives the head of the fork linked list
+// and check if the next node contains a number greater than the current head
+// if so we switch places between them and do the same thing with the next nodes
+// until we reach a node with a number less than our current node or the end of the
+// list
+func keepDecreasingOrdered(node *ForkNode) {
+	for node.Next != nil {
+		nextNode := node.Next
+		if node.header.Number > nextNode.header.Number {
+			break
+		}
+
+		node.Next = nextNode.Next
+		nextNode.Next = node
+	}
+}
+
+func createNode(header *types.Header, change scale.VaryingDataType) *ForkNode {
+	node := &ForkNode{
+		Change: change,
+		header: header,
+	}
+
+	switch change.Value().(type) {
+	case types.GrandpaScheduledChange:
+		node.nodeType = grnpaScheduledChange
+	case types.GrandpaForcedChange:
+		node.nodeType = grnpaForcedChange
+	case types.GrandpaOnDisabled:
+		node.nodeType = grnpaOnDisabled
+	case types.GrandpaPause:
+		node.nodeType = grnpaPause
+	case types.GrandpaResume:
+		node.nodeType = grnpaResume
+	}
+
+	return node
 }
 
 func authoritiesKey(setID uint64) []byte {
