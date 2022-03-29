@@ -12,7 +12,7 @@ var (
 	UnsafeMethods = []string{
 		"system_addReservedPeer",
 		"system_removeReservedPeer",
-		"author_submitExtrinsic",
+		//"author_submitExtrinsic",
 		"author_removeExtrinsic",
 		"author_insertKey",
 		"author_rotateKeys",

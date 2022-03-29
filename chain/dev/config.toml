@@ -39,6 +39,8 @@ port = 8545
 host = "localhost"
 modules = ["system", "author", "chain", "state", "rpc", "grandpa", "offchain", "childstate", "syncstate", "payment"]
 ws-port = 8546
+rpc-unsafe = true
+rpc-unsafe-external = true
 
 [pprof]
 enabled = false

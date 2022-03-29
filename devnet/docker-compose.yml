@@ -8,7 +8,7 @@ services:
         DD_API_KEY: c34650b22bcdf17fc1511e5a69db7129
     ports:
       - 7001
-      - 8545
+      - 8545:8545
       - 8546:8546
       - 8540
       - 9876
@@ -20,7 +20,7 @@ services:
       context: ./..
       dockerfile: devnet/bob.Dockerfile
       args:
-        DD_API_KEY: ${DD_API_KEY}
+        DD_API_KEY: c34650b22bcdf17fc1511e5a69db7129
         key: bob
     ports:
       - 7001

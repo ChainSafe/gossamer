@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v3"
 	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
 	"github.com/centrifuge/go-substrate-rpc-client/v3/types"
@@ -62,15 +63,99 @@ func main() {
 		fmt.Println(err)
 	}
 
-	key, err := types.CreateStorageKey(meta, "System", "Account", signature.TestKeyringPairAlice.PublicKey, nil)
+	aliceKey, err := types.CreateStorageKey(meta, "System", "Account", signature.TestKeyringPairAlice.PublicKey, nil)
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	accountInfo, err := getAccountInfo(api, key)
+	accountInfo, err := getAccountInfo(api, aliceKey)
 	if err != nil {
 		fmt.Println(err)
 	}
 
 	fmt.Println(accountInfo)
+
+	// Try to transfer money to Bob
+
+	// Create a call, transferring 12345 units to Bob
+	keyring, err := keystore.NewSr25519Keyring()
+	if err != nil {
+		panic(err)
+	}
+	bobPub := keyring.Bob().Public().Hex()
+
+	bob, err := types.NewMultiAddressFromHexAccountID(bobPub)
+	if err != nil {
+		panic(err)
+	}
+
+	amount := types.NewUCompactFromUInt(12345)
+
+	const balanceTransfer = "Balances.transfer"
+	c, err := types.NewCall(meta, balanceTransfer, bob, amount)
+	if err != nil {
+		panic(err)
+	}
+
+	ext := types.NewExtrinsic(c)
+	if err != nil {
+		panic(err)
+	}
+
+	genesisHash, err := api.RPC.Chain.GetBlockHash(0)
+	if err != nil {
+		panic(err)
+	}
+
+	rv, err := api.RPC.State.GetRuntimeVersionLatest()
+	if err != nil {
+		panic(err)
+	}
+
+	nonce := uint32(accountInfo.Nonce)
+
+	o := types.SignatureOptions{
+		BlockHash:          genesisHash,
+		Era:                types.ExtrinsicEra{IsMortalEra: false},
+		GenesisHash:        genesisHash,
+		Nonce:              types.NewUCompactFromUInt(uint64(nonce)),
+		SpecVersion:        rv.SpecVersion,
+		Tip:                types.NewUCompactFromUInt(0),
+		TransactionVersion: rv.TransactionVersion,
+	}
+
+	fmt.Printf("Sending %v from %#x to %#x with nonce %v\n", amount, signature.TestKeyringPairAlice.PublicKey, bob.AsID, nonce)
+	// Sign the transaction using Alice's default account
+	err = ext.Sign(signature.TestKeyringPairAlice, o)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("Signed!")
+
+	// Send the extrinsic
+	//hash, err := api.RPC.Author.SubmitExtrinsic(ext)
+	//if err != nil {
+	//	panic(err)
+	//}
+	//
+	//fmt.Printf("Transfer sent with hash %#x\n", hash)
+
+	//// Do the transfer and track the actual status
+	sub, err := api.RPC.Author.SubmitAndWatchExtrinsic(ext)
+	if err != nil {
+		panic(err)
+	}
+	defer sub.Unsubscribe()
+
+	for {
+		status := <-sub.Chan()
+		fmt.Printf("Transaction status: %#v\n", status)
+
+		if status.IsInBlock {
+			fmt.Printf("Completed at block hash: %#x\n", status.AsInBlock)
+			return
+		}
+	}
+
 }

@@ -518,7 +518,9 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 
 	rt.SetContextStorage(ts)
 	// the transaction source is External
+	genesisHashBytes := s.blockState.GenesisHash().ToBytes()
 	externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))
+	externalExt = append(externalExt, genesisHashBytes...)
 	txv, err := rt.ValidateTransaction(externalExt)
 	if err != nil {
 		return err
