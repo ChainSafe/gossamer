@@ -275,7 +275,7 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 	if !s.isMemDB {
 		s.db, err = utils.SetupDatabase(s.dbPath, s.isMemDB)
 		if err != nil {
-			return fmt.Errorf("failed to create database: %s", err)
+			return fmt.Errorf("failed to create database: %w", err)
 		}
 	}
 

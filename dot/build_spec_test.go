@@ -135,20 +135,32 @@ func TestBuildFromDB(t *testing.T) {
 		err  error
 	}{
 		{name: "normal conditions", path: cfg.Global.BasePath,
-			want: &BuildSpec{genesis: &genesis.Genesis{Name: "Gossamer"}}},
+			want: &BuildSpec{genesis: &genesis.Genesis{
+				Name:       "Gossamer",
+				ID:         "gssmr",
+				Bootnodes:  []string{},
+				ProtocolID: "/gossamer/gssmr/0",
+				Genesis: genesis.Fields{
+					Raw:     map[string]map[string]string{},
+					Runtime: map[string]map[string]interface{}{},
+				},
+			}}},
 		{name: "invalid db path", path: t.TempDir(),
 			err: errors.New("cannot start state service: failed to create block state: cannot get block 0: Key not found")},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := BuildFromDB(tt.path)
+
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
 			}
 			if tt.want != nil {
-				assert.Equal(t, tt.want.genesis.Name, got.genesis.Name)
+				got.genesis.Genesis.Raw = map[string]map[string]string{}
+				got.genesis.Genesis.Runtime = map[string]map[string]interface{}{}
+				assert.Equal(t, tt.want, got)
 			}
 		})
 	}
@@ -179,7 +191,15 @@ func TestBuildFromGenesis(t *testing.T) {
 			args: args{
 				path: testGenesisPath,
 			},
-			want: &BuildSpec{genesis: &genesis.Genesis{Name: "test"}},
+			want: &BuildSpec{genesis: &genesis.Genesis{
+				Name: "test",
+				Genesis: genesis.Fields{
+					Raw: map[string]map[string]string{"top" +
+						"": {"0x26aa394eea5630e07c48ae0c9558cef7c21aab032aaa6e946ca50ad39ab66603": "0x01",
+						"0x3a636f6465": "mocktestcode"}},
+					Runtime: map[string]map[string]interface{}{"System": {"code": "mocktestcode"}},
+				},
+			}},
 		},
 	}
 	for _, tt := range tests {
@@ -191,7 +211,7 @@ func TestBuildFromGenesis(t *testing.T) {
 				assert.NoError(t, err)
 			}
 			if tt.want != nil {
-				assert.Equal(t, tt.want.genesis.Name, got.genesis.Name)
+				assert.Equal(t, tt.want, got)
 			}
 		})
 	}

@@ -4,7 +4,6 @@
 package dot
 
 import (
-	"errors"
 	"reflect"
 	"testing"
 
@@ -29,57 +28,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func Test_createBlockVerifier(t *testing.T) {
-	cfg := NewTestConfig(t)
-
-	cfg.Init.Genesis = newTestGenesisRawFile(t, cfg)
-
-	nodeInstance := nodeBuilder{}
-	err := nodeInstance.initNode(cfg)
-	require.NoError(t, err)
-
-	stateSrvc, err := nodeInstance.createStateService(cfg)
-	require.NoError(t, err)
-
-	stateSrvc.Block = &state.BlockState{}
-	stateSrvc.Epoch = &state.EpochState{}
-
-	tests := []struct {
-		name      string
-		service   *state.Service
-		expectNil bool
-		err       error
-	}{
-		{
-			name:      "nil BlockState test",
-			service:   &state.Service{},
-			expectNil: true,
-			err:       errors.New("cannot have nil EpochState"),
-		},
-		{
-			name:      "working example",
-			service:   stateSrvc,
-			expectNil: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := nodeInstance.createBlockVerifier(tt.service)
-			if tt.err != nil {
-				assert.EqualError(t, err, tt.err.Error())
-			} else {
-				assert.NoError(t, err)
-			}
-
-			if tt.expectNil {
-				assert.Nil(t, got)
-			} else {
-				assert.NotNil(t, got)
-			}
-		})
-	}
-}
 
 func Test_createRuntimeStorage(t *testing.T) {
 	cfg := NewTestConfig(t)
