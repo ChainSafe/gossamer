@@ -300,6 +300,7 @@ func (h *Handler) handleScheduledChange(sc types.GrandpaScheduledChange, header 
 	if err != nil {
 		return err
 	}
+
 	h.logger.Debugf("setting GrandpaScheduledChange at block %d",
 		header.Number+uint(sc.Delay))
 	return h.grandpaState.SetNextChange(

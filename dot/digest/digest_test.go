@@ -559,7 +559,6 @@ func TestGrandpaScheduledChanges(t *testing.T) {
 	}
 
 	// current authorities at scheduled changes
-	digestHandler.grandpaScheduledChange.auths
 	//stateService.Block.AddBlock()
 
 	//handler.handleConsensusDigest()

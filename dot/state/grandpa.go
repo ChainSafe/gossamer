@@ -6,6 +6,7 @@ package state
 import (
 	"encoding/binary"
 	"errors"
+	"sync"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -23,9 +24,26 @@ var (
 	currentSetIDKey   = []byte("setID")
 )
 
+type GrandpaChanges interface {
+	types.GrandpaScheduledChange |
+		types.GrandpaForcedChange |
+		types.GrandpaOnDisabled |
+		types.GrandpaPause |
+		types.GrandpaResume
+}
+
+type ForkLinkedList struct {
+	Hash             common.Hash
+	ConsensusMessage scale.VaryingDataType
+	Next             *ForkLinkedList
+}
+
 // GrandpaState tracks information related to grandpa
 type GrandpaState struct {
 	db chaindb.Database
+
+	forkLock sync.RWMutex
+	forks    map[common.Hash]*ForkLinkedList
 }
 
 // NewGrandpaStateFromGenesis returns a new GrandpaState given the grandpa genesis authorities
@@ -53,6 +71,8 @@ func NewGrandpaStateFromGenesis(db chaindb.Database, genesisAuthorities []types.
 
 	return s, nil
 }
+
+func (g *GrandpaState) Import()
 
 // NewGrandpaState returns a new GrandpaState
 func NewGrandpaState(db chaindb.Database) (*GrandpaState, error) {
