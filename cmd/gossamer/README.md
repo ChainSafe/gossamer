@@ -188,7 +188,7 @@ defined in [lib/runtime/wasmer/exports.go](../../lib/runtime/wasmer/exports.go).
 Gossamer publishes telemetry data and also includes an embedded Prometheus server that reports metrics. The metrics
 capabilities are defined in the [dot/metrics](../../dot/metrics) package and build on
 [the metrics library that is included with Go Ethereum](https://github.com/ethereum/go-ethereum/blob/master/metrics/README.md).
-The default listening address for Prometheus metrics is `localhost:9090`, and Gossamer allows the user to configure this parameter with the
+The default listening address for Prometheus metrics is `localhost:9876`, and Gossamer allows the user to configure this parameter with the
 `--metrics-address` command-line parameter. The Gossamer telemetry server publishes telemetry data that is compatible with
 [Polkadot Telemetry](https://github.com/paritytech/substrate-telemetry) and
 [its helpful UI](https://telemetry.polkadot.io/).
