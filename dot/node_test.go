@@ -121,7 +121,10 @@ func TestNewNode(t *testing.T) {
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
-	testNetworkService := createTestService(t, networkConfig)
+	setConfigTestDefaults(t, networkConfig)
+
+	testNetworkService, err := network.NewService(networkConfig)
+	require.NoError(t, err)
 
 	config := state.Config{
 		Path:     initConfig.Global.BasePath,
@@ -225,7 +228,7 @@ func TestNewNode(t *testing.T) {
 
 //go:generate mockgen -destination=mock_block_state_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/network BlockState
 
-func createTestService(t *testing.T, cfg *network.Config) (srvc *network.Service) {
+func setConfigTestDefaults(t *testing.T, cfg *network.Config) {
 	t.Helper()
 	ctrl := gomock.NewController(t)
 
@@ -251,11 +254,6 @@ func createTestService(t *testing.T, cfg *network.Config) (srvc *network.Service
 		telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 		cfg.Telemetry = telemetryMock
 	}
-
-	srvc, err := network.NewService(cfg)
-	require.NoError(t, err)
-
-	return srvc
 }
 
 func TestNodeInitialized(t *testing.T) {

@@ -134,7 +134,6 @@ func createRuntime(cfg *Config, ns runtime.NodeStorage, st *state.Service,
 
 	var rt runtime.Instance
 	switch cfg.Core.WasmInterpreter {
-	// TODO no default case to handle if cfg.Core.WasmInterpreter is not set or set incorrectly
 	case wasmer.Name:
 		rtCfg := &wasmer.Config{
 			Imports: wasmer.ImportsNodeRuntime,
@@ -169,6 +168,8 @@ func createRuntime(cfg *Config, ns runtime.NodeStorage, st *state.Service,
 		if err != nil {
 			return nil, fmt.Errorf("failed to create runtime executor: %s", err)
 		}
+	default:
+		return nil, fmt.Errorf("unknown wasm interpreter: %s, failed to create runtime", cfg.Core.WasmInterpreter)
 	}
 
 	st.Block.StoreRuntime(st.Block.BestBlockHash(), rt)

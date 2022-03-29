@@ -313,7 +313,10 @@ func TestCreateGrandpaService(t *testing.T) {
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
-	testNetworkService := createTestService(t, networkConfig)
+	setConfigTestDefaults(t, networkConfig)
+
+	testNetworkService, err := network.NewService(networkConfig)
+	require.NoError(t, err)
 
 	gs, err := builder.createGRANDPAService(cfg, stateSrvc, dh, ks.Gran, testNetworkService, nil)
 	require.NoError(t, err)
