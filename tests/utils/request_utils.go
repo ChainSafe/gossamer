@@ -160,28 +160,6 @@ func DecodeWebsocket(body []byte, target interface{}) error {
 	return nil
 }
 
-// DecodeRPC_NT will decode []body into target interface (NT is Not Test testing required)
-func DecodeRPC_NT(body []byte, target interface{}) error { //nolint:revive
-	decoder := json.NewDecoder(bytes.NewReader(body))
-	decoder.DisallowUnknownFields()
-
-	var response ServerResponse
-	err := decoder.Decode(&response)
-	if err != nil {
-		return err
-	}
-
-	if response.Error != nil {
-		return errors.New(response.Error.Message)
-	}
-
-	decoder = json.NewDecoder(bytes.NewReader(response.Result))
-	decoder.DisallowUnknownFields()
-
-	err = decoder.Decode(target)
-	return err
-}
-
 // NewEndpoint returns http://localhost:<port>
 func NewEndpoint(port string) string {
 	return "http://localhost:" + port
