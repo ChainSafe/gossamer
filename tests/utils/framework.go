@@ -73,7 +73,7 @@ func (fw *Framework) CallRPC(ctx context.Context, idx int, method, params string
 		return nil, err
 	}
 
-	err = DecodeRPC_NT(respBody, &respJSON)
+	err = DecodeRPC(respBody, &respJSON)
 	if err != nil {
 		return nil, fmt.Errorf("error making RPC call %v", err)
 	}
