@@ -277,13 +277,14 @@ func (h *Handler) setBABEDigestsOnFinalization(finalizedHeader *types.Header) er
 	err = h.epochState.FinalizeBABENextConfigData(nextEpoch)
 	if err == nil {
 		return nil
-	} else if !errors.Is(err, state.ErrEpochNotInMemory) {
-		return fmt.Errorf("cannot finalize babe next config data for block number %d (%s): %w",
-			finalizedHeader.Number, finalizedHeader.Hash(), err)
+	} else if errors.Is(err, state.ErrEpochNotInMemory) {
+		return ErrDefineNextEpoch
 	}
 
 	// the epoch state does not contains any information about the next epoch
-	return ErrDefineNextEpoch
+	return fmt.Errorf("cannot finalize babe next config data for block number %d (%s): %w",
+		finalizedHeader.Number, finalizedHeader.Hash(), err)
+
 }
 
 func (h *Handler) handleGrandpaChangesOnImport(num uint) error {
