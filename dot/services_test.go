@@ -134,7 +134,8 @@ func Test_newInMemoryDB(t *testing.T) {
 	}
 }
 
-//go:generate mockgen -destination=mock_babe_builder_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/lib/babe ServiceIFace,ServiceBuilder
+//go:generate mockgen -destination=mock_babe_builder_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/lib/babe ServiceIFace
+//go:generate mockgen -destination=mock_service_builder_test.go -package $GOPACKAGE . ServiceBuilder
 
 func Test_nodeBuilder_createBABEService(t *testing.T) {
 	ctrl := gomock.NewController(t)
