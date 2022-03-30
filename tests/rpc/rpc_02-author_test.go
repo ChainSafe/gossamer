@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"reflect"
 	"testing"
 	"time"
 
@@ -143,9 +144,15 @@ func TestAuthorRPC(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(test.description, func(t *testing.T) {
+			if test.skip {
+				t.SkipNow()
+			}
+
 			getResponseCtx, getResponseCancel := context.WithTimeout(ctx, time.Second)
 			defer getResponseCancel()
-			_ = getResponse(getResponseCtx, t, test)
+			target := reflect.New(reflect.TypeOf(test.expected)).Interface()
+			err := getResponse(getResponseCtx, test.method, test.params, target)
+			require.NoError(t, err)
 		})
 	}
 }
