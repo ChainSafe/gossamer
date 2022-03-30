@@ -253,7 +253,7 @@ func (s *EpochState) GetEpochData(epoch uint64, header *types.Header) (*types.Ep
 		return nil, fmt.Errorf("failed to get epoch data from database: %w", err)
 	} else if header == nil {
 		// if no header is given then skip the lookup in-memory
-		return nil, nil
+		return epochData, nil
 	}
 
 	epochData, err = s.GetEpochDataForHeader(epoch, header)
@@ -368,7 +368,7 @@ func (s *EpochState) GetConfigData(epoch uint64, header *types.Header) (*types.C
 		return nil, fmt.Errorf("failed to get config data from database: %w", err)
 	} else if header == nil {
 		// if no header is given then skip the lookup in-memory
-		return nil, nil
+		return configData, nil
 	}
 
 	configData, err = s.GetConfigDataForHeader(epoch, header)
