@@ -29,3 +29,21 @@ func GetPeers(ctx context.Context, rpcPort string) (peers []common.PeerInfo, err
 
 	return peersResponse, nil
 }
+
+// GetHealth sends an RPC request to `system_health`.
+func GetHealth(ctx context.Context, address string) (
+	health modules.SystemHealthResponse, err error) {
+	const method = "system_health"
+	const params = "{}"
+	respBody, err := Post(ctx, address, method, params)
+	if err != nil {
+		return health, fmt.Errorf("cannot post RPC: %w", err)
+	}
+
+	err = Decode(respBody, &health)
+	if err != nil {
+		return health, fmt.Errorf("cannot decode RPC: %w", err)
+	}
+
+	return health, nil
+}

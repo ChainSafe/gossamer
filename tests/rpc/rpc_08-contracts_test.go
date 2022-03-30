@@ -11,7 +11,7 @@ import (
 	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils"
 	"github.com/ChainSafe/gossamer/tests/utils/config"
-	"github.com/stretchr/testify/require"
+	"github.com/ChainSafe/gossamer/tests/utils/node"
 )
 
 func TestContractsRPC(t *testing.T) {
@@ -33,24 +33,20 @@ func TestContractsRPC(t *testing.T) {
 		},
 	}
 
-	t.Log("starting gossamer...")
 	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
 	config := config.CreateDefault(t)
-	nodes, err := utils.InitializeAndStartNodes(t, 1, genesisPath, config)
-	require.NoError(t, err)
+	node := node.New(t, node.SetBabeLead(true),
+		node.SetGenesis(genesisPath), node.SetConfig(config))
+	ctx, cancel := context.WithCancel(context.Background())
+	node.InitAndStartTest(ctx, t, cancel)
 
 	time.Sleep(time.Second) // give server a second to start
 
 	for _, test := range testCases {
 		t.Run(test.description, func(t *testing.T) {
-			ctx := context.Background()
-			getResponseCtx, cancel := context.WithTimeout(ctx, time.Second)
-			defer cancel()
+			getResponseCtx, getResponseCancel := context.WithTimeout(ctx, time.Second)
+			defer getResponseCancel()
 			_ = getResponse(getResponseCtx, t, test)
 		})
 	}
-
-	t.Log("going to tear down gossamer...")
-	errList := utils.TearDown(t, nodes)
-	require.Len(t, errList, 0)
 }
