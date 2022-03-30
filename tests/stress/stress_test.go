@@ -35,10 +35,6 @@ func TestMain(m *testing.M) {
 		return
 	}
 
-	if utils.HOSTNAME == "" {
-		utils.HOSTNAME = "localhost"
-	}
-
 	logLvl := log.Info
 	if utils.LOGLEVEL != "" {
 		var err error

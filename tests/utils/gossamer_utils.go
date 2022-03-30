@@ -90,7 +90,7 @@ func startGossamer(t *testing.T, node Node, websocket bool) (
 	var params = []string{"--port", strconv.Itoa(basePort + node.Idx),
 		"--config", node.config,
 		"--basepath", node.basePath,
-		"--rpchost", HOSTNAME,
+		"--rpchost", "localhost",
 		"--rpcport", node.RPCPort,
 		"--rpcmods", "system,author,chain,state,dev,rpc",
 		"--rpc",
@@ -218,8 +218,7 @@ func waitForNode(ctx context.Context, rpcPort string) (err error) {
 
 		checkNodeCtx, checkNodeCancel := context.WithTimeout(ctx, checkNodeStartedTimeout)
 
-		addr := fmt.Sprintf("http://%s:%s", HOSTNAME, rpcPort)
-		err = checkNodeStarted(checkNodeCtx, addr)
+		err = checkNodeStarted(checkNodeCtx, "http://localhost:"+rpcPort)
 		checkNodeCancel()
 		if err == nil {
 			return nil
