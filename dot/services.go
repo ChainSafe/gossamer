@@ -183,12 +183,19 @@ func asAuthority(authority bool) string {
 	return ""
 }
 
+// ServiceBuilder interface to define the building of babe service
+type ServiceBuilder interface {
+	NewServiceIFace(cfg *babe.ServiceConfig) (babe.ServiceIFace, error)
+}
+
+var _ ServiceBuilder = (*babe.Builder)(nil)
+
 func (nb nodeBuilder) createBABEService(cfg *Config, st *state.Service, ks keystore.Keystore,
 	cs *core.Service, telemetryMailer telemetry.Client) (babe.ServiceIFace, error) {
 	return nb.createBABEServiceWithBuilder(cfg, st, ks, cs, telemetryMailer, babe.Builder{})
 }
 func (nodeBuilder) createBABEServiceWithBuilder(cfg *Config, st *state.Service, ks keystore.Keystore,
-	cs *core.Service, telemetryMailer telemetry.Client, newBabeService babe.ServiceBuilder) (babe.
+	cs *core.Service, telemetryMailer telemetry.Client, newBabeService ServiceBuilder) (babe.
 	ServiceIFace, error) {
 	logger.Info("creating BABE service" +
 		asAuthority(cfg.Core.BabeAuthority) + "...")

@@ -100,13 +100,6 @@ type ServiceIFace interface {
 	SlotDuration() uint64
 }
 
-// ServiceBuilder interface to define the building of babe service
-type ServiceBuilder interface {
-	NewServiceIFace(cfg *ServiceConfig) (ServiceIFace, error)
-}
-
-var _ ServiceBuilder = (*Builder)(nil)
-
 // Builder struct to hold babe builder functions
 type Builder struct{}
 
