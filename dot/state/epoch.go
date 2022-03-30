@@ -354,8 +354,8 @@ func (s *EpochState) setLatestConfigData(epoch uint64) error {
 }
 
 // GetConfigData returns the config data for a given epoch persisted in database
-// otherwise will try to get the data from the in-memory map using the header
-// if the header params is nil then it will search only in database
+// otherwise tries to get the data from the in-memory map using the header.
+// If the header params is nil then it will search only in the database
 func (s *EpochState) GetConfigData(epoch uint64, header *types.Header) (*types.ConfigData, error) {
 	configData, err := s.GetConfigDataInDatabase(epoch)
 	if err == nil && configData != nil {
