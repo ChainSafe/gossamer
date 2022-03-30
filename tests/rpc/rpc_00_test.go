@@ -5,11 +5,9 @@ package rpc
 
 import (
 	"context"
-	"reflect"
-	"testing"
+	"fmt"
 
 	"github.com/ChainSafe/gossamer/tests/utils/rpc"
-	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -24,22 +22,18 @@ type testCase struct {
 	skip        bool
 }
 
-func getResponse(ctx context.Context, t *testing.T, test *testCase) interface{} {
-	if test.skip {
-		t.Skip("RPC endpoint not yet implemented")
-		return nil
-	}
-
+func getResponse(ctx context.Context, method, params string, target interface{}) (err error) {
 	const currentPort = "8540"
 	endpoint := rpc.NewEndpoint(currentPort)
-	respBody, err := rpc.Post(ctx, endpoint, test.method, test.params)
-	require.NoError(t, err)
+	respBody, err := rpc.Post(ctx, endpoint, method, params)
+	if err != nil {
+		return fmt.Errorf("cannot RPC post: %w", err)
+	}
 
-	target := reflect.New(reflect.TypeOf(test.expected)).Interface()
-	err = rpc.Decode(respBody, target)
-	require.NoError(t, err)
+	err = rpc.Decode(respBody, &target)
+	if err != nil {
+		return fmt.Errorf("cannot decode RPC response: %w", err)
+	}
 
-	require.NotNil(t, target)
-
-	return target
+	return nil
 }

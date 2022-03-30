@@ -5,6 +5,7 @@ package rpc
 
 import (
 	"context"
+	"reflect"
 	"testing"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/tests/utils"
 	"github.com/ChainSafe/gossamer/tests/utils/config"
 	"github.com/ChainSafe/gossamer/tests/utils/node"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBabeRPC(t *testing.T) {
@@ -39,9 +41,16 @@ func TestBabeRPC(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(test.description, func(t *testing.T) {
+			if test.skip {
+				t.SkipNow()
+			}
+
 			getResponseCtx, cancel := context.WithTimeout(ctx, time.Second)
 			defer cancel()
-			_ = getResponse(getResponseCtx, t, test)
+
+			target := reflect.New(reflect.TypeOf(test.expected)).Interface()
+			err := getResponse(getResponseCtx, test.method, test.params, target)
+			require.NoError(t, err)
 		})
 	}
 }
