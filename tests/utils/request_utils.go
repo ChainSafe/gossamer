@@ -182,9 +182,9 @@ func DecodeRPC_NT(body []byte, target interface{}) error { //nolint:revive
 	return err
 }
 
-// NewEndpoint will create a new endpoint string based on utils.HOSTNAME and port
+// NewEndpoint returns http://localhost:<port>
 func NewEndpoint(port string) string {
-	return "http://" + HOSTNAME + ":" + port
+	return "http://localhost:" + port
 }
 
 func rpcLogsToDigest(logs []string) (digest scale.VaryingDataTypeSlice, err error) {
