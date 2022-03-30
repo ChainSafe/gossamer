@@ -721,7 +721,6 @@ func setupStateAndPopulateTrieState(t *testing.T, basepath string,
 }
 
 //go:generate mockgen -destination=mock_code_substituted_state_test.go -package modules github.com/ChainSafe/gossamer/dot/core CodeSubstitutedState
-//go:generate mockgen -destination=mock_digest_handler_test.go -package modules github.com/ChainSafe/gossamer/dot/core DigestHandler
 
 func newAuthorModule(t *testing.T, integrationTestController *integrationTestController) *AuthorModule {
 	t.Helper()
