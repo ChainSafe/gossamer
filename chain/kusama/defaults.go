@@ -21,8 +21,8 @@ var (
 	// DefaultBasePath Default node base directory path
 	DefaultBasePath = string("~/.gossamer/kusama")
 
-	// DefaultMetricsPort is the metrics server port
-	DefaultMetricsPort = uint32(9876)
+	// DefaultMetricsAddress is the default metrics server listening address.
+	DefaultMetricsAddress = "localhost:9876"
 
 	// DefaultLvl is the default log level
 	DefaultLvl = log.Info

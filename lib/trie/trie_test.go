@@ -99,6 +99,7 @@ func Test_Trie_updateGeneration(t *testing.T) {
 	testCases := map[string]struct {
 		trieGeneration        uint64
 		node                  Node
+		copySettings          node.CopySettings
 		newNode               Node
 		copied                bool
 		expectedDeletedHashes map[common.Hash]struct{}
@@ -109,6 +110,7 @@ func Test_Trie_updateGeneration(t *testing.T) {
 				Generation: 1,
 				Key:        []byte{1},
 			},
+			copySettings: node.DefaultCopySettings,
 			newNode: &node.Leaf{
 				Generation: 2,
 				Key:        []byte{1},
@@ -123,10 +125,10 @@ func Test_Trie_updateGeneration(t *testing.T) {
 				Key:        []byte{1},
 				HashDigest: []byte{1, 2, 3},
 			},
+			copySettings: node.DefaultCopySettings,
 			newNode: &node.Leaf{
 				Generation: 2,
 				Key:        []byte{1},
-				HashDigest: []byte{1, 2, 3},
 			},
 			copied: true,
 			expectedDeletedHashes: map[common.Hash]struct{}{
@@ -147,7 +149,8 @@ func Test_Trie_updateGeneration(t *testing.T) {
 
 			deletedHashes := make(map[common.Hash]struct{})
 
-			newNode := updateGeneration(testCase.node, testCase.trieGeneration, deletedHashes)
+			newNode := updateGeneration(testCase.node, testCase.trieGeneration,
+				deletedHashes, testCase.copySettings)
 
 			assert.Equal(t, testCase.newNode, newNode)
 			assert.Equal(t, testCase.expectedDeletedHashes, deletedHashes)
@@ -2042,10 +2045,10 @@ func Test_retrieve(t *testing.T) {
 			t.Parallel()
 
 			// Check no mutation was done
-			const copyChildren = true
+			copySettings := node.DeepCopySettings
 			var expectedParent Node
 			if testCase.parent != nil {
-				expectedParent = testCase.parent.Copy(copyChildren)
+				expectedParent = testCase.parent.Copy(copySettings)
 			}
 
 			value := retrieve(testCase.parent, testCase.key)
