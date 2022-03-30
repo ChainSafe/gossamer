@@ -12,6 +12,7 @@ import (
 	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils"
 	"github.com/ChainSafe/gossamer/tests/utils/config"
+	"github.com/ChainSafe/gossamer/tests/utils/node"
 	"github.com/stretchr/testify/require"
 )
 
@@ -93,18 +94,17 @@ func TestSystemRPC(t *testing.T) {
 	t.Log("starting gossamer...")
 	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
 	config := config.CreateDefault(t)
-	nodes, err := utils.InitializeAndStartNodes(t, 3, genesisPath, config)
+	nodes := node.MakeNodes(t, 3, node.SetGenesis(genesisPath), node.SetConfig(config))
 
-	//use only first server for tests
-	require.NoError(t, err)
+	ctx, cancel := context.WithCancel(context.Background())
+	nodes.InitAndStartTest(ctx, t, cancel)
 
 	time.Sleep(time.Second) // give server a second to start
 
 	for _, test := range testCases {
 		t.Run(test.description, func(t *testing.T) {
-			ctx := context.Background()
-			getResponseCtx, cancel := context.WithTimeout(ctx, time.Second)
-			defer cancel()
+			getResponseCtx, getResponseCancel := context.WithTimeout(ctx, time.Second)
+			defer getResponseCancel()
 			target := getResponse(getResponseCtx, t, test)
 
 			switch v := target.(type) {
@@ -141,9 +141,4 @@ func TestSystemRPC(t *testing.T) {
 
 		})
 	}
-
-	t.Log("going to tear down gossamer...")
-
-	errList := utils.TearDown(t, nodes)
-	require.Len(t, errList, 0)
 }

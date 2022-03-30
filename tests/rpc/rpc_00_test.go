@@ -8,17 +8,14 @@ import (
 	"fmt"
 	"os"
 	"reflect"
-	"strconv"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/tests/utils"
 	"github.com/ChainSafe/gossamer/tests/utils/rpc"
 	"github.com/stretchr/testify/require"
 )
 
 var (
-	currentPort = strconv.Itoa(utils.BaseRPCPort)
-	rpcSuite    = "rpc"
+	rpcSuite = "rpc"
 )
 
 func TestMain(m *testing.M) {
@@ -43,6 +40,7 @@ func getResponse(ctx context.Context, t *testing.T, test *testCase) interface{} 
 		return nil
 	}
 
+	const currentPort = "8540"
 	endpoint := rpc.NewEndpoint(currentPort)
 	respBody, err := rpc.Post(ctx, endpoint, test.method, test.params)
 	require.NoError(t, err)

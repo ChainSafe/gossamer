@@ -15,6 +15,7 @@ import (
 	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils"
 	"github.com/ChainSafe/gossamer/tests/utils/config"
+	"github.com/ChainSafe/gossamer/tests/utils/node"
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v3"
 	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
 	"github.com/centrifuge/go-substrate-rpc-client/v3/types"
@@ -30,18 +31,15 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 	t.Log("starting gossamer...")
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
 	config := config.CreateDefault(t)
-	nodes, err := utils.InitializeAndStartNodes(t, 1, genesisPath, config)
-	require.NoError(t, err)
 
-	defer func() {
-		t.Log("going to tear down gossamer...")
-		errList := utils.TearDown(t, nodes)
-		require.Len(t, errList, 0)
-	}()
+	node := node.New(t, node.SetIndex(1),
+		node.SetGenesis(genesisPath), node.SetConfig(config))
+	ctx, cancel := context.WithCancel(context.Background())
+	node.InitAndStartTest(ctx, t, cancel)
 
 	time.Sleep(30 * time.Second) // wait for server to start and block 1 to be produced
 
-	api, err := gsrpc.NewSubstrateAPI(fmt.Sprintf("http://localhost:%s", nodes[0].RPCPort))
+	api, err := gsrpc.NewSubstrateAPI(fmt.Sprintf("http://localhost:%s", node.GetRPCPort()))
 	require.NoError(t, err)
 
 	meta, err := api.RPC.State.GetMetadataLatest()
@@ -138,21 +136,18 @@ func TestAuthorRPC(t *testing.T) {
 	t.Log("starting gossamer...")
 	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
 	config := config.CreateDefault(t)
-	nodes, err := utils.InitializeAndStartNodes(t, 1, genesisPath, config)
-	require.NoError(t, err)
+	node := node.New(t, node.SetIndex(1),
+		node.SetGenesis(genesisPath), node.SetConfig(config))
+	ctx, cancel := context.WithCancel(context.Background())
+	node.InitAndStartTest(ctx, t, cancel)
 
 	time.Sleep(time.Second) // give server a second to start
 
 	for _, test := range testCases {
 		t.Run(test.description, func(t *testing.T) {
-			ctx := context.Background()
-			getResponseCtx, cancel := context.WithTimeout(ctx, time.Second)
-			defer cancel()
+			getResponseCtx, getResponseCancel := context.WithTimeout(ctx, time.Second)
+			defer getResponseCancel()
 			_ = getResponse(getResponseCtx, t, test)
 		})
 	}
-
-	t.Log("going to tear down gossamer...")
-	errList := utils.TearDown(t, nodes)
-	require.Len(t, errList, 0)
 }

@@ -6,38 +6,38 @@ package utils
 import (
 	"context"
 	"fmt"
-	"os"
 	"strconv"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/tests/utils/config"
+	"github.com/ChainSafe/gossamer/tests/utils/node"
 	"github.com/ChainSafe/gossamer/tests/utils/rpc"
 	scribble "github.com/nanobox-io/golang-scribble"
 )
 
 // Framework struct to hold references to framework data
 type Framework struct {
-	nodes   []Node
+	nodes   node.Nodes
 	db      *scribble.Driver
 	callQty int
 }
 
-// InitFramework creates given quanity of nodes
-func InitFramework(t *testing.T, qtyNodes int) (*Framework, error) {
+// NewFramework creates a new framework.
+func NewFramework() (framework *Framework) {
+	return &Framework{}
+}
+
+// InitFramework creates given quantity of nodes
+func InitFramework(ctx context.Context, t *testing.T, qtyNodes int) (*Framework, error) {
 	f := &Framework{}
-	configPath := config.CreateDefault(t)
 
-	nodes, err := InitNodes(qtyNodes, configPath)
-	if err != nil {
-		return nil, err
-	}
-	f.nodes = nodes
+	f.nodes = node.MakeNodes(t, qtyNodes)
 
-	tempDir, err := os.MkdirTemp("", "gossamer-stress-db")
+	err := f.nodes.Init(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot init nodes: %w", err)
 	}
-	db, err := scribble.New(tempDir, nil)
+
+	db, err := scribble.New(t.TempDir(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -47,20 +47,9 @@ func InitFramework(t *testing.T, qtyNodes int) (*Framework, error) {
 }
 
 // StartNodes calls RestartGossamor for all nodes
-func (fw *Framework) StartNodes(t *testing.T) (errorList []error) {
-	for i, node := range fw.nodes {
-		var err error
-		fw.nodes[i], err = startGossamer(t, node, false)
-		if err != nil {
-			errorList = append(errorList, err)
-		}
-	}
-	return errorList
-}
-
-// KillNodes stops all running nodes
-func (fw *Framework) KillNodes(t *testing.T) []error {
-	return TearDown(t, fw.nodes)
+func (fw *Framework) StartNodes(ctx context.Context, t *testing.T, waitErr chan<- error) (
+	started int, startErr error) {
+	return fw.nodes.Start(ctx, waitErr)
 }
 
 // CallRPC call RPC method with given params for node at idx
@@ -70,7 +59,7 @@ func (fw *Framework) CallRPC(ctx context.Context, idx int, method, params string
 		return nil, fmt.Errorf("node index greater than quantity of nodes")
 	}
 	node := fw.nodes[idx]
-	respBody, err := rpc.Post(ctx, rpc.NewEndpoint(node.RPCPort), method, params)
+	respBody, err := rpc.Post(ctx, rpc.NewEndpoint(node.GetRPCPort()), method, params)
 	if err != nil {
 		return nil, err
 	}
