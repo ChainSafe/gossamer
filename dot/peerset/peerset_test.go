@@ -365,7 +365,6 @@ func checkPeerIsInNoSlotsNode(t *testing.T, ps *PeersState, pid peer.ID, setID i
 	require.True(t, exists)
 }
 
-//nolint:unparam
 func checkPeerStateSetNumOut(t *testing.T, ps *PeersState, setID int, expectedNumOut uint32) {
 	ps.RLock()
 	defer ps.RUnlock()
@@ -374,7 +373,6 @@ func checkPeerStateSetNumOut(t *testing.T, ps *PeersState, setID int, expectedNu
 	require.Equal(t, expectedNumOut, gotNumOut)
 }
 
-//nolint:unparam
 func checkPeerStateSetNumIn(t *testing.T, ps *PeersState, setID int, expectedNumIn uint32) {
 	ps.RLock()
 	defer ps.RUnlock()
