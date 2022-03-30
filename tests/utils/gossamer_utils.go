@@ -206,7 +206,8 @@ func startGossamer(t *testing.T, node *Node, websocket bool) error {
 		const checkNodeStartedTimeout = time.Second
 		checkNodeCtx, cancel := context.WithTimeout(ctx, checkNodeStartedTimeout)
 
-		err = checkNodeStarted(checkNodeCtx, t, "http://"+HOSTNAME+":"+node.RPCPort)
+		addr := fmt.Sprintf("http://%s:%s", HOSTNAME, node.RPCPort)
+		err = checkNodeStarted(checkNodeCtx, t, addr)
 
 		cancel()
 
