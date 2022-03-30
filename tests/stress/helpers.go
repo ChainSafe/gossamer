@@ -225,7 +225,7 @@ func compareFinalizedHeadsWithRetry(ctx context.Context, nodes []utils.Node, rou
 
 func getPendingExtrinsics(ctx context.Context, t *testing.T, node utils.Node) []string {
 	endpoint := utils.NewEndpoint(node.RPCPort)
-	method := utils.AuthorPendingExtrinsics
+	const method = "author_pendingExtrinsics"
 	const params = "[]"
 	respBody, err := utils.PostRPC(ctx, endpoint, method, params)
 	require.NoError(t, err)

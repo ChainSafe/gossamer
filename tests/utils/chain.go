@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -16,8 +17,9 @@ import (
 // GetChainHead calls the endpoint chain_getHeader to get the latest chain head
 func GetChainHead(ctx context.Context, rpcPort string) (header *types.Header, err error) {
 	endpoint := NewEndpoint(rpcPort)
+	const method = "chain_getHeader"
 	const params = "[]"
-	respBody, err := PostRPC(ctx, endpoint, ChainGetHeader, params)
+	respBody, err := PostRPC(ctx, endpoint, method, params)
 	if err != nil {
 		return nil, fmt.Errorf("cannot post RPC: %w", err)
 	}
@@ -40,8 +42,10 @@ func GetChainHead(ctx context.Context, rpcPort string) (header *types.Header, er
 // It will block until a response is received or the context gets canceled.
 func GetBlockHash(ctx context.Context, rpcPort, num string) (hash common.Hash, err error) {
 	endpoint := NewEndpoint(rpcPort)
+	const method = "chain_getBlockHash"
 	params := "[" + num + "]"
-	respBody, err := PostRPC(ctx, endpoint, ChainGetBlockHash, params)
+	const requestWait = time.Second
+	respBody, err := PostRPCWithRetry(ctx, endpoint, method, params, requestWait)
 	if err != nil {
 		return hash, fmt.Errorf("cannot post RPC: %w", err)
 	}
@@ -53,7 +57,7 @@ func GetBlockHash(ctx context.Context, rpcPort, num string) (hash common.Hash, e
 func GetFinalizedHead(ctx context.Context, rpcPort string) (
 	hash common.Hash, err error) {
 	endpoint := NewEndpoint(rpcPort)
-	method := ChainGetFinalizedHead
+	const method = "chain_getFinalizedHead"
 	const params = "[]"
 	respBody, err := PostRPC(ctx, endpoint, method, params)
 	if err != nil {
@@ -69,7 +73,7 @@ func GetFinalizedHeadByRound(ctx context.Context, rpcPort string, round uint64) 
 	hash common.Hash, err error) {
 	p := strconv.Itoa(int(round))
 	endpoint := NewEndpoint(rpcPort)
-	method := ChainGetFinalizedHeadByRound
+	const method = "chain_getFinalizedHeadByRound"
 	params := "[" + p + ",1]"
 	respBody, err := PostRPC(ctx, endpoint, method, params)
 	if err != nil {
@@ -83,7 +87,7 @@ func GetFinalizedHeadByRound(ctx context.Context, rpcPort string, round uint64) 
 func GetBlock(ctx context.Context, rpcPort string, hash common.Hash) (
 	block *types.Block, err error) {
 	endpoint := NewEndpoint(rpcPort)
-	method := ChainGetBlock
+	const method = "chain_getBlock"
 	params := fmt.Sprintf(`["%s"]`, hash)
 	respBody, err := PostRPC(ctx, endpoint, method, params)
 	if err != nil {
