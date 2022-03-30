@@ -68,22 +68,26 @@ func PostRPCWithRetry(ctx context.Context, endpoint, method, params string,
 
 		data, err := PostRPC(postRPCCtx, endpoint, method, params)
 
-		postRPCCancel()
 		if err == nil {
+			postRPCCancel()
 			return data, nil
 		}
 
-		if ctx.Err() == nil {
-			continue
-		}
+		// wait for full requestWait duration or main context cancelation
+		<-postRPCCtx.Done()
+		postRPCCancel()
 
-		totalTime := time.Duration(try) * requestWait
-		tryWord := "try"
-		if try > 1 {
-			tryWord = "tries"
+		if ctx.Err() != nil {
+			break
 		}
-		return nil, fmt.Errorf("after %d %s totalling %s: %w", try, tryWord, totalTime, err)
 	}
+
+	totalTime := time.Duration(try) * requestWait
+	tryWord := "try"
+	if try > 1 {
+		tryWord = "tries"
+	}
+	return nil, fmt.Errorf("after %d %s totalling %s: %w", try, tryWord, totalTime, err)
 }
 
 // DecodeRPC will decode []body into target interface
