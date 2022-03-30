@@ -61,8 +61,6 @@ func TestMain(m *testing.M) {
 	utils.Logger.Patch(log.SetLevel(logLvl))
 	logger.Patch(log.SetLevel(logLvl))
 
-	utils.GenerateGenesisThreeAuth()
-
 	// Start all tests
 	code := m.Run()
 	os.Exit(code)

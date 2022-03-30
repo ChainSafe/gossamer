@@ -23,6 +23,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // Logger is the utils package local logger.
@@ -42,16 +43,10 @@ var (
 	currentDir, _ = os.Getwd()
 	gossamerCMD   = filepath.Join(currentDir, "../..", "bin/gossamer")
 
-	// GenesisOneAuth is the genesis file that has 1 authority
-	GenesisOneAuth = filepath.Join(currentDir, "../utils/genesis_oneauth.json")
-	// GenesisThreeAuths is the genesis file that has 3 authorities
-	GenesisThreeAuths = filepath.Join(currentDir, "../utils/genesis_threeauths.json")
 	// GenesisTwoAuthsSecondaryVRF0_9_10 is the genesis file that has 2 authorities and block production by
 	// secondary VRF slots enabled
 	GenesisTwoAuthsSecondaryVRF0_9_10 = filepath.Join(currentDir, "../utils/genesis_two_auths_secondaryvrf_0_9_10.json")
 
-	// GenesisSixAuths is the genesis file that has 6 authorities
-	GenesisSixAuths = filepath.Join(currentDir, "../utils/genesis_sixauths.json")
 	// GenesisDefault is the default gssmr genesis file
 	GenesisDefault = filepath.Join(currentDir, "../..", "chain/gssmr/genesis.json")
 	// GenesisDev is the default dev genesis file
@@ -441,29 +436,23 @@ func TearDown(t *testing.T, nodes []Node) (errorList []error) {
 	return errorList
 }
 
-// GenerateGenesisThreeAuth generates Genesis file with three authority.
-func GenerateGenesisThreeAuth() {
-	genesisPath, err := utils.GetGssmrGenesisPath()
-	if err != nil {
-		panic(err)
-	}
+// GenerateGenesisAuths generates a genesis file with numAuths authorities
+// and returns the file path to the genesis file. The genesis file is
+// automatically removed when the test ends.
+func GenerateGenesisAuths(t *testing.T, numAuths int) (genesisPath string) {
+	gssmrGenesisPath := utils.GetGssmrGenesisPathTest(t)
 
-	bs, err := dot.BuildFromGenesis(genesisPath, 3)
-	if err != nil {
-		Logger.Errorf("genesis file not found: %s", err)
-		os.Exit(1)
-	}
-	_ = dot.CreateJSONRawFile(bs, GenesisThreeAuths)
-}
+	buildSpec, err := dot.BuildFromGenesis(gssmrGenesisPath, numAuths)
+	require.NoError(t, err)
 
-// GenerateGenesisSixAuth generates Genesis file with six authority.
-func GenerateGenesisSixAuth(t *testing.T) {
-	bs, err := dot.BuildFromGenesis(utils.GetGssmrGenesisPathTest(t), 6)
-	if err != nil {
-		Logger.Errorf("genesis file not found: %s", err)
-		os.Exit(1)
-	}
-	_ = dot.CreateJSONRawFile(bs, GenesisSixAuths)
+	buildSpecJSON, err := buildSpec.ToJSONRaw()
+	require.NoError(t, err)
+
+	genesisPath = filepath.Join(t.TempDir(), "genesis.json")
+	err = os.WriteFile(genesisPath, buildSpecJSON, os.ModePerm)
+	require.NoError(t, err)
+
+	return genesisPath
 }
 
 func generateDefaultConfig() *ctoml.Config {

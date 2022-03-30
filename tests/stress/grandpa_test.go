@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/tests/utils"
-
 	"github.com/stretchr/testify/require"
 )
 
@@ -42,11 +41,11 @@ func TestStress_Grandpa_OneAuthority(t *testing.T) {
 func TestStress_Grandpa_ThreeAuthorities(t *testing.T) {
 	t.Skip()
 
-	utils.GenerateGenesisThreeAuth()
-	defer os.Remove(utils.GenesisThreeAuths)
+	const numNodes = 3
 
-	numNodes := 3
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisThreeAuths, utils.ConfigDefault)
+	genesisPath := utils.GenerateGenesisAuths(t, numNodes)
+
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes, genesisPath, utils.ConfigDefault)
 	require.NoError(t, err)
 
 	defer func() {
@@ -68,11 +67,11 @@ func TestStress_Grandpa_ThreeAuthorities(t *testing.T) {
 
 func TestStress_Grandpa_SixAuthorities(t *testing.T) {
 	t.Skip()
-	utils.GenerateGenesisSixAuth(t)
-	defer os.Remove(utils.GenesisSixAuths)
 
-	numNodes := 6
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisSixAuths, utils.ConfigDefault)
+	const numNodes = 6
+	genesisPath := utils.GenerateGenesisAuths(t, numNodes)
+
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes, genesisPath, utils.ConfigDefault)
 	require.NoError(t, err)
 
 	defer func() {
@@ -126,11 +125,10 @@ func TestStress_Grandpa_CatchUp(t *testing.T) {
 		t.Skip("skipping TestStress_Grandpa_CatchUp")
 	}
 
-	utils.GenerateGenesisSixAuth(t)
-	defer os.Remove(utils.GenesisSixAuths)
+	const numNodes = 6
+	genesisPath := utils.GenerateGenesisAuths(t, numNodes)
 
-	numNodes := 6
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, utils.GenesisSixAuths, utils.ConfigDefault)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, genesisPath, utils.ConfigDefault)
 	require.NoError(t, err)
 
 	defer func() {
@@ -143,7 +141,7 @@ func TestStress_Grandpa_CatchUp(t *testing.T) {
 	basePath := t.TempDir()
 	node, err := utils.RunGossamer(t, numNodes-1,
 		basePath,
-		utils.GenesisSixAuths, utils.ConfigDefault,
+		genesisPath, utils.ConfigDefault,
 		false, false)
 	require.NoError(t, err)
 	nodes = append(nodes, node)

@@ -6,14 +6,17 @@
 package dot
 
 import (
-	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
 
 func TestExportConfig(t *testing.T) {
-	cfg, cfgFile := newTestConfigWithFile(t)
+	cfg := NewTestConfig(t)
+	configPath := filepath.Join(cfg.Global.BasePath, "config.toml")
+
+	exportConfig(t, cfg, configPath)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
@@ -22,7 +25,5 @@ func TestExportConfig(t *testing.T) {
 	err := InitNode(cfg)
 	require.NoError(t, err)
 
-	file := exportConfig(cfg, cfgFile.Name())
-	require.NotNil(t, file)
-	os.Remove(file.Name())
+	exportConfig(t, cfg, configPath)
 }

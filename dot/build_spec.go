@@ -78,7 +78,11 @@ func WriteGenesisSpecFile(data []byte, fp string) error {
 		return err
 	}
 
-	writeConfig(data, fp)
+	err := os.WriteFile(fp, data, os.ModePerm)
+	if err != nil {
+		return fmt.Errorf("cannot write config data: %w", err)
+	}
+
 	return nil
 }
 

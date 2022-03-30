@@ -143,68 +143,24 @@ func NewTestConfig(t *testing.T) *Config {
 	return cfg
 }
 
-// newTestConfigWithFile returns a new test configuration and a temporary configuration file
-func newTestConfigWithFile(t *testing.T) (*Config, *os.File) {
-	cfg := NewTestConfig(t)
+// exportConfig exports a dot configuration to a toml configuration file
+func exportConfig(t *testing.T, cfg *Config, fp string) {
+	t.Helper()
 
-	configPath := filepath.Join(cfg.Global.BasePath, "config.toml")
-	err := os.WriteFile(configPath, nil, os.ModePerm)
+	raw, err := toml.Marshal(*cfg)
 	require.NoError(t, err)
 
-	cfgFile := exportConfig(cfg, configPath)
-	return cfg, cfgFile
-}
-
-// exportConfig exports a dot configuration to a toml configuration file
-func exportConfig(cfg *Config, fp string) *os.File {
-	raw, err := toml.Marshal(*cfg)
-	if err != nil {
-		logger.Errorf("failed to marshal configuration: %s", err)
-		os.Exit(1)
-	}
-	return writeConfig(raw, fp)
+	err = os.WriteFile(fp, raw, os.ModePerm)
+	require.NoError(t, err)
 }
 
 // ExportTomlConfig exports a dot configuration to a toml configuration file
-func ExportTomlConfig(cfg *ctoml.Config, fp string) *os.File {
+func ExportTomlConfig(cfg *ctoml.Config, fp string) (err error) {
 	raw, err := toml.Marshal(*cfg)
 	if err != nil {
-		logger.Errorf("failed to marshal configuration: %s", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to marshal configuration: %w", err)
 	}
-	return writeConfig(raw, fp)
-}
-
-// writeConfig writes the config `data` in the file 'fp'.
-func writeConfig(data []byte, fp string) *os.File {
-	newFile, err := os.Create(filepath.Clean(fp))
-	if err != nil {
-		logger.Errorf("failed to create configuration file: %s", err)
-		os.Exit(1)
-	}
-
-	_, err = newFile.Write(data)
-	if err != nil {
-		logger.Errorf("failed to write to configuration file: %s", err)
-		os.Exit(1)
-	}
-
-	if err := newFile.Close(); err != nil {
-		logger.Errorf("failed to close configuration file: %s", err)
-		os.Exit(1)
-	}
-
-	return newFile
-}
-
-// CreateJSONRawFile will generate a JSON genesis file with raw storage
-func CreateJSONRawFile(bs *BuildSpec, fp string) *os.File {
-	data, err := bs.ToJSONRaw()
-	if err != nil {
-		logger.Errorf("failed to convert into raw json: %s", err)
-		os.Exit(1)
-	}
-	return writeConfig(data, fp)
+	return os.WriteFile(fp, raw, os.ModePerm)
 }
 
 // RandomNodeName generates a new random name if there is no name configured for the node
