@@ -5,7 +5,6 @@ package rpc
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 	"strconv"
 	"testing"
@@ -20,7 +19,7 @@ func TestStableNetworkRPC(t *testing.T) {
 	if utils.MODE != "stable" {
 		t.Skip("Integration tests are disabled, going to skip.")
 	}
-	t.Log("Running NetworkAPI tests with HOSTNAME=" + utils.HOSTNAME + " and PORT=" + utils.PORT)
+	t.Log("Running NetworkAPI tests with PORT=" + utils.PORT)
 
 	networkSize, err := strconv.Atoi(utils.NETWORK_SIZE)
 	if err != nil {
@@ -57,7 +56,7 @@ func TestStableNetworkRPC(t *testing.T) {
 		t.Run(test.description, func(t *testing.T) {
 			ctx := context.Background()
 
-			endpoint := fmt.Sprintf("http://%s:%s", utils.HOSTNAME, utils.PORT)
+			endpoint := utils.NewEndpoint(utils.PORT)
 			const params = "{}"
 			respBody, err := utils.PostRPC(ctx, endpoint, test.method, params)
 			require.NoError(t, err)
