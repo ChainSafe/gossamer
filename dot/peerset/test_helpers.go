@@ -29,7 +29,7 @@ const allocTimeDuration = 2 * time.Second
 
 //go:generate mockgen -destination=mock_message_processor_test.go -package $GOPACKAGE . MessageProcessor
 func newTestPeerSet(t *testing.T, maxIn, maxOut uint32, bootNodes,
-	reservedPeers []peer.ID, reservedOnly bool, processor MessageProcessor) *Handler {
+	reservedPeers []peer.ID, reservedOnly bool) *Handler {
 	t.Helper()
 
 	con := &ConfigSet{
@@ -46,7 +46,6 @@ func newTestPeerSet(t *testing.T, maxIn, maxOut uint32, bootNodes,
 	handler, err := NewPeerSetHandler(con)
 	require.NoError(t, err)
 
-	handler.SetMessageProcessor(processor)
 	handler.Start(context.Background())
 
 	handler.AddPeer(0, bootNodes...)
@@ -67,4 +66,11 @@ func newTestPeerState(t *testing.T, maxIn, maxOut uint32) *PeersState {
 	require.NoError(t, err)
 
 	return state
+}
+
+func checkMessageStatus(t *testing.T, m interface{}, expectedStatus Status) {
+	t.Helper()
+	msg, ok := m.(Message)
+	require.True(t, ok)
+	require.Equal(t, expectedStatus, msg.Status)
 }

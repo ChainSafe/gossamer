@@ -439,31 +439,7 @@ func (s *Service) sentBlockIntervalTelemetry() {
 
 func (s *Service) handleConn(conn libp2pnetwork.Conn) {
 	// TODO: currently we only have one set so setID is 0, change this once we have more set in peerSet.
-	results, err := s.host.cm.peerSetHandler.Incoming(0, conn.RemotePeer())
-	if err != nil {
-		logger.Errorf("cannot accept incoming peer: %w", err)
-		err := conn.Close()
-		if err != nil {
-			logger.Errorf("cannot close connection with peer: %w", err)
-		}
-		return
-	}
-
-	if len(results) == 0 {
-		logger.Errorf("got an empty incoming status list")
-		return
-	}
-
-	incomingPeerResult := results[0]
-	switch incomingPeerResult {
-	case peerset.Drop, peerset.Reject:
-		logger.Warnf("connection rejected with peer %s", conn.RemotePeer())
-		err := conn.Close()
-		if err != nil {
-			logger.Errorf("cannot close connection with peer: %w", err)
-		}
-		return
-	}
+	s.host.cm.peerSetHandler.Incoming(0, conn.RemotePeer())
 
 	// exchange BlockAnnounceHandshake with peer so we can start to
 	// sync if necessary.
@@ -696,5 +672,57 @@ func (s *Service) startPeerSetHandler() {
 	// wait for peerSetHandler to start.
 	if !s.noBootstrap {
 		s.host.bootstrap()
+	}
+
+	go s.startProcessingMsg()
+}
+
+func (s *Service) processMessage(msg peerset.Message) {
+	peerID := msg.PeerID
+	if peerID == "" {
+		logger.Errorf("found empty peer id in peerset message")
+		return
+	}
+	switch msg.Status {
+	case peerset.Connect:
+		addrInfo := s.host.p2pHost.Peerstore().PeerInfo(peerID)
+		if len(addrInfo.Addrs) == 0 {
+			var err error
+			addrInfo, err = s.host.discovery.findPeer(peerID)
+			if err != nil {
+				logger.Warnf("failed to find peer id %s: %s", peerID, err)
+				return
+			}
+		}
+
+		err := s.host.connect(addrInfo)
+		if err != nil {
+			logger.Warnf("failed to open connection for peer %s: %s", peerID, err)
+			return
+		}
+		logger.Debugf("connection successful with peer %s", peerID)
+	case peerset.Drop, peerset.Reject:
+		err := s.host.closePeer(peerID)
+		if err != nil {
+			logger.Warnf("failed to close connection with peer %s: %s", peerID, err)
+			return
+		}
+		logger.Debugf("connection dropped successfully for peer %s", peerID)
+	}
+}
+
+func (s *Service) startProcessingMsg() {
+	msgCh := s.host.cm.peerSetHandler.Messages()
+	for {
+		select {
+		case <-s.ctx.Done():
+			return
+		case msg, ok := <-msgCh:
+			if !ok {
+				return
+			}
+
+			s.processMessage(msg)
+		}
 	}
 }

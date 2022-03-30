@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/mock/gomock"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/require"
 )
@@ -17,10 +16,7 @@ const testSetID = 0
 func Test_Ban_Reject_Accept_Peer(t *testing.T) {
 	t.Parallel()
 
-	ctrl := gomock.NewController(t)
-	processor := NewMockMessageProcessor(ctrl)
-
-	handler := newTestPeerSet(t, 25, 25, nil, nil, false, processor)
+	handler := newTestPeerSet(t, 25, 25, nil, nil, false)
 
 	ps := handler.peerSet
 
@@ -39,21 +35,20 @@ func Test_Ban_Reject_Accept_Peer(t *testing.T) {
 	rpc := newReputationChange(BannedThresholdValue-1, "")
 
 	// we need one for the message to be processed.
-	processor.EXPECT().Process(Message{Status: Drop, setID: testSetID, PeerID: peer1})
 	// report peer will disconnect the peer and set the `lastConnected` to time.Now
 	handler.ReportPeer(rpc, peer1)
+
+	time.Sleep(100 * time.Millisecond)
+	checkMessageStatus(t, <-ps.resultMsgCh, Drop)
+
 	checkPeerStateSetNumIn(t, ps.peerState, testSetID, 0)
 	require.Equal(t, notConnectedPeer, ps.peerState.peerStatus(testSetID, peer1))
-
 	lastDisconectedAt := ps.peerState.nodes[peer1].lastConnected[testSetID]
 
-	// simple wait to ensure the triedToConnectAt will be greater than the lastDisconectedAt
-	time.Sleep(100 * time.Millisecond)
-
 	// check that an incoming connection from that node gets refused.
-	processor.EXPECT().Process(Message{Status: Reject, setID: testSetID, PeerID: peer1})
 	// incoming should update the lastConnected time
 	handler.Incoming(0, peer1)
+	checkMessageStatus(t, <-ps.resultMsgCh, Reject)
 
 	triedToConnectAt := ps.peerState.nodes[peer1].lastConnected[testSetID]
 	require.True(t, lastDisconectedAt.Before(triedToConnectAt))
@@ -62,18 +57,13 @@ func Test_Ban_Reject_Accept_Peer(t *testing.T) {
 	time.Sleep(time.Millisecond * 1200)
 
 	// try again. This time the node should be accepted.
-	processor.EXPECT().Process(Message{Status: Accept, setID: testSetID, PeerID: peer1})
 	handler.Incoming(0, peer1)
+	checkMessageStatus(t, <-ps.resultMsgCh, Accept)
 }
 
 func TestAddReservedPeers(t *testing.T) {
 	t.Parallel()
-
-	ctrl := gomock.NewController(t)
-	processor := NewMockMessageProcessor(ctrl)
-
-	processor.EXPECT().Process(Message{Status: Connect, setID: testSetID, PeerID: bootNode})
-	handler := newTestPeerSet(t, 0, 2, []peer.ID{bootNode}, []peer.ID{}, false, processor)
+	handler := newTestPeerSet(t, 0, 2, []peer.ID{bootNode}, []peer.ID{}, false)
 	ps := handler.peerSet
 
 	checkNodePeerExists(t, ps.peerState, bootNode)
@@ -94,8 +84,8 @@ func TestAddReservedPeers(t *testing.T) {
 	}
 
 	for _, tt := range reservedPeers {
-		processor.EXPECT().Process(Message{Status: Connect, setID: testSetID, PeerID: tt.peerID})
 		handler.AddReservedPeer(testSetID, tt.peerID)
+		time.Sleep(time.Millisecond * 100)
 
 		checkReservedNodePeerExists(t, ps, tt.peerID)
 		checkPeerIsInNoSlotsNode(t, ps.peerState, tt.peerID, testSetID)
@@ -108,19 +98,31 @@ func TestAddReservedPeers(t *testing.T) {
 		checkPeerStateSetNumIn(t, ps.peerState, testSetID, 0)
 		checkPeerStateSetNumOut(t, ps.peerState, testSetID, 1)
 	}
+
+	expectedMsgs := []Message{
+		{Status: Connect, setID: 0, PeerID: bootNode},
+		{Status: Connect, setID: 0, PeerID: reservedPeer},
+		{Status: Connect, setID: 0, PeerID: reservedPeer2},
+	}
+
+	require.Equal(t, 3, len(ps.resultMsgCh))
+
+	for i := 0; ; i++ {
+		if len(ps.resultMsgCh) == 0 {
+			break
+		}
+		msg := <-ps.resultMsgCh
+		require.Equal(t, expectedMsgs[i], msg)
+	}
 }
 
 func TestPeerSetIncoming(t *testing.T) {
 	t.Parallel()
-
-	ctrl := gomock.NewController(t)
-	processor := NewMockMessageProcessor(ctrl)
-
-	processor.EXPECT().Process(Message{Status: Connect, setID: testSetID, PeerID: bootNode})
 	handler := newTestPeerSet(t, 2, 1, []peer.ID{bootNode},
-		[]peer.ID{}, false, processor)
+		[]peer.ID{}, false)
 
 	ps := handler.peerSet
+	checkMessageStatus(t, <-ps.resultMsgCh, Connect)
 
 	require.Equal(t, connectedPeer, ps.peerState.peerStatus(testSetID, bootNode))
 	checkPeerStateSetNumIn(t, ps.peerState, testSetID, 0)
@@ -155,13 +157,13 @@ func TestPeerSetIncoming(t *testing.T) {
 	}
 
 	for _, tt := range incomingPeers {
-		processor.EXPECT().Process(Message{Status: tt.expectedStatus, setID: testSetID, PeerID: tt.pid})
 
 		// all the incoming peers are unknow before calling the Incoming method
 		status := ps.peerState.peerStatus(testSetID, tt.pid)
 		require.Equal(t, unknownPeer, status)
 
 		handler.Incoming(testSetID, tt.pid)
+		time.Sleep(time.Millisecond * 100)
 
 		checkNodePeerExists(t, ps.peerState, tt.pid)
 
@@ -171,22 +173,18 @@ func TestPeerSetIncoming(t *testing.T) {
 		checkPeerStateSetNumIn(t, ps.peerState, testSetID, tt.expectedNumIn)
 		// incoming peers should not chang the numOut count
 		checkPeerStateSetNumOut(t, ps.peerState, testSetID, 1)
+
+		checkMessageStatus(t, <-ps.resultMsgCh, tt.expectedStatus)
 	}
 }
 
 func TestPeerSetDiscovered(t *testing.T) {
 	t.Parallel()
-
-	ctrl := gomock.NewController(t)
-	processor := NewMockMessageProcessor(ctrl)
-
-	processor.EXPECT().Process(Message{Status: Connect, setID: 0, PeerID: reservedPeer})
-	handler := newTestPeerSet(t, 0, 2, []peer.ID{}, []peer.ID{reservedPeer}, false, processor)
+	handler := newTestPeerSet(t, 0, 2, []peer.ID{}, []peer.ID{reservedPeer}, false)
 
 	ps := handler.peerSet
 
-	_, isReservedNode := ps.reservedNode[reservedPeer]
-	require.True(t, isReservedNode)
+	checkReservedNodePeerExists(t, ps, reservedPeer)
 
 	_, isNoSlotNode := ps.peerState.sets[testSetID].noSlotNodes[reservedPeer]
 	require.True(t, isNoSlotNode)
@@ -194,28 +192,26 @@ func TestPeerSetDiscovered(t *testing.T) {
 	// reserved nodes should not increase the numOut count
 	checkPeerStateSetNumOut(t, ps.peerState, testSetID, 0)
 
-	processor.EXPECT().Process(Message{Status: Connect, setID: 0, PeerID: discovered1})
 	handler.AddPeer(0, discovered1)
 	handler.AddPeer(0, discovered1)
-
-	checkNodePeerExists(t, ps.peerState, discovered1)
-
-	// AddPeer called twice with the same peer ID should not increase the numOut count
-	checkPeerStateSetNumOut(t, ps.peerState, testSetID, 1)
-
-	processor.EXPECT().Process(Message{Status: Connect, setID: 0, PeerID: discovered2})
 	handler.AddPeer(0, discovered2)
 
+	time.Sleep(200 * time.Millisecond)
+
+	checkNodePeerExists(t, ps.peerState, discovered1)
 	checkNodePeerExists(t, ps.peerState, discovered2)
+	// AddPeer called twice with the same peer ID should not increase the numOut count
 	checkPeerStateSetNumOut(t, ps.peerState, testSetID, 2)
+
+	require.Equal(t, 3, len(ps.resultMsgCh))
+	for len(ps.resultMsgCh) == 0 {
+		checkMessageStatus(t, <-ps.resultMsgCh, Connect)
+	}
 }
 
 func TestReAllocAfterBanned(t *testing.T) {
 	t.Parallel()
-
-	ctrl := gomock.NewController(t)
-	processor := NewMockMessageProcessor(ctrl)
-	handler := newTestPeerSet(t, 25, 25, []peer.ID{}, []peer.ID{}, false, processor)
+	handler := newTestPeerSet(t, 25, 25, []peer.ID{}, []peer.ID{}, false)
 
 	ps := handler.peerSet
 	require.Equal(t, unknownPeer, ps.peerState.peerStatus(testSetID, peer1))
@@ -229,13 +225,14 @@ func TestReAllocAfterBanned(t *testing.T) {
 	checkPeerStateSetNumIn(t, ps.peerState, testSetID, 1)
 
 	// We ban a node by setting its reputation under the threshold.
-	processor.EXPECT().Process(Message{Status: Drop, setID: testSetID, PeerID: peer1})
 	rep := newReputationChange(BannedThresholdValue-1, "")
 	handler.ReportPeer(rep, peer1)
 
+	time.Sleep(time.Millisecond * 100)
+	checkMessageStatus(t, <-ps.resultMsgCh, Drop)
+
 	// banning a incoming peer should decrease the numIn count by 1
 	checkPeerStateSetNumIn(t, ps.peerState, testSetID, 0)
-
 	checkNodePeerMembershipState(t, ps.peerState, peer1, testSetID, notConnected)
 
 	n, exists := getNodePeer(t, ps.peerState, peer1)
@@ -245,8 +242,8 @@ func TestReAllocAfterBanned(t *testing.T) {
 	lastTimeConnected := n.lastConnected[testSetID]
 
 	// Check that an incoming connection from that node gets refused.
-	processor.EXPECT().Process(Message{Status: Reject, setID: testSetID, PeerID: peer1})
 	handler.Incoming(testSetID, peer1)
+	checkMessageStatus(t, <-ps.resultMsgCh, Reject)
 
 	// when calling Incoming method the peer1 is with status notConnectedPeer
 	// so we update its lastConnected field to time.Now() again
@@ -257,58 +254,59 @@ func TestReAllocAfterBanned(t *testing.T) {
 	require.True(t, lastTimeConnected.Before(currentLastTimeConnected))
 
 	// wait a bit for the node's reputation to go above the threshold.
-	processor.EXPECT().Process(Message{Status: Connect, setID: testSetID, PeerID: peer1})
 	<-time.After(allocTimeDuration + time.Second)
 
 	checkPeerStateSetNumOut(t, ps.peerState, testSetID, 1)
+	checkMessageStatus(t, <-ps.resultMsgCh, Connect)
 }
 
 func TestRemovePeer(t *testing.T) {
 	t.Parallel()
-
-	ctrl := gomock.NewController(t)
-	processor := NewMockMessageProcessor(ctrl)
-
-	processor.EXPECT().Process(Message{Status: Connect, setID: testSetID, PeerID: "testDiscovered1"})
-	processor.EXPECT().Process(Message{Status: Connect, setID: testSetID, PeerID: "testDiscovered2"})
 	handler := newTestPeerSet(t, 0, 2, []peer.ID{discovered1, discovered2},
-		nil, false, processor)
+		nil, false)
 
 	ps := handler.peerSet
+	require.Equal(t, 2, len(ps.resultMsgCh))
+	for len(ps.resultMsgCh) != 0 {
+		checkMessageStatus(t, <-ps.resultMsgCh, Connect)
+	}
+
 	require.Equal(t, 2, len(ps.peerState.nodes))
 	checkPeerStateSetNumOut(t, ps.peerState, testSetID, 2)
 
-	processor.EXPECT().Process(Message{Status: Drop, setID: 0, PeerID: "testDiscovered1"})
-	processor.EXPECT().Process(Message{Status: Drop, setID: 0, PeerID: "testDiscovered2"})
 	handler.RemovePeer(testSetID, discovered1, discovered2)
+	time.Sleep(200 * time.Millisecond)
 
-	require.Equal(t, 0, len(ps.peerState.nodes))
+	require.Equal(t, 2, len(ps.resultMsgCh))
+	for len(ps.resultMsgCh) != 0 {
+		checkMessageStatus(t, <-ps.resultMsgCh, Drop)
+	}
+
+	checkPeerStateNodeCount(t, ps.peerState, 0)
 	checkPeerStateSetNumOut(t, ps.peerState, testSetID, 0)
 }
 
 func TestSetReservePeer(t *testing.T) {
 	t.Parallel()
-
-	ctrl := gomock.NewController(t)
-	processor := NewMockMessageProcessor(ctrl)
-
-	processor.EXPECT().Process(Message{Status: Connect, setID: testSetID, PeerID: reservedPeer})
-	processor.EXPECT().Process(Message{Status: Connect, setID: testSetID, PeerID: reservedPeer2})
 	handler := newTestPeerSet(t, 0, 2, nil, []peer.ID{reservedPeer, reservedPeer2},
-		true, processor)
+		true)
 
 	ps := handler.peerSet
+	require.Equal(t, 2, len(ps.resultMsgCh))
+	for len(ps.resultMsgCh) != 0 {
+		checkMessageStatus(t, <-ps.resultMsgCh, Connect)
+	}
+
 	require.Equal(t, 2, len(ps.reservedNode))
 
 	newRsrPeerSet := peer.IDSlice{reservedPeer, peer.ID("newRsrPeer")}
 	// add newRsrPeer but remove reservedPeer2
-	processor.EXPECT().Process(Message{Status: Connect, setID: testSetID, PeerID: "newRsrPeer"})
-	processor.EXPECT().Process(Message{Status: Drop, setID: testSetID, PeerID: reservedPeer2})
 	handler.SetReservedPeer(testSetID, newRsrPeerSet...)
+	time.Sleep(200 * time.Millisecond)
 
-	require.Equal(t, 2, len(ps.reservedNode))
+	checkPeerSetReservedNodeCount(t, ps, 2)
 	for _, p := range newRsrPeerSet {
-		require.Contains(t, ps.reservedNode, p)
+		checkReservedNodePeerExists(t, ps, p)
 	}
 }
 
@@ -383,4 +381,18 @@ func checkPeerStateSetNumIn(t *testing.T, ps *PeersState, setID int, expectedNum
 
 	gotNumIn := ps.sets[testSetID].numIn
 	require.Equal(t, expectedNumIn, gotNumIn)
+}
+
+func checkPeerStateNodeCount(t *testing.T, ps *PeersState, expectedCount int) {
+	ps.RLock()
+	defer ps.RUnlock()
+
+	require.Equal(t, expectedCount, len(ps.nodes))
+}
+
+func checkPeerSetReservedNodeCount(t *testing.T, ps *PeerSet, expectedCount int) {
+	ps.reservedLock.RLock()
+	defer ps.reservedLock.RUnlock()
+
+	require.Equal(t, expectedCount, len(ps.reservedNode))
 }

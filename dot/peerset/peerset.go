@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"strings"
 	"sync"
 	"time"
 
@@ -24,6 +25,8 @@ const (
 	// forgetAfterTime amount of time between the moment we disconnect
 	// from a node and the moment we remove it from the list.
 	forgetAfterTime = time.Second * 3600 // one hour
+
+	msgChanSize = 100
 )
 
 // ActionReceiver represents the enum value for action to be performed on peerSet
@@ -77,6 +80,24 @@ func (a ActionReceiver) String() string {
 	default:
 		return "invalid action"
 	}
+}
+
+// action struct stores the action type and required parameters to perform action
+type action struct {
+	actionCall    ActionReceiver
+	setID         int
+	reputation    ReputationChange
+	peers         peer.IDSlice
+	resultPeersCh chan peer.IDSlice
+}
+
+func (a action) String() string {
+	peersStrings := make([]string, len(a.peers))
+	for i := range a.peers {
+		peersStrings[i] = a.peers[i].String()
+	}
+	return fmt.Sprintf("{call=%s, set-id=%d, reputation change %v, peers=[%s]",
+		a.actionCall.String(), a.setID, a.reputation, strings.Join(peersStrings, ", "))
 }
 
 // Status represents the enum value for Message
@@ -156,10 +177,12 @@ type PeerSet struct {
 	sync.Mutex
 	peerState *PeersState
 
+	reservedLock sync.RWMutex
 	reservedNode map[peer.ID]struct{}
 	// TODO: this will be useful for reserved only mode
 	// this is for future purpose if reserved-only flag is enabled (#1888).
 	isReservedOnly bool
+	resultMsgCh    chan Message
 	// time when the PeerSet was created.
 	created time.Time
 	// last time when we updated the reputations of connected nodes.
@@ -167,8 +190,7 @@ type PeerSet struct {
 	// next time to do a periodic call to allocSlots with all Set. This is done once two
 	// second, to match the period of the Reputation updates.
 	nextPeriodicAllocSlots time.Duration
-
-	processor MessageProcessor
+	actionQueue            <-chan action
 }
 
 // config is configuration of a single set.
@@ -341,7 +363,7 @@ func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
 				PeerID: pid,
 			}
 
-			ps.processor.Process(dropMessage)
+			ps.resultMsgCh <- dropMessage
 
 			if err = ps.allocSlots(i); err != nil {
 				return fmt.Errorf("could not allocate slots: %w", err)
@@ -389,7 +411,7 @@ func (ps *PeerSet) allocSlots(setIdx int) error {
 			PeerID: reservePeer,
 		}
 
-		ps.processor.Process(connectMessage)
+		ps.resultMsgCh <- connectMessage
 	}
 
 	// nothing more to do if we're in reserved mode.
@@ -420,7 +442,7 @@ func (ps *PeerSet) allocSlots(setIdx int) error {
 			PeerID: peerID,
 		}
 
-		ps.processor.Process(connectMessage)
+		ps.resultMsgCh <- connectMessage
 
 		logger.Debugf("Sent connect message to peer %s", peerID)
 	}
@@ -428,6 +450,9 @@ func (ps *PeerSet) allocSlots(setIdx int) error {
 }
 
 func (ps *PeerSet) addReservedPeers(setID int, peers ...peer.ID) error {
+	ps.reservedLock.Lock()
+	defer ps.reservedLock.Unlock()
+
 	for _, peerID := range peers {
 		if _, ok := ps.reservedNode[peerID]; ok {
 			logger.Debugf("peer %s already exists in peerSet", peerID)
@@ -448,6 +473,9 @@ func (ps *PeerSet) addReservedPeers(setID int, peers ...peer.ID) error {
 }
 
 func (ps *PeerSet) removeReservedPeers(setID int, peers ...peer.ID) error {
+	ps.reservedLock.Lock()
+	defer ps.reservedLock.Unlock()
+
 	for _, peerID := range peers {
 		if _, ok := ps.reservedNode[peerID]; !ok {
 			logger.Debugf("peer %s doesn't exist in the peerSet", peerID)
@@ -479,7 +507,7 @@ func (ps *PeerSet) removeReservedPeers(setID int, peers ...peer.ID) error {
 				PeerID: peerID,
 			}
 
-			ps.processor.Process(dropMessage)
+			ps.resultMsgCh <- dropMessage
 		}
 	}
 
@@ -548,7 +576,7 @@ func (ps *PeerSet) removePeer(setID int, peers ...peer.ID) error {
 				PeerID: pid,
 			}
 
-			ps.processor.Process(dropMessage)
+			ps.resultMsgCh <- dropMessage
 
 			// disconnect and forget
 			err := ps.peerState.disconnect(setID, pid)
@@ -571,15 +599,13 @@ func (ps *PeerSet) removePeer(setID int, peers ...peer.ID) error {
 // incoming indicates that we have received an incoming connection. Must be answered
 // either with a corresponding `Accept` or `Reject`, except if we were already
 // connected to this peer.
-func (ps *PeerSet) incoming(setID int, peers ...peer.ID) ([]Status, error) {
+func (ps *PeerSet) incoming(setID int, peers ...peer.ID) error {
 	err := ps.updateTime()
 	if err != nil {
-		return nil, fmt.Errorf("cannot update time: %w", err)
+		return fmt.Errorf("cannot update time: %w", err)
 	}
 
-	peersStatus := make([]Status, len(peers))
-
-	for idx, pid := range peers {
+	for _, pid := range peers {
 		if ps.isReservedOnly {
 			_, has := ps.reservedNode[pid]
 			if !has {
@@ -589,8 +615,7 @@ func (ps *PeerSet) incoming(setID int, peers ...peer.ID) ([]Status, error) {
 					PeerID: pid,
 				}
 
-				peersStatus[idx] = message.Status
-				ps.processor.Process(message)
+				ps.resultMsgCh <- message
 				continue
 			}
 		}
@@ -635,11 +660,10 @@ func (ps *PeerSet) incoming(setID int, peers ...peer.ID) ([]Status, error) {
 			}
 		}
 
-		ps.processor.Process(message)
-		peersStatus[idx] = message.Status
+		ps.resultMsgCh <- message
 	}
 
-	return peersStatus, nil
+	return nil
 }
 
 // DropReason represents reason for disconnection of the peer
@@ -683,7 +707,7 @@ func (ps *PeerSet) disconnect(setIdx int, reason DropReason, peers ...peer.ID) e
 			PeerID: pid,
 		}
 
-		ps.processor.Process(dropMessage)
+		ps.resultMsgCh <- dropMessage
 
 		// TODO: figure out the condition of connection refuse.
 		if reason == RefusedDrop {
@@ -694,6 +718,59 @@ func (ps *PeerSet) disconnect(setIdx int, reason DropReason, peers ...peer.ID) e
 	}
 
 	return ps.allocSlots(setIdx)
+}
+
+// start handles all the action for the peerSet.
+func (ps *PeerSet) start(ctx context.Context, actionQueue chan action) {
+	ps.actionQueue = actionQueue
+	ps.resultMsgCh = make(chan Message, msgChanSize)
+
+	go ps.listenAction(ctx)
+	go ps.periodicallyAllocateSlots(ctx)
+}
+
+func (ps *PeerSet) listenAction(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case act, ok := <-ps.actionQueue:
+
+			if !ok {
+				return
+			}
+
+			var err error
+			switch act.actionCall {
+			case addReservedPeer:
+				err = ps.addReservedPeers(act.setID, act.peers...)
+			case removeReservedPeer:
+				err = ps.removeReservedPeers(act.setID, act.peers...)
+			case setReservedPeers:
+				// TODO: this is not used yet, might required to implement RPC Call for this.
+				err = ps.setReservedPeer(act.setID, act.peers...)
+			case setReservedOnly:
+				// TODO: not yet implemented (#1888)
+				err = fmt.Errorf("not implemented yet")
+			case reportPeer:
+				err = ps.reportPeer(act.reputation, act.peers...)
+			case addToPeerSet:
+				err = ps.addPeer(act.setID, act.peers)
+			case removeFromPeerSet:
+				err = ps.removePeer(act.setID, act.peers...)
+			case incoming:
+				err = ps.incoming(act.setID, act.peers...)
+			case sortedPeers:
+				act.resultPeersCh <- ps.peerState.sortedPeers(act.setID)
+			case disconnect:
+				err = ps.disconnect(act.setID, UnknownDrop, act.peers...)
+			}
+
+			if err != nil {
+				logger.Errorf("failed to do action %s on peerSet: %s", act, err)
+			}
+		}
+	}
 }
 
 func (ps *PeerSet) periodicallyAllocateSlots(ctx context.Context) {

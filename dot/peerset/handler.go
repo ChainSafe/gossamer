@@ -5,16 +5,16 @@ package peerset
 
 import (
 	"context"
-	"fmt"
-	"strings"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-const logStringPattern = "call=%s, set-id=%d, reputation change %s, peers=[%s]"
-
 // Handler manages peerSet.
 type Handler struct {
+	actionQueue chan<- action
+	closeCh     chan struct{}
+	cancelCtx   context.CancelFunc
+
 	peerSet *PeerSet
 }
 
@@ -30,79 +30,80 @@ func NewPeerSetHandler(cfg *ConfigSet) (*Handler, error) {
 	}, nil
 }
 
-// SetReservedOnlyPeer not yet implemented
-func (h *Handler) SetReservedOnlyPeer(setID int, peers ...peer.ID) {
-	// TODO: not yet implemented (#1888)
-	logger.Errorf("failed to do action %s on peerSet: not implemented yet", setReservedOnly)
-}
-
 // AddReservedPeer adds reserved peer into peerSet.
 func (h *Handler) AddReservedPeer(setID int, peers ...peer.ID) {
-	err := h.peerSet.addReservedPeers(setID, peers...)
-	if err != nil {
-		msg := fmt.Sprintf(logStringPattern, addReservedPeer, setID, "", stringfyPeers(peers))
-		logger.Errorf("failed to do action %s on peerSet: %s", msg, err)
+	h.actionQueue <- action{
+		actionCall: addReservedPeer,
+		setID:      setID,
+		peers:      peers,
 	}
 }
 
-// RemoveReservedPeer removes reserved peer from peerSet.
+// RemoveReservedPeer remove reserved peer from peerSet.
 func (h *Handler) RemoveReservedPeer(setID int, peers ...peer.ID) {
-	err := h.peerSet.removeReservedPeers(setID, peers...)
-	if err != nil {
-		msg := fmt.Sprintf(logStringPattern, removeReservedPeer, setID, "", stringfyPeers(peers))
-		logger.Errorf("failed to do action %s on peerSet: %s", msg, err)
+	h.actionQueue <- action{
+		actionCall: removeReservedPeer,
+		setID:      setID,
+		peers:      peers,
 	}
 }
 
-// SetReservedPeer sets the reserve peer into peerSet
+// SetReservedPeer set the reserve peer into peerSet
 func (h *Handler) SetReservedPeer(setID int, peers ...peer.ID) {
-	// TODO: this is not used yet, it might be required to implement an RPC Call for this.
-	err := h.peerSet.setReservedPeer(setID, peers...)
-	if err != nil {
-		msg := fmt.Sprintf(logStringPattern, setReservedPeers, setID, "", stringfyPeers(peers))
-		logger.Errorf("failed to do action %s on peerSet: %s", msg, err)
+	h.actionQueue <- action{
+		actionCall: setReservedPeers,
+		setID:      setID,
+		peers:      peers,
 	}
 }
 
 // AddPeer adds peer to peerSet.
 func (h *Handler) AddPeer(setID int, peers ...peer.ID) {
-	err := h.peerSet.addPeer(setID, peers)
-	if err != nil {
-		msg := fmt.Sprintf(logStringPattern, addToPeerSet, setID, "", stringfyPeers(peers))
-		logger.Errorf("failed to do action %s on peerSet: %s", msg, err)
+	h.actionQueue <- action{
+		actionCall: addToPeerSet,
+		setID:      setID,
+		peers:      peers,
 	}
 }
 
 // RemovePeer removes peer from peerSet.
 func (h *Handler) RemovePeer(setID int, peers ...peer.ID) {
-	err := h.peerSet.removePeer(setID, peers...)
-	if err != nil {
-		msg := fmt.Sprintf(logStringPattern, removeFromPeerSet, setID, "", stringfyPeers(peers))
-		logger.Errorf("failed to do action %s on peerSet: %s", msg, err)
+	h.actionQueue <- action{
+		actionCall: removeFromPeerSet,
+		setID:      setID,
+		peers:      peers,
 	}
 }
 
 // ReportPeer reports ReputationChange according to the peer behaviour.
 func (h *Handler) ReportPeer(rep ReputationChange, peers ...peer.ID) {
-	err := h.peerSet.reportPeer(rep, peers...)
-	if err != nil {
-		msg := fmt.Sprintf(logStringPattern, reportPeer, 0, rep.String(), stringfyPeers(peers))
-		logger.Errorf("failed to do action %s on peerSet: %s", msg, err)
+	h.actionQueue <- action{
+		actionCall: reportPeer,
+		reputation: rep,
+		peers:      peers,
 	}
 }
 
 // Incoming calls when we have an incoming connection from peer.
-func (h *Handler) Incoming(setID int, peers ...peer.ID) (status []Status, err error) {
-	peersStatus, err := h.peerSet.incoming(setID, peers...)
-	return peersStatus, err
+func (h *Handler) Incoming(setID int, peers ...peer.ID) {
+	h.actionQueue <- action{
+		actionCall: incoming,
+		peers:      peers,
+		setID:      setID,
+	}
+}
+
+// Messages return result message chan.
+func (h *Handler) Messages() chan Message {
+	return h.peerSet.resultMsgCh
 }
 
 // DisconnectPeer calls for disconnecting a connection from peer.
 func (h *Handler) DisconnectPeer(setID int, peers ...peer.ID) {
-	err := h.peerSet.disconnect(setID, UnknownDrop, peers...)
-	if err != nil {
-		msg := fmt.Sprintf(logStringPattern, disconnect, setID, "", stringfyPeers(peers))
-		logger.Errorf("failed to do action %s on peerSet: %s", msg, err)
+	h.actionQueue <- action{
+		actionCall: disconnect,
+		setID:      setID,
+		peers:      peers,
 	}
 }
 
@@ -115,27 +116,37 @@ func (h *Handler) PeerReputation(peerID peer.ID) (Reputation, error) {
 	return n.reputation, nil
 }
 
-// SetMessageProcessor sets the peerset processor of the handler
-// to process peerset messages.
-func (h *Handler) SetMessageProcessor(processor MessageProcessor) {
-	h.peerSet.processor = processor
-}
-
 // Start starts peerSet processing
 func (h *Handler) Start(ctx context.Context) {
-	go h.peerSet.periodicallyAllocateSlots(ctx)
+	ctx, cancel := context.WithCancel(ctx)
+	h.cancelCtx = cancel
+
+	actionCh := make(chan action, msgChanSize)
+	h.closeCh = make(chan struct{})
+	h.actionQueue = actionCh
+
+	h.peerSet.start(ctx, actionCh)
 }
 
-// SortedPeers returns a sorted peer ID slice for connected peers in the peerSet.
-func (h *Handler) SortedPeers(setIdx int) peer.IDSlice {
-	return h.peerSet.peerState.sortedPeers(setIdx)
-}
-
-func stringfyPeers(peers peer.IDSlice) string {
-	peersStrings := make([]string, len(peers))
-	for i := range peers {
-		peersStrings[i] = peers[i].String()
+// SortedPeers return chan for sorted connected peer in the peerSet.
+func (h *Handler) SortedPeers(setIdx int) chan peer.IDSlice {
+	resultPeersCh := make(chan peer.IDSlice)
+	h.actionQueue <- action{
+		actionCall:    sortedPeers,
+		resultPeersCh: resultPeersCh,
+		setID:         setIdx,
 	}
 
-	return strings.Join(peersStrings, ", ")
+	return resultPeersCh
+}
+
+// Stop closes the actionQueue and result message chan.
+func (h *Handler) Stop() {
+	select {
+	case <-h.closeCh:
+	default:
+		h.cancelCtx()
+		close(h.closeCh)
+		close(h.actionQueue)
+	}
 }
