@@ -54,7 +54,7 @@ func TestImportState_Integration(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
-	genFile := newTestGenesisRawFile(t, cfg)
+	genFile := NewTestGenesisRawFile(t, cfg)
 
 	cfg.Init.Genesis = genFile
 

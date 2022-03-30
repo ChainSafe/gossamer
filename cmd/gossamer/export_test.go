@@ -20,7 +20,7 @@ import (
 func TestExportCommand(t *testing.T) {
 	testCfg, testConfigFile := newTestConfigWithFile(t)
 	testDir := testCfg.Global.BasePath
-	genFile := newTestGenesisRawFile(t, testCfg)
+	genFile := dot.NewTestGenesisRawFile(t, testCfg)
 
 	testApp := cli.NewApp()
 	testApp.Writer = io.Discard

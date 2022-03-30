@@ -32,7 +32,7 @@ import (
 func Test_createRuntimeStorage(t *testing.T) {
 	cfg := NewTestConfig(t)
 
-	cfg.Init.Genesis = newTestGenesisRawFile(t, cfg)
+	cfg.Init.Genesis = NewTestGenesisRawFile(t, cfg)
 
 	builder := nodeBuilder{}
 	err := builder.initNode(cfg)
@@ -67,7 +67,7 @@ func Test_createRuntimeStorage(t *testing.T) {
 func Test_createSystemService(t *testing.T) {
 	cfg := NewTestConfig(t)
 
-	cfg.Init.Genesis = newTestGenesisRawFile(t, cfg)
+	cfg.Init.Genesis = NewTestGenesisRawFile(t, cfg)
 
 	builder := nodeBuilder{}
 	err := builder.initNode(cfg)

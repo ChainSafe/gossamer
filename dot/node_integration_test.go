@@ -31,7 +31,7 @@ func TestInitNode_Integration(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
-	genFile := newTestGenesisRawFile(t, cfg)
+	genFile := NewTestGenesisRawFile(t, cfg)
 
 	cfg.Init.Genesis = genFile
 
@@ -64,7 +64,7 @@ func TestNodeInitializedIntegration(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
-	genFile := newTestGenesisRawFile(t, cfg)
+	genFile := NewTestGenesisRawFile(t, cfg)
 
 	cfg.Init.Genesis = genFile
 
@@ -82,7 +82,7 @@ func TestNewNodeIntegration(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
-	genFile := newTestGenesisRawFile(t, cfg)
+	genFile := NewTestGenesisRawFile(t, cfg)
 
 	cfg.Init.Genesis = genFile
 
@@ -110,7 +110,7 @@ func TestNewNode_Authority(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
-	genFile := newTestGenesisRawFile(t, cfg)
+	genFile := NewTestGenesisRawFile(t, cfg)
 
 	cfg.Init.Genesis = genFile
 
@@ -140,7 +140,7 @@ func TestStartStopNode(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
-	genFile := newTestGenesisRawFile(t, cfg)
+	genFile := NewTestGenesisRawFile(t, cfg)
 
 	cfg.Init.Genesis = genFile
 	cfg.Core.GrandpaAuthority = false

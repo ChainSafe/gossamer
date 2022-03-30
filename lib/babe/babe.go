@@ -296,11 +296,6 @@ func (b *Service) EpochLength() uint64 {
 	return b.constants.epochLength
 }
 
-// GetBlockImportHandler returns the block import handler of the service.
-func (b *Service) GetBlockImportHandler() BlockImportHandler {
-	return b.blockImportHandler
-}
-
 // Pause pauses the service ie. halts block production
 func (b *Service) Pause() error {
 	b.Lock()

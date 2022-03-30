@@ -399,30 +399,3 @@ func NewTestGenesis(t *testing.T) *genesis.Genesis {
 		Genesis:    gssmrGen.GenesisFields(),
 	}
 }
-
-// newTestGenesisRawFile returns a test genesis file using "gssmr" raw data
-func newTestGenesisRawFile(t *testing.T, cfg *Config) (filename string) {
-	filename = filepath.Join(t.TempDir(), "genesis.json")
-
-	fp, err := utils.GetGssmrGenesisRawPath()
-	require.NoError(t, err)
-
-	gssmrGen, err := genesis.NewGenesisFromJSONRaw(fp)
-	require.NoError(t, err)
-
-	gen := &genesis.Genesis{
-		Name:       cfg.Global.Name,
-		ID:         cfg.Global.ID,
-		Bootnodes:  cfg.Network.Bootnodes,
-		ProtocolID: cfg.Network.ProtocolID,
-		Genesis:    gssmrGen.GenesisFields(),
-	}
-
-	b, err := json.Marshal(gen)
-	require.NoError(t, err)
-
-	err = os.WriteFile(filename, b, os.ModePerm)
-	require.NoError(t, err)
-
-	return filename
-}

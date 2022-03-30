@@ -71,7 +71,7 @@ func TestImportState(t *testing.T) {
 
 	cfg := NewTestConfig(t)
 
-	cfg.Init.Genesis = newTestGenesisRawFile(t, cfg)
+	cfg.Init.Genesis = NewTestGenesisRawFile(t, cfg)
 
 	cfg.Global.BasePath = basepath
 	nodeInstance := nodeBuilder{}

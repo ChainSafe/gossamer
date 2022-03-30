@@ -37,7 +37,7 @@ import (
 
 func TestInitNode(t *testing.T) {
 	cfg := NewTestConfig(t)
-	cfg.Init.Genesis = newTestGenesisRawFile(t, cfg)
+	cfg.Init.Genesis = NewTestGenesisRawFile(t, cfg)
 	tests := []struct {
 		name   string
 		config *Config
@@ -114,7 +114,7 @@ func TestNewNode(t *testing.T) {
 
 	initConfig := NewTestConfig(t)
 
-	genFile := newTestGenesisRawFile(t, initConfig)
+	genFile := NewTestGenesisRawFile(t, initConfig)
 
 	networkConfig := &network.Config{
 		BasePath:    t.TempDir(),
@@ -259,7 +259,7 @@ func setConfigTestDefaults(t *testing.T, cfg *network.Config) {
 func TestNodeInitialized(t *testing.T) {
 	cfg := NewTestConfig(t)
 
-	genFile := newTestGenesisRawFile(t, cfg)
+	genFile := NewTestGenesisRawFile(t, cfg)
 
 	cfg.Init.Genesis = genFile
 
