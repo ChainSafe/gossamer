@@ -91,8 +91,9 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 	utils.Logger.Patch(log.SetLevel(log.Info))
 
 	// start block producing node first
+	basePath := t.TempDir()
 	node, err := utils.RunGossamer(t, numNodes-1,
-		utils.TestDir(t, utils.KeyList[numNodes-1]),
+		basePath,
 		utils.GenesisDev, utils.ConfigNoGrandpa,
 		false, true)
 	require.NoError(t, err)
@@ -205,15 +206,17 @@ func TestSync_SingleSyncingNode(t *testing.T) {
 	utils.Logger.Patch(log.SetLevel(log.Info))
 
 	// start block producing node
+	blockProducingNodebasePath := t.TempDir()
 	alice, err := utils.RunGossamer(t, 0,
-		utils.TestDir(t, utils.KeyList[0]), utils.GenesisDev,
+		blockProducingNodebasePath, utils.GenesisDev,
 		utils.ConfigDefault, false, true)
 	require.NoError(t, err)
 	time.Sleep(time.Second * 15)
 
 	// start syncing node
+	syncingNodeBasePath := t.TempDir()
 	bob, err := utils.RunGossamer(t, 1,
-		utils.TestDir(t, utils.KeyList[1]), utils.GenesisDev,
+		syncingNodeBasePath, utils.GenesisDev,
 		utils.ConfigNoBABE, false, false)
 	require.NoError(t, err)
 
@@ -243,8 +246,9 @@ func TestSync_Bench(t *testing.T) {
 	const numBlocks uint = 64
 
 	// start block producing node
+	blockProducingNodebasePath := t.TempDir()
 	alice, err := utils.RunGossamer(t, 0,
-		utils.TestDir(t, utils.KeyList[1]),
+		blockProducingNodebasePath,
 		utils.GenesisDev, utils.ConfigNoGrandpa,
 		false, true)
 	require.NoError(t, err)
@@ -274,8 +278,9 @@ func TestSync_Bench(t *testing.T) {
 	t.Log("BABE paused")
 
 	// start syncing node
+	syncingNodeBasePath := t.TempDir()
 	bob, err := utils.RunGossamer(t, 1,
-		utils.TestDir(t, utils.KeyList[0]), utils.GenesisDev,
+		syncingNodeBasePath, utils.GenesisDev,
 		utils.ConfigNotAuthority, false, true)
 	require.NoError(t, err)
 
@@ -338,8 +343,9 @@ func TestSync_Restart(t *testing.T) {
 	utils.Logger.Patch(log.SetLevel(log.Info))
 
 	// start block producing node first
+	blockProducingNodeBasePath := t.TempDir()
 	node, err := utils.RunGossamer(t, numNodes-1,
-		utils.TestDir(t, utils.KeyList[numNodes-1]),
+		blockProducingNodeBasePath,
 		utils.GenesisDefault, utils.ConfigDefault,
 		false, true)
 	require.NoError(t, err)
@@ -403,20 +409,23 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 	idx := 0 // TODO: randomise this
 
 	// start block producing node first
+	blockProducingNodeBasePath := t.TempDir()
 	node, err := utils.RunGossamer(t, 0,
-		utils.TestDir(t, utils.KeyList[0]), utils.GenesisDev,
+		blockProducingNodeBasePath, utils.GenesisDev,
 		utils.ConfigNoGrandpa, false, true)
 	require.NoError(t, err)
 	nodes := []utils.Node{node}
 
 	// Start rest of nodes
+	basePath2 := t.TempDir()
 	node, err = utils.RunGossamer(t, 1,
-		utils.TestDir(t, utils.KeyList[1]), utils.GenesisDev,
+		basePath2, utils.GenesisDev,
 		utils.ConfigNotAuthority, false, false)
 	require.NoError(t, err)
 	nodes = append(nodes, node)
+	basePath3 := t.TempDir()
 	node, err = utils.RunGossamer(t, 2,
-		utils.TestDir(t, utils.KeyList[2]), utils.GenesisDev,
+		basePath3, utils.GenesisDev,
 		utils.ConfigNotAuthority, false, false)
 	require.NoError(t, err)
 	nodes = append(nodes, node)
@@ -564,8 +573,9 @@ func Test_SubmitAndWatchExtrinsic(t *testing.T) {
 	idx := 0 // TODO: randomise this
 
 	// start block producing node first
+	blockProducingNodeBasePath := t.TempDir()
 	node, err := utils.RunGossamer(t, 0,
-		utils.TestDir(t, utils.KeyList[0]),
+		blockProducingNodeBasePath,
 		utils.GenesisDev, utils.ConfigNoGrandpa, true, true)
 	require.NoError(t, err)
 	nodes := []utils.Node{node}
