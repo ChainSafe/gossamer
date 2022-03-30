@@ -6,6 +6,7 @@ package rpc
 import (
 	"context"
 	"log"
+	"reflect"
 	"testing"
 	"time"
 
@@ -72,8 +73,10 @@ func TestChainRPC(t *testing.T) {
 
 	chainBlockHeaderHash := ""
 	for _, test := range testCases {
-
 		t.Run(test.description, func(t *testing.T) {
+			if test.skip {
+				t.SkipNow()
+			}
 
 			// set params for chain_getBlock from previous chain_getHeader call
 			if chainBlockHeaderHash != "" {
@@ -82,7 +85,10 @@ func TestChainRPC(t *testing.T) {
 
 			getResponseCtx, getResponseCancel := context.WithTimeout(ctx, time.Second)
 			defer getResponseCancel()
-			target := getResponse(getResponseCtx, t, test)
+
+			target := reflect.New(reflect.TypeOf(test.expected)).Interface()
+			err := getResponse(getResponseCtx, test.method, test.params, target)
+			require.NoError(t, err)
 
 			switch v := target.(type) {
 			case *modules.ChainBlockHeaderResponse:
