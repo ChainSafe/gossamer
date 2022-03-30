@@ -340,11 +340,9 @@ func InitializeAndStartNodes(t *testing.T, num int, genesis, config string) (
 	for i := 0; i < num; i++ {
 		go func(i int) {
 			defer wg.Done()
-			name := strconv.Itoa(i)
-			if i < len(KeyList) {
-				name = KeyList[i]
-			}
-			node, runErr := RunGossamer(t, i, TestDir(t, name), genesis, config, false, false)
+			basePath := t.TempDir()
+
+			node, runErr := RunGossamer(t, i, basePath, genesis, config, false, false)
 			if runErr != nil {
 				errMutex.Lock()
 				if err == nil {
@@ -381,11 +379,9 @@ func InitializeAndStartNodesWebsocket(t *testing.T, num int, genesis, config str
 	for i := 0; i < num; i++ {
 		go func(i int) {
 			defer wg.Done()
-			name := strconv.Itoa(i)
-			if i < len(KeyList) {
-				name = KeyList[i]
-			}
-			node, runErr := RunGossamer(t, i, TestDir(t, name), genesis, config, true, false)
+			basePath := t.TempDir()
+
+			node, runErr := RunGossamer(t, i, basePath, genesis, config, true, false)
 			if runErr != nil {
 				errMutex.Lock()
 				if err == nil {
@@ -443,11 +439,6 @@ func TearDown(t *testing.T, nodes []Node) (errorList []error) {
 	}
 
 	return errorList
-}
-
-// TestDir returns the test directory path <current-directory>/test_data/<test-name>/<name>
-func TestDir(t *testing.T, name string) string {
-	return filepath.Join("/tmp/", t.Name(), name)
 }
 
 // GenerateGenesisThreeAuth generates Genesis file with three authority.
