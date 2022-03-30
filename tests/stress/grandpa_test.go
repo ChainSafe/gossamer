@@ -11,24 +11,22 @@ import (
 	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils"
 	"github.com/ChainSafe/gossamer/tests/utils/config"
+	"github.com/ChainSafe/gossamer/tests/utils/node"
 	"github.com/stretchr/testify/require"
 )
 
 func TestStress_Grandpa_OneAuthority(t *testing.T) {
-	numNodes := 1
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
 	config := config.CreateDefault(t)
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes, genesisPath, config)
-	require.NoError(t, err)
+	n := node.New(t, node.SetBabeLead(true),
+		node.SetGenesis(genesisPath), node.SetConfig(config))
 
-	defer func() {
-		errList := utils.StopNodes(t, nodes)
-		require.Len(t, errList, 0)
-	}()
+	ctx, cancel := context.WithCancel(context.Background())
+
+	n.InitAndStartTest(ctx, t, cancel)
+	nodes := node.Nodes{n}
 
 	time.Sleep(time.Second * 10)
-
-	ctx := context.Background()
 
 	const getChainHeadTimeout = time.Second
 	compareChainHeadsWithRetry(ctx, nodes, getChainHeadTimeout)
@@ -49,15 +47,12 @@ func TestStress_Grandpa_ThreeAuthorities(t *testing.T) {
 	genesisPath := utils.GenerateGenesisAuths(t, numNodes)
 
 	config := config.CreateDefault(t)
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes, genesisPath, config)
-	require.NoError(t, err)
+	nodes := node.MakeNodes(t, numNodes,
+		node.SetGenesis(genesisPath), node.SetConfig(config))
 
-	defer func() {
-		errList := utils.StopNodes(t, nodes)
-		require.Len(t, errList, 0)
-	}()
+	ctx, cancel := context.WithCancel(context.Background())
 
-	ctx := context.Background()
+	nodes.InitAndStartTest(ctx, t, cancel)
 
 	numRounds := 5
 	for i := 1; i < numRounds+1; i++ {
@@ -76,15 +71,10 @@ func TestStress_Grandpa_SixAuthorities(t *testing.T) {
 	genesisPath := utils.GenerateGenesisAuths(t, numNodes)
 
 	config := config.CreateDefault(t)
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes, genesisPath, config)
-	require.NoError(t, err)
-
-	defer func() {
-		errList := utils.StopNodes(t, nodes)
-		require.Len(t, errList, 0)
-	}()
-
-	ctx := context.Background()
+	nodes := node.MakeNodes(t, numNodes,
+		node.SetGenesis(genesisPath), node.SetConfig(config))
+	ctx, cancel := context.WithCancel(context.Background())
+	nodes.InitAndStartTest(ctx, t, cancel)
 
 	numRounds := 10
 	for i := 1; i < numRounds+1; i++ {
@@ -105,15 +95,10 @@ func TestStress_Grandpa_NineAuthorities(t *testing.T) {
 
 	numNodes := 9
 	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes, genesisPath, grandpaConfig)
-	require.NoError(t, err)
-
-	defer func() {
-		errList := utils.StopNodes(t, nodes)
-		require.Len(t, errList, 0)
-	}()
-
-	ctx := context.Background()
+	nodes := node.MakeNodes(t, numNodes,
+		node.SetGenesis(genesisPath), node.SetConfig(grandpaConfig))
+	ctx, cancel := context.WithCancel(context.Background())
+	nodes.InitAndStartTest(ctx, t, cancel)
 
 	numRounds := 3
 	for i := 1; i < numRounds+1; i++ {
@@ -134,25 +119,19 @@ func TestStress_Grandpa_CatchUp(t *testing.T) {
 	genesisPath := utils.GenerateGenesisAuths(t, numNodes)
 
 	config := config.CreateDefault(t)
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, genesisPath, config)
-	require.NoError(t, err)
-
-	defer func() {
-		errList := utils.StopNodes(t, nodes)
-		require.Len(t, errList, 0)
-	}()
+	nodes := node.MakeNodes(t, numNodes,
+		node.SetGenesis(genesisPath), node.SetConfig(config))
+	ctx, cancel := context.WithCancel(context.Background())
+	nodes.InitAndStartTest(ctx, t, cancel)
 
 	time.Sleep(time.Second * 70) // let some rounds run
 
-	basePath := t.TempDir()
-	node, err := utils.RunGossamer(t, numNodes-1,
-		basePath,
-		genesisPath, config,
-		false, false)
-	require.NoError(t, err)
+	node := node.New(t,
+		node.SetIndex(numNodes-1),
+		node.SetGenesis(genesisPath),
+		node.SetConfig(config))
+	node.InitAndStartTest(ctx, t, cancel)
 	nodes = append(nodes, node)
-
-	ctx := context.Background()
 
 	numRounds := 10
 	for i := 1; i < numRounds+1; i++ {

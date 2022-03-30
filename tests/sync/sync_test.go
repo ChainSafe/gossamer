@@ -5,8 +5,6 @@ package sync
 
 import (
 	"context"
-	"fmt"
-	"os"
 	"testing"
 	"time"
 
@@ -43,25 +41,33 @@ var checks = []checkDBCall{
 	{call1idx: 3, call2idx: 5, field: "parentHash"},
 }
 
-func TestMain(m *testing.M) {
-	if utils.MODE != "sync" {
-		fmt.Println("Going to skip stress test")
-		return
-	}
-	// Start all tests
-	code := m.Run()
-	os.Exit(code)
-}
-
 // this starts nodes and runs RPC calls (which loads db)
 func TestCalls(t *testing.T) {
+	if utils.MODE != "sync" {
+		t.Skip("MODE != 'sync', skipping stress test")
+	}
+
 	ctx := context.Background()
 
-	framework, err := utils.InitFramework(t, 3)
+	const qtyNodes = 3
+	framework, err := utils.InitFramework(ctx, t, qtyNodes)
+
 	require.NoError(t, err)
 
-	errs := framework.StartNodes(t)
-	require.Empty(t, errs)
+	nodesCtx, nodesCancel := context.WithCancel(ctx)
+	waitErr := make(chan error)
+
+	started, startErr := framework.StartNodes(nodesCtx, t, waitErr)
+
+	t.Cleanup(func() {
+		nodesCancel()
+		for i := 0; i < started; i++ {
+			<-waitErr
+		}
+	})
+
+	require.NoError(t, startErr)
+
 	for _, call := range tests {
 		time.Sleep(call.delay)
 
@@ -82,7 +88,4 @@ func TestCalls(t *testing.T) {
 		res := framework.CheckEqual(check.call1idx, check.call2idx, check.field)
 		require.True(t, res)
 	}
-
-	errs = framework.KillNodes(t)
-	require.Empty(t, errs)
 }

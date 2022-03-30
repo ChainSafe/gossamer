@@ -11,6 +11,7 @@ import (
 	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils"
 	"github.com/ChainSafe/gossamer/tests/utils/config"
+	"github.com/ChainSafe/gossamer/tests/utils/node"
 	"github.com/ChainSafe/gossamer/tests/utils/rpc"
 
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -22,24 +23,20 @@ func TestNetwork_MaxPeers(t *testing.T) {
 	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
 	utils.Logger.Patch(log.SetLevel(log.Info))
 	config := config.CreateDefault(t)
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes, genesisPath, config)
-	require.NoError(t, err)
-
-	defer func() {
-		errList := utils.TearDown(t, nodes)
-		require.Len(t, errList, 0)
-	}()
+	nodes := node.MakeNodes(t, numNodes,
+		node.SetGenesis(genesisPath),
+		node.SetConfig(config))
+	ctx, cancel := context.WithCancel(context.Background())
+	nodes.InitAndStartTest(ctx, t, cancel)
 
 	// wait for nodes to connect
 	time.Sleep(time.Second * 10)
 
-	ctx := context.Background()
-
 	for i, node := range nodes {
 		const getPeersTimeout = time.Second
-		getPeersCtx, cancel := context.WithTimeout(ctx, getPeersTimeout)
-		peers, err := rpc.GetPeers(getPeersCtx, node.RPCPort)
-		cancel()
+		getPeersCtx, getPeersCancel := context.WithTimeout(ctx, getPeersTimeout)
+		peers, err := rpc.GetPeers(getPeersCtx, node.GetRPCPort())
+		getPeersCancel()
 
 		require.NoError(t, err)
 

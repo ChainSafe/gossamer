@@ -4,6 +4,7 @@
 package polkadotjs_test
 
 import (
+	"context"
 	"os/exec"
 	"strings"
 	"testing"
@@ -11,8 +12,8 @@ import (
 	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils"
 	"github.com/ChainSafe/gossamer/tests/utils/config"
+	"github.com/ChainSafe/gossamer/tests/utils/node"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var polkadotSuite = "polkadot"
@@ -27,18 +28,17 @@ func TestStartGossamerAndPolkadotAPI(t *testing.T) {
 	config := config.CreateDefault(t)
 
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
-	nodes, err := utils.InitializeAndStartNodesWebsocket(t, 1, genesisPath, config)
-	require.NoError(t, err)
+	n := node.New(t, node.SetBabeLead(true), node.SetWebsocket(true),
+		node.SetGenesis(genesisPath), node.SetConfig(config))
+
+	ctx, cancel := context.WithCancel(context.Background())
+	n.InitAndStartTest(ctx, t, cancel)
 
 	command := "npx mocha ./test --timeout 30000"
 	parts := strings.Fields(command)
-	data, err := exec.Command(parts[0], parts[1:]...).Output()
+	data, err := exec.CommandContext(ctx, parts[0], parts[1:]...).CombinedOutput()
 	assert.NoError(t, err, string(data))
 
 	//uncomment this to see log results from javascript tests
 	//fmt.Printf("%s\n", data)
-
-	t.Log("going to tear down gossamer...")
-	errList := utils.TearDown(t, nodes)
-	require.Len(t, errList, 0)
 }

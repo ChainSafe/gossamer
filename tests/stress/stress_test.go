@@ -28,6 +28,7 @@ import (
 	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils"
 	"github.com/ChainSafe/gossamer/tests/utils/config"
+	"github.com/ChainSafe/gossamer/tests/utils/node"
 	"github.com/ChainSafe/gossamer/tests/utils/rpc"
 )
 
@@ -55,22 +56,48 @@ func TestMain(m *testing.M) {
 }
 
 func TestRestartNode(t *testing.T) {
-	numNodes := 1
-	config := config.CreateDefault(t)
-	nodes, err := utils.InitNodes(numNodes, config)
+	const numNodes = 1
+	nodes := node.MakeNodes(t, numNodes)
+
+	err := nodes.Init(context.Background())
 	require.NoError(t, err)
 
-	err = utils.StartNodes(t, nodes)
-	require.NoError(t, err)
+	ctx, cancel := context.WithCancel(context.Background())
+	waitErr := make(chan error)
 
-	errList := utils.StopNodes(t, nodes)
-	require.Len(t, errList, 0)
+	started, startErr := nodes.Start(ctx, waitErr)
+	if startErr != nil {
+		cancel()
+		for i := 0; i < started; i++ {
+			<-waitErr
+		}
+		close(waitErr)
+		t.Fatalf("failed to start nodes: %s", startErr)
+	}
 
-	err = utils.StartNodes(t, nodes)
-	require.NoError(t, err)
+	// Stop nodes
+	cancel()
+	for i := 0; i < started; i++ {
+		<-waitErr
+	}
 
-	errList = utils.StopNodes(t, nodes)
-	require.Len(t, errList, 0)
+	ctx, cancel = context.WithCancel(context.Background())
+
+	started, startErr = nodes.Start(ctx, waitErr)
+	if startErr != nil {
+		cancel()
+		for i := 0; i < started; i++ {
+			<-waitErr
+		}
+		close(waitErr)
+		t.Fatalf("failed to start nodes: %s", startErr)
+	}
+
+	// Stop nodes
+	cancel()
+	for i := 0; i < started; i++ {
+		<-waitErr
+	}
 }
 
 func TestSync_SingleBlockProducer(t *testing.T) {
@@ -81,30 +108,31 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 	basePath := t.TempDir()
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
 	configNoGrandpa := config.CreateNoGrandpa(t)
-	node, err := utils.RunGossamer(t, numNodes-1,
-		basePath,
-		genesisPath, configNoGrandpa,
-		false, true)
-	require.NoError(t, err)
+	babeLeadNode := node.New(t,
+		node.SetIndex(numNodes-1),
+		node.SetBasePath(basePath),
+		node.SetGenesis(genesisPath),
+		node.SetConfig(configNoGrandpa),
+		node.SetBabeLead(true))
+
+	ctx, cancel := context.WithCancel(context.Background())
+	babeLeadNode.InitAndStartTest(ctx, t, cancel)
 
 	configNoAuthority := config.CreateNotAuthority(t)
 
 	// wait and start rest of nodes - if they all start at the same time the first round usually doesn't complete since
 	// all nodes vote for different blocks.
 	time.Sleep(time.Second * 15)
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, genesisPath, configNoAuthority)
-	require.NoError(t, err)
-	nodes = append(nodes, node)
+
+	nodes := node.MakeNodes(t, numNodes-1,
+		node.SetGenesis(genesisPath),
+		node.SetConfig(configNoAuthority))
+	nodes.InitAndStartTest(ctx, t, cancel)
+	nodes = append(nodes, babeLeadNode)
 
 	time.Sleep(time.Second * 30)
 
-	defer func() {
-		errList := utils.StopNodes(t, nodes)
-		require.Len(t, errList, 0)
-	}()
-
 	numCmps := 10
-	ctx := context.Background()
 
 	for i := 0; i < numCmps; i++ {
 		time.Sleep(3 * time.Second)
@@ -129,18 +157,16 @@ func TestSync_Basic(t *testing.T) {
 	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
 
 	config := config.CreateDefault(t)
-	nodes, err := utils.InitializeAndStartNodes(t, 3, genesisPath, config)
-	require.NoError(t, err)
+	const numNodes = 3
+	nodes := node.MakeNodes(t, numNodes,
+		node.SetGenesis(genesisPath), node.SetConfig(config))
 
-	defer func() {
-		errList := utils.StopNodes(t, nodes)
-		require.Len(t, errList, 0)
-	}()
+	ctx, cancel := context.WithCancel(context.Background())
+	nodes.InitAndStartTest(ctx, t, cancel)
 
-	ctx := context.Background()
 	const getChainHeadTimeout = time.Second
 
-	err = compareChainHeadsWithRetry(ctx, nodes, getChainHeadTimeout)
+	err := compareChainHeadsWithRetry(ctx, nodes, getChainHeadTimeout)
 	require.NoError(t, err)
 }
 
@@ -152,25 +178,21 @@ func TestSync_MultipleEpoch(t *testing.T) {
 
 	// wait and start rest of nodes - if they all start at the same time the first round usually doesn't complete since
 	config := config.CreateDefault(t)
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes, genesisPath, config)
-	require.NoError(t, err)
+	nodes := node.MakeNodes(t, numNodes,
+		node.SetGenesis(genesisPath), node.SetConfig(config))
 
-	defer func() {
-		errList := utils.StopNodes(t, nodes)
-		require.Len(t, errList, 0)
-	}()
+	ctx, cancel := context.WithCancel(context.Background())
+	nodes.InitAndStartTest(ctx, t, cancel)
 
 	time.Sleep(time.Second * 10)
 
-	ctx := context.Background()
-
 	slotDurationCtx, cancel := context.WithTimeout(ctx, time.Second)
-	slotDuration, err := rpc.SlotDuration(slotDurationCtx, nodes[0].RPCPort)
+	slotDuration, err := rpc.SlotDuration(slotDurationCtx, nodes[0].GetRPCPort())
 	cancel()
 	require.NoError(t, err)
 
 	epochLengthCtx, cancel := context.WithTimeout(ctx, time.Second)
-	epochLength, err := rpc.EpochLength(epochLengthCtx, nodes[0].RPCPort)
+	epochLength, err := rpc.EpochLength(epochLengthCtx, nodes[0].GetRPCPort())
 	cancel()
 	require.NoError(t, err)
 
@@ -179,7 +201,7 @@ func TestSync_MultipleEpoch(t *testing.T) {
 
 	// Just checking that everythings operating as expected
 	getChainHeadCtx, cancel := context.WithTimeout(ctx, time.Second)
-	header, err := rpc.GetChainHead(getChainHeadCtx, nodes[0].RPCPort)
+	header, err := rpc.GetChainHead(getChainHeadCtx, nodes[0].GetRPCPort())
 	cancel()
 	require.NoError(t, err)
 
@@ -201,31 +223,35 @@ func TestSync_SingleSyncingNode(t *testing.T) {
 	t.Skip("skipping TestSync_SingleSyncingNode")
 	utils.Logger.Patch(log.SetLevel(log.Info))
 
+	ctx, cancel := context.WithCancel(context.Background())
+
 	// start block producing node
 	blockProducingNodebasePath := t.TempDir()
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
 	configPath := config.CreateDefault(t)
-	alice, err := utils.RunGossamer(t, 0,
-		blockProducingNodebasePath, genesisPath,
-		configPath, false, true)
-	require.NoError(t, err)
+	alice := node.New(t,
+		node.SetIndex(0),
+		node.SetBasePath(blockProducingNodebasePath),
+		node.SetGenesis(genesisPath),
+		node.SetConfig(configPath),
+		node.SetBabeLead(true))
+
+	alice.InitAndStartTest(ctx, t, cancel)
+
 	time.Sleep(time.Second * 15)
 
 	// start syncing node
 	syncingNodeBasePath := t.TempDir()
 	configPath = config.CreateNoBabe(t)
-	bob, err := utils.RunGossamer(t, 1,
-		syncingNodeBasePath, genesisPath,
-		configPath, false, false)
-	require.NoError(t, err)
+	bob := node.New(t,
+		node.SetIndex(1),
+		node.SetBasePath(syncingNodeBasePath),
+		node.SetGenesis(genesisPath),
+		node.SetConfig(configPath))
 
-	nodes := []utils.Node{alice, bob}
-	defer func() {
-		errList := utils.StopNodes(t, nodes)
-		require.Len(t, errList, 0)
-	}()
+	bob.InitAndStartTest(ctx, t, cancel)
 
-	ctx := context.Background()
+	nodes := node.Nodes{alice, bob}
 
 	numCmps := 100
 	for i := 0; i < numCmps; i++ {
@@ -248,18 +274,20 @@ func TestSync_Bench(t *testing.T) {
 	blockProducingNodebasePath := t.TempDir()
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
 	configNoGrandpa := config.CreateNoGrandpa(t)
-	alice, err := utils.RunGossamer(t, 0,
-		blockProducingNodebasePath,
-		genesisPath, configNoGrandpa,
-		false, true)
-	require.NoError(t, err)
+	alice := node.New(t,
+		node.SetIndex(0),
+		node.SetBasePath(blockProducingNodebasePath),
+		node.SetGenesis(genesisPath),
+		node.SetConfig(configNoGrandpa),
+		node.SetBabeLead(true))
 
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	alice.InitAndStartTest(ctx, t, cancel)
 
 	for {
-		getChainHeadCtx, cancel := context.WithTimeout(ctx, time.Second)
-		header, err := rpc.GetChainHead(getChainHeadCtx, alice.RPCPort)
-		cancel()
+		getChainHeadCtx, getChainCancel := context.WithTimeout(ctx, time.Second)
+		header, err := rpc.GetChainHead(getChainHeadCtx, alice.GetRPCPort())
+		getChainCancel()
 		if err != nil {
 			continue
 		}
@@ -271,9 +299,9 @@ func TestSync_Bench(t *testing.T) {
 		time.Sleep(3 * time.Second)
 	}
 
-	pauseBabeCtx, cancel := context.WithTimeout(ctx, time.Second)
-	err = rpc.PauseBABE(pauseBabeCtx, alice.RPCPort)
-	cancel()
+	pauseBabeCtx, pauseBabeCancel := context.WithTimeout(ctx, time.Second)
+	err := rpc.PauseBABE(pauseBabeCtx, alice.GetRPCPort())
+	pauseBabeCancel()
 
 	require.NoError(t, err)
 	t.Log("BABE paused")
@@ -281,16 +309,17 @@ func TestSync_Bench(t *testing.T) {
 	// start syncing node
 	syncingNodeBasePath := t.TempDir()
 	configNoAuthority := config.CreateNotAuthority(t)
-	bob, err := utils.RunGossamer(t, 1,
-		syncingNodeBasePath, genesisPath,
-		configNoAuthority, false, true)
+	bob := node.New(t,
+		node.SetIndex(1),
+		node.SetBasePath(syncingNodeBasePath),
+		node.SetGenesis(genesisPath),
+		node.SetConfig(configNoAuthority),
+		node.SetBabeLead(true))
+
+	bob.InitAndStartTest(ctx, t, cancel)
 	require.NoError(t, err)
 
-	nodes := []utils.Node{alice, bob}
-	defer func() {
-		errList := utils.StopNodes(t, nodes)
-		require.Len(t, errList, 0)
-	}()
+	nodes := node.Nodes{alice, bob}
 
 	// see how long it takes to sync to block numBlocks
 	last := numBlocks
@@ -303,7 +332,7 @@ func TestSync_Bench(t *testing.T) {
 		}
 
 		getChainHeadCtx, getChainHeadCancel := context.WithTimeout(ctx, time.Second)
-		head, err := rpc.GetChainHead(getChainHeadCtx, bob.RPCPort)
+		head, err := rpc.GetChainHead(getChainHeadCtx, bob.GetRPCPort())
 		getChainHeadCancel()
 
 		if err != nil {
@@ -329,11 +358,11 @@ func TestSync_Bench(t *testing.T) {
 	t.Log("comparing block...", numBlocks)
 
 	const compareTimeout = 5 * time.Second
-	compareCtx, cancel := context.WithTimeout(ctx, compareTimeout)
+	compareCtx, pauseBabeCancel := context.WithTimeout(ctx, compareTimeout)
 
 	_ = compareBlocksByNumber(compareCtx, t, nodes, fmt.Sprint(numBlocks))
 
-	cancel()
+	pauseBabeCancel()
 
 	time.Sleep(time.Second * 3)
 }
@@ -344,58 +373,99 @@ func TestSync_Restart(t *testing.T) {
 	numNodes := 3
 	utils.Logger.Patch(log.SetLevel(log.Info))
 
+	mainCtx, mainCancel := context.WithCancel(context.Background())
+
+	nodeCtxs := make([]context.Context, numNodes)
+	nodeCancels := make([]context.CancelFunc, numNodes)
+	nodeWaitErrs := make([]chan error, numNodes)
+	for i := 0; i < numNodes; i++ {
+		nodeCtxs[i], nodeCancels[i] = context.WithCancel(mainCtx)
+		nodeWaitErrs[i] = make(chan error)
+	}
+
+	// Note we assume no runtime error in this test otherwise
+	// it gets rather complex to handle runtime errors and stop
+	// the test.
+
 	// start block producing node first
 	blockProducingNodeBasePath := t.TempDir()
 	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
 	configPath := config.CreateDefault(t)
-	node, err := utils.RunGossamer(t, numNodes-1,
-		blockProducingNodeBasePath,
-		genesisPath, configPath,
-		false, true)
+	producingNode := node.New(t,
+		node.SetIndex(numNodes-1),
+		node.SetBasePath(blockProducingNodeBasePath),
+		node.SetGenesis(genesisPath),
+		node.SetConfig(configPath),
+		node.SetBabeLead(true))
+
+	err := producingNode.Init(mainCtx)
+	require.NoError(t, err)
+
+	err = producingNode.StartAndWait(nodeCtxs[0], nodeWaitErrs[0])
+	t.Cleanup(func() {
+		// note we need to use indexes since these
+		// slice elements might change.
+		nodeCancels[0]()
+		<-nodeWaitErrs[0]
+	})
 	require.NoError(t, err)
 
 	// wait and start rest of nodes
 	time.Sleep(time.Second * 5)
 	configPath = config.CreateNoBabe(t)
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, genesisPath, configPath)
-	require.NoError(t, err)
-	nodes = append(nodes, node)
+	nodes := node.MakeNodes(t, numNodes-1,
+		node.SetGenesis(genesisPath), node.SetConfig(configPath))
+	for i, node := range nodes {
+		err := node.Init(mainCtx)
+		require.NoError(t, err)
 
-	defer func() {
-		errList := utils.StopNodes(t, nodes)
-		require.Len(t, errList, 0)
-	}()
+		err = node.StartAndWait(nodeCtxs[i+1], nodeWaitErrs[i+1])
+		t.Cleanup(func() {
+			// note we need to use indexes since these
+			// slice elements might change.
+			nodeCancels[i+1]()
+			<-nodeWaitErrs[i+1]
+		})
+		require.NoError(t, err)
+	}
 
-	done := make(chan struct{})
+	nodes = append(nodes, producingNode)
 
 	// randomly turn off and on nodes
+	onOffRoutineDone := make(chan struct{})
 	go func() {
+		defer close(onOffRoutineDone)
 		for {
 			select {
 			case <-time.After(time.Second * 10):
 				idx := rand.Intn(numNodes)
 
-				errList := utils.StopNodes(t, nodes[idx:idx+1])
-				require.Len(t, errList, 0)
+				// Stop node
+				nodeCancels[idx]()
+				<-nodeWaitErrs[idx]
 
-				time.Sleep(time.Second)
-
-				err = utils.StartNodes(t, nodes[idx:idx+1])
-				require.NoError(t, err)
-			case <-done:
+				// Start node
+				nodeCtxs[idx], nodeCancels[idx] = context.WithCancel(mainCtx)
+				waitErr := make(chan error)
+				err := nodes[idx].Start(nodeCtxs[idx], waitErr)
+				nodeWaitErrs[idx] = waitErr
+				if err != nil {
+					assert.NoError(t, err) // cannot use require.NoError from a goroutine
+					mainCancel()           // stop all operations
+					return
+				}
+			case <-mainCtx.Done():
 				return
 			}
 		}
 	}()
-
-	ctx := context.Background()
 
 	numCmps := 12
 	for i := 0; i < numCmps; i++ {
 		t.Log("comparing...", i)
 
 		const compareTimeout = 5 * time.Second
-		compareCtx, cancel := context.WithTimeout(ctx, compareTimeout)
+		compareCtx, cancel := context.WithTimeout(mainCtx, compareTimeout)
 
 		_ = compareBlocksByNumber(compareCtx, t, nodes, strconv.Itoa(i))
 
@@ -403,12 +473,15 @@ func TestSync_Restart(t *testing.T) {
 
 		time.Sleep(time.Second * 5)
 	}
-	close(done)
+
+	mainCancel()
+	<-onOffRoutineDone
 }
 
 func TestSync_SubmitExtrinsic(t *testing.T) {
 	t.Skip()
-	t.Log("starting gossamer...")
+
+	ctx, cancel := context.WithCancel(context.Background())
 
 	// index of node to submit tx to
 	idx := 0 // TODO: randomise this
@@ -417,36 +490,39 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 	blockProducingNodeBasePath := t.TempDir()
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
 	configNoGrandpa := config.CreateNoGrandpa(t)
-	node, err := utils.RunGossamer(t, 0,
-		blockProducingNodeBasePath, genesisPath,
-		configNoGrandpa, false, true)
-	require.NoError(t, err)
-	nodes := []utils.Node{node}
+	producingNode := node.New(t,
+		node.SetIndex(0),
+		node.SetBasePath(blockProducingNodeBasePath),
+		node.SetGenesis(genesisPath),
+		node.SetConfig(configNoGrandpa),
+		node.SetBabeLead(true))
+	producingNode.InitAndStartTest(ctx, t, cancel)
+
+	nodes := node.Nodes{producingNode}
 
 	configNoAuthority := config.CreateNotAuthority(t)
 
 	// Start rest of nodes
 	basePath2 := t.TempDir()
-	node, err = utils.RunGossamer(t, 1,
-		basePath2, genesisPath,
-		configNoAuthority, false, false)
-	require.NoError(t, err)
-	nodes = append(nodes, node)
-	basePath3 := t.TempDir()
-	node, err = utils.RunGossamer(t, 2,
-		basePath3, genesisPath,
-		configNoAuthority, false, false)
-	require.NoError(t, err)
-	nodes = append(nodes, node)
+	n := node.New(t,
+		node.SetIndex(1),
+		node.SetBasePath(basePath2),
+		node.SetGenesis(genesisPath),
+		node.SetConfig(configNoAuthority),
+	)
+	nodes = append(nodes, n)
 
-	defer func() {
-		t.Log("going to tear down gossamer...")
-		errList := utils.StopNodes(t, nodes)
-		require.Len(t, errList, 0)
-	}()
+	basePath3 := t.TempDir()
+	n = node.New(t,
+		node.SetIndex(2),
+		node.SetBasePath(basePath3),
+		node.SetGenesis(genesisPath),
+		node.SetConfig(configNoAuthority),
+	)
+	nodes = append(nodes, n)
 
 	// send tx to non-authority node
-	api, err := gsrpc.NewSubstrateAPI(fmt.Sprintf("http://localhost:%s", nodes[idx].RPCPort))
+	api, err := gsrpc.NewSubstrateAPI(fmt.Sprintf("http://localhost:%s", nodes[idx].GetRPCPort()))
 	require.NoError(t, err)
 
 	meta, err := api.RPC.State.GetMetadataLatest()
@@ -489,11 +565,9 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 	extEnc, err := types.EncodeToHexString(ext)
 	require.NoError(t, err)
 
-	ctx := context.Background()
-
 	// get starting header so that we can lookup blocks by number later
 	getChainHeadCtx, getChainHeadCancel := context.WithTimeout(ctx, time.Second)
-	prevHeader, err := rpc.GetChainHead(getChainHeadCtx, nodes[idx].RPCPort)
+	prevHeader, err := rpc.GetChainHead(getChainHeadCtx, nodes[idx].GetRPCPort())
 	getChainHeadCancel()
 	require.NoError(t, err)
 
@@ -517,9 +591,9 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 		time.Sleep(time.Second)
 	}
 
-	getChainHeadCtx, cancel := context.WithTimeout(ctx, time.Second)
-	header, err := rpc.GetChainHead(getChainHeadCtx, nodes[idx].RPCPort)
-	cancel()
+	getChainHeadCtx, getChainHeadCancel = context.WithTimeout(ctx, time.Second)
+	header, err := rpc.GetChainHead(getChainHeadCtx, nodes[idx].GetRPCPort())
+	getChainHeadCancel()
 	require.NoError(t, err)
 
 	// search from child -> parent blocks for extrinsic
@@ -530,7 +604,7 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 
 	for i := 0; i < maxRetries; i++ {
 		getBlockCtx, getBlockCancel := context.WithTimeout(ctx, time.Second)
-		block, err := rpc.GetBlock(getBlockCtx, nodes[idx].RPCPort, header.ParentHash)
+		block, err := rpc.GetBlock(getBlockCtx, nodes[idx].GetRPCPort(), header.ParentHash)
 		getBlockCancel()
 		require.NoError(t, err)
 
@@ -540,7 +614,7 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 		}
 
 		header = &block.Header
-		logger.Debugf("got block with header %s and body %v from node with key %s", header, block.Body, nodes[idx].Key)
+		logger.Debugf("got block with header %s and body %v from node with key %s", header, block.Body, nodes[idx].GetKey())
 
 		if block.Body != nil {
 			resExts = block.Body
@@ -576,29 +650,23 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 }
 
 func Test_SubmitAndWatchExtrinsic(t *testing.T) {
-	t.Log("starting gossamer...")
-
-	// index of node to submit tx to
-	idx := 0 // TODO: randomise this
-
 	// start block producing node first
 	blockProducingNodeBasePath := t.TempDir()
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
 	configNoGrandpa := config.CreateNoGrandpa(t)
-	node, err := utils.RunGossamer(t, 0,
-		blockProducingNodeBasePath,
-		genesisPath, configNoGrandpa, true, true)
-	require.NoError(t, err)
-	nodes := []utils.Node{node}
-
-	defer func() {
-		t.Log("going to tear down gossamer...")
-		errList := utils.StopNodes(t, nodes)
-		require.Len(t, errList, 0)
-	}()
+	producingNode := node.New(t,
+		node.SetIndex(0),
+		node.SetBasePath(blockProducingNodeBasePath),
+		node.SetGenesis(genesisPath),
+		node.SetConfig(configNoGrandpa),
+		node.SetWebsocket(true),
+		node.SetBabeLead(true),
+	)
+	ctx, cancel := context.WithCancel(context.Background())
+	producingNode.InitAndStartTest(ctx, t, cancel)
 
 	// send tx to non-authority node
-	api, err := gsrpc.NewSubstrateAPI(fmt.Sprintf("ws://localhost:%s", nodes[idx].WSPort))
+	api, err := gsrpc.NewSubstrateAPI(fmt.Sprintf("ws://localhost:%s", producingNode.GetWSPort()))
 	require.NoError(t, err)
 
 	meta, err := api.RPC.State.GetMetadataLatest()
@@ -765,27 +833,28 @@ func TestStress_SecondarySlotProduction(t *testing.T) {
 	for _, c := range testcases {
 		t.Run(c.description, func(t *testing.T) {
 			config := config.CreateDefault(t)
-			nodes, err := utils.InitializeAndStartNodes(t, numNodes, c.genesis, config)
-			require.NoError(t, err)
-			defer utils.StopNodes(t, nodes)
+
+			nodes := node.MakeNodes(t, numNodes,
+				node.SetGenesis(c.genesis), node.SetConfig(config))
+
+			ctx, cancel := context.WithCancel(context.Background())
+			nodes.InitAndStartTest(ctx, t, cancel)
 
 			primaryCount := 0
 			secondaryPlainCount := 0
 			secondaryVRFCount := 0
 
-			ctx := context.Background()
-
 			for i := 1; i < 10; i++ {
 				fmt.Printf("%d iteration\n", i)
 
 				getBlockHashCtx, cancel := context.WithTimeout(ctx, time.Second)
-				hash, err := rpc.GetBlockHash(getBlockHashCtx, nodes[0].RPCPort, fmt.Sprintf("%d", i))
+				hash, err := rpc.GetBlockHash(getBlockHashCtx, nodes[0].GetRPCPort(), fmt.Sprintf("%d", i))
 				cancel()
 
 				require.NoError(t, err)
 
 				getBlockCtx, cancel := context.WithTimeout(ctx, time.Second)
-				block, err := rpc.GetBlock(getBlockCtx, nodes[0].RPCPort, hash)
+				block, err := rpc.GetBlock(getBlockCtx, nodes[0].GetRPCPort(), hash)
 				cancel()
 				require.NoError(t, err)
 

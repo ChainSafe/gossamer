@@ -13,6 +13,7 @@ import (
 	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils"
 	"github.com/ChainSafe/gossamer/tests/utils/config"
+	"github.com/ChainSafe/gossamer/tests/utils/node"
 	websocketutils "github.com/ChainSafe/gossamer/tests/utils/websocket"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/require"
@@ -60,11 +61,12 @@ func TestChainRPC(t *testing.T) {
 		},
 	}
 
-	t.Log("starting gossamer...")
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
 	config := config.CreateDefault(t)
-	nodes, err := utils.InitializeAndStartNodes(t, 1, genesisPath, config)
-	require.NoError(t, err)
+	node := node.New(t, node.SetBabeLead(true),
+		node.SetGenesis(genesisPath), node.SetConfig(config))
+	ctx, cancel := context.WithCancel(context.Background())
+	node.InitAndStartTest(ctx, t, cancel)
 
 	time.Sleep(time.Second * 5) // give server a few seconds to start
 
@@ -78,10 +80,8 @@ func TestChainRPC(t *testing.T) {
 				test.params = "[\"" + chainBlockHeaderHash + "\"]"
 			}
 
-			ctx := context.Background()
-
-			getResponseCtx, cancel := context.WithTimeout(ctx, time.Second)
-			defer cancel()
+			getResponseCtx, getResponseCancel := context.WithTimeout(ctx, time.Second)
+			defer getResponseCancel()
 			target := getResponse(getResponseCtx, t, test)
 
 			switch v := target.(type) {
@@ -124,10 +124,6 @@ func TestChainRPC(t *testing.T) {
 
 		})
 	}
-
-	t.Log("going to tear down gossamer...")
-	errList := utils.TearDown(t, nodes)
-	require.Len(t, errList, 0)
 }
 
 func TestChainSubscriptionRPC(t *testing.T) {
@@ -182,11 +178,13 @@ func TestChainSubscriptionRPC(t *testing.T) {
 		},
 	}
 
-	t.Log("starting gossamer...")
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
 	config := config.CreateDefault(t)
-	nodes, err := utils.InitializeAndStartNodesWebsocket(t, 1, genesisPath, config)
-	require.NoError(t, err)
+	node := node.New(t, node.SetBabeLead(true),
+		node.SetGenesis(genesisPath), node.SetConfig(config),
+		node.SetWebsocket(true))
+	ctx, cancel := context.WithCancel(context.Background())
+	node.InitAndStartTest(ctx, t, cancel)
 
 	time.Sleep(time.Second) // give server a second to start
 
@@ -196,11 +194,6 @@ func TestChainSubscriptionRPC(t *testing.T) {
 			callWebsocket(t, test)
 		})
 	}
-
-	time.Sleep(time.Second * 2)
-	t.Log("going to tear down gossamer...")
-	errList := utils.TearDown(t, nodes)
-	require.Len(t, errList, 0)
 }
 
 func callWebsocket(t *testing.T, test *testCase) {
