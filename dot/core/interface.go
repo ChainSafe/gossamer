@@ -17,7 +17,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
 
-//go:generate mockgen -destination=mock_core_test.go -package $GOPACKAGE . BlockState,StorageState,TransactionState,Network,EpochState,CodeSubstitutedState,DigestHandler
+//go:generate mockgen -destination=mock_core_test.go -package $GOPACKAGE . BlockState,StorageState,TransactionState,Network,EpochState,CodeSubstitutedState
 
 // BlockState interface for block state methods
 type BlockState interface {
