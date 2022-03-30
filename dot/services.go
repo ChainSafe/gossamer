@@ -169,7 +169,7 @@ func createRuntime(cfg *Config, ns runtime.NodeStorage, st *state.Service,
 			return nil, fmt.Errorf("failed to create runtime executor: %s", err)
 		}
 	default:
-		return nil, fmt.Errorf("unknown wasm interpreter: %s, failed to create runtime", cfg.Core.WasmInterpreter)
+		return nil, fmt.Errorf("%w: %s", ErrWasmInterpreterName, cfg.Core.WasmInterpreter)
 	}
 
 	st.Block.StoreRuntime(st.Block.BestBlockHash(), rt)

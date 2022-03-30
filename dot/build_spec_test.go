@@ -210,9 +210,7 @@ func TestBuildFromGenesis(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 			}
-			if tt.want != nil {
-				assert.Equal(t, tt.want, got)
-			}
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }

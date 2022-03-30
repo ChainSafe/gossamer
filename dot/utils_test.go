@@ -81,7 +81,7 @@ func TestCreateJSONRawFile(t *testing.T) {
 }
 
 func TestExportConfig(t *testing.T) {
-	filepath := t.TempDir() + "/test.json"
+	filepath := filepath.Join(t.TempDir(), "test.json")
 	type args struct {
 		cfg *Config
 		fp  string
@@ -194,7 +194,7 @@ mutex_profile_rate = 0
 }
 
 func TestExportTomlConfig(t *testing.T) {
-	filepath := t.TempDir() + "/test.json"
+	filepath := filepath.Join(t.TempDir(), "test.json")
 	type args struct {
 		cfg *ctoml.Config
 		fp  string
