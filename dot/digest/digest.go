@@ -188,12 +188,12 @@ func (h *Handler) handleBabeConsensusDigest(digest scale.VaryingDataType, header
 		currEpoch, err := h.epochState.GetEpochForBlock(header)
 		if err != nil {
 			return fmt.Errorf("cannot get epoch for block %d (%s): %w",
-				header.Number, header.Hash(), err)
+				header.Number, headerHash, err)
 		}
 
 		nextEpoch := currEpoch + 1
-		h.logger.Debugf("stored BABENextEpochData data: %v for hash: %s to epoch: %d", digest, headerHash, nextEpoch)
 		h.epochState.StoreBABENextEpochData(nextEpoch, headerHash, val)
+		h.logger.Debugf("stored BABENextEpochData data: %v for hash: %s to epoch: %d", digest, headerHash, nextEpoch)
 		return nil
 
 	case types.BABEOnDisabled:
@@ -203,12 +203,12 @@ func (h *Handler) handleBabeConsensusDigest(digest scale.VaryingDataType, header
 		currEpoch, err := h.epochState.GetEpochForBlock(header)
 		if err != nil {
 			return fmt.Errorf("cannot get epoch for block %d (%s): %w",
-				header.Number, header.Hash(), err)
+				header.Number, headerHash, err)
 		}
 
 		nextEpoch := currEpoch + 1
-		h.logger.Debugf("stored BABENextConfigData data: %v for hash: %s to epoch: %d", digest, headerHash, nextEpoch)
 		h.epochState.StoreBABENextConfigData(nextEpoch, headerHash, val)
+		h.logger.Debugf("stored BABENextConfigData data: %v for hash: %s to epoch: %d", digest, headerHash, nextEpoch)
 		return nil
 	}
 
@@ -242,7 +242,7 @@ func (h *Handler) handleBlockFinalisation(ctx context.Context) {
 				continue
 			}
 
-			err := h.setBABEDigestsOnFinalization(&info.Header)
+			err := h.persistBABEDigestsForNextEpoch(&info.Header)
 			if err != nil {
 				h.logger.Errorf("failed to store babe next epoch digest: %s", err)
 			}
@@ -257,9 +257,9 @@ func (h *Handler) handleBlockFinalisation(ctx context.Context) {
 	}
 }
 
-// setBABEDigestsOnFinalization is called only when a block is finalised
+// persistBABEDigestsForNextEpoch is called only when a block is finalised
 // and defines the correct next epoch data and next config data.
-func (h *Handler) setBABEDigestsOnFinalization(finalizedHeader *types.Header) error {
+func (h *Handler) persistBABEDigestsForNextEpoch(finalizedHeader *types.Header) error {
 	currEpoch, err := h.epochState.GetEpochForBlock(finalizedHeader)
 	if err != nil {
 		return fmt.Errorf("cannot get epoch for block %d (%s): %w",
@@ -267,7 +267,6 @@ func (h *Handler) setBABEDigestsOnFinalization(finalizedHeader *types.Header) er
 	}
 
 	nextEpoch := currEpoch + 1
-
 	err = h.epochState.FinalizeBABENextEpochData(nextEpoch)
 	if err != nil && !errors.Is(err, state.ErrEpochNotInMemory) {
 		return fmt.Errorf("cannot finalize babe next epoch data for block number %d (%s): %w",
