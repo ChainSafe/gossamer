@@ -19,7 +19,7 @@ import (
 var (
 	ErrEpochNotInMemory = errors.New("epoch not found in memory map")
 	errHashNotInMemory  = errors.New("hash not found in memory map")
-	errNotPersisted     = errors.New("hash with next epoch not found in database")
+	errHashNotPersisted = errors.New("hash with next epoch not found in database")
 )
 
 var (
@@ -249,9 +249,11 @@ func (s *EpochState) GetEpochData(epoch uint64, header *types.Header) (*types.Ep
 		return epochData, nil
 	}
 
-	// if no header is given then skip the lookup in-memory
-	if !errors.Is(err, chaindb.ErrKeyNotFound) || header == nil {
+	if err != nil && !errors.Is(err, chaindb.ErrKeyNotFound) {
 		return nil, fmt.Errorf("failed to get epoch data from database: %w", err)
+	} else if header == nil {
+		// if no header is given then skip the lookup in-memory
+		return nil, nil
 	}
 
 	epochData, err = s.GetEpochDataForHeader(epoch, header)
@@ -362,8 +364,11 @@ func (s *EpochState) GetConfigData(epoch uint64, header *types.Header) (*types.C
 		return configData, nil
 	}
 
-	if !errors.Is(err, chaindb.ErrKeyNotFound) || header == nil {
+	if err != nil && !errors.Is(err, chaindb.ErrKeyNotFound) {
 		return nil, fmt.Errorf("failed to get config data from database: %w", err)
+	} else if header == nil {
+		// if no header is given then skip the lookup in-memory
+		return nil, nil
 	}
 
 	configData, err = s.GetConfigDataForHeader(epoch, header)
@@ -555,15 +560,10 @@ func (s *EpochState) FinalizeBABENextEpochData(epoch uint64) error {
 	}
 
 	// remove previous epochs from the memory
-	epochsToDelete := make([]uint64, 0)
 	for e := range s.nextEpochData {
 		if e <= epoch {
-			epochsToDelete = append(epochsToDelete, e)
+			delete(s.nextEpochData, e)
 		}
-	}
-
-	for _, e := range epochsToDelete {
-		delete(s.nextEpochData, e)
 	}
 
 	return nil
@@ -589,21 +589,16 @@ func (s *EpochState) FinalizeBABENextConfigData(epoch uint64) error {
 	}
 
 	// remove previous epochs from the memory
-	epochsToDelete := make([]uint64, 0)
 	for e := range s.nextConfigData {
 		if e <= epoch {
-			epochsToDelete = append(epochsToDelete, e)
+			delete(s.nextConfigData, e)
 		}
-	}
-
-	for _, e := range epochsToDelete {
-		delete(s.nextConfigData, e)
 	}
 
 	return nil
 }
 
-// lookupForNextEpochPersistedHash given a specif epoch (the key) will go through the hashes looking
+// lookupForNextEpochPersistedHash given a specific epoch (the key) will go through the hashes looking
 // for a database persisted hash (belonging to the finalized chain)
 // which contains the right configuration to be persisted and safely used
 func lookupForNextEpochPersistedHash[T types.NextConfigData | types.NextEpochData](
@@ -613,7 +608,7 @@ func lookupForNextEpochPersistedHash[T types.NextConfigData | types.NextEpochDat
 		return nil, ErrEpochNotInMemory
 	}
 
-	for hash, inMemoryNextEpochConfig := range hashes {
+	for hash, inMemory := range hashes {
 		persisted, err := es.blockState.HasHeaderInDatabase(hash)
 		if err != nil {
 			return nil, fmt.Errorf("failed to check header exists at database: %w", err)
@@ -623,8 +618,8 @@ func lookupForNextEpochPersistedHash[T types.NextConfigData | types.NextEpochDat
 			continue
 		}
 
-		return &inMemoryNextEpochConfig, nil
+		return &inMemory, nil
 	}
 
-	return nil, errNotPersisted
+	return nil, errHashNotPersisted
 }

@@ -326,7 +326,7 @@ func TestStoreAndFinalizeBabeNextEpochData(t *testing.T) {
 			shouldRemainInMemory: 1,
 			finalizeEpoch:        1,
 			finalizeHash:         common.Hash{}, // finalize when the hash does not exists
-			expectErr:            errNotPersisted,
+			expectErr:            errHashNotPersisted,
 			inMemoryEpoch: []inMemoryNextEpochData{
 				{
 					epoch: 1,
@@ -510,7 +510,7 @@ func TestStoreAndFinalizeBabeNextConfigData(t *testing.T) {
 			shouldRemainInMemory: 1,
 			finalizeEpoch:        1,
 			finalizeHash:         common.Hash{}, // finalize when the hash does not exists
-			expectErr:            errNotPersisted,
+			expectErr:            errHashNotPersisted,
 			inMemoryEpoch: []inMemotyNextConfighData{
 				{
 					epoch: 1,
