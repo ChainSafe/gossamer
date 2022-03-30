@@ -15,8 +15,9 @@ import (
 // PauseBABE calls the endpoint dev_control with the params ["babe", "stop"]
 func PauseBABE(ctx context.Context, rpcPort string) error {
 	endpoint := NewEndpoint(rpcPort)
+	const method = "dev_control"
 	const params = `["babe", "stop"]`
-	_, err := PostRPC(ctx, endpoint, DevControl, params)
+	_, err := PostRPC(ctx, endpoint, method, params)
 	return err
 }
 
