@@ -127,7 +127,7 @@ func (h *Handler) HandleDigests(header *types.Header) {
 		}
 
 		err := h.handleConsensusDigest(&val, header)
-		if err == nil {
+		if err != nil {
 			h.logger.Errorf("cannot handle digest for block number %d, index %d, digest %s: %s",
 				header.Number, i, d.Value(), err)
 		}
