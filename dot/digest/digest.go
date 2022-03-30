@@ -18,7 +18,7 @@ import (
 var (
 	_ services.Service = &Handler{}
 
-	ErrCannotDefineNextEpoch = errors.New("cannot define next epoch data and config")
+	ErrDefineNextEpoch = errors.New("cannot define next epoch data and config")
 )
 
 // Handler is used to handle consensus messages and relevant authority updates to BABE and GRANDPA
@@ -283,7 +283,7 @@ func (h *Handler) setBABEDigestsOnFinalization(finalizedHeader *types.Header) er
 	}
 
 	// the epoch state does not contains any information about the next epoch
-	return ErrCannotDefineNextEpoch
+	return ErrDefineNextEpoch
 }
 
 func (h *Handler) handleGrandpaChangesOnImport(num uint) error {
