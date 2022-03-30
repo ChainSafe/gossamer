@@ -8,36 +8,38 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"testing"
 
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/cosmos/go-bip39"
 	"github.com/naoina/toml"
+	"github.com/stretchr/testify/require"
 )
 
 // exportConfig exports a dot configuration to a toml configuration file
-func exportConfig(cfg *Config, fp string) {
+func exportConfig(t *testing.T, cfg *Config, fp string) {
+	t.Helper()
+
 	raw, err := toml.Marshal(*cfg)
-	if err != nil {
-		logger.Errorf("failed to marshal configuration: %s", err)
-		os.Exit(1)
-	}
-	if err := os.WriteFile(fp, raw, 0600); err != nil {
-		logger.Errorf("failed to write file: %s", err)
-		os.Exit(1)
-	}
+	require.NoError(t, err)
+
+	err = os.WriteFile(fp, raw, os.ModePerm)
+	require.NoError(t, err)
 }
 
 // ExportTomlConfig exports a dot configuration to a toml configuration file
-func ExportTomlConfig(cfg *ctoml.Config, fp string) {
+func ExportTomlConfig(cfg *ctoml.Config, fp string) (err error) {
 	raw, err := toml.Marshal(*cfg)
 	if err != nil {
-		logger.Errorf("failed to marshal configuration: %s", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to marshal configuration: %w", err)
 	}
-	if err := os.WriteFile(fp, raw, 0600); err != nil {
-		logger.Errorf("failed to write file: %s", err)
-		os.Exit(1)
+
+	err = os.WriteFile(fp, raw, os.ModePerm)
+	if err != nil {
+		return fmt.Errorf("failed to write configuration: %w", err)
 	}
+
+	return nil
 }
 
 // CreateJSONRawFile will generate a JSON genesis file with raw storage
