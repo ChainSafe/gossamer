@@ -87,8 +87,3 @@ type CodeSubstitutedState interface {
 	LoadCodeSubstitutedBlockHash() common.Hash
 	StoreCodeSubstitutedBlockHash(hash common.Hash) error
 }
-
-// DigestHandler is the interface for the consensus digest handler
-type DigestHandler interface {
-	HandleDigests(header *types.Header)
-}
