@@ -6,7 +6,6 @@ package sync
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"testing"
 	"time"
@@ -14,8 +13,6 @@ import (
 	"github.com/ChainSafe/gossamer/tests/utils"
 	"github.com/stretchr/testify/require"
 )
-
-var framework utils.Framework
 
 type testRPCCall struct {
 	nodeIdx int
@@ -51,11 +48,6 @@ func TestMain(m *testing.M) {
 		fmt.Println("Going to skip stress test")
 		return
 	}
-	fw, err := utils.InitFramework(3)
-	if err != nil {
-		log.Fatal(fmt.Errorf("error initialising test framework"))
-	}
-	framework = *fw
 	// Start all tests
 	code := m.Run()
 	os.Exit(code)
@@ -65,8 +57,11 @@ func TestMain(m *testing.M) {
 func TestCalls(t *testing.T) {
 	ctx := context.Background()
 
-	err := framework.StartNodes(t)
-	require.Len(t, err, 0)
+	framework, err := utils.InitFramework(3)
+	require.NoError(t, err)
+
+	errs := framework.StartNodes(t)
+	require.Empty(t, errs)
 	for _, call := range tests {
 		time.Sleep(call.delay)
 
@@ -88,6 +83,6 @@ func TestCalls(t *testing.T) {
 		require.True(t, res)
 	}
 
-	err = framework.KillNodes(t)
-	require.Len(t, err, 0)
+	errs = framework.KillNodes(t)
+	require.Empty(t, errs)
 }
