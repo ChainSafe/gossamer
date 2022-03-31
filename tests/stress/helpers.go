@@ -20,8 +20,7 @@ import (
 )
 
 var (
-	testTimeout = time.Minute * 3
-	logger      = log.NewFromGlobal(log.AddContext("pkg", "tests/stress"))
+	logger = log.NewFromGlobal(log.AddContext("pkg", "tests/stress"))
 )
 
 // compareChainHeads calls getChainHead for each node in the array

@@ -326,23 +326,23 @@ func TestSync_Bench(t *testing.T) {
 	start := time.Now()
 	var end time.Time
 
+	const retryWait = time.Second
+	const syncWaitTimeout = 3 * time.Minute
+	syncWaitCtx, syncWaitCancel := context.WithTimeout(ctx, syncWaitTimeout)
 	for {
-		if time.Since(start) >= testTimeout {
-			t.Fatal("did not sync")
-		}
-
-		getChainHeadCtx, getChainHeadCancel := context.WithTimeout(ctx, time.Second)
+		getChainHeadCtx, getChainHeadCancel := context.WithTimeout(syncWaitCtx, time.Second)
 		head, err := rpc.GetChainHead(getChainHeadCtx, bob.GetRPCPort())
 		getChainHeadCancel()
 
-		if err != nil {
-			continue
-		}
-
-		if head.Number >= last {
+		if err == nil && head.Number >= last {
 			end = time.Now()
+			syncWaitCancel()
 			break
 		}
+
+		retryWaitCtx, retryWaitCancel := context.WithTimeout(syncWaitCtx, retryWait)
+		<-retryWaitCtx.Done()
+		retryWaitCancel()
 	}
 
 	maxTime := time.Second * 85
