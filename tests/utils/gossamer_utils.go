@@ -47,9 +47,6 @@ var (
 	// secondary VRF slots enabled
 	GenesisTwoAuthsSecondaryVRF0_9_10 = filepath.Join(currentDir, "../utils/genesis_two_auths_secondaryvrf_0_9_10.json")
 
-	// GenesisDev is the default dev genesis file
-	GenesisDev = filepath.Join(currentDir, "../..", "chain/dev/genesis-spec.json")
-
 	// ConfigDefault is the default config file
 	ConfigDefault = filepath.Join(currentDir, "../utils/config_default.toml")
 	// ConfigLogGrandpa is a config file where log levels are set to CRIT except for GRANDPA

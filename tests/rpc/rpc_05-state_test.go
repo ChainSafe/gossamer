@@ -353,7 +353,8 @@ func TestRPCStructParamUnmarshal(t *testing.T) {
 	}
 
 	t.Log("starting gossamer...")
-	nodes, err := utils.InitializeAndStartNodes(t, 1, utils.GenesisDev, utils.ConfigDefault)
+	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
+	nodes, err := utils.InitializeAndStartNodes(t, 1, genesisPath, utils.ConfigDefault)
 	require.NoError(t, err)
 
 	defer func() {

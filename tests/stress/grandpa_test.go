@@ -16,7 +16,8 @@ import (
 
 func TestStress_Grandpa_OneAuthority(t *testing.T) {
 	numNodes := 1
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisDev, utils.ConfigDefault)
+	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes, genesisPath, utils.ConfigDefault)
 	require.NoError(t, err)
 
 	defer func() {
