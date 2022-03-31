@@ -367,28 +367,28 @@ func TestCreateNotificationsMessageHandler_HandleTransaction(t *testing.T) {
 	require.Len(t, txnBatch, 1)
 
 	msg = &TransactionMessage{
-		Extrinsics: []types.Extrinsic{{1, 1}, {2, 2}},
+		Extrinsics: []types.Extrinsic{{1, 1}, {2, 2}, {3, 3}},
 	}
 	err = handler(stream, msg)
 	require.NoError(t, err)
 	require.Len(t, txnBatch, 2)
 
 	msg = &TransactionMessage{
-		Extrinsics: []types.Extrinsic{{1, 1}, {2, 2}},
+		Extrinsics: []types.Extrinsic{{1, 1}, {2, 2}, {3, 3}, {4, 4}},
 	}
 	err = handler(stream, msg)
 	require.NoError(t, err)
 	require.Len(t, txnBatch, 3)
 
 	msg = &TransactionMessage{
-		Extrinsics: []types.Extrinsic{{1, 1}, {2, 2}},
+		Extrinsics: []types.Extrinsic{{1, 1}, {2, 2}, {3, 3}, {4, 4}, {5, 5}},
 	}
 	err = handler(stream, msg)
 	require.NoError(t, err)
 	require.Len(t, txnBatch, 4)
 
 	msg = &TransactionMessage{
-		Extrinsics: []types.Extrinsic{{1, 1}, {2, 2}},
+		Extrinsics: []types.Extrinsic{{1, 1}, {2, 2}, {3, 3}, {4, 4}, {5, 5}, {6, 6}},
 	}
 	err = handler(stream, msg)
 	require.NoError(t, err)
@@ -396,14 +396,14 @@ func TestCreateNotificationsMessageHandler_HandleTransaction(t *testing.T) {
 
 	// reached batch size limit, below transaction will not be included in batch.
 	msg = &TransactionMessage{
-		Extrinsics: []types.Extrinsic{{1, 1}, {2, 2}},
+		Extrinsics: []types.Extrinsic{{1, 1}, {2, 2}, {3, 3}, {4, 4}, {5, 5}, {6, 6}, {7, 7}},
 	}
 	err = handler(stream, msg)
 	require.NoError(t, err)
 	require.Len(t, txnBatch, 5)
 
 	msg = &TransactionMessage{
-		Extrinsics: []types.Extrinsic{{1, 1}, {2, 2}},
+		Extrinsics: []types.Extrinsic{{1, 1}, {2, 2}, {3, 3}, {4, 4}, {5, 5}, {6, 6}, {7, 7}, {8, 8}},
 	}
 	// wait for transaction batch channel to process.
 	time.Sleep(1300 * time.Millisecond)
