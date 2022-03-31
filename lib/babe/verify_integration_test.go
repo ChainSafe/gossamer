@@ -610,13 +610,6 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 	// block, clean up the in memory data and store the finalized digest in db
 	time.Sleep(time.Second * 2)
 
-	// should not exists in memory data as a chain was finalized
-	_, err = epochState.GetEpochData(epochToTest, forkBobLastHeader)
-	require.EqualError(t, err, fmt.Sprintf("epoch not found in memory map: %d", epochToTest))
-
-	_, err = epochState.GetConfigData(epochToTest, forkBobLastHeader)
-	require.EqualError(t, err, fmt.Sprintf("epoch not found in memory map: %d", epochToTest))
-
 	// as a chain was finalized any block built upon it should use the database stored data
 	blockUponFinalizedHeader := issueNewBlockFrom(t, forkBobLastHeader,
 		keyring.KeyBob, stateService)
