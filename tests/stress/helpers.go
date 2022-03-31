@@ -20,9 +20,7 @@ import (
 )
 
 var (
-	maxRetries  = 32
-	testTimeout = time.Minute * 3
-	logger      = log.NewFromGlobal(log.AddContext("pkg", "tests/stress"))
+	logger = log.NewFromGlobal(log.AddContext("pkg", "tests/stress"))
 )
 
 // compareChainHeads calls getChainHead for each node in the array
@@ -53,13 +51,10 @@ func compareChainHeads(ctx context.Context, nodes node.Nodes,
 // retrying until the context gets canceled.
 func compareChainHeadsWithRetry(ctx context.Context, nodes node.Nodes,
 	getChainHeadTimeout time.Duration) error {
-	var hashes map[common.Hash][]string
-	var err error
-
-	for i := 0; i < maxRetries; i++ {
-		hashes, err = compareChainHeads(ctx, nodes, getChainHeadTimeout)
+	for {
+		hashes, err := compareChainHeads(ctx, nodes, getChainHeadTimeout)
 		if err == nil {
-			break
+			return nil
 		}
 
 		timer := time.NewTimer(time.Second)
@@ -69,15 +64,9 @@ func compareChainHeadsWithRetry(ctx context.Context, nodes node.Nodes,
 			if !timer.Stop() {
 				<-timer.C
 			}
-			return err // last error
+			return fmt.Errorf("%w: hashes=%v", err, hashes) // last error
 		}
 	}
-
-	if err != nil {
-		err = fmt.Errorf("%w: hashes=%v", err, hashes)
-	}
-
-	return err
 }
 
 // compareBlocksByNumber calls getBlockByNumber for each node in the array
@@ -194,34 +183,36 @@ func compareFinalizedHeadsByRound(ctx context.Context, nodes node.Nodes,
 	return hashes, err
 }
 
-// compareFinalizedHeadsWithRetry calls compareFinalizedHeadsByRound, retrying up to maxRetries times if it errors.
-// it returns the finalised hash if it succeeds
+// compareFinalizedHeadsWithRetry calls compareFinalizedHeadsByRound,
+// retrying until the context is canceled or times out.
+// It returns the finalised hash if it succeeds
 func compareFinalizedHeadsWithRetry(ctx context.Context, nodes node.Nodes, round uint64,
-	getFinalizedHeadByRoundTimeout time.Duration) (hash common.Hash, err error) {
-	var hashes map[common.Hash][]string
-
-	for i := 0; i < maxRetries; i++ {
-		hashes, err = compareFinalizedHeadsByRound(ctx, nodes, round, getFinalizedHeadByRoundTimeout)
+	getFinalizedHeadByRoundTimeout, retryWait time.Duration) (hashes []common.Hash, err error) {
+	for {
+		hashToKeys, err := compareFinalizedHeadsByRound(ctx, nodes, round, getFinalizedHeadByRoundTimeout)
 		if err == nil {
-			break
+			hashes = make([]common.Hash, 0, len(hashToKeys))
+			for hash := range hashToKeys {
+				hashes = append(hashes, hash)
+			}
+			return hashes, nil
 		}
 
 		if errors.Is(err, errFinalizedBlockMismatch) {
-			return common.Hash{}, fmt.Errorf("%w: round=%d hashes=%v", err, round, hashes)
+			return nil, fmt.Errorf("%w: round=%d hash-to-keys=%v", err, round, hashToKeys)
 		}
 
-		time.Sleep(3 * time.Second)
+		timer := time.NewTimer(retryWait)
+		select {
+		case <-timer.C:
+		case <-ctx.Done():
+			if !timer.Stop() {
+				<-timer.C
+			}
+			return nil, fmt.Errorf("%w: (%s) round=%d hash-to-keys=%v",
+				err, ctx.Err(), round, hashToKeys)
+		}
 	}
-
-	if err != nil {
-		return common.Hash{}, fmt.Errorf("%w: round=%d hashes=%v", err, round, hashes)
-	}
-
-	for h := range hashes {
-		return h, nil
-	}
-
-	return common.Hash{}, nil
 }
 
 func getPendingExtrinsics(ctx context.Context, t *testing.T, node node.Node) []string {

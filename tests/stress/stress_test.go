@@ -326,23 +326,23 @@ func TestSync_Bench(t *testing.T) {
 	start := time.Now()
 	var end time.Time
 
+	const retryWait = time.Second
+	const syncWaitTimeout = 3 * time.Minute
+	syncWaitCtx, syncWaitCancel := context.WithTimeout(ctx, syncWaitTimeout)
 	for {
-		if time.Since(start) >= testTimeout {
-			t.Fatal("did not sync")
-		}
-
-		getChainHeadCtx, getChainHeadCancel := context.WithTimeout(ctx, time.Second)
+		getChainHeadCtx, getChainHeadCancel := context.WithTimeout(syncWaitCtx, time.Second)
 		head, err := rpc.GetChainHead(getChainHeadCtx, bob.GetRPCPort())
 		getChainHeadCancel()
 
-		if err != nil {
-			continue
-		}
-
-		if head.Number >= last {
+		if err == nil && head.Number >= last {
 			end = time.Now()
+			syncWaitCancel()
 			break
 		}
+
+		retryWaitCtx, retryWaitCancel := context.WithTimeout(syncWaitCtx, retryWait)
+		<-retryWaitCtx.Done()
+		retryWaitCancel()
 	}
 
 	maxTime := time.Second * 85
@@ -579,16 +579,27 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 	time.Sleep(time.Second * 20)
 
 	// wait until there's no more pending extrinsics
-	for i := 0; i < maxRetries; i++ {
-		getPendingExtsCtx, getPendingExtsCancel := context.WithTimeout(ctx, time.Second)
+	const waitNoExtTimeout = 30 * time.Second
+	waitNoExtCtx, waitNoExtCancel := context.WithTimeout(ctx, waitNoExtTimeout)
+	for {
+		getPendingExtsCtx, getPendingExtsCancel := context.WithTimeout(waitNoExtCtx, time.Second)
 		exts := getPendingExtrinsics(getPendingExtsCtx, t, nodes[idx])
 		getPendingExtsCancel()
 
 		if len(exts) == 0 {
+			waitNoExtCancel()
 			break
 		}
 
-		time.Sleep(time.Second)
+		timer := time.NewTimer(time.Second)
+		select {
+		case <-timer.C:
+		case <-waitNoExtCtx.Done():
+			if !timer.Stop() {
+				<-timer.C
+			}
+			require.NoError(t, waitNoExtCtx.Err())
+		}
 	}
 
 	getChainHeadCtx, getChainHeadCancel = context.WithTimeout(ctx, time.Second)
@@ -602,10 +613,13 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 		extInBlock uint
 	)
 
-	for i := 0; i < maxRetries; i++ {
-		getBlockCtx, getBlockCancel := context.WithTimeout(ctx, time.Second)
+	const extrinsicSearchTimeout = 10 * time.Second
+	extrinsicSearchCtx, extrinsicSearchCancel := context.WithTimeout(ctx, extrinsicSearchTimeout)
+	for {
+		getBlockCtx, getBlockCancel := context.WithTimeout(extrinsicSearchCtx, time.Second)
 		block, err := rpc.GetBlock(getBlockCtx, nodes[idx].GetRPCPort(), header.ParentHash)
 		getBlockCancel()
+
 		require.NoError(t, err)
 
 		if block == nil {
@@ -622,6 +636,7 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 			logger.Debugf("extrinsics: %v", resExts)
 			if len(resExts) >= 2 {
 				extInBlock = block.Header.Number
+				extrinsicSearchCancel()
 				break
 			}
 		}
