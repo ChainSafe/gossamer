@@ -244,7 +244,7 @@ func (s *EpochState) SetEpochData(epoch uint64, info *types.EpochData) error {
 // otherwise will try to get the data from the in-memory map using the header
 // if the header params is nil then it will search only in database
 func (s *EpochState) GetEpochData(epoch uint64, header *types.Header) (*types.EpochData, error) {
-	epochData, err := s.GetEpochDataInDatabase(epoch)
+	epochData, err := s.getEpochDataInDatabase(epoch)
 	if err == nil && epochData != nil {
 		return epochData, nil
 	}
@@ -256,7 +256,7 @@ func (s *EpochState) GetEpochData(epoch uint64, header *types.Header) (*types.Ep
 		return epochData, nil
 	}
 
-	epochData, err = s.GetEpochDataForHeader(epoch, header)
+	epochData, err = s.getEpochDataInMemory(epoch, header)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get epoch data from memory: %w", err)
 	}
@@ -264,8 +264,8 @@ func (s *EpochState) GetEpochData(epoch uint64, header *types.Header) (*types.Ep
 	return epochData, nil
 }
 
-// GetEpochDataInDatabase returns the epoch data for a given epoch persisted in database
-func (s *EpochState) GetEpochDataInDatabase(epoch uint64) (*types.EpochData, error) {
+// getEpochDataInDatabase returns the epoch data for a given epoch persisted in database
+func (s *EpochState) getEpochDataInDatabase(epoch uint64) (*types.EpochData, error) {
 	enc, err := s.db.Get(epochDataKey(epoch))
 	if err != nil {
 		return nil, err
@@ -280,8 +280,8 @@ func (s *EpochState) GetEpochDataInDatabase(epoch uint64) (*types.EpochData, err
 	return raw.ToEpochData()
 }
 
-// GetEpochDataForHeader retrieves the right epoch data that belongs to the header parameter
-func (s *EpochState) GetEpochDataForHeader(epoch uint64, header *types.Header) (*types.EpochData, error) {
+// getEpochDataInMemory retrieves the right epoch data that belongs to the header parameter
+func (s *EpochState) getEpochDataInMemory(epoch uint64, header *types.Header) (*types.EpochData, error) {
 	s.nextEpochDataLock.RLock()
 	defer s.nextEpochDataLock.RUnlock()
 
@@ -359,7 +359,7 @@ func (s *EpochState) setLatestConfigData(epoch uint64) error {
 // otherwise tries to get the data from the in-memory map using the header.
 // If the header params is nil then it will search only in the database
 func (s *EpochState) GetConfigData(epoch uint64, header *types.Header) (*types.ConfigData, error) {
-	configData, err := s.GetConfigDataInDatabase(epoch)
+	configData, err := s.getConfigDataInDatabase(epoch)
 	if err == nil && configData != nil {
 		return configData, nil
 	}
@@ -371,7 +371,7 @@ func (s *EpochState) GetConfigData(epoch uint64, header *types.Header) (*types.C
 		return configData, nil
 	}
 
-	configData, err = s.GetConfigDataForHeader(epoch, header)
+	configData, err = s.getConfigDataInMemory(epoch, header)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get config data from memory: %w", err)
 	}
@@ -379,8 +379,8 @@ func (s *EpochState) GetConfigData(epoch uint64, header *types.Header) (*types.C
 	return configData, nil
 }
 
-// GetConfigDataInDatabase returns the BABE config data for a given epoch persisted in database
-func (s *EpochState) GetConfigDataInDatabase(epoch uint64) (*types.ConfigData, error) {
+// getConfigDataInDatabase returns the BABE config data for a given epoch persisted in database
+func (s *EpochState) getConfigDataInDatabase(epoch uint64) (*types.ConfigData, error) {
 	enc, err := s.db.Get(configDataKey(epoch))
 	if err != nil {
 		return nil, err
@@ -395,8 +395,8 @@ func (s *EpochState) GetConfigDataInDatabase(epoch uint64) (*types.ConfigData, e
 	return info, nil
 }
 
-// GetConfigDataForHeader retrieves the BABE config data for a given epoch that belongs to the header parameter
-func (s *EpochState) GetConfigDataForHeader(epoch uint64, header *types.Header) (*types.ConfigData, error) {
+// getConfigDataInMemory retrieves the BABE config data for a given epoch that belongs to the header parameter
+func (s *EpochState) getConfigDataInMemory(epoch uint64, header *types.Header) (*types.ConfigData, error) {
 	s.nextConfigDataLock.RLock()
 	defer s.nextConfigDataLock.RUnlock()
 
@@ -611,7 +611,7 @@ func lookupForNextEpochPersistedHash[T types.NextConfigData | types.NextEpochDat
 	for hash, inMemory := range hashes {
 		persisted, err := es.blockState.HasHeaderInDatabase(hash)
 		if err != nil {
-			return nil, fmt.Errorf("failed to check header exists at database: %w", err)
+			return nil, fmt.Errorf("failed to check header exists in database: %w", err)
 		}
 
 		if !persisted {

@@ -277,7 +277,7 @@ func (h *Handler) persistBABEDigestsForNextEpoch(finalizedHeader *types.Header) 
 	if err == nil {
 		return nil
 	} else if errors.Is(err, state.ErrEpochNotInMemory) {
-		return ErrDefineNextEpoch
+		return fmt.Errorf("%w: %s", ErrDefineNextEpoch, err)
 	}
 
 	// the epoch state does not contains any information about the next epoch
