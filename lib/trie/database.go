@@ -78,15 +78,15 @@ func (t *Trie) store(db chaindb.Batch, n Node) error {
 	return nil
 }
 
-// loadFromProof create a partial trie based on the proof slice, as it only contains nodes that are in the proof afaik.
-func (t *Trie) loadFromProof(rawProof [][]byte, rootHash []byte) error {
-	if len(rawProof) == 0 {
+// LoadFromProof sets a partial trie based on the proof slice of encoded nodes.
+func (t *Trie) LoadFromProof(proofEncodedNodes [][]byte, rootHash []byte) error {
+	if len(proofEncodedNodes) == 0 {
 		return ErrEmptyProof
 	}
 
-	proofHashToNode := make(map[string]Node, len(rawProof))
+	proofHashToNode := make(map[string]Node, len(proofEncodedNodes))
 
-	for i, rawNode := range rawProof {
+	for i, rawNode := range proofEncodedNodes {
 		decodedNode, err := node.Decode(bytes.NewReader(rawNode))
 		if err != nil {
 			return fmt.Errorf("%w: at index %d: 0x%x",
