@@ -140,7 +140,7 @@ func (s *Service) startTxnBatchProcessing(txnBatchCh chan *BatchMessage, slotDur
 						continue
 					}
 
-					// TODO: Check if s.gossip.hasSeen should be moved before handleTransactionMessage.
+					// TODO: Check if s.gossip.hasSeen should be moved before handleTransactionMessage. #2445
 					// That we could avoid handling the transactions again, which we would have already seen.
 
 					hasSeen, err := s.gossip.hasSeen(txnMsg.msg)
