@@ -320,6 +320,7 @@ func InitializeAndStartNodes(t *testing.T, num int, genesis, config string) (
 
 	for i := 0; i < num; i++ {
 		go func(i int) {
+			defer wg.Done()
 			name := strconv.Itoa(i)
 			if i < len(KeyList) {
 				name = KeyList[i]
@@ -337,7 +338,6 @@ func InitializeAndStartNodes(t *testing.T, num int, genesis, config string) (
 			nodesMutex.Lock()
 			nodes = append(nodes, node)
 			nodesMutex.Unlock()
-			wg.Done()
 		}(i)
 	}
 
@@ -361,6 +361,7 @@ func InitializeAndStartNodesWebsocket(t *testing.T, num int, genesis, config str
 
 	for i := 0; i < num; i++ {
 		go func(i int) {
+			defer wg.Done()
 			name := strconv.Itoa(i)
 			if i < len(KeyList) {
 				name = KeyList[i]
@@ -378,8 +379,6 @@ func InitializeAndStartNodesWebsocket(t *testing.T, num int, genesis, config str
 			nodesMutex.Lock()
 			nodes = append(nodes, node)
 			nodesMutex.Unlock()
-
-			wg.Done()
 		}(i)
 	}
 
