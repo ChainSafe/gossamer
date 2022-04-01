@@ -6,7 +6,6 @@ package state
 import (
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"sync"
 
 	"github.com/ChainSafe/chaindb"
@@ -91,101 +90,6 @@ func NewGrandpaState(db chaindb.Database, bs *BlockState) (*GrandpaState, error)
 		blockState: bs,
 		forks:      make(map[common.Hash]*ForkNode),
 	}, nil
-}
-
-func (gs *GrandpaState) ImportGrandpaChange(header *types.Header, change scale.VaryingDataType) error {
-	gs.forksLock.Lock()
-	defer gs.forksLock.Unlock()
-
-	headerHash := header.Hash()
-	node := createNode(header, change)
-
-	fmt.Printf("number: %d\n", header.Number)
-
-	for inMemoryHash, linkedList := range gs.forks {
-		is, err := gs.blockState.IsDescendantOf(inMemoryHash, headerHash)
-		if err != nil {
-			return fmt.Errorf("cannot check ancestry while import grandpa change: %w", err)
-		}
-
-		if !is {
-			// try the other way around as the block might not be in the right order
-			is, err = gs.blockState.IsDescendantOf(headerHash, inMemoryHash)
-			if err != nil {
-				return fmt.Errorf("cannot check ancestry while import grandpa change: %w", err)
-			}
-
-			if !is {
-				continue
-			}
-		}
-
-		alreadyHasForcedChanges := searchForForcedChanges(linkedList)
-		if alreadyHasForcedChanges {
-			return fmt.Errorf("cannot import block %s (%d): %w",
-				headerHash, header.Number, ErrAlreadyHasForcedChanges)
-		}
-
-		node.Next = linkedList
-		gs.forks[inMemoryHash] = node
-
-		keepDecreasingOrdered(node)
-		return nil
-	}
-
-	gs.forks[headerHash] = node
-	return nil
-}
-
-func searchForForcedChanges(node *ForkNode) (hasForcedChanges bool) {
-	if node == nil {
-		return false
-	}
-
-	if node.nodeType == grnpaForcedChange {
-		return true
-	}
-
-	return searchForForcedChanges(node.Next)
-}
-
-// keepDecreasingOrdered receives the head of the fork linked list
-// and check if the next node contains a number greater than the current head
-// if so we switch places between them and do the same thing with the next nodes
-// until we reach a node with a number less than our current node or the end of the
-// list
-func keepDecreasingOrdered(node *ForkNode) {
-	for node.Next != nil {
-		nextNode := node.Next
-		if node.header.Number > nextNode.header.Number {
-			break
-		}
-
-		node.Next = nextNode.Next
-		nextNode.Next = node
-	}
-}
-
-func createNode(header *types.Header, change scale.VaryingDataType) *ForkNode {
-	node := &ForkNode{
-		Change: change,
-		header: header,
-	}
-
-	switch change.Value().(type) {
-	case types.GrandpaScheduledChange:
-		node.nodeType = grnpaScheduledChange
-	case types.GrandpaForcedChange:
-		node.nodeType = grnpaForcedChange
-	case types.GrandpaOnDisabled:
-		node.nodeType = grnpaOnDisabled
-	case types.GrandpaPause:
-		node.nodeType = grnpaPause
-	case types.GrandpaResume:
-		node.nodeType = grnpaResume
-	}
-
-	return node
 }
 
 func authoritiesKey(setID uint64) []byte {
