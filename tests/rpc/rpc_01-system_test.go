@@ -91,7 +91,6 @@ func TestSystemRPC(t *testing.T) {
 		},
 	}
 
-	t.Log("starting gossamer...")
 	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
 	config := config.CreateDefault(t)
 	nodes := node.MakeNodes(t, 3, node.SetGenesis(genesisPath), node.SetConfig(config))

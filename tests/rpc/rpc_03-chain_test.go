@@ -61,7 +61,6 @@ func TestChainRPC(t *testing.T) {
 		},
 	}
 
-	t.Log("starting gossamer...")
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
 	config := config.CreateDefault(t)
 	node := node.New(t, node.SetIndex(1), node.SetGenesis(genesisPath), node.SetConfig(config))
@@ -178,7 +177,6 @@ func TestChainSubscriptionRPC(t *testing.T) {
 		},
 	}
 
-	t.Log("starting gossamer...")
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
 	config := config.CreateDefault(t)
 	node := node.New(t, node.SetIndex(1),

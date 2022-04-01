@@ -25,7 +25,6 @@ func TestStateRPCResponseValidation(t *testing.T) {
 		return
 	}
 
-	t.Log("starting gossamer...")
 	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
 	config := config.CreateDefault(t)
 	node := node.New(t, node.SetIndex(1),
@@ -136,7 +135,6 @@ func TestStateRPCAPI(t *testing.T) {
 		return
 	}
 
-	t.Log("starting gossamer...")
 	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
 	config := config.CreateDefault(t)
 	node := node.New(t, node.SetIndex(1),
@@ -342,7 +340,6 @@ func TestRPCStructParamUnmarshal(t *testing.T) {
 		return
 	}
 
-	t.Log("starting gossamer...")
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
 	config := config.CreateDefault(t)
 	node := node.New(t, node.SetIndex(1),

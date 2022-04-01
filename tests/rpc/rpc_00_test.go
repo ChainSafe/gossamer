@@ -5,8 +5,6 @@ package rpc
 
 import (
 	"context"
-	"fmt"
-	"os"
 	"reflect"
 	"testing"
 
@@ -17,14 +15,6 @@ import (
 var (
 	rpcSuite = "rpc"
 )
-
-func TestMain(m *testing.M) {
-	fmt.Println("Going to start RPC suite test")
-
-	// Start all tests
-	code := m.Run()
-	os.Exit(code)
-}
 
 type testCase struct {
 	description string

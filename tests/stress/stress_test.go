@@ -480,7 +480,6 @@ func TestSync_Restart(t *testing.T) {
 
 func TestSync_SubmitExtrinsic(t *testing.T) {
 	t.Skip()
-	t.Log("starting gossamer...")
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -651,8 +650,6 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 }
 
 func Test_SubmitAndWatchExtrinsic(t *testing.T) {
-	t.Log("starting gossamer...")
-
 	// start block producing node first
 	blockProducingNodeBasePath := t.TempDir()
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)

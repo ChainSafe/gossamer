@@ -28,7 +28,6 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 		return
 	}
 
-	t.Log("starting gossamer...")
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
 	config := config.CreateDefault(t)
 
@@ -133,7 +132,6 @@ func TestAuthorRPC(t *testing.T) {
 		},
 	}
 
-	t.Log("starting gossamer...")
 	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
 	config := config.CreateDefault(t)
 	node := node.New(t, node.SetIndex(1),

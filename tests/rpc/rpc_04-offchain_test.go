@@ -38,7 +38,6 @@ func TestOffchainRPC(t *testing.T) {
 		},
 	}
 
-	t.Log("starting gossamer...")
 	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
 	config := config.CreateDefault(t)
 	node := node.New(t, node.SetIndex(1),
