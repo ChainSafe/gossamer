@@ -4,9 +4,11 @@
 package utils
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -15,8 +17,10 @@ import (
 )
 
 // GetChainHead calls the endpoint chain_getHeader to get the latest chain head
-func GetChainHead(t *testing.T, node *Node) *types.Header {
-	respBody, err := PostRPC(ChainGetHeader, NewEndpoint(node.RPCPort), "[]")
+func GetChainHead(ctx context.Context, t *testing.T, node *Node) *types.Header {
+	endpoint := NewEndpoint(node.RPCPort)
+	const params = "[]"
+	respBody, err := PostRPC(ctx, endpoint, ChainGetHeader, params)
 	require.NoError(t, err)
 
 	header := new(modules.ChainBlockHeaderResponse)
@@ -27,8 +31,10 @@ func GetChainHead(t *testing.T, node *Node) *types.Header {
 }
 
 // GetChainHeadWithError calls the endpoint chain_getHeader to get the latest chain head
-func GetChainHeadWithError(t *testing.T, node *Node) (*types.Header, error) {
-	respBody, err := PostRPC(ChainGetHeader, NewEndpoint(node.RPCPort), "[]")
+func GetChainHeadWithError(ctx context.Context, t *testing.T, node *Node) (*types.Header, error) {
+	endpoint := NewEndpoint(node.RPCPort)
+	const params = "[]"
+	respBody, err := PostRPC(ctx, endpoint, ChainGetHeader, params)
 	require.NoError(t, err)
 
 	header := new(modules.ChainBlockHeaderResponse)
@@ -40,12 +46,14 @@ func GetChainHeadWithError(t *testing.T, node *Node) (*types.Header, error) {
 	return headerResponseToHeader(t, header), nil
 }
 
-// GetBlockHash calls the endpoint chain_getBlockHash to get the latest chain head
-func GetBlockHash(t *testing.T, node *Node, num string) (common.Hash, error) {
-	respBody, err := PostRPCWithRetry(ChainGetBlockHash, NewEndpoint(node.RPCPort), "["+num+"]", 5)
-	if err != nil {
-		return common.Hash{}, err
-	}
+// GetBlockHash calls the endpoint chain_getBlockHash to get the latest chain head.
+// It will block until a response is received or the context gets canceled.
+func GetBlockHash(ctx context.Context, t *testing.T, node *Node, num string) (common.Hash, error) {
+	endpoint := NewEndpoint(node.RPCPort)
+	params := "[" + num + "]"
+	const requestWait = time.Second
+	respBody, err := PostRPCWithRetry(ctx, endpoint, ChainGetBlockHash, params, requestWait)
+	require.NoError(t, err)
 
 	var hash string
 	err = DecodeRPC(t, respBody, &hash)
@@ -56,8 +64,11 @@ func GetBlockHash(t *testing.T, node *Node, num string) (common.Hash, error) {
 }
 
 // GetFinalizedHead calls the endpoint chain_getFinalizedHead to get the latest finalised head
-func GetFinalizedHead(t *testing.T, node *Node) common.Hash {
-	respBody, err := PostRPC(ChainGetFinalizedHead, NewEndpoint(node.RPCPort), "[]")
+func GetFinalizedHead(ctx context.Context, t *testing.T, node *Node) common.Hash {
+	endpoint := NewEndpoint(node.RPCPort)
+	method := ChainGetFinalizedHead
+	const params = "[]"
+	respBody, err := PostRPC(ctx, endpoint, method, params)
 	require.NoError(t, err)
 
 	var hash string
@@ -68,9 +79,12 @@ func GetFinalizedHead(t *testing.T, node *Node) common.Hash {
 
 // GetFinalizedHeadByRound calls the endpoint chain_getFinalizedHeadByRound to get the finalised head at a given round
 // TODO: add setID, hard-coded at 1 for now
-func GetFinalizedHeadByRound(t *testing.T, node *Node, round uint64) (common.Hash, error) {
+func GetFinalizedHeadByRound(ctx context.Context, t *testing.T, node *Node, round uint64) (common.Hash, error) {
 	p := strconv.Itoa(int(round))
-	respBody, err := PostRPC(ChainGetFinalizedHeadByRound, NewEndpoint(node.RPCPort), "["+p+",1]")
+	endpoint := NewEndpoint(node.RPCPort)
+	method := ChainGetFinalizedHeadByRound
+	params := "[" + p + ",1]"
+	respBody, err := PostRPC(ctx, endpoint, method, params)
 	require.NoError(t, err)
 
 	var hash string
@@ -83,8 +97,11 @@ func GetFinalizedHeadByRound(t *testing.T, node *Node, round uint64) (common.Has
 }
 
 // GetBlock calls the endpoint chain_getBlock
-func GetBlock(t *testing.T, node *Node, hash common.Hash) *types.Block {
-	respBody, err := PostRPC(ChainGetBlock, NewEndpoint(node.RPCPort), "[\""+hash.String()+"\"]")
+func GetBlock(ctx context.Context, t *testing.T, node *Node, hash common.Hash) *types.Block {
+	endpoint := NewEndpoint(node.RPCPort)
+	method := ChainGetBlock
+	params := fmt.Sprintf(`["%s"]`, hash)
+	respBody, err := PostRPC(ctx, endpoint, method, params)
 	require.NoError(t, err)
 
 	block := new(modules.ChainBlockResponse)

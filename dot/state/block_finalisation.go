@@ -117,6 +117,7 @@ func (bs *BlockState) GetHighestFinalisedHeader() (*types.Header, error) {
 func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) error {
 	bs.Lock()
 	defer bs.Unlock()
+
 	has, _ := bs.HasHeader(hash)
 	if !has {
 		return fmt.Errorf("cannot finalise unknown block %s", hash)

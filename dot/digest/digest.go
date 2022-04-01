@@ -6,7 +6,9 @@ package digest
 import (
 	"context"
 	"errors"
+	"fmt"
 
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/services"
@@ -15,6 +17,8 @@ import (
 
 var (
 	_ services.Service = &Handler{}
+
+	ErrDefineNextEpoch = errors.New("cannot define next epoch data and config")
 )
 
 // Handler is used to handle consensus messages and relevant authority updates to BABE and GRANDPA
@@ -118,12 +122,14 @@ func (h *Handler) NextGrandpaAuthorityChange() (next uint) {
 func (h *Handler) HandleDigests(header *types.Header) {
 	for i, d := range header.Digest.Types {
 		val, ok := d.Value().(types.ConsensusDigest)
-		if ok {
-			err := h.handleConsensusDigest(&val, header)
-			if err != nil {
-				h.logger.Errorf("cannot handle digests for block number %d, index %d, digest %s: %s",
-					header.Number, i, d.Value(), err)
-			}
+		if !ok {
+			continue
+		}
+
+		err := h.handleConsensusDigest(&val, header)
+		if err != nil {
+			h.logger.Errorf("cannot handle digest for block number %d, index %d, digest %s: %s",
+				header.Number, i, d.Value(), err)
 		}
 	}
 }
@@ -175,15 +181,35 @@ func (h *Handler) handleGrandpaConsensusDigest(digest scale.VaryingDataType, hea
 }
 
 func (h *Handler) handleBabeConsensusDigest(digest scale.VaryingDataType, header *types.Header) error {
+	headerHash := header.Hash()
+
 	switch val := digest.Value().(type) {
 	case types.NextEpochData:
-		h.logger.Debugf("handling BABENextEpochData data: %v", digest)
-		return h.handleNextEpochData(val, header)
+		currEpoch, err := h.epochState.GetEpochForBlock(header)
+		if err != nil {
+			return fmt.Errorf("cannot get epoch for block %d (%s): %w",
+				header.Number, headerHash, err)
+		}
+
+		nextEpoch := currEpoch + 1
+		h.epochState.StoreBABENextEpochData(nextEpoch, headerHash, val)
+		h.logger.Debugf("stored BABENextEpochData data: %v for hash: %s to epoch: %d", digest, headerHash, nextEpoch)
+		return nil
+
 	case types.BABEOnDisabled:
 		return h.handleBABEOnDisabled(val, header)
+
 	case types.NextConfigData:
-		h.logger.Debugf("handling BABENextConfigData data: %v", digest)
-		return h.handleNextConfigData(val, header)
+		currEpoch, err := h.epochState.GetEpochForBlock(header)
+		if err != nil {
+			return fmt.Errorf("cannot get epoch for block %d (%s): %w",
+				header.Number, headerHash, err)
+		}
+
+		nextEpoch := currEpoch + 1
+		h.epochState.StoreBABENextConfigData(nextEpoch, headerHash, val)
+		h.logger.Debugf("stored BABENextConfigData data: %v for hash: %s to epoch: %d", digest, headerHash, nextEpoch)
+		return nil
 	}
 
 	return errors.New("invalid consensus digest data")
@@ -197,6 +223,7 @@ func (h *Handler) handleBlockImport(ctx context.Context) {
 				continue
 			}
 
+			h.HandleDigests(&block.Header)
 			err := h.handleGrandpaChangesOnImport(block.Header.Number)
 			if err != nil {
 				h.logger.Errorf("failed to handle grandpa changes on block import: %s", err)
@@ -215,7 +242,12 @@ func (h *Handler) handleBlockFinalisation(ctx context.Context) {
 				continue
 			}
 
-			err := h.handleGrandpaChangesOnFinalization(info.Header.Number)
+			err := h.persistBABEDigestsForNextEpoch(&info.Header)
+			if err != nil {
+				h.logger.Errorf("failed to store babe next epoch digest: %s", err)
+			}
+
+			err = h.handleGrandpaChangesOnFinalization(info.Header.Number)
 			if err != nil {
 				h.logger.Errorf("failed to handle grandpa changes on block finalisation: %s", err)
 			}
@@ -223,6 +255,35 @@ func (h *Handler) handleBlockFinalisation(ctx context.Context) {
 			return
 		}
 	}
+}
+
+// persistBABEDigestsForNextEpoch is called only when a block is finalised
+// and defines the correct next epoch data and next config data.
+func (h *Handler) persistBABEDigestsForNextEpoch(finalizedHeader *types.Header) error {
+	currEpoch, err := h.epochState.GetEpochForBlock(finalizedHeader)
+	if err != nil {
+		return fmt.Errorf("cannot get epoch for block %d (%s): %w",
+			finalizedHeader.Number, finalizedHeader.Hash(), err)
+	}
+
+	nextEpoch := currEpoch + 1
+	err = h.epochState.FinalizeBABENextEpochData(nextEpoch)
+	if err != nil && !errors.Is(err, state.ErrEpochNotInMemory) {
+		return fmt.Errorf("cannot finalize babe next epoch data for block number %d (%s): %w",
+			finalizedHeader.Number, finalizedHeader.Hash(), err)
+	}
+
+	err = h.epochState.FinalizeBABENextConfigData(nextEpoch)
+	if err == nil {
+		return nil
+	} else if errors.Is(err, state.ErrEpochNotInMemory) {
+		return fmt.Errorf("%w: %s", ErrDefineNextEpoch, err)
+	}
+
+	// the epoch state does not contains any information about the next epoch
+	return fmt.Errorf("cannot finalize babe next config data for block number %d (%s): %w",
+		finalizedHeader.Number, finalizedHeader.Hash(), err)
+
 }
 
 func (h *Handler) handleGrandpaChangesOnImport(num uint) error {
@@ -233,17 +294,12 @@ func (h *Handler) handleGrandpaChangesOnImport(num uint) error {
 
 	fc := h.grandpaForcedChange
 	if fc != nil && num >= fc.atBlock {
-		err := h.grandpaState.IncrementSetID()
+		curr, err := h.grandpaState.IncrementSetID()
 		if err != nil {
 			return err
 		}
 
 		h.grandpaForcedChange = nil
-		curr, err := h.grandpaState.GetCurrentSetID()
-		if err != nil {
-			return err
-		}
-
 		h.logger.Debugf("incremented grandpa set id %d", curr)
 	}
 
@@ -258,17 +314,12 @@ func (h *Handler) handleGrandpaChangesOnFinalization(num uint) error {
 
 	sc := h.grandpaScheduledChange
 	if sc != nil && num >= sc.atBlock {
-		err := h.grandpaState.IncrementSetID()
+		curr, err := h.grandpaState.IncrementSetID()
 		if err != nil {
 			return err
 		}
 
 		h.grandpaScheduledChange = nil
-		curr, err := h.grandpaState.GetCurrentSetID()
-		if err != nil {
-			return err
-		}
-
 		h.logger.Debugf("incremented grandpa set id %d", curr)
 	}
 
@@ -381,33 +432,4 @@ func newGrandpaChange(raw []types.GrandpaAuthoritiesRaw, delay uint32, currBlock
 func (h *Handler) handleBABEOnDisabled(_ types.BABEOnDisabled, _ *types.Header) error {
 	h.logger.Debug("handling BABEOnDisabled")
 	return nil
-}
-
-func (h *Handler) handleNextEpochData(act types.NextEpochData, header *types.Header) error {
-	currEpoch, err := h.epochState.GetEpochForBlock(header)
-	if err != nil {
-		return err
-	}
-
-	// set EpochState epoch data for upcoming epoch
-	data, err := act.ToEpochData()
-	if err != nil {
-		return err
-	}
-
-	h.logger.Debugf("setting data for block number %d and epoch %d with data: %v",
-		header.Number, currEpoch+1, data)
-	return h.epochState.SetEpochData(currEpoch+1, data)
-}
-
-func (h *Handler) handleNextConfigData(config types.NextConfigData, header *types.Header) error {
-	currEpoch, err := h.epochState.GetEpochForBlock(header)
-	if err != nil {
-		return err
-	}
-
-	h.logger.Debugf("setting BABE config data for block number %d and epoch %d with data: %v",
-		header.Number, currEpoch+1, config.ToConfigData())
-	// set EpochState config data for upcoming epoch
-	return h.epochState.SetConfigData(currEpoch+1, config.ToConfigData())
 }

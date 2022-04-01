@@ -4,6 +4,7 @@
 package sync
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -62,11 +63,20 @@ func TestMain(m *testing.M) {
 
 // this starts nodes and runs RPC calls (which loads db)
 func TestCalls(t *testing.T) {
+	ctx := context.Background()
+
 	err := framework.StartNodes(t)
 	require.Len(t, err, 0)
 	for _, call := range tests {
 		time.Sleep(call.delay)
-		_, err := framework.CallRPC(call.nodeIdx, call.method, call.params)
+
+		const callRPCTimeout = time.Second
+		callRPCCtx, cancel := context.WithTimeout(ctx, callRPCTimeout)
+
+		_, err := framework.CallRPC(callRPCCtx, call.nodeIdx, call.method, call.params)
+
+		cancel()
+
 		require.NoError(t, err)
 	}
 

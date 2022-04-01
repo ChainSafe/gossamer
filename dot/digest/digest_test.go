@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"context"
+
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -380,16 +382,13 @@ func createHeaderWithPreDigest(t *testing.T, slotNumber uint64) *types.Header {
 	require.NoError(t, err)
 
 	return &types.Header{
+		Number: 1,
 		Digest: digest,
 	}
 }
 
 func TestHandler_HandleNextEpochData(t *testing.T) {
-	expData := common.MustHexToBytes("0x0108d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01000000000000008eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a4801000000000000004d58630000000000000000000000000000000000000000000000000000000000") //nolint:lll
-
-	handler, _ := newTestHandler(t)
-	handler.Start()
-	defer handler.Stop()
+	expectedDigestBytes := common.MustHexToBytes("0x0108d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01000000000000008eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a4801000000000000004d58630000000000000000000000000000000000000000000000000000000000") //nolint:lll
 
 	keyring, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
@@ -404,17 +403,19 @@ func TestHandler_HandleNextEpochData(t *testing.T) {
 		Weight: 1,
 	}
 
-	var digest = types.NewBabeConsensusDigest()
-	err = digest.Set(types.NextEpochData{
+	nextEpochData := types.NextEpochData{
 		Authorities: []types.AuthorityRaw{authA, authB},
 		Randomness:  [32]byte{77, 88, 99},
-	})
+	}
+
+	digest := types.NewBabeConsensusDigest()
+	err = digest.Set(nextEpochData)
 	require.NoError(t, err)
 
 	data, err := scale.Marshal(digest)
 	require.NoError(t, err)
 
-	require.Equal(t, expData, data)
+	require.Equal(t, expectedDigestBytes, data)
 
 	d := &types.ConsensusDigest{
 		ConsensusEngineID: types.BabeEngineID,
@@ -422,11 +423,33 @@ func TestHandler_HandleNextEpochData(t *testing.T) {
 	}
 
 	header := createHeaderWithPreDigest(t, 10)
+	handler, stateSrv := newTestHandler(t)
 
 	err = handler.handleConsensusDigest(d, header)
 	require.NoError(t, err)
 
-	stored, err := handler.epochState.(*state.EpochState).GetEpochData(1)
+	const targetEpoch = 1
+
+	blockHeaderKey := append([]byte("hdr"), header.Hash().ToBytes()...)
+	blockHeaderKey = append([]byte("block"), blockHeaderKey...)
+	err = stateSrv.DB().Put(blockHeaderKey, []byte{})
+	require.NoError(t, err)
+
+	handler.finalised = make(chan *types.FinalisationInfo, 1)
+
+	const timeout = time.Second
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	handler.finalised <- &types.FinalisationInfo{
+		Header: *header,
+		Round:  1,
+		SetID:  1,
+	}
+
+	handler.handleBlockFinalisation(ctx)
+
+	stored, err := handler.epochState.(*state.EpochState).GetEpochData(targetEpoch, nil)
 	require.NoError(t, err)
 
 	act, ok := digest.Value().(types.NextEpochData)
@@ -440,16 +463,14 @@ func TestHandler_HandleNextEpochData(t *testing.T) {
 }
 
 func TestHandler_HandleNextConfigData(t *testing.T) {
-	handler, _ := newTestHandler(t)
-	handler.Start()
-	defer handler.Stop()
-
 	var digest = types.NewBabeConsensusDigest()
-	err := digest.Set(types.NextConfigData{
+	nextConfigData := types.NextConfigData{
 		C1:             1,
 		C2:             8,
 		SecondarySlots: 1,
-	})
+	}
+
+	err := digest.Set(nextConfigData)
 	require.NoError(t, err)
 
 	data, err := scale.Marshal(digest)
@@ -462,15 +483,38 @@ func TestHandler_HandleNextConfigData(t *testing.T) {
 
 	header := createHeaderWithPreDigest(t, 10)
 
+	handler, stateSrv := newTestHandler(t)
+
 	err = handler.handleConsensusDigest(d, header)
 	require.NoError(t, err)
+
+	const targetEpoch = 1
+
+	blockHeaderKey := append([]byte("hdr"), header.Hash().ToBytes()...)
+	blockHeaderKey = append([]byte("block"), blockHeaderKey...)
+	err = stateSrv.DB().Put(blockHeaderKey, []byte{})
+	require.NoError(t, err)
+
+	handler.finalised = make(chan *types.FinalisationInfo, 1)
+
+	const timeout = time.Second
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	handler.finalised <- &types.FinalisationInfo{
+		Header: *header,
+		Round:  1,
+		SetID:  1,
+	}
+
+	handler.handleBlockFinalisation(ctx)
 
 	act, ok := digest.Value().(types.NextConfigData)
 	if !ok {
 		t.Fatal()
 	}
 
-	stored, err := handler.epochState.(*state.EpochState).GetConfigData(1)
+	stored, err := handler.epochState.(*state.EpochState).GetConfigData(targetEpoch, nil)
 	require.NoError(t, err)
 	require.Equal(t, act.ToConfigData(), stored)
 }

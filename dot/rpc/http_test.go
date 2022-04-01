@@ -366,7 +366,6 @@ func externalIP() (string, error) {
 }
 
 //go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
-//go:generate mockgen -destination=mock_digesthandler_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/core DigestHandler
 //go:generate mockgen -destination=mock_network_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/core Network
 
 func newCoreServiceTest(t *testing.T) *core.Service {
@@ -406,12 +405,6 @@ func newCoreServiceTest(t *testing.T) *core.Service {
 		TransactionState:     stateSrvc.Transaction,
 		CodeSubstitutedState: stateSrvc.Base,
 	}
-
-	digestHandler := NewMockDigestHandler(ctrl)
-	digestHandler.EXPECT().
-		HandleDigests(gomock.AssignableToTypeOf(new(types.Header))).
-		AnyTimes()
-	cfg.DigestHandler = digestHandler
 
 	cfg.Keystore = keystore.NewGlobalKeystore()
 	kp, err := sr25519.GenerateKeypair()

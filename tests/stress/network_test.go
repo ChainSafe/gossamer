@@ -4,6 +4,7 @@
 package stress
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -27,8 +28,14 @@ func TestNetwork_MaxPeers(t *testing.T) {
 	// wait for nodes to connect
 	time.Sleep(time.Second * 10)
 
+	ctx := context.Background()
+
 	for i, node := range nodes {
-		peers := utils.GetPeers(t, node)
+		const getPeersTimeout = time.Second
+		getPeersCtx, cancel := context.WithTimeout(ctx, getPeersTimeout)
+		peers := utils.GetPeers(getPeersCtx, t, node)
+		cancel()
+
 		t.Logf("node %d: peer count=%d", i, len(peers))
 		require.LessOrEqual(t, len(peers), 5)
 	}

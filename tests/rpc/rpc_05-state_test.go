@@ -4,6 +4,7 @@
 package rpc
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -33,7 +34,11 @@ func TestStateRPCResponseValidation(t *testing.T) {
 
 	time.Sleep(time.Second) // give server a second to start
 
-	blockHash, err := utils.GetBlockHash(t, nodes[0], "")
+	ctx := context.Background()
+
+	getBlockHashCtx, cancel := context.WithTimeout(ctx, time.Second)
+	blockHash, err := utils.GetBlockHash(getBlockHashCtx, t, nodes[0], "")
+	cancel()
 	require.NoError(t, err)
 
 	testCases := []*testCase{
@@ -118,7 +123,10 @@ func TestStateRPCResponseValidation(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(test.description, func(t *testing.T) {
-			_ = getResponse(t, test)
+			ctx := context.Background()
+			getResponseCtx, cancel := context.WithTimeout(ctx, time.Second)
+			defer cancel()
+			_ = getResponse(getResponseCtx, t, test)
 		})
 	}
 
@@ -142,7 +150,11 @@ func TestStateRPCAPI(t *testing.T) {
 
 	time.Sleep(5 * time.Second) // Wait for block production
 
-	blockHash, err := utils.GetBlockHash(t, nodes[0], "")
+	ctx := context.Background()
+
+	getBlockHashCtx, cancel := context.WithTimeout(ctx, time.Second)
+	blockHash, err := utils.GetBlockHash(getBlockHashCtx, t, nodes[0], "")
+	cancel()
 	require.NoError(t, err)
 
 	const (
@@ -319,7 +331,11 @@ func TestStateRPCAPI(t *testing.T) {
 	// Cases for valid block hash in RPC params
 	for _, test := range testCases {
 		t.Run(test.description, func(t *testing.T) {
-			respBody, err := utils.PostRPC(test.method, utils.NewEndpoint(nodes[0].RPCPort), test.params)
+			ctx := context.Background()
+			postRPCCtx, cancel := context.WithTimeout(ctx, time.Second)
+			endpoint := utils.NewEndpoint(nodes[0].RPCPort)
+			respBody, err := utils.PostRPC(postRPCCtx, endpoint, test.method, test.params)
+			cancel()
 			require.NoError(t, err)
 
 			require.Contains(t, string(respBody), test.expected)
@@ -351,7 +367,12 @@ func TestRPCStructParamUnmarshal(t *testing.T) {
 		params:      `[["0xf2794c22e353e9a839f12faab03a911bf68967d635641a7087e53f2bff1ecad3c6756fee45ec79ead60347fffb770bcdf0ec74da701ab3d6495986fe1ecc3027"],"0xa32c60dee8647b07435ae7583eb35cee606209a595718562dd4a486a07b6de15", null]`, //nolint:lll
 	}
 	t.Run(test.description, func(t *testing.T) {
-		respBody, err := utils.PostRPC(test.method, utils.NewEndpoint(nodes[0].RPCPort), test.params)
+		ctx := context.Background()
+
+		postRPCCtx, cancel := context.WithTimeout(ctx, time.Second)
+		endpoint := utils.NewEndpoint(nodes[0].RPCPort)
+		respBody, err := utils.PostRPC(postRPCCtx, endpoint, test.method, test.params)
+		cancel()
 		require.NoError(t, err)
 		require.NotContains(t, string(respBody), "json: cannot unmarshal")
 		fmt.Println(string(respBody))

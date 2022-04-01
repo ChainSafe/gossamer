@@ -72,7 +72,7 @@ func (v *VerificationManager) SetOnDisabled(index uint32, header *types.Header) 
 	defer v.lock.Unlock()
 
 	if _, has := v.epochInfo[epoch]; !has {
-		info, err := v.getVerifierInfo(epoch)
+		info, err := v.getVerifierInfo(epoch, header)
 		if err != nil {
 			return err
 		}
@@ -127,6 +127,7 @@ func (v *VerificationManager) SetOnDisabled(index uint32, header *types.Header) 
 }
 
 // VerifyBlock verifies that the block producer for the given block was authorized to produce it.
+// It checks the next epoch and config data stored in memory only if it cannot retrieve the data from database
 // It returns an error if the block is invalid.
 func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 	var (
@@ -165,7 +166,7 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 	v.lock.Lock()
 
 	if info, has = v.epochInfo[epoch]; !has {
-		info, err = v.getVerifierInfo(epoch)
+		info, err = v.getVerifierInfo(epoch, header)
 		if err != nil {
 			v.lock.Unlock()
 			// SkipVerify is set to true only in the case where we have imported a state at a given height,
@@ -195,13 +196,13 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 	return verifier.verifyAuthorshipRight(header)
 }
 
-func (v *VerificationManager) getVerifierInfo(epoch uint64) (*verifierInfo, error) {
-	epochData, err := v.epochState.GetEpochData(epoch)
+func (v *VerificationManager) getVerifierInfo(epoch uint64, header *types.Header) (*verifierInfo, error) {
+	epochData, err := v.epochState.GetEpochData(epoch, header)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get epoch data for epoch %d: %w", epoch, err)
 	}
 
-	configData, err := v.getConfigData(epoch)
+	configData, err := v.getConfigData(epoch, header)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get config data: %w", err)
 	}
@@ -219,16 +220,16 @@ func (v *VerificationManager) getVerifierInfo(epoch uint64) (*verifierInfo, erro
 	}, nil
 }
 
-func (v *VerificationManager) getConfigData(epoch uint64) (*types.ConfigData, error) {
+func (v *VerificationManager) getConfigData(epoch uint64, header *types.Header) (*types.ConfigData, error) {
 	for i := int(epoch); i >= 0; i-- {
 		has, err := v.epochState.HasConfigData(uint64(i))
 		if err != nil {
 			return nil, err
+		} else if !has {
+			continue
 		}
 
-		if has {
-			return v.epochState.GetConfigData(uint64(i))
-		}
+		return v.epochState.GetConfigData(uint64(i), header)
 	}
 
 	return nil, errNoConfigData

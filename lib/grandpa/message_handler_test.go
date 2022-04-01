@@ -619,10 +619,7 @@ func TestMessageHandler_VerifyBlockJustification_WithEquivocatoryVotes(t *testin
 	err = st.Block.AddBlock(block)
 	require.NoError(t, err)
 
-	err = st.Grandpa.IncrementSetID()
-	require.NoError(t, err)
-
-	setID, err := st.Grandpa.GetCurrentSetID()
+	setID, err := st.Grandpa.IncrementSetID()
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), setID)
 
@@ -664,10 +661,7 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	err = st.Block.AddBlock(block)
 	require.NoError(t, err)
 
-	err = st.Grandpa.IncrementSetID()
-	require.NoError(t, err)
-
-	setID, err := st.Grandpa.GetCurrentSetID()
+	setID, err := st.Grandpa.IncrementSetID()
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), setID)
 
@@ -721,10 +715,7 @@ func TestMessageHandler_VerifyBlockJustification_invalid(t *testing.T) {
 	err = st.Block.AddBlock(block)
 	require.NoError(t, err)
 
-	err = st.Grandpa.IncrementSetID()
-	require.NoError(t, err)
-
-	setID, err := st.Grandpa.GetCurrentSetID()
+	setID, err := st.Grandpa.IncrementSetID()
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), setID)
 
