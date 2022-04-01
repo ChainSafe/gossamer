@@ -36,6 +36,7 @@ func New(t *testing.T, options ...Option) (node Node) {
 		option(&node)
 	}
 	node.setDefaults(t)
+	node.setWriterPrefix()
 	return node
 }
 
@@ -273,4 +274,15 @@ func (n Node) InitAndStartTest(ctx context.Context, t *testing.T,
 		<-waitErr
 		t.Logf("Node %s terminated", n)
 	})
+}
+
+func (n *Node) setWriterPrefix() {
+	if n.writer == io.Discard {
+		return // no need to wrap it
+	}
+
+	n.writer = &prefixedWriter{
+		prefix: []byte(n.String() + " "),
+		writer: n.writer,
+	}
 }

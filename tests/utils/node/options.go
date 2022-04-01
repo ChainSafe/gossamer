@@ -1,5 +1,7 @@
 package node
 
+import "io"
+
 // Option is an option to use with the `New` constructor.
 type Option func(node *Node)
 
@@ -42,5 +44,12 @@ func SetBabeLead(babeLead bool) Option {
 func SetWebsocket(websocket bool) Option {
 	return func(node *Node) {
 		node.websocket = boolPtr(websocket)
+	}
+}
+
+// SetWriter sets the writer for the node.
+func SetWriter(writer io.Writer) Option {
+	return func(node *Node) {
+		node.writer = writer
 	}
 }

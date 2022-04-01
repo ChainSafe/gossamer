@@ -33,6 +33,7 @@ func MakeNodes(t *testing.T, num int, options ...Option) (nodes Nodes) {
 
 		// Set node defaults on the remaining unset fields
 		nodes[i].setDefaults(t)
+		nodes[i].setWriterPrefix()
 	}
 	return nodes
 }
