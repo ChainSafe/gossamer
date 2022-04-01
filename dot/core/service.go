@@ -50,7 +50,6 @@ type Service struct {
 	storageState     StorageState
 	transactionState TransactionState
 	net              Network
-	digestHandler    DigestHandler
 
 	// map of code substitutions keyed by block hash
 	codeSubstitute       map[common.Hash]string
@@ -71,7 +70,6 @@ type Config struct {
 	Network          Network
 	Keystore         *keystore.GlobalKeystore
 	Runtime          runtime.Instance
-	DigestHandler    DigestHandler
 
 	CodeSubstitutes      map[common.Hash]string
 	CodeSubstitutedState CodeSubstitutedState
@@ -96,10 +94,6 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, ErrNilNetwork
 	}
 
-	if cfg.DigestHandler == nil {
-		return nil, ErrNilDigestHandler
-	}
-
 	if cfg.CodeSubstitutedState == nil {
 		return nil, errNilCodeSubstitutedState
 	}
@@ -121,7 +115,6 @@ func NewService(cfg *Config) (*Service, error) {
 		blockAddCh:           blockAddCh,
 		codeSubstitute:       cfg.CodeSubstitutes,
 		codeSubstitutedState: cfg.CodeSubstitutedState,
-		digestHandler:        cfg.DigestHandler,
 	}
 
 	return srv, nil
@@ -217,9 +210,6 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 
 	logger.Debugf("imported block %s and stored state trie with root %s",
 		block.Header.Hash(), state.MustRoot())
-
-	// handle consensus digests
-	s.digestHandler.HandleDigests(&block.Header)
 
 	rt, err := s.blockState.GetRuntime(&block.Header.ParentHash)
 	if err != nil {

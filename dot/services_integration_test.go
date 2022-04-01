@@ -59,10 +59,7 @@ func TestCreateCoreService(t *testing.T) {
 
 	networkSrvc := &network.Service{}
 
-	dh, err := createDigestHandler(cfg.Log.DigestLvl, stateSrvc)
-	require.NoError(t, err)
-
-	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, networkSrvc, dh)
+	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, networkSrvc)
 	require.NoError(t, err)
 	require.NotNil(t, coreSrvc)
 }
@@ -105,10 +102,7 @@ func TestCreateSyncService(t *testing.T) {
 	ver, err := createBlockVerifier(stateSrvc)
 	require.NoError(t, err)
 
-	dh, err := createDigestHandler(cfg.Log.DigestLvl, stateSrvc)
-	require.NoError(t, err)
-
-	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, &network.Service{}, dh)
+	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, &network.Service{})
 	require.NoError(t, err)
 
 	_, err = newSyncService(cfg, stateSrvc, &grandpa.Service{}, ver, coreSrvc, &network.Service{}, nil)
@@ -162,10 +156,7 @@ func TestCreateRPCService(t *testing.T) {
 	err = loadRuntime(cfg, ns, stateSrvc, ks, networkSrvc)
 	require.NoError(t, err)
 
-	dh, err := createDigestHandler(cfg.Log.DigestLvl, stateSrvc)
-	require.NoError(t, err)
-
-	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, networkSrvc, dh)
+	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, networkSrvc)
 	require.NoError(t, err)
 
 	sysSrvc, err := createSystemService(&cfg.System, stateSrvc)
@@ -208,10 +199,7 @@ func TestCreateBABEService(t *testing.T) {
 	err = loadRuntime(cfg, ns, stateSrvc, ks, &network.Service{})
 	require.NoError(t, err)
 
-	dh, err := createDigestHandler(cfg.Log.DigestLvl, stateSrvc)
-	require.NoError(t, err)
-
-	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, &network.Service{}, dh)
+	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, &network.Service{})
 	require.NoError(t, err)
 
 	bs, err := createBABEService(cfg, stateSrvc, ks.Babe, coreSrvc, nil)
@@ -312,10 +300,7 @@ func TestNewWebSocketServer(t *testing.T) {
 	err = loadRuntime(cfg, ns, stateSrvc, ks, networkSrvc)
 	require.NoError(t, err)
 
-	dh, err := createDigestHandler(cfg.Log.DigestLvl, stateSrvc)
-	require.NoError(t, err)
-
-	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, networkSrvc, dh)
+	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, networkSrvc)
 	require.NoError(t, err)
 
 	sysSrvc, err := createSystemService(&cfg.System, stateSrvc)

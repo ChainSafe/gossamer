@@ -229,7 +229,7 @@ func createBABEService(cfg *Config, st *state.Service, ks keystore.Keystore,
 
 // createCoreService creates the core service from the provided core configuration
 func createCoreService(cfg *Config, ks *keystore.GlobalKeystore,
-	st *state.Service, net *network.Service, dh *digest.Handler) (
+	st *state.Service, net *network.Service) (
 	*core.Service, error) {
 	logger.Debug("creating core service" +
 		asAuthority(cfg.Core.Roles == types.AuthorityRole) +
@@ -254,7 +254,6 @@ func createCoreService(cfg *Config, ks *keystore.GlobalKeystore,
 		TransactionState:     st.Transaction,
 		Keystore:             ks,
 		Network:              net,
-		DigestHandler:        dh,
 		CodeSubstitutes:      codeSubs,
 		CodeSubstitutedState: st.Base,
 	}
