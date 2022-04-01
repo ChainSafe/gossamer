@@ -5,6 +5,7 @@ package main
 
 import (
 	"fmt"
+	"path/filepath"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot"
@@ -48,10 +49,13 @@ func exportAction(ctx *cli.Context) error {
 	}
 
 	tomlCfg := dotConfigToToml(cfg)
-	file := exportConfig(tomlCfg, config)
-	// export config will exit and log error on error
 
-	logger.Info("exported toml configuration to " + file.Name())
+	config = filepath.Clean(config)
+	err = exportConfig(tomlCfg, config)
+	if err != nil {
+		return fmt.Errorf("failed exporting TOML configuration: %w", err)
+	}
+	logger.Info("exported toml configuration to " + config)
 
 	return nil
 }
