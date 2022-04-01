@@ -40,7 +40,9 @@ func (g *gossip) hasSeen(msg NotificationsMessage) (bool, error) {
 	_, ok := g.seenMap[msgHash]
 	if !ok {
 		// set message to has been seen
-		g.seenMap[msgHash] = struct{}{}
+		if !msg.IsHandshake() {
+			g.seenMap[msgHash] = struct{}{}
+		}
 		return false, nil
 	}
 

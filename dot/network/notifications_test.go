@@ -189,7 +189,9 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 		Roles:           4,
 		BestBlockNumber: 77,
 		BestBlockHash:   common.Hash{1},
-		GenesisHash:     common.Hash{2},
+		// we are using a different genesis here, thus this
+		// handshake would be validated to be incorrect.
+		GenesisHash: common.Hash{2},
 	}
 
 	err = handler(stream, testHandshake)

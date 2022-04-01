@@ -147,9 +147,15 @@ func (*BlockAnnounceHandshake) Type() byte {
 	return 0
 }
 
-// Hash ...
-func (*BlockAnnounceHandshake) Hash() (common.Hash, error) {
-	return common.Hash{}, nil
+// Hash returns blake2b hash of block announce handshake.
+func (hs *BlockAnnounceHandshake) Hash() (common.Hash, error) {
+	// scale encode each extrinsic
+	encMsg, err := hs.Encode()
+	if err != nil {
+		return common.Hash{}, fmt.Errorf("cannot encode handshake: %w", err)
+	}
+
+	return common.Blake2bHash(encMsg)
 }
 
 // IsHandshake returns true
