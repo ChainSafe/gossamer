@@ -128,7 +128,7 @@ func NewBlockStateFromGenesis(db chaindb.Database, trs *Tries, header *types.Hea
 		return nil, err
 	}
 
-	if err := bs.db.Put(headerHashKey(uint64(header.Number)), header.Hash().ToBytes()); err != nil {
+	if err := bs.db.Put(headerHashKey(header.Number), header.Hash().ToBytes()); err != nil {
 		return nil, err
 	}
 
@@ -151,21 +151,15 @@ func NewBlockStateFromGenesis(db chaindb.Database, trs *Tries, header *types.Hea
 	return bs, nil
 }
 
-// encodeBlockNumber encodes a block number as big endian uint64
-func encodeBlockNumber(number uint64) []byte {
-	enc := make([]byte, 8) // encoding results in 8 bytes
-	binary.BigEndian.PutUint64(enc, number)
-	return enc
-}
-
 // headerKey = headerPrefix + hash
 func headerKey(hash common.Hash) []byte {
 	return append(headerPrefix, hash.ToBytes()...)
 }
 
-// headerHashKey = headerHashPrefix + num (uint64 big endian)
-func headerHashKey(number uint64) []byte {
-	return append(headerHashPrefix, encodeBlockNumber(number)...)
+// headerHashKey = headerHashPrefix + num (compact byte slice)
+func headerHashKey(number uint) []byte {
+	encodedNumber := common.UintToBytes(number)
+	return append(headerHashPrefix, encodedNumber...)
 }
 
 // blockBodyKey = blockBodyPrefix + hash
@@ -243,7 +237,7 @@ func (bs *BlockState) GetHashByNumber(num uint) (common.Hash, error) {
 	}
 
 	// if error is ErrNumLowerThanRoot, number has already been finalised, so check db
-	bh, err := bs.db.Get(headerHashKey(uint64(num)))
+	bh, err := bs.db.Get(headerHashKey(num))
 	if err != nil {
 		return common.Hash{}, fmt.Errorf("cannot get block %d: %w", num, err)
 	}

@@ -247,7 +247,7 @@ func (bs *BlockState) handleFinalisedBlock(curr common.Hash) error {
 			return err
 		}
 
-		if err = batch.Put(headerHashKey(uint64(block.Header.Number)), hash.ToBytes()); err != nil {
+		if err = batch.Put(headerHashKey(block.Header.Number), hash.ToBytes()); err != nil {
 			return err
 		}
 
