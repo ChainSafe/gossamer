@@ -1,43 +1,21 @@
 ## Changes
 
-<!--
-
-Please provide a brief but specific list of changes made, describe the changes
-in functionality rather than the changes in code.
-
--->
-
--
--
--
+<!-- Brief list of functional changes -->
 
 ## Tests
 
-<!--
+<!-- Detail how to run relevant tests to the changes -->
 
-Details on how to run tests relevant to the changes within this pull request.
-
--->
-
-```
-
+```sh
+go test -tags integration github.com/ChainSafe/gossamer
 ```
 
 ## Issues
 
-<!--
-
-Please link any issues that this pull request is related to and use the GitHub
-supported format for automatically closing issues (ie, closes #123, fixes #123)
-
--->
-
--
+<!-- Write the issue number(s), for example: #123 -->
 
 ## Primary Reviewer
 
-<!--
-Please indicate one of the code owners that are required to review prior to merging changes (e.g. @noot)
--->
+<!-- Tag a code owner to review your PR -->
 
--
+@noot
