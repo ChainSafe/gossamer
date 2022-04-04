@@ -12,3 +12,5 @@ var ErrNoKeysProvided = errors.New("no keys provided for authority node")
 
 // ErrInvalidKeystoreType when trying to create a service with the wrong keystore type
 var ErrInvalidKeystoreType = errors.New("invalid keystore type")
+
+var ErrWasmInterpreterName = errors.New("unknown wasm interpreter name")

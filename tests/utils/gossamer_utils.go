@@ -443,7 +443,7 @@ func GenerateGenesisThreeAuth() {
 		Logger.Errorf("genesis file not found: %s", err)
 		os.Exit(1)
 	}
-	_ = dot.CreateJSONRawFile(bs, GenesisThreeAuths)
+	dot.CreateJSONRawFile(bs, GenesisThreeAuths)
 }
 
 // GenerateGenesisSixAuth generates Genesis file with six authority.
@@ -453,7 +453,7 @@ func GenerateGenesisSixAuth(t *testing.T) {
 		Logger.Errorf("genesis file not found: %s", err)
 		os.Exit(1)
 	}
-	_ = dot.CreateJSONRawFile(bs, GenesisSixAuths)
+	dot.CreateJSONRawFile(bs, GenesisSixAuths)
 }
 
 func generateDefaultConfig() *ctoml.Config {
@@ -505,7 +505,7 @@ func generateDefaultConfig() *ctoml.Config {
 // CreateDefaultConfig generates and creates default config file.
 func CreateDefaultConfig() {
 	cfg := generateDefaultConfig()
-	_ = dot.ExportTomlConfig(cfg, ConfigDefault)
+	dot.ExportTomlConfig(cfg, ConfigDefault)
 }
 
 func generateConfigLogGrandpa() *ctoml.Config {
@@ -523,7 +523,7 @@ func generateConfigLogGrandpa() *ctoml.Config {
 // CreateConfigLogGrandpa generates and creates grandpa config file.
 func CreateConfigLogGrandpa() {
 	cfg := generateConfigLogGrandpa()
-	_ = dot.ExportTomlConfig(cfg, ConfigLogGrandpa)
+	dot.ExportTomlConfig(cfg, ConfigLogGrandpa)
 }
 
 func generateConfigNoBabe() *ctoml.Config {
@@ -541,7 +541,7 @@ func generateConfigNoBabe() *ctoml.Config {
 // CreateConfigNoBabe generates and creates no babe config file.
 func CreateConfigNoBabe() {
 	cfg := generateConfigNoBabe()
-	_ = dot.ExportTomlConfig(cfg, ConfigNoBABE)
+	dot.ExportTomlConfig(cfg, ConfigNoBABE)
 }
 
 func generateConfigNoGrandpa() *ctoml.Config {
@@ -555,7 +555,7 @@ func generateConfigNoGrandpa() *ctoml.Config {
 // CreateConfigNoGrandpa generates and creates no grandpa config file.
 func CreateConfigNoGrandpa() {
 	cfg := generateConfigNoGrandpa()
-	_ = dot.ExportTomlConfig(cfg, ConfigNoGrandpa)
+	dot.ExportTomlConfig(cfg, ConfigNoGrandpa)
 }
 
 func generateConfigNotAuthority() *ctoml.Config {
@@ -569,5 +569,5 @@ func generateConfigNotAuthority() *ctoml.Config {
 // CreateConfigNotAuthority generates and creates non-authority config file.
 func CreateConfigNotAuthority() {
 	cfg := generateConfigNotAuthority()
-	_ = dot.ExportTomlConfig(cfg, ConfigNotAuthority)
+	dot.ExportTomlConfig(cfg, ConfigNotAuthority)
 }

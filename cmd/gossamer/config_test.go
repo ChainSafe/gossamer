@@ -4,8 +4,12 @@
 package main
 
 import (
+	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"io"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -17,8 +21,8 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/utils"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli"
@@ -948,19 +952,50 @@ func TestGlobalNodeName_WhenNodeAlreadyHasStoredName(t *testing.T) {
 	// Initialise a node with a random name
 	globalName := dot.RandomNodeName()
 
-	cfg := dot.NewTestConfig(t)
+	cfg := newTestConfig(t)
 	cfg.Global.Name = globalName
 	require.NotNil(t, cfg)
 
-	genPath := dot.NewTestGenesisAndRuntime(t)
-	require.NotNil(t, genPath)
+	runtimeFilePath := filepath.Join(t.TempDir(), "runtime")
+	_, testRuntimeURL := runtime.GetRuntimeVars(runtime.NODE_RUNTIME)
+	err := runtime.GetRuntimeBlob(runtimeFilePath, testRuntimeURL)
+	require.NoError(t, err)
+	runtimeData, err := os.ReadFile(runtimeFilePath)
+	require.NoError(t, err)
+
+	fp := utils.GetGssmrGenesisRawPathTest(t)
+
+	gssmrGen, err := genesis.NewGenesisFromJSONRaw(fp)
+	require.NoError(t, err)
+
+	gen := &genesis.Genesis{
+		Name:       "test",
+		ID:         "test",
+		Bootnodes:  []string(nil),
+		ProtocolID: "/gossamer/test/0",
+		Genesis:    gssmrGen.GenesisFields(),
+	}
+
+	gen.Genesis.Raw = map[string]map[string]string{
+		"top": {
+			"0x3a636f6465": "0x" + hex.EncodeToString(runtimeData),
+			"0xcf722c0832b5231d35e29f319ff27389f5032bfc7bfc3ba5ed7839f2042fb99f": "0x0000000000000001",
+		},
+	}
+
+	genData, err := json.Marshal(gen)
+	require.NoError(t, err)
+
+	genPath := filepath.Join(t.TempDir(), "genesis.json")
+	err = os.WriteFile(genPath, genData, os.ModePerm)
+	require.NoError(t, err)
 
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
 	cfg.Init.Genesis = genPath
 
-	err := dot.InitNode(cfg)
+	err = dot.InitNode(cfg)
 	require.NoError(t, err)
 
 	// call another command and test the name
