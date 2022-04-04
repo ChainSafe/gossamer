@@ -79,6 +79,8 @@ func (t *Trie) store(db chaindb.Batch, n Node) error {
 }
 
 // LoadFromProof sets a partial trie based on the proof slice of encoded nodes.
+// Note this is exported because it is imported  is used by:
+// https://github.com/ComposableFi/ibc-go/blob/6d62edaa1a3cb0768c430dab81bb195e0b0c72db/modules/light-clients/11-beefy/types/client_state.go#L78
 func (t *Trie) LoadFromProof(proofEncodedNodes [][]byte, rootHash []byte) error {
 	if len(proofEncodedNodes) == 0 {
 		return ErrEmptyProof
