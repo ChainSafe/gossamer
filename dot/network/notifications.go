@@ -246,9 +246,10 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 	support, err := s.host.supportsProtocol(peer, info.protocolID)
 	if err != nil {
 		logger.Errorf("could not check if protocol %s is supported by peer %s: %s", info.protocolID, peer, err)
+		return
 	}
 
-	if err != nil || !support {
+	if !support {
 		s.host.cm.peerSetHandler.ReportPeer(peerset.ReputationChange{
 			Value:  peerset.BadProtocolValue,
 			Reason: peerset.BadProtocolReason,
