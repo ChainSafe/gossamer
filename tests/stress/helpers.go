@@ -14,6 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/tests/utils/node"
+	"github.com/ChainSafe/gossamer/tests/utils/retry"
 	"github.com/ChainSafe/gossamer/tests/utils/rpc"
 
 	"github.com/stretchr/testify/require"
@@ -86,18 +87,11 @@ func compareBlocksByNumber(ctx context.Context, t *testing.T, nodes node.Nodes,
 				nodeKey: node.GetKey(),
 			}
 
-			for { // retry until context gets canceled
-				result.hash, result.err = rpc.GetBlockHash(ctx, node.GetRPCPort(), num)
-
-				if err := ctx.Err(); err != nil {
-					result.err = err
-					break
-				}
-
-				if result.err == nil {
-					break
-				}
-			}
+			const retryWait = 200 * time.Millisecond
+			result.err = retry.UntilNoError(ctx, retryWait, func() (err error) {
+				result.hash, err = rpc.GetBlockHash(ctx, node.GetRPCPort(), num)
+				return err
+			})
 
 			results <- result
 		}(n)
