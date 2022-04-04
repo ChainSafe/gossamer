@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -50,41 +49,6 @@ func Post(ctx context.Context, endpoint, method, params string) (data []byte, er
 	}
 
 	return data, nil
-}
-
-// PostWithRetry repeatitively calls `Post` repeatitively
-// until it succeeds within the requestWait duration or returns
-// the last error if the context is canceled.
-func PostWithRetry(ctx context.Context, endpoint, method, params string,
-	requestWait time.Duration) (data []byte, err error) {
-	try := 0
-	for {
-		try++
-
-		postRPCCtx, postRPCCancel := context.WithTimeout(ctx, requestWait)
-
-		data, err = Post(postRPCCtx, endpoint, method, params)
-
-		if err == nil {
-			postRPCCancel()
-			return data, nil
-		}
-
-		// wait for full requestWait duration or main context cancelation
-		<-postRPCCtx.Done()
-		postRPCCancel()
-
-		if ctx.Err() != nil {
-			break
-		}
-	}
-
-	totalTime := time.Duration(try) * requestWait
-	tryWord := "try"
-	if try > 1 {
-		tryWord = "tries"
-	}
-	return nil, fmt.Errorf("after %d %s totalling %s: %w", try, tryWord, totalTime, err)
 }
 
 var (

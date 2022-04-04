@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"time"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -44,8 +43,7 @@ func GetBlockHash(ctx context.Context, rpcPort, num string) (hash common.Hash, e
 	endpoint := NewEndpoint(rpcPort)
 	const method = "chain_getBlockHash"
 	params := "[" + num + "]"
-	const requestWait = time.Second
-	respBody, err := PostWithRetry(ctx, endpoint, method, params, requestWait)
+	respBody, err := Post(ctx, endpoint, method, params)
 	if err != nil {
 		return hash, fmt.Errorf("cannot post RPC: %w", err)
 	}
