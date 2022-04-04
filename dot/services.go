@@ -264,7 +264,6 @@ func (nodeBuilder) createCoreService(cfg *Config, ks *keystore.GlobalKeystore,
 		TransactionState:     st.Transaction,
 		Keystore:             ks,
 		Network:              net,
-		DigestHandler:        dh,
 		CodeSubstitutes:      codeSubs,
 		CodeSubstitutedState: st.Base,
 	}

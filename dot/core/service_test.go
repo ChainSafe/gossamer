@@ -273,6 +273,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 
 func Test_Service_handleBlock(t *testing.T) {
 	t.Parallel()
+
 	execTest := func(t *testing.T, s *Service, block *types.Block, trieState *rtstorage.TrieState, expErr error) {
 		err := s.handleBlock(block, trieState)
 		assert.ErrorIs(t, err, expErr)
@@ -280,6 +281,7 @@ func Test_Service_handleBlock(t *testing.T) {
 			assert.EqualError(t, err, expErr.Error())
 		}
 	}
+
 	t.Run("nil input", func(t *testing.T) {
 		t.Parallel()
 		service := &Service{}
@@ -366,13 +368,10 @@ func Test_Service_handleBlock(t *testing.T) {
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().AddBlock(&block).Return(blocktree.ErrBlockExists)
 		mockBlockState.EXPECT().GetRuntime(&block.Header.ParentHash).Return(nil, errTestDummyError)
-		mockDigestHandler := NewMockDigestHandler(ctrl)
-		mockDigestHandler.EXPECT().HandleDigests(&block.Header)
 
 		service := &Service{
-			storageState:  mockStorageState,
-			blockState:    mockBlockState,
-			digestHandler: mockDigestHandler,
+			storageState: mockStorageState,
+			blockState:   mockBlockState,
 		}
 		execTest(t, service, &block, trieState, errTestDummyError)
 	})
@@ -396,13 +395,10 @@ func Test_Service_handleBlock(t *testing.T) {
 		mockBlockState.EXPECT().GetRuntime(&block.Header.ParentHash).Return(runtimeMock, nil)
 		mockBlockState.EXPECT().HandleRuntimeChanges(trieState, runtimeMock, block.Header.Hash()).
 			Return(errTestDummyError)
-		mockDigestHandler := NewMockDigestHandler(ctrl)
-		mockDigestHandler.EXPECT().HandleDigests(&block.Header)
 
 		service := &Service{
-			storageState:  mockStorageState,
-			blockState:    mockBlockState,
-			digestHandler: mockDigestHandler,
+			storageState: mockStorageState,
+			blockState:   mockBlockState,
 		}
 		execTest(t, service, &block, trieState, errTestDummyError)
 	})
@@ -425,14 +421,11 @@ func Test_Service_handleBlock(t *testing.T) {
 		mockBlockState.EXPECT().AddBlock(&block).Return(blocktree.ErrBlockExists)
 		mockBlockState.EXPECT().GetRuntime(&block.Header.ParentHash).Return(runtimeMock, nil)
 		mockBlockState.EXPECT().HandleRuntimeChanges(trieState, runtimeMock, block.Header.Hash()).Return(nil)
-		mockDigestHandler := NewMockDigestHandler(ctrl)
-		mockDigestHandler.EXPECT().HandleDigests(&block.Header)
 
 		service := &Service{
-			storageState:  mockStorageState,
-			blockState:    mockBlockState,
-			digestHandler: mockDigestHandler,
-			ctx:           context.Background(),
+			storageState: mockStorageState,
+			blockState:   mockBlockState,
+			ctx:          context.Background(),
 		}
 		execTest(t, service, &block, trieState, nil)
 	})
@@ -488,17 +481,14 @@ func Test_Service_HandleBlockProduced(t *testing.T) {
 		mockBlockState.EXPECT().AddBlock(&block).Return(blocktree.ErrBlockExists)
 		mockBlockState.EXPECT().GetRuntime(&block.Header.ParentHash).Return(runtimeMock, nil)
 		mockBlockState.EXPECT().HandleRuntimeChanges(trieState, runtimeMock, block.Header.Hash()).Return(nil)
-		mockDigestHandler := NewMockDigestHandler(ctrl)
-		mockDigestHandler.EXPECT().HandleDigests(&block.Header)
 		mockNetwork := NewMockNetwork(ctrl)
 		mockNetwork.EXPECT().GossipMessage(msg)
 
 		service := &Service{
-			storageState:  mockStorageState,
-			blockState:    mockBlockState,
-			digestHandler: mockDigestHandler,
-			net:           mockNetwork,
-			ctx:           context.Background(),
+			storageState: mockStorageState,
+			blockState:   mockBlockState,
+			net:          mockNetwork,
+			ctx:          context.Background(),
 		}
 		execTest(t, service, &block, trieState, nil)
 	})

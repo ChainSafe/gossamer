@@ -186,6 +186,18 @@ func (t *Trie) load(db chaindb.Database, n Node) error {
 
 		hash := child.GetHash()
 
+		_, isLeaf := child.(*node.Leaf)
+		if len(hash) == 0 && isLeaf {
+			// node has already been loaded inline
+			// just set encoding + hash digest
+			_, _, err := child.EncodeAndHash(false)
+			if err != nil {
+				return err
+			}
+			child.SetDirty(false)
+			continue
+		}
+
 		encodedNode, err := db.Get(hash)
 		if err != nil {
 			return fmt.Errorf("cannot find child node key 0x%x in database: %w", hash, err)
@@ -330,12 +342,18 @@ func getFromDB(db chaindb.Database, n Node, key []byte) (
 
 	// childIndex is the nibble after the common prefix length in the key being searched.
 	childIndex := key[commonPrefixLength]
-	childWithHashOnly := branch.Children[childIndex]
-	if childWithHashOnly == nil {
+	child := branch.Children[childIndex]
+	if child == nil {
 		return nil, nil
 	}
 
-	childHash := childWithHashOnly.GetHash()
+	// Child can be either inlined or a hash pointer.
+	childHash := child.GetHash()
+	_, isLeaf := child.(*node.Leaf)
+	if len(childHash) == 0 && isLeaf {
+		return getFromDB(db, child, key[commonPrefixLength+1:])
+	}
+
 	encodedChild, err := db.Get(childHash)
 	if err != nil {
 		return nil, fmt.Errorf(

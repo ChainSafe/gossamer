@@ -4,6 +4,7 @@
 package utils
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strconv"
@@ -58,12 +59,13 @@ func (fw *Framework) KillNodes(t *testing.T) []error {
 }
 
 // CallRPC call RPC method with given params for node at idx
-func (fw *Framework) CallRPC(idx int, method, params string) (respJSON interface{}, err error) {
+func (fw *Framework) CallRPC(ctx context.Context, idx int, method, params string) (
+	respJSON interface{}, err error) {
 	if idx >= len(fw.nodes) {
 		return nil, fmt.Errorf("node index greater than quantity of nodes")
 	}
 	node := fw.nodes[idx]
-	respBody, err := PostRPC(method, NewEndpoint(node.RPCPort), params)
+	respBody, err := PostRPC(ctx, NewEndpoint(node.RPCPort), method, params)
 	if err != nil {
 		return nil, err
 	}
