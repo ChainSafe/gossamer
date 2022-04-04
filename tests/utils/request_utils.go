@@ -66,7 +66,7 @@ func PostRPCWithRetry(ctx context.Context, endpoint, method, params string,
 
 		postRPCCtx, postRPCCancel := context.WithTimeout(ctx, requestWait)
 
-		data, err := PostRPC(postRPCCtx, endpoint, method, params)
+		data, err = PostRPC(postRPCCtx, endpoint, method, params)
 
 		if err == nil {
 			postRPCCancel()
