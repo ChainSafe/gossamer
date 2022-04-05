@@ -401,7 +401,7 @@ func TestSync_Restart(t *testing.T) {
 	err := producingNode.Init(mainCtx)
 	require.NoError(t, err)
 
-	err = producingNode.Start(nodeCtxs[0], nodeWaitErrs[0])
+	err = producingNode.StartAndWait(nodeCtxs[0], nodeWaitErrs[0])
 	t.Cleanup(func() {
 		// note we need to use indexes since these
 		// slice elements might change.
@@ -419,7 +419,7 @@ func TestSync_Restart(t *testing.T) {
 		err := node.Init(mainCtx)
 		require.NoError(t, err)
 
-		err = node.Start(nodeCtxs[i+1], nodeWaitErrs[i+1])
+		err = node.StartAndWait(nodeCtxs[i+1], nodeWaitErrs[i+1])
 		t.Cleanup(func() {
 			// note we need to use indexes since these
 			// slice elements might change.

@@ -201,10 +201,24 @@ func (n *Node) Start(ctx context.Context, waitErrCh chan<- error) (startErr erro
 		waitErr <- err
 	}(cmd, n.String(), waitErrCh)
 
-	err = waitForNode(ctx, n.rpcPort)
+	return nil
+}
+
+// StartAndWait starts a Gossamer node using the node configuration of
+// the receiving struct. It returns a start error if the node cannot
+// be started, and runs the node until the context gets canceled.
+// When the node crashes or is stopped, an error (nil or not) is sent
+// in the waitErrCh.
+// It waits for the node to respond to an RPC health call before returning.
+func (n *Node) StartAndWait(ctx context.Context, waitErrCh chan<- error) (startErr error) {
+	startErr = n.Start(ctx, waitErrCh)
+	if startErr != nil {
+		return startErr
+	}
+
+	err := waitForNode(ctx, n.rpcPort)
 	if err != nil {
-		return fmt.Errorf("failed waiting for node %s: %w",
-			n, err)
+		return fmt.Errorf("failed waiting: %s", err)
 	}
 
 	return nil
@@ -228,7 +242,7 @@ func (n Node) InitAndStartTest(ctx context.Context, t *testing.T,
 	waitErr := make(chan error)
 
 	t.Logf("Node %s is starting", n)
-	err = n.Start(nodeCtx, waitErr)
+	err = n.StartAndWait(nodeCtx, waitErr)
 	if err != nil {
 		t.Errorf("failed to start node %s: %s", n, err)
 		// Release resources and fail the test

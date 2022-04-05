@@ -62,11 +62,19 @@ func (nodes Nodes) Start(ctx context.Context, waitErr chan<- error) (
 	for _, node := range nodes {
 		err := node.Start(ctx, waitErr)
 		if err != nil {
-			return started, fmt.Errorf("failed to start node with index %d: %w",
-				node.index, err)
+			return started, fmt.Errorf("node with index %d: %w",
+				*node.index, err)
 		}
 
 		started++
+	}
+
+	for _, node := range nodes {
+		port := node.GetRPCPort()
+		err := waitForNode(ctx, port)
+		if err != nil {
+			return started, fmt.Errorf("node with index %d: %w", *node.index, err)
+		}
 	}
 
 	return started, nil
@@ -98,7 +106,7 @@ func (nodes Nodes) InitAndStartTest(ctx context.Context, t *testing.T,
 
 	for _, node := range nodes {
 		t.Logf("Node %s starting", node)
-		err := node.Start(nodesCtx, waitErr)
+		err := node.StartAndWait(nodesCtx, waitErr)
 		if err == nil {
 			t.Logf("Node %s started", node)
 			started++
