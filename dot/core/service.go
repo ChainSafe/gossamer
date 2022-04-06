@@ -517,22 +517,22 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 	}
 
 	rt.SetContextStorage(ts)
-	// the transaction source is External
 
-	//For version check
-	_, err = rt.Version()
+	const polkadotSpecVersionCheck = 9100
+	runtimeVersion, err := rt.Version()
 	if err != nil {
 		return err
 	}
 
+	// the transaction source is External. For spec Verisons >= 9100, the genesisHash is appended to the extrinsic
 	var externalExt types.Extrinsic
-	// if rt < 0.9.10
-	externalExt = types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))
-
-	//else, for rt version >= 0.9.10 ValidateTranssaction takes a third argument
-	genesisHashBytes := s.blockState.GenesisHash().ToBytes()
-	externalExt = types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))
-	externalExt = append(externalExt, genesisHashBytes...)
+	if runtimeVersion.SpecVersion() < polkadotSpecVersionCheck {
+		externalExt = types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))
+	} else {
+		genesisHashBytes := s.blockState.GenesisHash().ToBytes()
+		externalExt = types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))
+		externalExt = append(externalExt, genesisHashBytes...)
+	}
 
 	txv, err := rt.ValidateTransaction(externalExt)
 	if err != nil {
