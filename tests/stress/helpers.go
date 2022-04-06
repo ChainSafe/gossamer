@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -70,55 +71,40 @@ func compareChainHeadsWithRetry(ctx context.Context, nodes node.Nodes,
 	}
 }
 
+var errBlockHashNotOne = errors.New("expected 1 block hash")
+
 // compareBlocksByNumber calls getBlockByNumber for each node in the array
 // it returns a map of block hashes to node key names, and an error if the hashes don't all match
-func compareBlocksByNumber(ctx context.Context, t *testing.T, nodes node.Nodes,
-	num string) (hashToKeys map[common.Hash][]string) {
-	type resultContainer struct {
-		hash    common.Hash
-		nodeKey string
-		err     error
-	}
-	results := make(chan resultContainer)
-
+func compareBlocksByNumber(ctx context.Context, nodes node.Nodes,
+	num string) (nodeKeys []string, err error) {
+	blockHashes := make(map[common.Hash]struct{}, 1)
 	for _, n := range nodes {
-		go func(node node.Node) {
-			result := resultContainer{
-				nodeKey: node.GetKey(),
+		const retryWait = time.Second
+		err := retry.UntilOK(ctx, retryWait, func() (ok bool, err error) {
+			hash, err := rpc.GetBlockHash(ctx, n.GetRPCPort(), num)
+			if err != nil {
+				const blockDoesNotExistString = "cannot find node with number greater than highest in blocktree"
+				if strings.Contains(err.Error(), blockDoesNotExistString) {
+					return false, nil // retry after retryWait has elapsed.
+				}
+				return false, err // stop retrying
 			}
 
-			const retryWait = 200 * time.Millisecond
-			result.err = retry.UntilNoError(ctx, retryWait, func() (err error) {
-				result.hash, err = rpc.GetBlockHash(ctx, node.GetRPCPort(), num)
-				return err
-			})
-
-			results <- result
-		}(n)
-	}
-
-	var err error
-	hashToKeys = make(map[common.Hash][]string, len(nodes))
-	for range nodes {
-		result := <-results
+			blockHashes[hash] = struct{}{}
+			nodeKeys = append(nodeKeys, n.GetKey())
+			return true, nil
+		})
 		if err != nil {
-			continue // one failed, we don't care anymore
+			return nil, fmt.Errorf("for node %s and block number %s: %w", n, num, err)
 		}
-
-		if result.err != nil {
-			err = result.err
-			continue
-		}
-
-		hashToKeys[result.hash] = append(hashToKeys[result.hash], result.nodeKey)
 	}
 
-	require.NoError(t, err)
-	require.Lenf(t, hashToKeys, 1,
-		"expected 1 block found for number %s but got %d block(s)",
-		num, len(hashToKeys))
+	if len(blockHashes) != 1 {
+		return nil, fmt.Errorf("%w: but got %d block hashes for block number %s",
+			errBlockHashNotOne, len(blockHashes), num)
+	}
 
-	return hashToKeys
+	return nodeKeys, nil
 }
 
 // compareFinalizedHeads calls getFinalizedHeadByRound for each node in the array
