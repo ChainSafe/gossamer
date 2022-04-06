@@ -5,7 +5,6 @@ package sync
 
 import (
 	"errors"
-	"math/big"
 	"reflect"
 	"testing"
 
@@ -22,8 +21,8 @@ func TestService_CreateBlockResponse(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockBlockState := NewMockBlockState(ctrl)
-	mockBlockState.EXPECT().BestBlockNumber().Return(big.NewInt(1), nil).Times(8)
-	mockBlockState.EXPECT().GetHashByNumber(gomock.AssignableToTypeOf(&big.Int{})).DoAndReturn(func(*big.Int) (
+	mockBlockState.EXPECT().BestBlockNumber().Return(uint(1), nil).Times(8)
+	mockBlockState.EXPECT().GetHashByNumber(gomock.Any()).DoAndReturn(func(uint) (
 		common.Hash, error) {
 		return common.Hash{1, 2}, nil
 	}).Times(5)
@@ -34,7 +33,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 	}, nil).Times(4)
 	mockBlockState.EXPECT().SubChain(gomock.AssignableToTypeOf(common.Hash{}),
 		gomock.AssignableToTypeOf(common.Hash{})).Return([]common.Hash{{1, 2}}, nil).Times(4)
-	mockBlockState.EXPECT().GetHeaderByNumber(big.NewInt(1)).Return(&types.Header{
+	mockBlockState.EXPECT().GetHeaderByNumber(uint(1)).Return(&types.Header{
 		Number: 1,
 	}, nil)
 
