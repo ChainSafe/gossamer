@@ -496,17 +496,6 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 		return err
 	}
 
-	if err := verifyBlockHashAgainstBlockNumber(s.blockState, fj.Commit.Hash, uint(fj.Commit.Number)); err != nil {
-		return err
-	}
-
-	for _, preCommit := range fj.Commit.Precommits {
-		err := verifyBlockHashAgainstBlockNumber(s.blockState, preCommit.Vote.Hash, uint(preCommit.Vote.Number))
-		if err != nil {
-			return err
-		}
-	}
-
 	setID, err := s.grandpaState.GetSetIDByBlockNumber(uint(fj.Commit.Number))
 	if err != nil {
 		return fmt.Errorf("cannot get set ID from block number: %w", err)
@@ -597,6 +586,17 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 		return ErrMinVotesNotMet
 	}
 
+	if err := verifyBlockHashAgainstBlockNumber(s.blockState, fj.Commit.Hash, uint(fj.Commit.Number)); err != nil {
+		return err
+	}
+
+	for _, preCommit := range fj.Commit.Precommits {
+		err := verifyBlockHashAgainstBlockNumber(s.blockState, preCommit.Vote.Hash, uint(preCommit.Vote.Number))
+		if err != nil {
+			return err
+		}
+	}
+
 	err = s.blockState.SetFinalisedHash(hash, fj.Round, setID)
 	if err != nil {
 		return err
@@ -609,13 +609,13 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 }
 
 func verifyBlockHashAgainstBlockNumber(bs BlockState, hash common.Hash, number uint) error {
-	blockHashFromBlockState, err := bs.GetHashByNumber(number)
+	header, err := bs.GetHeader(hash)
 	if err != nil {
-		return fmt.Errorf("could not find block hash by block number: %w", err)
+		return fmt.Errorf("could not get header from block hash: %w", err)
 	}
 
-	if blockHashFromBlockState != hash {
-		return ErrCommitBlockHashMismatch
+	if header.Number != number {
+		return ErrBlockHashMismatch
 	}
 	return nil
 }
