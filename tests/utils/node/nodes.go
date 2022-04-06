@@ -82,22 +82,34 @@ func (nodes Nodes) Start(ctx context.Context, waitErr chan<- error) (
 
 // InitAndStartTest is a test helper method to initialise and start nodes,
 // as well as registering appriopriate test handlers.
-// It monitors each node for failure, and terminates all of them if any fails.
-// It also shuts down all the nodes on test cleanup.
-// Finally it calls the passed stop signalling functional argument when the
-// test should be failed because the nodes got terminated.
+// If any node fails to initialise or start, cleanup is done and the test
+// is instantly failed.
+// If any node crashes at runtime, all other nodes are shutdown,
+// cleanup is done and the passed argument `signalTestToStop`
+// is called to signal to the main test goroutine to stop.
 func (nodes Nodes) InitAndStartTest(ctx context.Context, t *testing.T,
 	signalTestToStop context.CancelFunc) {
 	t.Helper()
 
+	initErrors := make(chan error)
 	for _, node := range nodes {
-		t.Logf("Node %s initialising", node)
-		err := node.Init(ctx)
+		go func(node Node) {
+			err := node.Init(ctx) // takes 2 seconds
+			if err != nil {
+				err = fmt.Errorf("node %s failed to initialise: %w", node, err)
+			}
+			initErrors <- err
+		}(node)
+	}
+
+	for range nodes {
+		err := <-initErrors
 		if err != nil {
-			t.Errorf("node %s failed to initialise: %s", node, err)
-			signalTestToStop()
-			return
+			t.Error(err)
 		}
+	}
+	if t.Failed() {
+		t.FailNow()
 	}
 
 	var started int
@@ -105,10 +117,8 @@ func (nodes Nodes) InitAndStartTest(ctx context.Context, t *testing.T,
 	waitErr := make(chan error)
 
 	for _, node := range nodes {
-		t.Logf("Node %s starting", node)
-		err := node.StartAndWait(nodesCtx, waitErr)
+		err := node.Start(nodesCtx, waitErr) // takes little time
 		if err == nil {
-			t.Logf("Node %s started", node)
 			started++
 			continue
 		}
@@ -117,10 +127,24 @@ func (nodes Nodes) InitAndStartTest(ctx context.Context, t *testing.T,
 
 		stopNodes(t, started, nodesCancel, waitErr)
 		close(waitErr)
+		t.FailNow()
+	}
 
-		// Signal calling test to stop.
-		signalTestToStop()
-		return
+	// this is run sequentially since all nodes start almost at the same time
+	// so waiting for one node will also wait for all the others.
+	// You can see this since the test logs out that all the nodes are ready
+	// at the same time.
+	for _, node := range nodes {
+		err := waitForNode(ctx, node.GetRPCPort())
+		if err == nil {
+			t.Logf("Node %s is ready", node)
+			continue
+		}
+
+		t.Errorf("Node %s failed to be ready: %s", node, err)
+		stopNodes(t, started, nodesCancel, waitErr)
+		close(waitErr)
+		t.FailNow()
 	}
 
 	// watch for runtime fatal error from any of the nodes

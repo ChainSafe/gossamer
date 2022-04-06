@@ -224,24 +224,21 @@ func (n *Node) StartAndWait(ctx context.Context, waitErrCh chan<- error) (startE
 	return nil
 }
 
-// InitAndStartTest is a test helper method to initialise and start nodes,
+// InitAndStartTest is a test helper method to initialise and start the node,
 // as well as registering appriopriate test handlers.
-// It monitors each node for failure, and terminates all of them if any fails.
-// It also shuts down all the nodes on test cleanup.
-// Finally it calls the passed `failNow` argument when the test should be failed
-// because the nodes got shut down.
+// If initialising or starting fails, cleanup is done and the test fails instantly.
+// If the node crashes during runtime, the passed `signalTestToStop` argument is
+// called since the test cannot be failed from outside the main test goroutine.
 func (n Node) InitAndStartTest(ctx context.Context, t *testing.T,
 	signalTestToStop context.CancelFunc) {
 	t.Helper()
 
-	t.Logf("Node %s is initialising", n)
 	err := n.Init(ctx)
 	require.NoError(t, err)
 
 	nodeCtx, nodeCancel := context.WithCancel(ctx)
 	waitErr := make(chan error)
 
-	t.Logf("Node %s is starting", n)
 	err = n.StartAndWait(nodeCtx, waitErr)
 	if err != nil {
 		t.Errorf("failed to start node %s: %s", n, err)
@@ -251,7 +248,7 @@ func (n Node) InitAndStartTest(ctx context.Context, t *testing.T,
 		t.FailNow()
 	}
 
-	t.Logf("Node %s started successfully", n)
+	t.Logf("Node %s is ready", n)
 
 	// watch for runtime fatal node error
 	watchDogCtx, watchDogCancel := context.WithCancel(ctx)
