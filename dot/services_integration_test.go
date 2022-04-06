@@ -233,10 +233,7 @@ func TestCreateGrandpaService(t *testing.T) {
 	err = loadRuntime(cfg, ns, stateSrvc, ks, &network.Service{})
 	require.NoError(t, err)
 
-	dh, err := createDigestHandler(cfg.Log.DigestLvl, stateSrvc)
-	require.NoError(t, err)
-
-	gs, err := createGRANDPAService(cfg, stateSrvc, dh, ks.Gran, &network.Service{}, nil)
+	gs, err := createGRANDPAService(cfg, stateSrvc, ks.Gran, &network.Service{}, nil)
 	require.NoError(t, err)
 	require.NotNil(t, gs)
 }

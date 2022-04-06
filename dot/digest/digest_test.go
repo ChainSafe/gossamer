@@ -228,118 +228,120 @@ func TestHandler_GrandpaPauseAndResume(t *testing.T) {
 	require.Equal(t, uint(r.Delay+p.Delay), nextResume)
 }
 
-func TestNextGrandpaAuthorityChange_OneChange(t *testing.T) {
-	handler, _ := newTestHandler(t)
-	handler.Start()
-	defer handler.Stop()
+// TODO: move this test to dot/state/grandpa.go
+// func TestNextGrandpaAuthorityChange_OneChange(t *testing.T) {
+// 	handler, _ := newTestHandler(t)
+// 	handler.Start()
+// 	defer handler.Stop()
 
-	const block uint = 3
-	sc := types.GrandpaScheduledChange{
-		Auths: []types.GrandpaAuthoritiesRaw{},
-		Delay: uint32(block),
-	}
+// 	const block uint = 3
+// 	sc := types.GrandpaScheduledChange{
+// 		Auths: []types.GrandpaAuthoritiesRaw{},
+// 		Delay: uint32(block),
+// 	}
 
-	var digest = types.NewGrandpaConsensusDigest()
-	err := digest.Set(sc)
-	require.NoError(t, err)
+// 	var digest = types.NewGrandpaConsensusDigest()
+// 	err := digest.Set(sc)
+// 	require.NoError(t, err)
 
-	data, err := scale.Marshal(digest)
-	require.NoError(t, err)
+// 	data, err := scale.Marshal(digest)
+// 	require.NoError(t, err)
 
-	d := &types.ConsensusDigest{
-		ConsensusEngineID: types.GrandpaEngineID,
-		Data:              data,
-	}
-	header := &types.Header{
-		Number: 1,
-	}
+// 	d := &types.ConsensusDigest{
+// 		ConsensusEngineID: types.GrandpaEngineID,
+// 		Data:              data,
+// 	}
+// 	header := &types.Header{
+// 		Number: 1,
+// 	}
 
-	err = handler.handleConsensusDigest(d, header)
-	require.NoError(t, err)
+// 	err = handler.handleConsensusDigest(d, header)
+// 	require.NoError(t, err)
 
-	next := handler.NextGrandpaAuthorityChange()
-	require.Equal(t, block, next)
+// 	next := handler.NextGrandpaAuthorityChange()
+// 	require.Equal(t, block, next)
 
-	nextSetID := uint64(1)
-	auths, err := handler.grandpaState.(*state.GrandpaState).GetAuthorities(nextSetID)
-	require.NoError(t, err)
-	expected, err := types.NewGrandpaVotersFromAuthoritiesRaw(sc.Auths)
-	require.NoError(t, err)
-	require.Equal(t, expected, auths)
-}
+// 	nextSetID := uint64(1)
+// 	auths, err := handler.grandpaState.(*state.GrandpaState).GetAuthorities(nextSetID)
+// 	require.NoError(t, err)
+// 	expected, err := types.NewGrandpaVotersFromAuthoritiesRaw(sc.Auths)
+// 	require.NoError(t, err)
+// 	require.Equal(t, expected, auths)
+// }
 
-func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
-	handler, _ := newTestHandler(t)
-	handler.Start()
-	defer handler.Stop()
+// TODO: move this test to dot/state/grandpa.go
+// func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
+// 	handler, _ := newTestHandler(t)
+// 	handler.Start()
+// 	defer handler.Stop()
 
-	kr, err := keystore.NewEd25519Keyring()
-	require.NoError(t, err)
+// 	kr, err := keystore.NewEd25519Keyring()
+// 	require.NoError(t, err)
 
-	later := uint32(6)
-	sc := types.GrandpaScheduledChange{
-		Auths: []types.GrandpaAuthoritiesRaw{},
-		Delay: later,
-	}
+// 	later := uint32(6)
+// 	sc := types.GrandpaScheduledChange{
+// 		Auths: []types.GrandpaAuthoritiesRaw{},
+// 		Delay: later,
+// 	}
 
-	var digest = types.NewGrandpaConsensusDigest()
-	err = digest.Set(sc)
-	require.NoError(t, err)
+// 	var digest = types.NewGrandpaConsensusDigest()
+// 	err = digest.Set(sc)
+// 	require.NoError(t, err)
 
-	data, err := scale.Marshal(digest)
-	require.NoError(t, err)
+// 	data, err := scale.Marshal(digest)
+// 	require.NoError(t, err)
 
-	d := &types.ConsensusDigest{
-		ConsensusEngineID: types.GrandpaEngineID,
-		Data:              data,
-	}
+// 	d := &types.ConsensusDigest{
+// 		ConsensusEngineID: types.GrandpaEngineID,
+// 		Data:              data,
+// 	}
 
-	header := &types.Header{
-		Number: 1,
-	}
+// 	header := &types.Header{
+// 		Number: 1,
+// 	}
 
-	err = handler.handleConsensusDigest(d, header)
-	require.NoError(t, err)
+// 	err = handler.handleConsensusDigest(d, header)
+// 	require.NoError(t, err)
 
-	nextSetID := uint64(1)
-	auths, err := handler.grandpaState.(*state.GrandpaState).GetAuthorities(nextSetID)
-	require.NoError(t, err)
-	expected, err := types.NewGrandpaVotersFromAuthoritiesRaw(sc.Auths)
-	require.NoError(t, err)
-	require.Equal(t, expected, auths)
+// 	nextSetID := uint64(1)
+// 	auths, err := handler.grandpaState.(*state.GrandpaState).GetAuthorities(nextSetID)
+// 	require.NoError(t, err)
+// 	expected, err := types.NewGrandpaVotersFromAuthoritiesRaw(sc.Auths)
+// 	require.NoError(t, err)
+// 	require.Equal(t, expected, auths)
 
-	const earlier uint = 4
-	fc := types.GrandpaForcedChange{
-		Auths: []types.GrandpaAuthoritiesRaw{
-			{Key: kr.Alice().Public().(*ed25519.PublicKey).AsBytes(), ID: 0},
-		},
-		Delay: uint32(earlier),
-	}
+// 	const earlier uint = 4
+// 	fc := types.GrandpaForcedChange{
+// 		Auths: []types.GrandpaAuthoritiesRaw{
+// 			{Key: kr.Alice().Public().(*ed25519.PublicKey).AsBytes(), ID: 0},
+// 		},
+// 		Delay: uint32(earlier),
+// 	}
 
-	digest = types.NewGrandpaConsensusDigest()
-	err = digest.Set(fc)
-	require.NoError(t, err)
+// 	digest = types.NewGrandpaConsensusDigest()
+// 	err = digest.Set(fc)
+// 	require.NoError(t, err)
 
-	data, err = scale.Marshal(digest)
-	require.NoError(t, err)
+// 	data, err = scale.Marshal(digest)
+// 	require.NoError(t, err)
 
-	d = &types.ConsensusDigest{
-		ConsensusEngineID: types.GrandpaEngineID,
-		Data:              data,
-	}
+// 	d = &types.ConsensusDigest{
+// 		ConsensusEngineID: types.GrandpaEngineID,
+// 		Data:              data,
+// 	}
 
-	err = handler.handleConsensusDigest(d, header)
-	require.NoError(t, err)
+// 	err = handler.handleConsensusDigest(d, header)
+// 	require.NoError(t, err)
 
-	next := handler.NextGrandpaAuthorityChange()
-	require.Equal(t, earlier+1, next)
+// 	next := handler.NextGrandpaAuthorityChange()
+// 	require.Equal(t, earlier+1, next)
 
-	auths, err = handler.grandpaState.(*state.GrandpaState).GetAuthorities(nextSetID)
-	require.NoError(t, err)
-	expected, err = types.NewGrandpaVotersFromAuthoritiesRaw(fc.Auths)
-	require.NoError(t, err)
-	require.Equal(t, expected, auths)
-}
+// 	auths, err = handler.grandpaState.(*state.GrandpaState).GetAuthorities(nextSetID)
+// 	require.NoError(t, err)
+// 	expected, err = types.NewGrandpaVotersFromAuthoritiesRaw(fc.Auths)
+// 	require.NoError(t, err)
+// 	require.Equal(t, expected, auths)
+// }
 
 func TestHandler_HandleBABEOnDisabled(t *testing.T) {
 	handler, _ := newTestHandler(t)

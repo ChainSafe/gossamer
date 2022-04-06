@@ -22,8 +22,6 @@ import (
 	"github.com/golang/mock/gomock"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/ChainSafe/gossamer/lib/grandpa/mocks"
 )
 
 // testGenesisHeader is a test block header
@@ -37,12 +35,6 @@ var (
 	kr, _  = keystore.NewEd25519Keyring()
 	voters = newTestVoters()
 )
-
-func NewMockDigestHandler() *mocks.DigestHandler {
-	m := new(mocks.DigestHandler)
-	m.On("NextGrandpaAuthorityChange").Return(uint(2 ^ 64 - 1))
-	return m
-}
 
 //go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
 
@@ -104,15 +96,14 @@ func newTestService(t *testing.T) (*Service, *state.Service) {
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	cfg := &Config{
-		BlockState:    st.Block,
-		GrandpaState:  st.Grandpa,
-		DigestHandler: NewMockDigestHandler(),
-		Voters:        voters,
-		Keypair:       kr.Alice().(*ed25519.Keypair),
-		Authority:     true,
-		Network:       net,
-		Interval:      time.Second,
-		Telemetry:     telemetryMock,
+		BlockState:   st.Block,
+		GrandpaState: st.Grandpa,
+		Voters:       voters,
+		Keypair:      kr.Alice().(*ed25519.Keypair),
+		Authority:    true,
+		Network:      net,
+		Interval:     time.Second,
+		Telemetry:    telemetryMock,
 	}
 
 	gs, err := NewService(cfg)

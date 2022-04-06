@@ -7,6 +7,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // BlockState interface for block state methods
@@ -37,4 +38,5 @@ type GrandpaState interface {
 	SetNextPause(number uint) error
 	SetNextResume(number uint) error
 	GetCurrentSetID() (uint64, error)
+	AddPendingChange(header *types.Header, digest scale.VaryingDataType) error
 }

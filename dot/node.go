@@ -293,7 +293,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 	}
 	nodeSrvcs = append(nodeSrvcs, coreSrvc)
 
-	fg, err := createGRANDPAService(cfg, stateSrvc, dh, ks.Gran, networkSrvc, telemetryMailer)
+	fg, err := createGRANDPAService(cfg, stateSrvc, ks.Gran, networkSrvc, telemetryMailer)
 	if err != nil {
 		return nil, err
 	}

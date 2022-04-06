@@ -50,11 +50,7 @@ type GrandpaState interface { //nolint:revive
 	SetPrecommits(round, setID uint64, data []SignedVote) error
 	GetPrevotes(round, setID uint64) ([]SignedVote, error)
 	GetPrecommits(round, setID uint64) ([]SignedVote, error)
-}
-
-// DigestHandler is the interface required by GRANDPA for the digest handler
-type DigestHandler interface { // TODO: use GrandpaState instead (#1871)
-	NextGrandpaAuthorityChange() uint
+	NextGrandpaAuthorityChange(bestBlockHash common.Hash) (blockHeight uint, err error)
 }
 
 //go:generate mockery --name Network --structname Network --case underscore --keeptree

@@ -22,13 +22,12 @@ func TestCheckForEquivocation_NoEquivocation(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg := &Config{
-		BlockState:    st.Block,
-		GrandpaState:  st.Grandpa,
-		DigestHandler: NewMockDigestHandler(),
-		Voters:        voters,
-		Keypair:       kr.Bob().(*ed25519.Keypair),
-		Network:       net,
-		Interval:      time.Second,
+		BlockState:   st.Block,
+		GrandpaState: st.Grandpa,
+		Voters:       voters,
+		Keypair:      kr.Bob().(*ed25519.Keypair),
+		Network:      net,
+		Interval:     time.Second,
 	}
 
 	gs, err := NewService(cfg)
@@ -57,13 +56,12 @@ func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg := &Config{
-		BlockState:    st.Block,
-		GrandpaState:  st.Grandpa,
-		DigestHandler: NewMockDigestHandler(),
-		Voters:        voters,
-		Keypair:       kr.Bob().(*ed25519.Keypair),
-		Network:       net,
-		Interval:      time.Second,
+		BlockState:   st.Block,
+		GrandpaState: st.Grandpa,
+		Voters:       voters,
+		Keypair:      kr.Bob().(*ed25519.Keypair),
+		Network:      net,
+		Interval:     time.Second,
 	}
 
 	gs, err := NewService(cfg)
@@ -103,13 +101,12 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg := &Config{
-		BlockState:    st.Block,
-		GrandpaState:  st.Grandpa,
-		DigestHandler: NewMockDigestHandler(),
-		Voters:        voters,
-		Keypair:       kr.Bob().(*ed25519.Keypair),
-		Network:       net,
-		Interval:      time.Second,
+		BlockState:   st.Block,
+		GrandpaState: st.Grandpa,
+		Voters:       voters,
+		Keypair:      kr.Bob().(*ed25519.Keypair),
+		Network:      net,
+		Interval:     time.Second,
 	}
 
 	gs, err := NewService(cfg)
@@ -159,13 +156,12 @@ func TestValidateMessage_Valid(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg := &Config{
-		BlockState:    st.Block,
-		GrandpaState:  st.Grandpa,
-		DigestHandler: NewMockDigestHandler(),
-		Voters:        voters,
-		Keypair:       kr.Bob().(*ed25519.Keypair),
-		Network:       net,
-		Interval:      time.Second,
+		BlockState:   st.Block,
+		GrandpaState: st.Grandpa,
+		Voters:       voters,
+		Keypair:      kr.Bob().(*ed25519.Keypair),
+		Network:      net,
+		Interval:     time.Second,
 	}
 
 	gs, err := NewService(cfg)
@@ -193,13 +189,12 @@ func TestValidateMessage_InvalidSignature(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg := &Config{
-		BlockState:    st.Block,
-		GrandpaState:  st.Grandpa,
-		DigestHandler: NewMockDigestHandler(),
-		Voters:        voters,
-		Keypair:       kr.Bob().(*ed25519.Keypair),
-		Network:       net,
-		Interval:      time.Second,
+		BlockState:   st.Block,
+		GrandpaState: st.Grandpa,
+		Voters:       voters,
+		Keypair:      kr.Bob().(*ed25519.Keypair),
+		Network:      net,
+		Interval:     time.Second,
 	}
 
 	gs, err := NewService(cfg)
@@ -228,12 +223,11 @@ func TestValidateMessage_SetIDMismatch(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg := &Config{
-		BlockState:    st.Block,
-		GrandpaState:  st.Grandpa,
-		DigestHandler: NewMockDigestHandler(),
-		Keypair:       kr.Bob().(*ed25519.Keypair),
-		Network:       net,
-		Interval:      time.Second,
+		BlockState:   st.Block,
+		GrandpaState: st.Grandpa,
+		Keypair:      kr.Bob().(*ed25519.Keypair),
+		Network:      net,
+		Interval:     time.Second,
 	}
 
 	gs, err := NewService(cfg)
@@ -262,13 +256,12 @@ func TestValidateMessage_Equivocation(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg := &Config{
-		BlockState:    st.Block,
-		GrandpaState:  st.Grandpa,
-		DigestHandler: NewMockDigestHandler(),
-		Voters:        voters,
-		Keypair:       kr.Bob().(*ed25519.Keypair),
-		Network:       net,
-		Interval:      time.Second,
+		BlockState:   st.Block,
+		GrandpaState: st.Grandpa,
+		Voters:       voters,
+		Keypair:      kr.Bob().(*ed25519.Keypair),
+		Network:      net,
+		Interval:     time.Second,
 	}
 
 	gs, err := NewService(cfg)
@@ -306,13 +299,12 @@ func TestValidateMessage_BlockDoesNotExist(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg := &Config{
-		BlockState:    st.Block,
-		GrandpaState:  st.Grandpa,
-		DigestHandler: NewMockDigestHandler(),
-		Voters:        voters,
-		Keypair:       kr.Bob().(*ed25519.Keypair),
-		Network:       net,
-		Interval:      time.Second,
+		BlockState:   st.Block,
+		GrandpaState: st.Grandpa,
+		Voters:       voters,
+		Keypair:      kr.Bob().(*ed25519.Keypair),
+		Network:      net,
+		Interval:     time.Second,
 	}
 
 	gs, err := NewService(cfg)
@@ -341,13 +333,12 @@ func TestValidateMessage_IsNotDescendant(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg := &Config{
-		BlockState:    st.Block,
-		GrandpaState:  st.Grandpa,
-		DigestHandler: NewMockDigestHandler(),
-		Voters:        voters,
-		Keypair:       kr.Bob().(*ed25519.Keypair),
-		Network:       net,
-		Interval:      time.Second,
+		BlockState:   st.Block,
+		GrandpaState: st.Grandpa,
+		Voters:       voters,
+		Keypair:      kr.Bob().(*ed25519.Keypair),
+		Network:      net,
+		Interval:     time.Second,
 	}
 
 	gs, err := NewService(cfg)
