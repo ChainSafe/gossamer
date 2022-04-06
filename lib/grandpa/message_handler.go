@@ -104,6 +104,11 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourMessage) error {
 func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) error {
 	logger.Debugf("received commit message, msg: %+v", msg)
 
+	err := verifyBlockHashAgainstBlockNumber(h.blockState, msg.Vote.Hash, uint(msg.Vote.Number))
+	if err != nil {
+		return err
+	}
+
 	containsPrecommitsSignedBy := make([]string, len(msg.AuthData))
 	for i, authData := range msg.AuthData {
 		containsPrecommitsSignedBy[i] = authData.AuthorityID.String()
@@ -183,6 +188,11 @@ func (h *MessageHandler) handleCatchUpResponse(msg *CatchUpResponse) error {
 	logger.Debugf(
 		"received catch up response with hash %s for round %d and set id %d",
 		msg.Hash, msg.Round, msg.SetID)
+
+	err := verifyBlockHashAgainstBlockNumber(h.blockState, msg.Hash, uint(msg.Number))
+	if err != nil {
+		return err
+	}
 
 	// TODO: re-add catch-up logic (#1531)
 	if true {
@@ -330,6 +340,12 @@ func (h *MessageHandler) verifyPreVoteJustification(msg *CatchUpResponse) (commo
 	voters := make(map[ed25519.PublicKeyBytes]map[common.Hash]int, len(msg.PreVoteJustification))
 	eqVotesByHash := make(map[common.Hash]map[ed25519.PublicKeyBytes]struct{})
 
+	for _, pvj := range msg.PreVoteJustification {
+		err := verifyBlockHashAgainstBlockNumber(h.blockState, pvj.Vote.Hash, uint(pvj.Vote.Number))
+		if err != nil {
+			return common.Hash{}, err
+		}
+	}
 	// identify equivocatory votes by hash
 	for _, justification := range msg.PreVoteJustification {
 		hashsToCount, ok := voters[justification.AuthorityID]
@@ -386,6 +402,14 @@ func (h *MessageHandler) verifyPreVoteJustification(msg *CatchUpResponse) (commo
 }
 
 func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) error {
+
+	for _, pcj := range msg.PreCommitJustification {
+		err := verifyBlockHashAgainstBlockNumber(h.blockState, pcj.Vote.Hash, uint(pcj.Vote.Number))
+		if err != nil {
+			return err
+		}
+	}
+
 	auths := make([]AuthData, len(msg.PreCommitJustification))
 	for i, pcj := range msg.PreCommitJustification {
 		auths[i] = AuthData{AuthorityID: pcj.AuthorityID}
@@ -470,6 +494,17 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 	err := scale.Unmarshal(justification, &fj)
 	if err != nil {
 		return err
+	}
+
+	if err := verifyBlockHashAgainstBlockNumber(s.blockState, fj.Commit.Hash, uint(fj.Commit.Number)); err != nil {
+		return err
+	}
+
+	for _, preCommit := range fj.Commit.Precommits {
+		err := verifyBlockHashAgainstBlockNumber(s.blockState, preCommit.Vote.Hash, uint(preCommit.Vote.Number))
+		if err != nil {
+			return err
+		}
 	}
 
 	setID, err := s.grandpaState.GetSetIDByBlockNumber(uint(fj.Commit.Number))
@@ -570,6 +605,18 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 	logger.Debugf(
 		"set finalised block with hash %s, round %d and set id %d",
 		hash, fj.Round, setID)
+	return nil
+}
+
+func verifyBlockHashAgainstBlockNumber(bs BlockState, hash common.Hash, number uint) error {
+	blockHashFromBlockState, err := bs.GetHashByNumber(number)
+	if err != nil {
+		return fmt.Errorf("could not find block hash by block number: %w", err)
+	}
+
+	if blockHashFromBlockState != hash {
+		return ErrCommitBlockHashMismatch
+	}
 	return nil
 }
 
