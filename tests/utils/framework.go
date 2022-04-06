@@ -15,7 +15,7 @@ import (
 
 // Framework struct to hold references to framework data
 type Framework struct {
-	nodes   []*Node
+	nodes   []Node
 	db      *scribble.Driver
 	callQty int
 }
@@ -44,8 +44,9 @@ func InitFramework(qtyNodes int) (*Framework, error) {
 
 // StartNodes calls RestartGossamor for all nodes
 func (fw *Framework) StartNodes(t *testing.T) (errorList []error) {
-	for _, node := range fw.nodes {
-		err := startGossamer(t, node, false)
+	for i, node := range fw.nodes {
+		var err error
+		fw.nodes[i], err = startGossamer(t, node, false)
 		if err != nil {
 			errorList = append(errorList, err)
 		}

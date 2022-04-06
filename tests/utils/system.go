@@ -13,8 +13,8 @@ import (
 )
 
 // GetPeers calls the endpoint system_peers
-func GetPeers(ctx context.Context, t *testing.T, node *Node) []common.PeerInfo {
-	endpoint := NewEndpoint(node.RPCPort)
+func GetPeers(ctx context.Context, t *testing.T, rpcPort string) []common.PeerInfo {
+	endpoint := NewEndpoint(rpcPort)
 	const method = "system_peers"
 	const params = "[]"
 	respBody, err := PostRPC(ctx, endpoint, method, params)
