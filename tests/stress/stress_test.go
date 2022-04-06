@@ -10,7 +10,6 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -101,10 +100,8 @@ func TestRestartNode(t *testing.T) {
 }
 
 func TestSync_SingleBlockProducer(t *testing.T) {
-	numNodes := 4
-	utils.Logger.Patch(log.SetLevel(log.Info))
+	const numNodes = 4
 
-	// start block producing node first
 	basePath := t.TempDir()
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
 	configNoGrandpa := config.CreateNoGrandpa(t)
@@ -115,41 +112,27 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 		node.SetConfig(configNoGrandpa),
 		node.SetBabeLead(true))
 
-	ctx, cancel := context.WithCancel(context.Background())
-	babeLeadNode.InitAndStartTest(ctx, t, cancel)
-
 	configNoAuthority := config.CreateNotAuthority(t)
-
-	// wait and start rest of nodes - if they all start at the same time the first round usually doesn't complete since
-	// all nodes vote for different blocks.
-	time.Sleep(time.Second * 15)
-
-	nodes := node.MakeNodes(t, numNodes-1,
+	noAuthorityNodes := node.MakeNodes(t, numNodes-1,
 		node.SetGenesis(genesisPath),
 		node.SetConfig(configNoAuthority))
-	nodes.InitAndStartTest(ctx, t, cancel)
+
+	nodes := make(node.Nodes, 0, numNodes)
 	nodes = append(nodes, babeLeadNode)
+	nodes = append(nodes, noAuthorityNodes...)
 
-	time.Sleep(time.Second * 30)
+	const testTimeout = 20 * time.Minute
+	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 
-	numCmps := 10
+	nodes.InitAndStartTest(ctx, t, cancel)
 
-	for i := 0; i < numCmps; i++ {
-		time.Sleep(3 * time.Second)
-		t.Log("comparing...", i)
+	const blockNumbers = 10
+	for blockNumber := 0; blockNumber < blockNumbers; blockNumber++ {
+		t.Logf("comparing block number %d...", blockNumber)
 
-		const comparisonTimeout = 5 * time.Second
-		compareCtx, cancel := context.WithTimeout(ctx, comparisonTimeout)
-
-		hashes := compareBlocksByNumber(compareCtx, t, nodes, strconv.Itoa(i))
-
-		cancel()
-
-		// there will only be one key in the mapping
-		for _, nodesWithHash := range hashes {
-			// allow 1 node to potentially not have synced. this is due to the need to increase max peer count
-			require.GreaterOrEqual(t, len(nodesWithHash), numNodes-1)
-		}
+		nodeKeys, err := compareBlocksByNumber(ctx, nodes, fmt.Sprint(blockNumber))
+		require.NoError(t, err)
+		require.Equal(t, len(nodeKeys), numNodes)
 	}
 }
 
@@ -212,7 +195,8 @@ func TestSync_MultipleEpoch(t *testing.T) {
 		const compareTimeout = 5 * time.Second
 		compareCtx, cancel := context.WithTimeout(ctx, compareTimeout)
 
-		_ = compareBlocksByNumber(compareCtx, t, nodes, strconv.Itoa(int(i)))
+		_, err := compareBlocksByNumber(compareCtx, nodes, fmt.Sprint(i))
+		require.NoError(t, err)
 
 		cancel()
 	}
@@ -260,7 +244,8 @@ func TestSync_SingleSyncingNode(t *testing.T) {
 		const compareTimeout = 5 * time.Second
 		compareCtx, cancel := context.WithTimeout(ctx, compareTimeout)
 
-		_ = compareBlocksByNumber(compareCtx, t, nodes, strconv.Itoa(i))
+		_, err := compareBlocksByNumber(compareCtx, nodes, fmt.Sprint(i))
+		require.NoError(t, err)
 
 		cancel()
 	}
@@ -360,7 +345,8 @@ func TestSync_Bench(t *testing.T) {
 	const compareTimeout = 5 * time.Second
 	compareCtx, pauseBabeCancel := context.WithTimeout(ctx, compareTimeout)
 
-	_ = compareBlocksByNumber(compareCtx, t, nodes, fmt.Sprint(numBlocks))
+	_, err = compareBlocksByNumber(compareCtx, nodes, fmt.Sprint(numBlocks))
+	require.NoError(t, err)
 
 	pauseBabeCancel()
 
@@ -467,7 +453,8 @@ func TestSync_Restart(t *testing.T) {
 		const compareTimeout = 5 * time.Second
 		compareCtx, cancel := context.WithTimeout(mainCtx, compareTimeout)
 
-		_ = compareBlocksByNumber(compareCtx, t, nodes, strconv.Itoa(i))
+		_, err := compareBlocksByNumber(compareCtx, nodes, fmt.Sprint(i))
+		require.NoError(t, err)
 
 		cancel()
 
@@ -659,7 +646,8 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 	const compareTimeout = 5 * time.Second
 	compareCtx, cancel := context.WithTimeout(ctx, compareTimeout)
 
-	_ = compareBlocksByNumber(compareCtx, t, nodes, fmt.Sprint(extInBlock))
+	_, err = compareBlocksByNumber(compareCtx, nodes, fmt.Sprint(extInBlock))
+	require.NoError(t, err)
 
 	cancel()
 }
@@ -863,7 +851,7 @@ func TestStress_SecondarySlotProduction(t *testing.T) {
 				fmt.Printf("%d iteration\n", i)
 
 				getBlockHashCtx, cancel := context.WithTimeout(ctx, time.Second)
-				hash, err := rpc.GetBlockHash(getBlockHashCtx, nodes[0].GetRPCPort(), fmt.Sprintf("%d", i))
+				hash, err := rpc.GetBlockHash(getBlockHashCtx, nodes[0].GetRPCPort(), fmt.Sprint(i))
 				cancel()
 
 				require.NoError(t, err)
