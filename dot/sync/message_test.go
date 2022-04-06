@@ -191,7 +191,30 @@ func TestService_CreateBlockResponse(t *testing.T) {
 	}
 }
 
+func newMockBlockStateForMessageTest(ctrl *gomock.Controller) BlockState {
+	mock := NewMockBlockState(ctrl)
+
+	mock.EXPECT().GetHashByNumber(gomock.AssignableToTypeOf(uint(0))).DoAndReturn(func(
+		number uint) (common.Hash, error) {
+		return common.Hash{}, nil
+	}).AnyTimes()
+
+	mock.EXPECT().IsDescendantOf(gomock.AssignableToTypeOf(common.Hash{}),
+		gomock.AssignableToTypeOf(common.Hash{})).Return(true, nil).AnyTimes()
+
+	mock.EXPECT().GetHeader(gomock.AssignableToTypeOf(common.Hash{})).DoAndReturn(func(hash common.Hash) (*types.
+		Header, error) {
+		header := &types.Header{
+			Number: uint(hash[0]),
+		}
+		return header, nil
+	}).AnyTimes()
+
+	return mock
+}
+
 func TestService_checkOrGetDescendantHash(t *testing.T) {
+	ctrl := gomock.NewController(t)
 	type fields struct {
 		blockState     BlockState
 		chainSync      ChainSync
@@ -204,13 +227,33 @@ func TestService_checkOrGetDescendantHash(t *testing.T) {
 		descendantNumber uint
 	}
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    common.Hash
-		wantErr bool
+		name          string
+		fields        fields
+		args          args
+		want          common.Hash
+		expectedError error
 	}{
-		// TODO: Add test cases.
+		{
+			name: "nil descendant",
+			fields: fields{
+				blockState: newMockBlockStateForMessageTest(ctrl)},
+			args: args{ancestor: common.Hash{}, descendant: nil, descendantNumber: 1},
+		},
+		{
+			name: "not nil descendant",
+			fields: fields{
+				blockState: newMockBlockStateForMessageTest(ctrl)},
+			args: args{ancestor: common.Hash{0}, descendant: &common.Hash{1, 2}, descendantNumber: 1},
+			want: common.Hash{1, 2},
+		},
+		{
+			name: "descendant greater than header",
+			fields: fields{
+				blockState: newMockBlockStateForMessageTest(ctrl)},
+			args:          args{ancestor: common.Hash{2}, descendant: &common.Hash{1, 2}, descendantNumber: 1},
+			want:          common.Hash{},
+			expectedError: errors.New("invalid request, descendant number 2 is higher than ancestor 1"),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -221,9 +264,8 @@ func TestService_checkOrGetDescendantHash(t *testing.T) {
 				network:        tt.fields.network,
 			}
 			got, err := s.checkOrGetDescendantHash(tt.args.ancestor, tt.args.descendant, tt.args.descendantNumber)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("checkOrGetDescendantHash() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			if tt.expectedError != nil {
+				assert.EqualError(t, err, tt.expectedError.Error())
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("checkOrGetDescendantHash() got = %v, want %v", got, tt.want)

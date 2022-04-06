@@ -2,9 +2,10 @@ package sync
 
 import (
 	"context"
-	"github.com/stretchr/testify/assert"
 	"sync"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_newWorkerState(t *testing.T) {
