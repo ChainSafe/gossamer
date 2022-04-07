@@ -609,7 +609,7 @@ func TestStoreAndFinalizeBabeNextConfigData(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 
-				// after finalize next config data this epoch should be defined
+				// after finalize next config data for this epoch should be defined
 				definedEpochData, definedConfigData, err = epochState.AlreadyDefined(tt.finalizeEpoch)
 				require.NoError(t, err)
 				require.False(t, definedEpochData)
