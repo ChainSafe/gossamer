@@ -11,8 +11,6 @@ on:
     #   - go.sum
 
 name: checks
-env:
-  GO111MODULE: on
 
 jobs:
   linting:

@@ -4,8 +4,6 @@ ARG chain="polkadot"
 ARG basepath="~/.gossamer"
 ARG DD_API_KEY
 
-ENV GO111MODULE=on
-
 ENV chain=${chain}
 ENV basepath=${basepath}
 ENV DD_API_KEY=${DD_API_KEY}

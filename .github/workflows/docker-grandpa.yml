@@ -15,8 +15,6 @@ on:
     #   - go.mod
     #   - go.sum
 name: docker-grandpa
-env:
-  GO111MODULE: on
 
 jobs:
   docker-grandpa-tests:

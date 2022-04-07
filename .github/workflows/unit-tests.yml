@@ -16,8 +16,6 @@ on:
     #   - go.sum
     #   - Makefile
 name: unit-tests
-env:
-  GO111MODULE: on
 
 jobs:
   unit-tests:
