@@ -520,6 +520,7 @@ func Test_chainProcessor_processReadyBlocks(t *testing.T) {
 		name   string
 		fields fields
 	}{
+		// TODO: (ed) add test to handle processBlockData
 		{
 			name: "base case",
 			fields: fields{

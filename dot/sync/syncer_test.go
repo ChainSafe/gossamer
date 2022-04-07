@@ -372,3 +372,32 @@ func Test_reverseBlockData(t *testing.T) {
 		})
 	}
 }
+
+func TestService_HighestBlock(t *testing.T) {
+	type fields struct {
+		blockState     BlockState
+		chainSync      ChainSync
+		chainProcessor ChainProcessor
+		network        Network
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   uint
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &Service{
+				blockState:     tt.fields.blockState,
+				chainSync:      tt.fields.chainSync,
+				chainProcessor: tt.fields.chainProcessor,
+				network:        tt.fields.network,
+			}
+			if got := s.HighestBlock(); got != tt.want {
+				t.Errorf("Service.HighestBlock() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
