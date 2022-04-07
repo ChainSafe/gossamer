@@ -413,7 +413,7 @@ func TestStoreAndFinalizeBabeNextEpochData(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 
-				// after finalize next epoch data this epoch should not defined
+				// after finalize next epoch data for this epoch should not defined
 				definedEpochData, definedConfigData, err := epochState.AlreadyDefined(tt.finalizeEpoch)
 				require.NoError(t, err)
 				require.True(t, definedEpochData)
