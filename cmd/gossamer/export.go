@@ -55,7 +55,7 @@ func exportAction(ctx *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed exporting TOML configuration: %w", err)
 	}
-	logger.Info("exported toml configuration to " + config)
+	logger.Infof("exported toml configuration to %s", config)
 
 	return nil
 }

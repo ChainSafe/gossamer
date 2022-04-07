@@ -61,6 +61,8 @@ func exportConfig(cfg *ctoml.Config, targetPath string) (err error) {
 		return fmt.Errorf("failed to marshal configuration: %w", err)
 	}
 
+	// read and write for the current user
+	// read only for the user group and others
 	const perms = fs.FileMode(0644)
 	err = os.WriteFile(targetPath, b, perms)
 	if err != nil {
