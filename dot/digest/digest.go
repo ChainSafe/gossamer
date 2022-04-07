@@ -17,8 +17,6 @@ import (
 
 var (
 	_ services.Service = &Handler{}
-
-	ErrDefineNextEpoch = errors.New("cannot define next epoch data and config")
 )
 
 // Handler is used to handle consensus messages and relevant authority updates to BABE and GRANDPA
@@ -267,23 +265,29 @@ func (h *Handler) persistBABEDigestsForNextEpoch(finalizedHeader *types.Header) 
 	}
 
 	nextEpoch := currEpoch + 1
-	err = h.epochState.FinalizeBABENextEpochData(nextEpoch)
-	if err != nil && !errors.Is(err, state.ErrEpochNotInMemory) {
-		return fmt.Errorf("cannot finalize babe next epoch data for block number %d (%s): %w",
-			finalizedHeader.Number, finalizedHeader.Hash(), err)
+
+	appliedEpochData, appliedConfigData, err := h.epochState.AlreadyDefined(nextEpoch)
+	if err != nil {
+		return fmt.Errorf("cannot check if next epoch is already defined: %w", err)
 	}
 
-	err = h.epochState.FinalizeBABENextConfigData(nextEpoch)
-	if err == nil {
-		return nil
-	} else if errors.Is(err, state.ErrEpochNotInMemory) {
-		return fmt.Errorf("%w: %s", ErrDefineNextEpoch, err)
+	if !appliedEpochData {
+		err = h.epochState.FinalizeBABENextEpochData(nextEpoch)
+		if err != nil && !errors.Is(err, state.ErrEpochNotInMemory) {
+			return fmt.Errorf("cannot finalize babe next epoch data for block number %d (%s): %w",
+				finalizedHeader.Number, finalizedHeader.Hash(), err)
+		}
 	}
 
-	// the epoch state does not contains any information about the next epoch
-	return fmt.Errorf("cannot finalize babe next config data for block number %d (%s): %w",
-		finalizedHeader.Number, finalizedHeader.Hash(), err)
+	if !appliedConfigData {
+		err = h.epochState.FinalizeBABENextConfigData(nextEpoch)
+		if err != nil && !errors.Is(err, state.ErrEpochNotInMemory) {
+			return fmt.Errorf("cannot finalize babe next config data for block number %d (%s): %w",
+				finalizedHeader.Number, finalizedHeader.Hash(), err)
+		}
+	}
 
+	return nil
 }
 
 func (h *Handler) handleGrandpaChangesOnImport(num uint) error {

@@ -512,6 +512,30 @@ func (s *EpochState) SkipVerify(header *types.Header) (bool, error) {
 	return false, nil
 }
 
+// AlreadyDefined will true for each returned value if it is already defined in the database for the given epoch
+func (s *EpochState) AlreadyDefined(epoch uint64) (epochData bool, configData bool, err error) {
+	keys := [...][]byte{epochDataKey(epoch), configDataKey(epoch)}
+	applied := [...]bool{false, false}
+
+	for idx, key := range keys {
+		enc, err := s.db.Get(key)
+
+		if errors.Is(err, chaindb.ErrKeyNotFound) {
+			continue
+		} else if err != nil {
+			return false, false, fmt.Errorf("cannot retrieve %s from database: %w", string(key), err)
+		}
+
+		if len(enc) == 0 {
+			continue
+		}
+
+		applied[idx] = true
+	}
+
+	return applied[0], applied[1], nil
+}
+
 // StoreBABENextEpochData stores the types.NextEpochData under epoch and hash keys
 func (s *EpochState) StoreBABENextEpochData(epoch uint64, hash common.Hash, nextEpochData types.NextEpochData) {
 	s.nextEpochDataLock.Lock()
