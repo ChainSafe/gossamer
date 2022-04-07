@@ -17,6 +17,7 @@ import (
 	"github.com/ChainSafe/gossamer/tests/utils"
 	"github.com/ChainSafe/gossamer/tests/utils/config"
 	"github.com/ChainSafe/gossamer/tests/utils/node"
+	"github.com/ChainSafe/gossamer/tests/utils/retry"
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v3"
 	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
 	"github.com/centrifuge/go-substrate-rpc-client/v3/types"
@@ -37,9 +38,18 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	node.InitAndStartTest(ctx, t, cancel)
 
-	time.Sleep(30 * time.Second) // wait for server to start and block 1 to be produced
-
 	api, err := gsrpc.NewSubstrateAPI(fmt.Sprintf("http://localhost:%s", node.GetRPCPort()))
+	require.NoError(t, err)
+
+	// Wait for the first block to be produced.
+	const retryWait = time.Second
+	err = retry.UntilOK(ctx, retryWait, func() (ok bool, err error) {
+		block, err := api.RPC.Chain.GetBlockLatest()
+		if err != nil {
+			return false, err
+		}
+		return block.Block.Header.Number > 0, nil
+	})
 	require.NoError(t, err)
 
 	meta, err := api.RPC.State.GetMetadataLatest()
