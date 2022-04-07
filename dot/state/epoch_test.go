@@ -597,7 +597,7 @@ func TestStoreAndFinalizeBabeNextConfigData(t *testing.T) {
 			err := epochState.blockState.db.Put(headerKey(tt.finalizeHash), []byte{})
 			require.NoError(t, err)
 
-			// before finalize next config data this epoch should not be defined
+			// before finalize next config data for this epoch should not be defined
 			definedEpochData, definedConfigData, err := epochState.AlreadyDefined(tt.finalizeEpoch)
 			require.NoError(t, err)
 			require.False(t, definedEpochData)
