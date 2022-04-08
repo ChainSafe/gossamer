@@ -82,7 +82,8 @@ type Node struct {
 }
 
 // InitGossamer initialises given node number and returns node reference
-func InitGossamer(idx int, basePath, genesis, config string) (*Node, error) {
+func InitGossamer(idx int, basePath, genesis, config string) (
+	node Node, err error) {
 	cmdInit := exec.Command(gossamerCMD, "init",
 		"--config", config,
 		"--basepath", basePath,
@@ -94,11 +95,11 @@ func InitGossamer(idx int, basePath, genesis, config string) (*Node, error) {
 	stdOutInit, err := cmdInit.CombinedOutput()
 	if err != nil {
 		fmt.Printf("%s", stdOutInit)
-		return nil, err
+		return node, err
 	}
 
 	Logger.Infof("initialised gossamer node %d!", idx)
-	return &Node{
+	return Node{
 		Idx:      idx,
 		RPCPort:  strconv.Itoa(BaseRPCPort + idx),
 		WSPort:   strconv.Itoa(BaseWSPort + idx),
@@ -108,7 +109,8 @@ func InitGossamer(idx int, basePath, genesis, config string) (*Node, error) {
 }
 
 // startGossamer starts given node
-func startGossamer(t *testing.T, node *Node, websocket bool) error {
+func startGossamer(t *testing.T, node Node, websocket bool) (
+	updatedNode Node, err error) {
 	var key string
 	var params = []string{"--port", strconv.Itoa(basePort + node.Idx),
 		"--config", node.config,
@@ -145,14 +147,14 @@ func startGossamer(t *testing.T, node *Node, websocket bool) error {
 	outfile, err := os.Create(filepath.Join(node.basePath, "log.out"))
 	if err != nil {
 		Logger.Errorf("Error when trying to set a log file for gossamer output: %s", err)
-		return err
+		return node, err
 	}
 
 	// create error log file
 	errfile, err := os.Create(filepath.Join(node.basePath, "error.out"))
 	if err != nil {
 		Logger.Errorf("Error when trying to set a log file for gossamer output: %s", err)
-		return err
+		return node, err
 	}
 
 	t.Cleanup(func() {
@@ -166,20 +168,20 @@ func startGossamer(t *testing.T, node *Node, websocket bool) error {
 	stdoutPipe, err := node.Process.StdoutPipe()
 	if err != nil {
 		Logger.Errorf("failed to get stdoutPipe from node %d: %s", node.Idx, err)
-		return err
+		return node, err
 	}
 
 	stderrPipe, err := node.Process.StderrPipe()
 	if err != nil {
 		Logger.Errorf("failed to get stderrPipe from node %d: %s", node.Idx, err)
-		return err
+		return node, err
 	}
 
 	Logger.Infof("starting gossamer at %s...", node.Process)
 	err = node.Process.Start()
 	if err != nil {
 		Logger.Errorf("Could not execute gossamer cmd: %s", err)
-		return err
+		return node, err
 	}
 
 	writer := bufio.NewWriter(outfile)
@@ -223,28 +225,27 @@ func startGossamer(t *testing.T, node *Node, websocket bool) error {
 		Logger.Criticalf("node didn't start: %s", err)
 		errFileContents, _ := os.ReadFile(errfile.Name())
 		t.Logf("%s\n", errFileContents)
-		return err
+		return node, err
 	}
 
-	return nil
+	return node, nil
 }
 
 // RunGossamer will initialise and start a gossamer instance
-func RunGossamer(t *testing.T, idx int, basepath, genesis, config string, websocket, babeLead bool) (*Node, error) {
-	node, err := InitGossamer(idx, basepath, genesis, config)
+func RunGossamer(t *testing.T, idx int, basepath, genesis, config string, websocket, babeLead bool) (
+	node Node, err error) {
+	node, err = InitGossamer(idx, basepath, genesis, config)
 	if err != nil {
-		Logger.Criticalf("could not initialise gossamer: %s", err)
-		os.Exit(1)
+		return node, fmt.Errorf("could not initialise gossamer: %w", err)
 	}
 
 	if idx == 0 || babeLead {
 		node.BABELead = true
 	}
 
-	err = startGossamer(t, node, websocket)
+	node, err = startGossamer(t, node, websocket)
 	if err != nil {
-		Logger.Criticalf("could not start gossamer: %s", err)
-		os.Exit(1)
+		return node, fmt.Errorf("could not start gossamer: %w", err)
 	}
 
 	return node, nil
@@ -282,8 +283,7 @@ func killProcess(t *testing.T, cmd *exec.Cmd) error {
 }
 
 // InitNodes initialises given number of nodes
-func InitNodes(num int, config string) ([]*Node, error) {
-	var nodes []*Node
+func InitNodes(num int, config string) (nodes []Node, err error) {
 	tempDir, err := os.MkdirTemp("", "gossamer-stress-")
 	if err != nil {
 		return nil, err
@@ -302,9 +302,9 @@ func InitNodes(num int, config string) ([]*Node, error) {
 }
 
 // StartNodes starts given array of nodes
-func StartNodes(t *testing.T, nodes []*Node) error {
+func StartNodes(t *testing.T, nodes []Node) (err error) {
 	for i, n := range nodes {
-		err := startGossamer(t, n, false)
+		nodes[i], err = startGossamer(t, n, false)
 		if err != nil {
 			return fmt.Errorf("node %d of %d: %w",
 				i+1, len(nodes), err)
@@ -314,66 +314,88 @@ func StartNodes(t *testing.T, nodes []*Node) error {
 }
 
 // InitializeAndStartNodes will spin up `num` gossamer nodes
-func InitializeAndStartNodes(t *testing.T, num int, genesis, config string) ([]*Node, error) {
-	var nodes []*Node
-
+func InitializeAndStartNodes(t *testing.T, num int, genesis, config string) (
+	nodes []Node, err error) {
 	var wg sync.WaitGroup
-	var nodeMu sync.Mutex
+	var nodesMutex, errMutex sync.Mutex
 	wg.Add(num)
 
 	for i := 0; i < num; i++ {
 		go func(i int) {
+			defer wg.Done()
 			name := strconv.Itoa(i)
 			if i < len(KeyList) {
 				name = KeyList[i]
 			}
-			node, err := RunGossamer(t, i, TestDir(t, name), genesis, config, false, false)
-			if err != nil {
-				Logger.Errorf("failed to run Gossamer for node index %d", i)
+			node, runErr := RunGossamer(t, i, TestDir(t, name), genesis, config, false, false)
+			if runErr != nil {
+				errMutex.Lock()
+				if err == nil {
+					err = fmt.Errorf("failed to run Gossamer for node index %d: %w", i, runErr)
+				}
+				errMutex.Unlock()
+				return
 			}
 
-			nodeMu.Lock()
+			nodesMutex.Lock()
 			nodes = append(nodes, node)
-			nodeMu.Unlock()
-			wg.Done()
+			nodesMutex.Unlock()
 		}(i)
 	}
 
 	wg.Wait()
+
+	if err != nil {
+		_ = StopNodes(t, nodes)
+		return nil, err
+	}
 
 	return nodes, nil
 }
 
 // InitializeAndStartNodesWebsocket will spin up `num` gossamer nodes running with Websocket rpc enabled
-func InitializeAndStartNodesWebsocket(t *testing.T, num int, genesis, config string) ([]*Node, error) {
-	var nodes []*Node
-
+func InitializeAndStartNodesWebsocket(t *testing.T, num int, genesis, config string) (
+	nodes []Node, err error) {
+	var nodesMutex, errMutex sync.Mutex
 	var wg sync.WaitGroup
+
 	wg.Add(num)
 
 	for i := 0; i < num; i++ {
 		go func(i int) {
+			defer wg.Done()
 			name := strconv.Itoa(i)
 			if i < len(KeyList) {
 				name = KeyList[i]
 			}
-			node, err := RunGossamer(t, i, TestDir(t, name), genesis, config, true, false)
-			if err != nil {
-				Logger.Errorf("failed to run Gossamer for node index %d", i)
+			node, runErr := RunGossamer(t, i, TestDir(t, name), genesis, config, true, false)
+			if runErr != nil {
+				errMutex.Lock()
+				if err == nil {
+					err = fmt.Errorf("failed to run Gossamer for node index %d: %w", i, runErr)
+				}
+				errMutex.Unlock()
+				return
 			}
 
+			nodesMutex.Lock()
 			nodes = append(nodes, node)
-			wg.Done()
+			nodesMutex.Unlock()
 		}(i)
 	}
 
 	wg.Wait()
 
+	if err != nil {
+		_ = StopNodes(t, nodes)
+		return nil, err
+	}
+
 	return nodes, nil
 }
 
 // StopNodes stops the given nodes
-func StopNodes(t *testing.T, nodes []*Node) (errs []error) {
+func StopNodes(t *testing.T, nodes []Node) (errs []error) {
 	for i := range nodes {
 		cmd := nodes[i].Process
 		err := killProcess(t, cmd)
@@ -387,7 +409,7 @@ func StopNodes(t *testing.T, nodes []*Node) (errs []error) {
 }
 
 // TearDown stops the given nodes and remove their datadir
-func TearDown(t *testing.T, nodes []*Node) (errorList []error) {
+func TearDown(t *testing.T, nodes []Node) (errorList []error) {
 	for i, node := range nodes {
 		cmd := nodes[i].Process
 		err := killProcess(t, cmd)
@@ -423,7 +445,7 @@ func GenerateGenesisThreeAuth() {
 		Logger.Errorf("genesis file not found: %s", err)
 		os.Exit(1)
 	}
-	_ = dot.CreateJSONRawFile(bs, GenesisThreeAuths)
+	dot.CreateJSONRawFile(bs, GenesisThreeAuths)
 }
 
 // GenerateGenesisSixAuth generates Genesis file with six authority.
@@ -433,7 +455,7 @@ func GenerateGenesisSixAuth(t *testing.T) {
 		Logger.Errorf("genesis file not found: %s", err)
 		os.Exit(1)
 	}
-	_ = dot.CreateJSONRawFile(bs, GenesisSixAuths)
+	dot.CreateJSONRawFile(bs, GenesisSixAuths)
 }
 
 func generateDefaultConfig() *ctoml.Config {
@@ -485,7 +507,7 @@ func generateDefaultConfig() *ctoml.Config {
 // CreateDefaultConfig generates and creates default config file.
 func CreateDefaultConfig() {
 	cfg := generateDefaultConfig()
-	_ = dot.ExportTomlConfig(cfg, ConfigDefault)
+	dot.ExportTomlConfig(cfg, ConfigDefault)
 }
 
 func generateConfigLogGrandpa() *ctoml.Config {
@@ -503,7 +525,7 @@ func generateConfigLogGrandpa() *ctoml.Config {
 // CreateConfigLogGrandpa generates and creates grandpa config file.
 func CreateConfigLogGrandpa() {
 	cfg := generateConfigLogGrandpa()
-	_ = dot.ExportTomlConfig(cfg, ConfigLogGrandpa)
+	dot.ExportTomlConfig(cfg, ConfigLogGrandpa)
 }
 
 func generateConfigNoBabe() *ctoml.Config {
@@ -521,7 +543,7 @@ func generateConfigNoBabe() *ctoml.Config {
 // CreateConfigNoBabe generates and creates no babe config file.
 func CreateConfigNoBabe() {
 	cfg := generateConfigNoBabe()
-	_ = dot.ExportTomlConfig(cfg, ConfigNoBABE)
+	dot.ExportTomlConfig(cfg, ConfigNoBABE)
 }
 
 func generateConfigNoGrandpa() *ctoml.Config {
@@ -535,7 +557,7 @@ func generateConfigNoGrandpa() *ctoml.Config {
 // CreateConfigNoGrandpa generates and creates no grandpa config file.
 func CreateConfigNoGrandpa() {
 	cfg := generateConfigNoGrandpa()
-	_ = dot.ExportTomlConfig(cfg, ConfigNoGrandpa)
+	dot.ExportTomlConfig(cfg, ConfigNoGrandpa)
 }
 
 func generateConfigNotAuthority() *ctoml.Config {
@@ -549,5 +571,5 @@ func generateConfigNotAuthority() *ctoml.Config {
 // CreateConfigNotAuthority generates and creates non-authority config file.
 func CreateConfigNotAuthority() {
 	cfg := generateConfigNotAuthority()
-	_ = dot.ExportTomlConfig(cfg, ConfigNotAuthority)
+	dot.ExportTomlConfig(cfg, ConfigNotAuthority)
 }

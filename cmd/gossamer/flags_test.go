@@ -9,7 +9,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/chain/dev"
 	"github.com/ChainSafe/gossamer/dot"
-
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli"
 )

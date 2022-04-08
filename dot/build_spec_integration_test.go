@@ -7,7 +7,6 @@ package dot
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -20,7 +19,7 @@ import (
 // hex encoding for ":code", used as key for code is raw genesis files.
 const codeHex = "0x3a636f6465"
 
-func TestBuildFromGenesis(t *testing.T) {
+func TestBuildFromGenesis_Integration(t *testing.T) {
 	t.Parallel()
 
 	file := genesis.CreateTestGenesisJSONFile(t, false)
@@ -69,20 +68,7 @@ func TestBuildFromGenesis_WhenGenesisDoesNotExists(t *testing.T) {
 	require.ErrorIs(t, err, os.ErrNotExist)
 }
 
-func TestWriteGenesisSpecFileWhenFileAlreadyExists(t *testing.T) {
-	t.Parallel()
-
-	filePath := filepath.Join(t.TempDir(), "genesis.raw")
-	someBytes := []byte("Testing some bytes")
-	err := WriteGenesisSpecFile(someBytes, filePath)
-
-	require.EqualError(t, err,
-		fmt.Sprintf("file %s already exists, rename to avoid overwriting", filePath))
-}
-
-func TestWriteGenesisSpecFile(t *testing.T) {
-	t.Parallel()
-
+func TestWriteGenesisSpecFile_Integration(t *testing.T) {
 	cfg := NewTestConfig(t)
 	cfg.Init.Genesis = utils.GetGssmrGenesisRawPathTest(t)
 
@@ -101,11 +87,13 @@ func TestWriteGenesisSpecFile(t *testing.T) {
 	tmpFile := filepath.Join(t.TempDir(), "unique-raw-genesis.json")
 	err = WriteGenesisSpecFile(data, tmpFile)
 	require.NoError(t, err)
-	require.FileExists(t, tmpFile)
 
 	file, err := os.Open(tmpFile)
 	require.NoError(t, err)
-	defer file.Close()
+	t.Cleanup(func() {
+		err := file.Close()
+		require.NoError(t, err)
+	})
 
 	gen := new(genesis.Genesis)
 
@@ -118,9 +106,7 @@ func TestWriteGenesisSpecFile(t *testing.T) {
 
 }
 
-func TestBuildFromDB(t *testing.T) {
-	t.Parallel()
-
+func TestBuildFromDB_Integration(t *testing.T) {
 	// setup expected
 	cfg := NewTestConfig(t)
 	cfg.Init.Genesis = utils.GetGssmrGenesisRawPathTest(t)

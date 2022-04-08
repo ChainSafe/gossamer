@@ -19,6 +19,8 @@ type BlockState interface {
 	FreeFinalisedNotifierChannel(ch chan *types.FinalisationInfo)
 }
 
+//go:generate mockgen -destination=mock_epoch_state_test.go -package $GOPACKAGE . EpochState
+
 // EpochState is the interface for state.EpochState
 type EpochState interface {
 	GetEpochForBlock(header *types.Header) (uint64, error)
@@ -29,6 +31,7 @@ type EpochState interface {
 	StoreBABENextConfigData(epoch uint64, hash common.Hash, nextEpochData types.NextConfigData)
 	FinalizeBABENextEpochData(epoch uint64) error
 	FinalizeBABENextConfigData(epoch uint64) error
+	AlreadyDefined(epoch uint64) (epochData bool, configData bool, err error)
 }
 
 // GrandpaState is the interface for the state.GrandpaState
