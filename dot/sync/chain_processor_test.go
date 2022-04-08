@@ -495,37 +495,15 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 
 func Test_chainProcessor_processReadyBlocks(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	mockBlockState := NewMockBlockState(ctrl)
-	mockBlockState.EXPECT().HasHeader(gomock.AssignableToTypeOf(common.Hash{})).DoAndReturn(func(hash common.
-		Hash) (bool, error) {
-		if hash.IsEmpty() {
-			return false, nil
-		}
-		return true, nil
-	}).Times(1)
-	mockBlockState.EXPECT().HasBlockBody(gomock.AssignableToTypeOf(common.Hash{})).DoAndReturn(func(hash common.
-		Hash) (bool, error) {
-		if hash.IsEmpty() {
-			return false, nil
-		}
-		return true, nil
-	}).Times(1)
-	mockBlockState.EXPECT().CompareAndSetBlockData(gomock.AssignableToTypeOf(&types.BlockData{})).Times(1)
 
-	type fields struct {
-		blockState BlockState
-	}
 	tests := []struct {
-		name   string
-		fields fields
+		name       string
+		blockState BlockState
 	}{
-		// TODO: (ed) add test to handle processBlockData
 		{
 			name: "base case",
-			fields: fields{
-				blockState: mockBlockState,
-			},
+
+			blockState: newMockBlockState(ctrl, 1, 1, 1, 0, 0, 0, 0, 0, 0),
 		},
 	}
 	for _, tt := range tests {
@@ -537,7 +515,7 @@ func Test_chainProcessor_processReadyBlocks(t *testing.T) {
 				ctx:         ctx,
 				cancel:      cancel,
 				readyBlocks: readyBlock,
-				blockState:  tt.fields.blockState,
+				blockState:  tt.blockState,
 			}
 
 			go s.processReadyBlocks()

@@ -26,7 +26,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestChainSync_SetPeerHead(t *testing.T) {
+func TestChainSync_SetPeerHead_Integration(t *testing.T) {
 	cs, _ := newTestChainSync(t)
 
 	testPeer := peer.ID("noot")

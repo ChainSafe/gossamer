@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sync"
 	"testing"
 	"time"
 
@@ -19,6 +18,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/golang/mock/gomock"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -92,7 +92,7 @@ func newTestChainSync(t *testing.T) (*chainSync, *blockQueue) {
 	return cs, readyBlocks
 }
 
-func TestChainSync_SetPeerHead_Integration(t *testing.T) {
+func TestChainSync_SetPeerHead(t *testing.T) {
 	cs, _ := newTestChainSync(t)
 
 	testPeer := peer.ID("noot")
@@ -950,86 +950,67 @@ func Test_chainSync_logSyncSpeed(t *testing.T) {
 	}
 }
 
+func newMockBlockStateForChainSyncTests(ctrl *gomock.Controller) BlockState {
+	mock := NewMockBlockState(ctrl)
+	mock.EXPECT().BestBlockHeader().Return(&types.Header{}, nil).AnyTimes()
+	mock.EXPECT().HasHeader(gomock.AssignableToTypeOf(common.Hash{})).Return(true, nil).AnyTimes()
+	return mock
+}
+
+func newMockDisjointBlockSet(ctrl *gomock.Controller) DisjointBlockSet {
+	mock := NewMockDisjointBlockSet(ctrl)
+	mock.EXPECT().run(gomock.Any()).AnyTimes()
+	mock.EXPECT().addHeader(gomock.AssignableToTypeOf(&types.Header{})).Return(nil).AnyTimes()
+	mock.EXPECT().addHashAndNumber(gomock.AssignableToTypeOf(common.Hash{}),
+		gomock.AssignableToTypeOf(uint(0))).Return(nil).AnyTimes()
+	return mock
+}
+
 func Test_chainSync_start(t *testing.T) {
+	ctrl := gomock.NewController(t)
 	type fields struct {
-		ctx                context.Context
-		cancel             context.CancelFunc
-		blockState         BlockState
-		network            Network
-		workQueue          chan *peerState
-		resultQueue        chan *worker
-		RWMutex            sync.RWMutex
-		peerState          map[peer.ID]*peerState
-		ignorePeers        map[peer.ID]struct{}
-		workerState        *workerState
-		readyBlocks        *blockQueue
-		pendingBlocks      DisjointBlockSet
-		pendingBlockDoneCh chan<- struct{}
-		state              chainSyncState
-		handler            workHandler
-		benchmarker        *syncBenchmarker
-		finalisedCh        <-chan *types.FinalisationInfo
-		minPeers           int
-		maxWorkerRetries   uint16
-		slotDuration       time.Duration
+		blockState    BlockState
+		pendingBlocks DisjointBlockSet
+		benchmarker   *syncBenchmarker
+		slotDuration  time.Duration
 	}
 	tests := []struct {
 		name   string
 		fields fields
 	}{
-		// TODO: Add test cases.
+		{
+			name: "base case",
+			fields: fields{
+				blockState:    newMockBlockStateForChainSyncTests(ctrl),
+				pendingBlocks: newMockDisjointBlockSet(ctrl),
+				slotDuration:  defaultSlotDuration,
+				benchmarker:   newSyncBenchmarker(1),
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
 			cs := &chainSync{
-				ctx:                tt.fields.ctx,
-				cancel:             tt.fields.cancel,
-				blockState:         tt.fields.blockState,
-				network:            tt.fields.network,
-				workQueue:          tt.fields.workQueue,
-				resultQueue:        tt.fields.resultQueue,
-				RWMutex:            tt.fields.RWMutex,
-				peerState:          tt.fields.peerState,
-				ignorePeers:        tt.fields.ignorePeers,
-				workerState:        tt.fields.workerState,
-				readyBlocks:        tt.fields.readyBlocks,
-				pendingBlocks:      tt.fields.pendingBlocks,
-				pendingBlockDoneCh: tt.fields.pendingBlockDoneCh,
-				state:              tt.fields.state,
-				handler:            tt.fields.handler,
-				benchmarker:        tt.fields.benchmarker,
-				finalisedCh:        tt.fields.finalisedCh,
-				minPeers:           tt.fields.minPeers,
-				maxWorkerRetries:   tt.fields.maxWorkerRetries,
-				slotDuration:       tt.fields.slotDuration,
+				ctx:           ctx,
+				cancel:        cancel,
+				blockState:    tt.fields.blockState,
+				pendingBlocks: tt.fields.pendingBlocks,
+				benchmarker:   tt.fields.benchmarker,
+				slotDuration:  tt.fields.slotDuration,
 			}
 			cs.start()
+			time.Sleep(time.Millisecond)
+			cs.stop()
 		})
 	}
 }
 
 func Test_chainSync_setBlockAnnounce(t *testing.T) {
+	ctrl := gomock.NewController(t)
 	type fields struct {
-		ctx                context.Context
-		cancel             context.CancelFunc
-		blockState         BlockState
-		network            Network
-		workQueue          chan *peerState
-		resultQueue        chan *worker
-		RWMutex            sync.RWMutex
-		peerState          map[peer.ID]*peerState
-		ignorePeers        map[peer.ID]struct{}
-		workerState        *workerState
-		readyBlocks        *blockQueue
-		pendingBlocks      DisjointBlockSet
-		pendingBlockDoneCh chan<- struct{}
-		state              chainSyncState
-		handler            workHandler
-		benchmarker        *syncBenchmarker
-		finalisedCh        <-chan *types.FinalisationInfo
-		minPeers           int
-		maxWorkerRetries   uint16
-		slotDuration       time.Duration
+		blockState    BlockState
+		pendingBlocks DisjointBlockSet
 	}
 	type args struct {
 		from   peer.ID
@@ -1041,32 +1022,24 @@ func Test_chainSync_setBlockAnnounce(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{
+			name: "base case",
+			args: args{
+				header: &types.Header{Number: 2},
+			},
+			fields: fields{
+				blockState:    newMockBlockStateForChainSyncTests(ctrl),
+				pendingBlocks: newMockDisjointBlockSet(ctrl),
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cs := &chainSync{
-				ctx:                tt.fields.ctx,
-				cancel:             tt.fields.cancel,
-				blockState:         tt.fields.blockState,
-				network:            tt.fields.network,
-				workQueue:          tt.fields.workQueue,
-				resultQueue:        tt.fields.resultQueue,
-				RWMutex:            tt.fields.RWMutex,
-				peerState:          tt.fields.peerState,
-				ignorePeers:        tt.fields.ignorePeers,
-				workerState:        tt.fields.workerState,
-				readyBlocks:        tt.fields.readyBlocks,
-				pendingBlocks:      tt.fields.pendingBlocks,
-				pendingBlockDoneCh: tt.fields.pendingBlockDoneCh,
-				state:              tt.fields.state,
-				handler:            tt.fields.handler,
-				benchmarker:        tt.fields.benchmarker,
-				finalisedCh:        tt.fields.finalisedCh,
-				minPeers:           tt.fields.minPeers,
-				maxWorkerRetries:   tt.fields.maxWorkerRetries,
-				slotDuration:       tt.fields.slotDuration,
+				blockState:    tt.fields.blockState,
+				pendingBlocks: tt.fields.pendingBlocks,
 			}
+
 			if err := cs.setBlockAnnounce(tt.args.from, tt.args.header); (err != nil) != tt.wantErr {
 				t.Errorf("chainSync.setBlockAnnounce() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -1075,64 +1048,30 @@ func Test_chainSync_setBlockAnnounce(t *testing.T) {
 }
 
 func Test_chainSync_getHighestBlock(t *testing.T) {
-	type fields struct {
-		ctx                context.Context
-		cancel             context.CancelFunc
-		blockState         BlockState
-		network            Network
-		workQueue          chan *peerState
-		resultQueue        chan *worker
-		RWMutex            sync.RWMutex
-		peerState          map[peer.ID]*peerState
-		ignorePeers        map[peer.ID]struct{}
-		workerState        *workerState
-		readyBlocks        *blockQueue
-		pendingBlocks      DisjointBlockSet
-		pendingBlockDoneCh chan<- struct{}
-		state              chainSyncState
-		handler            workHandler
-		benchmarker        *syncBenchmarker
-		finalisedCh        <-chan *types.FinalisationInfo
-		minPeers           int
-		maxWorkerRetries   uint16
-		slotDuration       time.Duration
-	}
 	tests := []struct {
 		name             string
-		fields           fields
+		peerState        map[peer.ID]*peerState
 		wantHighestBlock uint
-		wantErr          bool
+		expectedError    error
 	}{
-		// TODO: Add test cases.
+		{
+			name:          "error no peers",
+			expectedError: errors.New("no peers to sync with"),
+		},
+		{
+			name:             "base case",
+			peerState:        map[peer.ID]*peerState{"1": {number: 2}},
+			wantHighestBlock: 2,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cs := &chainSync{
-				ctx:                tt.fields.ctx,
-				cancel:             tt.fields.cancel,
-				blockState:         tt.fields.blockState,
-				network:            tt.fields.network,
-				workQueue:          tt.fields.workQueue,
-				resultQueue:        tt.fields.resultQueue,
-				RWMutex:            tt.fields.RWMutex,
-				peerState:          tt.fields.peerState,
-				ignorePeers:        tt.fields.ignorePeers,
-				workerState:        tt.fields.workerState,
-				readyBlocks:        tt.fields.readyBlocks,
-				pendingBlocks:      tt.fields.pendingBlocks,
-				pendingBlockDoneCh: tt.fields.pendingBlockDoneCh,
-				state:              tt.fields.state,
-				handler:            tt.fields.handler,
-				benchmarker:        tt.fields.benchmarker,
-				finalisedCh:        tt.fields.finalisedCh,
-				minPeers:           tt.fields.minPeers,
-				maxWorkerRetries:   tt.fields.maxWorkerRetries,
-				slotDuration:       tt.fields.slotDuration,
+				peerState: tt.peerState,
 			}
 			gotHighestBlock, err := cs.getHighestBlock()
-			if (err != nil) != tt.wantErr {
-				t.Errorf("chainSync.getHighestBlock() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			if tt.expectedError != nil {
+				assert.EqualError(t, err, tt.expectedError.Error())
 			}
 			if gotHighestBlock != tt.wantHighestBlock {
 				t.Errorf("chainSync.getHighestBlock() = %v, want %v", gotHighestBlock, tt.wantHighestBlock)

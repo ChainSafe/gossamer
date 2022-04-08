@@ -96,9 +96,6 @@ func Test_bootstrapSyncer_handleWorkerResult(t *testing.T) {
 				return
 			}
 			assert.Equal(t, tt.wantWorkerToRetry, gotWorkerToRetry)
-			// if !reflect.DeepEqual(gotWorkerToRetry, tt.wantWorkerToRetry) {
-			// 	t.Errorf("bootstrapSyncer.handleWorkerResult() = %v, want %v", gotWorkerToRetry, tt.wantWorkerToRetry)
-			// }
 		})
 	}
 }
