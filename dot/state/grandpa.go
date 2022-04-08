@@ -321,6 +321,8 @@ func (s *GrandpaState) finalizedScheduledChange(finalizedHeader *types.Header) (
 	return apply, changeToApply, nil
 }
 
+// retainScheduledChangeRoots keeps the child nodes from the applied standard change as the new roots of the
+// s.scheduledChanges tree
 func (s *GrandpaState) retainScheduledChangeRoots(finalizedHeader *types.Header) (changed bool, err error) {
 	newScheduledChangeRoots := []*changeNode{}
 	finalizedHash := finalizedHeader.Hash()
@@ -370,6 +372,8 @@ func (s *GrandpaState) applyScheduledChange(finalizedHeader *types.Header) error
 	finalizedHash := finalizedHeader.Hash()
 	onBranchForcedChanges := []*pendingChange{}
 
+	// we should keep the forced changes for later blocks that
+	// are descendant of the finalized block
 	for _, forcedChange := range s.forcedChanges {
 		isDescendant, err := s.blockState.IsDescendantOf(finalizedHash, forcedChange.announcingHeader.Hash())
 		if err != nil {
