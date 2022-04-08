@@ -5,29 +5,10 @@ package sync
 
 import (
 	"math/big"
-	"reflect"
 	"testing"
-)
 
-func Test_getMedian(t *testing.T) {
-	type args struct {
-		data []*big.Int
-	}
-	tests := []struct {
-		name string
-		args args
-		want *big.Int
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := getMedian(tt.args.data); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("getMedian() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
+	"github.com/stretchr/testify/assert"
+)
 
 func Test_removeOutliers(t *testing.T) {
 	tests := []struct {
@@ -36,17 +17,18 @@ func Test_removeOutliers(t *testing.T) {
 		wantSum   *big.Int
 		wantCount uint
 	}{
-		// TODO: Add test cases.
+		{
+			name:      "base case",
+			dataArr:   []uint{100, 0, 260, 280, 220, 240, 250, 1000},
+			wantSum:   big.NewInt(1350),
+			wantCount: uint(7),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			gotSum, gotCount := removeOutliers(tt.dataArr)
-			if !reflect.DeepEqual(gotSum, tt.wantSum) {
-				t.Errorf("removeOutliers() gotSum = %v, want %v", gotSum, tt.wantSum)
-			}
-			if gotCount != tt.wantCount {
-				t.Errorf("removeOutliers() gotCount = %v, want %v", gotCount, tt.wantCount)
-			}
+			assert.Equal(t, tt.wantSum, gotSum)
+			assert.Equal(t, tt.wantCount, gotCount)
 		})
 	}
 }

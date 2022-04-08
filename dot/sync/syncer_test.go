@@ -119,13 +119,6 @@ func TestNewService(t *testing.T) {
 	}
 }
 
-// TODO (ed) remove
-//func newMockBlockState(ctrl *gomock.Controller) BlockState {
-//	mock := NewMockBlockState(ctrl)
-//	mock.EXPECT().GetFinalisedNotifierChannel().Return(make(chan *types.FinalisationInfo))
-//	return mock
-//}
-
 func TestService_HandleBlockAnnounce(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
@@ -183,6 +176,7 @@ func newMockChainSync(ctrl *gomock.Controller) ChainSync {
 	mock.EXPECT().syncState().Return(bootstrap).AnyTimes()
 	mock.EXPECT().start().AnyTimes()
 	mock.EXPECT().stop().AnyTimes()
+	mock.EXPECT().getHighestBlock().Return(uint(2), nil).AnyTimes()
 
 	return mock
 }
@@ -271,39 +265,32 @@ func TestService_IsSynced(t *testing.T) {
 	}
 }
 
-//func TestService_Start(t *testing.T) {
-//	ctrl := gomock.NewController(t)
-//	mockChainProcessor := NewMockChainProcessor(ctrl)
-//	type fields struct {
-//		chainSync      ChainSync
-//		chainProcessor ChainProcessor
-//	}
-//	tests := []struct {
-//		name    string
-//		fields  fields
-//		wantErr bool
-//	}{
-//		{
-//			name: "working example",
-//			fields: fields{
-//				chainSync:      newMockChainSync(ctrl),
-//				chainProcessor: mockChainProcessor,
-//			},
-//			wantErr: false,
-//		},
-//	}
-//	for _, tt := range tests {
-//		t.Run(tt.name, func(t *testing.T) {
-//			s := &Service{
-//				chainSync:      tt.fields.chainSync,
-//				chainProcessor: tt.fields.chainProcessor,
-//			}
-//			if err := s.Start(); (err != nil) != tt.wantErr {
-//				t.Errorf("Start() error = %v, wantErr %v", err, tt.wantErr)
-//			}
-//		})
-//	}
-//}
+func TestService_Start(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	tests := []struct {
+		name    string
+		wantErr bool
+	}{
+		{
+			name:    "working example",
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockChainProcessor := NewMockChainProcessor(ctrl)
+			mockChainProcessor.EXPECT().start()
+			s := &Service{
+				chainSync:      newMockChainSync(ctrl),
+				chainProcessor: mockChainProcessor,
+			}
+			if err := s.Start(); (err != nil) != tt.wantErr {
+				t.Errorf("Start() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
 
 func TestService_Stop(t *testing.T) {
 	ctrl := gomock.NewController(t)
@@ -374,30 +361,25 @@ func Test_reverseBlockData(t *testing.T) {
 }
 
 func TestService_HighestBlock(t *testing.T) {
-	type fields struct {
-		blockState     BlockState
-		chainSync      ChainSync
-		chainProcessor ChainProcessor
-		network        Network
-	}
+	ctrl := gomock.NewController(t)
 	tests := []struct {
-		name   string
-		fields fields
-		want   uint
+		name      string
+		chainSync ChainSync
+		want      uint
 	}{
-		// TODO: Add test cases.
+		{
+			name:      "base case",
+			chainSync: newMockChainSync(ctrl),
+			want:      uint(2),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &Service{
-				blockState:     tt.fields.blockState,
-				chainSync:      tt.fields.chainSync,
-				chainProcessor: tt.fields.chainProcessor,
-				network:        tt.fields.network,
+				chainSync: tt.chainSync,
 			}
-			if got := s.HighestBlock(); got != tt.want {
-				t.Errorf("Service.HighestBlock() = %v, want %v", got, tt.want)
-			}
+			got := s.HighestBlock()
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
