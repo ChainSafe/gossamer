@@ -1153,7 +1153,7 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 			blockState:       mockBlockState,
 			net:              mockNetState,
 		}
-		execTest(t, service, types.Extrinsic{}, nil)
+		execTest(t, service, ext, nil)
 	})
 }
 

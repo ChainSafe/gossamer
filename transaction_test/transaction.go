@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v3"
-	"github.com/centrifuge/go-substrate-rpc-client/v3/rpc/author"
 	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
 	"github.com/centrifuge/go-substrate-rpc-client/v3/types"
 )
@@ -135,31 +134,49 @@ func main() {
 	fmt.Println("Signed!")
 
 	// Send the extrinsic
-	//hash, err := api.RPC.Author.SubmitExtrinsic(ext)
-	//if err != nil {
-	//	panic(err)
-	//}
-	//
-	//fmt.Printf("Transfer sent with hash %#x\n", hash)
-
-	//// Do the transfer and track the actual status
-	var sub *author.ExtrinsicStatusSubscription
-	sub, err = api.RPC.Author.SubmitAndWatchExtrinsic(ext)
+	hash, err := api.RPC.Author.SubmitExtrinsic(ext)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("here1")
-	defer sub.Unsubscribe()
 
-	for {
-		fmt.Println("here")
-		status := <-sub.Chan()
-		fmt.Printf("Transaction status: %#v\n", status)
+	fmt.Printf("Transfer sent with hash %#x\n", hash)
 
-		if status.IsInBlock {
-			fmt.Printf("Completed at block hash: %#x\n", status.AsInBlock)
-			return
-		}
+	accountInfo2, err := getAccountInfo(api, aliceKey)
+	if err != nil {
+		fmt.Println(err)
 	}
+
+	if accountInfo.Data.Free == accountInfo2.Data.Free {
+		fmt.Println("rip they are equal")
+	} else {
+		fmt.Println("before: ", accountInfo.Data.Free, " after: ", accountInfo2.Data.Free)
+	}
+
+	////// Do the transfer and track the actual status
+	//var sub *author.ExtrinsicStatusSubscription
+	//
+	//// this is just for getting val
+	//enc, err := types.EncodeToHexString(ext)
+	//if err != nil {
+	//	panic(err)
+	//}
+	//fmt.Println(enc)
+	//sub, err = api.RPC.Author.SubmitAndWatchExtrinsic(ext)
+	//if err != nil {
+	//	panic(err)
+	//}
+	//fmt.Println("here1")
+	//defer sub.Unsubscribe()
+	//
+	//for {
+	//	fmt.Println("here")
+	//	status := <-sub.Chan()
+	//	fmt.Printf("Transaction status: %#v\n", status)
+	//
+	//	if status.IsInBlock {
+	//		fmt.Printf("Completed at block hash: %#x\n", status.AsInBlock)
+	//		return
+	//	}
+	//}
 
 }

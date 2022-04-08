@@ -38,7 +38,7 @@ services:
       context: ./..
       dockerfile: devnet/bob.Dockerfile
       args:
-        DD_API_KEY: ${DD_API_KEY}
+        DD_API_KEY: c34650b22bcdf17fc1511e5a69db7129
         key: charlie
     ports:
       - 7001
