@@ -518,27 +518,83 @@ func TestHandler_HandleNextConfigData(t *testing.T) {
 }
 
 func Test_persistBABEDigestsForNextEpoch(t *testing.T) {
+	const currentEpoch uint64 = 1
+
 	type testStruct struct {
-		defineNextEpochData          bool
-		defineNextConfigData         bool
-		expectedErr                  error
-		alreadyDefinedFuncThrowError bool
+		expectedErr error
+		epochState  func(ctrl *gomock.Controller) EpochState
 	}
 
 	tests := map[string]testStruct{
 		"epoch_data_already_defined": {
-			defineNextEpochData: true,
+			epochState: func(ctrl *gomock.Controller) EpochState {
+				epochStateMock := NewMockEpochState(ctrl)
+
+				epochStateMock.EXPECT().GetEpochForBlock(&types.Header{}).
+					Return(currentEpoch, nil)
+
+				epochStateMock.EXPECT().AlreadyDefined(currentEpoch+1).
+					Return(true, false, nil)
+
+				epochStateMock.EXPECT().FinalizeBABENextConfigData(currentEpoch + 1)
+				return epochStateMock
+			},
 		},
 		"config_data_already_defined": {
-			defineNextConfigData: true,
+			epochState: func(ctrl *gomock.Controller) EpochState {
+				epochStateMock := NewMockEpochState(ctrl)
+
+				epochStateMock.EXPECT().GetEpochForBlock(&types.Header{}).
+					Return(currentEpoch, nil)
+
+				epochStateMock.EXPECT().AlreadyDefined(currentEpoch+1).
+					Return(false, true, nil)
+
+				epochStateMock.EXPECT().FinalizeBABENextEpochData(currentEpoch + 1)
+				return epochStateMock
+			},
 		},
 		"both_already_defined": {
-			defineNextEpochData:  true,
-			defineNextConfigData: true,
+			epochState: func(ctrl *gomock.Controller) EpochState {
+				epochStateMock := NewMockEpochState(ctrl)
+
+				epochStateMock.EXPECT().GetEpochForBlock(&types.Header{}).
+					Return(currentEpoch, nil)
+
+				epochStateMock.EXPECT().AlreadyDefined(currentEpoch+1).
+					Return(true, true, nil)
+
+				return epochStateMock
+			},
 		},
-		"both_not_defined": {},
+		"both_not_defined": {
+			epochState: func(ctrl *gomock.Controller) EpochState {
+				epochStateMock := NewMockEpochState(ctrl)
+
+				epochStateMock.EXPECT().GetEpochForBlock(&types.Header{}).
+					Return(currentEpoch, nil)
+
+				epochStateMock.EXPECT().AlreadyDefined(currentEpoch+1).
+					Return(false, false, nil)
+
+				epochStateMock.EXPECT().FinalizeBABENextEpochData(currentEpoch + 1)
+				epochStateMock.EXPECT().FinalizeBABENextConfigData(currentEpoch + 1)
+
+				return epochStateMock
+			},
+		},
 		"error_while_checking_already_defined": {
-			alreadyDefinedFuncThrowError: true,
+			epochState: func(ctrl *gomock.Controller) EpochState {
+				epochStateMock := NewMockEpochState(ctrl)
+
+				epochStateMock.EXPECT().GetEpochForBlock(&types.Header{}).
+					Return(currentEpoch, nil)
+
+				epochStateMock.EXPECT().AlreadyDefined(currentEpoch+1).
+					Return(false, false, errors.New("problems while calling function"))
+
+				return epochStateMock
+			},
 			expectedErr: errors.New(
 				"cannot check if next epoch is already defined: problems while calling function"),
 		},
@@ -547,36 +603,14 @@ func Test_persistBABEDigestsForNextEpoch(t *testing.T) {
 	for testName, tt := range tests {
 		tt := tt
 		t.Run(testName, func(t *testing.T) {
-			testFinalizedHeader := &types.Header{}
-
 			ctrl := gomock.NewController(t)
-			epochStateMock := NewMockEpochState(ctrl)
-
-			var currentEpoch uint64 = 1
-			epochStateMock.EXPECT().GetEpochForBlock(testFinalizedHeader).
-				Return(currentEpoch, nil)
-
-			if tt.alreadyDefinedFuncThrowError {
-				epochStateMock.EXPECT().AlreadyDefined(currentEpoch+1).
-					Return(false, false, errors.New("problems while calling function"))
-			} else {
-				epochStateMock.EXPECT().AlreadyDefined(currentEpoch+1).
-					Return(tt.defineNextEpochData, tt.defineNextConfigData, nil)
-
-				if !tt.defineNextEpochData {
-					epochStateMock.EXPECT().FinalizeBABENextEpochData(currentEpoch + 1)
-				}
-
-				if !tt.defineNextConfigData {
-					epochStateMock.EXPECT().FinalizeBABENextConfigData(currentEpoch + 1)
-				}
-			}
+			epochStateMock := tt.epochState(ctrl)
 
 			digestHandler := &Handler{
 				epochState: epochStateMock,
 			}
 
-			err := digestHandler.persistBABEDigestsForNextEpoch(testFinalizedHeader)
+			err := digestHandler.persistBABEDigestsForNextEpoch(&types.Header{})
 			if tt.expectedErr != nil {
 				require.Error(t, err)
 				require.EqualError(t, err, tt.expectedErr.Error())
