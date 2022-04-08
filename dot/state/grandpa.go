@@ -441,7 +441,6 @@ func (s *GrandpaState) forcedChangeOnChainOf(bestBlockHash common.Hash) (change 
 // scheduledChangeOnChainOf walk only through the scheduled changes roots slice looking for
 // a scheduled change that belong to the same branch as bestBlockHash parameter
 func (s *GrandpaState) scheduledChangeOnChainOf(bestBlockHash common.Hash) (change *pendingChange, err error) {
-
 	for _, scheduledChange := range s.scheduledChanges {
 		var isDescendant bool
 		isDescendant, err = s.blockState.IsDescendantOf(
