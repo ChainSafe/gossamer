@@ -9,7 +9,6 @@ package sync
 import (
 	"errors"
 	"fmt"
-	"math/big"
 	"testing"
 	"time"
 
@@ -54,7 +53,7 @@ func TestChainSync_SetPeerHead_Integration(t *testing.T) {
 		types.NewDigest())
 	require.NoError(t, err)
 	cs.blockState.(*syncmocks.BlockState).On("GetHighestFinalisedHeader").Return(fin, nil)
-	cs.blockState.(*syncmocks.BlockState).On("GetHashByNumber", mock.AnythingOfType("*big.Int")).Return(hash, nil)
+	cs.blockState.(*syncmocks.BlockState).On("GetHashByNumber", mock.AnythingOfType("uint")).Return(hash, nil)
 
 	number = 999
 	err = cs.setPeerHead(testPeer, hash, number)
@@ -78,7 +77,7 @@ func TestChainSync_SetPeerHead_Integration(t *testing.T) {
 		types.NewDigest())
 	require.NoError(t, err)
 	cs.blockState.(*syncmocks.BlockState).On("GetHighestFinalisedHeader").Return(fin, nil)
-	cs.blockState.(*syncmocks.BlockState).On("GetHashByNumber", mock.AnythingOfType("*big.Int")).
+	cs.blockState.(*syncmocks.BlockState).On("GetHashByNumber", mock.AnythingOfType("uint")).
 		Return(common.Hash{}, nil)
 
 	number = 999
@@ -103,7 +102,7 @@ func TestChainSync_SetPeerHead_Integration(t *testing.T) {
 		types.NewDigest())
 	require.NoError(t, err)
 	cs.blockState.(*syncmocks.BlockState).On("GetHighestFinalisedHeader").Return(fin, nil)
-	cs.blockState.(*syncmocks.BlockState).On("GetHashByNumber", mock.AnythingOfType("*big.Int")).Return(common.
+	cs.blockState.(*syncmocks.BlockState).On("GetHashByNumber", mock.AnythingOfType("uint")).Return(common.
 		Hash{}, nil)
 	cs.blockState.(*syncmocks.BlockState).On("HasHeader", mock.AnythingOfType("common.Hash")).Return(true, nil)
 
@@ -174,8 +173,7 @@ func TestChainSync_sync_tip_Integration(t *testing.T) {
 
 func TestChainSync_getTarget_Integration(t *testing.T) {
 	cs, _ := newTestChainSync(t)
-	require.Equal(t, big.NewInt(2<<32-1), cs.getTarget())
-
+	require.Equal(t, uint(1<<32-1), cs.getTarget())
 	cs.peerState = map[peer.ID]*peerState{
 		"a": {
 			number: 0, // outlier
@@ -200,7 +198,7 @@ func TestChainSync_getTarget_Integration(t *testing.T) {
 		},
 	}
 
-	require.Equal(t, big.NewInt(30), cs.getTarget()) // sum:150/count:5 = avg:30
+	require.Equal(t, uint(25), cs.getTarget()) // sum:150/count:6= avg:25
 
 	cs.peerState = map[peer.ID]*peerState{
 		"testA": {
@@ -211,7 +209,7 @@ func TestChainSync_getTarget_Integration(t *testing.T) {
 		},
 	}
 
-	require.Equal(t, 1500, cs.getTarget())
+	require.Equal(t, uint(1500), cs.getTarget())
 }
 
 func TestWorkerToRequests_Integration(t *testing.T) {
@@ -618,6 +616,7 @@ func TestChainSync_doSync_Integration(t *testing.T) {
 	resp := &network.BlockResponseMessage{
 		BlockData: []*types.BlockData{
 			{
+				Hash: common.Hash{0x1},
 				Header: &types.Header{
 					Number: 1,
 				},
@@ -642,6 +641,7 @@ func TestChainSync_doSync_Integration(t *testing.T) {
 	resp = &network.BlockResponseMessage{
 		BlockData: []*types.BlockData{
 			{
+				Hash: common.Hash{0x3},
 				Header: &types.Header{
 					ParentHash: parent,
 					Number:     3,
@@ -649,6 +649,7 @@ func TestChainSync_doSync_Integration(t *testing.T) {
 				Body: &types.Body{},
 			},
 			{
+				Hash: common.Hash{0x2},
 				Header: &types.Header{
 					Number: 2,
 				},

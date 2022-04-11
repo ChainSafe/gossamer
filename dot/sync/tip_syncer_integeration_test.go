@@ -8,6 +8,7 @@ package sync
 
 import (
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	syncmocks "github.com/ChainSafe/gossamer/dot/sync/mocks"
@@ -172,10 +173,16 @@ func TestTipSyncer_handleTick_case1(t *testing.T) {
 			targetNumber: uintPtr(fin.Number),
 			direction:    network.Descending,
 			requestData:  bootstrapRequestData,
+			pendingBlock: &pendingBlock{
+				hash:    common.Hash{0xb},
+				number:  201,
+				clearAt: time.Time{},
+			},
 		},
 	}
 	w, err = s.handleTick()
 	require.NoError(t, err)
+	w[0].pendingBlock.clearAt = time.Time{}
 	require.Equal(t, expected, w)
 	require.False(t, s.pendingBlocks.hasBlock(common.Hash{0xa}))
 	require.True(t, s.pendingBlocks.hasBlock(common.Hash{0xb}))
@@ -200,16 +207,26 @@ func TestTipSyncer_handleTick_case2(t *testing.T) {
 			targetNumber: uintPtr(header.Number),
 			direction:    network.Ascending,
 			requestData:  network.RequestedDataBody + network.RequestedDataJustification,
+			pendingBlock: &pendingBlock{
+				hash:    header.Hash(),
+				number:  201,
+				header:  header,
+				clearAt: time.Time{},
+			},
 		},
 	}
 	w, err := s.handleTick()
 	require.NoError(t, err)
+	w[0].pendingBlock.clearAt = time.Time{}
 	require.Equal(t, expected, w)
 	require.True(t, s.pendingBlocks.hasBlock(header.Hash()))
 }
 func TestTipSyncer_handleTick_case3(t *testing.T) {
 	s := newTestTipSyncer(t)
-
+	s.handleReadyBlock = func(data *types.BlockData) {
+		s.pendingBlocks.removeBlock(data.Hash)
+		s.readyBlocks.push(data)
+	}
 	fin, _ := s.blockState.GetHighestFinalisedHeader()
 
 	// add pending block w/ full block, HasHeader will return true, so the block will be processed
@@ -250,11 +267,19 @@ func TestTipSyncer_handleTick_case3(t *testing.T) {
 			targetNumber: uintPtr(fin.Number),
 			direction:    network.Descending,
 			requestData:  bootstrapRequestData,
+			pendingBlock: &pendingBlock{
+				hash:    header.Hash(),
+				number:  300,
+				header:  header,
+				body:    &types.Body{},
+				clearAt: time.Time{},
+			},
 		},
 	}
 
 	w, err = s.handleTick()
 	require.NoError(t, err)
+	w[0].pendingBlock.clearAt = time.Time{}
 	require.Equal(t, expected, w)
 	require.True(t, s.pendingBlocks.hasBlock(header.Hash()))
 
