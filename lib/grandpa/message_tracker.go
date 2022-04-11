@@ -76,10 +76,11 @@ func (t *tracker) addCommit(cm *CommitMessage) {
 	t.commitMessages[cm.Vote.Hash] = cm
 }
 
-func (t *tracker) addCatchUpResponse(cr *CatchUpResponse) {
+func (t *tracker) addCatchUpResponse(cr *CatchUpResponse) { //nolint:unparam
 	t.catchUpResponseMessageMutex.Lock()
 	defer t.catchUpResponseMessageMutex.Unlock()
-	t.catchUpResponseMessages[cr.Round] = cr
+	// uncomment when usage is setup properly, see #1531
+	// t.catchUpResponseMessages[cr.Round] = cr
 }
 
 func (t *tracker) handleBlocks() {
