@@ -280,7 +280,7 @@ func TestService_Start(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockChainProcessor := NewMockChainProcessor(ctrl)
-			mockChainProcessor.EXPECT().start()
+			mockChainProcessor.EXPECT().start().AnyTimes()
 			s := &Service{
 				chainSync:      newMockChainSync(ctrl),
 				chainProcessor: mockChainProcessor,
