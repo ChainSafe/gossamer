@@ -19,6 +19,10 @@ var (
 	_ services.Service = &Handler{}
 )
 
+var (
+	ErrUnknownConsensusID = errors.New("unknown consensus engine ID")
+)
+
 // Handler is used to handle consensus messages and relevant authority updates to BABE and GRANDPA
 type Handler struct {
 	ctx    context.Context
@@ -117,7 +121,7 @@ func (h *Handler) handleConsensusDigest(d *types.ConsensusDigest, header *types.
 			return err
 		}
 
-		return h.grandpaState.AddPendingChange(header, data)
+		return h.grandpaState.HandleGRANDPADigest(header, data)
 	case types.BabeEngineID:
 		data := types.NewBabeConsensusDigest()
 		err := scale.Unmarshal(d.Data, &data)
@@ -126,13 +130,9 @@ func (h *Handler) handleConsensusDigest(d *types.ConsensusDigest, header *types.
 		}
 
 		return h.handleBabeConsensusDigest(data, header)
+	default:
+		return fmt.Errorf("%w: %s", ErrUnknownConsensusID, d.ConsensusEngineID.ToBytes())
 	}
-
-	return errors.New("unknown consensus engine ID")
-}
-
-func (h *Handler) handleGrandpaConsensusDigest(digest scale.VaryingDataType, header *types.Header) error {
-	return h.grandpaState.AddPendingChange(header, digest)
 }
 
 func (h *Handler) handleBabeConsensusDigest(digest scale.VaryingDataType, header *types.Header) error {
@@ -203,6 +203,8 @@ func (h *Handler) handleBlockFinalisation(ctx context.Context) {
 			if err != nil {
 				h.logger.Errorf("failed to store babe next epoch digest: %s", err)
 			}
+
+			err = h.grandpaState.ApplyScheduledChanges(&info.Header)
 
 			err = h.handleGrandpaChangesOnFinalization(info.Header.Number)
 			if err != nil {

@@ -41,5 +41,7 @@ type GrandpaState interface {
 	SetNextPause(number uint) error
 	SetNextResume(number uint) error
 	GetCurrentSetID() (uint64, error)
-	AddPendingChange(header *types.Header, digest scale.VaryingDataType) error
+
+	HandleGRANDPADigest(header *types.Header, digest scale.VaryingDataType) error
+	ApplyScheduledChanges(finalizedheader *types.Header) error
 }
