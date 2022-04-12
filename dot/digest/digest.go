@@ -180,7 +180,6 @@ func (h *Handler) handleBlockImport(ctx context.Context) {
 			}
 
 			h.HandleDigests(&block.Header)
-
 			err := h.handleGrandpaChangesOnImport(block.Header.Number)
 			if err != nil {
 				h.logger.Errorf("failed to handle grandpa changes on block import: %s", err)
@@ -205,11 +204,10 @@ func (h *Handler) handleBlockFinalisation(ctx context.Context) {
 			}
 
 			err = h.grandpaState.ApplyScheduledChanges(&info.Header)
-
-			err = h.handleGrandpaChangesOnFinalization(info.Header.Number)
 			if err != nil {
-				h.logger.Errorf("failed to handle grandpa changes on block finalisation: %s", err)
+				h.logger.Errorf("failed to apply standard scheduled changes on block finalization: %w", err)
 			}
+
 		case <-ctx.Done():
 			return
 		}
