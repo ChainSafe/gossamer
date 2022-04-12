@@ -138,7 +138,8 @@ func (s *GrandpaState) GetLatestRound() (uint64, error) {
 	return round, nil
 }
 
-// SetNextChange sets the next authority change
+// SetNextChange sets the next authority change at given block number.
+// NOTE: This block number will be the last block in the current set and not part of the next set.
 func (s *GrandpaState) SetNextChange(authorities []types.GrandpaVoter, number uint) error {
 	currSetID, err := s.GetCurrentSetID()
 	if err != nil {
@@ -180,7 +181,7 @@ func (s *GrandpaState) setSetIDChangeAtBlock(setID uint64, number uint) error {
 	return s.db.Put(setIDChangeKey(setID), common.UintToBytes(number))
 }
 
-// GetSetIDChange returs the block number where the set ID was updated
+// GetSetIDChange returns the block number where the set ID was updated
 func (s *GrandpaState) GetSetIDChange(setID uint64) (blockNumber uint, err error) {
 	num, err := s.db.Get(setIDChangeKey(setID))
 	if err != nil {
@@ -191,7 +192,7 @@ func (s *GrandpaState) GetSetIDChange(setID uint64) (blockNumber uint, err error
 }
 
 // GetSetIDByBlockNumber returns the set ID for a given block number
-func (s *GrandpaState) GetSetIDByBlockNumber(num uint) (uint64, error) {
+func (s *GrandpaState) GetSetIDByBlockNumber(blockNumber uint) (uint64, error) {
 	curr, err := s.GetCurrentSetID()
 	if err != nil {
 		return 0, err
@@ -217,11 +218,11 @@ func (s *GrandpaState) GetSetIDByBlockNumber(num uint) (uint64, error) {
 
 		// if the given block number is greater or equal to the block number of the set ID change,
 		// return the current set ID
-		if num <= changeUpper && num > changeLower {
+		if blockNumber <= changeUpper && blockNumber > changeLower {
 			return curr, nil
 		}
 
-		if num > changeUpper {
+		if blockNumber > changeUpper {
 			return curr + 1, nil
 		}
 

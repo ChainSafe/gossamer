@@ -310,12 +310,13 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 
 		err := h.verifyJustification(just, fm.Round, h.grandpa.state.setID, precommit)
 		if err != nil {
+			logger.Errorf("could not verify justification: %s", err)
 			continue
 		}
 
 		isDescendant, err := h.blockState.IsDescendantOf(fm.Vote.Hash, just.Vote.Hash)
 		if err != nil {
-			logger.Warnf("verifyCommitMessageJustification: %s", err)
+			logger.Warnf("could not check for descendant: %s", err)
 			continue
 		}
 
