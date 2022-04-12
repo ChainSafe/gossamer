@@ -15,8 +15,6 @@ on:
     #   - go.mod
     #   - go.sum
 name: docker-rpc
-env:
-  GO111MODULE: on
 
 jobs:
   docker-rpc-tests:
