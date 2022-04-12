@@ -4,7 +4,6 @@
 package digest
 
 import (
-	"errors"
 	"testing"
 	"time"
 
@@ -515,108 +514,4 @@ func TestHandler_HandleNextConfigData(t *testing.T) {
 	stored, err := handler.epochState.(*state.EpochState).GetConfigData(targetEpoch, nil)
 	require.NoError(t, err)
 	require.Equal(t, act.ToConfigData(), stored)
-}
-
-func Test_persistBABEDigestsForNextEpoch(t *testing.T) {
-	const currentEpoch uint64 = 1
-
-	type testStruct struct {
-		expectedErr error
-		epochState  func(ctrl *gomock.Controller) EpochState
-	}
-
-	tests := map[string]testStruct{
-		"epoch_data_already_defined": {
-			epochState: func(ctrl *gomock.Controller) EpochState {
-				epochStateMock := NewMockEpochState(ctrl)
-
-				epochStateMock.EXPECT().GetEpochForBlock(&types.Header{}).
-					Return(currentEpoch, nil)
-
-				epochStateMock.EXPECT().AlreadyDefined(currentEpoch+1).
-					Return(true, false, nil)
-
-				epochStateMock.EXPECT().FinalizeBABENextConfigData(currentEpoch + 1)
-				return epochStateMock
-			},
-		},
-		"config_data_already_defined": {
-			epochState: func(ctrl *gomock.Controller) EpochState {
-				epochStateMock := NewMockEpochState(ctrl)
-
-				epochStateMock.EXPECT().GetEpochForBlock(&types.Header{}).
-					Return(currentEpoch, nil)
-
-				epochStateMock.EXPECT().AlreadyDefined(currentEpoch+1).
-					Return(false, true, nil)
-
-				epochStateMock.EXPECT().FinalizeBABENextEpochData(currentEpoch + 1)
-				return epochStateMock
-			},
-		},
-		"both_already_defined": {
-			epochState: func(ctrl *gomock.Controller) EpochState {
-				epochStateMock := NewMockEpochState(ctrl)
-
-				epochStateMock.EXPECT().GetEpochForBlock(&types.Header{}).
-					Return(currentEpoch, nil)
-
-				epochStateMock.EXPECT().AlreadyDefined(currentEpoch+1).
-					Return(true, true, nil)
-
-				return epochStateMock
-			},
-		},
-		"both_not_defined": {
-			epochState: func(ctrl *gomock.Controller) EpochState {
-				epochStateMock := NewMockEpochState(ctrl)
-
-				epochStateMock.EXPECT().GetEpochForBlock(&types.Header{}).
-					Return(currentEpoch, nil)
-
-				epochStateMock.EXPECT().AlreadyDefined(currentEpoch+1).
-					Return(false, false, nil)
-
-				epochStateMock.EXPECT().FinalizeBABENextEpochData(currentEpoch + 1)
-				epochStateMock.EXPECT().FinalizeBABENextConfigData(currentEpoch + 1)
-
-				return epochStateMock
-			},
-		},
-		"error_while_checking_already_defined": {
-			epochState: func(ctrl *gomock.Controller) EpochState {
-				epochStateMock := NewMockEpochState(ctrl)
-
-				epochStateMock.EXPECT().GetEpochForBlock(&types.Header{}).
-					Return(currentEpoch, nil)
-
-				epochStateMock.EXPECT().AlreadyDefined(currentEpoch+1).
-					Return(false, false, errors.New("problems while calling function"))
-
-				return epochStateMock
-			},
-			expectedErr: errors.New(
-				"cannot check if next epoch is already defined: problems while calling function"),
-		},
-	}
-
-	for testName, tt := range tests {
-		tt := tt
-		t.Run(testName, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			epochStateMock := tt.epochState(ctrl)
-
-			digestHandler := &Handler{
-				epochState: epochStateMock,
-			}
-
-			err := digestHandler.persistBABEDigestsForNextEpoch(&types.Header{})
-			if tt.expectedErr != nil {
-				require.Error(t, err)
-				require.EqualError(t, err, tt.expectedErr.Error())
-			} else {
-				require.NoError(t, err)
-			}
-		})
-	}
 }

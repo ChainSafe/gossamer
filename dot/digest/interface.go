@@ -28,9 +28,8 @@ type EpochState interface {
 
 	StoreBABENextEpochData(epoch uint64, hash common.Hash, nextEpochData types.NextEpochData)
 	StoreBABENextConfigData(epoch uint64, hash common.Hash, nextEpochData types.NextConfigData)
-	FinalizeBABENextEpochData(epoch uint64) error
-	FinalizeBABENextConfigData(epoch uint64) error
-	AlreadyDefined(epoch uint64) (epochData bool, configData bool, err error)
+	FinalizeBABENextEpochData(finalizedHeader *types.Header) error
+	FinalizeBABENextConfigData(finalizedHeader *types.Header) error
 }
 
 // GrandpaState is the interface for the state.GrandpaState

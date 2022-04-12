@@ -512,30 +512,6 @@ func (s *EpochState) SkipVerify(header *types.Header) (bool, error) {
 	return false, nil
 }
 
-// AlreadyDefined will true for each returned value if it is already defined in the database for the given epoch
-func (s *EpochState) AlreadyDefined(epoch uint64) (epochData bool, configData bool, err error) {
-	keys := [...][]byte{epochDataKey(epoch), configDataKey(epoch)}
-	applied := [...]bool{false, false}
-
-	for idx, key := range keys {
-		enc, err := s.db.Get(key)
-
-		if errors.Is(err, chaindb.ErrKeyNotFound) {
-			continue
-		} else if err != nil {
-			return false, false, fmt.Errorf("cannot retrieve %s from database: %w", string(key), err)
-		}
-
-		if len(enc) == 0 {
-			continue
-		}
-
-		applied[idx] = true
-	}
-
-	return applied[0], applied[1], nil
-}
-
 // StoreBABENextEpochData stores the types.NextEpochData under epoch and hash keys
 func (s *EpochState) StoreBABENextEpochData(epoch uint64, hash common.Hash, nextEpochData types.NextEpochData) {
 	s.nextEpochDataLock.Lock()
@@ -564,11 +540,29 @@ func (s *EpochState) StoreBABENextConfigData(epoch uint64, hash common.Hash, nex
 // getting the set of hashes from the received epoch and for each hash
 // check if the header is in the database then it's been finalized and
 // thus we can also set the corresponding EpochData in the database
-func (s *EpochState) FinalizeBABENextEpochData(epoch uint64) error {
+func (s *EpochState) FinalizeBABENextEpochData(finalizedHeader *types.Header) error {
 	s.nextEpochDataLock.Lock()
 	defer s.nextEpochDataLock.Unlock()
 
-	finalizedNextEpochData, err := lookupForNextEpochPersistedHash(s.nextEpochData, s, epoch)
+	finalizedBlockEpoch, err := s.GetEpochForBlock(finalizedHeader)
+	if err != nil {
+		return fmt.Errorf("cannot get epoch for block %d (%s): %w",
+			finalizedHeader.Number, finalizedHeader.Hash(), err)
+	}
+
+	nextEpoch := finalizedBlockEpoch + 1
+
+	epochInDatabase, err := s.getEpochDataInDatabase(nextEpoch)
+	if err != nil && !errors.Is(err, chaindb.ErrKeyNotFound) {
+		return fmt.Errorf("cannot check if next epoch data is already defined for epoch %d: %w", nextEpoch, err)
+	}
+
+	// config already defined we don't need to lookup in the map
+	if epochInDatabase != nil {
+		return nil
+	}
+
+	finalizedNextEpochData, err := lookupForNextEpochPersistedHash(s.nextEpochData, s, nextEpoch)
 	if err != nil {
 		return fmt.Errorf("cannot find next epoch data: %w", err)
 	}
@@ -578,14 +572,14 @@ func (s *EpochState) FinalizeBABENextEpochData(epoch uint64) error {
 		return fmt.Errorf("cannot transform epoch data: %w", err)
 	}
 
-	err = s.SetEpochData(epoch, ed)
+	err = s.SetEpochData(nextEpoch, ed)
 	if err != nil {
 		return fmt.Errorf("cannot set epoch data: %w", err)
 	}
 
 	// remove previous epochs from the memory
 	for e := range s.nextEpochData {
-		if e <= epoch {
+		if e <= nextEpoch {
 			delete(s.nextEpochData, e)
 		}
 	}
@@ -597,24 +591,45 @@ func (s *EpochState) FinalizeBABENextEpochData(epoch uint64) error {
 // getting the set of hashes from the received epoch and for each hash
 // check if the header is in the database then it's been finalized and
 // thus we can also set the corresponding NextConfigData in the database
-func (s *EpochState) FinalizeBABENextConfigData(epoch uint64) error {
+func (s *EpochState) FinalizeBABENextConfigData(finalizedHeader *types.Header) error {
 	s.nextConfigDataLock.Lock()
 	defer s.nextConfigDataLock.Unlock()
 
-	finalizedNextConfigData, err := lookupForNextEpochPersistedHash(s.nextConfigData, s, epoch)
+	finalizedBlockEpoch, err := s.GetEpochForBlock(finalizedHeader)
 	if err != nil {
+		return fmt.Errorf("cannot get epoch for block %d (%s): %w",
+			finalizedHeader.Number, finalizedHeader.Hash(), err)
+	}
+
+	nextEpoch := finalizedBlockEpoch + 1
+
+	configInDatabase, err := s.getConfigDataInDatabase(nextEpoch)
+	if err != nil && !errors.Is(err, chaindb.ErrKeyNotFound) {
+		return fmt.Errorf("cannot check if next epoch config is already defined for epoch %d: %w", nextEpoch, err)
+	}
+
+	// config already defined we don't need to lookup in the map
+	if configInDatabase != nil {
+		return nil
+	}
+
+	// not every epoch will have `ConfigData`
+	finalizedNextConfigData, err := lookupForNextEpochPersistedHash(s.nextConfigData, s, nextEpoch)
+	if errors.Is(err, ErrEpochNotInMemory) {
+		return nil
+	} else if err != nil {
 		return fmt.Errorf("cannot find next config data: %w", err)
 	}
 
 	cd := finalizedNextConfigData.ToConfigData()
-	err = s.SetConfigData(epoch, cd)
+	err = s.SetConfigData(nextEpoch, cd)
 	if err != nil {
 		return fmt.Errorf("cannot set config data: %w", err)
 	}
 
 	// remove previous epochs from the memory
 	for e := range s.nextConfigData {
-		if e <= epoch {
+		if e <= nextEpoch {
 			delete(s.nextConfigData, e)
 		}
 	}

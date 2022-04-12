@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/services"
@@ -240,9 +239,14 @@ func (h *Handler) handleBlockFinalisation(ctx context.Context) {
 				continue
 			}
 
-			err := h.persistBABEDigestsForNextEpoch(&info.Header)
+			err := h.epochState.FinalizeBABENextEpochData(&info.Header)
 			if err != nil {
-				h.logger.Errorf("failed to store babe next epoch digest: %s", err)
+				h.logger.Errorf("failed to persist babe next epoch data: %s", err)
+			}
+
+			err = h.epochState.FinalizeBABENextConfigData(&info.Header)
+			if err != nil {
+				h.logger.Errorf("failed to persist babe next epoch config: %s", err)
 			}
 
 			err = h.handleGrandpaChangesOnFinalization(info.Header.Number)
@@ -253,41 +257,6 @@ func (h *Handler) handleBlockFinalisation(ctx context.Context) {
 			return
 		}
 	}
-}
-
-// persistBABEDigestsForNextEpoch is called only when a block is finalised
-// and defines the correct next epoch data and next config data.
-func (h *Handler) persistBABEDigestsForNextEpoch(finalizedHeader *types.Header) error {
-	currEpoch, err := h.epochState.GetEpochForBlock(finalizedHeader)
-	if err != nil {
-		return fmt.Errorf("cannot get epoch for block %d (%s): %w",
-			finalizedHeader.Number, finalizedHeader.Hash(), err)
-	}
-
-	nextEpoch := currEpoch + 1
-
-	appliedEpochData, appliedConfigData, err := h.epochState.AlreadyDefined(nextEpoch)
-	if err != nil {
-		return fmt.Errorf("cannot check if next epoch is already defined: %w", err)
-	}
-
-	if !appliedEpochData {
-		err = h.epochState.FinalizeBABENextEpochData(nextEpoch)
-		if err != nil && !errors.Is(err, state.ErrEpochNotInMemory) {
-			return fmt.Errorf("cannot finalize babe next epoch data for block number %d (%s): %w",
-				finalizedHeader.Number, finalizedHeader.Hash(), err)
-		}
-	}
-
-	if !appliedConfigData {
-		err = h.epochState.FinalizeBABENextConfigData(nextEpoch)
-		if err != nil && !errors.Is(err, state.ErrEpochNotInMemory) {
-			return fmt.Errorf("cannot finalize babe next config data for block number %d (%s): %w",
-				finalizedHeader.Number, finalizedHeader.Hash(), err)
-		}
-	}
-
-	return nil
 }
 
 func (h *Handler) handleGrandpaChangesOnImport(num uint) error {
