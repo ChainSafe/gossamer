@@ -282,7 +282,7 @@ func TestStoreAndFinalizeBabeNextEpochData(t *testing.T) {
 		expectErr            error
 		shouldRemainInMemory int
 	}{
-		"store_and_finalize_succesfully": {
+		"store_and_finalize_successfully": {
 			shouldRemainInMemory: 1,
 			finalizeEpoch:        2,
 			finalizedHeader:      finalizedHeader,
