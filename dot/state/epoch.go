@@ -562,7 +562,7 @@ func (s *EpochState) FinalizeBABENextEpochData(finalizedHeader *types.Header) er
 		return nil
 	}
 
-	finalizedNextEpochData, err := lookupForNextEpochPersistedHash(s.nextEpochData, s, nextEpoch)
+	finalizedNextEpochData, err := findFinalizedHeaderForEpoch(s.nextEpochData, s, nextEpoch)
 	if err != nil {
 		return fmt.Errorf("cannot find next epoch data: %w", err)
 	}
@@ -614,7 +614,7 @@ func (s *EpochState) FinalizeBABENextConfigData(finalizedHeader *types.Header) e
 	}
 
 	// not every epoch will have `ConfigData`
-	finalizedNextConfigData, err := lookupForNextEpochPersistedHash(s.nextConfigData, s, nextEpoch)
+	finalizedNextConfigData, err := findFinalizedHeaderForEpoch(s.nextConfigData, s, nextEpoch)
 	if errors.Is(err, ErrEpochNotInMemory) {
 		return nil
 	} else if err != nil {
@@ -637,10 +637,10 @@ func (s *EpochState) FinalizeBABENextConfigData(finalizedHeader *types.Header) e
 	return nil
 }
 
-// lookupForNextEpochPersistedHash given a specific epoch (the key) will go through the hashes looking
+// findFinalizedHeaderForEpoch given a specific epoch (the key) will go through the hashes looking
 // for a database persisted hash (belonging to the finalized chain)
 // which contains the right configuration to be persisted and safely used
-func lookupForNextEpochPersistedHash[T types.NextConfigData | types.NextEpochData](
+func findFinalizedHeaderForEpoch[T types.NextConfigData | types.NextEpochData](
 	nextEpochMap map[uint64]map[common.Hash]T, es *EpochState, epoch uint64) (next *T, err error) {
 	hashes, has := nextEpochMap[epoch]
 	if !has {
