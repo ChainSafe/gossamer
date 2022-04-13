@@ -553,6 +553,9 @@ func (s *EpochState) FinalizeBABENextEpochData(finalizedHeader *types.Header) er
 	nextEpoch := finalizedBlockEpoch + 1
 
 	epochInDatabase, err := s.getEpochDataFromDatabase(nextEpoch)
+
+	// if an error occurs and the error is chaindb.ErrKeyNotFound we ignore
+	// since this error is what we will handle in the next lines
 	if err != nil && !errors.Is(err, chaindb.ErrKeyNotFound) {
 		return fmt.Errorf("cannot check if next epoch data is already defined for epoch %d: %w", nextEpoch, err)
 	}
@@ -604,6 +607,9 @@ func (s *EpochState) FinalizeBABENextConfigData(finalizedHeader *types.Header) e
 	nextEpoch := finalizedBlockEpoch + 1
 
 	configInDatabase, err := s.getConfigDataFromDatabase(nextEpoch)
+
+	// if an error occurs and the error is chaindb.ErrKeyNotFound we ignore
+	// since this error is what we will handle in the next lines
 	if err != nil && !errors.Is(err, chaindb.ErrKeyNotFound) {
 		return fmt.Errorf("cannot check if next epoch config is already defined for epoch %d: %w", nextEpoch, err)
 	}
@@ -616,6 +622,7 @@ func (s *EpochState) FinalizeBABENextConfigData(finalizedHeader *types.Header) e
 	// not every epoch will have `ConfigData`
 	finalizedNextConfigData, err := findFinalizedHeaderForEpoch(s.nextConfigData, s, nextEpoch)
 	if errors.Is(err, ErrEpochNotInMemory) {
+		logger.Debugf("config data for epoch %d not found in memory", nextEpoch)
 		return nil
 	} else if err != nil {
 		return fmt.Errorf("cannot find next config data: %w", err)
