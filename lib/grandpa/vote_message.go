@@ -162,11 +162,18 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 				logger.Warnf("failed to send CommitMessage: %s", err)
 			}
 		} else {
-			// round is higher than ours, perhaps we are behind. store vote in tracker for now
-			s.tracker.addVote(&networkVoteMessage{
-				from: from,
-				msg:  m,
-			})
+			// Message round is higher than the round of our state,
+			// we may be lagging behind, so store the message in the tracker
+			// for processing later.
+			const maxFutureRoundsDiff = 5
+			if m.Round < s.state.round+maxFutureRoundsDiff {
+				// We ensure the message round is not too far away
+				// from our state round, to avoid abuses of the tracker storage.
+				s.tracker.addVote(&networkVoteMessage{
+					from: from,
+					msg:  m,
+				})
+			}
 		}
 
 		// TODO: get justification if your round is lower, or just do catch-up? (#1815)
