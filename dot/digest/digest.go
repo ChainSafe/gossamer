@@ -180,10 +180,6 @@ func (h *Handler) handleBlockImport(ctx context.Context) {
 			}
 
 			h.HandleDigests(&block.Header)
-			err := h.handleGrandpaChangesOnImport(block.Header.Number)
-			if err != nil {
-				h.logger.Errorf("failed to handle grandpa changes on block import: %s", err)
-			}
 		case <-ctx.Done():
 			return
 		}
@@ -247,72 +243,4 @@ func (h *Handler) persistBABEDigestsForNextEpoch(finalizedHeader *types.Header) 
 	}
 
 	return nil
-}
-
-func (h *Handler) handleGrandpaChangesOnImport(num uint) error {
-	resume := h.grandpaResume
-	if resume != nil && num >= resume.atBlock {
-		h.grandpaResume = nil
-	}
-
-	fc := h.grandpaForcedChange
-	if fc != nil && num >= fc.atBlock {
-		curr, err := h.grandpaState.IncrementSetID()
-		if err != nil {
-			return err
-		}
-
-		h.grandpaForcedChange = nil
-		h.logger.Debugf("incremented grandpa set id %d", curr)
-	}
-
-	return nil
-}
-
-func (h *Handler) handleGrandpaChangesOnFinalization(num uint) error {
-	pause := h.grandpaPause
-	if pause != nil && num >= pause.atBlock {
-		h.grandpaPause = nil
-	}
-
-	sc := h.grandpaScheduledChange
-	if sc != nil && num >= sc.atBlock {
-		curr, err := h.grandpaState.IncrementSetID()
-		if err != nil {
-			return err
-		}
-
-		h.grandpaScheduledChange = nil
-		h.logger.Debugf("incremented grandpa set id %d", curr)
-	}
-
-	// if blocks get finalised before forced change takes place, disregard it
-	h.grandpaForcedChange = nil
-	return nil
-}
-
-func (h *Handler) handlePause(p types.GrandpaPause) error {
-	curr, err := h.blockState.BestBlockHeader()
-	if err != nil {
-		return err
-	}
-
-	h.grandpaPause = &pause{
-		atBlock: curr.Number + uint(p.Delay),
-	}
-
-	return h.grandpaState.SetNextPause(h.grandpaPause.atBlock)
-}
-
-func (h *Handler) handleResume(r types.GrandpaResume) error {
-	curr, err := h.blockState.BestBlockHeader()
-	if err != nil {
-		return err
-	}
-
-	h.grandpaResume = &resume{
-		atBlock: curr.Number + uint(r.Delay),
-	}
-
-	return h.grandpaState.SetNextResume(h.grandpaResume.atBlock)
 }

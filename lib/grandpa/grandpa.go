@@ -238,7 +238,7 @@ func (s *Service) authorities() []*types.Authority {
 func (s *Service) updateAuthorities() error {
 	currSetID, err := s.grandpaState.GetCurrentSetID()
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot get current set id: %w", err)
 	}
 
 	// set ID hasn't changed, do nothing
@@ -248,7 +248,7 @@ func (s *Service) updateAuthorities() error {
 
 	nextAuthorities, err := s.grandpaState.GetAuthorities(currSetID)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot get authorities for set id %d: %w", currSetID, err)
 	}
 
 	s.state.voters = nextAuthorities
@@ -294,12 +294,12 @@ func (s *Service) initiateRound() error {
 	// if there is an authority change, execute it
 	err := s.updateAuthorities()
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot update authorities while initiating the round: %w", err)
 	}
 
 	round, setID, err := s.blockState.GetHighestRoundAndSetID()
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot get highest round and set id: %w", err)
 	}
 
 	if round > s.state.round && setID == s.state.setID {
@@ -512,7 +512,7 @@ func (s *Service) playGrandpaRound() error {
 	go s.sendVoteMessage(prevote, vm, roundComplete)
 
 	logger.Debug("receiving pre-commit messages...")
-	// through goroutine s.receiveMessages(ctx)
+	// through goroutine s.receiveVoteMessages(ctx)
 	time.Sleep(s.interval)
 
 	if s.paused.Load().(bool) {
@@ -701,7 +701,7 @@ func (s *Service) determinePreVote() (*Vote, error) {
 	}
 
 	nextChange, err := s.grandpaState.NextGrandpaAuthorityChange(beastBlockHeader.Hash())
-	if errors.Is(err, state.ErrGetNextAuthorityChangeBlockNumber) {
+	if errors.Is(err, state.ErrNoChanges) {
 		return vote, nil
 	} else if err != nil {
 		return nil, fmt.Errorf("cannot get next grandpa authority change: %w", err)
@@ -732,7 +732,7 @@ func (s *Service) determinePreCommit() (*Vote, error) {
 
 	bestBlockHash := s.blockState.BestBlockHash()
 	nextChange, err := s.grandpaState.NextGrandpaAuthorityChange(bestBlockHash)
-	if errors.Is(err, state.ErrGetNextAuthorityChangeBlockNumber) {
+	if errors.Is(err, state.ErrNoChanges) {
 		return &pvb, nil
 	} else if err != nil {
 		return nil, fmt.Errorf("cannot get next grandpa authority change: %w", err)

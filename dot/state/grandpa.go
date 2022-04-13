@@ -27,10 +27,10 @@ var (
 )
 
 var (
-	ErrAlreadyHasForcedChanges           = errors.New("already has a forced change")
-	ErrUnfinalizedAncestor               = errors.New("ancestor with changes not applied")
-	ErrGetNextAuthorityChangeBlockNumber = errors.New("cannot get the next authority change block number")
-	ErrLowerThanBestFinalized            = errors.New("current finalized is lower than best finalized header")
+	ErrAlreadyHasForcedChanges = errors.New("already has a forced change")
+	ErrUnfinalizedAncestor     = errors.New("ancestor with changes not applied")
+	ErrNoChanges               = errors.New("cannot get the next authority change block number")
+	ErrLowerThanBestFinalized  = errors.New("current finalized is lower than best finalized header")
 )
 
 type pendingChange struct {
@@ -480,7 +480,7 @@ func (s *GrandpaState) NextGrandpaAuthorityChange(bestBlockHash common.Hash) (bl
 	}
 
 	if forcedChange == nil && scheduledChange == nil {
-		return 0, ErrGetNextAuthorityChangeBlockNumber
+		return 0, ErrNoChanges
 	}
 
 	if forcedChange.announcingHeader.Number < scheduledChange.announcingHeader.Number {
