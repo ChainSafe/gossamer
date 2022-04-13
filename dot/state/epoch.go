@@ -557,7 +557,7 @@ func (s *EpochState) FinalizeBABENextEpochData(finalizedHeader *types.Header) er
 		return fmt.Errorf("cannot check if next epoch data is already defined for epoch %d: %w", nextEpoch, err)
 	}
 
-	// config already defined we don't need to lookup in the map
+	// epoch data already defined we don't need to lookup in the map
 	if epochInDatabase != nil {
 		return nil
 	}
@@ -608,7 +608,7 @@ func (s *EpochState) FinalizeBABENextConfigData(finalizedHeader *types.Header) e
 		return fmt.Errorf("cannot check if next epoch config is already defined for epoch %d: %w", nextEpoch, err)
 	}
 
-	// config already defined we don't need to lookup in the map
+	// config data already defined we don't need to lookup in the map
 	if configInDatabase != nil {
 		return nil
 	}
