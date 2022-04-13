@@ -229,7 +229,7 @@ func TestEpochState_GetEpochFromTime(t *testing.T) {
 type inMemoryBABEData[T any] struct {
 	epoch  uint64
 	hashes []common.Hash
-	Data   []T
+	data   []T
 }
 
 func TestStoreAndFinalizeBabeNextEpochData(t *testing.T) {
@@ -294,7 +294,7 @@ func TestStoreAndFinalizeBabeNextEpochData(t *testing.T) {
 						common.MustHexToHash("0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3"),
 						common.MustHexToHash("0xc0096358534ec8d21d01d34b836eed476a1c343f8724fa2153dc0725ad797a90"),
 					},
-					Data: []types.NextEpochData{
+					data: []types.NextEpochData{
 						{
 							Authorities: authorities[:3],
 							Randomness:  [32]byte{1},
@@ -316,7 +316,7 @@ func TestStoreAndFinalizeBabeNextEpochData(t *testing.T) {
 						common.MustHexToHash("0xd380bee22de487a707cbda65dd9d4e2188f736908c42cf390c8919d4f7fc547c"),
 						finalizedHeaderHash,
 					},
-					Data: []types.NextEpochData{
+					data: []types.NextEpochData{
 						{
 							Authorities: authorities[6:],
 							Randomness:  [32]byte{1},
@@ -336,7 +336,7 @@ func TestStoreAndFinalizeBabeNextEpochData(t *testing.T) {
 					hashes: []common.Hash{
 						common.MustHexToHash("0xab5c9230a7dde8bb90a6728ba4a0165423294dac14336b1443f865b796ff682c"),
 					},
-					Data: []types.NextEpochData{
+					data: []types.NextEpochData{
 						{
 							Authorities: authorities[6:],
 							Randomness:  [32]byte{1},
@@ -359,7 +359,7 @@ func TestStoreAndFinalizeBabeNextEpochData(t *testing.T) {
 						common.MustHexToHash("0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3"),
 						common.MustHexToHash("0xc0096358534ec8d21d01d34b836eed476a1c343f8724fa2153dc0725ad797a90"),
 					},
-					Data: []types.NextEpochData{
+					data: []types.NextEpochData{
 						{
 							Authorities: authorities[:3],
 							Randomness:  [32]byte{1},
@@ -391,7 +391,7 @@ func TestStoreAndFinalizeBabeNextEpochData(t *testing.T) {
 
 			for _, e := range tt.inMemoryEpoch {
 				for i, hash := range e.hashes {
-					epochState.StoreBABENextEpochData(e.epoch, hash, e.Data[i])
+					epochState.StoreBABENextEpochData(e.epoch, hash, e.data[i])
 				}
 			}
 
@@ -466,7 +466,7 @@ func TestStoreAndFinalizeBabeNextConfigData(t *testing.T) {
 						common.MustHexToHash("0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3"),
 						common.MustHexToHash("0xc0096358534ec8d21d01d34b836eed476a1c343f8724fa2153dc0725ad797a90"),
 					},
-					Data: []types.NextConfigData{
+					data: []types.NextConfigData{
 						{
 							C1:             1,
 							C2:             2,
@@ -491,7 +491,7 @@ func TestStoreAndFinalizeBabeNextConfigData(t *testing.T) {
 						common.MustHexToHash("0xd380bee22de487a707cbda65dd9d4e2188f736908c42cf390c8919d4f7fc547c"),
 						finalizedHeaderHash,
 					},
-					Data: []types.NextConfigData{
+					data: []types.NextConfigData{
 						{
 							C1:             1,
 							C2:             2,
@@ -514,7 +514,7 @@ func TestStoreAndFinalizeBabeNextConfigData(t *testing.T) {
 					hashes: []common.Hash{
 						common.MustHexToHash("0xab5c9230a7dde8bb90a6728ba4a0165423294dac14336b1443f865b796ff682c"),
 					},
-					Data: []types.NextConfigData{
+					data: []types.NextConfigData{
 						{
 							C1:             1,
 							C2:             2,
@@ -537,7 +537,7 @@ func TestStoreAndFinalizeBabeNextConfigData(t *testing.T) {
 						common.MustHexToHash("0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3"),
 						common.MustHexToHash("0xc0096358534ec8d21d01d34b836eed476a1c343f8724fa2153dc0725ad797a90"),
 					},
-					Data: []types.NextConfigData{
+					data: []types.NextConfigData{
 						{
 							C1:             1,
 							C2:             2,
@@ -571,7 +571,7 @@ func TestStoreAndFinalizeBabeNextConfigData(t *testing.T) {
 
 			for _, e := range tt.inMemoryEpoch {
 				for i, hash := range e.hashes {
-					epochState.StoreBABENextConfigData(e.epoch, hash, e.Data[i])
+					epochState.StoreBABENextConfigData(e.epoch, hash, e.data[i])
 				}
 			}
 
