@@ -244,7 +244,7 @@ func (s *EpochState) SetEpochData(epoch uint64, info *types.EpochData) error {
 // otherwise will try to get the data from the in-memory map using the header
 // if the header params is nil then it will search only in database
 func (s *EpochState) GetEpochData(epoch uint64, header *types.Header) (*types.EpochData, error) {
-	epochData, err := s.getEpochDataInDatabase(epoch)
+	epochData, err := s.getEpochDataFromDatabase(epoch)
 	if err == nil && epochData != nil {
 		return epochData, nil
 	}
@@ -256,7 +256,7 @@ func (s *EpochState) GetEpochData(epoch uint64, header *types.Header) (*types.Ep
 		return epochData, nil
 	}
 
-	epochData, err = s.getEpochDataInMemory(epoch, header)
+	epochData, err = s.getEpochDataFromMemory(epoch, header)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get epoch data from memory: %w", err)
 	}
@@ -264,8 +264,8 @@ func (s *EpochState) GetEpochData(epoch uint64, header *types.Header) (*types.Ep
 	return epochData, nil
 }
 
-// getEpochDataInDatabase returns the epoch data for a given epoch persisted in database
-func (s *EpochState) getEpochDataInDatabase(epoch uint64) (*types.EpochData, error) {
+// getEpochDataFromDatabase returns the epoch data for a given epoch persisted in database
+func (s *EpochState) getEpochDataFromDatabase(epoch uint64) (*types.EpochData, error) {
 	enc, err := s.db.Get(epochDataKey(epoch))
 	if err != nil {
 		return nil, err
@@ -280,8 +280,8 @@ func (s *EpochState) getEpochDataInDatabase(epoch uint64) (*types.EpochData, err
 	return raw.ToEpochData()
 }
 
-// getEpochDataInMemory retrieves the right epoch data that belongs to the header parameter
-func (s *EpochState) getEpochDataInMemory(epoch uint64, header *types.Header) (*types.EpochData, error) {
+// getEpochDataFromMemory retrieves the right epoch data that belongs to the header parameter
+func (s *EpochState) getEpochDataFromMemory(epoch uint64, header *types.Header) (*types.EpochData, error) {
 	s.nextEpochDataLock.RLock()
 	defer s.nextEpochDataLock.RUnlock()
 
@@ -359,7 +359,7 @@ func (s *EpochState) setLatestConfigData(epoch uint64) error {
 // otherwise tries to get the data from the in-memory map using the header.
 // If the header params is nil then it will search only in the database
 func (s *EpochState) GetConfigData(epoch uint64, header *types.Header) (*types.ConfigData, error) {
-	configData, err := s.getConfigDataInDatabase(epoch)
+	configData, err := s.getConfigDataFromDatabase(epoch)
 	if err == nil && configData != nil {
 		return configData, nil
 	}
@@ -371,7 +371,7 @@ func (s *EpochState) GetConfigData(epoch uint64, header *types.Header) (*types.C
 		return configData, nil
 	}
 
-	configData, err = s.getConfigDataInMemory(epoch, header)
+	configData, err = s.getConfigDataFromMemory(epoch, header)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get config data from memory: %w", err)
 	}
@@ -379,8 +379,8 @@ func (s *EpochState) GetConfigData(epoch uint64, header *types.Header) (*types.C
 	return configData, nil
 }
 
-// getConfigDataInDatabase returns the BABE config data for a given epoch persisted in database
-func (s *EpochState) getConfigDataInDatabase(epoch uint64) (*types.ConfigData, error) {
+// getConfigDataFromDatabase returns the BABE config data for a given epoch persisted in database
+func (s *EpochState) getConfigDataFromDatabase(epoch uint64) (*types.ConfigData, error) {
 	enc, err := s.db.Get(configDataKey(epoch))
 	if err != nil {
 		return nil, err
@@ -395,8 +395,8 @@ func (s *EpochState) getConfigDataInDatabase(epoch uint64) (*types.ConfigData, e
 	return info, nil
 }
 
-// getConfigDataInMemory retrieves the BABE config data for a given epoch that belongs to the header parameter
-func (s *EpochState) getConfigDataInMemory(epoch uint64, header *types.Header) (*types.ConfigData, error) {
+// getConfigDataFromMemory retrieves the BABE config data for a given epoch that belongs to the header parameter
+func (s *EpochState) getConfigDataFromMemory(epoch uint64, header *types.Header) (*types.ConfigData, error) {
 	s.nextConfigDataLock.RLock()
 	defer s.nextConfigDataLock.RUnlock()
 
@@ -552,7 +552,7 @@ func (s *EpochState) FinalizeBABENextEpochData(finalizedHeader *types.Header) er
 
 	nextEpoch := finalizedBlockEpoch + 1
 
-	epochInDatabase, err := s.getEpochDataInDatabase(nextEpoch)
+	epochInDatabase, err := s.getEpochDataFromDatabase(nextEpoch)
 	if err != nil && !errors.Is(err, chaindb.ErrKeyNotFound) {
 		return fmt.Errorf("cannot check if next epoch data is already defined for epoch %d: %w", nextEpoch, err)
 	}
@@ -603,7 +603,7 @@ func (s *EpochState) FinalizeBABENextConfigData(finalizedHeader *types.Header) e
 
 	nextEpoch := finalizedBlockEpoch + 1
 
-	configInDatabase, err := s.getConfigDataInDatabase(nextEpoch)
+	configInDatabase, err := s.getConfigDataFromDatabase(nextEpoch)
 	if err != nil && !errors.Is(err, chaindb.ErrKeyNotFound) {
 		return fmt.Errorf("cannot check if next epoch config is already defined for epoch %d: %w", nextEpoch, err)
 	}
