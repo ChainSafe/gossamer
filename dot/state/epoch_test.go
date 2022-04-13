@@ -227,9 +227,9 @@ func TestEpochState_GetEpochFromTime(t *testing.T) {
 }
 
 type inMemoryBABEData[T any] struct {
-	epoch  uint64
-	hashes []common.Hash
-	Data   []T
+	epoch    uint64
+	hashes   []common.Hash
+	nextData []T
 }
 
 func TestStoreAndFinalizeBabeNextEpochData(t *testing.T) {
@@ -252,8 +252,31 @@ func TestStoreAndFinalizeBabeNextEpochData(t *testing.T) {
 		}
 	}
 
+	babePrimaryPreDigest := types.BabePrimaryPreDigest{
+		SlotNumber: 301, // block on epoch 1 with digest for epoch 2
+		VRFOutput:  [32]byte{},
+		VRFProof:   [64]byte{},
+	}
+
+	preRuntimeDigest, err := babePrimaryPreDigest.ToPreRuntimeDigest()
+	require.NoError(t, err)
+
+	digest := scale.NewVaryingDataTypeSlice(scale.MustNewVaryingDataType(
+		types.PreRuntimeDigest{}))
+
+	require.NoError(t, digest.Add(*preRuntimeDigest))
+
+	// a random finalized header for testing purposes
+	finalizedHeader := &types.Header{
+		ParentHash: common.Hash{},
+		Number:     1,
+		Digest:     digest,
+	}
+
+	finalizedHeaderHash := finalizedHeader.Hash()
+
 	tests := map[string]struct {
-		finalizeHash         common.Hash
+		finalizedHeader      *types.Header
 		inMemoryEpoch        []inMemoryBABEData[types.NextEpochData]
 		finalizeEpoch        uint64
 		expectErr            error
@@ -262,7 +285,7 @@ func TestStoreAndFinalizeBabeNextEpochData(t *testing.T) {
 		"store_and_finalize_successfully": {
 			shouldRemainInMemory: 1,
 			finalizeEpoch:        2,
-			finalizeHash:         common.MustHexToHash("0x68a27df5a52ff2251df2cc8368f7dcefb305a13bb3d89b65c8fb070f23877f2c"),
+			finalizedHeader:      finalizedHeader,
 			inMemoryEpoch: []inMemoryBABEData[types.NextEpochData]{
 				{
 					epoch: 1,
@@ -271,7 +294,7 @@ func TestStoreAndFinalizeBabeNextEpochData(t *testing.T) {
 						common.MustHexToHash("0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3"),
 						common.MustHexToHash("0xc0096358534ec8d21d01d34b836eed476a1c343f8724fa2153dc0725ad797a90"),
 					},
-					Data: []types.NextEpochData{
+					nextData: []types.NextEpochData{
 						{
 							Authorities: authorities[:3],
 							Randomness:  [32]byte{1},
@@ -291,9 +314,9 @@ func TestStoreAndFinalizeBabeNextEpochData(t *testing.T) {
 					hashes: []common.Hash{
 						common.MustHexToHash("0x5b940c7fc0a1c5a58e4d80c5091dd003303b8f18e90a989f010c1be6f392bed1"),
 						common.MustHexToHash("0xd380bee22de487a707cbda65dd9d4e2188f736908c42cf390c8919d4f7fc547c"),
-						common.MustHexToHash("0x68a27df5a52ff2251df2cc8368f7dcefb305a13bb3d89b65c8fb070f23877f2c"),
+						finalizedHeaderHash,
 					},
-					Data: []types.NextEpochData{
+					nextData: []types.NextEpochData{
 						{
 							Authorities: authorities[6:],
 							Randomness:  [32]byte{1},
@@ -313,7 +336,7 @@ func TestStoreAndFinalizeBabeNextEpochData(t *testing.T) {
 					hashes: []common.Hash{
 						common.MustHexToHash("0xab5c9230a7dde8bb90a6728ba4a0165423294dac14336b1443f865b796ff682c"),
 					},
-					Data: []types.NextEpochData{
+					nextData: []types.NextEpochData{
 						{
 							Authorities: authorities[6:],
 							Randomness:  [32]byte{1},
@@ -324,18 +347,19 @@ func TestStoreAndFinalizeBabeNextEpochData(t *testing.T) {
 		},
 		"cannot_finalize_hash_not_stored": {
 			shouldRemainInMemory: 1,
-			finalizeEpoch:        1,
-			finalizeHash:         common.Hash{}, // finalize when the hash does not exists
-			expectErr:            errHashNotPersisted,
+			finalizeEpoch:        2,
+			// this header hash is not in the database
+			finalizedHeader: finalizedHeader,
+			expectErr:       errHashNotPersisted,
 			inMemoryEpoch: []inMemoryBABEData[types.NextEpochData]{
 				{
-					epoch: 1,
+					epoch: 2,
 					hashes: []common.Hash{
 						common.MustHexToHash("0x9da3ce2785da743bfbc13449db7dcb7a69c07ca914276d839abe7bedc6ac8fed"),
 						common.MustHexToHash("0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3"),
 						common.MustHexToHash("0xc0096358534ec8d21d01d34b836eed476a1c343f8724fa2153dc0725ad797a90"),
 					},
-					Data: []types.NextEpochData{
+					nextData: []types.NextEpochData{
 						{
 							Authorities: authorities[:3],
 							Randomness:  [32]byte{1},
@@ -353,34 +377,11 @@ func TestStoreAndFinalizeBabeNextEpochData(t *testing.T) {
 			},
 		},
 		"cannot_finalize_in_memory_epoch_not_found": {
-			shouldRemainInMemory: 1,
+			shouldRemainInMemory: 0,
 			finalizeEpoch:        3, // try to finalize a epoch that does not exists
-			finalizeHash:         common.Hash{},
+			finalizedHeader:      finalizedHeader,
 			expectErr:            ErrEpochNotInMemory,
-			inMemoryEpoch: []inMemoryBABEData[types.NextEpochData]{
-				{
-					epoch: 1,
-					hashes: []common.Hash{
-						common.MustHexToHash("0x9da3ce2785da743bfbc13449db7dcb7a69c07ca914276d839abe7bedc6ac8fed"),
-						common.MustHexToHash("0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3"),
-						common.MustHexToHash("0xc0096358534ec8d21d01d34b836eed476a1c343f8724fa2153dc0725ad797a90"),
-					},
-					Data: []types.NextEpochData{
-						{
-							Authorities: authorities[:3],
-							Randomness:  [32]byte{1},
-						},
-						{
-							Authorities: authorities[3:6],
-							Randomness:  [32]byte{2},
-						},
-						{
-							Authorities: authorities[6:],
-							Randomness:  [32]byte{3},
-						},
-					},
-				},
-			},
+			inMemoryEpoch:        []inMemoryBABEData[types.NextEpochData]{},
 		},
 	}
 
@@ -390,34 +391,22 @@ func TestStoreAndFinalizeBabeNextEpochData(t *testing.T) {
 
 			for _, e := range tt.inMemoryEpoch {
 				for i, hash := range e.hashes {
-					epochState.StoreBABENextEpochData(e.epoch, hash, e.Data[i])
+					epochState.StoreBABENextEpochData(e.epoch, hash, e.nextData[i])
 				}
 			}
 
 			require.Len(t, epochState.nextEpochData, len(tt.inMemoryEpoch))
 
-			expectedNextEpochData := epochState.nextEpochData[tt.finalizeEpoch][tt.finalizeHash]
+			expectedNextEpochData := epochState.nextEpochData[tt.finalizeEpoch][tt.finalizedHeader.Hash()]
 
-			err := epochState.blockState.db.Put(headerKey(tt.finalizeHash), []byte{})
+			err := epochState.blockState.db.Put(headerKey(tt.finalizedHeader.Hash()), []byte{})
 			require.NoError(t, err)
 
-			// before finalize next epoch data for this epoch should not be defined
-			definedEpochData, definedConfigData, err := epochState.AlreadyDefined(tt.finalizeEpoch)
-			require.NoError(t, err)
-			require.False(t, definedEpochData)
-			require.False(t, definedConfigData)
-
-			err = epochState.FinalizeBABENextEpochData(tt.finalizeEpoch)
+			err = epochState.FinalizeBABENextEpochData(tt.finalizedHeader)
 			if tt.expectErr != nil {
 				require.ErrorIs(t, err, tt.expectErr)
 			} else {
 				require.NoError(t, err)
-
-				// after finalize next epoch data for this epoch should not defined
-				definedEpochData, definedConfigData, err := epochState.AlreadyDefined(tt.finalizeEpoch)
-				require.NoError(t, err)
-				require.True(t, definedEpochData)
-				require.False(t, definedConfigData)
 
 				expected, err := expectedNextEpochData.ToEpochData()
 				require.NoError(t, err)
@@ -435,17 +424,40 @@ func TestStoreAndFinalizeBabeNextEpochData(t *testing.T) {
 }
 
 func TestStoreAndFinalizeBabeNextConfigData(t *testing.T) {
+	babePrimaryPreDigest := types.BabePrimaryPreDigest{
+		SlotNumber: 301, // block on epoch 1 with changes to epoch 2
+		VRFOutput:  [32]byte{},
+		VRFProof:   [64]byte{},
+	}
+
+	preRuntimeDigest, err := babePrimaryPreDigest.ToPreRuntimeDigest()
+	require.NoError(t, err)
+
+	digest := scale.NewVaryingDataTypeSlice(scale.MustNewVaryingDataType(
+		types.PreRuntimeDigest{}))
+
+	require.NoError(t, digest.Add(*preRuntimeDigest))
+
+	// finalized header for testing purposes
+	finalizedHeader := &types.Header{
+		ParentHash: common.Hash{},
+		Number:     1,
+		Digest:     digest,
+	}
+
+	finalizedHeaderHash := finalizedHeader.Hash()
+
 	tests := map[string]struct {
-		finalizeHash         common.Hash
+		finalizedHeader      *types.Header
 		inMemoryEpoch        []inMemoryBABEData[types.NextConfigData]
-		finalizeEpoch        uint64
+		finalizedEpoch       uint64
 		expectErr            error
 		shouldRemainInMemory int
 	}{
 		"store_and_finalize_successfully": {
 			shouldRemainInMemory: 1,
-			finalizeEpoch:        2,
-			finalizeHash:         common.MustHexToHash("0x68a27df5a52ff2251df2cc8368f7dcefb305a13bb3d89b65c8fb070f23877f2c"),
+			finalizedEpoch:       2,
+			finalizedHeader:      finalizedHeader,
 			inMemoryEpoch: []inMemoryBABEData[types.NextConfigData]{
 				{
 					epoch: 1,
@@ -454,7 +466,7 @@ func TestStoreAndFinalizeBabeNextConfigData(t *testing.T) {
 						common.MustHexToHash("0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3"),
 						common.MustHexToHash("0xc0096358534ec8d21d01d34b836eed476a1c343f8724fa2153dc0725ad797a90"),
 					},
-					Data: []types.NextConfigData{
+					nextData: []types.NextConfigData{
 						{
 							C1:             1,
 							C2:             2,
@@ -477,9 +489,9 @@ func TestStoreAndFinalizeBabeNextConfigData(t *testing.T) {
 					hashes: []common.Hash{
 						common.MustHexToHash("0x5b940c7fc0a1c5a58e4d80c5091dd003303b8f18e90a989f010c1be6f392bed1"),
 						common.MustHexToHash("0xd380bee22de487a707cbda65dd9d4e2188f736908c42cf390c8919d4f7fc547c"),
-						common.MustHexToHash("0x68a27df5a52ff2251df2cc8368f7dcefb305a13bb3d89b65c8fb070f23877f2c"),
+						finalizedHeaderHash,
 					},
-					Data: []types.NextConfigData{
+					nextData: []types.NextConfigData{
 						{
 							C1:             1,
 							C2:             2,
@@ -502,7 +514,7 @@ func TestStoreAndFinalizeBabeNextConfigData(t *testing.T) {
 					hashes: []common.Hash{
 						common.MustHexToHash("0xab5c9230a7dde8bb90a6728ba4a0165423294dac14336b1443f865b796ff682c"),
 					},
-					Data: []types.NextConfigData{
+					nextData: []types.NextConfigData{
 						{
 							C1:             1,
 							C2:             2,
@@ -514,18 +526,18 @@ func TestStoreAndFinalizeBabeNextConfigData(t *testing.T) {
 		},
 		"cannot_finalize_hash_doesnt_exists": {
 			shouldRemainInMemory: 1,
-			finalizeEpoch:        1,
-			finalizeHash:         common.Hash{}, // finalize when the hash does not exists
+			finalizedEpoch:       2,
+			finalizedHeader:      finalizedHeader, // finalize when the hash does not exist
 			expectErr:            errHashNotPersisted,
 			inMemoryEpoch: []inMemoryBABEData[types.NextConfigData]{
 				{
-					epoch: 1,
+					epoch: 2,
 					hashes: []common.Hash{
 						common.MustHexToHash("0x9da3ce2785da743bfbc13449db7dcb7a69c07ca914276d839abe7bedc6ac8fed"),
 						common.MustHexToHash("0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3"),
 						common.MustHexToHash("0xc0096358534ec8d21d01d34b836eed476a1c343f8724fa2153dc0725ad797a90"),
 					},
-					Data: []types.NextConfigData{
+					nextData: []types.NextConfigData{
 						{
 							C1:             1,
 							C2:             2,
@@ -545,38 +557,11 @@ func TestStoreAndFinalizeBabeNextConfigData(t *testing.T) {
 				},
 			},
 		},
-		"cannot_finalize_in_memory_epoch_not_found": {
-			shouldRemainInMemory: 1,
-			finalizeEpoch:        3, // try to finalize a epoch that does not exists
-			finalizeHash:         common.Hash{},
-			expectErr:            ErrEpochNotInMemory,
-			inMemoryEpoch: []inMemoryBABEData[types.NextConfigData]{
-				{
-					epoch: 1,
-					hashes: []common.Hash{
-						common.MustHexToHash("0x9da3ce2785da743bfbc13449db7dcb7a69c07ca914276d839abe7bedc6ac8fed"),
-						common.MustHexToHash("0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3"),
-						common.MustHexToHash("0xc0096358534ec8d21d01d34b836eed476a1c343f8724fa2153dc0725ad797a90"),
-					},
-					Data: []types.NextConfigData{
-						{
-							C1:             1,
-							C2:             2,
-							SecondarySlots: 0,
-						},
-						{
-							C1:             2,
-							C2:             3,
-							SecondarySlots: 1,
-						},
-						{
-							C1:             3,
-							C2:             4,
-							SecondarySlots: 0,
-						},
-					},
-				},
-			},
+		"in_memory_config_not_found_shouldnt_return_error": {
+			shouldRemainInMemory: 0,
+			finalizedEpoch:       1, // try to finalize an epoch that does not exist
+			finalizedHeader:      finalizedHeader,
+			inMemoryEpoch:        []inMemoryBABEData[types.NextConfigData]{},
 		},
 	}
 
@@ -586,36 +571,32 @@ func TestStoreAndFinalizeBabeNextConfigData(t *testing.T) {
 
 			for _, e := range tt.inMemoryEpoch {
 				for i, hash := range e.hashes {
-					epochState.StoreBABENextConfigData(e.epoch, hash, e.Data[i])
+					epochState.StoreBABENextConfigData(e.epoch, hash, e.nextData[i])
 				}
 			}
 
 			require.Len(t, epochState.nextConfigData, len(tt.inMemoryEpoch))
 
-			expectedConfigData := epochState.nextConfigData[tt.finalizeEpoch][tt.finalizeHash]
+			// if there is no data in memory we try to finalize the net config data
+			// it should return nil since next epoch config data will not be in every epoch's first block
+			if len(tt.inMemoryEpoch) == 0 {
+				err = epochState.FinalizeBABENextConfigData(tt.finalizedHeader)
+				require.NoError(t, err)
+				return
+			}
 
-			err := epochState.blockState.db.Put(headerKey(tt.finalizeHash), []byte{})
+			expectedConfigData := epochState.nextConfigData[tt.finalizedEpoch][tt.finalizedHeader.Hash()]
+
+			err := epochState.blockState.db.Put(headerKey(tt.finalizedHeader.Hash()), []byte{})
 			require.NoError(t, err)
 
-			// before finalize next config data for this epoch should not be defined
-			definedEpochData, definedConfigData, err := epochState.AlreadyDefined(tt.finalizeEpoch)
-			require.NoError(t, err)
-			require.False(t, definedEpochData)
-			require.False(t, definedConfigData)
-
-			err = epochState.FinalizeBABENextConfigData(tt.finalizeEpoch)
+			err = epochState.FinalizeBABENextConfigData(tt.finalizedHeader)
 			if tt.expectErr != nil {
 				require.ErrorIs(t, err, tt.expectErr)
 			} else {
 				require.NoError(t, err)
 
-				// after finalize next config data for this epoch should be defined
-				definedEpochData, definedConfigData, err = epochState.AlreadyDefined(tt.finalizeEpoch)
-				require.NoError(t, err)
-				require.False(t, definedEpochData)
-				require.True(t, definedConfigData)
-
-				gotConfigData, err := epochState.GetConfigData(tt.finalizeEpoch, nil)
+				gotConfigData, err := epochState.GetConfigData(tt.finalizedEpoch, nil)
 				require.NoError(t, err)
 				require.Equal(t, expectedConfigData.ToConfigData(), gotConfigData)
 			}
