@@ -438,7 +438,7 @@ func TestStoreAndFinalizeBabeNextConfigData(t *testing.T) {
 
 	require.NoError(t, digest.Add(*preRuntimeDigest))
 
-	// a random finalized header for testing purposes
+	// finalized header for testing purposes
 	finalizedHeader := &types.Header{
 		ParentHash: common.Hash{},
 		Number:     1,
@@ -450,13 +450,13 @@ func TestStoreAndFinalizeBabeNextConfigData(t *testing.T) {
 	tests := map[string]struct {
 		finalizedHeader      *types.Header
 		inMemoryEpoch        []inMemoryBABEData[types.NextConfigData]
-		finalizeEpoch        uint64
+		finalizedEpoch       uint64
 		expectErr            error
 		shouldRemainInMemory int
 	}{
 		"store_and_finalize_successfully": {
 			shouldRemainInMemory: 1,
-			finalizeEpoch:        2,
+			finalizedEpoch:       2,
 			finalizedHeader:      finalizedHeader,
 			inMemoryEpoch: []inMemoryBABEData[types.NextConfigData]{
 				{
@@ -526,8 +526,8 @@ func TestStoreAndFinalizeBabeNextConfigData(t *testing.T) {
 		},
 		"cannot_finalize_hash_doesnt_exists": {
 			shouldRemainInMemory: 1,
-			finalizeEpoch:        2,
-			finalizedHeader:      finalizedHeader, // finalize when the hash does not exists
+			finalizedEpoch:       2,
+			finalizedHeader:      finalizedHeader, // finalize when the hash does not exist
 			expectErr:            errHashNotPersisted,
 			inMemoryEpoch: []inMemoryBABEData[types.NextConfigData]{
 				{
@@ -559,7 +559,7 @@ func TestStoreAndFinalizeBabeNextConfigData(t *testing.T) {
 		},
 		"in_memory_config_not_found_shouldnt_return_error": {
 			shouldRemainInMemory: 0,
-			finalizeEpoch:        1, // try to finalize a epoch that does not exists
+			finalizedEpoch:       1, // try to finalize an epoch that does not exist
 			finalizedHeader:      finalizedHeader,
 			inMemoryEpoch:        []inMemoryBABEData[types.NextConfigData]{},
 		},
@@ -585,7 +585,7 @@ func TestStoreAndFinalizeBabeNextConfigData(t *testing.T) {
 				return
 			}
 
-			expectedConfigData := epochState.nextConfigData[tt.finalizeEpoch][tt.finalizedHeader.Hash()]
+			expectedConfigData := epochState.nextConfigData[tt.finalizedEpoch][tt.finalizedHeader.Hash()]
 
 			err := epochState.blockState.db.Put(headerKey(tt.finalizedHeader.Hash()), []byte{})
 			require.NoError(t, err)
@@ -596,7 +596,7 @@ func TestStoreAndFinalizeBabeNextConfigData(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 
-				gotConfigData, err := epochState.GetConfigData(tt.finalizeEpoch, nil)
+				gotConfigData, err := epochState.GetConfigData(tt.finalizedEpoch, nil)
 				require.NoError(t, err)
 				require.Equal(t, expectedConfigData.ToConfigData(), gotConfigData)
 			}
