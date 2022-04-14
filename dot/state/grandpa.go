@@ -251,25 +251,24 @@ func (s *GrandpaState) importScheduledChange(header *types.Header, pendingChange
 	return nil
 }
 
-// finalizedScheduledChange iterates throught the scheduled change tree roots looking for the change node, which
+// getApplicableChange iterates throught the scheduled change tree roots looking for the change node, which
 // contains a lower or equal effective number, to apply. When we found that node we update the scheduled change tree roots
 // with its children that belongs to the same finalized node branch. If we don't find such node we update the scheduled
 // change tree roots with the change nodes that belongs to the same finalized node branch
-func (s *GrandpaState) finalizedScheduledChange(finalizedHeader *types.Header) (apply bool, change *pendingChange, err error) {
+func (s *GrandpaState) getApplicableChange(finalizedHash common.Hash, finalizedNumber uint) (change *pendingChange, err error) {
 	bestFinalizedHeader, err := s.blockState.GetHighestFinalisedHeader()
 	if err != nil {
-		return false, nil, fmt.Errorf("cannot get highest finalised header: %w", err)
+		return nil, fmt.Errorf("cannot get highest finalised header: %w", err)
 	}
 
-	if finalizedHeader.Number <= bestFinalizedHeader.Number {
-		return false, nil, ErrLowerThanBestFinalized
+	if finalizedNumber < bestFinalizedHeader.Number {
+		return nil, ErrLowerThanBestFinalized
 	}
 
 	effectiveBlockLowerOrEqualFinalized := func(change *pendingChange) bool {
-		return change.effectiveNumber() <= finalizedHeader.Number
+		return change.effectiveNumber() <= finalizedNumber
 	}
 
-	finalizedHash := finalizedHeader.Hash()
 	position := -1
 	for idx, root := range s.scheduledChangeRoots {
 		if !effectiveBlockLowerOrEqualFinalized(root.change) {
@@ -283,7 +282,7 @@ func (s *GrandpaState) finalizedScheduledChange(finalizedHeader *types.Header) (
 		if !finalizedHash.Equal(rootHash) {
 			isDescendant, err := s.blockState.IsDescendantOf(rootHash, finalizedHash)
 			if err != nil {
-				return false, nil, fmt.Errorf("cannot verify ancestry: %w", err)
+				return nil, fmt.Errorf("cannot verify ancestry: %w", err)
 			}
 
 			if !isDescendant {
@@ -296,11 +295,11 @@ func (s *GrandpaState) finalizedScheduledChange(finalizedHeader *types.Header) (
 		for _, node := range root.nodes {
 			isDescendant, err := s.blockState.IsDescendantOf(node.header.Hash(), finalizedHash)
 			if err != nil {
-				return false, nil, fmt.Errorf("cannot verify ancestry: %w", err)
+				return nil, fmt.Errorf("cannot verify ancestry: %w", err)
 			}
 
-			if node.header.Number <= finalizedHeader.Number && isDescendant {
-				return false, nil, ErrUnfinalizedAncestor
+			if node.header.Number <= finalizedNumber && isDescendant {
+				return nil, ErrUnfinalizedAncestor
 			}
 		}
 
@@ -318,81 +317,51 @@ func (s *GrandpaState) finalizedScheduledChange(finalizedHeader *types.Header) (
 		copy(s.scheduledChangeRoots, pendingChangeNodeAtPosition.nodes)
 	}
 
-	changed, err := s.retainScheduledChangeRoots(finalizedHeader)
-	if err != nil {
-		return false, nil, fmt.Errorf("cannot retain the scheduled change roots: %w", err)
-	}
-
-	apply = changeToApply != nil || changed
-	return apply, changeToApply, nil
+	return changeToApply, nil
 }
 
-// retainScheduledChangeRoots keeps the child nodes from the applied standard change as the new roots of the
-// s.scheduledChanges tree
-func (s *GrandpaState) retainScheduledChangeRoots(finalizedHeader *types.Header) (changed bool, err error) {
-	newScheduledChangeRoots := []*pendingChangeNode{}
-	finalizedHash := finalizedHeader.Hash()
-
-	for _, root := range s.scheduledChangeRoots {
-		rootBlockHash := root.header.Hash()
-
-		isAncestor, err := s.blockState.IsDescendantOf(finalizedHash, rootBlockHash)
-		if err != nil {
-			return false, fmt.Errorf("cannot verify ancestry while ancestor: %w", err)
-		}
-
-		isDescendant, err := s.blockState.IsDescendantOf(rootBlockHash, finalizedHash)
-		if err != nil {
-			return false, fmt.Errorf("cannot verify ancestry while descendant: %w", err)
-		}
-
-		retain := root.header.Number > finalizedHeader.Number && isAncestor ||
-			root.header.Number == finalizedHeader.Number && finalizedHash.Equal(rootBlockHash) ||
-			isDescendant
-
-		if retain {
-			newScheduledChangeRoots = append(newScheduledChangeRoots, root)
-		} else {
-			changed = true
-		}
-	}
-
-	s.scheduledChangeRoots = make([]*pendingChangeNode, len(newScheduledChangeRoots))
-	copy(s.scheduledChangeRoots, newScheduledChangeRoots)
-	return changed, nil
-}
-
-// ApplyScheduledChange will check the schedules changes in order to find a root
-// that is equals or behind the finalized number and will apply its authority set changes
-func (s *GrandpaState) ApplyScheduledChanges(finalizedHeader *types.Header) error {
-	changed, changeToApply, err := s.finalizedScheduledChange(finalizedHeader)
-	if err != nil {
-		return fmt.Errorf("cannot finalize scheduled change: %w", err)
-	}
-
-	logger.Debugf("finalized scheduled change: changes: %v, change to apply: %s", changed, changeToApply)
-	if !changed {
-		return nil
-	}
-
-	finalizedHash := finalizedHeader.Hash()
+// keepDescendantForcedChanges should keep the forced changes for later blocks that
+// are descendant of the finalized block
+func (s *GrandpaState) keepDescendantForcedChanges(finalizedHash common.Hash, finalizedNumber uint) error {
 	onBranchForcedChanges := []*pendingChange{}
 
-	// we should keep the forced changes for later blocks that
-	// are descendant of the finalized block
 	for _, forcedChange := range s.forcedChanges {
 		isDescendant, err := s.blockState.IsDescendantOf(finalizedHash, forcedChange.announcingHeader.Hash())
 		if err != nil {
 			return fmt.Errorf("cannot verify ancestry while ancestor: %w", err)
 		}
 
-		if forcedChange.effectiveNumber() > finalizedHeader.Number && isDescendant {
+		if forcedChange.effectiveNumber() > finalizedNumber && isDescendant {
 			onBranchForcedChanges = append(onBranchForcedChanges, forcedChange)
 		}
 	}
 
 	s.forcedChanges = make(orderedPendingChanges, len(onBranchForcedChanges))
 	copy(s.forcedChanges, onBranchForcedChanges)
+
+	return nil
+}
+
+// ApplyScheduledChange will check the schedules changes in order to find a root
+// that is equals or behind the finalized number and will apply its authority set changes
+func (s *GrandpaState) ApplyScheduledChanges(finalizedHeader *types.Header) error {
+	finalizedHash := finalizedHeader.Hash()
+
+	err := s.keepDescendantForcedChanges(finalizedHash, finalizedHeader.Number)
+	if err != nil {
+		return fmt.Errorf("cannot keep descendant forced changes: %w", err)
+	}
+
+	if len(s.scheduledChangeRoots) == 0 {
+		return nil
+	}
+
+	changeToApply, err := s.getApplicableChange(finalizedHash, finalizedHeader.Number)
+	if err != nil {
+		return fmt.Errorf("cannot finalize scheduled change: %w", err)
+	}
+
+	logger.Debugf("scheduled changes: change to apply: %s", changeToApply)
 
 	if changeToApply != nil {
 		newSetID, err := s.IncrementSetID()
