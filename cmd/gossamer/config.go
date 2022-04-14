@@ -736,14 +736,16 @@ func setDotRPCConfig(ctx *cli.Context, tomlCfg ctoml.RPCConfig, cfg *dot.RPCConf
 		cfg.External = false
 	}
 
+	// check --rpc-unsafe flag value
 	cfg.Unsafe = ctx.GlobalBool(RPCUnsafeEnabledFlag.Name)
 
-	// check --ws-unsafe flag value
+	// check --rpc-unsafe-external flag value
 	if externalUnsafe := ctx.GlobalBool(RPCUnsafeExternalFlag.Name); externalUnsafe {
 		cfg.Unsafe = true
 		cfg.UnsafeExternal = true
 	}
 
+	// check --ws-unsafe flag value
 	cfg.WSUnsafe = ctx.GlobalBool(WSUnsafeEnabledFlag.Name)
 
 	// check --ws-unsafe-external flag value
