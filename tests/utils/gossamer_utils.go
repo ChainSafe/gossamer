@@ -119,7 +119,6 @@ func startGossamer(t *testing.T, node Node, websocket bool) (
 		"--rpcport", node.RPCPort,
 		"--rpcmods", "system,author,chain,state,dev,rpc",
 		"--rpc",
-		"--rpc-unsafe",
 		"--no-telemetry",
 		"--log", "info"}
 
@@ -136,7 +135,7 @@ func startGossamer(t *testing.T, node Node, websocket bool) (
 	}
 
 	if websocket {
-		params = append(params, "--ws", "--ws-unsafe",
+		params = append(params, "--ws",
 			"--wsport", node.WSPort)
 	}
 	node.Process = exec.Command(gossamerCMD, params...)
