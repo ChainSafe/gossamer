@@ -120,7 +120,7 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 
 	has, err := bs.HasHeader(hash)
 	if err != nil {
-		return fmt.Errorf("could not check header for this hash: %w", err)
+		return fmt.Errorf("could not check header for hash %s: %w", hash, err)
 	}
 	if !has {
 		return fmt.Errorf("cannot finalise unknown block %s", hash)
