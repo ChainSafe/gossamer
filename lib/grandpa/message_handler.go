@@ -615,7 +615,8 @@ func verifyBlockHashAgainstBlockNumber(bs BlockState, hash common.Hash, number u
 	}
 
 	if header.Number != number {
-		return ErrBlockHashMismatch
+		return fmt.Errorf("%w: expected number %d from header but got number %d", 
+			ErrBlockHashMismatch, header.Number, number)
 	}
 	return nil
 }
