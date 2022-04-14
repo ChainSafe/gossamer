@@ -138,7 +138,7 @@ func (s *GrandpaState) GetLatestRound() (uint64, error) {
 	return round, nil
 }
 
-// SetNextChange sets the next authority change at given block number.
+// SetNextChange sets the next authority change at the given block number.
 // NOTE: This block number will be the last block in the current set and not part of the next set.
 func (s *GrandpaState) SetNextChange(authorities []types.GrandpaVoter, number uint) error {
 	currSetID, err := s.GetCurrentSetID()
