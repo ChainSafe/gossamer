@@ -17,11 +17,13 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_chainProcessor_handleBlock(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
 	mockBlockState := NewMockBlockState(ctrl)
 	mockHeader := &types.Header{
 		Number:    0,
@@ -34,7 +36,8 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 		},
 		Body: types.Body{},
 	}
-	mockTrieState, _ := storage.NewTrieState(nil)
+	mockTrieState, err := storage.NewTrieState(nil)
+	require.NoError(t, err)
 	mockBlockState.EXPECT().GetHeader(common.Hash{}).Return(mockHeader, nil)
 	mockInstance := mocks.NewMockInstance(ctrl)
 	mockInstance.EXPECT().SetContextStorage(mockTrieState)
@@ -106,6 +109,8 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 }
 
 func Test_chainProcessor_handleBody(t *testing.T) {
+	t.Parallel()
+
 	var testExtrinsic = []types.Extrinsic{{1, 2, 3}, {7, 8, 9, 0}, {0xa, 0xb}}
 
 	ctrl := gomock.NewController(t)
@@ -147,6 +152,8 @@ func Test_chainProcessor_handleBody(t *testing.T) {
 }
 
 func Test_chainProcessor_handleHeader(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	mockBabeVerifier := NewMockBabeVerifier(ctrl)
@@ -203,6 +210,8 @@ func Test_chainProcessor_handleHeader(t *testing.T) {
 }
 
 func Test_chainProcessor_handleJustification(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	mockFinalityGadget := NewMockFinalityGadget(ctrl)
@@ -385,6 +394,8 @@ func newMockFinalityGadget(ctrl *gomock.Controller) FinalityGadget {
 }
 
 func Test_chainProcessor_processBlockData(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -494,6 +505,8 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 }
 
 func Test_chainProcessor_processReadyBlocks(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 
 	tests := []struct {
@@ -531,6 +544,8 @@ func Test_chainProcessor_processReadyBlocks(t *testing.T) {
 }
 
 func Test_newChainProcessor(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	mockReadyBlock := newBlockQueue(5)

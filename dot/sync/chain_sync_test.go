@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/peerset"
 	syncmocks "github.com/ChainSafe/gossamer/dot/sync/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -24,6 +25,8 @@ import (
 )
 
 func Test_chainSyncState_String(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		s    chainSyncState
@@ -93,6 +96,8 @@ func newTestChainSync(t *testing.T) (*chainSync, *blockQueue) {
 }
 
 func TestChainSync_SetPeerHead(t *testing.T) {
+	t.Parallel()
+
 	cs, _ := newTestChainSync(t)
 
 	testPeer := peer.ID("noot")
@@ -186,6 +191,8 @@ func TestChainSync_SetPeerHead(t *testing.T) {
 }
 
 func TestChainSync_sync_bootstrap_withWorkerError(t *testing.T) {
+	t.Parallel()
+
 	cs, _ := newTestChainSync(t)
 
 	go cs.sync()
@@ -213,6 +220,8 @@ func TestChainSync_sync_bootstrap_withWorkerError(t *testing.T) {
 }
 
 func TestChainSync_sync_tip(t *testing.T) {
+	t.Parallel()
+
 	cs, _ := newTestChainSync(t)
 	cs.blockState = new(syncmocks.BlockState)
 	header, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, 1000,
@@ -234,47 +243,9 @@ func TestChainSync_sync_tip(t *testing.T) {
 	require.Equal(t, tip, cs.state)
 }
 
-func TestChainSync_sync_resultQueue(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	cs, _ := newTestChainSync(t)
-	cs.blockState = new(syncmocks.BlockState)
-	header, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, 1000,
-		types.NewDigest())
-	require.NoError(t, err)
-	cs.blockState.(*syncmocks.BlockState).On("BestBlockHeader").Return(header, nil)
-	cs.blockState.(*syncmocks.BlockState).On("GetHighestFinalisedHeader").Return(header, nil)
-	mockWorkHandler := NewMockworkHandler(ctrl)
-	cs.handler = mockWorkHandler
-	mockWorkHandler.EXPECT().handleWorkerResult(gomock.AssignableToTypeOf(&worker{})).Return(&worker{}, nil)
-	mockWorkHandler.EXPECT().hasCurrentWorker(gomock.AssignableToTypeOf(&worker{}),
-		gomock.AssignableToTypeOf(map[uint64]*worker{}))
-
-	go cs.sync()
-	defer cs.cancel()
-
-	w := worker{
-		ctx: context.Background(),
-		err: &workerError{
-			err: errors.New("protocol not supported"),
-		},
-	}
-
-	cs.resultQueue <- &w
-	time.Sleep(time.Second)
-
-	w = worker{
-		ctx: context.Background(),
-		err: &workerError{
-			err: context.DeadlineExceeded,
-		},
-	}
-
-	cs.resultQueue <- &w
-	time.Sleep(time.Second)
-}
-
 func TestChainSync_getTarget(t *testing.T) {
+	t.Parallel()
+
 	cs, _ := newTestChainSync(t)
 
 	cs.peerState = map[peer.ID]*peerState{
@@ -316,6 +287,8 @@ func TestChainSync_getTarget(t *testing.T) {
 }
 
 func TestWorkerToRequests(t *testing.T) {
+	t.Parallel()
+
 	w := &worker{
 		startNumber:  uintPtr(10),
 		targetNumber: uintPtr(1),
@@ -523,6 +496,8 @@ func TestWorkerToRequests(t *testing.T) {
 }
 
 func TestChainSync_validateResponse(t *testing.T) {
+	t.Parallel()
+
 	cs, _ := newTestChainSync(t)
 	err := cs.validateResponse(nil, nil, "")
 	require.Equal(t, errEmptyBlockData, err)
@@ -633,6 +608,8 @@ func TestChainSync_validateResponse(t *testing.T) {
 }
 
 func TestChainSync_validateResponse_firstBlock(t *testing.T) {
+	t.Parallel()
+
 	cs, _ := newTestChainSync(t)
 	bs := new(syncmocks.BlockState)
 	bs.On("HasHeader", mock.AnythingOfType("common.Hash")).Return(false, nil)
@@ -669,6 +646,8 @@ func TestChainSync_validateResponse_firstBlock(t *testing.T) {
 }
 
 func TestChainSync_doSync(t *testing.T) {
+	t.Parallel()
+
 	cs, readyBlocks := newTestChainSync(t)
 
 	max := uint32(1)
@@ -755,6 +734,8 @@ func TestChainSync_doSync(t *testing.T) {
 }
 
 func TestHandleReadyBlock(t *testing.T) {
+	t.Parallel()
+
 	cs, readyBlocks := newTestChainSync(t)
 
 	// test that descendant chain gets returned by getReadyDescendants on block 1 being ready
@@ -809,6 +790,8 @@ func TestHandleReadyBlock(t *testing.T) {
 }
 
 func TestChainSync_determineSyncPeers(t *testing.T) {
+	t.Parallel()
+
 	cs, _ := newTestChainSync(t)
 
 	req := &network.BlockRequestMessage{}
@@ -860,6 +843,8 @@ func TestChainSync_determineSyncPeers(t *testing.T) {
 }
 
 func Test_chainSync_logSyncSpeed(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 
 	mockBlockState := NewMockBlockState(ctrl)
@@ -906,15 +891,16 @@ func Test_chainSync_logSyncSpeed(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			cs := &chainSync{
-				ctx:         ctx,
-				cancel:      cancel,
-				blockState:  tt.fields.blockState,
-				network:     tt.fields.network,
-				state:       tt.fields.state,
-				benchmarker: tt.fields.benchmarker,
+				ctx:                   ctx,
+				cancel:                cancel,
+				blockState:            tt.fields.blockState,
+				network:               tt.fields.network,
+				state:                 tt.fields.state,
+				benchmarker:           tt.fields.benchmarker,
+				logSyncSpeedFrequency: time.Nanosecond,
 			}
 			go cs.logSyncSpeed()
-			time.Sleep(time.Second * 6)
+			time.Sleep(time.Nanosecond * 2)
 			cancel()
 		})
 	}
@@ -937,6 +923,8 @@ func newMockDisjointBlockSet(ctrl *gomock.Controller) DisjointBlockSet {
 }
 
 func Test_chainSync_start(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	type fields struct {
 		blockState    BlockState
@@ -977,6 +965,8 @@ func Test_chainSync_start(t *testing.T) {
 }
 
 func Test_chainSync_setBlockAnnounce(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	type fields struct {
 		blockState    BlockState
@@ -1018,6 +1008,8 @@ func Test_chainSync_setBlockAnnounce(t *testing.T) {
 }
 
 func Test_chainSync_getHighestBlock(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name             string
 		peerState        map[peer.ID]*peerState
@@ -1045,6 +1037,97 @@ func Test_chainSync_getHighestBlock(t *testing.T) {
 			}
 			if gotHighestBlock != tt.wantHighestBlock {
 				t.Errorf("chainSync.getHighestBlock() = %v, want %v", gotHighestBlock, tt.wantHighestBlock)
+			}
+		})
+	}
+}
+
+func Test_chainSync_handleResult(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+
+	tests := map[string]struct {
+		maxWorkerRetries uint16
+		res              *worker
+		err              error
+	}{
+		"res.err == nil": {
+			res: &worker{},
+		},
+		"res.err.err.Error() == context.Canceled": {
+			res: &worker{
+				ctx: context.Background(),
+				err: &workerError{
+					err: context.Canceled,
+				},
+			},
+		},
+		"res.err.err.Error() == context.DeadlineExceeded": {
+			res: &worker{
+				ctx: context.Background(),
+				err: &workerError{
+					err: context.DeadlineExceeded,
+				},
+			},
+		},
+		"res.err.err.Error() == errNoPeers": {
+			res: &worker{
+				ctx: context.Background(),
+				err: &workerError{
+					err: errNoPeers,
+				},
+			},
+		},
+		"res.err.err.Error() == protocol not supported": {
+			res: &worker{
+				ctx: context.Background(),
+				err: &workerError{
+					err: errors.New("protocol not supported"),
+				},
+			},
+		},
+		"no error, no retries": {
+			res: &worker{
+				ctx: context.Background(),
+				err: &workerError{
+					err: errors.New(""),
+				},
+			},
+		},
+		"no error, maxWorkerRetries 2": {
+			maxWorkerRetries: 2,
+			res: &worker{
+				ctx: context.Background(),
+				err: &workerError{
+					err: errors.New(""),
+				},
+			},
+		},
+	}
+	for testName, tt := range tests {
+		t.Run(testName, func(t *testing.T) {
+			mockNetwork := NewMockNetwork(ctrl)
+			mockNetwork.EXPECT().ReportPeer(gomock.AssignableToTypeOf(peerset.ReputationChange{}),
+				gomock.AssignableToTypeOf(peer.ID(""))).AnyTimes()
+			mockWorkHandler := NewMockworkHandler(ctrl)
+			mockWorkHandler.EXPECT().handleWorkerResult(tt.res).DoAndReturn(func(res *worker) (*worker, error) {
+				return res, nil
+			}).AnyTimes()
+			mockWorkHandler.EXPECT().hasCurrentWorker(gomock.AssignableToTypeOf(&worker{}),
+				gomock.AssignableToTypeOf(map[uint64]*worker{})).Return(true).AnyTimes()
+
+			cs := &chainSync{
+				network:          mockNetwork,
+				workerState:      newWorkerState(),
+				handler:          mockWorkHandler,
+				maxWorkerRetries: tt.maxWorkerRetries,
+			}
+			err := cs.handleResult(tt.res)
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
 			}
 		})
 	}

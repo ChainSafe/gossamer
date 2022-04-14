@@ -25,6 +25,8 @@ var (
 )
 
 func Test_disjointBlockSet_addBlock(t *testing.T) {
+	t.Parallel()
+
 	type fields struct {
 		limit            int
 		blocks           map[common.Hash]*pendingBlock
@@ -85,6 +87,8 @@ func Test_disjointBlockSet_addBlock(t *testing.T) {
 }
 
 func Test_disjointBlockSet_addHeader(t *testing.T) {
+	t.Parallel()
+
 	type fields struct {
 		limit            int
 		blocks           map[common.Hash]*pendingBlock
@@ -141,6 +145,8 @@ func Test_disjointBlockSet_addHeader(t *testing.T) {
 }
 
 func Test_disjointBlockSet_clearBlocks(t *testing.T) {
+	t.Parallel()
+
 	testBlock := &pendingBlock{
 		clearAt: time.Now(),
 	}
@@ -160,7 +166,7 @@ func Test_disjointBlockSet_clearBlocks(t *testing.T) {
 			fields: fields{
 				limit: 0,
 				blocks: map[common.Hash]*pendingBlock{
-					common.Hash{}: testBlock, //nolint:gofmt
+					{}: testBlock,
 				},
 				timeNow: time.Now,
 			},
@@ -182,6 +188,8 @@ func Test_disjointBlockSet_clearBlocks(t *testing.T) {
 }
 
 func Test_disjointBlockSet_getBlocks(t *testing.T) {
+	t.Parallel()
+
 	testBlock := &pendingBlock{}
 	type fields struct {
 		blocks map[common.Hash]*pendingBlock
@@ -200,7 +208,7 @@ func Test_disjointBlockSet_getBlocks(t *testing.T) {
 			name: "base case",
 			fields: fields{
 				blocks: map[common.Hash]*pendingBlock{
-					common.Hash{}: testBlock, //nolint:gofmt
+					{}: testBlock,
 				},
 			},
 			want: []*pendingBlock{testBlock},

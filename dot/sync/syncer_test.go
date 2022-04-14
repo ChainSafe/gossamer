@@ -16,6 +16,8 @@ import (
 )
 
 func TestNewService(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -120,6 +122,8 @@ func TestNewService(t *testing.T) {
 }
 
 func TestService_HandleBlockAnnounce(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 
 	type fields struct {
@@ -190,6 +194,8 @@ func newMockChainProcessor(ctrl *gomock.Controller) ChainProcessor {
 }
 
 func TestService_HandleBlockAnnounceHandshake(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 
 	type fields struct {
@@ -235,6 +241,8 @@ func TestService_HandleBlockAnnounceHandshake(t *testing.T) {
 }
 
 func TestService_IsSynced(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 
 	type fields struct {
@@ -266,6 +274,8 @@ func TestService_IsSynced(t *testing.T) {
 }
 
 func TestService_Start(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 
 	tests := []struct {
@@ -293,6 +303,8 @@ func TestService_Start(t *testing.T) {
 }
 
 func TestService_Stop(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 
 	type fields struct {
@@ -327,6 +339,8 @@ func TestService_Stop(t *testing.T) {
 }
 
 func Test_reverseBlockData(t *testing.T) {
+	t.Parallel()
+
 	type args struct {
 		data []*types.BlockData
 	}
@@ -361,6 +375,8 @@ func Test_reverseBlockData(t *testing.T) {
 }
 
 func TestService_HighestBlock(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	tests := []struct {
 		name      string

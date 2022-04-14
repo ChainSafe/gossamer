@@ -14,7 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 )
 
-//go:generate mockgen -destination=mock_chain_processor.go -package=$GOPACKAGE . ChainProcessor
+//go:generate mockgen -destination=mock_chain_processor_test.go -package=$GOPACKAGE . ChainProcessor
 
 // ChainProcessor processes ready blocks.
 // it is implemented by *chainProcessor

@@ -17,6 +17,8 @@ import (
 )
 
 func TestService_CreateBlockResponse(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -214,6 +216,8 @@ func newMockBlockStateForMessageTest(ctrl *gomock.Controller) BlockState {
 }
 
 func TestService_checkOrGetDescendantHash(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	type fields struct {
 		blockState     BlockState
