@@ -577,7 +577,7 @@ func TestStoreAndFinalizeBabeNextConfigData(t *testing.T) {
 
 			require.Len(t, epochState.nextConfigData, len(tt.inMemoryEpoch))
 
-			// if there is no data in memory we try to finalize the net config data
+			// if there is no data in memory we try to finalize the next config data
 			// it should return nil since next epoch config data will not be in every epoch's first block
 			if len(tt.inMemoryEpoch) == 0 {
 				err = epochState.FinalizeBABENextConfigData(tt.finalizedHeader)
