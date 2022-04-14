@@ -646,7 +646,7 @@ func (s *EpochState) FinalizeBABENextConfigData(finalizedHeader *types.Header) e
 
 // findFinalizedHeaderForEpoch given a specific epoch (the key) will go through the hashes looking
 // for a database persisted hash (belonging to the finalized chain)
-// which contains the right configuration to be persisted and safely used
+// which contains the right configuration or data to be persisted and safely used
 func findFinalizedHeaderForEpoch[T types.NextConfigData | types.NextEpochData](
 	nextEpochMap map[uint64]map[common.Hash]T, es *EpochState, epoch uint64) (next *T, err error) {
 	hashes, has := nextEpochMap[epoch]
