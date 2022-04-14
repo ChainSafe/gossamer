@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -105,6 +106,12 @@ func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) error {
 	logger.Debugf("received commit message, msg: %+v", msg)
 
 	err := verifyBlockHashAgainstBlockNumber(h.blockState, msg.Vote.Hash, uint(msg.Vote.Number))
+	if errors.Is(err, chaindb.ErrKeyNotFound) {
+		h.grandpa.tracker.addCommit(msg)
+		logger.Infof("we might not have synced to the given block %s yet: %s", msg.Vote.Hash, err)
+		return nil
+	}
+
 	if err != nil {
 		return err
 	}
@@ -190,6 +197,11 @@ func (h *MessageHandler) handleCatchUpResponse(msg *CatchUpResponse) error {
 		msg.Hash, msg.Round, msg.SetID)
 
 	err := verifyBlockHashAgainstBlockNumber(h.blockState, msg.Hash, uint(msg.Number))
+	if errors.Is(err, chaindb.ErrKeyNotFound) {
+		h.grandpa.tracker.addCatchUpResponse(msg)
+		logger.Infof("we might not have synced to the given block %s yet: %s", msg.Hash, err)
+		return nil
+	}
 	if err != nil {
 		return err
 	}
@@ -215,10 +227,16 @@ func (h *MessageHandler) handleCatchUpResponse(msg *CatchUpResponse) error {
 
 	prevote, err := h.verifyPreVoteJustification(msg)
 	if err != nil {
+		// no need to check for chaindb.ErrKeyNotFound
+		// Since highest block was present (otherwise execution would not reach here),
+		// we expect previous blocks to exists as well. If they don't exist, we should error.
 		return err
 	}
 
 	if err = h.verifyPreCommitJustification(msg); err != nil {
+		// no need to check for chaindb.ErrKeyNotFound
+		// Since highest block was present (otherwise execution would not reach here),
+		// we expect previous blocks to exists as well. If they don't exist, we should error.
 		return err
 	}
 
@@ -615,7 +633,7 @@ func verifyBlockHashAgainstBlockNumber(bs BlockState, hash common.Hash, number u
 	}
 
 	if header.Number != number {
-		return fmt.Errorf("%w: expected number %d from header but got number %d", 
+		return fmt.Errorf("%w: expected number %d from header but got number %d",
 			ErrBlockHashMismatch, header.Number, number)
 	}
 	return nil
