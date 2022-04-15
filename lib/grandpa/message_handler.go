@@ -287,11 +287,6 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 
 	var count int
 	for i, pc := range fm.Precommits {
-		_, ok := eqvVoters[fm.AuthData[i].AuthorityID]
-		if ok {
-			continue
-		}
-
 		just := &SignedVote{
 			Vote:        pc,
 			Signature:   fm.AuthData[i].Signature,
@@ -300,12 +295,17 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 
 		err := h.verifyJustification(just, fm.Round, h.grandpa.state.setID, precommit)
 		if err != nil {
+			logger.Errorf("failed to verify justification for vote from authority id: %s, for block hash: %")
 			continue
 		}
 
 		isDescendant, err := h.blockState.IsDescendantOf(fm.Vote.Hash, just.Vote.Hash)
 		if err != nil {
 			logger.Warnf("verifyCommitMessageJustification: %s", err)
+			continue
+		}
+
+		if _, ok := eqvVoters[fm.AuthData[i].AuthorityID]; ok {
 			continue
 		}
 
@@ -398,12 +398,12 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) erro
 	for idx := range msg.PreCommitJustification {
 		just := &msg.PreCommitJustification[idx]
 
-		if _, ok := eqvVoters[just.AuthorityID]; ok {
+		err := h.verifyJustification(just, msg.Round, msg.SetID, precommit)
+		if err != nil {
 			continue
 		}
 
-		err := h.verifyJustification(just, msg.Round, msg.SetID, precommit)
-		if err != nil {
+		if _, ok := eqvVoters[just.AuthorityID]; ok {
 			continue
 		}
 
