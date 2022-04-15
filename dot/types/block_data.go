@@ -4,8 +4,6 @@
 package types
 
 import (
-	"fmt"
-
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
@@ -31,28 +29,28 @@ func (bd *BlockData) Number() uint {
 	return bd.Header.Number
 }
 
-func (bd *BlockData) String() string {
-	str := fmt.Sprintf("Hash=%s ", bd.Hash)
+// func (bd *BlockData) String() string {
+// 	str := fmt.Sprintf("Hash=%s ", bd.Hash)
 
-	if bd.Header != nil {
-		str = str + fmt.Sprintf("Header=%s ", bd.Header)
-	}
+// 	if bd.Header != nil {
+// 		str = str + fmt.Sprintf("Header=%s ", bd.Header)
+// 	}
 
-	if bd.Body != nil {
-		str = str + fmt.Sprintf("Body=%s ", *bd.Body)
-	}
+// 	if bd.Body != nil {
+// 		str = str + fmt.Sprintf("Body=%s ", *bd.Body)
+// 	}
 
-	if bd.Receipt != nil {
-		str = str + fmt.Sprintf("Receipt=0x%x ", bd.Receipt)
-	}
+// 	if bd.Receipt != nil {
+// 		str = str + fmt.Sprintf("Receipt=0x%x ", bd.Receipt)
+// 	}
 
-	if bd.MessageQueue != nil {
-		str = str + fmt.Sprintf("MessageQueue=0x%x ", bd.MessageQueue)
-	}
+// 	if bd.MessageQueue != nil {
+// 		str = str + fmt.Sprintf("MessageQueue=0x%x ", bd.MessageQueue)
+// 	}
 
-	if bd.Justification != nil {
-		str = str + fmt.Sprintf("Justification=0x%x ", bd.Justification)
-	}
+// 	if bd.Justification != nil {
+// 		str = str + fmt.Sprintf("Justification=0x%x ", bd.Justification)
+// 	}
 
-	return str
-}
+// 	return str
+// }

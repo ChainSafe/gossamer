@@ -11,39 +11,42 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func newMockBlockStateForBootstrapSyncerTest(ctrl *gomock.Controller) BlockState {
-	mock := NewMockBlockState(ctrl)
-
-	mock.EXPECT().BestBlockHeader().Return(&types.Header{Number: 2}, nil)
-
-	mock.EXPECT().GetHighestFinalisedHeader().Return(&types.Header{Number: 1}, nil).AnyTimes()
-
-	return mock
-}
-
 func Test_bootstrapSyncer_handleWorkerResult(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
 
+	blockStateBuilder := func(ctrl *gomock.Controller) BlockState {
+		mockBlockState := NewMockBlockState(ctrl)
+		mockBlockState.EXPECT().BestBlockHeader().Return(&types.Header{Number: 2}, nil)
+		return mockBlockState
+	}
+
+	blockStateBuilderWithFinalised := func(ctrl *gomock.Controller) BlockState {
+		mockBlockState := NewMockBlockState(ctrl)
+		mockBlockState.EXPECT().BestBlockHeader().Return(&types.Header{Number: 2}, nil)
+		mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(&types.Header{Number: 1}, nil)
+		return mockBlockState
+	}
+
 	tests := map[string]struct {
 		blockState        BlockState
 		worker            *worker
 		wantWorkerToRetry *worker
-		wantErr           bool
+		err               error
 	}{
 		"nil worker.err returns nil": {
 			worker: &worker{},
 		},
-		"targetNumber < bestBlockHeader number, returns nil": {
-			blockState: newMockBlockStateForBootstrapSyncerTest(ctrl),
+		"targetNumber < bestBlockHeader number returns nil": {
+			blockState: blockStateBuilder(ctrl),
 			worker: &worker{
 				err:          &workerError{},
 				targetNumber: uintPtr(0),
 			},
 		},
-		"targetNumber > bestBlockHeader number, worker errUnknownParent, returns worker": {
-			blockState: newMockBlockStateForBootstrapSyncerTest(ctrl),
+		"targetNumber > bestBlockHeader number worker errUnknownParent returns worker": {
+			blockState: blockStateBuilderWithFinalised(ctrl),
 			worker: &worker{
 				err:          &workerError{err: errUnknownParent},
 				targetNumber: uintPtr(3),
@@ -53,8 +56,8 @@ func Test_bootstrapSyncer_handleWorkerResult(t *testing.T) {
 				targetNumber: uintPtr(3),
 			},
 		},
-		"targetNumber > bestBlockHeader number, returns worker": {
-			blockState: newMockBlockStateForBootstrapSyncerTest(ctrl),
+		"targetNumber > bestBlockHeader number returns worker": {
+			blockState: blockStateBuilder(ctrl),
 			worker: &worker{
 				err:          &workerError{},
 				targetNumber: uintPtr(3),
@@ -71,10 +74,7 @@ func Test_bootstrapSyncer_handleWorkerResult(t *testing.T) {
 				blockState: tt.blockState,
 			}
 			gotWorkerToRetry, err := s.handleWorkerResult(tt.worker)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("bootstrapSyncer.handleWorkerResult() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
+			assert.ErrorIs(t, err, tt.err)
 			assert.Equal(t, tt.wantWorkerToRetry, gotWorkerToRetry)
 		})
 	}

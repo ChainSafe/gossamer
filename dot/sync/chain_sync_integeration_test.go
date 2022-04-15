@@ -1,8 +1,7 @@
+//go:build integration
+
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
-
-//go:build integration
-// +build integration
 
 package sync
 
@@ -30,7 +29,7 @@ func TestChainSync_SetPeerHead_Integration(t *testing.T) {
 
 	testPeer := peer.ID("noot")
 	hash := common.Hash{0xa, 0xb}
-	number := uint(1000)
+	const number uint = 1000
 	err := cs.setPeerHead(testPeer, hash, number)
 	require.NoError(t, err)
 
@@ -55,13 +54,13 @@ func TestChainSync_SetPeerHead_Integration(t *testing.T) {
 	cs.blockState.(*syncmocks.BlockState).On("GetHighestFinalisedHeader").Return(fin, nil)
 	cs.blockState.(*syncmocks.BlockState).On("GetHashByNumber", mock.AnythingOfType("uint")).Return(hash, nil)
 
-	number = 999
+	// number = 999
 	err = cs.setPeerHead(testPeer, hash, number)
 	require.NoError(t, err)
 	expected = &peerState{
 		who:    testPeer,
 		hash:   hash,
-		number: number,
+		number: number - 1,
 	}
 	require.Equal(t, expected, cs.peerState[testPeer])
 	select {

@@ -19,7 +19,9 @@ func TestNewService(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+
+	mockBlockState := NewMockBlockState(ctrl)
+	mockBlockState.EXPECT().GetFinalisedNotifierChannel().Return(make(chan *types.FinalisationInfo))
 
 	type args struct {
 		cfg *Config
@@ -95,9 +97,8 @@ func TestNewService(t *testing.T) {
 		{
 			name: "working example",
 			args: args{cfg: &Config{
-				Network: NewMockNetwork(ctrl),
-				//TODO(ed): fix
-				// BlockState:         newMockBlockState(ctrl, 0, 0, 0, 0, 0, 1, 0, 0, 0),
+				Network:            NewMockNetwork(ctrl),
+				BlockState:         mockBlockState,
 				StorageState:       NewMockStorageState(ctrl),
 				FinalityGadget:     NewMockFinalityGadget(ctrl),
 				TransactionState:   NewMockTransactionState(ctrl),
