@@ -5,6 +5,7 @@ package main
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -54,34 +55,19 @@ func loadConfig(cfg *ctoml.Config, fp string) error {
 }
 
 // exportConfig exports a dot configuration to a toml configuration file
-func exportConfig(cfg *ctoml.Config, fp string) *os.File {
-	var (
-		newFile *os.File
-		err     error
-		raw     []byte
-	)
-
-	if raw, err = toml.Marshal(*cfg); err != nil {
-		logger.Errorf("failed to marshal configuration: %s", err)
-		os.Exit(1)
-	}
-
-	newFile, err = os.Create(filepath.Clean(fp))
+func exportConfig(cfg *ctoml.Config, targetPath string) (err error) {
+	b, err := toml.Marshal(*cfg)
 	if err != nil {
-		logger.Errorf("failed to create configuration file: %s", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to marshal configuration: %w", err)
 	}
 
-	_, err = newFile.Write(raw)
+	// read and write for the current user
+	// read only for the user group and others
+	const perms = fs.FileMode(0644)
+	err = os.WriteFile(targetPath, b, perms)
 	if err != nil {
-		logger.Errorf("failed to write to configuration file: %s", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to write configuration to file: %w", err)
 	}
 
-	if err := newFile.Close(); err != nil {
-		logger.Errorf("failed to close configuration file: %s", err)
-		os.Exit(1)
-	}
-
-	return newFile
+	return nil
 }
