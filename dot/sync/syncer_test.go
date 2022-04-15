@@ -95,8 +95,9 @@ func TestNewService(t *testing.T) {
 		{
 			name: "working example",
 			args: args{cfg: &Config{
-				Network:            NewMockNetwork(ctrl),
-				BlockState:         newMockBlockState(ctrl, 0, 0, 0, 0, 0, 1, 0, 0, 0),
+				Network: NewMockNetwork(ctrl),
+				//TODO(ed): fix
+				// BlockState:         newMockBlockState(ctrl, 0, 0, 0, 0, 0, 1, 0, 0, 0),
 				StorageState:       NewMockStorageState(ctrl),
 				FinalityGadget:     NewMockFinalityGadget(ctrl),
 				TransactionState:   NewMockTransactionState(ctrl),
