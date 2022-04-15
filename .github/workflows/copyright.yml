@@ -23,3 +23,5 @@ jobs:
           check-latest: true
 
       - run: make license
+
+      - run: git diff --exit-code
