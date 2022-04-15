@@ -227,16 +227,10 @@ func (h *MessageHandler) handleCatchUpResponse(msg *CatchUpResponse) error {
 
 	prevote, err := h.verifyPreVoteJustification(msg)
 	if err != nil {
-		// no need to check for chaindb.ErrKeyNotFound
-		// Since highest block was present (otherwise execution would not reach here),
-		// we expect previous blocks to exists as well. If they don't exist, we should error.
 		return err
 	}
 
 	if err = h.verifyPreCommitJustification(msg); err != nil {
-		// no need to check for chaindb.ErrKeyNotFound
-		// Since highest block was present (otherwise execution would not reach here),
-		// we expect previous blocks to exists as well. If they don't exist, we should error.
 		return err
 	}
 
@@ -361,6 +355,11 @@ func (h *MessageHandler) verifyPreVoteJustification(msg *CatchUpResponse) (commo
 
 	for _, pvj := range msg.PreVoteJustification {
 		err := verifyBlockHashAgainstBlockNumber(h.blockState, pvj.Vote.Hash, uint(pvj.Vote.Number))
+		if errors.Is(err, chaindb.ErrKeyNotFound) {
+			h.grandpa.tracker.addCatchUpResponse(msg)
+			logger.Infof("we might not have synced to the given block %s yet: %s", pvj.Vote.Hash, err)
+			continue
+		}
 		if err != nil {
 			return common.Hash{}, err
 		}
@@ -423,6 +422,11 @@ func (h *MessageHandler) verifyPreVoteJustification(msg *CatchUpResponse) (commo
 func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) error {
 	for _, pcj := range msg.PreCommitJustification {
 		err := verifyBlockHashAgainstBlockNumber(h.blockState, pcj.Vote.Hash, uint(pcj.Vote.Number))
+		if errors.Is(err, chaindb.ErrKeyNotFound) {
+			h.grandpa.tracker.addCatchUpResponse(msg)
+			logger.Infof("we might not have synced to the given block %s yet: %s", pcj.Vote.Hash, err)
+			continue
+		}
 		if err != nil {
 			return err
 		}
