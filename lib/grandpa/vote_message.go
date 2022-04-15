@@ -169,10 +169,7 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 			if m.Round < s.state.round+maxFutureRoundsDiff {
 				// We ensure the message round is not too far away
 				// from our state round, to avoid abuses of the tracker storage.
-				s.tracker.addVote(&networkVoteMessage{
-					from: from,
-					msg:  m,
-				})
+				s.tracker.addVote(from, m)
 			}
 		}
 
@@ -199,10 +196,7 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 		errors.Is(err, blocktree.ErrDescendantNotFound) ||
 		errors.Is(err, blocktree.ErrEndNodeNotFound) ||
 		errors.Is(err, blocktree.ErrStartNodeNotFound) {
-		s.tracker.addVote(&networkVoteMessage{
-			from: from,
-			msg:  m,
-		})
+		s.tracker.addVote(from, m)
 	}
 	if err != nil {
 		return nil, err

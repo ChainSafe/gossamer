@@ -16,6 +16,24 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// getMessageFromVotesTracker returns the vote message
+// from the votes tracker for the given block hash and authority ID.
+func getMessageFromVotesTracker(votes votesTracker,
+	blockHash common.Hash, authorityID ed25519.PublicKeyBytes) (
+	message *VoteMessage) {
+	authIDToData, has := votes.mapping[blockHash]
+	if !has {
+		return nil
+	}
+
+	data, ok := authIDToData[authorityID]
+	if !ok {
+		return nil
+	}
+
+	return data.message
+}
+
 func TestMessageTracker_ValidateMessage(t *testing.T) {
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
@@ -33,13 +51,11 @@ func TestMessageTracker_ValidateMessage(t *testing.T) {
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
-	expected := &networkVoteMessage{
-		msg: msg,
-	}
-
 	_, err = gs.validateVoteMessage("", msg)
 	require.Equal(t, err, ErrBlockDoesNotExist)
-	require.Equal(t, expected, gs.tracker.voteMessages[fake.Hash()][kr.Alice().Public().(*ed25519.PublicKey).AsBytes()])
+	authorityID := kr.Alice().Public().(*ed25519.PublicKey).AsBytes()
+	voteMessage := getMessageFromVotesTracker(gs.tracker.votes, fake.Hash(), authorityID)
+	require.Equal(t, msg, voteMessage)
 }
 
 func TestMessageTracker_SendMessage(t *testing.T) {
@@ -72,13 +88,11 @@ func TestMessageTracker_SendMessage(t *testing.T) {
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
-	expected := &networkVoteMessage{
-		msg: msg,
-	}
-
 	_, err = gs.validateVoteMessage("", msg)
 	require.Equal(t, err, ErrBlockDoesNotExist)
-	require.Equal(t, expected, gs.tracker.voteMessages[next.Hash()][kr.Alice().Public().(*ed25519.PublicKey).AsBytes()])
+	authorityID := kr.Alice().Public().(*ed25519.PublicKey).AsBytes()
+	voteMessage := getMessageFromVotesTracker(gs.tracker.votes, next.Hash(), authorityID)
+	require.Equal(t, msg, voteMessage)
 
 	err = gs.blockState.(*state.BlockState).AddBlock(&types.Block{
 		Header: *next,
@@ -126,13 +140,11 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
-	expected := &networkVoteMessage{
-		msg: msg,
-	}
-
 	_, err = gs.validateVoteMessage("", msg)
 	require.Equal(t, ErrBlockDoesNotExist, err)
-	require.Equal(t, expected, gs.tracker.voteMessages[next.Hash()][kr.Alice().Public().(*ed25519.PublicKey).AsBytes()])
+	authorityID := kr.Alice().Public().(*ed25519.PublicKey).AsBytes()
+	voteMessage := getMessageFromVotesTracker(gs.tracker.votes, next.Hash(), authorityID)
+	require.Equal(t, msg, voteMessage)
 
 	err = gs.blockState.(*state.BlockState).AddBlock(&types.Block{
 		Header: *next,
@@ -147,7 +159,7 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 	}
 	pv, has := gs.prevotes.Load(kr.Alice().Public().(*ed25519.PublicKey).AsBytes())
 	require.True(t, has)
-	require.Equal(t, expectedVote, &pv.(*SignedVote).Vote, gs.tracker.voteMessages)
+	require.Equal(t, expectedVote, &pv.(*SignedVote).Vote, gs.tracker.votes)
 }
 
 func TestMessageTracker_MapInsideMap(t *testing.T) {
@@ -163,8 +175,8 @@ func TestMessageTracker_MapInsideMap(t *testing.T) {
 	}
 
 	hash := header.Hash()
-	_, ok := gs.tracker.voteMessages[hash]
-	require.False(t, ok)
+	messages := gs.tracker.votes.getMessagesForBlockHash(hash)
+	require.Empty(t, messages)
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
 	authorityID := kr.Alice().Public().(*ed25519.PublicKey).AsBytes()
@@ -172,15 +184,10 @@ func TestMessageTracker_MapInsideMap(t *testing.T) {
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
-	gs.tracker.addVote(&networkVoteMessage{
-		msg: msg,
-	})
+	gs.tracker.addVote("", msg)
 
-	voteMsgs, ok := gs.tracker.voteMessages[hash]
-	require.True(t, ok)
-
-	_, ok = voteMsgs[authorityID]
-	require.True(t, ok)
+	voteMessage := getMessageFromVotesTracker(gs.tracker.votes, hash, authorityID)
+	require.NotEmpty(t, voteMessage)
 }
 
 func TestMessageTracker_handleTick(t *testing.T) {
@@ -197,9 +204,7 @@ func TestMessageTracker_handleTick(t *testing.T) {
 			BlockHash: testHash,
 		},
 	}
-	gs.tracker.addVote(&networkVoteMessage{
-		msg: msg,
-	})
+	gs.tracker.addVote("", msg)
 
 	gs.tracker.handleTick()
 
@@ -212,7 +217,7 @@ func TestMessageTracker_handleTick(t *testing.T) {
 	}
 
 	// shouldn't be deleted as round in message >= grandpa round
-	require.Equal(t, 1, len(gs.tracker.voteMessages[testHash]))
+	require.Len(t, gs.tracker.votes.getMessagesForBlockHash(testHash), 1)
 
 	gs.state.round = 1
 	msg = &VoteMessage{
@@ -221,9 +226,7 @@ func TestMessageTracker_handleTick(t *testing.T) {
 			BlockHash: testHash,
 		},
 	}
-	gs.tracker.addVote(&networkVoteMessage{
-		msg: msg,
-	})
+	gs.tracker.addVote("", msg)
 
 	gs.tracker.handleTick()
 
@@ -235,5 +238,5 @@ func TestMessageTracker_handleTick(t *testing.T) {
 	}
 
 	// should be deleted as round in message < grandpa round
-	require.Empty(t, len(gs.tracker.voteMessages[testHash]))
+	require.Empty(t, gs.tracker.votes.getMessagesForBlockHash(testHash))
 }
