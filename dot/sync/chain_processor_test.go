@@ -389,7 +389,8 @@ func Test_chainProcessor_processBlockData_handleHeader(t *testing.T) {
 	mockStorageState.EXPECT().Unlock()
 
 	mockBlockImportHandler := NewMockBlockImportHandler(ctrl)
-	mockBlockImportHandler.EXPECT().HandleBlockImport(&types.Block{Header: types.Header{}, Body: types.Body{}}, mockTrieState)
+	mockBlockImportHandler.EXPECT().HandleBlockImport(&types.Block{
+		Header: types.Header{}, Body: types.Body{}}, mockTrieState)
 
 	mockTelemetry := NewMockClient(ctrl)
 	mockTelemetry.EXPECT().SendMessage(gomock.Any()).AnyTimes()
@@ -427,7 +428,8 @@ func Test_chainProcessor_processBlockData_handleJustification(t *testing.T) {
 		Number:    0,
 		StateRoot: stateRootHash,
 	}, nil)
-	mockBlockState.EXPECT().SetJustification(common.MustHexToHash("0xdcdd89927d8a348e00257e1ecc8617f45edb5118efff3ea2f9961b2ad9b7690a"), justification)
+	mockBlockState.EXPECT().SetJustification(
+		common.MustHexToHash("0xdcdd89927d8a348e00257e1ecc8617f45edb5118efff3ea2f9961b2ad9b7690a"), justification)
 	mockBlockState.EXPECT().CompareAndSetBlockData(gomock.AssignableToTypeOf(&types.BlockData{}))
 
 	runtimeHash := common.MustHexToHash("0x7db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a")
@@ -445,13 +447,15 @@ func Test_chainProcessor_processBlockData_handleJustification(t *testing.T) {
 	mockStorageState.EXPECT().Unlock()
 
 	mockBlockImportHandler := NewMockBlockImportHandler(ctrl)
-	mockBlockImportHandler.EXPECT().HandleBlockImport(&types.Block{Header: types.Header{}, Body: types.Body{}}, mockTrieState)
+	mockBlockImportHandler.EXPECT().HandleBlockImport(
+		&types.Block{Header: types.Header{}, Body: types.Body{}}, mockTrieState)
 
 	mockTelemetry := NewMockClient(ctrl)
 	mockTelemetry.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	mockFinalityGadget := NewMockFinalityGadget(ctrl)
-	mockFinalityGadget.EXPECT().VerifyBlockJustification(common.MustHexToHash("0xdcdd89927d8a348e00257e1ecc8617f45edb5118efff3ea2f9961b2ad9b7690a"), justification)
+	mockFinalityGadget.EXPECT().VerifyBlockJustification(
+		common.MustHexToHash("0xdcdd89927d8a348e00257e1ecc8617f45edb5118efff3ea2f9961b2ad9b7690a"), justification)
 
 	s := &chainProcessor{
 		blockState:         mockBlockState,
