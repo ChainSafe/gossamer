@@ -17,10 +17,10 @@ import (
 var polkadotSuite = "polkadot"
 
 func TestStartGossamerAndPolkadotAPI(t *testing.T) {
-	// if utils.MODE != polkadotSuite {
-	// 	t.Log("Going to skip polkadot.js/api suite tests")
-	// 	return
-	// }
+	if utils.MODE != polkadotSuite {
+		t.Log("Going to skip polkadot.js/api suite tests")
+		return
+	}
 	t.Log("starting gossamer for polkadot.js/api tests...")
 
 	utils.CreateDefaultConfig()
