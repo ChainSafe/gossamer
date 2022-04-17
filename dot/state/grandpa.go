@@ -309,7 +309,7 @@ func (s *GrandpaState) getApplicableChange(finalizedHash common.Hash, finalizedN
 
 	var changeToApply *pendingChange = nil
 
-	if position != -1 {
+	if position > -1 {
 		pendingChangeNodeAtPosition := s.scheduledChangeRoots[position]
 		changeToApply = pendingChangeNodeAtPosition.change
 
@@ -433,6 +433,10 @@ func (s *GrandpaState) scheduledChangeOnChainOf(bestBlockHash common.Hash) (chan
 	}
 
 	return nil, nil
+}
+
+func (s *GrandpaState) ApplyForcedChanges(bestBlockHeader *types.Header) error {
+	return nil
 }
 
 // NextGrandpaAuthorityChange returns the block number of the next upcoming grandpa authorities change.

@@ -36,26 +36,7 @@ type Handler struct {
 	imported  chan *types.Block
 	finalised chan *types.FinalisationInfo
 
-	// GRANDPA changes
-	grandpaScheduledChange *grandpaChange
-	grandpaForcedChange    *grandpaChange
-	grandpaPause           *pause
-	grandpaResume          *resume
-
 	logger log.LeveledLogger
-}
-
-type grandpaChange struct {
-	auths   []types.Authority
-	atBlock uint
-}
-
-type pause struct {
-	atBlock uint
-}
-
-type resume struct {
-	atBlock uint
 }
 
 // NewHandler returns a new Handler
@@ -179,6 +160,9 @@ func (h *Handler) handleBlockImport(ctx context.Context) {
 			}
 
 			h.HandleDigests(&block.Header)
+
+			h.grandpaState.ApplyForcedChanges(&block.Header)
+
 		case <-ctx.Done():
 			return
 		}
