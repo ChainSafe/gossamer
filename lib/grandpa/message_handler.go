@@ -278,9 +278,37 @@ func getEquivocatoryVoters(votes []AuthData) map[ed25519.PublicKeyBytes]struct{}
 	return eqvVoters
 }
 
+func verifyIfDescendantOfHighestFinalisedBlock(blockState BlockState, hash common.Hash) error {
+	highestHeader, err := blockState.GetHighestFinalisedHeader()
+	if err != nil {
+		return fmt.Errorf("could not get highest finalised header: %w", err)
+	}
+
+	isDescendant, err := blockState.IsDescendantOf(highestHeader.Hash(), hash)
+	if err != nil {
+		return fmt.Errorf("could not check if %s is descendant of %s: %w", hash, highestHeader.Hash(), err)
+	}
+	if !isDescendant {
+		// rename this error
+		return errInvalidVoteBlock
+	}
+
+	return nil
+
+}
+
 func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) error {
 	if len(fm.Precommits) != len(fm.AuthData) {
 		return ErrPrecommitSignatureMismatch
+	}
+
+	if fm.SetID != h.grandpa.state.setID {
+		return ErrSetIDMismatch
+	}
+
+	err := verifyIfDescendantOfHighestFinalisedBlock(h.blockState, fm.Vote.Hash)
+	if err != nil {
+		return err
 	}
 
 	eqvVoters := getEquivocatoryVoters(fm.AuthData)
@@ -391,6 +419,11 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) erro
 		auths[i] = AuthData{AuthorityID: pcj.AuthorityID}
 	}
 
+	err := verifyIfDescendantOfHighestFinalisedBlock(h.blockState, msg.Hash)
+	if err != nil {
+		return err
+	}
+
 	eqvVoters := getEquivocatoryVoters(auths)
 
 	// verify pre-commit justification
@@ -486,6 +519,11 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 		return fmt.Errorf("already have finalised block with setID=%d and round=%d", setID, fj.Round)
 	}
 
+	err = verifyIfDescendantOfHighestFinalisedBlock(s.blockState, fj.Commit.Hash)
+	if err != nil {
+		return err
+	}
+
 	auths, err := s.grandpaState.GetAuthorities(setID)
 	if err != nil {
 		return fmt.Errorf("cannot get authorities for set ID: %w", err)
@@ -512,10 +550,6 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 		setID, fj.Round, fj.Commit.Hash, fj.Commit.Number, len(fj.Commit.Precommits))
 
 	for _, just := range fj.Commit.Precommits {
-		if _, ok := equivocatoryVoters[just.AuthorityID]; ok {
-			continue
-		}
-
 		// check if vote was for descendant of committed block
 		isDescendant, err := s.blockState.IsDescendantOf(hash, just.Vote.Hash)
 		if err != nil {
@@ -553,6 +587,10 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 
 		if !ok {
 			return ErrInvalidSignature
+		}
+
+		if _, ok := equivocatoryVoters[just.AuthorityID]; ok {
+			continue
 		}
 
 		count++

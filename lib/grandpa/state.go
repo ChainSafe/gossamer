@@ -26,6 +26,7 @@ type BlockState interface {
 	BestBlockHeader() (*types.Header, error)
 	BestBlockHash() common.Hash
 	Leaves() []common.Hash
+	GetHighestFinalisedHeader() (*types.Header, error)
 	BlocktreeAsString() string
 	GetImportedBlockNotifierChannel() chan *types.Block
 	FreeImportedBlockNotifierChannel(ch chan *types.Block)
