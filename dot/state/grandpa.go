@@ -207,7 +207,7 @@ func (s *GrandpaState) addForcedChange(header *types.Header, fc types.GrandpaFor
 func (s *GrandpaState) addScheduledChange(header *types.Header, sc types.GrandpaScheduledChange) error {
 	auths, err := types.GrandpaAuthoritiesRawToAuthorities(sc.Auths)
 	if err != nil {
-		return fmt.Errorf("cannot parser GRANPDA authorities to raw authorities: %w", err)
+		return fmt.Errorf("cannot parse GRANPDA authorities to raw authorities: %w", err)
 	}
 
 	pendingChange := &pendingChange{

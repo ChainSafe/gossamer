@@ -198,7 +198,6 @@ func TestHandler_GrandpaPauseAndResume(t *testing.T) {
 	}
 
 	time.Sleep(time.Millisecond * 100)
-	require.Nil(t, handler.grandpaPause)
 
 	r := types.GrandpaResume{
 		Delay: 3,
@@ -221,7 +220,6 @@ func TestHandler_GrandpaPauseAndResume(t *testing.T) {
 
 	state.AddBlocksToState(t, handler.blockState.(*state.BlockState), 3, false)
 	time.Sleep(time.Millisecond * 110)
-	require.Nil(t, handler.grandpaResume)
 
 	nextResume, err := handler.grandpaState.(*state.GrandpaState).GetNextResume()
 	require.NoError(t, err)
