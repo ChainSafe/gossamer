@@ -534,18 +534,24 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 		externalExt = append(externalExt, genesisHashBytes...)
 	}
 
+	logger.Info("time to validate")
+
 	txv, err := rt.ValidateTransaction(externalExt)
 	if err != nil {
+		logger.Info("err validated!")
 		return err
 	}
+	logger.Info("validated!")
 
 	// add transaction to pool
 	vtx := transaction.NewValidTransaction(ext, txv)
 	s.transactionState.AddToPool(vtx)
+	logger.Info("did this other stuff!")
 
 	// broadcast transaction
 	msg := &network.TransactionMessage{Extrinsics: []types.Extrinsic{ext}}
 	s.net.GossipMessage(msg)
+	logger.Info("done!")
 	return nil
 }
 

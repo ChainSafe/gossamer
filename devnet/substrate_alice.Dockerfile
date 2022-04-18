@@ -45,7 +45,7 @@ COPY ./devnet/chain ./chain/
 # while gossamer nodes uses a 64 bytes long sr25519 key (32 bytes long to secret key + 32 bytes long to public key).
 # Then to keep both substrate and gossamer alice nodes with the same libp2p node keys we just need to use
 # the first 32 bytes from `alice.node.key` which means the 32 bytes long sr25519 secret key used here.
-ENTRYPOINT service datadog-agent start && /usr/bin/polkadot \
+ENTRYPOINT /usr/bin/polkadot \
     --chain ./chain/$CHAIN/genesis-raw.json \
     --alice \
     --port 7001 \
