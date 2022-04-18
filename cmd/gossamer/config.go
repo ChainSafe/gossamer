@@ -737,7 +737,9 @@ func setDotRPCConfig(ctx *cli.Context, tomlCfg ctoml.RPCConfig, cfg *dot.RPCConf
 	}
 
 	// check --rpc-unsafe flag value
-	cfg.Unsafe = ctx.GlobalBool(RPCUnsafeEnabledFlag.Name)
+	if rpcUnsafe := ctx.GlobalBool(RPCUnsafeEnabledFlag.Name); rpcUnsafe {
+		cfg.Unsafe = true
+	}
 
 	// check --rpc-unsafe-external flag value
 	if externalUnsafe := ctx.GlobalBool(RPCUnsafeExternalFlag.Name); externalUnsafe {
@@ -746,7 +748,9 @@ func setDotRPCConfig(ctx *cli.Context, tomlCfg ctoml.RPCConfig, cfg *dot.RPCConf
 	}
 
 	// check --ws-unsafe flag value
-	cfg.WSUnsafe = ctx.GlobalBool(WSUnsafeEnabledFlag.Name)
+	if wsUnsafe := ctx.GlobalBool(WSUnsafeEnabledFlag.Name); wsUnsafe {
+		cfg.WSUnsafe = true
+	}
 
 	// check --ws-unsafe-external flag value
 	if wsExternalUnsafe := ctx.GlobalBool(WSUnsafeExternalFlag.Name); wsExternalUnsafe {
