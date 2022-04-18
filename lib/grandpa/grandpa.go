@@ -852,8 +852,6 @@ func (s *Service) finalise() error {
 	return s.grandpaState.SetLatestRound(s.state.round)
 }
 
-// TODO: Given that this functions returns []SignedVote and not Justification, it should be renamed
-// accordingly.
 // createJustification collects the signed precommits received for this round and turns them into
 // a justification by adding all signed precommits that are for the best finalised candidate or
 // a descendent of the bfc
