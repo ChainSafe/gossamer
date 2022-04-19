@@ -108,6 +108,7 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) 
 // TrieState returns the TrieState for a given state root.
 // If no state root is provided, it returns the TrieState for the current chain head.
 func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error) {
+	logger.Trace("in trie state")
 	if root == nil {
 		sr, err := s.blockState.BestBlockStateRoot()
 		if err != nil {
@@ -115,21 +116,27 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 		}
 		root = &sr
 	}
+	logger.Trace("got best block header")
 
 	t := s.tries.get(*root)
+	logger.Trace("got root")
 	if t == nil {
+		logger.Trace("t is nil")
 		var err error
 		t, err = s.LoadFromDB(*root)
 		if err != nil {
 			return nil, err
 		}
+		logger.Trace("got from db")
 
 		s.tries.softSet(*root, t)
+		logger.Trace("soft set!")
 	} else if t.MustHash() != *root {
 		panic("trie does not have expected root")
 	}
 
 	nextTrie := t.Snapshot()
+	logger.Trace("took snapshot")
 	next, err := rtstorage.NewTrieState(nextTrie)
 	if err != nil {
 		return nil, err

@@ -41,6 +41,7 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot, rt runtime.Instanc
 	ethmetrics.Enabled = true
 
 	start := time.Now()
+	logger.Trace("calling building.BuildBlock")
 	block, err := builder.buildBlock(parent, slot, rt)
 	if err != nil {
 		builderErrors := ethmetrics.GetOrRegisterCounter(buildBlockErrors, nil)
@@ -126,7 +127,9 @@ func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot, rt runtime.In
 
 	// finalise block
 	header, err = rt.FinalizeBlock()
+	logger.Error("tried finalizing block")
 	if err != nil {
+		logger.Error("error finalizing block")
 		b.addToQueue(included)
 		return nil, fmt.Errorf("cannot finalise block: %s", err)
 	}
@@ -188,7 +191,7 @@ func (b *BlockBuilder) buildBlockSeal(header *types.Header) (*types.SealDigest, 
 // if any extrinsic fails, it returns an empty array and an error.
 func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt runtime.Instance) []*transaction.ValidTransaction {
 	var included []*transaction.ValidTransaction
-
+	logger.Trace("in blockBuilder buildBlockExtrinsics")
 	for !hasSlotEnded(slot) {
 		txn := b.transactionState.Pop()
 		// Transaction queue is empty.
