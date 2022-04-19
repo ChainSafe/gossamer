@@ -385,6 +385,7 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 				continue
 			}
 
+			// TODO fix txn formatting
 			externalExt := make(types.Extrinsic, 0, 1+len(ext))
 			externalExt = append(externalExt, byte(types.TxnExternal))
 			externalExt = append(externalExt, ext...)
@@ -421,7 +422,23 @@ func (s *Service) maintainTransactionPool(block *types.Block) {
 			continue
 		}
 
-		txnValidity, err := rt.ValidateTransaction(tx.Extrinsic)
+		// TODO fic this
+		const polkadotSpecVersionCheck = 9100
+		runtimeVersion, err := rt.Version()
+		if err != nil {
+			logger.Errorf("Error \n")
+		}
+
+		var externalExt types.Extrinsic
+		if runtimeVersion.SpecVersion() < polkadotSpecVersionCheck {
+			externalExt = types.Extrinsic(append([]byte{byte(types.TxnExternal)}, tx.Extrinsic...))
+		} else {
+			genesisHashBytes := s.blockState.GenesisHash().ToBytes()
+			externalExt = types.Extrinsic(append([]byte{byte(types.TxnExternal)}, tx.Extrinsic...))
+			externalExt = append(externalExt, genesisHashBytes...)
+		}
+
+		txnValidity, err := rt.ValidateTransaction(externalExt)
 		if err != nil {
 			s.transactionState.RemoveExtrinsic(tx.Extrinsic)
 			continue
@@ -535,6 +552,8 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 	}
 
 	logger.Info("time to validate")
+	logger.Criticalf("ext: %s\n", ext)
+	logger.Criticalf("externalExt: %s\n", externalExt)
 
 	txv, err := rt.ValidateTransaction(externalExt)
 	if err != nil {

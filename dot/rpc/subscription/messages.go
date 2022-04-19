@@ -45,7 +45,7 @@ func newSubscriptionResponse(method string, subID uint32, result interface{}) Ba
 type ResponseJSON struct {
 	Jsonrpc string `json:"jsonrpc"`
 	Result  uint32 `json:"result"`
-	ID      string `json:"id"`
+	ID      int    `json:"id"`
 }
 
 // NewSubscriptionResponseJSON builds a Response JSON object
@@ -53,7 +53,7 @@ func NewSubscriptionResponseJSON(subID uint32, reqID float64) ResponseJSON {
 	return ResponseJSON{
 		Jsonrpc: "2.0",
 		Result:  subID,
-		ID:      strconv.Itoa(int(reqID)),
+		ID:      int(reqID),
 	}
 }
 

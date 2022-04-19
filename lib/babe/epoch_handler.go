@@ -113,8 +113,10 @@ func (h *epochHandler) run(ctx context.Context, errCh chan<- error) {
 
 		select {
 		case <-ctx.Done():
+			logger.Debug("DONE waiting for next authoring slot")
 			return
 		case <-swt.timer.C:
+			logger.Debug("NOT DONE waiting for next authoring slot")
 			if _, has := h.slotToPreRuntimeDigest[swt.slotNum]; !has {
 				// this should never happen
 				panic(fmt.Sprintf("no VRF proof for authoring slot! slot=%d", swt.slotNum))

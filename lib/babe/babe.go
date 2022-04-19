@@ -405,6 +405,7 @@ func (b *Service) handleSlot(epoch, slotNum uint64,
 	authorityIndex uint32,
 	preRuntimeDigest *types.PreRuntimeDigest,
 ) error {
+	//TODO log this baby up
 	parentHeader, err := b.blockState.BestBlockHeader()
 	if err != nil {
 		return err
@@ -446,6 +447,7 @@ func (b *Service) handleSlot(epoch, slotNum uint64,
 
 	rt.SetContextStorage(ts)
 
+	// Dont think its getting here
 	block, err := b.buildBlock(parent, currentSlot, rt, authorityIndex, preRuntimeDigest)
 	if err != nil {
 		return err

@@ -29,6 +29,7 @@ func (s *Service) validateTransaction(peerID peer.ID, head *types.Header, rt run
 	rt.SetContextStorage(ts)
 
 	// validate each transaction
+	//TODO fix extrinsic formatting
 	externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, tx...))
 	validity, err = rt.ValidateTransaction(externalExt)
 	if err != nil {
