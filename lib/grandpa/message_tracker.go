@@ -19,12 +19,10 @@ type tracker struct {
 	blockState BlockState
 	handler    *MessageHandler
 	votes      votesTracker
-
-	// map of commit block hash to commit message
-	commitMessages map[common.Hash]*CommitMessage
-	mapLock        sync.Mutex
-	in             chan *types.Block // receive imported block from BlockState
-	stopped        chan struct{}
+	commits    commitsTracker
+	mapLock    sync.Mutex
+	in         chan *types.Block // receive imported block from BlockState
+	stopped    chan struct{}
 
 	catchUpResponseMessageMutex sync.Mutex
 	// round(uint64) is used as key and *CatchUpResponse as value
@@ -32,12 +30,15 @@ type tracker struct {
 }
 
 func newTracker(bs BlockState, handler *MessageHandler) *tracker {
-	const votesCapacity = 1000
+	const (
+		votesCapacity   = 1000
+		commitsCapacity = 1000
+	)
 	return &tracker{
 		blockState:              bs,
 		handler:                 handler,
 		votes:                   newVotesTracker(votesCapacity),
-		commitMessages:          make(map[common.Hash]*CommitMessage),
+		commits:                 newCommitsTracker(commitsCapacity),
 		mapLock:                 sync.Mutex{},
 		in:                      bs.GetImportedBlockNotifierChannel(),
 		stopped:                 make(chan struct{}),
@@ -68,7 +69,7 @@ func (t *tracker) addVote(peerID peer.ID, message *VoteMessage) {
 func (t *tracker) addCommit(cm *CommitMessage) {
 	t.mapLock.Lock()
 	defer t.mapLock.Unlock()
-	t.commitMessages[cm.Vote.Hash] = cm
+	t.commits.add(cm)
 }
 
 func (t *tracker) addCatchUpResponse(_ *CatchUpResponse) {
@@ -115,13 +116,14 @@ func (t *tracker) handleBlock(b *types.Block) {
 
 	t.votes.delete(h)
 
-	if cm, has := t.commitMessages[h]; has {
+	cm := t.commits.getMessageForBlockHash(h)
+	if cm != nil {
 		_, err := t.handler.handleMessage("", cm)
 		if err != nil {
 			logger.Warnf("failed to handle commit message %v: %s", cm, err)
 		}
 
-		delete(t.commitMessages, h)
+		t.commits.delete(h)
 	}
 }
 
@@ -145,13 +147,16 @@ func (t *tracker) handleTick() {
 		t.votes.delete(blockHashDone)
 	}
 
-	for _, cm := range t.commitMessages {
+	t.commits.forEach(func(cm *CommitMessage) {
 		_, err := t.handler.handleMessage("", cm)
 		if err != nil {
 			logger.Debugf("failed to handle commit message %v: %s", cm, err)
-			continue
+			return
 		}
 
-		delete(t.commitMessages, cm.Vote.Hash)
-	}
+		// deleting while iterating is safe to do since
+		// each block hash has at most 1 commit message we
+		// just handled above.
+		t.commits.delete(cm.Vote.Hash)
+	})
 }
