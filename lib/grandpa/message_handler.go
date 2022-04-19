@@ -608,7 +608,8 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 		return ErrMinVotesNotMet
 	}
 
-	if err := verifyBlockHashAgainstBlockNumber(s.blockState, fj.Commit.Hash, uint(fj.Commit.Number)); err != nil {
+	err = verifyBlockHashAgainstBlockNumber(s.blockState, fj.Commit.Hash, uint(fj.Commit.Number))
+	if err != nil {
 		return err
 	}
 
