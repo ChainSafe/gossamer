@@ -21,8 +21,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-	cscale "github.com/centrifuge/go-substrate-rpc-client/v3/scale"
-	ctypes "github.com/centrifuge/go-substrate-rpc-client/v3/types"
+	cscale "github.com/centrifuge/go-substrate-rpc-client/v4/scale"
+	ctypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
 )
 
 var (
