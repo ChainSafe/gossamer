@@ -50,7 +50,7 @@ func getAccountInfo(api *gsrpc.SubstrateAPI, key types.StorageKey) (types.Accoun
 
 func main() {
 	// TODO CLI flag for address?
-	api, err := gsrpc.NewSubstrateAPI("ws://127.0.0.1:8546")
+	api, err := gsrpc.NewSubstrateAPI("ws://127.0.0.1:9944")
 	if err != nil {
 		fmt.Println(err)
 		return

@@ -541,6 +541,12 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 		return err
 	}
 
+	//runtimeMetadata, err := rt.Metadata()
+	//if err != nil {
+	//	return err
+	//}
+	//fmt.Println(runtimeMetadata)
+
 	// the transaction source is External. For spec Verisons >= 9100, the genesisHash is appended to the extrinsic
 	var externalExt types.Extrinsic
 	if runtimeVersion.SpecVersion() < polkadotSpecVersionCheck {
@@ -548,6 +554,7 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 	} else {
 		genesisHashBytes := s.blockState.GenesisHash().ToBytes()
 		externalExt = types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))
+		// try this with block hash rather than genesis
 		externalExt = append(externalExt, genesisHashBytes...)
 	}
 
