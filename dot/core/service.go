@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -535,44 +536,36 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 
 	rt.SetContextStorage(ts)
 
-	const polkadotSpecVersionCheck = 9100
 	runtimeVersion, err := rt.Version()
 	if err != nil {
 		return err
 	}
 
-	//runtimeMetadata, err := rt.Metadata()
-	//if err != nil {
-	//	return err
-	//}
-	//fmt.Println(runtimeMetadata)
-
-	// the transaction source is External. For spec Verisons >= 9100, the genesisHash is appended to the extrinsic
-	var externalExt types.Extrinsic
-	if runtimeVersion.SpecVersion() < polkadotSpecVersionCheck {
-		externalExt = types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))
-	} else {
-		genesisHashBytes := s.blockState.GenesisHash().ToBytes()
-		externalExt = types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))
-		// try this with block hash rather than genesis
-		externalExt = append(externalExt, genesisHashBytes...)
+	txQueueVersion := uint32(0)
+	for _, v := range runtimeVersion.APIItems() {
+		// Blake2-8("TaggedTransactionQueue")
+		if v.Name == [8]byte{0xd2, 0xbc, 0x98, 0x97, 0xee, 0xd0, 0x8f, 0x15} {
+			txQueueVersion = v.Ver
+			break
+		}
 	}
 
-	logger.Info("time to validate")
-	logger.Criticalf("ext: %s\n", ext)
-	logger.Criticalf("externalExt: %s\n", externalExt)
+	var externalExt types.Extrinsic
+	if txQueueVersion >= 3 {
+		externalExt = types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))
+		externalExt = append(externalExt, s.blockState.BestBlockHash().ToBytes()...)
+	} else {
+		return fmt.Errorf("Unsupported transaction queue version.")
+	}
 
 	txv, err := rt.ValidateTransaction(externalExt)
 	if err != nil {
-		logger.Info("err validated!")
 		return err
 	}
-	logger.Info("validated!")
 
 	// add transaction to pool
 	vtx := transaction.NewValidTransaction(ext, txv)
 	s.transactionState.AddToPool(vtx)
-	logger.Info("did this other stuff!")
 
 	// broadcast transaction
 	msg := &network.TransactionMessage{Extrinsics: []types.Extrinsic{ext}}
