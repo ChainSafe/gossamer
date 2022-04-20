@@ -41,7 +41,8 @@ func NewOfflinePruner(inputDBPath, prunedDBPath string, bloomSize uint64,
 		return nil, fmt.Errorf("failed to load DB %w", err)
 	}
 
-	tries, err := NewTries(trie.NewEmptyTrie())
+	storageTable := chaindb.NewTable(db, storagePrefix)
+	tries, err := NewTries(storageTable, trie.NewEmptyTrie())
 	if err != nil {
 		return nil, fmt.Errorf("cannot setup tries: %w", err)
 	}
@@ -65,7 +66,7 @@ func NewOfflinePruner(inputDBPath, prunedDBPath string, bloomSize uint64,
 	}
 
 	// load storage state
-	storageState, err := NewStorageState(db, blockState, tries, pruner.Config{})
+	storageState, err := NewStorageState(db, blockState, tries, storageTable, pruner.Config{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new storage state %w", err)
 	}
@@ -118,7 +119,7 @@ func (p *OfflinePruner) SetBloomFilter() (err error) {
 	// loop from latest to last `retainBlockNum` blocks
 	for blockNum := header.Number; blockNum > 0 && blockNum >= latestBlockNum-uint(p.retainBlockNum); {
 		var tr *trie.Trie
-		tr, err = p.storageState.LoadFromDB(header.StateRoot)
+		tr, err = p.storageState.tries.getTrie(header.StateRoot)
 		if err != nil {
 			return err
 		}

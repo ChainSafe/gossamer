@@ -42,7 +42,7 @@ func newTestBlockState(t *testing.T, header *types.Header, tries *Tries) *BlockS
 	tr := trie.NewEmptyTrie()
 	err = tr.Load(bs.db, header.StateRoot)
 	require.NoError(t, err)
-	bs.tries.softSet(header.StateRoot, tr)
+	bs.tries.softSetTrieInMemory(header.StateRoot, tr)
 
 	return bs
 }

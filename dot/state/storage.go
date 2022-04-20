@@ -44,12 +44,10 @@ type StorageState struct {
 // NewStorageState creates a new StorageState backed by the given block state
 // and database located at basePath.
 func NewStorageState(db chaindb.Database, blockState *BlockState,
-	tries *Tries, onlinePruner pruner.Config) (*StorageState, error) {
+	tries *Tries, storageTable chaindb.Database, onlinePruner pruner.Config) (*StorageState, error) {
 	if db == nil {
 		return nil, fmt.Errorf("cannot have nil database")
 	}
-
-	storageTable := chaindb.NewTable(db, storagePrefix)
 
 	var p pruner.Pruner
 	if onlinePruner.Mode == pruner.Full {
@@ -75,7 +73,7 @@ func NewStorageState(db chaindb.Database, blockState *BlockState,
 func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) error {
 	root := ts.MustRoot()
 
-	s.tries.softSet(root, ts.Trie())
+	s.tries.softSetTrieInMemory(root, ts.Trie())
 
 	if _, ok := s.pruner.(*pruner.FullNode); header == nil && ok {
 		return fmt.Errorf("block cannot be empty for Full node pruner")
@@ -116,17 +114,9 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 		root = &sr
 	}
 
-	t := s.tries.get(*root)
-	if t == nil {
-		var err error
-		t, err = s.LoadFromDB(*root)
-		if err != nil {
-			return nil, err
-		}
-
-		s.tries.softSet(*root, t)
-	} else if t.MustHash() != *root {
-		panic("trie does not have expected root")
+	t, err := s.tries.getTrie(*root)
+	if err != nil {
+		return nil, err
 	}
 
 	nextTrie := t.Snapshot()
@@ -139,18 +129,6 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 	return next, nil
 }
 
-// LoadFromDB loads an encoded trie from the DB where the key is `root`
-func (s *StorageState) LoadFromDB(root common.Hash) (*trie.Trie, error) {
-	t := trie.NewEmptyTrie()
-	err := t.Load(s.db, root)
-	if err != nil {
-		return nil, err
-	}
-
-	s.tries.softSet(t.MustHash(), t)
-	return t, nil
-}
-
 func (s *StorageState) loadTrie(root *common.Hash) (*trie.Trie, error) {
 	if root == nil {
 		sr, err := s.blockState.BestBlockStateRoot()
@@ -160,17 +138,7 @@ func (s *StorageState) loadTrie(root *common.Hash) (*trie.Trie, error) {
 		root = &sr
 	}
 
-	t := s.tries.get(*root)
-	if t != nil {
-		return t, nil
-	}
-
-	tr, err := s.LoadFromDB(*root)
-	if err != nil {
-		return nil, fmt.Errorf("trie does not exist at root %s: %w", *root, err)
-	}
-
-	return tr, nil
+	return s.tries.getTrie(*root)
 }
 
 // ExistsStorage check if the key exists in the storage trie with the given storage hash
@@ -182,7 +150,8 @@ func (s *StorageState) ExistsStorage(root *common.Hash, key []byte) (bool, error
 
 // GetStorage gets the object from the trie using the given key and storage hash
 // If no hash is provided, the current chain head is used
-func (s *StorageState) GetStorage(root *common.Hash, key []byte) ([]byte, error) {
+func (s *StorageState) GetStorage(root *common.Hash, key []byte) (
+	value []byte, err error) {
 	if root == nil {
 		sr, err := s.blockState.BestBlockStateRoot()
 		if err != nil {
@@ -191,13 +160,7 @@ func (s *StorageState) GetStorage(root *common.Hash, key []byte) ([]byte, error)
 		root = &sr
 	}
 
-	t := s.tries.get(*root)
-	if t != nil {
-		val := t.Get(key)
-		return val, nil
-	}
-
-	return trie.GetFromDB(s.db, *root, key)
+	return s.tries.getValue(*root, key)
 }
 
 // GetStorageByBlockHash returns the value at the given key at the given block hash

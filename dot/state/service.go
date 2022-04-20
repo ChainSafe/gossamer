@@ -113,7 +113,8 @@ func (s *Service) Start() error {
 		return nil
 	}
 
-	tries, err := NewTries(trie.NewEmptyTrie())
+	storageTable := chaindb.NewTable(s.db, storagePrefix)
+	tries, err := NewTries(storageTable, trie.NewEmptyTrie())
 	if err != nil {
 		return fmt.Errorf("cannot create tries: %w", err)
 	}
@@ -139,13 +140,13 @@ func (s *Service) Start() error {
 	}
 
 	// create storage state
-	s.Storage, err = NewStorageState(s.db, s.Block, tries, pr)
+	s.Storage, err = NewStorageState(s.db, s.Block, tries, storageTable, pr)
 	if err != nil {
 		return fmt.Errorf("failed to create storage state: %w", err)
 	}
 
 	// load current storage state trie into memory
-	_, err = s.Storage.LoadFromDB(stateRoot)
+	_, err = s.Storage.tries.getTrie(stateRoot)
 	if err != nil {
 		return fmt.Errorf("failed to load storage trie from database: %w", err)
 	}

@@ -41,7 +41,8 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 		return fmt.Errorf("failed to clear database: %s", err)
 	}
 
-	if err = t.Store(chaindb.NewTable(db, storagePrefix)); err != nil {
+	storageTable := chaindb.NewTable(s.db, storagePrefix)
+	if err = t.Store(storageTable); err != nil {
 		return fmt.Errorf("failed to write genesis trie to database: %w", err)
 	}
 
@@ -62,7 +63,7 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 		return fmt.Errorf("failed to write genesis values to database: %s", err)
 	}
 
-	tries, err := NewTries(t)
+	tries, err := NewTries(storageTable, t)
 	if err != nil {
 		return fmt.Errorf("cannot setup tries: %w", err)
 	}
@@ -74,7 +75,7 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 	}
 
 	// create storage state from genesis trie
-	storageState, err := NewStorageState(db, blockState, tries, pruner.Config{})
+	storageState, err := NewStorageState(db, blockState, tries, storageTable, pruner.Config{})
 	if err != nil {
 		return fmt.Errorf("failed to create storage state from trie: %s", err)
 	}

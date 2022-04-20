@@ -146,7 +146,7 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 			continue
 		}
 
-		bs.tries.delete(blockHeader.StateRoot)
+		bs.tries.deleteTrieFromMemory(blockHeader.StateRoot)
 
 		logger.Tracef("pruned block number %d with hash %s", blockHeader.Number, hash)
 	}
@@ -189,9 +189,9 @@ func (bs *BlockState) deleteFromTries(lastFinalised common.Hash) error {
 	if err != nil {
 		return fmt.Errorf("unable to retrieve header for last finalised block, hash: %s, err: %s", bs.lastFinalised, err)
 	}
-	stateRootTrie := bs.tries.get(lastFinalisedHeader.StateRoot)
+	stateRootTrie, _ := bs.tries.getTrie(lastFinalisedHeader.StateRoot)
 	if stateRootTrie != nil {
-		bs.tries.delete(lastFinalisedHeader.StateRoot)
+		bs.tries.deleteTrieFromMemory(lastFinalisedHeader.StateRoot)
 	} else {
 		return fmt.Errorf("unable to find trie with stateroot hash: %s", lastFinalisedHeader.StateRoot)
 	}
@@ -257,7 +257,7 @@ func (bs *BlockState) handleFinalisedBlock(curr common.Hash) error {
 			continue
 		}
 
-		bs.tries.delete(blockHeader.StateRoot)
+		bs.tries.deleteTrieFromMemory(blockHeader.StateRoot)
 
 		logger.Tracef("cleaned out finalised block from memory; block number %d with hash %s", blockHeader.Number, hash)
 	}
