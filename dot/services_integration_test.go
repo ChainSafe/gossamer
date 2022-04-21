@@ -29,7 +29,6 @@ import (
 
 func TestCreateStateService(t *testing.T) {
 	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
@@ -95,7 +94,6 @@ func newStateServiceWithoutMock(t *testing.T) *state.Service {
 
 func TestCreateCoreService(t *testing.T) {
 	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
@@ -127,7 +125,6 @@ func TestCreateCoreService(t *testing.T) {
 
 func TestCreateBlockVerifier(t *testing.T) {
 	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
 
 	genFile := newTestGenesisFile(t, cfg)
 
@@ -147,7 +144,6 @@ func TestCreateBlockVerifier(t *testing.T) {
 
 func TestCreateSyncService(t *testing.T) {
 	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
 
 	genFile := newTestGenesisFile(t, cfg)
 
@@ -177,7 +173,6 @@ func TestCreateSyncService(t *testing.T) {
 
 func TestCreateNetworkService(t *testing.T) {
 	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
@@ -196,7 +191,6 @@ func TestCreateNetworkService(t *testing.T) {
 
 func TestCreateRPCService(t *testing.T) {
 	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
@@ -281,7 +275,6 @@ func TestCreateBABEService_Integration(t *testing.T) {
 
 func TestCreateGrandpaService(t *testing.T) {
 	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
@@ -352,7 +345,6 @@ func TestNewWebSocketServer(t *testing.T) {
 	}
 
 	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
@@ -447,7 +439,6 @@ func Test_createPprofService(t *testing.T) {
 
 func Test_createDigestHandler(t *testing.T) {
 	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 

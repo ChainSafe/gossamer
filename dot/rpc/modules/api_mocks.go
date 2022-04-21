@@ -12,6 +12,8 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+//go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
+
 // NewMockStorageAPI creates and return an rpc StorageAPI interface mock
 func NewMockStorageAPI() *modulesmocks.StorageAPI {
 	m := new(modulesmocks.StorageAPI)

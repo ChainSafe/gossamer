@@ -150,7 +150,6 @@ func TestMain(m *testing.M) {
 
 func TestStartService(t *testing.T) {
 	s := NewTestService(t, nil)
-	require.NotNil(t, s)
 
 	err := s.Start()
 	require.NoError(t, err)
