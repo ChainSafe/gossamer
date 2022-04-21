@@ -522,6 +522,7 @@ func (ds *decodeState) decodeBytes(dstv reflect.Value) (err error) {
 		return
 	}
 
+	// check the length
 	b := make([]byte, length)
 	_, err = ds.Read(b)
 	if err != nil {
