@@ -555,7 +555,7 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 		externalExt = types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))
 		externalExt = append(externalExt, s.blockState.BestBlockHash().ToBytes()...)
 	} else {
-		return fmt.Errorf("Unsupported transaction queue version.")
+		return fmt.Errorf("nnsupported transaction queue version.")
 	}
 
 	txv, err := rt.ValidateTransaction(externalExt)
