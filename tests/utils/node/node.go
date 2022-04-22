@@ -129,11 +129,7 @@ func (n *Node) Init(ctx context.Context) (err error) {
 	}
 
 	err = cmdInit.Wait()
-	if err != nil {
-		return fmt.Errorf("command failed: %w", err)
-	}
-
-	return nil
+	return n.wrapRuntimeError(ctx, cmdInit, err)
 }
 
 // Start starts a Gossamer node using the node configuration of
@@ -156,20 +152,7 @@ func (n *Node) Start(ctx context.Context, waitErrCh chan<- error) (startErr erro
 
 	go func(cmd *exec.Cmd, node *Node, waitErr chan<- error) {
 		err = cmd.Wait()
-		if err != nil {
-			if ctx.Err() != nil {
-				err = fmt.Errorf("%s: %w: %s", node, ctx.Err(), err)
-			} else {
-				var logInformation string
-				if node.logsBuffer != nil {
-					// Add log information to error if no writer is set
-					// for this node.
-					logInformation = "\nLogs:\n" + node.logsBuffer.String()
-				}
-				err = fmt.Errorf("%s encountered a runtime error: %w\ncommand: %s%s", n, err, cmd, logInformation)
-			}
-		}
-		waitErr <- err
+		waitErr <- node.wrapRuntimeError(ctx, cmd, err)
 	}(cmd, n, waitErrCh)
 
 	return nil
@@ -267,4 +250,26 @@ func (n *Node) setWriterPrefix() {
 		prefix: []byte(n.String() + " "),
 		writer: n.writer,
 	}
+}
+
+// wrapRuntimeError wraps the error given using the context available
+// such as the command string or the log buffer. It returns nil if the
+// argument error is nil.
+func (n *Node) wrapRuntimeError(ctx context.Context, cmd *exec.Cmd,
+	waitErr error) (wrappedErr error) {
+	if waitErr == nil {
+		return nil
+	}
+
+	if ctx.Err() != nil {
+		return fmt.Errorf("%s: %w: %s", n, ctx.Err(), waitErr)
+	}
+
+	var logInformation string
+	if n.logsBuffer != nil {
+		// Add log information to error if no writer is set
+		// for this node.
+		logInformation = "\nLogs:\n" + n.logsBuffer.String()
+	}
+	return fmt.Errorf("%s encountered a runtime error: %w\ncommand: %s%s", n, waitErr, cmd, logInformation)
 }
