@@ -9,13 +9,18 @@ import (
 	"context"
 	"testing"
 	"time"
+
+	"github.com/ChainSafe/gossamer/tests/utils/config"
 )
 
 func Test_Node_InitAndStartTest(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	t.Cleanup(cancel)
 
-	n := New(t, SetBabeLead(true))
+	tomlConfig := config.Default()
+	tomlConfig.Core.BABELead = true
+
+	n := New(t, tomlConfig)
 
 	n.InitAndStartTest(ctx, t, cancel)
 

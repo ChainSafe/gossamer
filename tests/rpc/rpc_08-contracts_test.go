@@ -36,9 +36,10 @@ func TestContractsRPC(t *testing.T) {
 	}
 
 	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
-	config := config.CreateDefault(t)
-	node := node.New(t, node.SetBabeLead(true),
-		node.SetGenesis(genesisPath), node.SetConfig(config))
+	tomlConfig := config.Default()
+	tomlConfig.Init.Genesis = genesisPath
+	tomlConfig.Core.BABELead = true
+	node := node.New(t, tomlConfig)
 	ctx, cancel := context.WithCancel(context.Background())
 	node.InitAndStartTest(ctx, t, cancel)
 

@@ -4,74 +4,48 @@
 package config
 
 import (
-	"path/filepath"
-	"testing"
-
-	"github.com/ChainSafe/gossamer/dot"
-	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
-	"github.com/stretchr/testify/require"
+	"github.com/ChainSafe/gossamer/dot/config/toml"
 )
 
-// CreateDefault generates a default config and writes
-// it to a temporary file for the current test.
-func CreateDefault(t *testing.T) (configPath string) {
-	cfg := generateDefaultConfig()
-	return writeTestTOMLConfig(t, cfg)
-}
-
-// CreateLogGrandpa generates a grandpa config and writes
-// it to a temporary file for the current test.
-func CreateLogGrandpa(t *testing.T) (configPath string) {
-	cfg := generateDefaultConfig()
-	cfg.Log = ctoml.LogConfig{
+// LogGrandpa generates a grandpa config.
+func LogGrandpa() (cfg toml.Config) {
+	cfg = Default()
+	cfg.Log = toml.LogConfig{
 		CoreLvl:           "crit",
 		NetworkLvl:        "debug",
 		RuntimeLvl:        "crit",
 		BlockProducerLvl:  "info",
 		FinalityGadgetLvl: "debug",
 	}
-	return writeTestTOMLConfig(t, cfg)
+	return cfg
 }
 
-// CreateNoBabe generates a no-babe config and writes
-// it to a temporary file for the current test.
-func CreateNoBabe(t *testing.T) (configPath string) {
-	cfg := generateDefaultConfig()
+// NoBabe generates a no-babe config.
+func NoBabe() (cfg toml.Config) {
+	cfg = Default()
 	cfg.Global.LogLvl = "info"
-	cfg.Log = ctoml.LogConfig{
+	cfg.Log = toml.LogConfig{
 		SyncLvl:    "debug",
 		NetworkLvl: "debug",
 	}
 	cfg.Core.BabeAuthority = false
-	return writeTestTOMLConfig(t, cfg)
+	return cfg
 }
 
-// CreateNoGrandpa generates an no-grandpa config and writes
-// it to a temporary file for the current test.
-func CreateNoGrandpa(t *testing.T) (configPath string) {
-	t.Helper()
-	cfg := generateDefaultConfig()
+// NoGrandpa generates an no-grandpa config.
+func NoGrandpa() (cfg toml.Config) {
+	cfg = Default()
 	cfg.Core.GrandpaAuthority = false
 	cfg.Core.BABELead = true
 	cfg.Core.GrandpaInterval = 1
-	return writeTestTOMLConfig(t, cfg)
+	return cfg
 }
 
-// CreateNotAuthority generates an non-authority config and writes
-// it to a temporary file for the current test.
-func CreateNotAuthority(t *testing.T) (configPath string) {
-	t.Helper()
-	cfg := generateDefaultConfig()
+// NotAuthority generates an non-authority config.
+func NotAuthority() (cfg toml.Config) {
+	cfg = Default()
 	cfg.Core.Roles = 1
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
-	return writeTestTOMLConfig(t, cfg)
-}
-
-func writeTestTOMLConfig(t *testing.T, cfg *ctoml.Config) (configPath string) {
-	t.Helper()
-	configPath = filepath.Join(t.TempDir(), "config.toml")
-	err := dot.ExportTomlConfig(cfg, configPath)
-	require.NoError(t, err)
-	return configPath
+	return cfg
 }

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/tests/utils"
+	"github.com/ChainSafe/gossamer/tests/utils/config"
 	"github.com/stretchr/testify/require"
 )
 
@@ -50,7 +51,8 @@ func TestCalls(t *testing.T) {
 	ctx := context.Background()
 
 	const qtyNodes = 3
-	framework, err := utils.InitFramework(ctx, t, qtyNodes)
+	tomlConfig := config.Default()
+	framework, err := utils.InitFramework(ctx, t, qtyNodes, tomlConfig)
 
 	require.NoError(t, err)
 

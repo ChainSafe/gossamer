@@ -56,7 +56,8 @@ func TestMain(m *testing.M) {
 
 func TestRestartNode(t *testing.T) {
 	const numNodes = 1
-	nodes := node.MakeNodes(t, numNodes)
+	defaultConfig := config.Default()
+	nodes := node.MakeNodes(t, numNodes, defaultConfig)
 
 	err := nodes.Init(context.Background())
 	require.NoError(t, err)
@@ -101,21 +102,16 @@ func TestRestartNode(t *testing.T) {
 
 func TestSync_SingleBlockProducer(t *testing.T) {
 	const numNodes = 4
-
-	basePath := t.TempDir()
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
-	configNoGrandpa := config.CreateNoGrandpa(t)
-	babeLeadNode := node.New(t,
-		node.SetIndex(numNodes-1),
-		node.SetBasePath(basePath),
-		node.SetGenesis(genesisPath),
-		node.SetConfig(configNoGrandpa),
-		node.SetBabeLead(true))
 
-	configNoAuthority := config.CreateNotAuthority(t)
-	noAuthorityNodes := node.MakeNodes(t, numNodes-1,
-		node.SetGenesis(genesisPath),
-		node.SetConfig(configNoAuthority))
+	configNoGrandpa := config.NoGrandpa()
+	configNoGrandpa.Init.Genesis = genesisPath
+	configNoGrandpa.Core.BABELead = true
+	babeLeadNode := node.New(t, configNoGrandpa, node.SetIndex(numNodes-1))
+
+	configNoAuthority := config.NotAuthority()
+	configNoAuthority.Init.Genesis = genesisPath
+	noAuthorityNodes := node.MakeNodes(t, numNodes-1, configNoAuthority)
 
 	nodes := make(node.Nodes, 0, numNodes)
 	nodes = append(nodes, babeLeadNode)
@@ -139,10 +135,10 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 func TestSync_Basic(t *testing.T) {
 	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
 
-	config := config.CreateDefault(t)
+	config := config.Default()
+	config.Init.Genesis = genesisPath
 	const numNodes = 3
-	nodes := node.MakeNodes(t, numNodes,
-		node.SetGenesis(genesisPath), node.SetConfig(config))
+	nodes := node.MakeNodes(t, numNodes, config)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	nodes.InitAndStartTest(ctx, t, cancel)
@@ -160,9 +156,9 @@ func TestSync_MultipleEpoch(t *testing.T) {
 	utils.Logger.Patch(log.SetLevel(log.Info))
 
 	// wait and start rest of nodes - if they all start at the same time the first round usually doesn't complete since
-	config := config.CreateDefault(t)
-	nodes := node.MakeNodes(t, numNodes,
-		node.SetGenesis(genesisPath), node.SetConfig(config))
+	tomlConfig := config.Default()
+	tomlConfig.Init.Genesis = genesisPath
+	nodes := node.MakeNodes(t, numNodes, tomlConfig)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	nodes.InitAndStartTest(ctx, t, cancel)
@@ -210,28 +206,20 @@ func TestSync_SingleSyncingNode(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// start block producing node
-	blockProducingNodebasePath := t.TempDir()
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
-	configPath := config.CreateDefault(t)
-	alice := node.New(t,
-		node.SetIndex(0),
-		node.SetBasePath(blockProducingNodebasePath),
-		node.SetGenesis(genesisPath),
-		node.SetConfig(configPath),
-		node.SetBabeLead(true))
+	blockProducingConfig := config.Default()
+	blockProducingConfig.Init.Genesis = genesisPath
+	blockProducingConfig.Core.BABELead = true
+	alice := node.New(t, blockProducingConfig, node.SetIndex(0))
 
 	alice.InitAndStartTest(ctx, t, cancel)
 
 	time.Sleep(time.Second * 15)
 
 	// start syncing node
-	syncingNodeBasePath := t.TempDir()
-	configPath = config.CreateNoBabe(t)
-	bob := node.New(t,
-		node.SetIndex(1),
-		node.SetBasePath(syncingNodeBasePath),
-		node.SetGenesis(genesisPath),
-		node.SetConfig(configPath))
+	syncingNodeConfig := config.NoBabe()
+	syncingNodeConfig.Init.Genesis = genesisPath
+	bob := node.New(t, syncingNodeConfig, node.SetIndex(1))
 
 	bob.InitAndStartTest(ctx, t, cancel)
 
@@ -256,15 +244,12 @@ func TestSync_Bench(t *testing.T) {
 	const numBlocks uint = 64
 
 	// start block producing node
-	blockProducingNodebasePath := t.TempDir()
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
-	configNoGrandpa := config.CreateNoGrandpa(t)
-	alice := node.New(t,
-		node.SetIndex(0),
-		node.SetBasePath(blockProducingNodebasePath),
-		node.SetGenesis(genesisPath),
-		node.SetConfig(configNoGrandpa),
-		node.SetBabeLead(true))
+	configNoGrandpa := config.NoGrandpa()
+	configNoGrandpa.Init.Genesis = genesisPath
+	configNoGrandpa.Core.BABELead = true
+
+	alice := node.New(t, configNoGrandpa, node.SetIndex(0))
 
 	ctx, cancel := context.WithCancel(context.Background())
 	alice.InitAndStartTest(ctx, t, cancel)
@@ -292,14 +277,10 @@ func TestSync_Bench(t *testing.T) {
 	t.Log("BABE paused")
 
 	// start syncing node
-	syncingNodeBasePath := t.TempDir()
-	configNoAuthority := config.CreateNotAuthority(t)
-	bob := node.New(t,
-		node.SetIndex(1),
-		node.SetBasePath(syncingNodeBasePath),
-		node.SetGenesis(genesisPath),
-		node.SetConfig(configNoAuthority),
-		node.SetBabeLead(true))
+	configNoAuthority := config.NotAuthority()
+	configNoAuthority.Init.Genesis = genesisPath
+	configNoAuthority.Core.BABELead = true
+	bob := node.New(t, configNoAuthority, node.SetIndex(1))
 
 	bob.InitAndStartTest(ctx, t, cancel)
 	require.NoError(t, err)
@@ -374,15 +355,11 @@ func TestSync_Restart(t *testing.T) {
 	// the test.
 
 	// start block producing node first
-	blockProducingNodeBasePath := t.TempDir()
 	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
-	configPath := config.CreateDefault(t)
-	producingNode := node.New(t,
-		node.SetIndex(numNodes-1),
-		node.SetBasePath(blockProducingNodeBasePath),
-		node.SetGenesis(genesisPath),
-		node.SetConfig(configPath),
-		node.SetBabeLead(true))
+	blockProducingConfig := config.Default()
+	blockProducingConfig.Init.Genesis = genesisPath
+	blockProducingConfig.Core.BABELead = true
+	producingNode := node.New(t, blockProducingConfig, node.SetIndex(numNodes-1))
 
 	err := producingNode.Init(mainCtx)
 	require.NoError(t, err)
@@ -398,9 +375,9 @@ func TestSync_Restart(t *testing.T) {
 
 	// wait and start rest of nodes
 	time.Sleep(time.Second * 5)
-	configPath = config.CreateNoBabe(t)
-	nodes := node.MakeNodes(t, numNodes-1,
-		node.SetGenesis(genesisPath), node.SetConfig(configPath))
+	noBabeConfig := config.NoBabe()
+	noBabeConfig.Init.Genesis = genesisPath
+	nodes := node.MakeNodes(t, numNodes-1, noBabeConfig)
 	for i, node := range nodes {
 		err := node.Init(mainCtx)
 		require.NoError(t, err)
@@ -474,38 +451,23 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 	idx := 0 // TODO: randomise this
 
 	// start block producing node first
-	blockProducingNodeBasePath := t.TempDir()
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
-	configNoGrandpa := config.CreateNoGrandpa(t)
-	producingNode := node.New(t,
-		node.SetIndex(0),
-		node.SetBasePath(blockProducingNodeBasePath),
-		node.SetGenesis(genesisPath),
-		node.SetConfig(configNoGrandpa),
-		node.SetBabeLead(true))
+	configNoGrandpa := config.NoGrandpa()
+	configNoGrandpa.Init.Genesis = genesisPath
+	configNoGrandpa.Core.BABELead = true
+	producingNode := node.New(t, configNoGrandpa, node.SetIndex(0))
 	producingNode.InitAndStartTest(ctx, t, cancel)
 
 	nodes := node.Nodes{producingNode}
 
-	configNoAuthority := config.CreateNotAuthority(t)
+	configNoAuthority := config.NotAuthority()
 
 	// Start rest of nodes
-	basePath2 := t.TempDir()
-	n := node.New(t,
-		node.SetIndex(1),
-		node.SetBasePath(basePath2),
-		node.SetGenesis(genesisPath),
-		node.SetConfig(configNoAuthority),
-	)
+	configNoAuthority.Init.Genesis = genesisPath
+	n := node.New(t, configNoAuthority, node.SetIndex(1))
 	nodes = append(nodes, n)
 
-	basePath3 := t.TempDir()
-	n = node.New(t,
-		node.SetIndex(2),
-		node.SetBasePath(basePath3),
-		node.SetGenesis(genesisPath),
-		node.SetConfig(configNoAuthority),
-	)
+	n = node.New(t, configNoAuthority, node.SetIndex(2))
 	nodes = append(nodes, n)
 
 	// send tx to non-authority node
@@ -654,17 +616,12 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 
 func Test_SubmitAndWatchExtrinsic(t *testing.T) {
 	// start block producing node first
-	blockProducingNodeBasePath := t.TempDir()
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
-	configNoGrandpa := config.CreateNoGrandpa(t)
-	producingNode := node.New(t,
-		node.SetIndex(0),
-		node.SetBasePath(blockProducingNodeBasePath),
-		node.SetGenesis(genesisPath),
-		node.SetConfig(configNoGrandpa),
-		node.SetWebsocket(true),
-		node.SetBabeLead(true),
-	)
+	tomlConfig := config.NoGrandpa()
+	tomlConfig.Init.Genesis = genesisPath
+	tomlConfig.RPC.WS = true
+	tomlConfig.Core.BABELead = true
+	producingNode := node.New(t, tomlConfig, node.SetIndex(0))
 	ctx, cancel := context.WithCancel(context.Background())
 	producingNode.InitAndStartTest(ctx, t, cancel)
 
@@ -835,10 +792,10 @@ func TestStress_SecondarySlotProduction(t *testing.T) {
 	const numNodes = 2
 	for _, c := range testcases {
 		t.Run(c.description, func(t *testing.T) {
-			config := config.CreateDefault(t)
+			tomlConfig := config.Default()
+			tomlConfig.Init.Genesis = c.genesis
 
-			nodes := node.MakeNodes(t, numNodes,
-				node.SetGenesis(c.genesis), node.SetConfig(config))
+			nodes := node.MakeNodes(t, numNodes, tomlConfig)
 
 			ctx, cancel := context.WithCancel(context.Background())
 			nodes.InitAndStartTest(ctx, t, cancel)

@@ -32,8 +32,9 @@ func TestSystemRPC(t *testing.T) {
 	const numberOfNodes = 3
 
 	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
-	config := config.CreateDefault(t)
-	nodes := node.MakeNodes(t, numberOfNodes, node.SetGenesis(genesisPath), node.SetConfig(config))
+	tomlConfig := config.Default()
+	tomlConfig.Init.Genesis = genesisPath
+	nodes := node.MakeNodes(t, numberOfNodes, tomlConfig)
 
 	nodes.InitAndStartTest(ctx, t, cancel)
 
