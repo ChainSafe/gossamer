@@ -61,10 +61,10 @@ func (t *tracker) addVote(v *networkVoteMessage) {
 	t.mapLock.Lock()
 	defer t.mapLock.Unlock()
 
-	msgs, has := t.voteMessages[v.msg.Message.Hash]
+	msgs, has := t.voteMessages[v.msg.Message.BlockHash]
 	if !has {
 		msgs = make(map[ed25519.PublicKeyBytes]*networkVoteMessage)
-		t.voteMessages[v.msg.Message.Hash] = msgs
+		t.voteMessages[v.msg.Message.BlockHash] = msgs
 	}
 
 	msgs[v.msg.Message.AuthorityID] = v
@@ -143,7 +143,7 @@ func (t *tracker) handleTick() {
 			}
 
 			if v.msg.Round < t.handler.grandpa.state.round && v.msg.SetID == t.handler.grandpa.state.setID {
-				delete(t.voteMessages, v.msg.Message.Hash)
+				delete(t.voteMessages, v.msg.Message.BlockHash)
 			}
 		}
 	}

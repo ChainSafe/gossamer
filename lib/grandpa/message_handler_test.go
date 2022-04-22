@@ -84,7 +84,7 @@ func TestDecodeMessage_VoteMessage(t *testing.T) {
 		SetID: 99,
 		Message: SignedMessage{
 			Stage:     precommit,
-			Hash:      common.MustHexToHash("0x7db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a"),
+			BlockHash: common.MustHexToHash("0x7db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a"),
 			Number:    0x7777,
 			Signature: sig,
 			AuthorityID: ed25519.PublicKeyBytes(
