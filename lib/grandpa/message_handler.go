@@ -106,15 +106,16 @@ func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) error {
 	logger.Debugf("received commit message, msg: %+v", msg)
 
 	err := verifyBlockHashAgainstBlockNumber(h.blockState, msg.Vote.Hash, uint(msg.Vote.Number))
-	if errors.Is(err, chaindb.ErrKeyNotFound) {
-		h.grandpa.tracker.addCommit(msg)
-		logger.Infof("we might not have synced to the given block %s yet: %s", msg.Vote.Hash, err)
-		return nil
-	}
-
+	err := verifyBlockHashAgainstBlockNumber(h.blockState, msg.Vote.Hash, uint(msg.Vote.Number))
 	if err != nil {
+		if errors.Is(err, chaindb.ErrKeyNotFound) {
+			h.grandpa.tracker.addCommit(msg)
+			logger.Infof("we might not have synced to the given block %s yet: %s", msg.Vote.Hash, err)
+			return nil
+		}
 		return err
 	}
+
 
 	containsPrecommitsSignedBy := make([]string, len(msg.AuthData))
 	for i, authData := range msg.AuthData {
