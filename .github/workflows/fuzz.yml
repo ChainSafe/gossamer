@@ -1,33 +1,10 @@
 on:
   pull_request:
-    # Commented paths to avoid skipping required workflow
-    # See https://github.community/t/feature-request-conditional-required-checks/16761
-    # paths:
-    #   - .github/workflows/integration-tests.yml
-    #   - "**/*.go"
-    #   - "chain/**"
-    #   - "cmd/**"
-    #   - "dot/**"
-    #   - "internal/**"
-    #   - "lib/**"
-    #   - "pkg/**"
-    #   - "tests/**"
-    #   - go.mod
-    #   - go.sum
-name: integration-tests
+name: fuzz
 
 jobs:
-  integration-tests:
-    timeout-minutes: 60
-    strategy:
-      matrix:
-        packages:
-          [
-            github.com/ChainSafe/gossamer/dot,
-            github.com/ChainSafe/gossamer/dot/core,
-            github.com/ChainSafe/gossamer/dot/rpc/modules,
-            github.com/ChainSafe/gossamer/lib/babe,
-          ]
+  fuzz:
+    timeout-minutes: 30
     runs-on: ubuntu-latest
     steps:
       - uses: actions/setup-go@v3
@@ -58,5 +35,5 @@ jobs:
           key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-go-mod
 
-      - name: Run integration tests
-        run: go test -timeout=30m -tags integration ${{ matrix.packages }}
+      - name: Fuzz trie
+        run: go test -fuzz=Fuzz_Trie_PutAndGet -fuzztime=5m github.com/ChainSafe/gossamer/lib/trie

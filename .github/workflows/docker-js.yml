@@ -15,8 +15,6 @@ on:
     #   - go.mod
     #   - go.sum
 name: docker-js
-env:
-  GO111MODULE: on
 
 jobs:
   docker-polkadotjs-tests:

@@ -16,15 +16,13 @@ on:
     #   - go.sum
     #   - Makefile
 name: unit-tests
-env:
-  GO111MODULE: on
 
 jobs:
   unit-tests:
     timeout-minutes: 60
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-go@v2
+      - uses: actions/setup-go@v3
         with:
           go-version: 1.18
           stable: true
@@ -69,10 +67,16 @@ jobs:
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Run unit tests
-        run: go test -short ./... -timeout=30m
+        run: go test -short -coverprofile=coverage.out -covermode=atomic -timeout=30m ./...
 
       - name: Test State - Race
         run: make test-state-race
 
-      - name: Run build
-        run: make build
+      - uses: codecov/codecov-action@v3.0.0
+        with:
+          if_ci_failed: success
+          informational: true
+          files: ./coverage.out
+          flags: unit-tests
+          name: coverage
+          verbose: true

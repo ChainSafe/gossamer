@@ -27,7 +27,7 @@ clean:
 
 
 proto:
-	go install google.golang.org/protobuf/cmd/protoc-gen-go
+	go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28
 	protoc -I=./dot/network/proto --go_out=./dot/network/proto dot/network/proto/api.v1.proto
 
 ## test: Runs `go test` on project test files.
@@ -98,7 +98,7 @@ start:
 .PHONY: license
 license:
 	@echo "  >  \033[32mAdding license headers...\033[0m "
-	go install github.com/google/addlicense@v1.0.0
+	go install github.com/google/addlicense@v1.0
 	addlicense -v \
 		-s=only \
 		-l="LGPL-3.0-only" \

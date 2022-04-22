@@ -4,8 +4,6 @@ ARG chain="polkadot"
 ARG basepath="~/.gossamer"
 ARG DD_API_KEY
 
-ENV GO111MODULE=on
-
 ENV chain=${chain}
 ENV basepath=${basepath}
 ENV DD_API_KEY=${DD_API_KEY}
@@ -20,7 +18,7 @@ RUN ["sh", "-c", "mv .github/workflows/staging/openmetrics.d/${chain}-conf.yaml 
 RUN service datadog-agent start
 
 RUN go get ./...
-RUN go build github.com/ChainSafe/gossamer/cmd/gossamer
+RUN go install -trimpath github.com/ChainSafe/gossamer/cmd/gossamer
 
 RUN ["sh", "-c", "gossamer init --chain=${chain}"]
 ENTRYPOINT ["sh", "-c", "service datadog-agent restart && gossamer --chain=${chain} --basepath=${basepath}/${chain} --publish-metrics --metrics-address=\":9876\" --pprofserver --pprofaddress=\":6060\""]
