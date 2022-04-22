@@ -22,10 +22,9 @@ func TestNetwork_MaxPeers(t *testing.T) {
 	numNodes := 9 // 9 block producers
 	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
 	utils.Logger.Patch(log.SetLevel(log.Info))
-	config := config.CreateDefault(t)
-	nodes := node.MakeNodes(t, numNodes,
-		node.SetGenesis(genesisPath),
-		node.SetConfig(config))
+	tomlConfig := config.Default()
+	tomlConfig.Init.Genesis = genesisPath
+	nodes := node.MakeNodes(t, numNodes, tomlConfig)
 	ctx, cancel := context.WithCancel(context.Background())
 	nodes.InitAndStartTest(ctx, t, cancel)
 

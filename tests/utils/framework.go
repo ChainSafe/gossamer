@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/ChainSafe/gossamer/tests/utils/node"
 	"github.com/ChainSafe/gossamer/tests/utils/rpc"
 	scribble "github.com/nanobox-io/golang-scribble"
@@ -27,10 +28,11 @@ func NewFramework() (framework *Framework) {
 }
 
 // InitFramework creates given quantity of nodes
-func InitFramework(ctx context.Context, t *testing.T, qtyNodes int) (*Framework, error) {
+func InitFramework(ctx context.Context, t *testing.T, qtyNodes int,
+	tomlConfig toml.Config) (*Framework, error) {
 	f := &Framework{}
 
-	f.nodes = node.MakeNodes(t, qtyNodes)
+	f.nodes = node.MakeNodes(t, qtyNodes, tomlConfig)
 
 	err := f.nodes.Init(ctx)
 	if err != nil {

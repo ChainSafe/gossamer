@@ -17,9 +17,10 @@ import (
 
 func TestStress_Grandpa_OneAuthority(t *testing.T) {
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
-	config := config.CreateDefault(t)
-	n := node.New(t, node.SetBabeLead(true),
-		node.SetGenesis(genesisPath), node.SetConfig(config))
+	tomlConfig := config.Default()
+	tomlConfig.Core.BABELead = true
+	tomlConfig.Init.Genesis = genesisPath
+	n := node.New(t, tomlConfig)
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -46,9 +47,9 @@ func TestStress_Grandpa_ThreeAuthorities(t *testing.T) {
 
 	genesisPath := utils.GenerateGenesisAuths(t, numNodes)
 
-	config := config.CreateDefault(t)
-	nodes := node.MakeNodes(t, numNodes,
-		node.SetGenesis(genesisPath), node.SetConfig(config))
+	tomlConfig := config.Default()
+	tomlConfig.Init.Genesis = genesisPath
+	nodes := node.MakeNodes(t, numNodes, tomlConfig)
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -71,9 +72,9 @@ func TestStress_Grandpa_SixAuthorities(t *testing.T) {
 	const numNodes = 6
 	genesisPath := utils.GenerateGenesisAuths(t, numNodes)
 
-	config := config.CreateDefault(t)
-	nodes := node.MakeNodes(t, numNodes,
-		node.SetGenesis(genesisPath), node.SetConfig(config))
+	tomlConfig := config.Default()
+	tomlConfig.Init.Genesis = genesisPath
+	nodes := node.MakeNodes(t, numNodes, tomlConfig)
 	ctx, cancel := context.WithCancel(context.Background())
 	nodes.InitAndStartTest(ctx, t, cancel)
 
@@ -93,12 +94,12 @@ func TestStress_Grandpa_NineAuthorities(t *testing.T) {
 		t.Skip("skipping TestStress_Grandpa_NineAuthorities")
 	}
 
-	grandpaConfig := config.CreateLogGrandpa(t)
-
-	numNodes := 9
+	const numNodes = 9
 	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
-	nodes := node.MakeNodes(t, numNodes,
-		node.SetGenesis(genesisPath), node.SetConfig(grandpaConfig))
+
+	tomlConfig := config.LogGrandpa()
+	tomlConfig.Init.Genesis = genesisPath
+	nodes := node.MakeNodes(t, numNodes, tomlConfig)
 	ctx, cancel := context.WithCancel(context.Background())
 	nodes.InitAndStartTest(ctx, t, cancel)
 
@@ -121,18 +122,15 @@ func TestStress_Grandpa_CatchUp(t *testing.T) {
 	const numNodes = 6
 	genesisPath := utils.GenerateGenesisAuths(t, numNodes)
 
-	config := config.CreateDefault(t)
-	nodes := node.MakeNodes(t, numNodes,
-		node.SetGenesis(genesisPath), node.SetConfig(config))
+	tomlConfig := config.Default()
+	tomlConfig.Init.Genesis = genesisPath
+	nodes := node.MakeNodes(t, numNodes, tomlConfig)
 	ctx, cancel := context.WithCancel(context.Background())
 	nodes.InitAndStartTest(ctx, t, cancel)
 
 	time.Sleep(time.Second * 70) // let some rounds run
 
-	node := node.New(t,
-		node.SetIndex(numNodes-1),
-		node.SetGenesis(genesisPath),
-		node.SetConfig(config))
+	node := node.New(t, tomlConfig, node.SetIndex(numNodes-1))
 	node.InitAndStartTest(ctx, t, cancel)
 	nodes = append(nodes, node)
 

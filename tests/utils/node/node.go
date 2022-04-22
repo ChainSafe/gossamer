@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
-	"strconv"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils/config"
 	"github.com/ChainSafe/gossamer/tests/utils/pathfinder"
@@ -21,89 +21,79 @@ import (
 // Node is a structure holding all the settings to
 // configure a Gossamer node.
 type Node struct {
-	index       *int
-	key         string
-	genesisPath string
-	rpcPort     string
-	wsPort      string
-	basePath    string
-	configPath  string
-	babeLead    *bool
-	websocket   *bool
-	writer      io.Writer
-	logsBuffer  *bytes.Buffer
-	binPath     string
+	index      *int
+	configPath string
+	tomlConfig toml.Config
+	writer     io.Writer
+	logsBuffer *bytes.Buffer
+	binPath    string
 }
 
-// New returns a node configured using the options given.
-func New(t *testing.T, options ...Option) (node Node) {
+// New returns a node configured using the
+// toml configuration and options given.
+func New(t *testing.T, tomlConfig toml.Config,
+	options ...Option) (node Node) {
+	node.tomlConfig = tomlConfig
 	for _, option := range options {
 		option(&node)
 	}
 	node.setDefaults(t)
 	node.setWriterPrefix()
+	node.configPath = config.Write(t, node.tomlConfig)
 	return node
 }
 
 func (n Node) String() string {
 	indexString := fmt.Sprint(*n.index)
-	return fmt.Sprintf("%s-%s", n.key, indexString)
+	return fmt.Sprintf("%s-%s", n.tomlConfig.Account.Key, indexString)
 }
 
 // GetRPCPort returns the rpc port of the node.
-func (n Node) GetRPCPort() (port string) { return n.rpcPort }
+func (n Node) GetRPCPort() (port string) { return fmt.Sprint(n.tomlConfig.RPC.Port) }
 
 // GetWSPort returns the websocket port of the node.
-func (n Node) GetWSPort() (port string) { return n.wsPort }
+func (n Node) GetWSPort() (port string) { return fmt.Sprint(n.tomlConfig.RPC.WSPort) }
 
 // GetKey returns the key of the node.
-func (n Node) GetKey() (key string) { return n.key }
+func (n Node) GetKey() (key string) { return n.tomlConfig.Account.Key }
 
-func boolPtr(b bool) *bool { return &b }
-func intPtr(n int) *int    { return &n }
+func intPtr(n int) *int { return &n }
 
 func (n *Node) setDefaults(t *testing.T) {
 	if n.index == nil {
 		n.index = intPtr(0)
 	}
 
-	if n.basePath == "" {
-		n.basePath = t.TempDir()
+	if n.tomlConfig.Global.BasePath == "" {
+		n.tomlConfig.Global.BasePath = t.TempDir()
 	}
 
-	if n.genesisPath == "" {
-		n.genesisPath = utils.GetGssmrGenesisRawPathTest(t)
+	if n.tomlConfig.Init.Genesis == "" {
+		n.tomlConfig.Init.Genesis = utils.GetGssmrGenesisRawPathTest(t)
 	}
 
-	if n.configPath == "" {
-		n.configPath = config.CreateDefault(t)
-	}
-
-	if n.key == "" {
+	if n.tomlConfig.Account.Key == "" {
 		keyList := []string{"alice", "bob", "charlie", "dave", "eve", "ferdie", "george", "heather", "ian"}
 		if *n.index < len(keyList) {
-			n.key = keyList[*n.index]
+			n.tomlConfig.Account.Key = keyList[*n.index]
 		} else {
-			n.key = "default-key"
+			n.tomlConfig.Account.Key = "default-key"
 		}
 	}
 
-	if n.rpcPort == "" {
-		const basePort = 8540
-		n.rpcPort = fmt.Sprint(basePort + *n.index)
+	if n.tomlConfig.Network.Port == 0 {
+		const basePort uint16 = 7000
+		n.tomlConfig.Network.Port = basePort + uint16(*n.index)
 	}
 
-	if n.wsPort == "" {
-		const basePort = 8546
-		n.wsPort = fmt.Sprint(basePort + *n.index)
+	if n.tomlConfig.RPC.Enabled && n.tomlConfig.RPC.Port == 0 {
+		const basePort uint32 = 8540
+		n.tomlConfig.RPC.Port = basePort + uint32(*n.index)
 	}
 
-	if n.babeLead == nil {
-		n.babeLead = boolPtr(false)
-	}
-
-	if n.websocket == nil {
-		n.websocket = boolPtr(false)
+	if n.tomlConfig.RPC.WS && n.tomlConfig.RPC.WSPort == 0 {
+		const basePort uint32 = 8546
+		n.tomlConfig.RPC.WSPort = basePort + uint32(*n.index)
 	}
 
 	userSetWriter := n.writer != nil && n.writer != io.Discard
@@ -120,51 +110,10 @@ func (n *Node) setDefaults(t *testing.T) {
 	}
 }
 
-func (n *Node) args() (args []string) {
-	const basePort = 7000
-	args = []string{
-		"--port", strconv.Itoa(basePort + *n.index),
-		"--config", n.configPath,
-		"--basepath", n.basePath,
-		"--rpchost", "localhost",
-		"--rpcport", n.rpcPort,
-		"--rpcmods", "system,author,chain,state,dev,rpc",
-		"--rpc",
-		"--no-telemetry",
-		"--log", "info",
-	}
-
-	if *n.babeLead {
-		args = append(args, "--babe-lead")
-	}
-
-	if n.key == "" {
-		args = append(args,
-			"--roles", "1",
-		)
-	} else {
-		args = append(args,
-			"--roles", "4",
-			"--key", n.key,
-		)
-	}
-
-	if *n.websocket {
-		args = append(args,
-			"--ws",
-			"--wsport", n.wsPort,
-		)
-	}
-
-	return args
-}
-
 // Init initialises the Gossamer node.
 func (n *Node) Init(ctx context.Context) (err error) {
 	cmdInit := exec.CommandContext(ctx, n.binPath, "init", //nolint:gosec
 		"--config", n.configPath,
-		"--basepath", n.basePath,
-		"--genesis", n.genesisPath,
 	)
 
 	if n.logsBuffer != nil {
@@ -193,7 +142,9 @@ func (n *Node) Init(ctx context.Context) (err error) {
 // When the node crashes or is stopped, an error (nil or not) is sent
 // in the waitErrCh.
 func (n *Node) Start(ctx context.Context, waitErrCh chan<- error) (startErr error) {
-	cmd := exec.CommandContext(ctx, n.binPath, n.args()...) //nolint:gosec
+	cmd := exec.CommandContext(ctx, n.binPath, //nolint:gosec
+		"--config", n.configPath,
+		"--no-telemetry")
 
 	cmd.Stdout = n.writer
 	cmd.Stderr = cmd.Stdout // we assume no race between stdout and stderr
@@ -236,7 +187,7 @@ func (n *Node) StartAndWait(ctx context.Context, waitErrCh chan<- error) (startE
 		return startErr
 	}
 
-	err := waitForNode(ctx, n.rpcPort)
+	err := waitForNode(ctx, n.GetRPCPort())
 	if err != nil {
 		return fmt.Errorf("failed waiting: %s", err)
 	}

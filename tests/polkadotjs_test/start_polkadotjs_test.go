@@ -25,11 +25,11 @@ func TestStartGossamerAndPolkadotAPI(t *testing.T) {
 	}
 	t.Log("starting gossamer for polkadot.js/api tests...")
 
-	config := config.CreateDefault(t)
-
-	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
-	n := node.New(t, node.SetBabeLead(true), node.SetWebsocket(true),
-		node.SetGenesis(genesisPath), node.SetConfig(config))
+	tomlConfig := config.Default()
+	tomlConfig.Init.Genesis = libutils.GetDevGenesisSpecPathTest(t)
+	tomlConfig.Core.BABELead = true
+	tomlConfig.RPC.WS = true
+	n := node.New(t, tomlConfig)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	n.InitAndStartTest(ctx, t, cancel)

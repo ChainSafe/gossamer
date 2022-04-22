@@ -7,6 +7,9 @@ import (
 	"context"
 	"fmt"
 	"testing"
+
+	"github.com/ChainSafe/gossamer/dot/config/toml"
+	"github.com/ChainSafe/gossamer/tests/utils/config"
 )
 
 // Nodes is a slice of nodes.
@@ -18,18 +21,19 @@ type Nodes []Node
 // - the index of each node is incremented per node
 // - the base path is set to a test temporary directory
 // - remaining unset fields are set to their default.
-func MakeNodes(t *testing.T, num int, options ...Option) (nodes Nodes) {
+func MakeNodes(t *testing.T, num int, tomlConfig toml.Config,
+	options ...Option) (nodes Nodes) {
 	nodes = make(Nodes, num)
 	for i := range nodes {
+		nodes[i].tomlConfig = tomlConfig
 		// Set fields using options given
 		for _, option := range options {
 			option(&nodes[i])
 		}
 
 		// Set defaults using index `i`
-		if nodes[i].babeLead == nil {
-			nodes[i].babeLead = boolPtr(i == 0)
-		}
+		nodes[i].tomlConfig.Core.BABELead = i == 0
+
 		if nodes[i].index == nil {
 			nodes[i].index = intPtr(i)
 		}
@@ -37,6 +41,8 @@ func MakeNodes(t *testing.T, num int, options ...Option) (nodes Nodes) {
 		// Set node defaults on the remaining unset fields
 		nodes[i].setDefaults(t)
 		nodes[i].setWriterPrefix()
+
+		nodes[i].configPath = config.Write(t, nodes[i].tomlConfig)
 	}
 	return nodes
 }
