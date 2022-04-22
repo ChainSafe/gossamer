@@ -106,7 +106,6 @@ func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) error {
 	logger.Debugf("received commit message, msg: %+v", msg)
 
 	err := verifyBlockHashAgainstBlockNumber(h.blockState, msg.Vote.Hash, uint(msg.Vote.Number))
-	err := verifyBlockHashAgainstBlockNumber(h.blockState, msg.Vote.Hash, uint(msg.Vote.Number))
 	if err != nil {
 		if errors.Is(err, chaindb.ErrKeyNotFound) {
 			h.grandpa.tracker.addCommit(msg)
@@ -115,7 +114,6 @@ func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) error {
 		}
 		return err
 	}
-
 
 	containsPrecommitsSignedBy := make([]string, len(msg.AuthData))
 	for i, authData := range msg.AuthData {
@@ -198,12 +196,12 @@ func (h *MessageHandler) handleCatchUpResponse(msg *CatchUpResponse) error {
 		msg.Hash, msg.Round, msg.SetID)
 
 	err := verifyBlockHashAgainstBlockNumber(h.blockState, msg.Hash, uint(msg.Number))
-	if errors.Is(err, chaindb.ErrKeyNotFound) {
-		h.grandpa.tracker.addCatchUpResponse(msg)
-		logger.Infof("we might not have synced to the given block %s yet: %s", msg.Hash, err)
-		return nil
-	}
 	if err != nil {
+		if errors.Is(err, chaindb.ErrKeyNotFound) {
+			h.grandpa.tracker.addCatchUpResponse(msg)
+			logger.Infof("we might not have synced to the given block %s yet: %s", msg.Hash, err)
+			return nil
+		}
 		return err
 	}
 
@@ -356,12 +354,12 @@ func (h *MessageHandler) verifyPreVoteJustification(msg *CatchUpResponse) (commo
 
 	for _, pvj := range msg.PreVoteJustification {
 		err := verifyBlockHashAgainstBlockNumber(h.blockState, pvj.Vote.Hash, uint(pvj.Vote.Number))
-		if errors.Is(err, chaindb.ErrKeyNotFound) {
-			h.grandpa.tracker.addCatchUpResponse(msg)
-			logger.Infof("we might not have synced to the given block %s yet: %s", pvj.Vote.Hash, err)
-			continue
-		}
 		if err != nil {
+			if errors.Is(err, chaindb.ErrKeyNotFound) {
+				h.grandpa.tracker.addCatchUpResponse(msg)
+				logger.Infof("we might not have synced to the given block %s yet: %s", pvj.Vote.Hash, err)
+				continue
+			}
 			return common.Hash{}, err
 		}
 	}
@@ -423,12 +421,12 @@ func (h *MessageHandler) verifyPreVoteJustification(msg *CatchUpResponse) (commo
 func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) error {
 	for _, pcj := range msg.PreCommitJustification {
 		err := verifyBlockHashAgainstBlockNumber(h.blockState, pcj.Vote.Hash, uint(pcj.Vote.Number))
-		if errors.Is(err, chaindb.ErrKeyNotFound) {
-			h.grandpa.tracker.addCatchUpResponse(msg)
-			logger.Infof("we might not have synced to the given block %s yet: %s", pcj.Vote.Hash, err)
-			continue
-		}
 		if err != nil {
+			if errors.Is(err, chaindb.ErrKeyNotFound) {
+				h.grandpa.tracker.addCatchUpResponse(msg)
+				logger.Infof("we might not have synced to the given block %s yet: %s", pcj.Vote.Hash, err)
+				continue
+			}
 			return err
 		}
 	}
