@@ -31,8 +31,9 @@ func (sc GrandpaScheduledChange) Index() uint { return 1 }
 
 // GrandpaForcedChange represents a GRANDPA forced authority change
 type GrandpaForcedChange struct {
-	Auths []GrandpaAuthoritiesRaw
-	Delay uint32
+	BestFinalizedBlock uint32
+	Auths              []GrandpaAuthoritiesRaw
+	Delay              uint32
 }
 
 // Index Returns VDT index

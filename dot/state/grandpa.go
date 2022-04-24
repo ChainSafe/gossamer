@@ -34,9 +34,10 @@ var (
 )
 
 type pendingChange struct {
-	delay            uint32
-	nextAuthorities  []types.Authority
-	announcingHeader *types.Header
+	bestFinalizedNumber uint32
+	delay               uint32
+	nextAuthorities     []types.Authority
+	announcingHeader    *types.Header
 }
 
 func (p pendingChange) String() string {
@@ -193,9 +194,10 @@ func (s *GrandpaState) addForcedChange(header *types.Header, fc types.GrandpaFor
 	}
 
 	pendingChange := &pendingChange{
-		nextAuthorities:  auths,
-		announcingHeader: header,
-		delay:            fc.Delay,
+		bestFinalizedNumber: fc.BestFinalizedBlock,
+		nextAuthorities:     auths,
+		announcingHeader:    header,
+		delay:               fc.Delay,
 	}
 
 	s.forcedChanges = append(s.forcedChanges, pendingChange)
@@ -389,6 +391,99 @@ func (s *GrandpaState) ApplyScheduledChanges(finalizedHeader *types.Header) erro
 	return nil
 }
 
+// ApplyForcedChanges will check for if there is a scheduled forced change relative to the
+// imported block and then apply it otherwise nothing happens
+func (s *GrandpaState) ApplyForcedChanges(importedBlockHeader *types.Header) error {
+	importedHash := importedBlockHeader.Hash()
+
+	var forcedChange *pendingChange
+
+	for _, forced := range s.forcedChanges {
+		announcingHash := forcedChange.announcingHeader.Hash()
+		effectiveNumber := forcedChange.effectiveNumber()
+
+		if importedHash.Equal(announcingHash) && effectiveNumber == 0 {
+			forcedChange = forced
+			break
+		}
+
+		isDescendant, err := s.blockState.IsDescendantOf(announcingHash, importedHash)
+		if err != nil {
+			return fmt.Errorf("cannot check ancestry: %w", err)
+		}
+
+		if !isDescendant {
+			continue
+		}
+
+		if effectiveNumber == importedBlockHeader.Number {
+			forcedChange = forced
+			break
+		}
+	}
+
+	if forcedChange == nil {
+		return nil
+	}
+
+	forcedChangeHash := forcedChange.announcingHeader.Hash()
+
+	// checking for dependant pending scheduled changes
+	for _, scheduled := range s.scheduledChangeRoots {
+		bestFinalizedNumber := forcedChange.bestFinalizedNumber
+		if scheduled.change.effectiveNumber() > uint(bestFinalizedNumber) {
+			continue
+		}
+
+		scheduledHash := scheduled.change.announcingHeader.Hash()
+		isDescendant, err := s.blockState.IsDescendantOf(scheduledHash, forcedChangeHash)
+		if err != nil {
+			return fmt.Errorf("cannot check ancestry: %w", err)
+		}
+
+		if isDescendant {
+			return fmt.Errorf(
+				"not authority set change forced at block #%d, due to pending standard change at block #%d",
+				forcedChange.announcingHeader.Number,
+				scheduled.change.effectiveNumber())
+		}
+	}
+
+	// send the telemetry s messages here
+	// afg.applying_forced_authority_set_change
+
+	currentSetID, err := s.GetCurrentSetID()
+	if err != nil {
+		return fmt.Errorf("cannot get current set id: %w", err)
+	}
+
+	err = s.setChangeSetIDAtBlock(currentSetID, uint(forcedChange.bestFinalizedNumber))
+	if err != nil {
+		return fmt.Errorf("cannot set change set id at block: %w", err)
+	}
+
+	newSetID, err := s.IncrementSetID()
+	if err != nil {
+		return fmt.Errorf("cannot increment set id: %w", err)
+	}
+
+	grandpaVotersAuthorities := types.NewGrandpaVotersFromAuthorities(forcedChange.nextAuthorities)
+	err = s.setAuthorities(newSetID, grandpaVotersAuthorities)
+	if err != nil {
+		return fmt.Errorf("cannot set authorities: %w", err)
+	}
+
+	err = s.setChangeSetIDAtBlock(newSetID, forcedChange.effectiveNumber())
+	if err != nil {
+		return fmt.Errorf("cannot set change set id at block")
+	}
+
+	logger.Debugf("Applying authority set forced change at block #%d",
+		forcedChange.announcingHeader.Number)
+
+	return nil
+}
+
 // forcedChangeOnChain walk through the forced change slice looking for
 // a forced change that belong to the same branch as bestBlockHash parameter
 func (s *GrandpaState) forcedChangeOnChain(bestBlockHash common.Hash) (change *pendingChange, err error) {
@@ -433,10 +528,6 @@ func (s *GrandpaState) scheduledChangeOnChainOf(bestBlockHash common.Hash) (chan
 	}
 
 	return nil, nil
-}
-
-func (s *GrandpaState) ApplyForcedChanges(bestBlockHeader *types.Header) error {
-	return nil
 }
 
 // NextGrandpaAuthorityChange returns the block number of the next upcoming grandpa authorities change.

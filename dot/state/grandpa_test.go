@@ -4,14 +4,18 @@
 package state
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/golang/mock/gomock"
+	"github.com/gtank/merlin"
 
 	"github.com/stretchr/testify/require"
 )
@@ -137,97 +141,147 @@ func testBlockState(t *testing.T, db chaindb.Database) *BlockState {
 	return bs
 }
 
-// func TestImportGrandpaChangesKeepDecreasingOrdered(t *testing.T) {
-// 	keyring, err := keystore.NewSr25519Keyring()
-// 	require.NoError(t, err)
+func TestForcedScheduledChangesOrder(t *testing.T) {
+	keyring, err := keystore.NewSr25519Keyring()
+	require.NoError(t, err)
 
-// 	db := NewInMemoryDB(t)
-// 	blockState := testBlockState(t, db)
+	db := NewInMemoryDB(t)
+	blockState := testBlockState(t, db)
 
-// 	gs, err := NewGrandpaStateFromGenesis(db, blockState, nil)
-// 	require.NoError(t, err)
+	gs, err := NewGrandpaStateFromGenesis(db, blockState, nil)
+	require.NoError(t, err)
 
-// 	scheduledChanges := types.GrandpaScheduledChange{}
-// 	forkChainA := issueBlocksWithGRANDPAScheduledChanges(t, keyring.KeyAlice, blockState,
-// 		testGenesisHeader, 3)
+	aliceHeaders := issueBlocksWithBABEPrimary(t, keyring.KeyAlice, gs.blockState,
+		testGenesisHeader, 5)
 
-// 	forkChainA = shuffleHeaderSlice(forkChainA)
+	bobHeaders := issueBlocksWithBABEPrimary(t, keyring.KeyBob, gs.blockState,
+		aliceHeaders[1], 5)
 
-// 	for _, header := range forkChainA {
-// 		grandpaConsensusDigest := types.NewGrandpaConsensusDigest()
-// 		err := grandpaConsensusDigest.Set(scheduledChanges)
-// 		require.NoError(t, err)
+	charlieHeaders := issueBlocksWithBABEPrimary(t, keyring.KeyCharlie, gs.blockState,
+		aliceHeaders[2], 6)
 
-// 		err = gs.ImportGrandpaChange(header, grandpaConsensusDigest)
-// 		require.NoError(t, err)
-// 	}
+	forcedChanges := map[*types.Header]types.GrandpaForcedChange{
+		bobHeaders[1]: {
+			Delay: 1,
+			Auths: []types.GrandpaAuthoritiesRaw{
+				{Key: keyring.KeyAlice.Public().(*sr25519.PublicKey).AsBytes()},
+				{Key: keyring.KeyBob.Public().(*sr25519.PublicKey).AsBytes()},
+				{Key: keyring.KeyCharlie.Public().(*sr25519.PublicKey).AsBytes()},
+			},
+		},
+		aliceHeaders[3]: {
+			Delay: 5,
+			Auths: []types.GrandpaAuthoritiesRaw{
+				{Key: keyring.KeyAlice.Public().(*sr25519.PublicKey).AsBytes()},
+				{Key: keyring.KeyBob.Public().(*sr25519.PublicKey).AsBytes()},
+				{Key: keyring.KeyCharlie.Public().(*sr25519.PublicKey).AsBytes()},
+			},
+		},
+		charlieHeaders[4]: {
+			Delay: 3,
+			Auths: []types.GrandpaAuthoritiesRaw{
+				{Key: keyring.KeyAlice.Public().(*sr25519.PublicKey).AsBytes()},
+				{Key: keyring.KeyBob.Public().(*sr25519.PublicKey).AsBytes()},
+				{Key: keyring.KeyCharlie.Public().(*sr25519.PublicKey).AsBytes()},
+			},
+		},
+	}
 
-// 	require.Len(t, gs.forks, 1)
+	for header, fc := range forcedChanges {
+		err := gs.addForcedChange(header, fc)
+		require.NoError(t, err, "failed to add forced change")
+	}
 
-// 	forkAStartHash := forkChainA[0].Hash()
-// 	linkedList := gs.forks[forkAStartHash]
+	for _, f := range gs.forcedChanges {
+		fmt.Printf("HEADER NUMBER: %d, EFFECTIVE: %d\n", f.announcingHeader.Number, f.effectiveNumber())
+	}
+}
 
-// 	for linkedList.Next != nil {
-// 		require.Greater(t,
-// 			linkedList.header.Number, linkedList.Next.header.Number)
-// 		linkedList = linkedList.Next
-// 	}
+func headerWithBABEPrimaryPreDigest(t *testing.T, kp *sr25519.Keypair, bs *BlockState,
+	parentHeader *types.Header) (header *types.Header) {
+	t.Helper()
 
-// 	fmt.Println()
-// }
+	transcript := merlin.NewTranscript("BABE") //string(types.BabeEngineID[:])
+	crypto.AppendUint64(transcript, []byte("slot number"), 1)
+	crypto.AppendUint64(transcript, []byte("current epoch"), 1)
+	transcript.AppendMessage([]byte("chain randomness"), []byte{})
 
-// func issueBlocksWithGRANDPAScheduledChanges(t *testing.T, kp *sr25519.Keypair,
-// 	bs *BlockState, parentHeader *types.Header, size int) (headers []*types.Header) {
-// 	t.Helper()
+	output, proof, err := kp.VrfSign(transcript)
+	require.NoError(t, err)
 
-// 	transcript := merlin.NewTranscript("BABE") //string(types.BabeEngineID[:])
-// 	crypto.AppendUint64(transcript, []byte("slot number"), 1)
-// 	crypto.AppendUint64(transcript, []byte("current epoch"), 1)
-// 	transcript.AppendMessage([]byte("chain randomness"), []byte{})
+	babePrimaryPreDigest := types.BabePrimaryPreDigest{
+		SlotNumber: 1,
+		VRFOutput:  output,
+		VRFProof:   proof,
+	}
 
-// 	output, proof, err := kp.VrfSign(transcript)
-// 	require.NoError(t, err)
+	preRuntimeDigest, err := babePrimaryPreDigest.ToPreRuntimeDigest()
+	require.NoError(t, err)
 
-// 	babePrimaryPreDigest := types.BabePrimaryPreDigest{
-// 		SlotNumber: 1,
-// 		VRFOutput:  output,
-// 		VRFProof:   proof,
-// 	}
+	digest := types.NewDigest()
 
-// 	preRuntimeDigest, err := babePrimaryPreDigest.ToPreRuntimeDigest()
-// 	require.NoError(t, err)
+	require.NoError(t, digest.Add(*preRuntimeDigest))
+	header = &types.Header{
+		ParentHash: parentHeader.Hash(),
+		Number:     parentHeader.Number + 1,
+		Digest:     digest,
+	}
 
-// 	digest := types.NewDigest()
+	block := &types.Block{
+		Header: *header,
+		Body:   *types.NewBody([]types.Extrinsic{}),
+	}
 
-// 	require.NoError(t, digest.Add(*preRuntimeDigest))
-// 	header := &types.Header{
-// 		ParentHash: parentHeader.Hash(),
-// 		Number:     parentHeader.Number + 1,
-// 		Digest:     digest,
-// 	}
+	err = bs.AddBlock(block)
+	require.NoError(t, err)
 
-// 	block := &types.Block{
-// 		Header: *header,
-// 		Body:   *types.NewBody([]types.Extrinsic{}),
-// 	}
+	return header
+}
 
-// 	err = bs.AddBlock(block)
-// 	require.NoError(t, err)
+func issueBlocksWithBABEPrimary(t *testing.T, kp *sr25519.Keypair,
+	bs *BlockState, parentHeader *types.Header, size int) (headers []*types.Header) {
+	t.Helper()
 
-// 	if size <= 0 {
-// 		headers = append(headers, header)
-// 		return headers
-// 	}
+	transcript := merlin.NewTranscript("BABE") //string(types.BabeEngineID[:])
+	crypto.AppendUint64(transcript, []byte("slot number"), 1)
+	crypto.AppendUint64(transcript, []byte("current epoch"), 1)
+	transcript.AppendMessage([]byte("chain randomness"), []byte{})
 
-// 	headers = append(headers, header)
-// 	headers = append(headers, issueBlocksWithGRANDPAScheduledChanges(t, kp, bs, header, size-1)...)
-// 	return headers
-// }
+	output, proof, err := kp.VrfSign(transcript)
+	require.NoError(t, err)
 
-// func shuffleHeaderSlice(headers []*types.Header) []*types.Header {
-// 	rand.Seed(time.Now().UnixNano())
-// 	rand.Shuffle(len(headers), func(i, j int) {
-// 		headers[i], headers[j] = headers[j], headers[i]
-// 	})
-// 	return headers
-// }
+	babePrimaryPreDigest := types.BabePrimaryPreDigest{
+		SlotNumber: 1,
+		VRFOutput:  output,
+		VRFProof:   proof,
+	}
+
+	preRuntimeDigest, err := babePrimaryPreDigest.ToPreRuntimeDigest()
+	require.NoError(t, err)
+
+	digest := types.NewDigest()
+
+	require.NoError(t, digest.Add(*preRuntimeDigest))
+	header := &types.Header{
+		ParentHash: parentHeader.Hash(),
+		Number:     parentHeader.Number + 1,
+		Digest:     digest,
+	}
+
+	block := &types.Block{
+		Header: *header,
+		Body:   *types.NewBody([]types.Extrinsic{}),
+	}
+
+	err = bs.AddBlock(block)
+	require.NoError(t, err)
+
+	if size <= 0 {
+		headers = append(headers, header)
+		return headers
+	}
+
+	headers = append(headers, header)
+	headers = append(headers, issueBlocksWithBABEPrimary(t, kp, bs, header, size-1)...)
+	return headers
+}
