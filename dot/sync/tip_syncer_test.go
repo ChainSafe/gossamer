@@ -18,7 +18,6 @@ func Test_tipSyncer_handleNewPeerState(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
 
 	mockBlockState := NewMockBlockState(ctrl)
 	mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(&types.Header{
@@ -85,7 +84,6 @@ func Test_tipSyncer_handleTick(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
 
 	mockDisjointBlockSet := NewMockDisjointBlockSet(ctrl)
 	mockDisjointBlockSet.EXPECT().size().Return(1).Times(2)
@@ -192,7 +190,6 @@ func Test_tipSyncer_handleWorkerResult(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
 
 	mockBlockState := NewMockBlockState(ctrl)
 	mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(&types.Header{

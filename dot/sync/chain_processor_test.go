@@ -87,7 +87,7 @@ func Test_chainProcessor_handleBody(t *testing.T) {
 	var testExtrinsic = []types.Extrinsic{{1, 2, 3}, {7, 8, 9, 0}, {0xa, 0xb}}
 
 	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+
 	mockTransactionState := NewMockTransactionState(ctrl)
 	mockTransactionState.EXPECT().RemoveExtrinsic(testExtrinsic[0])
 	mockTransactionState.EXPECT().RemoveExtrinsic(testExtrinsic[1])
@@ -128,7 +128,7 @@ func Test_chainProcessor_handleHeader(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+
 	mockBabeVerifier := NewMockBabeVerifier(ctrl)
 	mockBabeVerifier.EXPECT().VerifyBlock(gomock.AssignableToTypeOf(&types.Header{})).DoAndReturn(func(h *types.
 		Header) error {
@@ -186,7 +186,7 @@ func Test_chainProcessor_handleJustification(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+
 	mockFinalityGadget := NewMockFinalityGadget(ctrl)
 	mockFinalityGadget.EXPECT().VerifyBlockJustification(gomock.AssignableToTypeOf(common.Hash{}),
 		gomock.AssignableToTypeOf([]byte{})).DoAndReturn(func(_ common.Hash, justification []byte) error {
@@ -523,7 +523,7 @@ func Test_newChainProcessor(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+
 	mockReadyBlock := newBlockQueue(5)
 	mockDisjointBlockSet := NewMockDisjointBlockSet(ctrl)
 	mockBlockState := NewMockBlockState(ctrl)

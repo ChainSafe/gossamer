@@ -13,70 +13,43 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var (
-	testBlock1 = &pendingBlock{
-		hash:   common.Hash{1},
-		number: 1,
-	}
-	testBlock10 = &pendingBlock{
-		hash:   common.Hash{10},
-		number: 10,
-	}
-)
-
 func Test_disjointBlockSet_addBlock(t *testing.T) {
 	t.Parallel()
 
-	type fields struct {
-		limit            int
-		blocks           map[common.Hash]*pendingBlock
-		parentToChildren map[common.Hash]map[common.Hash]struct{}
-		timeNow          func() time.Time
-	}
-	type args struct {
-		block *types.Block
-	}
 	tests := []struct {
-		name   string
-		fields fields
-		args   args
-		err    error
+		name             string
+		disjointBlockSet disjointBlockSet
+		block            *types.Block
+		err              error
 	}{
 		{
-			name:   "add block beyond capacity",
-			fields: fields{},
-			args: args{block: &types.Block{
+			name: "add block beyond capacity",
+			block: &types.Block{
 				Header: types.Header{
 					Number: 1,
 				},
-			}},
+			},
 			err: errors.New("cannot add block; set is at capacity"),
 		},
 		{
 			name: "add block",
-			fields: fields{
+			disjointBlockSet: disjointBlockSet{
 				limit:            1,
 				blocks:           make(map[common.Hash]*pendingBlock),
 				timeNow:          time.Now,
 				parentToChildren: make(map[common.Hash]map[common.Hash]struct{}),
 			},
-			args: args{block: &types.Block{
+			block: &types.Block{
 				Header: types.Header{
 					Number: 1,
 				},
-			}},
+			},
 			err: nil,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &disjointBlockSet{
-				limit:            tt.fields.limit,
-				blocks:           tt.fields.blocks,
-				parentToChildren: tt.fields.parentToChildren,
-				timeNow:          tt.fields.timeNow,
-			}
-			err := s.addBlock(tt.args.block)
+			err := tt.disjointBlockSet.addBlock(tt.block)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
@@ -89,52 +62,37 @@ func Test_disjointBlockSet_addBlock(t *testing.T) {
 func Test_disjointBlockSet_addHeader(t *testing.T) {
 	t.Parallel()
 
-	type fields struct {
-		limit            int
-		blocks           map[common.Hash]*pendingBlock
-		parentToChildren map[common.Hash]map[common.Hash]struct{}
-		timeNow          func() time.Time
-	}
-	type args struct {
-		header *types.Header
-	}
+	mockTime := func() time.Time { return time.Unix(1001, 0) }
+
 	tests := []struct {
-		name   string
-		fields fields
-		args   args
-		err    error
+		name             string
+		disjointBlockSet disjointBlockSet
+		header           *types.Header
+		err              error
 	}{
 		{
-			name:   "add header beyond capactiy",
-			fields: fields{},
-			args: args{header: &types.Header{
+			name: "add header beyond capactiy",
+			header: &types.Header{
 				Number: 1,
-			}},
+			},
 			err: errors.New("cannot add block; set is at capacity"),
 		},
 		{
 			name: "add header",
-			fields: fields{
+			disjointBlockSet: disjointBlockSet{
 				blocks:           make(map[common.Hash]*pendingBlock),
 				limit:            1,
-				timeNow:          time.Now,
+				timeNow:          mockTime,
 				parentToChildren: make(map[common.Hash]map[common.Hash]struct{}),
 			},
-			args: args{header: &types.Header{
+			header: &types.Header{
 				Number: 1,
-			}},
-			err: nil,
+			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &disjointBlockSet{
-				limit:            tt.fields.limit,
-				blocks:           tt.fields.blocks,
-				parentToChildren: tt.fields.parentToChildren,
-				timeNow:          tt.fields.timeNow,
-			}
-			err := s.addHeader(tt.args.header)
+			err := tt.disjointBlockSet.addHeader(tt.header)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
@@ -148,41 +106,48 @@ func Test_disjointBlockSet_clearBlocks(t *testing.T) {
 	t.Parallel()
 
 	testBlock := &pendingBlock{
-		clearAt: time.Now(),
+		clearAt: time.Unix(1000, 0),
+		hash:    common.Hash{1},
 	}
-	type fields struct {
-		limit            int
-		blocks           map[common.Hash]*pendingBlock
-		parentToChildren map[common.Hash]map[common.Hash]struct{}
-		timeNow          func() time.Time
+	testBlock2 := &pendingBlock{
+		clearAt: time.Unix(1002, 0),
+		hash:    common.Hash{2},
 	}
+	mockTime := func() time.Time { return time.Unix(1001, 0) }
+
 	tests := []struct {
-		name      string
-		fields    fields
-		remaining int
+		name             string
+		disjointBlockSet disjointBlockSet
+		remaining        int
 	}{
 		{
 			name: "base case",
-			fields: fields{
+			disjointBlockSet: disjointBlockSet{
 				limit: 0,
 				blocks: map[common.Hash]*pendingBlock{
-					{}: testBlock,
+					{1}: testBlock,
 				},
-				timeNow: time.Now,
+				timeNow: mockTime,
 			},
 			remaining: 0,
+		},
+		{
+			name: "remove clear one block",
+			disjointBlockSet: disjointBlockSet{
+				limit: 0,
+				blocks: map[common.Hash]*pendingBlock{
+					{1}: testBlock,
+					{2}: testBlock2,
+				},
+				timeNow: mockTime,
+			},
+			remaining: 1,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &disjointBlockSet{
-				limit:            tt.fields.limit,
-				blocks:           tt.fields.blocks,
-				parentToChildren: tt.fields.parentToChildren,
-				timeNow:          tt.fields.timeNow,
-			}
-			s.clearBlocks()
-			assert.Equal(t, tt.remaining, len(tt.fields.blocks))
+			tt.disjointBlockSet.clearBlocks()
+			assert.Equal(t, tt.remaining, len(tt.disjointBlockSet.blocks))
 		})
 	}
 }
@@ -191,22 +156,19 @@ func Test_disjointBlockSet_getBlocks(t *testing.T) {
 	t.Parallel()
 
 	testBlock := &pendingBlock{}
-	type fields struct {
-		blocks map[common.Hash]*pendingBlock
-	}
+
 	tests := []struct {
-		name   string
-		fields fields
-		want   []*pendingBlock
+		name             string
+		disjointBlockSet disjointBlockSet
+		want             []*pendingBlock
 	}{
 		{
-			name:   "no blocks",
-			fields: fields{},
-			want:   []*pendingBlock{},
+			name: "no blocks",
+			want: []*pendingBlock{},
 		},
 		{
 			name: "base case",
-			fields: fields{
+			disjointBlockSet: disjointBlockSet{
 				blocks: map[common.Hash]*pendingBlock{
 					{}: testBlock,
 				},
@@ -215,31 +177,39 @@ func Test_disjointBlockSet_getBlocks(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			s := &disjointBlockSet{
-				blocks: tt.fields.blocks,
+				blocks: tt.disjointBlockSet.blocks,
 			}
 			blocks := s.getBlocks()
-			assert.Equalf(t, tt.want, blocks, "getBlocks()")
+			assert.Equal(t, tt.want, blocks)
 		})
 	}
 }
 
 func Test_disjointBlockSet_removeLowerBlocks(t *testing.T) {
 	t.Parallel()
-	type fields struct {
-		blocks map[common.Hash]*pendingBlock
+
+	testBlock1 := &pendingBlock{
+		hash:   common.Hash{1},
+		number: 1,
+	}
+	testBlock10 := &pendingBlock{
+		hash:   common.Hash{10},
+		number: 10,
 	}
 
 	tests := []struct {
-		name      string
-		fields    fields
-		num       uint
-		remaining int
+		name             string
+		disjointBlockSet disjointBlockSet
+		num              uint
+		remaining        int
 	}{
 		{
 			name: "number 0",
-			fields: fields{
+			disjointBlockSet: disjointBlockSet{
 				blocks: map[common.Hash]*pendingBlock{
 					{1}:  testBlock1,
 					{10}: testBlock10,
@@ -250,7 +220,7 @@ func Test_disjointBlockSet_removeLowerBlocks(t *testing.T) {
 		},
 		{
 			name: "number 1",
-			fields: fields{
+			disjointBlockSet: disjointBlockSet{
 				blocks: map[common.Hash]*pendingBlock{
 					{1}:  testBlock1,
 					{10}: testBlock10,
@@ -261,7 +231,7 @@ func Test_disjointBlockSet_removeLowerBlocks(t *testing.T) {
 		},
 		{
 			name: "number 11",
-			fields: fields{
+			disjointBlockSet: disjointBlockSet{
 				blocks: map[common.Hash]*pendingBlock{
 					{1}:  testBlock1,
 					{10}: testBlock10,
@@ -273,11 +243,8 @@ func Test_disjointBlockSet_removeLowerBlocks(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &disjointBlockSet{
-				blocks: tt.fields.blocks,
-			}
-			s.removeLowerBlocks(tt.num)
-			assert.Equal(t, tt.remaining, len(s.blocks))
+			tt.disjointBlockSet.removeLowerBlocks(tt.num)
+			assert.Equal(t, tt.remaining, len(tt.disjointBlockSet.blocks))
 		})
 	}
 }
@@ -285,24 +252,29 @@ func Test_disjointBlockSet_removeLowerBlocks(t *testing.T) {
 func Test_disjointBlockSet_size(t *testing.T) {
 	t.Parallel()
 
-	type fields struct {
-		blocks map[common.Hash]*pendingBlock
+	testBlock1 := &pendingBlock{
+		hash:   common.Hash{1},
+		number: 1,
+	}
+	testBlock10 := &pendingBlock{
+		hash:   common.Hash{10},
+		number: 10,
 	}
 	tests := []struct {
-		name   string
-		fields fields
-		want   int
+		name             string
+		disjointBlockSet disjointBlockSet
+		want             int
 	}{
 		{
 			name: "expect 0",
-			fields: fields{
+			disjointBlockSet: disjointBlockSet{
 				blocks: map[common.Hash]*pendingBlock{},
 			},
 			want: 0,
 		},
 		{
 			name: "expect 1",
-			fields: fields{
+			disjointBlockSet: disjointBlockSet{
 				blocks: map[common.Hash]*pendingBlock{
 					testBlock1.hash: testBlock1,
 				},
@@ -311,7 +283,7 @@ func Test_disjointBlockSet_size(t *testing.T) {
 		},
 		{
 			name: "expect 2",
-			fields: fields{
+			disjointBlockSet: disjointBlockSet{
 				blocks: map[common.Hash]*pendingBlock{
 					testBlock1.hash:  testBlock1,
 					testBlock10.hash: testBlock10,
@@ -323,9 +295,9 @@ func Test_disjointBlockSet_size(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &disjointBlockSet{
-				blocks: tt.fields.blocks,
+				blocks: tt.disjointBlockSet.blocks,
 			}
-			assert.Equalf(t, tt.want, s.size(), "size()")
+			assert.Equal(t, tt.want, s.size())
 		})
 	}
 }

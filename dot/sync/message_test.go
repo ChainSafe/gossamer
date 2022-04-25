@@ -20,7 +20,6 @@ func TestService_CreateBlockResponse(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
 
 	mockBlockState := NewMockBlockState(ctrl)
 	mockBlockState.EXPECT().BestBlockNumber().Return(uint(1), nil).Times(8)
@@ -282,7 +281,6 @@ func TestService_getBlockData(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
 
 	mockBlockState := NewMockBlockState(ctrl)
 	mockBlockState.EXPECT().GetHeader(common.Hash{}).Return(nil, errors.New("empty hash"))

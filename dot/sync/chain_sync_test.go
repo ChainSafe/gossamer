@@ -7,9 +7,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/ChainSafe/gossamer/dot/peerset"
 	"testing"
 	"time"
+
+	"github.com/ChainSafe/gossamer/dot/peerset"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	syncmocks "github.com/ChainSafe/gossamer/dot/sync/mocks"
@@ -243,11 +244,9 @@ func TestChainSync_sync_tip(t *testing.T) {
 	require.Equal(t, tip, cs.state)
 }
 
-func TestChainSync_getTarget(t *testing.T) {
-	t.Parallel()
-
+func TestChainSync_getTarget_Integration(t *testing.T) {
 	cs, _ := newTestChainSync(t)
-
+	require.Equal(t, uint(1<<32-1), cs.getTarget())
 	cs.peerState = map[peer.ID]*peerState{
 		"a": {
 			number: 0, // outlier
@@ -272,7 +271,7 @@ func TestChainSync_getTarget(t *testing.T) {
 		},
 	}
 
-	require.Equal(t, uint(130), cs.getTarget()) // sum:650/count:5 = avg:130
+	require.Equal(t, uint(130), cs.getTarget()) // sum:650/count:5= avg:130
 
 	cs.peerState = map[peer.ID]*peerState{
 		"testA": {
@@ -900,7 +899,7 @@ func Test_chainSync_logSyncSpeed(t *testing.T) {
 				logSyncSpeedFrequency: time.Nanosecond,
 			}
 			go cs.logSyncSpeed()
-			time.Sleep(time.Nanosecond * 2)
+			time.Sleep(time.Nanosecond)
 			cancel()
 		})
 	}

@@ -100,7 +100,7 @@ func TestChainSync_SetPeerHead_Integration(t *testing.T) {
 	require.NoError(t, err)
 	cs.blockState.(*syncmocks.BlockState).On("GetHighestFinalisedHeader").Return(fin, nil)
 	cs.blockState.(*syncmocks.BlockState).On("GetHashByNumber", mock.AnythingOfType("uint")).Return(common.
-	Hash{}, nil)
+		Hash{}, nil)
 	cs.blockState.(*syncmocks.BlockState).On("HasHeader", mock.AnythingOfType("common.Hash")).Return(true, nil)
 
 	//number = 999
@@ -166,47 +166,6 @@ func TestChainSync_sync_tip_Integration(t *testing.T) {
 	cs.workQueue <- cs.peerState[testPeer]
 	time.Sleep(time.Second)
 	require.Equal(t, tip, cs.state)
-}
-
-func TestChainSync_getTarget_Integration(t *testing.T) {
-	cs, _ := newTestChainSync(t)
-	require.Equal(t, uint(1<<32-1), cs.getTarget())
-	cs.peerState = map[peer.ID]*peerState{
-		"a": {
-			number: 0, // outlier
-		},
-		"b": {
-			number: 10,
-		},
-		"c": {
-			number: 20,
-		},
-		"d": {
-			number: 30,
-		},
-		"e": {
-			number: 40,
-		},
-		"f": {
-			number: 50,
-		},
-		"g": {
-			number: 1000, // outlier
-		},
-	}
-
-	require.Equal(t, uint(25), cs.getTarget()) // sum:150/count:6= avg:25
-
-	cs.peerState = map[peer.ID]*peerState{
-		"testA": {
-			number: 1000,
-		},
-		"testB": {
-			number: 2000,
-		},
-	}
-
-	require.Equal(t, uint(1500), cs.getTarget())
 }
 
 func TestWorkerToRequests_Integration(t *testing.T) {
