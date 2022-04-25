@@ -239,7 +239,7 @@ func TestReAllocAfterBanned(t *testing.T) {
 	checkPeerStateSetNumIn(t, ps.peerState, testSetID, 0)
 	checkNodePeerMembershipState(t, ps.peerState, peer1, testSetID, notConnected)
 
-	n, exists := getNodePeer(t, ps.peerState, peer1)
+	n, exists := getNodePeer(ps.peerState, peer1)
 	require.True(t, exists)
 
 	// when the peer1 was banned we updated its lastConnected field to time.Now()
@@ -251,14 +251,14 @@ func TestReAllocAfterBanned(t *testing.T) {
 
 	// when calling Incoming method the peer1 is with status notConnectedPeer
 	// so we update its lastConnected field to time.Now() again
-	n, exists = getNodePeer(t, ps.peerState, peer1)
+	n, exists = getNodePeer(ps.peerState, peer1)
 	require.True(t, exists)
 
 	currentLastTimeConnected := n.lastConnected[testSetID]
 	require.True(t, lastTimeConnected.Before(currentLastTimeConnected))
 
 	// wait a bit for the node's reputation to go above the threshold.
-	<-time.After(allocTimeDuration + time.Second)
+	time.Sleep(allocTimeDuration + time.Second)
 
 	checkPeerStateSetNumOut(t, ps.peerState, testSetID, 1)
 	checkMessageStatus(t, <-ps.resultMsgCh, Connect)
@@ -270,18 +270,18 @@ func TestRemovePeer(t *testing.T) {
 		nil, false)
 
 	ps := handler.peerSet
-	require.Equal(t, 2, len(ps.resultMsgCh))
+	require.Len(t, ps.resultMsgCh, 2)
 	for len(ps.resultMsgCh) != 0 {
 		checkMessageStatus(t, <-ps.resultMsgCh, Connect)
 	}
 
-	require.Equal(t, 2, len(ps.peerState.nodes))
+	require.Len(t, ps.peerState.nodes, 2)
 	checkPeerStateSetNumOut(t, ps.peerState, testSetID, 2)
 
 	handler.RemovePeer(testSetID, discovered1, discovered2)
 	time.Sleep(200 * time.Millisecond)
 
-	require.Equal(t, 2, len(ps.resultMsgCh))
+	require.Len(t, ps.resultMsgCh, 2)
 	for len(ps.resultMsgCh) != 0 {
 		checkMessageStatus(t, <-ps.resultMsgCh, Drop)
 	}
@@ -296,12 +296,13 @@ func TestSetReservePeer(t *testing.T) {
 		true)
 
 	ps := handler.peerSet
-	require.Equal(t, 2, len(ps.resultMsgCh))
+	require.Len(t, ps.resultMsgCh, 2)
+
 	for len(ps.resultMsgCh) != 0 {
 		checkMessageStatus(t, <-ps.resultMsgCh, Connect)
 	}
 
-	require.Equal(t, 2, len(ps.reservedNode))
+	require.Len(t, ps.reservedNode, 2)
 
 	newRsrPeerSet := peer.IDSlice{reservedPeer, peer.ID("newRsrPeer")}
 	// add newRsrPeer but remove reservedPeer2
@@ -314,9 +315,7 @@ func TestSetReservePeer(t *testing.T) {
 	}
 }
 
-func getNodePeer(t *testing.T, ps *PeersState, pid peer.ID) (node, bool) {
-	t.Helper()
-
+func getNodePeer(ps *PeersState, pid peer.ID) (node, bool) {
 	ps.RLock()
 	defer ps.RUnlock()
 
@@ -362,6 +361,8 @@ func checkReservedNodePeerExists(t *testing.T, ps *PeerSet, pid peer.ID) {
 }
 
 func checkPeerIsInNoSlotsNode(t *testing.T, ps *PeersState, pid peer.ID, setID int) {
+	t.Helper()
+
 	ps.RLock()
 	defer ps.RUnlock()
 
@@ -370,6 +371,8 @@ func checkPeerIsInNoSlotsNode(t *testing.T, ps *PeersState, pid peer.ID, setID i
 }
 
 func checkPeerStateSetNumOut(t *testing.T, ps *PeersState, setID int, expectedNumOut uint32) {
+	t.Helper()
+
 	ps.RLock()
 	defer ps.RUnlock()
 
@@ -378,6 +381,8 @@ func checkPeerStateSetNumOut(t *testing.T, ps *PeersState, setID int, expectedNu
 }
 
 func checkPeerStateSetNumIn(t *testing.T, ps *PeersState, setID int, expectedNumIn uint32) {
+	t.Helper()
+
 	ps.RLock()
 	defer ps.RUnlock()
 
@@ -386,6 +391,8 @@ func checkPeerStateSetNumIn(t *testing.T, ps *PeersState, setID int, expectedNum
 }
 
 func checkPeerStateNodeCount(t *testing.T, ps *PeersState, expectedCount int) {
+	t.Helper()
+
 	ps.RLock()
 	defer ps.RUnlock()
 
@@ -393,6 +400,8 @@ func checkPeerStateNodeCount(t *testing.T, ps *PeersState, expectedCount int) {
 }
 
 func checkPeerSetReservedNodeCount(t *testing.T, ps *PeerSet, expectedCount int) {
+	t.Helper()
+
 	ps.reservedLock.RLock()
 	defer ps.reservedLock.RUnlock()
 
