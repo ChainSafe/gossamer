@@ -4,7 +4,6 @@
 package state
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/ChainSafe/chaindb"
@@ -192,50 +191,58 @@ func TestForcedScheduledChangesOrder(t *testing.T) {
 		require.NoError(t, err, "failed to add forced change")
 	}
 
-	for _, f := range gs.forcedChanges {
-		fmt.Printf("HEADER NUMBER: %d, EFFECTIVE: %d\n", f.announcingHeader.Number, f.effectiveNumber())
+	for idx := 0; idx < len(gs.forcedChanges)-1; idx++ {
+		currentChange := gs.forcedChanges[idx]
+		nextChange := gs.forcedChanges[idx+1]
+
+		require.LessOrEqual(t, currentChange.effectiveNumber(),
+			nextChange.effectiveNumber())
+
+		require.LessOrEqual(t, currentChange.announcingHeader.Number,
+			nextChange.announcingHeader.Number)
 	}
 }
 
-func headerWithBABEPrimaryPreDigest(t *testing.T, kp *sr25519.Keypair, bs *BlockState,
-	parentHeader *types.Header) (header *types.Header) {
-	t.Helper()
-
-	transcript := merlin.NewTranscript("BABE") //string(types.BabeEngineID[:])
-	crypto.AppendUint64(transcript, []byte("slot number"), 1)
-	crypto.AppendUint64(transcript, []byte("current epoch"), 1)
-	transcript.AppendMessage([]byte("chain randomness"), []byte{})
-
-	output, proof, err := kp.VrfSign(transcript)
+func TestShouldNotAddMoreThanOneForcedChangeInTheSameFork(t *testing.T) {
+	keyring, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 
-	babePrimaryPreDigest := types.BabePrimaryPreDigest{
-		SlotNumber: 1,
-		VRFOutput:  output,
-		VRFProof:   proof,
-	}
+	db := NewInMemoryDB(t)
+	blockState := testBlockState(t, db)
 
-	preRuntimeDigest, err := babePrimaryPreDigest.ToPreRuntimeDigest()
+	gs, err := NewGrandpaStateFromGenesis(db, blockState, nil)
 	require.NoError(t, err)
 
-	digest := types.NewDigest()
+	aliceHeaders := issueBlocksWithBABEPrimary(t, keyring.KeyAlice, gs.blockState,
+		testGenesisHeader, 5)
 
-	require.NoError(t, digest.Add(*preRuntimeDigest))
-	header = &types.Header{
-		ParentHash: parentHeader.Hash(),
-		Number:     parentHeader.Number + 1,
-		Digest:     digest,
+	bobHeaders := issueBlocksWithBABEPrimary(t, keyring.KeyBob, gs.blockState,
+		aliceHeaders[1], 5)
+
+	someForcedChange := types.GrandpaForcedChange{
+		Delay: 1,
+		Auths: []types.GrandpaAuthoritiesRaw{
+			{Key: keyring.KeyAlice.Public().(*sr25519.PublicKey).AsBytes()},
+			{Key: keyring.KeyBob.Public().(*sr25519.PublicKey).AsBytes()},
+			{Key: keyring.KeyCharlie.Public().(*sr25519.PublicKey).AsBytes()},
+		},
 	}
 
-	block := &types.Block{
-		Header: *header,
-		Body:   *types.NewBody([]types.Extrinsic{}),
-	}
-
-	err = bs.AddBlock(block)
+	// adding more than one forced changes in the same branch
+	err = gs.addForcedChange(aliceHeaders[3], someForcedChange)
 	require.NoError(t, err)
 
-	return header
+	err = gs.addForcedChange(aliceHeaders[4], someForcedChange)
+	require.Error(t, err)
+	require.ErrorIs(t, err, ErrAlreadyHasForcedChanges)
+
+	// adding the same forced change twice
+	err = gs.addForcedChange(bobHeaders[2], someForcedChange)
+	require.NoError(t, err)
+
+	err = gs.addForcedChange(bobHeaders[2], someForcedChange)
+	require.Error(t, err)
+	require.ErrorIs(t, err, ErrDuplicatedHashes)
 }
 
 func issueBlocksWithBABEPrimary(t *testing.T, kp *sr25519.Keypair,

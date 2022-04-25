@@ -27,6 +27,7 @@ var (
 )
 
 var (
+	ErrDuplicatedHashes        = errors.New("duplicated hashes")
 	ErrAlreadyHasForcedChanges = errors.New("already has a forced change")
 	ErrUnfinalizedAncestor     = errors.New("ancestor with changes not applied")
 	ErrNoChanges               = errors.New("cannot get the next authority change block number")
@@ -175,7 +176,7 @@ func (s *GrandpaState) addForcedChange(header *types.Header, fc types.GrandpaFor
 		changeBlockHash := change.announcingHeader.Hash()
 
 		if changeBlockHash == headerHash {
-			return errors.New("duplicated hash")
+			return ErrDuplicatedHashes
 		}
 
 		isDescendant, err := s.blockState.IsDescendantOf(changeBlockHash, headerHash)
@@ -184,13 +185,13 @@ func (s *GrandpaState) addForcedChange(header *types.Header, fc types.GrandpaFor
 		}
 
 		if isDescendant {
-			return errors.New("multiple forced changes")
+			return ErrAlreadyHasForcedChanges
 		}
 	}
 
 	auths, err := types.GrandpaAuthoritiesRawToAuthorities(fc.Auths)
 	if err != nil {
-		return fmt.Errorf("cannot parser GRANPDA authorities to raw authorities: %w", err)
+		return fmt.Errorf("cannot parser GRANDPA authorities to raw authorities: %w", err)
 	}
 
 	pendingChange := &pendingChange{
