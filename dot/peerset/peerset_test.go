@@ -13,7 +13,7 @@ import (
 
 const testSetID = 0
 
-func Test_Ban_Reject_Accept_Peer(t *testing.T) {
+func TestBanRejectAcceptPeer(t *testing.T) {
 	t.Parallel()
 
 	handler := newTestPeerSet(t, 25, 25, nil, nil, false)
@@ -21,7 +21,8 @@ func Test_Ban_Reject_Accept_Peer(t *testing.T) {
 	ps := handler.peerSet
 
 	checkPeerStateSetNumIn(t, ps.peerState, testSetID, 0)
-	require.Equal(t, unknownPeer, ps.peerState.peerStatus(testSetID, peer1))
+	peer1Status := ps.peerState.peerStatus(testSetID, peer1)
+	require.Equal(t, unknownPeer, peer1Status)
 
 	ps.peerState.discover(testSetID, peer1)
 	// adding peer1 with incoming slot.
@@ -29,7 +30,8 @@ func Test_Ban_Reject_Accept_Peer(t *testing.T) {
 	require.NoError(t, err)
 
 	checkPeerStateSetNumIn(t, ps.peerState, testSetID, 1)
-	require.Equal(t, connectedPeer, ps.peerState.peerStatus(testSetID, peer1))
+	peer1Status = ps.peerState.peerStatus(testSetID, peer1)
+	require.Equal(t, connectedPeer, peer1Status)
 
 	// we ban a node by setting its reputation under the threshold.
 	rpc := newReputationChange(BannedThresholdValue-1, "")
@@ -42,7 +44,8 @@ func Test_Ban_Reject_Accept_Peer(t *testing.T) {
 	checkMessageStatus(t, <-ps.resultMsgCh, Drop)
 
 	checkPeerStateSetNumIn(t, ps.peerState, testSetID, 0)
-	require.Equal(t, notConnectedPeer, ps.peerState.peerStatus(testSetID, peer1))
+	peer1Status = ps.peerState.peerStatus(testSetID, peer1)
+	require.Equal(t, notConnectedPeer, peer1Status)
 	lastDisconectedAt := ps.peerState.nodes[peer1].lastConnected[testSetID]
 
 	// check that an incoming connection from that node gets refused.
@@ -214,7 +217,8 @@ func TestReAllocAfterBanned(t *testing.T) {
 	handler := newTestPeerSet(t, 25, 25, []peer.ID{}, []peer.ID{}, false)
 
 	ps := handler.peerSet
-	require.Equal(t, unknownPeer, ps.peerState.peerStatus(testSetID, peer1))
+	peer1Status := ps.peerState.peerStatus(testSetID, peer1)
+	require.Equal(t, unknownPeer, peer1Status)
 
 	ps.peerState.discover(testSetID, peer1)
 	err := ps.peerState.tryAcceptIncoming(testSetID, peer1)
