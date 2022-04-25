@@ -610,13 +610,13 @@ func (ps *PeerSet) incoming(setID int, peers ...peer.ID) error {
 		if ps.isReservedOnly {
 			_, has := ps.reservedNode[pid]
 			if !has {
-				message := Message{
+				rejectMessage := Message{
 					Status: Reject,
 					setID:  uint64(setID),
 					PeerID: pid,
 				}
 
-				ps.resultMsgCh <- message
+				ps.resultMsgCh <- rejectMessage
 				continue
 			}
 		}
@@ -642,26 +642,26 @@ func (ps *PeerSet) incoming(setID int, peers ...peer.ID) error {
 		}
 		state.RUnlock()
 
-		message := Message{
+		incomingMessage := Message{
 			setID:  uint64(setID),
 			PeerID: pid,
 		}
 
 		switch {
 		case nodeReputation < BannedThresholdValue:
-			message.Status = Reject
+			incomingMessage.Status = Reject
 		default:
 			err := state.tryAcceptIncoming(setID, pid)
 			if err != nil {
 				logger.Errorf("cannot accept incomming peer %pid: %w", pid, err)
-				message.Status = Reject
+				incomingMessage.Status = Reject
 			} else {
 				logger.Debugf("incoming connection accepted from peer %s", pid)
-				message.Status = Accept
+				incomingMessage.Status = Accept
 			}
 		}
 
-		ps.resultMsgCh <- message
+		ps.resultMsgCh <- incomingMessage
 	}
 
 	return nil
@@ -776,7 +776,11 @@ func (ps *PeerSet) listenAction(ctx context.Context) {
 
 func (ps *PeerSet) periodicallyAllocateSlots(ctx context.Context) {
 	ticker := time.NewTicker(ps.nextPeriodicAllocSlots)
-	defer ticker.Stop()
+
+	defer func() {
+		ticker.Stop()
+		close(ps.resultMsgCh)
+	}()
 
 	for {
 		select {
