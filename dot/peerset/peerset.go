@@ -191,7 +191,8 @@ type PeerSet struct {
 	// next time to do a periodic call to allocSlots with all Set. This is done once two
 	// second, to match the period of the Reputation updates.
 	nextPeriodicAllocSlots time.Duration
-	actionQueue            <-chan action
+	// chan for receiving action request.
+	actionQueue <-chan action
 }
 
 // config is configuration of a single set.
@@ -358,13 +359,11 @@ func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
 				return fmt.Errorf("cannot disconnect peer %s at set %d: %w", pid, i, err)
 			}
 
-			dropMessage := Message{
+			ps.resultMsgCh <- Message{
 				Status: Drop,
 				setID:  uint64(i),
 				PeerID: pid,
 			}
-
-			ps.resultMsgCh <- dropMessage
 
 			if err = ps.allocSlots(i); err != nil {
 				return fmt.Errorf("could not allocate slots: %w", err)
@@ -406,13 +405,11 @@ func (ps *PeerSet) allocSlots(setIdx int) error {
 			return fmt.Errorf("cannot set peer %s from set %d as outgoing: %w", reservePeer, setIdx, err)
 		}
 
-		connectMessage := Message{
+		ps.resultMsgCh <- Message{
 			Status: Connect,
 			setID:  uint64(setIdx),
 			PeerID: reservePeer,
 		}
-
-		ps.resultMsgCh <- connectMessage
 	}
 
 	// nothing more to do if we're in reserved mode.
@@ -437,13 +434,11 @@ func (ps *PeerSet) allocSlots(setIdx int) error {
 			break
 		}
 
-		connectMessage := Message{
+		ps.resultMsgCh <- Message{
 			Status: Connect,
 			setID:  uint64(setIdx),
 			PeerID: peerID,
 		}
-
-		ps.resultMsgCh <- connectMessage
 
 		logger.Debugf("Sent connect message to peer %s", peerID)
 	}
@@ -502,13 +497,12 @@ func (ps *PeerSet) removeReservedPeers(setID int, peers ...peer.ID) error {
 				return fmt.Errorf("cannot disconnect peer %s at set %d: %w", peerID, setID, err)
 			}
 
-			dropMessage := Message{
+			ps.resultMsgCh <- Message{
 				Status: Drop,
 				setID:  uint64(setID),
 				PeerID: peerID,
 			}
 
-			ps.resultMsgCh <- dropMessage
 		}
 	}
 
@@ -571,13 +565,11 @@ func (ps *PeerSet) removePeer(setID int, peers ...peer.ID) error {
 		}
 
 		if status := ps.peerState.peerStatus(setID, pid); status == connectedPeer {
-			dropMessage := Message{
+			ps.resultMsgCh <- Message{
 				Status: Drop,
 				setID:  uint64(setID),
 				PeerID: pid,
 			}
-
-			ps.resultMsgCh <- dropMessage
 
 			// disconnect and forget
 			err := ps.peerState.disconnect(setID, pid)
@@ -610,13 +602,11 @@ func (ps *PeerSet) incoming(setID int, peers ...peer.ID) error {
 		if ps.isReservedOnly {
 			_, has := ps.reservedNode[pid]
 			if !has {
-				rejectMessage := Message{
+				ps.resultMsgCh <- Message{
 					Status: Reject,
 					setID:  uint64(setID),
 					PeerID: pid,
 				}
-
-				ps.resultMsgCh <- rejectMessage
 				continue
 			}
 		}
@@ -642,26 +632,34 @@ func (ps *PeerSet) incoming(setID int, peers ...peer.ID) error {
 		}
 		state.RUnlock()
 
-		incomingMessage := Message{
-			setID:  uint64(setID),
-			PeerID: pid,
-		}
-
 		switch {
 		case nodeReputation < BannedThresholdValue:
-			incomingMessage.Status = Reject
+			ps.resultMsgCh <- Message{
+				Status: Reject,
+				setID:  uint64(setID),
+				PeerID: pid,
+			}
+
 		default:
 			err := state.tryAcceptIncoming(setID, pid)
 			if err != nil {
 				logger.Errorf("cannot accept incomming peer %pid: %w", pid, err)
-				incomingMessage.Status = Reject
+
+				ps.resultMsgCh <- Message{
+					Status: Reject,
+					setID:  uint64(setID),
+					PeerID: pid,
+				}
 			} else {
 				logger.Debugf("incoming connection accepted from peer %s", pid)
-				incomingMessage.Status = Accept
+
+				ps.resultMsgCh <- Message{
+					Status: Accept,
+					setID:  uint64(setID),
+					PeerID: pid,
+				}
 			}
 		}
-
-		ps.resultMsgCh <- incomingMessage
 	}
 
 	return nil
@@ -702,13 +700,11 @@ func (ps *PeerSet) disconnect(setIdx int, reason DropReason, peers ...peer.ID) e
 			return fmt.Errorf("cannot disconnect peer %s at set %d: %w", pid, setIdx, err)
 		}
 
-		dropMessage := Message{
+		ps.resultMsgCh <- Message{
 			Status: Drop,
 			setID:  uint64(setIdx),
 			PeerID: pid,
 		}
-
-		ps.resultMsgCh <- dropMessage
 
 		// TODO: figure out the condition of connection refuse.
 		if reason == RefusedDrop {
