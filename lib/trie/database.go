@@ -78,15 +78,17 @@ func (t *Trie) store(db chaindb.Batch, n Node) error {
 	return nil
 }
 
-// loadFromProof create a partial trie based on the proof slice, as it only contains nodes that are in the proof afaik.
-func (t *Trie) loadFromProof(rawProof [][]byte, rootHash []byte) error {
-	if len(rawProof) == 0 {
+// LoadFromProof sets a partial trie based on the proof slice of encoded nodes.
+// Note this is exported because it is imported  is used by:
+// https://github.com/ComposableFi/ibc-go/blob/6d62edaa1a3cb0768c430dab81bb195e0b0c72db/modules/light-clients/11-beefy/types/client_state.go#L78
+func (t *Trie) LoadFromProof(proofEncodedNodes [][]byte, rootHash []byte) error {
+	if len(proofEncodedNodes) == 0 {
 		return ErrEmptyProof
 	}
 
-	proofHashToNode := make(map[string]Node, len(rawProof))
+	proofHashToNode := make(map[string]Node, len(proofEncodedNodes))
 
-	for i, rawNode := range rawProof {
+	for i, rawNode := range proofEncodedNodes {
 		decodedNode, err := node.Decode(bytes.NewReader(rawNode))
 		if err != nil {
 			return fmt.Errorf("%w: at index %d: 0x%x",
@@ -185,6 +187,18 @@ func (t *Trie) load(db chaindb.Database, n Node) error {
 		}
 
 		hash := child.GetHash()
+
+		_, isLeaf := child.(*node.Leaf)
+		if len(hash) == 0 && isLeaf {
+			// node has already been loaded inline
+			// just set encoding + hash digest
+			_, _, err := child.EncodeAndHash(false)
+			if err != nil {
+				return err
+			}
+			child.SetDirty(false)
+			continue
+		}
 
 		encodedNode, err := db.Get(hash)
 		if err != nil {
@@ -330,12 +344,18 @@ func getFromDB(db chaindb.Database, n Node, key []byte) (
 
 	// childIndex is the nibble after the common prefix length in the key being searched.
 	childIndex := key[commonPrefixLength]
-	childWithHashOnly := branch.Children[childIndex]
-	if childWithHashOnly == nil {
+	child := branch.Children[childIndex]
+	if child == nil {
 		return nil, nil
 	}
 
-	childHash := childWithHashOnly.GetHash()
+	// Child can be either inlined or a hash pointer.
+	childHash := child.GetHash()
+	_, isLeaf := child.(*node.Leaf)
+	if len(childHash) == 0 && isLeaf {
+		return getFromDB(db, child, key[commonPrefixLength+1:])
+	}
+
 	encodedChild, err := db.Get(childHash)
 	if err != nil {
 		return nil, fmt.Errorf(

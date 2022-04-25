@@ -4,6 +4,7 @@
 package stress
 
 import (
+	"context"
 	"os"
 	"testing"
 	"time"
@@ -25,11 +26,16 @@ func TestStress_Grandpa_OneAuthority(t *testing.T) {
 
 	time.Sleep(time.Second * 10)
 
-	compareChainHeadsWithRetry(t, nodes)
-	prev, _ := compareFinalizedHeads(t, nodes)
+	ctx := context.Background()
+
+	const getChainHeadTimeout = time.Second
+	compareChainHeadsWithRetry(ctx, t, nodes, getChainHeadTimeout)
+
+	const getFinalizedHeadTimeout = time.Second
+	prev, _ := compareFinalizedHeads(ctx, t, nodes, getFinalizedHeadTimeout)
 
 	time.Sleep(time.Second * 10)
-	curr, _ := compareFinalizedHeads(t, nodes)
+	curr, _ := compareFinalizedHeads(ctx, t, nodes, getFinalizedHeadTimeout)
 	require.NotEqual(t, prev, curr)
 }
 
@@ -48,9 +54,13 @@ func TestStress_Grandpa_ThreeAuthorities(t *testing.T) {
 		require.Len(t, errList, 0)
 	}()
 
+	ctx := context.Background()
+
 	numRounds := 5
 	for i := 1; i < numRounds+1; i++ {
-		fin, err := compareFinalizedHeadsWithRetry(t, nodes, uint64(i))
+		const getFinalizedHeadByRoundTimeout = time.Second
+		fin, err := compareFinalizedHeadsWithRetry(ctx, t,
+			nodes, uint64(i), getFinalizedHeadByRoundTimeout)
 		require.NoError(t, err)
 		t.Logf("finalised hash in round %d: %s", i, fin)
 	}
@@ -70,9 +80,13 @@ func TestStress_Grandpa_SixAuthorities(t *testing.T) {
 		require.Len(t, errList, 0)
 	}()
 
+	ctx := context.Background()
+
 	numRounds := 10
 	for i := 1; i < numRounds+1; i++ {
-		fin, err := compareFinalizedHeadsWithRetry(t, nodes, uint64(i))
+		const getFinalizedHeadByRoundTimeout = time.Second
+		fin, err := compareFinalizedHeadsWithRetry(ctx, t, nodes,
+			uint64(i), getFinalizedHeadByRoundTimeout)
 		require.NoError(t, err)
 		t.Logf("finalised hash in round %d: %s", i, fin)
 	}
@@ -95,9 +109,13 @@ func TestStress_Grandpa_NineAuthorities(t *testing.T) {
 		require.Len(t, errList, 0)
 	}()
 
+	ctx := context.Background()
+
 	numRounds := 3
 	for i := 1; i < numRounds+1; i++ {
-		fin, err := compareFinalizedHeadsWithRetry(t, nodes, uint64(i))
+		const getFinalizedHeadByRoundTimeout = time.Second
+		fin, err := compareFinalizedHeadsWithRetry(ctx, t, nodes,
+			uint64(i), getFinalizedHeadByRoundTimeout)
 		require.NoError(t, err)
 		t.Logf("finalised hash in round %d: %s", i, fin)
 	}
@@ -129,9 +147,12 @@ func TestStress_Grandpa_CatchUp(t *testing.T) {
 	require.NoError(t, err)
 	nodes = append(nodes, node)
 
+	ctx := context.Background()
+
 	numRounds := 10
 	for i := 1; i < numRounds+1; i++ {
-		fin, err := compareFinalizedHeadsWithRetry(t, nodes, uint64(i))
+		const getFinalizedHeadByRoundTimeout = time.Second
+		fin, err := compareFinalizedHeadsWithRetry(ctx, t, nodes, uint64(i), getFinalizedHeadByRoundTimeout)
 		require.NoError(t, err)
 		t.Logf("finalised hash in round %d: %s", i, fin)
 	}

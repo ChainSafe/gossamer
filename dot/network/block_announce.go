@@ -69,11 +69,14 @@ func (bm *BlockAnnounceMessage) Decode(in []byte) error {
 }
 
 // Hash returns the hash of the BlockAnnounceMessage
-func (bm *BlockAnnounceMessage) Hash() common.Hash {
+func (bm *BlockAnnounceMessage) Hash() (common.Hash, error) {
 	// scale encode each extrinsic
-	encMsg, _ := bm.Encode()
-	hash, _ := common.Blake2bHash(encMsg)
-	return hash
+	encMsg, err := bm.Encode()
+	if err != nil {
+		return common.Hash{}, fmt.Errorf("cannot encode message: %w", err)
+	}
+
+	return common.Blake2bHash(encMsg)
 }
 
 // IsHandshake returns false
@@ -144,9 +147,15 @@ func (*BlockAnnounceHandshake) Type() byte {
 	return 0
 }
 
-// Hash ...
-func (*BlockAnnounceHandshake) Hash() common.Hash {
-	return common.Hash{}
+// Hash returns blake2b hash of block announce handshake.
+func (hs *BlockAnnounceHandshake) Hash() (common.Hash, error) {
+	// scale encode each extrinsic
+	encMsg, err := hs.Encode()
+	if err != nil {
+		return common.Hash{}, fmt.Errorf("cannot encode handshake: %w", err)
+	}
+
+	return common.Blake2bHash(encMsg)
 }
 
 // IsHandshake returns true
@@ -174,7 +183,7 @@ func (s *Service) validateBlockAnnounceHandshake(from peer.ID, hs Handshake) err
 		return errors.New("invalid handshake type")
 	}
 
-	if bhs.GenesisHash != s.blockState.GenesisHash() {
+	if !bhs.GenesisHash.Equal(s.blockState.GenesisHash()) {
 		s.host.cm.peerSetHandler.ReportPeer(peerset.ReputationChange{
 			Value:  peerset.GenesisMismatch,
 			Reason: peerset.GenesisMismatchReason,

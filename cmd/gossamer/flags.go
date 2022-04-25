@@ -287,7 +287,7 @@ var (
 		Usage: "Enable external websocket connections",
 	}
 	// WSFlag Enable the websockets server
-	WSUnsafeFlag = cli.BoolFlag{
+	WSUnsafeEnabledFlag = cli.BoolFlag{
 		Name:  "ws-unsafe",
 		Usage: "Enable access to websocket unsafe calls",
 	}
@@ -436,7 +436,7 @@ var (
 		RPCModulesFlag,
 		WSFlag,
 		WSExternalFlag,
-		WSUnsafeFlag,
+		WSUnsafeEnabledFlag,
 		WSUnsafeExternalFlag,
 		WSPortFlag,
 

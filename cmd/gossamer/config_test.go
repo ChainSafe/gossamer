@@ -4,8 +4,12 @@
 package main
 
 import (
+	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"io"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -17,8 +21,8 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/utils"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli"
@@ -76,9 +80,7 @@ func TestConfigFromChainFlag(t *testing.T) {
 
 // TestInitConfigFromFlags tests createDotInitConfig using relevant init flags
 func TestInitConfigFromFlags(t *testing.T) {
-	testCfg, testCfgFile := newTestConfigWithFile(t)
-	require.NotNil(t, testCfg)
-	require.NotNil(t, testCfgFile)
+	_, testCfgFile := newTestConfigWithFile(t)
 
 	testApp := cli.NewApp()
 	testApp.Writer = io.Discard
@@ -92,7 +94,7 @@ func TestInitConfigFromFlags(t *testing.T) {
 		{
 			"Test gossamer --genesis",
 			[]string{"config", "genesis", "pruning", "retain-blocks"},
-			[]interface{}{testCfgFile.Name(), "test_genesis", dev.DefaultPruningMode, dev.DefaultRetainBlocks},
+			[]interface{}{testCfgFile, "test_genesis", dev.DefaultPruningMode, dev.DefaultRetainBlocks},
 			dot.InitConfig{
 				Genesis: "test_genesis",
 			},
@@ -114,8 +116,6 @@ func TestInitConfigFromFlags(t *testing.T) {
 // TestGlobalConfigFromFlags tests createDotGlobalConfig using relevant global flags
 func TestGlobalConfigFromFlags(t *testing.T) {
 	testCfg, testCfgFile := newTestConfigWithFile(t)
-	require.NotNil(t, testCfg)
-	require.NotNil(t, testCfgFile)
 
 	testApp := cli.NewApp()
 	testApp.Writer = io.Discard
@@ -129,7 +129,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 		{
 			"Test gossamer --config",
 			[]string{"config", "name"},
-			[]interface{}{testCfgFile.Name(), testCfg.Global.Name},
+			[]interface{}{testCfgFile, testCfg.Global.Name},
 			dot.GlobalConfig{
 				Name:           testCfg.Global.Name,
 				ID:             testCfg.Global.ID,
@@ -142,7 +142,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 		{
 			"Test kusama --chain",
 			[]string{"config", "chain", "name"},
-			[]interface{}{testCfgFile.Name(), "kusama", dot.KusamaConfig().Global.Name},
+			[]interface{}{testCfgFile, "kusama", dot.KusamaConfig().Global.Name},
 			dot.GlobalConfig{
 				Name:           dot.KusamaConfig().Global.Name,
 				ID:             "ksmcc3",
@@ -155,7 +155,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 		{
 			"Test gossamer --name",
 			[]string{"config", "name"},
-			[]interface{}{testCfgFile.Name(), "test_name"},
+			[]interface{}{testCfgFile, "test_name"},
 			dot.GlobalConfig{
 				Name:           "test_name",
 				ID:             testCfg.Global.ID,
@@ -168,7 +168,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 		{
 			"Test gossamer --basepath",
 			[]string{"config", "basepath", "name"},
-			[]interface{}{testCfgFile.Name(), "test_basepath", testCfg.Global.Name},
+			[]interface{}{testCfgFile, "test_basepath", testCfg.Global.Name},
 			dot.GlobalConfig{
 				Name:           testCfg.Global.Name,
 				ID:             testCfg.Global.ID,
@@ -181,7 +181,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 		{
 			"Test gossamer --roles",
 			[]string{"config", "roles", "name"},
-			[]interface{}{testCfgFile.Name(), "1", testCfg.Global.Name},
+			[]interface{}{testCfgFile, "1", testCfg.Global.Name},
 			dot.GlobalConfig{
 				Name:           testCfg.Global.Name,
 				ID:             testCfg.Global.ID,
@@ -194,7 +194,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 		{
 			"Test gossamer --publish-metrics",
 			[]string{"config", "publish-metrics", "name"},
-			[]interface{}{testCfgFile.Name(), true, testCfg.Global.Name},
+			[]interface{}{testCfgFile, true, testCfg.Global.Name},
 			dot.GlobalConfig{
 				Name:           testCfg.Global.Name,
 				ID:             testCfg.Global.ID,
@@ -207,7 +207,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 		{
 			"Test gossamer --metrics-address",
 			[]string{"config", "metrics-address", "name"},
-			[]interface{}{testCfgFile.Name(), ":9871", testCfg.Global.Name},
+			[]interface{}{testCfgFile, ":9871", testCfg.Global.Name},
 			dot.GlobalConfig{
 				Name:           testCfg.Global.Name,
 				ID:             testCfg.Global.ID,
@@ -220,7 +220,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 		{
 			"Test gossamer --no-telemetry",
 			[]string{"config", "no-telemetry", "name"},
-			[]interface{}{testCfgFile.Name(), true, testCfg.Global.Name},
+			[]interface{}{testCfgFile, true, testCfg.Global.Name},
 			dot.GlobalConfig{
 				Name:           testCfg.Global.Name,
 				ID:             testCfg.Global.ID,
@@ -235,7 +235,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 			"Test gossamer --telemetry-url",
 			[]string{"config", "telemetry-url", "name"},
 			[]interface{}{
-				testCfgFile.Name(),
+				testCfgFile,
 				[]string{"ws://localhost:8001/submit 0", "ws://foo/bar 0"},
 				testCfg.Global.Name,
 			},
@@ -270,8 +270,6 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 
 func TestGlobalConfigFromFlagsFails(t *testing.T) {
 	testCfg, testCfgFile := newTestConfigWithFile(t)
-	require.NotNil(t, testCfg)
-	require.NotNil(t, testCfgFile)
 
 	testApp := cli.NewApp()
 	testApp.Writer = io.Discard
@@ -286,7 +284,7 @@ func TestGlobalConfigFromFlagsFails(t *testing.T) {
 			"Test gossamer --telemetry-url invalid format",
 			[]string{"config", "telemetry-url", "name"},
 			[]interface{}{
-				testCfgFile.Name(),
+				testCfgFile,
 				[]string{"ws://localhost:8001/submit"},
 				testCfg.Global.Name,
 			},
@@ -296,7 +294,7 @@ func TestGlobalConfigFromFlagsFails(t *testing.T) {
 			"Test gossamer invalid --telemetry-url invalid verbosity",
 			[]string{"config", "telemetry-url", "name"},
 			[]interface{}{
-				testCfgFile.Name(),
+				testCfgFile,
 				[]string{"ws://foo/bar k"},
 				testCfg.Global.Name,
 			},
@@ -322,8 +320,6 @@ func TestGlobalConfigFromFlagsFails(t *testing.T) {
 // TestAccountConfigFromFlags tests createDotAccountConfig using relevant account flags
 func TestAccountConfigFromFlags(t *testing.T) {
 	testCfg, testCfgFile := newTestConfigWithFile(t)
-	require.NotNil(t, testCfg)
-	require.NotNil(t, testCfgFile)
 
 	testApp := cli.NewApp()
 	testApp.Writer = io.Discard
@@ -337,7 +333,7 @@ func TestAccountConfigFromFlags(t *testing.T) {
 		{
 			"Test gossamer --key",
 			[]string{"config", "key"},
-			[]interface{}{testCfgFile.Name(), "alice"},
+			[]interface{}{testCfgFile, "alice"},
 			dot.AccountConfig{
 				Key:    "alice",
 				Unlock: testCfg.Account.Unlock,
@@ -346,7 +342,7 @@ func TestAccountConfigFromFlags(t *testing.T) {
 		{
 			"Test gossamer --unlock",
 			[]string{"config", "key", "unlock"},
-			[]interface{}{testCfgFile.Name(), "alice", "0"},
+			[]interface{}{testCfgFile, "alice", "0"},
 			dot.AccountConfig{
 				Key:    "alice",
 				Unlock: "0",
@@ -369,8 +365,6 @@ func TestAccountConfigFromFlags(t *testing.T) {
 // TestCoreConfigFromFlags tests createDotCoreConfig using relevant core flags
 func TestCoreConfigFromFlags(t *testing.T) {
 	testCfg, testCfgFile := newTestConfigWithFile(t)
-	require.NotNil(t, testCfg)
-	require.NotNil(t, testCfgFile)
 
 	testApp := cli.NewApp()
 	testApp.Writer = io.Discard
@@ -384,7 +378,7 @@ func TestCoreConfigFromFlags(t *testing.T) {
 		{
 			"Test gossamer --roles",
 			[]string{"config", "roles"},
-			[]interface{}{testCfgFile.Name(), "4"},
+			[]interface{}{testCfgFile, "4"},
 			dot.CoreConfig{
 				Roles:            4,
 				BabeAuthority:    true,
@@ -396,7 +390,7 @@ func TestCoreConfigFromFlags(t *testing.T) {
 		{
 			"Test gossamer --roles",
 			[]string{"config", "roles"},
-			[]interface{}{testCfgFile.Name(), "0"},
+			[]interface{}{testCfgFile, "0"},
 			dot.CoreConfig{
 				Roles:            0,
 				BabeAuthority:    false,
@@ -422,8 +416,6 @@ func TestCoreConfigFromFlags(t *testing.T) {
 // TestNetworkConfigFromFlags tests createDotNetworkConfig using relevant network flags
 func TestNetworkConfigFromFlags(t *testing.T) {
 	testCfg, testCfgFile := newTestConfigWithFile(t)
-	require.NotNil(t, testCfg)
-	require.NotNil(t, testCfgFile)
 
 	testApp := cli.NewApp()
 	testApp.Writer = io.Discard
@@ -437,7 +429,7 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 		{
 			"Test gossamer --port",
 			[]string{"config", "port"},
-			[]interface{}{testCfgFile.Name(), "1234"},
+			[]interface{}{testCfgFile, "1234"},
 			dot.NetworkConfig{
 				Port:              1234,
 				Bootnodes:         testCfg.Network.Bootnodes,
@@ -452,7 +444,7 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 		{
 			"Test gossamer --bootnodes",
 			[]string{"config", "bootnodes"},
-			[]interface{}{testCfgFile.Name(), "peer1,peer2"},
+			[]interface{}{testCfgFile, "peer1,peer2"},
 			dot.NetworkConfig{
 				Port:              testCfg.Network.Port,
 				Bootnodes:         []string{"peer1", "peer2"},
@@ -467,7 +459,7 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 		{
 			"Test gossamer --protocol",
 			[]string{"config", "protocol"},
-			[]interface{}{testCfgFile.Name(), "/gossamer/test/0"},
+			[]interface{}{testCfgFile, "/gossamer/test/0"},
 			dot.NetworkConfig{
 				Port:              testCfg.Network.Port,
 				Bootnodes:         testCfg.Network.Bootnodes,
@@ -482,7 +474,7 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 		{
 			"Test gossamer --nobootstrap",
 			[]string{"config", "nobootstrap"},
-			[]interface{}{testCfgFile.Name(), "true"},
+			[]interface{}{testCfgFile, "true"},
 			dot.NetworkConfig{
 				Port:              testCfg.Network.Port,
 				Bootnodes:         testCfg.Network.Bootnodes,
@@ -497,7 +489,7 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 		{
 			"Test gossamer --nomdns",
 			[]string{"config", "nomdns"},
-			[]interface{}{testCfgFile.Name(), "true"},
+			[]interface{}{testCfgFile, "true"},
 			dot.NetworkConfig{
 				Port:              testCfg.Network.Port,
 				Bootnodes:         testCfg.Network.Bootnodes,
@@ -512,7 +504,7 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 		{
 			"Test gossamer --pubip",
 			[]string{"config", "pubip"},
-			[]interface{}{testCfgFile.Name(), "10.0.5.2"},
+			[]interface{}{testCfgFile, "10.0.5.2"},
 			dot.NetworkConfig{
 				Port:              testCfg.Network.Port,
 				Bootnodes:         testCfg.Network.Bootnodes,
@@ -528,7 +520,7 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 		{
 			"Test gossamer --pubdns",
 			[]string{"config", "pubdns"},
-			[]interface{}{testCfgFile.Name(), "alice"},
+			[]interface{}{testCfgFile, "alice"},
 			dot.NetworkConfig{
 				Port:              testCfg.Network.Port,
 				Bootnodes:         testCfg.Network.Bootnodes,
@@ -558,8 +550,6 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 // TestRPCConfigFromFlags tests createDotRPCConfig using relevant rpc flags
 func TestRPCConfigFromFlags(t *testing.T) {
 	testCfg, testCfgFile := newTestConfigWithFile(t)
-	require.NotNil(t, testCfg)
-	require.NotNil(t, testCfgFile)
 
 	testApp := cli.NewApp()
 	testApp.Writer = io.Discard
@@ -573,7 +563,7 @@ func TestRPCConfigFromFlags(t *testing.T) {
 		{
 			"Test gossamer --rpc",
 			[]string{"config", "rpc"},
-			[]interface{}{testCfgFile.Name(), "true"},
+			[]interface{}{testCfgFile, "true"},
 			dot.RPCConfig{
 				Enabled:    true,
 				External:   testCfg.RPC.External,
@@ -588,7 +578,7 @@ func TestRPCConfigFromFlags(t *testing.T) {
 		{
 			"Test gossamer --rpc false",
 			[]string{"config", "rpc"},
-			[]interface{}{testCfgFile.Name(), "false"},
+			[]interface{}{testCfgFile, "false"},
 			dot.RPCConfig{
 				Enabled:    false,
 				External:   testCfg.RPC.External,
@@ -603,7 +593,7 @@ func TestRPCConfigFromFlags(t *testing.T) {
 		{
 			"Test gossamer --rpc-external",
 			[]string{"config", "rpc-external"},
-			[]interface{}{testCfgFile.Name(), "true"},
+			[]interface{}{testCfgFile, "true"},
 			dot.RPCConfig{
 				Enabled:    true,
 				External:   true,
@@ -618,7 +608,7 @@ func TestRPCConfigFromFlags(t *testing.T) {
 		{
 			"Test gossamer --rpc-external false",
 			[]string{"config", "rpc-external"},
-			[]interface{}{testCfgFile.Name(), "false"},
+			[]interface{}{testCfgFile, "false"},
 			dot.RPCConfig{
 				Enabled:    true,
 				External:   false,
@@ -633,7 +623,7 @@ func TestRPCConfigFromFlags(t *testing.T) {
 		{
 			"Test gossamer --rpchost",
 			[]string{"config", "rpchost"},
-			[]interface{}{testCfgFile.Name(), "testhost"}, // rpc must be enabled
+			[]interface{}{testCfgFile, "testhost"}, // rpc must be enabled
 			dot.RPCConfig{
 				Enabled:    testCfg.RPC.Enabled,
 				External:   testCfg.RPC.External,
@@ -648,7 +638,7 @@ func TestRPCConfigFromFlags(t *testing.T) {
 		{
 			"Test gossamer --rpcport",
 			[]string{"config", "rpcport"},
-			[]interface{}{testCfgFile.Name(), "5678"}, // rpc must be enabled
+			[]interface{}{testCfgFile, "5678"}, // rpc must be enabled
 			dot.RPCConfig{
 				Enabled:    testCfg.RPC.Enabled,
 				External:   testCfg.RPC.External,
@@ -663,7 +653,7 @@ func TestRPCConfigFromFlags(t *testing.T) {
 		{
 			"Test gossamer --rpcsmods",
 			[]string{"config", "rpcmods"},
-			[]interface{}{testCfgFile.Name(), "mod1,mod2"}, // rpc must be enabled
+			[]interface{}{testCfgFile, "mod1,mod2"}, // rpc must be enabled
 			dot.RPCConfig{
 				Enabled:    testCfg.RPC.Enabled,
 				External:   testCfg.RPC.External,
@@ -678,7 +668,7 @@ func TestRPCConfigFromFlags(t *testing.T) {
 		{
 			"Test gossamer --wsport",
 			[]string{"config", "wsport"},
-			[]interface{}{testCfgFile.Name(), "7070"},
+			[]interface{}{testCfgFile, "7070"},
 			dot.RPCConfig{
 				Enabled:    testCfg.RPC.Enabled,
 				External:   testCfg.RPC.External,
@@ -693,7 +683,7 @@ func TestRPCConfigFromFlags(t *testing.T) {
 		{
 			"Test gossamer --ws",
 			[]string{"config", "ws"},
-			[]interface{}{testCfgFile.Name(), true},
+			[]interface{}{testCfgFile, true},
 			dot.RPCConfig{
 				Enabled:    testCfg.RPC.Enabled,
 				External:   testCfg.RPC.External,
@@ -708,7 +698,7 @@ func TestRPCConfigFromFlags(t *testing.T) {
 		{
 			"Test gossamer --ws false",
 			[]string{"config", "w"},
-			[]interface{}{testCfgFile.Name(), false},
+			[]interface{}{testCfgFile, false},
 			dot.RPCConfig{
 				Enabled:    testCfg.RPC.Enabled,
 				External:   testCfg.RPC.External,
@@ -723,7 +713,7 @@ func TestRPCConfigFromFlags(t *testing.T) {
 		{
 			"Test gossamer --ws-external",
 			[]string{"config", "ws-external"},
-			[]interface{}{testCfgFile.Name(), true},
+			[]interface{}{testCfgFile, true},
 			dot.RPCConfig{
 				Enabled:    testCfg.RPC.Enabled,
 				External:   testCfg.RPC.External,
@@ -738,7 +728,7 @@ func TestRPCConfigFromFlags(t *testing.T) {
 		{
 			"Test gossamer --ws-external false",
 			[]string{"config", "ws-external"},
-			[]interface{}{testCfgFile.Name(), false},
+			[]interface{}{testCfgFile, false},
 			dot.RPCConfig{
 				Enabled:    testCfg.RPC.Enabled,
 				External:   testCfg.RPC.External,
@@ -772,7 +762,7 @@ func TestUpdateConfigFromGenesisJSON(t *testing.T) {
 	ctx, err := newTestContext(
 		t.Name(),
 		[]string{"config", "genesis", "name"},
-		[]interface{}{testCfgFile.Name(), genFile, testCfg.Global.Name},
+		[]interface{}{testCfgFile, genFile, testCfg.Global.Name},
 	)
 	require.NoError(t, err)
 
@@ -826,7 +816,7 @@ func TestUpdateConfigFromGenesisJSON_Default(t *testing.T) {
 	ctx, err := newTestContext(
 		t.Name(),
 		[]string{"config", "genesis", "name"},
-		[]interface{}{testCfgFile.Name(), "", testCfg.Global.Name},
+		[]interface{}{testCfgFile, "", testCfg.Global.Name},
 	)
 	require.NoError(t, err)
 
@@ -876,7 +866,7 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 	ctx, err := newTestContext(
 		t.Name(),
 		[]string{"config", "genesis", "name"},
-		[]interface{}{testCfgFile.Name(), genFile, testCfg.Global.Name},
+		[]interface{}{testCfgFile, genFile, testCfg.Global.Name},
 	)
 	require.NoError(t, err)
 
@@ -948,19 +938,49 @@ func TestGlobalNodeName_WhenNodeAlreadyHasStoredName(t *testing.T) {
 	// Initialise a node with a random name
 	globalName := dot.RandomNodeName()
 
-	cfg := dot.NewTestConfig(t)
+	cfg := newTestConfig(t)
 	cfg.Global.Name = globalName
-	require.NotNil(t, cfg)
 
-	genPath := dot.NewTestGenesisAndRuntime(t)
-	require.NotNil(t, genPath)
+	runtimeFilePath := filepath.Join(t.TempDir(), "runtime")
+	_, testRuntimeURL := runtime.GetRuntimeVars(runtime.NODE_RUNTIME)
+	err := runtime.GetRuntimeBlob(runtimeFilePath, testRuntimeURL)
+	require.NoError(t, err)
+	runtimeData, err := os.ReadFile(runtimeFilePath)
+	require.NoError(t, err)
+
+	fp := utils.GetGssmrGenesisRawPathTest(t)
+
+	gssmrGen, err := genesis.NewGenesisFromJSONRaw(fp)
+	require.NoError(t, err)
+
+	gen := &genesis.Genesis{
+		Name:       "test",
+		ID:         "test",
+		Bootnodes:  []string(nil),
+		ProtocolID: "/gossamer/test/0",
+		Genesis:    gssmrGen.GenesisFields(),
+	}
+
+	gen.Genesis.Raw = map[string]map[string]string{
+		"top": {
+			"0x3a636f6465": "0x" + hex.EncodeToString(runtimeData),
+			"0xcf722c0832b5231d35e29f319ff27389f5032bfc7bfc3ba5ed7839f2042fb99f": "0x0000000000000001",
+		},
+	}
+
+	genData, err := json.Marshal(gen)
+	require.NoError(t, err)
+
+	genPath := filepath.Join(t.TempDir(), "genesis.json")
+	err = os.WriteFile(genPath, genData, os.ModePerm)
+	require.NoError(t, err)
 
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
 	cfg.Init.Genesis = genPath
 
-	err := dot.InitNode(cfg)
+	err = dot.InitNode(cfg)
 	require.NoError(t, err)
 
 	// call another command and test the name
@@ -1001,8 +1021,6 @@ func TestGlobalNodeName_WhenNodeAlreadyHasStoredName(t *testing.T) {
 
 func TestGlobalNodeNamePriorityOrder(t *testing.T) {
 	cfg, testCfgFile := newTestConfigWithFile(t)
-	require.NotNil(t, cfg)
-	require.NotNil(t, testCfgFile)
 
 	// call another command and test the name
 	testApp := cli.NewApp()
@@ -1017,7 +1035,7 @@ func TestGlobalNodeNamePriorityOrder(t *testing.T) {
 	}{
 		"Test gossamer --basepath --name --config",
 		[]string{"basepath", "name", "config"},
-		[]interface{}{cfg.Global.BasePath, "mydefinedname", testCfgFile.Name()},
+		[]interface{}{cfg.Global.BasePath, "mydefinedname", testCfgFile},
 		"mydefinedname",
 	}
 
@@ -1040,7 +1058,7 @@ func TestGlobalNodeNamePriorityOrder(t *testing.T) {
 	}{
 		"Test gossamer --basepath --config",
 		[]string{"basepath", "config"},
-		[]interface{}{cfg.Global.BasePath, testCfgFile.Name()},
+		[]interface{}{cfg.Global.BasePath, testCfgFile},
 		cfg.Global.Name,
 	}
 

@@ -68,7 +68,94 @@ type ServiceConfig struct {
 	Telemetry          telemetry.Client
 }
 
-// NewService returns a new Babe Service using the provided VRF keys and runtime
+// Validate returns error if config does not contain required attributes
+func (sc *ServiceConfig) Validate() error {
+	if sc.Keypair == nil && sc.Authority {
+		return errNoBABEAuthorityKeyProvided
+	}
+
+	if sc.BlockState == nil {
+		return ErrNilBlockState
+	}
+
+	if sc.EpochState == nil {
+		return errNilEpochState
+	}
+
+	if sc.BlockImportHandler == nil {
+		return errNilBlockImportHandler
+	}
+
+	return nil
+}
+
+// ServiceIFace interface that defines methods available to BabeService
+type ServiceIFace interface {
+	Start() error
+	Stop() error
+	EpochLength() uint64
+	Pause() error
+	IsPaused() bool
+	Resume() error
+	SlotDuration() uint64
+}
+
+// Builder struct to hold babe builder functions
+type Builder struct{}
+
+//NewServiceIFace returns a new Babe Service using the provided VRF keys and runtime
+func (Builder) NewServiceIFace(cfg *ServiceConfig) (ServiceIFace, error) {
+	if err := cfg.Validate(); err != nil {
+		return nil, fmt.Errorf("could not verify service config: %w", err)
+	}
+
+	logger.Patch(log.SetLevel(cfg.LogLvl))
+
+	slotDuration, err := cfg.EpochState.GetSlotDuration()
+	if err != nil {
+		return nil, fmt.Errorf("cannot get slot duration: %w", err)
+	}
+
+	epochLength, err := cfg.EpochState.GetEpochLength()
+	if err != nil {
+		return nil, fmt.Errorf("cannot get epoch length: %w", err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	babeService := &Service{
+		ctx:                ctx,
+		cancel:             cancel,
+		blockState:         cfg.BlockState,
+		storageState:       cfg.StorageState,
+		epochState:         cfg.EpochState,
+		keypair:            cfg.Keypair,
+		transactionState:   cfg.TransactionState,
+		pause:              make(chan struct{}),
+		authority:          cfg.Authority,
+		dev:                cfg.IsDev,
+		blockImportHandler: cfg.BlockImportHandler,
+		lead:               cfg.Lead,
+		constants: constants{
+			slotDuration: slotDuration,
+			epochLength:  epochLength,
+		},
+		telemetry: cfg.Telemetry,
+	}
+
+	logger.Debugf(
+		"created service with block producer ID=%v, slot duration %s, epoch length (slots) %d",
+		cfg.Authority, babeService.constants.slotDuration, babeService.constants.epochLength,
+	)
+
+	if cfg.Lead {
+		logger.Debug("node designated to build block 1")
+	}
+
+	return babeService, nil
+}
+
+// NewService function to create babe service
 func NewService(cfg *ServiceConfig) (*Service, error) {
 	if cfg.Keypair == nil && cfg.Authority {
 		return nil, errors.New("cannot create BABE service as authority; no keypair provided")
@@ -312,7 +399,7 @@ func (b *Service) initiate() {
 func (b *Service) initiateAndGetEpochHandler(epoch uint64) (*epochHandler, error) {
 	epochData, err := b.initiateEpoch(epoch)
 	if err != nil {
-		return nil, fmt.Errorf("failed to initiate epoch %d: %w", epoch, err)
+		return nil, fmt.Errorf("failed to initiate epoch: %w", err)
 	}
 
 	logger.Debugf("initiated epoch with threshold %s, randomness 0x%x and authorities %v",
@@ -343,7 +430,7 @@ func (b *Service) runEngine() error {
 		if errors.Is(err, errServicePaused) || errors.Is(err, context.Canceled) {
 			return nil
 		} else if err != nil {
-			return err
+			return fmt.Errorf("cannot handle epoch: %w", err)
 		}
 
 		epoch = next
@@ -355,7 +442,7 @@ func (b *Service) handleEpoch(epoch uint64) (next uint64, err error) {
 	defer cancel()
 	b.epochHandler, err = b.initiateAndGetEpochHandler(epoch)
 	if err != nil {
-		return 0, fmt.Errorf("cannot initiate and get epoch handler for epoch %d: %w", epoch, err)
+		return 0, fmt.Errorf("cannot initiate and get epoch handler: %w", err)
 	}
 
 	// get start slot for current epoch

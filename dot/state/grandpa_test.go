@@ -60,10 +60,7 @@ func TestGrandpaState_IncrementSetID(t *testing.T) {
 	gs, err := NewGrandpaStateFromGenesis(db, testAuths)
 	require.NoError(t, err)
 
-	err = gs.IncrementSetID()
-	require.NoError(t, err)
-
-	setID, err := gs.GetCurrentSetID()
+	setID, err := gs.IncrementSetID()
 	require.NoError(t, err)
 	require.Equal(t, genesisSetID+1, setID)
 }
@@ -88,7 +85,7 @@ func TestGrandpaState_GetSetIDByBlockNumber(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, genesisSetID+1, setID)
 
-	err = gs.IncrementSetID()
+	newSetID, err := gs.IncrementSetID()
 	require.NoError(t, err)
 
 	setID, err = gs.GetSetIDByBlockNumber(100)
@@ -98,6 +95,7 @@ func TestGrandpaState_GetSetIDByBlockNumber(t *testing.T) {
 	setID, err = gs.GetSetIDByBlockNumber(101)
 	require.NoError(t, err)
 	require.Equal(t, genesisSetID+1, setID)
+	require.Equal(t, genesisSetID+1, newSetID)
 }
 
 func TestGrandpaState_LatestRound(t *testing.T) {
