@@ -160,7 +160,6 @@ func (h *Handler) handleBlockImport(ctx context.Context) {
 			}
 
 			h.HandleDigests(&block.Header)
-
 			h.grandpaState.ApplyForcedChanges(&block.Header)
 		case <-ctx.Done():
 			return

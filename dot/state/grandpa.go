@@ -396,7 +396,6 @@ func (s *GrandpaState) ApplyScheduledChanges(finalizedHeader *types.Header) erro
 // imported block and then apply it otherwise nothing happens
 func (s *GrandpaState) ApplyForcedChanges(importedBlockHeader *types.Header) error {
 	importedHash := importedBlockHeader.Hash()
-
 	var forcedChange *pendingChange
 
 	for _, forced := range s.forcedChanges {
@@ -444,7 +443,7 @@ func (s *GrandpaState) ApplyForcedChanges(importedBlockHeader *types.Header) err
 
 		if isDescendant {
 			return fmt.Errorf(
-				"not authority set change forced at block #%d, due to pending standard change at block #%d",
+				"forced authority fails at block #%d due to pending standard change at block #%d",
 				forcedChange.announcingHeader.Number,
 				scheduled.change.effectiveNumber())
 		}
