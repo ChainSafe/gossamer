@@ -26,6 +26,7 @@ const (
 	// from a node and the moment we remove it from the list.
 	forgetAfterTime = time.Second * 3600 // one hour
 
+	// default channel size for peerSet.
 	msgChanSize = 100
 )
 
