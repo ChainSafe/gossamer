@@ -490,6 +490,10 @@ func (s *Service) Stop() error {
 	// check if closeCh is closed, if not, close it.
 	for {
 		select {
+		case _, hasMore := <-s.closeCh:
+			if !hasMore {
+				return nil
+			}
 		case <-s.closeCh:
 			return nil
 		default:
