@@ -308,6 +308,13 @@ func Test_votesTracker_getMessagesForBlockHash(t *testing.T) {
 			vt := testCase.votesTracker
 			messages := vt.getMessagesForBlockHash(testCase.blockHash)
 
+			sort.Slice(messages, func(i, j int) bool {
+				if messages[i].from == messages[j].from {
+					return messages[i].msg.Round < messages[j].msg.Round
+				}
+				return messages[i].from < messages[j].from
+			})
+
 			assert.Equal(t, testCase.messages, messages)
 		})
 	}

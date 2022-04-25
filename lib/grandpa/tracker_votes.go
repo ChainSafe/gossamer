@@ -146,7 +146,7 @@ func (vt *votesTracker) delete(blockHash common.Hash) {
 
 // getMessagesForBlockHash returns all the vote messages
 // for a particular block hash from the tracker as a slice
-// of networkVoteMessage.
+// of networkVoteMessage. There is no order in the slice.
 // It returns nil if the block hash does not exist.
 func (vt *votesTracker) getMessagesForBlockHash(
 	blockHash common.Hash) (messages []networkVoteMessage) {
