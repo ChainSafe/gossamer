@@ -781,7 +781,10 @@ func (ps *PeerSet) periodicallyAllocateSlots(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			// TODO: log context error?
+			err := ctx.Err()
+			if err != nil {
+				logger.Debugf("peerset context finished with error: %w", err)
+			}
 			return
 		case <-ticker.C:
 			for i := 0; i < ps.peerState.getSetLength(); i++ {
