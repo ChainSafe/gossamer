@@ -58,48 +58,10 @@ func Test_chainSyncState_String(t *testing.T) {
 	}
 }
 
-const (
-	defaultMinPeers     = 1
-	defaultMaxPeers     = 5
-	testTimeout         = time.Second * 5
-	defaultSlotDuration = time.Second * 6
-)
-
-func newTestChainSync(t *testing.T) (*chainSync, *blockQueue) {
-	header, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, 0,
-		types.NewDigest())
-	require.NoError(t, err)
-
-	bs := new(syncmocks.BlockState)
-	bs.On("BestBlockHeader").Return(header, nil)
-	bs.On("GetFinalisedNotifierChannel").Return(make(chan *types.FinalisationInfo, 128), nil)
-	bs.On("HasHeader", mock.AnythingOfType("common.Hash")).Return(true, nil)
-
-	net := new(syncmocks.Network)
-	net.On("DoBlockRequest", mock.AnythingOfType("peer.ID"), mock.AnythingOfType("*network.BlockRequestMessage")).
-		Return(nil, nil)
-	net.On("ReportPeer", mock.AnythingOfType("peerset.ReputationChange"), mock.AnythingOfType("peer.ID"))
-
-	readyBlocks := newBlockQueue(maxResponseSize)
-
-	cfg := &chainSyncConfig{
-		bs:            bs,
-		net:           net,
-		readyBlocks:   readyBlocks,
-		pendingBlocks: newDisjointBlockSet(pendingBlocksLimit),
-		minPeers:      defaultMinPeers,
-		maxPeers:      defaultMaxPeers,
-		slotDuration:  defaultSlotDuration,
-	}
-
-	cs := newChainSync(cfg)
-	return cs, readyBlocks
-}
-
 func TestChainSync_SetPeerHead(t *testing.T) {
 	t.Parallel()
 
-	cs, _ := newTestChainSync(t)
+	cs := newTestChainSync(t)
 
 	testPeer := peer.ID("noot")
 	hash := common.Hash{0xa, 0xb}
@@ -194,8 +156,7 @@ func TestChainSync_SetPeerHead(t *testing.T) {
 func TestChainSync_sync_bootstrap_withWorkerError(t *testing.T) {
 	t.Parallel()
 
-	cs, _ := newTestChainSync(t)
-
+	cs := newTestChainSync(t)
 	go cs.sync()
 	defer cs.cancel()
 
@@ -223,7 +184,7 @@ func TestChainSync_sync_bootstrap_withWorkerError(t *testing.T) {
 func TestChainSync_sync_tip(t *testing.T) {
 	t.Parallel()
 
-	cs, _ := newTestChainSync(t)
+	cs := newTestChainSync(t)
 	cs.blockState = new(syncmocks.BlockState)
 	header, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, 1000,
 		types.NewDigest())
@@ -244,8 +205,8 @@ func TestChainSync_sync_tip(t *testing.T) {
 	require.Equal(t, tip, cs.state)
 }
 
-func TestChainSync_getTarget_Integration(t *testing.T) {
-	cs, _ := newTestChainSync(t)
+func TestChainSync_getTarget(t *testing.T) {
+	cs := newTestChainSync(t)
 	require.Equal(t, uint(1<<32-1), cs.getTarget())
 	cs.peerState = map[peer.ID]*peerState{
 		"a": {
@@ -497,7 +458,7 @@ func TestWorkerToRequests(t *testing.T) {
 func TestChainSync_validateResponse(t *testing.T) {
 	t.Parallel()
 
-	cs, _ := newTestChainSync(t)
+	cs := newTestChainSync(t)
 	err := cs.validateResponse(nil, nil, "")
 	require.Equal(t, errEmptyBlockData, err)
 
@@ -609,7 +570,7 @@ func TestChainSync_validateResponse(t *testing.T) {
 func TestChainSync_validateResponse_firstBlock(t *testing.T) {
 	t.Parallel()
 
-	cs, _ := newTestChainSync(t)
+	cs := newTestChainSync(t)
 	bs := new(syncmocks.BlockState)
 	bs.On("HasHeader", mock.AnythingOfType("common.Hash")).Return(false, nil)
 	cs.blockState = bs
@@ -647,7 +608,8 @@ func TestChainSync_validateResponse_firstBlock(t *testing.T) {
 func TestChainSync_doSync(t *testing.T) {
 	t.Parallel()
 
-	cs, readyBlocks := newTestChainSync(t)
+	readyBlocks := newBlockQueue(maxResponseSize)
+	cs := newTestChainSyncWithReadyBlocks(t, readyBlocks)
 
 	max := uint32(1)
 	req := &network.BlockRequestMessage{
@@ -735,7 +697,8 @@ func TestChainSync_doSync(t *testing.T) {
 func TestHandleReadyBlock(t *testing.T) {
 	t.Parallel()
 
-	cs, readyBlocks := newTestChainSync(t)
+	readyBlocks := newBlockQueue(maxResponseSize)
+	cs := newTestChainSyncWithReadyBlocks(t, readyBlocks)
 
 	// test that descendant chain gets returned by getReadyDescendants on block 1 being ready
 	header1 := &types.Header{
@@ -791,7 +754,7 @@ func TestHandleReadyBlock(t *testing.T) {
 func TestChainSync_determineSyncPeers(t *testing.T) {
 	t.Parallel()
 
-	cs, _ := newTestChainSync(t)
+	cs := newTestChainSync(t)
 
 	req := &network.BlockRequestMessage{}
 	testPeerA := peer.ID("a")
@@ -949,12 +912,13 @@ func Test_chainSync_start(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			cs := &chainSync{
-				ctx:           ctx,
-				cancel:        cancel,
-				blockState:    tt.fields.blockState,
-				pendingBlocks: tt.fields.pendingBlocks,
-				benchmarker:   tt.fields.benchmarker,
-				slotDuration:  tt.fields.slotDuration,
+				ctx:                   ctx,
+				cancel:                cancel,
+				blockState:            tt.fields.blockState,
+				pendingBlocks:         tt.fields.pendingBlocks,
+				benchmarker:           tt.fields.benchmarker,
+				slotDuration:          tt.fields.slotDuration,
+				logSyncSpeedFrequency: time.Second,
 			}
 			cs.start()
 			time.Sleep(time.Millisecond)

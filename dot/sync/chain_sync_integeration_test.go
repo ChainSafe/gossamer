@@ -25,7 +25,7 @@ import (
 )
 
 func TestChainSync_SetPeerHead_Integration(t *testing.T) {
-	cs, _ := newTestChainSync(t)
+	cs := newTestChainSync(t)
 
 	testPeer := peer.ID("noot")
 	hash := common.Hash{0xa, 0xb}
@@ -120,7 +120,7 @@ func TestChainSync_SetPeerHead_Integration(t *testing.T) {
 }
 
 func TestChainSync_sync_bootstrap_withWorkerError_Integration(t *testing.T) {
-	cs, _ := newTestChainSync(t)
+	cs := newTestChainSync(t)
 
 	go cs.sync()
 	defer cs.cancel()
@@ -147,7 +147,7 @@ func TestChainSync_sync_bootstrap_withWorkerError_Integration(t *testing.T) {
 }
 
 func TestChainSync_sync_tip_Integration(t *testing.T) {
-	cs, _ := newTestChainSync(t)
+	cs := newTestChainSync(t)
 	cs.blockState = new(syncmocks.BlockState)
 	header, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, 1000,
 		types.NewDigest())
@@ -376,7 +376,7 @@ func TestWorkerToRequests_Integration(t *testing.T) {
 }
 
 func TestValidateBlockData(t *testing.T) {
-	cs, _ := newTestChainSync(t)
+	cs := newTestChainSync(t)
 	req := &network.BlockRequestMessage{
 		RequestedData: bootstrapRequestData,
 	}
@@ -400,7 +400,7 @@ func TestValidateBlockData(t *testing.T) {
 }
 
 func TestChainSync_validateResponse_Integration(t *testing.T) {
-	cs, _ := newTestChainSync(t)
+	cs := newTestChainSync(t)
 	err := cs.validateResponse(nil, nil, "")
 	require.Equal(t, errEmptyBlockData, err)
 
@@ -510,7 +510,7 @@ func TestChainSync_validateResponse_Integration(t *testing.T) {
 }
 
 func TestChainSync_validateResponse_firstBlock_Integration(t *testing.T) {
-	cs, _ := newTestChainSync(t)
+	cs := newTestChainSync(t)
 	bs := new(syncmocks.BlockState)
 	bs.On("HasHeader", mock.AnythingOfType("common.Hash")).Return(false, nil)
 	cs.blockState = bs
@@ -546,8 +546,8 @@ func TestChainSync_validateResponse_firstBlock_Integration(t *testing.T) {
 }
 
 func TestChainSync_doSync_Integration(t *testing.T) {
-	cs, _ := newTestChainSync(t)
 	readyBlocks := newBlockQueue(maxResponseSize)
+	cs := newTestChainSyncWithReadyBlocks(t, readyBlocks)
 
 	max := uint32(1)
 	req := &network.BlockRequestMessage{
@@ -633,7 +633,8 @@ func TestChainSync_doSync_Integration(t *testing.T) {
 }
 
 func TestHandleReadyBlock_Integration(t *testing.T) {
-	cs, readyBlocks := newTestChainSync(t)
+	readyBlocks := newBlockQueue(maxResponseSize)
+	cs := newTestChainSyncWithReadyBlocks(t, readyBlocks)
 
 	// test that descendant chain gets returned by getReadyDescendants on block 1 being ready
 	header1 := &types.Header{
@@ -687,7 +688,7 @@ func TestHandleReadyBlock_Integration(t *testing.T) {
 }
 
 func TestChainSync_determineSyncPeers_Integration(t *testing.T) {
-	cs, _ := newTestChainSync(t)
+	cs := newTestChainSync(t)
 
 	req := &network.BlockRequestMessage{}
 	testPeerA := peer.ID("a")

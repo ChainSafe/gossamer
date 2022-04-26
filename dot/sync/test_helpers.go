@@ -4,6 +4,10 @@
 package sync
 
 import (
+	syncmocks "github.com/ChainSafe/gossamer/dot/sync/mocks"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/stretchr/testify/mock"
 	"testing"
 	"time"
 
@@ -87,4 +91,44 @@ func BuildBlock(t *testing.T, instance runtime.Instance, parent *types.Header, e
 		Header: *res,
 		Body:   body,
 	}
+}
+
+const (
+	defaultMinPeers     = 1
+	defaultMaxPeers     = 5
+	testTimeout         = time.Second * 5
+	defaultSlotDuration = time.Second * 6
+)
+
+func newTestChainSyncWithReadyBlocks(t *testing.T, readyBlocks *blockQueue) *chainSync {
+	header, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, 0,
+		types.NewDigest())
+	require.NoError(t, err)
+
+	bs := new(syncmocks.BlockState)
+	bs.On("BestBlockHeader").Return(header, nil)
+	bs.On("GetFinalisedNotifierChannel").Return(make(chan *types.FinalisationInfo, 128), nil)
+	bs.On("HasHeader", mock.AnythingOfType("common.Hash")).Return(true, nil)
+
+	net := new(syncmocks.Network)
+	net.On("DoBlockRequest", mock.AnythingOfType("peer.ID"), mock.AnythingOfType("*network.BlockRequestMessage")).
+		Return(nil, nil)
+	net.On("ReportPeer", mock.AnythingOfType("peerset.ReputationChange"), mock.AnythingOfType("peer.ID"))
+
+	cfg := &chainSyncConfig{
+		bs:            bs,
+		net:           net,
+		readyBlocks:   readyBlocks,
+		pendingBlocks: newDisjointBlockSet(pendingBlocksLimit),
+		minPeers:      defaultMinPeers,
+		maxPeers:      defaultMaxPeers,
+		slotDuration:  defaultSlotDuration,
+	}
+
+	return newChainSync(cfg)
+}
+
+func newTestChainSync(t *testing.T) *chainSync {
+	readyBlocks := newBlockQueue(maxResponseSize)
+	return newTestChainSyncWithReadyBlocks(t, readyBlocks)
 }
