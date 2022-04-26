@@ -815,7 +815,7 @@ func Test_getEquivocatoryVoters(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, eqv, 5)
 
-	// test that getEquivocatoryVoters if a voter has more than two equivocatory votes
+	// test that getEquivocatoryVoters returns an error if a voter has more than two equivocatory votes
 	authData = append(authData, AuthData{
 		AuthorityID: ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 	})
