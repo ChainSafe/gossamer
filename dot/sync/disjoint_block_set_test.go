@@ -47,8 +47,8 @@ func Test_disjointBlockSet_addBlock(t *testing.T) {
 			err: nil,
 		},
 	}
-	for _, tt := range tests {
-		tt := tt
+	for _, tt := range tests { //nolint:govet
+		tt := tt //nolint:govet
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			err := tt.disjointBlockSet.addBlock(tt.block)
@@ -92,8 +92,8 @@ func Test_disjointBlockSet_addHeader(t *testing.T) {
 			},
 		},
 	}
-	for _, tt := range tests {
-		tt := tt
+	for _, tt := range tests { //nolint:govet
+		tt := tt //nolint:govet
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			err := tt.disjointBlockSet.addHeader(tt.header)
@@ -148,8 +148,8 @@ func Test_disjointBlockSet_clearBlocks(t *testing.T) {
 			remaining: 1,
 		},
 	}
-	for _, tt := range tests {
-		tt := tt
+	for _, tt := range tests { //nolint:govet
+		tt := tt //nolint:govet
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			tt.disjointBlockSet.clearBlocks()
@@ -182,8 +182,8 @@ func Test_disjointBlockSet_getBlocks(t *testing.T) {
 			want: []*pendingBlock{testBlock},
 		},
 	}
-	for _, tt := range tests {
-		tt := tt
+	for _, tt := range tests { //nolint:govet
+		tt := tt //nolint:govet
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			s := &disjointBlockSet{
@@ -247,8 +247,8 @@ func Test_disjointBlockSet_removeLowerBlocks(t *testing.T) {
 			remaining: 0,
 		},
 	}
-	for _, tt := range tests {
-		tt := tt
+	for _, tt := range tests { //nolint:govet
+		tt := tt //nolint:govet
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			tt.disjointBlockSet.removeLowerBlocks(tt.num)
@@ -300,8 +300,8 @@ func Test_disjointBlockSet_size(t *testing.T) {
 			want: 2,
 		},
 	}
-	for _, tt := range tests {
-		tt := tt
+	for _, tt := range tests { //nolint:govet
+		tt := tt //nolint:govet
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			s := &disjointBlockSet{
