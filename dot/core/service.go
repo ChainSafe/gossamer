@@ -386,10 +386,11 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 				continue
 			}
 
-			// TODO fix txn formatting
-			externalExt := make(types.Extrinsic, 0, 1+len(ext))
-			externalExt = append(externalExt, byte(types.TxnExternal))
-			externalExt = append(externalExt, ext...)
+			externalExt, err := s.buildTransaction(rt, ext)
+			if err != nil {
+				return err
+			}
+			
 			txv, err := rt.ValidateTransaction(externalExt)
 			if err != nil {
 				logger.Debugf("failed to validate transaction for extrinsic %s: %s", ext, err)
