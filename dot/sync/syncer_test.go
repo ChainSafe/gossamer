@@ -109,7 +109,9 @@ func TestNewService(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got, err := NewService(tt.args.cfg)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
@@ -161,7 +163,9 @@ func TestService_HandleBlockAnnounce(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			s := &Service{
 				chainSync: tt.fields.chainSync,
 			}
@@ -231,7 +235,9 @@ func TestService_HandleBlockAnnounceHandshake(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			s := &Service{
 				chainSync: tt.fields.chainSync,
 			}
@@ -292,7 +298,9 @@ func TestService_Start(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			mockChainProcessor := NewMockChainProcessor(ctrl)
 			mockChainProcessor.EXPECT().start().AnyTimes()
 			s := &Service{
@@ -330,7 +338,9 @@ func TestService_Stop(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			s := &Service{
 				chainSync:      tt.fields.chainSync,
 				chainProcessor: tt.fields.chainProcessor,
@@ -371,7 +381,9 @@ func Test_reverseBlockData(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			reverseBlockData(tt.args.data)
 			assert.Equal(t, tt.expected.data, tt.args.data)
 		})
@@ -394,7 +406,9 @@ func TestService_HighestBlock(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			s := &Service{
 				chainSync: tt.chainSync,
 			}

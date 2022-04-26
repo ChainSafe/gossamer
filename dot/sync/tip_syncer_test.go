@@ -61,7 +61,9 @@ func Test_tipSyncer_handleNewPeerState(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			s := &tipSyncer{
 				blockState:    tt.fields.blockState,
 				pendingBlocks: tt.fields.pendingBlocks,
@@ -167,7 +169,9 @@ func Test_tipSyncer_handleTick(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			s := &tipSyncer{
 				blockState:    tt.fields.blockState,
 				pendingBlocks: tt.fields.pendingBlocks,
@@ -288,7 +292,9 @@ func Test_tipSyncer_handleWorkerResult(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			s := &tipSyncer{
 				blockState: tt.fields.blockState,
 			}
@@ -400,7 +406,9 @@ func Test_tipSyncer_hasCurrentWorker(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			ti := &tipSyncer{}
 			if got := ti.hasCurrentWorker(tt.args.w, tt.args.workers); got != tt.want {
 				t.Errorf("hasCurrentWorker() = %v, want %v", got, tt.want)

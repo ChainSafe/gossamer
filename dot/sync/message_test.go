@@ -172,7 +172,9 @@ func TestService_CreateBlockResponse(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			s := &Service{
 				blockState:     tt.fields.blockState,
 				chainSync:      tt.fields.chainSync,
@@ -259,7 +261,9 @@ func TestService_checkOrGetDescendantHash(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			s := &Service{
 				blockState:     tt.fields.blockState,
 				chainSync:      tt.fields.chainSync,
@@ -415,7 +419,9 @@ func TestService_getBlockData(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			s := &Service{
 				blockState: tt.fields.blockState,
 			}

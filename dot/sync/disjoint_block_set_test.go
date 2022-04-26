@@ -48,7 +48,9 @@ func Test_disjointBlockSet_addBlock(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			err := tt.disjointBlockSet.addBlock(tt.block)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
@@ -91,7 +93,9 @@ func Test_disjointBlockSet_addHeader(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			err := tt.disjointBlockSet.addHeader(tt.header)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
@@ -145,7 +149,9 @@ func Test_disjointBlockSet_clearBlocks(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			tt.disjointBlockSet.clearBlocks()
 			assert.Equal(t, tt.remaining, len(tt.disjointBlockSet.blocks))
 		})
@@ -242,7 +248,9 @@ func Test_disjointBlockSet_removeLowerBlocks(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			tt.disjointBlockSet.removeLowerBlocks(tt.num)
 			assert.Equal(t, tt.remaining, len(tt.disjointBlockSet.blocks))
 		})
@@ -293,7 +301,9 @@ func Test_disjointBlockSet_size(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			s := &disjointBlockSet{
 				blocks: tt.disjointBlockSet.blocks,
 			}

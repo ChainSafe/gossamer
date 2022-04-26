@@ -69,7 +69,9 @@ func Test_bootstrapSyncer_handleWorkerResult(t *testing.T) {
 		},
 	}
 	for testName, tt := range tests {
+		tt := tt
 		t.Run(testName, func(t *testing.T) {
+			t.Parallel()
 			s := &bootstrapSyncer{
 				blockState: tt.blockState,
 			}

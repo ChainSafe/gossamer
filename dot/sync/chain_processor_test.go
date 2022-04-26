@@ -115,7 +115,9 @@ func Test_chainProcessor_handleBody(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			s := &chainProcessor{
 				transactionState: tt.fields.transactionState,
 			}
@@ -168,7 +170,9 @@ func Test_chainProcessor_handleHeader(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			s := &chainProcessor{
 				babeVerifier: tt.fields.babeVerifier,
 			}
@@ -260,7 +264,9 @@ func Test_chainProcessor_handleJustification(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			s := &chainProcessor{
 				blockState:     tt.fields.blockState,
 				finalityGadget: tt.fields.finalityGadget,
@@ -496,7 +502,9 @@ func Test_chainProcessor_processReadyBlocks(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			ctx, cancel := context.WithCancel(context.Background())
 			readyBlock := newBlockQueue(5)
 
@@ -578,7 +586,9 @@ func Test_newChainProcessor(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got := newChainProcessor(tt.args.readyBlocks, tt.args.pendingBlocks, tt.args.blockState,
 				tt.args.storageState, tt.args.transactionState, tt.args.babeVerifier, tt.args.finalityGadget,
 				tt.args.blockImportHandler, nil)

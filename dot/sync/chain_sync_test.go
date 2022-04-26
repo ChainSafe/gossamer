@@ -50,7 +50,9 @@ func Test_chainSyncState_String(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			if got := tt.s.String(); got != tt.want {
 				t.Errorf("String() = %v, want %v", got, tt.want)
 			}
@@ -850,7 +852,9 @@ func Test_chainSync_logSyncSpeed(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			ctx, cancel := context.WithCancel(context.Background())
 			cs := &chainSync{
 				ctx:                   ctx,
@@ -909,7 +913,9 @@ func Test_chainSync_start(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			ctx, cancel := context.WithCancel(context.Background())
 			cs := &chainSync{
 				ctx:                   ctx,
@@ -988,7 +994,9 @@ func Test_chainSync_getHighestBlock(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			cs := &chainSync{
 				peerState: tt.peerState,
 			}
@@ -1067,7 +1075,9 @@ func Test_chainSync_handleResult(t *testing.T) {
 		},
 	}
 	for testName, tt := range tests {
+		tt := tt
 		t.Run(testName, func(t *testing.T) {
+			t.Parallel()
 			mockNetwork := NewMockNetwork(ctrl)
 			mockNetwork.EXPECT().ReportPeer(gomock.AssignableToTypeOf(peerset.ReputationChange{}),
 				gomock.AssignableToTypeOf(peer.ID(""))).AnyTimes()
