@@ -423,20 +423,9 @@ func (s *Service) maintainTransactionPool(block *types.Block) {
 			continue
 		}
 
-		// TODO fic this
-		const polkadotSpecVersionCheck = 9100
-		runtimeVersion, err := rt.Version()
+		externalExt, err := s.buildTransaction(rt, tx.Extrinsic)
 		if err != nil {
-			logger.Errorf("Error \n")
-		}
-
-		var externalExt types.Extrinsic
-		if runtimeVersion.SpecVersion() < polkadotSpecVersionCheck {
-			externalExt = types.Extrinsic(append([]byte{byte(types.TxnExternal)}, tx.Extrinsic...))
-		} else {
-			genesisHashBytes := s.blockState.GenesisHash().ToBytes()
-			externalExt = types.Extrinsic(append([]byte{byte(types.TxnExternal)}, tx.Extrinsic...))
-			externalExt = append(externalExt, genesisHashBytes...)
+			logger.Errorf("Unable to build transaction \n")
 		}
 
 		txnValidity, err := rt.ValidateTransaction(externalExt)
@@ -536,26 +525,9 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 
 	rt.SetContextStorage(ts)
 
-	runtimeVersion, err := rt.Version()
+	externalExt, err := s.buildTransaction(rt, ext)
 	if err != nil {
 		return err
-	}
-
-	txQueueVersion := uint32(0)
-	for _, v := range runtimeVersion.APIItems() {
-		// Blake2-8("TaggedTransactionQueue")
-		if v.Name == [8]byte{0xd2, 0xbc, 0x98, 0x97, 0xee, 0xd0, 0x8f, 0x15} {
-			txQueueVersion = v.Ver
-			break
-		}
-	}
-
-	var externalExt types.Extrinsic
-	if txQueueVersion >= 3 {
-		externalExt = types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))
-		externalExt = append(externalExt, s.blockState.BestBlockHash().ToBytes()...)
-	} else {
-		return fmt.Errorf("nnsupported transaction queue version.")
 	}
 
 	txv, err := rt.ValidateTransaction(externalExt)
@@ -676,4 +648,26 @@ func (s *Service) GetReadProofAt(block common.Hash, keys [][]byte) (
 	}
 
 	return block, proofForKeys, nil
+}
+
+func (s *Service) buildTransaction(rt runtime.Instance, ext types.Extrinsic) (types.Extrinsic, error) {
+	runtimeVersion, err := rt.Version()
+	if err != nil {
+		return types.Extrinsic{}, err
+	}
+
+	txQueueVersion := runtimeVersion.TaggedTransactionQueueVersion(runtimeVersion)
+	var externalExt types.Extrinsic
+	if txQueueVersion >= 3 {
+		// Unsure if genesis or blockHash
+		//genesisHash := s.blockState.GenesisHash()
+		//externalExt = types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))
+		//externalExt = append(externalExt, genesisHash.ToBytes()...)
+
+		externalExt = types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))
+		externalExt = append(externalExt, s.blockState.BestBlockHash().ToBytes()...)
+	} else {
+		return types.Extrinsic{}, fmt.Errorf("unsupported transaction queue version")
+	}
+	return externalExt, nil
 }
