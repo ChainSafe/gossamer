@@ -649,7 +649,7 @@ func TestMessageHandler_VerifyBlockJustification_WithEquivocatoryVotes(t *testin
 
 	round := uint64(1)
 	number := uint32(1)
-	precommits := buildTestJustification(t, 20, round, setID, kr, precommit)
+	precommits := buildTestJustification(t, 18, round, setID, kr, precommit)
 	just := newJustification(round, testHash, number, precommits)
 	data, err := scale.Marshal(*just)
 	require.NoError(t, err)
@@ -790,9 +790,7 @@ func Test_getEquivocatoryVoters(t *testing.T) {
 	fakeAuthorities := []*ed25519.Keypair{
 		ed25519Keyring.Alice().(*ed25519.Keypair),
 		ed25519Keyring.Alice().(*ed25519.Keypair),
-		ed25519Keyring.Alice().(*ed25519.Keypair),
 		ed25519Keyring.Bob().(*ed25519.Keypair),
-		ed25519Keyring.Charlie().(*ed25519.Keypair),
 		ed25519Keyring.Charlie().(*ed25519.Keypair),
 		ed25519Keyring.Charlie().(*ed25519.Keypair),
 		ed25519Keyring.Dave().(*ed25519.Keypair),
@@ -813,8 +811,17 @@ func Test_getEquivocatoryVoters(t *testing.T) {
 		}
 	}
 
-	eqv := getEquivocatoryVoters(authData)
+	eqv, err := getEquivocatoryVoters(authData)
+	require.NoError(t, err)
 	require.Len(t, eqv, 5)
+
+	// test that getEquivocatoryVoters if a voter has more than two equivocatory votes
+	authData = append(authData, AuthData{
+		AuthorityID: ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(),
+	})
+
+	_, err = getEquivocatoryVoters(authData)
+	require.ErrorIs(t, err, errInvalidMultiplicity)
 }
 
 func Test_VerifyCommitMessageJustification_ShouldRemoveEquivocatoryVotes(t *testing.T) {
@@ -840,9 +847,7 @@ func Test_VerifyCommitMessageJustification_ShouldRemoveEquivocatoryVotes(t *test
 	fakeAuthorities := []*ed25519.Keypair{
 		ed25519Keyring.Alice().(*ed25519.Keypair),
 		ed25519Keyring.Alice().(*ed25519.Keypair),
-		ed25519Keyring.Alice().(*ed25519.Keypair),
 		ed25519Keyring.Bob().(*ed25519.Keypair),
-		ed25519Keyring.Charlie().(*ed25519.Keypair),
 		ed25519Keyring.Charlie().(*ed25519.Keypair),
 		ed25519Keyring.Charlie().(*ed25519.Keypair),
 		ed25519Keyring.Dave().(*ed25519.Keypair),
@@ -991,9 +996,7 @@ func Test_VerifyPreCommitJustification(t *testing.T) {
 	fakeAuthorities := []*ed25519.Keypair{
 		ed25519Keyring.Alice().(*ed25519.Keypair),
 		ed25519Keyring.Alice().(*ed25519.Keypair),
-		ed25519Keyring.Alice().(*ed25519.Keypair),
 		ed25519Keyring.Bob().(*ed25519.Keypair),
-		ed25519Keyring.Charlie().(*ed25519.Keypair),
 		ed25519Keyring.Charlie().(*ed25519.Keypair),
 		ed25519Keyring.Charlie().(*ed25519.Keypair),
 		ed25519Keyring.Dave().(*ed25519.Keypair),

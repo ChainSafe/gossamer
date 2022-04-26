@@ -284,19 +284,21 @@ func (h *MessageHandler) verifyCatchUpResponseCompletability(prevote, precommit 
 	return nil
 }
 
-func getEquivocatoryVoters(votes []AuthData) map[ed25519.PublicKeyBytes]struct{} {
+func getEquivocatoryVoters(votes []AuthData) (map[ed25519.PublicKeyBytes]struct{}, error) {
 	eqvVoters := make(map[ed25519.PublicKeyBytes]struct{})
 	voters := make(map[ed25519.PublicKeyBytes]int, len(votes))
 
 	for _, v := range votes {
 		voters[v.AuthorityID]++
+		if voters[v.AuthorityID] > 2 {
+			return nil, errInvalidMultiplicity
+		}
 
-		if voters[v.AuthorityID] > 1 {
+		if voters[v.AuthorityID] == 2 {
 			eqvVoters[v.AuthorityID] = struct{}{}
 		}
 	}
-
-	return eqvVoters
+	return eqvVoters, nil
 }
 
 func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) error {
@@ -304,7 +306,10 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 		return ErrPrecommitSignatureMismatch
 	}
 
-	eqvVoters := getEquivocatoryVoters(fm.AuthData)
+	eqvVoters, err := getEquivocatoryVoters(fm.AuthData)
+	if err != nil {
+		return fmt.Errorf("could not get valid equivocatory votes: %w", err)
+	}
 
 	var count int
 	for i, pc := range fm.Precommits {
@@ -436,7 +441,10 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) erro
 		auths[i] = AuthData{AuthorityID: pcj.AuthorityID}
 	}
 
-	eqvVoters := getEquivocatoryVoters(auths)
+	eqvVoters, err := getEquivocatoryVoters(auths)
+	if err != nil {
+		return fmt.Errorf("could not get valid equivocatory votes: %w", err)
+	}
 
 	// verify pre-commit justification
 	var count uint64
@@ -549,7 +557,11 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 		authPubKeys[i] = AuthData{AuthorityID: pcj.AuthorityID}
 	}
 
-	equivocatoryVoters := getEquivocatoryVoters(authPubKeys)
+	equivocatoryVoters, err := getEquivocatoryVoters(authPubKeys)
+	if err != nil {
+		return fmt.Errorf("could not get valid equivocatory votes: %w", err)
+	}
+
 	var count int
 
 	logger.Debugf(
