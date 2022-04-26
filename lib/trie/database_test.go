@@ -4,445 +4,208 @@
 package trie
 
 import (
-	"bytes"
-	"fmt"
 	"testing"
 
 	"github.com/ChainSafe/chaindb"
-	"github.com/ChainSafe/gossamer/internal/trie/node"
-	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func newTestDB(t *testing.T) chaindb.Database {
-	testDatadirPath := t.TempDir()
-	db, err := utils.SetupDatabase(testDatadirPath, true)
+	chainDBConfig := &chaindb.Config{
+		InMemory: true,
+	}
+	database, err := chaindb.NewBadgerDB(chainDBConfig)
 	require.NoError(t, err)
-	return chaindb.NewTable(db, "trie")
+	return chaindb.NewTable(database, "trie")
 }
 
-func TestTrie_DatabaseStoreAndLoad(t *testing.T) {
-	cases := [][]keyValues{
-		{
-			{key: []byte{0x01, 0x35}, value: []byte("pen")},
-			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
-			{key: []byte{0x01, 0x35, 0x7}, value: []byte("g")},
-			{key: []byte{0xf2}, value: []byte("feather")},
-			{key: []byte{0xf2, 0x3}, value: []byte("f")},
-			{key: []byte{0x09, 0xd3}, value: []byte("noot")},
-			{key: []byte{0x07}, value: []byte("ramen")},
-			{key: []byte{0}, value: nil},
-		},
-		{
-			{key: []byte{0x01, 0x35}, value: []byte("pen")},
-			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
-			{key: []byte{0x01, 0x35, 0x70}, value: []byte("g")},
-			{key: []byte{0xf2}, value: []byte("feather")},
-			{key: []byte{0xf2, 0x30}, value: []byte("f")},
-			{key: []byte{0x09, 0xd3}, value: []byte("noot")},
-			{key: []byte{0x07}, value: []byte("ramen")},
-		},
-		{
-			{key: []byte("asdf"), value: []byte("asdf")},
-			{key: []byte("ghjk"), value: []byte("ghjk")},
-			{key: []byte("qwerty"), value: []byte("qwerty")},
-			{key: []byte("uiopl"), value: []byte("uiopl")},
-			{key: []byte("zxcv"), value: []byte("zxcv")},
-			{key: []byte("bnm"), value: []byte("bnm")},
-		},
-	}
+func Test_Trie_Store_Load(t *testing.T) {
+	t.Parallel()
 
-	for _, testCase := range cases {
-		trie := NewEmptyTrie()
+	const size = 1000
+	trie, _ := makeSeededTrie(t, size)
 
-		for _, test := range testCase {
-			trie.Put(test.key, test.value)
-		}
+	rootHash := trie.MustHash()
 
-		db := newTestDB(t)
-		err := trie.Store(db)
-		require.NoError(t, err)
+	db := newTestDB(t)
+	err := trie.Store(db)
+	require.NoError(t, err)
 
-		res := NewEmptyTrie()
-		err = res.Load(db, trie.MustHash())
-		require.NoError(t, err)
-		require.Equal(t, trie.String(), res.String())
-
-		for _, test := range testCase {
-			val, err := GetFromDB(db, trie.MustHash(), test.key)
-			require.NoError(t, err)
-			require.Equal(t, test.value, val)
-		}
-	}
+	trieFromDB := NewEmptyTrie()
+	err = trieFromDB.Load(db, rootHash)
+	require.NoError(t, err)
+	assert.Equal(t, trie.String(), trieFromDB.String())
 }
 
-func TestTrie_WriteDirty_Put(t *testing.T) {
-	cases := [][]keyValues{
-		{
-			{key: []byte{0x01, 0x35}, value: []byte("pen")},
-			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
-			{key: []byte{0x01, 0x35, 0x7}, value: []byte("g")},
-			{key: []byte{0xf2}, value: []byte("feather")},
-			{key: []byte{0xf2, 0x3}, value: []byte("f")},
-			{key: []byte{0x09, 0xd3}, value: []byte("noot")},
-			{key: []byte{0x07}, value: []byte("ramen")},
-			{key: []byte{0}, value: nil},
-		},
-		{
-			{key: []byte{0x01, 0x35}, value: []byte("pen")},
-			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
-			{key: []byte{0x01, 0x35, 0x70}, value: []byte("g")},
-			{key: []byte{0xf2}, value: []byte("feather")},
-			{key: []byte{0xf2, 0x30}, value: []byte("f")},
-			{key: []byte{0x09, 0xd3}, value: []byte("noot")},
-			{key: []byte{0x07}, value: []byte("ramen")},
-		},
-		{
-			{key: []byte("asdf"), value: []byte("asdf")},
-			{key: []byte("ghjk"), value: []byte("ghjk")},
-			{key: []byte("qwerty"), value: []byte("qwerty")},
-			{key: []byte("uiopl"), value: []byte("uiopl")},
-			{key: []byte("zxcv"), value: []byte("zxcv")},
-			{key: []byte("bnm"), value: []byte("bnm")},
-		},
+func Test_Trie_WriteDirty_Put(t *testing.T) {
+	t.Parallel()
+
+	generator := newGenerator()
+	const size = 500
+	keyValues := generateKeyValues(t, generator, size)
+
+	trie := NewEmptyTrie()
+
+	db := newTestDB(t)
+
+	// Put, write dirty and get from DB
+	for keyString, value := range keyValues {
+		key := []byte(keyString)
+
+		trie.Put(key, value)
+
+		err := trie.WriteDirty(db)
+		require.NoError(t, err)
+
+		rootHash := trie.MustHash()
+		valueFromDB, err := GetFromDB(db, rootHash, key)
+		require.NoError(t, err)
+		assert.Equalf(t, value, valueFromDB, "for key=%x", key)
 	}
 
-	for _, testCase := range cases {
-		trie := NewEmptyTrie()
-		db := newTestDB(t)
+	err := trie.Store(db)
+	require.NoError(t, err)
 
-		for i, test := range testCase {
-			trie.Put(test.key, test.value)
-			err := trie.WriteDirty(db)
-			require.NoError(t, err)
+	// Pick an existing key and replace its value
+	oneKeySet := pickKeys(keyValues, generator, 1)
+	existingKey := oneKeySet[0]
+	existingValue := keyValues[string(existingKey)]
+	newValue := append(existingValue, 99)
+	trie.Put(existingKey, newValue)
+	err = trie.WriteDirty(db)
+	require.NoError(t, err)
 
-			for j, kv := range testCase {
-				if j > i {
-					break
-				}
+	rootHash := trie.MustHash()
 
-				val, err := GetFromDB(db, trie.MustHash(), kv.key)
-				require.NoError(t, err)
-				require.Equal(t, kv.value, val, fmt.Sprintf("key=%x", kv.key))
-			}
+	// Verify the trie in database is also modified.
+	trieFromDB := NewEmptyTrie()
+	err = trieFromDB.Load(db, rootHash)
+	require.NoError(t, err)
+	require.Equal(t, trie.String(), trieFromDB.String())
+	value, err := GetFromDB(db, rootHash, existingKey)
+	require.NoError(t, err)
+	assert.Equal(t, newValue, value)
+}
+
+func Test_Trie_WriteDirty_Delete(t *testing.T) {
+	t.Parallel()
+
+	const size = 1000
+	trie, keyValues := makeSeededTrie(t, size)
+
+	generator := newGenerator()
+	keysToDelete := pickKeys(keyValues, generator, size/50)
+
+	db := newTestDB(t)
+	err := trie.Store(db)
+	require.NoError(t, err)
+
+	deletedKeys := make(map[string]struct{}, len(keysToDelete))
+	for _, keyToDelete := range keysToDelete {
+		err = trie.DeleteFromDB(db, keyToDelete)
+		require.NoError(t, err)
+
+		deletedKeys[string(keyToDelete)] = struct{}{}
+	}
+
+	rootHash := trie.MustHash()
+
+	trieFromDB := NewEmptyTrie()
+	err = trieFromDB.Load(db, rootHash)
+	require.NoError(t, err)
+	require.Equal(t, trie.String(), trieFromDB.String())
+
+	for keyString, expectedValue := range keyValues {
+		if _, deleted := deletedKeys[keyString]; deleted {
+			expectedValue = nil
 		}
 
-		err := trie.Store(db)
+		key := []byte(keyString)
+		value, err := GetFromDB(db, rootHash, key)
 		require.NoError(t, err)
-
-		trie.Put([]byte("asdf"), []byte("notapenguin"))
-		err = trie.WriteDirty(db)
-		require.NoError(t, err)
-
-		res := NewEmptyTrie()
-		err = res.Load(db, trie.MustHash())
-		require.NoError(t, err)
-		require.Equal(t, trie.MustHash(), res.MustHash())
-
-		for _, test := range testCase {
-			val, err := GetFromDB(db, trie.MustHash(), test.key)
-			require.NoError(t, err)
-			if bytes.Equal(test.key, []byte("asdf")) {
-				continue
-			}
-			require.Equal(t, test.value, val)
-		}
-
-		val, err := GetFromDB(db, trie.MustHash(), []byte("asdf"))
-		require.NoError(t, err)
-		require.Equal(t, []byte("notapenguin"), val)
+		assert.Equal(t, expectedValue, value)
 	}
 }
 
-func TestTrie_WriteDirty_PutReplace(t *testing.T) {
-	cases := [][]keyValues{
-		{
-			{key: []byte{0x01, 0x35}, value: []byte("pen")},
-			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
-			{key: []byte{0x01, 0x35, 0x7}, value: []byte("g")},
-			{key: []byte{0xf2}, value: []byte("feather")},
-			{key: []byte{0xf2, 0x3}, value: []byte("f")},
-			{key: []byte{0x09, 0xd3}, value: []byte("noot")},
-			{key: []byte{0x07}, value: []byte("ramen")},
-			{key: []byte{0}, value: nil},
-		},
-		{
-			{key: []byte{0x01, 0x35}, value: []byte("pen")},
-			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
-			{key: []byte{0x01, 0x35, 0x70}, value: []byte("g")},
-			{key: []byte{0xf2}, value: []byte("feather")},
-			{key: []byte{0xf2, 0x30}, value: []byte("f")},
-			{key: []byte{0x09, 0xd3}, value: []byte("noot")},
-			{key: []byte{0x07}, value: []byte("ramen")},
-		},
-		{
-			{key: []byte("asdf"), value: []byte("asdf")},
-			{key: []byte("ghjk"), value: []byte("ghjk")},
-			{key: []byte("qwerty"), value: []byte("qwerty")},
-			{key: []byte("uiopl"), value: []byte("uiopl")},
-			{key: []byte("zxcv"), value: []byte("zxcv")},
-			{key: []byte("bnm"), value: []byte("bnm")},
-		},
+func Test_Trie_WriteDirty_ClearPrefix(t *testing.T) {
+	t.Parallel()
+
+	const size = 2000
+	trie, keyValues := makeSeededTrie(t, size)
+
+	generator := newGenerator()
+	keysToClearPrefix := pickKeys(keyValues, generator, size/50)
+
+	db := newTestDB(t)
+	err := trie.Store(db)
+	require.NoError(t, err)
+
+	for _, keyToClearPrefix := range keysToClearPrefix {
+		err = trie.ClearPrefixFromDB(db, keyToClearPrefix)
+		require.NoError(t, err)
 	}
 
-	for _, testCase := range cases {
-		trie := NewEmptyTrie()
-		db := newTestDB(t)
+	rootHash := trie.MustHash()
 
-		for _, test := range testCase {
-			trie.Put(test.key, test.value)
+	trieFromDB := NewEmptyTrie()
+	err = trieFromDB.Load(db, rootHash)
+	require.NoError(t, err)
+	assert.Equal(t, trie.String(), trieFromDB.String())
+}
 
-			err := trie.WriteDirty(db)
-			require.NoError(t, err)
-		}
+func Test_Trie_GetFromDB(t *testing.T) {
+	t.Parallel()
 
-		for _, test := range testCase {
-			// overwrite existing values
-			trie.Put(test.key, test.key)
+	const size = 1000
+	trie, keyValues := makeSeededTrie(t, size)
 
-			err := trie.WriteDirty(db)
-			require.NoError(t, err)
-		}
+	db := newTestDB(t)
+	err := trie.Store(db)
+	require.NoError(t, err)
 
-		res := NewEmptyTrie()
-		err := res.Load(db, trie.MustHash())
-		require.NoError(t, err)
-		require.Equal(t, trie.MustHash(), res.MustHash())
+	root := trie.MustHash()
 
-		for _, test := range testCase {
-			val, err := GetFromDB(db, trie.MustHash(), test.key)
-			require.NoError(t, err)
-			require.Equal(t, test.key, val)
-		}
+	for keyString, expectedValue := range keyValues {
+		key := []byte(keyString)
+		value, err := GetFromDB(db, root, key)
+		assert.NoError(t, err)
+		assert.Equal(t, expectedValue, value)
 	}
 }
 
-func TestTrie_WriteDirty_Delete(t *testing.T) {
-	cases := [][]keyValues{
-		{
-			{key: []byte{0x01, 0x35}, value: []byte("pen")},
-			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
-			{key: []byte{0x01, 0x35, 0x7}, value: []byte("g")},
-			{key: []byte{0x01, 0x35, 0x99}, value: []byte("g")},
-			{key: []byte{0xf2}, value: []byte("feather")},
-			{key: []byte{0xf2, 0x3}, value: []byte("f")},
-			{key: []byte{0x09, 0xd3}, value: []byte("noot")},
-			{key: []byte{0x07}, value: []byte("ramen")},
-			{key: []byte{0}, value: nil},
-		},
-		{
-			{key: []byte{0x01, 0x35}, value: []byte("pen")},
-			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
-			{key: []byte{0x01, 0x35, 0x70}, value: []byte("g")},
-			{key: []byte{0xf2}, value: []byte("feather")},
-			{key: []byte{0xf2, 0x30}, value: []byte("f")},
-			{key: []byte{0x09, 0xd3}, value: []byte("noot")},
-			{key: []byte{0x07}, value: []byte("ramen")},
-		},
-		{
-			{key: []byte("asdf"), value: []byte("asdf")},
-			{key: []byte("ghjk"), value: []byte("ghjk")},
-			{key: []byte("qwerty"), value: []byte("qwerty")},
-			{key: []byte("uiopl"), value: []byte("uiopl")},
-			{key: []byte("zxcv"), value: []byte("zxcv")},
-			{key: []byte("bnm"), value: []byte("bnm")},
-		},
+func Test_Trie_PutChild_Store_Load(t *testing.T) {
+	t.Parallel()
+
+	const size = 100
+	trie, _ := makeSeededTrie(t, size)
+
+	const childTrieSize = 10
+	childTrie, _ := makeSeededTrie(t, childTrieSize)
+
+	db := newTestDB(t)
+
+	// the hash is equal to the key if the key is less or equal to 32 bytes
+	// and is the blake2b hash of the encoding of the node otherwise.
+	// This is why we test with keys greater and smaller than 32 bytes below.
+	keysToChildTries := [][]byte{
+		[]byte("012345678901234567890123456789013"), // 33 bytes
+		[]byte("01234567890123456789012345678901"),  // 32 bytes
+		[]byte("0123456789012345678901234567890"),   // 31 bytes
 	}
 
-	for _, testCase := range cases {
-		for _, curr := range testCase {
-			trie := NewEmptyTrie()
-
-			for _, test := range testCase {
-				trie.Put(test.key, test.value)
-			}
-
-			db := newTestDB(t)
-			err := trie.Store(db)
-			require.NoError(t, err)
-
-			err = trie.DeleteFromDB(db, curr.key)
-			require.NoError(t, err)
-
-			res := NewEmptyTrie()
-			err = res.Load(db, trie.MustHash())
-			require.NoError(t, err)
-			require.Equal(t, trie.MustHash(), res.MustHash())
-
-			for _, kv := range testCase {
-				val, err := GetFromDB(db, trie.MustHash(), kv.key)
-				require.NoError(t, err)
-
-				if bytes.Equal(kv.key, curr.key) {
-					require.Nil(t, val, fmt.Sprintf("key=%x", kv.key))
-					continue
-				}
-
-				require.Equal(t, kv.value, val)
-			}
-		}
-	}
-}
-
-func TestTrie_WriteDirty_ClearPrefix(t *testing.T) {
-	cases := [][]keyValues{
-		{
-			{key: []byte{0x01, 0x35}, value: []byte("pen")},
-			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
-			{key: []byte{0x01, 0x35, 0x7}, value: []byte("g")},
-			{key: []byte{0xf2}, value: []byte("feather")},
-			{key: []byte{0xf2, 0x3}, value: []byte("f")},
-			{key: []byte{0x09, 0xd3}, value: []byte("noot")},
-			{key: []byte{0x07}, value: []byte("ramen")},
-			{key: []byte{0}, value: nil},
-		},
-		{
-			{key: []byte{0x01, 0x35}, value: []byte("pen")},
-			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
-			{key: []byte{0x01, 0x35, 0x70}, value: []byte("g")},
-			{key: []byte{0xf2}, value: []byte("feather")},
-			{key: []byte{0xf2, 0x30}, value: []byte("f")},
-			{key: []byte{0x09, 0xd3}, value: []byte("noot")},
-			{key: []byte{0x07}, value: []byte("ramen")},
-		},
-		{
-			{key: []byte("asdf"), value: []byte("asdf")},
-			{key: []byte("ghjk"), value: []byte("ghjk")},
-			{key: []byte("qwerty"), value: []byte("qwerty")},
-			{key: []byte("uiopl"), value: []byte("uiopl")},
-			{key: []byte("zxcv"), value: []byte("zxcv")},
-			{key: []byte("bnm"), value: []byte("bnm")},
-		},
-	}
-
-	for _, testCase := range cases {
-		trie := NewEmptyTrie()
-
-		for _, test := range testCase {
-			trie.Put(test.key, test.value)
-		}
-
-		db := newTestDB(t)
-		err := trie.Store(db)
+	for _, keyToChildTrie := range keysToChildTries {
+		err := trie.PutChild(keyToChildTrie, childTrie)
 		require.NoError(t, err)
 
-		err = trie.ClearPrefixFromDB(db, []byte{0x01, 0x35})
+		err = trie.Store(db)
 		require.NoError(t, err)
 
-		res := NewEmptyTrie()
-		err = res.Load(db, trie.MustHash())
+		trieFromDB := NewEmptyTrie()
+		err = trieFromDB.Load(db, trie.MustHash())
 		require.NoError(t, err)
 
-		require.Equal(t, trie.MustHash(), res.MustHash())
+		assert.Equal(t, trie.childTries, trieFromDB.childTries)
+		assert.Equal(t, trie.String(), trieFromDB.String())
 	}
-}
-
-func TestTrie_GetFromDB(t *testing.T) {
-	cases := [][]keyValues{
-		{
-			{key: []byte{0x01, 0x35}, value: []byte("pen")},
-			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
-			{key: []byte{0x01, 0x35, 0x7}, value: []byte("g")},
-			{key: []byte{0xf2}, value: []byte("feather")},
-			{key: []byte{0xf2, 0x3}, value: []byte("f")},
-			{key: []byte{0x09, 0xd3}, value: []byte("noot")},
-			{key: []byte{0x07}, value: []byte("ramen")},
-			{key: []byte{0}, value: nil},
-		},
-		{
-			{key: []byte{0x01, 0x35}, value: []byte("pen")},
-			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
-			{key: []byte{0x01, 0x35, 0x70}, value: []byte("g")},
-			{key: []byte{0xf2}, value: []byte("feather")},
-			{key: []byte{0xf2, 0x30}, value: []byte("f")},
-			{key: []byte{0x09, 0xd3}, value: []byte("noot")},
-			{key: []byte{0x07}, value: []byte("ramen")},
-		},
-		{
-			{key: []byte("asdf"), value: []byte("asdf")},
-			{key: []byte("ghjk"), value: []byte("ghjk")},
-			{key: []byte("qwerty"), value: []byte("qwerty")},
-			{key: []byte("uiopl"), value: []byte("uiopl")},
-			{key: []byte("zxcv"), value: []byte("zxcv")},
-			{key: []byte("bnm"), value: []byte("bnm")},
-		},
-	}
-
-	for _, testCase := range cases {
-		trie := NewEmptyTrie()
-
-		for _, test := range testCase {
-			trie.Put(test.key, test.value)
-		}
-
-		db := newTestDB(t)
-		err := trie.Store(db)
-		require.NoError(t, err)
-
-		root := trie.MustHash()
-
-		for _, test := range testCase {
-			val, err := GetFromDB(db, root, test.key)
-			require.NoError(t, err)
-			require.Equal(t, test.value, val)
-		}
-	}
-}
-
-func TestStoreAndLoadWithChildTries(t *testing.T) {
-	keyValue := []keyValues{
-		{key: []byte{0xf2, 0x3}, value: []byte("f")},
-		{key: []byte{0x09, 0xd3}, value: []byte("noot")},
-		{key: []byte{0x07}, value: []byte("ramen")},
-		{key: []byte{0}, value: nil},
-		{
-			key:   []byte("The boxed moved. That was a problem."),
-			value: []byte("The question now was whether or not Peter was going to open it up and look inside to see why it had moved."), // nolint
-		},
-	}
-
-	key := []byte{1, 2}
-	value := []byte{3, 4}
-	const dirty = true
-	const generation = 0
-
-	t.Run("happy path, tries being loaded are same as trie being read", func(t *testing.T) {
-		t.Parallel()
-
-		// hash could be different for keys smaller than 32 and larger than 32 bits.
-		// thus, testing with keys of different sizes.
-		keysToTest := [][]byte{
-			[]byte("This handout will help you understand how paragraphs are formed, how to develop stronger paragraphs."),
-			[]byte("This handout"),
-			[]byte("test"),
-		}
-
-		for _, keyToChild := range keysToTest {
-			trie := NewEmptyTrie()
-
-			for _, test := range keyValue {
-				trie.Put(test.key, test.value)
-			}
-
-			db := newTestDB(t)
-
-			sampleChildTrie := NewTrie(node.NewLeaf(key, value, dirty, generation))
-
-			err := trie.PutChild(keyToChild, sampleChildTrie)
-			require.NoError(t, err)
-
-			err = trie.Store(db)
-			require.NoError(t, err)
-
-			res := NewEmptyTrie()
-
-			err = res.Load(db, trie.MustHash())
-			require.NoError(t, err)
-
-			require.Equal(t, trie.childTries, res.childTries)
-			require.Equal(t, trie.String(), res.String())
-		}
-
-	})
-
 }
