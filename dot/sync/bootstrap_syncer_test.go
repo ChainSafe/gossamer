@@ -16,6 +16,10 @@ func Test_bootstrapSyncer_handleWorkerResult(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 
+	blockStateBuilderEmpty := func(ctrl *gomock.Controller) BlockState {
+		return NewMockBlockState(ctrl)
+	}
+
 	blockStateBuilder := func(ctrl *gomock.Controller) BlockState {
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().BestBlockHeader().Return(&types.Header{Number: 2}, nil)
@@ -30,23 +34,24 @@ func Test_bootstrapSyncer_handleWorkerResult(t *testing.T) {
 	}
 
 	tests := map[string]struct {
-		blockState        BlockState
+		blockStateBuilder func(ctrl *gomock.Controller) BlockState
 		worker            *worker
 		wantWorkerToRetry *worker
 		err               error
 	}{
 		"nil worker.err returns nil": {
-			worker: &worker{},
+			blockStateBuilder: blockStateBuilderEmpty,
+			worker:            &worker{},
 		},
 		"targetNumber < bestBlockHeader number returns nil": {
-			blockState: blockStateBuilder(ctrl),
+			blockStateBuilder: blockStateBuilder,
 			worker: &worker{
 				err:          &workerError{},
 				targetNumber: uintPtr(0),
 			},
 		},
 		"targetNumber > bestBlockHeader number worker errUnknownParent returns worker": {
-			blockState: blockStateBuilderWithFinalised(ctrl),
+			blockStateBuilder: blockStateBuilderWithFinalised,
 			worker: &worker{
 				err:          &workerError{err: errUnknownParent},
 				targetNumber: uintPtr(3),
@@ -57,7 +62,7 @@ func Test_bootstrapSyncer_handleWorkerResult(t *testing.T) {
 			},
 		},
 		"targetNumber > bestBlockHeader number returns worker": {
-			blockState: blockStateBuilder(ctrl),
+			blockStateBuilder: blockStateBuilder,
 			worker: &worker{
 				err:          &workerError{},
 				targetNumber: uintPtr(3),
@@ -73,7 +78,7 @@ func Test_bootstrapSyncer_handleWorkerResult(t *testing.T) {
 		t.Run(testName, func(t *testing.T) {
 			t.Parallel()
 			s := &bootstrapSyncer{
-				blockState: tt.blockState,
+				blockState: tt.blockStateBuilder(ctrl),
 			}
 			gotWorkerToRetry, err := s.handleWorkerResult(tt.worker)
 			assert.ErrorIs(t, err, tt.err)
