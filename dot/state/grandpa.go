@@ -216,8 +216,11 @@ func (s *GrandpaState) GetSetIDByBlockNumber(blockNumber uint) (uint64, error) {
 			return 0, err
 		}
 
-		// if the given block number is greater or equal to the block number of the set ID change,
-		// return the current set ID
+		// Set id changes at the last block in the set. So, block (changeLower) at which current
+		// set id was set, does not belong to current set. Thus, all block numbers in given set
+		// would be more than changeLower.
+		// Next set id change happens at the last block of current set. Thus, a block number from
+		// given set could be lower or equal to changeUpper.
 		if blockNumber <= changeUpper && blockNumber > changeLower {
 			return curr, nil
 		}
