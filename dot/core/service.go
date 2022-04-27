@@ -513,6 +513,9 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 		return nil
 	}
 
+	s.storageState.Lock()
+	defer s.storageState.Unlock()
+
 	ts, err := s.storageState.TrieState(nil)
 	if err != nil {
 		return err
