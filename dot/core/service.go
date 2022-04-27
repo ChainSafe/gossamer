@@ -390,7 +390,7 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 			if err != nil {
 				return err
 			}
-			
+
 			txv, err := rt.ValidateTransaction(externalExt)
 			if err != nil {
 				logger.Debugf("failed to validate transaction for extrinsic %s: %s", ext, err)
@@ -659,7 +659,7 @@ func (s *Service) buildTransaction(rt runtime.Instance, ext types.Extrinsic) (ty
 
 	txQueueVersion := runtimeVersion.TaggedTransactionQueueVersion(runtimeVersion)
 	var externalExt types.Extrinsic
-	if txQueueVersion >= 3 {
+	if txQueueVersion == 3 {
 		// Unsure if genesis or blockHash
 		//genesisHash := s.blockState.GenesisHash()
 		//externalExt = types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))

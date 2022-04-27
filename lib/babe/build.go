@@ -127,9 +127,7 @@ func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot, rt runtime.In
 
 	// finalise block
 	header, err = rt.FinalizeBlock()
-	logger.Error("tried finalizing block")
 	if err != nil {
-		logger.Error("error finalizing block")
 		b.addToQueue(included)
 		return nil, fmt.Errorf("cannot finalise block: %s", err)
 	}
