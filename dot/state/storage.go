@@ -108,10 +108,6 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) 
 // TrieState returns the TrieState for a given state root.
 // If no state root is provided, it returns the TrieState for the current chain head.
 func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error) {
-	defer func() {
-		logger.Trace("leaving trie state")
-	}()
-
 	logger.Trace("in trie state")
 	if root == nil {
 		sr, err := s.blockState.BestBlockStateRoot()

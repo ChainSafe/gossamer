@@ -34,8 +34,6 @@ func (s *Service) validateTransaction(peerID peer.ID, head *types.Header, rt run
 		logger.Errorf("Unable to build transaction \n")
 	}
 
-	//TODO fix extrinsic formatting
-	//externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, tx...))
 	validity, err = rt.ValidateTransaction(externalExt)
 	if err != nil {
 		if errors.Is(err, runtime.ErrInvalidTransaction) {
