@@ -354,6 +354,11 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 			continue
 		}
 
+		err = verifyBlockHashAgainstBlockNumber(h.blockState, pc.Hash, uint(pc.Number))
+		if err != nil {
+			return err
+		}
+
 		if _, ok := eqvVoters[fm.AuthData[i].AuthorityID]; ok {
 			continue
 		}
@@ -446,18 +451,6 @@ func (h *MessageHandler) verifyPreVoteJustification(msg *CatchUpResponse) (commo
 }
 
 func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) error {
-	for _, pcj := range msg.PreCommitJustification {
-		err := verifyBlockHashAgainstBlockNumber(h.blockState, pcj.Vote.Hash, uint(pcj.Vote.Number))
-		if err != nil {
-			if errors.Is(err, chaindb.ErrKeyNotFound) {
-				h.grandpa.tracker.addCatchUpResponse(msg)
-				logger.Infof("we might not have synced to the given block %s yet: %s", pcj.Vote.Hash, err)
-				continue
-			}
-			return err
-		}
-	}
-
 	auths := make([]AuthData, len(msg.PreCommitJustification))
 	for i, pcj := range msg.PreCommitJustification {
 		auths[i] = AuthData{AuthorityID: pcj.AuthorityID}
@@ -475,8 +468,19 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) erro
 	for idx := range msg.PreCommitJustification {
 		just := &msg.PreCommitJustification[idx]
 
+		err = verifyBlockHashAgainstBlockNumber(h.blockState, just.Vote.Hash, uint(just.Vote.Number))
+		if err != nil {
+			if errors.Is(err, chaindb.ErrKeyNotFound) {
+				h.grandpa.tracker.addCatchUpResponse(msg)
+				logger.Infof("we might not have synced to the given block %s yet: %s", just.Vote.Hash, err)
+				continue
+			}
+			return err
+		}
+
 		err := h.verifyJustification(just, msg.Round, msg.SetID, precommit)
 		if err != nil {
+			logger.Errorf("could not verify precommit justification for block %s from authority %s: %s", just.Vote.Hash.String(), just.AuthorityID.String(), err)
 			continue
 		}
 
