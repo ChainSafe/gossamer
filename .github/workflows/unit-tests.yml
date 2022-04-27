@@ -22,7 +22,7 @@ jobs:
     timeout-minutes: 60
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-go@v2
+      - uses: actions/setup-go@v3
         with:
           go-version: 1.18
           stable: true
@@ -72,7 +72,7 @@ jobs:
       - name: Test State - Race
         run: make test-state-race
 
-      - uses: codecov/codecov-action@v2.1.0
+      - uses: codecov/codecov-action@v3.1.0
         with:
           if_ci_failed: success
           informational: true

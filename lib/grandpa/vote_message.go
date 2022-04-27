@@ -42,7 +42,7 @@ func (s *Service) receiveVoteMessages(ctx context.Context) {
 			case prevote, primaryProposal:
 				s.telemetry.SendMessage(
 					telemetry.NewAfgReceivedPrevote(
-						vm.Message.Hash,
+						vm.Message.BlockHash,
 						fmt.Sprint(vm.Message.Number),
 						vm.Message.AuthorityID.String(),
 					),
@@ -50,7 +50,7 @@ func (s *Service) receiveVoteMessages(ctx context.Context) {
 			case precommit:
 				s.telemetry.SendMessage(
 					telemetry.NewAfgReceivedPrecommit(
-						vm.Message.Hash,
+						vm.Message.BlockHash,
 						fmt.Sprint(vm.Message.Number),
 						vm.Message.AuthorityID.String(),
 					),
@@ -101,7 +101,7 @@ func (s *Service) createSignedVoteAndVoteMessage(vote *Vote, stage Subround) (*S
 
 	sm := &SignedMessage{
 		Stage:       stage,
-		Hash:        pc.Vote.Hash,
+		BlockHash:   pc.Vote.Hash,
 		Number:      pc.Vote.Number,
 		Signature:   ed25519.NewSignatureBytes(sig),
 		AuthorityID: s.keypair.Public().(*ed25519.PublicKey).AsBytes(),
@@ -179,7 +179,7 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 		return nil, err
 	}
 
-	vote := NewVote(m.Message.Hash, m.Message.Number)
+	vote := NewVote(m.Message.BlockHash, m.Message.Number)
 
 	// if the vote is from ourselves, return an error
 	kb := [32]byte(s.publicKeyBytes())
@@ -292,7 +292,7 @@ func (s *Service) validateVote(v *Vote) error {
 func validateMessageSignature(pk *ed25519.PublicKey, m *VoteMessage) error {
 	msg, err := scale.Marshal(FullVote{
 		Stage: m.Message.Stage,
-		Vote:  *NewVote(m.Message.Hash, m.Message.Number),
+		Vote:  *NewVote(m.Message.BlockHash, m.Message.Number),
 		Round: m.Round,
 		SetID: m.SetID,
 	})

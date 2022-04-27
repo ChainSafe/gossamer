@@ -142,7 +142,7 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 
 	time.Sleep(time.Second)
 	expectedVote := &Vote{
-		Hash:   msg.Message.Hash,
+		Hash:   msg.Message.BlockHash,
 		Number: msg.Message.Number,
 	}
 	pv, has := gs.prevotes.Load(kr.Alice().Public().(*ed25519.PublicKey).AsBytes())
@@ -194,7 +194,7 @@ func TestMessageTracker_handleTick(t *testing.T) {
 	msg := &VoteMessage{
 		Round: 100,
 		Message: SignedMessage{
-			Hash: testHash,
+			BlockHash: testHash,
 		},
 	}
 	gs.tracker.addVote(&networkVoteMessage{
@@ -218,7 +218,7 @@ func TestMessageTracker_handleTick(t *testing.T) {
 	msg = &VoteMessage{
 		Round: 0,
 		Message: SignedMessage{
-			Hash: testHash,
+			BlockHash: testHash,
 		},
 	}
 	gs.tracker.addVote(&networkVoteMessage{

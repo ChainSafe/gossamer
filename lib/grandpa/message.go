@@ -37,7 +37,7 @@ type FullVote struct {
 // SignedMessage represents a block hash and number signed by an authority
 type SignedMessage struct {
 	Stage       Subround // 0 for pre-vote, 1 for pre-commit, 2 for primary proposal
-	Hash        common.Hash
+	BlockHash   common.Hash
 	Number      uint32
 	Signature   [64]byte // ed25519.SignatureLength
 	AuthorityID ed25519.PublicKeyBytes
@@ -45,7 +45,7 @@ type SignedMessage struct {
 
 // String returns the SignedMessage as a string
 func (m SignedMessage) String() string {
-	return fmt.Sprintf("stage=%s hash=%s number=%d authorityID=%s", m.Stage, m.Hash, m.Number, m.AuthorityID)
+	return fmt.Sprintf("stage=%s hash=%s number=%d authorityID=%s", m.Stage, m.BlockHash, m.Number, m.AuthorityID)
 }
 
 // VoteMessage represents a network-level vote message

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -104,6 +105,16 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourMessage) error {
 func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) error {
 	logger.Debugf("received commit message, msg: %+v", msg)
 
+	err := verifyBlockHashAgainstBlockNumber(h.blockState, msg.Vote.Hash, uint(msg.Vote.Number))
+	if err != nil {
+		if errors.Is(err, chaindb.ErrKeyNotFound) {
+			h.grandpa.tracker.addCommit(msg)
+			logger.Infof("we might not have synced to the given block %s yet: %s", msg.Vote.Hash, err)
+			return nil
+		}
+		return err
+	}
+
 	containsPrecommitsSignedBy := make([]string, len(msg.AuthData))
 	for i, authData := range msg.AuthData {
 		containsPrecommitsSignedBy[i] = authData.AuthorityID.String()
@@ -183,6 +194,16 @@ func (h *MessageHandler) handleCatchUpResponse(msg *CatchUpResponse) error {
 	logger.Debugf(
 		"received catch up response with hash %s for round %d and set id %d",
 		msg.Hash, msg.Round, msg.SetID)
+
+	err := verifyBlockHashAgainstBlockNumber(h.blockState, msg.Hash, uint(msg.Number))
+	if err != nil {
+		if errors.Is(err, chaindb.ErrKeyNotFound) {
+			h.grandpa.tracker.addCatchUpResponse(msg)
+			logger.Infof("we might not have synced to the given block %s yet: %s", msg.Hash, err)
+			return nil
+		}
+		return err
+	}
 
 	// TODO: re-add catch-up logic (#1531)
 	if true {
@@ -329,7 +350,7 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 
 		isDescendant, err := h.blockState.IsDescendantOf(fm.Vote.Hash, just.Vote.Hash)
 		if err != nil {
-			logger.Warnf("verifyCommitMessageJustification: %s", err)
+			logger.Warnf("could not check for descendant: %s", err)
 			continue
 		}
 
@@ -358,6 +379,17 @@ func (h *MessageHandler) verifyPreVoteJustification(msg *CatchUpResponse) (commo
 	voters := make(map[ed25519.PublicKeyBytes]map[common.Hash]int, len(msg.PreVoteJustification))
 	eqVotesByHash := make(map[common.Hash]map[ed25519.PublicKeyBytes]struct{})
 
+	for _, pvj := range msg.PreVoteJustification {
+		err := verifyBlockHashAgainstBlockNumber(h.blockState, pvj.Vote.Hash, uint(pvj.Vote.Number))
+		if err != nil {
+			if errors.Is(err, chaindb.ErrKeyNotFound) {
+				h.grandpa.tracker.addCatchUpResponse(msg)
+				logger.Infof("we might not have synced to the given block %s yet: %s", pvj.Vote.Hash, err)
+				continue
+			}
+			return common.Hash{}, err
+		}
+	}
 	// identify equivocatory votes by hash
 	for _, justification := range msg.PreVoteJustification {
 		hashsToCount, ok := voters[justification.AuthorityID]
@@ -414,6 +446,18 @@ func (h *MessageHandler) verifyPreVoteJustification(msg *CatchUpResponse) (commo
 }
 
 func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) error {
+	for _, pcj := range msg.PreCommitJustification {
+		err := verifyBlockHashAgainstBlockNumber(h.blockState, pcj.Vote.Hash, uint(pcj.Vote.Number))
+		if err != nil {
+			if errors.Is(err, chaindb.ErrKeyNotFound) {
+				h.grandpa.tracker.addCatchUpResponse(msg)
+				logger.Infof("we might not have synced to the given block %s yet: %s", pcj.Vote.Hash, err)
+				continue
+			}
+			return err
+		}
+	}
+
 	auths := make([]AuthData, len(msg.PreCommitJustification))
 	for i, pcj := range msg.PreCommitJustification {
 		auths[i] = AuthData{AuthorityID: pcj.AuthorityID}
@@ -600,6 +644,18 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 		return ErrMinVotesNotMet
 	}
 
+	err = verifyBlockHashAgainstBlockNumber(s.blockState, fj.Commit.Hash, uint(fj.Commit.Number))
+	if err != nil {
+		return err
+	}
+
+	for _, preCommit := range fj.Commit.Precommits {
+		err := verifyBlockHashAgainstBlockNumber(s.blockState, preCommit.Vote.Hash, uint(preCommit.Vote.Number))
+		if err != nil {
+			return err
+		}
+	}
+
 	err = s.blockState.SetFinalisedHash(hash, fj.Round, setID)
 	if err != nil {
 		return err
@@ -608,6 +664,19 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 	logger.Debugf(
 		"set finalised block with hash %s, round %d and set id %d",
 		hash, fj.Round, setID)
+	return nil
+}
+
+func verifyBlockHashAgainstBlockNumber(bs BlockState, hash common.Hash, number uint) error {
+	header, err := bs.GetHeader(hash)
+	if err != nil {
+		return fmt.Errorf("could not get header from block hash: %w", err)
+	}
+
+	if header.Number != number {
+		return fmt.Errorf("%w: expected number %d from header but got number %d",
+			ErrBlockHashMismatch, header.Number, number)
+	}
 	return nil
 }
 

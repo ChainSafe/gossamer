@@ -82,7 +82,7 @@ func TestVoteMessageToConsensusMessage(t *testing.T) {
 		SetID: gs.state.setID,
 		Message: SignedMessage{
 			Stage:       precommit,
-			Hash:        v.Hash,
+			BlockHash:   v.Hash,
 			Number:      v.Number,
 			AuthorityID: gs.keypair.Public().(*ed25519.PublicKey).AsBytes(),
 		},
@@ -100,7 +100,7 @@ func TestVoteMessageToConsensusMessage(t *testing.T) {
 		SetID: gs.state.setID,
 		Message: SignedMessage{
 			Stage:       prevote,
-			Hash:        v.Hash,
+			BlockHash:   v.Hash,
 			Number:      v.Number,
 			AuthorityID: gs.keypair.Public().(*ed25519.PublicKey).AsBytes(),
 		},
