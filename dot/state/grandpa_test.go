@@ -140,6 +140,22 @@ func testBlockState(t *testing.T, db chaindb.Database) *BlockState {
 	return bs
 }
 
+func TestAddScheduledChangesKeepTheRightForkTree(t *testing.T) {
+	keyring, err := keystore.NewSr25519Keyring()
+	require.NoError(t, err)
+
+	db := NewInMemoryDB(t)
+	blockState := testBlockState(t, db)
+
+	gs, err := NewGrandpaStateFromGenesis(db, blockState, nil)
+
+	// create chainA and two forks: chainB and chainC
+	chainA := issueBlocksWithBABEPrimary(t, keyring.KeyAlice, gs.blockState, testGenesisHeader, 10)
+	chainB := issueBlocksWithBABEPrimary(t, keyring.KeyBob, gs.blockState, chainA[1], 9)
+	chainC := issueBlocksWithBABEPrimary(t, keyring.KeyCharlie, gs.blockState, chainA[5], 10)
+
+}
+
 func TestForcedScheduledChangesOrder(t *testing.T) {
 	keyring, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
@@ -242,7 +258,7 @@ func TestShouldNotAddMoreThanOneForcedChangeInTheSameFork(t *testing.T) {
 
 	err = gs.addForcedChange(bobHeaders[2], someForcedChange)
 	require.Error(t, err)
-	require.ErrorIs(t, err, ErrDuplicatedHashes)
+	require.ErrorIs(t, err, errDuplicateHashes)
 }
 
 func issueBlocksWithBABEPrimary(t *testing.T, kp *sr25519.Keypair,
@@ -291,4 +307,130 @@ func issueBlocksWithBABEPrimary(t *testing.T, kp *sr25519.Keypair,
 	headers = append(headers, header)
 	headers = append(headers, issueBlocksWithBABEPrimary(t, kp, bs, header, size-1)...)
 	return headers
+}
+
+func TestNextGrandpaAuthorityChange(t *testing.T) {
+	keyring, err := keystore.NewSr25519Keyring()
+	require.NoError(t, err)
+
+	tests := map[string]struct {
+		forcedChange               *types.GrandpaForcedChange
+		forcedChangeAnnoucingIndex int
+
+		scheduledChange               *types.GrandpaScheduledChange
+		scheduledChangeAnnoucingIndex int
+
+		wantErr             error
+		expectedBlockNumber uint
+	}{
+		"no_forced_change_no_scheduled_change": {
+			wantErr: ErrNoChanges,
+		},
+		"only_forced_change": {
+			forcedChangeAnnoucingIndex: 2, // in the chain headers slice the index 2 == block number 3
+			forcedChange: &types.GrandpaForcedChange{
+				Delay: 2,
+				Auths: []types.GrandpaAuthoritiesRaw{
+					{Key: keyring.KeyAlice.Public().(*sr25519.PublicKey).AsBytes()},
+					{Key: keyring.KeyBob.Public().(*sr25519.PublicKey).AsBytes()},
+					{Key: keyring.KeyCharlie.Public().(*sr25519.PublicKey).AsBytes()},
+				},
+			},
+			expectedBlockNumber: 5,
+		},
+		"only_scheduled_change": {
+			scheduledChangeAnnoucingIndex: 3, // in the chain headers slice the index 3 == block number 4
+			scheduledChange: &types.GrandpaScheduledChange{
+				Delay: 4,
+				Auths: []types.GrandpaAuthoritiesRaw{
+					{Key: keyring.KeyAlice.Public().(*sr25519.PublicKey).AsBytes()},
+					{Key: keyring.KeyBob.Public().(*sr25519.PublicKey).AsBytes()},
+					{Key: keyring.KeyCharlie.Public().(*sr25519.PublicKey).AsBytes()},
+				},
+			},
+			expectedBlockNumber: 8,
+		},
+		"forced_change_before_scheduled_change": {
+			forcedChangeAnnoucingIndex: 2, // in the chain headers slice the index 2 == block number 3
+			forcedChange: &types.GrandpaForcedChange{
+				Delay: 2,
+				Auths: []types.GrandpaAuthoritiesRaw{
+					{Key: keyring.KeyAlice.Public().(*sr25519.PublicKey).AsBytes()},
+					{Key: keyring.KeyBob.Public().(*sr25519.PublicKey).AsBytes()},
+					{Key: keyring.KeyCharlie.Public().(*sr25519.PublicKey).AsBytes()},
+				},
+			},
+			scheduledChangeAnnoucingIndex: 3, // in the chain headers slice the index 3 == block number 4
+			scheduledChange: &types.GrandpaScheduledChange{
+				Delay: 4,
+				Auths: []types.GrandpaAuthoritiesRaw{
+					{Key: keyring.KeyAlice.Public().(*sr25519.PublicKey).AsBytes()},
+					{Key: keyring.KeyBob.Public().(*sr25519.PublicKey).AsBytes()},
+					{Key: keyring.KeyCharlie.Public().(*sr25519.PublicKey).AsBytes()},
+				},
+			},
+			expectedBlockNumber: 5, // forced change occurs before the scheduled change
+		},
+		"scheduled_change_before_forced_change": {
+			scheduledChangeAnnoucingIndex: 3, // in the chain headers slice the index 3 == block number 4
+			scheduledChange: &types.GrandpaScheduledChange{
+				Delay: 4,
+				Auths: []types.GrandpaAuthoritiesRaw{
+					{Key: keyring.KeyAlice.Public().(*sr25519.PublicKey).AsBytes()},
+					{Key: keyring.KeyBob.Public().(*sr25519.PublicKey).AsBytes()},
+					{Key: keyring.KeyCharlie.Public().(*sr25519.PublicKey).AsBytes()},
+				},
+			},
+			forcedChangeAnnoucingIndex: 8, // in the chain headers slice the index 8 == block number 9
+			forcedChange: &types.GrandpaForcedChange{
+				Delay: 1,
+				Auths: []types.GrandpaAuthoritiesRaw{
+					{Key: keyring.KeyAlice.Public().(*sr25519.PublicKey).AsBytes()},
+					{Key: keyring.KeyBob.Public().(*sr25519.PublicKey).AsBytes()},
+					{Key: keyring.KeyCharlie.Public().(*sr25519.PublicKey).AsBytes()},
+				},
+			},
+			expectedBlockNumber: 8, // scheduled change occurs before the forced change
+		},
+	}
+
+	for tname, tt := range tests {
+		tt := tt
+		t.Run(tname, func(t *testing.T) {
+			t.Parallel()
+
+			db := NewInMemoryDB(t)
+			blockState := testBlockState(t, db)
+
+			gs, err := NewGrandpaStateFromGenesis(db, blockState, nil)
+			require.NoError(t, err)
+
+			const sizeOfChain = 10
+
+			chainHeaders := issueBlocksWithBABEPrimary(t, keyring.KeyAlice, gs.blockState,
+				testGenesisHeader, sizeOfChain)
+
+			if tt.forcedChange != nil {
+				gs.addForcedChange(chainHeaders[tt.forcedChangeAnnoucingIndex],
+					*tt.forcedChange)
+			}
+
+			if tt.scheduledChange != nil {
+				gs.addScheduledChange(chainHeaders[tt.scheduledChangeAnnoucingIndex],
+					*tt.scheduledChange)
+			}
+
+			lastBlockOnChain := chainHeaders[sizeOfChain].Hash()
+			blockNumber, err := gs.NextGrandpaAuthorityChange(lastBlockOnChain)
+
+			if tt.wantErr != nil {
+				require.Error(t, err)
+				require.EqualError(t, err, tt.wantErr.Error())
+				require.Zero(t, blockNumber)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, tt.expectedBlockNumber, blockNumber)
+			}
+		})
+	}
 }

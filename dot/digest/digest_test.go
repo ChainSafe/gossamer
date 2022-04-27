@@ -226,7 +226,6 @@ func TestHandler_GrandpaPauseAndResume(t *testing.T) {
 	require.Equal(t, uint(r.Delay+p.Delay), nextResume)
 }
 
-// TODO: move this test to dot/state/grandpa.go
 // func TestNextGrandpaAuthorityChange_OneChange(t *testing.T) {
 // 	handler, _ := newTestHandler(t)
 // 	handler.Start()

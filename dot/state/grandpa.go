@@ -27,7 +27,7 @@ var (
 )
 
 var (
-	ErrDuplicatedHashes        = errors.New("duplicated hashes")
+	errDuplicateHashes         = errors.New("duplicated hashes")
 	ErrAlreadyHasForcedChanges = errors.New("already has a forced change")
 	ErrUnfinalizedAncestor     = errors.New("ancestor with changes not applied")
 	ErrNoChanges               = errors.New("cannot get the next authority change block number")
@@ -50,26 +50,39 @@ func (p *pendingChange) effectiveNumber() uint {
 	return p.announcingHeader.Number + uint(p.delay)
 }
 
+// appliedBefore compares the effective number between two pending changes
+// and returns true if:
+// - the current pending change is applied before the target
+// - the target is nil
+func (p *pendingChange) appliedBefore(target *pendingChange) bool {
+	if p != nil && target != nil {
+		return p.effectiveNumber() < target.effectiveNumber()
+	}
+
+	return p != nil
+}
+
 type isDescendantOfFunc func(parent, child common.Hash) (bool, error)
 
 type pendingChangeNode struct {
-	header *types.Header
 	change *pendingChange
 	nodes  []*pendingChangeNode
 }
 
-func (c *pendingChangeNode) importScheduledChange(header *types.Header, pendingChange *pendingChange,
+func (c *pendingChangeNode) importScheduledChange(blockHash common.Hash, blockNumber uint, pendingChange *pendingChange,
 	isDescendantOf isDescendantOfFunc) (imported bool, err error) {
-	if c.header.Hash() == header.Hash() {
-		return false, errors.New("duplicate block hash while importing change")
+	announcingHash := c.change.announcingHeader.Hash()
+
+	if blockHash.Equal(announcingHash) {
+		return false, errDuplicateHashes
 	}
 
-	if header.Number <= c.header.Number {
+	if blockNumber <= c.change.announcingHeader.Number {
 		return false, nil
 	}
 
 	for _, childrenNodes := range c.nodes {
-		imported, err := childrenNodes.importScheduledChange(header, pendingChange, isDescendantOf)
+		imported, err := childrenNodes.importScheduledChange(blockHash, blockNumber, pendingChange, isDescendantOf)
 		if err != nil {
 			return false, fmt.Errorf("could not import change: %w", err)
 		}
@@ -79,7 +92,7 @@ func (c *pendingChangeNode) importScheduledChange(header *types.Header, pendingC
 		}
 	}
 
-	isDescendant, err := isDescendantOf(c.header.Hash(), header.Hash())
+	isDescendant, err := isDescendantOf(announcingHash, blockHash)
 	if err != nil {
 		return false, fmt.Errorf("cannot define ancestry: %w", err)
 	}
@@ -88,7 +101,7 @@ func (c *pendingChangeNode) importScheduledChange(header *types.Header, pendingC
 		return false, nil
 	}
 
-	pendingChangeNode := &pendingChangeNode{header: header, change: pendingChange, nodes: []*pendingChangeNode{}}
+	pendingChangeNode := &pendingChangeNode{change: pendingChange, nodes: []*pendingChangeNode{}}
 	c.nodes = append(c.nodes, pendingChangeNode)
 	return true, nil
 }
@@ -98,7 +111,7 @@ type orderedPendingChanges []*pendingChange
 func (o orderedPendingChanges) Len() int      { return len(o) }
 func (o orderedPendingChanges) Swap(i, j int) { o[i], o[j] = o[j], o[i] }
 
-// Less order by first effective number then by block number
+// Less order by effective number and then by block number
 func (o orderedPendingChanges) Less(i, j int) bool {
 	return o[i].effectiveNumber() < o[j].effectiveNumber() &&
 		o[i].announcingHeader.Number < o[j].announcingHeader.Number
@@ -175,8 +188,8 @@ func (s *GrandpaState) addForcedChange(header *types.Header, fc types.GrandpaFor
 	for _, change := range s.forcedChanges {
 		changeBlockHash := change.announcingHeader.Hash()
 
-		if changeBlockHash == headerHash {
-			return ErrDuplicatedHashes
+		if changeBlockHash.Equal(headerHash) {
+			return errDuplicateHashes
 		}
 
 		isDescendant, err := s.blockState.IsDescendantOf(changeBlockHash, headerHash)
@@ -219,12 +232,12 @@ func (s *GrandpaState) addScheduledChange(header *types.Header, sc types.Grandpa
 		delay:            sc.Delay,
 	}
 
-	return s.importScheduledChange(header, pendingChange)
+	return s.importScheduledChange(pendingChange)
 }
 
-func (s *GrandpaState) importScheduledChange(header *types.Header, pendingChange *pendingChange) error {
+func (s *GrandpaState) importScheduledChange(pendingChange *pendingChange) error {
 	defer func() {
-		logger.Debugf("there are now %d possible standard changes (roots)", len(s.scheduledChangeRoots))
+		logger.Debugf("there are now %d possible scheduled changes (roots)", len(s.scheduledChangeRoots))
 	}()
 
 	highestFinalizedHeader, err := s.blockState.GetHighestFinalisedHeader()
@@ -232,24 +245,26 @@ func (s *GrandpaState) importScheduledChange(header *types.Header, pendingChange
 		return fmt.Errorf("cannot get highest finalized header: %w", err)
 	}
 
-	if header.Number <= highestFinalizedHeader.Number {
+	if pendingChange.announcingHeader.Number <= highestFinalizedHeader.Number {
 		return errors.New("cannot import changes from blocks older then our highest finalized block")
 	}
 
 	for _, root := range s.scheduledChangeRoots {
-		imported, err := root.importScheduledChange(header, pendingChange, s.blockState.IsDescendantOf)
+		imported, err := root.importScheduledChange(pendingChange.announcingHeader.Hash(),
+			pendingChange.announcingHeader.Number, pendingChange, s.blockState.IsDescendantOf)
 
 		if err != nil {
 			return fmt.Errorf("could not import change: %w", err)
 		}
 
 		if imported {
-			logger.Debugf("changes on header %s (%d) imported succesfully", header.Hash(), header.Number)
+			logger.Debugf("changes on header %s (%d) imported succesfully",
+				pendingChange.announcingHeader.Hash(), pendingChange.announcingHeader.Number)
 			return nil
 		}
 	}
 
-	pendingChangeNode := &pendingChangeNode{header: header, change: pendingChange, nodes: []*pendingChangeNode{}}
+	pendingChangeNode := &pendingChangeNode{change: pendingChange, nodes: []*pendingChangeNode{}}
 	s.scheduledChangeRoots = append(s.scheduledChangeRoots, pendingChangeNode)
 	return nil
 }
@@ -278,7 +293,7 @@ func (s *GrandpaState) getApplicableChange(finalizedHash common.Hash, finalizedN
 			continue
 		}
 
-		rootHash := root.header.Hash()
+		rootHash := root.change.announcingHeader.Hash()
 
 		// if the current root doesn't have the same hash
 		// neither the finalized header is descendant of the root then skip to the next root
@@ -296,12 +311,12 @@ func (s *GrandpaState) getApplicableChange(finalizedHash common.Hash, finalizedN
 		// as the changes needs to be applied in order we need to check if our finalized
 		// header is in front of any children, if it is that means some previous change was not applied
 		for _, node := range root.nodes {
-			isDescendant, err := s.blockState.IsDescendantOf(node.header.Hash(), finalizedHash)
+			isDescendant, err := s.blockState.IsDescendantOf(node.change.announcingHeader.Hash(), finalizedHash)
 			if err != nil {
 				return nil, fmt.Errorf("cannot verify ancestry: %w", err)
 			}
 
-			if node.header.Number <= finalizedNumber && isDescendant {
+			if node.change.announcingHeader.Number <= finalizedNumber && isDescendant {
 				return nil, ErrUnfinalizedAncestor
 			}
 		}
@@ -484,15 +499,15 @@ func (s *GrandpaState) ApplyForcedChanges(importedBlockHeader *types.Header) err
 	return nil
 }
 
-// forcedChangeOnChain walk through the forced change slice looking for
-// a forced change that belong to the same branch as bestBlockHash parameter
-func (s *GrandpaState) forcedChangeOnChain(bestBlockHash common.Hash) (change *pendingChange, err error) {
+// forcedChangeOnChainOf walk through the forced change slice looking for
+// a forced change that belong to the same branch as blockHash parameter
+func (s *GrandpaState) forcedChangeOnChainOf(blockHash common.Hash) (*pendingChange, error) {
 	for _, forcedChange := range s.forcedChanges {
 		forcedChangeHeader := forcedChange.announcingHeader
 
 		var isDescendant bool
-		isDescendant, err = s.blockState.IsDescendantOf(
-			forcedChangeHeader.Hash(), bestBlockHash)
+		isDescendant, err := s.blockState.IsDescendantOf(
+			forcedChangeHeader.Hash(), blockHash)
 
 		if err != nil {
 			return nil, fmt.Errorf("cannot verify ancestry: %w", err)
@@ -509,12 +524,11 @@ func (s *GrandpaState) forcedChangeOnChain(bestBlockHash common.Hash) (change *p
 }
 
 // scheduledChangeOnChainOf walk only through the scheduled changes roots slice looking for
-// a scheduled change that belong to the same branch as bestBlockHash parameter
-func (s *GrandpaState) scheduledChangeOnChainOf(bestBlockHash common.Hash) (change *pendingChange, err error) {
+// a scheduled change that belongs to the same branch as blockHash parameter
+func (s *GrandpaState) scheduledChangeOnChainOf(blockHash common.Hash) (*pendingChange, error) {
 	for _, scheduledChange := range s.scheduledChangeRoots {
-		var isDescendant bool
-		isDescendant, err = s.blockState.IsDescendantOf(
-			scheduledChange.header.Hash(), bestBlockHash)
+		isDescendant, err := s.blockState.IsDescendantOf(
+			scheduledChange.change.announcingHeader.Hash(), blockHash)
 
 		if err != nil {
 			return nil, fmt.Errorf("cannot verify ancestry: %w", err)
@@ -533,25 +547,25 @@ func (s *GrandpaState) scheduledChangeOnChainOf(bestBlockHash common.Hash) (chan
 // NextGrandpaAuthorityChange returns the block number of the next upcoming grandpa authorities change.
 // It returns 0 if no change is scheduled.
 func (s *GrandpaState) NextGrandpaAuthorityChange(bestBlockHash common.Hash) (blockNumber uint, err error) {
-	forcedChange, err := s.forcedChangeOnChain(bestBlockHash)
+	forcedChange, err := s.forcedChangeOnChainOf(bestBlockHash)
 	if err != nil {
-		return 0, fmt.Errorf("cannot get forced change: %w", err)
+		return 0, fmt.Errorf("cannot get forced change on chain of %s: %w",
+			bestBlockHash, err)
 	}
 
 	scheduledChange, err := s.scheduledChangeOnChainOf(bestBlockHash)
 	if err != nil {
-		return 0, fmt.Errorf("cannot get scheduled change: %w", err)
+		return 0, fmt.Errorf("cannot get scheduled change on chain of %s: %w",
+			bestBlockHash, err)
 	}
 
-	if forcedChange == nil && scheduledChange == nil {
-		return 0, ErrNoChanges
-	}
-
-	if forcedChange.announcingHeader.Number < scheduledChange.announcingHeader.Number {
+	if forcedChange.appliedBefore(scheduledChange) {
 		return forcedChange.effectiveNumber(), nil
+	} else if scheduledChange != nil {
+		return scheduledChange.effectiveNumber(), nil
 	}
 
-	return scheduledChange.effectiveNumber(), nil
+	return 0, ErrNoChanges
 }
 
 func authoritiesKey(setID uint64) []byte {
