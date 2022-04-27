@@ -291,7 +291,8 @@ func getEquivocatoryVoters(votes []AuthData) (map[ed25519.PublicKeyBytes]struct{
 	for _, v := range votes {
 		voters[v.AuthorityID]++
 		if voters[v.AuthorityID] > 2 {
-			return nil, errInvalidMultiplicity
+			return nil, fmt.Errorf("%w: authority id %x has %d votes", 
+				errInvalidMultiplicity, v.AuthorityID, voters[v.AuthorityID])
 		}
 
 		if voters[v.AuthorityID] == 2 {
