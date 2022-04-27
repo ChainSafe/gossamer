@@ -495,12 +495,14 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 		return nil
 	}
 
-	ts, err := s.storageState.TrieState(nil)
+	bestBlockHash := s.blockState.BestBlockHash()
+
+	ts, err := s.storageState.TrieState(&bestBlockHash)
 	if err != nil {
 		return err
 	}
 
-	rt, err := s.blockState.GetRuntime(nil)
+	rt, err := s.blockState.GetRuntime(&bestBlockHash)
 	if err != nil {
 		logger.Critical("failed to get runtime")
 		return err
