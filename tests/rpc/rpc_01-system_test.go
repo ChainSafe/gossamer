@@ -5,6 +5,8 @@ package rpc
 
 import (
 	"context"
+	"os"
+	"sort"
 	"testing"
 	"time"
 
@@ -26,7 +28,7 @@ func TestSystemRPC(t *testing.T) {
 		return
 	}
 
-	const testTimeout = 8 * time.Minute
+	const testTimeout = 2 * time.Minute
 	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 
 	const numberOfNodes = 3
@@ -34,7 +36,7 @@ func TestSystemRPC(t *testing.T) {
 	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
 	tomlConfig := config.Default()
 	tomlConfig.Init.Genesis = genesisPath
-	nodes := node.MakeNodes(t, numberOfNodes, tomlConfig)
+	nodes := node.MakeNodes(t, numberOfNodes, tomlConfig, node.SetWriter(os.Stdout))
 
 	nodes.InitAndStartTest(ctx, t, cancel)
 
@@ -83,10 +85,12 @@ func TestSystemRPC(t *testing.T) {
 			}
 
 			ok = healthResponse.Peers == numberOfNodes-1 && !healthResponse.IsSyncing
+			t.Logf("%d peers connected, syncing %t", healthResponse.Peers, healthResponse.IsSyncing)
 			return ok, nil
 		})
 		require.NoError(t, err)
 
+		time.Sleep(5 * time.Second)
 		var response modules.SystemPeersResponse
 		// Wait for N-1 peers with peer IDs set
 		err = retry.UntilOK(ctx, time.Second, func() (ok bool, err error) {
@@ -103,11 +107,23 @@ func TestSystemRPC(t *testing.T) {
 				return false, nil // retry
 			}
 
-			bestBlockNumber := response[0].BestNumber
-			for _, peer := range response {
+			sort.Slice(response, func(i, j int) bool {
+				return response[i].PeerID < response[j].PeerID
+			})
+
+			bestBlockNumbers := make([]uint64, len(response))
+			for i, peer := range response {
 				// wait for all peers to have the same best block number
-				sameBestBlockNumber := bestBlockNumber == peer.BestNumber
-				if peer.PeerID == "" || peer.BestHash.IsEmpty() || !sameBestBlockNumber {
+				bestBlockNumbers[i] = peer.BestNumber
+				if peer.PeerID == "" || peer.BestHash.IsEmpty() {
+					return false, nil // retry
+				}
+			}
+
+			mustEqualBlockNumber := bestBlockNumbers[0]
+			for _, bestBlockNumber := range bestBlockNumbers {
+				if mustEqualBlockNumber != bestBlockNumber {
+					t.Logf("Best block numbers are not equal: %v", bestBlockNumbers)
 					return false, nil // retry
 				}
 			}

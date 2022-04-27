@@ -625,12 +625,12 @@ func (s *Service) Peers() []common.PeerInfo {
 			continue
 		}
 
-		peerHandshakeMessage := data.handshake
+		peerHandshakeAnnounce := data.handshake.(*BlockAnnounceHandshake)
 		peers = append(peers, common.PeerInfo{
 			PeerID:     p.String(),
-			Roles:      peerHandshakeMessage.(*BlockAnnounceHandshake).Roles,
-			BestHash:   peerHandshakeMessage.(*BlockAnnounceHandshake).BestBlockHash,
-			BestNumber: uint64(peerHandshakeMessage.(*BlockAnnounceHandshake).BestBlockNumber),
+			Roles:      peerHandshakeAnnounce.Roles,
+			BestHash:   peerHandshakeAnnounce.BestBlockHash,
+			BestNumber: uint64(peerHandshakeAnnounce.BestBlockNumber),
 		})
 	}
 
