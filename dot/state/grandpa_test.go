@@ -4,10 +4,12 @@
 package state
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -141,6 +143,8 @@ func testBlockState(t *testing.T, db chaindb.Database) *BlockState {
 }
 
 func TestAddScheduledChangesKeepTheRightForkTree(t *testing.T) {
+	t.Parallel()
+
 	keyring, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 
@@ -149,11 +153,133 @@ func TestAddScheduledChangesKeepTheRightForkTree(t *testing.T) {
 
 	gs, err := NewGrandpaStateFromGenesis(db, blockState, nil)
 
-	// create chainA and two forks: chainB and chainC
+	/*
+	* create chainA and two forks: chainB and chainC
+	*
+	*      / -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10 -> 11 (B)
+	* 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10 -> 11 (A)
+	*                          \ -> 7 -> 8 -> 9 -> 10 -> 11 -> 12 -> 13 -> 14 -> 15 -> 16 (C)
+	 */
 	chainA := issueBlocksWithBABEPrimary(t, keyring.KeyAlice, gs.blockState, testGenesisHeader, 10)
 	chainB := issueBlocksWithBABEPrimary(t, keyring.KeyBob, gs.blockState, chainA[1], 9)
 	chainC := issueBlocksWithBABEPrimary(t, keyring.KeyCharlie, gs.blockState, chainA[5], 10)
 
+	scheduledChange := &types.GrandpaScheduledChange{
+		Delay: 0, // delay of 0 means the modifications should be applied immediately
+		Auths: []types.GrandpaAuthoritiesRaw{
+			{Key: keyring.KeyAlice.Public().(*sr25519.PublicKey).AsBytes()},
+			{Key: keyring.KeyBob.Public().(*sr25519.PublicKey).AsBytes()},
+			{Key: keyring.KeyCharlie.Public().(*sr25519.PublicKey).AsBytes()},
+		},
+	}
+
+	// headersToAdd enables tracking error while adding expecific entries
+	// to the scheduled change fork tree, eg.
+	// - adding duplicate hashes entries: while adding the first entry everything should be ok,
+	//   however when adding the second duplicated entry we should expect the errDuplicateHashes error
+	type headersToAdd struct {
+		header  *types.Header
+		wantErr error
+	}
+
+	tests := map[string]struct {
+		headersWithScheduledChanges []headersToAdd
+		expectedRoots               int
+		highestFinalizedHeader      *types.Header
+	}{
+		"add_scheduled_changes_only_with_roots": {
+			headersWithScheduledChanges: []headersToAdd{
+				{header: chainA[6]},
+				{header: chainB[3]},
+			},
+			expectedRoots: 2,
+		},
+		"add_scheduled_changes_with_roots_and_children": {
+			headersWithScheduledChanges: []headersToAdd{
+				{header: chainA[6]}, {header: chainA[8]},
+				{header: chainB[3]}, {header: chainB[7]}, {header: chainB[9]},
+				{header: chainC[8]},
+			},
+			expectedRoots: 3,
+		},
+		"add_scheduled_change_before_highest_finalized_header": {
+			headersWithScheduledChanges: []headersToAdd{
+				{header: chainA[3], wantErr: ErrLowerThanBestFinalized},
+			},
+			highestFinalizedHeader: chainA[5],
+			expectedRoots:          0,
+		},
+		"add_scheduled_changes_with_same_hash": {
+			headersWithScheduledChanges: []headersToAdd{
+				{header: chainA[3]},
+				{header: chainA[3], wantErr: fmt.Errorf("could not import scheduled change: %w",
+					errDuplicateHashes)},
+			},
+			expectedRoots: 0,
+		},
+	}
+
+	for tname, tt := range tests {
+		tt := tt
+		t.Run(tname, func(t *testing.T) {
+			// clear the scheduledChangeRoots after the test ends
+			// this does not cause race condition because t.Run without
+			// t.Parallel() blocks until this function returns
+			defer func() {
+				gs.scheduledChangeRoots = gs.scheduledChangeRoots[:0]
+			}()
+
+			updateHighestFinalizedHeaderOrDefault(t, gs.blockState, tt.highestFinalizedHeader, chainA[0])
+
+			for _, entry := range tt.headersWithScheduledChanges {
+				err := gs.addScheduledChange(entry.header, *scheduledChange)
+
+				if entry.wantErr != nil {
+					require.Error(t, err)
+					require.EqualError(t, err, entry.wantErr.Error())
+					return
+				} else {
+					require.NoError(t, err)
+				}
+			}
+
+			require.Len(t, gs.scheduledChangeRoots, tt.expectedRoots)
+
+			for _, root := range gs.scheduledChangeRoots {
+				parentHash := root.change.announcingHeader.Hash()
+				assertDescendantChildren(t, parentHash, gs.blockState.IsDescendantOf, root.nodes)
+			}
+		})
+	}
+}
+
+func assertDescendantChildren(t *testing.T, parentHash common.Hash, isDescendantOfFunc isDescendantOfFunc,
+	scheduledChanges []*pendingChangeNode) {
+	t.Helper()
+
+	for _, scheduled := range scheduledChanges {
+		scheduledChangeHash := scheduled.change.announcingHeader.Hash()
+		isDescendant, err := isDescendantOfFunc(parentHash, scheduledChangeHash)
+		require.NoError(t, err)
+		require.Truef(t, isDescendant, "%s is not descendant of %s", scheduledChangeHash, parentHash)
+
+		assertDescendantChildren(t, scheduledChangeHash, isDescendantOfFunc, scheduled.nodes)
+	}
+}
+
+// updateHighestFinalizedHeaderOrDefault will update the current highest finalized header
+// with the value of newHighest, if the newHighest is nil then it will use the def value
+func updateHighestFinalizedHeaderOrDefault(t *testing.T, bs *BlockState, newHighest, def *types.Header) {
+	t.Helper()
+
+	round, setID, err := bs.GetHighestRoundAndSetID()
+	require.NoError(t, err)
+
+	if newHighest != nil {
+		bs.db.Put(finalisedHashKey(round, setID), newHighest.Hash().ToBytes())
+	} else {
+		bs.db.Put(finalisedHashKey(round, setID), def.Hash().ToBytes())
+	}
 }
 
 func TestForcedScheduledChangesOrder(t *testing.T) {

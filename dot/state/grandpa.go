@@ -84,7 +84,7 @@ func (c *pendingChangeNode) importScheduledChange(blockHash common.Hash, blockNu
 	for _, childrenNodes := range c.nodes {
 		imported, err := childrenNodes.importScheduledChange(blockHash, blockNumber, pendingChange, isDescendantOf)
 		if err != nil {
-			return false, fmt.Errorf("could not import change: %w", err)
+			return false, err
 		}
 
 		if imported {
@@ -246,7 +246,7 @@ func (s *GrandpaState) importScheduledChange(pendingChange *pendingChange) error
 	}
 
 	if pendingChange.announcingHeader.Number <= highestFinalizedHeader.Number {
-		return errors.New("cannot import changes from blocks older then our highest finalized block")
+		return ErrLowerThanBestFinalized
 	}
 
 	for _, root := range s.scheduledChangeRoots {
@@ -254,7 +254,7 @@ func (s *GrandpaState) importScheduledChange(pendingChange *pendingChange) error
 			pendingChange.announcingHeader.Number, pendingChange, s.blockState.IsDescendantOf)
 
 		if err != nil {
-			return fmt.Errorf("could not import change: %w", err)
+			return fmt.Errorf("could not import scheduled change: %w", err)
 		}
 
 		if imported {
@@ -264,7 +264,11 @@ func (s *GrandpaState) importScheduledChange(pendingChange *pendingChange) error
 		}
 	}
 
-	pendingChangeNode := &pendingChangeNode{change: pendingChange, nodes: []*pendingChangeNode{}}
+	pendingChangeNode := &pendingChangeNode{
+		change: pendingChange,
+		nodes:  []*pendingChangeNode{},
+	}
+
 	s.scheduledChangeRoots = append(s.scheduledChangeRoots, pendingChangeNode)
 	return nil
 }
