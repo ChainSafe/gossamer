@@ -9,15 +9,57 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_Branch_String(t *testing.T) {
+func Test_Node_String(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		branch *Branch
-		s      string
+		node *Node
+		s    string
 	}{
+		"empty leaf": {
+			node: &Node{Type: Leaf},
+			s: `Leaf
+├── Generation: 0
+├── Dirty: false
+├── Key: nil
+├── Value: nil
+├── Calculated encoding: nil
+└── Calculated digest: nil`,
+		},
+		"leaf with value smaller than 1024": {
+			node: &Node{
+				Type:  Leaf,
+				Key:   []byte{1, 2},
+				Value: []byte{3, 4},
+				Dirty: true,
+			},
+			s: `Leaf
+├── Generation: 0
+├── Dirty: true
+├── Key: 0x0102
+├── Value: 0x0304
+├── Calculated encoding: nil
+└── Calculated digest: nil`,
+		},
+		"leaf with value higher than 1024": {
+			node: &Node{
+				Type:  Leaf,
+				Key:   []byte{1, 2},
+				Value: make([]byte, 1025),
+				Dirty: true,
+			},
+			s: `Leaf
+├── Generation: 0
+├── Dirty: true
+├── Key: 0x0102
+├── Value: 0x0000000000000000...0000000000000000
+├── Calculated encoding: nil
+└── Calculated digest: nil`,
+		},
 		"empty branch": {
-			branch: &Branch{},
+			node: &Node{
+				Type: Branch,
+			},
 			s: `Branch
 ├── Generation: 0
 ├── Dirty: false
@@ -28,18 +70,19 @@ func Test_Branch_String(t *testing.T) {
 └── Calculated digest: nil`,
 		},
 		"branch with value smaller than 1024": {
-			branch: &Branch{
+			node: &Node{
+				Type:        Branch,
 				Key:         []byte{1, 2},
 				Value:       []byte{3, 4},
 				Dirty:       true,
 				Descendants: 3,
-				Children: [16]Node{
+				Children: [16]*Node{
 					nil, nil, nil,
-					&Leaf{},
+					{Type: Leaf},
 					nil, nil, nil,
-					&Branch{},
+					{Type: Branch},
 					nil, nil, nil,
-					&Leaf{},
+					{Type: Leaf},
 					nil, nil, nil, nil,
 				},
 			},
@@ -78,18 +121,19 @@ func Test_Branch_String(t *testing.T) {
         └── Calculated digest: nil`,
 		},
 		"branch with value higher than 1024": {
-			branch: &Branch{
+			node: &Node{
+				Type:        Branch,
 				Key:         []byte{1, 2},
 				Value:       make([]byte, 1025),
 				Dirty:       true,
 				Descendants: 3,
-				Children: [16]Node{
+				Children: [16]*Node{
 					nil, nil, nil,
-					&Leaf{},
+					{Type: Leaf},
 					nil, nil, nil,
-					&Branch{},
+					{Type: Branch},
 					nil, nil, nil,
-					&Leaf{},
+					{Type: Leaf},
 					nil, nil, nil, nil,
 				},
 			},
@@ -134,7 +178,7 @@ func Test_Branch_String(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			s := testCase.branch.String()
+			s := testCase.node.String()
 
 			assert.Equal(t, testCase.s, s)
 		})

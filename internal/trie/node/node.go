@@ -52,6 +52,9 @@ func (n Node) StringNode() (stringNode *gotree.Node) {
 	stringNode.Appendf("Dirty: %t", n.Dirty)
 	stringNode.Appendf("Key: " + bytesToString(n.Key))
 	stringNode.Appendf("Value: " + bytesToString(n.Value))
+	if n.Type == Branch {
+		stringNode.Appendf("Descendants: %d", n.Descendants)
+	}
 	stringNode.Appendf("Calculated encoding: " + bytesToString(n.Encoding))
 	stringNode.Appendf("Calculated digest: " + bytesToString(n.HashDigest))
 

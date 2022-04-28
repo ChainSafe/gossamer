@@ -15,49 +15,60 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		branchToEncode *Branch
-		branchDecoded  *Branch
+		branchToEncode *Node
+		branchDecoded  *Node
 	}{
 		"empty branch": {
-			branchToEncode: new(Branch),
-			branchDecoded: &Branch{
+			branchToEncode: &Node{
+				Type: Branch,
+			},
+			branchDecoded: &Node{
+				Type:  Branch,
 				Key:   []byte{},
 				Dirty: true,
 			},
 		},
 		"branch with key 5": {
-			branchToEncode: &Branch{
-				Key: []byte{5},
+			branchToEncode: &Node{
+				Type: Branch,
+				Key:  []byte{5},
 			},
-			branchDecoded: &Branch{
+			branchDecoded: &Node{
+				Type:  Branch,
 				Key:   []byte{5},
 				Dirty: true,
 			},
 		},
 		"branch with two bytes key": {
-			branchToEncode: &Branch{
-				Key: []byte{0xf, 0xa}, // note: each byte cannot be larger than 0xf
+			branchToEncode: &Node{
+				Type: Branch,
+				Key:  []byte{0xf, 0xa}, // note: each byte cannot be larger than 0xf
 			},
-			branchDecoded: &Branch{
+			branchDecoded: &Node{
+				Type:  Branch,
 				Key:   []byte{0xf, 0xa},
 				Dirty: true,
 			},
 		},
 		"branch with child leaf inline": {
-			branchToEncode: &Branch{
-				Key: []byte{5},
-				Children: [16]Node{
-					&Leaf{
+			branchToEncode: &Node{
+				Type: Branch,
+				Key:  []byte{5},
+				Children: [16]*Node{
+					{
+						Type:  Leaf,
 						Key:   []byte{9},
 						Value: []byte{10},
 					},
 				},
 			},
-			branchDecoded: &Branch{
+			branchDecoded: &Node{
+				Type:        Branch,
 				Key:         []byte{5},
 				Descendants: 1,
-				Children: [16]Node{
-					&Leaf{
+				Children: [16]*Node{
+					{
+						Type:  Leaf,
 						Key:   []byte{9},
 						Value: []byte{10},
 						Dirty: true,
@@ -67,10 +78,12 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 			},
 		},
 		"branch with child leaf hash": {
-			branchToEncode: &Branch{
-				Key: []byte{5},
-				Children: [16]Node{
-					&Leaf{
+			branchToEncode: &Node{
+				Type: Branch,
+				Key:  []byte{5},
+				Children: [16]*Node{
+					{
+						Type: Leaf,
 						Key: []byte{
 							10, 11, 12, 13,
 							14, 15, 16, 17,
@@ -89,10 +102,12 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 					},
 				},
 			},
-			branchDecoded: &Branch{
-				Key: []byte{5},
-				Children: [16]Node{
-					&Leaf{
+			branchDecoded: &Node{
+				Type: Branch,
+				Key:  []byte{5},
+				Children: [16]*Node{
+					{
+						Type: Leaf,
 						HashDigest: []byte{
 							2, 18, 48, 30, 98,
 							133, 244, 78, 70,
