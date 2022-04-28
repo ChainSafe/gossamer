@@ -3,11 +3,16 @@
 
 package node
 
+const (
+	// ChildrenCapacity is the maximum number of children in a branch node.
+	ChildrenCapacity = 16
+)
+
 // ChildrenBitmap returns the 16 bit bitmap
-// of the children in the branch.
-func (b *Branch) ChildrenBitmap() (bitmap uint16) {
+// of the children in the branch node.
+func (n *Node) ChildrenBitmap() (bitmap uint16) {
 	for i := uint(0); i < 16; i++ {
-		if b.Children[i] == nil {
+		if n.Children[i] == nil {
 			continue
 		}
 		bitmap |= 1 << i
@@ -16,10 +21,10 @@ func (b *Branch) ChildrenBitmap() (bitmap uint16) {
 }
 
 // NumChildren returns the total number of children
-// in the branch.
-func (b *Branch) NumChildren() (count int) {
+// in the branch node.
+func (n *Node) NumChildren() (count int) {
 	for i := 0; i < 16; i++ {
-		if b.Children[i] != nil {
+		if n.Children[i] != nil {
 			count++
 		}
 	}

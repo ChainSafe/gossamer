@@ -9,65 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_NewBranch(t *testing.T) {
-	t.Parallel()
-
-	key := []byte{1, 2}
-	value := []byte{3, 4}
-	const dirty = true
-	const generation = 9
-
-	branch := NewBranch(key, value, dirty, generation)
-
-	expectedBranch := &Branch{
-		Key:        key,
-		Value:      value,
-		Dirty:      dirty,
-		Generation: generation,
-	}
-	assert.Equal(t, expectedBranch, branch)
-
-	// Check modifying passed slice modifies branch slices
-	key[0] = 11
-	value[0] = 13
-	assert.Equal(t, expectedBranch, branch)
-}
-
-func Test_Branch_Type(t *testing.T) {
-	testCases := map[string]struct {
-		branch *Branch
-		Type   Type
-	}{
-		"nil value": {
-			branch: &Branch{},
-			Type:   BranchType,
-		},
-		"empty value": {
-			branch: &Branch{
-				Value: []byte{},
-			},
-			Type: BranchWithValueType,
-		},
-		"non empty value": {
-			branch: &Branch{
-				Value: []byte{1},
-			},
-			Type: BranchWithValueType,
-		},
-	}
-
-	for name, testCase := range testCases {
-		testCase := testCase
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-
-			Type := testCase.branch.Type()
-
-			assert.Equal(t, testCase.Type, Type)
-		})
-	}
-}
-
 func Test_Branch_String(t *testing.T) {
 	t.Parallel()
 

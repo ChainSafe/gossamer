@@ -40,7 +40,7 @@ func Test_Leaf_Type(t *testing.T) {
 
 	Type := leaf.Type()
 
-	assert.Equal(t, LeafType, Type)
+	assert.Equal(t, Leaf, Type)
 }
 
 func Test_Leaf_String(t *testing.T) {

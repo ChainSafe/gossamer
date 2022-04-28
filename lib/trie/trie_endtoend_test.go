@@ -1040,7 +1040,7 @@ func countNodesFromStats(root Node) (nodesCount uint32) {
 	} else if root.Type() == node.LeafType {
 		return 1
 	}
-	return 1 + root.(*node.Branch).GetDescendants()
+	return 1 + root.(*node.Branch).Descendants
 }
 
 func testDescendants(t *testing.T, root Node) {

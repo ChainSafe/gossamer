@@ -8,32 +8,46 @@ import (
 )
 
 const (
-	keyLenOffset    = 0x3f
-	nodeHeaderShift = 6
+	leafHeaderByte            byte = 0x1
+	branchHeaderByte          byte = 2
+	branchWithValueHeaderByte byte = 3
+	keyLenOffset                   = 0x3f
+	nodeHeaderShift                = 6
 )
 
-// encodeHeader creates the encoded header for the branch.
-func (b *Branch) encodeHeader(writer io.Writer) (err error) {
+func encodeHeader(node *Node, writer io.Writer) (err error) {
+	switch node.Type {
+	case Leaf:
+		return encodeLeafHeader(node, writer)
+	case Branch:
+		return encodeBranchHeader(node, writer)
+	default:
+		panic("header encoding not implemented")
+	}
+}
+
+// encodeBranchHeader writes the encoded header for the branch.
+func encodeBranchHeader(branch *Node, writer io.Writer) (err error) {
 	var header byte
-	if b.Value == nil {
-		header = byte(BranchType) << nodeHeaderShift
+	if branch.Value == nil {
+		header = branchHeaderByte << nodeHeaderShift
 	} else {
-		header = byte(BranchWithValueType) << nodeHeaderShift
+		header = branchWithValueHeaderByte << nodeHeaderShift
 	}
 
-	if len(b.Key) >= keyLenOffset {
+	if len(branch.Key) >= keyLenOffset {
 		header = header | keyLenOffset
 		_, err = writer.Write([]byte{header})
 		if err != nil {
 			return err
 		}
 
-		err = encodeKeyLength(len(b.Key), writer)
+		err = encodeKeyLength(len(branch.Key), writer)
 		if err != nil {
 			return err
 		}
 	} else {
-		header = header | byte(len(b.Key))
+		header = header | byte(len(branch.Key))
 		_, err = writer.Write([]byte{header})
 		if err != nil {
 			return err
@@ -43,12 +57,12 @@ func (b *Branch) encodeHeader(writer io.Writer) (err error) {
 	return nil
 }
 
-// encodeHeader creates the encoded header for the leaf.
-func (l *Leaf) encodeHeader(writer io.Writer) (err error) {
-	header := byte(LeafType) << nodeHeaderShift
+// encodeLeafHeader writes the encoded header for the leaf.
+func encodeLeafHeader(leaf *Node, writer io.Writer) (err error) {
+	header := leafHeaderByte << nodeHeaderShift
 
-	if len(l.Key) < 63 {
-		header |= byte(len(l.Key))
+	if len(leaf.Key) < 63 {
+		header |= byte(len(leaf.Key))
 		_, err = writer.Write([]byte{header})
 		return err
 	}
@@ -59,7 +73,7 @@ func (l *Leaf) encodeHeader(writer io.Writer) (err error) {
 		return err
 	}
 
-	err = encodeKeyLength(len(l.Key), writer)
+	err = encodeKeyLength(len(leaf.Key), writer)
 	if err != nil {
 		return err
 	}
