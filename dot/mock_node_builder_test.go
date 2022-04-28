@@ -211,6 +211,20 @@ func (mr *MocknodeBuilderIfaceMockRecorder) initNode(config interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "initNode", reflect.TypeOf((*MocknodeBuilderIface)(nil).initNode), config)
 }
 
+// isNodeInitialised mocks base method.
+func (m *MocknodeBuilderIface) isNodeInitialised(basepath string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "isNodeInitialised", basepath)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// isNodeInitialised indicates an expected call of isNodeInitialised.
+func (mr *MocknodeBuilderIfaceMockRecorder) isNodeInitialised(basepath interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "isNodeInitialised", reflect.TypeOf((*MocknodeBuilderIface)(nil).isNodeInitialised), basepath)
+}
+
 // loadRuntime mocks base method.
 func (m *MocknodeBuilderIface) loadRuntime(cfg *Config, ns *runtime.NodeStorage, stateSrvc *state.Service, ks *keystore.GlobalKeystore, net *network.Service) error {
 	m.ctrl.T.Helper()
@@ -238,18 +252,4 @@ func (m *MocknodeBuilderIface) newSyncService(cfg *Config, st *state.Service, fg
 func (mr *MocknodeBuilderIfaceMockRecorder) newSyncService(cfg, st, fg, verifier, cs, net, telemetryMailer interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "newSyncService", reflect.TypeOf((*MocknodeBuilderIface)(nil).newSyncService), cfg, st, fg, verifier, cs, net, telemetryMailer)
-}
-
-// nodeInitialised mocks base method.
-func (m *MocknodeBuilderIface) nodeInitialised(arg0 string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "nodeInitialised", arg0)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// nodeInitialised indicates an expected call of nodeInitialised.
-func (mr *MocknodeBuilderIfaceMockRecorder) nodeInitialised(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "nodeInitialised", reflect.TypeOf((*MocknodeBuilderIface)(nil).nodeInitialised), arg0)
 }

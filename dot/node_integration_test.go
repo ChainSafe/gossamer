@@ -68,13 +68,13 @@ func TestNodeInitializedIntegration(t *testing.T) {
 
 	cfg.Init.Genesis = genFile
 
-	result := NodeInitialized(cfg.Global.BasePath)
+	result := IsNodeInitialised(cfg.Global.BasePath)
 	require.False(t, result)
 
 	err := InitNode(cfg)
 	require.NoError(t, err)
 
-	result = NodeInitialized(cfg.Global.BasePath)
+	result = IsNodeInitialised(cfg.Global.BasePath)
 	require.True(t, result)
 }
 

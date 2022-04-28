@@ -50,7 +50,7 @@ type Node struct {
 //go:generate mockgen -source=node.go -destination=mock_node_builder_test.go -package=$GOPACKAGE
 
 type nodeBuilderIface interface {
-	nodeInitialised(string) error
+	isNodeInitialised(basepath string) error
 	initNode(config *Config) error
 	createStateService(config *Config) (*state.Service, error)
 	createNetworkService(cfg *Config, stateSrvc *state.Service, telemetryMailer telemetry.Client) (*network.Service,
@@ -76,19 +76,17 @@ var _ nodeBuilderIface = (*nodeBuilder)(nil)
 
 type nodeBuilder struct{}
 
-// NodeInitialized returns true if, within the configured data directory for the
-// node, the state database has been created and the genesis data has been loaded
-func NodeInitialized(basepath string) bool {
+// IsNodeInitialised returns true if, within the configured data directory for the
+// node, the state database has been created and the genesis data can been loaded
+func IsNodeInitialised(basepath string) bool {
 	nodeInstance := nodeBuilder{}
-	err := nodeInstance.nodeInitialised(basepath)
-	if err != nil {
-		logger.Errorf("failed to initialise node from base path %s: %s", basepath, err)
-		return false
-	}
-	return true
+	err := nodeInstance.isNodeInitialised(basepath)
+	return err == nil
 }
 
-func (*nodeBuilder) nodeInitialised(basepath string) error {
+// isNodeInitialised returns nil if the node is successfully initialised
+// and an error otherwise.
+func (*nodeBuilder) isNodeInitialised(basepath string) error {
 	// check if key registry exists
 	registry := filepath.Join(basepath, utils.DefaultDatabaseDir, "KEYREGISTRY")
 
@@ -235,7 +233,7 @@ func newNode(cfg *Config,
 		debug.SetGCPercent(prev)
 	}
 
-	if builder.nodeInitialised(cfg.Global.BasePath) != nil {
+	if builder.isNodeInitialised(cfg.Global.BasePath) != nil {
 		err := builder.initNode(cfg)
 		if err != nil {
 			return nil, fmt.Errorf("cannot initialise node: %w", err)
