@@ -204,7 +204,7 @@ func TestAddScheduledChangesKeepTheRightForkTree(t *testing.T) {
 		},
 		"add_scheduled_change_before_highest_finalized_header": {
 			headersWithScheduledChanges: []headersToAdd{
-				{header: chainA[3], wantErr: ErrLowerThanBestFinalized},
+				{header: chainA[3], wantErr: errLowerThanBestFinalized},
 			},
 			highestFinalizedHeader: chainA[5],
 			expectedRoots:          0,
@@ -283,6 +283,8 @@ func updateHighestFinalizedHeaderOrDefault(t *testing.T, bs *BlockState, newHigh
 }
 
 func TestForcedScheduledChangesOrder(t *testing.T) {
+	t.Parallel()
+
 	keyring, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 
@@ -346,6 +348,8 @@ func TestForcedScheduledChangesOrder(t *testing.T) {
 }
 
 func TestShouldNotAddMoreThanOneForcedChangeInTheSameFork(t *testing.T) {
+	t.Parallel()
+
 	keyring, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 
@@ -376,7 +380,7 @@ func TestShouldNotAddMoreThanOneForcedChangeInTheSameFork(t *testing.T) {
 
 	err = gs.addForcedChange(aliceHeaders[4], someForcedChange)
 	require.Error(t, err)
-	require.ErrorIs(t, err, ErrAlreadyHasForcedChanges)
+	require.ErrorIs(t, err, errAlreadyHasForcedChanges)
 
 	// adding the same forced change twice
 	err = gs.addForcedChange(bobHeaders[2], someForcedChange)
@@ -436,6 +440,8 @@ func issueBlocksWithBABEPrimary(t *testing.T, kp *sr25519.Keypair,
 }
 
 func TestNextGrandpaAuthorityChange(t *testing.T) {
+	t.Parallel()
+
 	keyring, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 
@@ -557,6 +563,207 @@ func TestNextGrandpaAuthorityChange(t *testing.T) {
 				require.NoError(t, err)
 				require.Equal(t, tt.expectedBlockNumber, blockNumber)
 			}
+		})
+	}
+}
+
+func TestApplyForcedChanges(t *testing.T) {
+	t.Parallel()
+
+	keyring, err := keystore.NewSr25519Keyring()
+	require.NoError(t, err)
+
+	db := NewInMemoryDB(t)
+	blockState := testBlockState(t, db)
+
+	initGrandpaState, err := NewGrandpaStateFromGenesis(db, blockState, nil)
+	require.NoError(t, err)
+
+	genesisGrandpaVoters := []types.GrandpaAuthoritiesRaw{
+		{Key: keyring.KeyAlice.Public().(*sr25519.PublicKey).AsBytes()},
+		{Key: keyring.KeyBob.Public().(*sr25519.PublicKey).AsBytes()},
+		{Key: keyring.KeyCharlie.Public().(*sr25519.PublicKey).AsBytes()},
+	}
+
+	const sizeOfChain = 10
+
+	// gets the reference of the headers to setup the tests
+	chainA := issueBlocksWithBABEPrimary(t, keyring.KeyAlice, initGrandpaState.blockState, testGenesisHeader, sizeOfChain)
+	chainB := issueBlocksWithBABEPrimary(t, keyring.KeyBob, initGrandpaState.blockState, chainA[1], sizeOfChain)
+	chainC := issueBlocksWithBABEPrimary(t, keyring.KeyCharlie, initGrandpaState.blockState, chainA[5], sizeOfChain)
+
+	tests := map[string]struct {
+		wantErr                     error
+		forcedChanges               map[*types.Header]types.GrandpaForcedChange
+		scheduledChanges            map[*types.Header]types.GrandpaScheduledChange
+		importedHeader              *types.Header
+		expectedGRANDPAAuthoritySet []types.GrandpaAuthoritiesRaw
+		expectedSetID               uint64
+	}{
+		"no_forced_changes": {
+			importedHeader:              chainA[3],
+			expectedSetID:               0,
+			expectedGRANDPAAuthoritySet: genesisGrandpaVoters,
+		},
+		"apply_forced_change_without_pending_scheduled_changes": {
+			forcedChanges: map[*types.Header]types.GrandpaForcedChange{
+				// forced change discovered on block 8 with a delay of 2 blocks
+				// we should apply the forced change on block 10
+				chainA[7]: {
+					Delay:              2,
+					BestFinalizedBlock: 3,
+					Auths: []types.GrandpaAuthoritiesRaw{
+						{Key: keyring.KeyCharlie.Public().(*sr25519.PublicKey).AsBytes()},
+						{Key: keyring.KeyBob.Public().(*sr25519.PublicKey).AsBytes()},
+						{Key: keyring.KeyDave.Public().(*sr25519.PublicKey).AsBytes()},
+					},
+				},
+
+				// forced change discovered on block 15 from chain C with a delay of 5 blocks
+				// we should apply the forced change on block 16
+				chainC[8]: {
+					Delay:              1,
+					BestFinalizedBlock: 3,
+					Auths: []types.GrandpaAuthoritiesRaw{
+						{Key: keyring.KeyCharlie.Public().(*sr25519.PublicKey).AsBytes()},
+						{Key: keyring.KeyBob.Public().(*sr25519.PublicKey).AsBytes()},
+						{Key: keyring.KeyDave.Public().(*sr25519.PublicKey).AsBytes()},
+					},
+				},
+			},
+			importedHeader: chainA[9], // import block number 8,
+			expectedSetID:  1,
+			expectedGRANDPAAuthoritySet: []types.GrandpaAuthoritiesRaw{
+				{Key: keyring.KeyCharlie.Public().(*sr25519.PublicKey).AsBytes()},
+				{Key: keyring.KeyBob.Public().(*sr25519.PublicKey).AsBytes()},
+				{Key: keyring.KeyDave.Public().(*sr25519.PublicKey).AsBytes()},
+			},
+		},
+		"import_block_before_change_should_do_nothing": {
+			forcedChanges: map[*types.Header]types.GrandpaForcedChange{
+				// forced change discovered on block 3 with a delay of 5 blocks
+				// we should apply the forced change on block 8
+				chainC[2]: {
+					Delay:              3,
+					BestFinalizedBlock: 3,
+					Auths: []types.GrandpaAuthoritiesRaw{
+						{Key: keyring.KeyCharlie.Public().(*sr25519.PublicKey).AsBytes()},
+						{Key: keyring.KeyBob.Public().(*sr25519.PublicKey).AsBytes()},
+						{Key: keyring.KeyDave.Public().(*sr25519.PublicKey).AsBytes()},
+					},
+				},
+			},
+			importedHeader:              chainC[1], // import block number 7,
+			expectedSetID:               0,
+			expectedGRANDPAAuthoritySet: genesisGrandpaVoters,
+		},
+		"import_block_from_other_fork_should_do_nothing": {
+			forcedChanges: map[*types.Header]types.GrandpaForcedChange{
+				// forced change discovered on block 9 from chain C with a delay of 3 blocks
+				// we should apply the forced change on block 12
+				chainC[2]: {
+					Delay:              3,
+					BestFinalizedBlock: 3,
+					Auths: []types.GrandpaAuthoritiesRaw{
+						{Key: keyring.KeyCharlie.Public().(*sr25519.PublicKey).AsBytes()},
+						{Key: keyring.KeyBob.Public().(*sr25519.PublicKey).AsBytes()},
+						{Key: keyring.KeyDave.Public().(*sr25519.PublicKey).AsBytes()},
+					},
+				},
+			},
+			importedHeader:              chainB[9], // import block number 12 from chain B
+			expectedSetID:               0,
+			expectedGRANDPAAuthoritySet: genesisGrandpaVoters,
+		},
+		"apply_forced_change_with_pending_scheduled_changes_should_fail": {
+			scheduledChanges: map[*types.Header]types.GrandpaScheduledChange{
+				chainB[3]: {
+					Delay: 0,
+					Auths: []types.GrandpaAuthoritiesRaw{
+						{Key: keyring.KeyDave.Public().(*sr25519.PublicKey).AsBytes()},
+					},
+				},
+			},
+			forcedChanges: map[*types.Header]types.GrandpaForcedChange{
+				// forced change discovered on block 9 from chain C with a delay of 3 blocks
+				// we should apply the forced change on block 12
+				chainC[2]: {
+					Delay:              3,
+					BestFinalizedBlock: 3,
+					Auths: []types.GrandpaAuthoritiesRaw{
+						{Key: keyring.KeyCharlie.Public().(*sr25519.PublicKey).AsBytes()},
+						{Key: keyring.KeyBob.Public().(*sr25519.PublicKey).AsBytes()},
+						{Key: keyring.KeyDave.Public().(*sr25519.PublicKey).AsBytes()},
+					},
+				},
+
+				// forced change discovered on block 9 from chain B with a delay of 2 blocks
+				// we should apply the forced change on block 11
+				chainB[6]: {
+					Delay:              2,
+					BestFinalizedBlock: 6,
+					Auths: []types.GrandpaAuthoritiesRaw{
+						{Key: keyring.KeyCharlie.Public().(*sr25519.PublicKey).AsBytes()},
+						{Key: keyring.KeyIan.Public().(*sr25519.PublicKey).AsBytes()},
+						{Key: keyring.KeyEve.Public().(*sr25519.PublicKey).AsBytes()},
+					},
+				},
+			},
+			importedHeader:              chainB[8], // block number 11 imported
+			wantErr:                     errPendingScheduledChanges,
+			expectedGRANDPAAuthoritySet: genesisGrandpaVoters,
+			expectedSetID:               0,
+		},
+	}
+
+	for tname, tt := range tests {
+		tt := tt
+
+		t.Run(tname, func(t *testing.T) {
+			auths, err := types.GrandpaAuthoritiesRawToAuthorities(genesisGrandpaVoters)
+			require.NoError(t, err)
+
+			voters := types.NewGrandpaVotersFromAuthorities(auths)
+			gs, err := NewGrandpaStateFromGenesis(db, blockState, voters)
+			require.NoError(t, err)
+
+			/*
+			* create chainA and two forks: chainB and chainC
+			*
+			*      / -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10 -> 11 -> 12 (B)
+			* 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10 -> 11 (A)
+			*                          \ -> 7 -> 8 -> 9 -> 10 -> 11 -> 12 -> 13 -> 14 -> 15 -> 16 (C)
+			 */
+			issueBlocksWithBABEPrimary(t, keyring.KeyAlice, gs.blockState, testGenesisHeader, sizeOfChain)
+			issueBlocksWithBABEPrimary(t, keyring.KeyBob, gs.blockState, chainA[1], sizeOfChain)
+			issueBlocksWithBABEPrimary(t, keyring.KeyCharlie, gs.blockState, chainA[5], sizeOfChain)
+
+			for header, change := range tt.scheduledChanges {
+				err := gs.addScheduledChange(header, change)
+				require.NoError(t, err)
+			}
+
+			for header, change := range tt.forcedChanges {
+				err := gs.addForcedChange(header, change)
+				require.NoError(t, err)
+			}
+
+			err = gs.ApplyForcedChanges(tt.importedHeader)
+			if tt.wantErr != nil {
+				require.Error(t, err)
+				require.EqualError(t, err, tt.wantErr.Error())
+			} else {
+				require.NoError(t, err)
+			}
+
+			expectedAuths, err := types.GrandpaAuthoritiesRawToAuthorities(tt.expectedGRANDPAAuthoritySet)
+			require.NoError(t, err)
+			expectedVoters := types.NewGrandpaVotersFromAuthorities(expectedAuths)
+
+			gotVoters, err := gs.GetAuthorities(tt.expectedSetID)
+			require.NoError(t, err)
+
+			require.Equal(t, expectedVoters, gotVoters)
 		})
 	}
 }

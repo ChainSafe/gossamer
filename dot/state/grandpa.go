@@ -27,11 +27,13 @@ var (
 )
 
 var (
+	errPendingScheduledChanges = errors.New("pending scheduled changes needs to be applied")
 	errDuplicateHashes         = errors.New("duplicated hashes")
-	ErrAlreadyHasForcedChanges = errors.New("already has a forced change")
-	ErrUnfinalizedAncestor     = errors.New("ancestor with changes not applied")
-	ErrNoChanges               = errors.New("cannot get the next authority change block number")
-	ErrLowerThanBestFinalized  = errors.New("current finalized is lower than best finalized header")
+	errAlreadyHasForcedChanges = errors.New("already has a forced change")
+	errUnfinalizedAncestor     = errors.New("ancestor with changes not applied")
+	errLowerThanBestFinalized  = errors.New("current finalized is lower than best finalized header")
+
+	ErrNoChanges = errors.New("cannot get the next authority change block number")
 )
 
 type pendingChange struct {
@@ -138,19 +140,19 @@ func NewGrandpaStateFromGenesis(db chaindb.Database, bs *BlockState,
 	}
 
 	if err := s.setCurrentSetID(genesisSetID); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot set current set id: %w", err)
 	}
 
 	if err := s.SetLatestRound(0); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot set latest round: %w", err)
 	}
 
 	if err := s.setAuthorities(genesisSetID, genesisAuthorities); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot set authorities: %w", err)
 	}
 
 	if err := s.setChangeSetIDAtBlock(genesisSetID, 0); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot set change set id at block 0: %w", err)
 	}
 
 	return s, nil
@@ -198,7 +200,7 @@ func (s *GrandpaState) addForcedChange(header *types.Header, fc types.GrandpaFor
 		}
 
 		if isDescendant {
-			return ErrAlreadyHasForcedChanges
+			return errAlreadyHasForcedChanges
 		}
 	}
 
@@ -246,7 +248,7 @@ func (s *GrandpaState) importScheduledChange(pendingChange *pendingChange) error
 	}
 
 	if pendingChange.announcingHeader.Number <= highestFinalizedHeader.Number {
-		return ErrLowerThanBestFinalized
+		return errLowerThanBestFinalized
 	}
 
 	for _, root := range s.scheduledChangeRoots {
@@ -273,18 +275,19 @@ func (s *GrandpaState) importScheduledChange(pendingChange *pendingChange) error
 	return nil
 }
 
-// getApplicableChange iterates throught the scheduled change tree roots looking for the change node, which
+// getApplicableScheduledChange iterates throught the scheduled change tree roots looking for the change node, which
 // contains a lower or equal effective number, to apply. When we found that node we update the scheduled change tree roots
 // with its children that belongs to the same finalized node branch. If we don't find such node we update the scheduled
 // change tree roots with the change nodes that belongs to the same finalized node branch
-func (s *GrandpaState) getApplicableChange(finalizedHash common.Hash, finalizedNumber uint) (change *pendingChange, err error) {
+func (s *GrandpaState) getApplicableScheduledChange(finalizedHash common.Hash, finalizedNumber uint) (
+	change *pendingChange, err error) {
 	bestFinalizedHeader, err := s.blockState.GetHighestFinalisedHeader()
 	if err != nil {
 		return nil, fmt.Errorf("cannot get highest finalised header: %w", err)
 	}
 
 	if finalizedNumber < bestFinalizedHeader.Number {
-		return nil, ErrLowerThanBestFinalized
+		return nil, errLowerThanBestFinalized
 	}
 
 	effectiveBlockLowerOrEqualFinalized := func(change *pendingChange) bool {
@@ -321,7 +324,7 @@ func (s *GrandpaState) getApplicableChange(finalizedHash common.Hash, finalizedN
 			}
 
 			if node.change.announcingHeader.Number <= finalizedNumber && isDescendant {
-				return nil, ErrUnfinalizedAncestor
+				return nil, errUnfinalizedAncestor
 			}
 		}
 
@@ -378,7 +381,7 @@ func (s *GrandpaState) ApplyScheduledChanges(finalizedHeader *types.Header) erro
 		return nil
 	}
 
-	changeToApply, err := s.getApplicableChange(finalizedHash, finalizedHeader.Number)
+	changeToApply, err := s.getApplicableScheduledChange(finalizedHash, finalizedHeader.Number)
 	if err != nil {
 		return fmt.Errorf("cannot finalize scheduled change: %w", err)
 	}
@@ -414,19 +417,19 @@ func (s *GrandpaState) ApplyScheduledChanges(finalizedHeader *types.Header) erro
 // ApplyForcedChanges will check for if there is a scheduled forced change relative to the
 // imported block and then apply it otherwise nothing happens
 func (s *GrandpaState) ApplyForcedChanges(importedBlockHeader *types.Header) error {
-	importedHash := importedBlockHeader.Hash()
+	importedBlockHash := importedBlockHeader.Hash()
 	var forcedChange *pendingChange
 
 	for _, forced := range s.forcedChanges {
-		announcingHash := forcedChange.announcingHeader.Hash()
-		effectiveNumber := forcedChange.effectiveNumber()
+		announcingHash := forced.announcingHeader.Hash()
+		effectiveNumber := forced.effectiveNumber()
 
-		if importedHash.Equal(announcingHash) && effectiveNumber == 0 {
+		if importedBlockHash.Equal(announcingHash) && effectiveNumber == 0 {
 			forcedChange = forced
 			break
 		}
 
-		isDescendant, err := s.blockState.IsDescendantOf(announcingHash, importedHash)
+		isDescendant, err := s.blockState.IsDescendantOf(announcingHash, importedBlockHash)
 		if err != nil {
 			return fmt.Errorf("cannot check ancestry: %w", err)
 		}
@@ -446,25 +449,23 @@ func (s *GrandpaState) ApplyForcedChanges(importedBlockHeader *types.Header) err
 	}
 
 	forcedChangeHash := forcedChange.announcingHeader.Hash()
+	bestFinalizedNumber := forcedChange.bestFinalizedNumber
 
 	// checking for dependant pending scheduled changes
 	for _, scheduled := range s.scheduledChangeRoots {
-		bestFinalizedNumber := forcedChange.bestFinalizedNumber
+
 		if scheduled.change.effectiveNumber() > uint(bestFinalizedNumber) {
 			continue
 		}
 
-		scheduledHash := scheduled.change.announcingHeader.Hash()
-		isDescendant, err := s.blockState.IsDescendantOf(scheduledHash, forcedChangeHash)
+		scheduledBlockHash := scheduled.change.announcingHeader.Hash()
+		isDescendant, err := s.blockState.IsDescendantOf(scheduledBlockHash, forcedChangeHash)
 		if err != nil {
 			return fmt.Errorf("cannot check ancestry: %w", err)
 		}
 
 		if isDescendant {
-			return fmt.Errorf(
-				"forced authority fails at block #%d due to pending standard change at block #%d",
-				forcedChange.announcingHeader.Number,
-				scheduled.change.effectiveNumber())
+			return errPendingScheduledChanges
 		}
 	}
 
