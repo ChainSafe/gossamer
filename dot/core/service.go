@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -495,6 +496,9 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 		return nil
 	}
 
+	if s.blockState == nil {
+		fmt.Println("\nmeh")
+	}
 	bestBlockHash := s.blockState.BestBlockHash()
 
 	ts, err := s.storageState.TrieState(&bestBlockHash)

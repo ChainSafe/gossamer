@@ -114,6 +114,7 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 			return nil, err
 		}
 		root = &sr
+		fmt.Printf("root: %s\n", root.String())
 	}
 
 	t := s.tries.get(*root)
