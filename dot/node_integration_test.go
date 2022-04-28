@@ -29,7 +29,6 @@ import (
 
 func TestInitNode_Integration(t *testing.T) {
 	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
@@ -46,7 +45,6 @@ func TestInitNode_Integration(t *testing.T) {
 
 func TestInitNode_GenesisSpec(t *testing.T) {
 	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
 
 	genFile := newTestGenesisFile(t, cfg)
 
@@ -62,7 +60,6 @@ func TestInitNode_GenesisSpec(t *testing.T) {
 
 func TestNodeInitializedIntegration(t *testing.T) {
 	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
@@ -80,7 +77,6 @@ func TestNodeInitializedIntegration(t *testing.T) {
 
 func TestNewNodeIntegration(t *testing.T) {
 	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
@@ -108,7 +104,6 @@ func TestNewNodeIntegration(t *testing.T) {
 
 func TestNewNode_Authority(t *testing.T) {
 	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
@@ -138,7 +133,6 @@ func TestNewNode_Authority(t *testing.T) {
 
 func TestStartStopNode(t *testing.T) {
 	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
@@ -170,7 +164,6 @@ func TestStartStopNode(t *testing.T) {
 
 func TestInitNode_LoadStorageRoot(t *testing.T) {
 	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
 
 	genPath := newTestGenesisAndRuntime(t)
 
@@ -220,7 +213,6 @@ func balanceKey(t *testing.T, publicKey [32]byte) (storageTrieKey []byte) {
 
 func TestInitNode_LoadBalances(t *testing.T) {
 	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
 
 	genPath := newTestGenesisAndRuntime(t)
 
