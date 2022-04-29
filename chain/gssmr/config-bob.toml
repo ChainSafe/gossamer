@@ -1,0 +1,49 @@
+[global]
+basepath = "~/.gossamer/gssmr-bob"
+log = "info"
+metrics-address = "localhost:9877"
+
+[log]
+core = ""
+network = ""
+rpc = ""
+state = ""
+runtime = ""
+babe = ""
+grandpa = ""
+sync = ""
+digest = ""
+
+[init]
+genesis = "./chain/gssmr/gssmr-spec-raw.json"
+
+[account]
+key = "bob"
+unlock = ""
+
+[core]
+roles = 4
+babe-authority = true
+grandpa-authority = true
+grandpa-interval = 1
+
+[network]
+port = 7002
+nobootstrap = false
+nomdns = false
+discovery-interval = 10
+min-peers = 1
+max-peers = 50
+
+[rpc]
+enabled = false
+port = 8547
+host = "localhost"
+modules = ["system", "author", "chain", "state", "rpc", "grandpa", "offchain", "childstate", "syncstate", "payment"]
+ws-port = 8548
+
+[pprof]
+enabled = false
+listening-address = "localhost:6061"
+block-rate = 0
+mutex-rate = 0
