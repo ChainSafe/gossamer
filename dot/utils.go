@@ -8,24 +8,11 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"testing"
 
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/cosmos/go-bip39"
 	"github.com/naoina/toml"
-	"github.com/stretchr/testify/require"
 )
-
-// exportConfig exports a dot configuration to a toml configuration file
-func exportConfig(t *testing.T, cfg *Config, fp string) {
-	t.Helper()
-
-	raw, err := toml.Marshal(*cfg)
-	require.NoError(t, err)
-
-	err = os.WriteFile(fp, raw, os.ModePerm)
-	require.NoError(t, err)
-}
 
 // ExportTomlConfig exports a dot configuration to a toml configuration file
 func ExportTomlConfig(cfg *ctoml.Config, fp string) (err error) {
