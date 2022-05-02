@@ -117,6 +117,7 @@ func (n *Node) Init(ctx context.Context) (err error) {
 	)
 
 	if n.logsBuffer != nil {
+		n.logsBuffer.Reset()
 		n.writer = io.MultiWriter(n.writer, n.logsBuffer)
 	}
 
@@ -141,6 +142,11 @@ func (n *Node) Start(ctx context.Context, waitErrCh chan<- error) (startErr erro
 	cmd := exec.CommandContext(ctx, n.binPath, //nolint:gosec
 		"--config", n.configPath,
 		"--no-telemetry")
+
+	if n.logsBuffer != nil {
+		n.logsBuffer.Reset()
+		n.writer = io.MultiWriter(n.writer, n.logsBuffer)
+	}
 
 	cmd.Stdout = n.writer
 	cmd.Stderr = cmd.Stdout // we assume no race between stdout and stderr
