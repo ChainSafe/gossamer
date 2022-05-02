@@ -10,7 +10,7 @@ type Type byte
 
 const (
 	// Leaf type for leaf nodes.
-	Leaf = iota
+	Leaf Type = iota
 	// Branch type for branches (with or without value).
 	Branch
 )

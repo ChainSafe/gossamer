@@ -29,13 +29,12 @@ func Test_Node_Copy(t *testing.T) {
 		expectedNode *Node
 	}{
 		"empty leaf": {
-			node:         &Node{Type: Leaf},
+			node:         &Node{},
 			settings:     DefaultCopySettings,
-			expectedNode: &Node{Type: Leaf},
+			expectedNode: &Node{},
 		},
 		"non empty leaf": {
 			node: &Node{
-				Type:       Leaf,
 				Key:        []byte{1, 2},
 				Value:      []byte{3, 4},
 				Dirty:      true,
@@ -44,7 +43,6 @@ func Test_Node_Copy(t *testing.T) {
 			},
 			settings: DefaultCopySettings,
 			expectedNode: &Node{
-				Type:  Leaf,
 				Key:   []byte{1, 2},
 				Value: []byte{3, 4},
 				Dirty: true,
@@ -52,7 +50,6 @@ func Test_Node_Copy(t *testing.T) {
 		},
 		"deep copy leaf": {
 			node: &Node{
-				Type:       Leaf,
 				Key:        []byte{1, 2},
 				Value:      []byte{3, 4},
 				Dirty:      true,
@@ -61,7 +58,6 @@ func Test_Node_Copy(t *testing.T) {
 			},
 			settings: DeepCopySettings,
 			expectedNode: &Node{
-				Type:       Leaf,
 				Key:        []byte{1, 2},
 				Value:      []byte{3, 4},
 				Dirty:      true,
@@ -71,23 +67,19 @@ func Test_Node_Copy(t *testing.T) {
 		},
 		"empty branch": {
 			node: &Node{
-				Type:     Branch,
 				Children: make([]*Node, ChildrenCapacity),
 			},
 			expectedNode: &Node{
-				Type:     Branch,
 				Children: make([]*Node, ChildrenCapacity),
 			},
 		},
 		"non empty branch": {
 			node: &Node{
-				Type:  Branch,
 				Key:   []byte{1, 2},
 				Value: []byte{3, 4},
 				Children: padRightChildren([]*Node{
 					nil, nil, {
-						Type: Leaf,
-						Key:  []byte{9},
+						Key: []byte{9},
 					},
 				}),
 				Dirty:      true,
@@ -96,13 +88,11 @@ func Test_Node_Copy(t *testing.T) {
 			},
 			settings: DefaultCopySettings,
 			expectedNode: &Node{
-				Type:  Branch,
 				Key:   []byte{1, 2},
 				Value: []byte{3, 4},
 				Children: padRightChildren([]*Node{
 					nil, nil, {
-						Type: Leaf,
-						Key:  []byte{9},
+						Key: []byte{9},
 					},
 				}),
 				Dirty: true,
@@ -110,11 +100,9 @@ func Test_Node_Copy(t *testing.T) {
 		},
 		"branch with children copied": {
 			node: &Node{
-				Type: Branch,
 				Children: padRightChildren([]*Node{
 					nil, nil, {
-						Type: Leaf,
-						Key:  []byte{9},
+						Key: []byte{9},
 					},
 				}),
 			},
@@ -122,24 +110,20 @@ func Test_Node_Copy(t *testing.T) {
 				CopyChildren: true,
 			},
 			expectedNode: &Node{
-				Type: Branch,
 				Children: padRightChildren([]*Node{
 					nil, nil, {
-						Type: Leaf,
-						Key:  []byte{9},
+						Key: []byte{9},
 					},
 				}),
 			},
 		},
 		"deep copy branch": {
 			node: &Node{
-				Type:  Branch,
 				Key:   []byte{1, 2},
 				Value: []byte{3, 4},
 				Children: padRightChildren([]*Node{
 					nil, nil, {
-						Type: Leaf,
-						Key:  []byte{9},
+						Key: []byte{9},
 					},
 				}),
 				Dirty:      true,
@@ -148,13 +132,11 @@ func Test_Node_Copy(t *testing.T) {
 			},
 			settings: DeepCopySettings,
 			expectedNode: &Node{
-				Type:  Branch,
 				Key:   []byte{1, 2},
 				Value: []byte{3, 4},
 				Children: padRightChildren([]*Node{
 					nil, nil, {
-						Type: Leaf,
-						Key:  []byte{9},
+						Key: []byte{9},
 					},
 				}),
 				Dirty:      true,
@@ -177,8 +159,8 @@ func Test_Node_Copy(t *testing.T) {
 			testForSliceModif(t, testCase.node.HashDigest, nodeCopy.HashDigest)
 			testForSliceModif(t, testCase.node.Encoding, nodeCopy.Encoding)
 
-			if testCase.node.Children != nil { // branch
-				testCase.node.Children[15] = &Node{Type: Leaf, Key: []byte("modified")}
+			if testCase.node.Type() == Branch {
+				testCase.node.Children[15] = &Node{Key: []byte("modified")}
 				assert.NotEqual(t, nodeCopy.Children, testCase.node.Children)
 			}
 		})

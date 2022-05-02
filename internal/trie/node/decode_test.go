@@ -69,7 +69,6 @@ func Test_Decode(t *testing.T) {
 				),
 			),
 			n: &Node{
-				Type:  Leaf,
 				Key:   []byte{9},
 				Value: []byte{1, 2, 3},
 				Dirty: true,
@@ -92,7 +91,6 @@ func Test_Decode(t *testing.T) {
 				},
 			),
 			n: &Node{
-				Type:     Branch,
 				Key:      []byte{9},
 				Children: make([]*Node, ChildrenCapacity),
 				Dirty:    true,
@@ -115,7 +113,6 @@ func Test_Decode(t *testing.T) {
 				},
 			),
 			n: &Node{
-				Type: Branch,
 				Key: []byte{
 					12, 3, 6, 5, 12, 3,
 					12, 15, 5, 9, 13, 6,
@@ -127,7 +124,6 @@ func Test_Decode(t *testing.T) {
 				Children: []*Node{
 					nil, nil, nil, nil,
 					{
-						Type: Leaf,
 						Key: []byte{
 							14, 7, 11, 9, 0, 1,
 							2, 0, 9, 6, 11, 4,
@@ -141,7 +137,6 @@ func Test_Decode(t *testing.T) {
 					},
 					nil, nil, nil, nil,
 					{
-						Type: Leaf,
 						Key: []byte{
 							15, 1, 15, 0, 5, 1,
 							5, 15, 4, 6, 2, 12,
@@ -228,13 +223,11 @@ func Test_decodeBranch(t *testing.T) {
 			),
 			header: 129, // node type 2 (branch without value) and key length 1
 			branch: &Node{
-				Type: Branch,
-				Key:  []byte{9},
+				Key: []byte{9},
 				Children: padRightChildren([]*Node{
 					nil, nil, nil, nil, nil,
 					nil, nil, nil, nil, nil,
 					{
-						Type:       Leaf,
 						HashDigest: []byte{1, 2, 3, 4, 5},
 					},
 				}),
@@ -265,14 +258,12 @@ func Test_decodeBranch(t *testing.T) {
 			),
 			header: 193, // node type 3 (branch with value) and key length 1
 			branch: &Node{
-				Type:  Branch,
 				Key:   []byte{9},
 				Value: []byte{7, 8, 9},
 				Children: padRightChildren([]*Node{
 					nil, nil, nil, nil, nil,
 					nil, nil, nil, nil, nil,
 					{
-						Type:       Leaf,
 						HashDigest: []byte{1, 2, 3, 4, 5},
 					},
 				}),
@@ -332,7 +323,6 @@ func Test_decodeLeaf(t *testing.T) {
 			}),
 			header: 65, // node type 1 (leaf) and key length 1
 			leaf: &Node{
-				Type:  Leaf,
 				Key:   []byte{9},
 				Dirty: true,
 			},
@@ -346,7 +336,6 @@ func Test_decodeLeaf(t *testing.T) {
 			),
 			header: 65, // node type 1 (leaf) and key length 1
 			leaf: &Node{
-				Type:  Leaf,
 				Key:   []byte{9},
 				Value: []byte{1, 2, 3, 4, 5},
 				Dirty: true,

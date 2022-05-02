@@ -24,7 +24,6 @@ func Test_hashNode(t *testing.T) {
 	}{
 		"small leaf buffer write error": {
 			node: &Node{
-				Type:     Leaf,
 				Encoding: []byte{1, 2, 3},
 			},
 			write: writeCall{
@@ -37,7 +36,6 @@ func Test_hashNode(t *testing.T) {
 		},
 		"small leaf success": {
 			node: &Node{
-				Type:     Leaf,
 				Encoding: []byte{1, 2, 3},
 			},
 			write: writeCall{
@@ -46,7 +44,6 @@ func Test_hashNode(t *testing.T) {
 		},
 		"leaf hash sum buffer write error": {
 			node: &Node{
-				Type: Leaf,
 				Encoding: []byte{
 					1, 2, 3, 4, 5, 6, 7, 8,
 					1, 2, 3, 4, 5, 6, 7, 8,
@@ -70,7 +67,6 @@ func Test_hashNode(t *testing.T) {
 		},
 		"leaf hash sum success": {
 			node: &Node{
-				Type: Leaf,
 				Encoding: []byte{
 					1, 2, 3, 4, 5, 6, 7, 8,
 					1, 2, 3, 4, 5, 6, 7, 8,
@@ -90,7 +86,7 @@ func Test_hashNode(t *testing.T) {
 		},
 		"empty branch": {
 			node: &Node{
-				Type: Branch,
+				Children: make([]*Node, ChildrenCapacity),
 			},
 			write: writeCall{
 				written: []byte{128, 0, 0},
@@ -98,8 +94,8 @@ func Test_hashNode(t *testing.T) {
 		},
 		"less than 32 bytes encoding": {
 			node: &Node{
-				Type: Branch,
-				Key:  []byte{1, 2},
+				Children: make([]*Node, ChildrenCapacity),
+				Key:      []byte{1, 2},
 			},
 			write: writeCall{
 				written: []byte{130, 18, 0, 0},
@@ -107,8 +103,8 @@ func Test_hashNode(t *testing.T) {
 		},
 		"less than 32 bytes encoding write error": {
 			node: &Node{
-				Type: Branch,
-				Key:  []byte{1, 2},
+				Children: make([]*Node, ChildrenCapacity),
+				Key:      []byte{1, 2},
 			},
 			write: writeCall{
 				written: []byte{130, 18, 0, 0},
@@ -119,8 +115,8 @@ func Test_hashNode(t *testing.T) {
 		},
 		"more than 32 bytes encoding": {
 			node: &Node{
-				Type: Branch,
-				Key:  repeatBytes(100, 1),
+				Children: make([]*Node, ChildrenCapacity),
+				Key:      repeatBytes(100, 1),
 			},
 			write: writeCall{
 				written: []byte{
@@ -132,8 +128,8 @@ func Test_hashNode(t *testing.T) {
 		},
 		"more than 32 bytes encoding write error": {
 			node: &Node{
-				Type: Branch,
-				Key:  repeatBytes(100, 1),
+				Children: make([]*Node, ChildrenCapacity),
+				Key:      repeatBytes(100, 1),
 			},
 			write: writeCall{
 				written: []byte{
@@ -192,7 +188,6 @@ func populateChildren(valueSize, depth int) (children []*Node) {
 	if depth == 0 {
 		for i := range children {
 			children[i] = &Node{
-				Type:  Leaf,
 				Key:   someValue,
 				Value: someValue,
 			}
@@ -202,7 +197,6 @@ func populateChildren(valueSize, depth int) (children []*Node) {
 
 	for i := range children {
 		children[i] = &Node{
-			Type:     Branch,
 			Key:      someValue,
 			Value:    someValue,
 			Children: populateChildren(valueSize, depth-1),
@@ -224,7 +218,7 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 		"no children": {},
 		"first child not nil": {
 			children: []*Node{
-				{Type: Leaf, Key: []byte{1}},
+				{Key: []byte{1}},
 			},
 			writes: []writeCall{
 				{
@@ -237,7 +231,7 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
-				{Type: Leaf, Key: []byte{1}},
+				{Key: []byte{1}},
 			},
 			writes: []writeCall{
 				{
@@ -247,8 +241,8 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 		},
 		"first two children not nil": {
 			children: []*Node{
-				{Type: Leaf, Key: []byte{1}},
-				{Type: Leaf, Key: []byte{2}},
+				{Key: []byte{1}},
+				{Key: []byte{2}},
 			},
 			writes: []writeCall{
 				{
@@ -264,9 +258,7 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 				nil, nil, nil, nil,
 				nil, nil, nil, nil,
 				nil, nil, nil,
-				{Type: Leaf,
-					Key: []byte{1},
-				},
+				{Key: []byte{1}},
 				nil, nil, nil, nil,
 			},
 			writes: []writeCall{
@@ -284,10 +276,9 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 			// running in parallel.
 			children: []*Node{
 				{
-					Type: Branch,
-					Key:  []byte{1},
+					Key: []byte{1},
 					Children: []*Node{
-						{Type: Leaf, Key: []byte{1}},
+						{Key: []byte{1}},
 					},
 				},
 			},
@@ -335,7 +326,7 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 		children := make([]*Node, ChildrenCapacity)
 		for i := range children {
 			children[i] = &Node{
-				Type: Branch,
+				Children: make([]*Node, ChildrenCapacity),
 			}
 		}
 
@@ -369,7 +360,7 @@ func Test_encodeChildrenSequentially(t *testing.T) {
 		"no children": {},
 		"first child not nil": {
 			children: []*Node{
-				{Type: Leaf, Key: []byte{1}},
+				{Key: []byte{1}},
 			},
 			writes: []writeCall{
 				{
@@ -382,7 +373,7 @@ func Test_encodeChildrenSequentially(t *testing.T) {
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
-				{Type: Leaf, Key: []byte{1}},
+				{Key: []byte{1}},
 			},
 			writes: []writeCall{
 				{
@@ -392,8 +383,8 @@ func Test_encodeChildrenSequentially(t *testing.T) {
 		},
 		"first two children not nil": {
 			children: []*Node{
-				{Type: Leaf, Key: []byte{1}},
-				{Type: Leaf, Key: []byte{2}},
+				{Key: []byte{1}},
+				{Key: []byte{2}},
 			},
 			writes: []writeCall{
 				{
@@ -409,9 +400,7 @@ func Test_encodeChildrenSequentially(t *testing.T) {
 				nil, nil, nil, nil,
 				nil, nil, nil, nil,
 				nil, nil, nil,
-				{Type: Leaf,
-					Key: []byte{1},
-				},
+				{Key: []byte{1}},
 				nil, nil, nil, nil,
 			},
 			writes: []writeCall{
@@ -469,7 +458,7 @@ func Test_encodeChild(t *testing.T) {
 	}{
 		"nil node": {},
 		"empty leaf child": {
-			child:     &Node{Type: Leaf},
+			child:     &Node{},
 			writeCall: true,
 			write: writeCall{
 				written: []byte{8, 64, 0},
@@ -477,7 +466,8 @@ func Test_encodeChild(t *testing.T) {
 		},
 		"empty branch child": {
 			child: &Node{
-				Type: Branch},
+				Children: make([]*Node, ChildrenCapacity),
+			},
 			writeCall: true,
 			write: writeCall{
 				written: []byte{12, 128, 0, 0},
@@ -485,7 +475,8 @@ func Test_encodeChild(t *testing.T) {
 		},
 		"buffer write error": {
 			child: &Node{
-				Type: Branch},
+				Children: make([]*Node, ChildrenCapacity),
+			},
 			writeCall: true,
 			write: writeCall{
 				written: []byte{12, 128, 0, 0},
@@ -496,7 +487,6 @@ func Test_encodeChild(t *testing.T) {
 		},
 		"leaf child": {
 			child: &Node{
-				Type:  Leaf,
 				Key:   []byte{1},
 				Value: []byte{2},
 			},
@@ -507,12 +497,10 @@ func Test_encodeChild(t *testing.T) {
 		},
 		"branch child": {
 			child: &Node{
-				Type:  Branch,
 				Key:   []byte{1},
 				Value: []byte{2},
 				Children: []*Node{
-					nil, nil, {Type: Leaf,
-						Key:   []byte{5},
+					nil, nil, {Key: []byte{5},
 						Value: []byte{6},
 					},
 				},
@@ -560,24 +548,21 @@ func Test_scaleEncodeHash(t *testing.T) {
 		errMessage string
 	}{
 		"empty leaf": {
-			node: &Node{
-				Type: Leaf,
-			},
+			node:     &Node{},
 			encoding: []byte{0x8, 0x40, 0},
 		},
 		"empty branch": {
 			node: &Node{
-				Type: Branch,
+				Children: make([]*Node, ChildrenCapacity),
 			},
 			encoding: []byte{0xc, 0x80, 0x0, 0x0},
 		},
 		"non empty branch": {
 			node: &Node{
-				Type:  Branch,
 				Key:   []byte{1, 2},
 				Value: []byte{3, 4},
 				Children: []*Node{
-					nil, nil, {Type: Leaf, Key: []byte{9}},
+					nil, nil, {Key: []byte{9}},
 				},
 			},
 			encoding: []byte{0x2c, 0xc2, 0x12, 0x4, 0x0, 0x8, 0x3, 0x4, 0xc, 0x41, 0x9, 0x0},

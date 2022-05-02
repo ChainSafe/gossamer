@@ -56,7 +56,7 @@ func (t *Trie) store(db chaindb.Batch, n *Node) error {
 		return err
 	}
 
-	if n.Type == node.Branch {
+	if n.Type() == node.Branch {
 		for _, child := range n.Children {
 			if child == nil {
 				continue
@@ -120,7 +120,7 @@ func (t *Trie) LoadFromProof(proofEncodedNodes [][]byte, rootHash []byte) error 
 // loadProof is a recursive function that will create all the trie paths based
 // on the mapped proofs slice starting at the root
 func (t *Trie) loadProof(proofHashToNode map[string]*Node, n *Node) {
-	if n.Type != node.Branch {
+	if n.Type() != node.Branch {
 		return
 	}
 
@@ -170,7 +170,7 @@ func (t *Trie) Load(db chaindb.Database, rootHash common.Hash) error {
 }
 
 func (t *Trie) load(db chaindb.Database, n *Node) error {
-	if n.Type != node.Branch {
+	if n.Type() != node.Branch {
 		return nil
 	}
 
@@ -182,7 +182,7 @@ func (t *Trie) load(db chaindb.Database, n *Node) error {
 
 		hash := child.HashDigest
 
-		if len(hash) == 0 && child.Type == node.Leaf {
+		if len(hash) == 0 && child.Type() == node.Leaf {
 			// node has already been loaded inline
 			// just set encoding + hash digest
 			_, _, err := child.EncodeAndHash(false)
@@ -214,7 +214,7 @@ func (t *Trie) load(db chaindb.Database, n *Node) error {
 			return fmt.Errorf("cannot load child at index %d with hash 0x%x: %w", i, hash, err)
 		}
 
-		if decodedNode.Type == node.Branch {
+		if decodedNode.Type() == node.Branch {
 			// Note 1: the node is fully loaded with all its descendants
 			// count only after the database load above.
 			// Note 2: direct child node is already counted as descendant
@@ -248,7 +248,7 @@ func (t *Trie) load(db chaindb.Database, n *Node) error {
 // PopulateNodeHashes writes hashes of each children of the node given
 // as keys to the map hashesSet.
 func (t *Trie) PopulateNodeHashes(n *Node, hashesSet map[common.Hash]struct{}) {
-	if n.Type != node.Branch {
+	if n.Type() != node.Branch {
 		return
 	}
 
@@ -322,7 +322,7 @@ func GetFromDB(db chaindb.Database, rootHash common.Hash, key []byte) (
 // slice will modify the value of the node in the trie.
 func getFromDB(db chaindb.Database, n *Node, key []byte) (
 	value []byte, err error) {
-	if n.Type == node.Leaf {
+	if n.Type() == node.Leaf {
 		if bytes.Equal(n.Key, key) {
 			return n.Value, nil
 		}
@@ -352,7 +352,7 @@ func getFromDB(db chaindb.Database, n *Node, key []byte) (
 
 	// Child can be either inlined or a hash pointer.
 	childHash := child.HashDigest
-	if len(childHash) == 0 && child.Type == node.Leaf {
+	if len(childHash) == 0 && child.Type() == node.Leaf {
 		return getFromDB(db, child, key[commonPrefixLength+1:])
 	}
 
@@ -406,7 +406,7 @@ func (t *Trie) writeDirty(db chaindb.Batch, n *Node) error {
 			hash, err)
 	}
 
-	if n.Type != node.Branch {
+	if n.Type() != node.Branch {
 		n.SetDirty(false)
 		return nil
 	}
@@ -463,7 +463,7 @@ func (t *Trie) getInsertedNodeHashes(n *Node, hashes map[common.Hash]struct{}) (
 
 	hashes[common.BytesToHash(hash)] = struct{}{}
 
-	if n.Type != node.Branch {
+	if n.Type() != node.Branch {
 		return nil
 	}
 

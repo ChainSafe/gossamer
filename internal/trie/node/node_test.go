@@ -17,7 +17,7 @@ func Test_Node_String(t *testing.T) {
 		s    string
 	}{
 		"empty leaf": {
-			node: &Node{Type: Leaf},
+			node: &Node{},
 			s: `Leaf
 ├── Generation: 0
 ├── Dirty: false
@@ -28,7 +28,6 @@ func Test_Node_String(t *testing.T) {
 		},
 		"leaf with value smaller than 1024": {
 			node: &Node{
-				Type:  Leaf,
 				Key:   []byte{1, 2},
 				Value: []byte{3, 4},
 				Dirty: true,
@@ -43,7 +42,6 @@ func Test_Node_String(t *testing.T) {
 		},
 		"leaf with value higher than 1024": {
 			node: &Node{
-				Type:  Leaf,
 				Key:   []byte{1, 2},
 				Value: make([]byte, 1025),
 				Dirty: true,
@@ -56,33 +54,22 @@ func Test_Node_String(t *testing.T) {
 ├── Calculated encoding: nil
 └── Calculated digest: nil`,
 		},
-		"empty branch": {
-			node: &Node{
-				Type: Branch,
-			},
-			s: `Branch
-├── Generation: 0
-├── Dirty: false
-├── Key: nil
-├── Value: nil
-├── Descendants: 0
-├── Calculated encoding: nil
-└── Calculated digest: nil`,
-		},
 		"branch with value smaller than 1024": {
 			node: &Node{
-				Type:        Branch,
 				Key:         []byte{1, 2},
 				Value:       []byte{3, 4},
 				Dirty:       true,
 				Descendants: 3,
 				Children: []*Node{
 					nil, nil, nil,
-					{Type: Leaf},
+					{},
 					nil, nil, nil,
-					{Type: Branch},
+					{
+						Descendants: 1,
+						Children:    padRightChildren([]*Node{{}}),
+					},
 					nil, nil, nil,
-					{Type: Leaf},
+					{},
 					nil, nil, nil, nil,
 				},
 			},
@@ -108,9 +95,17 @@ func Test_Node_String(t *testing.T) {
 |       ├── Dirty: false
 |       ├── Key: nil
 |       ├── Value: nil
-|       ├── Descendants: 0
+|       ├── Descendants: 1
 |       ├── Calculated encoding: nil
-|       └── Calculated digest: nil
+|       ├── Calculated digest: nil
+|       └── Child 0
+|           └── Leaf
+|               ├── Generation: 0
+|               ├── Dirty: false
+|               ├── Key: nil
+|               ├── Value: nil
+|               ├── Calculated encoding: nil
+|               └── Calculated digest: nil
 └── Child 11
     └── Leaf
         ├── Generation: 0
@@ -122,18 +117,20 @@ func Test_Node_String(t *testing.T) {
 		},
 		"branch with value higher than 1024": {
 			node: &Node{
-				Type:        Branch,
 				Key:         []byte{1, 2},
 				Value:       make([]byte, 1025),
 				Dirty:       true,
 				Descendants: 3,
 				Children: []*Node{
 					nil, nil, nil,
-					{Type: Leaf},
+					{},
 					nil, nil, nil,
-					{Type: Branch},
+					{
+						Descendants: 1,
+						Children:    padRightChildren([]*Node{{}}),
+					},
 					nil, nil, nil,
-					{Type: Leaf},
+					{},
 					nil, nil, nil, nil,
 				},
 			},
@@ -159,9 +156,17 @@ func Test_Node_String(t *testing.T) {
 |       ├── Dirty: false
 |       ├── Key: nil
 |       ├── Value: nil
-|       ├── Descendants: 0
+|       ├── Descendants: 1
 |       ├── Calculated encoding: nil
-|       └── Calculated digest: nil
+|       ├── Calculated digest: nil
+|       └── Child 0
+|           └── Leaf
+|               ├── Generation: 0
+|               ├── Dirty: false
+|               ├── Key: nil
+|               ├── Value: nil
+|               ├── Calculated encoding: nil
+|               └── Calculated digest: nil
 └── Child 11
     └── Leaf
         ├── Generation: 0

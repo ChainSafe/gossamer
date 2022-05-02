@@ -60,7 +60,6 @@ func Decode(reader io.Reader) (n *Node, err error) {
 // find other values using the persistent database.
 func decodeBranch(reader io.Reader, header byte) (node *Node, err error) {
 	node = &Node{
-		Type:     Branch,
 		Children: make([]*Node, ChildrenCapacity),
 	}
 
@@ -117,7 +116,6 @@ func decodeBranch(reader io.Reader, header byte) (node *Node, err error) {
 
 		node.Descendants++
 		node.Children[i] = &Node{
-			Type:       Leaf,
 			HashDigest: hash,
 		}
 	}
@@ -130,7 +128,6 @@ func decodeBranch(reader io.Reader, header byte) (node *Node, err error) {
 // decodeLeaf reads and decodes from a reader with the encoding specified in lib/trie/node/encode_doc.go.
 func decodeLeaf(reader io.Reader, header byte) (node *Node, err error) {
 	node = &Node{
-		Type:  Leaf,
 		Dirty: true,
 	}
 

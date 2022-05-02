@@ -27,13 +27,11 @@ func Test_NewEmptyTrie(t *testing.T) {
 
 func Test_NewTrie(t *testing.T) {
 	root := &Node{
-		Type:  node.Leaf,
 		Key:   []byte{0},
 		Value: []byte{17},
 	}
 	expectedTrie := &Trie{
 		root: &Node{
-			Type:  node.Leaf,
 			Key:   []byte{0},
 			Value: []byte{17},
 		},
@@ -49,21 +47,18 @@ func Test_Trie_Snapshot(t *testing.T) {
 
 	trie := &Trie{
 		generation: 8,
-		root: &Node{
-			Type: node.Leaf, Key: []byte{8}},
+		root:       &Node{Key: []byte{8}},
 		childTries: map[common.Hash]*Trie{
 			{1}: {
 				generation: 1,
-				root: &Node{
-					Type: node.Leaf, Key: []byte{1}},
+				root:       &Node{Key: []byte{1}},
 				deletedKeys: map[common.Hash]struct{}{
 					{1}: {},
 				},
 			},
 			{2}: {
 				generation: 2,
-				root: &Node{
-					Type: node.Leaf, Key: []byte{2}},
+				root:       &Node{Key: []byte{2}},
 				deletedKeys: map[common.Hash]struct{}{
 					{2}: {},
 				},
@@ -77,19 +72,16 @@ func Test_Trie_Snapshot(t *testing.T) {
 
 	expectedTrie := &Trie{
 		generation: 9,
-		root: &Node{
-			Type: node.Leaf, Key: []byte{8}},
+		root:       &Node{Key: []byte{8}},
 		childTries: map[common.Hash]*Trie{
 			{1}: {
-				generation: 2,
-				root: &Node{
-					Type: node.Leaf, Key: []byte{1}},
+				generation:  2,
+				root:        &Node{Key: []byte{1}},
 				deletedKeys: map[common.Hash]struct{}{},
 			},
 			{2}: {
-				generation: 3,
-				root: &Node{
-					Type: node.Leaf, Key: []byte{2}},
+				generation:  3,
+				root:        &Node{Key: []byte{2}},
 				deletedKeys: map[common.Hash]struct{}{},
 			},
 		},
@@ -115,13 +107,11 @@ func Test_Trie_updateGeneration(t *testing.T) {
 		"trie generation higher and empty hash": {
 			trieGeneration: 2,
 			node: &Node{
-				Type:       node.Leaf,
 				Generation: 1,
 				Key:        []byte{1},
 			},
 			copySettings: node.DefaultCopySettings,
 			newNode: &Node{
-				Type:       node.Leaf,
 				Generation: 2,
 				Key:        []byte{1},
 			},
@@ -131,14 +121,12 @@ func Test_Trie_updateGeneration(t *testing.T) {
 		"trie generation higher and hash": {
 			trieGeneration: 2,
 			node: &Node{
-				Type:       node.Leaf,
 				Generation: 1,
 				Key:        []byte{1},
 				HashDigest: []byte{1, 2, 3},
 			},
 			copySettings: node.DefaultCopySettings,
 			newNode: &Node{
-				Type:       node.Leaf,
 				Generation: 2,
 				Key:        []byte{1},
 			},
@@ -233,13 +221,11 @@ func Test_Trie_DeepCopy(t *testing.T) {
 		"filled trie": {
 			trieOriginal: &Trie{
 				generation: 1,
-				root: &Node{
-					Type: node.Leaf, Key: []byte{1, 2}},
+				root:       &Node{Key: []byte{1, 2}},
 				childTries: map[common.Hash]*Trie{
 					{1, 2, 3}: {
 						generation: 2,
-						root: &Node{
-							Type: node.Leaf, Key: []byte{1}},
+						root:       &Node{Key: []byte{1}},
 						deletedKeys: map[common.Hash]struct{}{
 							{1, 2, 3}: {},
 							{3, 4, 5}: {},
@@ -253,13 +239,11 @@ func Test_Trie_DeepCopy(t *testing.T) {
 			},
 			trieCopy: &Trie{
 				generation: 1,
-				root: &Node{
-					Type: node.Leaf, Key: []byte{1, 2}},
+				root:       &Node{Key: []byte{1, 2}},
 				childTries: map[common.Hash]*Trie{
 					{1, 2, 3}: {
 						generation: 2,
-						root: &Node{
-							Type: node.Leaf, Key: []byte{1}},
+						root:       &Node{Key: []byte{1}},
 						deletedKeys: map[common.Hash]struct{}{
 							{1, 2, 3}: {},
 							{3, 4, 5}: {},
@@ -293,13 +277,11 @@ func Test_Trie_RootNode(t *testing.T) {
 
 	trie := Trie{
 		root: &Node{
-			Type: node.Leaf,
-			Key:  []byte{1, 2, 3},
+			Key: []byte{1, 2, 3},
 		},
 	}
 	expectedRoot := &Node{
-		Type: node.Leaf,
-		Key:  []byte{1, 2, 3},
+		Key: []byte{1, 2, 3},
 	}
 
 	root := trie.RootNode()
@@ -348,8 +330,7 @@ func Test_encodeRoot(t *testing.T) {
 		},
 		"root encoding error": {
 			root: &Node{
-				Type: node.Leaf,
-				Key:  []byte{1, 2},
+				Key: []byte{1, 2},
 			},
 			bufferCalls: bufferCalls{
 				writeCalls: []writeCall{
@@ -362,14 +343,12 @@ func Test_encodeRoot(t *testing.T) {
 			errWrapped: errTest,
 			errMessage: "cannot encode header: test error",
 			expectedRoot: &Node{
-				Type: node.Leaf,
-				Key:  []byte{1, 2},
+				Key: []byte{1, 2},
 			},
 		},
 		"root encoding success": {
 			root: &Node{
-				Type: node.Leaf,
-				Key:  []byte{1, 2},
+				Key: []byte{1, 2},
 			},
 			bufferCalls: bufferCalls{
 				writeCalls: []writeCall{
@@ -383,7 +362,6 @@ func Test_encodeRoot(t *testing.T) {
 				bytesReturn: []byte{66, 18, 0},
 			},
 			expectedRoot: &Node{
-				Type:     node.Leaf,
 				Key:      []byte{1, 2},
 				Encoding: []byte{66, 18, 0},
 			},
@@ -468,8 +446,7 @@ func Test_Trie_Hash(t *testing.T) {
 		"leaf root": {
 			trie: Trie{
 				root: &Node{
-					Type: node.Leaf,
-					Key:  []byte{1, 2, 3},
+					Key: []byte{1, 2, 3},
 				},
 			},
 			hash: common.Hash{
@@ -479,7 +456,6 @@ func Test_Trie_Hash(t *testing.T) {
 				0x9f, 0x57, 0x82, 0x94, 0xc9, 0x76, 0xf4, 0x6f},
 			expectedTrie: Trie{
 				root: &Node{
-					Type:     node.Leaf,
 					Key:      []byte{1, 2, 3},
 					Encoding: []byte{67, 1, 35, 0},
 				},
@@ -488,12 +464,11 @@ func Test_Trie_Hash(t *testing.T) {
 		"branch root": {
 			trie: Trie{
 				root: &Node{
-					Type:        node.Branch,
 					Key:         []byte{1, 2, 3},
 					Value:       []byte("branch"),
 					Descendants: 1,
 					Children: padRightChildren([]*Node{
-						{Type: node.Leaf, Key: []byte{9}},
+						{Key: []byte{9}},
 					}),
 				},
 			},
@@ -504,13 +479,11 @@ func Test_Trie_Hash(t *testing.T) {
 				0xbe, 0x27, 0xab, 0x13, 0xcb, 0xf0, 0xfd, 0xd7},
 			expectedTrie: Trie{
 				root: &Node{
-					Type:        node.Branch,
 					Key:         []byte{1, 2, 3},
 					Value:       []byte("branch"),
 					Descendants: 1,
 					Children: padRightChildren([]*Node{
 						{
-							Type:     node.Leaf,
 							Key:      []byte{9},
 							Encoding: []byte{0x41, 0x09, 0x00},
 						},
@@ -571,19 +544,16 @@ func Test_Trie_Entries(t *testing.T) {
 		t.Parallel()
 
 		root := &Node{
-			Type:        node.Branch,
 			Key:         []byte{0xa},
 			Value:       []byte("root"),
 			Descendants: 2,
 			Children: padRightChildren([]*Node{
-				{
-					Type:  node.Leaf, // index 0
+				{ // index 0
 					Key:   []byte{2, 0xb},
 					Value: []byte("leaf"),
 				},
 				nil,
-				{
-					Type:  node.Leaf, // index 2
+				{ // index 2
 					Key:   []byte{0xb},
 					Value: []byte("leaf"),
 				},
@@ -607,41 +577,35 @@ func Test_Trie_Entries(t *testing.T) {
 		t.Parallel()
 
 		root := &Node{
-			Type:        node.Branch,
 			Key:         []byte{0xa, 0xb},
 			Value:       []byte("root"),
 			Descendants: 5,
 			Children: padRightChildren([]*Node{
 				nil, nil, nil,
-				{
-					Type:        node.Branch, // branch with value at child index 3
+				{ // branch with value at child index 3
 					Key:         []byte{0xb},
 					Value:       []byte("branch 1"),
 					Descendants: 1,
 					Children: padRightChildren([]*Node{
 						nil, nil, nil,
-						{
-							Type:  node.Leaf, // leaf at child index 3
+						{ // leaf at child index 3
 							Key:   []byte{0xc},
 							Value: []byte("bottom leaf"),
 						},
 					}),
 				},
 				nil, nil, nil,
-				{
-					Type:  node.Leaf, // leaf at child index 7
+				{ // leaf at child index 7
 					Key:   []byte{0xd},
 					Value: []byte("top leaf"),
 				},
 				nil,
-				{
-					Type:        node.Branch, // branch without value at child index 9
+				{ // branch without value at child index 9
 					Key:         []byte{0xe},
 					Value:       []byte("branch 2"),
 					Descendants: 1,
 					Children: padRightChildren([]*Node{
-						{
-							Type:  node.Leaf, // leaf at child index 0
+						{ // leaf at child index 0
 							Key:   []byte{0xf},
 							Value: []byte("bottom leaf 2"),
 						}, nil, nil,
@@ -707,8 +671,7 @@ func Test_Trie_NextKey(t *testing.T) {
 		"nil key returns root leaf": {
 			trie: Trie{
 				root: &Node{
-					Type: node.Leaf,
-					Key:  []byte{2},
+					Key: []byte{2},
 				},
 			},
 			nextKey: []byte{2},
@@ -716,8 +679,7 @@ func Test_Trie_NextKey(t *testing.T) {
 		"key smaller than root leaf full key": {
 			trie: Trie{
 				root: &Node{
-					Type: node.Leaf,
-					Key:  []byte{2},
+					Key: []byte{2},
 				},
 			},
 			key:     []byte{0x10}, // 10 => [1, 0] in nibbles
@@ -755,8 +717,7 @@ func Test_nextKey(t *testing.T) {
 		"nil key returns root leaf": {
 			trie: Trie{
 				root: &Node{
-					Type: node.Leaf,
-					Key:  []byte{2},
+					Key: []byte{2},
 				},
 			},
 			nextKey: []byte{2},
@@ -764,8 +725,7 @@ func Test_nextKey(t *testing.T) {
 		"key smaller than root leaf full key": {
 			trie: Trie{
 				root: &Node{
-					Type: node.Leaf,
-					Key:  []byte{2},
+					Key: []byte{2},
 				},
 			},
 			key:     []byte{1},
@@ -774,8 +734,7 @@ func Test_nextKey(t *testing.T) {
 		"key equal to root leaf full key": {
 			trie: Trie{
 				root: &Node{
-					Type: node.Leaf,
-					Key:  []byte{2},
+					Key: []byte{2},
 				},
 			},
 			key: []byte{2},
@@ -783,8 +742,7 @@ func Test_nextKey(t *testing.T) {
 		"key greater than root leaf full key": {
 			trie: Trie{
 				root: &Node{
-					Type: node.Leaf,
-					Key:  []byte{2},
+					Key: []byte{2},
 				},
 			},
 			key: []byte{3},
@@ -792,14 +750,12 @@ func Test_nextKey(t *testing.T) {
 		"key smaller than root branch full key": {
 			trie: Trie{
 				root: &Node{
-					Type:        node.Branch,
 					Key:         []byte{2},
 					Value:       []byte("branch"),
 					Descendants: 1,
 					Children: padRightChildren([]*Node{
 						{
-							Type: node.Leaf,
-							Key:  []byte{1},
+							Key: []byte{1},
 						},
 					}),
 				},
@@ -810,14 +766,12 @@ func Test_nextKey(t *testing.T) {
 		"key equal to root branch full key": {
 			trie: Trie{
 				root: &Node{
-					Type:        node.Branch,
 					Key:         []byte{2},
 					Value:       []byte("branch"),
 					Descendants: 1,
 					Children: padRightChildren([]*Node{
 						{
-							Type: node.Leaf,
-							Key:  []byte{1},
+							Key: []byte{1},
 						},
 					}),
 				},
@@ -827,14 +781,12 @@ func Test_nextKey(t *testing.T) {
 		"key smaller than leaf full key": {
 			trie: Trie{
 				root: &Node{
-					Type:        node.Branch,
 					Key:         []byte{1},
 					Value:       []byte("branch"),
 					Descendants: 1,
 					Children: padRightChildren([]*Node{
 						nil, nil,
 						{
-							Type: node.Leaf,
 							// full key [1, 2, 3]
 							Key: []byte{3},
 						},
@@ -847,14 +799,12 @@ func Test_nextKey(t *testing.T) {
 		"key equal to leaf full key": {
 			trie: Trie{
 				root: &Node{
-					Type:        node.Branch,
 					Key:         []byte{1},
 					Value:       []byte("branch"),
 					Descendants: 1,
 					Children: padRightChildren([]*Node{
 						nil, nil,
 						{
-							Type: node.Leaf,
 							// full key [1, 2, 3]
 							Key: []byte{3},
 						},
@@ -866,14 +816,12 @@ func Test_nextKey(t *testing.T) {
 		"key greater than leaf full key": {
 			trie: Trie{
 				root: &Node{
-					Type:        node.Branch,
 					Key:         []byte{1},
 					Value:       []byte("branch"),
 					Descendants: 1,
 					Children: padRightChildren([]*Node{
 						nil, nil,
 						{
-							Type: node.Leaf,
 							// full key [1, 2, 3]
 							Key: []byte{3},
 						},
@@ -885,14 +833,12 @@ func Test_nextKey(t *testing.T) {
 		"next key branch with value": {
 			trie: Trie{
 				root: &Node{
-					Type:        node.Branch,
 					Key:         []byte{1},
 					Value:       []byte("top branch"),
 					Descendants: 2,
 					Children: padRightChildren([]*Node{
 						nil, nil,
 						{
-							Type: node.Branch,
 							// full key [1, 2, 3]
 							Key:         []byte{3},
 							Value:       []byte("branch 1"),
@@ -900,7 +846,6 @@ func Test_nextKey(t *testing.T) {
 							Children: padRightChildren([]*Node{
 								nil, nil, nil, nil,
 								{
-									Type: node.Leaf,
 									// full key [1, 2, 3, 4, 5]
 									Key:   []byte{0x5},
 									Value: []byte("bottom leaf"),
@@ -916,20 +861,17 @@ func Test_nextKey(t *testing.T) {
 		"next key go through branch without value": {
 			trie: Trie{
 				root: &Node{
-					Type:        node.Branch,
 					Key:         []byte{1},
 					Descendants: 2,
 					Children: padRightChildren([]*Node{
 						nil, nil,
 						{
-							Type: node.Branch,
 							// full key [1, 2, 3]
 							Key:         []byte{3},
 							Descendants: 1,
 							Children: padRightChildren([]*Node{
 								nil, nil, nil, nil,
 								{
-									Type: node.Leaf,
 									// full key [1, 2, 3, 4, 5]
 									Key:   []byte{0x5},
 									Value: []byte("bottom leaf"),
@@ -945,13 +887,11 @@ func Test_nextKey(t *testing.T) {
 		"next key leaf from bottom branch": {
 			trie: Trie{
 				root: &Node{
-					Type:        node.Branch,
 					Key:         []byte{1},
 					Descendants: 2,
 					Children: padRightChildren([]*Node{
 						nil, nil,
 						{
-							Type: node.Branch,
 							// full key [1, 2, 3]
 							Key:         []byte{3},
 							Value:       []byte("bottom branch"),
@@ -959,7 +899,6 @@ func Test_nextKey(t *testing.T) {
 							Children: padRightChildren([]*Node{
 								nil, nil, nil, nil,
 								{
-									Type: node.Leaf,
 									// full key [1, 2, 3, 4, 5]
 									Key:   []byte{0x5},
 									Value: []byte("bottom leaf"),
@@ -975,13 +914,11 @@ func Test_nextKey(t *testing.T) {
 		"next key greater than branch": {
 			trie: Trie{
 				root: &Node{
-					Type:        node.Branch,
 					Key:         []byte{1},
 					Descendants: 2,
 					Children: padRightChildren([]*Node{
 						nil, nil,
 						{
-							Type: node.Branch,
 							// full key [1, 2, 3]
 							Key:         []byte{3},
 							Value:       []byte("bottom branch"),
@@ -989,7 +926,6 @@ func Test_nextKey(t *testing.T) {
 							Children: padRightChildren([]*Node{
 								nil, nil, nil, nil,
 								{
-									Type: node.Leaf,
 									// full key [1, 2, 3, 4, 5]
 									Key:   []byte{0x5},
 									Value: []byte("bottom leaf"),
@@ -1005,12 +941,11 @@ func Test_nextKey(t *testing.T) {
 		"key smaller length and greater than root branch full key": {
 			trie: Trie{
 				root: &Node{
-					Type:        node.Branch,
 					Key:         []byte{2, 0},
 					Value:       []byte("branch"),
 					Descendants: 1,
 					Children: padRightChildren([]*Node{
-						{Type: node.Leaf, Key: []byte{1}},
+						{Key: []byte{1}},
 					}),
 				},
 			},
@@ -1019,7 +954,6 @@ func Test_nextKey(t *testing.T) {
 		"key smaller length and greater than root leaf full key": {
 			trie: Trie{
 				root: &Node{
-					Type:  node.Leaf,
 					Key:   []byte{2, 0},
 					Value: []byte("leaf"),
 				},
@@ -1056,7 +990,6 @@ func Test_Trie_Put(t *testing.T) {
 			trie: Trie{
 				generation: 1,
 				root: &Node{
-					Type:  node.Leaf,
 					Key:   []byte{1, 2, 0, 5},
 					Value: []byte{1},
 				},
@@ -1066,21 +999,18 @@ func Test_Trie_Put(t *testing.T) {
 			expectedTrie: Trie{
 				generation: 1,
 				root: &Node{
-					Type:        node.Branch,
 					Key:         []byte{1, 2},
 					Generation:  1,
 					Dirty:       true,
 					Descendants: 2,
 					Children: padRightChildren([]*Node{
 						{
-							Type:       node.Leaf,
 							Key:        []byte{5},
 							Value:      []byte{1},
 							Generation: 1,
 							Dirty:      true,
 						},
 						{
-							Type:       node.Leaf,
 							Key:        []byte{6},
 							Value:      []byte{2},
 							Generation: 1,
@@ -1121,7 +1051,6 @@ func Test_Trie_put(t *testing.T) {
 			expectedTrie: Trie{
 				generation: 1,
 				root: &Node{
-					Type:       node.Leaf,
 					Generation: 1,
 					Dirty:      true,
 				},
@@ -1135,7 +1064,6 @@ func Test_Trie_put(t *testing.T) {
 			expectedTrie: Trie{
 				generation: 1,
 				root: &Node{
-					Type:       node.Leaf,
 					Value:      []byte{3, 4},
 					Generation: 1,
 					Dirty:      true,
@@ -1151,7 +1079,6 @@ func Test_Trie_put(t *testing.T) {
 			expectedTrie: Trie{
 				generation: 1,
 				root: &Node{
-					Type:       node.Leaf,
 					Key:        []byte{1, 2},
 					Value:      []byte{3, 4},
 					Generation: 1,
@@ -1163,7 +1090,6 @@ func Test_Trie_put(t *testing.T) {
 			trie: Trie{
 				generation: 1,
 				root: &Node{
-					Type:  node.Leaf,
 					Key:   []byte{1, 0, 5},
 					Value: []byte{1},
 				},
@@ -1173,21 +1099,18 @@ func Test_Trie_put(t *testing.T) {
 			expectedTrie: Trie{
 				generation: 1,
 				root: &Node{
-					Type:        node.Branch,
 					Key:         []byte{1},
 					Generation:  1,
 					Dirty:       true,
 					Descendants: 2,
 					Children: padRightChildren([]*Node{
 						{
-							Type:       node.Leaf,
 							Key:        []byte{5},
 							Value:      []byte{1},
 							Generation: 1,
 							Dirty:      true,
 						},
 						{
-							Type:       node.Leaf,
 							Key:        []byte{6},
 							Value:      []byte{2},
 							Generation: 1,
@@ -1230,7 +1153,6 @@ func Test_Trie_insert(t *testing.T) {
 			key:   []byte{1},
 			value: []byte("leaf"),
 			newNode: &Node{
-				Type:       node.Leaf,
 				Key:        []byte{1},
 				Value:      []byte("leaf"),
 				Generation: 1,
@@ -1243,19 +1165,17 @@ func Test_Trie_insert(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Value:       []byte("branch"),
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
 					nil,
-					{Type: node.Leaf, Key: []byte{2}},
+					{Key: []byte{2}},
 				}),
 			},
 			key:   []byte{1, 0},
 			value: []byte("leaf"),
 			newNode: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Value:       []byte("branch"),
 				Generation:  1,
@@ -1263,14 +1183,12 @@ func Test_Trie_insert(t *testing.T) {
 				Descendants: 2,
 				Children: padRightChildren([]*Node{
 					{
-						Type:       node.Leaf,
 						Key:        []byte{},
 						Value:      []byte("leaf"),
 						Generation: 1,
 						Dirty:      true,
 					},
-					{
-						Type: node.Leaf, Key: []byte{2}},
+					{Key: []byte{2}},
 				}),
 			},
 			nodesCreated: 1,
@@ -1280,14 +1198,12 @@ func Test_Trie_insert(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type:  node.Leaf,
 				Key:   []byte{1},
 				Value: []byte("original leaf"),
 			},
 			key:   []byte{1},
 			value: []byte("new leaf"),
 			newNode: &Node{
-				Type:       node.Leaf,
 				Key:        []byte{1},
 				Value:      []byte("new leaf"),
 				Generation: 1,
@@ -1299,14 +1215,12 @@ func Test_Trie_insert(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type:  node.Leaf,
 				Key:   []byte{1},
 				Value: []byte("same"),
 			},
 			key:   []byte{1},
 			value: []byte("same"),
 			newNode: &Node{
-				Type:  node.Leaf,
 				Key:   []byte{1},
 				Value: []byte("same"),
 			},
@@ -1316,14 +1230,12 @@ func Test_Trie_insert(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type:  node.Leaf,
 				Key:   []byte{1},
 				Value: []byte("original leaf"),
 			},
 			key:   []byte{1, 0},
 			value: []byte("leaf"),
 			newNode: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Value:       []byte("original leaf"),
 				Dirty:       true,
@@ -1331,7 +1243,6 @@ func Test_Trie_insert(t *testing.T) {
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
 					{
-						Type:       node.Leaf,
 						Key:        []byte{},
 						Value:      []byte("leaf"),
 						Generation: 1,
@@ -1346,14 +1257,12 @@ func Test_Trie_insert(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type:  node.Leaf,
 				Key:   []byte{1, 2},
 				Value: []byte("original leaf"),
 			},
 			key:   []byte{2, 3},
 			value: []byte("leaf"),
 			newNode: &Node{
-				Type:        node.Branch,
 				Key:         []byte{},
 				Dirty:       true,
 				Generation:  1,
@@ -1361,14 +1270,12 @@ func Test_Trie_insert(t *testing.T) {
 				Children: padRightChildren([]*Node{
 					nil,
 					{
-						Type:       node.Leaf,
 						Key:        []byte{2},
 						Value:      []byte("original leaf"),
 						Dirty:      true,
 						Generation: 1,
 					},
 					{
-						Type:       node.Leaf,
 						Key:        []byte{3},
 						Value:      []byte("leaf"),
 						Generation: 1,
@@ -1383,13 +1290,11 @@ func Test_Trie_insert(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type: node.Leaf,
-				Key:  []byte{1},
+				Key: []byte{1},
 			},
 			key:   []byte{1},
 			value: []byte("leaf"),
 			newNode: &Node{
-				Type:       node.Leaf,
 				Key:        []byte{1},
 				Value:      []byte("leaf"),
 				Dirty:      true,
@@ -1401,13 +1306,11 @@ func Test_Trie_insert(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type: node.Leaf,
-				Key:  []byte{1, 2},
+				Key: []byte{1, 2},
 			},
 			key:   []byte{1},
 			value: []byte("leaf"),
 			newNode: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Value:       []byte("leaf"),
 				Dirty:       true,
@@ -1416,7 +1319,6 @@ func Test_Trie_insert(t *testing.T) {
 				Children: padRightChildren([]*Node{
 					nil, nil,
 					{
-						Type:       node.Leaf,
 						Key:        []byte{},
 						Dirty:      true,
 						Generation: 1,
@@ -1456,73 +1358,66 @@ func Test_Trie_insertInBranch(t *testing.T) {
 	}{
 		"update with branch": {
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{2},
 				Value:       []byte("old"),
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{1}},
+					{Key: []byte{1}},
 				}),
 			},
 			key:   []byte{2},
 			value: []byte("new"),
 			newNode: &Node{
-				Type:        node.Branch,
 				Key:         []byte{2},
 				Value:       []byte("new"),
 				Dirty:       true,
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{1}},
+					{Key: []byte{1}},
 				}),
 			},
 		},
 		"update with leaf": {
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{2},
 				Value:       []byte("old"),
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{1}},
+					{Key: []byte{1}},
 				}),
 			},
 			key:   []byte{2},
 			value: []byte("new"),
 			newNode: &Node{
-				Type:        node.Branch,
 				Key:         []byte{2},
 				Value:       []byte("new"),
 				Dirty:       true,
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{1}},
+					{Key: []byte{1}},
 				}),
 			},
 		},
 		"add leaf as direct child": {
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{2},
 				Value:       []byte{5},
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{1}},
+					{Key: []byte{1}},
 				}),
 			},
 			key:   []byte{2, 3, 4, 5},
 			value: []byte{6},
 			newNode: &Node{
-				Type:        node.Branch,
 				Key:         []byte{2},
 				Value:       []byte{5},
 				Dirty:       true,
 				Descendants: 2,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{1}},
+					{Key: []byte{1}},
 					nil, nil,
 					{
-						Type:  node.Leaf,
 						Key:   []byte{4, 5},
 						Value: []byte{6},
 						Dirty: true,
@@ -1533,18 +1428,16 @@ func Test_Trie_insertInBranch(t *testing.T) {
 		},
 		"add leaf as nested child": {
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{2},
 				Value:       []byte{5},
 				Descendants: 2,
 				Children: padRightChildren([]*Node{
 					nil, nil, nil,
 					{
-						Type:        node.Branch,
 						Key:         []byte{4},
 						Descendants: 1,
 						Children: padRightChildren([]*Node{
-							{Type: node.Leaf, Key: []byte{1}},
+							{Key: []byte{1}},
 						}),
 					},
 				}),
@@ -1552,7 +1445,6 @@ func Test_Trie_insertInBranch(t *testing.T) {
 			key:   []byte{2, 3, 4, 5, 6},
 			value: []byte{6},
 			newNode: &Node{
-				Type:        node.Branch,
 				Key:         []byte{2},
 				Value:       []byte{5},
 				Dirty:       true,
@@ -1560,15 +1452,13 @@ func Test_Trie_insertInBranch(t *testing.T) {
 				Children: padRightChildren([]*Node{
 					nil, nil, nil,
 					{
-						Type:        node.Branch,
 						Key:         []byte{4},
 						Dirty:       true,
 						Descendants: 2,
 						Children: padRightChildren([]*Node{
-							{Type: node.Leaf, Key: []byte{1}},
+							{Key: []byte{1}},
 							nil, nil, nil, nil,
 							{
-								Type:  node.Leaf,
 								Key:   []byte{6},
 								Value: []byte{6},
 								Dirty: true,
@@ -1581,35 +1471,31 @@ func Test_Trie_insertInBranch(t *testing.T) {
 		},
 		"split branch for longer key": {
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{2, 3},
 				Value:       []byte{5},
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{1}},
+					{Key: []byte{1}},
 				}),
 			},
 			key:   []byte{2, 4, 5, 6},
 			value: []byte{6},
 			newNode: &Node{
-				Type:        node.Branch,
 				Key:         []byte{2},
 				Dirty:       true,
 				Descendants: 3,
 				Children: padRightChildren([]*Node{
 					nil, nil, nil,
 					{
-						Type:        node.Branch,
 						Key:         []byte{},
 						Value:       []byte{5},
 						Dirty:       true,
 						Descendants: 1,
 						Children: padRightChildren([]*Node{
-							{Type: node.Leaf, Key: []byte{1}},
+							{Key: []byte{1}},
 						}),
 					},
 					{
-						Type:  node.Leaf,
 						Key:   []byte{5, 6},
 						Value: []byte{6},
 						Dirty: true,
@@ -1620,35 +1506,31 @@ func Test_Trie_insertInBranch(t *testing.T) {
 		},
 		"split root branch": {
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{2, 3},
 				Value:       []byte{5},
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{1}},
+					{Key: []byte{1}},
 				}),
 			},
 			key:   []byte{3},
 			value: []byte{6},
 			newNode: &Node{
-				Type:        node.Branch,
 				Key:         []byte{},
 				Dirty:       true,
 				Descendants: 3,
 				Children: padRightChildren([]*Node{
 					nil, nil,
 					{
-						Type:        node.Branch,
 						Key:         []byte{3},
 						Value:       []byte{5},
 						Dirty:       true,
 						Descendants: 1,
 						Children: padRightChildren([]*Node{
-							{Type: node.Leaf, Key: []byte{1}},
+							{Key: []byte{1}},
 						}),
 					},
 					{
-						Type:  node.Leaf,
 						Key:   []byte{},
 						Value: []byte{6},
 						Dirty: true,
@@ -1659,18 +1541,16 @@ func Test_Trie_insertInBranch(t *testing.T) {
 		},
 		"update with leaf at empty key": {
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{2},
 				Value:       []byte{5},
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{1}},
+					{Key: []byte{1}},
 				}),
 			},
 			key:   []byte{},
 			value: []byte{6},
 			newNode: &Node{
-				Type:        node.Branch,
 				Key:         []byte{},
 				Value:       []byte{6},
 				Dirty:       true,
@@ -1678,13 +1558,12 @@ func Test_Trie_insertInBranch(t *testing.T) {
 				Children: padRightChildren([]*Node{
 					nil, nil,
 					{
-						Type:        node.Branch,
 						Key:         []byte{},
 						Value:       []byte{5},
 						Dirty:       true,
 						Descendants: 1,
 						Children: padRightChildren([]*Node{
-							{Type: node.Leaf, Key: []byte{1}},
+							{Key: []byte{1}},
 						}),
 					},
 				}),
@@ -1745,7 +1624,6 @@ func Test_Trie_LoadFromMap(t *testing.T) {
 			},
 			expectedTrie: Trie{
 				root: &Node{
-					Type:        node.Branch,
 					Key:         []byte{00, 01},
 					Value:       []byte{6},
 					Dirty:       true,
@@ -1753,13 +1631,11 @@ func Test_Trie_LoadFromMap(t *testing.T) {
 					Children: padRightChildren([]*Node{
 						nil, nil,
 						{
-							Type:  node.Leaf,
 							Key:   []byte{0},
 							Value: []byte{7},
 							Dirty: true,
 						},
 						{
-							Type:  node.Leaf,
 							Key:   []byte{0},
 							Value: []byte{8},
 							Dirty: true,
@@ -1771,19 +1647,16 @@ func Test_Trie_LoadFromMap(t *testing.T) {
 		"override trie": {
 			trie: Trie{
 				root: &Node{
-					Type:        node.Branch,
 					Key:         []byte{00, 01},
 					Value:       []byte{106},
 					Dirty:       true,
 					Descendants: 2,
 					Children: padRightChildren([]*Node{
 						{
-							Type:  node.Leaf,
 							Value: []byte{9},
 						},
 						nil,
 						{
-							Type:  node.Leaf,
 							Key:   []byte{0},
 							Value: []byte{107},
 							Dirty: true,
@@ -1798,25 +1671,21 @@ func Test_Trie_LoadFromMap(t *testing.T) {
 			},
 			expectedTrie: Trie{
 				root: &Node{
-					Type:        node.Branch,
 					Key:         []byte{00, 01},
 					Value:       []byte{6},
 					Dirty:       true,
 					Descendants: 3,
 					Children: padRightChildren([]*Node{
 						{
-							Type:  node.Leaf,
 							Value: []byte{9},
 						},
 						nil,
 						{
-							Type:  node.Leaf,
 							Key:   []byte{0},
 							Value: []byte{7},
 							Dirty: true,
 						},
 						{
-							Type:  node.Leaf,
 							Key:   []byte{0},
 							Value: []byte{8},
 							Dirty: true,
@@ -1855,28 +1724,23 @@ func Test_Trie_GetKeysWithPrefix(t *testing.T) {
 		"some trie": {
 			trie: Trie{
 				root: &Node{
-					Type:        node.Branch,
 					Key:         []byte{0, 1},
 					Descendants: 4,
 					Children: padRightChildren([]*Node{
-						{
-							Type:        node.Branch, // full key 0, 1, 0, 3
+						{ // full key 0, 1, 0, 3
 							Key:         []byte{3},
 							Descendants: 2,
 							Children: padRightChildren([]*Node{
-								{
-									Type: node.Leaf, // full key 0, 1, 0, 0, 4
-									Key:  []byte{4},
+								{ // full key 0, 1, 0, 0, 4
+									Key: []byte{4},
 								},
-								{
-									Type: node.Leaf, // full key 0, 1, 0, 1, 5
-									Key:  []byte{5},
+								{ // full key 0, 1, 0, 1, 5
+									Key: []byte{5},
 								},
 							}),
 						},
-						{
-							Type: node.Leaf, // full key 0, 1, 1, 9
-							Key:  []byte{9},
+						{ // full key 0, 1, 1, 9
+							Key: []byte{9},
 						},
 					}),
 				},
@@ -1918,12 +1782,11 @@ func Test_getKeysWithPrefix(t *testing.T) {
 		},
 		"common prefix for parent branch and search key": {
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1, 2, 3},
 				Descendants: 2,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{4}},
-					{Type: node.Leaf, Key: []byte{5}},
+					{Key: []byte{4}},
+					{Key: []byte{5}},
 				}),
 			},
 			prefix: []byte{9, 8, 7},
@@ -1935,12 +1798,11 @@ func Test_getKeysWithPrefix(t *testing.T) {
 		},
 		"parent branch and empty key": {
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1, 2, 3},
 				Descendants: 2,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{4}},
-					{Type: node.Leaf, Key: []byte{5}},
+					{Key: []byte{4}},
+					{Key: []byte{5}},
 				}),
 			},
 			prefix: []byte{9, 8, 7},
@@ -1952,12 +1814,11 @@ func Test_getKeysWithPrefix(t *testing.T) {
 		},
 		"search key smaller than branch key with no full common prefix": {
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1, 2, 3},
 				Descendants: 2,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{4}},
-					{Type: node.Leaf, Key: []byte{5}},
+					{Key: []byte{4}},
+					{Key: []byte{5}},
 				}),
 			},
 			key:          []byte{1, 3},
@@ -1966,12 +1827,11 @@ func Test_getKeysWithPrefix(t *testing.T) {
 		},
 		"common prefix smaller tan search key": {
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1, 2},
 				Descendants: 2,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{4}},
-					{Type: node.Leaf, Key: []byte{5}},
+					{Key: []byte{4}},
+					{Key: []byte{5}},
 				}),
 			},
 			key:          []byte{1, 2, 3},
@@ -1980,12 +1840,11 @@ func Test_getKeysWithPrefix(t *testing.T) {
 		},
 		"recursive call": {
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1, 2, 3},
 				Descendants: 2,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{4}},
-					{Type: node.Leaf, Key: []byte{5}},
+					{Key: []byte{4}},
+					{Key: []byte{5}},
 				}),
 			},
 			prefix: []byte{9, 8, 7},
@@ -1996,8 +1855,7 @@ func Test_getKeysWithPrefix(t *testing.T) {
 		},
 		"parent leaf with search key equal to common prefix": {
 			parent: &Node{
-				Type: node.Leaf,
-				Key:  []byte{1, 2, 3},
+				Key: []byte{1, 2, 3},
 			},
 			prefix: []byte{9, 8, 7},
 			key:    []byte{1, 2, 3},
@@ -2007,8 +1865,7 @@ func Test_getKeysWithPrefix(t *testing.T) {
 		},
 		"parent leaf with empty search key": {
 			parent: &Node{
-				Type: node.Leaf,
-				Key:  []byte{1, 2, 3},
+				Key: []byte{1, 2, 3},
 			},
 			prefix: []byte{9, 8, 7},
 			key:    []byte{},
@@ -2018,8 +1875,7 @@ func Test_getKeysWithPrefix(t *testing.T) {
 		},
 		"parent leaf with too deep search key": {
 			parent: &Node{
-				Type: node.Leaf,
-				Key:  []byte{1, 2, 3},
+				Key: []byte{1, 2, 3},
 			},
 			prefix:       []byte{9, 8, 7},
 			key:          []byte{1, 2, 3, 4},
@@ -2028,8 +1884,7 @@ func Test_getKeysWithPrefix(t *testing.T) {
 		},
 		"parent leaf with shorter matching search key": {
 			parent: &Node{
-				Type: node.Leaf,
-				Key:  []byte{1, 2, 3},
+				Key: []byte{1, 2, 3},
 			},
 			prefix: []byte{9, 8, 7},
 			key:    []byte{1, 2},
@@ -2039,8 +1894,7 @@ func Test_getKeysWithPrefix(t *testing.T) {
 		},
 		"parent leaf with not matching search key": {
 			parent: &Node{
-				Type: node.Leaf,
-				Key:  []byte{1, 2, 3},
+				Key: []byte{1, 2, 3},
 			},
 			prefix:       []byte{9, 8, 7},
 			key:          []byte{1, 3, 3},
@@ -2077,8 +1931,7 @@ func Test_addAllKeys(t *testing.T) {
 		},
 		"leaf parent": {
 			parent: &Node{
-				Type: node.Leaf,
-				Key:  []byte{1, 2, 3},
+				Key: []byte{1, 2, 3},
 			},
 			prefix: []byte{9, 8, 7},
 			keys:   [][]byte{{1}, {2}},
@@ -2087,12 +1940,11 @@ func Test_addAllKeys(t *testing.T) {
 		},
 		"parent branch without value": {
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1, 2, 3},
 				Descendants: 2,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{4}},
-					{Type: node.Leaf, Key: []byte{5}},
+					{Key: []byte{4}},
+					{Key: []byte{5}},
 				}),
 			},
 			prefix: []byte{9, 8, 7},
@@ -2103,13 +1955,12 @@ func Test_addAllKeys(t *testing.T) {
 		},
 		"parent branch with empty value": {
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1, 2, 3},
 				Value:       []byte{},
 				Descendants: 2,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{4}},
-					{Type: node.Leaf, Key: []byte{5}},
+					{Key: []byte{4}},
+					{Key: []byte{5}},
 				}),
 			},
 			prefix: []byte{9, 8, 7},
@@ -2145,22 +1996,19 @@ func Test_Trie_Get(t *testing.T) {
 		"some trie": {
 			trie: Trie{
 				root: &Node{
-					Type:        node.Branch,
 					Key:         []byte{0, 1},
 					Value:       []byte{1, 3},
 					Descendants: 3,
 					Children: padRightChildren([]*Node{
-						{
-							Type:        node.Branch, // full key 0, 1, 0, 3
+						{ // full key 0, 1, 0, 3
 							Key:         []byte{3},
 							Value:       []byte{1, 2},
 							Descendants: 1,
 							Children: padRightChildren([]*Node{
-								{Type: node.Leaf, Key: []byte{1}},
+								{Key: []byte{1}},
 							}),
 						},
-						{
-							Type:  node.Leaf, // full key 0, 1, 1, 9
+						{ // full key 0, 1, 1, 9
 							Key:   []byte{9},
 							Value: []byte{1, 2, 3, 4, 5},
 						},
@@ -2197,7 +2045,6 @@ func Test_retrieve(t *testing.T) {
 		},
 		"leaf key match": {
 			parent: &Node{
-				Type:  node.Leaf,
 				Key:   []byte{1},
 				Value: []byte{2},
 			},
@@ -2206,7 +2053,6 @@ func Test_retrieve(t *testing.T) {
 		},
 		"leaf key mismatch": {
 			parent: &Node{
-				Type:  node.Leaf,
 				Key:   []byte{1, 2},
 				Value: []byte{2},
 			},
@@ -2214,12 +2060,11 @@ func Test_retrieve(t *testing.T) {
 		},
 		"branch key match": {
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Value:       []byte{2},
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{1}},
+					{Key: []byte{1}},
 				}),
 			},
 			key:   []byte{1},
@@ -2227,45 +2072,40 @@ func Test_retrieve(t *testing.T) {
 		},
 		"branch key with empty search key": {
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Value:       []byte{2},
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{1}},
+					{Key: []byte{1}},
 				}),
 			},
 			value: []byte{2},
 		},
 		"branch key mismatch with shorter search key": {
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1, 2},
 				Value:       []byte{2},
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{1}},
+					{Key: []byte{1}},
 				}),
 			},
 			key: []byte{1},
 		},
 		"bottom leaf in branch": {
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Value:       []byte{1},
 				Descendants: 2,
 				Children: padRightChildren([]*Node{
 					nil, nil,
-					{
-						Type:        node.Branch, // full key 1, 2, 3
+					{ // full key 1, 2, 3
 						Key:         []byte{3},
 						Value:       []byte{2},
 						Descendants: 1,
 						Children: padRightChildren([]*Node{
 							nil, nil, nil, nil,
-							{
-								Type:  node.Leaf, // full key 1, 2, 3, 4, 5
+							{ // full key 1, 2, 3, 4, 5
 								Key:   []byte{5},
 								Value: []byte{3},
 							},
@@ -2313,15 +2153,13 @@ func Test_Trie_ClearPrefixLimit(t *testing.T) {
 		"clear prefix limit": {
 			trie: Trie{
 				root: &Node{
-					Type:        node.Branch,
 					Key:         []byte{1, 2},
 					Value:       []byte{1},
 					Descendants: 1,
 					Children: padRightChildren([]*Node{
 						nil, nil, nil,
 						{
-							Type: node.Leaf,
-							Key:  []byte{4},
+							Key: []byte{4},
 						},
 					}),
 				},
@@ -2371,8 +2209,7 @@ func Test_Trie_clearPrefixLimit(t *testing.T) {
 		},
 		"leaf parent with common prefix": {
 			parent: &Node{
-				Type: node.Leaf,
-				Key:  []byte{1, 2},
+				Key: []byte{1, 2},
 			},
 			prefix:        []byte{1},
 			limit:         1,
@@ -2382,8 +2219,7 @@ func Test_Trie_clearPrefixLimit(t *testing.T) {
 		},
 		"leaf parent with key equal prefix": {
 			parent: &Node{
-				Type: node.Leaf,
-				Key:  []byte{1},
+				Key: []byte{1},
 			},
 			prefix:        []byte{1},
 			limit:         1,
@@ -2396,14 +2232,12 @@ func Test_Trie_clearPrefixLimit(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type: node.Leaf,
-				Key:  []byte{1, 2},
+				Key: []byte{1, 2},
 			},
 			prefix: []byte{1, 3},
 			limit:  1,
 			newParent: &Node{
-				Type: node.Leaf,
-				Key:  []byte{1, 2},
+				Key: []byte{1, 2},
 			},
 			allDeleted: true,
 		},
@@ -2412,25 +2246,22 @@ func Test_Trie_clearPrefixLimit(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type: node.Leaf,
-				Key:  []byte{1},
+				Key: []byte{1},
 			},
 			prefix: []byte{1, 2},
 			limit:  1,
 			newParent: &Node{
-				Type: node.Leaf,
-				Key:  []byte{1},
+				Key: []byte{1},
 			},
 			allDeleted: true,
 		},
 		"branch without value parent with common prefix": {
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1, 2},
 				Descendants: 2,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{1}},
-					{Type: node.Leaf, Key: []byte{2}},
+					{Key: []byte{1}},
+					{Key: []byte{2}},
 				}),
 			},
 			prefix:        []byte{1},
@@ -2441,12 +2272,11 @@ func Test_Trie_clearPrefixLimit(t *testing.T) {
 		},
 		"branch without value with key equal prefix": {
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1, 2},
 				Descendants: 2,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{1}},
-					{Type: node.Leaf, Key: []byte{2}},
+					{Key: []byte{1}},
+					{Key: []byte{2}},
 				}),
 			},
 			prefix:        []byte{1, 2},
@@ -2460,23 +2290,21 @@ func Test_Trie_clearPrefixLimit(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1, 2},
 				Descendants: 2,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{1}},
-					{Type: node.Leaf, Key: []byte{2}},
+					{Key: []byte{1}},
+					{Key: []byte{2}},
 				}),
 			},
 			prefix: []byte{1, 3},
 			limit:  1,
 			newParent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1, 2},
 				Descendants: 2,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{1}},
-					{Type: node.Leaf, Key: []byte{2}},
+					{Key: []byte{1}},
+					{Key: []byte{2}},
 				}),
 			},
 			allDeleted: true,
@@ -2486,23 +2314,21 @@ func Test_Trie_clearPrefixLimit(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Descendants: 2,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{1}},
-					{Type: node.Leaf, Key: []byte{2}},
+					{Key: []byte{1}},
+					{Key: []byte{2}},
 				}),
 			},
 			prefix: []byte{1, 2, 3},
 			limit:  1,
 			newParent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Descendants: 2,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{1}},
-					{Type: node.Leaf, Key: []byte{2}},
+					{Key: []byte{1}},
+					{Key: []byte{2}},
 				}),
 			},
 			allDeleted: true,
@@ -2512,35 +2338,32 @@ func Test_Trie_clearPrefixLimit(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Descendants: 2,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{1}},
-					{Type: node.Leaf, Key: []byte{2}},
+					{Key: []byte{1}},
+					{Key: []byte{2}},
 				}),
 			},
 			prefix: []byte{1, 2},
 			limit:  1,
 			newParent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Descendants: 2,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{1}},
-					{Type: node.Leaf, Key: []byte{2}},
+					{Key: []byte{1}},
+					{Key: []byte{2}},
 				}),
 			},
 			allDeleted: true,
 		},
 		"branch with value with common prefix": {
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1, 2},
 				Value:       []byte{1},
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{1}},
+					{Key: []byte{1}},
 				}),
 			},
 			prefix:        []byte{1},
@@ -2551,12 +2374,11 @@ func Test_Trie_clearPrefixLimit(t *testing.T) {
 		},
 		"branch with value with key equal prefix": {
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1, 2},
 				Value:       []byte{1},
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{1}},
+					{Key: []byte{1}},
 				}),
 			},
 			prefix:        []byte{1, 2},
@@ -2570,23 +2392,21 @@ func Test_Trie_clearPrefixLimit(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1, 2},
 				Value:       []byte{1},
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{1}},
+					{Key: []byte{1}},
 				}),
 			},
 			prefix: []byte{1, 3},
 			limit:  1,
 			newParent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1, 2},
 				Value:       []byte{1},
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{1}},
+					{Key: []byte{1}},
 				}),
 			},
 			allDeleted: true,
@@ -2596,23 +2416,21 @@ func Test_Trie_clearPrefixLimit(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Value:       []byte{1},
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{1}},
+					{Key: []byte{1}},
 				}),
 			},
 			prefix: []byte{1, 2, 3},
 			limit:  1,
 			newParent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Value:       []byte{1},
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{1}},
+					{Key: []byte{1}},
 				}),
 			},
 			allDeleted: true,
@@ -2622,23 +2440,21 @@ func Test_Trie_clearPrefixLimit(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Value:       []byte{1},
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{1}},
+					{Key: []byte{1}},
 				}),
 			},
 			prefix: []byte{1, 2},
 			limit:  1,
 			newParent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Value:       []byte{1},
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{1}},
+					{Key: []byte{1}},
 				}),
 			},
 			allDeleted: true,
@@ -2648,19 +2464,17 @@ func Test_Trie_clearPrefixLimit(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Value:       []byte{1},
 				Descendants: 2,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{3}},
-					{Type: node.Leaf, Key: []byte{4}},
+					{Key: []byte{3}},
+					{Key: []byte{4}},
 				}),
 			},
 			prefix: []byte{1},
 			limit:  1,
 			newParent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Value:       []byte{1},
 				Dirty:       true,
@@ -2668,7 +2482,7 @@ func Test_Trie_clearPrefixLimit(t *testing.T) {
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
 					nil,
-					{Type: node.Leaf, Key: []byte{4}},
+					{Key: []byte{4}},
 				}),
 			},
 			valuesDeleted: 1,
@@ -2676,18 +2490,16 @@ func Test_Trie_clearPrefixLimit(t *testing.T) {
 		},
 		"delete only child of branch": {
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Value:       []byte{1},
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{3}},
+					{Key: []byte{3}},
 				}),
 			},
 			prefix: []byte{1, 0},
 			limit:  1,
 			newParent: &Node{
-				Type:  node.Leaf,
 				Key:   []byte{1},
 				Value: []byte{1},
 				Dirty: true,
@@ -2701,19 +2513,17 @@ func Test_Trie_clearPrefixLimit(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Value:       []byte{1},
 				Descendants: 2,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{3}},
-					{Type: node.Leaf, Key: []byte{4}},
+					{Key: []byte{3}},
+					{Key: []byte{4}},
 				}),
 			},
 			prefix: []byte{1},
 			limit:  2,
 			newParent: &Node{
-				Type:       node.Leaf,
 				Key:        []byte{1},
 				Value:      []byte{1},
 				Dirty:      true,
@@ -2724,12 +2534,11 @@ func Test_Trie_clearPrefixLimit(t *testing.T) {
 		},
 		"fully delete children of branch without value": {
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Descendants: 2,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{3}},
-					{Type: node.Leaf, Key: []byte{4}},
+					{Key: []byte{3}},
+					{Key: []byte{4}},
 				}),
 			},
 			prefix:        []byte{1},
@@ -2743,49 +2552,42 @@ func Test_Trie_clearPrefixLimit(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Value:       []byte{1},
 				Descendants: 3,
 				Children: padRightChildren([]*Node{
-					{
-						Type:        node.Branch, // full key 1, 0, 3
+					{ // full key 1, 0, 3
 						Key:         []byte{3},
 						Value:       []byte{1},
 						Descendants: 1,
 						Children: padRightChildren([]*Node{
-							{
-								Type: node.Leaf, // full key 1, 0, 3, 0, 5
-								Key:  []byte{5},
+							{ // full key 1, 0, 3, 0, 5
+								Key: []byte{5},
 							},
 						}),
 					},
 					{
-						Type: node.Leaf,
-						Key:  []byte{6},
+						Key: []byte{6},
 					},
 				}),
 			},
 			prefix: []byte{1, 0},
 			limit:  1,
 			newParent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Value:       []byte{1},
 				Dirty:       true,
 				Generation:  1,
 				Descendants: 2,
 				Children: padRightChildren([]*Node{
-					{
-						Type:       node.Leaf, // full key 1, 0, 3
+					{ // full key 1, 0, 3
 						Key:        []byte{3},
 						Value:      []byte{1},
 						Dirty:      true,
 						Generation: 1,
 					},
 					{
-						Type: node.Leaf,
-						Key:  []byte{6},
+						Key: []byte{6},
 						// Not modified so same generation as before
 					},
 				}),
@@ -2798,18 +2600,16 @@ func Test_Trie_clearPrefixLimit(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Value:       []byte{1},
 				Descendants: 2,
 				Children: padRightChildren([]*Node{
-					{
-						Type:        node.Branch, // full key 1, 0, 2
+					{ // full key 1, 0, 2
 						Key:         []byte{2},
 						Value:       []byte{1},
 						Descendants: 1,
 						Children: padRightChildren([]*Node{
-							{Type: node.Leaf, Key: []byte{1}},
+							{Key: []byte{1}},
 						}),
 					},
 				}),
@@ -2817,7 +2617,6 @@ func Test_Trie_clearPrefixLimit(t *testing.T) {
 			prefix: []byte{1, 0, 2},
 			limit:  2,
 			newParent: &Node{
-				Type:       node.Leaf,
 				Key:        []byte{1},
 				Value:      []byte{1},
 				Dirty:      true,
@@ -2832,7 +2631,6 @@ func Test_Trie_clearPrefixLimit(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Descendants: 2,
 				Children: padRightChildren([]*Node{
@@ -2856,7 +2654,6 @@ func Test_Trie_clearPrefixLimit(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Descendants: 2,
 				Children: padRightChildren([]*Node{
@@ -2880,22 +2677,20 @@ func Test_Trie_clearPrefixLimit(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Value:       []byte{1},
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{3}},
+					{Key: []byte{3}},
 				}),
 			},
 			prefix: []byte{1, 0},
 			newParent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Value:       []byte{1},
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{3}},
+					{Key: []byte{3}},
 				}),
 			},
 		},
@@ -2938,31 +2733,27 @@ func Test_Trie_deleteNodesLimit(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type: node.Leaf,
-				Key:  []byte{1},
+				Key: []byte{1},
 			},
 			newNode: &Node{
-				Type: node.Leaf,
-				Key:  []byte{1},
+				Key: []byte{1},
 			},
 		},
 		"nil parent": {
 			limit: 1,
 		},
 		"delete leaf": {
-			parent: &Node{
-				Type: node.Leaf},
+			parent:        &Node{},
 			limit:         2,
 			valuesDeleted: 1,
 			nodesRemoved:  1,
 		},
 		"delete branch without value": {
 			parent: &Node{
-				Type:        node.Branch,
 				Descendants: 2,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf},
-					{Type: node.Leaf},
+					{},
+					{},
 				}),
 			},
 			limit:         3,
@@ -2971,12 +2762,11 @@ func Test_Trie_deleteNodesLimit(t *testing.T) {
 		},
 		"delete branch with value": {
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{3},
 				Value:       []byte{1},
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf},
+					{},
 				}),
 			},
 			limit:         3,
@@ -2985,12 +2775,11 @@ func Test_Trie_deleteNodesLimit(t *testing.T) {
 		},
 		"delete branch and all children": {
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{3},
 				Descendants: 2,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{1}},
-					{Type: node.Leaf, Key: []byte{2}},
+					{Key: []byte{1}},
+					{Key: []byte{2}},
 				}),
 			},
 			limit:         10,
@@ -3002,18 +2791,16 @@ func Test_Trie_deleteNodesLimit(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{3},
 				Value:       []byte{1, 2, 3},
 				Descendants: 2,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{1}},
-					{Type: node.Leaf, Key: []byte{2}},
+					{Key: []byte{1}},
+					{Key: []byte{2}},
 				}),
 			},
 			limit: 1,
 			newNode: &Node{
-				Type:        node.Branch,
 				Key:         []byte{3},
 				Value:       []byte{1, 2, 3},
 				Dirty:       true,
@@ -3021,7 +2808,7 @@ func Test_Trie_deleteNodesLimit(t *testing.T) {
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
 					nil,
-					{Type: node.Leaf, Key: []byte{2}},
+					{Key: []byte{2}},
 				}),
 			},
 			valuesDeleted: 1,
@@ -3032,18 +2819,16 @@ func Test_Trie_deleteNodesLimit(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{3},
 				Value:       []byte{1, 2, 3},
 				Descendants: 2,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{1}},
-					{Type: node.Leaf, Key: []byte{2}},
+					{Key: []byte{1}},
+					{Key: []byte{2}},
 				}),
 			},
 			limit: 2,
 			newNode: &Node{
-				Type:       node.Leaf,
 				Key:        []byte{3},
 				Value:      []byte{1, 2, 3},
 				Dirty:      true,
@@ -3057,22 +2842,20 @@ func Test_Trie_deleteNodesLimit(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{3},
 				Descendants: 3,
 				Children: padRightChildren([]*Node{
 					nil,
-					{Type: node.Leaf, Key: []byte{1}},
+					{Key: []byte{1}},
 					nil,
-					{Type: node.Leaf, Key: []byte{2}},
+					{Key: []byte{2}},
 					nil,
-					{Type: node.Leaf, Key: []byte{3}},
+					{Key: []byte{3}},
 				}),
 			},
 			prefix: []byte{1, 2},
 			limit:  2,
 			newNode: &Node{
-				Type:       node.Leaf,
 				Key:        []byte{3, 5, 3},
 				Generation: 1,
 				Dirty:      true,
@@ -3111,14 +2894,12 @@ func Test_Trie_ClearPrefix(t *testing.T) {
 	}{
 		"nil prefix": {
 			trie: Trie{
-				root: &Node{
-					Type: node.Leaf},
+				root: &Node{},
 			},
 		},
 		"empty prefix": {
 			trie: Trie{
-				root: &Node{
-					Type: node.Leaf},
+				root: &Node{},
 			},
 			prefix: []byte{},
 		},
@@ -3128,22 +2909,18 @@ func Test_Trie_ClearPrefix(t *testing.T) {
 		"clear prefix": {
 			trie: Trie{
 				root: &Node{
-					Type:        node.Branch,
 					Key:         []byte{1, 2},
 					Descendants: 3,
 					Children: padRightChildren([]*Node{
-						{
-							Type: node.Leaf, // full key in nibbles 1, 2, 0, 5
-							Key:  []byte{5},
+						{ // full key in nibbles 1, 2, 0, 5
+							Key: []byte{5},
 						},
-						{
-							Type:  node.Branch, // full key in nibbles 1, 2, 1, 6
+						{ // full key in nibbles 1, 2, 1, 6
 							Key:   []byte{6},
 							Value: []byte("bottom branch"),
 							Children: padRightChildren([]*Node{
-								{
-									Type: node.Leaf, // full key in nibbles 1, 2, 1, 6, 0, 7
-									Key:  []byte{7},
+								{ // full key in nibbles 1, 2, 1, 6, 0, 7
+									Key: []byte{7},
 								},
 							}),
 						},
@@ -3153,7 +2930,6 @@ func Test_Trie_ClearPrefix(t *testing.T) {
 			prefix: []byte{0x12, 0x16},
 			expectedTrie: Trie{
 				root: &Node{
-					Type:  node.Leaf,
 					Key:   []byte{1, 2, 0, 5},
 					Dirty: true,
 				},
@@ -3196,7 +2972,6 @@ func Test_Trie_clearPrefix(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Descendants: 2,
 				Children: padRightChildren([]*Node{
@@ -3215,16 +2990,14 @@ func Test_Trie_clearPrefix(t *testing.T) {
 		"nil parent": {},
 		"leaf parent with common prefix": {
 			parent: &Node{
-				Type: node.Leaf,
-				Key:  []byte{1, 2},
+				Key: []byte{1, 2},
 			},
 			prefix:       []byte{1},
 			nodesRemoved: 1,
 		},
 		"leaf parent with key equal prefix": {
 			parent: &Node{
-				Type: node.Leaf,
-				Key:  []byte{1},
+				Key: []byte{1},
 			},
 			prefix:       []byte{1},
 			nodesRemoved: 1,
@@ -3234,13 +3007,11 @@ func Test_Trie_clearPrefix(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type: node.Leaf,
-				Key:  []byte{1, 2},
+				Key: []byte{1, 2},
 			},
 			prefix: []byte{1, 3},
 			newParent: &Node{
-				Type: node.Leaf,
-				Key:  []byte{1, 2},
+				Key: []byte{1, 2},
 			},
 		},
 		"leaf parent with key smaller than prefix": {
@@ -3248,23 +3019,20 @@ func Test_Trie_clearPrefix(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type: node.Leaf,
-				Key:  []byte{1},
+				Key: []byte{1},
 			},
 			prefix: []byte{1, 2},
 			newParent: &Node{
-				Type: node.Leaf,
-				Key:  []byte{1},
+				Key: []byte{1},
 			},
 		},
 		"branch parent with common prefix": {
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1, 2},
 				Value:       []byte{1},
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf},
+					{},
 				}),
 			},
 			prefix:       []byte{1},
@@ -3272,12 +3040,11 @@ func Test_Trie_clearPrefix(t *testing.T) {
 		},
 		"branch with key equal prefix": {
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1, 2},
 				Value:       []byte{1},
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf},
+					{},
 				}),
 			},
 			prefix:       []byte{1, 2},
@@ -3288,22 +3055,20 @@ func Test_Trie_clearPrefix(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1, 2},
 				Value:       []byte{1},
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf},
+					{},
 				}),
 			},
 			prefix: []byte{1, 3},
 			newParent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1, 2},
 				Value:       []byte{1},
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf},
+					{},
 				}),
 			},
 		},
@@ -3312,22 +3077,20 @@ func Test_Trie_clearPrefix(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Value:       []byte{1},
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf},
+					{},
 				}),
 			},
 			prefix: []byte{1, 2, 3},
 			newParent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Value:       []byte{1},
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf},
+					{},
 				}),
 			},
 		},
@@ -3336,22 +3099,20 @@ func Test_Trie_clearPrefix(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Value:       []byte{1},
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf},
+					{},
 				}),
 			},
 			prefix: []byte{1, 2},
 			newParent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Value:       []byte{1},
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf},
+					{},
 				}),
 			},
 		},
@@ -3360,18 +3121,16 @@ func Test_Trie_clearPrefix(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Value:       []byte{1},
 				Descendants: 2,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{3}},
-					{Type: node.Leaf, Key: []byte{4}},
+					{Key: []byte{3}},
+					{Key: []byte{4}},
 				}),
 			},
 			prefix: []byte{1, 0, 3},
 			newParent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Value:       []byte{1},
 				Dirty:       true,
@@ -3379,7 +3138,7 @@ func Test_Trie_clearPrefix(t *testing.T) {
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
 					nil,
-					{Type: node.Leaf, Key: []byte{4}},
+					{Key: []byte{4}},
 				}),
 			},
 			nodesRemoved: 1,
@@ -3389,17 +3148,15 @@ func Test_Trie_clearPrefix(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Value:       []byte{1},
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{3}},
+					{Key: []byte{3}},
 				}),
 			},
 			prefix: []byte{1, 0},
 			newParent: &Node{
-				Type:       node.Leaf,
 				Key:        []byte{1},
 				Value:      []byte{1},
 				Dirty:      true,
@@ -3412,20 +3169,17 @@ func Test_Trie_clearPrefix(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Value:       []byte{1},
 				Descendants: 2,
 				Children: padRightChildren([]*Node{
-					{
-						Type:        node.Branch, // full key 1, 0, 3
+					{ // full key 1, 0, 3
 						Key:         []byte{3},
 						Value:       []byte{1},
 						Descendants: 1,
 						Children: padRightChildren([]*Node{
-							{
-								Type: node.Leaf, // full key 1, 0, 3, 0, 5
-								Key:  []byte{5},
+							{ // full key 1, 0, 3, 0, 5
+								Key: []byte{5},
 							},
 						}),
 					},
@@ -3433,15 +3187,13 @@ func Test_Trie_clearPrefix(t *testing.T) {
 			},
 			prefix: []byte{1, 0, 3, 0},
 			newParent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Value:       []byte{1},
 				Dirty:       true,
 				Generation:  1,
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
-					{
-						Type:       node.Leaf, // full key 1, 0, 3
+					{ // full key 1, 0, 3
 						Key:        []byte{3},
 						Value:      []byte{1},
 						Dirty:      true,
@@ -3456,7 +3208,6 @@ func Test_Trie_clearPrefix(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Descendants: 2,
 				Children: padRightChildren([]*Node{
@@ -3502,14 +3253,12 @@ func Test_Trie_Delete(t *testing.T) {
 	}{
 		"nil key": {
 			trie: Trie{
-				root: &Node{
-					Type: node.Leaf},
+				root: &Node{},
 			},
 		},
 		"empty key": {
 			trie: Trie{
-				root: &Node{
-					Type: node.Leaf},
+				root: &Node{},
 			},
 		},
 		"empty trie": {
@@ -3519,23 +3268,19 @@ func Test_Trie_Delete(t *testing.T) {
 			trie: Trie{
 				generation: 1,
 				root: &Node{
-					Type:        node.Branch,
 					Key:         []byte{1, 2},
 					Descendants: 3,
 					Children: padRightChildren([]*Node{
 						{
-							Type:  node.Leaf,
 							Key:   []byte{5},
 							Value: []byte{97},
 						},
-						{
-							Type:        node.Branch, // full key in nibbles 1, 2, 1, 6
+						{ // full key in nibbles 1, 2, 1, 6
 							Key:         []byte{6},
 							Value:       []byte{98},
 							Descendants: 1,
 							Children: padRightChildren([]*Node{
-								{
-									Type:  node.Leaf, // full key in nibbles 1, 2, 1, 6, 0, 7
+								{ // full key in nibbles 1, 2, 1, 6, 0, 7
 									Key:   []byte{7},
 									Value: []byte{99},
 								},
@@ -3548,19 +3293,16 @@ func Test_Trie_Delete(t *testing.T) {
 			expectedTrie: Trie{
 				generation: 1,
 				root: &Node{
-					Type:        node.Branch,
 					Key:         []byte{1, 2},
 					Dirty:       true,
 					Generation:  1,
 					Descendants: 2,
 					Children: padRightChildren([]*Node{
 						{
-							Type:  node.Leaf,
 							Key:   []byte{5},
 							Value: []byte{97},
 						},
-						{
-							Type:       node.Leaf, // full key in nibbles 1, 2, 1, 6
+						{ // full key in nibbles 1, 2, 1, 6
 							Key:        []byte{6, 0, 7},
 							Value:      []byte{99},
 							Dirty:      true,
@@ -3608,16 +3350,14 @@ func Test_Trie_delete(t *testing.T) {
 		},
 		"leaf parent and nil key": {
 			parent: &Node{
-				Type: node.Leaf,
-				Key:  []byte{1},
+				Key: []byte{1},
 			},
 			updated:      true,
 			nodesRemoved: 1,
 		},
 		"leaf parent and empty key": {
 			parent: &Node{
-				Type: node.Leaf,
-				Key:  []byte{1},
+				Key: []byte{1},
 			},
 			key:          []byte{},
 			updated:      true,
@@ -3625,8 +3365,7 @@ func Test_Trie_delete(t *testing.T) {
 		},
 		"leaf parent matches key": {
 			parent: &Node{
-				Type: node.Leaf,
-				Key:  []byte{1},
+				Key: []byte{1},
 			},
 			key:          []byte{1},
 			updated:      true,
@@ -3637,13 +3376,11 @@ func Test_Trie_delete(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type: node.Leaf,
-				Key:  []byte{1},
+				Key: []byte{1},
 			},
 			key: []byte{2},
 			newParent: &Node{
-				Type: node.Leaf,
-				Key:  []byte{1},
+				Key: []byte{1},
 			},
 		},
 		"branch parent and nil key": {
@@ -3651,19 +3388,16 @@ func Test_Trie_delete(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Value:       []byte{1},
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
 					{
-						Type: node.Leaf,
-						Key:  []byte{2},
+						Key: []byte{2},
 					},
 				}),
 			},
 			newParent: &Node{
-				Type:       node.Leaf,
 				Key:        []byte{1, 0, 2},
 				Dirty:      true,
 				Generation: 1,
@@ -3676,20 +3410,15 @@ func Test_Trie_delete(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Value:       []byte{1},
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
-					{
-						Type: node.Leaf,
-						Key:  []byte{2},
-					},
+					{Key: []byte{2}},
 				}),
 			},
 			key: []byte{},
 			newParent: &Node{
-				Type:       node.Leaf,
 				Key:        []byte{1, 0, 2},
 				Dirty:      true,
 				Generation: 1,
@@ -3702,20 +3431,15 @@ func Test_Trie_delete(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Value:       []byte{1},
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
-					{
-						Type: node.Leaf,
-						Key:  []byte{2},
-					},
+					{Key: []byte{2}},
 				}),
 			},
 			key: []byte{1},
 			newParent: &Node{
-				Type:       node.Leaf,
 				Key:        []byte{1, 0, 2},
 				Dirty:      true,
 				Generation: 1,
@@ -3728,20 +3452,17 @@ func Test_Trie_delete(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Value:       []byte{1},
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
-					{
-						Type: node.Leaf, // full key 1, 0, 2
-						Key:  []byte{2},
+					{ // full key 1, 0, 2
+						Key: []byte{2},
 					},
 				}),
 			},
 			key: []byte{1, 0, 2},
 			newParent: &Node{
-				Type:       node.Leaf,
 				Key:        []byte{1},
 				Value:      []byte{1},
 				Dirty:      true,
@@ -3755,22 +3476,20 @@ func Test_Trie_delete(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Value:       []byte{1},
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf},
+					{},
 				}),
 			},
 			key: []byte{2},
 			newParent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Value:       []byte{1},
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf},
+					{},
 				}),
 			},
 		},
@@ -3779,27 +3498,23 @@ func Test_Trie_delete(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Value:       []byte{1},
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
-					{
-						Type: node.Leaf, // full key 1, 0, 2
-						Key:  []byte{2},
+					{ // full key 1, 0, 2
+						Key: []byte{2},
 					},
 				}),
 			},
 			key: []byte{1, 0, 3},
 			newParent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Value:       []byte{1},
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
-					{
-						Type: node.Leaf, // full key 1, 0, 2
-						Key:  []byte{2},
+					{ // full key 1, 0, 2
+						Key: []byte{2},
 					},
 				}),
 			},
@@ -3809,7 +3524,6 @@ func Test_Trie_delete(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
@@ -3838,7 +3552,6 @@ func Test_Trie_delete(t *testing.T) {
 				generation: 1,
 			},
 			parent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Value:       []byte{1},
 				Descendants: 2,
@@ -3849,7 +3562,6 @@ func Test_Trie_delete(t *testing.T) {
 			},
 			key: []byte{1},
 			newParent: &Node{
-				Type:        node.Branch,
 				Key:         []byte{1},
 				Generation:  1,
 				Dirty:       true,
@@ -3898,14 +3610,12 @@ func Test_handleDeletion(t *testing.T) {
 	}{
 		"branch with value and without children": {
 			branch: &Node{
-				Type:       node.Branch,
 				Key:        []byte{1, 2, 3},
 				Value:      []byte{5, 6, 7},
 				Generation: 1,
 			},
 			deletedKey: []byte{1, 2, 3, 4},
 			newNode: &Node{
-				Type:       node.Leaf,
 				Key:        []byte{1, 2, 3},
 				Value:      []byte{5, 6, 7},
 				Generation: 1,
@@ -3917,35 +3627,31 @@ func Test_handleDeletion(t *testing.T) {
 		// remaining.
 		"branch with value and a single child": {
 			branch: &Node{
-				Type:       node.Branch,
 				Key:        []byte{1, 2, 3},
 				Value:      []byte{5, 6, 7},
 				Generation: 1,
 				Children: padRightChildren([]*Node{
 					nil,
-					{Type: node.Leaf, Key: []byte{9}},
+					{Key: []byte{9}},
 				}),
 			},
 			newNode: &Node{
-				Type:       node.Branch,
 				Key:        []byte{1, 2, 3},
 				Value:      []byte{5, 6, 7},
 				Generation: 1,
 				Children: padRightChildren([]*Node{
 					nil,
-					{Type: node.Leaf, Key: []byte{9}},
+					{Key: []byte{9}},
 				}),
 			},
 		},
 		"branch without value and a single leaf child": {
 			branch: &Node{
-				Type:       node.Branch,
 				Key:        []byte{1, 2, 3},
 				Generation: 1,
 				Children: padRightChildren([]*Node{
 					nil,
-					{
-						Type:  node.Leaf, // full key 1,2,3,1,9
+					{ // full key 1,2,3,1,9
 						Key:   []byte{9},
 						Value: []byte{10},
 					},
@@ -3953,7 +3659,6 @@ func Test_handleDeletion(t *testing.T) {
 			},
 			deletedKey: []byte{1, 2, 3, 4},
 			newNode: &Node{
-				Type:       node.Leaf,
 				Key:        []byte{1, 2, 3, 1, 9},
 				Value:      []byte{10},
 				Generation: 1,
@@ -3963,33 +3668,30 @@ func Test_handleDeletion(t *testing.T) {
 		},
 		"branch without value and a single branch child": {
 			branch: &Node{
-				Type:       node.Branch,
 				Key:        []byte{1, 2, 3},
 				Generation: 1,
 				Children: padRightChildren([]*Node{
 					nil,
 					{
-						Type:  node.Branch,
 						Key:   []byte{9},
 						Value: []byte{10},
 						Children: padRightChildren([]*Node{
-							{Type: node.Leaf, Key: []byte{7}},
+							{Key: []byte{7}},
 							nil,
-							{Type: node.Leaf, Key: []byte{8}},
+							{Key: []byte{8}},
 						}),
 					},
 				}),
 			},
 			newNode: &Node{
-				Type:       node.Branch,
 				Key:        []byte{1, 2, 3, 1, 9},
 				Value:      []byte{10},
 				Generation: 1,
 				Dirty:      true,
 				Children: padRightChildren([]*Node{
-					{Type: node.Leaf, Key: []byte{7}},
+					{Key: []byte{7}},
 					nil,
-					{Type: node.Leaf, Key: []byte{8}},
+					{Key: []byte{8}},
 				}),
 			},
 			branchChildMerged: true,

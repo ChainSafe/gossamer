@@ -16,7 +16,7 @@ const (
 )
 
 func encodeHeader(node *Node, writer io.Writer) (err error) {
-	switch node.Type {
+	switch node.Type() {
 	case Leaf:
 		return encodeLeafHeader(node, writer)
 	case Branch:

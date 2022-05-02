@@ -57,13 +57,12 @@ type CopySettings struct {
 // children as well.
 func (n *Node) Copy(settings CopySettings) *Node {
 	cpy := &Node{
-		Type:        n.Type,
 		Dirty:       n.Dirty,
 		Generation:  n.Generation,
 		Descendants: n.Descendants,
 	}
 
-	if n.Type == Branch {
+	if n.Type() == Branch {
 		if settings.CopyChildren {
 			// Copy all fields of children if we deep copy children
 			childSettings := settings

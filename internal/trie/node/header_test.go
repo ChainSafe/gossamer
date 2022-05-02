@@ -19,7 +19,7 @@ func Test_encodeBranchHeader(t *testing.T) {
 	}{
 		"no key": {
 			branch: &Node{
-				Type: Branch,
+				Children: make([]*Node, ChildrenCapacity),
 			},
 			writes: []writeCall{
 				{written: []byte{0x80}},
@@ -27,8 +27,8 @@ func Test_encodeBranchHeader(t *testing.T) {
 		},
 		"with value": {
 			branch: &Node{
-				Type:  Branch,
-				Value: []byte{},
+				Value:    []byte{},
+				Children: make([]*Node, ChildrenCapacity),
 			},
 			writes: []writeCall{
 				{written: []byte{0xc0}},
@@ -36,8 +36,8 @@ func Test_encodeBranchHeader(t *testing.T) {
 		},
 		"key of length 30": {
 			branch: &Node{
-				Type: Branch,
-				Key:  make([]byte, 30),
+				Key:      make([]byte, 30),
+				Children: make([]*Node, ChildrenCapacity),
 			},
 			writes: []writeCall{
 				{written: []byte{0x9e}},
@@ -45,8 +45,8 @@ func Test_encodeBranchHeader(t *testing.T) {
 		},
 		"key of length 62": {
 			branch: &Node{
-				Type: Branch,
-				Key:  make([]byte, 62),
+				Key:      make([]byte, 62),
+				Children: make([]*Node, ChildrenCapacity),
 			},
 			writes: []writeCall{
 				{written: []byte{0xbe}},
@@ -54,8 +54,8 @@ func Test_encodeBranchHeader(t *testing.T) {
 		},
 		"key of length 63": {
 			branch: &Node{
-				Type: Branch,
-				Key:  make([]byte, 63),
+				Key:      make([]byte, 63),
+				Children: make([]*Node, ChildrenCapacity),
 			},
 			writes: []writeCall{
 				{written: []byte{0xbf}},
@@ -64,8 +64,8 @@ func Test_encodeBranchHeader(t *testing.T) {
 		},
 		"key of length 64": {
 			branch: &Node{
-				Type: Branch,
-				Key:  make([]byte, 64),
+				Key:      make([]byte, 64),
+				Children: make([]*Node, ChildrenCapacity),
 			},
 			writes: []writeCall{
 				{written: []byte{0xbf}},
@@ -74,8 +74,8 @@ func Test_encodeBranchHeader(t *testing.T) {
 		},
 		"key too big": {
 			branch: &Node{
-				Type: Branch,
-				Key:  make([]byte, 65535+63),
+				Key:      make([]byte, 65535+63),
+				Children: make([]*Node, ChildrenCapacity),
 			},
 			writes: []writeCall{
 				{written: []byte{0xbf}},
@@ -85,7 +85,8 @@ func Test_encodeBranchHeader(t *testing.T) {
 		},
 		"small key length write error": {
 			branch: &Node{
-				Type: Branch},
+				Children: make([]*Node, ChildrenCapacity),
+			},
 			writes: []writeCall{
 				{
 					written: []byte{0x80},
@@ -97,8 +98,8 @@ func Test_encodeBranchHeader(t *testing.T) {
 		},
 		"long key length write error": {
 			branch: &Node{
-				Type: Branch,
-				Key:  make([]byte, 64),
+				Key:      make([]byte, 64),
+				Children: make([]*Node, ChildrenCapacity),
 			},
 			writes: []writeCall{
 				{
@@ -148,15 +149,14 @@ func Test_encodeLeafHeader(t *testing.T) {
 		errMessage string
 	}{
 		"no key": {
-			leaf: &Node{Type: Leaf},
+			leaf: &Node{},
 			writes: []writeCall{
 				{written: []byte{0x40}},
 			},
 		},
 		"key of length 30": {
 			leaf: &Node{
-				Type: Leaf,
-				Key:  make([]byte, 30),
+				Key: make([]byte, 30),
 			},
 			writes: []writeCall{
 				{written: []byte{0x5e}},
@@ -164,8 +164,7 @@ func Test_encodeLeafHeader(t *testing.T) {
 		},
 		"short key write error": {
 			leaf: &Node{
-				Type: Leaf,
-				Key:  make([]byte, 30),
+				Key: make([]byte, 30),
 			},
 			writes: []writeCall{
 				{
@@ -178,8 +177,7 @@ func Test_encodeLeafHeader(t *testing.T) {
 		},
 		"key of length 62": {
 			leaf: &Node{
-				Type: Leaf,
-				Key:  make([]byte, 62),
+				Key: make([]byte, 62),
 			},
 			writes: []writeCall{
 				{written: []byte{0x7e}},
@@ -187,8 +185,7 @@ func Test_encodeLeafHeader(t *testing.T) {
 		},
 		"key of length 63": {
 			leaf: &Node{
-				Type: Leaf,
-				Key:  make([]byte, 63),
+				Key: make([]byte, 63),
 			},
 			writes: []writeCall{
 				{written: []byte{0x7f}},
@@ -197,8 +194,7 @@ func Test_encodeLeafHeader(t *testing.T) {
 		},
 		"key of length 64": {
 			leaf: &Node{
-				Type: Leaf,
-				Key:  make([]byte, 64),
+				Key: make([]byte, 64),
 			},
 			writes: []writeCall{
 				{written: []byte{0x7f}},
@@ -207,8 +203,7 @@ func Test_encodeLeafHeader(t *testing.T) {
 		},
 		"long key first byte write error": {
 			leaf: &Node{
-				Type: Leaf,
-				Key:  make([]byte, 63),
+				Key: make([]byte, 63),
 			},
 			writes: []writeCall{
 				{
@@ -221,8 +216,7 @@ func Test_encodeLeafHeader(t *testing.T) {
 		},
 		"key too big": {
 			leaf: &Node{
-				Type: Leaf,
-				Key:  make([]byte, 65535+63),
+				Key: make([]byte, 65535+63),
 			},
 			writes: []writeCall{
 				{written: []byte{0x7f}},

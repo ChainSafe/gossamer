@@ -34,7 +34,6 @@ func Test_Node_Encode(t *testing.T) {
 	}{
 		"clean leaf with encoding": {
 			node: &Node{
-				Type:     Leaf,
 				Encoding: []byte{1, 2, 3},
 			},
 			writes: []writeCall{
@@ -46,7 +45,6 @@ func Test_Node_Encode(t *testing.T) {
 		},
 		"write error for clean leaf with encoding": {
 			node: &Node{
-				Type:     Leaf,
 				Encoding: []byte{1, 2, 3},
 			},
 			writes: []writeCall{
@@ -61,8 +59,7 @@ func Test_Node_Encode(t *testing.T) {
 		},
 		"leaf header encoding error": {
 			node: &Node{
-				Type: Leaf,
-				Key:  make([]byte, 63+(1<<16)),
+				Key: make([]byte, 63+(1<<16)),
 			},
 			writes: []writeCall{
 				{
@@ -74,8 +71,7 @@ func Test_Node_Encode(t *testing.T) {
 		},
 		"leaf buffer write error for encoded key": {
 			node: &Node{
-				Type: Leaf,
-				Key:  []byte{1, 2, 3},
+				Key: []byte{1, 2, 3},
 			},
 			writes: []writeCall{
 				{
@@ -91,7 +87,6 @@ func Test_Node_Encode(t *testing.T) {
 		},
 		"leaf buffer write error for encoded value": {
 			node: &Node{
-				Type:  Leaf,
 				Key:   []byte{1, 2, 3},
 				Value: []byte{4, 5, 6},
 			},
@@ -112,7 +107,6 @@ func Test_Node_Encode(t *testing.T) {
 		},
 		"leaf success": {
 			node: &Node{
-				Type:  Leaf,
 				Key:   []byte{1, 2, 3},
 				Value: []byte{4, 5, 6},
 			},
@@ -133,7 +127,7 @@ func Test_Node_Encode(t *testing.T) {
 		},
 		"clean branch with encoding": {
 			node: &Node{
-				Type:     Branch,
+				Children: make([]*Node, ChildrenCapacity),
 				Encoding: []byte{1, 2, 3},
 			},
 			writes: []writeCall{
@@ -144,7 +138,7 @@ func Test_Node_Encode(t *testing.T) {
 		},
 		"write error for clean branch with encoding": {
 			node: &Node{
-				Type:     Branch,
+				Children: make([]*Node, ChildrenCapacity),
 				Encoding: []byte{1, 2, 3},
 			},
 			writes: []writeCall{
@@ -158,8 +152,8 @@ func Test_Node_Encode(t *testing.T) {
 		},
 		"branch header encoding error": {
 			node: &Node{
-				Type: Branch,
-				Key:  make([]byte, 63+(1<<16)),
+				Children: make([]*Node, ChildrenCapacity),
+				Key:      make([]byte, 63+(1<<16)),
 			},
 			writes: []writeCall{
 				{ // header
@@ -171,9 +165,9 @@ func Test_Node_Encode(t *testing.T) {
 		},
 		"buffer write error for encoded key": {
 			node: &Node{
-				Type:  Branch,
-				Key:   []byte{1, 2, 3},
-				Value: []byte{100},
+				Children: make([]*Node, ChildrenCapacity),
+				Key:      []byte{1, 2, 3},
+				Value:    []byte{100},
 			},
 			writes: []writeCall{
 				{ // header
@@ -189,12 +183,11 @@ func Test_Node_Encode(t *testing.T) {
 		},
 		"buffer write error for children bitmap": {
 			node: &Node{
-				Type:  Branch,
 				Key:   []byte{1, 2, 3},
 				Value: []byte{100},
 				Children: []*Node{
-					nil, nil, nil, {Type: Leaf, Key: []byte{9}},
-					nil, nil, nil, {Type: Leaf, Key: []byte{11}},
+					nil, nil, nil, {Key: []byte{9}},
+					nil, nil, nil, {Key: []byte{11}},
 				},
 			},
 			writes: []writeCall{
@@ -214,12 +207,11 @@ func Test_Node_Encode(t *testing.T) {
 		},
 		"buffer write error for value": {
 			node: &Node{
-				Type:  Branch,
 				Key:   []byte{1, 2, 3},
 				Value: []byte{100},
 				Children: []*Node{
-					nil, nil, nil, {Type: Leaf, Key: []byte{9}},
-					nil, nil, nil, {Type: Leaf, Key: []byte{11}},
+					nil, nil, nil, {Key: []byte{9}},
+					nil, nil, nil, {Key: []byte{11}},
 				},
 			},
 			writes: []writeCall{
@@ -242,12 +234,11 @@ func Test_Node_Encode(t *testing.T) {
 		},
 		"buffer write error for children encoding": {
 			node: &Node{
-				Type:  Branch,
 				Key:   []byte{1, 2, 3},
 				Value: []byte{100},
 				Children: []*Node{
-					nil, nil, nil, {Type: Leaf, Key: []byte{9}},
-					nil, nil, nil, {Type: Leaf, Key: []byte{11}},
+					nil, nil, nil, {Key: []byte{9}},
+					nil, nil, nil, {Key: []byte{11}},
 				},
 			},
 			writes: []writeCall{
@@ -275,12 +266,11 @@ func Test_Node_Encode(t *testing.T) {
 		},
 		"success with children encoding": {
 			node: &Node{
-				Type:  Branch,
 				Key:   []byte{1, 2, 3},
 				Value: []byte{100},
 				Children: []*Node{
-					nil, nil, nil, {Type: Leaf, Key: []byte{9}},
-					nil, nil, nil, {Type: Leaf, Key: []byte{11}},
+					nil, nil, nil, {Key: []byte{9}},
+					nil, nil, nil, {Key: []byte{11}},
 				},
 			},
 			writes: []writeCall{

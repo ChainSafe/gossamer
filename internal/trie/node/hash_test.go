@@ -22,10 +22,8 @@ func Test_Node_EncodeAndHash(t *testing.T) {
 		errMessage   string
 	}{
 		"empty leaf": {
-			node: Node{
-				Type: Leaf},
+			node: Node{},
 			expectedNode: Node{
-				Type:       Leaf,
 				Encoding:   []byte{0x40, 0x0},
 				HashDigest: []byte{0x40, 0x0},
 			},
@@ -35,12 +33,10 @@ func Test_Node_EncodeAndHash(t *testing.T) {
 		},
 		"small leaf encoding": {
 			node: Node{
-				Type:  Leaf,
 				Key:   []byte{1},
 				Value: []byte{2},
 			},
 			expectedNode: Node{
-				Type:       Leaf,
 				Encoding:   []byte{0x41, 0x1, 0x4, 0x2},
 				HashDigest: []byte{0x41, 0x1, 0x4, 0x2},
 			},
@@ -50,12 +46,10 @@ func Test_Node_EncodeAndHash(t *testing.T) {
 		},
 		"small leaf encoding for root node": {
 			node: Node{
-				Type:  Leaf,
 				Key:   []byte{1},
 				Value: []byte{2},
 			},
 			expectedNode: Node{
-				Type:       Leaf,
 				Encoding:   []byte{0x41, 0x1, 0x4, 0x2},
 				HashDigest: []byte{0x60, 0x51, 0x6d, 0xb, 0xb6, 0xe1, 0xbb, 0xfb, 0x12, 0x93, 0xf1, 0xb2, 0x76, 0xea, 0x95, 0x5, 0xe9, 0xf4, 0xa4, 0xe7, 0xd9, 0x8f, 0x62, 0xd, 0x5, 0x11, 0x5e, 0xb, 0x85, 0x27, 0x4a, 0xe1}, //nolint: lll
 			},
@@ -65,7 +59,6 @@ func Test_Node_EncodeAndHash(t *testing.T) {
 		},
 		"leaf dirty with precomputed encoding and hash": {
 			node: Node{
-				Type:       Leaf,
 				Key:        []byte{1},
 				Value:      []byte{2},
 				Dirty:      true,
@@ -73,7 +66,6 @@ func Test_Node_EncodeAndHash(t *testing.T) {
 				HashDigest: []byte{4},
 			},
 			expectedNode: Node{
-				Type:       Leaf,
 				Encoding:   []byte{0x41, 0x1, 0x4, 0x2},
 				HashDigest: []byte{0x41, 0x1, 0x4, 0x2},
 			},
@@ -83,7 +75,6 @@ func Test_Node_EncodeAndHash(t *testing.T) {
 		},
 		"leaf not dirty with precomputed encoding and hash": {
 			node: Node{
-				Type:       Leaf,
 				Key:        []byte{1},
 				Value:      []byte{2},
 				Dirty:      false,
@@ -91,7 +82,6 @@ func Test_Node_EncodeAndHash(t *testing.T) {
 				HashDigest: []byte{4},
 			},
 			expectedNode: Node{
-				Type:       Leaf,
 				Key:        []byte{1},
 				Value:      []byte{2},
 				Encoding:   []byte{3},
@@ -103,11 +93,9 @@ func Test_Node_EncodeAndHash(t *testing.T) {
 		},
 		"large leaf encoding": {
 			node: Node{
-				Type: Leaf,
-				Key:  repeatBytes(65, 7),
+				Key: repeatBytes(65, 7),
 			},
 			expectedNode: Node{
-				Type:       Leaf,
 				Encoding:   []byte{0x7f, 0x2, 0x7, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x0}, //nolint:lll
 				HashDigest: []byte{0xfb, 0xae, 0x31, 0x4b, 0xef, 0x31, 0x9, 0xc7, 0x62, 0x99, 0x9d, 0x40, 0x9b, 0xd4, 0xdc, 0x64, 0xe7, 0x39, 0x46, 0x8b, 0xd3, 0xaf, 0xe8, 0x63, 0x9d, 0xf9, 0x41, 0x40, 0x76, 0x40, 0x10, 0xa3},                       //nolint:lll
 			},
@@ -116,9 +104,11 @@ func Test_Node_EncodeAndHash(t *testing.T) {
 			isRoot:   false,
 		},
 		"empty branch": {
-			node: Node{Type: Branch},
+			node: Node{
+				Children: make([]*Node, ChildrenCapacity),
+			},
 			expectedNode: Node{
-				Type:       Branch,
+				Children:   make([]*Node, ChildrenCapacity),
 				Encoding:   []byte{0x80, 0x0, 0x0},
 				HashDigest: []byte{0x80, 0x0, 0x0},
 			},
@@ -128,12 +118,12 @@ func Test_Node_EncodeAndHash(t *testing.T) {
 		},
 		"small branch encoding": {
 			node: Node{
-				Type:  Branch,
-				Key:   []byte{1},
-				Value: []byte{2},
+				Children: make([]*Node, ChildrenCapacity),
+				Key:      []byte{1},
+				Value:    []byte{2},
 			},
 			expectedNode: Node{
-				Type:       Branch,
+				Children:   make([]*Node, ChildrenCapacity),
 				Encoding:   []byte{0xc1, 0x1, 0x0, 0x0, 0x4, 0x2},
 				HashDigest: []byte{0xc1, 0x1, 0x0, 0x0, 0x4, 0x2},
 			},
@@ -143,12 +133,12 @@ func Test_Node_EncodeAndHash(t *testing.T) {
 		},
 		"small branch encoding for root node": {
 			node: Node{
-				Type:  Branch,
-				Key:   []byte{1},
-				Value: []byte{2},
+				Children: make([]*Node, ChildrenCapacity),
+				Key:      []byte{1},
+				Value:    []byte{2},
 			},
 			expectedNode: Node{
-				Type:       Branch,
+				Children:   make([]*Node, ChildrenCapacity),
 				Encoding:   []byte{0xc1, 0x1, 0x0, 0x0, 0x4, 0x2},
 				HashDigest: []byte{0x48, 0x3c, 0xf6, 0x87, 0xcc, 0x5a, 0x60, 0x42, 0xd3, 0xcf, 0xa6, 0x91, 0xe6, 0x88, 0xfb, 0xdc, 0x1b, 0x38, 0x39, 0x5d, 0x6, 0x0, 0xbf, 0xc3, 0xb, 0x4b, 0x5d, 0x6a, 0x37, 0xd9, 0xc5, 0x1c}, // nolint: lll
 			},
@@ -158,7 +148,7 @@ func Test_Node_EncodeAndHash(t *testing.T) {
 		},
 		"branch dirty with precomputed encoding and hash": {
 			node: Node{
-				Type:       Branch,
+				Children:   make([]*Node, ChildrenCapacity),
 				Key:        []byte{1},
 				Value:      []byte{2},
 				Dirty:      true,
@@ -166,7 +156,7 @@ func Test_Node_EncodeAndHash(t *testing.T) {
 				HashDigest: []byte{4},
 			},
 			expectedNode: Node{
-				Type:       Branch,
+				Children:   make([]*Node, ChildrenCapacity),
 				Encoding:   []byte{0xc1, 0x1, 0x0, 0x0, 0x4, 0x2},
 				HashDigest: []byte{0xc1, 0x1, 0x0, 0x0, 0x4, 0x2},
 			},
@@ -176,7 +166,7 @@ func Test_Node_EncodeAndHash(t *testing.T) {
 		},
 		"branch not dirty with precomputed encoding and hash": {
 			node: Node{
-				Type:       Branch,
+				Children:   make([]*Node, ChildrenCapacity),
 				Key:        []byte{1},
 				Value:      []byte{2},
 				Dirty:      false,
@@ -184,7 +174,7 @@ func Test_Node_EncodeAndHash(t *testing.T) {
 				HashDigest: []byte{4},
 			},
 			expectedNode: Node{
-				Type:       Branch,
+				Children:   make([]*Node, ChildrenCapacity),
 				Key:        []byte{1},
 				Value:      []byte{2},
 				Encoding:   []byte{3},
@@ -196,11 +186,11 @@ func Test_Node_EncodeAndHash(t *testing.T) {
 		},
 		"large branch encoding": {
 			node: Node{
-				Type: Branch,
-				Key:  repeatBytes(65, 7),
+				Children: make([]*Node, ChildrenCapacity),
+				Key:      repeatBytes(65, 7),
 			},
 			expectedNode: Node{
-				Type:       Branch,
+				Children:   make([]*Node, ChildrenCapacity),
 				Encoding:   []byte{0xbf, 0x2, 0x7, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x0, 0x0}, //nolint:lll
 				HashDigest: []byte{0x6b, 0xd8, 0xcc, 0xac, 0x71, 0x77, 0x44, 0x17, 0xfe, 0xe0, 0xde, 0xda, 0xd5, 0x97, 0x6e, 0x69, 0xeb, 0xe9, 0xdd, 0x80, 0x1d, 0x4b, 0x51, 0xf1, 0x5b, 0xf3, 0x4a, 0x93, 0x27, 0x32, 0x2c, 0xb0},                           //nolint:lll
 			},

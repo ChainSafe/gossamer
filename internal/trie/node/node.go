@@ -13,8 +13,6 @@ import (
 
 // Node is a node in the trie and can be a leaf or a branch.
 type Node struct {
-	// Type is the node type.
-	Type Type
 	// Key is the partial key bytes in nibbles (0 to f in hexadecimal)
 	Key   []byte
 	Value []byte
@@ -41,6 +39,15 @@ type Node struct {
 	Descendants uint32
 }
 
+// Type returns Leaf or Branch depending on what type
+// the node is.
+func (n *Node) Type() Type {
+	if n.Children != nil {
+		return Branch
+	}
+	return Leaf
+}
+
 func (n *Node) String() string {
 	return n.StringNode().String()
 }
@@ -48,12 +55,12 @@ func (n *Node) String() string {
 // StringNode returns a gotree compatible node for String methods.
 func (n Node) StringNode() (stringNode *gotree.Node) {
 	caser := cases.Title(language.BritishEnglish)
-	stringNode = gotree.New(caser.String(n.Type.String()))
+	stringNode = gotree.New(caser.String(n.Type().String()))
 	stringNode.Appendf("Generation: %d", n.Generation)
 	stringNode.Appendf("Dirty: %t", n.Dirty)
 	stringNode.Appendf("Key: " + bytesToString(n.Key))
 	stringNode.Appendf("Value: " + bytesToString(n.Value))
-	if n.Type == Branch {
+	if n.Descendants > 0 { // must be a branch
 		stringNode.Appendf("Descendants: %d", n.Descendants)
 	}
 	stringNode.Appendf("Calculated encoding: " + bytesToString(n.Encoding))

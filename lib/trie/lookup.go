@@ -29,7 +29,7 @@ func find(parent *Node, key []byte, recorder recorder, isCurrentRoot bool) error
 
 	recorder.Record(hash, enc)
 
-	if parent.Type != node.Branch {
+	if parent.Type() != node.Branch {
 		return nil
 	}
 
