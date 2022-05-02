@@ -77,7 +77,11 @@ func Decode(body []byte, target interface{}) error {
 			ErrResponseError, response.Error.Message, response.Error.ErrorCode)
 	}
 
-	decoder = json.NewDecoder(bytes.NewReader(response.Result))
+	jsonRawMessage := response.Result
+	if jsonRawMessage == nil {
+		jsonRawMessage = response.Params
+	}
+	decoder = json.NewDecoder(bytes.NewReader(jsonRawMessage))
 	decoder.DisallowUnknownFields()
 
 	err = decoder.Decode(target)
