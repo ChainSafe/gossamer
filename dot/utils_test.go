@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -76,41 +75,6 @@ func TestCreateJSONRawFile(t *testing.T) {
 			digest := sha256.Sum256(b)
 			hexDigest := fmt.Sprintf("%x", digest)
 			require.Equal(t, tt.expectedHash, hexDigest)
-		})
-	}
-}
-
-func TestExportTomlConfig(t *testing.T) {
-	filepath := filepath.Join(t.TempDir(), "test.json")
-	type args struct {
-		cfg *ctoml.Config
-		fp  string
-	}
-	tests := []struct {
-		name          string
-		args          args
-		wantedContent string
-	}{
-		{
-			name: "working example",
-			args: args{
-				cfg: &ctoml.Config{},
-				fp:  filepath,
-			},
-			wantedContent: `[core]
-babe-authority = false
-grandpa-authority = false
-`,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ExportTomlConfig(tt.args.cfg, tt.args.fp)
-
-			content, err := ioutil.ReadFile(tt.args.fp)
-			require.NoError(t, err)
-			require.Equal(t, tt.wantedContent, string(content))
-
 		})
 	}
 }

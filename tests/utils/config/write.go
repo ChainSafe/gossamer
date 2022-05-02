@@ -4,11 +4,12 @@
 package config
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/dot"
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
+	"github.com/naoina/toml"
 	"github.com/stretchr/testify/require"
 )
 
@@ -18,7 +19,9 @@ import (
 func Write(t *testing.T, cfg ctoml.Config) (configPath string) {
 	t.Helper()
 	configPath = filepath.Join(t.TempDir(), "config.toml")
-	err := dot.ExportTomlConfig(&cfg, configPath)
+	raw, err := toml.Marshal(cfg)
+	require.NoError(t, err)
+	err = os.WriteFile(configPath, raw, os.ModePerm)
 	require.NoError(t, err)
 	return configPath
 }

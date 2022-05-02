@@ -9,25 +9,8 @@ import (
 	"os"
 	"strings"
 
-	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/cosmos/go-bip39"
-	"github.com/naoina/toml"
 )
-
-// ExportTomlConfig exports a dot configuration to a toml configuration file
-func ExportTomlConfig(cfg *ctoml.Config, fp string) (err error) {
-	raw, err := toml.Marshal(*cfg)
-	if err != nil {
-		return fmt.Errorf("failed to marshal configuration: %w", err)
-	}
-
-	err = os.WriteFile(fp, raw, os.ModePerm)
-	if err != nil {
-		return fmt.Errorf("failed to write configuration: %w", err)
-	}
-
-	return nil
-}
 
 // CreateJSONRawFile will generate a JSON genesis file with raw storage
 func CreateJSONRawFile(bs *BuildSpec, fp string) {
