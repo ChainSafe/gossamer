@@ -14,6 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/tests/utils/config"
 	"github.com/ChainSafe/gossamer/tests/utils/node"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var polkadotSuite = "polkadot"
@@ -23,6 +24,22 @@ func TestStartGossamerAndPolkadotAPI(t *testing.T) {
 		t.Log("Going to skip polkadot.js/api suite tests")
 		return
 	}
+
+	const nodePackageManager = "npm"
+	t.Logf("Checking %s is available...", nodePackageManager)
+	_, err := exec.LookPath(nodePackageManager)
+	if err != nil {
+		t.Fatalf("%s is not available: %s", nodePackageManager, err)
+	}
+
+	t.Log("Installing Node dependencies...")
+	cmd := exec.Command(nodePackageManager, "install")
+	testWriter := utils.NewTestWriter(t)
+	cmd.Stdout = testWriter
+	cmd.Stderr = testWriter
+	err = cmd.Run()
+	require.NoError(t, err)
+
 	t.Log("starting gossamer for polkadot.js/api tests...")
 
 	tomlConfig := config.Default()
