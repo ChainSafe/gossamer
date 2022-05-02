@@ -194,8 +194,6 @@ func TestChainSubscriptionRPC(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	node.InitAndStartTest(ctx, t, cancel)
 
-	time.Sleep(time.Second) // give server a second to start
-
 	for _, test := range testCases {
 
 		t.Run(test.description, func(t *testing.T) {

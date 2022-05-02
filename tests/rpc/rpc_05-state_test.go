@@ -34,8 +34,6 @@ func TestStateRPCResponseValidation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	node.InitAndStartTest(ctx, t, cancel)
 
-	time.Sleep(time.Second) // give server a second to start
-
 	getBlockHashCtx, getBlockHashCancel := context.WithTimeout(ctx, time.Second)
 	blockHash, err := rpc.GetBlockHash(getBlockHashCtx, node.GetRPCPort(), "")
 	getBlockHashCancel()
