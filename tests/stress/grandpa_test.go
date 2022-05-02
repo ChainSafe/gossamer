@@ -12,6 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/tests/utils"
 	"github.com/ChainSafe/gossamer/tests/utils/config"
 	"github.com/ChainSafe/gossamer/tests/utils/node"
+	"github.com/ChainSafe/gossamer/tests/utils/retry"
 	"github.com/stretchr/testify/require"
 )
 
@@ -55,14 +56,15 @@ func TestStress_Grandpa_ThreeAuthorities(t *testing.T) {
 
 	nodes.InitAndStartTest(ctx, t, cancel)
 
-	numRounds := 5
-	for i := 1; i < numRounds+1; i++ {
-		const getFinalizedHeadByRoundTimeout = time.Second
+	const numRounds uint64 = 5
+	for round := uint64(1); round < numRounds+1; round++ {
 		const retryWait = time.Second
-		fin, err := compareFinalizedHeadsWithRetry(ctx,
-			nodes, uint64(i), getFinalizedHeadByRoundTimeout, retryWait)
+		err := retry.UntilNoError(ctx, retryWait, func() (err error) {
+			const getFinalizedHeadByRoundTimeout = time.Second
+			_, err = compareFinalizedHeadsByRound(ctx, nodes, round, getFinalizedHeadByRoundTimeout)
+			return err
+		})
 		require.NoError(t, err)
-		t.Logf("finalised hash in round %d: %s", i, fin)
 	}
 }
 
@@ -78,14 +80,15 @@ func TestStress_Grandpa_SixAuthorities(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	nodes.InitAndStartTest(ctx, t, cancel)
 
-	numRounds := 10
-	for i := 1; i < numRounds+1; i++ {
-		const getFinalizedHeadByRoundTimeout = time.Second
+	const numRounds uint64 = 10
+	for round := uint64(1); round < numRounds+1; round++ {
 		const retryWait = time.Second
-		fin, err := compareFinalizedHeadsWithRetry(ctx, nodes,
-			uint64(i), getFinalizedHeadByRoundTimeout, retryWait)
+		err := retry.UntilNoError(ctx, retryWait, func() (err error) {
+			const getFinalizedHeadByRoundTimeout = time.Second
+			_, err = compareFinalizedHeadsByRound(ctx, nodes, round, getFinalizedHeadByRoundTimeout)
+			return err
+		})
 		require.NoError(t, err)
-		t.Logf("finalised hash in round %d: %s", i, fin)
 	}
 }
 
@@ -103,14 +106,15 @@ func TestStress_Grandpa_NineAuthorities(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	nodes.InitAndStartTest(ctx, t, cancel)
 
-	numRounds := 3
-	for i := 1; i < numRounds+1; i++ {
-		const getFinalizedHeadByRoundTimeout = time.Second
+	const numRounds uint64 = 3
+	for round := uint64(1); round < numRounds+1; round++ {
 		const retryWait = time.Second
-		fin, err := compareFinalizedHeadsWithRetry(ctx, nodes,
-			uint64(i), getFinalizedHeadByRoundTimeout, retryWait)
+		err := retry.UntilNoError(ctx, retryWait, func() (err error) {
+			const getFinalizedHeadByRoundTimeout = time.Second
+			_, err = compareFinalizedHeadsByRound(ctx, nodes, round, getFinalizedHeadByRoundTimeout)
+			return err
+		})
 		require.NoError(t, err)
-		t.Logf("finalised hash in round %d: %s", i, fin)
 	}
 }
 
@@ -134,13 +138,14 @@ func TestStress_Grandpa_CatchUp(t *testing.T) {
 	node.InitAndStartTest(ctx, t, cancel)
 	nodes = append(nodes, node)
 
-	numRounds := 10
-	for i := 1; i < numRounds+1; i++ {
-		const getFinalizedHeadByRoundTimeout = time.Second
+	const numRounds uint64 = 10
+	for round := uint64(1); round < numRounds+1; round++ {
 		const retryWait = time.Second
-		fin, err := compareFinalizedHeadsWithRetry(ctx, nodes, uint64(i),
-			getFinalizedHeadByRoundTimeout, retryWait)
+		err := retry.UntilNoError(ctx, retryWait, func() (err error) {
+			const getFinalizedHeadByRoundTimeout = time.Second
+			_, err = compareFinalizedHeadsByRound(ctx, nodes, round, getFinalizedHeadByRoundTimeout)
+			return err
+		})
 		require.NoError(t, err)
-		t.Logf("finalised hash in round %d: %s", i, fin)
 	}
 }

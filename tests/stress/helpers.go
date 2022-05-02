@@ -163,38 +163,6 @@ func compareFinalizedHeadsByRound(ctx context.Context, nodes node.Nodes,
 	return hashes, err
 }
 
-// compareFinalizedHeadsWithRetry calls compareFinalizedHeadsByRound,
-// retrying until the context is canceled or times out.
-// It returns the finalised hash if it succeeds
-func compareFinalizedHeadsWithRetry(ctx context.Context, nodes node.Nodes, round uint64,
-	getFinalizedHeadByRoundTimeout, retryWait time.Duration) (hashes []common.Hash, err error) {
-	for {
-		hashToKeys, err := compareFinalizedHeadsByRound(ctx, nodes, round, getFinalizedHeadByRoundTimeout)
-		if err == nil {
-			hashes = make([]common.Hash, 0, len(hashToKeys))
-			for hash := range hashToKeys {
-				hashes = append(hashes, hash)
-			}
-			return hashes, nil
-		}
-
-		if errors.Is(err, errFinalizedBlockMismatch) {
-			return nil, fmt.Errorf("%w: round=%d hash-to-keys=%v", err, round, hashToKeys)
-		}
-
-		timer := time.NewTimer(retryWait)
-		select {
-		case <-timer.C:
-		case <-ctx.Done():
-			if !timer.Stop() {
-				<-timer.C
-			}
-			return nil, fmt.Errorf("%w: (%s) round=%d hash-to-keys=%v",
-				err, ctx.Err(), round, hashToKeys)
-		}
-	}
-}
-
 func getPendingExtrinsics(ctx context.Context, t *testing.T, node node.Node) []string {
 	endpoint := rpc.NewEndpoint(node.GetRPCPort())
 	const method = "author_pendingExtrinsics"
