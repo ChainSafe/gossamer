@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/stretchr/testify/require"
 )
 
@@ -119,4 +120,10 @@ func pickKeys(keyValues map[string][]byte,
 	}
 
 	return keys
+}
+
+func padRightChildren(slice []*Node) (paddedSlice []*Node) {
+	paddedSlice = make([]*Node, node.ChildrenCapacity)
+	copy(paddedSlice, slice)
+	return paddedSlice
 }

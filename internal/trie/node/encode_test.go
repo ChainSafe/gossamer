@@ -192,7 +192,7 @@ func Test_Node_Encode(t *testing.T) {
 				Type:  Branch,
 				Key:   []byte{1, 2, 3},
 				Value: []byte{100},
-				Children: [16]*Node{
+				Children: []*Node{
 					nil, nil, nil, {Type: Leaf, Key: []byte{9}},
 					nil, nil, nil, {Type: Leaf, Key: []byte{11}},
 				},
@@ -217,7 +217,7 @@ func Test_Node_Encode(t *testing.T) {
 				Type:  Branch,
 				Key:   []byte{1, 2, 3},
 				Value: []byte{100},
-				Children: [16]*Node{
+				Children: []*Node{
 					nil, nil, nil, {Type: Leaf, Key: []byte{9}},
 					nil, nil, nil, {Type: Leaf, Key: []byte{11}},
 				},
@@ -245,7 +245,7 @@ func Test_Node_Encode(t *testing.T) {
 				Type:  Branch,
 				Key:   []byte{1, 2, 3},
 				Value: []byte{100},
-				Children: [16]*Node{
+				Children: []*Node{
 					nil, nil, nil, {Type: Leaf, Key: []byte{9}},
 					nil, nil, nil, {Type: Leaf, Key: []byte{11}},
 				},
@@ -278,7 +278,7 @@ func Test_Node_Encode(t *testing.T) {
 				Type:  Branch,
 				Key:   []byte{1, 2, 3},
 				Value: []byte{100},
-				Children: [16]*Node{
+				Children: []*Node{
 					nil, nil, nil, {Type: Leaf, Key: []byte{9}},
 					nil, nil, nil, {Type: Leaf, Key: []byte{11}},
 				},

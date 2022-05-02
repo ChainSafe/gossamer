@@ -44,7 +44,7 @@ func Test_Trie_String(t *testing.T) {
 					Key:         nil,
 					Value:       []byte{1, 2},
 					Descendants: 2,
-					Children: [16]*Node{
+					Children: []*Node{
 						{
 							Type:       node.Leaf,
 							Key:        []byte{1, 2, 3},

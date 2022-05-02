@@ -297,7 +297,7 @@ func keyIsLexicographicallyBigger(key, key2 []byte) (bigger bool) {
 
 // findNextKeyChild searches for a next key in the children
 // given and returns a next key or nil if no next key is found.
-func findNextKeyChild(children [16]*Node, startIndex byte,
+func findNextKeyChild(children []*Node, startIndex byte,
 	fullKey, key []byte) (nextKey []byte) {
 	for i := startIndex; i < node.ChildrenCapacity; i++ {
 		child := children[i]
@@ -370,6 +370,7 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte) (
 		Type:       node.Branch,
 		Key:        key[:commonPrefixLength],
 		Generation: t.generation,
+		Children:   make([]*node.Node, node.ChildrenCapacity),
 		Dirty:      true,
 	}
 	parentLeafKey := parentLeaf.Key
@@ -462,6 +463,7 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte) (
 		Type:       node.Branch,
 		Key:        key[:commonPrefixLength],
 		Generation: t.generation,
+		Children:   make([]*node.Node, node.ChildrenCapacity),
 		Dirty:      true,
 	}
 
@@ -1054,6 +1056,7 @@ func handleDeletion(branch *Node, key []byte) (newNode *Node, branchChildMerged 
 			Key:        newBranchKey,
 			Value:      childBranch.Value,
 			Generation: branch.Generation,
+			Children:   make([]*node.Node, node.ChildrenCapacity),
 			Dirty:      true,
 			// this is the descendants of the original branch minus one
 			Descendants: childBranch.Descendants,

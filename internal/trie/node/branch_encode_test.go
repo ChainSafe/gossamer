@@ -185,8 +185,9 @@ func Benchmark_encodeChildrenOpportunisticParallel(b *testing.B) {
 	})
 }
 
-func populateChildren(valueSize, depth int) (children [16]*Node) {
+func populateChildren(valueSize, depth int) (children []*Node) {
 	someValue := make([]byte, valueSize)
+	children = make([]*Node, ChildrenCapacity)
 
 	if depth == 0 {
 		for i := range children {
@@ -215,14 +216,14 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		children   [16]*Node
+		children   []*Node
 		writes     []writeCall
 		wrappedErr error
 		errMessage string
 	}{
 		"no children": {},
 		"first child not nil": {
-			children: [16]*Node{
+			children: []*Node{
 				{Type: Leaf, Key: []byte{1}},
 			},
 			writes: []writeCall{
@@ -232,7 +233,7 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 			},
 		},
 		"last child not nil": {
-			children: [16]*Node{
+			children: []*Node{
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
@@ -245,7 +246,7 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 			},
 		},
 		"first two children not nil": {
-			children: [16]*Node{
+			children: []*Node{
 				{Type: Leaf, Key: []byte{1}},
 				{Type: Leaf, Key: []byte{2}},
 			},
@@ -259,7 +260,7 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 			},
 		},
 		"leaf encoding error": {
-			children: [16]*Node{
+			children: []*Node{
 				nil, nil, nil, nil,
 				nil, nil, nil, nil,
 				nil, nil, nil,
@@ -281,11 +282,11 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 		"branch encoding": {
 			// Note this may run in parallel or not depending on other tests
 			// running in parallel.
-			children: [16]*Node{
+			children: []*Node{
 				{
 					Type: Branch,
 					Key:  []byte{1},
-					Children: [16]*Node{
+					Children: []*Node{
 						{Type: Leaf, Key: []byte{1}},
 					},
 				},
@@ -331,10 +332,11 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 	t.Run("opportunist parallel branch encoding", func(t *testing.T) {
 		t.Parallel()
 
-		var children [16]*Node
+		children := make([]*Node, ChildrenCapacity)
 		for i := range children {
 			children[i] = &Node{
-				Type: Branch}
+				Type: Branch,
+			}
 		}
 
 		buffer := bytes.NewBuffer(nil)
@@ -359,14 +361,14 @@ func Test_encodeChildrenSequentially(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		children   [16]*Node
+		children   []*Node
 		writes     []writeCall
 		wrappedErr error
 		errMessage string
 	}{
 		"no children": {},
 		"first child not nil": {
-			children: [16]*Node{
+			children: []*Node{
 				{Type: Leaf, Key: []byte{1}},
 			},
 			writes: []writeCall{
@@ -376,7 +378,7 @@ func Test_encodeChildrenSequentially(t *testing.T) {
 			},
 		},
 		"last child not nil": {
-			children: [16]*Node{
+			children: []*Node{
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
@@ -389,7 +391,7 @@ func Test_encodeChildrenSequentially(t *testing.T) {
 			},
 		},
 		"first two children not nil": {
-			children: [16]*Node{
+			children: []*Node{
 				{Type: Leaf, Key: []byte{1}},
 				{Type: Leaf, Key: []byte{2}},
 			},
@@ -403,7 +405,7 @@ func Test_encodeChildrenSequentially(t *testing.T) {
 			},
 		},
 		"encoding error": {
-			children: [16]*Node{
+			children: []*Node{
 				nil, nil, nil, nil,
 				nil, nil, nil, nil,
 				nil, nil, nil,
@@ -508,7 +510,7 @@ func Test_encodeChild(t *testing.T) {
 				Type:  Branch,
 				Key:   []byte{1},
 				Value: []byte{2},
-				Children: [16]*Node{
+				Children: []*Node{
 					nil, nil, {Type: Leaf,
 						Key:   []byte{5},
 						Value: []byte{6},
@@ -574,7 +576,7 @@ func Test_scaleEncodeHash(t *testing.T) {
 				Type:  Branch,
 				Key:   []byte{1, 2},
 				Value: []byte{3, 4},
-				Children: [16]*Node{
+				Children: []*Node{
 					nil, nil, {Type: Leaf, Key: []byte{9}},
 				},
 			},

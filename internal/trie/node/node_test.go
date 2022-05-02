@@ -76,7 +76,7 @@ func Test_Node_String(t *testing.T) {
 				Value:       []byte{3, 4},
 				Dirty:       true,
 				Descendants: 3,
-				Children: [16]*Node{
+				Children: []*Node{
 					nil, nil, nil,
 					{Type: Leaf},
 					nil, nil, nil,
@@ -127,7 +127,7 @@ func Test_Node_String(t *testing.T) {
 				Value:       make([]byte, 1025),
 				Dirty:       true,
 				Descendants: 3,
-				Children: [16]*Node{
+				Children: []*Node{
 					nil, nil, nil,
 					{Type: Leaf},
 					nil, nil, nil,

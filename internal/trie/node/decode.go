@@ -59,7 +59,10 @@ func Decode(reader io.Reader) (n *Node, err error) {
 // children are known to be with an empty leaf. The children nodes hashes are then used to
 // find other values using the persistent database.
 func decodeBranch(reader io.Reader, header byte) (node *Node, err error) {
-	node = &Node{Type: Branch}
+	node = &Node{
+		Type:     Branch,
+		Children: make([]*Node, ChildrenCapacity),
+	}
 
 	keyLen := header & keyLenOffset
 	node.Key, err = decodeKey(reader, keyLen)

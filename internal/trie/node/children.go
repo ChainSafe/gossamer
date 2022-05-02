@@ -11,11 +11,11 @@ const (
 // ChildrenBitmap returns the 16 bit bitmap
 // of the children in the branch node.
 func (n *Node) ChildrenBitmap() (bitmap uint16) {
-	for i := uint(0); i < 16; i++ {
+	for i := range n.Children {
 		if n.Children[i] == nil {
 			continue
 		}
-		bitmap |= 1 << i
+		bitmap |= 1 << uint(i)
 	}
 	return bitmap
 }
@@ -23,7 +23,7 @@ func (n *Node) ChildrenBitmap() (bitmap uint16) {
 // NumChildren returns the total number of children
 // in the branch node.
 func (n *Node) NumChildren() (count int) {
-	for i := 0; i < 16; i++ {
+	for i := range n.Children {
 		if n.Children[i] != nil {
 			count++
 		}

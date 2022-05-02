@@ -70,6 +70,7 @@ func (n *Node) Copy(settings CopySettings) *Node {
 			childSettings.CopyKey = true
 			childSettings.CopyValue = true
 			childSettings.CopyCached = true
+			cpy.Children = make([]*Node, ChildrenCapacity)
 			for i, child := range n.Children {
 				if child == nil {
 					continue
@@ -77,7 +78,8 @@ func (n *Node) Copy(settings CopySettings) *Node {
 				cpy.Children[i] = child.Copy(childSettings)
 			}
 		} else {
-			cpy.Children = n.Children // copy interface pointers only
+			cpy.Children = make([]*Node, ChildrenCapacity)
+			copy(cpy.Children, n.Children) // copy interface pointers only)
 		}
 	}
 

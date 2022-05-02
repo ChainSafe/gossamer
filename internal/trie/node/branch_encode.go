@@ -50,7 +50,7 @@ var parallelEncodingRateLimit = make(chan struct{}, parallelLimit)
 // goroutines IF they are less than the parallelLimit number of goroutines already
 // running. This is designed to limit the total number of goroutines in order to
 // avoid using too much memory on the stack.
-func encodeChildrenOpportunisticParallel(children [16]*Node, buffer io.Writer) (err error) {
+func encodeChildrenOpportunisticParallel(children []*Node, buffer io.Writer) (err error) {
 	// Buffered channels since children might be encoded in this
 	// goroutine or another one.
 	resultsCh := make(chan encodingAsyncResult, ChildrenCapacity)
@@ -115,7 +115,7 @@ func encodeChildrenOpportunisticParallel(children [16]*Node, buffer io.Writer) (
 	return err
 }
 
-func encodeChildrenSequentially(children [16]*Node, buffer io.Writer) (err error) {
+func encodeChildrenSequentially(children []*Node, buffer io.Writer) (err error) {
 	for i, child := range children {
 		err = encodeChild(child, buffer)
 		if err != nil {

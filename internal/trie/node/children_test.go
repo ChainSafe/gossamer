@@ -21,7 +21,7 @@ func Test_Node_ChildrenBitmap(t *testing.T) {
 		},
 		"index 0": {
 			node: Node{
-				Children: [16]*Node{
+				Children: []*Node{
 					{},
 				},
 			},
@@ -29,7 +29,7 @@ func Test_Node_ChildrenBitmap(t *testing.T) {
 		},
 		"index 0 and 4": {
 			node: Node{
-				Children: [16]*Node{
+				Children: []*Node{
 					{},
 					nil, nil, nil,
 					{},
@@ -39,7 +39,7 @@ func Test_Node_ChildrenBitmap(t *testing.T) {
 		},
 		"index 0, 4 and 15": {
 			node: Node{
-				Children: [16]*Node{
+				Children: []*Node{
 					{},
 					nil, nil, nil,
 					{},
@@ -76,7 +76,7 @@ func Test_Node_NumChildren(t *testing.T) {
 		},
 		"one": {
 			node: Node{
-				Children: [16]*Node{
+				Children: []*Node{
 					{},
 				},
 			},
@@ -84,7 +84,7 @@ func Test_Node_NumChildren(t *testing.T) {
 		},
 		"two": {
 			node: Node{
-				Children: [16]*Node{
+				Children: []*Node{
 					{},
 					nil, nil, nil,
 					{},
@@ -94,7 +94,7 @@ func Test_Node_NumChildren(t *testing.T) {
 		},
 		"three": {
 			node: Node{
-				Children: [16]*Node{
+				Children: []*Node{
 					{},
 					nil, nil, nil,
 					{},

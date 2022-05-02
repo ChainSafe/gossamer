@@ -23,8 +23,9 @@ type Node struct {
 	// which is updated to match the trie Generation once they are
 	// inserted, moved or iterated over.
 	Generation uint64
-	// Children, only for branches
-	Children [ChildrenCapacity]*Node
+	// Children is a slice of length 16 for branches.
+	// It is left to nil for leaves to reduce memory usage.
+	Children []*Node
 
 	// Dirty is true when the branch differs
 	// from the node stored in the database.

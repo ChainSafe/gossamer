@@ -92,9 +92,10 @@ func Test_Decode(t *testing.T) {
 				},
 			),
 			n: &Node{
-				Type:  Branch,
-				Key:   []byte{9},
-				Dirty: true,
+				Type:     Branch,
+				Key:      []byte{9},
+				Children: make([]*Node, ChildrenCapacity),
+				Dirty:    true,
 			},
 		},
 		"branch with two inlined children": {
@@ -123,7 +124,7 @@ func Test_Decode(t *testing.T) {
 					4, 1, 1, 3, 12, 4,
 				},
 				Descendants: 2,
-				Children: [16]*Node{
+				Children: []*Node{
 					nil, nil, nil, nil,
 					{
 						Type: Leaf,
@@ -229,14 +230,14 @@ func Test_decodeBranch(t *testing.T) {
 			branch: &Node{
 				Type: Branch,
 				Key:  []byte{9},
-				Children: [16]*Node{
+				Children: padRightChildren([]*Node{
 					nil, nil, nil, nil, nil,
 					nil, nil, nil, nil, nil,
 					{
 						Type:       Leaf,
 						HashDigest: []byte{1, 2, 3, 4, 5},
 					},
-				},
+				}),
 				Dirty:       true,
 				Descendants: 1,
 			},
@@ -267,14 +268,14 @@ func Test_decodeBranch(t *testing.T) {
 				Type:  Branch,
 				Key:   []byte{9},
 				Value: []byte{7, 8, 9},
-				Children: [16]*Node{
+				Children: padRightChildren([]*Node{
 					nil, nil, nil, nil, nil,
 					nil, nil, nil, nil, nil,
 					{
 						Type:       Leaf,
 						HashDigest: []byte{1, 2, 3, 4, 5},
 					},
-				},
+				}),
 				Dirty:       true,
 				Descendants: 1,
 			},
