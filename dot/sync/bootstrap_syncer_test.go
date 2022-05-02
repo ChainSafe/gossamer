@@ -14,8 +14,6 @@ import (
 func Test_bootstrapSyncer_handleWorkerResult(t *testing.T) {
 	t.Parallel()
 
-	ctrl := gomock.NewController(t)
-
 	blockStateBuilderEmpty := func(ctrl *gomock.Controller) BlockState {
 		return NewMockBlockState(ctrl)
 	}
@@ -75,6 +73,7 @@ func Test_bootstrapSyncer_handleWorkerResult(t *testing.T) {
 	}
 	for testName, tt := range tests {
 		tt := tt
+		ctrl := gomock.NewController(t)
 		t.Run(testName, func(t *testing.T) {
 			t.Parallel()
 			s := &bootstrapSyncer{

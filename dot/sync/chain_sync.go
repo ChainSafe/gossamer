@@ -39,6 +39,8 @@ const (
 	tip
 )
 
+const defaultLogSyncSpeedFrequency = 5 * time.Second
+
 func (s chainSyncState) String() string {
 	switch s {
 	case bootstrap:
@@ -196,7 +198,7 @@ func newChainSync(cfg *chainSyncConfig) *chainSync {
 		minPeers:              cfg.minPeers,
 		maxWorkerRetries:      uint16(cfg.maxPeers),
 		slotDuration:          cfg.slotDuration,
-		logSyncSpeedFrequency: time.Second * 5,
+		logSyncSpeedFrequency: defaultLogSyncSpeedFrequency,
 	}
 }
 
