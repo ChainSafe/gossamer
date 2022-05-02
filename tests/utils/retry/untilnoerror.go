@@ -5,7 +5,6 @@ package retry
 
 import (
 	"context"
-	"fmt"
 	"time"
 )
 
@@ -23,17 +22,8 @@ func UntilNoError(ctx context.Context, retryWait time.Duration,
 			return nil
 		}
 
-		failedTries++
-		waitCtx, waitCancel := context.WithTimeout(ctx, retryWait)
-		<-waitCtx.Done()
-		waitCancel()
+		waitAfterFail(ctx, retryWait, &failedTries)
 	}
 
-	totalRetryTime := time.Duration(failedTries) * retryWait
-	tryWord := "try"
-	if failedTries > 1 {
-		tryWord = "tries"
-	}
-	return fmt.Errorf("failed after %d %s during %s: %w (%s)",
-		failedTries, tryWord, totalRetryTime, err, ctx.Err())
+	return makeError(failedTries, retryWait, ctx.Err())
 }

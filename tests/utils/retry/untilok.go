@@ -26,17 +26,8 @@ func UntilOK(ctx context.Context, retryWait time.Duration,
 			return fmt.Errorf("stop retrying function: %w", err)
 		}
 
-		failedTries++
-		waitCtx, waitCancel := context.WithTimeout(ctx, retryWait)
-		<-waitCtx.Done()
-		waitCancel()
+		waitAfterFail(ctx, retryWait, &failedTries)
 	}
 
-	totalRetryTime := time.Duration(failedTries) * retryWait
-	tryWord := "try"
-	if failedTries > 1 {
-		tryWord = "tries"
-	}
-	return fmt.Errorf("failed after %d %s during %s (%w)",
-		failedTries, tryWord, totalRetryTime, ctx.Err())
+	return makeError(failedTries, retryWait, ctx.Err())
 }
