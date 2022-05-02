@@ -106,7 +106,7 @@ func GetBlock(ctx context.Context, rpcPort string, hash common.Hash) (
 
 	body, err := types.NewBodyFromExtrinsicStrings(rpcBlock.Block.Body)
 	if err != nil {
-		return nil, fmt.Errorf("cannot create body from RPC block blody: %w", err)
+		return nil, fmt.Errorf("cannot create body from RPC block body: %w", err)
 	}
 
 	return &types.Block{
