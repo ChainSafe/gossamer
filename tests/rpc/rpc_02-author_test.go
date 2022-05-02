@@ -39,7 +39,7 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	node.InitAndStartTest(ctx, t, cancel)
 
-	api, err := gsrpc.NewSubstrateAPI(fmt.Sprintf("http://localhost:%s", node.GetRPCPort()))
+	api, err := gsrpc.NewSubstrateAPI(fmt.Sprintf("http://localhost:%s", node.RPCPort()))
 	require.NoError(t, err)
 
 	// Wait for the first block to be produced.

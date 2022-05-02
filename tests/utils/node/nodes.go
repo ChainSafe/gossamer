@@ -79,7 +79,7 @@ func (nodes Nodes) Start(ctx context.Context, waitErr chan<- error) (
 	}
 
 	for _, node := range nodes {
-		port := node.GetRPCPort()
+		port := node.RPCPort()
 		err := waitForNode(ctx, port)
 		if err != nil {
 			return started, fmt.Errorf("node with index %d: %w", *node.index, err)
@@ -144,7 +144,7 @@ func (nodes Nodes) InitAndStartTest(ctx context.Context, t *testing.T,
 	// You can see this since the test logs out that all the nodes are ready
 	// at the same time.
 	for _, node := range nodes {
-		err := waitForNode(ctx, node.GetRPCPort())
+		err := waitForNode(ctx, node.RPCPort())
 		if err == nil {
 			t.Logf("Node %s is ready", node)
 			continue

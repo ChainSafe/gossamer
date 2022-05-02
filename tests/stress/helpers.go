@@ -32,14 +32,14 @@ func compareChainHeads(ctx context.Context, nodes node.Nodes,
 	hashes = make(map[common.Hash][]string)
 	for _, node := range nodes {
 		getChainHeadCtx, cancel := context.WithTimeout(ctx, getChainHeadTimeout)
-		header, err := rpc.GetChainHead(getChainHeadCtx, node.GetRPCPort())
+		header, err := rpc.GetChainHead(getChainHeadCtx, node.RPCPort())
 		cancel()
 		if err != nil {
 			return nil, fmt.Errorf("cannot get chain head for node %s: %w", node, err)
 		}
 
 		logger.Infof("got header with hash %s from node %s", header.Hash(), node)
-		hashes[header.Hash()] = append(hashes[header.Hash()], node.GetKey())
+		hashes[header.Hash()] = append(hashes[header.Hash()], node.Key())
 	}
 
 	if len(hashes) != 1 {
@@ -81,7 +81,7 @@ func compareBlocksByNumber(ctx context.Context, nodes node.Nodes,
 	for _, n := range nodes {
 		const retryWait = time.Second
 		err := retry.UntilOK(ctx, retryWait, func() (ok bool, err error) {
-			hash, err := rpc.GetBlockHash(ctx, n.GetRPCPort(), num)
+			hash, err := rpc.GetBlockHash(ctx, n.RPCPort(), num)
 			if err != nil {
 				const blockDoesNotExistString = "cannot find node with number greater than highest in blocktree"
 				if strings.Contains(err.Error(), blockDoesNotExistString) {
@@ -91,7 +91,7 @@ func compareBlocksByNumber(ctx context.Context, nodes node.Nodes,
 			}
 
 			blockHashes[hash] = struct{}{}
-			nodeKeys = append(nodeKeys, n.GetKey())
+			nodeKeys = append(nodeKeys, n.Key())
 			return true, nil
 		})
 		if err != nil {
@@ -114,12 +114,12 @@ func compareFinalizedHeads(ctx context.Context, t *testing.T, nodes node.Nodes,
 	hashes = make(map[common.Hash][]string)
 	for _, node := range nodes {
 		getFinalizedHeadCtx, cancel := context.WithTimeout(ctx, getFinalizedHeadTimeout)
-		hash, err := rpc.GetFinalizedHead(getFinalizedHeadCtx, node.GetRPCPort())
+		hash, err := rpc.GetFinalizedHead(getFinalizedHeadCtx, node.RPCPort())
 		cancel()
 		require.NoError(t, err)
 
 		logger.Infof("got finalised head with hash %s from node %s", hash, node)
-		hashes[hash] = append(hashes[hash], node.GetKey())
+		hashes[hash] = append(hashes[hash], node.Key())
 	}
 
 	if len(hashes) == 0 {
@@ -141,7 +141,7 @@ func compareFinalizedHeadsByRound(ctx context.Context, nodes node.Nodes,
 	hashes = make(map[common.Hash][]string)
 	for _, node := range nodes {
 		getFinalizedHeadByRoundCtx, cancel := context.WithTimeout(ctx, getFinalizedHeadByRoundTimeout)
-		hash, err := rpc.GetFinalizedHeadByRound(getFinalizedHeadByRoundCtx, node.GetRPCPort(), round)
+		hash, err := rpc.GetFinalizedHeadByRound(getFinalizedHeadByRoundCtx, node.RPCPort(), round)
 		cancel()
 
 		if err != nil {
@@ -149,7 +149,7 @@ func compareFinalizedHeadsByRound(ctx context.Context, nodes node.Nodes,
 		}
 
 		logger.Infof("got finalised head with hash %s from node %s at round %d", hash, node, round)
-		hashes[hash] = append(hashes[hash], node.GetKey())
+		hashes[hash] = append(hashes[hash], node.Key())
 	}
 
 	if len(hashes) == 0 {
@@ -164,7 +164,7 @@ func compareFinalizedHeadsByRound(ctx context.Context, nodes node.Nodes,
 }
 
 func getPendingExtrinsics(ctx context.Context, t *testing.T, node node.Node) []string {
-	endpoint := rpc.NewEndpoint(node.GetRPCPort())
+	endpoint := rpc.NewEndpoint(node.RPCPort())
 	const method = "author_pendingExtrinsics"
 	const params = "[]"
 	respBody, err := rpc.Post(ctx, endpoint, method, params)

@@ -48,14 +48,14 @@ func (n Node) String() string {
 	return fmt.Sprintf("%s-%s", n.tomlConfig.Account.Key, indexString)
 }
 
-// GetRPCPort returns the rpc port of the node.
-func (n Node) GetRPCPort() (port string) { return fmt.Sprint(n.tomlConfig.RPC.Port) }
+// RPCPort returns the rpc port of the node.
+func (n Node) RPCPort() (port string) { return fmt.Sprint(n.tomlConfig.RPC.Port) }
 
-// GetWSPort returns the websocket port of the node.
-func (n Node) GetWSPort() (port string) { return fmt.Sprint(n.tomlConfig.RPC.WSPort) }
+// WSPort returns the websocket port of the node.
+func (n Node) WSPort() (port string) { return fmt.Sprint(n.tomlConfig.RPC.WSPort) }
 
-// GetKey returns the key of the node.
-func (n Node) GetKey() (key string) { return n.tomlConfig.Account.Key }
+// Key returns the key of the node.
+func (n Node) Key() (key string) { return n.tomlConfig.Account.Key }
 
 func intPtr(n int) *int { return &n }
 
@@ -176,7 +176,7 @@ func (n *Node) StartAndWait(ctx context.Context, waitErrCh chan<- error) (startE
 		return startErr
 	}
 
-	err := waitForNode(ctx, n.GetRPCPort())
+	err := waitForNode(ctx, n.RPCPort())
 	if err != nil {
 		return fmt.Errorf("failed waiting: %s", err)
 	}

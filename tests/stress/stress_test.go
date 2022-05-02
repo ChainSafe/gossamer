@@ -166,12 +166,12 @@ func TestSync_MultipleEpoch(t *testing.T) {
 	time.Sleep(time.Second * 10)
 
 	slotDurationCtx, cancel := context.WithTimeout(ctx, time.Second)
-	slotDuration, err := rpc.SlotDuration(slotDurationCtx, nodes[0].GetRPCPort())
+	slotDuration, err := rpc.SlotDuration(slotDurationCtx, nodes[0].RPCPort())
 	cancel()
 	require.NoError(t, err)
 
 	epochLengthCtx, cancel := context.WithTimeout(ctx, time.Second)
-	epochLength, err := rpc.EpochLength(epochLengthCtx, nodes[0].GetRPCPort())
+	epochLength, err := rpc.EpochLength(epochLengthCtx, nodes[0].RPCPort())
 	cancel()
 	require.NoError(t, err)
 
@@ -180,7 +180,7 @@ func TestSync_MultipleEpoch(t *testing.T) {
 
 	// Just checking that everythings operating as expected
 	getChainHeadCtx, cancel := context.WithTimeout(ctx, time.Second)
-	header, err := rpc.GetChainHead(getChainHeadCtx, nodes[0].GetRPCPort())
+	header, err := rpc.GetChainHead(getChainHeadCtx, nodes[0].RPCPort())
 	cancel()
 	require.NoError(t, err)
 
@@ -256,7 +256,7 @@ func TestSync_Bench(t *testing.T) {
 
 	for {
 		getChainHeadCtx, getChainCancel := context.WithTimeout(ctx, time.Second)
-		header, err := rpc.GetChainHead(getChainHeadCtx, alice.GetRPCPort())
+		header, err := rpc.GetChainHead(getChainHeadCtx, alice.RPCPort())
 		getChainCancel()
 		if err != nil {
 			continue
@@ -270,7 +270,7 @@ func TestSync_Bench(t *testing.T) {
 	}
 
 	pauseBabeCtx, pauseBabeCancel := context.WithTimeout(ctx, time.Second)
-	err := rpc.PauseBABE(pauseBabeCtx, alice.GetRPCPort())
+	err := rpc.PauseBABE(pauseBabeCtx, alice.RPCPort())
 	pauseBabeCancel()
 
 	require.NoError(t, err)
@@ -297,7 +297,7 @@ func TestSync_Bench(t *testing.T) {
 	syncWaitCtx, syncWaitCancel := context.WithTimeout(ctx, syncWaitTimeout)
 	for {
 		getChainHeadCtx, getChainHeadCancel := context.WithTimeout(syncWaitCtx, time.Second)
-		head, err := rpc.GetChainHead(getChainHeadCtx, bob.GetRPCPort())
+		head, err := rpc.GetChainHead(getChainHeadCtx, bob.RPCPort())
 		getChainHeadCancel()
 
 		if err == nil && head.Number >= last {
@@ -471,7 +471,7 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 	nodes = append(nodes, n)
 
 	// send tx to non-authority node
-	api, err := gsrpc.NewSubstrateAPI(fmt.Sprintf("http://localhost:%s", nodes[idx].GetRPCPort()))
+	api, err := gsrpc.NewSubstrateAPI(fmt.Sprintf("http://localhost:%s", nodes[idx].RPCPort()))
 	require.NoError(t, err)
 
 	meta, err := api.RPC.State.GetMetadataLatest()
@@ -516,7 +516,7 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 
 	// get starting header so that we can lookup blocks by number later
 	getChainHeadCtx, getChainHeadCancel := context.WithTimeout(ctx, time.Second)
-	prevHeader, err := rpc.GetChainHead(getChainHeadCtx, nodes[idx].GetRPCPort())
+	prevHeader, err := rpc.GetChainHead(getChainHeadCtx, nodes[idx].RPCPort())
 	getChainHeadCancel()
 	require.NoError(t, err)
 
@@ -552,7 +552,7 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 	}
 
 	getChainHeadCtx, getChainHeadCancel = context.WithTimeout(ctx, time.Second)
-	header, err := rpc.GetChainHead(getChainHeadCtx, nodes[idx].GetRPCPort())
+	header, err := rpc.GetChainHead(getChainHeadCtx, nodes[idx].RPCPort())
 	getChainHeadCancel()
 	require.NoError(t, err)
 
@@ -566,7 +566,7 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 	extrinsicSearchCtx, extrinsicSearchCancel := context.WithTimeout(ctx, extrinsicSearchTimeout)
 	for {
 		getBlockCtx, getBlockCancel := context.WithTimeout(extrinsicSearchCtx, time.Second)
-		block, err := rpc.GetBlock(getBlockCtx, nodes[idx].GetRPCPort(), header.ParentHash)
+		block, err := rpc.GetBlock(getBlockCtx, nodes[idx].RPCPort(), header.ParentHash)
 		getBlockCancel()
 
 		require.NoError(t, err)
@@ -577,7 +577,7 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 		}
 
 		header = &block.Header
-		logger.Debugf("got block with header %s and body %v from node with key %s", header, block.Body, nodes[idx].GetKey())
+		logger.Debugf("got block with header %s and body %v from node with key %s", header, block.Body, nodes[idx].Key())
 
 		if block.Body != nil {
 			resExts = block.Body
@@ -626,7 +626,7 @@ func Test_SubmitAndWatchExtrinsic(t *testing.T) {
 	producingNode.InitAndStartTest(ctx, t, cancel)
 
 	// send tx to non-authority node
-	api, err := gsrpc.NewSubstrateAPI(fmt.Sprintf("ws://localhost:%s", producingNode.GetWSPort()))
+	api, err := gsrpc.NewSubstrateAPI(fmt.Sprintf("ws://localhost:%s", producingNode.WSPort()))
 	require.NoError(t, err)
 
 	meta, err := api.RPC.State.GetMetadataLatest()
@@ -808,13 +808,13 @@ func TestStress_SecondarySlotProduction(t *testing.T) {
 				fmt.Printf("%d iteration\n", i)
 
 				getBlockHashCtx, cancel := context.WithTimeout(ctx, time.Second)
-				hash, err := rpc.GetBlockHash(getBlockHashCtx, nodes[0].GetRPCPort(), fmt.Sprint(i))
+				hash, err := rpc.GetBlockHash(getBlockHashCtx, nodes[0].RPCPort(), fmt.Sprint(i))
 				cancel()
 
 				require.NoError(t, err)
 
 				getBlockCtx, cancel := context.WithTimeout(ctx, time.Second)
-				block, err := rpc.GetBlock(getBlockCtx, nodes[0].GetRPCPort(), hash)
+				block, err := rpc.GetBlock(getBlockCtx, nodes[0].RPCPort(), hash)
 				cancel()
 				require.NoError(t, err)
 

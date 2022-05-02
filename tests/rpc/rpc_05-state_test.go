@@ -35,7 +35,7 @@ func TestStateRPCResponseValidation(t *testing.T) {
 	node.InitAndStartTest(ctx, t, cancel)
 
 	getBlockHashCtx, getBlockHashCancel := context.WithTimeout(ctx, time.Second)
-	blockHash, err := rpc.GetBlockHash(getBlockHashCtx, node.GetRPCPort(), "")
+	blockHash, err := rpc.GetBlockHash(getBlockHashCtx, node.RPCPort(), "")
 	getBlockHashCancel()
 	require.NoError(t, err)
 
@@ -153,7 +153,7 @@ func TestStateRPCAPI(t *testing.T) {
 	time.Sleep(5 * time.Second) // Wait for block production
 
 	getBlockHashCtx, getBlockHashCancel := context.WithTimeout(ctx, time.Second)
-	blockHash, err := rpc.GetBlockHash(getBlockHashCtx, node.GetRPCPort(), "")
+	blockHash, err := rpc.GetBlockHash(getBlockHashCtx, node.RPCPort(), "")
 	getBlockHashCancel()
 	require.NoError(t, err)
 
@@ -332,7 +332,7 @@ func TestStateRPCAPI(t *testing.T) {
 	for _, test := range testCases {
 		t.Run(test.description, func(t *testing.T) {
 			postRPCCtx, cancel := context.WithTimeout(ctx, time.Second)
-			endpoint := rpc.NewEndpoint(node.GetRPCPort())
+			endpoint := rpc.NewEndpoint(node.RPCPort())
 			respBody, err := rpc.Post(postRPCCtx, endpoint, test.method, test.params)
 			cancel()
 			require.NoError(t, err)
@@ -365,7 +365,7 @@ func TestRPCStructParamUnmarshal(t *testing.T) {
 	}
 	t.Run(test.description, func(t *testing.T) {
 		postRPCCtx, postRPCCancel := context.WithTimeout(ctx, time.Second)
-		endpoint := rpc.NewEndpoint(node.GetRPCPort())
+		endpoint := rpc.NewEndpoint(node.RPCPort())
 		respBody, err := rpc.Post(postRPCCtx, endpoint, test.method, test.params)
 		postRPCCancel()
 		require.NoError(t, err)

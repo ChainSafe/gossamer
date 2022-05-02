@@ -61,7 +61,7 @@ func (fw *Framework) CallRPC(ctx context.Context, idx int, method, params string
 		return nil, fmt.Errorf("node index greater than quantity of nodes")
 	}
 	node := fw.nodes[idx]
-	respBody, err := rpc.Post(ctx, rpc.NewEndpoint(node.GetRPCPort()), method, params)
+	respBody, err := rpc.Post(ctx, rpc.NewEndpoint(node.RPCPort()), method, params)
 	if err != nil {
 		return nil, err
 	}
