@@ -31,7 +31,7 @@ func GetChainHead(ctx context.Context, rpcPort string) (header *types.Header, er
 
 	header, err = headerResponseToHeader(rpcHeader)
 	if err != nil {
-		return nil, fmt.Errorf("malformed RPC header: %w", err)
+		return nil, fmt.Errorf("malformed block header received: %w", err)
 	}
 
 	return header, nil
@@ -101,7 +101,7 @@ func GetBlock(ctx context.Context, rpcPort string, hash common.Hash) (
 	rpcHeader := rpcBlock.Block.Header
 	header, err := headerResponseToHeader(rpcHeader)
 	if err != nil {
-		return nil, fmt.Errorf("malformed RPC header: %w", err)
+		return nil, fmt.Errorf("malformed block header received: %w", err)
 	}
 
 	body, err := types.NewBodyFromExtrinsicStrings(rpcBlock.Block.Body)

@@ -15,7 +15,7 @@ import (
 func headerResponseToHeader(rpcHeader modules.ChainBlockHeaderResponse) (header *types.Header, err error) {
 	parentHash, err := common.HexToHash(rpcHeader.ParentHash)
 	if err != nil {
-		return nil, fmt.Errorf("malformed rpc header parent hash: %w", err)
+		return nil, fmt.Errorf("malformed parent hash: %w", err)
 	}
 
 	nb, err := common.HexToBytes(rpcHeader.Number)
