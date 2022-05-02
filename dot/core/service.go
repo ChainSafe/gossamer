@@ -150,9 +150,9 @@ func (s *Service) StorageRoot() (common.Hash, error) {
 		return common.Hash{}, ErrNilStorageState
 	}
 
-	s.storageState.Lock()
+	//s.storageState.Lock()
 	ts, err := s.storageState.TrieState(nil)
-	s.storageState.Unlock()
+	//s.storageState.Unlock()
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -491,9 +491,9 @@ func (s *Service) GetRuntimeVersion(bhash *common.Hash) (runtime.Version, error)
 		}
 	}
 
-	s.storageState.Lock()
+	//s.storageState.Lock()
 	ts, err := s.storageState.TrieState(stateRootHash)
-	s.storageState.Unlock()
+	//s.storageState.Unlock()
 	if err != nil {
 		return nil, err
 	}
@@ -567,9 +567,9 @@ func (s *Service) GetMetadata(bhash *common.Hash) ([]byte, error) {
 			return nil, err
 		}
 	}
-	s.storageState.Lock()
+	//s.storageState.Lock()
 	ts, err := s.storageState.TrieState(stateRootHash)
-	s.storageState.Unlock()
+	//s.storageState.Unlock()
 	if err != nil {
 		return nil, err
 	}
