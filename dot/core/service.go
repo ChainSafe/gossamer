@@ -567,9 +567,7 @@ func (s *Service) GetMetadata(bhash *common.Hash) ([]byte, error) {
 		}
 	}
 
-	s.storageState.Lock()
 	ts, err := s.storageState.TrieState(stateRootHash)
-	s.storageState.Unlock()
 	if err != nil {
 		return nil, err
 	}
