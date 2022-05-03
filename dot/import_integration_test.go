@@ -52,7 +52,6 @@ func TestImportState_Integration(t *testing.T) {
 	basepath := os.TempDir()
 
 	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 

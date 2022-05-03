@@ -88,3 +88,35 @@ func generateRandBytes(tb testing.TB, size int,
 	require.NoError(tb, err)
 	return b
 }
+
+func makeSeededTrie(t *testing.T, size int) (
+	trie *Trie, keyValues map[string][]byte) {
+	generator := newGenerator()
+	keyValues = generateKeyValues(t, generator, size)
+
+	trie = NewEmptyTrie()
+
+	for keyString, value := range keyValues {
+		key := []byte(keyString)
+		trie.Put(key, value)
+	}
+
+	return trie, keyValues
+}
+
+func pickKeys(keyValues map[string][]byte,
+	generator *rand.Rand, n int) (keys [][]byte) {
+	allKeys := make([]string, 0, len(keyValues))
+	for key := range keyValues {
+		allKeys = append(allKeys, key)
+	}
+
+	keys = make([][]byte, n)
+	for i := range keys {
+		pickedIndex := generator.Intn(len(allKeys))
+		pickedKeyString := allKeys[pickedIndex]
+		keys[i] = []byte(pickedKeyString)
+	}
+
+	return keys
+}

@@ -82,14 +82,16 @@ func Test_Branch_String(t *testing.T) {
 ├── Dirty: false
 ├── Key: nil
 ├── Value: nil
+├── Descendants: 0
 ├── Calculated encoding: nil
 └── Calculated digest: nil`,
 		},
 		"branch with value smaller than 1024": {
 			branch: &Branch{
-				Key:   []byte{1, 2},
-				Value: []byte{3, 4},
-				Dirty: true,
+				Key:         []byte{1, 2},
+				Value:       []byte{3, 4},
+				Dirty:       true,
+				Descendants: 3,
 				Children: [16]Node{
 					nil, nil, nil,
 					&Leaf{},
@@ -105,6 +107,7 @@ func Test_Branch_String(t *testing.T) {
 ├── Dirty: true
 ├── Key: 0x0102
 ├── Value: 0x0304
+├── Descendants: 3
 ├── Calculated encoding: nil
 ├── Calculated digest: nil
 ├── Child 3
@@ -121,6 +124,7 @@ func Test_Branch_String(t *testing.T) {
 |       ├── Dirty: false
 |       ├── Key: nil
 |       ├── Value: nil
+|       ├── Descendants: 0
 |       ├── Calculated encoding: nil
 |       └── Calculated digest: nil
 └── Child 11
@@ -134,9 +138,10 @@ func Test_Branch_String(t *testing.T) {
 		},
 		"branch with value higher than 1024": {
 			branch: &Branch{
-				Key:   []byte{1, 2},
-				Value: make([]byte, 1025),
-				Dirty: true,
+				Key:         []byte{1, 2},
+				Value:       make([]byte, 1025),
+				Dirty:       true,
+				Descendants: 3,
 				Children: [16]Node{
 					nil, nil, nil,
 					&Leaf{},
@@ -152,6 +157,7 @@ func Test_Branch_String(t *testing.T) {
 ├── Dirty: true
 ├── Key: 0x0102
 ├── Value: 0x0000000000000000...0000000000000000
+├── Descendants: 3
 ├── Calculated encoding: nil
 ├── Calculated digest: nil
 ├── Child 3
@@ -168,6 +174,7 @@ func Test_Branch_String(t *testing.T) {
 |       ├── Dirty: false
 |       ├── Key: nil
 |       ├── Value: nil
+|       ├── Descendants: 0
 |       ├── Calculated encoding: nil
 |       └── Calculated digest: nil
 └── Child 11

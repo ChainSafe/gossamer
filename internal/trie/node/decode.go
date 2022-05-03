@@ -98,6 +98,7 @@ func decodeBranch(reader io.Reader, header byte) (branch *Branch, err error) {
 		if (childrenBitmap[i/8]>>(i%8))&1 != 1 {
 			continue
 		}
+
 		var hash []byte
 		err := sd.Decode(&hash)
 		if err != nil {
@@ -113,10 +114,12 @@ func decodeBranch(reader io.Reader, header byte) (branch *Branch, err error) {
 				return nil, fmt.Errorf("%w: at index %d: %s",
 					ErrDecodeValue, i, err)
 			}
+			branch.AddDescendants(1)
 			branch.Children[i] = leaf
 			continue
 		}
 
+		branch.AddDescendants(1)
 		branch.Children[i] = &Leaf{
 			HashDigest: hash,
 		}

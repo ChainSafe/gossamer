@@ -154,7 +154,7 @@ func TestNewNode(t *testing.T) {
 	mockServiceRegistry.EXPECT().RegisterService(gomock.Any()).Times(8)
 
 	m := NewMocknodeBuilderIface(ctrl)
-	m.EXPECT().nodeInitialised(dotConfig.Global.BasePath).Return(nil)
+	m.EXPECT().isNodeInitialised(dotConfig.Global.BasePath).Return(nil)
 	m.EXPECT().createStateService(dotConfig).DoAndReturn(func(cfg *Config) (*state.Service, error) {
 		stateSrvc := state.NewService(config)
 		// create genesis from configuration file
@@ -285,7 +285,7 @@ func TestNodeInitialized(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := NodeInitialized(tt.basepath)
+			got := IsNodeInitialised(tt.basepath)
 			assert.Equal(t, tt.want, got)
 		})
 	}
