@@ -405,16 +405,14 @@ func (b *Service) handleSlot(epoch, slotNum uint64,
 	authorityIndex uint32,
 	preRuntimeDigest *types.PreRuntimeDigest,
 ) error {
-	//TODO log this baby up
-	logger.Trace("handlingSlot")
+	logger.Infof("in handleSlot epoch %v, slotNum %v, authorityIndex %v, preruntimeDigest %v", epoch, slotNum, authorityIndex, preRuntimeDigest)
 	parentHeader, err := b.blockState.BestBlockHeader()
 	if err != nil {
 		return err
 	}
-	logger.Trace("got parent header")
 
 	if parentHeader == nil {
-		logger.Trace("parentHeader is nil!")
+		logger.Error("parentHeader is nil, returning!")
 		return errNilParentHeader
 	}
 
@@ -424,7 +422,6 @@ func (b *Service) handleSlot(epoch, slotNum uint64,
 	if err != nil {
 		return err
 	}
-	logger.Trace("deep copied")
 
 	currentSlot := Slot{
 		start:    time.Now(),
@@ -432,14 +429,13 @@ func (b *Service) handleSlot(epoch, slotNum uint64,
 		number:   slotNum,
 	}
 
-	b.storageState.Lock()
+	// logger.Infof("locked storageState  epoch %v, slotNum %v, authorityIndex %v, preruntimeDigest %v", epoch, slotNum, authorityIndex, preRuntimeDigest)
+	// b.storageState.Lock()
 	//defer b.storageState.Unlock()
 	defer func() {
-		b.storageState.Unlock()
-		logger.Trace("unlocked storageState")
+		// b.storageState.Unlock()
+		// logger.Infof("unlocked storageState epoch %v, slotNum %v, authorityIndex %v, preruntimeDigest %v", epoch, slotNum, authorityIndex, preRuntimeDigest)
 	}()
-
-	logger.Trace("locked storageState")
 
 	// set runtime trie before building block
 	// if block building is successful, store the resulting trie in the storage state
@@ -449,18 +445,19 @@ func (b *Service) handleSlot(epoch, slotNum uint64,
 		logger.Errorf("failed to get parent trie with parent state root %s: %s", parent.StateRoot, err)
 		return err
 	}
-	logger.Trace("got the trie state")
+	// logger.Trace("got the trie state")
 
 	hash := parent.Hash()
 	rt, err := b.blockState.GetRuntime(&hash)
 	if err != nil {
 		return err
 	}
-	logger.Trace("got runtime")
+	// logger.Trace("got runtime")
 
 	rt.SetContextStorage(ts)
 
-	logger.Trace("set the context storage")
+	// logger.Trace("set the context storage")
+	logger.Infof("about to build block %v %v %v %v %v", parent, currentSlot, rt, authorityIndex, preRuntimeDigest)
 
 	// Dont think its getting here
 	block, err := b.buildBlock(parent, currentSlot, rt, authorityIndex, preRuntimeDigest)
@@ -469,12 +466,10 @@ func (b *Service) handleSlot(epoch, slotNum uint64,
 		return err
 	}
 
-	logger.Trace("built block")
-
 	logger.Infof(
 		"built block %d with hash %s, state root %s, epoch %d and slot %d",
 		block.Header.Number, block.Header.Hash(), block.Header.StateRoot, epoch, slotNum)
-	logger.Tracef(
+	logger.Infof(
 		"built block with parent hash %s, header %s and body %s",
 		parent.Hash(), block.Header.String(), block.Body)
 
@@ -489,7 +484,7 @@ func (b *Service) handleSlot(epoch, slotNum uint64,
 		logger.Warnf("failed to import built block: %s", err)
 		return err
 	}
-
+	logger.Infof("DONE handleSlot")
 	return nil
 }
 

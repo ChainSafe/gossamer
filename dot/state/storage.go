@@ -112,7 +112,7 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) 
 func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error) {
 	//fmt.Println("entering trieState")
 	test_uuid := uuid.New().ID()
-	logger.Tracef("entering trieState: ", test_uuid)
+	logger.Infof("START trieState: %v", test_uuid)
 	if root == nil {
 		sr, err := s.blockState.BestBlockStateRoot()
 		if err != nil {
@@ -120,22 +120,25 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 		}
 		root = &sr
 	}
+	logger.Infof("got root: %v uuid: %v", *root, test_uuid)
 
 	t := s.tries.get(*root)
-	logger.Tracef("got root: ", test_uuid)
+	logger.Infof("YAOOOO %v", t == nil)
 	if t == nil {
-		logger.Tracef("t is nil: ", test_uuid)
+		logger.Infof("t is nil: %v", test_uuid)
 		var err error
 		t, err = s.LoadFromDB(*root)
+		logger.Infof("done loadfromdb")
 		if err != nil {
 			return nil, err
 		}
 
 		s.tries.softSet(*root, t)
 	} else if t.MustHash() != *root {
+		logger.Infof("IN HERE?!?!: %v %v", t.MustHash(), *root)
 		panic("trie does not have expected root")
 	}
-	logger.Tracef("taking snapshot: ", test_uuid)
+	logger.Infof("taking snapshot uuid: %v ", test_uuid)
 
 	nextTrie := t.Snapshot()
 	next, err := rtstorage.NewTrieState(nextTrie)
@@ -143,7 +146,7 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 		return nil, err
 	}
 
-	logger.Tracef("returning trie with root %s to be modified", root)
+	logger.Infof("END trieState returning trie with root %s to be modified", root)
 	return next, nil
 }
 
