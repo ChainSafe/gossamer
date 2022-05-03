@@ -8,75 +8,42 @@ import (
 )
 
 const (
-	leafHeaderByte            byte = 0x1
-	branchHeaderByte          byte = 2
-	branchWithValueHeaderByte byte = 3
-	keyLenOffset                   = 0x3f
-	nodeHeaderShift                = 6
+	leafHeader            byte = 1 // 01
+	branchHeader          byte = 2 // 10
+	branchWithValueHeader byte = 3 // 11
 )
 
+const (
+	keyLenOffset    = 0x3f
+	nodeHeaderShift = 6
+)
+
+// encodeHeader writes the encoded header for the node.
 func encodeHeader(node *Node, writer io.Writer) (err error) {
-	switch node.Type() {
-	case Leaf:
-		return encodeLeafHeader(node, writer)
-	case Branch:
-		return encodeBranchHeader(node, writer)
-	default:
-		panic("header encoding not implemented")
-	}
-}
-
-// encodeBranchHeader writes the encoded header for the branch.
-func encodeBranchHeader(branch *Node, writer io.Writer) (err error) {
 	var header byte
-	if branch.Value == nil {
-		header = branchHeaderByte << nodeHeaderShift
-	} else {
-		header = branchWithValueHeaderByte << nodeHeaderShift
-	}
-
-	if len(branch.Key) >= keyLenOffset {
-		header = header | keyLenOffset
-		_, err = writer.Write([]byte{header})
-		if err != nil {
-			return err
-		}
-
-		err = encodeKeyLength(len(branch.Key), writer)
-		if err != nil {
-			return err
-		}
-	} else {
-		header = header | byte(len(branch.Key))
-		_, err = writer.Write([]byte{header})
-		if err != nil {
-			return err
+	if node.Type() == Leaf {
+		header = leafHeader
+	} else { // branch
+		if node.Value == nil {
+			header = branchHeader
+		} else {
+			header = branchWithValueHeader
 		}
 	}
+	header <<= nodeHeaderShift
 
-	return nil
-}
-
-// encodeLeafHeader writes the encoded header for the leaf.
-func encodeLeafHeader(leaf *Node, writer io.Writer) (err error) {
-	header := leafHeaderByte << nodeHeaderShift
-
-	if len(leaf.Key) < 63 {
-		header |= byte(len(leaf.Key))
+	if len(node.Key) < keyLenOffset {
+		header |= byte(len(node.Key))
 		_, err = writer.Write([]byte{header})
 		return err
 	}
 
-	header |= keyLenOffset
+	header = header | keyLenOffset
 	_, err = writer.Write([]byte{header})
 	if err != nil {
 		return err
 	}
 
-	err = encodeKeyLength(len(leaf.Key), writer)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	err = encodeKeyLength(len(node.Key), writer)
+	return err
 }

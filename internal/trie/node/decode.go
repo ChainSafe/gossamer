@@ -36,13 +36,13 @@ func Decode(reader io.Reader) (n *Node, err error) {
 
 	nodeTypeHeaderByte := header >> 6
 	switch nodeTypeHeaderByte {
-	case leafHeaderByte:
+	case leafHeader:
 		n, err = decodeLeaf(reader, header)
 		if err != nil {
 			return nil, fmt.Errorf("cannot decode leaf: %w", err)
 		}
 		return n, nil
-	case branchHeaderByte, branchWithValueHeaderByte:
+	case branchHeader, branchWithValueHeader:
 		n, err = decodeBranch(reader, header)
 		if err != nil {
 			return nil, fmt.Errorf("cannot decode branch: %w", err)
@@ -78,7 +78,7 @@ func decodeBranch(reader io.Reader, header byte) (node *Node, err error) {
 	sd := scale.NewDecoder(reader)
 
 	nodeType := header >> 6
-	if nodeType == branchWithValueHeaderByte {
+	if nodeType == branchWithValueHeader {
 		var value []byte
 		// branch w/ value
 		err := sd.Decode(&value)
@@ -103,7 +103,7 @@ func decodeBranch(reader io.Reader, header byte) (node *Node, err error) {
 		// Handle inlined leaf nodes.
 		const hashLength = 32
 		nodeTypeHeaderByte := hash[0] >> 6
-		if nodeTypeHeaderByte == leafHeaderByte && len(hash) < hashLength {
+		if nodeTypeHeaderByte == leafHeader && len(hash) < hashLength {
 			leaf, err := decodeLeaf(bytes.NewReader(hash[1:]), hash[0])
 			if err != nil {
 				return nil, fmt.Errorf("%w: at index %d: %s",
