@@ -416,6 +416,7 @@ func (s *Service) maintainTransactionPool(block *types.Block) {
 	txs := s.transactionState.PendingInPool()
 
 	for _, tx := range txs {
+		// TODO this was causing state roots to not match, should investigate
 		// // get the best block corresponding runtime
 		// rt, err := s.blockState.GetRuntime(nil)
 		// if err != nil {

@@ -557,6 +557,7 @@ func (b *Service) handleSlot(epoch, slotNum uint64,
 		logger.Warnf("failed to import built block: %s", err)
 		return err
 	}
+	
 	return nil
 }
 
