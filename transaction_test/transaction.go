@@ -7,6 +7,7 @@ import (
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v4"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
+	"time"
 )
 
 /*
@@ -141,6 +142,8 @@ func main() {
 
 	fmt.Printf("Transfer sent with hash %#x\n", hash)
 
+	time.Sleep(20 * time.Second)
+
 	accountInfo2, err := getAccountInfo(api, aliceKey)
 	if err != nil {
 		fmt.Println(err)
@@ -155,6 +158,7 @@ func main() {
 	////// Do the transfer and track the actual status
 	//var sub *author.ExtrinsicStatusSubscription
 	//
+	//fmt.Println("trying")
 	//// this is just for getting val
 	//enc, err := types.EncodeToHexString(ext)
 	//if err != nil {
