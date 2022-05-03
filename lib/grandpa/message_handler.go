@@ -290,12 +290,13 @@ func getEquivocatoryVoters(votes []AuthData) (map[ed25519.PublicKeyBytes]struct{
 
 	for _, v := range votes {
 		voters[v.AuthorityID]++
-		if voters[v.AuthorityID] > 2 {
-			return nil, errInvalidMultiplicity
-		}
-
-		if voters[v.AuthorityID] == 2 {
+		switch voters[v.AuthorityID] {
+		case 1:
+		case 2:
 			eqvVoters[v.AuthorityID] = struct{}{}
+		default:
+			return nil, fmt.Errorf("%w: authority id %x has %d votes",
+				errInvalidMultiplicity, v.AuthorityID, voters[v.AuthorityID])
 		}
 	}
 	return eqvVoters, nil
@@ -308,7 +309,7 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 
 	eqvVoters, err := getEquivocatoryVoters(fm.AuthData)
 	if err != nil {
-		return fmt.Errorf("could not get valid equivocatory votes: %w", err)
+		return fmt.Errorf("could not get valid equivocatory voters: %w", err)
 	}
 
 	var count int
@@ -443,7 +444,7 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) erro
 
 	eqvVoters, err := getEquivocatoryVoters(auths)
 	if err != nil {
-		return fmt.Errorf("could not get valid equivocatory votes: %w", err)
+		return fmt.Errorf("could not get valid equivocatory voters: %w", err)
 	}
 
 	// verify pre-commit justification
@@ -559,7 +560,7 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 
 	equivocatoryVoters, err := getEquivocatoryVoters(authPubKeys)
 	if err != nil {
-		return fmt.Errorf("could not get valid equivocatory votes: %w", err)
+		return fmt.Errorf("could not get valid equivocatory voters: %w", err)
 	}
 
 	var count int
