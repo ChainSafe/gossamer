@@ -305,18 +305,7 @@ func isDescendantOfHighestFinalisedBlock(blockState BlockState, hash common.Hash
 		return false, fmt.Errorf("could not get highest finalised header: %w", err)
 	}
 
-	// isDescendant, err := blockState.IsDescendantOf(highestHeader.Hash(), hash)
-	// if err != nil {
-	// 	return fmt.Errorf("could not check if %s is descendant of %s: %w", hash, highestHeader.Hash(), err)
-	// }
-	// if !isDescendant {
-	// 	return errVoteBlockMismatch
-	// }
-
-	// return nil
-
 	return blockState.IsDescendantOf(highestHeader.Hash(), hash)
-
 }
 
 func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) error {
