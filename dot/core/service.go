@@ -358,6 +358,9 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 		return nil
 	}
 
+	s.storageState.Lock()
+	defer s.storageState.Unlock()
+
 	// Check transaction validation on the best block.
 	rt, err := s.blockState.GetRuntime(nil)
 	if err != nil {
@@ -376,7 +379,7 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 		}
 
 		for _, ext := range *body {
-			logger.Tracef("validating transaction on re-org chain for extrinsic %s", ext)
+			logger.Warnf("validating transaction on re-org chain for extrinsic %s", ext)
 			decExt := &ctypes.Extrinsic{}
 			decoder := cscale.NewDecoder(bytes.NewReader(ext))
 			if err = decoder.Decode(&decExt); err != nil {
@@ -416,28 +419,37 @@ func (s *Service) maintainTransactionPool(block *types.Block) {
 		s.transactionState.RemoveExtrinsic(ext)
 	}
 
+	s.storageState.Lock()
+	defer s.storageState.Unlock()
+
 	// re-validate transactions in the pool and move them to the queue
 	txs := s.transactionState.PendingInPool()
+
+	if len(txs) > 0 {
+		logger.Warnf("inside maintainTransactionPool")
+		//return
+	}
+
 	for _, tx := range txs {
-		// get the best block corresponding runtime
-		rt, err := s.blockState.GetRuntime(nil)
-		if err != nil {
-			logger.Warnf("failed to get runtime to re-validate transactions in pool: %s", err)
-			continue
-		}
+		// // get the best block corresponding runtime
+		// rt, err := s.blockState.GetRuntime(nil)
+		// if err != nil {
+		// 	logger.Warnf("failed to get runtime to re-validate transactions in pool: %s", err)
+		// 	continue
+		// }
 
-		externalExt, err := s.buildTransaction(rt, tx.Extrinsic)
-		if err != nil {
-			logger.Errorf("Unable to build transaction \n")
-		}
+		// externalExt, err := s.buildTransaction(rt, tx.Extrinsic)
+		// if err != nil {
+		// 	logger.Errorf("Unable to build transaction \n")
+		// }
 
-		txnValidity, err := rt.ValidateTransaction(externalExt)
-		if err != nil {
-			s.transactionState.RemoveExtrinsic(tx.Extrinsic)
-			continue
-		}
+		// txnValidity, err := rt.ValidateTransaction(externalExt)
+		// if err != nil {
+		// 	s.transactionState.RemoveExtrinsic(tx.Extrinsic)
+		// 	continue
+		// }
 
-		tx = transaction.NewValidTransaction(tx.Extrinsic, txnValidity)
+		// tx = transaction.NewValidTransaction(tx.Extrinsic, txnValidity)
 
 		// Err is only thrown if tx is already in pool, in which case it still gets removed
 		h, _ := s.transactionState.Push(tx)
@@ -549,7 +561,6 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 	// broadcast transaction
 	msg := &network.TransactionMessage{Extrinsics: []types.Extrinsic{ext}}
 	s.net.GossipMessage(msg)
-	logger.Info("done!")
 	return nil
 }
 
@@ -559,6 +570,9 @@ func (s *Service) GetMetadata(bhash *common.Hash) ([]byte, error) {
 		stateRootHash *common.Hash
 		err           error
 	)
+
+	s.storageState.Lock()
+	defer s.storageState.Unlock()
 
 	// If block hash is not nil then fetch the state root corresponding to the block.
 	if bhash != nil {

@@ -457,7 +457,7 @@ func (b *Service) handleSlot(epoch, slotNum uint64,
 	rt.SetContextStorage(ts)
 
 	// logger.Trace("set the context storage")
-	logger.Infof("about to build block %v %v %v %v %v", parent, currentSlot, rt, authorityIndex, preRuntimeDigest)
+	//logger.Infof("about to build block %v %v %v %v %v", parent, currentSlot, rt, authorityIndex, preRuntimeDigest)
 
 	// Dont think its getting here
 	block, err := b.buildBlock(parent, currentSlot, rt, authorityIndex, preRuntimeDigest)

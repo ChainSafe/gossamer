@@ -308,6 +308,7 @@ func (in *Instance) exec(function string, data []byte) ([]byte, error) {
 
 	in.Lock()
 	defer in.Unlock()
+	logger.Warnf("executing %s", function)
 
 	if in.isClosed {
 		return nil, errors.New("instance is stopped")
@@ -334,6 +335,7 @@ func (in *Instance) exec(function string, data []byte) ([]byte, error) {
 		return nil, err
 	}
 
+	logger.Warnf("done executing %s", function)
 	offset, length := runtime.Int64ToPointerAndSize(res.ToI64())
 	return in.load(offset, length), nil
 }
