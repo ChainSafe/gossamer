@@ -310,8 +310,7 @@ func verifyIfDescendantOfHighestFinalisedBlock(blockState BlockState, hash commo
 		return fmt.Errorf("could not check if %s is descendant of %s: %w", hash, highestHeader.Hash(), err)
 	}
 	if !isDescendant {
-		// rename this error
-		return errInvalidVoteBlock
+		return errVoteBlockMismatch
 	}
 
 	return nil
@@ -324,7 +323,8 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 	}
 
 	if fm.SetID != h.grandpa.state.setID {
-		return ErrSetIDMismatch
+		return fmt.Errorf("%w: grandpa state set id %d, set id in the commit message %d",
+			ErrSetIDMismatch, h.grandpa.state.setID, fm.SetID)
 	}
 
 	err := verifyIfDescendantOfHighestFinalisedBlock(h.blockState, fm.Vote.Hash)
@@ -344,7 +344,8 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 
 		err := h.verifyJustification(just, fm.Round, h.grandpa.state.setID, precommit)
 		if err != nil {
-			logger.Errorf("failed to verify justification for vote from authority id: %s, for block hash: %")
+			logger.Errorf("failed to verify justification for vote from authority id %s, for block hash %s: %s",
+				just.AuthorityID.String(), just.Vote.Hash, err)
 			continue
 		}
 
@@ -480,7 +481,8 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) erro
 
 		err := h.verifyJustification(just, msg.Round, msg.SetID, precommit)
 		if err != nil {
-			logger.Errorf("could not verify precommit justification for block %s from authority %s: %s", just.Vote.Hash.String(), just.AuthorityID.String(), err)
+			logger.Errorf("could not verify precommit justification for block %s from authority %s: %s",
+				just.Vote.Hash.String(), just.AuthorityID.String(), err)
 			continue
 		}
 
