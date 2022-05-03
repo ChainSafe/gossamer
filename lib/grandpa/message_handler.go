@@ -299,21 +299,23 @@ func getEquivocatoryVoters(votes []AuthData) map[ed25519.PublicKeyBytes]struct{}
 	return eqvVoters
 }
 
-func verifyIfDescendantOfHighestFinalisedBlock(blockState BlockState, hash common.Hash) error {
+func isDescendantOfHighestFinalisedBlock(blockState BlockState, hash common.Hash) (bool, error) {
 	highestHeader, err := blockState.GetHighestFinalisedHeader()
 	if err != nil {
-		return fmt.Errorf("could not get highest finalised header: %w", err)
+		return false, fmt.Errorf("could not get highest finalised header: %w", err)
 	}
 
-	isDescendant, err := blockState.IsDescendantOf(highestHeader.Hash(), hash)
-	if err != nil {
-		return fmt.Errorf("could not check if %s is descendant of %s: %w", hash, highestHeader.Hash(), err)
-	}
-	if !isDescendant {
-		return errVoteBlockMismatch
-	}
+	// isDescendant, err := blockState.IsDescendantOf(highestHeader.Hash(), hash)
+	// if err != nil {
+	// 	return fmt.Errorf("could not check if %s is descendant of %s: %w", hash, highestHeader.Hash(), err)
+	// }
+	// if !isDescendant {
+	// 	return errVoteBlockMismatch
+	// }
 
-	return nil
+	// return nil
+
+	return blockState.IsDescendantOf(highestHeader.Hash(), hash)
 
 }
 
@@ -327,9 +329,12 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 			ErrSetIDMismatch, h.grandpa.state.setID, fm.SetID)
 	}
 
-	err := verifyIfDescendantOfHighestFinalisedBlock(h.blockState, fm.Vote.Hash)
+	isDescendant, err := isDescendantOfHighestFinalisedBlock(h.blockState, fm.Vote.Hash)
 	if err != nil {
 		return fmt.Errorf("cannot verify ancestry of highest finalised block: %w", err)
+	}
+	if !isDescendant {
+		return errVoteBlockMismatch
 	}
 
 	eqvVoters := getEquivocatoryVoters(fm.AuthData)
@@ -457,9 +462,12 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) erro
 		auths[i] = AuthData{AuthorityID: pcj.AuthorityID}
 	}
 
-	err := verifyIfDescendantOfHighestFinalisedBlock(h.blockState, msg.Hash)
+	isDescendant, err := isDescendantOfHighestFinalisedBlock(h.blockState, msg.Hash)
 	if err != nil {
 		return err
+	}
+	if !isDescendant {
+		return errVoteBlockMismatch
 	}
 
 	eqvVoters := getEquivocatoryVoters(auths)
@@ -569,9 +577,13 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 		return fmt.Errorf("already have finalised block with setID=%d and round=%d", setID, fj.Round)
 	}
 
-	err = verifyIfDescendantOfHighestFinalisedBlock(s.blockState, fj.Commit.Hash)
+	isDescendant, err := isDescendantOfHighestFinalisedBlock(s.blockState, fj.Commit.Hash)
 	if err != nil {
 		return err
+	}
+
+	if !isDescendant {
+		return errVoteBlockMismatch
 	}
 
 	auths, err := s.grandpaState.GetAuthorities(setID)
