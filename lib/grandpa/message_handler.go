@@ -329,7 +329,7 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 
 	err := verifyIfDescendantOfHighestFinalisedBlock(h.blockState, fm.Vote.Hash)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot verify ancestry of highest finalised block: %w", err)
 	}
 
 	eqvVoters := getEquivocatoryVoters(fm.AuthData)
