@@ -5,7 +5,7 @@ services:
       context: ./..
       dockerfile: devnet/substrate_alice.Dockerfile
       args:
-        DD_API_KEY: c34650b22bcdf17fc1511e5a69db7129
+        DD_API_KEY: ${DD_API_KEY}
     ports:
       - 7001
       - 8545:8545

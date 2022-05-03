@@ -5,7 +5,7 @@ services:
       context: ./..
       dockerfile: devnet/alice.Dockerfile
       args:
-        DD_API_KEY: c34650b22bcdf17fc1511e5a69db7129
+        DD_API_KEY: ${DD_API_KEY}
     ports:
       - 7001
       - 8545:8545
@@ -20,7 +20,7 @@ services:
       context: ./..
       dockerfile: devnet/bob.Dockerfile
       args:
-        DD_API_KEY: c34650b22bcdf17fc1511e5a69db7129
+        DD_API_KEY: ${DD_API_KEY}
         key: bob
     ports:
       - 7001
@@ -38,7 +38,7 @@ services:
       context: ./..
       dockerfile: devnet/bob.Dockerfile
       args:
-        DD_API_KEY: c34650b22bcdf17fc1511e5a69db7129
+        DD_API_KEY: ${DD_API_KEY}
         key: charlie
     ports:
       - 7001
