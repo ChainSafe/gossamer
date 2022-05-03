@@ -19,9 +19,9 @@ import (
 func (s *Service) validateTransaction(peerID peer.ID, head *types.Header, rt runtime.Instance,
 	tx types.Extrinsic) (validity *transaction.Validity, valid bool, err error) {
 	s.storageState.Lock()
-	defer s.storageState.Unlock()
 
 	ts, err := s.storageState.TrieState(&head.StateRoot)
+	s.storageState.Unlock()
 	if err != nil {
 		return nil, false, fmt.Errorf("cannot get trie state from storage for root %s: %w", head.StateRoot, err)
 	}

@@ -150,9 +150,9 @@ func (s *Service) StorageRoot() (common.Hash, error) {
 		return common.Hash{}, ErrNilStorageState
 	}
 
-	//s.storageState.Lock()
+	s.storageState.Lock()
 	ts, err := s.storageState.TrieState(nil)
-	//s.storageState.Unlock()
+	s.storageState.Unlock()
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -379,7 +379,7 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 		}
 
 		for _, ext := range *body {
-			logger.Warnf("validating transaction on re-org chain for extrinsic %s", ext)
+			logger.Tracef("validating transaction on re-org chain for extrinsic %s", ext)
 			decExt := &ctypes.Extrinsic{}
 			decoder := cscale.NewDecoder(bytes.NewReader(ext))
 			if err = decoder.Decode(&decExt); err != nil {
@@ -425,10 +425,10 @@ func (s *Service) maintainTransactionPool(block *types.Block) {
 	// re-validate transactions in the pool and move them to the queue
 	txs := s.transactionState.PendingInPool()
 
-	if len(txs) > 0 {
-		logger.Warnf("inside maintainTransactionPool")
-		//return
-	}
+	//if len(txs) > 0 {
+	//	logger.Warnf("inside maintainTransactionPool")
+	//	//return
+	//}
 
 	for _, tx := range txs {
 		// // get the best block corresponding runtime
@@ -503,9 +503,9 @@ func (s *Service) GetRuntimeVersion(bhash *common.Hash) (runtime.Version, error)
 		}
 	}
 
-	//s.storageState.Lock()
+	s.storageState.Lock()
 	ts, err := s.storageState.TrieState(stateRootHash)
-	//s.storageState.Unlock()
+	s.storageState.Unlock()
 	if err != nil {
 		return nil, err
 	}
