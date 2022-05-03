@@ -505,7 +505,7 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 
 	ts, err := s.storageState.TrieState(stateRoot)
 	if err != nil {
-		return fmt.Errorf("could not get trie state: %w", err)
+		return err
 	}
 
 	rt, err := s.blockState.GetRuntime(&bestBlockHash)
