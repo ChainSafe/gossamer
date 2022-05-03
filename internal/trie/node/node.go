@@ -20,7 +20,7 @@ type Node interface {
 	GetValue() (value []byte)
 	GetGeneration() (generation uint64)
 	SetGeneration(generation uint64)
-	Copy(copyChildren bool) Node
+	Copy(settings CopySettings) (cpy Node)
 	Type() Type
 	StringNode() (stringNode *gotree.Node)
 }

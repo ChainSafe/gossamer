@@ -64,8 +64,8 @@ func (*GrandpaHandshake) Type() byte {
 }
 
 // Hash ...
-func (*GrandpaHandshake) Hash() common.Hash {
-	return common.Hash{}
+func (*GrandpaHandshake) Hash() (common.Hash, error) {
+	return common.Hash{}, nil
 }
 
 // IsHandshake returns true

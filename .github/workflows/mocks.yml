@@ -15,15 +15,15 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: actions/setup-go@v2
+      - uses: actions/setup-go@v3
         with:
           go-version: 1.18
           stable: true
           check-latest: true
 
-      - run: go install github.com/vektra/mockery/v2@v2.10.0
+      - run: go install github.com/vektra/mockery/v2@v2.10
 
-      - run: go install github.com/golang/mock/mockgen@v1.6.0
+      - run: go install github.com/golang/mock/mockgen@v1.6
 
       - name: Check devnet module
         run: |

@@ -5,6 +5,7 @@ package main
 
 import (
 	"fmt"
+	"path/filepath"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot"
@@ -48,10 +49,13 @@ func exportAction(ctx *cli.Context) error {
 	}
 
 	tomlCfg := dotConfigToToml(cfg)
-	file := exportConfig(tomlCfg, config)
-	// export config will exit and log error on error
 
-	logger.Info("exported toml configuration to " + file.Name())
+	config = filepath.Clean(config)
+	err = exportConfig(tomlCfg, config)
+	if err != nil {
+		return fmt.Errorf("failed exporting TOML configuration: %w", err)
+	}
+	logger.Infof("exported toml configuration to %s", config)
 
 	return nil
 }
@@ -67,13 +71,13 @@ func dotConfigToToml(dcfg *dot.Config) *ctoml.Config {
 	}
 
 	cfg.Global = ctoml.GlobalConfig{
-		Name:         dcfg.Global.Name,
-		ID:           dcfg.Global.ID,
-		BasePath:     dcfg.Global.BasePath,
-		LogLvl:       dcfg.Global.LogLvl.String(),
-		MetricsPort:  dcfg.Global.MetricsPort,
-		RetainBlocks: dcfg.Global.RetainBlocks,
-		Pruning:      string(dcfg.Global.Pruning),
+		Name:           dcfg.Global.Name,
+		ID:             dcfg.Global.ID,
+		BasePath:       dcfg.Global.BasePath,
+		LogLvl:         dcfg.Global.LogLvl.String(),
+		MetricsAddress: dcfg.Global.MetricsAddress,
+		RetainBlocks:   dcfg.Global.RetainBlocks,
+		Pruning:        string(dcfg.Global.Pruning),
 	}
 
 	cfg.Log = ctoml.LogConfig{
@@ -115,14 +119,18 @@ func dotConfigToToml(dcfg *dot.Config) *ctoml.Config {
 	}
 
 	cfg.RPC = ctoml.RPCConfig{
-		Enabled:    dcfg.RPC.Enabled,
-		External:   dcfg.RPC.External,
-		Port:       dcfg.RPC.Port,
-		Host:       dcfg.RPC.Host,
-		Modules:    dcfg.RPC.Modules,
-		WSPort:     dcfg.RPC.WSPort,
-		WS:         dcfg.RPC.WS,
-		WSExternal: dcfg.RPC.WSExternal,
+		Enabled:          dcfg.RPC.Enabled,
+		External:         dcfg.RPC.External,
+		Unsafe:           dcfg.RPC.Unsafe,
+		UnsafeExternal:   dcfg.RPC.UnsafeExternal,
+		Port:             dcfg.RPC.Port,
+		Host:             dcfg.RPC.Host,
+		Modules:          dcfg.RPC.Modules,
+		WSPort:           dcfg.RPC.WSPort,
+		WS:               dcfg.RPC.WS,
+		WSExternal:       dcfg.RPC.WSExternal,
+		WSUnsafe:         dcfg.RPC.WSUnsafe,
+		WSUnsafeExternal: dcfg.RPC.WSUnsafeExternal,
 	}
 
 	return cfg

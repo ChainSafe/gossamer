@@ -5,10 +5,7 @@ package utils
 
 import (
 	"encoding/json"
-	"net"
-	"net/http"
 	"os"
-	"time"
 )
 
 var (
@@ -25,21 +22,6 @@ var (
 
 	// NETWORK_SIZE is the value for the environnent variable NETWORK_SIZE.
 	NETWORK_SIZE = os.Getenv("NETWORK_SIZE") //nolint:revive
-
-	// ContentTypeJSON is the JSON header application/json.
-	ContentTypeJSON   = "application/json"
-	dialTimeout       = 60 * time.Second
-	httpClientTimeout = 120 * time.Second
-
-	transport = &http.Transport{
-		Dial: (&net.Dialer{
-			Timeout: dialTimeout,
-		}).Dial,
-	}
-	httpClient = &http.Client{
-		Transport: transport,
-		Timeout:   httpClientTimeout,
-	}
 )
 
 // ServerResponse wraps the RPC response

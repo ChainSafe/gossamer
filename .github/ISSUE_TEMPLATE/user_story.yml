@@ -1,7 +1,6 @@
 name: User story
 description: Create a user story
 title: "User story: FILL-ME-PLEASE"
-labels: ["Status: Needs Triage"]
 body:
   - type: dropdown
     id: role

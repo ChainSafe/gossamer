@@ -375,8 +375,6 @@ func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 		gomock.AssignableToTypeOf(new(network.TransactionMessage))).
 		AnyTimes()
 
-	digestHandlerMock := NewMockDigestHandler(nil)
-
 	cfg := &core.Config{
 		Runtime:              rt,
 		Keystore:             ks,
@@ -386,7 +384,6 @@ func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 		EpochState:           srvc.Epoch,
 		Network:              mocknet,
 		CodeSubstitutedState: srvc.Base,
-		DigestHandler:        digestHandlerMock,
 	}
 
 	s, err := core.NewService(cfg)

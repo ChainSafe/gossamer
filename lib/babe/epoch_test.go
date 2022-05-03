@@ -91,8 +91,8 @@ func TestBabeService_getEpochDataAndStartSlot(t *testing.T) {
 		Authorities: []types.Authority{*authority},
 	}
 
-	mockEpochState1.EXPECT().GetEpochData(uint64(1)).Return(testEpochData, nil)
-	mockEpochState2.EXPECT().GetEpochData(uint64(1)).Return(testEpochData, nil)
+	mockEpochState1.EXPECT().GetEpochData(uint64(1), nil).Return(testEpochData, nil)
+	mockEpochState2.EXPECT().GetEpochData(uint64(1), nil).Return(testEpochData, nil)
 
 	mockEpochState1.EXPECT().HasConfigData(uint64(1)).Return(true, nil)
 	mockEpochState2.EXPECT().HasConfigData(uint64(1)).Return(false, nil)
@@ -102,7 +102,7 @@ func TestBabeService_getEpochDataAndStartSlot(t *testing.T) {
 		C2: 1,
 	}
 
-	mockEpochState1.EXPECT().GetConfigData(uint64(1)).Return(testConfigData, nil)
+	mockEpochState1.EXPECT().GetConfigData(uint64(1), nil).Return(testConfigData, nil)
 
 	testLatestConfigData := &types.ConfigData{
 		C1: 1,

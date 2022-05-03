@@ -272,9 +272,11 @@ func (s *Service) Stop() error {
 func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) error {
 	var err error
 	// initialise database using data directory
-	s.db, err = utils.SetupDatabase(s.dbPath, s.isMemDB)
-	if err != nil {
-		return fmt.Errorf("failed to create database: %s", err)
+	if !s.isMemDB {
+		s.db, err = utils.SetupDatabase(s.dbPath, s.isMemDB)
+		if err != nil {
+			return fmt.Errorf("failed to create database: %w", err)
+		}
 	}
 
 	block := &BlockState{

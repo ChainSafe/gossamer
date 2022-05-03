@@ -43,7 +43,7 @@ type GlobalConfig struct {
 	BasePath       string
 	LogLvl         log.Level
 	PublishMetrics bool
-	MetricsPort    uint32
+	MetricsAddress string
 	NoTelemetry    bool
 	TelemetryURLs  []genesis.TelemetryEndpoint
 	RetainBlocks   int64
@@ -184,14 +184,14 @@ func (p PprofConfig) String() string {
 func GssmrConfig() *Config {
 	return &Config{
 		Global: GlobalConfig{
-			Name:          gssmr.DefaultName,
-			ID:            gssmr.DefaultID,
-			BasePath:      gssmr.DefaultBasePath,
-			LogLvl:        gssmr.DefaultLvl,
-			MetricsPort:   gssmr.DefaultMetricsPort,
-			RetainBlocks:  gssmr.DefaultRetainBlocks,
-			Pruning:       pruner.Mode(gssmr.DefaultPruningMode),
-			TelemetryURLs: gssmr.DefaultTelemetryURLs,
+			Name:           gssmr.DefaultName,
+			ID:             gssmr.DefaultID,
+			BasePath:       gssmr.DefaultBasePath,
+			LogLvl:         gssmr.DefaultLvl,
+			MetricsAddress: gssmr.DefaultMetricsAddress,
+			RetainBlocks:   gssmr.DefaultRetainBlocks,
+			Pruning:        pruner.Mode(gssmr.DefaultPruningMode),
+			TelemetryURLs:  gssmr.DefaultTelemetryURLs,
 		},
 		Log: LogConfig{
 			CoreLvl:           gssmr.DefaultLvl,
@@ -248,14 +248,14 @@ func GssmrConfig() *Config {
 func KusamaConfig() *Config {
 	return &Config{
 		Global: GlobalConfig{
-			Name:          kusama.DefaultName,
-			ID:            kusama.DefaultID,
-			BasePath:      kusama.DefaultBasePath,
-			LogLvl:        kusama.DefaultLvl,
-			MetricsPort:   kusama.DefaultMetricsPort,
-			RetainBlocks:  gssmr.DefaultRetainBlocks,
-			Pruning:       pruner.Mode(gssmr.DefaultPruningMode),
-			TelemetryURLs: kusama.DefaultTelemetryURLs,
+			Name:           kusama.DefaultName,
+			ID:             kusama.DefaultID,
+			BasePath:       kusama.DefaultBasePath,
+			LogLvl:         kusama.DefaultLvl,
+			MetricsAddress: kusama.DefaultMetricsAddress,
+			RetainBlocks:   gssmr.DefaultRetainBlocks,
+			Pruning:        pruner.Mode(gssmr.DefaultPruningMode),
+			TelemetryURLs:  kusama.DefaultTelemetryURLs,
 		},
 		Log: LogConfig{
 			CoreLvl:           kusama.DefaultLvl,
@@ -306,14 +306,14 @@ func KusamaConfig() *Config {
 func PolkadotConfig() *Config {
 	return &Config{
 		Global: GlobalConfig{
-			Name:          polkadot.DefaultName,
-			ID:            polkadot.DefaultID,
-			BasePath:      polkadot.DefaultBasePath,
-			LogLvl:        polkadot.DefaultLvl,
-			RetainBlocks:  gssmr.DefaultRetainBlocks,
-			Pruning:       pruner.Mode(gssmr.DefaultPruningMode),
-			MetricsPort:   gssmr.DefaultMetricsPort,
-			TelemetryURLs: polkadot.DefaultTelemetryURLs,
+			Name:           polkadot.DefaultName,
+			ID:             polkadot.DefaultID,
+			BasePath:       polkadot.DefaultBasePath,
+			LogLvl:         polkadot.DefaultLvl,
+			RetainBlocks:   gssmr.DefaultRetainBlocks,
+			Pruning:        pruner.Mode(gssmr.DefaultPruningMode),
+			MetricsAddress: gssmr.DefaultMetricsAddress,
+			TelemetryURLs:  polkadot.DefaultTelemetryURLs,
 		},
 		Log: LogConfig{
 			CoreLvl:           polkadot.DefaultLvl,
@@ -364,14 +364,14 @@ func PolkadotConfig() *Config {
 func DevConfig() *Config {
 	return &Config{
 		Global: GlobalConfig{
-			Name:          dev.DefaultName,
-			ID:            dev.DefaultID,
-			BasePath:      dev.DefaultBasePath,
-			LogLvl:        dev.DefaultLvl,
-			MetricsPort:   dev.DefaultMetricsPort,
-			RetainBlocks:  dev.DefaultRetainBlocks,
-			Pruning:       pruner.Mode(dev.DefaultPruningMode),
-			TelemetryURLs: dev.DefaultTelemetryURLs,
+			Name:           dev.DefaultName,
+			ID:             dev.DefaultID,
+			BasePath:       dev.DefaultBasePath,
+			LogLvl:         dev.DefaultLvl,
+			MetricsAddress: dev.DefaultMetricsAddress,
+			RetainBlocks:   dev.DefaultRetainBlocks,
+			Pruning:        pruner.Mode(dev.DefaultPruningMode),
+			TelemetryURLs:  dev.DefaultTelemetryURLs,
 		},
 		Log: LogConfig{
 			CoreLvl:           dev.DefaultLvl,

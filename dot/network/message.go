@@ -36,7 +36,7 @@ type Message interface {
 type NotificationsMessage interface {
 	Message
 	Type() byte
-	Hash() common.Hash
+	Hash() (common.Hash, error)
 	IsHandshake() bool
 }
 
@@ -389,11 +389,13 @@ func (cm *ConsensusMessage) Decode(in []byte) error {
 }
 
 // Hash returns the Hash of ConsensusMessage
-func (cm *ConsensusMessage) Hash() common.Hash {
+func (cm *ConsensusMessage) Hash() (common.Hash, error) {
 	// scale encode each extrinsic
-	encMsg, _ := cm.Encode()
-	hash, _ := common.Blake2bHash(encMsg)
-	return hash
+	encMsg, err := cm.Encode()
+	if err != nil {
+		return common.Hash{}, fmt.Errorf("cannot encode message: %w", err)
+	}
+	return common.Blake2bHash(encMsg)
 }
 
 // IsHandshake returns false

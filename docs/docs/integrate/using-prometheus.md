@@ -22,8 +22,10 @@ the above command will starts the Prometheus service on `0.0.0.0:9090`.
 
 ### Prometheus
 
-Actually the Prometheus service reads a file `prometheus.yml` placed in the root level project folder, this file contains the definitions that Prometheus needs to collect the metrics. 
+Actually the Prometheus service reads a file `prometheus.yml` placed in the root level project folder, this file contains the definitions that Prometheus needs to collect the metrics.
 
 Linux: In the **job_name == gossamer** the **targets** property should be `[localhost:9876]`
 
-To publish metrics from the node use the flag **--publish-metrics**; i.e, `./bin/gossamer --chain {chain} --key {key} --publish-metrics`
+To publish metrics from the node use the flag `--publish-metrics`; i.e, `./bin/gossamer --chain {chain} --key {key} --publish-metrics`.
+
+By default, the Prometheus server listens on `localhost:9876`, which you can change with `--metrics-address`. To listen on all interfaces, you can use `--metrics-address=":9876"`.

@@ -136,6 +136,20 @@ func (s *Service) createNotificationsMessageHandler(
 			return fmt.Errorf("%w: expected %T but got %T", errMessageTypeNotValid, (NotificationsMessage)(nil), msg)
 		}
 
+		hasSeen, err := s.gossip.hasSeen(msg)
+		if err != nil {
+			return fmt.Errorf("could not check if message was seen before: %w", err)
+		}
+
+		if hasSeen {
+			// report peer if we get duplicate gossip message.
+			s.host.cm.peerSetHandler.ReportPeer(peerset.ReputationChange{
+				Value:  peerset.DuplicateGossipValue,
+				Reason: peerset.DuplicateGossipReason,
+			}, peer)
+			return nil
+		}
+
 		if msg.IsHandshake() {
 			logger.Tracef("received handshake on notifications sub-protocol %s from peer %s, message is: %s",
 				info.protocolID, stream.Conn().RemotePeer(), msg)
@@ -207,16 +221,7 @@ func (s *Service) createNotificationsMessageHandler(
 			return nil
 		}
 
-		if !s.gossip.hasSeen(msg) {
-			s.broadcastExcluding(info, peer, msg)
-			return nil
-		}
-
-		// report peer if we get duplicate gossip message.
-		s.host.cm.peerSetHandler.ReportPeer(peerset.ReputationChange{
-			Value:  peerset.DuplicateGossipValue,
-			Reason: peerset.DuplicateGossipReason,
-		}, peer)
+		s.broadcastExcluding(info, peer, msg)
 		return nil
 	}
 }
@@ -238,7 +243,13 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		return
 	}
 
-	if support, err := s.host.supportsProtocol(peer, info.protocolID); err != nil || !support {
+	support, err := s.host.supportsProtocol(peer, info.protocolID)
+	if err != nil {
+		logger.Errorf("could not check if protocol %s is supported by peer %s: %s", info.protocolID, peer, err)
+		return
+	}
+
+	if !support {
 		s.host.cm.peerSetHandler.ReportPeer(peerset.ReputationChange{
 			Value:  peerset.BadProtocolValue,
 			Reason: peerset.BadProtocolReason,
@@ -319,7 +330,7 @@ func (s *Service) sendHandshake(peer peer.ID, hs Handshake, info *notificationsP
 		peer, info.protocolID, hs)
 	stream, err := s.host.send(peer, info.protocolID, hs)
 	if err != nil {
-		logger.Tracef("failed to send message to peer %s: %s", peer, err)
+		logger.Tracef("failed to send handshake to peer %s: %s", peer, err)
 		// don't need to close the stream here, as it's nil!
 		return nil, err
 	}
@@ -345,7 +356,7 @@ func (s *Service) sendHandshake(peer peer.ID, hs Handshake, info *notificationsP
 		}
 
 		if hsResponse.err != nil {
-			logger.Tracef("failed to read handshake from peer %s using protocol %s: %s", peer, info.protocolID, err)
+			logger.Tracef("failed to read handshake from peer %s using protocol %s: %s", peer, info.protocolID, hsResponse.err)
 			closeOutboundStream(info, peer, stream)
 			return nil, hsResponse.err
 		}

@@ -721,13 +721,11 @@ func setupStateAndPopulateTrieState(t *testing.T, basepath string,
 }
 
 //go:generate mockgen -destination=mock_code_substituted_state_test.go -package modules github.com/ChainSafe/gossamer/dot/core CodeSubstitutedState
-//go:generate mockgen -destination=mock_digest_handler_test.go -package modules github.com/ChainSafe/gossamer/dot/core DigestHandler
 
 func newAuthorModule(t *testing.T, integrationTestController *integrationTestController) *AuthorModule {
 	t.Helper()
 
 	codeSubstitutedStateMock := NewMockCodeSubstitutedState(nil)
-	digestHandlerMock := NewMockDigestHandler(nil)
 
 	cfg := &core.Config{
 		TransactionState:     integrationTestController.stateSrv.Transaction,
@@ -736,7 +734,6 @@ func newAuthorModule(t *testing.T, integrationTestController *integrationTestCon
 		Network:              integrationTestController.network,
 		Keystore:             integrationTestController.keystore,
 		CodeSubstitutedState: codeSubstitutedStateMock,
-		DigestHandler:        digestHandlerMock,
 	}
 
 	core2test, err := core.NewService(cfg)

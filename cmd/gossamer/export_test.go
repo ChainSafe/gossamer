@@ -18,7 +18,7 @@ import (
 
 // TestExportCommand test "gossamer export --config"
 func TestExportCommand(t *testing.T) {
-	testCfg, testConfigFile := newTestConfigWithFile(t)
+	testCfg, testConfig := newTestConfigWithFile(t)
 	testDir := testCfg.Global.BasePath
 	genFile := dot.NewTestGenesisRawFile(t, testCfg)
 
@@ -28,7 +28,6 @@ func TestExportCommand(t *testing.T) {
 	testName := "testnode"
 	testBootnode := "bootnode"
 	testProtocol := "/protocol/test/0"
-	testConfig := testConfigFile.Name()
 
 	testcases := []struct {
 		description string
@@ -47,7 +46,7 @@ func TestExportCommand(t *testing.T) {
 					BasePath:       testCfg.Global.BasePath,
 					LogLvl:         log.Info,
 					PublishMetrics: testCfg.Global.PublishMetrics,
-					MetricsPort:    testCfg.Global.MetricsPort,
+					MetricsAddress: testCfg.Global.MetricsAddress,
 				},
 				Log: dot.LogConfig{
 					CoreLvl:           log.Info,

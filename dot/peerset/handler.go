@@ -77,6 +77,10 @@ func (h *Handler) RemovePeer(setID int, peers ...peer.ID) {
 
 // ReportPeer reports ReputationChange according to the peer behaviour.
 func (h *Handler) ReportPeer(rep ReputationChange, peers ...peer.ID) {
+	for _, pid := range peers {
+		logger.Debugf("reporting reputation change of %d to peer %s, reason: %s", rep.Value, pid, rep.Reason)
+	}
+
 	h.actionQueue <- action{
 		actionCall: reportPeer,
 		reputation: rep,

@@ -161,7 +161,7 @@ func TestVerifyProof_ShouldReturnTrueWithouCompareValues(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestBranchNodes_SameHash_DiferentPaths_GenerateAndVerifyProof(t *testing.T) {
+func TestBranchNodes_SameHash_DifferentPaths_GenerateAndVerifyProof(t *testing.T) {
 	value := []byte("somevalue")
 	entries := []Pair{
 		{Key: []byte("d"), Value: value},

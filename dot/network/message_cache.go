@@ -5,6 +5,7 @@ package network
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -55,6 +56,7 @@ func (m *messageCache) put(peer peer.ID, msg NotificationsMessage) (bool, error)
 func (m *messageCache) exists(peer peer.ID, msg NotificationsMessage) bool {
 	key, err := generateCacheKey(peer, msg)
 	if err != nil {
+		logger.Errorf("could not generate cache key: %s", err)
 		return false
 	}
 
@@ -67,7 +69,12 @@ func generateCacheKey(peer peer.ID, msg NotificationsMessage) ([]byte, error) {
 		return nil, errors.New("cache does not support handshake messages")
 	}
 
-	peerMsgHash, err := common.Blake2bHash(append([]byte(peer), msg.Hash().ToBytes()...))
+	msgHash, err := msg.Hash()
+	if err != nil {
+		return nil, fmt.Errorf("cannot hash notification message: %w", err)
+	}
+
+	peerMsgHash, err := common.Blake2bHash(append([]byte(peer), msgHash.ToBytes()...))
 	if err != nil {
 		return nil, err
 	}

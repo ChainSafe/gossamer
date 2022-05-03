@@ -142,7 +142,10 @@ func TestSync_Basic(t *testing.T) {
 		require.Len(t, errList, 0)
 	}()
 
-	err = compareChainHeadsWithRetry(t, nodes)
+	ctx := context.Background()
+	const getChainHeadTimeout = time.Second
+
+	err = compareChainHeadsWithRetry(ctx, t, nodes, getChainHeadTimeout)
 	require.NoError(t, err)
 }
 
@@ -162,16 +165,24 @@ func TestSync_MultipleEpoch(t *testing.T) {
 
 	time.Sleep(time.Second * 10)
 
-	slotDuration := utils.SlotDuration(t, nodes[0])
-	epochLength := utils.EpochLength(t, nodes[0])
+	ctx := context.Background()
+
+	slotDurationCtx, cancel := context.WithTimeout(ctx, time.Second)
+	slotDuration := utils.SlotDuration(slotDurationCtx, t, nodes[0].RPCPort)
+	cancel()
+
+	epochLengthCtx, cancel := context.WithTimeout(ctx, time.Second)
+	epochLength := utils.EpochLength(epochLengthCtx, t, nodes[0].RPCPort)
+	cancel()
 
 	// Wait for epoch to pass
 	time.Sleep(time.Duration(uint64(slotDuration.Nanoseconds()) * epochLength))
 
-	ctx := context.Background()
-
 	// Just checking that everythings operating as expected
-	header := utils.GetChainHead(t, nodes[0])
+	getChainHeadCtx, cancel := context.WithTimeout(ctx, time.Second)
+	header := utils.GetChainHead(getChainHeadCtx, t, nodes[0].RPCPort)
+	cancel()
+
 	currentHeight := header.Number
 	for i := uint(0); i < currentHeight; i++ {
 		t.Log("comparing...", i)
@@ -203,7 +214,7 @@ func TestSync_SingleSyncingNode(t *testing.T) {
 		utils.ConfigNoBABE, false, false)
 	require.NoError(t, err)
 
-	nodes := []*utils.Node{alice, bob}
+	nodes := []utils.Node{alice, bob}
 	defer func() {
 		errList := utils.StopNodes(t, nodes)
 		require.Len(t, errList, 0)
@@ -235,8 +246,12 @@ func TestSync_Bench(t *testing.T) {
 		false, true)
 	require.NoError(t, err)
 
+	ctx := context.Background()
+
 	for {
-		header, err := utils.GetChainHeadWithError(t, alice)
+		getChainHeadCtx, cancel := context.WithTimeout(ctx, time.Second)
+		header, err := utils.GetChainHeadWithError(getChainHeadCtx, t, alice.RPCPort)
+		cancel()
 		if err != nil {
 			continue
 		}
@@ -248,7 +263,10 @@ func TestSync_Bench(t *testing.T) {
 		time.Sleep(3 * time.Second)
 	}
 
-	err = utils.PauseBABE(t, alice)
+	pauseBabeCtx, cancel := context.WithTimeout(ctx, time.Second)
+	err = utils.PauseBABE(pauseBabeCtx, alice.RPCPort)
+	cancel()
+
 	require.NoError(t, err)
 	t.Log("BABE paused")
 
@@ -258,7 +276,7 @@ func TestSync_Bench(t *testing.T) {
 		utils.ConfigNotAuthority, false, true)
 	require.NoError(t, err)
 
-	nodes := []*utils.Node{alice, bob}
+	nodes := []utils.Node{alice, bob}
 	defer func() {
 		errList := utils.StopNodes(t, nodes)
 		require.Len(t, errList, 0)
@@ -274,7 +292,10 @@ func TestSync_Bench(t *testing.T) {
 			t.Fatal("did not sync")
 		}
 
-		head, err := utils.GetChainHeadWithError(t, bob)
+		getChainHeadCtx, getChainHeadCancel := context.WithTimeout(ctx, time.Second)
+		head, err := utils.GetChainHeadWithError(getChainHeadCtx, t, bob.RPCPort)
+		getChainHeadCancel()
+
 		if err != nil {
 			continue
 		}
@@ -296,8 +317,6 @@ func TestSync_Bench(t *testing.T) {
 
 	// assert block is correct
 	t.Log("comparing block...", numBlocks)
-
-	ctx := context.Background()
 
 	const compareTimeout = 5 * time.Second
 	compareCtx, cancel := context.WithTimeout(ctx, compareTimeout)
@@ -385,7 +404,7 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 		utils.TestDir(t, utils.KeyList[0]), utils.GenesisDev,
 		utils.ConfigNoGrandpa, false, true)
 	require.NoError(t, err)
-	nodes := []*utils.Node{node}
+	nodes := []utils.Node{node}
 
 	// Start rest of nodes
 	node, err = utils.RunGossamer(t, 1,
@@ -449,7 +468,12 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 	extEnc, err := types.EncodeToHexString(ext)
 	require.NoError(t, err)
 
-	prevHeader := utils.GetChainHead(t, nodes[idx]) // get starting header so that we can lookup blocks by number later
+	ctx := context.Background()
+
+	// get starting header so that we can lookup blocks by number later
+	getChainHeadCtx, getChainHeadCancel := context.WithTimeout(ctx, time.Second)
+	prevHeader := utils.GetChainHead(getChainHeadCtx, t, nodes[idx].RPCPort)
+	getChainHeadCancel()
 
 	// Send the extrinsic
 	hash, err := api.RPC.Author.SubmitExtrinsic(ext)
@@ -460,7 +484,10 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 
 	// wait until there's no more pending extrinsics
 	for i := 0; i < maxRetries; i++ {
-		exts := getPendingExtrinsics(t, nodes[idx])
+		getPendingExtsCtx, getPendingExtsCancel := context.WithTimeout(ctx, time.Second)
+		exts := getPendingExtrinsics(getPendingExtsCtx, t, nodes[idx])
+		getPendingExtsCancel()
+
 		if len(exts) == 0 {
 			break
 		}
@@ -468,7 +495,9 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 		time.Sleep(time.Second)
 	}
 
-	header := utils.GetChainHead(t, nodes[idx])
+	getChainHeadCtx, cancel := context.WithTimeout(ctx, time.Second)
+	header := utils.GetChainHead(getChainHeadCtx, t, nodes[idx].RPCPort)
+	cancel()
 
 	// search from child -> parent blocks for extrinsic
 	var (
@@ -477,7 +506,10 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 	)
 
 	for i := 0; i < maxRetries; i++ {
-		block := utils.GetBlock(t, nodes[idx], header.ParentHash)
+		getBlockCtx, getBlockCancel := context.WithTimeout(ctx, time.Second)
+		block := utils.GetBlock(getBlockCtx, t, nodes[idx].RPCPort, header.ParentHash)
+		getBlockCancel()
+
 		if block == nil {
 			// couldn't get block, increment retry counter
 			continue
@@ -511,8 +543,6 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 
 	require.True(t, included)
 
-	ctx := context.Background()
-
 	const compareTimeout = 5 * time.Second
 	compareCtx, cancel := context.WithTimeout(ctx, compareTimeout)
 
@@ -532,7 +562,7 @@ func Test_SubmitAndWatchExtrinsic(t *testing.T) {
 		utils.TestDir(t, utils.KeyList[0]),
 		utils.GenesisDev, utils.ConfigNoGrandpa, true, true)
 	require.NoError(t, err)
-	nodes := []*utils.Node{node}
+	nodes := []utils.Node{node}
 
 	defer func() {
 		t.Log("going to tear down gossamer...")
@@ -708,12 +738,21 @@ func TestStress_SecondarySlotProduction(t *testing.T) {
 			secondaryPlainCount := 0
 			secondaryVRFCount := 0
 
+			ctx := context.Background()
+
 			for i := 1; i < 10; i++ {
 				fmt.Printf("%d iteration\n", i)
-				hash, err := utils.GetBlockHash(t, nodes[0], fmt.Sprintf("%d", i))
+
+				getBlockHashCtx, cancel := context.WithTimeout(ctx, time.Second)
+				hash, err := utils.GetBlockHash(getBlockHashCtx, t, nodes[0].RPCPort, fmt.Sprintf("%d", i))
+				cancel()
+
 				require.NoError(t, err)
 
-				block := utils.GetBlock(t, nodes[0], hash)
+				getBlockCtx, cancel := context.WithTimeout(ctx, time.Second)
+				block := utils.GetBlock(getBlockCtx, t, nodes[0].RPCPort, hash)
+				cancel()
+
 				header := block.Header
 
 				preDigestItem := header.Digest.Types[0]

@@ -5,16 +5,11 @@ package trie
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
-	"os"
-	"path/filepath"
 	"runtime"
 	"sort"
-	"strings"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/stretchr/testify/assert"
@@ -32,30 +27,6 @@ const (
 	get
 	getLeaf
 )
-
-// writeFailedData writes key value pairs as hexadecimal to the path
-// given in tab separated values format (TSV).
-func writeFailedData(t *testing.T, kv map[string][]byte, path string) {
-	t.Logf("Writing failed test data (%d key values) to %s", len(kv), path)
-
-	lines := make([]string, 0, len(kv))
-	for keyString, value := range kv {
-		key := []byte(keyString)
-		line := fmt.Sprintf("%x\t%x", key, value)
-		lines = append(lines, line)
-	}
-
-	path, err := filepath.Abs(path)
-	require.NoError(t, err)
-
-	err = os.RemoveAll(path)
-	require.NoError(t, err)
-
-	data := []byte(strings.Join(lines, "\n"))
-
-	err = os.WriteFile(path, data, os.ModePerm)
-	require.NoError(t, err)
-}
 
 func buildSmallTrie() *Trie {
 	trie := NewEmptyTrie()
@@ -131,80 +102,17 @@ func TestPutAndGetOddKeyLengths(t *testing.T) {
 	runTests(t, trie, tests)
 }
 
-func Test_Trie_PutAndGet(t *testing.T) {
-	generator := newGenerator()
-	const kvSize = 10000
-	kv := generateKeyValues(t, generator, kvSize)
-
-	testPutAndGetKeyValues(t, kv)
-
-	if t.Failed() {
-		failedDataPath := fmt.Sprintf("./trie_putandget_failed_test_data_%d.tsv", time.Now().Unix())
-		writeFailedData(t, kv, failedDataPath)
-	}
-}
-
-func testPutAndGetKeyValues(t *testing.T, kv map[string][]byte) {
-	t.Helper()
-
+func Fuzz_Trie_PutAndGet(f *testing.F) {
 	trie := NewEmptyTrie()
+	var trieMutex sync.Mutex
 
-	for keyString, value := range kv {
-		key := []byte(keyString)
-
+	f.Fuzz(func(t *testing.T, key, value []byte) {
+		trieMutex.Lock()
 		trie.Put(key, value)
-
 		retrievedValue := trie.Get(key)
-		if !assert.Equal(t, value, retrievedValue) {
-			return
-		}
-	}
-}
-
-// Test_Trie_PutAndGet_FailedData tests random data that failed in Test_Trie_PutAndGet.
-// It checks every file starting with trie_putandget_failed_test_data_ and
-// removes them if the test passes.
-func Test_Trie_PutAndGet_FailedData(t *testing.T) {
-	var failedTestDataPaths []string
-	dirEntries, err := os.ReadDir(".")
-	require.NoError(t, err)
-	for _, dirEntry := range dirEntries {
-		if dirEntry.IsDir() {
-			continue
-		}
-
-		path := dirEntry.Name()
-		const targetPrefix = "trie_putandget_failed_test_data_"
-		if strings.HasPrefix(path, targetPrefix) {
-			failedTestDataPaths = append(failedTestDataPaths, path)
-		}
-	}
-
-	for _, path := range failedTestDataPaths {
-		data, err := os.ReadFile(path)
-		require.NoError(t, err)
-
-		kv := make(map[string][]byte)
-
-		lines := strings.Split(string(data), "\n")
-		for _, line := range lines {
-			parts := strings.Split(line, "\t")
-			key, err := hex.DecodeString(parts[0])
-			require.NoError(t, err)
-
-			value, err := hex.DecodeString(parts[1])
-			require.NoError(t, err)
-
-			kv[string(key)] = value
-		}
-
-		testPutAndGetKeyValues(t, kv)
-
-		if !t.Failed() {
-			err = os.RemoveAll(path)
-			require.NoError(t, err)
-		}
-	}
+		trieMutex.Unlock()
+		assert.Equal(t, retrievedValue, value)
+	})
 }
 
 func TestGetPartialKey(t *testing.T) {

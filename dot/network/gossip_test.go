@@ -89,12 +89,15 @@ func TestGossip(t *testing.T) {
 
 	time.Sleep(TestMessageTimeout)
 
-	_, ok := nodeB.gossip.seenMap[announceMessage.Hash()]
+	hash, err := announceMessage.Hash()
+	require.NoError(t, err)
+
+	_, ok := nodeB.gossip.seenMap[hash]
 	require.True(t, ok, "node B did not receive block request message from node A")
 
-	_, ok = nodeC.gossip.seenMap[announceMessage.Hash()]
+	_, ok = nodeC.gossip.seenMap[hash]
 	require.True(t, ok, "node C did not receive block request message from node B")
 
-	_, ok = nodeA.gossip.seenMap[announceMessage.Hash()]
+	_, ok = nodeA.gossip.seenMap[hash]
 	require.True(t, ok, "node A did not receive block request message from node C")
 }

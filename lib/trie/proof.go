@@ -84,7 +84,7 @@ func VerifyProof(proof [][]byte, root []byte, items []Pair) (bool, error) {
 	}
 
 	proofTrie := NewEmptyTrie()
-	if err := proofTrie.loadFromProof(proof, root); err != nil {
+	if err := proofTrie.LoadFromProof(proof, root); err != nil {
 		return false, fmt.Errorf("%w: %s", ErrLoadFromProof, err)
 	}
 

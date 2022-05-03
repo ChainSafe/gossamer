@@ -6,6 +6,7 @@ package state
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -137,7 +138,8 @@ func (s *GrandpaState) GetLatestRound() (uint64, error) {
 	return round, nil
 }
 
-// SetNextChange sets the next authority change
+// SetNextChange sets the next authority change at the given block number.
+// NOTE: This block number will be the last block in the current set and not part of the next set.
 func (s *GrandpaState) SetNextChange(authorities []types.GrandpaVoter, number uint) error {
 	currSetID, err := s.GetCurrentSetID()
 	if err != nil {
@@ -159,14 +161,19 @@ func (s *GrandpaState) SetNextChange(authorities []types.GrandpaVoter, number ui
 }
 
 // IncrementSetID increments the set ID
-func (s *GrandpaState) IncrementSetID() error {
+func (s *GrandpaState) IncrementSetID() (newSetID uint64, err error) {
 	currSetID, err := s.GetCurrentSetID()
 	if err != nil {
-		return err
+		return 0, fmt.Errorf("cannot get current set ID: %w", err)
 	}
 
-	nextSetID := currSetID + 1
-	return s.setCurrentSetID(nextSetID)
+	newSetID = currSetID + 1
+	err = s.setCurrentSetID(newSetID)
+	if err != nil {
+		return 0, fmt.Errorf("cannot set current set ID: %w", err)
+	}
+
+	return newSetID, nil
 }
 
 // setSetIDChangeAtBlock sets a set ID change at a certain block
@@ -174,7 +181,7 @@ func (s *GrandpaState) setSetIDChangeAtBlock(setID uint64, number uint) error {
 	return s.db.Put(setIDChangeKey(setID), common.UintToBytes(number))
 }
 
-// GetSetIDChange returs the block number where the set ID was updated
+// GetSetIDChange returns the block number where the set ID was updated
 func (s *GrandpaState) GetSetIDChange(setID uint64) (blockNumber uint, err error) {
 	num, err := s.db.Get(setIDChangeKey(setID))
 	if err != nil {
@@ -185,7 +192,7 @@ func (s *GrandpaState) GetSetIDChange(setID uint64) (blockNumber uint, err error
 }
 
 // GetSetIDByBlockNumber returns the set ID for a given block number
-func (s *GrandpaState) GetSetIDByBlockNumber(num uint) (uint64, error) {
+func (s *GrandpaState) GetSetIDByBlockNumber(blockNumber uint) (uint64, error) {
 	curr, err := s.GetCurrentSetID()
 	if err != nil {
 		return 0, err
@@ -209,13 +216,16 @@ func (s *GrandpaState) GetSetIDByBlockNumber(num uint) (uint64, error) {
 			return 0, err
 		}
 
-		// if the given block number is greater or equal to the block number of the set ID change,
-		// return the current set ID
-		if num <= changeUpper && num > changeLower {
+		// Set id changes at the last block in the set. So, block (changeLower) at which current
+		// set id was set, does not belong to current set. Thus, all block numbers in given set
+		// would be more than changeLower.
+		// Next set id change happens at the last block of current set. Thus, a block number from
+		// given set could be lower or equal to changeUpper.
+		if blockNumber <= changeUpper && blockNumber > changeLower {
 			return curr, nil
 		}
 
-		if num > changeUpper {
+		if blockNumber > changeUpper {
 			return curr + 1, nil
 		}
 

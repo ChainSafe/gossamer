@@ -92,7 +92,7 @@ func (b *Service) getEpochDataAndStartSlot(epoch uint64) (*epochData, uint64, er
 
 	has, err := b.epochState.HasEpochData(epoch)
 	if err != nil {
-		return nil, 0, fmt.Errorf("cannot check for epoch data for epoch %d: %w", epoch, err)
+		return nil, 0, fmt.Errorf("cannot check epoch state: %w", err)
 	}
 
 	if !has {
@@ -100,7 +100,7 @@ func (b *Service) getEpochDataAndStartSlot(epoch uint64) (*epochData, uint64, er
 		return nil, 0, fmt.Errorf("%w: for epoch %d", errNoEpochData, epoch)
 	}
 
-	data, err := b.epochState.GetEpochData(epoch)
+	data, err := b.epochState.GetEpochData(epoch, nil)
 	if err != nil {
 		return nil, 0, fmt.Errorf("cannot get epoch data for epoch %d: %w", epoch, err)
 	}
@@ -117,7 +117,7 @@ func (b *Service) getEpochDataAndStartSlot(epoch uint64) (*epochData, uint64, er
 
 	var cfgData *types.ConfigData
 	if has {
-		cfgData, err = b.epochState.GetConfigData(epoch)
+		cfgData, err = b.epochState.GetConfigData(epoch, nil)
 		if err != nil {
 			return nil, 0, fmt.Errorf("cannot get config data for epoch %d: %w", epoch, err)
 		}

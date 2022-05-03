@@ -4,6 +4,7 @@
 package network
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -25,19 +26,25 @@ func newGossip() *gossip {
 	}
 }
 
-// hasSeen broadcasts messages that have not been seen
-func (g *gossip) hasSeen(msg NotificationsMessage) bool {
-	// check if message has not been seen
-	msgHash := msg.Hash()
+// hasSeen checks if we have seen the given message before.
+func (g *gossip) hasSeen(msg NotificationsMessage) (bool, error) {
+	msgHash, err := msg.Hash()
+	if err != nil {
+		return false, fmt.Errorf("could not hash notification message: %w", err)
+	}
+
 	g.seenMutex.Lock()
 	defer g.seenMutex.Unlock()
 
+	// check if message has not been seen
 	_, ok := g.seenMap[msgHash]
 	if !ok {
 		// set message to has been seen
-		g.seenMap[msgHash] = struct{}{}
-		return false
+		if !msg.IsHandshake() {
+			g.seenMap[msgHash] = struct{}{}
+		}
+		return false, nil
 	}
 
-	return true
+	return true, nil
 }

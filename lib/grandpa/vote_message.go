@@ -35,14 +35,14 @@ func (s *Service) receiveVoteMessages(ctx context.Context) {
 				continue
 			}
 
-			logger.Tracef("received vote message %v from %s", msg.msg, msg.from)
+			logger.Debugf("received vote message %v from %s", msg.msg, msg.from)
 			vm := msg.msg
 
 			switch vm.Message.Stage {
 			case prevote, primaryProposal:
 				s.telemetry.SendMessage(
 					telemetry.NewAfgReceivedPrevote(
-						vm.Message.Hash,
+						vm.Message.BlockHash,
 						fmt.Sprint(vm.Message.Number),
 						vm.Message.AuthorityID.String(),
 					),
@@ -50,7 +50,7 @@ func (s *Service) receiveVoteMessages(ctx context.Context) {
 			case precommit:
 				s.telemetry.SendMessage(
 					telemetry.NewAfgReceivedPrecommit(
-						vm.Message.Hash,
+						vm.Message.BlockHash,
 						fmt.Sprint(vm.Message.Number),
 						vm.Message.AuthorityID.String(),
 					),
@@ -101,7 +101,7 @@ func (s *Service) createSignedVoteAndVoteMessage(vote *Vote, stage Subround) (*S
 
 	sm := &SignedMessage{
 		Stage:       stage,
-		Hash:        pc.Vote.Hash,
+		BlockHash:   pc.Vote.Hash,
 		Number:      pc.Vote.Number,
 		Signature:   ed25519.NewSignatureBytes(sig),
 		AuthorityID: s.keypair.Public().(*ed25519.PublicKey).AsBytes(),
@@ -127,19 +127,6 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 	pk, err := ed25519.NewPublicKey(m.Message.AuthorityID[:])
 	if err != nil {
 		return nil, err
-	}
-
-	switch m.Message.Stage {
-	case prevote, primaryProposal:
-		pv, has := s.loadVote(pk.AsBytes(), prevote)
-		if has && pv.Vote.Hash.Equal(m.Message.Hash) {
-			return nil, errVoteExists
-		}
-	case precommit:
-		pc, has := s.loadVote(pk.AsBytes(), precommit)
-		if has && pc.Vote.Hash.Equal(m.Message.Hash) {
-			return nil, errVoteExists
-		}
 	}
 
 	err = validateMessageSignature(pk, m)
@@ -192,12 +179,12 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 		return nil, err
 	}
 
-	vote := NewVote(m.Message.Hash, m.Message.Number)
+	vote := NewVote(m.Message.BlockHash, m.Message.Number)
 
-	// if the vote is from ourselves, ignore
+	// if the vote is from ourselves, return an error
 	kb := [32]byte(s.publicKeyBytes())
 	if bytes.Equal(m.Message.AuthorityID[:], kb[:]) {
-		return vote, nil
+		return nil, errVoteFromSelf
 	}
 
 	err = s.validateVote(vote)
@@ -305,7 +292,7 @@ func (s *Service) validateVote(v *Vote) error {
 func validateMessageSignature(pk *ed25519.PublicKey, m *VoteMessage) error {
 	msg, err := scale.Marshal(FullVote{
 		Stage: m.Message.Stage,
-		Vote:  *NewVote(m.Message.Hash, m.Message.Number),
+		Vote:  *NewVote(m.Message.BlockHash, m.Message.Number),
 		Round: m.Round,
 		SetID: m.SetID,
 	})

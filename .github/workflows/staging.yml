@@ -4,9 +4,6 @@ on:
     branches:
       - staging
 
-env:
-  GO111MODULE: on
-
 jobs:
   update:
     strategy:

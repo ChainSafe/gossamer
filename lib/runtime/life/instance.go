@@ -39,11 +39,10 @@ type Config struct {
 	Resolver exec.ImportResolver
 }
 
-// Instance represents a v0.8 runtime life instance
+// Instance is a runtime life instance
 type Instance struct {
-	vm      *exec.VirtualMachine
-	mu      sync.Mutex
-	version runtime.Version
+	vm *exec.VirtualMachine
+	mu sync.Mutex
 }
 
 // GetCodeHash returns code hash of the runtime
@@ -123,10 +122,6 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 	}
 
 	ctx = runtimeCtx
-	inst.version, err = inst.Version()
-	if err != nil {
-		logger.Errorf("error checking instance version: %s", err)
-	}
 	return inst, nil
 }
 

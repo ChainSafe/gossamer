@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/dot/digest"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -30,10 +29,6 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 
 	if cfg == nil {
 		cfg = &Config{}
-	}
-
-	if cfg.DigestHandler == nil {
-		cfg.DigestHandler = &digest.Handler{} // only for nil check in NewService
 	}
 
 	if cfg.Keystore == nil {
