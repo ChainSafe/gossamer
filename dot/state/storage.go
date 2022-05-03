@@ -136,7 +136,7 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 		s.tries.softSet(*root, t)
 	} else if t.MustHash() != *root {
 		logger.Infof("IN HERE?!?!: %v %v", t.MustHash(), *root)
-		panic("trie does not have expected root")
+		// panic("trie does not have expected root")
 	}
 	logger.Infof("taking snapshot uuid: %v ", test_uuid)
 

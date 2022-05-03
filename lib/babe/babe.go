@@ -429,12 +429,12 @@ func (b *Service) handleSlot(epoch, slotNum uint64,
 		number:   slotNum,
 	}
 
-	// logger.Infof("locked storageState  epoch %v, slotNum %v, authorityIndex %v, preruntimeDigest %v", epoch, slotNum, authorityIndex, preRuntimeDigest)
-	// b.storageState.Lock()
+	logger.Infof("locked storageState  epoch %v, slotNum %v, authorityIndex %v, preruntimeDigest %v", epoch, slotNum, authorityIndex, preRuntimeDigest)
+	b.storageState.Lock()
 	//defer b.storageState.Unlock()
 	defer func() {
-		// b.storageState.Unlock()
-		// logger.Infof("unlocked storageState epoch %v, slotNum %v, authorityIndex %v, preruntimeDigest %v", epoch, slotNum, authorityIndex, preRuntimeDigest)
+		b.storageState.Unlock()
+		logger.Infof("unlocked storageState epoch %v, slotNum %v, authorityIndex %v, preruntimeDigest %v", epoch, slotNum, authorityIndex, preRuntimeDigest)
 	}()
 
 	// set runtime trie before building block
