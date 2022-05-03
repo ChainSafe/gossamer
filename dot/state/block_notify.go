@@ -91,9 +91,7 @@ func (bs *BlockState) notifyFinalized(hash common.Hash, round, setID uint64) {
 		SetID:  setID,
 	}
 
-	test_uuid := uuid.New().ID()
 	for ch := range bs.finalised {
-		logger.Tracef("In finalized loop: ", test_uuid)
 		go func(ch chan *types.FinalisationInfo) {
 			select {
 			case ch <- info:

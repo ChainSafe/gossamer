@@ -27,6 +27,7 @@ func (in *Instance) ValidateTransaction(e types.Extrinsic) (*transaction.Validit
 
 	v := transaction.NewValidity(0, [][]byte{{}}, [][]byte{{}}, 0, false)
 	err = scale.Unmarshal(ret[1:], v)
+
 	return v, err
 }
 

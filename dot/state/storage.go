@@ -14,8 +14,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
-
-	"github.com/google/uuid"
 )
 
 // storagePrefix storage key prefix.
@@ -110,9 +108,6 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) 
 // TrieState returns the TrieState for a given state root.
 // If no state root is provided, it returns the TrieState for the current chain head.
 func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error) {
-	//fmt.Println("entering trieState")
-	test_uuid := uuid.New().ID()
-	logger.Infof("START trieState: %v", test_uuid)
 	if root == nil {
 		sr, err := s.blockState.BestBlockStateRoot()
 		if err != nil {
@@ -120,24 +115,19 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 		}
 		root = &sr
 	}
-	logger.Infof("got root: %v uuid: %v", *root, test_uuid)
 
 	t := s.tries.get(*root)
 	if t == nil {
-		logger.Infof("t is nil: %v", test_uuid)
 		var err error
 		t, err = s.LoadFromDB(*root)
-		logger.Infof("done loadfromdb")
 		if err != nil {
 			return nil, err
 		}
 
 		s.tries.softSet(*root, t)
 	} else if t.MustHash() != *root {
-		logger.Criticalf("IN HERE?!?!: %v %v", t.MustHash(), *root)
 		panic("trie does not have expected root")
 	}
-	logger.Infof("taking snapshot uuid: %v ", test_uuid)
 
 	nextTrie := t.Snapshot()
 	next, err := rtstorage.NewTrieState(nextTrie)
@@ -145,7 +135,7 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 		return nil, err
 	}
 
-	logger.Infof("END trieState returning trie with root %s to be modified", root)
+	logger.Tracef("returning trie with root %s to be modified", root)
 	return next, nil
 }
 

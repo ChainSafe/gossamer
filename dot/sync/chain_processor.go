@@ -150,7 +150,6 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 		// TODO: this is probably unnecessary, since the state is already in the database
 		// however, this case shouldn't be hit often, since it's only hit if the node state
 		// is rewinded or if the node shuts down unexpectedly (#1784)
-		logger.Trace("We here in the one NOT LOCKED")
 		state, err := s.storageState.TrieState(&block.Header.StateRoot)
 		if err != nil {
 			logger.Warnf("failed to load state for block with hash %s: %s", block.Header.Hash(), err)
@@ -230,7 +229,6 @@ func (s *chainProcessor) handleBlock(block *types.Block) error {
 	defer s.storageState.Unlock()
 
 	ts, err := s.storageState.TrieState(&parent.StateRoot)
-	//s.storageState.Unlock()
 	if err != nil {
 		return err
 	}
