@@ -283,7 +283,7 @@ func (s *Service) validateVote(v *Vote) error {
 	}
 
 	if !isDescendant {
-		return errInvalidVoteBlock
+		return errVoteBlockMismatch
 	}
 
 	return nil

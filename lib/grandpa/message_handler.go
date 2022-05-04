@@ -302,9 +302,31 @@ func getEquivocatoryVoters(votes []AuthData) (map[ed25519.PublicKeyBytes]struct{
 	return eqvVoters, nil
 }
 
+func isDescendantOfHighestFinalisedBlock(blockState BlockState, hash common.Hash) (bool, error) {
+	highestHeader, err := blockState.GetHighestFinalisedHeader()
+	if err != nil {
+		return false, fmt.Errorf("could not get highest finalised header: %w", err)
+	}
+
+	return blockState.IsDescendantOf(highestHeader.Hash(), hash)
+}
+
 func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) error {
 	if len(fm.Precommits) != len(fm.AuthData) {
 		return ErrPrecommitSignatureMismatch
+	}
+
+	if fm.SetID != h.grandpa.state.setID {
+		return fmt.Errorf("%w: grandpa state set id %d, set id in the commit message %d",
+			ErrSetIDMismatch, h.grandpa.state.setID, fm.SetID)
+	}
+
+	isDescendant, err := isDescendantOfHighestFinalisedBlock(h.blockState, fm.Vote.Hash)
+	if err != nil {
+		return fmt.Errorf("cannot verify ancestry of highest finalised block: %w", err)
+	}
+	if !isDescendant {
+		return errVoteBlockMismatch
 	}
 
 	eqvVoters, err := getEquivocatoryVoters(fm.AuthData)
@@ -314,11 +336,6 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 
 	var count int
 	for i, pc := range fm.Precommits {
-		_, ok := eqvVoters[fm.AuthData[i].AuthorityID]
-		if ok {
-			continue
-		}
-
 		just := &SignedVote{
 			Vote:        pc,
 			Signature:   fm.AuthData[i].Signature,
@@ -327,13 +344,23 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 
 		err := h.verifyJustification(just, fm.Round, h.grandpa.state.setID, precommit)
 		if err != nil {
-			logger.Errorf("could not verify justification: %s", err)
+			logger.Errorf("failed to verify justification for vote from authority id %s, for block hash %s: %s",
+				just.AuthorityID.String(), just.Vote.Hash, err)
 			continue
 		}
 
 		isDescendant, err := h.blockState.IsDescendantOf(fm.Vote.Hash, just.Vote.Hash)
 		if err != nil {
 			logger.Warnf("could not check for descendant: %s", err)
+			continue
+		}
+
+		err = verifyBlockHashAgainstBlockNumber(h.blockState, pc.Hash, uint(pc.Number))
+		if err != nil {
+			return err
+		}
+
+		if _, ok := eqvVoters[fm.AuthData[i].AuthorityID]; ok {
 			continue
 		}
 
@@ -425,21 +452,17 @@ func (h *MessageHandler) verifyPreVoteJustification(msg *CatchUpResponse) (commo
 }
 
 func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) error {
-	for _, pcj := range msg.PreCommitJustification {
-		err := verifyBlockHashAgainstBlockNumber(h.blockState, pcj.Vote.Hash, uint(pcj.Vote.Number))
-		if err != nil {
-			if errors.Is(err, chaindb.ErrKeyNotFound) {
-				h.grandpa.tracker.addCatchUpResponse(msg)
-				logger.Infof("we might not have synced to the given block %s yet: %s", pcj.Vote.Hash, err)
-				continue
-			}
-			return err
-		}
-	}
-
 	auths := make([]AuthData, len(msg.PreCommitJustification))
 	for i, pcj := range msg.PreCommitJustification {
 		auths[i] = AuthData{AuthorityID: pcj.AuthorityID}
+	}
+
+	isDescendant, err := isDescendantOfHighestFinalisedBlock(h.blockState, msg.Hash)
+	if err != nil {
+		return err
+	}
+	if !isDescendant {
+		return errVoteBlockMismatch
 	}
 
 	eqvVoters, err := getEquivocatoryVoters(auths)
@@ -452,12 +475,24 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) erro
 	for idx := range msg.PreCommitJustification {
 		just := &msg.PreCommitJustification[idx]
 
-		if _, ok := eqvVoters[just.AuthorityID]; ok {
-			continue
+		err = verifyBlockHashAgainstBlockNumber(h.blockState, just.Vote.Hash, uint(just.Vote.Number))
+		if err != nil {
+			if errors.Is(err, chaindb.ErrKeyNotFound) {
+				h.grandpa.tracker.addCatchUpResponse(msg)
+				logger.Infof("we might not have synced to the given block %s yet: %s", just.Vote.Hash, err)
+				continue
+			}
+			return err
 		}
 
 		err := h.verifyJustification(just, msg.Round, msg.SetID, precommit)
 		if err != nil {
+			logger.Errorf("could not verify precommit justification for block %s from authority %s: %s",
+				just.Vote.Hash.String(), just.AuthorityID.String(), err)
+			continue
+		}
+
+		if _, ok := eqvVoters[just.AuthorityID]; ok {
 			continue
 		}
 
@@ -540,6 +575,15 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 		return fmt.Errorf("already have finalised block with setID=%d and round=%d", setID, fj.Round)
 	}
 
+	isDescendant, err := isDescendantOfHighestFinalisedBlock(s.blockState, fj.Commit.Hash)
+	if err != nil {
+		return err
+	}
+
+	if !isDescendant {
+		return errVoteBlockMismatch
+	}
+
 	auths, err := s.grandpaState.GetAuthorities(setID)
 	if err != nil {
 		return fmt.Errorf("cannot get authorities for set ID: %w", err)
@@ -570,10 +614,6 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 		setID, fj.Round, fj.Commit.Hash, fj.Commit.Number, len(fj.Commit.Precommits))
 
 	for _, just := range fj.Commit.Precommits {
-		if _, ok := equivocatoryVoters[just.AuthorityID]; ok {
-			continue
-		}
-
 		// check if vote was for descendant of committed block
 		isDescendant, err := s.blockState.IsDescendantOf(hash, just.Vote.Hash)
 		if err != nil {
@@ -611,6 +651,10 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 
 		if !ok {
 			return ErrInvalidSignature
+		}
+
+		if _, ok := equivocatoryVoters[just.AuthorityID]; ok {
+			continue
 		}
 
 		count++
