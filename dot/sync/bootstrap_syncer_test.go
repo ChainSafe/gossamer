@@ -14,23 +14,6 @@ import (
 func Test_bootstrapSyncer_handleWorkerResult(t *testing.T) {
 	t.Parallel()
 
-	blockStateBuilderEmpty := func(ctrl *gomock.Controller) BlockState {
-		return NewMockBlockState(ctrl)
-	}
-
-	blockStateBuilder := func(ctrl *gomock.Controller) BlockState {
-		mockBlockState := NewMockBlockState(ctrl)
-		mockBlockState.EXPECT().BestBlockHeader().Return(&types.Header{Number: 2}, nil)
-		return mockBlockState
-	}
-
-	blockStateBuilderWithFinalised := func(ctrl *gomock.Controller) BlockState {
-		mockBlockState := NewMockBlockState(ctrl)
-		mockBlockState.EXPECT().BestBlockHeader().Return(&types.Header{Number: 2}, nil)
-		mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(&types.Header{Number: 1}, nil)
-		return mockBlockState
-	}
-
 	tests := map[string]struct {
 		blockStateBuilder func(ctrl *gomock.Controller) BlockState
 		worker            *worker
@@ -38,18 +21,29 @@ func Test_bootstrapSyncer_handleWorkerResult(t *testing.T) {
 		err               error
 	}{
 		"nil worker.err returns nil": {
-			blockStateBuilder: blockStateBuilderEmpty,
-			worker:            &worker{},
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				return NewMockBlockState(ctrl)
+			},
+			worker: &worker{},
 		},
 		"targetNumber < bestBlockHeader number returns nil": {
-			blockStateBuilder: blockStateBuilder,
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().BestBlockHeader().Return(&types.Header{Number: 2}, nil)
+				return mockBlockState
+			},
 			worker: &worker{
 				err:          &workerError{},
 				targetNumber: uintPtr(0),
 			},
 		},
 		"targetNumber > bestBlockHeader number worker errUnknownParent returns worker": {
-			blockStateBuilder: blockStateBuilderWithFinalised,
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().BestBlockHeader().Return(&types.Header{Number: 2}, nil)
+				mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(&types.Header{Number: 1}, nil)
+				return mockBlockState
+			},
 			worker: &worker{
 				err:          &workerError{err: errUnknownParent},
 				targetNumber: uintPtr(3),
@@ -60,7 +54,11 @@ func Test_bootstrapSyncer_handleWorkerResult(t *testing.T) {
 			},
 		},
 		"targetNumber > bestBlockHeader number returns worker": {
-			blockStateBuilder: blockStateBuilder,
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().BestBlockHeader().Return(&types.Header{Number: 2}, nil)
+				return mockBlockState
+			},
 			worker: &worker{
 				err:          &workerError{},
 				targetNumber: uintPtr(3),
@@ -73,9 +71,9 @@ func Test_bootstrapSyncer_handleWorkerResult(t *testing.T) {
 	}
 	for testName, tt := range tests {
 		tt := tt
-		ctrl := gomock.NewController(t)
 		t.Run(testName, func(t *testing.T) {
 			t.Parallel()
+			ctrl := gomock.NewController(t)
 			s := &bootstrapSyncer{
 				blockState: tt.blockStateBuilder(ctrl),
 			}

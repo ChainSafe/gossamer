@@ -176,13 +176,13 @@ func TestTipSyncer_handleTick_case1(t *testing.T) {
 			pendingBlock: &pendingBlock{
 				hash:    common.Hash{0xb},
 				number:  201,
-				clearAt: time.Time{},
+				clearAt: time.Unix(0, 0),
 			},
 		},
 	}
 	w, err = s.handleTick()
 	require.NoError(t, err)
-	w[0].pendingBlock.clearAt = time.Time{}
+	w[0].pendingBlock.clearAt = time.Unix(0, 0)
 	require.Equal(t, expected, w)
 	require.False(t, s.pendingBlocks.hasBlock(common.Hash{0xa}))
 	require.True(t, s.pendingBlocks.hasBlock(common.Hash{0xb}))

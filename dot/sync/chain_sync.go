@@ -39,7 +39,7 @@ const (
 	tip
 )
 
-const defaultLogSyncSpeedFrequency = 5 * time.Second
+const defaultLogSyncPeriod = 5 * time.Second
 
 func (s chainSyncState) String() string {
 	switch s {
@@ -164,7 +164,7 @@ type chainSync struct {
 	maxWorkerRetries uint16
 	slotDuration     time.Duration
 
-	logSyncSpeedFrequency time.Duration
+	logSyncPeriod time.Duration
 }
 
 type chainSyncConfig struct {
@@ -180,25 +180,25 @@ func newChainSync(cfg *chainSyncConfig) *chainSync {
 	ctx, cancel := context.WithCancel(context.Background())
 	const syncSamplesToKeep = 30
 	return &chainSync{
-		ctx:                   ctx,
-		cancel:                cancel,
-		blockState:            cfg.bs,
-		network:               cfg.net,
-		workQueue:             make(chan *peerState, 1024),
-		resultQueue:           make(chan *worker, 1024),
-		peerState:             make(map[peer.ID]*peerState),
-		ignorePeers:           make(map[peer.ID]struct{}),
-		workerState:           newWorkerState(),
-		readyBlocks:           cfg.readyBlocks,
-		pendingBlocks:         cfg.pendingBlocks,
-		state:                 bootstrap,
-		handler:               newBootstrapSyncer(cfg.bs),
-		benchmarker:           newSyncBenchmarker(syncSamplesToKeep),
-		finalisedCh:           cfg.bs.GetFinalisedNotifierChannel(),
-		minPeers:              cfg.minPeers,
-		maxWorkerRetries:      uint16(cfg.maxPeers),
-		slotDuration:          cfg.slotDuration,
-		logSyncSpeedFrequency: defaultLogSyncSpeedFrequency,
+		ctx:              ctx,
+		cancel:           cancel,
+		blockState:       cfg.bs,
+		network:          cfg.net,
+		workQueue:        make(chan *peerState, 1024),
+		resultQueue:      make(chan *worker, 1024),
+		peerState:        make(map[peer.ID]*peerState),
+		ignorePeers:      make(map[peer.ID]struct{}),
+		workerState:      newWorkerState(),
+		readyBlocks:      cfg.readyBlocks,
+		pendingBlocks:    cfg.pendingBlocks,
+		state:            bootstrap,
+		handler:          newBootstrapSyncer(cfg.bs),
+		benchmarker:      newSyncBenchmarker(syncSamplesToKeep),
+		finalisedCh:      cfg.bs.GetFinalisedNotifierChannel(),
+		minPeers:         cfg.minPeers,
+		maxWorkerRetries: uint16(cfg.maxPeers),
+		slotDuration:     cfg.slotDuration,
+		logSyncPeriod:    defaultLogSyncPeriod,
 	}
 }
 
@@ -333,7 +333,7 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number uint) error
 }
 
 func (cs *chainSync) logSyncSpeed() {
-	t := time.NewTicker(cs.logSyncSpeedFrequency)
+	t := time.NewTicker(cs.logSyncPeriod)
 	defer t.Stop()
 
 	for {
@@ -462,46 +462,45 @@ func (cs *chainSync) maybeSwitchMode() {
 	}
 }
 
-func (cs *chainSync) handleResult(res *worker) error {
+func (cs *chainSync) handleResult(resultWorker *worker) error {
 	// delete worker from workers map
-	cs.workerState.delete(res.id)
+	cs.workerState.delete(resultWorker.id)
 
 	// handle results from worker
 	// if there is an error, potentially retry the worker
-	if res.err == nil || res.ctx.Err() != nil {
+	if resultWorker.err == nil || resultWorker.ctx.Err() != nil {
 		return nil //nolint:nilerr
 	}
 
-	logger.Debugf("worker id %d failed: %s", res.id, res.err.err)
+	logger.Debugf("worker id %d failed: %s", resultWorker.id, resultWorker.err.err)
 
 	// handle errors. in the case that a peer did not respond to us in time,
 	// temporarily add them to the ignore list.
 	switch {
-	case errors.Is(res.err.err, context.Canceled):
+	case errors.Is(resultWorker.err.err, context.Canceled):
 		return nil
-	case errors.Is(res.err.err, errNoPeers):
-		logger.Debugf("worker id %d not able to sync with any peer", res.id)
+	case errors.Is(resultWorker.err.err, errNoPeers):
+		logger.Debugf("worker id %d not able to sync with any peer", resultWorker.id)
 		return nil
-	case errors.Is(res.err.err, context.DeadlineExceeded):
+	case errors.Is(resultWorker.err.err, context.DeadlineExceeded):
 		cs.network.ReportPeer(peerset.ReputationChange{
 			Value:  peerset.TimeOutValue,
 			Reason: peerset.TimeOutReason,
-		}, res.err.who)
-		cs.ignorePeer(res.err.who)
-	case strings.Contains(res.err.err.Error(), "dial backoff"):
-		cs.ignorePeer(res.err.who)
+		}, resultWorker.err.who)
+		cs.ignorePeer(resultWorker.err.who)
+	case strings.Contains(resultWorker.err.err.Error(), "dial backoff"):
+		cs.ignorePeer(resultWorker.err.who)
 		return nil
-	case res.err.err.Error() == "protocol not supported":
+	case resultWorker.err.err.Error() == "protocol not supported":
 		cs.network.ReportPeer(peerset.ReputationChange{
 			Value:  peerset.BadProtocolValue,
 			Reason: peerset.BadProtocolReason,
-		}, res.err.who)
-		cs.ignorePeer(res.err.who)
+		}, resultWorker.err.who)
+		cs.ignorePeer(resultWorker.err.who)
 		return nil
-	default:
 	}
 
-	worker, err := cs.handler.handleWorkerResult(res)
+	worker, err := cs.handler.handleWorkerResult(resultWorker)
 	if err != nil {
 		logger.Errorf("failed to handle worker result: %s", err)
 		return err
@@ -509,11 +508,11 @@ func (cs *chainSync) handleResult(res *worker) error {
 		return nil
 	}
 
-	worker.retryCount = res.retryCount + 1
+	worker.retryCount = resultWorker.retryCount + 1
 	if worker.retryCount > cs.maxWorkerRetries {
 		logger.Debugf(
-			"discarding worker id %d: maximum retry count reached",
-			worker.id)
+			"discarding worker id %d: maximum retry count %d reached",
+			worker.id, cs.maxWorkerRetries)
 
 		// if this worker was triggered due to a block in the pending blocks set,
 		// we want to remove it from the set, as we asked all our peers for it
@@ -526,13 +525,13 @@ func (cs *chainSync) handleResult(res *worker) error {
 
 	// if we've already tried a peer and there was an error,
 	// then we shouldn't try them again.
-	if res.peersTried != nil {
-		worker.peersTried = res.peersTried
+	if resultWorker.peersTried != nil {
+		worker.peersTried = resultWorker.peersTried
 	} else {
 		worker.peersTried = make(map[peer.ID]struct{})
 	}
 
-	worker.peersTried[res.err.who] = struct{}{}
+	worker.peersTried[resultWorker.err.who] = struct{}{}
 	cs.tryDispatchWorker(worker)
 	return nil
 }

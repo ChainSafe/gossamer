@@ -857,13 +857,13 @@ func Test_chainSync_logSyncSpeed(t *testing.T) {
 			t.Parallel()
 			ctx, cancel := context.WithCancel(context.Background())
 			cs := &chainSync{
-				ctx:                   ctx,
-				cancel:                cancel,
-				blockState:            tt.fields.blockState,
-				network:               tt.fields.network,
-				state:                 tt.fields.state,
-				benchmarker:           tt.fields.benchmarker,
-				logSyncSpeedFrequency: time.Nanosecond,
+				ctx:           ctx,
+				cancel:        cancel,
+				blockState:    tt.fields.blockState,
+				network:       tt.fields.network,
+				state:         tt.fields.state,
+				benchmarker:   tt.fields.benchmarker,
+				logSyncPeriod: time.Nanosecond,
 			}
 			go cs.logSyncSpeed()
 			time.Sleep(time.Nanosecond)
@@ -918,13 +918,13 @@ func Test_chainSync_start(t *testing.T) {
 			t.Parallel()
 			ctx, cancel := context.WithCancel(context.Background())
 			cs := &chainSync{
-				ctx:                   ctx,
-				cancel:                cancel,
-				blockState:            tt.fields.blockState,
-				pendingBlocks:         tt.fields.pendingBlocks,
-				benchmarker:           tt.fields.benchmarker,
-				slotDuration:          tt.fields.slotDuration,
-				logSyncSpeedFrequency: time.Second,
+				ctx:           ctx,
+				cancel:        cancel,
+				blockState:    tt.fields.blockState,
+				pendingBlocks: tt.fields.pendingBlocks,
+				benchmarker:   tt.fields.benchmarker,
+				slotDuration:  tt.fields.slotDuration,
+				logSyncPeriod: time.Second,
 			}
 			cs.start()
 			time.Sleep(time.Millisecond)
