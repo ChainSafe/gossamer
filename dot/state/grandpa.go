@@ -260,7 +260,7 @@ func (s *GrandpaState) importScheduledChange(pendingChange *pendingChange) error
 		}
 
 		if imported {
-			logger.Debugf("changes on header %s (%d) imported succesfully",
+			logger.Debugf("changes on header %s (%d) imported successfully",
 				pendingChange.announcingHeader.Hash(), pendingChange.announcingHeader.Number)
 			return nil
 		}
@@ -275,9 +275,10 @@ func (s *GrandpaState) importScheduledChange(pendingChange *pendingChange) error
 	return nil
 }
 
-// getApplicableScheduledChange iterates throught the scheduled change tree roots looking for the change node which
-// contains a lower or equal effective number, to apply. When we found that node we update the scheduled change tree roots
-// with its children that belongs to the same finalized node branch. If we don't find such node we update the scheduled
+// getApplicableScheduledChange iterates through the scheduled change tree roots looking
+// for the change node which contains a lower or equal effective number, to apply.
+// When we found that node we update the scheduled change tree roots with its children
+// that belongs to the same finalized node branch. If we don't find such node we update the scheduled
 // change tree roots with the change nodes that belongs to the same finalized node branch
 func (s *GrandpaState) getApplicableScheduledChange(finalizedHash common.Hash, finalizedNumber uint) (
 	change *pendingChange, err error) {
@@ -382,7 +383,7 @@ func (s *GrandpaState) keepDescendantScheduledChanges(finalizedHash common.Hash)
 	return nil
 }
 
-// ApplyScheduledChange will check the schedules changes in order to find a root
+// ApplyScheduledChanges will check the schedules changes in order to find a root
 // that is equals or behind the finalized number and will apply its authority set changes
 func (s *GrandpaState) ApplyScheduledChanges(finalizedHeader *types.Header) error {
 	finalizedHash := finalizedHeader.Hash()
@@ -401,10 +402,11 @@ func (s *GrandpaState) ApplyScheduledChanges(finalizedHeader *types.Header) erro
 		return fmt.Errorf("cannot finalize scheduled change: %w", err)
 	}
 
-	logger.Debugf("scheduled changes: change to apply: %s", changeToApply)
 	if changeToApply == nil {
 		return nil
 	}
+
+	logger.Debugf("scheduled changes: change to apply: %s", changeToApply)
 
 	newSetID, err := s.IncrementSetID()
 	if err != nil {
@@ -540,7 +542,7 @@ func (s *GrandpaState) forcedChangeOnChainOf(blockHash common.Hash) (*pendingCha
 		return forcedChange, nil
 	}
 
-	return nil, nil
+	return nil, nil //nolint:nilnil
 }
 
 // scheduledChangeOnChainOf walk only through the scheduled changes roots slice looking for
@@ -561,7 +563,7 @@ func (s *GrandpaState) scheduledChangeOnChainOf(blockHash common.Hash) (*pending
 		return scheduledChange.change, nil
 	}
 
-	return nil, nil
+	return nil, nil //nolint:nilnil
 }
 
 // NextGrandpaAuthorityChange returns the block number of the next upcoming grandpa authorities change.

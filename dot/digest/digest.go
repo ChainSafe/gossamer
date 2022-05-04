@@ -160,7 +160,10 @@ func (h *Handler) handleBlockImport(ctx context.Context) {
 			}
 
 			h.HandleDigests(&block.Header)
-			h.grandpaState.ApplyForcedChanges(&block.Header)
+			err := h.grandpaState.ApplyForcedChanges(&block.Header)
+			if err != nil {
+				h.logger.Errorf("cannot apply forced changes: %w", err)
+			}
 		case <-ctx.Done():
 			return
 		}
@@ -187,7 +190,7 @@ func (h *Handler) handleBlockFinalisation(ctx context.Context) {
 
 			err = h.grandpaState.ApplyScheduledChanges(&info.Header)
 			if err != nil {
-				h.logger.Errorf("failed to apply standard scheduled changes on block finalization: %w", err)
+				h.logger.Errorf("failed to apply standard scheduled changes on block finalisation: %w", err)
 			}
 
 		case <-ctx.Done():
