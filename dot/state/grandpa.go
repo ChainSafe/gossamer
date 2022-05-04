@@ -55,7 +55,7 @@ func (p *pendingChange) effectiveNumber() uint {
 // appliedBefore compares the effective number between two pending changes
 // and returns true if:
 // - the current pending change is applied before the target
-// - the target is nil
+// - the target is nil and the current contains a value
 func (p *pendingChange) appliedBefore(target *pendingChange) bool {
 	if p != nil && target != nil {
 		return p.effectiveNumber() < target.effectiveNumber()
@@ -275,37 +275,25 @@ func (s *GrandpaState) importScheduledChange(pendingChange *pendingChange) error
 	return nil
 }
 
-// getApplicableScheduledChange iterates throught the scheduled change tree roots looking for the change node, which
+// getApplicableScheduledChange iterates throught the scheduled change tree roots looking for the change node which
 // contains a lower or equal effective number, to apply. When we found that node we update the scheduled change tree roots
 // with its children that belongs to the same finalized node branch. If we don't find such node we update the scheduled
 // change tree roots with the change nodes that belongs to the same finalized node branch
 func (s *GrandpaState) getApplicableScheduledChange(finalizedHash common.Hash, finalizedNumber uint) (
 	change *pendingChange, err error) {
-	bestFinalizedHeader, err := s.blockState.GetHighestFinalisedHeader()
-	if err != nil {
-		return nil, fmt.Errorf("cannot get highest finalised header: %w", err)
-	}
 
-	if finalizedNumber < bestFinalizedHeader.Number {
-		return nil, errLowerThanBestFinalized
-	}
-
-	effectiveBlockLowerOrEqualFinalized := func(change *pendingChange) bool {
-		return change.effectiveNumber() <= finalizedNumber
-	}
-
-	position := -1
-	for idx, root := range s.scheduledChangeRoots {
-		if !effectiveBlockLowerOrEqualFinalized(root.change) {
+	var changeNode *pendingChangeNode
+	for _, root := range s.scheduledChangeRoots {
+		if root.change.effectiveNumber() > finalizedNumber {
 			continue
 		}
 
-		rootHash := root.change.announcingHeader.Hash()
+		changeNodeHash := root.change.announcingHeader.Hash()
 
-		// if the current root doesn't have the same hash
-		// neither the finalized header is descendant of the root then skip to the next root
-		if !finalizedHash.Equal(rootHash) {
-			isDescendant, err := s.blockState.IsDescendantOf(rootHash, finalizedHash)
+		// if the change doesn't have the same hash
+		// neither the finalized header is descendant of the change then skip to the next root
+		if !finalizedHash.Equal(changeNodeHash) {
+			isDescendant, err := s.blockState.IsDescendantOf(changeNodeHash, finalizedHash)
 			if err != nil {
 				return nil, fmt.Errorf("cannot verify ancestry: %w", err)
 			}
@@ -315,34 +303,39 @@ func (s *GrandpaState) getApplicableScheduledChange(finalizedHash common.Hash, f
 			}
 		}
 
-		// as the changes needs to be applied in order we need to check if our finalized
-		// header is in front of any children, if it is that means some previous change was not applied
-		for _, node := range root.nodes {
-			isDescendant, err := s.blockState.IsDescendantOf(node.change.announcingHeader.Hash(), finalizedHash)
+		// the changes must be applied in order, so we need to check if our finalized header
+		// is ahead of any children, if it is that means some previous change was not applied
+		for _, child := range root.nodes {
+			isDescendant, err := s.blockState.IsDescendantOf(child.change.announcingHeader.Hash(), finalizedHash)
 			if err != nil {
 				return nil, fmt.Errorf("cannot verify ancestry: %w", err)
 			}
 
-			if node.change.announcingHeader.Number <= finalizedNumber && isDescendant {
+			if child.change.announcingHeader.Number <= finalizedNumber && isDescendant {
 				return nil, errUnfinalizedAncestor
 			}
 		}
 
-		position = idx
+		changeNode = root
 		break
 	}
 
-	var changeToApply *pendingChange = nil
-
-	if position > -1 {
-		pendingChangeNodeAtPosition := s.scheduledChangeRoots[position]
-		changeToApply = pendingChangeNodeAtPosition.change
-
-		s.scheduledChangeRoots = make([]*pendingChangeNode, len(pendingChangeNodeAtPosition.nodes))
-		copy(s.scheduledChangeRoots, pendingChangeNodeAtPosition.nodes)
+	// if there is no change to be applied then we should keep only
+	// the scheduled changes which belongs to the finalized header
+	// otherwise we should update the scheduled roots to be the child
+	// nodes of the applied scheduled change
+	if changeNode == nil {
+		err := s.keepDescendantScheduledChanges(finalizedHash)
+		if err != nil {
+			return nil, fmt.Errorf("cannot keep descendant scheduled nodes: %w", err)
+		}
+	} else {
+		change = changeNode.change
+		s.scheduledChangeRoots = make([]*pendingChangeNode, len(changeNode.nodes))
+		copy(s.scheduledChangeRoots, changeNode.nodes)
 	}
 
-	return changeToApply, nil
+	return change, nil
 }
 
 // keepDescendantForcedChanges should keep the forced changes for later blocks that
@@ -353,7 +346,7 @@ func (s *GrandpaState) keepDescendantForcedChanges(finalizedHash common.Hash, fi
 	for _, forcedChange := range s.forcedChanges {
 		isDescendant, err := s.blockState.IsDescendantOf(finalizedHash, forcedChange.announcingHeader.Hash())
 		if err != nil {
-			return fmt.Errorf("cannot verify ancestry while ancestor: %w", err)
+			return fmt.Errorf("cannot verify ancestry: %w", err)
 		}
 
 		if forcedChange.effectiveNumber() > finalizedNumber && isDescendant {
@@ -364,6 +357,28 @@ func (s *GrandpaState) keepDescendantForcedChanges(finalizedHash common.Hash, fi
 	s.forcedChanges = make(orderedPendingChanges, len(onBranchForcedChanges))
 	copy(s.forcedChanges, onBranchForcedChanges)
 
+	return nil
+}
+
+// keepDescendantScheduledChanges keeps the not applied scheduled changes and remove purged scheduled changes
+func (s *GrandpaState) keepDescendantScheduledChanges(finalizedHash common.Hash) error {
+	onBranchScheduledChanges := []*pendingChangeNode{}
+
+	for _, scheduledChange := range s.scheduledChangeRoots {
+		scheduledChangeHash := scheduledChange.change.announcingHeader.Hash()
+
+		isDescendant, err := s.blockState.IsDescendantOf(finalizedHash, scheduledChangeHash)
+		if err != nil {
+			return fmt.Errorf("cannot verify ancestry: %w", err)
+		}
+
+		if isDescendant {
+			onBranchScheduledChanges = append(onBranchScheduledChanges, scheduledChange)
+		}
+	}
+
+	s.scheduledChangeRoots = make([]*pendingChangeNode, len(onBranchScheduledChanges))
+	copy(s.scheduledChangeRoots, onBranchScheduledChanges)
 	return nil
 }
 
@@ -387,30 +402,30 @@ func (s *GrandpaState) ApplyScheduledChanges(finalizedHeader *types.Header) erro
 	}
 
 	logger.Debugf("scheduled changes: change to apply: %s", changeToApply)
-
-	if changeToApply != nil {
-		newSetID, err := s.IncrementSetID()
-		if err != nil {
-			return fmt.Errorf("cannot increment set id: %w", err)
-		}
-
-		grandpaVotersAuthorities := types.NewGrandpaVotersFromAuthorities(changeToApply.nextAuthorities)
-		err = s.setAuthorities(newSetID, grandpaVotersAuthorities)
-		if err != nil {
-			return fmt.Errorf("cannot set authorities: %w", err)
-		}
-
-		err = s.setChangeSetIDAtBlock(newSetID, changeToApply.effectiveNumber())
-		if err != nil {
-			return fmt.Errorf("cannot set change set id at block")
-		}
-
-		logger.Debugf("Applying authority set change scheduled at block #%d",
-			changeToApply.announcingHeader.Number)
-
-		// TODO: add afg.applying_scheduled_authority_set_change telemetry info here
+	if changeToApply == nil {
+		return nil
 	}
 
+	newSetID, err := s.IncrementSetID()
+	if err != nil {
+		return fmt.Errorf("cannot increment set id: %w", err)
+	}
+
+	grandpaVotersAuthorities := types.NewGrandpaVotersFromAuthorities(changeToApply.nextAuthorities)
+	err = s.setAuthorities(newSetID, grandpaVotersAuthorities)
+	if err != nil {
+		return fmt.Errorf("cannot set authorities: %w", err)
+	}
+
+	err = s.setChangeSetIDAtBlock(newSetID, changeToApply.effectiveNumber())
+	if err != nil {
+		return fmt.Errorf("cannot set change set id at block")
+	}
+
+	logger.Debugf("Applying authority set change scheduled at block #%d",
+		changeToApply.announcingHeader.Number)
+
+	// TODO: add afg.applying_scheduled_authority_set_change telemetry info here
 	return nil
 }
 
