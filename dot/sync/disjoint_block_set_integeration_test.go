@@ -43,6 +43,7 @@ func TestDisjointBlockSet(t *testing.T) {
 	s.addHeader(header)
 	require.True(t, s.hasBlock(header.Hash()))
 	require.Equal(t, 2, s.size())
+
 	expected = &pendingBlock{
 		hash:    header.Hash(),
 		number:  header.Number,
