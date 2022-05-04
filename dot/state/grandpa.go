@@ -219,6 +219,7 @@ func (s *GrandpaState) addForcedChange(header *types.Header, fc types.GrandpaFor
 	s.forcedChanges = append(s.forcedChanges, pendingChange)
 	sort.Sort(s.forcedChanges)
 
+	logger.Debugf("there are now %d possible forced changes", len(s.forcedChanges))
 	return nil
 }
 
@@ -238,10 +239,6 @@ func (s *GrandpaState) addScheduledChange(header *types.Header, sc types.Grandpa
 }
 
 func (s *GrandpaState) importScheduledChange(pendingChange *pendingChange) error {
-	defer func() {
-		logger.Debugf("there are now %d possible scheduled changes (roots)", len(s.scheduledChangeRoots))
-	}()
-
 	highestFinalizedHeader, err := s.blockState.GetHighestFinalisedHeader()
 	if err != nil {
 		return fmt.Errorf("cannot get highest finalized header: %w", err)
@@ -272,6 +269,8 @@ func (s *GrandpaState) importScheduledChange(pendingChange *pendingChange) error
 	}
 
 	s.scheduledChangeRoots = append(s.scheduledChangeRoots, pendingChangeNode)
+	logger.Debugf("there are now %d possible scheduled changes (roots)", len(s.scheduledChangeRoots))
+
 	return nil
 }
 
@@ -406,7 +405,7 @@ func (s *GrandpaState) ApplyScheduledChanges(finalizedHeader *types.Header) erro
 		return nil
 	}
 
-	logger.Debugf("scheduled changes: change to apply: %s", changeToApply)
+	logger.Debugf("applying scheduled change: %s", changeToApply)
 
 	newSetID, err := s.IncrementSetID()
 	if err != nil {
@@ -470,7 +469,6 @@ func (s *GrandpaState) ApplyForcedChanges(importedBlockHeader *types.Header) err
 
 	// checking for dependant pending scheduled changes
 	for _, scheduled := range s.scheduledChangeRoots {
-
 		if scheduled.change.effectiveNumber() > uint(bestFinalizedNumber) {
 			continue
 		}
@@ -485,6 +483,8 @@ func (s *GrandpaState) ApplyForcedChanges(importedBlockHeader *types.Header) err
 			return errPendingScheduledChanges
 		}
 	}
+
+	logger.Debugf("applying forced change: %s", forcedChange)
 
 	// send the telemetry s messages here
 	// afg.applying_forced_authority_set_change
