@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -495,12 +496,19 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 		return nil
 	}
 
-	ts, err := s.storageState.TrieState(nil)
+	bestBlockHash := s.blockState.BestBlockHash()
+
+	stateRoot, err := s.storageState.GetStateRootFromBlock(&bestBlockHash)
+	if err != nil {
+		return fmt.Errorf("could not get state root from block %s: %w", bestBlockHash, err)
+	}
+
+	ts, err := s.storageState.TrieState(stateRoot)
 	if err != nil {
 		return err
 	}
 
-	rt, err := s.blockState.GetRuntime(nil)
+	rt, err := s.blockState.GetRuntime(&bestBlockHash)
 	if err != nil {
 		logger.Critical("failed to get runtime")
 		return err
