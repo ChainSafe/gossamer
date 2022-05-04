@@ -104,7 +104,7 @@ func (t *tracker) handleBlock(b *types.Block) {
 	defer t.mapLock.Unlock()
 
 	h := b.Header.Hash()
-	vms := t.votes.getMessagesForBlockHash(h)
+	vms := t.votes.messages(h)
 	for _, v := range vms {
 		// handleMessage would never error for vote message
 		_, err := t.handler.handleMessage(v.from, v.msg)

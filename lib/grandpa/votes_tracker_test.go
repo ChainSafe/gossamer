@@ -260,7 +260,7 @@ func Test_votesTracker_delete(t *testing.T) {
 	})
 }
 
-func Test_votesTracker_getMessagesForBlockHash(t *testing.T) {
+func Test_votesTracker_messages(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
@@ -306,7 +306,7 @@ func Test_votesTracker_getMessagesForBlockHash(t *testing.T) {
 			t.Parallel()
 
 			vt := testCase.votesTracker
-			messages := vt.getMessagesForBlockHash(testCase.blockHash)
+			messages := vt.messages(testCase.blockHash)
 
 			sort.Slice(messages, func(i, j int) bool {
 				if messages[i].from == messages[j].from {

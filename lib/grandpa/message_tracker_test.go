@@ -175,7 +175,7 @@ func TestMessageTracker_MapInsideMap(t *testing.T) {
 	}
 
 	hash := header.Hash()
-	messages := gs.tracker.votes.getMessagesForBlockHash(hash)
+	messages := gs.tracker.votes.messages(hash)
 	require.Empty(t, messages)
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
@@ -217,7 +217,7 @@ func TestMessageTracker_handleTick(t *testing.T) {
 	}
 
 	// shouldn't be deleted as round in message >= grandpa round
-	require.Len(t, gs.tracker.votes.getMessagesForBlockHash(testHash), 1)
+	require.Len(t, gs.tracker.votes.messages(testHash), 1)
 
 	gs.state.round = 1
 	msg = &VoteMessage{
@@ -238,5 +238,5 @@ func TestMessageTracker_handleTick(t *testing.T) {
 	}
 
 	// should be deleted as round in message < grandpa round
-	require.Empty(t, gs.tracker.votes.getMessagesForBlockHash(testHash))
+	require.Empty(t, gs.tracker.votes.messages(testHash))
 }
