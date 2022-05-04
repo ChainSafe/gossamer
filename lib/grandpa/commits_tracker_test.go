@@ -187,7 +187,7 @@ func Test_commitsTracker_delete(t *testing.T) {
 	})
 }
 
-func Test_commitsTracker_getMessagesForBlockHash(t *testing.T) {
+func Test_commitsTracker_message(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
@@ -222,7 +222,7 @@ func Test_commitsTracker_getMessagesForBlockHash(t *testing.T) {
 			t.Parallel()
 
 			vt := testCase.commitsTracker
-			message := vt.getMessageForBlockHash(testCase.blockHash)
+			message := vt.message(testCase.blockHash)
 
 			assert.Equal(t, testCase.message, message)
 		})

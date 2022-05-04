@@ -95,11 +95,11 @@ func (ct *commitsTracker) delete(blockHash common.Hash) {
 	delete(ct.mapping, blockHash)
 }
 
-// getMessageForBlockHash returns a pointer to the
+// message returns a pointer to the
 // commit message for a particular block hash from
 // the tracker. It returns nil if the block hash
 // does not exist in the tracker
-func (ct *commitsTracker) getMessageForBlockHash(
+func (ct *commitsTracker) message(
 	blockHash common.Hash) (message *CommitMessage) {
 	data, ok := ct.mapping[blockHash]
 	if !ok {

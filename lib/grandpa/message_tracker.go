@@ -117,7 +117,7 @@ func (t *tracker) handleBlock(b *types.Block) {
 	// delete block hash that may or may not be in the tracker.
 	t.votes.delete(h)
 
-	cm := t.commits.getMessageForBlockHash(h)
+	cm := t.commits.message(h)
 	if cm != nil {
 		_, err := t.handler.handleMessage("", cm)
 		if err != nil {
