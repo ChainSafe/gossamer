@@ -176,6 +176,7 @@ func TestTipSyncer_handleTick_case1(t *testing.T) {
 			pendingBlock: s.pendingBlocks.getBlock(common.Hash{0xb}),
 		},
 	}
+
 	w, err = s.handleTick()
 	require.NoError(t, err)
 	require.Equal(t, expected, w)
