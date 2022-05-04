@@ -66,15 +66,15 @@ func setupConfig(t *testing.T, tt *trie.Trie, lvl log.Level,
 		LogLvl:      lvl,
 		NodeStorage: ns,
 		Network:     new(runtime.TestRuntimeNetwork),
-		Transaction: newTransactionStateMock(),
+		Transaction: newTransactionStateMock(t),
 		Role:        role,
 		testVersion: version,
 	}
 }
 
 // NewTransactionStateMock create and return an runtime Transaction State interface mock
-func newTransactionStateMock() *mocks.TransactionState {
-	m := new(mocks.TransactionState)
+func newTransactionStateMock(t *testing.T) *mocks.TransactionState {
+	m := mocks.NewTransactionState(t)
 	m.On("AddToPool", mock.AnythingOfType("*transaction.ValidTransaction")).Return(common.BytesToHash([]byte("test")))
 	return m
 }

@@ -24,7 +24,7 @@ func TestStorageState_RegisterStorageObserver(t *testing.T) {
 	require.NoError(t, err)
 
 	mockfilter := map[string][]byte{}
-	mockobs := &MockObserver{}
+	mockobs := NewMockObserver(t)
 
 	mockobs.On("Update", mock.AnythingOfType("*state.SubscriptionResult"))
 	mockobs.On("GetID").Return(uint(10))
@@ -63,7 +63,7 @@ func TestStorageState_RegisterStorageObserver_Multi(t *testing.T) {
 
 	for i := 0; i < num; i++ {
 		mockfilter := map[string][]byte{}
-		mockobs := &MockObserver{}
+		mockobs := NewMockObserver(t)
 
 		mockobs.On("Update", mock.AnythingOfType("*state.SubscriptionResult"))
 		mockobs.On("GetID").Return(uint(10))
@@ -119,7 +119,7 @@ func TestStorageState_RegisterStorageObserver_Multi_Filter(t *testing.T) {
 	}
 
 	for i := 0; i < num; i++ {
-		mockobs := &MockObserver{}
+		mockobs := NewMockObserver(t)
 		mockobs.On("Update", mock.AnythingOfType("*state.SubscriptionResult"))
 		mockobs.On("GetID").Return(uint(i))
 		mockobs.On("GetFilter").Return(filter)

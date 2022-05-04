@@ -53,7 +53,7 @@ func Test_uint64ToHex(t *testing.T) {
 }
 
 func TestDevModule_EpochLength(t *testing.T) {
-	mockBlockProducerAPI := new(mocks.BlockProducerAPI)
+	mockBlockProducerAPI := mocks.NewBlockProducerAPI(t)
 	mockBlockProducerAPI.On("EpochLength").Return(uint64(23))
 	devModule := NewDevModule(mockBlockProducerAPI, nil)
 
@@ -103,7 +103,7 @@ func TestDevModule_EpochLength(t *testing.T) {
 }
 
 func TestDevModule_SlotDuration(t *testing.T) {
-	mockBlockProducerAPI := new(mocks.BlockProducerAPI)
+	mockBlockProducerAPI := mocks.NewBlockProducerAPI(t)
 	mockBlockProducerAPI.On("SlotDuration").Return(uint64(23))
 
 	type fields struct {
@@ -152,10 +152,10 @@ func TestDevModule_SlotDuration(t *testing.T) {
 }
 
 func TestDevModule_Control(t *testing.T) {
-	mockBlockProducerAPI := new(mocks.BlockProducerAPI)
-	mockErrorBlockProducerAPI := new(mocks.BlockProducerAPI)
-	mockNetworkAPI := new(mocks.NetworkAPI)
-	mockErrorNetworkAPI := new(mocks.NetworkAPI)
+	mockBlockProducerAPI := mocks.NewBlockProducerAPI(t)
+	mockErrorBlockProducerAPI := mocks.NewBlockProducerAPI(t)
+	mockNetworkAPI := mocks.NewNetworkAPI(t)
+	mockErrorNetworkAPI := mocks.NewNetworkAPI(t)
 
 	mockErrorBlockProducerAPI.On("Pause").Return(errors.New("babe pause error"))
 	mockBlockProducerAPI.On("Pause").Return(nil)

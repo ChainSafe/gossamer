@@ -68,8 +68,9 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 		}
 	}
 
-	cfg.BlockImportHandler = new(mocks.BlockImportHandler)
-	cfg.BlockImportHandler.(*mocks.BlockImportHandler).
+	blockImportHandler := mocks.NewBlockImportHandler(t)
+	cfg.BlockImportHandler = blockImportHandler
+	blockImportHandler.
 		On("HandleBlockProduced",
 			mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState")).
 		Return(nil)

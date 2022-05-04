@@ -50,10 +50,10 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 		expHexKeys[idx] = common.BytesToHex(k)
 	}
 
-	mockStorageAPI := new(apimocks.StorageAPI)
-	mockErrorStorageAPI1 := new(apimocks.StorageAPI)
-	mockErrorStorageAPI2 := new(apimocks.StorageAPI)
-	mockBlockAPI := new(apimocks.BlockAPI)
+	mockStorageAPI := apimocks.NewStorageAPI(t)
+	mockErrorStorageAPI1 := apimocks.NewStorageAPI(t)
+	mockErrorStorageAPI2 := apimocks.NewStorageAPI(t)
+	mockBlockAPI := apimocks.NewBlockAPI(t)
 
 	hash := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
 	mockBlockAPI.On("GetBlockHash").Return(hash)
@@ -161,10 +161,10 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 func TestChildStateModule_GetStorageSize(t *testing.T) {
 	_, sr := createTestTrieState(t)
 
-	mockStorageAPI := new(apimocks.StorageAPI)
-	mockErrorStorageAPI1 := new(apimocks.StorageAPI)
-	mockErrorStorageAPI2 := new(apimocks.StorageAPI)
-	mockBlockAPI := new(apimocks.BlockAPI)
+	mockStorageAPI := apimocks.NewStorageAPI(t)
+	mockErrorStorageAPI1 := apimocks.NewStorageAPI(t)
+	mockErrorStorageAPI2 := apimocks.NewStorageAPI(t)
+	mockBlockAPI := apimocks.NewBlockAPI(t)
 
 	hash := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
 	mockBlockAPI.On("GetBlockHash").Return(hash)
@@ -273,10 +273,10 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 func TestChildStateModule_GetStorageHash(t *testing.T) {
 	_, sr := createTestTrieState(t)
 
-	mockStorageAPI := new(apimocks.StorageAPI)
-	mockErrorStorageAPI1 := new(apimocks.StorageAPI)
-	mockErrorStorageAPI2 := new(apimocks.StorageAPI)
-	mockBlockAPI := new(apimocks.BlockAPI)
+	mockStorageAPI := apimocks.NewStorageAPI(t)
+	mockErrorStorageAPI1 := apimocks.NewStorageAPI(t)
+	mockErrorStorageAPI2 := apimocks.NewStorageAPI(t)
+	mockBlockAPI := apimocks.NewBlockAPI(t)
 
 	hash := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
 	mockBlockAPI.On("GetBlockHash").Return(hash)
@@ -385,10 +385,10 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 func TestChildStateModule_GetStorage(t *testing.T) {
 	_, sr := createTestTrieState(t)
 
-	mockStorageAPI := new(apimocks.StorageAPI)
-	mockErrorStorageAPI1 := new(apimocks.StorageAPI)
-	mockErrorStorageAPI2 := new(apimocks.StorageAPI)
-	mockBlockAPI := new(apimocks.BlockAPI)
+	mockStorageAPI := apimocks.NewStorageAPI(t)
+	mockErrorStorageAPI1 := apimocks.NewStorageAPI(t)
+	mockErrorStorageAPI2 := apimocks.NewStorageAPI(t)
+	mockBlockAPI := apimocks.NewBlockAPI(t)
 
 	hash := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
 	mockBlockAPI.On("GetBlockHash").Return(hash)

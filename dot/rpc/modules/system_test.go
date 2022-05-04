@@ -21,10 +21,10 @@ import (
 )
 
 func TestSystemModule_ChainTest(t *testing.T) {
-	mockSystemAPI := new(mocks.SystemAPI)
+	mockSystemAPI := mocks.NewSystemAPI(t)
 	mockSystemAPI.On("ChainName").Return("polkadot", nil)
-	sm := NewSystemModule(new(mocks.NetworkAPI), mockSystemAPI, new(mocks.CoreAPI),
-		new(mocks.StorageAPI), new(mocks.TransactionStateAPI), new(mocks.BlockAPI), nil)
+	sm := NewSystemModule(mocks.NewNetworkAPI(t), mockSystemAPI, mocks.NewCoreAPI(t),
+		mocks.NewStorageAPI(t), new(mocks.TransactionStateAPI), mocks.NewBlockAPI(t), nil)
 
 	req := &EmptyRequest{}
 	var res string
@@ -35,10 +35,10 @@ func TestSystemModule_ChainTest(t *testing.T) {
 }
 
 func TestSystemModule_NameTest(t *testing.T) {
-	mockSystemAPI := new(mocks.SystemAPI)
+	mockSystemAPI := mocks.NewSystemAPI(t)
 	mockSystemAPI.On("SystemName").Return("kusama", nil)
-	sm := NewSystemModule(new(mocks.NetworkAPI), mockSystemAPI, new(mocks.CoreAPI),
-		new(mocks.StorageAPI), new(mocks.TransactionStateAPI), new(mocks.BlockAPI), nil)
+	sm := NewSystemModule(mocks.NewNetworkAPI(t), mockSystemAPI, mocks.NewCoreAPI(t),
+		mocks.NewStorageAPI(t), new(mocks.TransactionStateAPI), mocks.NewBlockAPI(t), nil)
 
 	req := &EmptyRequest{}
 	var res string
@@ -49,10 +49,10 @@ func TestSystemModule_NameTest(t *testing.T) {
 }
 
 func TestSystemModule_ChainTypeTest(t *testing.T) {
-	mockSystemAPI := new(mocks.SystemAPI)
+	mockSystemAPI := mocks.NewSystemAPI(t)
 	mockSystemAPI.On("ChainType").Return("testChainType", nil)
-	sm := NewSystemModule(new(mocks.NetworkAPI), mockSystemAPI, new(mocks.CoreAPI),
-		new(mocks.StorageAPI), new(mocks.TransactionStateAPI), new(mocks.BlockAPI), nil)
+	sm := NewSystemModule(mocks.NewNetworkAPI(t), mockSystemAPI, mocks.NewCoreAPI(t),
+		mocks.NewStorageAPI(t), new(mocks.TransactionStateAPI), mocks.NewBlockAPI(t), nil)
 
 	req := &EmptyRequest{}
 	var res string
@@ -64,10 +64,10 @@ func TestSystemModule_ChainTypeTest(t *testing.T) {
 
 func TestSystemModule_PropertiesTest(t *testing.T) {
 	var emptyMap map[string]interface{}
-	mockSystemAPI := new(mocks.SystemAPI)
+	mockSystemAPI := mocks.NewSystemAPI(t)
 	mockSystemAPI.On("Properties").Return(emptyMap)
-	sm := NewSystemModule(new(mocks.NetworkAPI), mockSystemAPI, new(mocks.CoreAPI),
-		new(mocks.StorageAPI), new(mocks.TransactionStateAPI), new(mocks.BlockAPI), nil)
+	sm := NewSystemModule(mocks.NewNetworkAPI(t), mockSystemAPI, mocks.NewCoreAPI(t),
+		mocks.NewStorageAPI(t), new(mocks.TransactionStateAPI), mocks.NewBlockAPI(t), nil)
 
 	req := &EmptyRequest{}
 	var resMap interface{}
@@ -77,10 +77,10 @@ func TestSystemModule_PropertiesTest(t *testing.T) {
 }
 
 func TestSystemModule_SystemVersionTest(t *testing.T) {
-	mockSystemAPI := new(mocks.SystemAPI)
+	mockSystemAPI := mocks.NewSystemAPI(t)
 	mockSystemAPI.On("SystemVersion").Return("1.2.1", nil)
-	sm := NewSystemModule(new(mocks.NetworkAPI), mockSystemAPI, new(mocks.CoreAPI),
-		new(mocks.StorageAPI), new(mocks.TransactionStateAPI), new(mocks.BlockAPI), nil)
+	sm := NewSystemModule(mocks.NewNetworkAPI(t), mockSystemAPI, mocks.NewCoreAPI(t),
+		mocks.NewStorageAPI(t), new(mocks.TransactionStateAPI), mocks.NewBlockAPI(t), nil)
 
 	req := &EmptyRequest{}
 	var res string
@@ -91,10 +91,10 @@ func TestSystemModule_SystemVersionTest(t *testing.T) {
 }
 
 func TestSystemModule_HealthTest(t *testing.T) {
-	mockNetworkAPI := new(mocks.NetworkAPI)
+	mockNetworkAPI := mocks.NewNetworkAPI(t)
 	mockNetworkAPI.On("Health").Return(common.Health{}, nil)
-	sm := NewSystemModule(mockNetworkAPI, new(mocks.SystemAPI), new(mocks.CoreAPI),
-		new(mocks.StorageAPI), new(mocks.TransactionStateAPI), new(mocks.BlockAPI), nil)
+	sm := NewSystemModule(mockNetworkAPI, mocks.NewSystemAPI(t), mocks.NewCoreAPI(t),
+		mocks.NewStorageAPI(t), new(mocks.TransactionStateAPI), mocks.NewBlockAPI(t), nil)
 
 	req := &EmptyRequest{}
 	var sysHealthRes SystemHealthResponse
@@ -104,10 +104,10 @@ func TestSystemModule_HealthTest(t *testing.T) {
 }
 
 func TestSystemModule_NetworkStateTest(t *testing.T) {
-	mockNetworkAPI := new(mocks.NetworkAPI)
+	mockNetworkAPI := mocks.NewNetworkAPI(t)
 	mockNetworkAPI.On("NetworkState").Return(common.NetworkState{}, nil)
-	sm := NewSystemModule(mockNetworkAPI, new(mocks.SystemAPI), new(mocks.CoreAPI),
-		new(mocks.StorageAPI), new(mocks.TransactionStateAPI), new(mocks.BlockAPI), nil)
+	sm := NewSystemModule(mockNetworkAPI, mocks.NewSystemAPI(t), mocks.NewCoreAPI(t),
+		mocks.NewStorageAPI(t), new(mocks.TransactionStateAPI), mocks.NewBlockAPI(t), nil)
 
 	req := &EmptyRequest{}
 	var networkStateRes SystemNetworkStateResponse
@@ -117,10 +117,10 @@ func TestSystemModule_NetworkStateTest(t *testing.T) {
 }
 
 func TestSystemModule_PeersTest(t *testing.T) {
-	mockNetworkAPI := new(mocks.NetworkAPI)
+	mockNetworkAPI := mocks.NewNetworkAPI(t)
 	mockNetworkAPI.On("Peers").Return([]common.PeerInfo{}, nil)
-	sm := NewSystemModule(mockNetworkAPI, new(mocks.SystemAPI), new(mocks.CoreAPI),
-		new(mocks.StorageAPI), new(mocks.TransactionStateAPI), new(mocks.BlockAPI), nil)
+	sm := NewSystemModule(mockNetworkAPI, mocks.NewSystemAPI(t), mocks.NewCoreAPI(t),
+		mocks.NewStorageAPI(t), new(mocks.TransactionStateAPI), mocks.NewBlockAPI(t), nil)
 
 	req := &EmptyRequest{}
 	var sysPeerRes SystemPeersResponse
@@ -130,16 +130,16 @@ func TestSystemModule_PeersTest(t *testing.T) {
 }
 
 func TestSystemModule_NodeRolesTest(t *testing.T) {
-	mockNetworkAPI1 := new(mocks.NetworkAPI)
+	mockNetworkAPI1 := mocks.NewNetworkAPI(t)
 	mockNetworkAPI1.On("NodeRoles").Return(common.FullNodeRole, nil)
 
-	mockNetworkAPI2 := new(mocks.NetworkAPI)
+	mockNetworkAPI2 := mocks.NewNetworkAPI(t)
 	mockNetworkAPI2.On("NodeRoles").Return(common.LightClientRole, nil)
 
-	mockNetworkAPI3 := new(mocks.NetworkAPI)
+	mockNetworkAPI3 := mocks.NewNetworkAPI(t)
 	mockNetworkAPI3.On("NodeRoles").Return(common.AuthorityRole, nil)
 
-	mockNetworkAPI4 := new(mocks.NetworkAPI)
+	mockNetworkAPI4 := mocks.NewNetworkAPI(t)
 	mockNetworkAPI4.On("NodeRoles").Return(common.Roles(21), nil)
 
 	type args struct {
@@ -213,25 +213,25 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 		Validity:  new(transaction.Validity),
 	}
 
-	mockTxStateAPI := new(mocks.TransactionStateAPI)
+	mockTxStateAPI := mocks.NewTransactionStateAPI(t)
 	mockTxStateAPI.On("Pending").Return(v, nil)
 
-	mockCoreAPI := new(mocks.CoreAPI)
+	mockCoreAPI := mocks.NewCoreAPI(t)
 	mockCoreAPI.On("GetMetadata", (*common.Hash)(nil)).Return(common.MustHexToBytes(testdata.NewTestMetadata()), nil)
 
-	mockCoreAPIErr := new(mocks.CoreAPI)
+	mockCoreAPIErr := mocks.NewCoreAPI(t)
 	mockCoreAPIErr.On("GetMetadata", (*common.Hash)(nil)).Return(nil, errors.New("getMetadata error"))
 
 	// Magic number mismatch
-	mockCoreAPIMagicNumMismatch := new(mocks.CoreAPI)
+	mockCoreAPIMagicNumMismatch := mocks.NewCoreAPI(t)
 	mockCoreAPIMagicNumMismatch.On("GetMetadata", (*common.Hash)(nil)).Return(storageKeyHex, nil)
 
-	mockStorageAPI := new(mocks.StorageAPI)
+	mockStorageAPI := mocks.NewStorageAPI(t)
 	mockStorageAPI.On("GetStorage", (*common.Hash)(nil), storageKeyHex).
 		Return(common.MustHexToBytes("0x0300000000000000000000000000000000000000000000000000000000000000000000"+
 			"0000000000000000000000000000000000000000000000000000000000000000000000000000000000"), nil)
 
-	mockStorageAPIErr := new(mocks.StorageAPI)
+	mockStorageAPIErr := mocks.NewStorageAPI(t)
 	mockStorageAPIErr.On("GetStorage", (*common.Hash)(nil), storageKeyHex).Return(nil, errors.New("getStorage error"))
 
 	type args struct {
@@ -309,15 +309,15 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 
 func TestSystemModule_SyncState(t *testing.T) {
 	hash := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
-	mockBlockAPI := new(mocks.BlockAPI)
+	mockBlockAPI := mocks.NewBlockAPI(t)
 	mockBlockAPI.On("BestBlockHash").Return(hash)
 	mockBlockAPI.On("GetHeader", hash).Return(types.NewEmptyHeader(), nil)
 
-	mockBlockAPIErr := new(mocks.BlockAPI)
+	mockBlockAPIErr := mocks.NewBlockAPI(t)
 	mockBlockAPIErr.On("BestBlockHash").Return(hash)
 	mockBlockAPIErr.On("GetHeader", hash).Return(nil, errors.New("GetHeader Err"))
 
-	mockNetworkAPI := new(mocks.NetworkAPI)
+	mockNetworkAPI := mocks.NewNetworkAPI(t)
 	mockNetworkAPI.On("StartingBlock").Return(int64(23))
 
 	ctrlSyncAPI := gomock.NewController(t)
@@ -372,7 +372,7 @@ func TestSystemModule_SyncState(t *testing.T) {
 }
 
 func TestSystemModule_LocalListenAddresses(t *testing.T) {
-	mockNetworkAPIEmpty := new(mocks.NetworkAPI)
+	mockNetworkAPIEmpty := mocks.NewNetworkAPI(t)
 	mockNetworkAPIEmpty.On("NetworkState").Return(common.NetworkState{})
 
 	addr, err := multiaddr.NewMultiaddr("/ip4/1.2.3.4/tcp/80")
@@ -384,7 +384,7 @@ func TestSystemModule_LocalListenAddresses(t *testing.T) {
 		Multiaddrs: multiAddy,
 	}
 
-	mockNetworkAPI := new(mocks.NetworkAPI)
+	mockNetworkAPI := mocks.NewNetworkAPI(t)
 	mockNetworkAPI.On("NetworkState").Return(ns, nil)
 
 	type args struct {
@@ -432,7 +432,7 @@ func TestSystemModule_LocalListenAddresses(t *testing.T) {
 }
 
 func TestSystemModule_LocalPeerId(t *testing.T) {
-	mockNetworkAPIEmpty := new(mocks.NetworkAPI)
+	mockNetworkAPIEmpty := mocks.NewNetworkAPI(t)
 	mockNetworkAPIEmpty.On("NetworkState").Return(common.NetworkState{})
 
 	addr, err := multiaddr.NewMultiaddr("/ip4/1.2.3.4/tcp/80")
@@ -444,7 +444,7 @@ func TestSystemModule_LocalPeerId(t *testing.T) {
 		Multiaddrs: multiAddy,
 	}
 
-	mockNetworkAPI := new(mocks.NetworkAPI)
+	mockNetworkAPI := mocks.NewNetworkAPI(t)
 	mockNetworkAPI.On("NetworkState").Return(ns, nil)
 
 	type args struct {
@@ -491,10 +491,10 @@ func TestSystemModule_LocalPeerId(t *testing.T) {
 }
 
 func TestSystemModule_AddReservedPeer(t *testing.T) {
-	mockNetworkAPI := new(mocks.NetworkAPI)
+	mockNetworkAPI := mocks.NewNetworkAPI(t)
 	mockNetworkAPI.On("AddReservedPeers", "jimbo").Return(nil)
 
-	mockNetworkAPIErr := new(mocks.NetworkAPI)
+	mockNetworkAPIErr := mocks.NewNetworkAPI(t)
 	mockNetworkAPIErr.On("AddReservedPeers", "jimbo").Return(errors.New("addReservedPeer error"))
 
 	type args struct {
@@ -549,10 +549,10 @@ func TestSystemModule_AddReservedPeer(t *testing.T) {
 }
 
 func TestSystemModule_RemoveReservedPeer(t *testing.T) {
-	mockNetworkAPI := new(mocks.NetworkAPI)
+	mockNetworkAPI := mocks.NewNetworkAPI(t)
 	mockNetworkAPI.On("RemoveReservedPeers", "jimbo").Return(nil)
 
-	mockNetworkAPIErr := new(mocks.NetworkAPI)
+	mockNetworkAPIErr := mocks.NewNetworkAPI(t)
 	mockNetworkAPIErr.On("RemoveReservedPeers", "jimbo").Return(errors.New("removeReservedPeer error"))
 
 	type args struct {

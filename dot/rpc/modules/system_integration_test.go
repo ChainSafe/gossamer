@@ -96,7 +96,7 @@ func newNetworkService(t *testing.T) *network.Service {
 
 // Test RPC's System.Health() response
 func TestSystemModule_Health(t *testing.T) {
-	networkMock := new(mocks.NetworkAPI)
+	networkMock := mocks.NewNetworkAPI(t)
 	networkMock.On("Health").Return(testHealth)
 
 	sys := NewSystemModule(networkMock, nil, nil, nil, nil, nil, nil)
@@ -160,8 +160,8 @@ var testGenesisData = &genesis.Data{
 	ChainType: "Local",
 }
 
-func newMockSystemAPI() *mocks.SystemAPI {
-	sysapimock := new(mocks.SystemAPI)
+func newMockSystemAPI(t *testing.T) *mocks.SystemAPI {
+	sysapimock := mocks.NewSystemAPI(t)
 	sysapimock.On("SystemName").Return(testSystemInfo.SystemName)
 	sysapimock.On("SystemVersion").Return(testSystemInfo.SystemVersion)
 	sysapimock.On("ChainName").Return(testGenesisData.Name)
@@ -172,7 +172,7 @@ func newMockSystemAPI() *mocks.SystemAPI {
 }
 
 func TestSystemModule_Chain(t *testing.T) {
-	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil, nil, nil, nil)
+	sys := NewSystemModule(nil, newMockSystemAPI(t), nil, nil, nil, nil, nil)
 
 	res := new(string)
 	err := sys.Chain(nil, nil, res)
@@ -181,7 +181,7 @@ func TestSystemModule_Chain(t *testing.T) {
 }
 
 func TestSystemModule_ChainType(t *testing.T) {
-	api := newMockSystemAPI()
+	api := newMockSystemAPI(t)
 
 	sys := NewSystemModule(nil, api, nil, nil, nil, nil, nil)
 
@@ -190,7 +190,7 @@ func TestSystemModule_ChainType(t *testing.T) {
 	require.Equal(t, testGenesisData.ChainType, *res)
 }
 func TestSystemModule_Name(t *testing.T) {
-	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil, nil, nil, nil)
+	sys := NewSystemModule(nil, newMockSystemAPI(t), nil, nil, nil, nil, nil)
 
 	res := new(string)
 	err := sys.Name(nil, nil, res)
@@ -199,7 +199,7 @@ func TestSystemModule_Name(t *testing.T) {
 }
 
 func TestSystemModule_Version(t *testing.T) {
-	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil, nil, nil, nil)
+	sys := NewSystemModule(nil, newMockSystemAPI(t), nil, nil, nil, nil, nil)
 
 	res := new(string)
 	err := sys.Version(nil, nil, res)
@@ -208,7 +208,7 @@ func TestSystemModule_Version(t *testing.T) {
 }
 
 func TestSystemModule_Properties(t *testing.T) {
-	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil, nil, nil, nil)
+	sys := NewSystemModule(nil, newMockSystemAPI(t), nil, nil, nil, nil, nil)
 
 	expected := map[string]interface{}(nil)
 
@@ -398,11 +398,11 @@ func TestSyncState(t *testing.T) {
 		Number: 49,
 	}
 
-	blockapiMock := new(mocks.BlockAPI)
+	blockapiMock := mocks.NewBlockAPI(t)
 	blockapiMock.On("BestBlockHash").Return(fakeCommonHash)
 	blockapiMock.On("GetHeader", fakeCommonHash).Return(fakeHeader, nil).Once()
 
-	netapiMock := new(mocks.NetworkAPI)
+	netapiMock := mocks.NewNetworkAPI(t)
 	netapiMock.On("StartingBlock").Return(int64(10))
 
 	syncapiCtrl := gomock.NewController(t)
@@ -440,7 +440,7 @@ func TestLocalListenAddresses(t *testing.T) {
 		Multiaddrs: []multiaddr.Multiaddr{ma},
 	}
 
-	mockNetAPI := new(mocks.NetworkAPI)
+	mockNetAPI := mocks.NewNetworkAPI(t)
 	mockNetAPI.On("NetworkState").Return(mockedNetState).Once()
 
 	res := make([]string, 0)
@@ -467,7 +467,7 @@ func TestLocalPeerId(t *testing.T) {
 		PeerID: peerID,
 	}
 
-	mocknetAPI := new(mocks.NetworkAPI)
+	mocknetAPI := mocks.NewNetworkAPI(t)
 	mocknetAPI.On("NetworkState").Return(state).Once()
 
 	sysmodules := new(SystemModule)
@@ -487,7 +487,7 @@ func TestLocalPeerId(t *testing.T) {
 
 func TestAddReservedPeer(t *testing.T) {
 	t.Run("Test Add and Remove reserved peers with success", func(t *testing.T) {
-		networkMock := new(mocks.NetworkAPI)
+		networkMock := mocks.NewNetworkAPI(t)
 		networkMock.On("AddReservedPeers", mock.AnythingOfType("string")).Return(nil).Once()
 		networkMock.On("RemoveReservedPeers", mock.AnythingOfType("string")).Return(nil).Once()
 
@@ -508,7 +508,7 @@ func TestAddReservedPeer(t *testing.T) {
 	})
 
 	t.Run("Test Add and Remove reserved peers without success", func(t *testing.T) {
-		networkMock := new(mocks.NetworkAPI)
+		networkMock := mocks.NewNetworkAPI(t)
 		networkMock.On("AddReservedPeers", mock.AnythingOfType("string")).Return(errors.New("some problems")).Once()
 		networkMock.On("RemoveReservedPeers", mock.AnythingOfType("string")).Return(errors.New("other problems")).Once()
 

@@ -4,6 +4,8 @@
 package modules
 
 import (
+	"testing"
+
 	modulesmocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -13,8 +15,8 @@ import (
 )
 
 // NewMockeryStorageAPI creates and return an rpc StorageAPI interface mock
-func NewMockeryStorageAPI() *modulesmocks.StorageAPI {
-	m := new(modulesmocks.StorageAPI)
+func NewMockeryStorageAPI(t *testing.T) *modulesmocks.StorageAPI {
+	m := modulesmocks.NewStorageAPI(t)
 	m.On("GetStorage", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]uint8")).Return(nil, nil)
 	m.On("GetStorageFromChild", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]uint8"),
 		mock.AnythingOfType("[]uint8")).Return(nil, nil)
@@ -28,8 +30,8 @@ func NewMockeryStorageAPI() *modulesmocks.StorageAPI {
 }
 
 // NewMockeryBlockAPI creates and return an rpc BlockAPI interface mock
-func NewMockeryBlockAPI() *modulesmocks.BlockAPI {
-	m := new(modulesmocks.BlockAPI)
+func NewMockeryBlockAPI(t *testing.T) *modulesmocks.BlockAPI {
+	m := modulesmocks.NewBlockAPI(t)
 	m.On("GetHeader", mock.AnythingOfType("common.Hash")).Return(nil, nil)
 	m.On("BestBlockHash").Return(common.Hash{})
 	m.On("GetBlockByHash", mock.AnythingOfType("common.Hash")).Return(nil, nil)
@@ -50,8 +52,8 @@ func NewMockeryBlockAPI() *modulesmocks.BlockAPI {
 }
 
 // NewMockTransactionStateAPI creates and return an rpc TransactionStateAPI interface mock
-func NewMockTransactionStateAPI() *modulesmocks.TransactionStateAPI {
-	m := new(modulesmocks.TransactionStateAPI)
+func NewMockTransactionStateAPI(t *testing.T) *modulesmocks.TransactionStateAPI {
+	m := modulesmocks.NewTransactionStateAPI(t)
 	m.On("FreeStatusNotifierChannel", mock.AnythingOfType("chan transaction.Status"))
 	m.On("GetStatusNotifierChannel", mock.AnythingOfType("types.Extrinsic")).Return(make(chan transaction.Status))
 	m.On("AddToPool", mock.AnythingOfType("transaction.ValidTransaction")).Return(common.Hash{})
@@ -59,8 +61,8 @@ func NewMockTransactionStateAPI() *modulesmocks.TransactionStateAPI {
 }
 
 // NewMockCoreAPI creates and return an rpc CoreAPI interface mock
-func NewMockCoreAPI() *modulesmocks.CoreAPI {
-	m := new(modulesmocks.CoreAPI)
+func NewMockCoreAPI(t *testing.T) *modulesmocks.CoreAPI {
+	m := modulesmocks.NewCoreAPI(t)
 	m.On("InsertKey", mock.AnythingOfType("crypto.Keypair"), mock.AnythingOfType("string")).Return(nil)
 	m.On("HasKey", mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(false, nil)
 	m.On("GetRuntimeVersion", mock.AnythingOfType("*common.Hash")).
