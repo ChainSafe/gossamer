@@ -26,15 +26,15 @@ func buildCommitMessage(blockHash common.Hash) *CommitMessage {
 }
 
 func assertCommitsMapping(t *testing.T,
-	mapping map[common.Hash]commitMessageMapData,
+	mapping map[common.Hash]*list.Element,
 	expected map[common.Hash]*CommitMessage) {
 	t.Helper()
 
 	require.Len(t, mapping, len(expected), "mapping does not have the expected length")
 	for expectedBlockHash, expectedCommitMessage := range expected {
-		data, ok := mapping[expectedBlockHash]
+		listElement, ok := mapping[expectedBlockHash]
 		assert.Truef(t, ok, "block hash %s not found in mapping", expectedBlockHash)
-		assert.Equalf(t, expectedCommitMessage, data.message,
+		assert.Equalf(t, expectedCommitMessage, listElement.Value.(*CommitMessage),
 			"commit message for block hash %s is not as expected",
 			expectedBlockHash)
 	}
@@ -45,7 +45,7 @@ func Test_newCommitsTracker(t *testing.T) {
 
 	const capacity = 1
 	expected := commitsTracker{
-		mapping:    make(map[common.Hash]commitMessageMapData, capacity),
+		mapping:    make(map[common.Hash]*list.Element, capacity),
 		linkedList: list.New(),
 		capacity:   capacity,
 	}
@@ -197,7 +197,7 @@ func Test_commitsTracker_message(t *testing.T) {
 	}{
 		"non existing block hash": {
 			commitsTracker: &commitsTracker{
-				mapping: map[common.Hash]commitMessageMapData{
+				mapping: map[common.Hash]*list.Element{
 					{1}: {},
 				},
 			},
@@ -205,9 +205,9 @@ func Test_commitsTracker_message(t *testing.T) {
 		},
 		"existing block hash": {
 			commitsTracker: &commitsTracker{
-				mapping: map[common.Hash]commitMessageMapData{
+				mapping: map[common.Hash]*list.Element{
 					{1}: {
-						message: &CommitMessage{Round: 1},
+						Value: &CommitMessage{Round: 1},
 					},
 				},
 			},
@@ -272,7 +272,7 @@ func Benchmark_ForEachVsSlice(b *testing.B) {
 	getMessages := func(ct *commitsTracker) (messages []*CommitMessage) {
 		messages = make([]*CommitMessage, 0, len(ct.mapping))
 		for _, data := range ct.mapping {
-			messages = append(messages, data.message)
+			messages = append(messages, data.Value.(*CommitMessage))
 		}
 		return messages
 	}
@@ -285,15 +285,15 @@ func Benchmark_ForEachVsSlice(b *testing.B) {
 	const trackerSize = 10e4
 	makeSeededTracker := func() (ct *commitsTracker) {
 		ct = &commitsTracker{
-			mapping: make(map[common.Hash]commitMessageMapData),
+			mapping: make(map[common.Hash]*list.Element),
 		}
 		for i := 0; i < trackerSize; i++ {
 			hashBytes := make([]byte, 32)
 			_, _ = rand.Read(hashBytes)
 			var blockHash common.Hash
 			copy(blockHash[:], hashBytes)
-			ct.mapping[blockHash] = commitMessageMapData{
-				message: &CommitMessage{
+			ct.mapping[blockHash] = &list.Element{
+				Value: &CommitMessage{
 					Round: uint64(i),
 					SetID: uint64(i),
 				},
