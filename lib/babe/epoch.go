@@ -92,7 +92,7 @@ func (b *Service) getEpochDataAndStartSlot(epoch uint64) (*epochData, uint64, er
 
 	has, err := b.epochState.HasEpochData(epoch)
 	if err != nil {
-		return nil, 0, fmt.Errorf("cannot check for epoch data for epoch %d: %w", epoch, err)
+		return nil, 0, fmt.Errorf("cannot check epoch state: %w", err)
 	}
 
 	if !has {

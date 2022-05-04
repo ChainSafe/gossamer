@@ -54,7 +54,8 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 				},
 			},
 			branchDecoded: &Branch{
-				Key: []byte{5},
+				Key:         []byte{5},
+				Descendants: 1,
 				Children: [16]Node{
 					&Leaf{
 						Key:   []byte{9},
@@ -103,7 +104,8 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 						},
 					},
 				},
-				Dirty: true,
+				Dirty:       true,
+				Descendants: 1,
 			},
 		},
 	}

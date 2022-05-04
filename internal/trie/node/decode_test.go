@@ -119,6 +119,7 @@ func Test_Decode(t *testing.T) {
 					13, 10, 0, 14, 7, 10,
 					4, 1, 1, 3, 12, 4,
 				},
+				Descendants: 2,
 				Children: [16]Node{
 					nil, nil, nil, nil,
 					&Leaf{
@@ -235,7 +236,8 @@ func Test_decodeBranch(t *testing.T) {
 						HashDigest: []byte{1, 2, 3, 4, 5},
 					},
 				},
-				Dirty: true,
+				Dirty:       true,
+				Descendants: 1,
 			},
 		},
 		"value decoding error for node type 3": {
@@ -270,7 +272,8 @@ func Test_decodeBranch(t *testing.T) {
 						HashDigest: []byte{1, 2, 3, 4, 5},
 					},
 				},
-				Dirty: true,
+				Dirty:       true,
+				Descendants: 1,
 			},
 		},
 	}

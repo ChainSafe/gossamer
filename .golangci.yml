@@ -1,26 +1,8 @@
-# Copyright 2019 ChainSafe Systems (ON) Corp.
-# This file is part of gossamer.
-#
-# The gossamer library is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# The gossamer library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+# See https://golangci-lint.run/usage/configuration/#config-file
 
-# Source: https://github.com/golangci/golangci-lint/blob/master/.golangci.example.yml
-# options for analysis running
 run:
-  # timeout for analysis, e.g. 30s, 5m, default is 1m
-  deadline: 5m
+  deadline: 10m
 
-  # list of build tags, all linters use it. Default is empty list.
   build-tags:
     - integration
 
@@ -28,18 +10,11 @@ run:
     - .*mock_.*\.go
     - .*mocks\/.*\.go
 
-# all available settings of specific linters
 linters-settings:
   govet:
     # report about shadowed variables
     check-shadowing: true
 
-  maligned:
-    # print struct with more effective memory layout or not, false by default
-    suggest-new: true
-  dupl:
-    # tokens count to trigger issue, 150 by default
-    threshold: 100
   depguard:
     list-type: blacklist
     include-go-root: false
@@ -54,28 +29,13 @@ linters-settings:
     tab-width: 1
 
   misspell:
-    # Correct spellings using locale preferences for US or UK.
-    # Default is to use a neutral variety of English.
-    # Setting locale to US will correct the British spelling of 'colour' to 'color'.
     locale: UK
     ignore-words:
       - gossamer
       - flavor
-  gocritic:
-    # Which checks should be disabled; can't be combined with 'enabled-checks'; default is empty
-    disabled-checks:
-      - regexpMust # TODO remove this, `regexpMust` should be at global scope.
-
-    # Enable multiple checks by tags, run `GL_DEBUG=gocritic golangci-lint` run to see all tags and checks.
-    # Empty list by default. See https://github.com/go-critic/go-critic#usage -> section "Tags".
-    enabled-tags:
-      - performance
-
-    settings: # settings passed to gocritic
-      captLocal: # must be valid enabled check name
-        paramsOnly: true
-      rangeValCopy:
-        sizeThreshold: 32
+      - finalized
+      - finalize
+      - initialize
 
 linters:
   enable:
@@ -93,8 +53,6 @@ linters:
     - govet
     - ineffassign
     - lll
-    - megacheck
-    - megacheck
     - misspell
     - nilerr
     - nilnil
@@ -105,18 +63,8 @@ linters:
     - unparam
     - varcheck
 
-  fast: false
-
 issues:
-  # List of regexps of issue texts to exclude, empty list by default.
-  # But independently from this option we use default exclude patterns,
-  # it can be disabled by `exclude-use-default: false`. To list all
-  # excluded by default patterns execute `golangci-lint run --help`
-  #exclude:
-
-  # Excluding configuration per-path, per-linter, per-text and per-source
   exclude-rules:
-    # Exclude some linters from running on tests files.
     - path: _test\.go
       linters:
         - gocyclo
@@ -140,18 +88,6 @@ issues:
     - text: 'shadow: declaration of "ok" shadows declaration*'
       linters:
         - govet
-
-    - text: "`finalized` is a misspelling of `finalised`"
-      linters:
-        - misspell
-
-    - text: "`finalize` is a misspelling of `finalise`"
-      linters:
-        - misspell
-
-    - text: "`initialize` is a misspelling of `initialise`"
-      linters:
-        - misspell
 
     - linters:
         - revive
@@ -183,14 +119,4 @@ issues:
       linters:
         - gosec
 
-  # Independently from option `exclude` we use default exclude patterns,
-  # it can be disabled by this option. To list all
-  # excluded by default patterns execute `golangci-lint run --help`.
-  # Default value for this option is true.
   exclude-use-default: false
-
-  # Maximum issues count per one linter. Set to 0 to disable. Default is 50.
-  max-per-linter: 0
-
-  # Maximum count of issues with the same text. Set to 0 to disable. Default is 3.
-  max-same-issues: 0

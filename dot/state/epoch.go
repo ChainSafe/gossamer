@@ -323,7 +323,9 @@ func (s *EpochState) HasEpochData(epoch uint64) (bool, error) {
 		return has, nil
 	}
 
-	if !errors.Is(chaindb.ErrKeyNotFound, err) {
+	// we can have `has == false` and `err == nil`
+	// so ensure the error is not nil in the condition below.
+	if err != nil && !errors.Is(chaindb.ErrKeyNotFound, err) {
 		return false, fmt.Errorf("cannot check database for epoch key %d: %w", epoch, err)
 	}
 

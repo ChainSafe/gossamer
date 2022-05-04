@@ -15,7 +15,6 @@ import (
 
 func TestTrieSnapshot(t *testing.T) {
 	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
 
 	genRawFile := NewTestGenesisRawFile(t, cfg)
 

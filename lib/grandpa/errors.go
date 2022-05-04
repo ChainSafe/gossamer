@@ -63,6 +63,8 @@ var (
 	// ErrNoJustification is returned when no justification can be found for a block, ie. it has not been finalised
 	ErrNoJustification = errors.New("no justification found for block")
 
+	ErrBlockHashMismatch = errors.New("block hash does not correspond to given block number")
+
 	// ErrMinVotesNotMet is returned when the number of votes is less than the required minimum in a Justification
 	ErrMinVotesNotMet = errors.New("minimum number of votes not met in a Justification")
 
@@ -94,6 +96,7 @@ var (
 	ErrAuthorityNotInSet = errors.New("authority is not in set")
 
 	errVoteToSignatureMismatch = errors.New("votes and authority count mismatch")
-	errInvalidVoteBlock        = errors.New("block in vote is not descendant of previously finalised block")
+	errVoteBlockMismatch       = errors.New("block in vote is not descendant of previously finalised block")
 	errVoteFromSelf            = errors.New("got vote from ourselves")
+	errInvalidMultiplicity     = errors.New("more than two equivocatory votes for a voter")
 )
