@@ -4,16 +4,13 @@
 package sync
 
 import (
+	"github.com/golang/mock/gomock"
 	"testing"
 	"time"
 
-	syncmocks "github.com/ChainSafe/gossamer/dot/sync/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -92,35 +89,19 @@ func BuildBlock(t *testing.T, instance runtime.Instance, parent *types.Header, e
 	}
 }
 
-const (
-	defaultMinPeers     = 1
-	defaultMaxPeers     = 5
-	testTimeout         = time.Second * 5
-	defaultSlotDuration = time.Second * 6
-)
+const defaultSlotDuration = time.Second * 6
 
 func newTestChainSyncWithReadyBlocks(t *testing.T, readyBlocks *blockQueue) *chainSync {
-	header, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, 0,
-		types.NewDigest())
-	require.NoError(t, err)
-
-	bs := new(syncmocks.BlockState)
-	bs.On("BestBlockHeader").Return(header, nil)
-	bs.On("GetFinalisedNotifierChannel").Return(make(chan *types.FinalisationInfo, 128), nil)
-	bs.On("HasHeader", mock.AnythingOfType("common.Hash")).Return(true, nil)
-
-	net := new(syncmocks.Network)
-	net.On("DoBlockRequest", mock.AnythingOfType("peer.ID"), mock.AnythingOfType("*network.BlockRequestMessage")).
-		Return(nil, nil)
-	net.On("ReportPeer", mock.AnythingOfType("peerset.ReputationChange"), mock.AnythingOfType("peer.ID"))
+	ctrl := gomock.NewController(t)
+	mockBlockState := NewMockBlockState(ctrl)
+	mockBlockState.EXPECT().GetFinalisedNotifierChannel().Return(make(chan *types.FinalisationInfo))
 
 	cfg := &chainSyncConfig{
-		bs:            bs,
-		net:           net,
+		bs:            mockBlockState,
 		readyBlocks:   readyBlocks,
 		pendingBlocks: newDisjointBlockSet(pendingBlocksLimit),
-		minPeers:      defaultMinPeers,
-		maxPeers:      defaultMaxPeers,
+		minPeers:      1,
+		maxPeers:      5,
 		slotDuration:  defaultSlotDuration,
 	}
 

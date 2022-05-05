@@ -7,13 +7,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	syncmocks "github.com/ChainSafe/gossamer/dot/sync/mocks"
+	"github.com/stretchr/testify/mock"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/peerset"
 
 	"github.com/ChainSafe/gossamer/dot/network"
-	syncmocks "github.com/ChainSafe/gossamer/dot/sync/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
@@ -21,7 +22,6 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -68,7 +68,15 @@ func TestChainSync_SetPeerHead(t *testing.T) {
 	testPeer := peer.ID("noot")
 	hash := common.Hash{0xa, 0xb}
 	const number = 1000
-	err := cs.setPeerHead(testPeer, hash, number)
+	ctrl := gomock.NewController(t)
+	mockBlockState := NewMockBlockState(ctrl)
+	mockHeader, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, 0,
+		types.NewDigest())
+	require.NoError(t, err)
+	mockBlockState.EXPECT().BestBlockHeader().Return(mockHeader, nil)
+	cs.blockState = mockBlockState
+
+	err = cs.setPeerHead(testPeer, hash, number)
 	require.NoError(t, err)
 
 	expected := &peerState{
@@ -115,6 +123,12 @@ func TestChainSync_SetPeerHead(t *testing.T) {
 	cs.blockState.(*syncmocks.BlockState).On("GetHighestFinalisedHeader").Return(fin, nil)
 	cs.blockState.(*syncmocks.BlockState).On("GetHashByNumber", mock.AnythingOfType("uint")).Return(common.Hash{}, nil)
 
+	mockNetwork := NewMockNetwork(ctrl)
+	mockNetwork.EXPECT().ReportPeer(peerset.ReputationChange{
+		Value:  -4096,
+		Reason: "Bad block announcement",
+	}, peer.ID("noot"))
+	cs.network = mockNetwork
 	err = cs.setPeerHead(testPeer, hash, number-1)
 	require.True(t, errors.Is(err, errPeerOnInvalidFork))
 	expected = &peerState{
@@ -159,6 +173,27 @@ func TestChainSync_sync_bootstrap_withWorkerError(t *testing.T) {
 	t.Parallel()
 
 	cs := newTestChainSync(t)
+	ctrl := gomock.NewController(t)
+	mockBlockState := NewMockBlockState(ctrl)
+	mockHeader, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, 0,
+		types.NewDigest())
+	require.NoError(t, err)
+	mockBlockState.EXPECT().BestBlockHeader().Return(mockHeader, nil).Times(2)
+	cs.blockState = mockBlockState
+	cs.handler = newBootstrapSyncer(mockBlockState)
+
+	mockNetwork := NewMockNetwork(ctrl)
+	startingBlock := variadic.MustNewUint32OrHash(1)
+	max := uint32(128)
+	mockNetwork.EXPECT().DoBlockRequest(peer.ID("noot"), &network.BlockRequestMessage{
+		RequestedData: 19,
+		StartingBlock: *startingBlock,
+		EndBlockHash:  nil,
+		Direction:     0,
+		Max:           &max,
+	})
+	cs.network = mockNetwork
+
 	go cs.sync()
 	defer cs.cancel()
 
@@ -176,7 +211,7 @@ func TestChainSync_sync_bootstrap_withWorkerError(t *testing.T) {
 			who: testPeer,
 		}
 		require.Equal(t, expected, res.err)
-	case <-time.After(testTimeout):
+	case <-time.After(time.Second * 5):
 		t.Fatal("did not get worker response")
 	}
 
@@ -461,6 +496,11 @@ func TestChainSync_validateResponse(t *testing.T) {
 	t.Parallel()
 
 	cs := newTestChainSync(t)
+	ctrl := gomock.NewController(t)
+	mockBlockState := NewMockBlockState(ctrl)
+	mockBlockState.EXPECT().HasHeader(common.Hash{}).Return(true, nil).Times(4)
+	cs.blockState = mockBlockState
+
 	err := cs.validateResponse(nil, nil, "")
 	require.Equal(t, errEmptyBlockData, err)
 
@@ -612,6 +652,7 @@ func TestChainSync_doSync(t *testing.T) {
 
 	readyBlocks := newBlockQueue(maxResponseSize)
 	cs := newTestChainSyncWithReadyBlocks(t, readyBlocks)
+	ctrl := gomock.NewController(t)
 
 	max := uint32(1)
 	req := &network.BlockRequestMessage{
@@ -622,6 +663,10 @@ func TestChainSync_doSync(t *testing.T) {
 		Max:           &max,
 	}
 
+	mockBlockState := NewMockBlockState(ctrl)
+	mockBlockState.EXPECT().HasHeader(common.Hash{}).Return(true, nil).Times(2)
+	cs.blockState = mockBlockState
+
 	workerErr := cs.doSync(req, make(map[peer.ID]struct{}))
 	require.NotNil(t, workerErr)
 	require.Equal(t, errNoPeers, workerErr.err)
@@ -629,6 +674,18 @@ func TestChainSync_doSync(t *testing.T) {
 	cs.peerState["noot"] = &peerState{
 		number: 100,
 	}
+
+	mockNetwork := NewMockNetwork(ctrl)
+	startingBlock := variadic.MustNewUint32OrHash(1)
+	max1 := uint32(1)
+	mockNetwork.EXPECT().DoBlockRequest(peer.ID("noot"), &network.BlockRequestMessage{
+		RequestedData: 19,
+		StartingBlock: *startingBlock,
+		EndBlockHash:  nil,
+		Direction:     0,
+		Max:           &max1,
+	})
+	cs.network = mockNetwork
 
 	workerErr = cs.doSync(req, make(map[peer.ID]struct{}))
 	require.NotNil(t, workerErr)

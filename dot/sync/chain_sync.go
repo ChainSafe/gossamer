@@ -579,7 +579,7 @@ func (cs *chainSync) getTarget() uint {
 		uintArr = append(uintArr, ps.number)
 	}
 
-	sum, count := removeOutliers(uintArr)
+	sum, count := nonOutliersSumCount(uintArr)
 	quotientBigInt := big.NewInt(0).Div(sum, big.NewInt(int64(count)))
 	return uint(quotientBigInt.Uint64())
 }
