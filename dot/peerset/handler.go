@@ -12,10 +12,10 @@ import (
 // Handler manages peerSet.
 type Handler struct {
 	actionQueue chan<- action
+	peerSet     *PeerSet
 	closeCh     chan struct{}
-	cancelCtx   context.CancelFunc
 
-	peerSet *PeerSet
+	cancelCtx context.CancelFunc
 }
 
 // NewPeerSetHandler creates a new *peerset.Handler.
