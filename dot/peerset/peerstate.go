@@ -254,13 +254,11 @@ func (ps *PeersState) addReputation(peerID peer.ID, change ReputationChange) (
 }
 
 // highestNotConnectedPeer returns the peer with the highest Reputation and that we are not connected to.
-func (ps *PeersState) highestNotConnectedPeer(set int) peer.ID {
+func (ps *PeersState) highestNotConnectedPeer(set int) (highestPeerID peer.ID) {
 	ps.RLock()
 	defer ps.RUnlock()
 
 	maxRep := math.MinInt32
-	var highestPeerID peer.ID
-
 	for peerID, node := range ps.nodes {
 		if node.state[set] != notConnected {
 			continue
