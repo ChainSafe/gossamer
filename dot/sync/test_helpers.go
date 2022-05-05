@@ -4,7 +4,6 @@
 package sync
 
 import (
-	"github.com/golang/mock/gomock"
 	"testing"
 	"time"
 
@@ -90,25 +89,3 @@ func BuildBlock(t *testing.T, instance runtime.Instance, parent *types.Header, e
 }
 
 const defaultSlotDuration = time.Second * 6
-
-func newTestChainSyncWithReadyBlocks(t *testing.T, readyBlocks *blockQueue) *chainSync {
-	ctrl := gomock.NewController(t)
-	mockBlockState := NewMockBlockState(ctrl)
-	mockBlockState.EXPECT().GetFinalisedNotifierChannel().Return(make(chan *types.FinalisationInfo))
-
-	cfg := &chainSyncConfig{
-		bs:            mockBlockState,
-		readyBlocks:   readyBlocks,
-		pendingBlocks: newDisjointBlockSet(pendingBlocksLimit),
-		minPeers:      1,
-		maxPeers:      5,
-		slotDuration:  defaultSlotDuration,
-	}
-
-	return newChainSync(cfg)
-}
-
-func newTestChainSync(t *testing.T) *chainSync {
-	readyBlocks := newBlockQueue(maxResponseSize)
-	return newTestChainSyncWithReadyBlocks(t, readyBlocks)
-}
