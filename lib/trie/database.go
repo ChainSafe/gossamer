@@ -219,6 +219,17 @@ func (t *Trie) load(db chaindb.Database, n Node) error {
 		if err != nil {
 			return fmt.Errorf("cannot load child at index %d with hash 0x%x: %w", i, hash, err)
 		}
+
+		if decodedNode.Type() != node.LeafType { // branch decoded node
+			// Note 1: the node is fully loaded with all its descendants
+			// count only after the database load above.
+			// Note 2: direct child node is already counted as descendant
+			// when it was read as a leaf with hash only in decodeBranch,
+			// so we only add the descendants of the child branch to the
+			// current branch.
+			childBranchDescendants := decodedNode.(*node.Branch).Descendants
+			branch.AddDescendants(childBranchDescendants)
+		}
 	}
 
 	for _, key := range t.GetKeysWithPrefix(ChildStorageKeyPrefix) {
