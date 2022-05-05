@@ -507,7 +507,7 @@ func (s *EpochState) SkipVerify(header *types.Header) (bool, error) {
 		return false, err
 	}
 
-	if epoch <= s.skipToEpoch {
+	if epoch < s.skipToEpoch {
 		return true, nil
 	}
 
