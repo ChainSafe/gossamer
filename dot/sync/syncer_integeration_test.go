@@ -66,7 +66,7 @@ func newTestSyncer(t *testing.T) *Service {
 	ctrl := gomock.NewController(t)
 
 	mockTelemetryClient := NewMockClient(ctrl)
-	mockTelemetryClient.EXPECT().SendMessage(gomock.Any())
+	mockTelemetryClient.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	wasmer.DefaultTestLogLvl = log.Warn
 
@@ -145,6 +145,7 @@ func newTestSyncer(t *testing.T) *Service {
 	cfg.LogLvl = log.Trace
 	cfg.FinalityGadget = newMockFinalityGadget()
 	cfg.Network = newMockNetwork()
+	cfg.Telemetry = mockTelemetryClient
 
 	syncer, err := NewService(cfg)
 	require.NoError(t, err)
