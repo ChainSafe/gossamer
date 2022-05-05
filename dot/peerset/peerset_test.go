@@ -11,9 +11,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const testSetID = 0
-
 func TestBanRejectAcceptPeer(t *testing.T) {
+	const testSetID = 0
+
 	t.Parallel()
 
 	handler := newTestPeerSet(t, 25, 25, nil, nil, false)
@@ -65,6 +65,8 @@ func TestBanRejectAcceptPeer(t *testing.T) {
 }
 
 func TestAddReservedPeers(t *testing.T) {
+	const testSetID = 0
+
 	t.Parallel()
 	handler := newTestPeerSet(t, 0, 2, []peer.ID{bootNode}, []peer.ID{}, false)
 	ps := handler.peerSet
@@ -75,26 +77,17 @@ func TestAddReservedPeers(t *testing.T) {
 	checkPeerStateSetNumIn(t, ps.peerState, testSetID, 0)
 	checkPeerStateSetNumOut(t, ps.peerState, testSetID, 1)
 
-	reservedPeers := []struct {
-		peerID peer.ID
-	}{
-		{
-			peerID: reservedPeer,
-		},
-		{
-			peerID: reservedPeer2,
-		},
-	}
+	reservedPeers := peer.IDSlice{reservedPeer, reservedPeer2}
 
-	for _, tt := range reservedPeers {
-		handler.AddReservedPeer(testSetID, tt.peerID)
+	for _, peerID := range reservedPeers {
+		handler.AddReservedPeer(testSetID, peerID)
 		time.Sleep(time.Millisecond * 100)
 
-		checkReservedNodePeerExists(t, ps, tt.peerID)
-		checkPeerIsInNoSlotsNode(t, ps.peerState, tt.peerID, testSetID)
+		checkReservedNodePeerExists(t, ps, peerID)
+		checkPeerIsInNoSlotsNode(t, ps.peerState, peerID, testSetID)
 
-		require.Equal(t, connectedPeer, ps.peerState.peerStatus(testSetID, tt.peerID))
-		checkNodePeerMembershipState(t, ps.peerState, tt.peerID, testSetID, outgoing)
+		require.Equal(t, connectedPeer, ps.peerState.peerStatus(testSetID, peerID))
+		checkNodePeerMembershipState(t, ps.peerState, peerID, testSetID, outgoing)
 
 		// peers in noSlotNodes maps should not increase the
 		// numIn and numOut count
@@ -120,9 +113,10 @@ func TestAddReservedPeers(t *testing.T) {
 }
 
 func TestPeerSetIncoming(t *testing.T) {
+	const testSetID = 0
+
 	t.Parallel()
-	handler := newTestPeerSet(t, 2, 1, []peer.ID{bootNode},
-		[]peer.ID{}, false)
+	handler := newTestPeerSet(t, 2, 1, []peer.ID{bootNode}, []peer.ID{}, false)
 
 	ps := handler.peerSet
 	checkMessageStatus(t, <-ps.resultMsgCh, Connect)
@@ -182,6 +176,8 @@ func TestPeerSetIncoming(t *testing.T) {
 }
 
 func TestPeerSetDiscovered(t *testing.T) {
+	const testSetID = 0
+
 	t.Parallel()
 	handler := newTestPeerSet(t, 0, 2, []peer.ID{}, []peer.ID{reservedPeer}, false)
 
@@ -213,6 +209,8 @@ func TestPeerSetDiscovered(t *testing.T) {
 }
 
 func TestReAllocAfterBanned(t *testing.T) {
+	const testSetID = 0
+
 	t.Parallel()
 	handler := newTestPeerSet(t, 25, 25, []peer.ID{}, []peer.ID{}, false)
 
@@ -265,9 +263,10 @@ func TestReAllocAfterBanned(t *testing.T) {
 }
 
 func TestRemovePeer(t *testing.T) {
+	const testSetID = 0
+
 	t.Parallel()
-	handler := newTestPeerSet(t, 0, 2, []peer.ID{discovered1, discovered2},
-		nil, false)
+	handler := newTestPeerSet(t, 0, 2, []peer.ID{discovered1, discovered2}, nil, false)
 
 	ps := handler.peerSet
 	require.Len(t, ps.resultMsgCh, 2)
@@ -291,9 +290,10 @@ func TestRemovePeer(t *testing.T) {
 }
 
 func TestSetReservePeer(t *testing.T) {
+	const testSetID = 0
+
 	t.Parallel()
-	handler := newTestPeerSet(t, 0, 2, nil, []peer.ID{reservedPeer, reservedPeer2},
-		true)
+	handler := newTestPeerSet(t, 0, 2, nil, []peer.ID{reservedPeer, reservedPeer2}, true)
 
 	ps := handler.peerSet
 	require.Len(t, ps.resultMsgCh, 2)
@@ -376,7 +376,7 @@ func checkPeerStateSetNumOut(t *testing.T, ps *PeersState, setID int, expectedNu
 	ps.RLock()
 	defer ps.RUnlock()
 
-	gotNumOut := ps.sets[testSetID].numOut
+	gotNumOut := ps.sets[setID].numOut
 	require.Equal(t, expectedNumOut, gotNumOut)
 }
 
@@ -386,7 +386,7 @@ func checkPeerStateSetNumIn(t *testing.T, ps *PeersState, setID int, expectedNum
 	ps.RLock()
 	defer ps.RUnlock()
 
-	gotNumIn := ps.sets[testSetID].numIn
+	gotNumIn := ps.sets[setID].numIn
 	require.Equal(t, expectedNumIn, gotNumIn)
 }
 

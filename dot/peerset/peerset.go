@@ -502,7 +502,6 @@ func (ps *PeerSet) removeReservedPeers(setID int, peers ...peer.ID) error {
 				setID:  uint64(setID),
 				PeerID: peerID,
 			}
-
 		}
 	}
 
@@ -574,15 +573,15 @@ func (ps *PeerSet) removePeer(setID int, peers ...peer.ID) error {
 			// disconnect and forget
 			err := ps.peerState.disconnect(setID, pid)
 			if err != nil {
-				return fmt.Errorf("cannot disconnect peer %s at set %d: %w", pid, setID, err)
+				return fmt.Errorf("cannot disconnect: %w", err)
 			}
 
 			if err = ps.peerState.forgetPeer(setID, pid); err != nil {
-				return fmt.Errorf("cannot forget peer %s from set %d: %w", pid, setID, err)
+				return fmt.Errorf("cannot forget peer: %w", err)
 			}
 		} else if status == notConnectedPeer {
 			if err := ps.peerState.forgetPeer(setID, pid); err != nil {
-				return fmt.Errorf("cannot forget peer %s from set %d: %w", pid, setID, err)
+				return fmt.Errorf("cannot forget peer: %w", err)
 			}
 		}
 	}
@@ -632,34 +631,26 @@ func (ps *PeerSet) incoming(setID int, peers ...peer.ID) error {
 		}
 		state.RUnlock()
 
+		message := Message{
+			setID:  uint64(setID),
+			PeerID: pid,
+		}
+
 		switch {
 		case nodeReputation < BannedThresholdValue:
-			ps.resultMsgCh <- Message{
-				Status: Reject,
-				setID:  uint64(setID),
-				PeerID: pid,
-			}
-
+			message.Status = Reject
 		default:
 			err := state.tryAcceptIncoming(setID, pid)
 			if err != nil {
 				logger.Errorf("cannot accept incomming peer %s: %s", pid, err)
-
-				ps.resultMsgCh <- Message{
-					Status: Reject,
-					setID:  uint64(setID),
-					PeerID: pid,
-				}
+				message.Status = Reject
 			} else {
 				logger.Debugf("incoming connection accepted from peer %s", pid)
-
-				ps.resultMsgCh <- Message{
-					Status: Accept,
-					setID:  uint64(setID),
-					PeerID: pid,
-				}
+				message.Status = Accept
 			}
 		}
+
+		ps.resultMsgCh <- message
 	}
 
 	return nil
@@ -697,7 +688,7 @@ func (ps *PeerSet) disconnect(setIdx int, reason DropReason, peers ...peer.ID) e
 		state.nodes[pid] = n
 
 		if err = state.disconnect(setIdx, pid); err != nil {
-			return fmt.Errorf("cannot disconnect peer %s at set %d: %w", pid, setIdx, err)
+			return fmt.Errorf("cannot disconnect: %w", err)
 		}
 
 		ps.resultMsgCh <- Message{
@@ -709,7 +700,7 @@ func (ps *PeerSet) disconnect(setIdx int, reason DropReason, peers ...peer.ID) e
 		// TODO: figure out the condition of connection refuse.
 		if reason == RefusedDrop {
 			if err = ps.removePeer(setIdx, pid); err != nil {
-				return fmt.Errorf("cannot remove peer %s at set %d: %w", pid, setIdx, err)
+				return fmt.Errorf("cannot remove peer: %w", err)
 			}
 		}
 	}
@@ -732,7 +723,6 @@ func (ps *PeerSet) listenAction(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case act, ok := <-ps.actionQueue:
-
 			if !ok {
 				return
 			}
@@ -783,13 +773,13 @@ func (ps *PeerSet) periodicallyAllocateSlots(ctx context.Context) {
 		case <-ctx.Done():
 			err := ctx.Err()
 			if err != nil {
-				logger.Debugf("peerset context finished with error: %w", err)
+				logger.Debugf("peerset slot allocation exiting: %s", err)
 			}
 			return
 		case <-ticker.C:
-			for i := 0; i < ps.peerState.getSetLength(); i++ {
-				if err := ps.allocSlots(i); err != nil {
-					logger.Warnf("failed to do action on peerSet: %s", err)
+			for setID := 0; setID < ps.peerState.getSetLength(); setID++ {
+				if err := ps.allocSlots(setID); err != nil {
+					logger.Warnf("failed to allocate slots: %s", err)
 				}
 			}
 		}
