@@ -488,18 +488,19 @@ func (s *Service) Stop() error {
 	}
 
 	// check if closeCh is closed, if not, close it.
+mainloop:
 	for {
 		select {
 		case _, hasMore := <-s.closeCh:
 			if !hasMore {
-				return nil
+				break mainloop
 			}
-		case <-s.closeCh:
-			return nil
 		default:
 			close(s.closeCh)
 		}
 	}
+
+	return nil
 }
 
 // RegisterNotificationsProtocol registers a protocol with the network service with the given handler

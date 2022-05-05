@@ -159,7 +159,7 @@ type ReputationChange struct {
 	Reason string
 }
 
-func (r *ReputationChange) String() string {
+func (r ReputationChange) String() string {
 	return fmt.Sprintf("value: %d, reason: %s", r.Value, r.Reason)
 }
 
@@ -340,7 +340,7 @@ func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
 	for _, pid := range peers {
 		rep, err := ps.peerState.addReputation(pid, change)
 		if err != nil {
-			return fmt.Errorf("cannot add reputation (%s) to peer %s: %w", pid, change.String(), err)
+			return fmt.Errorf("cannot add reputation (%s) to peer %s: %w", change, pid, err)
 		}
 
 		if rep >= BannedThresholdValue {
@@ -643,7 +643,7 @@ func (ps *PeerSet) incoming(setID int, peers ...peer.ID) error {
 		default:
 			err := state.tryAcceptIncoming(setID, pid)
 			if err != nil {
-				logger.Errorf("cannot accept incomming peer %pid: %w", pid, err)
+				logger.Errorf("cannot accept incomming peer %s: %s", pid, err)
 
 				ps.resultMsgCh <- Message{
 					Status: Reject,

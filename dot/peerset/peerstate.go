@@ -302,7 +302,6 @@ func (ps *PeersState) addNoSlotNode(idx int, peerID peer.ID) error {
 
 	node, has := ps.nodes[peerID]
 	if !has {
-		fmt.Println("error here")
 		return fmt.Errorf("%w: for peer id %s", ErrPeerDoesNotExist, peerID)
 	}
 
