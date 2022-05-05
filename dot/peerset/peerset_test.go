@@ -40,7 +40,6 @@ func TestBanRejectAcceptPeer(t *testing.T) {
 	// report peer will disconnect the peer and set the `lastConnected` to time.Now
 	handler.ReportPeer(rpc, peer1)
 
-	time.Sleep(100 * time.Millisecond)
 	checkMessageStatus(t, <-ps.resultMsgCh, Drop)
 
 	checkPeerStateSetNumIn(t, ps.peerState, testSetID, 0)
