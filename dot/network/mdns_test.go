@@ -42,13 +42,13 @@ func TestMDNS(t *testing.T) {
 
 	if peerCountA == 0 {
 		// check peerstore for disconnected peers
-		peerCountA := len(nodeA.host.h.Peerstore().Peers())
+		peerCountA := len(nodeA.host.p2pHost.Peerstore().Peers())
 		require.NotZero(t, peerCountA)
 	}
 
 	if peerCountB == 0 {
 		// check peerstore for disconnected peers
-		peerCountB := len(nodeB.host.h.Peerstore().Peers())
+		peerCountB := len(nodeB.host.p2pHost.Peerstore().Peers())
 		require.NotZero(t, peerCountB)
 	}
 }
