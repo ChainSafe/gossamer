@@ -45,7 +45,7 @@ func TestWSConn_HandleComm(t *testing.T) {
 	res, err = wsconn.initStorageChangeListener(1, nil)
 	require.Nil(t, res)
 	require.Len(t, wsconn.Subscriptions, 0)
-	require.EqualError(t, err, "unknown parameter type")
+	require.EqualError(t, err, "expected type equals string or []string. got <nil>")
 
 	res, err = wsconn.initStorageChangeListener(2, []interface{}{})
 	require.NotNil(t, res)
@@ -63,25 +63,24 @@ func TestWSConn_HandleComm(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":2,"id":3}`+"\n"), msg)
 
-	var testFilters = []interface{}{}
-	var testFilter1 = []interface{}{"0x26aa", "0x26a1"}
-	res, err = wsconn.initStorageChangeListener(4, append(testFilters, testFilter1))
-	require.NotNil(t, res)
+	var testFilter1 = []string{"0x26aa", "0x26a1"}
+	res, err = wsconn.initStorageChangeListener(4, testFilter1)
 	require.NoError(t, err)
+	require.NotNil(t, res)
 	require.Len(t, wsconn.Subscriptions, 3)
 	_, msg, err = c.ReadMessage()
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":3,"id":4}`+"\n"), msg)
 
 	var testFilterWrongType = []interface{}{"0x26aa", 1}
-	res, err = wsconn.initStorageChangeListener(5, append(testFilters, testFilterWrongType))
-	require.EqualError(t, err, "unknown parameter type")
+	res, err = wsconn.initStorageChangeListener(5, testFilterWrongType)
+	require.EqualError(t, err, "expected type equals string. got int")
 	require.Nil(t, res)
 	// keep subscriptions len == 3, no additions was made
 	require.Len(t, wsconn.Subscriptions, 3)
 
 	res, err = wsconn.initStorageChangeListener(6, []interface{}{1})
-	require.EqualError(t, err, "unknown parameter type")
+	require.EqualError(t, err, "expected type equals string. got int")
 	require.Nil(t, res)
 	require.Len(t, wsconn.Subscriptions, 3)
 
