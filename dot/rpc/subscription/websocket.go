@@ -26,8 +26,12 @@ type httpclient interface {
 	Do(*http.Request) (*http.Response, error)
 }
 
-var errCannotReadFromWebsocket = errors.New("cannot read message from websocket")
-var errCannotUnmarshalMessage = errors.New("cannot unmarshal webasocket message data")
+var (
+	errNilParameters           = errors.New("expecting non nil params. got nil")
+	errCannotReadFromWebsocket = errors.New("cannot read message from websocket")
+	errCannotUnmarshalMessage  = errors.New("cannot unmarshal webasocket message data")
+)
+
 var logger = log.NewFromGlobal(log.AddContext("pkg", "rpc/subscription"))
 
 // WSConn struct to hold WebSocket Connection references
@@ -265,14 +269,21 @@ func (c *WSConn) initAllBlocksListerner(reqID float64, _ interface{}) (Listener,
 }
 
 func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener, error) {
-	pA := params.([]interface{})
+	if params == nil {
+		return nil, errNilParameters
+	}
 
-	if len(pA) != 1 {
-		return nil, errors.New("expecting only one parameter")
+	encodedExtrinsic, ok := params.([]string)
+	if !ok {
+		return nil, fmt.Errorf("expected type equals []string. got %T", params)
+	}
+
+	if len(encodedExtrinsic) != 1 {
+		return nil, fmt.Errorf("expected only 1 param item. got %d", len(encodedExtrinsic))
 	}
 
 	// The passed parameter should be a HEX of a SCALE encoded extrinsic
-	extBytes, err := common.HexToBytes(pA[0].(string))
+	extBytes, err := common.HexToBytes(encodedExtrinsic[0])
 	if err != nil {
 		return nil, err
 	}
