@@ -21,6 +21,44 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestWSConn_EmptyMethod(t *testing.T) {
+	wsconn, c, cancel := setupWSConn(t)
+	wsconn.Subscriptions = make(map[uint32]Listener)
+	defer cancel()
+
+	go wsconn.HandleComm()
+
+	tests := []struct {
+		sentMessage []byte
+		expected    []byte
+	}{
+		{
+			sentMessage: []byte(`{
+			"jsonrpc": "2.0",
+			"method": "",
+			"id": 0,
+			"params": []
+			}`),
+			expected: []byte(`{"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid request"},"id":0}` + "\n"),
+		},
+		{
+			sentMessage: []byte(`{
+			"jsonrpc": "2.0",
+			"params": []
+			}`),
+			expected: []byte(`{"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid request"},"id":0}` + "\n"),
+		},
+	}
+
+	for _, tt := range tests {
+		c.WriteMessage(websocket.TextMessage, tt.sentMessage)
+
+		_, msg, err := c.ReadMessage()
+		require.NoError(t, err)
+		require.Equal(t, tt.expected, msg)
+	}
+}
+
 func TestWSConn_HandleComm(t *testing.T) {
 	wsconn, c, cancel := setupWSConn(t)
 	wsconn.Subscriptions = make(map[uint32]Listener)

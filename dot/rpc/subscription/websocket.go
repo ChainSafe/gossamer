@@ -22,6 +22,12 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+type websocketMessage struct {
+	ID     float64 `json:"id"`
+	Method string  `json:"method"`
+	Params any
+}
+
 type httpclient interface {
 	Do(*http.Request) (*http.Response, error)
 }
@@ -46,7 +52,7 @@ type WSConn struct {
 }
 
 // readWebsocketMessage will read and parse the message data to a string->interface{} data
-func (c *WSConn) readWebsocketMessage() ([]byte, map[string]interface{}, error) {
+func (c *WSConn) readWebsocketMessage() ([]byte, *websocketMessage, error) {
 	_, mbytes, err := c.Wsconn.ReadMessage()
 	if err != nil {
 		logger.Debugf("websocket failed to read message: %s", err)
@@ -55,8 +61,7 @@ func (c *WSConn) readWebsocketMessage() ([]byte, map[string]interface{}, error) 
 
 	logger.Tracef("websocket message received: %s", string(mbytes))
 
-	// determine if request is for subscribe method type
-	var msg map[string]interface{}
+	msg := new(websocketMessage)
 	err = json.Unmarshal(mbytes, &msg)
 
 	if err != nil {
@@ -80,23 +85,24 @@ func (c *WSConn) HandleComm() {
 			continue
 		}
 
-		params := msg["params"]
-		reqid := msg["id"].(float64)
-		method := msg["method"].(string)
+		if msg.Method == "" {
+			c.safeSendError(0, big.NewInt(InvalidRequestCode), InvalidRequestMessage)
+			continue
+		}
 
-		logger.Debugf("ws method %s called with params %v", method, params)
+		logger.Debugf("ws method %s called with params %v", msg.Method, msg.Params)
 
-		if !strings.Contains(method, "_unsubscribe") && !strings.Contains(method, "_unwatch") {
-			setupListener := c.getSetupListener(method)
+		if !strings.Contains(msg.Method, "_unsubscribe") && !strings.Contains(msg.Method, "_unwatch") {
+			setupListener := c.getSetupListener(msg.Method)
 
 			if setupListener == nil {
 				c.executeRPCCall(mbytes)
 				continue
 			}
 
-			listener, err := setupListener(reqid, params)
+			listener, err := setupListener(msg.ID, msg.Params)
 			if err != nil {
-				logger.Warnf("failed to create listener (method=%s): %s", method, err)
+				logger.Warnf("failed to create listener (method=%s): %s", msg.Method, err)
 				continue
 			}
 
@@ -104,29 +110,28 @@ func (c *WSConn) HandleComm() {
 			continue
 		}
 
-		listener, err := c.getUnsubListener(params)
-
+		listener, err := c.getUnsubListener(msg.Params)
 		if err != nil {
-			logger.Warnf("failed to get unsubscriber (method=%s): %s", method, err)
+			logger.Warnf("failed to get unsubscriber (method=%s): %s", msg.Method, err)
 
 			if errors.Is(err, errUknownParamSubscribeID) || errors.Is(err, errCannotFindUnsubsriber) {
-				c.safeSendError(reqid, big.NewInt(InvalidRequestCode), InvalidRequestMessage)
+				c.safeSendError(msg.ID, big.NewInt(InvalidRequestCode), InvalidRequestMessage)
 				continue
 			}
 
 			if errors.Is(err, errCannotParseID) || errors.Is(err, errCannotFindListener) {
-				c.safeSend(newBooleanResponseJSON(false, reqid))
+				c.safeSend(newBooleanResponseJSON(false, msg.ID))
 				continue
 			}
 		}
 
 		err = listener.Stop()
 		if err != nil {
-			logger.Warnf("failed to stop listener goroutine (method=%s): %s", method, err)
-			c.safeSend(newBooleanResponseJSON(false, reqid))
+			logger.Warnf("failed to stop listener goroutine (method=%s): %s", msg.Method, err)
+			c.safeSend(newBooleanResponseJSON(false, msg.ID))
 		}
 
-		c.safeSend(newBooleanResponseJSON(true, reqid))
+		c.safeSend(newBooleanResponseJSON(true, msg.ID))
 		continue
 	}
 }
