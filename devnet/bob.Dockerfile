@@ -39,6 +39,8 @@ RUN go run cmd/update-dd-agent-confd/main.go -n=${METRICS_NAMESPACE} -t=key:${ke
 
 WORKDIR /gossamer
 
+ENTRYPOINT ./bin/gossamer init --force --config ./chain/dev/config.toml && ./bin/gossamer --config ./chain/dev/config.toml --wsport 9944 --log-babe=trace --log-state=trace
+
 ENTRYPOINT service datadog-agent start && gossamer --key=${key} \
     --bootnodes=/dns/alice/tcp/7001/p2p/12D3KooWMER5iow67nScpWeVqEiRRx59PJ3xMMAYPTACYPRQbbWU \
     --publish-metrics \

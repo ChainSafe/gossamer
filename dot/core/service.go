@@ -421,8 +421,8 @@ func (s *Service) maintainTransactionPool(block *types.Block) {
 		// TODO this was causing state roots to not match, should investigate
 		//s.storageState.Lock()
 		//defer s.storageState.Unlock()
-		//	ts, err := s.storageState.TrieState(nil)
-		ts, err := s.storageState.TrieStateDeepCopied(nil)
+		ts, err := s.storageState.TrieState(nil)
+		//ts, err := s.storageState.TrieStateDeepCopied(nil)
 		if err != nil {
 			logger.Critical("failed to deep copy")
 		}
@@ -435,7 +435,7 @@ func (s *Service) maintainTransactionPool(block *types.Block) {
 
 		rt.SetContextStorage(ts)
 
-		// get the best block corresponding runtime
+		////get the best block corresponding runtime
 		//rt, err := s.blockState.GetRuntime(nil)
 		//if err != nil {
 		//	logger.Warnf("failed to get runtime to re-validate transactions in pool: %s", err)
@@ -538,8 +538,8 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 
 	s.storageState.Lock()
 	defer s.storageState.Unlock()
-	//	ts, err := s.storageState.TrieState(nil)
-	ts, err := s.storageState.TrieStateDeepCopied(nil)
+	ts, err := s.storageState.TrieState(nil)
+	//ts, err := s.storageState.TrieStateDeepCopied(nil)
 	if err != nil {
 		return err
 	}
