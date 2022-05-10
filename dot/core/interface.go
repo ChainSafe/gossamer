@@ -52,6 +52,7 @@ type StorageState interface {
 	LoadCodeHash(root *common.Hash) (common.Hash, error)
 	TrieState(root *common.Hash) (*rtstorage.TrieState, error)
 	StoreTrie(*rtstorage.TrieState, *types.Header) error
+	TrieStateDeepCopied(root *common.Hash) (*rtstorage.TrieState, error)
 	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
 	GetStorage(root *common.Hash, key []byte) ([]byte, error)
 	GenerateTrieProof(stateRoot common.Hash, keys [][]byte) ([][]byte, error)

@@ -520,7 +520,6 @@ func (b *Service) handleSlot(epoch, slotNum uint64,
 	// set runtime trie before building block
 	// if block building is successful, store the resulting trie in the storage state
 	ts, err := b.storageState.TrieState(&parent.StateRoot)
-	//b.storageState.Unlock()
 	if err != nil || ts == nil {
 		logger.Errorf("failed to get parent trie with parent state root %s: %s", parent.StateRoot, err)
 		return err
@@ -557,7 +556,7 @@ func (b *Service) handleSlot(epoch, slotNum uint64,
 		logger.Warnf("failed to import built block: %s", err)
 		return err
 	}
-	
+
 	return nil
 }
 

@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	rt "runtime"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -404,6 +405,7 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 // them to the queue if valid.
 // See https://github.com/paritytech/substrate/blob/74804b5649eccfb83c90aec87bdca58e5d5c8789/client/transaction-pool/src/lib.rs#L545
 func (s *Service) maintainTransactionPool(block *types.Block) {
+	logger.Error("MAINTAINING THE TRANSACTION POOL")
 	// remove extrinsics included in a block
 	for _, ext := range block.Body {
 		s.transactionState.RemoveExtrinsic(ext)
@@ -417,25 +419,41 @@ func (s *Service) maintainTransactionPool(block *types.Block) {
 
 	for _, tx := range txs {
 		// TODO this was causing state roots to not match, should investigate
-		// // get the best block corresponding runtime
-		// rt, err := s.blockState.GetRuntime(nil)
-		// if err != nil {
-		// 	logger.Warnf("failed to get runtime to re-validate transactions in pool: %s", err)
-		// 	continue
-		// }
+		//s.storageState.Lock()
+		//defer s.storageState.Unlock()
+		//	ts, err := s.storageState.TrieState(nil)
+		ts, err := s.storageState.TrieStateDeepCopied(nil)
+		if err != nil {
+			logger.Critical("failed to deep copy")
+		}
 
-		// externalExt, err := s.buildTransaction(rt, tx.Extrinsic)
-		// if err != nil {
-		// 	logger.Errorf("Unable to build transaction \n")
-		// }
+		rt, err := s.blockState.GetRuntime(nil)
+		if err != nil {
+			logger.Critical("failed to get runtime")
+			//return err
+		}
 
-		// txnValidity, err := rt.ValidateTransaction(externalExt)
-		// if err != nil {
-		// 	s.transactionState.RemoveExtrinsic(tx.Extrinsic)
-		// 	continue
-		// }
+		rt.SetContextStorage(ts)
 
-		// tx = transaction.NewValidTransaction(tx.Extrinsic, txnValidity)
+		// get the best block corresponding runtime
+		//rt, err := s.blockState.GetRuntime(nil)
+		//if err != nil {
+		//	logger.Warnf("failed to get runtime to re-validate transactions in pool: %s", err)
+		//	continue
+		//}
+
+		externalExt, err := s.buildTransaction(rt, tx.Extrinsic)
+		if err != nil {
+			logger.Errorf("Unable to build transaction \n")
+		}
+
+		txnValidity, err := rt.ValidateTransaction(externalExt)
+		if err != nil {
+			s.transactionState.RemoveExtrinsic(tx.Extrinsic)
+			continue
+		}
+
+		tx = transaction.NewValidTransaction(tx.Extrinsic, txnValidity)
 
 		// Err is only thrown if tx is already in pool, in which case it still gets removed
 		h, _ := s.transactionState.Push(tx)
@@ -478,6 +496,8 @@ func (s *Service) DecodeSessionKeys(enc []byte) ([]byte, error) {
 
 // GetRuntimeVersion gets the current RuntimeVersion
 func (s *Service) GetRuntimeVersion(bhash *common.Hash) (runtime.Version, error) {
+	_, file, line, _ := rt.Caller(1)
+	logger.Errorf("File: %v Line: %v", file, line)
 	var stateRootHash *common.Hash
 
 	// If block hash is not nil then fetch the state root corresponding to the block.
@@ -507,6 +527,7 @@ func (s *Service) GetRuntimeVersion(bhash *common.Hash) (runtime.Version, error)
 
 // HandleSubmittedExtrinsic is used to send a Transaction message containing a Extrinsic @ext
 func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
+	logger.Error("SUBMITTED EXTRINSIC BEING HANDLED")
 	if s.net == nil {
 		return nil
 	}
@@ -517,7 +538,8 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 
 	s.storageState.Lock()
 	defer s.storageState.Unlock()
-	ts, err := s.storageState.TrieState(nil)
+	//	ts, err := s.storageState.TrieState(nil)
+	ts, err := s.storageState.TrieStateDeepCopied(nil)
 	if err != nil {
 		return err
 	}
@@ -667,11 +689,6 @@ func (s *Service) buildTransaction(rt runtime.Instance, ext types.Extrinsic) (ty
 	txQueueVersion := runtimeVersion.TaggedTransactionQueueVersion(runtimeVersion)
 	var externalExt types.Extrinsic
 	if txQueueVersion == 3 {
-		// Unsure if genesis or blockHash
-		//genesisHash := s.blockState.GenesisHash()
-		//externalExt = types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))
-		//externalExt = append(externalExt, genesisHash.ToBytes()...)
-
 		externalExt = types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))
 		externalExt = append(externalExt, s.blockState.BestBlockHash().ToBytes()...)
 	} else {

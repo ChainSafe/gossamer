@@ -94,3 +94,16 @@ func (t *Tries) len() int {
 	defer t.mapMutex.RUnlock()
 	return len(t.rootToTrie)
 }
+
+// My test functions
+func (t *Tries) lock() {
+	t.mapMutex.RLock()
+}
+
+func (t *Tries) unlock() {
+	t.mapMutex.RUnlock()
+}
+
+func (t *Tries) rootToTri(root common.Hash) (tr *trie.Trie) {
+	return t.rootToTrie[root]
+}

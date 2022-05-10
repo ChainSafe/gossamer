@@ -6,6 +6,7 @@ package state
 import (
 	"errors"
 	"fmt"
+	"os"
 	"sync"
 
 	"github.com/ChainSafe/chaindb"
@@ -105,9 +106,8 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) 
 	return nil
 }
 
-// TrieState returns the TrieState for a given state root.
-// If no state root is provided, it returns the TrieState for the current chain head.
-func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error) {
+func (s *StorageState) TrieStateDeepCopied(root *common.Hash) (*rtstorage.TrieState, error) {
+	logger.Error("TrieStateDeepCopied")
 	if root == nil {
 		sr, err := s.blockState.BestBlockStateRoot()
 		if err != nil {
@@ -116,16 +116,82 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 		root = &sr
 	}
 
-	t := s.tries.get(*root)
+	ts := s.tries.get(*root)
+	t := ts.DeepCopy()
 	if t == nil {
+		logger.Error("T IS NIL")
 		var err error
 		t, err = s.LoadFromDB(*root)
 		if err != nil {
 			return nil, err
 		}
-
-		s.tries.softSet(*root, t)
 	} else if t.MustHash() != *root {
+		logger.Error("ROOTS DO NOT MATCH")
+		panic("trie does not have expected root")
+	}
+
+	nextTrie := t
+	next, err := rtstorage.NewTrieState(nextTrie)
+	if err != nil {
+		return nil, err
+	}
+
+	logger.Tracef("returning trie with root %s to be modified", root)
+	return next, nil
+}
+
+// TrieState returns the TrieState for a given state root.
+// If no state root is provided, it returns the TrieState for the current chain head.
+func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error) {
+	//_, file, line, _ := runtime.Caller(1)
+	//logger.Errorf("File: %v Line: %v", file, line)
+	logger.Errorf("%x", root)
+	if root == nil {
+		logger.Error("Root is nil")
+		sr, err := s.blockState.BestBlockStateRoot()
+		if err != nil {
+			return nil, err
+		}
+		root = &sr
+	}
+	logger.Errorf("%x", root)
+
+	t := s.tries.get(*root)
+	var str string
+	if t != nil {
+		str = t.String()
+	}
+	if t == nil {
+		logger.Error("T IS NIL")
+		var err error
+		t, err = s.LoadFromDB(*root)
+		if err != nil {
+			return nil, err
+		}
+	} else if t.MustHash() != *root {
+		str2 := t.String()
+		logger.Errorf("%b", str == str2)
+		logger.Error("ROOTS DO NOT MATCH")
+
+		f1, err := os.Create("str1")
+		if err != nil {
+			panic("ERROR1")
+		}
+
+		_, err = f1.Write([]byte(str))
+		if err != nil {
+			panic("ERROR2")
+		}
+
+		f2, err := os.Create("str2")
+		if err != nil {
+			panic("ERROR3")
+		}
+
+		_, err = f2.Write([]byte(str2))
+		if err != nil {
+			panic("ERROR4")
+		}
 		panic("trie does not have expected root")
 	}
 
