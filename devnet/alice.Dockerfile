@@ -23,7 +23,7 @@ COPY . .
 RUN go install -trimpath github.com/ChainSafe/gossamer/cmd/gossamer
 
 # use modified genesis-spec.json with only 3 authority nodes
-RUN cp -f devnet/chain/$CHAIN/genesis-raw.json chain/gssmr/genesis-spec.json
+# RUN cp -f devnet/chain/$CHAIN/genesis-raw.json chain/gssmr/genesis-spec.json
 
 RUN gossamer --key=alice init
 

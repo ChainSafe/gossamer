@@ -23,7 +23,7 @@ COPY . .
 RUN go install -trimpath github.com/ChainSafe/gossamer/cmd/gossamer
 
 # use modified genesis-spec.json with only 3 authority nodes
-RUN cp -f devnet/chain/$CHAIN/genesis-raw.json chain/gssmr/genesis-spec.json
+# RUN cp -f devnet/chain/$CHAIN/genesis-raw.json chain/gssmr/genesis-spec.json
 
 ARG key
 RUN test -n "$key"
@@ -38,8 +38,6 @@ WORKDIR /gossamer/devnet
 RUN go run cmd/update-dd-agent-confd/main.go -n=${METRICS_NAMESPACE} -t=key:${key} > /etc/datadog-agent/conf.d/openmetrics.d/conf.yaml
 
 WORKDIR /gossamer
-
-ENTRYPOINT ./bin/gossamer init --force --config ./chain/dev/config.toml && ./bin/gossamer --config ./chain/dev/config.toml --wsport 9944 --log-babe=trace --log-state=trace
 
 ENTRYPOINT service datadog-agent start && gossamer --key=${key} \
     --bootnodes=/dns/alice/tcp/7001/p2p/12D3KooWMER5iow67nScpWeVqEiRRx59PJ3xMMAYPTACYPRQbbWU \
