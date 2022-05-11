@@ -9,13 +9,10 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ChainSafe/gossamer/internal/trie/pools"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 var (
-	ErrReadHeaderByte     = errors.New("cannot read header byte")
-	ErrUnknownNodeType    = errors.New("unknown node type")
 	ErrDecodeValue        = errors.New("cannot decode value")
 	ErrReadChildrenBitmap = errors.New("cannot read children bitmap")
 	ErrDecodeChildHash    = errors.New("cannot decode child hash")
@@ -25,31 +22,28 @@ var (
 // For branch decoding, see the comments on decodeBranch.
 // For leaf decoding, see the comments on decodeLeaf.
 func Decode(reader io.Reader) (n *Node, err error) {
-	buffer := pools.SingleByteBuffers.Get().(*bytes.Buffer)
-	defer pools.SingleByteBuffers.Put(buffer)
-	oneByteBuf := buffer.Bytes()
-	_, err = reader.Read(oneByteBuf)
+	variant, partialKeyLength, err := decodeHeader(reader)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %s", ErrReadHeaderByte, err)
+		return nil, fmt.Errorf("cannot decode header: %w", err)
 	}
-	header := oneByteBuf[0]
 
-	nodeTypeHeaderByte := header >> 6
-	switch nodeTypeHeaderByte {
-	case leafHeader:
-		n, err = decodeLeaf(reader, header)
+	switch variant {
+	case leafVariant.bits:
+		n, err = decodeLeaf(reader, partialKeyLength)
 		if err != nil {
 			return nil, fmt.Errorf("cannot decode leaf: %w", err)
 		}
 		return n, nil
-	case branchHeader, branchWithValueHeader:
-		n, err = decodeBranch(reader, header)
+	case branchVariant.bits, branchWithValueVariant.bits:
+		n, err = decodeBranch(reader, variant, partialKeyLength)
 		if err != nil {
 			return nil, fmt.Errorf("cannot decode branch: %w", err)
 		}
 		return n, nil
 	default:
-		return nil, fmt.Errorf("%w: %d", ErrUnknownNodeType, nodeTypeHeaderByte)
+		// this is a programming error, an unknown node variant
+		// should be caught by decodeHeader.
+		panic(fmt.Sprintf("not implemented for node variant %08b", variant))
 	}
 }
 
@@ -58,14 +52,14 @@ func Decode(reader io.Reader) (n *Node, err error) {
 // reconstructing the child nodes from the encoding. This function instead stubs where the
 // children are known to be with an empty leaf. The children nodes hashes are then used to
 // find other values using the persistent database.
-func decodeBranch(reader io.Reader, header byte) (node *Node, err error) {
+func decodeBranch(reader io.Reader, variant byte, partialKeyLength uint16) (
+	node *Node, err error) {
 	node = &Node{
 		Dirty:    true,
 		Children: make([]*Node, ChildrenCapacity),
 	}
 
-	keyLen := header & keyLenOffset
-	node.Key, err = decodeKey(reader, keyLen)
+	node.Key, err = decodeKey(reader, partialKeyLength)
 	if err != nil {
 		return nil, fmt.Errorf("cannot decode key: %w", err)
 	}
@@ -78,15 +72,11 @@ func decodeBranch(reader io.Reader, header byte) (node *Node, err error) {
 
 	sd := scale.NewDecoder(reader)
 
-	nodeType := header >> 6
-	if nodeType == branchWithValueHeader {
-		var value []byte
-		// branch w/ value
-		err := sd.Decode(&value)
+	if variant == branchWithValueVariant.bits {
+		err := sd.Decode(&node.Value)
 		if err != nil {
 			return nil, fmt.Errorf("%w: %s", ErrDecodeValue, err)
 		}
-		node.Value = value
 	}
 
 	for i := 0; i < 16; i++ {
@@ -101,37 +91,37 @@ func decodeBranch(reader io.Reader, header byte) (node *Node, err error) {
 				ErrDecodeChildHash, i, err)
 		}
 
-		// Handle inlined leaf nodes.
 		const hashLength = 32
-		nodeTypeHeaderByte := hash[0] >> 6
-		if nodeTypeHeaderByte == leafHeader && len(hash) < hashLength {
-			leaf, err := decodeLeaf(bytes.NewReader(hash[1:]), hash[0])
-			if err != nil {
-				return nil, fmt.Errorf("%w: at index %d: %s",
-					ErrDecodeValue, i, err)
+		childNode := &Node{
+			HashDigest: hash,
+		}
+		if len(hash) < hashLength {
+			// Handle inlined nodes
+			reader = bytes.NewReader(hash)
+			variant, partialKeyLength, err := decodeHeader(reader)
+			if err == nil && variant == leafVariant.bits {
+				childNode, err = decodeLeaf(reader, partialKeyLength)
+				if err != nil {
+					return nil, fmt.Errorf("%w: at index %d: %s",
+						ErrDecodeValue, i, err)
+				}
 			}
-			node.Descendants++
-			node.Children[i] = leaf
-			continue
 		}
 
 		node.Descendants++
-		node.Children[i] = &Node{
-			HashDigest: hash,
-		}
+		node.Children[i] = childNode
 	}
 
 	return node, nil
 }
 
 // decodeLeaf reads and decodes from a reader with the encoding specified in lib/trie/node/encode_doc.go.
-func decodeLeaf(reader io.Reader, header byte) (node *Node, err error) {
+func decodeLeaf(reader io.Reader, partialKeyLength uint16) (node *Node, err error) {
 	node = &Node{
 		Dirty: true,
 	}
 
-	keyLen := header & keyLenOffset
-	node.Key, err = decodeKey(reader, keyLen)
+	node.Key, err = decodeKey(reader, partialKeyLength)
 	if err != nil {
 		return nil, fmt.Errorf("cannot decode key: %w", err)
 	}

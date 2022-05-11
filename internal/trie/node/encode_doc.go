@@ -3,26 +3,21 @@
 
 package node
 
-//nolint:lll
-// Modified Merkle-Patricia Trie
-// See https://github.com/w3f/polkadot-spec/blob/master/runtime-environment-spec/polkadot_re_spec.pdf for the full specification.
+// Each node encoding has a header of one or more bytes.
+// The first byte contains the node variant and some
+// or all of the partial key length of the node.
+// If the partial key length cannot fit in the first byte,
+// additional bytes are added to the header to represent
+// the total partial key length.
+// The header is then concatenated with the partial key,
+// encoded as Little Endian bytes.
+// The rest concatenated depends on the node variant.
 //
-// Note that for the following definitions, `|` denotes concatenation
+// For leaves, the SCALE-encoded leaf value is concatenated.
+// For branches, the following is concatenated, where
+// `|` denotes concatenation:
+// 2 bytes children bitmap | SCALE-encoded branch value |
+// Hash(Encoding(Child[0])) | ... | Hash(Encoding(Child[n]))
 //
-// Branch encoding:
-// NodeHeader | Extra partial key length | Partial Key | Value
-// `NodeHeader` is a byte such that:
-// most significant two bits of `NodeHeader`: 10 if branch w/o value, 11 if branch w/ value
-// least significant six bits of `NodeHeader`: if len(key) > 62, 0x3f, otherwise len(key)
-// `Extra partial key length` is included if len(key) > 63 and consists of the remaining key length
-// `Partial Key` is the branch's key
-// `Value` is: Children Bitmap | SCALE Branch node Value | Hash(Enc(Child[i_1])) | Hash(Enc(Child[i_2])) | ... | Hash(Enc(Child[i_n]))
-//
-// Leaf encoding:
-// NodeHeader | Extra partial key length | Partial Key | Value
-// `NodeHeader` is a byte such that:
-// most significant two bits of `NodeHeader`: 01
-// least significant six bits of `NodeHeader`: if len(key) > 62, 0x3f, otherwise len(key)
-// `Extra partial key length` is included if len(key) > 63 and consists of the remaining key length
-// `Partial Key` is the leaf's key
-// `Value` is the leaf's SCALE encoded value
+// See https://spec.polkadot.network/#sect-state-storage
+// for more details.
