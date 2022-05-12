@@ -19,6 +19,9 @@ var (
 )
 
 // Decode decodes a node from a reader.
+// The encoding format is documented in the README.md
+// of this package, and specified in the Polkadot spec at
+// https://spec.polkadot.network/#sect-state-storage
 // For branch decoding, see the comments on decodeBranch.
 // For leaf decoding, see the comments on decodeLeaf.
 func Decode(reader io.Reader) (n *Node, err error) {
@@ -47,7 +50,7 @@ func Decode(reader io.Reader) (n *Node, err error) {
 	}
 }
 
-// decodeBranch reads and decodes from a reader with the encoding specified in internal/trie/node/encode_doc.go.
+// decodeBranch reads from a reader and decodes to a node branch.
 // Note that since the encoded branch stores the hash of the children nodes, we are not
 // reconstructing the child nodes from the encoding. This function instead stubs where the
 // children are known to be with an empty leaf. The children nodes hashes are then used to
@@ -115,7 +118,7 @@ func decodeBranch(reader io.Reader, variant byte, partialKeyLength uint16) (
 	return node, nil
 }
 
-// decodeLeaf reads and decodes from a reader with the encoding specified in lib/trie/node/encode_doc.go.
+// decodeLeaf reads from a reader and decodes to a leaf node.
 func decodeLeaf(reader io.Reader, partialKeyLength uint16) (node *Node, err error) {
 	node = &Node{
 		Dirty: true,

@@ -12,7 +12,9 @@ import (
 )
 
 // Encode encodes the node to the buffer given.
-// The encoding format is documented in encode_doc.go.
+// The encoding format is documented in the README.md
+// of this package, and specified in the Polkadot spec at
+// https://spec.polkadot.network/#sect-state-storage
 func (n *Node) Encode(buffer Buffer) (err error) {
 	if !n.Dirty && n.Encoding != nil {
 		_, err = buffer.Write(n.Encoding)
