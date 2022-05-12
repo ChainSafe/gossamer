@@ -15,7 +15,7 @@ sync = ""
 digest = ""
 
 [init]
-genesis = "./chain/dev/dev-spec-raw.json"
+genesis = "./chain/dev/genesis.json"
 
 [account]
 key = ""
