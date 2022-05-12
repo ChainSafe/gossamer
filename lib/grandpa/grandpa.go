@@ -683,7 +683,7 @@ func (s *Service) deleteVote(key ed25519.PublicKeyBytes, stage Subround) {
 func (s *Service) determinePreVote() (*Vote, error) {
 	var vote *Vote
 
-	beastBlockHeader, err := s.blockState.BestBlockHeader()
+	bestBlockHeader, err := s.blockState.BestBlockHeader()
 	if err != nil {
 		return nil, fmt.Errorf("cannot get best block header: %w", err)
 	}
@@ -697,10 +697,10 @@ func (s *Service) determinePreVote() (*Vote, error) {
 	if has && prm.Vote.Number >= uint32(s.head.Number) {
 		vote = &prm.Vote
 	} else {
-		vote = NewVoteFromHeader(beastBlockHeader)
+		vote = NewVoteFromHeader(bestBlockHeader)
 	}
 
-	nextChange, err := s.grandpaState.NextGrandpaAuthorityChange(beastBlockHeader.Hash())
+	nextChange, err := s.grandpaState.NextGrandpaAuthorityChange(bestBlockHeader.Hash())
 	if errors.Is(err, state.ErrNoChanges) {
 		return vote, nil
 	} else if err != nil {

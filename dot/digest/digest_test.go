@@ -27,6 +27,7 @@ import (
 )
 
 //go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
+//go:generate mockgen -destination=mock_grandpa_test.go -package $GOPACKAGE . GrandpaState
 
 func newTestHandler(t *testing.T) (*Handler, *state.Service) {
 	testDatadirPath := t.TempDir()
@@ -224,6 +225,42 @@ func TestHandler_GrandpaPauseAndResume(t *testing.T) {
 	nextResume, err := handler.grandpaState.(*state.GrandpaState).GetNextResume()
 	require.NoError(t, err)
 	require.Equal(t, uint(r.Delay+p.Delay), nextResume)
+}
+
+func TestMultipleGRANDPADigests_ShouldIncludeJustForcedChanges(t *testing.T) {
+	forcedChange := types.GrandpaForcedChange{}
+	scheduledChange := types.GrandpaForcedChange{}
+
+	var digest = types.NewGrandpaConsensusDigest()
+	require.NoError(t, digest.Set(forcedChange))
+	require.NoError(t, digest.Set(scheduledChange))
+
+	data, err := scale.Marshal(digest)
+	require.NoError(t, err)
+
+	consensusDigest := &types.ConsensusDigest{
+		ConsensusEngineID: types.GrandpaEngineID,
+		Data:              data,
+	}
+
+	digestItem := types.NewDigest()
+	digest.Set(consensusDigest)
+
+	header := &types.Header{
+		Digest: digestItem,
+	}
+
+	handler, _ := newTestHandler(t)
+	ctrl := gomock.NewController(t)
+
+	expectedGRANDPADigest := types.NewGrandpaConsensusDigest()
+	require.NoError(t, expectedGRANDPADigest.Set(forcedChange))
+
+	grandpaState := NewMockGrandpaState(ctrl)
+	grandpaState.EXPECT().HandleGRANDPADigest(header, expectedGRANDPADigest).Return(nil)
+
+	handler.grandpaState = grandpaState
+	handler.HandleDigests(header)
 }
 
 // func TestNextGrandpaAuthorityChange_OneChange(t *testing.T) {

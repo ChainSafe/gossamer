@@ -78,18 +78,81 @@ func (h *Handler) Stop() error {
 
 // HandleDigests handles consensus digests for an imported block
 func (h *Handler) HandleDigests(header *types.Header) {
-	for i, d := range header.Digest.Types {
-		val, ok := d.Value().(types.ConsensusDigest)
+	digestTypes := ToConsensusDigest(header.Digest.Types)
+	digestTypes, err := ignoreGRANDPAMultipleDigests(digestTypes)
+	if err != nil {
+		h.logger.Errorf("cannot ignore multiple GRANDPA digests: %w", err)
+		return
+	}
+
+	for i, digest := range digestTypes {
+		err := h.handleConsensusDigest(&digest, header)
+		if err != nil {
+			h.logger.Errorf("cannot handle digest for block number %d, index %d, digest %s: %s",
+				header.Number, i, digest, err)
+		}
+	}
+}
+
+// ToConsensusDigest will parse an []scale.VaryingDataType slice into []types.ConsensusDigest
+func ToConsensusDigest(scaleVaryingTypes []scale.VaryingDataType) []types.ConsensusDigest {
+	consensusDigests := make([]types.ConsensusDigest, 0, len(scaleVaryingTypes))
+
+	for _, d := range scaleVaryingTypes {
+		digest, ok := d.Value().(types.ConsensusDigest)
 		if !ok {
 			continue
 		}
 
-		err := h.handleConsensusDigest(&val, header)
-		if err != nil {
-			h.logger.Errorf("cannot handle digest for block number %d, index %d, digest %s: %s",
-				header.Number, i, d.Value(), err)
+		switch digest.ConsensusEngineID {
+		case types.GrandpaEngineID:
+			consensusDigests = append(consensusDigests, digest)
+		case types.BabeEngineID:
+			consensusDigests = append(consensusDigests, digest)
 		}
 	}
+
+	return consensusDigests
+}
+
+func ignoreGRANDPAMultipleDigests(digests []types.ConsensusDigest) ([]types.ConsensusDigest, error) {
+	var hasForcedChange bool
+	scheduledChangesIndex := make(map[int]struct{}, len(digests))
+
+	for idx, digest := range digests {
+		switch digest.ConsensusEngineID {
+		case types.GrandpaEngineID:
+			data := types.NewGrandpaConsensusDigest()
+			err := scale.Unmarshal(digest.Data, &data)
+			if err != nil {
+				return nil, fmt.Errorf("cannot unmarshal GRANDPA consensus digest: %w", err)
+			}
+
+			switch data.Value().(type) {
+			case types.GrandpaScheduledChange:
+				scheduledChangesIndex[idx] = struct{}{}
+			case types.GrandpaForcedChange:
+				hasForcedChange = true
+			default:
+			}
+		}
+	}
+
+	if hasForcedChange {
+		digestsWithoutScheduled := make([]types.ConsensusDigest, len(digests)-len(scheduledChangesIndex))
+		for idx, digests := range digests {
+			_, ok := scheduledChangesIndex[idx]
+			if ok {
+				continue
+			}
+
+			digestsWithoutScheduled = append(digestsWithoutScheduled, digests)
+		}
+
+		return digestsWithoutScheduled, nil
+	}
+
+	return digests, nil
 }
 
 func (h *Handler) handleConsensusDigest(d *types.ConsensusDigest, header *types.Header) error {
@@ -132,7 +195,6 @@ func (h *Handler) handleBabeConsensusDigest(digest scale.VaryingDataType, header
 		return nil
 
 	case types.BABEOnDisabled:
-		h.logger.Debug("handling BABEOnDisabled")
 		return nil
 
 	case types.NextConfigData:
@@ -190,7 +252,7 @@ func (h *Handler) handleBlockFinalisation(ctx context.Context) {
 
 			err = h.grandpaState.ApplyScheduledChanges(&info.Header)
 			if err != nil {
-				h.logger.Errorf("failed to apply standard scheduled changes on block finalisation: %w", err)
+				h.logger.Errorf("failed to apply scheduled change on block finalisation: %w", err)
 			}
 
 		case <-ctx.Done():
