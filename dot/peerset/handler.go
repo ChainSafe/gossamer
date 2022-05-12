@@ -117,7 +117,7 @@ func (h *Handler) PeerReputation(peerID peer.ID) (Reputation, error) {
 	if err != nil {
 		return 0, err
 	}
-	return n.getReputation(), nil
+	return n.reputation, nil
 }
 
 // Start starts peerSet processing
