@@ -78,14 +78,18 @@ func (h *Handler) Stop() error {
 
 // HandleDigests handles consensus digests for an imported block
 func (h *Handler) HandleDigests(header *types.Header) {
-	digestTypes := ToConsensusDigest(header.Digest.Types)
-	digestTypes, err := ignoreGRANDPAMultipleDigests(digestTypes)
+	consensusDigests := ToConsensusDigests(header.Digest.Types)
+	consensusDigests, err := checkForGRANDPAForcedChanges(consensusDigests)
 	if err != nil {
 		h.logger.Errorf("cannot ignore multiple GRANDPA digests: %w", err)
 		return
 	}
 
-	for i, digest := range digestTypes {
+	for i := range consensusDigests {
+		// avoiding implicit memory aliasing in for loop, since:
+		// for _, digest := range consensusDigests { &digest }
+		// I'm using the address of a loop variable
+		digest := consensusDigests[i]
 		err := h.handleConsensusDigest(&digest, header)
 		if err != nil {
 			h.logger.Errorf("cannot handle digest for block number %d, index %d, digest %s: %s",
@@ -94,8 +98,8 @@ func (h *Handler) HandleDigests(header *types.Header) {
 	}
 }
 
-// ToConsensusDigest will parse an []scale.VaryingDataType slice into []types.ConsensusDigest
-func ToConsensusDigest(scaleVaryingTypes []scale.VaryingDataType) []types.ConsensusDigest {
+// ToConsensusDigests will parse an []scale.VaryingDataType slice into []types.ConsensusDigest
+func ToConsensusDigests(scaleVaryingTypes []scale.VaryingDataType) []types.ConsensusDigest {
 	consensusDigests := make([]types.ConsensusDigest, 0, len(scaleVaryingTypes))
 
 	for _, d := range scaleVaryingTypes {
@@ -105,9 +109,7 @@ func ToConsensusDigest(scaleVaryingTypes []scale.VaryingDataType) []types.Consen
 		}
 
 		switch digest.ConsensusEngineID {
-		case types.GrandpaEngineID:
-			consensusDigests = append(consensusDigests, digest)
-		case types.BabeEngineID:
+		case types.GrandpaEngineID, types.BabeEngineID:
 			consensusDigests = append(consensusDigests, digest)
 		}
 	}
@@ -115,7 +117,7 @@ func ToConsensusDigest(scaleVaryingTypes []scale.VaryingDataType) []types.Consen
 	return consensusDigests
 }
 
-func ignoreGRANDPAMultipleDigests(digests []types.ConsensusDigest) ([]types.ConsensusDigest, error) {
+func checkForGRANDPAForcedChanges(digests []types.ConsensusDigest) ([]types.ConsensusDigest, error) {
 	var hasForcedChange bool
 	scheduledChangesIndex := make(map[int]struct{}, len(digests))
 
@@ -133,20 +135,19 @@ func ignoreGRANDPAMultipleDigests(digests []types.ConsensusDigest) ([]types.Cons
 				scheduledChangesIndex[idx] = struct{}{}
 			case types.GrandpaForcedChange:
 				hasForcedChange = true
-			default:
 			}
 		}
 	}
 
 	if hasForcedChange {
-		digestsWithoutScheduled := make([]types.ConsensusDigest, len(digests)-len(scheduledChangesIndex))
-		for idx, digests := range digests {
+		digestsWithoutScheduled := make([]types.ConsensusDigest, 0, len(digests)-len(scheduledChangesIndex))
+		for idx, digest := range digests {
 			_, ok := scheduledChangesIndex[idx]
 			if ok {
 				continue
 			}
 
-			digestsWithoutScheduled = append(digestsWithoutScheduled, digests)
+			digestsWithoutScheduled = append(digestsWithoutScheduled, digest)
 		}
 
 		return digestsWithoutScheduled, nil
