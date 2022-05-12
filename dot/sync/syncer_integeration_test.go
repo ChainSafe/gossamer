@@ -62,6 +62,7 @@ func newMockNetwork() *mocks.Network {
 	return m
 }
 
+//go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
 func newTestSyncer(t *testing.T) *Service {
 	ctrl := gomock.NewController(t)
 
