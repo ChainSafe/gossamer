@@ -55,7 +55,7 @@ func TestWSConn_HandleComm(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":1,"id":2}`+"\n"), msg)
 
-	res, err = wsconn.initStorageChangeListener(3, []interface{}{"0x26aa"})
+	res, err = wsconn.initStorageChangeListener(3, "0x26aa")
 	require.NotNil(t, res)
 	require.NoError(t, err)
 	require.Len(t, wsconn.Subscriptions, 2)
@@ -206,7 +206,7 @@ func TestWSConn_HandleComm(t *testing.T) {
 	wsconn.CoreAPI = modules.NewMockCoreAPI()
 	wsconn.BlockAPI = nil
 	wsconn.TxStateAPI = modules.NewMockTransactionStateAPI()
-	listner, err := wsconn.initExtrinsicWatch(0, []interface{}{"NotHex"})
+	listner, err := wsconn.initExtrinsicWatch(0, []string{"NotHex"})
 	require.EqualError(t, err, "could not byteify non 0x prefixed string: NotHex")
 	require.Nil(t, listner)
 

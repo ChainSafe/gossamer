@@ -163,6 +163,8 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (L
 	}
 
 	switch filter := params.(type) {
+	case string:
+		stgobs.filter[filter] = []byte{}
 	case []string:
 		for _, key := range filter {
 			stgobs.filter[key] = []byte{}
@@ -176,8 +178,6 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (L
 
 			stgobs.filter[key] = []byte{}
 		}
-	case string:
-		stgobs.filter[filter] = []byte{}
 	default:
 		return nil, fmt.Errorf("expected type equals string or []string. got %T", params)
 	}
