@@ -126,13 +126,15 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 	// check for message signature
 	pk, err := ed25519.NewPublicKey(m.Message.AuthorityID[:])
 	if err != nil {
-		// TODO: affect peer reputation
+		// TODO Affect peer reputation
+		// https://github.com/ChainSafe/gossamer/issues/2505
 		return nil, err
 	}
 
 	err = validateMessageSignature(pk, m)
 	if err != nil {
-		// TODO: affect peer reputation
+		// TODO Affect peer reputation
+		// https://github.com/ChainSafe/gossamer/issues/2505
 		return nil, err
 	}
 
@@ -153,6 +155,7 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 	if m.Round < minRoundAccepted || m.Round > maxRoundAccepted {
 		// Discard message
 		// TODO: affect peer reputation, this is shameful impolite behaviour
+		// https://github.com/ChainSafe/gossamer/issues/2505
 		return nil, nil //nolint:nilnil
 	}
 
