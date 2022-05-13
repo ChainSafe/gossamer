@@ -21,17 +21,17 @@ import (
 func getMessageFromVotesTracker(votes votesTracker,
 	blockHash common.Hash, authorityID ed25519.PublicKeyBytes) (
 	message *VoteMessage) {
-	authIDToData, has := votes.mapping[blockHash]
+	authorityIDToElement, has := votes.mapping[blockHash]
 	if !has {
 		return nil
 	}
 
-	data, ok := authIDToData[authorityID]
+	element, ok := authorityIDToElement[authorityID]
 	if !ok {
 		return nil
 	}
 
-	return data.message
+	return element.Value.(networkVoteMessage).msg
 }
 
 func TestMessageTracker_ValidateMessage(t *testing.T) {

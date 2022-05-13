@@ -17,44 +17,20 @@ import (
 // It is NOT THREAD SAFE to use.
 type votesTracker struct {
 	// map of vote block hash to authority ID (ed25519 public Key)
-	// to data (peer id + message + tracking linked list element pointer)
-	mapping map[common.Hash]authorityIDToData
-	// double linked list of block hash + authority ID
-	// to track the order vote messages were added in.
+	// to linked list element pointer
+	mapping map[common.Hash]map[ed25519.PublicKeyBytes]*list.Element
+	// double linked list of voteMessageData (peer ID + Vote Message)
 	linkedList *list.List
 	capacity   int
-}
-
-type authorityIDToData map[ed25519.PublicKeyBytes]voteMessageMapData
-
-type voteMessageMapData struct {
-	peerID  peer.ID
-	message *VoteMessage
-	// element contains a blockHashAuthID value which
-	// itself contains a block hash and an authority ID.
-	element *list.Element
-}
-
-type blockHashAuthID struct {
-	blockHash   common.Hash
-	authorityID ed25519.PublicKeyBytes
 }
 
 // newVotesTracker creates a new vote message tracker
 // with the capacity specified.
 func newVotesTracker(capacity int) votesTracker {
 	return votesTracker{
-		mapping:    make(map[common.Hash]authorityIDToData, capacity),
+		mapping:    make(map[common.Hash]map[ed25519.PublicKeyBytes]*list.Element, capacity),
 		linkedList: list.New(),
 		capacity:   capacity,
-	}
-}
-
-func newBlockHashAuthID(blockHash common.Hash,
-	authorityID ed25519.PublicKeyBytes) blockHashAuthID {
-	return blockHashAuthID{
-		blockHash:   blockHash,
-		authorityID: authorityID,
 	}
 }
 
@@ -66,37 +42,36 @@ func (vt *votesTracker) add(peerID peer.ID, voteMessage *VoteMessage) {
 	blockHash := signedMessage.BlockHash
 	authorityID := signedMessage.AuthorityID
 
-	voteMessages, blockHashExists := vt.mapping[blockHash]
+	authorityIDToElement, blockHashExists := vt.mapping[blockHash]
 	if blockHashExists {
-		data, voteExists := voteMessages[authorityID]
+		element, voteExists := authorityIDToElement[authorityID]
 		if voteExists {
 			// vote already exists so override the vote for the authority ID;
 			// do not move the list element in the linked list to avoid
 			// someone re-sending an equivocatory vote message and going at the
 			// front of the list, hence erasing other possible valid vote messages
 			// in the tracker.
-			data.peerID = peerID
-			data.message = voteMessage
-			voteMessages[authorityID] = data
+			element.Value = networkVoteMessage{
+				from: peerID,
+				msg:  voteMessage,
+			}
 			return
 		}
 		// continue below and add the authority ID and data to the tracker.
 	} else {
 		// add new block hash in tracker
-		voteMessages = make(authorityIDToData)
-		vt.mapping[blockHash] = voteMessages
+		authorityIDToElement = make(map[ed25519.PublicKeyBytes]*list.Element)
+		vt.mapping[blockHash] = authorityIDToElement
 		// continue below and add the authority ID and data to the tracker.
 	}
 
 	vt.cleanup()
-	elementData := newBlockHashAuthID(blockHash, authorityID)
-	element := vt.linkedList.PushFront(elementData)
-	data := voteMessageMapData{
-		peerID:  peerID,
-		message: voteMessage,
-		element: element,
+	elementData := networkVoteMessage{
+		from: peerID,
+		msg:  voteMessage,
 	}
-	voteMessages[authorityID] = data
+	element := vt.linkedList.PushFront(elementData)
+	authorityIDToElement[authorityID] = element
 }
 
 // cleanup removes the oldest vote message from the tracker
@@ -111,25 +86,28 @@ func (vt *votesTracker) cleanup() {
 	oldestElement := vt.linkedList.Back()
 	vt.linkedList.Remove(oldestElement)
 
-	oldestData := oldestElement.Value.(blockHashAuthID)
-	authIDToData := vt.mapping[oldestData.blockHash]
+	oldestData := oldestElement.Value.(networkVoteMessage)
+	oldestBlockHash := oldestData.msg.Message.BlockHash
+	oldestAuthorityID := oldestData.msg.Message.AuthorityID
 
-	delete(authIDToData, oldestData.authorityID)
-	if len(authIDToData) == 0 {
-		delete(vt.mapping, oldestData.blockHash)
+	authIDToElement := vt.mapping[oldestBlockHash]
+
+	delete(authIDToElement, oldestAuthorityID)
+	if len(authIDToElement) == 0 {
+		delete(vt.mapping, oldestBlockHash)
 	}
 }
 
 // delete deletes all the vote messages for a particular
 // block hash from the vote messages tracker.
 func (vt *votesTracker) delete(blockHash common.Hash) {
-	authIDToData, has := vt.mapping[blockHash]
+	authIDToElement, has := vt.mapping[blockHash]
 	if !has {
 		return
 	}
 
-	for _, data := range authIDToData {
-		vt.linkedList.Remove(data.element)
+	for _, element := range authIDToElement {
+		vt.linkedList.Remove(element)
 	}
 
 	delete(vt.mapping, blockHash)
@@ -141,18 +119,15 @@ func (vt *votesTracker) delete(blockHash common.Hash) {
 // It returns nil if the block hash does not exist.
 func (vt *votesTracker) messages(blockHash common.Hash) (
 	messages []networkVoteMessage) {
-	authIDToData, ok := vt.mapping[blockHash]
+	authIDToElement, ok := vt.mapping[blockHash]
 	if !ok {
-		// Note authIDToData cannot be empty
+		// Note authIDToElement cannot be empty
 		return nil
 	}
 
-	messages = make([]networkVoteMessage, 0, len(authIDToData))
-	for _, data := range authIDToData {
-		message := networkVoteMessage{
-			from: data.peerID,
-			msg:  data.message,
-		}
+	messages = make([]networkVoteMessage, 0, len(authIDToElement))
+	for _, element := range authIDToElement {
+		message := element.Value.(networkVoteMessage)
 		messages = append(messages, message)
 	}
 	return messages
@@ -164,12 +139,9 @@ func (vt *votesTracker) messages(blockHash common.Hash) (
 func (vt *votesTracker) networkVoteMessages() (
 	messages []networkVoteMessage) {
 	messages = make([]networkVoteMessage, 0, vt.linkedList.Len())
-	for _, authorityIDToData := range vt.mapping {
-		for _, data := range authorityIDToData {
-			message := networkVoteMessage{
-				from: data.peerID,
-				msg:  data.message,
-			}
+	for _, authorityIDToElement := range vt.mapping {
+		for _, element := range authorityIDToElement {
+			message := element.Value.(networkVoteMessage)
 			messages = append(messages, message)
 		}
 	}
