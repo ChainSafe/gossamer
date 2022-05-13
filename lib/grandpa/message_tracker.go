@@ -129,8 +129,9 @@ func (t *tracker) handleTick() {
 	t.mapLock.Lock()
 	defer t.mapLock.Unlock()
 
-	var blockHashesDone []common.Hash
-	t.votes.forEach(func(peerID peer.ID, message *VoteMessage) {
+	for _, networkVoteMessage := range t.votes.networkVoteMessages() {
+		peerID := networkVoteMessage.from
+		message := networkVoteMessage.msg
 		_, err := t.handler.handleMessage(peerID, message)
 		if err != nil {
 			// handleMessage would never error for vote message
@@ -138,11 +139,8 @@ func (t *tracker) handleTick() {
 		}
 
 		if message.Round < t.handler.grandpa.state.round && message.SetID == t.handler.grandpa.state.setID {
-			blockHashesDone = append(blockHashesDone, message.Message.BlockHash)
+			t.votes.delete(message.Message.BlockHash)
 		}
-	})
-	for _, blockHashDone := range blockHashesDone {
-		t.votes.delete(blockHashDone)
 	}
 
 	for _, cm := range t.commitMessages {

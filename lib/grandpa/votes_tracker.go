@@ -158,13 +158,20 @@ func (vt *votesTracker) messages(blockHash common.Hash) (
 	return messages
 }
 
-// forEach runs the function `f` on each
-// peer id + message stored in the tracker.
-func (vt *votesTracker) forEach(
-	f func(peerID peer.ID, message *VoteMessage)) {
+// networkVoteMessages returns all pairs of
+// peer id + message stored in the tracker
+// as a slice of networkVoteMessages.
+func (vt *votesTracker) networkVoteMessages() (
+	messages []networkVoteMessage) {
+	messages = make([]networkVoteMessage, 0, vt.linkedList.Len())
 	for _, authorityIDToData := range vt.mapping {
 		for _, data := range authorityIDToData {
-			f(data.peerID, data.message)
+			message := networkVoteMessage{
+				from: data.peerID,
+				msg:  data.message,
+			}
+			messages = append(messages, message)
 		}
 	}
+	return messages
 }

@@ -4,7 +4,6 @@
 package grandpa
 
 import (
-	"bytes"
 	"container/list"
 	"sort"
 	"testing"
@@ -320,7 +319,7 @@ func Test_votesTracker_messages(t *testing.T) {
 	}
 }
 
-func Test_votesTracker_forEach(t *testing.T) {
+func Test_votesTracker_networkVoteMessages(t *testing.T) {
 	t.Parallel()
 
 	const capacity = 10
@@ -340,40 +339,13 @@ func Test_votesTracker_forEach(t *testing.T) {
 	vt.add("b", messageBlockAAuthB)
 	vt.add("b", messageBlockBAuthA)
 
-	type result struct {
-		peerID  peer.ID
-		message *VoteMessage
-	}
-	var results []result
+	networkVoteMessages := vt.networkVoteMessages()
 
-	vt.forEach(func(peerID peer.ID, message *VoteMessage) {
-		results = append(results, result{
-			peerID:  peerID,
-			message: message,
-		})
-	})
-
-	// Predictable messages order for assertion.
-	// Sort by block hash then authority id then peer ID.
-	sort.Slice(results, func(i, j int) bool {
-		blockHashFirst := results[i].message.Message.BlockHash
-		blockHashSecond := results[j].message.Message.BlockHash
-		if blockHashFirst == blockHashSecond {
-			authIDFirst := results[i].message.Message.AuthorityID
-			authIDSecond := results[j].message.Message.AuthorityID
-			if authIDFirst == authIDSecond {
-				return results[i].peerID < results[j].peerID
-			}
-			return bytes.Compare(authIDFirst[:], authIDSecond[:]) < 0
-		}
-		return bytes.Compare(blockHashFirst[:], blockHashSecond[:]) < 0
-	})
-
-	expectedResults := []result{
-		{peerID: "a", message: messageBlockAAuthA},
-		{peerID: "b", message: messageBlockAAuthB},
-		{peerID: "b", message: messageBlockBAuthA},
+	expectedNetworkVoteMessages := []networkVoteMessage{
+		{from: "a", msg: messageBlockAAuthA},
+		{from: "b", msg: messageBlockAAuthB},
+		{from: "b", msg: messageBlockBAuthA},
 	}
 
-	assert.Equal(t, expectedResults, results)
+	assert.ElementsMatch(t, expectedNetworkVoteMessages, networkVoteMessages)
 }
