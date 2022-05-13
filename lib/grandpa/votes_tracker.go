@@ -66,41 +66,32 @@ func (vt *votesTracker) add(peerID peer.ID, voteMessage *VoteMessage) {
 	blockHash := signedMessage.BlockHash
 	authorityID := signedMessage.AuthorityID
 
-	voteMessages, has := vt.mapping[blockHash]
-	if !has {
+	voteMessages, blockHashExists := vt.mapping[blockHash]
+	if blockHashExists {
+		data, voteExists := voteMessages[authorityID]
+		if voteExists {
+			// vote already exists so override the vote for the authority ID;
+			// do not move the list element in the linked list to avoid
+			// someone re-sending an equivocatory vote message and going at the
+			// front of the list, hence erasing other possible valid vote messages
+			// in the tracker.
+			data.peerID = peerID
+			data.message = voteMessage
+			voteMessages[authorityID] = data
+			return
+		}
+		// continue below and add the authority ID and data to the tracker.
+	} else {
 		// add new block hash in tracker
-		vt.cleanup()
-		elementData := newBlockHashAuthID(blockHash, authorityID)
-		element := vt.linkedList.PushFront(elementData)
-		data := voteMessageMapData{
-			peerID:  peerID,
-			message: voteMessage,
-			element: element,
-		}
-		vt.mapping[blockHash] = authorityIDToData{
-			authorityID: data,
-		}
-		return
+		voteMessages = make(authorityIDToData)
+		vt.mapping[blockHash] = voteMessages
+		// continue below and add the authority ID and data to the tracker.
 	}
 
-	data, voteExists := voteMessages[authorityID]
-	if voteExists {
-		// vote already exists so override the vote for the authority ID;
-		// do not move the list element in the linked list to avoid
-		// someone re-sending an equivocatory vote message and going at the
-		// front of the list, hence erasing other possible valid vote messages
-		// in the tracker.
-		data.peerID = peerID
-		data.message = voteMessage
-		voteMessages[authorityID] = data
-		return
-	}
-
-	// Add new authority ID in existing block hash map
 	vt.cleanup()
 	elementData := newBlockHashAuthID(blockHash, authorityID)
 	element := vt.linkedList.PushFront(elementData)
-	data = voteMessageMapData{
+	data := voteMessageMapData{
 		peerID:  peerID,
 		message: voteMessage,
 		element: element,
