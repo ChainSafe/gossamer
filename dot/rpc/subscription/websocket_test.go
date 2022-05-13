@@ -26,7 +26,7 @@ func TestWSConn_CheckWebsocketInvalidData(t *testing.T) {
 	wsconn.Subscriptions = make(map[uint32]Listener)
 	defer cancel()
 
-	go wsconn.HandleComm()
+	go wsconn.HandleConn()
 
 	tests := []struct {
 		sentMessage []byte
@@ -68,12 +68,12 @@ func TestWSConn_CheckWebsocketInvalidData(t *testing.T) {
 	}
 }
 
-func TestWSConn_HandleComm(t *testing.T) {
+func TestWSConn_HandleConn(t *testing.T) {
 	wsconn, c, cancel := setupWSConn(t)
 	wsconn.Subscriptions = make(map[uint32]Listener)
 	defer cancel()
 
-	go wsconn.HandleComm()
+	go wsconn.HandleConn()
 	time.Sleep(time.Second * 2)
 
 	// test storageChangeListener
@@ -341,7 +341,7 @@ func TestSubscribeAllHeads(t *testing.T) {
 	wsconn.Subscriptions = make(map[uint32]Listener)
 	defer cancel()
 
-	go wsconn.HandleComm()
+	go wsconn.HandleConn()
 	time.Sleep(time.Second * 2)
 
 	_, err := wsconn.initAllBlocksListerner(1, nil)
