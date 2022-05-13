@@ -45,7 +45,7 @@ func TestWSConn_HandleComm(t *testing.T) {
 	res, err = wsconn.initStorageChangeListener(1, nil)
 	require.Nil(t, res)
 	require.Len(t, wsconn.Subscriptions, 0)
-	require.EqualError(t, err, "expected type equals string or []string. got <nil>")
+	require.EqualError(t, err, "unexpected type: <nil>, expected type string or []string")
 
 	res, err = wsconn.initStorageChangeListener(2, []interface{}{})
 	require.NotNil(t, res)
@@ -74,13 +74,13 @@ func TestWSConn_HandleComm(t *testing.T) {
 
 	var testFilterWrongType = []interface{}{"0x26aa", 1}
 	res, err = wsconn.initStorageChangeListener(5, testFilterWrongType)
-	require.EqualError(t, err, "expected type equals string. got int")
+	require.EqualError(t, err, "unexpected type: int, expected type string")
 	require.Nil(t, res)
 	// keep subscriptions len == 3, no additions was made
 	require.Len(t, wsconn.Subscriptions, 3)
 
 	res, err = wsconn.initStorageChangeListener(6, []interface{}{1})
-	require.EqualError(t, err, "expected type equals string. got int")
+	require.EqualError(t, err, "unexpected type: int, expected type string")
 	require.Nil(t, res)
 	require.Len(t, wsconn.Subscriptions, 3)
 

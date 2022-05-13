@@ -27,6 +27,8 @@ type httpclient interface {
 }
 
 var (
+	errUnexpectedType          = errors.New("unexpected type")
+	errUnexpectedParamLen      = errors.New("unexpected params length")
 	errCannotReadFromWebsocket = errors.New("cannot read message from websocket")
 	errCannotUnmarshalMessage  = errors.New("cannot unmarshal websocket message data")
 )
@@ -170,16 +172,16 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (L
 			stgobs.filter[key] = []byte{}
 		}
 	case []interface{}:
-		for _, interfaceKey := range params.([]interface{}) {
+		for _, interfaceKey := range filter {
 			key, ok := interfaceKey.(string)
 			if !ok {
-				return nil, fmt.Errorf("expected type equals string. got %T", interfaceKey)
+				return nil, fmt.Errorf("%w: %T, expected type string", errUnexpectedType, interfaceKey)
 			}
 
 			stgobs.filter[key] = []byte{}
 		}
 	default:
-		return nil, fmt.Errorf("expected type equals string or []string. got %T", params)
+		return nil, fmt.Errorf("%w: %T, expected type string or []string", errUnexpectedType, params)
 	}
 
 	c.mu.Lock()
@@ -272,21 +274,21 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener
 	switch encodedHex := params.(type) {
 	case []string:
 		if len(encodedHex) != 1 {
-			return nil, fmt.Errorf("expected only 1 param item. got %d", len(encodedHex))
+			return nil, fmt.Errorf("%w: %d, expected 1 param", errUnexpectedType, len(encodedHex))
 		}
 		encodedExtrinsic = encodedHex[0]
 	case []interface{}:
 		if len(encodedHex) != 1 {
-			return nil, fmt.Errorf("expected only 1 param item. got %d", len(encodedHex))
+			return nil, fmt.Errorf("%w: %d, expected 1 param", errUnexpectedType, len(encodedHex))
 		}
 
 		var ok bool
 		encodedExtrinsic, ok = encodedHex[0].(string)
 		if !ok {
-			return nil, fmt.Errorf("expected type equals string. got %T", encodedHex[0])
+			return nil, fmt.Errorf("%w: %T, expected type string", errUnexpectedType, encodedHex[0])
 		}
 	default:
-		return nil, fmt.Errorf("expected type equals []string. got %T", params)
+		return nil, fmt.Errorf("%w: %T, expected type []string", errUnexpectedType, params)
 	}
 
 	// The passed parameter should be a HEX of a SCALE encoded extrinsic
