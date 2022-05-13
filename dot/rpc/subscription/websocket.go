@@ -28,7 +28,7 @@ type httpclient interface {
 
 var (
 	errCannotReadFromWebsocket = errors.New("cannot read message from websocket")
-	errCannotUnmarshalMessage  = errors.New("cannot unmarshal webasocket message data")
+	errCannotUnmarshalMessage  = errors.New("cannot unmarshal websocket message data")
 )
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "rpc/subscription"))
