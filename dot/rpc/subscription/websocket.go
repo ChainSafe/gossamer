@@ -52,24 +52,23 @@ type WSConn struct {
 }
 
 // readWebsocketMessage will read and parse the message data to a string->interface{} data
-func (c *WSConn) readWebsocketMessage() ([]byte, *websocketMessage, error) {
-	_, mbytes, err := c.Wsconn.ReadMessage()
+func (c *WSConn) readWebsocketMessage() (bytes []byte, msg websocketMessage, err error) {
+	_, bytes, err = c.Wsconn.ReadMessage()
 	if err != nil {
 		logger.Debugf("websocket failed to read message: %s", err)
-		return nil, nil, errCannotReadFromWebsocket
+		return bytes, msg, errCannotReadFromWebsocket
 	}
 
-	logger.Tracef("websocket message received: %s", string(mbytes))
+	logger.Tracef("websocket message received: %s", string(bytes))
 
-	msg := new(websocketMessage)
-	err = json.Unmarshal(mbytes, &msg)
+	err = json.Unmarshal(bytes, &msg)
 
 	if err != nil {
 		logger.Debugf("websocket failed to unmarshal request message: %s", err)
-		return nil, nil, errCannotUnmarshalMessage
+		return bytes, msg, errCannotUnmarshalMessage
 	}
 
-	return mbytes, msg, nil
+	return bytes, msg, nil
 }
 
 //HandleConn handles messages received on websocket connections
