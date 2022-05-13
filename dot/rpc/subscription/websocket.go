@@ -274,12 +274,12 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener
 	switch encodedHex := params.(type) {
 	case []string:
 		if len(encodedHex) != 1 {
-			return nil, fmt.Errorf("%w: %d, expected 1 param", errUnexpectedType, len(encodedHex))
+			return nil, fmt.Errorf("%w: %d, expected 1 param", errUnexpectedParamLen, len(encodedHex))
 		}
 		encodedExtrinsic = encodedHex[0]
 	case []interface{}:
 		if len(encodedHex) != 1 {
-			return nil, fmt.Errorf("%w: %d, expected 1 param", errUnexpectedType, len(encodedHex))
+			return nil, fmt.Errorf("%w: %d, expected 1 param", errUnexpectedParamLen, len(encodedHex))
 		}
 
 		var ok bool
