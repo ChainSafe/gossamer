@@ -113,6 +113,7 @@ func (t *tracker) handleBlock(b *types.Block) {
 		}
 	}
 
+	// delete block hash that may or may not be in the tracker.
 	t.votes.delete(h)
 
 	if cm, has := t.commitMessages[h]; has {
