@@ -1,7 +1,7 @@
 [global]
-basepath = "~/.gossamer/gssmr-bob"
+basepath = "~/.gossamer/gssmr"
 log = "info"
-metrics-address = "localhost:9877"
+metrics-address = "localhost:9876"
 
 [log]
 core = ""
@@ -15,7 +15,7 @@ sync = ""
 digest = ""
 
 [init]
-genesis = "./chain/gssmr/genesis.json"
+genesis = "./chain/gssmr/genesis-spec.json"
 
 [account]
 key = ""
@@ -28,7 +28,7 @@ grandpa-authority = true
 grandpa-interval = 1
 
 [network]
-port = 7002
+port = 7001
 nobootstrap = false
 nomdns = false
 discovery-interval = 10
@@ -37,7 +37,7 @@ max-peers = 50
 
 [rpc]
 enabled = false
-port = 8547
+port = 8545
 host = "localhost"
 modules = [
     "system",
@@ -51,10 +51,10 @@ modules = [
     "syncstate",
     "payment",
 ]
-ws-port = 8548
+ws-port = 8546
 
 [pprof]
 enabled = false
-listening-address = "localhost:6061"
+listening-address = "localhost:6060"
 block-rate = 0
 mutex-rate = 0
