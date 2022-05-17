@@ -171,7 +171,7 @@ func Test_chainProcessor_handleJustification(t *testing.T) {
 
 	expectedHash := common.MustHexToHash("0xdcdd89927d8a348e00257e1ecc8617f45edb5118efff3ea2f9961b2ad9b7690a")
 
-	type fields struct {
+	type builders struct {
 		blockStateBuilder     func(ctrl *gomock.Controller) BlockState
 		finalityGadgetBuilder func(ctrl *gomock.Controller) FinalityGadget
 	}
@@ -180,11 +180,11 @@ func Test_chainProcessor_handleJustification(t *testing.T) {
 		justification []byte
 	}
 	tests := map[string]struct {
-		fields fields
-		args   args
+		builders builders
+		args     args
 	}{
 		"nil justification and header": {
-			fields: fields{
+			builders: builders{
 				blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 					mockBlockState := NewMockBlockState(ctrl)
 					return mockBlockState
@@ -196,7 +196,7 @@ func Test_chainProcessor_handleJustification(t *testing.T) {
 			},
 		},
 		"invalid justification": {
-			fields: fields{
+			builders: builders{
 				blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 					mockBlockState := NewMockBlockState(ctrl)
 					return mockBlockState
@@ -215,7 +215,7 @@ func Test_chainProcessor_handleJustification(t *testing.T) {
 			},
 		},
 		"set justification error": {
-			fields: fields{
+			builders: builders{
 				blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 					mockBlockState := NewMockBlockState(ctrl)
 					mockBlockState.EXPECT().SetJustification(expectedHash, []byte(`xx`)).Return(errors.New("fake error"))
@@ -235,7 +235,7 @@ func Test_chainProcessor_handleJustification(t *testing.T) {
 			},
 		},
 		"base case set": {
-			fields: fields{
+			builders: builders{
 				blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 					mockBlockState := NewMockBlockState(ctrl)
 					mockBlockState.EXPECT().SetJustification(expectedHash, []byte(`1234`))
@@ -261,8 +261,8 @@ func Test_chainProcessor_handleJustification(t *testing.T) {
 			t.Parallel()
 			ctrl := gomock.NewController(t)
 			s := &chainProcessor{
-				blockState:     tt.fields.blockStateBuilder(ctrl),
-				finalityGadget: tt.fields.finalityGadgetBuilder(ctrl),
+				blockState:     tt.builders.blockStateBuilder(ctrl),
+				finalityGadget: tt.builders.finalityGadgetBuilder(ctrl),
 			}
 			s.handleJustification(tt.args.header, tt.args.justification)
 		})
@@ -276,8 +276,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 	require.NoError(t, err)
 
 	type fields struct {
-		blockStateBuilder func(ctrl *gomock.Controller) BlockState
-		// finalityGadgetBuilder func(ctrl *gomock.Controller) FinalityGadget
+		blockStateBuilder         func(ctrl *gomock.Controller) BlockState
 		storageStateBuilder       func(ctrl *gomock.Controller) StorageState
 		blockImportHandlerBuilder func(ctrl *gomock.Controller) BlockImportHandler
 	}
