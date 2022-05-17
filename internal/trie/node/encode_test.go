@@ -63,7 +63,7 @@ func Test_Node_Encode(t *testing.T) {
 			},
 			writes: []writeCall{
 				{
-					written: []byte{leafVariant.bits | 0b0000_0001},
+					written: []byte{leafVariant.bits | 1},
 					err:     errTest,
 				},
 			},
@@ -76,10 +76,10 @@ func Test_Node_Encode(t *testing.T) {
 			},
 			writes: []writeCall{
 				{
-					written: []byte{67},
+					written: []byte{leafVariant.bits | 3}, // partial key length 3
 				},
 				{
-					written: []byte{1, 35},
+					written: []byte{0x01, 0x23},
 					err:     errTest,
 				},
 			},
@@ -93,10 +93,10 @@ func Test_Node_Encode(t *testing.T) {
 			},
 			writes: []writeCall{
 				{
-					written: []byte{67},
+					written: []byte{leafVariant.bits | 3}, // partial key length 3
 				},
 				{
-					written: []byte{1, 35},
+					written: []byte{0x01, 0x23},
 				},
 				{
 					written: []byte{12, 4, 5, 6},
@@ -113,10 +113,10 @@ func Test_Node_Encode(t *testing.T) {
 			},
 			writes: []writeCall{
 				{
-					written: []byte{67},
+					written: []byte{leafVariant.bits | 3}, // partial key length 3
 				},
 				{
-					written: []byte{1, 35},
+					written: []byte{0x01, 0x23},
 				},
 				{
 					written: []byte{12, 4, 5, 6},
@@ -158,7 +158,7 @@ func Test_Node_Encode(t *testing.T) {
 			},
 			writes: []writeCall{
 				{ // header
-					written: []byte{branchVariant.bits | 0b0000_0001},
+					written: []byte{branchVariant.bits | 1}, // partial key length 1
 					err:     errTest,
 				},
 			},
@@ -173,10 +173,10 @@ func Test_Node_Encode(t *testing.T) {
 			},
 			writes: []writeCall{
 				{ // header
-					written: []byte{195},
+					written: []byte{branchWithValueVariant.bits | 3}, // partial key length 3
 				},
 				{ // key LE
-					written: []byte{1, 35},
+					written: []byte{0x01, 0x23},
 					err:     errTest,
 				},
 			},
@@ -194,10 +194,10 @@ func Test_Node_Encode(t *testing.T) {
 			},
 			writes: []writeCall{
 				{ // header
-					written: []byte{195},
+					written: []byte{branchWithValueVariant.bits | 3}, // partial key length 3
 				},
 				{ // key LE
-					written: []byte{1, 35},
+					written: []byte{0x01, 0x23},
 				},
 				{ // children bitmap
 					written: []byte{136, 0},
@@ -218,10 +218,10 @@ func Test_Node_Encode(t *testing.T) {
 			},
 			writes: []writeCall{
 				{ // header
-					written: []byte{195},
+					written: []byte{branchWithValueVariant.bits | 3}, // partial key length 3
 				},
 				{ // key LE
-					written: []byte{1, 35},
+					written: []byte{0x01, 0x23},
 				},
 				{ // children bitmap
 					written: []byte{136, 0},
@@ -245,10 +245,10 @@ func Test_Node_Encode(t *testing.T) {
 			},
 			writes: []writeCall{
 				{ // header
-					written: []byte{195},
+					written: []byte{branchWithValueVariant.bits | 3}, // partial key length 3
 				},
 				{ // key LE
-					written: []byte{1, 35},
+					written: []byte{0x01, 0x23},
 				},
 				{ // children bitmap
 					written: []byte{136, 0},
@@ -277,10 +277,10 @@ func Test_Node_Encode(t *testing.T) {
 			},
 			writes: []writeCall{
 				{ // header
-					written: []byte{195},
+					written: []byte{branchWithValueVariant.bits | 3}, // partial key length 3
 				},
 				{ // key LE
-					written: []byte{1, 35},
+					written: []byte{0x01, 0x23},
 				},
 				{ // children bitmap
 					written: []byte{136, 0},

@@ -52,7 +52,7 @@ func Test_Decode(t *testing.T) {
 		},
 		"leaf decoding error": {
 			reader: bytes.NewReader([]byte{
-				65, // node type 1 (leaf) and key length 1
+				leafVariant.bits | 1, // key length 1
 				// missing key data byte
 			}),
 			errWrapped: io.EOF,
@@ -63,8 +63,8 @@ func Test_Decode(t *testing.T) {
 			reader: bytes.NewReader(
 				append(
 					[]byte{
-						65, // node type 1 (leaf) and key length 1
-						9,  // key data
+						leafVariant.bits | 1, // key length 1
+						9,                    // key data
 					},
 					scaleEncodeBytes(t, 1, 2, 3)...,
 				),
@@ -77,7 +77,7 @@ func Test_Decode(t *testing.T) {
 		},
 		"branch decoding error": {
 			reader: bytes.NewReader([]byte{
-				129, // node type 2 (branch without value) and key length 1
+				branchVariant.bits | 1, // key length 1
 				// missing key data byte
 			}),
 			errWrapped: io.EOF,
@@ -87,9 +87,9 @@ func Test_Decode(t *testing.T) {
 		"branch success": {
 			reader: bytes.NewReader(
 				[]byte{
-					129,  // node type 2 (branch without value) and key length 1
-					9,    // key data
-					0, 0, // no children bitmap
+					branchVariant.bits | 1, // key length 1
+					9,                      // key data
+					0, 0,                   // no children bitmap
 				},
 			),
 			n: &Node{
@@ -101,7 +101,7 @@ func Test_Decode(t *testing.T) {
 		"branch with two inlined children": {
 			reader: bytes.NewReader(
 				[]byte{
-					158, // node type 2 (branch w/o value) and key length 30
+					branchVariant.bits | 30, // key length 30
 					// Key data start
 					195, 101, 195, 207, 89, 214,
 					113, 235, 114, 218, 14, 122,
@@ -217,13 +217,11 @@ func Test_decodeBranch(t *testing.T) {
 			errWrapped:       ErrDecodeChildHash,
 			errMessage:       "cannot decode child hash: at index 10: EOF",
 		},
-		"success node type 2": {
+		"success for branch variant": {
 			reader: bytes.NewBuffer(
 				concatByteSlices([][]byte{
-					{
-						9,    // key data
-						0, 4, // children bitmap
-					},
+					{9},                                // key data
+					{0, 4},                             // children bitmap
 					scaleEncodeBytes(t, 1, 2, 3, 4, 5), // child hash
 				}),
 			),
@@ -242,7 +240,7 @@ func Test_decodeBranch(t *testing.T) {
 				Descendants: 1,
 			},
 		},
-		"value decoding error for node type 3": {
+		"value decoding error for branch with value variant": {
 			reader: bytes.NewBuffer(
 				concatByteSlices([][]byte{
 					{9},    // key data
@@ -255,7 +253,7 @@ func Test_decodeBranch(t *testing.T) {
 			errWrapped:       ErrDecodeValue,
 			errMessage:       "cannot decode value: EOF",
 		},
-		"success node type 3": {
+		"success for branch with value": {
 			reader: bytes.NewBuffer(
 				concatByteSlices([][]byte{
 					{9},                                // key data

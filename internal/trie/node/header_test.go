@@ -26,7 +26,7 @@ func Test_encodeHeader(t *testing.T) {
 				Children: make([]*Node, ChildrenCapacity),
 			},
 			writes: []writeCall{
-				{written: []byte{0x80}},
+				{written: []byte{branchVariant.bits}},
 			},
 		},
 		"branch with value": {
@@ -35,7 +35,7 @@ func Test_encodeHeader(t *testing.T) {
 				Children: make([]*Node, ChildrenCapacity),
 			},
 			writes: []writeCall{
-				{written: []byte{0xc0}},
+				{written: []byte{branchWithValueVariant.bits}},
 			},
 		},
 		"branch with key of length 30": {
@@ -44,7 +44,7 @@ func Test_encodeHeader(t *testing.T) {
 				Children: make([]*Node, ChildrenCapacity),
 			},
 			writes: []writeCall{
-				{written: []byte{0x9e}},
+				{written: []byte{branchVariant.bits | 30}},
 			},
 		},
 		"branch with key of length 62": {
@@ -53,7 +53,7 @@ func Test_encodeHeader(t *testing.T) {
 				Children: make([]*Node, ChildrenCapacity),
 			},
 			writes: []writeCall{
-				{written: []byte{0xbe}},
+				{written: []byte{branchVariant.bits | 62}},
 			},
 		},
 		"branch with key of length 63": {
@@ -62,8 +62,9 @@ func Test_encodeHeader(t *testing.T) {
 				Children: make([]*Node, ChildrenCapacity),
 			},
 			writes: []writeCall{
-				{written: []byte{0xbf}},
-				{written: []byte{0x0}},
+				{written: []byte{branchVariant.bits | 63}},
+				{written: []byte{0x00}}, // trailing 0 to indicate the partial
+				// key length is done here.
 			},
 		},
 		"branch with key of length 64": {
@@ -72,8 +73,8 @@ func Test_encodeHeader(t *testing.T) {
 				Children: make([]*Node, ChildrenCapacity),
 			},
 			writes: []writeCall{
-				{written: []byte{0xbf}},
-				{written: []byte{0x1}},
+				{written: []byte{branchVariant.bits | 63}},
+				{written: []byte{0x01}},
 			},
 		},
 		"branch with small key length write error": {
@@ -82,7 +83,7 @@ func Test_encodeHeader(t *testing.T) {
 			},
 			writes: []writeCall{
 				{
-					written: []byte{0x80},
+					written: []byte{branchVariant.bits},
 					err:     errTest,
 				},
 			},
@@ -91,15 +92,15 @@ func Test_encodeHeader(t *testing.T) {
 		},
 		"branch with long key length write error": {
 			node: &Node{
-				Key:      make([]byte, 0b0011_1111+1),
+				Key:      make([]byte, int(^branchVariant.mask)+1),
 				Children: make([]*Node, ChildrenCapacity),
 			},
 			writes: []writeCall{
 				{
-					written: []byte{0b1011_1111},
+					written: []byte{branchVariant.bits | ^branchVariant.mask},
 				},
 				{
-					written: []byte{0b0000_0001},
+					written: []byte{0x01},
 					err:     errTest,
 				},
 			},
@@ -109,7 +110,7 @@ func Test_encodeHeader(t *testing.T) {
 		"leaf with no key": {
 			node: &Node{},
 			writes: []writeCall{
-				{written: []byte{0x40}},
+				{written: []byte{leafVariant.bits}},
 			},
 		},
 		"leaf with key of length 30": {
@@ -117,7 +118,7 @@ func Test_encodeHeader(t *testing.T) {
 				Key: make([]byte, 30),
 			},
 			writes: []writeCall{
-				{written: []byte{0x5e}},
+				{written: []byte{leafVariant.bits | 30}},
 			},
 		},
 		"leaf with short key write error": {
@@ -126,7 +127,7 @@ func Test_encodeHeader(t *testing.T) {
 			},
 			writes: []writeCall{
 				{
-					written: []byte{0x5e},
+					written: []byte{leafVariant.bits | 30},
 					err:     errTest,
 				},
 			},
@@ -138,7 +139,7 @@ func Test_encodeHeader(t *testing.T) {
 				Key: make([]byte, 62),
 			},
 			writes: []writeCall{
-				{written: []byte{0x7e}},
+				{written: []byte{leafVariant.bits | 62}},
 			},
 		},
 		"leaf with key of length 63": {
@@ -146,7 +147,7 @@ func Test_encodeHeader(t *testing.T) {
 				Key: make([]byte, 63),
 			},
 			writes: []writeCall{
-				{written: []byte{0x7f}},
+				{written: []byte{leafVariant.bits | 63}},
 				{written: []byte{0x0}},
 			},
 		},
@@ -155,7 +156,7 @@ func Test_encodeHeader(t *testing.T) {
 				Key: make([]byte, 64),
 			},
 			writes: []writeCall{
-				{written: []byte{0x7f}},
+				{written: []byte{leafVariant.bits | 63}},
 				{written: []byte{0x1}},
 			},
 		},
@@ -165,7 +166,7 @@ func Test_encodeHeader(t *testing.T) {
 			},
 			writes: []writeCall{
 				{
-					written: []byte{0x7f},
+					written: []byte{leafVariant.bits | 63},
 					err:     errTest,
 				},
 			},
@@ -174,21 +175,21 @@ func Test_encodeHeader(t *testing.T) {
 		},
 		"leaf with key length over 3 bytes": {
 			node: &Node{
-				Key: make([]byte, 0b0011_1111+0b1111_1111+0b0000_0001),
+				Key: make([]byte, int(^leafVariant.mask)+0b1111_1111+0b0000_0001),
 			},
 			writes: []writeCall{
-				{written: []byte{0x7f}},
-				{written: []byte{0xff}},
-				{written: []byte{0x01}},
+				{written: []byte{leafVariant.bits | ^leafVariant.mask}},
+				{written: []byte{0b1111_1111}},
+				{written: []byte{0b0000_0001}},
 			},
 		},
 		"leaf with key length over 3 bytes and last byte zero": {
 			node: &Node{
-				Key: make([]byte, 0b0011_1111+0b1111_1111),
+				Key: make([]byte, int(^leafVariant.mask)+0b1111_1111),
 			},
 			writes: []writeCall{
-				{written: []byte{0x7f}},
-				{written: []byte{0xff}},
+				{written: []byte{leafVariant.bits | ^leafVariant.mask}},
+				{written: []byte{0b1111_1111}},
 				{written: []byte{0x00}},
 			},
 		},

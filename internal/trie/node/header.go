@@ -28,7 +28,7 @@ func encodeHeader(node *Node, writer io.Writer) (err error) {
 
 	buffer := make([]byte, 1)
 	buffer[0] = variant.bits
-	partialKeyLengthMask := variant.mask ^ 0xff
+	partialKeyLengthMask := ^variant.mask
 
 	if partialKeyLength < int(partialKeyLengthMask) {
 		// Partial key length fits in header byte
@@ -141,7 +141,7 @@ func decodeHeaderByte(header byte) (variantBits,
 			continue
 		}
 
-		partialKeyLengthHeaderMask = variants[i].mask ^ 0xff
+		partialKeyLengthHeaderMask = ^variants[i].mask
 		partialKeyLengthHeader = header & partialKeyLengthHeaderMask
 		return variantBits, partialKeyLengthHeader,
 			partialKeyLengthHeaderMask, nil
