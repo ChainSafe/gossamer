@@ -16,6 +16,10 @@ async function main() {
     const runtimeVersion = await api.rpc.state.getRuntimeVersion();
     console.log('\x1b[32m%s\x1b[0m %s', "runtimeVersion:", runtimeVersion);
 
+    // state_getStorage
+    const getStorage = await api.rpc.state.getStorage("0x26aa394eea5630e07c48ae0c9558cef7a44704b568d21667356a5a050c118746e333f8c357e331db45010000");
+    console.log('\x1b[32m%s\x1b[0m %s', "getStorage:", getStorage)
+    
     // state_queryStorage
     const queryStorage = await api.rpc.state.queryStorage(["0x26aa394eea5630e07c48ae0c9558cef7a44704b568d21667356a5a050c118746e333f8c357e331db45010000"], "0x0a0f4687cfc807af53e28beb2b504c015d1db34e44126e4af9e5489473fe205b", null);
     console.log('\x1b[32m%s\x1b[0m %s', "queryStorage:", queryStorage);
