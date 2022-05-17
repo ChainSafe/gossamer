@@ -30,7 +30,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/life"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/utils"
 )
@@ -148,23 +147,6 @@ func createRuntime(cfg *Config, ns runtime.NodeStorage, st *state.Service,
 
 		// create runtime executor
 		rt, err = wasmer.NewInstance(code, rtCfg)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create runtime executor: %s", err)
-		}
-	case life.Name:
-		rtCfg := &life.Config{
-			Resolver: new(life.Resolver),
-		}
-		rtCfg.Storage = ts
-		rtCfg.Keystore = ks
-		rtCfg.LogLvl = cfg.Log.RuntimeLvl
-		rtCfg.NodeStorage = ns
-		rtCfg.Network = net
-		rtCfg.Role = cfg.Core.Roles
-		rtCfg.CodeHash = codeHash
-
-		// create runtime executor
-		rt, err = life.NewInstance(code, rtCfg)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create runtime executor: %s", err)
 		}
