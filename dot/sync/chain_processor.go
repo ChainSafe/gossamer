@@ -229,7 +229,7 @@ func (s *chainProcessor) handleBlock(block *types.Block) error {
 	defer s.storageState.Unlock()
 
 	ts, err := s.storageState.TrieState(&parent.StateRoot)
-	s.storageState.Unlock()
+	//s.storageState.Unlock()
 	if err != nil {
 		return err
 	}
