@@ -11,7 +11,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"sync"
 	"syscall"
 	"testing"
@@ -266,12 +265,10 @@ func TestInitCommand_RenameNodeWhenCalled(t *testing.T) {
 func TestBuildSpecCommandWithOutput(t *testing.T) {
 	const tmpOutputfile = "/tmp/raw-genesis-spec-output.json"
 
-	genesisPath := strings.Replace(utils.GetGssmrGenesisPathTest(t), "-spec.json", ".json", -1)
-
 	buildSpecCommand := runTestGossamer(t,
 		"build-spec",
 		"--raw",
-		"--genesis-spec", genesisPath,
+		"--genesis-spec", utils.GetGssmrGenesisRawPathTest(t),
 		"--output", tmpOutputfile)
 
 	time.Sleep(5 * time.Second)
