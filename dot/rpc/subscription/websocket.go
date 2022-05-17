@@ -71,7 +71,7 @@ func (c *WSConn) readWebsocketMessage() (bytes []byte, msg websocketMessage, err
 	return bytes, msg, nil
 }
 
-//HandleConn handles messages received on websocket connections
+// HandleConn handles messages received on websocket connections
 func (c *WSConn) HandleConn() {
 	for {
 		mbytes, msg, err := c.readWebsocketMessage()
