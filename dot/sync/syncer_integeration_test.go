@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
@@ -9,11 +12,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/mock"
-
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/sync/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -21,11 +23,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
-
-	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-
-	"github.com/ChainSafe/gossamer/dot/sync/mocks"
 )
 
 func TestMain(m *testing.M) {
@@ -63,23 +63,21 @@ func newMockNetwork() *mocks.Network {
 }
 
 //go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
-
 func newTestSyncer(t *testing.T) *Service {
-	wasmer.DefaultTestLogLvl = 3
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
-	cfg := &Config{
-		Telemetry: telemetryMock,
-	}
+	mockTelemetryClient := NewMockClient(ctrl)
+	mockTelemetryClient.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
+	wasmer.DefaultTestLogLvl = log.Warn
+
+	cfg := &Config{}
 	testDatadirPath := t.TempDir()
 
 	scfg := state.Config{
 		Path:      testDatadirPath,
 		LogLevel:  log.Info,
-		Telemetry: telemetryMock,
+		Telemetry: mockTelemetryClient,
 	}
 	stateSrvc := state.NewService(scfg)
 	stateSrvc.UseMemDB()
@@ -148,6 +146,7 @@ func newTestSyncer(t *testing.T) *Service {
 	cfg.LogLvl = log.Trace
 	cfg.FinalityGadget = newMockFinalityGadget()
 	cfg.Network = newMockNetwork()
+	cfg.Telemetry = mockTelemetryClient
 
 	syncer, err := NewService(cfg)
 	require.NoError(t, err)
