@@ -7,6 +7,7 @@
 package sync
 
 import (
+	"context"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -235,7 +236,8 @@ func TestTipSyncer_handleTick_case3(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []*worker(nil), w)
 	require.False(t, s.pendingBlocks.hasBlock(header.Hash()))
-	require.Equal(t, block.ToBlockData(), s.readyBlocks.pop())
+	readyBlockData := s.readyBlocks.pop(context.Background())
+	require.Equal(t, block.ToBlockData(), readyBlockData)
 
 	// add pending block w/ full block, but block is not ready as parent is unknown
 	bs := new(syncmocks.BlockState)
@@ -276,8 +278,9 @@ func TestTipSyncer_handleTick_case3(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []*worker(nil), w)
 	require.False(t, s.pendingBlocks.hasBlock(header.Hash()))
-	s.readyBlocks.pop() // first pop will remove parent
-	require.Equal(t, block.ToBlockData(), s.readyBlocks.pop())
+	_ = s.readyBlocks.pop(context.Background()) // first pop removes the parent
+	readyBlockData = s.readyBlocks.pop(context.Background())
+	require.Equal(t, block.ToBlockData(), readyBlockData)
 }
 
 func TestTipSyncer_hasCurrentWorker(t *testing.T) {
