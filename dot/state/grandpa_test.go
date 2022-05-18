@@ -202,13 +202,6 @@ func TestAddScheduledChangesKeepTheRightForkTree(t *testing.T) {
 			},
 			expectedRoots: 3,
 		},
-		"add_scheduled_change_before_highest_finalized_header": {
-			headersWithScheduledChanges: []headersToAdd{
-				{header: chainA[3], wantErr: errLowerThanBestFinalized},
-			},
-			highestFinalizedHeader: chainA[5],
-			expectedRoots:          0,
-		},
 		"add_scheduled_changes_with_same_hash": {
 			headersWithScheduledChanges: []headersToAdd{
 				{header: chainA[3]},
