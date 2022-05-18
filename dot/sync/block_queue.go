@@ -21,7 +21,7 @@ type blockQueue struct {
 func newBlockQueue(capacity int) *blockQueue {
 	return &blockQueue{
 		queue:     make(chan *types.BlockData, capacity),
-		hashesSet: make(map[common.Hash]struct{}),
+		hashesSet: make(map[common.Hash]struct{}, capacity),
 	}
 }
 
