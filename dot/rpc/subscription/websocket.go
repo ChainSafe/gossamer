@@ -171,6 +171,8 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (L
 		for _, key := range filter {
 			stgobs.filter[key] = []byte{}
 		}
+	// the bellow case is needed to cover a interface{} slice full of strings
+	// as `[]interface{"a", "b"}` is not the same as `[]string{"a", "b"}`
 	case []interface{}:
 		for _, interfaceKey := range filter {
 			key, ok := interfaceKey.(string)
@@ -181,7 +183,7 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (L
 			stgobs.filter[key] = []byte{}
 		}
 	default:
-		return nil, fmt.Errorf("%w: %T, expected type string or []string", errUnexpectedType, params)
+		return nil, fmt.Errorf("%w: %T, expected type string, []string or []interface{}", errUnexpectedType, params)
 	}
 
 	c.mu.Lock()
@@ -277,6 +279,8 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener
 			return nil, fmt.Errorf("%w: %d, expected 1 param", errUnexpectedParamLen, len(encodedHex))
 		}
 		encodedExtrinsic = encodedHex[0]
+	// the bellow case is needed to cover a interface{} slice containing one string
+	// as `[]interface{"a"}` is not the same as `[]string{"a"}`
 	case []interface{}:
 		if len(encodedHex) != 1 {
 			return nil, fmt.Errorf("%w: %d, expected 1 param", errUnexpectedParamLen, len(encodedHex))
@@ -288,7 +292,7 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener
 			return nil, fmt.Errorf("%w: %T, expected type string", errUnexpectedType, encodedHex[0])
 		}
 	default:
-		return nil, fmt.Errorf("%w: %T, expected type []string", errUnexpectedType, params)
+		return nil, fmt.Errorf("%w: %T, expected type []string or []interface{}", errUnexpectedType, params)
 	}
 
 	// The passed parameter should be a HEX of a SCALE encoded extrinsic
