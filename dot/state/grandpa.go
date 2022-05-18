@@ -156,15 +156,6 @@ func (s *GrandpaState) addScheduledChange(header *types.Header, sc types.Grandpa
 }
 
 func (s *GrandpaState) importScheduledChange(pendingChange *pendingChange) error {
-	highestFinalizedHeader, err := s.blockState.GetHighestFinalisedHeader()
-	if err != nil {
-		return fmt.Errorf("cannot get highest finalized header: %w", err)
-	}
-
-	if pendingChange.announcingHeader.Number <= highestFinalizedHeader.Number {
-		return errLowerThanBestFinalized
-	}
-
 	for _, root := range s.scheduledChangeRoots {
 		imported, err := root.importScheduledChange(pendingChange.announcingHeader.Hash(),
 			pendingChange.announcingHeader.Number, pendingChange, s.blockState.IsDescendantOf)
