@@ -404,7 +404,8 @@ func (sm *StateModule) GetStorageSize(
 	return nil
 }
 
-// QueryStorage Query historical storage entries (by key) starting from a request start block given, until request end block or best block if end block in nil
+// QueryStorage Query historical storage entries (by key) starting from a request start block given,
+//until request end block or best block if end block in nil
 func (sm *StateModule) QueryStorage(
 	_ *http.Request, req *StateStorageQueryRangeRequest, res *[]StorageChangeSetResponse) error {
 	if req.StartBlock.IsEmpty() {
