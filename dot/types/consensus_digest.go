@@ -31,6 +31,9 @@ func (sc GrandpaScheduledChange) Index() uint { return 1 }
 
 // GrandpaForcedChange represents a GRANDPA forced authority change
 type GrandpaForcedChange struct {
+	// BestFinalizedBlock is specified by the governance mechanism, defines
+	// the starting block at which Delay is applied.
+	// https://github.com/w3f/polkadot-spec/pull/506#issuecomment-1128849492
 	BestFinalizedBlock uint32
 	Auths              []GrandpaAuthoritiesRaw
 	Delay              uint32
