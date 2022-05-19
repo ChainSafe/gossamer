@@ -122,7 +122,7 @@ type StateGetReadProofResponse struct {
 // StorageChangeSetResponse is the struct that holds the block and changes
 type StorageChangeSetResponse struct {
 	Block   *common.Hash `json:"block"`
-	Changes [][]string   `json:"changes"`
+	Changes [][]*string  `json:"changes"`
 }
 
 // KeyValueOption struct holds json fields
@@ -147,14 +147,16 @@ type StateModule struct {
 	networkAPI NetworkAPI
 	storageAPI StorageAPI
 	coreAPI    CoreAPI
+	blockAPI   BlockAPI
 }
 
 // NewStateModule creates a new State module.
-func NewStateModule(net NetworkAPI, storage StorageAPI, core CoreAPI) *StateModule {
+func NewStateModule(net NetworkAPI, storage StorageAPI, core CoreAPI, blockAPI BlockAPI) *StateModule {
 	return &StateModule{
 		networkAPI: net,
 		storageAPI: storage,
 		coreAPI:    core,
+		blockAPI:   blockAPI,
 	}
 }
 
@@ -403,30 +405,70 @@ func (sm *StateModule) GetStorageSize(
 	return nil
 }
 
-// QueryStorage isn't implemented properly yet.
+// QueryStorage Query historical storage entries (by key) starting from a request start block given, until request end block or best block if end block in nil
 func (sm *StateModule) QueryStorage(
 	_ *http.Request, req *StateStorageQueryRangeRequest, res *[]StorageChangeSetResponse) error {
 	if req.StartBlock.IsEmpty() {
 		return errors.New("the start block hash cannot be an empty value")
 	}
 
-	changesByBlock, err := sm.coreAPI.QueryStorage(req.StartBlock, req.EndBlock, req.Keys...)
+	startBlock, err := sm.blockAPI.GetBlockByHash(req.StartBlock)
 	if err != nil {
 		return err
 	}
 
-	response := make([]StorageChangeSetResponse, 0, len(changesByBlock))
+	startBlockNumber := startBlock.Header.Number
 
-	for block, c := range changesByBlock {
-		var changes [][]string
+	var endBlockHash common.Hash
+	if req.EndBlock.IsEmpty() {
+		endBlockHash = sm.blockAPI.BestBlockHash()
+	} else {
+		endBlockHash = req.EndBlock
+	}
+	endBlock, err := sm.blockAPI.GetBlockByHash(endBlockHash)
+	if err != nil {
+		return err
+	}
+	endBlockNumber := endBlock.Header.Number
 
-		for key, value := range c {
-			changes = append(changes, []string{key, value})
+	response := make([]StorageChangeSetResponse, 0)
+	lastValue := make([]*string, len(req.Keys))
+	firstPass := true
+	for i := startBlockNumber; i < endBlockNumber; i++ {
+		bHash, err := sm.blockAPI.GetHashByNumber(i)
+		if err != nil {
+			return err
+		}
+		var changes [][]*string
+
+		for j, key := range req.Keys {
+			value, err := sm.storageAPI.GetStorageByBlockHash(&bHash, common.MustHexToBytes(key))
+			if err != nil {
+				return err
+			}
+			var hexValue *string
+			if len(value) > 0 {
+				h := common.BytesToHex(value)
+				hexValue = &h
+			}
+			if firstPass {
+				changes = append(changes, []*string{&key, hexValue})
+				lastValue[j] = hexValue
+			} else {
+				if lastValue[j] == nil && hexValue != nil {
+					changes = append(changes, []*string{&key, hexValue})
+					lastValue[j] = hexValue
+				}
+				if lastValue[j] != nil && *lastValue[j] != *hexValue {
+					changes = append(changes, []*string{&key, hexValue})
+					lastValue[j] = hexValue
+				}
+			}
 		}
 
-		blochHash := block
+		firstPass = false
 		response = append(response, StorageChangeSetResponse{
-			Block:   &blochHash,
+			Block:   &bHash,
 			Changes: changes,
 		})
 	}

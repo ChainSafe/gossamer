@@ -282,7 +282,7 @@ func TestStateModuleGetKeysPaged(t *testing.T) {
 func TestCall(t *testing.T) {
 	mockNetworkAPI := new(mocks.NetworkAPI)
 	mockStorageAPI := new(mocks.StorageAPI)
-	sm := NewStateModule(mockNetworkAPI, mockStorageAPI, nil)
+	sm := NewStateModule(mockNetworkAPI, mockStorageAPI, nil, nil)
 
 	err := sm.Call(nil, nil, nil)
 	assert.NoError(t, err)
@@ -297,7 +297,7 @@ func TestStateModuleGetMetadata(t *testing.T) {
 	mockCoreAPIErr := new(mocks.CoreAPI)
 	mockCoreAPIErr.On("GetMetadata", &hash).Return(nil, errors.New("GetMetadata Error"))
 
-	mockStateModule := NewStateModule(nil, nil, mockCoreAPIErr)
+	mockStateModule := NewStateModule(nil, nil, mockCoreAPIErr, nil)
 
 	var expRes []byte
 	err := scale.Unmarshal(common.MustHexToBytes(testdata.NewTestMetadata()), &expRes)

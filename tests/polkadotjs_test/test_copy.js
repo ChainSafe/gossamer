@@ -16,6 +16,22 @@ async function main() {
     const runtimeVersion = await api.rpc.state.getRuntimeVersion();
     console.log('\x1b[32m%s\x1b[0m %s', "runtimeVersion:", runtimeVersion);
 
+    // chain_getBlockHash most current
+    const chainGetBlockHashCurrent = await api.rpc.chain.getBlockHash();
+    console.log('\x1b[32m%s\x1b[0m %s', 'chainGetBlockHash current:',  chainGetBlockHashCurrent);
+
+    // chain_getBlockHash 0
+    const chainGetBlockHash = await api.rpc.chain.getBlockHash(0);
+    console.log('\x1b[32m%s\x1b[0m %s', 'chainGetBlockHash 0:',  chainGetBlockHash);
+
+    // chain_getBlockHash 11
+    const chainGetBlockHash11 = await api.rpc.chain.getBlockHash(11);
+    console.log('\x1b[32m%s\x1b[0m %s', 'chainGetBlockHash 11:',  chainGetBlockHash11);
+
+    // chain_getBlockHash range
+    const chainGetBlockHashRange = await api.rpc.chain.getBlockHash([0, 11]);
+    console.log('\x1b[32m%s\x1b[0m %s', 'chainGetBlockHash range:',  chainGetBlockHashRange);
+
     // state_getStorage
     const getStorage = await api.rpc.state.getStorage("0x26aa394eea5630e07c48ae0c9558cef7a44704b568d21667356a5a050c118746e333f8c357e331db45010000");
     console.log('\x1b[32m%s\x1b[0m %s', "getStorage:", getStorage)
