@@ -88,7 +88,7 @@ func (h *Handler) HandleDigests(header *types.Header) {
 	for i := range consensusDigests {
 		// avoiding implicit memory aliasing in for loop, since:
 		// for _, digest := range consensusDigests { &digest }
-		// I'm using the address of a loop variable
+		// is using the address of a loop variable
 		digest := consensusDigests[i]
 		err := h.handleConsensusDigest(&digest, header)
 		if err != nil {
