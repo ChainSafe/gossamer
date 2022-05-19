@@ -6,6 +6,7 @@ async function main() {
     // Construct
 
     const wsProvider = new WsProvider('ws://127.0.0.1:8546');
+    // const wsProvider = new WsProvider('ws://127.0.0.1:9944');
     const api = await ApiPromise.create({ provider: wsProvider });
 
     // chain defaults
@@ -37,8 +38,12 @@ async function main() {
     console.log('\x1b[32m%s\x1b[0m %s', "getStorage:", getStorage)
     
     // state_queryStorage
-    const queryStorage = await api.rpc.state.queryStorage(["0x26aa394eea5630e07c48ae0c9558cef7a44704b568d21667356a5a050c118746e333f8c357e331db45010000"], "0x0a0f4687cfc807af53e28beb2b504c015d1db34e44126e4af9e5489473fe205b", null);
-    console.log('\x1b[32m%s\x1b[0m %s', "queryStorage:", queryStorage);
+    // test for polkadot node
+    //const queryStorage = await
+    // api.rpc.state.queryStorage(["0x1cb6f36e027abb2091cfb5110ab5087f06155b3cd9a8c9e5e9a23fd5dc13a5ed", "0xc2261276cc9d1f8598ea4b6a74b15c2f57c875e4cff74148e4628f264b974c80"], "0xf023450536b4ea89f2ee192226ad3dd7127f52f910d83eccc92f3052df937456", "0xee6ee2756f33a3dd979011979b3fe4532fb14f4dd412da551afa01a7c1696dae");
+    const queryStorage = await
+        api.rpc.state.queryStorage(["0x1cb6f36e027abb2091cfb5110ab5087f06155b3cd9a8c9e5e9a23fd5dc13a5ed", "0xc2261276cc9d1f8598ea4b6a74b15c2f57c875e4cff74148e4628f264b974c80"], "0x0a0f4687cfc807af53e28beb2b504c015d1db34e44126e4af9e5489473fe205b", "0x1078d06e0b445f32eaf57ac8aac2fec73101b9def070e1e44e15f50b800cc0d0");
+    console.log('\x1b[32m%s\x1b[0m %s', "queryStorage:", JSON.stringify(queryStorage, null, 4));
     
 
     // const runtimeMetadata = await  api.runtimeMetadata;

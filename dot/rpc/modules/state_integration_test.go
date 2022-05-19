@@ -556,5 +556,5 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 	require.NoError(t, err)
 
 	core := newCoreService(t, chain)
-	return NewStateModule(net, chain.Storage, core), &hash, &sr1
+	return NewStateModule(net, chain.Storage, core, nil), &hash, &sr1
 }

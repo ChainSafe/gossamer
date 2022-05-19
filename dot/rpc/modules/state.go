@@ -5,7 +5,6 @@ package modules
 
 import (
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -409,7 +408,7 @@ func (sm *StateModule) GetStorageSize(
 func (sm *StateModule) QueryStorage(
 	_ *http.Request, req *StateStorageQueryRangeRequest, res *[]StorageChangeSetResponse) error {
 	if req.StartBlock.IsEmpty() {
-		return errors.New("the start block hash cannot be an empty value")
+		return ErrStartBlockValueEmpty
 	}
 
 	startBlock, err := sm.blockAPI.GetBlockByHash(req.StartBlock)
@@ -451,21 +450,21 @@ func (sm *StateModule) QueryStorage(
 				h := common.BytesToHex(value)
 				hexValue = &h
 			}
+			k := key
 			if firstPass {
-				changes = append(changes, []*string{&key, hexValue})
+				changes = append(changes, []*string{&k, hexValue})
 				lastValue[j] = hexValue
 			} else {
 				if lastValue[j] == nil && hexValue != nil {
-					changes = append(changes, []*string{&key, hexValue})
+					changes = append(changes, []*string{&k, hexValue})
 					lastValue[j] = hexValue
 				}
 				if lastValue[j] != nil && *lastValue[j] != *hexValue {
-					changes = append(changes, []*string{&key, hexValue})
+					changes = append(changes, []*string{&k, hexValue})
 					lastValue[j] = hexValue
 				}
 			}
 		}
-
 		firstPass = false
 		response = append(response, StorageChangeSetResponse{
 			Block:   &bHash,
