@@ -4,15 +4,17 @@
 package sync
 
 import (
+	"errors"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
 
 func Test_bootstrapSyncer_handleWorkerResult(t *testing.T) {
 	t.Parallel()
+	mockError := errors.New("mock testing error")
 
 	tests := map[string]struct {
 		blockStateBuilder func(ctrl *gomock.Controller) BlockState
@@ -26,6 +28,19 @@ func Test_bootstrapSyncer_handleWorkerResult(t *testing.T) {
 			},
 			worker: &worker{},
 		},
+		"best block header error": {
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().BestBlockHeader().Return(nil,
+					mockError)
+				return mockBlockState
+			},
+			worker: &worker{
+				err:          &workerError{},
+				targetNumber: uintPtr(0),
+			},
+			err: mockError,
+		},
 		"targetNumber < bestBlockHeader number returns nil": {
 			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 				mockBlockState := NewMockBlockState(ctrl)
@@ -36,6 +51,19 @@ func Test_bootstrapSyncer_handleWorkerResult(t *testing.T) {
 				err:          &workerError{},
 				targetNumber: uintPtr(0),
 			},
+		},
+		"targetNumber > bestBlockHeader number worker errUnknownParent, error GetHighestFinalisedHeader": {
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().BestBlockHeader().Return(&types.Header{Number: 2}, nil)
+				mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(nil, mockError)
+				return mockBlockState
+			},
+			worker: &worker{
+				err:          &workerError{err: errUnknownParent},
+				targetNumber: uintPtr(3),
+			},
+			err: mockError,
 		},
 		"targetNumber > bestBlockHeader number worker errUnknownParent returns worker": {
 			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {

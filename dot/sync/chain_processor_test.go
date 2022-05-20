@@ -6,6 +6,8 @@ package sync
 import (
 	"context"
 	"errors"
+	"fmt"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"testing"
 	"time"
 
@@ -20,6 +22,52 @@ import (
 )
 
 //go:generate mockgen -destination=mock_instance_test.go -package=$GOPACKAGE github.com/ChainSafe/gossamer/lib/runtime Instance
+
+// todo finish
+func Test_chainProcessor_handleBlock(t *testing.T) {
+	type fields struct {
+		ctx                context.Context
+		cancel             context.CancelFunc
+		readyBlocks        *blockQueue
+		pendingBlocks      DisjointBlockSet
+		blockState         BlockState
+		storageState       StorageState
+		transactionState   TransactionState
+		babeVerifier       BabeVerifier
+		finalityGadget     FinalityGadget
+		blockImportHandler BlockImportHandler
+		telemetry          telemetry.Client
+	}
+	type args struct {
+		block *types.Block
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr assert.ErrorAssertionFunc
+	}{
+		{name: "foo"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &chainProcessor{
+				ctx:                tt.fields.ctx,
+				cancel:             tt.fields.cancel,
+				readyBlocks:        tt.fields.readyBlocks,
+				pendingBlocks:      tt.fields.pendingBlocks,
+				blockState:         tt.fields.blockState,
+				storageState:       tt.fields.storageState,
+				transactionState:   tt.fields.transactionState,
+				babeVerifier:       tt.fields.babeVerifier,
+				finalityGadget:     tt.fields.finalityGadget,
+				blockImportHandler: tt.fields.blockImportHandler,
+				telemetry:          tt.fields.telemetry,
+			}
+			tt.wantErr(t, s.handleBlock(tt.args.block), fmt.Sprintf("handleBlock(%v)", tt.args.block))
+		})
+	}
+}
 
 func Test_chainProcessor_handleBlock_baseCase(t *testing.T) {
 	t.Parallel()
@@ -40,10 +88,7 @@ func Test_chainProcessor_handleBlock_baseCase(t *testing.T) {
 	}
 	mockHeaderHash := mockHeader.Hash()
 	mockBlock := &types.Block{
-		Header: types.Header{
-			Number: 0,
-		},
-		Body: types.Body{},
+		Body: types.Body{}, // empty slice of extrinsics
 	}
 	mockTrieState, err := storage.NewTrieState(nil)
 	require.NoError(t, err)
@@ -72,14 +117,6 @@ func Test_chainProcessor_handleBlock_baseCase(t *testing.T) {
 	}
 	err = s.handleBlock(block)
 	assert.NoError(t, err)
-}
-
-func Test_chainProcessor_handleBlock_nilBlock(t *testing.T) {
-	t.Parallel()
-
-	s := &chainProcessor{}
-	err := s.handleBlock(nil)
-	assert.EqualError(t, err, errors.New("block or body is nil").Error())
 }
 
 func Test_chainProcessor_handleBody(t *testing.T) {
