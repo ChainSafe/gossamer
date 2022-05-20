@@ -237,6 +237,45 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt runtime.Instance) []*t
 	return included
 }
 
+type CommittedCandidateReceipt struct{}
+type ValidityAttestation struct{}
+
+type UncheckedSignedAvailabilityBitfield struct {
+	/// The payload is part of the signed data. The rest is the signing context,
+	/// which is known both at signing and at validation.
+	payload []byte
+	/// The index of the validator signing this statement.
+	validatorIndex uint32
+	/// The signature by the validator of the signed payload.
+	// signature ValidatorSignature
+	/// This ensures the real payload is tracked at the typesystem level.
+	//real_payload: sp_std::marker::PhantomData<[]byte>,
+}
+
+type BackedCandidate struct {
+	/// The candidate referred to.
+	candidate CommittedCandidateReceipt
+	/// The validity votes themselves, expressed as signatures.
+	validity_votes []ValidityAttestation
+	/// The indices of the validators within the group, expressed as a bitfield.
+	validator_indices []byte
+}
+
+type MultiDisputeStatementSet struct{}
+type HDR struct{}
+
+type ParachainInherentData struct {
+	/// Signed bitfields by validators about availability.
+	Bitfields []UncheckedSignedAvailabilityBitfield
+	// Backed candidates for inclusion in the block.
+	BackedCandidates []BackedCandidate
+	/// Sets of dispute votes for inclusion,
+	Disputes MultiDisputeStatementSet
+	/// The parent block header. Used for checking state proofs.
+	ParentHeader HDR
+}
+
+// this is where you add those inherents
 func buildBlockInherents(slot Slot, rt runtime.Instance) ([][]byte, error) {
 	// Setup inherents: add timstap0
 	idata := types.NewInherentsData()

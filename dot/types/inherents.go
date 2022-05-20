@@ -20,6 +20,8 @@ var (
 	Babeslot = []byte("babeslot")
 	// Uncles00 is an inherent key.
 	Uncles00 = []byte("uncles00")
+	// Parachn0 is an inherent key.
+	Parachn0 = []byte("parachn0")
 )
 
 // InherentsData contains a mapping of inherent keys to values
