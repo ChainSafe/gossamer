@@ -6,8 +6,6 @@ package sync
 import (
 	"context"
 	"errors"
-	"fmt"
-	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"testing"
 	"time"
 
@@ -23,48 +21,181 @@ import (
 
 //go:generate mockgen -destination=mock_instance_test.go -package=$GOPACKAGE github.com/ChainSafe/gossamer/lib/runtime Instance
 
-// todo finish
 func Test_chainProcessor_handleBlock(t *testing.T) {
+	t.Parallel()
+	mockError := errors.New("test mock error")
+	testHash := common.MustHexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
+	testParentHash := common.MustHexToHash("0x7db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a")
+	mockTrieState, _ := storage.NewTrieState(nil)
+
 	type fields struct {
-		ctx                context.Context
-		cancel             context.CancelFunc
-		readyBlocks        *blockQueue
-		pendingBlocks      DisjointBlockSet
-		blockState         BlockState
-		storageState       StorageState
-		transactionState   TransactionState
-		babeVerifier       BabeVerifier
-		finalityGadget     FinalityGadget
-		blockImportHandler BlockImportHandler
-		telemetry          telemetry.Client
+		blockStateBuilder         func(ctrl *gomock.Controller) BlockState
+		storageStateBuilder       func(ctrl *gomock.Controller) StorageState
+		blockImportHandlerBuilder func(ctrl *gomock.Controller) BlockImportHandler
 	}
-	type args struct {
-		block *types.Block
-	}
-	tests := []struct {
-		name    string
+	tests := map[string]struct {
 		fields  fields
-		args    args
-		wantErr assert.ErrorAssertionFunc
+		block   *types.Block
+		wantErr error
 	}{
-		{name: "foo"},
+		"nil block": {
+			fields: fields{
+				blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+					return NewMockBlockState(nil)
+				},
+				storageStateBuilder: func(ctrl *gomock.Controller) StorageState {
+					return NewMockStorageState(nil)
+				},
+				blockImportHandlerBuilder: func(ctrl *gomock.Controller) BlockImportHandler {
+					return NewMockBlockImportHandler(nil)
+				},
+			},
+			wantErr: errBlockOrBodyNil,
+		},
+		"handle getHeader error": {
+			block: &types.Block{
+				Body: types.Body{},
+			},
+			fields: fields{
+				blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+					mockBlockState := NewMockBlockState(ctrl)
+					mockBlockState.EXPECT().GetHeader(common.Hash{}).Return(nil, mockError)
+					return mockBlockState
+				},
+				storageStateBuilder: func(ctrl *gomock.Controller) StorageState {
+					return NewMockStorageState(nil)
+				},
+				blockImportHandlerBuilder: func(ctrl *gomock.Controller) BlockImportHandler {
+					return NewMockBlockImportHandler(nil)
+				},
+			},
+			wantErr: mockError,
+		},
+		"handle trieState error": {
+			block: &types.Block{
+				Body: types.Body{},
+			},
+			fields: fields{
+				blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+					mockBlockState := NewMockBlockState(ctrl)
+					mockBlockState.EXPECT().GetHeader(common.Hash{}).Return(&types.Header{}, nil)
+					return mockBlockState
+				},
+				storageStateBuilder: func(ctrl *gomock.Controller) StorageState {
+					mockStorageState := NewMockStorageState(ctrl)
+					mockStorageState.EXPECT().Lock()
+					mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(nil, mockError)
+					mockStorageState.EXPECT().Unlock()
+					return mockStorageState
+				},
+				blockImportHandlerBuilder: func(ctrl *gomock.Controller) BlockImportHandler {
+					return NewMockBlockImportHandler(nil)
+				},
+			},
+			wantErr: mockError,
+		},
+		"handle getRuntime error": {
+			block: &types.Block{
+				Body: types.Body{},
+			},
+			fields: fields{
+				blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+					mockBlockState := NewMockBlockState(ctrl)
+					mockBlockState.EXPECT().GetHeader(common.Hash{}).Return(&types.Header{
+						StateRoot: testHash,
+					}, nil)
+					mockBlockState.EXPECT().GetRuntime(&testParentHash).Return(nil, mockError)
+					return mockBlockState
+				},
+				storageStateBuilder: func(ctrl *gomock.Controller) StorageState {
+					mockStorageState := NewMockStorageState(ctrl)
+					mockStorageState.EXPECT().Lock()
+					mockStorageState.EXPECT().TrieState(&testHash).Return(mockTrieState, nil)
+					mockStorageState.EXPECT().Unlock()
+					return mockStorageState
+				},
+				blockImportHandlerBuilder: func(ctrl *gomock.Controller) BlockImportHandler {
+					return NewMockBlockImportHandler(nil)
+				},
+			},
+			wantErr: mockError,
+		},
+		"handle runtime ExecuteBlock error": {
+			block: &types.Block{
+				Body: types.Body{},
+			},
+			fields: fields{
+				blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+					mockBlockState := NewMockBlockState(ctrl)
+					mockBlockState.EXPECT().GetHeader(common.Hash{}).Return(&types.Header{
+						StateRoot: testHash,
+					}, nil)
+					mockInstance := NewMockInstance(ctrl)
+					mockInstance.EXPECT().SetContextStorage(mockTrieState)
+					mockInstance.EXPECT().ExecuteBlock(&types.Block{Body: types.Body{}}).Return(nil, mockError)
+					mockBlockState.EXPECT().GetRuntime(&testParentHash).Return(mockInstance, nil)
+					return mockBlockState
+				},
+				storageStateBuilder: func(ctrl *gomock.Controller) StorageState {
+					mockStorageState := NewMockStorageState(ctrl)
+					mockStorageState.EXPECT().Lock()
+					mockStorageState.EXPECT().TrieState(&testHash).Return(mockTrieState, nil)
+					mockStorageState.EXPECT().Unlock()
+					return mockStorageState
+				},
+				blockImportHandlerBuilder: func(ctrl *gomock.Controller) BlockImportHandler {
+					return NewMockBlockImportHandler(nil)
+				},
+			},
+			wantErr: mockError,
+		},
+		"handle block import error": {
+			block: &types.Block{
+				Body: types.Body{},
+			},
+			fields: fields{
+				blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+					mockBlockState := NewMockBlockState(ctrl)
+					mockBlockState.EXPECT().GetHeader(common.Hash{}).Return(&types.Header{
+						StateRoot: testHash,
+					}, nil)
+					mockInstance := NewMockInstance(ctrl)
+					mockInstance.EXPECT().SetContextStorage(mockTrieState)
+					mockInstance.EXPECT().ExecuteBlock(&types.Block{Body: types.Body{}}).Return(nil, nil)
+					mockBlockState.EXPECT().GetRuntime(&testParentHash).Return(mockInstance, nil)
+					return mockBlockState
+				},
+				storageStateBuilder: func(ctrl *gomock.Controller) StorageState {
+					mockStorageState := NewMockStorageState(ctrl)
+					mockStorageState.EXPECT().Lock()
+					mockStorageState.EXPECT().TrieState(&testHash).Return(mockTrieState, nil)
+					mockStorageState.EXPECT().Unlock()
+					return mockStorageState
+				},
+				blockImportHandlerBuilder: func(ctrl *gomock.Controller) BlockImportHandler {
+					mockBlockImportHandler := NewMockBlockImportHandler(ctrl)
+					mockBlockImportHandler.EXPECT().HandleBlockImport(&types.Block{Body: types.Body{}},
+						mockTrieState).Return(mockError)
+					return mockBlockImportHandler
+				},
+			},
+			wantErr: mockError,
+		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for name, tt := range tests {
+		tt := tt
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			ctrl := gomock.NewController(t)
 			s := &chainProcessor{
-				ctx:                tt.fields.ctx,
-				cancel:             tt.fields.cancel,
-				readyBlocks:        tt.fields.readyBlocks,
-				pendingBlocks:      tt.fields.pendingBlocks,
-				blockState:         tt.fields.blockState,
-				storageState:       tt.fields.storageState,
-				transactionState:   tt.fields.transactionState,
-				babeVerifier:       tt.fields.babeVerifier,
-				finalityGadget:     tt.fields.finalityGadget,
-				blockImportHandler: tt.fields.blockImportHandler,
-				telemetry:          tt.fields.telemetry,
+				blockState:         tt.fields.blockStateBuilder(ctrl),
+				storageState:       tt.fields.storageStateBuilder(ctrl),
+				blockImportHandler: tt.fields.blockImportHandlerBuilder(ctrl),
 			}
-			tt.wantErr(t, s.handleBlock(tt.args.block), fmt.Sprintf("handleBlock(%v)", tt.args.block))
+			err := s.handleBlock(tt.block)
+			if tt.wantErr != nil {
+				assert.ErrorContains(t, err, tt.wantErr.Error())
+			}
 		})
 	}
 }

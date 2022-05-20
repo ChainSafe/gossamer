@@ -213,7 +213,7 @@ func (s *chainProcessor) handleBody(body *types.Body) {
 // handleHeader handles blocks (header+body) included in BlockResponses
 func (s *chainProcessor) handleBlock(block *types.Block) error {
 	if block == nil || block.Body == nil {
-		return errors.New("block or body is nil")
+		return errBlockOrBodyNil
 	}
 
 	parent, err := s.blockState.GetHeader(block.Header.ParentHash)
