@@ -875,8 +875,50 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 
 //export ext_trie_blake2_256_ordered_root_version_2
 func ext_trie_blake2_256_ordered_root_version_2(context unsafe.Pointer, dataSpan C.int64_t, version C.int32_t) C.int32_t {
-	// TODO: update to use state trie version 1 (#2418)
-	return ext_trie_blake2_256_ordered_root_version_1(context, dataSpan)
+	logger.Debug("executing...")
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
+	runtimeCtx := instanceContext.Data().(*runtime.Context)
+	data := asMemorySlice(instanceContext, dataSpan)
+
+	t := trie.NewEmptyTrie()
+	var values [][]byte
+	err := scale.Unmarshal(data, &values)
+	if err != nil {
+		logger.Errorf("[ext_trie_blake2_256_ordered_root_version_2]: %s", err)
+		return 0
+	}
+
+	for i, val := range values {
+		key, err := scale.Marshal(big.NewInt(int64(i)))
+		if err != nil {
+			logger.Errorf("[ext_trie_blake2_256_ordered_root_version_2]: %s", err)
+			return 0
+		}
+		logger.Tracef(
+			"put key=0x%x and value=0x%x",
+			key, val)
+
+		t.Put(key, val)
+	}
+
+	// allocate memory for value and copy value to memory
+	ptr, err := runtimeCtx.Allocator.Allocate(32)
+	if err != nil {
+		logger.Errorf("[ext_trie_blake2_256_ordered_root_version_2]: %s", err)
+		return 0
+	}
+
+	hash, err := t.Hash()
+	if err != nil {
+		logger.Errorf("[ext_trie_blake2_256_ordered_root_version_2]: %s", err)
+		return 0
+	}
+
+	logger.Debugf("[ext_trie_blake2_256_ordered_root_version_2]: root hash is %s", hash)
+	copy(memory[ptr:ptr+32], hash[:])
+	return C.int32_t(ptr)
 }
 
 //export ext_trie_blake2_256_verify_proof_version_1
@@ -2063,8 +2105,26 @@ func ext_storage_root_version_1(context unsafe.Pointer) C.int64_t {
 
 //export ext_storage_root_version_2
 func ext_storage_root_version_2(context unsafe.Pointer, version C.int32_t) C.int64_t {
-	// TODO: update to use state trie version 1 (#2418)
-	return ext_storage_root_version_1(context)
+	logger.Trace("executing...")
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	storage := instanceContext.Data().(*runtime.Context).Storage
+
+	root, err := storage.Root()
+	if err != nil {
+		logger.Errorf("failed to get storage root: %s", err)
+		return 0
+	}
+
+	logger.Debugf("root hash is: %s", root)
+
+	rootSpan, err := toWasmMemory(instanceContext, root[:])
+	if err != nil {
+		logger.Errorf("failed to allocate: %s", err)
+		return 0
+	}
+
+	return C.int64_t(rootSpan)
 }
 
 //export ext_storage_set_version_1
@@ -2546,6 +2606,10 @@ func ImportsNodeRuntime() (*wasm.Imports, error) { //nolint:gocyclo
 	if err != nil {
 		return nil, err
 	}
+	_, err = imports.Append("ext_storage_root_version_2", ext_storage_root_version_2, C.ext_storage_root_version_2)
+	if err != nil {
+		return nil, err
+	}
 	_, err = imports.Append("ext_storage_set_version_1", ext_storage_set_version_1, C.ext_storage_set_version_1)
 	if err != nil {
 		return nil, err
@@ -2556,6 +2620,10 @@ func ImportsNodeRuntime() (*wasm.Imports, error) { //nolint:gocyclo
 	}
 
 	_, err = imports.Append("ext_trie_blake2_256_ordered_root_version_1", ext_trie_blake2_256_ordered_root_version_1, C.ext_trie_blake2_256_ordered_root_version_1)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_trie_blake2_256_ordered_root_version_2", ext_trie_blake2_256_ordered_root_version_2, C.ext_trie_blake2_256_ordered_root_version_2)
 	if err != nil {
 		return nil, err
 	}

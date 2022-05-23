@@ -237,42 +237,79 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt runtime.Instance) []*t
 	return included
 }
 
-type CommittedCandidateReceipt struct{}
-type ValidityAttestation struct{}
+type CollatorSignature struct{}
+type CollatorId struct{}
+
+type CandidateDescriptor struct {
+	// The ID of the para this is a candidate for.
+	ParaId uint32
+	// The hash of the relay-chain block this should be executed in
+	// the context of.
+	// NOTE: the fact that the hash includes this value means that code depends
+	// on this for deduplication. Removing this field is likely to break things.
+	RelayParent common.Hash
+	// The collator's relay-chain account ID
+	Collator CollatorId
+	// Signature on blake2-256 of components of this receipt:
+	// The para ID, the relay parent, and the `pov_hash`.
+	Signature CollatorSignature
+	// The hash of the `pov-block`.
+	PovHash common.Hash
+}
+
+type CandidateCommitments struct{}
+
+type CommittedCandidateReceipt struct {
+	Descriptor  *CandidateDescriptor
+	Commitments *CandidateCommitments
+}
+
+type ValidityAttestation int
+
+const (
+	Implicit ValidityAttestation = iota
+	Explicit
+)
 
 type UncheckedSignedAvailabilityBitfield struct {
-	/// The payload is part of the signed data. The rest is the signing context,
-	/// which is known both at signing and at validation.
-	payload []byte
-	/// The index of the validator signing this statement.
-	validatorIndex uint32
+	// The payload is part of the signed data. The rest is the signing context,
+	// which is known both at signing and at validation.
+	Payload []byte
+	// The index of the validator signing this statement.
+	ValidatorIndex uint32
 	/// The signature by the validator of the signed payload.
-	// signature ValidatorSignature
-	/// This ensures the real payload is tracked at the typesystem level.
-	//real_payload: sp_std::marker::PhantomData<[]byte>,
+	Signature []byte
 }
 
 type BackedCandidate struct {
-	/// The candidate referred to.
-	candidate CommittedCandidateReceipt
-	/// The validity votes themselves, expressed as signatures.
-	validity_votes []ValidityAttestation
-	/// The indices of the validators within the group, expressed as a bitfield.
-	validator_indices []byte
+	// The candidate referred to.
+	Candidate *CommittedCandidateReceipt
+	// The validity votes themselves, expressed as signatures.
+	ValidityVotes []*ValidityAttestation
+	// The indices of the validators within the group, expressed as a bitfield.
+	ValidatorIndices []byte
 }
 
 type MultiDisputeStatementSet struct{}
-type HDR struct{}
+
+// type DisputeStatementSet struct{
+// 		// The candidate referenced by this set.
+// 		candidate_hash: CandidateHash,
+// 		// The session index of the candidate.
+// 		session uint32,
+// 		/// Statements about the candidate.
+// 		statements: Vec<(DisputeStatement, ValidatorIndex, ValidatorSignature)>,
+// }
 
 type ParachainInherentData struct {
-	/// Signed bitfields by validators about availability.
+	// Signed bitfields by validators about availability.
 	Bitfields []UncheckedSignedAvailabilityBitfield
 	// Backed candidates for inclusion in the block.
 	BackedCandidates []BackedCandidate
-	/// Sets of dispute votes for inclusion,
-	Disputes MultiDisputeStatementSet
-	/// The parent block header. Used for checking state proofs.
-	ParentHeader HDR
+	// Sets of dispute votes for inclusion,
+	Disputes MultiDisputeStatementSet // []DisputeStatementSet
+	// The parent block header. Used for checking state proofs.
+	ParentHeader *types.Header
 }
 
 // this is where you add those inherents
@@ -287,6 +324,22 @@ func buildBlockInherents(slot Slot, rt runtime.Instance) ([][]byte, error) {
 
 	// add babeslot
 	err = idata.SetInt64Inherent(types.Babeslot, slot.number)
+	if err != nil {
+		return nil, err
+	}
+
+	// add parachn0 and newheads
+	bz, err := scale.Marshal(&ParachainInherentData{})
+	if err != nil {
+		return nil, err
+	}
+
+	err = idata.SetBytesInherent(types.Parachn0, bz)
+	if err != nil {
+		return nil, err
+	}
+
+	err = idata.SetBytesInherent(types.Newheads, []byte{0})
 	if err != nil {
 		return nil, err
 	}

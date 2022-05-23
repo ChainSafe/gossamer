@@ -20,8 +20,10 @@ var (
 	Babeslot = []byte("babeslot")
 	// Uncles00 is an inherent key.
 	Uncles00 = []byte("uncles00")
-	// Parachn0 is an inherent key.
+	// Parachn0 is an inherent key for parachains inherent.
 	Parachn0 = []byte("parachn0")
+	// Newheads is an inherent key for new minimally-attested parachain heads.
+	Newheads = []byte("newheads")
 )
 
 // InherentsData contains a mapping of inherent keys to values
@@ -63,6 +65,13 @@ func (d *InherentsData) SetInt64Inherent(key []byte, data uint64) error {
 	copy(kb[:], key)
 
 	d.data[kb] = venc
+	return nil
+}
+
+func (d *InherentsData) SetBytesInherent(key, value []byte) error {
+	kb := [8]byte{}
+	copy(kb[:], key)
+	d.data[kb] = value
 	return nil
 }
 
