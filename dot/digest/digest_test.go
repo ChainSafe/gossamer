@@ -521,8 +521,6 @@ func TestGrandpaScheduledChanges(t *testing.T) {
 		}
 	}
 
-	digestHandler, stateService := newTestHandler(t)
-
 	forksGRANPDAScheduledChanges := []types.GrandpaScheduledChange{
 		{
 			Auths: []types.GrandpaAuthoritiesRaw{
@@ -564,6 +562,8 @@ func TestGrandpaScheduledChanges(t *testing.T) {
 			Delay: 1,
 		},
 	}
+
+	digestHandler, stateService := newTestHandler(t)
 
 	genesisHeader, err := stateService.Block.BestBlockHeader()
 	require.NoError(t, err)
