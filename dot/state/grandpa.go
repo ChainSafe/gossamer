@@ -21,7 +21,6 @@ var (
 	errDuplicateHashes         = errors.New("duplicated hashes")
 	errAlreadyHasForcedChanges = errors.New("already has a forced change")
 	errUnfinalizedAncestor     = errors.New("ancestor with changes not applied")
-	errLowerThanBestFinalized  = errors.New("current finalized is lower than best finalized header")
 
 	ErrNoChanges = errors.New("cannot get the next authority change block number")
 )
