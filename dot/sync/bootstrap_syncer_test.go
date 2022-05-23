@@ -5,9 +5,9 @@ package sync
 
 import (
 	"errors"
-	"github.com/ChainSafe/gossamer/dot/types"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )

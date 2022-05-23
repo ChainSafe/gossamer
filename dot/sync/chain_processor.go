@@ -162,7 +162,7 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 	logger.Debugf("processing block data with hash %s", bd.Hash)
 
 	if bd.Header != nil && bd.Body != nil {
-		if err := s.handleHeader(bd.Header); err != nil {
+		if err := s.babeVerifier.VerifyBlock(bd.Header); err != nil {
 			return err
 		}
 
@@ -188,16 +188,6 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 
 	if err := s.blockState.CompareAndSetBlockData(bd); err != nil {
 		return fmt.Errorf("failed to compare and set data: %w", err)
-	}
-
-	return nil
-}
-
-// handleHeader handles headers included in BlockResponses
-func (s *chainProcessor) handleHeader(header *types.Header) error {
-	err := s.babeVerifier.VerifyBlock(header)
-	if err != nil {
-		return fmt.Errorf("%w: %s", ErrInvalidBlock, err.Error())
 	}
 
 	return nil
