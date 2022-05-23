@@ -78,7 +78,7 @@ func (h *Handler) Stop() error {
 
 // HandleDigests handles consensus digests for an imported block
 func (h *Handler) HandleDigests(header *types.Header) {
-	consensusDigests := ToConsensusDigests(header.Digest.Types)
+	consensusDigests := h.toConsensusDigests(header.Digest.Types)
 	consensusDigests, err := checkForGRANDPAForcedChanges(consensusDigests)
 	if err != nil {
 		h.logger.Errorf("cannot ignore multiple GRANDPA digests: %s", err)
@@ -97,13 +97,14 @@ func (h *Handler) HandleDigests(header *types.Header) {
 	}
 }
 
-// ToConsensusDigests converts a slice of scale.VaryingDataType to a slice of types.ConsensusDigest.
-func ToConsensusDigests(scaleVaryingTypes []scale.VaryingDataType) []types.ConsensusDigest {
+// toConsensusDigests converts a slice of scale.VaryingDataType to a slice of types.ConsensusDigest.
+func (h *Handler) toConsensusDigests(scaleVaryingTypes []scale.VaryingDataType) []types.ConsensusDigest {
 	consensusDigests := make([]types.ConsensusDigest, 0, len(scaleVaryingTypes))
 
 	for _, d := range scaleVaryingTypes {
 		digest, ok := d.Value().(types.ConsensusDigest)
 		if !ok {
+			h.logger.Debugf("digest type not supported: %T", d.Value())
 			continue
 		}
 
