@@ -237,7 +237,7 @@ func (s *GrandpaState) getApplicableScheduledChange(finalizedHash common.Hash, f
 	if changeNode == nil {
 		err := s.pruneScheduledChanges(finalizedHash)
 		if err != nil {
-			return nil, fmt.Errorf("cannot keep descendant scheduled nodes: %w", err)
+			return nil, fmt.Errorf("cannot prune non-descendant scheduled nodes: %w", err)
 		}
 	} else {
 		change = changeNode.change
@@ -300,7 +300,7 @@ func (s *GrandpaState) ApplyScheduledChanges(finalizedHeader *types.Header) erro
 
 	err := s.pruneForcedChanges(finalizedHash)
 	if err != nil {
-		return fmt.Errorf("cannot keep descendant forced changes: %w", err)
+		return fmt.Errorf("cannot prune non-descendant forced changes: %w", err)
 	}
 
 	if len(s.scheduledChangeRoots) == 0 {
@@ -309,7 +309,7 @@ func (s *GrandpaState) ApplyScheduledChanges(finalizedHeader *types.Header) erro
 
 	changeToApply, err := s.getApplicableScheduledChange(finalizedHash, finalizedHeader.Number)
 	if err != nil {
-		return fmt.Errorf("cannot finalize scheduled change: %w", err)
+		return fmt.Errorf("cannot get applicable scheduled change: %w", err)
 	}
 
 	if changeToApply == nil {
@@ -331,7 +331,7 @@ func (s *GrandpaState) ApplyScheduledChanges(finalizedHeader *types.Header) erro
 
 	err = s.setChangeSetIDAtBlock(newSetID, changeToApply.effectiveNumber())
 	if err != nil {
-		return fmt.Errorf("cannot set change set id at block")
+		return fmt.Errorf("cannot set the change set id at block: %w", err)
 	}
 
 	logger.Debugf("Applying authority set change scheduled at block #%d",
