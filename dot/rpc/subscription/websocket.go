@@ -56,7 +56,7 @@ func (c *WSConn) readWebsocketMessage() (bytes []byte, err error) {
 	_, bytes, err = c.Wsconn.ReadMessage()
 	if err != nil {
 		logger.Debugf("websocket failed to read message: %s", err)
-		return bytes, errCannotReadFromWebsocket
+		return nil, errCannotReadFromWebsocket
 	}
 
 	logger.Tracef("websocket message received: %s", string(bytes))
@@ -77,7 +77,7 @@ func (c *WSConn) HandleConn() {
 		msg := new(websocketMessage)
 		err = json.Unmarshal(mbytes, &msg)
 		if err != nil {
-			logger.Debugf("websocket failed to unmarshal request message: %s", err)
+			logger.Debugf("failed to unmarshal websocket request message: %s", err)
 			continue
 		}
 
