@@ -312,7 +312,6 @@ type ParachainInherentData struct {
 	ParentHeader *types.Header
 }
 
-// this is where you add those inherents
 func buildBlockInherents(slot Slot, rt runtime.Instance) ([][]byte, error) {
 	// Setup inherents: add timstap0
 	idata := types.NewInherentsData()

@@ -533,7 +533,6 @@ func (b *Service) handleSlot(epoch, slotNum uint64,
 
 	rt.SetContextStorage(ts)
 
-	// this might be the place where block author insert inherent
 	block, err := b.buildBlock(parent, currentSlot, rt, authorityIndex, preRuntimeDigest)
 	if err != nil {
 		return err
