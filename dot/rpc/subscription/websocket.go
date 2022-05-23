@@ -52,35 +52,32 @@ type WSConn struct {
 }
 
 // readWebsocketMessage will read and parse the message data to a string->interface{} data
-func (c *WSConn) readWebsocketMessage() (bytes []byte, msg websocketMessage, err error) {
+func (c *WSConn) readWebsocketMessage() (bytes []byte, err error) {
 	_, bytes, err = c.Wsconn.ReadMessage()
 	if err != nil {
 		logger.Debugf("websocket failed to read message: %s", err)
-		return bytes, msg, errCannotReadFromWebsocket
+		return bytes, errCannotReadFromWebsocket
 	}
 
 	logger.Tracef("websocket message received: %s", string(bytes))
-
-	err = json.Unmarshal(bytes, &msg)
-
-	if err != nil {
-		logger.Debugf("websocket failed to unmarshal request message: %s", err)
-		return bytes, msg, errCannotUnmarshalMessage
-	}
-
-	return bytes, msg, nil
+	return bytes, nil
 }
 
 // HandleConn handles messages received on websocket connections
 func (c *WSConn) HandleConn() {
 	for {
-		mbytes, msg, err := c.readWebsocketMessage()
+		mbytes, err := c.readWebsocketMessage()
 		if errors.Is(err, errCannotReadFromWebsocket) {
 			return
+		} else if errors.Is(err, errCannotUnmarshalMessage) {
+			c.safeSendError(0, big.NewInt(InvalidRequestCode), InvalidRequestMessage)
+			continue
 		}
 
-		if errors.Is(err, errCannotUnmarshalMessage) {
-			c.safeSendError(0, big.NewInt(InvalidRequestCode), InvalidRequestMessage)
+		msg := new(websocketMessage)
+		err = json.Unmarshal(mbytes, &msg)
+		if err != nil {
+			logger.Debugf("websocket failed to unmarshal request message: %s", err)
 			continue
 		}
 
