@@ -117,25 +117,28 @@ func (h *Handler) toConsensusDigests(scaleVaryingTypes []scale.VaryingDataType) 
 	return consensusDigests
 }
 
+// checkForGRANDPAForcedChanges removes any GrandpaScheduledChange in the presence of a
+// GrandpaForcedChange in the same block digest, returning a new slice of types.ConsensusDigest
 func checkForGRANDPAForcedChanges(digests []types.ConsensusDigest) ([]types.ConsensusDigest, error) {
 	var hasForcedChange bool
 	scheduledChangesIndex := make(map[int]struct{}, len(digests))
 
 	for idx, digest := range digests {
-		switch digest.ConsensusEngineID {
-		case types.GrandpaEngineID:
-			data := types.NewGrandpaConsensusDigest()
-			err := scale.Unmarshal(digest.Data, &data)
-			if err != nil {
-				return nil, fmt.Errorf("cannot unmarshal GRANDPA consensus digest: %w", err)
-			}
+		if digest.ConsensusEngineID != types.GrandpaEngineID {
+			continue
+		}
 
-			switch data.Value().(type) {
-			case types.GrandpaScheduledChange:
-				scheduledChangesIndex[idx] = struct{}{}
-			case types.GrandpaForcedChange:
-				hasForcedChange = true
-			}
+		data := types.NewGrandpaConsensusDigest()
+		err := scale.Unmarshal(digest.Data, &data)
+		if err != nil {
+			return nil, fmt.Errorf("cannot unmarshal GRANDPA consensus digest: %w", err)
+		}
+
+		switch data.Value().(type) {
+		case types.GrandpaScheduledChange:
+			scheduledChangesIndex[idx] = struct{}{}
+		case types.GrandpaForcedChange:
+			hasForcedChange = true
 		}
 	}
 
