@@ -859,7 +859,7 @@ func TestApplyScheduledChangesKeepDescendantForcedChanges(t *testing.T) {
 			selectedFork := forks[tt.finalizedHeader[0]]
 			selectedFinalizedHeader := selectedFork[tt.finalizedHeader[1]]
 
-			err = gs.keepDescendantForcedChanges(selectedFinalizedHeader.Hash(), selectedFinalizedHeader.Number)
+			err = gs.pruneForcedChanges(selectedFinalizedHeader.Hash())
 			if tt.wantErr != nil {
 				require.EqualError(t, err, tt.wantErr.Error())
 			} else {

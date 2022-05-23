@@ -235,7 +235,7 @@ func (s *GrandpaState) getApplicableScheduledChange(finalizedHash common.Hash, f
 	// otherwise we should update the scheduled roots to be the child
 	// nodes of the applied scheduled change
 	if changeNode == nil {
-		err := s.keepDescendantScheduledChanges(finalizedHash)
+		err := s.pruneScheduledChanges(finalizedHash)
 		if err != nil {
 			return nil, fmt.Errorf("cannot keep descendant scheduled nodes: %w", err)
 		}
@@ -248,10 +248,10 @@ func (s *GrandpaState) getApplicableScheduledChange(finalizedHash common.Hash, f
 	return change, nil
 }
 
-// keepDescendantForcedChanges should keep the forced changes for later blocks that
-// are descendant of the finalized block
-func (s *GrandpaState) keepDescendantForcedChanges(finalizedHash common.Hash, finalizedNumber uint) error {
-	onBranchForcedChanges := []*pendingChange{}
+// pruneForcedChanges removes the forced changes from GRANDPA state for any block
+// that is not a descendant of the current finalised block.
+func (s *GrandpaState) pruneForcedChanges(finalizedHash common.Hash) error {
+	onBranchForcedChanges := make([]*pendingChange, 0, len(s.forcedChanges))
 
 	for _, forcedChange := range s.forcedChanges {
 		isDescendant, err := s.blockState.IsDescendantOf(finalizedHash, forcedChange.announcingHeader.Hash())
@@ -259,7 +259,7 @@ func (s *GrandpaState) keepDescendantForcedChanges(finalizedHash common.Hash, fi
 			return fmt.Errorf("cannot verify ancestry: %w", err)
 		}
 
-		if forcedChange.effectiveNumber() > finalizedNumber && isDescendant {
+		if isDescendant {
 			onBranchForcedChanges = append(onBranchForcedChanges, forcedChange)
 		}
 	}
@@ -270,9 +270,10 @@ func (s *GrandpaState) keepDescendantForcedChanges(finalizedHash common.Hash, fi
 	return nil
 }
 
-// keepDescendantScheduledChanges keeps the not applied scheduled changes and remove purged scheduled changes
-func (s *GrandpaState) keepDescendantScheduledChanges(finalizedHash common.Hash) error {
-	onBranchScheduledChanges := []*pendingChangeNode{}
+// pruneScheduledChanges removes the scheduled changes from the
+// GRANDPA state which are not for a descendant of the finalised block hash.
+func (s *GrandpaState) pruneScheduledChanges(finalizedHash common.Hash) error {
+	onBranchScheduledChanges := make([]*pendingChangeNode, 0, len(s.scheduledChangeRoots))
 
 	for _, scheduledChange := range s.scheduledChangeRoots {
 		scheduledChangeHash := scheduledChange.change.announcingHeader.Hash()
@@ -297,7 +298,7 @@ func (s *GrandpaState) keepDescendantScheduledChanges(finalizedHash common.Hash)
 func (s *GrandpaState) ApplyScheduledChanges(finalizedHeader *types.Header) error {
 	finalizedHash := finalizedHeader.Hash()
 
-	err := s.keepDescendantForcedChanges(finalizedHash, finalizedHeader.Number)
+	err := s.pruneForcedChanges(finalizedHash)
 	if err != nil {
 		return fmt.Errorf("cannot keep descendant forced changes: %w", err)
 	}
