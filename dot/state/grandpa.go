@@ -294,7 +294,7 @@ func (s *GrandpaState) pruneScheduledChanges(finalizedHash common.Hash) error {
 }
 
 // ApplyScheduledChanges will check the schedules changes in order to find a root
-// that is equals or behind the finalized number and will apply its authority set changes
+// equal or behind the finalized number and will apply its authority set changes
 func (s *GrandpaState) ApplyScheduledChanges(finalizedHeader *types.Header) error {
 	finalizedHash := finalizedHeader.Hash()
 

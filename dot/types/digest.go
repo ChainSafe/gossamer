@@ -30,7 +30,7 @@ func (h ConsensusEngineID) ToBytes() []byte {
 }
 
 func (h ConsensusEngineID) String() string {
-	return string(h.ToBytes())
+	return fmt.Sprintf("0x%x", h.ToBytes())
 }
 
 // BabeEngineID is the hard-coded babe ID
