@@ -81,7 +81,7 @@ func (h *Handler) HandleDigests(header *types.Header) {
 	consensusDigests := ToConsensusDigests(header.Digest.Types)
 	consensusDigests, err := checkForGRANDPAForcedChanges(consensusDigests)
 	if err != nil {
-		h.logger.Errorf("cannot ignore multiple GRANDPA digests: %w", err)
+		h.logger.Errorf("cannot ignore multiple GRANDPA digests: %s", err)
 		return
 	}
 
@@ -92,8 +92,7 @@ func (h *Handler) HandleDigests(header *types.Header) {
 		digest := consensusDigests[i]
 		err := h.handleConsensusDigest(&digest, header)
 		if err != nil {
-			h.logger.Errorf("cannot handle digest for block number %d, index %d, digest %s: %s",
-				header.Number, i, digest, err)
+			h.logger.Errorf("cannot handle consensus digest: %w", err)
 		}
 	}
 }
