@@ -42,6 +42,6 @@ type GrandpaState interface {
 	GetCurrentSetID() (uint64, error)
 
 	HandleGRANDPADigest(header *types.Header, digest scale.VaryingDataType) error
-	ApplyScheduledChanges(finalizedheader *types.Header) error
+	ApplyScheduledChanges(finalizedHeader *types.Header) error
 	ApplyForcedChanges(importedHeader *types.Header) error
 }

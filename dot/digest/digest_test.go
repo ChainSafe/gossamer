@@ -651,12 +651,12 @@ func issueBlocksWithGRANDPAScheduledChanges(t *testing.T, kp *sr25519.Keypair, d
 
 	dh.HandleDigests(header)
 
-	if size <= 0 {
-		headers = append(headers, header)
-		return headers
+	headers = append(headers, header)
+
+	if size > 0 {
+		nestedHeaders := issueBlocksWithGRANDPAScheduledChanges(t, kp, dh, stateSvc, header, sc, atBlock, size-1)
+		headers = append(headers, nestedHeaders...)
 	}
 
-	headers = append(headers, header)
-	headers = append(headers, issueBlocksWithGRANDPAScheduledChanges(t, kp, dh, stateSvc, header, sc, atBlock, size-1)...)
 	return headers
 }
