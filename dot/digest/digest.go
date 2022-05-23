@@ -97,7 +97,7 @@ func (h *Handler) HandleDigests(header *types.Header) {
 	}
 }
 
-// ToConsensusDigests will parse an []scale.VaryingDataType slice into []types.ConsensusDigest
+// ToConsensusDigests converts a slice of scale.VaryingDataType to a slice of types.ConsensusDigest.
 func ToConsensusDigests(scaleVaryingTypes []scale.VaryingDataType) []types.ConsensusDigest {
 	consensusDigests := make([]types.ConsensusDigest, 0, len(scaleVaryingTypes))
 
