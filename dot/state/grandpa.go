@@ -433,13 +433,13 @@ func (s *GrandpaState) ApplyForcedChanges(importedBlockHeader *types.Header) err
 
 // forcedChangeOnChainOf walk through the forced change slice looking for
 // a forced change that belong to the same branch as blockHash parameter
-func (s *GrandpaState) forcedChangeOnChainOf(blockHash common.Hash) (*pendingChange, error) {
-	for _, forcedChange := range s.forcedChanges {
-		forcedChangeHeader := forcedChange.announcingHeader
+func (s *GrandpaState) forcedChangeOnChainOf(blockHash common.Hash) (forcedChange *pendingChange, err error) {
+	for _, change := range s.forcedChanges {
+		changeHeader := change.announcingHeader
 
 		var isDescendant bool
-		isDescendant, err := s.blockState.IsDescendantOf(
-			forcedChangeHeader.Hash(), blockHash)
+		isDescendant, err = s.blockState.IsDescendantOf(
+			changeHeader.Hash(), blockHash)
 
 		if err != nil {
 			return nil, fmt.Errorf("cannot verify ancestry: %w", err)
@@ -449,18 +449,18 @@ func (s *GrandpaState) forcedChangeOnChainOf(blockHash common.Hash) (*pendingCha
 			continue
 		}
 
-		return forcedChange, nil
+		return change, nil
 	}
 
-	return nil, nil //nolint:nilnil
+	return forcedChange, nil
 }
 
 // scheduledChangeOnChainOf walk only through the scheduled changes roots slice looking for
 // a scheduled change that belongs to the same branch as blockHash parameter
-func (s *GrandpaState) scheduledChangeOnChainOf(blockHash common.Hash) (*pendingChange, error) {
-	for _, scheduledChange := range s.scheduledChangeRoots {
+func (s *GrandpaState) scheduledChangeOnChainOf(blockHash common.Hash) (scheduledChange *pendingChange, err error) {
+	for _, change := range s.scheduledChangeRoots {
 		isDescendant, err := s.blockState.IsDescendantOf(
-			scheduledChange.change.announcingHeader.Hash(), blockHash)
+			change.change.announcingHeader.Hash(), blockHash)
 
 		if err != nil {
 			return nil, fmt.Errorf("cannot verify ancestry: %w", err)
@@ -470,10 +470,10 @@ func (s *GrandpaState) scheduledChangeOnChainOf(blockHash common.Hash) (*pending
 			continue
 		}
 
-		return scheduledChange.change, nil
+		return change.change, nil
 	}
 
-	return nil, nil //nolint:nilnil
+	return scheduledChange, nil
 }
 
 // NextGrandpaAuthorityChange returns the block number of the next upcoming grandpa authorities change.
@@ -491,13 +491,21 @@ func (s *GrandpaState) NextGrandpaAuthorityChange(bestBlockHash common.Hash) (bl
 			bestBlockHash, err)
 	}
 
-	if forcedChange.appliedBefore(scheduledChange) {
-		return forcedChange.effectiveNumber(), nil
-	} else if scheduledChange != nil {
-		return scheduledChange.effectiveNumber(), nil
+	var next uint
+
+	if scheduledChange != nil {
+		next = scheduledChange.effectiveNumber()
 	}
 
-	return 0, ErrNoChanges
+	if forcedChange != nil && forcedChange.effectiveNumber() < next {
+		next = forcedChange.effectiveNumber()
+	}
+
+	if next == 0 {
+		return 0, ErrNoChanges
+	}
+
+	return next, nil
 }
 
 func authoritiesKey(setID uint64) []byte {

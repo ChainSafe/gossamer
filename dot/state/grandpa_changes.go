@@ -28,18 +28,6 @@ func (p *pendingChange) effectiveNumber() uint {
 	return p.announcingHeader.Number + uint(p.delay)
 }
 
-// appliedBefore compares the effective number between two pending changes
-// and returns true if:
-// - the current pending change is applied before the target
-// - the target is nil and the current contains a value
-func (p *pendingChange) appliedBefore(target *pendingChange) bool {
-	if p != nil && target != nil {
-		return p.effectiveNumber() < target.effectiveNumber()
-	}
-
-	return p != nil
-}
-
 type orderedPendingChanges []*pendingChange
 
 func (o orderedPendingChanges) Len() int      { return len(o) }
