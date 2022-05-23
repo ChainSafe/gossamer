@@ -175,7 +175,7 @@ func (h *Handler) handleConsensusDigest(d *types.ConsensusDigest, header *types.
 
 		return h.handleBabeConsensusDigest(data, header)
 	default:
-		return fmt.Errorf("%w: %s", ErrUnknownConsensusID, d.ConsensusEngineID.ToBytes())
+		return fmt.Errorf("%w: 0x%x", ErrUnknownConsensusID, d.ConsensusEngineID.ToBytes())
 	}
 }
 
@@ -225,7 +225,7 @@ func (h *Handler) handleBlockImport(ctx context.Context) {
 			h.HandleDigests(&block.Header)
 			err := h.grandpaState.ApplyForcedChanges(&block.Header)
 			if err != nil {
-				h.logger.Errorf("cannot apply forced changes: %w", err)
+				h.logger.Errorf("failed to apply forced changes: %s", err)
 			}
 		case <-ctx.Done():
 			return
@@ -253,7 +253,7 @@ func (h *Handler) handleBlockFinalisation(ctx context.Context) {
 
 			err = h.grandpaState.ApplyScheduledChanges(&info.Header)
 			if err != nil {
-				h.logger.Errorf("failed to apply scheduled change on block finalisation: %w", err)
+				h.logger.Errorf("failed to apply scheduled change: %s", err)
 			}
 
 		case <-ctx.Done():

@@ -598,7 +598,7 @@ func issueBlocksWithGRANDPAScheduledChanges(t *testing.T, kp *sr25519.Keypair, d
 	sc types.GrandpaScheduledChange, atBlock int, size int) (headers []*types.Header) {
 	t.Helper()
 
-	transcript := merlin.NewTranscript("BABE") //string(types.BabeEngineID[:])
+	transcript := merlin.NewTranscript("BABE")
 	crypto.AppendUint64(transcript, []byte("slot number"), 1)
 	crypto.AppendUint64(transcript, []byte("current epoch"), 1)
 	transcript.AppendMessage([]byte("chain randomness"), []byte{})

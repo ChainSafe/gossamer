@@ -350,7 +350,7 @@ func (s *GrandpaState) ApplyForcedChanges(importedBlockHeader *types.Header) err
 		announcingHash := forced.announcingHeader.Hash()
 		effectiveNumber := forced.effectiveNumber()
 
-		if importedBlockHash.Equal(announcingHash) && effectiveNumber == 0 {
+		if importedBlockHash.Equal(announcingHash) && effectiveNumber == importedBlockHeader.Number {
 			forcedChange = forced
 			break
 		}
