@@ -121,9 +121,8 @@ func (h *Handler) toConsensusDigests(scaleVaryingTypes []scale.VaryingDataType) 
 // GrandpaForcedChange in the same block digest, returning a new slice of types.ConsensusDigest
 func checkForGRANDPAForcedChanges(digests []types.ConsensusDigest) ([]types.ConsensusDigest, error) {
 	var hasForcedChange bool
-	scheduledChangesIndex := make(map[int]struct{}, len(digests))
-
-	for idx, digest := range digests {
+	digestsWithoutScheduled := make([]types.ConsensusDigest, 0, len(digests))
+	for _, digest := range digests {
 		if digest.ConsensusEngineID != types.GrandpaEngineID {
 			continue
 		}
@@ -136,23 +135,15 @@ func checkForGRANDPAForcedChanges(digests []types.ConsensusDigest) ([]types.Cons
 
 		switch data.Value().(type) {
 		case types.GrandpaScheduledChange:
-			scheduledChangesIndex[idx] = struct{}{}
 		case types.GrandpaForcedChange:
 			hasForcedChange = true
+			digestsWithoutScheduled = append(digestsWithoutScheduled, digest)
+		default:
+			digestsWithoutScheduled = append(digestsWithoutScheduled, digest)
 		}
 	}
 
 	if hasForcedChange {
-		digestsWithoutScheduled := make([]types.ConsensusDigest, 0, len(digests)-len(scheduledChangesIndex))
-		for idx, digest := range digests {
-			_, ok := scheduledChangesIndex[idx]
-			if ok {
-				continue
-			}
-
-			digestsWithoutScheduled = append(digestsWithoutScheduled, digest)
-		}
-
 		return digestsWithoutScheduled, nil
 	}
 
