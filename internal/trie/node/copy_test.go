@@ -28,43 +28,6 @@ func Test_Node_Copy(t *testing.T) {
 		settings     CopySettings
 		expectedNode *Node
 	}{
-		"empty leaf": {
-			node:         &Node{},
-			settings:     DefaultCopySettings,
-			expectedNode: &Node{},
-		},
-		"non empty leaf": {
-			node: &Node{
-				Key:        []byte{1, 2},
-				Value:      []byte{3, 4},
-				Dirty:      true,
-				HashDigest: []byte{5},
-				Encoding:   []byte{6},
-			},
-			settings: DefaultCopySettings,
-			expectedNode: &Node{
-				Key:   []byte{1, 2},
-				Value: []byte{3, 4},
-				Dirty: true,
-			},
-		},
-		"deep copy leaf": {
-			node: &Node{
-				Key:        []byte{1, 2},
-				Value:      []byte{3, 4},
-				Dirty:      true,
-				HashDigest: []byte{5},
-				Encoding:   []byte{6},
-			},
-			settings: DeepCopySettings,
-			expectedNode: &Node{
-				Key:        []byte{1, 2},
-				Value:      []byte{3, 4},
-				Dirty:      true,
-				HashDigest: []byte{5},
-				Encoding:   []byte{6},
-			},
-		},
 		"empty branch": {
 			node: &Node{
 				Children: make([]*Node, ChildrenCapacity),
@@ -139,6 +102,43 @@ func Test_Node_Copy(t *testing.T) {
 						Key: []byte{9},
 					},
 				}),
+				Dirty:      true,
+				HashDigest: []byte{5},
+				Encoding:   []byte{6},
+			},
+		},
+		"empty leaf": {
+			node:         &Node{},
+			settings:     DefaultCopySettings,
+			expectedNode: &Node{},
+		},
+		"non empty leaf": {
+			node: &Node{
+				Key:        []byte{1, 2},
+				Value:      []byte{3, 4},
+				Dirty:      true,
+				HashDigest: []byte{5},
+				Encoding:   []byte{6},
+			},
+			settings: DefaultCopySettings,
+			expectedNode: &Node{
+				Key:   []byte{1, 2},
+				Value: []byte{3, 4},
+				Dirty: true,
+			},
+		},
+		"deep copy leaf": {
+			node: &Node{
+				Key:        []byte{1, 2},
+				Value:      []byte{3, 4},
+				Dirty:      true,
+				HashDigest: []byte{5},
+				Encoding:   []byte{6},
+			},
+			settings: DeepCopySettings,
+			expectedNode: &Node{
+				Key:        []byte{1, 2},
+				Value:      []byte{3, 4},
 				Dirty:      true,
 				HashDigest: []byte{5},
 				Encoding:   []byte{6},

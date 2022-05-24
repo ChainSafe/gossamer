@@ -78,7 +78,7 @@ func (n *Node) Copy(settings CopySettings) *Node {
 			}
 		} else {
 			cpy.Children = make([]*Node, ChildrenCapacity)
-			copy(cpy.Children, n.Children) // copy interface pointers only)
+			copy(cpy.Children, n.Children) // copy node pointers only
 		}
 	}
 
