@@ -33,7 +33,6 @@ type httpclient interface {
 }
 
 var errCannotReadFromWebsocket = errors.New("cannot read message from websocket")
-var errCannotUnmarshalMessage = errors.New("cannot unmarshal webasocket message data")
 var logger = log.NewFromGlobal(log.AddContext("pkg", "rpc/subscription"))
 
 // WSConn struct to hold WebSocket Connection references
