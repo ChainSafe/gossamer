@@ -237,9 +237,6 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt runtime.Instance) []*t
 	return included
 }
 
-type CollatorSignature struct{}
-type CollatorId struct{}
-
 type CandidateDescriptor struct {
 	// The ID of the para this is a candidate for.
 	ParaId uint32
@@ -249,15 +246,40 @@ type CandidateDescriptor struct {
 	// on this for deduplication. Removing this field is likely to break things.
 	RelayParent common.Hash
 	// The collator's relay-chain account ID
-	Collator CollatorId
+	Collator []byte // CollatorId
 	// Signature on blake2-256 of components of this receipt:
 	// The para ID, the relay parent, and the `pov_hash`.
-	Signature CollatorSignature
+	// TODO: I have made a guess that all signatures are []byte
+	Signature []byte // CollatorSignature
 	// The hash of the `pov-block`.
 	PovHash common.Hash
 }
 
-type CandidateCommitments struct{}
+type UpwardMessage []byte
+
+type OutboundHrmpMessage struct {
+	Recipient uint32
+	Data      []byte
+}
+
+// All Vec<u8> in rust have become []byte here
+type ValidationCode []byte
+type HeadData []byte
+
+type CandidateCommitments struct {
+	// Messages destined to be interpreted by the Relay chain itself.
+	UpwardMessages []UpwardMessage
+	// Horizontal messages sent by the parachain.
+	HorizontalMessages []OutboundHrmpMessage
+	// New validation code.
+	NewValidationCode *ValidationCode
+	// The head-data produced as a result of execution.
+	HeadData HeadData
+	// The number of messages processed from the DMQ.
+	ProcessedDownwardMessages uint32
+	// The mark which specifies the block number up to which all inbound HRMP messages are processed.
+	HrmpWatermark uint32
+}
 
 type CommittedCandidateReceipt struct {
 	Descriptor  *CandidateDescriptor
