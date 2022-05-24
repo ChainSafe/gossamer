@@ -6,7 +6,6 @@ package sync
 import (
 	"context"
 	"errors"
-	"fmt"
 	"testing"
 	"time"
 
@@ -52,9 +51,8 @@ func Test_chainSyncState_String(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			if got := tt.s.String(); got != tt.want {
-				t.Errorf("String() = %v, want %v", got, tt.want)
-			}
+			got := tt.s.String()
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
@@ -110,7 +108,7 @@ func TestChainSync_SetPeerHead(t *testing.T) {
 	select {
 	case <-cs.workQueue:
 		t.Fatal("should not put chain we already have into work queue")
-	default:
+	case <-time.After(time.Millisecond):
 	}
 
 	// test case where peer has a lower head than us, and they are on an invalid fork
@@ -139,7 +137,7 @@ func TestChainSync_SetPeerHead(t *testing.T) {
 	select {
 	case <-cs.workQueue:
 		t.Fatal("should not put invalid fork into work queue")
-	default:
+	case <-time.After(time.Millisecond):
 	}
 
 	// test case where peer has a lower head than us, but they are on a valid fork (that is not our chain)
@@ -210,7 +208,7 @@ func TestChainSync_sync_bootstrap_withWorkerError(t *testing.T) {
 			who: testPeer,
 		}
 		require.Equal(t, expected, res.err)
-	case <-time.After(time.Second * 5):
+	case <-time.After(5 * time.Second):
 		t.Fatal("did not get worker response")
 	}
 
@@ -304,8 +302,8 @@ func TestWorkerToRequests(t *testing.T) {
 		max64  = uint32(64)
 	)
 
-	testCases := []testCase{
-		{
+	testCases := map[string]testCase{
+		"test 0": {
 			w: &worker{
 				startNumber:  uintPtr(1),
 				targetNumber: uintPtr(1 + maxResponseSize),
@@ -322,7 +320,7 @@ func TestWorkerToRequests(t *testing.T) {
 				},
 			},
 		},
-		{
+		"test 1": {
 			w: &worker{
 				startNumber:  uintPtr(1),
 				targetNumber: uintPtr(1 + (maxResponseSize * 2)),
@@ -346,7 +344,7 @@ func TestWorkerToRequests(t *testing.T) {
 				},
 			},
 		},
-		{
+		"test 2": {
 			w: &worker{
 				startNumber:  uintPtr(1),
 				targetNumber: uintPtr(10),
@@ -363,7 +361,7 @@ func TestWorkerToRequests(t *testing.T) {
 				},
 			},
 		},
-		{
+		"test 3": {
 			w: &worker{
 				startNumber:  uintPtr(10),
 				targetNumber: uintPtr(1),
@@ -380,7 +378,7 @@ func TestWorkerToRequests(t *testing.T) {
 				},
 			},
 		},
-		{
+		"test 4": {
 			w: &worker{
 				startNumber:  uintPtr(1),
 				targetNumber: uintPtr(1 + maxResponseSize + (maxResponseSize / 2)),
@@ -404,7 +402,7 @@ func TestWorkerToRequests(t *testing.T) {
 				},
 			},
 		},
-		{
+		"test 5": {
 			w: &worker{
 				startNumber:  uintPtr(1),
 				targetNumber: uintPtr(10),
@@ -422,7 +420,7 @@ func TestWorkerToRequests(t *testing.T) {
 				},
 			},
 		},
-		{
+		"test 6": {
 			w: &worker{
 				startNumber:  uintPtr(1),
 				startHash:    common.Hash{0xb},
@@ -441,7 +439,7 @@ func TestWorkerToRequests(t *testing.T) {
 				},
 			},
 		},
-		{
+		"test 7": {
 			w: &worker{
 				startNumber:  uintPtr(10),
 				targetNumber: uintPtr(10),
@@ -457,7 +455,7 @@ func TestWorkerToRequests(t *testing.T) {
 				},
 			},
 		},
-		{
+		"test 8": {
 			w: &worker{
 				startNumber:  uintPtr(1 + maxResponseSize + (maxResponseSize / 2)),
 				targetNumber: uintPtr(1),
@@ -483,167 +481,182 @@ func TestWorkerToRequests(t *testing.T) {
 		},
 	}
 
-	for i, tc := range testCases {
-		reqs, err := workerToRequests(tc.w)
-		require.NoError(t, err, fmt.Sprintf("case %d failed", i))
-		require.Equal(t, len(tc.expected), len(reqs), fmt.Sprintf("case %d failed", i))
-		require.Equal(t, tc.expected, reqs, fmt.Sprintf("case %d failed", i))
+	for name, tc := range testCases {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			reqs, err := workerToRequests(tc.w)
+			require.NoError(t, err)
+			require.Equal(t, tc.expected, reqs)
+		})
 	}
 }
 
 func TestChainSync_validateResponse(t *testing.T) {
 	t.Parallel()
-
-	cs := newTestChainSync(t)
-	ctrl := gomock.NewController(t)
-	mockBlockState := NewMockBlockState(ctrl)
-	mockBlockState.EXPECT().HasHeader(common.Hash{}).Return(true, nil).Times(4)
-	cs.blockState = mockBlockState
-
-	err := cs.validateResponse(nil, nil, "")
-	require.Equal(t, errEmptyBlockData, err)
-
-	req := &network.BlockRequestMessage{
-		RequestedData: network.RequestedDataHeader,
-	}
-
-	resp := &network.BlockResponseMessage{
-		BlockData: []*types.BlockData{
-			{
-				Header: &types.Header{
-					Number: 1,
-				},
-				Body: &types.Body{},
+	tests := map[string]struct {
+		blockStateBuilder func(ctrl *gomock.Controller) BlockState
+		networkBuilder    func(ctrl *gomock.Controller) Network
+		req               *network.BlockRequestMessage
+		resp              *network.BlockResponseMessage
+		expectedError     error
+	}{
+		"nil req, nil resp": {
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().GetFinalisedNotifierChannel().Return(make(chan *types.FinalisationInfo))
+				return mockBlockState
 			},
-			{
-				Header: &types.Header{
-					Number: 2,
+			networkBuilder: func(ctrl *gomock.Controller) Network {
+				return NewMockNetwork(ctrl)
+			},
+			expectedError: errEmptyBlockData,
+		},
+		"handle error response is not chain, has header": {
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().GetFinalisedNotifierChannel().Return(make(chan *types.FinalisationInfo))
+				mockBlockState.EXPECT().HasHeader(common.Hash{}).Return(true, nil)
+				return mockBlockState
+			},
+			networkBuilder: func(ctrl *gomock.Controller) Network {
+				return NewMockNetwork(ctrl)
+			},
+			req: &network.BlockRequestMessage{
+				RequestedData: network.RequestedDataHeader,
+			},
+			resp: &network.BlockResponseMessage{
+				BlockData: []*types.BlockData{
+					{
+						Header: &types.Header{
+							Number: 1,
+						},
+						Body: &types.Body{},
+					},
+					{
+						Header: &types.Header{
+							Number: 2,
+						},
+						Body: &types.Body{},
+					},
 				},
-				Body: &types.Body{},
+			},
+			expectedError: errResponseIsNotChain,
+		},
+		"handle justification-only request, unknown block": {
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().GetFinalisedNotifierChannel().Return(make(chan *types.FinalisationInfo))
+				mockBlockState.EXPECT().HasHeader(common.Hash{}).Return(false, nil)
+				return mockBlockState
+			},
+			networkBuilder: func(ctrl *gomock.Controller) Network {
+				mockNetwork := NewMockNetwork(ctrl)
+				mockNetwork.EXPECT().ReportPeer(peerset.ReputationChange{
+					Value:  peerset.BadJustificationValue,
+					Reason: peerset.BadJustificationReason,
+				}, peer.ID(""))
+				return mockNetwork
+			},
+			req: &network.BlockRequestMessage{
+				RequestedData: network.RequestedDataJustification,
+			},
+			resp: &network.BlockResponseMessage{
+				BlockData: []*types.BlockData{
+					{
+						Justification: &[]byte{0},
+					},
+				},
+			},
+			expectedError: errUnknownBlockForJustification,
+		},
+		"handle error unknown parent": {
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().GetFinalisedNotifierChannel().Return(make(chan *types.FinalisationInfo))
+				mockBlockState.EXPECT().HasHeader(common.Hash{}).Return(false, nil)
+				return mockBlockState
+			},
+			networkBuilder: func(ctrl *gomock.Controller) Network {
+				return NewMockNetwork(ctrl)
+			},
+			req: &network.BlockRequestMessage{
+				RequestedData: network.RequestedDataHeader,
+			},
+			resp: &network.BlockResponseMessage{
+				BlockData: []*types.BlockData{
+					{
+						Header: &types.Header{
+							Number: 1,
+						},
+						Body: &types.Body{},
+					},
+					{
+						Header: &types.Header{
+							Number: 2,
+						},
+						Body: &types.Body{},
+					},
+				},
+			},
+			expectedError: errUnknownParent,
+		},
+		"no error": {
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().GetFinalisedNotifierChannel().Return(make(chan *types.FinalisationInfo))
+				mockBlockState.EXPECT().HasHeader(common.Hash{}).Return(true, nil)
+				return mockBlockState
+			},
+			networkBuilder: func(ctrl *gomock.Controller) Network {
+				return NewMockNetwork(ctrl)
+			},
+			req: &network.BlockRequestMessage{
+				RequestedData: network.RequestedDataHeader,
+			},
+			resp: &network.BlockResponseMessage{
+				BlockData: []*types.BlockData{
+					{
+						Header: &types.Header{
+							Number: 2,
+						},
+						Body: &types.Body{},
+					},
+					{
+						Header: &types.Header{
+							ParentHash: (&types.Header{
+								Number: 2,
+							}).Hash(),
+							Number: 3,
+						},
+						Body: &types.Body{},
+					},
+				},
 			},
 		},
 	}
+	for name, tt := range tests {
+		tt := tt
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			ctrl := gomock.NewController(t)
 
-	hash := (&types.Header{
-		Number: 2,
-	}).Hash()
-	err = cs.validateResponse(req, resp, "")
-	require.Equal(t, errResponseIsNotChain, err)
-	require.True(t, cs.pendingBlocks.hasBlock(hash))
-	cs.pendingBlocks.removeBlock(hash)
+			cfg := &chainSyncConfig{
+				bs:            tt.blockStateBuilder(ctrl),
+				pendingBlocks: newDisjointBlockSet(pendingBlocksLimit),
+				readyBlocks:   newBlockQueue(maxResponseSize),
+				net:           tt.networkBuilder(ctrl),
+			}
+			cs := newChainSync(cfg)
 
-	parent := (&types.Header{
-		Number: 1,
-	}).Hash()
-	header3 := &types.Header{
-		ParentHash: parent,
-		Number:     3,
+			err := cs.validateResponse(tt.req, tt.resp, "")
+			if tt.expectedError != nil {
+				assert.EqualError(t, err, tt.expectedError.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+		})
 	}
-	resp = &network.BlockResponseMessage{
-		BlockData: []*types.BlockData{
-			{
-				Header: &types.Header{
-					Number: 1,
-				},
-				Body: &types.Body{},
-			},
-			{
-				Hash:          header3.Hash(),
-				Header:        header3,
-				Body:          &types.Body{},
-				Justification: &[]byte{0},
-			},
-		},
-	}
-
-	hash = (&types.Header{
-		ParentHash: parent,
-		Number:     3,
-	}).Hash()
-	err = cs.validateResponse(req, resp, "")
-	require.Equal(t, errResponseIsNotChain, err)
-	require.True(t, cs.pendingBlocks.hasBlock(hash))
-	bd := cs.pendingBlocks.getBlock(hash)
-	require.NotNil(t, bd.justification)
-	cs.pendingBlocks.removeBlock(hash)
-
-	parent = (&types.Header{
-		Number: 2,
-	}).Hash()
-	resp = &network.BlockResponseMessage{
-		BlockData: []*types.BlockData{
-			{
-				Header: &types.Header{
-					Number: 2,
-				},
-				Body: &types.Body{},
-			},
-			{
-				Header: &types.Header{
-					ParentHash: parent,
-					Number:     3,
-				},
-				Body: &types.Body{},
-			},
-		},
-	}
-
-	err = cs.validateResponse(req, resp, "")
-	require.NoError(t, err)
-	require.False(t, cs.pendingBlocks.hasBlock(hash))
-
-	req = &network.BlockRequestMessage{
-		RequestedData: network.RequestedDataJustification,
-	}
-	resp = &network.BlockResponseMessage{
-		BlockData: []*types.BlockData{
-			{
-				Justification: &[]byte{0},
-			},
-		},
-	}
-
-	err = cs.validateResponse(req, resp, "")
-	require.NoError(t, err)
-	require.False(t, cs.pendingBlocks.hasBlock(hash))
-}
-
-func TestChainSync_validateResponse_firstBlock(t *testing.T) {
-	t.Parallel()
-
-	cs := newTestChainSync(t)
-	bs := new(mocks.BlockState)
-	bs.On("HasHeader", mock.AnythingOfType("common.Hash")).Return(false, nil)
-	cs.blockState = bs
-
-	req := &network.BlockRequestMessage{
-		RequestedData: bootstrapRequestData,
-	}
-
-	header := &types.Header{
-		Number: 2,
-	}
-
-	resp := &network.BlockResponseMessage{
-		BlockData: []*types.BlockData{
-			{
-				Hash: header.Hash(),
-				Header: &types.Header{
-					Number: 2,
-				},
-				Body:          &types.Body{},
-				Justification: &[]byte{0},
-			},
-		},
-	}
-
-	err := cs.validateResponse(req, resp, "")
-	require.True(t, errors.Is(err, errUnknownParent))
-	require.True(t, cs.pendingBlocks.hasBlock(header.Hash()))
-	bd := cs.pendingBlocks.getBlock(header.Hash())
-	require.NotNil(t, bd.header)
-	require.NotNil(t, bd.body)
-	require.NotNil(t, bd.justification)
 }
 
 func TestChainSync_doSync(t *testing.T) {
