@@ -69,15 +69,14 @@ func (c *WSConn) HandleConn() {
 		mbytes, err := c.readWebsocketMessage()
 		if errors.Is(err, errCannotReadFromWebsocket) {
 			return
-		} else if errors.Is(err, errCannotUnmarshalMessage) {
+		} else if err != nil {
 			c.safeSendError(0, big.NewInt(InvalidRequestCode), InvalidRequestMessage)
-			continue
 		}
 
 		msg := new(websocketMessage)
 		err = json.Unmarshal(mbytes, &msg)
 		if err != nil {
-			logger.Debugf("failed to unmarshal websocket request message: %s", err)
+			c.safeSendError(0, big.NewInt(InvalidRequestCode), InvalidRequestMessage)
 			continue
 		}
 
