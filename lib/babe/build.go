@@ -312,16 +312,26 @@ type BackedCandidate struct {
 	ValidatorIndices []byte
 }
 
-type MultiDisputeStatementSet struct{}
+type MultiDisputeStatementSet []DisputeStatementSet
 
-// type DisputeStatementSet struct{
-// 		// The candidate referenced by this set.
-// 		candidate_hash: CandidateHash,
-// 		// The session index of the candidate.
-// 		session uint32,
-// 		/// Statements about the candidate.
-// 		statements: Vec<(DisputeStatement, ValidatorIndex, ValidatorSignature)>,
-// }
+type DisputeStatement int
+
+const (
+	Valid DisputeStatement = iota
+	Invalid
+)
+
+type ValidatorIndex uint32
+type ValidatorSignature []byte
+
+type DisputeStatementSet struct {
+	// The candidate referenced by this set.
+	CandidateHash common.Hash
+	// The session index of the candidate.
+	Session uint32
+	// Statements about the candidate.
+	// Statements []struct{DisputeStatement, ValidatorIndex, ValidatorSignature,}{}
+}
 
 type ParachainInherentData struct {
 	// Signed bitfields by validators about availability.
