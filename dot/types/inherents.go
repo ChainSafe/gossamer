@@ -68,6 +68,7 @@ func (d *InherentsData) SetInt64Inherent(key []byte, data uint64) error {
 	return nil
 }
 
+// SetBytesInherent sets an inherent of type bytes.
 func (d *InherentsData) SetBytesInherent(key, value []byte) error {
 	kb := [8]byte{}
 	copy(kb[:], key)

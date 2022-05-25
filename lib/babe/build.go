@@ -237,9 +237,10 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt runtime.Instance) []*t
 	return included
 }
 
+// CandidateDescriptor is a unique descriptor of the candidate receipt.
 type CandidateDescriptor struct {
 	// The ID of the para this is a candidate for.
-	ParaId uint32
+	ParaID uint32
 	// The hash of the relay-chain block this should be executed in
 	// the context of.
 	// NOTE: the fact that the hash includes this value means that code depends
@@ -255,17 +256,24 @@ type CandidateDescriptor struct {
 	PovHash common.Hash
 }
 
+// UpwardMessage is a message from a parachain to its Relay Chain.
 type UpwardMessage []byte
 
+// OutboundHrmpMessage is an HRMP message seen from the perspective of a sender.
 type OutboundHrmpMessage struct {
 	Recipient uint32
 	Data      []byte
 }
 
 // All Vec<u8> in rust have become []byte here
+
+// ValidationCode is Parachain validation code.
 type ValidationCode []byte
+
+// HeadData is Parachain head data included in the chain.
 type HeadData []byte
 
+// CandidateCommitments are Commitments made in a `CandidateReceipt`. Many of these are outputs of validation.
 type CandidateCommitments struct {
 	// Messages destined to be interpreted by the Relay chain itself.
 	UpwardMessages []UpwardMessage
@@ -281,18 +289,25 @@ type CandidateCommitments struct {
 	HrmpWatermark uint32
 }
 
+// CommittedCandidateReceipt is a candidate-receipt with commitments directly included.
 type CommittedCandidateReceipt struct {
 	Descriptor  *CandidateDescriptor
 	Commitments *CandidateCommitments
 }
 
+// ValidityAttestation is an implicit or explicit attestation to the validity of a parachain
+// candidate.
 type ValidityAttestation int
 
 const (
+	// Implicit is for implicit attestation.
 	Implicit ValidityAttestation = iota
+	// Explicit is for explicit attestation.
 	Explicit
 )
 
+// UncheckedSignedAvailabilityBitfield is a set of unchecked signed availability bitfields.
+// Should be sorted by validator index, ascending.
 type UncheckedSignedAvailabilityBitfield struct {
 	// The payload is part of the signed data. The rest is the signing context,
 	// which is known both at signing and at validation.
@@ -303,6 +318,7 @@ type UncheckedSignedAvailabilityBitfield struct {
 	Signature []byte
 }
 
+// BackedCandidate is a backed (or backable, depending on context) candidate.
 type BackedCandidate struct {
 	// The candidate referred to.
 	Candidate *CommittedCandidateReceipt
@@ -312,23 +328,35 @@ type BackedCandidate struct {
 	ValidatorIndices []byte
 }
 
+// MultiDisputeStatementSet is a set of dispute statements.
 type MultiDisputeStatementSet []DisputeStatementSet
 
+// DisputeStatement is a statement about a candidate, to be used within the dispute
+// resolution process. Statements are either in favour of the candidate's validity
+// or against it.
 type DisputeStatement int
 
 const (
+	// Valid is for a valid statement
 	Valid DisputeStatement = iota
+	// Invalid is for an invalid statement
 	Invalid
 )
 
+// ValidatorIndex is the index of the validator.
 type ValidatorIndex uint32
+
+// ValidatorSignature is the signature with which parachain validators sign blocks.
 type ValidatorSignature []byte
 
+// Statement about the candidate.
 type Statement struct {
 	ValidatorIndex     ValidatorIndex
 	ValidatorSignature ValidatorSignature
 	DisputeStatement   DisputeStatement
 }
+
+// DisputeStatementSet is a set of statements about a specific candidate.
 type DisputeStatementSet struct {
 	// The candidate referenced by this set.
 	CandidateHash common.Hash
@@ -338,6 +366,7 @@ type DisputeStatementSet struct {
 	Statements []Statement
 }
 
+// ParachainInherentData is parachains inherent-data passed into the runtime by a block author.
 type ParachainInherentData struct {
 	// Signed bitfields by validators about availability.
 	Bitfields []UncheckedSignedAvailabilityBitfield
