@@ -117,7 +117,6 @@ func TestChainModule_GetBlock(t *testing.T) {
 func TestChainModule_GetBlockHash(t *testing.T) {
 	testHash := common.NewHash([]byte{0x01, 0x02})
 	i := []interface{}{"a"}
-	multi := []interface{}{uint32(0), uint32(11)}
 
 	mockBlockAPI := new(mocks.BlockAPI)
 	mockBlockAPI.On("BestBlockHash").Return(testHash, nil)
@@ -126,8 +125,6 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 	mockBlockAPIErr := new(mocks.BlockAPI)
 	mockBlockAPIErr.On("BestBlockHash").Return(testHash, nil)
 	mockBlockAPIErr.On("GetHashByNumber", uint(21)).Return(nil, errors.New("GetBlockHash Error"))
-
-	mockBlockAPIMulti := new(mocks.BlockAPI)
 
 	expRes := ChainHashResponse(testHash.String())
 	type fields struct {
@@ -203,17 +200,6 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 			},
 			args: args{
 				req: &ChainBlockNumberRequest{"21"},
-			},
-			exp:    []string(nil),
-			expErr: errors.New("GetBlockHash Error"),
-		},
-		{
-			name: "GetBlockHash U32 array",
-			fields: fields{
-				mockBlockAPIMulti,
-			},
-			args: args{
-				req: &ChainBlockNumberRequest{multi},
 			},
 			exp:    []string(nil),
 			expErr: errors.New("GetBlockHash Error"),
