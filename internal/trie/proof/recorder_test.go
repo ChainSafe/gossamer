@@ -1,7 +1,7 @@
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package record
+package proof
 
 import (
 	"testing"
@@ -9,53 +9,53 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_NewRecorder(t *testing.T) {
+func Test_newRecorder(t *testing.T) {
 	t.Parallel()
 
-	expected := &Recorder{}
+	expected := &recorder{}
 
-	recorder := NewRecorder()
+	recorder := newRecorder()
 
 	assert.Equal(t, expected, recorder)
 }
 
-func Test_Recorder_Record(t *testing.T) {
+func Test_recorder_record(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		recorder         *Recorder
+		recorder         *recorder
 		hash             []byte
 		rawData          []byte
-		expectedRecorder *Recorder
+		expectedRecorder *recorder
 	}{
 		"nil data": {
-			recorder: &Recorder{},
-			expectedRecorder: &Recorder{
-				nodes: []Node{
+			recorder: &recorder{},
+			expectedRecorder: &recorder{
+				nodes: []visitedNode{
 					{},
 				},
 			},
 		},
 		"insert in empty recorder": {
-			recorder: &Recorder{},
+			recorder: &recorder{},
 			hash:     []byte{1, 2},
 			rawData:  []byte{3, 4},
-			expectedRecorder: &Recorder{
-				nodes: []Node{
+			expectedRecorder: &recorder{
+				nodes: []visitedNode{
 					{Hash: []byte{1, 2}, RawData: []byte{3, 4}},
 				},
 			},
 		},
 		"insert in non-empty recorder": {
-			recorder: &Recorder{
-				nodes: []Node{
+			recorder: &recorder{
+				nodes: []visitedNode{
 					{Hash: []byte{5, 6}, RawData: []byte{7, 8}},
 				},
 			},
 			hash:    []byte{1, 2},
 			rawData: []byte{3, 4},
-			expectedRecorder: &Recorder{
-				nodes: []Node{
+			expectedRecorder: &recorder{
+				nodes: []visitedNode{
 					{Hash: []byte{5, 6}, RawData: []byte{7, 8}},
 					{Hash: []byte{1, 2}, RawData: []byte{3, 4}},
 				},
@@ -68,40 +68,40 @@ func Test_Recorder_Record(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			testCase.recorder.Record(testCase.hash, testCase.rawData)
+			testCase.recorder.record(testCase.hash, testCase.rawData)
 
 			assert.Equal(t, testCase.expectedRecorder, testCase.recorder)
 		})
 	}
 }
 
-func Test_Recorder_GetNodes(t *testing.T) {
+func Test_recorder_getNodes(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		recorder *Recorder
-		nodes    []Node
+		recorder *recorder
+		nodes    []visitedNode
 	}{
 		"no node": {
-			recorder: &Recorder{},
+			recorder: &recorder{},
 		},
 		"get single node from recorder": {
-			recorder: &Recorder{
-				nodes: []Node{
+			recorder: &recorder{
+				nodes: []visitedNode{
 					{Hash: []byte{1, 2}, RawData: []byte{3, 4}},
 				},
 			},
-			nodes: []Node{{Hash: []byte{1, 2}, RawData: []byte{3, 4}}},
+			nodes: []visitedNode{{Hash: []byte{1, 2}, RawData: []byte{3, 4}}},
 		},
 		"get node from multiple nodes in recorder": {
-			recorder: &Recorder{
-				nodes: []Node{
+			recorder: &recorder{
+				nodes: []visitedNode{
 					{Hash: []byte{1, 2}, RawData: []byte{3, 4}},
 					{Hash: []byte{5, 6}, RawData: []byte{7, 8}},
 					{Hash: []byte{9, 6}, RawData: []byte{7, 8}},
 				},
 			},
-			nodes: []Node{
+			nodes: []visitedNode{
 				{Hash: []byte{1, 2}, RawData: []byte{3, 4}},
 				{Hash: []byte{5, 6}, RawData: []byte{7, 8}},
 				{Hash: []byte{9, 6}, RawData: []byte{7, 8}},
@@ -114,7 +114,7 @@ func Test_Recorder_GetNodes(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			nodes := testCase.recorder.GetNodes()
+			nodes := testCase.recorder.getNodes()
 
 			assert.Equal(t, testCase.nodes, nodes)
 		})

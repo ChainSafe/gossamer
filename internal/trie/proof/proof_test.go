@@ -1,12 +1,13 @@
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package trie
+package proof
 
 import (
 	"testing"
 
 	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/stretchr/testify/require"
 )
 
@@ -26,7 +27,7 @@ func TestProofGeneration(t *testing.T) {
 
 	expectedValue := generateRandBytes(t, size, generator)
 
-	trie := NewEmptyTrie()
+	trie := trie.NewEmptyTrie()
 	trie.Put([]byte("cat"), generateRandBytes(t, size, generator))
 	trie.Put([]byte("catapulta"), generateRandBytes(t, size, generator))
 	trie.Put([]byte("catapora"), expectedValue)
@@ -39,7 +40,7 @@ func TestProofGeneration(t *testing.T) {
 	hash, err := trie.Hash()
 	require.NoError(t, err)
 
-	proof, err := GenerateProof(hash.ToBytes(), [][]byte{[]byte("catapulta"), []byte("catapora")}, memdb)
+	proof, err := Generate(hash.ToBytes(), [][]byte{[]byte("catapulta"), []byte("catapora")}, memdb)
 	require.NoError(t, err)
 
 	require.Equal(t, 5, len(proof))
@@ -48,7 +49,7 @@ func TestProofGeneration(t *testing.T) {
 		{Key: []byte("catapora"), Value: expectedValue},
 	}
 
-	v, err := VerifyProof(proof, hash.ToBytes(), pl)
+	v, err := Verify(proof, hash.ToBytes(), pl)
 	require.True(t, v)
 	require.NoError(t, err)
 }
@@ -64,7 +65,7 @@ func testGenerateProof(t *testing.T, entries []Pair, keys [][]byte) ([]byte, [][
 	})
 	require.NoError(t, err)
 
-	trie := NewEmptyTrie()
+	trie := trie.NewEmptyTrie()
 	for _, e := range entries {
 		trie.Put(e.Key, e.Value)
 	}
@@ -72,8 +73,8 @@ func testGenerateProof(t *testing.T, entries []Pair, keys [][]byte) ([]byte, [][
 	err = trie.Store(memdb)
 	require.NoError(t, err)
 
-	root := trie.root.HashDigest
-	proof, err := GenerateProof(root, keys, memdb)
+	root := trie.RootNode().HashDigest
+	proof, err := Generate(root, keys, memdb)
 	require.NoError(t, err)
 
 	items := make([]Pair, len(keys))
@@ -110,7 +111,7 @@ func TestVerifyProof_ShouldReturnTrue(t *testing.T) {
 	}
 
 	root, proof, pairs := testGenerateProof(t, entries, keys)
-	v, err := VerifyProof(proof, root, pairs)
+	v, err := Verify(proof, root, pairs)
 
 	require.NoError(t, err)
 	require.True(t, v)
@@ -124,7 +125,7 @@ func TestVerifyProof_ShouldReturnDuplicateKeysError(t *testing.T) {
 		{Key: []byte("do"), Value: []byte("puppy")},
 	}
 
-	v, err := VerifyProof([][]byte{}, []byte{}, pl)
+	v, err := Verify([][]byte{}, []byte{}, pl)
 	require.False(t, v)
 	require.Error(t, err, ErrDuplicateKeys)
 }
@@ -156,7 +157,7 @@ func TestVerifyProof_ShouldReturnTrueWithouCompareValues(t *testing.T) {
 		{Key: []byte("doge"), Value: nil},
 	}
 
-	v, err := VerifyProof(proof, root, pl)
+	v, err := Verify(proof, root, pl)
 	require.True(t, v)
 	require.NoError(t, err)
 }
@@ -183,7 +184,7 @@ func TestBranchNodes_SameHash_DifferentPaths_GenerateAndVerifyProof(t *testing.T
 
 	root, proof, pairs := testGenerateProof(t, entries, keys)
 
-	ok, err := VerifyProof(proof, root, pairs)
+	ok, err := Verify(proof, root, pairs)
 	require.NoError(t, err)
 	require.True(t, ok)
 }
@@ -203,7 +204,7 @@ func TestLeafNodes_SameHash_DifferentPaths_GenerateAndVerifyProof(t *testing.T) 
 		key2  = []byte("worldb")
 	)
 
-	tt := NewEmptyTrie()
+	tt := trie.NewEmptyTrie()
 	tt.Put(key1, value)
 	tt.Put(key2, value)
 
@@ -213,7 +214,7 @@ func TestLeafNodes_SameHash_DifferentPaths_GenerateAndVerifyProof(t *testing.T) 
 	hash, err := tt.Hash()
 	require.NoError(t, err)
 
-	proof, err := GenerateProof(hash.ToBytes(), [][]byte{key1, key2}, memdb)
+	proof, err := Generate(hash.ToBytes(), [][]byte{key1, key2}, memdb)
 	require.NoError(t, err)
 
 	pairs := []Pair{
@@ -221,7 +222,7 @@ func TestLeafNodes_SameHash_DifferentPaths_GenerateAndVerifyProof(t *testing.T) 
 		{Key: key2, Value: value},
 	}
 
-	ok, err := VerifyProof(proof, hash.ToBytes(), pairs)
+	ok, err := Verify(proof, hash.ToBytes(), pairs)
 	require.NoError(t, err)
 	require.True(t, ok)
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/lib/trie/proof"
 )
 
 // storagePrefix storage key prefix.
@@ -301,6 +302,15 @@ func (s *StorageState) LoadCodeHash(hash *common.Hash) (common.Hash, error) {
 }
 
 // GenerateTrieProof returns the proofs related to the keys on the state root trie
-func (s *StorageState) GenerateTrieProof(stateRoot common.Hash, keys [][]byte) ([][]byte, error) {
-	return trie.GenerateProof(stateRoot[:], keys, s.db)
+func (s *StorageState) GenerateTrieProof(stateRoot common.Hash, keys [][]byte) (
+	proofs [][]byte, err error) {
+	for _, key := range keys {
+		encodedProofNodes, err := proof.Generate(stateRoot[:], key, s.db)
+		if err != nil {
+			return nil, fmt.Errorf("for key 0x%x: %w", key, err)
+		}
+		proofs = append(proofs, encodedProofNodes...)
+	}
+
+	return proofs, nil
 }

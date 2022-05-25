@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/internal/trie/proof"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/types"
 	"github.com/ChainSafe/gossamer/lib/crypto"
@@ -1796,7 +1797,7 @@ func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 	root := hash.ToBytes()
 	otherRoot := otherHash.ToBytes()
 
-	proof, err := trie.GenerateProof(root, keys, memdb)
+	proof, err := proof.Generate(root, keys, memdb)
 	require.NoError(t, err)
 
 	testcases := map[string]struct {

@@ -111,6 +111,7 @@ import (
 	"unsafe"
 
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/internal/trie/proof"
 	"github.com/ChainSafe/gossamer/lib/common"
 	rtype "github.com/ChainSafe/gossamer/lib/common/types"
 	"github.com/ChainSafe/gossamer/lib/crypto"
@@ -899,7 +900,7 @@ func ext_trie_blake2_256_verify_proof_version_1(context unsafe.Pointer, rootSpan
 	mem := instanceContext.Memory().Data()
 	trieRoot := mem[rootSpan : rootSpan+32]
 
-	exists, err := trie.VerifyProof(decProofs, trieRoot, []trie.Pair{{Key: key, Value: value}})
+	exists, err := proof.Verify(decProofs, trieRoot, []proof.Pair{{Key: key, Value: value}})
 	if err != nil {
 		logger.Errorf("[ext_trie_blake2_256_verify_proof_version_1]: %s", err)
 		return C.int32_t(0)

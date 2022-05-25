@@ -1,33 +1,27 @@
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package trie
+package proof
 
 import (
 	"bytes"
 
 	"github.com/ChainSafe/gossamer/internal/trie/node"
-	"github.com/ChainSafe/gossamer/internal/trie/record"
+	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
-var _ recorder = (*record.Recorder)(nil)
-
-type recorder interface {
-	Record(hash, rawData []byte)
-}
-
 // findAndRecord search for a desired key recording all the nodes in the path including the desired node
-func findAndRecord(t *Trie, key []byte, recorder recorder) error {
-	return find(t.root, key, recorder, true)
+func findAndRecord(t *trie.Trie, key []byte, recorder *recorder) error {
+	return find(t.RootNode(), key, recorder, true)
 }
 
-func find(parent *Node, key []byte, recorder recorder, isCurrentRoot bool) error {
+func find(parent *node.Node, key []byte, recorder *recorder, isCurrentRoot bool) error {
 	enc, hash, err := parent.EncodeAndHash(isCurrentRoot)
 	if err != nil {
 		return err
 	}
 
-	recorder.Record(hash, enc)
+	recorder.record(hash, enc)
 
 	if parent.Type() != node.Branch {
 		return nil
@@ -47,4 +41,21 @@ func find(parent *Node, key []byte, recorder recorder, isCurrentRoot bool) error
 	}
 
 	return find(branch.Children[key[length]], key[length+1:], recorder, false)
+}
+
+// lenCommonPrefix returns the length of the
+// common prefix between two byte slices.
+func lenCommonPrefix(a, b []byte) (length int) {
+	min := len(a)
+	if len(b) < min {
+		min = len(b)
+	}
+
+	for length = 0; length < min; length++ {
+		if a[length] != b[length] {
+			break
+		}
+	}
+
+	return length
 }
