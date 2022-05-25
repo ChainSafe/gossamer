@@ -9,12 +9,13 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 	"os"
 	"sort"
 	"strings"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -316,38 +317,55 @@ func TestStateModule_QueryStorage(t *testing.T) {
 		require.Error(t, err, "the start block hash cannot be an empty value")
 	})
 
-	t.Run("When coreAPI QueryStorage returns error", func(t *testing.T) {
-		coreapimock := new(mocks.CoreAPI)
-		coreapimock.On("QueryStorage", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash")).
-			Return(nil, errors.New("problem while querying"))
-
+	t.Run("When blockAPI returns error", func(t *testing.T) {
+		mockError := errors.New("mock test error")
+		ctrl := gomock.NewController(t)
+		mockBlockAPI := NewMockBlockAPI(ctrl)
+		mockBlockAPI.EXPECT().GetBlockByHash(common.Hash{1, 2}).Return(nil, mockError)
 		module := new(StateModule)
-		module.coreAPI = coreapimock
+		module.blockAPI = mockBlockAPI
 
 		req := new(StateStorageQueryRangeRequest)
 		req.StartBlock = common.NewHash([]byte{1, 2})
 
 		var res []StorageChangeSetResponse
 		err := module.QueryStorage(nil, req, &res)
-		require.Error(t, err)
-		coreapimock.AssertCalled(t, "QueryStorage", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash"))
+		assert.ErrorIs(t, err, mockError)
 	})
 
 	t.Run("When QueryStorage returns data", func(t *testing.T) {
-		blockhash := common.NewHash([]byte{123})
+		k1 := "0x90"
+		v1 := common.BytesToHex([]byte(`value`))
+		k2 := "0x80"
+		v2 := common.BytesToHex([]byte(`another value`))
+		expectedChanges := [][]*string{{&k1, &v1}, {&k2, &v2}}
+		expected := []StorageChangeSetResponse{{
+			Block:   &common.Hash{1, 2},
+			Changes: expectedChanges,
+		}}
+		ctrl := gomock.NewController(t)
+		mockBlockAPI := NewMockBlockAPI(ctrl)
+		mockBlockAPI.EXPECT().GetBlockByHash(common.Hash{1, 2}).Return(&types.Block{
+			Header: types.Header{
+				Number: 3,
+			},
+		}, nil)
+		mockBlockAPI.EXPECT().BestBlockHash().Return(common.Hash{3, 4})
+		mockBlockAPI.EXPECT().GetBlockByHash(common.Hash{3, 4}).Return(&types.Block{
+			Header: types.Header{
+				Number: 4,
+			},
+		}, nil)
+		mockBlockAPI.EXPECT().GetHashByNumber(uint(3)).Return(common.Hash{1, 2}, nil)
 
-		changes := map[common.Hash]core.QueryKeyValueChanges{
-			blockhash: core.QueryKeyValueChanges(map[string]string{
-				"0x80": "value",
-				"0x90": "another value",
-			}),
-		}
-		coreapimock := new(mocks.CoreAPI)
-		coreapimock.On("QueryStorage",
-			mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash"), "0x90", "0x80").Return(changes, nil)
+		mockStorageAPI := NewMockStorageAPI(ctrl)
+		mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{1, 2}, []byte{144}).Return([]byte(`value`), nil)
+		mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{1, 2},
+			[]byte{128}).Return([]byte(`another value`), nil)
 
 		module := new(StateModule)
-		module.coreAPI = coreapimock
+		module.blockAPI = mockBlockAPI
+		module.storageAPI = mockStorageAPI
 
 		req := new(StateStorageQueryRangeRequest)
 		req.StartBlock = common.NewHash([]byte{1, 2})
@@ -355,11 +373,8 @@ func TestStateModule_QueryStorage(t *testing.T) {
 
 		var res []StorageChangeSetResponse
 		err := module.QueryStorage(nil, req, &res)
-		require.NoError(t, err)
-		require.Len(t, res, 1)
-
-		coreapimock.AssertCalled(t, "QueryStorage",
-			mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash"), "0x90", "0x80")
+		assert.NoError(t, err)
+		assert.Equal(t, expected, res)
 	})
 }
 
