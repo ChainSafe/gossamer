@@ -324,13 +324,18 @@ const (
 type ValidatorIndex uint32
 type ValidatorSignature []byte
 
+type Statement struct {
+	ValidatorIndex     ValidatorIndex
+	ValidatorSignature ValidatorSignature
+	DisputeStatement   DisputeStatement
+}
 type DisputeStatementSet struct {
 	// The candidate referenced by this set.
 	CandidateHash common.Hash
 	// The session index of the candidate.
 	Session uint32
 	// Statements about the candidate.
-	// Statements []struct{DisputeStatement, ValidatorIndex, ValidatorSignature,}{}
+	Statements []Statement
 }
 
 type ParachainInherentData struct {
