@@ -66,10 +66,8 @@ func (c *WSConn) readWebsocketMessage() (bytes []byte, err error) {
 func (c *WSConn) HandleConn() {
 	for {
 		mbytes, err := c.readWebsocketMessage()
-		if errors.Is(err, errCannotReadFromWebsocket) {
+		if err != nil {
 			return
-		} else if err != nil {
-			c.safeSendError(0, big.NewInt(InvalidRequestCode), InvalidRequestMessage)
 		}
 
 		msg := new(websocketMessage)
