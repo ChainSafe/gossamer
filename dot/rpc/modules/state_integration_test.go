@@ -9,8 +9,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"sort"
 	"strings"
@@ -19,6 +17,8 @@ import (
 	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
