@@ -15,7 +15,7 @@ sync = ""
 digest = ""
 
 [init]
-genesis = "./chain/dev/dev-spec-raw_gssmr9190.json"
+genesis = "./chain/dev/genesis-spec.json"
 
 [account]
 key = "alice"
@@ -34,9 +34,9 @@ nomdns = false
 
 [rpc]
 enabled = true
-unsafe = true
+#unsafe = true
 ws = true
-ws-unsafe = true
+#ws-unsafe = true
 port = 8545
 host = "localhost"
 modules = ["system", "author", "chain", "state", "rpc", "grandpa", "offchain", "childstate", "syncstate", "payment"]
