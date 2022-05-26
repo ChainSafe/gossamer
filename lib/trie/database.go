@@ -20,6 +20,12 @@ var (
 	ErrDecodeNode = errors.New("cannot decode node")
 )
 
+// Database is an interface to get values from a
+// key value database.
+type Database interface {
+	Get(key []byte) (value []byte, err error)
+}
+
 // Store stores each trie node in the database,
 // where the key is the hash of the encoded node
 // and the value is the encoded node.
@@ -143,7 +149,7 @@ func (t *Trie) loadProof(proofHashToNode map[string]*Node, n *Node) {
 
 // Load reconstructs the trie from the database from the given root hash.
 // It is used when restarting the node to load the current state trie.
-func (t *Trie) Load(db chaindb.Database, rootHash common.Hash) error {
+func (t *Trie) Load(db Database, rootHash common.Hash) error {
 	if rootHash == EmptyHash {
 		t.root = nil
 		return nil
@@ -169,7 +175,7 @@ func (t *Trie) Load(db chaindb.Database, rootHash common.Hash) error {
 	return t.load(db, t.root)
 }
 
-func (t *Trie) load(db chaindb.Database, n *Node) error {
+func (t *Trie) load(db Database, n *Node) error {
 	if n.Type() != node.Branch {
 		return nil
 	}
