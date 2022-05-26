@@ -46,7 +46,7 @@ func TestWSConn_HandleComm(t *testing.T) {
 	require.Nil(t, res)
 	require.Len(t, wsconn.Subscriptions, 0)
 	require.ErrorIs(t, err, errUnexpectedType)
-	require.EqualError(t, err, "unexpected type: <nil>, expected type string, []string or []interface{}")
+	require.EqualError(t, err, "unexpected type: <nil>, expected type []interface{}")
 
 	res, err = wsconn.initStorageChangeListener(2, []interface{}{})
 	require.NotNil(t, res)
