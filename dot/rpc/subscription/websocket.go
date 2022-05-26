@@ -164,26 +164,32 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (L
 		wsconn: c,
 	}
 
-	switch filter := params.(type) {
-	case string:
-		stgobs.filter[filter] = []byte{}
-	case []string:
-		for _, key := range filter {
-			stgobs.filter[key] = []byte{}
-		}
-	// the bellow case is needed to cover a interface{} slice full of strings
-	// as `[]interface{"a", "b"}` is not the same as `[]string{"a", "b"}`
+	// the following type checking/casting is needed in order to satisfy some
+	// websocket request field params eg.:
+	// "params": "[["0x...", "0x..."]]"
+	switch filters := params.(type) {
 	case []interface{}:
-		for _, interfaceKey := range filter {
-			key, ok := interfaceKey.(string)
-			if !ok {
-				return nil, fmt.Errorf("%w: %T, expected type string", errUnexpectedType, interfaceKey)
-			}
+		for _, interfaceKey := range filters {
+			switch key := interfaceKey.(type) {
+			case string:
+				stgobs.filter[key] = []byte{}
+			case []string:
+				for _, k := range key {
+					stgobs.filter[k] = []byte{}
+				}
+			case []interface{}:
+				for _, k := range key {
+					k, ok := k.(string)
+					if !ok {
+						return nil, fmt.Errorf("%w: %T, expected type string", errUnexpectedType, interfaceKey)
+					}
 
-			stgobs.filter[key] = []byte{}
+					stgobs.filter[k] = []byte{}
+				}
+			}
 		}
 	default:
-		return nil, fmt.Errorf("%w: %T, expected type string, []string or []interface{}", errUnexpectedType, params)
+		return nil, fmt.Errorf("%w: %T, expected type []interface{}", errUnexpectedType, params)
 	}
 
 	c.mu.Lock()
