@@ -24,8 +24,7 @@ import (
 func newTestGenesisFile(t *testing.T, cfg *Config) (filename string) {
 	t.Helper()
 
-	fp := utils.GetGssmrGenesisPathTest(t)
-
+	fp := utils.GetGssmrGenesisRawPathTest(t)
 	gssmrGen, err := genesis.NewGenesisFromJSON(fp, 0)
 	require.NoError(t, err)
 
@@ -63,7 +62,7 @@ func TestCreateJSONRawFile(t *testing.T) {
 				bs: &BuildSpec{genesis: NewTestGenesis(t)},
 				fp: filepath.Join(t.TempDir(), "/test.json"),
 			},
-			expectedHash: "23356cdb5d3537d39b735726707216c9e329c7b8a2c8a41b25da0f5f936b3caa",
+			expectedHash: "6453fb6118dab594944a7ed68111fdccc3a68253c9d71ac05f27aa2359507c85",
 		},
 	}
 	for _, tt := range tests {
