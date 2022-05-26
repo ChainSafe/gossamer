@@ -887,8 +887,8 @@ func ext_trie_blake2_256_verify_proof_version_1(context unsafe.Pointer, rootSpan
 	instanceContext := wasm.IntoInstanceContext(context)
 
 	toDecProofs := asMemorySlice(instanceContext, proofSpan)
-	var decProofs [][]byte
-	err := scale.Unmarshal(toDecProofs, &decProofs)
+	var encodedProofNodes [][]byte
+	err := scale.Unmarshal(toDecProofs, &encodedProofNodes)
 	if err != nil {
 		logger.Errorf("[ext_trie_blake2_256_verify_proof_version_1]: %s", err)
 		return C.int32_t(0)
@@ -900,7 +900,7 @@ func ext_trie_blake2_256_verify_proof_version_1(context unsafe.Pointer, rootSpan
 	mem := instanceContext.Memory().Data()
 	trieRoot := mem[rootSpan : rootSpan+32]
 
-	exists, err := proof.Verify(decProofs, trieRoot, []proof.Pair{{Key: key, Value: value}})
+	exists, err := proof.Verify(encodedProofNodes, trieRoot, []proof.Pair{{Key: key, Value: value}})
 	if err != nil {
 		logger.Errorf("[ext_trie_blake2_256_verify_proof_version_1]: %s", err)
 		return C.int32_t(0)
