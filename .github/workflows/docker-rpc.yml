@@ -1,20 +1,18 @@
+name: docker-rpc
 on:
   pull_request:
-    # Commented paths to avoid skipping required workflow
-    # See https://github.community/t/feature-request-conditional-required-checks/16761
-    # paths:
-    #   - .github/workflows/docker-rpc.yml
-    #   - "**/*.go"
-    #   - "chain/**"
-    #   - "cmd/**"
-    #   - "dot/**"
-    #   - "internal/**"
-    #   - "lib/**"
-    #   - "pkg/**"
-    #   - "tests/rpc/**"
-    #   - go.mod
-    #   - go.sum
-name: docker-rpc
+    paths:
+      - .github/workflows/docker-rpc.yml
+      - "**/*.go"
+      - "chain/**"
+      - "cmd/**"
+      - "dot/**"
+      - "internal/**"
+      - "lib/**"
+      - "pkg/**"
+      - "tests/rpc/**"
+      - go.mod
+      - go.sum
 
 jobs:
   docker-rpc-tests:

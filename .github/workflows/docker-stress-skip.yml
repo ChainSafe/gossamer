@@ -1,7 +1,7 @@
 name: docker-stress
 on:
   pull_request:
-    paths:
+    paths-ignore:
       - .github/workflows/docker-stress.yml
       - "**/*.go"
       - "chain/**"
@@ -17,15 +17,7 @@ on:
 jobs:
   docker-stress-tests:
     runs-on: ubuntu-latest
-    env:
-      DOCKER_BUILDKIT: "1"
     steps:
-      - uses: docker/build-push-action@v3
-        with:
-          load: true
-          target: builder
-          tags: chainsafe/gossamer:test
-
-      - name: Run stress
-        run: |
-          docker run chainsafe/gossamer:test sh -c "make it-stress"
+      - run: |
+          echo "Skipping workflow. See why this workflow exists:"
+          echo "https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/defining-the-mergeability-of-pull-requests/troubleshooting-required-status-checks#handling-skipped-but-required-checks"

@@ -1,0 +1,14 @@
+name: Mocks check
+on:
+  pull_request:
+    paths-ignore:
+      - .github/workflows/mocks.yml
+      - "**/*.go"
+
+jobs:
+  mocks-check:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "Skipping workflow. See why this workflow exists:"
+          echo "https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/defining-the-mergeability-of-pull-requests/troubleshooting-required-status-checks#handling-skipped-but-required-checks"

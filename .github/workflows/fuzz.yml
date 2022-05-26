@@ -1,6 +1,9 @@
+name: fuzz
 on:
   pull_request:
-name: fuzz
+    paths:
+      - .github/workflows/fuzz.yml
+      - "**/*.go"
 
 jobs:
   fuzz:

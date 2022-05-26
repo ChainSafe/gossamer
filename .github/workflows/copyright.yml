@@ -3,12 +3,10 @@ on:
   pull_request:
     branches:
       - development
-    # Commented paths to avoid skipping required workflow
-    # See https://github.community/t/feature-request-conditional-required-checks/16761
-    # paths:
-    #   - .github/workflows/copyright.yml
-    #   - "**/*.go"
-    #   - "**/*.proto"
+    paths:
+      - .github/workflows/copyright.yml
+      - "**/*.go"
+      - "**/*.proto"
 
 jobs:
   copyright-check:

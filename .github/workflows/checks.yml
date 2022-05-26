@@ -1,16 +1,13 @@
+name: checks
 on:
   pull_request:
-    # Commented paths to avoid skipping required workflow
-    # See https://github.community/t/feature-request-conditional-required-checks/16761
-    # paths:
-    #   - .github/workflows/checks.yml
-    #   - .github/PULL_REQUEST/pull_request.go
-    #   - .golangci.yml
-    #   - "**/*.go"
-    #   - go.mod
-    #   - go.sum
-
-name: checks
+    paths:
+      - .github/workflows/checks.yml
+      - .github/PULL_REQUEST/pull_request.go
+      - .golangci.yml
+      - "**/*.go"
+      - go.mod
+      - go.sum
 
 jobs:
   linting:

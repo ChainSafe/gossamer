@@ -1,0 +1,16 @@
+name: Publish docs via GitHub Pages
+on:
+  push:
+    branches:
+      - development
+    paths-ignore:
+      - .github/workflows/docs.yml
+      - "docs/**"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "Skipping workflow. See why this workflow exists:"
+          echo "https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/defining-the-mergeability-of-pull-requests/troubleshooting-required-status-checks#handling-skipped-but-required-checks"
