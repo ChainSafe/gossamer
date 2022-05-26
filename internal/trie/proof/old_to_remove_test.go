@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/stretchr/testify/require"
 )
@@ -40,21 +41,26 @@ func TestProofGeneration(t *testing.T) {
 	hash, err := trie.Hash()
 	require.NoError(t, err)
 
-	proof, err := Generate(hash.ToBytes(), [][]byte{[]byte("catapulta"), []byte("catapora")}, memdb)
+	proofCatapulta, err := Generate(hash, []byte("catapulta"), memdb)
 	require.NoError(t, err)
+	require.Equal(t, 4, len(proofCatapulta))
+	proofCatapora, err := Generate(hash, []byte("catapora"), memdb)
+	require.NoError(t, err)
+	require.Equal(t, 4, len(proofCatapulta))
 
-	require.Equal(t, 5, len(proof))
+	proof := append(proofCatapulta, proofCatapora...)
 
-	pl := []Pair{
-		{Key: []byte("catapora"), Value: expectedValue},
-	}
-
-	v, err := Verify(proof, hash.ToBytes(), pl)
+	v, err := Verify(proof, hash.ToBytes(), []byte("catapora"), expectedValue)
 	require.True(t, v)
 	require.NoError(t, err)
 }
 
-func testGenerateProof(t *testing.T, entries []Pair, keys [][]byte) ([]byte, [][]byte, []Pair) {
+type keyValue struct {
+	Key   []byte
+	Value []byte
+}
+
+func testGenerateProof(t *testing.T, entries []keyValue, keys [][]byte) ([]byte, [][]byte, []keyValue) {
 	t.Helper()
 
 	tmp := t.TempDir()
@@ -74,15 +80,20 @@ func testGenerateProof(t *testing.T, entries []Pair, keys [][]byte) ([]byte, [][
 	require.NoError(t, err)
 
 	root := trie.RootNode().HashDigest
-	proof, err := Generate(root, keys, memdb)
-	require.NoError(t, err)
 
-	items := make([]Pair, len(keys))
+	var proof [][]byte
+	for _, key := range keys {
+		keyProof, err := Generate(common.BytesToHash(root), key, memdb)
+		require.NoError(t, err)
+		proof = append(proof, keyProof...)
+	}
+
+	items := make([]keyValue, len(keys))
 	for idx, key := range keys {
 		value := trie.Get(key)
 		require.NotNil(t, value)
 
-		items[idx] = Pair{
+		items[idx] = keyValue{
 			Key:   key,
 			Value: value,
 		}
@@ -94,7 +105,7 @@ func testGenerateProof(t *testing.T, entries []Pair, keys [][]byte) ([]byte, [][
 func TestVerifyProof_ShouldReturnTrue(t *testing.T) {
 	t.Parallel()
 
-	entries := []Pair{
+	entries := []keyValue{
 		{Key: []byte("alpha"), Value: make([]byte, 32)},
 		{Key: []byte("bravo"), Value: []byte("bravo")},
 		{Key: []byte("do"), Value: []byte("verb")},
@@ -111,29 +122,18 @@ func TestVerifyProof_ShouldReturnTrue(t *testing.T) {
 	}
 
 	root, proof, pairs := testGenerateProof(t, entries, keys)
-	v, err := Verify(proof, root, pairs)
 
-	require.NoError(t, err)
-	require.True(t, v)
-}
-
-func TestVerifyProof_ShouldReturnDuplicateKeysError(t *testing.T) {
-	t.Parallel()
-
-	pl := []Pair{
-		{Key: []byte("do"), Value: []byte("verb")},
-		{Key: []byte("do"), Value: []byte("puppy")},
+	for _, keyValue := range pairs {
+		v, err := Verify(proof, root, keyValue.Key, keyValue.Value)
+		require.NoError(t, err)
+		require.True(t, v)
 	}
-
-	v, err := Verify([][]byte{}, []byte{}, pl)
-	require.False(t, v)
-	require.Error(t, err, ErrDuplicateKeys)
 }
 
 func TestVerifyProof_ShouldReturnTrueWithouCompareValues(t *testing.T) {
 	t.Parallel()
 
-	entries := []Pair{
+	entries := []keyValue{
 		{Key: []byte("alpha"), Value: make([]byte, 32)},
 		{Key: []byte("bravo"), Value: []byte("bravo")},
 		{Key: []byte("do"), Value: []byte("verb")},
@@ -151,20 +151,22 @@ func TestVerifyProof_ShouldReturnTrueWithouCompareValues(t *testing.T) {
 
 	root, proof, _ := testGenerateProof(t, entries, keys)
 
-	pl := []Pair{
+	pl := []keyValue{
 		{Key: []byte("do"), Value: nil},
 		{Key: []byte("dog"), Value: nil},
 		{Key: []byte("doge"), Value: nil},
 	}
 
-	v, err := Verify(proof, root, pl)
-	require.True(t, v)
-	require.NoError(t, err)
+	for _, keyValue := range pl {
+		v, err := Verify(proof, root, keyValue.Key, keyValue.Value)
+		require.True(t, v)
+		require.NoError(t, err)
+	}
 }
 
 func TestBranchNodes_SameHash_DifferentPaths_GenerateAndVerifyProof(t *testing.T) {
 	value := []byte("somevalue")
-	entries := []Pair{
+	entries := []keyValue{
 		{Key: []byte("d"), Value: value},
 		{Key: []byte("b"), Value: value},
 		{Key: []byte("dxyz"), Value: value},
@@ -184,9 +186,11 @@ func TestBranchNodes_SameHash_DifferentPaths_GenerateAndVerifyProof(t *testing.T
 
 	root, proof, pairs := testGenerateProof(t, entries, keys)
 
-	ok, err := Verify(proof, root, pairs)
-	require.NoError(t, err)
-	require.True(t, ok)
+	for _, pair := range pairs {
+		ok, err := Verify(proof, root, pair.Key, pair.Value)
+		require.NoError(t, err)
+		require.True(t, ok)
+	}
 }
 
 func TestLeafNodes_SameHash_DifferentPaths_GenerateAndVerifyProof(t *testing.T) {
@@ -214,15 +218,22 @@ func TestLeafNodes_SameHash_DifferentPaths_GenerateAndVerifyProof(t *testing.T) 
 	hash, err := tt.Hash()
 	require.NoError(t, err)
 
-	proof, err := Generate(hash.ToBytes(), [][]byte{key1, key2}, memdb)
+	proofKey1, err := Generate(hash, key1, memdb)
 	require.NoError(t, err)
 
-	pairs := []Pair{
+	proofKey2, err := Generate(hash, key2, memdb)
+	require.NoError(t, err)
+
+	proof := append(proofKey1, proofKey2...)
+
+	pairs := []keyValue{
 		{Key: key1, Value: value},
 		{Key: key2, Value: value},
 	}
 
-	ok, err := Verify(proof, hash.ToBytes(), pairs)
-	require.NoError(t, err)
-	require.True(t, ok)
+	for _, pair := range pairs {
+		ok, err := Verify(proof, hash.ToBytes(), pair.Key, pair.Value)
+		require.NoError(t, err)
+		require.True(t, ok)
+	}
 }

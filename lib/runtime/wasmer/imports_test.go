@@ -1797,8 +1797,12 @@ func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 	root := hash.ToBytes()
 	otherRoot := otherHash.ToBytes()
 
-	proof, err := proof.Generate(root, keys, memdb)
-	require.NoError(t, err)
+	var allProofs [][]byte
+	for _, key := range keys {
+		singleProof, err := proof.Generate(hash, key, memdb)
+		require.NoError(t, err)
+		allProofs = append(allProofs, singleProof...)
+	}
 
 	testcases := map[string]struct {
 		root, key, value []byte
@@ -1806,17 +1810,17 @@ func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 		expect           bool
 	}{
 		"Proof should be true": {
-			root: root, key: []byte("do"), proof: proof, value: []byte("verb"), expect: true},
+			root: root, key: []byte("do"), proof: allProofs, value: []byte("verb"), expect: true},
 		"Root empty, proof should be false": {
-			root: []byte{}, key: []byte("do"), proof: proof, value: []byte("verb"), expect: false},
+			root: []byte{}, key: []byte("do"), proof: allProofs, value: []byte("verb"), expect: false},
 		"Other root, proof should be false": {
-			root: otherRoot, key: []byte("do"), proof: proof, value: []byte("verb"), expect: false},
+			root: otherRoot, key: []byte("do"), proof: allProofs, value: []byte("verb"), expect: false},
 		"Value empty, proof should be true": {
-			root: root, key: []byte("do"), proof: proof, value: nil, expect: true},
+			root: root, key: []byte("do"), proof: allProofs, value: nil, expect: true},
 		"Unknow key, proof should be false": {
-			root: root, key: []byte("unknow"), proof: proof, value: nil, expect: false},
+			root: root, key: []byte("unknow"), proof: allProofs, value: nil, expect: false},
 		"Key and value unknow, proof should be false": {
-			root: root, key: []byte("unknow"), proof: proof, value: []byte("unknow"), expect: false},
+			root: root, key: []byte("unknow"), proof: allProofs, value: []byte("unknow"), expect: false},
 		"Empty proof, should be false": {
 			root: root, key: []byte("do"), proof: [][]byte{}, value: nil, expect: false},
 	}

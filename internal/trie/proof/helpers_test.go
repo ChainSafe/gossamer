@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/stretchr/testify/require"
 )
 
@@ -26,4 +27,10 @@ func generateRandBytes(t *testing.T, size int,
 	_, err := generator.Read(b)
 	require.NoError(t, err)
 	return b
+}
+
+func padRightChildren(slice []*node.Node) (paddedSlice []*node.Node) {
+	paddedSlice = make([]*node.Node, node.ChildrenCapacity)
+	copy(paddedSlice, slice)
+	return paddedSlice
 }

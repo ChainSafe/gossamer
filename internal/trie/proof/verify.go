@@ -5,44 +5,47 @@ package proof
 
 import (
 	"bytes"
-	"encoding/hex"
+	"errors"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
-// Pair holds the key and value to check while verifying the proof
-type Pair struct{ Key, Value []byte }
+var (
+	ErrKeyNotFoundInProofTrie = errors.New("key not found in proof trie")
+	ErrValueMismatchProofTrie = errors.New("value found in proof trie does not match")
+)
 
-// Verify ensure a given key is inside a proof by creating a proof trie based on the proof slice
-// this function ignores the order of proofs
-func Verify(proof [][]byte, root []byte, items []Pair) (bool, error) {
-	set := make(map[string]struct{}, len(items))
-
-	// check for duplicate keys
-	for _, item := range items {
-		hexKey := hex.EncodeToString(item.Key)
-		if _, ok := set[hexKey]; ok {
-			return false, ErrDuplicateKeys
-		}
-		set[hexKey] = struct{}{}
-	}
-
+// Verify verifies a given key and value belongs to the trie by creating
+// a proof trie based on the encoded proof nodes given. The order of proofs is ignored.
+func Verify(encodedProofNodes [][]byte, rootHash, key, value []byte) (ok bool, err error) {
 	proofTrie := trie.NewEmptyTrie()
-	if err := proofTrie.LoadFromProof(proof, root); err != nil {
-		return false, fmt.Errorf("%w: %s", ErrLoadFromProof, err)
+	err = proofTrie.LoadFromProof(encodedProofNodes, rootHash)
+	if err != nil {
+		return false, fmt.Errorf("cannot build trie from proof encoded nodes: %w", err)
 	}
 
-	for _, item := range items {
-		recValue := proofTrie.Get(item.Key)
-		if recValue == nil {
-			return false, ErrKeyNotFound
-		}
-		// here we need to compare value only if the caller pass the value
-		if len(item.Value) > 0 && !bytes.Equal(item.Value, recValue) {
-			return false, ErrValueNotFound
-		}
+	proofTrieValue := proofTrie.Get(key)
+	if proofTrieValue == nil {
+		return false, fmt.Errorf("%w: %s", ErrKeyNotFoundInProofTrie, bytesToString(key))
+	}
+
+	// compare the value only if the caller pass a non empty value
+	if len(value) > 0 && !bytes.Equal(value, proofTrieValue) {
+		return false, fmt.Errorf("%w: expected value %s but got value %s from proof trie",
+			ErrValueMismatchProofTrie, bytesToString(value), bytesToString(proofTrieValue))
 	}
 
 	return true, nil
+}
+
+func bytesToString(b []byte) (s string) {
+	switch {
+	case b == nil:
+		return "nil"
+	case len(b) <= 20:
+		return fmt.Sprintf("0x%x", b)
+	default:
+		return fmt.Sprintf("0x%x...%x", b[:8], b[len(b)-8:])
+	}
 }
