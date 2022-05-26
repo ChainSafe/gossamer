@@ -68,8 +68,6 @@ func (c *WSConn) readWebsocketMessage() (rawBytes []byte, wsMessage *websocketMe
 
 // HandleConn handles messages received on websocket connections
 func (c *WSConn) HandleConn() {
-	defer c.Wsconn.Close()
-
 	for {
 		rawBytes, wsMessage, err := c.readWebsocketMessage()
 		if err != nil {
@@ -83,12 +81,14 @@ func (c *WSConn) HandleConn() {
 		}
 
 		logger.Tracef("websocket message received: %s", string(rawBytes))
+
 		if wsMessage.Method == "" {
 			c.safeSendError(0, big.NewInt(InvalidRequestCode), InvalidRequestMessage)
 			continue
 		}
 
 		logger.Debugf("ws method %s called with params %v", wsMessage.Method, wsMessage.Params)
+
 		if !strings.Contains(wsMessage.Method, "_unsubscribe") && !strings.Contains(wsMessage.Method, "_unwatch") {
 			setupListener := c.getSetupListener(wsMessage.Method)
 
