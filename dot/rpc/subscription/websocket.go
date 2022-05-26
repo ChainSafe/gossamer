@@ -25,7 +25,7 @@ import (
 type websocketMessage struct {
 	ID     float64 `json:"id"`
 	Method string  `json:"method"`
-	Params any
+	Params any     `json:"params"`
 }
 
 type httpclient interface {
@@ -57,13 +57,13 @@ func (c *WSConn) readWebsocketMessage() (rawBytes []byte, wsMessage *websocketMe
 		return nil, nil, fmt.Errorf("%w: %s", errCannotReadFromWebsocket, err.Error())
 	}
 
-	msg := new(websocketMessage)
-	err = json.Unmarshal(rawBytes, &msg)
+	wsMessage = new(websocketMessage)
+	err = json.Unmarshal(rawBytes, wsMessage)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return rawBytes, msg, nil
+	return rawBytes, wsMessage, nil
 }
 
 // HandleConn handles messages received on websocket connections
