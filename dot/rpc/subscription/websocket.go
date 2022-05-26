@@ -35,7 +35,6 @@ type httpclient interface {
 var (
 	errUnexpectedType          = errors.New("unexpected type")
 	errUnexpectedParamLen      = errors.New("unexpected params length")
-	errCannotUnmarshalMessage  = errors.New("cannot unmarshal websocket message data")
 	errCannotReadFromWebsocket = errors.New("cannot read message from websocket")
 	errEmptyMethod             = errors.New("empty method")
 )
