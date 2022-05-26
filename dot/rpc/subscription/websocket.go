@@ -32,7 +32,11 @@ type httpclient interface {
 	Do(*http.Request) (*http.Response, error)
 }
 
-var errCannotReadFromWebsocket = errors.New("cannot read message from websocket")
+var (
+	errCannotReadFromWebsocket = errors.New("cannot read message from websocket")
+	errEmptyMethod             = errors.New("empty method")
+)
+
 var logger = log.NewFromGlobal(log.AddContext("pkg", "rpc/subscription"))
 
 // WSConn struct to hold WebSocket Connection references
@@ -63,6 +67,10 @@ func (c *WSConn) readWebsocketMessage() (rawBytes []byte, wsMessage *websocketMe
 		return nil, nil, err
 	}
 
+	if wsMessage.Method == "" {
+		return nil, nil, errEmptyMethod
+	}
+
 	return rawBytes, wsMessage, nil
 }
 
@@ -81,12 +89,6 @@ func (c *WSConn) HandleConn() {
 		}
 
 		logger.Tracef("websocket message received: %s", string(rawBytes))
-
-		if wsMessage.Method == "" {
-			c.safeSendError(0, big.NewInt(InvalidRequestCode), InvalidRequestMessage)
-			continue
-		}
-
 		logger.Debugf("ws method %s called with params %v", wsMessage.Method, wsMessage.Params)
 
 		if !strings.Contains(wsMessage.Method, "_unsubscribe") && !strings.Contains(wsMessage.Method, "_unwatch") {
