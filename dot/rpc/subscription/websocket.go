@@ -166,7 +166,8 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (L
 
 	// the following type checking/casting is needed in order to satisfy some
 	// websocket request field params eg.:
-	// "params": "[["0x...", "0x..."]]"
+	// "params": ["0x..."] or
+	// "params": [["0x...", "0x..."]]
 	switch filters := params.(type) {
 	case []interface{}:
 		for _, interfaceKey := range filters {
@@ -181,11 +182,13 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (L
 				for _, k := range key {
 					k, ok := k.(string)
 					if !ok {
-						return nil, fmt.Errorf("%w: %T, expected type string", errUnexpectedType, interfaceKey)
+						return nil, fmt.Errorf("%w: %T, expected type string", errUnexpectedType, k)
 					}
 
 					stgobs.filter[k] = []byte{}
 				}
+			default:
+				return nil, fmt.Errorf("%w: %T, expected type string, []string, []interface{}", errUnexpectedType, interfaceKey)
 			}
 		}
 	default:
