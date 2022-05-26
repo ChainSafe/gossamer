@@ -15,10 +15,10 @@ sync = ""
 digest = ""
 
 [init]
-genesis = "./chain/dev/dev-spec-raw.json"
+genesis = "./chain/dev/genesis-spec.json"
 
 [account]
-key = "alice"
+key = ""
 unlock = ""
 
 [core]
@@ -37,7 +37,18 @@ enabled = true
 ws = true
 port = 8545
 host = "localhost"
-modules = ["system", "author", "chain", "state", "rpc", "grandpa", "offchain", "childstate", "syncstate", "payment"]
+modules = [
+    "system",
+    "author",
+    "chain",
+    "state",
+    "rpc",
+    "grandpa",
+    "offchain",
+    "childstate",
+    "syncstate",
+    "payment",
+]
 ws-port = 8546
 
 [pprof]
