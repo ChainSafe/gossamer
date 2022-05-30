@@ -6,7 +6,7 @@ metrics-address = ":9876"
 [log]
 core = ""
 network = ""
-rpc = "warn"
+rpc = ""
 state = ""
 runtime = ""
 babe = ""
