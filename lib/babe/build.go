@@ -250,7 +250,6 @@ type CandidateDescriptor struct {
 	Collator []byte // CollatorId
 	// Signature on blake2-256 of components of this receipt:
 	// The para ID, the relay parent, and the `pov_hash`.
-	// TODO: I have made a guess that all signatures are []byte
 	Signature []byte // CollatorSignature
 	// The hash of the `pov-block`.
 	PovHash common.Hash
@@ -264,8 +263,6 @@ type OutboundHrmpMessage struct {
 	Recipient uint32
 	Data      []byte
 }
-
-// All Vec<u8> in rust have become []byte here
 
 // ValidationCode is Parachain validation code.
 type ValidationCode []byte
@@ -399,15 +396,8 @@ func buildBlockInherents(slot Slot, rt runtime.Instance) ([][]byte, error) {
 		return nil, err
 	}
 
-	err = idata.SetBytesInherent(types.Parachn0, bz)
-	if err != nil {
-		return nil, err
-	}
-
-	err = idata.SetBytesInherent(types.Newheads, []byte{0})
-	if err != nil {
-		return nil, err
-	}
+	idata.SetBytesInherent(types.Parachn0, bz)
+	idata.SetBytesInherent(types.Newheads, []byte{0})
 
 	ienc, err := idata.Encode()
 	if err != nil {
