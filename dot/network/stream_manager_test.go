@@ -17,7 +17,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func setupStreamManagerTest(t *testing.T, cleanupStreamInterval time.Duration) (context.Context, []libp2phost.Host, []*streamManager) {
+func setupStreamManagerTest(t *testing.T,
+	cleanupStreamInterval time.Duration) (context.Context, []libp2phost.Host, []*streamManager) {
 	t.Helper()
 
 	ctx, cancel := context.WithCancel(context.Background())

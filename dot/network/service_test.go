@@ -337,7 +337,9 @@ func Test_Broadcast_Duplicate_Messages_With_MessageCache(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-	stream, err := nodeA.host.p2pHost.NewStream(context.Background(), nodeB.host.id(), nodeB.host.protocolID+blockAnnounceID)
+	stream, err := nodeA.host.p2pHost.NewStream(context.Background(),
+		nodeB.host.id(), nodeB.host.protocolID+blockAnnounceID)
+
 	require.NoError(t, err)
 	require.NotNil(t, stream)
 
