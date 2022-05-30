@@ -33,6 +33,8 @@ type httpclient interface {
 }
 
 var (
+	errUnexpectedType          = errors.New("unexpected type")
+	errUnexpectedParamLen      = errors.New("unexpected params length")
 	errCannotReadFromWebsocket = errors.New("cannot read message from websocket")
 	errEmptyMethod             = errors.New("empty method")
 )
@@ -163,25 +165,35 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (L
 		wsconn: c,
 	}
 
-	pA, ok := params.([]interface{})
-	if !ok {
-		return nil, fmt.Errorf("unknown parameter type")
-	}
-	for _, param := range pA {
-		switch p := param.(type) {
-		case []interface{}:
-			for _, pp := range param.([]interface{}) {
-				data, ok := pp.(string)
-				if !ok {
-					return nil, fmt.Errorf("unknown parameter type")
+	// the following type checking/casting is needed in order to satisfy some
+	// websocket request field params eg.:
+	// "params": ["0x..."] or
+	// "params": [["0x...", "0x..."]]
+	switch filters := params.(type) {
+	case []interface{}:
+		for _, interfaceKey := range filters {
+			switch key := interfaceKey.(type) {
+			case string:
+				stgobs.filter[key] = []byte{}
+			case []string:
+				for _, k := range key {
+					stgobs.filter[k] = []byte{}
 				}
-				stgobs.filter[data] = []byte{}
+			case []interface{}:
+				for _, k := range key {
+					k, ok := k.(string)
+					if !ok {
+						return nil, fmt.Errorf("%w: %T, expected type string", errUnexpectedType, k)
+					}
+
+					stgobs.filter[k] = []byte{}
+				}
+			default:
+				return nil, fmt.Errorf("%w: %T, expected type string, []string, []interface{}", errUnexpectedType, interfaceKey)
 			}
-		case string:
-			stgobs.filter[p] = []byte{}
-		default:
-			return nil, fmt.Errorf("unknown parameter type")
 		}
+	default:
+		return nil, fmt.Errorf("%w: %T, expected type []interface{}", errUnexpectedType, params)
 	}
 
 	c.mu.Lock()
@@ -269,14 +281,32 @@ func (c *WSConn) initAllBlocksListerner(reqID float64, _ interface{}) (Listener,
 }
 
 func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener, error) {
-	pA := params.([]interface{})
+	var encodedExtrinsic string
 
-	if len(pA) != 1 {
-		return nil, errors.New("expecting only one parameter")
+	switch encodedHex := params.(type) {
+	case []string:
+		if len(encodedHex) != 1 {
+			return nil, fmt.Errorf("%w: expected 1 param, got: %d", errUnexpectedParamLen, len(encodedHex))
+		}
+		encodedExtrinsic = encodedHex[0]
+	// the bellow case is needed to cover a interface{} slice containing one string
+	// as `[]interface{"a"}` is not the same as `[]string{"a"}`
+	case []interface{}:
+		if len(encodedHex) != 1 {
+			return nil, fmt.Errorf("%w: expected 1 param, got: %d", errUnexpectedParamLen, len(encodedHex))
+		}
+
+		var ok bool
+		encodedExtrinsic, ok = encodedHex[0].(string)
+		if !ok {
+			return nil, fmt.Errorf("%w: %T, expected type string", errUnexpectedType, encodedHex[0])
+		}
+	default:
+		return nil, fmt.Errorf("%w: %T, expected type []string or []interface{}", errUnexpectedType, params)
 	}
 
 	// The passed parameter should be a HEX of a SCALE encoded extrinsic
-	extBytes, err := common.HexToBytes(pA[0].(string))
+	extBytes, err := common.HexToBytes(encodedExtrinsic)
 	if err != nil {
 		return nil, err
 	}
