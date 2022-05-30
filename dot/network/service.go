@@ -406,7 +406,6 @@ func (s *Service) publishTelemetry(cancel <-chan struct{}) {
 		err := s.sendBlockIntervalTelemetry()
 		if err != nil {
 			logger.Warnf("failed to sent block interval telemetry: %s", err)
-			continue
 		}
 
 		select {
