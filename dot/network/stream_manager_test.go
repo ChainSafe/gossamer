@@ -41,12 +41,12 @@ func setupStreamManagerTest(t *testing.T) (context.Context, []libp2phost.Host, [
 	require.NoError(t, err)
 
 	ha, err := libp2p.New(
-		ctx, libp2p.ListenAddrs(addrA),
+		libp2p.ListenAddrs(addrA),
 	)
 	require.NoError(t, err)
 
 	hb, err := libp2p.New(
-		ctx, libp2p.ListenAddrs(addrB),
+		libp2p.ListenAddrs(addrB),
 	)
 	require.NoError(t, err)
 
