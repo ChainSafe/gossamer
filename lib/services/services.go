@@ -17,6 +17,15 @@ type Service interface {
 	Stop() error
 }
 
+// ServiceRegisterer can register a service interface, start or stop all services,
+// and get a particular service.
+type ServiceRegisterer interface {
+	RegisterService(service Service)
+	StartAll()
+	StopAll()
+	Get(srvc interface{}) Service
+}
+
 // ServiceRegistry is a structure to manage core system services
 type ServiceRegistry struct {
 	services     map[reflect.Type]Service // map of types to service instances

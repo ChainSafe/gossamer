@@ -35,14 +35,14 @@ func (s *Service) receiveVoteMessages(ctx context.Context) {
 				continue
 			}
 
-			logger.Tracef("received vote message %v from %s", msg.msg, msg.from)
+			logger.Debugf("received vote message %v from %s", msg.msg, msg.from)
 			vm := msg.msg
 
 			switch vm.Message.Stage {
 			case prevote, primaryProposal:
 				s.telemetry.SendMessage(
 					telemetry.NewAfgReceivedPrevote(
-						vm.Message.Hash,
+						vm.Message.BlockHash,
 						fmt.Sprint(vm.Message.Number),
 						vm.Message.AuthorityID.String(),
 					),
@@ -50,7 +50,7 @@ func (s *Service) receiveVoteMessages(ctx context.Context) {
 			case precommit:
 				s.telemetry.SendMessage(
 					telemetry.NewAfgReceivedPrecommit(
-						vm.Message.Hash,
+						vm.Message.BlockHash,
 						fmt.Sprint(vm.Message.Number),
 						vm.Message.AuthorityID.String(),
 					),
@@ -101,7 +101,7 @@ func (s *Service) createSignedVoteAndVoteMessage(vote *Vote, stage Subround) (*S
 
 	sm := &SignedMessage{
 		Stage:       stage,
-		Hash:        pc.Vote.Hash,
+		BlockHash:   pc.Vote.Hash,
 		Number:      pc.Vote.Number,
 		Signature:   ed25519.NewSignatureBytes(sig),
 		AuthorityID: s.keypair.Public().(*ed25519.PublicKey).AsBytes(),
@@ -126,24 +126,15 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 	// check for message signature
 	pk, err := ed25519.NewPublicKey(m.Message.AuthorityID[:])
 	if err != nil {
+		// TODO Affect peer reputation
+		// https://github.com/ChainSafe/gossamer/issues/2505
 		return nil, err
-	}
-
-	switch m.Message.Stage {
-	case prevote, primaryProposal:
-		pv, has := s.loadVote(pk.AsBytes(), prevote)
-		if has && pv.Vote.Hash.Equal(m.Message.Hash) {
-			return nil, errVoteExists
-		}
-	case precommit:
-		pc, has := s.loadVote(pk.AsBytes(), precommit)
-		if has && pc.Vote.Hash.Equal(m.Message.Hash) {
-			return nil, errVoteExists
-		}
 	}
 
 	err = validateMessageSignature(pk, m)
 	if err != nil {
+		// TODO Affect peer reputation
+		// https://github.com/ChainSafe/gossamer/issues/2505
 		return nil, err
 	}
 
@@ -151,38 +142,53 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 		return nil, ErrSetIDMismatch
 	}
 
-	// check that vote is for current round
-	if m.Round != s.state.round {
-		if m.Round < s.state.round {
-			// peer doesn't know round was finalised, send out another commit message
-			header, err := s.blockState.GetFinalisedHeader(m.Round, m.SetID)
-			if err != nil {
-				return nil, err
-			}
+	const maxRoundsLag = 1
+	minRoundAccepted := s.state.round - maxRoundsLag
+	if minRoundAccepted > s.state.round {
+		// we overflowed below 0 so set the minimum to 0.
+		minRoundAccepted = 0
+	}
 
-			cm, err := s.newCommitMessage(header, m.Round)
-			if err != nil {
-				return nil, err
-			}
+	const maxRoundsAhead = 1
+	maxRoundAccepted := s.state.round + maxRoundsAhead
 
-			// send finalised block from previous round to network
-			msg, err := cm.ToConsensusMessage()
-			if err != nil {
-				return nil, err
-			}
+	if m.Round < minRoundAccepted || m.Round > maxRoundAccepted {
+		// Discard message
+		// TODO: affect peer reputation, this is shameful impolite behaviour
+		// https://github.com/ChainSafe/gossamer/issues/2505
+		return nil, nil //nolint:nilnil
+	}
 
-			if err = s.network.SendMessage(from, msg); err != nil {
-				logger.Warnf("failed to send CommitMessage: %s", err)
-			}
-		} else {
-			// round is higher than ours, perhaps we are behind. store vote in tracker for now
-			s.tracker.addVote(&networkVoteMessage{
-				from: from,
-				msg:  m,
-			})
+	if m.Round < s.state.round {
+		// message round is lagging by 1
+		// peer doesn't know round was finalised, send out another commit message
+		header, err := s.blockState.GetFinalisedHeader(m.Round, m.SetID)
+		if err != nil {
+			return nil, err
+		}
+
+		cm, err := s.newCommitMessage(header, m.Round)
+		if err != nil {
+			return nil, err
+		}
+
+		// send finalised block from previous round to network
+		msg, err := cm.ToConsensusMessage()
+		if err != nil {
+			return nil, err
+		}
+
+		if err = s.network.SendMessage(from, msg); err != nil {
+			logger.Warnf("failed to send CommitMessage: %s", err)
 		}
 
 		// TODO: get justification if your round is lower, or just do catch-up? (#1815)
+		return nil, errRoundMismatch(m.Round, s.state.round)
+	} else if m.Round > s.state.round {
+		// Message round is higher by 1 than the round of our state,
+		// we may be lagging behind, so store the message in the tracker
+		// for processing later in the coming few milliseconds.
+		s.tracker.addVote(from, m)
 		return nil, errRoundMismatch(m.Round, s.state.round)
 	}
 
@@ -192,12 +198,12 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 		return nil, err
 	}
 
-	vote := NewVote(m.Message.Hash, m.Message.Number)
+	vote := NewVote(m.Message.BlockHash, m.Message.Number)
 
-	// if the vote is from ourselves, ignore
+	// if the vote is from ourselves, return an error
 	kb := [32]byte(s.publicKeyBytes())
 	if bytes.Equal(m.Message.AuthorityID[:], kb[:]) {
-		return vote, nil
+		return nil, errVoteFromSelf
 	}
 
 	err = s.validateVote(vote)
@@ -205,10 +211,7 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 		errors.Is(err, blocktree.ErrDescendantNotFound) ||
 		errors.Is(err, blocktree.ErrEndNodeNotFound) ||
 		errors.Is(err, blocktree.ErrStartNodeNotFound) {
-		s.tracker.addVote(&networkVoteMessage{
-			from: from,
-			msg:  m,
-		})
+		s.tracker.addVote(from, m)
 	}
 	if err != nil {
 		return nil, err
@@ -296,7 +299,7 @@ func (s *Service) validateVote(v *Vote) error {
 	}
 
 	if !isDescendant {
-		return errInvalidVoteBlock
+		return errVoteBlockMismatch
 	}
 
 	return nil
@@ -305,7 +308,7 @@ func (s *Service) validateVote(v *Vote) error {
 func validateMessageSignature(pk *ed25519.PublicKey, m *VoteMessage) error {
 	msg, err := scale.Marshal(FullVote{
 		Stage: m.Message.Stage,
-		Vote:  *NewVote(m.Message.Hash, m.Message.Number),
+		Vote:  *NewVote(m.Message.BlockHash, m.Message.Number),
 		Round: m.Round,
 		SetID: m.SetID,
 	})

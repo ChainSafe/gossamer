@@ -1,0 +1,45 @@
+services:
+  alice:
+    platform: linux/amd64
+    build:
+      context: ./..
+      dockerfile: devnet/substrate_alice.Dockerfile
+      args:
+        DD_API_KEY: ${DD_API_KEY}
+    ports:
+      - 7001
+      - 8545
+      - 8546
+      - 9876
+
+  bob:
+    platform: linux/amd64
+    build:
+      context: ./..
+      dockerfile: devnet/substrate_bob.Dockerfile
+      args:
+        key: bob
+        DD_API_KEY: ${DD_API_KEY}
+    ports:
+      - 7001
+      - 8545
+      - 8546
+      - 9876
+    depends_on:
+      - alice
+
+  charlie:
+    platform: linux/amd64
+    build:
+      context: ./..
+      dockerfile: devnet/substrate_bob.Dockerfile
+      args:
+        key: charlie
+        DD_API_KEY: ${DD_API_KEY}
+    ports:
+      - 7001
+      - 8545
+      - 8546
+      - 9876
+    depends_on:
+      - alice

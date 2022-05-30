@@ -1,7 +1,7 @@
 [global]
 basepath = "~/.gossamer/dev"
 log = "info"
-metrics-port = 9876
+metrics-address = ":9876"
 
 [log]
 core = ""

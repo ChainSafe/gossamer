@@ -62,14 +62,19 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 		return fmt.Errorf("failed to write genesis values to database: %s", err)
 	}
 
+	tries, err := NewTries(t)
+	if err != nil {
+		return fmt.Errorf("cannot setup tries: %w", err)
+	}
+
 	// create block state from genesis block
-	blockState, err := NewBlockStateFromGenesis(db, header, s.Telemetry)
+	blockState, err := NewBlockStateFromGenesis(db, tries, header, s.Telemetry)
 	if err != nil {
 		return fmt.Errorf("failed to create block state from genesis: %s", err)
 	}
 
 	// create storage state from genesis trie
-	storageState, err := NewStorageState(db, blockState, t, pruner.Config{})
+	storageState, err := NewStorageState(db, blockState, tries, pruner.Config{})
 	if err != nil {
 		return fmt.Errorf("failed to create storage state from trie: %s", err)
 	}

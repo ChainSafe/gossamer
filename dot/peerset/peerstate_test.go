@@ -150,33 +150,34 @@ func TestHighestNotConnectedPeer(t *testing.T) {
 	state.discover(0, peer1)
 	n, err := state.getNode(peer1)
 	require.NoError(t, err)
-	n.setReputation(50)
+
+	n.reputation = 50
 	state.nodes[peer1] = n
 
-	require.Equal(t, Reputation(50), state.nodes[peer1].getReputation())
+	require.Equal(t, Reputation(50), state.nodes[peer1].reputation)
 
 	require.Equal(t, unknownPeer, state.peerStatus(0, peer2))
 
 	state.discover(0, peer2)
 	n, err = state.getNode(peer2)
 	require.NoError(t, err)
-	n.setReputation(25)
+	n.reputation = 25
 	state.nodes[peer2] = n
 
 	// peer1 still has the highest reputation
 	require.Equal(t, peer1, state.highestNotConnectedPeer(0))
-	require.Equal(t, Reputation(25), state.nodes[peer2].getReputation())
+	require.Equal(t, Reputation(25), state.nodes[peer2].reputation)
 
 	require.Equal(t, notConnectedPeer, state.peerStatus(0, peer2))
 
 	n, err = state.getNode(peer2)
 	require.NoError(t, err)
 
-	n.setReputation(75)
+	n.reputation = 75
 	state.nodes[peer2] = n
 
 	require.Equal(t, peer2, state.highestNotConnectedPeer(0))
-	require.Equal(t, Reputation(75), state.nodes[peer2].getReputation())
+	require.Equal(t, Reputation(75), state.nodes[peer2].reputation)
 
 	require.Equal(t, notConnectedPeer, state.peerStatus(0, peer2))
 	err = state.tryAcceptIncoming(0, peer2)
@@ -191,38 +192,8 @@ func TestHighestNotConnectedPeer(t *testing.T) {
 	require.Equal(t, notConnectedPeer, state.peerStatus(0, peer1))
 	n, err = state.getNode(peer1)
 	require.NoError(t, err)
-	n.setReputation(100)
+	n.reputation = 100
 	state.nodes[peer1] = n
 
 	require.Equal(t, peer1, state.highestNotConnectedPeer(0))
-}
-
-func TestSortedPeers(t *testing.T) {
-	t.Parallel()
-
-	const msgChanSize = 1
-	state := newTestPeerState(t, 2, 1)
-	state.nodes[peer1] = newNode(1)
-
-	err := state.addNoSlotNode(0, peer1)
-	require.NoError(t, err)
-
-	state.discover(0, peer1)
-	err = state.tryAcceptIncoming(0, peer1)
-	require.NoError(t, err)
-
-	require.Equal(t, connectedPeer, state.peerStatus(0, peer1))
-
-	// discover peer2
-	state.discover(0, peer2)
-	// try to make peer2 as an incoming connection.
-	err = state.tryAcceptIncoming(0, peer2)
-	require.NoError(t, err)
-
-	require.Equal(t, connectedPeer, state.peerStatus(0, peer1))
-
-	peerCh := make(chan peer.IDSlice, msgChanSize)
-	peerCh <- state.sortedPeers(0)
-	peers := <-peerCh
-	require.Equal(t, 2, len(peers))
 }

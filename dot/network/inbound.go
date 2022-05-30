@@ -15,11 +15,11 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder
 	s.streamManager.logNewStream(stream)
 
 	peer := stream.Conn().RemotePeer()
-	msgBytes := s.bufPool.get()
-	defer s.bufPool.put(msgBytes)
+	buffer := s.bufPool.Get().(*[]byte)
+	defer s.bufPool.Put(buffer)
 
 	for {
-		n, err := readStream(stream, msgBytes[:])
+		n, err := readStream(stream, buffer)
 		if err != nil {
 			logger.Tracef(
 				"failed to read from stream id %s of peer %s using protocol %s: %s",
@@ -31,6 +31,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder
 
 		// decode message based on message type
 		// stream should always be inbound if it passes through service.readStream
+		msgBytes := *buffer
 		msg, err := decoder(msgBytes[:n], peer, isInbound(stream))
 		if err != nil {
 			logger.Tracef("failed to decode message from stream id %s using protocol %s: %s",
@@ -63,7 +64,7 @@ func (s *Service) resetInboundStream(stream libp2pnetwork.Stream) {
 			continue
 		}
 
-		prtl.inboundHandshakeData.Delete(peerID)
+		prtl.peersData.deleteInboundHandshakeData(peerID)
 		break
 	}
 

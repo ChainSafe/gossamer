@@ -5,7 +5,6 @@ package subscription
 
 import (
 	"fmt"
-	"math/big"
 	"testing"
 	"time"
 
@@ -22,12 +21,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestWSConn_HandleComm(t *testing.T) {
+func TestWSConn_HandleConn(t *testing.T) {
 	wsconn, c, cancel := setupWSConn(t)
 	wsconn.Subscriptions = make(map[uint32]Listener)
 	defer cancel()
 
-	go wsconn.HandleComm()
+	go wsconn.HandleConn()
 	time.Sleep(time.Second * 2)
 
 	// test storageChangeListener
@@ -271,7 +270,7 @@ func TestWSConn_HandleComm(t *testing.T) {
 
 	listener.Listen()
 	header := &types.Header{
-		Number: big.NewInt(1),
+		Number: 1,
 	}
 
 	fCh <- &types.FinalisationInfo{
@@ -295,7 +294,7 @@ func TestSubscribeAllHeads(t *testing.T) {
 	wsconn.Subscriptions = make(map[uint32]Listener)
 	defer cancel()
 
-	go wsconn.HandleComm()
+	go wsconn.HandleConn()
 	time.Sleep(time.Second * 2)
 
 	_, err := wsconn.initAllBlocksListerner(1, nil)
@@ -342,7 +341,7 @@ func TestSubscribeAllHeads(t *testing.T) {
 	require.NoError(t, err)
 	fCh <- &types.FinalisationInfo{
 		Header: types.Header{
-			Number: big.NewInt(0),
+			Number: 0,
 			Digest: digest,
 		},
 	}
@@ -358,7 +357,7 @@ func TestSubscribeAllHeads(t *testing.T) {
 
 	iCh <- &types.Block{
 		Header: types.Header{
-			Number: big.NewInt(0),
+			Number: 0,
 			Digest: digest,
 		},
 	}
@@ -372,4 +371,51 @@ func TestSubscribeAllHeads(t *testing.T) {
 
 	require.NoError(t, l.Stop())
 	mockBlockAPI.On("FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block"))
+}
+
+func TestWSConn_CheckWebsocketInvalidData(t *testing.T) {
+	wsconn, c, cancel := setupWSConn(t)
+	wsconn.Subscriptions = make(map[uint32]Listener)
+	defer cancel()
+
+	go wsconn.HandleConn()
+
+	tests := []struct {
+		sentMessage []byte
+		expected    []byte
+	}{
+		{
+			sentMessage: []byte(`{
+			"jsonrpc": "2.0",
+			"method": "",
+			"id": 0,
+			"params": []
+			}`),
+			expected: []byte(`{"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid request"},"id":0}` + "\n"),
+		},
+		{
+			sentMessage: []byte(`{
+			"jsonrpc": "2.0",
+			"params": []
+			}`),
+			expected: []byte(`{"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid request"},"id":0}` + "\n"),
+		},
+		{
+			sentMessage: []byte(`{
+			"jsonrpc": "2.0",
+			"id": "abcdef"
+			"method": "some_method_name"
+			"params": []
+			}`),
+			expected: []byte(`{"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid request"},"id":0}` + "\n"),
+		},
+	}
+
+	for _, tt := range tests {
+		c.WriteMessage(websocket.TextMessage, tt.sentMessage)
+
+		_, msg, err := c.ReadMessage()
+		require.NoError(t, err)
+		require.Equal(t, tt.expected, msg)
+	}
 }

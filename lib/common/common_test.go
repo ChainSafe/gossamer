@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestStringToInts(t *testing.T) {
@@ -131,6 +130,102 @@ func TestConcat(t *testing.T) {
 	}
 }
 
+func Test_UintToBytes(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		n uint
+		b []byte
+	}{
+		"zero": {
+			n: 0,
+			b: []byte{},
+		},
+		"one": {
+			n: 1,
+			b: []byte{1},
+		},
+		"256": {
+			n: 256,
+			b: []byte{1, 0},
+		},
+		"max uint32": {
+			n: 1<<32 - 1,
+			b: []byte{255, 255, 255, 255},
+		},
+		"one plus max uint32": {
+			n: 1 + (1<<32 - 1),
+			b: []byte{1, 0, 0, 0, 0},
+		},
+		"max int64": {
+			n: 1<<63 - 1,
+			b: []byte{0x7f, 255, 255, 255, 255, 255, 255, 255},
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			b := UintToBytes(testCase.n)
+
+			assert.Equal(t, testCase.b, b)
+
+			bigIntBytes := big.NewInt(int64(testCase.n)).Bytes()
+			assert.Equal(t, bigIntBytes, b)
+		})
+	}
+}
+
+func Test_BytesToUint(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		b []byte
+		n uint
+	}{
+		"zero": {
+			b: []byte{},
+			n: 0,
+		},
+		"one": {
+			b: []byte{1},
+			n: 1,
+		},
+		"256": {
+			b: []byte{1, 0},
+			n: 256,
+		},
+		"max uint32": {
+			b: []byte{255, 255, 255, 255},
+			n: 1<<32 - 1,
+		},
+		"one plus max uint32": {
+			b: []byte{1, 0, 0, 0, 0},
+			n: 1 + (1<<32 - 1),
+		},
+		"max int64": {
+			b: []byte{0x7f, 255, 255, 255, 255, 255, 255, 255},
+			n: 1<<63 - 1,
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			n := BytesToUint(testCase.b)
+
+			assert.Equal(t, testCase.n, n)
+
+			bigIntUint := uint(big.NewInt(0).SetBytes(testCase.b).Uint64())
+			assert.Equal(t, bigIntUint, n)
+		})
+	}
+}
+
 func TestUint16ToBytes(t *testing.T) {
 	tests := []struct {
 		input    uint16
@@ -188,33 +283,4 @@ func TestSwapNibbles(t *testing.T) {
 			t.Fatalf("Re-encoding failed. got: %x expected: %x", res, test.key)
 		}
 	}
-}
-
-func TestMustHexToBigInt(t *testing.T) {
-	tests := []struct {
-		in  string
-		out *big.Int
-	}{
-		{"0x0", big.NewInt(0).SetBytes([]byte{0})},
-		{"0x00", big.NewInt(0).SetBytes([]byte{0})},
-		{"0x1", big.NewInt(1)},
-		{"0x01", big.NewInt(1)},
-		{"0xf", big.NewInt(15)},
-		{"0x0f", big.NewInt(15)},
-		{"0x10", big.NewInt(16)},
-		{"0xff", big.NewInt(255)},
-		{"0x50429", big.NewInt(328745)},
-		{"0x050429", big.NewInt(328745)},
-	}
-
-	for _, test := range tests {
-		res := MustHexToBigInt(test.in)
-		require.Equal(t, test.out, res)
-	}
-}
-
-func TestMustHexToBigIntPanic(t *testing.T) {
-	assert.Panics(t, func() { MustHexToBigInt("1") }, "should panic for string len < 2")
-	assert.Panics(t, func() { MustHexToBigInt("12") }, "should panic for string not starting with 0x")
-	assert.Panics(t, func() { MustHexToBigInt("0xzz") }, "should panic for string not containing hex characters")
 }

@@ -4,6 +4,7 @@
 package rpc
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -27,13 +28,16 @@ func TestBabeRPC(t *testing.T) {
 
 	t.Log("starting gossamer...")
 	nodes, err := utils.InitializeAndStartNodes(t, 1, utils.GenesisDefault, utils.ConfigDefault)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	time.Sleep(time.Second) // give server a second to start
 
 	for _, test := range testCases {
 		t.Run(test.description, func(t *testing.T) {
-			_ = getResponse(t, test)
+			ctx := context.Background()
+			getResponseCtx, cancel := context.WithTimeout(ctx, time.Second)
+			defer cancel()
+			_ = getResponse(getResponseCtx, t, test)
 		})
 	}
 

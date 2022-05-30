@@ -5,7 +5,6 @@ package types
 
 import (
 	"bytes"
-	"math/big"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -32,7 +31,7 @@ func TestEmptyBlock(t *testing.T) {
 	extrinsicsRoot, err := common.HexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
 	require.NoError(t, err)
 
-	header, err := NewHeader(parentHash, stateRoot, extrinsicsRoot, big.NewInt(1), NewDigest())
+	header, err := NewHeader(parentHash, stateRoot, extrinsicsRoot, 1, NewDigest())
 	require.NoError(t, err)
 
 	block = NewBlock(*header, Body{})
@@ -58,7 +57,7 @@ func TestEncodeAndDecodeBlock(t *testing.T) {
 	extrinsicsRoot, err := common.HexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
 	require.NoError(t, err)
 
-	header, err := NewHeader(parentHash, stateRoot, extrinsicsRoot, big.NewInt(1), NewDigest())
+	header, err := NewHeader(parentHash, stateRoot, extrinsicsRoot, 1, NewDigest())
 	require.NoError(t, err)
 
 	block := NewBlock(*header, *NewBody([]Extrinsic{[]byte{4, 1}}))
@@ -71,9 +70,7 @@ func TestEncodeAndDecodeBlock(t *testing.T) {
 	dec := NewBlock(*NewEmptyHeader(), *new(Body))
 	err = scale.Unmarshal(enc, &dec)
 	require.NoError(t, err)
-	if dec.Header.Number != nil {
-		dec.Header.Hash()
-	}
+	dec.Header.Hash()
 	require.Equal(t, block, dec)
 }
 
@@ -99,14 +96,14 @@ func TestDeepCopyBlock(t *testing.T) {
 }
 
 func TestMustEncodeBlock(t *testing.T) {
-	h1, err := NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, big.NewInt(0), NewDigest())
+	h1, err := NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, 0, NewDigest())
 	require.NoError(t, err)
 
 	b1 := NewBlock(*h1, *NewBody([]Extrinsic{[]byte{4, 1}}))
 	enc, err := b1.Encode()
 	require.NoError(t, err)
 
-	h2, err := NewHeader(common.Hash{0x1, 0x2}, common.Hash{}, common.Hash{}, big.NewInt(0), NewDigest())
+	h2, err := NewHeader(common.Hash{0x1, 0x2}, common.Hash{}, common.Hash{}, 0, NewDigest())
 	require.NoError(t, err)
 
 	b2 := NewBlock(*h2, *NewBody([]Extrinsic{[]byte{0xa, 0xb}}))

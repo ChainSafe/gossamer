@@ -35,6 +35,7 @@ package wasmer
 //
 // extern int32_t ext_trie_blake2_256_root_version_1(void *context, int64_t a);
 // extern int32_t ext_trie_blake2_256_ordered_root_version_1(void *context, int64_t a);
+// extern int32_t ext_trie_blake2_256_ordered_root_version_2(void *context, int64_t a, int32_t b);
 // extern int32_t ext_trie_blake2_256_verify_proof_version_1(void *context, int32_t a, int64_t b, int64_t c, int64_t d);
 //
 // extern int64_t ext_misc_runtime_version_version_1(void *context, int64_t a);
@@ -91,6 +92,7 @@ package wasmer
 // extern int64_t ext_storage_read_version_1(void *context, int64_t a, int64_t b, int32_t c);
 // extern void ext_storage_rollback_transaction_version_1(void *context);
 // extern int64_t ext_storage_root_version_1(void *context);
+// extern int64_t ext_storage_root_version_2(void *context, int32_t a);
 // extern void ext_storage_set_version_1(void *context, int64_t a, int64_t b);
 // extern void ext_storage_start_transaction_version_1(void *context);
 //
@@ -871,6 +873,12 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 	return C.int32_t(ptr)
 }
 
+//export ext_trie_blake2_256_ordered_root_version_2
+func ext_trie_blake2_256_ordered_root_version_2(context unsafe.Pointer, dataSpan C.int64_t, version C.int32_t) C.int32_t {
+	// TODO: update to use state trie version 1 (#2418)
+	return ext_trie_blake2_256_ordered_root_version_1(context, dataSpan)
+}
+
 //export ext_trie_blake2_256_verify_proof_version_1
 func ext_trie_blake2_256_verify_proof_version_1(context unsafe.Pointer, rootSpan C.int32_t, proofSpan, keySpan, valueSpan C.int64_t) C.int32_t {
 	logger.Debug("executing...")
@@ -949,11 +957,9 @@ func ext_misc_runtime_version_version_1(context unsafe.Pointer, dataSpan C.int64
 		return 0
 	}
 
-	// instance version is set and cached in NewInstance
-	version := instance.version
-
-	if version == nil {
-		logger.Error("failed to get runtime version")
+	version, err := instance.Version()
+	if err != nil {
+		logger.Errorf("failed to get runtime version: %s", err)
 		out, _ := toWasmMemoryOptional(instanceContext, nil)
 		return C.int64_t(out)
 	}
@@ -1790,7 +1796,7 @@ func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 			logger.Tracef(
 				"item in storage is not SCALE encoded, overwriting at key 0x%x", key)
 			storage.Set(key, append([]byte{4}, valueToAppend...))
-			return nil //nolint:nilerr
+			return nil
 		}
 
 		lengthBytes, err := scale.Marshal(currLength)
@@ -2053,6 +2059,12 @@ func ext_storage_root_version_1(context unsafe.Pointer) C.int64_t {
 	}
 
 	return C.int64_t(rootSpan)
+}
+
+//export ext_storage_root_version_2
+func ext_storage_root_version_2(context unsafe.Pointer, version C.int32_t) C.int64_t {
+	// TODO: update to use state trie version 1 (#2418)
+	return ext_storage_root_version_1(context)
 }
 
 //export ext_storage_set_version_1
@@ -2530,6 +2542,10 @@ func ImportsNodeRuntime() (*wasm.Imports, error) { //nolint:gocyclo
 	if err != nil {
 		return nil, err
 	}
+	_, err = imports.Append("ext_storage_root_version_2", ext_storage_root_version_2, C.ext_storage_root_version_2)
+	if err != nil {
+		return nil, err
+	}
 	_, err = imports.Append("ext_storage_set_version_1", ext_storage_set_version_1, C.ext_storage_set_version_1)
 	if err != nil {
 		return nil, err
@@ -2540,6 +2556,10 @@ func ImportsNodeRuntime() (*wasm.Imports, error) { //nolint:gocyclo
 	}
 
 	_, err = imports.Append("ext_trie_blake2_256_ordered_root_version_1", ext_trie_blake2_256_ordered_root_version_1, C.ext_trie_blake2_256_ordered_root_version_1)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_trie_blake2_256_ordered_root_version_2", ext_trie_blake2_256_ordered_root_version_2, C.ext_trie_blake2_256_ordered_root_version_2)
 	if err != nil {
 		return nil, err
 	}

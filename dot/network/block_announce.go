@@ -6,8 +6,8 @@ package network
 import (
 	"errors"
 	"fmt"
-	"math/big"
 
+	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -23,7 +23,7 @@ var (
 // BlockAnnounceMessage is a state block header
 type BlockAnnounceMessage struct {
 	ParentHash     common.Hash
-	Number         *big.Int
+	Number         uint
 	StateRoot      common.Hash
 	ExtrinsicsRoot common.Hash
 	Digest         scale.VaryingDataTypeSlice
@@ -69,11 +69,14 @@ func (bm *BlockAnnounceMessage) Decode(in []byte) error {
 }
 
 // Hash returns the hash of the BlockAnnounceMessage
-func (bm *BlockAnnounceMessage) Hash() common.Hash {
+func (bm *BlockAnnounceMessage) Hash() (common.Hash, error) {
 	// scale encode each extrinsic
-	encMsg, _ := bm.Encode()
-	hash, _ := common.Blake2bHash(encMsg)
-	return hash
+	encMsg, err := bm.Encode()
+	if err != nil {
+		return common.Hash{}, fmt.Errorf("cannot encode message: %w", err)
+	}
+
+	return common.Blake2bHash(encMsg)
 }
 
 // IsHandshake returns false
@@ -93,7 +96,6 @@ func decodeBlockAnnounceHandshake(in []byte) (Handshake, error) {
 
 func decodeBlockAnnounceMessage(in []byte) (NotificationsMessage, error) {
 	msg := BlockAnnounceMessage{
-		Number: big.NewInt(0),
 		Digest: types.NewDigest(),
 	}
 	err := msg.Decode(in)
@@ -145,9 +147,15 @@ func (*BlockAnnounceHandshake) Type() byte {
 	return 0
 }
 
-// Hash ...
-func (*BlockAnnounceHandshake) Hash() common.Hash {
-	return common.Hash{}
+// Hash returns blake2b hash of block announce handshake.
+func (hs *BlockAnnounceHandshake) Hash() (common.Hash, error) {
+	// scale encode each extrinsic
+	encMsg, err := hs.Encode()
+	if err != nil {
+		return common.Hash{}, fmt.Errorf("cannot encode handshake: %w", err)
+	}
+
+	return common.Blake2bHash(encMsg)
 }
 
 // IsHandshake returns true
@@ -163,7 +171,7 @@ func (s *Service) getBlockAnnounceHandshake() (Handshake, error) {
 
 	return &BlockAnnounceHandshake{
 		Roles:           s.cfg.Roles,
-		BestBlockNumber: uint32(latestBlock.Number.Uint64()),
+		BestBlockNumber: uint32(latestBlock.Number),
 		BestBlockHash:   latestBlock.Hash(),
 		GenesisHash:     s.blockState.GenesisHash(),
 	}, nil
@@ -175,7 +183,11 @@ func (s *Service) validateBlockAnnounceHandshake(from peer.ID, hs Handshake) err
 		return errors.New("invalid handshake type")
 	}
 
-	if bhs.GenesisHash != s.blockState.GenesisHash() {
+	if !bhs.GenesisHash.Equal(s.blockState.GenesisHash()) {
+		s.host.cm.peerSetHandler.ReportPeer(peerset.ReputationChange{
+			Value:  peerset.GenesisMismatch,
+			Reason: peerset.GenesisMismatchReason,
+		}, from)
 		return errors.New("genesis hash mismatch")
 	}
 
@@ -187,10 +199,10 @@ func (s *Service) validateBlockAnnounceHandshake(from peer.ID, hs Handshake) err
 
 	// don't need to lock here, since function is always called inside the func returned by
 	// `createNotificationsMessageHandler` which locks the map beforehand.
-	data, ok := np.getInboundHandshakeData(from)
-	if ok {
+	data := np.peersData.getInboundHandshakeData(from)
+	if data != nil {
 		data.handshake = hs
-		np.inboundHandshakeData.Store(from, data)
+		np.peersData.setInboundHandshakeData(from, data)
 	}
 
 	// if peer has higher best block than us, begin syncing
@@ -199,10 +211,8 @@ func (s *Service) validateBlockAnnounceHandshake(from peer.ID, hs Handshake) err
 		return err
 	}
 
-	bestBlockNum := big.NewInt(int64(bhs.BestBlockNumber))
-
 	// check if peer block number is greater than host block number
-	if latestHeader.Number.Cmp(bestBlockNum) >= 0 {
+	if latestHeader.Number >= uint(bhs.BestBlockNumber) {
 		return nil
 	}
 

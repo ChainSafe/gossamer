@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 //go:build integration
-// +build integration
 
 package modules
 
@@ -13,14 +12,12 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/require"
 )
 
-const GssmrGenesisPath = "../../../chain/gssmr/genesis.json"
-
 func TestSyncStateModule(t *testing.T) {
-	fp, err := filepath.Abs(GssmrGenesisPath)
-	require.NoError(t, err)
+	fp := utils.GetGssmrGenesisRawPathTest(t)
 
 	data, err := ioutil.ReadFile(filepath.Clean(fp))
 	require.NoError(t, err)

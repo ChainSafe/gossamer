@@ -35,7 +35,7 @@ const (
 	blockAnnounceID = "/block-announces/1"
 	transactionsID  = "/transactions/1"
 
-	maxMessageSize = 1024 * 63 // 63kb for now
+	maxMessageSize = 1024 * 64 // 64kb for now
 )
 
 var (
@@ -108,7 +108,7 @@ type Service struct {
 	host          *host
 	mdns          *mdns
 	gossip        *gossip
-	bufPool       *sizedBufferPool
+	bufPool       *sync.Pool
 	streamManager *streamManager
 
 	notificationsProtocols map[byte]*notificationsProtocol // map of sub-protocol msg ID to protocol info
@@ -136,8 +136,7 @@ type Service struct {
 
 	blockResponseBuf   []byte
 	blockResponseBufMu sync.Mutex
-
-	telemetry telemetry.Client
+	telemetry          telemetry.Client
 }
 
 // NewService creates a new network service from the configuration and message channels
@@ -175,6 +174,7 @@ func NewService(cfg *Config) (*Service, error) {
 	if cfg.batchSize == 0 {
 		cfg.batchSize = defaultTxnBatchSize
 	}
+
 	// create a new host instance
 	host, err := newHost(ctx, cfg)
 	if err != nil {
@@ -182,16 +182,12 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, err
 	}
 
-	// pre-allocate pool of buffers used to read from streams.
-	// initially allocate as many buffers as likely necessary which is the number of inbound streams we will have,
-	// which should equal the average number of peers times the number of notifications protocols, which is currently 3.
-	preAllocateInPool := cfg.MinPeers * 3
-	poolSize := cfg.MaxPeers * 3
-	if cfg.noPreAllocate { // testing
-		preAllocateInPool = 0
-		poolSize = cfg.MinPeers * 3
+	bufPool := &sync.Pool{
+		New: func() interface{} {
+			b := make([]byte, maxMessageSize)
+			return &b
+		},
 	}
-	bufPool := newSizedBufferPool(preAllocateInPool, poolSize)
 
 	const cleanupStreamInterval = time.Minute
 	streamManager := newStreamManager(ctx, cleanupStreamInterval)
@@ -285,22 +281,22 @@ func (s *Service) Start() error {
 
 	// since this opens block announce streams, it should happen after the protocol is registered
 	// NOTE: this only handles *incoming* connections
-	s.host.h.Network().SetConnHandler(s.handleConn)
+	s.host.p2pHost.Network().SetConnHandler(s.handleConn)
 
 	// this handles all new connections (incoming and outgoing)
 	// it creates a per-protocol mutex for sending outbound handshakes to the peer
 	s.host.cm.connectHandler = func(peerID peer.ID) {
 		for _, prtl := range s.notificationsProtocols {
-			prtl.outboundHandshakeMutexes.Store(peerID, new(sync.Mutex))
+			prtl.peersData.setMutex(peerID)
 		}
 	}
 
 	// when a peer gets disconnected, we should clear all handshake data we have for it.
 	s.host.cm.disconnectHandler = func(peerID peer.ID) {
 		for _, prtl := range s.notificationsProtocols {
-			prtl.outboundHandshakeMutexes.Delete(peerID)
-			prtl.inboundHandshakeData.Delete(peerID)
-			prtl.outboundHandshakeData.Delete(peerID)
+			prtl.peersData.deleteMutex(peerID)
+			prtl.peersData.deleteInboundHandshakeData(peerID)
+			prtl.peersData.deleteOutboundHandshakeData(peerID)
 		}
 	}
 
@@ -348,9 +344,9 @@ func (s *Service) updateMetrics() {
 			return
 		case <-ticker.C:
 			peerCountGauge.Set(float64(s.host.peerCount()))
-			connectionsGauge.Set(float64(len(s.host.h.Network().Conns())))
+			connectionsGauge.Set(float64(len(s.host.p2pHost.Network().Conns())))
 			nodeLatencyGauge.Set(float64(
-				s.host.h.Peerstore().LatencyEWMA(s.host.id()).Milliseconds()))
+				s.host.p2pHost.Peerstore().LatencyEWMA(s.host.id()).Milliseconds()))
 			inboundBlockAnnounceStreamsGauge.Set(float64(
 				s.getNumStreams(BlockAnnounceMsgType, true)))
 			outboundBlockAnnounceStreamsGauge.Set(float64(
@@ -364,7 +360,7 @@ func (s *Service) updateMetrics() {
 }
 
 func (s *Service) getTotalStreams(inbound bool) (count int64) {
-	for _, conn := range s.host.h.Network().Conns() {
+	for _, conn := range s.host.p2pHost.Network().Conns() {
 		for _, stream := range conn.GetStreams() {
 			streamIsInbound := isInbound(stream)
 			if (streamIsInbound && inbound) || (!streamIsInbound && !inbound) {
@@ -381,26 +377,10 @@ func (s *Service) getNumStreams(protocolID byte, inbound bool) (count int64) {
 		return 0
 	}
 
-	var hsData *sync.Map
 	if inbound {
-		hsData = np.inboundHandshakeData
-	} else {
-		hsData = np.outboundHandshakeData
+		return np.peersData.countInboundStreams()
 	}
-
-	hsData.Range(func(_, data interface{}) bool {
-		if data == nil {
-			return true
-		}
-
-		if data.(*handshakeData).stream != nil {
-			count++
-		}
-
-		return true
-	})
-
-	return count
+	return np.peersData.countOutboundStreams()
 }
 
 func (s *Service) logPeerCount() {
@@ -518,8 +498,6 @@ func (s *Service) Stop() error {
 	if err != nil {
 		logger.Errorf("Failed to close host: %s", err)
 	}
-
-	s.host.cm.peerSetHandler.Stop()
 
 	// check if closeCh is closed, if not, close it.
 mainloop:
@@ -648,8 +626,8 @@ func (s *Service) Peers() []common.PeerInfo {
 	s.notificationsMu.RUnlock()
 
 	for _, p := range s.host.peers() {
-		data, has := np.getInboundHandshakeData(p)
-		if !has || data.handshake == nil {
+		data := np.peersData.getInboundHandshakeData(p)
+		if data == nil || data.handshake == nil {
 			peers = append(peers, common.PeerInfo{
 				PeerID: p.String(),
 			})
@@ -724,7 +702,7 @@ func (s *Service) processMessage(msg peerset.Message) {
 	}
 	switch msg.Status {
 	case peerset.Connect:
-		addrInfo := s.host.h.Peerstore().PeerInfo(peerID)
+		addrInfo := s.host.p2pHost.Peerstore().PeerInfo(peerID)
 		if len(addrInfo.Addrs) == 0 {
 			var err error
 			addrInfo, err = s.host.discovery.findPeer(peerID)

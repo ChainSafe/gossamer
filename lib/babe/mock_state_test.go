@@ -5,7 +5,6 @@
 package babe
 
 import (
-	big "math/big"
 	reflect "reflect"
 	time "time"
 
@@ -99,10 +98,10 @@ func (mr *MockBlockStateMockRecorder) BestBlockHeader() *gomock.Call {
 }
 
 // BestBlockNumber mocks base method.
-func (m *MockBlockState) BestBlockNumber() (*big.Int, error) {
+func (m *MockBlockState) BestBlockNumber() (uint, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "BestBlockNumber")
-	ret0, _ := ret[0].(*big.Int)
+	ret0, _ := ret[0].(uint)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -184,7 +183,7 @@ func (mr *MockBlockStateMockRecorder) GetBlockByHash(arg0 interface{}) *gomock.C
 }
 
 // GetBlockByNumber mocks base method.
-func (m *MockBlockState) GetBlockByNumber(arg0 *big.Int) (*types.Block, error) {
+func (m *MockBlockState) GetBlockByNumber(arg0 uint) (*types.Block, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetBlockByNumber", arg0)
 	ret0, _ := ret[0].(*types.Block)
@@ -288,7 +287,7 @@ func (mr *MockBlockStateMockRecorder) IsDescendantOf(arg0, arg1 interface{}) *go
 }
 
 // NumberIsFinalised mocks base method.
-func (m *MockBlockState) NumberIsFinalised(arg0 *big.Int) (bool, error) {
+func (m *MockBlockState) NumberIsFinalised(arg0 uint) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "NumberIsFinalised", arg0)
 	ret0, _ := ret[0].(bool)
@@ -530,18 +529,18 @@ func (m *MockEpochState) EXPECT() *MockEpochStateMockRecorder {
 }
 
 // GetConfigData mocks base method.
-func (m *MockEpochState) GetConfigData(arg0 uint64) (*types.ConfigData, error) {
+func (m *MockEpochState) GetConfigData(arg0 uint64, arg1 *types.Header) (*types.ConfigData, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetConfigData", arg0)
+	ret := m.ctrl.Call(m, "GetConfigData", arg0, arg1)
 	ret0, _ := ret[0].(*types.ConfigData)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetConfigData indicates an expected call of GetConfigData.
-func (mr *MockEpochStateMockRecorder) GetConfigData(arg0 interface{}) *gomock.Call {
+func (mr *MockEpochStateMockRecorder) GetConfigData(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConfigData", reflect.TypeOf((*MockEpochState)(nil).GetConfigData), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConfigData", reflect.TypeOf((*MockEpochState)(nil).GetConfigData), arg0, arg1)
 }
 
 // GetCurrentEpoch mocks base method.
@@ -560,18 +559,18 @@ func (mr *MockEpochStateMockRecorder) GetCurrentEpoch() *gomock.Call {
 }
 
 // GetEpochData mocks base method.
-func (m *MockEpochState) GetEpochData(arg0 uint64) (*types.EpochData, error) {
+func (m *MockEpochState) GetEpochData(arg0 uint64, arg1 *types.Header) (*types.EpochData, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetEpochData", arg0)
+	ret := m.ctrl.Call(m, "GetEpochData", arg0, arg1)
 	ret0, _ := ret[0].(*types.EpochData)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetEpochData indicates an expected call of GetEpochData.
-func (mr *MockEpochStateMockRecorder) GetEpochData(arg0 interface{}) *gomock.Call {
+func (mr *MockEpochStateMockRecorder) GetEpochData(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEpochData", reflect.TypeOf((*MockEpochState)(nil).GetEpochData), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEpochData", reflect.TypeOf((*MockEpochState)(nil).GetEpochData), arg0, arg1)
 }
 
 // GetEpochForBlock mocks base method.

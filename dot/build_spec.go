@@ -78,8 +78,7 @@ func WriteGenesisSpecFile(data []byte, fp string) error {
 		return err
 	}
 
-	writeConfig(data, fp)
-	return nil
+	return os.WriteFile(fp, data, 0600)
 }
 
 // BuildFromDB builds a BuildSpec from the DB located at path

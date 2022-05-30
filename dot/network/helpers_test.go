@@ -6,9 +6,9 @@ package network
 import (
 	"errors"
 	"io"
-	"math/big"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -16,6 +16,17 @@ import (
 
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
+)
+
+const (
+	// TestProtocolID default protocol to testing
+	TestProtocolID = "/gossamer/test/0"
+
+	// TestMessageTimeout maximum wait time for non-status message to be handled
+	TestMessageTimeout = time.Second
+
+	// TestBackoffTimeout time between connection retries (BackoffBase default 5 seconds)
+	TestBackoffTimeout = 5 * time.Second
 )
 
 type testStreamHandler struct {
@@ -77,7 +88,7 @@ func (s *testStreamHandler) readStream(stream libp2pnetwork.Stream,
 	msgBytes := make([]byte, maxBlockResponseSize)
 
 	for {
-		tot, err := readStream(stream, msgBytes)
+		tot, err := readStream(stream, &msgBytes)
 		if errors.Is(err, io.EOF) {
 			s.eofCh <- struct{}{}
 			return
@@ -112,7 +123,7 @@ func (s *testStreamHandler) messagesFrom(peerID peer.ID) (messages []Message, ok
 	return messages, ok
 }
 
-var starting, _ = variadic.NewUint64OrHash(uint64(1))
+var starting, _ = variadic.NewUint32OrHash(uint64(1))
 
 var one = uint32(1)
 
@@ -136,7 +147,7 @@ func testBlockRequestMessageDecoder(in []byte, _ peer.ID, _ bool) (Message, erro
 
 func testBlockAnnounceMessageDecoder(in []byte, _ peer.ID, _ bool) (Message, error) {
 	msg := BlockAnnounceMessage{
-		Number: big.NewInt(0),
+		Number: 0,
 		Digest: types.NewDigest(),
 	}
 	err := msg.Decode(in)

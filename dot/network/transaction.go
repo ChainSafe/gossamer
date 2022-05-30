@@ -54,10 +54,12 @@ func (tm *TransactionMessage) Decode(in []byte) error {
 }
 
 // Hash returns the hash of the TransactionMessage
-func (tm *TransactionMessage) Hash() common.Hash {
-	encMsg, _ := tm.Encode()
-	hash, _ := common.Blake2bHash(encMsg)
-	return hash
+func (tm *TransactionMessage) Hash() (common.Hash, error) {
+	encMsg, err := tm.Encode()
+	if err != nil {
+		return common.Hash{}, fmt.Errorf("could not encode message: %w", err)
+	}
+	return common.Blake2bHash(encMsg)
 }
 
 // IsHandshake returns false
@@ -93,8 +95,8 @@ func (*transactionHandshake) Type() byte {
 }
 
 // Hash ...
-func (*transactionHandshake) Hash() common.Hash {
-	return common.Hash{}
+func (*transactionHandshake) Hash() (common.Hash, error) {
+	return common.Hash{}, nil
 }
 
 // IsHandshake returns true
@@ -129,6 +131,7 @@ func (s *Service) startTxnBatchProcessing(txnBatchCh chan *BatchMessage, slotDur
 				case txnMsg := <-txnBatchCh:
 					propagate, err := s.handleTransactionMessage(txnMsg.peer, txnMsg.msg)
 					if err != nil {
+						logger.Warnf("could not handle transaction message: %s", err)
 						s.host.closeProtocolStream(protocolID, txnMsg.peer)
 						continue
 					}
@@ -137,7 +140,16 @@ func (s *Service) startTxnBatchProcessing(txnBatchCh chan *BatchMessage, slotDur
 						continue
 					}
 
-					if !s.gossip.hasSeen(txnMsg.msg) {
+					// TODO: Check if s.gossip.hasSeen should be moved before handleTransactionMessage. #2445
+					// That we could avoid handling the transactions again, which we would have already seen.
+
+					hasSeen, err := s.gossip.hasSeen(txnMsg.msg)
+					if err != nil {
+						s.host.closeProtocolStream(protocolID, txnMsg.peer)
+						logger.Debugf("could not check if message was seen before: %s", err)
+						continue
+					}
+					if !hasSeen {
 						s.broadcastExcluding(s.notificationsProtocols[TransactionMsgType], txnMsg.peer, txnMsg.msg)
 					}
 				}

@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	coremocks "github.com/ChainSafe/gossamer/dot/core/mocks"
+	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -19,21 +19,16 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
 // NewTestService creates a new test core service
 func NewTestService(t *testing.T, cfg *Config) *Service {
 	t.Helper()
+	ctrl := gomock.NewController(t)
 
 	if cfg == nil {
 		cfg = &Config{}
-	}
-
-	if cfg.DigestHandler == nil {
-		cfg.DigestHandler = new(coremocks.DigestHandler)
-		cfg.DigestHandler.(*coremocks.DigestHandler).On("HandleDigests", mock.AnythingOfType("*types.Header"))
 	}
 
 	if cfg.Keystore == nil {
@@ -56,7 +51,6 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	if cfg.BlockState == nil || cfg.StorageState == nil ||
 		cfg.TransactionState == nil || cfg.EpochState == nil ||
 		cfg.CodeSubstitutedState == nil {
-		ctrl := gomock.NewController(t)
 		telemetryMock := NewMockClient(ctrl)
 		telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
@@ -70,10 +64,10 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		stateSrvc.UseMemDB()
 
 		err := stateSrvc.Initialise(gen, genHeader, genTrie)
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		err = stateSrvc.Start()
-		require.Nil(t, err)
+		require.NoError(t, err)
 	}
 
 	if cfg.BlockState == nil {
@@ -123,11 +117,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), cfg.Runtime)
 
 	if cfg.Network == nil {
-		net := new(coremocks.Network)
-		net.On("GossipMessage", mock.AnythingOfType("*network.TransactionMessage"))
-		net.On("IsSynced").Return(true)
-		net.On("ReportPeer", mock.AnythingOfType("peerset.ReputationChange"), mock.AnythingOfType("peer.ID"))
-		cfg.Network = net
+		cfg.Network = new(network.Service) // only for nil check in NewService
 	}
 
 	if cfg.CodeSubstitutes == nil {

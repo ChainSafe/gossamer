@@ -46,7 +46,7 @@ func (t *Trie) store(db chaindb.Batch, n Node) error {
 		return nil
 	}
 
-	encoding, hash, err := n.EncodeAndHash()
+	encoding, hash, err := n.EncodeAndHash(n == t.root)
 	if err != nil {
 		return err
 	}
@@ -78,15 +78,17 @@ func (t *Trie) store(db chaindb.Batch, n Node) error {
 	return nil
 }
 
-// loadFromProof create a partial trie based on the proof slice, as it only contains nodes that are in the proof afaik.
-func (t *Trie) loadFromProof(rawProof [][]byte, rootHash []byte) error {
-	if len(rawProof) == 0 {
+// LoadFromProof sets a partial trie based on the proof slice of encoded nodes.
+// Note this is exported because it is imported  is used by:
+// https://github.com/ComposableFi/ibc-go/blob/6d62edaa1a3cb0768c430dab81bb195e0b0c72db/modules/light-clients/11-beefy/types/client_state.go#L78
+func (t *Trie) LoadFromProof(proofEncodedNodes [][]byte, rootHash []byte) error {
+	if len(proofEncodedNodes) == 0 {
 		return ErrEmptyProof
 	}
 
-	proofHashToNode := make(map[string]Node, len(rawProof))
+	proofHashToNode := make(map[string]Node, len(proofEncodedNodes))
 
-	for i, rawNode := range rawProof {
+	for i, rawNode := range proofEncodedNodes {
 		decodedNode, err := node.Decode(bytes.NewReader(rawNode))
 		if err != nil {
 			return fmt.Errorf("%w: at index %d: 0x%x",
@@ -97,7 +99,7 @@ func (t *Trie) loadFromProof(rawProof [][]byte, rootHash []byte) error {
 		decodedNode.SetDirty(dirty)
 		decodedNode.SetEncodingAndHash(rawNode, nil)
 
-		_, hash, err := decodedNode.EncodeAndHash()
+		_, hash, err := decodedNode.EncodeAndHash(false)
 		if err != nil {
 			return fmt.Errorf("cannot encode and hash node at index %d: %w", i, err)
 		}
@@ -137,7 +139,6 @@ func (t *Trie) loadProof(proofHashToNode map[string]Node, n Node) {
 		if !ok {
 			continue
 		}
-		delete(proofHashToNode, proofHash)
 
 		branch.Children[i] = node
 		t.loadProof(proofHashToNode, node)
@@ -151,8 +152,7 @@ func (t *Trie) Load(db chaindb.Database, rootHash common.Hash) error {
 		t.root = nil
 		return nil
 	}
-
-	rootHashBytes := rootHash[:]
+	rootHashBytes := rootHash.ToBytes()
 
 	encodedNode, err := db.Get(rootHashBytes)
 	if err != nil {
@@ -164,6 +164,7 @@ func (t *Trie) Load(db chaindb.Database, rootHash common.Hash) error {
 	if err != nil {
 		return fmt.Errorf("cannot decode root node: %w", err)
 	}
+
 	t.root = root
 	t.root.SetDirty(false)
 	t.root.SetEncodingAndHash(encodedNode, rootHashBytes)
@@ -186,6 +187,19 @@ func (t *Trie) load(db chaindb.Database, n Node) error {
 		}
 
 		hash := child.GetHash()
+
+		_, isLeaf := child.(*node.Leaf)
+		if len(hash) == 0 && isLeaf {
+			// node has already been loaded inline
+			// just set encoding + hash digest
+			_, _, err := child.EncodeAndHash(false)
+			if err != nil {
+				return err
+			}
+			child.SetDirty(false)
+			continue
+		}
+
 		encodedNode, err := db.Get(hash)
 		if err != nil {
 			return fmt.Errorf("cannot find child node key 0x%x in database: %w", hash, err)
@@ -205,21 +219,33 @@ func (t *Trie) load(db chaindb.Database, n Node) error {
 		if err != nil {
 			return fmt.Errorf("cannot load child at index %d with hash 0x%x: %w", i, hash, err)
 		}
+
+		if decodedNode.Type() != node.LeafType { // branch decoded node
+			// Note 1: the node is fully loaded with all its descendants
+			// count only after the database load above.
+			// Note 2: direct child node is already counted as descendant
+			// when it was read as a leaf with hash only in decodeBranch,
+			// so we only add the descendants of the child branch to the
+			// current branch.
+			childBranchDescendants := decodedNode.(*node.Branch).Descendants
+			branch.AddDescendants(childBranchDescendants)
+		}
 	}
 
 	for _, key := range t.GetKeysWithPrefix(ChildStorageKeyPrefix) {
 		childTrie := NewEmptyTrie()
 		value := t.Get(key)
-		err := childTrie.Load(db, common.NewHash(value))
+		rootHash := common.BytesToHash(value)
+		err := childTrie.Load(db, rootHash)
 		if err != nil {
-			return fmt.Errorf("failed to load child trie with root hash=0x%x: %w", value, err)
+			return fmt.Errorf("failed to load child trie with root hash=%s: %w", rootHash, err)
 		}
 
-		err = t.PutChild(value, childTrie)
+		hash, err := childTrie.Hash()
 		if err != nil {
-			return fmt.Errorf("failed to insert child trie with root hash=0x%x into main trie: %w",
-				childTrie.root.GetHash(), err)
+			return fmt.Errorf("cannot hash chilld trie at key 0x%x: %w", key, err)
 		}
+		t.childTries[hash] = childTrie
 	}
 
 	return nil
@@ -329,12 +355,18 @@ func getFromDB(db chaindb.Database, n Node, key []byte) (
 
 	// childIndex is the nibble after the common prefix length in the key being searched.
 	childIndex := key[commonPrefixLength]
-	childWithHashOnly := branch.Children[childIndex]
-	if childWithHashOnly == nil {
+	child := branch.Children[childIndex]
+	if child == nil {
 		return nil, nil
 	}
 
-	childHash := childWithHashOnly.GetHash()
+	// Child can be either inlined or a hash pointer.
+	childHash := child.GetHash()
+	_, isLeaf := child.(*node.Leaf)
+	if len(childHash) == 0 && isLeaf {
+		return getFromDB(db, child, key[commonPrefixLength+1:])
+	}
+
 	encodedChild, err := db.Get(childHash)
 	if err != nil {
 		return nil, fmt.Errorf(
@@ -371,21 +403,11 @@ func (t *Trie) writeDirty(db chaindb.Batch, n Node) error {
 		return nil
 	}
 
-	encoding, hash, err := n.EncodeAndHash()
+	encoding, hash, err := n.EncodeAndHash(n == t.root)
 	if err != nil {
 		return fmt.Errorf(
 			"cannot encode and hash node with hash 0x%x: %w",
 			n.GetHash(), err)
-	}
-
-	if n == t.root {
-		// hash root node even if its encoding is under 32 bytes
-		encodingDigest, err := common.Blake2bHash(encoding)
-		if err != nil {
-			return fmt.Errorf("cannot hash root node encoding: %w", err)
-		}
-
-		hash = encodingDigest[:]
 	}
 
 	err = db.Put(hash, encoding)
@@ -447,21 +469,11 @@ func (t *Trie) getInsertedNodeHashes(n Node, hashes map[common.Hash]struct{}) (e
 		return nil
 	}
 
-	encoding, hash, err := n.EncodeAndHash()
+	_, hash, err := n.EncodeAndHash(n == t.root)
 	if err != nil {
 		return fmt.Errorf(
 			"cannot encode and hash node with hash 0x%x: %w",
 			n.GetHash(), err)
-	}
-
-	if n == t.root && len(encoding) < 32 {
-		// hash root node even if its encoding is under 32 bytes
-		encodingDigest, err := common.Blake2bHash(encoding)
-		if err != nil {
-			return fmt.Errorf("cannot hash root node encoding: %w", err)
-		}
-
-		hash = encodingDigest[:]
 	}
 
 	hashes[common.BytesToHash(hash)] = struct{}{}

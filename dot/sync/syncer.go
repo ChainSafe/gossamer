@@ -4,7 +4,6 @@
 package sync
 
 import (
-	"math/big"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -115,7 +114,7 @@ func (s *Service) Stop() error {
 // HandleBlockAnnounceHandshake notifies the `chainSync` module that
 // we have received a BlockAnnounceHandshake from the given peer.
 func (s *Service) HandleBlockAnnounceHandshake(from peer.ID, msg *network.BlockAnnounceHandshake) error {
-	return s.chainSync.setPeerHead(from, msg.BestBlockHash, big.NewInt(int64(msg.BestBlockNumber)))
+	return s.chainSync.setPeerHead(from, msg.BestBlockHash, uint(msg.BestBlockNumber))
 }
 
 // HandleBlockAnnounce notifies the `chainSync` module that we have received a block announcement from the given peer.
@@ -137,7 +136,7 @@ func (s *Service) IsSynced() bool {
 }
 
 // HighestBlock gets the highest known block number
-func (s *Service) HighestBlock() int64 {
+func (s *Service) HighestBlock() uint {
 	highestBlock, err := s.chainSync.getHighestBlock()
 	if err != nil {
 		logger.Warnf("failed to get the highest block: %s", err)

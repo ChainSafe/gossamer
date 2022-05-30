@@ -5,17 +5,14 @@ package genesis
 
 import (
 	"encoding/json"
-	"errors"
-	"math/big"
 	"os"
-	"path"
 	"path/filepath"
-	"runtime"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/require"
 )
 
@@ -101,40 +98,9 @@ func CreateTestGenesisJSONFile(t *testing.T, asRaw bool) (filename string) {
 	return filename
 }
 
-// getAbsolutePath returns the absolute path concatenated with pathFromRoot
-func getAbsolutePath(t *testing.T, pathFromRoot string) string {
-	t.Helper()
-
-	_, fullpath, _, _ := runtime.Caller(0)
-	finderPath := path.Dir(fullpath)
-
-	const searchingFor = "go.mod"
-	for {
-		filepathToCheck := path.Join(finderPath, searchingFor)
-		_, err := os.Stat(filepathToCheck)
-
-		fileNotFound := errors.Is(err, os.ErrNotExist)
-		if fileNotFound {
-			previousFinderPath := finderPath
-			finderPath = path.Dir(finderPath)
-
-			if finderPath == previousFinderPath {
-				t.Fatal(t, "cannot find project root")
-			}
-
-			continue
-		}
-
-		require.NoError(t, err)
-		break
-	}
-
-	return filepath.Join(finderPath, pathFromRoot)
-}
-
 // NewTestGenesisWithTrieAndHeader generates genesis, genesis trie and genesis header
 func NewTestGenesisWithTrieAndHeader(t *testing.T) (*Genesis, *trie.Trie, *types.Header) {
-	genesisPath := getAbsolutePath(t, "chain/gssmr/genesis.json")
+	genesisPath := utils.GetGssmrGenesisRawPathTest(t)
 	gen, err := NewGenesisFromJSONRaw(genesisPath)
 	require.NoError(t, err)
 
@@ -144,7 +110,7 @@ func NewTestGenesisWithTrieAndHeader(t *testing.T) (*Genesis, *trie.Trie, *types
 
 // NewDevGenesisWithTrieAndHeader generates test dev genesis, genesis trie and genesis header
 func NewDevGenesisWithTrieAndHeader(t *testing.T) (*Genesis, *trie.Trie, *types.Header) {
-	genesisPath := getAbsolutePath(t, "chain/dev/genesis.json")
+	genesisPath := utils.GetDevGenesisPath(t)
 
 	gen, err := NewGenesisFromJSONRaw(genesisPath)
 	require.NoError(t, err)
@@ -158,7 +124,7 @@ func newGenesisTrieAndHeader(t *testing.T, gen *Genesis) (*trie.Trie, *types.Hea
 	require.NoError(t, err)
 
 	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}),
-		genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.NewDigest())
+		genTrie.MustHash(), trie.EmptyHash, 0, types.NewDigest())
 	require.NoError(t, err)
 
 	return genTrie, genesisHeader

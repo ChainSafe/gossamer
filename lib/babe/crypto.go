@@ -9,6 +9,7 @@ import (
 	"math"
 	"math/big"
 
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -81,6 +82,52 @@ func checkPrimaryThreshold(randomness Randomness,
 		pub.Hex(), randomness, slot, epoch, threshold, output, res)
 
 	return inoutUint.Compare(threshold) < 0, nil
+}
+
+func claimSecondarySlotVRF(randomness Randomness,
+	slot, epoch uint64,
+	authorities []types.Authority,
+	keypair *sr25519.Keypair,
+	authorityIndex uint32,
+) (*VrfOutputAndProof, error) {
+
+	secondarySlotAuthor, err := getSecondarySlotAuthor(slot, len(authorities), randomness)
+	if err != nil {
+		return nil, fmt.Errorf("cannot get secondary slot author: %w", err)
+	}
+
+	if authorityIndex != secondarySlotAuthor {
+		return nil, errNotOurTurnToPropose
+	}
+
+	transcript := makeTranscript(randomness, slot, epoch)
+
+	out, proof, err := keypair.VrfSign(transcript)
+	if err != nil {
+		return nil, fmt.Errorf("cannot verify transcript: %w", err)
+	}
+
+	logger.Debugf("claimed secondary slot, for slot number: %d", slot)
+
+	return &VrfOutputAndProof{
+		output: out,
+		proof:  proof,
+	}, nil
+}
+
+func claimSecondarySlotPlain(randomness Randomness, slot uint64, authorities []types.Authority, authorityIndex uint32,
+) error {
+	secondarySlotAuthor, err := getSecondarySlotAuthor(slot, len(authorities), randomness)
+	if err != nil {
+		return fmt.Errorf("cannot get secondary slot author: %w", err)
+	}
+
+	if authorityIndex != secondarySlotAuthor {
+		return errNotOurTurnToPropose
+	}
+
+	logger.Debugf("claimed secondary slot, for slot number: %d", slot)
+	return nil
 }
 
 // CalculateThreshold calculates the slot lottery threshold

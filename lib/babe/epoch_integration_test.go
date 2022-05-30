@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 //go:build integration
-// +build integration
 
 package babe
 
@@ -43,7 +42,7 @@ func TestInitiateEpoch_Epoch1(t *testing.T) {
 		Weight: 1,
 	}
 
-	data, err := bs.epochState.GetEpochData(0)
+	data, err := bs.epochState.GetEpochData(0, nil)
 	require.NoError(t, err)
 	data.Authorities = []types.Authority{auth}
 	err = bs.epochState.SetEpochData(1, data)

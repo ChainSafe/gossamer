@@ -4,6 +4,7 @@
 package rpc
 
 import (
+	"context"
 	"log"
 	"testing"
 	"time"
@@ -58,7 +59,7 @@ func TestChainRPC(t *testing.T) {
 
 	t.Log("starting gossamer...")
 	nodes, err := utils.InitializeAndStartNodes(t, 1, utils.GenesisDev, utils.ConfigDefault)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	time.Sleep(time.Second * 5) // give server a few seconds to start
 
@@ -72,7 +73,11 @@ func TestChainRPC(t *testing.T) {
 				test.params = "[\"" + chainBlockHeaderHash + "\"]"
 			}
 
-			target := getResponse(t, test)
+			ctx := context.Background()
+
+			getResponseCtx, cancel := context.WithTimeout(ctx, time.Second)
+			defer cancel()
+			target := getResponse(getResponseCtx, t, test)
 
 			switch v := target.(type) {
 			case *modules.ChainBlockHeaderResponse:
@@ -174,7 +179,7 @@ func TestChainSubscriptionRPC(t *testing.T) {
 
 	t.Log("starting gossamer...")
 	nodes, err := utils.InitializeAndStartNodesWebsocket(t, 1, utils.GenesisDev, utils.ConfigDefault)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	time.Sleep(time.Second) // give server a second to start
 

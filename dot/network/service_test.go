@@ -5,7 +5,6 @@ package network
 
 import (
 	"context"
-	"math/big"
 	"strings"
 	"testing"
 	"time"
@@ -18,14 +17,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
-
-var TestProtocolID = "/gossamer/test/0"
-
-// maximum wait time for non-status message to be handled
-var TestMessageTimeout = time.Second
-
-// time between connection retries (BackoffBase default 5 seconds)
-var TestBackoffTimeout = 5 * time.Second
 
 // failedToDial returns true if "failed to dial" error, otherwise false
 func failedToDial(err error) bool {
@@ -64,9 +55,9 @@ func newTestBlockResponseMessage(t *testing.T) *BlockResponseMessage {
 		BlockData: make([]*types.BlockData, blockRequestSize),
 	}
 
-	for i := 0; i < blockRequestSize; i++ {
+	for i := uint(0); i < blockRequestSize; i++ {
 		testHeader := &types.Header{
-			Number: big.NewInt(int64(77 + i)),
+			Number: 77 + i,
 			Digest: types.NewDigest(),
 		}
 
@@ -82,8 +73,8 @@ func newTestBlockResponseMessage(t *testing.T) *BlockResponseMessage {
 	return msg
 }
 
-//go:generate mockgen -destination=mock_block_state_test.go -package $GOPACKAGE . BlockState
 //go:generate mockgen -destination=mock_syncer_test.go -package $GOPACKAGE . Syncer
+//go:generate mockgen -destination=mock_block_state_test.go -package $GOPACKAGE . BlockState
 
 // helper method to create and start a new network service
 func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
@@ -104,7 +95,7 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	if cfg.BlockState == nil {
 		header := &types.Header{
 			ParentHash:     common.Hash{},
-			Number:         big.NewInt(1),
+			Number:         1,
 			StateRoot:      common.Hash{},
 			ExtrinsicsRoot: common.Hash{},
 			Digest:         types.NewDigest(),
@@ -115,7 +106,7 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 		blockstate.EXPECT().BestBlockHeader().Return(header, nil).AnyTimes()
 		blockstate.EXPECT().GetHighestFinalisedHeader().Return(header, nil).AnyTimes()
 		blockstate.EXPECT().GenesisHash().Return(common.NewHash([]byte{})).AnyTimes()
-		blockstate.EXPECT().BestBlockNumber().Return(big.NewInt(1), nil).AnyTimes()
+		blockstate.EXPECT().BestBlockNumber().Return(uint(1), nil).AnyTimes()
 
 		blockstate.EXPECT().HasBlockBody(
 			gomock.AssignableToTypeOf(common.Hash([32]byte{}))).Return(false, nil).AnyTimes()
@@ -230,7 +221,7 @@ func TestBroadcastMessages(t *testing.T) {
 	require.NoError(t, err)
 
 	anounceMessage := &BlockAnnounceMessage{
-		Number: big.NewInt(128 * 7),
+		Number: 128 * 7,
 		Digest: types.NewDigest(),
 	}
 
@@ -279,19 +270,20 @@ func Test_Broadcast_Duplicate_Messages_WithDisabled_MessageCache(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-	stream, err := nodeA.host.h.NewStream(context.Background(), nodeB.host.id(), nodeB.host.protocolID+blockAnnounceID)
+	stream, err := nodeA.host.p2pHost.NewStream(context.Background(),
+		nodeB.host.id(), nodeB.host.protocolID+blockAnnounceID)
 	require.NoError(t, err)
 	require.NotNil(t, stream)
 
 	protocol := nodeA.notificationsProtocols[BlockAnnounceMsgType]
-	protocol.outboundHandshakeData.Store(nodeB.host.id(), &handshakeData{
+	protocol.peersData.setOutboundHandshakeData(nodeB.host.id(), &handshakeData{
 		received:  true,
 		validated: true,
 		stream:    stream,
 	})
 
 	announceMessage := &BlockAnnounceMessage{
-		Number: big.NewInt(128 * 7),
+		Number: 128 * 7,
 		Digest: types.NewDigest(),
 	}
 
@@ -345,19 +337,19 @@ func Test_Broadcast_Duplicate_Messages_With_MessageCache(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-	stream, err := nodeA.host.h.NewStream(context.Background(), nodeB.host.id(), nodeB.host.protocolID+blockAnnounceID)
+	stream, err := nodeA.host.p2pHost.NewStream(context.Background(), nodeB.host.id(), nodeB.host.protocolID+blockAnnounceID)
 	require.NoError(t, err)
 	require.NotNil(t, stream)
 
 	protocol := nodeA.notificationsProtocols[BlockAnnounceMsgType]
-	protocol.outboundHandshakeData.Store(nodeB.host.id(), &handshakeData{
+	protocol.peersData.setInboundHandshakeData(nodeB.host.id(), &handshakeData{
 		received:  true,
 		validated: true,
 		stream:    stream,
 	})
 
 	announceMessage := &BlockAnnounceMessage{
-		Number: big.NewInt(128 * 7),
+		Number: 128 * 7,
 		Digest: types.NewDigest(),
 	}
 
@@ -426,7 +418,7 @@ func TestPersistPeerStore(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-	require.NotEmpty(t, nodeA.host.h.Peerstore().PeerInfo(nodeB.host.id()).Addrs)
+	require.NotEmpty(t, nodeA.host.p2pHost.Peerstore().PeerInfo(nodeB.host.id()).Addrs)
 
 	// Stop a node and reinitialise a new node with same base path.
 	err = nodeA.Stop()
@@ -434,7 +426,7 @@ func TestPersistPeerStore(t *testing.T) {
 
 	// Since nodeAA uses the persistent peerstore of nodeA, it should be have nodeB in it's peerstore.
 	nodeAA := createTestService(t, nodeA.cfg)
-	require.NotEmpty(t, nodeAA.host.h.Peerstore().PeerInfo(nodeB.host.id()).Addrs)
+	require.NotEmpty(t, nodeAA.host.p2pHost.Peerstore().PeerInfo(nodeB.host.id()).Addrs)
 }
 
 func TestHandleConn(t *testing.T) {

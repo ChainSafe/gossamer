@@ -30,6 +30,14 @@ func NewPool() *Pool {
 	}
 }
 
+// Get returns a pointer to ValidTransaction or nil given an extinsic hash
+func (p *Pool) Get(extHash common.Hash) *ValidTransaction {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+
+	return p.transactions[extHash]
+}
+
 // Transactions returns all the transactions in the pool
 func (p *Pool) Transactions() []*ValidTransaction {
 	txs := make([]*ValidTransaction, len(p.transactions))

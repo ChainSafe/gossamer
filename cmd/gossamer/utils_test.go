@@ -122,7 +122,7 @@ func Test_setupLogger(t *testing.T) {
 		c := c // bypass scopelint false positive
 		t.Run(c.description, func(t *testing.T) {
 			ctx, err := newTestContext(c.description, c.flags, c.values)
-			require.Nil(t, err)
+			require.NoError(t, err)
 
 			_, err = setupLogger(ctx)
 			if c.expected != nil {

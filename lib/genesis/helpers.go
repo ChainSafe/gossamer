@@ -83,7 +83,7 @@ func NewGenesisBlockFromTrie(t *trie.Trie) (*types.Header, error) {
 	}
 
 	// create genesis block header
-	header, err := types.NewHeader(common.NewHash([]byte{0}), stateRoot, trie.EmptyHash, big.NewInt(0), types.NewDigest())
+	header, err := types.NewHeader(common.NewHash([]byte{0}), stateRoot, trie.EmptyHash, 0, types.NewDigest())
 	if err != nil {
 		return nil, fmt.Errorf("failed to create genesis block header: %s", err)
 	}
@@ -595,12 +595,7 @@ func buildBalances(kv *keyValue, res map[string]string) error {
 			accInfo := types.AccountInfo{
 				Nonce: 0,
 				//RefCount: 0,
-				Data: struct {
-					Free       *scale.Uint128
-					Reserved   *scale.Uint128
-					MiscFrozen *scale.Uint128
-					FreeFrozen *scale.Uint128
-				}{
+				Data: types.AccountData{
 					Free:       scale.MustNewUint128(kv.iVal[i+1].(*big.Int)),
 					Reserved:   scale.MustNewUint128(big.NewInt(0)),
 					MiscFrozen: scale.MustNewUint128(big.NewInt(0)),

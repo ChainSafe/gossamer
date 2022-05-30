@@ -4,6 +4,7 @@
 package utils
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/user"
@@ -11,9 +12,11 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"testing"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/dgraph-io/badger/v2"
+	"github.com/stretchr/testify/require"
 )
 
 // DefaultDatabaseDir directory inside basepath where database contents are stored
@@ -145,52 +148,133 @@ func KeystoreFilepaths(basepath string) ([]string, error) {
 	return keys, nil
 }
 
+// GetGssmrGenesisRawPathTest gets the gssmr raw genesis path
+// and fails the test if it cannot find it.
+func GetGssmrGenesisRawPathTest(t *testing.T) string {
+	t.Helper()
+	path, err := GetGssmrGenesisRawPath()
+	require.NoError(t, err)
+	return path
+}
+
 // GetGssmrGenesisRawPath gets the gssmr raw genesis path
-func GetGssmrGenesisRawPath() string {
-	path1 := "../chain/gssmr/genesis.json"
-	path2 := "../../chain/gssmr/genesis.json"
-
-	var fp string
-
-	if PathExists(path1) {
-		fp, _ = filepath.Abs(path1)
-	} else if PathExists(path2) {
-		fp, _ = filepath.Abs(path2)
+// and returns an error if it cannot find it.
+func GetGssmrGenesisRawPath() (path string, err error) {
+	rootPath, err := GetProjectRootPath()
+	if err != nil {
+		return "", err
 	}
-
-	return fp
+	return filepath.Join(rootPath, "./chain/gssmr/genesis.json"), nil
 }
 
-// GetGssmrGenesisPath gets the gssmr human-readable genesis path
-func GetGssmrGenesisPath() string {
-	path1 := "../chain/gssmr/genesis-spec.json"
-	path2 := "../../chain/gssmr/genesis-spec.json"
-
-	var fp string
-
-	if PathExists(path1) {
-		fp, _ = filepath.Abs(path1)
-	} else if PathExists(path2) {
-		fp, _ = filepath.Abs(path2)
-	}
-
-	return fp
+// GetGssmrGenesisPathTest gets the gssmr genesis path
+// and fails the test if it cannot find it.
+func GetGssmrGenesisPathTest(t *testing.T) string {
+	t.Helper()
+	path, err := GetGssmrGenesisPath()
+	require.NoError(t, err)
+	return path
 }
 
-// GetKusamaGenesisPath gets the kusama genesis path
-func GetKusamaGenesisPath() string {
-	path1 := "../chain/kusama/genesis.json"
-	path2 := "../../chain/kusama/genesis.json"
+// GetDevGenesisPath gets the dev genesis path
+func GetDevGenesisPath(t *testing.T) string {
+	return filepath.Join(GetProjectRootPathTest(t), "./chain/dev/genesis.json")
+}
 
-	var fp string
+// GetGssmrGenesisPath gets the gssmr genesis path
+// and returns an error if it cannot find it.
+func GetGssmrGenesisPath() (path string, err error) {
+	rootPath, err := GetProjectRootPath()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(rootPath, "./chain/gssmr/genesis-spec.json"), nil
+}
 
-	if PathExists(path1) {
-		fp, _ = filepath.Abs(path1)
-	} else if PathExists(path2) {
-		fp, _ = filepath.Abs(path2)
+// GetKusamaGenesisPath gets the Kusama genesis path
+func GetKusamaGenesisPath(t *testing.T) string {
+	return filepath.Join(GetProjectRootPathTest(t), "./chain/kusama/genesis.json")
+}
+
+// GetPolkadotGenesisPath gets the Polkadot genesis path
+func GetPolkadotGenesisPath(t *testing.T) string {
+	return filepath.Join(GetProjectRootPathTest(t), "./chain/polkadot/genesis.json")
+}
+
+// GetProjectRootPathTest finds the root of the project where `go.mod` is
+// and returns it as an absolute path. It fails the test if it's not found.
+func GetProjectRootPathTest(t *testing.T) (rootPath string) {
+	t.Helper()
+	rootPath, err := GetProjectRootPath()
+	require.NoError(t, err)
+	return rootPath
+}
+
+var (
+	ErrFindProjectRoot = errors.New("cannot find project root")
+)
+
+// GetProjectRootPath finds the root of the project where `go.mod` is
+// and returns it as an absolute path.
+func GetProjectRootPath() (rootPath string, err error) {
+	_, fullpath, _, _ := runtime.Caller(0)
+	rootPath = path.Dir(fullpath)
+
+	const directoryToFind = "chain"
+	const subPathsToFind = "dev,gssmr,kusama,polkadot"
+
+	subPaths := strings.Split(subPathsToFind, ",")
+
+	for {
+		pathToCheck := path.Join(rootPath, directoryToFind)
+		stats, err := os.Stat(pathToCheck)
+
+		if os.IsNotExist(err) {
+			previousRootPath := rootPath
+			rootPath = path.Dir(rootPath)
+
+			if rootPath == previousRootPath {
+				return "", ErrFindProjectRoot
+			}
+
+			continue
+		}
+
+		if err != nil {
+			return "", err
+		}
+
+		if !stats.IsDir() {
+			continue
+		}
+
+		dirEntries, err := os.ReadDir(pathToCheck)
+		if err != nil {
+			return "", err
+		}
+
+		subPathsSet := make(map[string]struct{}, len(subPaths))
+		for _, subPath := range subPaths {
+			subPathsSet[subPath] = struct{}{}
+		}
+
+		for _, dirEntry := range dirEntries {
+			delete(subPathsSet, dirEntry.Name())
+		}
+
+		if len(subPathsSet) > 0 {
+			continue
+		}
+
+		break
 	}
 
-	return fp
+	rootPath, err = filepath.Abs(rootPath)
+	if err != nil {
+		return "", err
+	}
+
+	return rootPath, nil
 }
 
 // LoadChainDB load the db at the given path.

@@ -61,9 +61,7 @@ instances:
     #
     metrics:
       - gossamer_*
-      - network_*
-      - service_*
-      - system_*
+      - go_*
 
     ## @param prometheus_metrics_prefix - string - optional
     ## Removes a given <PREFIX> from exposed Prometheus metrics.

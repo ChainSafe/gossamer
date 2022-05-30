@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"math/big"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -26,13 +25,13 @@ const (
 
 // construct a block for this slot with the given parent
 func (b *Service) buildBlock(parent *types.Header, slot Slot, rt runtime.Instance,
-	authorityIndex uint32, proof *VrfOutputAndProof) (*types.Block, error) {
+	authorityIndex uint32, preRuntimeDigest *types.PreRuntimeDigest) (*types.Block, error) {
 	builder, err := NewBlockBuilder(
 		b.keypair,
 		b.transactionState,
 		b.blockState,
-		proof,
 		authorityIndex,
+		preRuntimeDigest,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create block builder: %w", err)
@@ -59,30 +58,31 @@ type BlockBuilder struct {
 	keypair               *sr25519.Keypair
 	transactionState      TransactionState
 	blockState            BlockState
-	proof                 *VrfOutputAndProof
 	currentAuthorityIndex uint32
+	preRuntimeDigest      *types.PreRuntimeDigest
 }
 
 // NewBlockBuilder creates a new block builder.
-func NewBlockBuilder(kp *sr25519.Keypair, ts TransactionState,
-	bs BlockState, proof *VrfOutputAndProof,
-	authidx uint32) (*BlockBuilder, error) {
+func NewBlockBuilder(
+	kp *sr25519.Keypair,
+	ts TransactionState,
+	bs BlockState,
+	authidx uint32,
+	preRuntimeDigest *types.PreRuntimeDigest,
+) (*BlockBuilder, error) {
 	if ts == nil {
 		return nil, ErrNilTransactionState
 	}
 	if bs == nil {
 		return nil, ErrNilBlockState
 	}
-	if proof == nil {
-		return nil, ErrNilVRFProof
-	}
 
 	bb := &BlockBuilder{
 		keypair:               kp,
 		transactionState:      ts,
 		blockState:            bs,
-		proof:                 proof,
 		currentAuthorityIndex: authidx,
+		preRuntimeDigest:      preRuntimeDigest,
 	}
 
 	return bb, nil
@@ -91,18 +91,10 @@ func NewBlockBuilder(kp *sr25519.Keypair, ts TransactionState,
 func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot, rt runtime.Instance) (*types.Block, error) {
 	logger.Tracef("build block with parent %s and slot: %s", parent, slot)
 
-	// create pre-digest
-	preDigest, err := b.buildBlockPreDigest(slot)
-	if err != nil {
-		return nil, err
-	}
-
-	logger.Trace("built pre-digest")
-
 	// create new block header
-	number := big.NewInt(0).Add(parent.Number, big.NewInt(1))
+	number := parent.Number + 1
 	digest := types.NewDigest()
-	err = digest.Add(*preDigest)
+	err := digest.Add(*b.preRuntimeDigest)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +112,7 @@ func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot, rt runtime.In
 	logger.Trace("initialised block")
 
 	// add block inherents
-	inherents, err := b.buildBlockInherents(slot, rt)
+	inherents, err := buildBlockInherents(slot, rt)
 	if err != nil {
 		return nil, fmt.Errorf("cannot build inherents: %s", err)
 	}
@@ -191,37 +183,6 @@ func (b *BlockBuilder) buildBlockSeal(header *types.Header) (*types.SealDigest, 
 	}, nil
 }
 
-// buildBlockPreDigest creates the pre-digest for the slot.
-// the pre-digest consists of the ConsensusEngineID and the encoded BABE header for the slot.
-func (b *BlockBuilder) buildBlockPreDigest(slot Slot) (*types.PreRuntimeDigest, error) {
-	babeHeader := types.NewBabeDigest()
-	data := b.buildBlockBABEPrimaryPreDigest(slot)
-	if err := babeHeader.Set(*data); err != nil {
-		return nil, fmt.Errorf("cannot set babe header: %w", err)
-	}
-
-	encBABEPrimaryPreDigest, err := scale.Marshal(babeHeader)
-	if err != nil {
-		return nil, err
-	}
-
-	return &types.PreRuntimeDigest{
-		ConsensusEngineID: types.BabeEngineID,
-		Data:              encBABEPrimaryPreDigest,
-	}, nil
-}
-
-// buildBlockBABEPrimaryPreDigest creates the BABE header for the slot.
-// the BABE header includes the proof of authorship right for this slot.
-func (b *BlockBuilder) buildBlockBABEPrimaryPreDigest(slot Slot) *types.BabePrimaryPreDigest {
-	return types.NewBabePrimaryPreDigest(
-		b.currentAuthorityIndex,
-		slot.number,
-		b.proof.output,
-		b.proof.proof,
-	)
-}
-
 // buildBlockExtrinsics applies extrinsics to the block. it returns an array of included extrinsics.
 // for each extrinsic in queue, add it to the block, until the slot ends or the block is full.
 // if any extrinsic fails, it returns an empty array and an error.
@@ -276,7 +237,7 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt runtime.Instance) []*t
 	return included
 }
 
-func (b *BlockBuilder) buildBlockInherents(slot Slot, rt runtime.Instance) ([][]byte, error) {
+func buildBlockInherents(slot Slot, rt runtime.Instance) ([][]byte, error) {
 	// Setup inherents: add timstap0
 	idata := types.NewInherentsData()
 	timestamp := uint64(time.Now().UnixMilli())

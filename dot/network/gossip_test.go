@@ -4,7 +4,6 @@
 package network
 
 import (
-	"math/big"
 	"testing"
 	"time"
 
@@ -81,7 +80,7 @@ func TestGossip(t *testing.T) {
 	require.NoError(t, err)
 
 	announceMessage := &BlockAnnounceMessage{
-		Number: big.NewInt(128 * 7),
+		Number: 128 * 7,
 		Digest: types.NewDigest(),
 	}
 
@@ -90,27 +89,15 @@ func TestGossip(t *testing.T) {
 
 	time.Sleep(TestMessageTimeout)
 
-	if hasSeenB, ok := nodeB.gossip.seen.Load(announceMessage.Hash()); !ok || hasSeenB.(bool) == false {
-		t.Error(
-			"node B did not receive block request message from node A",
-			"\nreceived:", hasSeenB,
-			"\nexpected:", true,
-		)
-	}
+	hash, err := announceMessage.Hash()
+	require.NoError(t, err)
 
-	if hasSeenC, ok := nodeC.gossip.seen.Load(announceMessage.Hash()); !ok || hasSeenC.(bool) == false {
-		t.Error(
-			"node C did not receive block request message from node B",
-			"\nreceived:", hasSeenC,
-			"\nexpected:", true,
-		)
-	}
+	_, ok := nodeB.gossip.seenMap[hash]
+	require.True(t, ok, "node B did not receive block request message from node A")
 
-	if hasSeenA, ok := nodeA.gossip.seen.Load(announceMessage.Hash()); !ok || hasSeenA.(bool) == false {
-		t.Error(
-			"node A did not receive block request message from node C",
-			"\nreceived:", hasSeenA,
-			"\nexpected:", true,
-		)
-	}
+	_, ok = nodeC.gossip.seenMap[hash]
+	require.True(t, ok, "node C did not receive block request message from node B")
+
+	_, ok = nodeA.gossip.seenMap[hash]
+	require.True(t, ok, "node A did not receive block request message from node C")
 }

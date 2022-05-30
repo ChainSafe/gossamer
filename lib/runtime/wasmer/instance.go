@@ -47,7 +47,6 @@ type Config struct {
 type Instance struct {
 	vm       wasm.Instance
 	ctx      *runtime.Context
-	version  runtime.Version
 	imports  func() (*wasm.Imports, error)
 	isClosed bool
 	codeHash common.Hash
@@ -162,7 +161,6 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 		codeHash: cfg.CodeHash,
 	}
 
-	inst.version, _ = inst.Version()
 	return inst, nil
 }
 
@@ -187,17 +185,16 @@ func (in *Instance) GetCodeHash() common.Hash {
 	return in.codeHash
 }
 
+// GetContext returns the context of the instance
+func (in *Instance) GetContext() *runtime.Context {
+	return in.ctx
+}
+
 // UpdateRuntimeCode updates the runtime instance to run the given code
 func (in *Instance) UpdateRuntimeCode(code []byte) error {
 	in.Stop()
 
 	err := in.setupInstanceVM(code)
-	if err != nil {
-		return err
-	}
-
-	in.version = nil
-	in.version, err = in.Version()
 	if err != nil {
 		return err
 	}

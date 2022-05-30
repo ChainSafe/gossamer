@@ -5,7 +5,6 @@
 package sync
 
 import (
-	big "math/big"
 	reflect "reflect"
 
 	types "github.com/ChainSafe/gossamer/dot/types"
@@ -38,10 +37,10 @@ func (m *MockChainSync) EXPECT() *MockChainSyncMockRecorder {
 }
 
 // getHighestBlock mocks base method.
-func (m *MockChainSync) getHighestBlock() (int64, error) {
+func (m *MockChainSync) getHighestBlock() (uint, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "getHighestBlock")
-	ret0, _ := ret[0].(int64)
+	ret0, _ := ret[0].(uint)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -67,7 +66,7 @@ func (mr *MockChainSyncMockRecorder) setBlockAnnounce(arg0, arg1 interface{}) *g
 }
 
 // setPeerHead mocks base method.
-func (m *MockChainSync) setPeerHead(arg0 peer.ID, arg1 common.Hash, arg2 *big.Int) error {
+func (m *MockChainSync) setPeerHead(arg0 peer.ID, arg1 common.Hash, arg2 uint) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "setPeerHead", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)

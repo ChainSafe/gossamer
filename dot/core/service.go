@@ -4,9 +4,10 @@
 package core
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	"fmt"
-	"math/big"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -21,7 +22,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-	"github.com/ChainSafe/gossamer/pkg/scale"
+	cscale "github.com/centrifuge/go-substrate-rpc-client/v3/scale"
+	ctypes "github.com/centrifuge/go-substrate-rpc-client/v3/types"
 )
 
 var (
@@ -31,6 +33,8 @@ var (
 
 // QueryKeyValueChanges represents the key-value data inside a block storage
 type QueryKeyValueChanges map[string]string
+
+type wasmerInstanceFunc func(code []byte, cfg *wasmer.Config) (instance *wasmer.Instance, err error)
 
 // Service is an overhead layer that allows communication between the runtime,
 // BABE session, and network service. It deals with the validation of transactions
@@ -47,7 +51,6 @@ type Service struct {
 	storageState     StorageState
 	transactionState TransactionState
 	net              Network
-	digestHandler    DigestHandler
 
 	// map of code substitutions keyed by block hash
 	codeSubstitute       map[common.Hash]string
@@ -68,7 +71,6 @@ type Config struct {
 	Network          Network
 	Keystore         *keystore.GlobalKeystore
 	Runtime          runtime.Instance
-	DigestHandler    DigestHandler
 
 	CodeSubstitutes      map[common.Hash]string
 	CodeSubstitutedState CodeSubstitutedState
@@ -93,10 +95,6 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, ErrNilNetwork
 	}
 
-	if cfg.DigestHandler == nil {
-		return nil, ErrNilDigestHandler
-	}
-
 	if cfg.CodeSubstitutedState == nil {
 		return nil, errNilCodeSubstitutedState
 	}
@@ -118,7 +116,6 @@ func NewService(cfg *Config) (*Service, error) {
 		blockAddCh:           blockAddCh,
 		codeSubstitute:       cfg.CodeSubstitutes,
 		codeSubstitutedState: cfg.CodeSubstitutedState,
-		digestHandler:        cfg.DigestHandler,
 	}
 
 	return srv, nil
@@ -190,7 +187,7 @@ func (s *Service) HandleBlockProduced(block *types.Block, state *rtstorage.TrieS
 
 func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) error {
 	if block == nil || state == nil {
-		return fmt.Errorf("unable to handle block due to nil parameter")
+		return ErrNilBlockHandlerParameter
 	}
 
 	// store updates state trie nodes in database
@@ -203,9 +200,9 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 
 	// store block in database
 	if err = s.blockState.AddBlock(block); err != nil {
-		if err == blocktree.ErrParentNotFound && block.Header.Number.Cmp(big.NewInt(0)) != 0 {
+		if errors.Is(err, blocktree.ErrParentNotFound) && block.Header.Number != 0 {
 			return err
-		} else if err == blocktree.ErrBlockExists || block.Header.Number.Cmp(big.NewInt(0)) == 0 {
+		} else if errors.Is(err, blocktree.ErrBlockExists) || block.Header.Number == 0 {
 			// this is fine
 		} else {
 			return err
@@ -214,9 +211,6 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 
 	logger.Debugf("imported block %s and stored state trie with root %s",
 		block.Header.Hash(), state.MustRoot())
-
-	// handle consensus digests
-	s.digestHandler.HandleDigests(&block.Header)
 
 	rt, err := s.blockState.GetRuntime(&block.Header.ParentHash)
 	if err != nil {
@@ -230,7 +224,7 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 	}
 
 	// check if there was a runtime code substitution
-	if err := s.handleCodeSubstitution(block.Header.Hash(), state); err != nil {
+	if err := s.handleCodeSubstitution(block.Header.Hash(), state, wasmer.NewInstance); err != nil {
 		logger.Criticalf("failed to substitute runtime code: %s", err)
 		return err
 	}
@@ -248,7 +242,11 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 	return nil
 }
 
-func (s *Service) handleCodeSubstitution(hash common.Hash, state *rtstorage.TrieState) error {
+func (s *Service) handleCodeSubstitution(
+	hash common.Hash,
+	state *rtstorage.TrieState,
+	instance wasmerInstanceFunc,
+) error {
 	value := s.codeSubstitute[hash]
 	if value == "" {
 		return nil
@@ -280,7 +278,7 @@ func (s *Service) handleCodeSubstitution(hash common.Hash, state *rtstorage.Trie
 		cfg.Role = 4
 	}
 
-	next, err := wasmer.NewInstance(code, cfg)
+	next, err := instance(code, cfg)
 	if err != nil {
 		return err
 	}
@@ -367,14 +365,9 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 
 		for _, ext := range *body {
 			logger.Tracef("validating transaction on re-org chain for extrinsic %s", ext)
-			encExt, err := scale.Marshal(ext)
-			if err != nil {
-				return err
-			}
-
-			// decode extrinsic and make sure it's not an inherent.
-			decExt := &types.ExtrinsicData{}
-			if err = decExt.DecodeVersion(encExt); err != nil {
+			decExt := &ctypes.Extrinsic{}
+			decoder := cscale.NewDecoder(bytes.NewReader(ext))
+			if err = decoder.Decode(&decExt); err != nil {
 				continue
 			}
 
@@ -383,14 +376,15 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 				continue
 			}
 
-			externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, encExt...))
+			externalExt := make(types.Extrinsic, 0, 1+len(ext))
+			externalExt = append(externalExt, byte(types.TxnExternal))
+			externalExt = append(externalExt, ext...)
 			txv, err := rt.ValidateTransaction(externalExt)
 			if err != nil {
 				logger.Debugf("failed to validate transaction for extrinsic %s: %s", ext, err)
 				continue
 			}
-
-			vtx := transaction.NewValidTransaction(encExt, txv)
+			vtx := transaction.NewValidTransaction(ext, txv)
 			s.transactionState.AddToPool(vtx)
 		}
 	}
@@ -411,22 +405,23 @@ func (s *Service) maintainTransactionPool(block *types.Block) {
 	// re-validate transactions in the pool and move them to the queue
 	txs := s.transactionState.PendingInPool()
 	for _, tx := range txs {
-		// TODO: re-add this, need to update tests (#904)
-		// val, err := s.rt.ValidateTransaction(tx.Extrinsic)
-		// if err != nil {
-		// 	// failed to validate tx, remove it from the pool or queue
-		// 	s.transactionState.RemoveExtrinsic(tx.Extrinsic)
-		// 	continue
-		// }
-
-		// tx = transaction.NewValidTransaction(tx.Extrinsic, val)
-
-		h, err := s.transactionState.Push(tx)
-		if err != nil && err == transaction.ErrTransactionExists {
-			// transaction is already in queue, remove it from the pool
-			s.transactionState.RemoveExtrinsicFromPool(tx.Extrinsic)
+		// get the best block corresponding runtime
+		rt, err := s.blockState.GetRuntime(nil)
+		if err != nil {
+			logger.Warnf("failed to get runtime to re-validate transactions in pool: %s", err)
 			continue
 		}
+
+		txnValidity, err := rt.ValidateTransaction(tx.Extrinsic)
+		if err != nil {
+			s.transactionState.RemoveExtrinsic(tx.Extrinsic)
+			continue
+		}
+
+		tx = transaction.NewValidTransaction(tx.Extrinsic, txnValidity)
+
+		// Err is only thrown if tx is already in pool, in which case it still gets removed
+		h, _ := s.transactionState.Push(tx)
 
 		s.transactionState.RemoveExtrinsicFromPool(tx.Extrinsic)
 		logger.Tracef("moved transaction %s to queue", h)
@@ -497,12 +492,23 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 		return nil
 	}
 
-	ts, err := s.storageState.TrieState(nil)
+	if s.transactionState.Exists(ext) {
+		return nil
+	}
+
+	bestBlockHash := s.blockState.BestBlockHash()
+
+	stateRoot, err := s.storageState.GetStateRootFromBlock(&bestBlockHash)
+	if err != nil {
+		return fmt.Errorf("could not get state root from block %s: %w", bestBlockHash, err)
+	}
+
+	ts, err := s.storageState.TrieState(stateRoot)
 	if err != nil {
 		return err
 	}
 
-	rt, err := s.blockState.GetRuntime(nil)
+	rt, err := s.blockState.GetRuntime(&bestBlockHash)
 	if err != nil {
 		logger.Critical("failed to get runtime")
 		return err

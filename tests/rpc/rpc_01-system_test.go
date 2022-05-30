@@ -4,6 +4,7 @@
 package rpc
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -91,13 +92,16 @@ func TestSystemRPC(t *testing.T) {
 	nodes, err := utils.InitializeAndStartNodes(t, 3, utils.GenesisDefault, utils.ConfigDefault)
 
 	//use only first server for tests
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	time.Sleep(time.Second) // give server a second to start
 
 	for _, test := range testCases {
 		t.Run(test.description, func(t *testing.T) {
-			target := getResponse(t, test)
+			ctx := context.Background()
+			getResponseCtx, cancel := context.WithTimeout(ctx, time.Second)
+			defer cancel()
+			target := getResponse(getResponseCtx, t, test)
 
 			switch v := target.(type) {
 			case *modules.SystemHealthResponse:

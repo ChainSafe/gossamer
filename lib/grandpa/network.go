@@ -64,8 +64,8 @@ func (*GrandpaHandshake) Type() byte {
 }
 
 // Hash ...
-func (*GrandpaHandshake) Hash() common.Hash {
-	return common.Hash{}
+func (*GrandpaHandshake) Hash() (common.Hash, error) {
+	return common.Hash{}, nil
 }
 
 // IsHandshake returns true
@@ -195,7 +195,7 @@ func (s *Service) sendNeighbourMessage() {
 				Version: 1,
 				Round:   info.Round,
 				SetID:   info.SetID,
-				Number:  uint32(info.Header.Number.Int64()),
+				Number:  uint32(info.Header.Number),
 			}
 		}
 

@@ -5,9 +5,7 @@ package network
 
 import (
 	"errors"
-	"math/big"
 	"reflect"
-	"sync"
 	"testing"
 	"time"
 	"unsafe"
@@ -34,17 +32,16 @@ func TestCreateDecoder_BlockAnnounce(t *testing.T) {
 
 	// create info and decoder
 	info := &notificationsProtocol{
-		protocolID:            s.host.protocolID + blockAnnounceID,
-		getHandshake:          s.getBlockAnnounceHandshake,
-		handshakeValidator:    s.validateBlockAnnounceHandshake,
-		inboundHandshakeData:  new(sync.Map),
-		outboundHandshakeData: new(sync.Map),
+		protocolID:         s.host.protocolID + blockAnnounceID,
+		getHandshake:       s.getBlockAnnounceHandshake,
+		handshakeValidator: s.validateBlockAnnounceHandshake,
+		peersData:          newPeersData(),
 	}
 	decoder := createDecoder(info, decodeBlockAnnounceHandshake, decodeBlockAnnounceMessage)
 
 	// haven't received handshake from peer
 	testPeerID := peer.ID("QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ")
-	info.inboundHandshakeData.Store(testPeerID, &handshakeData{
+	info.peersData.setInboundHandshakeData(testPeerID, &handshakeData{
 		received: false,
 	})
 
@@ -64,7 +61,7 @@ func TestCreateDecoder_BlockAnnounce(t *testing.T) {
 
 	testBlockAnnounce := &BlockAnnounceMessage{
 		ParentHash:     common.Hash{1},
-		Number:         big.NewInt(77),
+		Number:         77,
 		StateRoot:      common.Hash{2},
 		ExtrinsicsRoot: common.Hash{3},
 		Digest:         types.NewDigest(),
@@ -74,9 +71,9 @@ func TestCreateDecoder_BlockAnnounce(t *testing.T) {
 	require.NoError(t, err)
 
 	// set handshake data to received
-	hsData, _ := info.getInboundHandshakeData(testPeerID)
+	hsData := info.peersData.getInboundHandshakeData(testPeerID)
 	hsData.received = true
-	info.inboundHandshakeData.Store(testPeerID, hsData)
+	info.peersData.setInboundHandshakeData(testPeerID, hsData)
 	msg, err = decoder(enc, testPeerID, true)
 	require.NoError(t, err)
 	require.Equal(t, testBlockAnnounce, msg)
@@ -115,27 +112,26 @@ func TestCreateNotificationsMessageHandler_BlockAnnounce(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-	stream, err := s.host.h.NewStream(s.ctx, b.host.id(), s.host.protocolID+blockAnnounceID)
+	stream, err := s.host.p2pHost.NewStream(s.ctx, b.host.id(), s.host.protocolID+blockAnnounceID)
 	require.NoError(t, err)
 
 	// create info and handler
 	info := &notificationsProtocol{
-		protocolID:            s.host.protocolID + blockAnnounceID,
-		getHandshake:          s.getBlockAnnounceHandshake,
-		handshakeValidator:    s.validateBlockAnnounceHandshake,
-		inboundHandshakeData:  new(sync.Map),
-		outboundHandshakeData: new(sync.Map),
+		protocolID:         s.host.protocolID + blockAnnounceID,
+		getHandshake:       s.getBlockAnnounceHandshake,
+		handshakeValidator: s.validateBlockAnnounceHandshake,
+		peersData:          newPeersData(),
 	}
 	handler := s.createNotificationsMessageHandler(info, s.handleBlockAnnounceMessage, nil)
 
 	// set handshake data to received
-	info.inboundHandshakeData.Store(testPeerID, &handshakeData{
+	info.peersData.setInboundHandshakeData(testPeerID, &handshakeData{
 		received:  true,
 		validated: true,
 	})
 
 	msg := &BlockAnnounceMessage{
-		Number: big.NewInt(10),
+		Number: 10,
 		Digest: types.NewDigest(),
 	}
 
@@ -157,11 +153,10 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 
 	// create info and handler
 	info := &notificationsProtocol{
-		protocolID:            s.host.protocolID + blockAnnounceID,
-		getHandshake:          s.getBlockAnnounceHandshake,
-		handshakeValidator:    s.validateBlockAnnounceHandshake,
-		inboundHandshakeData:  new(sync.Map),
-		outboundHandshakeData: new(sync.Map),
+		protocolID:         s.host.protocolID + blockAnnounceID,
+		getHandshake:       s.getBlockAnnounceHandshake,
+		handshakeValidator: s.validateBlockAnnounceHandshake,
+		peersData:          newPeersData(),
 	}
 	handler := s.createNotificationsMessageHandler(info, s.handleBlockAnnounceMessage, nil)
 
@@ -186,7 +181,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 	}
 	require.NoError(t, err)
 
-	stream, err := s.host.h.NewStream(s.ctx, b.host.id(), s.host.protocolID+blockAnnounceID)
+	stream, err := s.host.p2pHost.NewStream(s.ctx, b.host.id(), s.host.protocolID+blockAnnounceID)
 	require.NoError(t, err)
 
 	// try invalid handshake
@@ -194,13 +189,15 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 		Roles:           4,
 		BestBlockNumber: 77,
 		BestBlockHash:   common.Hash{1},
-		GenesisHash:     common.Hash{2},
+		// we are using a different genesis here, thus this
+		// handshake would be validated to be incorrect.
+		GenesisHash: common.Hash{2},
 	}
 
 	err = handler(stream, testHandshake)
 	require.Equal(t, errCannotValidateHandshake, err)
-	data, has := info.getInboundHandshakeData(testPeerID)
-	require.True(t, has)
+	data := info.peersData.getInboundHandshakeData(testPeerID)
+	require.NotNil(t, data)
 	require.True(t, data.received)
 	require.False(t, data.validated)
 
@@ -212,12 +209,12 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 		GenesisHash:     s.blockState.GenesisHash(),
 	}
 
-	info.inboundHandshakeData.Delete(testPeerID)
+	info.peersData.deleteInboundHandshakeData(testPeerID)
 
 	err = handler(stream, testHandshake)
 	require.NoError(t, err)
-	data, has = info.getInboundHandshakeData(testPeerID)
-	require.True(t, has)
+	data = info.peersData.getInboundHandshakeData(testPeerID)
+	require.NotNil(t, data)
 	require.True(t, data.received)
 	require.True(t, data.validated)
 }
@@ -253,7 +250,7 @@ func Test_HandshakeTimeout(t *testing.T) {
 	info := newNotificationsProtocol(nodeA.host.protocolID+blockAnnounceID,
 		nodeA.getBlockAnnounceHandshake, testHandshakeDecoder, nodeA.validateBlockAnnounceHandshake)
 
-	nodeB.host.h.SetStreamHandler(info.protocolID, func(stream libp2pnetwork.Stream) {
+	nodeB.host.p2pHost.SetStreamHandler(info.protocolID, func(stream libp2pnetwork.Stream) {
 		// should not respond to a handshake message
 	})
 
@@ -269,8 +266,8 @@ func Test_HandshakeTimeout(t *testing.T) {
 
 	// clear handshake data from connection handler
 	time.Sleep(time.Millisecond * 100)
-	info.outboundHandshakeData.Delete(nodeB.host.id())
-	connAToB := nodeA.host.h.Network().ConnsToPeer(nodeB.host.id())
+	info.peersData.deleteOutboundHandshakeData(nodeB.host.id())
+	connAToB := nodeA.host.p2pHost.Network().ConnsToPeer(nodeB.host.id())
 	for _, stream := range connAToB[0].GetStreams() {
 		_ = stream.Close()
 	}
@@ -282,17 +279,17 @@ func Test_HandshakeTimeout(t *testing.T) {
 		GenesisHash:     common.Hash{2},
 	}
 
-	info.outboundHandshakeMutexes.Store(nodeB.host.id(), new(sync.Mutex))
+	info.peersData.setMutex(nodeB.host.id())
 	go nodeA.sendData(nodeB.host.id(), testHandshakeMsg, info, nil)
 
 	time.Sleep(time.Second)
 
 	// handshake data shouldn't exist, as nodeB hasn't responded yet
-	_, ok := info.getOutboundHandshakeData(nodeB.host.id())
-	require.False(t, ok)
+	data := info.peersData.getOutboundHandshakeData(nodeB.host.id())
+	require.Nil(t, data)
 
 	// a stream should be open until timeout
-	connAToB = nodeA.host.h.Network().ConnsToPeer(nodeB.host.id())
+	connAToB = nodeA.host.p2pHost.Network().ConnsToPeer(nodeB.host.id())
 	require.Len(t, connAToB, 1)
 	require.Len(t, connAToB[0].GetStreams(), 1)
 
@@ -300,11 +297,11 @@ func Test_HandshakeTimeout(t *testing.T) {
 	time.Sleep(handshakeTimeout)
 
 	// handshake data shouldn't exist still
-	_, ok = info.getOutboundHandshakeData(nodeB.host.id())
-	require.False(t, ok)
+	data = info.peersData.getOutboundHandshakeData(nodeB.host.id())
+	require.Nil(t, data)
 
 	// stream should be closed
-	connAToB = nodeA.host.h.Network().ConnsToPeer(nodeB.host.id())
+	connAToB = nodeA.host.p2pHost.Network().ConnsToPeer(nodeB.host.id())
 	require.Len(t, connAToB, 1)
 	require.Len(t, connAToB[0].GetStreams(), 0)
 }
@@ -346,21 +343,20 @@ func TestCreateNotificationsMessageHandler_HandleTransaction(t *testing.T) {
 	require.NoError(t, err)
 
 	txnProtocolID := srvc1.host.protocolID + transactionsID
-	stream, err := srvc1.host.h.NewStream(srvc1.ctx, srvc2.host.id(), txnProtocolID)
+	stream, err := srvc1.host.p2pHost.NewStream(srvc1.ctx, srvc2.host.id(), txnProtocolID)
 	require.NoError(t, err)
 
 	// create info and handler
 	info := &notificationsProtocol{
-		protocolID:            txnProtocolID,
-		getHandshake:          srvc1.getTransactionHandshake,
-		handshakeValidator:    validateTransactionHandshake,
-		inboundHandshakeData:  new(sync.Map),
-		outboundHandshakeData: new(sync.Map),
+		protocolID:         txnProtocolID,
+		getHandshake:       srvc1.getTransactionHandshake,
+		handshakeValidator: validateTransactionHandshake,
+		peersData:          newPeersData(),
 	}
 	handler := srvc1.createNotificationsMessageHandler(info, srvc1.handleTransactionMessage, txnBatchHandler)
 
 	// set handshake data to received
-	info.inboundHandshakeData.Store(srvc2.host.id(), handshakeData{
+	info.peersData.setInboundHandshakeData(srvc2.host.id(), &handshakeData{
 		received:  true,
 		validated: true,
 	})
@@ -373,28 +369,28 @@ func TestCreateNotificationsMessageHandler_HandleTransaction(t *testing.T) {
 	require.Len(t, txnBatch, 1)
 
 	msg = &TransactionMessage{
-		Extrinsics: []types.Extrinsic{{1, 1}, {2, 2}},
+		Extrinsics: []types.Extrinsic{{1, 1}, {2, 2}, {3, 3}},
 	}
 	err = handler(stream, msg)
 	require.NoError(t, err)
 	require.Len(t, txnBatch, 2)
 
 	msg = &TransactionMessage{
-		Extrinsics: []types.Extrinsic{{1, 1}, {2, 2}},
+		Extrinsics: []types.Extrinsic{{1, 1}, {2, 2}, {3, 3}, {4, 4}},
 	}
 	err = handler(stream, msg)
 	require.NoError(t, err)
 	require.Len(t, txnBatch, 3)
 
 	msg = &TransactionMessage{
-		Extrinsics: []types.Extrinsic{{1, 1}, {2, 2}},
+		Extrinsics: []types.Extrinsic{{1, 1}, {2, 2}, {3, 3}, {4, 4}, {5, 5}},
 	}
 	err = handler(stream, msg)
 	require.NoError(t, err)
 	require.Len(t, txnBatch, 4)
 
 	msg = &TransactionMessage{
-		Extrinsics: []types.Extrinsic{{1, 1}, {2, 2}},
+		Extrinsics: []types.Extrinsic{{1, 1}, {2, 2}, {3, 3}, {4, 4}, {5, 5}, {6, 6}},
 	}
 	err = handler(stream, msg)
 	require.NoError(t, err)
@@ -402,14 +398,14 @@ func TestCreateNotificationsMessageHandler_HandleTransaction(t *testing.T) {
 
 	// reached batch size limit, below transaction will not be included in batch.
 	msg = &TransactionMessage{
-		Extrinsics: []types.Extrinsic{{1, 1}, {2, 2}},
+		Extrinsics: []types.Extrinsic{{1, 1}, {2, 2}, {3, 3}, {4, 4}, {5, 5}, {6, 6}, {7, 7}},
 	}
 	err = handler(stream, msg)
 	require.NoError(t, err)
 	require.Len(t, txnBatch, 5)
 
 	msg = &TransactionMessage{
-		Extrinsics: []types.Extrinsic{{1, 1}, {2, 2}},
+		Extrinsics: []types.Extrinsic{{1, 1}, {2, 2}, {3, 3}, {4, 4}, {5, 5}, {6, 6}, {7, 7}, {8, 8}},
 	}
 	// wait for transaction batch channel to process.
 	time.Sleep(1300 * time.Millisecond)

@@ -14,6 +14,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli"
 	terminal "golang.org/x/term"
 )
@@ -76,7 +77,7 @@ func newTestConfig(t *testing.T) *dot.Config {
 			BasePath:       dir,
 			LogLvl:         log.Info,
 			PublishMetrics: dot.GssmrConfig().Global.PublishMetrics,
-			MetricsPort:    dot.GssmrConfig().Global.MetricsPort,
+			MetricsAddress: dot.GssmrConfig().Global.MetricsAddress,
 			RetainBlocks:   dot.GssmrConfig().Global.RetainBlocks,
 			Pruning:        dot.GssmrConfig().Global.Pruning,
 			TelemetryURLs:  dot.GssmrConfig().Global.TelemetryURLs,
@@ -105,12 +106,16 @@ func newTestConfig(t *testing.T) *dot.Config {
 }
 
 // newTestConfigWithFile returns a new test configuration and a temporary configuration file
-func newTestConfigWithFile(t *testing.T) (*dot.Config, *os.File) {
-	cfg := newTestConfig(t)
+func newTestConfigWithFile(t *testing.T) (cfg *dot.Config, configPath string) {
+	t.Helper()
 
-	filename := filepath.Join(cfg.Global.BasePath, "config.toml")
+	cfg = newTestConfig(t)
 
 	tomlCfg := dotConfigToToml(cfg)
-	cfgFile := exportConfig(tomlCfg, filename)
-	return cfg, cfgFile
+
+	configPath = filepath.Join(cfg.Global.BasePath, "config.toml")
+	err := exportConfig(tomlCfg, configPath)
+	require.NoError(t, err)
+
+	return cfg, configPath
 }

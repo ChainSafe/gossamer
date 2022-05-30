@@ -97,7 +97,7 @@ func NewVote(hash common.Hash, number uint32) *Vote {
 func NewVoteFromHeader(h *types.Header) *Vote {
 	return &Vote{
 		Hash:   h.Hash(),
-		Number: uint32(h.Number.Int64()),
+		Number: uint32(h.Number),
 	}
 }
 

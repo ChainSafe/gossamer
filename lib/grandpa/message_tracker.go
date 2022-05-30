@@ -5,10 +5,11 @@ package grandpa
 
 import (
 	"sync"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 // tracker keeps track of messages that have been received, but have failed to
@@ -17,8 +18,8 @@ import (
 type tracker struct {
 	blockState BlockState
 	handler    *MessageHandler
-	// map of vote block hash -> array of VoteMessages for that hash
-	voteMessages map[common.Hash]map[ed25519.PublicKeyBytes]*networkVoteMessage
+	votes      votesTracker
+
 	// map of commit block hash to commit message
 	commitMessages map[common.Hash]*CommitMessage
 	mapLock        sync.Mutex
@@ -31,10 +32,11 @@ type tracker struct {
 }
 
 func newTracker(bs BlockState, handler *MessageHandler) *tracker {
+	const votesCapacity = 1000
 	return &tracker{
 		blockState:              bs,
 		handler:                 handler,
-		voteMessages:            make(map[common.Hash]map[ed25519.PublicKeyBytes]*networkVoteMessage),
+		votes:                   newVotesTracker(votesCapacity),
 		commitMessages:          make(map[common.Hash]*CommitMessage),
 		mapLock:                 sync.Mutex{},
 		in:                      bs.GetImportedBlockNotifierChannel(),
@@ -52,21 +54,15 @@ func (t *tracker) stop() {
 	t.blockState.FreeImportedBlockNotifierChannel(t.in)
 }
 
-func (t *tracker) addVote(v *networkVoteMessage) {
-	if v.msg == nil {
+func (t *tracker) addVote(peerID peer.ID, message *VoteMessage) {
+	if message == nil {
 		return
 	}
 
 	t.mapLock.Lock()
 	defer t.mapLock.Unlock()
 
-	msgs, has := t.voteMessages[v.msg.Message.Hash]
-	if !has {
-		msgs = make(map[ed25519.PublicKeyBytes]*networkVoteMessage)
-		t.voteMessages[v.msg.Message.Hash] = msgs
-	}
-
-	msgs[v.msg.Message.AuthorityID] = v
+	t.votes.add(peerID, message)
 }
 
 func (t *tracker) addCommit(cm *CommitMessage) {
@@ -75,13 +71,18 @@ func (t *tracker) addCommit(cm *CommitMessage) {
 	t.commitMessages[cm.Vote.Hash] = cm
 }
 
-func (t *tracker) addCatchUpResponse(cr *CatchUpResponse) {
+func (t *tracker) addCatchUpResponse(_ *CatchUpResponse) {
 	t.catchUpResponseMessageMutex.Lock()
 	defer t.catchUpResponseMessageMutex.Unlock()
-	t.catchUpResponseMessages[cr.Round] = cr
+	// uncomment when usage is setup properly, see #1531
+	// t.catchUpResponseMessages[cr.Round] = cr
 }
 
 func (t *tracker) handleBlocks() {
+	const timeout = time.Second
+	ticker := time.NewTicker(timeout)
+	defer ticker.Stop()
+
 	for {
 		select {
 		case b := <-t.in:
@@ -90,6 +91,8 @@ func (t *tracker) handleBlocks() {
 			}
 
 			t.handleBlock(b)
+		case <-ticker.C:
+			t.handleTick()
 		case <-t.stopped:
 			return
 		}
@@ -101,17 +104,17 @@ func (t *tracker) handleBlock(b *types.Block) {
 	defer t.mapLock.Unlock()
 
 	h := b.Header.Hash()
-	if vms, has := t.voteMessages[h]; has {
-		for _, v := range vms {
-			// handleMessage would never error for vote message
-			_, err := t.handler.handleMessage(v.from, v.msg)
-			if err != nil {
-				logger.Warnf("failed to handle vote message %v: %s", v, err)
-			}
+	vms := t.votes.messages(h)
+	for _, v := range vms {
+		// handleMessage would never error for vote message
+		_, err := t.handler.handleMessage(v.from, v.msg)
+		if err != nil {
+			logger.Warnf("failed to handle vote message %v: %s", v, err)
 		}
-
-		delete(t.voteMessages, h)
 	}
+
+	// delete block hash that may or may not be in the tracker.
+	t.votes.delete(h)
 
 	if cm, has := t.commitMessages[h]; has {
 		_, err := t.handler.handleMessage("", cm)
@@ -120,5 +123,34 @@ func (t *tracker) handleBlock(b *types.Block) {
 		}
 
 		delete(t.commitMessages, h)
+	}
+}
+
+func (t *tracker) handleTick() {
+	t.mapLock.Lock()
+	defer t.mapLock.Unlock()
+
+	for _, networkVoteMessage := range t.votes.networkVoteMessages() {
+		peerID := networkVoteMessage.from
+		message := networkVoteMessage.msg
+		_, err := t.handler.handleMessage(peerID, message)
+		if err != nil {
+			// handleMessage would never error for vote message
+			logger.Debugf("failed to handle vote message %v from peer id %s: %s", message, peerID, err)
+		}
+
+		if message.Round < t.handler.grandpa.state.round && message.SetID == t.handler.grandpa.state.setID {
+			t.votes.delete(message.Message.BlockHash)
+		}
+	}
+
+	for _, cm := range t.commitMessages {
+		_, err := t.handler.handleMessage("", cm)
+		if err != nil {
+			logger.Debugf("failed to handle commit message %v: %s", cm, err)
+			continue
+		}
+
+		delete(t.commitMessages, cm.Vote.Hash)
 	}
 }

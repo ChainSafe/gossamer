@@ -57,7 +57,7 @@ func TestCustomMarshalJson(t *testing.T) {
 	for _, test := range testCases {
 		t.Run(test.description, func(t *testing.T) {
 			byt, err := test.hash.MarshalJSON()
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.True(t, strings.Contains(string(byt), test.expected))
 		})
 	}

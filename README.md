@@ -43,28 +43,33 @@ For more information about Gossamer, the Polkadot ecosystem, and how to use Goss
 
 ### Prerequisites
 
-install go version `>=1.17`
+Install Go version [`>=1.18`](https://go.dev/dl/#go1.18)
 
 ### Installation
 
 get the [ChainSafe/gossamer](https://github.com/ChainSafe/gossamer) repository:
+
 ```
 git clone git@github.com:ChainSafe/gossamer
 cd gossamer
 ```
 
 build gossamer command:
+
 ```
 make gossamer
 ```
+
 ### Troubleshooting for Apple Silicon users
 
 If you are facing the following problem with the `wasmer`:
+
 ```
 undefined: cWasmerImportObjectT
 undefined: cWasmerImportFuncT
 undefined: cWasmerValueTag
 ```
+
 Make sure you have the following Golang enviroment variables:
 
 - GOARCH="amd64"
@@ -73,8 +78,6 @@ Make sure you have the following Golang enviroment variables:
 > use _go env_ to see all the Golang enviroment variables
 
 > use _go env -w **ENV_NAME**=**ENV_VALUE**_ to set the new value
-
-
 
 ### Run Development Node
 
@@ -85,22 +88,25 @@ To initialise a development node:
 ```
 
 To start the development node:
+
 ```
 ./bin/gossamer --chain dev
 ```
 
-The development node is configured to produce a block every slot and to finalise a block every round (as there is only one authority, `alice`.) 
+The development node is configured to produce a block every slot and to finalise a block every round (as there is only one authority, `alice`.)
 
 ### Run Gossamer Node
 
 The gossamer node runs by default as an authority with 9 authorites set at genesis. The built-in keys, corresponding to the authorities, that are available for the node are `alice`, `bob`, `charlie`, `dave`, `eve`, `ferdie`, `george`, and `ian`.
 
 To initialise a gossamer node:
+
 ```
 ./bin/gossamer --chain gssmr init
 ```
 
 To start the gossamer node:
+
 ```
 ./bin/gossamer --chain gssmr --key alice
 ```
@@ -112,11 +118,13 @@ Note: If you only run one gossamer node, the node will not build blocks every sl
 Kusama is currently supported as a **full node**, ie. it can sync the chain but not act as an authority.
 
 To initialise a kusama node:
+
 ```
 ./bin/gossamer --chain kusama init
 ```
 
 To start the kusama node:
+
 ```
 ./bin/gossamer --chain kusama
 ```
@@ -128,18 +136,20 @@ The node may not appear to do anything for the first minute or so (it's bootstra
 network = "debug"
 ```
 
-After it's finished bootstrapping, the node should begin to sync. 
+After it's finished bootstrapping, the node should begin to sync.
 
 ### Run Polkadot Node
 
 Polkadot is currently supported as a **full node**, ie. it can sync the chain but not act as an authority.
 
 To initialise a polkadot node:
+
 ```
 ./bin/gossamer --chain polkadot init
 ```
 
 To start the polkadot node:
+
 ```
 ./bin/gossamer --chain polkadot
 ```
@@ -159,12 +169,11 @@ Our work on gossamer is funded by grants. If you'd like to donate, you can send 
 ### Reporting a Security Bug
 
 We take all security issues seriously, if you believe you have found a security issue within a ChainSafe
-project please notify us immediately. If an issue is confirmed, we will take all necessary precautions 
+project please notify us immediately. If an issue is confirmed, we will take all necessary precautions
 to ensure a statement and patch release is made in a timely manner.
 
 Please email us a description of the flaw and any related information (e.g. reproduction steps, version) to
 [security at chainsafe dot io](mailto:security@chainsafe.io).
-
 
 ## License
 
@@ -172,6 +181,5 @@ _GNU Lesser General Public License v3.0_
 
 <br />
 <p align="center">
-	<img src="/docs/docs/assets/img/chainsafe_gopher.png">
+ <img src="/docs/docs/assets/img/chainsafe_gopher.png">
 </p>
-

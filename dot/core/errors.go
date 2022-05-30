@@ -36,14 +36,13 @@ var (
 	// ErrNilConsensusMessageHandler is returned when trying to instantiate a Service without a FinalityMessageHandler
 	ErrNilConsensusMessageHandler = errors.New("cannot have nil ErrNilFinalityMessageHandler")
 
+	ErrNilBlockHandlerParameter = errors.New("unable to handle block due to nil parameter")
+
 	// ErrNilNetwork is returned when the Network interface is nil
 	ErrNilNetwork = errors.New("cannot have nil Network")
 
 	// ErrEmptyRuntimeCode is returned when the storage :code is empty
 	ErrEmptyRuntimeCode = errors.New("new :code is empty")
-
-	// ErrNilDigestHandler is returned when the DigestHandler interface is nil
-	ErrNilDigestHandler = errors.New("cannot have nil DigestHandler")
 
 	errNilCodeSubstitutedState = errors.New("cannot have nil CodeSubstitutedStat")
 )

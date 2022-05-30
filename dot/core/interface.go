@@ -4,7 +4,6 @@
 package core
 
 import (
-	"math/big"
 	"sync"
 
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -18,13 +17,13 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
 
-//go:generate mockgen -destination=mock_core_test.go -package $GOPACKAGE . BlockState,StorageState,TransactionState,Network,EpochState,CodeSubstitutedState,DigestHandler
+//go:generate mockgen -destination=mock_core_test.go -package $GOPACKAGE . BlockState,StorageState,TransactionState,Network,EpochState,CodeSubstitutedState
 
 // BlockState interface for block state methods
 type BlockState interface {
 	BestBlockHash() common.Hash
 	BestBlockHeader() (*types.Header, error)
-	BestBlockNumber() (*big.Int, error)
+	BestBlockNumber() (blockNumber uint, err error)
 	BestBlockStateRoot() (common.Hash, error)
 	BestBlock() (*types.Block, error)
 	AddBlock(*types.Block) error
@@ -66,6 +65,7 @@ type TransactionState interface {
 	RemoveExtrinsic(ext types.Extrinsic)
 	RemoveExtrinsicFromPool(ext types.Extrinsic)
 	PendingInPool() []*transaction.ValidTransaction
+	Exists(ext types.Extrinsic) bool
 }
 
 // Network is the interface for the network service
@@ -86,9 +86,4 @@ type EpochState interface {
 type CodeSubstitutedState interface {
 	LoadCodeSubstitutedBlockHash() common.Hash
 	StoreCodeSubstitutedBlockHash(hash common.Hash) error
-}
-
-// DigestHandler is the interface for the consensus digest handler
-type DigestHandler interface {
-	HandleDigests(header *types.Header)
 }

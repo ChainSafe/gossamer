@@ -113,7 +113,7 @@ func TestHandleLightMessage_Response(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-	stream, err := s.host.h.NewStream(s.ctx, b.host.id(), s.host.protocolID+lightID)
+	stream, err := s.host.p2pHost.NewStream(s.ctx, b.host.id(), s.host.protocolID+lightID)
 	require.NoError(t, err)
 
 	// Testing empty request

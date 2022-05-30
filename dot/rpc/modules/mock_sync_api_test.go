@@ -34,10 +34,10 @@ func (m *MockSyncAPI) EXPECT() *MockSyncAPIMockRecorder {
 }
 
 // HighestBlock mocks base method.
-func (m *MockSyncAPI) HighestBlock() int64 {
+func (m *MockSyncAPI) HighestBlock() uint {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "HighestBlock")
-	ret0, _ := ret[0].(int64)
+	ret0, _ := ret[0].(uint)
 	return ret0
 }
 

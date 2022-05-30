@@ -5,7 +5,6 @@ package telemetry
 
 import (
 	"encoding/json"
-	"math/big"
 	"time"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -18,12 +17,12 @@ var _ Message = (*BlockImport)(nil)
 // BlockImport struct to hold block import telemetry messages
 type BlockImport struct {
 	BestHash *common.Hash `json:"best"`
-	Height   *big.Int     `json:"height"`
+	Height   uint         `json:"height"`
 	Origin   string       `json:"origin"`
 }
 
 // NewBlockImport function to create new Block Import Telemetry Message
-func NewBlockImport(bestHash *common.Hash, height *big.Int, origin string) *BlockImport {
+func NewBlockImport(bestHash *common.Hash, height uint, origin string) *BlockImport {
 	return &BlockImport{
 		BestHash: bestHash,
 		Height:   height,

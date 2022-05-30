@@ -24,13 +24,13 @@ var (
 func (s *Service) DoBlockRequest(to peer.ID, req *BlockRequestMessage) (*BlockResponseMessage, error) {
 	fullSyncID := s.host.protocolID + syncID
 
-	s.host.h.ConnManager().Protect(to, "")
-	defer s.host.h.ConnManager().Unprotect(to, "")
+	s.host.p2pHost.ConnManager().Protect(to, "")
+	defer s.host.p2pHost.ConnManager().Unprotect(to, "")
 
 	ctx, cancel := context.WithTimeout(s.ctx, blockRequestTimeout)
 	defer cancel()
 
-	stream, err := s.host.h.NewStream(ctx, to, fullSyncID)
+	stream, err := s.host.p2pHost.NewStream(ctx, to, fullSyncID)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +58,7 @@ func (s *Service) receiveBlockResponse(stream libp2pnetwork.Stream) (*BlockRespo
 
 	buf := s.blockResponseBuf
 
-	n, err := readStream(stream, buf)
+	n, err := readStream(stream, &buf)
 	if err != nil {
 		return nil, fmt.Errorf("read stream error: %w", err)
 	}

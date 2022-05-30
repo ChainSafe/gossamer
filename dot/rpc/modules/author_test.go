@@ -374,7 +374,7 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 					"0x0000000000000000000000000000000000000000000000000000000000000000",
 				},
 			},
-			expErr: errors.New("generated public key does not equal provide public key"),
+			expErr: ErrProvidedKeyDoesNotMatch,
 		},
 		{
 			name: "unknown key",

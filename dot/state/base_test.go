@@ -4,7 +4,6 @@
 package state
 
 import (
-	"bytes"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -18,14 +17,13 @@ func TestTrie_StoreAndLoadFromDB(t *testing.T) {
 	db := NewInMemoryDB(t)
 	tt := trie.NewEmptyTrie()
 
-	rt := trie.GenerateRandomTests(t, 1000)
-	for _, test := range rt {
-		tt.Put(test.Key(), test.Value())
+	generator := newGenerator()
+	const size = 500
+	kv := generateKeyValues(t, generator, size)
 
-		val := tt.Get(test.Key())
-		if !bytes.Equal(val, test.Value()) {
-			t.Errorf("Fail to get key %x with value %x: got %x", test.Key(), test.Value(), val)
-		}
+	for keyString, value := range kv {
+		key := []byte(keyString)
+		tt.Put(key, value)
 	}
 
 	err := tt.Store(db)

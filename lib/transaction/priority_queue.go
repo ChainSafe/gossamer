@@ -109,6 +109,12 @@ func (spq *PriorityQueue) RemoveExtrinsic(ext types.Extrinsic) {
 	delete(spq.txs, hash)
 }
 
+// Exists returns true if a hash is in the txs map, false otherwise
+func (spq *PriorityQueue) Exists(extHash common.Hash) bool {
+	_, ok := spq.txs[extHash]
+	return ok
+}
+
 // Push inserts a valid transaction with priority p into the queue
 func (spq *PriorityQueue) Push(txn *ValidTransaction) (common.Hash, error) {
 	spq.Lock()

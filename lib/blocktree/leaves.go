@@ -6,7 +6,6 @@ package blocktree
 import (
 	"bytes"
 	"errors"
-	"math/big"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -62,7 +61,7 @@ func (lm *leafMap) highestLeaf() *node {
 	lm.RLock()
 	defer lm.RUnlock()
 
-	max := big.NewInt(-1)
+	var max uint
 
 	var deepest *node
 	lm.smap.Range(func(h, n interface{}) bool {
@@ -72,12 +71,12 @@ func (lm *leafMap) highestLeaf() *node {
 			return true
 		}
 
-		if max.Cmp(node.number) < 0 {
+		if max < node.number {
 			max = node.number
 			deepest = node
-		} else if max.Cmp(node.number) == 0 && node.arrivalTime.Before(deepest.arrivalTime) {
+		} else if max == node.number && node.arrivalTime.Before(deepest.arrivalTime) {
 			deepest = node
-		} else if max.Cmp(node.number) == 0 && node.arrivalTime.Equal(deepest.arrivalTime) {
+		} else if max == node.number && node.arrivalTime.Equal(deepest.arrivalTime) {
 			// there are two leaf nodes with the same number *and* arrival time, just pick the one
 			// with the lower hash in lexicographical order.
 			// practically, this is very unlikely to happen.

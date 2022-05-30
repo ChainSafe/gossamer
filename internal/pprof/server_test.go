@@ -76,7 +76,7 @@ func Test_Server(t *testing.T) {
 		require.NoError(t, err)
 
 		go func(client *http.Client, request *http.Request, results chan<- httpResult) {
-			response, err := client.Do(request) //nolint:bodyclose
+			response, err := client.Do(request)
 			results <- httpResult{
 				url:      request.URL.String(),
 				response: response,

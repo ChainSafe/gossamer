@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math/big"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -358,7 +357,7 @@ func (s *Service) initiateRound() error {
 		return err
 	}
 
-	if best.Number.Int64() > 0 {
+	if best.Number > 0 {
 		return nil
 	}
 
@@ -377,7 +376,7 @@ func (s *Service) initiate() error {
 		}
 
 		err = s.playGrandpaRound()
-		if err == ErrServicePaused {
+		if errors.Is(err, ErrServicePaused) {
 			logger.Info("service paused")
 			// wait for service to un-pause
 			<-s.resumed
@@ -403,7 +402,7 @@ func (s *Service) waitForFirstBlock() {
 	for {
 		select {
 		case block := <-ch:
-			if block != nil && block.Header.Number.Int64() > 0 {
+			if block != nil && block.Header.Number > 0 {
 				return
 			}
 		case <-s.ctx.Done():
@@ -422,7 +421,7 @@ func (s *Service) handleIsPrimary() (bool, error) {
 		return false, nil
 	}
 
-	if s.head.Number.Int64() > 0 {
+	if s.head.Number > 0 {
 		s.primaryBroadcastCommitMessage()
 	}
 
@@ -433,7 +432,7 @@ func (s *Service) handleIsPrimary() (bool, error) {
 
 	pv := &Vote{
 		Hash:   best.Hash(),
-		Number: uint32(best.Number.Int64()),
+		Number: uint32(best.Number),
 	}
 
 	// send primary prevote message to network
@@ -621,7 +620,7 @@ func (s *Service) attemptToFinalize() error {
 			return err
 		}
 
-		if bfc.Number < uint32(s.head.Number.Int64()) || pc <= s.state.threshold() {
+		if bfc.Number < uint32(s.head.Number) || pc <= s.state.threshold() {
 			continue
 		}
 
@@ -650,7 +649,7 @@ func (s *Service) attemptToFinalize() error {
 
 		s.telemetry.SendMessage(telemetry.NewAfgFinalizedBlocksUpTo(
 			s.head.Hash(),
-			s.head.Number.String(),
+			fmt.Sprint(s.head.Number),
 		))
 
 		return nil
@@ -696,7 +695,7 @@ func (s *Service) determinePreVote() (*Vote, error) {
 	// otherwise, we simply choose the head of our chain.
 	primary := s.derivePrimary()
 	prm, has := s.loadVote(primary.PublicKeyBytes(), prevote)
-	if has && prm.Vote.Number >= uint32(s.head.Number.Int64()) {
+	if has && prm.Vote.Number >= uint32(s.head.Number) {
 		vote = &prm.Vote
 	} else {
 		header, err := s.blockState.BestBlockHeader()
@@ -708,9 +707,8 @@ func (s *Service) determinePreVote() (*Vote, error) {
 	}
 
 	nextChange := s.digestHandler.NextGrandpaAuthorityChange()
-	if uint64(vote.Number) > nextChange {
-		headerNum := new(big.Int).SetUint64(nextChange)
-		header, err := s.blockState.GetHeaderByNumber(headerNum)
+	if uint(vote.Number) > nextChange {
+		header, err := s.blockState.GetHeaderByNumber(nextChange)
 		if err != nil {
 			return nil, err
 		}
@@ -733,8 +731,8 @@ func (s *Service) determinePreCommit() (*Vote, error) {
 	s.mapLock.Unlock()
 
 	nextChange := s.digestHandler.NextGrandpaAuthorityChange()
-	if uint64(pvb.Number) > nextChange {
-		header, err := s.blockState.GetHeaderByNumber(big.NewInt(int64(nextChange)))
+	if uint(pvb.Number) > nextChange {
+		header, err := s.blockState.GetHeaderByNumber(nextChange)
 		if err != nil {
 			return nil, err
 		}
@@ -1163,7 +1161,7 @@ func (s *Service) getPossibleSelectedAncestors(votes []Vote, curr common.Hash,
 
 		// find common ancestor, check if votes for it is >threshold or not
 		pred, err := s.blockState.HighestCommonAncestor(v.Hash, curr)
-		if err == blocktree.ErrNodeNotFound {
+		if errors.Is(err, blocktree.ErrNodeNotFound) {
 			continue
 		} else if err != nil {
 			return nil, err
@@ -1185,7 +1183,7 @@ func (s *Service) getPossibleSelectedAncestors(votes []Vote, curr common.Hash,
 				return nil, err
 			}
 
-			selected[pred] = uint32(h.Number.Int64())
+			selected[pred] = uint32(h.Number)
 		} else {
 			selected, err = s.getPossibleSelectedAncestors(votes, pred, selected, stage, threshold)
 			if err != nil {

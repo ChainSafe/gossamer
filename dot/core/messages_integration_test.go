@@ -2,22 +2,18 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 //go:build integration
-// +build integration
 
 package core
 
 import (
-	"math/big"
 	"testing"
 	"time"
 
 	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
 	ctypes "github.com/centrifuge/go-substrate-rpc-client/v3/types"
-	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/require"
 
-	"github.com/ChainSafe/gossamer/dot/core/mocks"
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/sync"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -26,6 +22,10 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+
+	"github.com/golang/mock/gomock"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/stretchr/testify/require"
 )
 
 func createExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, nonce uint64) types.Extrinsic {
@@ -70,7 +70,9 @@ func createExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, non
 }
 
 func TestService_HandleBlockProduced(t *testing.T) {
-	net := new(mocks.Network)
+	ctrl := gomock.NewController(t)
+
+	net := NewMockNetwork(ctrl)
 	cfg := &Config{
 		Network:  net,
 		Keystore: keystore.NewGlobalKeystore(),
@@ -89,7 +91,7 @@ func TestService_HandleBlockProduced(t *testing.T) {
 
 	newBlock := types.Block{
 		Header: types.Header{
-			Number:     big.NewInt(1),
+			Number:     1,
 			ParentHash: s.blockState.BestBlockHash(),
 			Digest:     digest,
 		},
@@ -105,7 +107,7 @@ func TestService_HandleBlockProduced(t *testing.T) {
 		BestBlock:      true,
 	}
 
-	net.On("GossipMessage", expected)
+	net.EXPECT().GossipMessage(expected)
 
 	state, err := s.storageState.TrieState(nil)
 	require.NoError(t, err)
@@ -114,7 +116,6 @@ func TestService_HandleBlockProduced(t *testing.T) {
 	require.NoError(t, err)
 
 	time.Sleep(time.Second)
-	net.AssertCalled(t, "GossipMessage", expected)
 }
 
 func TestService_HandleTransactionMessage(t *testing.T) {
@@ -132,9 +133,18 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
+	net := NewMockNetwork(ctrl)
+	net.EXPECT().GossipMessage(gomock.AssignableToTypeOf(new(network.TransactionMessage))).AnyTimes()
+	net.EXPECT().IsSynced().Return(true).AnyTimes()
+	net.EXPECT().ReportPeer(
+		gomock.AssignableToTypeOf(peerset.ReputationChange{}),
+		gomock.AssignableToTypeOf(peer.ID("")),
+	).AnyTimes()
+
 	cfg := &Config{
 		Keystore:         ks,
 		TransactionState: state.NewTransactionState(telemetryMock),
+		Network:          net,
 	}
 
 	s := NewTestService(t, cfg)

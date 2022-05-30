@@ -2,12 +2,10 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 //go:build integration
-// +build integration
 
 package babe
 
 import (
-	"math/big"
 	"os"
 	"path/filepath"
 	"testing"
@@ -40,7 +38,7 @@ var (
 
 	genesisHeader *types.Header
 	emptyHeader   = &types.Header{
-		Number: big.NewInt(0),
+		Number: 0,
 		Digest: types.NewDigest(),
 	}
 
@@ -228,8 +226,11 @@ func TestService_SlotDuration(t *testing.T) {
 }
 
 func TestService_ProducesBlocks(t *testing.T) {
-	babeService := createTestService(t, nil)
-	babeService.lead = true
+	cfg := &ServiceConfig{
+		Authority: true,
+		Lead:      true,
+	}
+	babeService := createTestService(t, cfg)
 
 	err := babeService.Start()
 	require.NoError(t, err)

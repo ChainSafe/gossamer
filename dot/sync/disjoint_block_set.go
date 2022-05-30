@@ -5,7 +5,6 @@ package sync
 
 import (
 	"errors"
-	"math/big"
 	"sync"
 	"time"
 
@@ -28,12 +27,12 @@ var (
 // with an unknown parent. it is implemented by *disjointBlockSet
 type DisjointBlockSet interface {
 	run(done <-chan struct{})
-	addHashAndNumber(common.Hash, *big.Int) error
+	addHashAndNumber(hash common.Hash, number uint) error
 	addHeader(*types.Header) error
 	addBlock(*types.Block) error
 	addJustification(common.Hash, []byte) error
 	removeBlock(common.Hash)
-	removeLowerBlocks(num *big.Int)
+	removeLowerBlocks(num uint)
 	hasBlock(common.Hash) bool
 	getBlock(common.Hash) *pendingBlock
 	getBlocks() []*pendingBlock
@@ -48,7 +47,7 @@ type DisjointBlockSet interface {
 // this allows us easily to check which fields are missing
 type pendingBlock struct {
 	hash          common.Hash
-	number        *big.Int
+	number        uint
 	header        *types.Header
 	body          *types.Body
 	justification []byte
@@ -58,7 +57,7 @@ type pendingBlock struct {
 	clearAt time.Time
 }
 
-func newPendingBlock(hash common.Hash, number *big.Int,
+func newPendingBlock(hash common.Hash, number uint,
 	header *types.Header, body *types.Body, clearAt time.Time) *pendingBlock {
 	return &pendingBlock{
 		hash:    hash,
@@ -151,7 +150,7 @@ func (s *disjointBlockSet) addToParentMap(parent, child common.Hash) {
 	children[child] = struct{}{}
 }
 
-func (s *disjointBlockSet) addHashAndNumber(hash common.Hash, number *big.Int) error {
+func (s *disjointBlockSet) addHashAndNumber(hash common.Hash, number uint) error {
 	s.Lock()
 	defer s.Unlock()
 
@@ -251,10 +250,10 @@ func (s *disjointBlockSet) removeBlockInner(hash common.Hash) {
 
 // removeLowerBlocks removes all blocks with a number equal or less than the given number
 // from the set. it should be called when a new block is finalised to cleanup the set.
-func (s *disjointBlockSet) removeLowerBlocks(num *big.Int) {
+func (s *disjointBlockSet) removeLowerBlocks(num uint) {
 	blocks := s.getBlocks()
 	for _, block := range blocks {
-		if block.number.Cmp(num) <= 0 {
+		if block.number <= num {
 			s.removeBlock(block.hash)
 		}
 	}

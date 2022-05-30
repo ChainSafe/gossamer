@@ -62,4 +62,9 @@ const (
 	BadJustificationValue Reputation = -(1 << 16)
 	// BadJustificationReason is used when peer send invalid justification.
 	BadJustificationReason = "Bad justification"
+
+	// GenesisMismatch is used when peer has a different genesis
+	GenesisMismatch Reputation = math.MinInt32
+	// GenesisMismatchReason used when a peer has a different genesis
+	GenesisMismatchReason = "Genesis mismatch"
 )

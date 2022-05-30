@@ -102,11 +102,15 @@ func (h *Handler) RemovePeer(setID int, peers ...peer.ID) {
 
 // ReportPeer reports ReputationChange according to the peer behaviour.
 func (h *Handler) ReportPeer(rep ReputationChange, peers ...peer.ID) {
-	h.setActionQueue(action{
+	for _, pid := range peers {
+		logger.Debugf("reporting reputation change of %d to peer %s, reason: %s", rep.Value, pid, rep.Reason)
+	}
+
+	h.actionQueue <- action{
 		actionCall: reportPeer,
 		reputation: rep,
 		peers:      peers,
-	})
+	}
 }
 
 // Incoming calls when we have an incoming connection from peer.
@@ -138,7 +142,7 @@ func (h *Handler) PeerReputation(peerID peer.ID) (Reputation, error) {
 	if err != nil {
 		return 0, err
 	}
-	return n.getReputation(), nil
+	return n.reputation, nil
 }
 
 // Start starts peerSet processing

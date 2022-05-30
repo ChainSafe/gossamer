@@ -4,7 +4,6 @@
 package grandpa
 
 import (
-	"math/big"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -83,7 +82,7 @@ func TestVoteMessageToConsensusMessage(t *testing.T) {
 		SetID: gs.state.setID,
 		Message: SignedMessage{
 			Stage:       precommit,
-			Hash:        v.Hash,
+			BlockHash:   v.Hash,
 			Number:      v.Number,
 			AuthorityID: gs.keypair.Public().(*ed25519.PublicKey).AsBytes(),
 		},
@@ -101,7 +100,7 @@ func TestVoteMessageToConsensusMessage(t *testing.T) {
 		SetID: gs.state.setID,
 		Message: SignedMessage{
 			Stage:       prevote,
-			Hash:        v.Hash,
+			BlockHash:   v.Hash,
 			Number:      v.Number,
 			AuthorityID: gs.keypair.Public().(*ed25519.PublicKey).AsBytes(),
 		},
@@ -150,7 +149,7 @@ func TestNewCatchUpResponse(t *testing.T) {
 	block := &types.Block{
 		Header: types.Header{
 			ParentHash: testGenesisHeader.Hash(),
-			Number:     big.NewInt(1),
+			Number:     1,
 			Digest:     digest,
 		},
 		Body: types.Body{},

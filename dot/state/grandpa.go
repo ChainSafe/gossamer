@@ -6,7 +6,7 @@ package state
 import (
 	"encoding/binary"
 	"errors"
-	"math/big"
+	"fmt"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -48,7 +48,7 @@ func NewGrandpaStateFromGenesis(db chaindb.Database, genesisAuthorities []types.
 		return nil, err
 	}
 
-	if err := s.setSetIDChangeAtBlock(genesisSetID, big.NewInt(0)); err != nil {
+	if err := s.setSetIDChangeAtBlock(genesisSetID, 0); err != nil {
 		return nil, err
 	}
 
@@ -138,8 +138,9 @@ func (s *GrandpaState) GetLatestRound() (uint64, error) {
 	return round, nil
 }
 
-// SetNextChange sets the next authority change
-func (s *GrandpaState) SetNextChange(authorities []types.GrandpaVoter, number *big.Int) error {
+// SetNextChange sets the next authority change at the given block number.
+// NOTE: This block number will be the last block in the current set and not part of the next set.
+func (s *GrandpaState) SetNextChange(authorities []types.GrandpaVoter, number uint) error {
 	currSetID, err := s.GetCurrentSetID()
 	if err != nil {
 		return err
@@ -160,33 +161,38 @@ func (s *GrandpaState) SetNextChange(authorities []types.GrandpaVoter, number *b
 }
 
 // IncrementSetID increments the set ID
-func (s *GrandpaState) IncrementSetID() error {
+func (s *GrandpaState) IncrementSetID() (newSetID uint64, err error) {
 	currSetID, err := s.GetCurrentSetID()
 	if err != nil {
-		return err
+		return 0, fmt.Errorf("cannot get current set ID: %w", err)
 	}
 
-	nextSetID := currSetID + 1
-	return s.setCurrentSetID(nextSetID)
+	newSetID = currSetID + 1
+	err = s.setCurrentSetID(newSetID)
+	if err != nil {
+		return 0, fmt.Errorf("cannot set current set ID: %w", err)
+	}
+
+	return newSetID, nil
 }
 
 // setSetIDChangeAtBlock sets a set ID change at a certain block
-func (s *GrandpaState) setSetIDChangeAtBlock(setID uint64, number *big.Int) error {
-	return s.db.Put(setIDChangeKey(setID), number.Bytes())
+func (s *GrandpaState) setSetIDChangeAtBlock(setID uint64, number uint) error {
+	return s.db.Put(setIDChangeKey(setID), common.UintToBytes(number))
 }
 
-// GetSetIDChange returs the block number where the set ID was updated
-func (s *GrandpaState) GetSetIDChange(setID uint64) (*big.Int, error) {
+// GetSetIDChange returns the block number where the set ID was updated
+func (s *GrandpaState) GetSetIDChange(setID uint64) (blockNumber uint, err error) {
 	num, err := s.db.Get(setIDChangeKey(setID))
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
-	return big.NewInt(0).SetBytes(num), nil
+	return common.BytesToUint(num), nil
 }
 
 // GetSetIDByBlockNumber returns the set ID for a given block number
-func (s *GrandpaState) GetSetIDByBlockNumber(num *big.Int) (uint64, error) {
+func (s *GrandpaState) GetSetIDByBlockNumber(blockNumber uint) (uint64, error) {
 	curr, err := s.GetCurrentSetID()
 	if err != nil {
 		return 0, err
@@ -194,7 +200,7 @@ func (s *GrandpaState) GetSetIDByBlockNumber(num *big.Int) (uint64, error) {
 
 	for {
 		changeUpper, err := s.GetSetIDChange(curr + 1)
-		if err == chaindb.ErrKeyNotFound {
+		if errors.Is(err, chaindb.ErrKeyNotFound) {
 			if curr == 0 {
 				return 0, nil
 			}
@@ -210,13 +216,16 @@ func (s *GrandpaState) GetSetIDByBlockNumber(num *big.Int) (uint64, error) {
 			return 0, err
 		}
 
-		// if the given block number is greater or equal to the block number of the set ID change,
-		// return the current set ID
-		if num.Cmp(changeUpper) < 1 && num.Cmp(changeLower) == 1 {
+		// Set id changes at the last block in the set. So, block (changeLower) at which current
+		// set id was set, does not belong to current set. Thus, all block numbers in given set
+		// would be more than changeLower.
+		// Next set id change happens at the last block of current set. Thus, a block number from
+		// given set could be lower or equal to changeUpper.
+		if blockNumber <= changeUpper && blockNumber > changeLower {
 			return curr, nil
 		}
 
-		if num.Cmp(changeUpper) == 1 {
+		if blockNumber > changeUpper {
 			return curr + 1, nil
 		}
 
@@ -229,43 +238,39 @@ func (s *GrandpaState) GetSetIDByBlockNumber(num *big.Int) (uint64, error) {
 }
 
 // SetNextPause sets the next grandpa pause at the given block number
-func (s *GrandpaState) SetNextPause(number *big.Int) error {
-	return s.db.Put(pauseKey, number.Bytes())
+func (s *GrandpaState) SetNextPause(number uint) error {
+	value := common.UintToBytes(number)
+	return s.db.Put(pauseKey, value)
 }
 
 // GetNextPause returns the block number of the next grandpa pause.
-// If the key is not found in the database, a nil block number is returned
-// to indicate there is no upcoming Grandpa pause.
-// It returns an error on failure.
-func (s *GrandpaState) GetNextPause() (*big.Int, error) {
-	num, err := s.db.Get(pauseKey)
-	if errors.Is(err, chaindb.ErrKeyNotFound) {
-		return nil, nil //nolint:nilnil
-	} else if err != nil {
-		return nil, err
+// If the key is not found in the database, the error chaindb.ErrKeyNotFound
+// is returned.
+func (s *GrandpaState) GetNextPause() (blockNumber uint, err error) {
+	value, err := s.db.Get(pauseKey)
+	if err != nil {
+		return 0, err
 	}
 
-	return big.NewInt(0).SetBytes(num), nil
+	return common.BytesToUint(value), nil
 }
 
 // SetNextResume sets the next grandpa resume at the given block number
-func (s *GrandpaState) SetNextResume(number *big.Int) error {
-	return s.db.Put(resumeKey, number.Bytes())
+func (s *GrandpaState) SetNextResume(number uint) error {
+	value := common.UintToBytes(number)
+	return s.db.Put(resumeKey, value)
 }
 
 // GetNextResume returns the block number of the next grandpa resume.
-// If the key is not found in the database, a nil block number is returned
-// to indicate there is no upcoming Grandpa resume.
-// It returns an error on failure.
-func (s *GrandpaState) GetNextResume() (*big.Int, error) {
-	num, err := s.db.Get(resumeKey)
-	if errors.Is(err, chaindb.ErrKeyNotFound) {
-		return nil, nil //nolint:nilnil
-	} else if err != nil {
-		return nil, err
+// If the key is not found in the database, the error chaindb.ErrKeyNotFound
+// is returned.
+func (s *GrandpaState) GetNextResume() (blockNumber uint, err error) {
+	value, err := s.db.Get(resumeKey)
+	if err != nil {
+		return 0, err
 	}
 
-	return big.NewInt(0).SetBytes(num), nil
+	return common.BytesToUint(value), nil
 }
 
 func prevotesKey(round, setID uint64) []byte {

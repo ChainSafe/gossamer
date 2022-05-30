@@ -5,7 +5,6 @@ package blocktree
 
 import (
 	"fmt"
-	"math/big"
 	"time"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -17,7 +16,7 @@ type node struct {
 	hash        common.Hash // Block hash
 	parent      *node       // Parent Node
 	children    []*node     // Nodes of children blocks
-	number      *big.Int    // block number
+	number      uint        // block number
 	arrivalTime time.Time   // Arrival time of the block
 	isPrimary   bool        // whether the block was authored in a primary slot or not
 }
@@ -29,7 +28,7 @@ func (n *node) addChild(node *node) {
 
 // string returns stringified hash and number of node
 func (n *node) string() string {
-	return fmt.Sprintf("{hash: %s, number: %s, arrivalTime: %s}", n.hash.String(), n.number, n.arrivalTime)
+	return fmt.Sprintf("{hash: %s, number: %d, arrivalTime: %s}", n.hash.String(), n.number, n.arrivalTime)
 }
 
 // createTree adds all the nodes children to the existing printable tree.
@@ -61,15 +60,15 @@ func (n *node) getNode(h common.Hash) *node {
 }
 
 // getNodesWithNumber returns all descendent nodes with the desired number
-func (n *node) getNodesWithNumber(number *big.Int, hashes []common.Hash) []common.Hash {
+func (n *node) getNodesWithNumber(number uint, hashes []common.Hash) []common.Hash {
 	for _, child := range n.children {
 		// number matches
-		if child.number.Cmp(number) == 0 {
+		if child.number == number {
 			hashes = append(hashes, child.hash)
 		}
 
 		// are deeper than desired number, return
-		if child.number.Cmp(number) > 0 {
+		if child.number > number {
 			return hashes
 		}
 
@@ -181,10 +180,7 @@ func (n *node) deepCopy(parent *node) *node {
 	nCopy := new(node)
 	nCopy.hash = n.hash
 	nCopy.arrivalTime = n.arrivalTime
-
-	if n.number != nil {
-		nCopy.number = new(big.Int).Set(n.number)
-	}
+	nCopy.number = n.number
 
 	nCopy.children = make([]*node, len(n.children))
 	for i, child := range n.children {

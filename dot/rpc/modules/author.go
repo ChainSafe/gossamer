@@ -15,6 +15,8 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
+var ErrProvidedKeyDoesNotMatch = errors.New("generated public key does not equal provide public key")
+
 // AuthorModule holds a pointer to the API
 type AuthorModule struct {
 	logger     log.LeveledLogger
@@ -158,7 +160,7 @@ func (am *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, _ *Key
 
 	//strings.EqualFold compare using case-insensitivity.
 	if !strings.EqualFold(keyPair.Public().Hex(), keyReq.PublicKey) {
-		return errors.New("generated public key does not equal provide public key")
+		return ErrProvidedKeyDoesNotMatch
 	}
 
 	err = am.coreAPI.InsertKey(keyPair, keyReq.Type)

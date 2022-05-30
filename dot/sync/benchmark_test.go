@@ -211,16 +211,16 @@ func Test_syncBenchmarker(t *testing.T) {
 	const initialBlock = 10
 	timeZero := time.Unix(0, 0)
 	const timeIncrement = time.Second
-	const baseBlocksIncrement uint64 = 1
+	const baseBlocksIncrement uint = 1
 
 	startTime := timeZero
 	endTime := startTime.Add(timeIncrement)
-	var block uint64 = initialBlock
+	var block uint = initialBlock
 
 	const samples = 10
 	for i := 0; i < samples; i++ {
 		benchmarker.begin(startTime, block)
-		block += baseBlocksIncrement + uint64(i)
+		block += baseBlocksIncrement + uint(i)
 		benchmarker.end(endTime, block)
 
 		startTime = startTime.Add(timeIncrement)

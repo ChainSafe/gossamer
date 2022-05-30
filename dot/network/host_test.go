@@ -168,13 +168,13 @@ func TestBootstrap(t *testing.T) {
 
 	peerCountA := nodeA.host.peerCount()
 	if peerCountA == 0 {
-		peerCountA := len(nodeA.host.h.Peerstore().Peers())
+		peerCountA := len(nodeA.host.p2pHost.Peerstore().Peers())
 		require.NotZero(t, peerCountA)
 	}
 
 	peerCountB := nodeB.host.peerCount()
 	if peerCountB == 0 {
-		peerCountB := len(nodeB.host.h.Peerstore().Peers())
+		peerCountB := len(nodeB.host.p2pHost.Peerstore().Peers())
 		require.NotZero(t, peerCountB)
 	}
 }
@@ -354,24 +354,20 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 	info := nodeA.notificationsProtocols[BlockAnnounceMsgType]
 
 	// Set handshake data to received
-	info.inboundHandshakeData.Store(nodeB.host.id(), &handshakeData{
+	info.peersData.setInboundHandshakeData(nodeB.host.id(), &handshakeData{
 		received:  true,
 		validated: true,
 	})
 
 	// Verify that handshake data exists.
-	_, ok := info.getInboundHandshakeData(nodeB.host.id())
-	require.True(t, ok)
+	data := info.peersData.getInboundHandshakeData(nodeB.host.id())
+	require.NotNil(t, data)
 
-	time.Sleep(time.Second)
 	nodeB.host.close()
 
-	// Wait for cleanup
-	time.Sleep(time.Second)
-
 	// Verify that handshake data is cleared.
-	_, ok = info.getInboundHandshakeData(nodeB.host.id())
-	require.False(t, ok)
+	data = info.peersData.getInboundHandshakeData(nodeB.host.id())
+	require.Nil(t, data)
 }
 
 func Test_PeerSupportsProtocol(t *testing.T) {
@@ -508,7 +504,7 @@ func Test_RemoveReservedPeers(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	require.Equal(t, 1, nodeA.host.peerCount())
-	isProtected := nodeA.host.h.ConnManager().IsProtected(nodeB.host.addrInfo().ID, "")
+	isProtected := nodeA.host.p2pHost.ConnManager().IsProtected(nodeB.host.addrInfo().ID, "")
 	require.False(t, isProtected)
 
 	err = nodeA.host.removeReservedPeers("unknown_perr_id")
@@ -599,7 +595,7 @@ func TestPeerConnect(t *testing.T) {
 	nodeB.noGossip = true
 
 	addrInfoB := nodeB.host.addrInfo()
-	nodeA.host.h.Peerstore().AddAddrs(addrInfoB.ID, addrInfoB.Addrs, peerstore.PermanentAddrTTL)
+	nodeA.host.p2pHost.Peerstore().AddAddrs(addrInfoB.ID, addrInfoB.Addrs, peerstore.PermanentAddrTTL)
 	nodeA.host.cm.peerSetHandler.AddPeer(0, addrInfoB.ID)
 
 	time.Sleep(100 * time.Millisecond)
@@ -637,7 +633,7 @@ func TestBannedPeer(t *testing.T) {
 	nodeB.noGossip = true
 
 	addrInfoB := nodeB.host.addrInfo()
-	nodeA.host.h.Peerstore().AddAddrs(addrInfoB.ID, addrInfoB.Addrs, peerstore.PermanentAddrTTL)
+	nodeA.host.p2pHost.Peerstore().AddAddrs(addrInfoB.ID, addrInfoB.Addrs, peerstore.PermanentAddrTTL)
 	nodeA.host.cm.peerSetHandler.AddPeer(0, addrInfoB.ID)
 
 	time.Sleep(100 * time.Millisecond)
@@ -690,8 +686,7 @@ func TestPeerReputation(t *testing.T) {
 	nodeB.noGossip = true
 
 	addrInfoB := nodeB.host.addrInfo()
-
-	nodeA.host.h.Peerstore().AddAddrs(addrInfoB.ID, addrInfoB.Addrs, peerstore.PermanentAddrTTL)
+	nodeA.host.p2pHost.Peerstore().AddAddrs(addrInfoB.ID, addrInfoB.Addrs, peerstore.PermanentAddrTTL)
 	nodeA.host.cm.peerSetHandler.AddPeer(0, addrInfoB.ID)
 
 	time.Sleep(100 * time.Millisecond)

@@ -4,7 +4,6 @@
 package sync
 
 import (
-	"math/big"
 	"testing"
 	"time"
 
@@ -24,7 +23,7 @@ func BuildBlock(t *testing.T, instance runtime.Instance, parent *types.Header, e
 	require.NoError(t, err)
 	header := &types.Header{
 		ParentHash: parent.Hash(),
-		Number:     big.NewInt(0).Add(parent.Number, big.NewInt(1)),
+		Number:     parent.Number + 1,
 		Digest:     digest,
 	}
 

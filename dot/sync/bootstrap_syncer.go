@@ -5,7 +5,6 @@ package sync
 
 import (
 	"errors"
-	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -32,14 +31,14 @@ func (s *bootstrapSyncer) handleNewPeerState(ps *peerState) (*worker, error) {
 		return nil, err
 	}
 
-	if ps.number.Cmp(head.Number) <= 0 {
+	if ps.number <= head.Number {
 		return nil, nil //nolint:nilnil
 	}
 
 	return &worker{
-		startNumber:  big.NewInt(0).Add(head.Number, big.NewInt(1)),
+		startNumber:  uintPtr(head.Number + 1),
 		targetHash:   ps.hash,
-		targetNumber: ps.number,
+		targetNumber: uintPtr(ps.number),
 		requestData:  bootstrapRequestData,
 		direction:    network.Ascending,
 	}, nil
@@ -60,11 +59,11 @@ func (s *bootstrapSyncer) handleWorkerResult(res *worker) (
 	}
 
 	// we've reached the target, return
-	if res.targetNumber.Cmp(head.Number) <= 0 {
+	if *res.targetNumber <= head.Number {
 		return nil, nil
 	}
 
-	startNumber := big.NewInt(0).Add(head.Number, big.NewInt(1))
+	startNumber := head.Number + 1
 
 	// in the case we started a block producing node, we might have produced blocks
 	// before fully syncing (this should probably be fixed by connecting sync into BABE)
@@ -79,7 +78,7 @@ func (s *bootstrapSyncer) handleWorkerResult(res *worker) (
 
 	return &worker{
 		startHash:    common.Hash{}, // for bootstrap, just use number
-		startNumber:  startNumber,
+		startNumber:  uintPtr(startNumber),
 		targetHash:   res.targetHash,
 		targetNumber: res.targetNumber,
 		requestData:  res.requestData,
