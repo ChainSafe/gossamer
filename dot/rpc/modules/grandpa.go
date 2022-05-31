@@ -48,9 +48,9 @@ type RoundStateResponse struct {
 
 // ProveFinalityRequest request struct
 type ProveFinalityRequest struct {
-	blockHashStart common.Hash
-	blockHashEnd   common.Hash
-	authorityID    uint64
+	BlockHashStart common.Hash `json:"blockHashStart"`
+	BlockHashEnd   common.Hash `json:"blockHashEnd"`
+	AuthorityID    uint64      `json:"authorityID"`
 }
 
 // ProveFinalityResponse is an optional SCALE encoded proof array
@@ -59,13 +59,13 @@ type ProveFinalityResponse [][]byte
 // ProveFinality for the provided block range. Returns NULL if there are no known finalised blocks in the range.
 // If no authorities set is provided, the current one will be attempted.
 func (gm *GrandpaModule) ProveFinality(r *http.Request, req *ProveFinalityRequest, res *ProveFinalityResponse) error {
-	blocksToCheck, err := gm.blockAPI.SubChain(req.blockHashStart, req.blockHashEnd)
+	blocksToCheck, err := gm.blockAPI.SubChain(req.BlockHashStart, req.BlockHashEnd)
 	if err != nil {
 		return err
 	}
 
 	// Leaving check in for linter
-	if req.authorityID != uint64(0) {
+	if req.AuthorityID != uint64(0) {
 		// TODO: Check if functionality relevant (#1404)
 	}
 
