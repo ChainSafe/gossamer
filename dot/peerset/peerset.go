@@ -690,10 +690,12 @@ func (ps *PeerSet) disconnect(setIdx int, reason DropReason, peers ...peer.ID) e
 			return fmt.Errorf("cannot disconnect: %w", err)
 		}
 
-		ps.resultMsgCh <- Message{
-			Status: Drop,
-			setID:  uint64(setIdx),
-			PeerID: pid,
+		if ps.resultMsgCh != nil {
+			ps.resultMsgCh <- Message{
+				Status: Drop,
+				setID:  uint64(setIdx),
+				PeerID: pid,
+			}
 		}
 
 		// TODO: figure out the condition of connection refuse.
@@ -765,6 +767,7 @@ func (ps *PeerSet) periodicallyAllocateSlots(ctx context.Context) {
 	defer func() {
 		ticker.Stop()
 		close(ps.resultMsgCh)
+		ps.resultMsgCh = nil
 	}()
 
 	for {
