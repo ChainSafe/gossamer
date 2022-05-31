@@ -14,14 +14,6 @@ import (
 type conditionFunc[T any] func(T) (bool, error)
 type isDescendantOfFunc func(parent, child common.Hash) (bool, error)
 
-type changeTracker[T any, F any] interface {
-	Len() int
-	importChange(T, isDescendantOfFunc) error
-	lookupChangeWhere(conditionFunc[F]) (F, error)
-	pruneChanges(common.Hash, isDescendantOfFunc) error
-	findApplicable(common.Hash, uint, isDescendantOfFunc) (F, error)
-}
-
 type pendingChange struct {
 	bestFinalizedNumber uint32
 	delay               uint32

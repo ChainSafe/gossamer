@@ -41,8 +41,8 @@ type GrandpaState struct {
 
 	forksLock sync.RWMutex
 
-	forcedChanges        changeTracker[*pendingChange, *pendingChange]
-	scheduledChangeRoots changeTracker[*pendingChange, *pendingChangeNode]
+	forcedChanges        *orderedPendingChanges
+	scheduledChangeRoots *changeTree
 }
 
 // NewGrandpaStateFromGenesis returns a new GrandpaState given the grandpa genesis authorities

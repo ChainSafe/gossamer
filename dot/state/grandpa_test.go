@@ -238,7 +238,7 @@ func TestAddScheduledChangesKeepTheRightForkTree(t *testing.T) {
 
 			require.Len(t, gs.scheduledChangeRoots, tt.expectedRoots)
 
-			for _, root := range *gs.scheduledChangeRoots.(*changeTree) {
+			for _, root := range *gs.scheduledChangeRoots {
 				parentHash := root.change.announcingHeader.Hash()
 				assertDescendantChildren(t, parentHash, gs.blockState.IsDescendantOf, root.nodes)
 			}
@@ -328,7 +328,7 @@ func TestForcedScheduledChangesOrder(t *testing.T) {
 		require.NoError(t, err, "failed to add forced change")
 	}
 
-	forcedChangesSlice := *gs.forcedChanges.(*orderedPendingChanges)
+	forcedChangesSlice := *gs.forcedChanges
 	for idx := 0; idx < len(forcedChangesSlice)-1; idx++ {
 		currentChange := forcedChangesSlice[idx]
 		nextChange := forcedChangesSlice[idx+1]
@@ -868,8 +868,7 @@ func TestApplyScheduledChangesKeepDescendantForcedChanges(t *testing.T) {
 
 				require.Len(t, gs.forcedChanges, tt.expectedForcedChangesLen)
 
-				forcedChangesSlice := *gs.forcedChanges.(*orderedPendingChanges)
-				for _, forcedChange := range forcedChangesSlice {
+				for _, forcedChange := range *gs.forcedChanges {
 					isDescendant, err := gs.blockState.IsDescendantOf(
 						selectedFinalizedHeader.Hash(), forcedChange.announcingHeader.Hash())
 
@@ -1087,7 +1086,7 @@ func TestApplyScheduledChangeGetApplicableChange(t *testing.T) {
 
 			// saving the current state of scheduled changes to compare
 			// with the next state in the case of an error (should keep the same)
-			previousScheduledChanges := gs.scheduledChangeRoots.(*changeTree)
+			previousScheduledChanges := gs.scheduledChangeRoots
 
 			selectedChain := forks[tt.finalizedHeader[0]]
 			selectedHeader := selectedChain[tt.finalizedHeader[1]]
@@ -1111,7 +1110,7 @@ func TestApplyScheduledChangeGetApplicableChange(t *testing.T) {
 			require.Len(t, gs.scheduledChangeRoots, tt.expectedScheduledChangeRootsLen)
 			// make sure all the next scheduled changes are descendant of the finalized hash
 			assertDescendantChildren(t,
-				selectedHeader.Hash(), gs.blockState.IsDescendantOf, *gs.scheduledChangeRoots.(*changeTree))
+				selectedHeader.Hash(), gs.blockState.IsDescendantOf, *gs.scheduledChangeRoots)
 		})
 	}
 }
@@ -1324,7 +1323,7 @@ func TestApplyScheduledChange(t *testing.T) {
 
 				// ensure the forced changes and scheduled changes
 				// are descendant of the latest finalized header
-				forcedChangeSlice := *gs.forcedChanges.(*orderedPendingChanges)
+				forcedChangeSlice := *gs.forcedChanges
 				for _, forcedChange := range forcedChangeSlice {
 					isDescendant, err := gs.blockState.IsDescendantOf(
 						selectedFinalizedHeader.Hash(), forcedChange.announcingHeader.Hash())
@@ -1334,7 +1333,7 @@ func TestApplyScheduledChange(t *testing.T) {
 				}
 
 				assertDescendantChildren(t,
-					selectedFinalizedHeader.Hash(), gs.blockState.IsDescendantOf, *gs.scheduledChangeRoots.(*changeTree))
+					selectedFinalizedHeader.Hash(), gs.blockState.IsDescendantOf, *gs.scheduledChangeRoots)
 			}
 
 			require.Len(t, gs.forcedChanges, tt.expectedForcedChangesLen)
