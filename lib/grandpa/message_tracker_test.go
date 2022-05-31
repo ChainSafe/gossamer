@@ -11,6 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/grandpa/models"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 
 	"github.com/stretchr/testify/require"
@@ -20,7 +21,7 @@ import (
 // from the votes tracker for the given block hash and authority ID.
 func getMessageFromVotesTracker(votes votesTracker,
 	blockHash common.Hash, authorityID ed25519.PublicKeyBytes) (
-	message *VoteMessage) {
+	message *models.VoteMessage) {
 	authorityIDToElement, has := votes.mapping[blockHash]
 	if !has {
 		return nil
@@ -31,7 +32,7 @@ func getMessageFromVotesTracker(votes votesTracker,
 		return nil
 	}
 
-	return element.Value.(networkVoteMessage).msg
+	return element.Value.(models.NetworkVoteMessage).Msg
 }
 
 func TestMessageTracker_ValidateMessage(t *testing.T) {
@@ -47,7 +48,7 @@ func TestMessageTracker_ValidateMessage(t *testing.T) {
 	}
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
-	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(fake), prevote)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(models.NewVoteFromHeader(fake), models.Prevote)
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
@@ -84,7 +85,7 @@ func TestMessageTracker_SendMessage(t *testing.T) {
 	}
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
-	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(next), prevote)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(models.NewVoteFromHeader(next), models.Prevote)
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
@@ -103,7 +104,7 @@ func TestMessageTracker_SendMessage(t *testing.T) {
 	const testTimeout = time.Second
 	select {
 	case v := <-in:
-		require.Equal(t, msg, v.msg)
+		require.Equal(t, msg, v.Msg)
 	case <-time.After(testTimeout):
 		t.Errorf("did not receive vote message %v", msg)
 	}
@@ -136,7 +137,7 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 	}
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
-	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(next), prevote)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(models.NewVoteFromHeader(next), models.Prevote)
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
@@ -153,13 +154,13 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 	require.NoError(t, err)
 
 	time.Sleep(time.Second)
-	expectedVote := &Vote{
+	expectedVote := &models.Vote{
 		Hash:   msg.Message.BlockHash,
 		Number: msg.Message.Number,
 	}
 	pv, has := gs.prevotes.Load(kr.Alice().Public().(*ed25519.PublicKey).AsBytes())
 	require.True(t, has)
-	require.Equal(t, expectedVote, &pv.(*SignedVote).Vote, gs.tracker.votes)
+	require.Equal(t, expectedVote, &pv.(*models.SignedVote).Vote, gs.tracker.votes)
 }
 
 func TestMessageTracker_MapInsideMap(t *testing.T) {
@@ -180,7 +181,7 @@ func TestMessageTracker_MapInsideMap(t *testing.T) {
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
 	authorityID := kr.Alice().Public().(*ed25519.PublicKey).AsBytes()
-	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(header), prevote)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(models.NewVoteFromHeader(header), models.Prevote)
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
@@ -198,9 +199,9 @@ func TestMessageTracker_handleTick(t *testing.T) {
 	gs.tracker = newTracker(gs.blockState, gs.messageHandler)
 
 	testHash := common.Hash{1, 2, 3}
-	msg := &VoteMessage{
+	msg := &models.VoteMessage{
 		Round: 100,
-		Message: SignedMessage{
+		Message: models.SignedMessage{
 			BlockHash: testHash,
 		},
 	}
@@ -211,7 +212,7 @@ func TestMessageTracker_handleTick(t *testing.T) {
 	const testTimeout = time.Second
 	select {
 	case v := <-in:
-		require.Equal(t, msg, v.msg)
+		require.Equal(t, msg, v.Msg)
 	case <-time.After(testTimeout):
 		t.Errorf("did not receive vote message %v", msg)
 	}
@@ -219,10 +220,10 @@ func TestMessageTracker_handleTick(t *testing.T) {
 	// shouldn't be deleted as round in message >= grandpa round
 	require.Len(t, gs.tracker.votes.messages(testHash), 1)
 
-	gs.state.round = 1
-	msg = &VoteMessage{
+	gs.state.Round = 1
+	msg = &models.VoteMessage{
 		Round: 0,
-		Message: SignedMessage{
+		Message: models.SignedMessage{
 			BlockHash: testHash,
 		},
 	}
@@ -232,7 +233,7 @@ func TestMessageTracker_handleTick(t *testing.T) {
 
 	select {
 	case v := <-in:
-		require.Equal(t, msg, v.msg)
+		require.Equal(t, msg, v.Msg)
 	case <-time.After(testTimeout):
 		t.Errorf("did not receive vote message %v", msg)
 	}

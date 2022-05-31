@@ -11,15 +11,16 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/grandpa/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 // buildCommitMessage creates a test commit message
 // using the given block hash.
-func buildCommitMessage(blockHash common.Hash) *CommitMessage {
-	return &CommitMessage{
-		Vote: Vote{
+func buildCommitMessage(blockHash common.Hash) *models.CommitMessage {
+	return &models.CommitMessage{
+		Vote: models.Vote{
 			Hash: blockHash,
 		},
 	}
@@ -27,14 +28,14 @@ func buildCommitMessage(blockHash common.Hash) *CommitMessage {
 
 func assertCommitsMapping(t *testing.T,
 	mapping map[common.Hash]*list.Element,
-	expected map[common.Hash]*CommitMessage) {
+	expected map[common.Hash]*models.CommitMessage) {
 	t.Helper()
 
 	require.Len(t, mapping, len(expected), "mapping does not have the expected length")
 	for expectedBlockHash, expectedCommitMessage := range expected {
 		listElement, ok := mapping[expectedBlockHash]
 		assert.Truef(t, ok, "block hash %s not found in mapping", expectedBlockHash)
-		assert.Equalf(t, expectedCommitMessage, listElement.Value.(*CommitMessage),
+		assert.Equalf(t, expectedCommitMessage, listElement.Value.(*models.CommitMessage),
 			"commit message for block hash %s is not as expected",
 			expectedBlockHash)
 	}
@@ -81,7 +82,7 @@ func Test_commitsTracker_cleanup(t *testing.T) {
 	// This triggers a cleanup removing the oldest message
 	// which is the message for block A.
 	tracker.add(messageBlockC)
-	assertCommitsMapping(t, tracker.mapping, map[common.Hash]*CommitMessage{
+	assertCommitsMapping(t, tracker.mapping, map[common.Hash]*models.CommitMessage{
 		blockHashB: messageBlockB,
 		blockHashC: messageBlockC,
 	})
@@ -111,7 +112,7 @@ func Test_commitsTracker_overriding(t *testing.T) {
 		tracker.add(messageBlockA) // override oldest
 		tracker.add(messageBlockC)
 
-		assertCommitsMapping(t, tracker.mapping, map[common.Hash]*CommitMessage{
+		assertCommitsMapping(t, tracker.mapping, map[common.Hash]*models.CommitMessage{
 			blockHashB: messageBlockB,
 			blockHashC: messageBlockC,
 		})
@@ -136,7 +137,7 @@ func Test_commitsTracker_overriding(t *testing.T) {
 		tracker.add(messageBlockB) // override newest
 		tracker.add(messageBlockC)
 
-		assertCommitsMapping(t, tracker.mapping, map[common.Hash]*CommitMessage{
+		assertCommitsMapping(t, tracker.mapping, map[common.Hash]*models.CommitMessage{
 			blockHashB: messageBlockB,
 			blockHashC: messageBlockC,
 		})
@@ -160,7 +161,7 @@ func Test_commitsTracker_delete(t *testing.T) {
 		tracker.add(messageBlockA)
 		tracker.delete(blockHashB)
 
-		assertCommitsMapping(t, tracker.mapping, map[common.Hash]*CommitMessage{
+		assertCommitsMapping(t, tracker.mapping, map[common.Hash]*models.CommitMessage{
 			blockHashA: messageBlockA,
 		})
 	})
@@ -181,7 +182,7 @@ func Test_commitsTracker_delete(t *testing.T) {
 		tracker.add(messageBlockB)
 		tracker.delete(blockHashB)
 
-		assertCommitsMapping(t, tracker.mapping, map[common.Hash]*CommitMessage{
+		assertCommitsMapping(t, tracker.mapping, map[common.Hash]*models.CommitMessage{
 			blockHashA: messageBlockA,
 		})
 	})
@@ -193,7 +194,7 @@ func Test_commitsTracker_message(t *testing.T) {
 	testCases := map[string]struct {
 		commitsTracker *commitsTracker
 		blockHash      common.Hash
-		message        *CommitMessage
+		message        *models.CommitMessage
 	}{
 		"non existing block hash": {
 			commitsTracker: &commitsTracker{
@@ -207,12 +208,12 @@ func Test_commitsTracker_message(t *testing.T) {
 			commitsTracker: &commitsTracker{
 				mapping: map[common.Hash]*list.Element{
 					{1}: {
-						Value: &CommitMessage{Round: 1},
+						Value: &models.CommitMessage{Round: 1},
 					},
 				},
 			},
 			blockHash: common.Hash{1},
-			message:   &CommitMessage{Round: 1},
+			message:   &models.CommitMessage{Round: 1},
 		},
 	}
 
@@ -247,8 +248,8 @@ func Test_commitsTracker_forEach(t *testing.T) {
 	ct.add(messageBlockB)
 	ct.add(messageBlockC)
 
-	var results []*CommitMessage
-	ct.forEach(func(message *CommitMessage) {
+	var results []*models.CommitMessage
+	ct.forEach(func(message *models.CommitMessage) {
 		results = append(results, message)
 	})
 
@@ -259,7 +260,7 @@ func Test_commitsTracker_forEach(t *testing.T) {
 			results[j].Vote.Hash[:]) < 0
 	})
 
-	expectedResults := []*CommitMessage{
+	expectedResults := []*models.CommitMessage{
 		messageBlockA,
 		messageBlockB,
 		messageBlockC,
@@ -269,15 +270,15 @@ func Test_commitsTracker_forEach(t *testing.T) {
 }
 
 func Benchmark_ForEachVsSlice(b *testing.B) {
-	getMessages := func(ct *commitsTracker) (messages []*CommitMessage) {
-		messages = make([]*CommitMessage, 0, len(ct.mapping))
+	getMessages := func(ct *commitsTracker) (messages []*models.CommitMessage) {
+		messages = make([]*models.CommitMessage, 0, len(ct.mapping))
 		for _, data := range ct.mapping {
-			messages = append(messages, data.Value.(*CommitMessage))
+			messages = append(messages, data.Value.(*models.CommitMessage))
 		}
 		return messages
 	}
 
-	f := func(message *CommitMessage) {
+	f := func(message *models.CommitMessage) {
 		message.Round++
 		message.SetID++
 	}
@@ -293,7 +294,7 @@ func Benchmark_ForEachVsSlice(b *testing.B) {
 			var blockHash common.Hash
 			copy(blockHash[:], hashBytes)
 			ct.mapping[blockHash] = &list.Element{
-				Value: &CommitMessage{
+				Value: &models.CommitMessage{
 					Round: uint64(i),
 					SetID: uint64(i),
 				},

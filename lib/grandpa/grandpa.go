@@ -20,6 +20,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/grandpa/models"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -59,24 +60,24 @@ type Service struct {
 	interval       time.Duration
 
 	// current state information
-	state *State // current state
-	// map[ed25519.PublicKeyBytes]*SignedVote - pre-votes for the current round
+	state *models.State // current state
+	// map[ed25519.PublicKeyBytes]*models.SignedVote - pre-votes for the current round
 	prevotes *sync.Map
-	// map[ed25519.PublicKeyBytes]*SignedVote - pre-commits for the current round
+	// map[ed25519.PublicKeyBytes]*models.SignedVote - pre-commits for the current round
 	precommits      *sync.Map
-	pvEquivocations map[ed25519.PublicKeyBytes][]*SignedVote // equivocatory votes for current pre-vote stage
-	pcEquivocations map[ed25519.PublicKeyBytes][]*SignedVote // equivocatory votes for current pre-commit stage
-	tracker         *tracker                                 // tracker of vote messages we may need in the future
-	head            *types.Header                            // most recently finalised block
+	pvEquivocations map[ed25519.PublicKeyBytes][]*models.SignedVote // equivocatory votes for current pre-vote stage
+	pcEquivocations map[ed25519.PublicKeyBytes][]*models.SignedVote // equivocatory votes for current pre-commit stage
+	tracker         *tracker                                        // tracker of vote messages we may need in the future
+	head            *types.Header                                   // most recently finalised block
 
 	// historical information
-	preVotedBlock      map[uint64]*Vote // map of round number -> pre-voted block
-	bestFinalCandidate map[uint64]*Vote // map of round number -> best final candidate
+	preVotedBlock      map[uint64]*models.Vote // map of round number -> pre-voted block
+	bestFinalCandidate map[uint64]*models.Vote // map of round number -> best final candidate
 
 	// channels for communication with other services
-	in               chan *networkVoteMessage // only used to receive *VoteMessage
+	in               chan *models.NetworkVoteMessage // only used to receive *models.NetworkVoteMessage
 	finalisedCh      chan *types.FinalisationInfo
-	neighbourMessage *NeighbourMessage // cached neighbour message
+	neighbourMessage *models.NeighbourMessage // cached neighbour message
 
 	telemetry telemetry.Client
 }
@@ -87,7 +88,7 @@ type Config struct {
 	BlockState   BlockState
 	GrandpaState GrandpaState
 	Network      Network
-	Voters       []Voter
+	Voters       []models.Voter
 	Keypair      *ed25519.Keypair
 	Authority    bool
 	Interval     time.Duration
@@ -121,7 +122,7 @@ func NewService(cfg *Config) (*Service, error) {
 
 	logger.Debugf(
 		"creating service with authority=%t, pub=%s and voter set %s",
-		cfg.Authority, pub, Voters(cfg.Voters))
+		cfg.Authority, pub, models.Voters(cfg.Voters))
 
 	// get latest finalised header
 	head, err := cfg.BlockState.GetFinalisedHeader(0, 0)
@@ -149,19 +150,19 @@ func NewService(cfg *Config) (*Service, error) {
 	s := &Service{
 		ctx:                ctx,
 		cancel:             cancel,
-		state:              NewState(cfg.Voters, setID, round),
+		state:              models.NewState(cfg.Voters, setID, round),
 		blockState:         cfg.BlockState,
 		grandpaState:       cfg.GrandpaState,
 		keypair:            cfg.Keypair,
 		authority:          cfg.Authority,
 		prevotes:           new(sync.Map),
 		precommits:         new(sync.Map),
-		pvEquivocations:    make(map[ed25519.PublicKeyBytes][]*SignedVote),
-		pcEquivocations:    make(map[ed25519.PublicKeyBytes][]*SignedVote),
-		preVotedBlock:      make(map[uint64]*Vote),
-		bestFinalCandidate: make(map[uint64]*Vote),
+		pvEquivocations:    make(map[ed25519.PublicKeyBytes][]*models.SignedVote),
+		pcEquivocations:    make(map[ed25519.PublicKeyBytes][]*models.SignedVote),
+		preVotedBlock:      make(map[uint64]*models.Vote),
+		bestFinalCandidate: make(map[uint64]*models.Vote),
 		head:               head,
-		in:                 make(chan *networkVoteMessage, 1024),
+		in:                 make(chan *models.NetworkVoteMessage, 1024),
 		resumed:            make(chan struct{}),
 		network:            cfg.Network,
 		finalisedCh:        finalisedCh,
@@ -223,11 +224,11 @@ func (s *Service) Stop() error {
 
 // authorities returns the current grandpa authorities
 func (s *Service) authorities() []*types.Authority {
-	ad := make([]*types.Authority, len(s.state.voters))
-	for i := 0; i < len(s.state.voters); i++ {
+	ad := make([]*types.Authority, len(s.state.Voters))
+	for i := 0; i < len(s.state.Voters); i++ {
 		ad[i] = &types.Authority{
-			Key:    &s.state.voters[i].Key,
-			Weight: s.state.voters[i].ID,
+			Key:    &s.state.Voters[i].Key,
+			Weight: s.state.Voters[i].ID,
 		}
 	}
 
@@ -242,7 +243,7 @@ func (s *Service) updateAuthorities() error {
 	}
 
 	// set ID hasn't changed, do nothing
-	if currSetID == s.state.setID {
+	if currSetID == s.state.SetID {
 		return nil
 	}
 
@@ -251,13 +252,13 @@ func (s *Service) updateAuthorities() error {
 		return fmt.Errorf("cannot get authorities for set id %d: %w", currSetID, err)
 	}
 
-	s.state.voters = nextAuthorities
-	s.state.setID = currSetID
+	s.state.Voters = nextAuthorities
+	s.state.SetID = currSetID
 	// round resets to 1 after a set ID change,
 	// setting to 0 before incrementing indicates
 	// the setID has been increased
-	s.state.round = 0
-	roundGauge.Set(float64(s.state.round))
+	s.state.Round = 0
+	roundGauge.Set(float64(s.state.Round))
 
 	s.sendTelemetryAuthoritySet()
 
@@ -270,8 +271,8 @@ func (s *Service) publicKeyBytes() ed25519.PublicKeyBytes {
 
 func (s *Service) sendTelemetryAuthoritySet() {
 	authorityID := s.keypair.Public().Hex()
-	authorities := make([]string, len(s.state.voters))
-	for i, voter := range s.state.voters {
+	authorities := make([]string, len(s.state.Voters))
+	for i, voter := range s.state.Voters {
 		authorities[i] = fmt.Sprint(voter.ID)
 	}
 
@@ -284,7 +285,7 @@ func (s *Service) sendTelemetryAuthoritySet() {
 	s.telemetry.SendMessage(
 		telemetry.NewAfgAuthoritySet(
 			authorityID,
-			fmt.Sprint(s.state.setID),
+			fmt.Sprint(s.state.SetID),
 			string(authoritiesBytes),
 		),
 	)
@@ -302,48 +303,48 @@ func (s *Service) initiateRound() error {
 		return fmt.Errorf("cannot get highest round and set id: %w", err)
 	}
 
-	if round > s.state.round && setID == s.state.setID {
+	if round > s.state.Round && setID == s.state.SetID {
 		logger.Debugf(
 			"found block finalised in higher round, updating our round to be %d...",
 			round)
-		s.state.round = round
-		roundGauge.Set(float64(s.state.round))
+		s.state.Round = round
+		roundGauge.Set(float64(s.state.Round))
 		err = s.grandpaState.SetLatestRound(round)
 		if err != nil {
 			return err
 		}
 	}
 
-	if setID > s.state.setID {
+	if setID > s.state.SetID {
 		logger.Debugf("found block finalised in higher setID, updating our setID to be %d...", setID)
-		s.state.setID = setID
-		s.state.round = round
+		s.state.SetID = setID
+		s.state.Round = round
 	}
 
-	s.head, err = s.blockState.GetFinalisedHeader(s.state.round, s.state.setID)
+	s.head, err = s.blockState.GetFinalisedHeader(s.state.Round, s.state.SetID)
 	if err != nil {
 		logger.Criticalf("failed to get finalised header for round %d: %s", round, err)
 		return err
 	}
 
 	// there was a setID change, or the node was started from genesis
-	if s.state.round == 0 {
+	if s.state.Round == 0 {
 		s.chanLock.Lock()
 		s.mapLock.Lock()
-		s.preVotedBlock[0] = NewVoteFromHeader(s.head)
-		s.bestFinalCandidate[0] = NewVoteFromHeader(s.head)
+		s.preVotedBlock[0] = models.NewVoteFromHeader(s.head)
+		s.bestFinalCandidate[0] = models.NewVoteFromHeader(s.head)
 		s.mapLock.Unlock()
 		s.chanLock.Unlock()
 	}
 
 	// make sure no votes can be validated while we are incrementing rounds
 	s.roundLock.Lock()
-	s.state.round++
-	logger.Debugf("incrementing grandpa round, next round will be %d", s.state.round)
+	s.state.Round++
+	logger.Debugf("incrementing grandpa round, next round will be %d", s.state.Round)
 	s.prevotes = new(sync.Map)
 	s.precommits = new(sync.Map)
-	s.pvEquivocations = make(map[ed25519.PublicKeyBytes][]*SignedVote)
-	s.pcEquivocations = make(map[ed25519.PublicKeyBytes][]*SignedVote)
+	s.pvEquivocations = make(map[ed25519.PublicKeyBytes][]*models.SignedVote)
+	s.pcEquivocations = make(map[ed25519.PublicKeyBytes][]*models.SignedVote)
 	s.roundLock.Unlock()
 
 	best, err := s.blockState.BestBlockHeader()
@@ -365,7 +366,7 @@ func (s *Service) initiate() error {
 	for {
 		err := s.initiateRound()
 		if err != nil {
-			logger.Warnf("failed to initiate round for round %d: %s", s.state.round, err)
+			logger.Warnf("failed to initiate round for round %d: %s", s.state.Round, err)
 			return err
 		}
 
@@ -424,13 +425,13 @@ func (s *Service) handleIsPrimary() (bool, error) {
 		return false, err
 	}
 
-	pv := &Vote{
+	pv := &models.Vote{
 		Hash:   best.Hash(),
 		Number: uint32(best.Number),
 	}
 
 	// send primary prevote message to network
-	spv, primProposal, err := s.createSignedVoteAndVoteMessage(pv, primaryProposal)
+	spv, primProposal, err := s.createSignedVoteAndVoteMessage(pv, models.PrimaryProposal)
 	if err != nil {
 		return false, fmt.Errorf("failed to create primary proposal message: %w", err)
 	}
@@ -449,7 +450,7 @@ func (s *Service) handleIsPrimary() (bool, error) {
 // broadcast commit message from the previous round to the network
 // ignore errors, since it's not critical to broadcast
 func (s *Service) primaryBroadcastCommitMessage() {
-	cm, err := s.newCommitMessage(s.head, s.state.round-1)
+	cm, err := s.newCommitMessage(s.head, s.state.Round-1)
 	if err != nil {
 		return
 	}
@@ -467,7 +468,7 @@ func (s *Service) primaryBroadcastCommitMessage() {
 // at the end of this round, a block will be finalised.
 func (s *Service) playGrandpaRound() error {
 	logger.Debugf("starting round %d with set id %d",
-		s.state.round, s.state.setID)
+		s.state.Round, s.state.SetID)
 	start := time.Now()
 
 	ctx, cancel := context.WithCancel(s.ctx)
@@ -492,7 +493,7 @@ func (s *Service) playGrandpaRound() error {
 		return err
 	}
 
-	spv, vm, err := s.createSignedVoteAndVoteMessage(pv, prevote)
+	spv, vm, err := s.createSignedVoteAndVoteMessage(pv, models.Prevote)
 	if err != nil {
 		return err
 	}
@@ -509,7 +510,7 @@ func (s *Service) playGrandpaRound() error {
 	defer close(roundComplete)
 
 	// continue to send prevote messages until round is done
-	go s.sendVoteMessage(prevote, vm, roundComplete)
+	go s.sendVoteMessage(models.Prevote, vm, roundComplete)
 
 	logger.Debug("receiving pre-commit messages...")
 	// through goroutine s.receiveVoteMessages(ctx)
@@ -525,7 +526,7 @@ func (s *Service) playGrandpaRound() error {
 		return err
 	}
 
-	spc, pcm, err := s.createSignedVoteAndVoteMessage(pc, precommit)
+	spc, pcm, err := s.createSignedVoteAndVoteMessage(pc, models.Precommit)
 	if err != nil {
 		return err
 	}
@@ -534,7 +535,7 @@ func (s *Service) playGrandpaRound() error {
 	logger.Debugf("sending pre-commit message %s...", pc)
 
 	// continue to send precommit messages until round is done
-	go s.sendVoteMessage(precommit, pcm, roundComplete)
+	go s.sendVoteMessage(models.Precommit, pcm, roundComplete)
 
 	if err = s.attemptToFinalize(); err != nil {
 		logger.Errorf("failed to finalise: %s", err)
@@ -545,7 +546,7 @@ func (s *Service) playGrandpaRound() error {
 	return nil
 }
 
-func (s *Service) sendVoteMessage(stage Subround, msg *VoteMessage, roundComplete <-chan struct{}) {
+func (s *Service) sendVoteMessage(stage models.Subround, msg *models.VoteMessage, roundComplete <-chan struct{}) {
 	ticker := time.NewTicker(s.interval * 4)
 	defer ticker.Stop()
 
@@ -585,20 +586,20 @@ func (s *Service) attemptToFinalize() error {
 			return ErrServicePaused
 		}
 
-		has, _ := s.blockState.HasFinalisedBlock(s.state.round, s.state.setID)
+		has, _ := s.blockState.HasFinalisedBlock(s.state.Round, s.state.SetID)
 		if has {
-			logger.Debugf("block was finalised for round %d", s.state.round)
+			logger.Debugf("block was finalised for round %d", s.state.Round)
 			return nil // a block was finalised, seems like we missed some messages
 		}
 
 		highestRound, highestSetID, _ := s.blockState.GetHighestRoundAndSetID()
-		if highestRound > s.state.round {
+		if highestRound > s.state.Round {
 			logger.Debugf("block was finalised for round %d and set id %d",
 				highestRound, highestSetID)
 			return nil // a block was finalised, seems like we missed some messages
 		}
 
-		if highestSetID > s.state.setID {
+		if highestSetID > s.state.SetID {
 			logger.Debugf("block was finalised for round %d and set id %d",
 				highestRound, highestSetID)
 			return nil // a block was finalised, seems like we missed some messages
@@ -609,12 +610,12 @@ func (s *Service) attemptToFinalize() error {
 			return err
 		}
 
-		pc, err := s.getTotalVotesForBlock(bfc.Hash, precommit)
+		pc, err := s.getTotalVotesForBlock(bfc.Hash, models.Precommit)
 		if err != nil {
 			return err
 		}
 
-		if bfc.Number < uint32(s.head.Number) || pc <= s.state.threshold() {
+		if bfc.Number < uint32(s.head.Number) || pc <= s.state.Threshold() {
 			continue
 		}
 
@@ -623,12 +624,12 @@ func (s *Service) attemptToFinalize() error {
 		}
 
 		// if we haven't received a finalisation message for this block yet, broadcast a finalisation message
-		votes := s.getDirectVotes(precommit)
+		votes := s.getDirectVotes(models.Precommit)
 		logger.Debugf("block was finalised for round %d and set id %d. "+
 			"Head hash is %s, %d direct votes for bfc and %d total votes for bfc",
-			s.state.round, s.state.setID, s.head.Hash(), votes[*bfc], pc)
+			s.state.Round, s.state.SetID, s.head.Hash(), votes[*bfc], pc)
 
-		cm, err := s.newCommitMessage(s.head, s.state.round)
+		cm, err := s.newCommitMessage(s.head, s.state.Round)
 		if err != nil {
 			return err
 		}
@@ -650,16 +651,16 @@ func (s *Service) attemptToFinalize() error {
 	}
 }
 
-func (s *Service) loadVote(key ed25519.PublicKeyBytes, stage Subround) (*SignedVote, bool) {
+func (s *Service) loadVote(key ed25519.PublicKeyBytes, stage models.Subround) (*models.SignedVote, bool) {
 	var (
 		v   interface{}
 		has bool
 	)
 
 	switch stage {
-	case prevote, primaryProposal:
+	case models.Prevote, models.PrimaryProposal:
 		v, has = s.prevotes.Load(key)
-	case precommit:
+	case models.Precommit:
 		v, has = s.precommits.Load(key)
 	}
 
@@ -667,21 +668,21 @@ func (s *Service) loadVote(key ed25519.PublicKeyBytes, stage Subround) (*SignedV
 		return nil, false
 	}
 
-	return v.(*SignedVote), true
+	return v.(*models.SignedVote), true
 }
 
-func (s *Service) deleteVote(key ed25519.PublicKeyBytes, stage Subround) {
+func (s *Service) deleteVote(key ed25519.PublicKeyBytes, stage models.Subround) {
 	switch stage {
-	case prevote, primaryProposal:
+	case models.Prevote, models.PrimaryProposal:
 		s.prevotes.Delete(key)
-	case precommit:
+	case models.Precommit:
 		s.precommits.Delete(key)
 	}
 }
 
 // determinePreVote determines what block is our pre-voted block for the current round
-func (s *Service) determinePreVote() (*Vote, error) {
-	var vote *Vote
+func (s *Service) determinePreVote() (*models.Vote, error) {
+	var vote *models.Vote
 
 	bestBlockHeader, err := s.blockState.BestBlockHeader()
 	if err != nil {
@@ -693,11 +694,11 @@ func (s *Service) determinePreVote() (*Vote, error) {
 	// and greater than the best final candidate from the last round, we choose that.
 	// otherwise, we simply choose the head of our chain.
 	primary := s.derivePrimary()
-	prm, has := s.loadVote(primary.PublicKeyBytes(), prevote)
+	prm, has := s.loadVote(primary.PublicKeyBytes(), models.Prevote)
 	if has && prm.Vote.Number >= uint32(s.head.Number) {
 		vote = &prm.Vote
 	} else {
-		vote = NewVoteFromHeader(bestBlockHeader)
+		vote = models.NewVoteFromHeader(bestBlockHeader)
 	}
 
 	nextChange, err := s.grandpaState.NextGrandpaAuthorityChange(bestBlockHeader.Hash(), bestBlockHeader.Number)
@@ -712,14 +713,14 @@ func (s *Service) determinePreVote() (*Vote, error) {
 		if err != nil {
 			return nil, err
 		}
-		vote = NewVoteFromHeader(header)
+		vote = models.NewVoteFromHeader(header)
 	}
 
 	return vote, nil
 }
 
 // determinePreCommit determines what block is our pre-committed block for the current round
-func (s *Service) determinePreCommit() (*Vote, error) {
+func (s *Service) determinePreCommit() (*models.Vote, error) {
 	// the pre-committed block is simply the pre-voted block (GRANDPA-GHOST)
 	pvb, err := s.getPreVotedBlock()
 	if err != nil {
@@ -727,7 +728,7 @@ func (s *Service) determinePreCommit() (*Vote, error) {
 	}
 
 	s.mapLock.Lock()
-	s.preVotedBlock[s.state.round] = &pvb
+	s.preVotedBlock[s.state.Round] = &pvb
 	s.mapLock.Unlock()
 
 	bestBlockHeader, err := s.blockState.BestBlockHeader()
@@ -748,7 +749,7 @@ func (s *Service) determinePreCommit() (*Vote, error) {
 			return nil, err
 		}
 
-		pvb = *NewVoteFromHeader(header)
+		pvb = *models.NewVoteFromHeader(header)
 	}
 	return &pvb, nil
 }
@@ -769,24 +770,24 @@ func (s *Service) finalise() error {
 	s.mapLock.Lock()
 	defer s.mapLock.Unlock()
 
-	s.preVotedBlock[s.state.round] = &pv
+	s.preVotedBlock[s.state.Round] = &pv
 
 	// set best final candidate
-	s.bestFinalCandidate[s.state.round] = bfc
+	s.bestFinalCandidate[s.state.Round] = bfc
 
 	// create prevote justification ie. list of all signed prevotes for the bfc
-	pvs, err := s.createJustification(bfc.Hash, prevote)
+	pvs, err := s.createJustification(bfc.Hash, models.Prevote)
 	if err != nil {
 		return err
 	}
 
 	// create precommit justification ie. list of all signed precommits for the bfc
-	pcs, err := s.createJustification(bfc.Hash, precommit)
+	pcs, err := s.createJustification(bfc.Hash, models.Precommit)
 	if err != nil {
 		return err
 	}
 
-	pcj, err := scale.Marshal(*newJustification(s.state.round, bfc.Hash, bfc.Number, pcs))
+	pcj, err := scale.Marshal(*models.NewJustification(s.state.Round, bfc.Hash, bfc.Number, pcs))
 	if err != nil {
 		return err
 	}
@@ -795,11 +796,11 @@ func (s *Service) finalise() error {
 		return err
 	}
 
-	if err = s.grandpaState.SetPrevotes(s.state.round, s.state.setID, pvs); err != nil {
+	if err = s.grandpaState.SetPrevotes(s.state.Round, s.state.SetID, pvs); err != nil {
 		return err
 	}
 
-	if err = s.grandpaState.SetPrecommits(s.state.round, s.state.setID, pcs); err != nil {
+	if err = s.grandpaState.SetPrecommits(s.state.Round, s.state.SetID, pcs); err != nil {
 		return err
 	}
 
@@ -809,29 +810,29 @@ func (s *Service) finalise() error {
 	}
 
 	// set finalised head for round in db
-	if err = s.blockState.SetFinalisedHash(bfc.Hash, s.state.round, s.state.setID); err != nil {
+	if err = s.blockState.SetFinalisedHash(bfc.Hash, s.state.Round, s.state.SetID); err != nil {
 		return err
 	}
 
-	return s.grandpaState.SetLatestRound(s.state.round)
+	return s.grandpaState.SetLatestRound(s.state.Round)
 }
 
 // createJustification collects the signed precommits received for this round and turns them into
 // a justification by adding all signed precommits that are for the best finalised candidate or
 // a descendent of the bfc
-func (s *Service) createJustification(bfc common.Hash, stage Subround) ([]SignedVote, error) {
+func (s *Service) createJustification(bfc common.Hash, stage models.Subround) ([]models.SignedVote, error) {
 	var (
 		spc  *sync.Map
 		err  error
-		just []SignedVote
-		eqv  map[ed25519.PublicKeyBytes][]*SignedVote
+		just []models.SignedVote
+		eqv  map[ed25519.PublicKeyBytes][]*models.SignedVote
 	)
 
 	switch stage {
-	case prevote:
+	case models.Prevote:
 		spc = s.prevotes
 		eqv = s.pvEquivocations
-	case precommit:
+	case models.Precommit:
 		spc = s.precommits
 		eqv = s.pcEquivocations
 	default:
@@ -839,7 +840,7 @@ func (s *Service) createJustification(bfc common.Hash, stage Subround) ([]Signed
 	}
 
 	spc.Range(func(_, value interface{}) bool {
-		pc := value.(*SignedVote)
+		pc := value.(*models.SignedVote)
 		var isDescendant bool
 
 		isDescendant, err = s.blockState.IsDescendantOf(bfc, pc.Vote.Hash)
@@ -869,20 +870,20 @@ func (s *Service) createJustification(bfc common.Hash, stage Subround) ([]Signed
 }
 
 // derivePrimary returns the primary for the current round
-func (s *Service) derivePrimary() Voter {
-	return s.state.voters[s.state.round%uint64(len(s.state.voters))]
+func (s *Service) derivePrimary() models.Voter {
+	return s.state.Voters[s.state.Round%uint64(len(s.state.Voters))]
 }
 
 // getBestFinalCandidate calculates the set of blocks that are less than or equal to the pre-voted block in height,
 // with >2/3 pre-commit votes, then returns the block with the highest number from this set.
-func (s *Service) getBestFinalCandidate() (*Vote, error) {
+func (s *Service) getBestFinalCandidate() (*models.Vote, error) {
 	prevoted, err := s.getPreVotedBlock()
 	if err != nil {
 		return nil, err
 	}
 
 	// get all blocks with >2/3 pre-commits
-	blocks, err := s.getPossibleSelectedBlocks(precommit, s.state.threshold())
+	blocks, err := s.getPossibleSelectedBlocks(models.Precommit, s.state.Threshold())
 	if err != nil {
 		return nil, err
 	}
@@ -896,7 +897,7 @@ func (s *Service) getBestFinalCandidate() (*Vote, error) {
 
 	// if there are multiple blocks, get the one with the highest number
 	// that is also an ancestor of the prevoted block (or is the prevoted block)
-	bfc := &Vote{
+	bfc := &models.Vote{
 		Hash:   s.blockState.GenesisHash(),
 		Number: 0,
 	}
@@ -915,7 +916,7 @@ func (s *Service) getBestFinalCandidate() (*Vote, error) {
 				return nil, err
 			}
 
-			v, err := NewVoteFromHash(pred, s.blockState)
+			v, err := models.NewVoteFromHash(pred, s.blockState)
 			if err != nil {
 				return nil, err
 			}
@@ -926,7 +927,7 @@ func (s *Service) getBestFinalCandidate() (*Vote, error) {
 
 		// choose block with highest number
 		if n > bfc.Number {
-			bfc = &Vote{
+			bfc = &models.Vote{
 				Hash:   h,
 				Number: n,
 			}
@@ -939,10 +940,10 @@ func (s *Service) getBestFinalCandidate() (*Vote, error) {
 // getPreVotedBlock returns the current pre-voted block B. also known as GRANDPA-GHOST.
 // the pre-voted block is the block with the highest block number in the set of all the blocks with
 // total votes >2/3 the total number of voters, where the total votes is determined by getTotalVotesForBlock.
-func (s *Service) getPreVotedBlock() (Vote, error) {
-	blocks, err := s.getPossibleSelectedBlocks(prevote, s.state.threshold())
+func (s *Service) getPreVotedBlock() (models.Vote, error) {
+	blocks, err := s.getPossibleSelectedBlocks(models.Prevote, s.state.Threshold())
 	if err != nil {
-		return Vote{}, err
+		return models.Vote{}, err
 	}
 
 	// if there are no blocks with >=2/3 voters, then just pick the highest voted block
@@ -953,7 +954,7 @@ func (s *Service) getPreVotedBlock() (Vote, error) {
 	// if there is one block, return it
 	if len(blocks) == 1 {
 		for h, n := range blocks {
-			return Vote{
+			return models.Vote{
 				Hash:   h,
 				Number: n,
 			}, nil
@@ -961,13 +962,13 @@ func (s *Service) getPreVotedBlock() (Vote, error) {
 	}
 
 	// if there are multiple, find the one with the highest number and return it
-	highest := Vote{
+	highest := models.Vote{
 		Number: uint32(0),
 	}
 
 	for h, n := range blocks {
 		if n > highest.Number {
-			highest = Vote{
+			highest = models.Vote{
 				Hash:   h,
 				Number: n,
 			}
@@ -979,8 +980,8 @@ func (s *Service) getPreVotedBlock() (Vote, error) {
 
 // getGrandpaGHOST returns the block with the most votes. if there are multiple blocks with the same number
 // of votes, it picks the one with the highest number.
-func (s *Service) getGrandpaGHOST() (Vote, error) {
-	threshold := s.state.threshold()
+func (s *Service) getGrandpaGHOST() (models.Vote, error) {
+	threshold := s.state.Threshold()
 
 	var (
 		blocks map[common.Hash]uint32
@@ -988,9 +989,9 @@ func (s *Service) getGrandpaGHOST() (Vote, error) {
 	)
 
 	for {
-		blocks, err = s.getPossibleSelectedBlocks(prevote, threshold)
+		blocks, err = s.getPossibleSelectedBlocks(models.Prevote, threshold)
 		if err != nil {
-			return Vote{}, err
+			return models.Vote{}, err
 		}
 
 		if len(blocks) > 0 || threshold == 0 {
@@ -1001,17 +1002,17 @@ func (s *Service) getGrandpaGHOST() (Vote, error) {
 	}
 
 	if len(blocks) == 0 {
-		return Vote{}, ErrNoGHOST
+		return models.Vote{}, ErrNoGHOST
 	}
 
 	// if there are multiple, find the one with the highest number and return it
-	highest := Vote{
+	highest := models.Vote{
 		Number: uint32(0),
 	}
 
 	for h, n := range blocks {
 		if n > highest.Number {
-			highest = Vote{
+			highest = models.Vote{
 				Hash:   h,
 				Number: n,
 			}
@@ -1030,7 +1031,7 @@ func (s *Service) getGrandpaGHOST() (Vote, error) {
 // but the sum of votes for blocks A and B is >threshold, then this function returns
 // the first common ancestor of A and B.
 // in general, this function will return the highest block on each chain with >threshold votes.
-func (s *Service) getPossibleSelectedBlocks(stage Subround, threshold uint64) (map[common.Hash]uint32, error) {
+func (s *Service) getPossibleSelectedBlocks(stage models.Subround, threshold uint64) (map[common.Hash]uint32, error) {
 	// get blocks that were directly voted for
 	votes := s.getDirectVotes(stage)
 	blocks := make(map[common.Hash]uint32)
@@ -1069,8 +1070,8 @@ func (s *Service) getPossibleSelectedBlocks(stage Subround, threshold uint64) (m
 
 // getPossibleSelectedAncestors recursively searches for ancestors with >2/3 votes
 // it returns a map of block hash -> number, such that the blocks in the map have >2/3 votes
-func (s *Service) getPossibleSelectedAncestors(votes []Vote, curr common.Hash,
-	selected map[common.Hash]uint32, stage Subround,
+func (s *Service) getPossibleSelectedAncestors(votes []models.Vote, curr common.Hash,
+	selected map[common.Hash]uint32, stage models.Subround,
 	threshold uint64) (map[common.Hash]uint32, error) {
 	for _, v := range votes {
 		if v.Hash == curr {
@@ -1115,7 +1116,7 @@ func (s *Service) getPossibleSelectedAncestors(votes []Vote, curr common.Hash,
 
 // getTotalVotesForBlock returns the total number of observed votes for a block B in a subround, which is equal
 // to the direct votes for B and B's descendants plus the total number of equivocating voters
-func (s *Service) getTotalVotesForBlock(hash common.Hash, stage Subround) (uint64, error) {
+func (s *Service) getTotalVotesForBlock(hash common.Hash, stage models.Subround) (uint64, error) {
 	// observed votes for block
 	dv, err := s.getVotesForBlock(hash, stage)
 	if err != nil {
@@ -1124,7 +1125,7 @@ func (s *Service) getTotalVotesForBlock(hash common.Hash, stage Subround) (uint6
 
 	// equivocatory votes
 	var ev int
-	if stage == prevote {
+	if stage == models.Prevote {
 		ev = len(s.pvEquivocations)
 	} else {
 		ev = len(s.pcEquivocations)
@@ -1136,7 +1137,7 @@ func (s *Service) getTotalVotesForBlock(hash common.Hash, stage Subround) (uint6
 // getVotesForBlock returns the number of observed votes for a block B.
 // The set of all observed votes by v in the sub-round stage of round r for block B is
 // equal to all of the observed direct votes cast for block B and all of the B's descendants
-func (s *Service) getVotesForBlock(hash common.Hash, stage Subround) (uint64, error) {
+func (s *Service) getVotesForBlock(hash common.Hash, stage models.Subround) (uint64, error) {
 	votes := s.getDirectVotes(stage)
 
 	// B will be counted as in it's own subchain, so don't need to start with B's vote count
@@ -1162,18 +1163,18 @@ func (s *Service) getVotesForBlock(hash common.Hash, stage Subround) (uint64, er
 }
 
 // getDirectVotes returns a map of Votes to direct vote counts
-func (s *Service) getDirectVotes(stage Subround) map[Vote]uint64 {
-	votes := make(map[Vote]uint64)
+func (s *Service) getDirectVotes(stage models.Subround) map[models.Vote]uint64 {
+	votes := make(map[models.Vote]uint64)
 
 	var src *sync.Map
-	if stage == prevote {
+	if stage == models.Prevote {
 		src = s.prevotes
 	} else {
 		src = s.precommits
 	}
 
 	src.Range(func(_, value interface{}) bool {
-		sv := value.(*SignedVote)
+		sv := value.(*models.SignedVote)
 		votes[sv.Vote]++
 		return true
 	})
@@ -1182,9 +1183,9 @@ func (s *Service) getDirectVotes(stage Subround) map[Vote]uint64 {
 }
 
 // getVotes returns all the current votes as an array
-func (s *Service) getVotes(stage Subround) []Vote {
+func (s *Service) getVotes(stage models.Subround) []models.Vote {
 	votes := s.getDirectVotes(stage)
-	va := make([]Vote, len(votes))
+	va := make([]models.Vote, len(votes))
 	i := 0
 
 	for v := range votes {
@@ -1196,7 +1197,7 @@ func (s *Service) getVotes(stage Subround) []Vote {
 }
 
 // findParentWithNumber returns a Vote for an ancestor with number n given an existing Vote
-func (s *Service) findParentWithNumber(v *Vote, n uint32) (*Vote, error) {
+func (s *Service) findParentWithNumber(v *models.Vote, n uint32) (*models.Vote, error) {
 	if v.Number <= n {
 		return v, nil
 	}
@@ -1218,12 +1219,12 @@ func (s *Service) findParentWithNumber(v *Vote, n uint32) (*Vote, error) {
 		b = p
 	}
 
-	return NewVoteFromHeader(b), nil
+	return models.NewVoteFromHeader(b), nil
 }
 
 // GetSetID returns the current setID
 func (s *Service) GetSetID() uint64 {
-	return s.state.setID
+	return s.state.SetID
 }
 
 // GetRound return the current round number
@@ -1232,12 +1233,12 @@ func (s *Service) GetRound() uint64 {
 	// not produce a concurrent read/write panic
 	s.roundLock.Lock()
 	defer s.roundLock.Unlock()
-	return s.state.round
+	return s.state.Round
 }
 
 // GetVoters returns the list of current grandpa.Voters
-func (s *Service) GetVoters() Voters {
-	return s.state.voters
+func (s *Service) GetVoters() models.Voters {
+	return s.state.Voters
 }
 
 // PreVotes returns the current prevotes to the current round
@@ -1245,7 +1246,7 @@ func (s *Service) PreVotes() []ed25519.PublicKeyBytes {
 	s.mapLock.Lock()
 	defer s.mapLock.Unlock()
 
-	votes := make([]ed25519.PublicKeyBytes, 0, s.lenVotes(prevote)+len(s.pvEquivocations))
+	votes := make([]ed25519.PublicKeyBytes, 0, s.lenVotes(models.Prevote)+len(s.pvEquivocations))
 
 	s.prevotes.Range(func(k interface{}, _ interface{}) bool {
 		b := k.(ed25519.PublicKeyBytes)
@@ -1265,7 +1266,7 @@ func (s *Service) PreCommits() []ed25519.PublicKeyBytes {
 	s.mapLock.Lock()
 	defer s.mapLock.Unlock()
 
-	votes := make([]ed25519.PublicKeyBytes, 0, s.lenVotes(precommit)+len(s.pcEquivocations))
+	votes := make([]ed25519.PublicKeyBytes, 0, s.lenVotes(models.Precommit)+len(s.pcEquivocations))
 
 	s.precommits.Range(func(k interface{}, _ interface{}) bool {
 		b := k.(ed25519.PublicKeyBytes)
@@ -1280,16 +1281,16 @@ func (s *Service) PreCommits() []ed25519.PublicKeyBytes {
 	return votes
 }
 
-func (s *Service) lenVotes(stage Subround) int {
+func (s *Service) lenVotes(stage models.Subround) int {
 	var count int
 
 	switch stage {
-	case prevote, primaryProposal:
+	case models.Prevote, models.PrimaryProposal:
 		s.prevotes.Range(func(_, _ interface{}) bool {
 			count++
 			return true
 		})
-	case precommit:
+	case models.Precommit:
 		s.precommits.Range(func(_, _ interface{}) bool {
 			count++
 			return true

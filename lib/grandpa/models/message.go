@@ -1,25 +1,24 @@
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package grandpa
+package models
 
 import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/network"
-	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // GrandpaMessage is implemented by all GRANDPA network messages
-type GrandpaMessage interface { //nolint:revive
+type GrandpaMessage interface {
 	ToConsensusMessage() (*network.ConsensusMessage, error)
 }
 
 // NewGrandpaMessage returns a new VaryingDataType to represent a GrandpaMessage
-func newGrandpaMessage() scale.VaryingDataType {
+func NewGrandpaMessage() scale.VaryingDataType {
 	return scale.MustNewVaryingDataType(
 		VoteMessage{}, CommitMessage{}, NeighbourMessage{},
 		CatchUpRequest{}, CatchUpResponse{})
@@ -60,8 +59,8 @@ type VoteMessage struct {
 func (VoteMessage) Index() uint { return 0 }
 
 // ToConsensusMessage converts the VoteMessage into a network-level consensus message
-func (v *VoteMessage) ToConsensusMessage() (*ConsensusMessage, error) {
-	msg := newGrandpaMessage()
+func (v *VoteMessage) ToConsensusMessage() (*network.ConsensusMessage, error) {
+	msg := NewGrandpaMessage()
 	err := msg.Set(*v)
 	if err != nil {
 		return nil, err
@@ -72,7 +71,7 @@ func (v *VoteMessage) ToConsensusMessage() (*ConsensusMessage, error) {
 		return nil, err
 	}
 
-	return &ConsensusMessage{
+	return &network.ConsensusMessage{
 		Data: enc,
 	}, nil
 }
@@ -90,7 +89,7 @@ func (NeighbourMessage) Index() uint { return 2 }
 
 // ToConsensusMessage converts the NeighbourMessage into a network-level consensus message
 func (m *NeighbourMessage) ToConsensusMessage() (*network.ConsensusMessage, error) {
-	msg := newGrandpaMessage()
+	msg := NewGrandpaMessage()
 	err := msg.Set(*m)
 	if err != nil {
 		return nil, err
@@ -101,7 +100,7 @@ func (m *NeighbourMessage) ToConsensusMessage() (*network.ConsensusMessage, erro
 		return nil, err
 	}
 
-	return &ConsensusMessage{
+	return &network.ConsensusMessage{
 		Data: enc,
 	}, nil
 }
@@ -121,27 +120,12 @@ type CommitMessage struct {
 	AuthData   []AuthData
 }
 
-func (s *Service) newCommitMessage(header *types.Header, round uint64) (*CommitMessage, error) {
-	pcs, err := s.grandpaState.GetPrecommits(round, s.state.setID)
-	if err != nil {
-		return nil, err
-	}
-
-	precommits, authData := justificationToCompact(pcs)
-	return &CommitMessage{
-		Round:      round,
-		Vote:       *NewVoteFromHeader(header),
-		Precommits: precommits,
-		AuthData:   authData,
-	}, nil
-}
-
 // Index Returns VDT index
 func (CommitMessage) Index() uint { return 1 }
 
 // ToConsensusMessage converts the CommitMessage into a network-level consensus message
-func (f *CommitMessage) ToConsensusMessage() (*ConsensusMessage, error) {
-	msg := newGrandpaMessage()
+func (f *CommitMessage) ToConsensusMessage() (*network.ConsensusMessage, error) {
+	msg := NewGrandpaMessage()
 	err := msg.Set(*f)
 	if err != nil {
 		return nil, err
@@ -152,50 +136,20 @@ func (f *CommitMessage) ToConsensusMessage() (*ConsensusMessage, error) {
 		return nil, err
 	}
 
-	return &ConsensusMessage{
+	return &network.ConsensusMessage{
 		Data: enc,
 	}, nil
 }
 
-func justificationToCompact(just []SignedVote) ([]Vote, []AuthData) {
-	precommits := make([]Vote, len(just))
-	authData := make([]AuthData, len(just))
-
-	for i, j := range just {
-		precommits[i] = j.Vote
-		authData[i] = AuthData{
-			Signature:   j.Signature,
-			AuthorityID: j.AuthorityID,
-		}
-	}
-
-	return precommits, authData
-}
-
-func compactToJustification(vs []Vote, auths []AuthData) ([]SignedVote, error) {
-	if len(vs) != len(auths) {
-		return nil, errVoteToSignatureMismatch
-	}
-
-	just := make([]SignedVote, len(vs))
-	for i, v := range vs {
-		just[i] = SignedVote{
-			Vote:        v,
-			Signature:   auths[i].Signature,
-			AuthorityID: auths[i].AuthorityID,
-		}
-	}
-
-	return just, nil
-}
-
-// CatchUpRequest struct to represent a CatchUpRequest message
+// CatchUpRequest is a catch up request message.
 type CatchUpRequest struct {
 	Round uint64
 	SetID uint64
 }
 
-func newCatchUpRequest(round, setID uint64) *CatchUpRequest {
+// NewCatchUpRequest creates a new catch up request using the
+// round and set id given.
+func NewCatchUpRequest(round, setID uint64) *CatchUpRequest {
 	return &CatchUpRequest{
 		Round: round,
 		SetID: setID,
@@ -206,8 +160,8 @@ func newCatchUpRequest(round, setID uint64) *CatchUpRequest {
 func (CatchUpRequest) Index() uint { return 3 }
 
 // ToConsensusMessage converts the catchUpRequest into a network-level consensus message
-func (r *CatchUpRequest) ToConsensusMessage() (*ConsensusMessage, error) {
-	msg := newGrandpaMessage()
+func (r *CatchUpRequest) ToConsensusMessage() (*network.ConsensusMessage, error) {
+	msg := NewGrandpaMessage()
 	err := msg.Set(*r)
 	if err != nil {
 		return nil, err
@@ -218,7 +172,7 @@ func (r *CatchUpRequest) ToConsensusMessage() (*ConsensusMessage, error) {
 		return nil, err
 	}
 
-	return &ConsensusMessage{
+	return &network.ConsensusMessage{
 		Data: enc,
 	}, nil
 }
@@ -233,38 +187,12 @@ type CatchUpResponse struct {
 	Number                 uint32
 }
 
-func (s *Service) newCatchUpResponse(round, setID uint64) (*CatchUpResponse, error) {
-	header, err := s.blockState.GetFinalisedHeader(round, setID)
-	if err != nil {
-		return nil, err
-	}
-
-	pvs, err := s.grandpaState.GetPrevotes(round, setID)
-	if err != nil {
-		return nil, err
-	}
-
-	pcs, err := s.grandpaState.GetPrecommits(round, setID)
-	if err != nil {
-		return nil, err
-	}
-
-	return &CatchUpResponse{
-		SetID:                  setID,
-		Round:                  round,
-		PreVoteJustification:   pvs,
-		PreCommitJustification: pcs,
-		Hash:                   header.Hash(),
-		Number:                 uint32(header.Number),
-	}, nil
-}
-
 // Index Returns VDT index
 func (CatchUpResponse) Index() uint { return 4 }
 
 // ToConsensusMessage converts the catchUpResponse into a network-level consensus message
-func (r *CatchUpResponse) ToConsensusMessage() (*ConsensusMessage, error) {
-	msg := newGrandpaMessage()
+func (r *CatchUpResponse) ToConsensusMessage() (*network.ConsensusMessage, error) {
+	msg := NewGrandpaMessage()
 	err := msg.Set(*r)
 	if err != nil {
 		return nil, err
@@ -275,7 +203,7 @@ func (r *CatchUpResponse) ToConsensusMessage() (*ConsensusMessage, error) {
 		return nil, err
 	}
 
-	return &ConsensusMessage{
+	return &network.ConsensusMessage{
 		Data: enc,
 	}, nil
 }

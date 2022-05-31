@@ -1,7 +1,7 @@
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package grandpa
+package models
 
 import (
 	"bytes"
@@ -22,19 +22,20 @@ type (
 // Subround subrounds in a grandpa round
 type Subround byte
 
-var (
-	prevote         Subround
-	precommit       Subround = 1
-	primaryProposal Subround = 2
+//nolint:revive
+const (
+	Prevote Subround = iota
+	Precommit
+	PrimaryProposal
 )
 
 func (s Subround) String() string {
 	switch s {
-	case prevote:
+	case Prevote:
 		return "prevote"
-	case precommit:
+	case Precommit:
 		return "precommit"
-	case primaryProposal:
+	case PrimaryProposal:
 		return "primaryProposal"
 	}
 
@@ -43,26 +44,26 @@ func (s Subround) String() string {
 
 // State represents a GRANDPA state
 type State struct {
-	voters []Voter // set of voters
-	setID  uint64  // authority set ID
-	round  uint64  // voting round number
+	Voters []Voter // set of voters
+	SetID  uint64  // authority set ID
+	Round  uint64  // voting round number
 }
 
 // NewState returns a new GRANDPA state
 func NewState(voters []Voter, setID, round uint64) *State {
 	return &State{
-		voters: voters,
-		setID:  setID,
-		round:  round,
+		Voters: voters,
+		SetID:  setID,
+		Round:  round,
 	}
 }
 
-// pubkeyToVoter returns a Voter given a public key
-func (s *State) pubkeyToVoter(pk *ed25519.PublicKey) (*Voter, error) {
+// PubkeyToVoter returns a Voter given a public key
+func (s *State) PubkeyToVoter(pk *ed25519.PublicKey) (*Voter, error) {
 	max := uint64(2^64) - 1
 	id := max
 
-	for i, v := range s.voters {
+	for i, v := range s.Voters {
 		if bytes.Equal(pk.Encode(), v.Key.Encode()) {
 			id = uint64(i)
 			break
@@ -79,10 +80,10 @@ func (s *State) pubkeyToVoter(pk *ed25519.PublicKey) (*Voter, error) {
 	}, nil
 }
 
-// threshold returns the 2/3 |voters| threshold value
-// rounding is currently set to floor, which is ok since we check for strictly greater than the threshold
-func (s *State) threshold() uint64 {
-	return uint64(2 * len(s.voters) / 3)
+// Threshold returns the 2/3 |voters| Threshold value
+// rounding is currently set to floor, which is ok since we check for strictly greater than the Threshold
+func (s *State) Threshold() uint64 {
+	return uint64(2 * len(s.Voters) / 3)
 }
 
 // NewVote returns a new Vote given a block hash and number
@@ -101,8 +102,15 @@ func NewVoteFromHeader(h *types.Header) *Vote {
 	}
 }
 
+// HeaderGetter is an interface used by NewVoteFromHash to check for
+// block header existence and get block headers using block hashes.
+type HeaderGetter interface {
+	HasHeader(hash common.Hash) (has bool, err error)
+	GetHeader(hash common.Hash) (header *types.Header, err error)
+}
+
 // NewVoteFromHash returns a new Vote given a hash and a blockState
-func NewVoteFromHash(hash common.Hash, blockState BlockState) (*Vote, error) {
+func NewVoteFromHash(hash common.Hash, blockState HeaderGetter) (*Vote, error) {
 	has, err := blockState.HasHeader(hash)
 	if err != nil {
 		return nil, err
@@ -133,7 +141,11 @@ type Justification struct {
 	Commit Commit
 }
 
-func newJustification(round uint64, hash common.Hash, number uint32, j []SignedVote) *Justification {
+// NewJustification creates a new finality justification
+// using the given round, block hash, block number and
+// signed votes.
+func NewJustification(round uint64, hash common.Hash,
+	number uint32, j []SignedVote) *Justification {
 	return &Justification{
 		Round: round,
 		Commit: Commit{

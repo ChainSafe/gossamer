@@ -16,6 +16,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/grandpa/models"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -40,26 +41,26 @@ func NewMessageHandler(grandpa *Service, blockState BlockState, telemetryMailer 
 // HandleMessage handles a GRANDPA consensus message
 // if it is a CommitMessage, it updates the BlockState
 // if it is a VoteMessage, it sends it to the GRANDPA service
-func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.NotificationsMessage, error) {
+func (h *MessageHandler) handleMessage(from peer.ID, m models.GrandpaMessage) (network.NotificationsMessage, error) {
 	logger.Tracef("handling grandpa message: %v", m)
 
 	switch msg := m.(type) {
-	case *VoteMessage:
+	case *models.VoteMessage:
 		// send vote message to grandpa service
-		h.grandpa.in <- &networkVoteMessage{
-			from: from,
-			msg:  msg,
+		h.grandpa.in <- &models.NetworkVoteMessage{
+			From: from,
+			Msg:  msg,
 		}
 
 		return nil, nil
-	case *CommitMessage:
+	case *models.CommitMessage:
 		return nil, h.handleCommitMessage(msg)
-	case *NeighbourMessage:
+	case *models.NeighbourMessage:
 		// we can afford to not retry handling neighbour message, if it errors.
 		return nil, h.handleNeighbourMessage(msg)
-	case *CatchUpRequest:
+	case *models.CatchUpRequest:
 		return h.handleCatchUpRequest(msg)
-	case *CatchUpResponse:
+	case *models.CatchUpResponse:
 		err := h.handleCatchUpResponse(msg)
 		if errors.Is(err, blocktree.ErrNodeNotFound) {
 			// TODO: we are adding these messages to reprocess them again, but we
@@ -74,7 +75,7 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 	}
 }
 
-func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourMessage) error {
+func (h *MessageHandler) handleNeighbourMessage(msg *models.NeighbourMessage) error {
 	currFinalized, err := h.blockState.GetFinalisedHeader(0, 0)
 	if err != nil {
 		return err
@@ -102,7 +103,7 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourMessage) error {
 	return nil
 }
 
-func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) error {
+func (h *MessageHandler) handleCommitMessage(msg *models.CommitMessage) error {
 	logger.Debugf("received commit message, msg: %+v", msg)
 
 	err := verifyBlockHashAgainstBlockNumber(h.blockState, msg.Vote.Hash, uint(msg.Vote.Number))
@@ -128,7 +129,7 @@ func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) error {
 		),
 	)
 
-	if has, _ := h.blockState.HasFinalisedBlock(msg.Round, h.grandpa.state.setID); has {
+	if has, _ := h.blockState.HasFinalisedBlock(msg.Round, h.grandpa.state.SetID); has {
 		return nil
 	}
 
@@ -142,7 +143,7 @@ func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) error {
 	}
 
 	// set finalised head for round in db
-	if err := h.blockState.SetFinalisedHash(msg.Vote.Hash, msg.Round, h.grandpa.state.setID); err != nil {
+	if err := h.blockState.SetFinalisedHash(msg.Vote.Hash, msg.Round, h.grandpa.state.SetID); err != nil {
 		return err
 	}
 
@@ -159,7 +160,7 @@ func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) error {
 	return nil
 }
 
-func (h *MessageHandler) handleCatchUpRequest(msg *CatchUpRequest) (*ConsensusMessage, error) {
+func (h *MessageHandler) handleCatchUpRequest(msg *models.CatchUpRequest) (*ConsensusMessage, error) {
 	if !h.grandpa.authority {
 		return nil, nil //nolint:nilnil
 	}
@@ -167,11 +168,11 @@ func (h *MessageHandler) handleCatchUpRequest(msg *CatchUpRequest) (*ConsensusMe
 	logger.Debugf("received catch up request for round %d and set id %d",
 		msg.Round, msg.SetID)
 
-	if msg.SetID != h.grandpa.state.setID {
+	if msg.SetID != h.grandpa.state.SetID {
 		return nil, ErrSetIDMismatch
 	}
 
-	if msg.Round >= h.grandpa.state.round {
+	if msg.Round >= h.grandpa.state.Round {
 		return nil, ErrInvalidCatchUpRound
 	}
 
@@ -186,7 +187,7 @@ func (h *MessageHandler) handleCatchUpRequest(msg *CatchUpRequest) (*ConsensusMe
 	return resp.ToConsensusMessage()
 }
 
-func (h *MessageHandler) handleCatchUpResponse(msg *CatchUpResponse) error {
+func (h *MessageHandler) handleCatchUpResponse(msg *models.CatchUpResponse) error {
 	if !h.grandpa.authority {
 		return nil
 	}
@@ -216,11 +217,11 @@ func (h *MessageHandler) handleCatchUpResponse(msg *CatchUpResponse) error {
 		return nil
 	}
 
-	if msg.SetID != h.grandpa.state.setID {
+	if msg.SetID != h.grandpa.state.SetID {
 		return ErrSetIDMismatch
 	}
 
-	if msg.Round != h.grandpa.state.round-1 {
+	if msg.Round != h.grandpa.state.Round-1 {
 		return ErrInvalidCatchUpResponseRound
 	}
 
@@ -257,11 +258,11 @@ func (h *MessageHandler) handleCatchUpResponse(msg *CatchUpResponse) error {
 	}
 
 	h.grandpa.head = head
-	h.grandpa.state.round = msg.Round
+	h.grandpa.state.Round = msg.Round
 	close(h.grandpa.resumed)
 	h.grandpa.resumed = make(chan struct{})
 	h.grandpa.paused.Store(false)
-	logger.Debugf("caught up to round; unpaused service and grandpa state round is %d", h.grandpa.state.round)
+	logger.Debugf("caught up to round; unpaused service and grandpa state round is %d", h.grandpa.state.Round)
 	return nil
 }
 
@@ -284,8 +285,8 @@ func (h *MessageHandler) verifyCatchUpResponseCompletability(prevote, precommit 
 	return nil
 }
 
-func getEquivocatoryVoters(votes []AuthData) map[ed25519.PublicKeyBytes]struct{} {
-	eqvVoters := make(map[ed25519.PublicKeyBytes]struct{})
+func getEquivocatoryVoters(votes []models.AuthData) (eqvVoters map[ed25519.PublicKeyBytes]struct{}) {
+	eqvVoters = make(map[ed25519.PublicKeyBytes]struct{})
 	voters := make(map[ed25519.PublicKeyBytes][64]byte, len(votes))
 
 	for _, v := range votes {
@@ -309,14 +310,14 @@ func isDescendantOfHighestFinalisedBlock(blockState BlockState, hash common.Hash
 	return blockState.IsDescendantOf(highestHeader.Hash(), hash)
 }
 
-func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) error {
+func (h *MessageHandler) verifyCommitMessageJustification(fm *models.CommitMessage) error {
 	if len(fm.Precommits) != len(fm.AuthData) {
 		return ErrPrecommitSignatureMismatch
 	}
 
-	if fm.SetID != h.grandpa.state.setID {
+	if fm.SetID != h.grandpa.state.SetID {
 		return fmt.Errorf("%w: grandpa state set id %d, set id in the commit message %d",
-			ErrSetIDMismatch, h.grandpa.state.setID, fm.SetID)
+			ErrSetIDMismatch, h.grandpa.state.SetID, fm.SetID)
 	}
 
 	isDescendant, err := isDescendantOfHighestFinalisedBlock(h.blockState, fm.Vote.Hash)
@@ -331,13 +332,13 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 
 	var count int
 	for i, pc := range fm.Precommits {
-		just := &SignedVote{
+		just := &models.SignedVote{
 			Vote:        pc,
 			Signature:   fm.AuthData[i].Signature,
 			AuthorityID: fm.AuthData[i].AuthorityID,
 		}
 
-		err := h.verifyJustification(just, fm.Round, h.grandpa.state.setID, precommit)
+		err := h.verifyJustification(just, fm.Round, h.grandpa.state.SetID, models.Precommit)
 		if err != nil {
 			logger.Errorf("failed to verify justification for vote from authority id %s, for block hash %s: %s",
 				just.AuthorityID.String(), just.Vote.Hash, err)
@@ -365,10 +366,10 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 	}
 
 	// confirm total # signatures >= grandpa threshold
-	if uint64(count)+uint64(len(eqvVoters)) < h.grandpa.state.threshold() {
+	if uint64(count)+uint64(len(eqvVoters)) < h.grandpa.state.Threshold() {
 		logger.Debugf(
 			"minimum votes not met for finalisation message. Need %d votes and received %d votes.",
-			h.grandpa.state.threshold(), count)
+			h.grandpa.state.Threshold(), count)
 		return ErrMinVotesNotMet
 	}
 
@@ -376,7 +377,7 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 	return nil
 }
 
-func (h *MessageHandler) verifyPreVoteJustification(msg *CatchUpResponse) (common.Hash, error) {
+func (h *MessageHandler) verifyPreVoteJustification(msg *models.CatchUpResponse) (common.Hash, error) {
 	voters := make(map[ed25519.PublicKeyBytes]map[common.Hash]int, len(msg.PreVoteJustification))
 	eqVotesByHash := make(map[common.Hash]map[ed25519.PublicKeyBytes]struct{})
 
@@ -422,7 +423,7 @@ func (h *MessageHandler) verifyPreVoteJustification(msg *CatchUpResponse) (commo
 			continue
 		}
 
-		err := h.verifyJustification(just, msg.Round, msg.SetID, prevote)
+		err := h.verifyJustification(just, msg.Round, msg.SetID, models.Prevote)
 		if err != nil {
 			continue
 		}
@@ -433,7 +434,7 @@ func (h *MessageHandler) verifyPreVoteJustification(msg *CatchUpResponse) (commo
 	var prevote common.Hash
 	for hash, count := range votes {
 		equivocatoryVotes := eqVotesByHash[hash]
-		if count+uint64(len(equivocatoryVotes)) >= h.grandpa.state.threshold() {
+		if count+uint64(len(equivocatoryVotes)) >= h.grandpa.state.Threshold() {
 			prevote = hash
 			break
 		}
@@ -446,10 +447,10 @@ func (h *MessageHandler) verifyPreVoteJustification(msg *CatchUpResponse) (commo
 	return prevote, nil
 }
 
-func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) error {
-	auths := make([]AuthData, len(msg.PreCommitJustification))
+func (h *MessageHandler) verifyPreCommitJustification(msg *models.CatchUpResponse) error {
+	auths := make([]models.AuthData, len(msg.PreCommitJustification))
 	for i, pcj := range msg.PreCommitJustification {
-		auths[i] = AuthData{AuthorityID: pcj.AuthorityID}
+		auths[i] = models.AuthData{AuthorityID: pcj.AuthorityID}
 	}
 
 	isDescendant, err := isDescendantOfHighestFinalisedBlock(h.blockState, msg.Hash)
@@ -477,7 +478,7 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) erro
 			return err
 		}
 
-		err := h.verifyJustification(just, msg.Round, msg.SetID, precommit)
+		err := h.verifyJustification(just, msg.Round, msg.SetID, models.Precommit)
 		if err != nil {
 			logger.Errorf("could not verify precommit justification for block %s from authority %s: %s",
 				just.Vote.Hash.String(), just.AuthorityID.String(), err)
@@ -493,16 +494,17 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) erro
 		}
 	}
 
-	if count+uint64(len(eqvVoters)) < h.grandpa.state.threshold() {
+	if count+uint64(len(eqvVoters)) < h.grandpa.state.Threshold() {
 		return ErrMinVotesNotMet
 	}
 
 	return nil
 }
 
-func (h *MessageHandler) verifyJustification(just *SignedVote, round, setID uint64, stage Subround) error {
+func (h *MessageHandler) verifyJustification(just *models.SignedVote, round, setID uint64,
+	stage models.Subround) error {
 	// verify signature
-	msg, err := scale.Marshal(FullVote{
+	msg, err := scale.Marshal(models.FullVote{
 		Stage: stage,
 		Vote:  just.Vote,
 		Round: round,
@@ -548,7 +550,7 @@ func (h *MessageHandler) verifyJustification(just *SignedVote, round, setID uint
 // VerifyBlockJustification verifies the finality justification for a block, returns scale encoded justification with
 //  any extra bytes removed.
 func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byte) ([]byte, error) {
-	fj := Justification{}
+	fj := models.Justification{}
 	err := scale.Unmarshal(justification, &fj)
 	if err != nil {
 		return nil, err
@@ -595,9 +597,9 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 		return nil, ErrMinVotesNotMet
 	}
 
-	authPubKeys := make([]AuthData, len(fj.Commit.Precommits))
+	authPubKeys := make([]models.AuthData, len(fj.Commit.Precommits))
 	for i, pcj := range fj.Commit.Precommits {
-		authPubKeys[i] = AuthData{AuthorityID: pcj.AuthorityID}
+		authPubKeys[i] = models.AuthData{AuthorityID: pcj.AuthorityID}
 	}
 
 	equivocatoryVoters := getEquivocatoryVoters(authPubKeys)
@@ -629,8 +631,8 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 		}
 
 		// verify signature for each precommit
-		msg, err := scale.Marshal(FullVote{
-			Stage: precommit,
+		msg, err := scale.Marshal(models.FullVote{
+			Stage: models.Precommit,
 			Vote:  just.Vote,
 			Round: fj.Round,
 			SetID: setID,

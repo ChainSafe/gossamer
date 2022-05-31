@@ -1,7 +1,7 @@
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package grandpa
+package models
 
 import (
 	"testing"
@@ -18,13 +18,27 @@ func TestPubkeyToVoter(t *testing.T) {
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
+	voters := []Voter{}
+	for i, k := range kr.Keys {
+		voters = append(voters, Voter{
+			Key: *k.Public().(*ed25519.PublicKey),
+			ID:  uint64(i),
+		})
+	}
+
 	state := NewState(voters, 0, 0)
-	voter, err := state.pubkeyToVoter(kr.Alice().Public().(*ed25519.PublicKey))
+	voter, err := state.PubkeyToVoter(kr.Alice().Public().(*ed25519.PublicKey))
 	require.NoError(t, err)
 	require.Equal(t, voters[0], *voter)
 }
 
 func TestSignedVoteEncoding(t *testing.T) {
+	testVote := &Vote{
+		Hash:   common.Hash{0xa, 0xb, 0xc, 0xd},
+		Number: 999,
+	}
+	testSignature := [64]byte{1, 2, 3, 4}
+	testAuthorityID := [32]byte{5, 6, 7, 8}
 	exp := common.MustHexToBytes("0x0a0b0c0d00000000000000000000000000000000000000000000000000000000e7030000010203040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000506070800000000000000000000000000000000000000000000000000000000") //nolint:lll
 	just := SignedVote{
 		Vote:        *testVote,
@@ -44,6 +58,12 @@ func TestSignedVoteEncoding(t *testing.T) {
 }
 
 func TestSignedVoteArrayEncoding(t *testing.T) {
+	testVote := &Vote{
+		Hash:   common.Hash{0xa, 0xb, 0xc, 0xd},
+		Number: 999,
+	}
+	testSignature := [64]byte{1, 2, 3, 4}
+	testAuthorityID := [32]byte{5, 6, 7, 8}
 	exp := common.MustHexToBytes("0x040a0b0c0d00000000000000000000000000000000000000000000000000000000e7030000010203040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000506070800000000000000000000000000000000000000000000000000000000") //nolint:lll
 	just := []SignedVote{
 		{
@@ -65,6 +85,12 @@ func TestSignedVoteArrayEncoding(t *testing.T) {
 }
 
 func TestJustification(t *testing.T) {
+	testVote := &Vote{
+		Hash:   common.Hash{0xa, 0xb, 0xc, 0xd},
+		Number: 999,
+	}
+	testSignature := [64]byte{1, 2, 3, 4}
+	testAuthorityID := [32]byte{5, 6, 7, 8}
 	exp := common.MustHexToBytes("0x6300000000000000000000000000000000000000000000000000000000000000000000000000000000000000040a0b0c0d00000000000000000000000000000000000000000000000000000000e7030000010203040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000506070800000000000000000000000000000000000000000000000000000000") //nolint:lll
 	just := SignedVote{
 		Vote:        *testVote,

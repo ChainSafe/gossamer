@@ -10,6 +10,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/grandpa/models"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -153,9 +154,9 @@ func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) (
 	}
 
 	switch m.(type) {
-	case *NeighbourMessage:
+	case *models.NeighbourMessage:
 		return false, nil
-	case *CatchUpResponse:
+	case *models.CatchUpResponse:
 		return false, nil
 	}
 
@@ -163,7 +164,7 @@ func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) (
 }
 
 // sendMessage sends a vote message to be gossiped to the network
-func (s *Service) sendMessage(msg GrandpaMessage) error {
+func (s *Service) sendMessage(msg models.GrandpaMessage) error {
 	cm, err := msg.ToConsensusMessage()
 	if err != nil {
 		return err
@@ -191,7 +192,7 @@ func (s *Service) sendNeighbourMessage(interval time.Duration) {
 				return
 			}
 
-			s.neighbourMessage = &NeighbourMessage{
+			s.neighbourMessage = &models.NeighbourMessage{
 				Version: 1,
 				Round:   info.Round,
 				SetID:   info.SetID,
@@ -210,23 +211,23 @@ func (s *Service) sendNeighbourMessage(interval time.Duration) {
 }
 
 // decodeMessage decodes a network-level consensus message into a GRANDPA VoteMessage or CommitMessage
-func decodeMessage(cm *network.ConsensusMessage) (m GrandpaMessage, err error) {
-	msg := newGrandpaMessage()
+func decodeMessage(cm *network.ConsensusMessage) (m models.GrandpaMessage, err error) {
+	msg := models.NewGrandpaMessage()
 	err = scale.Unmarshal(cm.Data, &msg)
 	if err != nil {
 		return nil, err
 	}
 
 	switch val := msg.Value().(type) {
-	case VoteMessage:
+	case models.VoteMessage:
 		m = &val
-	case CommitMessage:
+	case models.CommitMessage:
 		m = &val
-	case NeighbourMessage:
+	case models.NeighbourMessage:
 		m = &val
-	case CatchUpRequest:
+	case models.CatchUpRequest:
 		m = &val
-	case CatchUpResponse:
+	case models.CatchUpResponse:
 		m = &val
 	default:
 		return nil, ErrInvalidMessageType

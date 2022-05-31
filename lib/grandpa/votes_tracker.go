@@ -8,6 +8,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/grandpa/models"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
@@ -37,7 +38,7 @@ func newVotesTracker(capacity int) votesTracker {
 // add adds a vote message to the vote message tracker.
 // If the vote message tracker capacity is reached,
 // the oldest vote message is removed.
-func (vt *votesTracker) add(peerID peer.ID, voteMessage *VoteMessage) {
+func (vt *votesTracker) add(peerID peer.ID, voteMessage *models.VoteMessage) {
 	signedMessage := voteMessage.Message
 	blockHash := signedMessage.BlockHash
 	authorityID := signedMessage.AuthorityID
@@ -51,9 +52,9 @@ func (vt *votesTracker) add(peerID peer.ID, voteMessage *VoteMessage) {
 			// someone re-sending an equivocatory vote message and going at the
 			// front of the list, hence erasing other possible valid vote messages
 			// in the tracker.
-			element.Value = networkVoteMessage{
-				from: peerID,
-				msg:  voteMessage,
+			element.Value = models.NetworkVoteMessage{
+				From: peerID,
+				Msg:  voteMessage,
 			}
 			return
 		}
@@ -66,9 +67,9 @@ func (vt *votesTracker) add(peerID peer.ID, voteMessage *VoteMessage) {
 	}
 
 	vt.cleanup()
-	elementData := networkVoteMessage{
-		from: peerID,
-		msg:  voteMessage,
+	elementData := models.NetworkVoteMessage{
+		From: peerID,
+		Msg:  voteMessage,
 	}
 	element := vt.linkedList.PushFront(elementData)
 	authorityIDToElement[authorityID] = element
@@ -86,9 +87,9 @@ func (vt *votesTracker) cleanup() {
 	oldestElement := vt.linkedList.Back()
 	vt.linkedList.Remove(oldestElement)
 
-	oldestData := oldestElement.Value.(networkVoteMessage)
-	oldestBlockHash := oldestData.msg.Message.BlockHash
-	oldestAuthorityID := oldestData.msg.Message.AuthorityID
+	oldestData := oldestElement.Value.(models.NetworkVoteMessage)
+	oldestBlockHash := oldestData.Msg.Message.BlockHash
+	oldestAuthorityID := oldestData.Msg.Message.AuthorityID
 
 	authIDToElement := vt.mapping[oldestBlockHash]
 
@@ -115,33 +116,33 @@ func (vt *votesTracker) delete(blockHash common.Hash) {
 
 // messages returns all the vote messages
 // for a particular block hash from the tracker as a slice
-// of networkVoteMessage. There is no order in the slice.
+// of models.NetworkVoteMessage. There is no order in the slice.
 // It returns nil if the block hash does not exist.
 func (vt *votesTracker) messages(blockHash common.Hash) (
-	messages []networkVoteMessage) {
+	messages []models.NetworkVoteMessage) {
 	authIDToElement, ok := vt.mapping[blockHash]
 	if !ok {
 		// Note authIDToElement cannot be empty
 		return nil
 	}
 
-	messages = make([]networkVoteMessage, 0, len(authIDToElement))
+	messages = make([]models.NetworkVoteMessage, 0, len(authIDToElement))
 	for _, element := range authIDToElement {
-		message := element.Value.(networkVoteMessage)
+		message := element.Value.(models.NetworkVoteMessage)
 		messages = append(messages, message)
 	}
 	return messages
 }
 
-// networkVoteMessages returns all pairs of
+// models.NetworkVoteMessages returns all pairs of
 // peer id + message stored in the tracker
-// as a slice of networkVoteMessages.
+// as a slice of models.NetworkVoteMessages.
 func (vt *votesTracker) networkVoteMessages() (
-	messages []networkVoteMessage) {
-	messages = make([]networkVoteMessage, 0, vt.linkedList.Len())
+	messages []models.NetworkVoteMessage) {
+	messages = make([]models.NetworkVoteMessage, 0, vt.linkedList.Len())
 	for _, authorityIDToElement := range vt.mapping {
 		for _, element := range authorityIDToElement {
-			message := element.Value.(networkVoteMessage)
+			message := element.Value.(models.NetworkVoteMessage)
 			messages = append(messages, message)
 		}
 	}

@@ -7,6 +7,7 @@ import (
 	"container/list"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/grandpa/models"
 )
 
 // commitsTracker tracks vote messages that could
@@ -35,7 +36,7 @@ func newCommitsTracker(capacity int) commitsTracker {
 // add adds a commit message to the commit message tracker.
 // If the commit message tracker capacity is reached,
 // the oldest commit message is removed.
-func (ct *commitsTracker) add(commitMessage *CommitMessage) {
+func (ct *commitsTracker) add(commitMessage *models.CommitMessage) {
 	blockHash := commitMessage.Vote.Hash
 
 	listElement, has := ct.mapping[blockHash]
@@ -67,7 +68,7 @@ func (ct *commitsTracker) cleanup() {
 	oldestElement := ct.linkedList.Back()
 	ct.linkedList.Remove(oldestElement)
 
-	oldestCommitMessage := oldestElement.Value.(*CommitMessage)
+	oldestCommitMessage := oldestElement.Value.(*models.CommitMessage)
 	oldestBlockHash := oldestCommitMessage.Vote.Hash
 	delete(ct.mapping, oldestBlockHash)
 }
@@ -89,20 +90,20 @@ func (ct *commitsTracker) delete(blockHash common.Hash) {
 // the tracker. It returns nil if the block hash
 // does not exist in the tracker
 func (ct *commitsTracker) message(blockHash common.Hash) (
-	message *CommitMessage) {
+	message *models.CommitMessage) {
 	listElement, ok := ct.mapping[blockHash]
 	if !ok {
 		return nil
 	}
 
-	return listElement.Value.(*CommitMessage)
+	return listElement.Value.(*models.CommitMessage)
 }
 
 // forEach runs the function `f` on each
 // commit message stored in the tracker.
-func (ct *commitsTracker) forEach(f func(message *CommitMessage)) {
+func (ct *commitsTracker) forEach(f func(message *models.CommitMessage)) {
 	for _, data := range ct.mapping {
-		message := data.Value.(*CommitMessage)
+		message := data.Value.(*models.CommitMessage)
 		f(message)
 	}
 }

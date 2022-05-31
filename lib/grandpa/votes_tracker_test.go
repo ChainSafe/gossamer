@@ -10,6 +10,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/grandpa/models"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -18,26 +19,26 @@ import (
 // buildVoteMessage creates a test vote message using the
 // given block hash and authority ID only.
 func buildVoteMessage(blockHash common.Hash,
-	authorityID ed25519.PublicKeyBytes) *VoteMessage {
-	return &VoteMessage{
-		Message: SignedMessage{
+	authorityID ed25519.PublicKeyBytes) *models.VoteMessage {
+	return &models.VoteMessage{
+		Message: models.SignedMessage{
 			BlockHash:   blockHash,
 			AuthorityID: authorityID,
 		},
 	}
 }
 
-func wrapVoteMessageWithPeerID(voteMessage *VoteMessage,
-	peerID peer.ID) networkVoteMessage { //nolint:unparam
-	return networkVoteMessage{
-		from: peerID,
-		msg:  voteMessage,
+func wrapVoteMessageWithPeerID(voteMessage *models.VoteMessage,
+	peerID peer.ID) models.NetworkVoteMessage { //nolint:unparam
+	return models.NetworkVoteMessage{
+		From: peerID,
+		Msg:  voteMessage,
 	}
 }
 
 func assertVotesMapping(t *testing.T,
 	mapping map[common.Hash]map[ed25519.PublicKeyBytes]*list.Element,
-	expected map[common.Hash]map[ed25519.PublicKeyBytes]networkVoteMessage) {
+	expected map[common.Hash]map[ed25519.PublicKeyBytes]models.NetworkVoteMessage) {
 	t.Helper()
 
 	require.Len(t, mapping, len(expected), "mapping does not have the expected length")
@@ -51,7 +52,7 @@ func assertVotesMapping(t *testing.T,
 			assert.Truef(t, ok,
 				"submapping for block hash %s does not have expected authority id %s",
 				expectedBlockHash, expectedAuthorityID)
-			actualNetworkVoteMessage := element.Value.(networkVoteMessage)
+			actualNetworkVoteMessage := element.Value.(models.NetworkVoteMessage)
 			assert.Equalf(t, expectedNetworkVoteMessage, actualNetworkVoteMessage,
 				"network vote message for block hash %s and authority id %s is not as expected",
 				expectedBlockHash, expectedAuthorityID)
@@ -107,7 +108,7 @@ func Test_votesTracker_cleanup(t *testing.T) {
 		// This triggers a cleanup removing the oldest message
 		// which is for block A and authority id A.
 		tracker.add(somePeer, messageBlockAAuthC)
-		assertVotesMapping(t, tracker.mapping, map[common.Hash]map[ed25519.PublicKeyBytes]networkVoteMessage{
+		assertVotesMapping(t, tracker.mapping, map[common.Hash]map[ed25519.PublicKeyBytes]models.NetworkVoteMessage{
 			blockHashA: {
 				authIDB: wrapVoteMessageWithPeerID(messageBlockAAuthB, somePeer),
 				authIDC: wrapVoteMessageWithPeerID(messageBlockAAuthC, somePeer),
@@ -141,7 +142,7 @@ func Test_votesTracker_cleanup(t *testing.T) {
 		// is also completely removed since it does not contain
 		// any authority ID (vote message) anymore.
 		tracker.add(somePeer, messageBlockBAuthB)
-		assertVotesMapping(t, tracker.mapping, map[common.Hash]map[ed25519.PublicKeyBytes]networkVoteMessage{
+		assertVotesMapping(t, tracker.mapping, map[common.Hash]map[ed25519.PublicKeyBytes]models.NetworkVoteMessage{
 			blockHashB: {
 				authIDA: wrapVoteMessageWithPeerID(messageBlockBAuthA, somePeer),
 				authIDB: wrapVoteMessageWithPeerID(messageBlockBAuthB, somePeer),
@@ -178,7 +179,7 @@ func Test_votesTracker_overriding(t *testing.T) {
 		tracker.add(somePeer, messageBlockAAuthA) // override oldest
 		tracker.add(somePeer, messageBlockBAuthB)
 
-		assertVotesMapping(t, tracker.mapping, map[common.Hash]map[ed25519.PublicKeyBytes]networkVoteMessage{
+		assertVotesMapping(t, tracker.mapping, map[common.Hash]map[ed25519.PublicKeyBytes]models.NetworkVoteMessage{
 			blockHashB: {
 				authIDA: wrapVoteMessageWithPeerID(messageBlockBAuthA, somePeer),
 				authIDB: wrapVoteMessageWithPeerID(messageBlockBAuthB, somePeer),
@@ -209,7 +210,7 @@ func Test_votesTracker_overriding(t *testing.T) {
 		tracker.add(somePeer, messageBlockBAuthA) // override newest
 		tracker.add(somePeer, messageBlockBAuthB)
 
-		assertVotesMapping(t, tracker.mapping, map[common.Hash]map[ed25519.PublicKeyBytes]networkVoteMessage{
+		assertVotesMapping(t, tracker.mapping, map[common.Hash]map[ed25519.PublicKeyBytes]models.NetworkVoteMessage{
 			blockHashB: {
 				authIDA: wrapVoteMessageWithPeerID(messageBlockBAuthA, somePeer),
 				authIDB: wrapVoteMessageWithPeerID(messageBlockBAuthB, somePeer),
@@ -239,7 +240,7 @@ func Test_votesTracker_delete(t *testing.T) {
 		tracker.add(somePeer, messageBlockAAuthA)
 		tracker.delete(blockHashB)
 
-		assertVotesMapping(t, tracker.mapping, map[common.Hash]map[ed25519.PublicKeyBytes]networkVoteMessage{
+		assertVotesMapping(t, tracker.mapping, map[common.Hash]map[ed25519.PublicKeyBytes]models.NetworkVoteMessage{
 			blockHashA: {
 				authIDA: wrapVoteMessageWithPeerID(messageBlockAAuthA, somePeer),
 			},
@@ -264,7 +265,7 @@ func Test_votesTracker_delete(t *testing.T) {
 		tracker.add(somePeer, messageBlockAAuthB)
 		tracker.delete(blockHashA)
 
-		assertVotesMapping(t, tracker.mapping, map[common.Hash]map[ed25519.PublicKeyBytes]networkVoteMessage{})
+		assertVotesMapping(t, tracker.mapping, map[common.Hash]map[ed25519.PublicKeyBytes]models.NetworkVoteMessage{})
 	})
 }
 
@@ -274,7 +275,7 @@ func Test_votesTracker_messages(t *testing.T) {
 	testCases := map[string]struct {
 		votesTracker *votesTracker
 		blockHash    common.Hash
-		messages     []networkVoteMessage
+		messages     []models.NetworkVoteMessage
 	}{
 		"non existing block hash": {
 			votesTracker: &votesTracker{
@@ -290,24 +291,24 @@ func Test_votesTracker_messages(t *testing.T) {
 				mapping: map[common.Hash]map[ed25519.PublicKeyBytes]*list.Element{
 					{1}: {
 						ed25519.PublicKeyBytes{1}: {
-							Value: networkVoteMessage{
-								from: "a",
-								msg:  &VoteMessage{Round: 1},
+							Value: models.NetworkVoteMessage{
+								From: "a",
+								Msg:  &models.VoteMessage{Round: 1},
 							},
 						},
 						ed25519.PublicKeyBytes{2}: {
-							Value: networkVoteMessage{
-								from: "a",
-								msg:  &VoteMessage{Round: 2},
+							Value: models.NetworkVoteMessage{
+								From: "a",
+								Msg:  &models.VoteMessage{Round: 2},
 							},
 						},
 					},
 				},
 			},
 			blockHash: common.Hash{1},
-			messages: []networkVoteMessage{
-				{from: peer.ID("a"), msg: &VoteMessage{Round: 1}},
-				{from: peer.ID("a"), msg: &VoteMessage{Round: 2}},
+			messages: []models.NetworkVoteMessage{
+				{From: peer.ID("a"), Msg: &models.VoteMessage{Round: 1}},
+				{From: peer.ID("a"), Msg: &models.VoteMessage{Round: 2}},
 			},
 		},
 	}
@@ -321,10 +322,10 @@ func Test_votesTracker_messages(t *testing.T) {
 			messages := vt.messages(testCase.blockHash)
 
 			sort.Slice(messages, func(i, j int) bool {
-				if messages[i].from == messages[j].from {
-					return messages[i].msg.Round < messages[j].msg.Round
+				if messages[i].From == messages[j].From {
+					return messages[i].Msg.Round < messages[j].Msg.Round
 				}
-				return messages[i].from < messages[j].from
+				return messages[i].From < messages[j].From
 			})
 
 			assert.Equal(t, testCase.messages, messages)
@@ -354,10 +355,10 @@ func Test_votesTracker_networkVoteMessages(t *testing.T) {
 
 	networkVoteMessages := vt.networkVoteMessages()
 
-	expectedNetworkVoteMessages := []networkVoteMessage{
-		{from: "a", msg: messageBlockAAuthA},
-		{from: "b", msg: messageBlockAAuthB},
-		{from: "b", msg: messageBlockBAuthA},
+	expectedNetworkVoteMessages := []models.NetworkVoteMessage{
+		{From: "a", Msg: messageBlockAAuthA},
+		{From: "b", Msg: messageBlockAAuthB},
+		{From: "b", Msg: messageBlockBAuthA},
 	}
 
 	assert.ElementsMatch(t, expectedNetworkVoteMessages, networkVoteMessages)

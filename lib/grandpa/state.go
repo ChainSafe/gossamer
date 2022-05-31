@@ -10,6 +10,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/grandpa/models"
 )
 
 // BlockState is the interface required by GRANDPA into the block state
@@ -47,10 +48,10 @@ type GrandpaState interface { //nolint:revive
 	GetSetIDByBlockNumber(num uint) (uint64, error)
 	SetLatestRound(round uint64) error
 	GetLatestRound() (uint64, error)
-	SetPrevotes(round, setID uint64, data []SignedVote) error
-	SetPrecommits(round, setID uint64, data []SignedVote) error
-	GetPrevotes(round, setID uint64) ([]SignedVote, error)
-	GetPrecommits(round, setID uint64) ([]SignedVote, error)
+	SetPrevotes(round, setID uint64, data []models.SignedVote) error
+	SetPrecommits(round, setID uint64, data []models.SignedVote) error
+	GetPrevotes(round, setID uint64) ([]models.SignedVote, error)
+	GetPrecommits(round, setID uint64) ([]models.SignedVote, error)
 	NextGrandpaAuthorityChange(bestBlockHash common.Hash, bestBlockNumber uint) (blockHeight uint, err error)
 }
 

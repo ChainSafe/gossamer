@@ -10,6 +10,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/grandpa/models"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/stretchr/testify/require"
 )
@@ -37,13 +38,13 @@ func TestCheckForEquivocation_NoEquivocation(t *testing.T) {
 	h, err := st.Block.BestBlockHeader()
 	require.NoError(t, err)
 
-	vote := NewVoteFromHeader(h)
+	vote := models.NewVoteFromHeader(h)
 	require.NoError(t, err)
 
 	for _, v := range voters {
-		equivocated := gs.checkForEquivocation(&v, &SignedVote{
+		equivocated := gs.checkForEquivocation(&v, &models.SignedVote{
 			Vote: *vote,
-		}, prevote)
+		}, models.Prevote)
 		require.False(t, equivocated)
 	}
 }
@@ -71,24 +72,24 @@ func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
 	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches)
 	leaves := gs.blockState.Leaves()
 
-	vote1, err := NewVoteFromHash(leaves[0], st.Block)
+	vote1, err := models.NewVoteFromHash(leaves[0], st.Block)
 	require.NoError(t, err)
 
 	voter := voters[0]
 
-	gs.prevotes.Store(voter.Key.AsBytes(), &SignedVote{
+	gs.prevotes.Store(voter.Key.AsBytes(), &models.SignedVote{
 		Vote: *vote1,
 	})
 
-	vote2, err := NewVoteFromHash(leaves[1], st.Block)
+	vote2, err := models.NewVoteFromHash(leaves[1], st.Block)
 	require.NoError(t, err)
 
-	equivocated := gs.checkForEquivocation(&voter, &SignedVote{
+	equivocated := gs.checkForEquivocation(&voter, &models.SignedVote{
 		Vote: *vote2,
-	}, prevote)
+	}, models.Prevote)
 	require.True(t, equivocated)
 
-	require.Equal(t, 0, gs.lenVotes(prevote))
+	require.Equal(t, 0, gs.lenVotes(models.Prevote))
 	require.Equal(t, 1, len(gs.pvEquivocations))
 	require.Equal(t, 2, len(gs.pvEquivocations[voter.Key.AsBytes()]))
 }
@@ -116,34 +117,34 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches)
 	leaves := gs.blockState.Leaves()
 
-	vote1, err := NewVoteFromHash(leaves[1], gs.blockState)
+	vote1, err := models.NewVoteFromHash(leaves[1], gs.blockState)
 	require.NoError(t, err)
 
 	voter := voters[0]
 
-	gs.prevotes.Store(voter.Key.AsBytes(), &SignedVote{
+	gs.prevotes.Store(voter.Key.AsBytes(), &models.SignedVote{
 		Vote: *vote1,
 	})
 
-	vote2, err := NewVoteFromHash(leaves[0], gs.blockState)
+	vote2, err := models.NewVoteFromHash(leaves[0], gs.blockState)
 	require.NoError(t, err)
 
-	equivocated := gs.checkForEquivocation(&voter, &SignedVote{
+	equivocated := gs.checkForEquivocation(&voter, &models.SignedVote{
 		Vote: *vote2,
-	}, prevote)
+	}, models.Prevote)
 	require.True(t, equivocated)
 
-	require.Equal(t, 0, gs.lenVotes(prevote))
+	require.Equal(t, 0, gs.lenVotes(models.Prevote))
 	require.Equal(t, 1, len(gs.pvEquivocations))
 
 	vote3 := vote1
 
-	equivocated = gs.checkForEquivocation(&voter, &SignedVote{
+	equivocated = gs.checkForEquivocation(&voter, &models.SignedVote{
 		Vote: *vote3,
-	}, prevote)
+	}, models.Prevote)
 	require.True(t, equivocated)
 
-	require.Equal(t, 0, gs.lenVotes(prevote))
+	require.Equal(t, 0, gs.lenVotes(models.Prevote))
 	require.Equal(t, 1, len(gs.pvEquivocations))
 	require.Equal(t, 3, len(gs.pvEquivocations[voter.Key.AsBytes()]))
 }
@@ -172,7 +173,7 @@ func TestValidateMessage_Valid(t *testing.T) {
 	require.NoError(t, err)
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
-	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(h), prevote)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(models.NewVoteFromHeader(h), models.Prevote)
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
@@ -205,7 +206,7 @@ func TestValidateMessage_InvalidSignature(t *testing.T) {
 	require.NoError(t, err)
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
-	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(h), prevote)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(models.NewVoteFromHeader(h), models.Prevote)
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
@@ -238,11 +239,11 @@ func TestValidateMessage_SetIDMismatch(t *testing.T) {
 	require.NoError(t, err)
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
-	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(h), prevote)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(models.NewVoteFromHeader(h), models.Prevote)
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
-	gs.state.setID = 1
+	gs.state.SetID = 1
 
 	_, err = gs.validateVoteMessage("", msg)
 	require.Equal(t, err, ErrSetIDMismatch)
@@ -271,19 +272,19 @@ func TestValidateMessage_Equivocation(t *testing.T) {
 	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches)
 	leaves := gs.blockState.Leaves()
 
-	voteA, err := NewVoteFromHash(leaves[0], st.Block)
+	voteA, err := models.NewVoteFromHash(leaves[0], st.Block)
 	require.NoError(t, err)
-	voteB, err := NewVoteFromHash(leaves[1], st.Block)
+	voteB, err := models.NewVoteFromHash(leaves[1], st.Block)
 	require.NoError(t, err)
 
 	voter := voters[0]
 
-	gs.prevotes.Store(voter.Key.AsBytes(), &SignedVote{
+	gs.prevotes.Store(voter.Key.AsBytes(), &models.SignedVote{
 		Vote: *voteA,
 	})
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
-	_, msg, err := gs.createSignedVoteAndVoteMessage(voteB, prevote)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(voteB, models.Prevote)
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
@@ -317,7 +318,7 @@ func TestValidateMessage_BlockDoesNotExist(t *testing.T) {
 	}
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
-	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(fake), prevote)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(models.NewVoteFromHeader(fake), models.Prevote)
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
@@ -353,10 +354,10 @@ func TestValidateMessage_IsNotDescendant(t *testing.T) {
 	require.NoError(t, err)
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
-	vote, err := NewVoteFromHash(leaves[1], gs.blockState)
+	vote, err := models.NewVoteFromHash(leaves[1], gs.blockState)
 	require.NoError(t, err)
 
-	_, msg, err := gs.createSignedVoteAndVoteMessage(vote, prevote)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(vote, models.Prevote)
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 

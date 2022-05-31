@@ -12,15 +12,11 @@ import (
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/grandpa/models"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 )
-
-type networkVoteMessage struct {
-	from peer.ID
-	msg  *VoteMessage
-}
 
 // receiveVoteMessages receives messages from the in channel until a grandpa round finishes.
 func (s *Service) receiveVoteMessages(ctx context.Context) {
@@ -31,15 +27,15 @@ func (s *Service) receiveVoteMessages(ctx context.Context) {
 				return
 			}
 
-			if msg == nil || msg.msg == nil {
+			if msg == nil || msg.Msg == nil {
 				continue
 			}
 
-			logger.Debugf("received vote message %v from %s", msg.msg, msg.from)
-			vm := msg.msg
+			logger.Debugf("received vote message %v from %s", msg.Msg, msg.From)
+			vm := msg.Msg
 
 			switch vm.Message.Stage {
-			case prevote, primaryProposal:
+			case models.Prevote, models.PrimaryProposal:
 				s.telemetry.SendMessage(
 					telemetry.NewAfgReceivedPrevote(
 						vm.Message.BlockHash,
@@ -47,7 +43,7 @@ func (s *Service) receiveVoteMessages(ctx context.Context) {
 						vm.Message.AuthorityID.String(),
 					),
 				)
-			case precommit:
+			case models.Precommit:
 				s.telemetry.SendMessage(
 					telemetry.NewAfgReceivedPrecommit(
 						vm.Message.BlockHash,
@@ -59,7 +55,7 @@ func (s *Service) receiveVoteMessages(ctx context.Context) {
 				logger.Warnf("unsupported stage %s", vm.Message.Stage.String())
 			}
 
-			v, err := s.validateVoteMessage(msg.from, vm)
+			v, err := s.validateVoteMessage(msg.From, vm)
 			if err != nil {
 				logger.Debugf("failed to validate vote message %v: %s", vm, err)
 				continue
@@ -69,7 +65,7 @@ func (s *Service) receiveVoteMessages(ctx context.Context) {
 				"validated vote message %v from %s, round %d, subround %d, "+
 					"prevote count %d, precommit count %d, votes needed %d",
 				v, vm.Message.AuthorityID, vm.Round, vm.Message.Stage,
-				s.lenVotes(prevote), s.lenVotes(precommit), s.state.threshold()+1)
+				s.lenVotes(models.Prevote), s.lenVotes(models.Precommit), s.state.Threshold()+1)
 		case <-ctx.Done():
 			logger.Trace("returning from receiveMessages")
 			return
@@ -77,12 +73,13 @@ func (s *Service) receiveVoteMessages(ctx context.Context) {
 	}
 }
 
-func (s *Service) createSignedVoteAndVoteMessage(vote *Vote, stage Subround) (*SignedVote, *VoteMessage, error) {
-	msg, err := scale.Marshal(FullVote{
+func (s *Service) createSignedVoteAndVoteMessage(vote *models.Vote, stage models.Subround) (
+	signedVote *models.SignedVote, voteMessage *models.VoteMessage, err error) {
+	msg, err := scale.Marshal(models.FullVote{
 		Stage: stage,
 		Vote:  *vote,
-		Round: s.state.round,
-		SetID: s.state.setID,
+		Round: s.state.Round,
+		SetID: s.state.SetID,
 	})
 	if err != nil {
 		return nil, nil, err
@@ -93,13 +90,13 @@ func (s *Service) createSignedVoteAndVoteMessage(vote *Vote, stage Subround) (*S
 		return nil, nil, err
 	}
 
-	pc := &SignedVote{
+	pc := &models.SignedVote{
 		Vote:        *vote,
 		Signature:   ed25519.NewSignatureBytes(sig),
 		AuthorityID: s.keypair.Public().(*ed25519.PublicKey).AsBytes(),
 	}
 
-	sm := &SignedMessage{
+	sm := &models.SignedMessage{
 		Stage:       stage,
 		BlockHash:   pc.Vote.Hash,
 		Number:      pc.Vote.Number,
@@ -107,9 +104,9 @@ func (s *Service) createSignedVoteAndVoteMessage(vote *Vote, stage Subround) (*S
 		AuthorityID: s.keypair.Public().(*ed25519.PublicKey).AsBytes(),
 	}
 
-	vm := &VoteMessage{
-		Round:   s.state.round,
-		SetID:   s.state.setID,
+	vm := &models.VoteMessage{
+		Round:   s.state.Round,
+		SetID:   s.state.SetID,
 		Message: *sm,
 	}
 
@@ -118,7 +115,7 @@ func (s *Service) createSignedVoteAndVoteMessage(vote *Vote, stage Subround) (*S
 
 // validateVoteMessage validates a VoteMessage and adds it to the current votes
 // it returns the resulting vote if validated, error otherwise
-func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
+func (s *Service) validateVoteMessage(from peer.ID, m *models.VoteMessage) (*models.Vote, error) {
 	// make sure round does not increment while VoteMessage is being validated
 	s.roundLock.Lock()
 	defer s.roundLock.Unlock()
@@ -138,19 +135,19 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 		return nil, err
 	}
 
-	if m.SetID != s.state.setID {
+	if m.SetID != s.state.SetID {
 		return nil, ErrSetIDMismatch
 	}
 
 	const maxRoundsLag = 1
-	minRoundAccepted := s.state.round - maxRoundsLag
-	if minRoundAccepted > s.state.round {
+	minRoundAccepted := s.state.Round - maxRoundsLag
+	if minRoundAccepted > s.state.Round {
 		// we overflowed below 0 so set the minimum to 0.
 		minRoundAccepted = 0
 	}
 
 	const maxRoundsAhead = 1
-	maxRoundAccepted := s.state.round + maxRoundsAhead
+	maxRoundAccepted := s.state.Round + maxRoundsAhead
 
 	if m.Round < minRoundAccepted || m.Round > maxRoundAccepted {
 		// Discard message
@@ -159,7 +156,7 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 		return nil, nil //nolint:nilnil
 	}
 
-	if m.Round < s.state.round {
+	if m.Round < s.state.Round {
 		// message round is lagging by 1
 		// peer doesn't know round was finalised, send out another commit message
 		header, err := s.blockState.GetFinalisedHeader(m.Round, m.SetID)
@@ -183,22 +180,22 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 		}
 
 		// TODO: get justification if your round is lower, or just do catch-up? (#1815)
-		return nil, errRoundMismatch(m.Round, s.state.round)
-	} else if m.Round > s.state.round {
+		return nil, errRoundMismatch(m.Round, s.state.Round)
+	} else if m.Round > s.state.Round {
 		// Message round is higher by 1 than the round of our state,
 		// we may be lagging behind, so store the message in the tracker
 		// for processing later in the coming few milliseconds.
 		s.tracker.addVote(from, m)
-		return nil, errRoundMismatch(m.Round, s.state.round)
+		return nil, errRoundMismatch(m.Round, s.state.Round)
 	}
 
 	// check for equivocation ie. multiple votes within one subround
-	voter, err := s.state.pubkeyToVoter(pk)
+	voter, err := s.state.PubkeyToVoter(pk)
 	if err != nil {
 		return nil, err
 	}
 
-	vote := NewVote(m.Message.BlockHash, m.Message.Number)
+	vote := models.NewVote(m.Message.BlockHash, m.Message.Number)
 
 	// if the vote is from ourselves, return an error
 	kb := [32]byte(s.publicKeyBytes())
@@ -217,7 +214,7 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 		return nil, err
 	}
 
-	just := &SignedVote{
+	just := &models.SignedVote{
 		Vote:        *vote,
 		Signature:   m.Message.Signature,
 		AuthorityID: pk.AsBytes(),
@@ -229,9 +226,9 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 	}
 
 	switch m.Message.Stage {
-	case prevote, primaryProposal:
+	case models.Prevote, models.PrimaryProposal:
 		s.prevotes.Store(pk.AsBytes(), just)
-	case precommit:
+	case models.Precommit:
 		s.precommits.Store(pk.AsBytes(), just)
 	}
 
@@ -241,16 +238,16 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 // checkForEquivocation checks if the vote is an equivocatory vote.
 // it returns true if so, false otherwise.
 // additionally, if the vote is equivocatory, it updates the service's votes and equivocations.
-func (s *Service) checkForEquivocation(voter *Voter, vote *SignedVote, stage Subround) bool {
+func (s *Service) checkForEquivocation(voter *models.Voter, vote *models.SignedVote, stage models.Subround) bool {
 	v := voter.Key.AsBytes()
 
 	// save justification, since equivocatory vote may still be used in justification
-	var eq map[ed25519.PublicKeyBytes][]*SignedVote
+	var eq map[ed25519.PublicKeyBytes][]*models.SignedVote
 
 	switch stage {
-	case prevote, primaryProposal:
+	case models.Prevote, models.PrimaryProposal:
 		eq = s.pvEquivocations
-	case precommit:
+	case models.Precommit:
 		eq = s.pcEquivocations
 	}
 
@@ -271,7 +268,7 @@ func (s *Service) checkForEquivocation(voter *Voter, vote *SignedVote, stage Sub
 
 	if has && existingVote.Vote.Hash != vote.Vote.Hash {
 		// the voter has already voted, all their votes are now equivocatory
-		eq[v] = []*SignedVote{existingVote, vote}
+		eq[v] = []*models.SignedVote{existingVote, vote}
 		s.deleteVote(v, stage)
 		return true
 	}
@@ -281,7 +278,7 @@ func (s *Service) checkForEquivocation(voter *Voter, vote *SignedVote, stage Sub
 
 // validateVote checks if the block that is being voted for exists, and that it is a descendant of a
 // previously finalised block.
-func (s *Service) validateVote(v *Vote) error {
+func (s *Service) validateVote(v *models.Vote) error {
 	// check if v.hash corresponds to a valid block
 	has, err := s.blockState.HasHeader(v.Hash)
 	if err != nil {
@@ -305,10 +302,10 @@ func (s *Service) validateVote(v *Vote) error {
 	return nil
 }
 
-func validateMessageSignature(pk *ed25519.PublicKey, m *VoteMessage) error {
-	msg, err := scale.Marshal(FullVote{
+func validateMessageSignature(pk *ed25519.PublicKey, m *models.VoteMessage) error {
+	msg, err := scale.Marshal(models.FullVote{
 		Stage: m.Message.Stage,
-		Vote:  *NewVote(m.Message.BlockHash, m.Message.Number),
+		Vote:  *models.NewVote(m.Message.BlockHash, m.Message.Number),
 		Round: m.Round,
 		SetID: m.SetID,
 	})

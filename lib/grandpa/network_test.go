@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/grandpa/models"
 	"github.com/golang/mock/gomock"
 
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -36,14 +37,14 @@ func TestGrandpaHandshake_Encode(t *testing.T) {
 func TestHandleNetworkMessage(t *testing.T) {
 	gs, st := newTestService(t)
 
-	just := []SignedVote{
+	just := []models.SignedVote{
 		{
 			Vote:        *testVote,
 			Signature:   testSignature,
 			AuthorityID: gs.publicKeyBytes(),
 		},
 	}
-	err := st.Grandpa.SetPrecommits(77, gs.state.setID, just)
+	err := st.Grandpa.SetPrecommits(77, gs.state.SetID, just)
 	require.NoError(t, err)
 
 	fm, err := gs.newCommitMessage(gs.head, 77)
@@ -51,7 +52,7 @@ func TestHandleNetworkMessage(t *testing.T) {
 
 	cm, err := fm.ToConsensusMessage()
 	require.NoError(t, err)
-	gs.state.voters = gs.state.voters[:1]
+	gs.state.Voters = gs.state.Voters[:1]
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
@@ -69,7 +70,7 @@ func TestHandleNetworkMessage(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, propagate)
 
-	neighbourMsg := &NeighbourMessage{}
+	neighbourMsg := &models.NeighbourMessage{}
 	cm, err = neighbourMsg.ToConsensusMessage()
 	require.NoError(t, err)
 
@@ -105,7 +106,7 @@ func TestSendNeighbourMessage(t *testing.T) {
 	err = st.Block.SetFinalisedHash(hash, round, setID)
 	require.NoError(t, err)
 
-	expected := &NeighbourMessage{
+	expected := &models.NeighbourMessage{
 		Version: 1,
 		SetID:   setID,
 		Round:   round,
@@ -116,7 +117,7 @@ func TestSendNeighbourMessage(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatal("did not send message")
 	case msg := <-gs.network.(*testNetwork).out:
-		nm, ok := msg.(*NeighbourMessage)
+		nm, ok := msg.(*models.NeighbourMessage)
 		require.True(t, ok)
 		require.Equal(t, expected, nm)
 	}
@@ -127,7 +128,7 @@ func TestSendNeighbourMessage(t *testing.T) {
 	case <-time.After(time.Second * 2):
 		t.Fatal("did not send message")
 	case msg := <-gs.network.(*testNetwork).out:
-		nm, ok := msg.(*NeighbourMessage)
+		nm, ok := msg.(*models.NeighbourMessage)
 		require.True(t, ok)
 		require.Equal(t, expected, nm)
 	}

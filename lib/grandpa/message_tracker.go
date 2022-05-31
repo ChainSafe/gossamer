@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/grandpa/models"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
@@ -24,8 +25,8 @@ type tracker struct {
 	stopped    chan struct{}
 
 	catchUpResponseMessageMutex sync.Mutex
-	// round(uint64) is used as key and *CatchUpResponse as value
-	catchUpResponseMessages map[uint64]*CatchUpResponse
+	// round(uint64) is used as key and *models.CatchUpResponse as value
+	catchUpResponseMessages map[uint64]*models.CatchUpResponse
 }
 
 func newTracker(bs BlockState, handler *MessageHandler) *tracker {
@@ -41,7 +42,7 @@ func newTracker(bs BlockState, handler *MessageHandler) *tracker {
 		mapLock:                 sync.Mutex{},
 		in:                      bs.GetImportedBlockNotifierChannel(),
 		stopped:                 make(chan struct{}),
-		catchUpResponseMessages: make(map[uint64]*CatchUpResponse),
+		catchUpResponseMessages: make(map[uint64]*models.CatchUpResponse),
 	}
 }
 
@@ -54,7 +55,7 @@ func (t *tracker) stop() {
 	t.blockState.FreeImportedBlockNotifierChannel(t.in)
 }
 
-func (t *tracker) addVote(peerID peer.ID, message *VoteMessage) {
+func (t *tracker) addVote(peerID peer.ID, message *models.VoteMessage) {
 	if message == nil {
 		return
 	}
@@ -65,13 +66,13 @@ func (t *tracker) addVote(peerID peer.ID, message *VoteMessage) {
 	t.votes.add(peerID, message)
 }
 
-func (t *tracker) addCommit(cm *CommitMessage) {
+func (t *tracker) addCommit(cm *models.CommitMessage) {
 	t.mapLock.Lock()
 	defer t.mapLock.Unlock()
 	t.commits.add(cm)
 }
 
-func (t *tracker) addCatchUpResponse(_ *CatchUpResponse) {
+func (t *tracker) addCatchUpResponse(_ *models.CatchUpResponse) {
 	t.catchUpResponseMessageMutex.Lock()
 	defer t.catchUpResponseMessageMutex.Unlock()
 	// uncomment when usage is setup properly, see #1531
@@ -107,7 +108,7 @@ func (t *tracker) handleBlock(b *types.Block) {
 	vms := t.votes.messages(h)
 	for _, v := range vms {
 		// handleMessage would never error for vote message
-		_, err := t.handler.handleMessage(v.from, v.msg)
+		_, err := t.handler.handleMessage(v.From, v.Msg)
 		if err != nil {
 			logger.Warnf("failed to handle vote message %v: %s", v, err)
 		}
@@ -132,20 +133,20 @@ func (t *tracker) handleTick() {
 	defer t.mapLock.Unlock()
 
 	for _, networkVoteMessage := range t.votes.networkVoteMessages() {
-		peerID := networkVoteMessage.from
-		message := networkVoteMessage.msg
+		peerID := networkVoteMessage.From
+		message := networkVoteMessage.Msg
 		_, err := t.handler.handleMessage(peerID, message)
 		if err != nil {
 			// handleMessage would never error for vote message
 			logger.Debugf("failed to handle vote message %v from peer id %s: %s", message, peerID, err)
 		}
 
-		if message.Round < t.handler.grandpa.state.round && message.SetID == t.handler.grandpa.state.setID {
+		if message.Round < t.handler.grandpa.state.Round && message.SetID == t.handler.grandpa.state.SetID {
 			t.votes.delete(message.Message.BlockHash)
 		}
 	}
 
-	t.commits.forEach(func(cm *CommitMessage) {
+	t.commits.forEach(func(cm *models.CommitMessage) {
 		_, err := t.handler.handleMessage("", cm)
 		if err != nil {
 			logger.Debugf("failed to handle commit message %v: %s", cm, err)

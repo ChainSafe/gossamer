@@ -14,6 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/grandpa/models"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/golang/mock/gomock"
@@ -37,11 +38,11 @@ func newTestDigest() scale.VaryingDataTypeSlice {
 }
 
 func buildTestJustification(t *testing.T, qty int, round, setID uint64,
-	kr *keystore.Ed25519Keyring, subround Subround) []SignedVote {
-	var just []SignedVote
+	kr *keystore.Ed25519Keyring, subround models.Subround) []models.SignedVote {
+	var just []models.SignedVote
 	for i := 0; i < qty; i++ {
-		j := SignedVote{
-			Vote:        *NewVote(testHash, uint32(round)),
+		j := models.SignedVote{
+			Vote:        *models.NewVote(testHash, uint32(round)),
 			Signature:   createSignedVoteMsg(t, uint32(round), round, setID, kr.Keys[i%len(kr.Keys)], subround),
 			AuthorityID: kr.Keys[i%len(kr.Keys)].Public().(*ed25519.PublicKey).AsBytes(),
 		}
@@ -52,11 +53,11 @@ func buildTestJustification(t *testing.T, qty int, round, setID uint64,
 }
 
 func createSignedVoteMsg(t *testing.T, number uint32,
-	round, setID uint64, pk *ed25519.Keypair, subround Subround) [64]byte {
+	round, setID uint64, pk *ed25519.Keypair, subround models.Subround) [64]byte {
 	// create vote message
-	msg, err := scale.Marshal(FullVote{
+	msg, err := scale.Marshal(models.FullVote{
 		Stage: subround,
-		Vote:  *NewVote(testHash, number),
+		Vote:  *models.NewVote(testHash, number),
 		Round: round,
 		SetID: setID,
 	})
@@ -81,11 +82,11 @@ func TestDecodeMessage_VoteMessage(t *testing.T) {
 	sig := [64]byte{}
 	copy(sig[:], sigb)
 
-	expected := &VoteMessage{
+	expected := &models.VoteMessage{
 		Round: 77,
 		SetID: 99,
-		Message: SignedMessage{
-			Stage:     precommit,
+		Message: models.SignedMessage{
+			Stage:     models.Precommit,
 			BlockHash: common.MustHexToHash("0x7db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a"),
 			Number:    0x7777,
 			Signature: sig,
@@ -99,17 +100,17 @@ func TestDecodeMessage_VoteMessage(t *testing.T) {
 }
 
 func TestDecodeMessage_CommitMessage(t *testing.T) {
-	expected := &CommitMessage{
+	expected := &models.CommitMessage{
 		Round: 77,
 		SetID: 1,
-		Vote: Vote{
+		Vote: models.Vote{
 			Hash:   common.MustHexToHash("0x7db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a"),
 			Number: 99,
 		},
-		Precommits: []Vote{
+		Precommits: []models.Vote{
 			*testVote,
 		},
-		AuthData: []AuthData{
+		AuthData: []models.AuthData{
 			{
 				Signature:   testSignature,
 				AuthorityID: kr.Alice().Public().(*ed25519.PublicKey).AsBytes(),
@@ -132,7 +133,7 @@ func TestDecodeMessage_NeighbourMessage(t *testing.T) {
 	msg, err := decodeMessage(cm)
 	require.NoError(t, err)
 
-	expected := &NeighbourMessage{
+	expected := &models.NeighbourMessage{
 		Version: 1,
 		Round:   2,
 		SetID:   3,
@@ -149,7 +150,7 @@ func TestDecodeMessage_CatchUpRequest(t *testing.T) {
 	msg, err := decodeMessage(cm)
 	require.NoError(t, err)
 
-	expected := &CatchUpRequest{
+	expected := &models.CatchUpRequest{
 		Round: 0x11,
 		SetID: 0x22,
 	}
@@ -160,13 +161,13 @@ func TestDecodeMessage_CatchUpRequest(t *testing.T) {
 func TestMessageHandler_VoteMessage(t *testing.T) {
 	gs, st := newTestService(t)
 
-	v, err := NewVoteFromHash(st.Block.BestBlockHash(), st.Block)
+	v, err := models.NewVoteFromHash(st.Block.BestBlockHash(), st.Block)
 	require.NoError(t, err)
 
-	gs.state.setID = 99
-	gs.state.round = 77
+	gs.state.SetID = 99
+	gs.state.Round = 77
 	v.Number = 0x7777
-	_, vm, err := gs.createSignedVoteAndVoteMessage(v, precommit)
+	_, vm, err := gs.createSignedVoteAndVoteMessage(v, models.Precommit)
 	require.NoError(t, err)
 
 	ctrl := gomock.NewController(t)
@@ -180,7 +181,7 @@ func TestMessageHandler_VoteMessage(t *testing.T) {
 
 	select {
 	case vote := <-gs.in:
-		require.Equal(t, vm, vote.msg)
+		require.Equal(t, vm, vote.Msg)
 	case <-time.After(time.Second):
 		t.Fatal("did not receive VoteMessage")
 	}
@@ -195,7 +196,7 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
 
-	msg := &NeighbourMessage{
+	msg := &models.NeighbourMessage{
 		Version: 1,
 		Round:   2,
 		SetID:   3,
@@ -232,9 +233,9 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 
 func TestMessageHandler_VerifyJustification_InvalidSig(t *testing.T) {
 	gs, st := newTestService(t)
-	gs.state.round = 77
+	gs.state.Round = 77
 
-	just := &SignedVote{
+	just := &models.SignedVote{
 		Vote:        *testVote,
 		Signature:   [64]byte{0x1},
 		AuthorityID: gs.publicKeyBytes(),
@@ -245,7 +246,7 @@ func TestMessageHandler_VerifyJustification_InvalidSig(t *testing.T) {
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
-	err := h.verifyJustification(just, gs.state.round, gs.state.setID, precommit)
+	err := h.verifyJustification(just, gs.state.Round, gs.state.SetID, models.Precommit)
 	require.Equal(t, err, ErrInvalidSignature)
 }
 
@@ -253,14 +254,14 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
 	gs, st := newTestService(t)
 
 	round := uint64(1)
-	gs.state.round = round
-	just := buildTestJustification(t, int(gs.state.threshold()), round, gs.state.setID, kr, precommit)
-	err := st.Grandpa.SetPrecommits(round, gs.state.setID, just)
+	gs.state.Round = round
+	just := buildTestJustification(t, int(gs.state.Threshold()), round, gs.state.SetID, kr, models.Precommit)
+	err := st.Grandpa.SetPrecommits(round, gs.state.SetID, just)
 	require.NoError(t, err)
 
 	fm, err := gs.newCommitMessage(gs.head, round)
 	require.NoError(t, err)
-	fm.Vote = *NewVote(testHash, uint32(round))
+	fm.Vote = *models.NewVote(testHash, uint32(round))
 
 	digest := types.NewDigest()
 	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
@@ -288,7 +289,7 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
 	require.NoError(t, err)
 	require.Nil(t, out)
 
-	hash, err := st.Block.GetFinalisedHash(fm.Round, gs.state.setID)
+	hash, err := st.Block.GetFinalisedHash(fm.Round, gs.state.SetID)
 	require.NoError(t, err)
 	require.Equal(t, fm.Vote.Hash, hash)
 }
@@ -297,10 +298,10 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_MinVoteError(t *testing.T
 	gs, st := newTestService(t)
 
 	round := uint64(77)
-	gs.state.round = round
+	gs.state.Round = round
 
-	just := buildTestJustification(t, int(gs.state.threshold()), round, gs.state.setID, kr, precommit)
-	err := st.Grandpa.SetPrecommits(round, gs.state.setID, just)
+	just := buildTestJustification(t, int(gs.state.Threshold()), round, gs.state.SetID, kr, models.Precommit)
+	err := st.Grandpa.SetPrecommits(round, gs.state.SetID, just)
 	require.NoError(t, err)
 
 	fm, err := gs.newCommitMessage(testGenesisHeader, round)
@@ -319,20 +320,20 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_MinVoteError(t *testing.T
 func TestMessageHandler_CommitMessage_WithCatchUpRequest(t *testing.T) {
 	gs, st := newTestService(t)
 
-	just := []SignedVote{
+	just := []models.SignedVote{
 		{
 			Vote:        *testVote,
 			Signature:   testSignature,
 			AuthorityID: gs.publicKeyBytes(),
 		},
 	}
-	err := st.Grandpa.SetPrecommits(77, gs.state.setID, just)
+	err := st.Grandpa.SetPrecommits(77, gs.state.SetID, just)
 	require.NoError(t, err)
 
 	fm, err := gs.newCommitMessage(gs.head, 77)
 	require.NoError(t, err)
 
-	gs.state.voters = gs.state.voters[:1]
+	gs.state.Voters = gs.state.Voters[:1]
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
@@ -345,7 +346,7 @@ func TestMessageHandler_CommitMessage_WithCatchUpRequest(t *testing.T) {
 
 func TestMessageHandler_CatchUpRequest_InvalidRound(t *testing.T) {
 	gs, st := newTestService(t)
-	req := newCatchUpRequest(77, 0)
+	req := models.NewCatchUpRequest(77, 0)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
@@ -358,7 +359,7 @@ func TestMessageHandler_CatchUpRequest_InvalidRound(t *testing.T) {
 
 func TestMessageHandler_CatchUpRequest_InvalidSetID(t *testing.T) {
 	gs, st := newTestService(t)
-	req := newCatchUpRequest(1, 77)
+	req := models.NewCatchUpRequest(1, 77)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
@@ -375,7 +376,7 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 	// set up needed info for response
 	round := uint64(1)
 	setID := uint64(0)
-	gs.state.round = round + 1
+	gs.state.Round = round + 1
 
 	digest := types.NewDigest()
 	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
@@ -399,7 +400,7 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 	err = gs.blockState.(*state.BlockState).SetHeader(&block.Header)
 	require.NoError(t, err)
 
-	pvj := []SignedVote{
+	pvj := []models.SignedVote{
 		{
 			Vote:        *testVote,
 			Signature:   testSignature,
@@ -407,7 +408,7 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 		},
 	}
 
-	pcj := []SignedVote{
+	pcj := []models.SignedVote{
 		{
 			Vote:        *testVote2,
 			Signature:   testSignature,
@@ -427,7 +428,7 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 	require.NoError(t, err)
 
 	// create and handle request
-	req := newCatchUpRequest(round, setID)
+	req := models.NewCatchUpRequest(round, setID)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
@@ -447,14 +448,14 @@ func TestVerifyJustification(t *testing.T) {
 	gs, st := newTestService(t)
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
 
-	vote := NewVote(testHash, 123)
-	just := &SignedVote{
+	vote := models.NewVote(testHash, 123)
+	just := &models.SignedVote{
 		Vote:        *vote,
-		Signature:   createSignedVoteMsg(t, vote.Number, 77, gs.state.setID, kr.Alice().(*ed25519.Keypair), precommit),
+		Signature:   createSignedVoteMsg(t, vote.Number, 77, gs.state.SetID, kr.Alice().(*ed25519.Keypair), models.Precommit),
 		AuthorityID: kr.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 	}
 
-	err := h.verifyJustification(just, 77, gs.state.setID, precommit)
+	err := h.verifyJustification(just, 77, gs.state.SetID, models.Precommit)
 	require.NoError(t, err)
 }
 
@@ -466,15 +467,16 @@ func TestVerifyJustification_InvalidSignature(t *testing.T) {
 	gs, st := newTestService(t)
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
 
-	vote := NewVote(testHash, 123)
-	just := &SignedVote{
+	vote := models.NewVote(testHash, 123)
+	just := &models.SignedVote{
 		Vote: *vote,
 		// create signed vote with mismatched vote number
-		Signature:   createSignedVoteMsg(t, vote.Number+1, 77, gs.state.setID, kr.Alice().(*ed25519.Keypair), precommit),
+		Signature: createSignedVoteMsg(t, vote.Number+1, 77, gs.state.SetID,
+			kr.Alice().(*ed25519.Keypair), models.Precommit),
 		AuthorityID: kr.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 	}
 
-	err := h.verifyJustification(just, 77, gs.state.setID, precommit)
+	err := h.verifyJustification(just, 77, gs.state.SetID, models.Precommit)
 	require.EqualError(t, err, ErrInvalidSignature.Error())
 }
 
@@ -490,14 +492,14 @@ func TestVerifyJustification_InvalidAuthority(t *testing.T) {
 		"0x0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20")
 	require.NoError(t, err)
 
-	vote := NewVote(testHash, 123)
-	just := &SignedVote{
+	vote := models.NewVote(testHash, 123)
+	just := &models.SignedVote{
 		Vote:        *vote,
-		Signature:   createSignedVoteMsg(t, vote.Number, 77, gs.state.setID, fakeKey, precommit),
+		Signature:   createSignedVoteMsg(t, vote.Number, 77, gs.state.SetID, fakeKey, models.Precommit),
 		AuthorityID: fakeKey.Public().(*ed25519.PublicKey).AsBytes(),
 	}
 
-	err = h.verifyJustification(just, 77, gs.state.setID, precommit)
+	err = h.verifyJustification(just, 77, gs.state.SetID, models.Precommit)
 	require.EqualError(t, err, ErrVoterNotFound.Error())
 }
 
@@ -521,10 +523,10 @@ func TestMessageHandler_VerifyPreVoteJustification(t *testing.T) {
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
 
-	just := buildTestJustification(t, int(gs.state.threshold()), 1, gs.state.setID, kr, prevote)
-	msg := &CatchUpResponse{
+	just := buildTestJustification(t, int(gs.state.Threshold()), 1, gs.state.SetID, kr, models.Prevote)
+	msg := &models.CatchUpResponse{
 		Round:                1,
-		SetID:                gs.state.setID,
+		SetID:                gs.state.SetID,
 		PreVoteJustification: just,
 	}
 
@@ -554,10 +556,10 @@ func TestMessageHandler_VerifyPreCommitJustification(t *testing.T) {
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
 
 	round := uint64(1)
-	just := buildTestJustification(t, int(gs.state.threshold()), round, gs.state.setID, kr, precommit)
-	msg := &CatchUpResponse{
+	just := buildTestJustification(t, int(gs.state.Threshold()), round, gs.state.SetID, kr, models.Precommit)
+	msg := &models.CatchUpResponse{
 		Round:                  round,
-		SetID:                  gs.state.setID,
+		SetID:                  gs.state.SetID,
 		PreCommitJustification: just,
 		Hash:                   testHash,
 		Number:                 uint32(round),
@@ -580,13 +582,13 @@ func TestMessageHandler_HandleCatchUpResponse(t *testing.T) {
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
 
 	round := uint64(1)
-	gs.state.round = round + 1
+	gs.state.Round = round + 1
 
-	pvJust := buildTestJustification(t, int(gs.state.threshold()), round, gs.state.setID, kr, prevote)
-	pcJust := buildTestJustification(t, int(gs.state.threshold()), round, gs.state.setID, kr, precommit)
-	msg := &CatchUpResponse{
+	pvJust := buildTestJustification(t, int(gs.state.Threshold()), round, gs.state.SetID, kr, models.Prevote)
+	pcJust := buildTestJustification(t, int(gs.state.Threshold()), round, gs.state.SetID, kr, models.Precommit)
+	msg := &models.CatchUpResponse{
 		Round:                  round,
-		SetID:                  gs.state.setID,
+		SetID:                  gs.state.SetID,
 		PreVoteJustification:   pvJust,
 		PreCommitJustification: pcJust,
 		Hash:                   testHash,
@@ -596,7 +598,7 @@ func TestMessageHandler_HandleCatchUpResponse(t *testing.T) {
 	out, err := h.handleMessage("", msg)
 	require.NoError(t, err)
 	require.Nil(t, out)
-	require.Equal(t, round+1, gs.state.round)
+	require.Equal(t, round+1, gs.state.Round)
 }
 
 func TestMessageHandler_VerifyBlockJustification_WithEquivocatoryVotes(t *testing.T) {
@@ -651,8 +653,8 @@ func TestMessageHandler_VerifyBlockJustification_WithEquivocatoryVotes(t *testin
 
 	round := uint64(1)
 	number := uint32(1)
-	precommits := buildTestJustification(t, 18, round, setID, kr, precommit)
-	just := newJustification(round, testHash, number, precommits)
+	precommits := buildTestJustification(t, 18, round, setID, kr, models.Precommit)
+	just := models.NewJustification(round, testHash, number, precommits)
 	data, err := scale.Marshal(*just)
 	require.NoError(t, err)
 	returnedJust, err := gs.VerifyBlockJustification(testHash, data)
@@ -696,8 +698,8 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 
 	round := uint64(1)
 	number := uint32(1)
-	precommits := buildTestJustification(t, 2, round, setID, kr, precommit)
-	just := newJustification(round, testHash, number, precommits)
+	precommits := buildTestJustification(t, 2, round, setID, kr, models.Precommit)
+	just := models.NewJustification(round, testHash, number, precommits)
 	data, err := scale.Marshal(*just)
 	require.NoError(t, err)
 	returnedJust, err := gs.VerifyBlockJustification(testHash, data)
@@ -705,8 +707,8 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	require.Equal(t, data, returnedJust)
 
 	// use wrong hash, shouldn't verify
-	precommits = buildTestJustification(t, 2, round+1, setID, kr, precommit)
-	just = newJustification(round+1, testHash, number, precommits)
+	precommits = buildTestJustification(t, 2, round+1, setID, kr, models.Precommit)
+	just = models.NewJustification(round+1, testHash, number, precommits)
 	just.Commit.Precommits[0].Vote.Hash = genhash
 	data, err = scale.Marshal(*just)
 	require.NoError(t, err)
@@ -753,8 +755,8 @@ func TestMessageHandler_VerifyBlockJustification_invalid(t *testing.T) {
 	number := uint32(2)
 
 	// use wrong hash, shouldn't verify
-	precommits := buildTestJustification(t, 2, round+1, setID, kr, precommit)
-	just := newJustification(round+1, testHash, number, precommits)
+	precommits := buildTestJustification(t, 2, round+1, setID, kr, models.Precommit)
+	just := models.NewJustification(round+1, testHash, number, precommits)
 	just.Commit.Precommits[0].Vote.Hash = genhash
 	data, err := scale.Marshal(*just)
 	require.NoError(t, err)
@@ -764,8 +766,8 @@ func TestMessageHandler_VerifyBlockJustification_invalid(t *testing.T) {
 	require.Nil(t, returnedJust)
 
 	// use wrong round, shouldn't verify
-	precommits = buildTestJustification(t, 2, round+1, setID, kr, precommit)
-	just = newJustification(round+2, testHash, number, precommits)
+	precommits = buildTestJustification(t, 2, round+1, setID, kr, models.Precommit)
+	just = models.NewJustification(round+2, testHash, number, precommits)
 	data, err = scale.Marshal(*just)
 	require.NoError(t, err)
 	returnedJust, err = gs.VerifyBlockJustification(testHash, data)
@@ -774,8 +776,8 @@ func TestMessageHandler_VerifyBlockJustification_invalid(t *testing.T) {
 	require.Nil(t, returnedJust)
 
 	// add authority not in set, shouldn't verify
-	precommits = buildTestJustification(t, len(auths)+1, round+1, setID, kr, precommit)
-	just = newJustification(round+1, testHash, number, precommits)
+	precommits = buildTestJustification(t, len(auths)+1, round+1, setID, kr, models.Precommit)
+	just = models.NewJustification(round+1, testHash, number, precommits)
 	data, err = scale.Marshal(*just)
 	require.NoError(t, err)
 	returnedJust, err = gs.VerifyBlockJustification(testHash, data)
@@ -783,8 +785,8 @@ func TestMessageHandler_VerifyBlockJustification_invalid(t *testing.T) {
 	require.Nil(t, returnedJust)
 
 	// not enough signatures, shouldn't verify
-	precommits = buildTestJustification(t, 1, round+1, setID, kr, precommit)
-	just = newJustification(round+1, testHash, number, precommits)
+	precommits = buildTestJustification(t, 1, round+1, setID, kr, models.Precommit)
+	just = models.NewJustification(round+1, testHash, number, precommits)
 	data, err = scale.Marshal(*just)
 	require.NoError(t, err)
 	returnedJust, err = gs.VerifyBlockJustification(testHash, data)
@@ -792,8 +794,8 @@ func TestMessageHandler_VerifyBlockJustification_invalid(t *testing.T) {
 	require.Nil(t, returnedJust)
 
 	// mismatch justification header and block header
-	precommits = buildTestJustification(t, 1, round+1, setID, kr, precommit)
-	just = newJustification(round+1, testHash, number, precommits)
+	precommits = buildTestJustification(t, 1, round+1, setID, kr, models.Precommit)
+	just = models.NewJustification(round+1, testHash, number, precommits)
 	data, err = scale.Marshal(*just)
 	require.NoError(t, err)
 	otherHeader := types.NewEmptyHeader()
@@ -812,15 +814,15 @@ func Test_getEquivocatoryVoters(t *testing.T) {
 	ed25519Keyring, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	tests := map[string]struct {
-		votes []AuthData
+		votes []models.AuthData
 		want  map[ed25519.PublicKeyBytes]struct{}
 	}{
 		"no votes": {
-			votes: []AuthData{},
+			votes: []models.AuthData{},
 			want:  map[ed25519.PublicKeyBytes]struct{}{},
 		},
 		"one vote": {
-			votes: []AuthData{
+			votes: []models.AuthData{
 				{
 					AuthorityID: ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 					Signature:   [64]byte{1, 2, 3, 4},
@@ -829,7 +831,7 @@ func Test_getEquivocatoryVoters(t *testing.T) {
 			want: map[ed25519.PublicKeyBytes]struct{}{},
 		},
 		"two votes different authorities": {
-			votes: []AuthData{
+			votes: []models.AuthData{
 				{
 					AuthorityID: ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 					Signature:   [64]byte{1, 2, 3, 4},
@@ -842,7 +844,7 @@ func Test_getEquivocatoryVoters(t *testing.T) {
 			want: map[ed25519.PublicKeyBytes]struct{}{},
 		},
 		"duplicate votes": {
-			votes: []AuthData{
+			votes: []models.AuthData{
 				{
 					AuthorityID: ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 					Signature:   [64]byte{1, 2, 3, 4},
@@ -855,7 +857,7 @@ func Test_getEquivocatoryVoters(t *testing.T) {
 			want: map[ed25519.PublicKeyBytes]struct{}{},
 		},
 		"equivocatory vote": {
-			votes: []AuthData{
+			votes: []models.AuthData{
 				{
 					AuthorityID: ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 					Signature:   [64]byte{1, 2, 3, 4},
@@ -870,7 +872,7 @@ func Test_getEquivocatoryVoters(t *testing.T) {
 			},
 		},
 		"equivocatory vote with duplicate": {
-			votes: []AuthData{
+			votes: []models.AuthData{
 				{
 					AuthorityID: ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 					Signature:   [64]byte{1, 2, 3, 4},
@@ -889,7 +891,7 @@ func Test_getEquivocatoryVoters(t *testing.T) {
 			},
 		},
 		"three voters one equivocatory": {
-			votes: []AuthData{
+			votes: []models.AuthData{
 				{
 					AuthorityID: ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 					Signature:   [64]byte{1, 2, 3, 4},
@@ -912,7 +914,7 @@ func Test_getEquivocatoryVoters(t *testing.T) {
 			},
 		},
 		"three voters one equivocatory one duplicate": {
-			votes: []AuthData{
+			votes: []models.AuthData{
 				{
 					AuthorityID: ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 					Signature:   [64]byte{1, 2, 3, 4},
@@ -939,7 +941,7 @@ func Test_getEquivocatoryVoters(t *testing.T) {
 			},
 		},
 		"three voters two equivocatory": {
-			votes: []AuthData{
+			votes: []models.AuthData{
 				{
 					AuthorityID: ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 					Signature:   [64]byte{1, 2, 3, 4},
@@ -967,7 +969,7 @@ func Test_getEquivocatoryVoters(t *testing.T) {
 			},
 		},
 		"three voters two duplicate": {
-			votes: []AuthData{
+			votes: []models.AuthData{
 				{
 					AuthorityID: ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 					Signature:   [64]byte{1, 2, 3, 4},
@@ -992,7 +994,7 @@ func Test_getEquivocatoryVoters(t *testing.T) {
 			want: map[ed25519.PublicKeyBytes]struct{}{},
 		},
 		"three voters": {
-			votes: []AuthData{
+			votes: []models.AuthData{
 				{
 					AuthorityID: ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 					Signature:   [64]byte{1, 2, 3, 4},
@@ -1051,8 +1053,8 @@ func Test_VerifyCommitMessageJustification_ShouldRemoveEquivocatoryVotes(t *test
 		ed25519Keyring.Ferdie().(*ed25519.Keypair),
 	}
 
-	authData := make([]AuthData, len(fakeAuthorities))
-	precommits := make([]Vote, len(fakeAuthorities))
+	authData := make([]models.AuthData, len(fakeAuthorities))
+	precommits := make([]models.Vote, len(fakeAuthorities))
 
 	for i, auth := range fakeAuthorities {
 		vote := types.GrandpaVote{
@@ -1061,20 +1063,20 @@ func Test_VerifyCommitMessageJustification_ShouldRemoveEquivocatoryVotes(t *test
 		}
 
 		sig := signFakeFullVote(
-			t, auth, precommit, vote, fakeRound, gs.state.setID,
+			t, auth, models.Precommit, vote, fakeRound, gs.state.SetID,
 		)
 
-		authData[i] = AuthData{
+		authData[i] = models.AuthData{
 			Signature:   sig,
 			AuthorityID: auth.Public().(*ed25519.PublicKey).AsBytes(),
 		}
-		precommits[i] = Vote{Hash: bfcHash, Number: uint32(bfcNumber)}
+		precommits[i] = models.Vote{Hash: bfcHash, Number: uint32(bfcNumber)}
 	}
 
 	// Charlie has an equivocatory vote
-	testCommitData := &CommitMessage{
+	testCommitData := &models.CommitMessage{
 		Round: fakeRound,
-		Vote: Vote{
+		Vote: models.Vote{
 			Hash:   bfcHash,
 			Number: uint32(bfcNumber),
 		},
@@ -1120,7 +1122,7 @@ func Test_VerifyPrevoteJustification_CountEquivocatoryVoters(t *testing.T) {
 		ed25519Keyring.Ian().(*ed25519.Keypair),
 	}
 
-	prevotesJustification := make([]SignedVote, len(fakeAuthorities))
+	prevotesJustification := make([]models.SignedVote, len(fakeAuthorities))
 	for idx, fakeAuthority := range fakeAuthorities {
 		var vote types.GrandpaVote
 
@@ -1138,18 +1140,18 @@ func Test_VerifyPrevoteJustification_CountEquivocatoryVoters(t *testing.T) {
 		}
 
 		sig := signFakeFullVote(
-			t, fakeAuthority, prevote, vote, gs.state.round, gs.state.setID)
+			t, fakeAuthority, models.Prevote, vote, gs.state.Round, gs.state.SetID)
 
-		prevotesJustification[idx] = SignedVote{
+		prevotesJustification[idx] = models.SignedVote{
 			Vote:        vote,
 			Signature:   sig,
 			AuthorityID: fakeAuthority.Public().(*ed25519.PublicKey).AsBytes(),
 		}
 	}
 
-	testCatchUpResponse := &CatchUpResponse{
-		SetID:                gs.state.setID,
-		Round:                gs.state.round,
+	testCatchUpResponse := &models.CatchUpResponse{
+		SetID:                gs.state.SetID,
+		Round:                gs.state.Round,
 		PreVoteJustification: prevotesJustification,
 		Hash:                 bfcHash,
 		Number:               uint32(bfcNumber),
@@ -1201,7 +1203,7 @@ func Test_VerifyPreCommitJustification(t *testing.T) {
 		ed25519Keyring.Ian().(*ed25519.Keypair),
 	}
 
-	prevotesJustification := make([]SignedVote, len(fakeAuthorities))
+	prevotesJustification := make([]models.SignedVote, len(fakeAuthorities))
 	for idx, fakeAuthority := range fakeAuthorities {
 		vote := types.GrandpaVote{
 			Hash:   bfcHash,
@@ -1209,18 +1211,18 @@ func Test_VerifyPreCommitJustification(t *testing.T) {
 		}
 
 		sig := signFakeFullVote(
-			t, fakeAuthority, precommit, vote, gs.state.round, gs.state.setID)
+			t, fakeAuthority, models.Precommit, vote, gs.state.Round, gs.state.SetID)
 
-		prevotesJustification[idx] = SignedVote{
+		prevotesJustification[idx] = models.SignedVote{
 			Vote:        vote,
 			Signature:   sig,
 			AuthorityID: fakeAuthority.Public().(*ed25519.PublicKey).AsBytes(),
 		}
 	}
 
-	testCatchUpResponse := &CatchUpResponse{
-		SetID:                  gs.state.setID,
-		Round:                  gs.state.round,
+	testCatchUpResponse := &models.CatchUpResponse{
+		SetID:                  gs.state.SetID,
+		Round:                  gs.state.Round,
 		PreCommitJustification: prevotesJustification,
 		Hash:                   bfcHash,
 		Number:                 uint32(bfcNumber),
@@ -1232,9 +1234,9 @@ func Test_VerifyPreCommitJustification(t *testing.T) {
 
 func signFakeFullVote(
 	t *testing.T, auth *ed25519.Keypair,
-	stage Subround, v types.GrandpaVote,
+	stage models.Subround, v types.GrandpaVote,
 	round, setID uint64) [64]byte {
-	msg, err := scale.Marshal(FullVote{
+	msg, err := scale.Marshal(models.FullVote{
 		Stage: stage,
 		Vote:  v,
 		Round: round,
@@ -1254,8 +1256,8 @@ func signFakeFullVote(
 func TestService_VerifyBlockJustification(t *testing.T) {
 	t.Parallel()
 
-	precommits := buildTestJustification(t, 2, 1, 0, kr, precommit)
-	justification := newJustification(1, testHash, 1, precommits)
+	precommits := buildTestJustification(t, 2, 1, 0, kr, models.Precommit)
+	justification := models.NewJustification(1, testHash, 1, precommits)
 	justificationBytes, err := scale.Marshal(*justification)
 	require.NoError(t, err)
 

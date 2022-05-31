@@ -16,6 +16,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/grandpa/models"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/golang/mock/gomock"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -32,16 +33,16 @@ type testJustificationRequest struct {
 
 type testNetwork struct {
 	t                    *testing.T
-	out                  chan GrandpaMessage
-	finalised            chan GrandpaMessage
+	out                  chan models.GrandpaMessage
+	finalised            chan models.GrandpaMessage
 	justificationRequest *testJustificationRequest
 }
 
 func newTestNetwork(t *testing.T) *testNetwork {
 	return &testNetwork{
 		t:         t,
-		out:       make(chan GrandpaMessage, 128),
-		finalised: make(chan GrandpaMessage, 128),
+		out:       make(chan models.GrandpaMessage, 128),
+		finalised: make(chan models.GrandpaMessage, 128),
 	}
 }
 
@@ -53,7 +54,7 @@ func (n *testNetwork) GossipMessage(msg NotificationsMessage) {
 	require.NoError(n.t, err)
 
 	switch gmsg.(type) {
-	case *CommitMessage:
+	case *models.CommitMessage:
 		n.finalised <- gmsg
 	default:
 		n.out <- gmsg
@@ -88,7 +89,7 @@ func (*testNetwork) RegisterNotificationsProtocol(
 func (n *testNetwork) SendBlockReqestByHash(_ common.Hash) {}
 
 func setupGrandpa(t *testing.T, kp *ed25519.Keypair) (
-	*Service, chan *networkVoteMessage, chan GrandpaMessage, chan GrandpaMessage) {
+	*Service, chan *models.NetworkVoteMessage, chan models.GrandpaMessage, chan models.GrandpaMessage) {
 	st := newTestState(t)
 	net := newTestNetwork(t)
 
@@ -133,7 +134,7 @@ func TestGrandpa_BaseCase(t *testing.T) {
 		state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 15, false)
 		pv, err := gs.determinePreVote()
 		require.NoError(t, err)
-		prevotes.Store(gs.publicKeyBytes(), &SignedVote{
+		prevotes.Store(gs.publicKeyBytes(), &models.SignedVote{
 			Vote: *pv,
 		})
 	}
@@ -146,7 +147,7 @@ func TestGrandpa_BaseCase(t *testing.T) {
 	for _, gs := range gss {
 		pc, err := gs.determinePreCommit()
 		require.NoError(t, err)
-		precommits.Store(gs.publicKeyBytes(), &SignedVote{
+		precommits.Store(gs.publicKeyBytes(), &models.SignedVote{
 			Vote: *pc,
 		})
 		err = gs.finalise()
@@ -180,7 +181,7 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 		state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 4+r, false)
 		pv, err := gs.determinePreVote()
 		require.NoError(t, err)
-		prevotes.Store(gs.publicKeyBytes(), &SignedVote{
+		prevotes.Store(gs.publicKeyBytes(), &models.SignedVote{
 			Vote: *pv,
 		})
 	}
@@ -189,7 +190,7 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 	for _, gs := range gss {
 		prevotes.Range(func(key, prevote interface{}) bool {
 			k := key.(ed25519.PublicKeyBytes)
-			pv := prevote.(*SignedVote)
+			pv := prevote.(*models.SignedVote)
 			err = gs.validateVote(&pv.Vote)
 			if err == nil {
 				gs.prevotes.Store(k, pv)
@@ -201,7 +202,7 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 	for _, gs := range gss {
 		pc, err := gs.determinePreCommit()
 		require.NoError(t, err)
-		precommits.Store(gs.publicKeyBytes(), &SignedVote{
+		precommits.Store(gs.publicKeyBytes(), &models.SignedVote{
 			Vote: *pc,
 		})
 		err = gs.finalise()
@@ -216,21 +217,21 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 	}
 }
 
-func broadcastVotes(from <-chan GrandpaMessage, to []chan *networkVoteMessage, done *bool) {
+func broadcastVotes(from <-chan models.GrandpaMessage, to []chan *models.NetworkVoteMessage, done *bool) {
 	for v := range from {
 		for _, tc := range to {
 			if *done {
 				return
 			}
 
-			tc <- &networkVoteMessage{
-				msg: v.(*VoteMessage),
+			tc <- &models.NetworkVoteMessage{
+				Msg: v.(*models.VoteMessage),
 			}
 		}
 	}
 }
 
-func cleanup(gs *Service, in chan *networkVoteMessage, done *bool) {
+func cleanup(gs *Service, in chan *models.NetworkVoteMessage, done *bool) {
 	*done = true
 	close(in)
 	gs.cancel()
@@ -243,9 +244,9 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 	require.NoError(t, err)
 
 	gss := make([]*Service, len(kr.Keys))
-	ins := make([]chan *networkVoteMessage, len(kr.Keys))
-	outs := make([]chan GrandpaMessage, len(kr.Keys))
-	fins := make([]chan GrandpaMessage, len(kr.Keys))
+	ins := make([]chan *models.NetworkVoteMessage, len(kr.Keys))
+	outs := make([]chan models.GrandpaMessage, len(kr.Keys))
+	fins := make([]chan models.GrandpaMessage, len(kr.Keys))
 	done := false
 
 	for i := range gss {
@@ -272,15 +273,15 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(len(kr.Keys))
 
-	finalised := make([]*CommitMessage, len(kr.Keys))
+	finalised := make([]*models.CommitMessage, len(kr.Keys))
 
 	for i, fin := range fins {
-		go func(i int, fin <-chan GrandpaMessage) {
+		go func(i int, fin <-chan models.GrandpaMessage) {
 			select {
 			case f := <-fin:
 
 				// receive first message, which is finalised block from previous round
-				if f.(*CommitMessage).Round == 0 {
+				if f.(*models.CommitMessage).Round == 0 {
 					select {
 					case f = <-fin:
 					case <-time.After(testTimeout):
@@ -288,7 +289,7 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 					}
 				}
 
-				finalised[i] = f.(*CommitMessage)
+				finalised[i] = f.(*models.CommitMessage)
 
 			case <-time.After(testTimeout):
 				t.Errorf("did not receive finalised block from %d", i)
@@ -303,10 +304,10 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 	for _, fb := range finalised {
 		require.NotNil(t, fb)
 		require.GreaterOrEqual(t, len(fb.Precommits), len(kr.Keys)/2)
-		finalised[0].Precommits = []Vote{}
-		finalised[0].AuthData = []AuthData{}
-		fb.Precommits = []Vote{}
-		fb.AuthData = []AuthData{}
+		finalised[0].Precommits = []models.Vote{}
+		finalised[0].AuthData = []models.AuthData{}
+		fb.Precommits = []models.Vote{}
+		fb.AuthData = []models.AuthData{}
 		require.Equal(t, finalised[0], fb)
 	}
 }
@@ -318,9 +319,9 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 	require.NoError(t, err)
 
 	gss := make([]*Service, len(kr.Keys))
-	ins := make([]chan *networkVoteMessage, len(kr.Keys))
-	outs := make([]chan GrandpaMessage, len(kr.Keys))
-	fins := make([]chan GrandpaMessage, len(kr.Keys))
+	ins := make([]chan *models.NetworkVoteMessage, len(kr.Keys))
+	outs := make([]chan models.GrandpaMessage, len(kr.Keys))
+	fins := make([]chan models.GrandpaMessage, len(kr.Keys))
 	done := false
 
 	// this represents the chains that will be slightly ahead of the others
@@ -367,16 +368,16 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(len(kr.Keys))
 
-	finalised := make([]*CommitMessage, len(kr.Keys))
+	finalised := make([]*models.CommitMessage, len(kr.Keys))
 
 	for i, fin := range fins {
 
-		go func(i int, fin <-chan GrandpaMessage) {
+		go func(i int, fin <-chan models.GrandpaMessage) {
 			select {
 			case f := <-fin:
 
 				// receive first message, which is finalised block from previous round
-				if f.(*CommitMessage).Round == 0 {
+				if f.(*models.CommitMessage).Round == 0 {
 					select {
 					case f = <-fin:
 					case <-time.After(testTimeout):
@@ -384,7 +385,7 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 					}
 				}
 
-				finalised[i] = f.(*CommitMessage)
+				finalised[i] = f.(*models.CommitMessage)
 
 			case <-time.After(testTimeout):
 				t.Errorf("did not receive finalised block from %d", i)
@@ -400,10 +401,10 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 		require.NotNil(t, fb)
 		require.GreaterOrEqual(t, len(fb.Precommits), len(kr.Keys)/2)
 		require.GreaterOrEqual(t, len(fb.AuthData), len(kr.Keys)/2)
-		finalised[0].Precommits = []Vote{}
-		finalised[0].AuthData = []AuthData{}
-		fb.Precommits = []Vote{}
-		fb.AuthData = []AuthData{}
+		finalised[0].Precommits = []models.Vote{}
+		finalised[0].AuthData = []models.AuthData{}
+		fb.Precommits = []models.Vote{}
+		fb.AuthData = []models.AuthData{}
 		require.Equal(t, finalised[0], fb)
 	}
 }
@@ -414,9 +415,9 @@ func TestPlayGrandpaRound_WithEquivocation(t *testing.T) {
 	require.NoError(t, err)
 
 	gss := make([]*Service, len(kr.Keys))
-	ins := make([]chan *networkVoteMessage, len(kr.Keys))
-	outs := make([]chan GrandpaMessage, len(kr.Keys))
-	fins := make([]chan GrandpaMessage, len(kr.Keys))
+	ins := make([]chan *models.NetworkVoteMessage, len(kr.Keys))
+	outs := make([]chan models.GrandpaMessage, len(kr.Keys))
+	fins := make([]chan models.GrandpaMessage, len(kr.Keys))
 
 	done := false
 
@@ -448,15 +449,15 @@ func TestPlayGrandpaRound_WithEquivocation(t *testing.T) {
 
 	// nodes 7 and 8 will equivocate
 	for _, gs := range gss[7:] {
-		vote, err := NewVoteFromHash(leaves[1], gs.blockState)
+		vote, err := models.NewVoteFromHash(leaves[1], gs.blockState)
 		require.NoError(t, err)
 
-		_, vmsg, err := gs.createSignedVoteAndVoteMessage(vote, prevote)
+		_, vmsg, err := gs.createSignedVoteAndVoteMessage(vote, models.Prevote)
 		require.NoError(t, err)
 
 		for _, in := range ins {
-			in <- &networkVoteMessage{
-				msg: vmsg,
+			in <- &models.NetworkVoteMessage{
+				Msg: vmsg,
 			}
 		}
 	}
@@ -464,16 +465,16 @@ func TestPlayGrandpaRound_WithEquivocation(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(len(kr.Keys))
 
-	finalised := make([]*CommitMessage, len(kr.Keys))
+	finalised := make([]*models.CommitMessage, len(kr.Keys))
 
 	for i, fin := range fins {
 
-		go func(i int, fin <-chan GrandpaMessage) {
+		go func(i int, fin <-chan models.GrandpaMessage) {
 			select {
 			case f := <-fin:
 
 				// receive first message, which is finalised block from previous round
-				if f.(*CommitMessage).Round == 0 {
+				if f.(*models.CommitMessage).Round == 0 {
 
 					select {
 					case f = <-fin:
@@ -482,7 +483,7 @@ func TestPlayGrandpaRound_WithEquivocation(t *testing.T) {
 					}
 				}
 
-				finalised[i] = f.(*CommitMessage)
+				finalised[i] = f.(*models.CommitMessage)
 			case <-time.After(testTimeout):
 				t.Errorf("did not receive finalised block from %d", i)
 			}
@@ -497,10 +498,10 @@ func TestPlayGrandpaRound_WithEquivocation(t *testing.T) {
 		require.NotNil(t, fb)
 		require.GreaterOrEqual(t, len(fb.Precommits), len(kr.Keys)/2)
 		require.GreaterOrEqual(t, len(fb.AuthData), len(kr.Keys)/2)
-		finalised[0].Precommits = []Vote{}
-		finalised[0].AuthData = []AuthData{}
-		fb.Precommits = []Vote{}
-		fb.AuthData = []AuthData{}
+		finalised[0].Precommits = []models.Vote{}
+		finalised[0].AuthData = []models.AuthData{}
+		fb.Precommits = []models.Vote{}
+		fb.AuthData = []models.AuthData{}
 		require.Equal(t, finalised[0], fb)
 	}
 }
@@ -511,9 +512,9 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 	require.NoError(t, err)
 
 	gss := make([]*Service, len(kr.Keys))
-	ins := make([]chan *networkVoteMessage, len(kr.Keys))
-	outs := make([]chan GrandpaMessage, len(kr.Keys))
-	fins := make([]chan GrandpaMessage, len(kr.Keys))
+	ins := make([]chan *models.NetworkVoteMessage, len(kr.Keys))
+	outs := make([]chan models.GrandpaMessage, len(kr.Keys))
+	fins := make([]chan models.GrandpaMessage, len(kr.Keys))
 	done := false
 
 	for i := range gss {
@@ -545,16 +546,16 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 		wg := sync.WaitGroup{}
 		wg.Add(len(kr.Keys))
 
-		finalised := make([]*CommitMessage, len(kr.Keys))
+		finalised := make([]*models.CommitMessage, len(kr.Keys))
 
 		for i, fin := range fins {
 
-			go func(i int, fin <-chan GrandpaMessage) {
+			go func(i int, fin <-chan models.GrandpaMessage) {
 				select {
 				case f := <-fin:
 
 					// receive first message, which is finalised block from previous round
-					if f.(*CommitMessage).Round == uint64(j) {
+					if f.(*models.CommitMessage).Round == uint64(j) {
 						select {
 						case f = <-fin:
 						case <-time.After(testTimeout):
@@ -562,7 +563,7 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 						}
 					}
 
-					finalised[i] = f.(*CommitMessage)
+					finalised[i] = f.(*models.CommitMessage)
 				case <-time.After(testTimeout):
 					t.Errorf("did not receive finalised block from %d", i)
 				}
@@ -577,10 +578,10 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 			require.NotNil(t, fb)
 			require.Greater(t, len(fb.Precommits), len(kr.Keys)/2)
 			require.Greater(t, len(fb.AuthData), len(kr.Keys)/2)
-			finalised[0].Precommits = []Vote{}
-			finalised[0].AuthData = []AuthData{}
-			fb.Precommits = []Vote{}
-			fb.AuthData = []AuthData{}
+			finalised[0].Precommits = []models.Vote{}
+			finalised[0].AuthData = []models.AuthData{}
+			fb.Precommits = []models.Vote{}
+			fb.AuthData = []models.AuthData{}
 			require.Equal(t, finalised[0], fb)
 
 			if j == rounds-1 {

@@ -8,14 +8,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
-	"github.com/ChainSafe/gossamer/pkg/scale"
-
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/grandpa"
+	grandpa "github.com/ChainSafe/gossamer/lib/grandpa/models"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"

@@ -10,17 +10,18 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/grandpa/models"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/stretchr/testify/require"
 )
 
-var testVote = &Vote{
+var testVote = &models.Vote{
 	Hash:   common.Hash{0xa, 0xb, 0xc, 0xd},
 	Number: 999,
 }
 
-var testVote2 = &Vote{
+var testVote2 = &models.Vote{
 	Hash:   common.Hash{0xa, 0xb, 0xc, 0xd},
 	Number: 333,
 }
@@ -31,23 +32,23 @@ var testAuthorityID = [32]byte{5, 6, 7, 8}
 func TestCommitMessageEncode(t *testing.T) {
 	exp := common.MustHexToBytes("0x4d0000000000000000000000000000007db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a00000000040a0b0c0d00000000000000000000000000000000000000000000000000000000e7030000040102030400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000088dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee") //nolint:lll
 	gs, st := newTestService(t)
-	just := []SignedVote{
+	just := []models.SignedVote{
 		{
 			Vote:        *testVote,
 			Signature:   testSignature,
 			AuthorityID: gs.publicKeyBytes(),
 		},
 	}
-	err := st.Grandpa.SetPrecommits(77, gs.state.setID, just)
+	err := st.Grandpa.SetPrecommits(77, gs.state.SetID, just)
 	require.NoError(t, err)
 
 	fm, err := gs.newCommitMessage(gs.head, 77)
 	require.NoError(t, err)
 	precommits, authData := justificationToCompact(just)
 
-	expected := CommitMessage{
+	expected := models.CommitMessage{
 		Round:      77,
-		Vote:       *NewVoteFromHeader(gs.head),
+		Vote:       *models.NewVoteFromHeader(gs.head),
 		Precommits: precommits,
 		AuthData:   authData,
 	}
@@ -56,7 +57,7 @@ func TestCommitMessageEncode(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, exp, enc)
 
-	msg := CommitMessage{}
+	msg := models.CommitMessage{}
 	err = scale.Unmarshal(enc, &msg)
 	require.NoError(t, err)
 	require.Equal(t, expected, msg)
@@ -65,23 +66,23 @@ func TestCommitMessageEncode(t *testing.T) {
 func TestVoteMessageToConsensusMessage(t *testing.T) {
 	gs, st := newTestService(t)
 
-	v, err := NewVoteFromHash(st.Block.BestBlockHash(), st.Block)
+	v, err := models.NewVoteFromHash(st.Block.BestBlockHash(), st.Block)
 	require.NoError(t, err)
 
-	gs.state.setID = 99
-	gs.state.round = 77
+	gs.state.SetID = 99
+	gs.state.Round = 77
 	v.Number = 0x7777
 
 	// test precommit
-	_, vm, err := gs.createSignedVoteAndVoteMessage(v, precommit)
+	_, vm, err := gs.createSignedVoteAndVoteMessage(v, models.Precommit)
 	require.NoError(t, err)
 	vm.Message.Signature = [64]byte{}
 
-	expected := &VoteMessage{
-		Round: gs.state.round,
-		SetID: gs.state.setID,
-		Message: SignedMessage{
-			Stage:       precommit,
+	expected := &models.VoteMessage{
+		Round: gs.state.Round,
+		SetID: gs.state.SetID,
+		Message: models.SignedMessage{
+			Stage:       models.Precommit,
 			BlockHash:   v.Hash,
 			Number:      v.Number,
 			AuthorityID: gs.keypair.Public().(*ed25519.PublicKey).AsBytes(),
@@ -91,15 +92,15 @@ func TestVoteMessageToConsensusMessage(t *testing.T) {
 	require.Equal(t, expected, vm)
 
 	// test prevote
-	_, vm, err = gs.createSignedVoteAndVoteMessage(v, prevote)
+	_, vm, err = gs.createSignedVoteAndVoteMessage(v, models.Prevote)
 	require.NoError(t, err)
 	vm.Message.Signature = [64]byte{}
 
-	expected = &VoteMessage{
-		Round: gs.state.round,
-		SetID: gs.state.setID,
-		Message: SignedMessage{
-			Stage:       prevote,
+	expected = &models.VoteMessage{
+		Round: gs.state.Round,
+		SetID: gs.state.SetID,
+		Message: models.SignedMessage{
+			Stage:       models.Prevote,
 			BlockHash:   v.Hash,
 			Number:      v.Number,
 			AuthorityID: gs.keypair.Public().(*ed25519.PublicKey).AsBytes(),
@@ -111,23 +112,23 @@ func TestVoteMessageToConsensusMessage(t *testing.T) {
 
 func TestCommitMessageToConsensusMessage(t *testing.T) {
 	gs, st := newTestService(t)
-	just := []SignedVote{
+	just := []models.SignedVote{
 		{
 			Vote:        *testVote,
 			Signature:   testSignature,
 			AuthorityID: gs.publicKeyBytes(),
 		},
 	}
-	err := st.Grandpa.SetPrecommits(77, gs.state.setID, just)
+	err := st.Grandpa.SetPrecommits(77, gs.state.SetID, just)
 	require.NoError(t, err)
 
 	fm, err := gs.newCommitMessage(gs.head, 77)
 	require.NoError(t, err)
 	precommits, authData := justificationToCompact(just)
 
-	expected := &CommitMessage{
+	expected := &models.CommitMessage{
 		Round:      77,
-		Vote:       *NewVoteFromHeader(gs.head),
+		Vote:       *models.NewVoteFromHeader(gs.head),
 		Precommits: precommits,
 		AuthData:   authData,
 	}
@@ -156,7 +157,7 @@ func TestNewCatchUpResponse(t *testing.T) {
 	}
 
 	hash := block.Header.Hash()
-	v := &Vote{
+	v := &models.Vote{
 		Hash:   hash,
 		Number: 1,
 	}
@@ -169,7 +170,7 @@ func TestNewCatchUpResponse(t *testing.T) {
 	err = gs.blockState.(*state.BlockState).SetHeader(testHeader)
 	require.NoError(t, err)
 
-	pvj := []SignedVote{
+	pvj := []models.SignedVote{
 		{
 			Vote:        *testVote,
 			Signature:   testSignature,
@@ -177,7 +178,7 @@ func TestNewCatchUpResponse(t *testing.T) {
 		},
 	}
 
-	pcj := []SignedVote{
+	pcj := []models.SignedVote{
 		{
 			Vote:        *testVote2,
 			Signature:   testSignature,
@@ -193,7 +194,7 @@ func TestNewCatchUpResponse(t *testing.T) {
 	resp, err := gs.newCatchUpResponse(round, setID)
 	require.NoError(t, err)
 
-	expected := &CatchUpResponse{
+	expected := &models.CatchUpResponse{
 		Round:                  round,
 		SetID:                  setID,
 		PreVoteJustification:   pvj,
@@ -206,7 +207,7 @@ func TestNewCatchUpResponse(t *testing.T) {
 }
 
 func TestNeighbourMessageToConsensusMessage(t *testing.T) {
-	msg := &NeighbourMessage{
+	msg := &models.NeighbourMessage{
 		Version: 1,
 		Round:   2,
 		SetID:   3,
