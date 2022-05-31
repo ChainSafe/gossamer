@@ -14,120 +14,93 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGrandpaModule_ProveFinality(t *testing.T) {
-	testHash := common.NewHash([]byte{0x01, 0x02})
-	testHashSlice := []common.Hash{testHash, testHash, testHash}
+	t.Parallel()
 
-	mockBlockFinalityAPI := new(mocks.BlockFinalityAPI)
-	mockBlockAPI := new(mocks.BlockAPI)
-	mockBlockAPI.On("SubChain", testHash, testHash).Return(testHashSlice, nil)
-	mockBlockAPI.On("HasJustification", testHash).Return(true, nil)
-	mockBlockAPI.On("GetJustification", testHash).Return([]byte("test"), nil)
+	mockError := errors.New("test mock error")
 
-	mockBlockAPIHasJustErr := new(mocks.BlockAPI)
-	mockBlockAPIHasJustErr.On("SubChain", testHash, testHash).Return(testHashSlice, nil)
-	mockBlockAPIHasJustErr.On("HasJustification", testHash).Return(false, nil)
-
-	mockBlockAPIGetJustErr := new(mocks.BlockAPI)
-	mockBlockAPIGetJustErr.On("SubChain", testHash, testHash).Return(testHashSlice, nil)
-	mockBlockAPIGetJustErr.On("HasJustification", testHash).Return(true, nil)
-	mockBlockAPIGetJustErr.On("GetJustification", testHash).Return(nil, errors.New("GetJustification error"))
-
-	mockBlockAPISubChainErr := new(mocks.BlockAPI)
-	mockBlockAPISubChainErr.On("SubChain", testHash, testHash).Return(nil, errors.New("SubChain error"))
-
-	grandpaModule := NewGrandpaModule(mockBlockAPISubChainErr, mockBlockFinalityAPI)
-	type fields struct {
-		blockAPI         BlockAPI
-		blockFinalityAPI BlockFinalityAPI
-	}
-	type args struct {
-		r   *http.Request
-		req *ProveFinalityRequest
-	}
-	tests := []struct {
-		name   string
-		fields fields
-		args   args
-		expErr error
-		exp    ProveFinalityResponse
+	tests := map[string]struct {
+		blockAPIBuilder func(ctrl *gomock.Controller) BlockAPI
+		request         *ProveFinalityRequest
+		expErr          error
+		exp             ProveFinalityResponse
 	}{
-		{
-			name: "SubChain Err",
-			fields: fields{
-				grandpaModule.blockAPI,
-				grandpaModule.blockFinalityAPI,
+		"error during get hash by number": {
+			blockAPIBuilder: func(ctrl *gomock.Controller) BlockAPI {
+				mockBlockAPI := NewMockBlockAPI(ctrl)
+				mockBlockAPI.EXPECT().GetHashByNumber(uint(1)).Return(common.Hash{}, mockError)
+				return mockBlockAPI
 			},
-			args: args{
-				req: &ProveFinalityRequest{
-					blockHashStart: testHash,
-					blockHashEnd:   testHash,
-					authorityID:    uint64(21),
-				},
+			request: &ProveFinalityRequest{
+				BlockNumber: 1,
 			},
-			expErr: errors.New("SubChain error"),
+			expErr: mockError,
 		},
-		{
-			name: "OK Case",
-			fields: fields{
-				mockBlockAPI,
-				mockBlockFinalityAPI,
+		"error during has justification": {
+			blockAPIBuilder: func(ctrl *gomock.Controller) BlockAPI {
+				mockBlockAPI := NewMockBlockAPI(ctrl)
+				mockBlockAPI.EXPECT().GetHashByNumber(uint(2)).Return(common.Hash{2}, nil)
+				mockBlockAPI.EXPECT().HasJustification(common.Hash{2}).Return(false, mockError)
+				return mockBlockAPI
 			},
-			args: args{
-				req: &ProveFinalityRequest{
-					blockHashStart: testHash,
-					blockHashEnd:   testHash,
-					authorityID:    uint64(21),
-				},
+			request: &ProveFinalityRequest{
+				BlockNumber: 2,
 			},
-			exp: ProveFinalityResponse{
-				[]uint8{0x74, 0x65, 0x73, 0x74},
-				[]uint8{0x74, 0x65, 0x73, 0x74},
-				[]uint8{0x74, 0x65, 0x73, 0x74}},
+			expErr: mockError,
 		},
-		{
-			name: "HasJustification Error",
-			fields: fields{
-				mockBlockAPIHasJustErr,
-				mockBlockFinalityAPI,
+		"has justification is false": {
+			blockAPIBuilder: func(ctrl *gomock.Controller) BlockAPI {
+				mockBlockAPI := NewMockBlockAPI(ctrl)
+				mockBlockAPI.EXPECT().GetHashByNumber(uint(2)).Return(common.Hash{2}, nil)
+				mockBlockAPI.EXPECT().HasJustification(common.Hash{2}).Return(false, nil)
+				return mockBlockAPI
 			},
-			args: args{
-				req: &ProveFinalityRequest{
-					blockHashStart: testHash,
-					blockHashEnd:   testHash,
-					authorityID:    uint64(21),
-				},
+			request: &ProveFinalityRequest{
+				BlockNumber: 2,
 			},
-			exp: ProveFinalityResponse(nil),
+			exp: ProveFinalityResponse{"GRANDPA prove finality rpc failed: Block not covered by authority set changes"},
 		},
-		{
-			name: "GetJustification Error",
-			fields: fields{
-				mockBlockAPIGetJustErr,
-				mockBlockFinalityAPI,
+		"error during getJustification": {
+			blockAPIBuilder: func(ctrl *gomock.Controller) BlockAPI {
+				mockBlockAPI := NewMockBlockAPI(ctrl)
+				mockBlockAPI.EXPECT().GetHashByNumber(uint(3)).Return(common.Hash{3}, nil)
+				mockBlockAPI.EXPECT().HasJustification(common.Hash{3}).Return(true, nil)
+				mockBlockAPI.EXPECT().GetJustification(common.Hash{3}).Return(nil, mockError)
+				return mockBlockAPI
 			},
-			args: args{
-				req: &ProveFinalityRequest{
-					blockHashStart: testHash,
-					blockHashEnd:   testHash,
-					authorityID:    uint64(21),
-				},
+			request: &ProveFinalityRequest{
+				BlockNumber: 3,
 			},
-			exp: ProveFinalityResponse(nil),
+			expErr: mockError,
+		},
+		"happy path": {
+			blockAPIBuilder: func(ctrl *gomock.Controller) BlockAPI {
+				mockBlockAPI := NewMockBlockAPI(ctrl)
+				mockBlockAPI.EXPECT().GetHashByNumber(uint(4)).Return(common.Hash{4}, nil)
+				mockBlockAPI.EXPECT().HasJustification(common.Hash{4}).Return(true, nil)
+				mockBlockAPI.EXPECT().GetJustification(common.Hash{4}).Return([]byte(`justification`), nil)
+				return mockBlockAPI
+			},
+			request: &ProveFinalityRequest{
+				BlockNumber: 4,
+			},
+			exp: ProveFinalityResponse{common.BytesToHex([]byte(`justification`))},
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for name, tt := range tests {
+		tt := tt
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			ctrl := gomock.NewController(t)
 			gm := &GrandpaModule{
-				blockAPI:         tt.fields.blockAPI,
-				blockFinalityAPI: tt.fields.blockFinalityAPI,
+				blockAPI: tt.blockAPIBuilder(ctrl),
 			}
 			res := ProveFinalityResponse(nil)
-			err := gm.ProveFinality(tt.args.r, tt.args.req, &res)
+			err := gm.ProveFinality(nil, tt.request, &res)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {

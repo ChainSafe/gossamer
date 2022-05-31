@@ -48,38 +48,30 @@ type RoundStateResponse struct {
 
 // ProveFinalityRequest request struct
 type ProveFinalityRequest struct {
-	BlockHashStart common.Hash `json:"blockHashStart"`
-	BlockHashEnd   common.Hash `json:"blockHashEnd"`
-	AuthorityID    uint64      `json:"authorityID"`
+	BlockNumber uint32 `json:"blockNumber"`
 }
 
 // ProveFinalityResponse is an optional SCALE encoded proof array
-type ProveFinalityResponse [][]byte
+type ProveFinalityResponse []string
 
-// ProveFinality for the provided block range. Returns NULL if there are no known finalised blocks in the range.
-// If no authorities set is provided, the current one will be attempted.
+// ProveFinality for the provided block number, returning the Justification for the last block in the set.
 func (gm *GrandpaModule) ProveFinality(r *http.Request, req *ProveFinalityRequest, res *ProveFinalityResponse) error {
-	blocksToCheck, err := gm.blockAPI.SubChain(req.BlockHashStart, req.BlockHashEnd)
+	blockHash, err := gm.blockAPI.GetHashByNumber(uint(req.BlockNumber))
 	if err != nil {
 		return err
 	}
-
-	// Leaving check in for linter
-	if req.AuthorityID != uint64(0) {
-		// TODO: Check if functionality relevant (#1404)
+	hasJustification, err := gm.blockAPI.HasJustification(blockHash)
+	if err != nil {
+		return err
 	}
-
-	for _, block := range blocksToCheck {
-		hasJustification, _ := gm.blockAPI.HasJustification(block)
-		if !hasJustification {
-			continue
-		}
-
-		justification, err := gm.blockAPI.GetJustification(block)
+	if hasJustification {
+		justification, err := gm.blockAPI.GetJustification(blockHash)
 		if err != nil {
-			continue
+			return err
 		}
-		*res = append(*res, justification)
+		*res = append(*res, common.BytesToHex(justification))
+	} else {
+		*res = append(*res, "GRANDPA prove finality rpc failed: Block not covered by authority set changes")
 	}
 
 	return nil

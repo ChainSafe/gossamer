@@ -33,6 +33,7 @@ type StorageAPI interface {
 }
 
 //go:generate mockery --name BlockAPI --structname BlockAPI --case underscore --keeptree
+//go:generate mockgen -destination=mock_block_api_test.go -package=$GOPACKAGE . BlockAPI
 
 // BlockAPI is the interface for the block state
 type BlockAPI interface {

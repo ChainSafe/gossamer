@@ -37,12 +37,11 @@ func TestGrandpaProveFinality(t *testing.T) {
 	testStateService.Block.SetJustification(bestBlock.Header.Hash(), make([]byte, 11))
 
 	var expectedResponse ProveFinalityResponse
-	expectedResponse = append(expectedResponse, make([]byte, 10), make([]byte, 11))
+	expectedResponse = append(expectedResponse, "0x0000000000000000000000")
 
 	res := new(ProveFinalityResponse)
 	err = gmSvc.ProveFinality(nil, &ProveFinalityRequest{
-		blockHashStart: bestBlock.Header.ParentHash,
-		blockHashEnd:   bestBlock.Header.Hash(),
+		BlockNumber: uint32(bestBlock.Header.Number),
 	}, res)
 
 	if err != nil {
@@ -50,7 +49,7 @@ func TestGrandpaProveFinality(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(*res, expectedResponse) {
-		t.Errorf("Fail: expected: %+v got: %+v\n", res, &expectedResponse)
+		t.Errorf("Fail: expected: %+v got: %+v\n", &expectedResponse, res)
 	}
 }
 
