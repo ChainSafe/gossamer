@@ -916,7 +916,7 @@ func ext_trie_blake2_256_ordered_root_version_2(context unsafe.Pointer, dataSpan
 		return 0
 	}
 
-	logger.Debugf("[ext_trie_blake2_256_ordered_root_version_2]: root hash is %s", hash)
+	logger.Debugf("root hash is %s", hash)
 	copy(memory[ptr:ptr+32], hash[:])
 	return C.int32_t(ptr)
 }
