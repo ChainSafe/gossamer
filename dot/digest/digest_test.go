@@ -63,6 +63,13 @@ func TestHandler_GrandpaScheduledChange(t *testing.T) {
 	handler.Start()
 	defer handler.Stop()
 
+	// create 4 blocks and finalize only blocks 0, 1, 2
+	headers, _ := state.AddBlocksToState(t, handler.blockState.(*state.BlockState), 4, false)
+	for i, h := range headers[:3] {
+		err := handler.blockState.(*state.BlockState).SetFinalisedHash(h.Hash(), uint64(i), 0)
+		require.NoError(t, err)
+	}
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
@@ -70,7 +77,7 @@ func TestHandler_GrandpaScheduledChange(t *testing.T) {
 		Auths: []types.GrandpaAuthoritiesRaw{
 			{Key: kr.Alice().Public().(*ed25519.PublicKey).AsBytes(), ID: 0},
 		},
-		Delay: 3,
+		Delay: 0,
 	}
 
 	var digest = types.NewGrandpaConsensusDigest()
@@ -85,25 +92,13 @@ func TestHandler_GrandpaScheduledChange(t *testing.T) {
 		Data:              data,
 	}
 
-	header := &types.Header{
-		Number: 1,
-	}
-
-	err = handler.handleConsensusDigest(d, header)
+	// include a GrandpaScheduledChange on a block of number 3
+	err = handler.handleConsensusDigest(d, headers[3])
 	require.NoError(t, err)
 
-	headers, _ := state.AddBlocksToState(t, handler.blockState.(*state.BlockState), 2, false)
-	for i, h := range headers {
-		err = handler.blockState.(*state.BlockState).SetFinalisedHash(h.Hash(), uint64(i), 0)
-		require.NoError(t, err)
-	}
-
-	// authorities should change on start of block 3 from start
-	headers, _ = state.AddBlocksToState(t, handler.blockState.(*state.BlockState), 1, false)
-	for _, h := range headers {
-		err = handler.blockState.(*state.BlockState).SetFinalisedHash(h.Hash(), 3, 0)
-		require.NoError(t, err)
-	}
+	// finalize block of number 3
+	err = handler.blockState.(*state.BlockState).SetFinalisedHash(headers[3].Hash(), 3, 0)
+	require.NoError(t, err)
 
 	time.Sleep(time.Millisecond * 500)
 	setID, err := handler.grandpaState.(*state.GrandpaState).GetCurrentSetID()
@@ -121,6 +116,9 @@ func TestHandler_GrandpaForcedChange(t *testing.T) {
 	handler, _ := newTestHandler(t)
 	handler.Start()
 	defer handler.Stop()
+
+	// authorities should change on start of block 4 from start
+	headers, _ := state.AddBlocksToState(t, handler.blockState.(*state.BlockState), 2, false)
 
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
@@ -144,17 +142,15 @@ func TestHandler_GrandpaForcedChange(t *testing.T) {
 		Data:              data,
 	}
 
-	header := &types.Header{
-		Number: 1,
-	}
-
-	err = handler.handleConsensusDigest(d, header)
+	// tracking the GrandpaForcedChange under block 1
+	// and when block number 4 being imported then we should apply the change
+	err = handler.handleConsensusDigest(d, headers[1])
 	require.NoError(t, err)
 
-	// authorities should change on start of block 4 from start
+	// create new blocks and import them
 	state.AddBlocksToState(t, handler.blockState.(*state.BlockState), 4, false)
-	time.Sleep(time.Millisecond * 100)
 
+	time.Sleep(time.Millisecond * 500)
 	setID, err := handler.grandpaState.(*state.GrandpaState).GetCurrentSetID()
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), setID)

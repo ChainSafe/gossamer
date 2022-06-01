@@ -81,10 +81,10 @@ func (oc orderedPendingChanges) lookupChangeWhere(condition conditionFunc[*pendi
 
 // importChange only tracks the pending change if and only if it is the
 // unique forced change in its fork, otherwise will return an error
-func (oc orderedPendingChanges) importChange(pendingChange *pendingChange, isDescendantOf isDescendantOfFunc) error {
+func (oc *orderedPendingChanges) importChange(pendingChange *pendingChange, isDescendantOf isDescendantOfFunc) error {
 	announcingHeader := pendingChange.announcingHeader.Hash()
 
-	for _, change := range oc {
+	for _, change := range *oc {
 		changeBlockHash := change.announcingHeader.Hash()
 
 		if changeBlockHash.Equal(announcingHeader) {
@@ -101,7 +101,7 @@ func (oc orderedPendingChanges) importChange(pendingChange *pendingChange, isDes
 		}
 	}
 
-	oc = append(oc, pendingChange)
+	*oc = append(*oc, pendingChange)
 	sort.Sort(oc)
 
 	return nil
