@@ -162,67 +162,6 @@ func TestHandler_GrandpaForcedChange(t *testing.T) {
 	require.Equal(t, expected, auths)
 }
 
-func TestHandler_GrandpaPauseAndResume(t *testing.T) {
-	handler, _ := newTestHandler(t)
-	handler.Start()
-	defer handler.Stop()
-
-	p := types.GrandpaPause{
-		Delay: 3,
-	}
-
-	var digest = types.NewGrandpaConsensusDigest()
-	err := digest.Set(p)
-	require.NoError(t, err)
-
-	data, err := scale.Marshal(digest)
-	require.NoError(t, err)
-
-	d := &types.ConsensusDigest{
-		ConsensusEngineID: types.GrandpaEngineID,
-		Data:              data,
-	}
-
-	err = handler.handleConsensusDigest(d, nil)
-	require.NoError(t, err)
-	nextPause, err := handler.grandpaState.(*state.GrandpaState).GetNextPause()
-	require.NoError(t, err)
-	require.Equal(t, uint(p.Delay), nextPause)
-
-	headers, _ := state.AddBlocksToState(t, handler.blockState.(*state.BlockState), 3, false)
-	for i, h := range headers {
-		handler.blockState.(*state.BlockState).SetFinalisedHash(h.Hash(), uint64(i), 0)
-	}
-
-	time.Sleep(time.Millisecond * 100)
-
-	r := types.GrandpaResume{
-		Delay: 3,
-	}
-
-	var digest2 = types.NewGrandpaConsensusDigest()
-	err = digest2.Set(r)
-	require.NoError(t, err)
-
-	data, err = scale.Marshal(digest2)
-	require.NoError(t, err)
-
-	d = &types.ConsensusDigest{
-		ConsensusEngineID: types.GrandpaEngineID,
-		Data:              data,
-	}
-
-	err = handler.handleConsensusDigest(d, nil)
-	require.NoError(t, err)
-
-	state.AddBlocksToState(t, handler.blockState.(*state.BlockState), 3, false)
-	time.Sleep(time.Millisecond * 110)
-
-	nextResume, err := handler.grandpaState.(*state.GrandpaState).GetNextResume()
-	require.NoError(t, err)
-	require.Equal(t, uint(r.Delay+p.Delay), nextResume)
-}
-
 func TestMultipleGRANDPADigests_ShouldIncludeJustForcedChanges(t *testing.T) {
 	tests := map[string]struct {
 		digestsTypes    []scale.VaryingDataTypeValue
