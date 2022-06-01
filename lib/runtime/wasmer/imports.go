@@ -893,7 +893,7 @@ func ext_trie_blake2_256_ordered_root_version_2(context unsafe.Pointer, dataSpan
 	for i, val := range values {
 		key, err := scale.Marshal(big.NewInt(int64(i)))
 		if err != nil {
-			logger.Errorf("[ext_trie_blake2_256_ordered_root_version_2]: %s", err)
+			logger.Errorf("%s", err)
 			return 0
 		}
 		logger.Tracef(
