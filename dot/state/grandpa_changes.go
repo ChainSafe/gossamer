@@ -62,7 +62,9 @@ func (oc orderedPendingChanges) findApplicable(importedHash common.Hash, importe
 
 }
 
-func (oc orderedPendingChanges) lookupChangeWhere(condition conditionFunc[*pendingChange]) (pendingChange *pendingChange, err error) {
+// lookupChangeWhere return the first pending change which satisfy the condition
+func (oc orderedPendingChanges) lookupChangeWhere(condition conditionFunc[*pendingChange]) (
+	pendingChange *pendingChange, err error) {
 	for _, change := range oc {
 		ok, err := condition(change)
 		if err != nil {
@@ -77,6 +79,8 @@ func (oc orderedPendingChanges) lookupChangeWhere(condition conditionFunc[*pendi
 	return nil, nil //nolint:nilnil
 }
 
+// importChange only tracks the pending change if and only if it is the
+// unique forced change in its fork, otherwise will return an error
 func (oc orderedPendingChanges) importChange(pendingChange *pendingChange, isDescendantOf isDescendantOfFunc) error {
 	announcingHeader := pendingChange.announcingHeader.Hash()
 
@@ -174,8 +178,8 @@ func (c *pendingChangeNode) importNode(blockHash common.Hash, blockNumber uint, 
 type changeTree []*pendingChangeNode
 
 func (ct changeTree) Len() int { return len(ct) }
-func (ct changeTree) importChange(pendingChange *pendingChange, isDescendantOf isDescendantOfFunc) error {
-	for _, root := range ct {
+func (ct *changeTree) importChange(pendingChange *pendingChange, isDescendantOf isDescendantOfFunc) error {
+	for _, root := range *ct {
 		imported, err := root.importNode(pendingChange.announcingHeader.Hash(),
 			pendingChange.announcingHeader.Number, pendingChange, isDescendantOf)
 
@@ -195,13 +199,14 @@ func (ct changeTree) importChange(pendingChange *pendingChange, isDescendantOf i
 		nodes:  []*pendingChangeNode{},
 	}
 
-	ct = append(ct, pendingChangeNode)
+	*ct = append(*ct, pendingChangeNode)
 	return nil
 }
 
 // lookupChangesWhere returns the first change which satisfy the
 // condition whithout modify the current state of the change tree
-func (ct changeTree) lookupChangeWhere(condition conditionFunc[*pendingChangeNode]) (changeNode *pendingChangeNode, err error) {
+func (ct changeTree) lookupChangeWhere(condition conditionFunc[*pendingChangeNode]) (
+	changeNode *pendingChangeNode, err error) {
 	for _, root := range ct {
 		ok, err := condition(root)
 		if err != nil {
