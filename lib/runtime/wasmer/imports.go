@@ -906,7 +906,7 @@ func ext_trie_blake2_256_ordered_root_version_2(context unsafe.Pointer, dataSpan
 	// allocate memory for value and copy value to memory
 	ptr, err := runtimeCtx.Allocator.Allocate(32)
 	if err != nil {
-		logger.Errorf("[ext_trie_blake2_256_ordered_root_version_2]: %s", err)
+		logger.Errorf("%s", err)
 		return 0
 	}
 
