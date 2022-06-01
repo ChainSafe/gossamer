@@ -886,7 +886,7 @@ func ext_trie_blake2_256_ordered_root_version_2(context unsafe.Pointer, dataSpan
 	var values [][]byte
 	err := scale.Unmarshal(data, &values)
 	if err != nil {
-		logger.Errorf("[ext_trie_blake2_256_ordered_root_version_2]: %s", err)
+		logger.Errorf("%s", err)
 		return 0
 	}
 
