@@ -76,13 +76,13 @@ func NewGrandpaStateFromGenesis(db chaindb.Database, bs *BlockState,
 }
 
 // NewGrandpaState returns a new GrandpaState
-func NewGrandpaState(db chaindb.Database, bs *BlockState) (*GrandpaState, error) {
+func NewGrandpaState(db chaindb.Database, bs *BlockState) *GrandpaState {
 	return &GrandpaState{
 		db:                   chaindb.NewTable(db, grandpaPrefix),
 		blockState:           bs,
 		scheduledChangeRoots: new(changeTree),
 		forcedChanges:        new(orderedPendingChanges),
-	}, nil
+	}
 }
 
 // HandleGRANDPADigest receives a decoded GRANDPA digest and calls the right function to handles the digest
