@@ -60,6 +60,7 @@ func Decode(reader io.Reader) (n *Node, err error) {
 // find other values using the persistent database.
 func decodeBranch(reader io.Reader, header byte) (node *Node, err error) {
 	node = &Node{
+		Dirty:    true,
 		Children: make([]*Node, ChildrenCapacity),
 	}
 
@@ -119,8 +120,6 @@ func decodeBranch(reader io.Reader, header byte) (node *Node, err error) {
 			HashDigest: hash,
 		}
 	}
-
-	node.Dirty = true
 
 	return node, nil
 }
