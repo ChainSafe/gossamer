@@ -700,7 +700,7 @@ func (s *Service) determinePreVote() (*Vote, error) {
 		vote = NewVoteFromHeader(bestBlockHeader)
 	}
 
-	nextChange, err := s.grandpaState.NextGrandpaAuthorityChange(bestBlockHeader.Hash())
+	nextChange, err := s.grandpaState.NextGrandpaAuthorityChange(bestBlockHeader.Hash(), bestBlockHeader.Number)
 	if errors.Is(err, state.ErrNoChanges) {
 		return vote, nil
 	} else if err != nil {
@@ -730,8 +730,12 @@ func (s *Service) determinePreCommit() (*Vote, error) {
 	s.preVotedBlock[s.state.round] = &pvb
 	s.mapLock.Unlock()
 
-	bestBlockHash := s.blockState.BestBlockHash()
-	nextChange, err := s.grandpaState.NextGrandpaAuthorityChange(bestBlockHash)
+	bestBlockHeader, err := s.blockState.BestBlockHeader()
+	if err != nil {
+		return nil, fmt.Errorf("cannot retrieve best block header: %w", err)
+	}
+
+	nextChange, err := s.grandpaState.NextGrandpaAuthorityChange(bestBlockHeader.Hash(), bestBlockHeader.Number)
 	if errors.Is(err, state.ErrNoChanges) {
 		return &pvb, nil
 	} else if err != nil {

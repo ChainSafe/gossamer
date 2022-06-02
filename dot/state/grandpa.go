@@ -264,9 +264,14 @@ func (s *GrandpaState) ApplyForcedChanges(importedBlockHeader *types.Header) err
 
 // NextGrandpaAuthorityChange returns the block number of the next upcoming grandpa authorities change.
 // It returns 0 if no change is scheduled.
-func (s *GrandpaState) NextGrandpaAuthorityChange(bestBlockHash common.Hash) (blockNumber uint, err error) {
+func (s *GrandpaState) NextGrandpaAuthorityChange(bestBlockHash common.Hash, bestBlockNumber uint) (blockNumber uint, err error) {
 	forcedChange, err := s.forcedChanges.lookupChangeWhere(func(pc *pendingChange) (bool, error) {
-		return s.blockState.IsDescendantOf(pc.announcingHeader.Hash(), bestBlockHash)
+		isDecendant, err := s.blockState.IsDescendantOf(pc.announcingHeader.Hash(), bestBlockHash)
+		if err != nil {
+			return false, fmt.Errorf("cannot check ancestry: %w", err)
+		}
+
+		return isDecendant && pc.effectiveNumber() <= uint(bestBlockNumber), nil
 	})
 	if err != nil {
 		return 0, fmt.Errorf("cannot get forced change on chain of %s: %w",
@@ -274,20 +279,25 @@ func (s *GrandpaState) NextGrandpaAuthorityChange(bestBlockHash common.Hash) (bl
 	}
 
 	scheduledChangeNode, err := s.scheduledChangeRoots.lookupChangeWhere(func(pcn *pendingChangeNode) (bool, error) {
-		return s.blockState.IsDescendantOf(pcn.change.announcingHeader.Hash(), bestBlockHash)
+		isDecendant, err := s.blockState.IsDescendantOf(pcn.change.announcingHeader.Hash(), bestBlockHash)
+		if err != nil {
+			return false, fmt.Errorf("cannot check ancestry: %w", err)
+		}
+
+		return isDecendant && pcn.change.effectiveNumber() <= uint(bestBlockNumber), nil
 	})
 	if err != nil {
 		return 0, fmt.Errorf("cannot get forced change on chain of %s: %w",
 			bestBlockHash, err)
 	}
 
-	var next uint
+	var next uint = 0
 
 	if scheduledChangeNode != nil {
 		next = scheduledChangeNode.change.effectiveNumber()
 	}
 
-	if forcedChange != nil && forcedChange.effectiveNumber() < next {
+	if forcedChange != nil && (forcedChange.effectiveNumber() < next || next == 0) {
 		next = forcedChange.effectiveNumber()
 	}
 

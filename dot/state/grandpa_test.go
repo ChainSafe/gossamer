@@ -236,7 +236,7 @@ func TestAddScheduledChangesKeepTheRightForkTree(t *testing.T) {
 				require.NoError(t, err)
 			}
 
-			require.Len(t, gs.scheduledChangeRoots, tt.expectedRoots)
+			require.Len(t, *gs.scheduledChangeRoots, tt.expectedRoots)
 
 			for _, root := range *gs.scheduledChangeRoots {
 				parentHash := root.change.announcingHeader.Hash()
@@ -546,8 +546,8 @@ func TestNextGrandpaAuthorityChange(t *testing.T) {
 					*tt.scheduledChange)
 			}
 
-			lastBlockOnChain := chainHeaders[sizeOfChain].Hash()
-			blockNumber, err := gs.NextGrandpaAuthorityChange(lastBlockOnChain)
+			lastBlockOnChain := chainHeaders[sizeOfChain]
+			blockNumber, err := gs.NextGrandpaAuthorityChange(lastBlockOnChain.Hash(), lastBlockOnChain.Number)
 
 			if tt.wantErr != nil {
 				require.Error(t, err)
@@ -742,7 +742,7 @@ func TestApplyForcedChanges(t *testing.T) {
 			err = gs.ApplyForcedChanges(selectedImportedHeader)
 			if tt.wantErr != nil {
 				require.Error(t, err)
-				require.EqualError(t, err, tt.wantErr.Error())
+				require.ErrorIs(t, err, tt.wantErr)
 			} else {
 				require.NoError(t, err)
 			}
@@ -866,7 +866,7 @@ func TestApplyScheduledChangesKeepDescendantForcedChanges(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 
-				require.Len(t, gs.forcedChanges, tt.expectedForcedChangesLen)
+				require.Len(t, *gs.forcedChanges, tt.expectedForcedChangesLen)
 
 				for _, forcedChange := range *gs.forcedChanges {
 					isDescendant, err := gs.blockState.IsDescendantOf(
@@ -1107,7 +1107,7 @@ func TestApplyScheduledChangeGetApplicableChange(t *testing.T) {
 				require.Nil(t, changeNode)
 			}
 
-			require.Len(t, gs.scheduledChangeRoots, tt.expectedScheduledChangeRootsLen)
+			require.Len(t, *gs.scheduledChangeRoots, tt.expectedScheduledChangeRootsLen)
 			// make sure all the next scheduled changes are descendant of the finalized hash
 			assertDescendantChildren(t,
 				selectedHeader.Hash(), gs.blockState.IsDescendantOf, *gs.scheduledChangeRoots)
@@ -1336,8 +1336,8 @@ func TestApplyScheduledChange(t *testing.T) {
 					selectedFinalizedHeader.Hash(), gs.blockState.IsDescendantOf, *gs.scheduledChangeRoots)
 			}
 
-			require.Len(t, gs.forcedChanges, tt.expectedForcedChangesLen)
-			require.Len(t, gs.scheduledChangeRoots, tt.expectedScheduledChangeRootsLen)
+			require.Len(t, *gs.forcedChanges, tt.expectedForcedChangesLen)
+			require.Len(t, *gs.scheduledChangeRoots, tt.expectedScheduledChangeRootsLen)
 
 			currentSetID, err := gs.GetCurrentSetID()
 			require.NoError(t, err)

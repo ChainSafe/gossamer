@@ -51,7 +51,7 @@ type GrandpaState interface { //nolint:revive
 	SetPrecommits(round, setID uint64, data []SignedVote) error
 	GetPrevotes(round, setID uint64) ([]SignedVote, error)
 	GetPrecommits(round, setID uint64) ([]SignedVote, error)
-	NextGrandpaAuthorityChange(bestBlockHash common.Hash) (blockHeight uint, err error)
+	NextGrandpaAuthorityChange(bestBlockHash common.Hash, bestBlockNumber uint) (blockHeight uint, err error)
 }
 
 //go:generate mockery --name Network --structname Network --case underscore --keeptree
