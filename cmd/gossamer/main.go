@@ -80,9 +80,9 @@ var (
 		Description: "The build-spec command outputs current genesis JSON data.\n" +
 			"\tUsage: gossamer build-spec\n" +
 			"\tTo generate raw genesis file from default: " +
-			"gossamer build-spec --raw > genesis.json" +
+			"gossamer build-spec --raw --output genesis.json" +
 			"\tTo generate raw genesis file from specific genesis file: " +
-			"gossamer build-spec --raw --genesis genesis-spec.json > genesis.json",
+			"gossamer build-spec --raw --genesis genesis-spec.json --output genesis.json",
 	}
 
 	// importRuntime generates a genesis file given a .wasm runtime binary.
