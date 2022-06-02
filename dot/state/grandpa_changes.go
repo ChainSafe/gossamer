@@ -159,7 +159,7 @@ func (c *pendingChangeNode) importNode(blockHash common.Hash, blockNumber uint, 
 
 	isDescendant, err := isDescendantOf(announcingHash, blockHash)
 	if err != nil {
-		return false, fmt.Errorf("cannot define ancestry: %w", err)
+		return false, fmt.Errorf("cannot check ancestry: %w", err)
 	}
 
 	if !isDescendant {
