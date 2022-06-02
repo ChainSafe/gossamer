@@ -105,11 +105,13 @@ func TestChainSync_SetPeerHead(t *testing.T) {
 		number: number - 1,
 	}
 	require.Equal(t, expected, cs.peerState[testPeer])
-	select {
-	case <-cs.workQueue:
-		t.Fatal("should not put chain we already have into work queue")
-	case <-time.After(time.Millisecond):
-	}
+	require.Len(t, cs.workQueue, 0)
+	// todo(ed), example how to handle cs.workQueue
+	//select {
+	//case <-cs.workQueue:
+	//	t.Fatal("should not put chain we already have into work queue")
+	//case <-time.After(time.Millisecond):
+	//}
 
 	// test case where peer has a lower head than us, and they are on an invalid fork
 	mockBlockState = NewMockBlockState(ctrl)
@@ -1095,8 +1097,6 @@ func Test_chainSync_getHighestBlock(t *testing.T) {
 func Test_chainSync_handleResult(t *testing.T) {
 	t.Parallel()
 
-	ctrl := gomock.NewController(t)
-
 	tests := map[string]struct {
 		maxWorkerRetries uint16
 		res              *worker
@@ -1159,6 +1159,7 @@ func Test_chainSync_handleResult(t *testing.T) {
 		tt := tt
 		t.Run(testName, func(t *testing.T) {
 			t.Parallel()
+			ctrl := gomock.NewController(t)
 			mockNetwork := NewMockNetwork(ctrl)
 			mockNetwork.EXPECT().ReportPeer(gomock.AssignableToTypeOf(peerset.ReputationChange{}),
 				gomock.AssignableToTypeOf(peer.ID(""))).AnyTimes()

@@ -7,6 +7,7 @@
 package sync
 
 import (
+	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
 
@@ -182,6 +183,7 @@ func TestTipSyncer_handleTick_case1(t *testing.T) {
 	}
 	w, err = s.handleTick()
 	require.NoError(t, err)
+	assert.Greater(t, w[0].pendingBlock.clearAt, time.Now())
 	w[0].pendingBlock.clearAt = time.Unix(0, 0)
 	require.Equal(t, expected, w)
 	require.False(t, s.pendingBlocks.hasBlock(common.Hash{0xa}))
@@ -217,6 +219,7 @@ func TestTipSyncer_handleTick_case2(t *testing.T) {
 	}
 	w, err := s.handleTick()
 	require.NoError(t, err)
+	assert.Greater(t, w[0].pendingBlock.clearAt, time.Now())
 	w[0].pendingBlock.clearAt = time.Time{}
 	require.Equal(t, expected, w)
 	require.True(t, s.pendingBlocks.hasBlock(header.Hash()))
@@ -279,6 +282,7 @@ func TestTipSyncer_handleTick_case3(t *testing.T) {
 
 	w, err = s.handleTick()
 	require.NoError(t, err)
+	assert.Greater(t, w[0].pendingBlock.clearAt, time.Now())
 	w[0].pendingBlock.clearAt = time.Time{}
 	require.Equal(t, expected, w)
 	require.True(t, s.pendingBlocks.hasBlock(header.Hash()))
