@@ -7,8 +7,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-var runtimes = []string{HOST_API_TEST_RUNTIME, POLKADOT_RUNTIME, POLKADOT_RUNTIME_v0917, NODE_RUNTIME, DEV_RUNTIME}
-
 //nolint:revive
 const (
 	// v0.9 substrate runtime

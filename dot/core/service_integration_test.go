@@ -6,6 +6,7 @@
 package core
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"os"
@@ -135,7 +136,7 @@ func generateTestValidRemarkTxns(t *testing.T, pubKey []byte, accInfo types.Acco
 }
 
 func TestMain(m *testing.M) {
-	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
+	err := runtime.GenerateRuntimeWasmFiles(context.Background())
 	if err != nil {
 		log.Errorf("failed to generate runtime wasm file: %s", err)
 		os.Exit(1)
@@ -144,7 +145,6 @@ func TestMain(m *testing.M) {
 	// Start all tests
 	code := m.Run()
 
-	runtime.RemoveFiles(wasmFilePaths)
 	os.Exit(code)
 }
 
@@ -695,7 +695,9 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 func TestService_HandleCodeSubstitutes(t *testing.T) {
 	s := NewTestService(t, nil)
 
-	testRuntime, err := os.ReadFile(runtime.POLKADOT_RUNTIME_FP)
+	runtimeFilepath, err := runtime.GetRuntime(context.Background(), runtime.POLKADOT_RUNTIME)
+	require.NoError(t, err)
+	testRuntime, err := os.ReadFile(runtimeFilepath)
 	require.NoError(t, err)
 
 	// hash for known test code substitution
@@ -745,7 +747,9 @@ func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, codeHashBefore, parentRt.GetCodeHash()) // codeHash should remain unchanged after code substitute
 
-	testRuntime, err := os.ReadFile(runtime.POLKADOT_RUNTIME_FP)
+	runtimeFilepath, err := runtime.GetRuntime(context.Background(), runtime.POLKADOT_RUNTIME)
+	require.NoError(t, err)
+	testRuntime, err := os.ReadFile(runtimeFilepath)
 	require.NoError(t, err)
 
 	ts, err = s.storageState.TrieState(nil)

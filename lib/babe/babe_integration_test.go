@@ -6,6 +6,7 @@
 package babe
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -154,7 +155,7 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 }
 
 func TestMain(m *testing.M) {
-	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
+	err := runtime.GenerateRuntimeWasmFiles(context.Background())
 	if err != nil {
 		log.Errorf("failed to generate runtime wasm file: %s", err)
 		os.Exit(1)
@@ -165,7 +166,6 @@ func TestMain(m *testing.M) {
 	// Start all tests
 	code := m.Run()
 
-	runtime.RemoveFiles(wasmFilePaths)
 	os.Exit(code)
 }
 

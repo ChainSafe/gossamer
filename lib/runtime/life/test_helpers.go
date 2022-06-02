@@ -4,7 +4,7 @@
 package life
 
 import (
-	"path/filepath"
+	"context"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -20,29 +20,23 @@ var DefaultTestLogLvl = log.Info
 
 // newTestInstance will create a new runtime instance using the given target runtime
 func newTestInstance(t *testing.T, targetRuntime string) *Instance {
-	return newTestInstanceWithTrie(t, runtime.HOST_API_TEST_RUNTIME, nil, DefaultTestLogLvl)
+	return newTestInstanceWithTrie(t, targetRuntime, nil, DefaultTestLogLvl)
 }
 
 // newTestInstanceWithTrie will create a new runtime instance with the supplied trie as the storage
 func newTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie, lvl log.Level) *Instance {
-	fp, cfg := setupConfig(t, targetRuntime, tt, lvl, 0)
-	r, err := NewInstanceFromFile(fp, cfg)
+	testRuntimeFilePath, err := runtime.GetRuntime(context.Background(), targetRuntime)
+	require.NoError(t, err)
+	cfg := setupConfig(t, tt, lvl, 0)
+	r, err := NewInstanceFromFile(testRuntimeFilePath, cfg)
 	require.NoError(t, err, "Got error when trying to create new VM", "targetRuntime", targetRuntime)
 	require.NotNil(t, r, "Could not create new VM instance", "targetRuntime", targetRuntime)
 	return r
 }
 
-func setupConfig(t *testing.T, targetRuntime string, tt *trie.Trie, lvl log.Level, role byte) (string, *Config) {
-	testRuntimeFilePath, testRuntimeURL := runtime.GetRuntimeVars(targetRuntime)
-
-	err := runtime.GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL)
-	require.Nil(t, err, "Fail: could not get runtime", "targetRuntime", targetRuntime)
-
+func setupConfig(t *testing.T, tt *trie.Trie, lvl log.Level, role byte) *Config {
 	s, err := storage.NewTrieState(tt)
 	require.NoError(t, err)
-
-	fp, err := filepath.Abs(testRuntimeFilePath)
-	require.Nil(t, err, "could not create testRuntimeFilePath", "targetRuntime", targetRuntime)
 
 	ns := runtime.NodeStorage{
 		LocalStorage:      runtime.NewInMemoryDB(t),
@@ -56,5 +50,5 @@ func setupConfig(t *testing.T, targetRuntime string, tt *trie.Trie, lvl log.Leve
 	cfg.Network = new(runtime.TestRuntimeNetwork)
 	cfg.Role = role
 	cfg.Resolver = new(Resolver)
-	return fp, cfg
+	return cfg
 }
