@@ -264,14 +264,15 @@ func (s *GrandpaState) ApplyForcedChanges(importedBlockHeader *types.Header) err
 
 // NextGrandpaAuthorityChange returns the block number of the next upcoming grandpa authorities change.
 // It returns 0 if no change is scheduled.
-func (s *GrandpaState) NextGrandpaAuthorityChange(bestBlockHash common.Hash, bestBlockNumber uint) (blockNumber uint, err error) {
+func (s *GrandpaState) NextGrandpaAuthorityChange(bestBlockHash common.Hash, bestBlockNumber uint) (
+	blockNumber uint, err error) {
 	forcedChange, err := s.forcedChanges.lookupChangeWhere(func(pc *pendingChange) (bool, error) {
 		isDecendant, err := s.blockState.IsDescendantOf(pc.announcingHeader.Hash(), bestBlockHash)
 		if err != nil {
 			return false, fmt.Errorf("cannot check ancestry: %w", err)
 		}
 
-		return isDecendant && pc.effectiveNumber() <= uint(bestBlockNumber), nil
+		return isDecendant && pc.effectiveNumber() <= bestBlockNumber, nil
 	})
 	if err != nil {
 		return 0, fmt.Errorf("cannot get forced change on chain of %s: %w",
@@ -284,15 +285,14 @@ func (s *GrandpaState) NextGrandpaAuthorityChange(bestBlockHash common.Hash, bes
 			return false, fmt.Errorf("cannot check ancestry: %w", err)
 		}
 
-		return isDecendant && pcn.change.effectiveNumber() <= uint(bestBlockNumber), nil
+		return isDecendant && pcn.change.effectiveNumber() <= bestBlockNumber, nil
 	})
 	if err != nil {
 		return 0, fmt.Errorf("cannot get forced change on chain of %s: %w",
 			bestBlockHash, err)
 	}
 
-	var next uint = 0
-
+	var next uint
 	if scheduledChangeNode != nil {
 		next = scheduledChangeNode.change.effectiveNumber()
 	}
