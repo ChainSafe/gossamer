@@ -56,7 +56,7 @@ func Test_disjointBlockSet_addBlock(t *testing.T) {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.True(t, tt.disjointBlockSet.blocks[tt.block.Header.Hash()] != nil)
+				assert.NotNil(t, tt.disjointBlockSet.blocks[tt.block.Header.Hash()])
 			}
 		})
 	}
@@ -101,7 +101,7 @@ func Test_disjointBlockSet_addHeader(t *testing.T) {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.True(t, tt.disjointBlockSet.blocks[tt.header.Hash()] != nil)
+				assert.NotNil(t, tt.disjointBlockSet.blocks[tt.header.Hash()])
 			}
 		})
 	}
