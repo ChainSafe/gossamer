@@ -124,8 +124,7 @@ func (oc *orderedPendingChanges) pruneChanges(hash common.Hash, isDescendantOf i
 		}
 	}
 
-	*oc = make(orderedPendingChanges, len(onBranchForcedChanges))
-	copy(*oc, onBranchForcedChanges)
+	*oc = onBranchForcedChanges
 	return nil
 }
 
@@ -231,7 +230,7 @@ func (ct *changeTree) findApplicable(hash common.Hash, number uint,
 
 	changeNode, err = ct.findApplicableChange(hash, number, isDescendantOf)
 	if err != nil {
-		return nil, fmt.Errorf("cannot find applicable change: %w", err)
+		return nil, err
 	}
 
 	if changeNode == nil {
@@ -290,10 +289,10 @@ func (ct changeTree) findApplicableChange(hash common.Hash, number uint,
 
 // pruneChanges will remove changes whose are not descendant of the hash argument
 // this function updates the current state of the change tree
-func (ct changeTree) pruneChanges(hash common.Hash, isDescendantOf isDescendantOfFunc) error {
+func (ct *changeTree) pruneChanges(hash common.Hash, isDescendantOf isDescendantOfFunc) error {
 	onBranchChanges := []*pendingChangeNode{}
 
-	for _, root := range ct {
+	for _, root := range *ct {
 		scheduledChangeHash := root.change.announcingHeader.Hash()
 
 		isDescendant, err := isDescendantOf(hash, scheduledChangeHash)
@@ -306,7 +305,6 @@ func (ct changeTree) pruneChanges(hash common.Hash, isDescendantOf isDescendantO
 		}
 	}
 
-	ct = make([]*pendingChangeNode, len(onBranchChanges))
-	copy(ct, onBranchChanges)
+	*ct = onBranchChanges
 	return nil
 }

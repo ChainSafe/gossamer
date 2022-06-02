@@ -1219,8 +1219,9 @@ func TestApplyScheduledChange(t *testing.T) {
 					},
 				})
 			},
-			finalizedHeader:                 [2]int{0, 6}, // finalize block number 7 from chain A
-			wantErr:                         fmt.Errorf("cannot finalize scheduled change: %w", errUnfinalizedAncestor),
+			finalizedHeader: [2]int{0, 6}, // finalize block number 7 from chain A
+			wantErr: fmt.Errorf(
+				"cannot get applicable scheduled change: failed while applying condition: %w", errUnfinalizedAncestor),
 			expectedScheduledChangeRootsLen: 1, // expected one root len as the second change is a child
 			expectedAuthoritySet: func() []types.GrandpaVoter {
 				auths, _ := types.GrandpaAuthoritiesRawToAuthorities(genesisGrandpaVoters)
