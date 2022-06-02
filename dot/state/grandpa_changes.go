@@ -32,13 +32,7 @@ func (p *pendingChange) effectiveNumber() uint {
 
 type orderedPendingChanges []*pendingChange
 
-// Less order by effective number and then by block number
-func (oc orderedPendingChanges) Len() int      { return len(oc) }
-func (oc orderedPendingChanges) Swap(i, j int) { oc[i], oc[j] = oc[j], oc[i] }
-func (oc orderedPendingChanges) Less(i, j int) bool {
-	return oc[i].effectiveNumber() < oc[j].effectiveNumber() &&
-		oc[i].announcingHeader.Number < oc[j].announcingHeader.Number
-}
+func (oc *orderedPendingChanges) Len() int { return len(*oc) }
 
 // findApplicable try to retrieve an applicable change from the slice of forced changes
 func (oc orderedPendingChanges) findApplicable(importedHash common.Hash, importedNumber uint,
@@ -101,16 +95,23 @@ func (oc *orderedPendingChanges) importChange(pendingChange *pendingChange, isDe
 		}
 	}
 
-	*oc = append(*oc, pendingChange)
-	sort.Sort(oc)
+	// Use a binary search to include the pending change in the right position
+	// of a slice ordered by the effective number and by announcing header number
+	idxToInsert := sort.Search(oc.Len(), func(i int) bool {
+		return (*oc)[i].effectiveNumber() >= pendingChange.effectiveNumber() &&
+			(*oc)[i].announcingHeader.Number >= pendingChange.announcingHeader.Number
+	})
 
+	*oc = append(*oc, pendingChange)
+	copy((*oc)[idxToInsert+1:], (*oc)[idxToInsert:])
+	(*oc)[idxToInsert] = pendingChange
 	return nil
 }
 
 // pruneChanges will remove changes whose are not descendant of the hash argument
 // this function updates the current state of the change tree
 func (oc *orderedPendingChanges) pruneChanges(hash common.Hash, isDescendantOf isDescendantOfFunc) error {
-	onBranchForcedChanges := make([]*pendingChange, 0, len(*oc))
+	onBranchForcedChanges := make([]*pendingChange, 0, oc.Len())
 
 	for _, forcedChange := range *oc {
 		isDescendant, err := isDescendantOf(hash, forcedChange.announcingHeader.Hash())

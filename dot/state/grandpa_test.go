@@ -331,7 +331,7 @@ func TestForcedScheduledChangesOrder(t *testing.T) {
 	}
 
 	forcedChangesSlice := *gs.forcedChanges
-	for idx := 0; idx < len(forcedChangesSlice)-1; idx++ {
+	for idx := 0; idx < gs.forcedChanges.Len()-1; idx++ {
 		currentChange := forcedChangesSlice[idx]
 		nextChange := forcedChangesSlice[idx+1]
 
