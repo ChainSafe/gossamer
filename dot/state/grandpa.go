@@ -19,9 +19,9 @@ var (
 	errPendingScheduledChanges = errors.New("pending scheduled changes needs to be applied")
 	errDuplicateHashes         = errors.New("duplicated hashes")
 	errAlreadyHasForcedChanges = errors.New("already has a forced change")
-	errUnfinalizedAncestor     = errors.New("ancestor with changes not applied")
+	errUnfinalizedAncestor     = errors.New("unfinalized ancestor")
 
-	ErrNoChanges = errors.New("cannot get the next authority change block number")
+	ErrNoNextChange = errors.New("no next authority change")
 )
 
 var (
@@ -302,7 +302,7 @@ func (s *GrandpaState) NextGrandpaAuthorityChange(bestBlockHash common.Hash, bes
 	}
 
 	if next == 0 {
-		return 0, ErrNoChanges
+		return 0, ErrNoNextChange
 	}
 
 	return next, nil

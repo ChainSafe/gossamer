@@ -701,7 +701,7 @@ func (s *Service) determinePreVote() (*Vote, error) {
 	}
 
 	nextChange, err := s.grandpaState.NextGrandpaAuthorityChange(bestBlockHeader.Hash(), bestBlockHeader.Number)
-	if errors.Is(err, state.ErrNoChanges) {
+	if errors.Is(err, state.ErrNoNextChange) {
 		return vote, nil
 	} else if err != nil {
 		return nil, fmt.Errorf("cannot get next grandpa authority change: %w", err)
@@ -736,7 +736,7 @@ func (s *Service) determinePreCommit() (*Vote, error) {
 	}
 
 	nextChange, err := s.grandpaState.NextGrandpaAuthorityChange(bestBlockHeader.Hash(), bestBlockHeader.Number)
-	if errors.Is(err, state.ErrNoChanges) {
+	if errors.Is(err, state.ErrNoNextChange) {
 		return &pvb, nil
 	} else if err != nil {
 		return nil, fmt.Errorf("cannot get next grandpa authority change: %w", err)

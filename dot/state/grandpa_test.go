@@ -452,7 +452,7 @@ func TestNextGrandpaAuthorityChange(t *testing.T) {
 		expectedBlockNumber uint
 	}{
 		"no_forced_change_no_scheduled_change": {
-			wantErr: ErrNoChanges,
+			wantErr: ErrNoNextChange,
 		},
 		"only_forced_change": {
 			forcedChangeAnnoucingIndex: 2, // in the chain headers slice the index 2 == block number 3
