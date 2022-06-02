@@ -184,7 +184,7 @@ func (ct *changeTree) importChange(pendingChange *pendingChange, isDescendantOf 
 			pendingChange.announcingHeader.Number, pendingChange, isDescendantOf)
 
 		if err != nil {
-			return fmt.Errorf("could not import scheduled change: %w", err)
+			return err
 		}
 
 		if imported {

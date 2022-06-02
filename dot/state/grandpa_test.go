@@ -205,8 +205,10 @@ func TestAddScheduledChangesKeepTheRightForkTree(t *testing.T) {
 		"add_scheduled_changes_with_same_hash": {
 			headersWithScheduledChanges: []headersToAdd{
 				{header: chainA[3]},
-				{header: chainA[3], wantErr: fmt.Errorf("could not import scheduled change: %w",
-					errDuplicateHashes)},
+				{
+					header:  chainA[3],
+					wantErr: fmt.Errorf("cannot import scheduled change: %w", errDuplicateHashes),
+				},
 			},
 			expectedRoots: 0,
 		},
