@@ -138,7 +138,7 @@ func (n *Node) Init(ctx context.Context) (err error) {
 // be started, and runs the node until the context gets canceled.
 // When the node crashes or is stopped, an error (nil or not) is sent
 // in the waitErrCh.
-func (n *Node) Start(ctx context.Context, waitErrCh chan<- error) (startErr error) {
+func (n *Node) Start(ctx context.Context) (runtimeError <-chan error, startErr error) {
 	cmd := exec.CommandContext(ctx, n.binPath, //nolint:gosec
 		"--config", n.configPath,
 		"--no-telemetry")
@@ -153,15 +153,16 @@ func (n *Node) Start(ctx context.Context, waitErrCh chan<- error) (startErr erro
 
 	err := cmd.Start()
 	if err != nil {
-		return fmt.Errorf("cannot start %s: %w", cmd, err)
+		return nil, fmt.Errorf("cannot start %s: %w", cmd, err)
 	}
 
+	waitErrCh := make(chan error)
 	go func(cmd *exec.Cmd, node *Node, waitErr chan<- error) {
 		err = cmd.Wait()
 		waitErr <- node.wrapRuntimeError(ctx, cmd, err)
 	}(cmd, n, waitErrCh)
 
-	return nil
+	return waitErrCh, nil
 }
 
 // StartAndWait starts a Gossamer node using the node configuration of
@@ -170,18 +171,19 @@ func (n *Node) Start(ctx context.Context, waitErrCh chan<- error) (startErr erro
 // When the node crashes or is stopped, an error (nil or not) is sent
 // in the waitErrCh.
 // It waits for the node to respond to an RPC health call before returning.
-func (n *Node) StartAndWait(ctx context.Context, waitErrCh chan<- error) (startErr error) {
-	startErr = n.Start(ctx, waitErrCh)
+func (n *Node) StartAndWait(ctx context.Context) (
+	runtimeError <-chan error, startErr error) {
+	runtimeError, startErr = n.Start(ctx)
 	if startErr != nil {
-		return startErr
+		return nil, startErr
 	}
 
 	err := waitForNode(ctx, n.RPCPort())
 	if err != nil {
-		return fmt.Errorf("failed waiting: %s", err)
+		return nil, fmt.Errorf("failed waiting: %s", err)
 	}
 
-	return nil
+	return runtimeError, nil
 }
 
 // InitAndStartTest is a test helper method to initialise and start the node,
@@ -197,14 +199,12 @@ func (n Node) InitAndStartTest(ctx context.Context, t *testing.T,
 	require.NoError(t, err)
 
 	nodeCtx, nodeCancel := context.WithCancel(ctx)
-	waitErr := make(chan error)
 
-	err = n.StartAndWait(nodeCtx, waitErr)
+	waitErr, err := n.StartAndWait(nodeCtx)
 	if err != nil {
 		t.Errorf("failed to start node %s: %s", n, err)
 		// Release resources and fail the test
 		nodeCancel()
-		close(waitErr)
 		t.FailNow()
 	}
 
@@ -227,7 +227,6 @@ func (n Node) InitAndStartTest(ctx context.Context, t *testing.T,
 			t.Errorf("node %s crashed: %s", n, err)
 			// Release resources
 			nodeCancel()
-			close(waitErr)
 			// we cannot stop the test with t.FailNow() from a goroutine
 			// other than the test goroutine, so we call the following function
 			// to signal the test goroutine to stop the test.

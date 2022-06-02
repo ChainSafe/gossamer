@@ -57,14 +57,13 @@ func TestCalls(t *testing.T) {
 	require.NoError(t, err)
 
 	nodesCtx, nodesCancel := context.WithCancel(ctx)
-	waitErr := make(chan error)
 
-	started, startErr := framework.StartNodes(nodesCtx, t, waitErr)
+	runtimeErrors, startErr := framework.StartNodes(nodesCtx, t)
 
 	t.Cleanup(func() {
 		nodesCancel()
-		for i := 0; i < started; i++ {
-			<-waitErr
+		for _, runtimeError := range runtimeErrors {
+			<-runtimeError
 		}
 	})
 

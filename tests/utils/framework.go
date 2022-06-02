@@ -49,9 +49,9 @@ func InitFramework(ctx context.Context, t *testing.T, qtyNodes int,
 }
 
 // StartNodes calls RestartGossamor for all nodes
-func (fw *Framework) StartNodes(ctx context.Context, t *testing.T, waitErr chan<- error) (
-	started int, startErr error) {
-	return fw.nodes.Start(ctx, waitErr)
+func (fw *Framework) StartNodes(ctx context.Context, t *testing.T) (
+	runtimeErrors []<-chan error, startErr error) {
+	return fw.nodes.Start(ctx)
 }
 
 // CallRPC call RPC method with given params for node at idx

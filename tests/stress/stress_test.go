@@ -63,40 +63,37 @@ func TestRestartNode(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	waitErr := make(chan error)
 
-	started, startErr := nodes.Start(ctx, waitErr)
+	runtimeErrors, startErr := nodes.Start(ctx)
 	if startErr != nil {
 		cancel()
-		for i := 0; i < started; i++ {
-			<-waitErr
+		for _, runtimeError := range runtimeErrors {
+			<-runtimeError
 		}
-		close(waitErr)
 		t.Fatalf("failed to start nodes: %s", startErr)
 	}
 
 	// Stop nodes
 	cancel()
-	for i := 0; i < started; i++ {
-		<-waitErr
+	for _, runtimeError := range runtimeErrors {
+		<-runtimeError
 	}
 
 	ctx, cancel = context.WithCancel(context.Background())
 
-	started, startErr = nodes.Start(ctx, waitErr)
+	runtimeErrors, startErr = nodes.Start(ctx)
 	if startErr != nil {
 		cancel()
-		for i := 0; i < started; i++ {
-			<-waitErr
+		for _, runtimeError := range runtimeErrors {
+			<-runtimeError
 		}
-		close(waitErr)
 		t.Fatalf("failed to start nodes: %s", startErr)
 	}
 
 	// Stop nodes
 	cancel()
-	for i := 0; i < started; i++ {
-		<-waitErr
+	for _, runtimeError := range runtimeErrors {
+		<-runtimeError
 	}
 }
 
@@ -344,10 +341,9 @@ func TestSync_Restart(t *testing.T) {
 
 	nodeCtxs := make([]context.Context, numNodes)
 	nodeCancels := make([]context.CancelFunc, numNodes)
-	nodeWaitErrs := make([]chan error, numNodes)
+	nodeWaitErrs := make([]<-chan error, numNodes)
 	for i := 0; i < numNodes; i++ {
 		nodeCtxs[i], nodeCancels[i] = context.WithCancel(mainCtx)
-		nodeWaitErrs[i] = make(chan error)
 	}
 
 	// Note we assume no runtime error in this test otherwise
@@ -364,7 +360,7 @@ func TestSync_Restart(t *testing.T) {
 	err := producingNode.Init(mainCtx)
 	require.NoError(t, err)
 
-	err = producingNode.StartAndWait(nodeCtxs[0], nodeWaitErrs[0])
+	nodeWaitErrs[0], err = producingNode.StartAndWait(nodeCtxs[0])
 	t.Cleanup(func() {
 		// note we need to use indexes since these
 		// slice elements might change.
@@ -382,7 +378,7 @@ func TestSync_Restart(t *testing.T) {
 		err := node.Init(mainCtx)
 		require.NoError(t, err)
 
-		err = node.StartAndWait(nodeCtxs[i+1], nodeWaitErrs[i+1])
+		nodeWaitErrs[i+1], err = node.StartAndWait(nodeCtxs[i+1])
 		t.Cleanup(func() {
 			// note we need to use indexes since these
 			// slice elements might change.
@@ -409,9 +405,7 @@ func TestSync_Restart(t *testing.T) {
 
 				// Start node
 				nodeCtxs[idx], nodeCancels[idx] = context.WithCancel(mainCtx)
-				waitErr := make(chan error)
-				err := nodes[idx].Start(nodeCtxs[idx], waitErr)
-				nodeWaitErrs[idx] = waitErr
+				nodeWaitErrs[idx], err = nodes[idx].Start(nodeCtxs[idx])
 				if err != nil {
 					assert.NoError(t, err) // cannot use require.NoError from a goroutine
 					mainCancel()           // stop all operations

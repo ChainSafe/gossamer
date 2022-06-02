@@ -5,11 +5,14 @@ package node
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/ChainSafe/gossamer/tests/utils/config"
+	"github.com/ChainSafe/gossamer/tests/utils/runtime"
 )
 
 // Nodes is a slice of nodes.
@@ -66,27 +69,28 @@ func (nodes Nodes) Init(ctx context.Context) (err error) {
 // the caller to wait for `started` errors coming from the wait error
 // channel. All the nodes are stopped when the context is canceled,
 // and `started` errors will be sent in the waitErr channel.
-func (nodes Nodes) Start(ctx context.Context, waitErr chan<- error) (
-	started int, startErr error) {
+func (nodes Nodes) Start(ctx context.Context) (
+	runtimeErrors []<-chan error, startErr error) {
+	runtimeErrors = make([]<-chan error, 0, len(nodes))
 	for _, node := range nodes {
-		err := node.Start(ctx, waitErr)
+		runtimeError, err := node.Start(ctx)
 		if err != nil {
-			return started, fmt.Errorf("node with index %d: %w",
+			return runtimeErrors, fmt.Errorf("node with index %d: %w",
 				*node.index, err)
 		}
 
-		started++
+		runtimeErrors = append(runtimeErrors, runtimeError)
 	}
 
 	for _, node := range nodes {
 		port := node.RPCPort()
 		err := waitForNode(ctx, port)
 		if err != nil {
-			return started, fmt.Errorf("node with index %d: %w", *node.index, err)
+			return runtimeErrors, fmt.Errorf("node with index %d: %w", *node.index, err)
 		}
 	}
 
-	return started, nil
+	return runtimeErrors, nil
 }
 
 // InitAndStartTest is a test helper method to initialise and start nodes,
@@ -121,21 +125,19 @@ func (nodes Nodes) InitAndStartTest(ctx context.Context, t *testing.T,
 		t.FailNow()
 	}
 
-	var started int
 	nodesCtx, nodesCancel := context.WithCancel(ctx)
-	waitErr := make(chan error)
+	runtimeErrors := runtime.NewErrorsFanIn()
 
 	for _, node := range nodes {
-		err := node.Start(nodesCtx, waitErr) // takes little time
+		runtimeError, err := node.Start(nodesCtx) // takes little time
 		if err == nil {
-			started++
+			runtimeErrors.Add(node.String(), runtimeError)
 			continue
 		}
 
 		t.Errorf("Node %s failed to start: %s", node, err)
 
-		stopNodes(t, started, nodesCancel, waitErr)
-		close(waitErr)
+		stopNodes(t, nodesCancel, runtimeErrors)
 		t.FailNow()
 	}
 
@@ -151,8 +153,7 @@ func (nodes Nodes) InitAndStartTest(ctx context.Context, t *testing.T,
 		}
 
 		t.Errorf("Node %s failed to be ready: %s", node, err)
-		stopNodes(t, started, nodesCancel, waitErr)
-		close(waitErr)
+		stopNodes(t, nodesCancel, runtimeErrors)
 		t.FailNow()
 	}
 
@@ -161,24 +162,18 @@ func (nodes Nodes) InitAndStartTest(ctx context.Context, t *testing.T,
 	watchDogDone := make(chan struct{})
 	go func() {
 		defer close(watchDogDone)
-		select {
-		case <-watchDogCtx.Done():
+		err := runtimeErrors.Watch(watchDogCtx)
+		watchDogWasStopped := errors.Is(err, context.Canceled) ||
+			errors.Is(err, context.DeadlineExceeded)
+		if watchDogWasStopped {
 			return
-		case err := <-waitErr: // one node crashed
-			if watchDogCtx.Err() != nil {
-				// make sure the runtime watchdog is not meant
-				// to be disengaged, in case of signal racing.
-				return
-			}
-
-			t.Errorf("one node has crashed: %s", err)
-			started--
-
-			// we cannot stop the test with t.FailNow() from a goroutine
-			// other than the test goroutine, so we call failNow to signal
-			// it to the test goroutine.
-			signalTestToStop()
 		}
+
+		t.Errorf("one node has crashed: %s", err)
+		// we cannot stop the test with t.FailNow() from a goroutine
+		// other than the test goroutine, so we call failNow to signal
+		// it to the test goroutine.
+		signalTestToStop()
 	}()
 
 	t.Cleanup(func() {
@@ -187,19 +182,20 @@ func (nodes Nodes) InitAndStartTest(ctx context.Context, t *testing.T,
 		watchDogCancel()
 		<-watchDogDone
 		// Stop and wait for nodes to exit
-		stopNodes(t, started, nodesCancel, waitErr)
-		close(waitErr)
+		stopNodes(t, nodesCancel, runtimeErrors)
 	})
 }
 
-func stopNodes(t *testing.T, started int,
-	nodesCancel context.CancelFunc, waitErr <-chan error) {
+func stopNodes(t *testing.T, nodesCancel context.CancelFunc,
+	runtimeErrors *runtime.ErrorsFanIn) {
 	t.Helper()
 
 	// Stop the nodes and wait for them to exit
 	nodesCancel()
-	t.Logf("waiting on %d nodes to terminate...", started)
-	for i := 0; i < started; i++ {
-		<-waitErr
+	t.Logf("waiting on %d nodes to terminate...", runtimeErrors.Len())
+	const waitTimeout = 10 * time.Second
+	err := runtimeErrors.WaitForAll(waitTimeout)
+	if err != nil {
+		t.Logf("WARNING: %s", err)
 	}
 }
