@@ -46,7 +46,7 @@ func loadConfig(cfg *ctoml.Config, fp string) error {
 		},
 	}
 
-	if err = tomlSettings.NewDecoder(file).Decode(&cfg); err != nil {
+	if err = tomlSettings.NewDecoder(file).Decode(cfg); err != nil {
 		logger.Errorf("failed to decode configuration: %s", err)
 		return err
 	}

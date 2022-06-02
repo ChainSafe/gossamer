@@ -397,12 +397,10 @@ func buildSpecAction(ctx *cli.Context) error {
 	}
 
 	if outputPath := ctx.String(OutputSpecFlag.Name); outputPath != "" {
-		if err = dot.WriteGenesisSpecFile(res, outputPath); err != nil {
-			return err
-		}
-	} else {
-		fmt.Printf("%s", res)
+		return dot.WriteGenesisSpecFile(res, outputPath)
 	}
+
+	fmt.Printf("%s", res)
 
 	return nil
 }

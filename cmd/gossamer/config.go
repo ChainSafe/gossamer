@@ -43,7 +43,6 @@ var (
 // loadConfigFile loads a default config file if --chain is specified, a specific
 // config if --config is specified, or the default gossamer config otherwise.
 func loadConfigFile(ctx *cli.Context, cfg *ctoml.Config) (err error) {
-	// check --config flag and load toml configuration from config.toml
 	if cfgPath := ctx.GlobalString(ConfigFlag.Name); cfgPath != "" {
 		logger.Info("loading toml configuration from " + cfgPath + "...")
 		if cfg == nil {
@@ -53,12 +52,10 @@ func loadConfigFile(ctx *cli.Context, cfg *ctoml.Config) (err error) {
 				"overwriting default configuration with id " + cfg.Global.ID +
 					" with toml configuration values from " + cfgPath)
 		}
-		err = loadConfig(cfg, cfgPath) // load toml values into configuration
-	} else {
-		err = loadConfig(cfg, defaultGssmrConfigPath)
+		return loadConfig(cfg, cfgPath) // load toml values into configuration
 	}
 
-	return err
+	return loadConfig(cfg, defaultGssmrConfigPath)
 }
 
 func setupConfigFromChain(ctx *cli.Context) (*ctoml.Config, *dot.Config, error) {
@@ -215,15 +212,14 @@ func createImportStateConfig(ctx *cli.Context) (*dot.Config, error) {
 }
 
 func createBuildSpecConfig(ctx *cli.Context) (*dot.Config, error) {
-	var tomlCfg *ctoml.Config
-	cfg := &dot.Config{}
+	var tomlCfg *ctoml.Config = new(ctoml.Config)
 	err := loadConfigFile(ctx, tomlCfg)
 	if err != nil {
 		logger.Errorf("failed to load toml configuration: %s", err)
 		return nil, err
 	}
 
-	// set global configuration values
+	cfg := new(dot.Config)
 	if err := setDotGlobalConfig(ctx, tomlCfg, &cfg.Global); err != nil {
 		logger.Errorf("failed to set global node configuration: %s", err)
 		return nil, err
@@ -528,7 +524,7 @@ func setDotGlobalConfigName(ctx *cli.Context, tomlCfg *ctoml.Config, cfg *dot.Gl
 	}
 
 	// consider the name on config as a second priority
-	if tomlCfg != nil && tomlCfg.Global.Name != "" {
+	if tomlCfg.Global.Name != "" {
 		cfg.Name = tomlCfg.Global.Name
 		return nil
 	}
