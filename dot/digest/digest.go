@@ -77,12 +77,11 @@ func (h *Handler) Stop() error {
 }
 
 // HandleDigests handles consensus digests for an imported block
-func (h *Handler) HandleDigests(header *types.Header) {
+func (h *Handler) HandleDigests(header *types.Header) error {
 	consensusDigests := h.toConsensusDigests(header.Digest.Types)
 	consensusDigests, err := checkForGRANDPAForcedChanges(consensusDigests)
 	if err != nil {
-		h.logger.Errorf("cannot ignore multiple GRANDPA digests: %s", err)
-		return
+		return fmt.Errorf("failed while checking GRANDPA digests: %w", err)
 	}
 
 	for i := range consensusDigests {
@@ -95,6 +94,8 @@ func (h *Handler) HandleDigests(header *types.Header) {
 			h.logger.Errorf("cannot handle consensus digest: %w", err)
 		}
 	}
+
+	return nil
 }
 
 // toConsensusDigests converts a slice of scale.VaryingDataType to a slice of types.ConsensusDigest.
@@ -217,8 +218,12 @@ func (h *Handler) handleBlockImport(ctx context.Context) {
 				continue
 			}
 
-			h.HandleDigests(&block.Header)
-			err := h.grandpaState.ApplyForcedChanges(&block.Header)
+			err := h.HandleDigests(&block.Header)
+			if err != nil {
+				h.logger.Errorf("failed to handle digest: %s", err)
+			}
+
+			err = h.grandpaState.ApplyForcedChanges(&block.Header)
 			if err != nil {
 				h.logger.Errorf("failed to apply forced changes: %s", err)
 			}
