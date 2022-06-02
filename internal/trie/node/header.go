@@ -23,12 +23,10 @@ func encodeHeader(node *Node, writer io.Writer) (err error) {
 	var header byte
 	if node.Type() == Leaf {
 		header = leafHeader
-	} else { // branch
-		if node.Value == nil {
-			header = branchHeader
-		} else {
-			header = branchWithValueHeader
-		}
+	} else if node.Value == nil {
+		header = branchHeader
+	} else {
+		header = branchWithValueHeader
 	}
 	header <<= nodeHeaderShift
 
