@@ -95,10 +95,10 @@ func (s *GrandpaState) HandleGRANDPADigest(header *types.Header, digest scale.Va
 	case types.GrandpaOnDisabled:
 		return nil
 	case types.GrandpaPause:
-		logger.Warn("GRANDPA Pause consensus message not imeplemented yet")
+		logger.Warn("GRANDPA Pause consensus message not implemented yet")
 		return nil
 	case types.GrandpaResume:
-		logger.Warn("GRANDPA Resume consensus message not imeplemented yet")
+		logger.Warn("GRANDPA Resume consensus message not implemented yet")
 		return nil
 	default:
 		return fmt.Errorf("not supported digest")

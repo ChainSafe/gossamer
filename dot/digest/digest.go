@@ -124,6 +124,7 @@ func checkForGRANDPAForcedChanges(digests []types.ConsensusDigest) ([]types.Cons
 	digestsWithoutScheduled := make([]types.ConsensusDigest, 0, len(digests))
 	for _, digest := range digests {
 		if digest.ConsensusEngineID != types.GrandpaEngineID {
+			digestsWithoutScheduled = append(digestsWithoutScheduled, digest)
 			continue
 		}
 
