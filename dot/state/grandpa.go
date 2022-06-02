@@ -95,10 +95,10 @@ func (s *GrandpaState) HandleGRANDPADigest(header *types.Header, digest scale.Va
 	case types.GrandpaOnDisabled:
 		return nil
 	case types.GrandpaPause:
-		logger.Warn("GRANDPA Pause consensus message not imeplemented yet")
+		logger.Warn("GRANDPA Pause consensus message not implemented yet")
 		return nil
 	case types.GrandpaResume:
-		logger.Warn("GRANDPA Resume consensus message not imeplemented yet")
+		logger.Warn("GRANDPA Resume consensus message not implemented yet")
 		return nil
 	default:
 		return fmt.Errorf("not supported digest")
@@ -108,7 +108,7 @@ func (s *GrandpaState) HandleGRANDPADigest(header *types.Header, digest scale.Va
 func (s *GrandpaState) addForcedChange(header *types.Header, fc types.GrandpaForcedChange) error {
 	auths, err := types.GrandpaAuthoritiesRawToAuthorities(fc.Auths)
 	if err != nil {
-		return fmt.Errorf("cannot parser GRANDPA authorities to raw authorities: %w", err)
+		return fmt.Errorf("cannot parse GRANDPA authorities to raw authorities: %w", err)
 	}
 
 	pendingChange := &pendingChange{
