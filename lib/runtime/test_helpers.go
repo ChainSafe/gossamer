@@ -195,18 +195,6 @@ func generateEd25519Signatures(t *testing.T, n int) []*crypto.SignatureInfo {
 	return signs
 }
 
-// GenerateRuntimeWasmFiles generates all runtime wasm files.
-func GenerateRuntimeWasmFiles(ctx context.Context) error {
-	runtimes := []string{HOST_API_TEST_RUNTIME, POLKADOT_RUNTIME, POLKADOT_RUNTIME_v0917, NODE_RUNTIME, DEV_RUNTIME}
-	for _, runtime := range runtimes {
-		_, err := GetRuntime(ctx, runtime)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 // NewTestExtrinsic builds a new extrinsic using centrifuge pkg
 func NewTestExtrinsic(t *testing.T, rt Instance, genHash, blockHash common.Hash,
 	nonce uint64, call string, args ...interface{}) string {

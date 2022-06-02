@@ -6,8 +6,6 @@
 package babe
 
 import (
-	"context"
-	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -152,21 +150,6 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 	babeService, err := NewService(cfg)
 	require.NoError(t, err)
 	return babeService
-}
-
-func TestMain(m *testing.M) {
-	err := runtime.GenerateRuntimeWasmFiles(context.Background())
-	if err != nil {
-		log.Errorf("failed to generate runtime wasm file: %s", err)
-		os.Exit(1)
-	}
-
-	logger = log.NewFromGlobal(log.SetLevel(defaultTestLogLvl))
-
-	// Start all tests
-	code := m.Run()
-
-	os.Exit(code)
 }
 
 func newTestServiceSetupParameters(t *testing.T) (*Service, *state.EpochState, *types.BabeConfiguration) {

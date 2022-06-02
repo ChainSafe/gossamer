@@ -78,19 +78,6 @@ func useInstanceFromRuntimeV0910(t *testing.T, rtStorage *storage.TrieState) (in
 	return runtimeInstance
 }
 
-func TestMain(m *testing.M) {
-	err := runtime.GenerateRuntimeWasmFiles(context.Background())
-	if err != nil {
-		log.Errorf("failed to generate runtime wasm file: %s", err)
-		os.Exit(1)
-	}
-
-	// Start all tests
-	code := m.Run()
-
-	os.Exit(code)
-}
-
 func TestAuthorModule_Pending_Integration(t *testing.T) {
 	t.Parallel()
 	integrationTestController := setupStateAndRuntime(t, t.TempDir(), nil)

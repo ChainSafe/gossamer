@@ -135,19 +135,6 @@ func generateTestValidRemarkTxns(t *testing.T, pubKey []byte, accInfo types.Acco
 	return extBytes, rt
 }
 
-func TestMain(m *testing.M) {
-	err := runtime.GenerateRuntimeWasmFiles(context.Background())
-	if err != nil {
-		log.Errorf("failed to generate runtime wasm file: %s", err)
-		os.Exit(1)
-	}
-
-	// Start all tests
-	code := m.Run()
-
-	os.Exit(code)
-}
-
 func TestStartService(t *testing.T) {
 	s := NewTestService(t, nil)
 
