@@ -38,7 +38,7 @@ func (bq *blockQueue) push(blockData *types.BlockData) {
 func (bq *blockQueue) pop(ctx context.Context) (blockData *types.BlockData) {
 	select {
 	case <-ctx.Done():
-		return
+		return nil
 	case blockData = <-bq.queue:
 	}
 	bq.hashesSetMutex.Lock()
