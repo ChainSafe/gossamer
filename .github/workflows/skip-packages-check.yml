@@ -4,6 +4,7 @@ on:
     paths:
       - .github/workflows/integration-tests.yml
       - .github/workflows/integration-tests-skip.yml
+      - "cmd/skipcheck/**"
 
 jobs:
   integration-tests-skip-check:
