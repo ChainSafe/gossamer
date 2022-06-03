@@ -988,6 +988,7 @@ func Test_chainSync_start(t *testing.T) {
 				logSyncPeriod: time.Second,
 			}
 			cs.start()
+			// todo (ed) fix this
 			time.Sleep(time.Millisecond)
 			cs.stop()
 		})
