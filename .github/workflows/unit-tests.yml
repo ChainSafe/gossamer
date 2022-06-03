@@ -5,7 +5,7 @@ on:
       # - .github/workflows/unit-tests.yml
       - "**/*.go"
       - "chain/**"
-      - "cmd/**"
+      - "cmd/gossamer/**"
       - "dot/**"
       - "internal/**"
       - "lib/**"

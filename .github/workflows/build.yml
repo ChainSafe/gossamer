@@ -7,7 +7,7 @@ on:
       - .github/workflows/build.yml
       - "**/*.go"
       - "chain/**"
-      - "cmd/**"
+      - "cmd/gossamer/**"
       - "dot/**"
       - "internal/**"
       - "lib/**"

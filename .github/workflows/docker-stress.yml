@@ -5,7 +5,7 @@ on:
       - .github/workflows/docker-stress.yml
       - "**/*.go"
       - "chain/**"
-      - "cmd/**"
+      - "cmd/gossamer/**"
       - "dot/**"
       - "internal/**"
       - "lib/**"
