@@ -7,12 +7,12 @@
 package sync
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -47,6 +47,7 @@ func TestDisjointBlockSet(t *testing.T) {
 		header: header,
 	}
 	block1 := s.getBlock(header.Hash())
+	assert.Greater(t, block1.clearAt, time.Now())
 	block1.clearAt = time.Time{}
 	require.Equal(t, expected, block1)
 

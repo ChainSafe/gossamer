@@ -6,11 +6,11 @@ package sync
 import (
 	"context"
 	"errors"
-	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -226,8 +226,8 @@ func Test_chainProcessor_handleBody(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			ctrl := gomock.NewController(t)
-			chainProcessor := tt.chainProcessorBuilder(ctrl)
-			chainProcessor.handleBody(tt.body)
+			processor := tt.chainProcessorBuilder(ctrl)
+			processor.handleBody(tt.body)
 		})
 	}
 }
@@ -692,8 +692,8 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			ctrl := gomock.NewController(t)
-			s := tt.chainProcessorBuilder(ctrl)
-			err := s.processBlockData(tt.blockData)
+			processor := tt.chainProcessorBuilder(ctrl)
+			err := processor.processBlockData(tt.blockData)
 			assert.ErrorIs(t, err, tt.expectedError)
 		})
 	}

@@ -7,7 +7,6 @@
 package sync
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
 
@@ -16,7 +15,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
-
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )

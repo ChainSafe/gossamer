@@ -47,7 +47,6 @@ var (
 	errFailedToGetParent            = errors.New("failed to get parent header")
 	errStartAndEndMismatch          = errors.New("request start and end hash are not on the same chain")
 	errFailedToGetDescendant        = errors.New("failed to find descendant block")
-	errBlockOrBodyNil               = errors.New("block or body is nil")
 )
 
 // ErrNilChannel is returned if a channel is nil

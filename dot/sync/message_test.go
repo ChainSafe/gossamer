@@ -5,12 +5,12 @@ package sync
 
 import (
 	"errors"
-	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )

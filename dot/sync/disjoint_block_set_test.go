@@ -286,14 +286,6 @@ func Test_disjointBlockSet_removeLowerBlocks(t *testing.T) {
 func Test_disjointBlockSet_size(t *testing.T) {
 	t.Parallel()
 
-	testBlock1 := &pendingBlock{
-		hash:   common.Hash{1},
-		number: 1,
-	}
-	testBlock10 := &pendingBlock{
-		hash:   common.Hash{10},
-		number: 10,
-	}
 	tests := []struct {
 		name             string
 		disjointBlockSet *disjointBlockSet
@@ -310,7 +302,7 @@ func Test_disjointBlockSet_size(t *testing.T) {
 			name: "expect 1",
 			disjointBlockSet: &disjointBlockSet{
 				blocks: map[common.Hash]*pendingBlock{
-					testBlock1.hash: testBlock1,
+					{1}: {hash: common.Hash{1}, number: 1},
 				},
 			},
 			want: 1,
@@ -319,8 +311,8 @@ func Test_disjointBlockSet_size(t *testing.T) {
 			name: "expect 2",
 			disjointBlockSet: &disjointBlockSet{
 				blocks: map[common.Hash]*pendingBlock{
-					testBlock1.hash:  testBlock1,
-					testBlock10.hash: testBlock10,
+					{1}:  {hash: common.Hash{1}, number: 1},
+					{10}: {hash: common.Hash{10}, number: 10},
 				},
 			},
 			want: 2,
