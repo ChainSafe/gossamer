@@ -17,6 +17,16 @@ on:
 jobs:
   integration-tests:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        packages:
+          [
+            github.com/ChainSafe/gossamer/dot,
+            github.com/ChainSafe/gossamer/dot/core,
+            github.com/ChainSafe/gossamer/dot/rpc/modules,
+            github.com/ChainSafe/gossamer/lib/babe,
+            github.com/ChainSafe/gossamer/dot/sync,
+          ]
     steps:
       - run: |
           echo "Skipping workflow. See why this workflow exists:"
