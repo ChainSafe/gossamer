@@ -35,16 +35,25 @@ func MakeNodes(t *testing.T, num int, tomlConfig toml.Config,
 // Init initialises all nodes and returns an error if any
 // init operation failed.
 func (nodes Nodes) Init(ctx context.Context) (err error) {
-	// TODO in parallel like below
+	initErrors := make(chan error)
 	for _, node := range nodes {
-		err := node.Init(ctx)
-		if err != nil {
-			return fmt.Errorf("failed to initialise node %s: %w",
-				node, err)
+		go func(node Node) {
+			err := node.Init(ctx) // takes 2 seconds
+			if err != nil {
+				err = fmt.Errorf("node %s failed to initialise: %w", node, err)
+			}
+			initErrors <- err
+		}(node)
+	}
+
+	for range nodes {
+		initErr := <-initErrors
+		if err == nil && initErr != nil {
+			err = initErr
 		}
 	}
 
-	return nil
+	return err
 }
 
 // Start starts all the nodes and returns the number of started nodes
@@ -87,25 +96,9 @@ func (nodes Nodes) InitAndStartTest(ctx context.Context, t *testing.T,
 	signalTestToStop context.CancelFunc) {
 	t.Helper()
 
-	initErrors := make(chan error)
-	for _, node := range nodes {
-		go func(node Node) {
-			err := node.Init(ctx) // takes 2 seconds
-			if err != nil {
-				err = fmt.Errorf("node %s failed to initialise: %w", node, err)
-			}
-			initErrors <- err
-		}(node)
-	}
-
-	for range nodes {
-		err := <-initErrors
-		if err != nil {
-			t.Error(err)
-		}
-	}
-	if t.Failed() {
-		t.FailNow()
+	err := nodes.Init(ctx)
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	nodesCtx, nodesCancel := context.WithCancel(ctx)
