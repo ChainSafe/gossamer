@@ -1,4 +1,4 @@
-name: docker-rpc
+name: docker-rpc (skip)
 on:
   pull_request:
     paths-ignore:

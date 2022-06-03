@@ -1,4 +1,4 @@
-name: unit-tests
+name: unit-tests (skip)
 on:
   pull_request:
     paths-ignore:

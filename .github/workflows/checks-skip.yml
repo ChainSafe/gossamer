@@ -1,4 +1,4 @@
-name: checks
+name: checks (skip)
 on:
   pull_request:
     paths-ignore:

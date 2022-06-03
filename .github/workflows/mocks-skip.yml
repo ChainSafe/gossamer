@@ -1,4 +1,4 @@
-name: Mocks check
+name: Mocks check (skip)
 on:
   pull_request:
     paths-ignore:

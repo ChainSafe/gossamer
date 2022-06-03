@@ -1,4 +1,4 @@
-name: Copyright check
+name: Copyright check (skip)
 on:
   pull_request:
     paths-ignore:

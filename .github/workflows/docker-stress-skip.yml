@@ -1,4 +1,4 @@
-name: docker-stress
+name: docker-stress (skip)
 on:
   pull_request:
     paths-ignore:

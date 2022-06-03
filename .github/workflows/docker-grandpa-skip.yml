@@ -1,4 +1,4 @@
-name: docker-grandpa
+name: docker-grandpa (skip)
 on:
   pull_request:
     paths-ignore:
