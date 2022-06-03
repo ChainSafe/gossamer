@@ -1064,7 +1064,7 @@ func TestApplyScheduledChangeGetApplicableChange(t *testing.T) {
 				})
 			},
 			finalizedHeader: [2]int{0, 6}, // finalize block number 7 from chain A
-			wantErr:         errUnfinalizedAncestor,
+			wantErr:         fmt.Errorf("failed while applying condition: %w", errUnfinalizedAncestor),
 		},
 	}
 
