@@ -21,12 +21,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestWSConn_HandleComm(t *testing.T) {
+func TestWSConn_HandleConn(t *testing.T) {
 	wsconn, c, cancel := setupWSConn(t)
 	wsconn.Subscriptions = make(map[uint32]Listener)
 	defer cancel()
 
-	go wsconn.HandleComm()
+	go wsconn.HandleConn()
 	time.Sleep(time.Second * 2)
 
 	// test storageChangeListener
@@ -45,7 +45,8 @@ func TestWSConn_HandleComm(t *testing.T) {
 	res, err = wsconn.initStorageChangeListener(1, nil)
 	require.Nil(t, res)
 	require.Len(t, wsconn.Subscriptions, 0)
-	require.EqualError(t, err, "unknown parameter type")
+	require.ErrorIs(t, err, errUnexpectedType)
+	require.EqualError(t, err, "unexpected type: <nil>, expected type []interface{}")
 
 	res, err = wsconn.initStorageChangeListener(2, []interface{}{})
 	require.NotNil(t, res)
@@ -55,7 +56,8 @@ func TestWSConn_HandleComm(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":1,"id":2}`+"\n"), msg)
 
-	res, err = wsconn.initStorageChangeListener(3, []interface{}{"0x26aa"})
+	var testFilter0 = []interface{}{"0x26aa"}
+	res, err = wsconn.initStorageChangeListener(3, testFilter0)
 	require.NotNil(t, res)
 	require.NoError(t, err)
 	require.Len(t, wsconn.Subscriptions, 2)
@@ -63,25 +65,26 @@ func TestWSConn_HandleComm(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":2,"id":3}`+"\n"), msg)
 
-	var testFilters = []interface{}{}
-	var testFilter1 = []interface{}{"0x26aa", "0x26a1"}
-	res, err = wsconn.initStorageChangeListener(4, append(testFilters, testFilter1))
-	require.NotNil(t, res)
+	var testFilter1 = []interface{}{[]interface{}{"0x26aa", "0x26a1"}}
+	res, err = wsconn.initStorageChangeListener(4, testFilter1)
 	require.NoError(t, err)
+	require.NotNil(t, res)
 	require.Len(t, wsconn.Subscriptions, 3)
 	_, msg, err = c.ReadMessage()
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":3,"id":4}`+"\n"), msg)
 
-	var testFilterWrongType = []interface{}{"0x26aa", 1}
-	res, err = wsconn.initStorageChangeListener(5, append(testFilters, testFilterWrongType))
-	require.EqualError(t, err, "unknown parameter type")
+	var testFilterWrongType = []interface{}{[]int{123}}
+	res, err = wsconn.initStorageChangeListener(5, testFilterWrongType)
+	require.ErrorIs(t, err, errUnexpectedType)
+	require.EqualError(t, err, "unexpected type: []int, expected type string, []string, []interface{}")
 	require.Nil(t, res)
 	// keep subscriptions len == 3, no additions was made
 	require.Len(t, wsconn.Subscriptions, 3)
 
 	res, err = wsconn.initStorageChangeListener(6, []interface{}{1})
-	require.EqualError(t, err, "unknown parameter type")
+	require.ErrorIs(t, err, errUnexpectedType)
+	require.EqualError(t, err, "unexpected type: int, expected type string, []string, []interface{}")
 	require.Nil(t, res)
 	require.Len(t, wsconn.Subscriptions, 3)
 
@@ -207,7 +210,7 @@ func TestWSConn_HandleComm(t *testing.T) {
 	wsconn.CoreAPI = modules.NewMockCoreAPI()
 	wsconn.BlockAPI = nil
 	wsconn.TxStateAPI = modules.NewMockTransactionStateAPI()
-	listner, err := wsconn.initExtrinsicWatch(0, []interface{}{"NotHex"})
+	listner, err := wsconn.initExtrinsicWatch(0, []string{"NotHex"})
 	require.EqualError(t, err, "could not byteify non 0x prefixed string: NotHex")
 	require.Nil(t, listner)
 
@@ -294,7 +297,7 @@ func TestSubscribeAllHeads(t *testing.T) {
 	wsconn.Subscriptions = make(map[uint32]Listener)
 	defer cancel()
 
-	go wsconn.HandleComm()
+	go wsconn.HandleConn()
 	time.Sleep(time.Second * 2)
 
 	_, err := wsconn.initAllBlocksListerner(1, nil)
@@ -371,4 +374,51 @@ func TestSubscribeAllHeads(t *testing.T) {
 
 	require.NoError(t, l.Stop())
 	mockBlockAPI.On("FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block"))
+}
+
+func TestWSConn_CheckWebsocketInvalidData(t *testing.T) {
+	wsconn, c, cancel := setupWSConn(t)
+	wsconn.Subscriptions = make(map[uint32]Listener)
+	defer cancel()
+
+	go wsconn.HandleConn()
+
+	tests := []struct {
+		sentMessage []byte
+		expected    []byte
+	}{
+		{
+			sentMessage: []byte(`{
+			"jsonrpc": "2.0",
+			"method": "",
+			"id": 0,
+			"params": []
+			}`),
+			expected: []byte(`{"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid request"},"id":0}` + "\n"),
+		},
+		{
+			sentMessage: []byte(`{
+			"jsonrpc": "2.0",
+			"params": []
+			}`),
+			expected: []byte(`{"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid request"},"id":0}` + "\n"),
+		},
+		{
+			sentMessage: []byte(`{
+			"jsonrpc": "2.0",
+			"id": "abcdef"
+			"method": "some_method_name"
+			"params": []
+			}`),
+			expected: []byte(`{"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid request"},"id":0}` + "\n"),
+		},
+	}
+
+	for _, tt := range tests {
+		c.WriteMessage(websocket.TextMessage, tt.sentMessage)
+
+		_, msg, err := c.ReadMessage()
+		require.NoError(t, err)
+		require.Equal(t, tt.expected, msg)
+	}
 }

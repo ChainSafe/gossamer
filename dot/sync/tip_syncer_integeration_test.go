@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
@@ -32,7 +35,6 @@ func newTestTipSyncer(t *testing.T) *tipSyncer {
 		readyBlocks:   readyBlocks,
 		pendingBlocks: pendingBlocks,
 	}
-
 	return newTipSyncer(bs, pendingBlocks, readyBlocks, cs.handleReadyBlock)
 }
 
@@ -163,7 +165,7 @@ func TestTipSyncer_handleTick_case1(t *testing.T) {
 
 	fin, _ := s.blockState.GetHighestFinalisedHeader()
 
-	// add pending blocks w/ only hash and number, equal or lower than finalised should be removed
+	// add pending blocks w/ only hash and number, lower than finalised should be removed
 	s.pendingBlocks.addHashAndNumber(common.Hash{0xa}, fin.Number)
 	s.pendingBlocks.addHashAndNumber(common.Hash{0xb}, fin.Number+1)
 

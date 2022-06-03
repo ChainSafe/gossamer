@@ -126,11 +126,15 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 	// check for message signature
 	pk, err := ed25519.NewPublicKey(m.Message.AuthorityID[:])
 	if err != nil {
+		// TODO Affect peer reputation
+		// https://github.com/ChainSafe/gossamer/issues/2505
 		return nil, err
 	}
 
 	err = validateMessageSignature(pk, m)
 	if err != nil {
+		// TODO Affect peer reputation
+		// https://github.com/ChainSafe/gossamer/issues/2505
 		return nil, err
 	}
 
@@ -138,38 +142,53 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 		return nil, ErrSetIDMismatch
 	}
 
-	// check that vote is for current round
-	if m.Round != s.state.round {
-		if m.Round < s.state.round {
-			// peer doesn't know round was finalised, send out another commit message
-			header, err := s.blockState.GetFinalisedHeader(m.Round, m.SetID)
-			if err != nil {
-				return nil, err
-			}
+	const maxRoundsLag = 1
+	minRoundAccepted := s.state.round - maxRoundsLag
+	if minRoundAccepted > s.state.round {
+		// we overflowed below 0 so set the minimum to 0.
+		minRoundAccepted = 0
+	}
 
-			cm, err := s.newCommitMessage(header, m.Round)
-			if err != nil {
-				return nil, err
-			}
+	const maxRoundsAhead = 1
+	maxRoundAccepted := s.state.round + maxRoundsAhead
 
-			// send finalised block from previous round to network
-			msg, err := cm.ToConsensusMessage()
-			if err != nil {
-				return nil, err
-			}
+	if m.Round < minRoundAccepted || m.Round > maxRoundAccepted {
+		// Discard message
+		// TODO: affect peer reputation, this is shameful impolite behaviour
+		// https://github.com/ChainSafe/gossamer/issues/2505
+		return nil, nil //nolint:nilnil
+	}
 
-			if err = s.network.SendMessage(from, msg); err != nil {
-				logger.Warnf("failed to send CommitMessage: %s", err)
-			}
-		} else {
-			// round is higher than ours, perhaps we are behind. store vote in tracker for now
-			s.tracker.addVote(&networkVoteMessage{
-				from: from,
-				msg:  m,
-			})
+	if m.Round < s.state.round {
+		// message round is lagging by 1
+		// peer doesn't know round was finalised, send out another commit message
+		header, err := s.blockState.GetFinalisedHeader(m.Round, m.SetID)
+		if err != nil {
+			return nil, err
+		}
+
+		cm, err := s.newCommitMessage(header, m.Round)
+		if err != nil {
+			return nil, err
+		}
+
+		// send finalised block from previous round to network
+		msg, err := cm.ToConsensusMessage()
+		if err != nil {
+			return nil, err
+		}
+
+		if err = s.network.SendMessage(from, msg); err != nil {
+			logger.Warnf("failed to send CommitMessage: %s", err)
 		}
 
 		// TODO: get justification if your round is lower, or just do catch-up? (#1815)
+		return nil, errRoundMismatch(m.Round, s.state.round)
+	} else if m.Round > s.state.round {
+		// Message round is higher by 1 than the round of our state,
+		// we may be lagging behind, so store the message in the tracker
+		// for processing later in the coming few milliseconds.
+		s.tracker.addVote(from, m)
 		return nil, errRoundMismatch(m.Round, s.state.round)
 	}
 
@@ -192,10 +211,7 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 		errors.Is(err, blocktree.ErrDescendantNotFound) ||
 		errors.Is(err, blocktree.ErrEndNodeNotFound) ||
 		errors.Is(err, blocktree.ErrStartNodeNotFound) {
-		s.tracker.addVote(&networkVoteMessage{
-			from: from,
-			msg:  m,
-		})
+		s.tracker.addVote(from, m)
 	}
 	if err != nil {
 		return nil, err
