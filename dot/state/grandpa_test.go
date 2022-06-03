@@ -1127,12 +1127,8 @@ func TestApplyScheduledChange(t *testing.T) {
 		{Key: keyring.KeyCharlie.Public().(*sr25519.PublicKey).AsBytes()},
 	}
 
-	genesisAuths, err := types.GrandpaAuthoritiesRawToAuthorities(genesisGrandpaVoters)
-	require.NoError(t, err)
-
 	const sizeOfChain = 10
 	genericForks := func(t *testing.T, blockState *BlockState) [][]*types.Header {
-
 		/*
 		* create chainA and two forks: chainB and chainC
 		*
@@ -1304,6 +1300,9 @@ func TestApplyScheduledChange(t *testing.T) {
 
 			db := NewInMemoryDB(t)
 			blockState := testBlockState(t, db)
+
+			genesisAuths, err := types.GrandpaAuthoritiesRawToAuthorities(genesisGrandpaVoters)
+			require.NoError(t, err)
 
 			voters := types.NewGrandpaVotersFromAuthorities(genesisAuths)
 			gs, err := NewGrandpaStateFromGenesis(db, blockState, voters)
