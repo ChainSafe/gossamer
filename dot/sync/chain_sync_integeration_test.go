@@ -7,6 +7,7 @@
 package sync
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -666,7 +667,7 @@ func TestChainSync_doSync(t *testing.T) {
 
 	workerErr = cs.doSync(req, make(map[peer.ID]struct{}))
 	require.Nil(t, workerErr)
-	bd := readyBlocks.pop()
+	bd := readyBlocks.pop(context.Background())
 	require.NotNil(t, bd)
 	require.Equal(t, resp.BlockData[0], bd)
 
@@ -702,11 +703,11 @@ func TestChainSync_doSync(t *testing.T) {
 	workerErr = cs.doSync(req, make(map[peer.ID]struct{}))
 	require.Nil(t, workerErr)
 
-	bd = readyBlocks.pop()
+	bd = readyBlocks.pop(context.Background())
 	require.NotNil(t, bd)
 	require.Equal(t, resp.BlockData[0], bd)
 
-	bd = readyBlocks.pop()
+	bd = readyBlocks.pop(context.Background())
 	require.NotNil(t, bd)
 	require.Equal(t, resp.BlockData[1], bd)
 }
@@ -760,9 +761,10 @@ func TestHandleReadyBlock(t *testing.T) {
 	require.False(t, cs.pendingBlocks.hasBlock(header3.Hash()))
 	require.True(t, cs.pendingBlocks.hasBlock(header2NotDescendant.Hash()))
 
-	require.Equal(t, block1.ToBlockData(), readyBlocks.pop())
-	require.Equal(t, block2.ToBlockData(), readyBlocks.pop())
-	require.Equal(t, block3.ToBlockData(), readyBlocks.pop())
+	ctx := context.Background()
+	require.Equal(t, block1.ToBlockData(), readyBlocks.pop(ctx))
+	require.Equal(t, block2.ToBlockData(), readyBlocks.pop(ctx))
+	require.Equal(t, block3.ToBlockData(), readyBlocks.pop(ctx))
 }
 
 func TestChainSync_determineSyncPeers(t *testing.T) {
