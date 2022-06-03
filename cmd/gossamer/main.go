@@ -401,9 +401,10 @@ func buildSpecAction(ctx *cli.Context) error {
 		if err != nil {
 			return fmt.Errorf("cannot write genesis spec file: %w", err)
 		}
+	} else {
+		fmt.Printf("%s\n", res)
 	}
 
-	fmt.Println(res)
 	return nil
 }
 
