@@ -80,9 +80,9 @@ var (
 		Description: "The build-spec command outputs current genesis JSON data.\n" +
 			"\tUsage: gossamer build-spec\n" +
 			"\tTo generate raw genesis file from default: " +
-			"gossamer build-spec --raw > genesis.json" +
+			"gossamer build-spec --raw --output genesis.json" +
 			"\tTo generate raw genesis file from specific genesis file: " +
-			"gossamer build-spec --raw --genesis genesis-spec.json > genesis.json",
+			"gossamer build-spec --raw --genesis genesis-spec.json --output genesis.json",
 	}
 
 	// importRuntime generates a genesis file given a .wasm runtime binary.
@@ -397,11 +397,12 @@ func buildSpecAction(ctx *cli.Context) error {
 	}
 
 	if outputPath := ctx.String(OutputSpecFlag.Name); outputPath != "" {
-		if err = dot.WriteGenesisSpecFile(res, outputPath); err != nil {
-			return err
+		err = dot.WriteGenesisSpecFile(res, outputPath)
+		if err != nil {
+			return fmt.Errorf("cannot write genesis spec file: %w", err)
 		}
 	} else {
-		fmt.Printf("%s", res)
+		fmt.Printf("%s\n", res)
 	}
 
 	return nil
