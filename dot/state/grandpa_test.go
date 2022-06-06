@@ -1206,7 +1206,7 @@ func TestApplyScheduledChange(t *testing.T) {
 				// change on block 5 from chain A should be a child
 				// node of scheduled change on block 4 from chain A
 				chainABlock5 := headers[0][5]
-				err = gs.addScheduledChange(chainABlock5, types.GrandpaScheduledChange{
+				gs.addScheduledChange(chainABlock5, types.GrandpaScheduledChange{
 					Delay: 0,
 					Auths: []types.GrandpaAuthoritiesRaw{
 						{Key: keyring.KeyBob.Public().(*sr25519.PublicKey).AsBytes()},
@@ -1238,7 +1238,7 @@ func TestApplyScheduledChange(t *testing.T) {
 				})
 
 				chainBBlock8 := headers[1][5] // block number 8 from chain B
-				err = gs.addScheduledChange(chainBBlock8, types.GrandpaScheduledChange{
+				gs.addScheduledChange(chainBBlock8, types.GrandpaScheduledChange{
 					Delay: 0,
 					Auths: []types.GrandpaAuthoritiesRaw{
 						{Key: keyring.KeyBob.Public().(*sr25519.PublicKey).AsBytes()},
