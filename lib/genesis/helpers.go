@@ -291,7 +291,6 @@ func buildRawArrayInterface(a []interface{}, kv *keyValue) error {
 				return err
 			}
 		case string:
-			// TODO: check to confirm it's an address (#1865)
 			addrBytes, err := crypto.PublicAddressToByteArray(common.Address(v2))
 			if err != nil {
 				kv.value += fmt.Sprintf("%x", v2)
