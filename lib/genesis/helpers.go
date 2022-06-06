@@ -238,7 +238,7 @@ func buildRawMap(m map[string]map[string]interface{}) (map[string]string, error)
 			return nil, err
 		}
 
-		if reflect.DeepEqual([]string{"Balances", "balances"}, kv.key) {
+		if reflect.DeepEqual([]string{"balances", "balances"}, kv.key) {
 			err = buildBalances(kv, res)
 			if err != nil {
 				return nil, err
@@ -272,7 +272,11 @@ func buildRawMapInterface(m map[string]interface{}, kv *keyValue) error {
 				return err
 			}
 		case string:
-			kv.value = v2
+			if strings.HasPrefix(v2, "0x") {
+				kv.value = v2
+			} else {
+				kv.value = fmt.Sprintf("%x", v2)
+			}
 		}
 	}
 	return nil
@@ -290,8 +294,8 @@ func buildRawArrayInterface(a []interface{}, kv *keyValue) error {
 			// TODO: check to confirm it's an address (#1865)
 			addrBytes, err := crypto.PublicAddressToByteArray(common.Address(v2))
 			if err != nil {
-				kv.value += kv.value
-				kv.iVal = append(kv.iVal, kv.value)
+				kv.value += fmt.Sprintf("%x", v2)
+				kv.iVal = append(kv.iVal, v2)
 			} else {
 				kv.value += fmt.Sprintf("%x", addrBytes)
 				kv.iVal = append(kv.iVal, addrBytes)
@@ -578,7 +582,7 @@ func generateAddressHash(accAddr, key string) ([]byte, error) {
 }
 func formatValue(kv *keyValue) (string, error) {
 	switch {
-	case reflect.DeepEqual([]string{"Grandpa", "Authorities"}, kv.key):
+	case reflect.DeepEqual([]string{"grandpa", "authorities"}, kv.key):
 		if kv.valueLen != nil {
 			lenEnc, err := scale.Marshal(kv.valueLen)
 			if err != nil {
@@ -588,9 +592,9 @@ func formatValue(kv *keyValue) (string, error) {
 			return fmt.Sprintf("0x01%x%v", lenEnc, kv.value), nil
 		}
 		return "", fmt.Errorf("error formatting value for grandpa authorities")
-	case reflect.DeepEqual([]string{"System", "code"}, kv.key):
+	case reflect.DeepEqual([]string{"system", "code"}, kv.key):
 		return kv.value, nil
-	case reflect.DeepEqual([]string{"Sudo", "Key"}, kv.key):
+	case reflect.DeepEqual([]string{"sudo", "Key"}, kv.key):
 		addrBytes, err := crypto.PublicAddressToByteArray(common.Address(kv.value))
 		if err != nil {
 			return "", fmt.Errorf("cannot transform public address to byte array: %w", err)
