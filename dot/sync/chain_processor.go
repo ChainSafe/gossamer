@@ -64,7 +64,7 @@ func newChainProcessor(readyBlocks *blockQueue, pendingBlocks DisjointBlockSet,
 }
 
 func (s *chainProcessor) start() {
-	go s.processReadyBlocks()
+	go s.processReadyBlocks() // here
 }
 
 func (s *chainProcessor) stop() {
@@ -73,7 +73,7 @@ func (s *chainProcessor) stop() {
 
 func (s *chainProcessor) processReadyBlocks() {
 	for {
-		bd := s.readyBlocks.pop(s.ctx)
+		bd := s.readyBlocks.pop(s.ctx) // here
 		if s.ctx.Err() != nil {
 			return
 		}

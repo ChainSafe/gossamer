@@ -232,6 +232,9 @@ func (b *Service) Start() error {
 		}
 	}
 
+	if b == nil {
+		fmt.Println("b is nil")
+	}
 	go b.initiate()
 	return nil
 }

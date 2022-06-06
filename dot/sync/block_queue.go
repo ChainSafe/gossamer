@@ -5,6 +5,7 @@ package sync
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -36,7 +37,10 @@ func (bq *blockQueue) push(blockData *types.BlockData) {
 
 // pop pops an item from the queue. It blocks if the queue is empty.
 func (bq *blockQueue) pop(ctx context.Context) (blockData *types.BlockData) {
-	select {
+	if bq.queue == nil {
+		fmt.Println("bq.queue is nil")
+	}
+	select { // here
 	case <-ctx.Done():
 		return nil
 	case blockData = <-bq.queue:
