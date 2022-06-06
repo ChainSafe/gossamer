@@ -6,6 +6,7 @@ package sync
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -880,7 +881,7 @@ func Test_chainSync_logSyncSpeed(t *testing.T) {
 
 	type fields struct {
 		blockStateBuilder func(ctrl *gomock.Controller) BlockState
-		networkBuilder    func(ctrl *gomock.Controller) Network
+		networkBuilder    func(ctrl *gomock.Controller, waitGroup *sync.WaitGroup) Network
 		state             chainSyncState
 		benchmarker       *syncBenchmarker
 	}
@@ -893,10 +894,16 @@ func Test_chainSync_logSyncSpeed(t *testing.T) {
 			fields: fields{
 				blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 					mockBlockState := NewMockBlockState(ctrl)
+					mockBlockState.EXPECT().BestBlockHeader().Return(&types.Header{}, nil).AnyTimes()
+					mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(&types.Header{}, nil)
 					return mockBlockState
 				},
-				networkBuilder: func(ctrl *gomock.Controller) Network {
+				networkBuilder: func(ctrl *gomock.Controller, waitGroup *sync.WaitGroup) Network {
 					mockNetwork := NewMockNetwork(ctrl)
+					mockNetwork.EXPECT().Peers().DoAndReturn(func() error {
+						waitGroup.Done()
+						return nil
+					})
 					return mockNetwork
 				},
 				benchmarker: newSyncBenchmarker(10),
@@ -908,10 +915,16 @@ func Test_chainSync_logSyncSpeed(t *testing.T) {
 			fields: fields{
 				blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 					mockBlockState := NewMockBlockState(ctrl)
+					mockBlockState.EXPECT().BestBlockHeader().Return(&types.Header{}, nil).AnyTimes()
+					mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(&types.Header{}, nil)
 					return mockBlockState
 				},
-				networkBuilder: func(ctrl *gomock.Controller) Network {
+				networkBuilder: func(ctrl *gomock.Controller, waitGroup *sync.WaitGroup) Network {
 					mockNetwork := NewMockNetwork(ctrl)
+					mockNetwork.EXPECT().Peers().DoAndReturn(func() error {
+						waitGroup.Done()
+						return nil
+					})
 					return mockNetwork
 				},
 				benchmarker: newSyncBenchmarker(10),
@@ -925,17 +938,19 @@ func Test_chainSync_logSyncSpeed(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			ctx, cancel := context.WithCancel(context.Background())
+			waitGroup := new(sync.WaitGroup)
+			waitGroup.Add(1)
 			cs := &chainSync{
 				ctx:           ctx,
 				cancel:        cancel,
 				blockState:    tt.fields.blockStateBuilder(ctrl),
-				network:       tt.fields.networkBuilder(ctrl),
+				network:       tt.fields.networkBuilder(ctrl, waitGroup),
 				state:         tt.fields.state,
 				benchmarker:   tt.fields.benchmarker,
-				logSyncPeriod: time.Nanosecond,
+				logSyncPeriod: time.Millisecond,
 			}
 			go cs.logSyncSpeed()
-			time.Sleep(time.Nanosecond)
+			waitGroup.Wait()
 			cancel()
 		})
 	}

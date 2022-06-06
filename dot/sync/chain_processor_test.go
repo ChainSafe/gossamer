@@ -6,8 +6,8 @@ package sync
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
-	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
@@ -526,6 +526,25 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 			},
 			expectedError: mockError,
 		},
+		"handle error with handleBlock": {
+			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().HasHeader(common.Hash{}).Return(false, nil)
+				mockBlockState.EXPECT().HasBlockBody(common.Hash{}).Return(false, nil)
+				mockBlockState.EXPECT().GetHeader(common.Hash{}).Return(nil, mockError)
+				mockBabeVerifier := NewMockBabeVerifier(ctrl)
+				mockBabeVerifier.EXPECT().VerifyBlock(&types.Header{}).Return(nil)
+				return chainProcessor{
+					blockState:   mockBlockState,
+					babeVerifier: mockBabeVerifier,
+				}
+			},
+			blockData: &types.BlockData{
+				Header: &types.Header{},
+				Body:   &types.Body{},
+			},
+			expectedError: errFailedToGetParent,
+		},
 		"error adding block": {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
 				mockBlockState := NewMockBlockState(ctrl)
@@ -704,15 +723,19 @@ func Test_chainProcessor_processReadyBlocks(t *testing.T) {
 
 	tests := []struct {
 		name              string
-		blockStateBuilder func(ctrl *gomock.Controller) BlockState
+		blockStateBuilder func(ctrl *gomock.Controller, waitGroup *sync.WaitGroup) BlockState
 	}{
 		{
 			name: "base case",
-			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+			blockStateBuilder: func(ctrl *gomock.Controller, waitGroup *sync.WaitGroup) BlockState {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().HasHeader(common.Hash{}).Return(false, nil)
 				mockBlockState.EXPECT().HasBlockBody(common.Hash{}).Return(false, nil)
-				mockBlockState.EXPECT().CompareAndSetBlockData(&types.BlockData{})
+				mockBlockState.EXPECT().CompareAndSetBlockData(&types.BlockData{}).DoAndReturn(func(*types.
+					BlockData) error {
+					waitGroup.Done()
+					return nil
+				})
 				return mockBlockState
 			},
 		},
@@ -724,12 +747,14 @@ func Test_chainProcessor_processReadyBlocks(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			ctx, cancel := context.WithCancel(context.Background())
 			readyBlock := newBlockQueue(5)
+			waitGroup := new(sync.WaitGroup)
+			waitGroup.Add(1)
 
 			s := &chainProcessor{
 				ctx:         ctx,
 				cancel:      cancel,
 				readyBlocks: readyBlock,
-				blockState:  tt.blockStateBuilder(ctrl),
+				blockState:  tt.blockStateBuilder(ctrl, waitGroup),
 			}
 
 			go s.processReadyBlocks()
@@ -737,8 +762,7 @@ func Test_chainProcessor_processReadyBlocks(t *testing.T) {
 			readyBlock.push(&types.BlockData{
 				Hash: common.Hash{},
 			})
-			time.Sleep(time.Millisecond)
-
+			waitGroup.Wait()
 			s.cancel()
 		})
 	}
