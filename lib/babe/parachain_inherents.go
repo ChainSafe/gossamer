@@ -27,7 +27,7 @@ func (ex Explicit) Index() uint {
 }
 
 // GetValidityAttestation returns a ValidityAttestation varying data type.
-func GetValidityAttestation() ValidityAttestation {
+func NewValidityAttestation() ValidityAttestation {
 	vdt, err := scale.NewVaryingDataType(Implicit{}, Explicit{})
 	if err != nil {
 		panic(err)
