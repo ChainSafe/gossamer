@@ -6,13 +6,13 @@ package genesis
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"math/big"
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -288,9 +288,15 @@ func buildRawArrayInterface(a []interface{}, kv *keyValue) error {
 			}
 		case string:
 			// TODO: check to confirm it's an address (#1865)
-			tba := crypto.PublicAddressToByteArray(common.Address(v2))
-			kv.value = kv.value + fmt.Sprintf("%x", tba)
-			kv.iVal = append(kv.iVal, tba)
+			addrBytes, err := crypto.PublicAddressToByteArray(common.Address(v2))
+			if err != nil {
+				kv.value += kv.value
+				kv.iVal = append(kv.iVal, kv.value)
+			} else {
+				kv.value += fmt.Sprintf("%x", addrBytes)
+				kv.iVal = append(kv.iVal, addrBytes)
+			}
+
 		case float64:
 			encVal, err := scale.Marshal(uint64(v2))
 			if err != nil {
@@ -333,7 +339,12 @@ func generateStorageValue(i interface{}, idx int) ([]byte, error) {
 		enc := make([][32]byte, len(t))
 		var accAddr accountAddr
 		for index, add := range t {
-			copy(accAddr[:], crypto.PublicAddressToByteArray(common.Address(add.(string))))
+			addrBytes, err := crypto.PublicAddressToByteArray(common.Address(add.(string)))
+			if err != nil {
+				return nil, fmt.Errorf("cannot transform public address to byte array: %w", err)
+			}
+
+			copy(accAddr[:], addrBytes)
 			enc[index] = accAddr
 		}
 		encode, err = scale.Marshal(enc)
@@ -342,7 +353,11 @@ func generateStorageValue(i interface{}, idx int) ([]byte, error) {
 		}
 	case []string:
 		for _, add := range t {
-			accID := crypto.PublicAddressToByteArray(common.Address(add))
+			accID, err := crypto.PublicAddressToByteArray(common.Address(add))
+			if err != nil {
+				return nil, fmt.Errorf("cannot transform public address to byte array: %w", err)
+			}
+
 			encode = append(encode, accID...)
 		}
 		encode, err = scale.Marshal(encode)
@@ -372,7 +387,12 @@ func generateStorageValue(i interface{}, idx int) ([]byte, error) {
 				var accAddr accountAddr
 				switch v1 := v.(type) {
 				case string:
-					copy(accAddr[:], crypto.PublicAddressToByteArray(common.Address(v1)))
+					addrBytes, err := crypto.PublicAddressToByteArray(common.Address(v1))
+					if err != nil {
+						return nil, fmt.Errorf("cannot transform public address to byte array: %w", err)
+					}
+
+					copy(accAddr[:], addrBytes)
 					encode = append(encode, accAddr[:]...)
 				case float64:
 					var bytesVal []byte
@@ -447,15 +467,13 @@ func generateKeyValue(s interface{}, prefixKey string, res map[string]string) er
 
 func formatKey(kv *keyValue) (string, error) {
 	switch {
-	case reflect.DeepEqual([]string{"Grandpa", "Authorities"}, kv.key):
-		kb := []byte(`:grandpa_authorities`)
-		return common.BytesToHex(kb), nil
-	case reflect.DeepEqual([]string{"System", "code"}, kv.key):
-		kb := []byte(`:code`)
-		return common.BytesToHex(kb), nil
+	case reflect.DeepEqual([]string{"grandpa", "authorities"}, kv.key):
+		return common.BytesToHex([]byte(`:grandpa_authorities`)), nil
+	case reflect.DeepEqual([]string{"system", "code"}, kv.key):
+		return common.BytesToHex([]byte(`:code`)), nil
 	default:
 		if len(kv.key) < 2 {
-			return "", errors.New("key array less than 2")
+			return "", fmt.Errorf("key array less than 2: %s, please remove it", strings.Join(kv.key, ""))
 		}
 
 		return generateStorageKey(kv.key[0], kv.key[1])
@@ -485,7 +503,11 @@ func generateSessionKeyValue(s *session, prefixKey string, res map[string]string
 					return err
 				}
 
-				validatorAccID = crypto.PublicAddressToByteArray(common.Address(t))
+				validatorAccID, err = crypto.PublicAddressToByteArray(common.Address(t))
+				if err != nil {
+					return fmt.Errorf("cannot transform public address to byte array: %w", err)
+				}
+
 				var accIDHash []byte
 				accIDHash, err = common.Twox64(validatorAccID)
 				if err != nil {
@@ -540,8 +562,12 @@ func generateSessionKeyValue(s *session, prefixKey string, res map[string]string
 }
 
 func generateAddressHash(accAddr, key string) ([]byte, error) {
-	acc := crypto.PublicAddressToByteArray(common.Address(accAddr))
-	encodeAcc, _ := scale.Marshal(acc)
+	addrBytes, err := crypto.PublicAddressToByteArray(common.Address(accAddr))
+	if err != nil {
+		return nil, fmt.Errorf("cannot transform public address to byte array: %w", err)
+	}
+
+	encodeAcc, _ := scale.Marshal(addrBytes)
 	storageKey := append([]byte(key), encodeAcc...)
 	addersHash, err := common.Twox64(storageKey)
 	if err != nil {
@@ -565,7 +591,11 @@ func formatValue(kv *keyValue) (string, error) {
 	case reflect.DeepEqual([]string{"System", "code"}, kv.key):
 		return kv.value, nil
 	case reflect.DeepEqual([]string{"Sudo", "Key"}, kv.key):
-		return common.BytesToHex(crypto.PublicAddressToByteArray(common.Address(kv.value))), nil
+		addrBytes, err := crypto.PublicAddressToByteArray(common.Address(kv.value))
+		if err != nil {
+			return "", fmt.Errorf("cannot transform public address to byte array: %w", err)
+		}
+		return common.BytesToHex(addrBytes), nil
 	default:
 		if kv.valueLen != nil {
 			lenEnc, err := scale.Marshal(kv.valueLen)

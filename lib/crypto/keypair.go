@@ -4,6 +4,8 @@
 package crypto
 
 import (
+	"errors"
+
 	"github.com/ChainSafe/gossamer/lib/common"
 
 	"github.com/btcsuite/btcutil/base58"
@@ -25,6 +27,10 @@ const Secp256k1Type KeyType = "secp256k1"
 
 // UnknownType is used by the GenericKeystore
 const UnknownType KeyType = "unknown"
+
+var (
+	ErrNotEnoughBytes = errors.New("not enough bytes in the address")
+)
 
 // Keypair interface
 type Keypair interface {
@@ -76,9 +82,13 @@ func publicKeyBytesToAddress(b []byte) common.Address {
 }
 
 // PublicAddressToByteArray returns []byte address for given PublicKey Address
-func PublicAddressToByteArray(add common.Address) []byte {
-	k := base58.Decode(string(add))
-	return k[1:33]
+func PublicAddressToByteArray(addr common.Address) (bytes []byte, err error) {
+	decodedAddr := base58.Decode(string(addr))
+	if len(decodedAddr) < 33 {
+		return nil, ErrNotEnoughBytes
+	}
+
+	return decodedAddr[1:33], nil
 }
 
 // NewBIP39Mnemonic returns a new BIP39-compatible mnemonic
