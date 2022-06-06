@@ -72,7 +72,7 @@ func testGenerateProof(t *testing.T, entries []Pair, keys [][]byte) ([]byte, [][
 	err = trie.Store(memdb)
 	require.NoError(t, err)
 
-	root := trie.root.GetHash()
+	root := trie.root.HashDigest
 	proof, err := GenerateProof(root, keys, memdb)
 	require.NoError(t, err)
 

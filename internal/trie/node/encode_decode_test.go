@@ -15,62 +15,69 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		branchToEncode *Branch
-		branchDecoded  *Branch
+		branchToEncode *Node
+		branchDecoded  *Node
 	}{
 		"empty branch": {
-			branchToEncode: new(Branch),
-			branchDecoded: &Branch{
-				Key:   []byte{},
-				Dirty: true,
+			branchToEncode: &Node{
+				Children: make([]*Node, ChildrenCapacity),
+			},
+			branchDecoded: &Node{
+				Key:      []byte{},
+				Children: make([]*Node, ChildrenCapacity),
+				Dirty:    true,
 			},
 		},
 		"branch with key 5": {
-			branchToEncode: &Branch{
-				Key: []byte{5},
+			branchToEncode: &Node{
+				Children: make([]*Node, ChildrenCapacity),
+				Key:      []byte{5},
 			},
-			branchDecoded: &Branch{
-				Key:   []byte{5},
-				Dirty: true,
+			branchDecoded: &Node{
+				Key:      []byte{5},
+				Children: make([]*Node, ChildrenCapacity),
+				Dirty:    true,
 			},
 		},
 		"branch with two bytes key": {
-			branchToEncode: &Branch{
-				Key: []byte{0xf, 0xa}, // note: each byte cannot be larger than 0xf
+			branchToEncode: &Node{
+				Key:      []byte{0xf, 0xa}, // note: each byte cannot be larger than 0xf
+				Children: make([]*Node, ChildrenCapacity),
 			},
-			branchDecoded: &Branch{
-				Key:   []byte{0xf, 0xa},
-				Dirty: true,
+			branchDecoded: &Node{
+				Key:      []byte{0xf, 0xa},
+				Children: make([]*Node, ChildrenCapacity),
+				Dirty:    true,
 			},
 		},
 		"branch with child leaf inline": {
-			branchToEncode: &Branch{
+			branchToEncode: &Node{
 				Key: []byte{5},
-				Children: [16]Node{
-					&Leaf{
+				Children: padRightChildren([]*Node{
+					{
 						Key:   []byte{9},
 						Value: []byte{10},
 					},
-				},
+				}),
 			},
-			branchDecoded: &Branch{
+			branchDecoded: &Node{
 				Key:         []byte{5},
 				Descendants: 1,
-				Children: [16]Node{
-					&Leaf{
+				Children: padRightChildren([]*Node{
+					{
 						Key:   []byte{9},
 						Value: []byte{10},
 						Dirty: true,
 					},
-				},
+				}),
 				Dirty: true,
 			},
 		},
 		"branch with child leaf hash": {
-			branchToEncode: &Branch{
+			branchToEncode: &Node{
 				Key: []byte{5},
-				Children: [16]Node{
-					&Leaf{
+				Children: padRightChildren([]*Node{
+					{
 						Key: []byte{
 							10, 11, 12, 13,
 							14, 15, 16, 17,
@@ -87,12 +94,12 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 							10, 11, 12, 13,
 						},
 					},
-				},
+				}),
 			},
-			branchDecoded: &Branch{
+			branchDecoded: &Node{
 				Key: []byte{5},
-				Children: [16]Node{
-					&Leaf{
+				Children: padRightChildren([]*Node{
+					{
 						HashDigest: []byte{
 							2, 18, 48, 30, 98,
 							133, 244, 78, 70,
@@ -103,7 +110,7 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 							132, 5, 39, 204,
 						},
 					},
-				},
+				}),
 				Dirty:       true,
 				Descendants: 1,
 			},

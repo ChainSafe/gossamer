@@ -3,17 +3,25 @@
 
 package node
 
-// Type is the byte type for the node.
+import "fmt"
+
+// Type is the type of the node.
 type Type byte
 
 const (
-	_ Type = iota
-	// LeafType type is 1
-	LeafType
-	// BranchType type is 2
-	BranchType
-	// BranchWithValueType type is 3
-	BranchWithValueType
-	// InvalidType is used in tests only
-	InvalidType
+	// Leaf type for leaf nodes.
+	Leaf Type = iota
+	// Branch type for branches (with or without value).
+	Branch
 )
+
+func (t Type) String() string {
+	switch t {
+	case Leaf:
+		return "leaf"
+	case Branch:
+		return "branch"
+	default:
+		panic(fmt.Sprintf("invalid node type: %d", t))
+	}
+}

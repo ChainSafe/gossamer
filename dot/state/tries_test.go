@@ -168,13 +168,13 @@ func Test_Tries_get(t *testing.T) {
 		"found in map": {
 			tries: &Tries{
 				rootToTrie: map[common.Hash]*trie.Trie{
-					{1, 2, 3}: trie.NewTrie(&node.Leaf{
+					{1, 2, 3}: trie.NewTrie(&node.Node{
 						Key: []byte{1, 2, 3},
 					}),
 				},
 			},
 			root: common.Hash{1, 2, 3},
-			trie: trie.NewTrie(&node.Leaf{
+			trie: trie.NewTrie(&node.Node{
 				Key: []byte{1, 2, 3},
 			}),
 		},

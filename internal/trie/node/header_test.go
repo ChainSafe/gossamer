@@ -10,64 +10,72 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_Branch_encodeHeader(t *testing.T) {
+func Test_encodeHeader(t *testing.T) {
 	testCases := map[string]struct {
-		branch     *Branch
+		node       *Node
 		writes     []writeCall
 		errWrapped error
 		errMessage string
 	}{
-		"no key": {
-			branch: &Branch{},
+		"branch with no key": {
+			node: &Node{
+				Children: make([]*Node, ChildrenCapacity),
+			},
 			writes: []writeCall{
 				{written: []byte{0x80}},
 			},
 		},
-		"with value": {
-			branch: &Branch{
-				Value: []byte{},
+		"branch with value": {
+			node: &Node{
+				Value:    []byte{},
+				Children: make([]*Node, ChildrenCapacity),
 			},
 			writes: []writeCall{
 				{written: []byte{0xc0}},
 			},
 		},
-		"key of length 30": {
-			branch: &Branch{
-				Key: make([]byte, 30),
+		"branch with key of length 30": {
+			node: &Node{
+				Key:      make([]byte, 30),
+				Children: make([]*Node, ChildrenCapacity),
 			},
 			writes: []writeCall{
 				{written: []byte{0x9e}},
 			},
 		},
-		"key of length 62": {
-			branch: &Branch{
-				Key: make([]byte, 62),
+		"branch with key of length 62": {
+			node: &Node{
+				Key:      make([]byte, 62),
+				Children: make([]*Node, ChildrenCapacity),
 			},
 			writes: []writeCall{
 				{written: []byte{0xbe}},
 			},
 		},
-		"key of length 63": {
-			branch: &Branch{
-				Key: make([]byte, 63),
+		"branch with key of length 63": {
+			node: &Node{
+				Key:      make([]byte, 63),
+				Children: make([]*Node, ChildrenCapacity),
 			},
 			writes: []writeCall{
 				{written: []byte{0xbf}},
 				{written: []byte{0x0}},
 			},
 		},
-		"key of length 64": {
-			branch: &Branch{
-				Key: make([]byte, 64),
+		"branch with key of length 64": {
+			node: &Node{
+				Key:      make([]byte, 64),
+				Children: make([]*Node, ChildrenCapacity),
 			},
 			writes: []writeCall{
 				{written: []byte{0xbf}},
 				{written: []byte{0x1}},
 			},
 		},
-		"key too big": {
-			branch: &Branch{
-				Key: make([]byte, 65535+63),
+		"branch with key too big": {
+			node: &Node{
+				Key:      make([]byte, 65535+63),
+				Children: make([]*Node, ChildrenCapacity),
 			},
 			writes: []writeCall{
 				{written: []byte{0xbf}},
@@ -75,8 +83,10 @@ func Test_Branch_encodeHeader(t *testing.T) {
 			errWrapped: ErrPartialKeyTooBig,
 			errMessage: "partial key length cannot be larger than or equal to 2^16: 65535",
 		},
-		"small key length write error": {
-			branch: &Branch{},
+		"branch with small key length write error": {
+			node: &Node{
+				Children: make([]*Node, ChildrenCapacity),
+			},
 			writes: []writeCall{
 				{
 					written: []byte{0x80},
@@ -86,9 +96,10 @@ func Test_Branch_encodeHeader(t *testing.T) {
 			errWrapped: errTest,
 			errMessage: "test error",
 		},
-		"long key length write error": {
-			branch: &Branch{
-				Key: make([]byte, 64),
+		"branch with long key length write error": {
+			node: &Node{
+				Key:      make([]byte, 64),
+				Children: make([]*Node, ChildrenCapacity),
 			},
 			writes: []writeCall{
 				{
@@ -99,60 +110,22 @@ func Test_Branch_encodeHeader(t *testing.T) {
 			errWrapped: errTest,
 			errMessage: "test error",
 		},
-	}
-
-	for name, testCase := range testCases {
-		testCase := testCase
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-			ctrl := gomock.NewController(t)
-
-			writer := NewMockWriter(ctrl)
-			var previousCall *gomock.Call
-			for _, write := range testCase.writes {
-				call := writer.EXPECT().
-					Write(write.written).
-					Return(write.n, write.err)
-
-				if previousCall != nil {
-					call.After(previousCall)
-				}
-				previousCall = call
-			}
-
-			err := testCase.branch.encodeHeader(writer)
-
-			assert.ErrorIs(t, err, testCase.errWrapped)
-			if testCase.errWrapped != nil {
-				assert.EqualError(t, err, testCase.errMessage)
-			}
-		})
-	}
-}
-
-func Test_Leaf_encodeHeader(t *testing.T) {
-	testCases := map[string]struct {
-		leaf       *Leaf
-		writes     []writeCall
-		errWrapped error
-		errMessage string
-	}{
-		"no key": {
-			leaf: &Leaf{},
+		"leaf with no key": {
+			node: &Node{},
 			writes: []writeCall{
 				{written: []byte{0x40}},
 			},
 		},
-		"key of length 30": {
-			leaf: &Leaf{
+		"leaf with key of length 30": {
+			node: &Node{
 				Key: make([]byte, 30),
 			},
 			writes: []writeCall{
 				{written: []byte{0x5e}},
 			},
 		},
-		"short key write error": {
-			leaf: &Leaf{
+		"leaf with short key write error": {
+			node: &Node{
 				Key: make([]byte, 30),
 			},
 			writes: []writeCall{
@@ -164,16 +137,16 @@ func Test_Leaf_encodeHeader(t *testing.T) {
 			errWrapped: errTest,
 			errMessage: errTest.Error(),
 		},
-		"key of length 62": {
-			leaf: &Leaf{
+		"leaf with key of length 62": {
+			node: &Node{
 				Key: make([]byte, 62),
 			},
 			writes: []writeCall{
 				{written: []byte{0x7e}},
 			},
 		},
-		"key of length 63": {
-			leaf: &Leaf{
+		"leaf with key of length 63": {
+			node: &Node{
 				Key: make([]byte, 63),
 			},
 			writes: []writeCall{
@@ -181,8 +154,8 @@ func Test_Leaf_encodeHeader(t *testing.T) {
 				{written: []byte{0x0}},
 			},
 		},
-		"key of length 64": {
-			leaf: &Leaf{
+		"leaf with key of length 64": {
+			node: &Node{
 				Key: make([]byte, 64),
 			},
 			writes: []writeCall{
@@ -190,8 +163,8 @@ func Test_Leaf_encodeHeader(t *testing.T) {
 				{written: []byte{0x1}},
 			},
 		},
-		"long key first byte write error": {
-			leaf: &Leaf{
+		"leaf with long key first byte write error": {
+			node: &Node{
 				Key: make([]byte, 63),
 			},
 			writes: []writeCall{
@@ -203,8 +176,8 @@ func Test_Leaf_encodeHeader(t *testing.T) {
 			errWrapped: errTest,
 			errMessage: errTest.Error(),
 		},
-		"key too big": {
-			leaf: &Leaf{
+		"leaf with key too big": {
+			node: &Node{
 				Key: make([]byte, 65535+63),
 			},
 			writes: []writeCall{
@@ -234,7 +207,7 @@ func Test_Leaf_encodeHeader(t *testing.T) {
 				previousCall = call
 			}
 
-			err := testCase.leaf.encodeHeader(writer)
+			err := encodeHeader(testCase.node, writer)
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if testCase.errWrapped != nil {
