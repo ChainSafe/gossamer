@@ -104,7 +104,7 @@ func (ex ExplicitInvalidDisputeStatementKind) Index() uint {
 }
 
 // GetDisputeStatement returns a GetDisputeStatement varying data type.
-func GetDisputeStatement() DisputeStatement {
+func NewDisputeStatement() DisputeStatement {
 	invalidDisputeStatementKind, err := scale.NewVaryingDataType(ExplicitInvalidDisputeStatementKind{})
 	if err != nil {
 		panic(err)
