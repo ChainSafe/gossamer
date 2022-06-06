@@ -107,11 +107,6 @@ func Test_Node_Copy(t *testing.T) {
 				Encoding:   []byte{6},
 			},
 		},
-		"empty leaf": {
-			node:         &Node{},
-			settings:     DefaultCopySettings,
-			expectedNode: &Node{},
-		},
 		"non empty leaf": {
 			node: &Node{
 				Key:        []byte{1, 2},

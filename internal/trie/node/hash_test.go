@@ -21,16 +21,6 @@ func Test_Node_EncodeAndHash(t *testing.T) {
 		errWrapped   error
 		errMessage   string
 	}{
-		"empty leaf": {
-			node: Node{},
-			expectedNode: Node{
-				Encoding:   []byte{0x40, 0x0},
-				HashDigest: []byte{0x40, 0x0},
-			},
-			encoding: []byte{0x40, 0x0},
-			hash:     []byte{0x40, 0x0},
-			isRoot:   false,
-		},
 		"small leaf encoding": {
 			node: Node{
 				Key:   []byte{1},
