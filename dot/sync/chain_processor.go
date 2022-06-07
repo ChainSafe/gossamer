@@ -73,6 +73,15 @@ func (s *chainProcessor) stop() {
 
 func (s *chainProcessor) processReadyBlocks() {
 	for {
+		if s == nil {
+			fmt.Println("s is nil")
+		}
+		if s.ctx == nil {
+			fmt.Println("s.ctx is nil")
+		}
+		if s.readyBlocks == nil {
+			fmt.Println("s.readyBlocks is nil")
+		}
 		bd := s.readyBlocks.pop(s.ctx) // here
 		if s.ctx.Err() != nil {
 			return

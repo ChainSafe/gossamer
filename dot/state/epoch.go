@@ -253,9 +253,11 @@ func (s *EpochState) GetEpochData(epoch uint64, header *types.Header) (*types.Ep
 		return nil, fmt.Errorf("failed to get epoch data from database: %w", err)
 	} else if header == nil {
 		// if no header is given then skip the lookup in-memory
+		// shouldn't we check if epoch data is not nil here?
 		return epochData, nil
 	}
 
+	// should this not happen first?
 	epochData, err = s.getEpochDataFromMemory(epoch, header)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get epoch data from memory: %w", err)
