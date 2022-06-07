@@ -27,7 +27,7 @@ func (ex Explicit) Index() uint {
 }
 
 // GetValidityAttestation returns a ValidityAttestation varying data type.
-func GetValidityAttestation() ValidityAttestation {
+func NewValidityAttestation() ValidityAttestation {
 	vdt, err := scale.NewVaryingDataType(Implicit{}, Explicit{})
 	if err != nil {
 		panic(err)
@@ -104,7 +104,7 @@ func (ex ExplicitInvalidDisputeStatementKind) Index() uint {
 }
 
 // GetDisputeStatement returns a GetDisputeStatement varying data type.
-func GetDisputeStatement() DisputeStatement {
+func NewDisputeStatement() DisputeStatement {
 	invalidDisputeStatementKind, err := scale.NewVaryingDataType(ExplicitInvalidDisputeStatementKind{})
 	if err != nil {
 		panic(err)
