@@ -82,7 +82,7 @@ func (oc *orderedPendingChanges) importChange(pendingChange *pendingChange, isDe
 		changeBlockHash := change.announcingHeader.Hash()
 
 		if changeBlockHash.Equal(announcingHeader) {
-			return errDuplicateHashes
+			return fmt.Errorf("%w: %s", errDuplicateHashes, changeBlockHash)
 		}
 
 		isDescendant, err := isDescendantOf(changeBlockHash, announcingHeader)
@@ -91,20 +91,24 @@ func (oc *orderedPendingChanges) importChange(pendingChange *pendingChange, isDe
 		}
 
 		if isDescendant {
-			return errAlreadyHasForcedChanges
+			return fmt.Errorf("%w: for block hash %s", errAlreadyHasForcedChange, changeBlockHash)
 		}
 	}
+
+	orderedPendingChanges := *oc
 
 	// Use a binary search to include the pending change in the right position
 	// of a slice ordered by the effective number and by announcing header number
 	idxToInsert := sort.Search(oc.Len(), func(i int) bool {
-		return (*oc)[i].effectiveNumber() >= pendingChange.effectiveNumber() &&
-			(*oc)[i].announcingHeader.Number >= pendingChange.announcingHeader.Number
+		return orderedPendingChanges[i].effectiveNumber() >= pendingChange.effectiveNumber() &&
+			orderedPendingChanges[i].announcingHeader.Number >= pendingChange.announcingHeader.Number
 	})
 
-	*oc = append(*oc, pendingChange)
-	copy((*oc)[idxToInsert+1:], (*oc)[idxToInsert:])
-	(*oc)[idxToInsert] = pendingChange
+	orderedPendingChanges = append(orderedPendingChanges, pendingChange)
+	copy(orderedPendingChanges[idxToInsert+1:], orderedPendingChanges[idxToInsert:])
+	orderedPendingChanges[idxToInsert] = pendingChange
+	*oc = orderedPendingChanges
+
 	return nil
 }
 
@@ -138,7 +142,7 @@ func (c *pendingChangeNode) importNode(blockHash common.Hash, blockNumber uint, 
 	announcingHash := c.change.announcingHeader.Hash()
 
 	if blockHash.Equal(announcingHash) {
-		return false, errDuplicateHashes
+		return false, fmt.Errorf("%w: %s", errDuplicateHashes, blockHash)
 	}
 
 	if blockNumber <= c.change.announcingHeader.Number {
@@ -148,7 +152,7 @@ func (c *pendingChangeNode) importNode(blockHash common.Hash, blockNumber uint, 
 	for _, childrenNodes := range c.nodes {
 		imported, err := childrenNodes.importNode(blockHash, blockNumber, pendingChange, isDescendantOf)
 		if err != nil {
-			return false, fmt.Errorf("cannot track node: %w", err)
+			return false, fmt.Errorf("cannot import node: %w", err)
 		}
 
 		if imported {
@@ -165,8 +169,8 @@ func (c *pendingChangeNode) importNode(blockHash common.Hash, blockNumber uint, 
 		return false, nil
 	}
 
-	pendingChangeNode := &pendingChangeNode{change: pendingChange, nodes: []*pendingChangeNode{}}
-	c.nodes = append(c.nodes, pendingChangeNode)
+	childrenNode := &pendingChangeNode{change: pendingChange}
+	c.nodes = append(c.nodes, childrenNode)
 	return true, nil
 }
 
@@ -196,7 +200,6 @@ func (ct *changeTree) importChange(pendingChange *pendingChange, isDescendantOf 
 
 	pendingChangeNode := &pendingChangeNode{
 		change: pendingChange,
-		nodes:  []*pendingChangeNode{},
 	}
 
 	*ct = append(*ct, pendingChangeNode)

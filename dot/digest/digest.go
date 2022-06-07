@@ -19,7 +19,7 @@ var (
 )
 
 var (
-	ErrUnknownConsensusID = errors.New("unknown consensus engine ID")
+	ErrUnknownConsensusEngineID = errors.New("unknown consensus engine ID")
 )
 
 // Handler is used to handle consensus messages and relevant authority updates to BABE and GRANDPA
@@ -171,7 +171,7 @@ func (h *Handler) handleConsensusDigest(d *types.ConsensusDigest, header *types.
 
 		return h.handleBabeConsensusDigest(data, header)
 	default:
-		return fmt.Errorf("%w: 0x%x", ErrUnknownConsensusID, d.ConsensusEngineID.ToBytes())
+		return fmt.Errorf("%w: 0x%x", ErrUnknownConsensusEngineID, d.ConsensusEngineID.ToBytes())
 	}
 }
 

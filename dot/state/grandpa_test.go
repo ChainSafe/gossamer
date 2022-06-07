@@ -376,7 +376,7 @@ func TestShouldNotAddMoreThanOneForcedChangeInTheSameFork(t *testing.T) {
 
 	err = gs.addForcedChange(aliceHeaders[4], someForcedChange)
 	require.Error(t, err)
-	require.ErrorIs(t, err, errAlreadyHasForcedChanges)
+	require.ErrorIs(t, err, errAlreadyHasForcedChange)
 
 	// adding the same forced change twice
 	err = gs.addForcedChange(bobHeaders[2], someForcedChange)
@@ -452,7 +452,7 @@ func TestNextGrandpaAuthorityChange(t *testing.T) {
 		expectedBlockNumber uint
 	}{
 		"no_forced_change_no_scheduled_change": {
-			wantErr: ErrNoNextChange,
+			wantErr: ErrNoNextAuthorityChange,
 		},
 		"only_forced_change": {
 			forcedChangeAnnoucingIndex: 2, // in the chain headers slice the index 2 == block number 3
