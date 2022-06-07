@@ -232,9 +232,6 @@ func (b *Service) Start() error {
 		}
 	}
 
-	if b == nil {
-		fmt.Println("b is nil")
-	}
 	go b.initiate()
 	return nil
 }
@@ -400,10 +397,7 @@ func (b *Service) initiate() {
 }
 
 func (b *Service) initiateAndGetEpochHandler(epoch uint64) (*epochHandler, error) {
-	fmt.Println("403")
 	epochData, err := b.initiateEpoch(epoch)
-	fmt.Println("405")
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to initiate epoch: %w", err)
 	}
@@ -412,8 +406,6 @@ func (b *Service) initiateAndGetEpochHandler(epoch uint64) (*epochHandler, error
 		epochData.threshold, epochData.randomness[:], epochData.authorities)
 
 	epochStartSlot, err := b.epochState.GetStartSlotForEpoch(epoch)
-	fmt.Println("416")
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to get start slot for current epoch %d: %w", epoch, err)
 	}
@@ -434,9 +426,7 @@ func (b *Service) runEngine() error {
 	}
 
 	for {
-		fmt.Println("437")
 		next, err := b.handleEpoch(epoch)
-		fmt.Println("439")
 		if errors.Is(err, errServicePaused) || errors.Is(err, context.Canceled) {
 			return nil
 		} else if err != nil {
@@ -457,20 +447,18 @@ func (b *Service) handleEpoch(epoch uint64) (next uint64, err error) {
 
 	// get start slot for current epoch
 	nextEpochStart, err := b.epochState.GetStartSlotForEpoch(epoch + 1)
-	fmt.Println("454")
 	if err != nil {
 		return 0, fmt.Errorf("failed to get start slot for next epoch %d: %w", epoch+1, err)
 	}
 
 	nextEpochStartTime := getSlotStartTime(nextEpochStart, b.constants.slotDuration)
-	fmt.Println("460")
 	epochTimer := time.NewTimer(time.Until(nextEpochStartTime))
 	cleanup := func() {
 		if !epochTimer.Stop() {
 			<-epochTimer.C
 		}
 	}
-	fmt.Println("467")
+
 	errCh := make(chan error)
 	go b.epochHandler.run(ctx, errCh)
 

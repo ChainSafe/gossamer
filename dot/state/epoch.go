@@ -17,9 +17,10 @@ import (
 )
 
 var (
-	ErrEpochNotInMemory = errors.New("epoch not found in memory map")
-	errHashNotInMemory  = errors.New("hash not found in memory map")
-	errHashNotPersisted = errors.New("hash with next epoch not found in database")
+	ErrEpochNotInMemory  = errors.New("epoch not found in memory map")
+	errHashNotInMemory   = errors.New("hash not found in memory map")
+	errEpochDataNotFound = errors.New("epoch data not found in the database")
+	errHashNotPersisted  = errors.New("hash with next epoch not found in database")
 )
 
 var (
@@ -251,16 +252,18 @@ func (s *EpochState) GetEpochData(epoch uint64, header *types.Header) (*types.Ep
 
 	if err != nil && !errors.Is(err, chaindb.ErrKeyNotFound) {
 		return nil, fmt.Errorf("failed to get epoch data from database: %w", err)
-	} else if header == nil {
-		// if no header is given then skip the lookup in-memory
-		// shouldn't we check if epoch data is not nil here?
-		return epochData, nil
 	}
 
-	// should this not happen first?
-	epochData, err = s.getEpochDataFromMemory(epoch, header)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get epoch data from memory: %w", err)
+	//  lookup in-memory only if header is given
+	if header != nil && errors.Is(err, chaindb.ErrKeyNotFound) {
+		epochData, err = s.getEpochDataFromMemory(epoch, header)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get epoch data from memory: %w", err)
+		}
+	}
+
+	if epochData == nil {
+		return nil, errEpochDataNotFound
 	}
 
 	return epochData, nil

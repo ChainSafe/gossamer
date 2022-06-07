@@ -19,18 +19,12 @@ func (b *Service) initiateEpoch(epoch uint64) (*epochData, error) {
 	// if epoch == 1, check that first slot is still set correctly
 	// ie. that the start slot of the network is the same as the slot number of block 1
 	if epoch == 1 {
-		fmt.Println("22")
-		err := b.checkAndSetFirstSlot()
-		fmt.Println("24")
-		if err != nil {
+		if err := b.checkAndSetFirstSlot(); err != nil {
 			return nil, fmt.Errorf("cannot check and set first slot: %w", err)
 		}
 	}
 
-	fmt.Println("29")
 	epochData, startSlot, err := b.getEpochDataAndStartSlot(epoch)
-	fmt.Println("32")
-
 	if err != nil {
 		return nil, fmt.Errorf("cannot get epoch data and start slot: %w", err)
 	}
@@ -83,7 +77,6 @@ func (b *Service) checkAndSetFirstSlot() error {
 
 func (b *Service) getEpochDataAndStartSlot(epoch uint64) (*epochData, uint64, error) {
 	if epoch == 0 {
-		fmt.Println("86")
 		startSlot, err := b.epochState.GetStartSlotForEpoch(epoch)
 		if err != nil {
 			return nil, 0, fmt.Errorf("cannot get start slot for epoch %d: %w", epoch, err)
@@ -93,11 +86,10 @@ func (b *Service) getEpochDataAndStartSlot(epoch uint64) (*epochData, uint64, er
 		if err != nil {
 			return nil, 0, fmt.Errorf("cannot get latest epoch data: %w", err)
 		}
-		fmt.Println("96")
+
 		return epochData, startSlot, nil
 	}
 
-	fmt.Println("99")
 	has, err := b.epochState.HasEpochData(epoch)
 	if err != nil {
 		return nil, 0, fmt.Errorf("cannot check epoch state: %w", err)
@@ -112,12 +104,7 @@ func (b *Service) getEpochDataAndStartSlot(epoch uint64) (*epochData, uint64, er
 	if err != nil {
 		return nil, 0, fmt.Errorf("cannot get epoch data for epoch %d: %w", epoch, err)
 	}
-	fmt.Println("115")
 
-	if data == nil {
-		// this is where the error is happening
-		fmt.Println("data is nil")
-	}
 	idx, err := b.getAuthorityIndex(data.Authorities)
 	if err != nil {
 		return nil, 0, fmt.Errorf("cannot get authority index: %w", err)
@@ -127,7 +114,6 @@ func (b *Service) getEpochDataAndStartSlot(epoch uint64) (*epochData, uint64, er
 	if err != nil {
 		return nil, 0, fmt.Errorf("cannot check for config data for epoch %d: %w", epoch, err)
 	}
-	fmt.Println("126")
 
 	var cfgData *types.ConfigData
 	if has {
@@ -141,7 +127,6 @@ func (b *Service) getEpochDataAndStartSlot(epoch uint64) (*epochData, uint64, er
 			return nil, 0, fmt.Errorf("cannot get latest config data from epoch state: %w", err)
 		}
 	}
-	fmt.Println("140")
 
 	threshold, err := CalculateThreshold(cfgData.C1, cfgData.C2, len(data.Authorities))
 	if err != nil {
