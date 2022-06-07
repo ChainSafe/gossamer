@@ -220,7 +220,7 @@ func (h *Handler) handleBlockImport(ctx context.Context) {
 
 			err := h.HandleDigests(&block.Header)
 			if err != nil {
-				h.logger.Errorf("failed to handle digest: %s", err)
+				h.logger.Errorf("failed to handle digests: %s", err)
 			}
 
 			err = h.grandpaState.ApplyForcedChanges(&block.Header)

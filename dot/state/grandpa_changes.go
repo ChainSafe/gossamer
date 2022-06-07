@@ -152,7 +152,7 @@ func (c *pendingChangeNode) importNode(blockHash common.Hash, blockNumber uint, 
 	for _, childrenNodes := range c.nodes {
 		imported, err := childrenNodes.importNode(blockHash, blockNumber, pendingChange, isDescendantOf)
 		if err != nil {
-			return false, fmt.Errorf("cannot import node: %w", err)
+			return false, err
 		}
 
 		if imported {
