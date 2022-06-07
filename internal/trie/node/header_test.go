@@ -10,8 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_Branch_encodeHeader(t *testing.T) {
-	t.Parallel()
+func Test_encodeHeader(t *testing.T) {
 	testCases := map[string]struct {
 		node       *Node
 		writes     []writeCall
@@ -111,47 +110,8 @@ func Test_Branch_encodeHeader(t *testing.T) {
 			errWrapped: errTest,
 			errMessage: "test error",
 		},
-	}
-
-	for name, testCase := range testCases {
-		testCase := testCase
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-			ctrl := gomock.NewController(t)
-
-			writer := NewMockWriter(ctrl)
-			var previousCall *gomock.Call
-			for _, write := range testCase.writes {
-				call := writer.EXPECT().
-					Write(write.written).
-					Return(write.n, write.err)
-
-				if previousCall != nil {
-					call.After(previousCall)
-				}
-				previousCall = call
-			}
-
-			err := testCase.branch.encodeHeader(writer)
-
-			assert.ErrorIs(t, err, testCase.errWrapped)
-			if testCase.errWrapped != nil {
-				assert.EqualError(t, err, testCase.errMessage)
-			}
-		})
-	}
-}
-
-func Test_Leaf_encodeHeader(t *testing.T) {
-	t.Parallel()
-	testCases := map[string]struct {
-		leaf       *Leaf
-		writes     []writeCall
-		errWrapped error
-		errMessage string
-	}{
-		"no key": {
-			leaf: &Leaf{},
+		"leaf with no key": {
+			node: &Node{},
 			writes: []writeCall{
 				{written: []byte{0x40}},
 			},

@@ -717,7 +717,7 @@ func TestChainSync_doSync(t *testing.T) {
 
 	workerErr = cs.doSync(req, make(map[peer.ID]struct{}))
 	require.Nil(t, workerErr)
-	bd := readyBlocks.pop()
+	bd := readyBlocks.pop(context.Background())
 	require.NotNil(t, bd)
 	require.Equal(t, resp.BlockData[0], bd)
 
@@ -758,11 +758,11 @@ func TestChainSync_doSync(t *testing.T) {
 	workerErr = cs.doSync(req, make(map[peer.ID]struct{}))
 	require.Nil(t, workerErr)
 
-	bd = readyBlocks.pop()
+	bd = readyBlocks.pop(context.Background())
 	require.NotNil(t, bd)
 	require.Equal(t, resp.BlockData[0], bd)
 
-	bd = readyBlocks.pop()
+	bd = readyBlocks.pop(context.Background())
 	require.NotNil(t, bd)
 	require.Equal(t, resp.BlockData[1], bd)
 }
@@ -819,9 +819,9 @@ func TestHandleReadyBlock(t *testing.T) {
 	require.False(t, cs.pendingBlocks.hasBlock(header3.Hash()))
 	require.True(t, cs.pendingBlocks.hasBlock(header2NotDescendant.Hash()))
 
-	require.Equal(t, block1.ToBlockData(), readyBlocks.pop())
-	require.Equal(t, block2.ToBlockData(), readyBlocks.pop())
-	require.Equal(t, block3.ToBlockData(), readyBlocks.pop())
+	require.Equal(t, block1.ToBlockData(), readyBlocks.pop(context.Background()))
+	require.Equal(t, block2.ToBlockData(), readyBlocks.pop(context.Background()))
+	require.Equal(t, block3.ToBlockData(), readyBlocks.pop(context.Background()))
 }
 
 func TestChainSync_determineSyncPeers(t *testing.T) {
@@ -962,6 +962,7 @@ func Test_chainSync_start(t *testing.T) {
 	type fields struct {
 		blockStateBuilder       func(ctrl *gomock.Controller) BlockState
 		disjointBlockSetBuilder func(ctrl *gomock.Controller) DisjointBlockSet
+		networkBuilder          func(ctrl *gomock.Controller, done chan struct{}) Network
 		benchmarker             *syncBenchmarker
 		slotDuration            time.Duration
 	}
@@ -974,13 +975,23 @@ func Test_chainSync_start(t *testing.T) {
 			fields: fields{
 				blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 					mockBlockState := NewMockBlockState(ctrl)
-					mockBlockState.EXPECT().BestBlockHeader().Return(&types.Header{}, nil)
+					mockBlockState.EXPECT().BestBlockHeader().Return(&types.Header{}, nil).AnyTimes()
+					mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(&types.Header{}, nil)
+					mockBlockState.EXPECT().BestBlockHeader().Return(&types.Header{}, nil).AnyTimes()
 					return mockBlockState
 				},
 				disjointBlockSetBuilder: func(ctrl *gomock.Controller) DisjointBlockSet {
 					mockDisjointBlockSet := NewMockDisjointBlockSet(ctrl)
 					mockDisjointBlockSet.EXPECT().run(gomock.Any())
 					return mockDisjointBlockSet
+				},
+				networkBuilder: func(ctrl *gomock.Controller, done chan struct{}) Network {
+					mockNetwork := NewMockNetwork(ctrl)
+					mockNetwork.EXPECT().Peers().DoAndReturn(func() []common.PeerInfo {
+						close(done)
+						return nil
+					})
+					return mockNetwork
 				},
 				slotDuration: defaultSlotDuration,
 				benchmarker:  newSyncBenchmarker(1),
@@ -993,18 +1004,19 @@ func Test_chainSync_start(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			ctx, cancel := context.WithCancel(context.Background())
+			done := make(chan struct{})
 			cs := &chainSync{
 				ctx:           ctx,
 				cancel:        cancel,
 				blockState:    tt.fields.blockStateBuilder(ctrl),
 				pendingBlocks: tt.fields.disjointBlockSetBuilder(ctrl),
+				network:       tt.fields.networkBuilder(ctrl, done),
 				benchmarker:   tt.fields.benchmarker,
 				slotDuration:  tt.fields.slotDuration,
 				logSyncPeriod: time.Second,
 			}
 			cs.start()
-			// todo (ed) fix this
-			time.Sleep(time.Millisecond)
+			<-done
 			cs.stop()
 		})
 	}

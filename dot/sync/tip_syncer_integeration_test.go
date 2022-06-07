@@ -7,6 +7,7 @@
 package sync
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -245,7 +246,7 @@ func TestTipSyncer_handleTick_case3(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []*worker(nil), w)
 	require.False(t, s.pendingBlocks.hasBlock(header.Hash()))
-	require.Equal(t, block.ToBlockData(), s.readyBlocks.pop())
+	require.Equal(t, block.ToBlockData(), s.readyBlocks.pop(context.Background()))
 
 	// add pending block w/ full block, but block is not ready as parent is unknown
 	bs := new(syncmocks.BlockState)
@@ -294,8 +295,8 @@ func TestTipSyncer_handleTick_case3(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []*worker(nil), w)
 	require.False(t, s.pendingBlocks.hasBlock(header.Hash()))
-	s.readyBlocks.pop() // first pop will remove parent
-	require.Equal(t, block.ToBlockData(), s.readyBlocks.pop())
+	s.readyBlocks.pop(context.Background()) // first pop will remove parent
+	require.Equal(t, block.ToBlockData(), s.readyBlocks.pop(context.Background()))
 }
 
 func TestTipSyncer_hasCurrentWorker(t *testing.T) {
