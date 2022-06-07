@@ -6,7 +6,6 @@ package sync
 import (
 	"context"
 	"errors"
-	"sync"
 	"testing"
 	"time"
 
@@ -22,6 +21,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+const defaultSlotDuration = 6 * time.Second
 
 func Test_chainSyncState_String(t *testing.T) {
 	t.Parallel()
@@ -881,7 +882,7 @@ func Test_chainSync_logSyncSpeed(t *testing.T) {
 
 	type fields struct {
 		blockStateBuilder func(ctrl *gomock.Controller) BlockState
-		networkBuilder    func(ctrl *gomock.Controller, waitGroup *sync.WaitGroup) Network
+		networkBuilder    func(ctrl *gomock.Controller, done chan struct{}) Network
 		state             chainSyncState
 		benchmarker       *syncBenchmarker
 	}
@@ -898,10 +899,10 @@ func Test_chainSync_logSyncSpeed(t *testing.T) {
 					mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(&types.Header{}, nil)
 					return mockBlockState
 				},
-				networkBuilder: func(ctrl *gomock.Controller, waitGroup *sync.WaitGroup) Network {
+				networkBuilder: func(ctrl *gomock.Controller, done chan struct{}) Network {
 					mockNetwork := NewMockNetwork(ctrl)
 					mockNetwork.EXPECT().Peers().DoAndReturn(func() error {
-						waitGroup.Done()
+						close(done)
 						return nil
 					})
 					return mockNetwork
@@ -919,10 +920,10 @@ func Test_chainSync_logSyncSpeed(t *testing.T) {
 					mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(&types.Header{}, nil)
 					return mockBlockState
 				},
-				networkBuilder: func(ctrl *gomock.Controller, waitGroup *sync.WaitGroup) Network {
+				networkBuilder: func(ctrl *gomock.Controller, done chan struct{}) Network {
 					mockNetwork := NewMockNetwork(ctrl)
 					mockNetwork.EXPECT().Peers().DoAndReturn(func() error {
-						waitGroup.Done()
+						close(done)
 						return nil
 					})
 					return mockNetwork
@@ -938,19 +939,18 @@ func Test_chainSync_logSyncSpeed(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			ctx, cancel := context.WithCancel(context.Background())
-			waitGroup := new(sync.WaitGroup)
-			waitGroup.Add(1)
+			done := make(chan struct{})
 			cs := &chainSync{
 				ctx:           ctx,
 				cancel:        cancel,
 				blockState:    tt.fields.blockStateBuilder(ctrl),
-				network:       tt.fields.networkBuilder(ctrl, waitGroup),
+				network:       tt.fields.networkBuilder(ctrl, done),
 				state:         tt.fields.state,
 				benchmarker:   tt.fields.benchmarker,
 				logSyncPeriod: time.Millisecond,
 			}
 			go cs.logSyncSpeed()
-			waitGroup.Wait()
+			<-done
 			cancel()
 		})
 	}

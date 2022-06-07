@@ -87,5 +87,3 @@ func BuildBlock(t *testing.T, instance runtime.Instance, parent *types.Header, e
 		Body:   body,
 	}
 }
-
-const defaultSlotDuration = 6 * time.Second

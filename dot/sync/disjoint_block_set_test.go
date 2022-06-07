@@ -16,24 +16,28 @@ import (
 func Test_disjointBlockSet_addBlock(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		name             string
+	headerToHash := func(header types.Header) common.Hash {
+		return header.Hash()
+	}
+	tests := map[string]struct {
 		disjointBlockSet *disjointBlockSet
 		block            *types.Block
+		expectedHash     common.Hash
 		err              error
 	}{
-		{
-			name:             "add block beyond capacity",
+		"add block beyond capacity": {
 			disjointBlockSet: &disjointBlockSet{},
 			block: &types.Block{
 				Header: types.Header{
 					Number: 1,
 				},
 			},
+			expectedHash: headerToHash(types.Header{
+				Number: 1,
+			}),
 			err: errSetAtLimit,
 		},
-		{
-			name: "add block",
+		"add block": {
 			disjointBlockSet: &disjointBlockSet{
 				limit:            1,
 				blocks:           make(map[common.Hash]*pendingBlock),
@@ -45,19 +49,22 @@ func Test_disjointBlockSet_addBlock(t *testing.T) {
 					Number: 1,
 				},
 			},
+			expectedHash: headerToHash(types.Header{
+				Number: 1,
+			}),
 		},
 	}
-	for _, tt := range tests {
+	for name, tt := range tests {
 		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			err := tt.disjointBlockSet.addBlock(tt.block)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.NotNil(t, tt.disjointBlockSet.blocks[tt.block.Header.Hash()])
 			}
+			assert.Equal(t, tt.expectedHash, tt.block.Header.Hash())
 		})
 	}
 }
@@ -65,22 +72,27 @@ func Test_disjointBlockSet_addBlock(t *testing.T) {
 func Test_disjointBlockSet_addHeader(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		name             string
+	headerToHash := func(header types.Header) common.Hash {
+		return header.Hash()
+	}
+
+	tests := map[string]struct {
 		disjointBlockSet *disjointBlockSet
 		header           *types.Header
+		expectedHash     common.Hash
 		err              error
 	}{
-		{
-			name:             "add header beyond capactiy",
+		"add header beyond capactiy": {
 			disjointBlockSet: &disjointBlockSet{},
 			header: &types.Header{
 				Number: 1,
 			},
+			expectedHash: headerToHash(types.Header{
+				Number: 1,
+			}),
 			err: errors.New("cannot add block; set is at capacity"),
 		},
-		{
-			name: "add header",
+		"add header": {
 			disjointBlockSet: &disjointBlockSet{
 				blocks:           make(map[common.Hash]*pendingBlock),
 				limit:            1,
@@ -90,19 +102,22 @@ func Test_disjointBlockSet_addHeader(t *testing.T) {
 			header: &types.Header{
 				Number: 1,
 			},
+			expectedHash: headerToHash(types.Header{
+				Number: 1,
+			}),
 		},
 	}
-	for _, tt := range tests {
+	for name, tt := range tests {
 		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			err := tt.disjointBlockSet.addHeader(tt.header)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.NotNil(t, tt.disjointBlockSet.blocks[tt.header.Hash()])
 			}
+			assert.Equal(t, tt.expectedHash, tt.header.Hash())
 		})
 	}
 }

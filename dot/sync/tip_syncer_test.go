@@ -17,42 +17,41 @@ import (
 func Test_tipSyncer_handleNewPeerState(t *testing.T) {
 	t.Parallel()
 
-	ctrl := gomock.NewController(t)
-
-	mockBlockState := NewMockBlockState(ctrl)
-	mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(&types.Header{
-		Number: 2,
-	}, nil).Times(2)
-
 	type fields struct {
-		blockState    BlockState
-		pendingBlocks DisjointBlockSet
-		readyBlocks   *blockQueue
+		blockStateBuilder func(ctrl *gomock.Controller) BlockState
+		pendingBlocks     DisjointBlockSet
+		readyBlocks       *blockQueue
 	}
-	type args struct {
-		ps *peerState
-	}
-	tests := []struct {
-		name   string
-		fields fields
-		args   args
-		want   *worker
-		err    error
+	tests := map[string]struct {
+		fields    fields
+		peerState *peerState
+		want      *worker
+		err       error
 	}{
-		{
-			name: "peer state number < final block number",
+		"peer state number < final block number": {
 			fields: fields{
-				blockState: mockBlockState,
+				blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+					mockBlockState := NewMockBlockState(ctrl)
+					mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(&types.Header{
+						Number: 2,
+					}, nil)
+					return mockBlockState
+				},
 			},
-			args: args{ps: &peerState{number: 1}},
-			want: nil,
+			peerState: &peerState{number: 1},
+			want:      nil,
 		},
-		{
-			name: "base state",
+		"base state": {
 			fields: fields{
-				blockState: mockBlockState,
+				blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+					mockBlockState := NewMockBlockState(ctrl)
+					mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(&types.Header{
+						Number: 2,
+					}, nil)
+					return mockBlockState
+				},
 			},
-			args: args{ps: &peerState{number: 3}},
+			peerState: &peerState{number: 3},
 			want: &worker{
 				startNumber:  uintPtr(3),
 				targetNumber: uintPtr(3),
@@ -60,24 +59,23 @@ func Test_tipSyncer_handleNewPeerState(t *testing.T) {
 			},
 		},
 	}
-	for _, tt := range tests {
+	for name, tt := range tests {
 		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(name, func(t *testing.T) {
 			t.Parallel()
+			ctrl := gomock.NewController(t)
 			s := &tipSyncer{
-				blockState:    tt.fields.blockState,
+				blockState:    tt.fields.blockStateBuilder(ctrl),
 				pendingBlocks: tt.fields.pendingBlocks,
 				readyBlocks:   tt.fields.readyBlocks,
 			}
-			got, err := s.handleNewPeerState(tt.args.ps)
+			got, err := s.handleNewPeerState(tt.peerState)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("handleNewPeerState() got = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
@@ -85,61 +83,48 @@ func Test_tipSyncer_handleNewPeerState(t *testing.T) {
 func Test_tipSyncer_handleTick(t *testing.T) {
 	t.Parallel()
 
-	ctrl := gomock.NewController(t)
-
-	mockDisjointBlockSet := NewMockDisjointBlockSet(ctrl)
-	mockDisjointBlockSet.EXPECT().size().Return(1).Times(2)
-	pendingBlock2 := &pendingBlock{
-		number: 3,
-	}
-	pendingBlock3 := &pendingBlock{
-		hash:   common.Hash{},
-		number: 4,
-		header: &types.Header{
-			Number: 4,
-		},
-	}
-	pendingBlock4 := &pendingBlock{
-		hash:   common.Hash{},
-		number: 5,
-		header: &types.Header{
-			Number: 5,
-		},
-		body: &types.Body{},
-	}
-	mockDisjointBlockSet.EXPECT().getBlocks().Return([]*pendingBlock{
-		{
-			number: 2,
-		},
-		pendingBlock2,
-		pendingBlock3,
-		pendingBlock4,
-	})
-	mockDisjointBlockSet.EXPECT().removeBlock(common.Hash{})
-
-	mockBlockState := NewMockBlockState(ctrl)
-	mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(&types.Header{
-		Number: 2,
-	}, nil)
-	mockBlockState.EXPECT().HasHeader(common.Hash{}).Return(false, nil)
-
 	type fields struct {
-		blockState    BlockState
-		pendingBlocks DisjointBlockSet
-		readyBlocks   *blockQueue
+		blockStateBuilder    func(ctrl *gomock.Controller) BlockState
+		pendingBlocksBuilder func(ctrl *gomock.Controller) DisjointBlockSet
+		readyBlocks          *blockQueue
 	}
-	tests := []struct {
-		name   string
+	tests := map[string]struct {
 		fields fields
 		want   []*worker
 		err    error
 	}{
-		{
-			name: "base case",
+		"base case": {
 			fields: fields{
-				pendingBlocks: mockDisjointBlockSet,
-				blockState:    mockBlockState,
-				readyBlocks:   newBlockQueue(3),
+				pendingBlocksBuilder: func(ctrl *gomock.Controller) DisjointBlockSet {
+					mockDisjointBlockSet := NewMockDisjointBlockSet(ctrl)
+					mockDisjointBlockSet.EXPECT().size().Return(1).Times(2)
+					mockDisjointBlockSet.EXPECT().getBlocks().Return([]*pendingBlock{
+						{number: 2},
+						{number: 3},
+						{number: 4,
+							header: &types.Header{
+								Number: 4,
+							},
+						},
+						{number: 5,
+							header: &types.Header{
+								Number: 5,
+							},
+							body: &types.Body{},
+						},
+					})
+					mockDisjointBlockSet.EXPECT().removeBlock(common.Hash{})
+					return mockDisjointBlockSet
+				},
+				blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+					mockBlockState := NewMockBlockState(ctrl)
+					mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(&types.Header{
+						Number: 2,
+					}, nil)
+					mockBlockState.EXPECT().HasHeader(common.Hash{}).Return(false, nil)
+					return mockBlockState
+				},
+				readyBlocks: newBlockQueue(3),
 			},
 			want: []*worker{
 				{
@@ -147,34 +132,46 @@ func Test_tipSyncer_handleTick(t *testing.T) {
 					targetNumber: uintPtr(2),
 					targetHash: common.Hash{5, 189, 204, 69, 79, 96, 160, 141, 66, 125, 5, 231, 241,
 						159, 36, 15, 220, 57, 31, 87, 10, 183, 111, 203, 150, 236, 202, 11, 88, 35, 211, 191},
-					pendingBlock: pendingBlock2,
+					pendingBlock: &pendingBlock{number: 3},
 					requestData:  bootstrapRequestData,
 					direction:    network.Descending,
 				},
 				{
 					startNumber:  uintPtr(4),
 					targetNumber: uintPtr(4),
-					pendingBlock: pendingBlock3,
-					requestData:  network.RequestedDataBody + network.RequestedDataJustification,
+					pendingBlock: &pendingBlock{
+						number: 4,
+						header: &types.Header{
+							Number: 4,
+						},
+					},
+					requestData: network.RequestedDataBody + network.RequestedDataJustification,
 				},
 				{
 					startNumber:  uintPtr(4),
 					targetNumber: uintPtr(2),
 					direction:    network.Descending,
-					pendingBlock: pendingBlock4,
-					requestData:  bootstrapRequestData,
+					pendingBlock: &pendingBlock{
+						number: 5,
+						header: &types.Header{
+							Number: 5,
+						},
+						body: &types.Body{},
+					},
+					requestData: bootstrapRequestData,
 				},
 			},
 			err: nil,
 		},
 	}
-	for _, tt := range tests {
+	for name, tt := range tests {
 		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			s := &tipSyncer{
-				blockState:    tt.fields.blockState,
-				pendingBlocks: tt.fields.pendingBlocks,
+				blockState:    tt.fields.blockStateBuilder(ctrl),
+				pendingBlocks: tt.fields.pendingBlocksBuilder(ctrl),
 				readyBlocks:   tt.fields.readyBlocks,
 			}
 			got, err := s.handleTick()
@@ -183,9 +180,7 @@ func Test_tipSyncer_handleTick(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("handleTick() got = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
@@ -193,96 +188,98 @@ func Test_tipSyncer_handleTick(t *testing.T) {
 func Test_tipSyncer_handleWorkerResult(t *testing.T) {
 	t.Parallel()
 
-	ctrl := gomock.NewController(t)
-
-	mockBlockState := NewMockBlockState(ctrl)
-	mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(&types.Header{
-		Number: 2,
-	}, nil).Times(4)
-
-	type fields struct {
-		blockState BlockState
-	}
-	type args struct {
-		res *worker
-	}
-	tests := []struct {
-		name   string
-		fields fields
-		args   args
-		want   *worker
-		err    error
+	tests := map[string]struct {
+		blockStateBuilder func(ctrl *gomock.Controller) BlockState
+		res               *worker
+		want              *worker
+		err               error
 	}{
-		{
-			name: "worker error is nil",
-			args: args{res: &worker{}},
+		"worker error is nil": {
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				return NewMockBlockState(ctrl)
+			},
+			res:  &worker{},
 			want: nil,
 			err:  nil,
 		},
-		{
-			name: "worker error is error unknown parent",
-			args: args{res: &worker{
+		"worker error is error unknown parent": {
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				return NewMockBlockState(ctrl)
+			},
+			res: &worker{
 				err: &workerError{
 					err: errUnknownParent,
 				},
-			}},
+			},
 			want: nil,
 			err:  nil,
 		},
-		{
-			name: "ascending, target number < finalised number",
-			fields: fields{
-				blockState: mockBlockState,
+		"ascending, target number < finalised number": {
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(&types.Header{
+					Number: 2,
+				}, nil)
+				return mockBlockState
 			},
-			args: args{res: &worker{
+			res: &worker{
 				targetNumber: uintPtr(1),
 				direction:    network.Ascending,
 				err:          &workerError{},
-			}},
+			},
 			want: nil,
 			err:  nil,
 		},
-		{
-			name: "ascending, start number < finalised number",
-			fields: fields{
-				blockState: mockBlockState,
+		"ascending, start number < finalised number": {
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(&types.Header{
+					Number: 2,
+				}, nil)
+				return mockBlockState
 			},
-			args: args{res: &worker{
+			res: &worker{
 				startNumber:  uintPtr(1),
 				targetNumber: uintPtr(3),
 				direction:    network.Ascending,
 				err:          &workerError{},
-			}},
+			},
 			want: &worker{
 				startNumber:  uintPtr(3),
 				targetNumber: uintPtr(3),
 			},
 			err: nil,
 		},
-		{
-			name: "descending, start number < finalised number",
-			fields: fields{
-				blockState: mockBlockState,
+		"descending, start number < finalised number": {
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(&types.Header{
+					Number: 2,
+				}, nil)
+				return mockBlockState
 			},
-			args: args{res: &worker{
+			res: &worker{
 				startNumber: uintPtr(1),
 				direction:   network.Descending,
 				err:         &workerError{},
-			}},
+			},
 			want: nil,
 			err:  nil,
 		},
-		{
-			name: "descending, target number < finalised number",
-			fields: fields{
-				blockState: mockBlockState,
+		"descending, target number < finalised number": {
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(&types.Header{
+					Number: 2,
+				}, nil)
+				return mockBlockState
 			},
-			args: args{res: &worker{
+			res: &worker{
 				startNumber:  uintPtr(3),
 				targetNumber: uintPtr(1),
 				direction:    network.Descending,
 				err:          &workerError{},
-			}},
+			},
 			want: &worker{
 				startNumber:  uintPtr(3),
 				targetNumber: uintPtr(3),
@@ -291,14 +288,15 @@ func Test_tipSyncer_handleWorkerResult(t *testing.T) {
 			err: nil,
 		},
 	}
-	for _, tt := range tests {
+	for name, tt := range tests {
 		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			s := &tipSyncer{
-				blockState: tt.fields.blockState,
+				blockState: tt.blockStateBuilder(ctrl),
 			}
-			got, err := s.handleWorkerResult(tt.args.res)
+			got, err := s.handleWorkerResult(tt.res)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
@@ -314,42 +312,18 @@ func Test_tipSyncer_handleWorkerResult(t *testing.T) {
 func Test_tipSyncer_hasCurrentWorker(t *testing.T) {
 	t.Parallel()
 
-	testWorker1 := &worker{
-		direction:    network.Ascending,
-		targetNumber: uintPtr(3),
-		startNumber:  uintPtr(3),
-	}
-	testWorker2 := &worker{
-		direction:    network.Ascending,
-		targetNumber: uintPtr(3),
-		startNumber:  uintPtr(1),
-	}
-	testWorker3 := &worker{
-		startNumber:  uintPtr(3),
-		targetNumber: uintPtr(3),
-		direction:    network.Descending,
-	}
-	testWorker4 := &worker{
-		startNumber:  uintPtr(3),
-		targetNumber: uintPtr(1),
-		direction:    network.Descending,
-	}
-
 	type args struct {
 		w       *worker
 		workers map[uint64]*worker
 	}
-	tests := []struct {
-		name string
+	tests := map[string]struct {
 		args args
 		want bool
 	}{
-		{
-			name: "worker nil",
+		"worker nil": {
 			want: true,
 		},
-		{
-			name: "ascending, false",
+		"ascending, false": {
 			args: args{
 				w: &worker{
 					direction:    network.Ascending,
@@ -357,13 +331,16 @@ func Test_tipSyncer_hasCurrentWorker(t *testing.T) {
 					targetNumber: uintPtr(2),
 				},
 				workers: map[uint64]*worker{
-					1: testWorker1,
+					1: {
+						direction:    network.Ascending,
+						targetNumber: uintPtr(3),
+						startNumber:  uintPtr(3),
+					},
 				},
 			},
 			want: false,
 		},
-		{
-			name: "ascending, true",
+		"ascending, true": {
 			args: args{
 				w: &worker{
 					direction:    network.Ascending,
@@ -371,13 +348,16 @@ func Test_tipSyncer_hasCurrentWorker(t *testing.T) {
 					targetNumber: uintPtr(2),
 				},
 				workers: map[uint64]*worker{
-					1: testWorker2,
+					1: {
+						direction:    network.Ascending,
+						targetNumber: uintPtr(3),
+						startNumber:  uintPtr(1),
+					},
 				},
 			},
 			want: true,
 		},
-		{
-			name: "descending, false",
+		"descending, false": {
 			args: args{
 				w: &worker{
 					direction:    network.Descending,
@@ -385,13 +365,16 @@ func Test_tipSyncer_hasCurrentWorker(t *testing.T) {
 					targetNumber: uintPtr(2),
 				},
 				workers: map[uint64]*worker{
-					1: testWorker3,
+					1: {
+						startNumber:  uintPtr(3),
+						targetNumber: uintPtr(3),
+						direction:    network.Descending,
+					},
 				},
 			},
 			want: false,
 		},
-		{
-			name: "descending, true",
+		"descending, true": {
 			args: args{
 				w: &worker{
 					direction:    network.Descending,
@@ -399,20 +382,23 @@ func Test_tipSyncer_hasCurrentWorker(t *testing.T) {
 					targetNumber: uintPtr(2),
 				},
 				workers: map[uint64]*worker{
-					1: testWorker4,
+					1: {
+						startNumber:  uintPtr(3),
+						targetNumber: uintPtr(1),
+						direction:    network.Descending,
+					},
 				},
 			},
 			want: true,
 		},
 	}
-	for _, tt := range tests {
+	for name, tt := range tests {
 		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			ti := &tipSyncer{}
-			if got := ti.hasCurrentWorker(tt.args.w, tt.args.workers); got != tt.want {
-				t.Errorf("hasCurrentWorker() = %v, want %v", got, tt.want)
-			}
+			got := ti.hasCurrentWorker(tt.args.w, tt.args.workers)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }

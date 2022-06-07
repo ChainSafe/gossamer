@@ -177,6 +177,7 @@ type chainSyncConfig struct {
 func newChainSync(cfg *chainSyncConfig) *chainSync {
 	ctx, cancel := context.WithCancel(context.Background())
 	const syncSamplesToKeep = 30
+	const logSyncPeriod = 5 * time.Second
 	return &chainSync{
 		ctx:              ctx,
 		cancel:           cancel,
@@ -196,7 +197,7 @@ func newChainSync(cfg *chainSyncConfig) *chainSync {
 		minPeers:         cfg.minPeers,
 		maxWorkerRetries: uint16(cfg.maxPeers),
 		slotDuration:     cfg.slotDuration,
-		logSyncPeriod:    5 * time.Second,
+		logSyncPeriod:    logSyncPeriod,
 	}
 }
 
