@@ -73,15 +73,9 @@ func (s *chainProcessor) stop() {
 
 func (s *chainProcessor) processReadyBlocks() {
 	for {
-		select {
-		case <-s.ctx.Done():
+		bd := s.readyBlocks.pop(s.ctx)
+		if s.ctx.Err() != nil {
 			return
-		default:
-		}
-
-		bd := s.readyBlocks.pop()
-		if bd == nil {
-			continue
 		}
 
 		if err := s.processBlockData(bd); err != nil {

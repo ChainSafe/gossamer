@@ -6,7 +6,6 @@ package trie
 import (
 	"testing"
 
-	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,7 +21,7 @@ func Test_Trie_String(t *testing.T) {
 		},
 		"leaf root": {
 			trie: Trie{
-				root: &node.Leaf{
+				root: &Node{
 					Key:        []byte{1, 2, 3},
 					Value:      []byte{3, 4, 5},
 					Generation: 1,
@@ -38,18 +37,18 @@ func Test_Trie_String(t *testing.T) {
 		},
 		"branch root": {
 			trie: Trie{
-				root: &node.Branch{
+				root: &Node{
 					Key:         nil,
 					Value:       []byte{1, 2},
 					Descendants: 2,
-					Children: [16]node.Node{
-						&node.Leaf{
+					Children: []*Node{
+						{
 							Key:        []byte{1, 2, 3},
 							Value:      []byte{3, 4, 5},
 							Generation: 2,
 						},
 						nil, nil,
-						&node.Leaf{
+						{
 							Key:        []byte{1, 2, 3},
 							Value:      []byte{3, 4, 5},
 							Generation: 3,

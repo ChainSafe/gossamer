@@ -13,46 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_Branch_GetKey(t *testing.T) {
-	t.Parallel()
-
-	branch := &Branch{
-		Key: []byte{2},
-	}
-	key := branch.GetKey()
-	assert.Equal(t, []byte{2}, key)
-}
-
-func Test_Leaf_GetKey(t *testing.T) {
-	t.Parallel()
-
-	leaf := &Leaf{
-		Key: []byte{2},
-	}
-	key := leaf.GetKey()
-	assert.Equal(t, []byte{2}, key)
-}
-
-func Test_Branch_SetKey(t *testing.T) {
-	t.Parallel()
-
-	branch := &Branch{
-		Key: []byte{2},
-	}
-	branch.SetKey([]byte{3})
-	assert.Equal(t, &Branch{Key: []byte{3}}, branch)
-}
-
-func Test_Leaf_SetKey(t *testing.T) {
-	t.Parallel()
-
-	leaf := &Leaf{
-		Key: []byte{2},
-	}
-	leaf.SetKey([]byte{3})
-	assert.Equal(t, &Leaf{Key: []byte{3}}, leaf)
-}
-
 func repeatBytes(n int, b byte) (slice []byte) {
 	slice = make([]byte, n)
 	for i := range slice {

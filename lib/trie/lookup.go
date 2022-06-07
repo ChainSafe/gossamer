@@ -21,7 +21,7 @@ func findAndRecord(t *Trie, key []byte, recorder recorder) error {
 	return find(t.root, key, recorder, true)
 }
 
-func find(parent Node, key []byte, recorder recorder, isCurrentRoot bool) error {
+func find(parent *Node, key []byte, recorder recorder, isCurrentRoot bool) error {
 	enc, hash, err := parent.EncodeAndHash(isCurrentRoot)
 	if err != nil {
 		return err
@@ -29,25 +29,22 @@ func find(parent Node, key []byte, recorder recorder, isCurrentRoot bool) error 
 
 	recorder.Record(hash, enc)
 
-	switch parent.Type() {
-	case node.BranchType, node.BranchWithValueType:
-	default: // not a branch
+	if parent.Type() != node.Branch {
 		return nil
 	}
 
-	b := parent.(*node.Branch)
-
-	length := lenCommonPrefix(b.Key, key)
+	branch := parent
+	length := lenCommonPrefix(branch.Key, key)
 
 	// found the value at this node
-	if bytes.Equal(b.Key, key) || len(key) == 0 {
+	if bytes.Equal(branch.Key, key) || len(key) == 0 {
 		return nil
 	}
 
 	// did not find value
-	if bytes.Equal(b.Key[:length], key) && len(key) < len(b.Key) {
+	if bytes.Equal(branch.Key[:length], key) && len(key) < len(branch.Key) {
 		return nil
 	}
 
-	return find(b.Children[key[length]], key[length+1:], recorder, false)
+	return find(branch.Children[key[length]], key[length+1:], recorder, false)
 }

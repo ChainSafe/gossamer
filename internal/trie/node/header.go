@@ -8,61 +8,40 @@ import (
 )
 
 const (
+	leafHeader            byte = 1 // 01
+	branchHeader          byte = 2 // 10
+	branchWithValueHeader byte = 3 // 11
+)
+
+const (
 	keyLenOffset    = 0x3f
 	nodeHeaderShift = 6
 )
 
-// encodeHeader creates the encoded header for the branch.
-func (b *Branch) encodeHeader(writer io.Writer) (err error) {
+// encodeHeader writes the encoded header for the node.
+func encodeHeader(node *Node, writer io.Writer) (err error) {
 	var header byte
-	if b.Value == nil {
-		header = byte(BranchType) << nodeHeaderShift
+	if node.Type() == Leaf {
+		header = leafHeader
+	} else if node.Value == nil {
+		header = branchHeader
 	} else {
-		header = byte(BranchWithValueType) << nodeHeaderShift
+		header = branchWithValueHeader
 	}
+	header <<= nodeHeaderShift
 
-	if len(b.Key) >= keyLenOffset {
-		header = header | keyLenOffset
-		_, err = writer.Write([]byte{header})
-		if err != nil {
-			return err
-		}
-
-		err = encodeKeyLength(len(b.Key), writer)
-		if err != nil {
-			return err
-		}
-	} else {
-		header = header | byte(len(b.Key))
-		_, err = writer.Write([]byte{header})
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// encodeHeader creates the encoded header for the leaf.
-func (l *Leaf) encodeHeader(writer io.Writer) (err error) {
-	header := byte(LeafType) << nodeHeaderShift
-
-	if len(l.Key) < 63 {
-		header |= byte(len(l.Key))
+	if len(node.Key) < keyLenOffset {
+		header |= byte(len(node.Key))
 		_, err = writer.Write([]byte{header})
 		return err
 	}
 
-	header |= keyLenOffset
+	header = header | keyLenOffset
 	_, err = writer.Write([]byte{header})
 	if err != nil {
 		return err
 	}
 
-	err = encodeKeyLength(len(l.Key), writer)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	err = encodeKeyLength(len(node.Key), writer)
+	return err
 }
