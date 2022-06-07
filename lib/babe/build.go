@@ -253,6 +253,8 @@ func buildBlockInherents(slot Slot, rt runtime.Instance) ([][]byte, error) {
 	}
 
 	// add parachn0 and newheads
+	// for now we can use "empty" values, as we require parachain-specific
+	// logic to actually provide the data.
 	bz, err := scale.Marshal(&ParachainInherentData{})
 	if err != nil {
 		return nil, err
