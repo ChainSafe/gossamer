@@ -95,19 +95,19 @@ func (oc *orderedPendingChanges) importChange(pendingChange *pendingChange, isDe
 		}
 	}
 
-	orderedPendingChanges := *oc
+	orderedChanges := *oc
 
 	// Use a binary search to include the pending change in the right position
 	// of a slice ordered by the effective number and by announcing header number
 	idxToInsert := sort.Search(oc.Len(), func(i int) bool {
-		return orderedPendingChanges[i].effectiveNumber() >= pendingChange.effectiveNumber() &&
-			orderedPendingChanges[i].announcingHeader.Number >= pendingChange.announcingHeader.Number
+		return orderedChanges[i].effectiveNumber() >= pendingChange.effectiveNumber() &&
+			orderedChanges[i].announcingHeader.Number >= pendingChange.announcingHeader.Number
 	})
 
-	orderedPendingChanges = append(orderedPendingChanges, pendingChange)
-	copy(orderedPendingChanges[idxToInsert+1:], orderedPendingChanges[idxToInsert:])
-	orderedPendingChanges[idxToInsert] = pendingChange
-	*oc = orderedPendingChanges
+	orderedChanges = append(orderedChanges, pendingChange)
+	copy(orderedChanges[idxToInsert+1:], orderedChanges[idxToInsert:])
+	orderedChanges[idxToInsert] = pendingChange
+	*oc = orderedChanges
 
 	return nil
 }
