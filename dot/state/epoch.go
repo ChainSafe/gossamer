@@ -17,10 +17,11 @@ import (
 )
 
 var (
-	ErrEpochNotInMemory  = errors.New("epoch not found in memory map")
-	errHashNotInMemory   = errors.New("hash not found in memory map")
-	errEpochDataNotFound = errors.New("epoch data not found in the database")
-	errHashNotPersisted  = errors.New("hash with next epoch not found in database")
+	ErrEpochNotInMemory   = errors.New("epoch not found in memory map")
+	errHashNotInMemory    = errors.New("hash not found in memory map")
+	errEpochDataNotFound  = errors.New("epoch data not found in the database")
+	errHashNotPersisted   = errors.New("hash with next epoch not found in database")
+	errNoPreRuntimeDigest = errors.New("header does not contain pre-runtime digest")
 )
 
 var (
@@ -198,6 +199,7 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 		return 0, err
 	}
 
+	fmt.Println("header digest len ", len(header.Digest.Types))
 	for _, d := range header.Digest.Types {
 		predigest, ok := d.Value().(types.PreRuntimeDigest)
 		if !ok {
@@ -226,7 +228,7 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 		return (slotNumber - firstSlot) / s.epochLength, nil
 	}
 
-	return 0, errors.New("header does not contain pre-runtime digest")
+	return 0, errNoPreRuntimeDigest
 }
 
 // SetEpochData sets the epoch data for a given epoch

@@ -331,6 +331,8 @@ func (ps *PeerSet) updateTime() error {
 // if the updated Reputation is below BannedThresholdValue then, this node need to
 // be disconnected and a drop message for the peer is sent in order to disconnect.
 func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
+	fmt.Println("reputation change:", change.String())
+
 	// we want reputations to be up-to-date before adjusting them.
 	err := ps.updateTime()
 	if err != nil {
