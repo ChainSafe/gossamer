@@ -5,29 +5,20 @@ package rpc
 
 import (
 	"context"
-	"reflect"
 	"testing"
-	"time"
 
 	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils"
 	"github.com/ChainSafe/gossamer/tests/utils/config"
 	"github.com/ChainSafe/gossamer/tests/utils/node"
-	"github.com/stretchr/testify/require"
 )
 
 func TestBabeRPC(t *testing.T) {
+	t.SkipNow() // TODO
+
 	if utils.MODE != rpcSuite {
 		t.Log("Going to skip RPC suite tests")
 		return
-	}
-
-	testCases := []*testCase{
-		{ //TODO
-			description: "test babe_epochAuthorship",
-			method:      "babe_epochAuthorship",
-			skip:        true,
-		},
 	}
 
 	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
@@ -38,18 +29,13 @@ func TestBabeRPC(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	node.InitAndStartTest(ctx, t, cancel)
 
-	for _, test := range testCases {
-		t.Run(test.description, func(t *testing.T) {
-			if test.skip {
-				t.SkipNow()
-			}
+	t.Run("babe_epochAuthorship", func(t *testing.T) {
+		t.Parallel()
 
-			getResponseCtx, cancel := context.WithTimeout(ctx, time.Second)
-			defer cancel()
+		var response struct{} // TODO
 
-			target := reflect.New(reflect.TypeOf(test.expected)).Interface()
-			err := getResponse(getResponseCtx, test.method, test.params, target)
-			require.NoError(t, err)
-		})
-	}
+		fetchWithTimeout(ctx, t, "babe_epochAuthorship", "", &response)
+
+		// TODO assert response
+	})
 }

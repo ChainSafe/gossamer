@@ -5,61 +5,34 @@ package rpc
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log"
-	"reflect"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+	"github.com/ChainSafe/gossamer/lib/common"
 	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils"
 	"github.com/ChainSafe/gossamer/tests/utils/config"
 	"github.com/ChainSafe/gossamer/tests/utils/node"
+	"github.com/ChainSafe/gossamer/tests/utils/retry"
 	"github.com/ChainSafe/gossamer/tests/utils/rpc"
 	"github.com/gorilla/websocket"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+)
+
+const (
+	regex32BytesHex = `^0x[0-9a-f]{64}$`
+	regexBytesHex   = `^0x[0-9a-f]{2}[0-9a-f]*$`
 )
 
 func TestChainRPC(t *testing.T) {
 	if utils.MODE != rpcSuite {
 		t.Log("Going to skip RPC suite tests")
 		return
-	}
-
-	testCases := []*testCase{
-		{
-			description: "test chain_getFinalizedHead",
-			method:      "chain_getFinalizedHead",
-			expected:    "",
-			params:      "[]",
-		},
-		{
-			description: "test chain_getHeader",
-			method:      "chain_getHeader",
-			expected: modules.ChainBlockHeaderResponse{
-				Number: "1",
-			},
-			params: "[]",
-		},
-		{
-			description: "test chain_getBlock",
-			method:      "chain_getBlock",
-			expected: modules.ChainBlockResponse{
-				Block: modules.ChainBlock{
-					Header: modules.ChainBlockHeaderResponse{
-						Number: "1",
-					},
-					Body: []string{},
-				},
-			},
-			params: "[]",
-		},
-		{
-			description: "test chain_getBlockHash",
-			method:      "chain_getBlockHash",
-			expected:    "",
-			params:      "[]",
-		},
 	}
 
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
@@ -70,67 +43,87 @@ func TestChainRPC(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	node.InitAndStartTest(ctx, t, cancel)
 
-	time.Sleep(time.Second * 5) // give server a few seconds to start
+	// Wait for Gossamer to produce block 2
+	errBlockNumberTooHigh := errors.New("block number is too high")
+	const retryWaitDuration = 200 * time.Millisecond
+	err := retry.UntilOK(ctx, retryWaitDuration, func() (ok bool, err error) {
+		var header modules.ChainBlockHeaderResponse
+		fetchWithTimeout(ctx, t, "chain_getHeader", "[]", &header)
+		number, err := common.HexToUint(header.Number)
+		if err != nil {
+			return false, fmt.Errorf("cannot convert header number to uint: %w", err)
+		}
 
-	chainBlockHeaderHash := ""
-	for _, test := range testCases {
-		t.Run(test.description, func(t *testing.T) {
-			if test.skip {
-				t.SkipNow()
-			}
+		switch number {
+		case 0, 1:
+			return false, nil
+		case 2:
+			return true, nil
+		default:
+			return false, fmt.Errorf("%w: %d", errBlockNumberTooHigh, number)
+		}
+	})
+	require.NoError(t, err)
 
-			// set params for chain_getBlock from previous chain_getHeader call
-			if chainBlockHeaderHash != "" {
-				test.params = "[\"" + chainBlockHeaderHash + "\"]"
-			}
+	var finalizedHead string
+	fetchWithTimeout(ctx, t, "chain_getFinalizedHead", "[]", &finalizedHead)
+	assert.Regexp(t, regex32BytesHex, finalizedHead)
 
-			getResponseCtx, getResponseCancel := context.WithTimeout(ctx, time.Second)
-			defer getResponseCancel()
+	var header modules.ChainBlockHeaderResponse
+	fetchWithTimeout(ctx, t, "chain_getHeader", "[]", &header)
 
-			target := reflect.New(reflect.TypeOf(test.expected)).Interface()
-			err := getResponse(getResponseCtx, test.method, test.params, target)
-			require.NoError(t, err)
-
-			switch v := target.(type) {
-			case *modules.ChainBlockHeaderResponse:
-				t.Log("Will assert ChainBlockHeaderResponse", "value", v)
-
-				require.GreaterOrEqual(t, test.expected.(modules.ChainBlockHeaderResponse).Number, v.Number)
-
-				require.NotNil(t, test.expected.(modules.ChainBlockHeaderResponse).ParentHash)
-				require.NotNil(t, test.expected.(modules.ChainBlockHeaderResponse).StateRoot)
-				require.NotNil(t, test.expected.(modules.ChainBlockHeaderResponse).ExtrinsicsRoot)
-				require.NotNil(t, test.expected.(modules.ChainBlockHeaderResponse).Digest)
-
-				//save for chain_getBlock
-				chainBlockHeaderHash = v.ParentHash
-			case *modules.ChainBlockResponse:
-				t.Log("Will assert ChainBlockResponse", "value", v.Block)
-
-				//reset
-				chainBlockHeaderHash = ""
-
-				require.NotNil(t, test.expected.(modules.ChainBlockResponse).Block)
-
-				require.GreaterOrEqual(t, test.expected.(modules.ChainBlockResponse).Block.Header.Number, v.Block.Header.Number)
-
-				require.NotNil(t, test.expected.(modules.ChainBlockResponse).Block.Header.ParentHash)
-				require.NotNil(t, test.expected.(modules.ChainBlockResponse).Block.Header.StateRoot)
-				require.NotNil(t, test.expected.(modules.ChainBlockResponse).Block.Header.ExtrinsicsRoot)
-				require.NotNil(t, test.expected.(modules.ChainBlockResponse).Block.Header.Digest)
-
-				require.NotNil(t, test.expected.(modules.ChainBlockResponse).Block.Body)
-				require.GreaterOrEqual(t, len(test.expected.(modules.ChainBlockResponse).Block.Body), 0)
-
-			case *string:
-				t.Log("Will assert ChainBlockNumberRequest", "value", *v)
-				require.NotNil(t, v)
-				require.GreaterOrEqual(t, len(*v), 66)
-
-			}
-
-		})
+	// Check and clear unpredictable fields
+	assert.Regexp(t, regex32BytesHex, header.StateRoot)
+	header.StateRoot = ""
+	assert.Regexp(t, regex32BytesHex, header.ExtrinsicsRoot)
+	header.ExtrinsicsRoot = ""
+	assert.Len(t, header.Digest.Logs, 2)
+	for _, digestLog := range header.Digest.Logs {
+		assert.Regexp(t, regexBytesHex, digestLog)
 	}
+	header.Digest.Logs = nil
+
+	// Assert remaining struct with predictable fields
+	expectedHeader := modules.ChainBlockHeaderResponse{
+		ParentHash: finalizedHead,
+		Number:     "0x02",
+	}
+	assert.Equal(t, expectedHeader, header)
+
+	var block modules.ChainBlockResponse
+	fetchWithTimeout(ctx, t, "chain_getBlock", fmt.Sprintf(`["`+header.ParentHash+`"]`), &block)
+
+	// Check and clear unpredictable fields
+	assert.Regexp(t, regex32BytesHex, block.Block.Header.ParentHash)
+	block.Block.Header.ParentHash = ""
+	assert.Regexp(t, regex32BytesHex, block.Block.Header.StateRoot)
+	block.Block.Header.StateRoot = ""
+	assert.Regexp(t, regex32BytesHex, block.Block.Header.ExtrinsicsRoot)
+	block.Block.Header.ExtrinsicsRoot = ""
+	assert.Len(t, block.Block.Header.Digest.Logs, 3)
+	for _, digestLog := range block.Block.Header.Digest.Logs {
+		assert.Regexp(t, regexBytesHex, digestLog)
+	}
+	block.Block.Header.Digest.Logs = nil
+	assert.Len(t, block.Block.Body, 1)
+	const bodyRegex = `^0x280403000b[0-9a-z]{8}8101$`
+	assert.Regexp(t, bodyRegex, block.Block.Body[0])
+	block.Block.Body = nil
+
+	// Assert remaining struct with predictable fields
+	expectedBlock := modules.ChainBlockResponse{
+		Block: modules.ChainBlock{
+			Header: modules.ChainBlockHeaderResponse{
+				Number: "0x01",
+			},
+		},
+	}
+	assert.Equal(t, expectedBlock, block)
+
+	var blockHash string
+	fetchWithTimeout(ctx, t, "chain_getBlockHash", "[]", &blockHash)
+	assert.Regexp(t, regex32BytesHex, blockHash)
+	assert.NotEqual(t, finalizedHead, blockHash)
 }
 
 func TestChainSubscriptionRPC(t *testing.T) {

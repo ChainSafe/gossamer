@@ -6,8 +6,11 @@ package rpc
 import (
 	"context"
 	"fmt"
+	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/tests/utils/rpc"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -20,6 +23,16 @@ type testCase struct {
 	params      string
 	expected    interface{}
 	skip        bool
+}
+
+func fetchWithTimeout(ctx context.Context, t *testing.T,
+	method, params string, target interface{}) {
+	t.Helper()
+
+	getResponseCtx, getResponseCancel := context.WithTimeout(ctx, time.Second)
+	defer getResponseCancel()
+	err := getResponse(getResponseCtx, method, params, target)
+	require.NoError(t, err)
 }
 
 func getResponse(ctx context.Context, method, params string, target interface{}) (err error) {

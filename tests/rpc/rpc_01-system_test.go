@@ -139,12 +139,8 @@ func TestSystemRPC(t *testing.T) {
 		const method = "system_networkState"
 		const params = "{}"
 
-		getResponseCtx, getResponseCancel := context.WithTimeout(ctx, time.Second)
-		defer getResponseCancel()
 		var response modules.SystemNetworkStateResponse
-		err := getResponse(getResponseCtx, method, params, &response)
-
-		require.NoError(t, err)
+		fetchWithTimeout(ctx, t, method, params, &response)
 
 		assert.Regexp(t, peerIDRegex, response.NetworkState.PeerID)
 		response.NetworkState.PeerID = ""

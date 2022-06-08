@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"reflect"
 	"testing"
 	"time"
 
@@ -106,44 +105,6 @@ func TestAuthorRPC(t *testing.T) {
 		return
 	}
 
-	testCases := []*testCase{
-		{ //TODO
-			description: "test author_submitExtrinsic",
-			method:      "author_submitExtrinsic",
-			skip:        true,
-		},
-		{ //TODO
-			description: "test author_pendingExtrinsics",
-			method:      "author_pendingExtrinsics",
-			skip:        true,
-		},
-		{ //TODO
-			description: "test author_removeExtrinsic",
-			method:      "author_removeExtrinsic",
-			skip:        true,
-		},
-		{ //TODO
-			description: "test author_insertKey",
-			method:      "author_insertKey",
-			skip:        true,
-		},
-		{ //TODO
-			description: "test author_rotateKeys",
-			method:      "author_rotateKeys",
-			skip:        true,
-		},
-		{ //TODO
-			description: "test author_hasSessionKeys",
-			method:      "author_hasSessionKeys",
-			skip:        true,
-		},
-		{ //TODO
-			description: "test author_hasKey",
-			method:      "author_hasKey",
-			skip:        true,
-		},
-	}
-
 	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
 	tomlConfig := config.Default()
 	tomlConfig.Init.Genesis = genesisPath
@@ -152,17 +113,67 @@ func TestAuthorRPC(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	node.InitAndStartTest(ctx, t, cancel)
 
-	for _, test := range testCases {
-		t.Run(test.description, func(t *testing.T) {
-			if test.skip {
-				t.SkipNow()
-			}
+	t.Run("author_pendingExtrinsics", func(t *testing.T) {
+		t.Parallel()
+		t.SkipNow() // TODO
 
-			getResponseCtx, getResponseCancel := context.WithTimeout(ctx, time.Second)
-			defer getResponseCancel()
-			target := reflect.New(reflect.TypeOf(test.expected)).Interface()
-			err := getResponse(getResponseCtx, test.method, test.params, target)
-			require.NoError(t, err)
-		})
-	}
+		var target interface{} // TODO
+		fetchWithTimeout(ctx, t, "author_pendingExtrinsics", "", target)
+	})
+
+	t.Run("author_submitExtrinsic", func(t *testing.T) {
+		t.Parallel()
+		t.SkipNow() // TODO
+
+		var target interface{} // TODO
+		fetchWithTimeout(ctx, t, "author_submitExtrinsic", "", target)
+	})
+
+	t.Run("author_pendingExtrinsics", func(t *testing.T) {
+		t.Parallel()
+		t.SkipNow() // TODO
+
+		var target interface{} // TODO
+		fetchWithTimeout(ctx, t, "author_pendingExtrinsics", "", target)
+	})
+
+	t.Run("author_removeExtrinsic", func(t *testing.T) {
+		t.Parallel()
+		t.SkipNow() // TODO
+
+		var target interface{} // TODO
+		fetchWithTimeout(ctx, t, "author_removeExtrinsic", "", target)
+	})
+
+	t.Run("author_insertKey", func(t *testing.T) {
+		t.Parallel()
+		t.SkipNow() // TODO
+
+		var target interface{} // TODO
+		fetchWithTimeout(ctx, t, "author_insertKey", "", target)
+	})
+
+	t.Run("author_rotateKeys", func(t *testing.T) {
+		t.Parallel()
+		t.SkipNow() // TODO
+
+		var target interface{} // TODO
+		fetchWithTimeout(ctx, t, "author_rotateKeys", "", target)
+	})
+
+	t.Run("author_hasSessionKeys", func(t *testing.T) {
+		t.Parallel()
+		t.SkipNow() // TODO
+
+		var target interface{} // TODO
+		fetchWithTimeout(ctx, t, "author_hasSessionKeys", "", target)
+	})
+
+	t.Run("author_hasKey", func(t *testing.T) {
+		t.Parallel()
+		t.SkipNow() // TODO
+
+		var target interface{} // TODO
+		fetchWithTimeout(ctx, t, "author_hasKey", "", target)
+	})
 }
