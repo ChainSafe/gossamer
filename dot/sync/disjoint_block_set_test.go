@@ -24,6 +24,7 @@ func Test_disjointBlockSet_addBlock(t *testing.T) {
 		header.Hash()
 		return &header
 	}
+
 	timeNow := func() time.Time {
 		return time.Unix(0, 0)
 	}
@@ -55,6 +56,7 @@ func Test_disjointBlockSet_addBlock(t *testing.T) {
 					Number:     1,
 					ParentHash: common.Hash{1},
 				},
+				Body: []types.Extrinsic{[]byte{1}},
 			},
 			expectedDisjointBlockSet: &disjointBlockSet{
 				limit: 1,
@@ -63,7 +65,7 @@ func Test_disjointBlockSet_addBlock(t *testing.T) {
 						hash:          hashHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}),
 						number:        1,
 						header:        setHashToHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}),
-						body:          nil,
+						body:          &types.Body{{1}},
 						justification: nil,
 						clearAt:       time.Unix(0, int64(ttl)),
 					},
@@ -88,8 +90,8 @@ func Test_disjointBlockSet_addBlock(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 			}
-			assert.Equal(t, tt.expectedDisjointBlockSet.blocks, tt.disjointBlockSet.blocks)
-			//assert.Equal(t, tt.expectedDisjointBlockSet, tt.disjointBlockSet)
+			//assert.Equal(t, tt.expectedDisjointBlockSet.blocks, tt.disjointBlockSet.blocks)
+			assert.Equal(t, tt.expectedDisjointBlockSet, tt.disjointBlockSet)
 			//assert.Equal(t, tt.expectedHash, tt.block.Header.Hash())
 		})
 	}
