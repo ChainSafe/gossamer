@@ -13,75 +13,98 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_Branch_ScaleEncodeHash(t *testing.T) {
+func Test_hashNode(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		branch     *Branch
-		encoding   []byte
-		wrappedErr error
-		errMessage string
-	}{
-		"empty branch": {
-			branch:   &Branch{},
-			encoding: []byte{0xc, 0x80, 0x0, 0x0},
-		},
-		"non empty branch": {
-			branch: &Branch{
-				Key:   []byte{1, 2},
-				Value: []byte{3, 4},
-				Children: [16]Node{
-					nil, nil, &Leaf{Key: []byte{9}},
-				},
-			},
-			encoding: []byte{0x2c, 0xc2, 0x12, 0x4, 0x0, 0x8, 0x3, 0x4, 0xc, 0x41, 0x9, 0x0},
-		},
-	}
-
-	for name, testCase := range testCases {
-		testCase := testCase
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-
-			encoding, err := testCase.branch.ScaleEncodeHash()
-
-			if testCase.wrappedErr != nil {
-				assert.ErrorIs(t, err, testCase.wrappedErr)
-				assert.EqualError(t, err, testCase.errMessage)
-			} else {
-				require.NoError(t, err)
-			}
-			assert.Equal(t, testCase.encoding, encoding)
-		})
-	}
-}
-
-func Test_Branch_hash(t *testing.T) {
-	t.Parallel()
-
-	testCases := map[string]struct {
-		branch     *Branch
+		node       *Node
 		write      writeCall
 		errWrapped error
 		errMessage string
 	}{
+		"small leaf buffer write error": {
+			node: &Node{
+				Encoding: []byte{1, 2, 3},
+			},
+			write: writeCall{
+				written: []byte{1, 2, 3},
+				err:     errTest,
+			},
+			errWrapped: errTest,
+			errMessage: "cannot write encoded leaf to buffer: " +
+				"test error",
+		},
+		"small leaf success": {
+			node: &Node{
+				Encoding: []byte{1, 2, 3},
+			},
+			write: writeCall{
+				written: []byte{1, 2, 3},
+			},
+		},
+		"leaf hash sum buffer write error": {
+			node: &Node{
+				Encoding: []byte{
+					1, 2, 3, 4, 5, 6, 7, 8,
+					1, 2, 3, 4, 5, 6, 7, 8,
+					1, 2, 3, 4, 5, 6, 7, 8,
+					1, 2, 3, 4, 5, 6, 7, 8,
+					1, 2, 3, 4, 5, 6, 7, 8,
+				},
+			},
+			write: writeCall{
+				written: []byte{
+					107, 105, 154, 175, 253, 170, 232,
+					135, 240, 21, 207, 148, 82, 117,
+					249, 230, 80, 197, 254, 17, 149,
+					108, 50, 7, 80, 56, 114, 176,
+					84, 114, 125, 234},
+				err: errTest,
+			},
+			errWrapped: errTest,
+			errMessage: "cannot write hash sum of leaf to buffer: " +
+				"test error",
+		},
+		"leaf hash sum success": {
+			node: &Node{
+				Encoding: []byte{
+					1, 2, 3, 4, 5, 6, 7, 8,
+					1, 2, 3, 4, 5, 6, 7, 8,
+					1, 2, 3, 4, 5, 6, 7, 8,
+					1, 2, 3, 4, 5, 6, 7, 8,
+					1, 2, 3, 4, 5, 6, 7, 8,
+				},
+			},
+			write: writeCall{
+				written: []byte{
+					107, 105, 154, 175, 253, 170, 232,
+					135, 240, 21, 207, 148, 82, 117,
+					249, 230, 80, 197, 254, 17, 149,
+					108, 50, 7, 80, 56, 114, 176,
+					84, 114, 125, 234},
+			},
+		},
 		"empty branch": {
-			branch: &Branch{},
+			node: &Node{
+				Children: make([]*Node, ChildrenCapacity),
+			},
 			write: writeCall{
 				written: []byte{128, 0, 0},
 			},
 		},
 		"less than 32 bytes encoding": {
-			branch: &Branch{
-				Key: []byte{1, 2},
+			node: &Node{
+				Children: make([]*Node, ChildrenCapacity),
+				Key:      []byte{1, 2},
 			},
 			write: writeCall{
 				written: []byte{130, 18, 0, 0},
 			},
 		},
 		"less than 32 bytes encoding write error": {
-			branch: &Branch{
-				Key: []byte{1, 2},
+			node: &Node{
+				Children: make([]*Node, ChildrenCapacity),
+				Key:      []byte{1, 2},
 			},
 			write: writeCall{
 				written: []byte{130, 18, 0, 0},
@@ -91,8 +114,9 @@ func Test_Branch_hash(t *testing.T) {
 			errMessage: "cannot write encoded branch to buffer: test error",
 		},
 		"more than 32 bytes encoding": {
-			branch: &Branch{
-				Key: repeatBytes(100, 1),
+			node: &Node{
+				Children: make([]*Node, ChildrenCapacity),
+				Key:      repeatBytes(100, 1),
 			},
 			write: writeCall{
 				written: []byte{
@@ -103,8 +127,9 @@ func Test_Branch_hash(t *testing.T) {
 			},
 		},
 		"more than 32 bytes encoding write error": {
-			branch: &Branch{
-				Key: repeatBytes(100, 1),
+			node: &Node{
+				Children: make([]*Node, ChildrenCapacity),
+				Key:      repeatBytes(100, 1),
 			},
 			write: writeCall{
 				written: []byte{
@@ -129,217 +154,10 @@ func Test_Branch_hash(t *testing.T) {
 			digestBuffer.EXPECT().Write(testCase.write.written).
 				Return(testCase.write.n, testCase.write.err)
 
-			err := testCase.branch.hash(digestBuffer)
+			err := hashNode(testCase.node, digestBuffer)
 
 			if testCase.errWrapped != nil {
 				assert.ErrorIs(t, err, testCase.errWrapped)
-				assert.EqualError(t, err, testCase.errMessage)
-			} else {
-				require.NoError(t, err)
-			}
-		})
-	}
-}
-
-func Test_Branch_Encode(t *testing.T) {
-	t.Parallel()
-
-	testCases := map[string]struct {
-		branch     *Branch
-		writes     []writeCall
-		wrappedErr error
-		errMessage string
-	}{
-		"clean branch with encoding": {
-			branch: &Branch{
-				Encoding: []byte{1, 2, 3},
-			},
-			writes: []writeCall{
-				{ // stored encoding
-					written: []byte{1, 2, 3},
-				},
-			},
-		},
-		"write error for clean branch with encoding": {
-			branch: &Branch{
-				Encoding: []byte{1, 2, 3},
-			},
-			writes: []writeCall{
-				{ // stored encoding
-					written: []byte{1, 2, 3},
-					err:     errTest,
-				},
-			},
-			wrappedErr: errTest,
-			errMessage: "cannot write stored encoding to buffer: test error",
-		},
-		"header encoding error": {
-			branch: &Branch{
-				Key: make([]byte, 63+(1<<16)),
-			},
-			writes: []writeCall{
-				{ // header
-					written: []byte{191},
-				},
-			},
-			wrappedErr: ErrPartialKeyTooBig,
-			errMessage: "cannot encode header: partial key length cannot be larger than or equal to 2^16: 65536",
-		},
-		"buffer write error for encoded key": {
-			branch: &Branch{
-				Key:   []byte{1, 2, 3},
-				Value: []byte{100},
-			},
-			writes: []writeCall{
-				{ // header
-					written: []byte{195},
-				},
-				{ // key LE
-					written: []byte{1, 35},
-					err:     errTest,
-				},
-			},
-			wrappedErr: errTest,
-			errMessage: "cannot write encoded key to buffer: test error",
-		},
-		"buffer write error for children bitmap": {
-			branch: &Branch{
-				Key:   []byte{1, 2, 3},
-				Value: []byte{100},
-				Children: [16]Node{
-					nil, nil, nil, &Leaf{Key: []byte{9}},
-					nil, nil, nil, &Leaf{Key: []byte{11}},
-				},
-			},
-			writes: []writeCall{
-				{ // header
-					written: []byte{195},
-				},
-				{ // key LE
-					written: []byte{1, 35},
-				},
-				{ // children bitmap
-					written: []byte{136, 0},
-					err:     errTest,
-				},
-			},
-			wrappedErr: errTest,
-			errMessage: "cannot write children bitmap to buffer: test error",
-		},
-		"buffer write error for value": {
-			branch: &Branch{
-				Key:   []byte{1, 2, 3},
-				Value: []byte{100},
-				Children: [16]Node{
-					nil, nil, nil, &Leaf{Key: []byte{9}},
-					nil, nil, nil, &Leaf{Key: []byte{11}},
-				},
-			},
-			writes: []writeCall{
-				{ // header
-					written: []byte{195},
-				},
-				{ // key LE
-					written: []byte{1, 35},
-				},
-				{ // children bitmap
-					written: []byte{136, 0},
-				},
-				{ // value
-					written: []byte{4, 100},
-					err:     errTest,
-				},
-			},
-			wrappedErr: errTest,
-			errMessage: "cannot write encoded value to buffer: test error",
-		},
-		"buffer write error for children encoding": {
-			branch: &Branch{
-				Key:   []byte{1, 2, 3},
-				Value: []byte{100},
-				Children: [16]Node{
-					nil, nil, nil, &Leaf{Key: []byte{9}},
-					nil, nil, nil, &Leaf{Key: []byte{11}},
-				},
-			},
-			writes: []writeCall{
-				{ // header
-					written: []byte{195},
-				},
-				{ // key LE
-					written: []byte{1, 35},
-				},
-				{ // children bitmap
-					written: []byte{136, 0},
-				},
-				{ // value
-					written: []byte{4, 100},
-				},
-				{ // children
-					written: []byte{12, 65, 9, 0},
-					err:     errTest,
-				},
-			},
-			wrappedErr: errTest,
-			errMessage: "cannot encode children of branch: " +
-				"cannot write encoding of child at index 3: " +
-				"test error",
-		},
-		"success with children encoding": {
-			branch: &Branch{
-				Key:   []byte{1, 2, 3},
-				Value: []byte{100},
-				Children: [16]Node{
-					nil, nil, nil, &Leaf{Key: []byte{9}},
-					nil, nil, nil, &Leaf{Key: []byte{11}},
-				},
-			},
-			writes: []writeCall{
-				{ // header
-					written: []byte{195},
-				},
-				{ // key LE
-					written: []byte{1, 35},
-				},
-				{ // children bitmap
-					written: []byte{136, 0},
-				},
-				{ // value
-					written: []byte{4, 100},
-				},
-				{ // first children
-					written: []byte{12, 65, 9, 0},
-				},
-				{ // second children
-					written: []byte{12, 65, 11, 0},
-				},
-			},
-		},
-	}
-
-	for name, testCase := range testCases {
-		testCase := testCase
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-			ctrl := gomock.NewController(t)
-
-			buffer := NewMockBuffer(ctrl)
-			var previousCall *gomock.Call
-			for _, write := range testCase.writes {
-				call := buffer.EXPECT().
-					Write(write.written).
-					Return(write.n, write.err)
-
-				if previousCall != nil {
-					call.After(previousCall)
-				}
-				previousCall = call
-			}
-
-			err := testCase.branch.Encode(buffer)
-
-			if testCase.wrappedErr != nil {
-				assert.ErrorIs(t, err, testCase.wrappedErr)
 				assert.EqualError(t, err, testCase.errMessage)
 			} else {
 				require.NoError(t, err)
@@ -363,12 +181,13 @@ func Benchmark_encodeChildrenOpportunisticParallel(b *testing.B) {
 	})
 }
 
-func populateChildren(valueSize, depth int) (children [16]Node) {
+func populateChildren(valueSize, depth int) (children []*Node) {
 	someValue := make([]byte, valueSize)
+	children = make([]*Node, ChildrenCapacity)
 
 	if depth == 0 {
 		for i := range children {
-			children[i] = &Leaf{
+			children[i] = &Node{
 				Key:   someValue,
 				Value: someValue,
 			}
@@ -377,7 +196,7 @@ func populateChildren(valueSize, depth int) (children [16]Node) {
 	}
 
 	for i := range children {
-		children[i] = &Branch{
+		children[i] = &Node{
 			Key:      someValue,
 			Value:    someValue,
 			Children: populateChildren(valueSize, depth-1),
@@ -391,15 +210,15 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		children   [16]Node
+		children   []*Node
 		writes     []writeCall
 		wrappedErr error
 		errMessage string
 	}{
 		"no children": {},
 		"first child not nil": {
-			children: [16]Node{
-				&Leaf{Key: []byte{1}},
+			children: []*Node{
+				{Key: []byte{1}},
 			},
 			writes: []writeCall{
 				{
@@ -408,11 +227,11 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 			},
 		},
 		"last child not nil": {
-			children: [16]Node{
+			children: []*Node{
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
-				&Leaf{Key: []byte{1}},
+				{Key: []byte{1}},
 			},
 			writes: []writeCall{
 				{
@@ -421,9 +240,9 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 			},
 		},
 		"first two children not nil": {
-			children: [16]Node{
-				&Leaf{Key: []byte{1}},
-				&Leaf{Key: []byte{2}},
+			children: []*Node{
+				{Key: []byte{1}},
+				{Key: []byte{2}},
 			},
 			writes: []writeCall{
 				{
@@ -435,13 +254,11 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 			},
 		},
 		"leaf encoding error": {
-			children: [16]Node{
+			children: []*Node{
 				nil, nil, nil, nil,
 				nil, nil, nil, nil,
 				nil, nil, nil,
-				&Leaf{
-					Key: []byte{1},
-				},
+				{Key: []byte{1}},
 				nil, nil, nil, nil,
 			},
 			writes: []writeCall{
@@ -457,11 +274,11 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 		"branch encoding": {
 			// Note this may run in parallel or not depending on other tests
 			// running in parallel.
-			children: [16]Node{
-				&Branch{
+			children: []*Node{
+				{
 					Key: []byte{1},
-					Children: [16]Node{
-						&Leaf{Key: []byte{1}},
+					Children: []*Node{
+						{Key: []byte{1}},
 					},
 				},
 			},
@@ -506,9 +323,11 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 	t.Run("opportunist parallel branch encoding", func(t *testing.T) {
 		t.Parallel()
 
-		var children [16]Node
+		children := make([]*Node, ChildrenCapacity)
 		for i := range children {
-			children[i] = &Branch{}
+			children[i] = &Node{
+				Children: make([]*Node, ChildrenCapacity),
+			}
 		}
 
 		buffer := bytes.NewBuffer(nil)
@@ -533,15 +352,15 @@ func Test_encodeChildrenSequentially(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		children   [16]Node
+		children   []*Node
 		writes     []writeCall
 		wrappedErr error
 		errMessage string
 	}{
 		"no children": {},
 		"first child not nil": {
-			children: [16]Node{
-				&Leaf{Key: []byte{1}},
+			children: []*Node{
+				{Key: []byte{1}},
 			},
 			writes: []writeCall{
 				{
@@ -550,11 +369,11 @@ func Test_encodeChildrenSequentially(t *testing.T) {
 			},
 		},
 		"last child not nil": {
-			children: [16]Node{
+			children: []*Node{
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
-				&Leaf{Key: []byte{1}},
+				{Key: []byte{1}},
 			},
 			writes: []writeCall{
 				{
@@ -563,9 +382,9 @@ func Test_encodeChildrenSequentially(t *testing.T) {
 			},
 		},
 		"first two children not nil": {
-			children: [16]Node{
-				&Leaf{Key: []byte{1}},
-				&Leaf{Key: []byte{2}},
+			children: []*Node{
+				{Key: []byte{1}},
+				{Key: []byte{2}},
 			},
 			writes: []writeCall{
 				{
@@ -577,13 +396,11 @@ func Test_encodeChildrenSequentially(t *testing.T) {
 			},
 		},
 		"encoding error": {
-			children: [16]Node{
+			children: []*Node{
 				nil, nil, nil, nil,
 				nil, nil, nil, nil,
 				nil, nil, nil,
-				&Leaf{
-					Key: []byte{1},
-				},
+				{Key: []byte{1}},
 				nil, nil, nil, nil,
 			},
 			writes: []writeCall{
@@ -633,35 +450,33 @@ func Test_encodeChild(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		child      Node
+		child      *Node
 		writeCall  bool
 		write      writeCall
 		wrappedErr error
 		errMessage string
 	}{
 		"nil node": {},
-		"nil leaf": {
-			child: (*Leaf)(nil),
-		},
-		"nil branch": {
-			child: (*Branch)(nil),
-		},
 		"empty leaf child": {
-			child:     &Leaf{},
+			child:     &Node{},
 			writeCall: true,
 			write: writeCall{
 				written: []byte{8, 64, 0},
 			},
 		},
 		"empty branch child": {
-			child:     &Branch{},
+			child: &Node{
+				Children: make([]*Node, ChildrenCapacity),
+			},
 			writeCall: true,
 			write: writeCall{
 				written: []byte{12, 128, 0, 0},
 			},
 		},
 		"buffer write error": {
-			child:     &Branch{},
+			child: &Node{
+				Children: make([]*Node, ChildrenCapacity),
+			},
 			writeCall: true,
 			write: writeCall{
 				written: []byte{12, 128, 0, 0},
@@ -671,7 +486,7 @@ func Test_encodeChild(t *testing.T) {
 			errMessage: "failed to write child to buffer: test error",
 		},
 		"leaf child": {
-			child: &Leaf{
+			child: &Node{
 				Key:   []byte{1},
 				Value: []byte{2},
 			},
@@ -681,12 +496,11 @@ func Test_encodeChild(t *testing.T) {
 			},
 		},
 		"branch child": {
-			child: &Branch{
+			child: &Node{
 				Key:   []byte{1},
 				Value: []byte{2},
-				Children: [16]Node{
-					nil, nil, &Leaf{
-						Key:   []byte{5},
+				Children: []*Node{
+					nil, nil, {Key: []byte{5},
 						Value: []byte{6},
 					},
 				},
@@ -720,6 +534,55 @@ func Test_encodeChild(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 			}
+		})
+	}
+}
+
+func Test_scaleEncodeHash(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		node       *Node
+		encoding   []byte
+		wrappedErr error
+		errMessage string
+	}{
+		"empty leaf": {
+			node:     &Node{},
+			encoding: []byte{0x8, 0x40, 0},
+		},
+		"empty branch": {
+			node: &Node{
+				Children: make([]*Node, ChildrenCapacity),
+			},
+			encoding: []byte{0xc, 0x80, 0x0, 0x0},
+		},
+		"non empty branch": {
+			node: &Node{
+				Key:   []byte{1, 2},
+				Value: []byte{3, 4},
+				Children: []*Node{
+					nil, nil, {Key: []byte{9}},
+				},
+			},
+			encoding: []byte{0x2c, 0xc2, 0x12, 0x4, 0x0, 0x8, 0x3, 0x4, 0xc, 0x41, 0x9, 0x0},
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			encoding, err := scaleEncodeHash(testCase.node)
+
+			if testCase.wrappedErr != nil {
+				assert.ErrorIs(t, err, testCase.wrappedErr)
+				assert.EqualError(t, err, testCase.errMessage)
+			} else {
+				require.NoError(t, err)
+			}
+			assert.Equal(t, testCase.encoding, encoding)
 		})
 	}
 }
