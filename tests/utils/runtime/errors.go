@@ -41,7 +41,7 @@ func NewErrorsFanIn() *ErrorsFanIn {
 
 // Add adds a runtime error receiving channel to the fan in mechanism
 // for the particular node string given. Note each node string must be
-// unique or the code willp panic.
+// unique or the code will panic.
 func (e *ErrorsFanIn) Add(node string, runtimeError <-chan error) {
 	e.mutex.Lock()
 	defer e.mutex.Unlock()
