@@ -5,6 +5,7 @@ package sync
 
 import (
 	"errors"
+	"github.com/davecgh/go-spew/spew"
 	"testing"
 	"time"
 
@@ -16,14 +17,21 @@ import (
 func Test_disjointBlockSet_addBlock(t *testing.T) {
 	t.Parallel()
 
-	headerToHash := func(header types.Header) common.Hash {
+	hashHeader := func(header types.Header) common.Hash {
 		return header.Hash()
 	}
+	setHashToHeader := func(header types.Header) *types.Header {
+		header.Hash()
+		return &header
+	}
+	timeNow := func() time.Time {
+		return time.Unix(0, 0)
+	}
 	tests := map[string]struct {
-		disjointBlockSet *disjointBlockSet
-		block            *types.Block
-		expectedHash     common.Hash
-		err              error
+		disjointBlockSet         *disjointBlockSet
+		block                    *types.Block
+		expectedDisjointBlockSet *disjointBlockSet
+		err                      error
 	}{
 		"add block beyond capacity": {
 			disjointBlockSet: &disjointBlockSet{},
@@ -32,26 +40,41 @@ func Test_disjointBlockSet_addBlock(t *testing.T) {
 					Number: 1,
 				},
 			},
-			expectedHash: headerToHash(types.Header{
-				Number: 1,
-			}),
-			err: errSetAtLimit,
+			expectedDisjointBlockSet: &disjointBlockSet{},
+			err:                      errSetAtLimit,
 		},
 		"add block": {
 			disjointBlockSet: &disjointBlockSet{
 				limit:            1,
 				blocks:           make(map[common.Hash]*pendingBlock),
-				timeNow:          time.Now,
+				timeNow:          timeNow,
 				parentToChildren: make(map[common.Hash]map[common.Hash]struct{}),
 			},
 			block: &types.Block{
 				Header: types.Header{
-					Number: 1,
+					Number:     1,
+					ParentHash: common.Hash{1},
 				},
 			},
-			expectedHash: headerToHash(types.Header{
-				Number: 1,
-			}),
+			expectedDisjointBlockSet: &disjointBlockSet{
+				limit: 1,
+				blocks: map[common.Hash]*pendingBlock{
+					hashHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}): {
+						hash:          hashHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}),
+						number:        1,
+						header:        setHashToHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}),
+						body:          nil,
+						justification: nil,
+						clearAt:       time.Unix(0, int64(ttl)),
+					},
+				},
+				timeNow: timeNow,
+				parentToChildren: map[common.Hash]map[common.Hash]struct{}{
+					{1}: map[common.Hash]struct{}{
+						hashHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}): {},
+					},
+				},
+			},
 		},
 	}
 	for name, tt := range tests {
@@ -59,12 +82,15 @@ func Test_disjointBlockSet_addBlock(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			err := tt.disjointBlockSet.addBlock(tt.block)
+			spew.Dump(tt.disjointBlockSet.blocks)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
 			}
-			assert.Equal(t, tt.expectedHash, tt.block.Header.Hash())
+			assert.Equal(t, tt.expectedDisjointBlockSet.blocks, tt.disjointBlockSet.blocks)
+			//assert.Equal(t, tt.expectedDisjointBlockSet, tt.disjointBlockSet)
+			//assert.Equal(t, tt.expectedHash, tt.block.Header.Hash())
 		})
 	}
 }
