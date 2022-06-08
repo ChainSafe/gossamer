@@ -101,7 +101,7 @@ func (nodes Nodes) InitAndStartTest(ctx context.Context, t *testing.T,
 	}
 
 	nodesCtx, nodesCancel := context.WithCancel(ctx)
-	runtimeErrors := NewErrorsFanIn()
+	runtimeErrors := newErrorsFanIn()
 
 	for _, node := range nodes {
 		runtimeError, err := node.Start(nodesCtx) // takes little time
@@ -137,7 +137,7 @@ func (nodes Nodes) InitAndStartTest(ctx context.Context, t *testing.T,
 	watchDogDone := make(chan struct{})
 	go func() {
 		defer close(watchDogDone)
-		err := runtimeErrors.Watch(watchDogCtx)
+		err := runtimeErrors.watch(watchDogCtx)
 		watchDogWasStopped := errors.Is(err, context.Canceled) ||
 			errors.Is(err, context.DeadlineExceeded)
 		if watchDogWasStopped {
@@ -162,14 +162,14 @@ func (nodes Nodes) InitAndStartTest(ctx context.Context, t *testing.T,
 }
 
 func stopNodes(t *testing.T, nodesCancel context.CancelFunc,
-	runtimeErrors *ErrorsFanIn) {
+	runtimeErrors *errorsFanIn) {
 	t.Helper()
 
 	// Stop the nodes and wait for them to exit
 	nodesCancel()
-	t.Logf("waiting on %d nodes to terminate...", runtimeErrors.Len())
+	t.Logf("waiting on %d nodes to terminate...", runtimeErrors.len())
 	const waitTimeout = 10 * time.Second
-	err := runtimeErrors.WaitForAll(waitTimeout)
+	err := runtimeErrors.waitForAll(waitTimeout)
 	if err != nil {
 		t.Logf("WARNING: %s", err)
 	}

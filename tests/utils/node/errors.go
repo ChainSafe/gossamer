@@ -11,12 +11,12 @@ import (
 	"time"
 )
 
-// ErrorsFanIn takes care of fanning runtime errors from
+// errorsFanIn takes care of fanning runtime errors from
 // different error channels to a single error channel.
 // It also handles removal of specific runtime error channels
 // from the fan in, which can be useful if one node crashes
 // or is stopped on purpose.
-type ErrorsFanIn struct {
+type errorsFanIn struct {
 	nodeToRuntimeError map[string]<-chan error
 	nodeToFaninCancel  map[string]context.CancelFunc
 	nodeToFaninDone    map[string]<-chan struct{}
@@ -29,9 +29,9 @@ type nodeError struct {
 	err  error
 }
 
-// NewErrorsFanIn returns a new errors fan in object.
-func NewErrorsFanIn() *ErrorsFanIn {
-	return &ErrorsFanIn{
+// newErrorsFanIn returns a new errors fan in object.
+func newErrorsFanIn() *errorsFanIn {
+	return &errorsFanIn{
 		nodeToRuntimeError: make(map[string]<-chan error),
 		nodeToFaninCancel:  make(map[string]context.CancelFunc),
 		nodeToFaninDone:    make(map[string]<-chan struct{}),
@@ -42,7 +42,7 @@ func NewErrorsFanIn() *ErrorsFanIn {
 // Add adds a runtime error receiving channel to the fan in mechanism
 // for the particular node string given. Note each node string must be
 // unique or the code will panic.
-func (e *ErrorsFanIn) Add(node string, runtimeError <-chan error) {
+func (e *errorsFanIn) Add(node string, runtimeError <-chan error) {
 	e.mutex.Lock()
 	defer e.mutex.Unlock()
 
@@ -77,25 +77,25 @@ func fanIn(ctx context.Context, node string,
 	}
 }
 
-// Len returns how many nodes are being monitored
+// len returns how many nodes are being monitored
 // for runtime errors.
-func (e *ErrorsFanIn) Len() (length int) {
+func (e *errorsFanIn) len() (length int) {
 	e.mutex.RLock()
 	defer e.mutex.RUnlock()
 
 	return len(e.nodeToRuntimeError)
 }
 
-// Remove removes a node from the fan in mechanism
+// remove removes a node from the fan in mechanism
 // and clears it from the internal maps.
-func (e *ErrorsFanIn) Remove(node string) {
+func (e *errorsFanIn) remove(node string) {
 	e.mutex.Lock()
 	defer e.mutex.Unlock()
 
 	e.removeWithoutLock(node)
 }
 
-func (e *ErrorsFanIn) removeWithoutLock(node string) {
+func (e *errorsFanIn) removeWithoutLock(node string) {
 	// Stop fanning in
 	cancelFanIn := e.nodeToFaninCancel[node]
 	fanInDone := e.nodeToFaninDone[node]
@@ -112,12 +112,12 @@ var (
 	ErrWaitTimedOut = errors.New("waiting for all nodes timed out")
 )
 
-// WaitForAll waits to collect all the runtime errors from all the
+// waitForAll waits to collect all the runtime errors from all the
 // nodes added and which did not crash previously.
 // If the timeout duration specified is reached, all internal
 // fan in operations are stopped and all the nodes are cleared from
 // the internal maps, and an error is returned.
-func (e *ErrorsFanIn) WaitForAll(timeout time.Duration) (err error) {
+func (e *errorsFanIn) waitForAll(timeout time.Duration) (err error) {
 	e.mutex.Lock()
 	defer e.mutex.Unlock()
 
@@ -143,14 +143,14 @@ func (e *ErrorsFanIn) WaitForAll(timeout time.Duration) (err error) {
 	return nil
 }
 
-// Watch returns the next runtime error from the N runtime
+// watch returns the next runtime error from the N runtime
 // error channels, in a first in first out mechanism.
-func (e *ErrorsFanIn) Watch(ctx context.Context) (err error) {
+func (e *errorsFanIn) watch(ctx context.Context) (err error) {
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
 	case identifiedErr := <-e.fifo: // single fatal error
-		e.Remove(identifiedErr.node)
+		e.remove(identifiedErr.node)
 		return identifiedErr.err
 	}
 }
