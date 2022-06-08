@@ -726,6 +726,7 @@ func (ps *PeerSet) listenActionAllocSlots(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
+			logger.Debugf("peerset slot allocation exiting: %s", ctx.Err())
 			return
 		case <-ticker.C:
 			for setID := 0; setID < ps.peerState.getSetLength(); setID++ {
