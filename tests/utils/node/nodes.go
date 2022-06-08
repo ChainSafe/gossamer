@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/config/toml"
-	"github.com/ChainSafe/gossamer/tests/utils/runtime"
 )
 
 // Nodes is a slice of nodes.
@@ -102,7 +101,7 @@ func (nodes Nodes) InitAndStartTest(ctx context.Context, t *testing.T,
 	}
 
 	nodesCtx, nodesCancel := context.WithCancel(ctx)
-	runtimeErrors := runtime.NewErrorsFanIn()
+	runtimeErrors := NewErrorsFanIn()
 
 	for _, node := range nodes {
 		runtimeError, err := node.Start(nodesCtx) // takes little time
@@ -163,7 +162,7 @@ func (nodes Nodes) InitAndStartTest(ctx context.Context, t *testing.T,
 }
 
 func stopNodes(t *testing.T, nodesCancel context.CancelFunc,
-	runtimeErrors *runtime.ErrorsFanIn) {
+	runtimeErrors *ErrorsFanIn) {
 	t.Helper()
 
 	// Stop the nodes and wait for them to exit
