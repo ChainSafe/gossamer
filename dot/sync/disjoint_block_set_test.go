@@ -5,7 +5,6 @@ package sync
 
 import (
 	"errors"
-	"github.com/davecgh/go-spew/spew"
 	"testing"
 	"time"
 
@@ -62,6 +61,46 @@ func Test_disjointBlockSet_addBlock(t *testing.T) {
 				limit: 1,
 				blocks: map[common.Hash]*pendingBlock{
 					hashHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}): {
+						hash:    hashHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}),
+						number:  1,
+						header:  setHashToHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}),
+						body:    &types.Body{{1}},
+						clearAt: time.Unix(0, int64(ttl)),
+					},
+				},
+				parentToChildren: map[common.Hash]map[common.Hash]struct{}{
+					{1}: {
+						hashHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}): {},
+					},
+				},
+			},
+		},
+		"has block": {
+			disjointBlockSet: &disjointBlockSet{
+				limit: 1,
+				blocks: map[common.Hash]*pendingBlock{
+					hashHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}): {
+						hash:    hashHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}),
+						number:  1,
+						header:  setHashToHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}),
+						body:    &types.Body{{1}},
+						clearAt: time.Unix(0, int64(ttl)),
+					},
+				},
+				timeNow:          timeNow,
+				parentToChildren: make(map[common.Hash]map[common.Hash]struct{}),
+			},
+			block: &types.Block{
+				Header: types.Header{
+					Number:     1,
+					ParentHash: common.Hash{1},
+				},
+				Body: []types.Extrinsic{[]byte{1}},
+			},
+			expectedDisjointBlockSet: &disjointBlockSet{
+				limit: 1,
+				blocks: map[common.Hash]*pendingBlock{
+					hashHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}): {
 						hash:          hashHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}),
 						number:        1,
 						header:        setHashToHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}),
@@ -70,12 +109,7 @@ func Test_disjointBlockSet_addBlock(t *testing.T) {
 						clearAt:       time.Unix(0, int64(ttl)),
 					},
 				},
-				timeNow: timeNow,
-				parentToChildren: map[common.Hash]map[common.Hash]struct{}{
-					{1}: map[common.Hash]struct{}{
-						hashHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}): {},
-					},
-				},
+				parentToChildren: map[common.Hash]map[common.Hash]struct{}{},
 			},
 		},
 	}
@@ -84,15 +118,13 @@ func Test_disjointBlockSet_addBlock(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			err := tt.disjointBlockSet.addBlock(tt.block)
-			spew.Dump(tt.disjointBlockSet.blocks)
+			tt.disjointBlockSet.timeNow = nil
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
 			}
-			//assert.Equal(t, tt.expectedDisjointBlockSet.blocks, tt.disjointBlockSet.blocks)
 			assert.Equal(t, tt.expectedDisjointBlockSet, tt.disjointBlockSet)
-			//assert.Equal(t, tt.expectedHash, tt.block.Header.Hash())
 		})
 	}
 }
@@ -100,39 +132,86 @@ func Test_disjointBlockSet_addBlock(t *testing.T) {
 func Test_disjointBlockSet_addHeader(t *testing.T) {
 	t.Parallel()
 
-	headerToHash := func(header types.Header) common.Hash {
+	hashHeader := func(header types.Header) common.Hash {
 		return header.Hash()
+	}
+	setHashToHeader := func(header types.Header) *types.Header {
+		header.Hash()
+		return &header
 	}
 
 	tests := map[string]struct {
-		disjointBlockSet *disjointBlockSet
-		header           *types.Header
-		expectedHash     common.Hash
-		err              error
+		disjointBlockSet         *disjointBlockSet
+		header                   *types.Header
+		expectedDisjointBlockSet *disjointBlockSet
+		err                      error
 	}{
 		"add header beyond capactiy": {
 			disjointBlockSet: &disjointBlockSet{},
 			header: &types.Header{
 				Number: 1,
 			},
-			expectedHash: headerToHash(types.Header{
-				Number: 1,
-			}),
-			err: errors.New("cannot add block; set is at capacity"),
+			expectedDisjointBlockSet: &disjointBlockSet{},
+			err:                      errors.New("cannot add block; set is at capacity"),
 		},
 		"add header": {
 			disjointBlockSet: &disjointBlockSet{
 				blocks:           make(map[common.Hash]*pendingBlock),
 				limit:            1,
-				timeNow:          func() time.Time { return time.Unix(1001, 0) },
+				timeNow:          func() time.Time { return time.Unix(0, 0) },
 				parentToChildren: make(map[common.Hash]map[common.Hash]struct{}),
 			},
 			header: &types.Header{
-				Number: 1,
+				Number:     1,
+				ParentHash: common.Hash{1},
 			},
-			expectedHash: headerToHash(types.Header{
-				Number: 1,
-			}),
+			expectedDisjointBlockSet: &disjointBlockSet{
+				limit: 1,
+				blocks: map[common.Hash]*pendingBlock{
+					hashHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}): {
+						hash:    hashHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}),
+						number:  1,
+						header:  setHashToHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}),
+						clearAt: time.Unix(0, int64(ttl)),
+					},
+				},
+				parentToChildren: map[common.Hash]map[common.Hash]struct{}{
+					{1}: {
+						hashHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}): {},
+					},
+				},
+			},
+		},
+		"has header": {
+			disjointBlockSet: &disjointBlockSet{
+				blocks: map[common.Hash]*pendingBlock{
+					hashHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}): {
+						hash:    hashHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}),
+						number:  1,
+						header:  setHashToHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}),
+						clearAt: time.Unix(0, int64(ttl)),
+					},
+				},
+				limit:            1,
+				timeNow:          func() time.Time { return time.Unix(0, 0) },
+				parentToChildren: make(map[common.Hash]map[common.Hash]struct{}),
+			},
+			header: &types.Header{
+				Number:     1,
+				ParentHash: common.Hash{1},
+			},
+			expectedDisjointBlockSet: &disjointBlockSet{
+				limit: 1,
+				blocks: map[common.Hash]*pendingBlock{
+					hashHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}): {
+						hash:    hashHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}),
+						number:  1,
+						header:  setHashToHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}),
+						clearAt: time.Unix(0, int64(ttl)),
+					},
+				},
+				parentToChildren: map[common.Hash]map[common.Hash]struct{}{},
+			},
 		},
 	}
 	for name, tt := range tests {
@@ -140,12 +219,13 @@ func Test_disjointBlockSet_addHeader(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			err := tt.disjointBlockSet.addHeader(tt.header)
+			tt.disjointBlockSet.timeNow = nil
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
 			}
-			assert.Equal(t, tt.expectedHash, tt.header.Hash())
+			assert.Equal(t, tt.expectedDisjointBlockSet, tt.disjointBlockSet)
 		})
 	}
 }
