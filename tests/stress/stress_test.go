@@ -66,31 +66,24 @@ func TestRestartNode(t *testing.T) {
 
 	runtimeErrors, startErr := nodes.Start(ctx)
 	if startErr != nil {
-		cancel()
-		for _, runtimeError := range runtimeErrors {
-			<-runtimeError
-		}
+		stopNodes(cancel, runtimeErrors)
 		t.Fatalf("failed to start nodes: %s", startErr)
 	}
 
-	// Stop nodes
-	cancel()
-	for _, runtimeError := range runtimeErrors {
-		<-runtimeError
-	}
+	stopNodes(cancel, runtimeErrors)
 
 	ctx, cancel = context.WithCancel(context.Background())
 
 	runtimeErrors, startErr = nodes.Start(ctx)
 	if startErr != nil {
-		cancel()
-		for _, runtimeError := range runtimeErrors {
-			<-runtimeError
-		}
+		stopNodes(cancel, runtimeErrors)
 		t.Fatalf("failed to start nodes: %s", startErr)
 	}
 
-	// Stop nodes
+	stopNodes(cancel, runtimeErrors)
+}
+
+func stopNodes(cancel context.CancelFunc, runtimeErrors []<-chan error) {
 	cancel()
 	for _, runtimeError := range runtimeErrors {
 		<-runtimeError
