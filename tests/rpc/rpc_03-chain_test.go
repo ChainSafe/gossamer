@@ -7,11 +7,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
+	"math/rand"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+	"github.com/ChainSafe/gossamer/dot/rpc/subscription"
 	"github.com/ChainSafe/gossamer/lib/common"
 	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils"
@@ -25,8 +26,9 @@ import (
 )
 
 const (
-	regex32BytesHex = `^0x[0-9a-f]{64}$`
-	regexBytesHex   = `^0x[0-9a-f]{2}[0-9a-f]*$`
+	regex32BytesHex      = `^0x[0-9a-f]{64}$`
+	regexBytesHex        = `^0x[0-9a-f]{2}[0-9a-f]*$`
+	regexBytesHexOrEmpty = `^0x[0-9a-f]*$`
 )
 
 func TestChainRPC(t *testing.T) {
@@ -132,52 +134,6 @@ func TestChainSubscriptionRPC(t *testing.T) {
 		return
 	}
 
-	testCases := []*testCase{
-		{
-			description: "test chain_subscribeNewHeads",
-			method:      "chain_subscribeNewHeads",
-			expected: []interface{}{1,
-				map[string](interface{}){
-					"subscription": float64(1),
-					"result": map[string](interface{}){
-						"number":         "0x01",
-						"parentHash":     "0x580d77a9136035a0bc3c3cd86286172f7f81291164c5914266073a30466fba21",
-						"stateRoot":      "0x3b1a31d10d4d8a444579fd5a3fb17cbe6bebba9d939d88fe7bafb9d48036abb5",
-						"extrinsicsRoot": "0x8025c0d64df303f79647611c8c2b0a77bc2247ee12d851df4624e1f71ebb3aed",
-						//nolint:lll
-						"digest": map[string](interface{}){"logs": []interface{}{
-							"0x0642414245c101c809062df1d1271d6a50232754baa64870515a7ada927886467748a220972c6d58347fd7317e286045604c5ddb78b84018c4b3a3836ee6626c8da6957338720053588d9f29c307fade658661d8d6a57c525f48553a253cf6e1475dbd319ca90200000000000000000e00000000000000",
-							"0x054241424501017cac567e5b5688260d9d0a1f7fe6a9f81ae0f1900a382e1c73a4929fcaf6e33ed9e7347eb81ebb2699d58f6c8b01c7bdf0714e5f6f4495bc4b5fb3becb287580"}}}}},
-			params: "[]",
-			skip:   false,
-		},
-		{
-			description: "test state_subscribeStorage",
-			method:      "state_subscribeStorage",
-			expected:    "",
-			params:      "[]",
-			skip:        true,
-		},
-		{
-			description: "test chain_finalizedHeads",
-			method:      "chain_subscribeFinalizedHeads",
-			expected: []interface{}{1,
-				map[string](interface{}){
-					"subscription": float64(1),
-					"result": map[string](interface{}){
-						"number":         "0x01",
-						"parentHash":     "0x580d77a9136035a0bc3c3cd86286172f7f81291164c5914266073a30466fba21",
-						"stateRoot":      "0x3b1a31d10d4d8a444579fd5a3fb17cbe6bebba9d939d88fe7bafb9d48036abb5",
-						"extrinsicsRoot": "0x8025c0d64df303f79647611c8c2b0a77bc2247ee12d851df4624e1f71ebb3aed",
-						//nolint:lll
-						"digest": map[string](interface{}){"logs": []interface{}{
-							"0x0642414245c101c809062df1d1271d6a50232754baa64870515a7ada927886467748a220972c6d58347fd7317e286045604c5ddb78b84018c4b3a3836ee6626c8da6957338720053588d9f29c307fade658661d8d6a57c525f48553a253cf6e1475dbd319ca90200000000000000000e00000000000000",
-							"0x054241424501017cac567e5b5688260d9d0a1f7fe6a9f81ae0f1900a382e1c73a4929fcaf6e33ed9e7347eb81ebb2699d58f6c8b01c7bdf0714e5f6f4495bc4b5fb3becb287580"}}}}},
-			params: "[]",
-			skip:   false,
-		},
-	}
-
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
 	tomlConfig := config.Default()
 	tomlConfig.Init.Genesis = genesisPath
@@ -187,100 +143,218 @@ func TestChainSubscriptionRPC(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	node.InitAndStartTest(ctx, t, cancel)
 
-	for _, test := range testCases {
+	const endpoint = "ws://localhost:8546/"
 
-		t.Run(test.description, func(t *testing.T) {
-			callWebsocket(t, test)
-		})
-	}
-}
+	t.Run("chain_subscribeNewHeads", func(t *testing.T) {
+		t.Parallel()
 
-func callWebsocket(t *testing.T, test *testCase) {
-	if test.skip {
-		t.Skip("Websocket endpoint not yet implemented")
-	}
-	url := "ws://localhost:8546/" // todo don't hard code this
-	ws, _, err := websocket.DefaultDialer.Dial(url, nil)
-	require.NoError(t, err)
-	defer ws.Close()
+		const numberOfMesages = 2
+		messages := callAndSubscribeWebsocket(ctx, t, endpoint, "chain_subscribeNewHeads", "[]", numberOfMesages)
 
-	done := make(chan struct{})
+		allParams := make([]subscription.Params, numberOfMesages)
+		for i, message := range messages {
+			err := rpc.Decode(message, &allParams[i])
+			require.NoError(t, err, "cannot decode websocket message for message index %d", i)
+		}
 
-	vals := make(chan []byte)
-	go wsListener(t, ws, vals, done, len(test.expected.([]interface{})))
+		for i, params := range allParams {
+			result := getResultMapFromParams(t, params)
 
-	err = ws.WriteMessage(websocket.TextMessage, []byte(`{
-    "jsonrpc": "2.0",
-    "method": "`+test.method+`",
-    "params": [`+test.params+`],
-    "id": 1
-}`))
-	require.NoError(t, err)
-	resCount := 0
-	for {
-		select {
-		case v := <-vals:
-			resCount++
-			switch exp := test.expected.([]interface{})[resCount-1].(type) {
-			case int:
-				// check for result subscription number
-				resNum := 0
-				err = rpc.Decode(v, &resNum)
-				require.NoError(t, err)
+			number := getResultNumber(t, result)
+			assert.Equal(t, uint(i+1), number)
 
-			case map[string]interface{}:
-				// check result map response
-				resMap := make(map[string]interface{})
-				err = rpc.Decode(v, &resMap)
-				require.NoError(t, err)
+			assertResultRegex(t, result, "parentHash", regex32BytesHex)
+			assertResultRegex(t, result, "stateRoot", regex32BytesHex)
+			assertResultRegex(t, result, "extrinsicsRoot", regex32BytesHex)
+			assertResultDigest(t, result)
 
-				// check values in map are expected type
-				for eKey, eVal := range exp {
-					rVal := resMap[eKey]
-					require.NotNil(t, rVal)
-					require.IsType(t, eVal, rVal)
-					switch evt := eVal.(type) {
-					case map[string]interface{}:
-						checkMap(t, evt, rVal.(map[string]interface{}))
-					}
-				}
+			remainingExpected := subscription.Params{
+				Result:         map[string]interface{}{},
+				SubscriptionID: 1,
 			}
-
-		case <-done:
-			return
+			assert.Equal(t, remainingExpected, params)
 		}
-	}
+	})
+
+	t.Run("state_subscribeStorage", func(t *testing.T) {
+		t.Parallel()
+
+		const numberOfMesages = 2
+		messages := callAndSubscribeWebsocket(ctx, t, endpoint, "state_subscribeStorage", "[]", numberOfMesages)
+
+		allParams := make([]subscription.Params, numberOfMesages)
+		for i := range allParams {
+			message := messages[i]
+			err := rpc.Decode(message, &allParams[i])
+			require.NoError(t, err, "cannot decode websocket message for message index %d", i)
+		}
+
+		for i, params := range allParams {
+			errorContext := fmt.Sprintf("for response at index %d", i)
+
+			result := getResultMapFromParams(t, params)
+
+			blockHex, ok := result["block"].(string)
+			require.True(t, ok, errorContext)
+			assert.Regexp(t, regex32BytesHex, blockHex, errorContext)
+			delete(result, "block")
+
+			changes, ok := result["changes"].([]interface{})
+			require.True(t, ok, errorContext)
+
+			for _, change := range changes {
+				fromTo, ok := change.([]interface{})
+				require.Truef(t, ok, "%s and change: %v", errorContext, change)
+				from, ok := fromTo[0].(string)
+				require.Truef(t, ok, "%s and from: %v", errorContext, fromTo[0])
+				to, ok := fromTo[1].(string)
+				require.Truef(t, ok, "%s and to: %v", errorContext, fromTo[1])
+				assert.Regexp(t, regexBytesHexOrEmpty, from, errorContext)
+				assert.Regexp(t, regexBytesHexOrEmpty, to, errorContext)
+			}
+			delete(result, "changes")
+
+			remainingExpected := map[string]interface{}{}
+			assert.Equal(t, remainingExpected, result, errorContext)
+		}
+	})
+
+	t.Run("chain_subscribeFinalizedHeads", func(t *testing.T) {
+		t.Parallel()
+
+		const numberOfMesages = 4
+		messages := callAndSubscribeWebsocket(ctx, t, endpoint, "chain_subscribeFinalizedHeads", "[]", numberOfMesages)
+
+		allParams := make([]subscription.Params, numberOfMesages)
+		for i, message := range messages {
+			err := rpc.Decode(message, &allParams[i])
+			require.NoError(t, err, "cannot decode websocket message for message index %d", i)
+		}
+
+		var blockNumbers []uint
+		for _, params := range allParams {
+			result := getResultMapFromParams(t, params)
+
+			number := getResultNumber(t, result)
+			blockNumbers = append(blockNumbers, number)
+
+			assertResultRegex(t, result, "parentHash", regex32BytesHex)
+			assertResultRegex(t, result, "stateRoot", regex32BytesHex)
+			assertResultRegex(t, result, "extrinsicsRoot", regex32BytesHex)
+			assertResultDigest(t, result)
+
+			remainingExpected := subscription.Params{
+				Result:         map[string]interface{}{},
+				SubscriptionID: 1,
+			}
+			assert.Equal(t, remainingExpected, params)
+		}
+
+		// Check block numbers grow by zero or one in order of responses.
+		for i, blockNumber := range blockNumbers {
+			if i == 0 {
+				assert.Equal(t, uint(1), blockNumber)
+				continue
+			}
+			assert.GreaterOrEqual(t, blockNumber, blockNumbers[i-1])
+		}
+	})
 }
 
-func wsListener(t *testing.T, ws *websocket.Conn, val chan []byte, done chan struct{}, msgCount int) {
-	defer close(done)
-	count := 0
-	for {
-		_, message, err := ws.ReadMessage()
-		require.NoError(t, err)
+func getResultMapFromParams(t *testing.T, params subscription.Params) (
+	resultMap map[string]interface{}) {
+	t.Helper()
 
-		count++
-		log.Printf("recv: %v: %s\n", count, message)
+	resultMap, ok := params.Result.(map[string]interface{})
+	require.True(t, ok)
 
-		val <- message
-		if count == msgCount {
-			err := ws.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
-			require.NoError(t, err)
-			return
-		}
-	}
+	return resultMap
 }
 
-func checkMap(t *testing.T, expMap map[string]interface{}, ckMap map[string]interface{}) {
-	for eKey, eVal := range expMap {
-		cVal := ckMap[eKey]
+// getResultNumber returns the number value from the result map
+// and deletes the "number" key from the map.
+func getResultNumber(t *testing.T, result map[string]interface{}) uint {
+	t.Helper()
 
-		require.NotNil(t, cVal)
-		require.IsType(t, eVal, cVal)
-		switch evt := eVal.(type) {
-		case map[string]interface{}:
-			checkMap(t, evt, cVal.(map[string]interface{}))
-		}
+	hexNumber, ok := result["number"].(string)
+	require.True(t, ok)
+
+	number, err := common.HexToUint(hexNumber)
+	require.NoError(t, err)
+	delete(result, "number")
+
+	return number
+}
+
+// assertResultRegex gets the value from the map and asserts that it matches the regex.
+// It then removes the key from the map.
+func assertResultRegex(t *testing.T, result map[string]interface{}, key, regex string) {
+	t.Helper()
+
+	value, ok := result[key]
+	require.True(t, ok, "cannot find key %q in result", key)
+	assert.Regexp(t, regex, value, "at result key %q", key)
+	delete(result, key)
+}
+
+func assertResultDigest(t *testing.T, result map[string]interface{}) {
+	t.Helper()
+
+	digest, ok := result["digest"].(map[string]interface{})
+	require.True(t, ok)
+
+	logs, ok := digest["logs"].([]interface{})
+	require.True(t, ok)
+
+	assert.NotEmpty(t, logs)
+	for _, log := range logs {
+		assert.Regexp(t, regexBytesHex, log)
 	}
 
+	delete(result, "digest")
+}
+
+func callAndSubscribeWebsocket(ctx context.Context, t *testing.T,
+	endpoint, method, params string, numberOfMesages uint) (
+	messages [][]byte) {
+	t.Helper()
+
+	connection, _, err := websocket.DefaultDialer.Dial(endpoint, nil)
+	require.NoError(t, err, "cannot dial websocket")
+	defer connection.Close() // in case of failed required assertion
+
+	const maxid = 100000 // otherwise it becomes a float64
+	id := rand.Intn(maxid)
+	messageData := fmt.Sprintf(`{
+    "jsonrpc": "2.0",
+    "method": %q,
+    "params": [%s],
+    "id": %d
+}`, method, params, id)
+	err = connection.WriteMessage(websocket.TextMessage, []byte(messageData))
+	require.NoError(t, err, "cannot write websocket message")
+
+	// Read subscription id result
+	var target subscription.ResponseJSON
+	err = connection.ReadJSON(&target)
+	require.NoError(t, err, "cannot read websocket message")
+	assert.Equal(t, float64(id), target.ID, "request id mismatch")
+	assert.NotZero(t, target.Result, "subscription id is 0")
+
+	for i := uint(0); i < numberOfMesages; i++ {
+		_, data, err := connection.ReadMessage()
+		require.NoError(t, err, "cannot read websocket message")
+
+		messages = append(messages, data)
+	}
+
+	// Close connection
+	const messageType = websocket.CloseMessage
+	data := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "")
+	err = connection.WriteMessage(messageType, data)
+	assert.NoError(t, err, "cannot write close websocket message")
+	err = connection.Close()
+	assert.NoError(t, err, "cannot close websocket connection")
+
+	return messages
 }

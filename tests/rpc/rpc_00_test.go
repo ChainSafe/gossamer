@@ -22,7 +22,6 @@ type testCase struct {
 	method      string
 	params      string
 	expected    interface{}
-	skip        bool
 }
 
 func fetchWithTimeout(ctx context.Context, t *testing.T,
