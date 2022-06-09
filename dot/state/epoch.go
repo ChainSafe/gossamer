@@ -258,6 +258,9 @@ func (s *EpochState) GetEpochData(epoch uint64, header *types.Header) (*types.Ep
 
 	//  lookup in-memory only if header is given
 	if header != nil && errors.Is(err, chaindb.ErrKeyNotFound) {
+		s.nextEpochDataLock.RLock()
+		defer s.nextEpochDataLock.RUnlock()
+
 		inMemoryEpochData, err := retrieveFromMemory(s.nextEpochData, s, epoch, header)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get epoch data from memory: %w", err)
@@ -329,6 +332,11 @@ func (s *EpochState) setLatestConfigData(epoch uint64) error {
 // - The supplied configuration data are intended to be used from the next epoch onwards.
 // If the header params is nil then it will search only in the database.
 func (s *EpochState) GetConfigData(epoch uint64, header *types.Header) (configData *types.ConfigData, err error) {
+	if header != nil {
+		s.nextConfigDataLock.RLock()
+		defer s.nextConfigDataLock.RUnlock()
+	}
+
 	for tryEpoch := epoch; tryEpoch >= 0; tryEpoch-- {
 		configData, err = s.getConfigDataFromDatabase(tryEpoch)
 		if err == nil && configData != nil {
