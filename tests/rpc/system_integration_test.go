@@ -5,12 +5,14 @@ package rpc
 
 import (
 	"context"
-	"strconv"
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/tests/utils"
+	"github.com/ChainSafe/gossamer/tests/utils/node"
 	"github.com/ChainSafe/gossamer/tests/utils/rpc"
 
 	"github.com/stretchr/testify/assert"
@@ -18,54 +20,74 @@ import (
 )
 
 func TestStableNetworkRPC(t *testing.T) {
-	if utils.MODE != "stable" {
-		t.Skip("Integration tests are disabled, going to skip.")
-	}
-	t.Log("Running NetworkAPI tests with PORT=" + utils.PORT)
-
-	networkSize, err := strconv.Atoi(utils.NETWORK_SIZE)
-	if err != nil {
-		networkSize = 0
+	if utils.MODE != "rpc" {
+		t.Skip("RPC tests are disabled, going to skip.")
 	}
 
-	endpoint := rpc.NewEndpoint(utils.PORT)
+	const numberOfNodes = 3
+	config := toml.Config{
+		RPC: toml.RPCConfig{
+			Enabled: true,
+			Modules: []string{"system", "author", "chain"},
+		},
+		Core: toml.CoreConfig{
+			Roles: types.FullNodeRole,
+		},
+	}
 
-	t.Run("system_health", func(t *testing.T) {
-		t.Parallel()
+	nodes := make(node.Nodes, numberOfNodes)
+	for i := range nodes {
+		nodes[i] = node.New(t, config, node.SetIndex(i))
+	}
 
-		var response modules.SystemHealthResponse
+	ctx, cancel := context.WithCancel(context.Background())
 
-		fetchWithTimeoutFromEndpoint(t, endpoint, "system_health", "{}", &response)
+	nodes.InitAndStartTest(ctx, t, cancel)
 
-		expectedResponse := modules.SystemHealthResponse{
-			Peers:           networkSize - 1,
-			IsSyncing:       true,
-			ShouldHavePeers: true,
-		}
-		assert.Equal(t, expectedResponse, response)
-	})
+	for _, node := range nodes {
+		node := node
+		t.Run(node.String(), func(t *testing.T) {
+			t.Parallel()
+			endpoint := rpc.NewEndpoint(node.RPCPort())
 
-	t.Run("system_networkState", func(t *testing.T) {
-		t.Parallel()
+			t.Run("system_health", func(t *testing.T) {
+				t.Parallel()
 
-		var response modules.SystemNetworkStateResponse
+				var response modules.SystemHealthResponse
 
-		fetchWithTimeoutFromEndpoint(t, endpoint, "system_networkState", "{}", &response)
+				fetchWithTimeoutFromEndpoint(t, endpoint, "system_health", "{}", &response)
 
-		// TODO assert response
-	})
+				expectedResponse := modules.SystemHealthResponse{
+					Peers:           numberOfNodes - 1,
+					IsSyncing:       true,
+					ShouldHavePeers: true,
+				}
+				assert.Equal(t, expectedResponse, response)
+			})
 
-	t.Run("system_peers", func(t *testing.T) {
-		t.Parallel()
+			t.Run("system_networkState", func(t *testing.T) {
+				t.Parallel()
 
-		var response modules.SystemPeersResponse
+				var response modules.SystemNetworkStateResponse
 
-		fetchWithTimeoutFromEndpoint(t, endpoint, "system_peers", "{}", &response)
+				fetchWithTimeoutFromEndpoint(t, endpoint, "system_networkState", "{}", &response)
 
-		assert.GreaterOrEqual(t, len(response), networkSize-2)
+				// TODO assert response
+			})
 
-		// TODO assert response
-	})
+			t.Run("system_peers", func(t *testing.T) {
+				t.Parallel()
+
+				var response modules.SystemPeersResponse
+
+				fetchWithTimeoutFromEndpoint(t, endpoint, "system_peers", "{}", &response)
+
+				assert.GreaterOrEqual(t, len(response), numberOfNodes-2)
+
+				// TODO assert response
+			})
+		})
+	}
 }
 
 func fetchWithTimeoutFromEndpoint(t *testing.T, endpoint, method,

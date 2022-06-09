@@ -36,12 +36,6 @@ test:
 	git lfs pull
 	go test -short -coverprofile c.out ./... -timeout=30m
 
-## it-stable: Runs Integration Tests Stable mode
-it-stable:
-	@echo "  >  \033[32mRunning Integration Tests...\033[0m "
-	@chmod +x scripts/integration-test-all.sh
-	./scripts/integration-test-all.sh -q 3 -s 10
-
 ## it-stress: Runs Integration Tests stress mode
 it-stress: build
 	@echo "  >  \033[32mRunning stress tests...\033[0m "

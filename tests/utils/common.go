@@ -16,7 +16,4 @@ var (
 
 	// LOGLEVEL is the value for the environnent variable LOGLEVEL.
 	LOGLEVEL = os.Getenv("LOG")
-
-	// NETWORK_SIZE is the value for the environnent variable NETWORK_SIZE.
-	NETWORK_SIZE = os.Getenv("NETWORK_SIZE") //nolint:revive
 )
