@@ -19,6 +19,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -208,13 +209,17 @@ func TestChainSync_sync_bootstrap_withWorkerError(t *testing.T) {
 func TestChainSync_sync_tip(t *testing.T) {
 	t.Parallel()
 
+	done := make(chan struct{})
+
 	cs := newTestChainSync(t)
 	cs.blockState = new(mocks.BlockState)
 	header, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, 1000,
 		types.NewDigest())
 	require.NoError(t, err)
 	cs.blockState.(*mocks.BlockState).On("BestBlockHeader").Return(header, nil)
-	cs.blockState.(*mocks.BlockState).On("GetHighestFinalisedHeader").Return(header, nil)
+	cs.blockState.(*mocks.BlockState).On("GetHighestFinalisedHeader").Run(func(args mock.Arguments) {
+		close(done)
+	}).Return(header, nil)
 
 	go cs.sync()
 	defer cs.cancel()
@@ -225,7 +230,7 @@ func TestChainSync_sync_tip(t *testing.T) {
 	}
 
 	cs.workQueue <- cs.peerState[testPeer]
-	time.Sleep(time.Second)
+	<-done
 	require.Equal(t, tip, cs.state)
 }
 
@@ -1097,7 +1102,7 @@ func Test_chainSync_getHighestBlock(t *testing.T) {
 
 func Test_chainSync_handleResult(t *testing.T) {
 	t.Parallel()
-
+	mockError := errors.New("test mock error")
 	tests := map[string]struct {
 		chainSyncBuilder func(ctrl *gomock.Controller, result *worker) chainSync
 		maxWorkerRetries uint16
@@ -1142,6 +1147,19 @@ func Test_chainSync_handleResult(t *testing.T) {
 				ctx: context.Background(),
 				err: &workerError{
 					err: context.DeadlineExceeded,
+				},
+			},
+		},
+		"res.err.err.Error() dial backoff": {
+			chainSyncBuilder: func(ctrl *gomock.Controller, result *worker) chainSync {
+				return chainSync{
+					workerState: newWorkerState(),
+				}
+			},
+			res: &worker{
+				ctx: context.Background(),
+				err: &workerError{
+					err: errors.New("dial backoff"),
 				},
 			},
 		},
@@ -1192,13 +1210,49 @@ func Test_chainSync_handleResult(t *testing.T) {
 				},
 			},
 		},
+		"handle work result error, no retries": {
+			chainSyncBuilder: func(ctrl *gomock.Controller, result *worker) chainSync {
+				mockWorkHandler := NewMockworkHandler(ctrl)
+				mockWorkHandler.EXPECT().handleWorkerResult(result).Return(nil, mockError)
+				return chainSync{
+					workerState: newWorkerState(),
+					handler:     mockWorkHandler,
+				}
+			},
+			res: &worker{
+				ctx: context.Background(),
+				err: &workerError{
+					err: errors.New(""),
+				},
+			},
+			err: mockError,
+		},
+		"handle work result nil, no retries": {
+			chainSyncBuilder: func(ctrl *gomock.Controller, result *worker) chainSync {
+				mockWorkHandler := NewMockworkHandler(ctrl)
+				mockWorkHandler.EXPECT().handleWorkerResult(result).Return(nil, nil)
+				return chainSync{
+					workerState: newWorkerState(),
+					handler:     mockWorkHandler,
+				}
+			},
+			res: &worker{
+				ctx: context.Background(),
+				err: &workerError{
+					err: errors.New(""),
+				},
+			},
+		},
 		"no error, maxWorkerRetries 2": {
 			chainSyncBuilder: func(ctrl *gomock.Controller, result *worker) chainSync {
 				mockWorkHandler := NewMockworkHandler(ctrl)
 				mockWorkHandler.EXPECT().handleWorkerResult(result).Return(result, nil)
+				mockDisjointBlockSet := NewMockDisjointBlockSet(ctrl)
+				mockDisjointBlockSet.EXPECT().removeBlock(common.Hash{})
 				return chainSync{
-					workerState: newWorkerState(),
-					handler:     mockWorkHandler,
+					workerState:   newWorkerState(),
+					handler:       mockWorkHandler,
+					pendingBlocks: mockDisjointBlockSet,
 				}
 			},
 			maxWorkerRetries: 2,
@@ -1206,6 +1260,34 @@ func Test_chainSync_handleResult(t *testing.T) {
 				ctx: context.Background(),
 				err: &workerError{
 					err: errors.New(""),
+				},
+				pendingBlock: newPendingBlock(common.Hash{}, 1, nil, nil, time.Now()),
+			},
+		},
+		"no error": {
+			chainSyncBuilder: func(ctrl *gomock.Controller, result *worker) chainSync {
+				mockWorkHandler := NewMockworkHandler(ctrl)
+				mockWorkHandler.EXPECT().handleWorkerResult(result).Return(result, nil)
+				mockWorkHandler.EXPECT().hasCurrentWorker(&worker{
+					ctx: context.Background(),
+					err: &workerError{
+						err: mockError,
+					},
+					retryCount: 1,
+					peersTried: map[peer.ID]struct{}{
+						"": {},
+					},
+				}, newWorkerState().workers).Return(true)
+				return chainSync{
+					workerState:      newWorkerState(),
+					handler:          mockWorkHandler,
+					maxWorkerRetries: 2,
+				}
+			},
+			res: &worker{
+				ctx: context.Background(),
+				err: &workerError{
+					err: mockError,
 				},
 			},
 		},

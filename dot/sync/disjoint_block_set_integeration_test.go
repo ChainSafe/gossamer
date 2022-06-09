@@ -31,7 +31,7 @@ func TestDisjointBlockSet(t *testing.T) {
 	}
 	blocks := s.getBlocks()
 	require.Equal(t, 1, len(blocks))
-	assert.Greater(t, blocks[0].clearAt, time.Now())
+	assert.Greater(t, blocks[0].clearAt, time.Now().Add(ttl-time.Minute))
 	blocks[0].clearAt = time.Time{}
 	require.Equal(t, expected, blocks[0])
 
@@ -47,7 +47,7 @@ func TestDisjointBlockSet(t *testing.T) {
 		header: header,
 	}
 	block1 := s.getBlock(header.Hash())
-	assert.Greater(t, block1.clearAt, time.Now())
+	assert.Greater(t, block1.clearAt, time.Now().Add(ttl-time.Minute))
 	block1.clearAt = time.Time{}
 	require.Equal(t, expected, block1)
 
@@ -64,7 +64,7 @@ func TestDisjointBlockSet(t *testing.T) {
 		header: header2,
 	}
 	block2 := s.getBlock(header2.Hash())
-	assert.Greater(t, block2.clearAt, time.Now())
+	assert.Greater(t, block2.clearAt, time.Now().Add(ttl-time.Minute))
 	block2.clearAt = time.Time{}
 	require.Equal(t, expected, block2)
 
@@ -81,7 +81,7 @@ func TestDisjointBlockSet(t *testing.T) {
 		body:   &block.Body,
 	}
 	block3 := s.getBlock(header2.Hash())
-	assert.Greater(t, block3.clearAt, time.Now())
+	assert.Greater(t, block3.clearAt, time.Now().Add(ttl-time.Minute))
 	block3.clearAt = time.Time{}
 	require.Equal(t, expected, block3)
 

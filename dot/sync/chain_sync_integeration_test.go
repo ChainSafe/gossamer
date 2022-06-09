@@ -52,11 +52,11 @@ func TestChainSync_SetPeerHead_Integration(t *testing.T) {
 
 	// test case where peer has a lower head than us, but they are on the same chain as us
 	cs.blockState = new(mocks.BlockState)
-	header, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, 1000,
+	header, err := types.NewHeader(common.Hash{0}, trie.EmptyHash, trie.EmptyHash, number,
 		types.NewDigest())
 	require.NoError(t, err)
 	cs.blockState.(*mocks.BlockState).On("BestBlockHeader").Return(header, nil)
-	fin, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, 998,
+	fin, err := types.NewHeader(common.Hash{0}, trie.EmptyHash, trie.EmptyHash, number-2,
 		types.NewDigest())
 	require.NoError(t, err)
 	cs.blockState.(*mocks.BlockState).On("GetHighestFinalisedHeader").Return(fin, nil)
@@ -79,7 +79,7 @@ func TestChainSync_SetPeerHead_Integration(t *testing.T) {
 	// test case where peer has a lower head than us, and they are on an invalid fork
 	cs.blockState = new(mocks.BlockState)
 	cs.blockState.(*mocks.BlockState).On("BestBlockHeader").Return(header, nil)
-	fin, err = types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, 1000,
+	fin, err = types.NewHeader(common.Hash{0}, trie.EmptyHash, trie.EmptyHash, number,
 		types.NewDigest())
 	require.NoError(t, err)
 	cs.blockState.(*mocks.BlockState).On("GetHighestFinalisedHeader").Return(fin, nil)
@@ -110,15 +110,14 @@ func TestChainSync_SetPeerHead_Integration(t *testing.T) {
 	// test case where peer has a lower head than us, but they are on a valid fork (that is not our chain)
 	cs.blockState = new(mocks.BlockState)
 	cs.blockState.(*mocks.BlockState).On("BestBlockHeader").Return(header, nil)
-	fin, err = types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, 998,
+	fin, err = types.NewHeader(common.Hash{0}, trie.EmptyHash, trie.EmptyHash, number-2,
 		types.NewDigest())
 	require.NoError(t, err)
 	cs.blockState.(*mocks.BlockState).On("GetHighestFinalisedHeader").Return(fin, nil)
-	cs.blockState.(*mocks.BlockState).On("GetHashByNumber", mock.AnythingOfType("uint")).Return(common.
-		Hash{}, nil)
+	cs.blockState.(*mocks.BlockState).On("GetHashByNumber", mock.AnythingOfType("uint")).
+		Return(common.Hash{}, nil)
 	cs.blockState.(*mocks.BlockState).On("HasHeader", mock.AnythingOfType("common.Hash")).Return(true, nil)
 
-	//number = 999
 	err = cs.setPeerHead(testPeer, hash, number)
 	require.NoError(t, err)
 	expected = &peerState{
@@ -174,7 +173,7 @@ func TestChainSync_sync_bootstrap_withWorkerError_Integration(t *testing.T) {
 			who: testPeer,
 		}
 		require.Equal(t, expected, res.err)
-	case <-time.After(time.Second * 5):
+	case <-time.After(5 * time.Second):
 		t.Fatal("did not get worker response")
 	}
 
@@ -184,7 +183,7 @@ func TestChainSync_sync_bootstrap_withWorkerError_Integration(t *testing.T) {
 func TestChainSync_sync_tip_Integration(t *testing.T) {
 	cs := newTestChainSync(t)
 	cs.blockState = new(mocks.BlockState)
-	header, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, 1000,
+	header, err := types.NewHeader(common.Hash{0}, trie.EmptyHash, trie.EmptyHash, 1000,
 		types.NewDigest())
 	require.NoError(t, err)
 	cs.blockState.(*mocks.BlockState).On("BestBlockHeader").Return(header, nil)
@@ -594,10 +593,10 @@ func TestChainSync_validateResponse_firstBlock_Integration(t *testing.T) {
 }
 
 func TestChainSync_doSync_Integration(t *testing.T) {
-	readyBlocks := newBlockQueue(maxResponseSize)
-	cs := newTestChainSyncWithReadyBlocks(t, readyBlocks)
 	ctrl := gomock.NewController(t)
 
+	readyBlocks := newBlockQueue(maxResponseSize)
+	cs := newTestChainSyncWithReadyBlocks(t, readyBlocks)
 	max := uint32(1)
 	req := &network.BlockRequestMessage{
 		RequestedData: bootstrapRequestData,
@@ -746,9 +745,10 @@ func TestHandleReadyBlock_Integration(t *testing.T) {
 	require.False(t, cs.pendingBlocks.hasBlock(header3.Hash()))
 	require.True(t, cs.pendingBlocks.hasBlock(header2NotDescendant.Hash()))
 
-	require.Equal(t, block1.ToBlockData(), readyBlocks.pop(context.Background()))
-	require.Equal(t, block2.ToBlockData(), readyBlocks.pop(context.Background()))
-	require.Equal(t, block3.ToBlockData(), readyBlocks.pop(context.Background()))
+	ctx := context.Background()
+	require.Equal(t, block1.ToBlockData(), readyBlocks.pop(ctx))
+	require.Equal(t, block2.ToBlockData(), readyBlocks.pop(ctx))
+	require.Equal(t, block3.ToBlockData(), readyBlocks.pop(ctx))
 }
 
 func TestChainSync_determineSyncPeers_Integration(t *testing.T) {

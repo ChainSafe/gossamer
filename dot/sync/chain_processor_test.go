@@ -183,6 +183,32 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 			assert.ErrorIs(t, err, tt.wantErr)
 		})
 	}
+	t.Run("panics on different parent state root", func(t *testing.T) {
+		t.Parallel()
+		ctrl := gomock.NewController(t)
+		bock := &types.Block{
+			Header: types.Header{
+				ParentHash: common.Hash{1},
+			},
+		}
+		blockState := NewMockBlockState(ctrl)
+		blockState.EXPECT().GetHeader(common.Hash{1}).
+			Return(&types.Header{StateRoot: common.Hash{2}}, nil)
+		trieState := newTrieState(t)
+		storageState := NewMockStorageState(ctrl)
+		lockCall := storageState.EXPECT().Lock()
+		trieStateCall := storageState.EXPECT().TrieState(&common.Hash{2}).
+			Return(trieState, nil).After(lockCall)
+		storageState.EXPECT().Unlock().After(trieStateCall)
+		chainProcessor := &chainProcessor{
+			blockState:   blockState,
+			storageState: storageState,
+		}
+		const expectedPanicValue = "parent state root does not match snapshot state root"
+		assert.PanicsWithValue(t, expectedPanicValue, func() {
+			_ = chainProcessor.handleBlock(bock)
+		})
+	})
 }
 
 func newTrieState(t *testing.T) *storage.TrieState {
@@ -196,35 +222,19 @@ func Test_chainProcessor_handleBody(t *testing.T) {
 	t.Parallel()
 
 	testExtrinsics := []types.Extrinsic{{1, 2, 3}, {7, 8, 9, 0}, {0xa, 0xb}}
-
 	testBody := types.NewBody(testExtrinsics)
 
-	tests := map[string]struct {
-		chainProcessorBuilder func(ctrl *gomock.Controller) chainProcessor
-		body                  *types.Body
-	}{
-		"base case": {
-			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
-				mockTransactionState := NewMockTransactionState(ctrl)
-				mockTransactionState.EXPECT().RemoveExtrinsic(testExtrinsics[0])
-				mockTransactionState.EXPECT().RemoveExtrinsic(testExtrinsics[1])
-				mockTransactionState.EXPECT().RemoveExtrinsic(testExtrinsics[2])
-				return chainProcessor{
-					transactionState: mockTransactionState,
-				}
-			},
-			body: testBody,
-		},
-	}
-	for name, tt := range tests {
-		tt := tt
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-			ctrl := gomock.NewController(t)
-			processor := tt.chainProcessorBuilder(ctrl)
-			processor.handleBody(tt.body)
-		})
-	}
+	t.Run("base case", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		mockTransactionState := NewMockTransactionState(ctrl)
+		mockTransactionState.EXPECT().RemoveExtrinsic(testExtrinsics[0])
+		mockTransactionState.EXPECT().RemoveExtrinsic(testExtrinsics[1])
+		mockTransactionState.EXPECT().RemoveExtrinsic(testExtrinsics[2])
+		processor := chainProcessor{
+			transactionState: mockTransactionState,
+		}
+		processor.handleBody(testBody)
+	})
 }
 
 func Test_chainProcessor_handleJustification(t *testing.T) {
@@ -563,9 +573,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 		},
 		"handle block import": {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
-				mockTrieState, err := storage.NewTrieState(nil)
-				require.NoError(t, err)
-
+				mockTrieState := newTrieState(t)
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().HasHeader(common.Hash{1, 2, 3}).Return(true, nil)
 				mockBlockState.EXPECT().HasBlockBody(common.Hash{1, 2, 3}).Return(true, nil)
@@ -605,9 +613,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 		"handle header": {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
 				stateRootHash := common.MustHexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
-				mockTrieState, err := storage.NewTrieState(nil)
-				require.NoError(t, err)
-
+				mockTrieState := newTrieState(t)
 				runtimeHash := common.MustHexToHash("0x7db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a")
 				mockInstance := NewMockInstance(ctrl)
 				mockInstance.EXPECT().SetContextStorage(mockTrieState)
@@ -715,13 +721,15 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 
 func Test_chainProcessor_processReadyBlocks(t *testing.T) {
 	t.Parallel()
-
-	tests := []struct {
-		name              string
-		blockStateBuilder func(ctrl *gomock.Controller, done chan struct{}) BlockState
+	mockError := errors.New("test mock error")
+	tests := map[string]struct {
+		blockStateBuilder   func(ctrl *gomock.Controller, done chan struct{}) BlockState
+		blockData           *types.BlockData
+		babeVerifierBuilder func(ctrl *gomock.Controller) BabeVerifier
+		pendingBlockBuilder func(ctrl *gomock.Controller, done chan struct{}) DisjointBlockSet
+		storageStateBuilder func(ctrl *gomock.Controller, done chan struct{}) StorageState
 	}{
-		{
-			name: "base case",
+		"base case": {
 			blockStateBuilder: func(ctrl *gomock.Controller, done chan struct{}) BlockState {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().HasHeader(common.Hash{}).Return(false, nil)
@@ -733,11 +741,122 @@ func Test_chainProcessor_processReadyBlocks(t *testing.T) {
 				})
 				return mockBlockState
 			},
+			blockData: &types.BlockData{
+				Hash: common.Hash{},
+			},
+			babeVerifierBuilder: func(ctrl *gomock.Controller) BabeVerifier {
+				return nil
+			},
+			pendingBlockBuilder: func(ctrl *gomock.Controller, done chan struct{}) DisjointBlockSet {
+				return nil
+			},
+			storageStateBuilder: func(ctrl *gomock.Controller, done chan struct{}) StorageState {
+				return nil
+			},
+		},
+		"add block": {
+			blockStateBuilder: func(ctrl *gomock.Controller, done chan struct{}) BlockState {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().HasHeader(common.Hash{}).Return(false, nil)
+				mockBlockState.EXPECT().HasBlockBody(common.Hash{}).Return(false, nil)
+				mockBlockState.EXPECT().GetHeader(common.Hash{}).Return(nil, mockError)
+				return mockBlockState
+			},
+			blockData: &types.BlockData{
+				Hash:   common.Hash{},
+				Header: &types.Header{},
+				Body:   &types.Body{},
+			},
+			babeVerifierBuilder: func(ctrl *gomock.Controller) BabeVerifier {
+				mockBabeVerifier := NewMockBabeVerifier(ctrl)
+				mockBabeVerifier.EXPECT().VerifyBlock(&types.Header{}).Return(nil)
+				return mockBabeVerifier
+			},
+			pendingBlockBuilder: func(ctrl *gomock.Controller, done chan struct{}) DisjointBlockSet {
+				mockDisjointBlockSet := NewMockDisjointBlockSet(ctrl)
+				mockDisjointBlockSet.EXPECT().addBlock(&types.Block{
+					Header: types.Header{},
+					Body:   types.Body{},
+				}).DoAndReturn(func(block *types.Block) error {
+					close(done)
+					return nil
+				})
+				return mockDisjointBlockSet
+			},
+			storageStateBuilder: func(ctrl *gomock.Controller, done chan struct{}) StorageState {
+				return nil
+			},
+		},
+		"error in process block": {
+			blockStateBuilder: func(ctrl *gomock.Controller, done chan struct{}) BlockState {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().HasHeader(common.Hash{}).Return(false, nil)
+				mockBlockState.EXPECT().HasBlockBody(common.Hash{}).Return(false, nil)
+				mockBlockState.EXPECT().GetHeader(common.Hash{}).Return(&types.Header{}, nil)
+				return mockBlockState
+			},
+			blockData: &types.BlockData{
+				Hash:   common.Hash{},
+				Header: &types.Header{},
+				Body:   &types.Body{},
+			},
+			babeVerifierBuilder: func(ctrl *gomock.Controller) BabeVerifier {
+				mockBabeVerifier := NewMockBabeVerifier(ctrl)
+				mockBabeVerifier.EXPECT().VerifyBlock(&types.Header{}).Return(nil)
+				return mockBabeVerifier
+			},
+			pendingBlockBuilder: func(ctrl *gomock.Controller, done chan struct{}) DisjointBlockSet {
+				return nil
+			},
+			storageStateBuilder: func(ctrl *gomock.Controller, done chan struct{}) StorageState {
+				mockStorageState := NewMockStorageState(ctrl)
+				mockStorageState.EXPECT().Lock()
+				mockStorageState.EXPECT().Unlock()
+				mockStorageState.EXPECT().TrieState(&common.Hash{}).DoAndReturn(func(hash *common.Hash) (*storage.
+					TrieState, error) {
+					close(done)
+					return nil, mockError
+				})
+				return mockStorageState
+			},
+		},
+		"add block error": {
+			blockStateBuilder: func(ctrl *gomock.Controller, done chan struct{}) BlockState {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().HasHeader(common.Hash{}).Return(false, nil)
+				mockBlockState.EXPECT().HasBlockBody(common.Hash{}).Return(false, nil)
+				mockBlockState.EXPECT().GetHeader(common.Hash{}).Return(nil, mockError)
+				return mockBlockState
+			},
+			blockData: &types.BlockData{
+				Hash:   common.Hash{},
+				Header: &types.Header{},
+				Body:   &types.Body{},
+			},
+			babeVerifierBuilder: func(ctrl *gomock.Controller) BabeVerifier {
+				mockBabeVerifier := NewMockBabeVerifier(ctrl)
+				mockBabeVerifier.EXPECT().VerifyBlock(&types.Header{}).Return(nil)
+				return mockBabeVerifier
+			},
+			pendingBlockBuilder: func(ctrl *gomock.Controller, done chan struct{}) DisjointBlockSet {
+				mockDisjointBlockSet := NewMockDisjointBlockSet(ctrl)
+				mockDisjointBlockSet.EXPECT().addBlock(&types.Block{
+					Header: types.Header{},
+					Body:   types.Body{},
+				}).DoAndReturn(func(block *types.Block) error {
+					close(done)
+					return mockError
+				})
+				return mockDisjointBlockSet
+			},
+			storageStateBuilder: func(ctrl *gomock.Controller, done chan struct{}) StorageState {
+				return nil
+			},
 		},
 	}
-	for _, tt := range tests {
+	for name, tt := range tests {
 		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			ctrl := gomock.NewController(t)
 			ctx, cancel := context.WithCancel(context.Background())
@@ -745,17 +864,18 @@ func Test_chainProcessor_processReadyBlocks(t *testing.T) {
 			done := make(chan struct{})
 
 			s := &chainProcessor{
-				ctx:         ctx,
-				cancel:      cancel,
-				readyBlocks: readyBlock,
-				blockState:  tt.blockStateBuilder(ctrl, done),
+				ctx:           ctx,
+				cancel:        cancel,
+				readyBlocks:   readyBlock,
+				blockState:    tt.blockStateBuilder(ctrl, done),
+				babeVerifier:  tt.babeVerifierBuilder(ctrl),
+				pendingBlocks: tt.pendingBlockBuilder(ctrl, done),
+				storageState:  tt.storageStateBuilder(ctrl, done),
 			}
 
 			go s.processReadyBlocks()
 
-			readyBlock.push(&types.BlockData{
-				Hash: common.Hash{},
-			})
+			readyBlock.push(tt.blockData)
 			<-done
 			s.cancel()
 		})

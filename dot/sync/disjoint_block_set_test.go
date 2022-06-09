@@ -118,12 +118,13 @@ func Test_disjointBlockSet_addBlock(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			err := tt.disjointBlockSet.addBlock(tt.block)
-			tt.disjointBlockSet.timeNow = nil
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
 			}
+
+			tt.disjointBlockSet.timeNow = nil
 			assert.Equal(t, tt.expectedDisjointBlockSet, tt.disjointBlockSet)
 		})
 	}
@@ -219,12 +220,13 @@ func Test_disjointBlockSet_addHeader(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			err := tt.disjointBlockSet.addHeader(tt.header)
-			tt.disjointBlockSet.timeNow = nil
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
 			}
+
+			tt.disjointBlockSet.timeNow = nil
 			assert.Equal(t, tt.expectedDisjointBlockSet, tt.disjointBlockSet)
 		})
 	}
@@ -290,14 +292,16 @@ func Test_disjointBlockSet_getBlocks(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name             string
-		disjointBlockSet *disjointBlockSet
-		want             []*pendingBlock
+		name                 string
+		disjointBlockSet     *disjointBlockSet
+		want                 []*pendingBlock
+		wantDisjointBlockSet *disjointBlockSet
 	}{
 		{
-			name:             "no blocks",
-			disjointBlockSet: &disjointBlockSet{},
-			want:             []*pendingBlock{},
+			name:                 "no blocks",
+			disjointBlockSet:     &disjointBlockSet{},
+			want:                 []*pendingBlock{},
+			wantDisjointBlockSet: &disjointBlockSet{},
 		},
 		{
 			name: "base case",
@@ -307,17 +311,20 @@ func Test_disjointBlockSet_getBlocks(t *testing.T) {
 				},
 			},
 			want: []*pendingBlock{{}},
+			wantDisjointBlockSet: &disjointBlockSet{
+				blocks: map[common.Hash]*pendingBlock{
+					{}: {},
+				},
+			},
 		},
 	}
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			s := &disjointBlockSet{
-				blocks: tt.disjointBlockSet.blocks,
-			}
-			blocks := s.getBlocks()
+			blocks := tt.disjointBlockSet.getBlocks()
 			assert.Equal(t, tt.want, blocks)
+			assert.Equal(t, tt.wantDisjointBlockSet, tt.disjointBlockSet)
 		})
 	}
 }
@@ -326,10 +333,11 @@ func Test_disjointBlockSet_removeLowerBlocks(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name             string
-		disjointBlockSet *disjointBlockSet
-		num              uint
-		remaining        map[common.Hash]*pendingBlock
+		name                 string
+		disjointBlockSet     *disjointBlockSet
+		num                  uint
+		remaining            map[common.Hash]*pendingBlock
+		wantDisjointBlockSet *disjointBlockSet
 	}{
 		{
 			name: "number 0",
@@ -356,6 +364,18 @@ func Test_disjointBlockSet_removeLowerBlocks(t *testing.T) {
 					number: 10,
 				},
 			},
+			wantDisjointBlockSet: &disjointBlockSet{
+				blocks: map[common.Hash]*pendingBlock{
+					{1}: {
+						hash:   common.Hash{1},
+						number: 1,
+					},
+					{10}: {
+						hash:   common.Hash{10},
+						number: 10,
+					},
+				},
+			},
 		},
 		{
 			name: "number 1",
@@ -377,6 +397,14 @@ func Test_disjointBlockSet_removeLowerBlocks(t *testing.T) {
 				number: 10,
 			},
 			},
+			wantDisjointBlockSet: &disjointBlockSet{
+				blocks: map[common.Hash]*pendingBlock{
+					{10}: {
+						hash:   common.Hash{10},
+						number: 10,
+					},
+				},
+			},
 		},
 		{
 			name: "number 11",
@@ -394,6 +422,9 @@ func Test_disjointBlockSet_removeLowerBlocks(t *testing.T) {
 			},
 			num:       11,
 			remaining: map[common.Hash]*pendingBlock{},
+			wantDisjointBlockSet: &disjointBlockSet{
+				blocks: map[common.Hash]*pendingBlock{},
+			},
 		},
 	}
 	for _, tt := range tests {
@@ -402,6 +433,7 @@ func Test_disjointBlockSet_removeLowerBlocks(t *testing.T) {
 			t.Parallel()
 			tt.disjointBlockSet.removeLowerBlocks(tt.num)
 			assert.Equal(t, tt.remaining, tt.disjointBlockSet.blocks)
+			assert.Equal(t, tt.wantDisjointBlockSet, tt.disjointBlockSet)
 		})
 	}
 }
@@ -445,8 +477,7 @@ func Test_disjointBlockSet_size(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			s := tt.disjointBlockSet
-			size := s.size()
+			size := tt.disjointBlockSet.size()
 			assert.Equal(t, tt.want, size)
 		})
 	}

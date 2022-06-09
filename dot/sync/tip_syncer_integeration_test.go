@@ -183,6 +183,7 @@ func TestTipSyncer_handleTick_case1(t *testing.T) {
 	}
 	w, err = s.handleTick()
 	require.NoError(t, err)
+	require.NotEmpty(t, w)
 	assert.Greater(t, w[0].pendingBlock.clearAt, time.Now())
 	w[0].pendingBlock.clearAt = time.Unix(0, 0)
 	require.Equal(t, expected, w)
@@ -219,6 +220,7 @@ func TestTipSyncer_handleTick_case2(t *testing.T) {
 	}
 	w, err := s.handleTick()
 	require.NoError(t, err)
+	require.NotEmpty(t, w)
 	assert.Greater(t, w[0].pendingBlock.clearAt, time.Now())
 	w[0].pendingBlock.clearAt = time.Time{}
 	require.Equal(t, expected, w)
@@ -246,7 +248,8 @@ func TestTipSyncer_handleTick_case3(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []*worker(nil), w)
 	require.False(t, s.pendingBlocks.hasBlock(header.Hash()))
-	require.Equal(t, block.ToBlockData(), s.readyBlocks.pop(context.Background()))
+	readyBlockData := s.readyBlocks.pop(context.Background())
+	require.Equal(t, block.ToBlockData(), readyBlockData)
 
 	// add pending block w/ full block, but block is not ready as parent is unknown
 	bs := new(syncmocks.BlockState)
