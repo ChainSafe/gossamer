@@ -409,7 +409,7 @@ func (sm *StateModule) GetStorageSize(
 func (sm *StateModule) QueryStorage(
 	_ *http.Request, req *StateStorageQueryRangeRequest, res *[]StorageChangeSetResponse) error {
 	if req.StartBlock.IsEmpty() {
-		return ErrStartBlockValueEmpty
+		return ErrStartBlockHashEmpty
 	}
 
 	startBlock, err := sm.blockAPI.GetBlockByHash(req.StartBlock)
@@ -427,7 +427,7 @@ func (sm *StateModule) QueryStorage(
 	}
 	endBlock, err := sm.blockAPI.GetBlockByHash(endBlockHash)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot get block by hash: %w", err)
 	}
 	endBlockNumber := endBlock.Header.Number
 
@@ -437,7 +437,7 @@ func (sm *StateModule) QueryStorage(
 	for i := startBlockNumber; i < endBlockNumber; i++ {
 		bHash, err := sm.blockAPI.GetHashByNumber(i)
 		if err != nil {
-			return err
+			return fmt.Errorf("cannot get hash by number: %w", err)
 		}
 		var changes [][]*string
 

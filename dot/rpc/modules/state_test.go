@@ -799,6 +799,8 @@ func TestStateModuleGetStorageSize(t *testing.T) {
 
 func TestStateModuleQueryStorage(t *testing.T) {
 	t.Parallel()
+	// todo(ed), determine why test start block no end block ok fails when removing pointer to change strings (
+	// this may be necessary for changes to be null with JSON)
 	k1 := "0x010204"
 	v1 := "0x010101"
 	expectedChanges := [][]*string{{&k1, &v1}}
@@ -829,7 +831,7 @@ func TestStateModuleQueryStorage(t *testing.T) {
 				},
 			},
 			exp:    []StorageChangeSetResponse{},
-			expErr: ErrStartBlockValueEmpty,
+			expErr: ErrStartBlockHashEmpty,
 		},
 		"missing start block not found error": {
 			fields: fields{func(ctrl *gomock.Controller) StorageAPI {
