@@ -12,14 +12,16 @@ import (
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 var (
-	ErrEpochNotInMemory = errors.New("epoch not found in memory map")
-	errHashNotInMemory  = errors.New("hash not found in memory map")
-	errHashNotPersisted = errors.New("hash with next epoch not found in database")
+	ErrEpochNotInMemory  = errors.New("epoch not found in memory map")
+	errHashNotInMemory   = errors.New("hash not found in memory map")
+	ErrEpochDataNotFound = errors.New("epoch data not found in the database")
+	errHashNotPersisted  = errors.New("hash with next epoch not found in database")
 )
 
 var (
@@ -251,14 +253,18 @@ func (s *EpochState) GetEpochData(epoch uint64, header *types.Header) (*types.Ep
 
 	if err != nil && !errors.Is(err, chaindb.ErrKeyNotFound) {
 		return nil, fmt.Errorf("failed to get epoch data from database: %w", err)
-	} else if header == nil {
-		// if no header is given then skip the lookup in-memory
-		return epochData, nil
 	}
 
-	epochData, err = s.getEpochDataFromMemory(epoch, header)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get epoch data from memory: %w", err)
+	//  lookup in-memory only if header is given
+	if header != nil && errors.Is(err, chaindb.ErrKeyNotFound) {
+		epochData, err = s.getEpochDataFromMemory(epoch, header)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get epoch data from memory: %w", err)
+		}
+	}
+
+	if epochData == nil {
+		return nil, ErrEpochDataNotFound
 	}
 
 	return epochData, nil
@@ -294,6 +300,16 @@ func (s *EpochState) getEpochDataFromMemory(epoch uint64, header *types.Header) 
 
 	for hash, value := range atEpoch {
 		isDescendant, err := s.blockState.IsDescendantOf(hash, headerHash)
+
+		if errors.Is(err, blocktree.ErrEndNodeNotFound) {
+			parentHeader, err := s.blockState.GetHeader(header.ParentHash)
+			if err != nil {
+				return nil, fmt.Errorf("cannot get parent header: %w", err)
+			}
+
+			return s.getEpochDataFromMemory(epoch, parentHeader)
+		}
+
 		if err != nil {
 			return nil, fmt.Errorf("cannot verify the ancestry: %w", err)
 		}
@@ -360,25 +376,32 @@ func (s *EpochState) setLatestConfigData(epoch uint64) error {
 // GetConfigData returns the config data for a given epoch persisted in database
 // otherwise tries to get the data from the in-memory map using the header.
 // If the header params is nil then it will search only in the database
-func (s *EpochState) GetConfigData(epoch uint64, header *types.Header) (*types.ConfigData, error) {
-	configData, err := s.getConfigDataFromDatabase(epoch)
-	if err == nil && configData != nil {
-		return configData, nil
+func (s *EpochState) GetConfigData(epoch uint64, header *types.Header) (configData *types.ConfigData, err error) {
+	for tryEpoch := epoch; tryEpoch >= 0; tryEpoch-- {
+		configData, err = s.getConfigDataFromDatabase(tryEpoch)
+		if err == nil && configData != nil {
+			return configData, nil
+		}
+
+		if err != nil && !errors.Is(err, chaindb.ErrKeyNotFound) {
+			return nil, fmt.Errorf("failed to get epoch data from database: %w", err)
+		}
+
+		//  lookup in-memory only if header is given
+		if header != nil && errors.Is(err, chaindb.ErrKeyNotFound) {
+			configData, err = s.getConfigDataFromMemory(epoch, header)
+			if errors.Is(err, ErrEpochNotInMemory) {
+				continue
+			}
+
+			if err != nil {
+				return nil, fmt.Errorf("failed to get epoch data from memory: %w", err)
+			}
+			return configData, err
+		}
 	}
 
-	if err != nil && !errors.Is(err, chaindb.ErrKeyNotFound) {
-		return nil, fmt.Errorf("failed to get config data from database: %w", err)
-	} else if header == nil {
-		// if no header is given then skip the lookup in-memory
-		return configData, nil
-	}
-
-	configData, err = s.getConfigDataFromMemory(epoch, header)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get config data from memory: %w", err)
-	}
-
-	return configData, nil
+	return configData, err
 }
 
 // getConfigDataFromDatabase returns the BABE config data for a given epoch persisted in database
@@ -408,9 +431,18 @@ func (s *EpochState) getConfigDataFromMemory(epoch uint64, header *types.Header)
 	}
 
 	headerHash := header.Hash()
-
 	for hash, value := range atEpoch {
 		isDescendant, err := s.blockState.IsDescendantOf(hash, headerHash)
+
+		if errors.Is(err, blocktree.ErrEndNodeNotFound) {
+			parentHeader, err := s.blockState.GetHeader(header.ParentHash)
+			if err != nil {
+				return nil, fmt.Errorf("cannot get parent header: %w", err)
+			}
+
+			return s.getConfigDataFromMemory(epoch, parentHeader)
+		}
+
 		if err != nil {
 			return nil, fmt.Errorf("cannot verify the ancestry: %w", err)
 		}

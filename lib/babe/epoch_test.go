@@ -192,9 +192,8 @@ func TestBabeService_getEpochDataAndStartSlot(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		res, startSlot, err := tc.service.getEpochDataAndStartSlot(tc.epoch)
+		res, err := tc.service.getEpochData(tc.epoch, nil)
 		require.NoError(t, err)
 		require.Equal(t, tc.expected, res)
-		require.Equal(t, tc.expectedStartSlot, startSlot)
 	}
 }
