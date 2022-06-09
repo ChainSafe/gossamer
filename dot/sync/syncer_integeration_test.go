@@ -8,7 +8,6 @@ package sync
 
 import (
 	"errors"
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -27,20 +26,6 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
-
-func TestMain(m *testing.M) {
-	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
-	if err != nil {
-		log.Errorf("failed to generate runtime wasm file: %s", err)
-		os.Exit(1)
-	}
-
-	// Start all tests
-	code := m.Run()
-
-	runtime.RemoveFiles(wasmFilePaths)
-	os.Exit(code)
-}
 
 func newMockFinalityGadget() *mocks.FinalityGadget {
 	m := new(mocks.FinalityGadget)
