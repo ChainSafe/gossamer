@@ -527,6 +527,7 @@ func (s *EpochState) FinalizeBABENextEpochData(finalizedHeader *types.Header) er
 			return fmt.Errorf("cannot get epoch for block %d (%s): %w",
 				finalizedHeader.Number, finalizedHeader.Hash(), err)
 		}
+
 		nextEpoch = finalizedBlockEpoch + 1
 	}
 
