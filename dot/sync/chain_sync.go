@@ -271,7 +271,7 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number uint) error
 	// check if they are on a fork or not
 	head, err := cs.blockState.BestBlockHeader()
 	if err != nil {
-		return err
+		return fmt.Errorf("best block header: %w", err)
 	}
 
 	if ps.number <= head.Number {
@@ -279,7 +279,7 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number uint) error
 		// as we already have that block
 		ourHash, err := cs.blockState.GetHashByNumber(ps.number)
 		if err != nil {
-			return err
+			return fmt.Errorf("get block hash by number: %w", err)
 		}
 
 		if ourHash.Equal(ps.hash) {
@@ -291,7 +291,7 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number uint) error
 		// for now, we can remove them from the syncing peers set
 		fin, err := cs.blockState.GetHighestFinalisedHeader()
 		if err != nil {
-			return err
+			return fmt.Errorf("get highest finalised header: %w", err)
 		}
 
 		// their block hash doesn't match ours for that number (ie. they are on a different
@@ -304,14 +304,15 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number uint) error
 				Value:  peerset.BadBlockAnnouncementValue,
 				Reason: peerset.BadBlockAnnouncementReason,
 			}, p)
-			return errPeerOnInvalidFork
+			return fmt.Errorf("%w: for peer %s and block number %d",
+				errPeerOnInvalidFork, p, ps.number)
 		}
 
 		// peer is on a fork, check if we have processed the fork already or not
 		// ie. is their block written to our db?
 		has, err := cs.blockState.HasHeader(ps.hash)
 		if err != nil {
-			return err
+			return fmt.Errorf("has header: %w", err)
 		}
 
 		// if so, do nothing, as we already have their fork
@@ -323,7 +324,7 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number uint) error
 	// the peer has a higher best block than us, or they are on some fork we are not aware of
 	// add it to the disjoint block set
 	if err = cs.pendingBlocks.addHashAndNumber(ps.hash, ps.number); err != nil {
-		return err
+		return fmt.Errorf("add hash and number: %w", err)
 	}
 
 	cs.workQueue <- ps

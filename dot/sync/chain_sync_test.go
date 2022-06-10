@@ -59,101 +59,329 @@ func Test_chainSyncState_String(t *testing.T) {
 	}
 }
 
-func TestChainSync_SetPeerHead(t *testing.T) {
+func Test_chainSync_setPeerHead(t *testing.T) {
 	t.Parallel()
-	ctrl := gomock.NewController(t)
-	cs := newTestChainSync(ctrl)
 
-	testPeer := peer.ID("noot")
-	hash := common.Hash{0xa, 0xb}
-	const number = 1000
-	mockBlockState := NewMockBlockState(ctrl)
-	mockHeader, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, 0,
-		types.NewDigest())
-	require.NoError(t, err)
-	mockBlockState.EXPECT().BestBlockHeader().Return(mockHeader, nil)
-	cs.blockState = mockBlockState
+	errTest := errors.New("test error")
+	const somePeer = peer.ID("abc")
+	someHash := common.Hash{1, 2, 3, 4}
 
-	err = cs.setPeerHead(testPeer, hash, number)
-	require.NoError(t, err)
-
-	expected := &peerState{
-		who:    testPeer,
-		hash:   hash,
-		number: number,
+	testCases := map[string]struct {
+		chainSyncBuilder          func(ctrl *gomock.Controller) *chainSync
+		peerID                    peer.ID
+		hash                      common.Hash
+		number                    uint
+		errWrapped                error
+		errMessage                string
+		expectedPeerIDToPeerState map[peer.ID]*peerState
+		expectedQueuedPeerStates  []*peerState
+	}{
+		"best block header error": {
+			chainSyncBuilder: func(ctrl *gomock.Controller) *chainSync {
+				blockState := NewMockBlockState(ctrl)
+				blockState.EXPECT().BestBlockHeader().Return(nil, errTest)
+				return &chainSync{
+					peerState:  map[peer.ID]*peerState{},
+					blockState: blockState,
+				}
+			},
+			peerID:     somePeer,
+			hash:       someHash,
+			number:     1,
+			errWrapped: errTest,
+			errMessage: "best block header: test error",
+			expectedPeerIDToPeerState: map[peer.ID]*peerState{
+				somePeer: {
+					who:    somePeer,
+					hash:   someHash,
+					number: 1,
+				},
+			},
+		},
+		"number smaller than best block number get hash by number error": {
+			chainSyncBuilder: func(ctrl *gomock.Controller) *chainSync {
+				blockState := NewMockBlockState(ctrl)
+				bestBlockHeader := &types.Header{Number: 2}
+				blockState.EXPECT().BestBlockHeader().Return(bestBlockHeader, nil)
+				blockState.EXPECT().GetHashByNumber(uint(1)).
+					Return(common.Hash{}, errTest)
+				return &chainSync{
+					peerState:  map[peer.ID]*peerState{},
+					blockState: blockState,
+				}
+			},
+			peerID:     somePeer,
+			hash:       someHash,
+			number:     1,
+			errWrapped: errTest,
+			errMessage: "get block hash by number: test error",
+			expectedPeerIDToPeerState: map[peer.ID]*peerState{
+				somePeer: {
+					who:    somePeer,
+					hash:   someHash,
+					number: 1,
+				},
+			},
+		},
+		"number smaller than best block number and same hash": {
+			chainSyncBuilder: func(ctrl *gomock.Controller) *chainSync {
+				blockState := NewMockBlockState(ctrl)
+				bestBlockHeader := &types.Header{Number: 2}
+				blockState.EXPECT().BestBlockHeader().Return(bestBlockHeader, nil)
+				blockState.EXPECT().GetHashByNumber(uint(1)).Return(someHash, nil)
+				return &chainSync{
+					peerState:  map[peer.ID]*peerState{},
+					blockState: blockState,
+				}
+			},
+			peerID: somePeer,
+			hash:   someHash,
+			number: 1,
+			expectedPeerIDToPeerState: map[peer.ID]*peerState{
+				somePeer: {
+					who:    somePeer,
+					hash:   someHash,
+					number: 1,
+				},
+			},
+		},
+		"number smaller than best block number get highest finalised header error": {
+			chainSyncBuilder: func(ctrl *gomock.Controller) *chainSync {
+				blockState := NewMockBlockState(ctrl)
+				bestBlockHeader := &types.Header{Number: 2}
+				blockState.EXPECT().BestBlockHeader().Return(bestBlockHeader, nil)
+				blockState.EXPECT().GetHashByNumber(uint(1)).
+					Return(common.Hash{2}, nil) // other hash than someHash
+				blockState.EXPECT().GetHighestFinalisedHeader().Return(nil, errTest)
+				return &chainSync{
+					peerState:  map[peer.ID]*peerState{},
+					blockState: blockState,
+				}
+			},
+			peerID:     somePeer,
+			hash:       someHash,
+			number:     1,
+			errWrapped: errTest,
+			errMessage: "get highest finalised header: test error",
+			expectedPeerIDToPeerState: map[peer.ID]*peerState{
+				somePeer: {
+					who:    somePeer,
+					hash:   someHash,
+					number: 1,
+				},
+			},
+		},
+		"number smaller than best block number and finalised number equal than number": {
+			chainSyncBuilder: func(ctrl *gomock.Controller) *chainSync {
+				blockState := NewMockBlockState(ctrl)
+				bestBlockHeader := &types.Header{Number: 2}
+				blockState.EXPECT().BestBlockHeader().Return(bestBlockHeader, nil)
+				blockState.EXPECT().GetHashByNumber(uint(1)).
+					Return(common.Hash{2}, nil) // other hash than someHash
+				finalisedBlockHeader := &types.Header{Number: 1}
+				blockState.EXPECT().GetHighestFinalisedHeader().Return(finalisedBlockHeader, nil)
+				network := NewMockNetwork(ctrl)
+				network.EXPECT().ReportPeer(peerset.ReputationChange{
+					Value:  peerset.BadBlockAnnouncementValue,
+					Reason: peerset.BadBlockAnnouncementReason,
+				}, somePeer)
+				return &chainSync{
+					peerState:  map[peer.ID]*peerState{},
+					blockState: blockState,
+					network:    network,
+				}
+			},
+			peerID:     somePeer,
+			hash:       someHash,
+			number:     1,
+			errWrapped: errPeerOnInvalidFork,
+			errMessage: "peer is on an invalid fork: for peer ZiCa and block number 1",
+			expectedPeerIDToPeerState: map[peer.ID]*peerState{
+				somePeer: {
+					who:    somePeer,
+					hash:   someHash,
+					number: 1,
+				},
+			},
+		},
+		"number smaller than best block number and finalised number bigger than number": {
+			chainSyncBuilder: func(ctrl *gomock.Controller) *chainSync {
+				blockState := NewMockBlockState(ctrl)
+				bestBlockHeader := &types.Header{Number: 2}
+				blockState.EXPECT().BestBlockHeader().Return(bestBlockHeader, nil)
+				blockState.EXPECT().GetHashByNumber(uint(1)).
+					Return(common.Hash{2}, nil) // other hash than someHash
+				finalisedBlockHeader := &types.Header{Number: 2}
+				blockState.EXPECT().GetHighestFinalisedHeader().Return(finalisedBlockHeader, nil)
+				network := NewMockNetwork(ctrl)
+				network.EXPECT().ReportPeer(peerset.ReputationChange{
+					Value:  peerset.BadBlockAnnouncementValue,
+					Reason: peerset.BadBlockAnnouncementReason,
+				}, somePeer)
+				return &chainSync{
+					peerState:  map[peer.ID]*peerState{},
+					blockState: blockState,
+					network:    network,
+				}
+			},
+			peerID:     somePeer,
+			hash:       someHash,
+			number:     1,
+			errWrapped: errPeerOnInvalidFork,
+			errMessage: "peer is on an invalid fork: for peer ZiCa and block number 1",
+			expectedPeerIDToPeerState: map[peer.ID]*peerState{
+				somePeer: {
+					who:    somePeer,
+					hash:   someHash,
+					number: 1,
+				},
+			},
+		},
+		"number smaller than best block number and " +
+			"finalised number smaller than number and " +
+			"has header error": {
+			chainSyncBuilder: func(ctrl *gomock.Controller) *chainSync {
+				blockState := NewMockBlockState(ctrl)
+				bestBlockHeader := &types.Header{Number: 3}
+				blockState.EXPECT().BestBlockHeader().Return(bestBlockHeader, nil)
+				blockState.EXPECT().GetHashByNumber(uint(2)).
+					Return(common.Hash{2}, nil) // other hash than someHash
+				finalisedBlockHeader := &types.Header{Number: 1}
+				blockState.EXPECT().GetHighestFinalisedHeader().Return(finalisedBlockHeader, nil)
+				blockState.EXPECT().HasHeader(someHash).Return(false, errTest)
+				return &chainSync{
+					peerState:  map[peer.ID]*peerState{},
+					blockState: blockState,
+				}
+			},
+			peerID:     somePeer,
+			hash:       someHash,
+			number:     2,
+			errWrapped: errTest,
+			errMessage: "has header: test error",
+			expectedPeerIDToPeerState: map[peer.ID]*peerState{
+				somePeer: {
+					who:    somePeer,
+					hash:   someHash,
+					number: 2,
+				},
+			},
+		},
+		"number smaller than best block number and " +
+			"finalised number smaller than number and " +
+			"has the hash": {
+			chainSyncBuilder: func(ctrl *gomock.Controller) *chainSync {
+				blockState := NewMockBlockState(ctrl)
+				bestBlockHeader := &types.Header{Number: 3}
+				blockState.EXPECT().BestBlockHeader().Return(bestBlockHeader, nil)
+				blockState.EXPECT().GetHashByNumber(uint(2)).
+					Return(common.Hash{2}, nil) // other hash than someHash
+				finalisedBlockHeader := &types.Header{Number: 1}
+				blockState.EXPECT().GetHighestFinalisedHeader().Return(finalisedBlockHeader, nil)
+				blockState.EXPECT().HasHeader(someHash).Return(true, nil)
+				return &chainSync{
+					peerState:  map[peer.ID]*peerState{},
+					blockState: blockState,
+				}
+			},
+			peerID: somePeer,
+			hash:   someHash,
+			number: 2,
+			expectedPeerIDToPeerState: map[peer.ID]*peerState{
+				somePeer: {
+					who:    somePeer,
+					hash:   someHash,
+					number: 2,
+				},
+			},
+		},
+		"number bigger than the head number add hash and number error": {
+			chainSyncBuilder: func(ctrl *gomock.Controller) *chainSync {
+				blockState := NewMockBlockState(ctrl)
+				bestBlockHeader := &types.Header{Number: 1}
+				blockState.EXPECT().BestBlockHeader().Return(bestBlockHeader, nil)
+				pendingBlocks := NewMockDisjointBlockSet(ctrl)
+				pendingBlocks.EXPECT().addHashAndNumber(someHash, uint(2)).
+					Return(errTest)
+				return &chainSync{
+					peerState:     map[peer.ID]*peerState{},
+					blockState:    blockState,
+					pendingBlocks: pendingBlocks,
+				}
+			},
+			peerID:     somePeer,
+			hash:       someHash,
+			number:     2,
+			errWrapped: errTest,
+			errMessage: "add hash and number: test error",
+			expectedPeerIDToPeerState: map[peer.ID]*peerState{
+				somePeer: {
+					who:    somePeer,
+					hash:   someHash,
+					number: 2,
+				},
+			},
+		},
+		"number bigger than the head number success": {
+			chainSyncBuilder: func(ctrl *gomock.Controller) *chainSync {
+				blockState := NewMockBlockState(ctrl)
+				bestBlockHeader := &types.Header{Number: 1}
+				blockState.EXPECT().BestBlockHeader().Return(bestBlockHeader, nil)
+				pendingBlocks := NewMockDisjointBlockSet(ctrl)
+				pendingBlocks.EXPECT().addHashAndNumber(someHash, uint(2)).
+					Return(nil)
+				return &chainSync{
+					peerState:     map[peer.ID]*peerState{},
+					blockState:    blockState,
+					pendingBlocks: pendingBlocks,
+					// buffered of 1 so setPeerHead can write to it
+					// without a consumer of the channel on the other end.
+					workQueue: make(chan *peerState, 1),
+				}
+			},
+			peerID: somePeer,
+			hash:   someHash,
+			number: 2,
+			expectedPeerIDToPeerState: map[peer.ID]*peerState{
+				somePeer: {
+					who:    somePeer,
+					hash:   someHash,
+					number: 2,
+				},
+			},
+			expectedQueuedPeerStates: []*peerState{
+				{
+					who:    somePeer,
+					hash:   someHash,
+					number: 2,
+				},
+			},
+		},
 	}
-	require.Equal(t, expected, cs.peerState[testPeer])
-	require.Equal(t, expected, <-cs.workQueue)
-	require.True(t, cs.pendingBlocks.hasBlock(hash))
 
-	// test case where peer has a lower head than us, but they are on the same chain as us
-	header, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, number,
-		types.NewDigest())
-	require.NoError(t, err)
-	mockBlockState = NewMockBlockState(ctrl)
-	mockBlockState.EXPECT().BestBlockHeader().Return(header, nil)
-	mockBlockState.EXPECT().GetHashByNumber(uint(999)).Return(hash, nil)
-	cs.blockState = mockBlockState
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			ctrl := gomock.NewController(t)
 
-	fin, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, number-2,
-		types.NewDigest())
-	require.NoError(t, err)
+			chainSync := testCase.chainSyncBuilder(ctrl)
 
-	err = cs.setPeerHead(testPeer, hash, number-1)
-	require.NoError(t, err)
-	expected = &peerState{
-		who:    testPeer,
-		hash:   hash,
-		number: number - 1,
+			err := chainSync.setPeerHead(testCase.peerID, testCase.hash, testCase.number)
+
+			assert.ErrorIs(t, err, testCase.errWrapped)
+			if testCase.errWrapped != nil {
+				assert.EqualError(t, err, testCase.errMessage)
+			}
+			assert.Equal(t, testCase.expectedPeerIDToPeerState, chainSync.peerState)
+
+			require.Equal(t, len(testCase.expectedQueuedPeerStates), len(chainSync.workQueue))
+			for _, expectedPeerState := range testCase.expectedQueuedPeerStates {
+				peerState := <-chainSync.workQueue
+				assert.Equal(t, expectedPeerState, peerState)
+			}
+		})
 	}
-	require.Equal(t, expected, cs.peerState[testPeer])
-	require.Len(t, cs.workQueue, 0)
-
-	// test case where peer has a lower head than us, and they are on an invalid fork
-	mockBlockState = NewMockBlockState(ctrl)
-	mockBlockState.EXPECT().BestBlockHeader().Return(header, nil)
-	fin, err = types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, number,
-		types.NewDigest())
-	require.NoError(t, err)
-	mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(fin, nil)
-	mockBlockState.EXPECT().GetHashByNumber(uint(999)).Return(common.Hash{}, nil)
-	cs.blockState = mockBlockState
-
-	mockNetwork := NewMockNetwork(ctrl)
-	mockNetwork.EXPECT().ReportPeer(peerset.ReputationChange{
-		Value:  -4096,
-		Reason: "Bad block announcement",
-	}, peer.ID("noot"))
-	cs.network = mockNetwork
-	err = cs.setPeerHead(testPeer, hash, number-1)
-	require.True(t, errors.Is(err, errPeerOnInvalidFork))
-	expected = &peerState{
-		who:    testPeer,
-		hash:   hash,
-		number: number - 1,
-	}
-	require.Equal(t, expected, cs.peerState[testPeer])
-	require.Len(t, cs.workQueue, 0)
-
-	// test case where peer has a lower head than us, but they are on a valid fork (that is not our chain)
-	mockBlockState = NewMockBlockState(ctrl)
-	mockBlockState.EXPECT().BestBlockHeader().Return(header, nil)
-	fin, err = types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, number-2,
-		types.NewDigest())
-	require.NoError(t, err)
-	mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(fin, nil)
-	mockBlockState.EXPECT().GetHashByNumber(uint(999)).Return(common.Hash{}, nil)
-	mockBlockState.EXPECT().HasHeader(common.Hash{10, 11}).Return(true, nil)
-	cs.blockState = mockBlockState
-	err = cs.setPeerHead(testPeer, hash, number-1)
-	require.NoError(t, err)
-	expected = &peerState{
-		who:    testPeer,
-		hash:   hash,
-		number: number - 1,
-	}
-	require.Equal(t, expected, cs.peerState[testPeer])
-	require.Len(t, cs.workQueue, 0)
 }
 
 func TestChainSync_sync_bootstrap_withWorkerError(t *testing.T) {
