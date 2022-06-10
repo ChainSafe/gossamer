@@ -41,8 +41,21 @@ func TestStableNetworkRPC(t *testing.T) {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
 
-	nodes.InitAndStartTest(ctx, t, cancel)
+	for _, node := range nodes {
+		node.InitAndStartTest(ctx, t, cancel)
+		const timeBetweenStart = 0 * time.Second
+		timer := time.NewTimer(timeBetweenStart)
+		select {
+		case <-timer.C:
+		case <-ctx.Done():
+			if !timer.Stop() {
+				<-timer.C
+			}
+			return
+		}
+	}
 
 	for _, node := range nodes {
 		node := node
