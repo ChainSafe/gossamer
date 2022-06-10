@@ -60,4 +60,4 @@ jobs:
           restore-keys: ${{ runner.os }}-go-mod
 
       - name: Run integration tests
-        run: go test -timeout=30m -tags integration ${{ matrix.packages }}
+        run: go test -timeout=45m -tags integration ${{ matrix.packages }}
