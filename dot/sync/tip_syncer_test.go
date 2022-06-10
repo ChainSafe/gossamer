@@ -165,9 +165,9 @@ func Test_tipSyncer_handleTick(t *testing.T) {
 	}
 	for name, tt := range tests {
 		tt := tt
-		ctrl := gomock.NewController(t)
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
+			ctrl := gomock.NewController(t)
 			s := &tipSyncer{
 				blockState:    tt.fields.blockStateBuilder(ctrl),
 				pendingBlocks: tt.fields.pendingBlocksBuilder(ctrl),
