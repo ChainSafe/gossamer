@@ -33,9 +33,6 @@ var (
 	// ErrBadSignature is returned when a seal is invalid
 	ErrBadSignature = errors.New("could not verify signature")
 
-	// ErrProducerEquivocated is returned when a block producer has produced conflicting blocks
-	ErrProducerEquivocated = errors.New("block producer equivocated")
-
 	// ErrNotAuthorized is returned when the node is not authorized to produce a block
 	ErrNotAuthorized = errors.New("not authorized to produce block")
 
