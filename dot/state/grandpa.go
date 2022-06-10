@@ -227,7 +227,7 @@ func (s *GrandpaState) ApplyForcedChanges(importedBlockHeader *types.Header) err
 
 	logger.Debugf("applying forced change: %s", forcedChange)
 
-	// send the telemetry s messages here
+	// TODO: send the telemetry messages here
 	// afg.applying_forced_authority_set_change
 
 	currentSetID, err := s.GetCurrentSetID()
