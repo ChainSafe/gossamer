@@ -26,12 +26,12 @@ import (
 )
 
 func TestChainSync_SetPeerHead_Integration(t *testing.T) {
-	cs := newTestChainSync(t)
+	ctrl := gomock.NewController(t)
+	cs := newTestChainSync(ctrl)
 
 	testPeer := peer.ID("noot")
 	hash := common.Hash{0xa, 0xb}
 	const number uint = 1000
-	ctrl := gomock.NewController(t)
 	mockBlockState := NewMockBlockState(ctrl)
 	mockHeader, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, 0,
 		types.NewDigest())
@@ -134,8 +134,8 @@ func TestChainSync_SetPeerHead_Integration(t *testing.T) {
 }
 
 func TestChainSync_sync_bootstrap_withWorkerError_Integration(t *testing.T) {
-	cs := newTestChainSync(t)
 	ctrl := gomock.NewController(t)
+	cs := newTestChainSync(ctrl)
 	mockBlockState := NewMockBlockState(ctrl)
 	mockHeader, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, 0,
 		types.NewDigest())
@@ -181,7 +181,8 @@ func TestChainSync_sync_bootstrap_withWorkerError_Integration(t *testing.T) {
 }
 
 func TestChainSync_sync_tip_Integration(t *testing.T) {
-	cs := newTestChainSync(t)
+	ctrl := gomock.NewController(t)
+	cs := newTestChainSync(ctrl)
 	cs.blockState = new(mocks.BlockState)
 	header, err := types.NewHeader(common.Hash{0}, trie.EmptyHash, trie.EmptyHash, 1000,
 		types.NewDigest())
@@ -410,8 +411,8 @@ func TestWorkerToRequests_Integration(t *testing.T) {
 }
 
 func TestValidateBlockData(t *testing.T) {
-	cs := newTestChainSync(t)
 	ctrl := gomock.NewController(t)
+	cs := newTestChainSync(ctrl)
 	mockNetwork := NewMockNetwork(ctrl)
 	mockNetwork.EXPECT().ReportPeer(peerset.ReputationChange{
 		Value:  -1048576,
@@ -442,8 +443,8 @@ func TestValidateBlockData(t *testing.T) {
 }
 
 func TestChainSync_validateResponse_Integration(t *testing.T) {
-	cs := newTestChainSync(t)
 	ctrl := gomock.NewController(t)
+	cs := newTestChainSync(ctrl)
 	mockBlockState := NewMockBlockState(ctrl)
 	mockBlockState.EXPECT().HasHeader(common.Hash{}).Return(true, nil).Times(4)
 	cs.blockState = mockBlockState
@@ -557,7 +558,8 @@ func TestChainSync_validateResponse_Integration(t *testing.T) {
 }
 
 func TestChainSync_validateResponse_firstBlock_Integration(t *testing.T) {
-	cs := newTestChainSync(t)
+	ctrl := gomock.NewController(t)
+	cs := newTestChainSync(ctrl)
 	bs := new(mocks.BlockState)
 	bs.On("HasHeader", mock.AnythingOfType("common.Hash")).Return(false, nil)
 	cs.blockState = bs
@@ -596,7 +598,7 @@ func TestChainSync_doSync_Integration(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	readyBlocks := newBlockQueue(maxResponseSize)
-	cs := newTestChainSyncWithReadyBlocks(t, readyBlocks)
+	cs := newTestChainSyncWithReadyBlocks(ctrl, readyBlocks)
 	max := uint32(1)
 	req := &network.BlockRequestMessage{
 		RequestedData: bootstrapRequestData,
@@ -696,8 +698,9 @@ func TestChainSync_doSync_Integration(t *testing.T) {
 }
 
 func TestHandleReadyBlock_Integration(t *testing.T) {
+	ctrl := gomock.NewController(t)
 	readyBlocks := newBlockQueue(maxResponseSize)
-	cs := newTestChainSyncWithReadyBlocks(t, readyBlocks)
+	cs := newTestChainSyncWithReadyBlocks(ctrl, readyBlocks)
 
 	// test that descendant chain gets returned by getReadyDescendants on block 1 being ready
 	header1 := &types.Header{
@@ -752,7 +755,8 @@ func TestHandleReadyBlock_Integration(t *testing.T) {
 }
 
 func TestChainSync_determineSyncPeers_Integration(t *testing.T) {
-	cs := newTestChainSync(t)
+	ctrl := gomock.NewController(t)
+	cs := newTestChainSync(ctrl)
 
 	req := &network.BlockRequestMessage{}
 	testPeerA := peer.ID("a")

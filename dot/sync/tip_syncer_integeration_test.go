@@ -285,6 +285,7 @@ func TestTipSyncer_handleTick_case3(t *testing.T) {
 
 	w, err = s.handleTick()
 	require.NoError(t, err)
+	require.NotEmpty(t, w)
 	assert.Greater(t, w[0].pendingBlock.clearAt, time.Now())
 	w[0].pendingBlock.clearAt = time.Time{}
 	require.Equal(t, expected, w)
@@ -298,8 +299,9 @@ func TestTipSyncer_handleTick_case3(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []*worker(nil), w)
 	require.False(t, s.pendingBlocks.hasBlock(header.Hash()))
-	s.readyBlocks.pop(context.Background()) // first pop will remove parent
-	require.Equal(t, block.ToBlockData(), s.readyBlocks.pop(context.Background()))
+	_ = s.readyBlocks.pop(context.Background()) // first pop will remove parent
+	readyBlockData = s.readyBlocks.pop(context.Background())
+	require.Equal(t, block.ToBlockData(), readyBlockData)
 }
 
 func TestTipSyncer_hasCurrentWorker(t *testing.T) {

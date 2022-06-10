@@ -4,7 +4,6 @@
 package sync
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -290,9 +289,9 @@ func Test_tipSyncer_handleWorkerResult(t *testing.T) {
 	}
 	for name, tt := range tests {
 		tt := tt
-		ctrl := gomock.NewController(t)
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
+			ctrl := gomock.NewController(t)
 			s := &tipSyncer{
 				blockState: tt.blockStateBuilder(ctrl),
 			}
@@ -302,9 +301,7 @@ func Test_tipSyncer_handleWorkerResult(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("handleWorkerResult() got = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
@@ -396,8 +393,8 @@ func Test_tipSyncer_hasCurrentWorker(t *testing.T) {
 		tt := tt
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			ti := &tipSyncer{}
-			got := ti.hasCurrentWorker(tt.args.w, tt.args.workers)
+			s := &tipSyncer{}
+			got := s.hasCurrentWorker(tt.args.w, tt.args.workers)
 			assert.Equal(t, tt.want, got)
 		})
 	}

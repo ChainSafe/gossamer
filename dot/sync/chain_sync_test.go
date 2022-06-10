@@ -61,13 +61,12 @@ func Test_chainSyncState_String(t *testing.T) {
 
 func TestChainSync_SetPeerHead(t *testing.T) {
 	t.Parallel()
-
-	cs := newTestChainSync(t)
+	ctrl := gomock.NewController(t)
+	cs := newTestChainSync(ctrl)
 
 	testPeer := peer.ID("noot")
 	hash := common.Hash{0xa, 0xb}
 	const number = 1000
-	ctrl := gomock.NewController(t)
 	mockBlockState := NewMockBlockState(ctrl)
 	mockHeader, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, 0,
 		types.NewDigest())
@@ -160,8 +159,8 @@ func TestChainSync_SetPeerHead(t *testing.T) {
 func TestChainSync_sync_bootstrap_withWorkerError(t *testing.T) {
 	t.Parallel()
 
-	cs := newTestChainSync(t)
 	ctrl := gomock.NewController(t)
+	cs := newTestChainSync(ctrl)
 	mockBlockState := NewMockBlockState(ctrl)
 	mockHeader, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, 0,
 		types.NewDigest())
@@ -211,7 +210,8 @@ func TestChainSync_sync_tip(t *testing.T) {
 
 	done := make(chan struct{})
 
-	cs := newTestChainSync(t)
+	ctrl := gomock.NewController(t)
+	cs := newTestChainSync(ctrl)
 	cs.blockState = new(mocks.BlockState)
 	header, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, 1000,
 		types.NewDigest())
@@ -235,7 +235,8 @@ func TestChainSync_sync_tip(t *testing.T) {
 }
 
 func TestChainSync_getTarget(t *testing.T) {
-	cs := newTestChainSync(t)
+	ctrl := gomock.NewController(t)
+	cs := newTestChainSync(ctrl)
 	require.Equal(t, uint(1<<32-1), cs.getTarget())
 	cs.peerState = map[peer.ID]*peerState{
 		"a": {
@@ -657,9 +658,9 @@ func TestChainSync_validateResponse(t *testing.T) {
 func TestChainSync_doSync(t *testing.T) {
 	t.Parallel()
 
-	readyBlocks := newBlockQueue(maxResponseSize)
-	cs := newTestChainSyncWithReadyBlocks(t, readyBlocks)
 	ctrl := gomock.NewController(t)
+	readyBlocks := newBlockQueue(maxResponseSize)
+	cs := newTestChainSyncWithReadyBlocks(ctrl, readyBlocks)
 
 	max := uint32(1)
 	req := &network.BlockRequestMessage{
@@ -775,8 +776,9 @@ func TestChainSync_doSync(t *testing.T) {
 func TestHandleReadyBlock(t *testing.T) {
 	t.Parallel()
 
+	ctrl := gomock.NewController(t)
 	readyBlocks := newBlockQueue(maxResponseSize)
-	cs := newTestChainSyncWithReadyBlocks(t, readyBlocks)
+	cs := newTestChainSyncWithReadyBlocks(ctrl, readyBlocks)
 
 	// test that descendant chain gets returned by getReadyDescendants on block 1 being ready
 	header1 := &types.Header{
@@ -832,7 +834,8 @@ func TestHandleReadyBlock(t *testing.T) {
 func TestChainSync_determineSyncPeers(t *testing.T) {
 	t.Parallel()
 
-	cs := newTestChainSync(t)
+	ctrl := gomock.NewController(t)
+	cs := newTestChainSync(ctrl)
 
 	req := &network.BlockRequestMessage{}
 	testPeerA := peer.ID("a")
@@ -940,9 +943,9 @@ func Test_chainSync_logSyncSpeed(t *testing.T) {
 	}
 	for _, tt := range tests {
 		tt := tt
-		ctrl := gomock.NewController(t)
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
+			ctrl := gomock.NewController(t)
 			ctx, cancel := context.WithCancel(context.Background())
 			done := make(chan struct{})
 			cs := &chainSync{
@@ -1005,9 +1008,9 @@ func Test_chainSync_start(t *testing.T) {
 	}
 	for _, tt := range tests {
 		tt := tt
-		ctrl := gomock.NewController(t)
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
+			ctrl := gomock.NewController(t)
 			ctx, cancel := context.WithCancel(context.Background())
 			done := make(chan struct{})
 			cs := &chainSync{
@@ -1308,8 +1311,7 @@ func Test_chainSync_handleResult(t *testing.T) {
 	}
 }
 
-func newTestChainSyncWithReadyBlocks(t *testing.T, readyBlocks *blockQueue) *chainSync {
-	ctrl := gomock.NewController(t)
+func newTestChainSyncWithReadyBlocks(ctrl *gomock.Controller, readyBlocks *blockQueue) *chainSync {
 	mockBlockState := NewMockBlockState(ctrl)
 	mockBlockState.EXPECT().GetFinalisedNotifierChannel().Return(make(chan *types.FinalisationInfo))
 
@@ -1325,7 +1327,7 @@ func newTestChainSyncWithReadyBlocks(t *testing.T, readyBlocks *blockQueue) *cha
 	return newChainSync(cfg)
 }
 
-func newTestChainSync(t *testing.T) *chainSync {
+func newTestChainSync(ctrl *gomock.Controller) *chainSync {
 	readyBlocks := newBlockQueue(maxResponseSize)
-	return newTestChainSyncWithReadyBlocks(t, readyBlocks)
+	return newTestChainSyncWithReadyBlocks(ctrl, readyBlocks)
 }
