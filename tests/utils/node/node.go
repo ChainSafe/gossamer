@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"testing"
 
@@ -276,5 +277,13 @@ func (n *Node) wrapRuntimeError(ctx context.Context, cmd *exec.Cmd,
 		// for this node.
 		logInformation = "\nLogs:\n" + n.logsBuffer.String()
 	}
-	return fmt.Errorf("%s encountered a runtime error: %w\ncommand: %s%s", n, waitErr, cmd, logInformation)
+
+	configData, configReadErr := os.ReadFile(n.configPath)
+	configString := string(configData)
+	if configReadErr != nil {
+		configString = configReadErr.Error()
+	}
+
+	return fmt.Errorf("%s encountered a runtime error: %w\ncommand: %s\n\n%s\n\n%s",
+		n, waitErr, cmd, configString, logInformation)
 }
