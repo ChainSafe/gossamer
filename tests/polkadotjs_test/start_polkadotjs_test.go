@@ -4,12 +4,15 @@
 package polkadotjs_test
 
 import (
-	"os"
+	"context"
 	"os/exec"
 	"strings"
 	"testing"
 
+	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils"
+	"github.com/ChainSafe/gossamer/tests/utils/config"
+	"github.com/ChainSafe/gossamer/tests/utils/node"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -21,23 +24,38 @@ func TestStartGossamerAndPolkadotAPI(t *testing.T) {
 		t.Log("Going to skip polkadot.js/api suite tests")
 		return
 	}
+
+	const nodePackageManager = "npm"
+	t.Logf("Checking %s is available...", nodePackageManager)
+	_, err := exec.LookPath(nodePackageManager)
+	if err != nil {
+		t.Fatalf("%s is not available: %s", nodePackageManager, err)
+	}
+
+	t.Log("Installing Node dependencies...")
+	cmd := exec.Command(nodePackageManager, "install")
+	testWriter := utils.NewTestWriter(t)
+	cmd.Stdout = testWriter
+	cmd.Stderr = testWriter
+	err = cmd.Run()
+	require.NoError(t, err)
+
 	t.Log("starting gossamer for polkadot.js/api tests...")
 
-	utils.CreateDefaultConfig()
-	defer os.Remove(utils.ConfigDefault)
+	tomlConfig := config.Default()
+	tomlConfig.Init.Genesis = libutils.GetDevGenesisSpecPathTest(t)
+	tomlConfig.Core.BABELead = true
+	tomlConfig.RPC.WS = true
+	n := node.New(t, tomlConfig)
 
-	nodes, err := utils.InitializeAndStartNodesWebsocket(t, 1, utils.GenesisDev, utils.ConfigDefault)
-	require.NoError(t, err)
+	ctx, cancel := context.WithCancel(context.Background())
+	n.InitAndStartTest(ctx, t, cancel)
 
 	command := "npx mocha ./test --timeout 30000"
 	parts := strings.Fields(command)
-	data, err := exec.Command(parts[0], parts[1:]...).Output()
+	data, err := exec.CommandContext(ctx, parts[0], parts[1:]...).CombinedOutput()
 	assert.NoError(t, err, string(data))
 
 	//uncomment this to see log results from javascript tests
 	//fmt.Printf("%s\n", data)
-
-	t.Log("going to tear down gossamer...")
-	errList := utils.TearDown(t, nodes)
-	require.Len(t, errList, 0)
 }
