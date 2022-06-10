@@ -99,8 +99,8 @@ func NewService(cfg *Config) (*Service, error) {
 
 // Start begins the chainSync and chainProcessor modules. It begins syncing in bootstrap mode
 func (s *Service) Start() error {
-	go s.chainSync.start()
-	go s.chainProcessor.start()
+	s.chainSync.start()
+	s.chainProcessor.start()
 	return nil
 }
 
