@@ -59,6 +59,7 @@ linters:
     - nolintlint
     - revive
     - staticcheck
+    - tparallel
     - unconvert
     - unparam
     - varcheck

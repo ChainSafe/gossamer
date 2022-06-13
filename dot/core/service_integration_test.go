@@ -195,6 +195,7 @@ func TestAnnounceBlock(t *testing.T) {
 }
 
 func TestService_InsertKey(t *testing.T) {
+	t.Parallel()
 	ks := keystore.NewGlobalKeystore()
 
 	cfg := &Config{

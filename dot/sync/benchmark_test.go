@@ -15,6 +15,7 @@ func Test_newSyncBenchmarker(t *testing.T) {
 	t.Parallel()
 
 	t.Run("10 samples to keep", func(t *testing.T) {
+		t.Parallel()
 		const samplesToKeep = 10
 		actual := newSyncBenchmarker(samplesToKeep)
 
@@ -27,6 +28,7 @@ func Test_newSyncBenchmarker(t *testing.T) {
 	})
 
 	t.Run("panics on 0 sample to keep", func(t *testing.T) {
+		t.Parallel()
 		const samplesToKeep = 0
 		assert.PanicsWithValue(t, "cannot have 0 samples to keep", func() {
 			newSyncBenchmarker(samplesToKeep)
