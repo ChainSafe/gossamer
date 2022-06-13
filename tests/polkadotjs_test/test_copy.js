@@ -1,6 +1,6 @@
 // Import
 const { ApiPromise, WsProvider } = require('@polkadot/api');
-const {Keyring } = require('@polkadot/keyring');
+const { Keyring } = require('@polkadot/keyring');
 
 async function main() {
     // Construct

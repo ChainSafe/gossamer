@@ -180,5 +180,18 @@ describe('Testing polkadot.js/api calls:', function () {
             expect(transfer).to.have.lengthOf(32);
         });
     });
+    describe('api state', () => {
+        it('call api.rpc.state.getStorage()', async function () {
+            // this.timeout(5000);
+            // const keyring = new Keyring({type: 'sr25519' });
+            // const aliceKey = keyring.addFromUri('//Alice');
+            // const ADDR_Bob = '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty';
+
+            const value = await api.rpc.state.getStorage("0x26aa394eea5630e07c48ae0c9558cef7a44704b568d21667356a5a050c118746e333f8c357e331db45010000");
+
+            expect(value).to.be.not.null;
+            console.log(value);
+        });
+    });
 
 });

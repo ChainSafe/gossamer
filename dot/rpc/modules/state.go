@@ -434,17 +434,17 @@ func (sm *StateModule) QueryStorage(
 	response := make([]StorageChangeSetResponse, 0)
 	lastValue := make([]*string, len(req.Keys))
 	firstPass := true
-	for i := startBlockNumber; i < endBlockNumber; i++ {
-		bHash, err := sm.blockAPI.GetHashByNumber(i)
+	for i := startBlockNumber; i <= endBlockNumber; i++ {
+		blockHash, err := sm.blockAPI.GetHashByNumber(i)
 		if err != nil {
 			return fmt.Errorf("cannot get hash by number: %w", err)
 		}
 		var changes [][]*string
 
 		for j, key := range req.Keys {
-			value, err := sm.storageAPI.GetStorageByBlockHash(&bHash, common.MustHexToBytes(key))
+			value, err := sm.storageAPI.GetStorageByBlockHash(&blockHash, common.MustHexToBytes(key))
 			if err != nil {
-				return err
+				return fmt.Errorf("cannot get value by block hash: %w", err)
 			}
 			var hexValue *string
 			if len(value) > 0 {
@@ -468,7 +468,7 @@ func (sm *StateModule) QueryStorage(
 		}
 		firstPass = false
 		response = append(response, StorageChangeSetResponse{
-			Block:   &bHash,
+			Block:   &blockHash,
 			Changes: changes,
 		})
 	}
