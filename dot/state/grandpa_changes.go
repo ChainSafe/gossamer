@@ -30,7 +30,7 @@ func (p *pendingChange) effectiveNumber() uint {
 	return p.announcingHeader.Number + uint(p.delay)
 }
 
-type orderedPendingChanges []*pendingChange
+type orderedPendingChanges []pendingChange
 
 func (oc *orderedPendingChanges) Len() int { return len(*oc) }
 
@@ -38,7 +38,7 @@ func (oc *orderedPendingChanges) Len() int { return len(*oc) }
 func (oc orderedPendingChanges) findApplicable(importedHash common.Hash, importedNumber uint,
 	isDescendatOf isDescendantOfFunc) (*pendingChange, error) {
 
-	return oc.lookupChangeWhere(func(forced *pendingChange) (bool, error) {
+	return oc.lookupChangeWhere(func(forced pendingChange) (bool, error) {
 		announcingHash := forced.announcingHeader.Hash()
 		effectiveNumber := forced.effectiveNumber()
 
@@ -57,16 +57,16 @@ func (oc orderedPendingChanges) findApplicable(importedHash common.Hash, importe
 }
 
 // lookupChangeWhere return the first pending change which satisfy the condition
-func (oc orderedPendingChanges) lookupChangeWhere(condition conditionFunc[*pendingChange]) (
+func (oc orderedPendingChanges) lookupChangeWhere(condition conditionFunc[pendingChange]) (
 	pendingChange *pendingChange, err error) {
 	for _, change := range oc {
 		ok, err := condition(change)
 		if err != nil {
-			return nil, fmt.Errorf("failed while applying condition: %w", err)
+			return pendingChange, fmt.Errorf("failed while applying condition: %w", err)
 		}
 
 		if ok {
-			return change, nil
+			return &change, nil
 		}
 	}
 
@@ -75,7 +75,7 @@ func (oc orderedPendingChanges) lookupChangeWhere(condition conditionFunc[*pendi
 
 // importChange only tracks the pending change if and only if it is the
 // unique forced change in its fork, otherwise will return an error
-func (oc *orderedPendingChanges) importChange(pendingChange *pendingChange, isDescendantOf isDescendantOfFunc) error {
+func (oc *orderedPendingChanges) importChange(pendingChange pendingChange, isDescendantOf isDescendantOfFunc) error {
 	announcingHeader := pendingChange.announcingHeader.Hash()
 
 	for _, change := range *oc {
@@ -115,7 +115,7 @@ func (oc *orderedPendingChanges) importChange(pendingChange *pendingChange, isDe
 // pruneChanges will remove changes whose are not descendant of the hash argument
 // this function updates the current state of the change tree
 func (oc *orderedPendingChanges) pruneChanges(hash common.Hash, isDescendantOf isDescendantOfFunc) error {
-	onBranchForcedChanges := make([]*pendingChange, 0, oc.Len())
+	onBranchForcedChanges := make([]pendingChange, 0, oc.Len())
 
 	for _, forcedChange := range *oc {
 		isDescendant, err := isDescendantOf(hash, forcedChange.announcingHeader.Hash())

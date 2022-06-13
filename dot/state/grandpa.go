@@ -111,7 +111,7 @@ func (s *GrandpaState) addForcedChange(header *types.Header, fc types.GrandpaFor
 		return fmt.Errorf("cannot parse GRANDPA authorities to raw authorities: %w", err)
 	}
 
-	pendingChange := &pendingChange{
+	pendingChange := pendingChange{
 		bestFinalizedNumber: fc.BestFinalizedBlock,
 		nextAuthorities:     auths,
 		announcingHeader:    header,
@@ -266,7 +266,7 @@ func (s *GrandpaState) ApplyForcedChanges(importedBlockHeader *types.Header) err
 // It returns 0 if no change is scheduled.
 func (s *GrandpaState) NextGrandpaAuthorityChange(bestBlockHash common.Hash, bestBlockNumber uint) (
 	blockNumber uint, err error) {
-	forcedChange, err := s.forcedChanges.lookupChangeWhere(func(pc *pendingChange) (bool, error) {
+	forcedChange, err := s.forcedChanges.lookupChangeWhere(func(pc pendingChange) (bool, error) {
 		isDecendant, err := s.blockState.IsDescendantOf(pc.announcingHeader.Hash(), bestBlockHash)
 		if err != nil {
 			return false, fmt.Errorf("cannot check ancestry: %w", err)
