@@ -26,7 +26,7 @@ func (b *Service) initiateEpoch(epoch uint64) (*epochData, error) {
 
 	bestBlockHeader, err := b.blockState.BestBlockHeader()
 	if err != nil {
-		return nil, fmt.Errorf("cannot get the best block header")
+		return nil, fmt.Errorf("cannot get the best block header: %w", err)
 	}
 
 	epochData, err := b.getEpochData(epoch, bestBlockHeader)
