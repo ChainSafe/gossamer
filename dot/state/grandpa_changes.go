@@ -137,12 +137,24 @@ type pendingChangeNode struct {
 	nodes  []*pendingChangeNode
 }
 
+// importNode method is called recursivelly until we found a node that import the pending change as one of
+// its children. The node which should import the pending change must be a ancestor with a
+// lower block number than the pending change.
 func (c *pendingChangeNode) importNode(blockHash common.Hash, blockNumber uint, pendingChange *pendingChange,
 	isDescendantOf isDescendantOfFunc) (imported bool, err error) {
 	announcingHash := c.change.announcingHeader.Hash()
 
 	if blockHash.Equal(announcingHash) {
 		return false, fmt.Errorf("%w: %s", errDuplicateHashes, blockHash)
+	}
+
+	isDescendant, err := isDescendantOf(announcingHash, blockHash)
+	if err != nil {
+		return false, fmt.Errorf("cannot check ancestry: %w", err)
+	}
+
+	if !isDescendant {
+		return false, nil
 	}
 
 	if blockNumber <= c.change.announcingHeader.Number {
@@ -158,15 +170,6 @@ func (c *pendingChangeNode) importNode(blockHash common.Hash, blockNumber uint, 
 		if imported {
 			return true, nil
 		}
-	}
-
-	isDescendant, err := isDescendantOf(announcingHash, blockHash)
-	if err != nil {
-		return false, fmt.Errorf("cannot check ancestry: %w", err)
-	}
-
-	if !isDescendant {
-		return false, nil
 	}
 
 	childrenNode := &pendingChangeNode{change: pendingChange}
