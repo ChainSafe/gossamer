@@ -317,9 +317,13 @@ func TestService_IsSynced(t *testing.T) {
 func TestService_Start(t *testing.T) {
 	t.Parallel()
 	ctrl := gomock.NewController(t)
+	done := make(chan struct{})
 
 	chainSync := NewMockChainSync(ctrl)
-	chainSync.EXPECT().start()
+	chainSync.EXPECT().start().DoAndReturn(func() {
+		close(done)
+	})
+
 	chainProcessor := NewMockChainProcessor(ctrl)
 	chainProcessor.EXPECT().start()
 
@@ -329,7 +333,7 @@ func TestService_Start(t *testing.T) {
 	}
 
 	err := service.Start()
-
+	<-done
 	assert.NoError(t, err)
 }
 
