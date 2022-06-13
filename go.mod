@@ -40,7 +40,7 @@ require (
 	github.com/prometheus/client_golang v1.12.2
 	github.com/prometheus/client_model v0.2.0
 	github.com/qdm12/gotree v0.2.0
-	github.com/stretchr/testify v1.7.1
+	github.com/stretchr/testify v1.7.2
 	github.com/urfave/cli v1.22.9
 	github.com/wasmerio/go-ext-wasm v0.3.2-0.20200326095750-0a32be6068ec
 	golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3
@@ -181,7 +181,7 @@ require (
 	golang.org/x/sys v0.0.0-20220114195835-da31bd327af9 // indirect
 	google.golang.org/appengine v1.6.6 // indirect
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gotest.tools/v3 v3.0.3 // indirect
 )
 
