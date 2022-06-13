@@ -416,15 +416,14 @@ func (nodeBuilder) createGRANDPAService(cfg *Config, st *state.Service, dh *dige
 	}
 
 	gsCfg := &grandpa.Config{
-		LogLvl:        cfg.Log.FinalityGadgetLvl,
-		BlockState:    st.Block,
-		GrandpaState:  st.Grandpa,
-		DigestHandler: dh,
-		Voters:        voters,
-		Authority:     cfg.Core.GrandpaAuthority,
-		Network:       net,
-		Interval:      cfg.Core.GrandpaInterval,
-		Telemetry:     telemetryMailer,
+		LogLvl:       cfg.Log.FinalityGadgetLvl,
+		BlockState:   st.Block,
+		GrandpaState: st.Grandpa,
+		Voters:       voters,
+		Authority:    cfg.Core.GrandpaAuthority,
+		Network:      net,
+		Interval:     cfg.Core.GrandpaInterval,
+		Telemetry:    telemetryMailer,
 	}
 
 	if cfg.Core.GrandpaAuthority {

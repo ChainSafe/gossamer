@@ -100,16 +100,15 @@ func setupGrandpa(t *testing.T, kp *ed25519.Keypair) (
 		SendMessage(gomock.Any()).AnyTimes()
 
 	cfg := &Config{
-		BlockState:    st.Block,
-		GrandpaState:  st.Grandpa,
-		DigestHandler: NewMockDigestHandler(),
-		Voters:        voters,
-		Keypair:       kp,
-		LogLvl:        log.Info,
-		Authority:     true,
-		Network:       net,
-		Interval:      time.Second,
-		Telemetry:     telemetryMock,
+		BlockState:   st.Block,
+		GrandpaState: st.Grandpa,
+		Voters:       voters,
+		Keypair:      kp,
+		LogLvl:       log.Info,
+		Authority:    true,
+		Network:      net,
+		Interval:     time.Second,
+		Telemetry:    telemetryMock,
 	}
 
 	gs, err := NewService(cfg)
