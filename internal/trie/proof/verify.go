@@ -41,7 +41,8 @@ func Verify(encodedProofNodes [][]byte, rootHash, key, value []byte) (ok bool, e
 }
 
 var (
-	ErrEmptyProof = errors.New("proof slice empty")
+	ErrEmptyProof       = errors.New("proof slice empty")
+	ErrRootNodeNotFound = errors.New("root node not found in proof")
 )
 
 // buildTrie sets a partial trie based on the proof slice of encoded nodes.
@@ -102,6 +103,11 @@ func buildTrie(encodedProofNodes [][]byte, rootHash []byte) (t *trie.Trie, err e
 			decodedNode.HashDigest = rootHash
 			root = decodedNode
 		}
+	}
+
+	if root == nil {
+		return nil, fmt.Errorf("%w: in %d nodes",
+			ErrRootNodeNotFound, len(encodedProofNodes))
 	}
 
 	loadProof(proofHashToNode, root)
