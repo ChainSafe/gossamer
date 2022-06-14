@@ -63,7 +63,7 @@ describe('Testing polkadot.js/api calls:', function () {
         it('call api.libraryInfo', async function () {
             const libraryInfo = await api.libraryInfo;
             expect(libraryInfo).to.be.not.null;
-            expect(libraryInfo).to.be.equal('@polkadot/api v4.5.1');
+            expect(libraryInfo).to.be.equal('@polkadot/api v8.7.1');
         });
     });
     describe('upgrade runtime', () => {
@@ -181,16 +181,21 @@ describe('Testing polkadot.js/api calls:', function () {
         });
     });
     describe('api state', () => {
-        it('call api.rpc.state.getStorage()', async function () {
-            // this.timeout(5000);
-            // const keyring = new Keyring({type: 'sr25519' });
-            // const aliceKey = keyring.addFromUri('//Alice');
-            // const ADDR_Bob = '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty';
+        it('call api.rpc.state.queryStorage()', async function () {
+            const block0Hash = await api.rpc.chain.getBlockHash(0);
+            const block3Hash = await api.rpc.chain.getBlockHash(3);
 
-            const value = await api.rpc.state.getStorage("0x26aa394eea5630e07c48ae0c9558cef7a44704b568d21667356a5a050c118746e333f8c357e331db45010000");
-
+            const value = await
+                api.rpc.state.queryStorage(["0x1cb6f36e027abb2091cfb5110ab5087f06155b3cd9a8c9e5e9a23fd5dc13a5ed",
+                    "0xc2261276cc9d1f8598ea4b6a74b15c2f57c875e4cff74148e4628f264b974c80"], block0Hash, block3Hash);
             expect(value).to.be.not.null;
-            console.log(value);
+            expect(value).to.have.lengthOf(4);
+            value.forEach(item => {
+                expect(item[0]).to.have.lengthOf(32);
+                expect(item[1]).to.have.lengthOf(2);
+            });
+            expect(value[0][0]).to.deep.equal(block0Hash);
+            expect(value[3][0]).to.deep.equal(block3Hash);
         });
     });
 

@@ -17,7 +17,6 @@ package modules
 
 import (
 	"errors"
-	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"net/http"
 	"testing"
 
@@ -25,6 +24,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	testdata "github.com/ChainSafe/gossamer/dot/rpc/modules/test_data"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -1056,7 +1056,35 @@ func TestStateModuleQueryStorage(t *testing.T) {
 			exp:    []StorageChangeSetResponse{},
 			expErr: blocktree.ErrNumLowerThanRoot,
 		},
-		//TODO(ed) add test for Error on GetStorageByBlockHash
+		"start block/end block/error get storage by block hash": {
+			fields: fields{func(ctrl *gomock.Controller) StorageAPI {
+				mockStorageAPI := NewMockStorageAPI(ctrl)
+				mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{2}, []byte{1, 2, 4}).Return(nil, chaindb.ErrKeyNotFound)
+				return mockStorageAPI
+			},
+				func(ctrl *gomock.Controller) BlockAPI {
+					mockBlockAPI := NewMockBlockAPI(ctrl)
+					mockBlockAPI.EXPECT().GetBlockByHash(common.Hash{2}).Return(&types.Block{
+						Header: types.Header{
+							Number: 1,
+						},
+					}, nil)
+					mockBlockAPI.EXPECT().GetBlockByHash(common.Hash{3}).Return(&types.Block{
+						Header: types.Header{Number: 2},
+					}, nil)
+					mockBlockAPI.EXPECT().GetHashByNumber(uint(1)).Return(common.Hash{2}, nil)
+					return mockBlockAPI
+				}},
+			args: args{
+				req: &StateStorageQueryRangeRequest{
+					Keys:       []string{"0x010204"},
+					StartBlock: common.Hash{2},
+					EndBlock:   common.Hash{3},
+				},
+			},
+			exp:    []StorageChangeSetResponse{},
+			expErr: chaindb.ErrKeyNotFound,
+		},
 	}
 	for name, tt := range tests {
 		tt := tt
