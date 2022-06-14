@@ -4,10 +4,220 @@
 package node
 
 import (
+	"io"
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
+
+func Test_MerkleValue(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		encoding      []byte
+		writerBuilder func(ctrl *gomock.Controller) io.Writer
+		errWrapped    error
+		errMessage    string
+	}{
+		"small encoding": {
+			encoding: []byte{1},
+			writerBuilder: func(ctrl *gomock.Controller) io.Writer {
+				writer := NewMockWriter(ctrl)
+				writer.EXPECT().Write([]byte{1}).Return(1, nil)
+				return writer
+			},
+		},
+		"encoding write error": {
+			encoding: []byte{1},
+			writerBuilder: func(ctrl *gomock.Controller) io.Writer {
+				writer := NewMockWriter(ctrl)
+				writer.EXPECT().Write([]byte{1}).Return(0, errTest)
+				return writer
+			},
+			errWrapped: errTest,
+			errMessage: "writing encoding: test error",
+		},
+		"long encoding": {
+			encoding: []byte{
+				1, 2, 3, 4, 5, 6, 7, 8,
+				9, 10, 11, 12, 13, 14, 15, 16,
+				17, 18, 19, 20, 21, 22, 23, 24,
+				25, 26, 27, 28, 29, 30, 31, 32, 33},
+			writerBuilder: func(ctrl *gomock.Controller) io.Writer {
+				writer := NewMockWriter(ctrl)
+				writer.EXPECT().Write([]byte{
+					0xfc, 0xd2, 0xd9, 0xac, 0xe8, 0x70, 0x52, 0x81,
+					0x1d, 0x9f, 0x34, 0x27, 0xb5, 0x8f, 0xf3, 0x98,
+					0xd2, 0xe9, 0xed, 0x83, 0xf3, 0x1, 0xbc, 0x7e,
+					0xc1, 0xbe, 0x8b, 0x59, 0x39, 0x62, 0xf1, 0x7d,
+				}).Return(32, nil)
+				return writer
+			},
+		},
+		"digest write error": {
+			encoding: []byte{
+				1, 2, 3, 4, 5, 6, 7, 8,
+				9, 10, 11, 12, 13, 14, 15, 16,
+				17, 18, 19, 20, 21, 22, 23, 24,
+				25, 26, 27, 28, 29, 30, 31, 32, 33},
+			writerBuilder: func(ctrl *gomock.Controller) io.Writer {
+				writer := NewMockWriter(ctrl)
+				writer.EXPECT().Write([]byte{
+					0xfc, 0xd2, 0xd9, 0xac, 0xe8, 0x70, 0x52, 0x81,
+					0x1d, 0x9f, 0x34, 0x27, 0xb5, 0x8f, 0xf3, 0x98,
+					0xd2, 0xe9, 0xed, 0x83, 0xf3, 0x1, 0xbc, 0x7e,
+					0xc1, 0xbe, 0x8b, 0x59, 0x39, 0x62, 0xf1, 0x7d,
+				}).Return(0, errTest)
+				return writer
+			},
+			errWrapped: errTest,
+			errMessage: "writing digest: test error",
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			ctrl := gomock.NewController(t)
+
+			writer := testCase.writerBuilder(ctrl)
+
+			err := MerkleValue(testCase.encoding, writer)
+
+			assert.ErrorIs(t, err, testCase.errWrapped)
+			if testCase.errWrapped != nil {
+				assert.EqualError(t, err, testCase.errMessage)
+			}
+		})
+	}
+}
+
+func Test_MerkleValueRoot(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		encoding      []byte
+		writerBuilder func(ctrl *gomock.Controller) io.Writer
+		errWrapped    error
+		errMessage    string
+	}{
+		"digest write error": {
+			encoding: []byte{1},
+			writerBuilder: func(ctrl *gomock.Controller) io.Writer {
+				writer := NewMockWriter(ctrl)
+				writer.EXPECT().Write([]byte{
+					0xee, 0x15, 0x5a, 0xce, 0x9c, 0x40, 0x29, 0x20,
+					0x74, 0xcb, 0x6a, 0xff, 0x8c, 0x9c, 0xcd, 0xd2,
+					0x73, 0xc8, 0x16, 0x48, 0xff, 0x11, 0x49, 0xef,
+					0x36, 0xbc, 0xea, 0x6e, 0xbb, 0x8a, 0x3e, 0x25,
+				}).Return(0, errTest)
+				return writer
+			},
+			errWrapped: errTest,
+			errMessage: "writing digest: test error",
+		},
+		"small encoding": {
+			encoding: []byte{1},
+			writerBuilder: func(ctrl *gomock.Controller) io.Writer {
+				writer := NewMockWriter(ctrl)
+				writer.EXPECT().Write([]byte{
+					0xee, 0x15, 0x5a, 0xce, 0x9c, 0x40, 0x29, 0x20,
+					0x74, 0xcb, 0x6a, 0xff, 0x8c, 0x9c, 0xcd, 0xd2,
+					0x73, 0xc8, 0x16, 0x48, 0xff, 0x11, 0x49, 0xef,
+					0x36, 0xbc, 0xea, 0x6e, 0xbb, 0x8a, 0x3e, 0x25,
+				}).Return(32, nil)
+				return writer
+			},
+		},
+		"long encoding": {
+			encoding: []byte{
+				1, 2, 3, 4, 5, 6, 7, 8,
+				9, 10, 11, 12, 13, 14, 15, 16,
+				17, 18, 19, 20, 21, 22, 23, 24,
+				25, 26, 27, 28, 29, 30, 31, 32, 33},
+			writerBuilder: func(ctrl *gomock.Controller) io.Writer {
+				writer := NewMockWriter(ctrl)
+				writer.EXPECT().Write([]byte{
+					0xfc, 0xd2, 0xd9, 0xac, 0xe8, 0x70, 0x52, 0x81,
+					0x1d, 0x9f, 0x34, 0x27, 0xb5, 0x8f, 0xf3, 0x98,
+					0xd2, 0xe9, 0xed, 0x83, 0xf3, 0x1, 0xbc, 0x7e,
+					0xc1, 0xbe, 0x8b, 0x59, 0x39, 0x62, 0xf1, 0x7d,
+				}).Return(32, nil)
+				return writer
+			},
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			ctrl := gomock.NewController(t)
+
+			writer := testCase.writerBuilder(ctrl)
+
+			err := MerkleValueRoot(testCase.encoding, writer)
+
+			assert.ErrorIs(t, err, testCase.errWrapped)
+			if testCase.errWrapped != nil {
+				assert.EqualError(t, err, testCase.errMessage)
+			}
+		})
+	}
+}
+
+func Test_Node_CalculateMerkleValue(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		node        Node
+		isRoot      bool
+		merkleValue []byte
+		errWrapped  error
+		errMessage  string
+	}{
+		"cached merkle value": {
+			node: Node{
+				MerkleValue: []byte{1},
+			},
+			merkleValue: []byte{1},
+		},
+		"non root small encoding": {
+			node: Node{
+				Encoding: []byte{1},
+			},
+			merkleValue: []byte{1},
+		},
+		"root small encoding": {
+			node: Node{
+				Encoding: []byte{1},
+			},
+			isRoot: true,
+			merkleValue: []byte{
+				0xee, 0x15, 0x5a, 0xce, 0x9c, 0x40, 0x29, 0x20,
+				0x74, 0xcb, 0x6a, 0xff, 0x8c, 0x9c, 0xcd, 0xd2,
+				0x73, 0xc8, 0x16, 0x48, 0xff, 0x11, 0x49, 0xef,
+				0x36, 0xbc, 0xea, 0x6e, 0xbb, 0x8a, 0x3e, 0x25},
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			merkleValue, err := testCase.node.CalculateMerkleValue(testCase.isRoot)
+
+			assert.ErrorIs(t, err, testCase.errWrapped)
+			if testCase.errWrapped != nil {
+				assert.EqualError(t, err, testCase.errMessage)
+			}
+			assert.Equal(t, testCase.merkleValue, merkleValue)
+		})
+	}
+}
 
 func Test_Node_EncodeAndHash(t *testing.T) {
 	t.Parallel()

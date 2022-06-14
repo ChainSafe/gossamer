@@ -10,6 +10,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/internal/trie/codec"
 	"github.com/ChainSafe/gossamer/internal/trie/node"
+	"github.com/ChainSafe/gossamer/internal/trie/pools"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
@@ -36,7 +37,10 @@ func Generate(rootHash []byte, fullKeys [][]byte, database Database) (
 	}
 	rootNode := trie.RootNode()
 
-	hashesSeen := make(map[string]struct{})
+	buffer := pools.DigestBuffers.Get().(*bytes.Buffer)
+	defer pools.DigestBuffers.Put(buffer)
+
+	merkleValuesSeen := make(map[string]struct{})
 	for _, fullKey := range fullKeys {
 		fullKeyNibbles := codec.KeyLEToNibbles(fullKey)
 		newEncodedProofNodes, err := walkRoot(rootNode, fullKeyNibbles)
@@ -47,17 +51,18 @@ func Generate(rootHash []byte, fullKeys [][]byte, database Database) (
 		}
 
 		for _, encodedProofNode := range newEncodedProofNodes {
-			digest, err := common.Blake2bHash(encodedProofNode)
+			buffer.Reset()
+			err := node.MerkleValue(encodedProofNode, buffer)
 			if err != nil {
 				return nil, fmt.Errorf("blake2b hash: %w", err)
 			}
-			hashString := string(digest.ToBytes())
+			merkleValueString := buffer.String()
 
-			_, seen := hashesSeen[hashString]
+			_, seen := merkleValuesSeen[merkleValueString]
 			if seen {
 				continue
 			}
-			hashesSeen[hashString] = struct{}{}
+			merkleValuesSeen[merkleValueString] = struct{}{}
 
 			encodedProofNodes = append(encodedProofNodes, encodedProofNode)
 		}
