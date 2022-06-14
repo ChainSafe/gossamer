@@ -104,7 +104,7 @@ func (ex ExplicitInvalidDisputeStatementKind) Index() uint {
 }
 
 // GetDisputeStatement returns a GetDisputeStatement varying data type.
-func NewDisputeStatement() DisputeStatement {
+func NewDisputeStatement() scale.VaryingDataType {
 	invalidDisputeStatementKind, err := scale.NewVaryingDataType(ExplicitInvalidDisputeStatementKind{})
 	if err != nil {
 		panic(err)
@@ -121,7 +121,7 @@ func NewDisputeStatement() DisputeStatement {
 		panic(err)
 	}
 
-	return DisputeStatement(vdt)
+	return vdt
 }
 
 // Collator is the collator's relay-chain account ID
