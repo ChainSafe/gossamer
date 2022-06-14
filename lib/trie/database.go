@@ -5,7 +5,6 @@ package trie
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/internal/trie/codec"
@@ -13,11 +12,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 
 	"github.com/ChainSafe/chaindb"
-)
-
-var (
-	ErrEmptyProof = errors.New("proof slice empty")
-	ErrDecodeNode = errors.New("cannot decode node")
 )
 
 // Database is an interface to get values from a
@@ -80,71 +74,6 @@ func (t *Trie) store(db chaindb.Batch, n *Node) error {
 	}
 
 	return nil
-}
-
-// LoadFromProof sets a partial trie based on the proof slice of encoded nodes.
-// Note this is exported because it is imported  is used by:
-// https://github.com/ComposableFi/ibc-go/blob/6d62edaa1a3cb0768c430dab81bb195e0b0c72db/modules/light-clients/11-beefy/types/client_state.go#L78
-func (t *Trie) LoadFromProof(encodedProofNodes [][]byte, rootHash []byte) error {
-	if len(encodedProofNodes) == 0 {
-		return ErrEmptyProof
-	}
-
-	proofHashToNode := make(map[string]*Node, len(encodedProofNodes))
-
-	for i, rawNode := range encodedProofNodes {
-		decodedNode, err := node.Decode(bytes.NewReader(rawNode))
-		if err != nil {
-			return fmt.Errorf("%w: at index %d: 0x%x",
-				ErrDecodeNode, i, rawNode)
-		}
-
-		const dirty = false
-		decodedNode.SetDirty(dirty)
-		decodedNode.Encoding = rawNode
-		decodedNode.HashDigest = nil
-
-		_, hash, err := decodedNode.EncodeAndHash(false)
-		if err != nil {
-			return fmt.Errorf("cannot encode and hash node at index %d: %w", i, err)
-		}
-
-		proofHash := common.BytesToHex(hash)
-		proofHashToNode[proofHash] = decodedNode
-
-		if bytes.Equal(hash, rootHash) {
-			// Found root in proof
-			t.root = decodedNode
-		}
-	}
-
-	t.loadProof(proofHashToNode, t.root)
-
-	return nil
-}
-
-// loadProof is a recursive function that will create all the trie paths based
-// on the mapped proofs slice starting at the root
-func (t *Trie) loadProof(proofHashToNode map[string]*Node, n *Node) {
-	if n.Type() != node.Branch {
-		return
-	}
-
-	branch := n
-	for i, child := range branch.Children {
-		if child == nil {
-			continue
-		}
-
-		proofHash := common.BytesToHex(child.HashDigest)
-		node, ok := proofHashToNode[proofHash]
-		if !ok {
-			continue
-		}
-
-		branch.Children[i] = node
-		t.loadProof(proofHashToNode, node)
-	}
 }
 
 // Load reconstructs the trie from the database from the given root hash.
