@@ -101,12 +101,12 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 			}
 			res := ProveFinalityResponse(nil)
 			err := gm.ProveFinality(nil, tt.request, &res)
+			assert.Equal(t, tt.exp, res)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
-			assert.Equal(t, tt.exp, res)
 		})
 	}
 }

@@ -64,15 +64,16 @@ func (gm *GrandpaModule) ProveFinality(r *http.Request, req *ProveFinalityReques
 	if err != nil {
 		return err
 	}
-	if hasJustification {
-		justification, err := gm.blockAPI.GetJustification(blockHash)
-		if err != nil {
-			return err
-		}
-		*res = append(*res, common.BytesToHex(justification))
-	} else {
+	
+	if !hasJustification {
 		*res = append(*res, "GRANDPA prove finality rpc failed: Block not covered by authority set changes")
+		return nil
 	}
+	justification, err := gm.blockAPI.GetJustification(blockHash)
+	if err != nil {
+		return err
+	}
+	*res = append(*res, common.BytesToHex(justification))
 
 	return nil
 }

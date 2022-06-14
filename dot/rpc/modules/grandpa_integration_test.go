@@ -6,7 +6,7 @@
 package modules
 
 import (
-	"reflect"
+	"github.com/stretchr/testify/assert"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -48,9 +48,7 @@ func TestGrandpaProveFinality(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !reflect.DeepEqual(*res, expectedResponse) {
-		t.Errorf("Fail: expected: %+v got: %+v\n", &expectedResponse, res)
-	}
+	assert.Equal(t, expectedResponse, *res)
 }
 
 func TestRoundState(t *testing.T) {

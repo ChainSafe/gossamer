@@ -9,7 +9,7 @@ async function main() {
     const api = await ApiPromise.create({ provider: wsProvider });
 
     // grandpa_proveFinality
-    const proveBlockNumber = 10;
+    const proveBlockNumber = 0;
     const proveFinality = await api.rpc.grandpa.proveFinality(proveBlockNumber);
     console.log(`proveFinality: ${proveFinality}`);
 }
