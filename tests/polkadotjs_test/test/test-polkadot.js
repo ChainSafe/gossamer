@@ -184,10 +184,7 @@ describe('Testing polkadot.js/api calls:', function () {
         it('call api.rpc.grandpa.proveFinality', async function () {
             const proveBlockNumber = 0;
             const finality = await api.rpc.grandpa.proveFinality(proveBlockNumber);
-            console.log(finality);
-
-            // expect(transfer).to.be.not.null;
-            // expect(transfer).to.have.lengthOf(32);
+            expect(finality).to.be.not.null;
         });
     });
 });
