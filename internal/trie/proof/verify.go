@@ -64,10 +64,13 @@ func buildTrie(encodedProofNodes [][]byte, rootHash []byte) (t *trie.Trie, err e
 		const dirty = false
 		decodedNode.SetDirty(dirty)
 		decodedNode.Encoding = encodedProofNode
-		// isRoot is set to true in order to force the hash to be the blake2b
-		// digest for every node from the proof and not the smaller than 32 bytes
-		// encoded value, since we do not know which node in the proof is the root node.
-		const isRoot = false // TODO
+		// We compute the Merkle value of nodes treating them all
+		// as non-root nodes, meaning nodes with encoding smaller
+		// than 32 bytes will have their Merkle value set as their
+		// encoding. The Blake2b hash of the encoding is computed
+		// later if needed to compare with the root hash given to find
+		// which node is the root node.
+		const isRoot = false
 		decodedNode.HashDigest, err = node.MerkleValue(encodedProofNode, isRoot)
 		if err != nil {
 			return nil, fmt.Errorf("cannot calculate Merkle value of node at index %d: %w", i, err)
@@ -76,8 +79,27 @@ func buildTrie(encodedProofNodes [][]byte, rootHash []byte) (t *trie.Trie, err e
 		proofHash := common.BytesToHex(decodedNode.HashDigest)
 		proofHashToNode[proofHash] = decodedNode
 
-		if bytes.Equal(decodedNode.HashDigest, rootHash) {
-			// Found root in proof
+		if root != nil {
+			// Root node already found in proof
+			continue
+		}
+
+		possibleRootMerkleValue := decodedNode.HashDigest
+		if len(possibleRootMerkleValue) < 32 {
+			// If the root merkle value is smaller than 32 bytes, it means
+			// it is the encoding of the node. However, the root node merkle
+			// value is always the blake2b digest of the node, and not its own
+			// encoding. Therefore, in this case we force the computation of the
+			// blake2b digest of the node to check if it matches the root hash given.
+			const isRoot = true
+			possibleRootMerkleValue, err = node.MerkleValue(encodedProofNode, isRoot)
+			if err != nil {
+				return nil, fmt.Errorf("merkle value of possible root node: %w", err)
+			}
+		}
+
+		if bytes.Equal(rootHash, possibleRootMerkleValue) {
+			decodedNode.HashDigest = rootHash
 			root = decodedNode
 		}
 	}
