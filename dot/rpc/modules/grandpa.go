@@ -64,7 +64,7 @@ func (gm *GrandpaModule) ProveFinality(r *http.Request, req *ProveFinalityReques
 	if err != nil {
 		return err
 	}
-	
+
 	if !hasJustification {
 		*res = append(*res, "GRANDPA prove finality rpc failed: Block not covered by authority set changes")
 		return nil
