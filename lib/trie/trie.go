@@ -877,10 +877,11 @@ func (t *Trie) clearPrefix(parent *Node, prefix []byte) (
 			return parent, nodesRemoved
 		}
 
-		nodesRemoved = 1
+		nodesRemoved = 1 + child.Descendants
 		copySettings := node.DefaultCopySettings
 		branch = t.prepBranchForMutation(branch, copySettings)
 		branch.Children[childIndex] = nil
+		branch.Descendants -= nodesRemoved
 		var branchChildMerged bool
 		newParent, branchChildMerged = handleDeletion(branch, prefix)
 		if branchChildMerged {
