@@ -111,7 +111,6 @@ import (
 	"unsafe"
 
 	"github.com/ChainSafe/gossamer/internal/log"
-	"github.com/ChainSafe/gossamer/internal/trie/proof"
 	"github.com/ChainSafe/gossamer/lib/common"
 	rtype "github.com/ChainSafe/gossamer/lib/common/types"
 	"github.com/ChainSafe/gossamer/lib/crypto"
@@ -122,6 +121,7 @@ import (
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/lib/trie/proof"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
