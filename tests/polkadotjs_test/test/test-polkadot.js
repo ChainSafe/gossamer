@@ -63,7 +63,7 @@ describe('Testing polkadot.js/api calls:', function () {
         it('call api.libraryInfo', async function () {
             const libraryInfo = await api.libraryInfo;
             expect(libraryInfo).to.be.not.null;
-            expect(libraryInfo).to.be.equal('@polkadot/api v4.5.1');
+            expect(libraryInfo).to.be.equal('@polkadot/api v8.8.2');
         });
     });
     describe('upgrade runtime', () => {
@@ -98,8 +98,8 @@ describe('Testing polkadot.js/api calls:', function () {
                 });
         })
     });
-
-    describe('api query', () => {
+    //TODO: remove skip when rpc.state.queryStorage is fixed (in PR#2505)
+    describe.skip('api query', () => {
         it('call api.query.timestamp.now()', async function () {
             const timestamp = await api.query.timestamp.now();
             expect(timestamp).to.be.not.undefined;
