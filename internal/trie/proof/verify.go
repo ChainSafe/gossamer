@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -20,24 +21,25 @@ var (
 
 // Verify verifies a given key and value belongs to the trie by creating
 // a proof trie based on the encoded proof nodes given. The order of proofs is ignored.
-func Verify(encodedProofNodes [][]byte, rootHash, key, value []byte) (ok bool, err error) {
+func Verify(encodedProofNodes [][]byte, rootHash, key, value []byte) (err error) {
 	proofTrie, err := buildTrie(encodedProofNodes, rootHash)
 	if err != nil {
-		return false, fmt.Errorf("cannot build trie from proof encoded nodes: %w", err)
+		return fmt.Errorf("cannot build trie from proof encoded nodes: %w", err)
 	}
 
 	proofTrieValue := proofTrie.Get(key)
 	if proofTrieValue == nil {
-		return false, fmt.Errorf("%w: %s", ErrKeyNotFoundInProofTrie, bytesToString(key))
+		return fmt.Errorf("%w: %s in proof trie for root hash 0x%x",
+			ErrKeyNotFoundInProofTrie, bytesToString(key), rootHash)
 	}
 
 	// compare the value only if the caller pass a non empty value
 	if len(value) > 0 && !bytes.Equal(value, proofTrieValue) {
-		return false, fmt.Errorf("%w: expected value %s but got value %s from proof trie",
+		return fmt.Errorf("%w: expected value %s but got value %s from proof trie",
 			ErrValueMismatchProofTrie, bytesToString(value), bytesToString(proofTrieValue))
 	}
 
-	return true, nil
+	return nil
 }
 
 var (
@@ -106,8 +108,12 @@ func buildTrie(encodedProofNodes [][]byte, rootHash []byte) (t *trie.Trie, err e
 	}
 
 	if root == nil {
-		return nil, fmt.Errorf("%w: in %d nodes",
-			ErrRootNodeNotFound, len(encodedProofNodes))
+		proofHashes := make([]string, 0, len(proofHashToNode))
+		for proofHash := range proofHashToNode {
+			proofHashes = append(proofHashes, proofHash)
+		}
+		return nil, fmt.Errorf("%w: for Merkle root hash 0x%x in proof Merkle value(s) %s",
+			ErrRootNodeNotFound, rootHash, strings.Join(proofHashes, ", "))
 	}
 
 	loadProof(proofHashToNode, root)

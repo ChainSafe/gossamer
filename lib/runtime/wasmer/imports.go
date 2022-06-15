@@ -900,18 +900,13 @@ func ext_trie_blake2_256_verify_proof_version_1(context unsafe.Pointer, rootSpan
 	mem := instanceContext.Memory().Data()
 	trieRoot := mem[rootSpan : rootSpan+32]
 
-	exists, err := proof.Verify(encodedProofNodes, trieRoot, key, value)
+	err = proof.Verify(encodedProofNodes, trieRoot, key, value)
 	if err != nil {
 		logger.Errorf("[ext_trie_blake2_256_verify_proof_version_1]: %s", err)
 		return C.int32_t(0)
 	}
 
-	var result C.int32_t = 0
-	if exists {
-		result = 1
-	}
-
-	return result
+	return C.int32_t(1)
 }
 
 //export ext_misc_print_hex_version_1

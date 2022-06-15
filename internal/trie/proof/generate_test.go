@@ -4,11 +4,131 @@
 package proof
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/trie/node"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
+
+func Test_Generate(t *testing.T) {
+	t.Parallel()
+
+	errTest := errors.New("test error")
+
+	testCases := map[string]struct {
+		rootHash          common.Hash
+		fullKey           []byte // nibbles
+		databaseBuilder   func(ctrl *gomock.Controller) Database
+		encodedProofNodes [][]byte
+		errWrapped        error
+		errMessage        string
+	}{
+		"failed loading trie": {
+			rootHash: common.Hash{1},
+			databaseBuilder: func(ctrl *gomock.Controller) Database {
+				mockDatabase := NewMockDatabase(ctrl)
+				mockDatabase.EXPECT().Get(common.Hash{1}.ToBytes()).
+					Return(nil, errTest)
+				return mockDatabase
+			},
+			errWrapped: errTest,
+			errMessage: "cannot load trie: " +
+				"failed to find root key " +
+				"0x0100000000000000000000000000000000000000000000000000000000000000: " +
+				"test error",
+		},
+		"walk error": {
+			rootHash: common.Hash{1},
+			databaseBuilder: func(ctrl *gomock.Controller) Database {
+				mockDatabase := NewMockDatabase(ctrl)
+				encodedRoot := encodeNode(t, node.Node{
+					Key:   []byte{1},
+					Value: []byte{2},
+				})
+				mockDatabase.EXPECT().Get(common.Hash{1}.ToBytes()).
+					Return(encodedRoot, nil)
+				return mockDatabase
+			},
+			fullKey:    []byte{1},
+			errWrapped: ErrKeyNotFound,
+			errMessage: "cannot find node at key 0x01 in trie: key not found",
+		},
+		"leaf root": {
+			rootHash: common.Hash{1},
+			databaseBuilder: func(ctrl *gomock.Controller) Database {
+				mockDatabase := NewMockDatabase(ctrl)
+				encodedRoot := encodeNode(t, node.Node{
+					Key:   []byte{1},
+					Value: []byte{2},
+				})
+				mockDatabase.EXPECT().Get(common.Hash{1}.ToBytes()).
+					Return(encodedRoot, nil)
+				return mockDatabase
+			},
+			encodedProofNodes: [][]byte{
+				encodeNode(t, node.Node{
+					Key:   []byte{1},
+					Value: []byte{2},
+				}),
+			},
+		},
+		"branch root": {
+			rootHash: common.Hash{1},
+			databaseBuilder: func(ctrl *gomock.Controller) Database {
+				mockDatabase := NewMockDatabase(ctrl)
+				encodedRoot := encodeNode(t, node.Node{
+					Key:   []byte{1},
+					Value: []byte{2},
+					Children: padRightChildren([]*node.Node{
+						nil, nil,
+						{
+							Key:   []byte{3},
+							Value: []byte{4},
+						},
+					}),
+				})
+				mockDatabase.EXPECT().Get(common.Hash{1}.ToBytes()).
+					Return(encodedRoot, nil)
+				return mockDatabase
+			},
+			encodedProofNodes: [][]byte{
+				encodeNode(t, node.Node{
+					Key:   []byte{1},
+					Value: []byte{2},
+					Children: padRightChildren([]*node.Node{
+						nil, nil,
+						{
+							Key:   []byte{3},
+							Value: []byte{4},
+						},
+					}),
+				}),
+			},
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			ctrl := gomock.NewController(t)
+
+			database := testCase.databaseBuilder(ctrl)
+
+			encodedProofNodes, err := Generate(testCase.rootHash,
+				testCase.fullKey, database)
+
+			assert.ErrorIs(t, err, testCase.errWrapped)
+			if testCase.errWrapped != nil {
+				assert.EqualError(t, err, testCase.errMessage)
+			}
+			assert.Equal(t, testCase.encodedProofNodes, encodedProofNodes)
+		})
+	}
+}
 
 func Test_walk(t *testing.T) {
 	t.Parallel()

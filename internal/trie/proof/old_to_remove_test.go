@@ -50,8 +50,7 @@ func TestProofGeneration(t *testing.T) {
 
 	proof := append(proofCatapulta, proofCatapora...)
 
-	v, err := Verify(proof, hash.ToBytes(), []byte("catapora"), expectedValue)
-	require.True(t, v)
+	err = Verify(proof, hash.ToBytes(), []byte("catapora"), expectedValue)
 	require.NoError(t, err)
 }
 
@@ -124,9 +123,8 @@ func TestVerifyProof_ShouldReturnTrue(t *testing.T) {
 	root, proof, pairs := testGenerateProof(t, entries, keys)
 
 	for _, keyValue := range pairs {
-		v, err := Verify(proof, root, keyValue.Key, keyValue.Value)
+		err := Verify(proof, root, keyValue.Key, keyValue.Value)
 		require.NoError(t, err)
-		require.True(t, v)
 	}
 }
 
@@ -158,8 +156,7 @@ func TestVerifyProof_ShouldReturnTrueWithouCompareValues(t *testing.T) {
 	}
 
 	for _, keyValue := range pl {
-		v, err := Verify(proof, root, keyValue.Key, keyValue.Value)
-		require.True(t, v)
+		err := Verify(proof, root, keyValue.Key, keyValue.Value)
 		require.NoError(t, err)
 	}
 }
@@ -187,9 +184,8 @@ func TestBranchNodes_SameHash_DifferentPaths_GenerateAndVerifyProof(t *testing.T
 	root, proof, pairs := testGenerateProof(t, entries, keys)
 
 	for _, pair := range pairs {
-		ok, err := Verify(proof, root, pair.Key, pair.Value)
+		err := Verify(proof, root, pair.Key, pair.Value)
 		require.NoError(t, err)
-		require.True(t, ok)
 	}
 }
 
@@ -232,8 +228,7 @@ func TestLeafNodes_SameHash_DifferentPaths_GenerateAndVerifyProof(t *testing.T) 
 	}
 
 	for _, pair := range pairs {
-		ok, err := Verify(proof, hash.ToBytes(), pair.Key, pair.Value)
+		err := Verify(proof, hash.ToBytes(), pair.Key, pair.Value)
 		require.NoError(t, err)
-		require.True(t, ok)
 	}
 }
