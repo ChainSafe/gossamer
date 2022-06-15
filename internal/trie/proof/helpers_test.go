@@ -5,31 +5,12 @@ package proof
 
 import (
 	"bytes"
-	"math/rand"
 	"testing"
-	"time"
 
 	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/require"
 )
-
-// newGenerator creates a new PRNG seeded with the
-// unix nanoseconds value of the current time.
-func newGenerator() (prng *rand.Rand) {
-	seed := time.Now().UnixNano()
-	source := rand.NewSource(seed)
-	return rand.New(source)
-}
-
-func generateRandBytes(t *testing.T, size int,
-	generator *rand.Rand) (b []byte) {
-	t.Helper()
-	b = make([]byte, size)
-	_, err := generator.Read(b)
-	require.NoError(t, err)
-	return b
-}
 
 func padRightChildren(slice []*node.Node) (paddedSlice []*node.Node) {
 	paddedSlice = make([]*node.Node, node.ChildrenCapacity)
