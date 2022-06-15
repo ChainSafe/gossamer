@@ -1132,7 +1132,7 @@ func Test_chainSync_logSyncSpeed(t *testing.T) {
 				blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 					mockBlockState := NewMockBlockState(ctrl)
 					mockBlockState.EXPECT().BestBlockHeader().Return(&types.Header{}, nil).AnyTimes()
-					mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(&types.Header{}, nil)
+					mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(&types.Header{}, nil).AnyTimes()
 					return mockBlockState
 				},
 				networkBuilder: func(ctrl *gomock.Controller, done chan struct{}) Network {
@@ -1153,7 +1153,7 @@ func Test_chainSync_logSyncSpeed(t *testing.T) {
 				blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 					mockBlockState := NewMockBlockState(ctrl)
 					mockBlockState.EXPECT().BestBlockHeader().Return(&types.Header{}, nil).AnyTimes()
-					mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(&types.Header{}, nil)
+					mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(&types.Header{}, nil).AnyTimes()
 					return mockBlockState
 				},
 				networkBuilder: func(ctrl *gomock.Controller, done chan struct{}) Network {
