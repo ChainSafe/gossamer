@@ -41,24 +41,13 @@ func NewValidityAttestation() ValidityAttestation {
 // or against it.
 type DisputeStatement scale.VaryingDataType
 
-// Valid is for a valid statement
-type Valid ValidDisputeStatementKind
-
-// Index Returns VDT index
-func (v Valid) Index() uint {
-	return 0
-}
-
-// Invalid is for an invalid statement
-type Invalid InvalidDisputeStatementKind
-
-// Index Returns VDT index
-func (in Invalid) Index() uint {
-	return 1
-}
-
 // ValidDisputeStatementKind is a kind of statements of validity on a candidate.
 type ValidDisputeStatementKind scale.VaryingDataType
+
+// Index Returns VDT index
+func (v ValidDisputeStatementKind) Index() uint {
+	return 0
+}
 
 // ExplicitValidDisputeStatementKind is an explicit statement issued as part of a dispute.
 type ExplicitValidDisputeStatementKind struct{}
@@ -94,6 +83,11 @@ func (ac ApprovalChecking) Index() uint {
 
 // InvalidDisputeStatementKind is a kind of statements of invalidity on a candidate.
 type InvalidDisputeStatementKind scale.VaryingDataType
+
+// Index Returns VDT index
+func (in InvalidDisputeStatementKind) Index() uint {
+	return 1
+}
 
 // ExplicitInvalidDisputeStatementKind is an explicit statement issued as part of a dispute.
 type ExplicitInvalidDisputeStatementKind struct{}

@@ -4,6 +4,8 @@
 package babe
 
 import (
+	"fmt"
+	reflect "reflect"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -119,19 +121,20 @@ func TestDisputeStatement(t *testing.T) {
 				if err != nil {
 					panic(err)
 				}
-				disputeStatement, err := scale.NewVaryingDataType(Valid{}, Invalid{})
+				disputeStatement, err := scale.NewVaryingDataType(ValidDisputeStatementKind{}, InvalidDisputeStatementKind{})
 				if err != nil {
 					panic(err)
 				}
 
-				err = disputeStatement.Set(Valid(validDisputeStatementKind))
+				err = disputeStatement.Set(ValidDisputeStatementKind(validDisputeStatementKind))
 				if err != nil {
 					panic(err)
 				}
+
 				return disputeStatement
 			}(),
 
-			encodingValue: []uint8([]byte{0x0}),
+			encodingValue: []uint8([]byte{0x0, 0x0}),
 		},
 		{
 			name: "Valid ApprovalChecking",
@@ -147,19 +150,75 @@ func TestDisputeStatement(t *testing.T) {
 				if err != nil {
 					panic(err)
 				}
-				disputeStatement, err := scale.NewVaryingDataType(Valid{}, Invalid{})
+				disputeStatement, err := scale.NewVaryingDataType(ValidDisputeStatementKind{}, InvalidDisputeStatementKind{})
 				if err != nil {
 					panic(err)
 				}
 
-				err = disputeStatement.Set(Valid(validDisputeStatementKind))
+				err = disputeStatement.Set(ValidDisputeStatementKind(validDisputeStatementKind))
 				if err != nil {
 					panic(err)
 				}
 
 				return disputeStatement
 			}(),
-			encodingValue: []uint8([]byte{0x0}),
+			encodingValue: []uint8([]byte{0x0, 0x3}),
+		},
+		{
+			name: "Valid BackingSeconded",
+			vdt: func() scale.VaryingDataType {
+				validDisputeStatementKind, err := scale.NewVaryingDataType(
+					ExplicitValidDisputeStatementKind{}, BackingSeconded{}, BackingValid{}, ApprovalChecking{},
+				)
+				if err != nil {
+					panic(err)
+				}
+
+				err = validDisputeStatementKind.Set(BackingSeconded(common.Hash{}))
+				if err != nil {
+					panic(err)
+				}
+				disputeStatement, err := scale.NewVaryingDataType(ValidDisputeStatementKind{}, InvalidDisputeStatementKind{})
+				if err != nil {
+					panic(err)
+				}
+
+				err = disputeStatement.Set(ValidDisputeStatementKind(validDisputeStatementKind))
+				if err != nil {
+					panic(err)
+				}
+
+				return disputeStatement
+			}(),
+			encodingValue: []uint8([]byte{0x0, 0x1}),
+		},
+		{
+			name: "Invalid Explicit",
+			vdt: func() scale.VaryingDataType {
+				invalidDisputeStatementKind, err := scale.NewVaryingDataType(
+					ExplicitInvalidDisputeStatementKind{},
+				)
+				if err != nil {
+					panic(err)
+				}
+
+				err = invalidDisputeStatementKind.Set(ExplicitInvalidDisputeStatementKind{})
+				if err != nil {
+					panic(err)
+				}
+				disputeStatement, err := scale.NewVaryingDataType(ValidDisputeStatementKind{}, InvalidDisputeStatementKind{})
+				if err != nil {
+					panic(err)
+				}
+
+				err = disputeStatement.Set(InvalidDisputeStatementKind(invalidDisputeStatementKind))
+				if err != nil {
+					panic(err)
+				}
+
+				return disputeStatement
+			}(),
+			encodingValue: []uint8([]byte{0x1, 0x0}),
 		},
 	}
 
@@ -171,6 +230,66 @@ func TestDisputeStatement(t *testing.T) {
 			}
 
 			require.Equal(t, c.encodingValue, bytes)
+
+			newDst, err := scale.NewVaryingDataType(
+				ValidDisputeStatementKind{}, InvalidDisputeStatementKind{},
+			)
+			if err != nil {
+				panic(err)
+			}
+
+			err = scale.Unmarshal(bytes, &newDst)
+			if err != nil {
+				panic(err)
+			}
+
+			if !reflect.DeepEqual(c.vdt, newDst) {
+				panic(fmt.Errorf("uh oh: \n%+v \n\n%+v", c.vdt, newDst))
+			}
 		})
 	}
+}
+
+func TestValidityAttestation(t *testing.T) {
+
+	testCases := []struct {
+		name          string
+		enumValue     scale.VaryingDataTypeValue
+		encodingValue []uint8
+	}{
+		{
+			name:          "Implicit",
+			enumValue:     Implicit(ValidatorSignature{}),
+			encodingValue: []uint8([]byte{0x1, 0x0}),
+		},
+		{
+			name:          "Explicit",
+			enumValue:     Explicit(ValidatorSignature{}),
+			encodingValue: []uint8([]byte{0x2, 0x0}),
+		},
+	}
+
+	for _, c := range testCases {
+		t.Run(c.name, func(t *testing.T) {
+			validityAttestation, err := scale.NewVaryingDataType(
+				Implicit{}, Explicit{},
+			)
+			if err != nil {
+				panic(err)
+			}
+
+			err = validityAttestation.Set(c.enumValue)
+			if err != nil {
+				panic(err)
+			}
+
+			bytes, err := scale.Marshal(validityAttestation)
+			if err != nil {
+				panic(err)
+			}
+
+			require.Equal(t, c.encodingValue, bytes)
+		})
+	}
+
 }
