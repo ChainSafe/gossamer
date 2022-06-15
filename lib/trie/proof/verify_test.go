@@ -63,7 +63,7 @@ func Test_Verify(t *testing.T) {
 			encodedProofNodes: [][]byte{
 				encodeNode(t, branch),
 				encodeNode(t, leafB),
-				// TODO Note leaf A is small enough to be inlined in branch
+				// Note leaf A is small enough to be inlined in branch
 			},
 			rootHash:   blake2bNode(t, branch),
 			keyLE:      []byte{1, 1}, // nil child of branch

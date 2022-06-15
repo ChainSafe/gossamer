@@ -39,7 +39,7 @@ func Generate(rootHash []byte, fullKey []byte, database Database) (
 	fullKeyNibbles := codec.KeyLEToNibbles(fullKey)
 	encodedProofNodes, err = walk(rootNode, fullKeyNibbles)
 	if err != nil {
-		// Note we wrap the full key context here since find is recursive and
+		// Note we wrap the full key context here since walk is recursive and
 		// may not be aware of the initial full key.
 		return nil, fmt.Errorf("walking to node at key 0x%x: %w", fullKey, err)
 	}
