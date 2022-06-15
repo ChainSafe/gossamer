@@ -388,7 +388,7 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (scale
 		authIdx = d.AuthorityIndex
 	}
 
-	if uint64(len(b.authorities)) < uint64(authIndex) {
+	if uint64(len(b.authorities)) < uint64(authIdx) {
 		logger.Tracef("verifyPreRuntimeDigest invalid auth index %d, we have %d auths",
 			authIdx, len(b.authorities))
 		return nil, ErrInvalidBlockProducerIndex
