@@ -67,7 +67,7 @@ func buildTrie(encodedProofNodes [][]byte, rootHash []byte) (t *trie.Trie, err e
 		decodedNode.Encoding = encodedProofNode
 		// We compute the Merkle value of nodes treating them all
 		// as non-root nodes, meaning nodes with encoding smaller
-		// than 32 bytes will have their Merkle value set as their
+		// than 33 bytes will have their Merkle value set as their
 		// encoding. The Blake2b hash of the encoding is computed
 		// later if needed to compare with the root hash given to find
 		// which node is the root node.
@@ -86,8 +86,8 @@ func buildTrie(encodedProofNodes [][]byte, rootHash []byte) (t *trie.Trie, err e
 		}
 
 		possibleRootMerkleValue := decodedNode.HashDigest
-		if len(possibleRootMerkleValue) < 32 {
-			// If the root merkle value is smaller than 32 bytes, it means
+		if len(possibleRootMerkleValue) <= 32 {
+			// If the root merkle value is smaller than 33 bytes, it means
 			// it is the encoding of the node. However, the root node merkle
 			// value is always the blake2b digest of the node, and not its own
 			// encoding. Therefore, in this case we force the computation of the
