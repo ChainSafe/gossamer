@@ -1140,7 +1140,7 @@ func Test_chainSync_logSyncSpeed(t *testing.T) {
 					mockNetwork.EXPECT().Peers().DoAndReturn(func() error {
 						close(done)
 						return nil
-					})
+					}).AnyTimes()
 					return mockNetwork
 				},
 				benchmarker: newSyncBenchmarker(10),
@@ -1161,7 +1161,7 @@ func Test_chainSync_logSyncSpeed(t *testing.T) {
 					mockNetwork.EXPECT().Peers().DoAndReturn(func() error {
 						close(done)
 						return nil
-					})
+					}).AnyTimes()
 					return mockNetwork
 				},
 				benchmarker: newSyncBenchmarker(10),
