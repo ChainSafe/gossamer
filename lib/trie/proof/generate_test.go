@@ -165,7 +165,10 @@ func Test_walk(t *testing.T) {
 				Key:   []byte{1, 2},
 				Value: []byte{1},
 			},
-			encodedProofNodes: [][]byte{{0b0100_0000 | 2, 0x12, 0x04, 0x01}},
+			encodedProofNodes: [][]byte{encodeNode(t, node.Node{
+				Key:   []byte{1, 2},
+				Value: []byte{1},
+			})},
 		},
 		"parent leaf and shorter full key": {
 			parent: &node.Node{
@@ -206,16 +209,17 @@ func Test_walk(t *testing.T) {
 				}),
 			},
 			encodedProofNodes: [][]byte{
-				{
-					0b1100_0000 | 2,          // Node variant and partial key length
-					0x12,                     // partial key
-					0b0000_0001, 0b0000_0000, // children bitmap
-					0x4, 0x3, // scale encoded value
-					0x10,
-					0b0100_0000 | 1, // Node variant and partial key length
-					0x4, 0x4,        // partial key
-					0x5, // leaf value
-				}},
+				encodeNode(t, node.Node{
+					Key:   []byte{1, 2},
+					Value: []byte{3},
+					Children: padRightChildren([]*node.Node{
+						{
+							Key:   []byte{4},
+							Value: []byte{5},
+						},
+					}),
+				}),
+			},
 		},
 		"branch and shorter full key": {
 			parent: &node.Node{
@@ -260,16 +264,17 @@ func Test_walk(t *testing.T) {
 			},
 			fullKey: []byte{1, 2},
 			encodedProofNodes: [][]byte{
-				{
-					0b1100_0000 | 2,          // Node variant and partial key length
-					0x12,                     // partial key
-					0b0000_0001, 0b0000_0000, // children bitmap
-					0x4, 0x3, // scale encoded value
-					0x10,
-					0b0100_0000 | 1, // Node variant and partial key length
-					0x4, 0x4,        // partial key
-					0x5, // leaf value
-				}},
+				encodeNode(t, node.Node{
+					Key:   []byte{1, 2},
+					Value: []byte{3},
+					Children: padRightChildren([]*node.Node{
+						{
+							Key:   []byte{4},
+							Value: []byte{5},
+						},
+					}),
+				}),
+			},
 		},
 		"key not found at deeper level": {
 			parent: &node.Node{
@@ -299,16 +304,17 @@ func Test_walk(t *testing.T) {
 			},
 			fullKey: []byte{1, 2, 0x04},
 			encodedProofNodes: [][]byte{
-				{
-					0b1100_0000 | 2,          // Node variant and partial key length
-					0x12,                     // partial key
-					0b0000_0001, 0b0000_0000, // children bitmap
-					0x4, 0x3, // scale encoded value
-					0x10,
-					0b0100_0000 | 1, // Node variant and partial key length
-					0x4, 0x4,        // partial key
-					0x5, // leaf value
-				}},
+				encodeNode(t, node.Node{
+					Key:   []byte{1, 2},
+					Value: []byte{3},
+					Children: padRightChildren([]*node.Node{
+						{
+							Key:   []byte{4},
+							Value: []byte{5},
+						},
+					}),
+				}),
+			},
 		},
 	}
 
