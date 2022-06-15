@@ -1799,7 +1799,7 @@ func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 
 	var allProofs [][]byte
 	for _, key := range keys {
-		singleProof, err := proof.Generate(hash, key, memdb)
+		singleProof, err := proof.Generate(root, key, memdb)
 		require.NoError(t, err)
 		allProofs = append(allProofs, singleProof...)
 	}

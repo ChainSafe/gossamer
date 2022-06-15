@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/trie/node"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
@@ -18,8 +17,13 @@ func Test_Generate(t *testing.T) {
 
 	errTest := errors.New("test error")
 
+	someHash := make([]byte, 32)
+	for i := range someHash {
+		someHash[i] = byte(i)
+	}
+
 	testCases := map[string]struct {
-		rootHash          common.Hash
+		rootHash          []byte
 		fullKey           []byte // nibbles
 		databaseBuilder   func(ctrl *gomock.Controller) Database
 		encodedProofNodes [][]byte
@@ -27,28 +31,28 @@ func Test_Generate(t *testing.T) {
 		errMessage        string
 	}{
 		"failed loading trie": {
-			rootHash: common.Hash{1},
+			rootHash: someHash,
 			databaseBuilder: func(ctrl *gomock.Controller) Database {
 				mockDatabase := NewMockDatabase(ctrl)
-				mockDatabase.EXPECT().Get(common.Hash{1}.ToBytes()).
+				mockDatabase.EXPECT().Get(someHash).
 					Return(nil, errTest)
 				return mockDatabase
 			},
 			errWrapped: errTest,
 			errMessage: "cannot load trie: " +
 				"failed to find root key " +
-				"0x0100000000000000000000000000000000000000000000000000000000000000: " +
+				"0x000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f: " +
 				"test error",
 		},
 		"walk error": {
-			rootHash: common.Hash{1},
+			rootHash: someHash,
 			databaseBuilder: func(ctrl *gomock.Controller) Database {
 				mockDatabase := NewMockDatabase(ctrl)
 				encodedRoot := encodeNode(t, node.Node{
 					Key:   []byte{1},
 					Value: []byte{2},
 				})
-				mockDatabase.EXPECT().Get(common.Hash{1}.ToBytes()).
+				mockDatabase.EXPECT().Get(someHash).
 					Return(encodedRoot, nil)
 				return mockDatabase
 			},
@@ -57,14 +61,14 @@ func Test_Generate(t *testing.T) {
 			errMessage: "cannot find node at key 0x01 in trie: key not found",
 		},
 		"leaf root": {
-			rootHash: common.Hash{1},
+			rootHash: someHash,
 			databaseBuilder: func(ctrl *gomock.Controller) Database {
 				mockDatabase := NewMockDatabase(ctrl)
 				encodedRoot := encodeNode(t, node.Node{
 					Key:   []byte{1},
 					Value: []byte{2},
 				})
-				mockDatabase.EXPECT().Get(common.Hash{1}.ToBytes()).
+				mockDatabase.EXPECT().Get(someHash).
 					Return(encodedRoot, nil)
 				return mockDatabase
 			},
@@ -76,7 +80,7 @@ func Test_Generate(t *testing.T) {
 			},
 		},
 		"branch root": {
-			rootHash: common.Hash{1},
+			rootHash: someHash,
 			databaseBuilder: func(ctrl *gomock.Controller) Database {
 				mockDatabase := NewMockDatabase(ctrl)
 				encodedRoot := encodeNode(t, node.Node{
@@ -90,7 +94,7 @@ func Test_Generate(t *testing.T) {
 						},
 					}),
 				})
-				mockDatabase.EXPECT().Get(common.Hash{1}.ToBytes()).
+				mockDatabase.EXPECT().Get(someHash).
 					Return(encodedRoot, nil)
 				return mockDatabase
 			},
