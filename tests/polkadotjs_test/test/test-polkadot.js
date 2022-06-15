@@ -63,7 +63,7 @@ describe('Testing polkadot.js/api calls:', function () {
         it('call api.libraryInfo', async function () {
             const libraryInfo = await api.libraryInfo;
             expect(libraryInfo).to.be.not.null;
-            expect(libraryInfo).to.be.equal('@polkadot/api v8.7.1');
+            expect(libraryInfo).to.be.equal('@polkadot/api v8.8.2');
         });
     });
     describe('upgrade runtime', () => {

@@ -46,6 +46,8 @@ func TestStartGossamerAndPolkadotAPI(t *testing.T) {
 	tomlConfig.Init.Genesis = libutils.GetDevGenesisSpecPathTest(t)
 	tomlConfig.Core.BABELead = true
 	tomlConfig.RPC.WS = true
+	tomlConfig.RPC.Unsafe = true
+	tomlConfig.RPC.WSUnsafe = true
 	n := node.New(t, tomlConfig)
 
 	ctx, cancel := context.WithCancel(context.Background())

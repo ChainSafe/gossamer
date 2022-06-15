@@ -33,6 +33,8 @@ nobootstrap = false
 nomdns = false
 
 [rpc]
+unsafe = true
+ws-unsafe = true
 enabled = true
 ws = true
 port = 8545
