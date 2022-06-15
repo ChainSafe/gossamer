@@ -183,6 +183,7 @@ func Test_buildTrie(t *testing.T) {
 				Value:      leafAShort.Value,
 				Encoding:   leafAShortEncoded,
 				HashDigest: blake2bNode(t, leafAShort),
+				Dirty:      true,
 			}),
 		},
 		"root proof encoding larger than 32 bytes": {
@@ -195,6 +196,7 @@ func Test_buildTrie(t *testing.T) {
 				Value:      leafBLarge.Value,
 				Encoding:   leafBLargeEncoded,
 				HashDigest: blake2bNode(t, leafBLarge),
+				Dirty:      true,
 			}),
 		},
 		"discard unused node": {
@@ -208,6 +210,7 @@ func Test_buildTrie(t *testing.T) {
 				Value:      leafAShort.Value,
 				Encoding:   leafAShortEncoded,
 				HashDigest: blake2bNode(t, leafAShort),
+				Dirty:      true,
 			}),
 		},
 		"multiple unordered nodes": {
@@ -236,29 +239,33 @@ func Test_buildTrie(t *testing.T) {
 			expectedTrie: trie.NewTrie(&node.Node{
 				Key:         []byte{1},
 				Descendants: 4,
+				Dirty:       true,
 				Children: padRightChildren([]*node.Node{
 					{
 						Key:   leafAShort.Key,
 						Value: leafAShort.Value,
-						Dirty: true, // TODO: this should be false
+						Dirty: true,
 					},
 					{
 						Key:        leafBLarge.Key,
 						Value:      leafBLarge.Value,
 						Encoding:   leafBLargeEncoded,
 						HashDigest: blake2bNode(t, leafBLarge),
+						Dirty:      true,
 					},
 					{
 						Key:        leafCLarge.Key,
 						Value:      leafCLarge.Value,
 						Encoding:   leafCLargeEncoded,
 						HashDigest: blake2bNode(t, leafCLarge),
+						Dirty:      true,
 					},
 					{
 						Key:        leafBLarge.Key,
 						Value:      leafBLarge.Value,
 						Encoding:   leafBLargeEncoded,
 						HashDigest: blake2bNode(t, leafBLarge),
+						Dirty:      true,
 					},
 				}),
 				Encoding: encodeNode(t, node.Node{

@@ -67,8 +67,6 @@ func buildTrie(encodedProofNodes [][]byte, rootHash []byte) (t *trie.Trie, err e
 				i, err, encodedProofNode)
 		}
 
-		const dirty = false
-		decodedNode.SetDirty(dirty)
 		decodedNode.Encoding = encodedProofNode
 		// We compute the Merkle value of nodes treating them all
 		// as non-root nodes, meaning nodes with encoding smaller
