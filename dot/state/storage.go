@@ -304,12 +304,28 @@ func (s *StorageState) LoadCodeHash(hash *common.Hash) (common.Hash, error) {
 // GenerateTrieProof returns the proofs related to the keys on the state root trie
 func (s *StorageState) GenerateTrieProof(stateRoot common.Hash, keys [][]byte) (
 	proofs [][]byte, err error) {
+	proofHashes := make(map[common.Hash]struct{}) // to avoid duplicates
 	for _, key := range keys {
 		encodedProofNodes, err := proof.Generate(stateRoot[:], key, s.db)
 		if err != nil {
 			return nil, fmt.Errorf("for key 0x%x: %w", key, err)
 		}
-		proofs = append(proofs, encodedProofNodes...)
+
+		for _, encodedProofNode := range encodedProofNodes {
+			proofHash, err := common.Blake2bHash(encodedProofNode)
+			if err != nil {
+				return nil, fmt.Errorf("blake2b hash: %w", err)
+			}
+
+			_, exists := proofHashes[proofHash]
+			if exists {
+				// this encoded node was encountered previously, skip it.
+				continue
+			}
+
+			proofHashes[proofHash] = struct{}{}
+			proofs = append(proofs, encodedProofNode)
+		}
 	}
 
 	return proofs, nil
