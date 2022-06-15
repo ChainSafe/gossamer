@@ -56,7 +56,7 @@ func Test_Verify(t *testing.T) {
 		"failed building proof trie": {
 			rootHash:   []byte{1, 2, 3},
 			errWrapped: ErrEmptyProof,
-			errMessage: "cannot build trie from proof encoded nodes: " +
+			errMessage: "building trie from proof encoded nodes: " +
 				"proof slice empty: for Merkle root hash 0x010203",
 		},
 		"value not found": {
@@ -170,7 +170,7 @@ func Test_buildTrie(t *testing.T) {
 			},
 			rootHash:   []byte{3},
 			errWrapped: node.ErrUnknownNodeType,
-			errMessage: "cannot decode node at index 0: " +
+			errMessage: "decoding node at index 0: " +
 				"unknown node type: 0 (node encoded is 0x010203)",
 		},
 		"root proof encoding smaller than 32 bytes": {

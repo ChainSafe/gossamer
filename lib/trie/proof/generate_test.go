@@ -39,7 +39,7 @@ func Test_Generate(t *testing.T) {
 				return mockDatabase
 			},
 			errWrapped: errTest,
-			errMessage: "cannot load trie: " +
+			errMessage: "loading trie: " +
 				"failed to find root key " +
 				"0x000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f: " +
 				"test error",
@@ -58,7 +58,7 @@ func Test_Generate(t *testing.T) {
 			},
 			fullKey:    []byte{1},
 			errWrapped: ErrKeyNotFound,
-			errMessage: "cannot find node at key 0x01 in trie: key not found",
+			errMessage: "walking to node at key 0x01: key not found",
 		},
 		"leaf root": {
 			rootHash: someHash,

@@ -32,7 +32,7 @@ func Generate(rootHash []byte, fullKey []byte, database Database) (
 	encodedProofNodes [][]byte, err error) {
 	trie := trie.NewEmptyTrie()
 	if err := trie.Load(database, common.BytesToHash(rootHash)); err != nil {
-		return nil, fmt.Errorf("cannot load trie: %w", err)
+		return nil, fmt.Errorf("loading trie: %w", err)
 	}
 
 	rootNode := trie.RootNode()
@@ -41,7 +41,7 @@ func Generate(rootHash []byte, fullKey []byte, database Database) (
 	if err != nil {
 		// Note we wrap the full key context here since find is recursive and
 		// may not be aware of the initial full key.
-		return nil, fmt.Errorf("cannot find node at key 0x%x in trie: %w", fullKey, err)
+		return nil, fmt.Errorf("walking to node at key 0x%x: %w", fullKey, err)
 	}
 
 	return encodedProofNodes, nil

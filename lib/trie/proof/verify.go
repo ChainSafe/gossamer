@@ -27,7 +27,7 @@ var (
 func Verify(encodedProofNodes [][]byte, rootHash, key, value []byte) (err error) {
 	proofTrie, err := buildTrie(encodedProofNodes, rootHash)
 	if err != nil {
-		return fmt.Errorf("cannot build trie from proof encoded nodes: %w", err)
+		return fmt.Errorf("building trie from proof encoded nodes: %w", err)
 	}
 
 	proofTrieValue := proofTrie.Get(key)
@@ -53,8 +53,8 @@ var (
 // buildTrie sets a partial trie based on the proof slice of encoded nodes.
 func buildTrie(encodedProofNodes [][]byte, rootHash []byte) (t *trie.Trie, err error) {
 	if len(encodedProofNodes) == 0 {
-		return nil, fmt.Errorf("%w: for Merkle root hash %s",
-			ErrEmptyProof, bytesToString(rootHash))
+		return nil, fmt.Errorf("%w: for Merkle root hash 0x%x",
+			ErrEmptyProof, rootHash)
 	}
 
 	proofHashToNode := make(map[string]*node.Node, len(encodedProofNodes))
@@ -63,7 +63,7 @@ func buildTrie(encodedProofNodes [][]byte, rootHash []byte) (t *trie.Trie, err e
 	for i, encodedProofNode := range encodedProofNodes {
 		decodedNode, err := node.Decode(bytes.NewReader(encodedProofNode))
 		if err != nil {
-			return nil, fmt.Errorf("cannot decode node at index %d: %w (node encoded is 0x%x)",
+			return nil, fmt.Errorf("decoding node at index %d: %w (node encoded is 0x%x)",
 				i, err, encodedProofNode)
 		}
 
@@ -79,7 +79,7 @@ func buildTrie(encodedProofNodes [][]byte, rootHash []byte) (t *trie.Trie, err e
 		const isRoot = false
 		decodedNode.HashDigest, err = node.MerkleValue(encodedProofNode, isRoot)
 		if err != nil {
-			return nil, fmt.Errorf("cannot calculate Merkle value of node at index %d: %w", i, err)
+			return nil, fmt.Errorf("merkle value of node at index %d: %w", i, err)
 		}
 
 		proofHash := common.BytesToHex(decodedNode.HashDigest)

@@ -308,7 +308,7 @@ func (s *StorageState) GenerateTrieProof(stateRoot common.Hash, keys [][]byte) (
 	for _, key := range keys {
 		encodedProofNodes, err := proof.Generate(stateRoot[:], key, s.db)
 		if err != nil {
-			return nil, fmt.Errorf("for key 0x%x: %w", key, err)
+			return nil, err
 		}
 
 		for _, encodedProofNode := range encodedProofNodes {
