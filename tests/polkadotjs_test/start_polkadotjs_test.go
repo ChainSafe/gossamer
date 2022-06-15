@@ -25,9 +25,12 @@ func TestStartGossamerAndPolkadotAPI(t *testing.T) {
 		return
 	}
 
+	err := utils.BuildGossamer()
+	require.NoError(t, err)
+
 	const nodePackageManager = "npm"
 	t.Logf("Checking %s is available...", nodePackageManager)
-	_, err := exec.LookPath(nodePackageManager)
+	_, err = exec.LookPath(nodePackageManager)
 	if err != nil {
 		t.Fatalf("%s is not available: %s", nodePackageManager, err)
 	}
