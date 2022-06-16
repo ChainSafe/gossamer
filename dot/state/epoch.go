@@ -264,7 +264,8 @@ func (s *EpochState) GetEpochData(epoch uint64, header *types.Header) (*types.Ep
 	}
 
 	if epochData == nil {
-		return nil, errEpochDataNotFound
+		return nil, fmt.Errorf("%w: for epoch %d and header with hash %s",
+			errEpochDataNotFound, epoch, header.Hash())
 	}
 
 	return epochData, nil
