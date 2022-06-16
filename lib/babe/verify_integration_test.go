@@ -386,6 +386,53 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
+	kp, err := sr25519.GenerateKeypair()
+	require.NoError(t, err)
+
+	cfg := &ServiceConfig{
+		Keypair: kp,
+	}
+
+	babeService := createTestService(t, cfg)
+	epochData, err := babeService.initiateEpoch(testEpochIndex)
+	require.NoError(t, err)
+
+	epochData.threshold = maxThreshold
+	epochData.authorities = []types.Authority{
+		{
+			Key: kp.Public().(*sr25519.PublicKey),
+		},
+	}
+
+	// create and add first block
+	block := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1, testEpochIndex, epochData)
+	block.Header.Hash()
+
+	err = babeService.blockState.AddBlock(block)
+	require.NoError(t, err)
+
+	verifier, err := newVerifier(babeService.blockState, testEpochIndex, &verifierInfo{
+		authorities: epochData.authorities,
+		threshold:   epochData.threshold,
+		randomness:  epochData.randomness,
+	})
+	require.NoError(t, err)
+
+	err = verifier.verifyAuthorshipRight(&block.Header)
+	require.NoError(t, err)
+
+	// create new block
+	block2 := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1, testEpochIndex, epochData)
+	block2.Header.Hash()
+
+	err = babeService.blockState.AddBlock(block2)
+	require.NoError(t, err)
+
+	err = verifier.verifyAuthorshipRight(&block2.Header)
+	require.Equal(t, ErrProducerEquivocated, err)
+}
+
 func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 	/*
 	* Setup the services: StateService, DigestHandler, EpochState

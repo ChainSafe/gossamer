@@ -340,6 +340,35 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 		return ErrBadSignature
 	}
 
+	// check if the producer has equivocated, ie. have they produced a conflicting block?
+	hashes := b.blockState.GetAllBlocksAtDepth(header.ParentHash)
+
+	for _, hash := range hashes {
+		currentHeader, err := b.blockState.GetHeader(hash)
+		if err != nil {
+			continue
+		}
+
+		currentBlockProducerIndex, err := getAuthorityIndex(currentHeader)
+		if err != nil {
+			continue
+		}
+
+		var existingBlockProducerIndex uint32
+		switch d := babePreDigest.(type) {
+		case types.BabePrimaryPreDigest:
+			existingBlockProducerIndex = d.AuthorityIndex
+		case types.BabeSecondaryVRFPreDigest:
+			existingBlockProducerIndex = d.AuthorityIndex
+		case types.BabeSecondaryPlainPreDigest:
+			existingBlockProducerIndex = d.AuthorityIndex
+		}
+
+		if currentBlockProducerIndex == existingBlockProducerIndex && hash != header.Hash() {
+			return ErrProducerEquivocated
+		}
+	}
+
 	return nil
 }
 

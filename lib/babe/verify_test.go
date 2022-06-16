@@ -612,6 +612,27 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	//// Case 8: Get header error
 	babeVerifier6 := newTestVerifier(t, kp, mockBlockStateErr, scale.MaxUint128, false)
 
+	// Case 9: Equivocate case primary
+	babeVerifier7 := newTestVerifier(t, kp, mockBlockStateEquiv1, scale.MaxUint128, false)
+
+	// Case 10: Equivocate case secondary plain
+	babeSecPlainPrd2, err := testBabeSecondaryPlainPreDigest.ToPreRuntimeDigest()
+	assert.NoError(t, err)
+	header8 := newTestHeader(t, *babeSecPlainPrd2)
+
+	hash2 := encodeAndHashHeader(t, header8)
+	signAndAddSeal(t, kp, header8, hash2[:])
+	babeVerifier8 := newTestVerifier(t, kp, mockBlockStateEquiv2, scale.MaxUint128, true)
+
+	// Case 11: equivocation case secondary VRF
+	encVrfDigest := newEncodedBabeDigest(t, testBabeSecondaryVRFPreDigest)
+	assert.NoError(t, err)
+	header9 := newTestHeader(t, *types.NewBABEPreRuntimeDigest(encVrfDigest))
+
+	hash3 := encodeAndHashHeader(t, header9)
+	signAndAddSeal(t, kp, header9, hash3[:])
+	babeVerifier9 := newTestVerifier(t, kp, mockBlockStateEquiv3, scale.MaxUint128, true)
+
 	tests := []struct {
 		name     string
 		verifier verifier
@@ -675,6 +696,24 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 			name:     "get header err",
 			verifier: *babeVerifier6,
 			header:   header7,
+		},
+		{
+			name:     "equivocate - primary",
+			verifier: *babeVerifier7,
+			header:   header7,
+			expErr:   ErrProducerEquivocated,
+		},
+		{
+			name:     "equivocate - secondary plain",
+			verifier: *babeVerifier8,
+			header:   header8,
+			expErr:   ErrProducerEquivocated,
+		},
+		{
+			name:     "equivocate - secondary vrf",
+			verifier: *babeVerifier9,
+			header:   header9,
+			expErr:   ErrProducerEquivocated,
 		},
 	}
 	for _, tt := range tests {
