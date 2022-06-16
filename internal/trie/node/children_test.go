@@ -9,43 +9,43 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_Branch_ChildrenBitmap(t *testing.T) {
+func Test_Node_ChildrenBitmap(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		branch *Branch
+		node   Node
 		bitmap uint16
 	}{
 		"no children": {
-			branch: &Branch{},
+			node: Node{},
 		},
 		"index 0": {
-			branch: &Branch{
-				Children: [16]Node{
-					&Leaf{},
+			node: Node{
+				Children: []*Node{
+					{},
 				},
 			},
 			bitmap: 1,
 		},
 		"index 0 and 4": {
-			branch: &Branch{
-				Children: [16]Node{
-					&Leaf{},
+			node: Node{
+				Children: []*Node{
+					{},
 					nil, nil, nil,
-					&Leaf{},
+					{},
 				},
 			},
 			bitmap: 1<<4 + 1,
 		},
 		"index 0, 4 and 15": {
-			branch: &Branch{
-				Children: [16]Node{
-					&Leaf{},
+			node: Node{
+				Children: []*Node{
+					{},
 					nil, nil, nil,
-					&Leaf{},
+					{},
 					nil, nil, nil, nil, nil,
 					nil, nil, nil, nil, nil,
-					&Leaf{},
+					{},
 				},
 			},
 			bitmap: 1<<15 + 1<<4 + 1,
@@ -57,50 +57,50 @@ func Test_Branch_ChildrenBitmap(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			bitmap := testCase.branch.ChildrenBitmap()
+			bitmap := testCase.node.ChildrenBitmap()
 
 			assert.Equal(t, testCase.bitmap, bitmap)
 		})
 	}
 }
 
-func Test_Branch_NumChildren(t *testing.T) {
+func Test_Node_NumChildren(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		branch *Branch
-		count  int
+		node  Node
+		count int
 	}{
 		"zero": {
-			branch: &Branch{},
+			node: Node{},
 		},
 		"one": {
-			branch: &Branch{
-				Children: [16]Node{
-					&Leaf{},
+			node: Node{
+				Children: []*Node{
+					{},
 				},
 			},
 			count: 1,
 		},
 		"two": {
-			branch: &Branch{
-				Children: [16]Node{
-					&Leaf{},
+			node: Node{
+				Children: []*Node{
+					{},
 					nil, nil, nil,
-					&Leaf{},
+					{},
 				},
 			},
 			count: 2,
 		},
 		"three": {
-			branch: &Branch{
-				Children: [16]Node{
-					&Leaf{},
+			node: Node{
+				Children: []*Node{
+					{},
 					nil, nil, nil,
-					&Leaf{},
+					{},
 					nil, nil, nil, nil, nil,
 					nil, nil, nil, nil, nil,
-					&Leaf{},
+					{},
 				},
 			},
 			count: 3,
@@ -112,7 +112,7 @@ func Test_Branch_NumChildren(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			count := testCase.branch.NumChildren()
+			count := testCase.node.NumChildren()
 
 			assert.Equal(t, testCase.count, count)
 		})

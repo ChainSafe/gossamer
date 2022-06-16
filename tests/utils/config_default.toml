@@ -1,0 +1,31 @@
+[global]
+name = "Gossamer"
+id = "gssmr"
+log = "crit"
+metrics-address = "localhost:9876"
+retain-blocks = 256
+pruning = "archive"
+
+[log]
+core = "info"
+sync = "info"
+
+[init]
+genesis = "./chain/gssmr/genesis.json"
+
+[core]
+roles = 4
+babe-authority = true
+grandpa-authority = true
+grandpa-interval = 1
+
+[network]
+protocol = "/gossamer/gssmr/0"
+min-peers = 1
+max-peers = 3
+
+[rpc]
+unsafe = true
+host = "localhost"
+modules = ["system", "author", "chain", "state"]
+ws-unsafe = true

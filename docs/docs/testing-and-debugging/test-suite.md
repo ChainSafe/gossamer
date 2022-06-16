@@ -25,13 +25,6 @@ Proceed to open `cover.html` in your preferred browser.
 ### Gossamer Integration Tests
 
 Running Gossamer's integration tests with the below commands will build a Gossamer binary, install required dependencies, and then proceeds to run the provided set of tests. Integration tests can also be run within a docker container.
- 
-
-To run Gossamer integration tests in **stable** mode run the following command:
-
-```
-make it-stable
-```
 
 To run Gossamer integration tests in **stress** mode run the following command:
 

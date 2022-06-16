@@ -11,7 +11,7 @@ require (
 	github.com/dgraph-io/badger/v2 v2.2007.4
 	github.com/dgraph-io/ristretto v0.0.3-0.20200630154024-f66de99634de
 	github.com/disiqueira/gotree v1.0.0
-	github.com/docker/docker v20.10.15+incompatible
+	github.com/docker/docker v20.10.17+incompatible
 	github.com/ethereum/go-ethereum v1.10.18
 	github.com/fatih/color v1.13.0
 	github.com/go-playground/validator/v10 v10.11.0
@@ -37,18 +37,16 @@ require (
 	github.com/nanobox-io/golang-scribble v0.0.0-20190309225732-aa3e7c118975
 	github.com/naoina/toml v0.1.2-0.20170918210437-9fafd6967416
 	github.com/perlin-network/life v0.0.0-20191203030451-05c0e0f7eaea
+	github.com/prometheus/client_golang v1.12.2
+	github.com/prometheus/client_model v0.2.0
 	github.com/qdm12/gotree v0.2.0
-	github.com/stretchr/testify v1.7.1
+	github.com/stretchr/testify v1.7.2
 	github.com/urfave/cli v1.22.9
 	github.com/wasmerio/go-ext-wasm v0.3.2-0.20200326095750-0a32be6068ec
 	golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4
 	golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1
+	golang.org/x/text v0.3.7
 	google.golang.org/protobuf v1.28.0
-)
-
-require (
-	github.com/prometheus/client_golang v1.12.2
-	github.com/prometheus/client_model v0.2.0
 )
 
 require (
@@ -185,13 +183,12 @@ require (
 	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
 	golang.org/x/sys v0.0.0-20220422013727-9388b58f7150 // indirect
-	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/tools v0.1.8-0.20211029000441-d6a9af8af023 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	google.golang.org/appengine v1.6.6 // indirect
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gotest.tools/v3 v3.0.3 // indirect
 	lukechampine.com/blake3 v1.1.6 // indirect
 )

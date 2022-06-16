@@ -88,7 +88,7 @@ type workHandler interface {
 	handleTick() ([]*worker, error)
 }
 
-//go:generate mockgen -destination=mock_chain_sync_test.go -package $GOPACKAGE . ChainSync
+//go:generate mockgen -destination=mock_chain_sync_test.go -package $GOPACKAGE -source chain_sync.go . ChainSync,workHandler
 
 // ChainSync contains the methods used by the high-level service into the `chainSync` module
 type ChainSync interface {
@@ -161,6 +161,8 @@ type chainSync struct {
 	minPeers         int
 	maxWorkerRetries uint16
 	slotDuration     time.Duration
+
+	logSyncPeriod time.Duration
 }
 
 type chainSyncConfig struct {
@@ -175,6 +177,7 @@ type chainSyncConfig struct {
 func newChainSync(cfg *chainSyncConfig) *chainSync {
 	ctx, cancel := context.WithCancel(context.Background())
 	const syncSamplesToKeep = 30
+	const logSyncPeriod = 5 * time.Second
 	return &chainSync{
 		ctx:              ctx,
 		cancel:           cancel,
@@ -194,6 +197,7 @@ func newChainSync(cfg *chainSyncConfig) *chainSync {
 		minPeers:         cfg.minPeers,
 		maxWorkerRetries: uint16(cfg.maxPeers),
 		slotDuration:     cfg.slotDuration,
+		logSyncPeriod:    logSyncPeriod,
 	}
 }
 
@@ -267,7 +271,7 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number uint) error
 	// check if they are on a fork or not
 	head, err := cs.blockState.BestBlockHeader()
 	if err != nil {
-		return err
+		return fmt.Errorf("best block header: %w", err)
 	}
 
 	if ps.number <= head.Number {
@@ -275,7 +279,7 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number uint) error
 		// as we already have that block
 		ourHash, err := cs.blockState.GetHashByNumber(ps.number)
 		if err != nil {
-			return err
+			return fmt.Errorf("get block hash by number: %w", err)
 		}
 
 		if ourHash.Equal(ps.hash) {
@@ -287,7 +291,7 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number uint) error
 		// for now, we can remove them from the syncing peers set
 		fin, err := cs.blockState.GetHighestFinalisedHeader()
 		if err != nil {
-			return err
+			return fmt.Errorf("get highest finalised header: %w", err)
 		}
 
 		// their block hash doesn't match ours for that number (ie. they are on a different
@@ -300,14 +304,15 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number uint) error
 				Value:  peerset.BadBlockAnnouncementValue,
 				Reason: peerset.BadBlockAnnouncementReason,
 			}, p)
-			return errPeerOnInvalidFork
+			return fmt.Errorf("%w: for peer %s and block number %d",
+				errPeerOnInvalidFork, p, ps.number)
 		}
 
 		// peer is on a fork, check if we have processed the fork already or not
 		// ie. is their block written to our db?
 		has, err := cs.blockState.HasHeader(ps.hash)
 		if err != nil {
-			return err
+			return fmt.Errorf("has header: %w", err)
 		}
 
 		// if so, do nothing, as we already have their fork
@@ -319,7 +324,7 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number uint) error
 	// the peer has a higher best block than us, or they are on some fork we are not aware of
 	// add it to the disjoint block set
 	if err = cs.pendingBlocks.addHashAndNumber(ps.hash, ps.number); err != nil {
-		return err
+		return fmt.Errorf("add hash and number: %w", err)
 	}
 
 	cs.workQueue <- ps
@@ -328,7 +333,7 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number uint) error
 }
 
 func (cs *chainSync) logSyncSpeed() {
-	t := time.NewTicker(time.Second * 5)
+	t := time.NewTicker(cs.logSyncPeriod)
 	defer t.Stop()
 
 	for {
@@ -411,77 +416,9 @@ func (cs *chainSync) sync() {
 				logger.Errorf("failed to handle chain sync work: %s", err)
 			}
 		case res := <-cs.resultQueue:
-			// delete worker from workers map
-			cs.workerState.delete(res.id)
-
-			// handle results from worker
-			// if there is an error, potentially retry the worker
-			if res.err == nil || res.ctx.Err() != nil {
-				continue
+			if err := cs.handleResult(res); err != nil {
+				logger.Errorf("failed to handle chain sync result: %s", err)
 			}
-
-			logger.Debugf("worker id %d failed: %s", res.id, res.err.err)
-
-			// handle errors. in the case that a peer did not respond to us in time,
-			// temporarily add them to the ignore list.
-			switch {
-			case errors.Is(res.err.err, context.Canceled):
-				return
-			case errors.Is(res.err.err, errNoPeers):
-				logger.Debugf("worker id %d not able to sync with any peer", res.id)
-				continue
-			case errors.Is(res.err.err, context.DeadlineExceeded):
-				cs.network.ReportPeer(peerset.ReputationChange{
-					Value:  peerset.TimeOutValue,
-					Reason: peerset.TimeOutReason,
-				}, res.err.who)
-				cs.ignorePeer(res.err.who)
-			case strings.Contains(res.err.err.Error(), "dial backoff"):
-				cs.ignorePeer(res.err.who)
-				continue
-			case res.err.err.Error() == "protocol not supported":
-				cs.network.ReportPeer(peerset.ReputationChange{
-					Value:  peerset.BadProtocolValue,
-					Reason: peerset.BadProtocolReason,
-				}, res.err.who)
-				cs.ignorePeer(res.err.who)
-				continue
-			default:
-			}
-
-			worker, err := cs.handler.handleWorkerResult(res)
-			if err != nil {
-				logger.Errorf("failed to handle worker result: %s", err)
-				continue
-			} else if worker == nil {
-				continue
-			}
-
-			worker.retryCount = res.retryCount + 1
-			if worker.retryCount > cs.maxWorkerRetries {
-				logger.Debugf(
-					"discarding worker id %d: maximum retry count reached",
-					worker.id)
-
-				// if this worker was triggered due to a block in the pending blocks set,
-				// we want to remove it from the set, as we asked all our peers for it
-				// and none replied with the info we need.
-				if worker.pendingBlock != nil {
-					cs.pendingBlocks.removeBlock(worker.pendingBlock.hash)
-				}
-				continue
-			}
-
-			// if we've already tried a peer and there was an error,
-			// then we shouldn't try them again.
-			if res.peersTried != nil {
-				worker.peersTried = res.peersTried
-			} else {
-				worker.peersTried = make(map[peer.ID]struct{})
-			}
-
-			worker.peersTried[res.err.who] = struct{}{}
-			cs.tryDispatchWorker(worker)
 		case <-ticker.C:
 			cs.maybeSwitchMode()
 
@@ -523,6 +460,80 @@ func (cs *chainSync) maybeSwitchMode() {
 	default:
 		// head is between (target-128, target), and we don't want to switch modes.
 	}
+}
+
+func (cs *chainSync) handleResult(resultWorker *worker) error {
+	// delete worker from workers map
+	cs.workerState.delete(resultWorker.id)
+
+	// handle results from worker
+	// if there is an error, potentially retry the worker
+	if resultWorker.err == nil || resultWorker.ctx.Err() != nil {
+		return nil
+	}
+
+	logger.Debugf("worker id %d failed: %s", resultWorker.id, resultWorker.err.err)
+
+	// handle errors. in the case that a peer did not respond to us in time,
+	// temporarily add them to the ignore list.
+	switch {
+	case errors.Is(resultWorker.err.err, context.Canceled):
+		return nil
+	case errors.Is(resultWorker.err.err, errNoPeers):
+		logger.Debugf("worker id %d not able to sync with any peer", resultWorker.id)
+		return nil
+	case errors.Is(resultWorker.err.err, context.DeadlineExceeded):
+		cs.network.ReportPeer(peerset.ReputationChange{
+			Value:  peerset.TimeOutValue,
+			Reason: peerset.TimeOutReason,
+		}, resultWorker.err.who)
+		cs.ignorePeer(resultWorker.err.who)
+	case strings.Contains(resultWorker.err.err.Error(), "dial backoff"):
+		cs.ignorePeer(resultWorker.err.who)
+		return nil
+	case resultWorker.err.err.Error() == "protocol not supported":
+		cs.network.ReportPeer(peerset.ReputationChange{
+			Value:  peerset.BadProtocolValue,
+			Reason: peerset.BadProtocolReason,
+		}, resultWorker.err.who)
+		cs.ignorePeer(resultWorker.err.who)
+		return nil
+	}
+
+	worker, err := cs.handler.handleWorkerResult(resultWorker)
+	if err != nil {
+		logger.Errorf("failed to handle worker result: %s", err)
+		return err
+	} else if worker == nil {
+		return nil
+	}
+
+	worker.retryCount = resultWorker.retryCount + 1
+	if worker.retryCount > cs.maxWorkerRetries {
+		logger.Debugf(
+			"discarding worker id %d: maximum retry count %d reached",
+			worker.id, cs.maxWorkerRetries)
+
+		// if this worker was triggered due to a block in the pending blocks set,
+		// we want to remove it from the set, as we asked all our peers for it
+		// and none replied with the info we need.
+		if worker.pendingBlock != nil {
+			cs.pendingBlocks.removeBlock(worker.pendingBlock.hash)
+		}
+		return nil
+	}
+
+	// if we've already tried a peer and there was an error,
+	// then we shouldn't try them again.
+	if resultWorker.peersTried != nil {
+		worker.peersTried = resultWorker.peersTried
+	} else {
+		worker.peersTried = make(map[peer.ID]struct{})
+	}
+
+	worker.peersTried[resultWorker.err.who] = struct{}{}
+	cs.tryDispatchWorker(worker)
+	return nil
 }
 
 // setMode stops all existing workers and clears the worker set and switches the `handler`
@@ -568,7 +579,7 @@ func (cs *chainSync) getTarget() uint {
 		uintArr = append(uintArr, ps.number)
 	}
 
-	sum, count := removeOutliers(uintArr)
+	sum, count := nonOutliersSumCount(uintArr)
 	quotientBigInt := big.NewInt(0).Div(sum, big.NewInt(int64(count)))
 	return uint(quotientBigInt.Uint64())
 }

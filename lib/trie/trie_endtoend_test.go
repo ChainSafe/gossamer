@@ -16,7 +16,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/ChainSafe/gossamer/internal/trie/codec"
-	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
@@ -305,7 +304,7 @@ func TestTrieDiff(t *testing.T) {
 	}
 
 	dbTrie := NewEmptyTrie()
-	err = dbTrie.Load(storageDB, common.BytesToHash(newTrie.root.GetHash()))
+	err = dbTrie.Load(storageDB, common.BytesToHash(newTrie.root.HashDigest))
 	require.NoError(t, err)
 }
 
@@ -493,7 +492,7 @@ func TestClearPrefix_Small(t *testing.T) {
 
 	ssTrie.ClearPrefix([]byte("noo"))
 
-	expectedRoot := &node.Leaf{
+	expectedRoot := &Node{
 		Key:        codec.KeyLEToNibbles([]byte("other")),
 		Value:      []byte("other"),
 		Generation: 1,
@@ -1020,30 +1019,27 @@ func Test_encodeRoot_fuzz(t *testing.T) {
 	}
 }
 
-func countNodesRecursively(root Node) (nodesCount uint32) {
+func countNodesRecursively(root *Node) (nodesCount uint32) {
 	if root == nil {
 		return 0
-	} else if root.Type() == node.LeafType {
-		return 1
 	}
-	branch := root.(*node.Branch)
-	for _, child := range branch.Children {
+
+	nodesCount = 1
+	for _, child := range root.Children {
 		nodesCount += countNodesRecursively(child)
 	}
-
-	return 1 + nodesCount
+	return nodesCount
 }
 
-func countNodesFromStats(root Node) (nodesCount uint32) {
+func countNodesFromStats(root *Node) (nodesCount uint32) {
 	if root == nil {
 		return 0
-	} else if root.Type() == node.LeafType {
-		return 1
 	}
-	return 1 + root.(*node.Branch).GetDescendants()
+
+	return 1 + root.Descendants
 }
 
-func testDescendants(t *testing.T, root Node) {
+func testDescendants(t *testing.T, root *Node) {
 	t.Helper()
 	expectedCount := countNodesRecursively(root)
 	statsCount := countNodesFromStats(root)

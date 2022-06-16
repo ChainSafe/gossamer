@@ -27,7 +27,7 @@ var (
 func (t *Trie) Store(db chaindb.Database) error {
 	for _, v := range t.childTries {
 		if err := v.Store(db); err != nil {
-			return fmt.Errorf("failed to store child trie with root hash=0x%x in the db: %w", v.root.GetHash(), err)
+			return fmt.Errorf("failed to store child trie with root hash=0x%x in the db: %w", v.root.HashDigest, err)
 		}
 	}
 
@@ -41,7 +41,7 @@ func (t *Trie) Store(db chaindb.Database) error {
 	return batch.Flush()
 }
 
-func (t *Trie) store(db chaindb.Batch, n Node) error {
+func (t *Trie) store(db chaindb.Batch, n *Node) error {
 	if n == nil {
 		return nil
 	}
@@ -56,10 +56,8 @@ func (t *Trie) store(db chaindb.Batch, n Node) error {
 		return err
 	}
 
-	switch n.Type() {
-	case node.BranchType, node.BranchWithValueType:
-		branch := n.(*node.Branch)
-		for _, child := range branch.Children {
+	if n.Type() == node.Branch {
+		for _, child := range n.Children {
 			if child == nil {
 				continue
 			}
@@ -71,7 +69,7 @@ func (t *Trie) store(db chaindb.Batch, n Node) error {
 		}
 	}
 
-	if n.IsDirty() {
+	if n.Dirty {
 		n.SetDirty(false)
 	}
 
@@ -86,7 +84,7 @@ func (t *Trie) LoadFromProof(proofEncodedNodes [][]byte, rootHash []byte) error 
 		return ErrEmptyProof
 	}
 
-	proofHashToNode := make(map[string]Node, len(proofEncodedNodes))
+	proofHashToNode := make(map[string]*Node, len(proofEncodedNodes))
 
 	for i, rawNode := range proofEncodedNodes {
 		decodedNode, err := node.Decode(bytes.NewReader(rawNode))
@@ -97,7 +95,8 @@ func (t *Trie) LoadFromProof(proofEncodedNodes [][]byte, rootHash []byte) error 
 
 		const dirty = false
 		decodedNode.SetDirty(dirty)
-		decodedNode.SetEncodingAndHash(rawNode, nil)
+		decodedNode.Encoding = rawNode
+		decodedNode.HashDigest = nil
 
 		_, hash, err := decodedNode.EncodeAndHash(false)
 		if err != nil {
@@ -120,21 +119,18 @@ func (t *Trie) LoadFromProof(proofEncodedNodes [][]byte, rootHash []byte) error 
 
 // loadProof is a recursive function that will create all the trie paths based
 // on the mapped proofs slice starting at the root
-func (t *Trie) loadProof(proofHashToNode map[string]Node, n Node) {
-	switch n.Type() {
-	case node.BranchType, node.BranchWithValueType:
-	default:
+func (t *Trie) loadProof(proofHashToNode map[string]*Node, n *Node) {
+	if n.Type() != node.Branch {
 		return
 	}
 
-	branch := n.(*node.Branch)
-
+	branch := n
 	for i, child := range branch.Children {
 		if child == nil {
 			continue
 		}
 
-		proofHash := common.BytesToHex(child.GetHash())
+		proofHash := common.BytesToHex(child.HashDigest)
 		node, ok := proofHashToNode[proofHash]
 		if !ok {
 			continue
@@ -167,29 +163,26 @@ func (t *Trie) Load(db chaindb.Database, rootHash common.Hash) error {
 
 	t.root = root
 	t.root.SetDirty(false)
-	t.root.SetEncodingAndHash(encodedNode, rootHashBytes)
+	t.root.Encoding = encodedNode
+	t.root.HashDigest = rootHashBytes
 
 	return t.load(db, t.root)
 }
 
-func (t *Trie) load(db chaindb.Database, n Node) error {
-	switch n.Type() {
-	case node.BranchType, node.BranchWithValueType:
-	default: // not a branch
+func (t *Trie) load(db chaindb.Database, n *Node) error {
+	if n.Type() != node.Branch {
 		return nil
 	}
 
-	branch := n.(*node.Branch)
-
+	branch := n
 	for i, child := range branch.Children {
 		if child == nil {
 			continue
 		}
 
-		hash := child.GetHash()
+		hash := child.HashDigest
 
-		_, isLeaf := child.(*node.Leaf)
-		if len(hash) == 0 && isLeaf {
+		if len(hash) == 0 && child.Type() == node.Leaf {
 			// node has already been loaded inline
 			// just set encoding + hash digest
 			_, _, err := child.EncodeAndHash(false)
@@ -212,7 +205,8 @@ func (t *Trie) load(db chaindb.Database, n Node) error {
 		}
 
 		decodedNode.SetDirty(false)
-		decodedNode.SetEncodingAndHash(encodedNode, hash)
+		decodedNode.Encoding = encodedNode
+		decodedNode.HashDigest = hash
 		branch.Children[i] = decodedNode
 
 		err = t.load(db, decodedNode)
@@ -220,15 +214,15 @@ func (t *Trie) load(db chaindb.Database, n Node) error {
 			return fmt.Errorf("cannot load child at index %d with hash 0x%x: %w", i, hash, err)
 		}
 
-		if decodedNode.Type() != node.LeafType { // branch decoded node
+		if decodedNode.Type() == node.Branch {
 			// Note 1: the node is fully loaded with all its descendants
 			// count only after the database load above.
 			// Note 2: direct child node is already counted as descendant
 			// when it was read as a leaf with hash only in decodeBranch,
 			// so we only add the descendants of the child branch to the
 			// current branch.
-			childBranchDescendants := decodedNode.(*node.Branch).Descendants
-			branch.AddDescendants(childBranchDescendants)
+			childBranchDescendants := decodedNode.Descendants
+			branch.Descendants += childBranchDescendants
 		}
 	}
 
@@ -253,21 +247,18 @@ func (t *Trie) load(db chaindb.Database, n Node) error {
 
 // PopulateNodeHashes writes hashes of each children of the node given
 // as keys to the map hashesSet.
-func (t *Trie) PopulateNodeHashes(n Node, hashesSet map[common.Hash]struct{}) {
-	switch n.Type() {
-	case node.BranchType, node.BranchWithValueType:
-	default:
+func (t *Trie) PopulateNodeHashes(n *Node, hashesSet map[common.Hash]struct{}) {
+	if n.Type() != node.Branch {
 		return
 	}
 
-	branch := n.(*node.Branch)
-
+	branch := n
 	for _, child := range branch.Children {
 		if child == nil {
 			continue
 		}
 
-		hash := common.BytesToHash(child.GetHash())
+		hash := common.BytesToHash(child.HashDigest)
 		hashesSet[hash] = struct{}{}
 
 		t.PopulateNodeHashes(child, hashesSet)
@@ -329,17 +320,16 @@ func GetFromDB(db chaindb.Database, rootHash common.Hash, key []byte) (
 // for the value corresponding to a key.
 // Note it does not copy the value so modifying the value bytes
 // slice will modify the value of the node in the trie.
-func getFromDB(db chaindb.Database, n Node, key []byte) (
+func getFromDB(db chaindb.Database, n *Node, key []byte) (
 	value []byte, err error) {
-	leaf, ok := n.(*node.Leaf)
-	if ok {
-		if bytes.Equal(leaf.Key, key) {
-			return leaf.Value, nil
+	if n.Type() == node.Leaf {
+		if bytes.Equal(n.Key, key) {
+			return n.Value, nil
 		}
 		return nil, nil
 	}
 
-	branch := n.(*node.Branch)
+	branch := n
 	// Key is equal to the key of this branch or is empty
 	if len(key) == 0 || bytes.Equal(branch.Key, key) {
 		return branch.Value, nil
@@ -361,9 +351,8 @@ func getFromDB(db chaindb.Database, n Node, key []byte) (
 	}
 
 	// Child can be either inlined or a hash pointer.
-	childHash := child.GetHash()
-	_, isLeaf := child.(*node.Leaf)
-	if len(childHash) == 0 && isLeaf {
+	childHash := child.HashDigest
+	if len(childHash) == 0 && child.Type() == node.Leaf {
 		return getFromDB(db, child, key[commonPrefixLength+1:])
 	}
 
@@ -398,8 +387,8 @@ func (t *Trie) WriteDirty(db chaindb.Database) error {
 	return batch.Flush()
 }
 
-func (t *Trie) writeDirty(db chaindb.Batch, n Node) error {
-	if n == nil || !n.IsDirty() {
+func (t *Trie) writeDirty(db chaindb.Batch, n *Node) error {
+	if n == nil || !n.Dirty {
 		return nil
 	}
 
@@ -407,7 +396,7 @@ func (t *Trie) writeDirty(db chaindb.Batch, n Node) error {
 	if err != nil {
 		return fmt.Errorf(
 			"cannot encode and hash node with hash 0x%x: %w",
-			n.GetHash(), err)
+			n.HashDigest, err)
 	}
 
 	err = db.Put(hash, encoding)
@@ -417,16 +406,12 @@ func (t *Trie) writeDirty(db chaindb.Batch, n Node) error {
 			hash, err)
 	}
 
-	switch n.Type() {
-	case node.BranchType, node.BranchWithValueType:
-	default: // not a branch
+	if n.Type() != node.Branch {
 		n.SetDirty(false)
 		return nil
 	}
 
-	branch := n.(*node.Branch)
-
-	for _, child := range branch.Children {
+	for _, child := range n.Children {
 		if child == nil {
 			continue
 		}
@@ -440,11 +425,11 @@ func (t *Trie) writeDirty(db chaindb.Batch, n Node) error {
 
 	for _, childTrie := range t.childTries {
 		if err := childTrie.writeDirty(db, childTrie.root); err != nil {
-			return fmt.Errorf("failed to write dirty node=0x%x to database: %w", childTrie.root.GetHash(), err)
+			return fmt.Errorf("failed to write dirty node=0x%x to database: %w", childTrie.root.HashDigest, err)
 		}
 	}
 
-	branch.SetDirty(false)
+	n.SetDirty(false)
 
 	return nil
 }
@@ -462,10 +447,10 @@ func (t *Trie) GetInsertedNodeHashes() (hashesSet map[common.Hash]struct{}, err 
 	return hashesSet, nil
 }
 
-func (t *Trie) getInsertedNodeHashes(n Node, hashes map[common.Hash]struct{}) (err error) {
+func (t *Trie) getInsertedNodeHashes(n *Node, hashes map[common.Hash]struct{}) (err error) {
 	// TODO pass map of hashes or slice as argument to avoid copying
 	// and using more memory.
-	if n == nil || !n.IsDirty() {
+	if n == nil || !n.Dirty {
 		return nil
 	}
 
@@ -473,20 +458,16 @@ func (t *Trie) getInsertedNodeHashes(n Node, hashes map[common.Hash]struct{}) (e
 	if err != nil {
 		return fmt.Errorf(
 			"cannot encode and hash node with hash 0x%x: %w",
-			n.GetHash(), err)
+			n.HashDigest, err)
 	}
 
 	hashes[common.BytesToHash(hash)] = struct{}{}
 
-	switch n.Type() {
-	case node.BranchType, node.BranchWithValueType:
-	default: // not a branch
+	if n.Type() != node.Branch {
 		return nil
 	}
 
-	branch := n.(*node.Branch)
-
-	for _, child := range branch.Children {
+	for _, child := range n.Children {
 		if child == nil {
 			continue
 		}
