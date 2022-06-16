@@ -234,6 +234,7 @@ func Test_decodeBranch(t *testing.T) {
 					nil, nil, nil, nil, nil,
 					{
 						HashDigest: []byte{1, 2, 3, 4, 5},
+						Dirty:      true,
 					},
 				}),
 				Dirty:       true,
@@ -272,6 +273,7 @@ func Test_decodeBranch(t *testing.T) {
 					nil, nil, nil, nil, nil,
 					{
 						HashDigest: []byte{1, 2, 3, 4, 5},
+						Dirty:      true,
 					},
 				}),
 				Dirty:       true,

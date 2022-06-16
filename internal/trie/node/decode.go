@@ -97,6 +97,7 @@ func decodeBranch(reader io.Reader, variant byte, partialKeyLength uint16) (
 		const hashLength = 32
 		childNode := &Node{
 			HashDigest: hash,
+			Dirty:      true,
 		}
 		if len(hash) < hashLength {
 			// Handle inlined nodes
