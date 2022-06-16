@@ -354,17 +354,38 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 			continue
 		}
 
+		currentPreDigestItem := currentHeader.Digest.Types[0]
+
+		currentPreDigest, ok := currentPreDigestItem.Value().(types.PreRuntimeDigest)
+		if !ok {
+			return fmt.Errorf("first digest item is not pre-digest")
+		}
+
+		currentBabePreDigest, err := b.verifyPreRuntimeDigest(&currentPreDigest)
+		if err != nil {
+			return fmt.Errorf("failed to verify pre-runtime digest: %w", err)
+		}
+
+		var isCurrentBlockProducerPrimary bool
+		switch currentBabePreDigest.(type) {
+		case types.BabePrimaryPreDigest:
+			isCurrentBlockProducerPrimary = true
+		default:
+		}
+
+		var isExistingBlockProducerPrimary bool
 		var existingBlockProducerIndex uint32
 		switch d := babePreDigest.(type) {
 		case types.BabePrimaryPreDigest:
 			existingBlockProducerIndex = d.AuthorityIndex
+			isExistingBlockProducerPrimary = true
 		case types.BabeSecondaryVRFPreDigest:
 			existingBlockProducerIndex = d.AuthorityIndex
 		case types.BabeSecondaryPlainPreDigest:
 			existingBlockProducerIndex = d.AuthorityIndex
 		}
 
-		if currentBlockProducerIndex == existingBlockProducerIndex && hash != header.Hash() {
+		if currentBlockProducerIndex == existingBlockProducerIndex && hash != header.Hash() && isCurrentBlockProducerPrimary == isExistingBlockProducerPrimary {
 			return ErrProducerEquivocated
 		}
 	}
