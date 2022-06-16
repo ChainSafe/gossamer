@@ -82,7 +82,7 @@ func decodeBranch(reader io.Reader, variant byte, partialKeyLength uint16) (
 		}
 	}
 
-	for i := 0; i < 16; i++ {
+	for i := 0; i < ChildrenCapacity; i++ {
 		if (childrenBitmap[i/8]>>(i%8))&1 != 1 {
 			continue
 		}
