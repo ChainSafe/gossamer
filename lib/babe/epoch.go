@@ -14,7 +14,7 @@ import (
 // initiateEpoch sets the epochData for the given epoch, runs the lottery for the slots in the epoch,
 // and stores updated EpochInfo in the database
 func (b *Service) initiateEpoch(epoch uint64) (*epochData, error) {
-	logger.Infof("initiating epoch %d", epoch)
+	logger.Debugf("initiating epoch %d", epoch)
 
 	// if epoch == 1, check that first slot is still set correctly
 	// ie. that the start slot of the network is the same as the slot number of block 1
