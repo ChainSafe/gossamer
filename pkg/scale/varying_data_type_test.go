@@ -327,6 +327,38 @@ func Test_decodeState_decodeVaryingDataType(t *testing.T) {
 	}
 }
 
+func Test_encodeState_encodeCustomVaryingDataType(t *testing.T) {
+	cvdt := customVDT(mustNewVaryingDataTypeAndSet(
+		VDTValue1{O: newBigIntPtr(big.NewInt(1073741823))},
+		VDTValue{}, VDTValue1{}, VDTValue2{}, VDTValue3(0),
+	))
+	es := &encodeState{fieldScaleIndicesCache: cache}
+	err := es.marshal(cvdt)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	bytes := []byte{
+		2,
+		0x01, 0xfe, 0xff, 0xff, 0xff,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+	}
+	if !reflect.DeepEqual(es.Buffer.Bytes(), bytes) {
+		t.Errorf("encodeState.encodeStruct() = %v, want %v", es.Buffer.Bytes(), bytes)
+	}
+
+}
 func Test_decodeState_decodeCustomVaryingDataType(t *testing.T) {
 	dst := customVDT(mustNewVaryingDataType(VDTValue{}, VDTValue1{}, VDTValue2{}, VDTValue3(0)))
 	bytes := []byte{
