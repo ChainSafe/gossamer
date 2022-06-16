@@ -29,6 +29,8 @@ func mustNewVaryingDataTypeAndSet(value VaryingDataTypeValue, values ...VaryingD
 	return
 }
 
+type customVDT VaryingDataType
+
 type VDTValue struct {
 	A *big.Int
 	B int
@@ -315,12 +317,51 @@ func Test_decodeState_decodeVaryingDataType(t *testing.T) {
 				t.Errorf("decodeState.unmarshal() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			vdt := tt.in.(VaryingDataType)
+			in := reflect.ValueOf(tt.in).Convert(reflect.TypeOf(VaryingDataType{})).Interface()
+			vdt := in.(VaryingDataType)
 			diff := cmp.Diff(dst.Value(), vdt.Value(), cmpopts.IgnoreUnexported(big.Int{}, VDTValue2{}, MyStructWithIgnore{}))
 			if diff != "" {
 				t.Errorf("decodeState.unmarshal() = %s", diff)
 			}
 		})
+	}
+}
+
+func Test_decodeState_decodeCustomVaryingDataType(t *testing.T) {
+	dst := customVDT(mustNewVaryingDataType(VDTValue{}, VDTValue1{}, VDTValue2{}, VDTValue3(0)))
+	bytes := []byte{
+		2,
+		0x01, 0xfe, 0xff, 0xff, 0xff,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+	}
+	err := Unmarshal(bytes, &dst)
+	if err != nil {
+		t.Fatalf("unmarshal error: %v", err)
+	}
+	expected := customVDT(mustNewVaryingDataTypeAndSet(
+		VDTValue1{O: newBigIntPtr(big.NewInt(1073741823))},
+		VDTValue{}, VDTValue1{}, VDTValue2{}, VDTValue3(0),
+	))
+	castedDST := VaryingDataType(dst)
+	castedExpected := VaryingDataType(expected)
+	diff := cmp.Diff(castedDST.Value(), castedExpected.Value(), cmpopts.IgnoreUnexported(big.Int{}, VDTValue2{}, MyStructWithIgnore{}))
+	if diff != "" {
+		t.Errorf("decodeState.unmarshal() = %s", diff)
+	}
+	if reflect.TypeOf(dst) != reflect.TypeOf(customVDT{}) {
+		t.Errorf("types mismatch dst: %v expected: %v", reflect.TypeOf(dst), reflect.TypeOf(customVDT{}))
 	}
 }
 

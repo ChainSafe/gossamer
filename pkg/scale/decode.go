@@ -149,7 +149,12 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {
 		case reflect.Ptr:
 			err = ds.decodePointer(dstv)
 		case reflect.Struct:
-			err = ds.decodeStruct(dstv)
+			ok := reflect.ValueOf(in).CanConvert(reflect.TypeOf(VaryingDataType{}))
+			if ok {
+				err = ds.decodeCustomVaryingDataType(dstv)
+			} else {
+				err = ds.decodeStruct(dstv)
+			}
 		case reflect.Array:
 			err = ds.decodeArray(dstv)
 		case reflect.Slice:
@@ -341,6 +346,19 @@ func (ds *decodeState) decodeVaryingDataTypeSlice(dstv reflect.Value) (err error
 		vdts.Types = append(vdts.Types, vdtv.Elem().Interface().(VaryingDataType))
 	}
 	dstv.Set(reflect.ValueOf(vdts))
+	return
+}
+
+func (ds *decodeState) decodeCustomVaryingDataType(dstv reflect.Value) (err error) {
+	initialType := dstv.Type()
+	converted := dstv.Convert(reflect.TypeOf(VaryingDataType{}))
+	tempVal := reflect.New(converted.Type())
+	tempVal.Elem().Set(converted)
+	err = ds.decodeVaryingDataType(tempVal.Elem())
+	if err != nil {
+		return
+	}
+	dstv.Set(tempVal.Elem().Convert(initialType))
 	return
 }
 

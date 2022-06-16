@@ -73,7 +73,13 @@ func (es *encodeState) marshal(in interface{}) (err error) {
 				err = es.marshal(elem.Interface())
 			}
 		case reflect.Struct:
-			err = es.encodeStruct(in)
+			invdt, ok := in.(VaryingDataType)
+			if ok {
+				err = es.encodeVaryingDataType(invdt)
+			} else {
+				err = es.encodeStruct(in)
+			}
+
 		case reflect.Array:
 			err = es.encodeArray(in)
 		case reflect.Slice:
