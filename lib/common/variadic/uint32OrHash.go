@@ -5,7 +5,7 @@ package variadic
 
 import (
 	"encoding/binary"
-	"errors"
+	"fmt"
 	"io"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -32,7 +32,7 @@ func NewUint32OrHash(value interface{}) (*Uint32OrHash, error) {
 			value: v,
 		}, nil
 	default:
-		return nil, errors.New("value is not uint32 or common.Hash")
+		return nil, fmt.Errorf("value is not uint32 or common.Hash. got %v (%T)", value, value)
 	}
 }
 

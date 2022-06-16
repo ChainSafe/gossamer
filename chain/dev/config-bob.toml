@@ -1,24 +1,24 @@
 [global]
-basepath = "~/.gossamer/dev"
+basepath = "./tmp/bob"
 log = "info"
-metrics-address = ":9876"
+metrics-address = ":9871"
 
 [log]
 core = ""
 network = ""
 rpc = ""
-state = ""
+state = "debug"
 runtime = ""
-babe = ""
+babe = "debug"
 grandpa = ""
 sync = ""
-digest = ""
+digest = "debug"
 
 [init]
-genesis = "./chain/dev/genesis-spec.json"
+genesis = "./chain/dev/genesis.json"
 
 [account]
-key = "alice"
+key = "bob"
 unlock = ""
 
 [core]
@@ -28,7 +28,7 @@ grandpa-authority = true
 babe-lead = true
 
 [network]
-port = 7001
+port = 7003
 nobootstrap = false
 nomdns = false
 

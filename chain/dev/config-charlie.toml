@@ -1,0 +1,47 @@
+[global]
+basepath = "./tmp/charlie"
+log = "info"
+metrics-address = ":9872"
+
+[log]
+core = ""
+network = ""
+rpc = ""
+state = "debug"
+runtime = ""
+babe = "debug"
+grandpa = ""
+sync = ""
+digest = "debug"
+
+[init]
+genesis = "./chain/dev/genesis.json"
+
+[account]
+key = "charlie"
+unlock = ""
+
+[core]
+roles = 4
+babe-authority = true
+grandpa-authority = true
+babe-lead = true
+
+[network]
+port = 7002
+nobootstrap = false
+nomdns = false
+
+[rpc]
+enabled = true
+ws = true
+port = 8545
+host = "localhost"
+modules = ["system", "author", "chain", "state", "rpc", "grandpa", "offchain", "childstate", "syncstate", "payment"]
+ws-port = 8546
+
+[pprof]
+enabled = false
+listening-address = "localhost:6060"
+block-rate = 0
+mutex-rate = 0
