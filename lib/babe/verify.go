@@ -385,7 +385,9 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 			existingBlockProducerIndex = d.AuthorityIndex
 		}
 
-		if currentBlockProducerIndex == existingBlockProducerIndex && hash != header.Hash() && isCurrentBlockProducerPrimary == isExistingBlockProducerPrimary {
+		if currentBlockProducerIndex == existingBlockProducerIndex &&
+			hash != header.Hash() &&
+			isCurrentBlockProducerPrimary == isExistingBlockProducerPrimary {
 			return ErrProducerEquivocated
 		}
 	}
