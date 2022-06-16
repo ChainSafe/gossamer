@@ -1118,7 +1118,7 @@ func Test_chainSync_logSyncSpeed(t *testing.T) {
 
 	type fields struct {
 		blockStateBuilder func(ctrl *gomock.Controller) BlockState
-		networkBuilder    func(ctrl *gomock.Controller, cancel context.CancelFunc) Network
+		networkBuilder    func(ctrl *gomock.Controller) Network
 		state             chainSyncState
 		benchmarker       *syncBenchmarker
 	}
@@ -1135,7 +1135,7 @@ func Test_chainSync_logSyncSpeed(t *testing.T) {
 					mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(&types.Header{}, nil)
 					return mockBlockState
 				},
-				networkBuilder: func(ctrl *gomock.Controller, cancel context.CancelFunc) Network {
+				networkBuilder: func(ctrl *gomock.Controller) Network {
 					mockNetwork := NewMockNetwork(ctrl)
 					mockNetwork.EXPECT().Peers().Return(nil)
 					return mockNetwork
@@ -1153,7 +1153,7 @@ func Test_chainSync_logSyncSpeed(t *testing.T) {
 					mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(&types.Header{}, nil)
 					return mockBlockState
 				},
-				networkBuilder: func(ctrl *gomock.Controller, cancel context.CancelFunc) Network {
+				networkBuilder: func(ctrl *gomock.Controller) Network {
 					mockNetwork := NewMockNetwork(ctrl)
 					mockNetwork.EXPECT().Peers().Return(nil)
 					return mockNetwork
@@ -1174,7 +1174,7 @@ func Test_chainSync_logSyncSpeed(t *testing.T) {
 				ctx:            ctx,
 				cancel:         cancel,
 				blockState:     tt.fields.blockStateBuilder(ctrl),
-				network:        tt.fields.networkBuilder(ctrl, cancel),
+				network:        tt.fields.networkBuilder(ctrl),
 				state:          tt.fields.state,
 				benchmarker:    tt.fields.benchmarker,
 				logSyncTickerC: tickerChannel,
