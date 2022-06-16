@@ -1118,7 +1118,7 @@ func Test_chainSync_logSyncSpeed(t *testing.T) {
 
 	type fields struct {
 		blockStateBuilder func(ctrl *gomock.Controller) BlockState
-		networkBuilder    func(ctrl *gomock.Controller, done chan struct{}) Network
+		networkBuilder    func(ctrl *gomock.Controller, cancel context.CancelFunc) Network
 		state             chainSyncState
 		benchmarker       *syncBenchmarker
 	}
@@ -1131,16 +1131,13 @@ func Test_chainSync_logSyncSpeed(t *testing.T) {
 			fields: fields{
 				blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 					mockBlockState := NewMockBlockState(ctrl)
-					mockBlockState.EXPECT().BestBlockHeader().Return(&types.Header{}, nil).AnyTimes()
+					mockBlockState.EXPECT().BestBlockHeader().Return(&types.Header{}, nil).Times(3)
 					mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(&types.Header{}, nil)
 					return mockBlockState
 				},
-				networkBuilder: func(ctrl *gomock.Controller, done chan struct{}) Network {
+				networkBuilder: func(ctrl *gomock.Controller, cancel context.CancelFunc) Network {
 					mockNetwork := NewMockNetwork(ctrl)
-					mockNetwork.EXPECT().Peers().DoAndReturn(func() error {
-						close(done)
-						return nil
-					})
+					mockNetwork.EXPECT().Peers().Return(nil)
 					return mockNetwork
 				},
 				benchmarker: newSyncBenchmarker(10),
@@ -1152,16 +1149,13 @@ func Test_chainSync_logSyncSpeed(t *testing.T) {
 			fields: fields{
 				blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 					mockBlockState := NewMockBlockState(ctrl)
-					mockBlockState.EXPECT().BestBlockHeader().Return(&types.Header{}, nil).AnyTimes()
+					mockBlockState.EXPECT().BestBlockHeader().Return(&types.Header{}, nil).Times(3)
 					mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(&types.Header{}, nil)
 					return mockBlockState
 				},
-				networkBuilder: func(ctrl *gomock.Controller, done chan struct{}) Network {
+				networkBuilder: func(ctrl *gomock.Controller, cancel context.CancelFunc) Network {
 					mockNetwork := NewMockNetwork(ctrl)
-					mockNetwork.EXPECT().Peers().DoAndReturn(func() error {
-						close(done)
-						return nil
-					})
+					mockNetwork.EXPECT().Peers().Return(nil)
 					return mockNetwork
 				},
 				benchmarker: newSyncBenchmarker(10),
@@ -1175,19 +1169,24 @@ func Test_chainSync_logSyncSpeed(t *testing.T) {
 			t.Parallel()
 			ctrl := gomock.NewController(t)
 			ctx, cancel := context.WithCancel(context.Background())
-			done := make(chan struct{})
+			tickerChannel := make(chan time.Time)
 			cs := &chainSync{
-				ctx:           ctx,
-				cancel:        cancel,
-				blockState:    tt.fields.blockStateBuilder(ctrl),
-				network:       tt.fields.networkBuilder(ctrl, done),
-				state:         tt.fields.state,
-				benchmarker:   tt.fields.benchmarker,
-				logSyncPeriod: time.Millisecond,
+				ctx:            ctx,
+				cancel:         cancel,
+				blockState:     tt.fields.blockStateBuilder(ctrl),
+				network:        tt.fields.networkBuilder(ctrl, cancel),
+				state:          tt.fields.state,
+				benchmarker:    tt.fields.benchmarker,
+				logSyncTickerC: tickerChannel,
+				logSyncTicker:  time.NewTicker(time.Hour), // just here to be stopped
+				logSyncDone:    make(chan struct{}),
 			}
+
 			go cs.logSyncSpeed()
-			<-done
-			cancel()
+
+			tickerChannel <- time.Time{}
+			cs.cancel()
+			<-cs.logSyncDone
 		})
 	}
 }
@@ -1197,10 +1196,8 @@ func Test_chainSync_start(t *testing.T) {
 
 	type fields struct {
 		blockStateBuilder       func(ctrl *gomock.Controller) BlockState
-		disjointBlockSetBuilder func(ctrl *gomock.Controller) DisjointBlockSet
-		networkBuilder          func(ctrl *gomock.Controller, done chan struct{}) Network
+		disjointBlockSetBuilder func(ctrl *gomock.Controller, called chan<- struct{}) DisjointBlockSet
 		benchmarker             *syncBenchmarker
-		slotDuration            time.Duration
 	}
 	tests := []struct {
 		name   string
@@ -1211,26 +1208,18 @@ func Test_chainSync_start(t *testing.T) {
 			fields: fields{
 				blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 					mockBlockState := NewMockBlockState(ctrl)
-					mockBlockState.EXPECT().BestBlockHeader().Return(&types.Header{}, nil).AnyTimes()
-					mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(&types.Header{}, nil)
-					mockBlockState.EXPECT().BestBlockHeader().Return(&types.Header{}, nil).AnyTimes()
+					mockBlockState.EXPECT().BestBlockHeader().Return(&types.Header{}, nil)
 					return mockBlockState
 				},
-				disjointBlockSetBuilder: func(ctrl *gomock.Controller) DisjointBlockSet {
+				disjointBlockSetBuilder: func(ctrl *gomock.Controller, called chan<- struct{}) DisjointBlockSet {
 					mockDisjointBlockSet := NewMockDisjointBlockSet(ctrl)
-					mockDisjointBlockSet.EXPECT().run(gomock.Any())
+					mockDisjointBlockSet.EXPECT().run(gomock.AssignableToTypeOf(make(<-chan struct{}))).
+						DoAndReturn(func(stop <-chan struct{}) {
+							close(called) // test glue, ideally we would use a ready chan struct passed to run().
+						})
 					return mockDisjointBlockSet
 				},
-				networkBuilder: func(ctrl *gomock.Controller, done chan struct{}) Network {
-					mockNetwork := NewMockNetwork(ctrl)
-					mockNetwork.EXPECT().Peers().DoAndReturn(func() []common.PeerInfo {
-						close(done)
-						return nil
-					})
-					return mockNetwork
-				},
-				slotDuration: defaultSlotDuration,
-				benchmarker:  newSyncBenchmarker(1),
+				benchmarker: newSyncBenchmarker(1),
 			},
 		},
 	}
@@ -1240,19 +1229,19 @@ func Test_chainSync_start(t *testing.T) {
 			t.Parallel()
 			ctrl := gomock.NewController(t)
 			ctx, cancel := context.WithCancel(context.Background())
-			done := make(chan struct{})
+			disjointBlockSetCalled := make(chan struct{})
 			cs := &chainSync{
 				ctx:           ctx,
 				cancel:        cancel,
 				blockState:    tt.fields.blockStateBuilder(ctrl),
-				pendingBlocks: tt.fields.disjointBlockSetBuilder(ctrl),
-				network:       tt.fields.networkBuilder(ctrl, done),
+				pendingBlocks: tt.fields.disjointBlockSetBuilder(ctrl, disjointBlockSetCalled),
 				benchmarker:   tt.fields.benchmarker,
-				slotDuration:  tt.fields.slotDuration,
-				logSyncPeriod: time.Second,
+				slotDuration:  time.Hour,
+				logSyncTicker: time.NewTicker(time.Hour), // just here to be closed
+				logSyncDone:   make(chan struct{}),
 			}
 			cs.start()
-			<-done
+			<-disjointBlockSetCalled
 			cs.stop()
 		})
 	}

@@ -162,7 +162,9 @@ type chainSync struct {
 	maxWorkerRetries uint16
 	slotDuration     time.Duration
 
-	logSyncPeriod time.Duration
+	logSyncTicker  *time.Ticker
+	logSyncTickerC <-chan time.Time // channel as field for unit testing
+	logSyncDone    chan struct{}
 }
 
 type chainSyncConfig struct {
@@ -178,6 +180,8 @@ func newChainSync(cfg *chainSyncConfig) *chainSync {
 	ctx, cancel := context.WithCancel(context.Background())
 	const syncSamplesToKeep = 30
 	const logSyncPeriod = 5 * time.Second
+	logSyncTicker := time.NewTicker(logSyncPeriod)
+
 	return &chainSync{
 		ctx:              ctx,
 		cancel:           cancel,
@@ -197,7 +201,9 @@ func newChainSync(cfg *chainSyncConfig) *chainSync {
 		minPeers:         cfg.minPeers,
 		maxWorkerRetries: uint16(cfg.maxPeers),
 		slotDuration:     cfg.slotDuration,
-		logSyncPeriod:    logSyncPeriod,
+		logSyncTicker:    logSyncTicker,
+		logSyncTickerC:   logSyncTicker.C,
+		logSyncDone:      make(chan struct{}),
 	}
 }
 
@@ -227,6 +233,7 @@ func (cs *chainSync) stop() {
 		close(cs.pendingBlockDoneCh)
 	}
 	cs.cancel()
+	<-cs.logSyncDone
 }
 
 func (cs *chainSync) syncState() chainSyncState {
@@ -333,8 +340,8 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number uint) error
 }
 
 func (cs *chainSync) logSyncSpeed() {
-	t := time.NewTicker(cs.logSyncPeriod)
-	defer t.Stop()
+	defer close(cs.logSyncDone)
+	defer cs.logSyncTicker.Stop()
 
 	for {
 		before, err := cs.blockState.BestBlockHeader()
@@ -347,10 +354,7 @@ func (cs *chainSync) logSyncSpeed() {
 		}
 
 		select {
-		case <-t.C:
-			if cs.ctx.Err() != nil {
-				return
-			}
+		case <-cs.logSyncTickerC: // channel of cs.logSyncTicker
 		case <-cs.ctx.Done():
 			return
 		}
