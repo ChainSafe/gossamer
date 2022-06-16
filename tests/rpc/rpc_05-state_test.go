@@ -11,7 +11,11 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/lib/common"
+	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils"
+	"github.com/ChainSafe/gossamer/tests/utils/config"
+	"github.com/ChainSafe/gossamer/tests/utils/node"
+	"github.com/ChainSafe/gossamer/tests/utils/rpc"
 	"github.com/stretchr/testify/require"
 )
 
@@ -21,115 +25,146 @@ func TestStateRPCResponseValidation(t *testing.T) {
 		return
 	}
 
-	t.Log("starting gossamer...")
+	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
+	tomlConfig := config.Default()
+	tomlConfig.Init.Genesis = genesisPath
+	tomlConfig.Core.BABELead = true
+	node := node.New(t, tomlConfig)
+	ctx, cancel := context.WithCancel(context.Background())
+	node.InitAndStartTest(ctx, t, cancel)
 
-	nodes, err := utils.InitializeAndStartNodes(t, 1, utils.GenesisDefault, utils.ConfigDefault)
+	getBlockHashCtx, getBlockHashCancel := context.WithTimeout(ctx, time.Second)
+	blockHash, err := rpc.GetBlockHash(getBlockHashCtx, node.RPCPort(), "")
+	getBlockHashCancel()
 	require.NoError(t, err)
 
-	defer func() {
-		t.Log("going to tear down gossamer...")
-		errList := utils.TearDown(t, nodes)
-		require.Len(t, errList, 0)
-	}()
+	t.Run("state_call", func(t *testing.T) {
+		t.Parallel()
 
-	time.Sleep(time.Second) // give server a second to start
+		const params = `["", "","0x580d77a9136035a0bc3c3cd86286172f7f81291164c5914266073a30466fba21"]`
+		var response modules.StateCallResponse
 
-	ctx := context.Background()
+		fetchWithTimeout(ctx, t, "state_call", params, &response)
 
-	getBlockHashCtx, cancel := context.WithTimeout(ctx, time.Second)
-	blockHash, err := utils.GetBlockHash(getBlockHashCtx, t, nodes[0].RPCPort, "")
-	cancel()
-	require.NoError(t, err)
+		// TODO assert stateCallResponse
+	})
 
-	testCases := []*testCase{
-		{
-			description: "Test state_call",
-			method:      "state_call",
-			params:      `["", "","0x580d77a9136035a0bc3c3cd86286172f7f81291164c5914266073a30466fba21"]`,
-			expected:    modules.StateCallResponse{},
-		},
-		{ //TODO disable skip when implemented
-			description: "Test state_getKeysPaged",
-			method:      "state_getKeysPaged",
-			skip:        true,
-		},
-		{
-			description: "Test state_queryStorage",
-			method:      "state_queryStorage",
-			params: fmt.Sprintf(
-				`[["0xf2794c22e353e9a839f12faab03a911bf68967d635641a7087e53f2bff1ecad3c6756fee45ec79ead60347fffb770bcdf0ec74da701ab3d6495986fe1ecc3027"], "%s", null]`, //nolint:lll
-				blockHash),
-			expected: modules.StorageChangeSetResponse{
-				Block:   &blockHash,
-				Changes: [][]string{},
-			},
-			skip: true,
-		},
-		{
-			description: "Test valid block hash state_getRuntimeVersion",
-			method:      "state_getRuntimeVersion",
-			params:      fmt.Sprintf(`["%s"]`, blockHash.String()),
-			expected:    modules.StateRuntimeVersionResponse{},
-		},
-		{
-			description: "Test valid block hash state_getPairs",
-			method:      "state_getPairs",
-			params:      fmt.Sprintf(`["0x", "%s"]`, blockHash.String()),
-			expected:    modules.StatePairResponse{},
-		},
-		{
-			description: "Test valid block hash state_getMetadata",
-			method:      "state_getMetadata",
-			params:      fmt.Sprintf(`["%s"]`, blockHash.String()),
-			expected:    modules.StateMetadataResponse(""),
-		},
-		{
-			description: "Test optional param state_getRuntimeVersion",
-			method:      "state_getRuntimeVersion",
-			params:      `[]`,
-			expected:    modules.StateRuntimeVersionResponse{},
-		},
-		{
-			description: "Test optional params hash state_getPairs",
-			method:      "state_getPairs",
-			params:      `["0x"]`,
-			expected:    modules.StatePairResponse{},
-		},
-		{
-			description: "Test optional param hash state_getMetadata",
-			method:      "state_getMetadata",
-			params:      `[]`,
-			expected:    modules.StateMetadataResponse(""),
-		},
-		{
-			description: "Test optional param value as null state_getRuntimeVersion",
-			method:      "state_getRuntimeVersion",
-			params:      `[null]`,
-			expected:    modules.StateRuntimeVersionResponse{},
-		},
-		{
-			description: "Test optional param value as null state_getMetadata",
-			method:      "state_getMetadata",
-			params:      `[null]`,
-			expected:    modules.StateMetadataResponse(""),
-		},
-		{
-			description: "Test optional param value as null state_getPairs",
-			method:      "state_getPairs",
-			params:      `["0x", null]`,
-			expected:    modules.StatePairResponse{},
-		},
-	}
+	t.Run("state_getKeysPaged", func(t *testing.T) {
+		t.Parallel()
+		t.SkipNow()
 
-	for _, test := range testCases {
-		t.Run(test.description, func(t *testing.T) {
-			ctx := context.Background()
-			getResponseCtx, cancel := context.WithTimeout(ctx, time.Second)
-			defer cancel()
-			_ = getResponse(getResponseCtx, t, test)
-		})
-	}
+		var response struct{} // TODO
+		fetchWithTimeout(ctx, t, "state_getKeysPaged", "", &response)
 
+		// TODO assert response
+	})
+
+	t.Run("state_queryStorage", func(t *testing.T) {
+		t.Parallel()
+		t.SkipNow() // TODO disable skip
+
+		params := fmt.Sprintf(
+			`[["0xf2794c22e353e9a839f12faab03a911bf68967d635641a7087e53f2bff1ecad3c6756fee45ec79ead60347fffb770bcdf0ec74da701ab3d6495986fe1ecc3027"], "%s", null]`, //nolint:lll
+			blockHash)
+		var response modules.StorageChangeSetResponse
+
+		fetchWithTimeout(ctx, t, "state_queryStorage", params, &response)
+
+		// TODO assert response
+	})
+
+	t.Run("state_getRuntimeVersion", func(t *testing.T) {
+		t.Parallel()
+
+		params := fmt.Sprintf(`[%q]`, blockHash)
+		var response modules.StateRuntimeVersionResponse
+
+		fetchWithTimeout(ctx, t, "state_getRuntimeVersion", params, &response)
+
+		// TODO assert response
+	})
+
+	t.Run("valid block hash state_getPairs", func(t *testing.T) {
+		t.Parallel()
+
+		params := fmt.Sprintf(`["0x", "%s"]`, blockHash)
+		var response modules.StatePairResponse
+
+		fetchWithTimeout(ctx, t, "state_getPairs", params, &response)
+
+		// TODO assert response
+	})
+
+	t.Run("valid block hash state_getMetadata", func(t *testing.T) {
+		t.Parallel()
+
+		params := fmt.Sprintf(`["%s"]`, blockHash)
+		var response modules.StateMetadataResponse
+
+		fetchWithTimeout(ctx, t, "state_getMetadata", params, &response)
+
+		// TODO assert response
+	})
+
+	t.Run("valid block hash state_getRuntimeVersion", func(t *testing.T) {
+		t.Parallel()
+
+		var response modules.StateRuntimeVersionResponse
+
+		fetchWithTimeout(ctx, t, "state_getRuntimeVersion", "[]", &response)
+
+		// TODO assert response
+	})
+
+	t.Run("optional params hash state_getPairs", func(t *testing.T) {
+		t.Parallel()
+
+		var response modules.StatePairResponse
+
+		fetchWithTimeout(ctx, t, "state_getPairs", `["0x"]`, &response)
+
+		// TODO assert response
+	})
+
+	t.Run("optional param hash state_getMetadata", func(t *testing.T) {
+		t.Parallel()
+
+		var response modules.StateMetadataResponse
+
+		fetchWithTimeout(ctx, t, "state_getMetadata", "[]", &response)
+
+		// TODO assert response
+	})
+
+	t.Run("optional param value as null state_getRuntimeVersion", func(t *testing.T) {
+		t.Parallel()
+
+		var response modules.StateRuntimeVersionResponse
+
+		fetchWithTimeout(ctx, t, "state_getRuntimeVersion", "[null]", &response)
+
+		// TODO assert response
+	})
+
+	t.Run("optional param value as null state_getMetadata", func(t *testing.T) {
+		t.Parallel()
+
+		var response modules.StateMetadataResponse
+
+		fetchWithTimeout(ctx, t, "state_getMetadata", "[null]", &response)
+
+		// TODO assert response
+	})
+
+	t.Run("optional param value as null state_getPairs", func(t *testing.T) {
+		t.Parallel()
+
+		var response modules.StatePairResponse
+
+		fetchWithTimeout(ctx, t, "state_getPairs", `["0x", null]`, &response)
+
+		// TODO assert response
+	})
 }
 
 func TestStateRPCAPI(t *testing.T) {
@@ -138,23 +173,19 @@ func TestStateRPCAPI(t *testing.T) {
 		return
 	}
 
-	t.Log("starting gossamer...")
-	nodes, err := utils.InitializeAndStartNodes(t, 1, utils.GenesisDefault, utils.ConfigDefault)
-	require.NoError(t, err)
-
-	defer func() {
-		t.Log("going to tear down gossamer...")
-		errList := utils.TearDown(t, nodes)
-		require.Len(t, errList, 0)
-	}()
+	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
+	tomlConfig := config.Default()
+	tomlConfig.Init.Genesis = genesisPath
+	tomlConfig.Core.BABELead = true
+	node := node.New(t, tomlConfig)
+	ctx, cancel := context.WithCancel(context.Background())
+	node.InitAndStartTest(ctx, t, cancel)
 
 	time.Sleep(5 * time.Second) // Wait for block production
 
-	ctx := context.Background()
-
-	getBlockHashCtx, cancel := context.WithTimeout(ctx, time.Second)
-	blockHash, err := utils.GetBlockHash(getBlockHashCtx, t, nodes[0].RPCPort, "")
-	cancel()
+	getBlockHashCtx, getBlockHashCancel := context.WithTimeout(ctx, time.Second)
+	blockHash, err := rpc.GetBlockHash(getBlockHashCtx, node.RPCPort(), "")
+	getBlockHashCancel()
 	require.NoError(t, err)
 
 	const (
@@ -331,10 +362,9 @@ func TestStateRPCAPI(t *testing.T) {
 	// Cases for valid block hash in RPC params
 	for _, test := range testCases {
 		t.Run(test.description, func(t *testing.T) {
-			ctx := context.Background()
 			postRPCCtx, cancel := context.WithTimeout(ctx, time.Second)
-			endpoint := utils.NewEndpoint(nodes[0].RPCPort)
-			respBody, err := utils.PostRPC(postRPCCtx, endpoint, test.method, test.params)
+			endpoint := rpc.NewEndpoint(node.RPCPort())
+			respBody, err := rpc.Post(postRPCCtx, endpoint, test.method, test.params)
 			cancel()
 			require.NoError(t, err)
 
@@ -349,15 +379,13 @@ func TestRPCStructParamUnmarshal(t *testing.T) {
 		return
 	}
 
-	t.Log("starting gossamer...")
-	nodes, err := utils.InitializeAndStartNodes(t, 1, utils.GenesisDev, utils.ConfigDefault)
-	require.NoError(t, err)
-
-	defer func() {
-		t.Log("going to tear down gossamer...")
-		errList := utils.TearDown(t, nodes)
-		require.Len(t, errList, 0)
-	}()
+	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
+	tomlConfig := config.Default()
+	tomlConfig.Core.BABELead = true
+	tomlConfig.Init.Genesis = genesisPath
+	node := node.New(t, tomlConfig)
+	ctx, cancel := context.WithCancel(context.Background())
+	node.InitAndStartTest(ctx, t, cancel)
 
 	time.Sleep(2 * time.Second) // Wait for block production
 
@@ -367,12 +395,10 @@ func TestRPCStructParamUnmarshal(t *testing.T) {
 		params:      `[["0xf2794c22e353e9a839f12faab03a911bf68967d635641a7087e53f2bff1ecad3c6756fee45ec79ead60347fffb770bcdf0ec74da701ab3d6495986fe1ecc3027"],"0xa32c60dee8647b07435ae7583eb35cee606209a595718562dd4a486a07b6de15", null]`, //nolint:lll
 	}
 	t.Run(test.description, func(t *testing.T) {
-		ctx := context.Background()
-
-		postRPCCtx, cancel := context.WithTimeout(ctx, time.Second)
-		endpoint := utils.NewEndpoint(nodes[0].RPCPort)
-		respBody, err := utils.PostRPC(postRPCCtx, endpoint, test.method, test.params)
-		cancel()
+		postRPCCtx, postRPCCancel := context.WithTimeout(ctx, time.Second)
+		endpoint := rpc.NewEndpoint(node.RPCPort())
+		respBody, err := rpc.Post(postRPCCtx, endpoint, test.method, test.params)
+		postRPCCancel()
 		require.NoError(t, err)
 		require.NotContains(t, string(respBody), "json: cannot unmarshal")
 		fmt.Println(string(respBody))

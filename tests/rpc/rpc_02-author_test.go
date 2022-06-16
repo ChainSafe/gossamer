@@ -12,7 +12,11 @@ import (
 
 	"github.com/centrifuge/go-substrate-rpc-client/v3/scale"
 
+	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils"
+	"github.com/ChainSafe/gossamer/tests/utils/config"
+	"github.com/ChainSafe/gossamer/tests/utils/node"
+	"github.com/ChainSafe/gossamer/tests/utils/retry"
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v3"
 	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
 	"github.com/centrifuge/go-substrate-rpc-client/v3/types"
@@ -25,20 +29,27 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 		return
 	}
 
-	t.Log("starting gossamer...")
+	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
+	tomlConfig := config.Default()
+	tomlConfig.Init.Genesis = genesisPath
+	tomlConfig.Core.BABELead = true
 
-	nodes, err := utils.InitializeAndStartNodes(t, 1, utils.GenesisDev, utils.ConfigDefault)
+	node := node.New(t, tomlConfig)
+	ctx, cancel := context.WithCancel(context.Background())
+	node.InitAndStartTest(ctx, t, cancel)
+
+	api, err := gsrpc.NewSubstrateAPI(fmt.Sprintf("http://localhost:%s", node.RPCPort()))
 	require.NoError(t, err)
 
-	defer func() {
-		t.Log("going to tear down gossamer...")
-		errList := utils.TearDown(t, nodes)
-		require.Len(t, errList, 0)
-	}()
-
-	time.Sleep(30 * time.Second) // wait for server to start and block 1 to be produced
-
-	api, err := gsrpc.NewSubstrateAPI(fmt.Sprintf("http://localhost:%s", nodes[0].RPCPort))
+	// Wait for the first block to be produced.
+	const retryWait = time.Second
+	err = retry.UntilOK(ctx, retryWait, func() (ok bool, err error) {
+		block, err := api.RPC.Chain.GetBlockLatest()
+		if err != nil {
+			return false, err
+		}
+		return block.Block.Header.Number > 0, nil
+	})
 	require.NoError(t, err)
 
 	meta, err := api.RPC.State.GetMetadataLatest()
@@ -94,60 +105,75 @@ func TestAuthorRPC(t *testing.T) {
 		return
 	}
 
-	testCases := []*testCase{
-		{ //TODO
-			description: "test author_submitExtrinsic",
-			method:      "author_submitExtrinsic",
-			skip:        true,
-		},
-		{ //TODO
-			description: "test author_pendingExtrinsics",
-			method:      "author_pendingExtrinsics",
-			skip:        true,
-		},
-		{ //TODO
-			description: "test author_removeExtrinsic",
-			method:      "author_removeExtrinsic",
-			skip:        true,
-		},
-		{ //TODO
-			description: "test author_insertKey",
-			method:      "author_insertKey",
-			skip:        true,
-		},
-		{ //TODO
-			description: "test author_rotateKeys",
-			method:      "author_rotateKeys",
-			skip:        true,
-		},
-		{ //TODO
-			description: "test author_hasSessionKeys",
-			method:      "author_hasSessionKeys",
-			skip:        true,
-		},
-		{ //TODO
-			description: "test author_hasKey",
-			method:      "author_hasKey",
-			skip:        true,
-		},
-	}
+	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
+	tomlConfig := config.Default()
+	tomlConfig.Init.Genesis = genesisPath
+	tomlConfig.Core.BABELead = true
+	node := node.New(t, tomlConfig)
+	ctx, cancel := context.WithCancel(context.Background())
+	node.InitAndStartTest(ctx, t, cancel)
 
-	t.Log("starting gossamer...")
-	nodes, err := utils.InitializeAndStartNodes(t, 1, utils.GenesisDefault, utils.ConfigDefault)
-	require.NoError(t, err)
+	t.Run("author_pendingExtrinsics", func(t *testing.T) {
+		t.Parallel()
+		t.SkipNow() // TODO
 
-	time.Sleep(time.Second) // give server a second to start
+		var target interface{} // TODO
+		fetchWithTimeout(ctx, t, "author_pendingExtrinsics", "", target)
+	})
 
-	for _, test := range testCases {
-		t.Run(test.description, func(t *testing.T) {
-			ctx := context.Background()
-			getResponseCtx, cancel := context.WithTimeout(ctx, time.Second)
-			defer cancel()
-			_ = getResponse(getResponseCtx, t, test)
-		})
-	}
+	t.Run("author_submitExtrinsic", func(t *testing.T) {
+		t.Parallel()
+		t.SkipNow() // TODO
 
-	t.Log("going to tear down gossamer...")
-	errList := utils.TearDown(t, nodes)
-	require.Len(t, errList, 0)
+		var target interface{} // TODO
+		fetchWithTimeout(ctx, t, "author_submitExtrinsic", "", target)
+	})
+
+	t.Run("author_pendingExtrinsics", func(t *testing.T) {
+		t.Parallel()
+		t.SkipNow() // TODO
+
+		var target interface{} // TODO
+		fetchWithTimeout(ctx, t, "author_pendingExtrinsics", "", target)
+	})
+
+	t.Run("author_removeExtrinsic", func(t *testing.T) {
+		t.Parallel()
+		t.SkipNow() // TODO
+
+		var target interface{} // TODO
+		fetchWithTimeout(ctx, t, "author_removeExtrinsic", "", target)
+	})
+
+	t.Run("author_insertKey", func(t *testing.T) {
+		t.Parallel()
+		t.SkipNow() // TODO
+
+		var target interface{} // TODO
+		fetchWithTimeout(ctx, t, "author_insertKey", "", target)
+	})
+
+	t.Run("author_rotateKeys", func(t *testing.T) {
+		t.Parallel()
+		t.SkipNow() // TODO
+
+		var target interface{} // TODO
+		fetchWithTimeout(ctx, t, "author_rotateKeys", "", target)
+	})
+
+	t.Run("author_hasSessionKeys", func(t *testing.T) {
+		t.Parallel()
+		t.SkipNow() // TODO
+
+		var target interface{} // TODO
+		fetchWithTimeout(ctx, t, "author_hasSessionKeys", "", target)
+	})
+
+	t.Run("author_hasKey", func(t *testing.T) {
+		t.Parallel()
+		t.SkipNow() // TODO
+
+		var target interface{} // TODO
+		fetchWithTimeout(ctx, t, "author_hasKey", "", target)
+	})
 }

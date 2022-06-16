@@ -221,6 +221,7 @@ func TestListenerConcurrency(t *testing.T) {
 }
 
 func TestTelemetryMarshalMessage(t *testing.T) {
+	t.Parallel()
 	tests := map[string]struct {
 		message  Message
 		expected string
