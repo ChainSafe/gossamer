@@ -81,7 +81,7 @@ func decodeHeader(reader io.Reader) (variant byte,
 	variant, partialKeyLengthHeader, partialKeyLengthHeaderMask,
 		err := decodeHeaderByte(buffer[0])
 	if err != nil {
-		return 0, 0, fmt.Errorf("cannot parse header byte: %w", err)
+		return 0, 0, fmt.Errorf("cannot decode header byte: %w", err)
 	}
 
 	partialKeyLength = uint16(partialKeyLengthHeader)

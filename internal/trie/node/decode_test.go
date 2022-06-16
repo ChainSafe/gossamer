@@ -48,7 +48,7 @@ func Test_Decode(t *testing.T) {
 		"unknown node variant": {
 			reader:     bytes.NewReader([]byte{0}),
 			errWrapped: ErrVariantUnknown,
-			errMessage: "cannot decode header: cannot parse header byte: node variant is unknown: for header byte 00000000",
+			errMessage: "cannot decode header: cannot decode header byte: node variant is unknown: for header byte 00000000",
 		},
 		"leaf decoding error": {
 			reader: bytes.NewReader([]byte{

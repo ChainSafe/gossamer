@@ -293,7 +293,7 @@ func Test_decodeHeader(t *testing.T) {
 				{buffArgCap: 1, read: []byte{0b0011_1110}},
 			},
 			errWrapped: ErrVariantUnknown,
-			errMessage: "cannot parse header byte: node variant is unknown: for header byte 00111110",
+			errMessage: "cannot decode header byte: node variant is unknown: for header byte 00111110",
 		},
 		"partial key length contained in first byte": {
 			reads: []readCall{
