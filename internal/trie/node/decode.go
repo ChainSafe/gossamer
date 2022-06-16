@@ -110,14 +110,11 @@ func decodeBranch(reader io.Reader, variant byte, partialKeyLength uint16) (
 		if len(hash) < hashLength {
 			// Handle inlined nodes
 			reader = bytes.NewReader(hash)
-			variant, partialKeyLength, err := decodeHeader(reader)
-			if err == nil && variant == leafVariant.bits {
-				childNode, err = decodeLeaf(reader, partialKeyLength)
-				if err != nil {
-					return nil, fmt.Errorf("%w: at index %d: %s",
-						ErrDecodeValue, i, err)
-				}
+			childNode, err = Decode(reader)
+			if err != nil {
+				return nil, fmt.Errorf("decoding inlined child at index %d: %w", i, err)
 			}
+			node.Descendants += childNode.Descendants
 		}
 
 		node.Descendants++

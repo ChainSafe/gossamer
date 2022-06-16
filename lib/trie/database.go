@@ -182,7 +182,7 @@ func (t *Trie) load(db chaindb.Database, n *Node) error {
 
 		hash := child.HashDigest
 
-		if len(hash) == 0 && child.Type() == node.Leaf {
+		if len(hash) == 0 {
 			// node has already been loaded inline
 			// just set encoding + hash digest
 			_, _, err := child.EncodeAndHash(false)
