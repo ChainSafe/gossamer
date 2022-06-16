@@ -170,7 +170,6 @@ func (s *Service) createNotificationsMessageHandler(
 				hsData = newHandshakeData(true, false, stream)
 				info.peersData.setInboundHandshakeData(peer, hsData)
 
-				fmt.Println("handshake in 173", hs.String())
 				err := info.handshakeValidator(peer, hs)
 				if err != nil {
 					logger.Tracef(
@@ -370,7 +369,6 @@ func (s *Service) sendHandshake(peer peer.ID, hs Handshake, info *notificationsP
 		logger.Tracef("failed to close stream for reading: %s", err)
 	}
 
-	fmt.Println("handshake in 373", resp.String())
 	if err = info.handshakeValidator(peer, resp); err != nil {
 		logger.Tracef("failed to validate handshake from peer %s using protocol %s: %s", peer, info.protocolID, err)
 		hsData.validated = false

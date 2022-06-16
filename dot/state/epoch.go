@@ -199,7 +199,6 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 		return 0, err
 	}
 
-	fmt.Println("header digest len ", len(header.Digest.Types))
 	for _, d := range header.Digest.Types {
 		predigest, ok := d.Value().(types.PreRuntimeDigest)
 		if !ok {

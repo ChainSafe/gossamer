@@ -472,7 +472,7 @@ func (s *Service) primaryBroadcastCommitMessage() {
 // playGrandpaRound executes a round of GRANDPA
 // at the end of this round, a block will be finalised.
 func (s *Service) playGrandpaRound() error {
-	logger.Infof("starting round %d with set id %d",
+	logger.Debugf("starting round %d with set id %d",
 		s.state.round, s.state.setID)
 	start := time.Now()
 
@@ -484,7 +484,7 @@ func (s *Service) playGrandpaRound() error {
 		return err
 	}
 
-	logger.Info("receiving pre-vote messages...")
+	logger.Debug("receiving pre-vote messages...")
 	go s.receiveVoteMessages(ctx)
 	time.Sleep(s.interval)
 
@@ -507,7 +507,7 @@ func (s *Service) playGrandpaRound() error {
 		s.prevotes.Store(s.publicKeyBytes(), spv)
 	}
 
-	logger.Infof("sending pre-vote message %s...", pv)
+	logger.Debugf("sending pre-vote message %s...", pv)
 	roundComplete := make(chan struct{})
 	// roundComplete is a signal channel which is closed when the round completes
 	// (will receive the default value of channel's type), so we don't need to
@@ -517,7 +517,7 @@ func (s *Service) playGrandpaRound() error {
 	// continue to send prevote messages until round is done
 	go s.sendVoteMessage(prevote, vm, roundComplete)
 
-	logger.Info("receiving pre-commit messages...")
+	logger.Debug("receiving pre-commit messages...")
 	// through goroutine s.receiveMessages(ctx)
 	time.Sleep(s.interval)
 
@@ -537,8 +537,6 @@ func (s *Service) playGrandpaRound() error {
 	}
 
 	s.precommits.Store(s.publicKeyBytes(), spc)
-	// TODO: why does pc is hash=0x0000000000000000000000000000000000000000000000000000000000000000 number=0 sometimes,
-	// is that expected?
 	logger.Infof("sending pre-commit message %s...", pc)
 
 	// continue to send precommit messages until round is done

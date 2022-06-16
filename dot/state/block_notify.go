@@ -5,7 +5,6 @@ package state
 
 import (
 	"errors"
-	"fmt"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -83,10 +82,6 @@ func (bs *BlockState) notifyFinalized(hash common.Hash, round, setID uint64) {
 	if err != nil {
 		logger.Errorf("failed to get finalised header for hash %s: %s", hash, err)
 		return
-	}
-
-	if len(header.Digest.Types) == 0 {
-		fmt.Println("damn it")
 	}
 
 	logger.Debug("notifying finalised block channels...")
