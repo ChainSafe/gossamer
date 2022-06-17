@@ -7,9 +7,12 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/internal/trie/codec"
 	"github.com/ChainSafe/gossamer/internal/trie/node"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_Generate(t *testing.T) {
@@ -382,5 +385,41 @@ func Test_lenCommonPrefix(t *testing.T) {
 
 			assert.Equal(t, testCase.length, length)
 		})
+	}
+}
+
+// Note on the performance of walk:
+// It was tried to optimise appending to the encodedProofNodes
+// slice by:
+// 1. appending to the same slice *[][]byte passed as argument
+// 2. appending the upper node to the deeper nodes slice
+// In both cases, the performance difference is very small
+// so the code is kept to this inefficient-looking append,
+// which is in the end quite performant still.
+func Benchmark_walk(b *testing.B) {
+	trie := trie.NewEmptyTrie()
+
+	// Build a deep trie.
+	const trieDepth = 1000
+	for i := 0; i < trieDepth; i++ {
+		keySize := 1 + i
+		key := make([]byte, keySize)
+		const trieValueSize = 10
+		value := make([]byte, trieValueSize)
+
+		trie.Put(key, value)
+	}
+
+	longestKeyLE := make([]byte, trieDepth)
+	longestKeyNibbles := codec.KeyLEToNibbles(longestKeyLE)
+
+	rootNode := trie.RootNode()
+	encodedProofNodes, err := walk(rootNode, longestKeyNibbles)
+	require.NoError(b, err)
+	require.Equal(b, len(encodedProofNodes), trieDepth)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _ = walk(rootNode, longestKeyNibbles)
 	}
 }

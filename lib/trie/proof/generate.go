@@ -47,7 +47,6 @@ func Generate(rootHash []byte, fullKey []byte, database Database) (
 	return encodedProofNodes, nil
 }
 
-// TODO use pointer to slice to avoid recursive appending
 func walk(parent *node.Node, fullKey []byte) (
 	encodedProofNodes [][]byte, err error) {
 	if parent == nil {
@@ -81,7 +80,8 @@ func walk(parent *node.Node, fullKey []byte) (
 	}
 
 	commonLength := lenCommonPrefix(parent.Key, fullKey)
-	nextChild := parent.Children[fullKey[commonLength]]
+	childIndex := fullKey[commonLength]
+	nextChild := parent.Children[childIndex]
 	nextFullKey := fullKey[commonLength+1:]
 	deeperEncodedProofNodes, err := walk(nextChild, nextFullKey)
 	if err != nil {
