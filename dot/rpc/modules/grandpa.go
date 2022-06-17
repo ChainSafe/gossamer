@@ -4,6 +4,7 @@
 package modules
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -54,7 +55,9 @@ type ProveFinalityRequest struct {
 // ProveFinalityResponse is an optional SCALE encoded proof array
 type ProveFinalityResponse []string
 
-// ProveFinality for the provided block number, returning the Justification for the last block in the set.
+// ProveFinality for the provided block number, the Justification for the last block in the set is written to the response.
+//  The response is a SCALE encoded proof array.  The proof array is empty if the block number is not finalized.
+//  Returns error which are included in the response if they occur.
 func (gm *GrandpaModule) ProveFinality(r *http.Request, req *ProveFinalityRequest, res *ProveFinalityResponse) error {
 	blockHash, err := gm.blockAPI.GetHashByNumber(uint(req.BlockNumber))
 	if err != nil {
@@ -62,7 +65,7 @@ func (gm *GrandpaModule) ProveFinality(r *http.Request, req *ProveFinalityReques
 	}
 	hasJustification, err := gm.blockAPI.HasJustification(blockHash)
 	if err != nil {
-		return err
+		return fmt.Errorf("checking for justification: %w", err)
 	}
 
 	if !hasJustification {
@@ -71,7 +74,7 @@ func (gm *GrandpaModule) ProveFinality(r *http.Request, req *ProveFinalityReques
 	}
 	justification, err := gm.blockAPI.GetJustification(blockHash)
 	if err != nil {
-		return err
+		return fmt.Errorf("getting justification: %w", err)
 	}
 	*res = append(*res, common.BytesToHex(justification))
 

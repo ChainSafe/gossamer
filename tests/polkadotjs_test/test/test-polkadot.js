@@ -185,6 +185,7 @@ describe('Testing polkadot.js/api calls:', function () {
             const proveBlockNumber = 0;
             const finality = await api.rpc.grandpa.proveFinality(proveBlockNumber);
             expect(finality).to.be.not.null;
+            expect(finality).to.be.ownProperty('registry')
         });
     });
 });

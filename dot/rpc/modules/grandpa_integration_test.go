@@ -6,6 +6,7 @@
 package modules
 
 import (
+	"github.com/stretchr/testify/assert"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -13,7 +14,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	rpcmocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
