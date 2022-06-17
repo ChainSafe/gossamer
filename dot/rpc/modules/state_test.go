@@ -896,15 +896,15 @@ func TestStateModuleQueryStorage(t *testing.T) {
 			exp: []StorageChangeSetResponse{
 				{
 					Block:   &common.Hash{2},
-					Changes: [][]*string{{&k1, &v1}, {&k2, &v9}},
+					Changes: [][2]*string{{&k1, &v1}, {&k2, &v9}},
 				},
 				{
 					Block:   &common.Hash{3},
-					Changes: [][]*string{{&k1, &v2}},
+					Changes: [][2]*string{{&k1, &v2}},
 				},
 				{
 					Block:   &common.Hash{4},
-					Changes: [][]*string{{&k1, &v3}},
+					Changes: [][2]*string{{&k1, &v3}},
 				},
 			},
 		},
@@ -947,19 +947,19 @@ func TestStateModuleQueryStorage(t *testing.T) {
 			exp: []StorageChangeSetResponse{
 				{
 					Block:   &common.Hash{1},
-					Changes: [][]*string{{&k1, nil}},
+					Changes: [][2]*string{{&k1, nil}},
 				},
 				{
 					Block:   &common.Hash{2},
-					Changes: [][]*string{{&k1, &v1}},
+					Changes: [][2]*string{{&k1, &v1}},
 				},
 				{
 					Block:   &common.Hash{3},
-					Changes: [][]*string{{&k1, &v2}},
+					Changes: [][2]*string{{&k1, &v2}},
 				},
 				{
 					Block:   &common.Hash{4},
-					Changes: [][]*string{{&k1, &v3}},
+					Changes: [][2]*string{{&k1, &v3}},
 				},
 			},
 		},
@@ -996,7 +996,7 @@ func TestStateModuleQueryStorage(t *testing.T) {
 			exp: []StorageChangeSetResponse{
 				{
 					Block:   &common.Hash{2},
-					Changes: [][]*string{{&k1, &v1}},
+					Changes: [][2]*string{{&k1, &v1}},
 				},
 				{
 					Block: &common.Hash{3},

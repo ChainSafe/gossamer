@@ -120,8 +120,10 @@ type StateGetReadProofResponse struct {
 
 // StorageChangeSetResponse is the struct that holds the block and changes
 type StorageChangeSetResponse struct {
-	Block   *common.Hash `json:"block"`
-	Changes [][]*string  `json:"changes"`
+	Block *common.Hash `json:"block"`
+	// Changes is a slice of string pointers so that the JSON encoder can handle nil values as NULL instead of empty
+	//  strings.
+	Changes [][2]*string `json:"changes"`
 }
 
 // KeyValueOption struct holds json fields
@@ -439,32 +441,33 @@ func (sm *StateModule) QueryStorage(
 		if err != nil {
 			return fmt.Errorf("cannot get hash by number: %w", err)
 		}
-		var changes [][]*string
+		var changes [][2]*string
 
 		for j, key := range req.Keys {
 			value, err := sm.storageAPI.GetStorageByBlockHash(&blockHash, common.MustHexToBytes(key))
 			if err != nil {
-				return fmt.Errorf("cannot get value by block hash: %w", err)
+				return fmt.Errorf("getting value by block hash: %w", err)
 			}
 			var hexValue *string
 			if len(value) > 0 {
-				h := common.BytesToHex(value)
-				hexValue = &h
+				hexValue = new(string)
+				*hexValue = common.BytesToHex(value)
 			}
-			k := key
+
 			if firstPass {
-				changes = append(changes, []*string{&k, hexValue})
+				changes = append(changes, [2]*string{stringPtr(key), hexValue})
 				lastValue[j] = hexValue
-			} else {
-				if lastValue[j] == nil && hexValue != nil {
-					changes = append(changes, []*string{&k, hexValue})
-					lastValue[j] = hexValue
-				}
-				if lastValue[j] != nil && *lastValue[j] != *hexValue {
-					changes = append(changes, []*string{&k, hexValue})
-					lastValue[j] = hexValue
-				}
+				continue
 			}
+			if lastValue[j] == nil && hexValue != nil {
+				changes = append(changes, [2]*string{stringPtr(key), hexValue})
+				lastValue[j] = hexValue
+			}
+			if lastValue[j] != nil && *lastValue[j] != *hexValue {
+				changes = append(changes, [2]*string{stringPtr(key), hexValue})
+				lastValue[j] = hexValue
+			}
+
 		}
 		firstPass = false
 		response = append(response, StorageChangeSetResponse{
@@ -476,6 +479,8 @@ func (sm *StateModule) QueryStorage(
 	*res = response
 	return nil
 }
+
+func stringPtr(s string) *string { return &s }
 
 // SubscribeRuntimeVersion initialised a runtime version subscription and returns the current version
 // See dot/rpc/subscription

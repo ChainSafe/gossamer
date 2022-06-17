@@ -8,5 +8,4 @@ import "errors"
 // ErrSubscriptionTransport error sent when trying to access websocket subscriptions via http
 var ErrSubscriptionTransport = errors.New("subscriptions are not available on this transport")
 
-// ErrStartBlockHashEmpty error sent when trying to access function that requires start block value
 var ErrStartBlockHashEmpty = errors.New("the start block hash cannot be an empty value")
