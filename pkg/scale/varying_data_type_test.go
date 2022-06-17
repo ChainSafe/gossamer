@@ -357,7 +357,8 @@ func Test_decodeState_decodeCustomVaryingDataType(t *testing.T) {
 
 			dstVDT := reflect.ValueOf(tt.in).Convert(reflect.TypeOf(VaryingDataType{})).Interface().(VaryingDataType)
 			inVDT := reflect.ValueOf(tt.in).Convert(reflect.TypeOf(VaryingDataType{})).Interface().(VaryingDataType)
-			diff := cmp.Diff(dstVDT.Value(), inVDT.Value(), cmpopts.IgnoreUnexported(big.Int{}, VDTValue2{}, MyStructWithIgnore{}))
+			diff := cmp.Diff(dstVDT.Value(), inVDT.Value(),
+				cmpopts.IgnoreUnexported(big.Int{}, VDTValue2{}, MyStructWithIgnore{}))
 			if diff != "" {
 				t.Errorf("decodeState.unmarshal() = %s", diff)
 			}

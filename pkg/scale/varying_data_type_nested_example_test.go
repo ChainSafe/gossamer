@@ -47,7 +47,7 @@ func NewParentVDT() ParentVDT {
 // ChildVDT type is used as a VaryingDataTypeValue for ParentVDT
 type ChildVDT scale.VaryingDataType
 
-// Index fulfills the VaryingDataTypeValue interface.  T
+// Index fulfils the VaryingDataTypeValue interface.  T
 func (cvdt ChildVDT) Index() uint {
 	return 1
 }
@@ -86,13 +86,13 @@ func NewChildVDT() ChildVDT {
 // OtherChildVDT type is used as a VaryingDataTypeValue for ParentVDT
 type OtherChildVDT scale.VaryingDataType
 
-// Index fulfills the VaryingDataTypeValue interface.
+// Index fulfils the VaryingDataTypeValue interface.
 func (ocvdt OtherChildVDT) Index() uint {
 	return 2
 }
 
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (cvdt *OtherChildVDT) Set(val scale.VaryingDataTypeValue) (err error) {
+func (cvdt *OtherChildVDT) Set(val scale.VaryingDataTypeValue) (err error) { //nolint:revive
 	// cast to VaryingDataType to use VaryingDataType.Set method
 	vdt := scale.VaryingDataType(*cvdt)
 	err = vdt.Set(val)
@@ -119,7 +119,7 @@ func NewOtherChildVDT() OtherChildVDT {
 // ChildInt16 is used as a VaryingDataTypeValue for ChildVDT and OtherChildVDT
 type ChildInt16 int16
 
-// Index fulfills the VaryingDataTypeValue interface.  The ChildVDT type is used as a
+// Index fulfils the VaryingDataTypeValue interface.  The ChildVDT type is used as a
 // VaryingDataTypeValue for ParentVDT
 func (ci ChildInt16) Index() uint {
 	return 1
@@ -131,7 +131,7 @@ type ChildStruct struct {
 	B bool
 }
 
-// Index fulfills the VaryingDataTypeValue interface
+// Index fulfils the VaryingDataTypeValue interface
 func (cs ChildStruct) Index() uint {
 	return 2
 }
@@ -139,12 +139,12 @@ func (cs ChildStruct) Index() uint {
 // ChildString is used as a VaryingDataTypeValue for ChildVDT and OtherChildVDT
 type ChildString string
 
-// Index fulfills the VaryingDataTypeValue interface
+// Index fulfils the VaryingDataTypeValue interface
 func (cs ChildString) Index() uint {
 	return 3
 }
 
-func ExampleNestedVaryingDataType() {
+func Example() {
 	parent := NewParentVDT()
 
 	// populate parent with ChildVDT
