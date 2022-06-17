@@ -3606,8 +3606,6 @@ func Test_Trie_delete(t *testing.T) {
 					},
 				}),
 			},
-			updated:      false,
-			nodesRemoved: 0,
 		},
 	}
 
