@@ -296,10 +296,10 @@ func Test_encodeState_encodeVaryingDataType(t *testing.T) {
 			es := &encodeState{fieldScaleIndicesCache: cache}
 			vdt := tt.in.(VaryingDataType)
 			if err := es.marshal(vdt); (err != nil) != tt.wantErr {
-				t.Errorf("encodeState.encodeStruct() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("encodeState.marshal() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if !reflect.DeepEqual(es.Buffer.Bytes(), tt.want) {
-				t.Errorf("encodeState.encodeStruct() = %v, want %v", es.Buffer.Bytes(), tt.want)
+				t.Errorf("encodeState.marshal() = %v, want %v", es.Buffer.Bytes(), tt.want)
 			}
 		})
 	}
