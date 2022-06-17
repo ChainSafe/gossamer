@@ -164,6 +164,7 @@ type chainSync struct {
 
 	logSyncTicker  *time.Ticker
 	logSyncTickerC <-chan time.Time // channel as field for unit testing
+	logSyncStarted bool
 	logSyncDone    chan struct{}
 }
 
@@ -225,6 +226,7 @@ func (cs *chainSync) start() {
 	cs.pendingBlockDoneCh = pendingBlockDoneCh
 	go cs.pendingBlocks.run(pendingBlockDoneCh)
 	go cs.sync()
+	cs.logSyncStarted = true
 	go cs.logSyncSpeed()
 }
 
@@ -233,7 +235,9 @@ func (cs *chainSync) stop() {
 		close(cs.pendingBlockDoneCh)
 	}
 	cs.cancel()
-	<-cs.logSyncDone
+	if cs.logSyncStarted {
+		<-cs.logSyncDone
+	}
 }
 
 func (cs *chainSync) syncState() chainSyncState {
