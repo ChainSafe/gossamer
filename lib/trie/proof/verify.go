@@ -57,7 +57,7 @@ func buildTrie(encodedProofNodes [][]byte, rootHash []byte) (t *trie.Trie, err e
 			ErrEmptyProof, rootHash)
 	}
 
-	proofHashToNode := make(map[string]*node.Node, len(encodedProofNodes))
+	merkleValueToNode := make(map[string]*node.Node, len(encodedProofNodes))
 
 	var root *node.Node
 	for i, encodedProofNode := range encodedProofNodes {
@@ -81,7 +81,7 @@ func buildTrie(encodedProofNodes [][]byte, rootHash []byte) (t *trie.Trie, err e
 		}
 
 		proofHash := common.BytesToHex(decodedNode.HashDigest)
-		proofHashToNode[proofHash] = decodedNode
+		merkleValueToNode[proofHash] = decodedNode
 
 		if root != nil {
 			// Root node already found in proof
@@ -109,22 +109,22 @@ func buildTrie(encodedProofNodes [][]byte, rootHash []byte) (t *trie.Trie, err e
 	}
 
 	if root == nil {
-		proofHashes := make([]string, 0, len(proofHashToNode))
-		for proofHash := range proofHashToNode {
-			proofHashes = append(proofHashes, proofHash)
+		proofMerkleValues := make([]string, 0, len(merkleValueToNode))
+		for merkleValue := range merkleValueToNode {
+			proofMerkleValues = append(proofMerkleValues, merkleValue)
 		}
 		return nil, fmt.Errorf("%w: for Merkle root hash 0x%x in proof Merkle value(s) %s",
-			ErrRootNodeNotFound, rootHash, strings.Join(proofHashes, ", "))
+			ErrRootNodeNotFound, rootHash, strings.Join(proofMerkleValues, ", "))
 	}
 
-	loadProof(proofHashToNode, root)
+	loadProof(merkleValueToNode, root)
 
 	return trie.NewTrie(root), nil
 }
 
 // loadProof is a recursive function that will create all the trie paths based
 // on the map from node hash to node starting at the root.
-func loadProof(proofHashToNode map[string]*node.Node, n *node.Node) {
+func loadProof(merkleValueToNode map[string]*node.Node, n *node.Node) {
 	if n.Type() != node.Branch {
 		return
 	}
@@ -135,14 +135,14 @@ func loadProof(proofHashToNode map[string]*node.Node, n *node.Node) {
 			continue
 		}
 
-		proofHash := common.BytesToHex(child.HashDigest)
-		node, ok := proofHashToNode[proofHash]
+		merkleValueHex := common.BytesToHex(child.HashDigest)
+		node, ok := merkleValueToNode[merkleValueHex]
 		if !ok {
 			continue
 		}
 
 		branch.Children[i] = node
-		loadProof(proofHashToNode, node)
+		loadProof(merkleValueToNode, node)
 	}
 }
 
