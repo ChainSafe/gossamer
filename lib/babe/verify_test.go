@@ -649,7 +649,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 			name:     "first digest invalid",
 			verifier: verifier{},
 			header:   header0,
-			expErr:   errors.New("first digest item is not pre-digest"),
+			expErr:   types.ErrNoFirstPreDigest,
 		},
 		{
 			name:     "last digest invalid",

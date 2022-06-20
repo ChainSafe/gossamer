@@ -272,12 +272,13 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	logger.Tracef("beginning BABE authorship right verification for block %s", header.Hash())
 
 	// check for valid seal by verifying signature
+
 	preDigestItem := header.Digest.Types[0]
 	sealItem := header.Digest.Types[len(header.Digest.Types)-1]
 
 	preDigest, ok := preDigestItem.Value().(types.PreRuntimeDigest)
 	if !ok {
-		return fmt.Errorf("first digest item is not pre-digest")
+		return fmt.Errorf("%w: got %T", types.ErrNoFirstPreDigest, preDigestItem.Value())
 	}
 
 	seal, ok := sealItem.Value().(types.SealDigest)
@@ -354,11 +355,16 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 			continue
 		}
 
+		if len(currentHeader.Digest.Types) == 0 {
+			return fmt.Errorf("current header missing digest")
+		}
+
 		currentPreDigestItem := currentHeader.Digest.Types[0]
 
 		currentPreDigest, ok := currentPreDigestItem.Value().(types.PreRuntimeDigest)
 		if !ok {
-			return fmt.Errorf("first digest item is not pre-digest")
+			return fmt.Errorf("%w: got %T", types.ErrNoFirstPreDigest, currentPreDigestItem.Value())
+
 		}
 
 		currentBabePreDigest, err := b.verifyPreRuntimeDigest(&currentPreDigest)
