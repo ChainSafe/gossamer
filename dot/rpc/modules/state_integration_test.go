@@ -338,7 +338,7 @@ func TestStateModule_QueryStorage(t *testing.T) {
 		v1 := common.BytesToHex([]byte(`value`))
 		k2 := "0x80"
 		v2 := common.BytesToHex([]byte(`another value`))
-		expectedChanges := [][]*string{{&k1, &v1}, {&k2, &v2}}
+		expectedChanges := [][2]*string{{&k1, &v1}, {&k2, &v2}}
 		expected := []StorageChangeSetResponse{
 			{
 				Block:   &common.Hash{1, 2},
