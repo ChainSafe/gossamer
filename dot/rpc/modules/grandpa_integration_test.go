@@ -6,7 +6,6 @@
 package modules
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -14,6 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	rpcmocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
@@ -36,8 +36,7 @@ func TestGrandpaProveFinality(t *testing.T) {
 	testStateService.Block.SetJustification(bestBlock.Header.ParentHash, make([]byte, 10))
 	testStateService.Block.SetJustification(bestBlock.Header.Hash(), make([]byte, 11))
 
-	var expectedResponse ProveFinalityResponse
-	expectedResponse = append(expectedResponse, "0x0000000000000000000000")
+	expectedResponse := &ProveFinalityResponse{"0x0000000000000000000000"}
 
 	res := new(ProveFinalityResponse)
 	err = gmSvc.ProveFinality(nil, &ProveFinalityRequest{
@@ -48,7 +47,7 @@ func TestGrandpaProveFinality(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, expectedResponse, *res)
+	assert.Equal(t, *expectedResponse, *res)
 }
 
 func TestRoundState(t *testing.T) {

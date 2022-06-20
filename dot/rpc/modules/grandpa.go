@@ -55,8 +55,9 @@ type ProveFinalityRequest struct {
 // ProveFinalityResponse is an optional SCALE encoded proof array
 type ProveFinalityResponse []string
 
-// ProveFinality for the provided block number, the Justification for the last block in the set is written to the response.
-//  The response is a SCALE encoded proof array.  The proof array is empty if the block number is not finalized.
+// ProveFinality for the provided block number, the Justification for the last block in the set is written to the
+//  response. The response is a SCALE encoded proof array.  The proof array is empty if the block number is
+//  not finalized.
 //  Returns error which are included in the response if they occur.
 func (gm *GrandpaModule) ProveFinality(r *http.Request, req *ProveFinalityRequest, res *ProveFinalityResponse) error {
 	blockHash, err := gm.blockAPI.GetHashByNumber(uint(req.BlockNumber))
