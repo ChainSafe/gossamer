@@ -341,6 +341,7 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	}
 
 	// check if the producer has equivocated, ie. have they produced a conflicting block?
+	// hashes is hashes of all blocks with same block number as header.Number
 	hashes := b.blockState.GetAllBlocksAtDepth(header.ParentHash)
 
 	for _, hash := range hashes {
@@ -364,6 +365,7 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 			existingBlockProducerIndex = d.AuthorityIndex
 		}
 
+		// same authority won't produce two different blocks at the same block number
 		if currentBlockProducerIndex == existingBlockProducerIndex && hash != header.Hash() {
 			return ErrProducerEquivocated
 		}
