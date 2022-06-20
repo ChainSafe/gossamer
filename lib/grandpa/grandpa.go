@@ -537,7 +537,7 @@ func (s *Service) playGrandpaRound() error {
 	}
 
 	s.precommits.Store(s.publicKeyBytes(), spc)
-	logger.Infof("sending pre-commit message %s...", pc)
+	logger.Debugf("sending pre-commit message %s...", pc)
 
 	// continue to send precommit messages until round is done
 	go s.sendVoteMessage(precommit, pcm, roundComplete)
