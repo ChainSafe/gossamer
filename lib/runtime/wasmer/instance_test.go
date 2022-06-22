@@ -4,8 +4,8 @@
 package wasmer
 
 import (
+	"context"
 	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -38,11 +38,10 @@ func TestPointerSize(t *testing.T) {
 
 func TestInstance_CheckRuntimeVersion(t *testing.T) {
 	instance := NewTestInstance(t, runtime.NODE_RUNTIME)
-	err := runtime.GetRuntimeBlob(runtime.POLKADOT_RUNTIME_FP, runtime.POLKADOT_RUNTIME_URL)
+	polkadotRuntimeFilepath, err := runtime.GetRuntime(
+		context.Background(), runtime.POLKADOT_RUNTIME)
 	require.NoError(t, err)
-	fp, err := filepath.Abs(runtime.POLKADOT_RUNTIME_FP)
-	require.NoError(t, err)
-	code, err := os.ReadFile(fp)
+	code, err := os.ReadFile(polkadotRuntimeFilepath)
 	require.NoError(t, err)
 	version, err := instance.CheckRuntimeVersion(code)
 	require.NoError(t, err)

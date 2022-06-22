@@ -6,52 +6,56 @@ package rpc
 import (
 	"context"
 	"testing"
-	"time"
 
+	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils"
-	"github.com/stretchr/testify/require"
+	"github.com/ChainSafe/gossamer/tests/utils/config"
+	"github.com/ChainSafe/gossamer/tests/utils/node"
 )
 
 func TestOffchainRPC(t *testing.T) {
+	t.SkipNow() // TODO
+
 	if utils.MODE != rpcSuite {
 		t.Log("Going to skip RPC suite tests")
 		return
 	}
 
-	testCases := []*testCase{
-		{ //TODO
-			description: "test offchain_localStorageSet",
-			method:      "offchain_localStorageSet",
-			skip:        true,
-		},
-		{ //TODO
-			description: "test offchain_localStorageGet",
-			method:      "offchain_localStorageGet",
-			skip:        true,
-		},
-		{ //TODO
-			description: "test offchain_localStorageGet",
-			method:      "offchain_localStorageGet",
-			skip:        true,
-		},
-	}
+	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
+	tomlConfig := config.Default()
+	tomlConfig.Core.BABELead = true
+	tomlConfig.Init.Genesis = genesisPath
+	node := node.New(t, tomlConfig)
+	ctx, cancel := context.WithCancel(context.Background())
+	node.InitAndStartTest(ctx, t, cancel)
 
-	t.Log("starting gossamer...")
-	nodes, err := utils.InitializeAndStartNodes(t, 1, utils.GenesisDefault, utils.ConfigDefault)
-	require.NoError(t, err)
+	t.Run("offchain_localStorageSet", func(t *testing.T) {
+		t.Parallel()
 
-	time.Sleep(time.Second) // give server a second to start
+		var response struct{} // TODO
 
-	for _, test := range testCases {
-		t.Run(test.description, func(t *testing.T) {
-			ctx := context.Background()
-			getResponseCtx, cancel := context.WithTimeout(ctx, time.Second)
-			defer cancel()
-			_ = getResponse(getResponseCtx, t, test)
-		})
-	}
+		fetchWithTimeout(ctx, t, "offchain_localStorageSet", "", &response)
 
-	t.Log("going to tear down gossamer...")
-	errList := utils.TearDown(t, nodes)
-	require.Len(t, errList, 0)
+		// TODO assert response
+	})
+
+	t.Run("offchain_localStorageGet", func(t *testing.T) {
+		t.Parallel()
+
+		var response struct{} // TODO
+
+		fetchWithTimeout(ctx, t, "offchain_localStorageGet", "", &response)
+
+		// TODO assert response
+	})
+
+	t.Run("offchain_localStorageGet", func(t *testing.T) {
+		t.Parallel()
+
+		var response struct{} // TODO
+
+		fetchWithTimeout(ctx, t, "offchain_localStorageGet", "", &response)
+
+		// TODO assert response
+	})
 }
