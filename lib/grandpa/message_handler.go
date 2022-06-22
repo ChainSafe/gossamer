@@ -554,13 +554,17 @@ func (h *MessageHandler) verifyJustification(just *SignedVote, round, setID uint
 }
 
 // VerifyBlockJustification verifies the finality justification for a block
+// todo(ed): either make justification *justification, or return justification so that
+//  the marshaled just is used
 func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byte) error {
 	fj := Justification{}
 	err := scale.Unmarshal(justification, &fj)
 	if err != nil {
 		return err
 	}
-
+	tmpJust, err := scale.Marshal(fj)
+	copy((justification), tmpJust[:])
+	//fmt.Printf("just %x\n", just2)
 	setID, err := s.grandpaState.GetSetIDByBlockNumber(uint(fj.Commit.Number))
 	if err != nil {
 		return fmt.Errorf("cannot get set ID from block number: %w", err)

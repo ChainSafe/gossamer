@@ -236,7 +236,21 @@ func Test_chainProcessor_handleBody(t *testing.T) {
 		processor.handleBody(testBody)
 	})
 }
+func Test_chainProcessor_handleJustification_two(t *testing.T) {
+	ctrl := gomock.NewController(t)
 
+	mockHeader := types.NewEmptyHeader()
+	mockJust := common.MustHexToBytes(
+		"0x05000000000000008306f3c4dda0211e863e52c8bc15a3251e5ba38c7dd2f241f896653665e5e7e0080000000c8306f3c4dda0211e863e52c8bc15a3251e5ba38c7dd2f241f896653665e5e7e0080000001fd54b3502e84c96a1ab890d507789266c4611d784d0169a575e120874271d075b6717ab5a7eb7d9618c3916ecaf4310286163fc77152be2919c981701b9aa0ed17c2d7823ebf260fd138f2d7e27d114c0145d968b5ff5006125f2414fadae698306f3c4dda0211e863e52c8bc15a3251e5ba38c7dd2f241f896653665e5e7e0080000002187956a30a233c1bf4d9e4e0b63eb887641f58758432915b2a5e3ab66543942e752767111fc75dcfbe3955d71c443adbc156e67c82fa2ae9b6a16b014d7690488dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee8306f3c4dda0211e863e52c8bc15a3251e5ba38c7dd2f241f896653665e5e7e008000000dad739bb86c09539662075845873c109c29f6c13e9a0ac771f08c4b58e96c5a2198e387fb3f18a2506c28f2c2a151044d1ae9dc40f83efa73cdfcf9a37615c09439660b36c6c03afafca027b910b4fecf99801834c62a5e6006f27d978de234f")
+	mockFinalityGadget := NewMockFinalityGadget(ctrl)
+	mockFinalityGadget.EXPECT().VerifyBlockJustification(mockHeader.Hash(), mockJust)
+	cp := chainProcessor{
+		blockState:     NewMockBlockState(ctrl),
+		finalityGadget: mockFinalityGadget,
+	}
+	cp.handleJustification(mockHeader, mockJust)
+
+}
 func Test_chainProcessor_handleJustification(t *testing.T) {
 	t.Parallel()
 
