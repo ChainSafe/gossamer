@@ -6,6 +6,7 @@ package network
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/big"
 	"strings"
 	"sync"
@@ -693,6 +694,7 @@ func (s *Service) processMessage(msg peerset.Message) {
 	switch msg.Status {
 	case peerset.Connect:
 		addrInfo := s.host.p2pHost.Peerstore().PeerInfo(peerID)
+		fmt.Println("addrInfo: ", addrInfo)
 		if len(addrInfo.Addrs) == 0 {
 			var err error
 			addrInfo, err = s.host.discovery.findPeer(peerID)
@@ -704,7 +706,7 @@ func (s *Service) processMessage(msg peerset.Message) {
 
 		err := s.host.connect(addrInfo)
 		if err != nil {
-			logger.Warnf("failed to open connection for peer %s: %s", peerID, err)
+			logger.Debugf("failed to open connection for peer %s: %s", peerID, err)
 			return
 		}
 		logger.Debugf("connection successful with peer %s", peerID)

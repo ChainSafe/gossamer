@@ -62,7 +62,7 @@ func init() {
 
 const (
 	peerSetSlotAllocTime = time.Second * 2
-	connectTimeout       = time.Second * 5
+	connectTimeout       = time.Minute * 1
 )
 
 // host wraps libp2p host with network host configuration and services
@@ -268,7 +268,7 @@ func (h *host) connect(p peer.AddrInfo) (err error) {
 	h.p2pHost.Peerstore().AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
 	ctx, cancel := context.WithTimeout(h.ctx, connectTimeout)
 	defer cancel()
-	err = h.p2pHost.Connect(ctx, p)
+	_, err = h.p2pHost.Network().DialPeer(ctx, p.ID)
 	return err
 }
 
@@ -292,7 +292,7 @@ func (h *host) send(p peer.ID, pid protocol.ID, msg Message) (libp2pnetwork.Stre
 	// open outbound stream with host protocol id
 	stream, err := h.p2pHost.NewStream(h.ctx, p, pid)
 	if err != nil {
-		logger.Tracef("failed to open new stream with peer %s using protocol %s: %s", p, pid, err)
+		logger.Debugf("failed to open new stream with peer %s using protocol %s: %s", p, pid, err)
 		return nil, err
 	}
 

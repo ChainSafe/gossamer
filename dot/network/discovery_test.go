@@ -5,12 +5,15 @@ package network
 
 import (
 	"context"
+	"fmt"
+	"sync"
 	"testing"
 	"time"
 
 	badger "github.com/ipfs/go-ds-badger2"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/routing"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -136,71 +139,138 @@ func TestBeginDiscovery(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func connectNodes(t *testing.T, nodesService []*Service) {
+	if len(nodesService) <= 1 {
+		return
+	}
+
+	// wait a amount of time to fully start the nodes
+	time.Sleep(3 * time.Second)
+
+	pivotNode := nodesService[0]
+	pivotNodeAddr := pivotNode.host.addrInfo()
+
+	var wg sync.WaitGroup
+	const maxAttempts = 5
+
+	errors := make([]chan error, len(nodesService)-1)
+
+	for idx := 1; idx < len(nodesService); idx++ {
+		nodeAt := nodesService[idx]
+		errors[idx-1] = make(chan error)
+
+		wg.Add(1)
+		go func(service *Service, wg *sync.WaitGroup, errCh chan<- error) {
+			defer wg.Done()
+			defer close(errCh)
+
+			for att := 0; att < maxAttempts; att++ {
+				err := service.host.connect(pivotNodeAddr)
+				if err == nil {
+					fmt.Printf("connection ok %s - %s\n", service.host.addrInfo(), pivotNodeAddr)
+					return
+				}
+
+				fmt.Printf("error %s\n", err)
+				if failedToDial(err) {
+					time.Sleep(TestBackoffTimeout)
+				} else {
+					errCh <- fmt.Errorf("problems while connecting: %w", err)
+					return
+				}
+			}
+
+			errCh <- fmt.Errorf("cannot establish connection between %s - %s", pivotNodeAddr, service.host.addrInfo())
+		}(nodeAt, &wg, errors[idx-1])
+	}
+
+	for _, errCh := range errors {
+		for err := range errCh {
+			assert.NoError(t, err)
+		}
+	}
+
+	wg.Wait()
+}
+
 func TestBeginDiscovery_ThreeNodes(t *testing.T) {
 	t.Parallel()
+	const amount = 3
 
-	configA := &Config{
-		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
-		NoBootstrap: true,
-		NoMDNS:      true,
+	nodesService := make([]*Service, 0, amount)
+	for node := amount; node > 0; node-- {
+		nodeConfig := &Config{
+			BasePath:    t.TempDir(),
+			Port:        availablePort(t),
+			NoBootstrap: true,
+			NoMDNS:      true,
+		}
+
+		nodeService := createTestService(t, nodeConfig)
+		nodeService.noGossip = true
+
+		nodesService = append(nodesService, nodeService)
 	}
 
-	nodeA := createTestService(t, configA)
-	nodeA.noGossip = true
+	// servASub, err := nodesService[0].host.p2pHost.EventBus().Subscribe(event.WildcardSubscription)
+	// require.NoError(t, err)
 
-	configB := &Config{
-		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
-		NoBootstrap: true,
-		NoMDNS:      true,
-	}
+	var wg sync.WaitGroup
 
-	nodeB := createTestService(t, configB)
-	nodeB.noGossip = true
+	// wg.Add(1)
 
-	configC := &Config{
-		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
-		NoBootstrap: true,
-		NoMDNS:      true,
-	}
+	// go func() {
+	// 	defer wg.Done()
 
-	nodeC := createTestService(t, configC)
-	nodeC.noGossip = true
+	// 	for d := range servASub.Out() {
+	// 		fmt.Printf("(%T) %v\n", d, d)
+	// 	}
+	// }()
 
-	// connect A and B
-	addrInfoB := nodeB.host.addrInfo()
-	err := nodeA.host.connect(addrInfoB)
-	if failedToDial(err) {
-		time.Sleep(TestBackoffTimeout)
-		err = nodeA.host.connect(addrInfoB)
-	}
-	require.NoError(t, err)
+	// A -> B
+	// A -> C
 
-	// connect A and C
-	addrInfoC := nodeC.host.addrInfo()
-	err = nodeA.host.connect(addrInfoC)
-	if failedToDial(err) {
-		time.Sleep(TestBackoffTimeout)
-		err = nodeA.host.connect(addrInfoC)
-	}
-	require.NoError(t, err)
+	// A (2)
+	// B (1)
+	// C (1)
 
-	// begin advertising and discovery for all nodes
-	err = nodeA.host.discovery.start()
-	require.NoError(t, err)
+	connectNodes(t, nodesService)
 
-	err = nodeB.host.discovery.start()
-	require.NoError(t, err)
+	fmt.Println(">>>>>")
 
-	err = nodeC.host.discovery.start()
-	require.NoError(t, err)
+	fmt.Println(nodesService[0].host.p2pHost.Network().Conns())
 
-	time.Sleep(time.Millisecond * 500)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		// begin advertising and discovery for all nodes
+		err := nodesService[0].host.discovery.start()
+		assert.NoError(t, err)
+		time.Sleep(time.Second * 5)
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		err := nodesService[1].host.discovery.start()
+		assert.NoError(t, err)
+		time.Sleep(time.Second * 5)
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		err := nodesService[2].host.discovery.start()
+		assert.NoError(t, err)
+		time.Sleep(time.Second * 5)
+	}()
+
+	wg.Wait()
 
 	// assert B and C can discover each other
-	addrs := nodeB.host.p2pHost.Peerstore().Addrs(nodeC.host.id())
-	require.NotEqual(t, 0, len(addrs))
+	addrs := nodesService[1].host.p2pHost.Peerstore().Addrs(nodesService[2].host.id())
+	fmt.Println("len(addrs): ", len(addrs))
+	assert.NotEqual(t, 0, len(addrs))
 
+	fmt.Println(nodesService[1].host.p2pHost.Network().Conns())
 }
