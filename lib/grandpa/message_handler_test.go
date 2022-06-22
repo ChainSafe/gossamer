@@ -4,7 +4,7 @@
 package grandpa
 
 import (
-	"fmt"
+	"errors"
 	"testing"
 	"time"
 
@@ -16,7 +16,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/golang/mock/gomock"
-
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -654,8 +654,9 @@ func TestMessageHandler_VerifyBlockJustification_WithEquivocatoryVotes(t *testin
 	just := newJustification(round, testHash, number, precommits)
 	data, err := scale.Marshal(*just)
 	require.NoError(t, err)
-	err = gs.VerifyBlockJustification(testHash, data)
+	returnedJust, err := gs.VerifyBlockJustification(testHash, data)
 	require.NoError(t, err)
+	require.Equal(t, data, returnedJust)
 }
 
 func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
@@ -698,8 +699,9 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	just := newJustification(round, testHash, number, precommits)
 	data, err := scale.Marshal(*just)
 	require.NoError(t, err)
-	err = gs.VerifyBlockJustification(testHash, data)
+	returnedJust, err := gs.VerifyBlockJustification(testHash, data)
 	require.NoError(t, err)
+	require.Equal(t, data, returnedJust)
 
 	// use wrong hash, shouldn't verify
 	precommits = buildTestJustification(t, 2, round+1, setID, kr, precommit)
@@ -707,9 +709,10 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	just.Commit.Precommits[0].Vote.Hash = genhash
 	data, err = scale.Marshal(*just)
 	require.NoError(t, err)
-	err = gs.VerifyBlockJustification(testHash, data)
+	returnedJust, err = gs.VerifyBlockJustification(testHash, data)
 	require.NotNil(t, err)
 	require.Equal(t, blocktree.ErrEndNodeNotFound, err)
+	require.Nil(t, returnedJust)
 }
 
 func TestMessageHandler_VerifyBlockJustification_invalid(t *testing.T) {
@@ -754,34 +757,38 @@ func TestMessageHandler_VerifyBlockJustification_invalid(t *testing.T) {
 	just.Commit.Precommits[0].Vote.Hash = genhash
 	data, err := scale.Marshal(*just)
 	require.NoError(t, err)
-	err = gs.VerifyBlockJustification(testHash, data)
+	returnedJust, err := gs.VerifyBlockJustification(testHash, data)
 	require.NotNil(t, err)
 	require.Equal(t, ErrPrecommitBlockMismatch, err)
+	require.Nil(t, returnedJust)
 
 	// use wrong round, shouldn't verify
 	precommits = buildTestJustification(t, 2, round+1, setID, kr, precommit)
 	just = newJustification(round+2, testHash, number, precommits)
 	data, err = scale.Marshal(*just)
 	require.NoError(t, err)
-	err = gs.VerifyBlockJustification(testHash, data)
+	returnedJust, err = gs.VerifyBlockJustification(testHash, data)
 	require.NotNil(t, err)
 	require.Equal(t, ErrInvalidSignature, err)
+	require.Nil(t, returnedJust)
 
 	// add authority not in set, shouldn't verify
 	precommits = buildTestJustification(t, len(auths)+1, round+1, setID, kr, precommit)
 	just = newJustification(round+1, testHash, number, precommits)
 	data, err = scale.Marshal(*just)
 	require.NoError(t, err)
-	err = gs.VerifyBlockJustification(testHash, data)
+	returnedJust, err = gs.VerifyBlockJustification(testHash, data)
 	require.Equal(t, ErrAuthorityNotInSet, err)
+	require.Nil(t, returnedJust)
 
 	// not enough signatures, shouldn't verify
 	precommits = buildTestJustification(t, 1, round+1, setID, kr, precommit)
 	just = newJustification(round+1, testHash, number, precommits)
 	data, err = scale.Marshal(*just)
 	require.NoError(t, err)
-	err = gs.VerifyBlockJustification(testHash, data)
+	returnedJust, err = gs.VerifyBlockJustification(testHash, data)
 	require.Equal(t, ErrMinVotesNotMet, err)
+	require.Nil(t, returnedJust)
 }
 
 func Test_getEquivocatoryVoters(t *testing.T) {
@@ -1057,29 +1064,151 @@ func signFakeFullVote(
 	return sig
 }
 
-//go:generate mockgen -destination=mock_blockstate_test.go -package $GOPACKAGE . BlockState,GrandpaState
 func TestService_VerifyBlockJustification(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	mockGrandpa := NewMockGrandpaState(ctrl)
-	mockGrandpa.EXPECT().GetSetIDByBlockNumber(uint(8))
-	mockGrandpa.EXPECT().GetAuthorities(uint64(0)).Return([]types.GrandpaVoter{}, nil)
-	mockBlockState := NewMockBlockState(ctrl)
-	mockBlockState.EXPECT().HasFinalisedBlock(uint64(5), uint64(0))
-	mockHeader := types.NewEmptyHeader()
-	mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(mockHeader, nil)
-	mockBlockState.EXPECT().IsDescendantOf(mockHeader.Hash(),
-		common.MustHexToHash("0x8306f3c4dda0211e863e52c8bc15a3251e5ba38c7dd2f241f896653665e5e7e0")).Return(true,
-		nil).Times(2)
+	validJustification := "0x05000000000000008306f3c4dda0211e863e52c8bc15a3251e5ba38c7dd2f241f896653665e5e7e0080000" +
+		"000c8306f3c4dda0211e863e52c8bc15a3251e5ba38c7dd2f241f896653665e5e7e0080000001fd54b3502e84c96a1ab890d507789" +
+		"266c4611d784d0169a575e120874271d075b6717ab5a7eb7d9618c3916ecaf4310286163fc77152be2919c981701b9aa0ed17c2d78" +
+		"23ebf260fd138f2d7e27d114c0145d968b5ff5006125f2414fadae698306f3c4dda0211e863e52c8bc15a3251e5ba38c7dd2f241f8" +
+		"96653665e5e7e0080000002187956a30a233c1bf4d9e4e0b63eb887641f58758432915b2a5e3ab66543942e752767111fc75dcfbe3" +
+		"955d71c443adbc156e67c82fa2ae9b6a16b014d7690488dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0" +
+		"ee8306f3c4dda0211e863e52c8bc15a3251e5ba38c7dd2f241f896653665e5e7e008000000dad739bb86c09539662075845873c109" +
+		"c29f6c13e9a0ac771f08c4b58e96c5a2198e387fb3f18a2506c28f2c2a151044d1ae9dc40f83efa73cdfcf9a37615c09439660b36c" +
+		"6c03afafca027b910b4fecf99801834c62a5e6006f27d978de234f"
 
-	//mockJust := common.MustHexToBytes(
-	//		"0x05000000000000008306f3c4dda0211e863e52c8bc15a3251e5ba38c7dd2f241f896653665e5e7e0080000000c8306f3c4dda0211e863e52c8bc15a3251e5ba38c7dd2f241f896653665e5e7e0080000001fd54b3502e84c96a1ab890d507789266c4611d784d0169a575e120874271d075b6717ab5a7eb7d9618c3916ecaf4310286163fc77152be2919c981701b9aa0ed17c2d7823ebf260fd138f2d7e27d114c0145d968b5ff5006125f2414fadae698306f3c4dda0211e863e52c8bc15a3251e5ba38c7dd2f241f896653665e5e7e0080000002187956a30a233c1bf4d9e4e0b63eb887641f58758432915b2a5e3ab66543942e752767111fc75dcfbe3955d71c443adbc156e67c82fa2ae9b6a16b014d7690488dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee8306f3c4dda0211e863e52c8bc15a3251e5ba38c7dd2f241f896653665e5e7e008000000dad739bb86c09539662075845873c109c29f6c13e9a0ac771f08c4b58e96c5a2198e387fb3f18a2506c28f2c2a151044d1ae9dc40f83efa73cdfcf9a37615c09439660b36c6c03afafca027b910b4fecf99801834c62a5e6006f27d978de234")
-	mockJust := common.MustHexToBytes(
-		"0x05000000000000008306f3c4dda0211e863e52c8bc15a3251e5ba38c7dd2f241f896653665e5e7e0080000000c8306f3c4dda0211e863e52c8bc15a3251e5ba38c7dd2f241f896653665e5e7e0080000001fd54b3502e84c96a1ab890d507789266c4611d784d0169a575e120874271d075b6717ab5a7eb7d9618c3916ecaf4310286163fc77152be2919c981701b9aa0ed17c2d7823ebf260fd138f2d7e27d114c0145d968b5ff5006125f2414fadae698306f3c4dda0211e863e52c8bc15a3251e5ba38c7dd2f241f896653665e5e7e0080000002187956a30a233c1bf4d9e4e0b63eb887641f58758432915b2a5e3ab66543942e752767111fc75dcfbe3955d71c443adbc156e67c82fa2ae9b6a16b014d7690488dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee8306f3c4dda0211e863e52c8bc15a3251e5ba38c7dd2f241f896653665e5e7e008000000dad739bb86c09539662075845873c109c29f6c13e9a0ac771f08c4b58e96c5a2198e387fb3f18a2506c28f2c2a151044d1ae9dc40f83efa73cdfcf9a37615c09439660b36c6c03afafca027b910b4fecf99801834c62a5e6006f27d978de234faabbccddeeff")
-
-	grandpa := Service{
-		grandpaState: mockGrandpa,
-		blockState:   mockBlockState,
+	type fields struct {
+		blockStateBuilder   func(ctrl *gomock.Controller) BlockState
+		grandpaStateBuilder func(ctrl *gomock.Controller) GrandpaState
 	}
-	grandpa.VerifyBlockJustification(types.NewEmptyHeader().Hash(), mockJust)
-	fmt.Printf("mustJust %x\n", mockJust)
+	type args struct {
+		hash          common.Hash
+		justification []byte
+	}
+	tests := map[string]struct {
+		fields  fields
+		args    args
+		want    []byte
+		wantErr error
+	}{
+		"invalid justification": {
+			fields: fields{
+				blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+					return nil
+				},
+				grandpaStateBuilder: func(ctrl *gomock.Controller) GrandpaState {
+					return nil
+				},
+			},
+			args: args{
+				hash:          common.Hash{},
+				justification: []byte{1, 2, 3},
+			},
+			want: nil,
+			wantErr: errors.New("EOF, field: 0x0000000000000000000000000000000000000000000000000000000000000000, " +
+				"field: {Hash:0x0000000000000000000000000000000000000000000000000000000000000000 Number:0 Precommits:[]}"),
+		},
+		"valid justification": {
+			fields: fields{
+				blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+					mockBlockState := NewMockBlockState(ctrl)
+					mockBlockState.EXPECT().HasFinalisedBlock(uint64(5), uint64(0)).Return(false, nil)
+					mockHeader := types.NewEmptyHeader()
+					mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(mockHeader, nil)
+					mockBlockState.EXPECT().IsDescendantOf(mockHeader.Hash(),
+						common.MustHexToHash("0x8306f3c4dda0211e863e52c8bc15a3251e5ba38c7dd2f241f896653665e5e7e0")).
+						Return(true, nil).Times(4)
+					mockBlockState.EXPECT().GetHeader(common.MustHexToHash(
+						"0x8306f3c4dda0211e863e52c8bc15a3251e5ba38c7dd2f241f896653665e5e7e0")).Return(&types.Header{Number: 8},
+						nil).Times(4)
+					mockBlockState.EXPECT().SetFinalisedHash(common.MustHexToHash(
+						"0xdcdd89927d8a348e00257e1ecc8617f45edb5118efff3ea2f9961b2ad9b7690a"), uint64(5), uint64(0)).Return(nil)
+					return mockBlockState
+				},
+				grandpaStateBuilder: func(ctrl *gomock.Controller) GrandpaState {
+					mockGrandpaState := NewMockGrandpaState(ctrl)
+					mockGrandpaState.EXPECT().GetSetIDByBlockNumber(uint(8)).Return(uint64(0), nil)
+					key1, err := ed25519.NewPublicKey(common.MustHexToBytes(
+						"0xd17c2d7823ebf260fd138f2d7e27d114c0145d968b5ff5006125f2414fadae69"))
+					require.NoError(t, err)
+					key2, err := ed25519.NewPublicKey(common.MustHexToBytes(
+						"0x88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee"))
+					require.NoError(t, err)
+					key3, err := ed25519.NewPublicKey(common.MustHexToBytes(
+						"0x439660b36c6c03afafca027b910b4fecf99801834c62a5e6006f27d978de234f"))
+					require.NoError(t, err)
+					mockGrandpaState.EXPECT().GetAuthorities(uint64(0)).Return([]types.GrandpaVoter{
+						{Key: *key1, ID: 1},
+						{Key: *key2, ID: 2},
+						{Key: *key3, ID: 3},
+					}, nil)
+					return mockGrandpaState
+				},
+			},
+			args: args{
+				hash:          types.NewEmptyHeader().Hash(),
+				justification: common.MustHexToBytes(validJustification),
+			},
+			want: common.MustHexToBytes(validJustification),
+		},
+		"valid justification with extra bytes": {
+			fields: fields{
+				blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+					mockBlockState := NewMockBlockState(ctrl)
+					mockBlockState.EXPECT().HasFinalisedBlock(uint64(5), uint64(0)).Return(false, nil)
+					mockHeader := types.NewEmptyHeader()
+					mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(mockHeader, nil)
+					mockBlockState.EXPECT().IsDescendantOf(mockHeader.Hash(),
+						common.MustHexToHash("0x8306f3c4dda0211e863e52c8bc15a3251e5ba38c7dd2f241f896653665e5e7e0")).
+						Return(true, nil).Times(4)
+					mockBlockState.EXPECT().GetHeader(common.MustHexToHash(
+						"0x8306f3c4dda0211e863e52c8bc15a3251e5ba38c7dd2f241f896653665e5e7e0")).Return(&types.Header{Number: 8},
+						nil).Times(4)
+					mockBlockState.EXPECT().SetFinalisedHash(common.MustHexToHash(
+						"0xdcdd89927d8a348e00257e1ecc8617f45edb5118efff3ea2f9961b2ad9b7690a"), uint64(5), uint64(0)).Return(nil)
+					return mockBlockState
+				},
+				grandpaStateBuilder: func(ctrl *gomock.Controller) GrandpaState {
+					mockGrandpaState := NewMockGrandpaState(ctrl)
+					mockGrandpaState.EXPECT().GetSetIDByBlockNumber(uint(8)).Return(uint64(0), nil)
+					key1, err := ed25519.NewPublicKey(common.MustHexToBytes(
+						"0xd17c2d7823ebf260fd138f2d7e27d114c0145d968b5ff5006125f2414fadae69"))
+					require.NoError(t, err)
+					key2, err := ed25519.NewPublicKey(common.MustHexToBytes(
+						"0x88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee"))
+					require.NoError(t, err)
+					key3, err := ed25519.NewPublicKey(common.MustHexToBytes(
+						"0x439660b36c6c03afafca027b910b4fecf99801834c62a5e6006f27d978de234f"))
+					require.NoError(t, err)
+					mockGrandpaState.EXPECT().GetAuthorities(uint64(0)).Return([]types.GrandpaVoter{
+						{Key: *key1, ID: 1},
+						{Key: *key2, ID: 2},
+						{Key: *key3, ID: 3},
+					}, nil)
+					return mockGrandpaState
+				},
+			},
+			args: args{
+				hash:          types.NewEmptyHeader().Hash(),
+				justification: common.MustHexToBytes(validJustification + "0102030405060708090a0b0c0d0e0f"),
+			},
+			want: common.MustHexToBytes(validJustification),
+		},
+	}
+	for name, tt := range tests {
+		tt := tt
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			ctrl := gomock.NewController(t)
+			s := &Service{
+				blockState:   tt.fields.blockStateBuilder(ctrl),
+				grandpaState: tt.fields.grandpaStateBuilder(ctrl),
+			}
+			got, err := s.VerifyBlockJustification(tt.args.hash, tt.args.justification)
+			if tt.wantErr != nil {
+				assert.ErrorContains(t, err, tt.wantErr.Error())
+			} else {
+				require.NoError(t, err)
+			}
+			assert.Equalf(t, tt.want, got, "VerifyBlockJustification(%v, %v)", tt.args.hash, tt.args.justification)
+		})
+	}
 }

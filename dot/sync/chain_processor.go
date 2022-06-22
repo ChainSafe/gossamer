@@ -253,13 +253,13 @@ func (s *chainProcessor) handleJustification(header *types.Header, justification
 		return
 	}
 
-	err := s.finalityGadget.VerifyBlockJustification(header.Hash(), justification)
+	returnedJustification, err := s.finalityGadget.VerifyBlockJustification(header.Hash(), justification)
 	if err != nil {
 		logger.Warnf("failed to verify block number %d and hash %s justification: %s", header.Number, header.Hash(), err)
 		return
 	}
 
-	err = s.blockState.SetJustification(header.Hash(), justification)
+	err = s.blockState.SetJustification(header.Hash(), returnedJustification)
 	if err != nil {
 		logger.Errorf("failed tostore justification: %s", err)
 		return
