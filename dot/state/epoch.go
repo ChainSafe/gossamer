@@ -264,7 +264,7 @@ func (s *EpochState) GetEpochData(epoch uint64, header *types.Header) (*types.Ep
 	s.nextEpochDataLock.RLock()
 	defer s.nextEpochDataLock.RUnlock()
 
-	inMemoryEpochData, err := retrieveFromMemory(s.nextEpochData, s, epoch, header)
+	inMemoryEpochData, err := retrieveFromMemory(s.nextEpochData, s.blockState, epoch, header)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get epoch data from memory: %w", err)
 	}
@@ -349,7 +349,7 @@ func (s *EpochState) GetConfigData(epoch uint64, header *types.Header) (configDa
 		// we will check in the memory map and if we don't find the data
 		// then we continue searching through the previous epoch
 		s.nextConfigDataLock.RLock()
-		inMemoryConfigData, err := retrieveFromMemory(s.nextConfigData, s, uint64(tryEpoch), header)
+		inMemoryConfigData, err := retrieveFromMemory(s.nextConfigData, s.blockState, uint64(tryEpoch), header)
 		s.nextConfigDataLock.RUnlock()
 
 		if errors.Is(err, ErrEpochNotInMemory) {
@@ -381,7 +381,7 @@ func (s *EpochState) getConfigDataFromDatabase(epoch uint64) (*types.ConfigData,
 }
 
 func retrieveFromMemory[T types.NextEpochData | types.NextConfigData](nextEpochMap map[uint64]map[common.Hash]T,
-	es *EpochState, epoch uint64, header *types.Header) (*T, error) {
+	blockState *BlockState, epoch uint64, header *types.Header) (*T, error) {
 
 	atEpoch, has := nextEpochMap[epoch]
 	if !has {
@@ -390,18 +390,18 @@ func retrieveFromMemory[T types.NextEpochData | types.NextConfigData](nextEpochM
 
 	headerHash := header.Hash()
 	for hash, value := range atEpoch {
-		isDescendant, err := es.blockState.IsDescendantOf(hash, headerHash)
+		isDescendant, err := blockState.IsDescendantOf(hash, headerHash)
 
 		// sometimes while moving to the next epoch is possible the header
 		// is not fully imported by the blocktree, in this case we will use
 		// its parent header which migth be already imported.
 		if errors.Is(err, blocktree.ErrEndNodeNotFound) {
-			parentHeader, err := es.blockState.GetHeader(header.ParentHash)
+			parentHeader, err := blockState.GetHeader(header.ParentHash)
 			if err != nil {
 				return nil, fmt.Errorf("cannot get parent header: %w", err)
 			}
 
-			return retrieveFromMemory(nextEpochMap, es, epoch, parentHeader)
+			return retrieveFromMemory(nextEpochMap, blockState, epoch, parentHeader)
 		}
 
 		if err != nil {
