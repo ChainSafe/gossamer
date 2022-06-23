@@ -105,7 +105,6 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 	if bd == nil {
 		return ErrNilBlockData
 	}
-	logger.Errorf("PROCESS BLOCK DATA justification %v ", bd.Justification)
 	hasHeader, err := s.blockState.HasHeader(bd.Hash)
 	if err != nil {
 		return fmt.Errorf("failed to check if block state has header for hash %s: %w", bd.Hash, err)
