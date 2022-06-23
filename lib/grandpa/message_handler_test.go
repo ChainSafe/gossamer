@@ -4,6 +4,7 @@
 package grandpa
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -781,6 +782,18 @@ func TestMessageHandler_VerifyBlockJustification_invalid(t *testing.T) {
 	require.NoError(t, err)
 	err = gs.VerifyBlockJustification(testHash, data)
 	require.Equal(t, ErrMinVotesNotMet, err)
+
+	// mismatch justification header and block header
+	precommits = buildTestJustification(t, 1, round+1, setID, kr, precommit)
+	just = newJustification(round+1, testHash, number, precommits)
+	data, err = scale.Marshal(*just)
+	require.NoError(t, err)
+	otherHeader := types.NewEmptyHeader()
+	err = gs.VerifyBlockJustification(otherHeader.Hash(), data)
+	require.ErrorIs(t, err, ErrJustificationMismatch)
+
+	expectedErr := fmt.Sprintf("%s: %s not equal %s", ErrJustificationMismatch, testHash.Short(), otherHeader.Hash().Short())
+	require.EqualError(t, err, expectedErr)
 }
 
 func Test_getEquivocatoryVoters(t *testing.T) {

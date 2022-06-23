@@ -64,9 +64,9 @@ func (h Hash) String() string {
 	return fmt.Sprintf("0x%x", h[:])
 }
 
-// Short returns the first 5 bytes and the last 5 bytes of the hex string for the hash
+// Short returns the first 3 bytes and the last 3 bytes of the hex string for the hash
 func (h Hash) Short() string {
-	const nBytes = 5
+	const nBytes = 3
 	return fmt.Sprintf("0x%x...%x", h[:nBytes], h[len(h)-nBytes:])
 }
 
