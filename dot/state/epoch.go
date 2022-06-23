@@ -17,9 +17,11 @@ import (
 )
 
 var (
-	ErrEpochNotInMemory = errors.New("epoch not found in memory map")
-	errHashNotInMemory  = errors.New("hash not found in memory map")
-	errHashNotPersisted = errors.New("hash with next epoch not found in database")
+	ErrEpochNotInMemory   = errors.New("epoch not found in memory map")
+	errHashNotInMemory    = errors.New("hash not found in memory map")
+	errEpochDataNotFound  = errors.New("epoch data not found in the database")
+	errHashNotPersisted   = errors.New("hash with next epoch not found in database")
+	errNoPreRuntimeDigest = errors.New("header does not contain pre-runtime digest")
 )
 
 var (
@@ -225,7 +227,7 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 		return (slotNumber - firstSlot) / s.epochLength, nil
 	}
 
-	return 0, errors.New("header does not contain pre-runtime digest")
+	return 0, errNoPreRuntimeDigest
 }
 
 // SetEpochData sets the epoch data for a given epoch
@@ -251,14 +253,19 @@ func (s *EpochState) GetEpochData(epoch uint64, header *types.Header) (*types.Ep
 
 	if err != nil && !errors.Is(err, chaindb.ErrKeyNotFound) {
 		return nil, fmt.Errorf("failed to get epoch data from database: %w", err)
-	} else if header == nil {
-		// if no header is given then skip the lookup in-memory
-		return epochData, nil
 	}
 
-	epochData, err = s.getEpochDataFromMemory(epoch, header)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get epoch data from memory: %w", err)
+	//  lookup in-memory only if header is given
+	if header != nil && errors.Is(err, chaindb.ErrKeyNotFound) {
+		epochData, err = s.getEpochDataFromMemory(epoch, header)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get epoch data from memory: %w", err)
+		}
+	}
+
+	if epochData == nil {
+		return nil, fmt.Errorf("%w: for epoch %d and header with hash %s",
+			errEpochDataNotFound, epoch, header.Hash())
 	}
 
 	return epochData, nil
@@ -543,16 +550,23 @@ func (s *EpochState) StoreBABENextConfigData(epoch uint64, hash common.Hash, nex
 // check if the header is in the database then it's been finalized and
 // thus we can also set the corresponding EpochData in the database
 func (s *EpochState) FinalizeBABENextEpochData(finalizedHeader *types.Header) error {
+	if finalizedHeader.Number == 0 {
+		return nil
+	}
+
 	s.nextEpochDataLock.Lock()
 	defer s.nextEpochDataLock.Unlock()
 
-	finalizedBlockEpoch, err := s.GetEpochForBlock(finalizedHeader)
-	if err != nil {
-		return fmt.Errorf("cannot get epoch for block %d (%s): %w",
-			finalizedHeader.Number, finalizedHeader.Hash(), err)
-	}
+	var nextEpoch uint64 = 1
+	if finalizedHeader.Number != 0 {
+		finalizedBlockEpoch, err := s.GetEpochForBlock(finalizedHeader)
+		if err != nil {
+			return fmt.Errorf("cannot get epoch for block %d (%s): %w",
+				finalizedHeader.Number, finalizedHeader.Hash(), err)
+		}
 
-	nextEpoch := finalizedBlockEpoch + 1
+		nextEpoch = finalizedBlockEpoch + 1
+	}
 
 	epochInDatabase, err := s.getEpochDataFromDatabase(nextEpoch)
 
@@ -597,16 +611,23 @@ func (s *EpochState) FinalizeBABENextEpochData(finalizedHeader *types.Header) er
 // check if the header is in the database then it's been finalized and
 // thus we can also set the corresponding NextConfigData in the database
 func (s *EpochState) FinalizeBABENextConfigData(finalizedHeader *types.Header) error {
+	if finalizedHeader.Number == 0 {
+		return nil
+	}
+
 	s.nextConfigDataLock.Lock()
 	defer s.nextConfigDataLock.Unlock()
 
-	finalizedBlockEpoch, err := s.GetEpochForBlock(finalizedHeader)
-	if err != nil {
-		return fmt.Errorf("cannot get epoch for block %d (%s): %w",
-			finalizedHeader.Number, finalizedHeader.Hash(), err)
-	}
+	var nextEpoch uint64 = 1
+	if finalizedHeader.Number != 0 {
+		finalizedBlockEpoch, err := s.GetEpochForBlock(finalizedHeader)
+		if err != nil {
+			return fmt.Errorf("cannot get epoch for block %d (%s): %w",
+				finalizedHeader.Number, finalizedHeader.Hash(), err)
+		}
 
-	nextEpoch := finalizedBlockEpoch + 1
+		nextEpoch = finalizedBlockEpoch + 1
+	}
 
 	configInDatabase, err := s.getConfigDataFromDatabase(nextEpoch)
 
