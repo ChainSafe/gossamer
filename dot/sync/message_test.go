@@ -4,589 +4,427 @@
 package sync
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/network"
-	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
-	"github.com/ChainSafe/gossamer/lib/trie"
-
-	"github.com/stretchr/testify/require"
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 )
 
-func addTestBlocksToState(t *testing.T, depth uint, blockState BlockState) {
-	previousHash := blockState.BestBlockHash()
-	previousNum, err := blockState.BestBlockNumber()
-	require.NoError(t, err)
-
-	digest := types.NewDigest()
-	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
-	require.NoError(t, err)
-	err = digest.Add(*prd)
-	require.NoError(t, err)
-
-	for i := uint(1); i <= depth; i++ {
-		block := &types.Block{
-			Header: types.Header{
-				ParentHash: previousHash,
-				Number:     previousNum + i,
-				StateRoot:  trie.EmptyHash,
-				Digest:     digest,
-			},
-			Body: types.Body{},
-		}
-
-		previousHash = block.Header.Hash()
-
-		err := blockState.AddBlock(block)
-		require.NoError(t, err)
-	}
-}
-
-func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
-	s := newTestSyncer(t)
-	addTestBlocksToState(t, maxResponseSize*2, s.blockState)
-
-	// test ascending
-	start, err := variadic.NewUint32OrHash(1)
-	require.NoError(t, err)
-
-	req := &network.BlockRequestMessage{
-		RequestedData: 3,
-		StartingBlock: *start,
-		EndBlockHash:  nil,
-		Direction:     network.Ascending,
-		Max:           nil,
-	}
-
-	resp, err := s.CreateBlockResponse(req)
-	require.NoError(t, err)
-	require.Equal(t, int(maxResponseSize), len(resp.BlockData))
-	require.Equal(t, uint(1), resp.BlockData[0].Number())
-	require.Equal(t, uint(128), resp.BlockData[127].Number())
-
-	max := uint32(maxResponseSize + 100)
-	req = &network.BlockRequestMessage{
-		RequestedData: 3,
-		StartingBlock: *start,
-		EndBlockHash:  nil,
-		Direction:     network.Ascending,
-		Max:           &max,
-	}
-
-	resp, err = s.CreateBlockResponse(req)
-	require.NoError(t, err)
-	require.Equal(t, int(maxResponseSize), len(resp.BlockData))
-	require.Equal(t, uint(1), resp.BlockData[0].Number())
-	require.Equal(t, uint(128), resp.BlockData[127].Number())
-
-	max = uint32(16)
-	req = &network.BlockRequestMessage{
-		RequestedData: 3,
-		StartingBlock: *start,
-		EndBlockHash:  nil,
-		Direction:     network.Ascending,
-		Max:           &max,
-	}
-
-	resp, err = s.CreateBlockResponse(req)
-	require.NoError(t, err)
-	require.Equal(t, int(max), len(resp.BlockData))
-	require.Equal(t, uint(1), resp.BlockData[0].Number())
-	require.Equal(t, uint(16), resp.BlockData[15].Number())
-
-	// test descending
-	start, err = variadic.NewUint32OrHash(uint32(128))
-	require.NoError(t, err)
-
-	req = &network.BlockRequestMessage{
-		RequestedData: 3,
-		StartingBlock: *start,
-		EndBlockHash:  nil,
-		Direction:     network.Descending,
-		Max:           nil,
-	}
-
-	resp, err = s.CreateBlockResponse(req)
-	require.NoError(t, err)
-	require.Equal(t, int(maxResponseSize), len(resp.BlockData))
-	require.Equal(t, uint(128), resp.BlockData[0].Number())
-	require.Equal(t, uint(1), resp.BlockData[127].Number())
-
-	max = uint32(maxResponseSize + 100)
-	start, err = variadic.NewUint32OrHash(uint32(256))
-	require.NoError(t, err)
-
-	req = &network.BlockRequestMessage{
-		RequestedData: 3,
-		StartingBlock: *start,
-		EndBlockHash:  nil,
-		Direction:     network.Descending,
-		Max:           &max,
-	}
-
-	resp, err = s.CreateBlockResponse(req)
-	require.NoError(t, err)
-	require.Equal(t, int(maxResponseSize), len(resp.BlockData))
-	require.Equal(t, uint(256), resp.BlockData[0].Number())
-	require.Equal(t, uint(129), resp.BlockData[127].Number())
-
-	max = uint32(16)
-	req = &network.BlockRequestMessage{
-		RequestedData: 3,
-		StartingBlock: *start,
-		EndBlockHash:  nil,
-		Direction:     network.Descending,
-		Max:           &max,
-	}
-
-	resp, err = s.CreateBlockResponse(req)
-	require.NoError(t, err)
-	require.Equal(t, int(max), len(resp.BlockData))
-	require.Equal(t, uint(256), resp.BlockData[0].Number())
-	require.Equal(t, uint(241), resp.BlockData[15].Number())
-}
-
-func TestService_CreateBlockResponse_StartHash(t *testing.T) {
-	s := newTestSyncer(t)
-	addTestBlocksToState(t, uint(maxResponseSize*2), s.blockState)
-
-	// test ascending with nil endBlockHash
-	startHash, err := s.blockState.GetHashByNumber(1)
-	require.NoError(t, err)
-
-	start, err := variadic.NewUint32OrHash(startHash)
-	require.NoError(t, err)
-
-	req := &network.BlockRequestMessage{
-		RequestedData: 3,
-		StartingBlock: *start,
-		EndBlockHash:  nil,
-		Direction:     network.Ascending,
-		Max:           nil,
-	}
-
-	resp, err := s.CreateBlockResponse(req)
-	require.NoError(t, err)
-	require.Equal(t, int(maxResponseSize), len(resp.BlockData))
-	require.Equal(t, uint(1), resp.BlockData[0].Number())
-	require.Equal(t, uint(128), resp.BlockData[127].Number())
-
-	endHash, err := s.blockState.GetHashByNumber(16)
-	require.NoError(t, err)
-
-	// test ascending with non-nil endBlockHash
-	req = &network.BlockRequestMessage{
-		RequestedData: 3,
-		StartingBlock: *start,
-		EndBlockHash:  &endHash,
-		Direction:     network.Ascending,
-		Max:           nil,
-	}
-
-	resp, err = s.CreateBlockResponse(req)
-	require.NoError(t, err)
-	require.Equal(t, int(16), len(resp.BlockData))
-	require.Equal(t, uint(1), resp.BlockData[0].Number())
-	require.Equal(t, uint(16), resp.BlockData[15].Number())
-
-	// test descending with nil endBlockHash
-	startHash, err = s.blockState.GetHashByNumber(16)
-	require.NoError(t, err)
-
-	start, err = variadic.NewUint32OrHash(startHash)
-	require.NoError(t, err)
-
-	req = &network.BlockRequestMessage{
-		RequestedData: 3,
-		StartingBlock: *start,
-		EndBlockHash:  nil,
-		Direction:     network.Descending,
-		Max:           nil,
-	}
-
-	resp, err = s.CreateBlockResponse(req)
-	require.NoError(t, err)
-	require.Equal(t, int(16), len(resp.BlockData))
-	require.Equal(t, uint(16), resp.BlockData[0].Number())
-	require.Equal(t, uint(1), resp.BlockData[15].Number())
-
-	// test descending with non-nil endBlockHash
-	endHash, err = s.blockState.GetHashByNumber(1)
-	require.NoError(t, err)
-
-	req = &network.BlockRequestMessage{
-		RequestedData: 3,
-		StartingBlock: *start,
-		EndBlockHash:  &endHash,
-		Direction:     network.Descending,
-		Max:           nil,
-	}
-
-	resp, err = s.CreateBlockResponse(req)
-	require.NoError(t, err)
-	require.Equal(t, int(16), len(resp.BlockData))
-	require.Equal(t, uint(16), resp.BlockData[0].Number())
-	require.Equal(t, uint(1), resp.BlockData[15].Number())
-
-	// test descending with nil endBlockHash and start > maxResponseSize
-	startHash, err = s.blockState.GetHashByNumber(256)
-	require.NoError(t, err)
-
-	start, err = variadic.NewUint32OrHash(startHash)
-	require.NoError(t, err)
-
-	req = &network.BlockRequestMessage{
-		RequestedData: 3,
-		StartingBlock: *start,
-		EndBlockHash:  nil,
-		Direction:     network.Descending,
-		Max:           nil,
-	}
-
-	resp, err = s.CreateBlockResponse(req)
-	require.NoError(t, err)
-	require.Equal(t, int(maxResponseSize), len(resp.BlockData))
-	require.Equal(t, uint(256), resp.BlockData[0].Number())
-	require.Equal(t, uint(129), resp.BlockData[127].Number())
-
-	startHash, err = s.blockState.GetHashByNumber(128)
-	require.NoError(t, err)
-
-	start, err = variadic.NewUint32OrHash(startHash)
-	require.NoError(t, err)
-
-	req = &network.BlockRequestMessage{
-		RequestedData: 3,
-		StartingBlock: *start,
-		EndBlockHash:  nil,
-		Direction:     network.Descending,
-		Max:           nil,
-	}
-
-	resp, err = s.CreateBlockResponse(req)
-	require.NoError(t, err)
-	require.Equal(t, maxResponseSize, len(resp.BlockData))
-	require.Equal(t, uint(128), resp.BlockData[0].Number())
-	require.Equal(t, uint(1), resp.BlockData[127].Number())
-}
-
-func TestService_CreateBlockResponse_Ascending_EndHash(t *testing.T) {
+func TestService_CreateBlockResponse(t *testing.T) {
 	t.Parallel()
-	s := newTestSyncer(t)
-	addTestBlocksToState(t, uint(maxResponseSize+1), s.blockState)
 
-	// should error if end < start
-	start, err := variadic.NewUint32OrHash(uint32(128))
-	require.NoError(t, err)
-
-	end, err := s.blockState.GetHashByNumber(1)
-	require.NoError(t, err)
-
-	req := &network.BlockRequestMessage{
-		RequestedData: 3,
-		StartingBlock: *start,
-		EndBlockHash:  &end,
-		Direction:     network.Ascending,
-		Max:           nil,
+	type args struct {
+		req *network.BlockRequestMessage
 	}
+	tests := map[string]struct {
+		blockStateBuilder func(ctrl *gomock.Controller) BlockState
+		args              args
+		want              *network.BlockResponseMessage
+		err               error
+	}{
+		"invalid block request": {
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				return nil
+			},
+			args: args{req: &network.BlockRequestMessage{}},
+			err:  ErrInvalidBlockRequest,
+		},
+		"ascending request nil startHash nil endHash": {
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().BestBlockNumber().Return(uint(1), nil).Times(2)
+				mockBlockState.EXPECT().GetHashByNumber(uint(1)).Return(common.Hash{1, 2}, nil)
+				return mockBlockState
+			},
+			args: args{req: &network.BlockRequestMessage{
+				StartingBlock: *variadic.MustNewUint32OrHash(0),
+				Direction:     network.Ascending,
+			}},
+			want: &network.BlockResponseMessage{BlockData: []*types.BlockData{{
+				Hash: common.Hash{1, 2},
+			}}},
+		},
+		"ascending request start number higher": {
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().BestBlockNumber().Return(uint(1), nil)
+				return mockBlockState
+			},
 
-	_, err = s.CreateBlockResponse(req)
-	require.Error(t, err)
-
-	// base case
-	start, err = variadic.NewUint32OrHash(uint32(1))
-	require.NoError(t, err)
-
-	end, err = s.blockState.GetHashByNumber(128)
-	require.NoError(t, err)
-
-	req = &network.BlockRequestMessage{
-		RequestedData: 3,
-		StartingBlock: *start,
-		EndBlockHash:  &end,
-		Direction:     network.Ascending,
-		Max:           nil,
+			args: args{req: &network.BlockRequestMessage{
+				StartingBlock: *variadic.MustNewUint32OrHash(2),
+				Direction:     network.Ascending,
+			}},
+			err:  errRequestStartTooHigh,
+			want: nil,
+		},
+		"ascending request endHash not nil": {
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().BestBlockNumber().Return(uint(1), nil)
+				mockBlockState.EXPECT().GetHashByNumber(uint(1)).Return(common.Hash{1, 2}, nil)
+				mockBlockState.EXPECT().IsDescendantOf(common.Hash{1, 2}, common.Hash{1, 2, 3}).Return(true,
+					nil).Times(2)
+				mockBlockState.EXPECT().GetHeader(common.Hash{1, 2}).Return(&types.Header{
+					Number: 1,
+				}, nil)
+				mockBlockState.EXPECT().GetHeader(common.Hash{1, 2, 3}).Return(&types.Header{
+					Number: 2,
+				}, nil)
+				mockBlockState.EXPECT().SubChain(common.Hash{1, 2}, common.Hash{1, 2, 3}).Return([]common.Hash{{1, 2}},
+					nil)
+				return mockBlockState
+			},
+			args: args{req: &network.BlockRequestMessage{
+				StartingBlock: *variadic.MustNewUint32OrHash(0),
+				EndBlockHash:  &common.Hash{1, 2, 3},
+				Direction:     network.Ascending,
+			}},
+			want: &network.BlockResponseMessage{BlockData: []*types.BlockData{{
+				Hash: common.Hash{1, 2},
+			}}},
+		},
+		"descending request nil startHash nil endHash": {
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().BestBlockNumber().Return(uint(1), nil)
+				return mockBlockState
+			},
+			args: args{req: &network.BlockRequestMessage{
+				StartingBlock: *variadic.MustNewUint32OrHash(0),
+				Direction:     network.Descending,
+			}},
+			want: &network.BlockResponseMessage{BlockData: []*types.BlockData{}},
+		},
+		"descending request start number higher": {
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().BestBlockNumber().Return(uint(1), nil)
+				mockBlockState.EXPECT().GetHashByNumber(uint(1)).Return(common.Hash{1, 2}, nil)
+				return mockBlockState
+			},
+			args: args{req: &network.BlockRequestMessage{
+				StartingBlock: *variadic.MustNewUint32OrHash(2),
+				Direction:     network.Descending,
+			}},
+			err: nil,
+			want: &network.BlockResponseMessage{BlockData: []*types.BlockData{{
+				Hash: common.Hash{1, 2},
+			}}},
+		},
+		"descending request endHash not nil": {
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().BestBlockNumber().Return(uint(1), nil)
+				mockBlockState.EXPECT().GetHashByNumber(uint(0)).Return(common.Hash{1, 2}, nil)
+				mockBlockState.EXPECT().IsDescendantOf(common.Hash{1, 2, 3}, common.Hash{1, 2}).Return(true,
+					nil)
+				mockBlockState.EXPECT().SubChain(common.Hash{1, 2, 3}, common.Hash{1, 2}).Return([]common.Hash{{1,
+					2}},
+					nil)
+				return mockBlockState
+			},
+			args: args{req: &network.BlockRequestMessage{
+				StartingBlock: *variadic.MustNewUint32OrHash(0),
+				EndBlockHash:  &common.Hash{1, 2, 3},
+				Direction:     network.Descending,
+			}},
+			want: &network.BlockResponseMessage{BlockData: []*types.BlockData{{
+				Hash: common.Hash{1, 2},
+			}}},
+		},
+		"ascending request startHash nil endHash": {
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().GetHeader(common.Hash{}).Return(&types.Header{
+					Number: 1,
+				}, nil)
+				mockBlockState.EXPECT().BestBlockNumber().Return(uint(2), nil)
+				mockBlockState.EXPECT().GetHashByNumber(uint(2)).Return(common.Hash{1, 2, 3}, nil)
+				mockBlockState.EXPECT().IsDescendantOf(common.Hash{}, common.Hash{1, 2, 3}).Return(true,
+					nil)
+				mockBlockState.EXPECT().SubChain(common.Hash{}, common.Hash{1, 2, 3}).Return([]common.Hash{{1,
+					2}},
+					nil)
+				return mockBlockState
+			},
+			args: args{req: &network.BlockRequestMessage{
+				StartingBlock: *variadic.MustNewUint32OrHash(common.Hash{}),
+				Direction:     network.Ascending,
+			}},
+			want: &network.BlockResponseMessage{BlockData: []*types.BlockData{{
+				Hash: common.Hash{1, 2},
+			}}},
+		},
+		"descending request startHash nil endHash": {
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().GetHeader(common.Hash{}).Return(&types.Header{
+					Number: 1,
+				}, nil)
+				mockBlockState.EXPECT().GetHeaderByNumber(uint(1)).Return(&types.Header{
+					Number: 1,
+				}, nil)
+				mockBlockState.EXPECT().SubChain(common.MustHexToHash(
+					"0x6443a0b46e0412e626363028115a9f2cf963eeed526b8b33e5316f08b50d0dc3"),
+					common.Hash{}).Return([]common.Hash{{1, 2}}, nil)
+				return mockBlockState
+			},
+			args: args{req: &network.BlockRequestMessage{
+				StartingBlock: *variadic.MustNewUint32OrHash(common.Hash{}),
+				Direction:     network.Descending,
+			}},
+			want: &network.BlockResponseMessage{BlockData: []*types.BlockData{{
+				Hash: common.Hash{1, 2},
+			}}},
+		},
+		"invalid direction": {
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				return nil
+			},
+			args: args{req: &network.BlockRequestMessage{
+				Direction: network.SyncDirection(3),
+			}},
+			err: errInvalidRequestDirection,
+		},
 	}
-
-	resp, err := s.CreateBlockResponse(req)
-	require.NoError(t, err)
-	require.Equal(t, int(maxResponseSize), len(resp.BlockData))
-	require.Equal(t, uint(1), resp.BlockData[0].Number())
-	require.Equal(t, uint(128), resp.BlockData[127].Number())
-}
-
-func TestService_CreateBlockResponse_Descending_EndHash(t *testing.T) {
-	s := newTestSyncer(t)
-	addTestBlocksToState(t, uint(maxResponseSize+1), s.blockState)
-
-	// should error if start < end
-	start, err := variadic.NewUint32OrHash(uint32(1))
-	require.NoError(t, err)
-
-	end, err := s.blockState.GetHashByNumber(128)
-	require.NoError(t, err)
-
-	req := &network.BlockRequestMessage{
-		RequestedData: 3,
-		StartingBlock: *start,
-		EndBlockHash:  &end,
-		Direction:     network.Descending,
-		Max:           nil,
+	for name, tt := range tests {
+		tt := tt
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			ctrl := gomock.NewController(t)
+			s := &Service{
+				blockState: tt.blockStateBuilder(ctrl),
+			}
+			got, err := s.CreateBlockResponse(tt.args.req)
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tt.want, got)
+		})
 	}
-
-	_, err = s.CreateBlockResponse(req)
-	require.Error(t, err)
-
-	// base case
-	start, err = variadic.NewUint32OrHash(uint32(128))
-	require.NoError(t, err)
-
-	end, err = s.blockState.GetHashByNumber(1)
-	require.NoError(t, err)
-
-	req = &network.BlockRequestMessage{
-		RequestedData: 3,
-		StartingBlock: *start,
-		EndBlockHash:  &end,
-		Direction:     network.Descending,
-		Max:           nil,
-	}
-
-	resp, err := s.CreateBlockResponse(req)
-	require.NoError(t, err)
-	require.Equal(t, int(maxResponseSize), len(resp.BlockData))
-	require.Equal(t, uint(128), resp.BlockData[0].Number())
-	require.Equal(t, uint(1), resp.BlockData[127].Number())
 }
 
 func TestService_checkOrGetDescendantHash(t *testing.T) {
 	t.Parallel()
-	s := newTestSyncer(t)
-	branches := map[uint]int{
-		8: 1,
+
+	type args struct {
+		ancestor         common.Hash
+		descendant       *common.Hash
+		descendantNumber uint
 	}
-	state.AddBlocksToStateWithFixedBranches(t, s.blockState.(*state.BlockState), 16, branches)
-
-	// base case
-	ancestor, err := s.blockState.GetHashByNumber(1)
-	require.NoError(t, err)
-	descendant, err := s.blockState.GetHashByNumber(16)
-	require.NoError(t, err)
-	const descendantNumber uint = 16
-
-	res, err := s.checkOrGetDescendantHash(ancestor, &descendant, descendantNumber)
-	require.NoError(t, err)
-	require.Equal(t, descendant, res)
-
-	// supply descendant that's not on canonical chain
-	leaves := s.blockState.(*state.BlockState).Leaves()
-	require.Equal(t, 2, len(leaves))
-
-	ancestor, err = s.blockState.GetHashByNumber(1)
-	require.NoError(t, err)
-	descendant, err = s.blockState.GetHashByNumber(descendantNumber)
-	require.NoError(t, err)
-
-	for _, leaf := range leaves {
-		if !leaf.Equal(descendant) {
-			descendant = leaf
-			break
-		}
+	tests := map[string]struct {
+		name              string
+		blockStateBuilder func(ctrl *gomock.Controller) BlockState
+		args              args
+		want              common.Hash
+		expectedError     error
+	}{
+		"nil descendant": {
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				mockStateBuilder := NewMockBlockState(ctrl)
+				mockStateBuilder.EXPECT().GetHashByNumber(uint(1)).Return(common.Hash{}, nil)
+				mockStateBuilder.EXPECT().IsDescendantOf(common.Hash{}, common.Hash{}).Return(true, nil)
+				return mockStateBuilder
+			},
+			args: args{ancestor: common.Hash{}, descendant: nil, descendantNumber: 1},
+		},
+		"not nil descendant": {
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().GetHeader(common.Hash{}).Return(&types.Header{}, nil)
+				mockBlockState.EXPECT().IsDescendantOf(common.Hash{}, common.Hash{1, 2}).Return(true, nil)
+				return mockBlockState
+			},
+			args: args{ancestor: common.Hash{0}, descendant: &common.Hash{1, 2}, descendantNumber: 1},
+			want: common.Hash{1, 2},
+		},
+		"descendant greater than header": {
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().GetHeader(common.Hash{2}).Return(&types.Header{
+					Number: 2,
+				}, nil)
+				return mockBlockState
+			},
+			args:          args{ancestor: common.Hash{2}, descendant: &common.Hash{1, 2}, descendantNumber: 1},
+			want:          common.Hash{},
+			expectedError: errors.New("invalid request, descendant number 2 is higher than ancestor 1"),
+		},
 	}
-
-	res, err = s.checkOrGetDescendantHash(ancestor, &descendant, descendantNumber)
-	require.NoError(t, err)
-	require.Equal(t, descendant, res)
-
-	// supply descedant that's not on same chain as ancestor
-	ancestor, err = s.blockState.GetHashByNumber(9)
-	require.NoError(t, err)
-	res, err = s.checkOrGetDescendantHash(ancestor, &descendant, descendantNumber)
-	require.Error(t, err)
-
-	// don't supply descendant, should return block on canonical chain
-	// as ancestor is on canonical chain
-	expected, err := s.blockState.GetHashByNumber(descendantNumber)
-	require.NoError(t, err)
-
-	res, err = s.checkOrGetDescendantHash(ancestor, nil, descendantNumber)
-	require.NoError(t, err)
-	require.Equal(t, expected, res)
-
-	// don't supply descendant and provide ancestor not on canonical chain
-	// should return descendant block also not on canonical chain
-	block9s, err := s.blockState.GetAllBlocksAtNumber(9)
-	require.NoError(t, err)
-	canonical, err := s.blockState.GetHashByNumber(9)
-	require.NoError(t, err)
-
-	// set ancestor to non-canonical block 9
-	for _, block := range block9s {
-		if !canonical.Equal(block) {
-			ancestor = block
-			break
-		}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			ctrl := gomock.NewController(t)
+			s := &Service{
+				blockState: tt.blockStateBuilder(ctrl),
+			}
+			got, err := s.checkOrGetDescendantHash(tt.args.ancestor, tt.args.descendant, tt.args.descendantNumber)
+			if tt.expectedError != nil {
+				assert.EqualError(t, err, tt.expectedError.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tt.want, got)
+		})
 	}
-
-	// expected is non-canonical block 16
-	for _, leaf := range leaves {
-		is, err := s.blockState.IsDescendantOf(ancestor, leaf)
-		require.NoError(t, err)
-		if is {
-			expected = leaf
-			break
-		}
-	}
-
-	res, err = s.checkOrGetDescendantHash(ancestor, nil, descendantNumber)
-	require.NoError(t, err)
-	require.Equal(t, expected, res)
 }
 
-func TestService_CreateBlockResponse_Fields(t *testing.T) {
-	s := newTestSyncer(t)
-	addTestBlocksToState(t, 2, s.blockState)
+func TestService_getBlockData(t *testing.T) {
+	t.Parallel()
 
-	bestHash := s.blockState.BestBlockHash()
-	bestBlock, err := s.blockState.GetBlockByNumber(1)
-	require.NoError(t, err)
-
-	// set some nils and check no error is thrown
-	bds := &types.BlockData{
-		Hash:          bestHash,
-		Header:        nil,
-		Receipt:       nil,
-		MessageQueue:  nil,
-		Justification: nil,
+	type args struct {
+		hash          common.Hash
+		requestedData byte
 	}
-	err = s.blockState.CompareAndSetBlockData(bds)
-	require.NoError(t, err)
-
-	// set receipt message and justification
-	a := []byte("asdf")
-	b := []byte("ghjkl")
-	c := []byte("qwerty")
-	bds = &types.BlockData{
-		Hash:          bestHash,
-		Receipt:       &a,
-		MessageQueue:  &b,
-		Justification: &c,
-	}
-
-	endHash := s.blockState.BestBlockHash()
-	start, err := variadic.NewUint32OrHash(uint32(1))
-	require.NoError(t, err)
-
-	err = s.blockState.CompareAndSetBlockData(bds)
-	require.NoError(t, err)
-
-	testCases := []struct {
-		description      string
-		value            *network.BlockRequestMessage
-		expectedMsgValue *network.BlockResponseMessage
+	tests := map[string]struct {
+		blockStateBuilder func(ctrl *gomock.Controller) BlockState
+		args              args
+		want              *types.BlockData
+		err               error
 	}{
-		{
-			description: "test get Header and Body",
-			value: &network.BlockRequestMessage{
-				RequestedData: 3,
-				StartingBlock: *start,
-				EndBlockHash:  &endHash,
-				Direction:     network.Ascending,
-				Max:           nil,
+		"requestedData 0": {
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				return nil
 			},
-			expectedMsgValue: &network.BlockResponseMessage{
-				BlockData: []*types.BlockData{
-					{
-						Hash:   bestHash,
-						Header: &bestBlock.Header,
-						Body:   &bestBlock.Body,
-					},
+			args: args{
+				hash:          common.Hash{},
+				requestedData: 0,
+			},
+			want: &types.BlockData{},
+		},
+		"requestedData RequestedDataHeader error": {
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().GetHeader(common.Hash{}).Return(nil, errors.New("empty hash"))
+				return mockBlockState
+			},
+			args: args{
+				hash:          common.Hash{0},
+				requestedData: network.RequestedDataHeader,
+			},
+			want: &types.BlockData{
+				Hash: common.Hash{},
+			},
+		},
+		"requestedData RequestedDataHeader": {
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().GetHeader(common.Hash{1}).Return(&types.Header{
+					Number: 2,
+				}, nil)
+				return mockBlockState
+			},
+			args: args{
+				hash:          common.Hash{1},
+				requestedData: network.RequestedDataHeader,
+			},
+			want: &types.BlockData{
+				Hash: common.Hash{1},
+				Header: &types.Header{
+					Number: 2,
 				},
 			},
 		},
-		{
-			description: "test get Header",
-			value: &network.BlockRequestMessage{
-				RequestedData: 1,
-				StartingBlock: *start,
-				EndBlockHash:  &endHash,
-				Direction:     network.Ascending,
-				Max:           nil,
+		"requestedData RequestedDataBody error": {
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().GetBlockBody(common.Hash{}).Return(nil, errors.New("empty hash"))
+				return mockBlockState
 			},
-			expectedMsgValue: &network.BlockResponseMessage{
-				BlockData: []*types.BlockData{
-					{
-						Hash:   bestHash,
-						Header: &bestBlock.Header,
-						Body:   nil,
-					},
-				},
+
+			args: args{
+				hash:          common.Hash{},
+				requestedData: network.RequestedDataBody,
+			},
+			want: &types.BlockData{
+				Hash: common.Hash{},
 			},
 		},
-		{
-			description: "test get Receipt",
-			value: &network.BlockRequestMessage{
-				RequestedData: 4,
-				StartingBlock: *start,
-				EndBlockHash:  &endHash,
-				Direction:     network.Ascending,
-				Max:           nil,
+		"requestedData RequestedDataBody": {
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().GetBlockBody(common.Hash{1}).Return(&types.Body{[]byte{1}}, nil)
+				return mockBlockState
 			},
-			expectedMsgValue: &network.BlockResponseMessage{
-				BlockData: []*types.BlockData{
-					{
-						Hash:    bestHash,
-						Header:  nil,
-						Body:    nil,
-						Receipt: bds.Receipt,
-					},
-				},
+			args: args{
+				hash:          common.Hash{1},
+				requestedData: network.RequestedDataBody,
+			},
+			want: &types.BlockData{
+				Hash: common.Hash{1},
+				Body: &types.Body{[]byte{1}},
 			},
 		},
-		{
-			description: "test get MessageQueue",
-			value: &network.BlockRequestMessage{
-				RequestedData: 8,
-				StartingBlock: *start,
-				EndBlockHash:  &endHash,
-				Direction:     network.Ascending,
-				Max:           nil,
+		"requestedData RequestedDataReceipt": {
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().GetReceipt(common.Hash{1}).Return([]byte{1}, nil)
+				return mockBlockState
 			},
-			expectedMsgValue: &network.BlockResponseMessage{
-				BlockData: []*types.BlockData{
-					{
-						Hash:         bestHash,
-						Header:       nil,
-						Body:         nil,
-						MessageQueue: bds.MessageQueue,
-					},
-				},
+			args: args{
+				hash:          common.Hash{1},
+				requestedData: network.RequestedDataReceipt,
+			},
+			want: &types.BlockData{
+				Hash:    common.Hash{1},
+				Receipt: &[]byte{1},
+			},
+		},
+		"requestedData RequestedDataMessageQueue": {
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().GetMessageQueue(common.Hash{2}).Return([]byte{2}, nil)
+				return mockBlockState
+			},
+			args: args{
+				hash:          common.Hash{2},
+				requestedData: network.RequestedDataMessageQueue,
+			},
+			want: &types.BlockData{
+				Hash:         common.Hash{2},
+				MessageQueue: &[]byte{2},
+			},
+		},
+		"requestedData RequestedDataJustification": {
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().GetJustification(common.Hash{3}).Return([]byte{3}, nil)
+				return mockBlockState
+			},
+			args: args{
+				hash:          common.Hash{3},
+				requestedData: network.RequestedDataJustification,
+			},
+			want: &types.BlockData{
+				Hash:          common.Hash{3},
+				Justification: &[]byte{3},
 			},
 		},
 	}
-
-	for _, test := range testCases {
-		t.Run(test.description, func(t *testing.T) {
-			resp, err := s.CreateBlockResponse(test.value)
-			require.NoError(t, err)
-			require.Len(t, resp.BlockData, 2)
-			require.Equal(t, test.expectedMsgValue.BlockData[0].Hash, bestHash)
-			require.Equal(t, test.expectedMsgValue.BlockData[0].Header, resp.BlockData[0].Header)
-			require.Equal(t, test.expectedMsgValue.BlockData[0].Body, resp.BlockData[0].Body)
-
-			if test.expectedMsgValue.BlockData[0].Receipt != nil {
-				require.Equal(t, test.expectedMsgValue.BlockData[0].Receipt, resp.BlockData[1].Receipt)
+	for name, tt := range tests {
+		tt := tt
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			ctrl := gomock.NewController(t)
+			s := &Service{
+				blockState: tt.blockStateBuilder(ctrl),
 			}
-
-			if test.expectedMsgValue.BlockData[0].MessageQueue != nil {
-				require.Equal(t, test.expectedMsgValue.BlockData[0].MessageQueue, resp.BlockData[1].MessageQueue)
+			got, err := s.getBlockData(tt.args.hash, tt.args.requestedData)
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
 			}
-
-			if test.expectedMsgValue.BlockData[0].Justification != nil {
-				require.Equal(t, test.expectedMsgValue.BlockData[0].Justification, resp.BlockData[1].Justification)
-			}
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }

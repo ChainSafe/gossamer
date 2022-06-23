@@ -52,85 +52,56 @@ type CopySettings struct {
 	CopyValue bool
 }
 
-// Copy deep copies the branch.
+// Copy deep copies the node.
 // Setting copyChildren to true will deep copy
 // children as well.
-func (b *Branch) Copy(settings CopySettings) Node {
-	cpy := &Branch{
-		Dirty:       b.Dirty,
-		Generation:  b.Generation,
-		Descendants: b.GetDescendants(),
+func (n *Node) Copy(settings CopySettings) *Node {
+	cpy := &Node{
+		Dirty:       n.Dirty,
+		Generation:  n.Generation,
+		Descendants: n.Descendants,
 	}
 
-	if settings.CopyChildren {
-		// Copy all fields of children if we deep copy children
-		childSettings := settings
-		childSettings.CopyKey = true
-		childSettings.CopyValue = true
-		childSettings.CopyCached = true
-		for i, child := range b.Children {
-			if child == nil {
-				continue
+	if n.Type() == Branch {
+		if settings.CopyChildren {
+			// Copy all fields of children if we deep copy children
+			childSettings := settings
+			childSettings.CopyKey = true
+			childSettings.CopyValue = true
+			childSettings.CopyCached = true
+			cpy.Children = make([]*Node, ChildrenCapacity)
+			for i, child := range n.Children {
+				if child == nil {
+					continue
+				}
+				cpy.Children[i] = child.Copy(childSettings)
 			}
-			cpy.Children[i] = child.Copy(childSettings)
+		} else {
+			cpy.Children = make([]*Node, ChildrenCapacity)
+			copy(cpy.Children, n.Children) // copy node pointers only
 		}
-	} else {
-		cpy.Children = b.Children // copy interface pointers only
 	}
 
-	if settings.CopyKey && b.Key != nil {
-		cpy.Key = make([]byte, len(b.Key))
-		copy(cpy.Key, b.Key)
+	if settings.CopyKey && n.Key != nil {
+		cpy.Key = make([]byte, len(n.Key))
+		copy(cpy.Key, n.Key)
 	}
 
 	// nil and []byte{} are encoded differently, watch out!
-	if settings.CopyValue && b.Value != nil {
-		cpy.Value = make([]byte, len(b.Value))
-		copy(cpy.Value, b.Value)
+	if settings.CopyValue && n.Value != nil {
+		cpy.Value = make([]byte, len(n.Value))
+		copy(cpy.Value, n.Value)
 	}
 
 	if settings.CopyCached {
-		if b.HashDigest != nil {
-			cpy.HashDigest = make([]byte, len(b.HashDigest))
-			copy(cpy.HashDigest, b.HashDigest)
+		if n.HashDigest != nil {
+			cpy.HashDigest = make([]byte, len(n.HashDigest))
+			copy(cpy.HashDigest, n.HashDigest)
 		}
 
-		if b.Encoding != nil {
-			cpy.Encoding = make([]byte, len(b.Encoding))
-			copy(cpy.Encoding, b.Encoding)
-		}
-	}
-
-	return cpy
-}
-
-// Copy deep copies the leaf.
-func (l *Leaf) Copy(settings CopySettings) Node {
-	cpy := &Leaf{
-		Dirty:      l.Dirty,
-		Generation: l.Generation,
-	}
-
-	if settings.CopyKey && l.Key != nil {
-		cpy.Key = make([]byte, len(l.Key))
-		copy(cpy.Key, l.Key)
-	}
-
-	// nil and []byte{} are encoded differently, watch out!
-	if settings.CopyValue && l.Value != nil {
-		cpy.Value = make([]byte, len(l.Value))
-		copy(cpy.Value, l.Value)
-	}
-
-	if settings.CopyCached {
-		if l.HashDigest != nil {
-			cpy.HashDigest = make([]byte, len(l.HashDigest))
-			copy(cpy.HashDigest, l.HashDigest)
-		}
-
-		if l.Encoding != nil {
-			cpy.Encoding = make([]byte, len(l.Encoding))
-			copy(cpy.Encoding, l.Encoding)
+		if n.Encoding != nil {
+			cpy.Encoding = make([]byte, len(n.Encoding))
+			copy(cpy.Encoding, n.Encoding)
 		}
 	}
 

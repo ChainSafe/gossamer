@@ -36,7 +36,7 @@ func Test_Decode(t *testing.T) {
 
 	testCases := map[string]struct {
 		reader     io.Reader
-		n          Node
+		n          *Node
 		errWrapped error
 		errMessage string
 	}{
@@ -68,7 +68,7 @@ func Test_Decode(t *testing.T) {
 					scaleEncodeBytes(t, 1, 2, 3)...,
 				),
 			),
-			n: &Leaf{
+			n: &Node{
 				Key:   []byte{9},
 				Value: []byte{1, 2, 3},
 				Dirty: true,
@@ -90,9 +90,10 @@ func Test_Decode(t *testing.T) {
 					0, 0, // no children bitmap
 				},
 			),
-			n: &Branch{
-				Key:   []byte{9},
-				Dirty: true,
+			n: &Node{
+				Key:      []byte{9},
+				Children: make([]*Node, ChildrenCapacity),
+				Dirty:    true,
 			},
 		},
 		"branch with two inlined children": {
@@ -111,7 +112,7 @@ func Test_Decode(t *testing.T) {
 					187, 32, 134, 92, 74, 43, 127, 1, 0, 0,
 				},
 			),
-			n: &Branch{
+			n: &Node{
 				Key: []byte{
 					12, 3, 6, 5, 12, 3,
 					12, 15, 5, 9, 13, 6,
@@ -120,9 +121,9 @@ func Test_Decode(t *testing.T) {
 					4, 1, 1, 3, 12, 4,
 				},
 				Descendants: 2,
-				Children: [16]Node{
+				Children: []*Node{
 					nil, nil, nil, nil,
-					&Leaf{
+					{
 						Key: []byte{
 							14, 7, 11, 9, 0, 1,
 							2, 0, 9, 6, 11, 4,
@@ -135,7 +136,7 @@ func Test_Decode(t *testing.T) {
 						Dirty: true,
 					},
 					nil, nil, nil, nil,
-					&Leaf{
+					{
 						Key: []byte{
 							15, 1, 15, 0, 5, 1,
 							5, 15, 4, 6, 2, 12,
@@ -179,16 +180,10 @@ func Test_decodeBranch(t *testing.T) {
 	testCases := map[string]struct {
 		reader     io.Reader
 		header     byte
-		branch     *Branch
+		branch     *Node
 		errWrapped error
 		errMessage string
 	}{
-		"no data with header 1": {
-			reader:     bytes.NewBuffer(nil),
-			header:     65,
-			errWrapped: ErrNodeTypeIsNotABranch,
-			errMessage: "node type is not a branch: 1",
-		},
 		"key decoding error": {
 			reader: bytes.NewBuffer([]byte{
 				// missing key data byte
@@ -227,15 +222,15 @@ func Test_decodeBranch(t *testing.T) {
 				}),
 			),
 			header: 129, // node type 2 (branch without value) and key length 1
-			branch: &Branch{
+			branch: &Node{
 				Key: []byte{9},
-				Children: [16]Node{
+				Children: padRightChildren([]*Node{
 					nil, nil, nil, nil, nil,
 					nil, nil, nil, nil, nil,
-					&Leaf{
+					{
 						HashDigest: []byte{1, 2, 3, 4, 5},
 					},
-				},
+				}),
 				Dirty:       true,
 				Descendants: 1,
 			},
@@ -262,16 +257,16 @@ func Test_decodeBranch(t *testing.T) {
 				}),
 			),
 			header: 193, // node type 3 (branch with value) and key length 1
-			branch: &Branch{
+			branch: &Node{
 				Key:   []byte{9},
 				Value: []byte{7, 8, 9},
-				Children: [16]Node{
+				Children: padRightChildren([]*Node{
 					nil, nil, nil, nil, nil,
 					nil, nil, nil, nil, nil,
-					&Leaf{
+					{
 						HashDigest: []byte{1, 2, 3, 4, 5},
 					},
-				},
+				}),
 				Dirty:       true,
 				Descendants: 1,
 			},
@@ -300,16 +295,10 @@ func Test_decodeLeaf(t *testing.T) {
 	testCases := map[string]struct {
 		reader     io.Reader
 		header     byte
-		leaf       *Leaf
+		leaf       *Node
 		errWrapped error
 		errMessage string
 	}{
-		"no data with header 1": {
-			reader:     bytes.NewBuffer(nil),
-			header:     1,
-			errWrapped: ErrNodeTypeIsNotALeaf,
-			errMessage: "node type is not a leaf: 0",
-		},
 		"key decoding error": {
 			reader: bytes.NewBuffer([]byte{
 				// missing key data byte
@@ -333,7 +322,7 @@ func Test_decodeLeaf(t *testing.T) {
 				// missing value data
 			}),
 			header: 65, // node type 1 (leaf) and key length 1
-			leaf: &Leaf{
+			leaf: &Node{
 				Key:   []byte{9},
 				Dirty: true,
 			},
@@ -346,7 +335,7 @@ func Test_decodeLeaf(t *testing.T) {
 				}),
 			),
 			header: 65, // node type 1 (leaf) and key length 1
-			leaf: &Leaf{
+			leaf: &Node{
 				Key:   []byte{9},
 				Value: []byte{1, 2, 3, 4, 5},
 				Dirty: true,

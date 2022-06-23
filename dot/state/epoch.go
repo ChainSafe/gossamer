@@ -546,13 +546,16 @@ func (s *EpochState) FinalizeBABENextEpochData(finalizedHeader *types.Header) er
 	s.nextEpochDataLock.Lock()
 	defer s.nextEpochDataLock.Unlock()
 
-	finalizedBlockEpoch, err := s.GetEpochForBlock(finalizedHeader)
-	if err != nil {
-		return fmt.Errorf("cannot get epoch for block %d (%s): %w",
-			finalizedHeader.Number, finalizedHeader.Hash(), err)
-	}
+	var nextEpoch uint64 = 1
+	if finalizedHeader.Number != 0 {
+		finalizedBlockEpoch, err := s.GetEpochForBlock(finalizedHeader)
+		if err != nil {
+			return fmt.Errorf("cannot get epoch for block %d (%s): %w",
+				finalizedHeader.Number, finalizedHeader.Hash(), err)
+		}
 
-	nextEpoch := finalizedBlockEpoch + 1
+		nextEpoch = finalizedBlockEpoch + 1
+	}
 
 	epochInDatabase, err := s.getEpochDataFromDatabase(nextEpoch)
 
@@ -600,13 +603,16 @@ func (s *EpochState) FinalizeBABENextConfigData(finalizedHeader *types.Header) e
 	s.nextConfigDataLock.Lock()
 	defer s.nextConfigDataLock.Unlock()
 
-	finalizedBlockEpoch, err := s.GetEpochForBlock(finalizedHeader)
-	if err != nil {
-		return fmt.Errorf("cannot get epoch for block %d (%s): %w",
-			finalizedHeader.Number, finalizedHeader.Hash(), err)
-	}
+	var nextEpoch uint64 = 1
+	if finalizedHeader.Number != 0 {
+		finalizedBlockEpoch, err := s.GetEpochForBlock(finalizedHeader)
+		if err != nil {
+			return fmt.Errorf("cannot get epoch for block %d (%s): %w",
+				finalizedHeader.Number, finalizedHeader.Hash(), err)
+		}
 
-	nextEpoch := finalizedBlockEpoch + 1
+		nextEpoch = finalizedBlockEpoch + 1
+	}
 
 	configInDatabase, err := s.getConfigDataFromDatabase(nextEpoch)
 

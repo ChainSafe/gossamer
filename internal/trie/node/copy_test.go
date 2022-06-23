@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func testForSliceModif(t *testing.T, original, copied []byte) {
@@ -21,116 +20,100 @@ func testForSliceModif(t *testing.T, original, copied []byte) {
 	assert.NotEqual(t, copied, original)
 }
 
-func Test_Branch_Copy(t *testing.T) {
+func Test_Node_Copy(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		branch         *Branch
-		settings       CopySettings
-		expectedBranch *Branch
+		node         *Node
+		settings     CopySettings
+		expectedNode *Node
 	}{
 		"empty branch": {
-			branch:         &Branch{},
-			expectedBranch: &Branch{},
+			node: &Node{
+				Children: make([]*Node, ChildrenCapacity),
+			},
+			expectedNode: &Node{
+				Children: make([]*Node, ChildrenCapacity),
+			},
 		},
 		"non empty branch": {
-			branch: &Branch{
+			node: &Node{
 				Key:   []byte{1, 2},
 				Value: []byte{3, 4},
-				Children: [16]Node{
-					nil, nil, &Leaf{Key: []byte{9}},
-				},
+				Children: padRightChildren([]*Node{
+					nil, nil, {
+						Key: []byte{9},
+					},
+				}),
 				Dirty:      true,
 				HashDigest: []byte{5},
 				Encoding:   []byte{6},
 			},
 			settings: DefaultCopySettings,
-			expectedBranch: &Branch{
+			expectedNode: &Node{
 				Key:   []byte{1, 2},
 				Value: []byte{3, 4},
-				Children: [16]Node{
-					nil, nil, &Leaf{Key: []byte{9}},
-				},
+				Children: padRightChildren([]*Node{
+					nil, nil, {
+						Key: []byte{9},
+					},
+				}),
 				Dirty: true,
 			},
 		},
 		"branch with children copied": {
-			branch: &Branch{
-				Children: [16]Node{
-					nil, nil, &Leaf{Key: []byte{9}},
-				},
+			node: &Node{
+				Children: padRightChildren([]*Node{
+					nil, nil, {
+						Key: []byte{9},
+					},
+				}),
 			},
 			settings: CopySettings{
 				CopyChildren: true,
 			},
-			expectedBranch: &Branch{
-				Children: [16]Node{
-					nil, nil, &Leaf{Key: []byte{9}},
-				},
+			expectedNode: &Node{
+				Children: padRightChildren([]*Node{
+					nil, nil, {
+						Key: []byte{9},
+					},
+				}),
 			},
 		},
-		"deep copy": {
-			branch: &Branch{
+		"deep copy branch": {
+			node: &Node{
 				Key:   []byte{1, 2},
 				Value: []byte{3, 4},
-				Children: [16]Node{
-					nil, nil, &Leaf{Key: []byte{9}},
-				},
+				Children: padRightChildren([]*Node{
+					nil, nil, {
+						Key: []byte{9},
+					},
+				}),
 				Dirty:      true,
 				HashDigest: []byte{5},
 				Encoding:   []byte{6},
 			},
 			settings: DeepCopySettings,
-			expectedBranch: &Branch{
+			expectedNode: &Node{
 				Key:   []byte{1, 2},
 				Value: []byte{3, 4},
-				Children: [16]Node{
-					nil, nil, &Leaf{Key: []byte{9}},
-				},
+				Children: padRightChildren([]*Node{
+					nil, nil, {
+						Key: []byte{9},
+					},
+				}),
 				Dirty:      true,
 				HashDigest: []byte{5},
 				Encoding:   []byte{6},
 			},
 		},
-	}
-
-	for name, testCase := range testCases {
-		testCase := testCase
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-
-			nodeCopy := testCase.branch.Copy(testCase.settings)
-
-			branchCopy, ok := nodeCopy.(*Branch)
-			require.True(t, ok)
-
-			assert.Equal(t, testCase.expectedBranch, branchCopy)
-			testForSliceModif(t, testCase.branch.Key, branchCopy.Key)
-			testForSliceModif(t, testCase.branch.Value, branchCopy.Value)
-			testForSliceModif(t, testCase.branch.HashDigest, branchCopy.HashDigest)
-			testForSliceModif(t, testCase.branch.Encoding, branchCopy.Encoding)
-
-			testCase.branch.Children[15] = &Leaf{Key: []byte("modified")}
-			assert.NotEqual(t, branchCopy.Children, testCase.branch.Children)
-		})
-	}
-}
-
-func Test_Leaf_Copy(t *testing.T) {
-	t.Parallel()
-
-	testCases := map[string]struct {
-		leaf         *Leaf
-		settings     CopySettings
-		expectedLeaf *Leaf
-	}{
 		"empty leaf": {
-			leaf:         &Leaf{},
+			node:         &Node{},
 			settings:     DefaultCopySettings,
-			expectedLeaf: &Leaf{},
+			expectedNode: &Node{},
 		},
 		"non empty leaf": {
-			leaf: &Leaf{
+			node: &Node{
 				Key:        []byte{1, 2},
 				Value:      []byte{3, 4},
 				Dirty:      true,
@@ -138,14 +121,14 @@ func Test_Leaf_Copy(t *testing.T) {
 				Encoding:   []byte{6},
 			},
 			settings: DefaultCopySettings,
-			expectedLeaf: &Leaf{
+			expectedNode: &Node{
 				Key:   []byte{1, 2},
 				Value: []byte{3, 4},
 				Dirty: true,
 			},
 		},
-		"deep copy": {
-			leaf: &Leaf{
+		"deep copy leaf": {
+			node: &Node{
 				Key:        []byte{1, 2},
 				Value:      []byte{3, 4},
 				Dirty:      true,
@@ -153,7 +136,7 @@ func Test_Leaf_Copy(t *testing.T) {
 				Encoding:   []byte{6},
 			},
 			settings: DeepCopySettings,
-			expectedLeaf: &Leaf{
+			expectedNode: &Node{
 				Key:        []byte{1, 2},
 				Value:      []byte{3, 4},
 				Dirty:      true,
@@ -168,16 +151,18 @@ func Test_Leaf_Copy(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			nodeCopy := testCase.leaf.Copy(testCase.settings)
+			nodeCopy := testCase.node.Copy(testCase.settings)
 
-			leafCopy, ok := nodeCopy.(*Leaf)
-			require.True(t, ok)
+			assert.Equal(t, testCase.expectedNode, nodeCopy)
+			testForSliceModif(t, testCase.node.Key, nodeCopy.Key)
+			testForSliceModif(t, testCase.node.Value, nodeCopy.Value)
+			testForSliceModif(t, testCase.node.HashDigest, nodeCopy.HashDigest)
+			testForSliceModif(t, testCase.node.Encoding, nodeCopy.Encoding)
 
-			assert.Equal(t, testCase.expectedLeaf, leafCopy)
-			testForSliceModif(t, testCase.leaf.Key, leafCopy.Key)
-			testForSliceModif(t, testCase.leaf.Value, leafCopy.Value)
-			testForSliceModif(t, testCase.leaf.HashDigest, leafCopy.HashDigest)
-			testForSliceModif(t, testCase.leaf.Encoding, leafCopy.Encoding)
+			if testCase.node.Type() == Branch {
+				testCase.node.Children[15] = &Node{Key: []byte("modified")}
+				assert.NotEqual(t, nodeCopy.Children, testCase.node.Children)
+			}
 		})
 	}
 }

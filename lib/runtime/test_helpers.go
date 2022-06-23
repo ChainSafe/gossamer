@@ -5,10 +5,13 @@ package runtime
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -42,26 +45,106 @@ func NewInMemoryDB(t *testing.T) chaindb.Database {
 	return db
 }
 
-// GetRuntimeVars returns the testRuntimeFilePath and testRuntimeURL
-func GetRuntimeVars(targetRuntime string) (string, string) {
-	switch targetRuntime {
-	case NODE_RUNTIME:
-		return GetAbsolutePath(NODE_RUNTIME_FP), NODE_RUNTIME_URL
-	case NODE_RUNTIME_v098:
-		return GetAbsolutePath(NODE_RUNTIME_FP_v098), NODE_RUNTIME_URL_v098
-	case POLKADOT_RUNTIME_v0917:
-		return GetAbsolutePath(POLKADOT_RUNTIME_FP_v0917), POLKADOT_RUNTIME_URL_v0917
-	case POLKADOT_RUNTIME_v0910:
-		return GetAbsolutePath(POLKADOT_RUNTIME_FP_v0910), POLKADOT_RUNTIME_URL_v0910
-	case POLKADOT_RUNTIME:
-		return GetAbsolutePath(POLKADOT_RUNTIME_FP), POLKADOT_RUNTIME_URL
-	case HOST_API_TEST_RUNTIME:
-		return GetAbsolutePath(HOST_API_TEST_RUNTIME_FP), HOST_API_TEST_RUNTIME_URL
-	case DEV_RUNTIME:
-		return GetAbsolutePath(DEV_RUNTIME_FP), DEV_RUNTIME_URL
-	default:
-		return "", ""
+var (
+	ErrRuntimeUnknown  = errors.New("runtime is not known")
+	ErrHTTPStatusNotOK = errors.New("HTTP status code received is not OK")
+	ErrOpenRuntimeFile = errors.New("cannot open the runtime target file")
+)
+
+// GetRuntime returns the runtime file path located in the
+// /tmp/gossamer/runtimes directory (depending on OS and environment).
+// If the file did not exist, the runtime WASM blob is downloaded to that file.
+func GetRuntime(ctx context.Context, runtime string) (
+	runtimePath string, err error) {
+	basePath := filepath.Join(os.TempDir(), "/gossamer/runtimes/")
+	const perm = os.FileMode(0777)
+	err = os.MkdirAll(basePath, perm)
+	if err != nil {
+		return "", fmt.Errorf("cannot create directory for runtimes: %w", err)
 	}
+
+	var runtimeFilename, url string
+	switch runtime {
+	case NODE_RUNTIME:
+		runtimeFilename = NODE_RUNTIME_FP
+		url = NODE_RUNTIME_URL
+	case NODE_RUNTIME_v098:
+		runtimeFilename = NODE_RUNTIME_FP_v098
+		url = NODE_RUNTIME_URL_v098
+	case POLKADOT_RUNTIME_v0917:
+		runtimeFilename = POLKADOT_RUNTIME_FP_v0917
+		url = POLKADOT_RUNTIME_URL_v0917
+	case POLKADOT_RUNTIME_v0910:
+		runtimeFilename = POLKADOT_RUNTIME_FP_v0910
+		url = POLKADOT_RUNTIME_URL_v0910
+	case POLKADOT_RUNTIME:
+		runtimeFilename = POLKADOT_RUNTIME_FP
+		url = POLKADOT_RUNTIME_URL
+	case HOST_API_TEST_RUNTIME:
+		runtimeFilename = HOST_API_TEST_RUNTIME_FP
+		url = HOST_API_TEST_RUNTIME_URL
+	case DEV_RUNTIME:
+		runtimeFilename = DEV_RUNTIME_FP
+		url = DEV_RUNTIME_URL
+	default:
+		return "", fmt.Errorf("%w: %s", ErrRuntimeUnknown, runtime)
+	}
+
+	runtimePath = filepath.Join(basePath, runtimeFilename)
+	runtimePath, err = filepath.Abs(runtimePath)
+	if err != nil {
+		return "", fmt.Errorf("malformed relative path: %w", err)
+	}
+
+	if utils.PathExists(runtimePath) {
+		return runtimePath, nil
+	}
+
+	const requestTimeout = 10 * time.Second
+	ctx, cancel := context.WithTimeout(ctx, requestTimeout)
+	defer cancel()
+
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return "", fmt.Errorf("cannot make HTTP request: %w", err)
+	}
+
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		return "", fmt.Errorf("cannot get: %w", err)
+	}
+
+	if response.StatusCode != http.StatusOK {
+		_ = response.Body.Close()
+		return "", fmt.Errorf("%w: %d %s", ErrHTTPStatusNotOK,
+			response.StatusCode, response.Status)
+	}
+
+	const flag = os.O_TRUNC | os.O_CREATE | os.O_WRONLY
+	file, err := os.OpenFile(runtimePath, flag, perm) //nolint:gosec
+	if err != nil {
+		_ = response.Body.Close()
+		return "", fmt.Errorf("cannot open target destination file: %w", err)
+	}
+
+	_, err = io.Copy(file, response.Body)
+	if err != nil {
+		_ = response.Body.Close()
+		return "", fmt.Errorf("cannot copy response body to %s: %w",
+			runtimePath, err)
+	}
+
+	err = file.Close()
+	if err != nil {
+		return "", fmt.Errorf("cannot close file: %w", err)
+	}
+
+	err = response.Body.Close()
+	if err != nil {
+		return "", fmt.Errorf("cannot close HTTP response body: %w", err)
+	}
+
+	return runtimePath, nil
 }
 
 // GetAbsolutePath returns the completePath for a given targetDir
@@ -71,37 +154,6 @@ func GetAbsolutePath(targetDir string) string {
 		panic("failed to get current working directory")
 	}
 	return path.Join(dir, targetDir)
-}
-
-// GetRuntimeBlob checks if the test wasm @testRuntimeFilePath exists and if not, it fetches it from @testRuntimeURL
-func GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL string) error {
-	if utils.PathExists(testRuntimeFilePath) {
-		return nil
-	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, testRuntimeURL, nil)
-	if err != nil {
-		return err
-	}
-
-	const runtimeReqTimout = time.Second * 30
-
-	httpcli := http.Client{Timeout: runtimeReqTimout}
-	resp, err := httpcli.Do(req)
-	if err != nil {
-		return err
-	}
-
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close() //nolint:errcheck
-
-	return os.WriteFile(testRuntimeFilePath, respBody, os.ModePerm)
 }
 
 // TestRuntimeNetwork ...
@@ -141,32 +193,6 @@ func generateEd25519Signatures(t *testing.T, n int) []*crypto.SignatureInfo {
 		}
 	}
 	return signs
-}
-
-// GenerateRuntimeWasmFile generates all runtime wasm files.
-func GenerateRuntimeWasmFile() ([]string, error) {
-	var wasmFilePaths []string
-	for _, rt := range runtimes {
-		testRuntimeFilePath, testRuntimeURL := GetRuntimeVars(rt)
-		err := GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL)
-		if err != nil {
-			return nil, err
-		}
-
-		wasmFilePaths = append(wasmFilePaths, testRuntimeFilePath)
-	}
-	return wasmFilePaths, nil
-}
-
-// RemoveFiles removes multiple files.
-func RemoveFiles(files []string) error {
-	for _, file := range files {
-		err := os.Remove(file)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // NewTestExtrinsic builds a new extrinsic using centrifuge pkg

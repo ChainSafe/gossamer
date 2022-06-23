@@ -27,6 +27,7 @@ jobs:
             github.com/ChainSafe/gossamer/dot/core,
             github.com/ChainSafe/gossamer/dot/rpc/modules,
             github.com/ChainSafe/gossamer/lib/babe,
+            github.com/ChainSafe/gossamer/dot/sync,
           ]
     runs-on: ubuntu-latest
     steps:
@@ -59,4 +60,4 @@ jobs:
           restore-keys: ${{ runner.os }}-go-mod
 
       - name: Run integration tests
-        run: go test -timeout=30m -tags integration ${{ matrix.packages }}
+        run: go test -timeout=45m -tags integration ${{ matrix.packages }}

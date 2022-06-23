@@ -4,131 +4,110 @@
 package sync
 
 import (
+	"errors"
 	"testing"
 
-	syncmocks "github.com/ChainSafe/gossamer/dot/sync/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/trie"
-
-	"github.com/stretchr/testify/require"
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 )
 
-func newTestBootstrapSyncer(t *testing.T) *bootstrapSyncer {
-	header, err := types.NewHeader(
-		common.NewHash([]byte{0}), trie.EmptyHash,
-		trie.EmptyHash, 100, types.NewDigest())
-	require.NoError(t, err)
+func Test_bootstrapSyncer_handleWorkerResult(t *testing.T) {
+	t.Parallel()
+	mockError := errors.New("mock testing error")
 
-	finHeader, err := types.NewHeader(
-		common.NewHash([]byte{0}), trie.EmptyHash,
-		trie.EmptyHash, 200, types.NewDigest())
-	require.NoError(t, err)
-
-	bs := new(syncmocks.BlockState)
-	bs.On("BestBlockHeader").Return(header, nil)
-	bs.On("GetHighestFinalisedHeader").Return(finHeader, nil)
-
-	return newBootstrapSyncer(bs)
-}
-
-func TestBootstrapSyncer_handleWork(t *testing.T) {
-	s := newTestBootstrapSyncer(t)
-
-	// peer's state is equal or lower than ours
-	// should not create a worker for bootstrap mode
-	w, err := s.handleNewPeerState(&peerState{
-		number: 100,
-	})
-	require.NoError(t, err)
-	require.Nil(t, w)
-
-	w, err = s.handleNewPeerState(&peerState{
-		number: 99,
-	})
-	require.NoError(t, err)
-	require.Nil(t, w)
-
-	// if peer's number is highest, return worker w/ their block as target
-	expected := &worker{
-		requestData:  bootstrapRequestData,
-		startNumber:  uintPtr(101),
-		targetHash:   common.NewHash([]byte{1}),
-		targetNumber: uintPtr(101),
-	}
-	w, err = s.handleNewPeerState(&peerState{
-		number: 101,
-		hash:   common.NewHash([]byte{1}),
-	})
-	require.NoError(t, err)
-	require.Equal(t, expected, w)
-
-	expected = &worker{
-		requestData:  bootstrapRequestData,
-		startNumber:  uintPtr(101),
-		targetHash:   common.NewHash([]byte{1}),
-		targetNumber: uintPtr(9999),
-	}
-	w, err = s.handleNewPeerState(&peerState{
-		number: 9999,
-		hash:   common.NewHash([]byte{1}),
-	})
-	require.NoError(t, err)
-	require.Equal(t, expected, w)
-}
-
-func TestBootstrapSyncer_handleWorkerResult(t *testing.T) {
-	s := newTestBootstrapSyncer(t)
-
-	// if the worker error is nil, then this function should do nothing
-	res := &worker{}
-	w, err := s.handleWorkerResult(res)
-	require.NoError(t, err)
-	require.Nil(t, w)
-
-	// if there was a worker error, this should return a worker with
-	// startNumber = bestBlockNumber + 1 and the same target as previously
-	expected := &worker{
-		requestData:  bootstrapRequestData,
-		startNumber:  uintPtr(101),
-		targetHash:   common.NewHash([]byte{1}),
-		targetNumber: uintPtr(201),
-	}
-
-	res = &worker{
-		requestData:  bootstrapRequestData,
-		targetHash:   common.NewHash([]byte{1}),
-		targetNumber: uintPtr(201),
-		err:          &workerError{},
-	}
-
-	w, err = s.handleWorkerResult(res)
-	require.NoError(t, err)
-	require.Equal(t, expected, w)
-}
-
-func TestBootstrapSyncer_handleWorkerResult_errUnknownParent(t *testing.T) {
-	s := newTestBootstrapSyncer(t)
-
-	// if there was a worker error, this should return a worker with
-	// startNumber = bestBlockNumber + 1 and the same target as previously
-	expected := &worker{
-		requestData:  bootstrapRequestData,
-		startNumber:  uintPtr(200),
-		targetHash:   common.NewHash([]byte{1}),
-		targetNumber: uintPtr(300),
-	}
-
-	res := &worker{
-		requestData:  bootstrapRequestData,
-		targetHash:   common.NewHash([]byte{1}),
-		targetNumber: uintPtr(300),
-		err: &workerError{
-			err: errUnknownParent,
+	tests := map[string]struct {
+		blockStateBuilder func(ctrl *gomock.Controller) BlockState
+		worker            *worker
+		wantWorkerToRetry *worker
+		err               error
+	}{
+		"nil worker.err returns nil": {
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				return NewMockBlockState(ctrl)
+			},
+			worker: &worker{},
+		},
+		"best block header error": {
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().BestBlockHeader().Return(nil,
+					mockError)
+				return mockBlockState
+			},
+			worker: &worker{
+				err:          &workerError{},
+				targetNumber: uintPtr(0),
+			},
+			err: mockError,
+		},
+		"targetNumber < bestBlockHeader number returns nil": {
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().BestBlockHeader().Return(&types.Header{Number: 2}, nil)
+				return mockBlockState
+			},
+			worker: &worker{
+				err:          &workerError{},
+				targetNumber: uintPtr(0),
+			},
+		},
+		"targetNumber > bestBlockHeader number worker errUnknownParent, error GetHighestFinalisedHeader": {
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().BestBlockHeader().Return(&types.Header{Number: 2}, nil)
+				mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(nil, mockError)
+				return mockBlockState
+			},
+			worker: &worker{
+				err:          &workerError{err: errUnknownParent},
+				targetNumber: uintPtr(3),
+			},
+			err: mockError,
+		},
+		"targetNumber > bestBlockHeader number worker errUnknownParent returns worker": {
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().BestBlockHeader().Return(&types.Header{Number: 2}, nil)
+				mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(&types.Header{Number: 1}, nil)
+				return mockBlockState
+			},
+			worker: &worker{
+				err:          &workerError{err: errUnknownParent},
+				targetNumber: uintPtr(3),
+			},
+			wantWorkerToRetry: &worker{
+				startNumber:  uintPtr(1),
+				targetNumber: uintPtr(3),
+			},
+		},
+		"targetNumber > bestBlockHeader number returns worker": {
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().BestBlockHeader().Return(&types.Header{Number: 2}, nil)
+				return mockBlockState
+			},
+			worker: &worker{
+				err:          &workerError{},
+				targetNumber: uintPtr(3),
+			},
+			wantWorkerToRetry: &worker{
+				startNumber:  uintPtr(3),
+				targetNumber: uintPtr(3),
+			},
 		},
 	}
-
-	w, err := s.handleWorkerResult(res)
-	require.NoError(t, err)
-	require.Equal(t, expected, w)
+	for testName, tt := range tests {
+		tt := tt
+		t.Run(testName, func(t *testing.T) {
+			t.Parallel()
+			ctrl := gomock.NewController(t)
+			s := &bootstrapSyncer{
+				blockState: tt.blockStateBuilder(ctrl),
+			}
+			gotWorkerToRetry, err := s.handleWorkerResult(tt.worker)
+			assert.ErrorIs(t, err, tt.err)
+			assert.Equal(t, tt.wantWorkerToRetry, gotWorkerToRetry)
+		})
+	}
 }
