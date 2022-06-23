@@ -61,7 +61,8 @@ var (
 	ErrNotCommitMessage = errors.New("cannot get finalised hash from VoteMessage")
 
 	// ErrNoJustification is returned when no justification can be found for a block, ie. it has not been finalised
-	ErrNoJustification = errors.New("no justification found for block")
+	ErrNoJustification       = errors.New("no justification found for block")
+	ErrJustificationMismatch = errors.New("justication has does not correspond to given block hash")
 
 	ErrBlockHashMismatch = errors.New("block hash does not correspond to given block number")
 

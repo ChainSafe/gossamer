@@ -561,6 +561,10 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 		return err
 	}
 
+	if !hash.Equal(fj.Commit.Hash) {
+		return fmt.Errorf("%w: %s not equal %s", ErrJustificationMismatch, fj.Commit.Hash.Short(), hash.Short())
+	}
+
 	setID, err := s.grandpaState.GetSetIDByBlockNumber(uint(fj.Commit.Number))
 	if err != nil {
 		return fmt.Errorf("cannot get set ID from block number: %w", err)
