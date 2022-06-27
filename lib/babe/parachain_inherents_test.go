@@ -106,12 +106,12 @@ func TestDisputeStatement(t *testing.T) {
 
 	testCases := []struct {
 		name          string
-		vdt           scale.VaryingDataType
+		vdt           DisputeStatement
 		encodingValue []uint8
 	}{
 		{
 			name: "Valid Explicit",
-			vdt: func() scale.VaryingDataType {
+			vdt: func() DisputeStatement {
 				validDisputeStatementKind, err := scale.NewVaryingDataType(
 					ExplicitValidDisputeStatementKind{}, BackingSeconded{}, BackingValid{}, ApprovalChecking{})
 				if err != nil {
@@ -121,11 +121,8 @@ func TestDisputeStatement(t *testing.T) {
 				if err != nil {
 					panic(err)
 				}
-				disputeStatement, err := scale.NewVaryingDataType(ValidDisputeStatementKind{}, InvalidDisputeStatementKind{})
-				if err != nil {
-					panic(err)
-				}
 
+				disputeStatement := NewDisputeStatement()
 				err = disputeStatement.Set(ValidDisputeStatementKind(validDisputeStatementKind))
 				if err != nil {
 					panic(err)
@@ -138,7 +135,7 @@ func TestDisputeStatement(t *testing.T) {
 		},
 		{
 			name: "Valid ApprovalChecking",
-			vdt: func() scale.VaryingDataType {
+			vdt: func() DisputeStatement {
 				validDisputeStatementKind, err := scale.NewVaryingDataType(
 					ExplicitValidDisputeStatementKind{}, BackingSeconded{}, BackingValid{}, ApprovalChecking{},
 				)
@@ -150,11 +147,8 @@ func TestDisputeStatement(t *testing.T) {
 				if err != nil {
 					panic(err)
 				}
-				disputeStatement, err := scale.NewVaryingDataType(ValidDisputeStatementKind{}, InvalidDisputeStatementKind{})
-				if err != nil {
-					panic(err)
-				}
 
+				disputeStatement := NewDisputeStatement()
 				err = disputeStatement.Set(ValidDisputeStatementKind(validDisputeStatementKind))
 				if err != nil {
 					panic(err)
@@ -166,7 +160,7 @@ func TestDisputeStatement(t *testing.T) {
 		},
 		{
 			name: "Valid BackingSeconded",
-			vdt: func() scale.VaryingDataType {
+			vdt: func() DisputeStatement {
 				validDisputeStatementKind, err := scale.NewVaryingDataType(
 					ExplicitValidDisputeStatementKind{}, BackingSeconded{}, BackingValid{}, ApprovalChecking{},
 				)
@@ -178,11 +172,8 @@ func TestDisputeStatement(t *testing.T) {
 				if err != nil {
 					panic(err)
 				}
-				disputeStatement, err := scale.NewVaryingDataType(ValidDisputeStatementKind{}, InvalidDisputeStatementKind{})
-				if err != nil {
-					panic(err)
-				}
 
+				disputeStatement := NewDisputeStatement()
 				err = disputeStatement.Set(ValidDisputeStatementKind(validDisputeStatementKind))
 				if err != nil {
 					panic(err)
@@ -190,11 +181,11 @@ func TestDisputeStatement(t *testing.T) {
 
 				return disputeStatement
 			}(),
-			encodingValue: []uint8([]byte{0x0, 0x1}),
+			encodingValue: []uint8([]byte{0x0, 0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}),
 		},
 		{
 			name: "Invalid Explicit",
-			vdt: func() scale.VaryingDataType {
+			vdt: func() DisputeStatement {
 				invalidDisputeStatementKind, err := scale.NewVaryingDataType(
 					ExplicitInvalidDisputeStatementKind{},
 				)
@@ -206,11 +197,8 @@ func TestDisputeStatement(t *testing.T) {
 				if err != nil {
 					panic(err)
 				}
-				disputeStatement, err := scale.NewVaryingDataType(ValidDisputeStatementKind{}, InvalidDisputeStatementKind{})
-				if err != nil {
-					panic(err)
-				}
 
+				disputeStatement := NewDisputeStatement()
 				err = disputeStatement.Set(InvalidDisputeStatementKind(invalidDisputeStatementKind))
 				if err != nil {
 					panic(err)
@@ -231,13 +219,7 @@ func TestDisputeStatement(t *testing.T) {
 
 			require.Equal(t, c.encodingValue, bytes)
 
-			newDst, err := scale.NewVaryingDataType(
-				ValidDisputeStatementKind{}, InvalidDisputeStatementKind{},
-			)
-			if err != nil {
-				panic(err)
-			}
-
+			newDst := NewDisputeStatement()
 			err = scale.Unmarshal(bytes, &newDst)
 			if err != nil {
 				panic(err)
