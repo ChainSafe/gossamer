@@ -9,9 +9,17 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+	"github.com/ChainSafe/gossamer/lib/common"
+	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils"
+	"github.com/ChainSafe/gossamer/tests/utils/config"
+	"github.com/ChainSafe/gossamer/tests/utils/node"
+	"github.com/ChainSafe/gossamer/tests/utils/retry"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+const peerIDRegex = `^[a-zA-Z0-9]{52}$`
 
 func TestSystemRPC(t *testing.T) {
 	if utils.MODE != rpcSuite {
@@ -19,127 +27,172 @@ func TestSystemRPC(t *testing.T) {
 		return
 	}
 
-	testCases := []*testCase{
-		{ //TODO
-			description: "test system_name",
-			method:      "system_name",
-			skip:        true,
-		},
-		{ //TODO
-			description: "test system_version",
-			method:      "system_version",
-			skip:        true,
-		},
-		{ //TODO
-			description: "test system_chain",
-			method:      "system_chain",
-			skip:        true,
-		},
-		{ //TODO
-			description: "test system_properties",
-			method:      "system_properties",
-			skip:        true,
-		},
-		{
-			description: "test system_health",
-			method:      "system_health",
-			expected: modules.SystemHealthResponse{
-				Peers:           2,
-				IsSyncing:       true,
-				ShouldHavePeers: true,
-			},
-			params: "{}",
-		},
-		{
-			description: "test system_peers",
-			method:      "system_peers",
-			expected:    modules.SystemPeersResponse{},
-			params:      "{}",
-		},
-		{
-			description: "test system_network_state",
-			method:      "system_networkState",
-			expected: modules.SystemNetworkStateResponse{
-				NetworkState: modules.NetworkStateString{
-					PeerID: "",
-				},
-			},
-			params: "{}",
-		},
-		{ //TODO
-			description: "test system_addReservedPeer",
-			method:      "system_addReservedPeer",
-			skip:        true,
-		},
-		{ //TODO
-			description: "test system_removeReservedPeer",
-			method:      "system_removeReservedPeer",
-			skip:        true,
-		},
-		{ //TODO
-			description: "test system_nodeRoles",
-			method:      "system_nodeRoles",
-			skip:        true,
-		},
-		{ //TODO
-			description: "test system_accountNextIndex",
-			method:      "system_accountNextIndex",
-			skip:        true,
-		},
-	}
+	const testTimeout = 8 * time.Minute
+	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 
-	t.Log("starting gossamer...")
-	nodes, err := utils.InitializeAndStartNodes(t, 3, utils.GenesisDefault, utils.ConfigDefault)
+	const numberOfNodes = 3
 
-	//use only first server for tests
-	require.NoError(t, err)
+	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
+	tomlConfig := config.Default()
+	tomlConfig.Init.Genesis = genesisPath
+	nodes := node.MakeNodes(t, numberOfNodes, tomlConfig)
 
-	time.Sleep(time.Second) // give server a second to start
+	nodes.InitAndStartTest(ctx, t, cancel)
 
-	for _, test := range testCases {
-		t.Run(test.description, func(t *testing.T) {
-			ctx := context.Background()
-			getResponseCtx, cancel := context.WithTimeout(ctx, time.Second)
-			defer cancel()
-			target := getResponse(getResponseCtx, t, test)
+	t.Run("system_health", func(t *testing.T) {
+		t.Parallel()
 
-			switch v := target.(type) {
-			case *modules.SystemHealthResponse:
-				t.Log("Will assert SystemHealthResponse", "target", target)
+		const method = "system_health"
+		const params = "{}"
 
-				require.Equal(t, test.expected.(modules.SystemHealthResponse).IsSyncing, v.IsSyncing)
-				require.Equal(t, test.expected.(modules.SystemHealthResponse).ShouldHavePeers, v.ShouldHavePeers)
-				require.GreaterOrEqual(t, v.Peers, test.expected.(modules.SystemHealthResponse).Peers)
+		expected := modules.SystemHealthResponse{
+			Peers:           numberOfNodes - 1,
+			ShouldHavePeers: true,
+		}
 
-			case *modules.SystemNetworkStateResponse:
-				t.Log("Will assert SystemNetworkStateResponse", "target", target)
+		var response modules.SystemHealthResponse
+		err := retry.UntilOK(ctx, time.Second, func() (ok bool, err error) {
+			getResponseCtx, getResponseCancel := context.WithTimeout(ctx, time.Second)
+			err = getResponse(getResponseCtx, method, params, &response)
+			getResponseCancel()
+			if err != nil {
+				return false, err
+			}
+			return response.Peers == expected.Peers, nil
+		})
+		require.NoError(t, err)
 
-				require.NotNil(t, v.NetworkState)
-				require.NotNil(t, v.NetworkState.PeerID)
+		// IsSyncing can be true or false
+		response.IsSyncing = false
 
-			case *modules.SystemPeersResponse:
-				t.Log("Will assert SystemPeersResponse", "target", target)
+		assert.Equal(t, expected, response)
+	})
 
-				require.NotNil(t, v)
+	t.Run("system_peers", func(t *testing.T) {
+		t.Parallel()
 
-				//TODO: #807
-				//this assertion requires more time on init to be enabled
-				//require.GreaterOrEqual(t, len(v.Peers), 2)
-
-				for _, vv := range *v {
-					require.NotNil(t, vv.PeerID)
-					require.NotNil(t, vv.Roles)
-					require.NotNil(t, vv.BestHash)
-					require.NotNil(t, vv.BestNumber)
-				}
-
+		// Wait for N-1 peers connected and no syncing
+		err := retry.UntilOK(ctx, time.Second, func() (ok bool, err error) {
+			getResponseCtx, getResponseCancel := context.WithTimeout(ctx, time.Second)
+			const method = "system_health"
+			const params = "{}"
+			var healthResponse modules.SystemHealthResponse
+			err = getResponse(getResponseCtx, method, params, &healthResponse)
+			getResponseCancel()
+			if err != nil {
+				return false, err // error and stop retrying
 			}
 
+			ok = healthResponse.Peers == numberOfNodes-1 && !healthResponse.IsSyncing
+			return ok, nil
 		})
-	}
+		require.NoError(t, err)
 
-	t.Log("going to tear down gossamer...")
+		var response modules.SystemPeersResponse
+		// Wait for N-1 peers with peer IDs set
+		err = retry.UntilOK(ctx, time.Second, func() (ok bool, err error) {
+			getResponseCtx, getResponseCancel := context.WithTimeout(ctx, time.Second)
+			const method = "system_peers"
+			const params = "{}"
+			err = getResponse(getResponseCtx, method, params, &response)
+			getResponseCancel()
+			if err != nil {
+				return false, err // error and stop retrying
+			}
 
-	errList := utils.TearDown(t, nodes)
-	require.Len(t, errList, 0)
+			if len(response) != numberOfNodes-1 {
+				return false, nil // retry
+			}
+
+			for _, peer := range response {
+				// wait for all peers to have the same best block number
+				if peer.PeerID == "" || peer.BestHash.IsEmpty() {
+					return false, nil // retry
+				}
+			}
+
+			return true, nil // success, stop retrying
+		})
+		require.NoError(t, err)
+
+		expectedResponse := modules.SystemPeersResponse{
+			// Assert they all have the same best block number and hash
+			{Roles: 4, PeerID: ""},
+			{Roles: 4, PeerID: ""},
+		}
+		for i := range response {
+			// Check randomly generated peer IDs and clear them
+			assert.Regexp(t, peerIDRegex, response[i].PeerID)
+			response[i].PeerID = ""
+			// TODO assert these are all the same,
+			// see https://github.com/ChainSafe/gossamer/issues/2498
+			response[i].BestHash = common.Hash{}
+			response[i].BestNumber = 0
+		}
+
+		assert.Equal(t, expectedResponse, response)
+	})
+
+	t.Run("system_networkState", func(t *testing.T) {
+		t.Parallel()
+
+		const method = "system_networkState"
+		const params = "{}"
+
+		var response modules.SystemNetworkStateResponse
+		fetchWithTimeout(ctx, t, method, params, &response)
+
+		assert.Regexp(t, peerIDRegex, response.NetworkState.PeerID)
+		response.NetworkState.PeerID = ""
+
+		assert.NotEmpty(t, response.NetworkState.Multiaddrs)
+		for _, addr := range response.NetworkState.Multiaddrs {
+			assert.Regexp(t, "^/ip[4|6]/.+/tcp/[0-9]{1,5}/p2p/[a-zA-Z0-9]{52}$", addr)
+		}
+		response.NetworkState.Multiaddrs = nil
+
+		// Ensure we don't need to assert other fields
+		expectedResponse := modules.SystemNetworkStateResponse{}
+		assert.Equal(t, expectedResponse, response)
+	})
+
+	t.Run("system_name", func(t *testing.T) {
+		t.Parallel()
+		t.Skip("test not implemented")
+	})
+
+	t.Run("system_version", func(t *testing.T) {
+		t.Parallel()
+		t.Skip("test not implemented")
+	})
+
+	t.Run("system_chain", func(t *testing.T) {
+		t.Parallel()
+		t.Skip("test not implemented")
+	})
+
+	t.Run("system_properties", func(t *testing.T) {
+		t.Parallel()
+		t.Skip("test not implemented")
+	})
+
+	t.Run("system_addReservedPeer", func(t *testing.T) {
+		t.Parallel()
+		t.Skip("test not implemented")
+	})
+
+	t.Run("system_removeReservedPeer", func(t *testing.T) {
+		t.Parallel()
+		t.Skip("test not implemented")
+	})
+
+	t.Run("system_nodeRoles", func(t *testing.T) {
+		t.Parallel()
+		t.Skip("test not implemented")
+	})
+
+	t.Run("system_accountNextIndex", func(t *testing.T) {
+		t.Parallel()
+		t.Skip("test not implemented")
+	})
 }

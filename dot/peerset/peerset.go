@@ -712,15 +712,28 @@ func (ps *PeerSet) start(ctx context.Context, actionQueue chan action) {
 	ps.actionQueue = actionQueue
 	ps.resultMsgCh = make(chan Message, msgChanSize)
 
-	go ps.listenAction(ctx)
-	go ps.periodicallyAllocateSlots(ctx)
+	go ps.listenActionAllocSlots(ctx)
 }
 
-func (ps *PeerSet) listenAction(ctx context.Context) {
+func (ps *PeerSet) listenActionAllocSlots(ctx context.Context) {
+	ticker := time.NewTicker(ps.nextPeriodicAllocSlots)
+
+	defer func() {
+		ticker.Stop()
+		close(ps.resultMsgCh)
+	}()
+
 	for {
 		select {
 		case <-ctx.Done():
+			logger.Debugf("peerset slot allocation exiting: %s", ctx.Err())
 			return
+		case <-ticker.C:
+			for setID := 0; setID < ps.peerState.getSetLength(); setID++ {
+				if err := ps.allocSlots(setID); err != nil {
+					logger.Warnf("failed to allocate slots: %s", err)
+				}
+			}
 		case act, ok := <-ps.actionQueue:
 			if !ok {
 				return
@@ -754,29 +767,6 @@ func (ps *PeerSet) listenAction(ctx context.Context) {
 
 			if err != nil {
 				logger.Errorf("failed to do action %s on peerSet: %s", act, err)
-			}
-		}
-	}
-}
-
-func (ps *PeerSet) periodicallyAllocateSlots(ctx context.Context) {
-	ticker := time.NewTicker(ps.nextPeriodicAllocSlots)
-
-	defer func() {
-		ticker.Stop()
-		close(ps.resultMsgCh)
-	}()
-
-	for {
-		select {
-		case <-ctx.Done():
-			logger.Debugf("peerset slot allocation exiting: %s", ctx.Err())
-			return
-		case <-ticker.C:
-			for setID := 0; setID < ps.peerState.getSetLength(); setID++ {
-				if err := ps.allocSlots(setID); err != nil {
-					logger.Warnf("failed to allocate slots: %s", err)
-				}
 			}
 		}
 	}

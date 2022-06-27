@@ -219,6 +219,17 @@ func Test_lockQueue_threadSafety(t *testing.T) {
 	}
 	blockHash := common.Hash{1}
 
+	endWg.Add(1)
+	go func() {
+		defer endWg.Done()
+		<-ctx.Done()
+		// Empty queue channel to make sure `push` does not block
+		// when the context is cancelled.
+		for len(blockQueue.queue) > 0 {
+			<-blockQueue.queue
+		}
+	}()
+
 	for i := 0; i < parallelism; i++ {
 		go runInLoop(func() {
 			blockQueue.push(blockData)

@@ -969,6 +969,10 @@ func (t *Trie) deleteBranch(branch *Node, key []byte) (
 	}
 
 	commonPrefixLength := lenCommonPrefix(branch.Key, key)
+	keyDoesNotExist := commonPrefixLength == len(key)
+	if keyDoesNotExist {
+		return branch, false, 0
+	}
 	childIndex := key[commonPrefixLength]
 	childKey := key[commonPrefixLength+1:]
 	child := branch.Children[childIndex]
