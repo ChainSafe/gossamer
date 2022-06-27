@@ -449,7 +449,7 @@ func Test_nodeBuilder_createGRANDPAService(t *testing.T) {
 			networkSrvc, err := network.NewService(networkConfig)
 			require.NoError(t, err)
 			builder := nodeBuilder{}
-			got, err := builder.createGRANDPAService(cfg, stateSrvc, nil, tt.ks, networkSrvc,
+			got, err := builder.createGRANDPAService(cfg, stateSrvc, tt.ks, networkSrvc,
 				nil)
 			assert.ErrorIs(t, err, tt.err)
 			// TODO: create interface for grandpa.NewService to enable testing with assert.Equal
