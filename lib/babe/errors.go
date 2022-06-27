@@ -73,7 +73,6 @@ var (
 	errChannelClosed              = errors.New("block notifier channel was closed")
 	errOverPrimarySlotThreshold   = errors.New("cannot claim slot, over primary threshold")
 	errNotOurTurnToPropose        = errors.New("cannot claim slot, not our turn to propose a block")
-	errNoConfigData               = errors.New("cannot find ConfigData for epoch")
 	errGetEpochData               = errors.New("get epochData error")
 	errFailedFinalisation         = errors.New("failed to check finalisation")
 	errMissingDigest              = errors.New("chain head missing digest")

@@ -18,10 +18,10 @@ import (
 )
 
 var (
+	ErrConfigNotFound     = errors.New("config data not found")
 	ErrEpochNotInMemory   = errors.New("epoch not found in memory map")
 	errHashNotInMemory    = errors.New("hash not found in memory map")
 	errEpochNotInDatabase = errors.New("epoch data not found in the database")
-	errConfigNotFound     = errors.New("config data not found")
 	errHashNotPersisted   = errors.New("hash with next epoch not found in database")
 	errNoPreRuntimeDigest = errors.New("header does not contain pre-runtime digest")
 )
@@ -361,7 +361,7 @@ func (s *EpochState) GetConfigData(epoch uint64, header *types.Header) (configDa
 		return inMemoryConfigData.ToConfigData(), err
 	}
 
-	return nil, errConfigNotFound
+	return nil, fmt.Errorf("%w: epoch %d", ErrConfigNotFound, epoch)
 }
 
 // getConfigDataFromDatabase returns the BABE config data for a given epoch persisted in database
