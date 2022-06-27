@@ -41,12 +41,48 @@ func NewValidityAttestation() ValidityAttestation {
 // or against it.
 type DisputeStatement scale.VaryingDataType
 
+func (distputedStatement *DisputeStatement) Set(val scale.VaryingDataTypeValue) (err error) {
+	// cast to VaryingDataType to use VaryingDataType.Set method
+	vdt := scale.VaryingDataType(*distputedStatement)
+	err = vdt.Set(val)
+	if err != nil {
+		return
+	}
+	// store original ParentVDT with VaryingDataType that has been set
+	*distputedStatement = DisputeStatement(vdt)
+	return
+}
+
+// Value will return value from underying VaryingDataType
+func (distputedStatement *DisputeStatement) Value() (val scale.VaryingDataTypeValue) {
+	vdt := scale.VaryingDataType(*distputedStatement)
+	return vdt.Value()
+}
+
 // ValidDisputeStatementKind is a kind of statements of validity on a candidate.
 type ValidDisputeStatementKind scale.VaryingDataType
 
 // Index Returns VDT index
 func (v ValidDisputeStatementKind) Index() uint {
 	return 0
+}
+
+func (v *ValidDisputeStatementKind) Set(val scale.VaryingDataTypeValue) (err error) {
+	// cast to VaryingDataType to use VaryingDataType.Set method
+	vdt := scale.VaryingDataType(*v)
+	err = vdt.Set(val)
+	if err != nil {
+		return
+	}
+	// store original ParentVDT with VaryingDataType that has been set
+	*v = ValidDisputeStatementKind(vdt)
+	return
+}
+
+// Value will return value from underying VaryingDataType
+func (v *ValidDisputeStatementKind) Value() (val scale.VaryingDataTypeValue) {
+	vdt := scale.VaryingDataType(*v)
+	return vdt.Value()
 }
 
 // ExplicitValidDisputeStatementKind is an explicit statement issued as part of a dispute.
@@ -89,6 +125,24 @@ func (in InvalidDisputeStatementKind) Index() uint {
 	return 1
 }
 
+func (in *InvalidDisputeStatementKind) Set(val scale.VaryingDataTypeValue) (err error) {
+	// cast to VaryingDataType to use VaryingDataType.Set method
+	vdt := scale.VaryingDataType(*in)
+	err = vdt.Set(val)
+	if err != nil {
+		return
+	}
+	// store original ParentVDT with VaryingDataType that has been set
+	*in = InvalidDisputeStatementKind(vdt)
+	return
+}
+
+// Value will return value from underying VaryingDataType
+func (in *InvalidDisputeStatementKind) Value() (val scale.VaryingDataTypeValue) {
+	vdt := scale.VaryingDataType(*in)
+	return vdt.Value()
+}
+
 // ExplicitInvalidDisputeStatementKind is an explicit statement issued as part of a dispute.
 type ExplicitInvalidDisputeStatementKind struct{}
 
@@ -110,7 +164,7 @@ func NewDisputeStatement() scale.VaryingDataType {
 		panic(err)
 	}
 
-	vdt, err := scale.NewVaryingDataType(validDisputeStatementKind.Value(), invalidDisputeStatementKind.Value())
+	vdt, err := scale.NewVaryingDataType(ValidDisputeStatementKind(validDisputeStatementKind), InvalidDisputeStatementKind(invalidDisputeStatementKind))
 	if err != nil {
 		panic(err)
 	}
