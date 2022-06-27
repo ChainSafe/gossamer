@@ -826,6 +826,7 @@ func (s *Service) finalise() error {
 	if err != nil {
 		return err
 	}
+
 	if err = s.blockState.SetJustification(bfc.Hash, pcj); err != nil {
 		return err
 	}

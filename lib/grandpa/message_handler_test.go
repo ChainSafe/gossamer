@@ -1065,15 +1065,10 @@ func signFakeFullVote(
 }
 
 func TestService_VerifyBlockJustification(t *testing.T) {
-	validJustification := "0x05000000000000008306f3c4dda0211e863e52c8bc15a3251e5ba38c7dd2f241f896653665e5e7e0080000" +
-		"000c8306f3c4dda0211e863e52c8bc15a3251e5ba38c7dd2f241f896653665e5e7e0080000001fd54b3502e84c96a1ab890d507789" +
-		"266c4611d784d0169a575e120874271d075b6717ab5a7eb7d9618c3916ecaf4310286163fc77152be2919c981701b9aa0ed17c2d78" +
-		"23ebf260fd138f2d7e27d114c0145d968b5ff5006125f2414fadae698306f3c4dda0211e863e52c8bc15a3251e5ba38c7dd2f241f8" +
-		"96653665e5e7e0080000002187956a30a233c1bf4d9e4e0b63eb887641f58758432915b2a5e3ab66543942e752767111fc75dcfbe3" +
-		"955d71c443adbc156e67c82fa2ae9b6a16b014d7690488dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0" +
-		"ee8306f3c4dda0211e863e52c8bc15a3251e5ba38c7dd2f241f896653665e5e7e008000000dad739bb86c09539662075845873c109" +
-		"c29f6c13e9a0ac771f08c4b58e96c5a2198e387fb3f18a2506c28f2c2a151044d1ae9dc40f83efa73cdfcf9a37615c09439660b36c" +
-		"6c03afafca027b910b4fecf99801834c62a5e6006f27d978de234f"
+	precommits := buildTestJustification(t, 2, 1, 0, kr, precommit)
+	justification := newJustification(1, testHash, 1, precommits)
+	justificationBytes, err := scale.Marshal(*justification)
+	require.NoError(t, err)
 
 	type fields struct {
 		blockStateBuilder   func(ctrl *gomock.Controller) BlockState
@@ -1110,87 +1105,61 @@ func TestService_VerifyBlockJustification(t *testing.T) {
 			fields: fields{
 				blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 					mockBlockState := NewMockBlockState(ctrl)
-					mockBlockState.EXPECT().HasFinalisedBlock(uint64(5), uint64(0)).Return(false, nil)
-					mockHeader := types.NewEmptyHeader()
-					mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(mockHeader, nil)
-					mockBlockState.EXPECT().IsDescendantOf(mockHeader.Hash(),
-						common.MustHexToHash("0x8306f3c4dda0211e863e52c8bc15a3251e5ba38c7dd2f241f896653665e5e7e0")).
-						Return(true, nil).Times(4)
-					mockBlockState.EXPECT().GetHeader(common.MustHexToHash(
-						"0x8306f3c4dda0211e863e52c8bc15a3251e5ba38c7dd2f241f896653665e5e7e0")).Return(&types.Header{Number: 8},
-						nil).Times(4)
-					mockBlockState.EXPECT().SetFinalisedHash(common.MustHexToHash(
-						"0xdcdd89927d8a348e00257e1ecc8617f45edb5118efff3ea2f9961b2ad9b7690a"), uint64(5), uint64(0)).Return(nil)
+					mockBlockState.EXPECT().HasFinalisedBlock(uint64(1), uint64(0)).Return(false, nil)
+					mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(testHeader, nil)
+					mockBlockState.EXPECT().IsDescendantOf(testHash, testHash).
+						Return(true, nil).Times(3)
+					mockBlockState.EXPECT().GetHeader(testHash).Return(testHeader, nil).Times(3)
+					mockBlockState.EXPECT().SetFinalisedHash(testHash, uint64(1),
+						uint64(0)).Return(nil)
 					return mockBlockState
 				},
 				grandpaStateBuilder: func(ctrl *gomock.Controller) GrandpaState {
 					mockGrandpaState := NewMockGrandpaState(ctrl)
-					mockGrandpaState.EXPECT().GetSetIDByBlockNumber(uint(8)).Return(uint64(0), nil)
-					key1, err := ed25519.NewPublicKey(common.MustHexToBytes(
-						"0xd17c2d7823ebf260fd138f2d7e27d114c0145d968b5ff5006125f2414fadae69"))
-					require.NoError(t, err)
-					key2, err := ed25519.NewPublicKey(common.MustHexToBytes(
-						"0x88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee"))
-					require.NoError(t, err)
-					key3, err := ed25519.NewPublicKey(common.MustHexToBytes(
-						"0x439660b36c6c03afafca027b910b4fecf99801834c62a5e6006f27d978de234f"))
-					require.NoError(t, err)
+					mockGrandpaState.EXPECT().GetSetIDByBlockNumber(uint(1)).Return(uint64(0), nil)
 					mockGrandpaState.EXPECT().GetAuthorities(uint64(0)).Return([]types.GrandpaVoter{
-						{Key: *key1, ID: 1},
-						{Key: *key2, ID: 2},
-						{Key: *key3, ID: 3},
+						{Key: *kr.Alice().Public().(*ed25519.PublicKey), ID: 1},
+						{Key: *kr.Bob().Public().(*ed25519.PublicKey), ID: 2},
+						{Key: *kr.Charlie().Public().(*ed25519.PublicKey), ID: 3},
 					}, nil)
 					return mockGrandpaState
 				},
 			},
 			args: args{
-				hash:          types.NewEmptyHeader().Hash(),
-				justification: common.MustHexToBytes(validJustification),
+				hash:          testHash,
+				justification: justificationBytes,
 			},
-			want: common.MustHexToBytes(validJustification),
+			want: justificationBytes,
 		},
-		"valid justification with extra bytes": {
+		"valid justification extra bytes": {
 			fields: fields{
 				blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 					mockBlockState := NewMockBlockState(ctrl)
-					mockBlockState.EXPECT().HasFinalisedBlock(uint64(5), uint64(0)).Return(false, nil)
-					mockHeader := types.NewEmptyHeader()
-					mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(mockHeader, nil)
-					mockBlockState.EXPECT().IsDescendantOf(mockHeader.Hash(),
-						common.MustHexToHash("0x8306f3c4dda0211e863e52c8bc15a3251e5ba38c7dd2f241f896653665e5e7e0")).
-						Return(true, nil).Times(4)
-					mockBlockState.EXPECT().GetHeader(common.MustHexToHash(
-						"0x8306f3c4dda0211e863e52c8bc15a3251e5ba38c7dd2f241f896653665e5e7e0")).Return(&types.Header{Number: 8},
-						nil).Times(4)
-					mockBlockState.EXPECT().SetFinalisedHash(common.MustHexToHash(
-						"0xdcdd89927d8a348e00257e1ecc8617f45edb5118efff3ea2f9961b2ad9b7690a"), uint64(5), uint64(0)).Return(nil)
+					mockBlockState.EXPECT().HasFinalisedBlock(uint64(1), uint64(0)).Return(false, nil)
+					mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(testHeader, nil)
+					mockBlockState.EXPECT().IsDescendantOf(testHash, testHash).
+						Return(true, nil).Times(3)
+					mockBlockState.EXPECT().GetHeader(testHash).Return(testHeader, nil).Times(3)
+					mockBlockState.EXPECT().SetFinalisedHash(testHash, uint64(1),
+						uint64(0)).Return(nil)
 					return mockBlockState
 				},
 				grandpaStateBuilder: func(ctrl *gomock.Controller) GrandpaState {
 					mockGrandpaState := NewMockGrandpaState(ctrl)
-					mockGrandpaState.EXPECT().GetSetIDByBlockNumber(uint(8)).Return(uint64(0), nil)
-					key1, err := ed25519.NewPublicKey(common.MustHexToBytes(
-						"0xd17c2d7823ebf260fd138f2d7e27d114c0145d968b5ff5006125f2414fadae69"))
-					require.NoError(t, err)
-					key2, err := ed25519.NewPublicKey(common.MustHexToBytes(
-						"0x88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee"))
-					require.NoError(t, err)
-					key3, err := ed25519.NewPublicKey(common.MustHexToBytes(
-						"0x439660b36c6c03afafca027b910b4fecf99801834c62a5e6006f27d978de234f"))
-					require.NoError(t, err)
+					mockGrandpaState.EXPECT().GetSetIDByBlockNumber(uint(1)).Return(uint64(0), nil)
 					mockGrandpaState.EXPECT().GetAuthorities(uint64(0)).Return([]types.GrandpaVoter{
-						{Key: *key1, ID: 1},
-						{Key: *key2, ID: 2},
-						{Key: *key3, ID: 3},
+						{Key: *kr.Alice().Public().(*ed25519.PublicKey), ID: 1},
+						{Key: *kr.Bob().Public().(*ed25519.PublicKey), ID: 2},
+						{Key: *kr.Charlie().Public().(*ed25519.PublicKey), ID: 3},
 					}, nil)
 					return mockGrandpaState
 				},
 			},
 			args: args{
-				hash:          types.NewEmptyHeader().Hash(),
-				justification: common.MustHexToBytes(validJustification + "0102030405060708090a0b0c0d0e0f"),
+				hash:          testHash,
+				justification: append(justificationBytes, []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14}...),
 			},
-			want: common.MustHexToBytes(validJustification),
+			want: justificationBytes,
 		},
 	}
 	for name, tt := range tests {
