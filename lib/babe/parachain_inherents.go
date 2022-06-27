@@ -26,7 +26,7 @@ func (ex Explicit) Index() uint {
 	return 2
 }
 
-// GetValidityAttestation returns a ValidityAttestation varying data type.
+// NewValidityAttestation creates a ValidityAttestation varying data type.
 func NewValidityAttestation() ValidityAttestation {
 	vdt, err := scale.NewVaryingDataType(Implicit{}, Explicit{})
 	if err != nil {
@@ -41,6 +41,7 @@ func NewValidityAttestation() ValidityAttestation {
 // or against it.
 type DisputeStatement scale.VaryingDataType
 
+// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
 func (distputedStatement *DisputeStatement) Set(val scale.VaryingDataTypeValue) (err error) {
 	// cast to VaryingDataType to use VaryingDataType.Set method
 	vdt := scale.VaryingDataType(*distputedStatement)
@@ -67,6 +68,7 @@ func (v ValidDisputeStatementKind) Index() uint {
 	return 0
 }
 
+// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
 func (v *ValidDisputeStatementKind) Set(val scale.VaryingDataTypeValue) (err error) {
 	// cast to VaryingDataType to use VaryingDataType.Set method
 	vdt := scale.VaryingDataType(*v)
@@ -125,6 +127,7 @@ func (in InvalidDisputeStatementKind) Index() uint {
 	return 1
 }
 
+// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
 func (in *InvalidDisputeStatementKind) Set(val scale.VaryingDataTypeValue) (err error) {
 	// cast to VaryingDataType to use VaryingDataType.Set method
 	vdt := scale.VaryingDataType(*in)
@@ -151,7 +154,7 @@ func (ex ExplicitInvalidDisputeStatementKind) Index() uint {
 	return 0
 }
 
-// GetDisputeStatement returns a GetDisputeStatement varying data type.
+// NewDisputeStatement create a new DisputeStatement varying data type.
 func NewDisputeStatement() DisputeStatement {
 	invalidDisputeStatementKind, err := scale.NewVaryingDataType(ExplicitInvalidDisputeStatementKind{})
 	if err != nil {
@@ -164,7 +167,8 @@ func NewDisputeStatement() DisputeStatement {
 		panic(err)
 	}
 
-	vdt, err := scale.NewVaryingDataType(ValidDisputeStatementKind(validDisputeStatementKind), InvalidDisputeStatementKind(invalidDisputeStatementKind))
+	vdt, err := scale.NewVaryingDataType(
+		ValidDisputeStatementKind(validDisputeStatementKind), InvalidDisputeStatementKind(invalidDisputeStatementKind))
 	if err != nil {
 		panic(err)
 	}
@@ -172,9 +176,10 @@ func NewDisputeStatement() DisputeStatement {
 	return DisputeStatement(vdt)
 }
 
-// Collator is the collator's relay-chain account ID
-type CollatorId []byte
+// CollatorID is the collator's relay-chain account ID
+type CollatorID []byte
 
+// CollatorSignature is signature on candidate's block data by a collator.
 type CollatorSignature []byte
 
 //  ValidationCodeHash is the blake2-256 hash of the validation code bytes.
@@ -192,7 +197,7 @@ type CandidateDescriptor struct {
 	RelayParent common.Hash `scale:"2"`
 
 	// Collator is the collator's relay-chain account ID
-	Collator CollatorId `scale:"3"`
+	Collator CollatorID `scale:"3"`
 
 	// PersistedValidationDataHash is the blake2-256 hash of the persisted validation data. This is extra data derived from
 	// relay-chain state which may vary based on bitfields included before the candidate.
