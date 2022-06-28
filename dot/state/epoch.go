@@ -18,6 +18,7 @@ import (
 )
 
 var (
+	ErrConfigNotFound     = errors.New("config data not found")
 	ErrEpochNotInMemory   = errors.New("epoch not found in memory map")
 	errHashNotInMemory    = errors.New("hash not found in memory map")
 	errEpochNotInDatabase = errors.New("epoch data not found in the database")
@@ -250,32 +251,29 @@ func (s *EpochState) SetEpochData(epoch uint64, info *types.EpochData) error {
 // if the header params is nil then it will search only in database
 func (s *EpochState) GetEpochData(epoch uint64, header *types.Header) (*types.EpochData, error) {
 	epochData, err := s.getEpochDataFromDatabase(epoch)
-	if err == nil && epochData != nil {
+	if err != nil && !errors.Is(err, chaindb.ErrKeyNotFound) {
+		return nil, fmt.Errorf("failed to retrieve epoch data from database: %w", err)
+	}
+
+	if epochData != nil {
 		return epochData, nil
 	}
 
-	if err != nil && !errors.Is(err, chaindb.ErrKeyNotFound) {
-		return nil, fmt.Errorf("failed to get epoch data from database: %w", err)
-	}
-
-	//  lookup in-memory only if header is given
-	if header != nil && errors.Is(err, chaindb.ErrKeyNotFound) {
-		s.nextEpochDataLock.RLock()
-		defer s.nextEpochDataLock.RUnlock()
-
-		inMemoryEpochData, err := retrieveFromMemory(s.nextEpochData, s, epoch, header)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get epoch data from memory: %w", err)
-		}
-
-		epochData, err = inMemoryEpochData.ToEpochData()
-		if err != nil {
-			return nil, fmt.Errorf("cannot transform into epoch data: %w", err)
-		}
-	}
-
-	if epochData == nil {
+	if header == nil {
 		return nil, errEpochNotInDatabase
+	}
+
+	s.nextEpochDataLock.RLock()
+	defer s.nextEpochDataLock.RUnlock()
+
+	inMemoryEpochData, err := retrieveFromMemory(s.nextEpochData, s.blockState, epoch, header)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get epoch data from memory: %w", err)
+	}
+
+	epochData, err = inMemoryEpochData.ToEpochData()
+	if err != nil {
+		return nil, fmt.Errorf("cannot transform into epoch data: %w", err)
 	}
 
 	return epochData, nil
@@ -334,35 +332,38 @@ func (s *EpochState) setLatestConfigData(epoch uint64) error {
 // - The supplied configuration data are intended to be used from the next epoch onwards.
 // If the header params is nil then it will search only in the database.
 func (s *EpochState) GetConfigData(epoch uint64, header *types.Header) (configData *types.ConfigData, err error) {
-	if header != nil {
-		s.nextConfigDataLock.RLock()
-		defer s.nextConfigDataLock.RUnlock()
-	}
+	for tryEpoch := int(epoch); tryEpoch >= 0; tryEpoch-- {
+		configData, err = s.getConfigDataFromDatabase(uint64(tryEpoch))
+		if err != nil && !errors.Is(err, chaindb.ErrKeyNotFound) {
+			return nil, fmt.Errorf("failed to retrieve config epoch from database: %w", err)
+		}
 
-	for tryEpoch := epoch; tryEpoch >= 0; tryEpoch-- {
-		configData, err = s.getConfigDataFromDatabase(tryEpoch)
-		if err == nil && configData != nil {
+		if configData != nil {
 			return configData, nil
 		}
 
-		if err != nil && !errors.Is(err, chaindb.ErrKeyNotFound) {
-			return nil, fmt.Errorf("failed to get config data from database: %w", err)
+		// there is no config data for the `tryEpoch` on database and we don't have a
+		// header to lookup in the memory map, so let's go retrieve the previous epoch
+		if header == nil {
+			continue
 		}
 
-		//  lookup in-memory only if header is given
-		if header != nil && errors.Is(err, chaindb.ErrKeyNotFound) {
-			inMemoryConfigData, err := retrieveFromMemory(s.nextConfigData, s, epoch, header)
-			if errors.Is(err, ErrEpochNotInMemory) {
-				continue
-			} else if err != nil {
-				return nil, fmt.Errorf("failed to get config data from memory: %w", err)
-			}
+		// we will check in the memory map and if we don't find the data
+		// then we continue searching through the previous epoch
+		s.nextConfigDataLock.RLock()
+		inMemoryConfigData, err := retrieveFromMemory(s.nextConfigData, s.blockState, uint64(tryEpoch), header)
+		s.nextConfigDataLock.RUnlock()
 
-			return inMemoryConfigData.ToConfigData(), err
+		if errors.Is(err, ErrEpochNotInMemory) {
+			continue
+		} else if err != nil {
+			return nil, fmt.Errorf("failed to get config data from memory: %w", err)
 		}
+
+		return inMemoryConfigData.ToConfigData(), err
 	}
 
-	return nil, errConfigNotFound
+	return nil, fmt.Errorf("%w: epoch %d", ErrConfigNotFound, epoch)
 }
 
 // getConfigDataFromDatabase returns the BABE config data for a given epoch persisted in database
@@ -382,7 +383,7 @@ func (s *EpochState) getConfigDataFromDatabase(epoch uint64) (*types.ConfigData,
 }
 
 func retrieveFromMemory[T types.NextEpochData | types.NextConfigData](nextEpochMap map[uint64]map[common.Hash]T,
-	es *EpochState, epoch uint64, header *types.Header) (*T, error) {
+	blockState *BlockState, epoch uint64, header *types.Header) (*T, error) {
 
 	atEpoch, has := nextEpochMap[epoch]
 	if !has {
@@ -391,18 +392,18 @@ func retrieveFromMemory[T types.NextEpochData | types.NextConfigData](nextEpochM
 
 	headerHash := header.Hash()
 	for hash, value := range atEpoch {
-		isDescendant, err := es.blockState.IsDescendantOf(hash, headerHash)
+		isDescendant, err := blockState.IsDescendantOf(hash, headerHash)
 
 		// sometimes while moving to the next epoch is possible the header
 		// is not fully imported by the blocktree, in this case we will use
 		// its parent header which migth be already imported.
 		if errors.Is(err, blocktree.ErrEndNodeNotFound) {
-			parentHeader, err := es.blockState.GetHeader(header.ParentHash)
+			parentHeader, err := blockState.GetHeader(header.ParentHash)
 			if err != nil {
 				return nil, fmt.Errorf("cannot get parent header: %w", err)
 			}
 
-			return retrieveFromMemory(nextEpochMap, es, epoch, parentHeader)
+			return retrieveFromMemory(nextEpochMap, blockState, epoch, parentHeader)
 		}
 
 		if err != nil {

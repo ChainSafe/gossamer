@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -740,9 +741,10 @@ func TestVerificationManager_getVerifierInfo(t *testing.T) {
 
 	testHeader := types.NewEmptyHeader()
 
-	mockEpochStateGetErr.EXPECT().GetEpochData(uint64(0), testHeader).Return(nil, errNoConfigData)
+	mockEpochStateGetErr.EXPECT().GetEpochData(uint64(0), testHeader).Return(nil, state.ErrEpochNotInMemory)
 
 	mockEpochStateHasErr.EXPECT().GetEpochData(uint64(0), testHeader).Return(&types.EpochData{}, nil)
+	mockEpochStateHasErr.EXPECT().GetConfigData(uint64(0), testHeader).Return(&types.ConfigData{}, state.ErrConfigNotFound)
 
 	mockEpochStateThresholdErr.EXPECT().GetEpochData(uint64(0), testHeader).Return(&types.EpochData{}, nil)
 	mockEpochStateThresholdErr.EXPECT().GetConfigData(uint64(0), testHeader).
@@ -777,12 +779,12 @@ func TestVerificationManager_getVerifierInfo(t *testing.T) {
 		{
 			name:   "getEpochData error",
 			vm:     vm0,
-			expErr: fmt.Errorf("failed to get epoch data for epoch %d: %w", 0, errNoConfigData),
+			expErr: fmt.Errorf("failed to get epoch data for epoch %d: %w", 0, state.ErrEpochNotInMemory),
 		},
 		{
 			name:   "getConfigData error",
 			vm:     vm1,
-			expErr: fmt.Errorf("failed to get config data: %w", errNoConfigData),
+			expErr: fmt.Errorf("failed to get config data: %w", state.ErrConfigNotFound),
 		},
 		{
 			name:   "calculate threshold error",
