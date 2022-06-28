@@ -792,44 +792,216 @@ func TestMessageHandler_VerifyBlockJustification_invalid(t *testing.T) {
 }
 
 func Test_getEquivocatoryVoters(t *testing.T) {
-	// many of equivocatory votes
+	t.Parallel()
+
 	ed25519Keyring, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
-	fakeAuthorities := []*ed25519.Keypair{
-		ed25519Keyring.Alice().(*ed25519.Keypair),
-		ed25519Keyring.Alice().(*ed25519.Keypair),
-		ed25519Keyring.Bob().(*ed25519.Keypair),
-		ed25519Keyring.Charlie().(*ed25519.Keypair),
-		ed25519Keyring.Charlie().(*ed25519.Keypair),
-		ed25519Keyring.Dave().(*ed25519.Keypair),
-		ed25519Keyring.Dave().(*ed25519.Keypair),
-		ed25519Keyring.Eve().(*ed25519.Keypair),
-		ed25519Keyring.Ferdie().(*ed25519.Keypair),
-		ed25519Keyring.Heather().(*ed25519.Keypair),
-		ed25519Keyring.Heather().(*ed25519.Keypair),
-		ed25519Keyring.Ian().(*ed25519.Keypair),
-		ed25519Keyring.Ian().(*ed25519.Keypair),
+	tests := map[string]struct {
+		votes []AuthData
+		want  map[ed25519.PublicKeyBytes]struct{}
+	}{
+		"no votes": {
+			votes: []AuthData{},
+			want:  map[ed25519.PublicKeyBytes]struct{}{},
+		},
+		"one vote": {
+			votes: []AuthData{
+				{
+					AuthorityID: ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(),
+					Signature:   [64]byte{1, 2, 3, 4},
+				},
+			},
+			want: map[ed25519.PublicKeyBytes]struct{}{},
+		},
+		"two votes different authorities": {
+			votes: []AuthData{
+				{
+					AuthorityID: ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(),
+					Signature:   [64]byte{1, 2, 3, 4},
+				},
+				{
+					AuthorityID: ed25519Keyring.Bob().Public().(*ed25519.PublicKey).AsBytes(),
+					Signature:   [64]byte{1, 2, 3, 4},
+				},
+			},
+			want: map[ed25519.PublicKeyBytes]struct{}{},
+		},
+		"duplicate votes": {
+			votes: []AuthData{
+				{
+					AuthorityID: ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(),
+					Signature:   [64]byte{1, 2, 3, 4},
+				},
+				{
+					AuthorityID: ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(),
+					Signature:   [64]byte{1, 2, 3, 4},
+				},
+			},
+			want: map[ed25519.PublicKeyBytes]struct{}{},
+		},
+		"equivocatory vote": {
+			votes: []AuthData{
+				{
+					AuthorityID: ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(),
+					Signature:   [64]byte{1, 2, 3, 4},
+				},
+				{
+					AuthorityID: ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(),
+					Signature:   [64]byte{5, 6, 7, 8},
+				},
+			},
+			want: map[ed25519.PublicKeyBytes]struct{}{
+				ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(): {},
+			},
+		},
+		"equivocatory vote with duplicate": {
+			votes: []AuthData{
+				{
+					AuthorityID: ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(),
+					Signature:   [64]byte{1, 2, 3, 4},
+				},
+				{
+					AuthorityID: ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(),
+					Signature:   [64]byte{5, 6, 7, 8},
+				},
+				{
+					AuthorityID: ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(),
+					Signature:   [64]byte{1, 2, 3, 4},
+				},
+			},
+			want: map[ed25519.PublicKeyBytes]struct{}{
+				ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(): {},
+			},
+		},
+		"three voters one equivocatory": {
+			votes: []AuthData{
+				{
+					AuthorityID: ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(),
+					Signature:   [64]byte{1, 2, 3, 4},
+				},
+				{
+					AuthorityID: ed25519Keyring.Bob().Public().(*ed25519.PublicKey).AsBytes(),
+					Signature:   [64]byte{1, 2, 3, 4},
+				},
+				{
+					AuthorityID: ed25519Keyring.Bob().Public().(*ed25519.PublicKey).AsBytes(),
+					Signature:   [64]byte{5, 6, 7, 8},
+				},
+				{
+					AuthorityID: ed25519Keyring.Charlie().Public().(*ed25519.PublicKey).AsBytes(),
+					Signature:   [64]byte{5, 6, 7, 8},
+				},
+			},
+			want: map[ed25519.PublicKeyBytes]struct{}{
+				ed25519Keyring.Bob().Public().(*ed25519.PublicKey).AsBytes(): {},
+			},
+		},
+		"three voters one equivocatory one duplicate": {
+			votes: []AuthData{
+				{
+					AuthorityID: ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(),
+					Signature:   [64]byte{1, 2, 3, 4},
+				},
+				{
+					AuthorityID: ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(),
+					Signature:   [64]byte{5, 6, 7, 8},
+				},
+				{
+					AuthorityID: ed25519Keyring.Bob().Public().(*ed25519.PublicKey).AsBytes(),
+					Signature:   [64]byte{5, 6, 7, 8},
+				},
+				{
+					AuthorityID: ed25519Keyring.Bob().Public().(*ed25519.PublicKey).AsBytes(),
+					Signature:   [64]byte{5, 6, 7, 8},
+				},
+				{
+					AuthorityID: ed25519Keyring.Charlie().Public().(*ed25519.PublicKey).AsBytes(),
+					Signature:   [64]byte{5, 6, 7, 8},
+				},
+			},
+			want: map[ed25519.PublicKeyBytes]struct{}{
+				ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(): {},
+			},
+		},
+		"three voters two equivocatory": {
+			votes: []AuthData{
+				{
+					AuthorityID: ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(),
+					Signature:   [64]byte{1, 2, 3, 4},
+				},
+				{
+					AuthorityID: ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(),
+					Signature:   [64]byte{5, 6, 7, 8},
+				},
+				{
+					AuthorityID: ed25519Keyring.Bob().Public().(*ed25519.PublicKey).AsBytes(),
+					Signature:   [64]byte{1, 2, 3, 4},
+				},
+				{
+					AuthorityID: ed25519Keyring.Bob().Public().(*ed25519.PublicKey).AsBytes(),
+					Signature:   [64]byte{5, 6, 7, 8},
+				},
+				{
+					AuthorityID: ed25519Keyring.Charlie().Public().(*ed25519.PublicKey).AsBytes(),
+					Signature:   [64]byte{5, 6, 7, 8},
+				},
+			},
+			want: map[ed25519.PublicKeyBytes]struct{}{
+				ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(): {},
+				ed25519Keyring.Bob().Public().(*ed25519.PublicKey).AsBytes():   {},
+			},
+		},
+		"three voters two duplicate": {
+			votes: []AuthData{
+				{
+					AuthorityID: ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(),
+					Signature:   [64]byte{1, 2, 3, 4},
+				},
+				{
+					AuthorityID: ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(),
+					Signature:   [64]byte{1, 2, 3, 4},
+				},
+				{
+					AuthorityID: ed25519Keyring.Bob().Public().(*ed25519.PublicKey).AsBytes(),
+					Signature:   [64]byte{1, 2, 3, 4},
+				},
+				{
+					AuthorityID: ed25519Keyring.Bob().Public().(*ed25519.PublicKey).AsBytes(),
+					Signature:   [64]byte{1, 2, 3, 4},
+				},
+				{
+					AuthorityID: ed25519Keyring.Charlie().Public().(*ed25519.PublicKey).AsBytes(),
+					Signature:   [64]byte{5, 6, 7, 8},
+				},
+			},
+			want: map[ed25519.PublicKeyBytes]struct{}{},
+		},
+		"three voters": {
+			votes: []AuthData{
+				{
+					AuthorityID: ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(),
+					Signature:   [64]byte{1, 2, 3, 4},
+				},
+				{
+					AuthorityID: ed25519Keyring.Bob().Public().(*ed25519.PublicKey).AsBytes(),
+					Signature:   [64]byte{1, 2, 3, 4},
+				},
+				{
+					AuthorityID: ed25519Keyring.Charlie().Public().(*ed25519.PublicKey).AsBytes(),
+					Signature:   [64]byte{5, 6, 7, 8},
+				},
+			},
+			want: map[ed25519.PublicKeyBytes]struct{}{},
+		},
 	}
-
-	authData := make([]AuthData, len(fakeAuthorities))
-
-	for i, auth := range fakeAuthorities {
-		authData[i] = AuthData{
-			AuthorityID: auth.Public().(*ed25519.PublicKey).AsBytes(),
-		}
+	for name, tt := range tests {
+		tt := tt
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			got := getEquivocatoryVoters(tt.votes)
+			assert.Equalf(t, tt.want, got, "getEquivocatoryVoters(%v)", tt.votes)
+		})
 	}
-
-	eqv, err := getEquivocatoryVoters(authData)
-	require.NoError(t, err)
-	require.Len(t, eqv, 5)
-
-	// test that getEquivocatoryVoters returns an error if a voter has more than two equivocatory votes
-	authData = append(authData, AuthData{
-		AuthorityID: ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(),
-	})
-
-	_, err = getEquivocatoryVoters(authData)
-	require.ErrorIs(t, err, errInvalidMultiplicity)
 }
 
 func Test_VerifyCommitMessageJustification_ShouldRemoveEquivocatoryVotes(t *testing.T) {
