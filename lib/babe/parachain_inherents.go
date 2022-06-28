@@ -37,7 +37,7 @@ func (validityAttestation *ValidityAttestation) Value() (val scale.VaryingDataTy
 type Implicit ValidatorSignature
 
 // Index Returns VDT index
-func (im Implicit) Index() uint {
+func (Implicit) Index() uint {
 	return 1
 }
 
@@ -45,7 +45,7 @@ func (im Implicit) Index() uint {
 type Explicit ValidatorSignature
 
 // Index Returns VDT index
-func (ex Explicit) Index() uint {
+func (Explicit) Index() uint {
 	return 2
 }
 
@@ -87,7 +87,7 @@ func (distputedStatement *DisputeStatement) Value() (val scale.VaryingDataTypeVa
 type ValidDisputeStatementKind scale.VaryingDataType
 
 // Index Returns VDT index
-func (v ValidDisputeStatementKind) Index() uint {
+func (ValidDisputeStatementKind) Index() uint {
 	return 0
 }
 
@@ -114,7 +114,7 @@ func (v *ValidDisputeStatementKind) Value() (val scale.VaryingDataTypeValue) {
 type ExplicitValidDisputeStatementKind struct{}
 
 // Index Returns VDT index
-func (ex ExplicitValidDisputeStatementKind) Index() uint {
+func (ExplicitValidDisputeStatementKind) Index() uint {
 	return 0
 }
 
@@ -122,7 +122,7 @@ func (ex ExplicitValidDisputeStatementKind) Index() uint {
 type BackingSeconded common.Hash
 
 // Index Returns VDT index
-func (bs BackingSeconded) Index() uint {
+func (BackingSeconded) Index() uint {
 	return 1
 }
 
@@ -130,7 +130,7 @@ func (bs BackingSeconded) Index() uint {
 type BackingValid common.Hash
 
 // Index Returns VDT index
-func (bv BackingValid) Index() uint {
+func (BackingValid) Index() uint {
 	return 2
 }
 
@@ -138,7 +138,7 @@ func (bv BackingValid) Index() uint {
 type ApprovalChecking struct{}
 
 // Index Returns VDT index
-func (ac ApprovalChecking) Index() uint {
+func (ApprovalChecking) Index() uint {
 	return 3
 }
 
@@ -146,7 +146,7 @@ func (ac ApprovalChecking) Index() uint {
 type InvalidDisputeStatementKind scale.VaryingDataType
 
 // Index Returns VDT index
-func (in InvalidDisputeStatementKind) Index() uint {
+func (InvalidDisputeStatementKind) Index() uint {
 	return 1
 }
 
@@ -173,7 +173,7 @@ func (in *InvalidDisputeStatementKind) Value() (val scale.VaryingDataTypeValue) 
 type ExplicitInvalidDisputeStatementKind struct{}
 
 // Index Returns VDT index
-func (ex ExplicitInvalidDisputeStatementKind) Index() uint {
+func (ExplicitInvalidDisputeStatementKind) Index() uint {
 	return 0
 }
 
