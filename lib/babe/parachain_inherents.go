@@ -6,9 +6,31 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
+type Signature [64]byte
+
 // ValidityAttestation is an implicit or explicit attestation to the validity of a parachain
 // candidate.
 type ValidityAttestation scale.VaryingDataType
+
+// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
+func (validityAttestation *ValidityAttestation) Set(val scale.VaryingDataTypeValue) (err error) {
+	// cast to VaryingDataType to use VaryingDataType.Set method
+	vdt := scale.VaryingDataType(*validityAttestation)
+	err = vdt.Set(val)
+	if err != nil {
+		return
+	}
+	// store original ParentVDT with VaryingDataType that has been set
+	*validityAttestation = ValidityAttestation(vdt)
+	return
+}
+
+// Value will return value from underying VaryingDataType
+func (validityAttestation *ValidityAttestation) Value() (val scale.VaryingDataTypeValue) {
+	vdt := scale.VaryingDataType(*validityAttestation)
+	// reflect.ValueOf(vdt).Field(1).String()
+	return vdt.Value()
+}
 
 // Implicit is for implicit attestation.
 type Implicit ValidatorSignature
@@ -180,7 +202,7 @@ func NewDisputeStatement() DisputeStatement {
 type CollatorID []byte
 
 // CollatorSignature is signature on candidate's block data by a collator.
-type CollatorSignature []byte
+type CollatorSignature Signature
 
 //  ValidationCodeHash is the blake2-256 hash of the validation code bytes.
 type ValidationCodeHash common.Hash
@@ -265,7 +287,7 @@ type UncheckedSignedAvailabilityBitfield struct {
 	// The index of the validator signing this statement.
 	ValidatorIndex uint32 `scale:"2"`
 	/// The signature by the validator of the signed payload.
-	Signature []byte `scale:"3"`
+	Signature Signature `scale:"3"`
 	// go does not have phantom data
 	// /// This ensures the real payload is tracked at the typesystem level.
 	// real_payload: sp_std::marker::PhantomData<RealPayload>,
@@ -288,7 +310,7 @@ type MultiDisputeStatementSet []DisputeStatementSet
 type ValidatorIndex uint32
 
 // ValidatorSignature is the signature with which parachain validators sign blocks.
-type ValidatorSignature []byte
+type ValidatorSignature Signature
 
 // Statement about the candidate.
 // Used as translation of `Vec<(DisputeStatement, ValidatorIndex, ValidatorSignature)>` from rust to go
