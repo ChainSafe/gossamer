@@ -47,19 +47,13 @@ func TestValidDisputeStatementKind(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			validDisputeStatementKind, err := scale.NewVaryingDataType(
 				ExplicitValidDisputeStatementKind{}, BackingSeconded{}, BackingValid{}, ApprovalChecking{})
-			if err != nil {
-				panic(err)
-			}
+			require.NoError(t, err)
 
 			err = validDisputeStatementKind.Set(c.enumValue)
-			if err != nil {
-				panic(err)
-			}
+			require.NoError(t, err)
 
 			bytes, err := scale.Marshal(validDisputeStatementKind)
-			if err != nil {
-				panic(err)
-			}
+			require.NoError(t, err)
 
 			require.Equal(t, c.encodingValue, bytes)
 		})
@@ -84,19 +78,13 @@ func TestInvalidDisputeStatementKind(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			invalidDisputeStatementKind, err := scale.NewVaryingDataType(
 				ExplicitInvalidDisputeStatementKind{})
-			if err != nil {
-				panic(err)
-			}
+			require.NoError(t, err)
 
 			err = invalidDisputeStatementKind.Set(c.enumValue)
-			if err != nil {
-				panic(err)
-			}
+			require.NoError(t, err)
 
 			bytes, err := scale.Marshal(invalidDisputeStatementKind)
-			if err != nil {
-				panic(err)
-			}
+			require.NoError(t, err)
 
 			require.Equal(t, c.encodingValue, bytes)
 		})
@@ -115,19 +103,14 @@ func TestDisputeStatement(t *testing.T) {
 			vdt: func() DisputeStatement {
 				validDisputeStatementKind, err := scale.NewVaryingDataType(
 					ExplicitValidDisputeStatementKind{}, BackingSeconded{}, BackingValid{}, ApprovalChecking{})
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				err = validDisputeStatementKind.Set(ExplicitValidDisputeStatementKind{})
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
 
 				disputeStatement := NewDisputeStatement()
 				err = disputeStatement.Set(ValidDisputeStatementKind(validDisputeStatementKind))
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
 
 				return disputeStatement
 			}(),
@@ -140,20 +123,14 @@ func TestDisputeStatement(t *testing.T) {
 				validDisputeStatementKind, err := scale.NewVaryingDataType(
 					ExplicitValidDisputeStatementKind{}, BackingSeconded{}, BackingValid{}, ApprovalChecking{},
 				)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
 
 				err = validDisputeStatementKind.Set(ApprovalChecking{})
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
 
 				disputeStatement := NewDisputeStatement()
 				err = disputeStatement.Set(ValidDisputeStatementKind(validDisputeStatementKind))
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
 
 				return disputeStatement
 			}(),
@@ -165,20 +142,14 @@ func TestDisputeStatement(t *testing.T) {
 				validDisputeStatementKind, err := scale.NewVaryingDataType(
 					ExplicitValidDisputeStatementKind{}, BackingSeconded{}, BackingValid{}, ApprovalChecking{},
 				)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
 
 				err = validDisputeStatementKind.Set(BackingSeconded(common.Hash{}))
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
 
 				disputeStatement := NewDisputeStatement()
 				err = disputeStatement.Set(ValidDisputeStatementKind(validDisputeStatementKind))
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
 
 				return disputeStatement
 			}(),
@@ -191,20 +162,14 @@ func TestDisputeStatement(t *testing.T) {
 				invalidDisputeStatementKind, err := scale.NewVaryingDataType(
 					ExplicitInvalidDisputeStatementKind{},
 				)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
 
 				err = invalidDisputeStatementKind.Set(ExplicitInvalidDisputeStatementKind{})
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
 
 				disputeStatement := NewDisputeStatement()
 				err = disputeStatement.Set(InvalidDisputeStatementKind(invalidDisputeStatementKind))
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
 
 				return disputeStatement
 			}(),
@@ -215,18 +180,14 @@ func TestDisputeStatement(t *testing.T) {
 	for _, c := range testCases {
 		t.Run(c.name, func(t *testing.T) {
 			bytes, err := scale.Marshal(c.vdt)
-			if err != nil {
-				panic(err)
-			}
+			require.NoError(t, err)
 
 			fmt.Printf("0x%x\n", c.encodingValue)
 			require.Equal(t, c.encodingValue, bytes)
 
 			newDst := NewDisputeStatement()
 			err = scale.Unmarshal(bytes, &newDst)
-			if err != nil {
-				panic(err)
-			}
+			require.NoError(t, err)
 
 			if !reflect.DeepEqual(c.vdt, newDst) {
 				panic(fmt.Errorf("uh oh: \n%+v \n\n%+v", c.vdt, newDst))
@@ -244,12 +205,12 @@ func TestValidityAttestation(t *testing.T) {
 		{
 			name:          "Implicit",
 			enumValue:     Implicit(ValidatorSignature{}),
-			encodingValue: []byte{0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0},
+			encodingValue: []byte{0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}, //nolint:lll
 		},
 		{
 			name:          "Explicit",
 			enumValue:     Explicit(ValidatorSignature{}),
-			encodingValue: []byte{0x2, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0},
+			encodingValue: []byte{0x2, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}, //nolint:lll
 		},
 	}
 
@@ -257,23 +218,17 @@ func TestValidityAttestation(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			validityAttestation := NewValidityAttestation()
 			err := validityAttestation.Set(c.enumValue)
-			if err != nil {
-				panic(err)
-			}
+			require.NoError(t, err)
 
 			bytes, err := scale.Marshal(validityAttestation)
-			if err != nil {
-				panic(err)
-			}
+			require.NoError(t, err)
 
 			fmt.Printf("bytes 0x%x\n", bytes)
 			require.Equal(t, c.encodingValue, bytes)
 
 			newDst := NewValidityAttestation()
 			err = scale.Unmarshal(bytes, &newDst)
-			if err != nil {
-				panic(err)
-			}
+			require.NoError(t, err)
 
 			if !reflect.DeepEqual(validityAttestation, newDst) {
 				panic(fmt.Errorf("uh oh: \n%+v \n\n%+v", validityAttestation, newDst))

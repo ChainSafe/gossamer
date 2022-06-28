@@ -6,6 +6,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
+// Signature could be one of Ed25519 Signature, Sr25519 signature or ECDSA/SECP256k1 signature.
 type Signature [64]byte
 
 // ValidityAttestation is an implicit or explicit attestation to the validity of a parachain
