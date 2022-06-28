@@ -326,6 +326,7 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	}
 
 	// check if the producer has equivocated, ie. have they produced a conflicting block?
+	// hashes is hashes of all blocks with same block number as header.Number
 	hashes := b.blockState.GetAllBlocksAtDepth(header.ParentHash)
 
 	for _, hash := range hashes {
@@ -349,6 +350,7 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 			existingBlockProducerIndex = d.AuthorityIndex
 		}
 
+		// same authority won't produce two different blocks at the same block number
 		if currentBlockProducerIndex == existingBlockProducerIndex && hash != header.Hash() {
 			return ErrProducerEquivocated
 		}
@@ -373,7 +375,7 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (scale
 		authIdx = d.AuthorityIndex
 	}
 
-	if len(b.authorities) <= int(authIdx) {
+	if uint64(len(b.authorities)) <= uint64(authIdx) {
 		logger.Tracef("verifyPreRuntimeDigest invalid auth index %d, we have %d auths",
 			authIdx, len(b.authorities))
 		return nil, ErrInvalidBlockProducerIndex

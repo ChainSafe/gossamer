@@ -5,17 +5,13 @@ package sync
 
 import (
 	"context"
-	"fmt"
-	"log"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/tests/utils"
+	"github.com/ChainSafe/gossamer/tests/utils/config"
 	"github.com/stretchr/testify/require"
 )
-
-var framework utils.Framework
 
 type testRPCCall struct {
 	nodeIdx int
@@ -46,27 +42,33 @@ var checks = []checkDBCall{
 	{call1idx: 3, call2idx: 5, field: "parentHash"},
 }
 
-func TestMain(m *testing.M) {
-	if utils.MODE != "sync" {
-		fmt.Println("Going to skip stress test")
-		return
-	}
-	fw, err := utils.InitFramework(3)
-	if err != nil {
-		log.Fatal(fmt.Errorf("error initialising test framework"))
-	}
-	framework = *fw
-	// Start all tests
-	code := m.Run()
-	os.Exit(code)
-}
-
 // this starts nodes and runs RPC calls (which loads db)
 func TestCalls(t *testing.T) {
+	if utils.MODE != "sync" {
+		t.Skip("MODE != 'sync', skipping stress test")
+	}
+
 	ctx := context.Background()
 
-	err := framework.StartNodes(t)
-	require.Len(t, err, 0)
+	const qtyNodes = 3
+	tomlConfig := config.Default()
+	framework, err := utils.InitFramework(ctx, t, qtyNodes, tomlConfig)
+
+	require.NoError(t, err)
+
+	nodesCtx, nodesCancel := context.WithCancel(ctx)
+
+	runtimeErrors, startErr := framework.StartNodes(nodesCtx, t)
+
+	t.Cleanup(func() {
+		nodesCancel()
+		for _, runtimeError := range runtimeErrors {
+			<-runtimeError
+		}
+	})
+
+	require.NoError(t, startErr)
+
 	for _, call := range tests {
 		time.Sleep(call.delay)
 
@@ -87,7 +89,4 @@ func TestCalls(t *testing.T) {
 		res := framework.CheckEqual(check.call1idx, check.call2idx, check.field)
 		require.True(t, res)
 	}
-
-	err = framework.KillNodes(t)
-	require.Len(t, err, 0)
 }

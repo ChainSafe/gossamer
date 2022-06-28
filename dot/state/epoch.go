@@ -23,6 +23,8 @@ var (
 	errEpochNotInDatabase = errors.New("epoch data not found in the database")
 	errConfigNotFound     = errors.New("config data not found")
 	errHashNotPersisted   = errors.New("hash with next epoch not found in database")
+	errEpochDataNotFound  = errors.New("epoch data not found in the database")
+	errNoPreRuntimeDigest = errors.New("header does not contain pre-runtime digest")
 )
 
 var (
@@ -228,7 +230,7 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 		return (slotNumber - firstSlot) / s.epochLength, nil
 	}
 
-	return 0, errors.New("header does not contain pre-runtime digest")
+	return 0, errNoPreRuntimeDigest
 }
 
 // SetEpochData sets the epoch data for a given epoch
@@ -517,6 +519,10 @@ func (s *EpochState) StoreBABENextConfigData(epoch uint64, hash common.Hash, nex
 // check if the header is in the database then it's been finalized and
 // thus we can also set the corresponding EpochData in the database
 func (s *EpochState) FinalizeBABENextEpochData(finalizedHeader *types.Header) error {
+	if finalizedHeader.Number == 0 {
+		return nil
+	}
+
 	s.nextEpochDataLock.Lock()
 	defer s.nextEpochDataLock.Unlock()
 
@@ -574,6 +580,10 @@ func (s *EpochState) FinalizeBABENextEpochData(finalizedHeader *types.Header) er
 // check if the header is in the database then it's been finalized and
 // thus we can also set the corresponding NextConfigData in the database
 func (s *EpochState) FinalizeBABENextConfigData(finalizedHeader *types.Header) error {
+	if finalizedHeader.Number == 0 {
+		return nil
+	}
+
 	s.nextConfigDataLock.Lock()
 	defer s.nextConfigDataLock.Unlock()
 
