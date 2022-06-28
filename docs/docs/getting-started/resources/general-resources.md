@@ -50,7 +50,7 @@ Gossamer is an implementation of the Polkadot Host in Go. To learn more about Go
 
 - To understand the vision behind Gossamer and how it fits into the Polkadot ecosystem, please read this blog post: <a target="_blank" rel="noopener noreferrer" href="https://medium.com/chainsafe-systems/the-future-of-polkadot-in-golang-gossamer-3345f0d6143d">"The Future of Polkadot in Golang: Gossamer"</a>.
 
-- For a more technical explanation, we recommend watching this <a target="_blank" rel="noopener noreferrer" href="https://medium.com/chainsafe-systems/the-future-of-polkadot-in-golang-gossamer-3345f0d6143d">video</a>.
+- For a more technical explanation, we recommend watching this <a target="_blank" rel="noopener noreferrer" href="https://youtu.be/ZIS0eLtBA9E">video</a>.
 
 ### Additional Resources
 

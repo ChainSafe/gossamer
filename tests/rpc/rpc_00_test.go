@@ -6,54 +6,46 @@ package rpc
 import (
 	"context"
 	"fmt"
-	"os"
-	"reflect"
-	"strconv"
 	"testing"
+	"time"
 
-	"github.com/ChainSafe/gossamer/tests/utils"
+	"github.com/ChainSafe/gossamer/tests/utils/rpc"
 	"github.com/stretchr/testify/require"
 )
 
 var (
-	currentPort = strconv.Itoa(utils.BaseRPCPort)
-	rpcSuite    = "rpc"
+	rpcSuite = "rpc"
 )
-
-func TestMain(m *testing.M) {
-	fmt.Println("Going to start RPC suite test")
-
-	utils.CreateDefaultConfig()
-	defer os.Remove(utils.ConfigDefault)
-
-	// Start all tests
-	code := m.Run()
-	os.Exit(code)
-}
 
 type testCase struct {
 	description string
 	method      string
 	params      string
 	expected    interface{}
-	skip        bool
 }
 
-func getResponse(ctx context.Context, t *testing.T, test *testCase) interface{} {
-	if test.skip {
-		t.Skip("RPC endpoint not yet implemented")
-		return nil
+func fetchWithTimeout(ctx context.Context, t *testing.T,
+	method, params string, target interface{}) {
+	t.Helper()
+
+	getResponseCtx, getResponseCancel := context.WithTimeout(ctx, time.Second)
+	defer getResponseCancel()
+	err := getResponse(getResponseCtx, method, params, target)
+	require.NoError(t, err)
+}
+
+func getResponse(ctx context.Context, method, params string, target interface{}) (err error) {
+	const currentPort = "8540"
+	endpoint := rpc.NewEndpoint(currentPort)
+	respBody, err := rpc.Post(ctx, endpoint, method, params)
+	if err != nil {
+		return fmt.Errorf("cannot RPC post: %w", err)
 	}
 
-	endpoint := utils.NewEndpoint(currentPort)
-	respBody, err := utils.PostRPC(ctx, endpoint, test.method, test.params)
-	require.NoError(t, err)
+	err = rpc.Decode(respBody, &target)
+	if err != nil {
+		return fmt.Errorf("cannot decode RPC response: %w", err)
+	}
 
-	target := reflect.New(reflect.TypeOf(test.expected)).Interface()
-	err = utils.DecodeRPC(t, respBody, target)
-	require.Nil(t, err, "Could not DecodeRPC", string(respBody))
-
-	require.NotNil(t, target)
-
-	return target
+	return nil
 }

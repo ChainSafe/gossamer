@@ -12,15 +12,12 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestDisjointBlockSet(t *testing.T) {
 	s := newDisjointBlockSet(pendingBlocksLimit)
-	s.timeNow = func() time.Time {
-		return time.Time{}
-	}
 
 	hash := common.Hash{0xa, 0xb}
 	const number uint = 100
@@ -29,12 +26,13 @@ func TestDisjointBlockSet(t *testing.T) {
 	require.Equal(t, 1, s.size())
 
 	expected := &pendingBlock{
-		hash:    hash,
-		number:  number,
-		clearAt: time.Time{}.Add(ttl),
+		hash:   hash,
+		number: number,
 	}
 	blocks := s.getBlocks()
 	require.Equal(t, 1, len(blocks))
+	assert.Greater(t, blocks[0].clearAt, time.Now().Add(ttl-time.Minute))
+	blocks[0].clearAt = time.Time{}
 	require.Equal(t, expected, blocks[0])
 
 	header := &types.Header{
@@ -43,14 +41,15 @@ func TestDisjointBlockSet(t *testing.T) {
 	s.addHeader(header)
 	require.True(t, s.hasBlock(header.Hash()))
 	require.Equal(t, 2, s.size())
-
 	expected = &pendingBlock{
-		hash:    header.Hash(),
-		number:  header.Number,
-		header:  header,
-		clearAt: time.Time{}.Add(ttl),
+		hash:   header.Hash(),
+		number: header.Number,
+		header: header,
 	}
-	require.Equal(t, expected, s.getBlock(header.Hash()))
+	block1 := s.getBlock(header.Hash())
+	assert.Greater(t, block1.clearAt, time.Now().Add(ttl-time.Minute))
+	block1.clearAt = time.Time{}
+	require.Equal(t, expected, block1)
 
 	header2 := &types.Header{
 		Number: 999,
@@ -60,12 +59,14 @@ func TestDisjointBlockSet(t *testing.T) {
 	s.addHeader(header2)
 	require.Equal(t, 3, s.size())
 	expected = &pendingBlock{
-		hash:    header2.Hash(),
-		number:  header2.Number,
-		header:  header2,
-		clearAt: time.Time{}.Add(ttl),
+		hash:   header2.Hash(),
+		number: header2.Number,
+		header: header2,
 	}
-	require.Equal(t, expected, s.getBlock(header2.Hash()))
+	block2 := s.getBlock(header2.Hash())
+	assert.Greater(t, block2.clearAt, time.Now().Add(ttl-time.Minute))
+	block2.clearAt = time.Time{}
+	require.Equal(t, expected, block2)
 
 	block := &types.Block{
 		Header: *header2,
@@ -74,13 +75,15 @@ func TestDisjointBlockSet(t *testing.T) {
 	s.addBlock(block)
 	require.Equal(t, 3, s.size())
 	expected = &pendingBlock{
-		hash:    header2.Hash(),
-		number:  header2.Number,
-		header:  header2,
-		body:    &block.Body,
-		clearAt: time.Time{}.Add(ttl),
+		hash:   header2.Hash(),
+		number: header2.Number,
+		header: header2,
+		body:   &block.Body,
 	}
-	require.Equal(t, expected, s.getBlock(header2.Hash()))
+	block3 := s.getBlock(header2.Hash())
+	assert.Greater(t, block3.clearAt, time.Now().Add(ttl-time.Minute))
+	block3.clearAt = time.Time{}
+	require.Equal(t, expected, block3)
 
 	s.removeBlock(hash)
 	require.Equal(t, 2, s.size())
