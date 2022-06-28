@@ -643,19 +643,19 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 			name:     "missing digest",
 			verifier: verifier{},
 			header:   types.NewEmptyHeader(),
-			expErr:   errors.New("block header is missing digest items"),
+			expErr:   errMissingDigestItems,
 		},
 		{
 			name:     "first digest invalid",
 			verifier: verifier{},
 			header:   header0,
-			expErr:   types.ErrNoFirstPreDigest,
+			expErr:   fmt.Errorf("%w: got types.SealDigest", types.ErrNoFirstPreDigest),
 		},
 		{
 			name:     "last digest invalid",
 			verifier: verifier{},
 			header:   header1,
-			expErr:   errors.New("last digest item is not seal"),
+			expErr:   errLastDigestItemNotSeal,
 		},
 		{
 			name:     "invalid preruntime digest data",

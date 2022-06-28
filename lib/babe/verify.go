@@ -283,7 +283,7 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 
 	seal, ok := sealItem.Value().(types.SealDigest)
 	if !ok {
-		return fmt.Errorf("last digest item is not seal")
+		return errLastDigestItemNotSeal
 	}
 
 	babePreDigest, err := b.verifyPreRuntimeDigest(&preDigest)

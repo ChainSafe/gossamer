@@ -86,6 +86,7 @@ var (
 	errServicePaused              = errors.New("service paused")
 	errInvalidSlotTechnique       = errors.New("invalid slot claiming technique")
 	errNoBABEAuthorityKeyProvided = errors.New("cannot create BABE service as authority; no keypair provided")
+	errLastDigestItemNotSeal      = errors.New("last digest item is not seal")
 
 	other         Other
 	invalidCustom InvalidCustom
