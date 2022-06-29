@@ -205,8 +205,6 @@ func (bs *BlockState) GetHeader(hash common.Hash) (header *types.Header, err err
 		return header, nil
 	}
 
-	result := types.NewEmptyHeader()
-
 	if bs.db == nil {
 		return nil, fmt.Errorf("database is nil")
 	}
@@ -220,6 +218,7 @@ func (bs *BlockState) GetHeader(hash common.Hash) (header *types.Header, err err
 		return nil, err
 	}
 
+	result := types.NewEmptyHeader()
 	err = scale.Unmarshal(data, result)
 	if err != nil {
 		return nil, err

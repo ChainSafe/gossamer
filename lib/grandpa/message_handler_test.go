@@ -84,7 +84,7 @@ func TestDecodeMessage_VoteMessage(t *testing.T) {
 		SetID: 99,
 		Message: SignedMessage{
 			Stage:     precommit,
-			Hash:      common.MustHexToHash("0x7db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a"),
+			BlockHash: common.MustHexToHash("0x7db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a"),
 			Number:    0x7777,
 			Signature: sig,
 			AuthorityID: ed25519.PublicKeyBytes(
@@ -250,7 +250,7 @@ func TestMessageHandler_VerifyJustification_InvalidSig(t *testing.T) {
 func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
 	gs, st := newTestService(t)
 
-	round := uint64(77)
+	round := uint64(1)
 	gs.state.round = round
 	just := buildTestJustification(t, int(gs.state.threshold()), round, gs.state.setID, kr, precommit)
 	err := st.Grandpa.SetPrecommits(round, gs.state.setID, just)
@@ -505,6 +505,18 @@ func TestMessageHandler_VerifyPreVoteJustification(t *testing.T) {
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	gs, st := newTestService(t)
+
+	body, err := types.NewBodyFromBytes([]byte{0})
+	require.NoError(t, err)
+
+	block := &types.Block{
+		Header: *testHeader,
+		Body:   *body,
+	}
+
+	err = st.Block.AddBlock(block)
+	require.NoError(t, err)
+
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
 
 	just := buildTestJustification(t, int(gs.state.threshold()), 1, gs.state.setID, kr, prevote)
@@ -525,6 +537,18 @@ func TestMessageHandler_VerifyPreCommitJustification(t *testing.T) {
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	gs, st := newTestService(t)
+
+	body, err := types.NewBodyFromBytes([]byte{0})
+	require.NoError(t, err)
+
+	block := &types.Block{
+		Header: *testHeader,
+		Body:   *body,
+	}
+
+	err = st.Block.AddBlock(block)
+	require.NoError(t, err)
+
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
 
 	round := uint64(1)
@@ -537,7 +561,7 @@ func TestMessageHandler_VerifyPreCommitJustification(t *testing.T) {
 		Number:                 uint32(round),
 	}
 
-	err := h.verifyPreCommitJustification(msg)
+	err = h.verifyPreCommitJustification(msg)
 	require.NoError(t, err)
 }
 
@@ -553,7 +577,7 @@ func TestMessageHandler_HandleCatchUpResponse(t *testing.T) {
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
 
-	round := uint64(77)
+	round := uint64(1)
 	gs.state.round = round + 1
 
 	pvJust := buildTestJustification(t, int(gs.state.threshold()), round, gs.state.setID, kr, prevote)
@@ -605,7 +629,7 @@ func TestMessageHandler_VerifyBlockJustification_WithEquivocatoryVotes(t *testin
 	}
 
 	gs, st := newTestService(t)
-	err := st.Grandpa.SetNextChange(auths, 1)
+	err := st.Grandpa.SetNextChange(auths, 0)
 	require.NoError(t, err)
 
 	body, err := types.NewBodyFromBytes([]byte{0})
@@ -623,9 +647,9 @@ func TestMessageHandler_VerifyBlockJustification_WithEquivocatoryVotes(t *testin
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), setID)
 
-	round := uint64(2)
-	number := uint32(2)
-	precommits := buildTestJustification(t, 20, round, setID, kr, precommit)
+	round := uint64(1)
+	number := uint32(1)
+	precommits := buildTestJustification(t, 18, round, setID, kr, precommit)
 	just := newJustification(round, testHash, number, precommits)
 	data, err := scale.Marshal(*just)
 	require.NoError(t, err)
@@ -647,7 +671,7 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	}
 
 	gs, st := newTestService(t)
-	err := st.Grandpa.SetNextChange(auths, 1)
+	err := st.Grandpa.SetNextChange(auths, 0)
 	require.NoError(t, err)
 
 	body, err := types.NewBodyFromBytes([]byte{0})
@@ -667,8 +691,8 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 
 	genhash := st.Block.GenesisHash()
 
-	round := uint64(2)
-	number := uint32(2)
+	round := uint64(1)
+	number := uint32(1)
 	precommits := buildTestJustification(t, 2, round, setID, kr, precommit)
 	just := newJustification(round, testHash, number, precommits)
 	data, err := scale.Marshal(*just)
@@ -766,9 +790,7 @@ func Test_getEquivocatoryVoters(t *testing.T) {
 	fakeAuthorities := []*ed25519.Keypair{
 		ed25519Keyring.Alice().(*ed25519.Keypair),
 		ed25519Keyring.Alice().(*ed25519.Keypair),
-		ed25519Keyring.Alice().(*ed25519.Keypair),
 		ed25519Keyring.Bob().(*ed25519.Keypair),
-		ed25519Keyring.Charlie().(*ed25519.Keypair),
 		ed25519Keyring.Charlie().(*ed25519.Keypair),
 		ed25519Keyring.Charlie().(*ed25519.Keypair),
 		ed25519Keyring.Dave().(*ed25519.Keypair),
@@ -789,8 +811,17 @@ func Test_getEquivocatoryVoters(t *testing.T) {
 		}
 	}
 
-	eqv := getEquivocatoryVoters(authData)
+	eqv, err := getEquivocatoryVoters(authData)
+	require.NoError(t, err)
 	require.Len(t, eqv, 5)
+
+	// test that getEquivocatoryVoters returns an error if a voter has more than two equivocatory votes
+	authData = append(authData, AuthData{
+		AuthorityID: ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(),
+	})
+
+	_, err = getEquivocatoryVoters(authData)
+	require.ErrorIs(t, err, errInvalidMultiplicity)
 }
 
 func Test_VerifyCommitMessageJustification_ShouldRemoveEquivocatoryVotes(t *testing.T) {
@@ -816,9 +847,7 @@ func Test_VerifyCommitMessageJustification_ShouldRemoveEquivocatoryVotes(t *test
 	fakeAuthorities := []*ed25519.Keypair{
 		ed25519Keyring.Alice().(*ed25519.Keypair),
 		ed25519Keyring.Alice().(*ed25519.Keypair),
-		ed25519Keyring.Alice().(*ed25519.Keypair),
 		ed25519Keyring.Bob().(*ed25519.Keypair),
-		ed25519Keyring.Charlie().(*ed25519.Keypair),
 		ed25519Keyring.Charlie().(*ed25519.Keypair),
 		ed25519Keyring.Charlie().(*ed25519.Keypair),
 		ed25519Keyring.Dave().(*ed25519.Keypair),
@@ -967,9 +996,7 @@ func Test_VerifyPreCommitJustification(t *testing.T) {
 	fakeAuthorities := []*ed25519.Keypair{
 		ed25519Keyring.Alice().(*ed25519.Keypair),
 		ed25519Keyring.Alice().(*ed25519.Keypair),
-		ed25519Keyring.Alice().(*ed25519.Keypair),
 		ed25519Keyring.Bob().(*ed25519.Keypair),
-		ed25519Keyring.Charlie().(*ed25519.Keypair),
 		ed25519Keyring.Charlie().(*ed25519.Keypair),
 		ed25519Keyring.Charlie().(*ed25519.Keypair),
 		ed25519Keyring.Dave().(*ed25519.Keypair),

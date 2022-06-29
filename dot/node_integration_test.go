@@ -6,6 +6,7 @@
 package dot
 
 import (
+	"context"
 	"encoding/hex"
 	"encoding/json"
 	"os"
@@ -29,7 +30,6 @@ import (
 
 func TestInitNode_Integration(t *testing.T) {
 	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
@@ -46,7 +46,6 @@ func TestInitNode_Integration(t *testing.T) {
 
 func TestInitNode_GenesisSpec(t *testing.T) {
 	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
 
 	genFile := newTestGenesisFile(t, cfg)
 
@@ -62,25 +61,23 @@ func TestInitNode_GenesisSpec(t *testing.T) {
 
 func TestNodeInitializedIntegration(t *testing.T) {
 	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
 	cfg.Init.Genesis = genFile
 
-	result := NodeInitialized(cfg.Global.BasePath)
+	result := IsNodeInitialised(cfg.Global.BasePath)
 	require.False(t, result)
 
 	err := InitNode(cfg)
 	require.NoError(t, err)
 
-	result = NodeInitialized(cfg.Global.BasePath)
+	result = IsNodeInitialised(cfg.Global.BasePath)
 	require.True(t, result)
 }
 
 func TestNewNodeIntegration(t *testing.T) {
 	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
@@ -108,7 +105,6 @@ func TestNewNodeIntegration(t *testing.T) {
 
 func TestNewNode_Authority(t *testing.T) {
 	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
@@ -138,7 +134,6 @@ func TestNewNode_Authority(t *testing.T) {
 
 func TestStartStopNode(t *testing.T) {
 	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
@@ -170,7 +165,6 @@ func TestStartStopNode(t *testing.T) {
 
 func TestInitNode_LoadStorageRoot(t *testing.T) {
 	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
 
 	genPath := newTestGenesisAndRuntime(t)
 
@@ -220,7 +214,6 @@ func balanceKey(t *testing.T, publicKey [32]byte) (storageTrieKey []byte) {
 
 func TestInitNode_LoadBalances(t *testing.T) {
 	cfg := NewTestConfig(t)
-	require.NotNil(t, cfg)
 
 	genPath := newTestGenesisAndRuntime(t)
 
@@ -279,9 +272,7 @@ func TestNode_PersistGlobalName_WhenInitialize(t *testing.T) {
 // newTestGenesisAndRuntime create a new test runtime and a new test genesis
 // file with the test runtime stored in raw data and returns the genesis file
 func newTestGenesisAndRuntime(t *testing.T) (filename string) {
-	runtimeFilePath := filepath.Join(t.TempDir(), "runtime")
-	_, testRuntimeURL := runtime.GetRuntimeVars(runtime.NODE_RUNTIME)
-	err := runtime.GetRuntimeBlob(runtimeFilePath, testRuntimeURL)
+	runtimeFilePath, err := runtime.GetRuntime(context.Background(), runtime.NODE_RUNTIME)
 	require.NoError(t, err)
 	runtimeData, err := os.ReadFile(runtimeFilePath)
 	require.NoError(t, err)

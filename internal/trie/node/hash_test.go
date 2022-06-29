@@ -9,49 +9,106 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_Branch_SetEncodingAndHash(t *testing.T) {
-	t.Parallel()
-
-	branch := &Branch{
-		Encoding:   []byte{2},
-		HashDigest: []byte{3},
-	}
-	branch.SetEncodingAndHash([]byte{4}, []byte{5})
-
-	expectedBranch := &Branch{
-		Encoding:   []byte{4},
-		HashDigest: []byte{5},
-	}
-	assert.Equal(t, expectedBranch, branch)
-}
-
-func Test_Branch_GetHash(t *testing.T) {
-	t.Parallel()
-
-	branch := &Branch{
-		HashDigest: []byte{3},
-	}
-	hash := branch.GetHash()
-
-	expectedHash := []byte{3}
-	assert.Equal(t, expectedHash, hash)
-}
-
-func Test_Branch_EncodeAndHash(t *testing.T) {
+func Test_Node_EncodeAndHash(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		branch         *Branch
-		expectedBranch *Branch
-		encoding       []byte
-		hash           []byte
-		isRoot         bool
-		errWrapped     error
-		errMessage     string
+		node         Node
+		expectedNode Node
+		encoding     []byte
+		hash         []byte
+		isRoot       bool
+		errWrapped   error
+		errMessage   string
 	}{
+		"empty leaf": {
+			node: Node{},
+			expectedNode: Node{
+				Encoding:   []byte{0x40, 0x0},
+				HashDigest: []byte{0x40, 0x0},
+			},
+			encoding: []byte{0x40, 0x0},
+			hash:     []byte{0x40, 0x0},
+			isRoot:   false,
+		},
+		"small leaf encoding": {
+			node: Node{
+				Key:   []byte{1},
+				Value: []byte{2},
+			},
+			expectedNode: Node{
+				Encoding:   []byte{0x41, 0x1, 0x4, 0x2},
+				HashDigest: []byte{0x41, 0x1, 0x4, 0x2},
+			},
+			encoding: []byte{0x41, 0x1, 0x4, 0x2},
+			hash:     []byte{0x41, 0x1, 0x4, 0x2},
+			isRoot:   false,
+		},
+		"small leaf encoding for root node": {
+			node: Node{
+				Key:   []byte{1},
+				Value: []byte{2},
+			},
+			expectedNode: Node{
+				Encoding:   []byte{0x41, 0x1, 0x4, 0x2},
+				HashDigest: []byte{0x60, 0x51, 0x6d, 0xb, 0xb6, 0xe1, 0xbb, 0xfb, 0x12, 0x93, 0xf1, 0xb2, 0x76, 0xea, 0x95, 0x5, 0xe9, 0xf4, 0xa4, 0xe7, 0xd9, 0x8f, 0x62, 0xd, 0x5, 0x11, 0x5e, 0xb, 0x85, 0x27, 0x4a, 0xe1}, //nolint: lll
+			},
+			encoding: []byte{0x41, 0x1, 0x4, 0x2},
+			hash:     []byte{0x60, 0x51, 0x6d, 0xb, 0xb6, 0xe1, 0xbb, 0xfb, 0x12, 0x93, 0xf1, 0xb2, 0x76, 0xea, 0x95, 0x5, 0xe9, 0xf4, 0xa4, 0xe7, 0xd9, 0x8f, 0x62, 0xd, 0x5, 0x11, 0x5e, 0xb, 0x85, 0x27, 0x4a, 0xe1}, // nolint: lll
+			isRoot:   true,
+		},
+		"leaf dirty with precomputed encoding and hash": {
+			node: Node{
+				Key:        []byte{1},
+				Value:      []byte{2},
+				Dirty:      true,
+				Encoding:   []byte{3},
+				HashDigest: []byte{4},
+			},
+			expectedNode: Node{
+				Encoding:   []byte{0x41, 0x1, 0x4, 0x2},
+				HashDigest: []byte{0x41, 0x1, 0x4, 0x2},
+			},
+			encoding: []byte{0x41, 0x1, 0x4, 0x2},
+			hash:     []byte{0x41, 0x1, 0x4, 0x2},
+			isRoot:   false,
+		},
+		"leaf not dirty with precomputed encoding and hash": {
+			node: Node{
+				Key:        []byte{1},
+				Value:      []byte{2},
+				Dirty:      false,
+				Encoding:   []byte{3},
+				HashDigest: []byte{4},
+			},
+			expectedNode: Node{
+				Key:        []byte{1},
+				Value:      []byte{2},
+				Encoding:   []byte{3},
+				HashDigest: []byte{4},
+			},
+			encoding: []byte{3},
+			hash:     []byte{4},
+			isRoot:   false,
+		},
+		"large leaf encoding": {
+			node: Node{
+				Key: repeatBytes(65, 7),
+			},
+			expectedNode: Node{
+				Encoding:   []byte{0x7f, 0x2, 0x7, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x0}, //nolint:lll
+				HashDigest: []byte{0xfb, 0xae, 0x31, 0x4b, 0xef, 0x31, 0x9, 0xc7, 0x62, 0x99, 0x9d, 0x40, 0x9b, 0xd4, 0xdc, 0x64, 0xe7, 0x39, 0x46, 0x8b, 0xd3, 0xaf, 0xe8, 0x63, 0x9d, 0xf9, 0x41, 0x40, 0x76, 0x40, 0x10, 0xa3},                       //nolint:lll
+			},
+			encoding: []byte{0x7f, 0x2, 0x7, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x0}, //nolint:lll
+			hash:     []byte{0xfb, 0xae, 0x31, 0x4b, 0xef, 0x31, 0x9, 0xc7, 0x62, 0x99, 0x9d, 0x40, 0x9b, 0xd4, 0xdc, 0x64, 0xe7, 0x39, 0x46, 0x8b, 0xd3, 0xaf, 0xe8, 0x63, 0x9d, 0xf9, 0x41, 0x40, 0x76, 0x40, 0x10, 0xa3},                       //nolint:lll
+			isRoot:   false,
+		},
 		"empty branch": {
-			branch: &Branch{},
-			expectedBranch: &Branch{
+			node: Node{
+				Children: make([]*Node, ChildrenCapacity),
+			},
+			expectedNode: Node{
+				Children:   make([]*Node, ChildrenCapacity),
 				Encoding:   []byte{0x80, 0x0, 0x0},
 				HashDigest: []byte{0x80, 0x0, 0x0},
 			},
@@ -60,11 +117,13 @@ func Test_Branch_EncodeAndHash(t *testing.T) {
 			isRoot:   false,
 		},
 		"small branch encoding": {
-			branch: &Branch{
-				Key:   []byte{1},
-				Value: []byte{2},
+			node: Node{
+				Children: make([]*Node, ChildrenCapacity),
+				Key:      []byte{1},
+				Value:    []byte{2},
 			},
-			expectedBranch: &Branch{
+			expectedNode: Node{
+				Children:   make([]*Node, ChildrenCapacity),
 				Encoding:   []byte{0xc1, 0x1, 0x0, 0x0, 0x4, 0x2},
 				HashDigest: []byte{0xc1, 0x1, 0x0, 0x0, 0x4, 0x2},
 			},
@@ -73,11 +132,13 @@ func Test_Branch_EncodeAndHash(t *testing.T) {
 			isRoot:   false,
 		},
 		"small branch encoding for root node": {
-			branch: &Branch{
-				Key:   []byte{1},
-				Value: []byte{2},
+			node: Node{
+				Children: make([]*Node, ChildrenCapacity),
+				Key:      []byte{1},
+				Value:    []byte{2},
 			},
-			expectedBranch: &Branch{
+			expectedNode: Node{
+				Children:   make([]*Node, ChildrenCapacity),
 				Encoding:   []byte{0xc1, 0x1, 0x0, 0x0, 0x4, 0x2},
 				HashDigest: []byte{0x48, 0x3c, 0xf6, 0x87, 0xcc, 0x5a, 0x60, 0x42, 0xd3, 0xcf, 0xa6, 0x91, 0xe6, 0x88, 0xfb, 0xdc, 0x1b, 0x38, 0x39, 0x5d, 0x6, 0x0, 0xbf, 0xc3, 0xb, 0x4b, 0x5d, 0x6a, 0x37, 0xd9, 0xc5, 0x1c}, // nolint: lll
 			},
@@ -86,14 +147,16 @@ func Test_Branch_EncodeAndHash(t *testing.T) {
 			isRoot:   true,
 		},
 		"branch dirty with precomputed encoding and hash": {
-			branch: &Branch{
+			node: Node{
+				Children:   make([]*Node, ChildrenCapacity),
 				Key:        []byte{1},
 				Value:      []byte{2},
 				Dirty:      true,
 				Encoding:   []byte{3},
 				HashDigest: []byte{4},
 			},
-			expectedBranch: &Branch{
+			expectedNode: Node{
+				Children:   make([]*Node, ChildrenCapacity),
 				Encoding:   []byte{0xc1, 0x1, 0x0, 0x0, 0x4, 0x2},
 				HashDigest: []byte{0xc1, 0x1, 0x0, 0x0, 0x4, 0x2},
 			},
@@ -102,14 +165,16 @@ func Test_Branch_EncodeAndHash(t *testing.T) {
 			isRoot:   false,
 		},
 		"branch not dirty with precomputed encoding and hash": {
-			branch: &Branch{
+			node: Node{
+				Children:   make([]*Node, ChildrenCapacity),
 				Key:        []byte{1},
 				Value:      []byte{2},
 				Dirty:      false,
 				Encoding:   []byte{3},
 				HashDigest: []byte{4},
 			},
-			expectedBranch: &Branch{
+			expectedNode: Node{
+				Children:   make([]*Node, ChildrenCapacity),
 				Key:        []byte{1},
 				Value:      []byte{2},
 				Encoding:   []byte{3},
@@ -120,10 +185,12 @@ func Test_Branch_EncodeAndHash(t *testing.T) {
 			isRoot:   false,
 		},
 		"large branch encoding": {
-			branch: &Branch{
-				Key: repeatBytes(65, 7),
+			node: Node{
+				Children: make([]*Node, ChildrenCapacity),
+				Key:      repeatBytes(65, 7),
 			},
-			expectedBranch: &Branch{
+			expectedNode: Node{
+				Children:   make([]*Node, ChildrenCapacity),
 				Encoding:   []byte{0xbf, 0x2, 0x7, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x0, 0x0}, //nolint:lll
 				HashDigest: []byte{0x6b, 0xd8, 0xcc, 0xac, 0x71, 0x77, 0x44, 0x17, 0xfe, 0xe0, 0xde, 0xda, 0xd5, 0x97, 0x6e, 0x69, 0xeb, 0xe9, 0xdd, 0x80, 0x1d, 0x4b, 0x51, 0xf1, 0x5b, 0xf3, 0x4a, 0x93, 0x27, 0x32, 0x2c, 0xb0},                           //nolint:lll
 			},
@@ -138,148 +205,7 @@ func Test_Branch_EncodeAndHash(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			encoding, hash, err := testCase.branch.EncodeAndHash(testCase.isRoot)
-
-			assert.ErrorIs(t, err, testCase.errWrapped)
-			if testCase.errWrapped != nil {
-				assert.EqualError(t, err, testCase.errMessage)
-			}
-			assert.Equal(t, testCase.encoding, encoding)
-			assert.Equal(t, testCase.hash, hash)
-		})
-	}
-}
-
-func Test_Leaf_SetEncodingAndHash(t *testing.T) {
-	t.Parallel()
-
-	leaf := &Leaf{
-		Encoding:   []byte{2},
-		HashDigest: []byte{3},
-	}
-	leaf.SetEncodingAndHash([]byte{4}, []byte{5})
-
-	expectedLeaf := &Leaf{
-		Encoding:   []byte{4},
-		HashDigest: []byte{5},
-	}
-	assert.Equal(t, expectedLeaf, leaf)
-}
-
-func Test_Leaf_GetHash(t *testing.T) {
-	t.Parallel()
-
-	leaf := &Leaf{
-		HashDigest: []byte{3},
-	}
-	hash := leaf.GetHash()
-
-	expectedHash := []byte{3}
-	assert.Equal(t, expectedHash, hash)
-}
-
-func Test_Leaf_EncodeAndHash(t *testing.T) {
-	t.Parallel()
-
-	testCases := map[string]struct {
-		leaf         *Leaf
-		expectedLeaf *Leaf
-		encoding     []byte
-		hash         []byte
-		isRoot       bool
-		errWrapped   error
-		errMessage   string
-	}{
-		"empty leaf": {
-			leaf: &Leaf{},
-			expectedLeaf: &Leaf{
-				Encoding:   []byte{0x40, 0x0},
-				HashDigest: []byte{0x40, 0x0},
-			},
-			encoding: []byte{0x40, 0x0},
-			hash:     []byte{0x40, 0x0},
-			isRoot:   false,
-		},
-		"small leaf encoding": {
-			leaf: &Leaf{
-				Key:   []byte{1},
-				Value: []byte{2},
-			},
-			expectedLeaf: &Leaf{
-				Encoding:   []byte{0x41, 0x1, 0x4, 0x2},
-				HashDigest: []byte{0x41, 0x1, 0x4, 0x2},
-			},
-			encoding: []byte{0x41, 0x1, 0x4, 0x2},
-			hash:     []byte{0x41, 0x1, 0x4, 0x2},
-			isRoot:   false,
-		},
-		"small leaf encoding for root node": {
-			leaf: &Leaf{
-				Key:   []byte{1},
-				Value: []byte{2},
-			},
-			expectedLeaf: &Leaf{
-				Encoding:   []byte{0x41, 0x1, 0x4, 0x2},
-				HashDigest: []byte{0x60, 0x51, 0x6d, 0xb, 0xb6, 0xe1, 0xbb, 0xfb, 0x12, 0x93, 0xf1, 0xb2, 0x76, 0xea, 0x95, 0x5, 0xe9, 0xf4, 0xa4, 0xe7, 0xd9, 0x8f, 0x62, 0xd, 0x5, 0x11, 0x5e, 0xb, 0x85, 0x27, 0x4a, 0xe1}, //nolint: lll
-			},
-			encoding: []byte{0x41, 0x1, 0x4, 0x2},
-			hash:     []byte{0x60, 0x51, 0x6d, 0xb, 0xb6, 0xe1, 0xbb, 0xfb, 0x12, 0x93, 0xf1, 0xb2, 0x76, 0xea, 0x95, 0x5, 0xe9, 0xf4, 0xa4, 0xe7, 0xd9, 0x8f, 0x62, 0xd, 0x5, 0x11, 0x5e, 0xb, 0x85, 0x27, 0x4a, 0xe1}, // nolint: lll
-			isRoot:   true,
-		},
-		"leaf dirty with precomputed encoding and hash": {
-			leaf: &Leaf{
-				Key:        []byte{1},
-				Value:      []byte{2},
-				Dirty:      true,
-				Encoding:   []byte{3},
-				HashDigest: []byte{4},
-			},
-			expectedLeaf: &Leaf{
-				Encoding:   []byte{0x41, 0x1, 0x4, 0x2},
-				HashDigest: []byte{0x41, 0x1, 0x4, 0x2},
-			},
-			encoding: []byte{0x41, 0x1, 0x4, 0x2},
-			hash:     []byte{0x41, 0x1, 0x4, 0x2},
-			isRoot:   false,
-		},
-		"leaf not dirty with precomputed encoding and hash": {
-			leaf: &Leaf{
-				Key:        []byte{1},
-				Value:      []byte{2},
-				Dirty:      false,
-				Encoding:   []byte{3},
-				HashDigest: []byte{4},
-			},
-			expectedLeaf: &Leaf{
-				Key:        []byte{1},
-				Value:      []byte{2},
-				Encoding:   []byte{3},
-				HashDigest: []byte{4},
-			},
-			encoding: []byte{3},
-			hash:     []byte{4},
-			isRoot:   false,
-		},
-		"large leaf encoding": {
-			leaf: &Leaf{
-				Key: repeatBytes(65, 7),
-			},
-			expectedLeaf: &Leaf{
-				Encoding:   []byte{0x7f, 0x2, 0x7, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x0}, //nolint:lll
-				HashDigest: []byte{0xfb, 0xae, 0x31, 0x4b, 0xef, 0x31, 0x9, 0xc7, 0x62, 0x99, 0x9d, 0x40, 0x9b, 0xd4, 0xdc, 0x64, 0xe7, 0x39, 0x46, 0x8b, 0xd3, 0xaf, 0xe8, 0x63, 0x9d, 0xf9, 0x41, 0x40, 0x76, 0x40, 0x10, 0xa3},                       //nolint:lll
-			},
-			encoding: []byte{0x7f, 0x2, 0x7, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x0}, //nolint:lll
-			hash:     []byte{0xfb, 0xae, 0x31, 0x4b, 0xef, 0x31, 0x9, 0xc7, 0x62, 0x99, 0x9d, 0x40, 0x9b, 0xd4, 0xdc, 0x64, 0xe7, 0x39, 0x46, 0x8b, 0xd3, 0xaf, 0xe8, 0x63, 0x9d, 0xf9, 0x41, 0x40, 0x76, 0x40, 0x10, 0xa3},                       //nolint:lll
-			isRoot:   false,
-		},
-	}
-
-	for name, testCase := range testCases {
-		testCase := testCase
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-
-			encoding, hash, err := testCase.leaf.EncodeAndHash(testCase.isRoot)
+			encoding, hash, err := testCase.node.EncodeAndHash(testCase.isRoot)
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if testCase.errWrapped != nil {

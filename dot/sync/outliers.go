@@ -8,7 +8,7 @@ import (
 	"sort"
 )
 
-// removeOutliers removes the outlier from the slice
+// nonOutliersSumCount calculates the sum and count of non-outlier elements
 // Explanation:
 // IQR outlier detection
 // Q25 = 25th_percentile
@@ -18,8 +18,8 @@ import (
 // If x >  Q75  + 3.0 * IQR or  x   < Q25 – 3.0 * IQR THEN  x is a extreme outlier
 // Ref: http://www.mathwords.com/o/outlier.htm
 //
-// returns: sum of all the non-outliers elements
-func removeOutliers(dataArrUint []uint) (sum *big.Int, count uint) {
+// returns: sum and count of all the non-outliers elements
+func nonOutliersSumCount(dataArrUint []uint) (sum *big.Int, count uint) {
 	dataArr := make([]*big.Int, len(dataArrUint))
 	for i, v := range dataArrUint {
 		dataArr[i] = big.NewInt(int64(v))

@@ -233,7 +233,7 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	wsc := NewWSConn(ws, h.serverConfig)
 	h.wsConns = append(h.wsConns, wsc)
 
-	go wsc.HandleComm()
+	go wsc.HandleConn()
 }
 
 // NewWSConn to create new WebSocket Connection struct

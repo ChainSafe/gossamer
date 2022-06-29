@@ -16,7 +16,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/ChainSafe/gossamer/internal/trie/codec"
-	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
@@ -305,7 +304,7 @@ func TestTrieDiff(t *testing.T) {
 	}
 
 	dbTrie := NewEmptyTrie()
-	err = dbTrie.Load(storageDB, common.BytesToHash(newTrie.root.GetHash()))
+	err = dbTrie.Load(storageDB, common.BytesToHash(newTrie.root.HashDigest))
 	require.NoError(t, err)
 }
 
@@ -493,7 +492,7 @@ func TestClearPrefix_Small(t *testing.T) {
 
 	ssTrie.ClearPrefix([]byte("noo"))
 
-	expectedRoot := &node.Leaf{
+	expectedRoot := &Node{
 		Key:        codec.KeyLEToNibbles([]byte("other")),
 		Value:      []byte("other"),
 		Generation: 1,
@@ -1018,4 +1017,68 @@ func Test_encodeRoot_fuzz(t *testing.T) {
 		require.NoError(t, err)
 		require.NotEmpty(t, buffer.Bytes())
 	}
+}
+
+func countNodesRecursively(root *Node) (nodesCount uint32) {
+	if root == nil {
+		return 0
+	}
+
+	nodesCount = 1
+	for _, child := range root.Children {
+		nodesCount += countNodesRecursively(child)
+	}
+	return nodesCount
+}
+
+func countNodesFromStats(root *Node) (nodesCount uint32) {
+	if root == nil {
+		return 0
+	}
+
+	return 1 + root.Descendants
+}
+
+func testDescendants(t *testing.T, root *Node) {
+	t.Helper()
+	expectedCount := countNodesRecursively(root)
+	statsCount := countNodesFromStats(root)
+	require.Equal(t, int(expectedCount), int(statsCount))
+}
+
+func Test_Trie_Descendants_Fuzz(t *testing.T) {
+	generator := newGenerator()
+	const kvSize = 5000
+	kv := generateKeyValues(t, generator, kvSize)
+
+	trie := NewEmptyTrie()
+
+	keys := make([][]byte, 0, len(kv))
+	for key := range kv {
+		keys = append(keys, []byte(key))
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		return bytes.Compare(keys[i], keys[j]) < 0
+	})
+
+	for _, key := range keys {
+		trie.Put(key, kv[string(key)])
+	}
+
+	testDescendants(t, trie.root)
+
+	require.Greater(t, kvSize, 3)
+
+	trie.ClearPrefix(keys[0])
+
+	testDescendants(t, trie.root)
+
+	trie.ClearPrefixLimit(keys[1], 100)
+
+	testDescendants(t, trie.root)
+
+	trie.Delete(keys[2])
+	trie.Delete(keys[3])
+
+	testDescendants(t, trie.root)
 }

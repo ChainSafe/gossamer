@@ -80,9 +80,9 @@ var (
 		Description: "The build-spec command outputs current genesis JSON data.\n" +
 			"\tUsage: gossamer build-spec\n" +
 			"\tTo generate raw genesis file from default: " +
-			"gossamer build-spec --raw > genesis.json" +
+			"gossamer build-spec --raw --output genesis.json" +
 			"\tTo generate raw genesis file from specific genesis file: " +
-			"gossamer build-spec --raw --genesis genesis-spec.json > genesis.json",
+			"gossamer build-spec --raw --genesis genesis-spec.json --output genesis.json",
 	}
 
 	// importRuntime generates a genesis file given a .wasm runtime binary.
@@ -226,7 +226,7 @@ func gossamerAction(ctx *cli.Context) error {
 	// from createDotConfig because dot config should not include expanded path)
 	cfg.Global.BasePath = utils.ExpandDir(cfg.Global.BasePath)
 
-	if !dot.NodeInitialized(cfg.Global.BasePath) {
+	if !dot.IsNodeInitialised(cfg.Global.BasePath) {
 		// initialise node (initialise state database and load genesis data)
 		err = dot.InitNode(cfg)
 		if err != nil {
@@ -320,8 +320,7 @@ func initAction(ctx *cli.Context) error {
 	// from createDotConfig because dot config should not include expanded path)
 	cfg.Global.BasePath = utils.ExpandDir(cfg.Global.BasePath)
 	// check if node has been initialised (expected false - no warning log)
-	if dot.NodeInitialized(cfg.Global.BasePath) {
-
+	if dot.IsNodeInitialised(cfg.Global.BasePath) {
 		// use --force value to force initialise the node
 		force := ctx.Bool(ForceFlag.Name)
 
@@ -398,11 +397,12 @@ func buildSpecAction(ctx *cli.Context) error {
 	}
 
 	if outputPath := ctx.String(OutputSpecFlag.Name); outputPath != "" {
-		if err = dot.WriteGenesisSpecFile(res, outputPath); err != nil {
-			return err
+		err = dot.WriteGenesisSpecFile(res, outputPath)
+		if err != nil {
+			return fmt.Errorf("cannot write genesis spec file: %w", err)
 		}
 	} else {
-		fmt.Printf("%s", res)
+		fmt.Printf("%s\n", res)
 	}
 
 	return nil

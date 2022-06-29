@@ -26,7 +26,6 @@ func TestLoadConfig(t *testing.T) {
 
 	err = loadConfig(dotConfigToToml(cfg), cfgFile)
 	require.NoError(t, err)
-	require.NotNil(t, cfg)
 }
 
 // TestLoadConfigGssmr tests loading the toml configuration file for gssmr
@@ -45,7 +44,6 @@ func TestLoadConfigGssmr(t *testing.T) {
 
 	err = loadConfig(dotConfigToToml(cfg), gssmrConfigPath)
 	require.NoError(t, err)
-	require.NotNil(t, cfg)
 }
 
 func TestLoadConfigKusama(t *testing.T) {

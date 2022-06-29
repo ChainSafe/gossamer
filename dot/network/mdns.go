@@ -47,7 +47,7 @@ func (m *mdns) start() {
 	// create and start service
 	mdns, err := libp2pdiscovery.NewMdnsService(
 		m.host.ctx,
-		m.host.h,
+		m.host.p2pHost,
 		MDNSPeriod,
 		string(m.host.protocolID),
 	)
@@ -89,7 +89,7 @@ func (n Notifee) HandlePeerFound(p peer.AddrInfo) {
 		"Peer %s found using mDNS discovery, with host %s",
 		p.ID, n.host.id())
 
-	n.host.h.Peerstore().AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
+	n.host.p2pHost.Peerstore().AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
 	// connect to found peer
 	n.host.cm.peerSetHandler.AddPeer(0, p.ID)
 }

@@ -10,117 +10,9 @@ import (
 	"io"
 	"runtime"
 
-	"github.com/ChainSafe/gossamer/internal/trie/codec"
 	"github.com/ChainSafe/gossamer/internal/trie/pools"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
-
-// ScaleEncodeHash hashes the node (blake2b sum on encoded value)
-// and then SCALE encodes it. This is used to encode children
-// nodes of branches.
-func (b *Branch) ScaleEncodeHash() (encoding []byte, err error) {
-	buffer := pools.DigestBuffers.Get().(*bytes.Buffer)
-	buffer.Reset()
-	defer pools.DigestBuffers.Put(buffer)
-
-	err = b.hash(buffer)
-	if err != nil {
-		return nil, fmt.Errorf("cannot hash branch: %w", err)
-	}
-
-	encoding, err = scale.Marshal(buffer.Bytes())
-	if err != nil {
-		return nil, fmt.Errorf("cannot scale encode hashed branch: %w", err)
-	}
-
-	return encoding, nil
-}
-
-func (b *Branch) hash(digestBuffer io.Writer) (err error) {
-	encodingBuffer := pools.EncodingBuffers.Get().(*bytes.Buffer)
-	encodingBuffer.Reset()
-	defer pools.EncodingBuffers.Put(encodingBuffer)
-
-	err = b.Encode(encodingBuffer)
-	if err != nil {
-		return fmt.Errorf("cannot encode leaf: %w", err)
-	}
-
-	// if length of encoded branch is less than 32 bytes, do not hash
-	if encodingBuffer.Len() < 32 {
-		_, err = digestBuffer.Write(encodingBuffer.Bytes())
-		if err != nil {
-			return fmt.Errorf("cannot write encoded branch to buffer: %w", err)
-		}
-		return nil
-	}
-
-	// otherwise, hash encoded node
-	hasher := pools.Hashers.Get().(hash.Hash)
-	hasher.Reset()
-	defer pools.Hashers.Put(hasher)
-
-	// Note: using the sync.Pool's buffer is useful here.
-	_, err = hasher.Write(encodingBuffer.Bytes())
-	if err != nil {
-		return fmt.Errorf("cannot hash encoded node: %w", err)
-	}
-
-	_, err = digestBuffer.Write(hasher.Sum(nil))
-	if err != nil {
-		return fmt.Errorf("cannot write hash sum of branch to buffer: %w", err)
-	}
-	return nil
-}
-
-// Encode encodes a branch with the encoding specified at the top of this package
-// to the buffer given.
-func (b *Branch) Encode(buffer Buffer) (err error) {
-	if !b.Dirty && b.Encoding != nil {
-		_, err = buffer.Write(b.Encoding)
-		if err != nil {
-			return fmt.Errorf("cannot write stored encoding to buffer: %w", err)
-		}
-		return nil
-	}
-
-	err = b.encodeHeader(buffer)
-	if err != nil {
-		return fmt.Errorf("cannot encode header: %w", err)
-	}
-
-	keyLE := codec.NibblesToKeyLE(b.Key)
-	_, err = buffer.Write(keyLE)
-	if err != nil {
-		return fmt.Errorf("cannot write encoded key to buffer: %w", err)
-	}
-
-	childrenBitmap := common.Uint16ToBytes(b.ChildrenBitmap())
-	_, err = buffer.Write(childrenBitmap)
-	if err != nil {
-		return fmt.Errorf("cannot write children bitmap to buffer: %w", err)
-	}
-
-	if b.Value != nil {
-		bytes, err := scale.Marshal(b.Value)
-		if err != nil {
-			return fmt.Errorf("cannot scale encode value: %w", err)
-		}
-
-		_, err = buffer.Write(bytes)
-		if err != nil {
-			return fmt.Errorf("cannot write encoded value to buffer: %w", err)
-		}
-	}
-
-	err = encodeChildrenOpportunisticParallel(b.Children, buffer)
-	if err != nil {
-		return fmt.Errorf("cannot encode children of branch: %w", err)
-	}
-
-	return nil
-}
 
 type encodingAsyncResult struct {
 	index  int
@@ -128,7 +20,7 @@ type encodingAsyncResult struct {
 	err    error
 }
 
-func runEncodeChild(child Node, index int,
+func runEncodeChild(child *Node, index int,
 	results chan<- encodingAsyncResult, rateLimit <-chan struct{}) {
 	buffer := pools.EncodingBuffers.Get().(*bytes.Buffer)
 	buffer.Reset()
@@ -158,13 +50,13 @@ var parallelEncodingRateLimit = make(chan struct{}, parallelLimit)
 // goroutines IF they are less than the parallelLimit number of goroutines already
 // running. This is designed to limit the total number of goroutines in order to
 // avoid using too much memory on the stack.
-func encodeChildrenOpportunisticParallel(children [16]Node, buffer io.Writer) (err error) {
+func encodeChildrenOpportunisticParallel(children []*Node, buffer io.Writer) (err error) {
 	// Buffered channels since children might be encoded in this
 	// goroutine or another one.
 	resultsCh := make(chan encodingAsyncResult, ChildrenCapacity)
 
 	for i, child := range children {
-		if isNodeNil(child) || child.Type() == LeafType {
+		if child == nil || child.Type() == Leaf {
 			runEncodeChild(child, i, resultsCh, nil)
 			continue
 		}
@@ -223,7 +115,7 @@ func encodeChildrenOpportunisticParallel(children [16]Node, buffer io.Writer) (e
 	return err
 }
 
-func encodeChildrenSequentially(children [16]Node, buffer io.Writer) (err error) {
+func encodeChildrenSequentially(children []*Node, buffer io.Writer) (err error) {
 	for i, child := range children {
 		err = encodeChild(child, buffer)
 		if err != nil {
@@ -233,32 +125,78 @@ func encodeChildrenSequentially(children [16]Node, buffer io.Writer) (err error)
 	return nil
 }
 
-func isNodeNil(n Node) (isNil bool) {
-	switch impl := n.(type) {
-	case *Branch:
-		isNil = impl == nil
-	case *Leaf:
-		isNil = impl == nil
-	default:
-		isNil = n == nil
-	}
-	return isNil
-}
-
-func encodeChild(child Node, buffer io.Writer) (err error) {
-	if isNodeNil(child) {
+func encodeChild(child *Node, buffer io.Writer) (err error) {
+	if child == nil {
 		return nil
 	}
 
-	scaleEncodedChild, err := child.ScaleEncodeHash()
+	scaleEncodedChildHash, err := scaleEncodeHash(child)
 	if err != nil {
 		return fmt.Errorf("failed to hash and scale encode child: %w", err)
 	}
 
-	_, err = buffer.Write(scaleEncodedChild)
+	_, err = buffer.Write(scaleEncodedChildHash)
 	if err != nil {
 		return fmt.Errorf("failed to write child to buffer: %w", err)
 	}
 
+	return nil
+}
+
+// scaleEncodeHash hashes the node (blake2b sum on encoded value)
+// and then SCALE encodes it. This is used to encode children
+// nodes of branches.
+func scaleEncodeHash(node *Node) (encoding []byte, err error) {
+	buffer := pools.DigestBuffers.Get().(*bytes.Buffer)
+	buffer.Reset()
+	defer pools.DigestBuffers.Put(buffer)
+
+	err = hashNode(node, buffer)
+	if err != nil {
+		return nil, fmt.Errorf("cannot hash %s: %w", node.Type(), err)
+	}
+
+	encoding, err = scale.Marshal(buffer.Bytes())
+	if err != nil {
+		return nil, fmt.Errorf("cannot scale encode hashed %s: %w", node.Type(), err)
+	}
+
+	return encoding, nil
+}
+
+func hashNode(node *Node, digestWriter io.Writer) (err error) {
+	encodingBuffer := pools.EncodingBuffers.Get().(*bytes.Buffer)
+	encodingBuffer.Reset()
+	defer pools.EncodingBuffers.Put(encodingBuffer)
+
+	err = node.Encode(encodingBuffer)
+	if err != nil {
+		return fmt.Errorf("cannot encode %s: %w", node.Type(), err)
+	}
+
+	// if length of encoded leaf is less than 32 bytes, do not hash
+	if encodingBuffer.Len() < 32 {
+		_, err = digestWriter.Write(encodingBuffer.Bytes())
+		if err != nil {
+			return fmt.Errorf("cannot write encoded %s to buffer: %w", node.Type(), err)
+		}
+		return nil
+	}
+
+	// otherwise, hash encoded node
+	hasher := pools.Hashers.Get().(hash.Hash)
+	hasher.Reset()
+	defer pools.Hashers.Put(hasher)
+
+	// Note: using the sync.Pool's buffer is useful here.
+	_, err = hasher.Write(encodingBuffer.Bytes())
+	if err != nil {
+		return fmt.Errorf("cannot hash encoding of %s: %w", node.Type(), err)
+	}
+
+	_, err = digestWriter.Write(hasher.Sum(nil))
+	if err != nil {
+		return fmt.Errorf("cannot write hash sum of %s to buffer: %w", node.Type(), err)
+	}
 	return nil
 }

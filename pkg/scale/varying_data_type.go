@@ -12,7 +12,7 @@ type VaryingDataTypeValue interface {
 	Index() uint
 }
 
-// VaryingDataTypeSlice is used to represent []VaryingDataType.  SCALE requires knowledge
+// VaryingDataTypeSlice is used to represent []VaryingDataType. SCALE requires knowledge
 // of the underlying data, so it is required to have the VaryingDataType required for decoding
 type VaryingDataTypeSlice struct {
 	VaryingDataType

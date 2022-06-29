@@ -14,6 +14,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 )
 
+//go:generate mockgen -destination=mock_chain_processor_test.go -package=$GOPACKAGE . ChainProcessor
+
 // ChainProcessor processes ready blocks.
 // it is implemented by *chainProcessor
 type ChainProcessor interface {
@@ -73,15 +75,9 @@ func (s *chainProcessor) stop() {
 
 func (s *chainProcessor) processReadyBlocks() {
 	for {
-		select {
-		case <-s.ctx.Done():
+		bd := s.readyBlocks.pop(s.ctx)
+		if s.ctx.Err() != nil {
 			return
-		default:
-		}
-
-		bd := s.readyBlocks.pop()
-		if bd == nil {
-			continue
 		}
 
 		if err := s.processBlockData(bd); err != nil {
@@ -166,7 +162,7 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 	logger.Debugf("processing block data with hash %s", bd.Hash)
 
 	if bd.Header != nil && bd.Body != nil {
-		if err := s.handleHeader(bd.Header); err != nil {
+		if err := s.babeVerifier.VerifyBlock(bd.Header); err != nil {
 			return err
 		}
 
@@ -197,16 +193,6 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 	return nil
 }
 
-// handleHeader handles headers included in BlockResponses
-func (s *chainProcessor) handleHeader(header *types.Header) error {
-	err := s.babeVerifier.VerifyBlock(header)
-	if err != nil {
-		return fmt.Errorf("%w: %s", ErrInvalidBlock, err.Error())
-	}
-
-	return nil
-}
-
 // handleHeader handles block bodies included in BlockResponses
 func (s *chainProcessor) handleBody(body *types.Body) {
 	for _, ext := range *body {
@@ -216,10 +202,6 @@ func (s *chainProcessor) handleBody(body *types.Body) {
 
 // handleHeader handles blocks (header+body) included in BlockResponses
 func (s *chainProcessor) handleBlock(block *types.Block) error {
-	if block == nil || block.Body == nil {
-		return errors.New("block or body is nil")
-	}
-
 	parent, err := s.blockState.GetHeader(block.Header.ParentHash)
 	if err != nil {
 		return fmt.Errorf("%w: %s", errFailedToGetParent, err)

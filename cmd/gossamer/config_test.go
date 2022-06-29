@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -941,9 +942,7 @@ func TestGlobalNodeName_WhenNodeAlreadyHasStoredName(t *testing.T) {
 	cfg := newTestConfig(t)
 	cfg.Global.Name = globalName
 
-	runtimeFilePath := filepath.Join(t.TempDir(), "runtime")
-	_, testRuntimeURL := runtime.GetRuntimeVars(runtime.NODE_RUNTIME)
-	err := runtime.GetRuntimeBlob(runtimeFilePath, testRuntimeURL)
+	runtimeFilePath, err := runtime.GetRuntime(context.Background(), runtime.NODE_RUNTIME)
 	require.NoError(t, err)
 	runtimeData, err := os.ReadFile(runtimeFilePath)
 	require.NoError(t, err)

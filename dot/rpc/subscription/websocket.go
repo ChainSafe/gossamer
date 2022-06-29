@@ -22,12 +22,23 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+type websocketMessage struct {
+	ID     float64 `json:"id"`
+	Method string  `json:"method"`
+	Params any     `json:"params"`
+}
+
 type httpclient interface {
 	Do(*http.Request) (*http.Response, error)
 }
 
-var errCannotReadFromWebsocket = errors.New("cannot read message from websocket")
-var errCannotUnmarshalMessage = errors.New("cannot unmarshal webasocket message data")
+var (
+	errUnexpectedType          = errors.New("unexpected type")
+	errUnexpectedParamLen      = errors.New("unexpected params length")
+	errCannotReadFromWebsocket = errors.New("cannot read message from websocket")
+	errEmptyMethod             = errors.New("empty method")
+)
+
 var logger = log.NewFromGlobal(log.AddContext("pkg", "rpc/subscription"))
 
 // WSConn struct to hold WebSocket Connection references
@@ -46,57 +57,53 @@ type WSConn struct {
 }
 
 // readWebsocketMessage will read and parse the message data to a string->interface{} data
-func (c *WSConn) readWebsocketMessage() ([]byte, map[string]interface{}, error) {
-	_, mbytes, err := c.Wsconn.ReadMessage()
+func (c *WSConn) readWebsocketMessage() (rawBytes []byte, wsMessage *websocketMessage, err error) {
+	_, rawBytes, err = c.Wsconn.ReadMessage()
 	if err != nil {
-		logger.Debugf("websocket failed to read message: %s", err)
-		return nil, nil, errCannotReadFromWebsocket
+		return nil, nil, fmt.Errorf("%w: %s", errCannotReadFromWebsocket, err.Error())
 	}
 
-	logger.Tracef("websocket message received: %s", string(mbytes))
-
-	// determine if request is for subscribe method type
-	var msg map[string]interface{}
-	err = json.Unmarshal(mbytes, &msg)
-
+	wsMessage = new(websocketMessage)
+	err = json.Unmarshal(rawBytes, wsMessage)
 	if err != nil {
-		logger.Debugf("websocket failed to unmarshal request message: %s", err)
-		return nil, nil, errCannotUnmarshalMessage
+		return nil, nil, err
 	}
 
-	return mbytes, msg, nil
+	if wsMessage.Method == "" {
+		return nil, nil, errEmptyMethod
+	}
+
+	return rawBytes, wsMessage, nil
 }
 
-//HandleComm handles messages received on websocket connections
-func (c *WSConn) HandleComm() {
+// HandleConn handles messages received on websocket connections
+func (c *WSConn) HandleConn() {
 	for {
-		mbytes, msg, err := c.readWebsocketMessage()
-		if errors.Is(err, errCannotReadFromWebsocket) {
-			return
-		}
+		rawBytes, wsMessage, err := c.readWebsocketMessage()
+		if err != nil {
+			logger.Debugf("websocket failed to read message: %s", err)
+			if errors.Is(err, errCannotReadFromWebsocket) {
+				return
+			}
 
-		if errors.Is(err, errCannotUnmarshalMessage) {
 			c.safeSendError(0, big.NewInt(InvalidRequestCode), InvalidRequestMessage)
 			continue
 		}
 
-		params := msg["params"]
-		reqid := msg["id"].(float64)
-		method := msg["method"].(string)
+		logger.Tracef("websocket message received: %s", string(rawBytes))
+		logger.Debugf("ws method %s called with params %v", wsMessage.Method, wsMessage.Params)
 
-		logger.Debugf("ws method %s called with params %v", method, params)
-
-		if !strings.Contains(method, "_unsubscribe") && !strings.Contains(method, "_unwatch") {
-			setupListener := c.getSetupListener(method)
+		if !strings.Contains(wsMessage.Method, "_unsubscribe") && !strings.Contains(wsMessage.Method, "_unwatch") {
+			setupListener := c.getSetupListener(wsMessage.Method)
 
 			if setupListener == nil {
-				c.executeRPCCall(mbytes)
+				c.executeRPCCall(rawBytes)
 				continue
 			}
 
-			listener, err := setupListener(reqid, params)
+			listener, err := setupListener(wsMessage.ID, wsMessage.Params)
 			if err != nil {
-				logger.Warnf("failed to create listener (method=%s): %s", method, err)
+				logger.Warnf("failed to create listener (method=%s): %s", wsMessage.Method, err)
 				continue
 			}
 
@@ -104,29 +111,28 @@ func (c *WSConn) HandleComm() {
 			continue
 		}
 
-		listener, err := c.getUnsubListener(params)
-
+		listener, err := c.getUnsubListener(wsMessage.Params)
 		if err != nil {
-			logger.Warnf("failed to get unsubscriber (method=%s): %s", method, err)
+			logger.Warnf("failed to get unsubscriber (method=%s): %s", wsMessage.Method, err)
 
 			if errors.Is(err, errUknownParamSubscribeID) || errors.Is(err, errCannotFindUnsubsriber) {
-				c.safeSendError(reqid, big.NewInt(InvalidRequestCode), InvalidRequestMessage)
+				c.safeSendError(wsMessage.ID, big.NewInt(InvalidRequestCode), InvalidRequestMessage)
 				continue
 			}
 
 			if errors.Is(err, errCannotParseID) || errors.Is(err, errCannotFindListener) {
-				c.safeSend(newBooleanResponseJSON(false, reqid))
+				c.safeSend(newBooleanResponseJSON(false, wsMessage.ID))
 				continue
 			}
 		}
 
 		err = listener.Stop()
 		if err != nil {
-			logger.Warnf("failed to stop listener goroutine (method=%s): %s", method, err)
-			c.safeSend(newBooleanResponseJSON(false, reqid))
+			logger.Warnf("failed to stop listener goroutine (method=%s): %s", wsMessage.Method, err)
+			c.safeSend(newBooleanResponseJSON(false, wsMessage.ID))
 		}
 
-		c.safeSend(newBooleanResponseJSON(true, reqid))
+		c.safeSend(newBooleanResponseJSON(true, wsMessage.ID))
 		continue
 	}
 }
@@ -159,25 +165,35 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (L
 		wsconn: c,
 	}
 
-	pA, ok := params.([]interface{})
-	if !ok {
-		return nil, fmt.Errorf("unknown parameter type")
-	}
-	for _, param := range pA {
-		switch p := param.(type) {
-		case []interface{}:
-			for _, pp := range param.([]interface{}) {
-				data, ok := pp.(string)
-				if !ok {
-					return nil, fmt.Errorf("unknown parameter type")
+	// the following type checking/casting is needed in order to satisfy some
+	// websocket request field params eg.:
+	// "params": ["0x..."] or
+	// "params": [["0x...", "0x..."]]
+	switch filters := params.(type) {
+	case []interface{}:
+		for _, interfaceKey := range filters {
+			switch key := interfaceKey.(type) {
+			case string:
+				stgobs.filter[key] = []byte{}
+			case []string:
+				for _, k := range key {
+					stgobs.filter[k] = []byte{}
 				}
-				stgobs.filter[data] = []byte{}
+			case []interface{}:
+				for _, k := range key {
+					k, ok := k.(string)
+					if !ok {
+						return nil, fmt.Errorf("%w: %T, expected type string", errUnexpectedType, k)
+					}
+
+					stgobs.filter[k] = []byte{}
+				}
+			default:
+				return nil, fmt.Errorf("%w: %T, expected type string, []string, []interface{}", errUnexpectedType, interfaceKey)
 			}
-		case string:
-			stgobs.filter[p] = []byte{}
-		default:
-			return nil, fmt.Errorf("unknown parameter type")
 		}
+	default:
+		return nil, fmt.Errorf("%w: %T, expected type []interface{}", errUnexpectedType, params)
 	}
 
 	c.mu.Lock()
@@ -265,14 +281,32 @@ func (c *WSConn) initAllBlocksListerner(reqID float64, _ interface{}) (Listener,
 }
 
 func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener, error) {
-	pA := params.([]interface{})
+	var encodedExtrinsic string
 
-	if len(pA) != 1 {
-		return nil, errors.New("expecting only one parameter")
+	switch encodedHex := params.(type) {
+	case []string:
+		if len(encodedHex) != 1 {
+			return nil, fmt.Errorf("%w: expected 1 param, got: %d", errUnexpectedParamLen, len(encodedHex))
+		}
+		encodedExtrinsic = encodedHex[0]
+	// the bellow case is needed to cover a interface{} slice containing one string
+	// as `[]interface{"a"}` is not the same as `[]string{"a"}`
+	case []interface{}:
+		if len(encodedHex) != 1 {
+			return nil, fmt.Errorf("%w: expected 1 param, got: %d", errUnexpectedParamLen, len(encodedHex))
+		}
+
+		var ok bool
+		encodedExtrinsic, ok = encodedHex[0].(string)
+		if !ok {
+			return nil, fmt.Errorf("%w: %T, expected type string", errUnexpectedType, encodedHex[0])
+		}
+	default:
+		return nil, fmt.Errorf("%w: %T, expected type []string or []interface{}", errUnexpectedType, params)
 	}
 
 	// The passed parameter should be a HEX of a SCALE encoded extrinsic
-	extBytes, err := common.HexToBytes(pA[0].(string))
+	extBytes, err := common.HexToBytes(encodedExtrinsic)
 	if err != nil {
 		return nil, err
 	}

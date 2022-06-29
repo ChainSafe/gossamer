@@ -4,223 +4,481 @@
 package sync
 
 import (
+	"errors"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
-func TestDisjointBlockSet(t *testing.T) {
-	s := newDisjointBlockSet(pendingBlocksLimit)
-	s.timeNow = func() time.Time {
-		return time.Time{}
+func Test_disjointBlockSet_addBlock(t *testing.T) {
+	t.Parallel()
+
+	hashHeader := func(header types.Header) common.Hash {
+		return header.Hash()
+	}
+	setHashToHeader := func(header types.Header) *types.Header {
+		header.Hash()
+		return &header
 	}
 
-	hash := common.Hash{0xa, 0xb}
-	const number uint = 100
-	s.addHashAndNumber(hash, number)
-	require.True(t, s.hasBlock(hash))
-	require.Equal(t, 1, s.size())
-
-	expected := &pendingBlock{
-		hash:    hash,
-		number:  number,
-		clearAt: time.Time{}.Add(ttl),
+	timeNow := func() time.Time {
+		return time.Unix(0, 0)
 	}
-	blocks := s.getBlocks()
-	require.Equal(t, 1, len(blocks))
-	require.Equal(t, expected, blocks[0])
-
-	header := &types.Header{
-		Number: 100,
-	}
-	s.addHeader(header)
-	require.True(t, s.hasBlock(header.Hash()))
-	require.Equal(t, 2, s.size())
-
-	expected = &pendingBlock{
-		hash:    header.Hash(),
-		number:  header.Number,
-		header:  header,
-		clearAt: time.Time{}.Add(ttl),
-	}
-	require.Equal(t, expected, s.getBlock(header.Hash()))
-
-	header2 := &types.Header{
-		Number: 999,
-	}
-	s.addHashAndNumber(header2.Hash(), header2.Number)
-	require.Equal(t, 3, s.size())
-	s.addHeader(header2)
-	require.Equal(t, 3, s.size())
-	expected = &pendingBlock{
-		hash:    header2.Hash(),
-		number:  header2.Number,
-		header:  header2,
-		clearAt: time.Time{}.Add(ttl),
-	}
-	require.Equal(t, expected, s.getBlock(header2.Hash()))
-
-	block := &types.Block{
-		Header: *header2,
-		Body:   types.Body{{0xa}},
-	}
-	s.addBlock(block)
-	require.Equal(t, 3, s.size())
-	expected = &pendingBlock{
-		hash:    header2.Hash(),
-		number:  header2.Number,
-		header:  header2,
-		body:    &block.Body,
-		clearAt: time.Time{}.Add(ttl),
-	}
-	require.Equal(t, expected, s.getBlock(header2.Hash()))
-
-	s.removeBlock(hash)
-	require.Equal(t, 2, s.size())
-	require.False(t, s.hasBlock(hash))
-
-	s.removeLowerBlocks(998)
-	require.Equal(t, 1, s.size())
-	require.False(t, s.hasBlock(header.Hash()))
-	require.True(t, s.hasBlock(header2.Hash()))
-}
-
-func TestPendingBlock_toBlockData(t *testing.T) {
-	pb := &pendingBlock{
-		hash:   common.Hash{0xa, 0xb, 0xc},
-		number: 1,
-		header: &types.Header{
-			Number: 1,
+	tests := map[string]struct {
+		disjointBlockSet         *disjointBlockSet
+		block                    *types.Block
+		expectedDisjointBlockSet *disjointBlockSet
+		err                      error
+	}{
+		"add block beyond capacity": {
+			disjointBlockSet: &disjointBlockSet{},
+			block: &types.Block{
+				Header: types.Header{
+					Number: 1,
+				},
+			},
+			expectedDisjointBlockSet: &disjointBlockSet{},
+			err:                      errSetAtLimit,
 		},
-		body: &types.Body{{0x1, 0x2, 0x3}},
+		"add block": {
+			disjointBlockSet: &disjointBlockSet{
+				limit:            1,
+				blocks:           make(map[common.Hash]*pendingBlock),
+				timeNow:          timeNow,
+				parentToChildren: make(map[common.Hash]map[common.Hash]struct{}),
+			},
+			block: &types.Block{
+				Header: types.Header{
+					Number:     1,
+					ParentHash: common.Hash{1},
+				},
+				Body: []types.Extrinsic{[]byte{1}},
+			},
+			expectedDisjointBlockSet: &disjointBlockSet{
+				limit: 1,
+				blocks: map[common.Hash]*pendingBlock{
+					hashHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}): {
+						hash:    hashHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}),
+						number:  1,
+						header:  setHashToHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}),
+						body:    &types.Body{{1}},
+						clearAt: time.Unix(0, int64(ttl)),
+					},
+				},
+				parentToChildren: map[common.Hash]map[common.Hash]struct{}{
+					{1}: {
+						hashHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}): {},
+					},
+				},
+			},
+		},
+		"has block": {
+			disjointBlockSet: &disjointBlockSet{
+				limit: 1,
+				blocks: map[common.Hash]*pendingBlock{
+					hashHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}): {
+						hash:    hashHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}),
+						number:  1,
+						header:  setHashToHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}),
+						body:    &types.Body{{1}},
+						clearAt: time.Unix(0, int64(ttl)),
+					},
+				},
+				timeNow:          timeNow,
+				parentToChildren: make(map[common.Hash]map[common.Hash]struct{}),
+			},
+			block: &types.Block{
+				Header: types.Header{
+					Number:     1,
+					ParentHash: common.Hash{1},
+				},
+				Body: []types.Extrinsic{[]byte{1}},
+			},
+			expectedDisjointBlockSet: &disjointBlockSet{
+				limit: 1,
+				blocks: map[common.Hash]*pendingBlock{
+					hashHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}): {
+						hash:          hashHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}),
+						number:        1,
+						header:        setHashToHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}),
+						body:          &types.Body{{1}},
+						justification: nil,
+						clearAt:       time.Unix(0, int64(ttl)),
+					},
+				},
+				parentToChildren: map[common.Hash]map[common.Hash]struct{}{},
+			},
+		},
 	}
+	for name, tt := range tests {
+		tt := tt
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			err := tt.disjointBlockSet.addBlock(tt.block)
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
+			}
 
-	expected := &types.BlockData{
-		Hash:   pb.hash,
-		Header: pb.header,
-		Body:   pb.body,
+			tt.disjointBlockSet.timeNow = nil
+			assert.Equal(t, tt.expectedDisjointBlockSet, tt.disjointBlockSet)
+		})
 	}
-
-	require.Equal(t, expected, pb.toBlockData())
 }
 
-func TestDisjointBlockSet_getReadyDescendants(t *testing.T) {
-	s := newDisjointBlockSet(pendingBlocksLimit)
+func Test_disjointBlockSet_addHeader(t *testing.T) {
+	t.Parallel()
 
-	// test that descendant chain gets returned by getReadyDescendants on block 1 being ready
-	header1 := &types.Header{
-		Number: 1,
+	hashHeader := func(header types.Header) common.Hash {
+		return header.Hash()
 	}
-	block1 := &types.Block{
-		Header: *header1,
-		Body:   types.Body{},
+	setHashToHeader := func(header types.Header) *types.Header {
+		header.Hash()
+		return &header
 	}
 
-	header2 := &types.Header{
-		ParentHash: header1.Hash(),
-		Number:     2,
+	tests := map[string]struct {
+		disjointBlockSet         *disjointBlockSet
+		header                   *types.Header
+		expectedDisjointBlockSet *disjointBlockSet
+		err                      error
+	}{
+		"add header beyond capactiy": {
+			disjointBlockSet: &disjointBlockSet{},
+			header: &types.Header{
+				Number: 1,
+			},
+			expectedDisjointBlockSet: &disjointBlockSet{},
+			err:                      errors.New("cannot add block; set is at capacity"),
+		},
+		"add header": {
+			disjointBlockSet: &disjointBlockSet{
+				blocks:           make(map[common.Hash]*pendingBlock),
+				limit:            1,
+				timeNow:          func() time.Time { return time.Unix(0, 0) },
+				parentToChildren: make(map[common.Hash]map[common.Hash]struct{}),
+			},
+			header: &types.Header{
+				Number:     1,
+				ParentHash: common.Hash{1},
+			},
+			expectedDisjointBlockSet: &disjointBlockSet{
+				limit: 1,
+				blocks: map[common.Hash]*pendingBlock{
+					hashHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}): {
+						hash:    hashHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}),
+						number:  1,
+						header:  setHashToHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}),
+						clearAt: time.Unix(0, int64(ttl)),
+					},
+				},
+				parentToChildren: map[common.Hash]map[common.Hash]struct{}{
+					{1}: {
+						hashHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}): {},
+					},
+				},
+			},
+		},
+		"has header": {
+			disjointBlockSet: &disjointBlockSet{
+				blocks: map[common.Hash]*pendingBlock{
+					hashHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}): {
+						hash:    hashHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}),
+						number:  1,
+						header:  setHashToHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}),
+						clearAt: time.Unix(0, int64(ttl)),
+					},
+				},
+				limit:            1,
+				timeNow:          func() time.Time { return time.Unix(0, 0) },
+				parentToChildren: make(map[common.Hash]map[common.Hash]struct{}),
+			},
+			header: &types.Header{
+				Number:     1,
+				ParentHash: common.Hash{1},
+			},
+			expectedDisjointBlockSet: &disjointBlockSet{
+				limit: 1,
+				blocks: map[common.Hash]*pendingBlock{
+					hashHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}): {
+						hash:    hashHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}),
+						number:  1,
+						header:  setHashToHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}),
+						clearAt: time.Unix(0, int64(ttl)),
+					},
+				},
+				parentToChildren: map[common.Hash]map[common.Hash]struct{}{},
+			},
+		},
 	}
-	block2 := &types.Block{
-		Header: *header2,
-		Body:   types.Body{},
-	}
-	s.addBlock(block2)
+	for name, tt := range tests {
+		tt := tt
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			err := tt.disjointBlockSet.addHeader(tt.header)
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
+			}
 
-	header3 := &types.Header{
-		ParentHash: header2.Hash(),
-		Number:     3,
+			tt.disjointBlockSet.timeNow = nil
+			assert.Equal(t, tt.expectedDisjointBlockSet, tt.disjointBlockSet)
+		})
 	}
-	block3 := &types.Block{
-		Header: *header3,
-		Body:   types.Body{},
-	}
-	s.addBlock(block3)
-
-	header2NotDescendant := &types.Header{
-		ParentHash: common.Hash{0xff},
-		Number:     2,
-	}
-	block2NotDescendant := &types.Block{
-		Header: *header2NotDescendant,
-		Body:   types.Body{},
-	}
-	s.addBlock(block2NotDescendant)
-
-	ready := []*types.BlockData{block1.ToBlockData()}
-	ready = s.getReadyDescendants(header1.Hash(), ready)
-	require.Equal(t, 3, len(ready))
-	require.Equal(t, block1.ToBlockData(), ready[0])
-	require.Equal(t, block2.ToBlockData(), ready[1])
-	require.Equal(t, block3.ToBlockData(), ready[2])
 }
 
-func TestDisjointBlockSet_getReadyDescendants_blockNotComplete(t *testing.T) {
-	s := newDisjointBlockSet(pendingBlocksLimit)
+func Test_disjointBlockSet_clearBlocks(t *testing.T) {
+	t.Parallel()
 
-	// test that descendant chain gets returned by getReadyDescendants on block 1 being ready
-	// the ready list should contain only block 1 and 2, as block 3 is incomplete (body is missing)
-	header1 := &types.Header{
-		Number: 1,
+	tests := []struct {
+		name             string
+		disjointBlockSet *disjointBlockSet
+		remaining        map[common.Hash]*pendingBlock
+	}{
+		{
+			name: "base case",
+			disjointBlockSet: &disjointBlockSet{
+				limit: 0,
+				blocks: map[common.Hash]*pendingBlock{
+					{1}: {
+						clearAt: time.Unix(1000, 0),
+						hash:    common.Hash{1},
+					},
+				},
+				timeNow: func() time.Time { return time.Unix(1001, 0) },
+			},
+			remaining: map[common.Hash]*pendingBlock{},
+		},
+		{
+			name: "remove clear one block",
+			disjointBlockSet: &disjointBlockSet{
+				limit: 0,
+				blocks: map[common.Hash]*pendingBlock{
+					{1}: {
+						clearAt: time.Unix(1000, 0),
+						hash:    common.Hash{1},
+					},
+					{2}: {
+						clearAt: time.Unix(1002, 0),
+						hash:    common.Hash{2},
+					},
+				},
+				timeNow: func() time.Time { return time.Unix(1001, 0) },
+			},
+			remaining: map[common.Hash]*pendingBlock{
+				{2}: {
+					clearAt: time.Unix(1002, 0),
+					hash:    common.Hash{2},
+				},
+			},
+		},
 	}
-	block1 := &types.Block{
-		Header: *header1,
-		Body:   types.Body{},
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			tt.disjointBlockSet.clearBlocks()
+			assert.Equal(t, tt.remaining, tt.disjointBlockSet.blocks)
+		})
 	}
-
-	header2 := &types.Header{
-		ParentHash: header1.Hash(),
-		Number:     2,
-	}
-	block2 := &types.Block{
-		Header: *header2,
-		Body:   types.Body{},
-	}
-	s.addBlock(block2)
-
-	header3 := &types.Header{
-		ParentHash: header2.Hash(),
-		Number:     3,
-	}
-	s.addHeader(header3)
-
-	header2NotDescendant := &types.Header{
-		ParentHash: common.Hash{0xff},
-		Number:     2,
-	}
-	block2NotDescendant := &types.Block{
-		Header: *header2NotDescendant,
-		Body:   types.Body{},
-	}
-	s.addBlock(block2NotDescendant)
-
-	ready := []*types.BlockData{block1.ToBlockData()}
-	ready = s.getReadyDescendants(header1.Hash(), ready)
-	require.Equal(t, 2, len(ready))
-	require.Equal(t, block1.ToBlockData(), ready[0])
-	require.Equal(t, block2.ToBlockData(), ready[1])
 }
 
-func TestDisjointBlockSet_ClearBlocks(t *testing.T) {
-	s := newDisjointBlockSet(pendingBlocksLimit)
+func Test_disjointBlockSet_getBlocks(t *testing.T) {
+	t.Parallel()
 
-	testHashA := common.Hash{0}
-	testHashB := common.Hash{1}
-
-	s.blocks[testHashA] = &pendingBlock{
-		hash:    testHashA,
-		clearAt: time.Unix(1000, 0),
+	tests := []struct {
+		name                 string
+		disjointBlockSet     *disjointBlockSet
+		want                 []*pendingBlock
+		wantDisjointBlockSet *disjointBlockSet
+	}{
+		{
+			name:                 "no blocks",
+			disjointBlockSet:     &disjointBlockSet{},
+			want:                 []*pendingBlock{},
+			wantDisjointBlockSet: &disjointBlockSet{},
+		},
+		{
+			name: "base case",
+			disjointBlockSet: &disjointBlockSet{
+				blocks: map[common.Hash]*pendingBlock{
+					{}: {},
+				},
+			},
+			want: []*pendingBlock{{}},
+			wantDisjointBlockSet: &disjointBlockSet{
+				blocks: map[common.Hash]*pendingBlock{
+					{}: {},
+				},
+			},
+		},
 	}
-	s.blocks[testHashB] = &pendingBlock{
-		hash:    testHashB,
-		clearAt: time.Now().Add(ttl * 2),
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			blocks := tt.disjointBlockSet.getBlocks()
+			assert.Equal(t, tt.want, blocks)
+			assert.Equal(t, tt.wantDisjointBlockSet, tt.disjointBlockSet)
+		})
 	}
+}
 
-	s.clearBlocks()
-	require.Equal(t, 1, len(s.blocks))
-	_, has := s.blocks[testHashB]
-	require.True(t, has)
+func Test_disjointBlockSet_removeLowerBlocks(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name                 string
+		disjointBlockSet     *disjointBlockSet
+		num                  uint
+		remaining            map[common.Hash]*pendingBlock
+		wantDisjointBlockSet *disjointBlockSet
+	}{
+		{
+			name: "number 0",
+			disjointBlockSet: &disjointBlockSet{
+				blocks: map[common.Hash]*pendingBlock{
+					{1}: {
+						hash:   common.Hash{1},
+						number: 1,
+					},
+					{10}: {
+						hash:   common.Hash{10},
+						number: 10,
+					},
+				},
+			},
+			num: 0,
+			remaining: map[common.Hash]*pendingBlock{
+				{1}: {
+					hash:   common.Hash{1},
+					number: 1,
+				},
+				{10}: {
+					hash:   common.Hash{10},
+					number: 10,
+				},
+			},
+			wantDisjointBlockSet: &disjointBlockSet{
+				blocks: map[common.Hash]*pendingBlock{
+					{1}: {
+						hash:   common.Hash{1},
+						number: 1,
+					},
+					{10}: {
+						hash:   common.Hash{10},
+						number: 10,
+					},
+				},
+			},
+		},
+		{
+			name: "number 1",
+			disjointBlockSet: &disjointBlockSet{
+				blocks: map[common.Hash]*pendingBlock{
+					{1}: {
+						hash:   common.Hash{1},
+						number: 1,
+					},
+					{10}: {
+						hash:   common.Hash{10},
+						number: 10,
+					},
+				},
+			},
+			num: 1,
+			remaining: map[common.Hash]*pendingBlock{{10}: {
+				hash:   common.Hash{10},
+				number: 10,
+			},
+			},
+			wantDisjointBlockSet: &disjointBlockSet{
+				blocks: map[common.Hash]*pendingBlock{
+					{10}: {
+						hash:   common.Hash{10},
+						number: 10,
+					},
+				},
+			},
+		},
+		{
+			name: "number 11",
+			disjointBlockSet: &disjointBlockSet{
+				blocks: map[common.Hash]*pendingBlock{
+					{1}: {
+						hash:   common.Hash{1},
+						number: 1,
+					},
+					{10}: {
+						hash:   common.Hash{10},
+						number: 10,
+					},
+				},
+			},
+			num:       11,
+			remaining: map[common.Hash]*pendingBlock{},
+			wantDisjointBlockSet: &disjointBlockSet{
+				blocks: map[common.Hash]*pendingBlock{},
+			},
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			tt.disjointBlockSet.removeLowerBlocks(tt.num)
+			assert.Equal(t, tt.remaining, tt.disjointBlockSet.blocks)
+			assert.Equal(t, tt.wantDisjointBlockSet, tt.disjointBlockSet)
+		})
+	}
+}
+
+func Test_disjointBlockSet_size(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name             string
+		disjointBlockSet *disjointBlockSet
+		want             int
+	}{
+		{
+			name: "expect 0",
+			disjointBlockSet: &disjointBlockSet{
+				blocks: map[common.Hash]*pendingBlock{},
+			},
+			want: 0,
+		},
+		{
+			name: "expect 1",
+			disjointBlockSet: &disjointBlockSet{
+				blocks: map[common.Hash]*pendingBlock{
+					{1}: {hash: common.Hash{1}, number: 1},
+				},
+			},
+			want: 1,
+		},
+		{
+			name: "expect 2",
+			disjointBlockSet: &disjointBlockSet{
+				blocks: map[common.Hash]*pendingBlock{
+					{1}:  {hash: common.Hash{1}, number: 1},
+					{10}: {hash: common.Hash{10}, number: 10},
+				},
+			},
+			want: 2,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			size := tt.disjointBlockSet.size()
+			assert.Equal(t, tt.want, size)
+		})
+	}
 }

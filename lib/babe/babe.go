@@ -399,7 +399,7 @@ func (b *Service) initiate() {
 func (b *Service) initiateAndGetEpochHandler(epoch uint64) (*epochHandler, error) {
 	epochData, err := b.initiateEpoch(epoch)
 	if err != nil {
-		return nil, fmt.Errorf("failed to initiate epoch %d: %w", epoch, err)
+		return nil, fmt.Errorf("failed to initiate epoch: %w", err)
 	}
 
 	logger.Debugf("initiated epoch with threshold %s, randomness 0x%x and authorities %v",
@@ -430,7 +430,7 @@ func (b *Service) runEngine() error {
 		if errors.Is(err, errServicePaused) || errors.Is(err, context.Canceled) {
 			return nil
 		} else if err != nil {
-			return err
+			return fmt.Errorf("cannot handle epoch: %w", err)
 		}
 
 		epoch = next
@@ -442,7 +442,7 @@ func (b *Service) handleEpoch(epoch uint64) (next uint64, err error) {
 	defer cancel()
 	b.epochHandler, err = b.initiateAndGetEpochHandler(epoch)
 	if err != nil {
-		return 0, fmt.Errorf("cannot initiate and get epoch handler for epoch %d: %w", epoch, err)
+		return 0, fmt.Errorf("cannot initiate and get epoch handler: %w", err)
 	}
 
 	// get start slot for current epoch

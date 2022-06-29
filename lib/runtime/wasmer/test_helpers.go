@@ -4,7 +4,7 @@
 package wasmer
 
 import (
-	"path/filepath"
+	"context"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -23,29 +23,29 @@ var DefaultTestLogLvl = log.Info
 
 // NewTestInstance will create a new runtime instance using the given target runtime
 func NewTestInstance(t *testing.T, targetRuntime string) *Instance {
+	t.Helper()
 	return NewTestInstanceWithTrie(t, targetRuntime, nil)
 }
 
 // NewTestInstanceWithTrie will create a new runtime (polkadot/test) with the supplied trie as the storage
 func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie) *Instance {
-	fp, cfg := setupConfig(t, targetRuntime, tt, DefaultTestLogLvl, 0)
-	r, err := NewInstanceFromFile(fp, cfg)
+	t.Helper()
+
+	cfg := setupConfig(t, tt, DefaultTestLogLvl, 0)
+	runtimeFilepath, err := runtime.GetRuntime(context.Background(), targetRuntime)
+	require.NoError(t, err)
+
+	r, err := NewInstanceFromFile(runtimeFilepath, cfg)
 	require.NoError(t, err, "Got error when trying to create new VM", "targetRuntime", targetRuntime)
 	require.NotNil(t, r, "Could not create new VM instance", "targetRuntime", targetRuntime)
 	return r
 }
 
-func setupConfig(t *testing.T, targetRuntime string, tt *trie.Trie, lvl log.Level, role byte) (string, *Config) {
-	testRuntimeFilePath, testRuntimeURL := runtime.GetRuntimeVars(targetRuntime)
-
-	err := runtime.GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL)
-	require.Nil(t, err, "Fail: could not get runtime", "targetRuntime", targetRuntime)
+func setupConfig(t *testing.T, tt *trie.Trie, lvl log.Level, role byte) *Config {
+	t.Helper()
 
 	s, err := storage.NewTrieState(tt)
 	require.NoError(t, err)
-
-	fp, err := filepath.Abs(testRuntimeFilePath)
-	require.Nil(t, err, "could not create testRuntimeFilePath", "targetRuntime", targetRuntime)
 
 	ns := runtime.NodeStorage{
 		LocalStorage:      runtime.NewInMemoryDB(t),
@@ -62,7 +62,7 @@ func setupConfig(t *testing.T, targetRuntime string, tt *trie.Trie, lvl log.Leve
 	cfg.Network = new(runtime.TestRuntimeNetwork)
 	cfg.Transaction = newTransactionStateMock()
 	cfg.Role = role
-	return fp, cfg
+	return cfg
 }
 
 // NewTransactionStateMock create and return an runtime Transaction State interface mock
