@@ -720,15 +720,15 @@ func Test_verifier_verifyAuthorshipRightEquivocatory(t *testing.T) {
 		threshold:   scale.MaxUint128,
 	}
 
-	v, err := newVerifier(mockBlockStateEquiv1, 1, vi)
+	verifierEquivocatoryPrimary, err := newVerifier(mockBlockStateEquiv1, 1, vi)
 	assert.NoError(t, err)
 
-	headerEquivocatory := newTestHeader(t, *prd1)
-	hashEquivocatory := encodeAndHashHeader(t, headerEquivocatory)
-	signAndAddSeal(t, kp, headerEquivocatory, hashEquivocatory[:])
+	headerEquivocatoryPrimary := newTestHeader(t, *prd1)
+	hashEquivocatoryPrimary := encodeAndHashHeader(t, headerEquivocatoryPrimary)
+	signAndAddSeal(t, kp, headerEquivocatoryPrimary, hashEquivocatoryPrimary[:])
 
-	mockBlockStateEquiv1.EXPECT().GetAllBlocksAtDepth(gomock.Any()).Return([]common.Hash{hashEquivocatory})
-	mockBlockStateEquiv1.EXPECT().GetHeader(hashEquivocatory).Return(headerEquivocatory, nil)
+	mockBlockStateEquiv1.EXPECT().GetAllBlocksAtDepth(gomock.Any()).Return([]common.Hash{hashEquivocatoryPrimary})
+	mockBlockStateEquiv1.EXPECT().GetHeader(hashEquivocatoryPrimary).Return(headerEquivocatoryPrimary, nil)
 
 	// Secondary Plain Test Header
 	testParentPrd, err := testBabeSecondaryPlainPreDigest.ToPreRuntimeDigest()
@@ -779,8 +779,8 @@ func Test_verifier_verifyAuthorshipRightEquivocatory(t *testing.T) {
 	}{
 		{
 			name:     "equivocate - primary",
-			verifier: *v,
-			header:   headerEquivocatory,
+			verifier: *verifierEquivocatoryPrimary,
+			header:   headerEquivocatoryPrimary,
 			expErr:   ErrProducerEquivocated,
 		},
 		{
@@ -809,6 +809,7 @@ func Test_verifier_verifyAuthorshipRightEquivocatory(t *testing.T) {
 		})
 	}
 }
+
 func TestVerificationManager_getConfigData(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockBlockState := NewMockBlockState(ctrl)
