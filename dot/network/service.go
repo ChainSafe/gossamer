@@ -251,6 +251,7 @@ func (s *Service) Start() error {
 		decodeBlockAnnounceMessage,
 		s.handleBlockAnnounceMessage,
 		nil,
+		maxBlockAnnounceNotificationSize,
 	)
 	if err != nil {
 		logger.Warnf("failed to register notifications protocol with block announce id %s: %s",
@@ -270,6 +271,7 @@ func (s *Service) Start() error {
 		decodeTransactionMessage,
 		s.handleTransactionMessage,
 		txnBatchHandler,
+		maxTransactionsNotificationSize,
 	)
 	if err != nil {
 		logger.Warnf("failed to register notifications protocol with transaction id %s: %s", transactionsID, err)
@@ -514,6 +516,7 @@ func (s *Service) RegisterNotificationsProtocol(
 	messageDecoder MessageDecoder,
 	messageHandler NotificationsMessageHandler,
 	batchHandler NotificationsMessageBatchHandler,
+	maxSize uint64,
 ) error {
 	s.notificationsMu.Lock()
 	defer s.notificationsMu.Unlock()
@@ -522,14 +525,14 @@ func (s *Service) RegisterNotificationsProtocol(
 		return errors.New("notifications protocol with message type already exists")
 	}
 
-	np := newNotificationsProtocol(protocolID, handshakeGetter, handshakeDecoder, handshakeValidator)
+	np := newNotificationsProtocol(protocolID, handshakeGetter, handshakeDecoder, handshakeValidator, maxSize)
 	s.notificationsProtocols[messageID] = np
 	decoder := createDecoder(np, handshakeDecoder, messageDecoder)
 	handlerWithValidate := s.createNotificationsMessageHandler(np, messageHandler, batchHandler)
 
 	s.host.registerStreamHandler(protocolID, func(stream libp2pnetwork.Stream) {
 		logger.Tracef("received stream using sub-protocol %s", protocolID)
-		s.readStream(stream, decoder, handlerWithValidate)
+		s.readStream(stream, decoder, handlerWithValidate, maxSize)
 	})
 
 	logger.Infof("registered notifications sub-protocol %s", protocolID)

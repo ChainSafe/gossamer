@@ -72,5 +72,6 @@ type Network interface {
 		messageDecoder network.MessageDecoder,
 		messageHandler network.NotificationsMessageHandler,
 		batchHandler network.NotificationsMessageBatchHandler,
+		maxSize uint64,
 	) error
 }

@@ -65,16 +65,18 @@ type notificationsProtocol struct {
 	handshakeDecoder   HandshakeDecoder
 	handshakeValidator HandshakeValidator
 	peersData          *peersData
+	maxSize            uint64
 }
 
 func newNotificationsProtocol(protocolID protocol.ID, handshakeGetter HandshakeGetter,
-	handshakeDecoder HandshakeDecoder, handshakeValidator HandshakeValidator) *notificationsProtocol {
+	handshakeDecoder HandshakeDecoder, handshakeValidator HandshakeValidator, maxSize uint64) *notificationsProtocol {
 	return &notificationsProtocol{
 		protocolID:         protocolID,
 		getHandshake:       handshakeGetter,
 		handshakeValidator: handshakeValidator,
 		handshakeDecoder:   handshakeDecoder,
 		peersData:          newPeersData(),
+		maxSize:            maxSize,
 	}
 }
 
@@ -350,7 +352,7 @@ func (s *Service) sendHandshake(peer peer.ID, hs Handshake, info *notificationsP
 		logger.Tracef("handshake timeout reached for peer %s using protocol %s", peer, info.protocolID)
 		closeOutboundStream(info, peer, stream)
 		return nil, errHandshakeTimeout
-	case hsResponse := <-s.readHandshake(stream, info.handshakeDecoder):
+	case hsResponse := <-s.readHandshake(stream, info.handshakeDecoder, info.maxSize):
 		if !hsTimer.Stop() {
 			<-hsTimer.C
 		}
@@ -411,7 +413,7 @@ func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer
 	}
 }
 
-func (s *Service) readHandshake(stream libp2pnetwork.Stream, decoder HandshakeDecoder) <-chan *handshakeReader {
+func (s *Service) readHandshake(stream libp2pnetwork.Stream, decoder HandshakeDecoder, maxSize uint64) <-chan *handshakeReader {
 	hsC := make(chan *handshakeReader)
 
 	go func() {
@@ -420,7 +422,7 @@ func (s *Service) readHandshake(stream libp2pnetwork.Stream, decoder HandshakeDe
 		buffer := s.bufPool.Get().(*[]byte)
 		defer s.bufPool.Put(buffer)
 
-		tot, err := readStream(stream, buffer)
+		tot, err := readStream(stream, buffer, maxSize)
 		if err != nil {
 			hsC <- &handshakeReader{hs: nil, err: err}
 			return
