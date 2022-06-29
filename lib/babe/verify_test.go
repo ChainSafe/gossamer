@@ -730,6 +730,92 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	}
 }
 
+func Test_verifier_verifyAuthorshipRight2(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	mockBlockStateEquiv1 := NewMockBlockState(ctrl)
+
+	//Generate keys
+	kp, err := sr25519.GenerateKeypair()
+	assert.NoError(t, err)
+
+	// Create a VRF output and proof
+	randomness := common.MustHexToHash("0x0123")
+	output, proof, err := kp.VrfSign(makeTranscript(Randomness(randomness), uint64(1), 1))
+	assert.NoError(t, err)
+
+	testBabePrimaryPreDigest := types.BabePrimaryPreDigest{
+		AuthorityIndex: 0,
+		SlotNumber:     1,
+		VRFOutput:      output,
+		VRFProof:       proof,
+	}
+
+	// Primary Test Header
+	encTestDigest := newEncodedBabeDigest(t, types.BabePrimaryPreDigest{AuthorityIndex: 0})
+
+	testDigestPrimary := types.NewDigest()
+	err = testDigestPrimary.Add(types.PreRuntimeDigest{
+		ConsensusEngineID: types.BabeEngineID,
+		Data:              encTestDigest,
+	})
+	assert.NoError(t, err)
+	testHeaderPrimary := types.NewEmptyHeader()
+	testHeaderPrimary.Digest = testDigestPrimary
+
+	h := common.MustHexToHash("0x01")
+	h1 := []common.Hash{h}
+
+	// h2 := common.MustHexToHash("0x02")
+	// hArray := []common.Hash{h, h2}
+
+	mockBlockStateEquiv1.EXPECT().GetAllBlocksAtDepth(gomock.Any()).Return(h1)
+	mockBlockStateEquiv1.EXPECT().GetHeader(h).Return(testHeaderPrimary, nil)
+
+	// Case 7: GetAuthorityIndex Err
+	babeParentPrd, err := testBabePrimaryPreDigest.ToPreRuntimeDigest()
+	assert.NoError(t, err)
+	babeParentHeader := newTestHeader(t, *babeParentPrd)
+
+	parentHash := encodeAndHashHeader(t, babeParentHeader)
+	babePrd3, err := testBabePrimaryPreDigest.ToPreRuntimeDigest()
+	assert.NoError(t, err)
+
+	header7 := newTestHeader(t, *babePrd3)
+	header7.ParentHash = parentHash
+
+	hash := encodeAndHashHeader(t, header7)
+	signAndAddSeal(t, kp, header7, hash[:])
+
+	// Case 9: Equivocate case primary
+	babeVerifier7 := newTestVerifier(t, kp, mockBlockStateEquiv1, scale.MaxUint128, false)
+
+	tests := []struct {
+		name     string
+		verifier verifier
+		header   *types.Header
+		expErr   error
+	}{
+		{
+			name:     "equivocate - primary",
+			verifier: *babeVerifier7,
+			header:   header7,
+			expErr:   ErrProducerEquivocated,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			b := &tt.verifier
+			err := b.verifyAuthorshipRight(tt.header)
+			if tt.expErr != nil {
+				assert.EqualError(t, err, tt.expErr.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+
+		})
+	}
+}
 func TestVerificationManager_getConfigData(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockBlockState := NewMockBlockState(ctrl)

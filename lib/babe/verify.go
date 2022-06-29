@@ -344,15 +344,18 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	// check if the producer has equivocated, ie. have they produced a conflicting block?
 	// hashes is hashes of all blocks with same block number as header.Number
 	hashes := b.blockState.GetAllBlocksAtDepth(header.ParentHash)
-
+	fmt.Println("hashes")
+	fmt.Println(hashes)
 	for _, hash := range hashes {
 		currentHeader, err := b.blockState.GetHeader(hash)
 		if err != nil {
+			logger.Errorf("GetHeader %s", err.Error())
 			continue
 		}
 
 		currentBlockProducerIndex, err := getAuthorityIndex(currentHeader)
 		if err != nil {
+			logger.Errorf("getAuthorityIndex %s", err.Error())
 			continue
 		}
 
@@ -370,6 +373,7 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 
 		currentBabePreDigest, err := b.verifyPreRuntimeDigest(&currentPreDigest)
 		if err != nil {
+			fmt.Println("there u go home boy")
 			return fmt.Errorf("failed to verify pre-runtime digest: %w", err)
 		}
 
@@ -432,6 +436,10 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (scale
 	switch d := babePreDigest.(type) {
 	case types.BabePrimaryPreDigest:
 		ok, err = b.verifyPrimarySlotWinner(d.AuthorityIndex, d.SlotNumber, d.VRFOutput, d.VRFProof)
+		if !ok {
+			fmt.Println("types.BabePrimaryPreDigest")
+		}
+		fmt.Println(err)
 	case types.BabeSecondaryVRFPreDigest:
 		if !b.secondarySlots {
 			ok = false
