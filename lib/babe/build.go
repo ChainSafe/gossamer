@@ -178,6 +178,7 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt runtime.Instance) []*t
 		txn := b.transactionState.Pop()
 		// Transaction queue is empty.
 		if txn == nil {
+			time.Sleep(time.Millisecond * 10)
 			continue
 		}
 
