@@ -43,12 +43,12 @@ func Test_Decode(t *testing.T) {
 		"no data": {
 			reader:     bytes.NewReader(nil),
 			errWrapped: io.EOF,
-			errMessage: "cannot decode header: cannot read header byte: EOF",
+			errMessage: "decoding header: reading header byte: EOF",
 		},
 		"unknown node variant": {
 			reader:     bytes.NewReader([]byte{0}),
 			errWrapped: ErrVariantUnknown,
-			errMessage: "cannot decode header: cannot decode header byte: node variant is unknown: for header byte 00000000",
+			errMessage: "decoding header: decoding header byte: node variant is unknown: for header byte 00000000",
 		},
 		"leaf decoding error": {
 			reader: bytes.NewReader([]byte{
@@ -57,7 +57,7 @@ func Test_Decode(t *testing.T) {
 			}),
 			errWrapped: io.EOF,
 			errMessage: "cannot decode leaf: cannot decode key: " +
-				"cannot read from reader: EOF",
+				"reading from reader: EOF",
 		},
 		"leaf success": {
 			reader: bytes.NewReader(
@@ -82,7 +82,7 @@ func Test_Decode(t *testing.T) {
 			}),
 			errWrapped: io.EOF,
 			errMessage: "cannot decode branch: cannot decode key: " +
-				"cannot read from reader: EOF",
+				"reading from reader: EOF",
 		},
 		"branch success": {
 			reader: bytes.NewReader(
@@ -194,7 +194,7 @@ func Test_decodeBranch(t *testing.T) {
 			variant:          branchVariant.bits,
 			partialKeyLength: 1,
 			errWrapped:       io.EOF,
-			errMessage:       "cannot decode key: cannot read from reader: EOF",
+			errMessage:       "cannot decode key: reading from reader: EOF",
 		},
 		"children bitmap read error": {
 			reader: bytes.NewBuffer([]byte{
@@ -317,7 +317,7 @@ func Test_decodeLeaf(t *testing.T) {
 			variant:          leafVariant.bits,
 			partialKeyLength: 1,
 			errWrapped:       io.EOF,
-			errMessage:       "cannot decode key: cannot read from reader: EOF",
+			errMessage:       "cannot decode key: reading from reader: EOF",
 		},
 		"value decoding error": {
 			reader: bytes.NewBuffer([]byte{

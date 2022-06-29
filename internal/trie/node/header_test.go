@@ -286,14 +286,14 @@ func Test_decodeHeader(t *testing.T) {
 				{buffArgCap: 1, err: errTest},
 			},
 			errWrapped: errTest,
-			errMessage: "cannot read header byte: test error",
+			errMessage: "reading header byte: test error",
 		},
 		"header byte decoding error": {
 			reads: []readCall{
 				{buffArgCap: 1, read: []byte{0b0011_1110}},
 			},
 			errWrapped: ErrVariantUnknown,
-			errMessage: "cannot decode header byte: node variant is unknown: for header byte 00111110",
+			errMessage: "decoding header byte: node variant is unknown: for header byte 00111110",
 		},
 		"partial key length contained in first byte": {
 			reads: []readCall{
@@ -308,7 +308,7 @@ func Test_decodeHeader(t *testing.T) {
 				{buffArgCap: 1, err: errTest},
 			},
 			errWrapped: errTest,
-			errMessage: "cannot read key length: test error",
+			errMessage: "reading key length: test error",
 		},
 		"partial key length spread on multiple bytes": {
 			reads: []readCall{

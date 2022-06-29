@@ -87,7 +87,7 @@ func Test_decodeKey(t *testing.T) {
 			},
 			partialKeyLength: 5,
 			errWrapped:       errTest,
-			errMessage:       "cannot read from reader: test error",
+			errMessage:       "reading from reader: test error",
 		},
 
 		"key read bytes count mismatch": {

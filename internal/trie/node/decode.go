@@ -13,9 +13,17 @@ import (
 )
 
 var (
+	// ErrDecodeValue is defined since no sentinel error is defined
+	// in the scale package.
+	// TODO remove once the following issue is done:
+	// https://github.com/ChainSafe/gossamer/issues/2631 .
 	ErrDecodeValue        = errors.New("cannot decode value")
 	ErrReadChildrenBitmap = errors.New("cannot read children bitmap")
-	ErrDecodeChildHash    = errors.New("cannot decode child hash")
+	// ErrDecodeChildHash is defined since no sentinel error is defined
+	// in the scale package.
+	// TODO remove once the following issue is done:
+	// https://github.com/ChainSafe/gossamer/issues/2631 .
+	ErrDecodeChildHash = errors.New("cannot decode child hash")
 )
 
 // Decode decodes a node from a reader.
@@ -27,7 +35,7 @@ var (
 func Decode(reader io.Reader) (n *Node, err error) {
 	variant, partialKeyLength, err := decodeHeader(reader)
 	if err != nil {
-		return nil, fmt.Errorf("cannot decode header: %w", err)
+		return nil, fmt.Errorf("decoding header: %w", err)
 	}
 
 	switch variant {

@@ -75,13 +75,13 @@ func decodeHeader(reader io.Reader) (variant byte,
 	buffer := make([]byte, 1)
 	_, err = reader.Read(buffer)
 	if err != nil {
-		return 0, 0, fmt.Errorf("cannot read header byte: %w", err)
+		return 0, 0, fmt.Errorf("reading header byte: %w", err)
 	}
 
 	variant, partialKeyLengthHeader, partialKeyLengthHeaderMask,
 		err := decodeHeaderByte(buffer[0])
 	if err != nil {
-		return 0, 0, fmt.Errorf("cannot decode header byte: %w", err)
+		return 0, 0, fmt.Errorf("decoding header byte: %w", err)
 	}
 
 	partialKeyLength = uint16(partialKeyLengthHeader)
@@ -100,7 +100,7 @@ func decodeHeader(reader io.Reader) (variant byte,
 	for {
 		_, err = reader.Read(buffer)
 		if err != nil {
-			return 0, 0, fmt.Errorf("cannot read key length: %w", err)
+			return 0, 0, fmt.Errorf("reading key length: %w", err)
 		}
 
 		previousKeyLength = partialKeyLength

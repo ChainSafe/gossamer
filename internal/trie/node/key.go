@@ -24,7 +24,7 @@ func decodeKey(reader io.Reader, partialKeyLength uint16) (b []byte, err error) 
 	key := make([]byte, partialKeyLength/2+partialKeyLength%2)
 	n, err := reader.Read(key)
 	if err != nil {
-		return nil, fmt.Errorf("cannot read from reader: %w", err)
+		return nil, fmt.Errorf("reading from reader: %w", err)
 	} else if n != len(key) {
 		return nil, fmt.Errorf("%w: read %d bytes instead of expected %d bytes",
 			ErrReaderMismatchCount, n, len(key))
