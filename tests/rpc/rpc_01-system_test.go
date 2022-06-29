@@ -11,7 +11,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/lib/common"
 	libutils "github.com/ChainSafe/gossamer/lib/utils"
-	"github.com/ChainSafe/gossamer/tests/utils"
 	"github.com/ChainSafe/gossamer/tests/utils/config"
 	"github.com/ChainSafe/gossamer/tests/utils/node"
 	"github.com/ChainSafe/gossamer/tests/utils/retry"
@@ -22,11 +21,6 @@ import (
 const peerIDRegex = `^[a-zA-Z0-9]{52}$`
 
 func TestSystemRPC(t *testing.T) {
-	if utils.MODE != rpcSuite {
-		t.Log("Going to skip RPC suite tests")
-		return
-	}
-
 	const testTimeout = 8 * time.Minute
 	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 

@@ -8,18 +8,12 @@ import (
 	"testing"
 
 	libutils "github.com/ChainSafe/gossamer/lib/utils"
-	"github.com/ChainSafe/gossamer/tests/utils"
 	"github.com/ChainSafe/gossamer/tests/utils/config"
 	"github.com/ChainSafe/gossamer/tests/utils/node"
 )
 
 func TestOffchainRPC(t *testing.T) {
 	t.SkipNow() // TODO
-
-	if utils.MODE != rpcSuite {
-		t.Log("Going to skip RPC suite tests")
-		return
-	}
 
 	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
 	tomlConfig := config.Default()

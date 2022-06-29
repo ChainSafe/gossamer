@@ -37,6 +37,12 @@ func TestMain(m *testing.M) {
 		return
 	}
 
+	err := utils.BuildGossamer()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
 	logLvl := log.Info
 	if utils.LOGLEVEL != "" {
 		var err error
