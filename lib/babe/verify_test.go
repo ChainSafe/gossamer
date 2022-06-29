@@ -469,8 +469,6 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockBlockState := NewMockBlockState(ctrl)
 	mockBlockStateErr := NewMockBlockState(ctrl)
-	mockBlockStateEquiv2 := NewMockBlockState(ctrl)
-	mockBlockStateEquiv3 := NewMockBlockState(ctrl)
 
 	//Generate keys
 	kp, err := sr25519.GenerateKeypair()
@@ -545,11 +543,6 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	mockBlockStateErr.EXPECT().GetAllBlocksAtDepth(gomock.Any()).Return(h1)
 	mockBlockStateErr.EXPECT().GetHeader(h).Return(nil, errors.New("get header error"))
 
-	mockBlockStateEquiv2.EXPECT().GetAllBlocksAtDepth(gomock.Any()).Return(h1)
-	mockBlockStateEquiv2.EXPECT().GetHeader(h).Return(testSecPlainHeader, nil)
-	mockBlockStateEquiv3.EXPECT().GetAllBlocksAtDepth(gomock.Any()).Return(h1)
-	mockBlockStateEquiv3.EXPECT().GetHeader(h).Return(testSecVrfHeader, nil)
-
 	// Case 0: First element not preruntime digest
 	header0 := newTestHeader(t, testInvalidSeal, testInvalidSeal)
 
@@ -607,24 +600,6 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 
 	//// Case 8: Get header error
 	babeVerifier6 := newTestVerifier(t, kp, mockBlockStateErr, scale.MaxUint128, false)
-
-	// Case 10: Equivocate case secondary plain
-	babeSecPlainPrd2, err := testBabeSecondaryPlainPreDigest.ToPreRuntimeDigest()
-	assert.NoError(t, err)
-	header8 := newTestHeader(t, *babeSecPlainPrd2)
-
-	hash2 := encodeAndHashHeader(t, header8)
-	signAndAddSeal(t, kp, header8, hash2[:])
-	babeVerifier8 := newTestVerifier(t, kp, mockBlockStateEquiv2, scale.MaxUint128, true)
-
-	// Case 11: equivocation case secondary VRF
-	encVrfDigest := newEncodedBabeDigest(t, testBabeSecondaryVRFPreDigest)
-	assert.NoError(t, err)
-	header9 := newTestHeader(t, *types.NewBABEPreRuntimeDigest(encVrfDigest))
-
-	hash3 := encodeAndHashHeader(t, header9)
-	signAndAddSeal(t, kp, header9, hash3[:])
-	babeVerifier9 := newTestVerifier(t, kp, mockBlockStateEquiv3, scale.MaxUint128, true)
 
 	tests := []struct {
 		name     string
@@ -690,18 +665,6 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 			verifier: *babeVerifier6,
 			header:   header7,
 		},
-		{
-			name:     "equivocate - secondary plain",
-			verifier: *babeVerifier8,
-			header:   header8,
-			expErr:   ErrProducerEquivocated,
-		},
-		{
-			name:     "equivocate - secondary vrf",
-			verifier: *babeVerifier9,
-			header:   header9,
-			expErr:   ErrProducerEquivocated,
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -721,15 +684,28 @@ func Test_verifier_verifyAuthorshipRightEquivocatory(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	mockBlockStateEquiv1 := NewMockBlockState(ctrl)
+	mockBlockStateEquiv2 := NewMockBlockState(ctrl)
+	mockBlockStateEquiv3 := NewMockBlockState(ctrl)
 
 	//Generate keys
 	kp, err := sr25519.GenerateKeypair()
 	assert.NoError(t, err)
 
-	//BabePrimaryPreDigest case
 	output, proof, err := kp.VrfSign(makeTranscript(Randomness{}, uint64(1), 1))
 	assert.NoError(t, err)
 
+	testBabeSecondaryPlainPreDigest := types.BabeSecondaryPlainPreDigest{
+		AuthorityIndex: 1,
+		SlotNumber:     1,
+	}
+	testBabeSecondaryVRFPreDigest := types.BabeSecondaryVRFPreDigest{
+		AuthorityIndex: 1,
+		SlotNumber:     1,
+		VrfOutput:      output,
+		VrfProof:       proof,
+	}
+
+	//BabePrimaryPreDigest case
 	secDigest1 := types.BabePrimaryPreDigest{
 		SlotNumber: 1,
 		VRFOutput:  output,
@@ -754,6 +730,47 @@ func Test_verifier_verifyAuthorshipRightEquivocatory(t *testing.T) {
 	mockBlockStateEquiv1.EXPECT().GetAllBlocksAtDepth(gomock.Any()).Return([]common.Hash{hashEquivocatory})
 	mockBlockStateEquiv1.EXPECT().GetHeader(hashEquivocatory).Return(headerEquivocatory, nil)
 
+	// Secondary Plain Test Header
+	testParentPrd, err := testBabeSecondaryPlainPreDigest.ToPreRuntimeDigest()
+	assert.NoError(t, err)
+	testParentHeader := newTestHeader(t, *testParentPrd)
+
+	testParentHash := encodeAndHashHeader(t, testParentHeader)
+	testSecondaryPrd, err := testBabeSecondaryPlainPreDigest.ToPreRuntimeDigest()
+	assert.NoError(t, err)
+	testSecPlainHeader := newTestHeader(t, *testSecondaryPrd)
+	testSecPlainHeader.ParentHash = testParentHash
+
+	babeSecPlainPrd2, err := testBabeSecondaryPlainPreDigest.ToPreRuntimeDigest()
+	assert.NoError(t, err)
+	headerEquivocatorySecondaryPlain := newTestHeader(t, *babeSecPlainPrd2)
+
+	hashEquivocatorySecondaryPlain := encodeAndHashHeader(t, headerEquivocatorySecondaryPlain)
+	signAndAddSeal(t, kp, headerEquivocatorySecondaryPlain, hashEquivocatorySecondaryPlain[:])
+	babeVerifier8 := newTestVerifier(t, kp, mockBlockStateEquiv2, scale.MaxUint128, true)
+
+	mockBlockStateEquiv2.EXPECT().GetAllBlocksAtDepth(gomock.Any()).Return([]common.Hash{hashEquivocatorySecondaryPlain})
+	mockBlockStateEquiv2.EXPECT().GetHeader(hashEquivocatorySecondaryPlain).Return(headerEquivocatorySecondaryPlain, nil)
+
+	// Secondary Vrf Test Header
+	encParentVrfDigest := newEncodedBabeDigest(t, testBabeSecondaryVRFPreDigest)
+	testParentVrfHeader := newTestHeader(t, *types.NewBABEPreRuntimeDigest(encParentVrfDigest))
+
+	testVrfParentHash := encodeAndHashHeader(t, testParentVrfHeader)
+	encVrfHeader := newEncodedBabeDigest(t, testBabeSecondaryVRFPreDigest)
+	testSecVrfHeader := newTestHeader(t, *types.NewBABEPreRuntimeDigest(encVrfHeader))
+	testSecVrfHeader.ParentHash = testVrfParentHash
+
+	encVrfDigest := newEncodedBabeDigest(t, testBabeSecondaryVRFPreDigest)
+	assert.NoError(t, err)
+	headerEquivocatorySecondaryVRF := newTestHeader(t, *types.NewBABEPreRuntimeDigest(encVrfDigest))
+
+	hashEquivocatorySecondaryVRF := encodeAndHashHeader(t, headerEquivocatorySecondaryVRF)
+	signAndAddSeal(t, kp, headerEquivocatorySecondaryVRF, hashEquivocatorySecondaryVRF[:])
+	babeVerifierEquivocatorySecondaryVRF := newTestVerifier(t, kp, mockBlockStateEquiv3, scale.MaxUint128, true)
+	mockBlockStateEquiv3.EXPECT().GetAllBlocksAtDepth(gomock.Any()).Return([]common.Hash{hashEquivocatorySecondaryVRF})
+	mockBlockStateEquiv3.EXPECT().GetHeader(hashEquivocatorySecondaryVRF).Return(headerEquivocatorySecondaryVRF, nil)
+
 	tests := []struct {
 		name     string
 		verifier verifier
@@ -764,6 +781,18 @@ func Test_verifier_verifyAuthorshipRightEquivocatory(t *testing.T) {
 			name:     "equivocate - primary",
 			verifier: *v,
 			header:   headerEquivocatory,
+			expErr:   ErrProducerEquivocated,
+		},
+		{
+			name:     "equivocate - secondary plain",
+			verifier: *babeVerifier8,
+			header:   headerEquivocatorySecondaryPlain,
+			expErr:   ErrProducerEquivocated,
+		},
+		{
+			name:     "equivocate - secondary vrf",
+			verifier: *babeVerifierEquivocatorySecondaryVRF,
+			header:   headerEquivocatorySecondaryVRF,
 			expErr:   ErrProducerEquivocated,
 		},
 	}

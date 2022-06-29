@@ -432,10 +432,6 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (scale
 	switch d := babePreDigest.(type) {
 	case types.BabePrimaryPreDigest:
 		ok, err = b.verifyPrimarySlotWinner(d.AuthorityIndex, d.SlotNumber, d.VRFOutput, d.VRFProof)
-		if !ok {
-			fmt.Println("types.BabePrimaryPreDigest")
-		}
-		fmt.Println(err)
 	case types.BabeSecondaryVRFPreDigest:
 		if !b.secondarySlots {
 			ok = false
