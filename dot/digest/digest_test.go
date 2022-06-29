@@ -4,7 +4,6 @@
 package digest
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -437,95 +436,6 @@ func TestHandler_HandleNextConfigData(t *testing.T) {
 	stored, err := handler.epochState.(*state.EpochState).GetConfigData(targetEpoch, nil)
 	require.NoError(t, err)
 	require.Equal(t, act.ToConfigData(), stored)
-}
-
-func TestGrandpaScheduledChanges(t *testing.T) {
-	keyring, err := keystore.NewSr25519Keyring()
-	require.NoError(t, err)
-
-	keyPairs := []*sr25519.Keypair{
-		keyring.KeyAlice, keyring.KeyBob, keyring.KeyCharlie,
-		keyring.KeyDave, keyring.KeyEve, keyring.KeyFerdie,
-		keyring.KeyGeorge, keyring.KeyHeather, keyring.KeyIan,
-	}
-
-	authorities := make([]types.AuthorityRaw, len(keyPairs))
-	for i, keyPair := range keyPairs {
-		authorities[i] = types.AuthorityRaw{
-			Key: keyPair.Public().(*sr25519.PublicKey).AsBytes(),
-		}
-	}
-
-	forksGRANPDAScheduledChanges := []types.GrandpaScheduledChange{
-		{
-			Auths: []types.GrandpaAuthoritiesRaw{
-				{
-					Key: authorities[0].Key,
-					ID:  0,
-				},
-				{
-					Key: authorities[1].Key,
-					ID:  1,
-				},
-			},
-			Delay: 1,
-		},
-		{
-			Auths: []types.GrandpaAuthoritiesRaw{
-				{
-					Key: authorities[3].Key,
-					ID:  3,
-				},
-				{
-					Key: authorities[4].Key,
-					ID:  4,
-				},
-			},
-			Delay: 1,
-		},
-		{
-			Auths: []types.GrandpaAuthoritiesRaw{
-				{
-					Key: authorities[6].Key,
-					ID:  6,
-				},
-				{
-					Key: authorities[7].Key,
-					ID:  7,
-				},
-			},
-			Delay: 1,
-		},
-	}
-
-	digestHandler, stateService := newTestHandler(t)
-
-	genesisHeader, err := stateService.Block.BestBlockHeader()
-	require.NoError(t, err)
-
-	forkA := issueBlocksWithGRANDPAScheduledChanges(t, keyring.KeyAlice, digestHandler, stateService,
-		genesisHeader, forksGRANPDAScheduledChanges[0], 2, 3)
-	forkB := issueBlocksWithGRANDPAScheduledChanges(t, keyring.KeyBob, digestHandler, stateService,
-		forkA[1], forksGRANPDAScheduledChanges[1], 1, 3)
-	forkC := issueBlocksWithGRANDPAScheduledChanges(t, keyring.KeyCharlie, digestHandler, stateService,
-		forkA[1], forksGRANPDAScheduledChanges[2], 1, 3)
-
-	for _, fork := range forkA {
-		fmt.Printf("%d - %s\n", fork.Number, fork.Hash())
-	}
-
-	for _, fork := range forkB {
-		fmt.Printf("%d - %s\n", fork.Number, fork.Hash())
-	}
-
-	for _, fork := range forkC {
-		fmt.Printf("%d - %s\n", fork.Number, fork.Hash())
-	}
-
-	// current authorities at scheduled changes
-	//stateService.Block.AddBlock()
-
-	//handler.handleConsensusDigest()
 }
 
 func issueBlocksWithGRANDPAScheduledChanges(t *testing.T, kp *sr25519.Keypair, dh *Handler,
