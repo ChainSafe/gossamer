@@ -166,7 +166,7 @@ func TestWSConn_HandleConn(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":null,"message":"error BlockAPI not set"},"id":1}`+"\n"), msg)
 
-	wsconn.BlockAPI = modules.NewMockBlockAPI()
+	wsconn.BlockAPI = modules.NewMockeryBlockAPI()
 
 	res, err = wsconn.initBlockListener(1, nil)
 	require.NoError(t, err)
@@ -196,7 +196,7 @@ func TestWSConn_HandleConn(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":null,"message":"error BlockAPI not set"},"id":1}`+"\n"), msg)
 
-	wsconn.BlockAPI = modules.NewMockBlockAPI()
+	wsconn.BlockAPI = modules.NewMockeryBlockAPI()
 
 	res, err = wsconn.initBlockFinalizedListener(1, nil)
 	require.NoError(t, err)
@@ -218,7 +218,7 @@ func TestWSConn_HandleConn(t *testing.T) {
 	require.EqualError(t, err, "error BlockAPI not set")
 	require.Nil(t, listner)
 
-	wsconn.BlockAPI = modules.NewMockBlockAPI()
+	wsconn.BlockAPI = modules.NewMockeryBlockAPI()
 	listner, err = wsconn.initExtrinsicWatch(0, []interface{}{"0x26aa"})
 	require.NoError(t, err)
 	require.NotNil(t, listner)

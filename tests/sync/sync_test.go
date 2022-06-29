@@ -48,6 +48,9 @@ func TestCalls(t *testing.T) {
 		t.Skip("MODE != 'sync', skipping stress test")
 	}
 
+	err := utils.BuildGossamer()
+	require.NoError(t, err)
+
 	ctx := context.Background()
 
 	const qtyNodes = 3
