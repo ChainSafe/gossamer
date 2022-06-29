@@ -272,7 +272,6 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	logger.Tracef("beginning BABE authorship right verification for block %s", header.Hash())
 
 	// check for valid seal by verifying signature
-
 	preDigestItem := header.Digest.Types[0]
 	sealItem := header.Digest.Types[len(header.Digest.Types)-1]
 
@@ -344,18 +343,17 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	// check if the producer has equivocated, ie. have they produced a conflicting block?
 	// hashes is hashes of all blocks with same block number as header.Number
 	hashes := b.blockState.GetAllBlocksAtDepth(header.ParentHash)
-	fmt.Println("hashes")
-	fmt.Println(hashes)
+
 	for _, hash := range hashes {
 		currentHeader, err := b.blockState.GetHeader(hash)
 		if err != nil {
-			logger.Errorf("GetHeader %s", err.Error())
+			logger.Errorf("failed get header %s", err)
 			continue
 		}
 
 		currentBlockProducerIndex, err := getAuthorityIndex(currentHeader)
 		if err != nil {
-			logger.Errorf("getAuthorityIndex %s", err.Error())
+			logger.Errorf("failed to get authority index %s", err)
 			continue
 		}
 
@@ -364,7 +362,6 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 		}
 
 		currentPreDigestItem := currentHeader.Digest.Types[0]
-
 		currentPreDigest, ok := currentPreDigestItem.Value().(types.PreRuntimeDigest)
 		if !ok {
 			return fmt.Errorf("%w: got %T", types.ErrNoFirstPreDigest, currentPreDigestItem.Value())
@@ -373,7 +370,6 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 
 		currentBabePreDigest, err := b.verifyPreRuntimeDigest(&currentPreDigest)
 		if err != nil {
-			fmt.Println("there u go home boy")
 			return fmt.Errorf("failed to verify pre-runtime digest: %w", err)
 		}
 

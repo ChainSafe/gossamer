@@ -469,7 +469,6 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockBlockState := NewMockBlockState(ctrl)
 	mockBlockStateErr := NewMockBlockState(ctrl)
-	// mockBlockStateEquiv1 := NewMockBlockState(ctrl)
 	mockBlockStateEquiv2 := NewMockBlockState(ctrl)
 	mockBlockStateEquiv3 := NewMockBlockState(ctrl)
 
@@ -546,9 +545,6 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	mockBlockStateErr.EXPECT().GetAllBlocksAtDepth(gomock.Any()).Return(h1)
 	mockBlockStateErr.EXPECT().GetHeader(h).Return(nil, errors.New("get header error"))
 
-	// mockBlockStateEquiv1.EXPECT().GetAllBlocksAtDepth(gomock.Any()).Return(h1)
-	// mockBlockStateEquiv1.EXPECT().GetHeader(h).Return(testHeaderPrimary, nil)
-
 	mockBlockStateEquiv2.EXPECT().GetAllBlocksAtDepth(gomock.Any()).Return(h1)
 	mockBlockStateEquiv2.EXPECT().GetHeader(h).Return(testSecPlainHeader, nil)
 	mockBlockStateEquiv3.EXPECT().GetAllBlocksAtDepth(gomock.Any()).Return(h1)
@@ -611,8 +607,6 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 
 	//// Case 8: Get header error
 	babeVerifier6 := newTestVerifier(t, kp, mockBlockStateErr, scale.MaxUint128, false)
-
-	// Case 9: Equivocate case primary
 
 	// Case 10: Equivocate case secondary plain
 	babeSecPlainPrd2, err := testBabeSecondaryPlainPreDigest.ToPreRuntimeDigest()
