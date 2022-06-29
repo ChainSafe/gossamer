@@ -469,7 +469,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockBlockState := NewMockBlockState(ctrl)
 	mockBlockStateErr := NewMockBlockState(ctrl)
-	mockBlockStateEquiv1 := NewMockBlockState(ctrl)
+	// mockBlockStateEquiv1 := NewMockBlockState(ctrl)
 	mockBlockStateEquiv2 := NewMockBlockState(ctrl)
 	mockBlockStateEquiv3 := NewMockBlockState(ctrl)
 
@@ -546,8 +546,8 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	mockBlockStateErr.EXPECT().GetAllBlocksAtDepth(gomock.Any()).Return(h1)
 	mockBlockStateErr.EXPECT().GetHeader(h).Return(nil, errors.New("get header error"))
 
-	mockBlockStateEquiv1.EXPECT().GetAllBlocksAtDepth(gomock.Any()).Return(h1)
-	mockBlockStateEquiv1.EXPECT().GetHeader(h).Return(testHeaderPrimary, nil)
+	// mockBlockStateEquiv1.EXPECT().GetAllBlocksAtDepth(gomock.Any()).Return(h1)
+	// mockBlockStateEquiv1.EXPECT().GetHeader(h).Return(testHeaderPrimary, nil)
 
 	mockBlockStateEquiv2.EXPECT().GetAllBlocksAtDepth(gomock.Any()).Return(h1)
 	mockBlockStateEquiv2.EXPECT().GetHeader(h).Return(testSecPlainHeader, nil)
@@ -613,7 +613,6 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	babeVerifier6 := newTestVerifier(t, kp, mockBlockStateErr, scale.MaxUint128, false)
 
 	// Case 9: Equivocate case primary
-	babeVerifier7 := newTestVerifier(t, kp, mockBlockStateEquiv1, scale.MaxUint128, false)
 
 	// Case 10: Equivocate case secondary plain
 	babeSecPlainPrd2, err := testBabeSecondaryPlainPreDigest.ToPreRuntimeDigest()
@@ -698,12 +697,6 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 			header:   header7,
 		},
 		{
-			name:     "equivocate - primary",
-			verifier: *babeVerifier7,
-			header:   header7,
-			expErr:   ErrProducerEquivocated,
-		},
-		{
 			name:     "equivocate - secondary plain",
 			verifier: *babeVerifier8,
 			header:   header8,
@@ -730,7 +723,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	}
 }
 
-func Test_verifier_verifyAuthorshipRight2(t *testing.T) {
+func Test_verifier_verifyAuthorshipRightEquivocatory(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	mockBlockStateEquiv1 := NewMockBlockState(ctrl)
@@ -739,56 +732,33 @@ func Test_verifier_verifyAuthorshipRight2(t *testing.T) {
 	kp, err := sr25519.GenerateKeypair()
 	assert.NoError(t, err)
 
-	// Create a VRF output and proof
-	randomness := common.MustHexToHash("0x0123")
-	output, proof, err := kp.VrfSign(makeTranscript(Randomness(randomness), uint64(1), 1))
+	//BabePrimaryPreDigest case
+	output, proof, err := kp.VrfSign(makeTranscript(Randomness{}, uint64(1), 1))
 	assert.NoError(t, err)
 
-	testBabePrimaryPreDigest := types.BabePrimaryPreDigest{
-		AuthorityIndex: 0,
-		SlotNumber:     1,
-		VRFOutput:      output,
-		VRFProof:       proof,
+	secDigest1 := types.BabePrimaryPreDigest{
+		SlotNumber: 1,
+		VRFOutput:  output,
+		VRFProof:   proof,
+	}
+	prd1, err := secDigest1.ToPreRuntimeDigest()
+	assert.NoError(t, err)
+
+	auth := types.NewAuthority(kp.Public(), uint64(1))
+	vi := &verifierInfo{
+		authorities: []types.Authority{*auth, *auth},
+		threshold:   scale.MaxUint128,
 	}
 
-	// Primary Test Header
-	encTestDigest := newEncodedBabeDigest(t, types.BabePrimaryPreDigest{AuthorityIndex: 0})
-
-	testDigestPrimary := types.NewDigest()
-	err = testDigestPrimary.Add(types.PreRuntimeDigest{
-		ConsensusEngineID: types.BabeEngineID,
-		Data:              encTestDigest,
-	})
-	assert.NoError(t, err)
-	testHeaderPrimary := types.NewEmptyHeader()
-	testHeaderPrimary.Digest = testDigestPrimary
-
-	h := common.MustHexToHash("0x01")
-	h1 := []common.Hash{h}
-
-	// h2 := common.MustHexToHash("0x02")
-	// hArray := []common.Hash{h, h2}
-
-	mockBlockStateEquiv1.EXPECT().GetAllBlocksAtDepth(gomock.Any()).Return(h1)
-	mockBlockStateEquiv1.EXPECT().GetHeader(h).Return(testHeaderPrimary, nil)
-
-	// Case 7: GetAuthorityIndex Err
-	babeParentPrd, err := testBabePrimaryPreDigest.ToPreRuntimeDigest()
-	assert.NoError(t, err)
-	babeParentHeader := newTestHeader(t, *babeParentPrd)
-
-	parentHash := encodeAndHashHeader(t, babeParentHeader)
-	babePrd3, err := testBabePrimaryPreDigest.ToPreRuntimeDigest()
+	v, err := newVerifier(mockBlockStateEquiv1, 1, vi)
 	assert.NoError(t, err)
 
-	header7 := newTestHeader(t, *babePrd3)
-	header7.ParentHash = parentHash
+	headerEquivocatory := newTestHeader(t, *prd1)
+	hashEquivocatory := encodeAndHashHeader(t, headerEquivocatory)
+	signAndAddSeal(t, kp, headerEquivocatory, hashEquivocatory[:])
 
-	hash := encodeAndHashHeader(t, header7)
-	signAndAddSeal(t, kp, header7, hash[:])
-
-	// Case 9: Equivocate case primary
-	babeVerifier7 := newTestVerifier(t, kp, mockBlockStateEquiv1, scale.MaxUint128, false)
+	mockBlockStateEquiv1.EXPECT().GetAllBlocksAtDepth(gomock.Any()).Return([]common.Hash{hashEquivocatory})
+	mockBlockStateEquiv1.EXPECT().GetHeader(hashEquivocatory).Return(headerEquivocatory, nil)
 
 	tests := []struct {
 		name     string
@@ -798,8 +768,8 @@ func Test_verifier_verifyAuthorshipRight2(t *testing.T) {
 	}{
 		{
 			name:     "equivocate - primary",
-			verifier: *babeVerifier7,
-			header:   header7,
+			verifier: *v,
+			header:   headerEquivocatory,
 			expErr:   ErrProducerEquivocated,
 		},
 	}
