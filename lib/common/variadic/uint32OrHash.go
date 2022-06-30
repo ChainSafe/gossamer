@@ -23,6 +23,10 @@ func NewUint32OrHash(value interface{}) (*Uint32OrHash, error) {
 		return &Uint32OrHash{
 			value: uint32(v),
 		}, nil
+	case uint:
+		return &Uint32OrHash{
+			value: uint32(v),
+		}, nil
 	case uint32:
 		return &Uint32OrHash{
 			value: v,
@@ -98,6 +102,7 @@ func (x *Uint32OrHash) IsUint32() bool {
 	if x == nil {
 		return false
 	}
+
 	_, is := x.value.(uint32)
 	return is
 }
