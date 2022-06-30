@@ -394,7 +394,7 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 
 		// same authority won't produce two different blocks at the same block number as primary block producer
 		if currentBlockProducerIndex == existingBlockProducerIndex &&
-			hash != header.Hash() &&
+			hash.Equals(header.Hash()) &&
 			isCurrentBlockProducerPrimary == isExistingBlockProducerPrimary {
 			return ErrProducerEquivocated
 		}
