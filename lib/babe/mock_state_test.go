@@ -462,6 +462,20 @@ func (m *MockTransactionState) EXPECT() *MockTransactionStateMockRecorder {
 	return m.recorder
 }
 
+// NewPushWatcher mocks base method.
+func (m *MockTransactionState) NewPushWatcher() <-chan struct{} {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "NewPushWatcher")
+	ret0, _ := ret[0].(<-chan struct{})
+	return ret0
+}
+
+// NewPushWatcher indicates an expected call of NewPushWatcher.
+func (mr *MockTransactionStateMockRecorder) NewPushWatcher() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewPushWatcher", reflect.TypeOf((*MockTransactionState)(nil).NewPushWatcher))
+}
+
 // Peek mocks base method.
 func (m *MockTransactionState) Peek() *transaction.ValidTransaction {
 	m.ctrl.T.Helper()
