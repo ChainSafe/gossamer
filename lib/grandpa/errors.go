@@ -62,7 +62,7 @@ var (
 
 	// ErrNoJustification is returned when no justification can be found for a block, ie. it has not been finalised
 	ErrNoJustification       = errors.New("no justification found for block")
-	ErrJustificationMismatch = errors.New("justication does not correspond to given block hash")
+	ErrJustificationMismatch = errors.New("justification does not correspond to given block hash")
 
 	ErrBlockHashMismatch = errors.New("block hash does not correspond to given block number")
 
