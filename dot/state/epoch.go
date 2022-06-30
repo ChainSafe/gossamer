@@ -349,8 +349,7 @@ func (s *EpochState) GetConfigData(epoch uint64, header *types.Header) (configDa
 		// we will check in the memory map and if we don't find the data
 		// then we continue searching through the previous epoch
 		s.nextConfigDataLock.RLock()
-		inMemoryConfigData, err := nextEpochMap[types.NextConfigData](s.nextConfigData).Retrieve(s.blockState, uint64(tryEpoch), header)
-		// inMemoryConfigData, err := retrieveFromMemory(s.nextConfigData, s.blockState, uint64(tryEpoch), header)
+		inMemoryConfigData, err := s.nextConfigData.Retrieve(s.blockState, uint64(tryEpoch), header)
 		s.nextConfigDataLock.RUnlock()
 
 		if errors.Is(err, ErrEpochNotInMemory) {
