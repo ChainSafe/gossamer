@@ -31,7 +31,7 @@ func TestBlockBuilder_buildBlockExtrinsics(t *testing.T) {
 		args   args
 		want   []*transaction.ValidTransaction
 	}{
-		"empty transaction queue": {
+		"initial empty transaction queue": {
 			args: args{
 				slot: Slot{
 					start:    time.Now(),
@@ -40,9 +40,19 @@ func TestBlockBuilder_buildBlockExtrinsics(t *testing.T) {
 			},
 			fields: fields{
 				transactionStateBuilder: func(ctrl *gomock.Controller) TransactionState {
-					mockTransacionState := NewMockTransactionState(ctrl)
-					mockTransacionState.EXPECT().Pop().Return(nil).AnyTimes()
-					return mockTransacionState
+					mockTransactionState := NewMockTransactionState(ctrl)
+
+					call := mockTransactionState.EXPECT().Pop().Return(nil)
+
+					watcherOne := make(chan struct{})
+					close(watcherOne)
+					call = mockTransactionState.EXPECT().NewPushWatcher().
+						Return(watcherOne).After(call)
+
+					poppedTransaction := &transaction.ValidTransaction{}
+					mockTransactionState.EXPECT().Pop().
+						Return(poppedTransaction).After(call)
+					return mockTransactionState
 				},
 			},
 		},

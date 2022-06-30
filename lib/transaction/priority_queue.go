@@ -77,9 +77,10 @@ func (pq *priorityQueue) Pop() interface{} {
 
 // PriorityQueue is a thread safe wrapper over `priorityQueue`
 type PriorityQueue struct {
-	pq        priorityQueue
-	currOrder uint64
-	txs       map[common.Hash]*Item
+	pq              priorityQueue
+	currOrder       uint64
+	txs             map[common.Hash]*Item
+	nextPushWatcher chan<- struct{}
 	sync.Mutex
 }
 
@@ -134,9 +135,23 @@ func (spq *PriorityQueue) Push(txn *ValidTransaction) (common.Hash, error) {
 	spq.currOrder++
 	heap.Push(&spq.pq, item)
 	spq.txs[hash] = item
+	close(spq.nextPushWatcher)
 
 	transactionQueueGauge.Set(float64(spq.pq.Len()))
 	return hash, nil
+}
+
+// NewPushWatcher returns a read only channel to be signalled
+// when the next Push() is called on the queue.
+// Note the returned channel is closed when the Push() function
+// is called.
+func (spq *PriorityQueue) NewPushWatcher() (nextPushWatcher <-chan struct{}) {
+	spq.Lock()
+	defer spq.Unlock()
+
+	nextPushWatcherCh := make(chan struct{})
+	spq.nextPushWatcher = nextPushWatcherCh
+	return nextPushWatcherCh
 }
 
 // Pop removes the transaction with has the highest priority value from the queue and returns it.

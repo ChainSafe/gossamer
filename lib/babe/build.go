@@ -189,12 +189,28 @@ func (b *BlockBuilder) buildBlockSeal(header *types.Header) (*types.SealDigest, 
 func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt runtime.Instance) []*transaction.ValidTransaction {
 	var included []*transaction.ValidTransaction
 
-	for !hasSlotEnded(slot) {
+	slotTimer := time.NewTimer(slot.duration * 2 / 3)
+
+	for {
+		select {
+		case <-slotTimer.C:
+			return included
+		default:
+		}
+
 		txn := b.transactionState.Pop()
-		// Transaction queue is empty.
-		if txn == nil {
-			time.Sleep(time.Millisecond * 10)
-			continue
+		retry := txn == nil // Transaction queue is empty.
+		for retry {
+			pushWatcher := b.transactionState.NewPushWatcher()
+			select {
+			case <-pushWatcher:
+				txn = b.transactionState.Pop()
+				// check in case another goroutine popped the
+				// transaction before the Pop() call above.
+				retry = txn == nil
+			case <-slotTimer.C:
+				return included
+			}
 		}
 
 		extrinsic := txn.Extrinsic
