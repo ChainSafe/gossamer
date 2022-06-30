@@ -247,8 +247,8 @@ func Test_HandshakeTimeout(t *testing.T) {
 	testHandshakeDecoder := func([]byte) (Handshake, error) {
 		return nil, errors.New("unimplemented")
 	}
-	info := newNotificationsProtocol(nodeA.host.protocolID+blockAnnounceID,
-		nodeA.getBlockAnnounceHandshake, testHandshakeDecoder, nodeA.validateBlockAnnounceHandshake, maxBlockAnnounceNotificationSize)
+	info := newNotificationsProtocol(nodeA.host.protocolID+blockAnnounceID, nodeA.getBlockAnnounceHandshake,
+		testHandshakeDecoder, nodeA.validateBlockAnnounceHandshake, maxBlockAnnounceNotificationSize)
 
 	nodeB.host.p2pHost.SetStreamHandler(info.protocolID, func(stream libp2pnetwork.Stream) {
 		// should not respond to a handshake message

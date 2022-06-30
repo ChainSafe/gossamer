@@ -21,8 +21,9 @@ import (
 )
 
 var (
-	maxBlockResponseSize             uint64 = 1024 * 1024 * 16 // 16mb
-	maxBlockRequestSize              uint64 = 1024 * 1024      // 1mb
+	// maxBlockRequestSize              uint64 = 1024 * 1024      // 1mb
+	maxBlockResponseSize uint64 = 1024 * 1024 * 16 // 16mb
+	// MaxGrandpaNotificationSize is maximum size for a grandpa notification message.
 	MaxGrandpaNotificationSize       uint64 = 1024 * 1024      // 1mb
 	maxTransactionsNotificationSize  uint64 = 1024 * 1024 * 16 // 16mb
 	maxBlockAnnounceNotificationSize uint64 = 1024 * 1024      // 1mb

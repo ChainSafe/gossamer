@@ -413,7 +413,8 @@ func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer
 	}
 }
 
-func (s *Service) readHandshake(stream libp2pnetwork.Stream, decoder HandshakeDecoder, maxSize uint64) <-chan *handshakeReader {
+func (s *Service) readHandshake(stream libp2pnetwork.Stream, decoder HandshakeDecoder, maxSize uint64,
+) <-chan *handshakeReader {
 	hsC := make(chan *handshakeReader)
 
 	go func() {
