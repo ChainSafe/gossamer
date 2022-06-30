@@ -4,6 +4,7 @@
 package grandpa
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -16,7 +17,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/golang/mock/gomock"
-
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -654,8 +655,9 @@ func TestMessageHandler_VerifyBlockJustification_WithEquivocatoryVotes(t *testin
 	just := newJustification(round, testHash, number, precommits)
 	data, err := scale.Marshal(*just)
 	require.NoError(t, err)
-	err = gs.VerifyBlockJustification(testHash, data)
+	returnedJust, err := gs.VerifyBlockJustification(testHash, data)
 	require.NoError(t, err)
+	require.Equal(t, data, returnedJust)
 }
 
 func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
@@ -698,8 +700,9 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	just := newJustification(round, testHash, number, precommits)
 	data, err := scale.Marshal(*just)
 	require.NoError(t, err)
-	err = gs.VerifyBlockJustification(testHash, data)
+	returnedJust, err := gs.VerifyBlockJustification(testHash, data)
 	require.NoError(t, err)
+	require.Equal(t, data, returnedJust)
 
 	// use wrong hash, shouldn't verify
 	precommits = buildTestJustification(t, 2, round+1, setID, kr, precommit)
@@ -707,9 +710,10 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	just.Commit.Precommits[0].Vote.Hash = genhash
 	data, err = scale.Marshal(*just)
 	require.NoError(t, err)
-	err = gs.VerifyBlockJustification(testHash, data)
+	returnedJust, err = gs.VerifyBlockJustification(testHash, data)
 	require.NotNil(t, err)
 	require.Equal(t, blocktree.ErrEndNodeNotFound, err)
+	require.Nil(t, returnedJust)
 }
 
 func TestMessageHandler_VerifyBlockJustification_invalid(t *testing.T) {
@@ -754,34 +758,38 @@ func TestMessageHandler_VerifyBlockJustification_invalid(t *testing.T) {
 	just.Commit.Precommits[0].Vote.Hash = genhash
 	data, err := scale.Marshal(*just)
 	require.NoError(t, err)
-	err = gs.VerifyBlockJustification(testHash, data)
+	returnedJust, err := gs.VerifyBlockJustification(testHash, data)
 	require.NotNil(t, err)
 	require.Equal(t, ErrPrecommitBlockMismatch, err)
+	require.Nil(t, returnedJust)
 
 	// use wrong round, shouldn't verify
 	precommits = buildTestJustification(t, 2, round+1, setID, kr, precommit)
 	just = newJustification(round+2, testHash, number, precommits)
 	data, err = scale.Marshal(*just)
 	require.NoError(t, err)
-	err = gs.VerifyBlockJustification(testHash, data)
+	returnedJust, err = gs.VerifyBlockJustification(testHash, data)
 	require.NotNil(t, err)
 	require.Equal(t, ErrInvalidSignature, err)
+	require.Nil(t, returnedJust)
 
 	// add authority not in set, shouldn't verify
 	precommits = buildTestJustification(t, len(auths)+1, round+1, setID, kr, precommit)
 	just = newJustification(round+1, testHash, number, precommits)
 	data, err = scale.Marshal(*just)
 	require.NoError(t, err)
-	err = gs.VerifyBlockJustification(testHash, data)
+	returnedJust, err = gs.VerifyBlockJustification(testHash, data)
 	require.Equal(t, ErrAuthorityNotInSet, err)
+	require.Nil(t, returnedJust)
 
 	// not enough signatures, shouldn't verify
 	precommits = buildTestJustification(t, 1, round+1, setID, kr, precommit)
 	just = newJustification(round+1, testHash, number, precommits)
 	data, err = scale.Marshal(*just)
 	require.NoError(t, err)
-	err = gs.VerifyBlockJustification(testHash, data)
+	returnedJust, err = gs.VerifyBlockJustification(testHash, data)
 	require.Equal(t, ErrMinVotesNotMet, err)
+	require.Nil(t, returnedJust)
 
 	// mismatch justification header and block header
 	precommits = buildTestJustification(t, 1, round+1, setID, kr, precommit)
@@ -789,7 +797,7 @@ func TestMessageHandler_VerifyBlockJustification_invalid(t *testing.T) {
 	data, err = scale.Marshal(*just)
 	require.NoError(t, err)
 	otherHeader := types.NewEmptyHeader()
-	err = gs.VerifyBlockJustification(otherHeader.Hash(), data)
+	_, err = gs.VerifyBlockJustification(otherHeader.Hash(), data)
 	require.ErrorIs(t, err, ErrJustificationMismatch)
 
 	expectedErr := fmt.Sprintf("%s: %s not equal %s", ErrJustificationMismatch,
@@ -1068,4 +1076,122 @@ func signFakeFullVote(
 	copy(sig[:], privSig)
 
 	return sig
+}
+
+func TestService_VerifyBlockJustification(t *testing.T) {
+	precommits := buildTestJustification(t, 2, 1, 0, kr, precommit)
+	justification := newJustification(1, testHash, 1, precommits)
+	justificationBytes, err := scale.Marshal(*justification)
+	require.NoError(t, err)
+
+	type fields struct {
+		blockStateBuilder   func(ctrl *gomock.Controller) BlockState
+		grandpaStateBuilder func(ctrl *gomock.Controller) GrandpaState
+	}
+	type args struct {
+		hash          common.Hash
+		justification []byte
+	}
+	tests := map[string]struct {
+		fields  fields
+		args    args
+		want    []byte
+		wantErr error
+	}{
+		"invalid justification": {
+			fields: fields{
+				blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+					return nil
+				},
+				grandpaStateBuilder: func(ctrl *gomock.Controller) GrandpaState {
+					return nil
+				},
+			},
+			args: args{
+				hash:          common.Hash{},
+				justification: []byte{1, 2, 3},
+			},
+			want: nil,
+			wantErr: errors.New("EOF, field: 0x0000000000000000000000000000000000000000000000000000000000000000, " +
+				"field: {Hash:0x0000000000000000000000000000000000000000000000000000000000000000 Number:0 Precommits:[]}"),
+		},
+		"valid justification": {
+			fields: fields{
+				blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+					mockBlockState := NewMockBlockState(ctrl)
+					mockBlockState.EXPECT().HasFinalisedBlock(uint64(1), uint64(0)).Return(false, nil)
+					mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(testHeader, nil)
+					mockBlockState.EXPECT().IsDescendantOf(testHash, testHash).
+						Return(true, nil).Times(3)
+					mockBlockState.EXPECT().GetHeader(testHash).Return(testHeader, nil).Times(3)
+					mockBlockState.EXPECT().SetFinalisedHash(testHash, uint64(1),
+						uint64(0)).Return(nil)
+					return mockBlockState
+				},
+				grandpaStateBuilder: func(ctrl *gomock.Controller) GrandpaState {
+					mockGrandpaState := NewMockGrandpaState(ctrl)
+					mockGrandpaState.EXPECT().GetSetIDByBlockNumber(uint(1)).Return(uint64(0), nil)
+					mockGrandpaState.EXPECT().GetAuthorities(uint64(0)).Return([]types.GrandpaVoter{
+						{Key: *kr.Alice().Public().(*ed25519.PublicKey), ID: 1},
+						{Key: *kr.Bob().Public().(*ed25519.PublicKey), ID: 2},
+						{Key: *kr.Charlie().Public().(*ed25519.PublicKey), ID: 3},
+					}, nil)
+					return mockGrandpaState
+				},
+			},
+			args: args{
+				hash:          testHash,
+				justification: justificationBytes,
+			},
+			want: justificationBytes,
+		},
+		"valid justification extra bytes": {
+			fields: fields{
+				blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+					mockBlockState := NewMockBlockState(ctrl)
+					mockBlockState.EXPECT().HasFinalisedBlock(uint64(1), uint64(0)).Return(false, nil)
+					mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(testHeader, nil)
+					mockBlockState.EXPECT().IsDescendantOf(testHash, testHash).
+						Return(true, nil).Times(3)
+					mockBlockState.EXPECT().GetHeader(testHash).Return(testHeader, nil).Times(3)
+					mockBlockState.EXPECT().SetFinalisedHash(testHash, uint64(1),
+						uint64(0)).Return(nil)
+					return mockBlockState
+				},
+				grandpaStateBuilder: func(ctrl *gomock.Controller) GrandpaState {
+					mockGrandpaState := NewMockGrandpaState(ctrl)
+					mockGrandpaState.EXPECT().GetSetIDByBlockNumber(uint(1)).Return(uint64(0), nil)
+					mockGrandpaState.EXPECT().GetAuthorities(uint64(0)).Return([]types.GrandpaVoter{
+						{Key: *kr.Alice().Public().(*ed25519.PublicKey), ID: 1},
+						{Key: *kr.Bob().Public().(*ed25519.PublicKey), ID: 2},
+						{Key: *kr.Charlie().Public().(*ed25519.PublicKey), ID: 3},
+					}, nil)
+					return mockGrandpaState
+				},
+			},
+			args: args{
+				hash:          testHash,
+				justification: append(justificationBytes, []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14}...),
+			},
+			want: justificationBytes,
+		},
+	}
+	for name, tt := range tests {
+		tt := tt
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			ctrl := gomock.NewController(t)
+			s := &Service{
+				blockState:   tt.fields.blockStateBuilder(ctrl),
+				grandpaState: tt.fields.grandpaStateBuilder(ctrl),
+			}
+			got, err := s.VerifyBlockJustification(tt.args.hash, tt.args.justification)
+			if tt.wantErr != nil {
+				assert.ErrorContains(t, err, tt.wantErr.Error())
+			} else {
+				require.NoError(t, err)
+			}
+			assert.Equalf(t, tt.want, got, "VerifyBlockJustification(%v, %v)", tt.args.hash, tt.args.justification)
+		})
+	}
 }

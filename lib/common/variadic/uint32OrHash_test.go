@@ -25,6 +25,10 @@ func TestNewUint32OrHash(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, uint32(num), res.Value())
 
+	res, err = NewUint32OrHash(uint(num))
+	require.NoError(t, err)
+	require.Equal(t, uint32(num), res.Value())
+
 	res, err = NewUint32OrHash(uint32(num))
 	require.NoError(t, err)
 	require.Equal(t, uint32(num), res.Value())

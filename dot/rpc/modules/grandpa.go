@@ -4,6 +4,7 @@
 package modules
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -48,39 +49,35 @@ type RoundStateResponse struct {
 
 // ProveFinalityRequest request struct
 type ProveFinalityRequest struct {
-	blockHashStart common.Hash
-	blockHashEnd   common.Hash
-	authorityID    uint64
+	BlockNumber uint32 `json:"blockNumber"`
 }
 
 // ProveFinalityResponse is an optional SCALE encoded proof array
-type ProveFinalityResponse [][]byte
+type ProveFinalityResponse []string
 
-// ProveFinality for the provided block range. Returns NULL if there are no known finalised blocks in the range.
-// If no authorities set is provided, the current one will be attempted.
+// ProveFinality for the provided block number, the Justification for the last block in the set is written to the
+//  response. The response is a SCALE encoded proof array.  The proof array is empty if the block number is
+//  not finalized.
+//  Returns error which are included in the response if they occur.
 func (gm *GrandpaModule) ProveFinality(r *http.Request, req *ProveFinalityRequest, res *ProveFinalityResponse) error {
-	blocksToCheck, err := gm.blockAPI.SubChain(req.blockHashStart, req.blockHashEnd)
+	blockHash, err := gm.blockAPI.GetHashByNumber(uint(req.BlockNumber))
 	if err != nil {
 		return err
 	}
-
-	// Leaving check in for linter
-	if req.authorityID != uint64(0) {
-		// TODO: Check if functionality relevant (#1404)
+	hasJustification, err := gm.blockAPI.HasJustification(blockHash)
+	if err != nil {
+		return fmt.Errorf("checking for justification: %w", err)
 	}
 
-	for _, block := range blocksToCheck {
-		hasJustification, _ := gm.blockAPI.HasJustification(block)
-		if !hasJustification {
-			continue
-		}
-
-		justification, err := gm.blockAPI.GetJustification(block)
-		if err != nil {
-			continue
-		}
-		*res = append(*res, justification)
+	if !hasJustification {
+		*res = append(*res, "GRANDPA prove finality rpc failed: Block not covered by authority set changes")
+		return nil
 	}
+	justification, err := gm.blockAPI.GetJustification(blockHash)
+	if err != nil {
+		return fmt.Errorf("getting justification: %w", err)
+	}
+	*res = append(*res, common.BytesToHex(justification))
 
 	return nil
 }
