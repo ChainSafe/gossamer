@@ -153,16 +153,8 @@ func Test_walk(t *testing.T) {
 			errWrapped: ErrKeyNotFound,
 			errMessage: "key not found",
 		},
-		"parent encode and hash error": {
-			parent: &node.Node{
-				Key:   make([]byte, int(^uint16(0))+63),
-				Value: []byte{1},
-			},
-			errWrapped: node.ErrPartialKeyTooBig,
-			errMessage: "encode node: " +
-				"cannot encode header: partial key length cannot " +
-				"be larger than or equal to 2^16: 65535",
-		},
+		// The parent encode error cannot be triggered here
+		// since it can only be caused by a buffer.Write error.
 		"parent leaf and empty full key": {
 			parent: &node.Node{
 				Key:   []byte{1, 2},

@@ -57,76 +57,72 @@ func buildTrie(encodedProofNodes [][]byte, rootHash []byte) (t *trie.Trie, err e
 			ErrEmptyProof, rootHash)
 	}
 
-	merkleValueToNode := make(map[string]*node.Node, len(encodedProofNodes))
+	merkleValueToEncoding := make(map[string][]byte, len(encodedProofNodes))
 
+	// This loop finds the root node and decodes it.
+	// The other nodes have their Merkle value (blake2b digest or the encoding itself)
+	// inserted into a map from merkle value to encoding. They are only decoded
+	// later if the root or one of its descendant node reference their Merkle value.
 	var root *node.Node
-	for i, encodedProofNode := range encodedProofNodes {
-		decodedNode, err := node.Decode(bytes.NewReader(encodedProofNode))
-		if err != nil {
-			return nil, fmt.Errorf("decoding node at index %d: %w (node encoded is 0x%x)",
-				i, err, encodedProofNode)
-		}
-
-		decodedNode.Encoding = encodedProofNode
-		// We compute the Merkle value of nodes treating them all
-		// as non-root nodes, meaning nodes with encoding smaller
-		// than 33 bytes will have their Merkle value set as their
-		// encoding. The Blake2b hash of the encoding is computed
-		// later if needed to compare with the root hash given to find
-		// which node is the root node.
-		const isRoot = false
-		decodedNode.HashDigest, err = node.MerkleValue(encodedProofNode, isRoot)
-		if err != nil {
-			return nil, fmt.Errorf("merkle value of node at index %d: %w", i, err)
-		}
-
-		proofHash := common.BytesToHex(decodedNode.HashDigest)
-		merkleValueToNode[proofHash] = decodedNode
-
-		if root != nil {
-			// Root node already found in proof
-			continue
-		}
-
-		possibleRootMerkleValue := decodedNode.HashDigest
-		if len(possibleRootMerkleValue) <= 32 {
-			// If the root merkle value is smaller than 33 bytes, it means
-			// it is the encoding of the node. However, the root node merkle
-			// value is always the blake2b digest of the node, and not its own
-			// encoding. Therefore, in this case we force the computation of the
-			// blake2b digest of the node to check if it matches the root hash given.
-			const isRoot = true
-			possibleRootMerkleValue, err = node.MerkleValue(encodedProofNode, isRoot)
+	for _, encodedProofNode := range encodedProofNodes {
+		var digest []byte
+		if root == nil {
+			// root node not found yet
+			digestHash, err := common.Blake2bHash(encodedProofNode)
 			if err != nil {
-				return nil, fmt.Errorf("merkle value of possible root node: %w", err)
+				return nil, fmt.Errorf("blake2b hash: %w", err)
+			}
+			digest = digestHash[:]
+
+			if bytes.Equal(digest, rootHash) {
+				root, err = node.Decode(bytes.NewReader(encodedProofNode))
+				if err != nil {
+					return nil, fmt.Errorf("decoding root node: %w", err)
+				}
+				continue // no need to add root to map of hash to encoding
 			}
 		}
 
-		if bytes.Equal(rootHash, possibleRootMerkleValue) {
-			decodedNode.HashDigest = rootHash
-			root = decodedNode
+		var merkleValue []byte
+		if len(encodedProofNode) <= 32 {
+			merkleValue = encodedProofNode
+		} else {
+			if digest == nil {
+				digestHash, err := common.Blake2bHash(encodedProofNode)
+				if err != nil {
+					return nil, fmt.Errorf("blake2b hash: %w", err)
+				}
+				digest = digestHash[:]
+			}
+			merkleValue = digest
 		}
+
+		merkleValueToEncoding[string(merkleValue)] = encodedProofNode
 	}
 
 	if root == nil {
-		proofMerkleValues := make([]string, 0, len(merkleValueToNode))
-		for merkleValue := range merkleValueToNode {
-			proofMerkleValues = append(proofMerkleValues, merkleValue)
+		proofMerkleValues := make([]string, 0, len(merkleValueToEncoding))
+		for merkleValueString := range merkleValueToEncoding {
+			merkleValueHex := common.BytesToHex([]byte(merkleValueString))
+			proofMerkleValues = append(proofMerkleValues, merkleValueHex)
 		}
 		return nil, fmt.Errorf("%w: for Merkle root hash 0x%x in proof Merkle value(s) %s",
 			ErrRootNodeNotFound, rootHash, strings.Join(proofMerkleValues, ", "))
 	}
 
-	loadProof(merkleValueToNode, root)
+	err = loadProof(merkleValueToEncoding, root)
+	if err != nil {
+		return nil, fmt.Errorf("loading proof: %w", err)
+	}
 
 	return trie.NewTrie(root), nil
 }
 
 // loadProof is a recursive function that will create all the trie paths based
 // on the map from node hash to node starting at the root.
-func loadProof(merkleValueToNode map[string]*node.Node, n *node.Node) {
+func loadProof(merkleValueToEncoding map[string][]byte, n *node.Node) (err error) {
 	if n.Type() != node.Branch {
-		return
+		return nil
 	}
 
 	branch := n
@@ -135,15 +131,38 @@ func loadProof(merkleValueToNode map[string]*node.Node, n *node.Node) {
 			continue
 		}
 
-		merkleValueHex := common.BytesToHex(child.HashDigest)
-		node, ok := merkleValueToNode[merkleValueHex]
+		merkleValue := child.HashDigest
+		encoding, ok := merkleValueToEncoding[string(merkleValue)]
 		if !ok {
+			inlinedChild := len(child.Value) > 0 || child.HasChild()
+			if !inlinedChild {
+				// hash not found and the child is not inlined,
+				// so clear the child from the branch.
+				branch.Descendants -= 1 + child.Descendants
+				branch.Children[i] = nil
+				if !branch.HasChild() {
+					// Convert branch to a leaf if all its children are nil.
+					branch.Children = nil
+				}
+			}
 			continue
 		}
 
-		branch.Children[i] = node
-		loadProof(merkleValueToNode, node)
+		child, err := node.Decode(bytes.NewReader(encoding))
+		if err != nil {
+			return fmt.Errorf("decoding child node for Merkle value 0x%x: %w",
+				merkleValue, err)
+		}
+
+		branch.Children[i] = child
+		branch.Descendants += child.Descendants
+		err = loadProof(merkleValueToEncoding, child)
+		if err != nil {
+			return err // do not wrap error since this is recursive
+		}
 	}
+
+	return nil
 }
 
 func bytesToString(b []byte) (s string) {

@@ -20,18 +20,12 @@ func Test_Verify(t *testing.T) {
 		Value: []byte{1},
 	}
 
-	longValue := []byte{
-		0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
-		0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
-		0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
-		0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
-	}
 	// leafB is a leaf encoding to more than 32 bytes
 	leafB := node.Node{
 		Key:   []byte{2},
-		Value: longValue,
+		Value: generateBytes(t, 40),
 	}
-	require.Greater(t, len(encodeNode(t, leafB)), 32)
+	assertLongEncoding(t, leafB)
 
 	branch := node.Node{
 		Key:   []byte{3, 4},
@@ -43,7 +37,7 @@ func Test_Verify(t *testing.T) {
 			&leafB,
 		}),
 	}
-	require.Greater(t, len(encodeNode(t, branch)), 32)
+	assertLongEncoding(t, branch)
 
 	testCases := map[string]struct {
 		encodedProofNodes [][]byte
@@ -70,7 +64,7 @@ func Test_Verify(t *testing.T) {
 			errWrapped: ErrKeyNotFoundInProofTrie,
 			errMessage: "key not found in proof trie: " +
 				"0x0101 in proof trie for root hash " +
-				"0xe92124f2c4d180493adb4c58250cbd8c5da9c4e3810d8f832e95b1c332de6103",
+				"0xec4bb0acfcf778ae8746d3ac3325fc73c3d9b376eb5f8d638dbf5eb462f5e703",
 		},
 		"key found with nil search value": {
 			encodedProofNodes: [][]byte{
@@ -102,7 +96,7 @@ func Test_Verify(t *testing.T) {
 			},
 			rootHash: blake2bNode(t, branch),
 			keyLE:    []byte{0x34, 0x32}, // large hash-referenced leaf of branch
-			value:    longValue,
+			value:    generateBytes(t, 40),
 		},
 	}
 
@@ -128,29 +122,19 @@ func Test_buildTrie(t *testing.T) {
 		Key:   []byte{1},
 		Value: []byte{2},
 	}
-	leafAShortEncoded := encodeNode(t, leafAShort)
-	require.LessOrEqual(t, len(leafAShortEncoded), 32)
-
-	longValue := []byte{
-		0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
-		0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
-		0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
-		0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
-	}
+	assertShortEncoding(t, leafAShort)
 
 	leafBLarge := node.Node{
 		Key:   []byte{2},
-		Value: longValue,
+		Value: generateBytes(t, 40),
 	}
-	leafBLargeEncoded := encodeNode(t, leafBLarge)
-	require.Greater(t, len(leafBLargeEncoded), 32)
+	assertLongEncoding(t, leafBLarge)
 
 	leafCLarge := node.Node{
 		Key:   []byte{3},
-		Value: longValue,
+		Value: generateBytes(t, 40),
 	}
-	leafCLargeEncoded := encodeNode(t, leafCLarge)
-	require.Greater(t, len(leafCLargeEncoded), 32)
+	assertLongEncoding(t, leafCLarge)
 
 	testCases := map[string]struct {
 		encodedProofNodes [][]byte
@@ -164,14 +148,15 @@ func Test_buildTrie(t *testing.T) {
 			rootHash:   []byte{1},
 			errMessage: "proof slice empty: for Merkle root hash 0x01",
 		},
-		"proof node decoding error": {
+		"root node decoding error": {
 			encodedProofNodes: [][]byte{
-				{1, 2, 3},
+				getBadNodeEncoding(),
 			},
-			rootHash:   []byte{3},
-			errWrapped: node.ErrUnknownNodeType,
-			errMessage: "decoding node at index 0: " +
-				"unknown node type: 0 (node encoded is 0x010203)",
+			rootHash:   blake2b(t, getBadNodeEncoding()),
+			errWrapped: node.ErrVariantUnknown,
+			errMessage: "decoding root node: decoding header: " +
+				"decoding header byte: node variant is unknown: " +
+				"for header byte 00000001",
 		},
 		"root proof encoding smaller than 32 bytes": {
 			encodedProofNodes: [][]byte{
@@ -179,43 +164,37 @@ func Test_buildTrie(t *testing.T) {
 			},
 			rootHash: blake2bNode(t, leafAShort),
 			expectedTrie: trie.NewTrie(&node.Node{
-				Key:        leafAShort.Key,
-				Value:      leafAShort.Value,
-				Encoding:   leafAShortEncoded,
-				HashDigest: blake2bNode(t, leafAShort),
-				Dirty:      true,
+				Key:   leafAShort.Key,
+				Value: leafAShort.Value,
+				Dirty: true,
 			}),
 		},
 		"root proof encoding larger than 32 bytes": {
 			encodedProofNodes: [][]byte{
-				leafBLargeEncoded,
+				encodeNode(t, leafBLarge),
 			},
 			rootHash: blake2bNode(t, leafBLarge),
 			expectedTrie: trie.NewTrie(&node.Node{
-				Key:        leafBLarge.Key,
-				Value:      leafBLarge.Value,
-				Encoding:   leafBLargeEncoded,
-				HashDigest: blake2bNode(t, leafBLarge),
-				Dirty:      true,
+				Key:   leafBLarge.Key,
+				Value: leafBLarge.Value,
+				Dirty: true,
 			}),
 		},
 		"discard unused node": {
 			encodedProofNodes: [][]byte{
-				leafAShortEncoded,
-				leafBLargeEncoded,
+				encodeNode(t, leafAShort),
+				encodeNode(t, leafBLarge),
 			},
 			rootHash: blake2bNode(t, leafAShort),
 			expectedTrie: trie.NewTrie(&node.Node{
-				Key:        leafAShort.Key,
-				Value:      leafAShort.Value,
-				Encoding:   leafAShortEncoded,
-				HashDigest: blake2bNode(t, leafAShort),
-				Dirty:      true,
+				Key:   leafAShort.Key,
+				Value: leafAShort.Value,
+				Dirty: true,
 			}),
 		},
 		"multiple unordered nodes": {
 			encodedProofNodes: [][]byte{
-				leafBLargeEncoded, // chilren 1 and 3
+				encodeNode(t, leafBLarge), // chilren 1 and 3
 				encodeNode(t, node.Node{ // root
 					Key: []byte{1},
 					Children: padRightChildren([]*node.Node{
@@ -225,7 +204,7 @@ func Test_buildTrie(t *testing.T) {
 						&leafBLarge, // referenced by Merkle value hash
 					}),
 				}),
-				leafCLargeEncoded, // children 2
+				encodeNode(t, leafCLarge), // children 2
 			},
 			rootHash: blake2bNode(t, node.Node{
 				Key: []byte{1},
@@ -247,46 +226,45 @@ func Test_buildTrie(t *testing.T) {
 						Dirty: true,
 					},
 					{
-						Key:        leafBLarge.Key,
-						Value:      leafBLarge.Value,
-						Encoding:   leafBLargeEncoded,
-						HashDigest: blake2bNode(t, leafBLarge),
-						Dirty:      true,
+						Key:   leafBLarge.Key,
+						Value: leafBLarge.Value,
+						Dirty: true,
 					},
 					{
-						Key:        leafCLarge.Key,
-						Value:      leafCLarge.Value,
-						Encoding:   leafCLargeEncoded,
-						HashDigest: blake2bNode(t, leafCLarge),
-						Dirty:      true,
+						Key:   leafCLarge.Key,
+						Value: leafCLarge.Value,
+						Dirty: true,
 					},
 					{
-						Key:        leafBLarge.Key,
-						Value:      leafBLarge.Value,
-						Encoding:   leafBLargeEncoded,
-						HashDigest: blake2bNode(t, leafBLarge),
-						Dirty:      true,
+						Key:   leafBLarge.Key,
+						Value: leafBLarge.Value,
+						Dirty: true,
 					},
-				}),
-				Encoding: encodeNode(t, node.Node{
-					Key: []byte{1},
-					Children: padRightChildren([]*node.Node{
-						&leafAShort,
-						&leafBLarge,
-						&leafCLarge,
-						&leafBLarge,
-					}),
-				}),
-				HashDigest: blake2bNode(t, node.Node{
-					Key: []byte{1},
-					Children: padRightChildren([]*node.Node{
-						&leafAShort,
-						&leafBLarge,
-						&leafCLarge,
-						&leafBLarge,
-					}),
 				}),
 			}),
+		},
+		"load proof decoding error": {
+			encodedProofNodes: [][]byte{
+				getBadNodeEncoding(),
+				// root with one child pointing to hash of bad encoding above.
+				concatBytes([][]byte{
+					{0b1000_0000 | 0b0000_0001}, // branch with key size 1
+					{1},                         // key
+					{0b0000_0001, 0b0000_0000},  // children bitmap
+					scaleEncode(t, blake2b(t, getBadNodeEncoding())), // child hash
+				}),
+			},
+			rootHash: blake2b(t, concatBytes([][]byte{
+				{0b1000_0000 | 0b0000_0001}, // branch with key size 1
+				{1},                         // key
+				{0b0000_0001, 0b0000_0000},  // children bitmap
+				scaleEncode(t, blake2b(t, getBadNodeEncoding())), // child hash
+			})),
+			errWrapped: node.ErrVariantUnknown,
+			errMessage: "loading proof: decoding child node for Merkle value " +
+				"0xcfa21f0ec11a3658d77701b7b1f52fbcb783fe3df662977b6e860252b6c37e1e: " +
+				"decoding header: decoding header byte: " +
+				"node variant is unknown: for header byte 00000001",
 		},
 		"root not found": {
 			encodedProofNodes: [][]byte{
@@ -326,10 +304,20 @@ func Test_buildTrie(t *testing.T) {
 func Test_loadProof(t *testing.T) {
 	t.Parallel()
 
+	largeValue := generateBytes(t, 40)
+
+	leafLarge := node.Node{
+		Key:   []byte{3},
+		Value: largeValue,
+	}
+	assertLongEncoding(t, leafLarge)
+
 	testCases := map[string]struct {
-		proofHashToNode map[string]*node.Node
-		node            *node.Node
-		expectedNode    *node.Node
+		merkleValueToEncoding map[string][]byte
+		node                  *node.Node
+		expectedNode          *node.Node
+		errWrapped            error
+		errMessage            string
 	}{
 		"leaf node": {
 			node: &node.Node{
@@ -341,51 +329,244 @@ func Test_loadProof(t *testing.T) {
 				Value: []byte{2},
 			},
 		},
-		"branch node": {
+		"branch node with child hash not found": {
 			node: &node.Node{
-				Key: []byte{1},
+				Key:         []byte{1},
+				Value:       []byte{2},
+				Descendants: 1,
+				Dirty:       true,
 				Children: padRightChildren([]*node.Node{
-					nil,
-					{ // hash not found in proof map
-						HashDigest: []byte{1},
-					},
-					{ // hash found in proof map
-						HashDigest: []byte{2},
+					{HashDigest: []byte{3}},
+				}),
+			},
+			merkleValueToEncoding: map[string][]byte{},
+			expectedNode: &node.Node{
+				Key:   []byte{1},
+				Value: []byte{2},
+				Dirty: true,
+			},
+		},
+		"branch node with child hash found": {
+			node: &node.Node{
+				Key:         []byte{1},
+				Value:       []byte{2},
+				Descendants: 1,
+				Dirty:       true,
+				Children: padRightChildren([]*node.Node{
+					{HashDigest: []byte{2}},
+				}),
+			},
+			merkleValueToEncoding: map[string][]byte{
+				string([]byte{2}): encodeNode(t, node.Node{
+					Key:   []byte{3},
+					Value: []byte{1},
+				}),
+			},
+			expectedNode: &node.Node{
+				Key:         []byte{1},
+				Value:       []byte{2},
+				Descendants: 1,
+				Dirty:       true,
+				Children: padRightChildren([]*node.Node{
+					{
+						Key:   []byte{3},
+						Value: []byte{1},
+						Dirty: true,
 					},
 				}),
 			},
-			proofHashToNode: map[string]*node.Node{
-				"0x02": {
-					Key: []byte{2},
-					Children: padRightChildren([]*node.Node{
-						{ // hash found in proof map
-							HashDigest: []byte{3},
-						},
-					}),
-				},
-				"0x03": {
+		},
+		"branch node with one child hash found and one not found": {
+			node: &node.Node{
+				Key:         []byte{1},
+				Value:       []byte{2},
+				Descendants: 2,
+				Dirty:       true,
+				Children: padRightChildren([]*node.Node{
+					{HashDigest: []byte{2}}, // found
+					{HashDigest: []byte{3}}, // not found
+				}),
+			},
+			merkleValueToEncoding: map[string][]byte{
+				string([]byte{2}): encodeNode(t, node.Node{
 					Key:   []byte{3},
 					Value: []byte{1},
-				},
+				}),
 			},
 			expectedNode: &node.Node{
-				Key: []byte{1},
+				Key:         []byte{1},
+				Value:       []byte{2},
+				Descendants: 1,
+				Dirty:       true,
 				Children: padRightChildren([]*node.Node{
-					nil,
-					{ // hash not found in proof map
-						HashDigest: []byte{1},
+					{
+						Key:   []byte{3},
+						Value: []byte{1},
+						Dirty: true,
 					},
-					{ // hash found in proof map
-						Key: []byte{2},
+				}),
+			},
+		},
+		"branch node with branch child hash": {
+			node: &node.Node{
+				Key:         []byte{1},
+				Value:       []byte{2},
+				Descendants: 2,
+				Dirty:       true,
+				Children: padRightChildren([]*node.Node{
+					{HashDigest: []byte{2}},
+				}),
+			},
+			merkleValueToEncoding: map[string][]byte{
+				string([]byte{2}): encodeNode(t, node.Node{
+					Key:   []byte{3},
+					Value: []byte{1},
+					Children: padRightChildren([]*node.Node{
+						{Key: []byte{4}, Value: []byte{2}},
+					}),
+				}),
+			},
+			expectedNode: &node.Node{
+				Key:         []byte{1},
+				Value:       []byte{2},
+				Descendants: 3,
+				Dirty:       true,
+				Children: padRightChildren([]*node.Node{
+					{
+						Key:         []byte{3},
+						Value:       []byte{1},
+						Dirty:       true,
+						Descendants: 1,
 						Children: padRightChildren([]*node.Node{
-							{ // hash found in proof map
-								Key:   []byte{3},
-								Value: []byte{1},
+							{
+								Key:   []byte{4},
+								Value: []byte{2},
+								Dirty: true,
 							},
 						}),
 					},
 				}),
 			},
+		},
+		"child decoding error": {
+			node: &node.Node{
+				Key:         []byte{1},
+				Value:       []byte{2},
+				Descendants: 1,
+				Dirty:       true,
+				Children: padRightChildren([]*node.Node{
+					{HashDigest: []byte{2}},
+				}),
+			},
+			merkleValueToEncoding: map[string][]byte{
+				string([]byte{2}): getBadNodeEncoding(),
+			},
+			expectedNode: &node.Node{
+				Key:         []byte{1},
+				Value:       []byte{2},
+				Descendants: 1,
+				Dirty:       true,
+				Children: padRightChildren([]*node.Node{
+					{HashDigest: []byte{2}},
+				}),
+			},
+			errWrapped: node.ErrVariantUnknown,
+			errMessage: "decoding child node for Merkle value 0x02: " +
+				"decoding header: decoding header byte: node variant is unknown: " +
+				"for header byte 00000001",
+		},
+		"grand child": {
+			node: &node.Node{
+				Key:         []byte{1},
+				Value:       []byte{1},
+				Descendants: 1,
+				Dirty:       true,
+				Children: padRightChildren([]*node.Node{
+					{HashDigest: []byte{2}},
+				}),
+			},
+			merkleValueToEncoding: map[string][]byte{
+				string([]byte{2}): encodeNode(t, node.Node{
+					Key:         []byte{2},
+					Value:       []byte{2},
+					Descendants: 1,
+					Dirty:       true,
+					Children: padRightChildren([]*node.Node{
+						&leafLarge, // encoded to hash
+					}),
+				}),
+				string(blake2bNode(t, leafLarge)): encodeNode(t, leafLarge),
+			},
+			expectedNode: &node.Node{
+				Key:         []byte{1},
+				Value:       []byte{1},
+				Descendants: 2,
+				Dirty:       true,
+				Children: padRightChildren([]*node.Node{
+					{
+						Key:         []byte{2},
+						Value:       []byte{2},
+						Descendants: 1,
+						Dirty:       true,
+						Children: padRightChildren([]*node.Node{
+							{
+								Key:   leafLarge.Key,
+								Value: leafLarge.Value,
+								Dirty: true,
+							},
+						}),
+					},
+				}),
+			},
+		},
+
+		"grand child load proof error": {
+			node: &node.Node{
+				Key:         []byte{1},
+				Value:       []byte{1},
+				Descendants: 1,
+				Dirty:       true,
+				Children: padRightChildren([]*node.Node{
+					{HashDigest: []byte{2}},
+				}),
+			},
+			merkleValueToEncoding: map[string][]byte{
+				string([]byte{2}): encodeNode(t, node.Node{
+					Key:         []byte{2},
+					Value:       []byte{2},
+					Descendants: 1,
+					Dirty:       true,
+					Children: padRightChildren([]*node.Node{
+						&leafLarge, // encoded to hash
+					}),
+				}),
+				string(blake2bNode(t, leafLarge)): getBadNodeEncoding(),
+			},
+			expectedNode: &node.Node{
+				Key:         []byte{1},
+				Value:       []byte{1},
+				Descendants: 2,
+				Dirty:       true,
+				Children: padRightChildren([]*node.Node{
+					{
+						Key:         []byte{2},
+						Value:       []byte{2},
+						Descendants: 1,
+						Dirty:       true,
+						Children: padRightChildren([]*node.Node{
+							{
+								HashDigest: blake2bNode(t, leafLarge),
+								Dirty:      true,
+							},
+						}),
+					},
+				}),
+			},
+			errWrapped: node.ErrVariantUnknown,
+			errMessage: "decoding child node for Merkle value " +
+				"0x6888b9403129c11350c6054b46875292c0ffedcfd581e66b79bdf350b775ebf2: " +
+				"decoding header: decoding header byte: node variant is unknown: " +
+				"for header byte 00000001",
 		},
 	}
 
@@ -394,9 +575,14 @@ func Test_loadProof(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			loadProof(testCase.proofHashToNode, testCase.node)
+			err := loadProof(testCase.merkleValueToEncoding, testCase.node)
 
-			assert.Equal(t, testCase.expectedNode, testCase.node)
+			assert.ErrorIs(t, err, testCase.errWrapped)
+			if testCase.errWrapped != nil {
+				assert.EqualError(t, err, testCase.errMessage)
+			}
+
+			assert.Equal(t, testCase.expectedNode.String(), testCase.node.String())
 		})
 	}
 }
