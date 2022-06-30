@@ -129,6 +129,9 @@ func decodeHeaderByte(header byte) (variantBits,
 	// order by the number of bits each variant mask occupy
 	// in the header byte.
 	// See https://spec.polkadot.network/#defn-node-header
+	// Performance note: see `Benchmark_decodeHeaderByte`;
+	// running with a locally scoped slice is as fast as having
+	// it at global scope.
 	variants := []variant{
 		leafVariant,            // mask 1100_0000
 		branchVariant,          // mask 1100_0000

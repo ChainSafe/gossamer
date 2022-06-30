@@ -418,3 +418,15 @@ func Test_decodeHeaderByte(t *testing.T) {
 		})
 	}
 }
+
+func Benchmark_decodeHeaderByte(b *testing.B) {
+	// With global scoped variants slice:
+	// 3.453 ns/op	       0 B/op	       0 allocs/op
+	// With locally scoped variants slice:
+	// 3.441 ns/op	       0 B/op	       0 allocs/op
+	header := leafVariant.bits | 0b0000_0001
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _, _, _ = decodeHeaderByte(header)
+	}
+}
