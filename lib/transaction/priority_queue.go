@@ -149,9 +149,16 @@ func (spq *PriorityQueue) NewPushWatcher() (nextPushWatcher <-chan struct{}) {
 	spq.Lock()
 	defer spq.Unlock()
 
-	nextPushWatcherCh := make(chan struct{})
-	spq.nextPushWatcher = nextPushWatcherCh
-	return nextPushWatcherCh
+	select {
+	case _, ok := <-spq.nextPushWatcher
+	default:
+	}
+	var nextPushWatcheCh <-chan struct{}
+		if !ok {
+			nextPushWatcherCh := make(chan struct{})
+			spq.nextPushWatcher = nextPushWatcherCh
+		}
+	return nextPushWatcheCh
 }
 
 // Pop removes the transaction with has the highest priority value from the queue and returns it.
