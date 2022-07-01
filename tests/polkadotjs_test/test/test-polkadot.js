@@ -98,7 +98,7 @@ describe('Testing polkadot.js/api calls:', function () {
                 });
         })
     });
-    describe('api query', () => {
+    describe.skip('api query', () => {
         it('call api.query.timestamp.now()', async function () {
             const timestamp = await api.query.timestamp.now();
             expect(timestamp).to.be.not.undefined;
