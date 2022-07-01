@@ -800,7 +800,7 @@ func TestMessageHandler_VerifyBlockJustification_invalid(t *testing.T) {
 	_, err = gs.VerifyBlockJustification(otherHeader.Hash(), data)
 	require.ErrorIs(t, err, ErrJustificationMismatch)
 
-	expectedErr := fmt.Sprintf("%s: %s not equal %s", ErrJustificationMismatch,
+	expectedErr := fmt.Sprintf("%s: justification %s and block hash %s", ErrJustificationMismatch,
 		testHash.Short(), otherHeader.Hash().Short())
 	require.EqualError(t, err, expectedErr)
 }
