@@ -98,8 +98,7 @@ describe('Testing polkadot.js/api calls:', function () {
                 });
         })
     });
-
-    describe.skip('api query', () => {
+    describe('api query', () => {
         it('call api.query.timestamp.now()', async function () {
             const timestamp = await api.query.timestamp.now();
             expect(timestamp).to.be.not.undefined;
@@ -193,6 +192,14 @@ describe('Testing polkadot.js/api calls:', function () {
                 expect(item[1]).to.have.lengthOf(2);
             });
             expect(value[0][0]).to.deep.equal(block0Hash);
+        });
+    });
+   describe('api grandpa', () => {
+        it('call api.rpc.grandpa.proveFinality', async function () {
+            const proveBlockNumber = 0;
+            const finality = await api.rpc.grandpa.proveFinality(proveBlockNumber);
+            expect(finality).to.be.not.null;
+            expect(finality).to.be.ownProperty('registry')
         });
     });
 });

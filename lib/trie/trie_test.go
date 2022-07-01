@@ -3573,6 +3573,40 @@ func Test_Trie_delete(t *testing.T) {
 			},
 			updated: true,
 		},
+		"handle nonexistent key (no op)": {
+			trie: Trie{
+				generation: 1,
+			},
+			parent: &Node{
+				Key:         []byte{1, 0, 2, 3},
+				Descendants: 1,
+				Children: padRightChildren([]*Node{
+					{ // full key 1, 0, 2
+						Key:   []byte{2},
+						Value: []byte{1},
+					},
+					{ // full key 1, 1, 2
+						Key:   []byte{2},
+						Value: []byte{2},
+					},
+				}),
+			},
+			key: []byte{1, 0, 2},
+			newParent: &Node{
+				Key:         []byte{1, 0, 2, 3},
+				Descendants: 1,
+				Children: padRightChildren([]*Node{
+					{ // full key 1, 0, 2
+						Key:   []byte{2},
+						Value: []byte{1},
+					},
+					{ // full key 1, 1, 2
+						Key:   []byte{2},
+						Value: []byte{2},
+					},
+				}),
+			},
+		},
 	}
 
 	for name, testCase := range testCases {

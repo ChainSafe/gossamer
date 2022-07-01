@@ -13,7 +13,6 @@ import (
 	"github.com/centrifuge/go-substrate-rpc-client/v3/scale"
 
 	libutils "github.com/ChainSafe/gossamer/lib/utils"
-	"github.com/ChainSafe/gossamer/tests/utils"
 	"github.com/ChainSafe/gossamer/tests/utils/config"
 	"github.com/ChainSafe/gossamer/tests/utils/node"
 	"github.com/ChainSafe/gossamer/tests/utils/retry"
@@ -24,11 +23,6 @@ import (
 )
 
 func TestAuthorSubmitExtrinsic(t *testing.T) {
-	if utils.MODE != rpcSuite {
-		t.Log("Going to skip RPC suite tests")
-		return
-	}
-
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
 	tomlConfig := config.Default()
 	tomlConfig.Init.Genesis = genesisPath
@@ -100,11 +94,6 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 }
 
 func TestAuthorRPC(t *testing.T) {
-	if utils.MODE != rpcSuite {
-		t.Log("Going to skip RPC suite tests")
-		return
-	}
-
 	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
 	tomlConfig := config.Default()
 	tomlConfig.Init.Genesis = genesisPath

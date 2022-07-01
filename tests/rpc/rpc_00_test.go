@@ -6,16 +6,28 @@ package rpc
 import (
 	"context"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/tests/utils"
 	"github.com/ChainSafe/gossamer/tests/utils/rpc"
 	"github.com/stretchr/testify/require"
 )
 
-var (
-	rpcSuite = "rpc"
-)
+func TestMain(m *testing.M) {
+	if utils.MODE != "rpc" {
+		fmt.Println("Going to skip RPC suite tests")
+		os.Exit(0)
+	}
+
+	err := utils.BuildGossamer()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	os.Exit(m.Run())
+}
 
 type testCase struct {
 	description string

@@ -877,10 +877,11 @@ func (t *Trie) clearPrefix(parent *Node, prefix []byte) (
 			return parent, nodesRemoved
 		}
 
-		nodesRemoved = 1
+		nodesRemoved = 1 + child.Descendants
 		copySettings := node.DefaultCopySettings
 		branch = t.prepBranchForMutation(branch, copySettings)
 		branch.Children[childIndex] = nil
+		branch.Descendants -= nodesRemoved
 		var branchChildMerged bool
 		newParent, branchChildMerged = handleDeletion(branch, prefix)
 		if branchChildMerged {
@@ -969,6 +970,10 @@ func (t *Trie) deleteBranch(branch *Node, key []byte) (
 	}
 
 	commonPrefixLength := lenCommonPrefix(branch.Key, key)
+	keyDoesNotExist := commonPrefixLength == len(key)
+	if keyDoesNotExist {
+		return branch, false, 0
+	}
 	childIndex := key[commonPrefixLength]
 	childKey := key[commonPrefixLength+1:]
 	child := branch.Children[childIndex]
