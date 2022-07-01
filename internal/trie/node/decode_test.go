@@ -240,7 +240,7 @@ func Test_decodeBranch(t *testing.T) {
 			partialKeyLength: 1,
 			errWrapped:       io.EOF,
 			errMessage: "decoding inlined child at index 0: " +
-				"cannot decode header: cannot read header byte: EOF",
+				"decoding header: reading header byte: EOF",
 		},
 		"branch with inlined branch and leaf": {
 			reader: bytes.NewBuffer(concatByteSlices([][]byte{
