@@ -802,6 +802,7 @@ func TestMessageHandler_VerifyBlockJustification_invalid(t *testing.T) {
 
 	expectedErr := fmt.Sprintf("%s: justification %s and block hash %s", ErrJustificationMismatch,
 		testHash.Short(), otherHeader.Hash().Short())
+	assert.ErrorIs(t, err, ErrJustificationMismatch)
 	require.EqualError(t, err, expectedErr)
 }
 
