@@ -727,7 +727,7 @@ func Test_verifier_verifyAuthorshipRightEquivocatory(t *testing.T) {
 	hashEquivocatoryPrimary := encodeAndHashHeader(t, headerEquivocatoryPrimary)
 	signAndAddSeal(t, kp, headerEquivocatoryPrimary, hashEquivocatoryPrimary[:])
 
-	mockBlockStateEquiv1.EXPECT().GetAllBlocksAtDepth(gomock.Any()).Return([]common.Hash{hashEquivocatoryPrimary})
+	mockBlockStateEquiv1.EXPECT().GetAllBlocksAtDepth(headerEquivocatoryPrimary.ParentHash).Return([]common.Hash{hashEquivocatoryPrimary})
 	mockBlockStateEquiv1.EXPECT().GetHeader(hashEquivocatoryPrimary).Return(headerEquivocatoryPrimary, nil)
 
 	// Secondary Plain Test Header
@@ -749,7 +749,7 @@ func Test_verifier_verifyAuthorshipRightEquivocatory(t *testing.T) {
 	signAndAddSeal(t, kp, headerEquivocatorySecondaryPlain, hashEquivocatorySecondaryPlain[:])
 	babeVerifier8 := newTestVerifier(t, kp, mockBlockStateEquiv2, scale.MaxUint128, true)
 
-	mockBlockStateEquiv2.EXPECT().GetAllBlocksAtDepth(gomock.Any()).Return([]common.Hash{hashEquivocatorySecondaryPlain})
+	mockBlockStateEquiv2.EXPECT().GetAllBlocksAtDepth(headerEquivocatorySecondaryPlain.ParentHash).Return([]common.Hash{hashEquivocatorySecondaryPlain})
 	mockBlockStateEquiv2.EXPECT().GetHeader(hashEquivocatorySecondaryPlain).Return(headerEquivocatorySecondaryPlain, nil)
 
 	// Secondary Vrf Test Header
@@ -768,7 +768,7 @@ func Test_verifier_verifyAuthorshipRightEquivocatory(t *testing.T) {
 	hashEquivocatorySecondaryVRF := encodeAndHashHeader(t, headerEquivocatorySecondaryVRF)
 	signAndAddSeal(t, kp, headerEquivocatorySecondaryVRF, hashEquivocatorySecondaryVRF[:])
 	babeVerifierEquivocatorySecondaryVRF := newTestVerifier(t, kp, mockBlockStateEquiv3, scale.MaxUint128, true)
-	mockBlockStateEquiv3.EXPECT().GetAllBlocksAtDepth(gomock.Any()).Return([]common.Hash{hashEquivocatorySecondaryVRF})
+	mockBlockStateEquiv3.EXPECT().GetAllBlocksAtDepth(headerEquivocatorySecondaryVRF.ParentHash).Return([]common.Hash{hashEquivocatorySecondaryVRF})
 	mockBlockStateEquiv3.EXPECT().GetHeader(hashEquivocatorySecondaryVRF).Return(headerEquivocatorySecondaryVRF, nil)
 
 	tests := []struct {

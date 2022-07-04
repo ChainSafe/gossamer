@@ -344,8 +344,8 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	// hashes is hashes of all blocks with same block number as header.Number
 	hashes := b.blockState.GetAllBlocksAtDepth(header.ParentHash)
 
-	for _, hash := range hashes {
-		currentHeader, err := b.blockState.GetHeader(hash)
+	for _, currentHash := range hashes {
+		currentHeader, err := b.blockState.GetHeader(currentHash)
 		if err != nil {
 			logger.Errorf("failed get header %s", err)
 			continue
@@ -358,7 +358,7 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 		}
 
 		if len(currentHeader.Digest.Types) == 0 {
-			return fmt.Errorf("current header missing digest")
+			logger.Errorf("current header missing digest")
 		}
 
 		currentPreDigestItem := currentHeader.Digest.Types[0]
@@ -394,7 +394,7 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 
 		// same authority won't produce two different blocks at the same block number as primary block producer
 		if currentBlockProducerIndex == existingBlockProducerIndex &&
-			hash != header.Hash() &&
+			currentHash != header.Hash() &&
 			isCurrentBlockProducerPrimary == isExistingBlockProducerPrimary {
 			return ErrProducerEquivocated
 		}
