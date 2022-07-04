@@ -50,9 +50,13 @@ func Test_Decode(t *testing.T) {
 			errMessage: "decoding header: reading header byte: EOF",
 		},
 		"unknown node variant": {
-			reader:     bytes.NewReader([]byte{0}),
+			reader:     bytes.NewReader([]byte{0b0000_1000}),
 			errWrapped: ErrVariantUnknown,
-			errMessage: "decoding header: decoding header byte: node variant is unknown: for header byte 00000000",
+			errMessage: "decoding header: decoding header byte: node variant is unknown: for header byte 00001000",
+		},
+		"empty node": {
+			reader: bytes.NewReader([]byte{emptyVariant.bits}),
+			n:      nil,
 		},
 		"leaf decoding error": {
 			reader: bytes.NewReader([]byte{

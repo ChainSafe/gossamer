@@ -11,6 +11,11 @@ import (
 
 // encodeHeader writes the encoded header for the node.
 func encodeHeader(node *Node, writer io.Writer) (err error) {
+	if node == nil {
+		_, err = writer.Write([]byte{emptyVariant.bits})
+		return err
+	}
+
 	partialKeyLength := len(node.PartialKey)
 	if partialKeyLength > int(maxPartialKeyLength) {
 		panic(fmt.Sprintf("partial key length is too big: %d", partialKeyLength))
@@ -84,6 +89,13 @@ func decodeHeader(reader io.Reader) (nodeVariant variant,
 	}
 
 	partialKeyLengthHeaderMask := nodeVariant.partialKeyLengthHeaderMask()
+	if partialKeyLengthHeaderMask == 0b0000_0000 {
+		// empty node or compact encoding which have no
+		// partial key. The partial key length mask is
+		// 0b0000_0000 since the variant mask is
+		// 0b1111_1111.
+		return nodeVariant, 0, nil
+	}
 
 	partialKeyLength = uint16(partialKeyLengthHeader)
 	if partialKeyLengthHeader < partialKeyLengthHeaderMask {
@@ -136,6 +148,7 @@ var variantsOrderedByBitMask = [...]variant{
 	leafVariant,            // mask 1100_0000
 	branchVariant,          // mask 1100_0000
 	branchWithValueVariant, // mask 1100_0000
+	emptyVariant,           // mask 1111_1111
 }
 
 func decodeHeaderByte(header byte) (nodeVariant variant,
