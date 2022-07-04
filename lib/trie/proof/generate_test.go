@@ -25,6 +25,9 @@ func Test_Generate(t *testing.T) {
 		someHash[i] = byte(i)
 	}
 
+	largeValue := generateBytes(t, 40)
+	assertLongEncoding(t, node.Node{Value: largeValue})
+
 	testCases := map[string]struct {
 		rootHash          []byte
 		fullKeysNibbles   [][]byte
@@ -124,19 +127,26 @@ func Test_Generate(t *testing.T) {
 			},
 			databaseBuilder: func(ctrl *gomock.Controller) Database {
 				mockDatabase := NewMockDatabase(ctrl)
-				encodedRoot := encodeNode(t, node.Node{
+
+				rootNode := node.Node{
 					Key:   []byte{1, 2},
 					Value: []byte{2},
 					Children: padRightChildren([]*node.Node{
 						nil, nil, nil,
 						{ // full key 1, 2, 3, 4
 							Key:   []byte{4},
-							Value: []byte{4},
+							Value: largeValue,
 						},
 					}),
-				})
+				}
+
 				mockDatabase.EXPECT().Get(someHash).
-					Return(encodedRoot, nil)
+					Return(encodeNode(t, rootNode), nil)
+
+				encodedChild := encodeNode(t, *rootNode.Children[3])
+				mockDatabase.EXPECT().Get(blake2b(t, encodedChild)).
+					Return(encodedChild, nil)
+
 				return mockDatabase
 			},
 			encodedProofNodes: [][]byte{
@@ -147,13 +157,13 @@ func Test_Generate(t *testing.T) {
 						nil, nil, nil,
 						{
 							Key:   []byte{4},
-							Value: []byte{4},
+							Value: largeValue,
 						},
 					}),
 				}),
 				encodeNode(t, node.Node{
 					Key:   []byte{4},
-					Value: []byte{4},
+					Value: largeValue,
 				}),
 			},
 		},
@@ -162,31 +172,42 @@ func Test_Generate(t *testing.T) {
 			fullKeysNibbles: [][]byte{
 				{1, 2, 3, 4},
 				{1, 2, 4, 4},
-				{1, 2, 5, 4},
+				{1, 2, 5, 5},
 			},
 			databaseBuilder: func(ctrl *gomock.Controller) Database {
 				mockDatabase := NewMockDatabase(ctrl)
-				encodedRoot := encodeNode(t, node.Node{
+
+				rootNode := node.Node{
 					Key:   []byte{1, 2},
 					Value: []byte{2},
 					Children: padRightChildren([]*node.Node{
 						nil, nil, nil,
 						{ // full key 1, 2, 3, 4
 							Key:   []byte{4},
-							Value: []byte{4},
+							Value: largeValue,
 						},
 						{ // full key 1, 2, 4, 4
 							Key:   []byte{4},
-							Value: []byte{4},
+							Value: largeValue,
 						},
-						{ // full key 1, 2, 5, 4
-							Key:   []byte{4},
-							Value: []byte{5},
+						{ // full key 1, 2, 5, 5
+							Key:   []byte{5},
+							Value: largeValue,
 						},
 					}),
-				})
+				}
+
 				mockDatabase.EXPECT().Get(someHash).
-					Return(encodedRoot, nil)
+					Return(encodeNode(t, rootNode), nil)
+
+				encodedLargeChild1 := encodeNode(t, *rootNode.Children[3])
+				mockDatabase.EXPECT().Get(blake2b(t, encodedLargeChild1)).
+					Return(encodedLargeChild1, nil).Times(2)
+
+				encodedLargeChild2 := encodeNode(t, *rootNode.Children[5])
+				mockDatabase.EXPECT().Get(blake2b(t, encodedLargeChild2)).
+					Return(encodedLargeChild2, nil)
+
 				return mockDatabase
 			},
 			encodedProofNodes: [][]byte{
@@ -197,25 +218,25 @@ func Test_Generate(t *testing.T) {
 						nil, nil, nil,
 						{ // full key 1, 2, 3, 4
 							Key:   []byte{4},
-							Value: []byte{4},
+							Value: largeValue,
 						},
 						{ // full key 1, 2, 4, 4
 							Key:   []byte{4},
-							Value: []byte{4},
+							Value: largeValue,
 						},
-						{ // full key 1, 2, 5, 4
-							Key:   []byte{4},
-							Value: []byte{5},
+						{ // full key 1, 2, 5, 5
+							Key:   []byte{5},
+							Value: largeValue,
 						},
 					}),
 				}),
 				encodeNode(t, node.Node{
 					Key:   []byte{4},
-					Value: []byte{4},
+					Value: largeValue,
 				}),
 				encodeNode(t, node.Node{
-					Key:   []byte{4},
-					Value: []byte{5},
+					Key:   []byte{5},
+					Value: largeValue,
 				}),
 			},
 		},
@@ -248,9 +269,13 @@ func Test_Generate(t *testing.T) {
 func Test_walk(t *testing.T) {
 	t.Parallel()
 
+	largeValue := generateBytes(t, 40)
+	assertLongEncoding(t, node.Node{Value: largeValue})
+
 	testCases := map[string]struct {
 		parent            *node.Node
 		fullKey           []byte // nibbles
+		isRoot            bool
 		encodedProofNodes [][]byte
 		errWrapped        error
 		errMessage        string
@@ -268,6 +293,7 @@ func Test_walk(t *testing.T) {
 				Key:   []byte{1, 2},
 				Value: []byte{1},
 			},
+			isRoot: true,
 			encodedProofNodes: [][]byte{encodeNode(t, node.Node{
 				Key:   []byte{1, 2},
 				Value: []byte{1},
@@ -311,6 +337,7 @@ func Test_walk(t *testing.T) {
 					},
 				}),
 			},
+			isRoot: true,
 			encodedProofNodes: [][]byte{
 				encodeNode(t, node.Node{
 					Key:   []byte{1, 2},
@@ -366,6 +393,7 @@ func Test_walk(t *testing.T) {
 				}),
 			},
 			fullKey: []byte{1, 2},
+			isRoot:  true,
 			encodedProofNodes: [][]byte{
 				encodeNode(t, node.Node{
 					Key:   []byte{1, 2},
@@ -376,6 +404,64 @@ func Test_walk(t *testing.T) {
 							Value: []byte{5},
 						},
 					}),
+				}),
+			},
+		},
+		"branch and matching search key for small leaf encoding": {
+			parent: &node.Node{
+				Key:   []byte{1, 2},
+				Value: []byte{3},
+				Children: padRightChildren([]*node.Node{
+					{ // full key 1, 2, 0, 1, 2
+						Key:   []byte{1, 2},
+						Value: []byte{3},
+					},
+				}),
+			},
+			fullKey: []byte{1, 2, 0, 1, 2},
+			isRoot:  true,
+			encodedProofNodes: [][]byte{
+				encodeNode(t, node.Node{
+					Key:   []byte{1, 2},
+					Value: []byte{3},
+					Children: padRightChildren([]*node.Node{
+						{ // full key 1, 2, 0, 1, 2
+							Key:   []byte{1, 2},
+							Value: []byte{3},
+						},
+					}),
+				}),
+				// Note the leaf encoding is not added since its encoding
+				// is less than 32 bytes.
+			},
+		},
+		"branch and matching search key for large leaf encoding": {
+			parent: &node.Node{
+				Key:   []byte{1, 2},
+				Value: []byte{3},
+				Children: padRightChildren([]*node.Node{
+					{ // full key 1, 2, 0, 1, 2
+						Key:   []byte{1, 2},
+						Value: largeValue,
+					},
+				}),
+			},
+			fullKey: []byte{1, 2, 0, 1, 2},
+			isRoot:  true,
+			encodedProofNodes: [][]byte{
+				encodeNode(t, node.Node{
+					Key:   []byte{1, 2},
+					Value: []byte{3},
+					Children: padRightChildren([]*node.Node{
+						{ // full key 1, 2, 0, 1, 2
+							Key:   []byte{1, 2},
+							Value: largeValue,
+						},
+					}),
+				}),
+				encodeNode(t, node.Node{
+					Key:   []byte{1, 2},
+					Value: largeValue,
 				}),
 			},
 		},
@@ -406,6 +492,7 @@ func Test_walk(t *testing.T) {
 				}),
 			},
 			fullKey: []byte{1, 2, 0x04},
+			isRoot:  true,
 			encodedProofNodes: [][]byte{
 				encodeNode(t, node.Node{
 					Key:   []byte{1, 2},
@@ -426,7 +513,7 @@ func Test_walk(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			encodedProofNodes, err := walk(testCase.parent, testCase.fullKey)
+			encodedProofNodes, err := walk(testCase.parent, testCase.fullKey, testCase.isRoot)
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if testCase.errWrapped != nil {
@@ -514,12 +601,13 @@ func Benchmark_walk(b *testing.B) {
 	longestKeyNibbles := codec.KeyLEToNibbles(longestKeyLE)
 
 	rootNode := trie.RootNode()
-	encodedProofNodes, err := walk(rootNode, longestKeyNibbles)
+	const isRoot = true
+	encodedProofNodes, err := walk(rootNode, longestKeyNibbles, isRoot)
 	require.NoError(b, err)
 	require.Equal(b, len(encodedProofNodes), trieDepth)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = walk(rootNode, longestKeyNibbles)
+		_, _ = walk(rootNode, longestKeyNibbles, isRoot)
 	}
 }

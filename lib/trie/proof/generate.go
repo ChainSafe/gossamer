@@ -39,7 +39,8 @@ func Generate(rootHash []byte, fullKeys [][]byte, database Database) (
 	hashesSeen := make(map[string]struct{})
 	for _, fullKey := range fullKeys {
 		fullKeyNibbles := codec.KeyLEToNibbles(fullKey)
-		newEncodedProofNodes, err := walk(rootNode, fullKeyNibbles)
+		const isRoot = true
+		newEncodedProofNodes, err := walk(rootNode, fullKeyNibbles, isRoot)
 		if err != nil {
 			// Note we wrap the full key context here since walk is recursive and
 			// may not be aware of the initial full key.
@@ -66,7 +67,7 @@ func Generate(rootHash []byte, fullKeys [][]byte, database Database) (
 	return encodedProofNodes, nil
 }
 
-func walk(parent *node.Node, fullKey []byte) (
+func walk(parent *node.Node, fullKey []byte, isRoot bool) (
 	encodedProofNodes [][]byte, err error) {
 	if parent == nil {
 		if len(fullKey) == 0 {
@@ -82,7 +83,15 @@ func walk(parent *node.Node, fullKey []byte) (
 	if err != nil {
 		return nil, fmt.Errorf("encode node: %w", err)
 	}
-	encodedProofNodes = append(encodedProofNodes, encodingBuffer.Bytes())
+
+	if isRoot || encodingBuffer.Len() >= 32 {
+		// Only add the root node encoding (whatever its length)
+		// and child node encodings greater or equal to 32 bytes.
+		// This is because child node encodings of less than 32 bytes
+		// are inlined in the parent node encoding, so there is no need
+		// to duplicate them in the proof generated.
+		encodedProofNodes = append(encodedProofNodes, encodingBuffer.Bytes())
+	}
 
 	nodeFound := len(fullKey) == 0 || bytes.Equal(parent.Key, fullKey)
 	if nodeFound {
@@ -102,7 +111,8 @@ func walk(parent *node.Node, fullKey []byte) (
 	childIndex := fullKey[commonLength]
 	nextChild := parent.Children[childIndex]
 	nextFullKey := fullKey[commonLength+1:]
-	deeperEncodedProofNodes, err := walk(nextChild, nextFullKey)
+	isRoot = false
+	deeperEncodedProofNodes, err := walk(nextChild, nextFullKey, isRoot)
 	if err != nil {
 		return nil, err // note: do not wrap since this is recursive
 	}
