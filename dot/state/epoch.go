@@ -60,11 +60,11 @@ type EpochState struct {
 
 	nextEpochDataLock sync.RWMutex
 	// nextEpochData follows the format map[epoch]map[block hash]next epoch data
-	nextEpochData map[uint64]map[common.Hash]types.NextEpochData
+	nextEpochData nextEpochMap[types.NextEpochData]
 
 	nextConfigDataLock sync.RWMutex
 	// nextConfigData follows the format map[epoch]map[block hash]next config data
-	nextConfigData map[uint64]map[common.Hash]types.NextConfigData
+	nextConfigData nextEpochMap[types.NextConfigData]
 }
 
 // NewEpochStateFromGenesis returns a new EpochState given information for the first epoch, fetched from the runtime
@@ -92,8 +92,8 @@ func NewEpochStateFromGenesis(db chaindb.Database, blockState *BlockState,
 		blockState:     blockState,
 		db:             epochDB,
 		epochLength:    genesisConfig.EpochLength,
-		nextEpochData:  make(map[uint64]map[common.Hash]types.NextEpochData),
-		nextConfigData: make(map[uint64]map[common.Hash]types.NextConfigData),
+		nextEpochData:  make(nextEpochMap[types.NextEpochData]),
+		nextConfigData: make(nextEpochMap[types.NextConfigData]),
 	}
 
 	auths, err := types.BABEAuthorityRawToAuthority(genesisConfig.GenesisAuthorities)
@@ -153,8 +153,8 @@ func NewEpochState(db chaindb.Database, blockState *BlockState) (*EpochState, er
 		db:             chaindb.NewTable(db, epochPrefix),
 		epochLength:    epochLength,
 		skipToEpoch:    skipToEpoch,
-		nextEpochData:  make(map[uint64]map[common.Hash]types.NextEpochData),
-		nextConfigData: make(map[uint64]map[common.Hash]types.NextConfigData),
+		nextEpochData:  make(nextEpochMap[types.NextEpochData]),
+		nextConfigData: make(nextEpochMap[types.NextConfigData]),
 	}, nil
 }
 
@@ -264,7 +264,7 @@ func (s *EpochState) GetEpochData(epoch uint64, header *types.Header) (*types.Ep
 	s.nextEpochDataLock.RLock()
 	defer s.nextEpochDataLock.RUnlock()
 
-	inMemoryEpochData, err := retrieveFromMemory(s.nextEpochData, s.blockState, epoch, header)
+	inMemoryEpochData, err := s.nextEpochData.Retrieve(s.blockState, epoch, header)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get epoch data from memory: %w", err)
 	}
@@ -349,7 +349,7 @@ func (s *EpochState) GetConfigData(epoch uint64, header *types.Header) (configDa
 		// we will check in the memory map and if we don't find the data
 		// then we continue searching through the previous epoch
 		s.nextConfigDataLock.RLock()
-		inMemoryConfigData, err := retrieveFromMemory(s.nextConfigData, s.blockState, uint64(tryEpoch), header)
+		inMemoryConfigData, err := s.nextConfigData.Retrieve(s.blockState, uint64(tryEpoch), header)
 		s.nextConfigDataLock.RUnlock()
 
 		if errors.Is(err, ErrEpochNotInMemory) {
@@ -380,10 +380,10 @@ func (s *EpochState) getConfigDataFromDatabase(epoch uint64) (*types.ConfigData,
 	return info, nil
 }
 
-func retrieveFromMemory[T types.NextEpochData | types.NextConfigData](nextEpochMap map[uint64]map[common.Hash]T,
-	blockState *BlockState, epoch uint64, header *types.Header) (*T, error) {
+type nextEpochMap[T types.NextEpochData | types.NextConfigData] map[uint64]map[common.Hash]T
 
-	atEpoch, has := nextEpochMap[epoch]
+func (nem nextEpochMap[T]) Retrieve(blockState *BlockState, epoch uint64, header *types.Header) (*T, error) {
+	atEpoch, has := nem[epoch]
 	if !has {
 		return nil, fmt.Errorf("%w: %d", ErrEpochNotInMemory, epoch)
 	}
@@ -401,7 +401,7 @@ func retrieveFromMemory[T types.NextEpochData | types.NextConfigData](nextEpochM
 				return nil, fmt.Errorf("cannot get parent header: %w", err)
 			}
 
-			return retrieveFromMemory(nextEpochMap, blockState, epoch, parentHeader)
+			return nem.Retrieve(blockState, epoch, parentHeader)
 		}
 
 		if err != nil {
