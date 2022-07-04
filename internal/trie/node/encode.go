@@ -16,7 +16,7 @@ import (
 // of this package, and specified in the Polkadot spec at
 // https://spec.polkadot.network/#sect-state-storage
 func (n *Node) Encode(buffer Buffer) (err error) {
-	if !n.Dirty && n.Encoding != nil {
+	if n != nil && !n.Dirty && n.Encoding != nil {
 		_, err = buffer.Write(n.Encoding)
 		if err != nil {
 			return fmt.Errorf("cannot write stored encoding to buffer: %w", err)
@@ -27,6 +27,11 @@ func (n *Node) Encode(buffer Buffer) (err error) {
 	err = encodeHeader(n, buffer)
 	if err != nil {
 		return fmt.Errorf("cannot encode header: %w", err)
+	}
+
+	if n == nil {
+		// only encode the empty variant byte header
+		return nil
 	}
 
 	keyLE := codec.NibblesToKeyLE(n.Key)

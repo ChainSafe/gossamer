@@ -374,6 +374,11 @@ func Test_decodeHeaderByte(t *testing.T) {
 		errWrapped             error
 		errMessage             string
 	}{
+		"empty variant header": {
+			header:                 0b0000_0000,
+			nodeVariant:            emptyVariant,
+			partialKeyLengthHeader: 0b0000_0000,
+		},
 		"branch with value header": {
 			header:                 0b1110_1001,
 			nodeVariant:            branchWithValueVariant,
@@ -390,9 +395,9 @@ func Test_decodeHeaderByte(t *testing.T) {
 			partialKeyLengthHeader: 0b0010_1001,
 		},
 		"unknown variant header": {
-			header:     0b0000_0000,
+			header:     0b0000_1000,
 			errWrapped: ErrVariantUnknown,
-			errMessage: "node variant is unknown: for header byte 00000000",
+			errMessage: "node variant is unknown: for header byte 00001000",
 		},
 	}
 

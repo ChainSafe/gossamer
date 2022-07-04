@@ -32,6 +32,15 @@ func Test_Node_Encode(t *testing.T) {
 		wrappedErr       error
 		errMessage       string
 	}{
+		"nil node": {
+			node: nil,
+			writes: []writeCall{
+				{
+					written: []byte{emptyVariant.bits},
+				},
+			},
+			expectedEncoding: []byte{emptyVariant.bits},
+		},
 		"clean leaf with encoding": {
 			node: &Node{
 				Encoding: []byte{1, 2, 3},

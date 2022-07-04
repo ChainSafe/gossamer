@@ -23,6 +23,10 @@ var (
 		bits: 0b1100_0000,
 		mask: 0b1100_0000,
 	}
+	emptyVariant = variant{ // empty 0000 0000
+		bits: 0b0000_0000,
+		mask: 0b1111_1111,
+	}
 )
 
 // partialKeyLengthHeaderMask returns the partial key length
