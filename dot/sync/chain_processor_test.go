@@ -258,7 +258,8 @@ func Test_chainProcessor_handleJustification(t *testing.T) {
 		"invalid justification": {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
 				mockFinalityGadget := NewMockFinalityGadget(ctrl)
-				mockFinalityGadget.EXPECT().VerifyBlockJustification(expectedHash, []byte(`x`)).Return(errors.New("error"))
+				mockFinalityGadget.EXPECT().VerifyBlockJustification(expectedHash,
+					[]byte(`x`)).Return(nil, errors.New("error"))
 				return chainProcessor{
 					finalityGadget: mockFinalityGadget,
 				}
@@ -275,7 +276,7 @@ func Test_chainProcessor_handleJustification(t *testing.T) {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().SetJustification(expectedHash, []byte(`xx`)).Return(errors.New("fake error"))
 				mockFinalityGadget := NewMockFinalityGadget(ctrl)
-				mockFinalityGadget.EXPECT().VerifyBlockJustification(expectedHash, []byte(`xx`)).Return(nil)
+				mockFinalityGadget.EXPECT().VerifyBlockJustification(expectedHash, []byte(`xx`)).Return([]byte(`xx`), nil)
 				return chainProcessor{
 					blockState:     mockBlockState,
 					finalityGadget: mockFinalityGadget,
@@ -293,7 +294,7 @@ func Test_chainProcessor_handleJustification(t *testing.T) {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().SetJustification(expectedHash, []byte(`1234`)).Return(nil)
 				mockFinalityGadget := NewMockFinalityGadget(ctrl)
-				mockFinalityGadget.EXPECT().VerifyBlockJustification(expectedHash, []byte(`1234`)).Return(nil)
+				mockFinalityGadget.EXPECT().VerifyBlockJustification(expectedHash, []byte(`1234`)).Return([]byte(`1234`), nil)
 				return chainProcessor{
 					blockState:     mockBlockState,
 					finalityGadget: mockFinalityGadget,
@@ -417,7 +418,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 				mockFinalityGadget := NewMockFinalityGadget(ctrl)
 				mockFinalityGadget.EXPECT().VerifyBlockJustification(common.MustHexToHash(
 					"0x6443a0b46e0412e626363028115a9f2cf963eeed526b8b33e5316f08b50d0dc3"), []byte{1, 2,
-					3})
+					3}).Return([]byte{1, 2, 3}, nil)
 				mockStorageState := NewMockStorageState(ctrl)
 				mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(nil, nil)
 				mockBlockImportHandler := NewMockBlockImportHandler(ctrl)
@@ -452,7 +453,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 				mockFinalityGadget := NewMockFinalityGadget(ctrl)
 				mockFinalityGadget.EXPECT().VerifyBlockJustification(common.MustHexToHash(
 					"0x6443a0b46e0412e626363028115a9f2cf963eeed526b8b33e5316f08b50d0dc3"), []byte{1, 2,
-					3})
+					3}).Return([]byte{1, 2, 3}, nil)
 				mockStorageState := NewMockStorageState(ctrl)
 				mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(nil, mockError)
 				return chainProcessor{
@@ -484,7 +485,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 				mockFinalityGadget := NewMockFinalityGadget(ctrl)
 				mockFinalityGadget.EXPECT().VerifyBlockJustification(common.MustHexToHash(
 					"0x6443a0b46e0412e626363028115a9f2cf963eeed526b8b33e5316f08b50d0dc3"), []byte{1, 2,
-					3})
+					3}).Return([]byte{1, 2, 3}, nil)
 				mockStorageState := NewMockStorageState(ctrl)
 				mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(nil, nil)
 				mockBlockImportHandler := NewMockBlockImportHandler(ctrl)
@@ -687,7 +688,8 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 				mockTelemetry.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 				mockFinalityGadget := NewMockFinalityGadget(ctrl)
 				mockFinalityGadget.EXPECT().VerifyBlockJustification(
-					common.MustHexToHash("0xdcdd89927d8a348e00257e1ecc8617f45edb5118efff3ea2f9961b2ad9b7690a"), justification)
+					common.MustHexToHash("0xdcdd89927d8a348e00257e1ecc8617f45edb5118efff3ea2f9961b2ad9b7690a"),
+					justification).Return(justification, nil)
 				return chainProcessor{
 					blockState:         mockBlockState,
 					babeVerifier:       mockBabeVerifier,
