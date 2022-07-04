@@ -68,16 +68,21 @@ func (d *InherentsData) SetInt64Inherent(key []byte, data uint64) error {
 	return nil
 }
 
-// SetBytesInherent sets an inherent of type bytes.
-func (d *InherentsData) SetBytesInherent(key, value []byte) error {
+// SetStructInherent sets a struct inherent.
+func (d *InherentsData) SetStructInherent(key []byte, value interface{}) error {
 	if len(key) != 8 {
 		return errors.New("inherent key must be 8 bytes")
 	}
 
+	venc, err := scale.Marshal(value)
+	if err != nil {
+		return err
+	}
+
 	kb := [8]byte{}
 	copy(kb[:], key)
-	d.data[kb] = value
 
+	d.data[kb] = venc
 	return nil
 }
 
