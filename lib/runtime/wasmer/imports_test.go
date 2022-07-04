@@ -1797,12 +1797,8 @@ func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 	root := hash.ToBytes()
 	otherRoot := otherHash.ToBytes()
 
-	var allProofs [][]byte
-	for _, key := range keys {
-		singleProof, err := proof.Generate(root, key, memdb)
-		require.NoError(t, err)
-		allProofs = append(allProofs, singleProof...)
-	}
+	allProofs, err := proof.Generate(root, keys, memdb)
+	require.NoError(t, err)
 
 	testcases := map[string]struct {
 		root, key, value []byte

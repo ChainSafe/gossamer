@@ -27,7 +27,7 @@ func Test_Generate(t *testing.T) {
 
 	testCases := map[string]struct {
 		rootHash          []byte
-		fullKey           []byte // nibbles
+		fullKeysNibbles   [][]byte
 		databaseBuilder   func(ctrl *gomock.Controller) Database
 		encodedProofNodes [][]byte
 		errWrapped        error
@@ -48,7 +48,8 @@ func Test_Generate(t *testing.T) {
 				"test error",
 		},
 		"walk error": {
-			rootHash: someHash,
+			rootHash:        someHash,
+			fullKeysNibbles: [][]byte{{1}},
 			databaseBuilder: func(ctrl *gomock.Controller) Database {
 				mockDatabase := NewMockDatabase(ctrl)
 				encodedRoot := encodeNode(t, node.Node{
@@ -59,12 +60,12 @@ func Test_Generate(t *testing.T) {
 					Return(encodedRoot, nil)
 				return mockDatabase
 			},
-			fullKey:    []byte{1},
 			errWrapped: ErrKeyNotFound,
 			errMessage: "walking to node at key 0x01: key not found",
 		},
 		"leaf root": {
-			rootHash: someHash,
+			rootHash:        someHash,
+			fullKeysNibbles: [][]byte{{}},
 			databaseBuilder: func(ctrl *gomock.Controller) Database {
 				mockDatabase := NewMockDatabase(ctrl)
 				encodedRoot := encodeNode(t, node.Node{
@@ -83,7 +84,8 @@ func Test_Generate(t *testing.T) {
 			},
 		},
 		"branch root": {
-			rootHash: someHash,
+			rootHash:        someHash,
+			fullKeysNibbles: [][]byte{{}},
 			databaseBuilder: func(ctrl *gomock.Controller) Database {
 				mockDatabase := NewMockDatabase(ctrl)
 				encodedRoot := encodeNode(t, node.Node{
@@ -115,6 +117,108 @@ func Test_Generate(t *testing.T) {
 				}),
 			},
 		},
+		"target leaf of branch": {
+			rootHash: someHash,
+			fullKeysNibbles: [][]byte{
+				{1, 2, 3, 4},
+			},
+			databaseBuilder: func(ctrl *gomock.Controller) Database {
+				mockDatabase := NewMockDatabase(ctrl)
+				encodedRoot := encodeNode(t, node.Node{
+					Key:   []byte{1, 2},
+					Value: []byte{2},
+					Children: padRightChildren([]*node.Node{
+						nil, nil, nil,
+						{ // full key 1, 2, 3, 4
+							Key:   []byte{4},
+							Value: []byte{4},
+						},
+					}),
+				})
+				mockDatabase.EXPECT().Get(someHash).
+					Return(encodedRoot, nil)
+				return mockDatabase
+			},
+			encodedProofNodes: [][]byte{
+				encodeNode(t, node.Node{
+					Key:   []byte{1, 2},
+					Value: []byte{2},
+					Children: padRightChildren([]*node.Node{
+						nil, nil, nil,
+						{
+							Key:   []byte{4},
+							Value: []byte{4},
+						},
+					}),
+				}),
+				encodeNode(t, node.Node{
+					Key:   []byte{4},
+					Value: []byte{4},
+				}),
+			},
+		},
+		"deduplicate proof nodes": {
+			rootHash: someHash,
+			fullKeysNibbles: [][]byte{
+				{1, 2, 3, 4},
+				{1, 2, 4, 4},
+				{1, 2, 5, 4},
+			},
+			databaseBuilder: func(ctrl *gomock.Controller) Database {
+				mockDatabase := NewMockDatabase(ctrl)
+				encodedRoot := encodeNode(t, node.Node{
+					Key:   []byte{1, 2},
+					Value: []byte{2},
+					Children: padRightChildren([]*node.Node{
+						nil, nil, nil,
+						{ // full key 1, 2, 3, 4
+							Key:   []byte{4},
+							Value: []byte{4},
+						},
+						{ // full key 1, 2, 4, 4
+							Key:   []byte{4},
+							Value: []byte{4},
+						},
+						{ // full key 1, 2, 5, 4
+							Key:   []byte{4},
+							Value: []byte{5},
+						},
+					}),
+				})
+				mockDatabase.EXPECT().Get(someHash).
+					Return(encodedRoot, nil)
+				return mockDatabase
+			},
+			encodedProofNodes: [][]byte{
+				encodeNode(t, node.Node{
+					Key:   []byte{1, 2},
+					Value: []byte{2},
+					Children: padRightChildren([]*node.Node{
+						nil, nil, nil,
+						{ // full key 1, 2, 3, 4
+							Key:   []byte{4},
+							Value: []byte{4},
+						},
+						{ // full key 1, 2, 4, 4
+							Key:   []byte{4},
+							Value: []byte{4},
+						},
+						{ // full key 1, 2, 5, 4
+							Key:   []byte{4},
+							Value: []byte{5},
+						},
+					}),
+				}),
+				encodeNode(t, node.Node{
+					Key:   []byte{4},
+					Value: []byte{4},
+				}),
+				encodeNode(t, node.Node{
+					Key:   []byte{4},
+					Value: []byte{5},
+				}),
+			},
+		},
 	}
 
 	for name, testCase := range testCases {
@@ -124,9 +228,13 @@ func Test_Generate(t *testing.T) {
 			ctrl := gomock.NewController(t)
 
 			database := testCase.databaseBuilder(ctrl)
+			fullKeysLE := make([][]byte, len(testCase.fullKeysNibbles))
+			for i, fullKeyNibbles := range testCase.fullKeysNibbles {
+				fullKeysLE[i] = codec.NibblesToKeyLE(fullKeyNibbles)
+			}
 
 			encodedProofNodes, err := Generate(testCase.rootHash,
-				testCase.fullKey, database)
+				fullKeysLE, database)
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if testCase.errWrapped != nil {

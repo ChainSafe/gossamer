@@ -41,7 +41,8 @@ func Test_Generate_Verify(t *testing.T) {
 	require.NoError(t, err)
 
 	for i, key := range keys {
-		proof, err := Generate(rootHash.ToBytes(), []byte(key), database)
+		fullKeys := [][]byte{[]byte(key)}
+		proof, err := Generate(rootHash.ToBytes(), fullKeys, database)
 		require.NoError(t, err)
 
 		expectedValue := fmt.Sprintf("%x-%d", key, i)

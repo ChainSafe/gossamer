@@ -24,24 +24,43 @@ type Database interface {
 	Get(key []byte) (value []byte, err error)
 }
 
-// Generate returns the encoded proof nodes for the trie
-// corresponding to the root hash given, and for the (Little Endian)
-// full key given. The database given is used to load the trie
-// using the root hash given.
-func Generate(rootHash []byte, fullKey []byte, database Database) (
+// Generate generates and deduplicates the encoded proof nodes
+// for the trie corresponding to the root hash given, and for
+// the slice of (Little Endian) full keys given. The database given
+// is used to load the trie using the root hash given.
+func Generate(rootHash []byte, fullKeys [][]byte, database Database) (
 	encodedProofNodes [][]byte, err error) {
 	trie := trie.NewEmptyTrie()
 	if err := trie.Load(database, common.BytesToHash(rootHash)); err != nil {
 		return nil, fmt.Errorf("loading trie: %w", err)
 	}
-
 	rootNode := trie.RootNode()
-	fullKeyNibbles := codec.KeyLEToNibbles(fullKey)
-	encodedProofNodes, err = walk(rootNode, fullKeyNibbles)
-	if err != nil {
-		// Note we wrap the full key context here since walk is recursive and
-		// may not be aware of the initial full key.
-		return nil, fmt.Errorf("walking to node at key 0x%x: %w", fullKey, err)
+
+	hashesSeen := make(map[string]struct{})
+	for _, fullKey := range fullKeys {
+		fullKeyNibbles := codec.KeyLEToNibbles(fullKey)
+		newEncodedProofNodes, err := walk(rootNode, fullKeyNibbles)
+		if err != nil {
+			// Note we wrap the full key context here since walk is recursive and
+			// may not be aware of the initial full key.
+			return nil, fmt.Errorf("walking to node at key 0x%x: %w", fullKey, err)
+		}
+
+		for _, encodedProofNode := range newEncodedProofNodes {
+			digest, err := common.Blake2bHash(encodedProofNode)
+			if err != nil {
+				return nil, fmt.Errorf("blake2b hash: %w", err)
+			}
+			hashString := string(digest.ToBytes())
+
+			_, seen := hashesSeen[hashString]
+			if seen {
+				continue
+			}
+			hashesSeen[hashString] = struct{}{}
+
+			encodedProofNodes = append(encodedProofNodes, encodedProofNode)
+		}
 	}
 
 	return encodedProofNodes, nil
