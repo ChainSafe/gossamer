@@ -12,7 +12,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/lib/common"
 	libutils "github.com/ChainSafe/gossamer/lib/utils"
-	"github.com/ChainSafe/gossamer/tests/utils"
 	"github.com/ChainSafe/gossamer/tests/utils/config"
 	"github.com/ChainSafe/gossamer/tests/utils/node"
 	"github.com/ChainSafe/gossamer/tests/utils/rpc"
@@ -20,11 +19,6 @@ import (
 )
 
 func TestStateRPCResponseValidation(t *testing.T) {
-	if utils.MODE != rpcSuite {
-		t.Log("Going to skip RPC suite tests")
-		return
-	}
-
 	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
 	tomlConfig := config.Default()
 	tomlConfig.Init.Genesis = genesisPath
@@ -168,11 +162,6 @@ func TestStateRPCResponseValidation(t *testing.T) {
 }
 
 func TestStateRPCAPI(t *testing.T) {
-	if utils.MODE != rpcSuite {
-		t.Log("Going to skip RPC suite tests")
-		return
-	}
-
 	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
 	tomlConfig := config.Default()
 	tomlConfig.Init.Genesis = genesisPath
@@ -374,11 +363,6 @@ func TestStateRPCAPI(t *testing.T) {
 }
 
 func TestRPCStructParamUnmarshal(t *testing.T) {
-	if utils.MODE != rpcSuite {
-		t.Log("Going to skip RPC suite tests")
-		return
-	}
-
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
 	tomlConfig := config.Default()
 	tomlConfig.Core.BABELead = true

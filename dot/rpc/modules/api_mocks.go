@@ -27,8 +27,8 @@ func NewMockStorageAPI() *modulesmocks.StorageAPI {
 	return m
 }
 
-// NewMockBlockAPI creates and return an rpc BlockAPI interface mock
-func NewMockBlockAPI() *modulesmocks.BlockAPI {
+// NewMockeryBlockAPI creates and return an rpc BlockAPI interface mock
+func NewMockeryBlockAPI() *modulesmocks.BlockAPI {
 	m := new(modulesmocks.BlockAPI)
 	m.On("GetHeader", mock.AnythingOfType("common.Hash")).Return(nil, nil)
 	m.On("BestBlockHash").Return(common.Hash{})
