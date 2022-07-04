@@ -45,8 +45,7 @@ func (n *Node) Encode(buffer Buffer) (err error) {
 
 	// check value is not nil for branch nodes, even though
 	// leaf nodes always have a non-nil value.
-	if n.Type() == Leaf || n.Value != nil {
-		// TODO remove `n.Type() == Leaf` and update tests
+	if n.Value != nil {
 		encodedValue, err := scale.Marshal(n.Value) // TODO scale encoder to write to buffer
 		if err != nil {
 			return fmt.Errorf("cannot scale encode value: %w", err)

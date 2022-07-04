@@ -108,7 +108,7 @@ func Test_encodeHeader(t *testing.T) {
 			errMessage: "test error",
 		},
 		"leaf with no key": {
-			node: &Node{},
+			node: &Node{Value: []byte{1}},
 			writes: []writeCall{
 				{written: []byte{leafVariant.bits}},
 			},
