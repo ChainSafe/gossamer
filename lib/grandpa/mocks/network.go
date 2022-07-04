@@ -21,13 +21,13 @@ func (_m *Network) GossipMessage(msg network.NotificationsMessage) {
 	_m.Called(msg)
 }
 
-// RegisterNotificationsProtocol provides a mock function with given fields: sub, messageID, handshakeGetter, handshakeDecoder, handshakeValidator, messageDecoder, messageHandler, batchHandler
-func (_m *Network) RegisterNotificationsProtocol(sub protocol.ID, messageID byte, handshakeGetter func() (network.Handshake, error), handshakeDecoder func([]byte) (network.Handshake, error), handshakeValidator func(peer.ID, network.Handshake) error, messageDecoder func([]byte) (network.NotificationsMessage, error), messageHandler func(peer.ID, network.NotificationsMessage) (bool, error), batchHandler func(peer.ID, network.NotificationsMessage)) error {
-	ret := _m.Called(sub, messageID, handshakeGetter, handshakeDecoder, handshakeValidator, messageDecoder, messageHandler, batchHandler)
+// RegisterNotificationsProtocol provides a mock function with given fields: sub, messageID, handshakeGetter, handshakeDecoder, handshakeValidator, messageDecoder, messageHandler, batchHandler, maxSize
+func (_m *Network) RegisterNotificationsProtocol(sub protocol.ID, messageID byte, handshakeGetter func() (network.Handshake, error), handshakeDecoder func([]byte) (network.Handshake, error), handshakeValidator func(peer.ID, network.Handshake) error, messageDecoder func([]byte) (network.NotificationsMessage, error), messageHandler func(peer.ID, network.NotificationsMessage) (bool, error), batchHandler func(peer.ID, network.NotificationsMessage), maxSize uint64) error {
+	ret := _m.Called(sub, messageID, handshakeGetter, handshakeDecoder, handshakeValidator, messageDecoder, messageHandler, batchHandler, maxSize)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(protocol.ID, byte, func() (network.Handshake, error), func([]byte) (network.Handshake, error), func(peer.ID, network.Handshake) error, func([]byte) (network.NotificationsMessage, error), func(peer.ID, network.NotificationsMessage) (bool, error), func(peer.ID, network.NotificationsMessage)) error); ok {
-		r0 = rf(sub, messageID, handshakeGetter, handshakeDecoder, handshakeValidator, messageDecoder, messageHandler, batchHandler)
+	if rf, ok := ret.Get(0).(func(protocol.ID, byte, func() (network.Handshake, error), func([]byte) (network.Handshake, error), func(peer.ID, network.Handshake) error, func([]byte) (network.NotificationsMessage, error), func(peer.ID, network.NotificationsMessage) (bool, error), func(peer.ID, network.NotificationsMessage), uint64) error); ok {
+		r0 = rf(sub, messageID, handshakeGetter, handshakeDecoder, handshakeValidator, messageDecoder, messageHandler, batchHandler, maxSize)
 	} else {
 		r0 = ret.Error(0)
 	}
