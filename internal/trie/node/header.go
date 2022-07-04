@@ -16,19 +16,19 @@ func encodeHeader(node *Node, writer io.Writer) (err error) {
 		panic(fmt.Sprintf("partial key length is too big: %d", partialKeyLength))
 	}
 
-	// Merge variant byte and partial key length together
-	var variant variant
+	// Merge nodeVariant byte and partial key length together
+	var nodeVariant variant
 	if node.Kind() == Leaf {
-		variant = leafVariant
+		nodeVariant = leafVariant
 	} else if node.StorageValue == nil {
-		variant = branchVariant
+		nodeVariant = branchVariant
 	} else {
-		variant = branchWithValueVariant
+		nodeVariant = branchWithValueVariant
 	}
 
 	buffer := make([]byte, 1)
-	buffer[0] = variant.bits
-	partialKeyLengthMask := ^variant.mask
+	buffer[0] = nodeVariant.bits
+	partialKeyLengthMask := ^nodeVariant.mask
 
 	if partialKeyLength < int(partialKeyLengthMask) {
 		// Partial key length fits in header byte
@@ -70,24 +70,25 @@ var (
 	ErrPartialKeyTooBig = errors.New("partial key length cannot be larger than 2^16")
 )
 
-func decodeHeader(reader io.Reader) (variant byte,
+func decodeHeader(reader io.Reader) (nodeVariant variant,
 	partialKeyLength uint16, err error) {
 	buffer := make([]byte, 1)
 	_, err = reader.Read(buffer)
 	if err != nil {
-		return 0, 0, fmt.Errorf("reading header byte: %w", err)
+		return nodeVariant, 0, fmt.Errorf("reading header byte: %w", err)
 	}
 
-	variant, partialKeyLengthHeader, partialKeyLengthHeaderMask,
-		err := decodeHeaderByte(buffer[0])
+	nodeVariant, partialKeyLengthHeader, err := decodeHeaderByte(buffer[0])
 	if err != nil {
-		return 0, 0, fmt.Errorf("decoding header byte: %w", err)
+		return variant{}, 0, fmt.Errorf("decoding header byte: %w", err)
 	}
+
+	partialKeyLengthHeaderMask := nodeVariant.partialKeyLengthHeaderMask()
 
 	partialKeyLength = uint16(partialKeyLengthHeader)
 	if partialKeyLengthHeader < partialKeyLengthHeaderMask {
 		// partial key length is contained in the first byte.
-		return variant, partialKeyLength, nil
+		return nodeVariant, partialKeyLength, nil
 	}
 
 	// the partial key length header byte is equal to its maximum
@@ -100,7 +101,7 @@ func decodeHeader(reader io.Reader) (variant byte,
 	for {
 		_, err = reader.Read(buffer)
 		if err != nil {
-			return 0, 0, fmt.Errorf("reading key length: %w", err)
+			return variant{}, 0, fmt.Errorf("reading key length: %w", err)
 		}
 
 		previousKeyLength = partialKeyLength
@@ -111,12 +112,12 @@ func decodeHeader(reader io.Reader) (variant byte,
 			// maximum uint16 value; therefore if we overflowed, we went over
 			// this maximum.
 			overflowed := maxPartialKeyLength - previousKeyLength + partialKeyLength
-			return 0, 0, fmt.Errorf("%w: overflowed by %d", ErrPartialKeyTooBig, overflowed)
+			return variant{}, 0, fmt.Errorf("%w: overflowed by %d", ErrPartialKeyTooBig, overflowed)
 		}
 
 		if buffer[0] < 255 {
 			// the end of the partial key length has been reached.
-			return variant, partialKeyLength, nil
+			return nodeVariant, partialKeyLength, nil
 		}
 	}
 }
@@ -137,19 +138,20 @@ var variantsOrderedByBitMask = [...]variant{
 	branchWithValueVariant, // mask 1100_0000
 }
 
-func decodeHeaderByte(header byte) (variantBits,
-	partialKeyLengthHeader, partialKeyLengthHeaderMask byte, err error) {
+func decodeHeaderByte(header byte) (nodeVariant variant,
+	partialKeyLengthHeader byte, err error) {
+	var partialKeyLengthHeaderMask byte
 	for i := len(variantsOrderedByBitMask) - 1; i >= 0; i-- {
-		variantBits = header & variantsOrderedByBitMask[i].mask
-		if variantBits != variantsOrderedByBitMask[i].bits {
+		nodeVariant = variantsOrderedByBitMask[i]
+		variantBits := header & nodeVariant.mask
+		if variantBits != nodeVariant.bits {
 			continue
 		}
 
-		partialKeyLengthHeaderMask = ^variantsOrderedByBitMask[i].mask
+		partialKeyLengthHeaderMask = nodeVariant.partialKeyLengthHeaderMask()
 		partialKeyLengthHeader = header & partialKeyLengthHeaderMask
-		return variantBits, partialKeyLengthHeader,
-			partialKeyLengthHeaderMask, nil
+		return nodeVariant, partialKeyLengthHeader, nil
 	}
 
-	return 0, 0, 0, fmt.Errorf("%w: for header byte %08b", ErrVariantUnknown, header)
+	return variant{}, 0, fmt.Errorf("%w: for header byte %08b", ErrVariantUnknown, header)
 }

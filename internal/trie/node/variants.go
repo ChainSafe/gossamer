@@ -24,3 +24,11 @@ var (
 		mask: 0b1100_0000,
 	}
 )
+
+// partialKeyLengthHeaderMask returns the partial key length
+// header bit mask corresponding to the variant header bit mask.
+// For example for the leaf variant with variant mask 1100_000,
+// the partial key length header mask returned is 0011_1111.
+func (v variant) partialKeyLengthHeaderMask() byte {
+	return ^v.mask
+}
