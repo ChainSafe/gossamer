@@ -59,15 +59,16 @@ func Test_Node_Encode(t *testing.T) {
 		},
 		"leaf header encoding error": {
 			node: &Node{
-				Key: make([]byte, 63+(1<<16)),
+				Key: make([]byte, 1),
 			},
 			writes: []writeCall{
 				{
-					written: []byte{127},
+					written: []byte{leafVariant.bits | 1},
+					err:     errTest,
 				},
 			},
-			wrappedErr: ErrPartialKeyTooBig,
-			errMessage: "cannot encode header: partial key length cannot be larger than or equal to 2^16: 65536",
+			wrappedErr: errTest,
+			errMessage: "cannot encode header: test error",
 		},
 		"leaf buffer write error for encoded key": {
 			node: &Node{
@@ -75,10 +76,10 @@ func Test_Node_Encode(t *testing.T) {
 			},
 			writes: []writeCall{
 				{
-					written: []byte{67},
+					written: []byte{leafVariant.bits | 3}, // partial key length 3
 				},
 				{
-					written: []byte{1, 35},
+					written: []byte{0x01, 0x23},
 					err:     errTest,
 				},
 			},
@@ -92,10 +93,10 @@ func Test_Node_Encode(t *testing.T) {
 			},
 			writes: []writeCall{
 				{
-					written: []byte{67},
+					written: []byte{leafVariant.bits | 3}, // partial key length 3
 				},
 				{
-					written: []byte{1, 35},
+					written: []byte{0x01, 0x23},
 				},
 				{
 					written: []byte{12, 4, 5, 6},
@@ -112,10 +113,10 @@ func Test_Node_Encode(t *testing.T) {
 			},
 			writes: []writeCall{
 				{
-					written: []byte{67},
+					written: []byte{leafVariant.bits | 3}, // partial key length 3
 				},
 				{
-					written: []byte{1, 35},
+					written: []byte{0x01, 0x23},
 				},
 				{
 					written: []byte{12, 4, 5, 6},
@@ -153,15 +154,16 @@ func Test_Node_Encode(t *testing.T) {
 		"branch header encoding error": {
 			node: &Node{
 				Children: make([]*Node, ChildrenCapacity),
-				Key:      make([]byte, 63+(1<<16)),
+				Key:      make([]byte, 1),
 			},
 			writes: []writeCall{
 				{ // header
-					written: []byte{191},
+					written: []byte{branchVariant.bits | 1}, // partial key length 1
+					err:     errTest,
 				},
 			},
-			wrappedErr: ErrPartialKeyTooBig,
-			errMessage: "cannot encode header: partial key length cannot be larger than or equal to 2^16: 65536",
+			wrappedErr: errTest,
+			errMessage: "cannot encode header: test error",
 		},
 		"buffer write error for encoded key": {
 			node: &Node{
@@ -171,10 +173,10 @@ func Test_Node_Encode(t *testing.T) {
 			},
 			writes: []writeCall{
 				{ // header
-					written: []byte{195},
+					written: []byte{branchWithValueVariant.bits | 3}, // partial key length 3
 				},
 				{ // key LE
-					written: []byte{1, 35},
+					written: []byte{0x01, 0x23},
 					err:     errTest,
 				},
 			},
@@ -192,10 +194,10 @@ func Test_Node_Encode(t *testing.T) {
 			},
 			writes: []writeCall{
 				{ // header
-					written: []byte{195},
+					written: []byte{branchWithValueVariant.bits | 3}, // partial key length 3
 				},
 				{ // key LE
-					written: []byte{1, 35},
+					written: []byte{0x01, 0x23},
 				},
 				{ // children bitmap
 					written: []byte{136, 0},
@@ -216,10 +218,10 @@ func Test_Node_Encode(t *testing.T) {
 			},
 			writes: []writeCall{
 				{ // header
-					written: []byte{195},
+					written: []byte{branchWithValueVariant.bits | 3}, // partial key length 3
 				},
 				{ // key LE
-					written: []byte{1, 35},
+					written: []byte{0x01, 0x23},
 				},
 				{ // children bitmap
 					written: []byte{136, 0},
@@ -243,10 +245,10 @@ func Test_Node_Encode(t *testing.T) {
 			},
 			writes: []writeCall{
 				{ // header
-					written: []byte{195},
+					written: []byte{branchWithValueVariant.bits | 3}, // partial key length 3
 				},
 				{ // key LE
-					written: []byte{1, 35},
+					written: []byte{0x01, 0x23},
 				},
 				{ // children bitmap
 					written: []byte{136, 0},
@@ -275,10 +277,10 @@ func Test_Node_Encode(t *testing.T) {
 			},
 			writes: []writeCall{
 				{ // header
-					written: []byte{195},
+					written: []byte{branchWithValueVariant.bits | 3}, // partial key length 3
 				},
 				{ // key LE
-					written: []byte{1, 35},
+					written: []byte{0x01, 0x23},
 				},
 				{ // children bitmap
 					written: []byte{136, 0},
