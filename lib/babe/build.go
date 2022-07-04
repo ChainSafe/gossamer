@@ -260,8 +260,12 @@ func buildBlockInherents(slot Slot, rt runtime.Instance) ([][]byte, error) {
 		return nil, err
 	}
 
-	idata.SetBytesInherent(types.Parachn0, bz)
-	idata.SetBytesInherent(types.Newheads, []byte{0})
+	if err = idata.SetBytesInherent(types.Parachn0, bz); err != nil {
+		return nil, err
+	}
+	if err = idata.SetBytesInherent(types.Newheads, []byte{0}); err != nil {
+		return nil, err
+	}
 
 	ienc, err := idata.Encode()
 	if err != nil {
