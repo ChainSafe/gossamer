@@ -282,7 +282,7 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 
 	seal, ok := sealItem.Value().(types.SealDigest)
 	if !ok {
-		return errLastDigestItemNotSeal
+		return fmt.Errorf("%w: got %T", errLastDigestItemNotSeal, sealItem.Value())
 	}
 
 	babePreDigest, err := b.verifyPreRuntimeDigest(&preDigest)
@@ -394,7 +394,7 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 
 		// same authority won't produce two different blocks at the same block number as primary block producer
 		if currentBlockProducerIndex == existingBlockProducerIndex &&
-			currentHash.Equal(header.Hash()) &&
+			!currentHash.Equal(header.Hash()) &&
 			isCurrentBlockProducerPrimary == isExistingBlockProducerPrimary {
 			return ErrProducerEquivocated
 		}
