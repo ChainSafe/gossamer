@@ -448,8 +448,6 @@ func (t *Trie) GetInsertedNodeHashes() (hashesSet map[common.Hash]struct{}, err 
 }
 
 func (t *Trie) getInsertedNodeHashes(n *Node, hashes map[common.Hash]struct{}) (err error) {
-	// TODO pass map of hashes or slice as argument to avoid copying
-	// and using more memory.
 	if n == nil || !n.Dirty {
 		return nil
 	}

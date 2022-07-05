@@ -42,7 +42,8 @@ func Test_Node_Copy(t *testing.T) {
 				Value: []byte{3, 4},
 				Children: padRightChildren([]*Node{
 					nil, nil, {
-						Key: []byte{9},
+						Key:   []byte{9},
+						Value: []byte{1},
 					},
 				}),
 				Dirty:      true,
@@ -55,7 +56,8 @@ func Test_Node_Copy(t *testing.T) {
 				Value: []byte{3, 4},
 				Children: padRightChildren([]*Node{
 					nil, nil, {
-						Key: []byte{9},
+						Key:   []byte{9},
+						Value: []byte{1},
 					},
 				}),
 				Dirty: true,
@@ -65,7 +67,8 @@ func Test_Node_Copy(t *testing.T) {
 			node: &Node{
 				Children: padRightChildren([]*Node{
 					nil, nil, {
-						Key: []byte{9},
+						Key:   []byte{9},
+						Value: []byte{1},
 					},
 				}),
 			},
@@ -75,7 +78,8 @@ func Test_Node_Copy(t *testing.T) {
 			expectedNode: &Node{
 				Children: padRightChildren([]*Node{
 					nil, nil, {
-						Key: []byte{9},
+						Key:   []byte{9},
+						Value: []byte{1},
 					},
 				}),
 			},
@@ -86,7 +90,8 @@ func Test_Node_Copy(t *testing.T) {
 				Value: []byte{3, 4},
 				Children: padRightChildren([]*Node{
 					nil, nil, {
-						Key: []byte{9},
+						Key:   []byte{9},
+						Value: []byte{1},
 					},
 				}),
 				Dirty:      true,
@@ -99,18 +104,14 @@ func Test_Node_Copy(t *testing.T) {
 				Value: []byte{3, 4},
 				Children: padRightChildren([]*Node{
 					nil, nil, {
-						Key: []byte{9},
+						Key:   []byte{9},
+						Value: []byte{1},
 					},
 				}),
 				Dirty:      true,
 				HashDigest: []byte{5},
 				Encoding:   []byte{6},
 			},
-		},
-		"empty leaf": {
-			node:         &Node{},
-			settings:     DefaultCopySettings,
-			expectedNode: &Node{},
 		},
 		"non empty leaf": {
 			node: &Node{
