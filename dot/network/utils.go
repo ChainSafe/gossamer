@@ -20,7 +20,7 @@ import (
 	"github.com/multiformats/go-multiaddr"
 )
 
-var (
+const (
 	// maxBlockRequestSize              uint64 = 1024 * 1024      // 1mb
 	maxBlockResponseSize uint64 = 1024 * 1024 * 16 // 16mb
 	// MaxGrandpaNotificationSize is maximum size for a grandpa notification message.
