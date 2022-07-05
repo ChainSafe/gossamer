@@ -392,8 +392,8 @@ func (nodeBuilder) createSystemService(cfg *types.SystemInfo, stateSrvc *state.S
 }
 
 // createGRANDPAService creates a new GRANDPA service
-func (nodeBuilder) createGRANDPAService(cfg *Config, st *state.Service, dh *digest.Handler,
-	ks keystore.Keystore, net *network.Service, telemetryMailer telemetry.Client) (*grandpa.Service, error) {
+func (nodeBuilder) createGRANDPAService(cfg *Config, st *state.Service, ks keystore.Keystore,
+	net *network.Service, telemetryMailer telemetry.Client) (*grandpa.Service, error) {
 	rt, err := st.Block.GetRuntime(nil)
 	if err != nil {
 		return nil, err
@@ -416,15 +416,14 @@ func (nodeBuilder) createGRANDPAService(cfg *Config, st *state.Service, dh *dige
 	}
 
 	gsCfg := &grandpa.Config{
-		LogLvl:        cfg.Log.FinalityGadgetLvl,
-		BlockState:    st.Block,
-		GrandpaState:  st.Grandpa,
-		DigestHandler: dh,
-		Voters:        voters,
-		Authority:     cfg.Core.GrandpaAuthority,
-		Network:       net,
-		Interval:      cfg.Core.GrandpaInterval,
-		Telemetry:     telemetryMailer,
+		LogLvl:       cfg.Log.FinalityGadgetLvl,
+		BlockState:   st.Block,
+		GrandpaState: st.Grandpa,
+		Voters:       voters,
+		Authority:    cfg.Core.GrandpaAuthority,
+		Network:      net,
+		Interval:     cfg.Core.GrandpaInterval,
+		Telemetry:    telemetryMailer,
 	}
 
 	if cfg.Core.GrandpaAuthority {
