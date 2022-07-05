@@ -758,7 +758,9 @@ func Test_ext_crypto_ed25519_public_keys_version_1(t *testing.T) {
 		copy(pubKeys[i][:], kp.Public().Encode())
 	}
 
-	sort.Slice(pubKeys, func(i int, j int) bool { return pubKeys[i][0] < pubKeys[j][0] })
+	sort.Slice(pubKeys, func(i int, j int) bool {
+		return bytes.Compare(pubKeys[i][:], pubKeys[j][:]) < 0
+	})
 
 	res, err := inst.Exec("rtm_ext_crypto_ed25519_public_keys_version_1", idData)
 	require.NoError(t, err)
@@ -771,7 +773,10 @@ func Test_ext_crypto_ed25519_public_keys_version_1(t *testing.T) {
 	err = scale.Unmarshal(out, &ret)
 	require.NoError(t, err)
 
-	sort.Slice(ret, func(i int, j int) bool { return ret[i][0] < ret[j][0] })
+	sort.Slice(ret, func(i int, j int) bool {
+		return bytes.Compare(ret[i][:], ret[j][:]) < 0
+	})
+
 	require.Equal(t, pubKeys, ret)
 }
 
