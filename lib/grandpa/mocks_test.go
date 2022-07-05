@@ -495,6 +495,21 @@ func (mr *MockGrandpaStateMockRecorder) GetSetIDByBlockNumber(arg0 interface{}) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSetIDByBlockNumber", reflect.TypeOf((*MockGrandpaState)(nil).GetSetIDByBlockNumber), arg0)
 }
 
+// NextGrandpaAuthorityChange mocks base method.
+func (m *MockGrandpaState) NextGrandpaAuthorityChange(arg0 common.Hash, arg1 uint) (uint, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "NextGrandpaAuthorityChange", arg0, arg1)
+	ret0, _ := ret[0].(uint)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// NextGrandpaAuthorityChange indicates an expected call of NextGrandpaAuthorityChange.
+func (mr *MockGrandpaStateMockRecorder) NextGrandpaAuthorityChange(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NextGrandpaAuthorityChange", reflect.TypeOf((*MockGrandpaState)(nil).NextGrandpaAuthorityChange), arg0, arg1)
+}
+
 // SetLatestRound mocks base method.
 func (m *MockGrandpaState) SetLatestRound(arg0 uint64) error {
 	m.ctrl.T.Helper()
