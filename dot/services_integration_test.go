@@ -298,9 +298,6 @@ func TestCreateGrandpaService(t *testing.T) {
 	err = builder.loadRuntime(cfg, ns, stateSrvc, ks, &network.Service{})
 	require.NoError(t, err)
 
-	dh, err := builder.createDigestHandler(cfg.Log.DigestLvl, stateSrvc)
-	require.NoError(t, err)
-
 	networkConfig := &network.Config{
 		BasePath:    t.TempDir(),
 		NoBootstrap: true,
@@ -311,7 +308,7 @@ func TestCreateGrandpaService(t *testing.T) {
 	testNetworkService, err := network.NewService(networkConfig)
 	require.NoError(t, err)
 
-	gs, err := builder.createGRANDPAService(cfg, stateSrvc, dh, ks.Gran, testNetworkService, nil)
+	gs, err := builder.createGRANDPAService(cfg, stateSrvc, ks.Gran, testNetworkService, nil)
 	require.NoError(t, err)
 	require.NotNil(t, gs)
 }

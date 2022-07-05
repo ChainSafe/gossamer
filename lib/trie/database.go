@@ -182,7 +182,7 @@ func (t *Trie) load(db chaindb.Database, n *Node) error {
 
 		hash := child.HashDigest
 
-		if len(hash) == 0 && child.Type() == node.Leaf {
+		if len(hash) == 0 {
 			// node has already been loaded inline
 			// just set encoding + hash digest
 			_, _, err := child.EncodeAndHash(false)
@@ -448,8 +448,6 @@ func (t *Trie) GetInsertedNodeHashes() (hashesSet map[common.Hash]struct{}, err 
 }
 
 func (t *Trie) getInsertedNodeHashes(n *Node, hashes map[common.Hash]struct{}) (err error) {
-	// TODO pass map of hashes or slice as argument to avoid copying
-	// and using more memory.
 	if n == nil || !n.Dirty {
 		return nil
 	}
