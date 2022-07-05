@@ -25,9 +25,12 @@ func TestStartGossamerAndPolkadotAPI(t *testing.T) {
 		return
 	}
 
+	err := utils.BuildGossamer()
+	require.NoError(t, err)
+
 	const nodePackageManager = "npm"
 	t.Logf("Checking %s is available...", nodePackageManager)
-	_, err := exec.LookPath(nodePackageManager)
+	_, err = exec.LookPath(nodePackageManager)
 	if err != nil {
 		t.Fatalf("%s is not available: %s", nodePackageManager, err)
 	}
@@ -46,6 +49,7 @@ func TestStartGossamerAndPolkadotAPI(t *testing.T) {
 	tomlConfig.Init.Genesis = libutils.GetDevGenesisSpecPathTest(t)
 	tomlConfig.Core.BABELead = true
 	tomlConfig.RPC.WS = true
+	tomlConfig.RPC.Modules = []string{"system", "author", "chain", "state", "dev", "rpc", "grandpa"}
 	n := node.New(t, tomlConfig)
 
 	ctx, cancel := context.WithCancel(context.Background())

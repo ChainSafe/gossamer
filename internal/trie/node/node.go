@@ -1,6 +1,8 @@
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
+// Package node defines the `Node` structure with methods
+// to be used in the modified Merkle-Patricia Radix-16 trie.
 package node
 
 import (
