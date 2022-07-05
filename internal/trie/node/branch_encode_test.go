@@ -218,11 +218,11 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 		"no children": {},
 		"first child not nil": {
 			children: []*Node{
-				{Key: []byte{1}},
+				{Key: []byte{1}, Value: []byte{2}},
 			},
 			writes: []writeCall{
 				{
-					written: []byte{12, 65, 1, 0},
+					written: []byte{16, 65, 1, 4, 2},
 				},
 			},
 		},
@@ -231,25 +231,25 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
-				{Key: []byte{1}},
+				{Key: []byte{1}, Value: []byte{2}},
 			},
 			writes: []writeCall{
 				{
-					written: []byte{12, 65, 1, 0},
+					written: []byte{16, 65, 1, 4, 2},
 				},
 			},
 		},
 		"first two children not nil": {
 			children: []*Node{
-				{Key: []byte{1}},
-				{Key: []byte{2}},
+				{Key: []byte{1}, Value: []byte{2}},
+				{Key: []byte{3}, Value: []byte{4}},
 			},
 			writes: []writeCall{
 				{
-					written: []byte{12, 65, 1, 0},
+					written: []byte{16, 65, 1, 4, 2},
 				},
 				{
-					written: []byte{12, 65, 2, 0},
+					written: []byte{16, 65, 3, 4, 4},
 				},
 			},
 		},
@@ -258,12 +258,12 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 				nil, nil, nil, nil,
 				nil, nil, nil, nil,
 				nil, nil, nil,
-				{Key: []byte{1}},
+				{Key: []byte{1}, Value: []byte{2}},
 				nil, nil, nil, nil,
 			},
 			writes: []writeCall{
 				{
-					written: []byte{12, 65, 1, 0},
+					written: []byte{16, 65, 1, 4, 2},
 					err:     errTest,
 				},
 			},
@@ -278,13 +278,13 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 				{
 					Key: []byte{1},
 					Children: []*Node{
-						{Key: []byte{1}},
+						{Key: []byte{1}, Value: []byte{2}},
 					},
 				},
 			},
 			writes: []writeCall{
 				{
-					written: []byte{32, 129, 1, 1, 0, 12, 65, 1, 0},
+					written: []byte{36, 129, 1, 1, 0, 16, 65, 1, 4, 2},
 				},
 			},
 		},
@@ -360,11 +360,11 @@ func Test_encodeChildrenSequentially(t *testing.T) {
 		"no children": {},
 		"first child not nil": {
 			children: []*Node{
-				{Key: []byte{1}},
+				{Key: []byte{1}, Value: []byte{2}},
 			},
 			writes: []writeCall{
 				{
-					written: []byte{12, 65, 1, 0},
+					written: []byte{16, 65, 1, 4, 2},
 				},
 			},
 		},
@@ -373,25 +373,25 @@ func Test_encodeChildrenSequentially(t *testing.T) {
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
-				{Key: []byte{1}},
+				{Key: []byte{1}, Value: []byte{2}},
 			},
 			writes: []writeCall{
 				{
-					written: []byte{12, 65, 1, 0},
+					written: []byte{16, 65, 1, 4, 2},
 				},
 			},
 		},
 		"first two children not nil": {
 			children: []*Node{
-				{Key: []byte{1}},
-				{Key: []byte{2}},
+				{Key: []byte{1}, Value: []byte{2}},
+				{Key: []byte{3}, Value: []byte{4}},
 			},
 			writes: []writeCall{
 				{
-					written: []byte{12, 65, 1, 0},
+					written: []byte{16, 65, 1, 4, 2},
 				},
 				{
-					written: []byte{12, 65, 2, 0},
+					written: []byte{16, 65, 3, 4, 4},
 				},
 			},
 		},
@@ -400,12 +400,12 @@ func Test_encodeChildrenSequentially(t *testing.T) {
 				nil, nil, nil, nil,
 				nil, nil, nil, nil,
 				nil, nil, nil,
-				{Key: []byte{1}},
+				{Key: []byte{1}, Value: []byte{2}},
 				nil, nil, nil, nil,
 			},
 			writes: []writeCall{
 				{
-					written: []byte{12, 65, 1, 0},
+					written: []byte{16, 65, 1, 4, 2},
 					err:     errTest,
 				},
 			},
@@ -457,13 +457,6 @@ func Test_encodeChild(t *testing.T) {
 		errMessage string
 	}{
 		"nil node": {},
-		"empty leaf child": {
-			child:     &Node{},
-			writeCall: true,
-			write: writeCall{
-				written: []byte{8, 64, 0},
-			},
-		},
 		"empty branch child": {
 			child: &Node{
 				Children: make([]*Node, ChildrenCapacity),
@@ -547,25 +540,15 @@ func Test_scaleEncodeHash(t *testing.T) {
 		wrappedErr error
 		errMessage string
 	}{
-		"empty leaf": {
-			node:     &Node{},
-			encoding: []byte{0x8, 0x40, 0},
-		},
-		"empty branch": {
-			node: &Node{
-				Children: make([]*Node, ChildrenCapacity),
-			},
-			encoding: []byte{0xc, 0x80, 0x0, 0x0},
-		},
-		"non empty branch": {
+		"branch": {
 			node: &Node{
 				Key:   []byte{1, 2},
 				Value: []byte{3, 4},
 				Children: []*Node{
-					nil, nil, {Key: []byte{9}},
+					nil, nil, {Key: []byte{9}, Value: []byte{1}},
 				},
 			},
-			encoding: []byte{0x2c, 0xc2, 0x12, 0x4, 0x0, 0x8, 0x3, 0x4, 0xc, 0x41, 0x9, 0x0},
+			encoding: []byte{0x30, 0xc2, 0x12, 0x4, 0x0, 0x8, 0x3, 0x4, 0x10, 0x41, 0x9, 0x4, 0x1},
 		},
 	}
 

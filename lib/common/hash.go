@@ -64,6 +64,12 @@ func (h Hash) String() string {
 	return fmt.Sprintf("0x%x", h[:])
 }
 
+// Short returns the first 4 bytes and the last 4 bytes of the hex string for the hash
+func (h Hash) Short() string {
+	const nBytes = 4
+	return fmt.Sprintf("0x%x...%x", h[:nBytes], h[len(h)-nBytes:])
+}
+
 // SetBytes sets the hash to the value of b.
 // If b is larger than len(h), b will be cropped from the left.
 func (h *Hash) SetBytes(b []byte) {

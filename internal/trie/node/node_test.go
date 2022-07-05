@@ -16,16 +16,6 @@ func Test_Node_String(t *testing.T) {
 		node *Node
 		s    string
 	}{
-		"empty leaf": {
-			node: &Node{},
-			s: `Leaf
-├── Generation: 0
-├── Dirty: false
-├── Key: nil
-├── Value: nil
-├── Calculated encoding: nil
-└── Calculated digest: nil`,
-		},
 		"leaf with value smaller than 1024": {
 			node: &Node{
 				Key:   []byte{1, 2},
