@@ -95,11 +95,6 @@ issues:
       text: "package comment should be of the form"
 
     - linters:
-        - revive
-      path: lib/runtime/life/
-      text: "don't use underscores in Go names;"
-
-    - linters:
         - nolintlint
       source: "^//nolint:revive"
 
