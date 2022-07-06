@@ -238,8 +238,6 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt runtime.Instance) []*t
 		logger.Debugf("build block applied extrinsic %s", extrinsic)
 		included = append(included, txn)
 	}
-
-	return included
 }
 
 func buildBlockInherents(slot Slot, rt runtime.Instance) ([][]byte, error) {
@@ -305,11 +303,6 @@ func (b *BlockBuilder) addToQueue(txs []*transaction.ValidTransaction) {
 			logger.Tracef("Added transaction with hash %s to queue", hash)
 		}
 	}
-}
-
-func hasSlotEnded(slot Slot) bool {
-	slotEnd := slot.start.Add(slot.duration * 2 / 3) // reserve last 1/3 of slot for block finalisation
-	return time.Since(slotEnd) >= 0
 }
 
 func extrinsicsToBody(inherents [][]byte, txs []*transaction.ValidTransaction) (types.Body, error) {
