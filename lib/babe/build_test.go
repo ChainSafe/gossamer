@@ -3,12 +3,12 @@
 package babe
 
 import (
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -42,7 +42,7 @@ func TestBlockBuilder_buildBlockExtrinsics(t *testing.T) {
 				transactionStateBuilder: func(ctrl *gomock.Controller) TransactionState {
 					mockTransactionState := NewMockTransactionState(ctrl)
 
-					call := mockTransactionState.EXPECT().Pop().Return(nil).AnyTimes()
+					call := mockTransactionState.EXPECT().Pop().Return(nil)
 
 					watcherOne := make(chan struct{})
 					close(watcherOne)
