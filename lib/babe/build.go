@@ -7,12 +7,12 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/ChainSafe/gossamer/lib/runtime"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	ethmetrics "github.com/ethereum/go-ethereum/metrics"
@@ -178,6 +178,7 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt runtime.Instance) []*t
 
 	for {
 		select {
+		case <-slot.tickerCancel:
 		case <-slotTimer.C:
 			return included
 		default:
@@ -193,6 +194,7 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt runtime.Instance) []*t
 				// check in case another goroutine popped the
 				// transaction before the Pop() call above.
 				retry = txn == nil
+			case <-slot.tickerCancel:
 			case <-slotTimer.C:
 				return included
 			}
