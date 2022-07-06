@@ -80,7 +80,7 @@ type PriorityQueue struct {
 	pq              priorityQueue
 	currOrder       uint64
 	txs             map[common.Hash]*Item
-	nextPushWatcher chan<- struct{}
+	nextPushWatcher chan struct{}
 	sync.Mutex
 }
 
@@ -149,16 +149,19 @@ func (spq *PriorityQueue) NewPushWatcher() (nextPushWatcher <-chan struct{}) {
 	spq.Lock()
 	defer spq.Unlock()
 
+	var ok bool
+
 	select {
-	case _, ok := <-spq.nextPushWatcher
+	case _, ok = <-spq.nextPushWatcher:
+
 	default:
 	}
-	var nextPushWatcheCh <-chan struct{}
-		if !ok {
-			nextPushWatcherCh := make(chan struct{})
-			spq.nextPushWatcher = nextPushWatcherCh
-		}
-	return nextPushWatcheCh
+	if ok {
+		return spq.nextPushWatcher
+	}
+	nextPushWatcherCh := make(chan struct{})
+	spq.nextPushWatcher = nextPushWatcherCh
+	return nextPushWatcherCh
 }
 
 // Pop removes the transaction with has the highest priority value from the queue and returns it.
