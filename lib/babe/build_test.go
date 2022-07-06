@@ -3,12 +3,12 @@
 package babe
 
 import (
-	"github.com/ChainSafe/gossamer/lib/runtime"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -17,7 +17,7 @@ import (
 func TestBlockBuilder_buildBlockExtrinsics(t *testing.T) {
 	type fields struct {
 		keypair                 *sr25519.Keypair
-		transactionStateBuilder func(ctrl *gomock.Controller) TransactionState
+		transactionStateBuilder func(ctrl *gomock.Controller, tickerCancel chan<- struct{}) TransactionState
 		blockState              BlockState
 		currentAuthorityIndex   uint32
 		preRuntimeDigest        *types.PreRuntimeDigest
@@ -35,20 +35,23 @@ func TestBlockBuilder_buildBlockExtrinsics(t *testing.T) {
 			args: args{
 				slot: Slot{
 					start:    time.Now(),
-					duration: time.Second,
+					duration: time.Minute,
 				},
 			},
 			fields: fields{
-				transactionStateBuilder: func(ctrl *gomock.Controller) TransactionState {
+				transactionStateBuilder: func(ctrl *gomock.Controller, tickerCancel chan<- struct{}) TransactionState {
 					mockTransactionState := NewMockTransactionState(ctrl)
 
-					call := mockTransactionState.EXPECT().Pop().Return(nil)
+					mockTransactionState.EXPECT().Pop().DoAndReturn(func() (*transaction.ValidTransaction, error) {
+						tickerCancel <- struct{}{}
+						return nil, nil
+					})
 
-					watcherOne := make(chan struct{})
-					close(watcherOne)
-					call = mockTransactionState.EXPECT().NewPushWatcher().
-						Return(watcherOne).After(call).AnyTimes()
-					mockTransactionState.EXPECT().Pop().Return(nil).AnyTimes()
+					//watcherOne := make(chan struct{})
+					//close(watcherOne)
+					//call = mockTransactionState.EXPECT().NewPushWatcher().
+					//	Return(watcherOne).After(call).AnyTimes()
+					//mockTransactionState.EXPECT().Pop().Return(nil).AnyTimes()
 					return mockTransactionState
 				},
 			},
@@ -58,13 +61,15 @@ func TestBlockBuilder_buildBlockExtrinsics(t *testing.T) {
 		tt := tt
 		t.Run(name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
+			tickerCancel := make(chan struct{})
 			b := &BlockBuilder{
 				keypair:               tt.fields.keypair,
-				transactionState:      tt.fields.transactionStateBuilder(ctrl),
+				transactionState:      tt.fields.transactionStateBuilder(ctrl, tickerCancel),
 				blockState:            tt.fields.blockState,
 				currentAuthorityIndex: tt.fields.currentAuthorityIndex,
 				preRuntimeDigest:      tt.fields.preRuntimeDigest,
 			}
+			tt.args.slot.tickerCancel = tickerCancel
 			got := b.buildBlockExtrinsics(tt.args.slot, tt.args.rt)
 			assert.Equal(t, tt.want, got)
 		})
