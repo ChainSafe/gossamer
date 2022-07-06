@@ -35,23 +35,20 @@ func TestBlockBuilder_buildBlockExtrinsics(t *testing.T) {
 			args: args{
 				slot: Slot{
 					start:    time.Now(),
-					duration: time.Minute,
+					duration: time.Second,
 				},
 			},
 			fields: fields{
 				transactionStateBuilder: func(ctrl *gomock.Controller) TransactionState {
 					mockTransactionState := NewMockTransactionState(ctrl)
 
-					call := mockTransactionState.EXPECT().Pop().Return(nil)
+					call := mockTransactionState.EXPECT().Pop().Return(nil).AnyTimes()
 
 					watcherOne := make(chan struct{})
 					close(watcherOne)
 					call = mockTransactionState.EXPECT().NewPushWatcher().
-						Return(watcherOne).After(call)
-
-					poppedTransaction := &transaction.ValidTransaction{}
-					mockTransactionState.EXPECT().Pop().
-						Return(poppedTransaction).After(call)
+						Return(watcherOne).After(call).AnyTimes()
+					mockTransactionState.EXPECT().Pop().Return(nil).AnyTimes()
 					return mockTransactionState
 				},
 			},
