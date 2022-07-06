@@ -298,6 +298,7 @@ func getEquivocatoryVoters(votes []AuthData) map[ed25519.PublicKeyBytes]struct{}
 			voters[v.AuthorityID] = v.Signature
 		}
 	}
+
 	return eqvVoters
 }
 
