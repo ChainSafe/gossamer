@@ -623,7 +623,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 			name:     "last digest invalid",
 			verifier: verifier{},
 			header:   header1,
-			expErr:   errLastDigestItemNotSeal,
+			expErr:   fmt.Errorf("%w: got types.PreRuntimeDigest", errLastDigestItemNotSeal),
 		},
 		{
 			name:     "invalid preruntime digest data",
