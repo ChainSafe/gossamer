@@ -22,6 +22,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/lib/trie/proof"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1801,7 +1802,7 @@ func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 	root := hash.ToBytes()
 	otherRoot := otherHash.ToBytes()
 
-	proof, err := trie.GenerateProof(root, keys, memdb)
+	allProofs, err := proof.Generate(root, keys, memdb)
 	require.NoError(t, err)
 
 	testcases := map[string]struct {
@@ -1810,17 +1811,17 @@ func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 		expect           bool
 	}{
 		"Proof should be true": {
-			root: root, key: []byte("do"), proof: proof, value: []byte("verb"), expect: true},
+			root: root, key: []byte("do"), proof: allProofs, value: []byte("verb"), expect: true},
 		"Root empty, proof should be false": {
-			root: []byte{}, key: []byte("do"), proof: proof, value: []byte("verb"), expect: false},
+			root: []byte{}, key: []byte("do"), proof: allProofs, value: []byte("verb"), expect: false},
 		"Other root, proof should be false": {
-			root: otherRoot, key: []byte("do"), proof: proof, value: []byte("verb"), expect: false},
+			root: otherRoot, key: []byte("do"), proof: allProofs, value: []byte("verb"), expect: false},
 		"Value empty, proof should be true": {
-			root: root, key: []byte("do"), proof: proof, value: nil, expect: true},
+			root: root, key: []byte("do"), proof: allProofs, value: nil, expect: true},
 		"Unknow key, proof should be false": {
-			root: root, key: []byte("unknow"), proof: proof, value: nil, expect: false},
+			root: root, key: []byte("unknow"), proof: allProofs, value: nil, expect: false},
 		"Key and value unknow, proof should be false": {
-			root: root, key: []byte("unknow"), proof: proof, value: []byte("unknow"), expect: false},
+			root: root, key: []byte("unknow"), proof: allProofs, value: []byte("unknow"), expect: false},
 		"Empty proof, should be false": {
 			root: root, key: []byte("do"), proof: [][]byte{}, value: nil, expect: false},
 	}
