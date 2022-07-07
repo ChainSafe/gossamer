@@ -91,17 +91,16 @@ func (h *epochHandler) run(ctx context.Context, errCh chan<- error) {
 		}
 
 		startTime := getSlotStartTime(authoringSlot, h.constants.slotDuration)
-
 		waitTime := startTime.Sub(time.Now())
 		timer := time.NewTimer(waitTime)
 
 		slotTimeTimers = append(slotTimeTimers, &slotWithTimer{
 			timer:     timer,
-			startTime: startTime,
 			slotNum:   authoringSlot,
+			startTime: startTime,
 		})
 
-		logger.Debugf("start time of slot %d: %v", authoringSlot, startTime.UnixMilli())
+		logger.Debugf("start time of slot %d: %v", authoringSlot, startTime)
 	}
 
 	defer func() {
@@ -125,9 +124,10 @@ func (h *epochHandler) run(ctx context.Context, errCh chan<- error) {
 			// we must do a time correction as the slot timer sometimes is triggered
 			// before the time defined in the constructor due to an inconsistency
 			// of the language -> https://github.com/golang/go/issues/17696
-			diff := time.Now().Sub(swt.startTime).Nanoseconds()
+
+			diff := time.Since(swt.startTime)
 			if diff < 0 {
-				time.Sleep(-time.Duration(diff))
+				time.Sleep(-diff)
 			}
 
 			if _, has := h.slotToPreRuntimeDigest[swt.slotNum]; !has {
