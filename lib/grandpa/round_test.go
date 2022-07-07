@@ -80,6 +80,7 @@ func (*testNetwork) RegisterNotificationsProtocol(
 	_ network.MessageDecoder,
 	_ network.NotificationsMessageHandler,
 	_ network.NotificationsMessageBatchHandler,
+	_ uint64,
 ) error {
 	return nil
 }

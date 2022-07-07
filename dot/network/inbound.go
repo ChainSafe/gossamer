@@ -7,7 +7,8 @@ import (
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 )
 
-func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder, handler messageHandler) {
+func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder, handler messageHandler,
+	maxSize uint64) {
 	// we NEED to reset the stream if we ever return from this function, as if we return,
 	// the stream will never again be read by us, so we need to tell the remote side we're
 	// done with this stream, and they should also forget about it.
@@ -19,7 +20,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder
 	defer s.bufPool.Put(buffer)
 
 	for {
-		n, err := readStream(stream, buffer)
+		n, err := readStream(stream, buffer, maxSize)
 		if err != nil {
 			logger.Tracef(
 				"failed to read from stream id %s of peer %s using protocol %s: %s",
