@@ -110,7 +110,7 @@ func GetSlotFromHeader(header *Header) (uint64, error) {
 
 	preDigest, ok := header.Digest.Types[0].Value().(PreRuntimeDigest)
 	if !ok {
-		return 0, ErrNoFirstPreDigest
+		return 0, fmt.Errorf("%w: got %T", ErrNoFirstPreDigest, header.Digest.Types[0].Value())
 	}
 
 	digest, err := DecodeBabePreDigest(preDigest.Data)
@@ -143,7 +143,7 @@ func IsPrimary(header *Header) (bool, error) {
 
 	preDigest, ok := header.Digest.Types[0].Value().(PreRuntimeDigest)
 	if !ok {
-		return false, fmt.Errorf("%w: type=%T", ErrNoFirstPreDigest, header.Digest.Types[0].Value())
+		return false, fmt.Errorf("%w: got %T", ErrNoFirstPreDigest, header.Digest.Types[0].Value())
 	}
 
 	digest, err := DecodeBabePreDigest(preDigest.Data)
