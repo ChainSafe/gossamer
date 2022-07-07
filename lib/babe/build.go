@@ -60,7 +60,7 @@ type BlockBuilder struct {
 	blockState            BlockState
 	currentAuthorityIndex uint32
 	preRuntimeDigest      *types.PreRuntimeDigest
-	testSkipTimer         <-chan struct{}
+	testForceReturn       <-chan struct{}
 }
 
 // NewBlockBuilder creates a new block builder.
@@ -190,11 +190,17 @@ func (b *BlockBuilder) buildBlockSeal(header *types.Header) (*types.SealDigest, 
 func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt runtime.Instance) []*transaction.ValidTransaction {
 	var included []*transaction.ValidTransaction
 
-	slotTimer := time.NewTimer(slot.duration * 2 / 3)
+	slotEnd := slot.start.Add(slot.duration * 2 / 3) // reserve last 1/3 of slot for block finalisation
+	timeout := time.Until(slotEnd)
+	slotTimer := time.NewTimer(timeout)
 
 	for {
 		select {
-		case <-b.testSkipTimer:
+		case <-b.testForceReturn:
+			if !slotTimer.Stop() {
+				<-slotTimer.C
+			}
+			return included
 		case <-slotTimer.C:
 			return included
 		default:
@@ -210,7 +216,6 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt runtime.Instance) []*t
 				// check in case another goroutine popped the
 				// transaction before the Pop() call above.
 				retry = txn == nil
-			case <-b.testSkipTimer:
 			case <-slotTimer.C:
 				return included
 			}
