@@ -373,12 +373,7 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 			return fmt.Errorf("failed to verify pre-runtime digest: %w", err)
 		}
 
-		var isCurrentBlockProducerPrimary bool
-		switch currentBabePreDigest.(type) {
-		case types.BabePrimaryPreDigest:
-			isCurrentBlockProducerPrimary = true
-		default:
-		}
+		_, isCurrentBlockProducerPrimary := currentBabePreDigest.(types.BabePrimaryPreDigest)
 
 		var isExistingBlockProducerPrimary bool
 		var existingBlockProducerIndex uint32
