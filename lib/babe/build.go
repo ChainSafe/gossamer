@@ -187,7 +187,7 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt runtime.Instance) []*t
 		txn := b.transactionState.Pop()
 		retry := txn == nil // Transaction queue is empty.
 		for retry {
-			pushWatcher := b.transactionState.NewPushWatcher()
+			pushWatcher := b.transactionState.NextPushWatcher()
 			select {
 			case <-pushWatcher:
 				txn = b.transactionState.Pop()

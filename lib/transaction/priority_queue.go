@@ -136,24 +136,18 @@ func (spq *PriorityQueue) Push(txn *ValidTransaction) (common.Hash, error) {
 	heap.Push(&spq.pq, item)
 	spq.txs[hash] = item
 	if spq.nextPushWatcher != nil {
-		select {
-		case _, ok := <-spq.nextPushWatcher:
-			if ok {
-				close(spq.nextPushWatcher)
-			}
-		default:
-		}
+		close(spq.nextPushWatcher)
 	}
 
 	transactionQueueGauge.Set(float64(spq.pq.Len()))
 	return hash, nil
 }
 
-// NewPushWatcher returns a read only channel to be signalled
+// NextPushWatcher returns a read only channel to be signalled
 // when the next Push() is called on the queue.
 // Note the returned channel is closed when the Push() function
 // is called.
-func (spq *PriorityQueue) NewPushWatcher() (nextPushWatcher <-chan struct{}) {
+func (spq *PriorityQueue) NextPushWatcher() (nextPushWatcher <-chan struct{}) {
 	spq.Lock()
 	defer spq.Unlock()
 

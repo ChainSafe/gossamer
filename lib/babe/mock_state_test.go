@@ -462,18 +462,18 @@ func (m *MockTransactionState) EXPECT() *MockTransactionStateMockRecorder {
 	return m.recorder
 }
 
-// NewPushWatcher mocks base method.
-func (m *MockTransactionState) NewPushWatcher() <-chan struct{} {
+// NextPushWatcher mocks base method.
+func (m *MockTransactionState) NextPushWatcher() <-chan struct{} {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NewPushWatcher")
+	ret := m.ctrl.Call(m, "NextPushWatcher")
 	ret0, _ := ret[0].(<-chan struct{})
 	return ret0
 }
 
-// NewPushWatcher indicates an expected call of NewPushWatcher.
-func (mr *MockTransactionStateMockRecorder) NewPushWatcher() *gomock.Call {
+// NextPushWatcher indicates an expected call of NextPushWatcher.
+func (mr *MockTransactionStateMockRecorder) NextPushWatcher() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewPushWatcher", reflect.TypeOf((*MockTransactionState)(nil).NewPushWatcher))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NextPushWatcher", reflect.TypeOf((*MockTransactionState)(nil).NextPushWatcher))
 }
 
 // Peek mocks base method.

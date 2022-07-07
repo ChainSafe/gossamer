@@ -44,7 +44,7 @@ func TestBlockBuilder_buildBlockExtrinsics(t *testing.T) {
 
 					mockTransactionState.EXPECT().Pop().DoAndReturn(func() (*transaction.ValidTransaction, error) {
 						tickerCancel <- struct{}{}
-						return nil, nil
+						return nil, nil // nolint: nilnil
 					})
 
 					//watcherOne := make(chan struct{})
