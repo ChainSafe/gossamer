@@ -2323,7 +2323,7 @@ func ImportsNodeRuntime() (imports *wasm.Imports, err error) {
 		{"ext_transaction_index_index_version_1", ext_transaction_index_index_version_1, C.ext_transaction_index_index_version_1},
 		{"ext_transaction_index_renew_version_1", ext_transaction_index_renew_version_1, C.ext_transaction_index_renew_version_1},
 	} {
-		_, err = imports.Append(toRegister.importName, toRegister.implementation, toRegister.cgoPointer)
+		_, err = imports.AppendFunction(toRegister.importName, toRegister.implementation, toRegister.cgoPointer)
 		if err != nil {
 			return nil, fmt.Errorf("importing function: %w", err)
 		}
