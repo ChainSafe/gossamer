@@ -155,7 +155,6 @@ func (spq *PriorityQueue) NextPushWatcher() (nextPushWatcher <-chan struct{}) {
 
 	select {
 	case _, ok = <-spq.nextPushWatcher:
-
 	default:
 	}
 	if ok {
