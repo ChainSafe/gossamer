@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -730,63 +731,6 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	}
 }
 
-func TestVerificationManager_getConfigData(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	mockBlockState := NewMockBlockState(ctrl)
-	mockEpochStateEmpty := NewMockEpochState(ctrl)
-	mockEpochStateHasErr := NewMockEpochState(ctrl)
-	mockEpochStateGetErr := NewMockEpochState(ctrl)
-
-	testHeader := types.NewEmptyHeader()
-
-	mockEpochStateEmpty.EXPECT().HasConfigData(uint64(0)).Return(false, nil)
-	mockEpochStateHasErr.EXPECT().HasConfigData(uint64(0)).Return(false, errNoConfigData)
-	mockEpochStateGetErr.EXPECT().HasConfigData(uint64(0)).Return(true, nil)
-	mockEpochStateGetErr.EXPECT().GetConfigData(uint64(0), testHeader).Return(nil, errNoConfigData)
-
-	vm0, err := NewVerificationManager(mockBlockState, mockEpochStateEmpty)
-	assert.NoError(t, err)
-	vm1, err := NewVerificationManager(mockBlockState, mockEpochStateHasErr)
-	assert.NoError(t, err)
-	vm2, err := NewVerificationManager(mockBlockState, mockEpochStateGetErr)
-	assert.NoError(t, err)
-	tests := []struct {
-		name   string
-		vm     *VerificationManager
-		epoch  uint64
-		exp    *types.ConfigData
-		expErr error
-	}{
-		{
-			name:   "cant find ConfigData",
-			vm:     vm0,
-			expErr: errNoConfigData,
-		},
-		{
-			name:   "hasConfigData error",
-			vm:     vm1,
-			expErr: errNoConfigData,
-		},
-		{
-			name:   "getConfigData error",
-			vm:     vm2,
-			expErr: errNoConfigData,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			v := tt.vm
-			res, err := v.getConfigData(tt.epoch, testHeader)
-			if tt.expErr != nil {
-				assert.EqualError(t, err, tt.expErr.Error())
-			} else {
-				assert.NoError(t, err)
-			}
-			assert.Equal(t, tt.exp, res)
-		})
-	}
-}
-
 func TestVerificationManager_getVerifierInfo(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockBlockState := NewMockBlockState(ctrl)
@@ -797,13 +741,12 @@ func TestVerificationManager_getVerifierInfo(t *testing.T) {
 
 	testHeader := types.NewEmptyHeader()
 
-	mockEpochStateGetErr.EXPECT().GetEpochData(uint64(0), testHeader).Return(nil, errNoConfigData)
+	mockEpochStateGetErr.EXPECT().GetEpochData(uint64(0), testHeader).Return(nil, state.ErrEpochNotInMemory)
 
 	mockEpochStateHasErr.EXPECT().GetEpochData(uint64(0), testHeader).Return(&types.EpochData{}, nil)
-	mockEpochStateHasErr.EXPECT().HasConfigData(uint64(0)).Return(false, errNoConfigData)
+	mockEpochStateHasErr.EXPECT().GetConfigData(uint64(0), testHeader).Return(&types.ConfigData{}, state.ErrConfigNotFound)
 
 	mockEpochStateThresholdErr.EXPECT().GetEpochData(uint64(0), testHeader).Return(&types.EpochData{}, nil)
-	mockEpochStateThresholdErr.EXPECT().HasConfigData(uint64(0)).Return(true, nil)
 	mockEpochStateThresholdErr.EXPECT().GetConfigData(uint64(0), testHeader).
 		Return(&types.ConfigData{
 			C1: 3,
@@ -811,7 +754,6 @@ func TestVerificationManager_getVerifierInfo(t *testing.T) {
 		}, nil)
 
 	mockEpochStateOk.EXPECT().GetEpochData(uint64(0), testHeader).Return(&types.EpochData{}, nil)
-	mockEpochStateOk.EXPECT().HasConfigData(uint64(0)).Return(true, nil)
 	mockEpochStateOk.EXPECT().GetConfigData(uint64(0), testHeader).
 		Return(&types.ConfigData{
 			C1: 1,
@@ -837,12 +779,12 @@ func TestVerificationManager_getVerifierInfo(t *testing.T) {
 		{
 			name:   "getEpochData error",
 			vm:     vm0,
-			expErr: fmt.Errorf("failed to get epoch data for epoch %d: %w", 0, errNoConfigData),
+			expErr: fmt.Errorf("failed to get epoch data for epoch %d: %w", 0, state.ErrEpochNotInMemory),
 		},
 		{
 			name:   "getConfigData error",
 			vm:     vm1,
-			expErr: fmt.Errorf("failed to get config data: %w", errNoConfigData),
+			expErr: fmt.Errorf("failed to get config data: %w", state.ErrConfigNotFound),
 		},
 		{
 			name:   "calculate threshold error",

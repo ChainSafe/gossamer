@@ -93,6 +93,7 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 							14, 15, 16, 17,
 							10, 11, 12, 13,
 						},
+						Dirty: true,
 					},
 				}),
 			},
@@ -109,6 +110,7 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 							21, 186, 226, 204, 145,
 							132, 5, 39, 204,
 						},
+						Dirty: true,
 					},
 				}),
 				Dirty:       true,
@@ -127,12 +129,10 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 			err := testCase.branchToEncode.Encode(buffer)
 			require.NoError(t, err)
 
-			oneBuffer := make([]byte, 1)
-			_, err = buffer.Read(oneBuffer)
+			variant, partialKeyLength, err := decodeHeader(buffer)
 			require.NoError(t, err)
-			header := oneBuffer[0]
 
-			resultBranch, err := decodeBranch(buffer, header)
+			resultBranch, err := decodeBranch(buffer, variant, partialKeyLength)
 			require.NoError(t, err)
 
 			assert.Equal(t, testCase.branchDecoded, resultBranch)

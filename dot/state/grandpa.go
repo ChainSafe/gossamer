@@ -7,11 +7,21 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+)
+
+var (
+	errPendingScheduledChanges = errors.New("pending scheduled changes needs to be applied")
+	errDuplicateHashes         = errors.New("duplicated hashes")
+	errAlreadyHasForcedChange  = errors.New("already has a forced change")
+	errUnfinalizedAncestor     = errors.New("unfinalized ancestor")
+
+	ErrNoNextAuthorityChange = errors.New("no next authority change")
 )
 
 var (
@@ -26,40 +36,276 @@ var (
 
 // GrandpaState tracks information related to grandpa
 type GrandpaState struct {
-	db chaindb.Database
+	db         chaindb.Database
+	blockState *BlockState
+
+	forksLock sync.RWMutex
+
+	forcedChanges        *orderedPendingChanges
+	scheduledChangeRoots *changeTree
 }
 
 // NewGrandpaStateFromGenesis returns a new GrandpaState given the grandpa genesis authorities
-func NewGrandpaStateFromGenesis(db chaindb.Database, genesisAuthorities []types.GrandpaVoter) (*GrandpaState, error) {
+func NewGrandpaStateFromGenesis(db chaindb.Database, bs *BlockState,
+	genesisAuthorities []types.GrandpaVoter) (*GrandpaState, error) {
 	grandpaDB := chaindb.NewTable(db, grandpaPrefix)
 	s := &GrandpaState{
-		db: grandpaDB,
+		db:                   grandpaDB,
+		blockState:           bs,
+		scheduledChangeRoots: new(changeTree),
+		forcedChanges:        new(orderedPendingChanges),
 	}
 
 	if err := s.setCurrentSetID(genesisSetID); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot set current set id: %w", err)
 	}
 
 	if err := s.SetLatestRound(0); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot set latest round: %w", err)
 	}
 
 	if err := s.setAuthorities(genesisSetID, genesisAuthorities); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot set authorities: %w", err)
 	}
 
-	if err := s.setSetIDChangeAtBlock(genesisSetID, 0); err != nil {
-		return nil, err
+	if err := s.setChangeSetIDAtBlock(genesisSetID, 0); err != nil {
+		return nil, fmt.Errorf("cannot set change set id at block 0: %w", err)
 	}
 
 	return s, nil
 }
 
 // NewGrandpaState returns a new GrandpaState
-func NewGrandpaState(db chaindb.Database) (*GrandpaState, error) {
+func NewGrandpaState(db chaindb.Database, bs *BlockState) *GrandpaState {
 	return &GrandpaState{
-		db: chaindb.NewTable(db, grandpaPrefix),
-	}, nil
+		db:                   chaindb.NewTable(db, grandpaPrefix),
+		blockState:           bs,
+		scheduledChangeRoots: new(changeTree),
+		forcedChanges:        new(orderedPendingChanges),
+	}
+}
+
+// HandleGRANDPADigest receives a decoded GRANDPA digest and calls the right function to handles the digest
+func (s *GrandpaState) HandleGRANDPADigest(header *types.Header, digest scale.VaryingDataType) error {
+	switch val := digest.Value().(type) {
+	case types.GrandpaScheduledChange:
+		return s.addScheduledChange(header, val)
+	case types.GrandpaForcedChange:
+		return s.addForcedChange(header, val)
+	case types.GrandpaOnDisabled:
+		return nil
+	case types.GrandpaPause:
+		logger.Warn("GRANDPA Pause consensus message not implemented yet")
+		return nil
+	case types.GrandpaResume:
+		logger.Warn("GRANDPA Resume consensus message not implemented yet")
+		return nil
+	default:
+		return fmt.Errorf("not supported digest")
+	}
+}
+
+func (s *GrandpaState) addForcedChange(header *types.Header, fc types.GrandpaForcedChange) error {
+	auths, err := types.GrandpaAuthoritiesRawToAuthorities(fc.Auths)
+	if err != nil {
+		return fmt.Errorf("cannot parse GRANDPA authorities to raw authorities: %w", err)
+	}
+
+	pendingChange := pendingChange{
+		bestFinalizedNumber: fc.BestFinalizedBlock,
+		nextAuthorities:     auths,
+		announcingHeader:    header,
+		delay:               fc.Delay,
+	}
+
+	err = s.forcedChanges.importChange(pendingChange, s.blockState.IsDescendantOf)
+	if err != nil {
+		return fmt.Errorf("cannot import forced change: %w", err)
+	}
+
+	logger.Debugf("there are now %d possible forced changes", s.forcedChanges.Len())
+	return nil
+}
+
+func (s *GrandpaState) addScheduledChange(header *types.Header, sc types.GrandpaScheduledChange) error {
+	auths, err := types.GrandpaAuthoritiesRawToAuthorities(sc.Auths)
+	if err != nil {
+		return fmt.Errorf("cannot parse GRANPDA authorities to raw authorities: %w", err)
+	}
+
+	pendingChange := &pendingChange{
+		nextAuthorities:  auths,
+		announcingHeader: header,
+		delay:            sc.Delay,
+	}
+
+	err = s.scheduledChangeRoots.importChange(pendingChange, s.blockState.IsDescendantOf)
+	if err != nil {
+		return fmt.Errorf("cannot import scheduled change: %w", err)
+	}
+
+	logger.Debugf("there are now %d possible scheduled change roots", s.scheduledChangeRoots.Len())
+	return nil
+}
+
+// ApplyScheduledChanges will check the schedules changes in order to find a root
+// equal or behind the finalized number and will apply its authority set changes
+func (s *GrandpaState) ApplyScheduledChanges(finalizedHeader *types.Header) error {
+	finalizedHash := finalizedHeader.Hash()
+
+	err := s.forcedChanges.pruneChanges(finalizedHash, s.blockState.IsDescendantOf)
+	if err != nil {
+		return fmt.Errorf("cannot prune non-descendant forced changes: %w", err)
+	}
+
+	if s.scheduledChangeRoots.Len() == 0 {
+		return nil
+	}
+
+	changeToApply, err := s.scheduledChangeRoots.findApplicable(finalizedHash,
+		finalizedHeader.Number, s.blockState.IsDescendantOf)
+	if err != nil {
+		return fmt.Errorf("cannot get applicable scheduled change: %w", err)
+	}
+
+	if changeToApply == nil {
+		return nil
+	}
+
+	logger.Debugf("applying scheduled change: %s", changeToApply.change)
+
+	newSetID, err := s.IncrementSetID()
+	if err != nil {
+		return fmt.Errorf("cannot increment set id: %w", err)
+	}
+
+	grandpaVotersAuthorities := types.NewGrandpaVotersFromAuthorities(changeToApply.change.nextAuthorities)
+	err = s.setAuthorities(newSetID, grandpaVotersAuthorities)
+	if err != nil {
+		return fmt.Errorf("cannot set authorities: %w", err)
+	}
+
+	err = s.setChangeSetIDAtBlock(newSetID, changeToApply.change.effectiveNumber())
+	if err != nil {
+		return fmt.Errorf("cannot set the change set id at block: %w", err)
+	}
+
+	logger.Debugf("Applying authority set change scheduled at block #%d",
+		changeToApply.change.announcingHeader.Number)
+
+	// TODO: add afg.applying_scheduled_authority_set_change telemetry info here
+	return nil
+}
+
+// ApplyForcedChanges will check for if there is a scheduled forced change relative to the
+// imported block and then apply it otherwise nothing happens
+func (s *GrandpaState) ApplyForcedChanges(importedBlockHeader *types.Header) error {
+	forcedChange, err := s.forcedChanges.findApplicable(importedBlockHeader.Hash(),
+		importedBlockHeader.Number, s.blockState.IsDescendantOf)
+	if err != nil {
+		return fmt.Errorf("cannot find applicable forced change: %w", err)
+	} else if forcedChange == nil {
+		return nil
+	}
+
+	forcedChangeHash := forcedChange.announcingHeader.Hash()
+	bestFinalizedNumber := forcedChange.bestFinalizedNumber
+
+	dependant, err := s.scheduledChangeRoots.lookupChangeWhere(func(pcn *pendingChangeNode) (bool, error) {
+		if pcn.change.effectiveNumber() > uint(bestFinalizedNumber) {
+			return false, nil
+		}
+
+		scheduledBlockHash := pcn.change.announcingHeader.Hash()
+		return s.blockState.IsDescendantOf(scheduledBlockHash, forcedChangeHash)
+	})
+	if err != nil {
+		return fmt.Errorf("cannot check pending changes while applying forced change: %w", err)
+	} else if dependant != nil {
+		return fmt.Errorf("%w: %s", errPendingScheduledChanges, dependant.change)
+	}
+
+	logger.Debugf("applying forced change: %s", forcedChange)
+
+	// TODO: send the telemetry messages here
+	// afg.applying_forced_authority_set_change
+
+	currentSetID, err := s.GetCurrentSetID()
+	if err != nil {
+		return fmt.Errorf("cannot get current set id: %w", err)
+	}
+
+	err = s.setChangeSetIDAtBlock(currentSetID, uint(forcedChange.bestFinalizedNumber))
+	if err != nil {
+		return fmt.Errorf("cannot set change set id at block: %w", err)
+	}
+
+	newSetID, err := s.IncrementSetID()
+	if err != nil {
+		return fmt.Errorf("cannot increment set id: %w", err)
+	}
+
+	grandpaVotersAuthorities := types.NewGrandpaVotersFromAuthorities(forcedChange.nextAuthorities)
+	err = s.setAuthorities(newSetID, grandpaVotersAuthorities)
+	if err != nil {
+		return fmt.Errorf("cannot set authorities: %w", err)
+	}
+
+	err = s.setChangeSetIDAtBlock(newSetID, forcedChange.effectiveNumber())
+	if err != nil {
+		return fmt.Errorf("cannot set change set id at block")
+	}
+
+	logger.Debugf("Applying authority set forced change at block #%d",
+		forcedChange.announcingHeader.Number)
+
+	return nil
+}
+
+// NextGrandpaAuthorityChange returns the block number of the next upcoming grandpa authorities change.
+// It returns 0 if no change is scheduled.
+func (s *GrandpaState) NextGrandpaAuthorityChange(bestBlockHash common.Hash, bestBlockNumber uint) (
+	blockNumber uint, err error) {
+	forcedChange, err := s.forcedChanges.lookupChangeWhere(func(pc pendingChange) (bool, error) {
+		isDecendant, err := s.blockState.IsDescendantOf(pc.announcingHeader.Hash(), bestBlockHash)
+		if err != nil {
+			return false, fmt.Errorf("cannot check ancestry: %w", err)
+		}
+
+		return isDecendant && pc.effectiveNumber() <= bestBlockNumber, nil
+	})
+	if err != nil {
+		return 0, fmt.Errorf("cannot get forced change on chain of %s: %w",
+			bestBlockHash, err)
+	}
+
+	scheduledChangeNode, err := s.scheduledChangeRoots.lookupChangeWhere(func(pcn *pendingChangeNode) (bool, error) {
+		isDecendant, err := s.blockState.IsDescendantOf(pcn.change.announcingHeader.Hash(), bestBlockHash)
+		if err != nil {
+			return false, fmt.Errorf("cannot check ancestry: %w", err)
+		}
+
+		return isDecendant && pcn.change.effectiveNumber() <= bestBlockNumber, nil
+	})
+	if err != nil {
+		return 0, fmt.Errorf("cannot get forced change on chain of %s: %w",
+			bestBlockHash, err)
+	}
+
+	var next uint
+	if scheduledChangeNode != nil {
+		next = scheduledChangeNode.change.effectiveNumber()
+	}
+
+	if forcedChange != nil && (forcedChange.effectiveNumber() < next || next == 0) {
+		next = forcedChange.effectiveNumber()
+	}
+
+	if next == 0 {
+		return 0, ErrNoNextAuthorityChange
+	}
+
+	return next, nil
 }
 
 func authoritiesKey(setID uint64) []byte {
@@ -152,7 +398,7 @@ func (s *GrandpaState) SetNextChange(authorities []types.GrandpaVoter, number ui
 		return err
 	}
 
-	err = s.setSetIDChangeAtBlock(nextSetID, number)
+	err = s.setChangeSetIDAtBlock(nextSetID, number)
 	if err != nil {
 		return err
 	}
@@ -177,7 +423,7 @@ func (s *GrandpaState) IncrementSetID() (newSetID uint64, err error) {
 }
 
 // setSetIDChangeAtBlock sets a set ID change at a certain block
-func (s *GrandpaState) setSetIDChangeAtBlock(setID uint64, number uint) error {
+func (s *GrandpaState) setChangeSetIDAtBlock(setID uint64, number uint) error {
 	return s.db.Put(setIDChangeKey(setID), common.UintToBytes(number))
 }
 
@@ -206,8 +452,7 @@ func (s *GrandpaState) GetSetIDByBlockNumber(blockNumber uint) (uint64, error) {
 			}
 			curr = curr - 1
 			continue
-		}
-		if err != nil {
+		} else if err != nil {
 			return 0, err
 		}
 

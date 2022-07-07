@@ -118,3 +118,42 @@ func Test_Node_NumChildren(t *testing.T) {
 		})
 	}
 }
+
+func Test_Node_HasChild(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		node Node
+		has  bool
+	}{
+		"no child": {},
+		"one child at index 0": {
+			node: Node{
+				Children: []*Node{
+					{},
+				},
+			},
+			has: true,
+		},
+		"one child at index 1": {
+			node: Node{
+				Children: []*Node{
+					nil,
+					{},
+				},
+			},
+			has: true,
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			has := testCase.node.HasChild()
+
+			assert.Equal(t, testCase.has, has)
+		})
+	}
+}
