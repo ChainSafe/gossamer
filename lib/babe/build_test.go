@@ -35,23 +35,27 @@ func TestBlockBuilder_buildBlockExtrinsics(t *testing.T) {
 			args: args{
 				slot: Slot{
 					start:    time.Now(),
-					duration: time.Minute,
+					duration: 30 * time.Second,
 				},
 			},
 			fields: fields{
 				transactionStateBuilder: func(ctrl *gomock.Controller, tickerCancel chan<- struct{}) TransactionState {
 					mockTransactionState := NewMockTransactionState(ctrl)
 
-					mockTransactionState.EXPECT().Pop().DoAndReturn(func() (*transaction.ValidTransaction, error) {
+					call := mockTransactionState.EXPECT().Pop().DoAndReturn(func() (*transaction.ValidTransaction,
+						error) {
 						tickerCancel <- struct{}{}
+						t.Log("GOT TO HERE")
 						return nil, nil // nolint: nilnil
 					})
 
-					//watcherOne := make(chan struct{})
-					//close(watcherOne)
-					//call = mockTransactionState.EXPECT().NewPushWatcher().
-					//	Return(watcherOne).After(call).AnyTimes()
-					//mockTransactionState.EXPECT().Pop().Return(nil).AnyTimes()
+					watcherOne := make(chan struct{})
+					close(watcherOne)
+					call2 := mockTransactionState.EXPECT().NextPushWatcher().
+						Return(watcherOne).After(call)
+					call3 := mockTransactionState.EXPECT().Pop().Return(nil).After(call2)
+					mockTransactionState.EXPECT().NextPushWatcher().
+						Return(watcherOne).After(call3)
 					return mockTransactionState
 				},
 			},
@@ -61,15 +65,15 @@ func TestBlockBuilder_buildBlockExtrinsics(t *testing.T) {
 		tt := tt
 		t.Run(name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
-			tickerCancel := make(chan struct{})
+			tickerCancel := make(chan struct{}, 1)
 			b := &BlockBuilder{
 				keypair:               tt.fields.keypair,
 				transactionState:      tt.fields.transactionStateBuilder(ctrl, tickerCancel),
 				blockState:            tt.fields.blockState,
 				currentAuthorityIndex: tt.fields.currentAuthorityIndex,
 				preRuntimeDigest:      tt.fields.preRuntimeDigest,
+				testSkipTimer:         tickerCancel,
 			}
-			tt.args.slot.tickerCancel = tickerCancel
 			got := b.buildBlockExtrinsics(tt.args.slot, tt.args.rt)
 			assert.Equal(t, tt.want, got)
 		})

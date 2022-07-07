@@ -23,10 +23,9 @@ type VrfOutputAndProof struct {
 
 // Slot represents a BABE slot
 type Slot struct {
-	start        time.Time
-	duration     time.Duration
-	number       uint64
-	tickerCancel chan struct{} // channel as field for unit testing
+	start    time.Time
+	duration time.Duration
+	number   uint64
 }
 
 // NewSlot returns a new Slot
