@@ -15,13 +15,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// newTestTrieState returns an initialised TrieState
-func newTestTrieState(t *testing.T) *TrieState {
-	ts, err := NewTrieState(nil)
-	require.NoError(t, err)
-	return ts
-}
-
 var testCases = []string{
 	"asdf",
 	"ghjk",
@@ -43,7 +36,7 @@ func TestTrieState_SetGet(t *testing.T) {
 		}
 	}
 
-	ts := newTestTrieState(t)
+	ts := &TrieState{t: trie.NewEmptyTrie()}
 	testFunc(ts)
 }
 
@@ -58,7 +51,7 @@ func TestTrieState_Delete(t *testing.T) {
 		require.False(t, has)
 	}
 
-	ts := newTestTrieState(t)
+	ts := &TrieState{t: trie.NewEmptyTrie()}
 	testFunc(ts)
 }
 
@@ -72,12 +65,12 @@ func TestTrieState_Root(t *testing.T) {
 		require.Equal(t, expected, ts.MustRoot())
 	}
 
-	ts := newTestTrieState(t)
+	ts := &TrieState{t: trie.NewEmptyTrie()}
 	testFunc(ts)
 }
 
 func TestTrieState_ClearPrefix(t *testing.T) {
-	ts := newTestTrieState(t)
+	ts := &TrieState{t: trie.NewEmptyTrie()}
 
 	keys := []string{
 		"noot",
@@ -102,7 +95,7 @@ func TestTrieState_ClearPrefix(t *testing.T) {
 }
 
 func TestTrieState_ClearPrefixInChild(t *testing.T) {
-	ts := newTestTrieState(t)
+	ts := &TrieState{t: trie.NewEmptyTrie()}
 	child := trie.NewEmptyTrie()
 
 	keys := []string{
@@ -135,7 +128,7 @@ func TestTrieState_ClearPrefixInChild(t *testing.T) {
 }
 
 func TestTrieState_NextKey(t *testing.T) {
-	ts := newTestTrieState(t)
+	ts := &TrieState{t: trie.NewEmptyTrie()}
 
 	for _, tc := range testCases {
 		ts.Set([]byte(tc), []byte(tc))
@@ -156,7 +149,7 @@ func TestTrieState_NextKey(t *testing.T) {
 }
 
 func TestTrieState_CommitStorageTransaction(t *testing.T) {
-	ts := newTestTrieState(t)
+	ts := &TrieState{t: trie.NewEmptyTrie()}
 
 	for _, tc := range testCases {
 		ts.Set([]byte(tc), []byte(tc))
@@ -172,7 +165,7 @@ func TestTrieState_CommitStorageTransaction(t *testing.T) {
 }
 
 func TestTrieState_RollbackStorageTransaction(t *testing.T) {
-	ts := newTestTrieState(t)
+	ts := &TrieState{t: trie.NewEmptyTrie()}
 
 	for _, tc := range testCases {
 		ts.Set([]byte(tc), []byte(tc))
@@ -188,7 +181,7 @@ func TestTrieState_RollbackStorageTransaction(t *testing.T) {
 }
 
 func TestTrieState_DeleteChildLimit(t *testing.T) {
-	ts := newTestTrieState(t)
+	ts := &TrieState{t: trie.NewEmptyTrie()}
 	child := trie.NewEmptyTrie()
 
 	keys := []string{

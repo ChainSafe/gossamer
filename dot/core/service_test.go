@@ -22,7 +22,6 @@ import (
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	cscale "github.com/centrifuge/go-substrate-rpc-client/v3/scale"
 	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
@@ -118,9 +117,9 @@ func generateExtrinsic(t *testing.T) (extrinsic, externalExtrinsic types.Extrins
 
 func Test_Service_StorageRoot(t *testing.T) {
 	t.Parallel()
-	emptyTrie := trie.NewEmptyTrie()
-	ts, err := rtstorage.NewTrieState(emptyTrie)
-	require.NoError(t, err)
+
+	ts := rtstorage.NewTrieState(nil)
+
 	tests := []struct {
 		name          string
 		service       *Service
@@ -290,9 +289,7 @@ func Test_Service_handleBlock(t *testing.T) {
 
 	t.Run("storeTrie error", func(t *testing.T) {
 		t.Parallel()
-		emptyTrie := trie.NewEmptyTrie()
-		trieState, err := rtstorage.NewTrieState(emptyTrie)
-		require.NoError(t, err)
+		trieState := rtstorage.NewTrieState(nil)
 
 		testHeader := types.NewEmptyHeader()
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
@@ -308,9 +305,7 @@ func Test_Service_handleBlock(t *testing.T) {
 
 	t.Run("addBlock quit error", func(t *testing.T) {
 		t.Parallel()
-		emptyTrie := trie.NewEmptyTrie()
-		trieState, err := rtstorage.NewTrieState(emptyTrie)
-		require.NoError(t, err)
+		trieState := rtstorage.NewTrieState(nil)
 
 		testHeader := types.NewEmptyHeader()
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
@@ -331,9 +326,7 @@ func Test_Service_handleBlock(t *testing.T) {
 
 	t.Run("addBlock parent not found error", func(t *testing.T) {
 		t.Parallel()
-		emptyTrie := trie.NewEmptyTrie()
-		trieState, err := rtstorage.NewTrieState(emptyTrie)
-		require.NoError(t, err)
+		trieState := rtstorage.NewTrieState(nil)
 
 		testHeader := types.NewEmptyHeader()
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
@@ -354,9 +347,7 @@ func Test_Service_handleBlock(t *testing.T) {
 
 	t.Run("addBlock error continue", func(t *testing.T) {
 		t.Parallel()
-		emptyTrie := trie.NewEmptyTrie()
-		trieState, err := rtstorage.NewTrieState(emptyTrie)
-		require.NoError(t, err)
+		trieState := rtstorage.NewTrieState(nil)
 
 		testHeader := types.NewEmptyHeader()
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
@@ -378,9 +369,7 @@ func Test_Service_handleBlock(t *testing.T) {
 
 	t.Run("handle runtime changes error", func(t *testing.T) {
 		t.Parallel()
-		emptyTrie := trie.NewEmptyTrie()
-		trieState, err := rtstorage.NewTrieState(emptyTrie)
-		require.NoError(t, err)
+		trieState := rtstorage.NewTrieState(nil)
 
 		testHeader := types.NewEmptyHeader()
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
@@ -405,9 +394,7 @@ func Test_Service_handleBlock(t *testing.T) {
 
 	t.Run("code substitution ok", func(t *testing.T) {
 		t.Parallel()
-		emptyTrie := trie.NewEmptyTrie()
-		trieState, err := rtstorage.NewTrieState(emptyTrie)
-		require.NoError(t, err)
+		trieState := rtstorage.NewTrieState(nil)
 
 		testHeader := types.NewEmptyHeader()
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
@@ -448,12 +435,10 @@ func Test_Service_HandleBlockProduced(t *testing.T) {
 
 	t.Run("happy path", func(t *testing.T) {
 		t.Parallel()
-		emptyTrie := trie.NewEmptyTrie()
-		trieState, err := rtstorage.NewTrieState(emptyTrie)
-		require.NoError(t, err)
+		trieState := rtstorage.NewTrieState(nil)
 
 		digest := types.NewDigest()
-		err = digest.Add(
+		err := digest.Add(
 			types.PreRuntimeDigest{
 				ConsensusEngineID: types.BabeEngineID,
 				Data:              common.MustHexToBytes("0x0201000000ef55a50f00000000"),
@@ -974,9 +959,8 @@ func TestServiceGetRuntimeVersion(t *testing.T) {
 		[]runtime.APIItem{testAPIItem},
 		transactionVersion,
 	)
-	emptyTrie := trie.NewEmptyTrie()
-	ts, err := rtstorage.NewTrieState(emptyTrie)
-	require.NoError(t, err)
+
+	ts := rtstorage.NewTrieState(nil)
 
 	execTest := func(t *testing.T, s *Service, bhash *common.Hash, exp runtime.Version, expErr error) {
 		res, err := s.GetRuntimeVersion(bhash)

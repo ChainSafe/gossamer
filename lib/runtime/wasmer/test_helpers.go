@@ -44,8 +44,7 @@ func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie) 
 func setupConfig(t *testing.T, tt *trie.Trie, lvl log.Level, role byte) runtime.InstanceConfig {
 	t.Helper()
 
-	s, err := storage.NewTrieState(tt)
-	require.NoError(t, err)
+	s := storage.NewTrieState(tt)
 
 	ns := runtime.NodeStorage{
 		LocalStorage:      runtime.NewInMemoryDB(t),

@@ -941,10 +941,9 @@ func ext_misc_runtime_version_version_1(context unsafe.Pointer, dataSpan C.int64
 	instanceContext := wasm.IntoInstanceContext(context)
 	data := asMemorySlice(instanceContext, dataSpan)
 
-	trieState, _ := rtstorage.NewTrieState(nil)
 	cfg := runtime.InstanceConfig{
 		LogLvl:  log.DoNotChange,
-		Storage: trieState,
+		Storage: rtstorage.NewTrieState(nil),
 	}
 
 	instance, err := NewInstance(data, cfg)

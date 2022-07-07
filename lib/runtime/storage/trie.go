@@ -21,16 +21,14 @@ type TrieState struct {
 }
 
 // NewTrieState returns a new TrieState with the given trie
-func NewTrieState(t *trie.Trie) (*TrieState, error) {
+func NewTrieState(t *trie.Trie) *TrieState {
 	if t == nil {
 		t = trie.NewEmptyTrie()
 	}
 
-	ts := &TrieState{
+	return &TrieState{
 		t: t,
 	}
-
-	return ts, nil
 }
 
 // Trie returns the TrieState's underlying trie
