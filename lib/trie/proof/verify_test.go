@@ -261,7 +261,7 @@ func Test_buildTrie(t *testing.T) {
 				scaleEncode(t, blake2b(t, getBadNodeEncoding())), // child hash
 			})),
 			errWrapped: node.ErrVariantUnknown,
-			errMessage: "loading proof: decoding child node for Merkle value " +
+			errMessage: "loading proof: decoding child node for hash digest " +
 				"0xcfa21f0ec11a3658d77701b7b1f52fbcb783fe3df662977b6e860252b6c37e1e: " +
 				"decoding header: decoding header byte: " +
 				"node variant is unknown: for header byte 00000001",
@@ -276,7 +276,8 @@ func Test_buildTrie(t *testing.T) {
 			rootHash:   []byte{3},
 			errWrapped: ErrRootNodeNotFound,
 			errMessage: "root node not found in proof: " +
-				"for Merkle root hash 0x03 in proof Merkle value(s) 0x41010402",
+				"for root hash 0x03 in proof hash digests " +
+				"0x60516d0bb6e1bbfb1293f1b276ea9505e9f4a4e7d98f620d05115e0b85274ae1",
 		},
 	}
 
@@ -471,7 +472,7 @@ func Test_loadProof(t *testing.T) {
 				}),
 			},
 			errWrapped: node.ErrVariantUnknown,
-			errMessage: "decoding child node for Merkle value 0x02: " +
+			errMessage: "decoding child node for hash digest 0x02: " +
 				"decoding header: decoding header byte: node variant is unknown: " +
 				"for header byte 00000001",
 		},
@@ -563,7 +564,7 @@ func Test_loadProof(t *testing.T) {
 				}),
 			},
 			errWrapped: node.ErrVariantUnknown,
-			errMessage: "decoding child node for Merkle value " +
+			errMessage: "decoding child node for hash digest " +
 				"0x6888b9403129c11350c6054b46875292c0ffedcfd581e66b79bdf350b775ebf2: " +
 				"decoding header: decoding header byte: node variant is unknown: " +
 				"for header byte 00000001",
