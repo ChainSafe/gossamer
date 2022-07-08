@@ -3,6 +3,7 @@
 package babe
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -15,6 +16,8 @@ import (
 )
 
 func TestBlockBuilder_buildBlockExtrinsics(t *testing.T) {
+	mockError := errors.New("mock error")
+
 	type fields struct {
 		keypair                 *sr25519.Keypair
 		transactionStateBuilder func(ctrl *gomock.Controller) TransactionState
@@ -162,6 +165,134 @@ func TestBlockBuilder_buildBlockExtrinsics(t *testing.T) {
 			want: []*transaction.ValidTransaction{
 				{Extrinsic: types.Extrinsic{1}},
 				{Extrinsic: types.Extrinsic{2}},
+			},
+		},
+		"extrinsic apply error": {
+			args: args{
+				slot: Slot{
+					start:    time.Now(),
+					duration: time.Hour,
+				},
+				runtimeInstanceBuilder: func(ctrl *gomock.Controller) (instance runtime.Instance, forceReturn <-chan struct{}) {
+					forceReturnCh := make(chan struct{}, 1)
+					mockInstance := NewMockInstance(ctrl)
+
+					mockInstance.EXPECT().ApplyExtrinsic(types.Extrinsic{1}).
+						DoAndReturn(func(data types.Extrinsic) ([]byte, error) {
+							forceReturnCh <- struct{}{} // triggers the timer on the select case
+							return nil, mockError
+						})
+
+					return mockInstance, forceReturnCh
+				},
+			},
+			fields: fields{
+				transactionStateBuilder: func(ctrl *gomock.Controller) TransactionState {
+					transactionState := NewMockTransactionState(ctrl)
+
+					transaction1 := &transaction.ValidTransaction{
+						Extrinsic: types.Extrinsic{1},
+					}
+					transactionState.EXPECT().Pop().Return(transaction1)
+
+					return transactionState
+				},
+			},
+		},
+		"dispatch outcome error": {
+			args: args{
+				slot: Slot{
+					start:    time.Now(),
+					duration: time.Hour,
+				},
+				runtimeInstanceBuilder: func(ctrl *gomock.Controller) (instance runtime.Instance, forceReturn <-chan struct{}) {
+					forceReturnCh := make(chan struct{}, 1)
+					mockInstance := NewMockInstance(ctrl)
+
+					mockInstance.EXPECT().ApplyExtrinsic(types.Extrinsic{1}).
+						DoAndReturn(func(data types.Extrinsic) ([]byte, error) {
+							forceReturnCh <- struct{}{} // triggers the timer on the select case
+							return []byte{0, 1, 0}, nil
+						})
+
+					return mockInstance, forceReturnCh
+				},
+			},
+			fields: fields{
+				transactionStateBuilder: func(ctrl *gomock.Controller) TransactionState {
+					transactionState := NewMockTransactionState(ctrl)
+
+					transaction1 := &transaction.ValidTransaction{
+						Extrinsic: types.Extrinsic{1},
+					}
+					transactionState.EXPECT().Pop().Return(transaction1)
+
+					return transactionState
+				},
+			},
+		},
+		"transaction validity error": {
+			args: args{
+				slot: Slot{
+					start:    time.Now(),
+					duration: time.Hour,
+				},
+				runtimeInstanceBuilder: func(ctrl *gomock.Controller) (instance runtime.Instance, forceReturn <-chan struct{}) {
+					forceReturnCh := make(chan struct{}, 1)
+					mockInstance := NewMockInstance(ctrl)
+
+					mockInstance.EXPECT().ApplyExtrinsic(types.Extrinsic{1}).
+						DoAndReturn(func(data types.Extrinsic) ([]byte, error) {
+							forceReturnCh <- struct{}{} // triggers the timer on the select case
+							return []byte{0, 1, 3, 4, 5, 1, 0x04, 0x65}, nil
+						})
+
+					return mockInstance, forceReturnCh
+				},
+			},
+			fields: fields{
+				transactionStateBuilder: func(ctrl *gomock.Controller) TransactionState {
+					transactionState := NewMockTransactionState(ctrl)
+
+					transaction1 := &transaction.ValidTransaction{
+						Extrinsic: types.Extrinsic{1},
+					}
+					transactionState.EXPECT().Pop().Return(transaction1)
+
+					return transactionState
+				},
+			},
+		},
+		"transaction validity error errExhaustsResources": {
+			args: args{
+				slot: Slot{
+					start:    time.Now(),
+					duration: time.Hour,
+				},
+				runtimeInstanceBuilder: func(ctrl *gomock.Controller) (instance runtime.Instance, forceReturn <-chan struct{}) {
+					forceReturnCh := make(chan struct{}, 1)
+					mockInstance := NewMockInstance(ctrl)
+
+					mockInstance.EXPECT().ApplyExtrinsic(types.Extrinsic{1}).
+						DoAndReturn(func(data types.Extrinsic) ([]byte, error) {
+							forceReturnCh <- struct{}{} // triggers the timer on the select case
+							return []byte{1, 0, 6}, nil
+						})
+
+					return mockInstance, forceReturnCh
+				},
+			},
+			fields: fields{
+				transactionStateBuilder: func(ctrl *gomock.Controller) TransactionState {
+					transactionState := NewMockTransactionState(ctrl)
+
+					transaction1 := &transaction.ValidTransaction{
+						Extrinsic: types.Extrinsic{1},
+					}
+					transactionState.EXPECT().Pop().Return(transaction1)
+
+					return transactionState
+				},
 			},
 		},
 	}
