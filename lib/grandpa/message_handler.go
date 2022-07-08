@@ -290,10 +290,8 @@ func getEquivocatoryVoters(votes []AuthData) map[ed25519.PublicKeyBytes]struct{}
 
 	for _, v := range votes {
 		signature, present := voters[v.AuthorityID]
-		if present {
-			if !bytes.Equal(signature[:], v.Signature[:]) {
-				eqvVoters[v.AuthorityID] = struct{}{}
-			}
+		if present && !bytes.Equal(signature[:], v.Signature[:]) {
+			eqvVoters[v.AuthorityID] = struct{}{}
 		} else {
 			voters[v.AuthorityID] = v.Signature
 		}
