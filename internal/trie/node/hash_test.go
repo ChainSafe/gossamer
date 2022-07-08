@@ -22,8 +22,8 @@ func Test_Node_EncodeAndHash(t *testing.T) {
 	}{
 		"small leaf encoding": {
 			node: Node{
-				Key:   []byte{1},
-				Value: []byte{2},
+				Key:      []byte{1},
+				SubValue: []byte{2},
 			},
 			expectedNode: Node{
 				Encoding:   []byte{0x41, 0x1, 0x4, 0x2},
@@ -35,7 +35,7 @@ func Test_Node_EncodeAndHash(t *testing.T) {
 		"leaf dirty with precomputed encoding and hash": {
 			node: Node{
 				Key:        []byte{1},
-				Value:      []byte{2},
+				SubValue:   []byte{2},
 				Dirty:      true,
 				Encoding:   []byte{3},
 				HashDigest: []byte{4},
@@ -50,14 +50,14 @@ func Test_Node_EncodeAndHash(t *testing.T) {
 		"leaf not dirty with precomputed encoding and hash": {
 			node: Node{
 				Key:        []byte{1},
-				Value:      []byte{2},
+				SubValue:   []byte{2},
 				Dirty:      false,
 				Encoding:   []byte{3},
 				HashDigest: []byte{4},
 			},
 			expectedNode: Node{
 				Key:        []byte{1},
-				Value:      []byte{2},
+				SubValue:   []byte{2},
 				Encoding:   []byte{3},
 				HashDigest: []byte{4},
 			},
@@ -66,8 +66,8 @@ func Test_Node_EncodeAndHash(t *testing.T) {
 		},
 		"large leaf encoding": {
 			node: Node{
-				Key:   repeatBytes(65, 7),
-				Value: []byte{0x01},
+				Key:      repeatBytes(65, 7),
+				SubValue: []byte{0x01},
 			},
 			expectedNode: Node{
 				Encoding:   []byte{0x7f, 0x2, 0x7, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x4, 0x1}, //nolint:lll
@@ -92,7 +92,7 @@ func Test_Node_EncodeAndHash(t *testing.T) {
 			node: Node{
 				Children: make([]*Node, ChildrenCapacity),
 				Key:      []byte{1},
-				Value:    []byte{2},
+				SubValue: []byte{2},
 			},
 			expectedNode: Node{
 				Children:   make([]*Node, ChildrenCapacity),
@@ -106,7 +106,7 @@ func Test_Node_EncodeAndHash(t *testing.T) {
 			node: Node{
 				Children:   make([]*Node, ChildrenCapacity),
 				Key:        []byte{1},
-				Value:      []byte{2},
+				SubValue:   []byte{2},
 				Dirty:      true,
 				Encoding:   []byte{3},
 				HashDigest: []byte{4},
@@ -123,7 +123,7 @@ func Test_Node_EncodeAndHash(t *testing.T) {
 			node: Node{
 				Children:   make([]*Node, ChildrenCapacity),
 				Key:        []byte{1},
-				Value:      []byte{2},
+				SubValue:   []byte{2},
 				Dirty:      false,
 				Encoding:   []byte{3},
 				HashDigest: []byte{4},
@@ -131,7 +131,7 @@ func Test_Node_EncodeAndHash(t *testing.T) {
 			expectedNode: Node{
 				Children:   make([]*Node, ChildrenCapacity),
 				Key:        []byte{1},
-				Value:      []byte{2},
+				SubValue:   []byte{2},
 				Encoding:   []byte{3},
 				HashDigest: []byte{4},
 			},
@@ -184,14 +184,14 @@ func Test_Node_EncodeAndHashRoot(t *testing.T) {
 		"leaf not dirty with precomputed encoding and hash": {
 			node: Node{
 				Key:        []byte{1},
-				Value:      []byte{2},
+				SubValue:   []byte{2},
 				Dirty:      false,
 				Encoding:   []byte{3},
 				HashDigest: []byte{4},
 			},
 			expectedNode: Node{
 				Key:        []byte{1},
-				Value:      []byte{2},
+				SubValue:   []byte{2},
 				Encoding:   []byte{3},
 				HashDigest: []byte{4},
 			},
@@ -200,8 +200,8 @@ func Test_Node_EncodeAndHashRoot(t *testing.T) {
 		},
 		"small leaf encoding": {
 			node: Node{
-				Key:   []byte{1},
-				Value: []byte{2},
+				Key:      []byte{1},
+				SubValue: []byte{2},
 			},
 			expectedNode: Node{
 				Encoding:   []byte{0x41, 0x1, 0x4, 0x2},
@@ -214,7 +214,7 @@ func Test_Node_EncodeAndHashRoot(t *testing.T) {
 			node: Node{
 				Children: make([]*Node, ChildrenCapacity),
 				Key:      []byte{1},
-				Value:    []byte{2},
+				SubValue: []byte{2},
 			},
 			expectedNode: Node{
 				Children:   make([]*Node, ChildrenCapacity),

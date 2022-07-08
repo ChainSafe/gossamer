@@ -16,8 +16,8 @@ import (
 // Node is a node in the trie and can be a leaf or a branch.
 type Node struct {
 	// Key is the partial key bytes in nibbles (0 to f in hexadecimal)
-	Key   []byte
-	Value []byte
+	Key      []byte
+	SubValue []byte
 	// Generation is incremented on every trie Snapshot() call.
 	// Each node also contain a certain Generation number,
 	// which is updated to match the trie Generation once they are
@@ -61,7 +61,7 @@ func (n Node) StringNode() (stringNode *gotree.Node) {
 	stringNode.Appendf("Generation: %d", n.Generation)
 	stringNode.Appendf("Dirty: %t", n.Dirty)
 	stringNode.Appendf("Key: " + bytesToString(n.Key))
-	stringNode.Appendf("Value: " + bytesToString(n.Value))
+	stringNode.Appendf("Value: " + bytesToString(n.SubValue))
 	if n.Descendants > 0 { // must be a branch
 		stringNode.Appendf("Descendants: %d", n.Descendants)
 	}
