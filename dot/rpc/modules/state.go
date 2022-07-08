@@ -450,8 +450,7 @@ func (sm *StateModule) QueryStorage(
 			}
 			var hexValue *string
 			if len(value) > 0 {
-				hexValue = new(string)
-				*hexValue = common.BytesToHex(value)
+				hexValue = stringPtr(common.BytesToHex(value))
 			}
 
 			if firstPass {
