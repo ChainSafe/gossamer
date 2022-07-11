@@ -108,18 +108,18 @@ func (mr *MocknodeBuilderIfaceMockRecorder) createDigestHandler(lvl, st interfac
 }
 
 // createGRANDPAService mocks base method.
-func (m *MocknodeBuilderIface) createGRANDPAService(cfg *Config, st *state.Service, dh *digest.Handler, ks keystore.Keystore, net *network.Service, telemetryMailer telemetry.Client) (*grandpa.Service, error) {
+func (m *MocknodeBuilderIface) createGRANDPAService(cfg *Config, st *state.Service, ks keystore.Keystore, net *network.Service, telemetryMailer telemetry.Client) (*grandpa.Service, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "createGRANDPAService", cfg, st, dh, ks, net, telemetryMailer)
+	ret := m.ctrl.Call(m, "createGRANDPAService", cfg, st, ks, net, telemetryMailer)
 	ret0, _ := ret[0].(*grandpa.Service)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // createGRANDPAService indicates an expected call of createGRANDPAService.
-func (mr *MocknodeBuilderIfaceMockRecorder) createGRANDPAService(cfg, st, dh, ks, net, telemetryMailer interface{}) *gomock.Call {
+func (mr *MocknodeBuilderIfaceMockRecorder) createGRANDPAService(cfg, st, ks, net, telemetryMailer interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "createGRANDPAService", reflect.TypeOf((*MocknodeBuilderIface)(nil).createGRANDPAService), cfg, st, dh, ks, net, telemetryMailer)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "createGRANDPAService", reflect.TypeOf((*MocknodeBuilderIface)(nil).createGRANDPAService), cfg, st, ks, net, telemetryMailer)
 }
 
 // createNetworkService mocks base method.

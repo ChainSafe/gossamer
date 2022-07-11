@@ -30,3 +30,13 @@ func (n *Node) NumChildren() (count int) {
 	}
 	return count
 }
+
+// HasChild returns true if the node has at least one child.
+func (n *Node) HasChild() (has bool) {
+	for _, child := range n.Children {
+		if child != nil {
+			return true
+		}
+	}
+	return false
+}

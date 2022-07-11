@@ -284,22 +284,20 @@ func (h *MessageHandler) verifyCatchUpResponseCompletability(prevote, precommit 
 	return nil
 }
 
-func getEquivocatoryVoters(votes []AuthData) (map[ed25519.PublicKeyBytes]struct{}, error) {
+func getEquivocatoryVoters(votes []AuthData) map[ed25519.PublicKeyBytes]struct{} {
 	eqvVoters := make(map[ed25519.PublicKeyBytes]struct{})
-	voters := make(map[ed25519.PublicKeyBytes]int, len(votes))
+	voters := make(map[ed25519.PublicKeyBytes][64]byte, len(votes))
 
 	for _, v := range votes {
-		voters[v.AuthorityID]++
-		switch voters[v.AuthorityID] {
-		case 1:
-		case 2:
+		signature, present := voters[v.AuthorityID]
+		if present && !bytes.Equal(signature[:], v.Signature[:]) {
 			eqvVoters[v.AuthorityID] = struct{}{}
-		default:
-			return nil, fmt.Errorf("%w: authority id %x has %d votes",
-				errInvalidMultiplicity, v.AuthorityID, voters[v.AuthorityID])
+		} else {
+			voters[v.AuthorityID] = v.Signature
 		}
 	}
-	return eqvVoters, nil
+
+	return eqvVoters
 }
 
 func isDescendantOfHighestFinalisedBlock(blockState BlockState, hash common.Hash) (bool, error) {
@@ -329,10 +327,7 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 		return errVoteBlockMismatch
 	}
 
-	eqvVoters, err := getEquivocatoryVoters(fm.AuthData)
-	if err != nil {
-		return fmt.Errorf("could not get valid equivocatory voters: %w", err)
-	}
+	eqvVoters := getEquivocatoryVoters(fm.AuthData)
 
 	var count int
 	for i, pc := range fm.Precommits {
@@ -465,10 +460,7 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) erro
 		return errVoteBlockMismatch
 	}
 
-	eqvVoters, err := getEquivocatoryVoters(auths)
-	if err != nil {
-		return fmt.Errorf("could not get valid equivocatory voters: %w", err)
-	}
+	eqvVoters := getEquivocatoryVoters(auths)
 
 	// verify pre-commit justification
 	var count uint64
@@ -608,10 +600,7 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 		authPubKeys[i] = AuthData{AuthorityID: pcj.AuthorityID}
 	}
 
-	equivocatoryVoters, err := getEquivocatoryVoters(authPubKeys)
-	if err != nil {
-		return nil, fmt.Errorf("could not get valid equivocatory voters: %w", err)
-	}
+	equivocatoryVoters := getEquivocatoryVoters(authPubKeys)
 
 	var count int
 
