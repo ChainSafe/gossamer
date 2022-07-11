@@ -2290,359 +2290,103 @@ func toWasmMemoryFixedSizeOptional(context wasm.InstanceContext, data []byte) (i
 	return toWasmMemory(context, enc)
 }
 
-// ImportsNodeRuntime returns the imports for the v0.8 runtime
-func ImportsNodeRuntime() (*wasm.Imports, error) { //nolint:gocyclo
-	var err error
+// ImportsNodeRuntime returns the WASM imports for the node runtime.
+func ImportsNodeRuntime() (imports *wasm.Imports, err error) {
+	imports = wasm.NewImports()
 
-	imports := wasm.NewImports()
-
-	_, err = imports.Append("ext_allocator_free_version_1", ext_allocator_free_version_1, C.ext_allocator_free_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_allocator_malloc_version_1", ext_allocator_malloc_version_1, C.ext_allocator_malloc_version_1)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = imports.Append("ext_crypto_ed25519_generate_version_1", ext_crypto_ed25519_generate_version_1, C.ext_crypto_ed25519_generate_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_crypto_ed25519_public_keys_version_1", ext_crypto_ed25519_public_keys_version_1, C.ext_crypto_ed25519_public_keys_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_crypto_ed25519_sign_version_1", ext_crypto_ed25519_sign_version_1, C.ext_crypto_ed25519_sign_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_crypto_ed25519_verify_version_1", ext_crypto_ed25519_verify_version_1, C.ext_crypto_ed25519_verify_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_crypto_finish_batch_verify_version_1", ext_crypto_finish_batch_verify_version_1, C.ext_crypto_finish_batch_verify_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_crypto_secp256k1_ecdsa_recover_version_1", ext_crypto_secp256k1_ecdsa_recover_version_1, C.ext_crypto_secp256k1_ecdsa_recover_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_crypto_secp256k1_ecdsa_recover_version_2", ext_crypto_secp256k1_ecdsa_recover_version_2, C.ext_crypto_secp256k1_ecdsa_recover_version_2)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_crypto_secp256k1_ecdsa_recover_compressed_version_1", ext_crypto_secp256k1_ecdsa_recover_compressed_version_1, C.ext_crypto_secp256k1_ecdsa_recover_compressed_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_crypto_secp256k1_ecdsa_recover_compressed_version_2", ext_crypto_secp256k1_ecdsa_recover_compressed_version_2, C.ext_crypto_secp256k1_ecdsa_recover_compressed_version_2)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_crypto_sr25519_generate_version_1", ext_crypto_sr25519_generate_version_1, C.ext_crypto_sr25519_generate_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_crypto_sr25519_public_keys_version_1", ext_crypto_sr25519_public_keys_version_1, C.ext_crypto_sr25519_public_keys_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_crypto_sr25519_sign_version_1", ext_crypto_sr25519_sign_version_1, C.ext_crypto_sr25519_sign_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_crypto_sr25519_verify_version_1", ext_crypto_sr25519_verify_version_1, C.ext_crypto_sr25519_verify_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_crypto_sr25519_verify_version_2", ext_crypto_sr25519_verify_version_2, C.ext_crypto_sr25519_verify_version_2)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_crypto_ecdsa_verify_version_2", ext_crypto_ecdsa_verify_version_2, C.ext_crypto_ecdsa_verify_version_2)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_crypto_start_batch_verify_version_1", ext_crypto_start_batch_verify_version_1, C.ext_crypto_start_batch_verify_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_default_child_storage_clear_version_1", ext_default_child_storage_clear_version_1, C.ext_default_child_storage_clear_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_default_child_storage_clear_prefix_version_1", ext_default_child_storage_clear_prefix_version_1, C.ext_default_child_storage_clear_prefix_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_default_child_storage_exists_version_1", ext_default_child_storage_exists_version_1, C.ext_default_child_storage_exists_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_default_child_storage_get_version_1", ext_default_child_storage_get_version_1, C.ext_default_child_storage_get_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_default_child_storage_next_key_version_1", ext_default_child_storage_next_key_version_1, C.ext_default_child_storage_next_key_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_default_child_storage_read_version_1", ext_default_child_storage_read_version_1, C.ext_default_child_storage_read_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_default_child_storage_root_version_1", ext_default_child_storage_root_version_1, C.ext_default_child_storage_root_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_default_child_storage_set_version_1", ext_default_child_storage_set_version_1, C.ext_default_child_storage_set_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_default_child_storage_storage_kill_version_1", ext_default_child_storage_storage_kill_version_1, C.ext_default_child_storage_storage_kill_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_default_child_storage_storage_kill_version_2", ext_default_child_storage_storage_kill_version_2, C.ext_default_child_storage_storage_kill_version_2)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_default_child_storage_storage_kill_version_3", ext_default_child_storage_storage_kill_version_3, C.ext_default_child_storage_storage_kill_version_3)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = imports.Append("ext_hashing_blake2_128_version_1", ext_hashing_blake2_128_version_1, C.ext_hashing_blake2_128_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_hashing_blake2_256_version_1", ext_hashing_blake2_256_version_1, C.ext_hashing_blake2_256_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_hashing_keccak_256_version_1", ext_hashing_keccak_256_version_1, C.ext_hashing_keccak_256_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_hashing_sha2_256_version_1", ext_hashing_sha2_256_version_1, C.ext_hashing_sha2_256_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_hashing_twox_256_version_1", ext_hashing_twox_256_version_1, C.ext_hashing_twox_256_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_hashing_twox_128_version_1", ext_hashing_twox_128_version_1, C.ext_hashing_twox_128_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_hashing_twox_64_version_1", ext_hashing_twox_64_version_1, C.ext_hashing_twox_64_version_1)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = imports.Append("ext_logging_log_version_1", ext_logging_log_version_1, C.ext_logging_log_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_logging_max_level_version_1", ext_logging_max_level_version_1, C.ext_logging_max_level_version_1)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = imports.Append("ext_misc_print_hex_version_1", ext_misc_print_hex_version_1, C.ext_misc_print_hex_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_misc_print_num_version_1", ext_misc_print_num_version_1, C.ext_misc_print_num_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_misc_print_utf8_version_1", ext_misc_print_utf8_version_1, C.ext_misc_print_utf8_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_misc_runtime_version_version_1", ext_misc_runtime_version_version_1, C.ext_misc_runtime_version_version_1)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = imports.Append("ext_offchain_index_set_version_1", ext_offchain_index_set_version_1, C.ext_offchain_index_set_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_offchain_is_validator_version_1", ext_offchain_is_validator_version_1, C.ext_offchain_is_validator_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_offchain_local_storage_clear_version_1", ext_offchain_local_storage_clear_version_1, C.ext_offchain_local_storage_clear_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_offchain_local_storage_compare_and_set_version_1", ext_offchain_local_storage_compare_and_set_version_1, C.ext_offchain_local_storage_compare_and_set_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_offchain_local_storage_get_version_1", ext_offchain_local_storage_get_version_1, C.ext_offchain_local_storage_get_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_offchain_local_storage_set_version_1", ext_offchain_local_storage_set_version_1, C.ext_offchain_local_storage_set_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_offchain_network_state_version_1", ext_offchain_network_state_version_1, C.ext_offchain_network_state_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_offchain_random_seed_version_1", ext_offchain_random_seed_version_1, C.ext_offchain_random_seed_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_offchain_submit_transaction_version_1", ext_offchain_submit_transaction_version_1, C.ext_offchain_submit_transaction_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_offchain_timestamp_version_1", ext_offchain_timestamp_version_1, C.ext_offchain_timestamp_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_offchain_sleep_until_version_1", ext_offchain_sleep_until_version_1, C.ext_offchain_sleep_until_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_offchain_http_request_start_version_1", ext_offchain_http_request_start_version_1, C.ext_offchain_http_request_start_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_offchain_http_request_add_header_version_1", ext_offchain_http_request_add_header_version_1, C.ext_offchain_http_request_add_header_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_sandbox_instance_teardown_version_1", ext_sandbox_instance_teardown_version_1, C.ext_sandbox_instance_teardown_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_sandbox_instantiate_version_1", ext_sandbox_instantiate_version_1, C.ext_sandbox_instantiate_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_sandbox_invoke_version_1", ext_sandbox_invoke_version_1, C.ext_sandbox_invoke_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_sandbox_memory_get_version_1", ext_sandbox_memory_get_version_1, C.ext_sandbox_memory_get_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_sandbox_memory_new_version_1", ext_sandbox_memory_new_version_1, C.ext_sandbox_memory_new_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_sandbox_memory_set_version_1", ext_sandbox_memory_set_version_1, C.ext_sandbox_memory_set_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_sandbox_memory_teardown_version_1", ext_sandbox_memory_teardown_version_1, C.ext_sandbox_memory_teardown_version_1)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = imports.Append("ext_storage_append_version_1", ext_storage_append_version_1, C.ext_storage_append_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_storage_changes_root_version_1", ext_storage_changes_root_version_1, C.ext_storage_changes_root_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_storage_clear_version_1", ext_storage_clear_version_1, C.ext_storage_clear_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_storage_clear_prefix_version_1", ext_storage_clear_prefix_version_1, C.ext_storage_clear_prefix_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_storage_clear_prefix_version_2", ext_storage_clear_prefix_version_2, C.ext_storage_clear_prefix_version_2)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_storage_commit_transaction_version_1", ext_storage_commit_transaction_version_1, C.ext_storage_commit_transaction_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_storage_exists_version_1", ext_storage_exists_version_1, C.ext_storage_exists_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_storage_get_version_1", ext_storage_get_version_1, C.ext_storage_get_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_storage_next_key_version_1", ext_storage_next_key_version_1, C.ext_storage_next_key_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_storage_read_version_1", ext_storage_read_version_1, C.ext_storage_read_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_storage_rollback_transaction_version_1", ext_storage_rollback_transaction_version_1, C.ext_storage_rollback_transaction_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_storage_root_version_1", ext_storage_root_version_1, C.ext_storage_root_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_storage_root_version_2", ext_storage_root_version_2, C.ext_storage_root_version_2)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_storage_root_version_2", ext_storage_root_version_2, C.ext_storage_root_version_2)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_storage_set_version_1", ext_storage_set_version_1, C.ext_storage_set_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_storage_start_transaction_version_1", ext_storage_start_transaction_version_1, C.ext_storage_start_transaction_version_1)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = imports.Append("ext_trie_blake2_256_ordered_root_version_1", ext_trie_blake2_256_ordered_root_version_1, C.ext_trie_blake2_256_ordered_root_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_trie_blake2_256_ordered_root_version_2", ext_trie_blake2_256_ordered_root_version_2, C.ext_trie_blake2_256_ordered_root_version_2)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_trie_blake2_256_ordered_root_version_2", ext_trie_blake2_256_ordered_root_version_2, C.ext_trie_blake2_256_ordered_root_version_2)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_trie_blake2_256_root_version_1", ext_trie_blake2_256_root_version_1, C.ext_trie_blake2_256_root_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_trie_blake2_256_verify_proof_version_1", ext_trie_blake2_256_verify_proof_version_1, C.ext_trie_blake2_256_verify_proof_version_1)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = imports.Append("ext_transaction_index_index_version_1", ext_transaction_index_index_version_1, C.ext_transaction_index_index_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_transaction_index_renew_version_1", ext_transaction_index_renew_version_1, C.ext_transaction_index_renew_version_1)
-	if err != nil {
-		return nil, err
+	for _, toRegister := range []struct {
+		importName     string
+		implementation interface{}
+		cgoPointer     unsafe.Pointer
+	}{
+		{"ext_allocator_free_version_1", ext_allocator_free_version_1, C.ext_allocator_free_version_1},
+		{"ext_allocator_malloc_version_1", ext_allocator_malloc_version_1, C.ext_allocator_malloc_version_1},
+		{"ext_crypto_ecdsa_verify_version_2", ext_crypto_ecdsa_verify_version_2, C.ext_crypto_ecdsa_verify_version_2},
+		{"ext_crypto_ed25519_generate_version_1", ext_crypto_ed25519_generate_version_1, C.ext_crypto_ed25519_generate_version_1},
+		{"ext_crypto_ed25519_public_keys_version_1", ext_crypto_ed25519_public_keys_version_1, C.ext_crypto_ed25519_public_keys_version_1},
+		{"ext_crypto_ed25519_sign_version_1", ext_crypto_ed25519_sign_version_1, C.ext_crypto_ed25519_sign_version_1},
+		{"ext_crypto_ed25519_verify_version_1", ext_crypto_ed25519_verify_version_1, C.ext_crypto_ed25519_verify_version_1},
+		{"ext_crypto_finish_batch_verify_version_1", ext_crypto_finish_batch_verify_version_1, C.ext_crypto_finish_batch_verify_version_1},
+		{"ext_crypto_secp256k1_ecdsa_recover_compressed_version_1", ext_crypto_secp256k1_ecdsa_recover_compressed_version_1, C.ext_crypto_secp256k1_ecdsa_recover_compressed_version_1},
+		{"ext_crypto_secp256k1_ecdsa_recover_compressed_version_2", ext_crypto_secp256k1_ecdsa_recover_compressed_version_2, C.ext_crypto_secp256k1_ecdsa_recover_compressed_version_2},
+		{"ext_crypto_secp256k1_ecdsa_recover_version_1", ext_crypto_secp256k1_ecdsa_recover_version_1, C.ext_crypto_secp256k1_ecdsa_recover_version_1},
+		{"ext_crypto_secp256k1_ecdsa_recover_version_2", ext_crypto_secp256k1_ecdsa_recover_version_2, C.ext_crypto_secp256k1_ecdsa_recover_version_2},
+		{"ext_crypto_sr25519_generate_version_1", ext_crypto_sr25519_generate_version_1, C.ext_crypto_sr25519_generate_version_1},
+		{"ext_crypto_sr25519_public_keys_version_1", ext_crypto_sr25519_public_keys_version_1, C.ext_crypto_sr25519_public_keys_version_1},
+		{"ext_crypto_sr25519_sign_version_1", ext_crypto_sr25519_sign_version_1, C.ext_crypto_sr25519_sign_version_1},
+		{"ext_crypto_sr25519_verify_version_1", ext_crypto_sr25519_verify_version_1, C.ext_crypto_sr25519_verify_version_1},
+		{"ext_crypto_sr25519_verify_version_2", ext_crypto_sr25519_verify_version_2, C.ext_crypto_sr25519_verify_version_2},
+		{"ext_crypto_start_batch_verify_version_1", ext_crypto_start_batch_verify_version_1, C.ext_crypto_start_batch_verify_version_1},
+		{"ext_default_child_storage_clear_prefix_version_1", ext_default_child_storage_clear_prefix_version_1, C.ext_default_child_storage_clear_prefix_version_1},
+		{"ext_default_child_storage_clear_version_1", ext_default_child_storage_clear_version_1, C.ext_default_child_storage_clear_version_1},
+		{"ext_default_child_storage_exists_version_1", ext_default_child_storage_exists_version_1, C.ext_default_child_storage_exists_version_1},
+		{"ext_default_child_storage_get_version_1", ext_default_child_storage_get_version_1, C.ext_default_child_storage_get_version_1},
+		{"ext_default_child_storage_next_key_version_1", ext_default_child_storage_next_key_version_1, C.ext_default_child_storage_next_key_version_1},
+		{"ext_default_child_storage_read_version_1", ext_default_child_storage_read_version_1, C.ext_default_child_storage_read_version_1},
+		{"ext_default_child_storage_root_version_1", ext_default_child_storage_root_version_1, C.ext_default_child_storage_root_version_1},
+		{"ext_default_child_storage_set_version_1", ext_default_child_storage_set_version_1, C.ext_default_child_storage_set_version_1},
+		{"ext_default_child_storage_storage_kill_version_1", ext_default_child_storage_storage_kill_version_1, C.ext_default_child_storage_storage_kill_version_1},
+		{"ext_default_child_storage_storage_kill_version_2", ext_default_child_storage_storage_kill_version_2, C.ext_default_child_storage_storage_kill_version_2},
+		{"ext_default_child_storage_storage_kill_version_3", ext_default_child_storage_storage_kill_version_3, C.ext_default_child_storage_storage_kill_version_3},
+		{"ext_hashing_blake2_128_version_1", ext_hashing_blake2_128_version_1, C.ext_hashing_blake2_128_version_1},
+		{"ext_hashing_blake2_256_version_1", ext_hashing_blake2_256_version_1, C.ext_hashing_blake2_256_version_1},
+		{"ext_hashing_keccak_256_version_1", ext_hashing_keccak_256_version_1, C.ext_hashing_keccak_256_version_1},
+		{"ext_hashing_sha2_256_version_1", ext_hashing_sha2_256_version_1, C.ext_hashing_sha2_256_version_1},
+		{"ext_hashing_twox_128_version_1", ext_hashing_twox_128_version_1, C.ext_hashing_twox_128_version_1},
+		{"ext_hashing_twox_256_version_1", ext_hashing_twox_256_version_1, C.ext_hashing_twox_256_version_1},
+		{"ext_hashing_twox_64_version_1", ext_hashing_twox_64_version_1, C.ext_hashing_twox_64_version_1},
+		{"ext_logging_log_version_1", ext_logging_log_version_1, C.ext_logging_log_version_1},
+		{"ext_logging_max_level_version_1", ext_logging_max_level_version_1, C.ext_logging_max_level_version_1},
+		{"ext_misc_print_hex_version_1", ext_misc_print_hex_version_1, C.ext_misc_print_hex_version_1},
+		{"ext_misc_print_num_version_1", ext_misc_print_num_version_1, C.ext_misc_print_num_version_1},
+		{"ext_misc_print_utf8_version_1", ext_misc_print_utf8_version_1, C.ext_misc_print_utf8_version_1},
+		{"ext_misc_runtime_version_version_1", ext_misc_runtime_version_version_1, C.ext_misc_runtime_version_version_1},
+		{"ext_offchain_http_request_add_header_version_1", ext_offchain_http_request_add_header_version_1, C.ext_offchain_http_request_add_header_version_1},
+		{"ext_offchain_http_request_start_version_1", ext_offchain_http_request_start_version_1, C.ext_offchain_http_request_start_version_1},
+		{"ext_offchain_index_set_version_1", ext_offchain_index_set_version_1, C.ext_offchain_index_set_version_1},
+		{"ext_offchain_is_validator_version_1", ext_offchain_is_validator_version_1, C.ext_offchain_is_validator_version_1},
+		{"ext_offchain_local_storage_clear_version_1", ext_offchain_local_storage_clear_version_1, C.ext_offchain_local_storage_clear_version_1},
+		{"ext_offchain_local_storage_compare_and_set_version_1", ext_offchain_local_storage_compare_and_set_version_1, C.ext_offchain_local_storage_compare_and_set_version_1},
+		{"ext_offchain_local_storage_get_version_1", ext_offchain_local_storage_get_version_1, C.ext_offchain_local_storage_get_version_1},
+		{"ext_offchain_local_storage_set_version_1", ext_offchain_local_storage_set_version_1, C.ext_offchain_local_storage_set_version_1},
+		{"ext_offchain_network_state_version_1", ext_offchain_network_state_version_1, C.ext_offchain_network_state_version_1},
+		{"ext_offchain_random_seed_version_1", ext_offchain_random_seed_version_1, C.ext_offchain_random_seed_version_1},
+		{"ext_offchain_sleep_until_version_1", ext_offchain_sleep_until_version_1, C.ext_offchain_sleep_until_version_1},
+		{"ext_offchain_submit_transaction_version_1", ext_offchain_submit_transaction_version_1, C.ext_offchain_submit_transaction_version_1},
+		{"ext_offchain_timestamp_version_1", ext_offchain_timestamp_version_1, C.ext_offchain_timestamp_version_1},
+		{"ext_sandbox_instance_teardown_version_1", ext_sandbox_instance_teardown_version_1, C.ext_sandbox_instance_teardown_version_1},
+		{"ext_sandbox_instantiate_version_1", ext_sandbox_instantiate_version_1, C.ext_sandbox_instantiate_version_1},
+		{"ext_sandbox_invoke_version_1", ext_sandbox_invoke_version_1, C.ext_sandbox_invoke_version_1},
+		{"ext_sandbox_memory_get_version_1", ext_sandbox_memory_get_version_1, C.ext_sandbox_memory_get_version_1},
+		{"ext_sandbox_memory_new_version_1", ext_sandbox_memory_new_version_1, C.ext_sandbox_memory_new_version_1},
+		{"ext_sandbox_memory_set_version_1", ext_sandbox_memory_set_version_1, C.ext_sandbox_memory_set_version_1},
+		{"ext_sandbox_memory_teardown_version_1", ext_sandbox_memory_teardown_version_1, C.ext_sandbox_memory_teardown_version_1},
+		{"ext_storage_append_version_1", ext_storage_append_version_1, C.ext_storage_append_version_1},
+		{"ext_storage_changes_root_version_1", ext_storage_changes_root_version_1, C.ext_storage_changes_root_version_1},
+		{"ext_storage_clear_prefix_version_1", ext_storage_clear_prefix_version_1, C.ext_storage_clear_prefix_version_1},
+		{"ext_storage_clear_prefix_version_2", ext_storage_clear_prefix_version_2, C.ext_storage_clear_prefix_version_2},
+		{"ext_storage_clear_version_1", ext_storage_clear_version_1, C.ext_storage_clear_version_1},
+		{"ext_storage_commit_transaction_version_1", ext_storage_commit_transaction_version_1, C.ext_storage_commit_transaction_version_1},
+		{"ext_storage_exists_version_1", ext_storage_exists_version_1, C.ext_storage_exists_version_1},
+		{"ext_storage_get_version_1", ext_storage_get_version_1, C.ext_storage_get_version_1},
+		{"ext_storage_next_key_version_1", ext_storage_next_key_version_1, C.ext_storage_next_key_version_1},
+		{"ext_storage_read_version_1", ext_storage_read_version_1, C.ext_storage_read_version_1},
+		{"ext_storage_rollback_transaction_version_1", ext_storage_rollback_transaction_version_1, C.ext_storage_rollback_transaction_version_1},
+		{"ext_storage_root_version_1", ext_storage_root_version_1, C.ext_storage_root_version_1},
+		{"ext_storage_root_version_2", ext_storage_root_version_2, C.ext_storage_root_version_2},
+		{"ext_storage_set_version_1", ext_storage_set_version_1, C.ext_storage_set_version_1},
+		{"ext_storage_start_transaction_version_1", ext_storage_start_transaction_version_1, C.ext_storage_start_transaction_version_1},
+		{"ext_transaction_index_index_version_1", ext_transaction_index_index_version_1, C.ext_transaction_index_index_version_1},
+		{"ext_transaction_index_renew_version_1", ext_transaction_index_renew_version_1, C.ext_transaction_index_renew_version_1},
+		{"ext_trie_blake2_256_ordered_root_version_1", ext_trie_blake2_256_ordered_root_version_1, C.ext_trie_blake2_256_ordered_root_version_1},
+		{"ext_trie_blake2_256_ordered_root_version_2", ext_trie_blake2_256_ordered_root_version_2, C.ext_trie_blake2_256_ordered_root_version_2},
+		{"ext_trie_blake2_256_root_version_1", ext_trie_blake2_256_root_version_1, C.ext_trie_blake2_256_root_version_1},
+		{"ext_trie_blake2_256_verify_proof_version_1", ext_trie_blake2_256_verify_proof_version_1, C.ext_trie_blake2_256_verify_proof_version_1},
+	} {
+		_, err = imports.AppendFunction(toRegister.importName, toRegister.implementation, toRegister.cgoPointer)
+		if err != nil {
+			return nil, fmt.Errorf("importing function: %w", err)
+		}
 	}
 
 	return imports, nil
