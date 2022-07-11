@@ -338,8 +338,14 @@ func (s *Service) handleChainByHash(ancestor, descendant common.Hash,
 		return nil, err
 	}
 
+	// If the direction is descending, prune from the start.
+	// if the direction is ascending it should prune from the end.
 	if uint(len(subchain)) > max {
-		subchain = subchain[:max]
+		if direction == network.Ascending {
+			subchain = subchain[:max]
+		} else {
+			subchain = subchain[uint(len(subchain))-max:]
+		}
 	}
 
 	data := make([]*types.BlockData, len(subchain))
