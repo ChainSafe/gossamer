@@ -197,7 +197,7 @@ func TestNewNode(t *testing.T) {
 		gomock.AssignableToTypeOf(&network.Service{}), &digest.Handler{}).
 		Return(&core.Service{}, nil)
 	m.EXPECT().createGRANDPAService(dotConfig, gomock.AssignableToTypeOf(&state.Service{}),
-		&digest.Handler{}, ks.Gran, gomock.AssignableToTypeOf(&network.Service{}),
+		ks.Gran, gomock.AssignableToTypeOf(&network.Service{}),
 		gomock.AssignableToTypeOf(&telemetry.Mailer{})).
 		Return(&grandpa.Service{}, nil)
 	m.EXPECT().newSyncService(dotConfig, gomock.AssignableToTypeOf(&state.Service{}), &grandpa.Service{},

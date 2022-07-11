@@ -20,6 +20,16 @@ import (
 	"github.com/multiformats/go-multiaddr"
 )
 
+const (
+	// maxBlockRequestSize              uint64 = 1024 * 1024      // 1mb
+	maxBlockResponseSize uint64 = 1024 * 1024 * 16 // 16mb
+	// MaxGrandpaNotificationSize is maximum size for a grandpa notification message.
+	MaxGrandpaNotificationSize       uint64 = 1024 * 1024      // 1mb
+	maxTransactionsNotificationSize  uint64 = 1024 * 1024 * 16 // 16mb
+	maxBlockAnnounceNotificationSize uint64 = 1024 * 1024      // 1mb
+
+)
+
 func isInbound(stream libp2pnetwork.Stream) bool {
 	return stream.Stat().Direction == libp2pnetwork.DirInbound
 }
@@ -176,7 +186,7 @@ func readLEB128ToUint64(r io.Reader, buf []byte) (uint64, int, error) {
 }
 
 // readStream reads from the stream into the given buffer, returning the number of bytes read
-func readStream(stream libp2pnetwork.Stream, bufPointer *[]byte) (int, error) {
+func readStream(stream libp2pnetwork.Stream, bufPointer *[]byte, maxSize uint64) (int, error) {
 	if stream == nil {
 		return 0, errors.New("stream is nil")
 	}
@@ -201,8 +211,8 @@ func readStream(stream libp2pnetwork.Stream, bufPointer *[]byte) (int, error) {
 		logger.Warnf("received message with size %d greater than allocated message buffer size %d", length, len(buf))
 	}
 
-	if length > maxBlockResponseSize {
-		logger.Warnf("received message with size %d greater than maxBlockResponseSize, closing stream", length)
+	if length > maxSize {
+		logger.Warnf("received message with size %d greater than max size %d, closing stream", length, maxSize)
 		return 0, fmt.Errorf("message size greater than maximum: got %d", length)
 	}
 

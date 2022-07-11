@@ -121,6 +121,7 @@ import (
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/lib/trie/proof"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
@@ -928,8 +929,8 @@ func ext_trie_blake2_256_verify_proof_version_1(context unsafe.Pointer, rootSpan
 	instanceContext := wasm.IntoInstanceContext(context)
 
 	toDecProofs := asMemorySlice(instanceContext, proofSpan)
-	var decProofs [][]byte
-	err := scale.Unmarshal(toDecProofs, &decProofs)
+	var encodedProofNodes [][]byte
+	err := scale.Unmarshal(toDecProofs, &encodedProofNodes)
 	if err != nil {
 		logger.Errorf("[ext_trie_blake2_256_verify_proof_version_1]: %s", err)
 		return C.int32_t(0)
@@ -941,18 +942,13 @@ func ext_trie_blake2_256_verify_proof_version_1(context unsafe.Pointer, rootSpan
 	mem := instanceContext.Memory().Data()
 	trieRoot := mem[rootSpan : rootSpan+32]
 
-	exists, err := trie.VerifyProof(decProofs, trieRoot, []trie.Pair{{Key: key, Value: value}})
+	err = proof.Verify(encodedProofNodes, trieRoot, key, value)
 	if err != nil {
 		logger.Errorf("[ext_trie_blake2_256_verify_proof_version_1]: %s", err)
 		return C.int32_t(0)
 	}
 
-	var result C.int32_t = 0
-	if exists {
-		result = 1
-	}
-
-	return result
+	return C.int32_t(1)
 }
 
 //export ext_misc_print_hex_version_1

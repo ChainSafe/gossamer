@@ -16,7 +16,7 @@ import (
 
 // handleLightStream handles streams with the <protocol-id>/light/2 protocol ID
 func (s *Service) handleLightStream(stream libp2pnetwork.Stream) {
-	s.readStream(stream, s.decodeLightMessage, s.handleLightMsg)
+	s.readStream(stream, s.decodeLightMessage, s.handleLightMsg, maxBlockResponseSize)
 }
 
 func (s *Service) decodeLightMessage(in []byte, peer peer.ID, _ bool) (Message, error) {

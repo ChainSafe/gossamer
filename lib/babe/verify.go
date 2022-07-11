@@ -202,7 +202,7 @@ func (v *VerificationManager) getVerifierInfo(epoch uint64, header *types.Header
 		return nil, fmt.Errorf("failed to get epoch data for epoch %d: %w", epoch, err)
 	}
 
-	configData, err := v.getConfigData(epoch, header)
+	configData, err := v.epochState.GetConfigData(epoch, header)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get config data: %w", err)
 	}
@@ -218,21 +218,6 @@ func (v *VerificationManager) getVerifierInfo(epoch uint64, header *types.Header
 		threshold:      threshold,
 		secondarySlots: configData.SecondarySlots > 0,
 	}, nil
-}
-
-func (v *VerificationManager) getConfigData(epoch uint64, header *types.Header) (*types.ConfigData, error) {
-	for i := int(epoch); i >= 0; i-- {
-		has, err := v.epochState.HasConfigData(uint64(i))
-		if err != nil {
-			return nil, err
-		} else if !has {
-			continue
-		}
-
-		return v.epochState.GetConfigData(uint64(i), header)
-	}
-
-	return nil, errNoConfigData
 }
 
 // verifier is a BABE verifier for a specific authority set, randomness, and threshold
