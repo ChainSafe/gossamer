@@ -347,25 +347,22 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	for _, currentHash := range hashes {
 		currentHeader, err := b.blockState.GetHeader(currentHash)
 		if err != nil {
-			logger.Errorf("failed get header %s", err)
-			continue
+			return fmt.Errorf("failed get header %s", err)
 		}
 
 		currentBlockProducerIndex, err := getAuthorityIndex(currentHeader)
 		if err != nil {
-			logger.Errorf("failed to get authority index %s", err)
-			continue
+			return fmt.Errorf("failed to get authority index %s", err)
 		}
 
 		if len(currentHeader.Digest.Types) == 0 {
-			logger.Errorf("current header missing digest")
+			return fmt.Errorf("current header missing digest")
 		}
 
 		currentPreDigestItem := currentHeader.Digest.Types[0]
 		currentPreDigest, ok := currentPreDigestItem.Value().(types.PreRuntimeDigest)
 		if !ok {
 			return fmt.Errorf("%w: got %T", types.ErrNoFirstPreDigest, currentPreDigestItem.Value())
-
 		}
 
 		currentBabePreDigest, err := b.verifyPreRuntimeDigest(&currentPreDigest)
