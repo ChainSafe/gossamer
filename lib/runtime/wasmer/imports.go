@@ -34,9 +34,11 @@ package wasmer
 // extern void ext_crypto_start_batch_verify_version_1(void *context);
 //
 // extern int32_t ext_trie_blake2_256_root_version_1(void *context, int64_t a);
+// extern int32_t ext_trie_blake2_256_root_version_2(void *context, int64_t data, int32_t version);
 // extern int32_t ext_trie_blake2_256_ordered_root_version_1(void *context, int64_t a);
-// extern int32_t ext_trie_blake2_256_ordered_root_version_2(void *context, int64_t a, int32_t b);
+// extern int32_t ext_trie_blake2_256_ordered_root_version_2(void *context, int64_t data, int32_t version);
 // extern int32_t ext_trie_blake2_256_verify_proof_version_1(void *context, int32_t a, int64_t b, int64_t c, int64_t d);
+// extern int32_t ext_trie_blake2_256_verify_proof_version_2(void *context, int32_t root, int64_t proof, int64_t key, int64_t value, int32_t version);
 //
 // extern int64_t ext_misc_runtime_version_version_1(void *context, int64_t a);
 // extern void ext_misc_print_hex_version_1(void *context, int64_t a);
@@ -48,6 +50,7 @@ package wasmer
 // extern int64_t ext_default_child_storage_next_key_version_1(void *context, int64_t a, int64_t b);
 // extern int64_t ext_default_child_storage_read_version_1(void *context, int64_t a, int64_t b, int64_t c, int32_t d);
 // extern int64_t ext_default_child_storage_root_version_1(void *context, int64_t a);
+// extern int32_t ext_default_child_storage_root_version_2(void *context, int64_t child_storage_key, int32_t version);
 // extern void ext_default_child_storage_set_version_1(void *context, int64_t a, int64_t b, int64_t c);
 // extern void ext_default_child_storage_storage_kill_version_1(void *context, int64_t a);
 // extern int32_t ext_default_child_storage_storage_kill_version_2(void *context, int64_t a, int64_t b);
@@ -92,7 +95,7 @@ package wasmer
 // extern int64_t ext_storage_read_version_1(void *context, int64_t a, int64_t b, int32_t c);
 // extern void ext_storage_rollback_transaction_version_1(void *context);
 // extern int64_t ext_storage_root_version_1(void *context);
-// extern int64_t ext_storage_root_version_2(void *context, int32_t a);
+// extern int32_t ext_storage_root_version_2(void *context, int32_t version);
 // extern void ext_storage_set_version_1(void *context, int64_t a, int64_t b);
 // extern void ext_storage_start_transaction_version_1(void *context);
 //
@@ -101,6 +104,7 @@ package wasmer
 import "C" //skipcq: SCC-compile
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"math/big"
@@ -838,6 +842,43 @@ func ext_trie_blake2_256_root_version_1(context unsafe.Pointer, dataSpan C.int64
 	return C.int32_t(ptr)
 }
 
+// https://spec.polkadot.network/#_version_2_prototype_9
+//export ext_trie_blake2_256_root_version_2
+func ext_trie_blake2_256_root_version_2(context unsafe.Pointer, dataPtrSize C.int64_t,
+	version C.int32_t) (rootHashPtr C.int32_t) {
+	instanceContext := wasm.IntoInstanceContext(context)
+	data := asMemorySlice(instanceContext, dataPtrSize)
+
+	var keyValues []struct {
+		Key   []byte
+		Value []byte
+	}
+	if err := scale.Unmarshal(data, &keyValues); err != nil {
+		panicf("failed scale unmarshaling data: %s", err)
+	}
+
+	versionUint8 := uint8(version)
+
+	t := trie.NewEmptyTrie()
+	for _, keyValue := range keyValues {
+		t.Put(keyValue.Key, keyValue.Value, versionUint8)
+	}
+
+	rootHash, err := t.Hash(versionUint8)
+	if err != nil {
+		panicf("failed to compute root hash: %s", err)
+	}
+
+	const rootHashSize = 32
+	goRootHashPtr, err := toWasmMemorySized(instanceContext, rootHash[:], rootHashSize)
+	if err != nil {
+		panicf("failed to allocate memory for root hash: %s", err)
+	}
+
+	rootHashPtr = C.int32_t(goRootHashPtr)
+	return rootHashPtr
+}
+
 //export ext_trie_blake2_256_ordered_root_version_1
 func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
 	logger.Debug("executing...")
@@ -886,11 +927,45 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 	return C.int32_t(ptr)
 }
 
+// https://spec.polkadot.network/#_version_2_prototype_10
 //export ext_trie_blake2_256_ordered_root_version_2
 func ext_trie_blake2_256_ordered_root_version_2(context unsafe.Pointer,
-	dataSpan C.int64_t, version C.int32_t) C.int32_t {
-	// TODO: update to use state trie version 1 (#2418)
-	return ext_trie_blake2_256_ordered_root_version_1(context, dataSpan)
+	dataPtrSize C.int64_t, version C.int32_t) (result C.int32_t) {
+	instanceContext := wasm.IntoInstanceContext(context)
+
+	var values [][]byte
+	dataBytes := asMemorySlice(instanceContext, dataPtrSize)
+	decoder := scale.NewDecoder(bytes.NewBuffer(dataBytes))
+	err := decoder.Decode(&values)
+	if err != nil {
+		panicf("failed to decode scale encoded data: %s", err)
+	}
+
+	versionUint8 := uint8(version)
+
+	t := trie.NewEmptyTrie()
+
+	for i, value := range values {
+		key, err := scale.Marshal(uint(i))
+		if err != nil {
+			panicf("failed scale encoding value index: %s", err)
+		}
+
+		t.Put(key, value, versionUint8)
+	}
+
+	rootHash, err := t.Hash(versionUint8)
+	if err != nil {
+		panicf("failed to compute root hash: %s", err)
+	}
+
+	result, err = rootHashToWasmMemory(instanceContext, rootHash)
+	if err != nil {
+		logger.Errorf(err.Error())
+		return 0
+	}
+
+	return result
 }
 
 //export ext_trie_blake2_256_verify_proof_version_1
@@ -921,6 +996,37 @@ func ext_trie_blake2_256_verify_proof_version_1(context unsafe.Pointer,
 	}
 
 	return C.int32_t(1)
+}
+
+// https://spec.polkadot.network/#_version_2_prototype_13
+//export ext_trie_blake2_256_verify_proof_version_2
+func ext_trie_blake2_256_verify_proof_version_2(context unsafe.Pointer,
+	rootPtr C.int32_t, proofPtrSize, keyPtrSize, valuePtrSize C.int64_t,
+	version C.int32_t) (result C.int32_t) {
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
+
+	proofBytes := getBytes(memory, proofPtrSize)
+	decoder := scale.NewDecoder(bytes.NewBuffer(proofBytes))
+	var encodedProofNodes [][]byte
+	err := decoder.Decode(&encodedProofNodes)
+	if err != nil {
+		logger.Errorf("failed scale decoding proof data: %s", err)
+		return 0
+	}
+
+	rootHash := getRootHash(memory, rootPtr)
+	keyBytes := getBytes(memory, keyPtrSize)
+	valueBytes := getBytes(memory, valuePtrSize)
+	versionUint8 := uint8(version)
+
+	err = proof.Verify(encodedProofNodes, rootHash, keyBytes, valueBytes, versionUint8)
+	if err != nil {
+		logger.Warnf("failed to verify proof: %s", err)
+		return 0
+	}
+
+	return 1
 }
 
 //export ext_misc_print_hex_version_1
@@ -1146,6 +1252,35 @@ func ext_default_child_storage_root_version_1(context unsafe.Pointer,
 	}
 
 	return C.int64_t(root)
+}
+
+// https://spec.polkadot.network/#_version_2_prototype_4
+//export ext_default_child_storage_root_version_2
+func ext_default_child_storage_root_version_2(context unsafe.Pointer,
+	childStorageKeyPtrSize C.int64_t, versionPtr C.int32_t) (resultPtr C.int32_t) {
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
+	storage := instanceContext.Data().(*runtime.Context).Storage
+
+	keyToChild := getBytes(memory, childStorageKeyPtrSize)
+
+	child, err := storage.GetChild(keyToChild)
+	if err != nil {
+		panicf("failed to retrieve child: %s", err)
+	}
+
+	versionUint8 := uint8(versionPtr)
+	childRootHash, err := child.Hash(versionUint8)
+	if err != nil {
+		panicf("failed to encode child root: %s", err)
+	}
+
+	resultPtr, err = rootHashToWasmMemory(instanceContext, childRootHash)
+	if err != nil {
+		panic(err)
+	}
+
+	return resultPtr
 }
 
 //export ext_default_child_storage_set_version_1
@@ -2021,10 +2156,25 @@ func ext_storage_root_version_1(context unsafe.Pointer) C.int64_t {
 	return C.int64_t(rootSpan)
 }
 
+// https://spec.polkadot.network/#sect-ext-storage-root-version-2
 //export ext_storage_root_version_2
-func ext_storage_root_version_2(context unsafe.Pointer, version C.int32_t) C.int64_t {
-	// TODO: update to use state trie version 1 (#2418)
-	return ext_storage_root_version_1(context)
+func ext_storage_root_version_2(context unsafe.Pointer, version C.int32_t) C.int32_t {
+	instanceContext := wasm.IntoInstanceContext(context)
+	storage := instanceContext.Data().(*runtime.Context).Storage
+
+	versionUint8 := uint8(version)
+
+	rootHash, err := storage.Root(versionUint8)
+	if err != nil {
+		panicf("failed to get storage root: %s", err)
+	}
+
+	result, err := rootHashToWasmMemory(instanceContext, rootHash)
+	if err != nil {
+		panic(err)
+	}
+
+	return result
 }
 
 //export ext_storage_set_version_1
@@ -2103,6 +2253,7 @@ func importsNodeRuntime() (imports *wasm.Imports, err error) {
 		{"ext_default_child_storage_next_key_version_1", ext_default_child_storage_next_key_version_1, C.ext_default_child_storage_next_key_version_1},
 		{"ext_default_child_storage_read_version_1", ext_default_child_storage_read_version_1, C.ext_default_child_storage_read_version_1},
 		{"ext_default_child_storage_root_version_1", ext_default_child_storage_root_version_1, C.ext_default_child_storage_root_version_1},
+		{"ext_default_child_storage_root_version_2", ext_default_child_storage_root_version_2, C.ext_default_child_storage_root_version_2},
 		{"ext_default_child_storage_set_version_1", ext_default_child_storage_set_version_1, C.ext_default_child_storage_set_version_1},
 		{"ext_default_child_storage_storage_kill_version_1", ext_default_child_storage_storage_kill_version_1, C.ext_default_child_storage_storage_kill_version_1},
 		{"ext_default_child_storage_storage_kill_version_2", ext_default_child_storage_storage_kill_version_2, C.ext_default_child_storage_storage_kill_version_2},
@@ -2160,7 +2311,9 @@ func importsNodeRuntime() (imports *wasm.Imports, err error) {
 		{"ext_trie_blake2_256_ordered_root_version_1", ext_trie_blake2_256_ordered_root_version_1, C.ext_trie_blake2_256_ordered_root_version_1},
 		{"ext_trie_blake2_256_ordered_root_version_2", ext_trie_blake2_256_ordered_root_version_2, C.ext_trie_blake2_256_ordered_root_version_2},
 		{"ext_trie_blake2_256_root_version_1", ext_trie_blake2_256_root_version_1, C.ext_trie_blake2_256_root_version_1},
+		{"ext_trie_blake2_256_root_version_2", ext_trie_blake2_256_root_version_2, C.ext_trie_blake2_256_root_version_2},
 		{"ext_trie_blake2_256_verify_proof_version_1", ext_trie_blake2_256_verify_proof_version_1, C.ext_trie_blake2_256_verify_proof_version_1},
+		{"ext_trie_blake2_256_verify_proof_version_2", ext_trie_blake2_256_verify_proof_version_2, C.ext_trie_blake2_256_verify_proof_version_2},
 	} {
 		_, err = imports.AppendFunction(toRegister.importName, toRegister.implementation, toRegister.cgoPointer)
 		if err != nil {

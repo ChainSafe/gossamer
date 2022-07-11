@@ -10,11 +10,16 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/types"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/wasmerio/go-ext-wasm/wasmer"
 )
+
+func panicf(format string, args ...interface{}) {
+	panic(fmt.Sprintf(format, args...))
+}
 
 // toPointerSize converts an uint32 pointer and uint32 size
 // to an int64 pointer size.
@@ -31,7 +36,16 @@ func splitPointerSize(pointerSize int64) (ptr, size uint32) {
 // asMemorySlice converts a 64 bit pointer size to a Go byte slice.
 func asMemorySlice(context wasmer.InstanceContext, pointerSize C.int64_t) (data []byte) {
 	memory := context.Memory().Data()
-	ptr, size := splitPointerSize(int64(pointerSize))
+	return getBytes(memory, pointerSize)
+}
+
+func getBytes(memory []byte, ptrSize C.int64_t) []byte {
+	ptr, size := splitPointerSize(int64(ptrSize))
+	return memory[ptr : ptr+size]
+}
+
+func getRootHash(memory []byte, ptr C.int32_t) (rootHash []byte) {
+	const size = 32
 	return memory[ptr : ptr+size]
 }
 
@@ -50,7 +64,7 @@ func toWasmMemory(context wasmer.InstanceContext, data []byte) (
 	memory := context.Memory().Data()
 
 	if uint32(len(memory)) < ptr+size {
-		panic(fmt.Sprintf("length of memory is less than expected, want %d have %d", ptr+size, len(memory)))
+		panicf("length of memory is less than expected, want %d have %d", ptr+size, len(memory))
 	}
 
 	copy(memory[ptr:ptr+size], data)
@@ -206,6 +220,17 @@ func toWasmMemoryFixedSizeOptional(context wasmer.InstanceContext, data []byte) 
 		return 0, fmt.Errorf("scale encoding: %w", err)
 	}
 	return toWasmMemory(context, encodedOptionalFixedSize)
+}
+
+func rootHashToWasmMemory(context wasmer.InstanceContext, rootHash common.Hash) (
+	ptr C.int32_t, err error) {
+	goPtr, err := toWasmMemorySized(context, rootHash[:])
+	if err != nil {
+		return 0, err
+	}
+
+	ptr = C.int32_t(goPtr)
+	return ptr, nil
 }
 
 func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
