@@ -660,11 +660,13 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 			name:     "valid digest items, getAuthorityIndex error",
 			verifier: *babeVerifier5,
 			header:   header7,
+			expErr:   errors.New("failed to get authority index no digest provided"),
 		},
 		{
 			name:     "get header err",
 			verifier: *babeVerifier6,
 			header:   header7,
+			expErr:   errors.New("failed get header get header error"),
 		},
 	}
 	for _, tt := range tests {
