@@ -118,11 +118,10 @@ func (s *TrieState) NextKey(key []byte) []byte {
 }
 
 // ClearPrefix deletes all key-value pairs from the trie where the key starts with the given prefix
-func (s *TrieState) ClearPrefix(prefix []byte) error {
+func (s *TrieState) ClearPrefix(prefix []byte) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	s.t.ClearPrefix(prefix)
-	return nil
 }
 
 // ClearPrefixLimit deletes key-value pairs from the trie where the key starts with the given prefix till limit reached
