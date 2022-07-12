@@ -56,8 +56,6 @@ func (cm *ConnManager) Notifee() network.Notifiee {
 	nb.ListenCloseF = cm.ListenClose
 	nb.ConnectedF = cm.Connected
 	nb.DisconnectedF = cm.Disconnected
-	nb.OpenedStreamF = cm.OpenedStream
-	nb.ClosedStreamF = cm.ClosedStream
 
 	return nb
 }
@@ -142,18 +140,6 @@ func (cm *ConnManager) Disconnected(_ network.Network, c network.Conn) {
 	if cm.disconnectHandler != nil {
 		cm.disconnectHandler(c.RemotePeer())
 	}
-}
-
-// OpenedStream is called when a stream is opened
-func (cm *ConnManager) OpenedStream(_ network.Network, s network.Stream) {
-	logger.Tracef("Stream opened with peer %s using protocol %s",
-		s.Conn().RemotePeer(), s.Protocol())
-}
-
-// ClosedStream is called when a stream is closed
-func (cm *ConnManager) ClosedStream(_ network.Network, s network.Stream) {
-	logger.Tracef("Stream closed with peer %s using protocol %s",
-		s.Conn().RemotePeer(), s.Protocol())
 }
 
 func (cm *ConnManager) isPersistent(p peer.ID) bool {
