@@ -138,6 +138,8 @@ func TestSync_Basic(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	nodes.InitAndStartTest(ctx, t, cancel)
+	ctx, cancel = context.WithTimeout(ctx, time.Minute)
+	defer cancel()
 
 	const getChainHeadTimeout = time.Second
 
