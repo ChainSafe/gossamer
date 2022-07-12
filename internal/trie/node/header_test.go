@@ -295,10 +295,10 @@ func Test_decodeHeader(t *testing.T) {
 		},
 		"header byte decoding error": {
 			reads: []readCall{
-				{buffArgCap: 1, read: []byte{0b0011_1110}},
+				{buffArgCap: 1, read: []byte{0b0000_1000}},
 			},
 			errWrapped: ErrVariantUnknown,
-			errMessage: "decoding header byte: node variant is unknown: for header byte 00111110",
+			errMessage: "decoding header byte: node variant is unknown: for header byte 00001000",
 		},
 		"partial key length contained in first byte": {
 			reads: []readCall{
@@ -398,6 +398,21 @@ func Test_decodeHeaderByte(t *testing.T) {
 			header:                 0b0110_1001,
 			nodeVariant:            leafVariant,
 			partialKeyLengthHeader: 0b0010_1001,
+		},
+		"leaf containing hashes header": {
+			header:                 0b0011_1001,
+			nodeVariant:            leafContainingHashesVariant,
+			partialKeyLengthHeader: 0b0001_1001,
+		},
+		"branch containing hashes header": {
+			header:                 0b0001_1001,
+			nodeVariant:            branchContainingHashesVariant,
+			partialKeyLengthHeader: 0b0000_1001,
+		},
+		"compact encoding header": {
+			header:                 0b0001_0000,
+			nodeVariant:            compactEncodingVariant,
+			partialKeyLengthHeader: 0b0000_0000,
 		},
 		"unknown variant header": {
 			header:     0b0000_1000,
