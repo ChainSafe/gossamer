@@ -11,7 +11,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/lib/common"
-	gomock "github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -289,128 +288,6 @@ func Test_Trie_RootNode(t *testing.T) {
 	root := trie.RootNode()
 
 	assert.Equal(t, expectedRoot, root)
-}
-
-//go:generate mockgen -destination=buffer_mock_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/internal/trie/node Buffer
-
-func Test_encodeRoot(t *testing.T) {
-	t.Parallel()
-
-	type bufferCalls struct {
-		writeCalls  []writeCall
-		lenCall     bool
-		lenReturn   int
-		bytesCall   bool
-		bytesReturn []byte
-	}
-
-	testCases := map[string]struct {
-		root         *Node
-		bufferCalls  bufferCalls
-		errWrapped   error
-		errMessage   string
-		expectedRoot *Node
-	}{
-		"nil root and no error": {
-			bufferCalls: bufferCalls{
-				writeCalls: []writeCall{
-					{written: []byte{0}},
-				},
-			},
-		},
-		"nil root and write error": {
-			bufferCalls: bufferCalls{
-				writeCalls: []writeCall{
-					{
-						written: []byte{0},
-						err:     errTest,
-					},
-				},
-			},
-			errWrapped: errTest,
-			errMessage: "cannot write nil root node to buffer: test error",
-		},
-		"root encoding error": {
-			root: &Node{
-				Key:   []byte{1, 2},
-				Value: []byte{1},
-			},
-			bufferCalls: bufferCalls{
-				writeCalls: []writeCall{
-					{
-						written: []byte{66},
-						err:     errTest,
-					},
-				},
-			},
-			errWrapped: errTest,
-			errMessage: "cannot encode header: test error",
-			expectedRoot: &Node{
-				Key:   []byte{1, 2},
-				Value: []byte{1},
-			},
-		},
-		"root encoding success": {
-			root: &Node{
-				Key:   []byte{1, 2},
-				Value: []byte{1},
-			},
-			bufferCalls: bufferCalls{
-				writeCalls: []writeCall{
-					{written: []byte{66}},
-					{written: []byte{18}},
-					{written: []byte{4, 1}},
-				},
-				lenCall:     true,
-				lenReturn:   3,
-				bytesCall:   true,
-				bytesReturn: []byte{66, 18, 4, 1},
-			},
-			expectedRoot: &Node{
-				Key:      []byte{1, 2},
-				Value:    []byte{1},
-				Encoding: []byte{66, 18, 4},
-			},
-		},
-	}
-
-	for name, testCase := range testCases {
-		testCase := testCase
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-			ctrl := gomock.NewController(t)
-
-			buffer := NewMockBuffer(ctrl)
-
-			var previousCall *gomock.Call
-			for _, write := range testCase.bufferCalls.writeCalls {
-				call := buffer.EXPECT().
-					Write(write.written).
-					Return(write.n, write.err)
-
-				if previousCall != nil {
-					call.After(previousCall)
-				}
-				previousCall = call
-			}
-			if testCase.bufferCalls.lenCall {
-				buffer.EXPECT().Len().
-					Return(testCase.bufferCalls.lenReturn)
-			}
-			if testCase.bufferCalls.bytesCall {
-				buffer.EXPECT().Bytes().
-					Return(testCase.bufferCalls.bytesReturn)
-			}
-
-			err := encodeRoot(testCase.root, buffer)
-
-			assert.ErrorIs(t, err, testCase.errWrapped)
-			if testCase.errWrapped != nil {
-				assert.EqualError(t, err, testCase.errMessage)
-			}
-			assert.Equal(t, testCase.expectedRoot, testCase.root)
-		})
-	}
 }
 
 func Test_Trie_MustHash(t *testing.T) {

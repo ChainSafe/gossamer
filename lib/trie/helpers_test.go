@@ -4,7 +4,6 @@
 package trie
 
 import (
-	"errors"
 	"math/rand"
 	"testing"
 	"time"
@@ -12,14 +11,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/stretchr/testify/require"
 )
-
-type writeCall struct {
-	written []byte
-	n       int
-	err     error
-}
-
-var errTest = errors.New("test error")
 
 type keyValues struct {
 	key   []byte

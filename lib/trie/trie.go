@@ -153,18 +153,6 @@ func (t *Trie) RootNode() *Node {
 	return t.root.Copy(copySettings)
 }
 
-// encodeRoot writes the encoding of the root node to the buffer.
-func encodeRoot(root *Node, buffer node.Buffer) (err error) {
-	if root == nil {
-		_, err = buffer.Write([]byte{0})
-		if err != nil {
-			return fmt.Errorf("cannot write nil root node to buffer: %w", err)
-		}
-		return nil
-	}
-	return root.Encode(buffer)
-}
-
 // MustHash returns the hashed root of the trie.
 // It panics if it fails to hash the root node.
 func (t *Trie) MustHash() common.Hash {
@@ -182,7 +170,7 @@ func (t *Trie) Hash() (rootHash common.Hash, err error) {
 	buffer.Reset()
 	defer pools.EncodingBuffers.Put(buffer)
 
-	err = encodeRoot(t.root, buffer)
+	err = t.root.Encode(buffer)
 	if err != nil {
 		return [32]byte{}, err
 	}
