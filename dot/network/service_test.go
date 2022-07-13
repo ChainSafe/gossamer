@@ -295,7 +295,7 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 	}
 
 	time.Sleep(time.Millisecond * 500)
-	require.Equal(t, 2, len(handler.messages[nodeA.host.id()]))
+	require.Equal(t, 1, len(handler.messages[nodeA.host.id()]))
 
 	nodeA.host.messageCache = nil
 
@@ -305,7 +305,7 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 		time.Sleep(time.Millisecond * 10)
 	}
 
-	require.Equal(t, 7, len(handler.messages[nodeA.host.id()]))
+	require.Equal(t, 6, len(handler.messages[nodeA.host.id()]))
 }
 
 func TestService_NodeRoles(t *testing.T) {
