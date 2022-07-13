@@ -136,7 +136,15 @@ func (spq *PriorityQueue) Push(txn *ValidTransaction) (common.Hash, error) {
 	heap.Push(&spq.pq, item)
 	spq.txs[hash] = item
 	if spq.nextPushWatcher != nil {
-		close(spq.nextPushWatcher)
+		var closed bool
+		select {
+		case _, closed = <-spq.nextPushWatcher:
+		default:
+		}
+		if !closed {
+			close(spq.nextPushWatcher)
+			spq.nextPushWatcher = nil
+		}
 	}
 
 	transactionQueueGauge.Set(float64(spq.pq.Len()))
