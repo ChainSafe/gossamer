@@ -999,7 +999,8 @@ func TestStateModuleQueryStorage(t *testing.T) {
 					Changes: [][2]*string{{&k1, &v1}},
 				},
 				{
-					Block: &common.Hash{3},
+					Block:   &common.Hash{3},
+					Changes: [][2]*string{},
 				},
 			},
 		},
@@ -1026,7 +1027,7 @@ func TestStateModuleQueryStorage(t *testing.T) {
 				},
 			},
 			exp:       []StorageChangeSetResponse{},
-			errRegexp: "cannot get block by hash: Key not found",
+			errRegexp: "getting block by hash: Key not found",
 		},
 		"start block/end block/error get hash by number": {
 			fields: fields{func(ctrl *gomock.Controller) StorageAPI {

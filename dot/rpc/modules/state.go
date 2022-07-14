@@ -121,8 +121,9 @@ type StateGetReadProofResponse struct {
 // StorageChangeSetResponse is the struct that holds the block and changes
 type StorageChangeSetResponse struct {
 	Block *common.Hash `json:"block"`
-	// Changes is a slice of string pointers so that the JSON encoder can handle nil values as NULL instead of empty
-	//  strings.
+	// Changes is a slice of arrays of string pointers instead of just strings
+	// so that the JSON encoder can handle nil values as NULL instead of empty
+	// strings.
 	Changes [][2]*string `json:"changes"`
 }
 
@@ -406,8 +407,8 @@ func (sm *StateModule) GetStorageSize(
 	return nil
 }
 
-// QueryStorage Query historical storage entries (by key) starting from a request start block given,
-//until request end block or best block if end block in nil
+// QueryStorage queries historical storage entries (by key) starting from a given request start block
+// and until a given end block, or until the best block if the given end block is nil.
 func (sm *StateModule) QueryStorage(
 	_ *http.Request, req *StateStorageQueryRangeRequest, res *[]StorageChangeSetResponse) error {
 	if req.StartBlock.IsEmpty() {
@@ -421,19 +422,17 @@ func (sm *StateModule) QueryStorage(
 
 	startBlockNumber := startBlock.Header.Number
 
-	var endBlockHash common.Hash
+	endBlockHash := req.EndBlock
 	if req.EndBlock.IsEmpty() {
 		endBlockHash = sm.blockAPI.BestBlockHash()
-	} else {
-		endBlockHash = req.EndBlock
 	}
 	endBlock, err := sm.blockAPI.GetBlockByHash(endBlockHash)
 	if err != nil {
-		return fmt.Errorf("cannot get block by hash: %w", err)
+		return fmt.Errorf("getting block by hash: %w", err)
 	}
 	endBlockNumber := endBlock.Header.Number
 
-	response := make([]StorageChangeSetResponse, 0)
+	response := make([]StorageChangeSetResponse, 0, endBlockNumber-startBlockNumber)
 	lastValue := make([]*string, len(req.Keys))
 	firstPass := true
 	for i := startBlockNumber; i <= endBlockNumber; i++ {
@@ -441,7 +440,7 @@ func (sm *StateModule) QueryStorage(
 		if err != nil {
 			return fmt.Errorf("cannot get hash by number: %w", err)
 		}
-		var changes [][2]*string
+		changes := make([][2]*string, 0, len(req.Keys))
 
 		for j, key := range req.Keys {
 			value, err := sm.storageAPI.GetStorageByBlockHash(&blockHash, common.MustHexToBytes(key))
@@ -453,16 +452,10 @@ func (sm *StateModule) QueryStorage(
 				hexValue = stringPtr(common.BytesToHex(value))
 			}
 
-			if firstPass {
-				changes = append(changes, [2]*string{stringPtr(key), hexValue})
-				lastValue[j] = hexValue
-				continue
-			}
-			if lastValue[j] == nil && hexValue != nil {
-				changes = append(changes, [2]*string{stringPtr(key), hexValue})
-				lastValue[j] = hexValue
-			}
-			if lastValue[j] != nil && *lastValue[j] != *hexValue {
+			differentValueEncountered := firstPass ||
+				lastValue[j] == nil && hexValue != nil ||
+				lastValue[j] != nil && *lastValue[j] != *hexValue
+			if differentValueEncountered {
 				changes = append(changes, [2]*string{stringPtr(key), hexValue})
 				lastValue[j] = hexValue
 			}
