@@ -816,10 +816,10 @@ func TestStateModuleQueryStorage(t *testing.T) {
 		req *StateStorageQueryRangeRequest
 	}
 	tests := map[string]struct {
-		fields fields
-		args   args
-		expErr error
-		exp    []StorageChangeSetResponse
+		fields    fields
+		args      args
+		errRegexp string
+		exp       []StorageChangeSetResponse
 	}{
 		"missing start block error": {
 			fields: fields{func(ctrl *gomock.Controller) StorageAPI {
@@ -833,8 +833,8 @@ func TestStateModuleQueryStorage(t *testing.T) {
 					Keys: []string{"0x010203"},
 				},
 			},
-			exp:    []StorageChangeSetResponse{},
-			expErr: ErrStartBlockHashEmpty,
+			exp:       []StorageChangeSetResponse{},
+			errRegexp: "the start block hash cannot be an empty value",
 		},
 		"missing start block not found error": {
 			fields: fields{func(ctrl *gomock.Controller) StorageAPI {
@@ -851,8 +851,8 @@ func TestStateModuleQueryStorage(t *testing.T) {
 					StartBlock: common.Hash{1},
 				},
 			},
-			exp:    []StorageChangeSetResponse{},
-			expErr: chaindb.ErrKeyNotFound,
+			exp:       []StorageChangeSetResponse{},
+			errRegexp: "Key not found",
 		},
 		"start block/no end block/multi keys/key 0 changes, key 1 unchanged": {
 			fields: fields{func(ctrl *gomock.Controller) StorageAPI {
@@ -1025,8 +1025,8 @@ func TestStateModuleQueryStorage(t *testing.T) {
 					EndBlock:   common.Hash{99},
 				},
 			},
-			exp:    []StorageChangeSetResponse{},
-			expErr: chaindb.ErrKeyNotFound,
+			exp:       []StorageChangeSetResponse{},
+			errRegexp: "cannot get block by hash: Key not found",
 		},
 		"start block/end block/error get hash by number": {
 			fields: fields{func(ctrl *gomock.Controller) StorageAPI {
@@ -1053,8 +1053,8 @@ func TestStateModuleQueryStorage(t *testing.T) {
 					EndBlock:   common.Hash{3},
 				},
 			},
-			exp:    []StorageChangeSetResponse{},
-			expErr: blocktree.ErrNumLowerThanRoot,
+			exp:       []StorageChangeSetResponse{},
+			errRegexp: "cannot get hash by number: cannot find node with number lower than root node",
 		},
 		"start block/end block/error get storage by block hash": {
 			fields: fields{func(ctrl *gomock.Controller) StorageAPI {
@@ -1082,8 +1082,8 @@ func TestStateModuleQueryStorage(t *testing.T) {
 					EndBlock:   common.Hash{3},
 				},
 			},
-			exp:    []StorageChangeSetResponse{},
-			expErr: chaindb.ErrKeyNotFound,
+			exp:       []StorageChangeSetResponse{},
+			errRegexp: "getting value by block hash: Key not found",
 		},
 	}
 	for name, tt := range tests {
@@ -1097,8 +1097,9 @@ func TestStateModuleQueryStorage(t *testing.T) {
 			}
 			res := []StorageChangeSetResponse{}
 			err := sm.QueryStorage(tt.args.in0, tt.args.req, &res)
-			if tt.expErr != nil {
-				assert.ErrorContains(t, err, tt.expErr.Error())
+			if tt.errRegexp != "" {
+				//assert.ErrorContains(t, err, tt.expErr.Error())
+				assert.Regexp(t, tt.errRegexp, err.Error())
 			} else {
 				assert.NoError(t, err)
 			}
