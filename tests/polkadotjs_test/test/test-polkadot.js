@@ -98,6 +98,7 @@ describe('Testing polkadot.js/api calls:', function () {
                 });
         })
     });
+    //TODO: remove skip when rpc.state.queryStorage is fixed (in PR#2505)
     describe.skip('api query', () => {
         it('call api.query.timestamp.now()', async function () {
             const timestamp = await api.query.timestamp.now();
