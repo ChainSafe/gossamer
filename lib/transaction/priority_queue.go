@@ -143,7 +143,6 @@ func (spq *PriorityQueue) Push(txn *ValidTransaction) (common.Hash, error) {
 		}
 		if !closed {
 			close(spq.nextPushWatcher)
-			spq.nextPushWatcher = nil
 		}
 	}
 
