@@ -20,7 +20,6 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	testdata "github.com/ChainSafe/gossamer/dot/rpc/modules/test_data"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -800,12 +799,7 @@ func TestStateModuleGetStorageSize(t *testing.T) {
 
 func TestStateModuleQueryStorage(t *testing.T) {
 	t.Parallel()
-	k1 := "0x010204"
-	k2 := "0x090909"
-	v1 := "0x010101"
-	v2 := "0x020202"
-	v3 := "0x030303"
-	v9 := "0x09090909"
+	errTest := errors.New("test error")
 
 	type fields struct {
 		storageAPIBuilder func(ctrl *gomock.Controller) StorageAPI
@@ -822,10 +816,11 @@ func TestStateModuleQueryStorage(t *testing.T) {
 		exp       []StorageChangeSetResponse
 	}{
 		"missing start block error": {
-			fields: fields{func(ctrl *gomock.Controller) StorageAPI {
-				return NewMockStorageAPI(ctrl)
-			},
-				func(ctrl *gomock.Controller) BlockAPI {
+			fields: fields{
+				storageAPIBuilder: func(ctrl *gomock.Controller) StorageAPI {
+					return NewMockStorageAPI(ctrl)
+				},
+				blockAPIBuilder: func(ctrl *gomock.Controller) BlockAPI {
 					return NewMockBlockAPI(ctrl)
 				}},
 			args: args{
@@ -837,12 +832,13 @@ func TestStateModuleQueryStorage(t *testing.T) {
 			errRegexp: "the start block hash cannot be an empty value",
 		},
 		"missing start block not found error": {
-			fields: fields{func(ctrl *gomock.Controller) StorageAPI {
-				return NewMockStorageAPI(ctrl)
-			},
-				func(ctrl *gomock.Controller) BlockAPI {
+			fields: fields{
+				storageAPIBuilder: func(ctrl *gomock.Controller) StorageAPI {
+					return NewMockStorageAPI(ctrl)
+				},
+				blockAPIBuilder: func(ctrl *gomock.Controller) BlockAPI {
 					mockBlockAPI := NewMockBlockAPI(ctrl)
-					mockBlockAPI.EXPECT().GetBlockByHash(common.Hash{1}).Return(nil, chaindb.ErrKeyNotFound)
+					mockBlockAPI.EXPECT().GetBlockByHash(common.Hash{1}).Return(nil, errTest)
 					return mockBlockAPI
 				}},
 			args: args{
@@ -852,36 +848,33 @@ func TestStateModuleQueryStorage(t *testing.T) {
 				},
 			},
 			exp:       []StorageChangeSetResponse{},
-			errRegexp: "Key not found",
+			errRegexp: "test error",
 		},
 		"start block/no end block/multi keys/key 0 changes, key 1 unchanged": {
-			fields: fields{func(ctrl *gomock.Controller) StorageAPI {
-				mockStorageAPI := NewMockStorageAPI(ctrl)
-				mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{2}, []byte{1, 2, 4}).Return(
-					[]byte{1, 1, 1}, nil)
-				mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{2}, []byte{9, 9, 9}).Return(
-					[]byte{9, 9, 9, 9}, nil)
-				mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{3}, []byte{1, 2, 4}).Return(
-					[]byte{2, 2, 2}, nil)
-				mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{3}, []byte{9, 9, 9}).Return(
-					[]byte{9, 9, 9, 9}, nil)
-				mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{4}, []byte{1, 2, 4}).Return(
-					[]byte{3, 3, 3}, nil)
-				mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{4}, []byte{9, 9, 9}).Return(
-					[]byte{9, 9, 9, 9}, nil)
-				return mockStorageAPI
-			},
-				func(ctrl *gomock.Controller) BlockAPI {
+			fields: fields{
+				storageAPIBuilder: func(ctrl *gomock.Controller) StorageAPI {
+					mockStorageAPI := NewMockStorageAPI(ctrl)
+					mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{2}, []byte{1, 2, 4}).
+						Return([]byte{1, 1, 1}, nil)
+					mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{2}, []byte{9, 9, 9}).
+						Return([]byte{9, 9, 9, 9}, nil)
+					mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{3}, []byte{1, 2, 4}).
+						Return([]byte{2, 2, 2}, nil)
+					mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{3}, []byte{9, 9, 9}).
+						Return([]byte{9, 9, 9, 9}, nil)
+					mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{4}, []byte{1, 2, 4}).
+						Return([]byte{3, 3, 3}, nil)
+					mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{4}, []byte{9, 9, 9}).
+						Return([]byte{9, 9, 9, 9}, nil)
+					return mockStorageAPI
+				},
+				blockAPIBuilder: func(ctrl *gomock.Controller) BlockAPI {
 					mockBlockAPI := NewMockBlockAPI(ctrl)
-					mockBlockAPI.EXPECT().GetBlockByHash(common.Hash{2}).Return(&types.Block{
-						Header: types.Header{
-							Number: 1,
-						},
-					}, nil)
+					mockBlockAPI.EXPECT().GetBlockByHash(common.Hash{2}).
+						Return(&types.Block{Header: types.Header{Number: 1}}, nil)
 					mockBlockAPI.EXPECT().BestBlockHash().Return(common.Hash{4})
-					mockBlockAPI.EXPECT().GetBlockByHash(common.Hash{4}).Return(&types.Block{
-						Header: types.Header{Number: 3},
-					}, nil)
+					mockBlockAPI.EXPECT().GetBlockByHash(common.Hash{4}).
+						Return(&types.Block{Header: types.Header{Number: 3}}, nil)
 					mockBlockAPI.EXPECT().GetHashByNumber(uint(1)).Return(common.Hash{2}, nil)
 					mockBlockAPI.EXPECT().GetHashByNumber(uint(2)).Return(common.Hash{3}, nil)
 					mockBlockAPI.EXPECT().GetHashByNumber(uint(3)).Return(common.Hash{4}, nil)
@@ -895,43 +888,47 @@ func TestStateModuleQueryStorage(t *testing.T) {
 			},
 			exp: []StorageChangeSetResponse{
 				{
-					Block:   &common.Hash{2},
-					Changes: [][2]*string{{&k1, &v1}, {&k2, &v9}},
+					Block: &common.Hash{2},
+					Changes: [][2]*string{
+						makeChange("0x010204", "0x010101"),
+						makeChange("0x090909", "0x09090909"),
+					},
 				},
 				{
-					Block:   &common.Hash{3},
-					Changes: [][2]*string{{&k1, &v2}},
+					Block: &common.Hash{3},
+					Changes: [][2]*string{
+						makeChange("0x010204", "0x020202"),
+					},
 				},
 				{
-					Block:   &common.Hash{4},
-					Changes: [][2]*string{{&k1, &v3}},
+					Block: &common.Hash{4},
+					Changes: [][2]*string{
+						makeChange("0x010204", "0x030303"),
+					},
 				},
 			},
 		},
 		"start block/no end block/value changes": {
-			fields: fields{func(ctrl *gomock.Controller) StorageAPI {
-				mockStorageAPI := NewMockStorageAPI(ctrl)
-				mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{1}, []byte{1, 2, 4}).Return([]byte{}, nil)
-				mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{2}, []byte{1, 2, 4}).Return(
-					[]byte{1, 1, 1}, nil)
-				mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{3}, []byte{1, 2, 4}).Return(
-					[]byte{2, 2, 2}, nil)
-				mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{4}, []byte{1, 2, 4}).Return(
-					[]byte{3, 3, 3}, nil)
-
-				return mockStorageAPI
-			},
-				func(ctrl *gomock.Controller) BlockAPI {
+			fields: fields{
+				storageAPIBuilder: func(ctrl *gomock.Controller) StorageAPI {
+					mockStorageAPI := NewMockStorageAPI(ctrl)
+					mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{1}, []byte{1, 2, 4}).
+						Return([]byte{}, nil)
+					mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{2}, []byte{1, 2, 4}).
+						Return([]byte{1, 1, 1}, nil)
+					mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{3}, []byte{1, 2, 4}).
+						Return([]byte{2, 2, 2}, nil)
+					mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{4}, []byte{1, 2, 4}).
+						Return([]byte{3, 3, 3}, nil)
+					return mockStorageAPI
+				},
+				blockAPIBuilder: func(ctrl *gomock.Controller) BlockAPI {
 					mockBlockAPI := NewMockBlockAPI(ctrl)
-					mockBlockAPI.EXPECT().GetBlockByHash(common.Hash{1}).Return(&types.Block{
-						Header: types.Header{
-							Number: 0,
-						},
-					}, nil)
+					mockBlockAPI.EXPECT().GetBlockByHash(common.Hash{1}).
+						Return(&types.Block{Header: types.Header{Number: 0}}, nil)
 					mockBlockAPI.EXPECT().BestBlockHash().Return(common.Hash{4})
-					mockBlockAPI.EXPECT().GetBlockByHash(common.Hash{4}).Return(&types.Block{
-						Header: types.Header{Number: 3},
-					}, nil)
+					mockBlockAPI.EXPECT().GetBlockByHash(common.Hash{4}).
+						Return(&types.Block{Header: types.Header{Number: 3}}, nil)
 					mockBlockAPI.EXPECT().GetHashByNumber(uint(0)).Return(common.Hash{1}, nil)
 					mockBlockAPI.EXPECT().GetHashByNumber(uint(1)).Return(common.Hash{2}, nil)
 					mockBlockAPI.EXPECT().GetHashByNumber(uint(2)).Return(common.Hash{3}, nil)
@@ -946,42 +943,47 @@ func TestStateModuleQueryStorage(t *testing.T) {
 			},
 			exp: []StorageChangeSetResponse{
 				{
-					Block:   &common.Hash{1},
-					Changes: [][2]*string{{&k1, nil}},
+					Block: &common.Hash{1},
+					Changes: [][2]*string{
+						{stringPtr("0x010204"), nil},
+					},
 				},
 				{
-					Block:   &common.Hash{2},
-					Changes: [][2]*string{{&k1, &v1}},
+					Block: &common.Hash{2},
+					Changes: [][2]*string{
+						makeChange("0x010204", "0x010101"),
+					},
 				},
 				{
-					Block:   &common.Hash{3},
-					Changes: [][2]*string{{&k1, &v2}},
+					Block: &common.Hash{3},
+					Changes: [][2]*string{
+						makeChange("0x010204", "0x020202"),
+					},
 				},
 				{
-					Block:   &common.Hash{4},
-					Changes: [][2]*string{{&k1, &v3}},
+					Block: &common.Hash{4},
+					Changes: [][2]*string{
+						makeChange("0x010204", "0x030303"),
+					},
 				},
 			},
 		},
 		"start block, end block, ok": {
-			fields: fields{func(ctrl *gomock.Controller) StorageAPI {
-				mockStorageAPI := NewMockStorageAPI(ctrl)
-				mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{2}, []byte{1, 2, 4}).Return([]byte{1, 1,
-					1}, nil)
-				mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{3}, []byte{1, 2, 4}).Return([]byte{1, 1,
-					1}, nil)
-				return mockStorageAPI
-			},
-				func(ctrl *gomock.Controller) BlockAPI {
+			fields: fields{
+				storageAPIBuilder: func(ctrl *gomock.Controller) StorageAPI {
+					mockStorageAPI := NewMockStorageAPI(ctrl)
+					mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{2}, []byte{1, 2, 4}).
+						Return([]byte{1, 1, 1}, nil)
+					mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{3}, []byte{1, 2, 4}).
+						Return([]byte{1, 1, 1}, nil)
+					return mockStorageAPI
+				},
+				blockAPIBuilder: func(ctrl *gomock.Controller) BlockAPI {
 					mockBlockAPI := NewMockBlockAPI(ctrl)
-					mockBlockAPI.EXPECT().GetBlockByHash(common.Hash{2}).Return(&types.Block{
-						Header: types.Header{
-							Number: 1,
-						},
-					}, nil)
-					mockBlockAPI.EXPECT().GetBlockByHash(common.Hash{3}).Return(&types.Block{
-						Header: types.Header{Number: 2},
-					}, nil)
+					mockBlockAPI.EXPECT().GetBlockByHash(common.Hash{2}).
+						Return(&types.Block{Header: types.Header{Number: 1}}, nil)
+					mockBlockAPI.EXPECT().GetBlockByHash(common.Hash{3}).
+						Return(&types.Block{Header: types.Header{Number: 2}}, nil)
 					mockBlockAPI.EXPECT().GetHashByNumber(uint(1)).Return(common.Hash{2}, nil)
 					mockBlockAPI.EXPECT().GetHashByNumber(uint(2)).Return(common.Hash{3}, nil)
 					return mockBlockAPI
@@ -995,8 +997,10 @@ func TestStateModuleQueryStorage(t *testing.T) {
 			},
 			exp: []StorageChangeSetResponse{
 				{
-					Block:   &common.Hash{2},
-					Changes: [][2]*string{{&k1, &v1}},
+					Block: &common.Hash{2},
+					Changes: [][2]*string{
+						makeChange("0x010204", "0x010101"),
+					},
 				},
 				{
 					Block:   &common.Hash{3},
@@ -1005,18 +1009,16 @@ func TestStateModuleQueryStorage(t *testing.T) {
 			},
 		},
 		"start block/end block/error end hash": {
-			fields: fields{func(ctrl *gomock.Controller) StorageAPI {
-				mockStorageAPI := NewMockStorageAPI(ctrl)
-				return mockStorageAPI
-			},
-				func(ctrl *gomock.Controller) BlockAPI {
+			fields: fields{
+				storageAPIBuilder: func(ctrl *gomock.Controller) StorageAPI {
+					mockStorageAPI := NewMockStorageAPI(ctrl)
+					return mockStorageAPI
+				},
+				blockAPIBuilder: func(ctrl *gomock.Controller) BlockAPI {
 					mockBlockAPI := NewMockBlockAPI(ctrl)
-					mockBlockAPI.EXPECT().GetBlockByHash(common.Hash{2}).Return(&types.Block{
-						Header: types.Header{
-							Number: 1,
-						},
-					}, nil)
-					mockBlockAPI.EXPECT().GetBlockByHash(common.Hash{99}).Return(nil, chaindb.ErrKeyNotFound)
+					mockBlockAPI.EXPECT().GetBlockByHash(common.Hash{2}).
+						Return(&types.Block{Header: types.Header{Number: 1}}, nil)
+					mockBlockAPI.EXPECT().GetBlockByHash(common.Hash{99}).Return(nil, errTest)
 					return mockBlockAPI
 				}},
 			args: args{
@@ -1027,23 +1029,20 @@ func TestStateModuleQueryStorage(t *testing.T) {
 				},
 			},
 			exp:       []StorageChangeSetResponse{},
-			errRegexp: "getting block by hash: Key not found",
+			errRegexp: "getting block by hash: test error",
 		},
 		"start block/end block/error get hash by number": {
-			fields: fields{func(ctrl *gomock.Controller) StorageAPI {
-				mockStorageAPI := NewMockStorageAPI(ctrl)
-				return mockStorageAPI
-			},
-				func(ctrl *gomock.Controller) BlockAPI {
+			fields: fields{
+				storageAPIBuilder: func(ctrl *gomock.Controller) StorageAPI {
+					mockStorageAPI := NewMockStorageAPI(ctrl)
+					return mockStorageAPI
+				},
+				blockAPIBuilder: func(ctrl *gomock.Controller) BlockAPI {
 					mockBlockAPI := NewMockBlockAPI(ctrl)
-					mockBlockAPI.EXPECT().GetBlockByHash(common.Hash{2}).Return(&types.Block{
-						Header: types.Header{
-							Number: 1,
-						},
-					}, nil)
-					mockBlockAPI.EXPECT().GetBlockByHash(common.Hash{3}).Return(&types.Block{
-						Header: types.Header{Number: 2},
-					}, nil)
+					mockBlockAPI.EXPECT().GetBlockByHash(common.Hash{2}).
+						Return(&types.Block{Header: types.Header{Number: 1}}, nil)
+					mockBlockAPI.EXPECT().GetBlockByHash(common.Hash{3}).
+						Return(&types.Block{Header: types.Header{Number: 2}}, nil)
 					mockBlockAPI.EXPECT().GetHashByNumber(uint(1)).Return(common.Hash{}, blocktree.ErrNumLowerThanRoot)
 					return mockBlockAPI
 				}},
@@ -1060,7 +1059,7 @@ func TestStateModuleQueryStorage(t *testing.T) {
 		"start block/end block/error get storage by block hash": {
 			fields: fields{func(ctrl *gomock.Controller) StorageAPI {
 				mockStorageAPI := NewMockStorageAPI(ctrl)
-				mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{2}, []byte{1, 2, 4}).Return(nil, chaindb.ErrKeyNotFound)
+				mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{2}, []byte{1, 2, 4}).Return(nil, errTest)
 				return mockStorageAPI
 			},
 				func(ctrl *gomock.Controller) BlockAPI {
@@ -1084,7 +1083,7 @@ func TestStateModuleQueryStorage(t *testing.T) {
 				},
 			},
 			exp:       []StorageChangeSetResponse{},
-			errRegexp: "getting value by block hash: Key not found",
+			errRegexp: "getting value by block hash: test error",
 		},
 	}
 	for name, tt := range tests {
@@ -1099,7 +1098,6 @@ func TestStateModuleQueryStorage(t *testing.T) {
 			res := []StorageChangeSetResponse{}
 			err := sm.QueryStorage(tt.args.in0, tt.args.req, &res)
 			if tt.errRegexp != "" {
-				//assert.ErrorContains(t, err, tt.expErr.Error())
 				assert.Regexp(t, tt.errRegexp, err.Error())
 			} else {
 				assert.NoError(t, err)

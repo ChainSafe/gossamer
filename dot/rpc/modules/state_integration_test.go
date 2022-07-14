@@ -334,18 +334,18 @@ func TestStateModule_QueryStorage(t *testing.T) {
 	})
 
 	t.Run("When QueryStorage returns data", func(t *testing.T) {
-		k1 := "0x90"
-		v1 := common.BytesToHex([]byte(`value`))
-		k2 := "0x80"
-		v2 := common.BytesToHex([]byte(`another value`))
-		expectedChanges := [][2]*string{{&k1, &v1}, {&k2, &v2}}
+		expectedChanges := [][2]*string{
+			makeChange("0x90", stringToHex("value")),
+			makeChange("0x80", stringToHex("another value")),
+		}
 		expected := []StorageChangeSetResponse{
 			{
 				Block:   &common.Hash{1, 2},
 				Changes: expectedChanges,
 			},
 			{
-				Block: &common.Hash{3, 4},
+				Block:   &common.Hash{3, 4},
+				Changes: [][2]*string{},
 			},
 		}
 		ctrl := gomock.NewController(t)
@@ -366,11 +366,11 @@ func TestStateModule_QueryStorage(t *testing.T) {
 
 		mockStorageAPI := NewMockStorageAPI(ctrl)
 		mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{1, 2}, []byte{144}).Return([]byte(`value`), nil)
-		mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{1, 2},
-			[]byte{128}).Return([]byte(`another value`), nil)
+		mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{1, 2}, []byte{128}).
+			Return([]byte(`another value`), nil)
 		mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{3, 4}, []byte{144}).Return([]byte(`value`), nil)
-		mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{3, 4},
-			[]byte{128}).Return([]byte(`another value`), nil)
+		mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{3, 4}, []byte{128}).
+			Return([]byte(`another value`), nil)
 
 		module := new(StateModule)
 		module.blockAPI = mockBlockAPI
