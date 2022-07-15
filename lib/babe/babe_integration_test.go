@@ -124,7 +124,7 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 		cfg.EpochState = dbSrv.Epoch
 	}
 
-	rtCfg := &wasmer.Config{}
+	var rtCfg runtime.InstanceConfig
 	rtCfg.Storage, err = rtstorage.NewTrieState(genTrie)
 	require.NoError(t, err)
 
@@ -178,7 +178,7 @@ func newTestServiceSetupParameters(t *testing.T) (*Service, *state.EpochState, *
 		_ = dbSrv.Stop()
 	})
 
-	rtCfg := &wasmer.Config{}
+	var rtCfg runtime.InstanceConfig
 	rtCfg.Storage, err = rtstorage.NewTrieState(genTrie)
 	require.NoError(t, err)
 	rt, err := wasmer.NewRuntimeFromGenesis(rtCfg)

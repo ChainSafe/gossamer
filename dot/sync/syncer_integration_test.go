@@ -73,10 +73,10 @@ func newTestSyncer(t *testing.T) *Service {
 	genState, err := rtstorage.NewTrieState(genTrie)
 	require.NoError(t, err)
 
-	rtCfg := &wasmer.Config{}
-	rtCfg.Storage = genState
-	rtCfg.LogLvl = 3
-	rtCfg.NodeStorage = runtime.NodeStorage{}
+	rtCfg := runtime.InstanceConfig{
+		Storage: genState,
+		LogLvl:  log.Critical,
+	}
 
 	if stateSrvc != nil {
 		rtCfg.NodeStorage.BaseDB = stateSrvc.Base

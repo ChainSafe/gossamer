@@ -941,11 +941,11 @@ func ext_misc_runtime_version_version_1(context unsafe.Pointer, dataSpan C.int64
 	instanceContext := wasm.IntoInstanceContext(context)
 	data := asMemorySlice(instanceContext, dataSpan)
 
-	cfg := &Config{
-		Imports: ImportsNodeRuntime,
+	trieState, _ := rtstorage.NewTrieState(nil)
+	cfg := runtime.InstanceConfig{
+		LogLvl:  log.DoNotChange,
+		Storage: trieState,
 	}
-	cfg.LogLvl = log.DoNotChange
-	cfg.Storage, _ = rtstorage.NewTrieState(nil)
 
 	instance, err := NewInstance(data, cfg)
 	if err != nil {
@@ -2232,7 +2232,7 @@ func toWasmMemoryFixedSizeOptional(context wasm.InstanceContext, data []byte) (i
 
 // ImportsNodeRuntime returns the WASM imports for the node runtime.
 func ImportsNodeRuntime() (imports *wasm.Imports, err error) {
-	imports = wasm.NewImports()
+	imports = wasm.NewImports() // TODO close imports
 
 	for _, toRegister := range []struct {
 		importName     string

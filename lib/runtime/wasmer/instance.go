@@ -37,24 +37,17 @@ var (
 	)
 )
 
-// Config represents a wasmer configuration
-type Config struct {
-	runtime.InstanceConfig
-	Imports func() (*wasm.Imports, error)
-}
-
 // Instance represents a v0.8 runtime go-wasmer instance
 type Instance struct {
 	vm       wasm.Instance
 	ctx      *runtime.Context
-	imports  func() (*wasm.Imports, error)
 	isClosed bool
 	codeHash common.Hash
 	sync.Mutex
 }
 
 // NewRuntimeFromGenesis creates a runtime instance from the genesis data
-func NewRuntimeFromGenesis(cfg *Config) (runtime.Instance, error) {
+func NewRuntimeFromGenesis(cfg runtime.InstanceConfig) (instance runtime.Instance, err error) {
 	if cfg.Storage == nil {
 		return nil, errors.New("storage is nil")
 	}
@@ -64,23 +57,21 @@ func NewRuntimeFromGenesis(cfg *Config) (runtime.Instance, error) {
 		return nil, fmt.Errorf("cannot find :code in state")
 	}
 
-	cfg.Imports = ImportsNodeRuntime
 	return NewInstance(code, cfg)
 }
 
 // NewInstanceFromTrie returns a new runtime instance with the code provided in the given trie
-func NewInstanceFromTrie(t *trie.Trie, cfg *Config) (*Instance, error) {
+func NewInstanceFromTrie(t *trie.Trie, cfg runtime.InstanceConfig) (*Instance, error) {
 	code := t.Get(common.CodeKey)
 	if len(code) == 0 {
 		return nil, fmt.Errorf("cannot find :code in trie")
 	}
 
-	cfg.Imports = ImportsNodeRuntime
 	return NewInstance(code, cfg)
 }
 
 // NewInstanceFromFile instantiates a runtime from a .wasm file
-func NewInstanceFromFile(fp string, cfg *Config) (*Instance, error) {
+func NewInstanceFromFile(fp string, cfg runtime.InstanceConfig) (*Instance, error) {
 	// Reads the WebAssembly module as bytes.
 	bytes, err := wasm.ReadBytes(fp)
 	if err != nil {
@@ -91,7 +82,7 @@ func NewInstanceFromFile(fp string, cfg *Config) (*Instance, error) {
 }
 
 // NewInstance instantiates a runtime from raw wasm bytecode
-func NewInstance(code []byte, cfg *Config) (*Instance, error) {
+func NewInstance(code []byte, cfg runtime.InstanceConfig) (*Instance, error) {
 	if len(code) == 0 {
 		return nil, errors.New("code is empty")
 	}
@@ -104,9 +95,9 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 
 	logger.Patch(log.SetLevel(cfg.LogLvl), log.SetCallerFunc(true))
 
-	imports, err := cfg.Imports()
+	imports, err := ImportsNodeRuntime()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("creating node runtime imports: %w", err)
 	}
 
 	// Provide importable memory for newer runtimes
@@ -157,7 +148,6 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 	inst := &Instance{
 		vm:       instance,
 		ctx:      runtimeCtx,
-		imports:  cfg.Imports,
 		codeHash: cfg.CodeHash,
 	}
 
@@ -205,8 +195,7 @@ func (in *Instance) UpdateRuntimeCode(code []byte) error {
 // CheckRuntimeVersion calculates runtime Version for runtime blob passed in
 func (in *Instance) CheckRuntimeVersion(code []byte) (runtime.Version, error) {
 	tmp := &Instance{
-		imports: in.imports,
-		ctx:     in.ctx,
+		ctx: in.ctx,
 	}
 
 	in.Lock()
@@ -221,7 +210,7 @@ func (in *Instance) CheckRuntimeVersion(code []byte) (runtime.Version, error) {
 }
 
 func (in *Instance) setupInstanceVM(code []byte) error {
-	imports, err := in.imports()
+	imports, err := ImportsNodeRuntime()
 	if err != nil {
 		return err
 	}
