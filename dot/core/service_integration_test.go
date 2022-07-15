@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"math/big"
 	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -52,7 +51,7 @@ func balanceKey(t *testing.T, pub []byte) (bKey []byte) {
 
 func generateTestValidRemarkTxns(t *testing.T, pubKey []byte, accInfo types.AccountInfo) ([]byte, runtime.Instance) {
 	t.Helper()
-	projectRootPath := filepath.Join(utils.GetProjectRootPathTest(t), "chain/gssmr/genesis.json")
+	projectRootPath := utils.GetGssmrV3SubstrateGenesisRawPathTest(t)
 	gen, err := genesis.NewGenesisFromJSONRaw(projectRootPath)
 	require.NoError(t, err)
 
@@ -409,6 +408,7 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	require.Equal(t, transaction.NewValidTransaction(tx, validity), pending[0])
 }
 
+// TODO: add test against latest gssmr runtime
 func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
 	accountInfo := types.AccountInfo{
 		Nonce: 0,
@@ -465,6 +465,7 @@ func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
 	require.Nil(t, head)
 }
 
+// TODO: add test against latest gssmr runtime
 func TestMaintainTransactionPool_BlockWithExtrinsics(t *testing.T) {
 	accountInfo := types.AccountInfo{
 		Nonce: 0,
