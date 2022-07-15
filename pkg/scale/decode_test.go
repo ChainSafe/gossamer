@@ -5,6 +5,7 @@ package scale
 
 import (
 	"bytes"
+	"fmt"
 	"math/big"
 	"reflect"
 	"testing"
@@ -65,6 +66,103 @@ func Test_decodeState_decodeBytes(t *testing.T) {
 			}
 			if !reflect.DeepEqual(dst, tt.in) {
 				t.Errorf("decodeState.unmarshal() = %v, want %v", dst, tt.in)
+			}
+		})
+	}
+}
+
+var maxLengthDecodeTests = tests{
+	{
+		name: "[]byte{0x01}",
+		in:   []byte{0x01},
+
+		want: []byte{0x04, 0x01},
+	},
+	{
+		name: "[]byte{0xff}",
+		in:   []byte{0xff},
+
+		want: []byte{0x04, 0xff},
+	},
+	{
+		name: "[]byte{0x01, 0x01}",
+		in:   []byte{0x01, 0x01},
+
+		want: []byte{0x08, 0x01, 0x01},
+	},
+	{
+		name: "byteArray(32)",
+		in:   byteArray(32),
+
+		want: append([]byte{0x80}, byteArray(32)...),
+	},
+	{
+		name: "byteArray(64)",
+		in:   byteArray(64),
+
+		want: append([]byte{0x01, 0x01}, byteArray(64)...),
+	},
+	{
+		name:    "byteArray(16384)",
+		in:      []byte(nil),
+		wantErr: true,
+		want:    append([]byte{0x02, 0x00, 0x01, 0x00}, byteArray(16384)...),
+	},
+	{
+		name: "\"a\"",
+		in:   []byte("a"),
+
+		want: []byte{0x04, 'a'},
+	},
+	{
+		name: "\"go-pre\"",
+		in:   []byte("go-pre"),
+
+		want: append([]byte{0x18}, string("go-pre")...),
+	},
+	{
+		name:    "testStrings[0]",
+		in:      []byte(nil),
+		wantErr: true,
+		want:    append([]byte{0x0D, 0x01}, testStrings[0]...),
+	},
+	{
+		name:    "testString[1], long string",
+		in:      []byte(nil),
+		wantErr: true,
+		want:    append([]byte{0xC2, 0x02, 0x01, 0x00}, testStrings[1]...),
+	},
+	{
+		name: "testString[2], special chars",
+		in:   testStrings[2],
+
+		want: append([]byte{0xDC}, testStrings[2]...),
+	},
+	{
+		name:    "myCustomString(testStrings[0])",
+		in:      []byte(nil),
+		wantErr: true,
+		want:    append([]byte{0x0D, 0x01}, testStrings[0]...),
+	},
+	{
+		name: "myCustomBytes(testStrings[0])",
+		in:   myCustomBytes(testStrings[0]),
+
+		want: append([]byte{0x0D, 0x01}, testStrings[0]...),
+	},
+}
+
+func Test_decodeState_decodeBytes_maxLength(t *testing.T) {
+
+	for _, tt := range maxLengthDecodeTests {
+		t.Run(tt.name, func(t *testing.T) {
+			dst := reflect.New(reflect.TypeOf(tt.in)).Elem().Interface()
+			if err := Unmarshal(tt.want, &dst, OptionMaxLength(64)); (err != nil) != tt.wantErr {
+				t.Errorf("decodeState.unmarshal() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(dst, tt.in) {
+				t.Errorf("decodeState.unmarshal() = %#v, want %#v", dst, tt.in)
 			}
 		})
 	}
@@ -259,6 +357,23 @@ func Test_Decoder_Decode(t *testing.T) {
 	}
 }
 
+func Test_Decoder_Decode_with_OptionMaxLength(t *testing.T) {
+	for _, tt := range maxLengthDecodeTests {
+		t.Run(tt.name, func(t *testing.T) {
+			dst := reflect.New(reflect.TypeOf(tt.in)).Elem().Interface()
+			wantBuf := bytes.NewBuffer(tt.want)
+			d := NewDecoder(wantBuf, OptionMaxLength(64))
+			if err := d.Decode(&dst); (err != nil) != tt.wantErr {
+				t.Errorf("Decoder.Decode() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(dst, tt.in) {
+				t.Errorf("Decoder.Decode() = %v, want %v", dst, tt.in)
+			}
+		})
+	}
+}
+
 func Test_Decoder_Decode_MultipleCalls(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -300,5 +415,21 @@ func Test_Decoder_Decode_MultipleCalls(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func Test_Decoder_Decode_with_length_greater_than_default_max(t *testing.T) {
+	// buffer with length encoded as 274878957832
+	reader := bytes.NewBuffer([]byte{0x07, 0x8, 0x9, 0x10, 0x0, 0x40})
+	decoder := NewDecoder(reader)
+	var result []byte
+	err := decoder.Decode(&result)
+	if !reflect.DeepEqual([]byte(nil), result) {
+		t.Errorf("Decoder.Decode() = %v, want %v", result, nil)
+	}
+	if !reflect.DeepEqual(err.Error(), "could not decode length 274878957832 greater than max length "+fmt.Sprint(
+		defaultMaxLength)) {
+		t.Errorf("Decoder.Decode() error = %v, want %v", err,
+			"could not decode length 274878957832 greater than max length "+fmt.Sprint(defaultMaxLength))
 	}
 }

@@ -56,8 +56,10 @@ func indirect(dstv reflect.Value) (elem reflect.Value) {
 	return
 }
 
+const defaultMaxLength = 16 * 1024 * 1024 * 1024 // 16GB
+
 // Unmarshal takes data and a destination pointer to unmarshal the data to.
-func Unmarshal(data []byte, dst interface{}) (err error) {
+func Unmarshal(data []byte, dst interface{}, options ...func(*Decoder)) (err error) {
 	dstv := reflect.ValueOf(dst)
 	if dstv.Kind() != reflect.Ptr || dstv.IsNil() {
 		err = fmt.Errorf("unsupported dst: %T, must be a pointer to a destination", dst)
@@ -69,15 +71,21 @@ func Unmarshal(data []byte, dst interface{}) (err error) {
 		return
 	}
 
+	d := &Decoder{}
+	d.maxLength = defaultMaxLength
+
+	// Option parameters values:
+	for _, option := range options {
+		option(d)
+	}
 	buf := &bytes.Buffer{}
-	ds := decodeState{}
 	_, err = buf.Write(data)
 	if err != nil {
 		return
 	}
-	ds.Reader = buf
+	d.Reader = buf
 
-	err = ds.unmarshal(elem)
+	err = d.decodeState.unmarshal(elem)
 	if err != nil {
 		return
 	}
@@ -105,15 +113,29 @@ func (d *Decoder) Decode(dst interface{}) (err error) {
 }
 
 // NewDecoder is constructor for Decoder
-func NewDecoder(r io.Reader) (d *Decoder) {
-	d = &Decoder{
-		decodeState{r},
+func NewDecoder(r io.Reader, options ...func(*Decoder)) (d *Decoder) {
+	d = &Decoder{}
+	// Default values...
+	d.decodeState.Reader = r
+	d.decodeState.maxLength = defaultMaxLength
+
+	// Option parameters values:
+	for _, option := range options {
+		option(d)
 	}
 	return
 }
 
+// OptionMaxLength sets the maximum length of the data to be decoded
+func OptionMaxLength(maxLength int) func(*Decoder) {
+	return func(options *Decoder) {
+		options.maxLength = maxLength
+	}
+}
+
 type decodeState struct {
 	io.Reader
+	maxLength int
 }
 
 func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {
@@ -539,6 +561,9 @@ func (ds *decodeState) decodeBytes(dstv reflect.Value) (err error) {
 	length, err := ds.decodeLength()
 	if err != nil {
 		return
+	}
+	if length > ds.maxLength {
+		return fmt.Errorf("could not decode length %v greater than max length %v", length, ds.maxLength)
 	}
 
 	b := make([]byte, length)
