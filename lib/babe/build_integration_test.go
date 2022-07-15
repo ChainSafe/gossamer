@@ -293,9 +293,9 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 		Era:                ctypes.ExtrinsicEra{IsImmortalEra: true},
 		GenesisHash:        genHash,
 		Nonce:              ctypes.NewUCompactFromUInt(uint64(0)),
-		SpecVersion:        ctypes.U32(rv.SpecVersion()),
+		SpecVersion:        ctypes.U32(rv.GetSpecVersion()),
 		Tip:                ctypes.NewUCompactFromUInt(0),
-		TransactionVersion: ctypes.U32(rv.TransactionVersion()),
+		TransactionVersion: ctypes.U32(rv.GetTransactionVersion()),
 	}
 
 	// Sign the transaction using Alice's default account

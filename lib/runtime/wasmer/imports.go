@@ -951,6 +951,9 @@ func ext_misc_runtime_version_version_1(context unsafe.Pointer, dataSpan C.int64
 		return C.int64_t(out)
 	}
 
+	// Note: we must call the `Encode` method and NOT
+	// scale.Marshal or this one would encode the Version
+	// interface but not the actual implementation.
 	encodedData, err := version.Encode()
 	if err != nil {
 		logger.Errorf("failed to encode result: %s", err)

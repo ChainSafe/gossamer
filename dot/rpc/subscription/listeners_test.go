@@ -365,7 +365,7 @@ func TestRuntimeChannelListener_Listen(t *testing.T) {
 		SpecVersion:        25,
 		ImplVersion:        0,
 		TransactionVersion: 5,
-		Apis:               modules.ConvertAPIs(version.APIItems()),
+		Apis:               modules.ConvertAPIs(version.GetAPIItems()),
 	}
 
 	expectedUpdateResponse := newSubcriptionBaseResponseJSON()

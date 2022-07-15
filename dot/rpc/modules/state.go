@@ -304,13 +304,13 @@ func (sm *StateModule) GetRuntimeVersion(
 		return err
 	}
 
-	res.SpecName = string(rtVersion.SpecName())
-	res.ImplName = string(rtVersion.ImplName())
-	res.AuthoringVersion = rtVersion.AuthoringVersion()
-	res.SpecVersion = rtVersion.SpecVersion()
-	res.ImplVersion = rtVersion.ImplVersion()
-	res.TransactionVersion = rtVersion.TransactionVersion()
-	res.Apis = ConvertAPIs(rtVersion.APIItems())
+	res.SpecName = string(rtVersion.GetSpecName())
+	res.ImplName = string(rtVersion.GetImplName())
+	res.AuthoringVersion = rtVersion.GetAuthoringVersion()
+	res.SpecVersion = rtVersion.GetSpecVersion()
+	res.ImplVersion = rtVersion.GetImplVersion()
+	res.TransactionVersion = rtVersion.GetTransactionVersion()
+	res.Apis = ConvertAPIs(rtVersion.GetAPIItems())
 
 	return nil
 }

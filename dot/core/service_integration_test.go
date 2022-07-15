@@ -580,8 +580,8 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	v, err := rt.Version()
 	require.NoError(t, err)
 
-	currSpecVersion := v.SpecVersion()   // genesis runtime version.
-	hash := s.blockState.BestBlockHash() // genesisHash
+	currSpecVersion := v.GetSpecVersion() // genesis runtime version.
+	hash := s.blockState.BestBlockHash()  // genesisHash
 
 	digest := types.NewDigest()
 	err = digest.Add(types.PreRuntimeDigest{
@@ -615,7 +615,7 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 
 	v, err = parentRt.Version()
 	require.NoError(t, err)
-	require.Equal(t, v.SpecVersion(), currSpecVersion)
+	require.Equal(t, v.GetSpecVersion(), currSpecVersion)
 
 	bhash1 := newBlock1.Header.Hash()
 	err = s.blockState.HandleRuntimeChanges(ts, parentRt, bhash1)
@@ -637,14 +637,14 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 
 	v, err = rt.Version()
 	require.NoError(t, err)
-	require.Equal(t, v.SpecVersion(), currSpecVersion)
+	require.Equal(t, v.GetSpecVersion(), currSpecVersion)
 
 	rt, err = s.blockState.GetRuntime(&rtUpdateBhash)
 	require.NoError(t, err)
 
 	v, err = rt.Version()
 	require.NoError(t, err)
-	require.Equal(t, v.SpecVersion(), updatedSpecVersion)
+	require.Equal(t, v.GetSpecVersion(), updatedSpecVersion)
 }
 
 func TestService_HandleCodeSubstitutes(t *testing.T) {

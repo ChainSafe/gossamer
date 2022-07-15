@@ -6,54 +6,71 @@ package runtime
 import (
 	"testing"
 
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 )
 
-func TestVersionData(t *testing.T) {
-	testAPIItem := APIItem{
-		Name: [8]byte{1, 2, 3, 4, 5, 6, 7, 8},
-		Ver:  99,
+func Test_VersionData_Scale(t *testing.T) {
+	version := VersionData{
+		SpecName:         []byte{1},
+		ImplName:         []byte{2},
+		AuthoringVersion: 3,
+		SpecVersion:      4,
+		ImplVersion:      5,
+		APIItems: []APIItem{{
+			Name: [8]byte{1, 2, 3, 4, 5, 6, 7, 8},
+			Ver:  6,
+		}},
+		TransactionVersion: 7,
 	}
 
-	version := NewVersionData(
-		[]byte("polkadot"),
-		[]byte("parity-polkadot"),
-		0,
-		25,
-		0,
-		[]APIItem{testAPIItem},
-		5,
-	)
+	expectedScale := []byte{
+		0x4, 0x1, 0x4, 0x2, 0x3, 0x0, 0x0, 0x0, 0x4, 0x0, 0x0, 0x0,
+		0x5, 0x0, 0x0, 0x0, 0x4, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7,
+		0x8, 0x6, 0x0, 0x0, 0x0, 0x7, 0x0, 0x0, 0x0}
 
-	b, err := version.Encode()
+	scaleEncoded, err := scale.Marshal(version)
 	require.NoError(t, err)
+	require.Equal(t, expectedScale, scaleEncoded)
 
-	dec := new(VersionData)
-	err = dec.Decode(b)
+	encoding, err := version.Encode()
 	require.NoError(t, err)
-	require.Equal(t, version, dec)
+	require.Equal(t, expectedScale, encoding)
+
+	var decoded VersionData
+	err = scale.Unmarshal(scaleEncoded, &decoded)
+	require.NoError(t, err)
+	require.Equal(t, version, decoded)
 }
 
-func TestLegacyVersionData(t *testing.T) {
-	testAPIItem := APIItem{
-		Name: [8]byte{1, 2, 3, 4, 5, 6, 7, 8},
-		Ver:  99,
+func Test_LegacyVersionData_Scale(t *testing.T) {
+	version := LegacyVersionData{
+		SpecName:         []byte{1},
+		ImplName:         []byte{2},
+		AuthoringVersion: 3,
+		SpecVersion:      4,
+		ImplVersion:      5,
+		APIItems: []APIItem{{
+			Name: [8]byte{1, 2, 3, 4, 5, 6, 7, 8},
+			Ver:  6,
+		}},
 	}
 
-	version := NewLegacyVersionData(
-		[]byte("polkadot"),
-		[]byte("parity-polkadot"),
-		0,
-		25,
-		0,
-		[]APIItem{testAPIItem},
-	)
+	expectedScale := []byte{
+		0x4, 0x1, 0x4, 0x2, 0x3, 0x0, 0x0, 0x0, 0x4, 0x0, 0x0, 0x0,
+		0x5, 0x0, 0x0, 0x0, 0x4, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7,
+		0x8, 0x6, 0x0, 0x0, 0x0}
 
-	b, err := version.Encode()
+	scaleEncoded, err := scale.Marshal(version)
 	require.NoError(t, err)
+	require.Equal(t, expectedScale, scaleEncoded)
 
-	dec := new(LegacyVersionData)
-	err = dec.Decode(b)
+	encoding, err := version.Encode()
 	require.NoError(t, err)
-	require.Equal(t, version, dec)
+	require.Equal(t, expectedScale, encoding)
+
+	var decoded LegacyVersionData
+	err = scale.Unmarshal(scaleEncoded, &decoded)
+	require.NoError(t, err)
+	require.Equal(t, version, decoded)
 }

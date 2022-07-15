@@ -39,13 +39,14 @@ func (in *Instance) Version() (runtime.Version, error) {
 	}
 
 	version := &runtime.VersionData{}
-	err = version.Decode(res)
+	err = scale.Unmarshal(res, version)
 	// error comes from scale now, so do a string check
 	if err != nil {
 		if strings.Contains(err.Error(), "EOF") {
+			// TODO io.EOF should be wrapped in scale
 			// TODO: kusama seems to use the legacy version format
 			lversion := &runtime.LegacyVersionData{}
-			err = lversion.Decode(res)
+			err = scale.Unmarshal(res, lversion)
 			return lversion, err
 		}
 		return nil, err

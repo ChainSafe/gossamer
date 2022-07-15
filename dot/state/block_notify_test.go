@@ -10,7 +10,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	runtimemocks "github.com/ChainSafe/gossamer/lib/runtime/mocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -149,7 +148,10 @@ func TestService_RegisterUnRegisterConcurrentCalls(t *testing.T) {
 
 	go func() {
 		for i := 0; i < 100; i++ {
-			testVer := NewMockVersion(uint32(i))
+			testVer := &runtime.VersionData{
+				SpecName:    []byte("mock-spec"),
+				SpecVersion: uint32(i),
+			}
 			go bs.notifyRuntimeUpdated(testVer)
 		}
 	}()
@@ -164,17 +166,4 @@ func TestService_RegisterUnRegisterConcurrentCalls(t *testing.T) {
 			require.True(t, unReg)
 		}()
 	}
-}
-
-// NewMockVersion creates and returns an runtime Version interface mock
-func NewMockVersion(specVer uint32) *runtimemocks.Version {
-	m := new(runtimemocks.Version)
-	m.On("SpecName").Return([]byte(`mock-spec`))
-	m.On("ImplName").Return(nil)
-	m.On("AuthoringVersion").Return(uint32(0))
-	m.On("SpecVersion").Return(specVer)
-	m.On("ImplVersion").Return(uint32(0))
-	m.On("TransactionVersion").Return(uint32(0))
-	m.On("APIItems").Return(nil)
-	return m
 }

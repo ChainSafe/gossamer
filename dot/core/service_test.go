@@ -23,6 +23,7 @@ import (
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	cscale "github.com/centrifuge/go-substrate-rpc-client/v4/scale"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
@@ -61,19 +62,18 @@ func generateExtrinsic(t *testing.T) (extrinsic, externalExtrinsic types.Extrins
 	t.Helper()
 	meta := generateTestCentrifugeMetadata(t)
 
-	testAPIItem := runtime.APIItem{
-		Name: [8]byte{1, 2, 3, 4, 5, 6, 7, 8},
-		Ver:  99,
+	rv := runtime.VersionData{
+		SpecName:         []byte("polkadot"),
+		ImplName:         []byte("parity-polkadot"),
+		AuthoringVersion: authoringVersion,
+		SpecVersion:      specVersion,
+		ImplVersion:      implVersion,
+		APIItems: []runtime.APIItem{{
+			Name: [8]byte{1, 2, 3, 4, 5, 6, 7, 8},
+			Ver:  99,
+		}},
+		TransactionVersion: transactionVersion,
 	}
-	rv := runtime.NewVersionData(
-		[]byte("polkadot"),
-		[]byte("parity-polkadot"),
-		authoringVersion,
-		specVersion,
-		implVersion,
-		[]runtime.APIItem{testAPIItem},
-		transactionVersion,
-	)
 
 	keyring, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
@@ -95,9 +95,9 @@ func generateExtrinsic(t *testing.T) (extrinsic, externalExtrinsic types.Extrins
 		Era:                ctypes.ExtrinsicEra{IsImmortalEra: true},
 		GenesisHash:        testGenHash,
 		Nonce:              ctypes.NewUCompactFromUInt(uint64(0)),
-		SpecVersion:        ctypes.U32(rv.SpecVersion()),
+		SpecVersion:        ctypes.U32(rv.GetSpecVersion()),
 		Tip:                ctypes.NewUCompactFromUInt(0),
-		TransactionVersion: ctypes.U32(rv.TransactionVersion()),
+		TransactionVersion: ctypes.U32(rv.GetTransactionVersion()),
 	}
 
 	// Sign the transaction using Alice's default account
@@ -1008,21 +1008,20 @@ func TestService_DecodeSessionKeys(t *testing.T) {
 
 func TestServiceGetRuntimeVersion(t *testing.T) {
 	t.Parallel()
-	testAPIItem := runtime.APIItem{
-		Name: [8]byte{1, 2, 3, 4, 5, 6, 7, 8},
-		Ver:  99,
+	rv := &runtime.VersionData{
+		SpecName:         []byte("polkadot"),
+		ImplName:         []byte("parity-polkadot"),
+		AuthoringVersion: authoringVersion,
+		SpecVersion:      specVersion,
+		ImplVersion:      implVersion,
+		APIItems: []runtime.APIItem{{
+			Name: [8]byte{1, 2, 3, 4, 5, 6, 7, 8},
+			Ver:  99,
+		}},
+		TransactionVersion: transactionVersion,
 	}
-	rv := runtime.NewVersionData(
-		[]byte("polkadot"),
-		[]byte("parity-polkadot"),
-		authoringVersion,
-		specVersion,
-		implVersion,
-		[]runtime.APIItem{testAPIItem},
-		transactionVersion,
-	)
-
-	ts := rtstorage.NewTrieState(nil)
+	emptyTrie := trie.NewEmptyTrie()
+	ts := rtstorage.NewTrieState(emptyTrie)
 
 	execTest := func(t *testing.T, s *Service, bhash *common.Hash, exp runtime.Version, expErr error) {
 		res, err := s.GetRuntimeVersion(bhash)
