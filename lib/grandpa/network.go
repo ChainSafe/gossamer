@@ -5,6 +5,7 @@ package grandpa
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -15,10 +16,9 @@ import (
 	"github.com/libp2p/go-libp2p-core/protocol"
 )
 
-var (
-	grandpaID                protocol.ID = "/paritytech/grandpa/1"
-	messageID                            = network.ConsensusMsgType
-	neighbourMessageInterval             = time.Minute * 5
+const (
+	grandpaID1               = "grandpa/1"
+	neighbourMessageInterval = time.Minute * 5
 )
 
 // Handshake is an alias for network.Handshake
@@ -38,9 +38,10 @@ type GrandpaHandshake struct { //nolint:revive
 	Roles byte
 }
 
+// TODO: should we remove the SubProtocol mehtod from the `Message` interface?
 // SubProtocol returns the grandpa sub-protocol
 func (*GrandpaHandshake) SubProtocol() string {
-	return string(grandpaID)
+	return ""
 }
 
 // String formats a BlockAnnounceHandshake as a string
@@ -74,9 +75,13 @@ func (*GrandpaHandshake) IsHandshake() bool {
 }
 
 func (s *Service) registerProtocol() error {
+	genesisHash := s.blockState.GenesisHash().String()
+	genesisHash = strings.TrimPrefix(genesisHash, "0x")
+	grandpaProtocolID := fmt.Sprintf("/%s/%s", genesisHash, grandpaID1)
+
 	return s.network.RegisterNotificationsProtocol(
-		grandpaID,
-		messageID,
+		protocol.ID(grandpaProtocolID),
+		network.ConsensusMsgType,
 		s.getHandshake,
 		s.decodeHandshake,
 		s.validateHandshake,
