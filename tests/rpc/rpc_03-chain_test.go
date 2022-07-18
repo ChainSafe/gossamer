@@ -102,7 +102,7 @@ func TestChainRPC(t *testing.T) {
 	}
 	block.Block.Header.Digest.Logs = nil
 	assert.Len(t, block.Block.Body, 1)
-	const bodyRegex = `^0x280403000b[0-9a-z]{8}8101$`
+	const bodyRegex = `^0x280403000b[0-9a-z]{8}8201$`
 	assert.Regexp(t, bodyRegex, block.Block.Body[0])
 	block.Block.Body = nil
 
