@@ -45,6 +45,8 @@ var (
 	ErrEmptyRuntimeCode = errors.New("new :code is empty")
 
 	errNilCodeSubstitutedState = errors.New("cannot have nil CodeSubstitutedStat")
+
+	errInvalidTransactionQueueVersion = errors.New("invalid transaction queue version")
 )
 
 // ErrNilChannel is returned if a channel is nil

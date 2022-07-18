@@ -125,6 +125,20 @@ func (_m *Version) SpecVersion() uint32 {
 	return r0
 }
 
+// TaggedTransactionQueueVersion provides a mock function with given fields: _a0
+func (_m *Version) TaggedTransactionQueueVersion(_a0 runtime.Version) uint32 {
+	ret := _m.Called(_a0)
+
+	var r0 uint32
+	if rf, ok := ret.Get(0).(func(runtime.Version) uint32); ok {
+		r0 = rf(_a0)
+	} else {
+		r0 = ret.Get(0).(uint32)
+	}
+
+	return r0
+}
+
 // TransactionVersion provides a mock function with given fields:
 func (_m *Version) TransactionVersion() uint32 {
 	ret := _m.Called()

@@ -80,5 +80,6 @@ func NewMockVersion() *runtimemocks.Version {
 	m.On("ImplVersion").Return(uint32(0))
 	m.On("TransactionVersion").Return(uint32(0))
 	m.On("APIItems").Return(nil)
+	m.On("TaggedTransactionQueueVersion", mock.AnythingOfType("runtime.Version")).Return(uint32(0))
 	return m
 }

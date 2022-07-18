@@ -240,7 +240,7 @@ func TestWSConn_HandleConn(t *testing.T) {
 	_, msg, err = c.ReadMessage()
 	require.NoError(t, err)
 	require.Equal(t, `{"jsonrpc":"2.0","method":"author_extrinsicUpdate",`+
-		`"params":{"result":"invalid","subscription":9}}`+"\n", string(msg))
+		`"params":{"result":"invalid","subscription":"9"}}`+"\n", string(msg))
 
 	mockedJust := grandpa.Justification{
 		Round: 1,
@@ -282,7 +282,7 @@ func TestWSConn_HandleConn(t *testing.T) {
 
 	time.Sleep(time.Second * 2)
 
-	expected := `{"jsonrpc":"2.0","method":"grandpa_justifications","params":{"result":"%s","subscription":10}}` + "\n"
+	expected := `{"jsonrpc":"2.0","method":"grandpa_justifications","params":{"result":"%s","subscription":"10"}}` + "\n"
 	expected = fmt.Sprintf(expected, common.BytesToHex(mockedJustBytes))
 	_, msg, err = c.ReadMessage()
 	require.NoError(t, err)
@@ -333,7 +333,7 @@ func TestSubscribeAllHeads(t *testing.T) {
 		`{"jsonrpc":"2.0","method":"chain_allHead",`+
 			`"params":{"result":{"parentHash":"%s","number":"0x00",`+
 			`"stateRoot":"%s","extrinsicsRoot":"%s",`+
-			`"digest":{"logs":["0x064241424504ff"]}},"subscription":1}}`,
+			`"digest":{"logs":["0x064241424504ff"]}},"subscription":"1"}}`,
 		common.Hash{},
 		common.Hash{},
 		common.Hash{},

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"strconv"
 	"testing"
 	"time"
 
@@ -159,7 +160,7 @@ func TestChainSubscriptionRPC(t *testing.T) {
 
 			remainingExpected := subscription.Params{
 				Result:         map[string]interface{}{},
-				SubscriptionID: 1,
+				SubscriptionID: strconv.Itoa(1),
 			}
 			assert.Equal(t, remainingExpected, params)
 		}
@@ -234,7 +235,7 @@ func TestChainSubscriptionRPC(t *testing.T) {
 
 			remainingExpected := subscription.Params{
 				Result:         map[string]interface{}{},
-				SubscriptionID: 1,
+				SubscriptionID: strconv.Itoa(1),
 			}
 			assert.Equal(t, remainingExpected, params)
 		}
@@ -327,7 +328,7 @@ func callAndSubscribeWebsocket(ctx context.Context, t *testing.T,
 	var target subscription.ResponseJSON
 	err = connection.ReadJSON(&target)
 	require.NoError(t, err, "cannot read websocket message")
-	assert.Equal(t, float64(id), target.ID, "request id mismatch")
+	assert.Equal(t, id, target.ID, "request id mismatch")
 	assert.NotZero(t, target.Result, "subscription id is 0")
 
 	for i := uint(0); i < numberOfMesages; i++ {

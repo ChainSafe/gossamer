@@ -9,9 +9,6 @@ import (
 	"github.com/gorilla/rpc/v2/json2"
 )
 
-// ErrCannotValidateTx is returned if the call to runtime function TaggedTransactionQueueValidateTransaction fails
-var ErrCannotValidateTx = errors.New("could not validate transaction")
-
 // ErrInvalidTransaction is returned if the call to runtime function
 // TaggedTransactionQueueValidateTransaction fails with value of [1, 0, x]
 var ErrInvalidTransaction = &json2.Error{Code: 1010, Message: "Invalid Transaction"}

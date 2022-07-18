@@ -182,7 +182,7 @@ func TestAuthorModule_SubmitExtrinsic_invalid(t *testing.T) {
 
 	res := new(ExtrinsicHashResponse)
 	err := auth.SubmitExtrinsic(nil, &Extrinsic{extHex}, res)
-	require.EqualError(t, err, runtime.ErrInvalidTransaction.Message)
+	require.EqualError(t, err, "transaction validity error: ancient birth block")
 
 	txOnPool := integrationTestController.stateSrv.Transaction.PendingInPool()
 	require.Len(t, txOnPool, 0)
@@ -522,15 +522,10 @@ func TestAuthorModule_SubmitExtrinsic_WithVersion_V0910(t *testing.T) {
 	extHex := runtime.NewTestExtrinsic(t,
 		integrationTestController.runtime, genesisHash, genesisHash, 1, "System.remark", []byte{0xab, 0xcd})
 
-	// to extrinsic works with a runtime version 0910 we need to
-	// append the block hash bytes at the end of the extrinsics
-	hashBytes := genesisHash.ToBytes()
-	extBytes := append(common.MustHexToBytes(extHex), hashBytes...)
-
-	extHex = common.BytesToHex(extBytes)
-
 	net2test := coremocks.NewMockNetwork(ctrl)
-	net2test.EXPECT().GossipMessage(&network.TransactionMessage{Extrinsics: []types.Extrinsic{extBytes}})
+	net2test.EXPECT().GossipMessage(&network.TransactionMessage{
+		Extrinsics: []types.Extrinsic{common.MustHexToBytes(extHex)},
+	})
 	integrationTestController.network = net2test
 
 	// setup auth module
@@ -540,7 +535,7 @@ func TestAuthorModule_SubmitExtrinsic_WithVersion_V0910(t *testing.T) {
 	err := auth.SubmitExtrinsic(nil, &Extrinsic{extHex}, res)
 	require.NoError(t, err)
 
-	expectedExtrinsic := types.NewExtrinsic(extBytes)
+	expectedExtrinsic := types.NewExtrinsic(common.MustHexToBytes(extHex))
 	expected := &transaction.ValidTransaction{
 		Extrinsic: expectedExtrinsic,
 		Validity: &transaction.Validity{

@@ -23,8 +23,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
-	ctypes "github.com/centrifuge/go-substrate-rpc-client/v3/types"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
+	ctypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/require"
 )
@@ -143,7 +143,7 @@ func GetRuntime(ctx context.Context, runtime string) (
 	if err != nil {
 		return "", fmt.Errorf("cannot close HTTP response body: %w", err)
 	}
-
+	
 	return runtimePath, nil
 }
 
@@ -234,7 +234,6 @@ func NewTestExtrinsic(t *testing.T, rt Instance, genHash, blockHash common.Hash,
 
 	extEnc, err := ctypes.EncodeToHexString(ext)
 	require.NoError(t, err)
-
 	return extEnc
 }
 

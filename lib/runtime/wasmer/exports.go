@@ -9,6 +9,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/errors"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
@@ -20,15 +21,7 @@ func (in *Instance) ValidateTransaction(e types.Extrinsic) (*transaction.Validit
 	if err != nil {
 		return nil, err
 	}
-
-	if ret[0] != 0 {
-		return nil, runtime.NewValidateTransactionError(ret)
-	}
-
-	v := transaction.NewValidity(0, [][]byte{{}}, [][]byte{{}}, 0, false)
-	err = scale.Unmarshal(ret[1:], v)
-
-	return v, err
+	return errors.DecodeValidity(ret)
 }
 
 // Version calls runtime function Core_Version

@@ -6,7 +6,6 @@ require (
 	github.com/OneOfOne/xxhash v1.2.8
 	github.com/breml/rootcerts v0.2.6
 	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce
-	github.com/centrifuge/go-substrate-rpc-client/v3 v3.0.2
 	github.com/chyeh/pubip v0.0.0-20170203095919-b7e679cf541c
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/dgraph-io/badger/v2 v2.2007.4

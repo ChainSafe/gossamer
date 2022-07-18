@@ -66,6 +66,7 @@ func TestStorageObserver_Update(t *testing.T) {
 	expectedResponse := newSubcriptionBaseResponseJSON()
 	expectedResponse.Method = stateStorageMethod
 	expectedResponse.Params.Result = expected
+	expectedResponse.Params.SubscriptionID = "0"
 
 	storageObserver.Update(change)
 	time.Sleep(time.Millisecond * 100)
@@ -117,11 +118,12 @@ func TestBlockListener_Listen(t *testing.T) {
 	head, err := modules.HeaderToJSON(block.Header)
 	require.NoError(t, err)
 
-	expectedResposnse := newSubcriptionBaseResponseJSON()
-	expectedResposnse.Method = chainNewHeadMethod
-	expectedResposnse.Params.Result = head
+	expectedResponse := newSubcriptionBaseResponseJSON()
+	expectedResponse.Method = chainNewHeadMethod
+	expectedResponse.Params.Result = head
+	expectedResponse.Params.SubscriptionID = "0"
 
-	expectedResponseBytes, err := json.Marshal(expectedResposnse)
+	expectedResponseBytes, err := json.Marshal(expectedResponse)
 	require.NoError(t, err)
 
 	require.Equal(t, string(expectedResponseBytes)+"\n", string(msg))
@@ -169,6 +171,7 @@ func TestBlockFinalizedListener_Listen(t *testing.T) {
 	expectedResponse := newSubcriptionBaseResponseJSON()
 	expectedResponse.Method = chainFinalizedHeadMethod
 	expectedResponse.Params.Result = head
+	expectedResponse.Params.SubscriptionID = "0"
 
 	expectedResponseBytes, err := json.Marshal(expectedResponse)
 	require.NoError(t, err)
@@ -287,7 +290,7 @@ func TestGrandpaJustification_Listen(t *testing.T) {
 		_, msg, err := ws.ReadMessage()
 		require.NoError(t, err)
 
-		expected := `{"jsonrpc":"2.0","method":"grandpa_justifications","params":{"result":"%s","subscription":10}}` + "\n"
+		expected := `{"jsonrpc":"2.0","method":"grandpa_justifications","params":{"result":"%s","subscription":"10"}}` + "\n"
 		expected = fmt.Sprintf(expected, common.BytesToHex(mockedJustBytes))
 
 		require.Equal(t, string(msg), expected)
@@ -350,6 +353,7 @@ func TestRuntimeChannelListener_Listen(t *testing.T) {
 	expectedInitialResponse := newSubcriptionBaseResponseJSON()
 	expectedInitialResponse.Method = "state_runtimeVersion"
 	expectedInitialResponse.Params.Result = expectedInitialVersion
+	expectedInitialResponse.Params.SubscriptionID = "0"
 
 	instance := wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
 	polkadotRuntimeFilepath, err := runtime.GetRuntime(context.Background(), runtime.POLKADOT_RUNTIME)
@@ -372,6 +376,7 @@ func TestRuntimeChannelListener_Listen(t *testing.T) {
 	expectedUpdateResponse := newSubcriptionBaseResponseJSON()
 	expectedUpdateResponse.Method = "state_runtimeVersion"
 	expectedUpdateResponse.Params.Result = expectedUpdatedVersion
+	expectedUpdateResponse.Params.SubscriptionID = "0"
 
 	go rvl.Listen()
 

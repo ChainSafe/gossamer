@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math/big"
 	"reflect"
+	"strconv"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
@@ -79,7 +80,7 @@ func (s *StorageObserver) Update(change *state.SubscriptionResult) {
 	res := newSubcriptionBaseResponseJSON()
 	res.Method = stateStorageMethod
 	res.Params.Result = changeResult
-	res.Params.SubscriptionID = s.id
+	res.Params.SubscriptionID = strconv.Itoa(int(s.id))
 	s.wsconn.safeSend(res)
 }
 
@@ -151,7 +152,7 @@ func (l *BlockListener) Listen() {
 				res := newSubcriptionBaseResponseJSON()
 				res.Method = chainNewHeadMethod
 				res.Params.Result = head
-				res.Params.SubscriptionID = l.subID
+				res.Params.SubscriptionID = strconv.Itoa(int(l.subID))
 				l.wsconn.safeSend(res)
 			}
 		}
@@ -200,7 +201,7 @@ func (l *BlockFinalizedListener) Listen() {
 				res := newSubcriptionBaseResponseJSON()
 				res.Method = chainFinalizedHeadMethod
 				res.Params.Result = head
-				res.Params.SubscriptionID = l.subID
+				res.Params.SubscriptionID = strconv.Itoa(int(l.subID))
 				l.wsconn.safeSend(res)
 			}
 		}

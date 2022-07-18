@@ -18,6 +18,7 @@ type Version interface {
 	ImplVersion() uint32
 	APIItems() []APIItem
 	TransactionVersion() uint32
+	TaggedTransactionQueueVersion(Version) uint32
 	Encode() ([]byte, error)
 }
 
@@ -36,6 +37,9 @@ type LegacyVersionData struct {
 	implVersion      uint32
 	apiItems         []APIItem
 }
+
+// Blake2-8("TaggedTransactionQueue")
+var encodedTaggedTransactionQueue = [8]byte{0xd2, 0xbc, 0x98, 0x97, 0xee, 0xd0, 0x8f, 0x15}
 
 // NewLegacyVersionData returns a new LegacyVersionData
 func NewLegacyVersionData(specName, implName []byte,
@@ -84,6 +88,18 @@ func (lvd *LegacyVersionData) APIItems() []APIItem {
 // TransactionVersion returns the transaction version
 func (*LegacyVersionData) TransactionVersion() uint32 {
 	return 0
+}
+
+// TaggedTransactionQueueVersion returns the TaggedTransactionQueueAPI version
+func (lvd *LegacyVersionData) TaggedTransactionQueueVersion(runtimeVersion Version) uint32 {
+	txQueueVersion := uint32(0)
+	for _, v := range runtimeVersion.APIItems() {
+		if v.Name == encodedTaggedTransactionQueue {
+			txQueueVersion = v.Ver
+			break
+		}
+	}
+	return txQueueVersion
 }
 
 type legacyVersionData struct {
@@ -190,6 +206,18 @@ func (vd *VersionData) APIItems() []APIItem {
 // TransactionVersion returns the transaction version
 func (vd *VersionData) TransactionVersion() uint32 {
 	return vd.transactionVersion
+}
+
+// TaggedTransactionQueueVersion returns the TaggedTransactionQueueAPI version
+func (vd *VersionData) TaggedTransactionQueueVersion(runtimeVersion Version) uint32 {
+	txQueueVersion := uint32(0)
+	for _, v := range runtimeVersion.APIItems() {
+		if v.Name == encodedTaggedTransactionQueue {
+			txQueueVersion = v.Ver
+			break
+		}
+	}
+	return txQueueVersion
 }
 
 type versionData struct {
