@@ -9,6 +9,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 //go:generate mockery --name Instance --structname Instance --case underscore --keeptree
@@ -30,7 +31,7 @@ type Instance interface {
 	Metadata() ([]byte, error)
 	BabeConfiguration() (*types.BabeConfiguration, error)
 	GrandpaAuthorities() ([]types.Authority, error)
-	ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error)
+	ValidateTransaction(e types.Extrinsic) (scale.Result, error)
 	InitializeBlock(header *types.Header) error
 	InherentExtrinsics(data []byte) ([]byte, error)
 	ApplyExtrinsic(data types.Extrinsic) ([]byte, error)

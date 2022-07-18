@@ -9,19 +9,20 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/errors"
-	"github.com/ChainSafe/gossamer/lib/transaction"
+	txnvalidity "github.com/ChainSafe/gossamer/lib/runtime/transaction_validity"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // ValidateTransaction runs the extrinsic through the runtime function
 // TaggedTransactionQueue_validate_transaction and returns *Validity
-func (in *Instance) ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error) {
-	ret, err := in.Exec(runtime.TaggedTransactionQueueValidateTransaction, e)
+func (in *Instance) ValidateTransaction(e types.Extrinsic) (scale.Result, error) {
+	ret, err := in.exec(runtime.TaggedTransactionQueueValidateTransaction, e)
 	if err != nil {
-		return nil, err
+		return scale.Result{}, err
 	}
-	return errors.DecodeValidity(ret)
+	return txnvalidity.DetermineValidity(ret)
+	//return errors.DecodeValidity(ret)
+
 }
 
 // Version calls runtime function Core_Version

@@ -1,6 +1,10 @@
 package transaction_validity
 
-import "github.com/ChainSafe/gossamer/pkg/scale"
+import (
+	"errors"
+	"fmt"
+	"github.com/ChainSafe/gossamer/pkg/scale"
+)
 
 // UnknownTransaction is child VDT of TransactionValidityError
 type UnknownTransaction scale.VaryingDataType
@@ -9,6 +13,12 @@ type UnknownTransaction scale.VaryingDataType
 func (u UnknownTransaction) Index() uint {
 	return 1
 }
+
+var (
+	errLookupFailed      = errors.New("lookup failed")
+	errValidatorNotFound = errors.New("validator not found")
+	unknownCustom        UnknownCustom
+)
 
 // ValidityCannotLookup Could not lookup some information that is required to validate the transaction
 type ValidityCannotLookup struct{}
@@ -22,13 +32,15 @@ type NoUnsignedValidator struct{}
 // Index Returns VDT index
 func (err NoUnsignedValidator) Index() uint { return 1 }
 
-var unknownCustom UnknownCustom
-
 // UnknownCustom Any other custom unknown validity that is not covered
 type UnknownCustom uint8
 
 // Index Returns VDT index
 func (err UnknownCustom) Index() uint { return 2 }
+
+func newUnknownError(data scale.VaryingDataTypeValue) error {
+	return fmt.Errorf("unknown error: %d", data)
+}
 
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
 func (u *UnknownTransaction) Set(val scale.VaryingDataTypeValue) (err error) { //nolint:revive
@@ -59,4 +71,18 @@ func NewUnknownTransaction() UnknownTransaction {
 	}
 	// cast to ParentVDT
 	return UnknownTransaction(vdt)
+}
+
+func (u *UnknownTransaction) DetermineErrType() error {
+	switch val := u.Value().(type) {
+	// UnknownTransaction Error
+	case ValidityCannotLookup:
+		return errLookupFailed
+	case NoUnsignedValidator:
+		return errValidatorNotFound
+	case UnknownCustom:
+		return newUnknownError(val)
+	}
+
+	return errInvalidResult
 }

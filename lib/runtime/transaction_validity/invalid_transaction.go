@@ -1,6 +1,9 @@
 package transaction_validity
 
-import "github.com/ChainSafe/gossamer/pkg/scale"
+import (
+	"errors"
+	"github.com/ChainSafe/gossamer/pkg/scale"
+)
 
 // InvalidTransaction is child VDT of TransactionValidityError
 type InvalidTransaction scale.VaryingDataType
@@ -9,6 +12,18 @@ type InvalidTransaction scale.VaryingDataType
 func (i InvalidTransaction) Index() uint {
 	return 0
 }
+
+var (
+	errUnexpectedTxCall         = errors.New("call of the transaction is not expected")
+	errInvalidPayment           = errors.New("invalid payment")
+	errInvalidTransaction       = errors.New("invalid transaction")
+	errOutdatedTransaction      = errors.New("outdated transaction")
+	errBadProof                 = errors.New("bad proof")
+	errAncientBirthBlock        = errors.New("ancient birth block")
+	errExhaustsResources        = errors.New("exhausts resources")
+	errMandatoryDispatchError   = errors.New("mandatory dispatch error")
+	errInvalidMandatoryDispatch = errors.New("invalid mandatory dispatch")
+)
 
 // Call The call of the transaction is not expected
 type Call struct{}
@@ -102,4 +117,32 @@ func NewInvalidTransaction() InvalidTransaction {
 	}
 	// cast to ParentVDT
 	return InvalidTransaction(vdt)
+}
+
+func (i *InvalidTransaction) DetermineErrType() error {
+	switch val := i.Value().(type) {
+	// InvalidTransaction Error
+	case Call:
+		return errUnexpectedTxCall
+	case Payment:
+		return errInvalidPayment
+	case Future:
+		return errInvalidTransaction
+	case Stale:
+		return errOutdatedTransaction
+	case BadProof:
+		return errBadProof
+	case AncientBirthBlock:
+		return errAncientBirthBlock
+	case ExhaustsResources:
+		return errExhaustsResources
+	case InvalidCustom:
+		return newUnknownError(val)
+	case BadMandatory:
+		return errMandatoryDispatchError
+	case MandatoryDispatch:
+		return errInvalidMandatoryDispatch
+	}
+
+	return errInvalidResult
 }
