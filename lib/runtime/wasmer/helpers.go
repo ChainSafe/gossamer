@@ -118,15 +118,12 @@ func toKillStorageResultEnum(allRemoved bool, numRemoved uint32) (
 		return nil, fmt.Errorf("scale encoding: %w", err)
 	}
 
-	if allRemoved {
-		// No key remains in the child trie.
-		encodedEnumValue = append(encodedEnumValue, byte(0))
-	} else {
-		// At least one key still resides in the child trie due to the supplied limit.
-		encodedEnumValue = append(encodedEnumValue, byte(1))
+	encodedEnumValue = make([]byte, len(encodedNumRemoved)+1)
+	if !allRemoved {
+		// At least one key resides in the child trie due to the supplied limit.
+		encodedEnumValue[0] = 1
 	}
-
-	encodedEnumValue = append(encodedEnumValue, encodedNumRemoved...)
+	copy(encodedEnumValue[1:], encodedNumRemoved)
 
 	return encodedEnumValue, nil
 }
