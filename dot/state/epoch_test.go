@@ -54,9 +54,6 @@ func TestEpochState_CurrentEpoch(t *testing.T) {
 
 func TestEpochState_EpochData(t *testing.T) {
 	s := newEpochStateFromGenesis(t)
-	has, err := s.HasEpochData(0)
-	require.NoError(t, err)
-	require.True(t, has)
 
 	keyring, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)

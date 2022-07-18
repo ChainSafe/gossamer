@@ -29,6 +29,10 @@ func (h ConsensusEngineID) ToBytes() []byte {
 	return b[:]
 }
 
+func (h ConsensusEngineID) String() string {
+	return fmt.Sprintf("0x%x", h.ToBytes())
+}
+
 // BabeEngineID is the hard-coded babe ID
 var BabeEngineID = ConsensusEngineID{'B', 'A', 'B', 'E'}
 

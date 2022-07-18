@@ -21,7 +21,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/life"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/golang/mock/gomock"
@@ -449,7 +448,7 @@ func Test_nodeBuilder_createGRANDPAService(t *testing.T) {
 			networkSrvc, err := network.NewService(networkConfig)
 			require.NoError(t, err)
 			builder := nodeBuilder{}
-			got, err := builder.createGRANDPAService(cfg, stateSrvc, nil, tt.ks, networkSrvc,
+			got, err := builder.createGRANDPAService(cfg, stateSrvc, tt.ks, networkSrvc,
 				nil)
 			assert.ErrorIs(t, err, tt.err)
 			// TODO: create interface for grandpa.NewService to enable testing with assert.Equal
@@ -466,9 +465,6 @@ func Test_nodeBuilder_createGRANDPAService(t *testing.T) {
 func Test_createRuntime(t *testing.T) {
 	t.Parallel()
 	cfg := NewTestConfig(t)
-
-	cfgLife := NewTestConfig(t)
-	cfgLife.Core.WasmInterpreter = life.Name
 
 	type args struct {
 		cfg *Config
@@ -487,15 +483,6 @@ func Test_createRuntime(t *testing.T) {
 				ns:  runtime.NodeStorage{},
 			},
 			expectedType: &wasmer.Instance{},
-			err:          nil,
-		},
-		{
-			name: "wasmer life",
-			args: args{
-				cfg: cfgLife,
-				ns:  runtime.NodeStorage{},
-			},
-			expectedType: &life.Instance{},
 			err:          nil,
 		},
 	}

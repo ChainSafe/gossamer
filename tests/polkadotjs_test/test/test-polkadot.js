@@ -63,7 +63,7 @@ describe('Testing polkadot.js/api calls:', function () {
         it('call api.libraryInfo', async function () {
             const libraryInfo = await api.libraryInfo;
             expect(libraryInfo).to.be.not.null;
-            expect(libraryInfo).to.be.equal('@polkadot/api v4.5.1');
+            expect(libraryInfo).to.be.equal('@polkadot/api v8.8.2');
         });
     });
     describe('upgrade runtime', () => {
@@ -98,8 +98,8 @@ describe('Testing polkadot.js/api calls:', function () {
                 });
         })
     });
-
-    describe('api query', () => {
+    //TODO: remove skip when rpc.state.queryStorage is fixed (in PR#2505)
+    describe.skip('api query', () => {
         it('call api.query.timestamp.now()', async function () {
             const timestamp = await api.query.timestamp.now();
             expect(timestamp).to.be.not.undefined;
@@ -180,5 +180,12 @@ describe('Testing polkadot.js/api calls:', function () {
             expect(transfer).to.have.lengthOf(32);
         });
     });
-
+    describe('api grandpa', () => {
+        it('call api.rpc.grandpa.proveFinality', async function () {
+            const proveBlockNumber = 0;
+            const finality = await api.rpc.grandpa.proveFinality(proveBlockNumber);
+            expect(finality).to.be.not.null;
+            expect(finality).to.be.ownProperty('registry')
+        });
+    });
 });

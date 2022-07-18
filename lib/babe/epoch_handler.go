@@ -78,8 +78,9 @@ func (h *epochHandler) run(ctx context.Context, errCh chan<- error) {
 	authoringSlots := getAuthoringSlots(h.slotToPreRuntimeDigest)
 
 	type slotWithTimer struct {
-		timer   *time.Timer
-		slotNum uint64
+		startTime time.Time
+		timer     *time.Timer
+		slotNum   uint64
 	}
 
 	slotTimeTimers := make([]*slotWithTimer, 0, len(authoringSlots))
@@ -90,10 +91,15 @@ func (h *epochHandler) run(ctx context.Context, errCh chan<- error) {
 		}
 
 		startTime := getSlotStartTime(authoringSlot, h.constants.slotDuration)
+		waitTime := startTime.Sub(time.Now())
+		timer := time.NewTimer(waitTime)
+
 		slotTimeTimers = append(slotTimeTimers, &slotWithTimer{
-			timer:   time.NewTimer(time.Until(startTime)),
-			slotNum: authoringSlot,
+			timer:     timer,
+			slotNum:   authoringSlot,
+			startTime: startTime,
 		})
+
 		logger.Debugf("start time of slot %d: %v", authoringSlot, startTime)
 	}
 
@@ -115,6 +121,15 @@ func (h *epochHandler) run(ctx context.Context, errCh chan<- error) {
 		case <-ctx.Done():
 			return
 		case <-swt.timer.C:
+			// we must do a time correction as the slot timer sometimes is triggered
+			// before the time defined in the constructor due to an inconsistency
+			// of the language -> https://github.com/golang/go/issues/17696
+
+			diff := time.Since(swt.startTime)
+			if diff < 0 {
+				time.Sleep(-diff)
+			}
+
 			if _, has := h.slotToPreRuntimeDigest[swt.slotNum]; !has {
 				// this should never happen
 				panic(fmt.Sprintf("no VRF proof for authoring slot! slot=%d", swt.slotNum))

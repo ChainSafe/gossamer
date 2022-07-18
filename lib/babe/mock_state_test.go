@@ -678,36 +678,6 @@ func (mr *MockEpochStateMockRecorder) GetStartSlotForEpoch(arg0 interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStartSlotForEpoch", reflect.TypeOf((*MockEpochState)(nil).GetStartSlotForEpoch), arg0)
 }
 
-// HasConfigData mocks base method.
-func (m *MockEpochState) HasConfigData(arg0 uint64) (bool, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HasConfigData", arg0)
-	ret0, _ := ret[0].(bool)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// HasConfigData indicates an expected call of HasConfigData.
-func (mr *MockEpochStateMockRecorder) HasConfigData(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasConfigData", reflect.TypeOf((*MockEpochState)(nil).HasConfigData), arg0)
-}
-
-// HasEpochData mocks base method.
-func (m *MockEpochState) HasEpochData(arg0 uint64) (bool, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HasEpochData", arg0)
-	ret0, _ := ret[0].(bool)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// HasEpochData indicates an expected call of HasEpochData.
-func (mr *MockEpochStateMockRecorder) HasEpochData(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasEpochData", reflect.TypeOf((*MockEpochState)(nil).HasEpochData), arg0)
-}
-
 // SetCurrentEpoch mocks base method.
 func (m *MockEpochState) SetCurrentEpoch(arg0 uint64) error {
 	m.ctrl.T.Helper()

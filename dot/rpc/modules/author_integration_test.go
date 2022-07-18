@@ -6,6 +6,7 @@
 package modules
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -53,14 +54,9 @@ func useInstanceFromGenesis(t *testing.T, rtStorage *storage.TrieState) (instanc
 }
 
 func useInstanceFromRuntimeV0910(t *testing.T, rtStorage *storage.TrieState) (instance runtime.Instance) {
-	testRuntimeFilePath, testRuntimeURL := runtime.GetRuntimeVars(runtime.POLKADOT_RUNTIME_v0910)
-	err := runtime.GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL)
+	testRuntimeFilePath, err := runtime.GetRuntime(context.Background(), runtime.POLKADOT_RUNTIME_v0910)
 	require.NoError(t, err)
-
 	bytes, err := os.ReadFile(testRuntimeFilePath)
-	require.NoError(t, err)
-
-	err = runtime.RemoveFiles([]string{testRuntimeFilePath})
 	require.NoError(t, err)
 
 	rtStorage.Set(common.CodeKey, bytes)
@@ -80,20 +76,6 @@ func useInstanceFromRuntimeV0910(t *testing.T, rtStorage *storage.TrieState) (in
 	require.NoError(t, err)
 
 	return runtimeInstance
-}
-
-func TestMain(m *testing.M) {
-	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
-	if err != nil {
-		log.Errorf("failed to generate runtime wasm file: %s", err)
-		os.Exit(1)
-	}
-
-	// Start all tests
-	code := m.Run()
-
-	runtime.RemoveFiles(wasmFilePaths)
-	os.Exit(code)
 }
 
 func TestAuthorModule_Pending_Integration(t *testing.T) {
@@ -273,6 +255,7 @@ func TestAuthorModule_SubmitExtrinsic_AlreadyInPool(t *testing.T) {
 }
 
 func TestAuthorModule_InsertKey_Integration(t *testing.T) {
+	t.Parallel()
 	integrationTestController := setupStateAndRuntime(t, t.TempDir(), useInstanceFromGenesis)
 	auth := newAuthorModule(t, integrationTestController)
 
@@ -354,6 +337,7 @@ func TestAuthorModule_InsertKey_Integration(t *testing.T) {
 }
 
 func TestAuthorModule_HasKey_Integration(t *testing.T) {
+	t.Parallel()
 	integrationTestController := setupStateAndRuntime(t, t.TempDir(), useInstanceFromGenesis)
 
 	ks := keystore.NewGlobalKeystore()
@@ -421,6 +405,7 @@ func TestAuthorModule_HasKey_Integration(t *testing.T) {
 }
 
 func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
+	t.Parallel()
 	integrationTestController := setupStateAndRuntime(t, t.TempDir(), useInstanceFromGenesis)
 	auth := newAuthorModule(t, integrationTestController)
 

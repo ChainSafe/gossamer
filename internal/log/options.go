@@ -15,6 +15,9 @@ type Option func(s *settings)
 // The level defaults to the lowest level, trce.
 func SetLevel(level Level) Option {
 	return func(s *settings) {
+		if level == DoNotChange {
+			return
+		}
 		s.level = &level
 	}
 }

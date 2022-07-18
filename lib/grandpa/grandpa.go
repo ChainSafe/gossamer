@@ -13,6 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -46,7 +47,6 @@ type Service struct {
 	cancel         context.CancelFunc
 	blockState     BlockState
 	grandpaState   GrandpaState
-	digestHandler  DigestHandler
 	keypair        *ed25519.Keypair // TODO: change to grandpa keystore (#1870)
 	mapLock        sync.Mutex
 	chanLock       sync.Mutex
@@ -83,16 +83,15 @@ type Service struct {
 
 // Config represents a GRANDPA service configuration
 type Config struct {
-	LogLvl        log.Level
-	BlockState    BlockState
-	GrandpaState  GrandpaState
-	DigestHandler DigestHandler
-	Network       Network
-	Voters        []Voter
-	Keypair       *ed25519.Keypair
-	Authority     bool
-	Interval      time.Duration
-	Telemetry     telemetry.Client
+	LogLvl       log.Level
+	BlockState   BlockState
+	GrandpaState GrandpaState
+	Network      Network
+	Voters       []Voter
+	Keypair      *ed25519.Keypair
+	Authority    bool
+	Interval     time.Duration
+	Telemetry    telemetry.Client
 }
 
 // NewService returns a new GRANDPA Service instance.
@@ -103,10 +102,6 @@ func NewService(cfg *Config) (*Service, error) {
 
 	if cfg.GrandpaState == nil {
 		return nil, ErrNilGrandpaState
-	}
-
-	if cfg.DigestHandler == nil {
-		return nil, ErrNilDigestHandler
 	}
 
 	if cfg.Keypair == nil && cfg.Authority {
@@ -157,7 +152,6 @@ func NewService(cfg *Config) (*Service, error) {
 		state:              NewState(cfg.Voters, setID, round),
 		blockState:         cfg.BlockState,
 		grandpaState:       cfg.GrandpaState,
-		digestHandler:      cfg.DigestHandler,
 		keypair:            cfg.Keypair,
 		authority:          cfg.Authority,
 		prevotes:           new(sync.Map),
@@ -244,7 +238,7 @@ func (s *Service) authorities() []*types.Authority {
 func (s *Service) updateAuthorities() error {
 	currSetID, err := s.grandpaState.GetCurrentSetID()
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot get current set id: %w", err)
 	}
 
 	// set ID hasn't changed, do nothing
@@ -254,7 +248,7 @@ func (s *Service) updateAuthorities() error {
 
 	nextAuthorities, err := s.grandpaState.GetAuthorities(currSetID)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot get authorities for set id %d: %w", currSetID, err)
 	}
 
 	s.state.voters = nextAuthorities
@@ -300,12 +294,12 @@ func (s *Service) initiateRound() error {
 	// if there is an authority change, execute it
 	err := s.updateAuthorities()
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot update authorities while initiating the round: %w", err)
 	}
 
 	round, setID, err := s.blockState.GetHighestRoundAndSetID()
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot get highest round and set id: %w", err)
 	}
 
 	if round > s.state.round && setID == s.state.setID {
@@ -518,7 +512,7 @@ func (s *Service) playGrandpaRound() error {
 	go s.sendVoteMessage(prevote, vm, roundComplete)
 
 	logger.Debug("receiving pre-commit messages...")
-	// through goroutine s.receiveMessages(ctx)
+	// through goroutine s.receiveVoteMessages(ctx)
 	time.Sleep(s.interval)
 
 	if s.paused.Load().(bool) {
@@ -689,6 +683,11 @@ func (s *Service) deleteVote(key ed25519.PublicKeyBytes, stage Subround) {
 func (s *Service) determinePreVote() (*Vote, error) {
 	var vote *Vote
 
+	bestBlockHeader, err := s.blockState.BestBlockHeader()
+	if err != nil {
+		return nil, fmt.Errorf("cannot get best block header: %w", err)
+	}
+
 	// if we receive a vote message from the primary with a
 	// block that's greater than or equal to the current pre-voted block
 	// and greater than the best final candidate from the last round, we choose that.
@@ -698,15 +697,16 @@ func (s *Service) determinePreVote() (*Vote, error) {
 	if has && prm.Vote.Number >= uint32(s.head.Number) {
 		vote = &prm.Vote
 	} else {
-		header, err := s.blockState.BestBlockHeader()
-		if err != nil {
-			return nil, err
-		}
-
-		vote = NewVoteFromHeader(header)
+		vote = NewVoteFromHeader(bestBlockHeader)
 	}
 
-	nextChange := s.digestHandler.NextGrandpaAuthorityChange()
+	nextChange, err := s.grandpaState.NextGrandpaAuthorityChange(bestBlockHeader.Hash(), bestBlockHeader.Number)
+	if errors.Is(err, state.ErrNoNextAuthorityChange) {
+		return vote, nil
+	} else if err != nil {
+		return nil, fmt.Errorf("cannot get next grandpa authority change: %w", err)
+	}
+
 	if uint(vote.Number) > nextChange {
 		header, err := s.blockState.GetHeaderByNumber(nextChange)
 		if err != nil {
@@ -730,7 +730,18 @@ func (s *Service) determinePreCommit() (*Vote, error) {
 	s.preVotedBlock[s.state.round] = &pvb
 	s.mapLock.Unlock()
 
-	nextChange := s.digestHandler.NextGrandpaAuthorityChange()
+	bestBlockHeader, err := s.blockState.BestBlockHeader()
+	if err != nil {
+		return nil, fmt.Errorf("cannot retrieve best block header: %w", err)
+	}
+
+	nextChange, err := s.grandpaState.NextGrandpaAuthorityChange(bestBlockHeader.Hash(), bestBlockHeader.Number)
+	if errors.Is(err, state.ErrNoNextAuthorityChange) {
+		return &pvb, nil
+	} else if err != nil {
+		return nil, fmt.Errorf("cannot get next grandpa authority change: %w", err)
+	}
+
 	if uint(pvb.Number) > nextChange {
 		header, err := s.blockState.GetHeaderByNumber(nextChange)
 		if err != nil {

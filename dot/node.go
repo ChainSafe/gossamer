@@ -62,7 +62,7 @@ type nodeBuilderIface interface {
 	createDigestHandler(lvl log.Level, st *state.Service) (*digest.Handler, error)
 	createCoreService(cfg *Config, ks *keystore.GlobalKeystore, st *state.Service, net *network.Service,
 		dh *digest.Handler) (*core.Service, error)
-	createGRANDPAService(cfg *Config, st *state.Service, dh *digest.Handler, ks keystore.Keystore,
+	createGRANDPAService(cfg *Config, st *state.Service, ks keystore.Keystore,
 		net *network.Service, telemetryMailer telemetry.Client) (*grandpa.Service, error)
 	newSyncService(cfg *Config, st *state.Service, fg dotsync.FinalityGadget, verifier *babe.VerificationManager,
 		cs *core.Service, net *network.Service, telemetryMailer telemetry.Client) (*dotsync.Service, error)
@@ -341,7 +341,7 @@ func newNode(cfg *Config,
 	}
 	nodeSrvcs = append(nodeSrvcs, coreSrvc)
 
-	fg, err := builder.createGRANDPAService(cfg, stateSrvc, dh, ks.Gran, networkSrvc, telemetryMailer)
+	fg, err := builder.createGRANDPAService(cfg, stateSrvc, ks.Gran, networkSrvc, telemetryMailer)
 	if err != nil {
 		return nil, err
 	}

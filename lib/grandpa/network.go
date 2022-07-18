@@ -83,6 +83,7 @@ func (s *Service) registerProtocol() error {
 		s.decodeMessage,
 		s.handleNetworkMessage,
 		nil,
+		network.MaxGrandpaNotificationSize,
 	)
 }
 

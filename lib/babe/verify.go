@@ -202,7 +202,7 @@ func (v *VerificationManager) getVerifierInfo(epoch uint64, header *types.Header
 		return nil, fmt.Errorf("failed to get epoch data for epoch %d: %w", epoch, err)
 	}
 
-	configData, err := v.getConfigData(epoch, header)
+	configData, err := v.epochState.GetConfigData(epoch, header)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get config data: %w", err)
 	}
@@ -218,21 +218,6 @@ func (v *VerificationManager) getVerifierInfo(epoch uint64, header *types.Header
 		threshold:      threshold,
 		secondarySlots: configData.SecondarySlots > 0,
 	}, nil
-}
-
-func (v *VerificationManager) getConfigData(epoch uint64, header *types.Header) (*types.ConfigData, error) {
-	for i := int(epoch); i >= 0; i-- {
-		has, err := v.epochState.HasConfigData(uint64(i))
-		if err != nil {
-			return nil, err
-		} else if !has {
-			continue
-		}
-
-		return v.epochState.GetConfigData(uint64(i), header)
-	}
-
-	return nil, errNoConfigData
 }
 
 // verifier is a BABE verifier for a specific authority set, randomness, and threshold
@@ -277,12 +262,12 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 
 	preDigest, ok := preDigestItem.Value().(types.PreRuntimeDigest)
 	if !ok {
-		return fmt.Errorf("first digest item is not pre-digest")
+		return fmt.Errorf("%w: got %T", types.ErrNoFirstPreDigest, preDigestItem.Value())
 	}
 
 	seal, ok := sealItem.Value().(types.SealDigest)
 	if !ok {
-		return fmt.Errorf("last digest item is not seal")
+		return fmt.Errorf("%w: got %T", errLastDigestItemNotSeal, sealItem.Value())
 	}
 
 	babePreDigest, err := b.verifyPreRuntimeDigest(&preDigest)
@@ -341,30 +326,53 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	}
 
 	// check if the producer has equivocated, ie. have they produced a conflicting block?
+	// hashes is hashes of all blocks with same block number as header.Number
 	hashes := b.blockState.GetAllBlocksAtDepth(header.ParentHash)
 
-	for _, hash := range hashes {
-		currentHeader, err := b.blockState.GetHeader(hash)
+	for _, currentHash := range hashes {
+		currentHeader, err := b.blockState.GetHeader(currentHash)
 		if err != nil {
-			continue
+			return fmt.Errorf("failed get header %s", err)
 		}
 
 		currentBlockProducerIndex, err := getAuthorityIndex(currentHeader)
 		if err != nil {
-			continue
+			return fmt.Errorf("failed to get authority index %s", err)
 		}
 
+		if len(currentHeader.Digest.Types) == 0 {
+			return fmt.Errorf("current header missing digest")
+		}
+
+		currentPreDigestItem := currentHeader.Digest.Types[0]
+		currentPreDigest, ok := currentPreDigestItem.Value().(types.PreRuntimeDigest)
+		if !ok {
+			return fmt.Errorf("%w: got %T", types.ErrNoFirstPreDigest, currentPreDigestItem.Value())
+		}
+
+		currentBabePreDigest, err := b.verifyPreRuntimeDigest(&currentPreDigest)
+		if err != nil {
+			return fmt.Errorf("failed to verify pre-runtime digest: %w", err)
+		}
+
+		_, isCurrentBlockProducerPrimary := currentBabePreDigest.(types.BabePrimaryPreDigest)
+
+		var isExistingBlockProducerPrimary bool
 		var existingBlockProducerIndex uint32
 		switch d := babePreDigest.(type) {
 		case types.BabePrimaryPreDigest:
 			existingBlockProducerIndex = d.AuthorityIndex
+			isExistingBlockProducerPrimary = true
 		case types.BabeSecondaryVRFPreDigest:
 			existingBlockProducerIndex = d.AuthorityIndex
 		case types.BabeSecondaryPlainPreDigest:
 			existingBlockProducerIndex = d.AuthorityIndex
 		}
 
-		if currentBlockProducerIndex == existingBlockProducerIndex && hash != header.Hash() {
+		// same authority won't produce two different blocks at the same block number as primary block producer
+		if currentBlockProducerIndex == existingBlockProducerIndex &&
+			!currentHash.Equal(header.Hash()) &&
+			isCurrentBlockProducerPrimary == isExistingBlockProducerPrimary {
 			return ErrProducerEquivocated
 		}
 	}
@@ -388,7 +396,7 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (scale
 		authIdx = d.AuthorityIndex
 	}
 
-	if len(b.authorities) <= int(authIdx) {
+	if uint64(len(b.authorities)) <= uint64(authIdx) {
 		logger.Tracef("verifyPreRuntimeDigest invalid auth index %d, we have %d auths",
 			authIdx, len(b.authorities))
 		return nil, ErrInvalidBlockProducerIndex

@@ -7,13 +7,11 @@ import (
 	"bytes"
 	"encoding/binary"
 	"net/http"
-	"os"
 	"sort"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/chaindb"
-	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/types"
 	"github.com/ChainSafe/gossamer/lib/crypto"
@@ -24,6 +22,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/lib/trie/proof"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -33,20 +32,6 @@ import (
 var testChildKey = []byte("childKey")
 var testKey = []byte("key")
 var testValue = []byte("value")
-
-func TestMain(m *testing.M) {
-	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
-	if err != nil {
-		log.Errorf("failed to generate runtime wasm file: %s", err)
-		os.Exit(1)
-	}
-
-	// Start all tests
-	code := m.Run()
-
-	runtime.RemoveFiles(wasmFilePaths)
-	os.Exit(code)
-}
 
 func Test_ext_offchain_timestamp_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
@@ -774,7 +759,9 @@ func Test_ext_crypto_ed25519_public_keys_version_1(t *testing.T) {
 		copy(pubKeys[i][:], kp.Public().Encode())
 	}
 
-	sort.Slice(pubKeys, func(i int, j int) bool { return pubKeys[i][0] < pubKeys[j][0] })
+	sort.Slice(pubKeys, func(i int, j int) bool {
+		return bytes.Compare(pubKeys[i][:], pubKeys[j][:]) < 0
+	})
 
 	res, err := inst.Exec("rtm_ext_crypto_ed25519_public_keys_version_1", idData)
 	require.NoError(t, err)
@@ -787,7 +774,10 @@ func Test_ext_crypto_ed25519_public_keys_version_1(t *testing.T) {
 	err = scale.Unmarshal(out, &ret)
 	require.NoError(t, err)
 
-	sort.Slice(ret, func(i int, j int) bool { return ret[i][0] < ret[j][0] })
+	sort.Slice(ret, func(i int, j int) bool {
+		return bytes.Compare(ret[i][:], ret[j][:]) < 0
+	})
+
 	require.Equal(t, pubKeys, ret)
 }
 
@@ -1089,7 +1079,7 @@ func Test_ext_crypto_sr25519_public_keys_version_1(t *testing.T) {
 	ks, _ := inst.ctx.Keystore.GetKeystore(idData)
 	require.Equal(t, 0, ks.Size())
 
-	size := 5
+	const size = 5
 	pubKeys := make([][32]byte, size)
 	for i := range pubKeys {
 		kp, err := sr25519.GenerateKeypair()
@@ -1099,7 +1089,9 @@ func Test_ext_crypto_sr25519_public_keys_version_1(t *testing.T) {
 		copy(pubKeys[i][:], kp.Public().Encode())
 	}
 
-	sort.Slice(pubKeys, func(i int, j int) bool { return pubKeys[i][0] < pubKeys[j][0] })
+	sort.Slice(pubKeys, func(i int, j int) bool {
+		return bytes.Compare(pubKeys[i][:], pubKeys[j][:]) < 0
+	})
 
 	res, err := inst.Exec("rtm_ext_crypto_sr25519_public_keys_version_1", idData)
 	require.NoError(t, err)
@@ -1112,7 +1104,10 @@ func Test_ext_crypto_sr25519_public_keys_version_1(t *testing.T) {
 	err = scale.Unmarshal(out, &ret)
 	require.NoError(t, err)
 
-	sort.Slice(ret, func(i int, j int) bool { return ret[i][0] < ret[j][0] })
+	sort.Slice(ret, func(i int, j int) bool {
+		return bytes.Compare(ret[i][:], ret[j][:]) < 0
+	})
+
 	require.Equal(t, pubKeys, ret)
 }
 
@@ -1807,7 +1802,7 @@ func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 	root := hash.ToBytes()
 	otherRoot := otherHash.ToBytes()
 
-	proof, err := trie.GenerateProof(root, keys, memdb)
+	allProofs, err := proof.Generate(root, keys, memdb)
 	require.NoError(t, err)
 
 	testcases := map[string]struct {
@@ -1816,17 +1811,17 @@ func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 		expect           bool
 	}{
 		"Proof should be true": {
-			root: root, key: []byte("do"), proof: proof, value: []byte("verb"), expect: true},
+			root: root, key: []byte("do"), proof: allProofs, value: []byte("verb"), expect: true},
 		"Root empty, proof should be false": {
-			root: []byte{}, key: []byte("do"), proof: proof, value: []byte("verb"), expect: false},
+			root: []byte{}, key: []byte("do"), proof: allProofs, value: []byte("verb"), expect: false},
 		"Other root, proof should be false": {
-			root: otherRoot, key: []byte("do"), proof: proof, value: []byte("verb"), expect: false},
+			root: otherRoot, key: []byte("do"), proof: allProofs, value: []byte("verb"), expect: false},
 		"Value empty, proof should be true": {
-			root: root, key: []byte("do"), proof: proof, value: nil, expect: true},
+			root: root, key: []byte("do"), proof: allProofs, value: nil, expect: true},
 		"Unknow key, proof should be false": {
-			root: root, key: []byte("unknow"), proof: proof, value: nil, expect: false},
+			root: root, key: []byte("unknow"), proof: allProofs, value: nil, expect: false},
 		"Key and value unknow, proof should be false": {
-			root: root, key: []byte("unknow"), proof: proof, value: []byte("unknow"), expect: false},
+			root: root, key: []byte("unknow"), proof: allProofs, value: []byte("unknow"), expect: false},
 		"Empty proof, should be false": {
 			root: root, key: []byte("do"), proof: [][]byte{}, value: nil, expect: false},
 	}

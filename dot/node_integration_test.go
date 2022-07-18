@@ -6,6 +6,7 @@
 package dot
 
 import (
+	"context"
 	"encoding/hex"
 	"encoding/json"
 	"os"
@@ -271,9 +272,7 @@ func TestNode_PersistGlobalName_WhenInitialize(t *testing.T) {
 // newTestGenesisAndRuntime create a new test runtime and a new test genesis
 // file with the test runtime stored in raw data and returns the genesis file
 func newTestGenesisAndRuntime(t *testing.T) (filename string) {
-	runtimeFilePath := filepath.Join(t.TempDir(), "runtime")
-	_, testRuntimeURL := runtime.GetRuntimeVars(runtime.NODE_RUNTIME)
-	err := runtime.GetRuntimeBlob(runtimeFilePath, testRuntimeURL)
+	runtimeFilePath, err := runtime.GetRuntime(context.Background(), runtime.NODE_RUNTIME)
 	require.NoError(t, err)
 	runtimeData, err := os.ReadFile(runtimeFilePath)
 	require.NoError(t, err)

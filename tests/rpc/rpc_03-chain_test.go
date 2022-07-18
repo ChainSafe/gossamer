@@ -5,283 +5,345 @@ package rpc
 
 import (
 	"context"
-	"log"
+	"errors"
+	"fmt"
+	"math/rand"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
-	"github.com/ChainSafe/gossamer/tests/utils"
+	"github.com/ChainSafe/gossamer/dot/rpc/subscription"
+	"github.com/ChainSafe/gossamer/lib/common"
+	libutils "github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/ChainSafe/gossamer/tests/utils/config"
+	"github.com/ChainSafe/gossamer/tests/utils/node"
+	"github.com/ChainSafe/gossamer/tests/utils/retry"
+	"github.com/ChainSafe/gossamer/tests/utils/rpc"
 	"github.com/gorilla/websocket"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
+const (
+	regex32BytesHex      = `^0x[0-9a-f]{64}$`
+	regexBytesHex        = `^0x[0-9a-f]{2}[0-9a-f]*$`
+	regexBytesHexOrEmpty = `^0x[0-9a-f]*$`
+)
+
 func TestChainRPC(t *testing.T) {
-	if utils.MODE != rpcSuite {
-		t.Log("Going to skip RPC suite tests")
-		return
-	}
+	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
+	tomlConfig := config.Default()
+	tomlConfig.Init.Genesis = genesisPath
+	tomlConfig.Core.BABELead = true
+	node := node.New(t, tomlConfig)
+	ctx, cancel := context.WithCancel(context.Background())
+	node.InitAndStartTest(ctx, t, cancel)
 
-	testCases := []*testCase{
-		{
-			description: "test chain_getFinalizedHead",
-			method:      "chain_getFinalizedHead",
-			expected:    "",
-			params:      "[]",
-		},
-		{
-			description: "test chain_getHeader",
-			method:      "chain_getHeader",
-			expected: modules.ChainBlockHeaderResponse{
-				Number: "1",
-			},
-			params: "[]",
-		},
-		{
-			description: "test chain_getBlock",
-			method:      "chain_getBlock",
-			expected: modules.ChainBlockResponse{
-				Block: modules.ChainBlock{
-					Header: modules.ChainBlockHeaderResponse{
-						Number: "1",
-					},
-					Body: []string{},
-				},
-			},
-			params: "[]",
-		},
-		{
-			description: "test chain_getBlockHash",
-			method:      "chain_getBlockHash",
-			expected:    "",
-			params:      "[]",
-		},
-	}
+	// Wait for Gossamer to produce block 2
+	errBlockNumberTooHigh := errors.New("block number is too high")
+	const retryWaitDuration = 200 * time.Millisecond
+	err := retry.UntilOK(ctx, retryWaitDuration, func() (ok bool, err error) {
+		var header modules.ChainBlockHeaderResponse
+		fetchWithTimeout(ctx, t, "chain_getHeader", "[]", &header)
+		number, err := common.HexToUint(header.Number)
+		if err != nil {
+			return false, fmt.Errorf("cannot convert header number to uint: %w", err)
+		}
 
-	t.Log("starting gossamer...")
-	nodes, err := utils.InitializeAndStartNodes(t, 1, utils.GenesisDev, utils.ConfigDefault)
+		switch number {
+		case 0, 1:
+			return false, nil
+		case 2:
+			return true, nil
+		default:
+			return false, fmt.Errorf("%w: %d", errBlockNumberTooHigh, number)
+		}
+	})
 	require.NoError(t, err)
 
-	time.Sleep(time.Second * 5) // give server a few seconds to start
+	var finalizedHead string
+	fetchWithTimeout(ctx, t, "chain_getFinalizedHead", "[]", &finalizedHead)
+	assert.Regexp(t, regex32BytesHex, finalizedHead)
 
-	chainBlockHeaderHash := ""
-	for _, test := range testCases {
+	var header modules.ChainBlockHeaderResponse
+	fetchWithTimeout(ctx, t, "chain_getHeader", "[]", &header)
 
-		t.Run(test.description, func(t *testing.T) {
-
-			// set params for chain_getBlock from previous chain_getHeader call
-			if chainBlockHeaderHash != "" {
-				test.params = "[\"" + chainBlockHeaderHash + "\"]"
-			}
-
-			ctx := context.Background()
-
-			getResponseCtx, cancel := context.WithTimeout(ctx, time.Second)
-			defer cancel()
-			target := getResponse(getResponseCtx, t, test)
-
-			switch v := target.(type) {
-			case *modules.ChainBlockHeaderResponse:
-				t.Log("Will assert ChainBlockHeaderResponse", "value", v)
-
-				require.GreaterOrEqual(t, test.expected.(modules.ChainBlockHeaderResponse).Number, v.Number)
-
-				require.NotNil(t, test.expected.(modules.ChainBlockHeaderResponse).ParentHash)
-				require.NotNil(t, test.expected.(modules.ChainBlockHeaderResponse).StateRoot)
-				require.NotNil(t, test.expected.(modules.ChainBlockHeaderResponse).ExtrinsicsRoot)
-				require.NotNil(t, test.expected.(modules.ChainBlockHeaderResponse).Digest)
-
-				//save for chain_getBlock
-				chainBlockHeaderHash = v.ParentHash
-			case *modules.ChainBlockResponse:
-				t.Log("Will assert ChainBlockResponse", "value", v.Block)
-
-				//reset
-				chainBlockHeaderHash = ""
-
-				require.NotNil(t, test.expected.(modules.ChainBlockResponse).Block)
-
-				require.GreaterOrEqual(t, test.expected.(modules.ChainBlockResponse).Block.Header.Number, v.Block.Header.Number)
-
-				require.NotNil(t, test.expected.(modules.ChainBlockResponse).Block.Header.ParentHash)
-				require.NotNil(t, test.expected.(modules.ChainBlockResponse).Block.Header.StateRoot)
-				require.NotNil(t, test.expected.(modules.ChainBlockResponse).Block.Header.ExtrinsicsRoot)
-				require.NotNil(t, test.expected.(modules.ChainBlockResponse).Block.Header.Digest)
-
-				require.NotNil(t, test.expected.(modules.ChainBlockResponse).Block.Body)
-				require.GreaterOrEqual(t, len(test.expected.(modules.ChainBlockResponse).Block.Body), 0)
-
-			case *string:
-				t.Log("Will assert ChainBlockNumberRequest", "value", *v)
-				require.NotNil(t, v)
-				require.GreaterOrEqual(t, len(*v), 66)
-
-			}
-
-		})
+	// Check and clear unpredictable fields
+	assert.Regexp(t, regex32BytesHex, header.StateRoot)
+	header.StateRoot = ""
+	assert.Regexp(t, regex32BytesHex, header.ExtrinsicsRoot)
+	header.ExtrinsicsRoot = ""
+	assert.Len(t, header.Digest.Logs, 2)
+	for _, digestLog := range header.Digest.Logs {
+		assert.Regexp(t, regexBytesHex, digestLog)
 	}
+	header.Digest.Logs = nil
 
-	t.Log("going to tear down gossamer...")
-	errList := utils.TearDown(t, nodes)
-	require.Len(t, errList, 0)
+	// Assert remaining struct with predictable fields
+	expectedHeader := modules.ChainBlockHeaderResponse{
+		ParentHash: finalizedHead,
+		Number:     "0x02",
+	}
+	assert.Equal(t, expectedHeader, header)
+
+	var block modules.ChainBlockResponse
+	fetchWithTimeout(ctx, t, "chain_getBlock", fmt.Sprintf(`["`+header.ParentHash+`"]`), &block)
+
+	// Check and clear unpredictable fields
+	assert.Regexp(t, regex32BytesHex, block.Block.Header.ParentHash)
+	block.Block.Header.ParentHash = ""
+	assert.Regexp(t, regex32BytesHex, block.Block.Header.StateRoot)
+	block.Block.Header.StateRoot = ""
+	assert.Regexp(t, regex32BytesHex, block.Block.Header.ExtrinsicsRoot)
+	block.Block.Header.ExtrinsicsRoot = ""
+	assert.Len(t, block.Block.Header.Digest.Logs, 3)
+	for _, digestLog := range block.Block.Header.Digest.Logs {
+		assert.Regexp(t, regexBytesHex, digestLog)
+	}
+	block.Block.Header.Digest.Logs = nil
+	assert.Len(t, block.Block.Body, 1)
+	const bodyRegex = `^0x280403000b[0-9a-z]{8}8201$`
+	assert.Regexp(t, bodyRegex, block.Block.Body[0])
+	block.Block.Body = nil
+
+	// Assert remaining struct with predictable fields
+	expectedBlock := modules.ChainBlockResponse{
+		Block: modules.ChainBlock{
+			Header: modules.ChainBlockHeaderResponse{
+				Number: "0x01",
+			},
+		},
+	}
+	assert.Equal(t, expectedBlock, block)
+
+	var blockHash string
+	fetchWithTimeout(ctx, t, "chain_getBlockHash", "[]", &blockHash)
+	assert.Regexp(t, regex32BytesHex, blockHash)
+	assert.NotEqual(t, finalizedHead, blockHash)
 }
 
 func TestChainSubscriptionRPC(t *testing.T) {
-	if utils.MODE != rpcSuite {
-		t.Log("Going to skip RPC suite tests")
-		return
-	}
+	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
+	tomlConfig := config.Default()
+	tomlConfig.Init.Genesis = genesisPath
+	tomlConfig.Core.BABELead = true
+	tomlConfig.RPC.WS = true // WS port is set in the node.New constructor
+	node := node.New(t, tomlConfig)
+	ctx, cancel := context.WithCancel(context.Background())
+	node.InitAndStartTest(ctx, t, cancel)
 
-	testCases := []*testCase{
-		{
-			description: "test chain_subscribeNewHeads",
-			method:      "chain_subscribeNewHeads",
-			expected: []interface{}{1,
-				map[string](interface{}){
-					"subscription": float64(1),
-					"result": map[string](interface{}){
-						"number":         "0x01",
-						"parentHash":     "0x580d77a9136035a0bc3c3cd86286172f7f81291164c5914266073a30466fba21",
-						"stateRoot":      "0x3b1a31d10d4d8a444579fd5a3fb17cbe6bebba9d939d88fe7bafb9d48036abb5",
-						"extrinsicsRoot": "0x8025c0d64df303f79647611c8c2b0a77bc2247ee12d851df4624e1f71ebb3aed",
-						//nolint:lll
-						"digest": map[string](interface{}){"logs": []interface{}{
-							"0x0642414245c101c809062df1d1271d6a50232754baa64870515a7ada927886467748a220972c6d58347fd7317e286045604c5ddb78b84018c4b3a3836ee6626c8da6957338720053588d9f29c307fade658661d8d6a57c525f48553a253cf6e1475dbd319ca90200000000000000000e00000000000000",
-							"0x054241424501017cac567e5b5688260d9d0a1f7fe6a9f81ae0f1900a382e1c73a4929fcaf6e33ed9e7347eb81ebb2699d58f6c8b01c7bdf0714e5f6f4495bc4b5fb3becb287580"}}}}},
-			params: "[]",
-			skip:   false,
-		},
-		{
-			description: "test state_subscribeStorage",
-			method:      "state_subscribeStorage",
-			expected:    "",
-			params:      "[]",
-			skip:        true,
-		},
-		{
-			description: "test chain_finalizedHeads",
-			method:      "chain_subscribeFinalizedHeads",
-			expected: []interface{}{1,
-				map[string](interface{}){
-					"subscription": float64(1),
-					"result": map[string](interface{}){
-						"number":         "0x01",
-						"parentHash":     "0x580d77a9136035a0bc3c3cd86286172f7f81291164c5914266073a30466fba21",
-						"stateRoot":      "0x3b1a31d10d4d8a444579fd5a3fb17cbe6bebba9d939d88fe7bafb9d48036abb5",
-						"extrinsicsRoot": "0x8025c0d64df303f79647611c8c2b0a77bc2247ee12d851df4624e1f71ebb3aed",
-						//nolint:lll
-						"digest": map[string](interface{}){"logs": []interface{}{
-							"0x0642414245c101c809062df1d1271d6a50232754baa64870515a7ada927886467748a220972c6d58347fd7317e286045604c5ddb78b84018c4b3a3836ee6626c8da6957338720053588d9f29c307fade658661d8d6a57c525f48553a253cf6e1475dbd319ca90200000000000000000e00000000000000",
-							"0x054241424501017cac567e5b5688260d9d0a1f7fe6a9f81ae0f1900a382e1c73a4929fcaf6e33ed9e7347eb81ebb2699d58f6c8b01c7bdf0714e5f6f4495bc4b5fb3becb287580"}}}}},
-			params: "[]",
-			skip:   false,
-		},
-	}
+	const endpoint = "ws://localhost:8546/"
 
-	t.Log("starting gossamer...")
-	nodes, err := utils.InitializeAndStartNodesWebsocket(t, 1, utils.GenesisDev, utils.ConfigDefault)
-	require.NoError(t, err)
+	t.Run("chain_subscribeNewHeads", func(t *testing.T) {
+		t.Parallel()
 
-	time.Sleep(time.Second) // give server a second to start
+		const numberOfMesages = 2
+		messages := callAndSubscribeWebsocket(ctx, t, endpoint, "chain_subscribeNewHeads", "[]", numberOfMesages)
 
-	for _, test := range testCases {
+		allParams := make([]subscription.Params, numberOfMesages)
+		for i, message := range messages {
+			err := rpc.Decode(message, &allParams[i])
+			require.NoError(t, err, "cannot decode websocket message for message index %d", i)
+		}
 
-		t.Run(test.description, func(t *testing.T) {
-			callWebsocket(t, test)
-		})
-	}
+		for i, params := range allParams {
+			result := getResultMapFromParams(t, params)
 
-	time.Sleep(time.Second * 2)
-	t.Log("going to tear down gossamer...")
-	errList := utils.TearDown(t, nodes)
-	require.Len(t, errList, 0)
-}
+			number := getResultNumber(t, result)
+			assert.Equal(t, uint(i+1), number)
 
-func callWebsocket(t *testing.T, test *testCase) {
-	if test.skip {
-		t.Skip("Websocket endpoint not yet implemented")
-	}
-	url := "ws://localhost:8546/" // todo don't hard code this
-	ws, _, err := websocket.DefaultDialer.Dial(url, nil)
-	require.NoError(t, err)
-	defer ws.Close()
+			assertResultRegex(t, result, "parentHash", regex32BytesHex)
+			assertResultRegex(t, result, "stateRoot", regex32BytesHex)
+			assertResultRegex(t, result, "extrinsicsRoot", regex32BytesHex)
+			assertResultDigest(t, result)
 
-	done := make(chan struct{})
-
-	vals := make(chan []byte)
-	go wsListener(t, ws, vals, done, len(test.expected.([]interface{})))
-
-	err = ws.WriteMessage(websocket.TextMessage, []byte(`{
-    "jsonrpc": "2.0",
-    "method": "`+test.method+`",
-    "params": [`+test.params+`],
-    "id": 1
-}`))
-	require.NoError(t, err)
-	resCount := 0
-	for {
-		select {
-		case v := <-vals:
-			resCount++
-			switch exp := test.expected.([]interface{})[resCount-1].(type) {
-			case int:
-				// check for result subscription number
-				resNum := 0
-				err = utils.DecodeWebsocket(t, v, &resNum)
-				require.NoError(t, err)
-
-			case map[string]interface{}:
-				// check result map response
-				resMap := make(map[string]interface{})
-				err = utils.DecodeWebsocket(t, v, &resMap)
-				require.NoError(t, err)
-
-				// check values in map are expected type
-				for eKey, eVal := range exp {
-					rVal := resMap[eKey]
-					require.NotNil(t, rVal)
-					require.IsType(t, eVal, rVal)
-					switch evt := eVal.(type) {
-					case map[string]interface{}:
-						checkMap(t, evt, rVal.(map[string]interface{}))
-					}
-				}
+			remainingExpected := subscription.Params{
+				Result:         map[string]interface{}{},
+				SubscriptionID: 1,
 			}
-
-		case <-done:
-			return
+			assert.Equal(t, remainingExpected, params)
 		}
-	}
+	})
+
+	t.Run("state_subscribeStorage", func(t *testing.T) {
+		t.Parallel()
+
+		const numberOfMesages = 2
+		messages := callAndSubscribeWebsocket(ctx, t, endpoint, "state_subscribeStorage", "[]", numberOfMesages)
+
+		allParams := make([]subscription.Params, numberOfMesages)
+		for i := range allParams {
+			message := messages[i]
+			err := rpc.Decode(message, &allParams[i])
+			require.NoError(t, err, "cannot decode websocket message for message index %d", i)
+		}
+
+		for i, params := range allParams {
+			errorContext := fmt.Sprintf("for response at index %d", i)
+
+			result := getResultMapFromParams(t, params)
+
+			blockHex, ok := result["block"].(string)
+			require.True(t, ok, errorContext)
+			assert.Regexp(t, regex32BytesHex, blockHex, errorContext)
+			delete(result, "block")
+
+			changes, ok := result["changes"].([]interface{})
+			require.True(t, ok, errorContext)
+
+			for _, change := range changes {
+				fromTo, ok := change.([]interface{})
+				require.Truef(t, ok, "%s and change: %v", errorContext, change)
+				from, ok := fromTo[0].(string)
+				require.Truef(t, ok, "%s and from: %v", errorContext, fromTo[0])
+				to, ok := fromTo[1].(string)
+				require.Truef(t, ok, "%s and to: %v", errorContext, fromTo[1])
+				assert.Regexp(t, regexBytesHexOrEmpty, from, errorContext)
+				assert.Regexp(t, regexBytesHexOrEmpty, to, errorContext)
+			}
+			delete(result, "changes")
+
+			remainingExpected := map[string]interface{}{}
+			assert.Equal(t, remainingExpected, result, errorContext)
+		}
+	})
+
+	t.Run("chain_subscribeFinalizedHeads", func(t *testing.T) {
+		t.Parallel()
+
+		const numberOfMesages = 4
+		messages := callAndSubscribeWebsocket(ctx, t, endpoint, "chain_subscribeFinalizedHeads", "[]", numberOfMesages)
+
+		allParams := make([]subscription.Params, numberOfMesages)
+		for i, message := range messages {
+			err := rpc.Decode(message, &allParams[i])
+			require.NoError(t, err, "cannot decode websocket message for message index %d", i)
+		}
+
+		var blockNumbers []uint
+		for _, params := range allParams {
+			result := getResultMapFromParams(t, params)
+
+			number := getResultNumber(t, result)
+			blockNumbers = append(blockNumbers, number)
+
+			assertResultRegex(t, result, "parentHash", regex32BytesHex)
+			assertResultRegex(t, result, "stateRoot", regex32BytesHex)
+			assertResultRegex(t, result, "extrinsicsRoot", regex32BytesHex)
+			assertResultDigest(t, result)
+
+			remainingExpected := subscription.Params{
+				Result:         map[string]interface{}{},
+				SubscriptionID: 1,
+			}
+			assert.Equal(t, remainingExpected, params)
+		}
+
+		// Check block numbers grow by zero or one in order of responses.
+		for i, blockNumber := range blockNumbers {
+			if i == 0 {
+				assert.Equal(t, uint(1), blockNumber)
+				continue
+			}
+			assert.GreaterOrEqual(t, blockNumber, blockNumbers[i-1])
+		}
+	})
 }
 
-func wsListener(t *testing.T, ws *websocket.Conn, val chan []byte, done chan struct{}, msgCount int) {
-	defer close(done)
-	count := 0
-	for {
-		_, message, err := ws.ReadMessage()
-		require.NoError(t, err)
+func getResultMapFromParams(t *testing.T, params subscription.Params) (
+	resultMap map[string]interface{}) {
+	t.Helper()
 
-		count++
-		log.Printf("recv: %v: %s\n", count, message)
+	resultMap, ok := params.Result.(map[string]interface{})
+	require.True(t, ok)
 
-		val <- message
-		if count == msgCount {
-			err := ws.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
-			require.NoError(t, err)
-			return
-		}
-	}
+	return resultMap
 }
 
-func checkMap(t *testing.T, expMap map[string]interface{}, ckMap map[string]interface{}) {
-	for eKey, eVal := range expMap {
-		cVal := ckMap[eKey]
+// getResultNumber returns the number value from the result map
+// and deletes the "number" key from the map.
+func getResultNumber(t *testing.T, result map[string]interface{}) uint {
+	t.Helper()
 
-		require.NotNil(t, cVal)
-		require.IsType(t, eVal, cVal)
-		switch evt := eVal.(type) {
-		case map[string]interface{}:
-			checkMap(t, evt, cVal.(map[string]interface{}))
-		}
+	hexNumber, ok := result["number"].(string)
+	require.True(t, ok)
+
+	number, err := common.HexToUint(hexNumber)
+	require.NoError(t, err)
+	delete(result, "number")
+
+	return number
+}
+
+// assertResultRegex gets the value from the map and asserts that it matches the regex.
+// It then removes the key from the map.
+func assertResultRegex(t *testing.T, result map[string]interface{}, key, regex string) {
+	t.Helper()
+
+	value, ok := result[key]
+	require.True(t, ok, "cannot find key %q in result", key)
+	assert.Regexp(t, regex, value, "at result key %q", key)
+	delete(result, key)
+}
+
+func assertResultDigest(t *testing.T, result map[string]interface{}) {
+	t.Helper()
+
+	digest, ok := result["digest"].(map[string]interface{})
+	require.True(t, ok)
+
+	logs, ok := digest["logs"].([]interface{})
+	require.True(t, ok)
+
+	assert.NotEmpty(t, logs)
+	for _, log := range logs {
+		assert.Regexp(t, regexBytesHex, log)
 	}
 
+	delete(result, "digest")
+}
+
+func callAndSubscribeWebsocket(ctx context.Context, t *testing.T,
+	endpoint, method, params string, numberOfMesages uint) (
+	messages [][]byte) {
+	t.Helper()
+
+	connection, _, err := websocket.DefaultDialer.Dial(endpoint, nil)
+	require.NoError(t, err, "cannot dial websocket")
+	defer connection.Close() // in case of failed required assertion
+
+	const maxid = 100000 // otherwise it becomes a float64
+	id := rand.Intn(maxid)
+	messageData := fmt.Sprintf(`{
+    "jsonrpc": "2.0",
+    "method": %q,
+    "params": [%s],
+    "id": %d
+}`, method, params, id)
+	err = connection.WriteMessage(websocket.TextMessage, []byte(messageData))
+	require.NoError(t, err, "cannot write websocket message")
+
+	// Read subscription id result
+	var target subscription.ResponseJSON
+	err = connection.ReadJSON(&target)
+	require.NoError(t, err, "cannot read websocket message")
+	assert.Equal(t, float64(id), target.ID, "request id mismatch")
+	assert.NotZero(t, target.Result, "subscription id is 0")
+
+	for i := uint(0); i < numberOfMesages; i++ {
+		_, data, err := connection.ReadMessage()
+		require.NoError(t, err, "cannot read websocket message")
+
+		messages = append(messages, data)
+	}
+
+	// Close connection
+	const messageType = websocket.CloseMessage
+	data := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "")
+	err = connection.WriteMessage(messageType, data)
+	assert.NoError(t, err, "cannot write close websocket message")
+	err = connection.Close()
+	assert.NoError(t, err, "cannot close websocket connection")
+
+	return messages
 }
