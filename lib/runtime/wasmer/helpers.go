@@ -7,7 +7,6 @@ package wasmer
 import "C"
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
 
@@ -32,7 +31,7 @@ func toWasmMemory(context wasmer.InstanceContext, data []byte) (
 
 	ptr, err := allocator.Allocate(size)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("allocating: %w", err)
 	}
 
 	memory := context.Memory().Data()
@@ -50,14 +49,15 @@ func toWasmMemory(context wasmer.InstanceContext, data []byte) (
 func toWasmMemorySized(context wasmer.InstanceContext, data []byte, size uint32) (
 	pointer uint32, err error) {
 	if int(size) != len(data) {
-		return 0, errors.New("internal byte array size missmatch")
+		// Programming error
+		panic(fmt.Sprintf("data is %d bytes but size specified is %d", len(data), size))
 	}
 
 	allocator := context.Data().(*runtime.Context).Allocator
 
 	ptr, err := allocator.Allocate(size)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("allocating: %w", err)
 	}
 
 	memory := context.Memory().Data()
@@ -76,7 +76,7 @@ func toWasmMemoryOptional(context wasmer.InstanceContext, data []byte) (
 
 	enc, err := scale.Marshal(optionalBytes)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("scale encoding: %w", err)
 	}
 
 	return toWasmMemory(context, enc)
@@ -94,7 +94,7 @@ func toWasmMemoryResult(context wasmer.InstanceContext, data []byte) (
 
 	encodedResult, err := result.Encode()
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("encoding result: %w", err)
 	}
 
 	return toWasmMemory(context, encodedResult)
@@ -105,7 +105,7 @@ func toWasmMemoryOptionalUint32(context wasmer.InstanceContext, data *uint32) (
 	pointerSize int64, err error) {
 	enc, err := scale.Marshal(data)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("scale encoding: %w", err)
 	}
 	return toWasmMemory(context, enc)
 }
@@ -115,7 +115,7 @@ func toKillStorageResultEnum(allRemoved bool, numRemoved uint32) (
 	encodedEnumValue []byte, err error) {
 	encodedNumRemoved, err := scale.Marshal(numRemoved)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("scale encoding: %w", err)
 	}
 
 	if allRemoved {
@@ -138,7 +138,7 @@ func toWasmMemoryFixedSizeOptional(context wasmer.InstanceContext, data []byte) 
 	copy(optionalFixedSize[:], data)
 	encodedOptionalFixedSize, err := scale.Marshal(&optionalFixedSize)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("scale encoding: %w", err)
 	}
 	return toWasmMemory(context, encodedOptionalFixedSize)
 }
@@ -165,7 +165,7 @@ func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 
 		lengthBytes, err := scale.Marshal(currentLength)
 		if err != nil {
-			return err
+			return fmt.Errorf("scale encoding: %w", err)
 		}
 		// append new item, pop off number of bytes required for length encoding,
 		// since we're not using old scale.Decoder
@@ -178,7 +178,7 @@ func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 	encodedLength, err := scale.Marshal(nextLength)
 	if err != nil {
 		logger.Tracef("failed to encode new length: %s", err)
-		return err
+		return fmt.Errorf("scale encoding: %w", err)
 	}
 
 	// append new length prefix to start of items array
