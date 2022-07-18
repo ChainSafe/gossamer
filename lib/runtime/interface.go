@@ -31,7 +31,8 @@ type Instance interface {
 	Metadata() ([]byte, error)
 	BabeConfiguration() (*types.BabeConfiguration, error)
 	GrandpaAuthorities() ([]types.Authority, error)
-	ValidateTransaction(e types.Extrinsic) (scale.Result, error)
+	ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error)
+	ValidateTransactionNew(e types.Extrinsic) (scale.Result, error)
 	InitializeBlock(header *types.Header) error
 	InherentExtrinsics(data []byte) ([]byte, error)
 	ApplyExtrinsic(data types.Extrinsic) ([]byte, error)

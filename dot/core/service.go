@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/ChainSafe/gossamer/lib/transaction"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -386,14 +387,13 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 				return fmt.Errorf("building external transaction: %w", err)
 			}
 
-			// TODO fix this
-			_, err = rt.ValidateTransaction(externalExt)
+			txv, err := rt.ValidateTransaction(externalExt)
 			if err != nil {
 				logger.Debugf("failed to validate transaction for extrinsic %s: %s", ext, err)
 				continue
 			}
-			//vtx := transaction.NewValidTransaction(ext, txv)
-			//s.transactionState.AddToPool(vtx)
+			vtx := transaction.NewValidTransaction(ext, txv)
+			s.transactionState.AddToPool(vtx)
 		}
 	}
 
@@ -428,14 +428,13 @@ func (s *Service) maintainTransactionPool(block *types.Block) {
 			logger.Errorf("Unable to build external transaction: %s", err)
 		}
 
-		// TODO fix this
-		_, err = rt.ValidateTransaction(externalExt)
+		txnValidity, err := rt.ValidateTransaction(externalExt)
 		if err != nil {
 			s.transactionState.RemoveExtrinsic(tx.Extrinsic)
 			continue
 		}
 
-		//tx = transaction.NewValidTransaction(tx.Extrinsic, txnValidity)
+		tx = transaction.NewValidTransaction(tx.Extrinsic, txnValidity)
 
 		// Err is only thrown if tx is already in pool, in which case it still gets removed
 		h, _ := s.transactionState.Push(tx)
@@ -540,16 +539,15 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 	if err != nil {
 		return fmt.Errorf("building external transaction: %w", err)
 	}
-
-	// TODO fix this
-	_, err = rt.ValidateTransaction(externalExt)
+	
+	txv, err := rt.ValidateTransaction(externalExt)
 	if err != nil {
 		return err
 	}
 
 	// add transaction to pool
-	//vtx := transaction.NewValidTransaction(ext, txv)
-	//s.transactionState.AddToPool(vtx)
+	vtx := transaction.NewValidTransaction(ext, txv)
+	s.transactionState.AddToPool(vtx)
 
 	// broadcast transaction
 	msg := &network.TransactionMessage{Extrinsics: []types.Extrinsic{ext}}

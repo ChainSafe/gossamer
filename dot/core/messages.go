@@ -27,7 +27,7 @@ func (s *Service) validateTransaction(peerID peer.ID, rt runtime.Instance,
 	}
 
 	fmt.Println("about to validate")
-	validityResult, err := rt.ValidateTransaction(externalExt)
+	validityResult, err := rt.ValidateTransactionNew(externalExt)
 	if err != nil {
 		fmt.Println(err == nil)
 		fmt.Println("err")
