@@ -69,17 +69,17 @@ func toWasmMemorySized(context wasmer.InstanceContext, data []byte, size uint32)
 // Wraps slice in optional.Bytes and copies result to wasm memory. Returns resulting 64bit span descriptor
 func toWasmMemoryOptional(context wasmer.InstanceContext, data []byte) (
 	pointerSize int64, err error) {
-	var optionalBytes *[]byte
+	var optionalSlice *[]byte
 	if data != nil {
-		optionalBytes = &data
+		optionalSlice = &data
 	}
 
-	enc, err := scale.Marshal(optionalBytes)
+	encoded, err := scale.Marshal(optionalSlice)
 	if err != nil {
-		return 0, fmt.Errorf("scale encoding: %w", err)
+		return 0, err
 	}
 
-	return toWasmMemory(context, enc)
+	return toWasmMemory(context, encoded)
 }
 
 // Wraps slice in Result type and copies result to wasm memory. Returns resulting 64bit span descriptor
