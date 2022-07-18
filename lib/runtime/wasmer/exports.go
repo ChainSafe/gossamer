@@ -16,6 +16,7 @@ import (
 // ValidateTransaction runs the extrinsic through the runtime function
 // TaggedTransactionQueue_validate_transaction and returns *Validity
 func (in *Instance) ValidateTransaction(e types.Extrinsic) (scale.Result, error) {
+	fmt.Println("In validate Transaction")
 	ret, err := in.exec(runtime.TaggedTransactionQueueValidateTransaction, e)
 	if err != nil {
 		return scale.Result{}, err

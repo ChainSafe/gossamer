@@ -58,7 +58,7 @@ func DetermineValidity(res []byte) (scale.Result, error) {
 }
 
 // TODO have this be a custom result type
-func DecodeValidity(txnValidityResult scale.Result) (*transaction.Validity, error) {
+func DecodeValidityError(txnValidityResult scale.Result) (*transaction.Validity, error) {
 	txnValidityRes, err := txnValidityResult.Unwrap()
 	if err != nil {
 		switch errType := err.(type) {
