@@ -141,46 +141,57 @@ func toWasmMemoryFixedSizeOptional(context wasmer.InstanceContext, data []byte) 
 }
 
 func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
-	nextLength := big.NewInt(1)
-	var valueResult []byte
-
 	// this function assumes the item in storage is a SCALE encoded array of items
 	// the valueToAppend is a new item, so it appends the item and increases the length prefix by 1
 	currentValue := storage.Get(key)
 
+	var value []byte
 	if len(currentValue) == 0 {
-		valueResult = valueToAppend
+		nextLength := big.NewInt(1)
+		encodedLength, err := scale.Marshal(nextLength)
+		if err != nil {
+			return fmt.Errorf("scale encoding: %w", err)
+		}
+		value = make([]byte, len(encodedLength)+len(valueToAppend))
+		// append new length prefix to start of items array
+		copy(value, encodedLength)
+		copy(value[len(encodedLength):], valueToAppend)
 	} else {
 		var currentLength *big.Int
 		err := scale.Unmarshal(currentValue, &currentLength)
 		if err != nil {
 			logger.Tracef(
 				"item in storage is not SCALE encoded, overwriting at key 0x%x", key)
-			storage.Set(key, append([]byte{4}, valueToAppend...))
-			return nil //nolint:nilerr
-		}
+			value = make([]byte, 1+len(valueToAppend))
+			value[0] = 4
+			copy(value[1:], valueToAppend)
+		} else {
+			lengthBytes, err := scale.Marshal(currentLength)
+			if err != nil {
+				return fmt.Errorf("scale encoding: %w", err)
+			}
 
-		lengthBytes, err := scale.Marshal(currentLength)
-		if err != nil {
-			return fmt.Errorf("scale encoding: %w", err)
-		}
-		// append new item, pop off number of bytes required for length encoding,
-		// since we're not using old scale.Decoder
-		valueResult = append(currentValue[len(lengthBytes):], valueToAppend...)
+			// increase length by 1
+			nextLength := big.NewInt(0).Add(currentLength, big.NewInt(1))
+			nextLengthBytes, err := scale.Marshal(nextLength)
+			if err != nil {
+				return fmt.Errorf("scale encoding next length bytes: %w", err)
+			}
 
-		// increase length by 1
-		nextLength = big.NewInt(0).Add(currentLength, big.NewInt(1))
+			// append new item, pop off number of bytes required for length encoding,
+			// since we're not using old scale.Decoder
+			value = make([]byte, len(nextLengthBytes)+len(currentValue)-len(lengthBytes)+len(valueToAppend))
+			// append new length prefix to start of items array
+			i := 0
+			copy(value[i:], nextLengthBytes)
+			i += len(nextLengthBytes)
+			copy(value[i:], currentValue[len(lengthBytes):])
+			i += len(currentValue) - len(lengthBytes)
+			copy(value[i:], valueToAppend)
+		}
 	}
 
-	encodedLength, err := scale.Marshal(nextLength)
-	if err != nil {
-		logger.Tracef("failed to encode new length: %s", err)
-		return fmt.Errorf("scale encoding: %w", err)
-	}
-
-	// append new length prefix to start of items array
-	encodedValue := append(encodedLength, valueResult...)
-	logger.Debugf("resulting value: 0x%x", encodedValue)
-	storage.Set(key, encodedValue)
+	logger.Debugf("resulting value: 0x%x", value)
+	storage.Set(key, value)
 	return nil
 }
