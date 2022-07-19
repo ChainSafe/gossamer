@@ -302,3 +302,70 @@ func Test_Decoder_Decode_MultipleCalls(t *testing.T) {
 		})
 	}
 }
+
+var (
+	decodeUint32Tests = tests{
+		{
+			name: "int(1) mode 0",
+			in:   uint32(1),
+			want: []byte{0x04},
+		},
+		{
+			name: "int(16383) mode 1",
+			in:   int(16383),
+			want: []byte{0xfd, 0xff},
+		},
+		{
+			name: "int(1073741823) mode 2",
+			in:   int(1073741823),
+			want: []byte{0xfe, 0xff, 0xff, 0xff},
+		},
+		{
+			name: "int(4294967295) mode 3",
+			in:   int(4294967295),
+			want: []byte{0x3, 0xff, 0xff, 0xff, 0xff},
+		},
+		{
+			name:    "myCustomInt(9223372036854775807) out of range",
+			in:      myCustomInt(0),
+			want:    []byte{19, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f},
+			wantErr: true,
+		},
+		{
+			name:    "uint(overload)",
+			in:      int(0),
+			want:    []byte{0x07, 0x08, 0x09, 0x10, 0x0, 0x40},
+			wantErr: true,
+		},
+		{
+			name: "uint(16384) mode 2",
+			in:   int(16384),
+			want: []byte{0x02, 0x00, 0x01, 0x0},
+		},
+	}
+)
+
+func Test_decodeState_decodeUInt32(t *testing.T) {
+	for _, tt := range decodeUint32Tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dst := reflect.New(reflect.TypeOf(tt.in)).Elem().Interface()
+			dstv := reflect.ValueOf(&dst)
+			elem := indirect(dstv)
+
+			buf := &bytes.Buffer{}
+			ds := decodeState{}
+			_, err := buf.Write(tt.want)
+			if err != nil {
+				return
+			}
+			ds.Reader = buf
+			err = ds.decodeCompactUint32(elem)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("decodeState.decodeCompactUint32 error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if !reflect.DeepEqual(dst, tt.in) {
+				t.Errorf("decodeState.decodeCompactUint32 = %v, want %v", dst, tt.in)
+			}
+		})
+	}
+}
