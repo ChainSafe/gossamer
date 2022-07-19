@@ -37,9 +37,9 @@ func (in *Instance) Version() (version runtime.Version, err error) {
 		return version, err
 	}
 
-	err = version.Decode(res)
+	version, err = runtime.DecodeVersion(res)
 	if err != nil {
-		return version, fmt.Errorf("decoding: %w", err)
+		return version, fmt.Errorf("decoding version: %w", err)
 	}
 
 	return version, nil

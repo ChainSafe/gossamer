@@ -54,31 +54,29 @@ func (v *Version) Encode() (encoded []byte, err error) {
 	return scale.Marshal(toEncode)
 }
 
-// Decode scale decodes the encoded version data and returns an error.
+// DecodeVersion scale decodes the encoded version data and returns an error.
 // It first tries to decode the data using the current version format.
 // If that fails with an EOF error, it then tries to decode the data
 // using the legacy version format (for Kusama).
-func (v *Version) Decode(encoded []byte) (err error) {
-	var newVersionData Version
-	err = scale.Unmarshal(encoded, &newVersionData)
+func DecodeVersion(encoded []byte) (version Version, err error) {
+	err = scale.Unmarshal(encoded, &version)
 	if err == nil {
-		*v = newVersionData
-		return nil
+		return version, nil
 	}
 
 	if !strings.Contains(err.Error(), "EOF") {
 		// TODO io.EOF should be wrapped in scale
-		return err
+		return version, err
 	}
 
 	// TODO: kusama seems to use the legacy version format
 	var legacy legacyData
 	err = scale.Unmarshal(encoded, &legacy)
 	if err != nil {
-		return fmt.Errorf("decoding legacy version: %w", err)
+		return version, fmt.Errorf("decoding legacy version: %w", err)
 	}
 
-	*v = Version{
+	return Version{
 		SpecName:         legacy.SpecName,
 		ImplName:         legacy.ImplName,
 		AuthoringVersion: legacy.AuthoringVersion,
@@ -86,7 +84,5 @@ func (v *Version) Decode(encoded []byte) (err error) {
 		ImplVersion:      legacy.ImplVersion,
 		APIItems:         legacy.APIItems,
 		legacy:           true,
-	}
-
-	return nil
+	}, nil
 }

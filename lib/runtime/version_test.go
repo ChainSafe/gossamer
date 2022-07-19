@@ -91,8 +91,7 @@ func Test_VersionData_Scale(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, testCase.encoding, encoded)
 
-			var decoded Version
-			err = decoded.Decode(encoded)
+			decoded, err := DecodeVersion(encoded)
 			require.NoError(t, err)
 
 			assert.Equal(t, testCase.decoded, decoded)
