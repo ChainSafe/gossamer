@@ -53,9 +53,9 @@ func createExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, non
 		Era:                ctypes.ExtrinsicEra{IsImmortalEra: false},
 		GenesisHash:        ctypes.Hash(genHash),
 		Nonce:              ctypes.NewUCompactFromUInt(nonce),
-		SpecVersion:        ctypes.U32(rv.GetSpecVersion()),
+		SpecVersion:        ctypes.U32(rv.SpecVersion),
 		Tip:                ctypes.NewUCompactFromUInt(0),
-		TransactionVersion: ctypes.U32(rv.GetTransactionVersion()),
+		TransactionVersion: ctypes.U32(rv.TransactionVersion),
 	}
 
 	// Sign the transaction using Alice's key

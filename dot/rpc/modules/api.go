@@ -48,7 +48,7 @@ type BlockAPI interface {
 	GetFinalisedNotifierChannel() chan *types.FinalisationInfo
 	FreeFinalisedNotifierChannel(ch chan *types.FinalisationInfo)
 	SubChain(start, end common.Hash) ([]common.Hash, error)
-	RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (uint32, error)
+	RegisterRuntimeUpdatedChannel(ch chan<- runtime.VersionData) (uint32, error)
 	UnregisterRuntimeUpdatedChannel(id uint32) bool
 	GetRuntime(hash *common.Hash) (runtime.Instance, error)
 }
@@ -97,7 +97,7 @@ type TransactionStateAPI interface {
 type CoreAPI interface {
 	InsertKey(kp crypto.Keypair, keystoreType string) error
 	HasKey(pubKeyStr string, keyType string) (bool, error)
-	GetRuntimeVersion(bhash *common.Hash) (runtime.Version, error)
+	GetRuntimeVersion(bhash *common.Hash) (runtime.VersionData, error)
 	HandleSubmittedExtrinsic(types.Extrinsic) error
 	GetMetadata(bhash *common.Hash) ([]byte, error)
 	DecodeSessionKeys(enc []byte) ([]byte, error)

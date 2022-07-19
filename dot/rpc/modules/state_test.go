@@ -448,7 +448,7 @@ func TestStateModuleGetReadProof(t *testing.T) {
 
 func TestStateModuleGetRuntimeVersion(t *testing.T) {
 	hash := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
-	version := &runtime.VersionData{
+	version := runtime.VersionData{
 		SpecName:         []byte("polkadot"),
 		ImplName:         []byte("parity-polkadot"),
 		AuthoringVersion: 0,
@@ -465,7 +465,8 @@ func TestStateModuleGetRuntimeVersion(t *testing.T) {
 	mockCoreAPI.On("GetRuntimeVersion", &hash).Return(version, nil)
 
 	mockCoreAPIErr := new(mocks.CoreAPI)
-	mockCoreAPIErr.On("GetRuntimeVersion", &hash).Return(nil, errors.New("GetRuntimeVersion Error"))
+	mockCoreAPIErr.On("GetRuntimeVersion", &hash).
+		Return(runtime.Version{}, errors.New("GetRuntimeVersion Error"))
 
 	type fields struct {
 		networkAPI NetworkAPI

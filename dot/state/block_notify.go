@@ -101,7 +101,7 @@ func (bs *BlockState) notifyFinalized(hash common.Hash, round, setID uint64) {
 	}
 }
 
-func (bs *BlockState) notifyRuntimeUpdated(version runtime.Version) {
+func (bs *BlockState) notifyRuntimeUpdated(version runtime.VersionData) {
 	bs.runtimeUpdateSubscriptionsLock.RLock()
 	defer bs.runtimeUpdateSubscriptionsLock.RUnlock()
 
@@ -113,7 +113,7 @@ func (bs *BlockState) notifyRuntimeUpdated(version runtime.Version) {
 	var wg sync.WaitGroup
 	wg.Add(len(bs.runtimeUpdateSubscriptions))
 	for _, ch := range bs.runtimeUpdateSubscriptions {
-		go func(ch chan<- runtime.Version) {
+		go func(ch chan<- runtime.VersionData) {
 			defer wg.Done()
 			ch <- version
 		}(ch)
@@ -122,7 +122,7 @@ func (bs *BlockState) notifyRuntimeUpdated(version runtime.Version) {
 }
 
 // RegisterRuntimeUpdatedChannel function to register chan that is notified when runtime version changes
-func (bs *BlockState) RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (uint32, error) {
+func (bs *BlockState) RegisterRuntimeUpdatedChannel(ch chan<- runtime.VersionData) (uint32, error) {
 	bs.runtimeUpdateSubscriptionsLock.Lock()
 	defer bs.runtimeUpdateSubscriptionsLock.Unlock()
 

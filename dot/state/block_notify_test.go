@@ -134,7 +134,7 @@ func TestFinalizedChannel_Multi(t *testing.T) {
 
 func TestService_RegisterUnRegisterRuntimeUpdatedChannel(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
-	ch := make(chan<- runtime.Version)
+	ch := make(chan<- runtime.VersionData)
 	chID, err := bs.RegisterRuntimeUpdatedChannel(ch)
 	require.NoError(t, err)
 	require.NotNil(t, chID)
@@ -148,7 +148,7 @@ func TestService_RegisterUnRegisterConcurrentCalls(t *testing.T) {
 
 	go func() {
 		for i := 0; i < 100; i++ {
-			testVer := &runtime.VersionData{
+			testVer := runtime.VersionData{
 				SpecName:    []byte("mock-spec"),
 				SpecVersion: uint32(i),
 			}
@@ -159,7 +159,7 @@ func TestService_RegisterUnRegisterConcurrentCalls(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		go func() {
 
-			ch := make(chan<- runtime.Version)
+			ch := make(chan<- runtime.VersionData)
 			chID, err := bs.RegisterRuntimeUpdatedChannel(ch)
 			require.NoError(t, err)
 			unReg := bs.UnregisterRuntimeUpdatedChannel(chID)

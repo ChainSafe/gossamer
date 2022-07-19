@@ -95,9 +95,9 @@ func generateExtrinsic(t *testing.T) (extrinsic, externalExtrinsic types.Extrins
 		Era:                ctypes.ExtrinsicEra{IsImmortalEra: true},
 		GenesisHash:        testGenHash,
 		Nonce:              ctypes.NewUCompactFromUInt(uint64(0)),
-		SpecVersion:        ctypes.U32(rv.GetSpecVersion()),
+		SpecVersion:        ctypes.U32(rv.SpecVersion),
 		Tip:                ctypes.NewUCompactFromUInt(0),
-		TransactionVersion: ctypes.U32(rv.GetTransactionVersion()),
+		TransactionVersion: ctypes.U32(rv.TransactionVersion),
 	}
 
 	// Sign the transaction using Alice's default account
@@ -1008,7 +1008,7 @@ func TestService_DecodeSessionKeys(t *testing.T) {
 
 func TestServiceGetRuntimeVersion(t *testing.T) {
 	t.Parallel()
-	rv := &runtime.VersionData{
+	rv := runtime.VersionData{
 		SpecName:         []byte("polkadot"),
 		ImplName:         []byte("parity-polkadot"),
 		AuthoringVersion: authoringVersion,
@@ -1023,7 +1023,7 @@ func TestServiceGetRuntimeVersion(t *testing.T) {
 	emptyTrie := trie.NewEmptyTrie()
 	ts := rtstorage.NewTrieState(emptyTrie)
 
-	execTest := func(t *testing.T, s *Service, bhash *common.Hash, exp runtime.Version, expErr error) {
+	execTest := func(t *testing.T, s *Service, bhash *common.Hash, exp runtime.VersionData, expErr error) {
 		res, err := s.GetRuntimeVersion(bhash)
 		assert.ErrorIs(t, err, expErr)
 		if expErr != nil {
@@ -1040,7 +1040,7 @@ func TestServiceGetRuntimeVersion(t *testing.T) {
 		service := &Service{
 			storageState: mockStorageState,
 		}
-		execTest(t, service, &common.Hash{}, nil, errDummyErr)
+		execTest(t, service, &common.Hash{}, runtime.VersionData{}, errDummyErr)
 	})
 
 	t.Run("trie state err", func(t *testing.T) {
@@ -1052,7 +1052,7 @@ func TestServiceGetRuntimeVersion(t *testing.T) {
 		service := &Service{
 			storageState: mockStorageState,
 		}
-		execTest(t, service, &common.Hash{}, nil, errDummyErr)
+		execTest(t, service, &common.Hash{}, runtime.VersionData{}, errDummyErr)
 	})
 
 	t.Run("get runtime err", func(t *testing.T) {
@@ -1068,7 +1068,7 @@ func TestServiceGetRuntimeVersion(t *testing.T) {
 			storageState: mockStorageState,
 			blockState:   mockBlockState,
 		}
-		execTest(t, service, &common.Hash{}, nil, errDummyErr)
+		execTest(t, service, &common.Hash{}, runtime.VersionData{}, errDummyErr)
 	})
 
 	t.Run("happy path", func(t *testing.T) {

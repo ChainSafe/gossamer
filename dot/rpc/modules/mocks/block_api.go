@@ -257,18 +257,18 @@ func (_m *BlockAPI) HasJustification(hash common.Hash) (bool, error) {
 }
 
 // RegisterRuntimeUpdatedChannel provides a mock function with given fields: ch
-func (_m *BlockAPI) RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (uint32, error) {
+func (_m *BlockAPI) RegisterRuntimeUpdatedChannel(ch chan<- runtime.VersionData) (uint32, error) {
 	ret := _m.Called(ch)
 
 	var r0 uint32
-	if rf, ok := ret.Get(0).(func(chan<- runtime.Version) uint32); ok {
+	if rf, ok := ret.Get(0).(func(chan<- runtime.VersionData) uint32); ok {
 		r0 = rf(ch)
 	} else {
 		r0 = ret.Get(0).(uint32)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(chan<- runtime.Version) error); ok {
+	if rf, ok := ret.Get(1).(func(chan<- runtime.VersionData) error); ok {
 		r1 = rf(ch)
 	} else {
 		r1 = ret.Error(1)

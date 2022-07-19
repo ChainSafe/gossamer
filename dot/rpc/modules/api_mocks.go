@@ -64,7 +64,7 @@ func NewMockCoreAPI() *modulesmocks.CoreAPI {
 	m.On("InsertKey", mock.AnythingOfType("crypto.Keypair"), mock.AnythingOfType("string")).Return(nil)
 	m.On("HasKey", mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(false, nil)
 	m.On("GetRuntimeVersion", mock.AnythingOfType("*common.Hash")).
-		Return(&runtime.VersionData{SpecName: []byte(`mock-spec`)}, nil)
+		Return(runtime.VersionData{SpecName: []byte(`mock-spec`)}, nil)
 	m.On("IsBlockProducer").Return(false)
 	m.On("HandleSubmittedExtrinsic", mock.AnythingOfType("types.Extrinsic")).Return(nil)
 	m.On("GetMetadata", mock.AnythingOfType("*common.Hash")).Return(nil, nil)

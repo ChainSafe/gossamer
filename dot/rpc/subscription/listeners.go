@@ -392,7 +392,7 @@ func (l *ExtrinsicSubmitListener) Stop() error {
 type RuntimeVersionListener struct {
 	wsconn        WSConnAPI
 	subID         uint32
-	runtimeUpdate chan runtime.Version
+	runtimeUpdate chan runtime.VersionData
 	channelID     uint32
 	coreAPI       modules.CoreAPI
 }
@@ -410,13 +410,13 @@ func (l *RuntimeVersionListener) Listen() {
 		return
 	}
 	ver := modules.StateRuntimeVersionResponse{}
-	ver.SpecName = string(rtVersion.GetSpecName())
-	ver.ImplName = string(rtVersion.GetImplName())
-	ver.AuthoringVersion = rtVersion.GetAuthoringVersion()
-	ver.SpecVersion = rtVersion.GetSpecVersion()
-	ver.ImplVersion = rtVersion.GetImplVersion()
-	ver.TransactionVersion = rtVersion.GetTransactionVersion()
-	ver.Apis = modules.ConvertAPIs(rtVersion.GetAPIItems())
+	ver.SpecName = string(rtVersion.SpecName)
+	ver.ImplName = string(rtVersion.ImplName)
+	ver.AuthoringVersion = rtVersion.AuthoringVersion
+	ver.SpecVersion = rtVersion.SpecVersion
+	ver.ImplVersion = rtVersion.ImplVersion
+	ver.TransactionVersion = rtVersion.TransactionVersion
+	ver.Apis = modules.ConvertAPIs(rtVersion.APIItems)
 
 	go l.wsconn.safeSend(newSubscriptionResponse(stateRuntimeVersionMethod, l.subID, ver))
 
@@ -430,13 +430,13 @@ func (l *RuntimeVersionListener) Listen() {
 
 			ver := modules.StateRuntimeVersionResponse{}
 
-			ver.SpecName = string(info.GetSpecName())
-			ver.ImplName = string(info.GetImplName())
-			ver.AuthoringVersion = info.GetAuthoringVersion()
-			ver.SpecVersion = info.GetSpecVersion()
-			ver.ImplVersion = info.GetImplVersion()
-			ver.TransactionVersion = info.GetTransactionVersion()
-			ver.Apis = modules.ConvertAPIs(info.GetAPIItems())
+			ver.SpecName = string(info.SpecName)
+			ver.ImplName = string(info.ImplName)
+			ver.AuthoringVersion = info.AuthoringVersion
+			ver.SpecVersion = info.SpecVersion
+			ver.ImplVersion = info.ImplVersion
+			ver.TransactionVersion = info.TransactionVersion
+			ver.Apis = modules.ConvertAPIs(info.APIItems)
 
 			l.wsconn.safeSend(newSubscriptionResponse(stateRuntimeVersionMethod, l.subID, ver))
 		}

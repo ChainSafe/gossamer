@@ -97,16 +97,14 @@ func (_m *CoreAPI) GetReadProofAt(block common.Hash, keys [][]byte) (common.Hash
 }
 
 // GetRuntimeVersion provides a mock function with given fields: bhash
-func (_m *CoreAPI) GetRuntimeVersion(bhash *common.Hash) (runtime.Version, error) {
+func (_m *CoreAPI) GetRuntimeVersion(bhash *common.Hash) (runtime.VersionData, error) {
 	ret := _m.Called(bhash)
 
-	var r0 runtime.Version
-	if rf, ok := ret.Get(0).(func(*common.Hash) runtime.Version); ok {
+	var r0 runtime.VersionData
+	if rf, ok := ret.Get(0).(func(*common.Hash) runtime.VersionData); ok {
 		r0 = rf(bhash)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(runtime.Version)
-		}
+		r0 = ret.Get(0).(runtime.VersionData)
 	}
 
 	var r1 error

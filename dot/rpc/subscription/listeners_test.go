@@ -333,7 +333,7 @@ func setupWSConn(t *testing.T) (*WSConn, *websocket.Conn, func()) {
 }
 
 func TestRuntimeChannelListener_Listen(t *testing.T) {
-	notifyChan := make(chan runtime.Version)
+	notifyChan := make(chan runtime.VersionData)
 	mockConnection := &mockWSConnAPI{}
 	rvl := RuntimeVersionListener{
 		wsconn:        mockConnection,
@@ -365,7 +365,7 @@ func TestRuntimeChannelListener_Listen(t *testing.T) {
 		SpecVersion:        25,
 		ImplVersion:        0,
 		TransactionVersion: 5,
-		Apis:               modules.ConvertAPIs(version.GetAPIItems()),
+		Apis:               modules.ConvertAPIs(version.APIItems),
 	}
 
 	expectedUpdateResponse := newSubcriptionBaseResponseJSON()

@@ -377,7 +377,7 @@ func (mr *MockBlockAPIMockRecorder) HasJustification(arg0 interface{}) *gomock.C
 }
 
 // RegisterRuntimeUpdatedChannel mocks base method.
-func (m *MockBlockAPI) RegisterRuntimeUpdatedChannel(arg0 chan<- runtime.Version) (uint32, error) {
+func (m *MockBlockAPI) RegisterRuntimeUpdatedChannel(arg0 chan<- runtime.VersionData) (uint32, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RegisterRuntimeUpdatedChannel", arg0)
 	ret0, _ := ret[0].(uint32)

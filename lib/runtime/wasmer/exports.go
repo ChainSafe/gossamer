@@ -5,7 +5,6 @@ package wasmer
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -32,24 +31,15 @@ func (in *Instance) ValidateTransaction(e types.Extrinsic) (*transaction.Validit
 }
 
 // Version calls runtime function Core_Version
-func (in *Instance) Version() (runtime.Version, error) {
+func (in *Instance) Version() (version runtime.VersionData, err error) {
 	res, err := in.Exec(runtime.CoreVersion, []byte{})
 	if err != nil {
-		return nil, err
+		return version, err
 	}
 
-	version := &runtime.VersionData{}
-	err = scale.Unmarshal(res, version)
-	// error comes from scale now, so do a string check
+	err = version.Decode(res)
 	if err != nil {
-		if strings.Contains(err.Error(), "EOF") {
-			// TODO io.EOF should be wrapped in scale
-			// TODO: kusama seems to use the legacy version format
-			lversion := &runtime.LegacyVersionData{}
-			err = scale.Unmarshal(res, lversion)
-			return lversion, err
-		}
-		return nil, err
+		return version, fmt.Errorf("decoding: %w", err)
 	}
 
 	return version, nil

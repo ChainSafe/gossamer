@@ -3,78 +3,17 @@
 
 package runtime
 
-import "github.com/ChainSafe/gossamer/pkg/scale"
+import (
+	"fmt"
+	"strings"
 
-// Version represents the data returned by runtime call core_version
-type Version interface {
-	GetSpecName() []byte
-	GetImplName() []byte
-	GetAuthoringVersion() uint32
-	GetSpecVersion() uint32
-	GetImplVersion() uint32
-	GetAPIItems() []APIItem
-	GetTransactionVersion() uint32
-	// Encode returns the scale encoding of the version.
-	// Note this one cannot be replaced by scale.Marshal
-	// or the Version interface pointer would be marshalled,
-	// instead of the version implementation.
-	Encode() (encoded []byte, err error)
-}
+	"github.com/ChainSafe/gossamer/pkg/scale"
+)
 
 // APIItem struct to hold runtime API Name and Version
 type APIItem struct {
 	Name [8]byte
 	Ver  uint32
-}
-
-// LegacyVersionData is the runtime version info returned by legacy runtimes
-type LegacyVersionData struct {
-	SpecName         []byte
-	ImplName         []byte
-	AuthoringVersion uint32
-	SpecVersion      uint32
-	ImplVersion      uint32
-	APIItems         []APIItem
-}
-
-// GetSpecName returns the spec name
-func (lvd *LegacyVersionData) GetSpecName() []byte {
-	return lvd.SpecName
-}
-
-// GetImplName returns the implementation name
-func (lvd *LegacyVersionData) GetImplName() []byte {
-	return lvd.ImplName
-}
-
-// GetAuthoringVersion returns the authoring version
-func (lvd *LegacyVersionData) GetAuthoringVersion() uint32 {
-	return lvd.AuthoringVersion
-}
-
-// GetSpecVersion returns the spec version
-func (lvd *LegacyVersionData) GetSpecVersion() uint32 {
-	return lvd.SpecVersion
-}
-
-// GetImplVersion returns the implementation version
-func (lvd *LegacyVersionData) GetImplVersion() uint32 {
-	return lvd.ImplVersion
-}
-
-// GetAPIItems returns the API items
-func (lvd *LegacyVersionData) GetAPIItems() []APIItem {
-	return lvd.APIItems
-}
-
-// GetTransactionVersion returns the transaction version
-func (*LegacyVersionData) GetTransactionVersion() uint32 {
-	return 0
-}
-
-// Encode returns the scale encoding of the version.
-func (lvd *LegacyVersionData) Encode() (encoded []byte, err error) {
-	return scale.Marshal(*lvd)
 }
 
 // VersionData is the runtime version info returned by v0.8 runtimes
@@ -86,44 +25,68 @@ type VersionData struct {
 	ImplVersion        uint32
 	APIItems           []APIItem
 	TransactionVersion uint32
+	legacy             bool
 }
 
-// GetSpecName returns the spec name
-func (vd *VersionData) GetSpecName() []byte {
-	return vd.SpecName
-}
-
-// GetImplName returns the implementation name
-func (vd *VersionData) GetImplName() []byte {
-	return vd.ImplName
-}
-
-// GetAuthoringVersion returns the authoring version
-func (vd *VersionData) GetAuthoringVersion() uint32 {
-	return vd.AuthoringVersion
-}
-
-// GetSpecVersion returns the spec version
-func (vd *VersionData) GetSpecVersion() uint32 {
-	return vd.SpecVersion
-}
-
-// GetImplVersion returns the implementation version
-func (vd *VersionData) GetImplVersion() uint32 {
-	return vd.ImplVersion
-}
-
-// GetAPIItems returns the API items
-func (vd *VersionData) GetAPIItems() []APIItem {
-	return vd.APIItems
-}
-
-// GetTransactionVersion returns the transaction version
-func (vd *VersionData) GetTransactionVersion() uint32 {
-	return vd.TransactionVersion
+type legacyData struct {
+	SpecName         []byte
+	ImplName         []byte
+	AuthoringVersion uint32
+	SpecVersion      uint32
+	ImplVersion      uint32
+	APIItems         []APIItem
 }
 
 // Encode returns the scale encoding of the version.
-func (vd *VersionData) Encode() (encoded []byte, err error) {
-	return scale.Marshal(*vd)
+func (v *VersionData) Encode() (encoded []byte, err error) {
+	if !v.legacy {
+		return scale.Marshal(*v)
+	}
+
+	toEncode := legacyData{
+		SpecName:         v.SpecName,
+		ImplName:         v.ImplName,
+		AuthoringVersion: v.AuthoringVersion,
+		SpecVersion:      v.SpecVersion,
+		ImplVersion:      v.ImplVersion,
+		APIItems:         v.APIItems,
+	}
+	return scale.Marshal(toEncode)
+}
+
+// Decode scale decodes the encoded version data and returns an error.
+// It first tries to decode the data using the current version format.
+// If that fails with an EOF error, it then tries to decode the data
+// using the legacy version format (for Kusama).
+func (v *VersionData) Decode(encoded []byte) (err error) {
+	var newVersionData VersionData
+	err = scale.Unmarshal(encoded, &newVersionData)
+	if err == nil {
+		*v = newVersionData
+		return nil
+	}
+
+	if !strings.Contains(err.Error(), "EOF") {
+		// TODO io.EOF should be wrapped in scale
+		return err
+	}
+
+	// TODO: kusama seems to use the legacy version format
+	var legacy legacyData
+	err = scale.Unmarshal(encoded, &legacy)
+	if err != nil {
+		return fmt.Errorf("decoding legacy version: %w", err)
+	}
+
+	*v = VersionData{
+		SpecName:         legacy.SpecName,
+		ImplName:         legacy.ImplName,
+		AuthoringVersion: legacy.AuthoringVersion,
+		SpecVersion:      legacy.SpecVersion,
+		ImplVersion:      legacy.ImplVersion,
+		APIItems:         legacy.APIItems,
+		legacy:           true,
+	}
+
+	return nil
 }

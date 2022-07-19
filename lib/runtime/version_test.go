@@ -6,71 +6,96 @@ package runtime
 import (
 	"testing"
 
-	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func Test_VersionData_Scale(t *testing.T) {
-	version := VersionData{
-		SpecName:         []byte{1},
-		ImplName:         []byte{2},
-		AuthoringVersion: 3,
-		SpecVersion:      4,
-		ImplVersion:      5,
-		APIItems: []APIItem{{
-			Name: [8]byte{1, 2, 3, 4, 5, 6, 7, 8},
-			Ver:  6,
-		}},
-		TransactionVersion: 7,
+	t.Parallel()
+
+	testCases := map[string]struct {
+		version  VersionData
+		encoding []byte
+		decoded  VersionData
+	}{
+		"current version": {
+			version: VersionData{
+				SpecName:         []byte{1},
+				ImplName:         []byte{2},
+				AuthoringVersion: 3,
+				SpecVersion:      4,
+				ImplVersion:      5,
+				APIItems: []APIItem{{
+					Name: [8]byte{1, 2, 3, 4, 5, 6, 7, 8},
+					Ver:  6,
+				}},
+				TransactionVersion: 7,
+			},
+			encoding: []byte{
+				0x4, 0x1, 0x4, 0x2, 0x3, 0x0, 0x0, 0x0, 0x4, 0x0, 0x0, 0x0,
+				0x5, 0x0, 0x0, 0x0, 0x4, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7,
+				0x8, 0x6, 0x0, 0x0, 0x0, 0x7, 0x0, 0x0, 0x0},
+			decoded: VersionData{
+				SpecName:         []byte{1},
+				ImplName:         []byte{2},
+				AuthoringVersion: 3,
+				SpecVersion:      4,
+				ImplVersion:      5,
+				APIItems: []APIItem{{
+					Name: [8]byte{1, 2, 3, 4, 5, 6, 7, 8},
+					Ver:  6,
+				}},
+				TransactionVersion: 7,
+			},
+		},
+		"legacy version": {
+			version: VersionData{
+				SpecName:         []byte{1},
+				ImplName:         []byte{2},
+				AuthoringVersion: 3,
+				SpecVersion:      4,
+				ImplVersion:      5,
+				APIItems: []APIItem{{
+					Name: [8]byte{1, 2, 3, 4, 5, 6, 7, 8},
+					Ver:  6,
+				}},
+				TransactionVersion: 7,
+				legacy:             true,
+			},
+			encoding: []byte{
+				0x4, 0x1, 0x4, 0x2, 0x3, 0x0, 0x0, 0x0, 0x4, 0x0, 0x0, 0x0,
+				0x5, 0x0, 0x0, 0x0, 0x4, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7,
+				0x8, 0x6, 0x0, 0x0, 0x0},
+			decoded: VersionData{
+				SpecName:         []byte{1},
+				ImplName:         []byte{2},
+				AuthoringVersion: 3,
+				SpecVersion:      4,
+				ImplVersion:      5,
+				APIItems: []APIItem{{
+					Name: [8]byte{1, 2, 3, 4, 5, 6, 7, 8},
+					Ver:  6,
+				}},
+				legacy: true,
+			},
+		},
 	}
 
-	expectedScale := []byte{
-		0x4, 0x1, 0x4, 0x2, 0x3, 0x0, 0x0, 0x0, 0x4, 0x0, 0x0, 0x0,
-		0x5, 0x0, 0x0, 0x0, 0x4, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7,
-		0x8, 0x6, 0x0, 0x0, 0x0, 0x7, 0x0, 0x0, 0x0}
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 
-	scaleEncoded, err := scale.Marshal(version)
-	require.NoError(t, err)
-	require.Equal(t, expectedScale, scaleEncoded)
+			encoded, err := testCase.version.Encode()
 
-	encoding, err := version.Encode()
-	require.NoError(t, err)
-	require.Equal(t, expectedScale, encoding)
+			require.NoError(t, err)
+			require.Equal(t, testCase.encoding, encoded)
 
-	var decoded VersionData
-	err = scale.Unmarshal(scaleEncoded, &decoded)
-	require.NoError(t, err)
-	require.Equal(t, version, decoded)
-}
+			var decoded VersionData
+			err = decoded.Decode(encoded)
+			require.NoError(t, err)
 
-func Test_LegacyVersionData_Scale(t *testing.T) {
-	version := LegacyVersionData{
-		SpecName:         []byte{1},
-		ImplName:         []byte{2},
-		AuthoringVersion: 3,
-		SpecVersion:      4,
-		ImplVersion:      5,
-		APIItems: []APIItem{{
-			Name: [8]byte{1, 2, 3, 4, 5, 6, 7, 8},
-			Ver:  6,
-		}},
+			assert.Equal(t, testCase.decoded, decoded)
+		})
 	}
-
-	expectedScale := []byte{
-		0x4, 0x1, 0x4, 0x2, 0x3, 0x0, 0x0, 0x0, 0x4, 0x0, 0x0, 0x0,
-		0x5, 0x0, 0x0, 0x0, 0x4, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7,
-		0x8, 0x6, 0x0, 0x0, 0x0}
-
-	scaleEncoded, err := scale.Marshal(version)
-	require.NoError(t, err)
-	require.Equal(t, expectedScale, scaleEncoded)
-
-	encoding, err := version.Encode()
-	require.NoError(t, err)
-	require.Equal(t, expectedScale, encoding)
-
-	var decoded LegacyVersionData
-	err = scale.Unmarshal(scaleEncoded, &decoded)
-	require.NoError(t, err)
-	require.Equal(t, version, decoded)
 }

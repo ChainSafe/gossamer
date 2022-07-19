@@ -66,7 +66,7 @@ type BlockState struct {
 	finalisedLock                  sync.RWMutex
 	importedLock                   sync.RWMutex
 	runtimeUpdateSubscriptionsLock sync.RWMutex
-	runtimeUpdateSubscriptions     map[uint32]chan<- runtime.Version
+	runtimeUpdateSubscriptions     map[uint32]chan<- runtime.VersionData
 
 	telemetry telemetry.Client
 }
@@ -81,7 +81,7 @@ func NewBlockState(db chaindb.Database, trs *Tries, telemetry telemetry.Client) 
 		tries:                      trs,
 		imported:                   make(map[chan *types.Block]struct{}),
 		finalised:                  make(map[chan *types.FinalisationInfo]struct{}),
-		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
+		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.VersionData),
 		telemetry:                  telemetry,
 	}
 
@@ -114,7 +114,7 @@ func NewBlockStateFromGenesis(db chaindb.Database, trs *Tries, header *types.Hea
 		tries:                      trs,
 		imported:                   make(map[chan *types.Block]struct{}),
 		finalised:                  make(map[chan *types.FinalisationInfo]struct{}),
-		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
+		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.VersionData),
 		genesisHash:                header.Hash(),
 		lastFinalised:              header.Hash(),
 		telemetry:                  telemetryMailer,
@@ -598,7 +598,7 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 
 		// only update runtime during code substitution if runtime SpecVersion is updated
 		previousVersion, _ := rt.Version()
-		if previousVersion.GetSpecVersion() == newVersion.GetSpecVersion() {
+		if previousVersion.SpecVersion == newVersion.SpecVersion {
 			logger.Info("not upgrading runtime code during code substitution")
 			bs.StoreRuntime(bHash, rt)
 			return nil
@@ -606,7 +606,7 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 
 		logger.Infof(
 			"🔄 detected runtime code change, upgrading with block %s from previous code hash %s and spec %d to new code hash %s and spec %d...", //nolint:lll
-			bHash, codeHash, previousVersion.GetSpecVersion(), currCodeHash, newVersion.GetSpecVersion())
+			bHash, codeHash, previousVersion.SpecVersion, currCodeHash, newVersion.SpecVersion)
 	}
 
 	rtCfg := wasmer.Config{

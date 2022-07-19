@@ -355,7 +355,7 @@ func (c *WSConn) initRuntimeVersionListener(reqID float64, _ interface{}) (Liste
 
 	rvl := &RuntimeVersionListener{
 		wsconn:        c,
-		runtimeUpdate: make(chan runtime.Version),
+		runtimeUpdate: make(chan runtime.VersionData),
 		coreAPI:       c.CoreAPI,
 	}
 
