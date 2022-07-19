@@ -100,6 +100,7 @@ func createTestBlock(t *testing.T, babeService *Service, parent *types.Header,
 	return block
 }
 
+// TODO: add test against latest dev runtime
 func TestBuildBlock_ok(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
@@ -139,6 +140,7 @@ func TestBuildBlock_ok(t *testing.T) {
 	require.Equal(t, 1, len(extsBytes))
 }
 
+// TODO: add test against latest dev runtime
 func TestApplyExtrinsic(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
@@ -233,6 +235,7 @@ func TestApplyExtrinsic(t *testing.T) {
 	require.NoError(t, err)
 }
 
+// TODO: add test against latest dev runtime
 func TestBuildAndApplyExtrinsic(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
@@ -406,6 +409,7 @@ func TestDecodeExtrinsicBody(t *testing.T) {
 	require.True(t, contains)
 }
 
+// TODO: add test against latest dev runtime
 func TestBuildBlockTimeMonitor(t *testing.T) {
 	metrics.Enabled = true
 	metrics.Unregister(buildBlockTimer)
