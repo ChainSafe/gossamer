@@ -434,7 +434,7 @@ func (sm *StateModule) QueryStorage(
 
 	response := make([]StorageChangeSetResponse, 0, endBlockNumber-startBlockNumber)
 	lastValue := make([]*string, len(req.Keys))
-	firstPass := true
+
 	for i := startBlockNumber; i <= endBlockNumber; i++ {
 		blockHash, err := sm.blockAPI.GetHashByNumber(i)
 		if err != nil {
@@ -452,7 +452,7 @@ func (sm *StateModule) QueryStorage(
 				hexValue = stringPtr(common.BytesToHex(value))
 			}
 
-			differentValueEncountered := firstPass ||
+			differentValueEncountered := i == startBlockNumber ||
 				lastValue[j] == nil && hexValue != nil ||
 				lastValue[j] != nil && *lastValue[j] != *hexValue
 			if differentValueEncountered {
@@ -461,7 +461,7 @@ func (sm *StateModule) QueryStorage(
 			}
 
 		}
-		firstPass = false
+
 		response = append(response, StorageChangeSetResponse{
 			Block:   &blockHash,
 			Changes: changes,
