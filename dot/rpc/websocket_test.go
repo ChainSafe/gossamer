@@ -64,7 +64,7 @@ func TestHTTPServer_ServeHTTP(t *testing.T) {
 	}
 	sysAPI := system.NewService(si, nil)
 	bAPI := modules.NewMockeryBlockAPI()
-	sAPI := modules.NewMockStorageAPI()
+	sAPI := modules.NewMockeryStorageAPI()
 
 	TxStateAPI := modules.NewMockTransactionStateAPI()
 

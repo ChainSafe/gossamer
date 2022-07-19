@@ -560,61 +560,6 @@ func (s *Service) GetMetadata(bhash *common.Hash) ([]byte, error) {
 	return rt.Metadata()
 }
 
-// QueryStorage returns the key-value data by block based on `keys` params
-// on every block starting `from` until `to` block, if `to` is not nil
-func (s *Service) QueryStorage(from, to common.Hash, keys ...string) (map[common.Hash]QueryKeyValueChanges, error) {
-	if to.IsEmpty() {
-		to = s.blockState.BestBlockHash()
-	}
-
-	blocksToQuery, err := s.blockState.SubChain(from, to)
-	if err != nil {
-		return nil, err
-	}
-
-	queries := make(map[common.Hash]QueryKeyValueChanges)
-
-	for _, hash := range blocksToQuery {
-		changes, err := s.tryQueryStorage(hash, keys...)
-		if err != nil {
-			return nil, err
-		}
-
-		queries[hash] = changes
-	}
-
-	return queries, nil
-}
-
-// tryQueryStorage will try to get all the `keys` inside the block's current state
-func (s *Service) tryQueryStorage(block common.Hash, keys ...string) (QueryKeyValueChanges, error) {
-	stateRootHash, err := s.storageState.GetStateRootFromBlock(&block)
-	if err != nil {
-		return nil, err
-	}
-
-	changes := make(QueryKeyValueChanges)
-	for _, k := range keys {
-		keyBytes, err := common.HexToBytes(k)
-		if err != nil {
-			return nil, err
-		}
-
-		storedData, err := s.storageState.GetStorage(stateRootHash, keyBytes)
-		if err != nil {
-			return nil, err
-		}
-
-		if storedData == nil {
-			continue
-		}
-
-		changes[k] = common.BytesToHex(storedData)
-	}
-
-	return changes, nil
-}
-
 // GetReadProofAt will return an array with the proofs for the keys passed as params
 // based on the block hash passed as param as well, if block hash is nil then the current state will take place
 func (s *Service) GetReadProofAt(block common.Hash, keys [][]byte) (

@@ -180,7 +180,24 @@ describe('Testing polkadot.js/api calls:', function () {
             expect(transfer).to.have.lengthOf(32);
         });
     });
-    describe('api grandpa', () => {
+    describe('api state', () => {
+        it('call api.rpc.state.queryStorage()', async function () {
+            const block0Hash = await api.rpc.chain.getBlockHash(0);
+
+            const value = await
+                api.rpc.state.queryStorage(["0x1cb6f36e027abb2091cfb5110ab5087f06155b3cd9a8c9e5e9a23fd5dc13a5ed",
+                    "0xc2261276cc9d1f8598ea4b6a74b15c2f57c875e4cff74148e4628f264b974c80"], block0Hash);
+            expect(value).to.be.not.null;
+            const hexString = /^(0x|0X)?[a-fA-F0-9]+$/
+            value.forEach(item => {
+                expect(item[0]).to.have.lengthOf(32);
+                expect(item[0]).to.match( hexString );
+                expect(item[1]).to.have.lengthOf(2);
+            });
+            expect(value[0][0]).to.deep.equal(block0Hash);
+        });
+    });
+   describe('api grandpa', () => {
         it('call api.rpc.grandpa.proveFinality', async function () {
             const proveBlockNumber = 0;
             const finality = await api.rpc.grandpa.proveFinality(proveBlockNumber);
@@ -189,3 +206,6 @@ describe('Testing polkadot.js/api calls:', function () {
         });
     });
 });
+var myRegExp = function (){
+    return /.*/;
+}
