@@ -38,7 +38,7 @@ type GrandpaHandshake struct { //nolint:revive
 	Roles byte
 }
 
-// TODO: should we remove the SubProtocol mehtod from the `Message` interface?
+// TODO: should we remove the SubProtocol method from the `Message` interface?
 // SubProtocol returns the grandpa sub-protocol
 func (*GrandpaHandshake) SubProtocol() string {
 	return ""
