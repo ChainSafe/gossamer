@@ -408,14 +408,14 @@ func (_m *Instance) Validator() bool {
 }
 
 // Version provides a mock function with given fields:
-func (_m *Instance) Version() (runtime.VersionData, error) {
+func (_m *Instance) Version() (runtime.Version, error) {
 	ret := _m.Called()
 
-	var r0 runtime.VersionData
-	if rf, ok := ret.Get(0).(func() runtime.VersionData); ok {
+	var r0 runtime.Version
+	if rf, ok := ret.Get(0).(func() runtime.Version); ok {
 		r0 = rf()
 	} else {
-		r0 = ret.Get(0).(runtime.VersionData)
+		r0 = ret.Get(0).(runtime.Version)
 	}
 
 	var r1 error

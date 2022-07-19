@@ -25,7 +25,7 @@ type Instance interface {
 	SetContextStorage(s Storage) // used to set the TrieState before a runtime call
 
 	GetCodeHash() common.Hash
-	Version() (VersionData, error)
+	Version() (Version, error)
 	Metadata() ([]byte, error)
 	BabeConfiguration() (*types.BabeConfiguration, error)
 	GrandpaAuthorities() ([]types.Authority, error)

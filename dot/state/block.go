@@ -66,7 +66,7 @@ type BlockState struct {
 	finalisedLock                  sync.RWMutex
 	importedLock                   sync.RWMutex
 	runtimeUpdateSubscriptionsLock sync.RWMutex
-	runtimeUpdateSubscriptions     map[uint32]chan<- runtime.VersionData
+	runtimeUpdateSubscriptions     map[uint32]chan<- runtime.Version
 
 	telemetry telemetry.Client
 }
@@ -81,7 +81,7 @@ func NewBlockState(db chaindb.Database, trs *Tries, telemetry telemetry.Client) 
 		tries:                      trs,
 		imported:                   make(map[chan *types.Block]struct{}),
 		finalised:                  make(map[chan *types.FinalisationInfo]struct{}),
-		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.VersionData),
+		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
 		telemetry:                  telemetry,
 	}
 
@@ -114,7 +114,7 @@ func NewBlockStateFromGenesis(db chaindb.Database, trs *Tries, header *types.Hea
 		tries:                      trs,
 		imported:                   make(map[chan *types.Block]struct{}),
 		finalised:                  make(map[chan *types.FinalisationInfo]struct{}),
-		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.VersionData),
+		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
 		genesisHash:                header.Hash(),
 		lastFinalised:              header.Hash(),
 		telemetry:                  telemetryMailer,

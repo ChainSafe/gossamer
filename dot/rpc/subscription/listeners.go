@@ -392,7 +392,7 @@ func (l *ExtrinsicSubmitListener) Stop() error {
 type RuntimeVersionListener struct {
 	wsconn        WSConnAPI
 	subID         uint32
-	runtimeUpdate chan runtime.VersionData
+	runtimeUpdate chan runtime.Version
 	channelID     uint32
 	coreAPI       modules.CoreAPI
 }

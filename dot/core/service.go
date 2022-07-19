@@ -455,7 +455,7 @@ func (s *Service) DecodeSessionKeys(enc []byte) ([]byte, error) {
 
 // GetRuntimeVersion gets the current RuntimeVersion
 func (s *Service) GetRuntimeVersion(bhash *common.Hash) (
-	version runtime.VersionData, err error) {
+	version runtime.Version, err error) {
 	var stateRootHash *common.Hash
 
 	// If block hash is not nil then fetch the state root corresponding to the block.

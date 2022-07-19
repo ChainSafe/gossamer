@@ -448,7 +448,7 @@ func TestStateModuleGetReadProof(t *testing.T) {
 
 func TestStateModuleGetRuntimeVersion(t *testing.T) {
 	hash := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
-	version := runtime.VersionData{
+	version := runtime.Version{
 		SpecName:         []byte("polkadot"),
 		ImplName:         []byte("parity-polkadot"),
 		AuthoringVersion: 0,

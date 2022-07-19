@@ -14,12 +14,12 @@ func Test_VersionData_Scale(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		version  VersionData
+		version  Version
 		encoding []byte
-		decoded  VersionData
+		decoded  Version
 	}{
 		"current version": {
-			version: VersionData{
+			version: Version{
 				SpecName:         []byte{1},
 				ImplName:         []byte{2},
 				AuthoringVersion: 3,
@@ -35,7 +35,7 @@ func Test_VersionData_Scale(t *testing.T) {
 				0x4, 0x1, 0x4, 0x2, 0x3, 0x0, 0x0, 0x0, 0x4, 0x0, 0x0, 0x0,
 				0x5, 0x0, 0x0, 0x0, 0x4, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7,
 				0x8, 0x6, 0x0, 0x0, 0x0, 0x7, 0x0, 0x0, 0x0},
-			decoded: VersionData{
+			decoded: Version{
 				SpecName:         []byte{1},
 				ImplName:         []byte{2},
 				AuthoringVersion: 3,
@@ -49,7 +49,7 @@ func Test_VersionData_Scale(t *testing.T) {
 			},
 		},
 		"legacy version": {
-			version: VersionData{
+			version: Version{
 				SpecName:         []byte{1},
 				ImplName:         []byte{2},
 				AuthoringVersion: 3,
@@ -66,7 +66,7 @@ func Test_VersionData_Scale(t *testing.T) {
 				0x4, 0x1, 0x4, 0x2, 0x3, 0x0, 0x0, 0x0, 0x4, 0x0, 0x0, 0x0,
 				0x5, 0x0, 0x0, 0x0, 0x4, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7,
 				0x8, 0x6, 0x0, 0x0, 0x0},
-			decoded: VersionData{
+			decoded: Version{
 				SpecName:         []byte{1},
 				ImplName:         []byte{2},
 				AuthoringVersion: 3,
@@ -91,7 +91,7 @@ func Test_VersionData_Scale(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, testCase.encoding, encoded)
 
-			var decoded VersionData
+			var decoded Version
 			err = decoded.Decode(encoded)
 			require.NoError(t, err)
 

@@ -45,7 +45,7 @@ func Test_GetRuntimeVersion(t *testing.T) {
 	version, err := GetRuntimeVersion(code)
 	require.NoError(t, err)
 
-	expected := runtime.VersionData{
+	expected := runtime.Version{
 		SpecName:         []byte("polkadot"),
 		ImplName:         []byte("parity-polkadot"),
 		AuthoringVersion: 0,

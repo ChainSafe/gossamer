@@ -31,7 +31,7 @@ func (in *Instance) ValidateTransaction(e types.Extrinsic) (*transaction.Validit
 }
 
 // Version calls runtime function Core_Version
-func (in *Instance) Version() (version runtime.VersionData, err error) {
+func (in *Instance) Version() (version runtime.Version, err error) {
 	res, err := in.Exec(runtime.CoreVersion, []byte{})
 	if err != nil {
 		return version, err

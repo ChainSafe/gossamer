@@ -30,18 +30,18 @@ func Test_Instance_Version(t *testing.T) {
 	t.Parallel()
 
 	type InstanceVersion interface {
-		Version() (runtime.VersionData, error)
+		Version() (runtime.Version, error)
 	}
 
 	testCases := map[string]struct {
 		instanceBuilder func(t *testing.T) InstanceVersion
-		expectedVersion runtime.VersionData
+		expectedVersion runtime.Version
 	}{
 		"dev": {
 			instanceBuilder: func(t *testing.T) InstanceVersion {
 				return NewTestInstance(t, runtime.DEV_RUNTIME)
 			},
-			expectedVersion: runtime.VersionData{
+			expectedVersion: runtime.Version{
 				SpecName:         []byte("node"),
 				ImplName:         []byte("gossamer-node"),
 				AuthoringVersion: 10,
@@ -68,7 +68,7 @@ func Test_Instance_Version(t *testing.T) {
 			instanceBuilder: func(t *testing.T) InstanceVersion {
 				return NewTestInstance(t, runtime.NODE_RUNTIME_v098)
 			},
-			expectedVersion: runtime.VersionData{
+			expectedVersion: runtime.Version{
 				SpecName:         []byte("node"),
 				ImplName:         []byte("substrate-node"),
 				AuthoringVersion: 10,
@@ -96,7 +96,7 @@ func Test_Instance_Version(t *testing.T) {
 			instanceBuilder: func(t *testing.T) InstanceVersion {
 				return NewTestInstance(t, runtime.NODE_RUNTIME)
 			},
-			expectedVersion: runtime.VersionData{
+			expectedVersion: runtime.Version{
 				SpecName:         []byte("node"),
 				ImplName:         []byte("substrate-node"),
 				AuthoringVersion: 10,
@@ -137,7 +137,7 @@ func Test_Instance_Version(t *testing.T) {
 				require.NoError(t, err)
 				return instance
 			},
-			expectedVersion: runtime.VersionData{
+			expectedVersion: runtime.Version{
 				SpecName:         []byte("kusama"),
 				ImplName:         []byte("parity-kusama"),
 				AuthoringVersion: 2,
@@ -163,7 +163,7 @@ func Test_Instance_Version(t *testing.T) {
 			instanceBuilder: func(t *testing.T) InstanceVersion {
 				return NewTestInstance(t, runtime.POLKADOT_RUNTIME)
 			},
-			expectedVersion: runtime.VersionData{
+			expectedVersion: runtime.Version{
 				SpecName:         []byte("polkadot"),
 				ImplName:         []byte("parity-polkadot"),
 				AuthoringVersion: 0,
@@ -190,7 +190,7 @@ func Test_Instance_Version(t *testing.T) {
 			instanceBuilder: func(t *testing.T) InstanceVersion {
 				return NewTestInstance(t, runtime.POLKADOT_RUNTIME_v0910)
 			},
-			expectedVersion: runtime.VersionData{
+			expectedVersion: runtime.Version{
 				SpecName:         []byte("polkadot"),
 				ImplName:         []byte("parity-polkadot"),
 				AuthoringVersion: 0,
@@ -219,7 +219,7 @@ func Test_Instance_Version(t *testing.T) {
 			instanceBuilder: func(t *testing.T) InstanceVersion {
 				return NewTestInstance(t, runtime.NODE_RUNTIME_v098)
 			},
-			expectedVersion: runtime.VersionData{
+			expectedVersion: runtime.Version{
 				SpecName:         []byte("node"),
 				ImplName:         []byte("substrate-node"),
 				AuthoringVersion: 10,
@@ -247,7 +247,7 @@ func Test_Instance_Version(t *testing.T) {
 			instanceBuilder: func(t *testing.T) InstanceVersion {
 				return NewTestInstance(t, runtime.POLKADOT_RUNTIME_v0917)
 			},
-			expectedVersion: runtime.VersionData{
+			expectedVersion: runtime.Version{
 				SpecName:         []byte("polkadot"),
 				ImplName:         []byte("parity-polkadot"),
 				AuthoringVersion: 0,

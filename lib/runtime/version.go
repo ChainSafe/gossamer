@@ -16,8 +16,8 @@ type APIItem struct {
 	Ver  uint32
 }
 
-// VersionData is the runtime version info returned by v0.8 runtimes
-type VersionData struct {
+// Version is the runtime version info.
+type Version struct {
 	SpecName           []byte
 	ImplName           []byte
 	AuthoringVersion   uint32
@@ -38,7 +38,7 @@ type legacyData struct {
 }
 
 // Encode returns the scale encoding of the version.
-func (v *VersionData) Encode() (encoded []byte, err error) {
+func (v *Version) Encode() (encoded []byte, err error) {
 	if !v.legacy {
 		return scale.Marshal(*v)
 	}
@@ -58,8 +58,8 @@ func (v *VersionData) Encode() (encoded []byte, err error) {
 // It first tries to decode the data using the current version format.
 // If that fails with an EOF error, it then tries to decode the data
 // using the legacy version format (for Kusama).
-func (v *VersionData) Decode(encoded []byte) (err error) {
-	var newVersionData VersionData
+func (v *Version) Decode(encoded []byte) (err error) {
+	var newVersionData Version
 	err = scale.Unmarshal(encoded, &newVersionData)
 	if err == nil {
 		*v = newVersionData
@@ -78,7 +78,7 @@ func (v *VersionData) Decode(encoded []byte) (err error) {
 		return fmt.Errorf("decoding legacy version: %w", err)
 	}
 
-	*v = VersionData{
+	*v = Version{
 		SpecName:         legacy.SpecName,
 		ImplName:         legacy.ImplName,
 		AuthoringVersion: legacy.AuthoringVersion,
