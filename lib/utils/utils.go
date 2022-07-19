@@ -176,7 +176,7 @@ func GetGssmrGenesisPathTest(t *testing.T) string {
 	return path
 }
 
-// GetGssmrGenesisPathTest gets the gssmr genesis path
+// GetGssmrV3SubstrateGenesisPathTest gets the gssmr genesis path
 // and fails the test if it cannot find it.
 func GetGssmrV3SubstrateGenesisPathTest(t *testing.T) string {
 	t.Helper()
@@ -209,7 +209,7 @@ func GetDevGenesisPath(t *testing.T) string {
 	return filepath.Join(GetProjectRootPathTest(t), "./chain/dev/genesis.json")
 }
 
-// GetDevGenesisPath gets the dev genesis path
+// GetDevV3SubstrateGenesisPath gets the dev genesis path
 func GetDevV3SubstrateGenesisPath(t *testing.T) string {
 	return filepath.Join(GetProjectRootPathTest(t), "./chain/dev-v3substrate/genesis.json")
 }
