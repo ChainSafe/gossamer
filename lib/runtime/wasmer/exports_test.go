@@ -342,8 +342,9 @@ func TestNodeRuntime_ValidateTransaction(t *testing.T) {
 	extBytes = append([]byte{byte(types.TxnExternal)}, extBytes...)
 
 	runtime.InitializeRuntimeToTest(t, rt, genesisHeader.Hash())
-	_, err = rt.ValidateTransaction(extBytes)
+	_, valErr, err := rt.ValidateTransaction(extBytes)
 	require.NoError(t, err)
+	require.Nil(t, valErr)
 }
 
 func TestInstance_GrandpaAuthorities_NodeRuntime(t *testing.T) {

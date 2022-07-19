@@ -67,8 +67,9 @@ func BuildBlock(t *testing.T, instance runtime.Instance, parent *types.Header, e
 		var ret []byte
 
 		externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))
-		_, err = instance.ValidateTransaction(externalExt)
+		_, valErr, err := instance.ValidateTransaction(externalExt)
 		require.NoError(t, err)
+		require.Nil(t, valErr)
 
 		ret, err = instance.ApplyExtrinsic(ext)
 		require.NoError(t, err)
