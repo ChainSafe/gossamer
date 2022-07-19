@@ -781,43 +781,6 @@ func TestGetPreVotedBlock_EvenMoreCandidates(t *testing.T) {
 	require.Equal(t, uint32(4), block.Number)
 }
 
-func TestIsCompletable(t *testing.T) {
-	gs, st := newTestService(t)
-
-	branches := map[uint]int{6: 1}
-	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches)
-	leaves := gs.blockState.Leaves()
-
-	voteA, err := NewVoteFromHash(leaves[0], st.Block)
-	require.NoError(t, err)
-	voteB, err := NewVoteFromHash(leaves[1], st.Block)
-	require.NoError(t, err)
-
-	for i, k := range kr.Keys {
-		voter := k.Public().(*ed25519.PublicKey).AsBytes()
-
-		if i < 6 {
-			gs.prevotes.Store(voter, &SignedVote{
-				Vote: *voteA,
-			})
-			gs.precommits.Store(voter, &SignedVote{
-				Vote: *voteA,
-			})
-		} else {
-			gs.prevotes.Store(voter, &SignedVote{
-				Vote: *voteB,
-			})
-			gs.precommits.Store(voter, &SignedVote{
-				Vote: *voteB,
-			})
-		}
-	}
-
-	completable, err := gs.isCompletable()
-	require.NoError(t, err)
-	require.True(t, completable)
-}
-
 func TestFindParentWithNumber(t *testing.T) {
 	gs, st := newTestService(t)
 
@@ -1048,88 +1011,6 @@ func TestDeterminePreVote_WithInvalidPrimaryPreVote(t *testing.T) {
 	pv, err := gs.determinePreVote()
 	require.NoError(t, err)
 	require.Equal(t, gs.head.Hash(), pv.Hash)
-}
-
-func TestIsFinalisable_True(t *testing.T) {
-	gs, st := newTestService(t)
-
-	branches := map[uint]int{6: 1}
-	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches)
-	leaves := gs.blockState.Leaves()
-
-	voteA, err := NewVoteFromHash(leaves[0], st.Block)
-	require.NoError(t, err)
-	voteB, err := NewVoteFromHash(leaves[1], st.Block)
-	require.NoError(t, err)
-
-	for i, k := range kr.Keys {
-		voter := k.Public().(*ed25519.PublicKey).AsBytes()
-
-		if i < 6 {
-			gs.prevotes.Store(voter, &SignedVote{
-				Vote: *voteA,
-			})
-			gs.precommits.Store(voter, &SignedVote{
-				Vote: *voteA,
-			})
-		} else {
-			gs.prevotes.Store(voter, &SignedVote{
-				Vote: *voteB,
-			})
-			gs.precommits.Store(voter, &SignedVote{
-				Vote: *voteB,
-			})
-		}
-	}
-
-	finalisable, err := gs.isFinalisable(gs.state.round)
-	require.NoError(t, err)
-	require.True(t, finalisable)
-}
-
-func TestIsFinalisable_False(t *testing.T) {
-	gs, st := newTestService(t)
-
-	branches := map[uint]int{2: 1}
-	branches[2] = 1
-	state.AddBlocksToStateWithFixedBranches(t, st.Block, 3, branches)
-	leaves := gs.blockState.Leaves()
-
-	voteA, err := NewVoteFromHash(leaves[0], st.Block)
-	require.NoError(t, err)
-	voteB, err := NewVoteFromHash(leaves[1], st.Block)
-	require.NoError(t, err)
-
-	for i, k := range kr.Keys {
-		voter := k.Public().(*ed25519.PublicKey).AsBytes()
-
-		if i < 6 {
-			gs.prevotes.Store(voter, &SignedVote{
-				Vote: *voteA,
-			})
-			gs.precommits.Store(voter, &SignedVote{
-				Vote: *voteA,
-			})
-		} else {
-			gs.prevotes.Store(voter, &SignedVote{
-				Vote: *voteB,
-			})
-			gs.precommits.Store(voter, &SignedVote{
-				Vote: *voteB,
-			})
-		}
-	}
-
-	// previous round has finalised block # higher than current, so round is not finalisable
-	gs.state.round = 1
-	gs.bestFinalCandidate[0] = &Vote{
-		Number: 4,
-	}
-	gs.preVotedBlock[gs.state.round] = voteA
-
-	finalisable, err := gs.isFinalisable(gs.state.round)
-	require.NoError(t, err)
-	require.False(t, finalisable)
 }
 
 func TestGetGrandpaGHOST_CommonAncestor(t *testing.T) {
