@@ -110,6 +110,9 @@ func decodeBlockAnnounceMessage(in []byte) (NotificationsMessage, error) {
 
 // BlockAnnounceHandshake is exchanged by nodes that are beginning the BlockAnnounce protocol
 type BlockAnnounceHandshake struct {
+	// 1 for node is a full node
+	// 2 for node is a light client
+	// 4 for node is a validator
 	Roles           byte
 	BestBlockNumber uint32
 	BestBlockHash   common.Hash
@@ -183,6 +186,10 @@ func (s *Service) validateBlockAnnounceHandshake(from peer.ID, hs Handshake) err
 	bhs, ok := hs.(*BlockAnnounceHandshake)
 	if !ok {
 		return errors.New("invalid handshake type")
+	}
+
+	if int(bhs.Roles) > 4 {
+		return errors.New("invalid handshake role")
 	}
 
 	if !bhs.GenesisHash.Equal(s.blockState.GenesisHash()) {
