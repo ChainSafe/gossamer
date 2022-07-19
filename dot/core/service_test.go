@@ -519,7 +519,7 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 
 		ctrl := gomock.NewController(t)
 		runtimeMock := new(mocksruntime.Instance)
-		runtimeMock.On("ValidateTransaction", externalExt).Return(nil, errTestDummyError)
+		runtimeMock.On("ValidateTransaction", externalExt).Return(nil, nil, errTestDummyError)
 		runtimeMock.On("Version").Return(runtime.NewVersionData(
 			[]byte("polkadot"),
 			[]byte("parity-polkadot"),
@@ -577,7 +577,7 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		runtimeMock := new(mocksruntime.Instance)
 		runtimeMock.On("ValidateTransaction", externalExt).
-			Return(&transaction.Validity{Propagate: true}, nil)
+			Return(&transaction.Validity{Propagate: true}, nil, nil)
 		runtimeMock.On("Version").Return(runtime.NewVersionData(
 			[]byte("polkadot"),
 			[]byte("parity-polkadot"),
@@ -690,7 +690,7 @@ func Test_Service_handleBlocksAsync(t *testing.T) {
 
 		ctrl := gomock.NewController(t)
 		runtimeMock := new(mocksruntime.Instance)
-		runtimeMock.On("ValidateTransaction", externalExt).Return(nil, errTestDummyError)
+		runtimeMock.On("ValidateTransaction", externalExt).Return(nil, nil, errTestDummyError)
 		runtimeMock.On("Version").Return(runtime.NewVersionData(
 			[]byte("polkadot"),
 			[]byte("parity-polkadot"),
@@ -852,7 +852,7 @@ func TestService_handleChainReorg(t *testing.T) {
 		mockStorageState := NewMockStorageState(ctrl)
 		lockCall := mockStorageState.EXPECT().Lock()
 		mockStorageState.EXPECT().Unlock().After(lockCall)
-		runtimeMockErr.On("ValidateTransaction", externExt).Return(nil, errTestDummyError)
+		runtimeMockErr.On("ValidateTransaction", externExt).Return(nil, nil, errTestDummyError)
 		runtimeMockErr.On("Version").Return(runtime.NewVersionData(
 			[]byte("polkadot"),
 			[]byte("parity-polkadot"),
@@ -889,7 +889,7 @@ func TestService_handleChainReorg(t *testing.T) {
 		lockCall := mockStorageState.EXPECT().Lock()
 		mockStorageState.EXPECT().Unlock().After(lockCall)
 		runtimeMockOk.On("ValidateTransaction", externExt).
-			Return(testValidity, nil)
+			Return(testValidity, nil, nil)
 		runtimeMockOk.On("Version").Return(runtime.NewVersionData(
 			[]byte("polkadot"),
 			[]byte("parity-polkadot"),
@@ -1255,7 +1255,7 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 			}},
 			transactionVersion,
 		), nil)
-		runtimeMockErr.On("ValidateTransaction", externalExt).Return(nil, errDummyErr)
+		runtimeMockErr.On("ValidateTransaction", externalExt).Return(nil, nil, errDummyErr)
 		service := &Service{
 			storageState:     mockStorageState,
 			transactionState: mockTxnState,
@@ -1287,7 +1287,7 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 			transactionVersion,
 		), nil)
 		runtimeMock.On("ValidateTransaction", externalExt).
-			Return(&transaction.Validity{Propagate: true}, nil)
+			Return(&transaction.Validity{Propagate: true}, nil, nil)
 
 		mockStorageState := NewMockStorageState(ctrl)
 		lockCall := mockStorageState.EXPECT().Lock()
