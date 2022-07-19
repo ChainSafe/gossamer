@@ -180,8 +180,8 @@ func (s *Service) sendMessage(msg GrandpaMessage) error {
 	return nil
 }
 
-func (s *Service) sendNeighbourMessage() {
-	t := time.NewTicker(neighbourMessageInterval)
+func (s *Service) sendNeighbourMessage(interval time.Duration) {
+	t := time.NewTicker(interval)
 	defer t.Stop()
 	for {
 		select {

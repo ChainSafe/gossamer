@@ -200,7 +200,7 @@ func (s *Service) Start() error {
 		}
 	}()
 
-	go s.sendNeighbourMessage()
+	go s.sendNeighbourMessage(neighbourMessageInterval)
 
 	return nil
 }
