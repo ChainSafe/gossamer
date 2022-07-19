@@ -23,10 +23,20 @@ func TestInvalidTransactionErrors(t *testing.T) {
 
 	for _, c := range testCases {
 		t.Run(c.name, func(t *testing.T) {
-			validityResult, err := DetermineValidity(c.test)
+			validity, validityErr, err := UnmarshalTransactionValidity(c.test)
 			require.NoError(t, err)
-			validity, err := DecodeValidity(validityResult)
-			require.Equal(t, c.expErr, err)
+
+			var valErr error
+			if validityErr != nil {
+				switch err := validityErr.Value().(type) {
+				// TODO with custom result type have Error() func for txnValidityErr
+				case InvalidTransaction:
+					valErr = err.Error()
+				case UnknownTransaction:
+					valErr = err.Error()
+				}
+			}
+			require.Equal(t, c.expErr, valErr)
 			require.Equal(t, c.expValidity, validity)
 		})
 	}

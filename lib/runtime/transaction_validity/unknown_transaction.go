@@ -73,7 +73,7 @@ func NewUnknownTransaction() UnknownTransaction {
 	return UnknownTransaction(vdt)
 }
 
-func (u *UnknownTransaction) DetermineErrType() error {
+func (u *UnknownTransaction) Error() error {
 	switch val := u.Value().(type) {
 	// UnknownTransaction Error
 	case ValidityCannotLookup:

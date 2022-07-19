@@ -12,8 +12,9 @@ import (
 type TransactionValidityError scale.VaryingDataType
 
 var (
-	errInvalidType   = errors.New("invalid validity type")
-	errInvalidResult = errors.New("invalid error value")
+	errInvalidType     = errors.New("invalid validity type")
+	errInvalidResult   = errors.New("invalid error value")
+	errInvalidTypeCast = errors.New("invalid type cast")
 )
 
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
@@ -46,40 +47,33 @@ func NewTransactionValidityError() TransactionValidityError {
 	return TransactionValidityError(vdt)
 }
 
-func DetermineValidity(res []byte) (scale.Result, error) {
+// TODO use custon result type here
+func UnmarshalTransactionValidity(res []byte) (*transaction.Validity, *TransactionValidityError, error) {
 	validTxn := transaction.Validity{}
 	txnValidityErrResult := NewTransactionValidityError()
 	txnValidityResult := scale.NewResult(validTxn, txnValidityErrResult)
 	err := scale.Unmarshal(res, &txnValidityResult)
 	if err != nil {
-		return scale.Result{}, err
+		return nil, nil, err
 	}
-	return txnValidityResult, nil
-}
-
-// TODO have this be a custom result type
-func DecodeValidityError(txnValidityResult scale.Result) (*transaction.Validity, error) {
 	txnValidityRes, err := txnValidityResult.Unwrap()
 	if err != nil {
 		switch errType := err.(type) {
 		case scale.WrappedErr:
-			txnValidityRes := errType.Err.(TransactionValidityError)
-			switch val := txnValidityRes.Value().(type) {
-			case InvalidTransaction:
-				return nil, val.DetermineErrType()
-			case UnknownTransaction:
-				return nil, val.DetermineErrType()
+			txnValidityErr, ok := errType.Err.(TransactionValidityError)
+			if !ok {
+				return nil, nil, errInvalidTypeCast
 			}
-			return nil, errInvalidType
+			return nil, &txnValidityErr, nil
 		default:
-			return nil, errInvalidResult
+			return nil, nil, errInvalidResult
 		}
 	} else {
 		switch validity := txnValidityRes.(type) {
 		case transaction.Validity:
-			return &validity, nil
+			return &validity, nil, nil
 		default:
-			return nil, errInvalidType
+			return nil, nil, errInvalidType
 		}
 	}
 }

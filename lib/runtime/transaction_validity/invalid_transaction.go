@@ -119,7 +119,7 @@ func NewInvalidTransaction() InvalidTransaction {
 	return InvalidTransaction(vdt)
 }
 
-func (i *InvalidTransaction) DetermineErrType() error {
+func (i *InvalidTransaction) Error() error {
 	switch val := i.Value().(type) {
 	// InvalidTransaction Error
 	case Call:

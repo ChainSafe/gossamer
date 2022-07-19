@@ -10,9 +10,9 @@ import (
 
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
 
-	scale "github.com/ChainSafe/gossamer/pkg/scale"
-
 	transaction "github.com/ChainSafe/gossamer/lib/transaction"
+
+	transaction_validity "github.com/ChainSafe/gossamer/lib/runtime/transaction_validity"
 
 	types "github.com/ChainSafe/gossamer/dot/types"
 )
@@ -396,7 +396,7 @@ func (_m *Instance) UpdateRuntimeCode(_a0 []byte) error {
 }
 
 // ValidateTransaction provides a mock function with given fields: e
-func (_m *Instance) ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error) {
+func (_m *Instance) ValidateTransaction(e types.Extrinsic) (*transaction.Validity, *transaction_validity.TransactionValidityError, error) {
 	ret := _m.Called(e)
 
 	var r0 *transaction.Validity
@@ -408,35 +408,23 @@ func (_m *Instance) ValidateTransaction(e types.Extrinsic) (*transaction.Validit
 		}
 	}
 
-	var r1 error
-	if rf, ok := ret.Get(1).(func(types.Extrinsic) error); ok {
+	var r1 *transaction_validity.TransactionValidityError
+	if rf, ok := ret.Get(1).(func(types.Extrinsic) *transaction_validity.TransactionValidityError); ok {
 		r1 = rf(e)
 	} else {
-		r1 = ret.Error(1)
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*transaction_validity.TransactionValidityError)
+		}
 	}
 
-	return r0, r1
-}
-
-// ValidateTransactionNew provides a mock function with given fields: e
-func (_m *Instance) ValidateTransactionNew(e types.Extrinsic) (scale.Result, error) {
-	ret := _m.Called(e)
-
-	var r0 scale.Result
-	if rf, ok := ret.Get(0).(func(types.Extrinsic) scale.Result); ok {
-		r0 = rf(e)
+	var r2 error
+	if rf, ok := ret.Get(2).(func(types.Extrinsic) error); ok {
+		r2 = rf(e)
 	} else {
-		r0 = ret.Get(0).(scale.Result)
+		r2 = ret.Error(2)
 	}
 
-	var r1 error
-	if rf, ok := ret.Get(1).(func(types.Extrinsic) error); ok {
-		r1 = rf(e)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
+	return r0, r1, r2
 }
 
 // Validator provides a mock function with given fields:

@@ -5,7 +5,8 @@ package core
 
 import (
 	"errors"
-	"github.com/ChainSafe/gossamer/pkg/scale"
+	txnValidity "github.com/ChainSafe/gossamer/lib/runtime/transaction_validity"
+	"github.com/stretchr/testify/require"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -71,9 +72,10 @@ type mockVersion struct {
 }
 
 type mockValidateTxn struct {
-	input    types.Extrinsic
-	validity scale.Result
-	err      error
+	input       types.Extrinsic
+	validity    *transaction.Validity
+	validityErr *txnValidity.TransactionValidityError
+	err         error
 }
 
 type mockRuntime struct {
@@ -125,7 +127,14 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 
 	runtimeMock := mocksruntime.NewInstance(t)
 	runtimeMock2 := mocksruntime.NewInstance(t)
-	//runtimeMock3 := mocksruntime.NewInstance(t)
+	runtimeMock3 := mocksruntime.NewInstance(t)
+
+	transactionValidityErr := txnValidity.NewTransactionValidityError()
+	invalidTransaction := txnValidity.NewInvalidTransaction()
+	err := invalidTransaction.Set(txnValidity.Future{})
+	require.NoError(t, err)
+	err = transactionValidityErr.Set(invalidTransaction)
+	require.NoError(t, err)
 
 	type args struct {
 		peerID peer.ID
@@ -281,8 +290,7 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 						testExtrinsic[0],
 						testEmptyHeader.StateRoot.ToBytes(),
 					})),
-					// TODO fix
-					err: errors.New(""),
+					validityErr: &transactionValidityErr,
 				},
 			},
 			args: args{
@@ -292,61 +300,60 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 				},
 			},
 		},
-		//{
-		//	name: "validTransaction",
-		//	mockNetwork: &mockNetwork{
-		//		IsSynced: true,
-		//		ReportPeer: &mockReportPeer{
-		//			change: peerset.ReputationChange{
-		//				Value:  peerset.GoodTransactionValue,
-		//				Reason: peerset.GoodTransactionReason,
-		//			},
-		//			id: peer.ID("jimbo"),
-		//		},
-		//	},
-		//	mockBlockState: &mockBlockState{
-		//		bestHeader: &mockBestHeader{
-		//			header: testEmptyHeader,
-		//		},
-		//		getRuntime: &mockGetRuntime{
-		//			runtime: runtimeMock3,
-		//		},
-		//		callsBestBlockHash: true,
-		//	},
-		//	mockStorageState: &mockStorageState{
-		//		input:     &common.Hash{},
-		//		trieState: &storage.TrieState{},
-		//	},
-		//	mockTxnState: &mockTxnState{
-		//		input: transaction.NewValidTransaction(
-		//			types.Extrinsic{1, 2, 3},
-		//			&transaction.Validity{
-		//				Propagate: true,
-		//			}),
-		//		hash: common.Hash{},
-		//	},
-		//	mockRuntime: &mockRuntime{
-		//		runtime:           runtimeMock3,
-		//		setContextStorage: &mockSetContextStorage{trieState: &storage.TrieState{}},
-		//		version:           &mockVersion{},
-		//		validateTxn: &mockValidateTxn{
-		//			input: types.Extrinsic(concatenateByteSlices([][]byte{
-		//				{byte(types.TxnExternal)},
-		//				testExtrinsic[0],
-		//				testEmptyHeader.StateRoot.ToBytes(),
-		//			})),
-		//			// TODO fix this
-		//			validity: &transaction.Validity{Propagate: true},
-		//		},
-		//	},
-		//	args: args{
-		//		peerID: peer.ID("jimbo"),
-		//		msg: &network.TransactionMessage{
-		//			Extrinsics: []types.Extrinsic{{1, 2, 3}},
-		//		},
-		//	},
-		//	exp: true,
-		//},
+		{
+			name: "validTransaction",
+			mockNetwork: &mockNetwork{
+				IsSynced: true,
+				ReportPeer: &mockReportPeer{
+					change: peerset.ReputationChange{
+						Value:  peerset.GoodTransactionValue,
+						Reason: peerset.GoodTransactionReason,
+					},
+					id: peer.ID("jimbo"),
+				},
+			},
+			mockBlockState: &mockBlockState{
+				bestHeader: &mockBestHeader{
+					header: testEmptyHeader,
+				},
+				getRuntime: &mockGetRuntime{
+					runtime: runtimeMock3,
+				},
+				callsBestBlockHash: true,
+			},
+			mockStorageState: &mockStorageState{
+				input:     &common.Hash{},
+				trieState: &storage.TrieState{},
+			},
+			mockTxnState: &mockTxnState{
+				input: transaction.NewValidTransaction(
+					types.Extrinsic{1, 2, 3},
+					&transaction.Validity{
+						Propagate: true,
+					}),
+				hash: common.Hash{},
+			},
+			mockRuntime: &mockRuntime{
+				runtime:           runtimeMock3,
+				setContextStorage: &mockSetContextStorage{trieState: &storage.TrieState{}},
+				version:           &mockVersion{},
+				validateTxn: &mockValidateTxn{
+					input: types.Extrinsic(concatenateByteSlices([][]byte{
+						{byte(types.TxnExternal)},
+						testExtrinsic[0],
+						testEmptyHeader.StateRoot.ToBytes(),
+					})),
+					validity: &transaction.Validity{Propagate: true},
+				},
+			},
+			args: args{
+				peerID: peer.ID("jimbo"),
+				msg: &network.TransactionMessage{
+					Extrinsics: []types.Extrinsic{{1, 2, 3}},
+				},
+			},
+			exp: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -409,7 +416,7 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 						transactionVersion,
 					), tt.mockRuntime.version.err)
 					rt.On("ValidateTransaction", tt.mockRuntime.validateTxn.input).
-						Return(tt.mockRuntime.validateTxn.validity, tt.mockRuntime.validateTxn.err)
+						Return(tt.mockRuntime.validateTxn.validity, tt.mockRuntime.validateTxn.validityErr, tt.mockRuntime.validateTxn.err)
 				}
 			}
 

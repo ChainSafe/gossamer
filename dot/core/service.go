@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	txnvalidity "github.com/ChainSafe/gossamer/lib/runtime/transaction_validity"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"sync"
 
@@ -387,12 +388,12 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 				return fmt.Errorf("building external transaction: %w", err)
 			}
 
-			txv, err := rt.ValidateTransaction(externalExt)
-			if err != nil {
+			transactionValidity, transactionValidityErr, err := rt.ValidateTransaction(externalExt)
+			if err != nil || transactionValidityErr != nil {
 				logger.Debugf("failed to validate transaction for extrinsic %s: %s", ext, err)
 				continue
 			}
-			vtx := transaction.NewValidTransaction(ext, txv)
+			vtx := transaction.NewValidTransaction(ext, transactionValidity)
 			s.transactionState.AddToPool(vtx)
 		}
 	}
@@ -428,13 +429,13 @@ func (s *Service) maintainTransactionPool(block *types.Block) {
 			logger.Errorf("Unable to build external transaction: %s", err)
 		}
 
-		txnValidity, err := rt.ValidateTransaction(externalExt)
-		if err != nil {
+		transactionValidity, transactionValidityErr, err := rt.ValidateTransaction(externalExt)
+		if err != nil || transactionValidityErr != nil {
 			s.transactionState.RemoveExtrinsic(tx.Extrinsic)
 			continue
 		}
 
-		tx = transaction.NewValidTransaction(tx.Extrinsic, txnValidity)
+		tx = transaction.NewValidTransaction(tx.Extrinsic, transactionValidity)
 
 		// Err is only thrown if tx is already in pool, in which case it still gets removed
 		h, _ := s.transactionState.Push(tx)
@@ -539,14 +540,24 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 	if err != nil {
 		return fmt.Errorf("building external transaction: %w", err)
 	}
-	
-	txv, err := rt.ValidateTransaction(externalExt)
+
+	transactionValidity, transactionValidityErr, err := rt.ValidateTransaction(externalExt)
 	if err != nil {
 		return err
+	} else if transactionValidityErr != nil {
+		var validityError error
+		switch err := transactionValidityErr.Value().(type) {
+		// TODO with custom result type have Error() func for txnValidityErr
+		case txnvalidity.InvalidTransaction:
+			validityError = err.Error()
+		case txnvalidity.UnknownTransaction:
+			validityError = err.Error()
+		}
+		return validityError
 	}
 
 	// add transaction to pool
-	vtx := transaction.NewValidTransaction(ext, txv)
+	vtx := transaction.NewValidTransaction(ext, transactionValidity)
 	s.transactionState.AddToPool(vtx)
 
 	// broadcast transaction

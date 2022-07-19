@@ -4,15 +4,12 @@
 package core
 
 import (
-	"errors"
 	"fmt"
-	"github.com/ChainSafe/gossamer/pkg/scale"
-
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	txnValidity "github.com/ChainSafe/gossamer/lib/runtime/transaction_validity"
+	txnvalidity "github.com/ChainSafe/gossamer/lib/runtime/transaction_validity"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -25,57 +22,25 @@ func (s *Service) validateTransaction(peerID peer.ID, rt runtime.Instance,
 	if err != nil {
 		return nil, false, fmt.Errorf("unable to build transaction: %s", err)
 	}
-
-	fmt.Println("about to validate")
-	validityResult, err := rt.ValidateTransactionNew(externalExt)
+	
+	validity, txnValidityErr, err := rt.ValidateTransaction(externalExt)
 	if err != nil {
-		fmt.Println(err == nil)
-		fmt.Println("err")
-		// WHy is length 0??
-		fmt.Println(len(err.Error()))
 		return nil, false, err
 	}
-	txnValidityRes, err := validityResult.Unwrap()
-	if err != nil {
-		switch errType := err.(type) {
-		case scale.WrappedErr:
-			txnValidityRes := errType.Err.(txnValidity.TransactionValidityError)
-			switch txnValidityRes.Value().(type) {
-			case txnValidity.InvalidTransaction:
-				s.net.ReportPeer(peerset.ReputationChange{
-					Value:  peerset.BadTransactionValue,
-					Reason: peerset.BadTransactionReason,
-				}, peerID)
-
-			}
-
-			// We already know it's the error case
-			_, err = txnValidity.DecodeValidityError(validityResult)
-			logger.Debugf("failed to validate transaction: %s", err)
-			return nil, false, nil
+	if txnValidityErr != nil {
+		switch err := txnValidityErr.Value().(type) {
+		// TODO with custom result type have Error() func for txnValidityErr
+		case txnvalidity.InvalidTransaction:
+			s.net.ReportPeer(peerset.ReputationChange{
+				Value:  peerset.BadTransactionValue,
+				Reason: peerset.BadTransactionReason,
+			}, peerID)
+			logger.Debugf("failed to validate transaction: %s", err.Error())
+		case txnvalidity.UnknownTransaction:
+			logger.Debugf("failed to validate transaction: %s", err.Error())
 		}
-	} else {
-		switch val := txnValidityRes.(type) {
-		case transaction.Validity:
-			validity = &val
-		default:
-			return nil, false, errors.New("invalid validity type")
-		}
+		return nil, false, nil
 	}
-
-	//validity, err = rt.ValidateTransaction(externalExt)
-	//if err != nil {
-	//	// TODO this error is not returned anymore - talk with tim about this probably
-	//	if errors.Is(err, runtime.ErrInvalidTransaction) {
-	//		s.net.ReportPeer(peerset.ReputationChange{
-	//			Value:  peerset.BadTransactionValue,
-	//			Reason: peerset.BadTransactionReason,
-	//		}, peerID)
-	//	}
-	//
-	//	logger.Debugf("failed to validate transaction: %s", err)
-	//	return nil, false, nil
-	//}
 
 	vtx := transaction.NewValidTransaction(tx, validity)
 
