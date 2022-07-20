@@ -330,12 +330,11 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 	require.NoError(t, err)
 
 	const (
-		roles           byte   = 4
 		bestBlockNumber uint32 = 77
 	)
 
 	testHandshake := &BlockAnnounceHandshake{
-		Roles:           roles,
+		Roles:           Validator,
 		BestBlockNumber: bestBlockNumber,
 		BestBlockHash:   common.Hash{1},
 		GenesisHash:     nodeB.blockState.GenesisHash(),

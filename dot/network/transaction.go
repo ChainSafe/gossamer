@@ -19,7 +19,7 @@ var (
 	_ NotificationsMessage = &TransactionMessage{}
 	_ NotificationsMessage = &transactionHandshake{}
 
-	errExpectedTransactionMsg = errors.New("found transaction handshake instead of message")
+	errExpectedTransactionMsg = errors.New("received a transaction handshake but expected a transaction message")
 )
 
 // txnBatchChTimeout is the timeout for adding a transaction to the batch processing channel

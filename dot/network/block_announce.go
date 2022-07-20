@@ -110,14 +110,25 @@ func decodeBlockAnnounceMessage(in []byte) (NotificationsMessage, error) {
 
 // BlockAnnounceHandshake is exchanged by nodes that are beginning the BlockAnnounce protocol
 type BlockAnnounceHandshake struct {
-	// 1 for node is a full node
-	// 2 for node is a light client
-	// 4 for node is a validator
-	Roles           byte
+	Roles           Roles
 	BestBlockNumber uint32
 	BestBlockHash   common.Hash
 	GenesisHash     common.Hash
 }
+
+// Roles could be full node, light client or a validator.
+type Roles byte
+
+const (
+	// FullNode allow you to read the current state of the chain and to submit and validate
+	// extrinsics directly on the network without relying on a centralised infrastructure provider.
+	FullNode Roles = 1
+	// LightClient node has only the runtime and the current state, but does not store past
+	// blocks and so cannot read historical data without requesting it from a node that has it.
+	LightClient Roles = 2
+	// Validator node helps seal new blocks.
+	Validator Roles = 4
+)
 
 // SubProtocol returns the block-announces sub-protocol
 func (*BlockAnnounceHandshake) SubProtocol() string {
@@ -175,7 +186,7 @@ func (s *Service) getBlockAnnounceHandshake() (Handshake, error) {
 	}
 
 	return &BlockAnnounceHandshake{
-		Roles:           s.cfg.Roles,
+		Roles:           Roles(s.cfg.Roles),
 		BestBlockNumber: uint32(latestBlock.Number),
 		BestBlockHash:   latestBlock.Hash(),
 		GenesisHash:     s.blockState.GenesisHash(),
@@ -186,10 +197,6 @@ func (s *Service) validateBlockAnnounceHandshake(from peer.ID, hs Handshake) err
 	bhs, ok := hs.(*BlockAnnounceHandshake)
 	if !ok {
 		return errors.New("invalid handshake type")
-	}
-
-	if int(bhs.Roles) > 4 {
-		return errors.New("invalid handshake role")
 	}
 
 	if !bhs.GenesisHash.Equal(s.blockState.GenesisHash()) {
