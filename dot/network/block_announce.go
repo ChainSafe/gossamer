@@ -19,7 +19,7 @@ var (
 	_ NotificationsMessage = &BlockAnnounceMessage{}
 	_ NotificationsMessage = &BlockAnnounceHandshake{}
 
-	errExpectedBlockAnnounceMsg = errors.New("found block announce handshake instead of message")
+	errExpectedBlockAnnounceMsg = errors.New("received block announce handshake but expected block announce message")
 )
 
 // BlockAnnounceMessage is a state block header
