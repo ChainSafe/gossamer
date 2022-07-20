@@ -74,7 +74,7 @@ func newStateServiceWithoutMock(t *testing.T) *state.Service {
 
 	stateSrvc.Epoch = epochState
 
-	rtCfg := &wasmer.Config{}
+	var rtCfg runtime.InstanceConfig
 
 	rtCfg.Storage, err = rtstorage.NewTrieState(genTrie)
 	require.NoError(t, err)

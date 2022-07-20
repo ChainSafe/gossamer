@@ -66,13 +66,10 @@ func generateTestValidRemarkTxns(t *testing.T, pubKey []byte, accInfo types.Acco
 	nodeStorage := runtime.NodeStorage{
 		BaseDB: runtime.NewInMemoryDB(t),
 	}
-	cfg := &wasmer.Config{
-		InstanceConfig: runtime.InstanceConfig{
-			Storage:     genState,
-			LogLvl:      log.Error,
-			NodeStorage: nodeStorage,
-		},
-		Imports: nil,
+	cfg := runtime.InstanceConfig{
+		Storage:     genState,
+		LogLvl:      log.Error,
+		NodeStorage: nodeStorage,
 	}
 
 	rt, err := wasmer.NewRuntimeFromGenesis(cfg)

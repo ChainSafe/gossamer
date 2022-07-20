@@ -177,7 +177,7 @@ func Test_Service_StorageRoot(t *testing.T) {
 
 func Test_Service_handleCodeSubstitution(t *testing.T) {
 	t.Parallel()
-	newTestInstance := func(code []byte, cfg *wasmer.Config) (*wasmer.Instance, error) {
+	newTestInstance := func(code []byte, cfg runtime.InstanceConfig) (*wasmer.Instance, error) {
 		return &wasmer.Instance{}, nil
 	}
 

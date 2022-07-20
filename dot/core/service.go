@@ -34,7 +34,7 @@ var (
 // QueryKeyValueChanges represents the key-value data inside a block storage
 type QueryKeyValueChanges map[string]string
 
-type wasmerInstanceFunc func(code []byte, cfg *wasmer.Config) (instance *wasmer.Instance, err error)
+type wasmerInstanceFunc func(code []byte, cfg runtime.InstanceConfig) (instance *wasmer.Instance, err error)
 
 // Service is an overhead layer that allows communication between the runtime,
 // BABE session, and network service. It deals with the validation of transactions
@@ -265,14 +265,12 @@ func (s *Service) handleCodeSubstitution(
 
 	// this needs to create a new runtime instance, otherwise it will update
 	// the blocks that reference the current runtime version to use the code substition
-	cfg := &wasmer.Config{
-		Imports: wasmer.ImportsNodeRuntime,
+	cfg := runtime.InstanceConfig{
+		Storage:     state,
+		Keystore:    rt.Keystore(),
+		NodeStorage: rt.NodeStorage(),
+		Network:     rt.NetworkService(),
 	}
-
-	cfg.Storage = state
-	cfg.Keystore = rt.Keystore()
-	cfg.NodeStorage = rt.NodeStorage()
-	cfg.Network = rt.NetworkService()
 
 	if rt.Validator() {
 		cfg.Role = 4

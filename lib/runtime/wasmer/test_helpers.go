@@ -41,7 +41,7 @@ func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie) 
 	return r
 }
 
-func setupConfig(t *testing.T, tt *trie.Trie, lvl log.Level, role byte) *Config {
+func setupConfig(t *testing.T, tt *trie.Trie, lvl log.Level, role byte) runtime.InstanceConfig {
 	t.Helper()
 
 	s, err := storage.NewTrieState(tt)
@@ -52,17 +52,16 @@ func setupConfig(t *testing.T, tt *trie.Trie, lvl log.Level, role byte) *Config 
 		PersistentStorage: runtime.NewInMemoryDB(t), // we're using a local storage here since this is a test runtime
 		BaseDB:            runtime.NewInMemoryDB(t), // we're using a local storage here since this is a test runtime
 	}
-	cfg := &Config{
-		Imports: ImportsNodeRuntime,
+
+	return runtime.InstanceConfig{
+		Storage:     s,
+		Keystore:    keystore.NewGlobalKeystore(),
+		LogLvl:      lvl,
+		NodeStorage: ns,
+		Network:     new(runtime.TestRuntimeNetwork),
+		Transaction: newTransactionStateMock(),
+		Role:        role,
 	}
-	cfg.Storage = s
-	cfg.Keystore = keystore.NewGlobalKeystore()
-	cfg.LogLvl = lvl
-	cfg.NodeStorage = ns
-	cfg.Network = new(runtime.TestRuntimeNetwork)
-	cfg.Transaction = newTransactionStateMock()
-	cfg.Role = role
-	return cfg
 }
 
 // NewTransactionStateMock create and return an runtime Transaction State interface mock
