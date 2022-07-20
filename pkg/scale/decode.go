@@ -570,9 +570,9 @@ func (ds *decodeState) decodeCompactUint32(dstv reflect.Value) (err error) {
 			return
 		}
 
-		var o uint64
+		var o uint32
 		if byteLen == 4 {
-			o = uint64(binary.LittleEndian.Uint32(buf))
+			o = binary.LittleEndian.Uint32(buf)
 		}
 		if !(o > math.MaxUint32>>2) {
 			return errorU32OutOfRange
