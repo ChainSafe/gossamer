@@ -152,9 +152,9 @@ func TestChainSubscriptionRPC(t *testing.T) {
 			number := getResultNumber(t, result)
 			assert.Equal(t, uint(i+1), number)
 
-			assertResultRegex(t, result, "parentHash", regex32BytesHex)
-			assertResultRegex(t, result, "stateRoot", regex32BytesHex)
-			assertResultRegex(t, result, "extrinsicsRoot", regex32BytesHex)
+			assertResult32BHex(t, result, "parentHash")
+			assertResult32BHex(t, result, "stateRoot")
+			assertResult32BHex(t, result, "extrinsicsRoot")
 			assertResultDigest(t, result)
 
 			remainingExpected := subscription.Params{
@@ -227,9 +227,9 @@ func TestChainSubscriptionRPC(t *testing.T) {
 			number := getResultNumber(t, result)
 			blockNumbers = append(blockNumbers, number)
 
-			assertResultRegex(t, result, "parentHash", regex32BytesHex)
-			assertResultRegex(t, result, "stateRoot", regex32BytesHex)
-			assertResultRegex(t, result, "extrinsicsRoot", regex32BytesHex)
+			assertResult32BHex(t, result, "parentHash")
+			assertResult32BHex(t, result, "stateRoot")
+			assertResult32BHex(t, result, "extrinsicsRoot")
 			assertResultDigest(t, result)
 
 			remainingExpected := subscription.Params{
@@ -275,14 +275,14 @@ func getResultNumber(t *testing.T, result map[string]interface{}) uint {
 	return number
 }
 
-// assertResultRegex gets the value from the map and asserts that it matches the regex.
+// assertResult32BHex gets the value from the map and asserts that it matches the regex.
 // It then removes the key from the map.
-func assertResultRegex(t *testing.T, result map[string]interface{}, key, regex string) {
+func assertResult32BHex(t *testing.T, result map[string]interface{}, key string) {
 	t.Helper()
 
 	value, ok := result[key]
 	require.True(t, ok, "cannot find key %q in result", key)
-	assert.Regexp(t, regex, value, "at result key %q", key)
+	assert.Regexp(t, regex32BytesHex, value, "at result key %q", key)
 	delete(result, key)
 }
 
@@ -308,7 +308,7 @@ func callAndSubscribeWebsocket(ctx context.Context, t *testing.T,
 	messages [][]byte) {
 	t.Helper()
 
-	connection, _, err := websocket.DefaultDialer.Dial(endpoint, nil)
+	connection, _, err := websocket.DefaultDialer.DialContext(ctx, endpoint, nil)
 	require.NoError(t, err, "cannot dial websocket")
 	defer connection.Close() // in case of failed required assertion
 
