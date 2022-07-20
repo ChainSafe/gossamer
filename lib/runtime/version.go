@@ -86,3 +86,10 @@ func DecodeVersion(encoded []byte) (version Version, err error) {
 		legacy:           true,
 	}, nil
 }
+
+// WithLegacy sets the legacy boolean (for Kusama)
+// and is only used for tests.
+func (v Version) WithLegacy() Version {
+	v.legacy = true //skipcq: RVV-B0006
+	return v
+}
