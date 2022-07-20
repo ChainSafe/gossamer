@@ -333,7 +333,7 @@ func Test_decodeLeaf(t *testing.T) {
 			variant:          leafVariant.bits,
 			partialKeyLength: 1,
 			errWrapped:       ErrDecodeValue,
-			errMessage:       "cannot decode value: could not decode invalid integer",
+			errMessage:       "cannot decode value: uint32 out of range",
 		},
 		"zero value": {
 			reader: bytes.NewBuffer([]byte{
