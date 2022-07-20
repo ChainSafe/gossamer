@@ -14,6 +14,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	ma "github.com/multiformats/go-multiaddr"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/stretchr/testify/require"
 )
@@ -49,8 +50,8 @@ func setupStreamManagerTest(t *testing.T) (context.Context, []libp2phost.Host, [
 	t.Cleanup(func() {
 		cleanupStreamInterval = time.Minute
 		cancel()
-		ha.Close()
-		hb.Close()
+		assert.NoError(t, ha.Close())
+		assert.NoError(t, hb.Close())
 	})
 
 	err = ha.Connect(ctx, peer.AddrInfo{

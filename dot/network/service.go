@@ -283,7 +283,9 @@ func (s *Service) Start() error {
 		for _, prtl := range s.notificationsProtocols {
 			prtl.peersData.setMutex(peerID)
 		}
-		s.host.cm.peerSetHandler.Incoming(0, peerID)
+		// TODO: currently we only have one set so setID is 0, change this once we have more set in peerSet
+		const setID = 0
+		s.host.cm.peerSetHandler.Incoming(setID, peerID)
 	}
 
 	// when a peer gets disconnected, we should clear all handshake data we have for it.
