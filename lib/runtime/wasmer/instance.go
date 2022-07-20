@@ -95,7 +95,7 @@ func NewInstance(code []byte, cfg runtime.InstanceConfig) (*Instance, error) {
 
 	logger.Patch(log.SetLevel(cfg.LogLvl), log.SetCallerFunc(true))
 
-	imports, err := ImportsNodeRuntime()
+	imports, err := importsNodeRuntime()
 	if err != nil {
 		return nil, fmt.Errorf("creating node runtime imports: %w", err)
 	}
@@ -210,7 +210,7 @@ func (in *Instance) CheckRuntimeVersion(code []byte) (runtime.Version, error) {
 }
 
 func (in *Instance) setupInstanceVM(code []byte) error {
-	imports, err := ImportsNodeRuntime()
+	imports, err := importsNodeRuntime()
 	if err != nil {
 		return err
 	}

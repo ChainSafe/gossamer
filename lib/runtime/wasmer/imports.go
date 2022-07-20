@@ -2230,8 +2230,8 @@ func toWasmMemoryFixedSizeOptional(context wasm.InstanceContext, data []byte) (i
 	return toWasmMemory(context, enc)
 }
 
-// ImportsNodeRuntime returns the WASM imports for the node runtime.
-func ImportsNodeRuntime() (imports *wasm.Imports, err error) {
+// importsNodeRuntime returns the WASM imports for the node runtime.
+func importsNodeRuntime() (imports *wasm.Imports, err error) {
 	imports = wasm.NewImports()
 	// Note imports are closed by the call to wasm.Instance.Close()
 
