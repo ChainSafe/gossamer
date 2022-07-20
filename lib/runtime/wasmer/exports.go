@@ -18,7 +18,6 @@ import (
 // TaggedTransactionQueue_validate_transaction and returns *Validity
 func (in *Instance) ValidateTransaction(e types.Extrinsic) (
 	*transaction.Validity, *txnvalidity.TransactionValidityError, error) {
-	fmt.Println("In validate Transaction")
 	ret, err := in.exec(runtime.TaggedTransactionQueueValidateTransaction, e)
 	if err != nil {
 		return nil, nil, err
