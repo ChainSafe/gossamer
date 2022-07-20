@@ -138,12 +138,12 @@ func (in *Instance) GetContext() *runtime.Context {
 
 // UpdateRuntimeCode updates the runtime instance to run the given code
 func (in *Instance) UpdateRuntimeCode(code []byte) (err error) {
-	in.Stop() // TODO move after setupVM in case setup fails
-
 	wasmInstance, allocator, err := setupVM(code)
 	if err != nil {
 		return fmt.Errorf("setting up VM: %w", err)
 	}
+
+	in.Stop()
 
 	in.ctx.Allocator = allocator
 	wasmInstance.SetContextData(in.ctx)
