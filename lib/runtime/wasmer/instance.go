@@ -143,7 +143,10 @@ func (in *Instance) UpdateRuntimeCode(code []byte) (err error) {
 		return fmt.Errorf("setting up VM: %w", err)
 	}
 
-	in.Stop()
+	in.mutex.Lock()
+	defer in.mutex.Unlock()
+
+	in.close()
 
 	in.ctx.Allocator = allocator
 	wasmInstance.SetContextData(in.ctx)
@@ -234,14 +237,24 @@ func (in *Instance) SetContextStorage(s runtime.Storage) {
 	in.ctx.Storage = s
 }
 
-// Stop func
+// Stop closes the instance (wasm instance and its imports)
+// in a thread-safe way.
 func (in *Instance) Stop() {
 	in.mutex.Lock()
 	defer in.mutex.Unlock()
-	if !in.isClosed {
-		in.vm.Close()
-		in.isClosed = true
+	in.close()
+}
+
+// close closes the wasm instance (and its imports)
+// if the instance has not been previously closed.
+// It is NOT THREAD SAFE to use.
+func (in *Instance) close() {
+	if in.isClosed {
+		return
 	}
+
+	in.vm.Close()
+	in.isClosed = true
 }
 
 var (
