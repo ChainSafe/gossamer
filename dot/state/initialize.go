@@ -56,6 +56,7 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 	if err != nil {
 		return err
 	}
+	rt.Stop()
 
 	// write initial genesis values to database
 	if err = s.storeInitialValues(gen.GenesisData(), t); err != nil {
@@ -115,8 +116,6 @@ func (s *Service) loadBabeConfigurationFromRuntime(r runtime.Instance) (*types.B
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch genesis babe configuration: %w", err)
 	}
-
-	r.Stop()
 
 	if s.BabeThresholdDenominator != 0 {
 		babeCfg.C1 = s.BabeThresholdNumerator
