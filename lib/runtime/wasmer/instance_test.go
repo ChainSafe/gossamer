@@ -36,14 +36,13 @@ func TestPointerSize(t *testing.T) {
 	require.Equal(t, in, res)
 }
 
-func TestInstance_CheckRuntimeVersion(t *testing.T) {
-	instance := NewTestInstance(t, runtime.NODE_RUNTIME)
+func Test_CheckRuntimeVersion(t *testing.T) {
 	polkadotRuntimeFilepath, err := runtime.GetRuntime(
 		context.Background(), runtime.POLKADOT_RUNTIME)
 	require.NoError(t, err)
 	code, err := os.ReadFile(polkadotRuntimeFilepath)
 	require.NoError(t, err)
-	version, err := instance.CheckRuntimeVersion(code)
+	version, err := CheckRuntimeVersion(code)
 	require.NoError(t, err)
 
 	expected := runtime.NewVersionData(
