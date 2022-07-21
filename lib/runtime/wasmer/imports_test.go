@@ -41,8 +41,9 @@ func Test_ext_offchain_timestamp_version_1(t *testing.T) {
 	res, err := runtimeFunc(0, 0)
 	require.NoError(t, err)
 
-	offset, length := runtime.Int64ToPointerAndSize(res.ToI64())
-	data := inst.load(offset, length)
+	outputPtr, outputLength := runtime.Int64ToPointerAndSize(res.ToI64())
+	memory := inst.vm.Memory.Data()
+	data := memory[outputPtr : outputPtr+outputLength]
 	var timestamp int64
 	err = scale.Unmarshal(data, &timestamp)
 	require.NoError(t, err)

@@ -264,12 +264,6 @@ func (in *Instance) Stop() {
 	}
 }
 
-// Load load
-func (in *Instance) load(location, length int32) []byte {
-	mem := in.vm.Memory.Data()
-	return mem[location : location+length]
-}
-
 // Exec calls the given function with the given data
 func (in *Instance) Exec(function string, data []byte) ([]byte, error) {
 	in.Lock()
@@ -302,7 +296,8 @@ func (in *Instance) Exec(function string, data []byte) ([]byte, error) {
 	}
 
 	outputPtr, outputLength := runtime.Int64ToPointerAndSize(wasmValue.ToI64())
-	return in.load(outputPtr, outputLength), nil
+	memory = in.vm.Memory.Data() // call Data() again to get larger slice
+	return memory[outputPtr : outputPtr+outputLength], nil
 }
 
 // NodeStorage to get reference to runtime node service
