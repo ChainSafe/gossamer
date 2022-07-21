@@ -163,9 +163,7 @@ func Test_Service_StorageRoot(t *testing.T) {
 			if tt.trieStateCall {
 				ctrl := gomock.NewController(t)
 				mockStorageState := NewMockStorageState(ctrl)
-				lockCall := mockStorageState.EXPECT().Lock()
 				mockStorageState.EXPECT().TrieState(nil).Return(tt.retTrieState, tt.retErr)
-				mockStorageState.EXPECT().Unlock().After(lockCall)
 				service.storageState = mockStorageState
 			}
 
@@ -539,8 +537,6 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 		mockBlockState.EXPECT().GetRuntime(nil).Return(runtimeMock, nil)
 		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{})
 		mockStorageState := NewMockStorageState(ctrl)
-		lockCall := mockStorageState.EXPECT().Lock()
-		mockStorageState.EXPECT().Unlock().After(lockCall)
 		service = &Service{
 			transactionState: mockTxnState,
 			blockState:       mockBlockState,
@@ -599,8 +595,6 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 		mockBlockStateOk.EXPECT().GetRuntime(nil).Return(runtimeMock, nil)
 		mockBlockStateOk.EXPECT().BestBlockHash().Return(common.Hash{})
 		mockStorageState := NewMockStorageState(ctrl)
-		lockCall := mockStorageState.EXPECT().Lock()
-		mockStorageState.EXPECT().Unlock().After(lockCall)
 		service := &Service{
 			transactionState: mockTxnState,
 			blockState:       mockBlockStateOk,
@@ -714,8 +708,6 @@ func Test_Service_handleBlocksAsync(t *testing.T) {
 		mockTxnStateErr.EXPECT().PendingInPool().Return([]*transaction.ValidTransaction{vt})
 		blockAddChan := make(chan *types.Block)
 		mockStorageState := NewMockStorageState(ctrl)
-		lockCall := mockStorageState.EXPECT().Lock()
-		mockStorageState.EXPECT().Unlock().After(lockCall)
 		go func() {
 			blockAddChan <- &block
 			close(blockAddChan)
@@ -827,8 +819,6 @@ func TestService_handleChainReorg(t *testing.T) {
 		mockBlockState.EXPECT().SubChain(testAncestorHash, testPrevHash).Return(testSubChain, nil)
 		mockBlockState.EXPECT().GetRuntime(nil).Return(nil, errDummyErr)
 		mockStorageState := NewMockStorageState(ctrl)
-		lockCall := mockStorageState.EXPECT().Lock()
-		mockStorageState.EXPECT().Unlock().After(lockCall)
 
 		service := &Service{
 			storageState: mockStorageState,
@@ -850,8 +840,6 @@ func TestService_handleChainReorg(t *testing.T) {
 		mockBlockState.EXPECT().GetBlockBody(testAncestorHash).Return(body, nil)
 		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{})
 		mockStorageState := NewMockStorageState(ctrl)
-		lockCall := mockStorageState.EXPECT().Lock()
-		mockStorageState.EXPECT().Unlock().After(lockCall)
 		runtimeMockErr.On("ValidateTransaction", externExt).Return(nil, nil, errTestDummyError)
 		runtimeMockErr.On("Version").Return(runtime.NewVersionData(
 			[]byte("polkadot"),
@@ -886,8 +874,6 @@ func TestService_handleChainReorg(t *testing.T) {
 		mockBlockState.EXPECT().GetBlockBody(testAncestorHash).Return(body, nil)
 		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{})
 		mockStorageState := NewMockStorageState(ctrl)
-		lockCall := mockStorageState.EXPECT().Lock()
-		mockStorageState.EXPECT().Unlock().After(lockCall)
 		runtimeMockOk.On("ValidateTransaction", externExt).
 			Return(testValidity, nil, nil)
 		runtimeMockOk.On("Version").Return(runtime.NewVersionData(
@@ -1106,8 +1092,6 @@ func TestServiceGetRuntimeVersion(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		mockStorageState := NewMockStorageState(ctrl)
 		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(&common.Hash{}, nil)
-		lockCall := mockStorageState.EXPECT().Lock()
-		mockStorageState.EXPECT().Unlock().After(lockCall)
 		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(nil, errDummyErr)
 		service := &Service{
 			storageState: mockStorageState,
@@ -1120,8 +1104,6 @@ func TestServiceGetRuntimeVersion(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		mockStorageState := NewMockStorageState(ctrl)
 		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(&common.Hash{}, nil)
-		lockCall := mockStorageState.EXPECT().Lock()
-		mockStorageState.EXPECT().Unlock().After(lockCall)
 		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(ts, nil).MaxTimes(2)
 
 		mockBlockState := NewMockBlockState(ctrl)
@@ -1138,8 +1120,6 @@ func TestServiceGetRuntimeVersion(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		mockStorageState := NewMockStorageState(ctrl)
 		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(&common.Hash{}, nil).MaxTimes(2)
-		lockCall := mockStorageState.EXPECT().Lock()
-		mockStorageState.EXPECT().Unlock().After(lockCall)
 		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(ts, nil).MaxTimes(2)
 
 		runtimeMock := new(mocksruntime.Instance)
@@ -1182,9 +1162,7 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 		mockStorageState := NewMockStorageState(ctrl)
-		lockCall := mockStorageState.EXPECT().Lock()
 		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(nil, errDummyErr)
-		mockStorageState.EXPECT().Unlock().After(lockCall)
 		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(&common.Hash{}, nil)
 
 		mockBlockState := NewMockBlockState(ctrl)
@@ -1209,9 +1187,7 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 		mockBlockState.EXPECT().GetRuntime(&common.Hash{}).Return(nil, errDummyErr)
 
 		mockStorageState := NewMockStorageState(ctrl)
-		lockCall := mockStorageState.EXPECT().Lock()
 		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(&rtstorage.TrieState{}, nil)
-		mockStorageState.EXPECT().Unlock().After(lockCall)
 		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(&common.Hash{}, nil)
 
 		mockTxnState := NewMockTransactionState(ctrl)
@@ -1234,9 +1210,7 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 		mockBlockState.EXPECT().GetRuntime(&common.Hash{}).Return(runtimeMockErr, nil).MaxTimes(2)
 
 		mockStorageState := NewMockStorageState(ctrl)
-		lockCall := mockStorageState.EXPECT().Lock()
 		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(&rtstorage.TrieState{}, nil)
-		mockStorageState.EXPECT().Unlock().After(lockCall)
 		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(&common.Hash{}, nil)
 
 		mockTxnState := NewMockTransactionState(ctrl)
@@ -1290,9 +1264,7 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 			Return(&transaction.Validity{Propagate: true}, nil, nil)
 
 		mockStorageState := NewMockStorageState(ctrl)
-		lockCall := mockStorageState.EXPECT().Lock()
 		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(&rtstorage.TrieState{}, nil)
-		mockStorageState.EXPECT().Unlock().After(lockCall)
 		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(&common.Hash{}, nil)
 
 		mockTxnState := NewMockTransactionState(ctrl)
@@ -1325,8 +1297,6 @@ func TestServiceGetMetadata(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 		mockStorageState := NewMockStorageState(ctrl)
-		lockCall := mockStorageState.EXPECT().Lock()
-		mockStorageState.EXPECT().Unlock().After(lockCall)
 		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(nil, errDummyErr)
 		service := &Service{
 			storageState: mockStorageState,
@@ -1338,8 +1308,6 @@ func TestServiceGetMetadata(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 		mockStorageState := NewMockStorageState(ctrl)
-		lockCall := mockStorageState.EXPECT().Lock()
-		mockStorageState.EXPECT().Unlock().After(lockCall)
 		mockStorageState.EXPECT().TrieState(nil).Return(nil, errDummyErr)
 		service := &Service{
 			storageState: mockStorageState,
@@ -1351,8 +1319,6 @@ func TestServiceGetMetadata(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 		mockStorageState := NewMockStorageState(ctrl)
-		lockCall := mockStorageState.EXPECT().Lock()
-		mockStorageState.EXPECT().Unlock().After(lockCall)
 		mockStorageState.EXPECT().TrieState(nil).Return(&rtstorage.TrieState{}, nil)
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().GetRuntime(nil).Return(nil, errDummyErr)
@@ -1367,8 +1333,6 @@ func TestServiceGetMetadata(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 		mockStorageState := NewMockStorageState(ctrl)
-		lockCall := mockStorageState.EXPECT().Lock()
-		mockStorageState.EXPECT().Unlock().After(lockCall)
 		mockStorageState.EXPECT().TrieState(nil).Return(&rtstorage.TrieState{}, nil)
 		runtimeMockOk := new(mocksruntime.Instance)
 		mockBlockState := NewMockBlockState(ctrl)

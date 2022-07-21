@@ -147,9 +147,7 @@ func (s *Service) StorageRoot() (common.Hash, error) {
 		return common.Hash{}, ErrNilStorageState
 	}
 
-	s.storageState.Lock()
 	ts, err := s.storageState.TrieState(nil)
-	s.storageState.Unlock()
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -350,9 +348,6 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 		return nil
 	}
 
-	s.storageState.Lock()
-	defer s.storageState.Unlock()
-
 	// Check transaction validation on the best block.
 	rt, err := s.blockState.GetRuntime(nil)
 	if err != nil {
@@ -410,9 +405,6 @@ func (s *Service) maintainTransactionPool(block *types.Block) {
 	for _, ext := range block.Body {
 		s.transactionState.RemoveExtrinsic(ext)
 	}
-
-	s.storageState.Lock()
-	defer s.storageState.Unlock()
 
 	// re-validate transactions in the pool and move them to the queue
 	txs := s.transactionState.PendingInPool()
@@ -489,9 +481,7 @@ func (s *Service) GetRuntimeVersion(bhash *common.Hash) (runtime.Version, error)
 		}
 	}
 
-	s.storageState.Lock()
 	ts, err := s.storageState.TrieState(stateRootHash)
-	s.storageState.Unlock()
 	if err != nil {
 		return nil, err
 	}
@@ -522,8 +512,6 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 		return fmt.Errorf("could not get state root from block %s: %w", bestBlockHash, err)
 	}
 
-	s.storageState.Lock()
-	defer s.storageState.Unlock()
 	ts, err := s.storageState.TrieState(stateRoot)
 	if err != nil {
 		return err
@@ -572,9 +560,6 @@ func (s *Service) GetMetadata(bhash *common.Hash) ([]byte, error) {
 		stateRootHash *common.Hash
 		err           error
 	)
-
-	s.storageState.Lock()
-	defer s.storageState.Unlock()
 
 	// If block hash is not nil then fetch the state root corresponding to the block.
 	if bhash != nil {
