@@ -156,25 +156,31 @@ func (in *Instance) UpdateRuntimeCode(code []byte) (err error) {
 	return nil
 }
 
-// CheckRuntimeVersion calculates runtime Version for runtime blob passed in
-func (in *Instance) CheckRuntimeVersion(code []byte) (runtime.Version, error) {
-	in.mutex.Lock()
-	defer in.mutex.Unlock()
-
+// CheckRuntimeVersion finds the runtime version by initiating a temporary
+// runtime instance using the WASM code provided, and querying it.
+func CheckRuntimeVersion(code []byte) (version runtime.Version, err error) {
 	wasmInstance, allocator, err := setupVM(code)
 	if err != nil {
 		return nil, fmt.Errorf("setting up VM: %w", err)
 	}
 
-	in.ctx.Allocator = allocator // TODO we should no change the allocator of the parent instance
-	wasmInstance.SetContextData(in.ctx)
+	ctx := &runtime.Context{
+		Allocator: allocator,
+	}
+	wasmInstance.SetContextData(ctx)
 
 	instance := Instance{
 		vm:  wasmInstance,
-		ctx: in.ctx,
+		ctx: ctx,
+	}
+	defer instance.close()
+
+	version, err = instance.Version()
+	if err != nil {
+		return nil, fmt.Errorf("running runtime: %w", err)
 	}
 
-	return instance.Version()
+	return version, nil
 }
 
 var (
