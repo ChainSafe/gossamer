@@ -721,7 +721,9 @@ func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
 	ptr, err := inst.ctx.Allocator.Allocate(uint32(len(params)))
 	require.NoError(t, err)
 
-	inst.store(params, int32(ptr))
+	memory := inst.vm.Memory.Data()
+	copy(memory[ptr:ptr+uint32(len(params))], params)
+
 	dataLen := int32(len(params))
 
 	runtimeFunc, ok := inst.vm.Exports["rtm_ext_crypto_ed25519_generate_version_1"]

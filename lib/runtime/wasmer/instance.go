@@ -264,12 +264,6 @@ func (in *Instance) Stop() {
 	}
 }
 
-// Store func
-func (in *Instance) store(data []byte, location int32) {
-	mem := in.vm.Memory.Data()
-	copy(mem[location:location+int32(len(data))], data)
-}
-
 // Load load
 func (in *Instance) load(location, length int32) []byte {
 	mem := in.vm.Memory.Data()
@@ -285,7 +279,8 @@ func (in *Instance) Exec(function string, data []byte) ([]byte, error) {
 		return nil, errors.New("instance is stopped")
 	}
 
-	ptr, err := in.ctx.Allocator.Allocate(uint32(len(data)))
+	dataLength := uint32(len(data))
+	ptr, err := in.ctx.Allocator.Allocate(dataLength)
 	if err != nil {
 		return nil, err
 	}
@@ -293,15 +288,15 @@ func (in *Instance) Exec(function string, data []byte) ([]byte, error) {
 	defer in.ctx.Allocator.Clear()
 
 	// Store the data into memory
-	in.store(data, int32(ptr))
-	datalen := int32(len(data))
+	memory := in.vm.Memory.Data()
+	copy(memory[ptr:ptr+dataLength], data)
 
 	runtimeFunc, ok := in.vm.Exports[function]
 	if !ok {
 		return nil, fmt.Errorf("could not find exported function %s", function)
 	}
 
-	res, err := runtimeFunc(int32(ptr), datalen)
+	res, err := runtimeFunc(int32(ptr), int32(dataLength))
 	if err != nil {
 		return nil, err
 	}
