@@ -270,7 +270,7 @@ var (
 )
 
 // Exec calls the given function with the given data
-func (in *Instance) Exec(function string, data []byte) ([]byte, error) {
+func (in *Instance) Exec(function string, data []byte) (result []byte, err error) {
 	in.Lock()
 	defer in.Unlock()
 
