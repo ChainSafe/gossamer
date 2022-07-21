@@ -278,10 +278,6 @@ func (in *Instance) load(location, length int32) []byte {
 
 // Exec calls the given function with the given data
 func (in *Instance) Exec(function string, data []byte) ([]byte, error) {
-	if in.ctx.Storage == nil {
-		return nil, runtime.ErrNilStorage
-	}
-
 	in.Lock()
 	defer in.Unlock()
 
