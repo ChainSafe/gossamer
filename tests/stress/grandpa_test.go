@@ -16,8 +16,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TODO: add test against latest dev runtime
 func TestStress_Grandpa_OneAuthority(t *testing.T) {
-	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
+	genesisPath := libutils.GetDevV3SubstrateGenesisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.Core.BABELead = true
 	tomlConfig.Init.Genesis = genesisPath
