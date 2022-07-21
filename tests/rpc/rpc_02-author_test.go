@@ -22,8 +22,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TODO: add test against latest dev runtime
 func TestAuthorSubmitExtrinsic(t *testing.T) {
-	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
+	genesisPath := libutils.GetDevV3SubstrateGenesisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.Init.Genesis = genesisPath
 	tomlConfig.Core.BABELead = true
