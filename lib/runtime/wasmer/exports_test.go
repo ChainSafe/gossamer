@@ -5,7 +5,6 @@ package wasmer
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"math/big"
 	"os"
@@ -1022,15 +1021,14 @@ func TestInstance_DecodeSessionKeys(t *testing.T) {
 
 func TestInstance_PaymentQueryInfo(t *testing.T) {
 	tests := []struct {
-		extB   []byte
-		ext    string
-		err    error
-		expect *types.TransactionPaymentQueryInfo
+		extB       []byte
+		ext        string
+		errMessage string
+		expect     *types.TransactionPaymentQueryInfo
 	}{
 		{
 			// Was made with @polkadot/api on https://github.com/danforbes/polkadot-js-scripts/tree/create-signed-tx
 			ext: "0xd1018400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01bc2b6e35929aabd5b8bc4e5b0168c9bee59e2bb9d6098769f6683ecf73e44c776652d947a270d59f3d37eb9f9c8c17ec1b4cc473f2f9928ffdeef0f3abd43e85d502000000012844616e20466f72626573", //nolint:lll
-			err: nil,
 			expect: &types.TransactionPaymentQueryInfo{
 				Weight: 1973000,
 				Class:  0,
@@ -1043,12 +1041,14 @@ func TestInstance_PaymentQueryInfo(t *testing.T) {
 		{
 			// incomplete extrinsic
 			ext: "0x4ccde39a5684e7a56da23b22d4d9fbadb023baa19c56495432884d0640000000000000000000000000000000",
-			err: errors.New("Failed to call the `TransactionPaymentApi_query_info` exported function."), //nolint:revive
+			errMessage: "running runtime function: " +
+				"Failed to call the `TransactionPaymentApi_query_info` exported function.",
 		},
 		{
 			// incomplete extrinsic
 			extB: nil,
-			err:  errors.New("Failed to call the `TransactionPaymentApi_query_info` exported function."), //nolint:revive
+			errMessage: "running runtime function: " +
+				"Failed to call the `TransactionPaymentApi_query_info` exported function.",
 		},
 	}
 
@@ -1066,11 +1066,11 @@ func TestInstance_PaymentQueryInfo(t *testing.T) {
 		ins := NewTestInstance(t, runtime.NODE_RUNTIME)
 		info, err := ins.PaymentQueryInfo(extBytes)
 
-		if test.err != nil {
-			require.Error(t, err)
-			require.Equal(t, err.Error(), test.err.Error())
+		if test.errMessage != "" {
+			assert.EqualError(t, err, test.errMessage)
 			continue
 		}
+		require.NoError(t, err)
 
 		fmt.Println(info.PartialFee.String())
 		fmt.Println(test.expect.PartialFee.String())

@@ -264,19 +264,24 @@ func (in *Instance) Stop() {
 	}
 }
 
+var (
+	ErrInstanceIsStopped      = errors.New("instance is stopped")
+	ErrExportFunctionNotFound = errors.New("export function not found")
+)
+
 // Exec calls the given function with the given data
 func (in *Instance) Exec(function string, data []byte) ([]byte, error) {
 	in.Lock()
 	defer in.Unlock()
 
 	if in.isClosed {
-		return nil, errors.New("instance is stopped")
+		return nil, ErrInstanceIsStopped
 	}
 
 	dataLength := uint32(len(data))
 	inputPtr, err := in.ctx.Allocator.Allocate(dataLength)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("allocating input memory: %w", err)
 	}
 
 	defer in.ctx.Allocator.Clear()
@@ -287,12 +292,12 @@ func (in *Instance) Exec(function string, data []byte) ([]byte, error) {
 
 	runtimeFunc, ok := in.vm.Exports[function]
 	if !ok {
-		return nil, fmt.Errorf("could not find exported function %s", function)
+		return nil, fmt.Errorf("%w: %s", ErrExportFunctionNotFound, function)
 	}
 
 	wasmValue, err := runtimeFunc(int32(inputPtr), int32(dataLength))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("running runtime function: %w", err)
 	}
 
 	outputPtr, outputLength := runtime.Int64ToPointerAndSize(wasmValue.ToI64())
