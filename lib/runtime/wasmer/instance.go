@@ -237,8 +237,8 @@ func (in *Instance) SetContextStorage(s runtime.Storage) {
 	in.ctx.Storage = s
 }
 
-// Stop closes the instance (wasm instance and its imports)
-// in a thread-safe way.
+// Stop closes the WASM instance, its imports and clears
+// the context allocator in a thread-safe way.
 func (in *Instance) Stop() {
 	in.mutex.Lock()
 	defer in.mutex.Unlock()
@@ -246,7 +246,8 @@ func (in *Instance) Stop() {
 }
 
 // close closes the wasm instance (and its imports)
-// if the instance has not been previously closed.
+// and clears the context allocator. If the instance
+// has previously been closed, it simply returns.
 // It is NOT THREAD SAFE to use.
 func (in *Instance) close() {
 	if in.isClosed {
@@ -254,6 +255,7 @@ func (in *Instance) close() {
 	}
 
 	in.vm.Close()
+	in.ctx.Allocator.Clear()
 	in.isClosed = true
 }
 
