@@ -97,9 +97,10 @@ func stopNodes(cancel context.CancelFunc, runtimeErrors []<-chan error) {
 	}
 }
 
+// TODO: add tests against latest dev runtime
 func TestSync_SingleBlockProducer(t *testing.T) {
 	const numNodes = 4
-	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
+	genesisPath := libutils.GetDevV3SubstrateGenesisPath(t)
 
 	configNoGrandpa := config.NoGrandpa()
 	configNoGrandpa.Init.Genesis = genesisPath
@@ -238,12 +239,13 @@ func TestSync_SingleSyncingNode(t *testing.T) {
 	}
 }
 
+// TODO: add tests against latest dev runtime
 func TestSync_Bench(t *testing.T) {
 	utils.Logger.Patch(log.SetLevel(log.Info))
 	const numBlocks uint = 64
 
 	// start block producing node
-	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
+	genesisPath := libutils.GetDevV3SubstrateGenesisPath(t)
 	configNoGrandpa := config.NoGrandpa()
 	configNoGrandpa.Init.Genesis = genesisPath
 	configNoGrandpa.Core.BABELead = true
