@@ -290,7 +290,7 @@ func (in *Instance) Exec(function string, data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	defer in.clear()
+	defer in.ctx.Allocator.Clear()
 
 	// Store the data into memory
 	in.store(data, int32(ptr))
@@ -308,10 +308,6 @@ func (in *Instance) Exec(function string, data []byte) ([]byte, error) {
 
 	offset, length := runtime.Int64ToPointerAndSize(res.ToI64())
 	return in.load(offset, length), nil
-}
-
-func (in *Instance) clear() {
-	in.ctx.Allocator.Clear()
 }
 
 // NodeStorage to get reference to runtime node service
