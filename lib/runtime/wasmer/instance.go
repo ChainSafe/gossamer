@@ -285,7 +285,7 @@ func (in *Instance) Exec(function string, data []byte) ([]byte, error) {
 		return nil, errors.New("instance is stopped")
 	}
 
-	ptr, err := in.malloc(uint32(len(data)))
+	ptr, err := in.ctx.Allocator.Allocate(uint32(len(data)))
 	if err != nil {
 		return nil, err
 	}
@@ -308,10 +308,6 @@ func (in *Instance) Exec(function string, data []byte) ([]byte, error) {
 
 	offset, length := runtime.Int64ToPointerAndSize(res.ToI64())
 	return in.load(offset, length), nil
-}
-
-func (in *Instance) malloc(size uint32) (uint32, error) {
-	return in.ctx.Allocator.Allocate(size)
 }
 
 func (in *Instance) clear() {

@@ -718,7 +718,7 @@ func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
 	// we manually store and call the runtime function here since inst.exec assumes
 	// the data returned from the function is a pointer-size, but for ext_crypto_ed25519_generate_version_1,
 	// it's just a pointer
-	ptr, err := inst.malloc(uint32(len(params)))
+	ptr, err := inst.ctx.Allocator.Allocate(uint32(len(params)))
 	require.NoError(t, err)
 
 	inst.store(params, int32(ptr))
