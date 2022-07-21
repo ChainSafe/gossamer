@@ -280,7 +280,7 @@ func (in *Instance) Exec(function string, data []byte) ([]byte, error) {
 	}
 
 	dataLength := uint32(len(data))
-	ptr, err := in.ctx.Allocator.Allocate(dataLength)
+	inputPtr, err := in.ctx.Allocator.Allocate(dataLength)
 	if err != nil {
 		return nil, err
 	}
@@ -289,20 +289,20 @@ func (in *Instance) Exec(function string, data []byte) ([]byte, error) {
 
 	// Store the data into memory
 	memory := in.vm.Memory.Data()
-	copy(memory[ptr:ptr+dataLength], data)
+	copy(memory[inputPtr:inputPtr+dataLength], data)
 
 	runtimeFunc, ok := in.vm.Exports[function]
 	if !ok {
 		return nil, fmt.Errorf("could not find exported function %s", function)
 	}
 
-	res, err := runtimeFunc(int32(ptr), int32(dataLength))
+	wasmValue, err := runtimeFunc(int32(inputPtr), int32(dataLength))
 	if err != nil {
 		return nil, err
 	}
 
-	offset, length := runtime.Int64ToPointerAndSize(res.ToI64())
-	return in.load(offset, length), nil
+	outputPtr, outputLength := runtime.Int64ToPointerAndSize(wasmValue.ToI64())
+	return in.load(outputPtr, outputLength), nil
 }
 
 // NodeStorage to get reference to runtime node service
