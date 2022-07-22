@@ -80,7 +80,7 @@ func TestHandleNetworkMessage(t *testing.T) {
 
 func TestSendNeighbourMessage(t *testing.T) {
 	gs, st := newTestService(t)
-	go gs.sendNeighbourMessage(time.Second)
+	go gs.notifyNeighbor(time.Second)
 
 	digest := types.NewDigest()
 	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
