@@ -5,23 +5,23 @@ package node
 
 import "fmt"
 
-// Type is the type of the node.
-type Type byte
+// Kind is the type of the node.
+type Kind byte
 
 const (
 	// Leaf type for leaf nodes.
-	Leaf Type = iota
+	Leaf Kind = iota
 	// Branch type for branches (with or without value).
 	Branch
 )
 
-func (t Type) String() string {
-	switch t {
+func (k Kind) String() string {
+	switch k {
 	case Leaf:
 		return "leaf"
 	case Branch:
 		return "branch"
 	default:
-		panic(fmt.Sprintf("invalid node type: %d", t))
+		panic(fmt.Sprintf("invalid node type: %d", k))
 	}
 }

@@ -43,7 +43,7 @@ type Node struct {
 
 // Type returns Leaf or Branch depending on what type
 // the node is.
-func (n *Node) Type() Type {
+func (n *Node) Type() Kind {
 	if n.Children != nil {
 		return Branch
 	}
