@@ -200,6 +200,8 @@ func (s *Service) Start() error {
 		}
 	}()
 
+	go s.notifyNeighbor(neighbourMessageInterval)
+
 	return nil
 }
 
