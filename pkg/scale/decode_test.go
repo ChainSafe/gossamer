@@ -342,6 +342,17 @@ func Test_decodeState_decodeUint(t *testing.T) {
 			in:   int(16384),
 			want: []byte{0x02, 0x00, 0x01, 0x0},
 		},
+		{
+			name: "[]int{1 << 32, 2, 3, 1 << 32}",
+			in:   uint(4),
+			want: []byte{0x10, 0x07, 0x00, 0x00, 0x00, 0x00, 0x01, 0x08, 0x0c, 0x07, 0x00, 0x00, 0x00, 0x00, 0x01},
+		},
+		{
+			name:    "[4]int{1 << 32, 2, 3, 1 << 32}",
+			in:      [4]int{0, 0, 0, 0},
+			want:    []byte{0x07, 0x00, 0x00, 0x00, 0x00, 0x01, 0x08, 0x0c, 0x07, 0x00, 0x00, 0x00, 0x00, 0x01},
+			wantErr: true,
+		},
 	}
 	t.Parallel()
 	for _, tt := range decodeUint32Tests {
@@ -359,10 +370,10 @@ func Test_decodeState_decodeUint(t *testing.T) {
 			ds.Reader = buf
 			err = ds.decodeUint(elem)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("decodeState.decodeCompactUint32 error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("decodeState.decodeUint error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if !reflect.DeepEqual(dst, tt.in) {
-				t.Errorf("decodeState.decodeCompactUint32 = %v, want %v", dst, tt.in)
+				t.Errorf("decodeState.decodeUint = %v, want %v", dst, tt.in)
 			}
 		})
 	}
