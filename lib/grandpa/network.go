@@ -18,7 +18,7 @@ import (
 
 const (
 	grandpaID1               = "grandpa/1"
-	neighbourMessageInterval = time.Minute * 5
+	neighbourMessageInterval = 5 * time.Minute
 )
 
 // Handshake is an alias for network.Handshake
