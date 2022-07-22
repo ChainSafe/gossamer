@@ -163,9 +163,10 @@ func (s *Service) CreateGenesisRuntime(t *trie.Trie, gen *genesis.Genesis) (runt
 	}
 
 	// create genesis runtime
-	rtCfg := &wasmer.Config{}
-	rtCfg.Storage = genTrie
-	rtCfg.LogLvl = s.logLvl
+	rtCfg := runtime.InstanceConfig{
+		LogLvl:  s.logLvl,
+		Storage: genTrie,
+	}
 
 	r, err := wasmer.NewRuntimeFromGenesis(rtCfg)
 	if err != nil {

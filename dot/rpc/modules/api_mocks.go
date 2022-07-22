@@ -12,8 +12,8 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// NewMockStorageAPI creates and return an rpc StorageAPI interface mock
-func NewMockStorageAPI() *modulesmocks.StorageAPI {
+// NewMockeryStorageAPI creates and return an rpc StorageAPI interface mock
+func NewMockeryStorageAPI() *modulesmocks.StorageAPI {
 	m := new(modulesmocks.StorageAPI)
 	m.On("GetStorage", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]uint8")).Return(nil, nil)
 	m.On("GetStorageFromChild", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]uint8"),

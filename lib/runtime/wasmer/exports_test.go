@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -175,9 +176,10 @@ func TestInstance_Version_KusamaRuntime(t *testing.T) {
 	genState, err := storage.NewTrieState(genTrie)
 	require.NoError(t, err)
 
-	cfg := &Config{}
-	cfg.Storage = genState
-	cfg.LogLvl = 4
+	cfg := runtime.InstanceConfig{
+		Storage: genState,
+		LogLvl:  log.Critical,
+	}
 
 	instance, err := NewRuntimeFromGenesis(cfg)
 	require.NoError(t, err)
@@ -297,9 +299,11 @@ func TestNodeRuntime_ValidateTransaction(t *testing.T) {
 	genState, err := storage.NewTrieState(genTrie)
 	require.NoError(t, err)
 
-	cfg := &Config{}
-	cfg.Storage = genState
-	cfg.LogLvl = 4
+	cfg := runtime.InstanceConfig{
+		Storage: genState,
+		LogLvl:  log.Critical,
+	}
+
 	nodeStorage := runtime.NodeStorage{}
 	nodeStorage.BaseDB = runtime.NewInMemoryDB(t)
 	cfg.NodeStorage = nodeStorage
@@ -527,9 +531,10 @@ func TestInstance_ExecuteBlock_GossamerRuntime(t *testing.T) {
 	genState, err := storage.NewTrieState(genTrie)
 	require.NoError(t, err)
 
-	cfg := &Config{}
-	cfg.Storage = genState
-	cfg.LogLvl = 4
+	cfg := runtime.InstanceConfig{
+		Storage: genState,
+		LogLvl:  log.Critical,
+	}
 
 	instance, err := NewRuntimeFromGenesis(cfg)
 	require.NoError(t, err)
@@ -558,9 +563,10 @@ func TestInstance_ApplyExtrinsic_GossamerRuntime(t *testing.T) {
 	genState, err := storage.NewTrieState(genTrie)
 	require.NoError(t, err)
 
-	cfg := &Config{}
-	cfg.Storage = genState
-	cfg.LogLvl = 4
+	cfg := runtime.InstanceConfig{
+		Storage: genState,
+		LogLvl:  log.Critical,
+	}
 
 	instance, err := NewRuntimeFromGenesis(cfg)
 	require.NoError(t, err)
@@ -620,9 +626,10 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 	genState, err := storage.NewTrieState(genTrie)
 	require.NoError(t, err)
 
-	cfg := &Config{}
-	cfg.Storage = genState
-	cfg.LogLvl = 5
+	cfg := runtime.InstanceConfig{
+		Storage: genState,
+		LogLvl:  log.Critical,
+	}
 
 	instance, err := NewRuntimeFromGenesis(cfg)
 	require.NoError(t, err)
@@ -672,9 +679,10 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 	genState, err := storage.NewTrieState(genTrie)
 	require.NoError(t, err)
 
-	cfg := &Config{}
-	cfg.Storage = genState
-	cfg.LogLvl = 4
+	cfg := runtime.InstanceConfig{
+		Storage: genState,
+		LogLvl:  log.Critical,
+	}
 
 	instance, err := NewRuntimeFromGenesis(cfg)
 	require.NoError(t, err)
@@ -718,9 +726,10 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock3784(t *testing.T) {
 	state3783, err := storage.NewTrieState(gossTrie3783)
 	require.NoError(t, err)
 
-	cfg := &Config{}
-	cfg.Storage = state3783
-	cfg.LogLvl = 4
+	cfg := runtime.InstanceConfig{
+		Storage: state3783,
+		LogLvl:  log.Critical,
+	}
 
 	instance, err := NewInstanceFromTrie(gossTrie3783, cfg)
 	require.NoError(t, err)
@@ -764,9 +773,10 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock901442(t *testing.T) {
 	state901441, err := storage.NewTrieState(ksmTrie901441)
 	require.NoError(t, err)
 
-	cfg := &Config{}
-	cfg.Storage = state901441
-	cfg.LogLvl = 4
+	cfg := runtime.InstanceConfig{
+		Storage: state901441,
+		LogLvl:  log.Critical,
+	}
 
 	instance, err := NewInstanceFromTrie(ksmTrie901441, cfg)
 	require.NoError(t, err)
@@ -810,9 +820,10 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1377831(t *testing.T) {
 	state, err := storage.NewTrieState(ksmTrie)
 	require.NoError(t, err)
 
-	cfg := &Config{}
-	cfg.Storage = state
-	cfg.LogLvl = 4
+	cfg := runtime.InstanceConfig{
+		Storage: state,
+		LogLvl:  log.Critical,
+	}
 
 	instance, err := NewInstanceFromTrie(ksmTrie, cfg)
 	require.NoError(t, err)
@@ -856,9 +867,10 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1482003(t *testing.T) {
 	state, err := storage.NewTrieState(ksmTrie)
 	require.NoError(t, err)
 
-	cfg := &Config{}
-	cfg.Storage = state
-	cfg.LogLvl = 4
+	cfg := runtime.InstanceConfig{
+		Storage: state,
+		LogLvl:  log.Critical,
+	}
 
 	instance, err := NewInstanceFromTrie(ksmTrie, cfg)
 	require.NoError(t, err)
@@ -904,9 +916,10 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock4939774(t *testing.T) {
 	state, err := storage.NewTrieState(ksmTrie)
 	require.NoError(t, err)
 
-	cfg := &Config{}
-	cfg.Storage = state
-	cfg.LogLvl = 4
+	cfg := runtime.InstanceConfig{
+		Storage: state,
+		LogLvl:  log.Critical,
+	}
 
 	instance, err := NewInstanceFromTrie(ksmTrie, cfg)
 	require.NoError(t, err)
@@ -947,9 +960,10 @@ func TestInstance_ExecuteBlock_PolkadotBlock1089328(t *testing.T) {
 	state, err := storage.NewTrieState(dotTrie)
 	require.NoError(t, err)
 
-	cfg := &Config{}
-	cfg.Storage = state
-	cfg.LogLvl = 4
+	cfg := runtime.InstanceConfig{
+		Storage: state,
+		LogLvl:  log.Critical,
+	}
 
 	instance, err := NewInstanceFromTrie(dotTrie, cfg)
 	require.NoError(t, err)

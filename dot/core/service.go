@@ -34,7 +34,7 @@ var (
 // QueryKeyValueChanges represents the key-value data inside a block storage
 type QueryKeyValueChanges map[string]string
 
-type wasmerInstanceFunc func(code []byte, cfg *wasmer.Config) (instance *wasmer.Instance, err error)
+type wasmerInstanceFunc func(code []byte, cfg runtime.InstanceConfig) (instance *wasmer.Instance, err error)
 
 // Service is an overhead layer that allows communication between the runtime,
 // BABE session, and network service. It deals with the validation of transactions
@@ -265,14 +265,12 @@ func (s *Service) handleCodeSubstitution(
 
 	// this needs to create a new runtime instance, otherwise it will update
 	// the blocks that reference the current runtime version to use the code substition
-	cfg := &wasmer.Config{
-		Imports: wasmer.ImportsNodeRuntime,
+	cfg := runtime.InstanceConfig{
+		Storage:     state,
+		Keystore:    rt.Keystore(),
+		NodeStorage: rt.NodeStorage(),
+		Network:     rt.NetworkService(),
 	}
-
-	cfg.Storage = state
-	cfg.Keystore = rt.Keystore()
-	cfg.NodeStorage = rt.NodeStorage()
-	cfg.Network = rt.NetworkService()
 
 	if rt.Validator() {
 		cfg.Role = 4
@@ -558,61 +556,6 @@ func (s *Service) GetMetadata(bhash *common.Hash) ([]byte, error) {
 
 	rt.SetContextStorage(ts)
 	return rt.Metadata()
-}
-
-// QueryStorage returns the key-value data by block based on `keys` params
-// on every block starting `from` until `to` block, if `to` is not nil
-func (s *Service) QueryStorage(from, to common.Hash, keys ...string) (map[common.Hash]QueryKeyValueChanges, error) {
-	if to.IsEmpty() {
-		to = s.blockState.BestBlockHash()
-	}
-
-	blocksToQuery, err := s.blockState.SubChain(from, to)
-	if err != nil {
-		return nil, err
-	}
-
-	queries := make(map[common.Hash]QueryKeyValueChanges)
-
-	for _, hash := range blocksToQuery {
-		changes, err := s.tryQueryStorage(hash, keys...)
-		if err != nil {
-			return nil, err
-		}
-
-		queries[hash] = changes
-	}
-
-	return queries, nil
-}
-
-// tryQueryStorage will try to get all the `keys` inside the block's current state
-func (s *Service) tryQueryStorage(block common.Hash, keys ...string) (QueryKeyValueChanges, error) {
-	stateRootHash, err := s.storageState.GetStateRootFromBlock(&block)
-	if err != nil {
-		return nil, err
-	}
-
-	changes := make(QueryKeyValueChanges)
-	for _, k := range keys {
-		keyBytes, err := common.HexToBytes(k)
-		if err != nil {
-			return nil, err
-		}
-
-		storedData, err := s.storageState.GetStorage(stateRootHash, keyBytes)
-		if err != nil {
-			return nil, err
-		}
-
-		if storedData == nil {
-			continue
-		}
-
-		changes[k] = common.BytesToHex(storedData)
-	}
-
-	return changes, nil
 }
 
 // GetReadProofAt will return an array with the proofs for the keys passed as params

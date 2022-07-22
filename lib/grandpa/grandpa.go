@@ -753,53 +753,6 @@ func (s *Service) determinePreCommit() (*Vote, error) {
 	return &pvb, nil
 }
 
-// isFinalisable returns true if the round is finalisable, false otherwise.
-func (s *Service) isFinalisable(round uint64) (bool, error) {
-	var pvb Vote
-	var err error
-
-	if round == 0 {
-		return true, nil
-	}
-
-	s.mapLock.Lock()
-	v, has := s.preVotedBlock[round]
-	s.mapLock.Unlock()
-
-	if !has {
-		return false, ErrNoPreVotedBlock
-	}
-	pvb = *v
-
-	bfc, err := s.getBestFinalCandidate()
-	if err != nil {
-		return false, err
-	}
-
-	if bfc == nil {
-		return false, errors.New("cannot find best final candidate for round")
-	}
-
-	pc, err := s.getTotalVotesForBlock(bfc.Hash, precommit)
-	if err != nil {
-		return false, err
-	}
-
-	s.mapLock.Lock()
-	prevBfc := s.bestFinalCandidate[s.state.round-1]
-	s.mapLock.Unlock()
-
-	if prevBfc == nil {
-		return false, errors.New("cannot find best final candidate for previous round")
-	}
-
-	if bfc.Number <= pvb.Number && (s.state.round == 0 || prevBfc.Number <= bfc.Number) && pc > s.state.threshold() {
-		return true, nil
-	}
-
-	return false, nil
-}
-
 // finalise finalises the round by setting the best final candidate for this round
 func (s *Service) finalise() error {
 	// get best final candidate
@@ -981,52 +934,6 @@ func (s *Service) getBestFinalCandidate() (*Vote, error) {
 	}
 
 	return bfc, nil
-}
-
-// isCompletable returns true if the round is completable, false otherwise
-func (s *Service) isCompletable() (bool, error) {
-	// haven't received enough votes, not completable
-	if uint64(s.lenVotes(precommit)+len(s.pcEquivocations)) <= s.state.threshold() {
-		return false, nil
-	}
-
-	prevoted, err := s.getPreVotedBlock()
-	if err != nil {
-		return false, err
-	}
-
-	votes := s.getVotes(precommit)
-
-	// for each block with at least 1 vote that's a descendant of the prevoted block,
-	// check that (total precommits - total pc equivocations - precommits for that block) >2/3|V|
-	// ie. there must not be a descendent of the prevotes block that is preferred
-	for _, v := range votes {
-		if prevoted.Hash == v.Hash {
-			continue
-		}
-
-		// check if the current block is a descendant of prevoted block
-		isDescendant, err := s.blockState.IsDescendantOf(prevoted.Hash, v.Hash)
-		if err != nil {
-			return false, err
-		}
-
-		if !isDescendant {
-			continue
-		}
-
-		c, err := s.getTotalVotesForBlock(v.Hash, precommit)
-		if err != nil {
-			return false, err
-		}
-
-		if uint64(len(votes)-len(s.pcEquivocations))-c <= s.state.threshold() {
-			// round isn't completable
-			return false, nil
-		}
-	}
-
-	return true, nil
 }
 
 // getPreVotedBlock returns the current pre-voted block B. also known as GRANDPA-GHOST.

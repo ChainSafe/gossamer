@@ -40,11 +40,12 @@ type useRuntimeInstace func(*testing.T, *storage.TrieState) runtime.Instance
 func useInstanceFromGenesis(t *testing.T, rtStorage *storage.TrieState) (instance runtime.Instance) {
 	t.Helper()
 
-	cfg := &wasmer.Config{}
-	cfg.Storage = rtStorage
-	cfg.LogLvl = log.Warn
-	cfg.NodeStorage = runtime.NodeStorage{
-		BaseDB: runtime.NewInMemoryDB(t),
+	cfg := runtime.InstanceConfig{
+		Storage: rtStorage,
+		LogLvl:  log.Warn,
+		NodeStorage: runtime.NodeStorage{
+			BaseDB: runtime.NewInMemoryDB(t),
+		},
 	}
 
 	runtimeInstance, err := wasmer.NewRuntimeFromGenesis(cfg)
@@ -61,15 +62,16 @@ func useInstanceFromRuntimeV0910(t *testing.T, rtStorage *storage.TrieState) (in
 
 	rtStorage.Set(common.CodeKey, bytes)
 
-	cfg := &wasmer.Config{}
-	cfg.Role = 0
-	cfg.LogLvl = log.Warn
-	cfg.Storage = rtStorage
-	cfg.Keystore = keystore.NewGlobalKeystore()
-	cfg.NodeStorage = runtime.NodeStorage{
-		LocalStorage:      runtime.NewInMemoryDB(t),
-		PersistentStorage: runtime.NewInMemoryDB(t),
-		BaseDB:            runtime.NewInMemoryDB(t),
+	cfg := runtime.InstanceConfig{
+		Role:     0,
+		LogLvl:   log.Critical,
+		Storage:  rtStorage,
+		Keystore: keystore.NewGlobalKeystore(),
+		NodeStorage: runtime.NodeStorage{
+			LocalStorage:      runtime.NewInMemoryDB(t),
+			PersistentStorage: runtime.NewInMemoryDB(t),
+			BaseDB:            runtime.NewInMemoryDB(t),
+		},
 	}
 
 	runtimeInstance, err := wasmer.NewInstanceFromTrie(rtStorage.Trie(), cfg)

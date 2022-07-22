@@ -5,7 +5,6 @@ package modules
 
 import (
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -121,8 +120,11 @@ type StateGetReadProofResponse struct {
 
 // StorageChangeSetResponse is the struct that holds the block and changes
 type StorageChangeSetResponse struct {
-	Block   *common.Hash `json:"block"`
-	Changes [][]string   `json:"changes"`
+	Block *common.Hash `json:"block"`
+	// Changes is a slice of arrays of string pointers instead of just strings
+	// so that the JSON encoder can handle nil values as NULL instead of empty
+	// strings.
+	Changes [][2]*string `json:"changes"`
 }
 
 // KeyValueOption struct holds json fields
@@ -147,14 +149,16 @@ type StateModule struct {
 	networkAPI NetworkAPI
 	storageAPI StorageAPI
 	coreAPI    CoreAPI
+	blockAPI   BlockAPI
 }
 
 // NewStateModule creates a new State module.
-func NewStateModule(net NetworkAPI, storage StorageAPI, core CoreAPI) *StateModule {
+func NewStateModule(net NetworkAPI, storage StorageAPI, core CoreAPI, blockAPI BlockAPI) *StateModule {
 	return &StateModule{
 		networkAPI: net,
 		storageAPI: storage,
 		coreAPI:    core,
+		blockAPI:   blockAPI,
 	}
 }
 
@@ -403,30 +407,63 @@ func (sm *StateModule) GetStorageSize(
 	return nil
 }
 
-// QueryStorage isn't implemented properly yet.
+// QueryStorage queries historical storage entries (by key) starting from a given request start block
+// and until a given end block, or until the best block if the given end block is nil.
 func (sm *StateModule) QueryStorage(
 	_ *http.Request, req *StateStorageQueryRangeRequest, res *[]StorageChangeSetResponse) error {
 	if req.StartBlock.IsEmpty() {
-		return errors.New("the start block hash cannot be an empty value")
+		return ErrStartBlockHashEmpty
 	}
 
-	changesByBlock, err := sm.coreAPI.QueryStorage(req.StartBlock, req.EndBlock, req.Keys...)
+	startBlock, err := sm.blockAPI.GetBlockByHash(req.StartBlock)
 	if err != nil {
 		return err
 	}
 
-	response := make([]StorageChangeSetResponse, 0, len(changesByBlock))
+	startBlockNumber := startBlock.Header.Number
 
-	for block, c := range changesByBlock {
-		var changes [][]string
+	endBlockHash := req.EndBlock
+	if req.EndBlock.IsEmpty() {
+		endBlockHash = sm.blockAPI.BestBlockHash()
+	}
+	endBlock, err := sm.blockAPI.GetBlockByHash(endBlockHash)
+	if err != nil {
+		return fmt.Errorf("getting block by hash: %w", err)
+	}
+	endBlockNumber := endBlock.Header.Number
 
-		for key, value := range c {
-			changes = append(changes, []string{key, value})
+	response := make([]StorageChangeSetResponse, 0, endBlockNumber-startBlockNumber)
+	lastValue := make([]*string, len(req.Keys))
+
+	for i := startBlockNumber; i <= endBlockNumber; i++ {
+		blockHash, err := sm.blockAPI.GetHashByNumber(i)
+		if err != nil {
+			return fmt.Errorf("cannot get hash by number: %w", err)
+		}
+		changes := make([][2]*string, 0, len(req.Keys))
+
+		for j, key := range req.Keys {
+			value, err := sm.storageAPI.GetStorageByBlockHash(&blockHash, common.MustHexToBytes(key))
+			if err != nil {
+				return fmt.Errorf("getting value by block hash: %w", err)
+			}
+			var hexValue *string
+			if len(value) > 0 {
+				hexValue = stringPtr(common.BytesToHex(value))
+			}
+
+			differentValueEncountered := i == startBlockNumber ||
+				lastValue[j] == nil && hexValue != nil ||
+				lastValue[j] != nil && *lastValue[j] != *hexValue
+			if differentValueEncountered {
+				changes = append(changes, [2]*string{stringPtr(key), hexValue})
+				lastValue[j] = hexValue
+			}
+
 		}
 
-		blochHash := block
 		response = append(response, StorageChangeSetResponse{
-			Block:   &blochHash,
+			Block:   &blockHash,
 			Changes: changes,
 		})
 	}
@@ -434,6 +471,8 @@ func (sm *StateModule) QueryStorage(
 	*res = response
 	return nil
 }
+
+func stringPtr(s string) *string { return &s }
 
 // SubscribeRuntimeVersion initialised a runtime version subscription and returns the current version
 // See dot/rpc/subscription

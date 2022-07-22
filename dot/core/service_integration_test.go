@@ -35,8 +35,6 @@ import (
 
 //go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
 
-const testSlotNumber = 21
-
 func balanceKey(t *testing.T, pub []byte) (bKey []byte) {
 	t.Helper()
 
@@ -51,35 +49,6 @@ func balanceKey(t *testing.T, pub []byte) (bKey []byte) {
 	bKey = append(bKey, h2...)
 	bKey = append(bKey, pub...)
 	return
-}
-
-func newTestDigest(t *testing.T, slotNumber uint64) scale.VaryingDataTypeSlice {
-	t.Helper()
-	testBabeDigest := types.NewBabeDigest()
-	err := testBabeDigest.Set(types.BabeSecondaryPlainPreDigest{
-		AuthorityIndex: 17,
-		SlotNumber:     slotNumber,
-	})
-	require.NoError(t, err)
-	data, err := scale.Marshal(testBabeDigest)
-	require.NoError(t, err)
-	vdts := types.NewDigest()
-	err = vdts.Add(
-		types.PreRuntimeDigest{
-			ConsensusEngineID: types.BabeEngineID,
-			Data:              data,
-		},
-		types.ConsensusDigest{
-			ConsensusEngineID: types.BabeEngineID,
-			Data:              data,
-		},
-		types.SealDigest{
-			ConsensusEngineID: types.BabeEngineID,
-			Data:              data,
-		},
-	)
-	require.NoError(t, err)
-	return vdts
 }
 
 func generateTestValidRemarkTxns(t *testing.T, pubKey []byte, accInfo types.AccountInfo) ([]byte, runtime.Instance) {
@@ -97,13 +66,10 @@ func generateTestValidRemarkTxns(t *testing.T, pubKey []byte, accInfo types.Acco
 	nodeStorage := runtime.NodeStorage{
 		BaseDB: runtime.NewInMemoryDB(t),
 	}
-	cfg := &wasmer.Config{
-		InstanceConfig: runtime.InstanceConfig{
-			Storage:     genState,
-			LogLvl:      log.Error,
-			NodeStorage: nodeStorage,
-		},
-		Imports: nil,
+	cfg := runtime.InstanceConfig{
+		Storage:     genState,
+		LogLvl:      log.Error,
+		NodeStorage: nodeStorage,
 	}
 
 	rt, err := wasmer.NewRuntimeFromGenesis(cfg)
@@ -758,177 +724,4 @@ func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 		codeHashBefore,
 		rt.GetCodeHash(),
 		"expected different code hash after runtime update")
-}
-
-func TestTryQueryStore_WhenThereIsDataToRetrieve(t *testing.T) {
-	s := NewTestService(t, nil)
-	storageStateTrie, err := rtstorage.NewTrieState(trie.NewTrie(nil))
-
-	testKey, testValue := []byte("to"), []byte("0x1723712318238AB12312")
-	storageStateTrie.Set(testKey, testValue)
-	require.NoError(t, err)
-
-	digest := newTestDigest(t, testSlotNumber)
-	header, err := types.NewHeader(s.blockState.GenesisHash(), storageStateTrie.MustRoot(), common.Hash{}, 1, digest)
-
-	require.NoError(t, err)
-
-	err = s.storageState.StoreTrie(storageStateTrie, header)
-	require.NoError(t, err)
-
-	testBlock := &types.Block{
-		Header: *header,
-		Body:   *types.NewBody([]types.Extrinsic{}),
-	}
-
-	err = s.blockState.AddBlock(testBlock)
-	require.NoError(t, err)
-
-	blockhash := testBlock.Header.Hash()
-	hexKey := common.BytesToHex(testKey)
-	keys := []string{hexKey}
-
-	changes, err := s.tryQueryStorage(blockhash, keys...)
-	require.NoError(t, err)
-
-	require.Equal(t, changes[hexKey], common.BytesToHex(testValue))
-}
-
-func TestTryQueryStore_WhenDoesNotHaveDataToRetrieve(t *testing.T) {
-	s := NewTestService(t, nil)
-	storageStateTrie, err := rtstorage.NewTrieState(trie.NewTrie(nil))
-	require.NoError(t, err)
-
-	digest := newTestDigest(t, testSlotNumber)
-	header, err := types.NewHeader(s.blockState.GenesisHash(), storageStateTrie.MustRoot(), common.Hash{}, 1, digest)
-	require.NoError(t, err)
-
-	err = s.storageState.StoreTrie(storageStateTrie, header)
-	require.NoError(t, err)
-
-	testBlock := &types.Block{
-		Header: *header,
-		Body:   *types.NewBody([]types.Extrinsic{}),
-	}
-
-	err = s.blockState.AddBlock(testBlock)
-	require.NoError(t, err)
-
-	testKey := []byte("to")
-	blockhash := testBlock.Header.Hash()
-	hexKey := common.BytesToHex(testKey)
-	keys := []string{hexKey}
-
-	changes, err := s.tryQueryStorage(blockhash, keys...)
-	require.NoError(t, err)
-
-	require.Empty(t, changes)
-}
-
-func TestTryQueryState_WhenDoesNotHaveStateRoot(t *testing.T) {
-	s := NewTestService(t, nil)
-
-	digest := newTestDigest(t, testSlotNumber)
-	header, err := types.NewHeader(
-		s.blockState.GenesisHash(),
-		common.Hash{}, common.Hash{}, 1, digest)
-	require.NoError(t, err)
-
-	testBlock := &types.Block{
-		Header: *header,
-		Body:   *types.NewBody([]types.Extrinsic{}),
-	}
-
-	err = s.blockState.AddBlock(testBlock)
-	require.NoError(t, err)
-
-	testKey := []byte("to")
-	blockhash := testBlock.Header.Hash()
-	hexKey := common.BytesToHex(testKey)
-	keys := []string{hexKey}
-
-	changes, err := s.tryQueryStorage(blockhash, keys...)
-	require.Error(t, err)
-	require.Nil(t, changes)
-}
-
-func TestQueryStorate_WhenBlocksHasData(t *testing.T) {
-	keys := []string{
-		common.BytesToHex([]byte("transfer.to")),
-		common.BytesToHex([]byte("transfer.from")),
-		common.BytesToHex([]byte("transfer.value")),
-	}
-
-	s := NewTestService(t, nil)
-
-	firstKey, firstValue := []byte("transfer.to"), []byte("some-address-herer")
-	firstBlock := createNewBlockAndStoreDataAtBlock(
-		t, s, firstKey, firstValue, s.blockState.GenesisHash(), 1,
-	)
-
-	secondKey, secondValue := []byte("transfer.from"), []byte("another-address-here")
-	secondBlock := createNewBlockAndStoreDataAtBlock(
-		t, s, secondKey, secondValue, firstBlock.Header.Hash(), 2,
-	)
-
-	thirdKey, thirdValue := []byte("transfer.value"), []byte("value-gigamegablaster")
-	thirdBlock := createNewBlockAndStoreDataAtBlock(
-		t, s, thirdKey, thirdValue, secondBlock.Header.Hash(), 3,
-	)
-
-	from := firstBlock.Header.Hash()
-	data, err := s.QueryStorage(from, common.Hash{}, keys...)
-	require.NoError(t, err)
-	require.Len(t, data, 3)
-
-	require.Equal(t, data[firstBlock.Header.Hash()], QueryKeyValueChanges(
-		map[string]string{
-			common.BytesToHex(firstKey): common.BytesToHex(firstValue),
-		},
-	))
-
-	from = secondBlock.Header.Hash()
-	to := thirdBlock.Header.Hash()
-
-	data, err = s.QueryStorage(from, to, keys...)
-	require.NoError(t, err)
-	require.Len(t, data, 2)
-
-	require.Equal(t, data[secondBlock.Header.Hash()], QueryKeyValueChanges(
-		map[string]string{
-			common.BytesToHex(secondKey): common.BytesToHex(secondValue),
-		},
-	))
-	require.Equal(t, data[thirdBlock.Header.Hash()], QueryKeyValueChanges(
-		map[string]string{
-			common.BytesToHex(thirdKey): common.BytesToHex(thirdValue),
-		},
-	))
-}
-
-func createNewBlockAndStoreDataAtBlock(t *testing.T, s *Service,
-	key, value []byte, parentHash common.Hash,
-	number uint) *types.Block {
-	t.Helper()
-
-	storageStateTrie, err := rtstorage.NewTrieState(trie.NewTrie(nil))
-	storageStateTrie.Set(key, value)
-	require.NoError(t, err)
-
-	digest := newTestDigest(t, 421)
-	header, err := types.NewHeader(parentHash, storageStateTrie.MustRoot(), common.Hash{}, number, digest)
-	require.NoError(t, err)
-
-	err = s.storageState.StoreTrie(storageStateTrie, header)
-	require.NoError(t, err)
-
-	testBlock := &types.Block{
-		Header: *header,
-		Body:   *types.NewBody([]types.Extrinsic{}),
-	}
-
-	err = s.blockState.AddBlock(testBlock)
-	require.NoError(t, err)
-
-	return testBlock
 }

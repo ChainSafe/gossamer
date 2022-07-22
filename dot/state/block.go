@@ -609,15 +609,13 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 			bHash, codeHash, previousVersion.SpecVersion(), currCodeHash, newVersion.SpecVersion())
 	}
 
-	rtCfg := &wasmer.Config{
-		Imports: wasmer.ImportsNodeRuntime,
+	rtCfg := runtime.InstanceConfig{
+		Storage:     newState,
+		Keystore:    rt.Keystore(),
+		NodeStorage: rt.NodeStorage(),
+		Network:     rt.NetworkService(),
+		CodeHash:    currCodeHash,
 	}
-
-	rtCfg.Storage = newState
-	rtCfg.Keystore = rt.Keystore()
-	rtCfg.NodeStorage = rt.NodeStorage()
-	rtCfg.Network = rt.NetworkService()
-	rtCfg.CodeHash = currCodeHash
 
 	if rt.Validator() {
 		rtCfg.Role = 4
