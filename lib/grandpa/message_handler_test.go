@@ -14,6 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	grandpaerrors "github.com/ChainSafe/gossamer/lib/grandpa/errors"
 	"github.com/ChainSafe/gossamer/lib/grandpa/models"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -500,7 +501,7 @@ func TestVerifyJustification_InvalidAuthority(t *testing.T) {
 	}
 
 	err = h.verifyJustification(just, 77, gs.state.SetID, models.Precommit)
-	require.EqualError(t, err, ErrVoterNotFound.Error())
+	require.ErrorIs(t, err, grandpaerrors.ErrVoterNotFound)
 }
 
 func TestMessageHandler_VerifyPreVoteJustification(t *testing.T) {

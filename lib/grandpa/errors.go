@@ -22,9 +22,6 @@ var (
 	ErrNilKeypair       = errors.New("cannot have nil keypair")
 	ErrNilNetwork       = errors.New("cannot have nil Network")
 
-	// ErrBlockDoesNotExist is returned when trying to validate a vote for a block that doesn't exist
-	ErrBlockDoesNotExist = errors.New("block does not exist")
-
 	// ErrInvalidSignature is returned when trying to validate a vote message with an invalid signature
 	ErrInvalidSignature = errors.New("signature is not valid")
 
@@ -35,9 +32,6 @@ var (
 
 	// ErrEquivocation is returned when trying to validate a vote for that is equivocatory
 	ErrEquivocation = errors.New("vote is equivocatory")
-
-	// ErrVoterNotFound is returned when trying to validate a vote for a voter that isn't in the voter set
-	ErrVoterNotFound = errors.New("voter is not in voter set")
 
 	// ErrDescendantNotFound is returned when trying to validate a vote
 	// for a block that isn't a descendant of the last finalised block

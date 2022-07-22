@@ -10,6 +10,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/grandpa/errors"
 	"github.com/ChainSafe/gossamer/lib/grandpa/models"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/stretchr/testify/require"
@@ -323,7 +324,7 @@ func TestValidateMessage_BlockDoesNotExist(t *testing.T) {
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
 	_, err = gs.validateVoteMessage("", msg)
-	require.Equal(t, err, ErrBlockDoesNotExist)
+	require.ErrorIs(t, err, errors.ErrBlockDoesNotExist)
 }
 
 func TestValidateMessage_IsNotDescendant(t *testing.T) {

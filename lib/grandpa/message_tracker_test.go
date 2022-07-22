@@ -11,6 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/grandpa/errors"
 	"github.com/ChainSafe/gossamer/lib/grandpa/models"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 
@@ -53,7 +54,7 @@ func TestMessageTracker_ValidateMessage(t *testing.T) {
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
 	_, err = gs.validateVoteMessage("", msg)
-	require.Equal(t, err, ErrBlockDoesNotExist)
+	require.ErrorIs(t, err, errors.ErrBlockDoesNotExist)
 	authorityID := kr.Alice().Public().(*ed25519.PublicKey).AsBytes()
 	voteMessage := getMessageFromVotesTracker(gs.tracker.votes, fake.Hash(), authorityID)
 	require.Equal(t, msg, voteMessage)
@@ -90,7 +91,7 @@ func TestMessageTracker_SendMessage(t *testing.T) {
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
 	_, err = gs.validateVoteMessage("", msg)
-	require.Equal(t, err, ErrBlockDoesNotExist)
+	require.ErrorIs(t, err, errors.ErrBlockDoesNotExist)
 	authorityID := kr.Alice().Public().(*ed25519.PublicKey).AsBytes()
 	voteMessage := getMessageFromVotesTracker(gs.tracker.votes, next.Hash(), authorityID)
 	require.Equal(t, msg, voteMessage)
@@ -142,7 +143,7 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
 	_, err = gs.validateVoteMessage("", msg)
-	require.Equal(t, ErrBlockDoesNotExist, err)
+	require.ErrorIs(t, err, errors.ErrBlockDoesNotExist)
 	authorityID := kr.Alice().Public().(*ed25519.PublicKey).AsBytes()
 	voteMessage := getMessageFromVotesTracker(gs.tracker.votes, next.Hash(), authorityID)
 	require.Equal(t, msg, voteMessage)

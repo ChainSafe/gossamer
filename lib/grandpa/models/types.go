@@ -9,6 +9,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/grandpa/errors"
 )
 
 //nolint:revive
@@ -71,7 +72,7 @@ func (s *State) PubkeyToVoter(pk *ed25519.PublicKey) (*Voter, error) {
 	}
 
 	if id == max {
-		return nil, ErrVoterNotFound
+		return nil, errors.ErrVoterNotFound
 	}
 
 	return &Voter{
@@ -117,7 +118,7 @@ func NewVoteFromHash(hash common.Hash, blockState HeaderGetter) (*Vote, error) {
 	}
 
 	if !has {
-		return nil, ErrBlockDoesNotExist
+		return nil, errors.ErrBlockDoesNotExist
 	}
 
 	h, err := blockState.GetHeader(hash)

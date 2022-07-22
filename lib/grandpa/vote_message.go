@@ -12,6 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	grandpaerrors "github.com/ChainSafe/gossamer/lib/grandpa/errors"
 	"github.com/ChainSafe/gossamer/lib/grandpa/models"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
@@ -204,7 +205,7 @@ func (s *Service) validateVoteMessage(from peer.ID, m *models.VoteMessage) (*mod
 	}
 
 	err = s.validateVote(vote)
-	if errors.Is(err, ErrBlockDoesNotExist) ||
+	if errors.Is(err, grandpaerrors.ErrBlockDoesNotExist) ||
 		errors.Is(err, blocktree.ErrDescendantNotFound) ||
 		errors.Is(err, blocktree.ErrEndNodeNotFound) ||
 		errors.Is(err, blocktree.ErrStartNodeNotFound) {
@@ -286,7 +287,7 @@ func (s *Service) validateVote(v *models.Vote) error {
 	}
 
 	if !has {
-		return ErrBlockDoesNotExist
+		return grandpaerrors.ErrBlockDoesNotExist
 	}
 
 	// check if the block is an eventual descendant of a previously finalised block
