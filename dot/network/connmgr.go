@@ -110,18 +110,6 @@ func (cm *ConnManager) ListenClose(n network.Network, addr ma.Multiaddr) {
 		"Host %s stopped listening on address %s", n.LocalPeer(), addr)
 }
 
-// returns a slice of peers that are unprotected and may be pruned.
-func (cm *ConnManager) unprotectedPeers(peers []peer.ID) []peer.ID {
-	unprot := []peer.ID{}
-	for _, id := range peers {
-		if !cm.IsProtected(id, "") && !cm.isPersistent(id) {
-			unprot = append(unprot, id)
-		}
-	}
-
-	return unprot
-}
-
 // Connected is called when a connection opened
 func (cm *ConnManager) Connected(n network.Network, c network.Conn) {
 	logger.Tracef(
@@ -140,9 +128,4 @@ func (cm *ConnManager) Disconnected(_ network.Network, c network.Conn) {
 	if cm.disconnectHandler != nil {
 		cm.disconnectHandler(c.RemotePeer())
 	}
-}
-
-func (cm *ConnManager) isPersistent(p peer.ID) bool {
-	_, ok := cm.persistentPeers.Load(p)
-	return ok
 }

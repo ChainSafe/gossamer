@@ -121,7 +121,7 @@ func TestBeginDiscovery(t *testing.T) {
 	nodeB := createTestService(t, configB)
 	nodeB.noGossip = true
 
-	addrInfoB := nodeB.host.addrInfo()
+	addrInfoB := addrInfo(nodeB.host)
 	err := nodeA.host.connect(addrInfoB)
 	if failedToDial(err) {
 		time.Sleep(TestBackoffTimeout)
@@ -170,7 +170,7 @@ func TestBeginDiscovery_ThreeNodes(t *testing.T) {
 	nodeC.noGossip = true
 
 	// connect A and B
-	addrInfoB := nodeB.host.addrInfo()
+	addrInfoB := addrInfo(nodeB.host)
 	err := nodeA.host.connect(addrInfoB)
 	if failedToDial(err) {
 		time.Sleep(TestBackoffTimeout)
@@ -179,7 +179,7 @@ func TestBeginDiscovery_ThreeNodes(t *testing.T) {
 	require.NoError(t, err)
 
 	// connect A and C
-	addrInfoC := nodeC.host.addrInfo()
+	addrInfoC := addrInfo(nodeC.host)
 	err = nodeA.host.connect(addrInfoC)
 	if failedToDial(err) {
 		time.Sleep(TestBackoffTimeout)

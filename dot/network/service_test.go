@@ -160,8 +160,6 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 		cfg.Telemetry = telemetryMock
 	}
 
-	cfg.noPreAllocate = true
-
 	srvc, err := NewService(cfg)
 	require.NoError(t, err)
 
@@ -211,7 +209,7 @@ func TestBroadcastMessages(t *testing.T) {
 	handler := newTestStreamHandler(testBlockAnnounceHandshakeDecoder)
 	nodeB.host.registerStreamHandler(nodeB.host.protocolID+blockAnnounceID, handler.handleStream)
 
-	addrInfoB := nodeB.host.addrInfo()
+	addrInfoB := addrInfo(nodeB.host)
 	err := nodeA.host.connect(addrInfoB)
 	// retry connect if "failed to dial" error
 	if failedToDial(err) {
@@ -260,7 +258,7 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 	handler := newTestStreamHandler(testBlockAnnounceHandshakeDecoder)
 	nodeB.host.registerStreamHandler(nodeB.host.protocolID+blockAnnounceID, handler.handleStream)
 
-	addrInfoB := nodeB.host.addrInfo()
+	addrInfoB := addrInfo(nodeB.host)
 	err := nodeA.host.connect(addrInfoB)
 	// retry connect if "failed to dial" error
 	if failedToDial(err) {
@@ -354,7 +352,7 @@ func TestPersistPeerStore(t *testing.T) {
 	nodeA := nodes[0]
 	nodeB := nodes[1]
 
-	addrInfoB := nodeB.host.addrInfo()
+	addrInfoB := addrInfo(nodeB.host)
 	err := nodeA.host.connect(addrInfoB)
 	if failedToDial(err) {
 		time.Sleep(TestBackoffTimeout)
@@ -394,7 +392,7 @@ func TestHandleConn(t *testing.T) {
 
 	nodeB := createTestService(t, configB)
 
-	addrInfoB := nodeB.host.addrInfo()
+	addrInfoB := addrInfo(nodeB.host)
 	err := nodeA.host.connect(addrInfoB)
 	if failedToDial(err) {
 		time.Sleep(TestBackoffTimeout)

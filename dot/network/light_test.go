@@ -104,7 +104,7 @@ func TestHandleLightMessage_Response(t *testing.T) {
 	}
 	b := createTestService(t, configB)
 
-	addrInfoB := b.host.addrInfo()
+	addrInfoB := addrInfo(b.host)
 	err := s.host.connect(addrInfoB)
 	// retry connect if "failed to dial" error
 	if failedToDial(err) {
