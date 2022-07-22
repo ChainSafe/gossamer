@@ -116,22 +116,6 @@ func (nodes Nodes) InitAndStartTest(ctx context.Context, t *testing.T,
 		t.FailNow()
 	}
 
-	// this is run sequentially since all nodes start almost at the same time
-	// so waiting for one node will also wait for all the others.
-	// You can see this since the test logs out that all the nodes are ready
-	// at the same time.
-	for _, node := range nodes {
-		err := waitForNode(ctx, node.RPCPort())
-		if err == nil {
-			t.Logf("Node %s is ready", node)
-			continue
-		}
-
-		t.Errorf("Node %s failed to be ready: %s", node, err)
-		stopNodes(t, nodesCancel, runtimeErrors)
-		t.FailNow()
-	}
-
 	// watch for runtime fatal error from any of the nodes
 	watchDogCtx, watchDogCancel := context.WithCancel(ctx)
 	watchDogDone := make(chan struct{})
@@ -159,6 +143,22 @@ func (nodes Nodes) InitAndStartTest(ctx context.Context, t *testing.T,
 		// Stop and wait for nodes to exit
 		stopNodes(t, nodesCancel, runtimeErrors)
 	})
+
+	// this is run sequentially since all nodes start almost at the same time
+	// so waiting for one node will also wait for all the others.
+	// You can see this since the test logs out that all the nodes are ready
+	// at the same time.
+	for _, node := range nodes {
+		err := waitForNode(ctx, node.RPCPort())
+		if err == nil {
+			t.Logf("Node %s is ready", node)
+			continue
+		}
+
+		t.Errorf("Node %s failed to be ready: %s", node, err)
+		stopNodes(t, nodesCancel, runtimeErrors)
+		t.FailNow()
+	}
 }
 
 func stopNodes(t *testing.T, nodesCancel context.CancelFunc,
