@@ -200,8 +200,6 @@ func (s *Service) Start() error {
 		}
 	}()
 
-	go s.sendNeighbourMessage(neighbourMessageInterval)
-
 	return nil
 }
 
@@ -344,6 +342,13 @@ func (s *Service) initiateRound() error {
 	s.precommits = new(sync.Map)
 	s.pvEquivocations = make(map[ed25519.PublicKeyBytes][]*SignedVote)
 	s.pcEquivocations = make(map[ed25519.PublicKeyBytes][]*SignedVote)
+
+	s.sendNeighborMessage(&NeighbourMessage{
+		Version: 1,
+		Round:   s.state.round,
+		SetID:   s.state.setID,
+		Number:  uint32(s.head.Number),
+	})
 	s.roundLock.Unlock()
 
 	best, err := s.blockState.BestBlockHeader()
@@ -501,15 +506,8 @@ func (s *Service) playGrandpaRound() error {
 		s.prevotes.Store(s.publicKeyBytes(), spv)
 	}
 
-	logger.Debugf("sending pre-vote message %s...", pv)
-	roundComplete := make(chan struct{})
-	// roundComplete is a signal channel which is closed when the round completes
-	// (will receive the default value of channel's type), so we don't need to
-	// explicitly send a value.
-	defer close(roundComplete)
-
-	// continue to send prevote messages until round is done
-	go s.sendVoteMessage(prevote, vm, roundComplete)
+	prevoteRoundComplete := make(chan struct{})
+	go s.sendPrevoteMessage(vm, prevoteRoundComplete)
 
 	logger.Debug("receiving pre-commit messages...")
 	// through goroutine s.receiveVoteMessages(ctx)
@@ -519,7 +517,8 @@ func (s *Service) playGrandpaRound() error {
 		return ErrServicePaused
 	}
 
-	// broadcast pre-commit
+	// determine and broadcast pre-commit only after seen prevote messages
+	<-prevoteRoundComplete
 	pc, err := s.determinePreCommit()
 	if err != nil {
 		return err
@@ -531,12 +530,14 @@ func (s *Service) playGrandpaRound() error {
 	}
 
 	s.precommits.Store(s.publicKeyBytes(), spc)
-	logger.Debugf("sending pre-commit message %s...", pc)
 
 	// continue to send precommit messages until round is done
-	go s.sendVoteMessage(precommit, pcm, roundComplete)
+	precommitDoneCh := make(chan struct{})
+	defer close(precommitDoneCh)
+	go s.sendPrecommitMessage(pcm, precommitDoneCh)
 
-	if err = s.attemptToFinalize(); err != nil {
+	err = s.attemptToFinalize(precommitDoneCh)
+	if err != nil {
 		logger.Errorf("failed to finalise: %s", err)
 		return err
 	}
@@ -545,9 +546,13 @@ func (s *Service) playGrandpaRound() error {
 	return nil
 }
 
-func (s *Service) sendVoteMessage(stage Subround, msg *VoteMessage, roundComplete <-chan struct{}) {
+func (s *Service) sendPrecommitMessage(vm *VoteMessage, done <-chan struct{}) {
+	logger.Debugf("sending pre-commit message %s...", vm.Message)
+
 	ticker := time.NewTicker(s.interval * 4)
 	defer ticker.Stop()
+
+	threshold := s.state.threshold()
 
 	// Though this looks like we are sending messages multiple times,
 	// caching would make sure that they are being sent only once.
@@ -556,22 +561,58 @@ func (s *Service) sendVoteMessage(stage Subround, msg *VoteMessage, roundComplet
 			return
 		}
 
-		if err := s.sendMessage(msg); err != nil {
-			logger.Warnf("could not send message for stage %s: %s", stage, err)
+		if err := s.sendMessage(vm); err != nil {
+			logger.Warnf("could not send message for stage %s: %s", precommit, err)
 		} else {
-			logger.Tracef("sent vote message for stage %s: %s", stage, msg.Message)
+			logger.Warnf("sent vote message for stage %s: %s", precommit, vm.Message)
+		}
+
+		if uint64(s.lenVotes(precommit)) >= threshold {
+			<-done
+			return
 		}
 
 		select {
-		case <-roundComplete:
-			return
 		case <-ticker.C:
+		case <-done:
+			return
 		}
 	}
 }
 
+func (s *Service) sendPrevoteMessage(vm *VoteMessage, done chan<- struct{}) {
+	logger.Debugf("sending pre-vote message %s...", vm)
+	defer close(done)
+
+	ticker := time.NewTicker(s.interval * 4)
+	defer ticker.Stop()
+
+	threshold := s.state.threshold()
+
+	// Though this looks like we are sending messages multiple times,
+	// caching would make sure that they are being sent only once.
+	for {
+		// stop sending prevote messages once we see a precommit vote
+		if uint64(s.lenVotes(precommit)) > 0 {
+			return
+		}
+
+		if err := s.sendMessage(vm); err != nil {
+			logger.Warnf("could not send message for stage %s: %s", prevote, err)
+		} else {
+			logger.Warnf("sent vote message for stage %s: %s", prevote, vm.Message)
+		}
+
+		if s.paused.Load().(bool) || uint64(s.lenVotes(prevote)) >= threshold {
+			return
+		}
+
+		<-ticker.C
+	}
+}
+
 // attemptToFinalize loops until the round is finalisable
-func (s *Service) attemptToFinalize() error {
+func (s *Service) attemptToFinalize(precommitDoneCh chan<- struct{}) error {
 	ticker := time.NewTicker(s.interval / 100)
 
 	for {
@@ -617,6 +658,9 @@ func (s *Service) attemptToFinalize() error {
 		if bfc.Number < uint32(s.head.Number) || pc <= s.state.threshold() {
 			continue
 		}
+
+		// once we reach the threshold we should stop sending precommit messages to other peers
+		precommitDoneCh <- struct{}{}
 
 		if err = s.finalise(); err != nil {
 			return err
