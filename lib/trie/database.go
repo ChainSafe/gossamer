@@ -32,7 +32,7 @@ func (t *Trie) Store(db chaindb.Database) error {
 	}
 
 	batch := db.NewBatch()
-	err := t.store(batch, t.root)
+	err := t.storeNode(batch, t.root)
 	if err != nil {
 		batch.Reset()
 		return err
@@ -41,7 +41,7 @@ func (t *Trie) Store(db chaindb.Database) error {
 	return batch.Flush()
 }
 
-func (t *Trie) store(db chaindb.Batch, n *Node) (err error) {
+func (t *Trie) storeNode(db chaindb.Batch, n *Node) (err error) {
 	if n == nil {
 		return nil
 	}
@@ -67,7 +67,7 @@ func (t *Trie) store(db chaindb.Batch, n *Node) (err error) {
 				continue
 			}
 
-			err = t.store(db, child)
+			err = t.storeNode(db, child)
 			if err != nil {
 				return err
 			}
@@ -106,10 +106,10 @@ func (t *Trie) Load(db Database, rootHash common.Hash) error {
 	t.root.Encoding = encodedNode
 	t.root.HashDigest = rootHashBytes
 
-	return t.load(db, t.root)
+	return t.loadNode(db, t.root)
 }
 
-func (t *Trie) load(db Database, n *Node) error {
+func (t *Trie) loadNode(db Database, n *Node) error {
 	if n.Type() != node.Branch {
 		return nil
 	}
@@ -149,7 +149,7 @@ func (t *Trie) load(db Database, n *Node) error {
 		decodedNode.HashDigest = hash
 		branch.Children[i] = decodedNode
 
-		err = t.load(db, decodedNode)
+		err = t.loadNode(db, decodedNode)
 		if err != nil {
 			return fmt.Errorf("cannot load child at index %d with hash 0x%x: %w", i, hash, err)
 		}
@@ -253,14 +253,14 @@ func GetFromDB(db chaindb.Database, rootHash common.Hash, key []byte) (
 		return nil, fmt.Errorf("cannot decode root node: %w", err)
 	}
 
-	return getFromDB(db, rootNode, k)
+	return getFromDBAtNode(db, rootNode, k)
 }
 
-// getFromDB recursively searches through the trie and database
+// getFromDBAtNode recursively searches through the trie and database
 // for the value corresponding to a key.
 // Note it does not copy the value so modifying the value bytes
 // slice will modify the value of the node in the trie.
-func getFromDB(db chaindb.Database, n *Node, key []byte) (
+func getFromDBAtNode(db chaindb.Database, n *Node, key []byte) (
 	value []byte, err error) {
 	if n.Type() == node.Leaf {
 		if bytes.Equal(n.Key, key) {
@@ -293,7 +293,7 @@ func getFromDB(db chaindb.Database, n *Node, key []byte) (
 	// Child can be either inlined or a hash pointer.
 	childHash := child.HashDigest
 	if len(childHash) == 0 && child.Type() == node.Leaf {
-		return getFromDB(db, child, key[commonPrefixLength+1:])
+		return getFromDBAtNode(db, child, key[commonPrefixLength+1:])
 	}
 
 	encodedChild, err := db.Get(childHash)
@@ -311,14 +311,14 @@ func getFromDB(db chaindb.Database, n *Node, key []byte) (
 			childHash, err)
 	}
 
-	return getFromDB(db, decodedChild, key[commonPrefixLength+1:])
+	return getFromDBAtNode(db, decodedChild, key[commonPrefixLength+1:])
 	// Note: do not wrap error since it's called recursively.
 }
 
 // WriteDirty writes all dirty nodes to the database and sets them to clean
 func (t *Trie) WriteDirty(db chaindb.Database) error {
 	batch := db.NewBatch()
-	err := t.writeDirty(batch, t.root)
+	err := t.writeDirtyNode(batch, t.root)
 	if err != nil {
 		batch.Reset()
 		return err
@@ -327,7 +327,7 @@ func (t *Trie) WriteDirty(db chaindb.Database) error {
 	return batch.Flush()
 }
 
-func (t *Trie) writeDirty(db chaindb.Batch, n *Node) (err error) {
+func (t *Trie) writeDirtyNode(db chaindb.Batch, n *Node) (err error) {
 	if n == nil || !n.Dirty {
 		return nil
 	}
@@ -361,7 +361,7 @@ func (t *Trie) writeDirty(db chaindb.Batch, n *Node) (err error) {
 			continue
 		}
 
-		err = t.writeDirty(db, child)
+		err = t.writeDirtyNode(db, child)
 		if err != nil {
 			// Note: do not wrap error since it's returned recursively.
 			return err
@@ -369,7 +369,7 @@ func (t *Trie) writeDirty(db chaindb.Batch, n *Node) (err error) {
 	}
 
 	for _, childTrie := range t.childTries {
-		if err := childTrie.writeDirty(db, childTrie.root); err != nil {
+		if err := childTrie.writeDirtyNode(db, childTrie.root); err != nil {
 			return fmt.Errorf("failed to write dirty node=0x%x to database: %w", childTrie.root.HashDigest, err)
 		}
 	}
@@ -385,14 +385,14 @@ func (t *Trie) writeDirty(db chaindb.Batch, n *Node) (err error) {
 // We need to compute the hash values of each newly inserted node.
 func (t *Trie) GetInsertedNodeHashes() (hashesSet map[common.Hash]struct{}, err error) {
 	hashesSet = make(map[common.Hash]struct{})
-	err = t.getInsertedNodeHashes(t.root, hashesSet)
+	err = t.getInsertedNodeHashesAtNode(t.root, hashesSet)
 	if err != nil {
 		return nil, err
 	}
 	return hashesSet, nil
 }
 
-func (t *Trie) getInsertedNodeHashes(n *Node, hashes map[common.Hash]struct{}) (err error) {
+func (t *Trie) getInsertedNodeHashesAtNode(n *Node, hashes map[common.Hash]struct{}) (err error) {
 	if n == nil || !n.Dirty {
 		return nil
 	}
@@ -420,7 +420,7 @@ func (t *Trie) getInsertedNodeHashes(n *Node, hashes map[common.Hash]struct{}) (
 			continue
 		}
 
-		err := t.getInsertedNodeHashes(child, hashes)
+		err := t.getInsertedNodeHashesAtNode(child, hashes)
 		if err != nil {
 			// Note: do not wrap error since this is called recursively.
 			return err
