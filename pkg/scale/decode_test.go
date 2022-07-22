@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_decodeState_decodeFixedWidthInt(t *testing.T) {
@@ -303,8 +304,8 @@ func Test_Decoder_Decode_MultipleCalls(t *testing.T) {
 	}
 }
 
-var (
-	decodeUint32Tests = tests{
+func Test_decodeState_decodeUint(t *testing.T) {
+	decodeUint32Tests := tests{
 		{
 			name: "int(1) mode 0",
 			in:   uint32(1),
@@ -326,10 +327,9 @@ var (
 			want: []byte{0x3, 0xff, 0xff, 0xff, 0xff},
 		},
 		{
-			name:    "myCustomInt(9223372036854775807) out of range",
-			in:      myCustomInt(0),
-			want:    []byte{19, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f},
-			wantErr: true,
+			name: "myCustomInt(9223372036854775807) mode 3, 64bit",
+			in:   myCustomInt(9223372036854775807),
+			want: []byte{19, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f},
 		},
 		{
 			name:    "uint(overload)",
@@ -343,11 +343,11 @@ var (
 			want: []byte{0x02, 0x00, 0x01, 0x0},
 		},
 	}
-)
-
-func Test_decodeState_decodeUInt32(t *testing.T) {
+	t.Parallel()
 	for _, tt := range decodeUint32Tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			dst := reflect.New(reflect.TypeOf(tt.in)).Elem().Interface()
 			dstv := reflect.ValueOf(&dst)
 			elem := indirect(dstv)
@@ -355,11 +355,9 @@ func Test_decodeState_decodeUInt32(t *testing.T) {
 			buf := &bytes.Buffer{}
 			ds := decodeState{}
 			_, err := buf.Write(tt.want)
-			if err != nil {
-				return
-			}
+			assert.NoError(t, err)
 			ds.Reader = buf
-			err = ds.decodeCompactUint32(elem)
+			err = ds.decodeUint(elem)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("decodeState.decodeCompactUint32 error = %v, wantErr %v", err, tt.wantErr)
 			}

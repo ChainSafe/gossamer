@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math"
 	"math/big"
 	"reflect"
 )
@@ -479,113 +478,81 @@ func (ds *decodeState) decodeBool(dstv reflect.Value) (err error) {
 
 // decodeUint will decode unsigned integer
 func (ds *decodeState) decodeUint(dstv reflect.Value) (err error) {
-	b, err := ds.ReadByte()
+	const maxUint32 = ^uint32(0)
+	const maxUint64 = ^uint64(0)
+	prefix, err := ds.ReadByte()
 	if err != nil {
-		return
+		return fmt.Errorf("reading from buffer: %w", err)
 	}
 
 	in := dstv.Interface()
 	temp := reflect.New(reflect.TypeOf(in))
 	// check mode of encoding, stored at 2 least significant bits
-	mode := b & 3
-	switch {
-	case mode <= 2:
-		var val int64
-		val, err = ds.decodeSmallInt(b, mode)
+	mode := prefix % 4
+	var value uint
+	switch mode {
+	case 0:
+		value = uint(prefix >> 2)
+	case 1:
+		var buf byte
+		buf, err = ds.ReadByte()
 		if err != nil {
-			return
+			return fmt.Errorf("reading from buffer: %w", err)
 		}
-		temp.Elem().Set(reflect.ValueOf(val).Convert(reflect.TypeOf(in)))
-		dstv.Set(temp.Elem())
-	default:
-		// >4 byte mode
-		topSixBits := b >> 2
-		byteLen := uint(topSixBits) + 4
-
+		value = uint(binary.LittleEndian.Uint16([]byte{prefix, buf}) >> 2)
+		if value <= 0b0011_1111 || value > 0b0111_1111_1111_1111 {
+			return ErrU64OutOfRange
+		}
+	case 2:
+		buf := make([]byte, 3)
+		_, err = ds.Read(buf)
+		if err != nil {
+			break
+		}
+		value = uint(binary.LittleEndian.Uint32(append([]byte{prefix}, buf...)) >> 2)
+		if value <= 0b0011_1111_1111_1111 || value > uint(maxUint32>>2) {
+			return ErrU64OutOfRange
+		}
+	case 3:
+		byteLen := (prefix >> 2) + 4
 		buf := make([]byte, byteLen)
 		_, err = ds.Read(buf)
 		if err != nil {
-			return
+			return fmt.Errorf("reading from buffer: %w", err)
 		}
-
-		var o uint64
-		if byteLen == 4 {
-			o = uint64(binary.LittleEndian.Uint32(buf))
-		} else if byteLen > 4 && byteLen <= 8 {
+		switch byteLen {
+		case 4:
+			value = uint(binary.LittleEndian.Uint32(buf))
+			if value <= uint(maxUint32>>2) {
+				return ErrU64OutOfRange
+			}
+		case 8:
+			uintSize := 32 << (^uint(0) >> 32 & 1)
+			if uintSize == 32 {
+				return fmt.Errorf("uint64 is not supported")
+			}
 			tmp := make([]byte, 8)
 			copy(tmp, buf)
-			o = binary.LittleEndian.Uint64(tmp)
-		} else {
-			err = errors.New("could not decode invalid integer")
-			return
+			value = uint(binary.LittleEndian.Uint64(tmp))
+			if value <= uint(maxUint64>>8) {
+				return ErrU64OutOfRange
+			}
+		default:
+			return fmt.Errorf("unexpected prefix decoding compact uint: %d", prefix)
+
 		}
-		dstv.Set(reflect.ValueOf(o).Convert(reflect.TypeOf(in)))
 	}
+	temp.Elem().Set(reflect.ValueOf(value).Convert(reflect.TypeOf(in)))
+	dstv.Set(temp.Elem())
 	return
 }
 
-var errorU32OutOfRange = errors.New("uint32 out of range")
-
-// decodeCompactUint32 will decode compact unsigned 32-bit integer
-func (ds *decodeState) decodeCompactUint32(dstv reflect.Value) (err error) {
-	b, err := ds.ReadByte()
-	if err != nil {
-		return
-	}
-
-	in := dstv.Interface()
-	temp := reflect.New(reflect.TypeOf(in))
-	// check mode of encoding, stored at 2 least significant bits
-	mode := b & 3
-	switch {
-	case mode <= 2:
-		var val int64
-		val, err = ds.decodeSmallInt(b, mode)
-		if err != nil {
-			return
-		}
-		if mode == 1 {
-			if !(val > 0b0011_1111 && val <= 0b0011_1111_1111_1111) {
-				return errorU32OutOfRange
-			}
-		}
-		if mode == 2 {
-			if !(val > 0b0011_1111_1111_1111 && val <= math.MaxUint32>>2) {
-				return errorU32OutOfRange
-			}
-		}
-		temp.Elem().Set(reflect.ValueOf(val).Convert(reflect.TypeOf(in)))
-		dstv.Set(temp.Elem())
-	default:
-		// >4 byte mode
-		topSixBits := b >> 2
-		if mode == 3 && topSixBits != 0 {
-			return errorU32OutOfRange
-		}
-		byteLen := uint(topSixBits) + 4
-
-		buf := make([]byte, byteLen)
-		_, err = ds.Read(buf)
-		if err != nil {
-			return
-		}
-
-		var o uint32
-		if byteLen == 4 {
-			o = binary.LittleEndian.Uint32(buf)
-		}
-		if !(o > math.MaxUint32>>2) {
-			return errorU32OutOfRange
-		}
-		dstv.Set(reflect.ValueOf(o).Convert(reflect.TypeOf(in)))
-	}
-	return
-}
+var ErrU64OutOfRange = errors.New("uint64 out of range")
 
 // decodeLength is helper method which calls decodeUint and casts to int
 func (ds *decodeState) decodeLength() (l int, err error) {
 	dstv := reflect.New(reflect.TypeOf(l))
-	err = ds.decodeCompactUint32(dstv.Elem())
+	err = ds.decodeUint(dstv.Elem())
 	if err != nil {
 		return
 	}
