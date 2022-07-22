@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -689,7 +688,7 @@ func addAuthoritiesValues(k1, k2 string, kt crypto.KeyType, value []byte, gen *G
 		}
 		b := make([]byte, 8)
 		if _, err = reader.Read(b); err != nil {
-			log.Fatal(err)
+			return fmt.Errorf("reading from buffer: %w", err)
 		}
 		var iv uint64
 		err = scale.Unmarshal(b, &iv)
