@@ -146,7 +146,7 @@ func (s *Service) createNotificationsMessageHandler(
 		// gossamer but those messages are related to another round, for example to
 		// finalize a block Y substrate sends prevotes and precommits to Y in round r
 		// and in the round r + 1 it is possible to receive prevotes for block Y again, this
-		// is not a problem and we can improve the gossamer behavior implementing Polite GRANDPA #2505
+		// is not a problem and we can improve the gossamer behaviour implementing Polite GRANDPA #2505
 		_, isConsensusMsg := msg.(*ConsensusMessage)
 		if hasSeen && !isConsensusMsg {
 			// report peer if we get duplicate gossip message.
