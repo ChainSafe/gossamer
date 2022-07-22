@@ -187,7 +187,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	}
 
 	// create libp2p host instance
-	h, err := libp2p.New(ctx, opts...)
+	h, err := libp2p.New(opts...)
 	if err != nil {
 		return nil, err
 	}
