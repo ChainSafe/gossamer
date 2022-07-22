@@ -264,67 +264,45 @@ func (in *Instance) Stop() {
 	}
 }
 
-// Store func
-func (in *Instance) store(data []byte, location int32) {
-	mem := in.vm.Memory.Data()
-	copy(mem[location:location+int32(len(data))], data)
-}
-
-// Load load
-func (in *Instance) load(location, length int32) []byte {
-	mem := in.vm.Memory.Data()
-	return mem[location : location+length]
-}
+var (
+	ErrInstanceIsStopped      = errors.New("instance is stopped")
+	ErrExportFunctionNotFound = errors.New("export function not found")
+)
 
 // Exec calls the given function with the given data
-func (in *Instance) Exec(function string, data []byte) ([]byte, error) {
-	return in.exec(function, data)
-}
-
-// Exec func
-func (in *Instance) exec(function string, data []byte) ([]byte, error) {
-	if in.ctx.Storage == nil {
-		return nil, runtime.ErrNilStorage
-	}
-
+func (in *Instance) Exec(function string, data []byte) (result []byte, err error) {
 	in.Lock()
 	defer in.Unlock()
 
 	if in.isClosed {
-		return nil, errors.New("instance is stopped")
+		return nil, ErrInstanceIsStopped
 	}
 
-	ptr, err := in.malloc(uint32(len(data)))
+	dataLength := uint32(len(data))
+	inputPtr, err := in.ctx.Allocator.Allocate(dataLength)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("allocating input memory: %w", err)
 	}
 
-	defer in.clear()
+	defer in.ctx.Allocator.Clear()
 
 	// Store the data into memory
-	in.store(data, int32(ptr))
-	datalen := int32(len(data))
+	memory := in.vm.Memory.Data()
+	copy(memory[inputPtr:inputPtr+dataLength], data)
 
 	runtimeFunc, ok := in.vm.Exports[function]
 	if !ok {
-		return nil, fmt.Errorf("could not find exported function %s", function)
+		return nil, fmt.Errorf("%w: %s", ErrExportFunctionNotFound, function)
 	}
 
-	res, err := runtimeFunc(int32(ptr), datalen)
+	wasmValue, err := runtimeFunc(int32(inputPtr), int32(dataLength))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("running runtime function: %w", err)
 	}
 
-	offset, length := runtime.Int64ToPointerAndSize(res.ToI64())
-	return in.load(offset, length), nil
-}
-
-func (in *Instance) malloc(size uint32) (uint32, error) {
-	return in.ctx.Allocator.Allocate(size)
-}
-
-func (in *Instance) clear() {
-	in.ctx.Allocator.Clear()
+	outputPtr, outputLength := runtime.Int64ToPointerAndSize(wasmValue.ToI64())
+	memory = in.vm.Memory.Data() // call Data() again to get larger slice
+	return memory[outputPtr : outputPtr+outputLength], nil
 }
 
 // NodeStorage to get reference to runtime node service

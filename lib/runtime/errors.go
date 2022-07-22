@@ -19,6 +19,3 @@ var ErrInvalidTransaction = &json2.Error{Code: 1010, Message: "Invalid Transacti
 // ErrUnknownTransaction is returned if the call to runtime function
 // TaggedTransactionQueueValidateTransaction fails with value of [1, 1, x]
 var ErrUnknownTransaction = &json2.Error{Code: 1011, Message: "Unknown Transaction Validity"}
-
-// ErrNilStorage is returned when the runtime context storage isn't set
-var ErrNilStorage = errors.New("runtime context storage is nil")

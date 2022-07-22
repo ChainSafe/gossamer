@@ -41,8 +41,9 @@ func Test_ext_offchain_timestamp_version_1(t *testing.T) {
 	res, err := runtimeFunc(0, 0)
 	require.NoError(t, err)
 
-	offset, length := runtime.Int64ToPointerAndSize(res.ToI64())
-	data := inst.load(offset, length)
+	outputPtr, outputLength := runtime.Int64ToPointerAndSize(res.ToI64())
+	memory := inst.vm.Memory.Data()
+	data := memory[outputPtr : outputPtr+outputLength]
 	var timestamp int64
 	err = scale.Unmarshal(data, &timestamp)
 	require.NoError(t, err)
@@ -718,10 +719,12 @@ func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
 	// we manually store and call the runtime function here since inst.exec assumes
 	// the data returned from the function is a pointer-size, but for ext_crypto_ed25519_generate_version_1,
 	// it's just a pointer
-	ptr, err := inst.malloc(uint32(len(params)))
+	ptr, err := inst.ctx.Allocator.Allocate(uint32(len(params)))
 	require.NoError(t, err)
 
-	inst.store(params, int32(ptr))
+	memory := inst.vm.Memory.Data()
+	copy(memory[ptr:ptr+uint32(len(params))], params)
+
 	dataLen := int32(len(params))
 
 	runtimeFunc, ok := inst.vm.Exports["rtm_ext_crypto_ed25519_generate_version_1"]
@@ -921,7 +924,7 @@ func Test_ext_crypto_ecdsa_verify_version_2_Table(t *testing.T) {
 			key: []byte{132, 2, 39, 55, 134, 131, 142, 43, 100, 63, 134, 96, 14, 253, 15, 222, 119, 154, 110, 188, 20, 159, 62, 125, 42, 59, 127, 19, 16, 0, 161, 236, 109}, //nolint:lll
 			err: wasmer.NewExportedFunctionError(
 				"rtm_ext_crypto_ecdsa_verify_version_2",
-				"Failed to call the `%s` exported function."),
+				"running runtime function: Failed to call the `%s` exported function."),
 		},
 		"invalid message": {
 			sig: []byte{5, 1, 187, 179, 88, 183, 46, 115, 242, 32, 9, 54, 141, 207, 44, 15, 238, 42, 217, 196, 111, 173, 239, 204, 128, 93, 49, 179, 137, 150, 162, 125, 226, 225, 28, 145, 122, 127, 15, 154, 185, 11, 3, 66, 27, 187, 204, 242, 107, 68, 26, 111, 245, 30, 115, 141, 85, 74, 158, 211, 161, 217, 43, 151, 120, 125, 1}, //nolint:lll
@@ -929,7 +932,7 @@ func Test_ext_crypto_ecdsa_verify_version_2_Table(t *testing.T) {
 			key: []byte{132, 2, 39, 206, 55, 134, 131, 142, 43, 100, 63, 134, 96, 14, 253, 15, 222, 119, 154, 110, 188, 20, 159, 62, 125, 42, 59, 127, 19, 16, 0, 161, 236, 109}, //nolint:lll
 			err: wasmer.NewExportedFunctionError(
 				"rtm_ext_crypto_ecdsa_verify_version_2",
-				"Failed to call the `%s` exported function."),
+				"running runtime function: Failed to call the `%s` exported function."),
 		},
 	}
 	for name, tc := range testCases {
@@ -1592,7 +1595,8 @@ func Test_ext_default_child_storage_storage_kill_version_3(t *testing.T) {
 			key:      []byte(`fakekey`),
 			limit:    optLimit2,
 			expected: []byte{0, 0, 0, 0, 0},
-			errMsg:   "Failed to call the `rtm_ext_default_child_storage_storage_kill_version_3` exported function.",
+			errMsg: "running runtime function: " +
+				"Failed to call the `rtm_ext_default_child_storage_storage_kill_version_3` exported function.",
 		},
 		{key: testChildKey, limit: optLimit2, expected: []byte{1, 2, 0, 0, 0}},
 		{key: testChildKey, limit: nil, expected: []byte{0, 1, 0, 0, 0}},
