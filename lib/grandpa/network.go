@@ -175,7 +175,7 @@ func (s *Service) sendMessage(msg GrandpaMessage) error {
 }
 
 // notifyNeighbor will gossip a NeighbourMessage every 5 minutes, however we reset the ticker
-// whenever a finalization occur meaning that a neighbour message already was sent by s.initiateRound()
+// whenever a finalisation occur meaning that a neighbour message already was sent by s.initiateRound()
 func (s *Service) notifyNeighbor(interval time.Duration) {
 	t := time.NewTicker(interval)
 	defer t.Stop()
