@@ -48,7 +48,7 @@ type VDTValue struct {
 	N bool
 }
 
-func (ctrd VDTValue) Index() uint {
+func (VDTValue) Index() uint {
 	return 1
 }
 
@@ -69,7 +69,7 @@ type VDTValue1 struct {
 	AB *bool
 }
 
-func (ctrd VDTValue1) Index() uint {
+func (VDTValue1) Index() uint {
 	return 2
 }
 
@@ -94,13 +94,13 @@ type VDTValue2 struct {
 	P [2][2]byte
 }
 
-func (ctrd VDTValue2) Index() uint {
+func (VDTValue2) Index() uint {
 	return 3
 }
 
 type VDTValue3 int16
 
-func (ctrd VDTValue3) Index() uint {
+func (VDTValue3) Index() uint {
 	return 4
 }
 

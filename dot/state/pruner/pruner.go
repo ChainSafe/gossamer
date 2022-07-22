@@ -59,7 +59,7 @@ type Pruner interface {
 type ArchiveNode struct{}
 
 // StoreJournalRecord for archive node doesn't do anything.
-func (a *ArchiveNode) StoreJournalRecord(_, _ map[common.Hash]struct{},
+func (*ArchiveNode) StoreJournalRecord(_, _ map[common.Hash]struct{},
 	_ common.Hash, _ int64) error {
 	return nil
 }
@@ -326,7 +326,7 @@ func (p *FullNode) loadDeathList() error {
 	return nil
 }
 
-func (p *FullNode) deleteJournalRecord(b chaindb.Batch, key *journalKey) error {
+func (*FullNode) deleteJournalRecord(b chaindb.Batch, key *journalKey) error {
 	encKey, err := scale.Marshal(*key)
 	if err != nil {
 		return err
@@ -373,7 +373,7 @@ func (p *FullNode) getLastPrunedIndex() (int64, error) {
 	return blockNum, nil
 }
 
-func (p *FullNode) deleteKeys(b chaindb.Batch, nodesHash map[common.Hash]int64) error {
+func (*FullNode) deleteKeys(b chaindb.Batch, nodesHash map[common.Hash]int64) error {
 	for k := range nodesHash {
 		err := b.Del(k.ToBytes())
 		if err != nil {
