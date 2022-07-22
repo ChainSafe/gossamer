@@ -157,7 +157,11 @@ func Test_Trie_updateGeneration(t *testing.T) {
 
 			// Check for deep copy
 			if newNode != nil && testCase.copied {
-				newNode.SetDirty(!newNode.Dirty)
+				if newNode.Dirty {
+					newNode.SetClean()
+				} else {
+					newNode.SetDirty()
+				}
 				assert.NotEqual(t, testCase.node, newNode)
 			}
 		})

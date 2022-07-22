@@ -41,12 +41,17 @@ func (t *Trie) Store(db chaindb.Database) error {
 	return batch.Flush()
 }
 
-func (t *Trie) store(db chaindb.Batch, n *Node) error {
+func (t *Trie) store(db chaindb.Batch, n *Node) (err error) {
 	if n == nil {
 		return nil
 	}
 
-	encoding, hash, err := n.EncodeAndHash(n == t.root)
+	var encoding, hash []byte
+	if n == t.root {
+		encoding, hash, err = n.EncodeAndHashRoot()
+	} else {
+		encoding, hash, err = n.EncodeAndHash()
+	}
 	if err != nil {
 		return err
 	}
@@ -70,7 +75,7 @@ func (t *Trie) store(db chaindb.Batch, n *Node) error {
 	}
 
 	if n.Dirty {
-		n.SetDirty(false)
+		n.SetClean()
 	}
 
 	return nil
@@ -97,7 +102,7 @@ func (t *Trie) Load(db Database, rootHash common.Hash) error {
 	}
 
 	t.root = root
-	t.root.SetDirty(false)
+	t.root.SetClean()
 	t.root.Encoding = encodedNode
 	t.root.HashDigest = rootHashBytes
 
@@ -120,11 +125,11 @@ func (t *Trie) load(db Database, n *Node) error {
 		if len(hash) == 0 {
 			// node has already been loaded inline
 			// just set encoding + hash digest
-			_, _, err := child.EncodeAndHash(false)
+			_, _, err := child.EncodeAndHash()
 			if err != nil {
 				return err
 			}
-			child.SetDirty(false)
+			child.SetClean()
 			continue
 		}
 
@@ -139,7 +144,7 @@ func (t *Trie) load(db Database, n *Node) error {
 			return fmt.Errorf("cannot decode node with hash 0x%x: %w", hash, err)
 		}
 
-		decodedNode.SetDirty(false)
+		decodedNode.SetClean()
 		decodedNode.Encoding = encodedNode
 		decodedNode.HashDigest = hash
 		branch.Children[i] = decodedNode
@@ -322,12 +327,17 @@ func (t *Trie) WriteDirty(db chaindb.Database) error {
 	return batch.Flush()
 }
 
-func (t *Trie) writeDirty(db chaindb.Batch, n *Node) error {
+func (t *Trie) writeDirty(db chaindb.Batch, n *Node) (err error) {
 	if n == nil || !n.Dirty {
 		return nil
 	}
 
-	encoding, hash, err := n.EncodeAndHash(n == t.root)
+	var encoding, hash []byte
+	if n == t.root {
+		encoding, hash, err = n.EncodeAndHashRoot()
+	} else {
+		encoding, hash, err = n.EncodeAndHash()
+	}
 	if err != nil {
 		return fmt.Errorf(
 			"cannot encode and hash node with hash 0x%x: %w",
@@ -342,7 +352,7 @@ func (t *Trie) writeDirty(db chaindb.Batch, n *Node) error {
 	}
 
 	if n.Type() != node.Branch {
-		n.SetDirty(false)
+		n.SetClean()
 		return nil
 	}
 
@@ -364,7 +374,7 @@ func (t *Trie) writeDirty(db chaindb.Batch, n *Node) error {
 		}
 	}
 
-	n.SetDirty(false)
+	n.SetClean()
 
 	return nil
 }
@@ -387,7 +397,12 @@ func (t *Trie) getInsertedNodeHashes(n *Node, hashes map[common.Hash]struct{}) (
 		return nil
 	}
 
-	_, hash, err := n.EncodeAndHash(n == t.root)
+	var hash []byte
+	if n == t.root {
+		_, hash, err = n.EncodeAndHashRoot()
+	} else {
+		_, hash, err = n.EncodeAndHash()
+	}
 	if err != nil {
 		return fmt.Errorf(
 			"cannot encode and hash node with hash 0x%x: %w",

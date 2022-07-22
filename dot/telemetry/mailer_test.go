@@ -47,9 +47,8 @@ func newTestMailer(t *testing.T, handler http.HandlerFunc) (mailer *Mailer) {
 	testEndpoints := []*genesis.TelemetryEndpoint{testEndpoint1}
 
 	logger := log.New(log.SetWriter(io.Discard))
-	const telemetryEnabled = true
 
-	mailer, err := BootstrapMailer(context.Background(), testEndpoints, telemetryEnabled, logger)
+	mailer, err := BootstrapMailer(context.Background(), testEndpoints, logger)
 	require.NoError(t, err)
 
 	return mailer

@@ -73,7 +73,7 @@ func (t *Trie) prepLeafForMutation(currentLeaf *Node,
 	} else {
 		newLeaf = updateGeneration(currentLeaf, t.generation, t.deletedKeys, copySettings)
 	}
-	newLeaf.SetDirty(true)
+	newLeaf.SetDirty()
 	return newLeaf
 }
 
@@ -86,7 +86,7 @@ func (t *Trie) prepBranchForMutation(currentBranch *Node,
 	} else {
 		newBranch = updateGeneration(currentBranch, t.generation, t.deletedKeys, copySettings)
 	}
-	newBranch.SetDirty(true)
+	newBranch.SetDirty()
 	return newBranch
 }
 
@@ -809,7 +809,7 @@ func (t *Trie) deleteNodesLimit(parent *Node, prefix []byte, limit uint32) (
 		nodesRemoved += newNodesRemoved
 		branch.Descendants -= newNodesRemoved
 
-		branch.SetDirty(true)
+		branch.SetDirty()
 
 		newParent, branchChildMerged = handleDeletion(branch, fullKey)
 		if branchChildMerged {
