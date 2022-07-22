@@ -85,10 +85,10 @@ func Twox64(in []byte) ([]byte, error) {
 }
 
 // Twox128Hash computes xxHash64 twice with seeds 0 and 1 applied on given byte array
-func Twox128Hash(msg []byte) ([]byte, error) {
+func Twox128Hash(msg []byte) (result []byte, err error) {
 	// compute xxHash64 twice with seeds 0 and 1 applied on given byte array
 	h0 := xxhash.NewS64(0) // create xxHash with 0 seed
-	_, err := h0.Write(msg)
+	_, err = h0.Write(msg)
 	if err != nil {
 		return nil, err
 	}
@@ -105,9 +105,11 @@ func Twox128Hash(msg []byte) ([]byte, error) {
 	hash1 := make([]byte, 8)
 	binary.LittleEndian.PutUint64(hash1, res1)
 
-	//concatenated result
-	both := append(hash0, hash1...)
-	return both, nil
+	result = make([]byte, 16)
+	copy(result[:8], hash0)
+	copy(result[8:], hash1)
+
+	return result, nil
 }
 
 // Twox256 returns the twox256 hash of the input data
