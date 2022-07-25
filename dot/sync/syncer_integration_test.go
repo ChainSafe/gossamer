@@ -27,13 +27,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newMockNetwork() *mocks.Network {
-	m := new(mocks.Network)
-	m.On("DoBlockRequest", mock.AnythingOfType("peer.ID"),
-		mock.AnythingOfType("*network.BlockRequestMessage")).Return(nil, nil)
-	return m
-}
-
 //go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
 func newTestSyncer(t *testing.T) *Service {
 	ctrl := gomock.NewController(t)
@@ -125,7 +118,8 @@ func newTestSyncer(t *testing.T) *Service {
 	}).AnyTimes()
 
 	cfg.FinalityGadget = mockFinalityGadget
-	cfg.Network = newMockNetwork()
+	//cfg.Network = newMockNetwork(t)
+	cfg.Network = NewMockNetwork(ctrl)
 	cfg.Telemetry = mockTelemetryClient
 	syncer, err := NewService(cfg)
 	require.NoError(t, err)
