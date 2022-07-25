@@ -57,7 +57,6 @@ type BlockBuilder struct {
 	blockState            BlockState
 	currentAuthorityIndex uint32
 	preRuntimeDigest      *types.PreRuntimeDigest
-	testForceReturn       <-chan struct{}
 }
 
 // NewBlockBuilder creates a new block builder.
@@ -184,11 +183,6 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt runtime.Instance) []*t
 
 	for {
 		select {
-		case <-b.testForceReturn:
-			if !slotTimer.Stop() {
-				<-slotTimer.C
-			}
-			return included
 		case <-slotTimer.C:
 			return included
 		default:
