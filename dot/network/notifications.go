@@ -153,57 +153,7 @@ func (s *Service) createNotificationsMessageHandler(
 		}
 
 		if msg.IsHandshake() {
-			logger.Tracef("received handshake on notifications sub-protocol %s from peer %s, message is: %s",
-				info.protocolID, stream.Conn().RemotePeer(), msg)
-
-			hs, ok := msg.(Handshake)
-			if !ok {
-				return errMessageIsNotHandshake
-			}
-
-			// if we are the receiver and haven't received the handshake already, validate it
-			// note: if this function is being called, it's being called via SetStreamHandler,
-			// ie it is an inbound stream and we only send the handshake over it.
-			// we do not send any other data over this stream, we would need to open a new outbound stream.
-			hsData := info.peersData.getInboundHandshakeData(peer)
-			if hsData == nil {
-				logger.Tracef("receiver: validating handshake using protocol %s", info.protocolID)
-
-				hsData = newHandshakeData(true, false, stream)
-				info.peersData.setInboundHandshakeData(peer, hsData)
-
-				err := info.handshakeValidator(peer, hs)
-				if err != nil {
-					logger.Tracef(
-						"failed to validate handshake from peer %s using protocol %s: %s",
-						peer, info.protocolID, err)
-					return errCannotValidateHandshake
-				}
-
-				hsData.validated = true
-				info.peersData.setInboundHandshakeData(peer, hsData)
-
-				// once validated, send back a handshake
-				resp, err := info.getHandshake()
-				if err != nil {
-					logger.Warnf("failed to get handshake using protocol %s: %s", info.protocolID, err)
-					return err
-				}
-
-				err = s.host.writeToStream(stream, resp)
-				if err != nil {
-					logger.Tracef("failed to send handshake to peer %s using protocol %s: %s", peer, info.protocolID, err)
-					return err
-				}
-
-				logger.Tracef("receiver: sent handshake to peer %s using protocol %s", peer, info.protocolID)
-
-				if err := stream.CloseWrite(); err != nil {
-					logger.Tracef("failed to close stream for writing: %s", err)
-				}
-			}
-
-			return nil
+			return s.handleHandshake(info, stream, msg, peer)
 		}
 
 		logger.Tracef("received message on notifications sub-protocol %s from peer %s, message is: %s",
@@ -226,6 +176,60 @@ func (s *Service) createNotificationsMessageHandler(
 		s.broadcastExcluding(info, peer, msg)
 		return nil
 	}
+}
+
+func (s *Service) handleHandshake(info *notificationsProtocol, stream libp2pnetwork.Stream, msg NotificationsMessage, peer peer.ID) error {
+	logger.Tracef("received handshake on notifications sub-protocol %s from peer %s, message is: %s",
+		info.protocolID, stream.Conn().RemotePeer(), msg)
+
+	hs, ok := msg.(Handshake)
+	if !ok {
+		return errMessageIsNotHandshake
+	}
+
+	// if we are the receiver and haven't received the handshake already, validate it
+	// note: if this function is being called, it's being called via SetStreamHandler,
+	// ie it is an inbound stream and we only send the handshake over it.
+	// we do not send any other data over this stream, we would need to open a new outbound stream.
+	hsData := info.peersData.getInboundHandshakeData(peer)
+	if hsData == nil {
+		logger.Tracef("receiver: validating handshake using protocol %s", info.protocolID)
+
+		hsData = newHandshakeData(true, false, stream)
+		info.peersData.setInboundHandshakeData(peer, hsData)
+
+		err := info.handshakeValidator(peer, hs)
+		if err != nil {
+			logger.Tracef(
+				"failed to validate handshake from peer %s using protocol %s: %s",
+				peer, info.protocolID, err)
+			return errCannotValidateHandshake
+		}
+
+		hsData.validated = true
+		info.peersData.setInboundHandshakeData(peer, hsData)
+
+		// once validated, send back a handshake
+		resp, err := info.getHandshake()
+		if err != nil {
+			logger.Warnf("failed to get handshake using protocol %s: %s", info.protocolID, err)
+			return err
+		}
+
+		err = s.host.writeToStream(stream, resp)
+		if err != nil {
+			logger.Tracef("failed to send handshake to peer %s using protocol %s: %s", peer, info.protocolID, err)
+			return err
+		}
+
+		logger.Tracef("receiver: sent handshake to peer %s using protocol %s", peer, info.protocolID)
+
+		if err := stream.CloseWrite(); err != nil {
+			logger.Tracef("failed to close stream for writing: %s", err)
+		}
+	}
+
+	return nil
 }
 
 func closeOutboundStream(info *notificationsProtocol, peerID peer.ID, stream libp2pnetwork.Stream) {
