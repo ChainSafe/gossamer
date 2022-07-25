@@ -15,9 +15,12 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
+var errInvalidRole = errors.New("invalid handshake role")
 var (
 	_ NotificationsMessage = &BlockAnnounceMessage{}
 	_ NotificationsMessage = &BlockAnnounceHandshake{}
+
+	errExpectedBlockAnnounceMsg = errors.New("received block announce handshake but expected block announce message")
 )
 
 // BlockAnnounceMessage is a state block header
@@ -108,11 +111,25 @@ func decodeBlockAnnounceMessage(in []byte) (NotificationsMessage, error) {
 
 // BlockAnnounceHandshake is exchanged by nodes that are beginning the BlockAnnounce protocol
 type BlockAnnounceHandshake struct {
-	Roles           byte
+	Roles           Roles
 	BestBlockNumber uint32
 	BestBlockHash   common.Hash
 	GenesisHash     common.Hash
 }
+
+// Roles is the type of node.
+type Roles byte
+
+const (
+	// FullNode allow you to read the current state of the chain and to submit and validate
+	// extrinsics directly on the network without relying on a centralised infrastructure provider.
+	FullNode Roles = 1
+	// LightClient node has only the runtime and the current state, but does not store past
+	// blocks and so cannot read historical data without requesting it from a node that has it.
+	LightClient Roles = 2
+	// Validator node helps seal new blocks.
+	Validator Roles = 4
+)
 
 // SubProtocol returns the block-announces sub-protocol
 func (*BlockAnnounceHandshake) SubProtocol() string {
@@ -170,7 +187,7 @@ func (s *Service) getBlockAnnounceHandshake() (Handshake, error) {
 	}
 
 	return &BlockAnnounceHandshake{
-		Roles:           s.cfg.Roles,
+		Roles:           Roles(s.cfg.Roles),
 		BestBlockNumber: uint32(latestBlock.Number),
 		BestBlockHash:   latestBlock.Hash(),
 		GenesisHash:     s.blockState.GenesisHash(),
@@ -181,6 +198,10 @@ func (s *Service) validateBlockAnnounceHandshake(from peer.ID, hs Handshake) err
 	bhs, ok := hs.(*BlockAnnounceHandshake)
 	if !ok {
 		return errors.New("invalid handshake type")
+	}
+
+	if bhs.Roles != FullNode && bhs.Roles != LightClient && bhs.Roles != Validator {
+		return errInvalidRole
 	}
 
 	if !bhs.GenesisHash.Equal(s.blockState.GenesisHash()) {
@@ -223,6 +244,10 @@ func (s *Service) validateBlockAnnounceHandshake(from peer.ID, hs Handshake) err
 // if some more blocks are required to sync the announced block, the node will open a sync stream
 // with its peer and send a BlockRequest message
 func (s *Service) handleBlockAnnounceMessage(from peer.ID, msg NotificationsMessage) (propagate bool, err error) {
+	if msg.IsHandshake() {
+		return false, errExpectedBlockAnnounceMsg
+	}
+
 	bam, ok := msg.(*BlockAnnounceMessage)
 	if !ok {
 		return false, errors.New("invalid message")
