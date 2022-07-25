@@ -229,7 +229,7 @@ func GetGssmrGenesisPath() (path string, err error) {
 	return filepath.Join(rootPath, "./chain/gssmr/genesis-spec.json"), nil
 }
 
-// GetGssmrV3SubstrateGenesisPath gets the gssmr genesis path
+// GetGssmrV3SubstrateGenesisPath gets the v3 substrate gssmr genesis path
 // and returns an error if it cannot find it.
 func GetGssmrV3SubstrateGenesisPath() (path string, err error) {
 	rootPath, err := GetProjectRootPath()
