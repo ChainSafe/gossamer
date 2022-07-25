@@ -507,7 +507,7 @@ func (ds *decodeState) decodeUint(dstv reflect.Value) (err error) {
 		buf := make([]byte, 3)
 		_, err = ds.Read(buf)
 		if err != nil {
-			break
+			return fmt.Errorf("reading from buffer: %w", err)
 		}
 		value = uint(binary.LittleEndian.Uint32(append([]byte{prefix}, buf...)) >> 2)
 		if value <= 0b0011_1111_1111_1111 || value > uint(maxUint32>>2) {
