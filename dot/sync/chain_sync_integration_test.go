@@ -14,14 +14,12 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
-	"github.com/ChainSafe/gossamer/dot/sync/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/golang/mock/gomock"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -75,12 +73,17 @@ func TestChainSync_sync_bootstrap_withWorkerError_Integration(t *testing.T) {
 func TestChainSync_sync_tip_Integration(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	cs := newTestChainSync(ctrl)
-	cs.blockState = new(mocks.BlockState)
+	//cs.blockState = new(mocks.BlockState)
 	header, err := types.NewHeader(common.Hash{0}, trie.EmptyHash, trie.EmptyHash, 1000,
 		types.NewDigest())
 	require.NoError(t, err)
-	cs.blockState.(*mocks.BlockState).On("BestBlockHeader").Return(header, nil)
-	cs.blockState.(*mocks.BlockState).On("GetHighestFinalisedHeader").Return(header, nil)
+	//cs.blockState.(*mocks.BlockState).On("BestBlockHeader").Return(header, nil)
+	//cs.blockState.(*mocks.BlockState).On("GetHighestFinalisedHeader").Return(header, nil)
+
+	bs := NewMockBlockState(ctrl)
+	bs.EXPECT().BestBlockHeader().Return(header, nil)
+	bs.EXPECT().GetHighestFinalisedHeader().Return(header, nil)
+	cs.blockState = bs
 
 	go cs.sync()
 	defer cs.cancel()
@@ -452,8 +455,11 @@ func TestChainSync_validateResponse_Integration(t *testing.T) {
 func TestChainSync_validateResponse_firstBlock_Integration(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	cs := newTestChainSync(ctrl)
-	bs := new(mocks.BlockState)
-	bs.On("HasHeader", mock.AnythingOfType("common.Hash")).Return(false, nil)
+	//bs := new(mocks.BlockState)
+	//bs.On("HasHeader", mock.AnythingOfType("common.Hash")).Return(false, nil)
+
+	bs := NewMockBlockState(ctrl)
+	bs.EXPECT().HasHeader(gomock.AssignableToTypeOf(common.Hash{})).Return(false, nil)
 	cs.blockState = bs
 
 	req := &network.BlockRequestMessage{

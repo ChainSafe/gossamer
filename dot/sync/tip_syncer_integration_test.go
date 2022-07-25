@@ -8,16 +8,15 @@ package sync
 
 import (
 	"context"
+	"github.com/golang/mock/gomock"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
-	syncmocks "github.com/ChainSafe/gossamer/dot/sync/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -26,9 +25,14 @@ func newTestTipSyncer(t *testing.T) *tipSyncer {
 		trie.EmptyHash, trie.EmptyHash, 200, types.NewDigest())
 	require.NoError(t, err)
 
-	bs := new(syncmocks.BlockState)
-	bs.On("GetHighestFinalisedHeader").Return(finHeader, nil)
-	bs.On("HasHeader", mock.AnythingOfType("common.Hash")).Return(true, nil)
+	//bs := new(syncmocks.BlockState)
+	//bs.On("GetHighestFinalisedHeader").Return(finHeader, nil)
+	//bs.On("HasHeader", mock.AnythingOfType("common.Hash")).Return(true, nil)
+
+	ctrl := gomock.NewController(t)
+	bs := NewMockBlockState(ctrl)
+	bs.EXPECT().GetHighestFinalisedHeader().Return(finHeader, nil)
+	bs.EXPECT().HasHeader(gomock.AssignableToTypeOf(common.Hash{})).Return(true, nil)
 
 	readyBlocks := newBlockQueue(maxResponseSize)
 	pendingBlocks := newDisjointBlockSet(pendingBlocksLimit)
@@ -252,9 +256,14 @@ func TestTipSyncer_handleTick_case3(t *testing.T) {
 	require.Equal(t, block.ToBlockData(), readyBlockData)
 
 	// add pending block w/ full block, but block is not ready as parent is unknown
-	bs := new(syncmocks.BlockState)
-	bs.On("GetHighestFinalisedHeader").Return(fin, nil)
-	bs.On("HasHeader", mock.AnythingOfType("common.Hash")).Return(false, nil)
+	//bs := new(syncmocks.BlockState)
+	//bs.On("GetHighestFinalisedHeader").Return(fin, nil)
+	//bs.On("HasHeader", mock.AnythingOfType("common.Hash")).Return(false, nil)
+
+	ctrl := gomock.NewController(t)
+	bs := NewMockBlockState(ctrl)
+	bs.EXPECT().GetHighestFinalisedHeader().Return(fin, nil)
+	bs.EXPECT().HasHeader(gomock.AssignableToTypeOf(common.Hash{})).Return(false, nil)
 	s.blockState = bs
 
 	header = &types.Header{

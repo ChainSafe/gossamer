@@ -28,10 +28,6 @@ func newTestBootstrapSyncer(t *testing.T) *bootstrapSyncer {
 		trie.EmptyHash, 200, types.NewDigest())
 	require.NoError(t, err)
 
-	//bs := new(syncmocks.BlockState)
-	//bs.On("BestBlockHeader").Return(header, nil)
-	//bs.On("GetHighestFinalisedHeader").Return(finHeader, nil)
-
 	ctrl := gomock.NewController(t)
 	bs := NewMockBlockState(ctrl)
 	bs.EXPECT().BestBlockHeader().Return(header, nil)
