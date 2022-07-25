@@ -209,7 +209,7 @@ func GetDevGenesisPath(t *testing.T) string {
 	return filepath.Join(GetProjectRootPathTest(t), "./chain/dev/genesis.json")
 }
 
-// GetDevV3SubstrateGenesisPath gets the dev genesis path
+// GetDevV3SubstrateGenesisPath gets the v3 substrate dev genesis path
 func GetDevV3SubstrateGenesisPath(t *testing.T) string {
 	return filepath.Join(GetProjectRootPathTest(t), "./chain/dev-v3substrate/genesis.json")
 }
