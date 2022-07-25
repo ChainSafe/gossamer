@@ -78,7 +78,6 @@ func CreateTestGenesisJSONFile(t *testing.T, fields Fields) (filename string) {
 // NewTestGenesisWithTrieAndHeader generates genesis, genesis trie and genesis header
 func NewTestGenesisWithTrieAndHeader(t *testing.T) (*Genesis, *trie.Trie, *types.Header) {
 	genesisPath := utils.GetGssmrV3SubstrateGenesisRawPathTest(t)
-	t.Logf("genesisPath: %s", genesisPath)
 	gen, err := NewGenesisFromJSONRaw(genesisPath)
 	require.NoError(t, err)
 
