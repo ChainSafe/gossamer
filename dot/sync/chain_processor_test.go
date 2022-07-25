@@ -21,7 +21,7 @@ import (
 //go:generate mockgen -destination=mock_instance_test.go -package=$GOPACKAGE github.com/ChainSafe/gossamer/lib/runtime Instance
 
 func Test_chainProcessor_handleBlock(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	mockError := errors.New("test mock error")
 	testHash := common.MustHexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
 	testParentHash := common.MustHexToHash("0x7db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a")
@@ -175,7 +175,7 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 	for name, tt := range tests {
 		tt := tt
 		t.Run(name, func(t *testing.T) {
-			t.Parallel()
+			//t.Parallel()
 			ctrl := gomock.NewController(t)
 			s := tt.chainProcessorBuilder(ctrl)
 
@@ -184,7 +184,7 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 		})
 	}
 	t.Run("panics on different parent state root", func(t *testing.T) {
-		t.Parallel()
+		//t.Parallel()
 		ctrl := gomock.NewController(t)
 		bock := &types.Block{
 			Header: types.Header{
@@ -219,7 +219,7 @@ func newTrieState(t *testing.T) *storage.TrieState {
 }
 
 func Test_chainProcessor_handleBody(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	testExtrinsics := []types.Extrinsic{{1, 2, 3}, {7, 8, 9, 0}, {0xa, 0xb}}
 	testBody := types.NewBody(testExtrinsics)
@@ -238,7 +238,7 @@ func Test_chainProcessor_handleBody(t *testing.T) {
 }
 
 func Test_chainProcessor_handleJustification(t *testing.T) {
-	t.Parallel()
+	//	t.Parallel()
 
 	expectedHash := common.MustHexToHash("0xdcdd89927d8a348e00257e1ecc8617f45edb5118efff3ea2f9961b2ad9b7690a")
 
@@ -311,7 +311,7 @@ func Test_chainProcessor_handleJustification(t *testing.T) {
 	for name, tt := range tests {
 		tt := tt
 		t.Run(name, func(t *testing.T) {
-			t.Parallel()
+			//t.Parallel()
 			ctrl := gomock.NewController(t)
 			s := tt.chainProcessorBuilder(ctrl)
 			s.handleJustification(tt.args.header, tt.args.justification)
@@ -320,7 +320,7 @@ func Test_chainProcessor_handleJustification(t *testing.T) {
 }
 
 func Test_chainProcessor_processBlockData(t *testing.T) {
-	t.Parallel()
+	//	t.Parallel()
 
 	mockError := errors.New("mock test error")
 	justification := []byte{0, 1, 2}
@@ -712,7 +712,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 	for name, tt := range tests {
 		tt := tt
 		t.Run(name, func(t *testing.T) {
-			t.Parallel()
+			//t.Parallel()
 			ctrl := gomock.NewController(t)
 			processor := tt.chainProcessorBuilder(ctrl)
 			err := processor.processBlockData(tt.blockData)
@@ -722,7 +722,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 }
 
 func Test_chainProcessor_processReadyBlocks(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 	mockError := errors.New("test mock error")
 	tests := map[string]struct {
 		blockStateBuilder   func(ctrl *gomock.Controller, done chan struct{}) BlockState
@@ -859,7 +859,7 @@ func Test_chainProcessor_processReadyBlocks(t *testing.T) {
 	for name, tt := range tests {
 		tt := tt
 		t.Run(name, func(t *testing.T) {
-			t.Parallel()
+			//t.Parallel()
 			ctrl := gomock.NewController(t)
 			ctx, cancel := context.WithCancel(context.Background())
 			readyBlock := newBlockQueue(5)
@@ -885,7 +885,7 @@ func Test_chainProcessor_processReadyBlocks(t *testing.T) {
 }
 
 func Test_newChainProcessor(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	mockReadyBlock := newBlockQueue(5)
 	mockDisjointBlockSet := NewMockDisjointBlockSet(nil)
@@ -938,7 +938,7 @@ func Test_newChainProcessor(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
+			//t.Parallel()
 			got := newChainProcessor(tt.args.readyBlocks, tt.args.pendingBlocks, tt.args.blockState,
 				tt.args.storageState, tt.args.transactionState, tt.args.babeVerifier, tt.args.finalityGadget,
 				tt.args.blockImportHandler, nil)
