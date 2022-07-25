@@ -31,8 +31,8 @@ func newTestTipSyncer(t *testing.T) *tipSyncer {
 
 	ctrl := gomock.NewController(t)
 	bs := NewMockBlockState(ctrl)
-	bs.EXPECT().GetHighestFinalisedHeader().Return(finHeader, nil)
-	bs.EXPECT().HasHeader(gomock.AssignableToTypeOf(common.Hash{})).Return(true, nil)
+	bs.EXPECT().GetHighestFinalisedHeader().Return(finHeader, nil).AnyTimes()
+	bs.EXPECT().HasHeader(gomock.AssignableToTypeOf(common.Hash{})).Return(true, nil).AnyTimes()
 
 	readyBlocks := newBlockQueue(maxResponseSize)
 	pendingBlocks := newDisjointBlockSet(pendingBlocksLimit)
