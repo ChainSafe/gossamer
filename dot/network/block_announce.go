@@ -176,8 +176,8 @@ func (hs *BlockAnnounceHandshake) Hash() (common.Hash, error) {
 }
 
 // IsHandshake returns true
-func (*BlockAnnounceHandshake) IsHandshake() bool {
-	return true
+func (hs *BlockAnnounceHandshake) IsHandshake() bool {
+	return hs.Roles != FullNode && hs.Roles != LightClient && hs.Roles != Validator
 }
 
 func (s *Service) getBlockAnnounceHandshake() (Handshake, error) {
