@@ -81,8 +81,8 @@ func TestChainSync_sync_tip_Integration(t *testing.T) {
 	//cs.blockState.(*mocks.BlockState).On("GetHighestFinalisedHeader").Return(header, nil)
 
 	bs := NewMockBlockState(ctrl)
-	bs.EXPECT().BestBlockHeader().Return(header, nil)
-	bs.EXPECT().GetHighestFinalisedHeader().Return(header, nil)
+	bs.EXPECT().BestBlockHeader().Return(header, nil).AnyTimes().AnyTimes()
+	bs.EXPECT().GetHighestFinalisedHeader().Return(header, nil).AnyTimes()
 	cs.blockState = bs
 
 	go cs.sync()

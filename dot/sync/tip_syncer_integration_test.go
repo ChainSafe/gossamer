@@ -262,8 +262,8 @@ func TestTipSyncer_handleTick_case3(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	bs := NewMockBlockState(ctrl)
-	bs.EXPECT().GetHighestFinalisedHeader().Return(fin, nil)
-	bs.EXPECT().HasHeader(gomock.AssignableToTypeOf(common.Hash{})).Return(false, nil)
+	bs.EXPECT().GetHighestFinalisedHeader().Return(fin, nil).AnyTimes()
+	bs.EXPECT().HasHeader(gomock.AssignableToTypeOf(common.Hash{})).Return(false, nil).AnyTimes()
 	s.blockState = bs
 
 	header = &types.Header{
