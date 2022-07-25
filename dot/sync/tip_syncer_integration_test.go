@@ -8,7 +8,6 @@ package sync
 
 import (
 	"context"
-	"github.com/golang/mock/gomock"
 	"testing"
 	"time"
 
@@ -16,6 +15,8 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
+
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -24,10 +25,6 @@ func newTestTipSyncer(t *testing.T) *tipSyncer {
 	finHeader, err := types.NewHeader(common.NewHash([]byte{0}),
 		trie.EmptyHash, trie.EmptyHash, 200, types.NewDigest())
 	require.NoError(t, err)
-
-	//bs := new(syncmocks.BlockState)
-	//bs.On("GetHighestFinalisedHeader").Return(finHeader, nil)
-	//bs.On("HasHeader", mock.AnythingOfType("common.Hash")).Return(true, nil)
 
 	ctrl := gomock.NewController(t)
 	bs := NewMockBlockState(ctrl)
@@ -256,10 +253,6 @@ func TestTipSyncer_handleTick_case3(t *testing.T) {
 	require.Equal(t, block.ToBlockData(), readyBlockData)
 
 	// add pending block w/ full block, but block is not ready as parent is unknown
-	//bs := new(syncmocks.BlockState)
-	//bs.On("GetHighestFinalisedHeader").Return(fin, nil)
-	//bs.On("HasHeader", mock.AnythingOfType("common.Hash")).Return(false, nil)
-
 	ctrl := gomock.NewController(t)
 	bs := NewMockBlockState(ctrl)
 	bs.EXPECT().GetHighestFinalisedHeader().Return(fin, nil).AnyTimes()
