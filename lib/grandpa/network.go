@@ -38,12 +38,6 @@ type GrandpaHandshake struct { //nolint:revive
 	Roles byte
 }
 
-// SubProtocol returns the grandpa sub-protocol
-// TODO: should we remove the SubProtocol method from the `Message` interface?
-func (*GrandpaHandshake) SubProtocol() string {
-	return ""
-}
-
 // String formats a BlockAnnounceHandshake as a string
 func (hs *GrandpaHandshake) String() string {
 	return fmt.Sprintf("GrandpaHandshake Roles=%d", hs.Roles)

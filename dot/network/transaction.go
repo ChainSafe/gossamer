@@ -28,11 +28,6 @@ type TransactionMessage struct {
 	Extrinsics []types.Extrinsic
 }
 
-// SubProtocol returns the transactions sub-protocol
-func (*TransactionMessage) SubProtocol() string {
-	return transactionsID
-}
-
 // Type returns TransactionMsgType
 func (*TransactionMessage) Type() byte {
 	return TransactionMsgType
@@ -68,11 +63,6 @@ func (*TransactionMessage) IsHandshake() bool {
 }
 
 type transactionHandshake struct{}
-
-// SubProtocol returns the transactions sub-protocol
-func (*transactionHandshake) SubProtocol() string {
-	return transactionsID
-}
 
 // String formats a transactionHandshake as a string
 func (*transactionHandshake) String() string {
