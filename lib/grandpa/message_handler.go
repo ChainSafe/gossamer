@@ -16,7 +16,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	grandpaerrors "github.com/ChainSafe/gossamer/lib/grandpa/errors"
 	"github.com/ChainSafe/gossamer/lib/grandpa/models"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
@@ -543,7 +542,7 @@ func (h *MessageHandler) verifyJustification(just *models.SignedVote, round, set
 		}
 	}
 	if !authFound {
-		return grandpaerrors.ErrVoterNotFound
+		return models.ErrVoterNotFound
 	}
 	return nil
 }
