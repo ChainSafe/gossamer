@@ -116,7 +116,7 @@ type BlockAnnounceHandshake struct {
 	GenesisHash     common.Hash
 }
 
-// Roles could be full node, light client or a validator.
+// Roles is the type of node.
 type Roles byte
 
 const (
