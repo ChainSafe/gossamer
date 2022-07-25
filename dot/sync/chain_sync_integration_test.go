@@ -81,7 +81,7 @@ func TestChainSync_sync_tip_Integration(t *testing.T) {
 	//cs.blockState.(*mocks.BlockState).On("GetHighestFinalisedHeader").Return(header, nil)
 
 	bs := NewMockBlockState(ctrl)
-	bs.EXPECT().BestBlockHeader().Return(header, nil).AnyTimes().AnyTimes()
+	bs.EXPECT().BestBlockHeader().Return(header, nil).AnyTimes()
 	bs.EXPECT().GetHighestFinalisedHeader().Return(header, nil).AnyTimes()
 	cs.blockState = bs
 
@@ -455,11 +455,8 @@ func TestChainSync_validateResponse_Integration(t *testing.T) {
 func TestChainSync_validateResponse_firstBlock_Integration(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	cs := newTestChainSync(ctrl)
-	//bs := new(mocks.BlockState)
-	//bs.On("HasHeader", mock.AnythingOfType("common.Hash")).Return(false, nil)
-
 	bs := NewMockBlockState(ctrl)
-	bs.EXPECT().HasHeader(gomock.AssignableToTypeOf(common.Hash{})).Return(false, nil)
+	bs.EXPECT().HasHeader(gomock.AssignableToTypeOf(common.Hash{})).Return(false, nil).AnyTimes()
 	cs.blockState = bs
 
 	req := &network.BlockRequestMessage{
@@ -547,7 +544,7 @@ func TestChainSync_doSync_Integration(t *testing.T) {
 
 	net := NewMockNetwork(ctrl)
 	net.EXPECT().DoBlockRequest(gomock.AssignableToTypeOf(peer.ID("0")),
-		gomock.AssignableToTypeOf(&network.BlockRequestMessage{})).Return(resp, nil)
+		gomock.AssignableToTypeOf(&network.BlockRequestMessage{})).Return(resp, nil).AnyTimes()
 	cs.network = net
 
 	workerErr = cs.doSync(req, make(map[peer.ID]struct{}))
@@ -583,7 +580,7 @@ func TestChainSync_doSync_Integration(t *testing.T) {
 	req.Direction = network.Descending
 	net = NewMockNetwork(ctrl)
 	net.EXPECT().DoBlockRequest(gomock.AssignableToTypeOf(peer.ID("0")),
-		gomock.AssignableToTypeOf(&network.BlockRequestMessage{})).Return(resp, nil)
+		gomock.AssignableToTypeOf(&network.BlockRequestMessage{})).Return(resp, nil).AnyTimes()
 	cs.network = net
 	workerErr = cs.doSync(req, make(map[peer.ID]struct{}))
 	require.Nil(t, workerErr)

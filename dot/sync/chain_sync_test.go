@@ -443,11 +443,11 @@ func TestChainSync_sync_tip(t *testing.T) {
 	require.NoError(t, err)
 
 	bs := NewMockBlockState(ctrl)
-	bs.EXPECT().BestBlockHeader().Return(header, nil)
+	bs.EXPECT().BestBlockHeader().Return(header, nil).AnyTimes()
 	bs.EXPECT().GetHighestFinalisedHeader().DoAndReturn(func() (*types.Header, error) {
 		close(done)
 		return header, nil
-	})
+	}).AnyTimes()
 	cs.blockState = bs
 
 	go cs.sync()

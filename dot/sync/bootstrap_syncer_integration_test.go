@@ -30,8 +30,8 @@ func newTestBootstrapSyncer(t *testing.T) *bootstrapSyncer {
 
 	ctrl := gomock.NewController(t)
 	bs := NewMockBlockState(ctrl)
-	bs.EXPECT().BestBlockHeader().Return(header, nil)
-	bs.EXPECT().GetHighestFinalisedHeader().Return(finHeader, nil)
+	bs.EXPECT().BestBlockHeader().Return(header, nil).AnyTimes()
+	bs.EXPECT().GetHighestFinalisedHeader().Return(finHeader, nil).AnyTimes()
 
 	return newBootstrapSyncer(bs)
 }
