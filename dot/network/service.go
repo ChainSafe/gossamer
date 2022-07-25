@@ -258,7 +258,7 @@ func (s *Service) Start() error {
 			blockAnnounceID, err)
 	}
 
-	txnBatch := make(chan *BatchMessage, s.cfg.batchSize)
+	txnBatch := make(chan *batchMessage, s.cfg.batchSize)
 	txnBatchHandler := s.createBatchMessageHandler(txnBatch)
 
 	// register transactions protocol

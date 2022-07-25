@@ -539,12 +539,9 @@ func TestChainSync_doSync_Integration(t *testing.T) {
 		},
 	}
 
-	//cs.network = new(mocks.Network)
-	//cs.network.(*mocks.Network).On("DoBlockRequest", mock.AnythingOfType("peer.ID"),
-	//	mock.AnythingOfType("*network.BlockRequestMessage")).Return(resp, nil)
-
 	net := NewMockNetwork(ctrl)
-	net.EXPECT().DoBlockRequest(gomock.AssignableToTypeOf(peer.ID("0")), gomock.AssignableToTypeOf(&network.BlockRequestMessage{})).Return(resp, nil)
+	net.EXPECT().DoBlockRequest(gomock.AssignableToTypeOf(peer.ID("0")),
+		gomock.AssignableToTypeOf(&network.BlockRequestMessage{})).Return(resp, nil)
 	cs.network = net
 
 	workerErr = cs.doSync(req, make(map[peer.ID]struct{}))
@@ -578,12 +575,9 @@ func TestChainSync_doSync_Integration(t *testing.T) {
 
 	// test to see if descending blocks get reversed
 	req.Direction = network.Descending
-	//cs.network = new(mocks.Network)
-	//cs.network.(*mocks.Network).On("DoBlockRequest", mock.AnythingOfType("peer.ID"),
-	//	mock.AnythingOfType("*network.BlockRequestMessage")).Return(resp, nil)
-
 	net = NewMockNetwork(ctrl)
-	net.EXPECT().DoBlockRequest(gomock.AssignableToTypeOf(peer.ID("0")), gomock.AssignableToTypeOf(&network.BlockRequestMessage{})).Return(resp, nil)
+	net.EXPECT().DoBlockRequest(gomock.AssignableToTypeOf(peer.ID("0")),
+		gomock.AssignableToTypeOf(&network.BlockRequestMessage{})).Return(resp, nil)
 	cs.network = net
 	workerErr = cs.doSync(req, make(map[peer.ID]struct{}))
 	require.Nil(t, workerErr)
