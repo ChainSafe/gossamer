@@ -7,9 +7,9 @@
 package sync
 
 import (
+	"github.com/golang/mock/gomock"
 	"testing"
 
-	syncmocks "github.com/ChainSafe/gossamer/dot/sync/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -28,9 +28,14 @@ func newTestBootstrapSyncer(t *testing.T) *bootstrapSyncer {
 		trie.EmptyHash, 200, types.NewDigest())
 	require.NoError(t, err)
 
-	bs := new(syncmocks.BlockState)
-	bs.On("BestBlockHeader").Return(header, nil)
-	bs.On("GetHighestFinalisedHeader").Return(finHeader, nil)
+	//bs := new(syncmocks.BlockState)
+	//bs.On("BestBlockHeader").Return(header, nil)
+	//bs.On("GetHighestFinalisedHeader").Return(finHeader, nil)
+
+	ctrl := gomock.NewController(t)
+	bs := NewMockBlockState(ctrl)
+	bs.EXPECT().BestBlockHeader().Return(header, nil)
+	bs.EXPECT().GetHighestFinalisedHeader().Return(finHeader, nil)
 
 	return newBootstrapSyncer(bs)
 }

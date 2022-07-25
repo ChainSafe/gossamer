@@ -11,7 +11,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
-	"github.com/ChainSafe/gossamer/dot/sync/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
@@ -440,14 +439,21 @@ func TestChainSync_sync_tip(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	cs := newTestChainSync(ctrl)
-	cs.blockState = new(mocks.BlockState)
+	//	cs.blockState = new(mocks.BlockState)
 	header, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, 1000,
 		types.NewDigest())
 	require.NoError(t, err)
-	cs.blockState.(*mocks.BlockState).On("BestBlockHeader").Return(header, nil)
-	cs.blockState.(*mocks.BlockState).On("GetHighestFinalisedHeader").Run(func(args mock.Arguments) {
+	//cs.blockState.(*mocks.BlockState).On("BestBlockHeader").Return(header, nil)
+	//cs.blockState.(*mocks.BlockState).On("GetHighestFinalisedHeader").Run(func(args mock.Arguments) {
+	//	close(done)
+	//}).Return(header, nil)
+
+	bs := NewMockBlockState(ctrl)
+	bs.EXPECT().BestBlockHeader().Return(header, nil)
+	bs.EXPECT().GetHighestFinalisedHeader().DoAndReturn(func(args mock.Arguments) {
 		close(done)
 	}).Return(header, nil)
+	cs.blockState = bs
 
 	go cs.sync()
 	defer cs.cancel()
