@@ -176,7 +176,7 @@ func GetGssmrGenesisPathTest(t *testing.T) string {
 	return path
 }
 
-// GetGssmrV3SubstrateGenesisPathTest gets the gssmr genesis path
+// GetGssmrV3SubstrateGenesisPathTest gets the v3 substrate gssmr genesis path
 // and fails the test if it cannot find it.
 func GetGssmrV3SubstrateGenesisPathTest(t *testing.T) string {
 	t.Helper()
