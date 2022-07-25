@@ -139,6 +139,49 @@ func TestBuildBlock_ok(t *testing.T) {
 	require.Equal(t, 1, len(extsBytes))
 }
 
+func TestBuildBlock_addToTransactionState(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+	cfg := &ServiceConfig{
+		TransactionState: state.NewTransactionState(telemetryMock),
+		LogLvl:           log.Info,
+	}
+
+	babeService := createTestService(t, cfg)
+
+	parentHash := babeService.blockState.GenesisHash()
+	rt, err := babeService.blockState.GetRuntime(nil)
+	require.NoError(t, err)
+
+	epochData, err := babeService.initiateEpoch(testEpochIndex)
+	require.NoError(t, err)
+
+	ext := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0, "System.remark", []byte{0xab, 0xcd})
+	block := createTestBlock(t, babeService, emptyHeader, [][]byte{common.MustHexToBytes(ext)},
+		1, testEpochIndex, epochData)
+
+	time.Sleep(500 * time.Millisecond)
+	block = createTestBlock(t, babeService, emptyHeader, [][]byte{common.MustHexToBytes(ext)},
+		1, testEpochIndex, epochData)
+
+	expectedBlockHeader := &types.Header{
+		ParentHash: emptyHeader.Hash(),
+		Number:     1,
+	}
+
+	require.Equal(t, expectedBlockHeader.ParentHash, block.Header.ParentHash)
+	require.Equal(t, expectedBlockHeader.Number, block.Header.Number)
+	require.NotEqual(t, block.Header.StateRoot, emptyHash)
+	require.NotEqual(t, block.Header.ExtrinsicsRoot, emptyHash)
+	require.Equal(t, 2, len(block.Header.Digest.Types))
+
+	// confirm block body is correct
+	extsBytes := types.ExtrinsicsArrayToBytesArray(block.Body)
+	require.Equal(t, 1, len(extsBytes))
+}
+
 func TestApplyExtrinsic(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
