@@ -14,6 +14,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/urfave/cli"
+
+	_ "github.com/breml/rootcerts"
 )
 
 const (
