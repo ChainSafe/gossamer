@@ -194,7 +194,7 @@ func GetGssmrV3SubstrateGenesisRawPathTest(t *testing.T) string {
 	return path
 }
 
-// GetGssmrV3SubstrateGenesisRawPath gets the gssmr raw genesis path
+// GetGssmrV3SubstrateGenesisRawPath gets the v3 substrate gssmr raw genesis path
 // and returns an error if it cannot find it.
 func GetGssmrV3SubstrateGenesisRawPath() (path string, err error) {
 	rootPath, err := GetProjectRootPath()
