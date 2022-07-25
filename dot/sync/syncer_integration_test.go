@@ -121,7 +121,7 @@ func newTestSyncer(t *testing.T) *Service {
 		logger.Debugf("imported block %s and stored state trie with root %s",
 			block.Header.Hash(), ts.MustRoot())
 		return nil
-	})
+	}).AnyTimes()
 	cfg.BlockImportHandler = blockImportHandler
 
 	cfg.TransactionState = stateSrvc.Transaction
