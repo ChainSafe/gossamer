@@ -63,7 +63,7 @@ type Storage interface {
 	ClearPrefixInChild(keyToChild, prefix []byte) error
 	GetChildNextKey(keyToChild, key []byte) ([]byte, error)
 	GetChild(keyToChild []byte) (*trie.Trie, error)
-	ClearPrefix(prefix []byte) error
+	ClearPrefix(prefix []byte)
 	ClearPrefixLimit(prefix []byte, limit uint32) (uint32, bool)
 	BeginStorageTransaction()
 	CommitStorageTransaction()
