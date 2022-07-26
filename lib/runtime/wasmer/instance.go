@@ -43,7 +43,7 @@ type Instance struct {
 	ctx      *runtime.Context
 	isClosed bool
 	codeHash common.Hash
-	sync.Mutex
+	mutex    sync.Mutex
 }
 
 // NewRuntimeFromGenesis creates a runtime instance from the genesis data
@@ -82,53 +82,13 @@ func NewInstanceFromFile(fp string, cfg runtime.InstanceConfig) (*Instance, erro
 }
 
 // NewInstance instantiates a runtime from raw wasm bytecode
-func NewInstance(code []byte, cfg runtime.InstanceConfig) (*Instance, error) {
-	if len(code) == 0 {
-		return nil, errors.New("code is empty")
-	}
-
-	var err error
-	code, err = decompressWasm(code)
-	if err != nil {
-		return nil, fmt.Errorf("cannot decompress WASM code: %w", err)
-	}
-
+func NewInstance(code []byte, cfg runtime.InstanceConfig) (instance *Instance, err error) {
 	logger.Patch(log.SetLevel(cfg.LogLvl), log.SetCallerFunc(true))
 
-	imports, err := importsNodeRuntime()
+	wasmInstance, allocator, err := setupVM(code)
 	if err != nil {
-		return nil, fmt.Errorf("creating node runtime imports: %w", err)
+		return nil, fmt.Errorf("setting up VM: %w", err)
 	}
-
-	// Provide importable memory for newer runtimes
-	// TODO: determine memory descriptor size that the runtime wants from the wasm. (#1268)
-	// should be doable w/ wasmer 1.0.0.
-	memory, err := wasm.NewMemory(23, 0)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = imports.AppendMemory("memory", memory)
-	if err != nil {
-		return nil, err
-	}
-
-	// Instantiates the WebAssembly module.
-	instance, err := wasm.NewInstanceWithImports(code, imports)
-	if err != nil {
-		return nil, err
-	}
-
-	// TODO: get __heap_base exported value from runtime.
-	// wasmer 0.3.x does not support this, but wasmer 1.0.0 does (#1268)
-	heapBase := runtime.DefaultHeapBase
-
-	// Assume imported memory is used if runtime does not export any
-	if !instance.HasMemory() {
-		instance.Memory = memory
-	}
-
-	allocator := runtime.NewAllocator(instance.Memory, heapBase)
 
 	runtimeCtx := &runtime.Context{
 		Storage:         cfg.Storage,
@@ -141,17 +101,13 @@ func NewInstance(code []byte, cfg runtime.InstanceConfig) (*Instance, error) {
 		SigVerifier:     crypto.NewSignatureVerifier(logger),
 		OffchainHTTPSet: offchain.NewHTTPSet(),
 	}
+	wasmInstance.SetContextData(runtimeCtx)
 
-	logger.Debugf("NewInstance called with runtimeCtx: %v", runtimeCtx)
-	instance.SetContextData(runtimeCtx)
-
-	inst := &Instance{
-		vm:       instance,
+	return &Instance{
+		vm:       wasmInstance,
 		ctx:      runtimeCtx,
 		codeHash: cfg.CodeHash,
-	}
-
-	return inst, nil
+	}, nil
 }
 
 // decompressWasm decompresses a Wasm blob that may or may not be compressed with zstd
@@ -181,87 +137,126 @@ func (in *Instance) GetContext() *runtime.Context {
 }
 
 // UpdateRuntimeCode updates the runtime instance to run the given code
-func (in *Instance) UpdateRuntimeCode(code []byte) error {
-	in.Stop()
-
-	err := in.setupInstanceVM(code)
+func (in *Instance) UpdateRuntimeCode(code []byte) (err error) {
+	wasmInstance, allocator, err := setupVM(code)
 	if err != nil {
-		return err
+		return fmt.Errorf("setting up VM: %w", err)
 	}
+
+	in.mutex.Lock()
+	defer in.mutex.Unlock()
+
+	in.close()
+
+	in.ctx.Allocator = allocator
+	wasmInstance.SetContextData(in.ctx)
+
+	in.vm = wasmInstance
 
 	return nil
 }
 
 // CheckRuntimeVersion calculates runtime Version for runtime blob passed in
 func (in *Instance) CheckRuntimeVersion(code []byte) (runtime.Version, error) {
-	tmp := &Instance{
+	in.mutex.Lock()
+	defer in.mutex.Unlock()
+
+	wasmInstance, allocator, err := setupVM(code)
+	if err != nil {
+		return nil, fmt.Errorf("setting up VM: %w", err)
+	}
+
+	in.ctx.Allocator = allocator // TODO we should no change the allocator of the parent instance
+	wasmInstance.SetContextData(in.ctx)
+
+	instance := Instance{
+		vm:  wasmInstance,
 		ctx: in.ctx,
 	}
 
-	in.Lock()
-	defer in.Unlock()
-
-	err := tmp.setupInstanceVM(code)
-	if err != nil {
-		return nil, err
-	}
-
-	return tmp.Version()
+	return instance.Version()
 }
 
-func (in *Instance) setupInstanceVM(code []byte) error {
-	imports, err := importsNodeRuntime()
-	if err != nil {
-		return err
+var (
+	ErrCodeEmpty = errors.New("code is empty")
+)
+
+func setupVM(code []byte) (instance wasm.Instance,
+	allocator *runtime.FreeingBumpHeapAllocator, err error) {
+	if len(code) == 0 {
+		return instance, nil, ErrCodeEmpty
 	}
 
+	code, err = decompressWasm(code)
+	if err != nil {
+		return instance, nil, fmt.Errorf("decompressing WASM code: %w", err)
+	}
+
+	imports, err := importsNodeRuntime()
+	if err != nil {
+		return instance, nil, fmt.Errorf("creating node runtime imports: %w", err)
+	}
+
+	// Provide importable memory for newer runtimes
 	// TODO: determine memory descriptor size that the runtime wants from the wasm.
 	// should be doable w/ wasmer 1.0.0. (#1268)
 	memory, err := wasm.NewMemory(23, 0)
 	if err != nil {
-		return err
+		return instance, nil, fmt.Errorf("creating web assembly memory: %w", err)
 	}
 
 	_, err = imports.AppendMemory("memory", memory)
 	if err != nil {
-		return err
+		return instance, nil, fmt.Errorf("appending memory to imports: %w", err)
 	}
 
 	// Instantiates the WebAssembly module.
-	in.vm, err = wasm.NewInstanceWithImports(code, imports)
+	instance, err = wasm.NewInstanceWithImports(code, imports)
 	if err != nil {
-		return err
+		return instance, nil, fmt.Errorf("creating web assembly instance: %w", err)
 	}
 
 	// Assume imported memory is used if runtime does not export any
-	if !in.vm.HasMemory() {
-		in.vm.Memory = memory
+	if !instance.HasMemory() {
+		instance.Memory = memory
 	}
 
 	// TODO: get __heap_base exported value from runtime.
 	// wasmer 0.3.x does not support this, but wasmer 1.0.0 does (#1268)
 	heapBase := runtime.DefaultHeapBase
 
-	in.ctx.Allocator = runtime.NewAllocator(in.vm.Memory, heapBase)
-	in.vm.SetContextData(in.ctx)
-	return nil
+	allocator = runtime.NewAllocator(instance.Memory, heapBase)
+
+	return instance, allocator, nil
 }
 
 // SetContextStorage sets the runtime's storage. It should be set before calls to the below functions.
 func (in *Instance) SetContextStorage(s runtime.Storage) {
-	in.Lock()
-	defer in.Unlock()
+	in.mutex.Lock()
+	defer in.mutex.Unlock()
 	in.ctx.Storage = s
 }
 
-// Stop func
+// Stop closes the WASM instance, its imports and clears
+// the context allocator in a thread-safe way.
 func (in *Instance) Stop() {
-	in.Lock()
-	defer in.Unlock()
-	if !in.isClosed {
-		in.vm.Close()
-		in.isClosed = true
+	in.mutex.Lock()
+	defer in.mutex.Unlock()
+	in.close()
+}
+
+// close closes the wasm instance (and its imports)
+// and clears the context allocator. If the instance
+// has previously been closed, it simply returns.
+// It is NOT THREAD SAFE to use.
+func (in *Instance) close() {
+	if in.isClosed {
+		return
 	}
+
+	in.vm.Close()
+	in.ctx.Allocator.Clear()
+	in.isClosed = true
 }
 
 var (
@@ -271,8 +266,8 @@ var (
 
 // Exec calls the given function with the given data
 func (in *Instance) Exec(function string, data []byte) (result []byte, err error) {
-	in.Lock()
-	defer in.Unlock()
+	in.mutex.Lock()
+	defer in.mutex.Unlock()
 
 	if in.isClosed {
 		return nil, ErrInstanceIsStopped
