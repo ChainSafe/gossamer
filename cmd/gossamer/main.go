@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	_ "time/tzdata"
 
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/dot/state"
