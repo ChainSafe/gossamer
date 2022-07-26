@@ -2,6 +2,7 @@
 /.githooks
 /.github
 !/.github/workflows/staging
+/docker
 /docs
 /.deepsource.toml
 /.dockerignore
@@ -12,5 +13,4 @@
 /docker-compose.yml
 /Dockerfile
 /Dockerfile.staging
-/prometheus.yml
 /README.md
