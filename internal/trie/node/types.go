@@ -9,9 +9,9 @@ import "fmt"
 type Kind byte
 
 const (
-	// Leaf type for leaf nodes.
+	// Leaf kind for leaf nodes.
 	Leaf Kind = iota
-	// Branch type for branches (with or without value).
+	// Branch kind for branches (with or without value).
 	Branch
 )
 

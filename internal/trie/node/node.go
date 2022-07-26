@@ -41,9 +41,9 @@ type Node struct {
 	Descendants uint32
 }
 
-// Type returns Leaf or Branch depending on what type
+// Kind returns Leaf or Branch depending on what kind
 // the node is.
-func (n *Node) Type() Kind {
+func (n *Node) Kind() Kind {
 	if n.Children != nil {
 		return Branch
 	}
@@ -57,7 +57,7 @@ func (n *Node) String() string {
 // StringNode returns a gotree compatible node for String methods.
 func (n Node) StringNode() (stringNode *gotree.Node) {
 	caser := cases.Title(language.BritishEnglish)
-	stringNode = gotree.New(caser.String(n.Type().String()))
+	stringNode = gotree.New(caser.String(n.Kind().String()))
 	stringNode.Appendf("Generation: %d", n.Generation)
 	stringNode.Appendf("Dirty: %t", n.Dirty)
 	stringNode.Appendf("Key: " + bytesToString(n.Key))

@@ -89,7 +89,7 @@ func walkRoot(root *node.Node, fullKey []byte) (
 		return encodedProofNodes, nil
 	}
 
-	if root.Type() == node.Leaf && !nodeFound {
+	if root.Kind() == node.Leaf && !nodeFound {
 		return nil, ErrKeyNotFound
 	}
 
@@ -141,7 +141,7 @@ func walk(parent *node.Node, fullKey []byte) (
 		return encodedProofNodes, nil
 	}
 
-	if parent.Type() == node.Leaf && !nodeFound {
+	if parent.Kind() == node.Leaf && !nodeFound {
 		return nil, ErrKeyNotFound
 	}
 

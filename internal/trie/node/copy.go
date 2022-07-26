@@ -62,7 +62,7 @@ func (n *Node) Copy(settings CopySettings) *Node {
 		Descendants: n.Descendants,
 	}
 
-	if n.Type() == Branch {
+	if n.Kind() == Branch {
 		if settings.CopyChildren {
 			// Copy all fields of children if we deep copy children
 			childSettings := settings

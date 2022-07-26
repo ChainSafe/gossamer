@@ -61,7 +61,7 @@ func (t *Trie) storeNode(db chaindb.Batch, n *Node) (err error) {
 		return err
 	}
 
-	if n.Type() == node.Branch {
+	if n.Kind() == node.Branch {
 		for _, child := range n.Children {
 			if child == nil {
 				continue
@@ -110,7 +110,7 @@ func (t *Trie) Load(db Database, rootHash common.Hash) error {
 }
 
 func (t *Trie) loadNode(db Database, n *Node) error {
-	if n.Type() != node.Branch {
+	if n.Kind() != node.Branch {
 		return nil
 	}
 
@@ -154,7 +154,7 @@ func (t *Trie) loadNode(db Database, n *Node) error {
 			return fmt.Errorf("cannot load child at index %d with hash 0x%x: %w", i, hash, err)
 		}
 
-		if decodedNode.Type() == node.Branch {
+		if decodedNode.Kind() == node.Branch {
 			// Note 1: the node is fully loaded with all its descendants
 			// count only after the database load above.
 			// Note 2: direct child node is already counted as descendant
@@ -188,7 +188,7 @@ func (t *Trie) loadNode(db Database, n *Node) error {
 // PopulateNodeHashes writes hashes of each children of the node given
 // as keys to the map hashesSet.
 func (t *Trie) PopulateNodeHashes(n *Node, hashesSet map[common.Hash]struct{}) {
-	if n.Type() != node.Branch {
+	if n.Kind() != node.Branch {
 		return
 	}
 
@@ -262,7 +262,7 @@ func GetFromDB(db chaindb.Database, rootHash common.Hash, key []byte) (
 // slice will modify the value of the node in the trie.
 func getFromDBAtNode(db chaindb.Database, n *Node, key []byte) (
 	value []byte, err error) {
-	if n.Type() == node.Leaf {
+	if n.Kind() == node.Leaf {
 		if bytes.Equal(n.Key, key) {
 			return n.Value, nil
 		}
@@ -292,7 +292,7 @@ func getFromDBAtNode(db chaindb.Database, n *Node, key []byte) (
 
 	// Child can be either inlined or a hash pointer.
 	childHash := child.HashDigest
-	if len(childHash) == 0 && child.Type() == node.Leaf {
+	if len(childHash) == 0 && child.Kind() == node.Leaf {
 		return getFromDBAtNode(db, child, key[commonPrefixLength+1:])
 	}
 
@@ -351,7 +351,7 @@ func (t *Trie) writeDirtyNode(db chaindb.Batch, n *Node) (err error) {
 			hash, err)
 	}
 
-	if n.Type() != node.Branch {
+	if n.Kind() != node.Branch {
 		n.SetClean()
 		return nil
 	}
@@ -411,7 +411,7 @@ func (t *Trie) getInsertedNodeHashesAtNode(n *Node, hashes map[common.Hash]struc
 
 	hashes[common.BytesToHash(hash)] = struct{}{}
 
-	if n.Type() != node.Branch {
+	if n.Kind() != node.Branch {
 		return nil
 	}
 
