@@ -392,14 +392,6 @@ func (h *host) peerCount() int {
 	return len(peers)
 }
 
-// addrInfo returns the libp2p peer.AddrInfo of the host
-func (h *host) addrInfo() peer.AddrInfo {
-	return peer.AddrInfo{
-		ID:    h.p2pHost.ID(),
-		Addrs: h.p2pHost.Addrs(),
-	}
-}
-
 // multiaddrs returns the multiaddresses of the host
 func (h *host) multiaddrs() (multiaddrs []ma.Multiaddr) {
 	addrs := h.p2pHost.Addrs()

@@ -497,7 +497,7 @@ func TestClearPrefix_Small(t *testing.T) {
 		Value:      []byte("other"),
 		Generation: 1,
 	}
-	expectedRoot.SetDirty(true)
+	expectedRoot.SetDirty()
 
 	require.Equal(t, expectedRoot, ssTrie.root)
 

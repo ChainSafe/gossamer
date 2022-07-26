@@ -25,32 +25,19 @@ type telemetryConnection struct {
 
 // Mailer can send messages to the telemetry servers.
 type Mailer struct {
-	*sync.Mutex
+	mutex *sync.Mutex
 
-	logger  log.LeveledLogger
-	enabled bool
+	logger log.LeveledLogger
 
 	connections []*telemetryConnection
 }
 
-func newMailer(enabled bool, logger log.LeveledLogger) *Mailer {
-	mailer := &Mailer{
-		new(sync.Mutex),
-		logger,
-		enabled,
-		nil,
-	}
-
-	return mailer
-}
-
 // BootstrapMailer setup the mailer, the connections and start the async message shipment
-func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint, enabled bool, logger log.LeveledLogger) (
+func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint, logger log.LeveledLogger) (
 	mailer *Mailer, err error) {
-
-	mailer = newMailer(enabled, logger)
-	if !enabled {
-		return mailer, nil
+	mailer = &Mailer{
+		mutex:  new(sync.Mutex),
+		logger: logger,
 	}
 
 	for _, v := range conns {
@@ -90,12 +77,10 @@ func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint, en
 
 // SendMessage sends Message to connected telemetry listeners through messageReceiver
 func (m *Mailer) SendMessage(msg Message) {
-	m.Lock()
-	defer m.Unlock()
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
 
-	if m.enabled {
-		go m.shipTelemetryMessage(msg)
-	}
+	go m.shipTelemetryMessage(msg)
 }
 
 func (m *Mailer) shipTelemetryMessage(msg Message) {

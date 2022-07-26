@@ -157,7 +157,11 @@ func Test_Trie_updateGeneration(t *testing.T) {
 
 			// Check for deep copy
 			if newNode != nil && testCase.copied {
-				newNode.SetDirty(!newNode.Dirty)
+				if newNode.Dirty {
+					newNode.SetClean()
+				} else {
+					newNode.SetDirty()
+				}
 				assert.NotEqual(t, testCase.node, newNode)
 			}
 		})
@@ -1049,106 +1053,6 @@ func Test_Trie_Put(t *testing.T) {
 
 			trie := testCase.trie
 			trie.Put(testCase.key, testCase.value)
-
-			assert.Equal(t, testCase.expectedTrie, trie)
-		})
-	}
-}
-
-func Test_Trie_put(t *testing.T) {
-	t.Parallel()
-
-	testCases := map[string]struct {
-		trie         Trie
-		key          []byte
-		value        []byte
-		expectedTrie Trie
-	}{
-		"nil everything": {
-			trie: Trie{
-				generation: 1,
-			},
-			expectedTrie: Trie{
-				generation: 1,
-				root: &Node{
-					Generation: 1,
-					Dirty:      true,
-				},
-			},
-		},
-		"empty trie with nil key and value": {
-			trie: Trie{
-				generation: 1,
-			},
-			value: []byte{3, 4},
-			expectedTrie: Trie{
-				generation: 1,
-				root: &Node{
-					Value:      []byte{3, 4},
-					Generation: 1,
-					Dirty:      true,
-				},
-			},
-		},
-		"empty trie with key and value": {
-			trie: Trie{
-				generation: 1,
-			},
-			key:   []byte{1, 2},
-			value: []byte{3, 4},
-			expectedTrie: Trie{
-				generation: 1,
-				root: &Node{
-					Key:        []byte{1, 2},
-					Value:      []byte{3, 4},
-					Generation: 1,
-					Dirty:      true,
-				},
-			},
-		},
-		"trie with key and value": {
-			trie: Trie{
-				generation: 1,
-				root: &Node{
-					Key:   []byte{1, 0, 5},
-					Value: []byte{1},
-				},
-			},
-			key:   []byte{1, 1, 6},
-			value: []byte{2},
-			expectedTrie: Trie{
-				generation: 1,
-				root: &Node{
-					Key:         []byte{1},
-					Generation:  1,
-					Dirty:       true,
-					Descendants: 2,
-					Children: padRightChildren([]*Node{
-						{
-							Key:        []byte{5},
-							Value:      []byte{1},
-							Generation: 1,
-							Dirty:      true,
-						},
-						{
-							Key:        []byte{6},
-							Value:      []byte{2},
-							Generation: 1,
-							Dirty:      true,
-						},
-					}),
-				},
-			},
-		},
-	}
-
-	for name, testCase := range testCases {
-		testCase := testCase
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-
-			trie := testCase.trie
-			trie.put(testCase.key, testCase.value)
 
 			assert.Equal(t, testCase.expectedTrie, trie)
 		})
@@ -2220,7 +2124,7 @@ func Test_Trie_ClearPrefixLimit(t *testing.T) {
 	}
 }
 
-func Test_Trie_clearPrefixLimit(t *testing.T) {
+func Test_Trie_clearPrefixLimitAtNode(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
@@ -2749,7 +2653,7 @@ func Test_Trie_clearPrefixLimit(t *testing.T) {
 			expectedTrie := *trie.DeepCopy()
 
 			newParent, valuesDeleted, nodesRemoved, allDeleted :=
-				trie.clearPrefixLimit(testCase.parent, testCase.prefix, testCase.limit)
+				trie.clearPrefixLimitAtNode(testCase.parent, testCase.prefix, testCase.limit)
 
 			assert.Equal(t, testCase.newParent, newParent)
 			assert.Equal(t, testCase.valuesDeleted, valuesDeleted)
@@ -3009,7 +2913,7 @@ func Test_Trie_ClearPrefix(t *testing.T) {
 	}
 }
 
-func Test_Trie_clearPrefix(t *testing.T) {
+func Test_Trie_clearPrefixAtNode(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
@@ -3295,7 +3199,7 @@ func Test_Trie_clearPrefix(t *testing.T) {
 			expectedTrie := *trie.DeepCopy()
 
 			newParent, nodesRemoved :=
-				trie.clearPrefix(testCase.parent, testCase.prefix)
+				trie.clearPrefixAtNode(testCase.parent, testCase.prefix)
 
 			assert.Equal(t, testCase.newParent, newParent)
 			assert.Equal(t, testCase.nodesRemoved, nodesRemoved)
@@ -3395,7 +3299,7 @@ func Test_Trie_Delete(t *testing.T) {
 	}
 }
 
-func Test_Trie_delete(t *testing.T) {
+func Test_Trie_deleteAtNode(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
@@ -3695,7 +3599,7 @@ func Test_Trie_delete(t *testing.T) {
 			}
 			expectedTrie := *testCase.trie.DeepCopy()
 
-			newParent, updated, nodesRemoved := testCase.trie.delete(testCase.parent, testCase.key)
+			newParent, updated, nodesRemoved := testCase.trie.deleteAtNode(testCase.parent, testCase.key)
 
 			assert.Equal(t, testCase.newParent, newParent)
 			assert.Equal(t, testCase.updated, updated)

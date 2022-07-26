@@ -160,7 +160,7 @@ func Test_Node_Copy(t *testing.T) {
 			testForSliceModif(t, testCase.node.HashDigest, nodeCopy.HashDigest)
 			testForSliceModif(t, testCase.node.Encoding, nodeCopy.Encoding)
 
-			if testCase.node.Type() == Branch {
+			if testCase.node.Kind() == Branch {
 				testCase.node.Children[15] = &Node{Key: []byte("modified")}
 				assert.NotEqual(t, nodeCopy.Children, testCase.node.Children)
 			}

@@ -73,7 +73,7 @@ func (t *Trie) prepLeafForMutation(currentLeaf *Node,
 	} else {
 		newLeaf = updateGeneration(currentLeaf, t.generation, t.deletedKeys, copySettings)
 	}
-	newLeaf.SetDirty(true)
+	newLeaf.SetDirty()
 	return newLeaf
 }
 
@@ -86,7 +86,7 @@ func (t *Trie) prepBranchForMutation(currentBranch *Node,
 	} else {
 		newBranch = updateGeneration(currentBranch, t.generation, t.deletedKeys, copySettings)
 	}
-	newBranch.SetDirty(true)
+	newBranch.SetDirty()
 	return newBranch
 }
 
@@ -201,7 +201,7 @@ func entries(parent *Node, prefix []byte, kv map[string][]byte) map[string][]byt
 		return kv
 	}
 
-	if parent.Type() == node.Leaf {
+	if parent.Kind() == node.Leaf {
 		parentKey := parent.Key
 		fullKeyNibbles := concatenateSlices(prefix, parentKey)
 		keyLE := string(codec.NibblesToKeyLE(fullKeyNibbles))
@@ -244,7 +244,7 @@ func findNextKey(parent *Node, prefix, searchKey []byte) (nextKey []byte) {
 		return nil
 	}
 
-	if parent.Type() == node.Leaf {
+	if parent.Kind() == node.Leaf {
 		return findNextKeyLeaf(parent, prefix, searchKey)
 	}
 	return findNextKeyBranch(parent, prefix, searchKey)
@@ -319,11 +319,7 @@ func findNextKeyChild(children []*Node, startIndex byte,
 // key specified in little Endian format.
 func (t *Trie) Put(keyLE, value []byte) {
 	nibblesKey := codec.KeyLEToNibbles(keyLE)
-	t.put(nibblesKey, value)
-}
-
-func (t *Trie) put(key, value []byte) {
-	t.root, _ = t.insert(t.root, key, value)
+	t.root, _ = t.insert(t.root, nibblesKey, value)
 }
 
 // insert inserts a value in the trie at the key specified.
@@ -341,7 +337,7 @@ func (t *Trie) insert(parent *Node, key, value []byte) (newParent *Node, nodesCr
 
 	// TODO ensure all values have dirty set to true
 
-	if parent.Type() == node.Branch {
+	if parent.Kind() == node.Branch {
 		return t.insertInBranch(parent, key, value)
 	}
 	return t.insertInLeaf(parent, key, value)
@@ -529,7 +525,7 @@ func getKeysWithPrefix(parent *Node, prefix, key []byte,
 		return keysLE
 	}
 
-	if parent.Type() == node.Leaf {
+	if parent.Kind() == node.Leaf {
 		return getKeysWithPrefixFromLeaf(parent, prefix, key, keysLE)
 	}
 
@@ -575,7 +571,7 @@ func addAllKeys(parent *Node, prefix []byte, keysLE [][]byte) (newKeysLE [][]byt
 		return keysLE
 	}
 
-	if parent.Type() == node.Leaf {
+	if parent.Kind() == node.Leaf {
 		keyLE := makeFullKeyLE(prefix, parent.Key)
 		keysLE = append(keysLE, keyLE)
 		return keysLE
@@ -619,7 +615,7 @@ func retrieve(parent *Node, key []byte) (value []byte) {
 		return nil
 	}
 
-	if parent.Type() == node.Leaf {
+	if parent.Kind() == node.Leaf {
 		return retrieveFromLeaf(parent, key)
 	}
 	return retrieveFromBranch(parent, key)
@@ -660,20 +656,20 @@ func (t *Trie) ClearPrefixLimit(prefixLE []byte, limit uint32) (deleted uint32, 
 	prefix := codec.KeyLEToNibbles(prefixLE)
 	prefix = bytes.TrimSuffix(prefix, []byte{0})
 
-	t.root, deleted, _, allDeleted = t.clearPrefixLimit(t.root, prefix, limit)
+	t.root, deleted, _, allDeleted = t.clearPrefixLimitAtNode(t.root, prefix, limit)
 	return deleted, allDeleted
 }
 
-// clearPrefixLimit deletes the keys having the prefix until the value deletion limit is reached.
+// clearPrefixLimitAtNode deletes the keys having the prefix until the value deletion limit is reached.
 // It returns the updated node newParent, the number of deleted values valuesDeleted and the
 // allDeleted boolean indicating if there is no key left with the prefix.
-func (t *Trie) clearPrefixLimit(parent *Node, prefix []byte, limit uint32) (
+func (t *Trie) clearPrefixLimitAtNode(parent *Node, prefix []byte, limit uint32) (
 	newParent *Node, valuesDeleted, nodesRemoved uint32, allDeleted bool) {
 	if parent == nil {
 		return nil, 0, 0, true
 	}
 
-	if parent.Type() == node.Leaf {
+	if parent.Kind() == node.Leaf {
 		// if prefix is not found, it's also all deleted.
 		// TODO check this is the same behaviour as in substrate
 		const allDeleted = true
@@ -716,7 +712,7 @@ func (t *Trie) clearPrefixLimitBranch(branch *Node, prefix []byte, limit uint32)
 	childPrefix := prefix[len(branch.Key)+1:]
 	child := branch.Children[childIndex]
 
-	child, valuesDeleted, nodesRemoved, allDeleted = t.clearPrefixLimit(child, childPrefix, limit)
+	child, valuesDeleted, nodesRemoved, allDeleted = t.clearPrefixLimitAtNode(child, childPrefix, limit)
 	if valuesDeleted == 0 {
 		return branch, valuesDeleted, nodesRemoved, allDeleted
 	}
@@ -780,7 +776,7 @@ func (t *Trie) deleteNodesLimit(parent *Node, prefix []byte, limit uint32) (
 		return nil, valuesDeleted, nodesRemoved
 	}
 
-	if parent.Type() == node.Leaf {
+	if parent.Kind() == node.Leaf {
 		valuesDeleted, nodesRemoved = 1, 1
 		return nil, valuesDeleted, nodesRemoved
 	}
@@ -809,7 +805,7 @@ func (t *Trie) deleteNodesLimit(parent *Node, prefix []byte, limit uint32) (
 		nodesRemoved += newNodesRemoved
 		branch.Descendants -= newNodesRemoved
 
-		branch.SetDirty(true)
+		branch.SetDirty()
 
 		newParent, branchChildMerged = handleDeletion(branch, fullKey)
 		if branchChildMerged {
@@ -845,10 +841,10 @@ func (t *Trie) ClearPrefix(prefixLE []byte) {
 	prefix := codec.KeyLEToNibbles(prefixLE)
 	prefix = bytes.TrimSuffix(prefix, []byte{0})
 
-	t.root, _ = t.clearPrefix(t.root, prefix)
+	t.root, _ = t.clearPrefixAtNode(t.root, prefix)
 }
 
-func (t *Trie) clearPrefix(parent *Node, prefix []byte) (
+func (t *Trie) clearPrefixAtNode(parent *Node, prefix []byte) (
 	newParent *Node, nodesRemoved uint32) {
 	if parent == nil {
 		const nodesRemoved = 0
@@ -860,7 +856,7 @@ func (t *Trie) clearPrefix(parent *Node, prefix []byte) (
 		return nil, nodesRemoved
 	}
 
-	if parent.Type() == node.Leaf {
+	if parent.Kind() == node.Leaf {
 		const nodesRemoved = 0
 		return parent, nodesRemoved
 	}
@@ -901,7 +897,7 @@ func (t *Trie) clearPrefix(parent *Node, prefix []byte) (
 	childPrefix := prefix[len(branch.Key)+1:]
 	child := branch.Children[childIndex]
 
-	child, nodesRemoved = t.clearPrefix(child, childPrefix)
+	child, nodesRemoved = t.clearPrefixAtNode(child, childPrefix)
 	if nodesRemoved == 0 {
 		return parent, nodesRemoved
 	}
@@ -923,17 +919,17 @@ func (t *Trie) clearPrefix(parent *Node, prefix []byte) (
 // If no node is found at this key, nothing is deleted.
 func (t *Trie) Delete(keyLE []byte) {
 	key := codec.KeyLEToNibbles(keyLE)
-	t.root, _, _ = t.delete(t.root, key)
+	t.root, _, _ = t.deleteAtNode(t.root, key)
 }
 
-func (t *Trie) delete(parent *Node, key []byte) (
+func (t *Trie) deleteAtNode(parent *Node, key []byte) (
 	newParent *Node, deleted bool, nodesRemoved uint32) {
 	if parent == nil {
 		const nodesRemoved = 0
 		return nil, false, nodesRemoved
 	}
 
-	if parent.Type() == node.Leaf {
+	if parent.Kind() == node.Leaf {
 		if deleteLeaf(parent, key) == nil {
 			const nodesRemoved = 1
 			return nil, true, nodesRemoved
@@ -978,7 +974,7 @@ func (t *Trie) deleteBranch(branch *Node, key []byte) (
 	childKey := key[commonPrefixLength+1:]
 	child := branch.Children[childIndex]
 
-	newChild, deleted, nodesRemoved := t.delete(child, childKey)
+	newChild, deleted, nodesRemoved := t.deleteAtNode(child, childKey)
 	if !deleted {
 		const nodesRemoved = 0
 		return branch, false, nodesRemoved
@@ -1034,7 +1030,7 @@ func handleDeletion(branch *Node, key []byte) (newNode *Node, branchChildMerged 
 		childIndex := firstChildIndex
 		child := branch.Children[firstChildIndex]
 
-		if child.Type() == node.Leaf {
+		if child.Kind() == node.Leaf {
 			newLeafKey := concatenateSlices(branch.Key, intToByteSlice(childIndex), child.Key)
 			return &Node{
 				Key:        newLeafKey,

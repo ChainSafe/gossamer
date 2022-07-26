@@ -111,7 +111,7 @@ func buildTrie(encodedProofNodes [][]byte, rootHash []byte) (t *trie.Trie, err e
 // loadProof is a recursive function that will create all the trie paths based
 // on the map from node hash digest to node encoding, starting from the node `n`.
 func loadProof(digestToEncoding map[string][]byte, n *node.Node) (err error) {
-	if n.Type() != node.Branch {
+	if n.Kind() != node.Branch {
 		return nil
 	}
 

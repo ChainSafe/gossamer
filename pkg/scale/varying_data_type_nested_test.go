@@ -33,7 +33,7 @@ func mustNewParentVDT() parentVDT {
 
 type childVDT VaryingDataType
 
-func (cvdt childVDT) Index() uint {
+func (childVDT) Index() uint {
 	return 1
 }
 
@@ -59,7 +59,7 @@ func mustNewChildVDTAndSet(vdtv VaryingDataTypeValue) childVDT {
 
 type childVDT1 VaryingDataType
 
-func (cvdt childVDT1) Index() uint {
+func (childVDT1) Index() uint {
 	return 2
 }
 

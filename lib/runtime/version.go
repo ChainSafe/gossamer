@@ -82,7 +82,7 @@ func (lvd *LegacyVersionData) APIItems() []APIItem {
 }
 
 // TransactionVersion returns the transaction version
-func (lvd *LegacyVersionData) TransactionVersion() uint32 {
+func (*LegacyVersionData) TransactionVersion() uint32 {
 	return 0
 }
 

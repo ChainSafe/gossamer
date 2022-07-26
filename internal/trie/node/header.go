@@ -18,7 +18,7 @@ func encodeHeader(node *Node, writer io.Writer) (err error) {
 
 	// Merge variant byte and partial key length together
 	var variant variant
-	if node.Type() == Leaf {
+	if node.Kind() == Leaf {
 		variant = leafVariant
 	} else if node.Value == nil {
 		variant = branchVariant

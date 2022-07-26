@@ -22,7 +22,15 @@ const codeHex = "0x3a636f6465"
 func TestBuildFromGenesis_Integration(t *testing.T) {
 	t.Parallel()
 
-	file := genesis.CreateTestGenesisJSONFile(t, false)
+	genesisFields := genesis.Fields{
+		Raw: map[string]map[string]string{},
+		Runtime: map[string]map[string]interface{}{
+			"System": {
+				"code": "mocktestcode",
+			},
+		},
+	}
+	file := genesis.CreateTestGenesisJSONFile(t, genesisFields)
 	bs, err := BuildFromGenesis(file, 0)
 
 	const expectedChainType = "TESTCHAINTYPE"
@@ -43,7 +51,7 @@ func TestBuildFromGenesis_Integration(t *testing.T) {
 	jGen := genesis.Genesis{}
 	err = json.Unmarshal(hr, &jGen)
 	require.NoError(t, err)
-	genesis.TestGenesis.Genesis = genesis.TestFieldsHR
+	genesis.TestGenesis.Genesis = genesisFields
 	require.Equal(t, genesis.TestGenesis.Genesis.Runtime, jGen.Genesis.Runtime)
 	require.Equal(t, expectedChainType, jGen.ChainType)
 	require.Equal(t, expectedProperties, jGen.Properties)

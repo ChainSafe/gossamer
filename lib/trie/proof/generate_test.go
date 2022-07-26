@@ -266,7 +266,7 @@ func Test_Generate(t *testing.T) {
 	}
 }
 
-func Test_walk(t *testing.T) {
+func Test_walkRoot(t *testing.T) {
 	t.Parallel()
 
 	largeValue := generateBytes(t, 40)
@@ -275,7 +275,6 @@ func Test_walk(t *testing.T) {
 	testCases := map[string]struct {
 		parent            *node.Node
 		fullKey           []byte // nibbles
-		isRoot            bool
 		encodedProofNodes [][]byte
 		errWrapped        error
 		errMessage        string
@@ -293,7 +292,6 @@ func Test_walk(t *testing.T) {
 				Key:   []byte{1, 2},
 				Value: []byte{1},
 			},
-			isRoot: true,
 			encodedProofNodes: [][]byte{encodeNode(t, node.Node{
 				Key:   []byte{1, 2},
 				Value: []byte{1},
@@ -337,7 +335,6 @@ func Test_walk(t *testing.T) {
 					},
 				}),
 			},
-			isRoot: true,
 			encodedProofNodes: [][]byte{
 				encodeNode(t, node.Node{
 					Key:   []byte{1, 2},
@@ -393,7 +390,6 @@ func Test_walk(t *testing.T) {
 				}),
 			},
 			fullKey: []byte{1, 2},
-			isRoot:  true,
 			encodedProofNodes: [][]byte{
 				encodeNode(t, node.Node{
 					Key:   []byte{1, 2},
@@ -419,7 +415,6 @@ func Test_walk(t *testing.T) {
 				}),
 			},
 			fullKey: []byte{1, 2, 0, 1, 2},
-			isRoot:  true,
 			encodedProofNodes: [][]byte{
 				encodeNode(t, node.Node{
 					Key:   []byte{1, 2},
@@ -447,7 +442,6 @@ func Test_walk(t *testing.T) {
 				}),
 			},
 			fullKey: []byte{1, 2, 0, 1, 2},
-			isRoot:  true,
 			encodedProofNodes: [][]byte{
 				encodeNode(t, node.Node{
 					Key:   []byte{1, 2},
@@ -492,7 +486,6 @@ func Test_walk(t *testing.T) {
 				}),
 			},
 			fullKey: []byte{1, 2, 0x04},
-			isRoot:  true,
 			encodedProofNodes: [][]byte{
 				encodeNode(t, node.Node{
 					Key:   []byte{1, 2},
@@ -513,7 +506,258 @@ func Test_walk(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			encodedProofNodes, err := walk(testCase.parent, testCase.fullKey, testCase.isRoot)
+			encodedProofNodes, err := walkRoot(testCase.parent, testCase.fullKey)
+
+			assert.ErrorIs(t, err, testCase.errWrapped)
+			if testCase.errWrapped != nil {
+				assert.EqualError(t, err, testCase.errMessage)
+			}
+			assert.Equal(t, testCase.encodedProofNodes, encodedProofNodes)
+		})
+	}
+}
+
+func Test_walk(t *testing.T) {
+	t.Parallel()
+
+	largeValue := generateBytes(t, 40)
+	assertLongEncoding(t, node.Node{Value: largeValue})
+
+	testCases := map[string]struct {
+		parent            *node.Node
+		fullKey           []byte // nibbles
+		encodedProofNodes [][]byte
+		errWrapped        error
+		errMessage        string
+	}{
+		"nil parent and empty full key": {},
+		"nil parent and non empty full key": {
+			fullKey:    []byte{1},
+			errWrapped: ErrKeyNotFound,
+			errMessage: "key not found",
+		},
+		// The parent encode error cannot be triggered here
+		// since it can only be caused by a buffer.Write error.
+		"parent leaf and empty full key": {
+			parent: &node.Node{
+				Key:   []byte{1, 2},
+				Value: largeValue,
+			},
+			encodedProofNodes: [][]byte{encodeNode(t, node.Node{
+				Key:   []byte{1, 2},
+				Value: largeValue,
+			})},
+		},
+		"parent leaf and shorter full key": {
+			parent: &node.Node{
+				Key:   []byte{1, 2},
+				Value: []byte{1},
+			},
+			fullKey:    []byte{1},
+			errWrapped: ErrKeyNotFound,
+			errMessage: "key not found",
+		},
+		"parent leaf and mismatching full key": {
+			parent: &node.Node{
+				Key:   []byte{1, 2},
+				Value: []byte{1},
+			},
+			fullKey:    []byte{1, 3},
+			errWrapped: ErrKeyNotFound,
+			errMessage: "key not found",
+		},
+		"parent leaf and longer full key": {
+			parent: &node.Node{
+				Key:   []byte{1, 2},
+				Value: []byte{1},
+			},
+			fullKey:    []byte{1, 2, 3},
+			errWrapped: ErrKeyNotFound,
+			errMessage: "key not found",
+		},
+		"branch and empty search key": {
+			parent: &node.Node{
+				Key:   []byte{1, 2},
+				Value: largeValue,
+				Children: padRightChildren([]*node.Node{
+					{
+						Key:   []byte{4},
+						Value: []byte{5},
+					},
+				}),
+			},
+			encodedProofNodes: [][]byte{
+				encodeNode(t, node.Node{
+					Key:   []byte{1, 2},
+					Value: largeValue,
+					Children: padRightChildren([]*node.Node{
+						{
+							Key:   []byte{4},
+							Value: []byte{5},
+						},
+					}),
+				}),
+			},
+		},
+		"branch and shorter full key": {
+			parent: &node.Node{
+				Key:   []byte{1, 2},
+				Value: []byte{3},
+				Children: padRightChildren([]*node.Node{
+					{
+						Key:   []byte{4},
+						Value: []byte{5},
+					},
+				}),
+			},
+			fullKey:    []byte{1},
+			errWrapped: ErrKeyNotFound,
+			errMessage: "key not found",
+		},
+		"branch and mismatching full key": {
+			parent: &node.Node{
+				Key:   []byte{1, 2},
+				Value: []byte{3},
+				Children: padRightChildren([]*node.Node{
+					{
+						Key:   []byte{4},
+						Value: []byte{5},
+					},
+				}),
+			},
+			fullKey:    []byte{1, 3},
+			errWrapped: ErrKeyNotFound,
+			errMessage: "key not found",
+		},
+		"branch and matching search key": {
+			parent: &node.Node{
+				Key:   []byte{1, 2},
+				Value: []byte{3},
+				Children: padRightChildren([]*node.Node{
+					{
+						Key:   []byte{4},
+						Value: largeValue,
+					},
+				}),
+			},
+			fullKey: []byte{1, 2},
+			encodedProofNodes: [][]byte{
+				encodeNode(t, node.Node{
+					Key:   []byte{1, 2},
+					Value: []byte{3},
+					Children: padRightChildren([]*node.Node{
+						{
+							Key:   []byte{4},
+							Value: largeValue,
+						},
+					}),
+				}),
+			},
+		},
+		"branch and matching search key for small leaf encoding": {
+			parent: &node.Node{
+				Key:   []byte{1, 2},
+				Value: largeValue,
+				Children: padRightChildren([]*node.Node{
+					{ // full key 1, 2, 0, 1, 2
+						Key:   []byte{1, 2},
+						Value: []byte{3},
+					},
+				}),
+			},
+			fullKey: []byte{1, 2, 0, 1, 2},
+			encodedProofNodes: [][]byte{
+				encodeNode(t, node.Node{
+					Key:   []byte{1, 2},
+					Value: largeValue,
+					Children: padRightChildren([]*node.Node{
+						{ // full key 1, 2, 0, 1, 2
+							Key:   []byte{1, 2},
+							Value: []byte{3},
+						},
+					}),
+				}),
+				// Note the leaf encoding is not added since its encoding
+				// is less than 32 bytes.
+			},
+		},
+		"branch and matching search key for large leaf encoding": {
+			parent: &node.Node{
+				Key:   []byte{1, 2},
+				Value: []byte{3},
+				Children: padRightChildren([]*node.Node{
+					{ // full key 1, 2, 0, 1, 2
+						Key:   []byte{1, 2},
+						Value: largeValue,
+					},
+				}),
+			},
+			fullKey: []byte{1, 2, 0, 1, 2},
+			encodedProofNodes: [][]byte{
+				encodeNode(t, node.Node{
+					Key:   []byte{1, 2},
+					Value: []byte{3},
+					Children: padRightChildren([]*node.Node{
+						{ // full key 1, 2, 0, 1, 2
+							Key:   []byte{1, 2},
+							Value: largeValue,
+						},
+					}),
+				}),
+				encodeNode(t, node.Node{
+					Key:   []byte{1, 2},
+					Value: largeValue,
+				}),
+			},
+		},
+		"key not found at deeper level": {
+			parent: &node.Node{
+				Key:   []byte{1, 2},
+				Value: []byte{3},
+				Children: padRightChildren([]*node.Node{
+					{
+						Key:   []byte{4, 5},
+						Value: []byte{5},
+					},
+				}),
+			},
+			fullKey:    []byte{1, 2, 0x04, 4},
+			errWrapped: ErrKeyNotFound,
+			errMessage: "key not found",
+		},
+		"found leaf at deeper level": {
+			parent: &node.Node{
+				Key:   []byte{1, 2},
+				Value: []byte{3},
+				Children: padRightChildren([]*node.Node{
+					{
+						Key:   []byte{4},
+						Value: largeValue,
+					},
+				}),
+			},
+			fullKey: []byte{1, 2, 0x04},
+			encodedProofNodes: [][]byte{
+				encodeNode(t, node.Node{
+					Key:   []byte{1, 2},
+					Value: []byte{3},
+					Children: padRightChildren([]*node.Node{
+						{
+							Key:   []byte{4},
+							Value: largeValue,
+						},
+					}),
+				}),
+			},
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			encodedProofNodes, err := walk(testCase.parent, testCase.fullKey)
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if testCase.errWrapped != nil {
@@ -583,7 +827,7 @@ func Test_lenCommonPrefix(t *testing.T) {
 // In both cases, the performance difference is very small
 // so the code is kept to this inefficient-looking append,
 // which is in the end quite performant still.
-func Benchmark_walk(b *testing.B) {
+func Benchmark_walkRoot(b *testing.B) {
 	trie := trie.NewEmptyTrie()
 
 	// Build a deep trie.
@@ -601,13 +845,12 @@ func Benchmark_walk(b *testing.B) {
 	longestKeyNibbles := codec.KeyLEToNibbles(longestKeyLE)
 
 	rootNode := trie.RootNode()
-	const isRoot = true
-	encodedProofNodes, err := walk(rootNode, longestKeyNibbles, isRoot)
+	encodedProofNodes, err := walkRoot(rootNode, longestKeyNibbles)
 	require.NoError(b, err)
 	require.Equal(b, len(encodedProofNodes), trieDepth)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = walk(rootNode, longestKeyNibbles, isRoot)
+		_, _ = walkRoot(rootNode, longestKeyNibbles)
 	}
 }
