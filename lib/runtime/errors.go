@@ -4,8 +4,6 @@
 package runtime
 
 import (
-	"errors"
-
 	"github.com/gorilla/rpc/v2/json2"
 )
 
