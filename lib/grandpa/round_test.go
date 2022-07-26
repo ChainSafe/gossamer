@@ -223,9 +223,13 @@ func broadcastVotes(from <-chan GrandpaMessage, to []chan *networkVoteMessage, d
 				return
 			}
 
-			tc <- &networkVoteMessage{
-				msg: v.(*VoteMessage),
+			switch message := v.(type) {
+			case *VoteMessage:
+				tc <- &networkVoteMessage{
+					msg: message,
+				}
 			}
+
 		}
 	}
 }
