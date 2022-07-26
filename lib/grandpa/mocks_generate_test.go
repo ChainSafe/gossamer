@@ -3,4 +3,4 @@
 
 package grandpa
 
-//go:generate mockgen -destination=mocks_test.go -package $GOPACKAGE . BlockState,GrandpaState
+//go:generate mockgen -destination=mocks_test.go -package $GOPACKAGE . BlockState,GrandpaState,Network
