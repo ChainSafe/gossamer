@@ -13,14 +13,12 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/golang/mock/gomock"
-	"github.com/gtank/merlin"
 
 	"github.com/stretchr/testify/require"
 )
@@ -436,72 +434,4 @@ func TestHandler_HandleNextConfigData(t *testing.T) {
 	stored, err := handler.epochState.(*state.EpochState).GetConfigData(targetEpoch, nil)
 	require.NoError(t, err)
 	require.Equal(t, act.ToConfigData(), stored)
-}
-
-func issueBlocksWithGRANDPAScheduledChanges(t *testing.T, kp *sr25519.Keypair, dh *Handler,
-	stateSvc *state.Service, parentHeader *types.Header,
-	sc types.GrandpaScheduledChange, atBlock int, size int) (headers []*types.Header) {
-	t.Helper()
-
-	transcript := merlin.NewTranscript("BABE")
-	crypto.AppendUint64(transcript, []byte("slot number"), 1)
-	crypto.AppendUint64(transcript, []byte("current epoch"), 1)
-	transcript.AppendMessage([]byte("chain randomness"), []byte{})
-
-	output, proof, err := kp.VrfSign(transcript)
-	require.NoError(t, err)
-
-	babePrimaryPreDigest := types.BabePrimaryPreDigest{
-		SlotNumber: 1,
-		VRFOutput:  output,
-		VRFProof:   proof,
-	}
-
-	preRuntimeDigest, err := babePrimaryPreDigest.ToPreRuntimeDigest()
-	require.NoError(t, err)
-
-	digest := types.NewDigest()
-
-	// include the consensus in the block being produced
-	if parentHeader.Number+1 == uint(atBlock) {
-		grandpaConsensusDigest := types.NewGrandpaConsensusDigest()
-		err = grandpaConsensusDigest.Set(sc)
-		require.NoError(t, err)
-
-		grandpaDigest, err := scale.Marshal(grandpaConsensusDigest)
-		require.NoError(t, err)
-
-		consensusDigest := types.ConsensusDigest{
-			ConsensusEngineID: types.GrandpaEngineID,
-			Data:              grandpaDigest,
-		}
-		require.NoError(t, digest.Add(*preRuntimeDigest, consensusDigest))
-	} else {
-		require.NoError(t, digest.Add(*preRuntimeDigest))
-	}
-
-	header := &types.Header{
-		ParentHash: parentHeader.Hash(),
-		Number:     parentHeader.Number + 1,
-		Digest:     digest,
-	}
-
-	block := &types.Block{
-		Header: *header,
-		Body:   *types.NewBody([]types.Extrinsic{}),
-	}
-
-	err = stateSvc.Block.AddBlock(block)
-	require.NoError(t, err)
-
-	dh.HandleDigests(header)
-
-	headers = append(headers, header)
-
-	if size > 0 {
-		nestedHeaders := issueBlocksWithGRANDPAScheduledChanges(t, kp, dh, stateSvc, header, sc, atBlock, size-1)
-		headers = append(headers, nestedHeaders...)
-	}
-
-	return headers
 }

@@ -152,6 +152,7 @@ func TestAddScheduledChangesKeepTheRightForkTree(t *testing.T) {
 	blockState := testBlockState(t, db)
 
 	gs, err := NewGrandpaStateFromGenesis(db, blockState, nil)
+	require.NoError(t, err)
 
 	/*
 	* create chainA and two forks: chainB and chainC

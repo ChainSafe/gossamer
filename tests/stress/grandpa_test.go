@@ -60,9 +60,7 @@ func TestStress_Grandpa_ThreeAuthorities(t *testing.T) {
 	for round := uint64(1); round < numRounds+1; round++ {
 		const retryWait = time.Second
 		err := retry.UntilNoError(ctx, retryWait, func() (err error) {
-			const getFinalizedHeadByRoundTimeout = time.Second
-			_, err = compareFinalizedHeadsByRound(ctx, nodes, round, getFinalizedHeadByRoundTimeout)
-			return err
+			return compareFinalizedHeadsByRound(ctx, nodes, round)
 		})
 		require.NoError(t, err)
 	}
@@ -84,9 +82,7 @@ func TestStress_Grandpa_SixAuthorities(t *testing.T) {
 	for round := uint64(1); round < numRounds+1; round++ {
 		const retryWait = time.Second
 		err := retry.UntilNoError(ctx, retryWait, func() (err error) {
-			const getFinalizedHeadByRoundTimeout = time.Second
-			_, err = compareFinalizedHeadsByRound(ctx, nodes, round, getFinalizedHeadByRoundTimeout)
-			return err
+			return compareFinalizedHeadsByRound(ctx, nodes, round)
 		})
 		require.NoError(t, err)
 	}
@@ -110,9 +106,7 @@ func TestStress_Grandpa_NineAuthorities(t *testing.T) {
 	for round := uint64(1); round < numRounds+1; round++ {
 		const retryWait = time.Second
 		err := retry.UntilNoError(ctx, retryWait, func() (err error) {
-			const getFinalizedHeadByRoundTimeout = time.Second
-			_, err = compareFinalizedHeadsByRound(ctx, nodes, round, getFinalizedHeadByRoundTimeout)
-			return err
+			return compareFinalizedHeadsByRound(ctx, nodes, round)
 		})
 		require.NoError(t, err)
 	}
@@ -142,9 +136,7 @@ func TestStress_Grandpa_CatchUp(t *testing.T) {
 	for round := uint64(1); round < numRounds+1; round++ {
 		const retryWait = time.Second
 		err := retry.UntilNoError(ctx, retryWait, func() (err error) {
-			const getFinalizedHeadByRoundTimeout = time.Second
-			_, err = compareFinalizedHeadsByRound(ctx, nodes, round, getFinalizedHeadByRoundTimeout)
-			return err
+			return compareFinalizedHeadsByRound(ctx, nodes, round)
 		})
 		require.NoError(t, err)
 	}

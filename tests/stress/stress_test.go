@@ -21,6 +21,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	gosstypes "github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -527,8 +528,16 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 	waitNoExtCtx, waitNoExtCancel := context.WithTimeout(ctx, waitNoExtTimeout)
 	for {
 		getPendingExtsCtx, getPendingExtsCancel := context.WithTimeout(waitNoExtCtx, time.Second)
-		exts := getPendingExtrinsics(getPendingExtsCtx, t, nodes[idx])
+		endpoint := rpc.NewEndpoint(nodes[idx].RPCPort())
+		const method = "author_pendingExtrinsics"
+		const params = "[]"
+		respBody, err := rpc.Post(getPendingExtsCtx, endpoint, method, params)
 		getPendingExtsCancel()
+		require.NoError(t, err)
+
+		var exts modules.PendingExtrinsicsResponse
+		err = rpc.Decode(respBody, &exts)
+		require.NoError(t, err)
 
 		if len(exts) == 0 {
 			waitNoExtCancel()

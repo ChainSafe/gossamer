@@ -25,7 +25,7 @@ func Test_Generate(t *testing.T) {
 		someHash[i] = byte(i)
 	}
 
-	largeValue := generateBytes(t, 40)
+	largeValue := generateBytes(t, 50)
 	assertLongEncoding(t, node.Node{Value: largeValue})
 
 	testCases := map[string]struct {
