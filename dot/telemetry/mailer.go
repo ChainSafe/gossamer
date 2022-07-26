@@ -54,28 +54,22 @@ func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint, en
 	}
 
 	for _, v := range conns {
-		const maxRetries = 5
+		const maxRetries = 3
 
 		for connAttempts := 0; connAttempts < maxRetries; connAttempts++ {
-			conn, response, err := websocket.DefaultDialer.Dial(v.Endpoint, nil)
+			const dialTimeout = 3 * time.Second
+			dialCtx, dialCancel := context.WithTimeout(ctx, dialTimeout)
+			conn, response, err := websocket.DefaultDialer.DialContext(dialCtx, v.Endpoint, nil)
+			dialCancel()
 			if err != nil {
 				mailer.logger.Debugf("cannot dial telemetry endpoint %s (try %d of %d): %s",
 					v.Endpoint, connAttempts+1, maxRetries, err)
 
-				const retryDelay = time.Second * 15
-				timer := time.NewTimer(retryDelay)
-
-				select {
-				case <-timer.C:
-					continue
-				case <-ctx.Done():
-					mailer.logger.Debugf("bootstrap telemetry issue: %w", ctx.Err())
-					if !timer.Stop() {
-						<-timer.C
-					}
-
-					return nil, ctx.Err()
+				if ctxErr := ctx.Err(); ctxErr != nil {
+					return nil, ctxErr
 				}
+
+				continue
 			}
 
 			err = response.Body.Close()
