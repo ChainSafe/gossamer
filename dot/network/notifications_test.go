@@ -329,7 +329,7 @@ func TestCreateNotificationsMessageHandler_HandleTransaction(t *testing.T) {
 
 	srvc2 := createTestService(t, configB)
 
-	txnBatch := make(chan *BatchMessage, batchSize)
+	txnBatch := make(chan *batchMessage, batchSize)
 	txnBatchHandler := srvc1.createBatchMessageHandler(txnBatch)
 
 	// connect nodes

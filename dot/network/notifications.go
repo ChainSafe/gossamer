@@ -45,10 +45,7 @@ type (
 	NotificationsMessageBatchHandler = func(peer peer.ID, msg NotificationsMessage)
 )
 
-// BatchMessage is exported for the mocks of lib/grandpa/mocks/network.go
-// to be able to compile.
-// TODO: unexport if changing mock library to e.g. github.com/golang/gomock
-type BatchMessage struct {
+type batchMessage struct {
 	msg  NotificationsMessage
 	peer peer.ID
 }
