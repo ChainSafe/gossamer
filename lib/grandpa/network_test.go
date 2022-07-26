@@ -91,11 +91,11 @@ func TestNotifyNeighbor(t *testing.T) {
 		finalizeBlockAfter time.Duration
 		expectWithin       time.Duration
 	}{
-		"should_send_neighbor_message": {
+		"should_send_neighbour_message": {
 			expectWithin:   2 * time.Second,
 			notifyInterval: interval,
 		},
-		"should_reset_timer_and_then_send_neighbor_message": {
+		"should_reset_timer_and_then_send_neighbour_message": {
 			finalizeBlock:      true,
 			finalizeBlockAfter: 1 * time.Second,
 			notifyInterval:     interval,
@@ -140,10 +140,10 @@ func TestNotifyNeighbor(t *testing.T) {
 
 			ensureGossipMessageCalledRightTime := func(_ network.NotificationsMessage) {
 				defer wg.Done()
-				const roundOverSec = 1 * time.Second
+				const roundAround = 1 * time.Second
 
 				calledWithin := time.Now().Sub(*timecheck)
-				calledWithin = calledWithin.Round(roundOverSec) // avoid decimal points
+				calledWithin = calledWithin.Round(roundAround) // avoid decimal points
 				assert.Equal(t, tt.expectWithin, calledWithin)
 			}
 
