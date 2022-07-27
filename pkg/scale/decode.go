@@ -489,19 +489,18 @@ func (ds *decodeState) decodeUint(dstv reflect.Value) (err error) {
 	temp := reflect.New(reflect.TypeOf(in))
 	// check mode of encoding, stored at 2 least significant bits
 	mode := prefix % 4
-	var value uint
+	var value uint64
 	switch mode {
 	case 0:
-		value = uint(prefix >> 2)
+		value = uint64(prefix >> 2)
 	case 1:
-		var buf byte
-		buf, err = ds.ReadByte()
+		buf, err := ds.ReadByte()
 		if err != nil {
 			return fmt.Errorf("reading from buffer: %w", err)
 		}
-		value = uint(binary.LittleEndian.Uint16([]byte{prefix, buf}) >> 2)
+		value = uint64(binary.LittleEndian.Uint16([]byte{prefix, buf}) >> 2)
 		if value <= 0b0011_1111 || value > 0b0111_1111_1111_1111 {
-			return ErrU64OutOfRange
+			return fmt.Errorf("%w: %d (%b)", ErrU16OutOfRange, value, value)
 		}
 	case 2:
 		buf := make([]byte, 3)
@@ -509,9 +508,9 @@ func (ds *decodeState) decodeUint(dstv reflect.Value) (err error) {
 		if err != nil {
 			return fmt.Errorf("reading from buffer: %w", err)
 		}
-		value = uint(binary.LittleEndian.Uint32(append([]byte{prefix}, buf...)) >> 2)
-		if value <= 0b0011_1111_1111_1111 || value > uint(maxUint32>>2) {
-			return ErrU64OutOfRange
+		value = uint64(binary.LittleEndian.Uint32(append([]byte{prefix}, buf...)) >> 2)
+		if value <= 0b0011_1111_1111_1111 || value > uint64(maxUint32>>2) {
+			return fmt.Errorf("%w: %d (%b)", ErrU32OutOfRange, value, value)
 		}
 	case 3:
 		byteLen := (prefix >> 2) + 4
@@ -522,19 +521,19 @@ func (ds *decodeState) decodeUint(dstv reflect.Value) (err error) {
 		}
 		switch byteLen {
 		case 4:
-			value = uint(binary.LittleEndian.Uint32(buf))
-			if value <= uint(maxUint32>>2) {
-				return ErrU64OutOfRange
+			value = uint64(binary.LittleEndian.Uint32(buf))
+			if value <= uint64(maxUint32>>2) {
+				return ErrU32OutOfRange
 			}
 		case 8:
 			uintSize := 32 << (^uint(0) >> 32 & 1)
 			if uintSize == 32 {
-				return fmt.Errorf("uint64 is not supported")
+				return ErrU64NotSupported
 			}
 			tmp := make([]byte, 8)
 			copy(tmp, buf)
-			value = uint(binary.LittleEndian.Uint64(tmp))
-			if value <= uint(maxUint64>>8) {
+			value = binary.LittleEndian.Uint64(tmp)
+			if value <= maxUint64>>8 {
 				return ErrU64OutOfRange
 			}
 		default:
@@ -547,7 +546,10 @@ func (ds *decodeState) decodeUint(dstv reflect.Value) (err error) {
 	return
 }
 
+var ErrU16OutOfRange = errors.New("uint16 out of range")
+var ErrU32OutOfRange = errors.New("uint32 out of range")
 var ErrU64OutOfRange = errors.New("uint64 out of range")
+var ErrU64NotSupported = errors.New("uint64 is not supported")
 
 // decodeLength is helper method which calls decodeUint and casts to int
 func (ds *decodeState) decodeLength() (l int, err error) {
