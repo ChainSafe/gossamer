@@ -163,6 +163,7 @@ func TestBuildBlock_buildBlockExtrinsics(t *testing.T) {
 		0,
 		nil,
 	)
+	require.NoError(t, err)
 	ext1 := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0, "System.remark", []byte{0xab, 0xcd})
 	vtx1 := transaction.NewValidTransaction(common.MustHexToBytes(ext1), &transaction.Validity{})
 	_, err = babeService.transactionState.Push(vtx1)
