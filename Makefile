@@ -93,22 +93,7 @@ start:
 license:
 	@echo "  >  \033[32mAdding license headers...\033[0m "
 	go install github.com/google/addlicense@v1.0
-	addlicense -v \
-		-s=only \
-		-l="LGPL-3.0-only" \
-		-f ./copyright.txt \
-		-c "ChainSafe Systems (ON)" \
-		-ignore "**/*.md" \
-		-ignore "**/*.html" \
-		-ignore "**/*.css" \
-		-ignore "**/*.scss" \
-		-ignore "**/*.yml" \
-		-ignore "**/*.yaml" \
-		-ignore "**/*.js" \
-		-ignore "**/*.sh" \
-		-ignore "*Dockerfile" \
-		.
-
+	addlicense git a
 docker: docker-build
 	@echo "  >  \033[32mStarting Gossamer Container...\033[0m "
 	docker run --rm $(FULLDOCKERNAME)
