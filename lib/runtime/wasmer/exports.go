@@ -5,12 +5,12 @@ package wasmer
 
 import (
 	"fmt"
-	"github.com/ChainSafe/gossamer/lib/transaction"
 	"strings"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	txnvalidity "github.com/ChainSafe/gossamer/lib/runtime/transaction_validity"
+	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 

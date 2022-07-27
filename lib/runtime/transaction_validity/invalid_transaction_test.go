@@ -1,12 +1,14 @@
 // Copyright 2022 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package transaction_validity
+package transactionValidity
 
 import (
-	"github.com/ChainSafe/gossamer/lib/transaction"
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/ChainSafe/gossamer/lib/transaction"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestInvalidTransactionErrors(t *testing.T) {

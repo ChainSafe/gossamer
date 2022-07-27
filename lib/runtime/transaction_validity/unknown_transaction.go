@@ -1,11 +1,12 @@
 // Copyright 2022 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package transaction_validity
+package transactionValidity
 
 import (
 	"errors"
 	"fmt"
+
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -23,7 +24,7 @@ var (
 	unknownCustom        UnknownCustom
 )
 
-// ValidityCannotLookup Could not lookup some information that is required to validate the transaction
+// ValidityCannotLookup Could not look up some information that is required to validate the transaction
 type ValidityCannotLookup struct{}
 
 // Index Returns VDT index
@@ -46,14 +47,12 @@ func newUnknownError(data scale.VaryingDataTypeValue) error {
 }
 
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (u *UnknownTransaction) Set(val scale.VaryingDataTypeValue) (err error) { //nolint:revive
-	// cast to VaryingDataType to use VaryingDataType.Set method
+func (u *UnknownTransaction) Set(val scale.VaryingDataTypeValue) (err error) {
 	vdt := scale.VaryingDataType(*u)
 	err = vdt.Set(val)
 	if err != nil {
 		return
 	}
-	// store original ParentVDT with VaryingDataType that has been set
 	*u = UnknownTransaction(vdt)
 	return
 }
@@ -66,19 +65,15 @@ func (u *UnknownTransaction) Value() (val scale.VaryingDataTypeValue) {
 
 // NewUnknownTransaction is constructor for Unknown
 func NewUnknownTransaction() UnknownTransaction {
-	// use standard VaryingDataType constructor to construct a VaryingDataType
-	// constarined to types ChildInt16 and ChildStruct
 	vdt, err := scale.NewVaryingDataType(ValidityCannotLookup{}, NoUnsignedValidator{}, unknownCustom)
 	if err != nil {
 		panic(err)
 	}
-	// cast to ParentVDT
 	return UnknownTransaction(vdt)
 }
 
 func (u *UnknownTransaction) Error() error {
 	switch val := u.Value().(type) {
-	// UnknownTransaction Error
 	case ValidityCannotLookup:
 		return errLookupFailed
 	case NoUnsignedValidator:

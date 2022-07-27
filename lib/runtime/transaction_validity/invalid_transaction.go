@@ -1,10 +1,11 @@
 // Copyright 2022 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package transaction_validity
+package transactionValidity
 
 import (
 	"errors"
+
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -92,13 +93,11 @@ func (err MandatoryDispatch) Index() uint { return 9 }
 
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
 func (i *InvalidTransaction) Set(val scale.VaryingDataTypeValue) (err error) {
-	// cast to VaryingDataType to use VaryingDataType.Set method
 	vdt := scale.VaryingDataType(*i)
 	err = vdt.Set(val)
 	if err != nil {
 		return
 	}
-	// store original ParentVDT with VaryingDataType that has been set
 	*i = InvalidTransaction(vdt)
 	return
 }
@@ -111,20 +110,16 @@ func (i *InvalidTransaction) Value() (val scale.VaryingDataTypeValue) {
 
 // NewInvalidTransaction is constructor for InvalidTransaction
 func NewInvalidTransaction() InvalidTransaction {
-	// use standard VaryingDataType constructor to construct a VaryingDataType
-	// constarined to types ChildInt16, ChildStruct, and ChildString
 	vdt, err := scale.NewVaryingDataType(Call{}, Payment{}, Future{}, Stale{}, BadProof{}, AncientBirthBlock{},
 		ExhaustsResources{}, invalidCustom, BadMandatory{}, MandatoryDispatch{})
 	if err != nil {
 		panic(err)
 	}
-	// cast to ParentVDT
 	return InvalidTransaction(vdt)
 }
 
 func (i *InvalidTransaction) Error() error {
 	switch val := i.Value().(type) {
-	// InvalidTransaction Error
 	case Call:
 		return errUnexpectedTxCall
 	case Payment:

@@ -5,8 +5,6 @@ package core
 
 import (
 	"errors"
-	txnValidity "github.com/ChainSafe/gossamer/lib/runtime/transaction_validity"
-	"github.com/stretchr/testify/require"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -16,11 +14,13 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	mocksruntime "github.com/ChainSafe/gossamer/lib/runtime/mocks"
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
+	txnValidity "github.com/ChainSafe/gossamer/lib/runtime/transaction_validity"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 
 	"github.com/golang/mock/gomock"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var errDummyErr = errors.New("dummy error for testing")
@@ -66,6 +66,7 @@ type mockSetContextStorage struct {
 	trieState *storage.TrieState
 }
 
+// nolint
 type mockVersion struct {
 	version *mocksruntime.Version
 	err     error
@@ -409,14 +410,15 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 						authoringVersion,
 						specVersion,
 						implVersion,
-						[]runtime.APIItem{runtime.APIItem{
+						[]runtime.APIItem{{
 							Name: [8]byte{0xd2, 0xbc, 0x98, 0x97, 0xee, 0xd0, 0x8f, 0x15},
 							Ver:  3,
 						}},
 						transactionVersion,
 					), tt.mockRuntime.version.err)
 					rt.On("ValidateTransaction", tt.mockRuntime.validateTxn.input).
-						Return(tt.mockRuntime.validateTxn.validity, tt.mockRuntime.validateTxn.validityErr, tt.mockRuntime.validateTxn.err)
+						Return(tt.mockRuntime.validateTxn.validity,
+							tt.mockRuntime.validateTxn.validityErr, tt.mockRuntime.validateTxn.err)
 				}
 			}
 

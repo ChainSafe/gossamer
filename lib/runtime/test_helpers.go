@@ -143,7 +143,7 @@ func GetRuntime(ctx context.Context, runtime string) (
 	if err != nil {
 		return "", fmt.Errorf("cannot close HTTP response body: %w", err)
 	}
-	
+
 	return runtimePath, nil
 }
 

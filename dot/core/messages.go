@@ -5,6 +5,7 @@ package core
 
 import (
 	"fmt"
+
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -22,7 +23,7 @@ func (s *Service) validateTransaction(peerID peer.ID, rt runtime.Instance,
 	if err != nil {
 		return nil, false, fmt.Errorf("unable to build transaction: %s", err)
 	}
-	
+
 	validity, txnValidityErr, err := rt.ValidateTransaction(externalExt)
 	if err != nil {
 		return nil, false, err

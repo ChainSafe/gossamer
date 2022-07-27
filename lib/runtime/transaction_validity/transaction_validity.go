@@ -1,10 +1,11 @@
 // Copyright 2022 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package transaction_validity
+package transactionValidity
 
 import (
 	"errors"
+
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
@@ -12,6 +13,10 @@ import (
 /// Information on a transaction's validity and, if valid, on how it relates to other transactions.
 //pub type TransactionValidity = Result<ValidTransaction, TransactionValidityError>;
 
+// TransactionValidityError Information on a transaction's validity and, if valid,
+// on how it relates to other transactions. It is a result of the form:
+// Result<ValidTransaction, TransactionValidityError>
+// nolint
 type TransactionValidityError scale.VaryingDataType
 
 var (
@@ -22,13 +27,11 @@ var (
 
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
 func (tve *TransactionValidityError) Set(val scale.VaryingDataTypeValue) (err error) {
-	// cast to VaryingDataType to use VaryingDataType.Set method
 	vdt := scale.VaryingDataType(*tve)
 	err = vdt.Set(val)
 	if err != nil {
 		return
 	}
-	// store original ParentVDT with VaryingDataType that has been set
 	*tve = TransactionValidityError(vdt)
 	return
 }
@@ -41,16 +44,15 @@ func (tve *TransactionValidityError) Value() (val scale.VaryingDataTypeValue) {
 
 // NewTransactionValidityError is constructor for TransactionValidityError
 func NewTransactionValidityError() TransactionValidityError {
-	// use standard VaryingDataType constructor to construct a VaryingDataType
 	vdt, err := scale.NewVaryingDataType(NewInvalidTransaction(), NewUnknownTransaction())
 	if err != nil {
 		panic(err)
 	}
-	// cast to ParentVDT
 	return TransactionValidityError(vdt)
 }
 
-// TODO use custon result type here
+// UnmarshalTransactionValidity Takes the result of the validateTransaction runtime call and unmarshalls it
+// TODO use custom result type here
 func UnmarshalTransactionValidity(res []byte) (*transaction.Validity, *TransactionValidityError, error) {
 	validTxn := transaction.Validity{}
 	txnValidityErrResult := NewTransactionValidityError()
