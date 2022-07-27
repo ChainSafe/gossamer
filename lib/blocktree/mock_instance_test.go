@@ -11,7 +11,7 @@ import (
 	common "github.com/ChainSafe/gossamer/lib/common"
 	keystore "github.com/ChainSafe/gossamer/lib/keystore"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
-	transaction_validity "github.com/ChainSafe/gossamer/lib/runtime/transaction_validity"
+	transactionValidity "github.com/ChainSafe/gossamer/lib/runtime/transaction_validity"
 	transaction "github.com/ChainSafe/gossamer/lib/transaction"
 	gomock "github.com/golang/mock/gomock"
 )
@@ -361,11 +361,11 @@ func (mr *MockInstanceMockRecorder) UpdateRuntimeCode(arg0 interface{}) *gomock.
 }
 
 // ValidateTransaction mocks base method.
-func (m *MockInstance) ValidateTransaction(arg0 types.Extrinsic) (*transaction.Validity, *transaction_validity.TransactionValidityError, error) {
+func (m *MockInstance) ValidateTransaction(arg0 types.Extrinsic) (*transaction.Validity, *transactionValidity.TransactionValidityError, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ValidateTransaction", arg0)
 	ret0, _ := ret[0].(*transaction.Validity)
-	ret1, _ := ret[1].(*transaction_validity.TransactionValidityError)
+	ret1, _ := ret[1].(*transactionValidity.TransactionValidityError)
 	ret2, _ := ret[2].(error)
 	return ret0, ret1, ret2
 }
