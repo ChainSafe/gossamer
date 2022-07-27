@@ -613,6 +613,7 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 
 func TestSendingVotesInRightStage(t *testing.T) {
 	ed25519Keyring, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
 
 	currentAuthority := ed25519Keyring.Bob().(*ed25519.Keypair)
 	votersPublicKeys := []*ed25519.PublicKey{
@@ -632,7 +633,7 @@ func TestSendingVotesInRightStage(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockedGrandpaState := NewMockGrandpaState(ctrl)
 	mockedGrandpaState.EXPECT().
-		NextGrandpaAuthorityChange(testGenesisHeader.Hash(), uint(testGenesisHeader.Number)).
+		NextGrandpaAuthorityChange(testGenesisHeader.Hash(), testGenesisHeader.Number).
 		Return(uint(0), state.ErrNoNextAuthorityChange).
 		Times(2)
 	mockedGrandpaState.EXPECT().
