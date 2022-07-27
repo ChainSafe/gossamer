@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"math/big"
 	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -54,8 +53,7 @@ func balanceKey(t *testing.T, pub []byte) (bKey []byte) {
 func generateTestValidRemarkTxns(t *testing.T, genesisFilePath string,
 	pubKey []byte, accInfo types.AccountInfo) ([]byte, runtime.Instance) {
 	t.Helper()
-	projectRootPath := filepath.Join(utils.GetProjectRootPathTest(t), genesisFilePath)
-	gen, err := genesis.NewGenesisFromJSONRaw(projectRootPath)
+	gen, err := genesis.NewGenesisFromJSONRaw(genesisFilePath)
 	require.NoError(t, err)
 
 	genTrie, err := genesis.NewTrieFromGenesis(gen)
@@ -423,7 +421,8 @@ func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
 	keyring, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 	alicePub := common.MustHexToBytes(keyring.Alice().Public().Hex())
-	genesisFilePath := "chain/gssmr/genesis.json"
+	genesisFilePath, err := utils.GetGssmrGenesisRawPath()
+	require.NoError(t, err)
 	encExt, runtimeInstance := generateTestValidRemarkTxns(t, genesisFilePath, alicePub, accountInfo)
 	cfg := &Config{
 		Runtime: runtimeInstance,
@@ -482,7 +481,8 @@ func TestMaintainTransactionPool_BlockWithExtrinsics(t *testing.T) {
 	keyring, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 	alicePub := common.MustHexToBytes(keyring.Alice().Public().Hex())
-	genesisFilePath := "chain/gssmr/genesis.json"
+	genesisFilePath, err := utils.GetGssmrGenesisRawPath()
+	require.NoError(t, err)
 	extrinsicBytes, runtimeInstance := generateTestValidRemarkTxns(t, genesisFilePath, alicePub, accountInfo)
 	cfg := &Config{
 		Runtime: runtimeInstance,
