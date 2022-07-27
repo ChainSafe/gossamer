@@ -1144,7 +1144,7 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 		testHeader.StateRoot.ToBytes(),
 	}))
 	execTest := func(t *testing.T, s *Service, ext types.Extrinsic, expErr error) {
-		err := s.HandleSubmittedExtrinsic(ext)
+		_, err := s.HandleSubmittedExtrinsic(ext)
 		assert.ErrorIs(t, err, expErr)
 		if expErr != nil {
 			assert.EqualError(t, err, expErr.Error())

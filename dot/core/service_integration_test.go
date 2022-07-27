@@ -672,7 +672,7 @@ func TestService_HandleSubmittedExtrinsic(t *testing.T) {
 	extBytes := createExtrinsic(t, rt, genHeader.Hash(), 0)
 
 	// Tests use old extrinsic version currently
-	err = s.HandleSubmittedExtrinsic(extBytes)
+	_, err = s.HandleSubmittedExtrinsic(extBytes)
 	require.NoError(t, err)
 }
 

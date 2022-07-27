@@ -332,9 +332,8 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener
 	c.Subscriptions[extSubmitListener.subID] = extSubmitListener
 	c.mu.Unlock()
 
-	err = c.CoreAPI.HandleSubmittedExtrinsic(extBytes)
-	// TODO this error is not returned anymore - talk with tim about this probably
-	if errors.Is(err, runtime.ErrInvalidTransaction) || errors.Is(err, runtime.ErrUnknownTransaction) {
+	isTxnValidityErr, err := c.CoreAPI.HandleSubmittedExtrinsic(extBytes)
+	if isTxnValidityErr {
 		c.safeSend(newSubscriptionResponse(authorExtrinsicUpdatesMethod, extSubmitListener.subID, "invalid"))
 		return nil, err
 	} else if err != nil {
