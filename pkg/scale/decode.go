@@ -335,7 +335,7 @@ func (ds *decodeState) decodeVaryingDataTypeSlice(dstv reflect.Value) (err error
 	if err != nil {
 		return
 	}
-	for i := 0; i < l; i++ {
+	for i := uint(0); i < l; i++ {
 		vdt := vdts.VaryingDataType
 		vdtv := reflect.New(reflect.TypeOf(vdt))
 		vdtv.Elem().Set(reflect.ValueOf(vdt))
@@ -397,7 +397,7 @@ func (ds *decodeState) decodeSlice(dstv reflect.Value) (err error) {
 	}
 	in := dstv.Interface()
 	temp := reflect.New(reflect.ValueOf(in).Type())
-	for i := 0; i < l; i++ {
+	for i := uint(0); i < l; i++ {
 		tempElemType := reflect.TypeOf(in).Elem()
 		tempElem := reflect.New(tempElemType).Elem()
 
@@ -552,13 +552,13 @@ var ErrU64OutOfRange = errors.New("uint64 out of range")
 var ErrU64NotSupported = errors.New("uint64 is not supported")
 
 // decodeLength is helper method which calls decodeUint and casts to int
-func (ds *decodeState) decodeLength() (l int, err error) {
+func (ds *decodeState) decodeLength() (l uint, err error) {
 	dstv := reflect.New(reflect.TypeOf(l))
 	err = ds.decodeUint(dstv.Elem())
 	if err != nil {
 		return
 	}
-	l = dstv.Elem().Interface().(int)
+	l = dstv.Elem().Interface().(uint)
 	return
 }
 
