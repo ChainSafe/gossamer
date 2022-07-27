@@ -202,13 +202,11 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt runtime.Instance) []*t
 
 		txn := b.transactionState.Pop()
 		retry := txn == nil // Transaction queue is empty.
-		fmt.Printf("retry: %v\n", retry)
 		for retry {
 			pushWatcher := b.transactionState.NextPushWatcher()
 			select {
 			case <-pushWatcher:
 				txn = b.transactionState.Pop()
-				fmt.Printf("txn: %v\n", txn)
 				// check in case another goroutine popped the
 				// transaction before the Pop() call above.
 				retry = txn == nil
