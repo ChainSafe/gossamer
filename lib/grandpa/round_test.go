@@ -5,13 +5,17 @@ package grandpa
 
 import (
 	//"fmt"
+	"context"
+	"fmt"
 	"math/rand"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -20,6 +24,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -604,4 +609,199 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 		}
 
 	}
+}
+
+func TestSendingVotesInRightStage(t *testing.T) {
+	ed25519Keyring, err := keystore.NewEd25519Keyring()
+
+	currentAuthority := ed25519Keyring.Bob().(*ed25519.Keypair)
+	votersPublicKeys := []*ed25519.PublicKey{
+		ed25519Keyring.Alice().(*ed25519.Keypair).Public().(*ed25519.PublicKey),
+		currentAuthority.Public().(*ed25519.PublicKey),
+		ed25519Keyring.Charlie().(*ed25519.Keypair).Public().(*ed25519.PublicKey),
+		ed25519Keyring.Dave().(*ed25519.Keypair).Public().(*ed25519.PublicKey),
+	}
+
+	grandpaVoters := make([]types.GrandpaVoter, len(votersPublicKeys))
+	for idx, pk := range votersPublicKeys {
+		grandpaVoters[idx] = types.GrandpaVoter{
+			Key: *pk,
+		}
+	}
+
+	ctrl := gomock.NewController(t)
+	mockedGrandpaState := NewMockGrandpaState(ctrl)
+	mockedGrandpaState.EXPECT().
+		NextGrandpaAuthorityChange(testGenesisHeader.Hash(), uint(testGenesisHeader.Number)).
+		Return(uint(0), state.ErrNoNextAuthorityChange).
+		Times(2)
+	mockedGrandpaState.EXPECT().
+		SetPrevotes(uint64(0), uint64(0), gomock.AssignableToTypeOf([]types.GrandpaSignedVote{})).
+		Return(nil).
+		Times(1)
+	mockedGrandpaState.EXPECT().
+		SetPrecommits(uint64(0), uint64(0), gomock.AssignableToTypeOf([]types.GrandpaSignedVote{})).
+		Return(nil).
+		Times(1)
+	mockedGrandpaState.EXPECT().
+		SetLatestRound(uint64(0)).
+		Return(nil).
+		Times(1)
+	mockedGrandpaState.EXPECT().
+		GetPrecommits(uint64(0), uint64(0)).
+		Return([]types.GrandpaSignedVote{}, nil).
+		Times(1)
+
+	mockedState := NewMockBlockState(ctrl)
+	mockedState.EXPECT().
+		GenesisHash().
+		Return(testGenesisHeader.Hash()).
+		Times(2)
+	// since the next 3 function has been called based on the amount of time we wait until we get enough
+	// prevotes is hard to define a corret amount of times this function shoud be called
+	mockedState.EXPECT().
+		HasFinalisedBlock(uint64(0), uint64(0)).
+		Return(false, nil).
+		AnyTimes()
+	mockedState.EXPECT().
+		GetHighestRoundAndSetID().
+		Return(uint64(0), uint64(0), nil).
+		AnyTimes()
+	mockedState.EXPECT().
+		IsDescendantOf(testGenesisHeader.Hash(), testGenesisHeader.Hash()).
+		Return(true, nil).
+		AnyTimes()
+	mockedState.EXPECT().
+		BestBlockHeader().
+		Return(testGenesisHeader, nil).
+		Times(2)
+		// we cannot assert the bytes since some votes is defined while playing grandpa round
+	mockedState.EXPECT().
+		SetJustification(testGenesisHeader.Hash(), gomock.AssignableToTypeOf([]byte{})).
+		Return(nil).
+		Times(1)
+	mockedState.EXPECT().
+		GetHeader(testGenesisHeader.Hash()).
+		Return(testGenesisHeader, nil).
+		Times(1)
+	mockedState.EXPECT().
+		SetFinalisedHash(testGenesisHeader.Hash(), uint64(0), uint64(0)).
+		Return(nil).
+		Times(1)
+
+	mockedTelemetry := NewMockClient(ctrl)
+	expectedFinalizedTelemetryMessage := telemetry.NewAfgFinalizedBlocksUpTo(
+		testGenesisHeader.Hash(),
+		fmt.Sprint(testGenesisHeader.Number),
+	)
+	mockedTelemetry.EXPECT().
+		SendMessage(expectedFinalizedTelemetryMessage).
+		Times(1)
+
+	mockedNet := NewMockNetwork(ctrl)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// gossamer gossip a prevote/precommit message and then waits `subroundInterval` * 4
+	// to issue another prevote/precommit message
+	const subroundInterval = 100 * time.Millisecond
+	grandpa := &Service{
+		ctx:          ctx,
+		cancel:       cancel,
+		paused:       atomic.Value{},
+		network:      mockedNet,
+		blockState:   mockedState,
+		grandpaState: mockedGrandpaState,
+		in:           make(chan *networkVoteMessage),
+		interval:     subroundInterval,
+		state: &State{
+			round:  0,
+			setID:  0,
+			voters: grandpaVoters,
+		},
+		head:               testGenesisHeader,
+		authority:          true,
+		keypair:            currentAuthority,
+		prevotes:           new(sync.Map),
+		precommits:         new(sync.Map),
+		preVotedBlock:      make(map[uint64]*Vote),
+		bestFinalCandidate: make(map[uint64]*Vote),
+		telemetry:          mockedTelemetry,
+	}
+	grandpa.paused.Store(false)
+
+	ed25519Keyring.Bob().(*ed25519.Keypair).Public()
+	persistVote := func(grandpaSrvc *Service, pk ed25519.PublicKey, stage Subround) {
+		// dummy vote, the goal is ensure we stop sending
+		// messages when we reach a enough amount of prevotes
+		vote := NewVote(testGenesisHeader.Hash(), uint32(testGenesisHeader.Number))
+		signedVote := &SignedVote{
+			Vote:        *vote,
+			Signature:   [64]byte{},
+			AuthorityID: pk.AsBytes(),
+		}
+
+		var stageMap *sync.Map
+		switch stage {
+		case precommit:
+			stageMap = grandpaSrvc.precommits
+		case prevote:
+			stageMap = grandpaSrvc.prevotes
+		}
+
+		stageMap.Store(pk.AsBytes(), signedVote)
+	}
+
+	go func() {
+		expectedVote := NewVote(testGenesisHeader.Hash(), uint32(testGenesisHeader.Number))
+		_, expectedPrevoteMessage, err := grandpa.createSignedVoteAndVoteMessage(expectedVote, prevote)
+		require.NoError(t, err)
+
+		pv, err := expectedPrevoteMessage.ToConsensusMessage()
+		require.NoError(t, err)
+		mockedNet.EXPECT().
+			GossipMessage(pv).
+			Times(2)
+
+		// should send 2 prevote messages and then stop since we reach the enough amount of prevotes
+		time.Sleep(subroundInterval * 4)
+
+		// given that we are BOB and we already had predetermined our prevote in a set
+		// of 4 authorities (ALICE, BOB, CHARLIE and DAVE) then we only need 2 more prevotes
+		persistVote(grandpa, *votersPublicKeys[0], prevote) // persiste prevote for alice
+		persistVote(grandpa, *votersPublicKeys[2], prevote) // persiste prevote for charlie
+
+		_, expectedPrecommit, err := grandpa.createSignedVoteAndVoteMessage(expectedVote, precommit)
+		require.NoError(t, err)
+
+		pc, err := expectedPrecommit.ToConsensusMessage()
+		require.NoError(t, err)
+		mockedNet.EXPECT().
+			GossipMessage(pc).
+			Times(1)
+
+		commitMessage := &CommitMessage{
+			Round:      0,
+			Vote:       *NewVoteFromHeader(testGenesisHeader),
+			Precommits: []types.GrandpaVote{},
+			AuthData:   []AuthData{},
+		}
+		expectedGossipCommitMessage, err := commitMessage.ToConsensusMessage()
+		require.NoError(t, err)
+		mockedNet.EXPECT().
+			GossipMessage(expectedGossipCommitMessage).
+			Times(1)
+
+		// should send 1 precommit message and after we persit enough precommit
+		// votes we will close the `done` channel which will return from the `sendPrecommitMessage` goroutine
+		time.Sleep(subroundInterval * 2)
+
+		// given that we are BOB and we already had predetermined the precommit given the prevotes
+		// we only need 2 more precommit messages
+		persistVote(grandpa, *votersPublicKeys[0], precommit) // persiste prevote for alice
+		persistVote(grandpa, *votersPublicKeys[2], precommit) // persiste prevote for charlie
+	}()
+
+	err = grandpa.playGrandpaRound()
+	assert.NoError(t, err)
 }
