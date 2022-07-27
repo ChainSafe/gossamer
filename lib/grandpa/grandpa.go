@@ -485,7 +485,6 @@ func (s *Service) playGrandpaRound() error {
 		return err
 	}
 
-	logger.Debug("receiving pre-vote messages...")
 	go s.receiveVoteMessages(ctx)
 	time.Sleep(s.interval)
 
@@ -531,7 +530,6 @@ func (s *Service) playGrandpaRound() error {
 
 	// continue to send precommit messages until round is done
 	precommitDoneCh := make(chan struct{})
-	defer close(precommitDoneCh)
 	go s.sendPrecommitMessage(pcm, precommitDoneCh)
 
 	err = s.attemptToFinalize(precommitDoneCh)
@@ -590,11 +588,6 @@ func (s *Service) sendPrevoteMessage(vm *VoteMessage, done chan<- struct{}) {
 	// Though this looks like we are sending messages multiple times,
 	// caching would make sure that they are being sent only once.
 	for {
-		// stop sending prevote messages once we see a precommit vote
-		if s.lenVotes(precommit) > 0 {
-			return
-		}
-
 		if err := s.sendMessage(vm); err != nil {
 			logger.Warnf("could not send message for stage %s: %s", prevote, err)
 		} else {
@@ -650,12 +643,13 @@ func (s *Service) attemptToFinalize(precommitDoneCh chan<- struct{}) error {
 			return nil // a block was finalised, seems like we missed some messages
 		}
 
-		bestFinalCandidate, err := s.getBestFinalCandidate()
+		var err error
+		bestFinalCandidate, err = s.getBestFinalCandidate()
 		if err != nil {
 			return err
 		}
 
-		precommitCount, err := s.getTotalVotesForBlock(bestFinalCandidate.Hash, precommit)
+		precommitCount, err = s.getTotalVotesForBlock(bestFinalCandidate.Hash, precommit)
 		if err != nil {
 			return err
 		}
@@ -1011,7 +1005,8 @@ func (s *Service) getPreVotedBlock() (Vote, error) {
 
 	// if there are multiple, find the one with the highest number and return it
 	highest := Vote{
-		Number: uint32(0),
+		Hash:   s.head.Hash(),
+		Number: uint32(s.head.Number),
 	}
 
 	for h, n := range blocks {
@@ -1055,7 +1050,8 @@ func (s *Service) getGrandpaGHOST() (Vote, error) {
 
 	// if there are multiple, find the one with the highest number and return it
 	highest := Vote{
-		Number: uint32(0),
+		Hash:   s.head.Hash(),
+		Number: uint32(s.head.Number),
 	}
 
 	for h, n := range blocks {
