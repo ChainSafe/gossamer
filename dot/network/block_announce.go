@@ -200,7 +200,9 @@ func (s *Service) validateBlockAnnounceHandshake(from peer.ID, hs Handshake) err
 		return errors.New("invalid handshake type")
 	}
 
-	if bhs.Roles != FullNode && bhs.Roles != LightClient && bhs.Roles != Validator {
+	switch bhs.Roles {
+	case FullNode, LightClient, Validator:
+	default:
 		return errInvalidRole
 	}
 
@@ -244,10 +246,6 @@ func (s *Service) validateBlockAnnounceHandshake(from peer.ID, hs Handshake) err
 // if some more blocks are required to sync the announced block, the node will open a sync stream
 // with its peer and send a BlockRequest message
 func (s *Service) handleBlockAnnounceMessage(from peer.ID, msg NotificationsMessage) (propagate bool, err error) {
-	if msg.IsHandshake() {
-		return false, errExpectedBlockAnnounceMsg
-	}
-
 	bam, ok := msg.(*BlockAnnounceMessage)
 	if !ok {
 		return false, errors.New("invalid message")
