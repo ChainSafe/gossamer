@@ -314,3 +314,84 @@ func InitializeRuntimeToTest(t *testing.T, instance Instance, parentHash common.
 		Body:   *types.NewBody(types.BytesArrayToExtrinsics(exts)),
 	}
 }
+
+// InitializeRuntimeLatestToTest sets a new block using the runtime functions to set initial data into the host
+func InitializeRuntimeLatestToTest(t *testing.T, instance Instance, parentHash common.Hash) *types.Block {
+	t.Helper()
+
+	header := &types.Header{
+		ParentHash: parentHash,
+		Number:     1,
+		Digest:     types.NewDigest(),
+	}
+
+	err := instance.InitializeBlock(header)
+	require.NoError(t, err)
+
+	idata := types.NewInherentsData()
+	err = idata.SetInt64Inherent(types.Timstap0, 1)
+	require.NoError(t, err)
+
+	err = idata.SetInt64Inherent(types.Babeslot, 1)
+	require.NoError(t, err)
+
+	ienc, err := idata.Encode()
+	require.NoError(t, err)
+
+	// Call BlockBuilder_inherent_extrinsics which returns the inherents as extrinsics
+	inherentExts, err := instance.InherentExtrinsics(ienc)
+	require.NoError(t, err)
+
+	// decode inherent extrinsics
+	var exts [][]byte
+	err = scale.Unmarshal(inherentExts, &exts)
+	require.NoError(t, err)
+
+	// apply each inherent extrinsic
+	for _, ext := range exts {
+		in, err := scale.Marshal(ext)
+		require.NoError(t, err)
+
+		ext := append([]byte{2}, in...)
+		ext = append(ext, parentHash.ToBytes()...)
+
+		ret, err := instance.ApplyExtrinsic(ext)
+		require.NoError(t, err, in)
+		require.Equal(t, ret, []byte{0, 0})
+	}
+
+	res, err := instance.FinalizeBlock()
+	require.NoError(t, err)
+
+	res.Number = header.Number
+
+	babeDigest := types.NewBabeDigest()
+	err = babeDigest.Set(*types.NewBabePrimaryPreDigest(0, 1, [32]byte{}, [64]byte{}))
+	require.NoError(t, err)
+	data, err := scale.Marshal(babeDigest)
+	require.NoError(t, err)
+	preDigest := *types.NewBABEPreRuntimeDigest(data)
+
+	digest := types.NewDigest()
+	err = digest.Add(preDigest)
+	require.NoError(t, err)
+	res.Digest = digest
+
+	expected := &types.Header{
+		ParentHash: header.ParentHash,
+		Number:     1,
+		Digest:     digest,
+	}
+
+	require.Equal(t, expected.ParentHash, res.ParentHash)
+	require.Equal(t, expected.Number, res.Number)
+	require.Equal(t, expected.Digest, res.Digest)
+	require.False(t, res.StateRoot.IsEmpty())
+	require.False(t, res.ExtrinsicsRoot.IsEmpty())
+	require.NotEqual(t, trie.EmptyHash, res.StateRoot)
+
+	return &types.Block{
+		Header: *res,
+		Body:   *types.NewBody(types.BytesArrayToExtrinsics(exts)),
+	}
+}

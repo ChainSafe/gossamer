@@ -50,6 +50,57 @@ func balanceKey(t *testing.T, pub []byte) (bKey []byte) {
 	return
 }
 
+func generateTestValidRemarkTxnsLatestRuntime(t *testing.T, genesisFilePath string,
+	pubKey []byte, accInfo types.AccountInfo) ([]byte, runtime.Instance) {
+	t.Helper()
+	gen, err := genesis.NewGenesisFromJSONRaw(genesisFilePath)
+	require.NoError(t, err)
+
+	genTrie, err := genesis.NewTrieFromGenesis(gen)
+	require.NoError(t, err)
+
+	genState, err := rtstorage.NewTrieState(genTrie)
+	require.NoError(t, err)
+
+	nodeStorage := runtime.NodeStorage{
+		BaseDB: runtime.NewInMemoryDB(t),
+	}
+	cfg := runtime.InstanceConfig{
+		Storage:     genState,
+		LogLvl:      log.Error,
+		NodeStorage: nodeStorage,
+	}
+
+	rt, err := wasmer.NewRuntimeFromGenesis(cfg)
+	require.NoError(t, err)
+
+	aliceBalanceKey := balanceKey(t, pubKey)
+	encBal, err := scale.Marshal(accInfo)
+	require.NoError(t, err)
+
+	rt.(*wasmer.Instance).GetContext().Storage.Set(aliceBalanceKey, encBal)
+	// this key is System.UpgradedToDualRefCount -> set to true since all accounts have been upgraded to v0.9 format
+	rt.(*wasmer.Instance).GetContext().Storage.Set(common.UpgradedToDualRefKey, []byte{1})
+
+	genesisHeader := &types.Header{
+		Number:    0,
+		StateRoot: genTrie.MustHash(),
+	}
+
+	fmt.Println("here")
+
+	// Hash of encrypted centrifuge extrinsic
+	testCallArguments := []byte{0xab, 0xcd}
+	extHex := runtime.NewTestExtrinsic(t, rt, genesisHeader.Hash(), genesisHeader.Hash(),
+		0, "System.remark", testCallArguments)
+	fmt.Println("here 1")
+	extBytes := common.MustHexToBytes(extHex)
+
+	// error is from here (prob with formatting)
+	runtime.InitializeRuntimeLatestToTest(t, rt, genesisHeader.Hash())
+	return extBytes, rt
+}
+
 func generateTestValidRemarkTxns(t *testing.T, genesisFilePath string,
 	pubKey []byte, accInfo types.AccountInfo) ([]byte, runtime.Instance) {
 	t.Helper()
@@ -87,12 +138,16 @@ func generateTestValidRemarkTxns(t *testing.T, genesisFilePath string,
 		StateRoot: genTrie.MustHash(),
 	}
 
+	fmt.Println("here")
+
 	// Hash of encrypted centrifuge extrinsic
 	testCallArguments := []byte{0xab, 0xcd}
 	extHex := runtime.NewTestExtrinsic(t, rt, genesisHeader.Hash(), genesisHeader.Hash(),
 		0, "System.remark", testCallArguments)
-
+	fmt.Println("here 1")
 	extBytes := common.MustHexToBytes(extHex)
+
+	// error is from here (prob with formatting)
 	runtime.InitializeRuntimeToTest(t, rt, genesisHeader.Hash())
 	return extBytes, rt
 }
@@ -468,7 +523,7 @@ func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
 
 func TestMaintainTransactionPoolLatestTxnQueue_EmptyBlock(t *testing.T) {
 	// TODO fix this
-	t.Skip()
+	//t.Skip()
 	accountInfo := types.AccountInfo{
 		Nonce: 0,
 		Data: types.AccountData{
@@ -483,7 +538,7 @@ func TestMaintainTransactionPoolLatestTxnQueue_EmptyBlock(t *testing.T) {
 	alicePub := common.MustHexToBytes(keyring.Alice().Public().Hex())
 	genesisFilePath, err := utils.GetGssmrLatestTxnQueueGenesisRawPath()
 	require.NoError(t, err)
-	encExt, runtimeInstance := generateTestValidRemarkTxns(t, genesisFilePath, alicePub, accountInfo)
+	encExt, runtimeInstance := generateTestValidRemarkTxnsLatestRuntime(t, genesisFilePath, alicePub, accountInfo)
 	cfg := &Config{
 		Runtime: runtimeInstance,
 	}
