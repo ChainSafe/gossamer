@@ -176,9 +176,7 @@ func GetGssmrGenesisPathTest(t *testing.T) string {
 	return path
 }
 
-// New funcs
-
-// GetGssmrLatestTxnQueueGenesisPath gets the GssmrLatestTxnQueue genesis path
+// GetGssmrLatestTxnQueueGenesisRawPath gets the GssmrLatestTxnQueue genesis path
 // and returns an error if it cannot find it.
 func GetGssmrLatestTxnQueueGenesisRawPath() (path string, err error) {
 	rootPath, err := GetProjectRootPath()
