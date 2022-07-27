@@ -142,7 +142,7 @@ func TestNotifyNeighbor(t *testing.T) {
 				defer wg.Done()
 				const roundAround = 1 * time.Second
 
-				calledWithin := time.Now().Sub(*timecheck)
+				calledWithin := time.Since(*timecheck)
 				calledWithin = calledWithin.Round(roundAround) // avoid decimal points
 				assert.Equal(t, tt.expectWithin, calledWithin)
 			}
