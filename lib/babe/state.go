@@ -56,7 +56,7 @@ type TransactionState interface {
 	Push(vt *transaction.ValidTransaction) (common.Hash, error)
 	Pop() *transaction.ValidTransaction
 	Peek() *transaction.ValidTransaction
-	NextPushWatcher() (watcher <-chan struct{})
+	PopChannel() (tx chan *transaction.ValidTransaction, cancel func() (err error))
 }
 
 // EpochState is the interface for epoch methods
