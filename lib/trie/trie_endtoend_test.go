@@ -492,7 +492,7 @@ func TestClearPrefix_Small(t *testing.T) {
 
 	expectedRoot := &Node{
 		Key:        codec.KeyLEToNibbles([]byte("other")),
-		Value:      []byte("other"),
+		SubValue:   []byte("other"),
 		Generation: 1,
 		Dirty:      true,
 	}

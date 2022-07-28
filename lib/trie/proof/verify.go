@@ -127,7 +127,7 @@ func loadProof(digestToEncoding map[string][]byte, n *node.Node) (err error) {
 		merkleValue := child.HashDigest
 		encoding, ok := digestToEncoding[string(merkleValue)]
 		if !ok {
-			inlinedChild := len(child.Value) > 0 || child.HasChild()
+			inlinedChild := len(child.SubValue) > 0 || child.HasChild()
 			if !inlinedChild {
 				// hash not found and the child is not inlined,
 				// so clear the child from the branch.

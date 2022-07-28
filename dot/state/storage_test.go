@@ -181,9 +181,9 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	))
 
 	trieRoot := &node.Node{
-		Key:   []byte{1, 2},
-		Value: []byte{3, 4},
-		Dirty: true,
+		Key:      []byte{1, 2},
+		SubValue: []byte{3, 4},
+		Dirty:    true,
 	}
 	testChildTrie := trie.NewTrie(trieRoot)
 
