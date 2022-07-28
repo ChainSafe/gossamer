@@ -406,33 +406,48 @@ func (s *Service) maintainTransactionPool(block *types.Block) {
 	for _, ext := range block.Body {
 		s.transactionState.RemoveExtrinsic(ext)
 	}
-
 	// re-validate transactions in the pool and move them to the queue
 	txs := s.transactionState.PendingInPool()
 	for _, tx := range txs {
 		// get the best block corresponding runtime
-		rt, err := s.blockState.GetRuntime(nil)
+		bestBlockHash := s.blockState.BestBlockHash()
+
+		// If i dont set runtime context, then I get a corrupted storage state
+		// If I do, I get an invalid signature
+
+		stateRoot, err := s.storageState.GetStateRootFromBlock(&bestBlockHash)
+		if err != nil {
+			logger.Errorf("could not get state root from block %s: %w", bestBlockHash, err)
+		}
+
+		ts, err := s.storageState.TrieState(stateRoot)
+		if err != nil {
+			logger.Errorf(err.Error())
+		}
+
+		rt, err := s.blockState.GetRuntime(&bestBlockHash)
 		if err != nil {
 			logger.Warnf("failed to get runtime to re-validate transactions in pool: %s", err)
 			continue
 		}
-
+		rt.SetContextStorage(ts)
 		externalExt, err := s.buildExternalTransaction(rt, tx.Extrinsic)
 		if err != nil {
 			logger.Errorf("Unable to build external transaction: %s", err)
 		}
+		fmt.Println("mtp1")
 
 		transactionValidity, transactionValidityErr, err := rt.ValidateTransaction(externalExt)
 		if err != nil || transactionValidityErr != nil {
 			s.transactionState.RemoveExtrinsic(tx.Extrinsic)
 			continue
 		}
+		fmt.Println("mtp2")
 
 		tx = transaction.NewValidTransaction(tx.Extrinsic, transactionValidity)
 
 		// Err is only thrown if tx is already in pool, in which case it still gets removed
 		h, _ := s.transactionState.Push(tx)
-
 		s.transactionState.RemoveExtrinsicFromPool(tx.Extrinsic)
 		logger.Tracef("moved transaction %s to queue", h)
 	}

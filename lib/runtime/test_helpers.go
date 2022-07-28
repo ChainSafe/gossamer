@@ -352,10 +352,11 @@ func InitializeRuntimeLatestToTest(t *testing.T, instance Instance, parentHash c
 		in, err := scale.Marshal(ext)
 		require.NoError(t, err)
 
-		ext := append([]byte{2}, in...)
-		ext = append(ext, parentHash.ToBytes()...)
+		//ext := append([]byte{1}, ext...)
+		//ext = append(ext, parentHash.ToBytes()...)
 
-		ret, err := instance.ApplyExtrinsic(ext)
+		// Passing in just "in" removes codec error
+		ret, err := instance.ApplyExtrinsic(in)
 		require.NoError(t, err, in)
 		require.Equal(t, ret, []byte{0, 0})
 	}

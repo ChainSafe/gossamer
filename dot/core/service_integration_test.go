@@ -86,14 +86,11 @@ func generateTestValidRemarkTxnsLatestRuntime(t *testing.T, genesisFilePath stri
 		Number:    0,
 		StateRoot: genTrie.MustHash(),
 	}
-
-	fmt.Println("here")
-
+	
 	// Hash of encrypted centrifuge extrinsic
 	testCallArguments := []byte{0xab, 0xcd}
 	extHex := runtime.NewTestExtrinsic(t, rt, genesisHeader.Hash(), genesisHeader.Hash(),
 		0, "System.remark", testCallArguments)
-	fmt.Println("here 1")
 	extBytes := common.MustHexToBytes(extHex)
 
 	// error is from here (prob with formatting)
@@ -138,13 +135,10 @@ func generateTestValidRemarkTxns(t *testing.T, genesisFilePath string,
 		StateRoot: genTrie.MustHash(),
 	}
 
-	fmt.Println("here")
-
 	// Hash of encrypted centrifuge extrinsic
 	testCallArguments := []byte{0xab, 0xcd}
 	extHex := runtime.NewTestExtrinsic(t, rt, genesisHeader.Hash(), genesisHeader.Hash(),
 		0, "System.remark", testCallArguments)
-	fmt.Println("here 1")
 	extBytes := common.MustHexToBytes(extHex)
 
 	// error is from here (prob with formatting)
@@ -568,10 +562,13 @@ func TestMaintainTransactionPoolLatestTxnQueue_EmptyBlock(t *testing.T) {
 	}
 
 	expectedTx := transaction.NewValidTransaction(tx.Extrinsic, txnValidity)
+	fmt.Println("here yayayay1")
 
+	// This is where corrupted state is happening
 	service.maintainTransactionPool(&types.Block{
 		Body: *types.NewBody([]types.Extrinsic{}),
 	})
+	fmt.Println("here yayayay2")
 
 	resultTx := transactionState.Pop()
 	require.Equal(t, expectedTx, resultTx)
