@@ -9,6 +9,8 @@ import (
 	"sort"
 	"strings"
 	"sync"
+
+	"github.com/pkg/errors"
 )
 
 // package level cache for fieldScaleIndicies
@@ -45,7 +47,7 @@ func (fsic *fieldScaleIndicesCache) fieldScaleIndices(in interface{}) (
 	}
 
 	if !v.IsValid() {
-		err = fmt.Errorf("inputted value is not valid: %v", v)
+		err = errors.Errorf("inputted value is not valid: %v", v)
 		return
 	}
 
