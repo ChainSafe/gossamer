@@ -47,12 +47,10 @@ func (s *TransactionState) Pop() *transaction.ValidTransaction {
 	return s.queue.Pop()
 }
 
-// NextPushWatcher returns a read only channel to be signalled
+// PopChannel returns a *transaction.ValidTransaction channel to be signalled
 // when the next Push() is called on the queue.
-// Note the returned channel is closed when the Push() function
-// is called.
-func (s *TransactionState) NextPushWatcher() (watcher <-chan struct{}) {
-	return s.queue.NextPushWatcher()
+func (s *TransactionState) PopChannel() (tx chan *transaction.ValidTransaction, cancel func() (err error)) {
+	return s.queue.PopChannel()
 }
 
 // Peek returns the head of the queue without removing it
