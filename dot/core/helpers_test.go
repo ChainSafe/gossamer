@@ -93,10 +93,9 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	if cfg.Runtime == nil {
 		var rtCfg runtime.InstanceConfig
 
-		var err error
-		rtCfg.Storage, err = rtstorage.NewTrieState(genTrie)
-		require.NoError(t, err)
+		rtCfg.Storage = rtstorage.NewTrieState(genTrie)
 
+		var err error
 		rtCfg.CodeHash, err = cfg.StorageState.LoadCodeHash(nil)
 		require.NoError(t, err)
 
