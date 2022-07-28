@@ -163,9 +163,11 @@ func Test_getAuthorityIndex(t *testing.T) {
 			expErr: errors.New("first digest item is not pre-runtime digest"),
 		},
 		{
-			name:   "Invalid Preruntime Digest Type",
-			args:   args{headerInvalidPre},
-			expErr: errors.New("cannot decode babe header from pre-digest: EOF, field: 0"),
+			name: "Invalid Preruntime Digest Type",
+			args: args{headerInvalidPre},
+			expErr: errors.New("cannot decode babe header from pre-digest: unmarshal failed: " +
+				"decodeVaryingDataType failed: unmarshal failed: decodeStruct failed: decodeFixedWidthInt failed: Read" +
+				" failed: EOF, field: 0"),
 		},
 		{
 			name: "BabePrimaryPreDigest Type",
@@ -382,7 +384,8 @@ func Test_verifier_verifyPreRuntimeDigest(t *testing.T) {
 			name:     "Invalid PreRuntimeDigest",
 			verifier: verifier{},
 			args:     args{&types.PreRuntimeDigest{Data: []byte{0}}},
-			expErr:   errors.New("unable to find VaryingDataTypeValue with index: 0"),
+			expErr: errors.New("unmarshal failed: decodeVaryingDataType failed: " +
+				"unable to find VaryingDataTypeValue with index: 0"),
 		},
 		{
 			name:     "Invalid BlockProducer Index",
@@ -615,7 +618,9 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 			name:     "invalid preruntime digest data",
 			verifier: verifier{},
 			header:   header2,
-			expErr:   errors.New("failed to verify pre-runtime digest: EOF, field: 0"),
+			expErr: errors.New("failed to verify pre-runtime digest: unmarshal failed: " +
+				"decodeVaryingDataType failed: unmarshal failed: decodeStruct failed: decodeFixedWidthInt failed: " +
+				"Read failed: EOF, field: 0"),
 		},
 		{
 			name:     "invalid seal length",
