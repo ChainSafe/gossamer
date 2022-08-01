@@ -477,7 +477,7 @@ func (cs *chainSync) handleResult(resultWorker *worker) error {
 	// handle results from worker
 	// if there is an error, potentially retry the worker
 	if resultWorker.err == nil || resultWorker.ctx.Err() != nil {
-		return nil
+		return nil //nolint:nilerr
 	}
 
 	logger.Debugf("worker id %d failed: %s", resultWorker.id, resultWorker.err.err)
