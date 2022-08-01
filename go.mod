@@ -33,7 +33,7 @@ require (
 	github.com/libp2p/go-libp2p-core v0.16.1
 	github.com/libp2p/go-libp2p-discovery v0.5.1
 	github.com/libp2p/go-libp2p-kad-dht v0.16.0
-	github.com/libp2p/go-libp2p-peerstore v0.6.0
+	github.com/libp2p/go-libp2p-peerstore v0.7.1
 	github.com/multiformats/go-multiaddr v0.6.0
 	github.com/nanobox-io/golang-scribble v0.0.0-20190309225732-aa3e7c118975
 	github.com/naoina/toml v0.1.2-0.20170918210437-9fafd6967416
