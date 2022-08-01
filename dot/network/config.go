@@ -32,7 +32,7 @@ const (
 	DefaultProtocolID = "/gossamer/gssmr/0"
 
 	// DefaultRoles the default value for Config.Roles (0 = no network, 1 = full node)
-	DefaultRoles = byte(1)
+	DefaultRoles = FullNode
 
 	// DefaultMinPeerCount is the default minimum peer count
 	DefaultMinPeerCount = 5
@@ -58,7 +58,7 @@ type Config struct {
 	// BasePath the data directory for the node
 	BasePath string
 	// Roles a bitmap value that represents the different roles for the sender node (see Table D.2)
-	Roles byte
+	Roles Roles
 
 	// Service interfaces
 	BlockState         BlockState

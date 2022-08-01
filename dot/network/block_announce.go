@@ -19,8 +19,6 @@ var errInvalidRole = errors.New("invalid handshake role")
 var (
 	_ NotificationsMessage = &BlockAnnounceMessage{}
 	_ NotificationsMessage = &BlockAnnounceHandshake{}
-
-	errExpectedBlockAnnounceMsg = errors.New("received block announce handshake but expected block announce message")
 )
 
 // BlockAnnounceMessage is a state block header
@@ -187,7 +185,7 @@ func (s *Service) getBlockAnnounceHandshake() (Handshake, error) {
 	}
 
 	return &BlockAnnounceHandshake{
-		Roles:           Roles(s.cfg.Roles),
+		Roles:           s.cfg.Roles,
 		BestBlockNumber: uint32(latestBlock.Number),
 		BestBlockHash:   latestBlock.Hash(),
 		GenesisHash:     s.blockState.GenesisHash(),

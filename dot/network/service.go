@@ -649,7 +649,7 @@ func (s *Service) RemoveReservedPeers(addrs ...string) error {
 }
 
 // NodeRoles Returns the roles the node is running as.
-func (s *Service) NodeRoles() byte {
+func (s *Service) NodeRoles() Roles {
 	return s.cfg.Roles
 }
 

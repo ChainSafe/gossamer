@@ -5,6 +5,7 @@ package modules
 
 import (
 	"github.com/ChainSafe/gossamer/dot/core"
+	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -61,7 +62,7 @@ type NetworkAPI interface {
 	Health() common.Health
 	NetworkState() common.NetworkState
 	Peers() []common.PeerInfo
-	NodeRoles() byte
+	NodeRoles() network.Roles
 	Stop() error
 	Start() error
 	IsStopped() bool
