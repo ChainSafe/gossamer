@@ -139,7 +139,8 @@ func (n *Node) EncodeAndHash() (encoding, merkleValue []byte, err error) {
 // and a merkle value writer, such that buffer sync pools can be used
 // by the caller.
 func (n *Node) EncodeAndHashRoot() (encoding, merkleValue []byte, err error) {
-	if !n.Dirty && n.Encoding != nil && n.MerkleValue != nil {
+	const rootMerkleValueLength = 32
+	if !n.Dirty && n.Encoding != nil && len(n.MerkleValue) == rootMerkleValueLength {
 		return n.Encoding, n.MerkleValue, nil
 	}
 

@@ -383,6 +383,12 @@ func Test_Node_EncodeAndHash(t *testing.T) {
 func Test_Node_EncodeAndHashRoot(t *testing.T) {
 	t.Parallel()
 
+	some32BHashDigest := []byte{
+		0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+		0x74, 0xcb, 0x6a, 0xff, 0x8c, 0x9c, 0xcd, 0xd2,
+		0x73, 0xc8, 0x16, 0x48, 0xff, 0x11, 0x49, 0xef,
+		0x36, 0xbc, 0xea, 0x6e, 0xbb, 0x8a, 0x3e, 0x25}
+
 	testCases := map[string]struct {
 		node         Node
 		expectedNode Node
@@ -397,16 +403,16 @@ func Test_Node_EncodeAndHashRoot(t *testing.T) {
 				SubValue:    []byte{2},
 				Dirty:       false,
 				Encoding:    []byte{3},
-				MerkleValue: []byte{4},
+				MerkleValue: some32BHashDigest,
 			},
 			expectedNode: Node{
 				Key:         []byte{1},
 				SubValue:    []byte{2},
 				Encoding:    []byte{3},
-				MerkleValue: []byte{4},
+				MerkleValue: some32BHashDigest,
 			},
 			encoding: []byte{3},
-			hash:     []byte{4},
+			hash:     some32BHashDigest,
 		},
 		"small leaf encoding": {
 			node: Node{
