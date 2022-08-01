@@ -65,28 +65,32 @@ func MerkleValueRoot(rootEncoding []byte, writer io.Writer) (err error) {
 	return nil
 }
 
-// CalculateMerkleValue returns the Merkle value of the node.
-// If the node encoding is less or equal to 32 bytes,
-// the encoding is the Merkle value.
-// Otherwise, the Blake2b hash digest of the encoding
-// is returned as the Merkle value.
-func (n *Node) CalculateMerkleValue(isRoot bool) (merkleValue []byte, err error) {
+// CalculateMerkleValue returns the Merkle value of the non-root node.
+func (n *Node) CalculateMerkleValue() (merkleValue []byte, err error) {
 	if !n.Dirty && n.MerkleValue != nil {
 		return n.MerkleValue, nil
-	}
-
-	if isRoot {
-		_, merkleValue, err = n.EncodeAndHashRoot()
-		if err != nil {
-			return nil, fmt.Errorf("encoding and hashing root node: %w", err)
-		}
-		return merkleValue, nil
 	}
 
 	_, merkleValue, err = n.EncodeAndHash()
 	if err != nil {
 		return nil, fmt.Errorf("encoding and hashing node: %w", err)
 	}
+
+	return merkleValue, nil
+}
+
+// CalculateRootMerkleValue returns the Merkle value of the root node.
+func (n *Node) CalculateRootMerkleValue() (merkleValue []byte, err error) {
+	const rootMerkleValueLength = 32
+	if !n.Dirty && len(n.MerkleValue) == rootMerkleValueLength {
+		return n.MerkleValue, nil
+	}
+
+	_, merkleValue, err = n.EncodeAndHashRoot()
+	if err != nil {
+		return nil, fmt.Errorf("encoding and hashing root node: %w", err)
+	}
+
 	return merkleValue, nil
 }
 

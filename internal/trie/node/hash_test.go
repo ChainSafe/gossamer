@@ -173,7 +173,6 @@ func Test_Node_CalculateMerkleValue(t *testing.T) {
 
 	testCases := map[string]struct {
 		node        Node
-		isRoot      bool
 		merkleValue []byte
 		errWrapped  error
 		errMessage  string
@@ -184,17 +183,66 @@ func Test_Node_CalculateMerkleValue(t *testing.T) {
 			},
 			merkleValue: []byte{1},
 		},
-		"non root small encoding": {
+		"small encoding": {
 			node: Node{
 				Encoding: []byte{1},
 			},
 			merkleValue: []byte{1},
 		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			merkleValue, err := testCase.node.CalculateMerkleValue()
+
+			assert.ErrorIs(t, err, testCase.errWrapped)
+			if testCase.errWrapped != nil {
+				assert.EqualError(t, err, testCase.errMessage)
+			}
+			assert.Equal(t, testCase.merkleValue, merkleValue)
+		})
+	}
+}
+
+func Test_Node_CalculateRootMerkleValue(t *testing.T) {
+	t.Parallel()
+
+	some32BHashDigest := []byte{
+		0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+		0x74, 0xcb, 0x6a, 0xff, 0x8c, 0x9c, 0xcd, 0xd2,
+		0x73, 0xc8, 0x16, 0x48, 0xff, 0x11, 0x49, 0xef,
+		0x36, 0xbc, 0xea, 0x6e, 0xbb, 0x8a, 0x3e, 0x25}
+
+	testCases := map[string]struct {
+		node        Node
+		merkleValue []byte
+		errWrapped  error
+		errMessage  string
+	}{
+		"cached merkle value 32 bytes": {
+			node: Node{
+				MerkleValue: some32BHashDigest,
+			},
+			merkleValue: some32BHashDigest,
+		},
+		"cached merkle value not 32 bytes": {
+			node: Node{
+				Encoding:    []byte{1},
+				MerkleValue: []byte{1},
+			},
+			merkleValue: []byte{
+				0xee, 0x15, 0x5a, 0xce, 0x9c, 0x40, 0x29, 0x20,
+				0x74, 0xcb, 0x6a, 0xff, 0x8c, 0x9c, 0xcd, 0xd2,
+				0x73, 0xc8, 0x16, 0x48, 0xff, 0x11, 0x49, 0xef,
+				0x36, 0xbc, 0xea, 0x6e, 0xbb, 0x8a, 0x3e, 0x25},
+		},
 		"root small encoding": {
 			node: Node{
 				Encoding: []byte{1},
 			},
-			isRoot: true,
 			merkleValue: []byte{
 				0xee, 0x15, 0x5a, 0xce, 0x9c, 0x40, 0x29, 0x20,
 				0x74, 0xcb, 0x6a, 0xff, 0x8c, 0x9c, 0xcd, 0xd2,
@@ -208,7 +256,7 @@ func Test_Node_CalculateMerkleValue(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			merkleValue, err := testCase.node.CalculateMerkleValue(testCase.isRoot)
+			merkleValue, err := testCase.node.CalculateRootMerkleValue()
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if testCase.errWrapped != nil {
