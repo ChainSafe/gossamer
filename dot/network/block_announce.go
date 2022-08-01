@@ -109,25 +109,11 @@ func decodeBlockAnnounceMessage(in []byte) (NotificationsMessage, error) {
 
 // BlockAnnounceHandshake is exchanged by nodes that are beginning the BlockAnnounce protocol
 type BlockAnnounceHandshake struct {
-	Roles           Roles
+	Roles           common.Roles
 	BestBlockNumber uint32
 	BestBlockHash   common.Hash
 	GenesisHash     common.Hash
 }
-
-// Roles is the type of node.
-type Roles byte
-
-const (
-	// FullNode allow you to read the current state of the chain and to submit and validate
-	// extrinsics directly on the network without relying on a centralised infrastructure provider.
-	FullNode Roles = 1
-	// LightClient node has only the runtime and the current state, but does not store past
-	// blocks and so cannot read historical data without requesting it from a node that has it.
-	LightClient Roles = 2
-	// Validator node helps seal new blocks.
-	Validator Roles = 4
-)
 
 // SubProtocol returns the block-announces sub-protocol
 func (*BlockAnnounceHandshake) SubProtocol() string {
@@ -199,7 +185,7 @@ func (s *Service) validateBlockAnnounceHandshake(from peer.ID, hs Handshake) err
 	}
 
 	switch bhs.Roles {
-	case FullNode, LightClient, Validator:
+	case common.FullNode, common.LightClient, common.Validator:
 	default:
 		return errInvalidRole
 	}
