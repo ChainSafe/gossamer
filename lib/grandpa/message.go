@@ -57,7 +57,7 @@ type VoteMessage struct {
 }
 
 // Index Returns VDT index
-func (v VoteMessage) Index() uint { return 0 }
+func (VoteMessage) Index() uint { return 0 }
 
 // ToConsensusMessage converts the VoteMessage into a network-level consensus message
 func (v *VoteMessage) ToConsensusMessage() (*ConsensusMessage, error) {
@@ -86,7 +86,7 @@ type NeighbourMessage struct {
 }
 
 // Index Returns VDT index
-func (m NeighbourMessage) Index() uint { return 2 }
+func (NeighbourMessage) Index() uint { return 2 }
 
 // ToConsensusMessage converts the NeighbourMessage into a network-level consensus message
 func (m *NeighbourMessage) ToConsensusMessage() (*network.ConsensusMessage, error) {
@@ -137,7 +137,7 @@ func (s *Service) newCommitMessage(header *types.Header, round uint64) (*CommitM
 }
 
 // Index Returns VDT index
-func (f CommitMessage) Index() uint { return 1 }
+func (CommitMessage) Index() uint { return 1 }
 
 // ToConsensusMessage converts the CommitMessage into a network-level consensus message
 func (f *CommitMessage) ToConsensusMessage() (*ConsensusMessage, error) {
@@ -203,7 +203,7 @@ func newCatchUpRequest(round, setID uint64) *CatchUpRequest {
 }
 
 // Index Returns VDT index
-func (r CatchUpRequest) Index() uint { return 3 }
+func (CatchUpRequest) Index() uint { return 3 }
 
 // ToConsensusMessage converts the catchUpRequest into a network-level consensus message
 func (r *CatchUpRequest) ToConsensusMessage() (*ConsensusMessage, error) {
@@ -260,7 +260,7 @@ func (s *Service) newCatchUpResponse(round, setID uint64) (*CatchUpResponse, err
 }
 
 // Index Returns VDT index
-func (r CatchUpResponse) Index() uint { return 4 }
+func (CatchUpResponse) Index() uint { return 4 }
 
 // ToConsensusMessage converts the catchUpResponse into a network-level consensus message
 func (r *CatchUpResponse) ToConsensusMessage() (*ConsensusMessage, error) {

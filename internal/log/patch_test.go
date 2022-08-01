@@ -169,7 +169,7 @@ func Test_Logger_patch(t *testing.T) {
 
 			logger := testCase.initialLogger
 
-			logger.patch(testCase.options...)
+			logger.patchWithoutLocking(testCase.options...)
 
 			assert.Equal(t, testCase.expectedLogger, logger)
 		})

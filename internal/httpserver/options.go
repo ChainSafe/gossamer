@@ -9,12 +9,24 @@ import "time"
 type Option func(s *optionalSettings)
 
 type optionalSettings struct {
-	shutdownTimeout time.Duration
+	readTimeout       time.Duration
+	readHeaderTimeout time.Duration
+	shutdownTimeout   time.Duration
 }
 
 func newOptionalSettings(options []Option) (settings optionalSettings) {
 	for _, option := range options {
 		option(&settings)
+	}
+
+	if settings.readTimeout == 0 {
+		const defaultReadTimeout = 10 * time.Second
+		settings.readTimeout = defaultReadTimeout
+	}
+
+	if settings.readHeaderTimeout == 0 {
+		const defaultReadHeaderTimeout = time.Second
+		settings.readHeaderTimeout = defaultReadHeaderTimeout
 	}
 
 	if settings.shutdownTimeout == 0 {
@@ -23,6 +35,22 @@ func newOptionalSettings(options []Option) (settings optionalSettings) {
 	}
 
 	return settings
+}
+
+// ReadTimeout sets the read timeout for the HTTP server.
+// The default timeout is 10 seconds.
+func ReadTimeout(timeout time.Duration) Option {
+	return func(s *optionalSettings) {
+		s.readTimeout = timeout
+	}
+}
+
+// ReadHeaderTimeout sets the header read timeout
+// for the HTTP server. The default timeout is 1 second.
+func ReadHeaderTimeout(timeout time.Duration) Option {
+	return func(s *optionalSettings) {
+		s.readHeaderTimeout = timeout
+	}
 }
 
 // ShutdownTimeout sets an optional timeout for the HTTP server

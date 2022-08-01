@@ -62,7 +62,7 @@ func (n *Node) Copy(settings CopySettings) *Node {
 		Descendants: n.Descendants,
 	}
 
-	if n.Type() == Branch {
+	if n.Kind() == Branch {
 		if settings.CopyChildren {
 			// Copy all fields of children if we deep copy children
 			childSettings := settings
@@ -88,9 +88,9 @@ func (n *Node) Copy(settings CopySettings) *Node {
 	}
 
 	// nil and []byte{} are encoded differently, watch out!
-	if settings.CopyValue && n.Value != nil {
-		cpy.Value = make([]byte, len(n.Value))
-		copy(cpy.Value, n.Value)
+	if settings.CopyValue && n.SubValue != nil {
+		cpy.SubValue = make([]byte, len(n.SubValue))
+		copy(cpy.SubValue, n.SubValue)
 	}
 
 	if settings.CopyCached {

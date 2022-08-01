@@ -98,8 +98,6 @@ type Config struct {
 	// telemetryInterval how often to send telemetry metrics
 	telemetryInterval time.Duration
 
-	noPreAllocate bool // internal option
-
 	batchSize int // internal option
 
 	// SlotDuration is the slot duration to produce a block

@@ -187,7 +187,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	}
 
 	// create libp2p host instance
-	h, err := libp2p.New(ctx, opts...)
+	h, err := libp2p.New(opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -390,14 +390,6 @@ func (h *host) supportsProtocol(peerID peer.ID, protocol protocol.ID) (bool, err
 func (h *host) peerCount() int {
 	peers := h.p2pHost.Network().Peers()
 	return len(peers)
-}
-
-// addrInfo returns the libp2p peer.AddrInfo of the host
-func (h *host) addrInfo() peer.AddrInfo {
-	return peer.AddrInfo{
-		ID:    h.p2pHost.ID(),
-		Addrs: h.p2pHost.Addrs(),
-	}
 }
 
 // multiaddrs returns the multiaddresses of the host

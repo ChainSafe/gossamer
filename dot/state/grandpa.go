@@ -7,7 +7,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"sync"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -38,8 +37,6 @@ var (
 type GrandpaState struct {
 	db         chaindb.Database
 	blockState *BlockState
-
-	forksLock sync.RWMutex
 
 	forcedChanges        *orderedPendingChanges
 	scheduledChangeRoots *changeTree

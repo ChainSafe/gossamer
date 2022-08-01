@@ -29,7 +29,7 @@ func TestExternalAddrs(t *testing.T) {
 
 	node := createTestService(t, config)
 
-	addrInfo := node.host.addrInfo()
+	addrInfo := addrInfo(node.host)
 
 	privateIPs, err := newPrivateIPFilters()
 	require.NoError(t, err)
@@ -60,7 +60,7 @@ func TestExternalAddrsPublicIP(t *testing.T) {
 	}
 
 	node := createTestService(t, config)
-	addrInfo := node.host.addrInfo()
+	addrInfo := addrInfo(node.host)
 
 	privateIPs, err := newPrivateIPFilters()
 	require.NoError(t, err)
@@ -92,7 +92,7 @@ func TestExternalAddrsPublicDNS(t *testing.T) {
 	}
 
 	node := createTestService(t, config)
-	addrInfo := node.host.addrInfo()
+	addrInfo := addrInfo(node.host)
 
 	expected := []ma.Multiaddr{
 		mustNewMultiAddr("/ip4/127.0.0.1/tcp/7001"),
@@ -126,7 +126,7 @@ func TestConnect(t *testing.T) {
 	nodeB := createTestService(t, configB)
 	nodeB.noGossip = true
 
-	addrInfoB := nodeB.host.addrInfo()
+	addrInfoB := addrInfo(nodeB.host)
 	err := nodeA.host.connect(addrInfoB)
 	// retry connect if "failed to dial" error
 	if failedToDial(err) {
@@ -207,7 +207,7 @@ func TestSend(t *testing.T) {
 	handler := newTestStreamHandler(testBlockRequestMessageDecoder)
 	nodeB.host.registerStreamHandler(nodeB.host.protocolID, handler.handleStream)
 
-	addrInfoB := nodeB.host.addrInfo()
+	addrInfoB := addrInfo(nodeB.host)
 	err := nodeA.host.connect(addrInfoB)
 	// retry connect if "failed to dial" error
 	if failedToDial(err) {
@@ -244,7 +244,7 @@ func TestExistingStream(t *testing.T) {
 	handlerA := newTestStreamHandler(testBlockRequestMessageDecoder)
 	nodeA.host.registerStreamHandler(nodeA.host.protocolID, handlerA.handleStream)
 
-	addrInfoA := nodeA.host.addrInfo()
+	addrInfoA := addrInfo(nodeA.host)
 	configB := &Config{
 		BasePath:    t.TempDir(),
 		Port:        availablePort(t),
@@ -257,7 +257,7 @@ func TestExistingStream(t *testing.T) {
 	handlerB := newTestStreamHandler(testBlockRequestMessageDecoder)
 	nodeB.host.registerStreamHandler(nodeB.host.protocolID, handlerB.handleStream)
 
-	addrInfoB := nodeB.host.addrInfo()
+	addrInfoB := addrInfo(nodeB.host)
 	err := nodeA.host.connect(addrInfoB)
 	// retry connect if "failed to dial" error
 	if failedToDial(err) {
@@ -320,7 +320,7 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 	handlerB := newTestStreamHandler(testBlockAnnounceHandshakeDecoder)
 	nodeB.host.registerStreamHandler(blockAnnounceID, handlerB.handleStream)
 
-	addrInfoB := nodeB.host.addrInfo()
+	addrInfoB := addrInfo(nodeB.host)
 	err := nodeA.host.connect(addrInfoB)
 	// retry connect if "failed to dial" error
 	if failedToDial(err) {
@@ -385,7 +385,7 @@ func Test_PeerSupportsProtocol(t *testing.T) {
 	nodeB := createTestService(t, configB)
 	nodeB.noGossip = true
 
-	addrInfoB := nodeB.host.addrInfo()
+	addrInfoB := addrInfo(nodeB.host)
 	err := nodeA.host.connect(addrInfoB)
 	// retry connect if "failed to dial" error
 	if failedToDial(err) {
@@ -489,7 +489,7 @@ func Test_RemoveReservedPeers(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	require.Equal(t, 1, nodeA.host.peerCount())
-	pID := nodeB.host.addrInfo().ID.String()
+	pID := addrInfo(nodeB.host).ID.String()
 
 	err = nodeA.host.removeReservedPeers(pID)
 	require.NoError(t, err)
@@ -497,7 +497,7 @@ func Test_RemoveReservedPeers(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	require.Equal(t, 1, nodeA.host.peerCount())
-	isProtected := nodeA.host.p2pHost.ConnManager().IsProtected(nodeB.host.addrInfo().ID, "")
+	isProtected := nodeA.host.p2pHost.ConnManager().IsProtected(addrInfo(nodeB.host).ID, "")
 	require.False(t, isProtected)
 
 	err = nodeA.host.removeReservedPeers("unknown_perr_id")
@@ -530,7 +530,7 @@ func TestStreamCloseEOF(t *testing.T) {
 	nodeB.host.registerStreamHandler(nodeB.host.protocolID, handler.handleStream)
 	require.False(t, handler.exit)
 
-	addrInfoB := nodeB.host.addrInfo()
+	addrInfoB := addrInfo(nodeB.host)
 	err := nodeA.host.connect(addrInfoB)
 	// retry connect if "failed to dial" error
 	if failedToDial(err) {
@@ -581,7 +581,7 @@ func TestPeerConnect(t *testing.T) {
 	nodeB := createTestService(t, configB)
 	nodeB.noGossip = true
 
-	addrInfoB := nodeB.host.addrInfo()
+	addrInfoB := addrInfo(nodeB.host)
 	nodeA.host.p2pHost.Peerstore().AddAddrs(addrInfoB.ID, addrInfoB.Addrs, peerstore.PermanentAddrTTL)
 	nodeA.host.cm.peerSetHandler.AddPeer(0, addrInfoB.ID)
 
@@ -619,7 +619,7 @@ func TestBannedPeer(t *testing.T) {
 	nodeB := createTestService(t, configB)
 	nodeB.noGossip = true
 
-	addrInfoB := nodeB.host.addrInfo()
+	addrInfoB := addrInfo(nodeB.host)
 	nodeA.host.p2pHost.Peerstore().AddAddrs(addrInfoB.ID, addrInfoB.Addrs, peerstore.PermanentAddrTTL)
 	nodeA.host.cm.peerSetHandler.AddPeer(0, addrInfoB.ID)
 
@@ -672,7 +672,7 @@ func TestPeerReputation(t *testing.T) {
 	nodeB := createTestService(t, configB)
 	nodeB.noGossip = true
 
-	addrInfoB := nodeB.host.addrInfo()
+	addrInfoB := addrInfo(nodeB.host)
 	nodeA.host.p2pHost.Peerstore().AddAddrs(addrInfoB.ID, addrInfoB.Addrs, peerstore.PermanentAddrTTL)
 	nodeA.host.cm.peerSetHandler.AddPeer(0, addrInfoB.ID)
 

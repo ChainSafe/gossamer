@@ -115,13 +115,13 @@ func TestProtectUnprotectPeer(t *testing.T) {
 	require.True(t, cm.IsProtected(p1, ""))
 	require.True(t, cm.IsProtected(p2, ""))
 
-	unprot := cm.unprotectedPeers([]peer.ID{p1, p2, p3, p4})
+	unprot := unprotectedPeers(cm, []peer.ID{p1, p2, p3, p4})
 	require.Equal(t, unprot, []peer.ID{p3, p4})
 
 	cm.Unprotect(p1, "")
 	cm.Unprotect(p2, "")
 
-	unprot = cm.unprotectedPeers([]peer.ID{p1, p2, p3, p4})
+	unprot = unprotectedPeers(cm, []peer.ID{p1, p2, p3, p4})
 	require.Equal(t, unprot, []peer.ID{p1, p2, p3, p4})
 }
 
@@ -224,7 +224,7 @@ func TestSetReservedPeer(t *testing.T) {
 
 	addrA := nodes[0].host.multiaddrs()[0]
 	addrB := nodes[1].host.multiaddrs()[0]
-	addrC := nodes[2].host.addrInfo()
+	addrC := addrInfo(nodes[2].host)
 
 	config := &Config{
 		BasePath:        t.TempDir(),

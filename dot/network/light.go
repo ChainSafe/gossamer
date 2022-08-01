@@ -125,11 +125,6 @@ func newRequest() *request {
 	}
 }
 
-// SubProtocol returns the light sub-protocol
-func (l *LightRequest) SubProtocol() string {
-	return lightID
-}
-
 // Encode encodes a LightRequest message using SCALE and appends the type byte to the start
 func (l *LightRequest) Encode() ([]byte, error) {
 	req := request{
@@ -204,11 +199,6 @@ func newResponse() *response {
 		RemoteHeaderResponse:  *newRemoteHeaderResponse(),
 		RemoteChangesResponse: *newRemoteChangesResponse(),
 	}
-}
-
-// SubProtocol returns the light sub-protocol
-func (l *LightResponse) SubProtocol() string {
-	return lightID
 }
 
 // Encode encodes a LightResponse message using SCALE and appends the type byte to the start

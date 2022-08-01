@@ -42,7 +42,7 @@ func TestGossip(t *testing.T) {
 	handlerB := newTestStreamHandler(testBlockAnnounceMessageDecoder)
 	nodeB.host.registerStreamHandler(nodeB.host.protocolID, handlerB.handleStream)
 
-	addrInfoA := nodeA.host.addrInfo()
+	addrInfoA := addrInfo(nodeA.host)
 	err := nodeB.host.connect(addrInfoA)
 	// retry connect if "failed to dial" error
 	if failedToDial(err) {
@@ -70,7 +70,7 @@ func TestGossip(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-	addrInfoB := nodeB.host.addrInfo()
+	addrInfoB := addrInfo(nodeB.host)
 	err = nodeC.host.connect(addrInfoB)
 	// retry connect if "failed to dial" error
 	if failedToDial(err) {

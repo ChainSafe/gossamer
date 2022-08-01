@@ -194,7 +194,7 @@ func NewPublicKey(in []byte) (*PublicKey, error) {
 }
 
 // Type returns Sr25519Type
-func (kp *Keypair) Type() crypto.KeyType {
+func (*Keypair) Type() crypto.KeyType {
 	return crypto.Sr25519Type
 }
 

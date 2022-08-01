@@ -56,7 +56,7 @@ func encodeChildrenOpportunisticParallel(children []*Node, buffer io.Writer) (er
 	resultsCh := make(chan encodingAsyncResult, ChildrenCapacity)
 
 	for i, child := range children {
-		if child == nil || child.Type() == Leaf {
+		if child == nil || child.Kind() == Leaf {
 			runEncodeChild(child, i, resultsCh, nil)
 			continue
 		}
@@ -153,12 +153,12 @@ func scaleEncodeHash(node *Node) (encoding []byte, err error) {
 
 	err = hashNode(node, buffer)
 	if err != nil {
-		return nil, fmt.Errorf("cannot hash %s: %w", node.Type(), err)
+		return nil, fmt.Errorf("cannot hash %s: %w", node.Kind(), err)
 	}
 
 	encoding, err = scale.Marshal(buffer.Bytes())
 	if err != nil {
-		return nil, fmt.Errorf("cannot scale encode hashed %s: %w", node.Type(), err)
+		return nil, fmt.Errorf("cannot scale encode hashed %s: %w", node.Kind(), err)
 	}
 
 	return encoding, nil
@@ -171,14 +171,14 @@ func hashNode(node *Node, digestWriter io.Writer) (err error) {
 
 	err = node.Encode(encodingBuffer)
 	if err != nil {
-		return fmt.Errorf("cannot encode %s: %w", node.Type(), err)
+		return fmt.Errorf("cannot encode %s: %w", node.Kind(), err)
 	}
 
 	// if length of encoded leaf is less than 32 bytes, do not hash
 	if encodingBuffer.Len() < 32 {
 		_, err = digestWriter.Write(encodingBuffer.Bytes())
 		if err != nil {
-			return fmt.Errorf("cannot write encoded %s to buffer: %w", node.Type(), err)
+			return fmt.Errorf("cannot write encoded %s to buffer: %w", node.Kind(), err)
 		}
 		return nil
 	}
@@ -191,12 +191,12 @@ func hashNode(node *Node, digestWriter io.Writer) (err error) {
 	// Note: using the sync.Pool's buffer is useful here.
 	_, err = hasher.Write(encodingBuffer.Bytes())
 	if err != nil {
-		return fmt.Errorf("cannot hash encoding of %s: %w", node.Type(), err)
+		return fmt.Errorf("cannot hash encoding of %s: %w", node.Kind(), err)
 	}
 
 	_, err = digestWriter.Write(hasher.Sum(nil))
 	if err != nil {
-		return fmt.Errorf("cannot write hash sum of %s to buffer: %w", node.Type(), err)
+		return fmt.Errorf("cannot write hash sum of %s to buffer: %w", node.Kind(), err)
 	}
 	return nil
 }

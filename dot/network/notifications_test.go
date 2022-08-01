@@ -104,7 +104,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounce(t *testing.T) {
 	testPeerID := b.host.id()
 
 	// connect nodes
-	addrInfoB := b.host.addrInfo()
+	addrInfoB := addrInfo(b.host)
 	err := s.host.connect(addrInfoB)
 	if failedToDial(err) {
 		time.Sleep(TestBackoffTimeout)
@@ -173,7 +173,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 	testPeerID := b.host.id()
 
 	// connect nodes
-	addrInfoB := b.host.addrInfo()
+	addrInfoB := addrInfo(b.host)
 	err := s.host.connect(addrInfoB)
 	if failedToDial(err) {
 		time.Sleep(TestBackoffTimeout)
@@ -254,7 +254,7 @@ func Test_HandshakeTimeout(t *testing.T) {
 		// should not respond to a handshake message
 	})
 
-	addrInfosB := nodeB.host.addrInfo()
+	addrInfosB := addrInfo(nodeB.host)
 
 	err := nodeA.host.connect(addrInfosB)
 	// retry connect if "failed to dial" error
@@ -329,11 +329,11 @@ func TestCreateNotificationsMessageHandler_HandleTransaction(t *testing.T) {
 
 	srvc2 := createTestService(t, configB)
 
-	txnBatch := make(chan *BatchMessage, batchSize)
+	txnBatch := make(chan *batchMessage, batchSize)
 	txnBatchHandler := srvc1.createBatchMessageHandler(txnBatch)
 
 	// connect nodes
-	addrInfoB := srvc2.host.addrInfo()
+	addrInfoB := addrInfo(srvc2.host)
 	err := srvc1.host.connect(addrInfoB)
 	if failedToDial(err) {
 		time.Sleep(TestBackoffTimeout)

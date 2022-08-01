@@ -118,7 +118,7 @@ func (u *Uint128) Compare(other *Uint128) int {
 	return 0
 }
 
-func (u *Uint128) trimBytes(b []byte, order binary.ByteOrder) []byte {
+func (*Uint128) trimBytes(b []byte, order binary.ByteOrder) []byte {
 	switch order {
 	case binary.LittleEndian:
 		for {

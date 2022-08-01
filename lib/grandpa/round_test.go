@@ -176,7 +176,7 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 		gs, _, _, _ = setupGrandpa(t, kr.Keys[i])
 		gss[i] = gs
 
-		r := uint(rand.Intn(1))
+		r := uint(rand.Intn(2)) // 0 or 1
 		state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 4+r, false)
 		pv, err := gs.determinePreVote()
 		require.NoError(t, err)

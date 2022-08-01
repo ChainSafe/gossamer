@@ -31,11 +31,6 @@ type BlockAnnounceMessage struct {
 	BestBlock      bool
 }
 
-// SubProtocol returns the block-announces sub-protocol
-func (*BlockAnnounceMessage) SubProtocol() string {
-	return blockAnnounceID
-}
-
 // Type returns BlockAnnounceMsgType
 func (*BlockAnnounceMessage) Type() byte {
 	return BlockAnnounceMsgType
@@ -113,11 +108,6 @@ type BlockAnnounceHandshake struct {
 	BestBlockNumber uint32
 	BestBlockHash   common.Hash
 	GenesisHash     common.Hash
-}
-
-// SubProtocol returns the block-announces sub-protocol
-func (*BlockAnnounceHandshake) SubProtocol() string {
-	return blockAnnounceID
 }
 
 // String formats a BlockAnnounceHandshake as a string

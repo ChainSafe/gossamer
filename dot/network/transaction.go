@@ -28,11 +28,6 @@ type TransactionMessage struct {
 	Extrinsics []types.Extrinsic
 }
 
-// SubProtocol returns the transactions sub-protocol
-func (*TransactionMessage) SubProtocol() string {
-	return transactionsID
-}
-
 // Type returns TransactionMsgType
 func (*TransactionMessage) Type() byte {
 	return TransactionMsgType
@@ -68,11 +63,6 @@ func (*TransactionMessage) IsHandshake() bool {
 }
 
 type transactionHandshake struct{}
-
-// SubProtocol returns the transactions sub-protocol
-func (*transactionHandshake) SubProtocol() string {
-	return transactionsID
-}
 
 // String formats a transactionHandshake as a string
 func (*transactionHandshake) String() string {
@@ -112,7 +102,7 @@ func decodeTransactionHandshake(_ []byte) (Handshake, error) {
 	return &transactionHandshake{}, nil
 }
 
-func (s *Service) startTxnBatchProcessing(txnBatchCh chan *BatchMessage, slotDuration time.Duration) {
+func (s *Service) startTxnBatchProcessing(txnBatchCh chan *batchMessage, slotDuration time.Duration) {
 	protocolID := s.host.protocolID + transactionsID
 	ticker := time.NewTicker(slotDuration)
 	defer ticker.Stop()
@@ -158,11 +148,11 @@ func (s *Service) startTxnBatchProcessing(txnBatchCh chan *BatchMessage, slotDur
 	}
 }
 
-func (s *Service) createBatchMessageHandler(txnBatchCh chan *BatchMessage) NotificationsMessageBatchHandler {
+func (s *Service) createBatchMessageHandler(txnBatchCh chan *batchMessage) NotificationsMessageBatchHandler {
 	go s.startTxnBatchProcessing(txnBatchCh, s.cfg.SlotDuration)
 
 	return func(peer peer.ID, msg NotificationsMessage) {
-		data := &BatchMessage{
+		data := &batchMessage{
 			msg:  msg,
 			peer: peer,
 		}

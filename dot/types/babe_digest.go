@@ -58,7 +58,7 @@ func (d *BabePrimaryPreDigest) ToPreRuntimeDigest() (*PreRuntimeDigest, error) {
 }
 
 // Index Returns VDT index
-func (d BabePrimaryPreDigest) Index() uint { return 1 }
+func (BabePrimaryPreDigest) Index() uint { return 1 }
 
 // BabeSecondaryPlainPreDigest is included in a block built by a secondary slot authorized producer
 type BabeSecondaryPlainPreDigest struct {
@@ -80,7 +80,7 @@ func (d *BabeSecondaryPlainPreDigest) ToPreRuntimeDigest() (*PreRuntimeDigest, e
 }
 
 // Index Returns VDT index
-func (d BabeSecondaryPlainPreDigest) Index() uint { return 2 }
+func (BabeSecondaryPlainPreDigest) Index() uint { return 2 }
 
 // BabeSecondaryVRFPreDigest is included in a block built by a secondary slot authorized producer
 type BabeSecondaryVRFPreDigest struct {
@@ -108,7 +108,7 @@ func (d *BabeSecondaryVRFPreDigest) ToPreRuntimeDigest() (*PreRuntimeDigest, err
 }
 
 // Index Returns VDT index
-func (d BabeSecondaryVRFPreDigest) Index() uint { return 3 }
+func (BabeSecondaryVRFPreDigest) Index() uint { return 3 }
 
 // toPreRuntimeDigest returns the VaryingDataTypeValue as a PreRuntimeDigest
 func toPreRuntimeDigest(value scale.VaryingDataTypeValue) (*PreRuntimeDigest, error) {

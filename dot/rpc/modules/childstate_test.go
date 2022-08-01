@@ -22,8 +22,7 @@ func createTestTrieState(t *testing.T) (*trie.Trie, common.Hash) {
 	t.Helper()
 
 	_, genTrie, _ := genesis.NewTestGenesisWithTrieAndHeader(t)
-	tr, err := rtstorage.NewTrieState(genTrie)
-	require.NoError(t, err)
+	tr := rtstorage.NewTrieState(genTrie)
 
 	tr.Set([]byte(":first_key"), []byte(":value1"))
 	tr.Set([]byte(":second_key"), []byte(":second_value"))
@@ -33,7 +32,7 @@ func createTestTrieState(t *testing.T) (*trie.Trie, common.Hash) {
 	childTr.Put([]byte(":child_second"), []byte(":child_second_value"))
 	childTr.Put([]byte(":another_child"), []byte("value"))
 
-	err = tr.SetChild([]byte(":child_storage_key"), childTr)
+	err := tr.SetChild([]byte(":child_storage_key"), childTr)
 	require.NoError(t, err)
 
 	stateRoot, err := tr.Root()
