@@ -16,6 +16,8 @@ import (
 )
 
 func Test_encodeHeader(t *testing.T) {
+	t.Parallel()
+
 	testCases := map[string]struct {
 		node       *Node
 		writes     []writeCall
@@ -275,6 +277,8 @@ func Test_encodeHeader_At_Maximum(t *testing.T) {
 }
 
 func Test_decodeHeader(t *testing.T) {
+	t.Parallel()
+
 	testCases := map[string]struct {
 		reads            []readCall
 		variant          byte
