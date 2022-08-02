@@ -38,7 +38,7 @@ func createExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, non
 	require.NoError(t, err)
 
 	meta := &ctypes.Metadata{}
-	err = ctypes.DecodeFromBytes(decoded, meta)
+	err = ctypes.Decode(decoded, meta)
 	require.NoError(t, err)
 
 	rv, err := rt.Version()
@@ -62,7 +62,7 @@ func createExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, non
 	err = ext.Sign(signature.TestKeyringPairAlice, options)
 	require.NoError(t, err)
 
-	extEnc, err := ctypes.EncodeToHexString(ext)
+	extEnc, err := ctypes.EncodeToHex(ext)
 	require.NoError(t, err)
 
 	extBytes := types.Extrinsic(common.MustHexToBytes(extEnc))

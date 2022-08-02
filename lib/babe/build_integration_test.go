@@ -264,7 +264,7 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	require.NoError(t, err)
 
 	meta := &ctypes.Metadata{}
-	err = ctypes.DecodeFromBytes(decoded, meta)
+	err = ctypes.Decode(decoded, meta)
 	require.NoError(t, err)
 
 	rv, err := rt.Version()

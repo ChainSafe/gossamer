@@ -145,7 +145,7 @@ func NewKeypairFromPrivateKeyBytes(in []byte) (*Keypair, error) {
 
 // NewKeypairFromMnenomic returns a new Keypair using the given mnemonic and password.
 func NewKeypairFromMnenomic(mnemonic, password string) (*Keypair, error) {
-	msc, err := sr25519.MiniSecretFromMnemonic(mnemonic, password)
+	msc, err := sr25519.MiniSecretKeyFromMnemonic(mnemonic, password)
 	if err != nil {
 		return nil, err
 	}
@@ -190,7 +190,13 @@ func NewPublicKey(in []byte) (*PublicKey, error) {
 
 	buf := [PublicKeyLength]byte{}
 	copy(buf[:], in)
-	return &PublicKey{key: sr25519.NewPublicKey(buf)}, nil
+
+	sr25519Key, err := sr25519.NewPublicKey(buf)
+	if err != nil {
+		return nil, fmt.Errorf("creating sr25519 public key: %w", err)
+	}
+
+	return &PublicKey{key: sr25519Key}, nil
 }
 
 // Type returns Sr25519Type
@@ -305,7 +311,7 @@ func (k *PublicKey) Verify(msg, sig []byte) (bool, error) {
 	}
 
 	t := sr25519.NewSigningContext(SigningContext, msg)
-	return k.key.Verify(s, t), nil
+	return k.key.Verify(s, t)
 }
 
 // VerifyDeprecated verifies that the public key signed the given message.
@@ -331,14 +337,21 @@ func (k *PublicKey) VerifyDeprecated(msg, sig []byte) (bool, error) {
 	}
 
 	t := sr25519.NewSigningContext(SigningContext, msg)
-	ok := k.key.Verify(s, t)
-	if ok {
+	ok, err := k.key.Verify(s, t)
+	if err != nil {
+		return false, fmt.Errorf("verifying signature for sr25519 signing context: %w", err)
+	} else if ok {
 		return true, nil
 	}
 
 	t = merlin.NewTranscript(string(SigningContext))
 	t.AppendMessage([]byte("sign-bytes"), msg)
-	return k.key.Verify(s, t), nil
+	ok, err = k.key.Verify(s, t)
+	if err != nil {
+		return false, fmt.Errorf("verifying signature for merlin transcript: %w", err)
+	}
+
+	return ok, nil
 }
 
 // VrfVerify confirms that the output and proof are valid given a message and public key
@@ -357,7 +370,12 @@ func (k *PublicKey) VrfVerify(t *merlin.Transcript, out [VRFOutputLength]byte,
 	}
 
 	//inout := o.AttachInput(k.key, t)
-	return k.key.VrfVerify(t, sr25519.NewOutput(out), p)
+	sr25519Key, err := sr25519.NewOutput(out)
+	if err != nil {
+		return false, fmt.Errorf("creating sr25519 key: %w", err)
+	}
+
+	return k.key.VrfVerify(t, sr25519Key, p)
 }
 
 // Encode returns the 32-byte encoding of the public key
@@ -400,12 +418,17 @@ func (k *PublicKey) AsBytes() [PublicKeyLength]byte {
 }
 
 // AttachInput wraps schnorrkel *VrfOutput.AttachInput
-func AttachInput(output [VRFOutputLength]byte, pub *PublicKey, t *merlin.Transcript) *sr25519.VrfInOut {
-	out := sr25519.NewOutput(output)
-	return out.AttachInput(pub.key, t)
-}
+func AttachInput(output [VRFOutputLength]byte, pub *PublicKey, t *merlin.Transcript) (
+	vrfInOut *sr25519.VrfInOut, err error) {
+	out, err := sr25519.NewOutput(output)
+	if err != nil {
+		return nil, fmt.Errorf("creating sr25519 output: %w", err)
+	}
 
-// MakeBytes wraps schnorrkel *VrfInOut.MakeBytes
-func MakeBytes(inout *sr25519.VrfInOut, size int, context []byte) []byte {
-	return inout.MakeBytes(size, context)
+	vrfInOut, err = out.AttachInput(pub.key, t)
+	if err != nil {
+		return nil, fmt.Errorf("attaching input: %w", err)
+	}
+
+	return vrfInOut, nil
 }

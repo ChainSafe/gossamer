@@ -51,7 +51,7 @@ func generateTestCentrifugeMetadata(t *testing.T) *ctypes.Metadata {
 	require.NoError(t, err)
 
 	meta := &ctypes.Metadata{}
-	err = ctypes.DecodeFromBytes(decoded, meta)
+	err = ctypes.Decode(decoded, meta)
 	require.NoError(t, err)
 	return meta
 }
