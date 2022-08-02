@@ -11,6 +11,8 @@ import (
 	"io"
 	"math/big"
 	"reflect"
+
+	"github.com/pkg/errors"
 )
 
 // indirect walks down v allocating pointers as needed,
