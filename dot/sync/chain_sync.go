@@ -827,9 +827,9 @@ func (cs *chainSync) determineSyncPeers(req *network.BlockRequestMessage, peersT
 // validateResponse performs pre-validation of a block response before placing it into either the
 // pendingBlocks or readyBlocks set.
 // It checks the following:
-// 	- the response is not empty
-//  - the response contains all the expected fields
-//  - each block has the correct parent, ie. the response constitutes a valid chain
+//   - the response is not empty
+//   - the response contains all the expected fields
+//   - each block has the correct parent, ie. the response constitutes a valid chain
 func (cs *chainSync) validateResponse(req *network.BlockRequestMessage,
 	resp *network.BlockResponseMessage, p peer.ID) error {
 	if resp == nil || len(resp.BlockData) == 0 {

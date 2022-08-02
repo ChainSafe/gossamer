@@ -111,8 +111,8 @@ func TestSystemRPC(t *testing.T) { //nolint:tparallel
 
 		expectedResponse := modules.SystemPeersResponse{
 			// Assert they all have the same best block number and hash
-			{Roles: 4, PeerID: ""},
-			{Roles: 4, PeerID: ""},
+			common.PeerInfo{Roles: 4, PeerID: ""},
+			common.PeerInfo{Roles: 4, PeerID: ""},
 		}
 		for i := range response {
 			// Check randomly generated peer IDs and clear them

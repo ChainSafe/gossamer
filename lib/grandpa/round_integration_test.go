@@ -297,7 +297,7 @@ func TestPlayGrandpaRound(t *testing.T) {
 				latestHash = serviceFinalizedHash
 			}
 
-			var latestCommit *CommitMessage = producedCommitMessages[0]
+			latestCommit := producedCommitMessages[0]
 			for _, commitMessage := range producedCommitMessages[1:] {
 				require.NotNil(t, commitMessage)
 				require.GreaterOrEqual(t, len(commitMessage.Precommits), len(tt.voters)/2)
@@ -455,7 +455,7 @@ func TestPlayGrandpaRoundMultipleRounds(t *testing.T) {
 		assertSamefinalisationAndChainGrowth(t, grandpaServices,
 			uint64(currentRound), setID)
 
-		var latestCommit *CommitMessage = producedCommitMessages[0]
+		latestCommit := producedCommitMessages[0]
 		for _, commitMessage := range producedCommitMessages[1:] {
 			require.NotNil(t, commitMessage)
 			require.GreaterOrEqual(t, len(commitMessage.Precommits), len(voters)/2)

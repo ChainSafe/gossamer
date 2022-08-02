@@ -50,24 +50,30 @@ func NewValidTransaction(extrinsic types.Extrinsic, validity *Validity) *ValidTr
 // 	BlockHash          *common.Hash
 // }
 
-// Status represents possible transaction statuses.
-//
-// The status events can be grouped based on their kinds as:
-// 1. Entering/Moving within the pool:
-// 		- `Future`
-// 		- `Ready`
-// 2. Inside `Ready` queue:
-// 		- `Broadcast`
-// 3. Leaving the pool:
-// 		- `InBlock`
-// 		- `Invalid`
-// 		- `Usurped`
-// 		- `Dropped`
-// 	4. Re-entering the pool:
-// 		- `Retracted`
-// 	5. Block finalized:
-// 		- `Finalized`
-// 		- `FinalityTimeout`
+/*
+Status represents possible transaction statuses.
+
+The status events can be grouped based on their kinds as:
+1. Entering/Moving within the pool:
+  - `Future`
+  - `Ready`
+
+2. Inside `Ready` queue:
+  - `Broadcast`
+
+3. Leaving the pool:
+  - `InBlock`
+  - `Invalid`
+  - `Usurped`
+  - `Dropped`
+
+4. Re-entering the pool:
+  - `Retracted`
+
+5. Block finalized:
+  - `Finalized`
+  - `FinalityTimeout`
+*/
 type Status int64
 
 const (
