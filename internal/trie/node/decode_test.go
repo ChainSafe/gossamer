@@ -371,6 +371,7 @@ func Test_decodeLeaf(t *testing.T) {
 
 			leaf, err := decodeLeaf(testCase.reader,
 				testCase.partialKeyLength)
+
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if err != nil {
 				assert.EqualError(t, err, testCase.errMessage)
