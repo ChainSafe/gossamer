@@ -177,7 +177,7 @@ func Verify(pub *PublicKey, msg, sig []byte) (bool, error) {
 }
 
 // Type returns Ed25519Type
-func (kp *Keypair) Type() crypto.KeyType {
+func (*Keypair) Type() crypto.KeyType {
 	return crypto.Ed25519Type
 }
 

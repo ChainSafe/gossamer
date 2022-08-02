@@ -48,11 +48,11 @@ func (s *Service) Properties() map[string]interface{} {
 }
 
 // Start implements Service interface
-func (s *Service) Start() error {
+func (*Service) Start() error {
 	return nil
 }
 
 // Stop implements Service interface
-func (s *Service) Stop() error {
+func (*Service) Stop() error {
 	return nil
 }

@@ -9,8 +9,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/libp2p/go-libp2p-core/mux"
-	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 
@@ -46,10 +45,7 @@ type (
 	NotificationsMessageBatchHandler = func(peer peer.ID, msg NotificationsMessage)
 )
 
-// BatchMessage is exported for the mocks of lib/grandpa/mocks/network.go
-// to be able to compile.
-// TODO: unexport if changing mock library to e.g. github.com/golang/gomock
-type BatchMessage struct {
+type batchMessage struct {
 	msg  NotificationsMessage
 	peer peer.ID
 }
@@ -84,10 +80,10 @@ type handshakeData struct {
 	received  bool
 	validated bool
 	handshake Handshake
-	stream    libp2pnetwork.Stream
+	stream    network.Stream
 }
 
-func newHandshakeData(received, validated bool, stream libp2pnetwork.Stream) *handshakeData {
+func newHandshakeData(received, validated bool, stream network.Stream) *handshakeData {
 	return &handshakeData{
 		received:  received,
 		validated: validated,
@@ -123,7 +119,7 @@ func (s *Service) createNotificationsMessageHandler(
 	notificationsMessageHandler NotificationsMessageHandler,
 	batchHandler NotificationsMessageBatchHandler,
 ) messageHandler {
-	return func(stream libp2pnetwork.Stream, m Message) error {
+	return func(stream network.Stream, m Message) error {
 		if m == nil || info == nil || info.handshakeValidator == nil || notificationsMessageHandler == nil {
 			return nil
 		}
@@ -228,7 +224,7 @@ func (s *Service) createNotificationsMessageHandler(
 	}
 }
 
-func closeOutboundStream(info *notificationsProtocol, peerID peer.ID, stream libp2pnetwork.Stream) {
+func closeOutboundStream(info *notificationsProtocol, peerID peer.ID, stream network.Stream) {
 	logger.Debugf(
 		"cleaning up outbound handshake data for protocol=%s, peer=%s",
 		stream.Protocol(),
@@ -279,7 +275,7 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		logger.Debugf("failed to send message to peer %s: %s", peer, err)
 
 		// the stream was closed or reset, close it on our end and delete it from our peer's data
-		if errors.Is(err, io.EOF) || errors.Is(err, mux.ErrReset) {
+		if errors.Is(err, io.EOF) || errors.Is(err, network.ErrReset) {
 			closeOutboundStream(info, peer, stream)
 		}
 		return
@@ -299,7 +295,7 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 
 var errPeerDisconnected = errors.New("peer disconnected")
 
-func (s *Service) sendHandshake(peer peer.ID, hs Handshake, info *notificationsProtocol) (libp2pnetwork.Stream, error) {
+func (s *Service) sendHandshake(peer peer.ID, hs Handshake, info *notificationsProtocol) (network.Stream, error) {
 	// multiple processes could each call this upcoming section, opening multiple streams and
 	// sending multiple handshakes. thus, we need to have a per-peer and per-protocol lock
 
@@ -413,7 +409,7 @@ func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer
 	}
 }
 
-func (s *Service) readHandshake(stream libp2pnetwork.Stream, decoder HandshakeDecoder, maxSize uint64,
+func (s *Service) readHandshake(stream network.Stream, decoder HandshakeDecoder, maxSize uint64,
 ) <-chan *handshakeReader {
 	hsC := make(chan *handshakeReader)
 

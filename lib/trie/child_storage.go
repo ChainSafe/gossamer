@@ -23,7 +23,10 @@ func (t *Trie) PutChild(keyToChild []byte, child *Trie) error {
 	if err != nil {
 		return err
 	}
-	key := append(ChildStorageKeyPrefix, keyToChild...)
+
+	key := make([]byte, len(ChildStorageKeyPrefix)+len(keyToChild))
+	copy(key, ChildStorageKeyPrefix)
+	copy(key[len(ChildStorageKeyPrefix):], keyToChild)
 
 	t.Put(key, childHash.ToBytes())
 	t.childTries[childHash] = child
@@ -32,7 +35,10 @@ func (t *Trie) PutChild(keyToChild []byte, child *Trie) error {
 
 // GetChild returns the child trie at key :child_storage:[keyToChild]
 func (t *Trie) GetChild(keyToChild []byte) (*Trie, error) {
-	key := append(ChildStorageKeyPrefix, keyToChild...)
+	key := make([]byte, len(ChildStorageKeyPrefix)+len(keyToChild))
+	copy(key, ChildStorageKeyPrefix)
+	copy(key[len(ChildStorageKeyPrefix):], keyToChild)
+
 	childHash := t.Get(key)
 	if childHash == nil {
 		return nil, fmt.Errorf("%w at key 0x%x%x", ErrChildTrieDoesNotExist, ChildStorageKeyPrefix, keyToChild)
@@ -83,7 +89,10 @@ func (t *Trie) GetFromChild(keyToChild, key []byte) ([]byte, error) {
 
 // DeleteChild deletes the child storage trie
 func (t *Trie) DeleteChild(keyToChild []byte) {
-	key := append(ChildStorageKeyPrefix, keyToChild...)
+	key := make([]byte, len(ChildStorageKeyPrefix)+len(keyToChild))
+	copy(key, ChildStorageKeyPrefix)
+	copy(key[len(ChildStorageKeyPrefix):], keyToChild)
+
 	t.Delete(key)
 }
 

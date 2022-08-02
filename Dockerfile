@@ -48,9 +48,7 @@ COPY --from=builder /go/src/github.com/ChainSafe/gossamer/libwasmer.so /lib/libw
 
 EXPOSE 7001 8546 8540
 
-ENTRYPOINT ["/gossamer/docker-entrypoint.sh"]
-CMD ["/gossamer/bin/gossamer"]
+ENTRYPOINT [ "/gossamer/bin/gossamer" ]
 
 COPY chain /gossamer/chain
-COPY scripts/docker-entrypoint.sh /gossamer/docker-entrypoint.sh
 COPY --from=builder /go/src/github.com/ChainSafe/gossamer/bin/gossamer /gossamer/bin/gossamer

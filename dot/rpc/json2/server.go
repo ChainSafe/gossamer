@@ -202,7 +202,7 @@ func (c *CodecRequest) WriteResponse(w http.ResponseWriter, reply interface{}) {
 }
 
 // WriteError encodes the error and writes it to the ResponseWriter.
-func (c *CodecRequest) WriteError(w http.ResponseWriter, status int, err error) {
+func (c *CodecRequest) WriteError(w http.ResponseWriter, _ int, err error) {
 	err = c.tryToMapIfNotAnErrorAlready(err)
 	jsonErr, ok := err.(*json2.Error)
 	if !ok {

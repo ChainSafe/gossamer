@@ -413,10 +413,9 @@ func newCoreServiceTest(t *testing.T) *core.Service {
 	err = cfg.Keystore.Acco.Insert(kp)
 	require.NoError(t, err)
 
-	rtCfg := &wasmer.Config{}
+	var rtCfg runtime.InstanceConfig
 
-	rtCfg.Storage, err = rtstorage.NewTrieState(genTrie)
-	require.NoError(t, err)
+	rtCfg.Storage = rtstorage.NewTrieState(genTrie)
 
 	rtCfg.CodeHash, err = cfg.StorageState.LoadCodeHash(nil)
 	require.NoError(t, err)

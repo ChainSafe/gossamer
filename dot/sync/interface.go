@@ -15,9 +15,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-// TODO: replace usage of mockery generated mocks with mockgen generated mocks.
-// Note: This mockery go:generate is still being used
-//go:generate mockery --name BlockState --structname BlockState --case underscore --keeptree
 //go:generate mockgen -destination=mock_interface_test.go -package=$GOPACKAGE . BlockState,StorageState,CodeSubstitutedState,TransactionState,BabeVerifier,FinalityGadget,BlockImportHandler,Network
 
 // BlockState is the interface for the block state

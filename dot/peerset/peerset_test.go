@@ -369,7 +369,7 @@ func checkPeerIsInNoSlotsNode(t *testing.T, ps *PeersState, pid peer.ID, setID i
 	require.True(t, exists)
 }
 
-func checkPeerStateSetNumOut(t *testing.T, ps *PeersState, setID int, expectedNumOut uint32) {
+func checkPeerStateSetNumOut(t *testing.T, ps *PeersState, setID int, expectedNumOut uint32) { //nolint:unparam
 	t.Helper()
 
 	ps.RLock()
@@ -379,7 +379,7 @@ func checkPeerStateSetNumOut(t *testing.T, ps *PeersState, setID int, expectedNu
 	require.Equal(t, expectedNumOut, gotNumOut)
 }
 
-func checkPeerStateSetNumIn(t *testing.T, ps *PeersState, setID int, expectedNumIn uint32) {
+func checkPeerStateSetNumIn(t *testing.T, ps *PeersState, setID int, expectedNumIn uint32) { //nolint:unparam
 	t.Helper()
 
 	ps.RLock()

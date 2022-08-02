@@ -37,4 +37,4 @@ type Message interface {
 type NoopClient struct{}
 
 // SendMessage is an empty implementation used for testing
-func (NoopClient) SendMessage(msg Message) {}
+func (NoopClient) SendMessage(_ Message) {}

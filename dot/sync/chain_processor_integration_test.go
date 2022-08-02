@@ -236,7 +236,7 @@ func TestChainProcessor_HandleJustification(t *testing.T) {
 func TestChainProcessor_processReadyBlocks_errFailedToGetParent(t *testing.T) {
 	syncer := newTestSyncer(t)
 	processor := syncer.chainProcessor.(*chainProcessor)
-	processor.start()
+	go processor.processReadyBlocks()
 	defer processor.cancel()
 
 	header := &types.Header{

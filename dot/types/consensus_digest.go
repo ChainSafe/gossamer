@@ -27,7 +27,7 @@ type GrandpaScheduledChange struct {
 }
 
 // Index Returns VDT index
-func (sc GrandpaScheduledChange) Index() uint { return 1 }
+func (GrandpaScheduledChange) Index() uint { return 1 }
 
 // GrandpaForcedChange represents a GRANDPA forced authority change
 type GrandpaForcedChange struct {
@@ -40,7 +40,7 @@ type GrandpaForcedChange struct {
 }
 
 // Index Returns VDT index
-func (fc GrandpaForcedChange) Index() uint { return 2 }
+func (GrandpaForcedChange) Index() uint { return 2 }
 
 // GrandpaOnDisabled represents a GRANDPA authority being disabled
 type GrandpaOnDisabled struct {
@@ -48,7 +48,7 @@ type GrandpaOnDisabled struct {
 }
 
 // Index Returns VDT index
-func (od GrandpaOnDisabled) Index() uint { return 3 }
+func (GrandpaOnDisabled) Index() uint { return 3 }
 
 // GrandpaPause represents an authority set pause
 type GrandpaPause struct {
@@ -56,7 +56,7 @@ type GrandpaPause struct {
 }
 
 // Index Returns VDT index
-func (p GrandpaPause) Index() uint { return 4 }
+func (GrandpaPause) Index() uint { return 4 }
 
 // GrandpaResume represents an authority set resume
 type GrandpaResume struct {
@@ -64,7 +64,7 @@ type GrandpaResume struct {
 }
 
 // Index Returns VDT index
-func (r GrandpaResume) Index() uint { return 5 }
+func (GrandpaResume) Index() uint { return 5 }
 
 // NextEpochData is the digest that contains the data for the upcoming BABE epoch.
 // It is included in the first block of every epoch to describe the next epoch.
@@ -74,7 +74,7 @@ type NextEpochData struct {
 }
 
 // Index Returns VDT index
-func (d NextEpochData) Index() uint { return 1 }
+func (NextEpochData) Index() uint { return 1 }
 
 func (d NextEpochData) String() string {
 	return fmt.Sprintf("NextEpochData Authorities=%v Randomness=%v", d.Authorities, d.Randomness)
@@ -99,7 +99,7 @@ type BABEOnDisabled struct {
 }
 
 // Index Returns VDT index
-func (od BABEOnDisabled) Index() uint { return 2 }
+func (BABEOnDisabled) Index() uint { return 2 }
 
 // NextConfigData is the digest that contains changes to the BABE configuration.
 // It is potentially included in the first block of an epoch to describe the next epoch.
@@ -110,7 +110,7 @@ type NextConfigData struct {
 }
 
 // Index Returns VDT index
-func (d NextConfigData) Index() uint { return 3 }
+func (NextConfigData) Index() uint { return 3 }
 
 // ToConfigData returns the NextConfigData as ConfigData
 func (d *NextConfigData) ToConfigData() *ConfigData {

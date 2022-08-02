@@ -265,10 +265,9 @@ func newStateService(t *testing.T, ctrl *gomock.Controller) *state.Service {
 
 	stateSrvc.Epoch = epochState
 
-	rtCfg := &wasmer.Config{}
+	var rtCfg runtime.InstanceConfig
 
-	rtCfg.Storage, err = rtstorage.NewTrieState(genTrie)
-	require.NoError(t, err)
+	rtCfg.Storage = rtstorage.NewTrieState(genTrie)
 
 	rtCfg.CodeHash, err = stateSrvc.Storage.LoadCodeHash(nil)
 	require.NoError(t, err)

@@ -14,7 +14,12 @@ import (
 // The done channel has an error written to when the HTTP server
 // is terminated, and can be nil or not nil.
 func (s *Server) Run(ctx context.Context, ready chan<- struct{}, done chan<- error) {
-	server := http.Server{Addr: s.address, Handler: s.handler}
+	server := http.Server{
+		Addr:              s.address,
+		Handler:           s.handler,
+		ReadHeaderTimeout: s.optional.readHeaderTimeout,
+		ReadTimeout:       s.optional.readTimeout,
+	}
 
 	crashed := make(chan struct{})
 	shutdownDone := make(chan struct{})

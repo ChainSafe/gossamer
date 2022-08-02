@@ -20,10 +20,10 @@ func TestConcurrentRuntimeCalls(t *testing.T) {
 
 	// execute 2 concurrent calls to the runtime
 	go func() {
-		_, _ = instance.exec(runtime.CoreVersion, []byte{})
+		_, _ = instance.Exec(runtime.CoreVersion, []byte{})
 	}()
 	go func() {
-		_, _ = instance.exec(runtime.CoreVersion, []byte{})
+		_, _ = instance.Exec(runtime.CoreVersion, []byte{})
 	}()
 }
 

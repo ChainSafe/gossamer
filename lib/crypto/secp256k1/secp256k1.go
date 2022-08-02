@@ -138,7 +138,7 @@ func GenerateKeypair() (*Keypair, error) {
 }
 
 // Type returns Secp256k1Type
-func (kp *Keypair) Type() crypto.KeyType {
+func (*Keypair) Type() crypto.KeyType {
 	return crypto.Secp256k1Type
 }
 

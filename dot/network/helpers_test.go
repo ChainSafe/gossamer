@@ -147,3 +147,28 @@ func testBlockAnnounceHandshakeDecoder(in []byte, _ peer.ID, _ bool) (Message, e
 	err := msg.Decode(in)
 	return msg, err
 }
+
+// addrInfo returns the libp2p peer.AddrInfo of the host
+func addrInfo(h *host) peer.AddrInfo {
+	return peer.AddrInfo{
+		ID:    h.p2pHost.ID(),
+		Addrs: h.p2pHost.Addrs(),
+	}
+}
+
+// returns a slice of peers that are unprotected and may be pruned.
+func unprotectedPeers(cm *ConnManager, peers []peer.ID) []peer.ID {
+	unprot := []peer.ID{}
+	for _, id := range peers {
+		if cm.IsProtected(id, "") {
+			continue
+		}
+
+		_, isPersistent := cm.persistentPeers.Load(id)
+		if !isPersistent {
+			unprot = append(unprot, id)
+		}
+	}
+
+	return unprot
+}

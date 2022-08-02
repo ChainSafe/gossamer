@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"io"
 	"math"
+	"sort"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -31,7 +32,7 @@ func Test_encodeHeader(t *testing.T) {
 		},
 		"branch with value": {
 			node: &Node{
-				Value:    []byte{},
+				SubValue: []byte{},
 				Children: make([]*Node, ChildrenCapacity),
 			},
 			writes: []writeCall{
@@ -108,7 +109,7 @@ func Test_encodeHeader(t *testing.T) {
 			errMessage: "test error",
 		},
 		"leaf with no key": {
-			node: &Node{Value: []byte{1}},
+			node: &Node{SubValue: []byte{1}},
 			writes: []writeCall{
 				{written: []byte{leafVariant.bits}},
 			},
@@ -419,11 +420,27 @@ func Test_decodeHeaderByte(t *testing.T) {
 	}
 }
 
+func Test_variantsOrderedByBitMask(t *testing.T) {
+	t.Parallel()
+
+	slice := make([]variant, len(variantsOrderedByBitMask))
+	sortedSlice := make([]variant, len(variantsOrderedByBitMask))
+	copy(slice, variantsOrderedByBitMask[:])
+	copy(sortedSlice, variantsOrderedByBitMask[:])
+
+	sort.Slice(slice, func(i, j int) bool {
+		return slice[i].mask > slice[j].mask
+	})
+
+	assert.Equal(t, sortedSlice, slice)
+}
+
 func Benchmark_decodeHeaderByte(b *testing.B) {
+	// For 7 variants defined in the variants array:
 	// With global scoped variants slice:
-	// 3.453 ns/op	       0 B/op	       0 allocs/op
+	// 2.987 ns/op	       0 B/op	       0 allocs/op
 	// With locally scoped variants slice:
-	// 3.441 ns/op	       0 B/op	       0 allocs/op
+	// 3.873 ns/op	       0 B/op	       0 allocs/op
 	header := leafVariant.bits | 0b0000_0001
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

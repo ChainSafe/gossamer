@@ -37,24 +37,17 @@ var (
 	)
 )
 
-// Config represents a wasmer configuration
-type Config struct {
-	runtime.InstanceConfig
-	Imports func() (*wasm.Imports, error)
-}
-
 // Instance represents a v0.8 runtime go-wasmer instance
 type Instance struct {
 	vm       wasm.Instance
 	ctx      *runtime.Context
-	imports  func() (*wasm.Imports, error)
 	isClosed bool
 	codeHash common.Hash
-	sync.Mutex
+	mutex    sync.Mutex
 }
 
 // NewRuntimeFromGenesis creates a runtime instance from the genesis data
-func NewRuntimeFromGenesis(cfg *Config) (runtime.Instance, error) {
+func NewRuntimeFromGenesis(cfg runtime.InstanceConfig) (instance runtime.Instance, err error) {
 	if cfg.Storage == nil {
 		return nil, errors.New("storage is nil")
 	}
@@ -64,23 +57,21 @@ func NewRuntimeFromGenesis(cfg *Config) (runtime.Instance, error) {
 		return nil, fmt.Errorf("cannot find :code in state")
 	}
 
-	cfg.Imports = ImportsNodeRuntime
 	return NewInstance(code, cfg)
 }
 
 // NewInstanceFromTrie returns a new runtime instance with the code provided in the given trie
-func NewInstanceFromTrie(t *trie.Trie, cfg *Config) (*Instance, error) {
+func NewInstanceFromTrie(t *trie.Trie, cfg runtime.InstanceConfig) (*Instance, error) {
 	code := t.Get(common.CodeKey)
 	if len(code) == 0 {
 		return nil, fmt.Errorf("cannot find :code in trie")
 	}
 
-	cfg.Imports = ImportsNodeRuntime
 	return NewInstance(code, cfg)
 }
 
 // NewInstanceFromFile instantiates a runtime from a .wasm file
-func NewInstanceFromFile(fp string, cfg *Config) (*Instance, error) {
+func NewInstanceFromFile(fp string, cfg runtime.InstanceConfig) (*Instance, error) {
 	// Reads the WebAssembly module as bytes.
 	bytes, err := wasm.ReadBytes(fp)
 	if err != nil {
@@ -91,53 +82,13 @@ func NewInstanceFromFile(fp string, cfg *Config) (*Instance, error) {
 }
 
 // NewInstance instantiates a runtime from raw wasm bytecode
-func NewInstance(code []byte, cfg *Config) (*Instance, error) {
-	if len(code) == 0 {
-		return nil, errors.New("code is empty")
-	}
-
-	var err error
-	code, err = decompressWasm(code)
-	if err != nil {
-		return nil, fmt.Errorf("cannot decompress WASM code: %w", err)
-	}
-
+func NewInstance(code []byte, cfg runtime.InstanceConfig) (instance *Instance, err error) {
 	logger.Patch(log.SetLevel(cfg.LogLvl), log.SetCallerFunc(true))
 
-	imports, err := cfg.Imports()
+	wasmInstance, allocator, err := setupVM(code)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("setting up VM: %w", err)
 	}
-
-	// Provide importable memory for newer runtimes
-	// TODO: determine memory descriptor size that the runtime wants from the wasm. (#1268)
-	// should be doable w/ wasmer 1.0.0.
-	memory, err := wasm.NewMemory(23, 0)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = imports.AppendMemory("memory", memory)
-	if err != nil {
-		return nil, err
-	}
-
-	// Instantiates the WebAssembly module.
-	instance, err := wasm.NewInstanceWithImports(code, imports)
-	if err != nil {
-		return nil, err
-	}
-
-	// TODO: get __heap_base exported value from runtime.
-	// wasmer 0.3.x does not support this, but wasmer 1.0.0 does (#1268)
-	heapBase := runtime.DefaultHeapBase
-
-	// Assume imported memory is used if runtime does not export any
-	if !instance.HasMemory() {
-		instance.Memory = memory
-	}
-
-	allocator := runtime.NewAllocator(instance.Memory, heapBase)
 
 	runtimeCtx := &runtime.Context{
 		Storage:         cfg.Storage,
@@ -150,18 +101,13 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 		SigVerifier:     crypto.NewSignatureVerifier(logger),
 		OffchainHTTPSet: offchain.NewHTTPSet(),
 	}
+	wasmInstance.SetContextData(runtimeCtx)
 
-	logger.Debugf("NewInstance called with runtimeCtx: %v", runtimeCtx)
-	instance.SetContextData(runtimeCtx)
-
-	inst := &Instance{
-		vm:       instance,
+	return &Instance{
+		vm:       wasmInstance,
 		ctx:      runtimeCtx,
-		imports:  cfg.Imports,
 		codeHash: cfg.CodeHash,
-	}
-
-	return inst, nil
+	}, nil
 }
 
 // decompressWasm decompresses a Wasm blob that may or may not be compressed with zstd
@@ -191,151 +137,167 @@ func (in *Instance) GetContext() *runtime.Context {
 }
 
 // UpdateRuntimeCode updates the runtime instance to run the given code
-func (in *Instance) UpdateRuntimeCode(code []byte) error {
-	in.Stop()
-
-	err := in.setupInstanceVM(code)
+func (in *Instance) UpdateRuntimeCode(code []byte) (err error) {
+	wasmInstance, allocator, err := setupVM(code)
 	if err != nil {
-		return err
+		return fmt.Errorf("setting up VM: %w", err)
 	}
+
+	in.mutex.Lock()
+	defer in.mutex.Unlock()
+
+	in.close()
+
+	in.ctx.Allocator = allocator
+	wasmInstance.SetContextData(in.ctx)
+
+	in.vm = wasmInstance
 
 	return nil
 }
 
 // CheckRuntimeVersion calculates runtime Version for runtime blob passed in
 func (in *Instance) CheckRuntimeVersion(code []byte) (runtime.Version, error) {
-	tmp := &Instance{
-		imports: in.imports,
-		ctx:     in.ctx,
-	}
+	in.mutex.Lock()
+	defer in.mutex.Unlock()
 
-	in.Lock()
-	defer in.Unlock()
-
-	err := tmp.setupInstanceVM(code)
+	wasmInstance, allocator, err := setupVM(code)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("setting up VM: %w", err)
 	}
 
-	return tmp.Version()
+	in.ctx.Allocator = allocator // TODO we should no change the allocator of the parent instance
+	wasmInstance.SetContextData(in.ctx)
+
+	instance := Instance{
+		vm:  wasmInstance,
+		ctx: in.ctx,
+	}
+
+	return instance.Version()
 }
 
-func (in *Instance) setupInstanceVM(code []byte) error {
-	imports, err := in.imports()
-	if err != nil {
-		return err
+var (
+	ErrCodeEmpty = errors.New("code is empty")
+)
+
+func setupVM(code []byte) (instance wasm.Instance,
+	allocator *runtime.FreeingBumpHeapAllocator, err error) {
+	if len(code) == 0 {
+		return instance, nil, ErrCodeEmpty
 	}
 
+	code, err = decompressWasm(code)
+	if err != nil {
+		return instance, nil, fmt.Errorf("decompressing WASM code: %w", err)
+	}
+
+	imports, err := importsNodeRuntime()
+	if err != nil {
+		return instance, nil, fmt.Errorf("creating node runtime imports: %w", err)
+	}
+
+	// Provide importable memory for newer runtimes
 	// TODO: determine memory descriptor size that the runtime wants from the wasm.
 	// should be doable w/ wasmer 1.0.0. (#1268)
 	memory, err := wasm.NewMemory(23, 0)
 	if err != nil {
-		return err
+		return instance, nil, fmt.Errorf("creating web assembly memory: %w", err)
 	}
 
 	_, err = imports.AppendMemory("memory", memory)
 	if err != nil {
-		return err
+		return instance, nil, fmt.Errorf("appending memory to imports: %w", err)
 	}
 
 	// Instantiates the WebAssembly module.
-	in.vm, err = wasm.NewInstanceWithImports(code, imports)
+	instance, err = wasm.NewInstanceWithImports(code, imports)
 	if err != nil {
-		return err
+		return instance, nil, fmt.Errorf("creating web assembly instance: %w", err)
 	}
 
 	// Assume imported memory is used if runtime does not export any
-	if !in.vm.HasMemory() {
-		in.vm.Memory = memory
+	if !instance.HasMemory() {
+		instance.Memory = memory
 	}
 
 	// TODO: get __heap_base exported value from runtime.
 	// wasmer 0.3.x does not support this, but wasmer 1.0.0 does (#1268)
 	heapBase := runtime.DefaultHeapBase
 
-	in.ctx.Allocator = runtime.NewAllocator(in.vm.Memory, heapBase)
-	in.vm.SetContextData(in.ctx)
-	return nil
+	allocator = runtime.NewAllocator(instance.Memory, heapBase)
+
+	return instance, allocator, nil
 }
 
 // SetContextStorage sets the runtime's storage. It should be set before calls to the below functions.
 func (in *Instance) SetContextStorage(s runtime.Storage) {
-	in.Lock()
-	defer in.Unlock()
+	in.mutex.Lock()
+	defer in.mutex.Unlock()
 	in.ctx.Storage = s
 }
 
-// Stop func
+// Stop closes the WASM instance, its imports and clears
+// the context allocator in a thread-safe way.
 func (in *Instance) Stop() {
-	in.Lock()
-	defer in.Unlock()
-	if !in.isClosed {
-		in.vm.Close()
-		in.isClosed = true
+	in.mutex.Lock()
+	defer in.mutex.Unlock()
+	in.close()
+}
+
+// close closes the wasm instance (and its imports)
+// and clears the context allocator. If the instance
+// has previously been closed, it simply returns.
+// It is NOT THREAD SAFE to use.
+func (in *Instance) close() {
+	if in.isClosed {
+		return
 	}
+
+	in.vm.Close()
+	in.ctx.Allocator.Clear()
+	in.isClosed = true
 }
 
-// Store func
-func (in *Instance) store(data []byte, location int32) {
-	mem := in.vm.Memory.Data()
-	copy(mem[location:location+int32(len(data))], data)
-}
-
-// Load load
-func (in *Instance) load(location, length int32) []byte {
-	mem := in.vm.Memory.Data()
-	return mem[location : location+length]
-}
+var (
+	ErrInstanceIsStopped      = errors.New("instance is stopped")
+	ErrExportFunctionNotFound = errors.New("export function not found")
+)
 
 // Exec calls the given function with the given data
-func (in *Instance) Exec(function string, data []byte) ([]byte, error) {
-	return in.exec(function, data)
-}
-
-// Exec func
-func (in *Instance) exec(function string, data []byte) ([]byte, error) {
-	if in.ctx.Storage == nil {
-		return nil, runtime.ErrNilStorage
-	}
-
-	in.Lock()
-	defer in.Unlock()
+func (in *Instance) Exec(function string, data []byte) (result []byte, err error) {
+	in.mutex.Lock()
+	defer in.mutex.Unlock()
 
 	if in.isClosed {
-		return nil, errors.New("instance is stopped")
+		return nil, ErrInstanceIsStopped
 	}
 
-	ptr, err := in.malloc(uint32(len(data)))
+	dataLength := uint32(len(data))
+	inputPtr, err := in.ctx.Allocator.Allocate(dataLength)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("allocating input memory: %w", err)
 	}
 
-	defer in.clear()
+	defer in.ctx.Allocator.Clear()
 
 	// Store the data into memory
-	in.store(data, int32(ptr))
-	datalen := int32(len(data))
+	memory := in.vm.Memory.Data()
+	copy(memory[inputPtr:inputPtr+dataLength], data)
 
 	runtimeFunc, ok := in.vm.Exports[function]
 	if !ok {
-		return nil, fmt.Errorf("could not find exported function %s", function)
+		return nil, fmt.Errorf("%w: %s", ErrExportFunctionNotFound, function)
 	}
 
-	res, err := runtimeFunc(int32(ptr), datalen)
+	wasmValue, err := runtimeFunc(int32(inputPtr), int32(dataLength))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("running runtime function: %w", err)
 	}
 
-	offset, length := runtime.Int64ToPointerAndSize(res.ToI64())
-	return in.load(offset, length), nil
-}
-
-func (in *Instance) malloc(size uint32) (uint32, error) {
-	return in.ctx.Allocator.Allocate(size)
-}
-
-func (in *Instance) clear() {
-	in.ctx.Allocator.Clear()
+	outputPtr, outputLength := runtime.Int64ToPointerAndSize(wasmValue.ToI64())
+	memory = in.vm.Memory.Data() // call Data() again to get larger slice
+	return memory[outputPtr : outputPtr+outputLength], nil
 }
 
 // NodeStorage to get reference to runtime node service

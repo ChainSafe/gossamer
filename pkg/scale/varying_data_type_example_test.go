@@ -17,7 +17,7 @@ type MyStruct struct {
 	Foo []byte
 }
 
-func (ms MyStruct) Index() uint {
+func (MyStruct) Index() uint {
 	return 1
 }
 
@@ -27,13 +27,13 @@ type MyOtherStruct struct {
 	Baz uint
 }
 
-func (mos MyOtherStruct) Index() uint {
+func (MyOtherStruct) Index() uint {
 	return 2
 }
 
 type MyInt16 int16
 
-func (mi16 MyInt16) Index() uint {
+func (MyInt16) Index() uint {
 	return 3
 }
 

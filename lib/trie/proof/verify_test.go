@@ -16,20 +16,20 @@ func Test_Verify(t *testing.T) {
 	t.Parallel()
 
 	leafA := node.Node{
-		Key:   []byte{1},
-		Value: []byte{1},
+		Key:      []byte{1},
+		SubValue: []byte{1},
 	}
 
 	// leafB is a leaf encoding to more than 32 bytes
 	leafB := node.Node{
-		Key:   []byte{2},
-		Value: generateBytes(t, 40),
+		Key:      []byte{2},
+		SubValue: generateBytes(t, 40),
 	}
 	assertLongEncoding(t, leafB)
 
 	branch := node.Node{
-		Key:   []byte{3, 4},
-		Value: []byte{1},
+		Key:      []byte{3, 4},
+		SubValue: []byte{1},
 		Children: padRightChildren([]*node.Node{
 			&leafB,
 			nil,
@@ -119,20 +119,20 @@ func Test_buildTrie(t *testing.T) {
 	t.Parallel()
 
 	leafAShort := node.Node{
-		Key:   []byte{1},
-		Value: []byte{2},
+		Key:      []byte{1},
+		SubValue: []byte{2},
 	}
 	assertShortEncoding(t, leafAShort)
 
 	leafBLarge := node.Node{
-		Key:   []byte{2},
-		Value: generateBytes(t, 40),
+		Key:      []byte{2},
+		SubValue: generateBytes(t, 40),
 	}
 	assertLongEncoding(t, leafBLarge)
 
 	leafCLarge := node.Node{
-		Key:   []byte{3},
-		Value: generateBytes(t, 40),
+		Key:      []byte{3},
+		SubValue: generateBytes(t, 40),
 	}
 	assertLongEncoding(t, leafCLarge)
 
@@ -164,9 +164,9 @@ func Test_buildTrie(t *testing.T) {
 			},
 			rootHash: blake2bNode(t, leafAShort),
 			expectedTrie: trie.NewTrie(&node.Node{
-				Key:   leafAShort.Key,
-				Value: leafAShort.Value,
-				Dirty: true,
+				Key:      leafAShort.Key,
+				SubValue: leafAShort.SubValue,
+				Dirty:    true,
 			}),
 		},
 		"root proof encoding larger than 32 bytes": {
@@ -175,9 +175,9 @@ func Test_buildTrie(t *testing.T) {
 			},
 			rootHash: blake2bNode(t, leafBLarge),
 			expectedTrie: trie.NewTrie(&node.Node{
-				Key:   leafBLarge.Key,
-				Value: leafBLarge.Value,
-				Dirty: true,
+				Key:      leafBLarge.Key,
+				SubValue: leafBLarge.SubValue,
+				Dirty:    true,
 			}),
 		},
 		"discard unused node": {
@@ -187,9 +187,9 @@ func Test_buildTrie(t *testing.T) {
 			},
 			rootHash: blake2bNode(t, leafAShort),
 			expectedTrie: trie.NewTrie(&node.Node{
-				Key:   leafAShort.Key,
-				Value: leafAShort.Value,
-				Dirty: true,
+				Key:      leafAShort.Key,
+				SubValue: leafAShort.SubValue,
+				Dirty:    true,
 			}),
 		},
 		"multiple unordered nodes": {
@@ -221,24 +221,24 @@ func Test_buildTrie(t *testing.T) {
 				Dirty:       true,
 				Children: padRightChildren([]*node.Node{
 					{
-						Key:   leafAShort.Key,
-						Value: leafAShort.Value,
-						Dirty: true,
+						Key:      leafAShort.Key,
+						SubValue: leafAShort.SubValue,
+						Dirty:    true,
 					},
 					{
-						Key:   leafBLarge.Key,
-						Value: leafBLarge.Value,
-						Dirty: true,
+						Key:      leafBLarge.Key,
+						SubValue: leafBLarge.SubValue,
+						Dirty:    true,
 					},
 					{
-						Key:   leafCLarge.Key,
-						Value: leafCLarge.Value,
-						Dirty: true,
+						Key:      leafCLarge.Key,
+						SubValue: leafCLarge.SubValue,
+						Dirty:    true,
 					},
 					{
-						Key:   leafBLarge.Key,
-						Value: leafBLarge.Value,
-						Dirty: true,
+						Key:      leafBLarge.Key,
+						SubValue: leafBLarge.SubValue,
+						Dirty:    true,
 					},
 				}),
 			}),
@@ -261,7 +261,7 @@ func Test_buildTrie(t *testing.T) {
 				scaleEncode(t, blake2b(t, getBadNodeEncoding())), // child hash
 			})),
 			errWrapped: node.ErrVariantUnknown,
-			errMessage: "loading proof: decoding child node for Merkle value " +
+			errMessage: "loading proof: decoding child node for hash digest " +
 				"0xcfa21f0ec11a3658d77701b7b1f52fbcb783fe3df662977b6e860252b6c37e1e: " +
 				"decoding header: decoding header byte: " +
 				"node variant is unknown: for header byte 00000001",
@@ -269,14 +269,15 @@ func Test_buildTrie(t *testing.T) {
 		"root not found": {
 			encodedProofNodes: [][]byte{
 				encodeNode(t, node.Node{
-					Key:   []byte{1},
-					Value: []byte{2},
+					Key:      []byte{1},
+					SubValue: []byte{2},
 				}),
 			},
 			rootHash:   []byte{3},
 			errWrapped: ErrRootNodeNotFound,
 			errMessage: "root node not found in proof: " +
-				"for Merkle root hash 0x03 in proof Merkle value(s) 0x41010402",
+				"for root hash 0x03 in proof hash digests " +
+				"0x60516d0bb6e1bbfb1293f1b276ea9505e9f4a4e7d98f620d05115e0b85274ae1",
 		},
 	}
 
@@ -307,8 +308,8 @@ func Test_loadProof(t *testing.T) {
 	largeValue := generateBytes(t, 40)
 
 	leafLarge := node.Node{
-		Key:   []byte{3},
-		Value: largeValue,
+		Key:      []byte{3},
+		SubValue: largeValue,
 	}
 	assertLongEncoding(t, leafLarge)
 
@@ -321,18 +322,18 @@ func Test_loadProof(t *testing.T) {
 	}{
 		"leaf node": {
 			node: &node.Node{
-				Key:   []byte{1},
-				Value: []byte{2},
+				Key:      []byte{1},
+				SubValue: []byte{2},
 			},
 			expectedNode: &node.Node{
-				Key:   []byte{1},
-				Value: []byte{2},
+				Key:      []byte{1},
+				SubValue: []byte{2},
 			},
 		},
 		"branch node with child hash not found": {
 			node: &node.Node{
 				Key:         []byte{1},
-				Value:       []byte{2},
+				SubValue:    []byte{2},
 				Descendants: 1,
 				Dirty:       true,
 				Children: padRightChildren([]*node.Node{
@@ -341,15 +342,15 @@ func Test_loadProof(t *testing.T) {
 			},
 			merkleValueToEncoding: map[string][]byte{},
 			expectedNode: &node.Node{
-				Key:   []byte{1},
-				Value: []byte{2},
-				Dirty: true,
+				Key:      []byte{1},
+				SubValue: []byte{2},
+				Dirty:    true,
 			},
 		},
 		"branch node with child hash found": {
 			node: &node.Node{
 				Key:         []byte{1},
-				Value:       []byte{2},
+				SubValue:    []byte{2},
 				Descendants: 1,
 				Dirty:       true,
 				Children: padRightChildren([]*node.Node{
@@ -358,20 +359,20 @@ func Test_loadProof(t *testing.T) {
 			},
 			merkleValueToEncoding: map[string][]byte{
 				string([]byte{2}): encodeNode(t, node.Node{
-					Key:   []byte{3},
-					Value: []byte{1},
+					Key:      []byte{3},
+					SubValue: []byte{1},
 				}),
 			},
 			expectedNode: &node.Node{
 				Key:         []byte{1},
-				Value:       []byte{2},
+				SubValue:    []byte{2},
 				Descendants: 1,
 				Dirty:       true,
 				Children: padRightChildren([]*node.Node{
 					{
-						Key:   []byte{3},
-						Value: []byte{1},
-						Dirty: true,
+						Key:      []byte{3},
+						SubValue: []byte{1},
+						Dirty:    true,
 					},
 				}),
 			},
@@ -379,7 +380,7 @@ func Test_loadProof(t *testing.T) {
 		"branch node with one child hash found and one not found": {
 			node: &node.Node{
 				Key:         []byte{1},
-				Value:       []byte{2},
+				SubValue:    []byte{2},
 				Descendants: 2,
 				Dirty:       true,
 				Children: padRightChildren([]*node.Node{
@@ -389,20 +390,20 @@ func Test_loadProof(t *testing.T) {
 			},
 			merkleValueToEncoding: map[string][]byte{
 				string([]byte{2}): encodeNode(t, node.Node{
-					Key:   []byte{3},
-					Value: []byte{1},
+					Key:      []byte{3},
+					SubValue: []byte{1},
 				}),
 			},
 			expectedNode: &node.Node{
 				Key:         []byte{1},
-				Value:       []byte{2},
+				SubValue:    []byte{2},
 				Descendants: 1,
 				Dirty:       true,
 				Children: padRightChildren([]*node.Node{
 					{
-						Key:   []byte{3},
-						Value: []byte{1},
-						Dirty: true,
+						Key:      []byte{3},
+						SubValue: []byte{1},
+						Dirty:    true,
 					},
 				}),
 			},
@@ -410,7 +411,7 @@ func Test_loadProof(t *testing.T) {
 		"branch node with branch child hash": {
 			node: &node.Node{
 				Key:         []byte{1},
-				Value:       []byte{2},
+				SubValue:    []byte{2},
 				Descendants: 2,
 				Dirty:       true,
 				Children: padRightChildren([]*node.Node{
@@ -419,29 +420,29 @@ func Test_loadProof(t *testing.T) {
 			},
 			merkleValueToEncoding: map[string][]byte{
 				string([]byte{2}): encodeNode(t, node.Node{
-					Key:   []byte{3},
-					Value: []byte{1},
+					Key:      []byte{3},
+					SubValue: []byte{1},
 					Children: padRightChildren([]*node.Node{
-						{Key: []byte{4}, Value: []byte{2}},
+						{Key: []byte{4}, SubValue: []byte{2}},
 					}),
 				}),
 			},
 			expectedNode: &node.Node{
 				Key:         []byte{1},
-				Value:       []byte{2},
+				SubValue:    []byte{2},
 				Descendants: 3,
 				Dirty:       true,
 				Children: padRightChildren([]*node.Node{
 					{
 						Key:         []byte{3},
-						Value:       []byte{1},
+						SubValue:    []byte{1},
 						Dirty:       true,
 						Descendants: 1,
 						Children: padRightChildren([]*node.Node{
 							{
-								Key:   []byte{4},
-								Value: []byte{2},
-								Dirty: true,
+								Key:      []byte{4},
+								SubValue: []byte{2},
+								Dirty:    true,
 							},
 						}),
 					},
@@ -451,7 +452,7 @@ func Test_loadProof(t *testing.T) {
 		"child decoding error": {
 			node: &node.Node{
 				Key:         []byte{1},
-				Value:       []byte{2},
+				SubValue:    []byte{2},
 				Descendants: 1,
 				Dirty:       true,
 				Children: padRightChildren([]*node.Node{
@@ -463,7 +464,7 @@ func Test_loadProof(t *testing.T) {
 			},
 			expectedNode: &node.Node{
 				Key:         []byte{1},
-				Value:       []byte{2},
+				SubValue:    []byte{2},
 				Descendants: 1,
 				Dirty:       true,
 				Children: padRightChildren([]*node.Node{
@@ -471,14 +472,14 @@ func Test_loadProof(t *testing.T) {
 				}),
 			},
 			errWrapped: node.ErrVariantUnknown,
-			errMessage: "decoding child node for Merkle value 0x02: " +
+			errMessage: "decoding child node for hash digest 0x02: " +
 				"decoding header: decoding header byte: node variant is unknown: " +
 				"for header byte 00000001",
 		},
 		"grand child": {
 			node: &node.Node{
 				Key:         []byte{1},
-				Value:       []byte{1},
+				SubValue:    []byte{1},
 				Descendants: 1,
 				Dirty:       true,
 				Children: padRightChildren([]*node.Node{
@@ -488,7 +489,7 @@ func Test_loadProof(t *testing.T) {
 			merkleValueToEncoding: map[string][]byte{
 				string([]byte{2}): encodeNode(t, node.Node{
 					Key:         []byte{2},
-					Value:       []byte{2},
+					SubValue:    []byte{2},
 					Descendants: 1,
 					Dirty:       true,
 					Children: padRightChildren([]*node.Node{
@@ -499,20 +500,20 @@ func Test_loadProof(t *testing.T) {
 			},
 			expectedNode: &node.Node{
 				Key:         []byte{1},
-				Value:       []byte{1},
+				SubValue:    []byte{1},
 				Descendants: 2,
 				Dirty:       true,
 				Children: padRightChildren([]*node.Node{
 					{
 						Key:         []byte{2},
-						Value:       []byte{2},
+						SubValue:    []byte{2},
 						Descendants: 1,
 						Dirty:       true,
 						Children: padRightChildren([]*node.Node{
 							{
-								Key:   leafLarge.Key,
-								Value: leafLarge.Value,
-								Dirty: true,
+								Key:      leafLarge.Key,
+								SubValue: leafLarge.SubValue,
+								Dirty:    true,
 							},
 						}),
 					},
@@ -523,7 +524,7 @@ func Test_loadProof(t *testing.T) {
 		"grand child load proof error": {
 			node: &node.Node{
 				Key:         []byte{1},
-				Value:       []byte{1},
+				SubValue:    []byte{1},
 				Descendants: 1,
 				Dirty:       true,
 				Children: padRightChildren([]*node.Node{
@@ -533,7 +534,7 @@ func Test_loadProof(t *testing.T) {
 			merkleValueToEncoding: map[string][]byte{
 				string([]byte{2}): encodeNode(t, node.Node{
 					Key:         []byte{2},
-					Value:       []byte{2},
+					SubValue:    []byte{2},
 					Descendants: 1,
 					Dirty:       true,
 					Children: padRightChildren([]*node.Node{
@@ -544,13 +545,13 @@ func Test_loadProof(t *testing.T) {
 			},
 			expectedNode: &node.Node{
 				Key:         []byte{1},
-				Value:       []byte{1},
+				SubValue:    []byte{1},
 				Descendants: 2,
 				Dirty:       true,
 				Children: padRightChildren([]*node.Node{
 					{
 						Key:         []byte{2},
-						Value:       []byte{2},
+						SubValue:    []byte{2},
 						Descendants: 1,
 						Dirty:       true,
 						Children: padRightChildren([]*node.Node{
@@ -563,7 +564,7 @@ func Test_loadProof(t *testing.T) {
 				}),
 			},
 			errWrapped: node.ErrVariantUnknown,
-			errMessage: "decoding child node for Merkle value " +
+			errMessage: "decoding child node for hash digest " +
 				"0x6888b9403129c11350c6054b46875292c0ffedcfd581e66b79bdf350b775ebf2: " +
 				"decoding header: decoding header byte: node variant is unknown: " +
 				"for header byte 00000001",

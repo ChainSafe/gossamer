@@ -11,7 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/tests/utils/node"
@@ -136,43 +135,28 @@ func compareFinalizedHeads(ctx context.Context, t *testing.T, nodes node.Nodes,
 // compareFinalizedHeadsByRound calls getFinalizedHeadByRound for each node in the array
 // it returns a map of finalisedHead hashes to node key names, and an error if the hashes don't all match
 func compareFinalizedHeadsByRound(ctx context.Context, nodes node.Nodes,
-	round uint64, getFinalizedHeadByRoundTimeout time.Duration) (
-	hashes map[common.Hash][]string, err error) {
-	hashes = make(map[common.Hash][]string)
+	round uint64) (err error) {
+	hashes := make(map[common.Hash][]string)
 	for _, node := range nodes {
+		const getFinalizedHeadByRoundTimeout = time.Second
 		getFinalizedHeadByRoundCtx, cancel := context.WithTimeout(ctx, getFinalizedHeadByRoundTimeout)
 		hash, err := rpc.GetFinalizedHeadByRound(getFinalizedHeadByRoundCtx, node.RPCPort(), round)
 		cancel()
 
 		if err != nil {
-			return nil, fmt.Errorf("cannot get finalized head for round %d: %w", round, err)
+			return fmt.Errorf("cannot get finalized head for round %d: %w", round, err)
 		}
 
 		logger.Infof("got finalised head with hash %s from node %s at round %d", hash, node, round)
 		hashes[hash] = append(hashes[hash], node.Key())
 	}
 
-	if len(hashes) == 0 {
-		err = errNoFinalizedBlock
+	switch len(hashes) {
+	case 0:
+		return errNoFinalizedBlock
+	case 1:
+		return nil
+	default:
+		return errFinalizedBlockMismatch
 	}
-
-	if len(hashes) > 1 {
-		err = errFinalizedBlockMismatch
-	}
-
-	return hashes, err
-}
-
-func getPendingExtrinsics(ctx context.Context, t *testing.T, node node.Node) []string {
-	endpoint := rpc.NewEndpoint(node.RPCPort())
-	const method = "author_pendingExtrinsics"
-	const params = "[]"
-	respBody, err := rpc.Post(ctx, endpoint, method, params)
-	require.NoError(t, err)
-
-	exts := new(modules.PendingExtrinsicsResponse)
-	err = rpc.Decode(respBody, exts)
-	require.NoError(t, err)
-
-	return *exts
 }

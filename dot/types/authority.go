@@ -78,7 +78,7 @@ func (a *Authority) ToRaw() *AuthorityRaw {
 // DeepCopy creates a deep copy of the Authority
 func (a *Authority) DeepCopy() *Authority {
 	pk := a.Key.Encode()
-	pkCopy, _ := sr25519.NewPublicKey(pk[:])
+	pkCopy, _ := sr25519.NewPublicKey(pk)
 	return &Authority{
 		Key:    pkCopy,
 		Weight: a.Weight,
