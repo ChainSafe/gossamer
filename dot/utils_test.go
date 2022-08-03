@@ -24,7 +24,7 @@ import (
 func newTestGenesisFile(t *testing.T, cfg *Config) (filename string) {
 	t.Helper()
 
-	fp := utils.GetGssmrGenesisRawPathTest(t)
+	fp := utils.GetGssmrV3SubstrateGenesisPathTest(t)
 	gssmrGen, err := genesis.NewGenesisFromJSON(fp, 0)
 	require.NoError(t, err)
 

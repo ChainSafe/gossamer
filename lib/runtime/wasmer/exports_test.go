@@ -286,7 +286,7 @@ func balanceKey(t *testing.T, pub []byte) []byte {
 }
 
 func TestNodeRuntime_ValidateTransaction(t *testing.T) {
-	genesisPath := utils.GetGssmrGenesisRawPathTest(t)
+	genesisPath := utils.GetGssmrV3SubstrateGenesisRawPathTest(t)
 	gen, err := genesis.NewGenesisFromJSONRaw(genesisPath)
 	require.NoError(t, err)
 

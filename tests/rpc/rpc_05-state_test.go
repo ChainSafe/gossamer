@@ -161,8 +161,9 @@ func TestStateRPCResponseValidation(t *testing.T) { //nolint:tparallel
 	})
 }
 
+// TODO: add test against latest gssmr runtime
 func TestStateRPCAPI(t *testing.T) {
-	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
+	genesisPath := libutils.GetGssmrV3SubstrateGenesisRawPathTest(t)
 	tomlConfig := config.Default()
 	tomlConfig.Init.Genesis = genesisPath
 	tomlConfig.Core.BABELead = true
@@ -363,7 +364,7 @@ func TestStateRPCAPI(t *testing.T) {
 }
 
 func TestRPCStructParamUnmarshal(t *testing.T) {
-	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
+	genesisPath := libutils.GetDevV3SubstrateGenesisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.Core.BABELead = true
 	tomlConfig.Init.Genesis = genesisPath
