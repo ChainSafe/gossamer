@@ -93,7 +93,7 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 	require.NotEqual(t, types.Hash{}, hash)
 }
 
-func TestAuthorRPC(t *testing.T) { //nolint:tparallel
+func TestAuthorRPC(t *testing.T) {
 	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
 	tomlConfig := config.Default()
 	tomlConfig.Init.Genesis = genesisPath

@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestStateRPCResponseValidation(t *testing.T) { //nolint:tparallel
+func TestStateRPCResponseValidation(t *testing.T) {
 	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
 	tomlConfig := config.Default()
 	tomlConfig.Init.Genesis = genesisPath

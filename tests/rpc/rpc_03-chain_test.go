@@ -122,7 +122,7 @@ func TestChainRPC(t *testing.T) {
 	assert.NotEqual(t, finalizedHead, blockHash)
 }
 
-func TestChainSubscriptionRPC(t *testing.T) { //nolint:tparallel
+func TestChainSubscriptionRPC(t *testing.T) {
 	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
 	tomlConfig := config.Default()
 	tomlConfig.Init.Genesis = genesisPath
