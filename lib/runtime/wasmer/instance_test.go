@@ -64,6 +64,18 @@ func Test_CheckRuntimeVersion(t *testing.T) {
 	require.Equal(t, expected.TransactionVersion(), version.TransactionVersion())
 }
 
+func Benchmark_CheckRuntimeVersion(b *testing.B) {
+	polkadotRuntimeFilepath, err := runtime.GetRuntime(
+		context.Background(), runtime.POLKADOT_RUNTIME)
+	require.NoError(b, err)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		code, _ := os.ReadFile(polkadotRuntimeFilepath)
+		_, _ = CheckRuntimeVersion(code)
+	}
+}
+
 func TestDecompressWasm(t *testing.T) {
 	encoder, err := zstd.NewWriter(nil)
 	require.NoError(t, err)
