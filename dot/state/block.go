@@ -569,7 +569,8 @@ func (bs *BlockState) setArrivalTime(hash common.Hash, arrivalTime time.Time) er
 
 // HandleRuntimeChanges handles the update in runtime.
 func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
-	rt runtime.Instance, bHash common.Hash) error {
+	rt runtime.Instance, bHash common.Hash, rootHashMetrics RootHashMetrics,
+	proofMetrics ProofMetrics) error {
 	currCodeHash, err := newState.LoadCodeHash()
 	if err != nil {
 		return err
@@ -621,7 +622,7 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 		rtCfg.Role = 4
 	}
 
-	instance, err := wasmer.NewInstance(code, rtCfg)
+	instance, err := wasmer.NewInstance(code, rtCfg, rootHashMetrics, proofMetrics)
 	if err != nil {
 		return err
 	}

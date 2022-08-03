@@ -10,6 +10,8 @@ import (
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
+	"github.com/ChainSafe/gossamer/internal/state/metrics"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
@@ -41,14 +43,21 @@ func NewOfflinePruner(inputDBPath, prunedDBPath string, bloomSize uint64,
 		return nil, fmt.Errorf("failed to load DB %w", err)
 	}
 
-	tries, err := NewTries(trie.NewEmptyTrie())
+	stateMetrics, err := metrics.NewPrometheus()
+	if err != nil {
+		return nil, fmt.Errorf("creating Prometheus state metrics: %w", err)
+	}
+
+	emptyTrie := trie.NewEmptyTrie(stateMetrics)
+	tries, err := NewTries(emptyTrie, stateMetrics)
 	if err != nil {
 		return nil, fmt.Errorf("cannot setup tries: %w", err)
 	}
 
 	// create blockState state
 	// NewBlockState on pruner execution does not use telemetry
-	blockState, err := NewBlockState(db, tries, nil)
+	telemery := (telemetry.Client)(nil)
+	blockState, err := NewBlockState(db, tries, telemery)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create block state: %w", err)
 	}
@@ -64,8 +73,13 @@ func NewOfflinePruner(inputDBPath, prunedDBPath string, bloomSize uint64,
 		return nil, fmt.Errorf("failed to create new bloom filter of size %d %w", bloomSize, err)
 	}
 
-	// load storage state
-	storageState, err := NewStorageState(db, blockState, tries, pruner.Config{})
+	proofMetrics, err := metrics.NewPrometheus()
+	if err != nil {
+		return nil, fmt.Errorf("creating proof Prometheus metrics: %w", err)
+	}
+
+	storageState, err := NewStorageState(db, blockState, tries, pruner.Config{},
+		stateMetrics, proofMetrics)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new storage state %w", err)
 	}

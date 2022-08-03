@@ -56,6 +56,9 @@ type Service struct {
 
 	// Keystore
 	keys *keystore.GlobalKeystore
+
+	rootHashMetrics RootHashMetrics
+	proofMetrics    ProofMetrics
 }
 
 // Config holds the configuration for the core Service.
@@ -76,7 +79,8 @@ type Config struct {
 
 // NewService returns a new core service that connects the runtime, BABE
 // session, and network service.
-func NewService(cfg *Config) (*Service, error) {
+func NewService(cfg *Config, rootHashMetrics RootHashMetrics,
+	proofMetrics ProofMetrics) (*Service, error) {
 	if cfg.Keystore == nil {
 		return nil, ErrNilKeystore
 	}
@@ -102,7 +106,7 @@ func NewService(cfg *Config) (*Service, error) {
 	blockAddCh := make(chan *types.Block, 256)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	srv := &Service{
+	return &Service{
 		ctx:                  ctx,
 		cancel:               cancel,
 		keys:                 cfg.Keystore,
@@ -114,9 +118,9 @@ func NewService(cfg *Config) (*Service, error) {
 		blockAddCh:           blockAddCh,
 		codeSubstitute:       cfg.CodeSubstitutes,
 		codeSubstitutedState: cfg.CodeSubstitutedState,
-	}
-
-	return srv, nil
+		rootHashMetrics:      rootHashMetrics,
+		proofMetrics:         proofMetrics,
+	}, nil
 }
 
 // Start starts the core service
@@ -216,7 +220,9 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 	}
 
 	// check for runtime changes
-	if err := s.blockState.HandleRuntimeChanges(state, rt, block.Header.Hash()); err != nil {
+	err = s.blockState.HandleRuntimeChanges(state, rt,
+		block.Header.Hash(), s.rootHashMetrics, s.proofMetrics)
+	if err != nil {
 		logger.Criticalf("failed to update runtime code: %s", err)
 		return err
 	}
@@ -272,7 +278,7 @@ func (s *Service) handleCodeSubstitution(hash common.Hash,
 		cfg.Role = 4
 	}
 
-	next, err := wasmer.NewInstance(code, cfg)
+	next, err := wasmer.NewInstance(code, cfg, s.rootHashMetrics, s.proofMetrics)
 	if err != nil {
 		return fmt.Errorf("creating new runtime instance: %w", err)
 	}

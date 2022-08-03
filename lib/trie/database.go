@@ -85,6 +85,7 @@ func (t *Trie) storeNode(db chaindb.Batch, n *Node) (err error) {
 // It is used when restarting the node to load the current state trie.
 func (t *Trie) Load(db Database, rootHash common.Hash) error {
 	if rootHash == EmptyHash {
+		t.metrics.NodesDeleted(getNodesCount(t.root))
 		t.root = nil
 		return nil
 	}
@@ -101,10 +102,19 @@ func (t *Trie) Load(db Database, rootHash common.Hash) error {
 		return fmt.Errorf("cannot decode root node: %w", err)
 	}
 
+	t.metrics.NodesDeleted(getNodesCount(t.root))
+
 	t.root = root
+
+	if t.root == nil {
+		return nil
+	}
+
 	t.root.SetClean()
 	t.root.Encoding = encodedNode
 	t.root.HashDigest = rootHashBytes
+
+	t.metrics.NodesAdded(1 + t.root.Descendants)
 
 	return t.loadNode(db, t.root)
 }
@@ -167,7 +177,8 @@ func (t *Trie) loadNode(db Database, n *Node) error {
 	}
 
 	for _, key := range t.GetKeysWithPrefix(ChildStorageKeyPrefix) {
-		childTrie := NewEmptyTrie()
+		childTrie := NewEmptyTrie(t.metrics)
+
 		value := t.Get(key)
 		rootHash := common.BytesToHash(value)
 		err := childTrie.Load(db, rootHash)

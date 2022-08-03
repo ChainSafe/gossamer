@@ -111,6 +111,7 @@ import (
 	"unsafe"
 
 	"github.com/ChainSafe/gossamer/internal/log"
+	triemetrics "github.com/ChainSafe/gossamer/internal/state/metrics"
 	"github.com/ChainSafe/gossamer/lib/common"
 	rtype "github.com/ChainSafe/gossamer/lib/common/types"
 	"github.com/ChainSafe/gossamer/lib/crypto"
@@ -794,7 +795,7 @@ func ext_trie_blake2_256_root_version_1(context unsafe.Pointer, dataSpan C.int64
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
 	data := asMemorySlice(instanceContext, dataSpan)
 
-	t := trie.NewEmptyTrie()
+	t := trie.NewEmptyTrie(runtimeCtx.RootHashMetrics)
 
 	type kv struct {
 		Key, Value []byte
@@ -824,6 +825,8 @@ func ext_trie_blake2_256_root_version_1(context unsafe.Pointer, dataSpan C.int64
 		return 0
 	}
 
+	t.Die()
+
 	logger.Debugf("root hash is %s", hash)
 	copy(memory[ptr:ptr+32], hash[:])
 	return C.int32_t(ptr)
@@ -838,7 +841,7 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
 	data := asMemorySlice(instanceContext, dataSpan)
 
-	t := trie.NewEmptyTrie()
+	t := trie.NewEmptyTrie(runtimeCtx.RootHashMetrics)
 	var values [][]byte
 	err := scale.Unmarshal(data, &values)
 	if err != nil {
@@ -871,6 +874,8 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 		logger.Errorf("failed computing trie Merkle root hash: %s", err)
 		return 0
 	}
+
+	t.Die()
 
 	logger.Debugf("root hash is %s", hash)
 	copy(memory[ptr:ptr+32], hash[:])
@@ -905,7 +910,9 @@ func ext_trie_blake2_256_verify_proof_version_1(context unsafe.Pointer,
 	mem := instanceContext.Memory().Data()
 	trieRoot := mem[rootSpan : rootSpan+32]
 
-	err = proof.Verify(encodedProofNodes, trieRoot, key, value)
+	runtimeCtx := instanceContext.Data().(*runtime.Context)
+
+	err = proof.Verify(encodedProofNodes, trieRoot, key, value, runtimeCtx.ProofMetrics)
 	if err != nil {
 		logger.Errorf("failed proof verification: %s", err)
 		return C.int32_t(0)
@@ -946,12 +953,14 @@ func ext_misc_runtime_version_version_1(context unsafe.Pointer, dataSpan C.int64
 	instanceContext := wasm.IntoInstanceContext(context)
 	data := asMemorySlice(instanceContext, dataSpan)
 
+	metrics := triemetrics.NewNoop()
+	emptyTrie := trie.NewEmptyTrie(metrics)
 	cfg := runtime.InstanceConfig{
 		LogLvl:  log.DoNotChange,
-		Storage: rtstorage.NewTrieState(nil),
+		Storage: rtstorage.NewTrieState(emptyTrie),
 	}
 
-	instance, err := NewInstance(data, cfg)
+	instance, err := NewInstance(data, cfg, nil, nil)
 	if err != nil {
 		logger.Errorf("failed to create instance: %s", err)
 		return 0

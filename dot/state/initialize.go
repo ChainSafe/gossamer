@@ -63,7 +63,7 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 		return fmt.Errorf("failed to write genesis values to database: %s", err)
 	}
 
-	tries, err := NewTries(t)
+	tries, err := NewTries(t, s.stateMetrics)
 	if err != nil {
 		return fmt.Errorf("cannot setup tries: %w", err)
 	}
@@ -75,7 +75,8 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 	}
 
 	// create storage state from genesis trie
-	storageState, err := NewStorageState(db, blockState, tries, pruner.Config{})
+	storageState, err := NewStorageState(db, blockState, tries, pruner.Config{},
+		s.stateMetrics, s.proofMetrics)
 	if err != nil {
 		return fmt.Errorf("failed to create storage state from trie: %s", err)
 	}
@@ -164,7 +165,7 @@ func (s *Service) CreateGenesisRuntime(t *trie.Trie, gen *genesis.Genesis) (runt
 		Storage: genTrie,
 	}
 
-	r, err := wasmer.NewRuntimeFromGenesis(rtCfg)
+	r, err := wasmer.NewRuntimeFromGenesis(rtCfg, s.rootHashMetrics, s.proofMetrics)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create genesis runtime: %w", err)
 	}

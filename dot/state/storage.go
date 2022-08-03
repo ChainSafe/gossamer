@@ -40,12 +40,17 @@ type StorageState struct {
 	changedLock  sync.RWMutex
 	observerList []Observer
 	pruner       pruner.Pruner
+
+	// Metrics
+	stateTrieMetrics TrieMetrics
+	proofMetrics     TrieMetrics
 }
 
 // NewStorageState creates a new StorageState backed by the given block state
 // and database located at basePath.
 func NewStorageState(db chaindb.Database, blockState *BlockState,
-	tries *Tries, onlinePruner pruner.Config) (*StorageState, error) {
+	tries *Tries, onlinePruner pruner.Config, stateMetrics,
+	proofMetrics TrieMetrics) (storageState *StorageState, err error) {
 	if db == nil {
 		return nil, fmt.Errorf("cannot have nil database")
 	}
@@ -64,11 +69,13 @@ func NewStorageState(db chaindb.Database, blockState *BlockState,
 	}
 
 	return &StorageState{
-		blockState:   blockState,
-		tries:        tries,
-		db:           storageTable,
-		observerList: []Observer{},
-		pruner:       p,
+		blockState:       blockState,
+		tries:            tries,
+		db:               storageTable,
+		observerList:     []Observer{},
+		pruner:           p,
+		stateTrieMetrics: stateMetrics,
+		proofMetrics:     proofMetrics,
 	}, nil
 }
 
@@ -139,7 +146,7 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 
 // LoadFromDB loads an encoded trie from the DB where the key is `root`
 func (s *StorageState) LoadFromDB(root common.Hash) (*trie.Trie, error) {
-	t := trie.NewEmptyTrie()
+	t := trie.NewEmptyTrie(s.stateTrieMetrics)
 	err := t.Load(s.db, root)
 	if err != nil {
 		return nil, err
@@ -167,6 +174,7 @@ func (s *StorageState) loadTrie(root *common.Hash) (*trie.Trie, error) {
 	if err != nil {
 		return nil, fmt.Errorf("trie does not exist at root %s: %w", *root, err)
 	}
+	s.tries.softSet(*root, tr)
 
 	return tr, nil
 }
@@ -301,5 +309,5 @@ func (s *StorageState) LoadCodeHash(hash *common.Hash) (common.Hash, error) {
 // GenerateTrieProof returns the proofs related to the keys on the state root trie
 func (s *StorageState) GenerateTrieProof(stateRoot common.Hash, keys [][]byte) (
 	encodedProofNodes [][]byte, err error) {
-	return proof.Generate(stateRoot[:], keys, s.db)
+	return proof.Generate(stateRoot[:], keys, s.db, s.proofMetrics)
 }

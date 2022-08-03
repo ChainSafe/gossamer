@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/log"
+	proofmetrics "github.com/ChainSafe/gossamer/internal/runtime/metrics/proof"
+	roothashmetrics "github.com/ChainSafe/gossamer/internal/runtime/metrics/roothash"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -35,7 +37,9 @@ func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie) 
 	runtimeFilepath, err := runtime.GetRuntime(context.Background(), targetRuntime)
 	require.NoError(t, err)
 
-	r, err := NewInstanceFromFile(runtimeFilepath, cfg)
+	rootHashMetrics := roothashmetrics.NewNoop()
+	proofMetrics := proofmetrics.NewNoop()
+	r, err := NewInstanceFromFile(runtimeFilepath, cfg, rootHashMetrics, proofMetrics)
 	require.NoError(t, err, "Got error when trying to create new VM", "targetRuntime", targetRuntime)
 	require.NotNil(t, r, "Could not create new VM instance", "targetRuntime", targetRuntime)
 	return r

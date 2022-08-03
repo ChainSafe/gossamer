@@ -60,9 +60,12 @@ func (nodeBuilder) createStateService(cfg *Config) (*state.Service, error) {
 		Metrics:  metrics.NewIntervalConfig(cfg.Global.PublishMetrics),
 	}
 
-	stateSrvc := state.NewService(config)
+	stateSrvc, err := state.NewService(config)
+	if err != nil {
+		return nil, fmt.Errorf("creating state service: %s", err)
+	}
 
-	err := stateSrvc.SetupBase()
+	err = stateSrvc.SetupBase()
 	if err != nil {
 		return nil, fmt.Errorf("cannot setup base: %w", err)
 	}
@@ -103,8 +106,9 @@ func (nodeBuilder) createRuntimeStorage(st *state.Service) (*runtime.NodeStorage
 }
 
 func createRuntime(cfg *Config, ns runtime.NodeStorage, st *state.Service,
-	ks *keystore.GlobalKeystore, net *network.Service, code []byte) (
-	runtime.Instance, error) {
+	ks *keystore.GlobalKeystore, net *network.Service, code []byte,
+	rootHashMetrics RootHashMetrics, proofMetrics ProofMetrics) (
+	instance runtime.Instance, err error) {
 	logger.Info("creating runtime with interpreter " + cfg.Core.WasmInterpreter + "...")
 
 	// check if code substitute is in use, if so replace code
@@ -145,7 +149,7 @@ func createRuntime(cfg *Config, ns runtime.NodeStorage, st *state.Service,
 		}
 
 		// create runtime executor
-		rt, err = wasmer.NewInstance(code, rtCfg)
+		rt, err = wasmer.NewInstance(code, rtCfg, rootHashMetrics, proofMetrics)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create runtime executor: %s", err)
 		}
@@ -219,7 +223,9 @@ func (nodeBuilder) createBABEServiceWithBuilder(cfg *Config, st *state.Service, 
 // Core Service
 
 // createCoreService creates the core service from the provided core configuration
-func (nodeBuilder) createCoreService(cfg *Config, ks *keystore.GlobalKeystore,
+func (nodeBuilder) createCoreService(cfg *Config,
+	rootHashMetrics RootHashMetrics, proofMetrics ProofMetrics,
+	ks *keystore.GlobalKeystore,
 	st *state.Service, net *network.Service, dh *digest.Handler) (
 	*core.Service, error) {
 	logger.Debug("creating core service" +
@@ -250,7 +256,7 @@ func (nodeBuilder) createCoreService(cfg *Config, ks *keystore.GlobalKeystore,
 	}
 
 	// create new core service
-	coreSrvc, err := core.NewService(coreConfig)
+	coreSrvc, err := core.NewService(coreConfig, rootHashMetrics, proofMetrics)
 	if err != nil {
 		logger.Errorf("failed to create core service: %s", err)
 		return nil, err

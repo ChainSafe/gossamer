@@ -12,11 +12,11 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
+	statemetrics "github.com/ChainSafe/gossamer/internal/state/metrics"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-
-	"github.com/ChainSafe/gossamer/internal/log"
 )
 
 // ImportState imports the state in the given files to the database with the given path.
@@ -37,7 +37,11 @@ func ImportState(basepath, stateFP, headerFP string, firstSlot uint64) error {
 		Path:     basepath,
 		LogLevel: log.Info,
 	}
-	srv := state.NewService(config)
+	srv, err := state.NewService(config)
+	if err != nil {
+		return fmt.Errorf("creating state service: %w", err)
+	}
+
 	return srv.Import(header, tr, firstSlot)
 }
 
@@ -62,7 +66,8 @@ func newTrieFromPairs(filename string) (*trie.Trie, error) {
 		entries[pairArr[0].(string)] = pairArr[1].(string)
 	}
 
-	tr := trie.NewEmptyTrie()
+	trieMetrics := statemetrics.NewNoop() // we don't care about metrics
+	tr := trie.NewEmptyTrie(trieMetrics)
 	err = tr.LoadFromMap(entries)
 	if err != nil {
 		return nil, err

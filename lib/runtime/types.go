@@ -70,6 +70,8 @@ type Context struct {
 	Transaction     TransactionState
 	SigVerifier     *crypto.SignatureVerifier
 	OffchainHTTPSet *offchain.HTTPSet
+	ProofMetrics    ProofMetrics
+	RootHashMetrics RootHashMetrics
 }
 
 // NewValidateTransactionError returns an error based on a return value from TaggedTransactionQueueValidateTransaction

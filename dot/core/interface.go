@@ -10,6 +10,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -41,7 +42,8 @@ type BlockState interface {
 	HighestCommonAncestor(a, b common.Hash) (common.Hash, error)
 	SubChain(start, end common.Hash) ([]common.Hash, error)
 	GetBlockBody(hash common.Hash) (*types.Body, error)
-	HandleRuntimeChanges(newState *rtstorage.TrieState, in runtime.Instance, bHash common.Hash) error
+	HandleRuntimeChanges(newState *rtstorage.TrieState, in runtime.Instance, bHash common.Hash,
+		rootHashMetrics state.RootHashMetrics, proofMetrics state.ProofMetrics) error
 	GetRuntime(*common.Hash) (runtime.Instance, error)
 	StoreRuntime(common.Hash, runtime.Instance)
 }
@@ -86,4 +88,17 @@ type EpochState interface {
 type CodeSubstitutedState interface {
 	LoadCodeSubstitutedBlockHash() common.Hash
 	StoreCodeSubstitutedBlockHash(hash common.Hash) error
+}
+
+type TrieMetrics interface {
+	NodesAdded(n uint32)
+	NodesDeleted(n uint32)
+}
+
+type RootHashMetrics interface {
+	TrieMetrics
+}
+
+type ProofMetrics interface {
+	TrieMetrics
 }

@@ -100,9 +100,12 @@ func BuildFromDB(path string) (*BuildSpec, error) {
 		Telemetry: telemetry.NewNoopMailer(),
 	}
 
-	stateSrvc := state.NewService(config)
+	stateSrvc, err := state.NewService(config)
+	if err != nil {
+		return nil, fmt.Errorf("creating state service: %w", err)
+	}
 
-	err := stateSrvc.SetupBase()
+	err = stateSrvc.SetupBase()
 	if err != nil {
 		return nil, fmt.Errorf("cannot setup state database: %w", err)
 	}

@@ -26,6 +26,9 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/metrics"
+	proofmetrics "github.com/ChainSafe/gossamer/internal/runtime/metrics/proof"
+	roothashmetrics "github.com/ChainSafe/gossamer/internal/runtime/metrics/roothash"
+	statemetrics "github.com/ChainSafe/gossamer/internal/state/metrics"
 	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -57,10 +60,11 @@ type nodeBuilderIface interface {
 		error)
 	createRuntimeStorage(st *state.Service) (*runtime.NodeStorage, error)
 	loadRuntime(cfg *Config, ns *runtime.NodeStorage, stateSrvc *state.Service, ks *keystore.GlobalKeystore,
-		net *network.Service) error
+		net *network.Service, rootHashMetrics RootHashMetrics, proofMetrics ProofMetrics) error
 	createBlockVerifier(st *state.Service) (*babe.VerificationManager, error)
 	createDigestHandler(lvl log.Level, st *state.Service) (*digest.Handler, error)
-	createCoreService(cfg *Config, ks *keystore.GlobalKeystore, st *state.Service, net *network.Service,
+	createCoreService(cfg *Config, rootHashMetrics RootHashMetrics, proofMetrics ProofMetrics,
+		ks *keystore.GlobalKeystore, st *state.Service, net *network.Service,
 		dh *digest.Handler) (*core.Service, error)
 	createGRANDPAService(cfg *Config, st *state.Service, ks keystore.Keystore,
 		net *network.Service, telemetryMailer telemetry.Client) (*grandpa.Service, error)
@@ -144,7 +148,12 @@ func (*nodeBuilder) initNode(cfg *Config) error {
 	}
 
 	// create trie from genesis
-	t, err := genesis.NewTrieFromGenesis(gen)
+	stateMetrics, err := statemetrics.NewPrometheus()
+	if err != nil {
+		return fmt.Errorf("cannot setup state Prometheus metrics: %w", err)
+	}
+
+	t, err := genesis.NewTrieFromGenesis(gen, stateMetrics)
 	if err != nil {
 		return fmt.Errorf("failed to create trie from genesis: %w", err)
 	}
@@ -172,7 +181,10 @@ func (*nodeBuilder) initNode(cfg *Config) error {
 	}
 
 	// create new state service
-	stateSrvc := state.NewService(config)
+	stateSrvc, err := state.NewService(config)
+	if err != nil {
+		return fmt.Errorf("creating state service: %w", err)
+	}
 
 	// initialise state service with genesis data, block, and trie
 	err = stateSrvc.Initialise(gen, header, t)
@@ -319,7 +331,18 @@ func newNode(cfg *Config,
 		return nil, err
 	}
 
-	err = builder.loadRuntime(cfg, ns, stateSrvc, ks, networkSrvc)
+	rootHashMetrics, err := roothashmetrics.NewPrometheus()
+	if err != nil {
+		return nil, fmt.Errorf("creating root hash Prometheus metrics: %s", err)
+	}
+
+	proofMetrics, err := proofmetrics.NewPrometheus()
+	if err != nil {
+		return nil, fmt.Errorf("creating proof Prometheus metrics: %s", err)
+	}
+
+	err = builder.loadRuntime(cfg, ns, stateSrvc, ks, networkSrvc,
+		rootHashMetrics, proofMetrics)
 	if err != nil {
 		return nil, err
 	}
@@ -335,7 +358,7 @@ func newNode(cfg *Config,
 	}
 	nodeSrvcs = append(nodeSrvcs, dh)
 
-	coreSrvc, err := builder.createCoreService(cfg, ks, stateSrvc, networkSrvc, dh)
+	coreSrvc, err := builder.createCoreService(cfg, rootHashMetrics, proofMetrics, ks, stateSrvc, networkSrvc, dh)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create core service: %s", err)
 	}
@@ -493,7 +516,8 @@ func (n *Node) Stop() {
 
 func (n *nodeBuilder) loadRuntime(cfg *Config, ns *runtime.NodeStorage,
 	stateSrvc *state.Service, ks *keystore.GlobalKeystore,
-	net *network.Service) error {
+	net *network.Service, rootHashMetrics RootHashMetrics,
+	proofMetrics ProofMetrics) (err error) {
 	blocks := stateSrvc.Block.GetNonFinalisedBlocks()
 	runtimeCode := make(map[string]runtime.Instance)
 	for i := range blocks {
@@ -513,7 +537,7 @@ func (n *nodeBuilder) loadRuntime(cfg *Config, ns *runtime.NodeStorage,
 			continue
 		}
 
-		rt, err := createRuntime(cfg, *ns, stateSrvc, ks, net, code)
+		rt, err := createRuntime(cfg, *ns, stateSrvc, ks, net, code, rootHashMetrics, proofMetrics)
 		if err != nil {
 			return err
 		}

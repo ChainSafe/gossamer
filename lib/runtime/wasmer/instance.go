@@ -47,7 +47,8 @@ type Instance struct {
 }
 
 // NewRuntimeFromGenesis creates a runtime instance from the genesis data
-func NewRuntimeFromGenesis(cfg runtime.InstanceConfig) (instance runtime.Instance, err error) {
+func NewRuntimeFromGenesis(cfg runtime.InstanceConfig, rootHashMetrics,
+	proofMetrics TrieMetrics) (instance runtime.Instance, err error) {
 	if cfg.Storage == nil {
 		return nil, errors.New("storage is nil")
 	}
@@ -57,32 +58,36 @@ func NewRuntimeFromGenesis(cfg runtime.InstanceConfig) (instance runtime.Instanc
 		return nil, fmt.Errorf("cannot find :code in state")
 	}
 
-	return NewInstance(code, cfg)
+	return NewInstance(code, cfg, rootHashMetrics, proofMetrics)
 }
 
 // NewInstanceFromTrie returns a new runtime instance with the code provided in the given trie
-func NewInstanceFromTrie(t *trie.Trie, cfg runtime.InstanceConfig) (*Instance, error) {
+func NewInstanceFromTrie(t *trie.Trie, cfg runtime.InstanceConfig,
+	proofMetrics, tempTrieMetrics TrieMetrics) (*Instance, error) {
 	code := t.Get(common.CodeKey)
 	if len(code) == 0 {
 		return nil, fmt.Errorf("cannot find :code in trie")
 	}
 
-	return NewInstance(code, cfg)
+	return NewInstance(code, cfg, proofMetrics, tempTrieMetrics)
 }
 
 // NewInstanceFromFile instantiates a runtime from a .wasm file
-func NewInstanceFromFile(fp string, cfg runtime.InstanceConfig) (*Instance, error) {
+func NewInstanceFromFile(fp string, cfg runtime.InstanceConfig,
+	rootHashMetrics, proofMetrics TrieMetrics) (*Instance, error) {
 	// Reads the WebAssembly module as bytes.
 	bytes, err := wasm.ReadBytes(fp)
 	if err != nil {
 		return nil, err
 	}
 
-	return NewInstance(bytes, cfg)
+	return NewInstance(bytes, cfg, rootHashMetrics, proofMetrics)
 }
 
 // NewInstance instantiates a runtime from raw wasm bytecode
-func NewInstance(code []byte, cfg runtime.InstanceConfig) (instance *Instance, err error) {
+func NewInstance(code []byte, cfg runtime.InstanceConfig,
+	rootHashMetrics RootHashMetrics, proofMetrics ProofMetrics) (
+	instance *Instance, err error) {
 	logger.Patch(log.SetLevel(cfg.LogLvl), log.SetCallerFunc(true))
 
 	wasmInstance, allocator, err := setupVM(code)
@@ -100,6 +105,8 @@ func NewInstance(code []byte, cfg runtime.InstanceConfig) (instance *Instance, e
 		Transaction:     cfg.Transaction,
 		SigVerifier:     crypto.NewSignatureVerifier(logger),
 		OffchainHTTPSet: offchain.NewHTTPSet(),
+		RootHashMetrics: rootHashMetrics,
+		ProofMetrics:    proofMetrics,
 	}
 	wasmInstance.SetContextData(runtimeCtx)
 

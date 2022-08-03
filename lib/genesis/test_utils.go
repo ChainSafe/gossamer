@@ -76,28 +76,29 @@ func CreateTestGenesisJSONFile(t *testing.T, fields Fields) (filename string) {
 }
 
 // NewTestGenesisWithTrieAndHeader generates genesis, genesis trie and genesis header
-func NewTestGenesisWithTrieAndHeader(t *testing.T) (*Genesis, *trie.Trie, *types.Header) {
+func NewTestGenesisWithTrieAndHeader(t *testing.T, trieMetrics TrieMetrics) (*Genesis, *trie.Trie, *types.Header) {
 	genesisPath := utils.GetGssmrGenesisRawPathTest(t)
 	gen, err := NewGenesisFromJSONRaw(genesisPath)
 	require.NoError(t, err)
 
-	tr, h := newGenesisTrieAndHeader(t, gen)
+	tr, h := newGenesisTrieAndHeader(t, gen, trieMetrics)
 	return gen, tr, h
 }
 
 // NewDevGenesisWithTrieAndHeader generates test dev genesis, genesis trie and genesis header
-func NewDevGenesisWithTrieAndHeader(t *testing.T) (*Genesis, *trie.Trie, *types.Header) {
+func NewDevGenesisWithTrieAndHeader(t *testing.T, trieMetrics TrieMetrics) (*Genesis, *trie.Trie, *types.Header) {
 	genesisPath := utils.GetDevGenesisPath(t)
 
 	gen, err := NewGenesisFromJSONRaw(genesisPath)
 	require.NoError(t, err)
 
-	tr, h := newGenesisTrieAndHeader(t, gen)
+	tr, h := newGenesisTrieAndHeader(t, gen, trieMetrics)
 	return gen, tr, h
 }
 
-func newGenesisTrieAndHeader(t *testing.T, gen *Genesis) (*trie.Trie, *types.Header) {
-	genTrie, err := NewTrieFromGenesis(gen)
+func newGenesisTrieAndHeader(t *testing.T, gen *Genesis, trieMetrics TrieMetrics) (
+	*trie.Trie, *types.Header) {
+	genTrie, err := NewTrieFromGenesis(gen, trieMetrics)
 	require.NoError(t, err)
 
 	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}),

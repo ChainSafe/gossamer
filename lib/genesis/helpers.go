@@ -58,10 +58,17 @@ func NewGenesisFromJSONRaw(file string) (*Genesis, error) {
 	return g, err
 }
 
-// NewTrieFromGenesis creates a new trie from the raw genesis data
-func NewTrieFromGenesis(g *Genesis) (*trie.Trie, error) {
-	t := trie.NewEmptyTrie()
+// TrieMetrics is the interface to implement to provide
+// metrics for the trie(s).
+type TrieMetrics interface {
+	NodesAdded(n uint32)
+	NodesDeleted(n uint32)
+}
 
+// NewTrieFromGenesis creates a new trie from the raw genesis data
+// using the trie metrics given.
+func NewTrieFromGenesis(g *Genesis, trieMetrics TrieMetrics) (*trie.Trie, error) {
+	t := trie.NewEmptyTrie(trieMetrics)
 	r := g.GenesisFields().Raw["top"]
 
 	err := t.LoadFromMap(r)

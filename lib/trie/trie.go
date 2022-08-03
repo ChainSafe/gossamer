@@ -14,7 +14,7 @@ import (
 )
 
 // EmptyHash is the empty trie hash.
-var EmptyHash, _ = NewEmptyTrie().Hash()
+var EmptyHash, _ = new(Trie).Hash()
 
 // Trie is a base 16 modified Merkle Patricia trie.
 type Trie struct {
@@ -22,21 +22,36 @@ type Trie struct {
 	root        *Node
 	childTries  map[common.Hash]*Trie
 	deletedKeys map[common.Hash]struct{}
+	metrics     Metrics
 }
 
-// NewEmptyTrie creates a trie with a nil root
-func NewEmptyTrie() *Trie {
-	return NewTrie(nil)
+// NewEmptyTrie creates a trie with a nil root and uses
+// the metrics given as argument.
+func NewEmptyTrie(metrics Metrics) (trie *Trie) {
+	return NewTrie(nil, metrics)
 }
 
-// NewTrie creates a trie with an existing root node
-func NewTrie(root *Node) *Trie {
+// NewTrie creates a trie with an existing root node and uses
+// the metrics given as argument.
+func NewTrie(root *Node, metrics Metrics) (trie *Trie) {
+	if root != nil {
+		metrics.NodesAdded(1 + root.Descendants)
+	}
+
 	return &Trie{
 		root:        root,
 		childTries:  make(map[common.Hash]*Trie),
 		generation:  0, // Initially zero but increases after every snapshot.
 		deletedKeys: make(map[common.Hash]struct{}),
+		metrics:     metrics,
 	}
+}
+
+// Die updates the metrics of the trie before it gets
+// removed from memory by the Go GC.
+func (t *Trie) Die() {
+	nodesDeleted := getNodesCount(t.root)
+	t.metrics.NodesDeleted(nodesDeleted)
 }
 
 // Snapshot creates a copy of the trie.
@@ -61,6 +76,7 @@ func (t *Trie) Snapshot() (newTrie *Trie) {
 		root:        t.root,
 		childTries:  childTries,
 		deletedKeys: make(map[common.Hash]struct{}),
+		metrics:     t.metrics,
 	}
 }
 
@@ -122,6 +138,7 @@ func (t *Trie) DeepCopy() (trieCopy *Trie) {
 
 	trieCopy = &Trie{
 		generation: t.generation,
+		metrics:    t.metrics,
 	}
 
 	if t.deletedKeys != nil {
@@ -319,7 +336,9 @@ func findNextKeyChild(children []*Node, startIndex byte,
 // key specified in little Endian format.
 func (t *Trie) Put(keyLE, value []byte) {
 	nibblesKey := codec.KeyLEToNibbles(keyLE)
-	t.root, _ = t.insert(t.root, nibblesKey, value)
+	var nodesAdded uint32
+	t.root, nodesAdded = t.insert(t.root, nibblesKey, value)
+	t.metrics.NodesAdded(nodesAdded)
 }
 
 // insert inserts a value in the trie at the key specified.
@@ -656,7 +675,9 @@ func (t *Trie) ClearPrefixLimit(prefixLE []byte, limit uint32) (deleted uint32, 
 	prefix := codec.KeyLEToNibbles(prefixLE)
 	prefix = bytes.TrimSuffix(prefix, []byte{0})
 
-	t.root, deleted, _, allDeleted = t.clearPrefixLimitAtNode(t.root, prefix, limit)
+	var nodesDeleted uint32
+	t.root, deleted, nodesDeleted, allDeleted = t.clearPrefixLimitAtNode(t.root, prefix, limit)
+	t.metrics.NodesDeleted(nodesDeleted)
 	return deleted, allDeleted
 }
 
@@ -834,14 +855,21 @@ func (t *Trie) deleteNodesLimit(parent *Node, prefix []byte, limit uint32) (
 // prefix given in little Endian format.
 func (t *Trie) ClearPrefix(prefixLE []byte) {
 	if len(prefixLE) == 0 {
+		nodesDeleted := getNodesCount(t.root)
+		t.metrics.NodesDeleted(nodesDeleted)
+
 		t.root = nil
+
 		return
 	}
 
 	prefix := codec.KeyLEToNibbles(prefixLE)
 	prefix = bytes.TrimSuffix(prefix, []byte{0})
 
-	t.root, _ = t.clearPrefixAtNode(t.root, prefix)
+	var nodesDeleted uint32
+	t.root, nodesDeleted = t.clearPrefixAtNode(t.root, prefix)
+
+	t.metrics.NodesDeleted(nodesDeleted)
 }
 
 func (t *Trie) clearPrefixAtNode(parent *Node, prefix []byte) (
@@ -919,7 +947,9 @@ func (t *Trie) clearPrefixAtNode(parent *Node, prefix []byte) (
 // If no node is found at this key, nothing is deleted.
 func (t *Trie) Delete(keyLE []byte) {
 	key := codec.KeyLEToNibbles(keyLE)
-	t.root, _, _ = t.deleteAtNode(t.root, key)
+	var nodesDeleted uint32
+	t.root, _, nodesDeleted = t.deleteAtNode(t.root, key)
+	t.metrics.NodesDeleted(nodesDeleted)
 }
 
 func (t *Trie) deleteAtNode(parent *Node, key []byte) (
@@ -1110,4 +1140,11 @@ func concatenateSlices(sliceOne, sliceTwo []byte, otherSlices ...[]byte) (concat
 
 func intToByteSlice(n int) (slice []byte) {
 	return []byte{byte(n)}
+}
+
+func getNodesCount(root *Node) uint32 {
+	if root == nil {
+		return 0
+	}
+	return 1 + root.Descendants
 }

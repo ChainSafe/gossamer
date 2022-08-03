@@ -38,11 +38,12 @@ type Tries struct {
 	triesGauge    prometheus.Gauge
 	setCounter    prometheus.Counter
 	deleteCounter prometheus.Counter
+	metrics       TrieMetrics
 }
 
 // NewTries creates a new thread safe map of root hash
 // to trie using the trie given as a first trie.
-func NewTries(t *trie.Trie) (trs *Tries, err error) {
+func NewTries(t *trie.Trie, metrics TrieMetrics) (trs *Tries, err error) {
 	return &Tries{
 		rootToTrie: map[common.Hash]*trie.Trie{
 			t.MustHash(): t,
@@ -50,6 +51,7 @@ func NewTries(t *trie.Trie) (trs *Tries, err error) {
 		triesGauge:    triesGauge,
 		setCounter:    setCounter,
 		deleteCounter: deleteCounter,
+		metrics:       metrics,
 	}, nil
 }
 
@@ -72,6 +74,12 @@ func (t *Tries) softSet(root common.Hash, trie *trie.Trie) {
 func (t *Tries) delete(root common.Hash) {
 	t.mapMutex.Lock()
 	defer t.mapMutex.Unlock()
+
+	trie, ok := t.rootToTrie[root]
+	if ok {
+		trie.Die()
+	}
+
 	delete(t.rootToTrie, root)
 	// Note we use .Set instead of .Dec in case nothing
 	// was deleted since nothing existed at the hash given.

@@ -24,8 +24,9 @@ var (
 // A nil error is returned on success.
 // Note this is exported because it is imported and used by:
 // https://github.com/ComposableFi/ibc-go/blob/6d62edaa1a3cb0768c430dab81bb195e0b0c72db/modules/light-clients/11-beefy/types/client_state.go#L78
-func Verify(encodedProofNodes [][]byte, rootHash, key, value []byte) (err error) {
-	proofTrie, err := buildTrie(encodedProofNodes, rootHash)
+func Verify(encodedProofNodes [][]byte, rootHash, key, value []byte,
+	metrics Metrics) (err error) {
+	proofTrie, err := buildTrie(encodedProofNodes, rootHash, metrics)
 	if err != nil {
 		return fmt.Errorf("building trie from proof encoded nodes: %w", err)
 	}
@@ -51,7 +52,8 @@ var (
 )
 
 // buildTrie sets a partial trie based on the proof slice of encoded nodes.
-func buildTrie(encodedProofNodes [][]byte, rootHash []byte) (t *trie.Trie, err error) {
+func buildTrie(encodedProofNodes [][]byte, rootHash []byte, metrics Metrics) (
+	t *trie.Trie, err error) {
 	if len(encodedProofNodes) == 0 {
 		return nil, fmt.Errorf("%w: for Merkle root hash 0x%x",
 			ErrEmptyProof, rootHash)
@@ -105,7 +107,7 @@ func buildTrie(encodedProofNodes [][]byte, rootHash []byte) (t *trie.Trie, err e
 		return nil, fmt.Errorf("loading proof: %w", err)
 	}
 
-	return trie.NewTrie(root), nil
+	return trie.NewTrie(root, metrics), nil
 }
 
 // loadProof is a recursive function that will create all the trie paths based

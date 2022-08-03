@@ -12,6 +12,9 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/metrics"
+	proofmetrics "github.com/ChainSafe/gossamer/internal/runtime/metrics/proof"
+	roothashmetrics "github.com/ChainSafe/gossamer/internal/runtime/metrics/roothash"
+	statemetrics "github.com/ChainSafe/gossamer/internal/state/metrics"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
@@ -40,6 +43,10 @@ type Service struct {
 	PrunerCfg pruner.Config
 	Telemetry telemetry.Client
 
+	stateMetrics    TrieMetrics
+	proofMetrics    TrieMetrics
+	rootHashMetrics TrieMetrics
+
 	// Below are for testing only.
 	BabeThresholdNumerator   uint64
 	BabeThresholdDenominator uint64
@@ -55,20 +62,38 @@ type Config struct {
 }
 
 // NewService create a new instance of Service
-func NewService(config Config) *Service {
+func NewService(config Config) (service *Service, err error) {
 	logger.Patch(log.SetLevel(config.LogLevel))
 
-	return &Service{
-		dbPath:    config.Path,
-		logLvl:    config.LogLevel,
-		db:        nil,
-		isMemDB:   false,
-		Storage:   nil,
-		Block:     nil,
-		closeCh:   make(chan interface{}),
-		PrunerCfg: config.PrunerCfg,
-		Telemetry: config.Telemetry,
+	stateMetrics, err := statemetrics.NewPrometheus()
+	if err != nil {
+		return nil, fmt.Errorf("creating state Prometheus metrics: %w", err)
 	}
+
+	proofMetrics, err := proofmetrics.NewPrometheus()
+	if err != nil {
+		return nil, fmt.Errorf("creating proof Prometheus metrics: %w", err)
+	}
+
+	rootHashMetrics, err := roothashmetrics.NewPrometheus()
+	if err != nil {
+		return nil, fmt.Errorf("creating root hash Prometheus metrics: %w", err)
+	}
+
+	return &Service{
+		dbPath:          config.Path,
+		logLvl:          config.LogLevel,
+		db:              nil,
+		isMemDB:         false,
+		Storage:         nil,
+		Block:           nil,
+		closeCh:         make(chan interface{}),
+		PrunerCfg:       config.PrunerCfg,
+		Telemetry:       config.Telemetry,
+		stateMetrics:    stateMetrics,
+		proofMetrics:    proofMetrics,
+		rootHashMetrics: rootHashMetrics,
+	}, nil
 }
 
 // UseMemDB tells the service to use an in-memory key-value store instead of a persistent database.
@@ -113,7 +138,8 @@ func (s *Service) Start() error {
 		return nil
 	}
 
-	tries, err := NewTries(trie.NewEmptyTrie())
+	emptyTrie := trie.NewEmptyTrie(s.stateMetrics)
+	tries, err := NewTries(emptyTrie, s.stateMetrics)
 	if err != nil {
 		return fmt.Errorf("cannot create tries: %w", err)
 	}
@@ -138,8 +164,8 @@ func (s *Service) Start() error {
 		return err
 	}
 
-	// create storage state
-	s.Storage, err = NewStorageState(s.db, s.Block, tries, pr)
+	s.Storage, err = NewStorageState(s.db, s.Block, tries, pr,
+		s.stateMetrics, s.proofMetrics)
 	if err != nil {
 		return fmt.Errorf("failed to create storage state: %w", err)
 	}

@@ -28,6 +28,7 @@ func (t *Trie) PutChild(keyToChild []byte, child *Trie) error {
 	copy(key, ChildStorageKeyPrefix)
 	copy(key[len(ChildStorageKeyPrefix):], keyToChild)
 
+	fmt.Println("HERE", string(key))
 	t.Put(key, childHash.ToBytes())
 	t.childTries[childHash] = child
 	return nil
