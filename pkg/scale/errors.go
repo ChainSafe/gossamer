@@ -56,4 +56,7 @@ var (
 	errEncodeArrayFailed                 = errors.New("failed to encode array")
 	errEncodeSliceFailed                 = errors.New("failed to encode slice")
 	errEncodeLengthFailed                = errors.New("failed to encode length")
+
+	ErrResultAlreadySet                = errors.New("result already has an assigned value")
+	ErrUnableToAddVaryingDataTypeValue = errors.New("unable to add VaryingDataTypeValue")
 )

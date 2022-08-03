@@ -4,7 +4,7 @@
 package scale
 
 import (
-	"github.com/pkg/errors"
+	"fmt"
 )
 
 // VaryingDataTypeValue is used to represent scale encodable types of an associated VaryingDataType
@@ -23,8 +23,9 @@ type VaryingDataTypeSlice struct {
 func (vdts *VaryingDataTypeSlice) Add(values ...VaryingDataTypeValue) (err error) {
 	for _, val := range values {
 		copied := vdts.VaryingDataType
-		err = errors.Wrap(copied.Set(val), "unable to add VaryingDataTypeValue")
+		err = copied.Set(val)
 		if err != nil {
+			err = fmt.Errorf("%w: %s", ErrUnableToAddVaryingDataTypeValue, err)
 			return
 		}
 		vdts.Types = append(vdts.Types, copied)
@@ -43,7 +44,7 @@ func mustNewVaryingDataTypeSliceAndSet(vdt VaryingDataType,
 	values ...VaryingDataTypeValue) (vdts VaryingDataTypeSlice) {
 	vdts = NewVaryingDataTypeSlice(vdt)
 	if err := vdts.Add(values...); err != nil {
-		panic(errors.Wrap(err, "unable to add VaryingDataTypeValue"))
+		panic(fmt.Errorf("%w: %s", ErrUnableToAddVaryingDataTypeValue, err))
 	}
 	return
 }
@@ -58,7 +59,7 @@ type VaryingDataType struct {
 func (vdt *VaryingDataType) Set(value VaryingDataTypeValue) (err error) {
 	_, ok := vdt.cache[value.Index()]
 	if !ok {
-		err = errors.Errorf("unable to append VaryingDataTypeValue: %T, not in cache", value)
+		err = fmt.Errorf("%w: %T, not in cache", ErrUnableToAddVaryingDataTypeValue, value)
 		return
 	}
 	vdt.value = value
@@ -76,14 +77,14 @@ func (vdt *VaryingDataType) Value() (VaryingDataTypeValue, error) {
 // NewVaryingDataType is constructor for VaryingDataType
 func NewVaryingDataType(values ...VaryingDataTypeValue) (vdt VaryingDataType, err error) {
 	if len(values) == 0 {
-		err = errors.Errorf("must provide atleast one VaryingDataTypeValue")
+		err = fmt.Errorf("must provide at least one VaryingDataTypeValue")
 		return
 	}
 	vdt.cache = make(map[uint]VaryingDataTypeValue)
 	for _, value := range values {
 		_, ok := vdt.cache[value.Index()]
 		if ok {
-			err = errors.Errorf("duplicate index with VaryingDataType: %T with index: %d", value, value.Index())
+			err = fmt.Errorf("duplicate index with VaryingDataType: %T with index: %d", value, value.Index())
 			return
 		}
 		vdt.cache[value.Index()] = value
@@ -95,7 +96,7 @@ func NewVaryingDataType(values ...VaryingDataTypeValue) (vdt VaryingDataType, er
 func MustNewVaryingDataType(values ...VaryingDataTypeValue) (vdt VaryingDataType) {
 	vdt, err := NewVaryingDataType(values...)
 	if err != nil {
-		panic(errors.Wrap(err, "unable to create VaryingDataType"))
+		panic(fmt.Errorf("%w: %s", ErrUnableToAddVaryingDataTypeValue, err))
 	}
 	return
 }

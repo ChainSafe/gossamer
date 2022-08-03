@@ -7,8 +7,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math/big"
-
-	"github.com/pkg/errors"
 )
 
 // Uint128 represents an unsigned 128 bit integer
@@ -27,7 +25,7 @@ var MaxUint128 = &Uint128{
 func MustNewUint128(in interface{}, order ...binary.ByteOrder) (u *Uint128) {
 	u, err := NewUint128(in, order...)
 	if err != nil {
-		panic(errors.Wrap(err, "failed to create Uint128"))
+		panic(fmt.Errorf("failed to create Uint128: %w", err))
 	}
 	return
 }
@@ -71,7 +69,7 @@ func NewUint128(in interface{}, order ...binary.ByteOrder) (u *Uint128, err erro
 			Lower: o.Uint64(in[:8]),
 		}
 	default:
-		err = errors.Errorf("unsupported type: %T", in)
+		err = fmt.Errorf("unsupported type: %T", in)
 	}
 	return
 }
@@ -152,12 +150,12 @@ func (*Uint128) trimBytes(b []byte, order binary.ByteOrder) []byte {
 func (u *Uint128) UnmarshalJSON(data []byte) error {
 	intVal, ok := big.NewInt(0).SetString(string(data), 10)
 	if !ok {
-		return errors.Errorf("failed to unmarshal Uint128")
+		return fmt.Errorf("failed to unmarshal Uint128")
 	}
 
 	dec, err := NewUint128(intVal)
 	if err != nil {
-		return errors.Wrap(err, "failed to unmarshal Uint128")
+		return fmt.Errorf("failed to unmarshal Uint128: %w:", err)
 	}
 	u.Upper = dec.Upper
 	u.Lower = dec.Lower
