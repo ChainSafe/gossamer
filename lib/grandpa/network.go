@@ -153,9 +153,7 @@ func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) (
 	}
 
 	switch m.(type) {
-	case *NeighbourMessage:
-		return false, nil
-	case *CatchUpResponse:
+	case *V1NeighbourMessage, *CatchUpResponse:
 		return false, nil
 	}
 
@@ -177,29 +175,35 @@ func (s *Service) sendMessage(msg GrandpaMessage) error {
 func (s *Service) sendNeighbourMessage(interval time.Duration) {
 	t := time.NewTicker(interval)
 	defer t.Stop()
+
+	var neighborMessage *V1NeighbourMessage
 	for {
 		select {
 		case <-s.ctx.Done():
 			return
+
 		case <-t.C:
-			if s.neighbourMessage == nil {
-				continue
+			s.roundLock.Lock()
+			neighborMessage = &V1NeighbourMessage{
+				Round:  s.state.round,
+				SetID:  s.state.setID,
+				Number: uint32(s.head.Number),
 			}
+			s.roundLock.Unlock()
+
 		case info, ok := <-s.finalisedCh:
 			if !ok {
-				// channel was closed
 				return
 			}
 
-			s.neighbourMessage = &NeighbourMessage{
-				Version: 1,
-				Round:   info.Round,
-				SetID:   info.SetID,
-				Number:  uint32(info.Header.Number),
+			neighborMessage = &V1NeighbourMessage{
+				Round:  info.Round,
+				SetID:  info.SetID,
+				Number: uint32(info.Header.Number),
 			}
 		}
 
-		cm, err := s.neighbourMessage.ToConsensusMessage()
+		cm, err := neighborMessage.ToConsensusMessage()
 		if err != nil {
 			logger.Warnf("failed to convert NeighbourMessage to network message: %s", err)
 			continue
@@ -222,8 +226,15 @@ func decodeMessage(cm *network.ConsensusMessage) (m GrandpaMessage, err error) {
 		m = &val
 	case CommitMessage:
 		m = &val
-	case NeighbourMessage:
-		m = &val
+
+	case VersionedNeighborMessage:
+		switch neighborMessage := msg.Value().(type) {
+		case V1NeighbourMessage:
+			// we can afford to not retry handling neighbour message, if it errors.
+			m = &neighborMessage
+		default:
+			return nil, fmt.Errorf("%w: %v", ErrNeighborVersionNotSupported, msg.Value())
+		}
 	case CatchUpRequest:
 		m = &val
 	case CatchUpResponse:

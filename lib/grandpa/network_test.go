@@ -69,7 +69,7 @@ func TestHandleNetworkMessage(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, propagate)
 
-	neighbourMsg := &NeighbourMessage{}
+	neighbourMsg := &V1NeighbourMessage{}
 	cm, err = neighbourMsg.ToConsensusMessage()
 	require.NoError(t, err)
 
@@ -105,29 +105,26 @@ func TestSendNeighbourMessage(t *testing.T) {
 	err = st.Block.SetFinalisedHash(hash, round, setID)
 	require.NoError(t, err)
 
-	expected := &NeighbourMessage{
-		Version: 1,
-		SetID:   setID,
-		Round:   round,
-		Number:  1,
+	expected := &V1NeighbourMessage{
+		SetID:  setID,
+		Round:  round,
+		Number: 1,
 	}
 
 	select {
 	case <-time.After(time.Second):
 		t.Fatal("did not send message")
 	case msg := <-gs.network.(*testNetwork).out:
-		nm, ok := msg.(*NeighbourMessage)
+		nm, ok := msg.(*V1NeighbourMessage)
 		require.True(t, ok)
 		require.Equal(t, expected, nm)
 	}
-
-	require.Equal(t, expected, gs.neighbourMessage)
 
 	select {
 	case <-time.After(time.Second * 2):
 		t.Fatal("did not send message")
 	case msg := <-gs.network.(*testNetwork).out:
-		nm, ok := msg.(*NeighbourMessage)
+		nm, ok := msg.(*V1NeighbourMessage)
 		require.True(t, ok)
 		require.Equal(t, expected, nm)
 	}

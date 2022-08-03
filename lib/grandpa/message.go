@@ -21,7 +21,7 @@ type GrandpaMessage interface { //nolint:revive
 // NewGrandpaMessage returns a new VaryingDataType to represent a GrandpaMessage
 func newGrandpaMessage() scale.VaryingDataType {
 	return scale.MustNewVaryingDataType(
-		VoteMessage{}, CommitMessage{}, NeighbourMessage{},
+		VoteMessage{}, CommitMessage{}, VersionedNeighborMessage{},
 		CatchUpRequest{}, CatchUpResponse{})
 }
 
@@ -77,21 +77,30 @@ func (v *VoteMessage) ToConsensusMessage() (*ConsensusMessage, error) {
 	}, nil
 }
 
-// NeighbourMessage represents a network-level neighbour message
-type NeighbourMessage struct {
-	Version byte
-	Round   uint64
-	SetID   uint64
-	Number  uint32
+type VersionedNeighborMessage scale.VaryingDataType
+
+func (VersionedNeighborMessage) Index() uint { return 2 }
+
+// V1NeighbourMessage represents a network-level neighbour message
+type V1NeighbourMessage struct {
+	Round  uint64
+	SetID  uint64
+	Number uint32
 }
 
 // Index Returns VDT index
-func (NeighbourMessage) Index() uint { return 2 }
+func (V1NeighbourMessage) Index() uint { return 1 }
 
 // ToConsensusMessage converts the NeighbourMessage into a network-level consensus message
-func (m *NeighbourMessage) ToConsensusMessage() (*network.ConsensusMessage, error) {
+func (m *V1NeighbourMessage) ToConsensusMessage() (*network.ConsensusMessage, error) {
+	vdt := scale.MustNewVaryingDataType(V1NeighbourMessage{})
+	vdt.Set(*m)
+
+	versionedNeighborMessage := VersionedNeighborMessage(vdt)
+
 	msg := newGrandpaMessage()
-	err := msg.Set(*m)
+	err := msg.Set(versionedNeighborMessage)
+
 	if err != nil {
 		return nil, err
 	}
