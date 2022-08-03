@@ -6,8 +6,6 @@ package scale
 import (
 	"fmt"
 	"reflect"
-
-	"github.com/pkg/errors"
 )
 
 // ResultMode is the mode the Result is set to
@@ -68,13 +66,13 @@ func (r *Result) Set(mode ResultMode, in interface{}) (err error) {
 			r.mode = mode
 			return
 		} else if reflect.TypeOf(r.err) != reflect.TypeOf(in) {
-			err = errors.Errorf("type mistmatch for result.err: %T, and inputted: %T", r.ok, in)
+			err = fmt.Errorf("type mistmatch for result.err: %T, and inputted: %T", r.ok, in)
 			return
 		}
 		r.err = in
 		r.mode = mode
 	default:
-		err = errors.Errorf("invalid ResultMode %v", mode)
+		err = fmt.Errorf("invalid ResultMode %v", mode)
 	}
 
 	return
@@ -86,7 +84,7 @@ type UnsetResult error
 // Unwrap returns the result in go standard wrapping the Err case in a ResultErr
 func (r *Result) Unwrap() (ok interface{}, err error) {
 	if !r.IsSet() {
-		err = UnsetResult(errors.Errorf("result is not set"))
+		err = UnsetResult(fmt.Errorf("result is not set"))
 		return
 	}
 	switch r.mode {

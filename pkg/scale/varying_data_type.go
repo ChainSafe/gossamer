@@ -25,7 +25,8 @@ func (vdts *VaryingDataTypeSlice) Add(values ...VaryingDataTypeValue) (err error
 		copied := vdts.VaryingDataType
 		err = copied.Set(val)
 		if err != nil {
-			return fmt.Errorf("adding VaryingDataTypeValue: %w", err)
+			err = fmt.Errorf("%w: %s", ErrUnableToAddVaryingDataTypeValue, err)
+			return
 		}
 		vdts.Types = append(vdts.Types, copied)
 	}
@@ -43,7 +44,7 @@ func mustNewVaryingDataTypeSliceAndSet(vdt VaryingDataType,
 	values ...VaryingDataTypeValue) (vdts VaryingDataTypeSlice) {
 	vdts = NewVaryingDataTypeSlice(vdt)
 	if err := vdts.Add(values...); err != nil {
-		panic(fmt.Sprintf("adding VaryingDataTypeValue: %s", err))
+		panic(errors.Wrap(err, "unable to add VaryingDataTypeValue"))
 	}
 	return
 }
@@ -58,7 +59,7 @@ type VaryingDataType struct {
 func (vdt *VaryingDataType) Set(value VaryingDataTypeValue) (err error) {
 	_, ok := vdt.cache[value.Index()]
 	if !ok {
-		err = fmt.Errorf("%w: %v (%T)", ErrAddVaryingDataTypeValueNotInCache, value, value)
+		err = errors.Errorf("unable to append VaryingDataTypeValue: %T, not in cache", value)
 		return
 	}
 	vdt.value = value
@@ -76,14 +77,14 @@ func (vdt *VaryingDataType) Value() (VaryingDataTypeValue, error) {
 // NewVaryingDataType is constructor for VaryingDataType
 func NewVaryingDataType(values ...VaryingDataTypeValue) (vdt VaryingDataType, err error) {
 	if len(values) == 0 {
-		err = ErrMustProvideVaryingDataTypeValue
+		err = errors.Errorf("must provide atleast one VaryingDataTypeValue")
 		return
 	}
 	vdt.cache = make(map[uint]VaryingDataTypeValue)
 	for _, value := range values {
 		_, ok := vdt.cache[value.Index()]
 		if ok {
-			err = fmt.Errorf("duplicate index with VaryingDataType: %T with index: %d", value, value.Index())
+			err = errors.Errorf("duplicate index with VaryingDataType: %T with index: %d", value, value.Index())
 			return
 		}
 		vdt.cache[value.Index()] = value
@@ -95,7 +96,7 @@ func NewVaryingDataType(values ...VaryingDataTypeValue) (vdt VaryingDataType, er
 func MustNewVaryingDataType(values ...VaryingDataTypeValue) (vdt VaryingDataType) {
 	vdt, err := NewVaryingDataType(values...)
 	if err != nil {
-		panic(fmt.Sprintf("adding varying data type value: %s", err))
+		panic(errors.Wrap(err, "unable to create VaryingDataType"))
 	}
 	return
 }
