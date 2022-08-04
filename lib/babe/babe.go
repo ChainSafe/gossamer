@@ -499,14 +499,14 @@ func (b *Service) handleSlot(epoch, slotNum uint64,
 
 	slotNumOfTheBestBlock, err := b.blockState.GetSlotForBlock(parentHeader.Hash())
 	if err != nil {
-		return err
+		return fmt.Errorf("could not get slot for block %s: %w", parentHeader.Hash(), err)
 	}
 
 	if slotNumOfTheBestBlock == slotNum {
 		// pick parent of best block instead to handle slot
 		newParentHeader, err := b.blockState.GetHeader(parentHeader.ParentHash)
 		if err != nil {
-			return err
+			return fmt.Errorf("could not get header for hash %s: %w", parentHeader.ParentHash, err)
 		}
 
 		parentHeader = newParentHeader

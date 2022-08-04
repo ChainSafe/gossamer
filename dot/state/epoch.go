@@ -264,7 +264,6 @@ func (s *EpochState) GetEpochData(epoch uint64, header *types.Header) (*types.Ep
 	s.nextEpochDataLock.RLock()
 	defer s.nextEpochDataLock.RUnlock()
 
-	// here
 	inMemoryEpochData, err := s.nextEpochData.Retrieve(s.blockState, epoch, header)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get epoch data from memory: %w", err)

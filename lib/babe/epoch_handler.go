@@ -135,7 +135,6 @@ func (h *epochHandler) run(ctx context.Context, errCh chan<- error) {
 				panic(fmt.Sprintf("no VRF proof for authoring slot! slot=%d", swt.slotNum))
 			}
 
-			logger.Infof("handling slot %d", swt.slotNum)
 			err := h.handleSlot(h.epochNumber, swt.slotNum, h.epochData.authorityIndex, h.slotToPreRuntimeDigest[swt.slotNum])
 			if err != nil {
 				logger.Warnf("failed to handle slot %d: %s", swt.slotNum, err)
