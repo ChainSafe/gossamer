@@ -217,9 +217,12 @@ func NewTestExtrinsic(t *testing.T, rt Instance, genHash, blockHash common.Hash,
 	c, err := ctypes.NewCall(meta, call, args...)
 	require.NoError(t, err)
 
+	fmt.Println("genH in nte: ", genHash)
+	fmt.Println("bbh in nte: ", blockHash)
+
 	ext := ctypes.NewExtrinsic(c)
 	o := ctypes.SignatureOptions{
-		BlockHash:          ctypes.Hash(blockHash),
+		BlockHash:          ctypes.Hash(common.BytesToHash(common.MustHexToBytes("0xb5d8b5ddc7bb5764001428385f23f2935211c70cd8ce6d0e1096c7a7c32b926c"))),
 		Era:                ctypes.ExtrinsicEra{IsImmortalEra: false},
 		GenesisHash:        ctypes.Hash(genHash),
 		Nonce:              ctypes.NewUCompactFromUInt(nonce),
@@ -309,10 +312,12 @@ func InitializeRuntimeToTest(t *testing.T, instance Instance, parentHash common.
 	require.False(t, res.ExtrinsicsRoot.IsEmpty())
 	require.NotEqual(t, trie.EmptyHash, res.StateRoot)
 
-	return &types.Block{
+	block := &types.Block{
 		Header: *res,
 		Body:   *types.NewBody(types.BytesArrayToExtrinsics(exts)),
 	}
+	fmt.Println(common.BytesToHash(block.MustEncode()))
+	return block
 }
 
 // InitializeRuntimeLatestToTest sets a new block using the runtime functions to set initial data into the host
@@ -391,8 +396,10 @@ func InitializeRuntimeLatestToTest(t *testing.T, instance Instance, parentHash c
 	require.False(t, res.ExtrinsicsRoot.IsEmpty())
 	require.NotEqual(t, trie.EmptyHash, res.StateRoot)
 
-	return &types.Block{
+	block := &types.Block{
 		Header: *res,
 		Body:   *types.NewBody(types.BytesArrayToExtrinsics(exts)),
 	}
+	fmt.Println(res.Hash())
+	return block
 }

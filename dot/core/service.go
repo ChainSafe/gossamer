@@ -409,11 +409,17 @@ func (s *Service) maintainTransactionPool(block *types.Block) {
 	// re-validate transactions in the pool and move them to the queue
 	txs := s.transactionState.PendingInPool()
 	for _, tx := range txs {
-		// get the best block corresponding runtime
+		//// get the best block corresponding runtime
 		bestBlockHash := s.blockState.BestBlockHash()
+		fmt.Println("bbh in mtp: ", bestBlockHash)
+
+		// Lil eth says we should be setting context storage
+		// substrate prob handles this in a diff way
 
 		// If i dont set runtime context, then I get a corrupted storage state
 		// If I do, I get an invalid signature
+
+		// Maybe block hash in signature doesn't match the one got later?
 
 		stateRoot, err := s.storageState.GetStateRootFromBlock(&bestBlockHash)
 		if err != nil {
@@ -425,7 +431,7 @@ func (s *Service) maintainTransactionPool(block *types.Block) {
 			logger.Errorf(err.Error())
 		}
 
-		rt, err := s.blockState.GetRuntime(&bestBlockHash)
+		rt, err := s.blockState.GetRuntime(nil)
 		if err != nil {
 			logger.Warnf("failed to get runtime to re-validate transactions in pool: %s", err)
 			continue
@@ -628,12 +634,14 @@ func (s *Service) buildExternalTransaction(rt runtime.Instance, ext types.Extrin
 
 	txQueueVersion := runtimeVersion.TaggedTransactionQueueVersion(runtimeVersion)
 	var externalExt types.Extrinsic
+	var bbh common.Hash
 	switch txQueueVersion {
 	case supportedTxVersion:
+		bbh = s.blockState.BestBlockHash()
 		externalExt = types.Extrinsic(concatenateByteSlices([][]byte{
 			{byte(types.TxnExternal)},
 			ext,
-			s.blockState.BestBlockHash().ToBytes(),
+			bbh.ToBytes(),
 		}))
 	case previousSupportedTxVersion:
 		externalExt = types.Extrinsic(concatenateByteSlices([][]byte{
@@ -643,5 +651,6 @@ func (s *Service) buildExternalTransaction(rt runtime.Instance, ext types.Extrin
 	default:
 		return types.Extrinsic{}, errInvalidTransactionQueueVersion
 	}
+	fmt.Println("bbh in bet: ", bbh)
 	return externalExt, nil
 }
