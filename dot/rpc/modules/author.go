@@ -8,8 +8,6 @@ import (
 	"net/http"
 	"strings"
 
-	"fmt"
-
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -165,8 +163,6 @@ func (am *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, _ *Key
 		return ErrProvidedKeyDoesNotMatch
 	}
 
-	fmt.Println(keyPair.Public().Hex())
-	fmt.Println(keyPair.Private().Hex())
 	err = am.coreAPI.InsertKey(keyPair, keyReq.Type)
 	if err != nil {
 		return err
