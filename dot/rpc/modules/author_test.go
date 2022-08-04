@@ -298,7 +298,8 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 	kp1, err := sr25519.NewKeypairFromSeed(
 		common.MustHexToBytes("0x6246ddf254e0b4b4e7dffefc8adf69d212b98ac2b579c362b473fec8c40b4c0a"))
 	require.NoError(t, err)
-	_ = kp1.Public().Hex() // this is needed to set the internal field *schnorrkel.PublicKey.compressedKey which causes DeepEqual to fail
+	// this is needed to set the internal field *schnorrkel.PublicKey.compressedKey which causes DeepEqual to fail
+	_ = kp1.Public().Hex()
 
 	kp2, err := ed25519.NewKeypairFromSeed(
 		common.MustHexToBytes("0xb48004c6e1625282313b07d1c9950935e86894a2e4f21fb1ffee9854d180c781"))

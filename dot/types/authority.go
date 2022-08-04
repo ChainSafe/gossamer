@@ -118,11 +118,13 @@ func AuthoritiesToRaw(auths []Authority) []AuthorityRaw {
 	return raw
 }
 
+// AuthorityAsAddress represents an Authority with their address instead of public key
 type AuthorityAsAddress struct {
 	Address common.Address
 	Weight  uint64
 }
 
+// AuthoritiesRawToAuthorityAsAddress converts an array of AuthorityRaws into an array of AuthorityAsAddress
 func AuthoritiesRawToAuthorityAsAddress(authsRaw []AuthorityRaw, kt crypto.KeyType) ([]AuthorityAsAddress, error) {
 	auths := make([]AuthorityAsAddress, len(authsRaw))
 	for i, authRaw := range authsRaw {
