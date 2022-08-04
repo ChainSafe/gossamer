@@ -120,9 +120,9 @@ func (t *Trie) loadNode(db Database, n *Node) error {
 			continue
 		}
 
-		hash := child.MerkleValue
+		merkleValue := child.MerkleValue
 
-		if len(hash) == 0 {
+		if len(merkleValue) == 0 {
 			// node has already been loaded inline
 			// just set encoding + hash digest
 			_, _, err := child.EncodeAndHash()
@@ -133,25 +133,25 @@ func (t *Trie) loadNode(db Database, n *Node) error {
 			continue
 		}
 
-		encodedNode, err := db.Get(hash)
+		encodedNode, err := db.Get(merkleValue)
 		if err != nil {
-			return fmt.Errorf("cannot find child node key 0x%x in database: %w", hash, err)
+			return fmt.Errorf("cannot find child node key 0x%x in database: %w", merkleValue, err)
 		}
 
 		reader := bytes.NewReader(encodedNode)
 		decodedNode, err := node.Decode(reader)
 		if err != nil {
-			return fmt.Errorf("cannot decode node with hash 0x%x: %w", hash, err)
+			return fmt.Errorf("decoding node with Merkle value 0x%x: %w", merkleValue, err)
 		}
 
 		decodedNode.SetClean()
 		decodedNode.Encoding = encodedNode
-		decodedNode.MerkleValue = hash
+		decodedNode.MerkleValue = merkleValue
 		branch.Children[i] = decodedNode
 
 		err = t.loadNode(db, decodedNode)
 		if err != nil {
-			return fmt.Errorf("cannot load child at index %d with hash 0x%x: %w", i, hash, err)
+			return fmt.Errorf("loading child at index %d with Merkle value 0x%x: %w", i, merkleValue, err)
 		}
 
 		if decodedNode.Kind() == node.Branch {
@@ -291,24 +291,24 @@ func getFromDBAtNode(db chaindb.Database, n *Node, key []byte) (
 	}
 
 	// Child can be either inlined or a hash pointer.
-	childHash := child.MerkleValue
-	if len(childHash) == 0 && child.Kind() == node.Leaf {
+	childMerkleValue := child.MerkleValue
+	if len(childMerkleValue) == 0 && child.Kind() == node.Leaf {
 		return getFromDBAtNode(db, child, key[commonPrefixLength+1:])
 	}
 
-	encodedChild, err := db.Get(childHash)
+	encodedChild, err := db.Get(childMerkleValue)
 	if err != nil {
 		return nil, fmt.Errorf(
-			"cannot find child with hash 0x%x in database: %w",
-			childHash, err)
+			"finding child node with Merkle value 0x%x in database: %w",
+			childMerkleValue, err)
 	}
 
 	reader := bytes.NewReader(encodedChild)
 	decodedChild, err := node.Decode(reader)
 	if err != nil {
 		return nil, fmt.Errorf(
-			"cannot decode child node with hash 0x%x: %w",
-			childHash, err)
+			"decoding child node with Merkle value 0x%x: %w",
+			childMerkleValue, err)
 	}
 
 	return getFromDBAtNode(db, decodedChild, key[commonPrefixLength+1:])
@@ -332,23 +332,23 @@ func (t *Trie) writeDirtyNode(db chaindb.Batch, n *Node) (err error) {
 		return nil
 	}
 
-	var encoding, hash []byte
+	var encoding, merkleValue []byte
 	if n == t.root {
-		encoding, hash, err = n.EncodeAndHashRoot()
+		encoding, merkleValue, err = n.EncodeAndHashRoot()
 	} else {
-		encoding, hash, err = n.EncodeAndHash()
+		encoding, merkleValue, err = n.EncodeAndHash()
 	}
 	if err != nil {
 		return fmt.Errorf(
-			"cannot encode and hash node with hash 0x%x: %w",
+			"encoding and hashing node with Merkle value 0x%x: %w",
 			n.MerkleValue, err)
 	}
 
-	err = db.Put(hash, encoding)
+	err = db.Put(merkleValue, encoding)
 	if err != nil {
 		return fmt.Errorf(
-			"cannot put encoding of node with hash 0x%x in database: %w",
-			hash, err)
+			"putting encoding of node with Merkle value 0x%x in database: %w",
+			merkleValue, err)
 	}
 
 	if n.Kind() != node.Branch {
@@ -370,7 +370,7 @@ func (t *Trie) writeDirtyNode(db chaindb.Batch, n *Node) (err error) {
 
 	for _, childTrie := range t.childTries {
 		if err := childTrie.writeDirtyNode(db, childTrie.root); err != nil {
-			return fmt.Errorf("failed to write dirty node=0x%x to database: %w", childTrie.root.MerkleValue, err)
+			return fmt.Errorf("writing dirty node to database: %w", err)
 		}
 	}
 
@@ -405,7 +405,7 @@ func (t *Trie) getInsertedNodeHashesAtNode(n *Node, hashes map[common.Hash]struc
 	}
 	if err != nil {
 		return fmt.Errorf(
-			"cannot encode and hash node with hash 0x%x: %w",
+			"encoding and hashing node with Merkle value 0x%x: %w",
 			n.MerkleValue, err)
 	}
 

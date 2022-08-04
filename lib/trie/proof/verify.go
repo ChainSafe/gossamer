@@ -121,9 +121,6 @@ func loadProof(digestToEncoding map[string][]byte, n *node.Node) (err error) {
 			continue
 		}
 
-		// for inlined child nodes, the hash digest field is the
-		// encoding itself instead of the encoding hash digest, so we
-		// use the `merkleValue` variable name below to avoid confusion.
 		merkleValue := child.MerkleValue
 		encoding, ok := digestToEncoding[string(merkleValue)]
 		if !ok {

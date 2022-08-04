@@ -65,7 +65,7 @@ func (n Node) StringNode() (stringNode *gotree.Node) {
 		stringNode.Appendf("Descendants: %d", n.Descendants)
 	}
 	stringNode.Appendf("Calculated encoding: " + bytesToString(n.Encoding))
-	stringNode.Appendf("Calculated digest: " + bytesToString(n.MerkleValue))
+	stringNode.Appendf("Merkle value: " + bytesToString(n.MerkleValue))
 
 	for i, child := range n.Children {
 		if child == nil {

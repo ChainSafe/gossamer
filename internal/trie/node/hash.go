@@ -12,7 +12,7 @@ import (
 
 // EncodeAndHash returns the encoding of the node and
 // the Merkle value of the node.
-func (n *Node) EncodeAndHash() (encoding, hash []byte, err error) {
+func (n *Node) EncodeAndHash() (encoding, merkleValue []byte, err error) {
 	if !n.Dirty && n.Encoding != nil && n.MerkleValue != nil {
 		return n.Encoding, n.MerkleValue, nil
 	}
@@ -37,8 +37,8 @@ func (n *Node) EncodeAndHash() (encoding, hash []byte, err error) {
 	if buffer.Len() < 32 {
 		n.MerkleValue = make([]byte, len(bufferBytes))
 		copy(n.MerkleValue, bufferBytes)
-		hash = n.MerkleValue // no need to copy
-		return encoding, hash, nil
+		merkleValue = n.MerkleValue // no need to copy
+		return encoding, merkleValue, nil
 	}
 
 	// Note: using the sync.Pool's buffer is useful here.
@@ -47,14 +47,14 @@ func (n *Node) EncodeAndHash() (encoding, hash []byte, err error) {
 		return nil, nil, err
 	}
 	n.MerkleValue = hashArray[:]
-	hash = n.MerkleValue // no need to copy
+	merkleValue = n.MerkleValue // no need to copy
 
-	return encoding, hash, nil
+	return encoding, merkleValue, nil
 }
 
 // EncodeAndHashRoot returns the encoding of the root node and
 // the Merkle value of the root node (the hash of its encoding).
-func (n *Node) EncodeAndHashRoot() (encoding, hash []byte, err error) {
+func (n *Node) EncodeAndHashRoot() (encoding, merkleValue []byte, err error) {
 	if !n.Dirty && n.Encoding != nil && n.MerkleValue != nil {
 		return n.Encoding, n.MerkleValue, nil
 	}
@@ -82,7 +82,7 @@ func (n *Node) EncodeAndHashRoot() (encoding, hash []byte, err error) {
 		return nil, nil, err
 	}
 	n.MerkleValue = hashArray[:]
-	hash = n.MerkleValue // no need to copy
+	merkleValue = n.MerkleValue // no need to copy
 
-	return encoding, hash, nil
+	return encoding, merkleValue, nil
 }
