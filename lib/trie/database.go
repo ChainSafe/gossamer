@@ -185,9 +185,9 @@ func (t *Trie) loadNode(db Database, n *Node) error {
 	return nil
 }
 
-// PopulateNodeHashes writes hashes of each children of the node given
-// as keys to the map hashesSet.
-func (t *Trie) PopulateNodeHashes(n *Node, hashesSet map[common.Hash]struct{}) {
+// PopulateMerkleValues writes the Merkle value of each children of the node given
+// as keys to the map merkleValues.
+func (t *Trie) PopulateMerkleValues(n *Node, merkleValues map[string]struct{}) {
 	if n.Kind() != node.Branch {
 		return
 	}
@@ -198,10 +198,9 @@ func (t *Trie) PopulateNodeHashes(n *Node, hashesSet map[common.Hash]struct{}) {
 			continue
 		}
 
-		hash := common.BytesToHash(child.MerkleValue)
-		hashesSet[hash] = struct{}{}
+		merkleValues[string(child.MerkleValue)] = struct{}{}
 
-		t.PopulateNodeHashes(child, hashesSet)
+		t.PopulateMerkleValues(child, merkleValues)
 	}
 }
 
@@ -354,20 +353,18 @@ func (t *Trie) writeDirtyNode(db chaindb.Batch, n *Node) (err error) {
 	return nil
 }
 
-// GetInsertedNodeHashes returns a set of hashes with all
-// the hashes of all nodes that were inserted in the state trie
-// since the last snapshot.
-// We need to compute the hash values of each newly inserted node.
-func (t *Trie) GetInsertedNodeHashes() (hashesSet map[common.Hash]struct{}, err error) {
-	hashesSet = make(map[common.Hash]struct{})
-	err = t.getInsertedNodeHashesAtNode(t.root, hashesSet)
+// GetInsertedMerkleValues returns the set of node Merkle values
+// for each node that was inserted in the state trie since the last snapshot.
+func (t *Trie) GetInsertedMerkleValues() (merkleValues map[string]struct{}, err error) {
+	merkleValues = make(map[string]struct{})
+	err = t.getInsertedNodeHashesAtNode(t.root, merkleValues)
 	if err != nil {
 		return nil, err
 	}
-	return hashesSet, nil
+	return merkleValues, nil
 }
 
-func (t *Trie) getInsertedNodeHashesAtNode(n *Node, hashes map[common.Hash]struct{}) (err error) {
+func (t *Trie) getInsertedNodeHashesAtNode(n *Node, merkleValues map[string]struct{}) (err error) {
 	if n == nil || !n.Dirty {
 		return nil
 	}
@@ -384,7 +381,7 @@ func (t *Trie) getInsertedNodeHashesAtNode(n *Node, hashes map[common.Hash]struc
 			n.MerkleValue, err)
 	}
 
-	hashes[common.BytesToHash(merkleValue)] = struct{}{}
+	merkleValues[string(merkleValue)] = struct{}{}
 
 	if n.Kind() != node.Branch {
 		return nil
@@ -395,7 +392,7 @@ func (t *Trie) getInsertedNodeHashesAtNode(n *Node, hashes map[common.Hash]struc
 			continue
 		}
 
-		err := t.getInsertedNodeHashesAtNode(child, hashes)
+		err := t.getInsertedNodeHashesAtNode(child, merkleValues)
 		if err != nil {
 			// Note: do not wrap error since this is called recursively.
 			return err
@@ -405,13 +402,13 @@ func (t *Trie) getInsertedNodeHashesAtNode(n *Node, hashes map[common.Hash]struc
 	return nil
 }
 
-// GetDeletedNodeHashes returns a set of all the hashes of nodes that were
-// deleted from the trie since the last snapshot was made.
-// The returned set is a copy of the internal set to prevent data races.
-func (t *Trie) GetDeletedNodeHashes() (hashesSet map[common.Hash]struct{}) {
-	hashesSet = make(map[common.Hash]struct{}, len(t.deletedKeys))
-	for k := range t.deletedKeys {
-		hashesSet[k] = struct{}{}
+// GetDeletedMerkleValues returns a set of all the node Merkle values for each
+// node that was deleted from the trie since the last snapshot was made.
+// The returned set is a copy of the internal set to prevent data corruption.
+func (t *Trie) GetDeletedMerkleValues() (merkleValues map[string]struct{}) {
+	merkleValues = make(map[string]struct{}, len(t.deletedMerkleValues))
+	for k := range t.deletedMerkleValues {
+		merkleValues[k] = struct{}{}
 	}
-	return hashesSet
+	return merkleValues
 }
