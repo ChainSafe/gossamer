@@ -261,8 +261,6 @@ func TestUnlockKeys(t *testing.T) {
 	keyfile, err := GenerateKeypair("sr25519", nil, testdir, testPassword)
 	require.NoError(t, err)
 
-	t.Log(keyfile)
-
 	ks := NewBasicKeystore("test", crypto.Sr25519Type)
 
 	err = UnlockKeys(ks, testdir, "0", string(testPassword))
@@ -276,6 +274,7 @@ func TestUnlockKeys(t *testing.T) {
 
 	kp, err := PrivateKeyToKeypair(priv)
 	require.NoError(t, err)
+	_ = kp.Public().Hex()
 
 	expected := ks.GetKeypair(pub)
 	if !reflect.DeepEqual(expected, kp) {
