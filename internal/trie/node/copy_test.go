@@ -46,9 +46,9 @@ func Test_Node_Copy(t *testing.T) {
 						SubValue: []byte{1},
 					},
 				}),
-				Dirty:      true,
-				HashDigest: []byte{5},
-				Encoding:   []byte{6},
+				Dirty:       true,
+				MerkleValue: []byte{5},
+				Encoding:    []byte{6},
 			},
 			settings: DefaultCopySettings,
 			expectedNode: &Node{
@@ -94,9 +94,9 @@ func Test_Node_Copy(t *testing.T) {
 						SubValue: []byte{1},
 					},
 				}),
-				Dirty:      true,
-				HashDigest: []byte{5},
-				Encoding:   []byte{6},
+				Dirty:       true,
+				MerkleValue: []byte{5},
+				Encoding:    []byte{6},
 			},
 			settings: DeepCopySettings,
 			expectedNode: &Node{
@@ -108,18 +108,18 @@ func Test_Node_Copy(t *testing.T) {
 						SubValue: []byte{1},
 					},
 				}),
-				Dirty:      true,
-				HashDigest: []byte{5},
-				Encoding:   []byte{6},
+				Dirty:       true,
+				MerkleValue: []byte{5},
+				Encoding:    []byte{6},
 			},
 		},
 		"non empty leaf": {
 			node: &Node{
-				Key:        []byte{1, 2},
-				SubValue:   []byte{3, 4},
-				Dirty:      true,
-				HashDigest: []byte{5},
-				Encoding:   []byte{6},
+				Key:         []byte{1, 2},
+				SubValue:    []byte{3, 4},
+				Dirty:       true,
+				MerkleValue: []byte{5},
+				Encoding:    []byte{6},
 			},
 			settings: DefaultCopySettings,
 			expectedNode: &Node{
@@ -130,19 +130,19 @@ func Test_Node_Copy(t *testing.T) {
 		},
 		"deep copy leaf": {
 			node: &Node{
-				Key:        []byte{1, 2},
-				SubValue:   []byte{3, 4},
-				Dirty:      true,
-				HashDigest: []byte{5},
-				Encoding:   []byte{6},
+				Key:         []byte{1, 2},
+				SubValue:    []byte{3, 4},
+				Dirty:       true,
+				MerkleValue: []byte{5},
+				Encoding:    []byte{6},
 			},
 			settings: DeepCopySettings,
 			expectedNode: &Node{
-				Key:        []byte{1, 2},
-				SubValue:   []byte{3, 4},
-				Dirty:      true,
-				HashDigest: []byte{5},
-				Encoding:   []byte{6},
+				Key:         []byte{1, 2},
+				SubValue:    []byte{3, 4},
+				Dirty:       true,
+				MerkleValue: []byte{5},
+				Encoding:    []byte{6},
 			},
 		},
 	}
@@ -157,7 +157,7 @@ func Test_Node_Copy(t *testing.T) {
 			assert.Equal(t, testCase.expectedNode, nodeCopy)
 			testForSliceModif(t, testCase.node.Key, nodeCopy.Key)
 			testForSliceModif(t, testCase.node.SubValue, nodeCopy.SubValue)
-			testForSliceModif(t, testCase.node.HashDigest, nodeCopy.HashDigest)
+			testForSliceModif(t, testCase.node.MerkleValue, nodeCopy.MerkleValue)
 			testForSliceModif(t, testCase.node.Encoding, nodeCopy.Encoding)
 
 			if testCase.node.Kind() == Branch {

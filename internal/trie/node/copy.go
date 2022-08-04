@@ -94,9 +94,9 @@ func (n *Node) Copy(settings CopySettings) *Node {
 	}
 
 	if settings.CopyCached {
-		if n.HashDigest != nil {
-			cpy.HashDigest = make([]byte, len(n.HashDigest))
-			copy(cpy.HashDigest, n.HashDigest)
+		if n.MerkleValue != nil {
+			cpy.MerkleValue = make([]byte, len(n.MerkleValue))
+			copy(cpy.MerkleValue, n.MerkleValue)
 		}
 
 		if n.Encoding != nil {

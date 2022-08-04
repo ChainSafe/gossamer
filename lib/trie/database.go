@@ -27,7 +27,7 @@ type Database interface {
 func (t *Trie) Store(db chaindb.Database) error {
 	for _, v := range t.childTries {
 		if err := v.Store(db); err != nil {
-			return fmt.Errorf("failed to store child trie with root hash=0x%x in the db: %w", v.root.HashDigest, err)
+			return fmt.Errorf("failed to store child trie with root hash=0x%x in the db: %w", v.root.MerkleValue, err)
 		}
 	}
 
@@ -104,7 +104,7 @@ func (t *Trie) Load(db Database, rootHash common.Hash) error {
 	t.root = root
 	t.root.SetClean()
 	t.root.Encoding = encodedNode
-	t.root.HashDigest = rootHashBytes
+	t.root.MerkleValue = rootHashBytes
 
 	return t.loadNode(db, t.root)
 }
@@ -120,7 +120,7 @@ func (t *Trie) loadNode(db Database, n *Node) error {
 			continue
 		}
 
-		hash := child.HashDigest
+		hash := child.MerkleValue
 
 		if len(hash) == 0 {
 			// node has already been loaded inline
@@ -146,7 +146,7 @@ func (t *Trie) loadNode(db Database, n *Node) error {
 
 		decodedNode.SetClean()
 		decodedNode.Encoding = encodedNode
-		decodedNode.HashDigest = hash
+		decodedNode.MerkleValue = hash
 		branch.Children[i] = decodedNode
 
 		err = t.loadNode(db, decodedNode)
@@ -198,7 +198,7 @@ func (t *Trie) PopulateNodeHashes(n *Node, hashesSet map[common.Hash]struct{}) {
 			continue
 		}
 
-		hash := common.BytesToHash(child.HashDigest)
+		hash := common.BytesToHash(child.MerkleValue)
 		hashesSet[hash] = struct{}{}
 
 		t.PopulateNodeHashes(child, hashesSet)
@@ -291,7 +291,7 @@ func getFromDBAtNode(db chaindb.Database, n *Node, key []byte) (
 	}
 
 	// Child can be either inlined or a hash pointer.
-	childHash := child.HashDigest
+	childHash := child.MerkleValue
 	if len(childHash) == 0 && child.Kind() == node.Leaf {
 		return getFromDBAtNode(db, child, key[commonPrefixLength+1:])
 	}
@@ -341,7 +341,7 @@ func (t *Trie) writeDirtyNode(db chaindb.Batch, n *Node) (err error) {
 	if err != nil {
 		return fmt.Errorf(
 			"cannot encode and hash node with hash 0x%x: %w",
-			n.HashDigest, err)
+			n.MerkleValue, err)
 	}
 
 	err = db.Put(hash, encoding)
@@ -370,7 +370,7 @@ func (t *Trie) writeDirtyNode(db chaindb.Batch, n *Node) (err error) {
 
 	for _, childTrie := range t.childTries {
 		if err := childTrie.writeDirtyNode(db, childTrie.root); err != nil {
-			return fmt.Errorf("failed to write dirty node=0x%x to database: %w", childTrie.root.HashDigest, err)
+			return fmt.Errorf("failed to write dirty node=0x%x to database: %w", childTrie.root.MerkleValue, err)
 		}
 	}
 
@@ -406,7 +406,7 @@ func (t *Trie) getInsertedNodeHashesAtNode(n *Node, hashes map[common.Hash]struc
 	if err != nil {
 		return fmt.Errorf(
 			"cannot encode and hash node with hash 0x%x: %w",
-			n.HashDigest, err)
+			n.MerkleValue, err)
 	}
 
 	hashes[common.BytesToHash(hash)] = struct{}{}

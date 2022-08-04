@@ -101,7 +101,7 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 				Key: []byte{5},
 				Children: padRightChildren([]*Node{
 					{
-						HashDigest: []byte{
+						MerkleValue: []byte{
 							2, 18, 48, 30, 98,
 							133, 244, 78, 70,
 							161, 196, 105, 228,

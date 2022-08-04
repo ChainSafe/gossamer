@@ -184,8 +184,8 @@ func Test_decodeBranch(t *testing.T) {
 					nil, nil, nil, nil, nil,
 					nil, nil, nil, nil, nil,
 					{
-						HashDigest: childHash,
-						Dirty:      true,
+						MerkleValue: childHash,
+						Dirty:       true,
 					},
 				}),
 				Dirty:       true,
@@ -221,8 +221,8 @@ func Test_decodeBranch(t *testing.T) {
 					nil, nil, nil, nil, nil,
 					nil, nil, nil, nil, nil,
 					{
-						HashDigest: childHash,
-						Dirty:      true,
+						MerkleValue: childHash,
+						Dirty:       true,
 					},
 				}),
 				Dirty:       true,

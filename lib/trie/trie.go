@@ -101,7 +101,7 @@ func updateGeneration(currentNode *Node, trieGeneration uint64,
 
 	// The hash of the node from a previous snapshotted trie
 	// is usually already computed.
-	deletedHashBytes := currentNode.HashDigest
+	deletedHashBytes := currentNode.MerkleValue
 	if len(deletedHashBytes) > 0 {
 		deletedHash := common.BytesToHash(deletedHashBytes)
 		deletedHashes[deletedHash] = struct{}{}
