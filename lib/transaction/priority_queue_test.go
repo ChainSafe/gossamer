@@ -246,3 +246,10 @@ func TestRemoveExtrinsic(t *testing.T) {
 		t.Fatalf("Fail: got %v expected %v", res, tests[1])
 	}
 }
+
+func TestPopChannel(t *testing.T) {
+	pq := NewPriorityQueue()
+	tx, cancel := pq.PopChannel()
+	<-tx
+	cancel()
+}

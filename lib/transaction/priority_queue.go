@@ -6,7 +6,9 @@ package transaction
 import (
 	"container/heap"
 	"errors"
+	"fmt"
 	"sync"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -144,6 +146,10 @@ func (spq *PriorityQueue) Push(txn *ValidTransaction) (common.Hash, error) {
 	return hash, nil
 }
 
+func (spq *PriorityQueue) PopChannel2(*time.Timer) (tx chan *ValidTransaction) {
+	return
+}
+
 // PopChannel returns a *ValedTransaction channel to be signalled
 // when the next Push() is called on the queue.
 func (spq *PriorityQueue) PopChannel() (tx chan *ValidTransaction, cancel func() (err error)) {
@@ -157,10 +163,12 @@ func (spq *PriorityQueue) PopChannel() (tx chan *ValidTransaction, cancel func()
 	default:
 	}
 	if ok {
+		fmt.Println("return here")
 		return spq.popChannel, nil
 	}
 	nextPopChannelCh := make(chan *ValidTransaction)
 	spq.popChannel = nextPopChannelCh
+	// TODO: implement the cancel func
 	return nextPopChannelCh, func() error { return nil }
 }
 
