@@ -70,8 +70,16 @@ func checkPrimaryThreshold(randomness Randomness,
 	pub *sr25519.PublicKey,
 ) (bool, error) {
 	t := makeTranscript(randomness, slot, epoch)
-	inout := sr25519.AttachInput(output, pub, t)
-	res := sr25519.MakeBytes(inout, 16, babeVRFPrefix)
+	inout, err := sr25519.AttachInput(output, pub, t)
+	if err != nil {
+		return false, fmt.Errorf("attaching sr25519 input: %w", err)
+	}
+
+	const size = 16
+	res, err := inout.MakeBytes(size, babeVRFPrefix)
+	if err != nil {
+		return false, fmt.Errorf("making sr25519 bytes: %w", err)
+	}
 
 	inoutUint, err := scale.NewUint128(res)
 	if err != nil {

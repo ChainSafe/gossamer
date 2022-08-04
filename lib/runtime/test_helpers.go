@@ -208,7 +208,7 @@ func NewTestExtrinsic(t *testing.T, rt Instance, genHash, blockHash common.Hash,
 	require.NoError(t, err)
 
 	meta := &ctypes.Metadata{}
-	err = ctypes.DecodeFromBytes(decoded, meta)
+	err = ctypes.Decode(decoded, meta)
 	require.NoError(t, err)
 
 	rv, err := rt.Version()
@@ -232,7 +232,7 @@ func NewTestExtrinsic(t *testing.T, rt Instance, genHash, blockHash common.Hash,
 	err = ext.Sign(signature.TestKeyringPairAlice, o)
 	require.NoError(t, err)
 
-	extEnc, err := ctypes.EncodeToHexString(ext)
+	extEnc, err := ctypes.EncodeToHex(ext)
 	require.NoError(t, err)
 
 	return extEnc
