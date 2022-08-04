@@ -632,6 +632,7 @@ func BuildFromMap(m map[string][]byte, gen *Genesis) error {
 			addRawValue(key, v, gen)
 		case fmt.Sprintf("0x%x", runtime.BABEAuthoritiesKey()):
 			// handle Babe Authorities
+			fmt.Println(runtime.BABEAuthoritiesKey(), v)
 			err := addAuthoritiesValues("babe", "authorities", crypto.Sr25519Type, v, gen)
 			if err != nil {
 				return err
@@ -664,7 +665,7 @@ func addAuthoritiesValues(k1, k2 string, kt crypto.KeyType, value []byte, gen *G
 	// decode authorities values into []interface that will be decoded into json array
 	ava := [][]interface{}{}
 	reader := new(bytes.Buffer)
-	_, err := reader.Write(value)
+	_, err := reader.Write(value[1:])
 	if err != nil {
 		return err
 	}

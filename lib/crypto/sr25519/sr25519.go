@@ -191,6 +191,8 @@ func NewPublicKey(in []byte) (*PublicKey, error) {
 	buf := [PublicKeyLength]byte{}
 	copy(buf[:], in)
 
+	fmt.Printf("%x\n", buf)
+
 	sr25519Key, err := sr25519.NewPublicKey(buf)
 	if err != nil {
 		return nil, fmt.Errorf("creating sr25519 public key: %w", err)
