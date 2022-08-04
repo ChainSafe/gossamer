@@ -502,13 +502,14 @@ func (b *Service) handleSlot(epoch, slotNum uint64,
 		return err
 	}
 
-	// When can this happen,
-	// - inconsistency in slot calculation, like may be rust code and go code running simultaneously,
-	// it does not produce the same slot number. Otherwise, why would I have a block for a slot number
-	// that is ongoing?
-	// - Also, should I even accept a block for the ongoing slot number? I feel like noce
 	if slotNumOfTheBestBlock == slotNum {
+		// pick parent of best block instead to handle slot
+		newParentHeader, err := b.blockState.GetHeader(parentHeader.ParentHash)
+		if err != nil {
+			return err
+		}
 
+		parentHeader = newParentHeader
 	}
 
 	if parentHeader == nil {
