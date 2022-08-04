@@ -6,13 +6,10 @@ package scale
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"io"
 	"math/big"
 	"reflect"
-
-	"github.com/pkg/errors"
 )
 
 // indirect walks down v allocating pointers as needed,
@@ -67,9 +64,6 @@ func Unmarshal(data []byte, dst interface{}) (err error) {
 	}
 
 	elem := indirect(dstv)
-	if err != nil {
-		return
-	}
 
 	buf := &bytes.Buffer{}
 	ds := decodeState{}
