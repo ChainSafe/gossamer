@@ -35,7 +35,6 @@ var (
 	errCacheFieldScaleIndicesFailed      = errors.New("cache.fieldScaleIndices failed")
 	errDecodeSmallIntFailed              = errors.New("decodeSmallInt failed")
 	errDecodeIntegerFailed               = errors.New("could not decode invalid integer")
-
 	ErrMarshalFailed                     = errors.New("marshal failed")
 	errEncodeIntFailed                   = errors.New("failed to encode int")
 	errEncodeUintFailed                  = errors.New("failed to encode uint")
@@ -56,7 +55,7 @@ var (
 	errEncodeArrayFailed                 = errors.New("failed to encode array")
 	errEncodeSliceFailed                 = errors.New("failed to encode slice")
 	errEncodeLengthFailed                = errors.New("failed to encode length")
-
-	ErrResultAlreadySet                = errors.New("result already has an assigned value")
-	ErrUnableToAddVaryingDataTypeValue = errors.New("unable to add VaryingDataTypeValue")
+	ErrResultAlreadySet                  = errors.New("result already has an assigned value")
+	ErrAddVaryingDataTypeValue           = errors.New("failed to add VaryingDataTypeValue")
+	ErrMustProvideVaryingDataTypeValue   = errors.New("must provide at least one VaryingDataTypeValue")
 )

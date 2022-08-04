@@ -25,7 +25,7 @@ var MaxUint128 = &Uint128{
 func MustNewUint128(in interface{}, order ...binary.ByteOrder) (u *Uint128) {
 	u, err := NewUint128(in, order...)
 	if err != nil {
-		panic(fmt.Errorf("failed to create Uint128: %w", err))
+		panic(fmt.Sprintf("creating Uint128: %s", err))
 	}
 	return
 }
@@ -155,7 +155,7 @@ func (u *Uint128) UnmarshalJSON(data []byte) error {
 
 	dec, err := NewUint128(intVal)
 	if err != nil {
-		return fmt.Errorf("failed to unmarshal Uint128: %w:", err)
+		return fmt.Errorf("creating uint128 from big integer: %w", err)
 	}
 	u.Upper = dec.Upper
 	u.Lower = dec.Lower
