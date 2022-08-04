@@ -632,7 +632,6 @@ func BuildFromMap(m map[string][]byte, gen *Genesis) error {
 			addRawValue(key, v, gen)
 		case fmt.Sprintf("0x%x", runtime.BABEAuthoritiesKey()):
 			// handle Babe Authorities
-			fmt.Println(runtime.BABEAuthoritiesKey(), v)
 			err := addAuthoritiesValues("babe", "authorities", crypto.Sr25519Type, v, gen)
 			if err != nil {
 				return err
@@ -662,46 +661,13 @@ func addAuthoritiesValues(k1, k2 string, kt crypto.KeyType, value []byte, gen *G
 		gen.Genesis.Runtime[k1] = make(map[string]interface{})
 	}
 
-	// decode authorities values into []interface that will be decoded into json array
-	ava := [][]interface{}{}
-	reader := new(bytes.Buffer)
-	_, err := reader.Write(value[1:])
+	var auths []types.AuthorityRaw
+	err := scale.Unmarshal(value, &auths)
 	if err != nil {
 		return err
 	}
 
-	var alen int
-	err = scale.Unmarshal(value, &alen)
-	if err != nil {
-		return err
-	}
-	for i := 0; i < alen; i++ {
-		var auth []interface{}
-		buf := make([]byte, 32)
-		if _, err = reader.Read(buf); err == nil {
-			var arr = [32]byte{}
-			copy(arr[:], buf)
-			pa, err := bytesToAddress(kt, arr[:])
-			if err != nil {
-				return err
-			}
-			auth = append(auth, pa)
-		}
-		b := make([]byte, 8)
-		if _, err = reader.Read(b); err != nil {
-			return fmt.Errorf("reading from buffer: %w", err)
-		}
-		var iv uint64
-		err = scale.Unmarshal(b, &iv)
-
-		if err != nil {
-			return err
-		}
-		auth = append(auth, iv)
-		ava = append(ava, auth)
-	}
-
-	gen.Genesis.Runtime[k1][k2] = ava
+	gen.Genesis.Runtime[k1][k2] = auths
 	return nil
 }
 
