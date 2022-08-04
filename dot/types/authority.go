@@ -94,6 +94,8 @@ func (a *Authority) FromRawSr25519(raw *AuthorityRaw) error {
 		return err
 	}
 
+	_ = id.Hex()
+
 	a.Key = id
 	a.Weight = raw.Weight
 	return nil
