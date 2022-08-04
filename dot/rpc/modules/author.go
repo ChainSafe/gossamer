@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"strings"
 
+	"fmt"
+
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -15,7 +17,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-var ErrProvidedKeyDoesNotMatch = errors.New("generated public key does not equal provide public key")
+var ErrProvidedKeyDoesNotMatch = errors.New("generated public key does not equal provided public key")
 
 // AuthorModule holds a pointer to the API
 type AuthorModule struct {
@@ -163,6 +165,8 @@ func (am *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, _ *Key
 		return ErrProvidedKeyDoesNotMatch
 	}
 
+	fmt.Println(keyPair.Public().Hex())
+	fmt.Println(keyPair.Private().Hex())
 	err = am.coreAPI.InsertKey(keyPair, keyReq.Type)
 	if err != nil {
 		return err

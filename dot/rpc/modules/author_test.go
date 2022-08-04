@@ -298,14 +298,17 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 	kp1, err := sr25519.NewKeypairFromSeed(
 		common.MustHexToBytes("0x6246ddf254e0b4b4e7dffefc8adf69d212b98ac2b579c362b473fec8c40b4c0a"))
 	require.NoError(t, err)
+	_ = kp1.Public().Hex() // this is needed to set the internal field *schnorrkel.PublicKey.compressedKey which causes DeepEqual to fail
 
 	kp2, err := ed25519.NewKeypairFromSeed(
 		common.MustHexToBytes("0xb48004c6e1625282313b07d1c9950935e86894a2e4f21fb1ffee9854d180c781"))
 	require.NoError(t, err)
+	_ = kp2.Public().Hex()
 
 	kp3, err := sr25519.NewKeypairFromSeed(
 		common.MustHexToBytes("0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309"))
 	require.NoError(t, err)
+	_ = kp3.Public().Hex()
 
 	mockCoreAPIHappyBabe := &mocks.CoreAPI{}
 	mockCoreAPIHappyBabe.On("InsertKey", kp1, "babe").Return(nil)

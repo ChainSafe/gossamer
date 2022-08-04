@@ -16,8 +16,8 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
-	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	// "github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	// "github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -667,21 +667,26 @@ func addAuthoritiesValues(k1, k2 string, kt crypto.KeyType, value []byte, gen *G
 		return err
 	}
 
-	gen.Genesis.Runtime[k1][k2] = auths
+	authAddrs, err := types.AuthoritiesRawToAuthorityAsAddress(auths, kt)
+	if err != nil {
+		return err
+	}
+
+	gen.Genesis.Runtime[k1][k2] = authAddrs
 	return nil
 }
 
-func bytesToAddress(kt crypto.KeyType, v []byte) (common.Address, error) {
-	var pk crypto.PublicKey
-	var err error
-	switch kt {
-	case crypto.Ed25519Type:
-		pk, err = ed25519.NewPublicKey(v)
-	case crypto.Sr25519Type:
-		pk, err = sr25519.NewPublicKey(v)
-	}
-	if err != nil {
-		return "", err
-	}
-	return crypto.PublicKeyToAddress(pk), nil
-}
+// func bytesToAddress(kt crypto.KeyType, v []byte) (common.Address, error) {
+// 	var pk crypto.PublicKey
+// 	var err error
+// 	switch kt {
+// 	case crypto.Ed25519Type:
+// 		pk, err = ed25519.NewPublicKey(v)
+// 	case crypto.Sr25519Type:
+// 		pk, err = sr25519.NewPublicKey(v)
+// 	}
+// 	if err != nil {
+// 		return "", err
+// 	}
+// 	return crypto.PublicKeyToAddress(pk), nil
+// }
