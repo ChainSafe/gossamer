@@ -165,6 +165,7 @@ func TestValidateBlockAnnounceHandshake(t *testing.T) {
 	nodeA.notificationsProtocols[BlockAnnounceMsgType].peersData.setInboundHandshakeData(testPeerID, &handshakeData{})
 
 	err := nodeA.validateBlockAnnounceHandshake(testPeerID, &BlockAnnounceHandshake{
+		Roles:           common.FullNodeRole,
 		BestBlockNumber: 100,
 		GenesisHash:     nodeA.blockState.GenesisHash(),
 	})
