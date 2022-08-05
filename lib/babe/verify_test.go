@@ -165,9 +165,13 @@ func Test_getAuthorityIndex(t *testing.T) {
 		{
 			name: "Invalid Preruntime Digest Type",
 			args: args{headerInvalidPre},
-			expErr: errors.New("cannot decode babe header from pre-digest: unmarshal failed: " +
-				"decodeVaryingDataType failed: unmarshal failed: decodeStruct failed: decodeFixedWidthInt failed: Read" +
-				" failed: EOF, field: 0"),
+			expErr: errors.New("cannot decode babe header from pre-digest: unmarshalling {<nil> map[1:{0 0 " +
+				"[0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0] " +
+				"[0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0" +
+				" 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]} 2:{0 0} 3:{0 0 [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0" +
+				" 0 0 0 0 0 0 0] [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0" +
+				" 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]}]}: decoding varying data type: unmarshalling:" +
+				" decoding struct: unmarshalling field at index {0 0}: decoding fixed width int: reading buffer: EOF"),
 		},
 		{
 			name: "BabePrimaryPreDigest Type",
