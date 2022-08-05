@@ -30,12 +30,12 @@ type PeerInfo struct {
 type Roles byte
 
 const (
-	// FullNode allow you to read the current state of the chain and to submit and validate
+	// FullNodeRole allow you to read the current state of the chain and to submit and validate
 	// extrinsics directly on the network without relying on a centralised infrastructure provider.
-	FullNode Roles = 1
-	// LightClient node has only the runtime and the current state, but does not store past
+	FullNodeRole Roles = 1
+	// LightClientRole node has only the runtime and the current state, but does not store past
 	// blocks and so cannot read historical data without requesting it from a node that has it.
-	LightClient Roles = 2
-	// Validator node helps seal new blocks.
-	Validator Roles = 4
+	LightClientRole Roles = 2
+	// ValidatorRole node helps seal new blocks.
+	ValidatorRole Roles = 4
 )

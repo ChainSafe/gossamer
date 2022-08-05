@@ -33,7 +33,7 @@ const (
 	DefaultProtocolID = "/gossamer/gssmr/0"
 
 	// DefaultRoles the default value for Config.Roles (0 = no network, 1 = full node)
-	DefaultRoles = common.FullNode
+	DefaultRoles = common.FullNodeRole
 
 	// DefaultMinPeerCount is the default minimum peer count
 	DefaultMinPeerCount = 5

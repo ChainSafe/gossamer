@@ -15,7 +15,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-var errInvalidRole = errors.New("invalid handshake role")
+var errInvalidRole = errors.New("invalid role")
 var (
 	_ NotificationsMessage = &BlockAnnounceMessage{}
 	_ NotificationsMessage = &BlockAnnounceHandshake{}
@@ -175,7 +175,7 @@ func (s *Service) validateBlockAnnounceHandshake(from peer.ID, hs Handshake) err
 	}
 
 	switch bhs.Roles {
-	case common.FullNode, common.LightClient, common.Validator:
+	case common.FullNodeRole, common.LightClientRole, common.ValidatorRole:
 	default:
 		return errInvalidRole
 	}

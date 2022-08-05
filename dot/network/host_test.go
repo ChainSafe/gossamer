@@ -334,7 +334,7 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 	)
 
 	testHandshake := &BlockAnnounceHandshake{
-		Roles:           common.Validator,
+		Roles:           common.ValidatorRole,
 		BestBlockNumber: bestBlockNumber,
 		BestBlockHash:   common.Hash{1},
 		GenesisHash:     nodeB.blockState.GenesisHash(),
