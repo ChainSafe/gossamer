@@ -7,9 +7,9 @@ import "errors"
 
 var (
 	ErrUnsupportedDestination            = errors.New("must be a pointer to a destination, unsupported destination")
-	errDecodeBoolFailed                  = errors.New("decodeBool failed")
-	errUnsupportedType                   = errors.New("unsupported type")
-	errUnsupportedResult                 = errors.New("unsupported result")
+	ErrDecodeBoolFailed                  = errors.New("decodeBool failed")
+	ErrUnsupportedType                   = errors.New("unsupported type")
+	ErrUnsupportedResult                 = errors.New("unsupported result")
 	errUnsupportedOption                 = errors.New("unsupported option")
 	errFindVDT                           = errors.New("unable to find VaryingDataTypeValue with index")
 	errDecodeInteger                     = errors.New("could not decode invalid integer")
