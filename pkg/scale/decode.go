@@ -312,7 +312,10 @@ func (ds *decodeState) decodeCustomPrimitive(dstv reflect.Value) (err error) {
 func (ds *decodeState) ReadByte() (byte, error) {
 	b := make([]byte, 1)        // make buffer
 	_, err := ds.Reader.Read(b) // read what's in the Decoder's underlying buffer to our new buffer b
-	return b[0], err
+	if err != nil {
+		return b[0], fmt.Errorf("reading byte: %w", err)
+	}
+	return b[0], nil
 }
 
 func (ds *decodeState) decodeResult(dstv reflect.Value) (err error) {
@@ -362,6 +365,7 @@ func (ds *decodeState) decodePointer(dstv reflect.Value) (err error) {
 	var rb byte
 	rb, err = ds.ReadByte()
 	if err != nil {
+		err = fmt.Errorf("reading byte: %w", err)
 		return
 	}
 	switch rb {
@@ -591,8 +595,7 @@ func (ds *decodeState) decodeUint(dstv reflect.Value) (err error) {
 			copy(tmp, buf)
 			o = binary.LittleEndian.Uint64(tmp)
 		} else {
-			err = errors.New("could not decode invalid integer")
-			return
+			return errDecodeInteger
 		}
 		dstv.Set(reflect.ValueOf(o).Convert(reflect.TypeOf(in)))
 	}
