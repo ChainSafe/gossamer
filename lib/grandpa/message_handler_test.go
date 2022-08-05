@@ -1252,6 +1252,8 @@ func signFakeFullVote(
 }
 
 func TestService_VerifyBlockJustification(t *testing.T) {
+	t.Parallel()
+
 	precommits := buildTestJustification(t, 2, 1, 0, kr, precommit)
 	justification := newJustification(1, testHash, 1, precommits)
 	justificationBytes, err := scale.Marshal(*justification)

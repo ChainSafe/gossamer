@@ -217,7 +217,9 @@ func Test_chainProcessor_handleBody(t *testing.T) {
 	testBody := types.NewBody(testExtrinsics)
 
 	t.Run("base case", func(t *testing.T) {
+		t.Parallel()
 		ctrl := gomock.NewController(t)
+
 		mockTransactionState := NewMockTransactionState(ctrl)
 		mockTransactionState.EXPECT().RemoveExtrinsic(testExtrinsics[0])
 		mockTransactionState.EXPECT().RemoveExtrinsic(testExtrinsics[1])

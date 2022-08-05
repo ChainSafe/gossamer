@@ -19,7 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestStableNetworkRPC(t *testing.T) {
+func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 	if utils.MODE != "rpc" {
 		t.Skip("RPC tests are disabled, going to skip.")
 	}

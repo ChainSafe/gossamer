@@ -142,7 +142,7 @@ func testBlockState(t *testing.T, db chaindb.Database) *BlockState {
 	return bs
 }
 
-func TestAddScheduledChangesKeepTheRightForkTree(t *testing.T) {
+func TestAddScheduledChangesKeepTheRightForkTree(t *testing.T) { //nolint:tparallel
 	t.Parallel()
 
 	keyring, err := keystore.NewSr25519Keyring()
@@ -217,7 +217,6 @@ func TestAddScheduledChangesKeepTheRightForkTree(t *testing.T) {
 	}
 
 	for tname, tt := range tests {
-		tt := tt
 		t.Run(tname, func(t *testing.T) {
 			// clear the scheduledChangeRoots after the test ends
 			// this does not cause race condition because t.Run without
@@ -566,6 +565,8 @@ func TestNextGrandpaAuthorityChange(t *testing.T) {
 }
 
 func TestApplyForcedChanges(t *testing.T) {
+	t.Parallel()
+
 	keyring, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 
@@ -768,6 +769,8 @@ func TestApplyForcedChanges(t *testing.T) {
 }
 
 func TestApplyScheduledChangesKeepDescendantForcedChanges(t *testing.T) {
+	t.Parallel()
+
 	keyring, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 
@@ -885,6 +888,8 @@ func TestApplyScheduledChangesKeepDescendantForcedChanges(t *testing.T) {
 }
 
 func TestApplyScheduledChangeGetApplicableChange(t *testing.T) {
+	t.Parallel()
+
 	keyring, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 
@@ -1120,6 +1125,8 @@ func TestApplyScheduledChangeGetApplicableChange(t *testing.T) {
 }
 
 func TestApplyScheduledChange(t *testing.T) {
+	t.Parallel()
+
 	keyring, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 

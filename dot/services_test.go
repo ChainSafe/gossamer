@@ -137,9 +137,10 @@ func Test_newInMemoryDB(t *testing.T) {
 //go:generate mockgen -destination=mock_service_builder_test.go -package $GOPACKAGE . ServiceBuilder
 
 func Test_nodeBuilder_createBABEService(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	mockBabeIFace := NewMockServiceIFace(ctrl)
-	t.Parallel()
 
 	cfg := NewTestConfig(t)
 
@@ -204,7 +205,10 @@ func Test_nodeBuilder_createBABEService(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			stateSrvc := newStateService(t, ctrl)
 			mockBabeBuilder := NewMockServiceBuilder(ctrl)
 			mockBabeBuilder.EXPECT().NewServiceIFace(
@@ -314,7 +318,10 @@ func Test_nodeBuilder_createCoreService(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			cfg := NewTestConfig(t)
 			ctrl := gomock.NewController(t)
 			stateSrvc := newStateService(t, ctrl)
@@ -351,9 +358,12 @@ func Test_nodeBuilder_createNetworkService(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			cfg := NewTestConfig(t)
+			t.Parallel()
 			ctrl := gomock.NewController(t)
+
+			cfg := NewTestConfig(t)
 			stateSrvc := newStateService(t, ctrl)
 			no := nodeBuilder{}
 			got, err := no.createNetworkService(cfg, stateSrvc, nil)
@@ -384,7 +394,10 @@ func Test_nodeBuilder_createRPCService(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			cfg := NewTestConfig(t)
 			ctrl := gomock.NewController(t)
 			stateSrvc := newStateService(t, ctrl)
@@ -435,7 +448,10 @@ func Test_nodeBuilder_createGRANDPAService(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			cfg := NewTestConfig(t)
 			ctrl := gomock.NewController(t)
 			stateSrvc := newStateService(t, ctrl)
@@ -486,7 +502,10 @@ func Test_createRuntime(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			ctrl := gomock.NewController(t)
 			stateSrvc := newStateService(t, ctrl)
 			code, err := stateSrvc.Storage.LoadCode(nil)
@@ -534,7 +553,10 @@ func Test_nodeBuilder_newSyncService(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			cfg := NewTestConfig(t)
 			ctrl := gomock.NewController(t)
 			stateSrvc := newStateService(t, ctrl)
