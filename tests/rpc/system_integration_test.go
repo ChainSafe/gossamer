@@ -10,7 +10,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
-	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/tests/utils"
 	"github.com/ChainSafe/gossamer/tests/utils/node"
 	"github.com/ChainSafe/gossamer/tests/utils/rpc"
@@ -31,7 +31,7 @@ func TestStableNetworkRPC(t *testing.T) {
 			Modules: []string{"system", "author", "chain"},
 		},
 		Core: toml.CoreConfig{
-			Roles: types.FullNodeRole,
+			Roles: common.FullNodeRole,
 		},
 	}
 

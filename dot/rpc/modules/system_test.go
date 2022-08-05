@@ -137,7 +137,7 @@ func TestSystemModule_NodeRolesTest(t *testing.T) {
 	mockNetworkAPI2.On("NodeRoles").Return(common.LightClientRole, nil)
 
 	mockNetworkAPI3 := new(mocks.NetworkAPI)
-	mockNetworkAPI3.On("NodeRoles").Return(common.ValidatorRole, nil)
+	mockNetworkAPI3.On("NodeRoles").Return(common.AuthorityRole, nil)
 
 	mockNetworkAPI4 := new(mocks.NetworkAPI)
 	mockNetworkAPI4.On("NodeRoles").Return(common.Roles(21), nil)

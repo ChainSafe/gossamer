@@ -3,7 +3,9 @@
 
 package common
 
-import ma "github.com/multiformats/go-multiaddr"
+import (
+	ma "github.com/multiformats/go-multiaddr"
+)
 
 // Health is network information about host needed for the rpc server
 type Health struct {
@@ -30,12 +32,14 @@ type PeerInfo struct {
 type Roles byte
 
 const (
+	// NoNetworkRole runs a node without networking
+	NoNetworkRole Roles = 0
 	// FullNodeRole allow you to read the current state of the chain and to submit and validate
 	// extrinsics directly on the network without relying on a centralised infrastructure provider.
 	FullNodeRole Roles = 1
 	// LightClientRole node has only the runtime and the current state, but does not store past
 	// blocks and so cannot read historical data without requesting it from a node that has it.
 	LightClientRole Roles = 2
-	// ValidatorRole node helps seal new blocks.
-	ValidatorRole Roles = 4
+	// AuthorityRole runs the node as a block-producing and finalising node
+	AuthorityRole Roles = 4
 )

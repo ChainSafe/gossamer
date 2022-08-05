@@ -145,7 +145,7 @@ func (sm *SystemModule) NodeRoles(r *http.Request, req *EmptyRequest, res *[]int
 		resultArray = append(resultArray, "Full")
 	case common.LightClientRole:
 		resultArray = append(resultArray, "LightClient")
-	case common.ValidatorRole:
+	case common.AuthorityRole:
 		resultArray = append(resultArray, "Authority")
 	default:
 		resultArray = append(resultArray, "UnknownRole")

@@ -9,6 +9,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/pprof"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -50,7 +51,7 @@ func TestConfig(t *testing.T) {
 					Key: "alice",
 				},
 				Core: CoreConfig{
-					Roles:            byte(4),
+					Roles:            common.AuthorityRole,
 					BabeAuthority:    true,
 					BABELead:         true,
 					GrandpaAuthority: true,
@@ -109,7 +110,7 @@ func TestConfig(t *testing.T) {
 				},
 				Account: AccountConfig{},
 				Core: CoreConfig{
-					Roles:            byte(4),
+					Roles:            common.AuthorityRole,
 					BabeAuthority:    true,
 					GrandpaAuthority: true,
 					WasmInterpreter:  "wasmer",
@@ -170,7 +171,7 @@ func TestConfig(t *testing.T) {
 				},
 				Account: AccountConfig{},
 				Core: CoreConfig{
-					Roles:           byte(1),
+					Roles:           common.FullNodeRole,
 					WasmInterpreter: "wasmer",
 					GrandpaInterval: 0,
 				},
@@ -227,7 +228,7 @@ func TestConfig(t *testing.T) {
 				},
 				Init: InitConfig{Genesis: "./chain/polkadot/genesis.json"},
 				Core: CoreConfig{
-					Roles:           byte(1),
+					Roles:           common.FullNodeRole,
 					WasmInterpreter: "wasmer",
 				},
 				Network: NetworkConfig{

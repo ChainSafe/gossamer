@@ -101,7 +101,7 @@ func dotConfigToToml(dcfg *dot.Config) *ctoml.Config {
 	}
 
 	cfg.Core = ctoml.CoreConfig{
-		Roles:            dcfg.Core.Roles,
+		Roles:            byte(dcfg.Core.Roles),
 		BabeAuthority:    dcfg.Core.BabeAuthority,
 		GrandpaAuthority: dcfg.Core.GrandpaAuthority,
 		GrandpaInterval:  uint32(dcfg.Core.GrandpaInterval / time.Second),
