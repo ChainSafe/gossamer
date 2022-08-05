@@ -141,11 +141,11 @@ func (sm *SystemModule) NodeRoles(r *http.Request, req *EmptyRequest, res *[]int
 
 	role := sm.networkAPI.NodeRoles()
 	switch role {
-	case 1:
+	case common.FullNodeRole:
 		resultArray = append(resultArray, "Full")
-	case 2:
+	case common.LightClientRole:
 		resultArray = append(resultArray, "LightClient")
-	case 4:
+	case common.ValidatorRole:
 		resultArray = append(resultArray, "Authority")
 	default:
 		resultArray = append(resultArray, "UnknownRole")

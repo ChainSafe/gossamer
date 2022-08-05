@@ -131,16 +131,16 @@ func TestSystemModule_PeersTest(t *testing.T) {
 
 func TestSystemModule_NodeRolesTest(t *testing.T) {
 	mockNetworkAPI1 := new(mocks.NetworkAPI)
-	mockNetworkAPI1.On("NodeRoles").Return(byte(1), nil)
+	mockNetworkAPI1.On("NodeRoles").Return(common.FullNodeRole, nil)
 
 	mockNetworkAPI2 := new(mocks.NetworkAPI)
-	mockNetworkAPI2.On("NodeRoles").Return(byte(2), nil)
+	mockNetworkAPI2.On("NodeRoles").Return(common.LightClientRole, nil)
 
 	mockNetworkAPI3 := new(mocks.NetworkAPI)
-	mockNetworkAPI3.On("NodeRoles").Return(byte(4), nil)
+	mockNetworkAPI3.On("NodeRoles").Return(common.ValidatorRole, nil)
 
 	mockNetworkAPI4 := new(mocks.NetworkAPI)
-	mockNetworkAPI4.On("NodeRoles").Return(byte(21), nil)
+	mockNetworkAPI4.On("NodeRoles").Return(common.Roles(21), nil)
 
 	type args struct {
 		r   *http.Request
@@ -183,7 +183,7 @@ func TestSystemModule_NodeRolesTest(t *testing.T) {
 			args: args{
 				req: &EmptyRequest{},
 			},
-			exp: []interface{}{"UnknownRole", []interface{}{uint8(21)}},
+			exp: []interface{}{"UnknownRole", []interface{}{common.Roles(21)}},
 		},
 	}
 	for _, tt := range tests {
