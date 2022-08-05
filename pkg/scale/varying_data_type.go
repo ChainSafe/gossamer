@@ -59,7 +59,7 @@ type VaryingDataType struct {
 func (vdt *VaryingDataType) Set(value VaryingDataTypeValue) (err error) {
 	_, ok := vdt.cache[value.Index()]
 	if !ok {
-		err = fmt.Errorf("%w: %T, not in cache", ErrUnableToAddVaryingDataTypeValue, value)
+		err = fmt.Errorf("%w: %v (%T), not in cache", ErrAddVaryingDataTypeValue, value, value)
 		return
 	}
 	vdt.value = value
@@ -77,7 +77,7 @@ func (vdt *VaryingDataType) Value() (VaryingDataTypeValue, error) {
 // NewVaryingDataType is constructor for VaryingDataType
 func NewVaryingDataType(values ...VaryingDataTypeValue) (vdt VaryingDataType, err error) {
 	if len(values) == 0 {
-		err = fmt.Errorf("must provide at least one VaryingDataTypeValue")
+		err = ErrMustProvideVaryingDataTypeValue
 		return
 	}
 	vdt.cache = make(map[uint]VaryingDataTypeValue)
@@ -96,7 +96,7 @@ func NewVaryingDataType(values ...VaryingDataTypeValue) (vdt VaryingDataType, er
 func MustNewVaryingDataType(values ...VaryingDataTypeValue) (vdt VaryingDataType) {
 	vdt, err := NewVaryingDataType(values...)
 	if err != nil {
-		panic(fmt.Errorf("%w: %s", ErrUnableToAddVaryingDataTypeValue, err))
+		panic(fmt.Sprintf("adding varying data type value: %s", err))
 	}
 	return
 }
