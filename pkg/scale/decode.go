@@ -362,7 +362,6 @@ func (ds *decodeState) decodePointer(dstv reflect.Value) (err error) {
 	var rb byte
 	rb, err = ds.ReadByte()
 	if err != nil {
-		err = fmt.Errorf("reading byte: %w", err)
 		return
 	}
 	switch rb {
