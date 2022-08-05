@@ -120,7 +120,7 @@ func TestJson2ReadRequest(t *testing.T) {
 			reader := strings.NewReader(
 				fmt.Sprintf(`{"id":1, "jsonrpc":"2.0", "method":%s, "params":%s}`,
 					test.method, test.params))
-			req, err := http.NewRequest("POST", "", reader)
+			req, err := http.NewRequest(http.MethodPost, "", reader)
 			require.NoError(t, err)
 
 			resWriter := newMockResponseWriter()
