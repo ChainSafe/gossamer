@@ -187,7 +187,7 @@ func (s *Service) validateBlockAnnounceHandshake(from peer.ID, hs Handshake) err
 	switch bhs.Roles {
 	case common.FullNode, common.LightClient, common.Validator:
 	default:
-		return errInvalidRole
+		return fmt.Errorf("%w: %d", errInvalidRole, bhs.Roles)
 	}
 
 	if !bhs.GenesisHash.Equal(s.blockState.GenesisHash()) {
