@@ -5,7 +5,6 @@ package node
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"testing"
 
@@ -372,7 +371,6 @@ func Test_decodeLeaf(t *testing.T) {
 
 			leaf, err := decodeLeaf(testCase.reader,
 				testCase.partialKeyLength)
-			fmt.Printf("error %v\n", err)
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if err != nil {
 				assert.EqualError(t, err, testCase.errMessage)

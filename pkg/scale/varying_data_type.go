@@ -25,8 +25,7 @@ func (vdts *VaryingDataTypeSlice) Add(values ...VaryingDataTypeValue) (err error
 		copied := vdts.VaryingDataType
 		err = copied.Set(val)
 		if err != nil {
-			err = fmt.Errorf("adding VaryingDataTypeValue: %w", err)
-			return
+			return fmt.Errorf("adding VaryingDataTypeValue: %w", err)
 		}
 		vdts.Types = append(vdts.Types, copied)
 	}
@@ -59,7 +58,7 @@ type VaryingDataType struct {
 func (vdt *VaryingDataType) Set(value VaryingDataTypeValue) (err error) {
 	_, ok := vdt.cache[value.Index()]
 	if !ok {
-		err = fmt.Errorf("%w: %v (%T), not in cache", ErrAddVaryingDataTypeValue, value, value)
+		err = fmt.Errorf("%w: %v (%T)", ErrAddVaryingDataTypeValueNotInCache, value, value)
 		return
 	}
 	vdt.value = value
