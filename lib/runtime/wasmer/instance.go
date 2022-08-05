@@ -159,21 +159,14 @@ func (in *Instance) UpdateRuntimeCode(code []byte) (err error) {
 // CheckRuntimeVersion finds the runtime version by initiating a temporary
 // runtime instance using the WASM code provided, and querying it.
 func CheckRuntimeVersion(code []byte) (version runtime.Version, err error) {
-	wasmInstance, allocator, err := setupVM(code)
+	config := runtime.InstanceConfig{
+		LogLvl: log.DoNotChange,
+	}
+	instance, err := NewInstance(code, config)
 	if err != nil {
-		return nil, fmt.Errorf("setting up VM: %w", err)
+		return version, fmt.Errorf("creating runtime instance: %w", err)
 	}
-
-	ctx := &runtime.Context{
-		Allocator: allocator,
-	}
-	wasmInstance.SetContextData(ctx)
-
-	instance := Instance{
-		vm:  wasmInstance,
-		ctx: ctx,
-	}
-	defer instance.close()
+	defer instance.Stop()
 
 	version, err = instance.Version()
 	if err != nil {
