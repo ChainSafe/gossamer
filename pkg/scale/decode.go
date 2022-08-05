@@ -412,7 +412,7 @@ func (ds *decodeState) decodeVaryingDataTypeSlice(dstv reflect.Value) (err error
 		vdtv.Elem().Set(reflect.ValueOf(vdt))
 		err = ds.unmarshal(vdtv.Elem())
 		if err != nil {
-			err = fmt.Errorf("unmarshalling varing data type at index %d: %w", i, err)
+			err = fmt.Errorf("unmarshalling varying data type at index %d: %w", i, err)
 			return
 		}
 		vdts.Types = append(vdts.Types, vdtv.Elem().Interface().(VaryingDataType))
