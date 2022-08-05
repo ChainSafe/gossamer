@@ -30,9 +30,8 @@ type Node struct {
 	// Dirty is true when the branch differs
 	// from the node stored in the database.
 	Dirty bool
-	// HashDigest is the cached hash digest of the
-	// node encoding.
-	HashDigest []byte
+	// MerkleValue is the cached Merkle value of the node.
+	MerkleValue []byte
 	// Encoding is the cached encoding of the node.
 	Encoding []byte
 
@@ -66,7 +65,7 @@ func (n Node) StringNode() (stringNode *gotree.Node) {
 		stringNode.Appendf("Descendants: %d", n.Descendants)
 	}
 	stringNode.Appendf("Calculated encoding: " + bytesToString(n.Encoding))
-	stringNode.Appendf("Calculated digest: " + bytesToString(n.HashDigest))
+	stringNode.Appendf("Merkle value: " + bytesToString(n.MerkleValue))
 
 	for i, child := range n.Children {
 		if child == nil {

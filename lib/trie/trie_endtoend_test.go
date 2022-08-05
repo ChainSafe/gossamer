@@ -304,7 +304,7 @@ func TestTrieDiff(t *testing.T) {
 	}
 
 	dbTrie := NewEmptyTrie()
-	err = dbTrie.Load(storageDB, common.BytesToHash(newTrie.root.HashDigest))
+	err = dbTrie.Load(storageDB, common.BytesToHash(newTrie.root.MerkleValue))
 	require.NoError(t, err)
 }
 

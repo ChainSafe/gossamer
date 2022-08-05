@@ -28,7 +28,7 @@ func Test_Node_String(t *testing.T) {
 ├── Key: 0x0102
 ├── Value: 0x0304
 ├── Calculated encoding: nil
-└── Calculated digest: nil`,
+└── Merkle value: nil`,
 		},
 		"leaf with value higher than 1024": {
 			node: &Node{
@@ -42,7 +42,7 @@ func Test_Node_String(t *testing.T) {
 ├── Key: 0x0102
 ├── Value: 0x0000000000000000...0000000000000000
 ├── Calculated encoding: nil
-└── Calculated digest: nil`,
+└── Merkle value: nil`,
 		},
 		"branch with value smaller than 1024": {
 			node: &Node{
@@ -70,7 +70,7 @@ func Test_Node_String(t *testing.T) {
 ├── Value: 0x0304
 ├── Descendants: 3
 ├── Calculated encoding: nil
-├── Calculated digest: nil
+├── Merkle value: nil
 ├── Child 3
 |   └── Leaf
 |       ├── Generation: 0
@@ -78,7 +78,7 @@ func Test_Node_String(t *testing.T) {
 |       ├── Key: nil
 |       ├── Value: nil
 |       ├── Calculated encoding: nil
-|       └── Calculated digest: nil
+|       └── Merkle value: nil
 ├── Child 7
 |   └── Branch
 |       ├── Generation: 0
@@ -87,7 +87,7 @@ func Test_Node_String(t *testing.T) {
 |       ├── Value: nil
 |       ├── Descendants: 1
 |       ├── Calculated encoding: nil
-|       ├── Calculated digest: nil
+|       ├── Merkle value: nil
 |       └── Child 0
 |           └── Leaf
 |               ├── Generation: 0
@@ -95,7 +95,7 @@ func Test_Node_String(t *testing.T) {
 |               ├── Key: nil
 |               ├── Value: nil
 |               ├── Calculated encoding: nil
-|               └── Calculated digest: nil
+|               └── Merkle value: nil
 └── Child 11
     └── Leaf
         ├── Generation: 0
@@ -103,7 +103,7 @@ func Test_Node_String(t *testing.T) {
         ├── Key: nil
         ├── Value: nil
         ├── Calculated encoding: nil
-        └── Calculated digest: nil`,
+        └── Merkle value: nil`,
 		},
 		"branch with value higher than 1024": {
 			node: &Node{
@@ -131,7 +131,7 @@ func Test_Node_String(t *testing.T) {
 ├── Value: 0x0000000000000000...0000000000000000
 ├── Descendants: 3
 ├── Calculated encoding: nil
-├── Calculated digest: nil
+├── Merkle value: nil
 ├── Child 3
 |   └── Leaf
 |       ├── Generation: 0
@@ -139,7 +139,7 @@ func Test_Node_String(t *testing.T) {
 |       ├── Key: nil
 |       ├── Value: nil
 |       ├── Calculated encoding: nil
-|       └── Calculated digest: nil
+|       └── Merkle value: nil
 ├── Child 7
 |   └── Branch
 |       ├── Generation: 0
@@ -148,7 +148,7 @@ func Test_Node_String(t *testing.T) {
 |       ├── Value: nil
 |       ├── Descendants: 1
 |       ├── Calculated encoding: nil
-|       ├── Calculated digest: nil
+|       ├── Merkle value: nil
 |       └── Child 0
 |           └── Leaf
 |               ├── Generation: 0
@@ -156,7 +156,7 @@ func Test_Node_String(t *testing.T) {
 |               ├── Key: nil
 |               ├── Value: nil
 |               ├── Calculated encoding: nil
-|               └── Calculated digest: nil
+|               └── Merkle value: nil
 └── Child 11
     └── Leaf
         ├── Generation: 0
@@ -164,7 +164,7 @@ func Test_Node_String(t *testing.T) {
         ├── Key: nil
         ├── Value: nil
         ├── Calculated encoding: nil
-        └── Calculated digest: nil`,
+        └── Merkle value: nil`,
 		},
 	}
 
