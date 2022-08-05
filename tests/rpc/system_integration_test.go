@@ -31,7 +31,7 @@ func TestStableNetworkRPC(t *testing.T) {
 			Modules: []string{"system", "author", "chain"},
 		},
 		Core: toml.CoreConfig{
-			Roles: common.FullNodeRole,
+			Roles: byte(common.FullNodeRole),
 		},
 	}
 
