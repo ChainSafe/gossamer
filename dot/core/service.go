@@ -34,8 +34,6 @@ var (
 // QueryKeyValueChanges represents the key-value data inside a block storage
 type QueryKeyValueChanges map[string]string
 
-type wasmerInstanceFunc func(code []byte, cfg runtime.InstanceConfig) (instance *wasmer.Instance, err error)
-
 // Service is an overhead layer that allows communication between the runtime,
 // BABE session, and network service. It deals with the validation of transactions
 // and blocks by calling their respective validation functions in the runtime.
@@ -224,7 +222,8 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 	}
 
 	// check if there was a runtime code substitution
-	if err := s.handleCodeSubstitution(block.Header.Hash(), state, wasmer.NewInstance); err != nil {
+	err = s.handleCodeSubstitution(block.Header.Hash(), state)
+	if err != nil {
 		logger.Criticalf("failed to substitute runtime code: %s", err)
 		return err
 	}
@@ -242,11 +241,8 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 	return nil
 }
 
-func (s *Service) handleCodeSubstitution(
-	hash common.Hash,
-	state *rtstorage.TrieState,
-	instance wasmerInstanceFunc,
-) error {
+func (s *Service) handleCodeSubstitution(hash common.Hash,
+	state *rtstorage.TrieState) (err error) {
 	value := s.codeSubstitute[hash]
 	if value == "" {
 		return nil
@@ -255,12 +251,12 @@ func (s *Service) handleCodeSubstitution(
 	logger.Infof("🔄 detected runtime code substitution, upgrading for block %s...", hash)
 	code := common.MustHexToBytes(value)
 	if len(code) == 0 {
-		return ErrEmptyRuntimeCode
+		return fmt.Errorf("%w: for hash %s", ErrEmptyRuntimeCode, hash)
 	}
 
 	rt, err := s.blockState.GetRuntime(&hash)
 	if err != nil {
-		return err
+		return fmt.Errorf("getting runtime from block state: %w", err)
 	}
 
 	// this needs to create a new runtime instance, otherwise it will update
@@ -276,14 +272,14 @@ func (s *Service) handleCodeSubstitution(
 		cfg.Role = 4
 	}
 
-	next, err := instance(code, cfg)
+	next, err := wasmer.NewInstance(code, cfg)
 	if err != nil {
-		return err
+		return fmt.Errorf("creating new runtime instance: %w", err)
 	}
 
 	err = s.codeSubstitutedState.StoreCodeSubstitutedBlockHash(hash)
 	if err != nil {
-		return err
+		return fmt.Errorf("storing code substituted block hash: %w", err)
 	}
 
 	s.blockState.StoreRuntime(hash, next)
