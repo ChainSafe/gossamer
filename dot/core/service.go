@@ -299,6 +299,9 @@ func (s *Service) handleCodeSubstitution(
 // does not need to be completed before the next block can be imported.
 func (s *Service) handleBlocksAsync() {
 	for {
+		// TODO Look into if this is best way to get prev
+		// Maybe pass in block and get parent rather than assume that
+		// best block hash is the parent
 		prev := s.blockState.BestBlockHash()
 
 		select {
