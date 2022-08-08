@@ -36,7 +36,7 @@ require (
 	github.com/multiformats/go-multiaddr v0.6.0
 	github.com/nanobox-io/golang-scribble v0.0.0-20190309225732-aa3e7c118975
 	github.com/naoina/toml v0.1.2-0.20170918210437-9fafd6967416
-	github.com/prometheus/client_golang v1.12.2
+	github.com/prometheus/client_golang v1.13.0
 	github.com/prometheus/client_model v0.2.0
 	github.com/qdm12/gotree v0.2.0
 	github.com/stretchr/testify v1.8.0
@@ -155,8 +155,8 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/polydawn/refmt v0.0.0-20201211092308-30ac6d18308e // indirect
-	github.com/prometheus/common v0.32.1 // indirect
-	github.com/prometheus/procfs v0.7.3 // indirect
+	github.com/prometheus/common v0.37.0 // indirect
+	github.com/prometheus/procfs v0.8.0 // indirect
 	github.com/raulk/clock v1.1.0 // indirect
 	github.com/raulk/go-watchdog v1.2.0 // indirect
 	github.com/rs/cors v1.8.2 // indirect
@@ -178,7 +178,7 @@ require (
 	go.uber.org/zap v1.21.0 // indirect
 	golang.org/x/mod v0.6.0-dev.0.20211013180041-c96bc1413d57 // indirect
 	golang.org/x/net v0.0.0-20220607020251-c690dde0001d // indirect
-	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
+	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f // indirect
 	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
 	golang.org/x/tools v0.1.8-0.20211029000441-d6a9af8af023 // indirect
 	golang.org/x/xerrors v0.0.0-20220517211312-f3a8303e98df // indirect
