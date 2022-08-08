@@ -154,8 +154,8 @@ func (s *Service) createNotificationsMessageHandler(
 
 			hs, ok := msg.(Handshake)
 			if !ok {
-				// this error will never happen.
-				// Handshake interface and NotificationMessage interfaces are same.
+				// NOTE: As long as, Handshake interface and NotificationMessage interfaces are same,
+				// this error would never happen.
 				return errMessageIsNotHandshake
 			}
 
