@@ -15,6 +15,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
+var errInvalidRole = errors.New("invalid role")
 var (
 	_ NotificationsMessage = &BlockAnnounceMessage{}
 	_ NotificationsMessage = &BlockAnnounceHandshake{}
@@ -103,7 +104,7 @@ func decodeBlockAnnounceMessage(in []byte) (NotificationsMessage, error) {
 
 // BlockAnnounceHandshake is exchanged by nodes that are beginning the BlockAnnounce protocol
 type BlockAnnounceHandshake struct {
-	Roles           byte
+	Roles           common.Roles
 	BestBlockNumber uint32
 	BestBlockHash   common.Hash
 	GenesisHash     common.Hash
@@ -171,6 +172,12 @@ func (s *Service) validateBlockAnnounceHandshake(from peer.ID, hs Handshake) err
 	bhs, ok := hs.(*BlockAnnounceHandshake)
 	if !ok {
 		return errors.New("invalid handshake type")
+	}
+
+	switch bhs.Roles {
+	case common.FullNodeRole, common.LightClientRole, common.AuthorityRole:
+	default:
+		return fmt.Errorf("%w: %d", errInvalidRole, bhs.Roles)
 	}
 
 	if !bhs.GenesisHash.Equal(s.blockState.GenesisHash()) {

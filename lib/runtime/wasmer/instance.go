@@ -94,7 +94,7 @@ func NewInstance(code []byte, cfg runtime.InstanceConfig) (instance *Instance, e
 		Storage:         cfg.Storage,
 		Allocator:       allocator,
 		Keystore:        cfg.Keystore,
-		Validator:       cfg.Role == byte(4),
+		Validator:       cfg.Role == common.AuthorityRole,
 		NodeStorage:     cfg.NodeStorage,
 		Network:         cfg.Network,
 		Transaction:     cfg.Transaction,
