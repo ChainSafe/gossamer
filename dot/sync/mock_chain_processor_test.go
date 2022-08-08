@@ -33,16 +33,16 @@ func (m *MockChainProcessor) EXPECT() *MockChainProcessorMockRecorder {
 	return m.recorder
 }
 
-// start mocks base method.
-func (m *MockChainProcessor) start() {
+// processReadyBlocks mocks base method.
+func (m *MockChainProcessor) processReadyBlocks() {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "start")
+	m.ctrl.Call(m, "processReadyBlocks")
 }
 
-// start indicates an expected call of start.
-func (mr *MockChainProcessorMockRecorder) start() *gomock.Call {
+// processReadyBlocks indicates an expected call of processReadyBlocks.
+func (mr *MockChainProcessorMockRecorder) processReadyBlocks() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "start", reflect.TypeOf((*MockChainProcessor)(nil).start))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "processReadyBlocks", reflect.TypeOf((*MockChainProcessor)(nil).processReadyBlocks))
 }
 
 // stop mocks base method.

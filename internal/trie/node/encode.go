@@ -35,7 +35,7 @@ func (n *Node) Encode(buffer Buffer) (err error) {
 		return fmt.Errorf("cannot write LE key to buffer: %w", err)
 	}
 
-	if n.Type() == Branch {
+	if n.Kind() == Branch {
 		childrenBitmap := common.Uint16ToBytes(n.ChildrenBitmap())
 		_, err = buffer.Write(childrenBitmap)
 		if err != nil {
@@ -45,8 +45,8 @@ func (n *Node) Encode(buffer Buffer) (err error) {
 
 	// check value is not nil for branch nodes, even though
 	// leaf nodes always have a non-nil value.
-	if n.Value != nil {
-		encodedValue, err := scale.Marshal(n.Value) // TODO scale encoder to write to buffer
+	if n.SubValue != nil {
+		encodedValue, err := scale.Marshal(n.SubValue) // TODO scale encoder to write to buffer
 		if err != nil {
 			return fmt.Errorf("cannot scale encode value: %w", err)
 		}
@@ -57,14 +57,14 @@ func (n *Node) Encode(buffer Buffer) (err error) {
 		}
 	}
 
-	if n.Type() == Branch {
+	if n.Kind() == Branch {
 		err = encodeChildrenOpportunisticParallel(n.Children, buffer)
 		if err != nil {
 			return fmt.Errorf("cannot encode children of branch: %w", err)
 		}
 	}
 
-	if n.Type() == Leaf {
+	if n.Kind() == Leaf {
 		// TODO cache this for branches too and update test cases.
 		// TODO remove this copying since it defeats the purpose of `buffer`
 		// and the sync.Pool.

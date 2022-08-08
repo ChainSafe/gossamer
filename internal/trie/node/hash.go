@@ -11,12 +11,10 @@ import (
 )
 
 // EncodeAndHash returns the encoding of the node and
-// the blake2b hash digest of the encoding of the node.
-// If the encoding is less than 32 bytes, the hash returned
-// is the encoding and not the hash of the encoding.
-func (n *Node) EncodeAndHash(isRoot bool) (encoding, hash []byte, err error) {
-	if !n.Dirty && n.Encoding != nil && n.HashDigest != nil {
-		return n.Encoding, n.HashDigest, nil
+// the Merkle value of the node.
+func (n *Node) EncodeAndHash() (encoding, merkleValue []byte, err error) {
+	if !n.Dirty && n.Encoding != nil && n.MerkleValue != nil {
+		return n.Encoding, n.MerkleValue, nil
 	}
 
 	buffer := pools.EncodingBuffers.Get().(*bytes.Buffer)
@@ -36,11 +34,11 @@ func (n *Node) EncodeAndHash(isRoot bool) (encoding, hash []byte, err error) {
 	copy(n.Encoding, bufferBytes)
 	encoding = n.Encoding // no need to copy
 
-	if !isRoot && buffer.Len() < 32 {
-		n.HashDigest = make([]byte, len(bufferBytes))
-		copy(n.HashDigest, bufferBytes)
-		hash = n.HashDigest // no need to copy
-		return encoding, hash, nil
+	if buffer.Len() < 32 {
+		n.MerkleValue = make([]byte, len(bufferBytes))
+		copy(n.MerkleValue, bufferBytes)
+		merkleValue = n.MerkleValue // no need to copy
+		return encoding, merkleValue, nil
 	}
 
 	// Note: using the sync.Pool's buffer is useful here.
@@ -48,8 +46,43 @@ func (n *Node) EncodeAndHash(isRoot bool) (encoding, hash []byte, err error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	n.HashDigest = hashArray[:]
-	hash = n.HashDigest // no need to copy
+	n.MerkleValue = hashArray[:]
+	merkleValue = n.MerkleValue // no need to copy
 
-	return encoding, hash, nil
+	return encoding, merkleValue, nil
+}
+
+// EncodeAndHashRoot returns the encoding of the root node and
+// the Merkle value of the root node (the hash of its encoding).
+func (n *Node) EncodeAndHashRoot() (encoding, merkleValue []byte, err error) {
+	if !n.Dirty && n.Encoding != nil && n.MerkleValue != nil {
+		return n.Encoding, n.MerkleValue, nil
+	}
+
+	buffer := pools.EncodingBuffers.Get().(*bytes.Buffer)
+	buffer.Reset()
+	defer pools.EncodingBuffers.Put(buffer)
+
+	err = n.Encode(buffer)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	bufferBytes := buffer.Bytes()
+
+	// TODO remove this copying since it defeats the purpose of `buffer`
+	// and the sync.Pool.
+	n.Encoding = make([]byte, len(bufferBytes))
+	copy(n.Encoding, bufferBytes)
+	encoding = n.Encoding // no need to copy
+
+	// Note: using the sync.Pool's buffer is useful here.
+	hashArray, err := common.Blake2bHash(buffer.Bytes())
+	if err != nil {
+		return nil, nil, err
+	}
+	n.MerkleValue = hashArray[:]
+	merkleValue = n.MerkleValue // no need to copy
+
+	return encoding, merkleValue, nil
 }

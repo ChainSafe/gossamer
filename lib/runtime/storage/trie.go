@@ -21,16 +21,14 @@ type TrieState struct {
 }
 
 // NewTrieState returns a new TrieState with the given trie
-func NewTrieState(t *trie.Trie) (*TrieState, error) {
+func NewTrieState(t *trie.Trie) *TrieState {
 	if t == nil {
 		t = trie.NewEmptyTrie()
 	}
 
-	ts := &TrieState{
+	return &TrieState{
 		t: t,
 	}
-
-	return ts, nil
 }
 
 // Trie returns the TrieState's underlying trie
@@ -118,11 +116,10 @@ func (s *TrieState) NextKey(key []byte) []byte {
 }
 
 // ClearPrefix deletes all key-value pairs from the trie where the key starts with the given prefix
-func (s *TrieState) ClearPrefix(prefix []byte) error {
+func (s *TrieState) ClearPrefix(prefix []byte) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	s.t.ClearPrefix(prefix)
-	return nil
 }
 
 // ClearPrefixLimit deletes key-value pairs from the trie where the key starts with the given prefix till limit reached

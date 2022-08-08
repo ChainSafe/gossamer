@@ -48,7 +48,7 @@ func NewParentVDT() ParentVDT {
 type ChildVDT scale.VaryingDataType
 
 // Index fulfils the VaryingDataTypeValue interface.  T
-func (cvdt ChildVDT) Index() uint {
+func (ChildVDT) Index() uint {
 	return 1
 }
 
@@ -87,12 +87,12 @@ func NewChildVDT() ChildVDT {
 type OtherChildVDT scale.VaryingDataType
 
 // Index fulfils the VaryingDataTypeValue interface.
-func (ocvdt OtherChildVDT) Index() uint {
+func (OtherChildVDT) Index() uint {
 	return 2
 }
 
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (cvdt *OtherChildVDT) Set(val scale.VaryingDataTypeValue) (err error) { //nolint:revive
+func (cvdt *OtherChildVDT) Set(val scale.VaryingDataTypeValue) (err error) {
 	// cast to VaryingDataType to use VaryingDataType.Set method
 	vdt := scale.VaryingDataType(*cvdt)
 	err = vdt.Set(val)
@@ -121,7 +121,7 @@ type ChildInt16 int16
 
 // Index fulfils the VaryingDataTypeValue interface.  The ChildVDT type is used as a
 // VaryingDataTypeValue for ParentVDT
-func (ci ChildInt16) Index() uint {
+func (ChildInt16) Index() uint {
 	return 1
 }
 
@@ -132,7 +132,7 @@ type ChildStruct struct {
 }
 
 // Index fulfils the VaryingDataTypeValue interface
-func (cs ChildStruct) Index() uint {
+func (ChildStruct) Index() uint {
 	return 2
 }
 
@@ -140,7 +140,7 @@ func (cs ChildStruct) Index() uint {
 type ChildString string
 
 // Index fulfils the VaryingDataTypeValue interface
-func (cs ChildString) Index() uint {
+func (ChildString) Index() uint {
 	return 3
 }
 

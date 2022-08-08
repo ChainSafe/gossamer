@@ -19,7 +19,7 @@ import (
 // ChainProcessor processes ready blocks.
 // it is implemented by *chainProcessor
 type ChainProcessor interface {
-	start()
+	processReadyBlocks()
 	stop()
 }
 
@@ -63,10 +63,6 @@ func newChainProcessor(readyBlocks *blockQueue, pendingBlocks DisjointBlockSet,
 		blockImportHandler: blockImportHandler,
 		telemetry:          telemetry,
 	}
-}
-
-func (s *chainProcessor) start() {
-	go s.processReadyBlocks()
 }
 
 func (s *chainProcessor) stop() {

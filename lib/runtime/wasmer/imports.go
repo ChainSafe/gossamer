@@ -369,7 +369,8 @@ func ext_crypto_ed25519_sign_version_1(context unsafe.Pointer, keyTypeID, key C.
 }
 
 //export ext_crypto_ed25519_verify_version_1
-func ext_crypto_ed25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, msg C.int64_t, key C.int32_t) C.int32_t {
+func ext_crypto_ed25519_verify_version_1(context unsafe.Pointer, sig C.int32_t,
+	msg C.int64_t, key C.int32_t) C.int32_t {
 	logger.Debug("executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
@@ -683,7 +684,8 @@ func ext_crypto_sr25519_sign_version_1(context unsafe.Pointer, keyTypeID, key C.
 }
 
 //export ext_crypto_sr25519_verify_version_1
-func ext_crypto_sr25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, msg C.int64_t, key C.int32_t) C.int32_t {
+func ext_crypto_sr25519_verify_version_1(context unsafe.Pointer, sig C.int32_t,
+	msg C.int64_t, key C.int32_t) C.int32_t {
 	logger.Debug("executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
@@ -725,7 +727,8 @@ func ext_crypto_sr25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, 
 }
 
 //export ext_crypto_sr25519_verify_version_2
-func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t, msg C.int64_t, key C.int32_t) C.int32_t {
+func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t,
+	msg C.int64_t, key C.int32_t) C.int32_t {
 	logger.Trace("executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
@@ -800,7 +803,7 @@ func ext_trie_blake2_256_root_version_1(context unsafe.Pointer, dataSpan C.int64
 	// this function is expecting an array of (key, value) tuples
 	var kvs []kv
 	if err := scale.Unmarshal(data, &kvs); err != nil {
-		logger.Errorf("[ext_trie_blake2_256_root_version_1]: %s", err)
+		logger.Errorf("failed scale decoding data: %s", err)
 		return 0
 	}
 
@@ -811,17 +814,17 @@ func ext_trie_blake2_256_root_version_1(context unsafe.Pointer, dataSpan C.int64
 	// allocate memory for value and copy value to memory
 	ptr, err := runtimeCtx.Allocator.Allocate(32)
 	if err != nil {
-		logger.Errorf("[ext_trie_blake2_256_root_version_1]: %s", err)
+		logger.Errorf("failed allocating: %s", err)
 		return 0
 	}
 
 	hash, err := t.Hash()
 	if err != nil {
-		logger.Errorf("[ext_trie_blake2_256_root_version_1]: %s", err)
+		logger.Errorf("failed computing trie Merkle root hash: %s", err)
 		return 0
 	}
 
-	logger.Debugf("[ext_trie_blake2_256_root_version_1]: root hash is %s", hash)
+	logger.Debugf("root hash is %s", hash)
 	copy(memory[ptr:ptr+32], hash[:])
 	return C.int32_t(ptr)
 }
@@ -839,14 +842,14 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 	var values [][]byte
 	err := scale.Unmarshal(data, &values)
 	if err != nil {
-		logger.Errorf("[ext_trie_blake2_256_ordered_root_version_1]: %s", err)
+		logger.Errorf("failed scale decoding data: %s", err)
 		return 0
 	}
 
 	for i, val := range values {
 		key, err := scale.Marshal(big.NewInt(int64(i)))
 		if err != nil {
-			logger.Errorf("[ext_trie_blake2_256_ordered_root_version_1]: %s", err)
+			logger.Errorf("failed scale encoding value index %d: %s", i, err)
 			return 0
 		}
 		logger.Tracef(
@@ -859,29 +862,31 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 	// allocate memory for value and copy value to memory
 	ptr, err := runtimeCtx.Allocator.Allocate(32)
 	if err != nil {
-		logger.Errorf("[ext_trie_blake2_256_ordered_root_version_1]: %s", err)
+		logger.Errorf("failed allocating: %s", err)
 		return 0
 	}
 
 	hash, err := t.Hash()
 	if err != nil {
-		logger.Errorf("[ext_trie_blake2_256_ordered_root_version_1]: %s", err)
+		logger.Errorf("failed computing trie Merkle root hash: %s", err)
 		return 0
 	}
 
-	logger.Debugf("[ext_trie_blake2_256_ordered_root_version_1]: root hash is %s", hash)
+	logger.Debugf("root hash is %s", hash)
 	copy(memory[ptr:ptr+32], hash[:])
 	return C.int32_t(ptr)
 }
 
 //export ext_trie_blake2_256_ordered_root_version_2
-func ext_trie_blake2_256_ordered_root_version_2(context unsafe.Pointer, dataSpan C.int64_t, version C.int32_t) C.int32_t {
+func ext_trie_blake2_256_ordered_root_version_2(context unsafe.Pointer,
+	dataSpan C.int64_t, version C.int32_t) C.int32_t {
 	// TODO: update to use state trie version 1 (#2418)
 	return ext_trie_blake2_256_ordered_root_version_1(context, dataSpan)
 }
 
 //export ext_trie_blake2_256_verify_proof_version_1
-func ext_trie_blake2_256_verify_proof_version_1(context unsafe.Pointer, rootSpan C.int32_t, proofSpan, keySpan, valueSpan C.int64_t) C.int32_t {
+func ext_trie_blake2_256_verify_proof_version_1(context unsafe.Pointer,
+	rootSpan C.int32_t, proofSpan, keySpan, valueSpan C.int64_t) C.int32_t {
 	logger.Debug("executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
@@ -890,7 +895,7 @@ func ext_trie_blake2_256_verify_proof_version_1(context unsafe.Pointer, rootSpan
 	var encodedProofNodes [][]byte
 	err := scale.Unmarshal(toDecProofs, &encodedProofNodes)
 	if err != nil {
-		logger.Errorf("[ext_trie_blake2_256_verify_proof_version_1]: %s", err)
+		logger.Errorf("failed scale decoding proof data: %s", err)
 		return C.int32_t(0)
 	}
 
@@ -902,7 +907,7 @@ func ext_trie_blake2_256_verify_proof_version_1(context unsafe.Pointer, rootSpan
 
 	err = proof.Verify(encodedProofNodes, trieRoot, key, value)
 	if err != nil {
-		logger.Errorf("[ext_trie_blake2_256_verify_proof_version_1]: %s", err)
+		logger.Errorf("failed proof verification: %s", err)
 		return C.int32_t(0)
 	}
 
@@ -941,10 +946,9 @@ func ext_misc_runtime_version_version_1(context unsafe.Pointer, dataSpan C.int64
 	instanceContext := wasm.IntoInstanceContext(context)
 	data := asMemorySlice(instanceContext, dataSpan)
 
-	trieState, _ := rtstorage.NewTrieState(nil)
 	cfg := runtime.InstanceConfig{
 		LogLvl:  log.DoNotChange,
-		Storage: trieState,
+		Storage: rtstorage.NewTrieState(nil),
 	}
 
 	instance, err := NewInstance(data, cfg)
@@ -976,14 +980,17 @@ func ext_misc_runtime_version_version_1(context unsafe.Pointer, dataSpan C.int64
 }
 
 //export ext_default_child_storage_read_version_1
-func ext_default_child_storage_read_version_1(context unsafe.Pointer, childStorageKey, key, valueOut C.int64_t, offset C.int32_t) C.int64_t {
+func ext_default_child_storage_read_version_1(context unsafe.Pointer,
+	childStorageKey, key, valueOut C.int64_t, offset C.int32_t) C.int64_t {
 	logger.Debug("executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	storage := instanceContext.Data().(*runtime.Context).Storage
 	memory := instanceContext.Memory().Data()
 
-	value, err := storage.GetChildStorage(asMemorySlice(instanceContext, childStorageKey), asMemorySlice(instanceContext, key))
+	keyToChild := asMemorySlice(instanceContext, childStorageKey)
+	keyBytes := asMemorySlice(instanceContext, key)
+	value, err := storage.GetChildStorage(keyToChild, keyBytes)
 	if err != nil {
 		logger.Errorf("failed to get child storage: %s", err)
 		return 0
@@ -1040,13 +1047,16 @@ func ext_default_child_storage_clear_prefix_version_1(context unsafe.Pointer, ch
 }
 
 //export ext_default_child_storage_exists_version_1
-func ext_default_child_storage_exists_version_1(context unsafe.Pointer, childStorageKey, key C.int64_t) C.int32_t {
+func ext_default_child_storage_exists_version_1(context unsafe.Pointer,
+	childStorageKey, key C.int64_t) C.int32_t {
 	logger.Debug("executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	storage := instanceContext.Data().(*runtime.Context).Storage
 
-	child, err := storage.GetChildStorage(asMemorySlice(instanceContext, childStorageKey), asMemorySlice(instanceContext, key))
+	keyToChild := asMemorySlice(instanceContext, childStorageKey)
+	keyBytes := asMemorySlice(instanceContext, key)
+	child, err := storage.GetChildStorage(keyToChild, keyBytes)
 	if err != nil {
 		logger.Errorf("failed to get child from child storage: %s", err)
 		return 0
@@ -1064,7 +1074,9 @@ func ext_default_child_storage_get_version_1(context unsafe.Pointer, childStorag
 	instanceContext := wasm.IntoInstanceContext(context)
 	storage := instanceContext.Data().(*runtime.Context).Storage
 
-	child, err := storage.GetChildStorage(asMemorySlice(instanceContext, childStorageKey), asMemorySlice(instanceContext, key))
+	keyToChild := asMemorySlice(instanceContext, childStorageKey)
+	keyBytes := asMemorySlice(instanceContext, key)
+	child, err := storage.GetChildStorage(keyToChild, keyBytes)
 	if err != nil {
 		logger.Errorf("failed to get child from child storage: %s", err)
 		return 0
@@ -1086,7 +1098,9 @@ func ext_default_child_storage_next_key_version_1(context unsafe.Pointer, childS
 	instanceContext := wasm.IntoInstanceContext(context)
 	storage := instanceContext.Data().(*runtime.Context).Storage
 
-	child, err := storage.GetChildNextKey(asMemorySlice(instanceContext, childStorageKey), asMemorySlice(instanceContext, key))
+	keyToChild := asMemorySlice(instanceContext, childStorageKey)
+	keyBytes := asMemorySlice(instanceContext, key)
+	child, err := storage.GetChildNextKey(keyToChild, keyBytes)
 	if err != nil {
 		logger.Errorf("failed to get child's next key: %s", err)
 		return 0
@@ -1102,7 +1116,8 @@ func ext_default_child_storage_next_key_version_1(context unsafe.Pointer, childS
 }
 
 //export ext_default_child_storage_root_version_1
-func ext_default_child_storage_root_version_1(context unsafe.Pointer, childStorageKey C.int64_t) C.int64_t {
+func ext_default_child_storage_root_version_1(context unsafe.Pointer,
+	childStorageKey C.int64_t) (ptrSize C.int64_t) {
 	logger.Debug("executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
@@ -1130,7 +1145,8 @@ func ext_default_child_storage_root_version_1(context unsafe.Pointer, childStora
 }
 
 //export ext_default_child_storage_set_version_1
-func ext_default_child_storage_set_version_1(context unsafe.Pointer, childStorageKeySpan, keySpan, valueSpan C.int64_t) {
+func ext_default_child_storage_set_version_1(context unsafe.Pointer,
+	childStorageKeySpan, keySpan, valueSpan C.int64_t) {
 	logger.Debug("executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
@@ -1164,7 +1180,8 @@ func ext_default_child_storage_storage_kill_version_1(context unsafe.Pointer, ch
 }
 
 //export ext_default_child_storage_storage_kill_version_2
-func ext_default_child_storage_storage_kill_version_2(context unsafe.Pointer, childStorageKeySpan, lim C.int64_t) C.int32_t {
+func ext_default_child_storage_storage_kill_version_2(context unsafe.Pointer,
+	childStorageKeySpan, lim C.int64_t) (allDeleted C.int32_t) {
 	logger.Debug("executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
@@ -1204,7 +1221,8 @@ func (someRemain) Index() uint {
 }
 
 //export ext_default_child_storage_storage_kill_version_3
-func ext_default_child_storage_storage_kill_version_3(context unsafe.Pointer, childStorageKeySpan, lim C.int64_t) C.int64_t {
+func ext_default_child_storage_storage_kill_version_3(context unsafe.Pointer,
+	childStorageKeySpan, lim C.int64_t) (pointerSize C.int64_t) {
 	logger.Debug("executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	ctx := instanceContext.Data().(*runtime.Context)
@@ -1242,7 +1260,7 @@ func ext_default_child_storage_storage_kill_version_3(context unsafe.Pointer, ch
 
 	encoded, err := scale.Marshal(vdt)
 	if err != nil {
-		logger.Warnf("problem marshaling varying data type: %s", err)
+		logger.Warnf("problem marshalling varying data type: %s", err)
 		return C.int64_t(0)
 	}
 
@@ -1294,7 +1312,7 @@ func ext_hashing_blake2_128_version_1(context unsafe.Pointer, dataSpan C.int64_t
 
 	hash, err := common.Blake2b128(data)
 	if err != nil {
-		logger.Errorf("[ext_hashing_blake2_128_version_1]: %s", err)
+		logger.Errorf("failed hashing data: %s", err)
 		return 0
 	}
 
@@ -1320,7 +1338,7 @@ func ext_hashing_blake2_256_version_1(context unsafe.Pointer, dataSpan C.int64_t
 
 	hash, err := common.Blake2bHash(data)
 	if err != nil {
-		logger.Errorf("[ext_hashing_blake2_256_version_1]: %s", err)
+		logger.Errorf("failed hashing data: %s", err)
 		return 0
 	}
 
@@ -1344,7 +1362,7 @@ func ext_hashing_keccak_256_version_1(context unsafe.Pointer, dataSpan C.int64_t
 
 	hash, err := common.Keccak256(data)
 	if err != nil {
-		logger.Errorf("[ext_hashing_keccak_256_version_1]: %s", err)
+		logger.Errorf("failed hashing data: %s", err)
 		return 0
 	}
 
@@ -1387,7 +1405,7 @@ func ext_hashing_twox_256_version_1(context unsafe.Pointer, dataSpan C.int64_t) 
 
 	hash, err := common.Twox256(data)
 	if err != nil {
-		logger.Errorf("[ext_hashing_twox_256_version_1]: %s", err)
+		logger.Errorf("failed hashing data: %s", err)
 		return 0
 	}
 
@@ -1410,7 +1428,7 @@ func ext_hashing_twox_128_version_1(context unsafe.Pointer, dataSpan C.int64_t) 
 
 	hash, err := common.Twox128Hash(data)
 	if err != nil {
-		logger.Errorf("[ext_hashing_twox_128_version_1]: %s", err)
+		logger.Errorf("failed hashing data: %s", err)
 		return 0
 	}
 
@@ -1436,7 +1454,7 @@ func ext_hashing_twox_64_version_1(context unsafe.Pointer, dataSpan C.int64_t) C
 
 	hash, err := common.Twox64(data)
 	if err != nil {
-		logger.Errorf("[ext_hashing_twox_64_version_1]: %s", err)
+		logger.Errorf("failed hashing data: %s", err)
 		return 0
 	}
 
@@ -1508,7 +1526,8 @@ func ext_offchain_is_validator_version_1(context unsafe.Pointer) C.int32_t {
 }
 
 //export ext_offchain_local_storage_compare_and_set_version_1
-func ext_offchain_local_storage_compare_and_set_version_1(context unsafe.Pointer, kind C.int32_t, key, oldValue, newValue C.int64_t) C.int32_t {
+func ext_offchain_local_storage_compare_and_set_version_1(context unsafe.Pointer,
+	kind C.int32_t, key, oldValue, newValue C.int64_t) (newValueSet C.int32_t) {
 	logger.Debug("executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
@@ -1693,7 +1712,8 @@ func ext_offchain_sleep_until_version_1(_ unsafe.Pointer, deadline C.int64_t) {
 }
 
 //export ext_offchain_http_request_start_version_1
-func ext_offchain_http_request_start_version_1(context unsafe.Pointer, methodSpan, uriSpan, metaSpan C.int64_t) C.int64_t { // skipcq: RVV-B0012
+func ext_offchain_http_request_start_version_1(context unsafe.Pointer,
+	methodSpan, uriSpan, metaSpan C.int64_t) (pointerSize C.int64_t) {
 	logger.Debug("executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
@@ -1735,7 +1755,8 @@ func ext_offchain_http_request_start_version_1(context unsafe.Pointer, methodSpa
 }
 
 //export ext_offchain_http_request_add_header_version_1
-func ext_offchain_http_request_add_header_version_1(context unsafe.Pointer, reqID C.int32_t, nameSpan, valueSpan C.int64_t) C.int64_t {
+func ext_offchain_http_request_add_header_version_1(context unsafe.Pointer,
+	reqID C.int32_t, nameSpan, valueSpan C.int64_t) (pointerSize C.int64_t) {
 	logger.Debug("executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 
@@ -1792,7 +1813,7 @@ func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 			logger.Tracef(
 				"item in storage is not SCALE encoded, overwriting at key 0x%x", key)
 			storage.Set(key, append([]byte{4}, valueToAppend...))
-			return nil
+			return nil //nolint:nilerr
 		}
 
 		lengthBytes, err := scale.Marshal(currLength)
@@ -1838,7 +1859,7 @@ func ext_storage_append_version_1(context unsafe.Pointer, keySpan, valueSpan C.i
 
 	err := storageAppend(storage, key, cp)
 	if err != nil {
-		logger.Errorf("[ext_storage_append_version_1]: %s", err)
+		logger.Errorf("failed appending to storage: %s", err)
 	}
 }
 
@@ -1881,10 +1902,7 @@ func ext_storage_clear_prefix_version_1(context unsafe.Pointer, prefixSpan C.int
 	prefix := asMemorySlice(instanceContext, prefixSpan)
 	logger.Debugf("prefix: 0x%x", prefix)
 
-	err := storage.ClearPrefix(prefix)
-	if err != nil {
-		logger.Errorf("[ext_storage_clear_prefix_version_1]: %s", err)
-	}
+	storage.ClearPrefix(prefix)
 }
 
 //export ext_storage_clear_prefix_version_2
@@ -1903,7 +1921,7 @@ func ext_storage_clear_prefix_version_2(context unsafe.Pointer, prefixSpan, lim 
 	var limit []byte
 	err := scale.Unmarshal(limitBytes, &limit)
 	if err != nil {
-		logger.Warnf("[ext_storage_clear_prefix_version_2]: cannot generate limit: %s", err)
+		logger.Warnf("failed scale decoding limit: %s", err)
 		ret, _ := toWasmMemory(instanceContext, nil)
 		return C.int64_t(ret)
 	}
@@ -2099,7 +2117,7 @@ func ext_storage_rollback_transaction_version_1(context unsafe.Pointer) {
 
 //export ext_storage_commit_transaction_version_1
 func ext_storage_commit_transaction_version_1(context unsafe.Pointer) {
-	logger.Debug("[ext_storage_commit_transaction_version_1] executing...")
+	logger.Debug("executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	instanceContext.Data().(*runtime.Context).Storage.CommitStorageTransaction()
 }

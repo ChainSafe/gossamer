@@ -14,7 +14,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	ma "github.com/multiformats/go-multiaddr"
-
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -24,10 +24,6 @@ func setupStreamManagerTest(t *testing.T) (context.Context, []libp2phost.Host, [
 	ctx, cancel := context.WithCancel(context.Background())
 
 	cleanupStreamInterval = time.Millisecond * 500
-	t.Cleanup(func() {
-		cleanupStreamInterval = time.Minute
-		cancel()
-	})
 
 	smA := newStreamManager(ctx)
 	smB := newStreamManager(ctx)
@@ -41,14 +37,21 @@ func setupStreamManagerTest(t *testing.T) (context.Context, []libp2phost.Host, [
 	require.NoError(t, err)
 
 	ha, err := libp2p.New(
-		ctx, libp2p.ListenAddrs(addrA),
+		libp2p.ListenAddrs(addrA),
 	)
 	require.NoError(t, err)
 
 	hb, err := libp2p.New(
-		ctx, libp2p.ListenAddrs(addrB),
+		libp2p.ListenAddrs(addrB),
 	)
 	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		cleanupStreamInterval = time.Minute
+		cancel()
+		assert.NoError(t, ha.Close())
+		assert.NoError(t, hb.Close())
+	})
 
 	err = ha.Connect(ctx, peer.AddrInfo{
 		ID:    hb.ID(),

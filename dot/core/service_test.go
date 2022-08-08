@@ -6,6 +6,7 @@ package core
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"errors"
 	"testing"
 
@@ -22,11 +23,10 @@ import (
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	cscale "github.com/centrifuge/go-substrate-rpc-client/v3/scale"
-	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
-	ctypes "github.com/centrifuge/go-substrate-rpc-client/v3/types"
+	cscale "github.com/centrifuge/go-substrate-rpc-client/v4/scale"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
+	ctypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -52,7 +52,7 @@ func generateTestCentrifugeMetadata(t *testing.T) *ctypes.Metadata {
 	require.NoError(t, err)
 
 	meta := &ctypes.Metadata{}
-	err = ctypes.DecodeFromBytes(decoded, meta)
+	err = ctypes.Decode(decoded, meta)
 	require.NoError(t, err)
 	return meta
 }
@@ -118,9 +118,9 @@ func generateExtrinsic(t *testing.T) (extrinsic, externalExtrinsic types.Extrins
 
 func Test_Service_StorageRoot(t *testing.T) {
 	t.Parallel()
-	emptyTrie := trie.NewEmptyTrie()
-	ts, err := rtstorage.NewTrieState(emptyTrie)
-	require.NoError(t, err)
+
+	ts := rtstorage.NewTrieState(nil)
+
 	tests := []struct {
 		name          string
 		service       *Service
@@ -177,98 +177,159 @@ func Test_Service_StorageRoot(t *testing.T) {
 
 func Test_Service_handleCodeSubstitution(t *testing.T) {
 	t.Parallel()
-	newTestInstance := func(code []byte, cfg runtime.InstanceConfig) (*wasmer.Instance, error) {
-		return &wasmer.Instance{}, nil
+
+	errTest := errors.New("test error")
+	validRuntimeCode := getGssmrRuntimeCode(t)
+
+	testCases := map[string]struct {
+		serviceBuilder func(ctrl *gomock.Controller) *Service
+		blockHash      common.Hash
+		trieState      *rtstorage.TrieState
+		errWrapped     error
+		errMessage     string
+	}{
+		"non existent block hash substitute": {
+			serviceBuilder: func(ctrl *gomock.Controller) *Service {
+				return &Service{
+					codeSubstitute: map[common.Hash]string{
+						{0x02}: "0x02",
+					},
+				}
+			},
+			blockHash: common.Hash{0x01},
+		},
+		"empty runtime code error": {
+			serviceBuilder: func(ctrl *gomock.Controller) *Service {
+				return &Service{
+					codeSubstitute: map[common.Hash]string{
+						{0x01}: "0x",
+					},
+				}
+			},
+			blockHash:  common.Hash{0x01},
+			errWrapped: ErrEmptyRuntimeCode,
+			errMessage: "new :code is empty: for hash " +
+				"0x0100000000000000000000000000000000000000000000000000000000000000",
+		},
+		"block state get runtime error": {
+			serviceBuilder: func(ctrl *gomock.Controller) *Service {
+				blockState := NewMockBlockState(ctrl)
+				blockState.EXPECT().GetRuntime(hashPtr(common.Hash{0x01})).
+					Return(nil, errTest)
+				return &Service{
+					blockState: blockState,
+					codeSubstitute: map[common.Hash]string{
+						{0x01}: "0x00",
+					},
+				}
+			},
+			blockHash:  common.Hash{0x01},
+			errWrapped: errTest,
+			errMessage: "getting runtime from block state: test error",
+		},
+		"instance creation error": {
+			serviceBuilder: func(ctrl *gomock.Controller) *Service {
+				storedRuntime := NewMockInstance(ctrl)
+				storedRuntime.EXPECT().Keystore().Return(nil)
+				storedRuntime.EXPECT().NodeStorage().Return(runtime.NodeStorage{})
+				storedRuntime.EXPECT().NetworkService().Return(nil)
+				storedRuntime.EXPECT().Validator().Return(false)
+
+				blockState := NewMockBlockState(ctrl)
+				blockState.EXPECT().GetRuntime(hashPtr(common.Hash{0x01})).
+					Return(storedRuntime, nil)
+
+				return &Service{
+					blockState: blockState,
+					codeSubstitute: map[common.Hash]string{
+						{0x01}: "0x" +
+							// compression header
+							hex.EncodeToString([]byte{82, 188, 83, 118, 70, 219, 142, 5}) +
+							"01", // bad byte
+					},
+				}
+			},
+			blockHash:  common.Hash{0x01},
+			errWrapped: wasmer.ErrWASMDecompress,
+			errMessage: "creating new runtime instance: setting up VM: " +
+				"wasm decompression failed: unexpected EOF",
+		},
+		"store code substitution block hash error": {
+			serviceBuilder: func(ctrl *gomock.Controller) *Service {
+				storedRuntime := NewMockInstance(ctrl)
+				storedRuntime.EXPECT().Keystore().Return(nil)
+				storedRuntime.EXPECT().NodeStorage().Return(runtime.NodeStorage{})
+				storedRuntime.EXPECT().NetworkService().Return(nil)
+				storedRuntime.EXPECT().Validator().Return(true)
+
+				blockState := NewMockBlockState(ctrl)
+				blockState.EXPECT().GetRuntime(hashPtr(common.Hash{0x01})).
+					Return(storedRuntime, nil)
+
+				codeSubstitutedState := NewMockCodeSubstitutedState(ctrl)
+				codeSubstitutedState.EXPECT().
+					StoreCodeSubstitutedBlockHash(common.Hash{0x01}).
+					Return(errTest)
+
+				return &Service{
+					blockState: blockState,
+					codeSubstitute: map[common.Hash]string{
+						{0x01}: common.BytesToHex(validRuntimeCode),
+					},
+					codeSubstitutedState: codeSubstitutedState,
+				}
+			},
+			blockHash:  common.Hash{0x01},
+			errWrapped: errTest,
+			errMessage: "storing code substituted block hash: test error",
+		},
+		"success": {
+			serviceBuilder: func(ctrl *gomock.Controller) *Service {
+				storedRuntime := NewMockInstance(ctrl)
+				storedRuntime.EXPECT().Keystore().Return(nil)
+				storedRuntime.EXPECT().NodeStorage().Return(runtime.NodeStorage{})
+				storedRuntime.EXPECT().NetworkService().Return(nil)
+				storedRuntime.EXPECT().Validator().Return(true)
+
+				blockState := NewMockBlockState(ctrl)
+				blockState.EXPECT().GetRuntime(hashPtr(common.Hash{0x01})).
+					Return(storedRuntime, nil)
+
+				codeSubstitutedState := NewMockCodeSubstitutedState(ctrl)
+				codeSubstitutedState.EXPECT().
+					StoreCodeSubstitutedBlockHash(common.Hash{0x01}).
+					Return(nil)
+
+				blockState.EXPECT().StoreRuntime(common.Hash{0x01},
+					gomock.AssignableToTypeOf(&wasmer.Instance{}))
+
+				return &Service{
+					blockState: blockState,
+					codeSubstitute: map[common.Hash]string{
+						{0x01}: common.BytesToHex(validRuntimeCode),
+					},
+					codeSubstitutedState: codeSubstitutedState,
+				}
+			},
+			blockHash: common.Hash{0x01},
+		},
 	}
 
-	execTest := func(t *testing.T, s *Service, blockHash common.Hash, expErr error) {
-		err := s.handleCodeSubstitution(blockHash, nil, newTestInstance)
-		assert.ErrorIs(t, err, expErr)
-		if expErr != nil {
-			assert.EqualError(t, err, errTestDummyError.Error())
-		}
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			ctrl := gomock.NewController(t)
+
+			service := testCase.serviceBuilder(ctrl)
+
+			err := service.handleCodeSubstitution(testCase.blockHash, testCase.trieState)
+			assert.ErrorIs(t, err, testCase.errWrapped)
+			if testCase.errWrapped != nil {
+				assert.EqualError(t, err, testCase.errMessage)
+			}
+		})
 	}
-	testRuntime := []byte{21}
-	t.Run("nil value", func(t *testing.T) {
-		t.Parallel()
-		service := &Service{codeSubstitute: map[common.Hash]string{}}
-		err := service.handleCodeSubstitution(common.Hash{}, nil, newTestInstance)
-		assert.NoError(t, err)
-	})
-
-	t.Run("getRuntime error", func(t *testing.T) {
-		t.Parallel()
-		// hash for known test code substitution
-		blockHash := common.MustHexToHash("0x86aa36a140dfc449c30dbce16ce0fea33d5c3786766baa764e33f336841b9e29")
-		testCodeSubstitute := map[common.Hash]string{
-			blockHash: common.BytesToHex(testRuntime),
-		}
-
-		ctrl := gomock.NewController(t)
-		mockBlockState := NewMockBlockState(ctrl)
-		mockBlockState.EXPECT().GetRuntime(&blockHash).Return(nil, errTestDummyError)
-		service := &Service{
-			codeSubstitute: testCodeSubstitute,
-			blockState:     mockBlockState,
-		}
-		execTest(t, service, blockHash, errTestDummyError)
-	})
-
-	t.Run("code substitute error", func(t *testing.T) {
-		t.Parallel()
-		// hash for known test code substitution
-		blockHash := common.MustHexToHash("0x86aa36a140dfc449c30dbce16ce0fea33d5c3786766baa764e33f336841b9e29")
-		testCodeSubstitute := map[common.Hash]string{
-			blockHash: common.BytesToHex(testRuntime),
-		}
-
-		runtimeMock := new(mocksruntime.Instance)
-		runtimeMock.On("Keystore").Return(&keystore.GlobalKeystore{})
-		runtimeMock.On("NodeStorage").Return(runtime.NodeStorage{})
-		runtimeMock.On("NetworkService").Return(new(runtime.TestRuntimeNetwork))
-		runtimeMock.On("Validator").Return(true)
-
-		ctrl := gomock.NewController(t)
-		mockBlockState := NewMockBlockState(ctrl)
-		mockBlockState.EXPECT().GetRuntime(&blockHash).Return(runtimeMock, nil)
-		mockCodeSubState := NewMockCodeSubstitutedState(ctrl)
-		mockCodeSubState.EXPECT().StoreCodeSubstitutedBlockHash(blockHash).Return(errTestDummyError)
-		service := &Service{
-			codeSubstitute:       testCodeSubstitute,
-			blockState:           mockBlockState,
-			codeSubstitutedState: mockCodeSubState,
-		}
-		execTest(t, service, blockHash, errTestDummyError)
-	})
-
-	t.Run("happyPath", func(t *testing.T) {
-		t.Parallel()
-		// hash for known test code substitution
-		blockHash := common.MustHexToHash("0x86aa36a140dfc449c30dbce16ce0fea33d5c3786766baa764e33f336841b9e29")
-		testCodeSubstitute := map[common.Hash]string{
-			blockHash: common.BytesToHex(testRuntime),
-		}
-
-		runtimeMock := new(mocksruntime.Instance)
-		runtimeMock.On("Keystore").Return(&keystore.GlobalKeystore{})
-		runtimeMock.On("NodeStorage").Return(runtime.NodeStorage{})
-		runtimeMock.On("NetworkService").Return(new(runtime.TestRuntimeNetwork))
-		runtimeMock.On("Validator").Return(true)
-
-		ctrl := gomock.NewController(t)
-		mockBlockState := NewMockBlockState(ctrl)
-		mockBlockState.EXPECT().GetRuntime(&blockHash).Return(runtimeMock, nil)
-		mockBlockState.EXPECT().StoreRuntime(blockHash, gomock.Any())
-		mockCodeSubState := NewMockCodeSubstitutedState(ctrl)
-		mockCodeSubState.EXPECT().StoreCodeSubstitutedBlockHash(blockHash).Return(nil)
-		service := &Service{
-			codeSubstitute:       testCodeSubstitute,
-			blockState:           mockBlockState,
-			codeSubstitutedState: mockCodeSubState,
-		}
-		err := service.handleCodeSubstitution(blockHash, nil, newTestInstance)
-		assert.NoError(t, err)
-	})
 }
 
 func Test_Service_handleBlock(t *testing.T) {
@@ -290,9 +351,7 @@ func Test_Service_handleBlock(t *testing.T) {
 
 	t.Run("storeTrie error", func(t *testing.T) {
 		t.Parallel()
-		emptyTrie := trie.NewEmptyTrie()
-		trieState, err := rtstorage.NewTrieState(emptyTrie)
-		require.NoError(t, err)
+		trieState := rtstorage.NewTrieState(nil)
 
 		testHeader := types.NewEmptyHeader()
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
@@ -308,9 +367,7 @@ func Test_Service_handleBlock(t *testing.T) {
 
 	t.Run("addBlock quit error", func(t *testing.T) {
 		t.Parallel()
-		emptyTrie := trie.NewEmptyTrie()
-		trieState, err := rtstorage.NewTrieState(emptyTrie)
-		require.NoError(t, err)
+		trieState := rtstorage.NewTrieState(nil)
 
 		testHeader := types.NewEmptyHeader()
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
@@ -331,9 +388,7 @@ func Test_Service_handleBlock(t *testing.T) {
 
 	t.Run("addBlock parent not found error", func(t *testing.T) {
 		t.Parallel()
-		emptyTrie := trie.NewEmptyTrie()
-		trieState, err := rtstorage.NewTrieState(emptyTrie)
-		require.NoError(t, err)
+		trieState := rtstorage.NewTrieState(nil)
 
 		testHeader := types.NewEmptyHeader()
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
@@ -354,9 +409,7 @@ func Test_Service_handleBlock(t *testing.T) {
 
 	t.Run("addBlock error continue", func(t *testing.T) {
 		t.Parallel()
-		emptyTrie := trie.NewEmptyTrie()
-		trieState, err := rtstorage.NewTrieState(emptyTrie)
-		require.NoError(t, err)
+		trieState := rtstorage.NewTrieState(nil)
 
 		testHeader := types.NewEmptyHeader()
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
@@ -378,9 +431,7 @@ func Test_Service_handleBlock(t *testing.T) {
 
 	t.Run("handle runtime changes error", func(t *testing.T) {
 		t.Parallel()
-		emptyTrie := trie.NewEmptyTrie()
-		trieState, err := rtstorage.NewTrieState(emptyTrie)
-		require.NoError(t, err)
+		trieState := rtstorage.NewTrieState(nil)
 
 		testHeader := types.NewEmptyHeader()
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
@@ -405,9 +456,7 @@ func Test_Service_handleBlock(t *testing.T) {
 
 	t.Run("code substitution ok", func(t *testing.T) {
 		t.Parallel()
-		emptyTrie := trie.NewEmptyTrie()
-		trieState, err := rtstorage.NewTrieState(emptyTrie)
-		require.NoError(t, err)
+		trieState := rtstorage.NewTrieState(nil)
 
 		testHeader := types.NewEmptyHeader()
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
@@ -448,12 +497,10 @@ func Test_Service_HandleBlockProduced(t *testing.T) {
 
 	t.Run("happy path", func(t *testing.T) {
 		t.Parallel()
-		emptyTrie := trie.NewEmptyTrie()
-		trieState, err := rtstorage.NewTrieState(emptyTrie)
-		require.NoError(t, err)
+		trieState := rtstorage.NewTrieState(nil)
 
 		digest := types.NewDigest()
-		err = digest.Add(
+		err := digest.Add(
 			types.PreRuntimeDigest{
 				ConsensusEngineID: types.BabeEngineID,
 				Data:              common.MustHexToBytes("0x0201000000ef55a50f00000000"),
@@ -974,9 +1021,8 @@ func TestServiceGetRuntimeVersion(t *testing.T) {
 		[]runtime.APIItem{testAPIItem},
 		transactionVersion,
 	)
-	emptyTrie := trie.NewEmptyTrie()
-	ts, err := rtstorage.NewTrieState(emptyTrie)
-	require.NoError(t, err)
+
+	ts := rtstorage.NewTrieState(nil)
 
 	execTest := func(t *testing.T, s *Service, bhash *common.Hash, exp runtime.Version, expErr error) {
 		res, err := s.GetRuntimeVersion(bhash)

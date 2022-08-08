@@ -26,7 +26,6 @@ import (
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/golang/mock/gomock"
@@ -60,8 +59,7 @@ func generateTestValidRemarkTxns(t *testing.T, pubKey []byte, accInfo types.Acco
 	genTrie, err := genesis.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
-	genState, err := rtstorage.NewTrieState(genTrie)
-	require.NoError(t, err)
+	genState := rtstorage.NewTrieState(genTrie)
 
 	nodeStorage := runtime.NodeStorage{
 		BaseDB: runtime.NewInMemoryDB(t),
@@ -665,10 +663,9 @@ func TestService_HandleCodeSubstitutes(t *testing.T) {
 
 	s.blockState.StoreRuntime(blockHash, rt)
 
-	ts, err := rtstorage.NewTrieState(trie.NewEmptyTrie())
-	require.NoError(t, err)
+	ts := rtstorage.NewTrieState(nil)
 
-	err = s.handleCodeSubstitution(blockHash, ts, wasmer.NewInstance)
+	err = s.handleCodeSubstitution(blockHash, ts)
 	require.NoError(t, err)
 	codSub := s.codeSubstitutedState.LoadCodeSubstitutedBlockHash()
 	require.Equal(t, blockHash, codSub)
@@ -694,10 +691,9 @@ func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 		Body: *body,
 	}
 
-	ts, err := rtstorage.NewTrieState(trie.NewEmptyTrie())
-	require.NoError(t, err)
+	ts := rtstorage.NewTrieState(nil)
 
-	err = s.handleCodeSubstitution(blockHash, ts, wasmer.NewInstance)
+	err = s.handleCodeSubstitution(blockHash, ts)
 	require.NoError(t, err)
 	require.Equal(t, codeHashBefore, parentRt.GetCodeHash()) // codeHash should remain unchanged after code substitute
 

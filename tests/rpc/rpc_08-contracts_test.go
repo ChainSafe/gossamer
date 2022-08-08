@@ -12,7 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/tests/utils/node"
 )
 
-func TestContractsRPC(t *testing.T) {
+func TestContractsRPC(t *testing.T) { //nolint:tparallel
 	t.SkipNow() // TODO
 
 	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)

@@ -59,8 +59,7 @@ func newTestState(t *testing.T) *state.Service {
 
 	var rtCfg runtime.InstanceConfig
 
-	rtCfg.Storage, err = rtstorage.NewTrieState(genTrie)
-	require.NoError(t, err)
+	rtCfg.Storage = rtstorage.NewTrieState(genTrie)
 
 	rt, err := wasmer.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)

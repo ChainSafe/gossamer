@@ -25,57 +25,38 @@ type telemetryConnection struct {
 
 // Mailer can send messages to the telemetry servers.
 type Mailer struct {
-	*sync.Mutex
+	mutex *sync.Mutex
 
-	logger  log.LeveledLogger
-	enabled bool
+	logger log.LeveledLogger
 
 	connections []*telemetryConnection
 }
 
-func newMailer(enabled bool, logger log.LeveledLogger) *Mailer {
-	mailer := &Mailer{
-		new(sync.Mutex),
-		logger,
-		enabled,
-		nil,
-	}
-
-	return mailer
-}
-
 // BootstrapMailer setup the mailer, the connections and start the async message shipment
-func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint, enabled bool, logger log.LeveledLogger) (
+func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint, logger log.LeveledLogger) (
 	mailer *Mailer, err error) {
-
-	mailer = newMailer(enabled, logger)
-	if !enabled {
-		return mailer, nil
+	mailer = &Mailer{
+		mutex:  new(sync.Mutex),
+		logger: logger,
 	}
 
 	for _, v := range conns {
-		const maxRetries = 5
+		const maxRetries = 3
 
 		for connAttempts := 0; connAttempts < maxRetries; connAttempts++ {
-			conn, response, err := websocket.DefaultDialer.Dial(v.Endpoint, nil)
+			const dialTimeout = 3 * time.Second
+			dialCtx, dialCancel := context.WithTimeout(ctx, dialTimeout)
+			conn, response, err := websocket.DefaultDialer.DialContext(dialCtx, v.Endpoint, nil)
+			dialCancel()
 			if err != nil {
 				mailer.logger.Debugf("cannot dial telemetry endpoint %s (try %d of %d): %s",
 					v.Endpoint, connAttempts+1, maxRetries, err)
 
-				const retryDelay = time.Second * 15
-				timer := time.NewTimer(retryDelay)
-
-				select {
-				case <-timer.C:
-					continue
-				case <-ctx.Done():
-					mailer.logger.Debugf("bootstrap telemetry issue: %w", ctx.Err())
-					if !timer.Stop() {
-						<-timer.C
-					}
-
-					return nil, ctx.Err()
+				if ctxErr := ctx.Err(); ctxErr != nil {
+					return nil, ctxErr
 				}
+
+				continue
 			}
 
 			err = response.Body.Close()
@@ -96,12 +77,10 @@ func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint, en
 
 // SendMessage sends Message to connected telemetry listeners through messageReceiver
 func (m *Mailer) SendMessage(msg Message) {
-	m.Lock()
-	defer m.Unlock()
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
 
-	if m.enabled {
-		go m.shipTelemetryMessage(msg)
-	}
+	go m.shipTelemetryMessage(msg)
 }
 
 func (m *Mailer) shipTelemetryMessage(msg Message) {

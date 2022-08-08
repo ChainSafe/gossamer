@@ -35,7 +35,7 @@ func (ks *GenericKeystore) Name() Name {
 }
 
 // Type returns UnknownType since the keystore may contain keys of any type
-func (ks *GenericKeystore) Type() crypto.KeyType {
+func (*GenericKeystore) Type() crypto.KeyType {
 	return crypto.UnknownType
 }
 

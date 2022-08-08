@@ -91,7 +91,10 @@ func TestLoadGlobalNodeName(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			gotNodename, err := LoadGlobalNodeName(tt.basepath)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
@@ -136,14 +139,14 @@ func TestNewNode(t *testing.T) {
 		Init:    InitConfig{Genesis: genFile},
 		Account: AccountConfig{Key: "alice"},
 		Core: CoreConfig{
-			Roles:           types.FullNodeRole,
+			Roles:           common.FullNodeRole,
 			WasmInterpreter: wasmer.Name,
 		},
 	}
 
 	dotConfig.Init = InitConfig{Genesis: genFile}
 	dotConfig.Account = AccountConfig{Key: "alice"}
-	dotConfig.Core.Roles = types.FullNodeRole
+	dotConfig.Core.Roles = common.FullNodeRole
 	dotConfig.Core.WasmInterpreter = wasmer.Name
 	dotConfig.Global.Name = "TestNode"
 
@@ -304,7 +307,7 @@ func initKeystore(t *testing.T, cfg *Config) (*keystore.GlobalKeystore, error) {
 	require.NoError(t, err)
 
 	// if authority node, should have at least 1 key in keystore
-	if cfg.Core.Roles == types.AuthorityRole && (ks.Babe.Size() == 0 || ks.Gran.Size() == 0) {
+	if cfg.Core.Roles == common.AuthorityRole && (ks.Babe.Size() == 0 || ks.Gran.Size() == 0) {
 		return nil, ErrNoKeysProvided
 	}
 

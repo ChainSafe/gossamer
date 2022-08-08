@@ -5,7 +5,7 @@ package pprof
 
 import (
 	"context"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
 	"time"
@@ -63,9 +63,10 @@ func Test_Server(t *testing.T) {
 	}
 
 	type httpResult struct {
-		url      string
-		response *http.Response
-		err      error
+		url    string
+		status int
+		body   []byte
+		err    error
 	}
 	results := make(chan httpResult)
 
@@ -76,12 +77,26 @@ func Test_Server(t *testing.T) {
 		require.NoError(t, err)
 
 		go func(client *http.Client, request *http.Request, results chan<- httpResult) {
-			response, err := client.Do(request)
-			results <- httpResult{
-				url:      request.URL.String(),
-				response: response,
-				err:      err,
+			result := httpResult{
+				url: request.URL.String(),
 			}
+			var response *http.Response
+			response, result.err = client.Do(request)
+			if result.err != nil {
+				results <- result
+				return
+			}
+
+			result.status = response.StatusCode
+			result.body, result.err = io.ReadAll(response.Body)
+			if result.err != nil {
+				_ = response.Body.Close()
+				results <- result
+				return
+			}
+
+			result.err = response.Body.Close()
+			results <- result
 		}(httpClient, request, results)
 	}
 
@@ -89,15 +104,10 @@ func Test_Server(t *testing.T) {
 		httpResult := <-results
 
 		require.NoErrorf(t, httpResult.err, "unexpected error for URL %s: %s", httpResult.url, httpResult.err)
-		assert.Equalf(t, http.StatusOK, httpResult.response.StatusCode,
-			"unexpected status code for URL %s: %s", httpResult.url, http.StatusText(httpResult.response.StatusCode))
+		assert.Equalf(t, http.StatusOK, httpResult.status,
+			"unexpected status code for URL %s: %s", httpResult.url, http.StatusText(httpResult.status))
 
-		b, err := ioutil.ReadAll(httpResult.response.Body)
-		require.NoErrorf(t, err, "unexpected error for URL %s: %s", httpResult.url, err)
-		assert.NotEmptyf(t, b, "response body is empty for URL %s", httpResult.url)
-
-		err = httpResult.response.Body.Close()
-		assert.NoErrorf(t, err, "unexpected error for URL %s: %s", httpResult.url, err)
+		assert.NotEmptyf(t, httpResult.body, "response body is empty for URL %s", httpResult.url)
 	}
 
 	cancel()

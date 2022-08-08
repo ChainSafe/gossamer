@@ -26,6 +26,10 @@ const (
 	PrimaryAndSecondaryVRFSlots
 )
 
+var (
+	ErrChainHeadMissingDigest = errors.New("chain head missing digest")
+)
+
 // BabeConfiguration contains the genesis data for BABE
 //nolint:lll
 // see: https://github.com/paritytech/substrate/blob/426c26b8bddfcdbaf8d29f45b128e0864b57de1c/core/consensus/babe/primitives/src/lib.rs#L132
@@ -105,7 +109,7 @@ type ConfigData struct {
 // GetSlotFromHeader returns the BABE slot from the given header
 func GetSlotFromHeader(header *Header) (uint64, error) {
 	if len(header.Digest.Types) == 0 {
-		return 0, fmt.Errorf("chain head missing digest")
+		return 0, ErrChainHeadMissingDigest
 	}
 
 	preDigest, ok := header.Digest.Types[0].Value().(PreRuntimeDigest)
@@ -138,7 +142,7 @@ func IsPrimary(header *Header) (bool, error) {
 	}
 
 	if len(header.Digest.Types) == 0 {
-		return false, fmt.Errorf("chain head missing digest")
+		return false, ErrChainHeadMissingDigest
 	}
 
 	preDigest, ok := header.Digest.Types[0].Value().(PreRuntimeDigest)

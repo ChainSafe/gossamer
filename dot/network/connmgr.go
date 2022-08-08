@@ -56,8 +56,6 @@ func (cm *ConnManager) Notifee() network.Notifiee {
 	nb.ListenCloseF = cm.ListenClose
 	nb.ConnectedF = cm.Connected
 	nb.DisconnectedF = cm.Disconnected
-	nb.OpenedStreamF = cm.OpenedStream
-	nb.ClosedStreamF = cm.ClosedStream
 
 	return nb
 }
@@ -112,18 +110,6 @@ func (cm *ConnManager) ListenClose(n network.Network, addr ma.Multiaddr) {
 		"Host %s stopped listening on address %s", n.LocalPeer(), addr)
 }
 
-// returns a slice of peers that are unprotected and may be pruned.
-func (cm *ConnManager) unprotectedPeers(peers []peer.ID) []peer.ID {
-	unprot := []peer.ID{}
-	for _, id := range peers {
-		if !cm.IsProtected(id, "") && !cm.isPersistent(id) {
-			unprot = append(unprot, id)
-		}
-	}
-
-	return unprot
-}
-
 // Connected is called when a connection opened
 func (cm *ConnManager) Connected(n network.Network, c network.Conn) {
 	logger.Tracef(
@@ -142,21 +128,4 @@ func (cm *ConnManager) Disconnected(_ network.Network, c network.Conn) {
 	if cm.disconnectHandler != nil {
 		cm.disconnectHandler(c.RemotePeer())
 	}
-}
-
-// OpenedStream is called when a stream is opened
-func (cm *ConnManager) OpenedStream(_ network.Network, s network.Stream) {
-	logger.Tracef("Stream opened with peer %s using protocol %s",
-		s.Conn().RemotePeer(), s.Protocol())
-}
-
-// ClosedStream is called when a stream is closed
-func (cm *ConnManager) ClosedStream(_ network.Network, s network.Stream) {
-	logger.Tracef("Stream closed with peer %s using protocol %s",
-		s.Conn().RemotePeer(), s.Protocol())
-}
-
-func (cm *ConnManager) isPersistent(p peer.ID) bool {
-	_, ok := cm.persistentPeers.Load(p)
-	return ok
 }

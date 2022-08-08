@@ -29,12 +29,17 @@ func Test_New(t *testing.T) {
 		handler: handler,
 		logger:  logger,
 		optional: optionalSettings{
-			shutdownTimeout: time.Second,
+			readHeaderTimeout: time.Minute,
+			readTimeout:       time.Hour,
+			shutdownTimeout:   time.Second,
 		},
 	}
 
 	server := New(name, address, handler, logger,
-		ShutdownTimeout(time.Second))
+		ShutdownTimeout(time.Second),
+		ReadTimeout(time.Hour),
+		ReadHeaderTimeout(time.Minute),
+	)
 
 	assert.NotNil(t, server.addressSet)
 	server.addressSet = nil

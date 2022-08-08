@@ -52,7 +52,7 @@ type InstanceConfig struct {
 	Storage     Storage
 	Keystore    *keystore.GlobalKeystore
 	LogLvl      log.Level
-	Role        byte
+	Role        common.Roles
 	NodeStorage NodeStorage
 	Network     BasicNetwork
 	Transaction TransactionState

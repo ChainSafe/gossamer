@@ -5,6 +5,7 @@ package grandpa
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -15,10 +16,9 @@ import (
 	"github.com/libp2p/go-libp2p-core/protocol"
 )
 
-var (
-	grandpaID                protocol.ID = "/paritytech/grandpa/1"
-	messageID                            = network.ConsensusMsgType
-	neighbourMessageInterval             = time.Minute * 5
+const (
+	grandpaID1               = "grandpa/1"
+	neighbourMessageInterval = 5 * time.Minute
 )
 
 // Handshake is an alias for network.Handshake
@@ -36,11 +36,6 @@ type ConsensusMessage = network.ConsensusMessage
 // GrandpaHandshake is exchanged by nodes that are beginning the grandpa protocol
 type GrandpaHandshake struct { //nolint:revive
 	Roles byte
-}
-
-// SubProtocol returns the grandpa sub-protocol
-func (*GrandpaHandshake) SubProtocol() string {
-	return string(grandpaID)
 }
 
 // String formats a BlockAnnounceHandshake as a string
@@ -74,9 +69,13 @@ func (*GrandpaHandshake) IsHandshake() bool {
 }
 
 func (s *Service) registerProtocol() error {
+	genesisHash := s.blockState.GenesisHash().String()
+	genesisHash = strings.TrimPrefix(genesisHash, "0x")
+	grandpaProtocolID := fmt.Sprintf("/%s/%s", genesisHash, grandpaID1)
+
 	return s.network.RegisterNotificationsProtocol(
-		grandpaID,
-		messageID,
+		protocol.ID(grandpaProtocolID),
+		network.ConsensusMsgType,
 		s.getHandshake,
 		s.decodeHandshake,
 		s.validateHandshake,
@@ -175,8 +174,8 @@ func (s *Service) sendMessage(msg GrandpaMessage) error {
 	return nil
 }
 
-func (s *Service) sendNeighbourMessage() {
-	t := time.NewTicker(neighbourMessageInterval)
+func (s *Service) sendNeighbourMessage(interval time.Duration) {
+	t := time.NewTicker(interval)
 	defer t.Stop()
 	for {
 		select {

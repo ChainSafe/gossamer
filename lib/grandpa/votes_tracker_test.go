@@ -28,7 +28,7 @@ func buildVoteMessage(blockHash common.Hash,
 }
 
 func wrapVoteMessageWithPeerID(voteMessage *VoteMessage,
-	peerID peer.ID) networkVoteMessage {
+	peerID peer.ID) networkVoteMessage { //nolint:unparam
 	return networkVoteMessage{
 		from: peerID,
 		msg:  voteMessage,

@@ -188,8 +188,8 @@ func populateChildren(valueSize, depth int) (children []*Node) {
 	if depth == 0 {
 		for i := range children {
 			children[i] = &Node{
-				Key:   someValue,
-				Value: someValue,
+				Key:      someValue,
+				SubValue: someValue,
 			}
 		}
 		return children
@@ -198,7 +198,7 @@ func populateChildren(valueSize, depth int) (children []*Node) {
 	for i := range children {
 		children[i] = &Node{
 			Key:      someValue,
-			Value:    someValue,
+			SubValue: someValue,
 			Children: populateChildren(valueSize, depth-1),
 		}
 	}
@@ -218,7 +218,7 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 		"no children": {},
 		"first child not nil": {
 			children: []*Node{
-				{Key: []byte{1}, Value: []byte{2}},
+				{Key: []byte{1}, SubValue: []byte{2}},
 			},
 			writes: []writeCall{
 				{
@@ -231,7 +231,7 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
-				{Key: []byte{1}, Value: []byte{2}},
+				{Key: []byte{1}, SubValue: []byte{2}},
 			},
 			writes: []writeCall{
 				{
@@ -241,8 +241,8 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 		},
 		"first two children not nil": {
 			children: []*Node{
-				{Key: []byte{1}, Value: []byte{2}},
-				{Key: []byte{3}, Value: []byte{4}},
+				{Key: []byte{1}, SubValue: []byte{2}},
+				{Key: []byte{3}, SubValue: []byte{4}},
 			},
 			writes: []writeCall{
 				{
@@ -258,7 +258,7 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 				nil, nil, nil, nil,
 				nil, nil, nil, nil,
 				nil, nil, nil,
-				{Key: []byte{1}, Value: []byte{2}},
+				{Key: []byte{1}, SubValue: []byte{2}},
 				nil, nil, nil, nil,
 			},
 			writes: []writeCall{
@@ -278,7 +278,7 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 				{
 					Key: []byte{1},
 					Children: []*Node{
-						{Key: []byte{1}, Value: []byte{2}},
+						{Key: []byte{1}, SubValue: []byte{2}},
 					},
 				},
 			},
@@ -360,7 +360,7 @@ func Test_encodeChildrenSequentially(t *testing.T) {
 		"no children": {},
 		"first child not nil": {
 			children: []*Node{
-				{Key: []byte{1}, Value: []byte{2}},
+				{Key: []byte{1}, SubValue: []byte{2}},
 			},
 			writes: []writeCall{
 				{
@@ -373,7 +373,7 @@ func Test_encodeChildrenSequentially(t *testing.T) {
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
-				{Key: []byte{1}, Value: []byte{2}},
+				{Key: []byte{1}, SubValue: []byte{2}},
 			},
 			writes: []writeCall{
 				{
@@ -383,8 +383,8 @@ func Test_encodeChildrenSequentially(t *testing.T) {
 		},
 		"first two children not nil": {
 			children: []*Node{
-				{Key: []byte{1}, Value: []byte{2}},
-				{Key: []byte{3}, Value: []byte{4}},
+				{Key: []byte{1}, SubValue: []byte{2}},
+				{Key: []byte{3}, SubValue: []byte{4}},
 			},
 			writes: []writeCall{
 				{
@@ -400,7 +400,7 @@ func Test_encodeChildrenSequentially(t *testing.T) {
 				nil, nil, nil, nil,
 				nil, nil, nil, nil,
 				nil, nil, nil,
-				{Key: []byte{1}, Value: []byte{2}},
+				{Key: []byte{1}, SubValue: []byte{2}},
 				nil, nil, nil, nil,
 			},
 			writes: []writeCall{
@@ -480,8 +480,8 @@ func Test_encodeChild(t *testing.T) {
 		},
 		"leaf child": {
 			child: &Node{
-				Key:   []byte{1},
-				Value: []byte{2},
+				Key:      []byte{1},
+				SubValue: []byte{2},
 			},
 			writeCall: true,
 			write: writeCall{
@@ -490,11 +490,11 @@ func Test_encodeChild(t *testing.T) {
 		},
 		"branch child": {
 			child: &Node{
-				Key:   []byte{1},
-				Value: []byte{2},
+				Key:      []byte{1},
+				SubValue: []byte{2},
 				Children: []*Node{
 					nil, nil, {Key: []byte{5},
-						Value: []byte{6},
+						SubValue: []byte{6},
 					},
 				},
 			},
@@ -542,10 +542,10 @@ func Test_scaleEncodeHash(t *testing.T) {
 	}{
 		"branch": {
 			node: &Node{
-				Key:   []byte{1, 2},
-				Value: []byte{3, 4},
+				Key:      []byte{1, 2},
+				SubValue: []byte{3, 4},
 				Children: []*Node{
-					nil, nil, {Key: []byte{9}, Value: []byte{1}},
+					nil, nil, {Key: []byte{9}, SubValue: []byte{1}},
 				},
 			},
 			encoding: []byte{0x30, 0xc2, 0x12, 0x4, 0x0, 0x8, 0x3, 0x4, 0x10, 0x41, 0x9, 0x4, 0x1},

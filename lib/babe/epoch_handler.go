@@ -91,7 +91,7 @@ func (h *epochHandler) run(ctx context.Context, errCh chan<- error) {
 		}
 
 		startTime := getSlotStartTime(authoringSlot, h.constants.slotDuration)
-		waitTime := startTime.Sub(time.Now())
+		waitTime := time.Until(startTime)
 		timer := time.NewTimer(waitTime)
 
 		slotTimeTimers = append(slotTimeTimers, &slotWithTimer{

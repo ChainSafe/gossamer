@@ -55,8 +55,8 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 				Key: []byte{5},
 				Children: padRightChildren([]*Node{
 					{
-						Key:   []byte{9},
-						Value: []byte{10},
+						Key:      []byte{9},
+						SubValue: []byte{10},
 					},
 				}),
 			},
@@ -65,9 +65,9 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
 					{
-						Key:   []byte{9},
-						Value: []byte{10},
-						Dirty: true,
+						Key:      []byte{9},
+						SubValue: []byte{10},
+						Dirty:    true,
 					},
 				}),
 				Dirty: true,
@@ -86,7 +86,7 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 							10, 11, 12, 13,
 							14, 15, 16, 17,
 						},
-						Value: []byte{
+						SubValue: []byte{
 							10, 11, 12, 13,
 							14, 15, 16, 17,
 							10, 11, 12, 13,
@@ -101,7 +101,7 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 				Key: []byte{5},
 				Children: padRightChildren([]*Node{
 					{
-						HashDigest: []byte{
+						MerkleValue: []byte{
 							2, 18, 48, 30, 98,
 							133, 244, 78, 70,
 							161, 196, 105, 228,

@@ -304,7 +304,7 @@ func TestTrieDiff(t *testing.T) {
 	}
 
 	dbTrie := NewEmptyTrie()
-	err = dbTrie.Load(storageDB, common.BytesToHash(newTrie.root.HashDigest))
+	err = dbTrie.Load(storageDB, common.BytesToHash(newTrie.root.MerkleValue))
 	require.NoError(t, err)
 }
 
@@ -363,9 +363,8 @@ func TestDelete(t *testing.T) {
 	require.NoError(t, err)
 
 	// Only the current trie should have a different root hash since it is updated.
-	require.NotEqual(t, ssTrie, dcTrieHash)
-	require.NotEqual(t, ssTrie, tHash)
-	require.Equal(t, dcTrieHash, tHash)
+	require.Equal(t, tHash, dcTrieHash)
+	require.NotEqual(t, tHash, ssTrieHash)
 }
 
 func TestClearPrefix(t *testing.T) {
@@ -459,12 +458,6 @@ func TestClearPrefix(t *testing.T) {
 }
 
 func TestClearPrefix_Small(t *testing.T) {
-	keys := []string{
-		"noot",
-		"noodle",
-		"other",
-	}
-
 	trie := NewEmptyTrie()
 
 	dcTrie := trie.DeepCopy()
@@ -486,6 +479,11 @@ func TestClearPrefix_Small(t *testing.T) {
 	require.Equal(t, tHash, dcTrieHash)
 	require.Equal(t, dcTrieHash, ssTrieHash)
 
+	keys := []string{
+		"noot",
+		"noodle",
+		"other",
+	}
 	for _, key := range keys {
 		ssTrie.Put([]byte(key), []byte(key))
 	}
@@ -494,11 +492,10 @@ func TestClearPrefix_Small(t *testing.T) {
 
 	expectedRoot := &Node{
 		Key:        codec.KeyLEToNibbles([]byte("other")),
-		Value:      []byte("other"),
+		SubValue:   []byte("other"),
 		Generation: 1,
+		Dirty:      true,
 	}
-	expectedRoot.SetDirty(true)
-
 	require.Equal(t, expectedRoot, ssTrie.root)
 
 	// Get the updated root hash of all tries.
@@ -511,10 +508,8 @@ func TestClearPrefix_Small(t *testing.T) {
 	ssTrieHash, err = ssTrie.Hash()
 	require.NoError(t, err)
 
-	// Only the current trie should have a different root hash since it is updated.
-	require.NotEqual(t, ssTrie, dcTrieHash)
-	require.NotEqual(t, ssTrie, tHash)
-	require.Equal(t, dcTrieHash, tHash)
+	require.Equal(t, tHash, dcTrieHash)
+	require.NotEqual(t, ssTrieHash, dcTrieHash)
 }
 
 func TestTrie_ClearPrefixVsDelete(t *testing.T) {

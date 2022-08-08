@@ -258,7 +258,7 @@ func (s *Service) Start() error {
 			blockAnnounceID, err)
 	}
 
-	txnBatch := make(chan *BatchMessage, s.cfg.batchSize)
+	txnBatch := make(chan *batchMessage, s.cfg.batchSize)
 	txnBatchHandler := s.createBatchMessageHandler(txnBatch)
 
 	// register transactions protocol
@@ -277,16 +277,15 @@ func (s *Service) Start() error {
 		logger.Warnf("failed to register notifications protocol with transaction id %s: %s", transactionsID, err)
 	}
 
-	// since this opens block announce streams, it should happen after the protocol is registered
-	// NOTE: this only handles *incoming* connections
-	s.host.p2pHost.Network().SetConnHandler(s.handleConn)
-
 	// this handles all new connections (incoming and outgoing)
 	// it creates a per-protocol mutex for sending outbound handshakes to the peer
 	s.host.cm.connectHandler = func(peerID peer.ID) {
 		for _, prtl := range s.notificationsProtocols {
 			prtl.peersData.setMutex(peerID)
 		}
+		// TODO: currently we only have one set so setID is 0, change this once we have more set in peerSet
+		const setID = 0
+		s.host.cm.peerSetHandler.Incoming(setID, peerID)
 	}
 
 	// when a peer gets disconnected, we should clear all handshake data we have for it.
@@ -437,38 +436,6 @@ func (s *Service) sentBlockIntervalTelemetry() {
 
 		time.Sleep(s.telemetryInterval)
 	}
-}
-
-func (s *Service) handleConn(conn libp2pnetwork.Conn) {
-	// TODO: currently we only have one set so setID is 0, change this once we have more set in peerSet.
-	s.host.cm.peerSetHandler.Incoming(0, conn.RemotePeer())
-
-	// exchange BlockAnnounceHandshake with peer so we can start to
-	// sync if necessary.
-	prtl, has := s.notificationsProtocols[BlockAnnounceMsgType]
-	if !has {
-		return
-	}
-
-	hs, err := prtl.getHandshake()
-	if err != nil {
-		logger.Warnf("failed to get handshake for protocol %s: %s",
-			prtl.protocolID,
-			err,
-		)
-		return
-	}
-
-	_, err = s.sendHandshake(conn.RemotePeer(), hs, prtl)
-	if err != nil {
-		logger.Debugf("failed to send handshake to peer %s on connection: %s",
-			conn.RemotePeer(),
-			err,
-		)
-		return
-	}
-
-	// leave stream open if there's no error
 }
 
 // Stop closes running instances of the host and network services as well as
@@ -629,7 +596,7 @@ func (s *Service) Peers() []common.PeerInfo {
 		peerHandshakeMessage := data.handshake
 		peers = append(peers, common.PeerInfo{
 			PeerID:     p.String(),
-			Roles:      byte(peerHandshakeMessage.(*BlockAnnounceHandshake).Roles),
+			Roles:      peerHandshakeMessage.(*BlockAnnounceHandshake).Roles,
 			BestHash:   peerHandshakeMessage.(*BlockAnnounceHandshake).BestBlockHash,
 			BestNumber: uint64(peerHandshakeMessage.(*BlockAnnounceHandshake).BestBlockNumber),
 		})
@@ -649,7 +616,7 @@ func (s *Service) RemoveReservedPeers(addrs ...string) error {
 }
 
 // NodeRoles Returns the roles the node is running as.
-func (s *Service) NodeRoles() byte {
+func (s *Service) NodeRoles() common.Roles {
 	return s.cfg.Roles
 }
 
