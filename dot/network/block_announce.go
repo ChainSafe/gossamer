@@ -18,9 +18,7 @@ import (
 var errInvalidRole = errors.New("invalid role")
 var (
 	_ NotificationsMessage = &BlockAnnounceMessage{}
-	_ NotificationsMessage = &BlockAnnounceHandshake{}
-
-	errExpectedBlockAnnounceMsg = errors.New("received block announce handshake but expected block announce message")
+	_ Handshake            = &BlockAnnounceHandshake{}
 )
 
 // BlockAnnounceMessage is a state block header
@@ -140,17 +138,6 @@ func (*BlockAnnounceHandshake) Type() byte {
 	return 0
 }
 
-// Hash returns blake2b hash of block announce handshake.
-func (hs *BlockAnnounceHandshake) Hash() (common.Hash, error) {
-	// scale encode each extrinsic
-	encMsg, err := hs.Encode()
-	if err != nil {
-		return common.Hash{}, fmt.Errorf("cannot encode handshake: %w", err)
-	}
-
-	return common.Blake2bHash(encMsg)
-}
-
 // IsHandshake returns true
 func (hs *BlockAnnounceHandshake) IsHandshake() bool {
 	return hs.Roles != common.FullNodeRole && hs.Roles != common.LightClientRole && hs.Roles != common.AuthorityRole
@@ -222,10 +209,6 @@ func (s *Service) validateBlockAnnounceHandshake(from peer.ID, hs Handshake) err
 // if some more blocks are required to sync the announced block, the node will open a sync stream
 // with its peer and send a BlockRequest message
 func (s *Service) handleBlockAnnounceMessage(from peer.ID, msg NotificationsMessage) (propagate bool, err error) {
-	if msg.IsHandshake() {
-		return false, errExpectedBlockAnnounceMsg
-	}
-
 	bam, ok := msg.(*BlockAnnounceMessage)
 	if !ok {
 		return false, errors.New("invalid message")

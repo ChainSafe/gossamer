@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/libp2p/go-libp2p-core/network"
-	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 
@@ -21,7 +20,10 @@ const handshakeTimeout = time.Second * 10
 
 // Handshake is the interface all handshakes for notifications protocols must implement
 type Handshake interface {
-	NotificationsMessage
+	// NotificationsMessage
+	Message
+	Type() byte
+	IsHandshake() bool
 }
 
 // the following are used for RegisterNotificationsProtocol
@@ -130,7 +132,12 @@ func (s *Service) createNotificationsMessageHandler(
 			ok   bool
 			msg  NotificationsMessage
 			peer = stream.Conn().RemotePeer()
+			hs   Handshake
 		)
+
+		if hs, ok = m.(Handshake); ok && msg.IsHandshake() {
+			return s.handleHandshake(info, stream, hs, peer)
+		}
 
 		if msg, ok = m.(NotificationsMessage); !ok {
 			return fmt.Errorf("%w: expected %T but got %T", errMessageTypeNotValid, (NotificationsMessage)(nil), msg)
@@ -148,10 +155,6 @@ func (s *Service) createNotificationsMessageHandler(
 				Reason: peerset.DuplicateGossipReason,
 			}, peer)
 			return nil
-		}
-
-		if msg.IsHandshake() {
-			return s.handleHandshake(info, stream, msg, peer)
 		}
 
 		logger.Tracef("received message on notifications sub-protocol %s from peer %s, message is: %s",
@@ -176,17 +179,10 @@ func (s *Service) createNotificationsMessageHandler(
 	}
 }
 
-func (s *Service) handleHandshake(info *notificationsProtocol, stream libp2pnetwork.Stream,
-	msg NotificationsMessage, peer peer.ID) error {
+func (s *Service) handleHandshake(info *notificationsProtocol, stream network.Stream,
+	hs Handshake, peer peer.ID) error {
 	logger.Tracef("received handshake on notifications sub-protocol %s from peer %s, message is: %s",
-		info.protocolID, stream.Conn().RemotePeer(), msg)
-
-	hs, ok := msg.(Handshake)
-	if !ok {
-		// NOTE: As long as, Handshake interface and NotificationMessage interfaces are same,
-		// this error would never happen.
-		return errMessageIsNotHandshake
-	}
+		info.protocolID, stream.Conn().RemotePeer(), hs)
 
 	// if we are the receiver and haven't received the handshake already, validate it
 	// note: if this function is being called, it's being called via SetStreamHandler,
@@ -233,7 +229,7 @@ func (s *Service) handleHandshake(info *notificationsProtocol, stream libp2pnetw
 	return nil
 }
 
-func closeOutboundStream(info *notificationsProtocol, peerID peer.ID, stream libp2pnetwork.Stream) {
+func closeOutboundStream(info *notificationsProtocol, peerID peer.ID, stream network.Stream) {
 	logger.Debugf(
 		"cleaning up outbound handshake data for protocol=%s, peer=%s",
 		stream.Protocol(),

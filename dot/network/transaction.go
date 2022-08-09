@@ -17,7 +17,7 @@ import (
 
 var (
 	_ NotificationsMessage = &TransactionMessage{}
-	_ NotificationsMessage = &transactionHandshake{}
+	_ Handshake            = &transactionHandshake{}
 
 	errExpectedTransactionMsg = errors.New("received a transaction handshake but expected a transaction message")
 )
@@ -84,11 +84,6 @@ func (*transactionHandshake) Decode(_ []byte) error {
 // Type ...
 func (*transactionHandshake) Type() byte {
 	return 1
-}
-
-// Hash ...
-func (*transactionHandshake) Hash() (common.Hash, error) {
-	return common.Hash{}, nil
 }
 
 // IsHandshake returns true
