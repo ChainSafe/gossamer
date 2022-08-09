@@ -39,49 +39,38 @@ func CreateTestService(t *testing.T, genesisFilePath string,
 	require.NoError(t, err)
 
 	// Genesis state made fron the trie
-	genState, err := rtstorage.NewTrieState(genTrie)
-	require.NoError(t, err)
+	//genState, err := rtstorage.NewTrieState(genTrie)
+	//require.NoError(t, err)
 
 	// DB made
-	nodeStorage := runtime.NodeStorage{
-		BaseDB: runtime.NewInMemoryDB(t),
-	}
+	//nodeStorage := runtime.NodeStorage{
+	//	BaseDB: runtime.NewInMemoryDB(t),
+	//}
 	// Runtime instance config
-	rtCfg := runtime.InstanceConfig{
-		Storage:     genState,
-		LogLvl:      log.Error,
-		NodeStorage: nodeStorage,
-	}
+	//rtCfg := runtime.InstanceConfig{
+	//	Storage:     genState,
+	//	LogLvl:      log.Error,
+	//	NodeStorage: nodeStorage,
+	//}
 
 	// New runtime is created from genesis
-	rt, err := wasmer.NewRuntimeFromGenesis(rtCfg)
-	require.NoError(t, err)
+	//rt, err := wasmer.NewRuntimeFromGenesis(rtCfg)
+	//require.NoError(t, err)
 
 	// Extrinsic and context related stuff
 	aliceBalanceKey := balanceKey(t, pubKey)
 	encBal, err := scale.Marshal(accInfo)
 	require.NoError(t, err)
 
-	rt.(*wasmer.Instance).GetContext().Storage.Set(aliceBalanceKey, encBal)
-	// this key is System.UpgradedToDualRefCount -> set to true since all accounts have been upgraded to v0.9 format
-	rt.(*wasmer.Instance).GetContext().Storage.Set(common.UpgradedToDualRefKey, []byte{1})
+	//rt.(*wasmer.Instance).GetContext().Storage.Set(aliceBalanceKey, encBal)
+	//// this key is System.UpgradedToDualRefCount -> set to true since all accounts have been upgraded to v0.9 format
+	//rt.(*wasmer.Instance).GetContext().Storage.Set(common.UpgradedToDualRefKey, []byte{1})
 
 	// Genesis header made
 	genesisHeader := &types.Header{
 		Number:    0,
 		StateRoot: genTrie.MustHash(),
 	}
-
-	// Hash of encrypted centrifuge extrinsic
-	testCallArguments := []byte{0xab, 0xcd}
-	// Might need to remove/change this, but will keep for now
-	extHex := runtime.NewTestExtrinsic(t, rt, genesisHeader.Hash(), genesisHeader.Hash(),
-		0, "System.remark", testCallArguments)
-	encExtrinsic := common.MustHexToBytes(extHex)
-
-	// When I run this, I get failed to load trie from db, couldnt find root
-	// When I dont I get failed to validate signature
-	runtime.InitializeRuntimeLatestToTest(t, rt, genesisHeader.Hash())
 
 	//////      Other func joined to this one      //////
 
@@ -148,14 +137,63 @@ func CreateTestService(t *testing.T, genesisFilePath string,
 
 	// Runtime stuff
 	if cfg.Runtime == nil {
-		rtCfg.Storage = genState
+		//rtCfg.Storage = genState
+		//
+		//rtCfg.CodeHash, err = cfg.StorageState.LoadCodeHash(nil)
+		//require.NoError(t, err)
+		//
+		////nodeStorage := runtime.NodeStorage{}
+		////if stateSrvc != nil {
+		////	nodeStorage.BaseDB = stateSrvc.Base
+		////} else {
+		////	nodeStorage.BaseDB, err = utils.SetupDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
+		////	require.NoError(t, err)
+		////}
+		////rtCfg.NodeStorage = nodeStorage
+		//
+		//cfg.Runtime = rt
+
+		// Okay no errors, but test doesn't pass
+
+		var rtCfg runtime.InstanceConfig
+
+		var err error
+		rtCfg.Storage, err = rtstorage.NewTrieState(genTrie)
+		require.NoError(t, err)
 
 		rtCfg.CodeHash, err = cfg.StorageState.LoadCodeHash(nil)
 		require.NoError(t, err)
 
-		cfg.Runtime = rt
+		nodeStorage := runtime.NodeStorage{}
+
+		if stateSrvc != nil {
+			nodeStorage.BaseDB = stateSrvc.Base
+		} else {
+			nodeStorage.BaseDB, err = utils.SetupDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
+			require.NoError(t, err)
+		}
+
+		rtCfg.NodeStorage = nodeStorage
+
+		cfg.Runtime, err = wasmer.NewRuntimeFromGenesis(rtCfg)
+		require.NoError(t, err)
+
+		cfg.Runtime.(*wasmer.Instance).GetContext().Storage.Set(aliceBalanceKey, encBal)
+		// this key is System.UpgradedToDualRefCount -> set to true since all accounts have been upgraded to v0.9 format
+		cfg.Runtime.(*wasmer.Instance).GetContext().Storage.Set(common.UpgradedToDualRefKey, []byte{1})
 	}
 	cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), cfg.Runtime)
+
+	// Hash of encrypted centrifuge extrinsic
+	testCallArguments := []byte{0xab, 0xcd}
+	// Might need to remove/change this, but will keep for now
+	extHex := runtime.NewTestExtrinsic(t, cfg.Runtime, genesisHeader.Hash(), genesisHeader.Hash(),
+		0, "System.remark", testCallArguments)
+	encExtrinsic := common.MustHexToBytes(extHex)
+
+	// When I run this, I get failed to load trie from db, couldn't find root
+	// When I don't I get failed to validate signature
+	runtime.InitializeRuntimeLatestToTest(t, cfg.Runtime, genesisHeader.Hash())
 
 	if cfg.Network == nil {
 		cfg.Network = new(network.Service) // only for nil check in NewService

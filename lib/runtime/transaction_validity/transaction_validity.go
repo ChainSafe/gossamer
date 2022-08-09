@@ -5,6 +5,7 @@ package transactionValidity
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -69,6 +70,8 @@ func UnmarshalTransactionValidity(res []byte) (*transaction.Validity, *Transacti
 			if !ok {
 				return nil, nil, errInvalidTypeCast
 			}
+			fmt.Println(txnValidityErr.Value())
+			fmt.Println("hitting this case oh no")
 			return nil, &txnValidityErr, nil
 		default:
 			return nil, nil, errInvalidResult
