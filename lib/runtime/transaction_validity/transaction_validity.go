@@ -5,8 +5,6 @@ package transactionValidity
 
 import (
 	"errors"
-	"fmt"
-
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
@@ -43,6 +41,20 @@ func (tve *TransactionValidityError) Value() (val scale.VaryingDataTypeValue) {
 	return vdt.Value()
 }
 
+func (tve *TransactionValidityError) Error() error {
+	val, ok := tve.Value().(InvalidTransaction)
+	if !ok {
+		val2, ok2 := tve.Value().(UnknownTransaction)
+		if !ok || !ok2 {
+			return errInvalidTypeCast
+		} else {
+			return val2.Error()
+		}
+	} else {
+		return val.Error()
+	}
+}
+
 // NewTransactionValidityError is constructor for TransactionValidityError
 func NewTransactionValidityError() TransactionValidityError {
 	vdt, err := scale.NewVaryingDataType(NewInvalidTransaction(), NewUnknownTransaction())
@@ -70,8 +82,6 @@ func UnmarshalTransactionValidity(res []byte) (*transaction.Validity, *Transacti
 			if !ok {
 				return nil, nil, errInvalidTypeCast
 			}
-			fmt.Println(txnValidityErr.Value())
-			fmt.Println("hitting this case oh no")
 			return nil, &txnValidityErr, nil
 		default:
 			return nil, nil, errInvalidResult

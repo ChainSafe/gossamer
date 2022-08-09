@@ -414,16 +414,6 @@ func (s *Service) maintainTransactionPool(block *types.Block) {
 	for _, tx := range txs {
 		//// get the best block corresponding runtime
 		bestBlockHash := s.blockState.BestBlockHash()
-		fmt.Println("bbh in mtp: ", bestBlockHash)
-
-		// Lil eth says we should be setting context storage
-		// substrate prob handles this in a diff way
-
-		// If i dont set runtime context, then I get a corrupted storage state
-		// If I do, I get an invalid signature
-
-		// Maybe block hash in signature doesn't match the one got later?
-
 		stateRoot, err := s.storageState.GetStateRootFromBlock(&bestBlockHash)
 		if err != nil {
 			logger.Errorf("could not get state root from block %s: %w", bestBlockHash, err)
@@ -444,21 +434,19 @@ func (s *Service) maintainTransactionPool(block *types.Block) {
 		if err != nil {
 			logger.Errorf("Unable to build external transaction: %s", err)
 		}
-		fmt.Println("mtp1")
 
 		transactionValidity, transactionValidityErr, err := rt.ValidateTransaction(externalExt)
 		if err != nil || transactionValidityErr != nil {
-			// Err is nil, so hitting txn validity not nil
-			// Is it wrong or is it not empty
-			fmt.Println(transactionValidityErr)
+			if err == nil {
+				err = transactionValidityErr.Error()
+			}
+			logger.Errorf("Unable to validate transaction: %s", err)
 			s.transactionState.RemoveExtrinsic(tx.Extrinsic)
 			continue
 		}
-		fmt.Println("mtp2")
 
 		tx = transaction.NewValidTransaction(tx.Extrinsic, transactionValidity)
 
-		fmt.Println("ext ")
 		fmt.Println(tx.Extrinsic)
 		// Err is only thrown if tx is already in pool, in which case it still gets removed
 		h, _ := s.transactionState.Push(tx)
