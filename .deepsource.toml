@@ -1,3 +1,4 @@
+# https://deepsource.io/docs/analyzer/go/
 version = 1
 
 test_patterns = ["**/*_test.go"]
