@@ -327,7 +327,6 @@ func (s *Service) sendHandshake(peer peer.ID, hs Handshake, info *notificationsP
 	case hsData != nil && hsData.validated:
 		return hsData.stream, nil
 	case hsData == nil:
-		// where is this getting stored?
 		hsData = newHandshakeData(false, false, nil)
 	}
 
@@ -339,8 +338,6 @@ func (s *Service) sendHandshake(peer peer.ID, hs Handshake, info *notificationsP
 		// don't need to close the stream here, as it's nil!
 		return nil, err
 	}
-
-	// set OutboundHandshakeData
 
 	hsData.stream = stream
 
@@ -389,7 +386,6 @@ func (s *Service) sendHandshake(peer peer.ID, hs Handshake, info *notificationsP
 
 	hsData.validated = true
 	hsData.handshake = resp
-	// isn't this inbound handshake
 	info.peersData.setOutboundHandshakeData(peer, hsData)
 	logger.Tracef("sender: validated handshake from peer %s using protocol %s", peer, info.protocolID)
 	return hsData.stream, nil
@@ -401,7 +397,6 @@ func (s *Service) sendHandshake(peer peer.ID, hs Handshake, info *notificationsP
 func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer.ID, msg NotificationsMessage) {
 	logger.Tracef("broadcasting message from notifications sub-protocol %s", info.protocolID)
 
-	// TODO: This outbound handshake does not seem to be stored anywhere
 	hs, err := info.getHandshake()
 	if err != nil {
 		logger.Errorf("failed to get handshake using protocol %s: %s", info.protocolID, err)
