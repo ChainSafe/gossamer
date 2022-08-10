@@ -4,6 +4,7 @@
 package scale
 
 import (
+	"bytes"
 	"math/big"
 	"reflect"
 	"testing"
@@ -293,13 +294,17 @@ var varyingDataTypeTests = tests{
 func Test_encodeState_encodeVaryingDataType(t *testing.T) {
 	for _, tt := range varyingDataTypeTests {
 		t.Run(tt.name, func(t *testing.T) {
-			es := &encodeState{fieldScaleIndicesCache: cache}
+			buffer := bytes.NewBuffer(nil)
+			es := &encodeState{
+				Writer:                 buffer,
+				fieldScaleIndicesCache: cache,
+			}
 			vdt := tt.in.(VaryingDataType)
 			if err := es.marshal(vdt); (err != nil) != tt.wantErr {
 				t.Errorf("encodeState.marshal() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if !reflect.DeepEqual(es.Buffer.Bytes(), tt.want) {
-				t.Errorf("encodeState.marshal() = %v, want %v", es.Buffer.Bytes(), tt.want)
+			if !reflect.DeepEqual(buffer.Bytes(), tt.want) {
+				t.Errorf("encodeState.marshal() = %v, want %v", buffer.Bytes(), tt.want)
 			}
 		})
 	}
@@ -329,14 +334,18 @@ func Test_decodeState_decodeVaryingDataType(t *testing.T) {
 func Test_encodeState_encodeCustomVaryingDataType(t *testing.T) {
 	for _, tt := range varyingDataTypeTests {
 		t.Run(tt.name, func(t *testing.T) {
-			es := &encodeState{fieldScaleIndicesCache: cache}
+			buffer := bytes.NewBuffer(nil)
+			es := &encodeState{
+				Writer:                 buffer,
+				fieldScaleIndicesCache: cache,
+			}
 			vdt := tt.in.(VaryingDataType)
 			cvdt := customVDT(vdt)
 			if err := es.marshal(cvdt); (err != nil) != tt.wantErr {
 				t.Errorf("encodeState.encodeStruct() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if !reflect.DeepEqual(es.Buffer.Bytes(), tt.want) {
-				t.Errorf("encodeState.encodeStruct() = %v, want %v", es.Buffer.Bytes(), tt.want)
+			if !reflect.DeepEqual(buffer.Bytes(), tt.want) {
+				t.Errorf("encodeState.encodeStruct() = %v, want %v", buffer.Bytes(), tt.want)
 			}
 		})
 	}
