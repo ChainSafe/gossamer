@@ -228,12 +228,11 @@ func decodeMessage(cm *network.ConsensusMessage) (m GrandpaMessage, err error) {
 		m = &val
 
 	case VersionedNeighborMessage:
-		switch neighborMessage := msg.Value().(type) {
+		switch neighborMessage := val.Value().(type) {
 		case V1NeighbourMessage:
-			// we can afford to not retry handling neighbour message, if it errors.
 			m = &neighborMessage
 		default:
-			return nil, fmt.Errorf("%w: %v", ErrNeighborVersionNotSupported, msg.Value())
+			return nil, ErrInvalidMessageType
 		}
 	case CatchUpRequest:
 		m = &val
