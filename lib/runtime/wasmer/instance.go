@@ -156,9 +156,9 @@ func (in *Instance) UpdateRuntimeCode(code []byte) (err error) {
 	return nil
 }
 
-// CheckRuntimeVersion finds the runtime version by initiating a temporary
+// checkRuntimeVersion finds the runtime version by initiating a temporary
 // runtime instance using the WASM code provided, and querying it.
-func CheckRuntimeVersion(code []byte) (version runtime.Version, err error) {
+func checkRuntimeVersion(code []byte) (version runtime.Version, err error) {
 	config := runtime.InstanceConfig{
 		LogLvl: log.DoNotChange,
 	}

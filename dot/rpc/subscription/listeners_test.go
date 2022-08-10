@@ -19,6 +19,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	glog "github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -332,6 +333,26 @@ func setupWSConn(t *testing.T) (*WSConn, *websocket.Conn, func()) {
 	return wskt, ws, cancel
 }
 
+// checkRuntimeVersion finds the runtime version by initiating a temporary
+// runtime instance using the WASM code provided, and querying it.
+func checkRuntimeVersion(code []byte) (version runtime.Version, err error) {
+	config := runtime.InstanceConfig{
+		LogLvl: glog.DoNotChange,
+	}
+	instance, err := wasmer.NewInstance(code, config)
+	if err != nil {
+		return version, fmt.Errorf("creating runtime instance: %w", err)
+	}
+	defer instance.Stop()
+
+	version, err = instance.Version()
+	if err != nil {
+		return nil, fmt.Errorf("running runtime: %w", err)
+	}
+
+	return version, nil
+}
+
 func TestRuntimeChannelListener_Listen(t *testing.T) {
 	notifyChan := make(chan runtime.Version)
 	mockConnection := &mockWSConnAPI{}
@@ -355,7 +376,7 @@ func TestRuntimeChannelListener_Listen(t *testing.T) {
 	require.NoError(t, err)
 	code, err := os.ReadFile(polkadotRuntimeFilepath)
 	require.NoError(t, err)
-	version, err := wasmer.CheckRuntimeVersion(code)
+	version, err := checkRuntimeVersion(code)
 	require.NoError(t, err)
 
 	expectedUpdatedVersion := modules.StateRuntimeVersionResponse{

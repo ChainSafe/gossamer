@@ -14,6 +14,7 @@ import (
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -591,7 +592,7 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 	codeSubBlockHash := bs.baseState.LoadCodeSubstitutedBlockHash()
 
 	if !codeSubBlockHash.Equal(common.Hash{}) {
-		newVersion, err := wasmer.CheckRuntimeVersion(code)
+		newVersion, err := checkRuntimeVersion(code)
 		if err != nil {
 			return err
 		}
@@ -662,4 +663,24 @@ func (bs *BlockState) StoreRuntime(hash common.Hash, rt runtime.Instance) {
 // GetNonFinalisedBlocks get all the blocks in the blocktree
 func (bs *BlockState) GetNonFinalisedBlocks() []common.Hash {
 	return bs.bt.GetAllBlocks()
+}
+
+// checkRuntimeVersion finds the runtime version by initiating a temporary
+// runtime instance using the WASM code provided, and querying it.
+func checkRuntimeVersion(code []byte) (version runtime.Version, err error) {
+	config := runtime.InstanceConfig{
+		LogLvl: log.DoNotChange,
+	}
+	instance, err := wasmer.NewInstance(code, config)
+	if err != nil {
+		return version, fmt.Errorf("creating runtime instance: %w", err)
+	}
+	defer instance.Stop()
+
+	version, err = instance.Version()
+	if err != nil {
+		return nil, fmt.Errorf("running runtime: %w", err)
+	}
+
+	return version, nil
 }

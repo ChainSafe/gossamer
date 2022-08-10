@@ -42,7 +42,7 @@ func Test_CheckRuntimeVersion(t *testing.T) {
 	require.NoError(t, err)
 	code, err := os.ReadFile(polkadotRuntimeFilepath)
 	require.NoError(t, err)
-	version, err := CheckRuntimeVersion(code)
+	version, err := checkRuntimeVersion(code)
 	require.NoError(t, err)
 
 	expected := runtime.NewVersionData(
@@ -72,7 +72,7 @@ func Benchmark_CheckRuntimeVersion(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		code, _ := os.ReadFile(polkadotRuntimeFilepath)
-		_, _ = CheckRuntimeVersion(code)
+		_, _ = checkRuntimeVersion(code)
 	}
 }
 
