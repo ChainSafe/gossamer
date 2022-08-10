@@ -7,6 +7,7 @@ import (
 	"container/heap"
 	"errors"
 	"sync"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -142,6 +143,10 @@ func (spq *PriorityQueue) Push(txn *ValidTransaction) (common.Hash, error) {
 
 	transactionQueueGauge.Set(float64(spq.pq.Len()))
 	return hash, nil
+}
+
+func (spq *PriorityQueue) PopChannel2(*time.Timer) (tx chan *ValidTransaction) {
+	return
 }
 
 // PopChannel returns a *ValedTransaction channel to be signalled

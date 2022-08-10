@@ -177,75 +177,48 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt runtime.Instance) []*t
 	slotEnd := slot.start.Add(slot.duration * 2 / 3) // reserve last 1/3 of slot for block finalisation
 	timeout := time.Until(slotEnd)
 	slotTimer := time.NewTimer(timeout)
+	popChan := b.transactionState.PopChannel2(slotTimer)
 
-	for {
-		select {
-		case <-slotTimer.C:
-			return included
-		default:
+	for txn := range popChan {
+		// handle txn
+		extrinsic := txn.Extrinsic
+		logger.Tracef("build block, applying extrinsic %s", extrinsic)
+
+		ret, err := rt.ApplyExtrinsic(extrinsic)
+		if err != nil {
+			logger.Warnf("failed to apply extrinsic %s: %s", extrinsic, err)
+			continue
 		}
 
-		popChan, cancel := b.transactionState.PopChannel()
-		defer func() {
-			// stop slotTimer for the txn case
-			slotTimer.Stop()
-			// ensure that popChan is closed
-			done := make(chan interface{})
-			go func() {
-				<-popChan
-				close(done)
-			}()
-			err := cancel()
-			if err != nil {
-				logger.Errorf("cannot cancel pop channel: %s", err)
-			}
-			<-done
-		}()
+		err = determineErr(ret)
+		if err != nil {
+			logger.Warnf("failed to apply extrinsic %s: %s", extrinsic, err)
 
-		select {
-		case <-slotTimer.C:
-			return included
-		case txn := <-popChan:
-			// handle txn
-
-			extrinsic := txn.Extrinsic
-			logger.Tracef("build block, applying extrinsic %s", extrinsic)
-
-			ret, err := rt.ApplyExtrinsic(extrinsic)
-			if err != nil {
-				logger.Warnf("failed to apply extrinsic %s: %s", extrinsic, err)
+			// Failure of the module call dispatching doesn't invalidate the extrinsic.
+			// It is included in the block.
+			if _, ok := err.(*DispatchOutcomeError); !ok {
 				continue
 			}
 
-			err = determineErr(ret)
-			if err != nil {
-				logger.Warnf("failed to apply extrinsic %s: %s", extrinsic, err)
-
-				// Failure of the module call dispatching doesn't invalidate the extrinsic.
-				// It is included in the block.
-				if _, ok := err.(*DispatchOutcomeError); !ok {
-					continue
-				}
-
-				// don't drop transactions that may be valid in a later block ie.
-				// run out of gas for this block or have a nonce that may be valid in a later block
-				var e *TransactionValidityError
-				if !errors.As(err, &e) {
-					continue
-				}
-
-				if errors.Is(e.msg, errExhaustsResources) || errors.Is(e.msg, errInvalidTransaction) {
-					hash, err := b.transactionState.Push(txn)
-					if err != nil {
-						logger.Debugf("failed to re-add transaction with hash %s to queue: %s", hash, err)
-					}
-				}
+			// don't drop transactions that may be valid in a later block ie.
+			// run out of gas for this block or have a nonce that may be valid in a later block
+			var e *TransactionValidityError
+			if !errors.As(err, &e) {
+				continue
 			}
 
-			logger.Debugf("build block applied extrinsic %s", extrinsic)
-			included = append(included, txn)
+			if errors.Is(e.msg, errExhaustsResources) || errors.Is(e.msg, errInvalidTransaction) {
+				hash, err := b.transactionState.Push(txn)
+				if err != nil {
+					logger.Debugf("failed to re-add transaction with hash %s to queue: %s", hash, err)
+				}
+			}
 		}
+
+		logger.Debugf("build block applied extrinsic %s", extrinsic)
+		included = append(included, txn)
 	}
+	return included
 }
 
 func buildBlockInherents(slot Slot, rt runtime.Instance) ([][]byte, error) {
