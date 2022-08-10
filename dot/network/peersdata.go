@@ -85,9 +85,6 @@ func (p *peersData) setOutboundHandshakeData(peerID peer.ID, data *handshakeData
 	p.outbound[peerID] = data
 }
 
-// NOTE: If we are using handshake decoder for a bytes that contains a message instead,
-// chances are that at places we are deleting handshake data early (before the stream is closed).
-// Either that or we are not setting handshake data on time
 func (p *peersData) deleteOutboundHandshakeData(peerID peer.ID) {
 	p.outboundMu.Lock()
 	defer p.outboundMu.Unlock()
