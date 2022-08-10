@@ -951,12 +951,14 @@ func ext_misc_runtime_version_version_1(context unsafe.Pointer, dataSpan C.int64
 		return C.int64_t(out)
 	}
 
-	// Note: we must call the `Encode` method and NOT
-	// scale.Marshal or this one would encode the Version
-	// interface pointer instead of the actual struct implementation.
-	// Encode also respects the legacy boolean field of the version
-	// and encodes the version differently if it is set to true.
-	encodedData, err := version.Encode()
+	// Note the encoding contains all the latest Core_version fields as defined in
+	// https://spec.polkadot.network/#defn-rt-core-version
+	// In other words, decoding older version data with missing fields
+	// and then encoding it will result in a longer encoding due to the
+	// extra version fields. This however remains compatible since the
+	// version fields are still encoded in the same order and an older
+	// decoder would succeed with the longer encoding.
+	encodedData, err := scale.Marshal(version)
 	if err != nil {
 		logger.Errorf("failed to encode result: %s", err)
 		return 0

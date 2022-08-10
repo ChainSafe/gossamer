@@ -28,18 +28,6 @@ type Version struct {
 	TransactionVersion uint32
 }
 
-// Encode returns the scale encoding of the version.
-// Note the encoding contains all the latest Core_version fields as defined in
-// https://spec.polkadot.network/#defn-rt-core-version
-// In other words, decoding older version data with missing fields
-// and then encoding it will result in a longer encoding due to the
-// extra version fields. This however remains compatible since the
-// version fields are still encoded in the same order and an older
-// decoder would succeed with the longer encoding.
-func (v *Version) Encode() (encoded []byte, err error) {
-	return scale.Marshal(*v)
-}
-
 var (
 	ErrDecodingVersionField = errors.New("decoding version field")
 )
