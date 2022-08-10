@@ -176,7 +176,7 @@ func (s *Service) sendNeighbourMessage(interval time.Duration) {
 	t := time.NewTicker(interval)
 	defer t.Stop()
 
-	var neighborMessage *V1NeighbourMessage
+	var NeighbourMessage *V1NeighbourMessage
 	for {
 		select {
 		case <-s.ctx.Done():
@@ -184,7 +184,7 @@ func (s *Service) sendNeighbourMessage(interval time.Duration) {
 
 		case <-t.C:
 			s.roundLock.Lock()
-			neighborMessage = &V1NeighbourMessage{
+			NeighbourMessage = &V1NeighbourMessage{
 				Round:  s.state.round,
 				SetID:  s.state.setID,
 				Number: uint32(s.head.Number),
@@ -196,14 +196,14 @@ func (s *Service) sendNeighbourMessage(interval time.Duration) {
 				return
 			}
 
-			neighborMessage = &V1NeighbourMessage{
+			NeighbourMessage = &V1NeighbourMessage{
 				Round:  info.Round,
 				SetID:  info.SetID,
 				Number: uint32(info.Header.Number),
 			}
 		}
 
-		cm, err := neighborMessage.ToConsensusMessage()
+		cm, err := NeighbourMessage.ToConsensusMessage()
 		if err != nil {
 			logger.Warnf("failed to convert NeighbourMessage to network message: %s", err)
 			continue
@@ -227,10 +227,10 @@ func decodeMessage(cm *network.ConsensusMessage) (m GrandpaMessage, err error) {
 	case CommitMessage:
 		m = &val
 
-	case VersionedNeighborMessage:
-		switch neighborMessage := val.Value().(type) {
+	case VersionedNeighbourMessage:
+		switch NeighbourMessage := val.Value().(type) {
 		case V1NeighbourMessage:
-			m = &neighborMessage
+			m = &NeighbourMessage
 		default:
 			return nil, ErrInvalidMessageType
 		}

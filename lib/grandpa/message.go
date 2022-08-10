@@ -21,7 +21,7 @@ type GrandpaMessage interface { //nolint:revive
 // NewGrandpaMessage returns a new VaryingDataType to represent a GrandpaMessage
 func newGrandpaMessage() scale.VaryingDataType {
 	return scale.MustNewVaryingDataType(
-		VoteMessage{}, CommitMessage{}, NewVersionedNighborMessage(),
+		VoteMessage{}, CommitMessage{}, newVersionedNighborMessage(),
 		CatchUpRequest{}, CatchUpResponse{})
 }
 
@@ -77,27 +77,31 @@ func (v *VoteMessage) ToConsensusMessage() (*ConsensusMessage, error) {
 	}, nil
 }
 
-type VersionedNeighborMessage scale.VaryingDataType
+// VersionedNeighbourMessage represents the enum of nighbor messages
+type VersionedNeighbourMessage scale.VaryingDataType
 
-func (VersionedNeighborMessage) Index() uint { return 2 }
+// Index Returns VDT index
+func (VersionedNeighbourMessage) Index() uint { return 2 }
 
-func NewVersionedNighborMessage() VersionedNeighborMessage {
+func newVersionedNighborMessage() VersionedNeighbourMessage {
 	vdt := scale.MustNewVaryingDataType(V1NeighbourMessage{})
-	// cast to ParentVDT
-	return VersionedNeighborMessage(vdt)
+
+	return VersionedNeighbourMessage(vdt)
 }
 
-func (vnm *VersionedNeighborMessage) Set(val scale.VaryingDataTypeValue) (err error) {
+// Set updates the current VDT value to be `val`
+func (vnm *VersionedNeighbourMessage) Set(val scale.VaryingDataTypeValue) (err error) {
 	vdt := scale.VaryingDataType(*vnm)
 	err = vdt.Set(val)
 	if err != nil {
 		return
 	}
-	*vnm = VersionedNeighborMessage(vdt)
+	*vnm = VersionedNeighbourMessage(vdt)
 	return
 }
 
-func (vnm *VersionedNeighborMessage) Value() (val scale.VaryingDataTypeValue) {
+// Value returns the current VDT value
+func (vnm *VersionedNeighbourMessage) Value() (val scale.VaryingDataTypeValue) {
 	vdt := scale.VaryingDataType(*vnm)
 	return vdt.Value()
 }
@@ -114,12 +118,14 @@ func (V1NeighbourMessage) Index() uint { return 1 }
 
 // ToConsensusMessage converts the NeighbourMessage into a network-level consensus message
 func (m *V1NeighbourMessage) ToConsensusMessage() (*network.ConsensusMessage, error) {
-	versionedNeighborMessage := NewVersionedNighborMessage()
-	versionedNeighborMessage.Set(*m)
+	versionedNeighbourMessage := newVersionedNighborMessage()
+	err := versionedNeighbourMessage.Set(*m)
+	if err != nil {
+		return nil, err
+	}
 
 	msg := newGrandpaMessage()
-	err := msg.Set(versionedNeighborMessage)
-
+	err = msg.Set(versionedNeighbourMessage)
 	if err != nil {
 		return nil, err
 	}

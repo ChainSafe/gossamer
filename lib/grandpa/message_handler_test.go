@@ -194,13 +194,13 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
 
-	v1NeighborMessage := &V1NeighbourMessage{
+	v1NeighbourMessage := &V1NeighbourMessage{
 		Round:  2,
 		SetID:  3,
 		Number: 1,
 	}
 
-	_, err := h.handleMessage("", v1NeighborMessage)
+	_, err := h.handleMessage("", v1NeighbourMessage)
 	require.NoError(t, err)
 
 	digest := types.NewDigest()
@@ -224,7 +224,7 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 	err = st.Block.AddBlock(block)
 	require.NoError(t, err)
 
-	out, err := h.handleMessage("", v1NeighborMessage)
+	out, err := h.handleMessage("", v1NeighbourMessage)
 	require.NoError(t, err)
 	require.Nil(t, out)
 }
