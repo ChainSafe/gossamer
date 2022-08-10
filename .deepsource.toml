@@ -19,6 +19,7 @@ exclude_patterns = [
 [[analyzers]]
 name = "go"
 enabled = true
+cgo_enabled = true
 
 [analyzers.meta]
 import_paths = ["github.com/ChainSafe/gossamer"]
