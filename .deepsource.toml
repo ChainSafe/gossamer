@@ -6,13 +6,9 @@ test_patterns = ["**/*_test.go"]
 exclude_patterns = [
     "docs/**/*",
     "tests/**/*",
-    "scripts/**/*",
     "cmd/gossamer/test_inputs/*",
-    "chain/**/*",
-    "dot/config/**/*",
-    "dot/rpc/modules/test_data",
-    "lib/runtime/test_data",
-    "**/*_test.go",
+    "chain/**/*.json",
+    "**/test_data",
     "**/mocks/*",
     "**/mock_*"
 ]
