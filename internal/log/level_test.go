@@ -11,15 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_LogsPadding(t *testing.T) {
-	logger := New()
-	logger.Trace("test")
-	logger.Debug("test")
-	logger.Info("test")
-	logger.Warn("test")
-	logger.Error("test")
-}
-
 func Test_Level_ColouredString(t *testing.T) {
 	t.Parallel()
 
