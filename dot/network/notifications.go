@@ -135,7 +135,7 @@ func (s *Service) createNotificationsMessageHandler(
 			hs   Handshake
 		)
 
-		if hs, ok = m.(Handshake); ok && msg.IsHandshake() {
+		if hs, ok = m.(Handshake); ok && hs.IsHandshake() {
 			return s.handleHandshake(info, stream, hs, peer)
 		}
 
