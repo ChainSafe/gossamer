@@ -43,8 +43,8 @@ github.com/AndreasBriese/bbloom v0.0.0-20190825152654-46b345b51c96 h1:cTp8I5+VIo
 github.com/AndreasBriese/bbloom v0.0.0-20190825152654-46b345b51c96/go.mod h1:bOvUY6CB00SOBii9/FifXqc0awNKxLFCL/+pkDPuyl8=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
-github.com/ChainSafe/chaindb v0.1.5-0.20220322154826-c0d431995732 h1:dOdDfWtgfucQHXder8eSItN03JgQzY1V0BiKJgNERnE=
-github.com/ChainSafe/chaindb v0.1.5-0.20220322154826-c0d431995732/go.mod h1:P01m9E6xj6Mps1rtf7SurEX9oOcy1jYEyccZQAEw9+4=
+github.com/ChainSafe/chaindb v0.1.5-0.20220708005902-df45dbc8e840 h1:qdwel/UNcN1PmrzZG4iTf8/cKAVCas+/RdXq/5NOxps=
+github.com/ChainSafe/chaindb v0.1.5-0.20220708005902-df45dbc8e840/go.mod h1:P01m9E6xj6Mps1rtf7SurEX9oOcy1jYEyccZQAEw9+4=
 github.com/ChainSafe/go-schnorrkel v1.0.1-0.20220711122024-027d287d27bf h1:S195ZBRu20VgXC1i5nHTR6b4BbTQaMCDuq6tzFQN5zU=
 github.com/ChainSafe/go-schnorrkel v1.0.1-0.20220711122024-027d287d27bf/go.mod h1:dpzHYVxLZcp8pjlV+O+UR8K0Hp/z7vcchBSbMBEhCw4=
 github.com/ChainSafe/log15 v1.0.0 h1:vRDVtWtVwIH5uSCBvgTTZh6FA58UBJ6+QiiypaZfBf8=
