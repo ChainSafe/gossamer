@@ -57,6 +57,7 @@ type TransactionState interface {
 	Pop() *transaction.ValidTransaction
 	Peek() *transaction.ValidTransaction
 	PopChannel() (tx chan *transaction.ValidTransaction, cancel func() (err error))
+	PopChannel2(*time.Timer) (tx chan *transaction.ValidTransaction)
 }
 
 // EpochState is the interface for epoch methods
