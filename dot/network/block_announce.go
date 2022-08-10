@@ -138,9 +138,14 @@ func (*BlockAnnounceHandshake) Type() byte {
 	return 0
 }
 
-// IsHandshake returns true
+// IsHandshake returns true if handshakes's role is valid.
 func (hs *BlockAnnounceHandshake) IsHandshake() bool {
-	return hs.Roles != common.FullNodeRole && hs.Roles != common.LightClientRole && hs.Roles != common.AuthorityRole
+	switch hs.Roles {
+	case common.AuthorityRole, common.FullNodeRole, common.LightClientRole:
+		return true
+	default:
+		return false
+	}
 }
 
 func (s *Service) getBlockAnnounceHandshake() (Handshake, error) {

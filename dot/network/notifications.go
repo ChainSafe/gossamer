@@ -20,7 +20,6 @@ const handshakeTimeout = time.Second * 10
 
 // Handshake is the interface all handshakes for notifications protocols must implement
 type Handshake interface {
-	// NotificationsMessage
 	Message
 	Type() byte
 	IsHandshake() bool
@@ -94,7 +93,9 @@ func newHandshakeData(received, validated bool, stream network.Stream) *handshak
 	}
 }
 
-// NOTE: which decoder gets used depends on whether we have handshake data stored or not.
+// createDecoder combines notification message decoder and handshake decoder. The combined
+// decoder decodes using handshake decoder if we already have handshake data stored for given
+// peer, otherwise it decodes using notification message decoder.
 func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecoder,
 	messageDecoder MessageDecoder) messageDecoder {
 	return func(in []byte, peer peer.ID, inbound bool) (Message, error) {

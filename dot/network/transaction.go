@@ -18,8 +18,6 @@ import (
 var (
 	_ NotificationsMessage = &TransactionMessage{}
 	_ Handshake            = &transactionHandshake{}
-
-	errExpectedTransactionMsg = errors.New("received a transaction handshake but expected a transaction message")
 )
 
 // txnBatchChTimeout is the timeout for adding a transaction to the batch processing channel
@@ -178,10 +176,6 @@ func decodeTransactionMessage(in []byte) (NotificationsMessage, error) {
 }
 
 func (s *Service) handleTransactionMessage(peerID peer.ID, msg NotificationsMessage) (bool, error) {
-	if msg.IsHandshake() {
-		return false, errExpectedTransactionMsg
-	}
-
 	txMsg, ok := msg.(*TransactionMessage)
 	if !ok {
 		return false, errors.New("invalid transaction type")

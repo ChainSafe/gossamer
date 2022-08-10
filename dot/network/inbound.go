@@ -7,8 +7,6 @@ import (
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 )
 
-// TODO: stream in readStream could have a handshake or a message, but looks like we always use a message decoder.
-// there is also a handshake decoder, but don't use that for whatever reason.
 func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder, handler messageHandler,
 	maxSize uint64) {
 	// we NEED to reset the stream if we ever return from this function, as if we return,
