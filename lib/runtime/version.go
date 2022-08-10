@@ -4,9 +4,9 @@
 package runtime
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
@@ -26,79 +26,65 @@ type Version struct {
 	ImplVersion        uint32
 	APIItems           []APIItem
 	TransactionVersion uint32
-	legacy             bool
-}
-
-type legacyData struct {
-	SpecName         []byte
-	ImplName         []byte
-	AuthoringVersion uint32
-	SpecVersion      uint32
-	ImplVersion      uint32
-	APIItems         []APIItem
 }
 
 // Encode returns the scale encoding of the version.
+// Note the encoding contains all the latest Core_version fields as defined in
+// https://spec.polkadot.network/#defn-rt-core-version
+// In other words, decoding older version data with missing fields
+// and then encoding it will result in a longer encoding due to the
+// extra version fields. This however remains compatible since the
+// version fields are still encoded in the same order and an older
+// decoder would succeed with the longer encoding.
 func (v *Version) Encode() (encoded []byte, err error) {
-	if !v.legacy {
-		return scale.Marshal(*v)
-	}
-
-	toEncode := legacyData{
-		SpecName:         v.SpecName,
-		ImplName:         v.ImplName,
-		AuthoringVersion: v.AuthoringVersion,
-		SpecVersion:      v.SpecVersion,
-		ImplVersion:      v.ImplVersion,
-		APIItems:         v.APIItems,
-	}
-	return scale.Marshal(toEncode)
+	return scale.Marshal(*v)
 }
 
 var (
-	ErrDecodingVersion       = errors.New("decoding version")
-	ErrDecodingLegacyVersion = errors.New("decoding legacy version")
+	ErrDecodingVersionField = errors.New("decoding version field")
 )
 
-// DecodeVersion scale decodes the encoded version data and returns an error.
-// It first tries to decode the data using the current version format.
-// If that fails with an EOF error, it then tries to decode the data
-// using the legacy version format (for Kusama).
+// DecodeVersion scale decodes the encoded version data.
+// For older version data with missing fields (such as `transaction_version`)
+// the missing field is set to its zero value (such as `0`).
 func DecodeVersion(encoded []byte) (version Version, err error) {
-	err = scale.Unmarshal(encoded, &version)
-	if err == nil {
-		return version, nil
+	reader := bytes.NewReader(encoded)
+	decoder := scale.NewDecoder(reader)
+
+	type namedValue struct {
+		// name is the field name used to wrap eventual codec errors
+		name string
+		// value is the field value to handle
+		value interface{}
 	}
 
-	if !strings.Contains(err.Error(), "EOF") {
-		// TODO io.EOF should be wrapped in scale and
-		// ErrDecodingVersion should be removed once this is done.
-		return version, fmt.Errorf("%w: %s", ErrDecodingVersion, err)
+	requiredFields := [...]namedValue{
+		{name: "spec name", value: &version.SpecName},
+		{name: "impl name", value: &version.ImplName},
+		{name: "authoring version", value: &version.AuthoringVersion},
+		{name: "spec version", value: &version.SpecVersion},
+		{name: "impl version", value: &version.ImplVersion},
+		{name: "API items", value: &version.APIItems},
+	}
+	for _, requiredField := range requiredFields {
+		err = decoder.Decode(requiredField.value)
+		if err != nil {
+			return Version{}, fmt.Errorf("%w %s: %s", ErrDecodingVersionField, requiredField.name, err)
+		}
 	}
 
-	// TODO: kusama seems to use the legacy version format
-	var legacy legacyData
-	err = scale.Unmarshal(encoded, &legacy)
-	if err != nil {
-		// TODO sentinel error should be wrapped in scale and
-		// ErrDecodingLegacyVersion should be removed once this is done.
-		return version, fmt.Errorf("%w: %s", ErrDecodingLegacyVersion, err)
+	optionalFields := [...]namedValue{
+		{name: "transaction version", value: &version.TransactionVersion},
+	}
+	for _, optionalField := range optionalFields {
+		err = decoder.Decode(optionalField.value)
+		if err != nil {
+			if err.Error() == "EOF" {
+				return version, nil
+			}
+			return Version{}, fmt.Errorf("%w %s: %s", ErrDecodingVersionField, optionalField.name, err)
+		}
 	}
 
-	return Version{
-		SpecName:         legacy.SpecName,
-		ImplName:         legacy.ImplName,
-		AuthoringVersion: legacy.AuthoringVersion,
-		SpecVersion:      legacy.SpecVersion,
-		ImplVersion:      legacy.ImplVersion,
-		APIItems:         legacy.APIItems,
-		legacy:           true,
-	}, nil
-}
-
-// WithLegacy sets the legacy boolean (for Kusama)
-// and is only used for tests.
-func (v Version) WithLegacy() Version {
-	v.legacy = true //skipcq: RVV-B0006
-	return v
+	return version, nil
 }
