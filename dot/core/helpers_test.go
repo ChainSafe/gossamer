@@ -107,6 +107,7 @@ func CreateTestService(t *testing.T, genesisFilePath string,
 		stateSrvc = state.NewService(config)
 		stateSrvc.UseMemDB()
 
+		// A diff runtime and genesis is made here ughhhh
 		err := stateSrvc.Initialise(gen, genesisHeader, genTrie)
 		require.NoError(t, err)
 
@@ -137,24 +138,7 @@ func CreateTestService(t *testing.T, genesisFilePath string,
 
 	// Runtime stuff
 	if cfg.Runtime == nil {
-		//rtCfg.Storage = genState
-		//
-		//rtCfg.CodeHash, err = cfg.StorageState.LoadCodeHash(nil)
-		//require.NoError(t, err)
-		//
-		////nodeStorage := runtime.NodeStorage{}
-		////if stateSrvc != nil {
-		////	nodeStorage.BaseDB = stateSrvc.Base
-		////} else {
-		////	nodeStorage.BaseDB, err = utils.SetupDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
-		////	require.NoError(t, err)
-		////}
-		////rtCfg.NodeStorage = nodeStorage
-		//
-		//cfg.Runtime = rt
-
 		// Okay no errors, but test doesn't pass
-
 		var rtCfg runtime.InstanceConfig
 
 		var err error
@@ -175,6 +159,7 @@ func CreateTestService(t *testing.T, genesisFilePath string,
 
 		rtCfg.NodeStorage = nodeStorage
 
+		// I think that this is potentially conflicting with stateSrvc
 		cfg.Runtime, err = wasmer.NewRuntimeFromGenesis(rtCfg)
 		require.NoError(t, err)
 
@@ -183,6 +168,7 @@ func CreateTestService(t *testing.T, genesisFilePath string,
 		cfg.Runtime.(*wasmer.Instance).GetContext().Storage.Set(common.UpgradedToDualRefKey, []byte{1})
 	}
 	cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), cfg.Runtime)
+	//cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), cfg.Runtime)
 
 	// Hash of encrypted centrifuge extrinsic
 	testCallArguments := []byte{0xab, 0xcd}
