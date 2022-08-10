@@ -9,7 +9,42 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func Test_NewEncoder(t *testing.T) {
+	t.Parallel()
+
+	writer := bytes.NewBuffer(nil)
+	encoder := NewEncoder(writer)
+
+	expectedEncoder := &Encoder{
+		encodeState: encodeState{
+			Writer: writer,
+		},
+	}
+
+	assert.Equal(t, expectedEncoder, encoder)
+}
+
+func Test_Encoder_Encode(t *testing.T) {
+	t.Parallel()
+
+	buffer := bytes.NewBuffer(nil)
+	encoder := NewEncoder(buffer)
+
+	err := encoder.Encode(uint16(1))
+	require.NoError(t, err)
+
+	err = encoder.Encode(uint8(2))
+	require.NoError(t, err)
+
+	written := buffer.Bytes()
+	expectedWritten := []byte{1, 0, 2}
+	assert.Equal(t, expectedWritten, written)
+}
 
 type test struct {
 	name    string

@@ -12,6 +12,25 @@ import (
 	"reflect"
 )
 
+// Encoder scale encodes to a given io.Writer.
+type Encoder struct {
+	encodeState
+}
+
+// NewEncoder creates a new encoder with the given writer.
+func NewEncoder(writer io.Writer) (encoder *Encoder) {
+	return &Encoder{
+		encodeState: encodeState{
+			Writer: writer,
+		},
+	}
+}
+
+// Encode scale encodes value to the encoder writer.
+func (e *Encoder) Encode(value interface{}) (err error) {
+	return e.marshal(value)
+}
+
 // Marshal takes in an interface{} and attempts to marshal into []byte
 func Marshal(v interface{}) (b []byte, err error) {
 	buffer := bytes.NewBuffer(nil)
