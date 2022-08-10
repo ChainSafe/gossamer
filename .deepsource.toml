@@ -10,7 +10,7 @@ exclude_patterns = [
     "chain/**/*.json",
     "**/test_data",
     "**/mocks/*",
-    "**/mock_*"
+    "**/mock_*",
 ]
 
 [[analyzers]]
