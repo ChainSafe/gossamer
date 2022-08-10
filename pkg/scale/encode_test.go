@@ -17,12 +17,16 @@ import (
 func Test_NewEncoder(t *testing.T) {
 	t.Parallel()
 
+	cache.Lock()
+	defer cache.Unlock()
+
 	writer := bytes.NewBuffer(nil)
 	encoder := NewEncoder(writer)
 
 	expectedEncoder := &Encoder{
 		encodeState: encodeState{
-			Writer: writer,
+			Writer:                 writer,
+			fieldScaleIndicesCache: cache,
 		},
 	}
 
@@ -41,8 +45,30 @@ func Test_Encoder_Encode(t *testing.T) {
 	err = encoder.Encode(uint8(2))
 	require.NoError(t, err)
 
+	array := [2]byte{4, 5}
+	err = encoder.Encode(array)
+	require.NoError(t, err)
+
+	type T struct {
+		Array [2]byte
+	}
+
+	someStruct := T{Array: [2]byte{6, 7}}
+	err = encoder.Encode(someStruct)
+	require.NoError(t, err)
+
+	structSlice := []T{{Array: [2]byte{8, 9}}}
+	err = encoder.Encode(structSlice)
+	require.NoError(t, err)
+
 	written := buffer.Bytes()
-	expectedWritten := []byte{1, 0, 2}
+	expectedWritten := []byte{
+		1, 0,
+		2,
+		4, 5,
+		6, 7,
+		4, 8, 9,
+	}
 	assert.Equal(t, expectedWritten, written)
 }
 

@@ -21,7 +21,8 @@ type Encoder struct {
 func NewEncoder(writer io.Writer) (encoder *Encoder) {
 	return &Encoder{
 		encodeState: encodeState{
-			Writer: writer,
+			Writer:                 writer,
+			fieldScaleIndicesCache: cache,
 		},
 	}
 }
