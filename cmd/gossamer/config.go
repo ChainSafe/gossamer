@@ -304,7 +304,7 @@ func parseLogLevelString(logLevelString string) (logLevel log.Level, err error) 
 		logLevel = log.Level(levelInt)
 		return logLevel, nil
 	}
-
+	//fmt.Println(len(logLevelString))
 	logLevel, err = log.ParseLevel(logLevelString)
 	if err != nil {
 		return 0, fmt.Errorf("cannot parse log level string: %w", err)

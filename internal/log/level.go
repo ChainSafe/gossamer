@@ -98,13 +98,13 @@ func ParseLevel(s string) (level Level, err error) {
 		return Trace, nil
 	case Debug.String(), "DEBUG":
 		return Debug, nil
-	case Info.String():
+	case Info.String(), "INFO":
 		return Info, nil
-	case Warn.String():
+	case Warn.String(), "WARN":
 		return Warn, nil
 	case Error.String(), "ERROR":
 		return Error, nil
-	case Critical.String(), "CRITICAL":
+	case Critical.String(), "CRITICAL", "CRIT":
 		return Critical, nil
 	}
 	return 0, fmt.Errorf("%w: %s", ErrLevelNotRecognised, s)
