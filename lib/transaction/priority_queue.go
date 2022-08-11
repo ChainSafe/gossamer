@@ -82,7 +82,7 @@ type PriorityQueue struct {
 	currOrder       uint64
 	txs             map[common.Hash]*Item
 	nextPushWatcher chan struct{}
-	popChannel      chan *ValidTransaction
+	//popChannel      chan *ValidTransaction
 	sync.Mutex
 }
 
@@ -137,36 +137,32 @@ func (spq *PriorityQueue) Push(txn *ValidTransaction) (common.Hash, error) {
 	spq.currOrder++
 	heap.Push(&spq.pq, item)
 	spq.txs[hash] = item
-	if spq.popChannel != nil {
-		spq.popChannel <- txn
-	}
+	//if spq.popChannel != nil {
+	//	spq.popChannel <- txn
+	//}
 
 	transactionQueueGauge.Set(float64(spq.pq.Len()))
 	return hash, nil
 }
 
-func (spq *PriorityQueue) PopChannel2(*time.Timer) (tx chan *ValidTransaction) {
-	return
-}
-
 // PopChannel returns a *ValedTransaction channel to be signalled
 // when the next Push() is called on the queue.
-func (spq *PriorityQueue) PopChannel() (tx chan *ValidTransaction, cancel func() (err error)) {
-	spq.Lock()
-	defer spq.Unlock()
+func (spq *PriorityQueue) PopChannel(timer *time.Timer) (tx chan *ValidTransaction) {
+	popChannel := make(chan *ValidTransaction)
+	go func() {
+		for {
+			select {
+			case <-timer.C:
+				close(popChannel)
+			default:
+				if spq.pq.Len() > 0 {
+					popChannel <- spq.Pop()
+				}
+			}
+		}
+	}()
 
-	var ok bool
-
-	select {
-	case _, ok = <-spq.popChannel:
-	default:
-	}
-	if ok {
-		return spq.popChannel, nil
-	}
-	nextPopChannelCh := make(chan *ValidTransaction)
-	spq.popChannel = nextPopChannelCh
-	return nextPopChannelCh, func() error { return nil }
+	return popChannel
 }
 
 // Pop removes the transaction with has the highest priority value from the queue and returns it.
