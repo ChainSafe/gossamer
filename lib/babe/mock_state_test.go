@@ -462,20 +462,6 @@ func (m *MockTransactionState) EXPECT() *MockTransactionStateMockRecorder {
 	return m.recorder
 }
 
-// NextPushWatcher mocks base method.
-func (m *MockTransactionState) NextPushWatcher() <-chan struct{} {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NextPushWatcher")
-	ret0, _ := ret[0].(<-chan struct{})
-	return ret0
-}
-
-// NextPushWatcher indicates an expected call of NextPushWatcher.
-func (mr *MockTransactionStateMockRecorder) NextPushWatcher() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NextPushWatcher", reflect.TypeOf((*MockTransactionState)(nil).NextPushWatcher))
-}
-
 // Peek mocks base method.
 func (m *MockTransactionState) Peek() *transaction.ValidTransaction {
 	m.ctrl.T.Helper()
@@ -502,6 +488,20 @@ func (m *MockTransactionState) Pop() *transaction.ValidTransaction {
 func (mr *MockTransactionStateMockRecorder) Pop() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Pop", reflect.TypeOf((*MockTransactionState)(nil).Pop))
+}
+
+// PopChannel mocks base method.
+func (m *MockTransactionState) PopChannel(arg0 *time.Timer) chan *transaction.ValidTransaction {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PopChannel", arg0)
+	ret0, _ := ret[0].(chan *transaction.ValidTransaction)
+	return ret0
+}
+
+// PopChannel indicates an expected call of PopChannel.
+func (mr *MockTransactionStateMockRecorder) PopChannel(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PopChannel", reflect.TypeOf((*MockTransactionState)(nil).PopChannel), arg0)
 }
 
 // Push mocks base method.
