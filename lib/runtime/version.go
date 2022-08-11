@@ -26,6 +26,7 @@ type Version struct {
 	ImplVersion        uint32
 	APIItems           []APIItem
 	TransactionVersion uint32
+	StateVersion       uint32
 }
 
 var (
@@ -63,6 +64,7 @@ func DecodeVersion(encoded []byte) (version Version, err error) {
 
 	optionalFields := [...]namedValue{
 		{name: "transaction version", value: &version.TransactionVersion},
+		{name: "state version", value: &version.StateVersion},
 	}
 	for _, optionalField := range optionalFields {
 		err = decoder.Decode(optionalField.value)
