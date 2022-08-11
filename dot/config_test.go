@@ -446,8 +446,8 @@ func TestLogConfig_String(t *testing.T) {
 		{
 			name:      "default case",
 			logConfig: LogConfig{},
-			want: "core: CRIT, digest: CRIT, sync: CRIT, network: CRIT, rpc: CRIT, state: CRIT, runtime: CRIT, " +
-				"block producer: CRIT, finality gadget: CRIT",
+			want: "core: CRIT , digest: CRIT , sync: CRIT , network: CRIT , rpc: CRIT , state: CRIT , " +
+				"runtime: CRIT , block producer: CRIT , finality gadget: CRIT ",
 		},
 		{
 			name: "change fields case",
@@ -462,8 +462,8 @@ func TestLogConfig_String(t *testing.T) {
 				BlockProducerLvl:  log.Warn,
 				FinalityGadgetLvl: log.Error,
 			},
-			want: "core: DBUG, digest: INFO, sync: WARN, network: EROR, rpc: CRIT, state: DBUG, runtime: INFO, " +
-				"block producer: WARN, finality gadget: EROR",
+			want: "core: DEBUG, digest: INFO , sync: WARN , network: ERROR, rpc: CRIT , state: DEBUG," +
+				" runtime: INFO , block producer: WARN , finality gadget: ERROR",
 		},
 	}
 	for _, tt := range tests {
