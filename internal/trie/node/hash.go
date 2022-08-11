@@ -25,33 +25,22 @@ func MerkleValue(encoding []byte, writer io.Writer) (err error) {
 		return nil
 	}
 
-	hasher := pools.Hashers.Get().(hash.Hash)
-	hasher.Reset()
-	defer pools.Hashers.Put(hasher)
-
-	_, err = hasher.Write(encoding)
-	if err != nil {
-		return fmt.Errorf("hashing encoding: %w", err)
-	}
-
-	digest := hasher.Sum(nil)
-	_, err = writer.Write(digest)
-	if err != nil {
-		return fmt.Errorf("writing digest: %w", err)
-	}
-
-	return nil
+	return hashEncoding(encoding, writer)
 }
 
 // MerkleValueRoot writes the Merkle value for the root of the trie
 // to the writer given as argument.
 // The Merkle value is the Blake2b hash of the encoding of the root node.
 func MerkleValueRoot(rootEncoding []byte, writer io.Writer) (err error) {
+	return hashEncoding(rootEncoding, writer)
+}
+
+func hashEncoding(encoding []byte, writer io.Writer) (err error) {
 	hasher := pools.Hashers.Get().(hash.Hash)
 	hasher.Reset()
 	defer pools.Hashers.Put(hasher)
 
-	_, err = hasher.Write(rootEncoding)
+	_, err = hasher.Write(encoding)
 	if err != nil {
 		return fmt.Errorf("hashing encoding: %w", err)
 	}
