@@ -11,6 +11,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func Test_Logs(t *testing.T) {
+	logger := New()
+	logger.Trace("test test    a")
+	logger.Debug("test test    a")
+	logger.Info("test test    a")
+	logger.Warn("test test    a")
+	logger.Error("test test    a")
+	logger.Critical("test test    a")
+}
+
 func Test_Level_ColouredString(t *testing.T) {
 	t.Parallel()
 
@@ -20,27 +30,27 @@ func Test_Level_ColouredString(t *testing.T) {
 	}{
 		"trace": {
 			level: Trace,
-			s:     "TRACE",
+			s:     "TRACE   ",
 		},
 		"debug": {
 			level: Debug,
-			s:     "DEBUG",
+			s:     "DEBUG   ",
 		},
 		"info": {
 			level: Info,
-			s:     "INFO ",
+			s:     "INFO    ",
 		},
 		"warn": {
 			level: Warn,
-			s:     "WARN ",
+			s:     "WARN    ",
 		},
 		"error": {
 			level: Error,
-			s:     "ERROR",
+			s:     "ERROR   ",
 		},
 		"critical": {
 			level: Critical,
-			s:     "CRIT ",
+			s:     "CRITICAL",
 		},
 		"unknown": {
 			level: 178,
@@ -88,27 +98,27 @@ func Test_ParseLevel(t *testing.T) {
 			err: errors.New("level integer can only be between 0 and 5 included: 6"),
 		},
 		"trace": {
-			s:     "TRACE",
+			s:     "TRACE   ",
 			level: Trace,
 		},
 		"debug": {
-			s:     "DEBUG",
+			s:     "DEBUG   ",
 			level: Debug,
 		},
 		"info": {
-			s:     "INFO ",
+			s:     "INFO    ",
 			level: Info,
 		},
 		"warn": {
-			s:     "WARN ",
+			s:     "WARN    ",
 			level: Warn,
 		},
 		"error": {
-			s:     "ERROR",
+			s:     "ERROR   ",
 			level: Error,
 		},
 		"critical": {
-			s:     "CRIT ",
+			s:     "CRITICAL",
 			level: Critical,
 		},
 		"invalid": {

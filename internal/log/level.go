@@ -36,17 +36,17 @@ const (
 func (level Level) String() (s string) {
 	switch level {
 	case Trace:
-		return "TRACE"
+		return "TRACE   "
 	case Debug:
-		return "DEBUG"
+		return "DEBUG   "
 	case Info:
-		return "INFO "
+		return "INFO    "
 	case Warn:
-		return "WARN "
+		return "WARN    "
 	case Error:
-		return "ERROR"
+		return "ERROR   "
 	case Critical:
-		return "CRIT "
+		return "CRITICAL"
 	default:
 		return "???"
 	}
