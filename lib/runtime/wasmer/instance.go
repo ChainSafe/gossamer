@@ -103,11 +103,23 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 	}
 	wasmInstance.SetContextData(runtimeCtx)
 
-	return &Instance{
+	instance = &Instance{
 		vm:       wasmInstance,
 		ctx:      runtimeCtx,
 		codeHash: cfg.CodeHash,
-	}, nil
+	}
+
+	// Find runtime instance state version and cache it in its
+	// instance context.
+	version, err := instance.Version()
+	if err != nil {
+		instance.close()
+		return nil, fmt.Errorf("getting instance version: %w", err)
+	}
+	instance.ctx.StateVersion = trie.Version(version.StateVersion)
+	wasmInstance.SetContextData(instance.ctx)
+
+	return instance, nil
 }
 
 // decompressWasm decompresses a Wasm blob that may or may not be compressed with zstd
@@ -152,6 +164,16 @@ func (in *Instance) UpdateRuntimeCode(code []byte) (err error) {
 	wasmInstance.SetContextData(in.ctx)
 
 	in.vm = wasmInstance
+
+	// Find runtime instance state version and cache it in its
+	// instance context.
+	version, err := in.Version()
+	if err != nil {
+		in.close()
+		return fmt.Errorf("getting instance version: %w", err)
+	}
+	in.ctx.StateVersion = trie.Version(version.StateVersion)
+	wasmInstance.SetContextData(in.ctx)
 
 	return nil
 }
