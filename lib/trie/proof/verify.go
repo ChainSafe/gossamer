@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/ChainSafe/gossamer/internal/trie/node"
+	"github.com/ChainSafe/gossamer/internal/trie/pools"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
@@ -59,6 +60,12 @@ func buildTrie(encodedProofNodes [][]byte, rootHash []byte) (t *trie.Trie, err e
 
 	digestToEncoding := make(map[string][]byte, len(encodedProofNodes))
 
+	// note we can use a buffer from the pool since
+	// the calculated root hash digest is not used after
+	// the function completes.
+	buffer := pools.DigestBuffers.Get().(*bytes.Buffer)
+	defer pools.DigestBuffers.Put(buffer)
+
 	// This loop does two things:
 	// 1. It finds the root node by comparing it with the root hash and decodes it.
 	// 2. It stores other encoded nodes in a mapping from their encoding digest to
@@ -70,12 +77,15 @@ func buildTrie(encodedProofNodes [][]byte, rootHash []byte) (t *trie.Trie, err e
 		// - trie root node
 		// - child trie root node
 		// - child node with an encoding larger than 32 bytes
-		// In all cases, their Merkle value is the encoding hash digest.
-		digestHash, err := common.Blake2bHash(encodedProofNode)
+		// In all cases, their Merkle value is the encoding hash digest,
+		// so we use MerkleValueRoot to force hashing the node in case
+		// it is a root node smaller or equal to 32 bytes.
+		buffer.Reset()
+		err = node.MerkleValueRoot(encodedProofNode, buffer)
 		if err != nil {
-			return nil, fmt.Errorf("blake2b hash: %w", err)
+			return nil, fmt.Errorf("calculating Merkle value: %w", err)
 		}
-		digest := digestHash[:]
+		digest := buffer.Bytes()
 
 		if root != nil || !bytes.Equal(digest, rootHash) {
 			// root node already found or the hash doesn't match the root hash.

@@ -496,9 +496,10 @@ func Test_Trie_Hash(t *testing.T) {
 					Descendants: 1,
 					Children: padRightChildren([]*Node{
 						{
-							Key:      []byte{9},
-							SubValue: []byte{1},
-							Encoding: []byte{0x41, 0x09, 0x04, 0x01},
+							Key:         []byte{9},
+							SubValue:    []byte{1},
+							Encoding:    []byte{0x41, 0x09, 0x04, 0x01},
+							MerkleValue: []byte{0x41, 0x09, 0x04, 0x01},
 						},
 					}),
 				},

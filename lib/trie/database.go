@@ -125,9 +125,9 @@ func (t *Trie) loadNode(db Database, n *Node) error {
 		if len(merkleValue) == 0 {
 			// node has already been loaded inline
 			// just set encoding + hash digest
-			_, _, err := child.EncodeAndHash()
+			_, err := child.CalculateMerkleValue()
 			if err != nil {
-				return err
+				return fmt.Errorf("merkle value: %w", err)
 			}
 			child.SetClean()
 			continue
@@ -397,11 +397,11 @@ func (t *Trie) getInsertedNodeHashesAtNode(n *Node, hashes map[common.Hash]struc
 		return nil
 	}
 
-	var hash []byte
+	var merkleValue []byte
 	if n == t.root {
-		_, hash, err = n.EncodeAndHashRoot()
+		merkleValue, err = n.CalculateRootMerkleValue()
 	} else {
-		_, hash, err = n.EncodeAndHash()
+		merkleValue, err = n.CalculateMerkleValue()
 	}
 	if err != nil {
 		return fmt.Errorf(
@@ -409,7 +409,7 @@ func (t *Trie) getInsertedNodeHashesAtNode(n *Node, hashes map[common.Hash]struc
 			n.MerkleValue, err)
 	}
 
-	hashes[common.BytesToHash(hash)] = struct{}{}
+	hashes[common.BytesToHash(merkleValue)] = struct{}{}
 
 	if n.Kind() != node.Branch {
 		return nil
