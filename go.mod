@@ -70,6 +70,7 @@ require (
 	github.com/decred/dcrd/crypto/blake256 v1.0.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1 // indirect
 	github.com/dgryski/go-farm v0.0.0-20200201041132-a6ae2369ad13 // indirect
+	github.com/docker/go-units v0.4.0 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/elastic/gosigar v0.12.0 // indirect
 	github.com/flynn/noise v1.0.0 // indirect
@@ -188,7 +189,5 @@ require (
 	gotest.tools/v3 v3.0.3 // indirect
 	lukechampine.com/blake3 v1.1.7 // indirect
 )
-
-require github.com/docker/go-units v0.4.0 // indirect
 
 go 1.18
