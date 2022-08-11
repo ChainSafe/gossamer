@@ -81,14 +81,16 @@ type PriorityQueue struct {
 	pq        priorityQueue
 	currOrder uint64
 	txs       map[common.Hash]*Item
+	sleepTime time.Duration
 	sync.Mutex
 }
 
 // NewPriorityQueue creates new instance of PriorityQueue
 func NewPriorityQueue() *PriorityQueue {
 	spq := &PriorityQueue{
-		pq:  make(priorityQueue, 0),
-		txs: make(map[common.Hash]*Item),
+		pq:        make(priorityQueue, 0),
+		txs:       make(map[common.Hash]*Item),
+		sleepTime: time.Millisecond * 10,
 	}
 
 	heap.Init(&spq.pq)
@@ -150,8 +152,12 @@ func (spq *PriorityQueue) PopChannel(timer *time.Timer) (tx chan *ValidTransacti
 			case <-timer.C:
 				close(popChannel)
 			default:
-				if spq.pq.Len() > 0 {
-					popChannel <- spq.Pop()
+				txn := spq.Pop()
+
+				if txn != nil {
+					popChannel <- txn
+				} else {
+					time.Sleep(spq.sleepTime)
 				}
 			}
 		}
