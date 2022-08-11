@@ -4,8 +4,10 @@
 package transaction
 
 import (
+	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"
+	"time"
 )
 
 func TestPriorityQueue(t *testing.T) {
@@ -245,4 +247,27 @@ func TestRemoveExtrinsic(t *testing.T) {
 	if !reflect.DeepEqual(res, tests[1]) {
 		t.Fatalf("Fail: got %v expected %v", res, tests[1])
 	}
+}
+
+func TestPopChannel(t *testing.T) {
+	pq := NewPriorityQueue()
+	slotTimer := time.NewTimer(time.Second)
+
+	popChan := pq.PopChannel(slotTimer)
+
+	go func() {
+		counter := 0
+		for {
+			time.Sleep(time.Millisecond * 100)
+			pq.Push(&ValidTransaction{Validity: &Validity{Priority: uint64(counter)}})
+			counter++
+		}
+	}()
+
+	counter := 0
+	for txn := range popChan {
+		assert.Equal(t, uint64(counter), txn.Validity.Priority)
+		counter++
+	}
+	assert.Equal(t, 9, counter)
 }
