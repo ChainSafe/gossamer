@@ -472,6 +472,10 @@ func (s *Service) primaryBroadcastCommitMessage() {
 // playGrandpaRound executes a round of GRANDPA
 // at the end of this round, a block will be finalised.
 func (s *Service) playGrandpaRound() error {
+	if s.paused.Load().(bool) {
+		return ErrServicePaused
+	}
+
 	logger.Debugf("starting round %d with set id %d",
 		s.state.round, s.state.setID)
 	start := time.Now()
@@ -482,13 +486,6 @@ func (s *Service) playGrandpaRound() error {
 	isPrimary, err := s.handleIsPrimary()
 	if err != nil {
 		return err
-	}
-
-	go s.receiveVoteMessages(ctx)
-	time.Sleep(s.interval)
-
-	if s.paused.Load().(bool) {
-		return ErrServicePaused
 	}
 
 	// broadcast pre-vote
@@ -506,15 +503,12 @@ func (s *Service) playGrandpaRound() error {
 		s.prevotes.Store(s.publicKeyBytes(), spv)
 	}
 
-	prevoteRoundComplete := make(chan struct{})
-	go s.sendPrevoteMessage(vm, prevoteRoundComplete)
-
-	if s.paused.Load().(bool) {
-		return ErrServicePaused
-	}
+	determinePrevoteCh := make(chan struct{})
+	go s.receiveVoteMessages(ctx, determinePrevoteCh)
+	go s.sendPrevoteMessage(ctx, vm)
 
 	// determine and broadcast pre-commit only after seen prevote messages
-	<-prevoteRoundComplete
+	<-determinePrevoteCh
 	pc, err := s.determinePreCommit()
 	if err != nil {
 		return err
@@ -524,14 +518,11 @@ func (s *Service) playGrandpaRound() error {
 	if err != nil {
 		return err
 	}
-
 	s.precommits.Store(s.publicKeyBytes(), spc)
 
-	// continue to send precommit messages until round is done
-	precommitDoneCh := make(chan struct{})
-	go s.sendPrecommitMessage(pcm, precommitDoneCh)
+	go s.sendPrecommitMessage(ctx, pcm)
 
-	err = s.attemptToFinalize(precommitDoneCh)
+	err = s.attemptToFinalize()
 	if err != nil {
 		logger.Errorf("failed to finalise: %s", err)
 		return err
@@ -541,18 +532,18 @@ func (s *Service) playGrandpaRound() error {
 	return nil
 }
 
-func (s *Service) sendPrecommitMessage(vm *VoteMessage, done <-chan struct{}) {
+func (s *Service) sendPrecommitMessage(ctx context.Context, vm *VoteMessage) {
 	logger.Debugf("sending pre-commit message %s...", vm.Message)
 
 	ticker := time.NewTicker(s.interval * 4)
 	defer ticker.Stop()
 
-	threshold := s.state.threshold()
-
 	// Though this looks like we are sending messages multiple times,
 	// caching would make sure that they are being sent only once.
 	for {
-		if s.paused.Load().(bool) {
+		select {
+		case <-ticker.C:
+		case <-ctx.Done():
 			return
 		}
 
@@ -561,50 +552,33 @@ func (s *Service) sendPrecommitMessage(vm *VoteMessage, done <-chan struct{}) {
 		} else {
 			logger.Warnf("sent vote message for stage %s: %s", precommit, vm.Message)
 		}
-
-		if uint64(s.lenVotes(precommit)) >= threshold {
-			<-done
-			return
-		}
-
-		select {
-		case <-ticker.C:
-		case <-done:
-			return
-		}
 	}
 }
 
-func (s *Service) sendPrevoteMessage(vm *VoteMessage, done chan<- struct{}) {
-	defer close(done)
+func (s *Service) sendPrevoteMessage(ctx context.Context, vm *VoteMessage) {
 	logger.Debugf("sending pre-vote message %s...", vm)
 
 	ticker := time.NewTicker(s.interval * 4)
 	defer ticker.Stop()
 
-	threshold := s.state.threshold()
-
 	// Though this looks like we are sending messages multiple times,
 	// caching would make sure that they are being sent only once.
 	for {
+		select {
+		case <-ticker.C:
+		case <-ctx.Done():
+			return
+		}
 		if err := s.sendMessage(vm); err != nil {
 			logger.Warnf("could not send message for stage %s: %s", prevote, err)
 		} else {
 			logger.Warnf("sent vote message for stage %s: %s", prevote, vm.Message)
 		}
-
-		if s.paused.Load().(bool) || uint64(s.lenVotes(prevote)) >= threshold {
-			return
-		}
-
-		<-ticker.C
 	}
 }
 
 // attemptToFinalize loops until the round is finalisable
-func (s *Service) attemptToFinalize(precommitDoneCh chan<- struct{}) error {
-	defer close(precommitDoneCh)
-
+func (s *Service) attemptToFinalize() error {
 	ticker := time.NewTicker(s.interval / 100)
 
 	var (
@@ -617,10 +591,6 @@ func (s *Service) attemptToFinalize(precommitDoneCh chan<- struct{}) error {
 		case <-s.ctx.Done():
 			return errors.New("context cancelled")
 		case <-ticker.C:
-		}
-
-		if s.paused.Load().(bool) {
-			return ErrServicePaused
 		}
 
 		has, _ := s.blockState.HasFinalisedBlock(s.state.round, s.state.setID)
