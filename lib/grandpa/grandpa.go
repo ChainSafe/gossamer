@@ -4,7 +4,6 @@
 package grandpa
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -405,64 +404,6 @@ func (s *Service) waitForFirstBlock() {
 	}
 }
 
-func (s *Service) handleIsPrimary() (bool, error) {
-	// derive primary
-	primary := s.derivePrimary()
-
-	// if primary, broadcast the best final candidate from the previous round
-	// otherwise, do nothing
-	if !bytes.Equal(primary.Key.Encode(), s.keypair.Public().Encode()) {
-		return false, nil
-	}
-
-	if s.head.Number > 0 {
-		s.primaryBroadcastCommitMessage()
-	}
-
-	best, err := s.blockState.BestBlockHeader()
-	if err != nil {
-		return false, err
-	}
-
-	pv := &Vote{
-		Hash:   best.Hash(),
-		Number: uint32(best.Number),
-	}
-
-	// send primary prevote message to network
-	spv, primProposal, err := s.createSignedVoteAndVoteMessage(pv, primaryProposal)
-	if err != nil {
-		return false, fmt.Errorf("failed to create primary proposal message: %w", err)
-	}
-
-	s.prevotes.Store(s.publicKeyBytes(), spv)
-
-	msg, err := primProposal.ToConsensusMessage()
-	if err != nil {
-		return false, fmt.Errorf("failed to encode finalisation message: %w", err)
-	}
-
-	s.network.GossipMessage(msg)
-	return true, nil
-}
-
-// broadcast commit message from the previous round to the network
-// ignore errors, since it's not critical to broadcast
-func (s *Service) primaryBroadcastCommitMessage() {
-	cm, err := s.newCommitMessage(s.head, s.state.round-1)
-	if err != nil {
-		return
-	}
-
-	// send finalised block from previous round to network
-	msg, err := cm.ToConsensusMessage()
-	if err != nil {
-		logger.Warnf("failed to encode finalisation message: %s", err)
-	}
-
-	s.network.GossipMessage(msg)
-}
-
 // playGrandpaRound executes a round of GRANDPA
 // at the end of this round, a block will be finalised.
 func (s *Service) playGrandpaRound() error {
@@ -472,11 +413,6 @@ func (s *Service) playGrandpaRound() error {
 
 	ctx, cancel := context.WithCancel(s.ctx)
 	defer cancel()
-
-	isPrimary, err := s.handleIsPrimary()
-	if err != nil {
-		return err
-	}
 
 	logger.Debug("receiving pre-vote messages...")
 	go s.receiveVoteMessages(ctx)
@@ -497,9 +433,7 @@ func (s *Service) playGrandpaRound() error {
 		return err
 	}
 
-	if !isPrimary {
-		s.prevotes.Store(s.publicKeyBytes(), spv)
-	}
+	s.prevotes.Store(s.publicKeyBytes(), spv)
 
 	logger.Debugf("sending pre-vote message %s...", pv)
 	roundComplete := make(chan struct{})
@@ -688,17 +622,7 @@ func (s *Service) determinePreVote() (*Vote, error) {
 		return nil, fmt.Errorf("cannot get best block header: %w", err)
 	}
 
-	// if we receive a vote message from the primary with a
-	// block that's greater than or equal to the current pre-voted block
-	// and greater than the best final candidate from the last round, we choose that.
-	// otherwise, we simply choose the head of our chain.
-	primary := s.derivePrimary()
-	prm, has := s.loadVote(primary.PublicKeyBytes(), prevote)
-	if has && prm.Vote.Number >= uint32(s.head.Number) {
-		vote = &prm.Vote
-	} else {
-		vote = NewVoteFromHeader(bestBlockHeader)
-	}
+	vote = NewVoteFromHeader(bestBlockHeader)
 
 	nextChange, err := s.grandpaState.NextGrandpaAuthorityChange(bestBlockHeader.Hash(), bestBlockHeader.Number)
 	if errors.Is(err, state.ErrNoNextAuthorityChange) {
@@ -866,11 +790,6 @@ func (s *Service) createJustification(bfc common.Hash, stage Subround) ([]Signed
 	}
 
 	return just, nil
-}
-
-// derivePrimary returns the primary for the current round
-func (s *Service) derivePrimary() Voter {
-	return s.state.voters[s.state.round%uint64(len(s.state.voters))]
 }
 
 // getBestFinalCandidate calculates the set of blocks that are less than or equal to the pre-voted block in height,

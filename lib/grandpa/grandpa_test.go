@@ -958,7 +958,7 @@ func TestGetBestFinalCandidate_PrecommitOnAnotherChain(t *testing.T) {
 	require.Equal(t, pred, bfc.Hash)
 }
 
-func TestDeterminePreVote_NoPrimaryPreVote(t *testing.T) {
+func TestDeterminePreVote(t *testing.T) {
 	gs, st := newTestService(t)
 
 	state.AddBlocksToState(t, st.Block, 3, false)
@@ -968,49 +968,6 @@ func TestDeterminePreVote_NoPrimaryPreVote(t *testing.T) {
 	header, err := st.Block.BestBlockHeader()
 	require.NoError(t, err)
 	require.Equal(t, header.Hash(), pv.Hash)
-}
-
-func TestDeterminePreVote_WithPrimaryPreVote(t *testing.T) {
-	gs, st := newTestService(t)
-
-	state.AddBlocksToState(t, st.Block, 3, false)
-	header, err := st.Block.BestBlockHeader()
-	require.NoError(t, err)
-	state.AddBlocksToState(t, st.Block, 1, false)
-
-	derivePrimary := gs.derivePrimary()
-	primary := derivePrimary.PublicKeyBytes()
-	gs.prevotes.Store(primary, &SignedVote{
-		Vote: *NewVoteFromHeader(header),
-	})
-
-	pv, err := gs.determinePreVote()
-	require.NoError(t, err)
-	p, has := gs.prevotes.Load(primary)
-	require.True(t, has)
-	require.Equal(t, pv, &p.(*SignedVote).Vote)
-}
-
-func TestDeterminePreVote_WithInvalidPrimaryPreVote(t *testing.T) {
-	gs, st := newTestService(t)
-
-	state.AddBlocksToState(t, st.Block, 3, false)
-	header, err := st.Block.BestBlockHeader()
-	require.NoError(t, err)
-
-	derivePrimary := gs.derivePrimary()
-	primary := derivePrimary.PublicKeyBytes()
-	gs.prevotes.Store(primary, &SignedVote{
-		Vote: *NewVoteFromHeader(header),
-	})
-
-	state.AddBlocksToState(t, st.Block, 5, false)
-	gs.head, err = st.Block.BestBlockHeader()
-	require.NoError(t, err)
-
-	pv, err := gs.determinePreVote()
-	require.NoError(t, err)
-	require.Equal(t, gs.head.Hash(), pv.Hash)
 }
 
 func TestGetGrandpaGHOST_CommonAncestor(t *testing.T) {
