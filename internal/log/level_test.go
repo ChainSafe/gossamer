@@ -11,16 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_Logs(t *testing.T) {
-	logger := New()
-	logger.Trace("test test    a")
-	logger.Debug("test test    a")
-	logger.Info("test test    a")
-	logger.Warn("test test    a")
-	logger.Error("test test    a")
-	logger.Critical("test test    a")
-}
-
 func Test_Level_ColouredString(t *testing.T) {
 	t.Parallel()
 
