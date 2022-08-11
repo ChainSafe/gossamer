@@ -78,10 +78,9 @@ func (pq *priorityQueue) Pop() interface{} {
 
 // PriorityQueue is a thread safe wrapper over `priorityQueue`
 type PriorityQueue struct {
-	pq              priorityQueue
-	currOrder       uint64
-	txs             map[common.Hash]*Item
-	nextPushWatcher chan struct{}
+	pq        priorityQueue
+	currOrder uint64
+	txs       map[common.Hash]*Item
 	sync.Mutex
 }
 
