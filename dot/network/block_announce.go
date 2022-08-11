@@ -18,7 +18,7 @@ import (
 var errInvalidRole = errors.New("invalid role")
 var (
 	_ NotificationsMessage = &BlockAnnounceMessage{}
-	_ Handshake            = &BlockAnnounceHandshake{}
+	_ Handshake            = (*BlockAnnounceHandshake)(nil)
 )
 
 // BlockAnnounceMessage is a state block header
