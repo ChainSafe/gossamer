@@ -105,24 +105,10 @@ func (n *Node) EncodeAndHash() (encoding, merkleValue []byte, err error) {
 		return n.Encoding, n.MerkleValue, nil
 	}
 
-	if n.Dirty || n.Encoding == nil {
-		buffer := pools.EncodingBuffers.Get().(*bytes.Buffer)
-		buffer.Reset()
-		defer pools.EncodingBuffers.Put(buffer)
-
-		err = n.Encode(buffer)
-		if err != nil {
-			return nil, nil, fmt.Errorf("encoding node: %w", err)
-		}
-
-		bufferBytes := buffer.Bytes()
-
-		// TODO remove this copying since it defeats the purpose of `buffer`
-		// and the sync.Pool.
-		n.Encoding = make([]byte, len(bufferBytes))
-		copy(n.Encoding, bufferBytes)
+	encoding, err = n.encodeIfNeeded()
+	if err != nil {
+		return nil, nil, fmt.Errorf("encoding node: %w", err)
 	}
-	encoding = n.Encoding // no need to copy
 
 	const maxMerkleValueSize = 32
 	merkleValueBuffer := bytes.NewBuffer(make([]byte, 0, maxMerkleValueSize))
@@ -148,24 +134,10 @@ func (n *Node) EncodeAndHashRoot() (encoding, merkleValue []byte, err error) {
 		return n.Encoding, n.MerkleValue, nil
 	}
 
-	if n.Dirty || n.Encoding == nil {
-		buffer := pools.EncodingBuffers.Get().(*bytes.Buffer)
-		buffer.Reset()
-		defer pools.EncodingBuffers.Put(buffer)
-
-		err = n.Encode(buffer)
-		if err != nil {
-			return nil, nil, fmt.Errorf("encoding node: %w", err)
-		}
-
-		bufferBytes := buffer.Bytes()
-
-		// TODO remove this copying since it defeats the purpose of `buffer`
-		// and the sync.Pool.
-		n.Encoding = make([]byte, len(bufferBytes))
-		copy(n.Encoding, bufferBytes)
+	encoding, err = n.encodeIfNeeded()
+	if err != nil {
+		return nil, nil, fmt.Errorf("encoding node: %w", err)
 	}
-	encoding = n.Encoding // no need to copy
 
 	const merkleValueSize = 32
 	merkleValueBuffer := bytes.NewBuffer(make([]byte, 0, merkleValueSize))
@@ -177,4 +149,28 @@ func (n *Node) EncodeAndHashRoot() (encoding, merkleValue []byte, err error) {
 	n.MerkleValue = merkleValue // no need to copy
 
 	return encoding, merkleValue, nil
+}
+
+func (n *Node) encodeIfNeeded() (encoding []byte, err error) {
+	if !n.Dirty && n.Encoding != nil {
+		return n.Encoding, nil // no need to copy
+	}
+
+	buffer := pools.EncodingBuffers.Get().(*bytes.Buffer)
+	buffer.Reset()
+	defer pools.EncodingBuffers.Put(buffer)
+
+	err = n.Encode(buffer)
+	if err != nil {
+		return nil, fmt.Errorf("encoding: %w", err)
+	}
+
+	bufferBytes := buffer.Bytes()
+
+	// TODO remove this copying since it defeats the purpose of `buffer`
+	// and the sync.Pool.
+	n.Encoding = make([]byte, len(bufferBytes))
+	copy(n.Encoding, bufferBytes)
+
+	return n.Encoding, nil // no need to copy
 }
