@@ -82,7 +82,6 @@ type PriorityQueue struct {
 	currOrder       uint64
 	txs             map[common.Hash]*Item
 	nextPushWatcher chan struct{}
-	//popChannel      chan *ValidTransaction
 	sync.Mutex
 }
 
@@ -137,9 +136,6 @@ func (spq *PriorityQueue) Push(txn *ValidTransaction) (common.Hash, error) {
 	spq.currOrder++
 	heap.Push(&spq.pq, item)
 	spq.txs[hash] = item
-	//if spq.popChannel != nil {
-	//	spq.popChannel <- txn
-	//}
 
 	transactionQueueGauge.Set(float64(spq.pq.Len()))
 	return hash, nil
