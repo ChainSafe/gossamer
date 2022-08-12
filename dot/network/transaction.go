@@ -17,7 +17,7 @@ import (
 
 var (
 	_ NotificationsMessage = &TransactionMessage{}
-	_ Handshake            = &transactionHandshake{}
+	_ Handshake            = (*transactionHandshake)(nil)
 )
 
 // txnBatchChTimeout is the timeout for adding a transaction to the batch processing channel
