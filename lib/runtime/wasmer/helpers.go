@@ -47,16 +47,12 @@ func toWasmMemory(context wasmer.InstanceContext, data []byte) (
 }
 
 // toWasmMemorySized copies a Go byte slice to wasm memory and returns the corresponding
-// 32 bit pointer.
-func toWasmMemorySized(context wasmer.InstanceContext, data []byte, size uint32) (
+// 32 bit pointer. Note the data must have a well known fixed length in the runtime.
+func toWasmMemorySized(context wasmer.InstanceContext, data []byte) (
 	pointer uint32, err error) {
-	if int(size) != len(data) {
-		// Programming error
-		panic(fmt.Sprintf("data is %d bytes but size specified is %d", len(data), size))
-	}
-
 	allocator := context.Data().(*runtime.Context).Allocator
 
+	size := uint32(len(data))
 	ptr, err := allocator.Allocate(size)
 	if err != nil {
 		return 0, fmt.Errorf("allocating: %w", err)

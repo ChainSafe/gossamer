@@ -259,7 +259,7 @@ func ext_crypto_ed25519_generate_version_1(context unsafe.Pointer, keyTypeID C.i
 		return 0
 	}
 
-	ret, err := toWasmMemorySized(instanceContext, kp.Public().Encode(), 32)
+	ret, err := toWasmMemorySized(instanceContext, kp.Public().Encode())
 	if err != nil {
 		logger.Warnf("failed to allocate memory: %s", err)
 		return 0
@@ -583,7 +583,7 @@ func ext_crypto_sr25519_generate_version_1(context unsafe.Pointer, keyTypeID C.i
 		return 0
 	}
 
-	ret, err := toWasmMemorySized(instanceContext, kp.Public().Encode(), 32)
+	ret, err := toWasmMemorySized(instanceContext, kp.Public().Encode())
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
 		return 0
@@ -1331,7 +1331,7 @@ func ext_hashing_blake2_128_version_1(context unsafe.Pointer, dataSpan C.int64_t
 		"data 0x%x has hash 0x%x",
 		data, hash)
 
-	out, err := toWasmMemorySized(instanceContext, hash, 16)
+	out, err := toWasmMemorySized(instanceContext, hash)
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
 		return 0
@@ -1355,7 +1355,7 @@ func ext_hashing_blake2_256_version_1(context unsafe.Pointer, dataSpan C.int64_t
 
 	logger.Debugf("data 0x%x has hash %s", data, hash)
 
-	out, err := toWasmMemorySized(instanceContext, hash[:], 32)
+	out, err := toWasmMemorySized(instanceContext, hash[:])
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
 		return 0
@@ -1379,7 +1379,7 @@ func ext_hashing_keccak_256_version_1(context unsafe.Pointer, dataSpan C.int64_t
 
 	logger.Debugf("data 0x%x has hash %s", data, hash)
 
-	out, err := toWasmMemorySized(instanceContext, hash[:], 32)
+	out, err := toWasmMemorySized(instanceContext, hash[:])
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
 		return 0
@@ -1398,7 +1398,7 @@ func ext_hashing_sha2_256_version_1(context unsafe.Pointer, dataSpan C.int64_t) 
 
 	logger.Debugf("data 0x%x has hash %s", data, hash)
 
-	out, err := toWasmMemorySized(instanceContext, hash[:], 32)
+	out, err := toWasmMemorySized(instanceContext, hash[:])
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
 		return 0
@@ -1422,7 +1422,7 @@ func ext_hashing_twox_256_version_1(context unsafe.Pointer, dataSpan C.int64_t) 
 
 	logger.Debugf("data 0x%x has hash %s", data, hash)
 
-	out, err := toWasmMemorySized(instanceContext, hash[:], 32)
+	out, err := toWasmMemorySized(instanceContext, hash[:])
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
 		return 0
@@ -1447,7 +1447,7 @@ func ext_hashing_twox_128_version_1(context unsafe.Pointer, dataSpan C.int64_t) 
 		"data 0x%x hash hash 0x%x",
 		data, hash)
 
-	out, err := toWasmMemorySized(instanceContext, hash, 16)
+	out, err := toWasmMemorySized(instanceContext, hash)
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
 		return 0
@@ -1473,7 +1473,7 @@ func ext_hashing_twox_64_version_1(context unsafe.Pointer, dataSpan C.int64_t) C
 		"data 0x%x has hash 0x%x",
 		data, hash)
 
-	out, err := toWasmMemorySized(instanceContext, hash, 8)
+	out, err := toWasmMemorySized(instanceContext, hash)
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
 		return 0
@@ -1645,13 +1645,8 @@ func ext_offchain_network_state_version_1(context unsafe.Pointer) C.int64_t {
 		return 0
 	}
 
-	// copy network state length to memory writtenOut location
-	nsEncLen := uint32(len(nsEnc))
-	buf := make([]byte, 4)
-	binary.LittleEndian.PutUint32(buf, nsEncLen)
-
 	// allocate memory for value and copy value to memory
-	ptr, err := toWasmMemorySized(instanceContext, nsEnc, nsEncLen)
+	ptr, err := toWasmMemorySized(instanceContext, nsEnc)
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
 		return 0
@@ -1670,7 +1665,7 @@ func ext_offchain_random_seed_version_1(context unsafe.Pointer) C.int32_t {
 	if err != nil {
 		logger.Errorf("failed to generate random seed: %s", err)
 	}
-	ptr, err := toWasmMemorySized(instanceContext, seed, 32)
+	ptr, err := toWasmMemorySized(instanceContext, seed)
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
 	}
