@@ -90,7 +90,7 @@ func TestNewHTTPServer(t *testing.T) {
 	buf := &bytes.Buffer{}
 	_, err = buf.Write(data)
 	require.NoError(t, err)
-	req, err := http.NewRequest("POST", fmt.Sprintf("http://localhost:%v/", cfg.RPCPort), buf)
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("http://localhost:%v/", cfg.RPCPort), buf)
 	require.NoError(t, err)
 
 	req.Header.Set("Content-Type", "application/json")
@@ -102,7 +102,7 @@ func TestNewHTTPServer(t *testing.T) {
 	require.Equal(t, "200 OK", res.Status)
 
 	// nil POST
-	req, err = http.NewRequest("POST", fmt.Sprintf("http://localhost:%v/", cfg.RPCPort), nil)
+	req, err = http.NewRequest(http.MethodPost, fmt.Sprintf("http://localhost:%v/", cfg.RPCPort), nil)
 	require.NoError(t, err)
 
 	req.Header.Set("Content-Type", "application/json;")
@@ -114,7 +114,7 @@ func TestNewHTTPServer(t *testing.T) {
 	require.Equal(t, "200 OK", res.Status)
 
 	// GET
-	req, err = http.NewRequest("GET", fmt.Sprintf("http://localhost:%v/", cfg.RPCPort), nil)
+	req, err = http.NewRequest(http.MethodGet, fmt.Sprintf("http://localhost:%v/", cfg.RPCPort), nil)
 	require.NoError(t, err)
 
 	req.Header.Set("Content-Type", "application/json;")
