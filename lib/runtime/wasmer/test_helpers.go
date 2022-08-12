@@ -36,8 +36,7 @@ func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie) 
 	require.NoError(t, err)
 
 	r, err := NewInstanceFromFile(runtimeFilepath, cfg)
-	require.NoError(t, err, "Got error when trying to create new VM", "targetRuntime", targetRuntime)
-	require.NotNil(t, r, "Could not create new VM instance", "targetRuntime", targetRuntime)
+	require.NoError(t, err)
 	return r
 }
 
