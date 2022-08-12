@@ -162,6 +162,7 @@ func TestStateRPCResponseValidation(t *testing.T) { //nolint:tparallel
 }
 
 // TODO: add test against latest gssmr runtime
+// See https://github.com/ChainSafe/gossamer/issues/2705
 func TestStateRPCAPI(t *testing.T) {
 	genesisPath := libutils.GetGssmrV3SubstrateGenesisRawPathTest(t)
 	tomlConfig := config.Default()
