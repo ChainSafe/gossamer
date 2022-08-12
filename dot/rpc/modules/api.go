@@ -60,7 +60,7 @@ type NetworkAPI interface {
 	Health() common.Health
 	NetworkState() common.NetworkState
 	Peers() []common.PeerInfo
-	NodeRoles() byte
+	NodeRoles() common.Roles
 	Stop() error
 	Start() error
 	IsStopped() bool

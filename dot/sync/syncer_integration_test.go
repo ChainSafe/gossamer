@@ -62,8 +62,7 @@ func newTestSyncer(t *testing.T) *Service {
 	}
 
 	// initialise runtime
-	genState, err := rtstorage.NewTrieState(genTrie)
-	require.NoError(t, err)
+	genState := rtstorage.NewTrieState(genTrie)
 
 	rtCfg := runtime.InstanceConfig{
 		Storage: genState,

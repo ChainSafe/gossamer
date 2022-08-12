@@ -5,6 +5,7 @@ package dev
 
 import (
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 )
@@ -52,7 +53,7 @@ var (
 	// DefaultAuthority is true if the node is a block producer and a grandpa authority
 	DefaultAuthority = true
 	// DefaultRoles Default node roles
-	DefaultRoles = byte(4) // authority node (see Table D.2)
+	DefaultRoles = common.AuthorityRole // authority node (see Table D.2)
 	// DefaultBabeAuthority is true if the node is a block producer (overwrites previous settings)
 	DefaultBabeAuthority = true
 	// DefaultGrandpaAuthority is true if the node is a grandpa authority (overwrites previous settings)

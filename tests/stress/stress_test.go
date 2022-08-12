@@ -14,9 +14,9 @@ import (
 	"testing"
 	"time"
 
-	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v3"
-	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
-	"github.com/centrifuge/go-substrate-rpc-client/v3/types"
+	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v4"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -507,7 +507,7 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 	err = ext.Sign(signature.TestKeyringPairAlice, o)
 	require.NoError(t, err)
 
-	extEnc, err := types.EncodeToHexString(ext)
+	extEnc, err := types.EncodeToHex(ext)
 	require.NoError(t, err)
 
 	// get starting header so that we can lookup blocks by number later
@@ -670,7 +670,7 @@ func Test_SubmitAndWatchExtrinsic(t *testing.T) {
 	err = ext.Sign(signature.TestKeyringPairAlice, o)
 	require.NoError(t, err)
 
-	extEnc, err := types.EncodeToHexString(ext)
+	extEnc, err := types.EncodeToHex(ext)
 	require.NoError(t, err)
 
 	conn, _, err := websocket.DefaultDialer.Dial("ws://localhost:8546", nil)

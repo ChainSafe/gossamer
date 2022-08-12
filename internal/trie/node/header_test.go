@@ -16,6 +16,8 @@ import (
 )
 
 func Test_encodeHeader(t *testing.T) {
+	t.Parallel()
+
 	testCases := map[string]struct {
 		node       *Node
 		writes     []writeCall
@@ -32,7 +34,7 @@ func Test_encodeHeader(t *testing.T) {
 		},
 		"branch with value": {
 			node: &Node{
-				Value:    []byte{},
+				SubValue: []byte{},
 				Children: make([]*Node, ChildrenCapacity),
 			},
 			writes: []writeCall{
@@ -109,7 +111,7 @@ func Test_encodeHeader(t *testing.T) {
 			errMessage: "test error",
 		},
 		"leaf with no key": {
-			node: &Node{Value: []byte{1}},
+			node: &Node{SubValue: []byte{1}},
 			writes: []writeCall{
 				{written: []byte{leafVariant.bits}},
 			},
@@ -275,6 +277,8 @@ func Test_encodeHeader_At_Maximum(t *testing.T) {
 }
 
 func Test_decodeHeader(t *testing.T) {
+	t.Parallel()
+
 	testCases := map[string]struct {
 		reads            []readCall
 		variant          byte

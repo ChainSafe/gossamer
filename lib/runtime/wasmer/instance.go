@@ -94,7 +94,7 @@ func NewInstance(code []byte, cfg runtime.InstanceConfig) (instance *Instance, e
 		Storage:         cfg.Storage,
 		Allocator:       allocator,
 		Keystore:        cfg.Keystore,
-		Validator:       cfg.Role == byte(4),
+		Validator:       cfg.Role == common.AuthorityRole,
 		NodeStorage:     cfg.NodeStorage,
 		Network:         cfg.Network,
 		Transaction:     cfg.Transaction,
@@ -120,7 +120,7 @@ func decompressWasm(code []byte) ([]byte, error) {
 
 	decoder, err := zstd.NewReader(nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create zstd decoder: %w", err)
+		return nil, fmt.Errorf("creating zstd reader: %s", err)
 	}
 
 	return decoder.DecodeAll(code[len(compressionFlag):], nil)
@@ -178,7 +178,8 @@ func (in *Instance) CheckRuntimeVersion(code []byte) (runtime.Version, error) {
 }
 
 var (
-	ErrCodeEmpty = errors.New("code is empty")
+	ErrCodeEmpty      = errors.New("code is empty")
+	ErrWASMDecompress = errors.New("wasm decompression failed")
 )
 
 func setupVM(code []byte) (instance wasm.Instance,
@@ -189,7 +190,9 @@ func setupVM(code []byte) (instance wasm.Instance,
 
 	code, err = decompressWasm(code)
 	if err != nil {
-		return instance, nil, fmt.Errorf("decompressing WASM code: %w", err)
+		// Note the sentinel error is wrapped here since the ztsd Go library
+		// does not return any exported sentinel errors.
+		return instance, nil, fmt.Errorf("%w: %s", ErrWASMDecompress, err)
 	}
 
 	imports, err := importsNodeRuntime()

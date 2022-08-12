@@ -156,10 +156,7 @@ func (s *Service) storeInitialValues(data *genesis.Data, t *trie.Trie) error {
 // CreateGenesisRuntime creates runtime instance form genesis
 func (s *Service) CreateGenesisRuntime(t *trie.Trie, gen *genesis.Genesis) (runtime.Instance, error) {
 	// load genesis state into database
-	genTrie, err := rtstorage.NewTrieState(t)
-	if err != nil {
-		return nil, fmt.Errorf("failed to instantiate TrieState: %w", err)
-	}
+	genTrie := rtstorage.NewTrieState(t)
 
 	// create genesis runtime
 	rtCfg := runtime.InstanceConfig{

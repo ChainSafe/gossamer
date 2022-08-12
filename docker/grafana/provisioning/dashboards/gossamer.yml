@@ -1,0 +1,9 @@
+apiVersion: 1
+
+providers:
+  - name: "JSON files"
+    orgId: 1
+    updateIntervalSeconds: 300
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards

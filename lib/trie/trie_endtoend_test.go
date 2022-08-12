@@ -304,7 +304,7 @@ func TestTrieDiff(t *testing.T) {
 	}
 
 	dbTrie := NewEmptyTrie()
-	err = dbTrie.Load(storageDB, common.BytesToHash(newTrie.root.HashDigest))
+	err = dbTrie.Load(storageDB, common.BytesToHash(newTrie.root.MerkleValue))
 	require.NoError(t, err)
 }
 
@@ -492,7 +492,7 @@ func TestClearPrefix_Small(t *testing.T) {
 
 	expectedRoot := &Node{
 		Key:        codec.KeyLEToNibbles([]byte("other")),
-		Value:      []byte("other"),
+		SubValue:   []byte("other"),
 		Generation: 1,
 		Dirty:      true,
 	}

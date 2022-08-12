@@ -131,10 +131,7 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 	}
 
 	nextTrie := t.Snapshot()
-	next, err := rtstorage.NewTrieState(nextTrie)
-	if err != nil {
-		return nil, err
-	}
+	next := rtstorage.NewTrieState(nextTrie)
 
 	logger.Tracef("returning trie with root %s to be modified", root)
 	return next, nil
