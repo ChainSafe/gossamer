@@ -64,6 +64,7 @@ func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *
 }
 
 // TODO: add test against latest dev runtime
+// See https://github.com/ChainSafe/gossamer/issues/2704
 func TestVerificationManager_OnDisabled_InvalidIndex(t *testing.T) {
 	vm := newTestVerificationManager(t, nil)
 	babeService := createTestService(t, nil)
@@ -76,6 +77,7 @@ func TestVerificationManager_OnDisabled_InvalidIndex(t *testing.T) {
 }
 
 // TODO: add test against latest dev runtime
+// See https://github.com/ChainSafe/gossamer/issues/2704
 func TestVerificationManager_OnDisabled_NewDigest(t *testing.T) {
 	kp, err := sr25519.GenerateKeypair()
 	require.NoError(t, err)
@@ -114,6 +116,7 @@ func TestVerificationManager_OnDisabled_NewDigest(t *testing.T) {
 }
 
 // TODO: add test against latest dev runtime
+// See https://github.com/ChainSafe/gossamer/issues/2704
 func TestVerificationManager_OnDisabled_DuplicateDigest(t *testing.T) {
 	kp, err := sr25519.GenerateKeypair()
 	require.NoError(t, err)
@@ -150,6 +153,7 @@ func TestVerificationManager_OnDisabled_DuplicateDigest(t *testing.T) {
 }
 
 // TODO: add test against latest dev runtime
+// See https://github.com/ChainSafe/gossamer/issues/2704
 func TestVerificationManager_VerifyBlock_Ok(t *testing.T) {
 	babeService := createTestService(t, nil)
 	rt, err := babeService.blockState.GetRuntime(nil)
@@ -173,6 +177,7 @@ func TestVerificationManager_VerifyBlock_Ok(t *testing.T) {
 }
 
 // TODO: add test against latest dev runtime
+// See https://github.com/ChainSafe/gossamer/issues/2704
 func TestVerificationManager_VerifyBlock_Secondary(t *testing.T) {
 	babeService := createTestService(t, nil)
 	rt, err := babeService.blockState.GetRuntime(nil)
@@ -282,6 +287,7 @@ func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 }
 
 // TODO: add test against latest dev runtime
+// See https://github.com/ChainSafe/gossamer/issues/2704
 func TestVerificationManager_VerifyBlock_InvalidBlockOverThreshold(t *testing.T) {
 	babeService := createTestService(t, nil)
 	rt, err := babeService.blockState.GetRuntime(nil)
@@ -306,6 +312,7 @@ func TestVerificationManager_VerifyBlock_InvalidBlockOverThreshold(t *testing.T)
 }
 
 // TODO: add test against latest dev runtime
+// See https://github.com/ChainSafe/gossamer/issues/2704
 func TestVerificationManager_VerifyBlock_InvalidBlockAuthority(t *testing.T) {
 	babeService := createTestService(t, nil)
 	rt, err := babeService.blockState.GetRuntime(nil)
@@ -375,6 +382,7 @@ func TestVerifyPimarySlotWinner(t *testing.T) {
 }
 
 // TODO: add test against latest dev runtime
+// See https://github.com/ChainSafe/gossamer/issues/2704
 func TestVerifyAuthorshipRight(t *testing.T) {
 	babeService := createTestService(t, nil)
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
@@ -395,6 +403,7 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 }
 
 // TODO: add test against latest dev runtime
+// See https://github.com/ChainSafe/gossamer/issues/2704
 func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	kp, err := sr25519.GenerateKeypair()
 	require.NoError(t, err)

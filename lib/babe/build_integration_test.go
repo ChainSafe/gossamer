@@ -101,6 +101,7 @@ func createTestBlock(t *testing.T, babeService *Service, parent *types.Header,
 }
 
 // TODO: add test against latest dev runtime
+// See https://github.com/ChainSafe/gossamer/issues/2704
 func TestBuildBlock_ok(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
@@ -141,6 +142,7 @@ func TestBuildBlock_ok(t *testing.T) {
 }
 
 // TODO: add test against latest dev runtime
+// See https://github.com/ChainSafe/gossamer/issues/2704
 func TestApplyExtrinsic(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
@@ -236,6 +238,7 @@ func TestApplyExtrinsic(t *testing.T) {
 }
 
 // TODO: add test against latest dev runtime
+// See https://github.com/ChainSafe/gossamer/issues/2704
 func TestBuildAndApplyExtrinsic(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
@@ -410,6 +413,7 @@ func TestDecodeExtrinsicBody(t *testing.T) {
 }
 
 // TODO: add test against latest dev runtime
+// See https://github.com/ChainSafe/gossamer/issues/2704
 func TestBuildBlockTimeMonitor(t *testing.T) {
 	metrics.Enabled = true
 	metrics.Unregister(buildBlockTimer)

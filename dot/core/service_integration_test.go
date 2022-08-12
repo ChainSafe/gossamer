@@ -409,6 +409,7 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 }
 
 // TODO: add test against latest gssmr runtime
+// See https://github.com/ChainSafe/gossamer/issues/2702
 func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
 	accountInfo := types.AccountInfo{
 		Nonce: 0,
@@ -466,6 +467,7 @@ func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
 }
 
 // TODO: add test against latest gssmr runtime
+// See https://github.com/ChainSafe/gossamer/issues/2702
 func TestMaintainTransactionPool_BlockWithExtrinsics(t *testing.T) {
 	accountInfo := types.AccountInfo{
 		Nonce: 0,

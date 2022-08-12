@@ -23,6 +23,7 @@ import (
 )
 
 // TODO: add test against latest dev runtime
+// See https://github.com/ChainSafe/gossamer/issues/2705
 func TestAuthorSubmitExtrinsic(t *testing.T) {
 	genesisPath := libutils.GetDevV3SubstrateGenesisPath(t)
 	tomlConfig := config.Default()

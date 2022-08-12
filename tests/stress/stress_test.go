@@ -98,6 +98,7 @@ func stopNodes(cancel context.CancelFunc, runtimeErrors []<-chan error) {
 }
 
 // TODO: add tests against latest dev runtime
+// See https://github.com/ChainSafe/gossamer/issues/2705
 func TestSync_SingleBlockProducer(t *testing.T) {
 	const numNodes = 4
 	genesisPath := libutils.GetDevV3SubstrateGenesisPath(t)
@@ -240,6 +241,7 @@ func TestSync_SingleSyncingNode(t *testing.T) {
 }
 
 // TODO: add tests against latest dev runtime
+// See https://github.com/ChainSafe/gossamer/issues/2705
 func TestSync_Bench(t *testing.T) {
 	utils.Logger.Patch(log.SetLevel(log.Info))
 	const numBlocks uint = 64
