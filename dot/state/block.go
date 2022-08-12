@@ -250,6 +250,33 @@ func (bs *BlockState) GetHashByNumber(num uint) (common.Hash, error) {
 	return common.NewHash(bh), nil
 }
 
+func (bs *BlockState) GetBlocksBySlot(slotNum uint64) ([]common.Hash, error) {
+	highestFinalisedHash, err := bs.GetHighestFinalisedHash()
+	if err != nil {
+		return nil, err
+	}
+
+	descendants, err := bs.bt.GetAllDescendants(highestFinalisedHash)
+	if err != nil {
+		return nil, err
+	}
+
+	blocksWithGivenSlot := []common.Hash{}
+
+	for _, desc := range descendants {
+		descSlot, err := bs.GetSlotForBlock(desc)
+		if err != nil {
+			return blocksWithGivenSlot, fmt.Errorf("could not get slot for block %s: %w", desc, err)
+		}
+
+		if descSlot == slotNum {
+			blocksWithGivenSlot = append(blocksWithGivenSlot, desc)
+		}
+	}
+
+	return blocksWithGivenSlot, nil
+}
+
 // GetHeaderByNumber returns the block header on our best chain with the given number
 func (bs *BlockState) GetHeaderByNumber(num uint) (*types.Header, error) {
 	hash, err := bs.GetHashByNumber(num)

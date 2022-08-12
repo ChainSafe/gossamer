@@ -330,6 +330,18 @@ func (bt *BlockTree) GetAllBlocks() []Hash {
 	return bt.root.getAllDescendants(nil)
 }
 
+func (bt *BlockTree) GetAllDescendants(a common.Hash) ([]Hash, error) {
+	bt.RLock()
+	defer bt.RUnlock()
+
+	an := bt.getNode(a)
+	if an == nil {
+		return []common.Hash{}, ErrNodeNotFound
+	}
+
+	return an.getAllDescendants(nil), nil
+}
+
 // GetHashByNumber returns the block hash with the given number that is on the best chain.
 // If the number is lower or higher than the numbers in the blocktree, an error is returned.
 func (bt *BlockTree) GetHashByNumber(num uint) (common.Hash, error) {

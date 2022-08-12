@@ -325,60 +325,56 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 		return ErrBadSignature
 	}
 
-	// check if the producer has equivocated, ie. have they produced a conflicting block?
-	// hashes is hashes of all blocks with same block number as header.Number
-	hashes := b.blockState.GetAllBlocksAtDepth(header.ParentHash)
-
-	for _, currentHash := range hashes {
-		currentHeader, err := b.blockState.GetHeader(currentHash)
-		if err != nil {
-			return fmt.Errorf("failed get header %s", err)
-		}
-
-		currentBlockProducerIndex, err := getAuthorityIndex(currentHeader)
-		if err != nil {
-			return fmt.Errorf("failed to get authority index %s", err)
-		}
-
-		if len(currentHeader.Digest.Types) == 0 {
-			return fmt.Errorf("current header missing digest")
-		}
-
-		currentPreDigestItem := currentHeader.Digest.Types[0]
-		currentPreDigest, ok := currentPreDigestItem.Value().(types.PreRuntimeDigest)
-		if !ok {
-			return fmt.Errorf("%w: got %T", types.ErrNoFirstPreDigest, currentPreDigestItem.Value())
-		}
-
-		currentBabePreDigest, err := b.verifyPreRuntimeDigest(&currentPreDigest)
-		if err != nil {
-			return fmt.Errorf("failed to verify pre-runtime digest: %w", err)
-		}
-
-		_, isCurrentBlockProducerPrimary := currentBabePreDigest.(types.BabePrimaryPreDigest)
-
-		var isExistingBlockProducerPrimary bool
-		var existingBlockProducerIndex uint32
-		switch d := babePreDigest.(type) {
-		case types.BabePrimaryPreDigest:
-			existingBlockProducerIndex = d.AuthorityIndex
-			isExistingBlockProducerPrimary = true
-		case types.BabeSecondaryVRFPreDigest:
-			existingBlockProducerIndex = d.AuthorityIndex
-		case types.BabeSecondaryPlainPreDigest:
-			existingBlockProducerIndex = d.AuthorityIndex
-		}
-
-		// same authority won't produce two different blocks at the same block number as primary block producer
-		if currentBlockProducerIndex == existingBlockProducerIndex &&
-			!currentHash.Equal(header.Hash()) &&
-			currentHeader.ParentHash.Equal(header.ParentHash) &&
-			isCurrentBlockProducerPrimary == isExistingBlockProducerPrimary {
-			return ErrProducerEquivocated
-		}
+	equivocated, err := b.verifyBlockEquivocation(header)
+	if err != nil {
+		return fmt.Errorf("could not verify block equivocation for header %s: %w", header.Hash(), err)
+	}
+	if equivocated {
+		return ErrProducerEquivocated
 	}
 
 	return nil
+}
+
+// verifyBlockEquivocation checks if given block's author has occupied corresponding slot more than once.
+func (b *verifier) verifyBlockEquivocation(header *types.Header) (bool, error) {
+	author, err := getAuthorityIndex(header)
+	if err != nil {
+		return false, err
+	}
+	currentHash := header.Hash()
+	slot, err := b.blockState.GetSlotForBlock(currentHash)
+	if err != nil {
+		return false, err
+	}
+
+	blocksBySlot, err := b.blockState.GetBlocksBySlot(slot)
+	if err != nil {
+		return false, err
+	}
+
+	for _, blockBySlot := range blocksBySlot {
+		if blockBySlot.Equal(currentHash) {
+			continue
+		}
+
+		existingHeader, err := b.blockState.GetHeader(blockBySlot)
+		if err != nil {
+			return false, err
+		}
+
+		authorOfExistingHeader, err := getAuthorityIndex(existingHeader)
+		if err != nil {
+			return false, err
+		}
+		if authorOfExistingHeader != author {
+			continue
+		}
+
+		return false, nil
+	}
+
+	return true, nil
 }
 
 func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (scale.VaryingDataTypeValue, error) {
