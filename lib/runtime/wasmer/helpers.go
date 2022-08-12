@@ -16,14 +16,15 @@ import (
 	"github.com/wasmerio/go-ext-wasm/wasmer"
 )
 
-// Convert 64bit wasm span descriptor to Go memory slice
+// asMemorySlice converts a 64 bit pointer size to a Go byte slice.
 func asMemorySlice(context wasmer.InstanceContext, pointerSize C.int64_t) (data []byte) {
 	memory := context.Memory().Data()
 	ptr, size := runtime.Int64ToPointerAndSize(int64(pointerSize))
 	return memory[ptr : ptr+size]
 }
 
-// Copy a byte slice to wasm memory and return the resulting 64bit span descriptor
+// toWasmMemory copies a Go byte slice to wasm memory and returns the corresponding
+// 64 bit pointer size.
 func toWasmMemory(context wasmer.InstanceContext, data []byte) (
 	pointerSize int64, err error) {
 	allocator := context.Data().(*runtime.Context).Allocator
@@ -45,7 +46,8 @@ func toWasmMemory(context wasmer.InstanceContext, data []byte) (
 	return pointerSize, nil
 }
 
-// Copy a byte slice of a fixed size to wasm memory and return resulting pointer
+// toWasmMemorySized copies a Go byte slice to wasm memory and returns the corresponding
+// 32 bit pointer.
 func toWasmMemorySized(context wasmer.InstanceContext, data []byte, size uint32) (
 	pointer uint32, err error) {
 	if int(size) != len(data) {
@@ -66,7 +68,8 @@ func toWasmMemorySized(context wasmer.InstanceContext, data []byte, size uint32)
 	return ptr, nil
 }
 
-// Wraps slice in optional.Bytes and copies result to wasm memory. Returns resulting 64bit span descriptor
+// toWasmMemoryOptional scale encodes the byte slice `data`, writes it to wasm memory
+// and returns the corresponding 64 bit pointer size.
 func toWasmMemoryOptional(context wasmer.InstanceContext, data []byte) (
 	pointerSize int64, err error) {
 	var optionalSlice *[]byte
@@ -82,7 +85,8 @@ func toWasmMemoryOptional(context wasmer.InstanceContext, data []byte) (
 	return toWasmMemory(context, encoded)
 }
 
-// Wraps slice in Result type and copies result to wasm memory. Returns resulting 64bit span descriptor
+// toWasmMemoryResult wraps the data byte slice in a Result type, scale encodes it,
+// copies it to wasm memory and returns the corresponding 64 bit pointer size.
 func toWasmMemoryResult(context wasmer.InstanceContext, data []byte) (
 	pointerSize int64, err error) {
 	var result *types.Result
@@ -100,7 +104,8 @@ func toWasmMemoryResult(context wasmer.InstanceContext, data []byte) (
 	return toWasmMemory(context, encodedResult)
 }
 
-// Wraps slice in optional and copies result to wasm memory. Returns resulting 64bit span descriptor
+// toWasmMemoryOptional scale encodes the uint32 pointer `data`, writes it to wasm memory
+// and returns the corresponding 64 bit pointer size.
 func toWasmMemoryOptionalUint32(context wasmer.InstanceContext, data *uint32) (
 	pointerSize int64, err error) {
 	enc, err := scale.Marshal(data)
@@ -110,7 +115,11 @@ func toWasmMemoryOptionalUint32(context wasmer.InstanceContext, data *uint32) (
 	return toWasmMemory(context, enc)
 }
 
-// toKillStorageResult returns enum encoded value
+// toKillStorageResultEnum encodes the `allRemoved` flag and
+// the `numRemoved` uint32 to a byte slice and returns it.
+// The format used is:
+// Byte 0: 1 if allRemoved is false, 0 otherwise
+// Byte 1-5: scale encoding of numRemoved (up to 4 bytes)
 func toKillStorageResultEnum(allRemoved bool, numRemoved uint32) (
 	encodedEnumValue []byte, err error) {
 	encodedNumRemoved, err := scale.Marshal(numRemoved)
@@ -128,7 +137,9 @@ func toKillStorageResultEnum(allRemoved bool, numRemoved uint32) (
 	return encodedEnumValue, nil
 }
 
-// Wraps slice in optional.FixedSizeBytes and copies result to wasm memory. Returns resulting 64bit span descriptor
+// toWasmMemoryFixedSizeOptional copies the `data` byte slice to a 64B array,
+// scale encodes the pointer to the resulting array, writes it to wasm memory
+// and returns the corresponding 64 bit pointer size.
 func toWasmMemoryFixedSizeOptional(context wasmer.InstanceContext, data []byte) (
 	pointerSize int64, err error) {
 	var optionalFixedSize [64]byte
