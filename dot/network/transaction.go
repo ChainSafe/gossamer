@@ -57,8 +57,8 @@ func (tm *TransactionMessage) Hash() (common.Hash, error) {
 	return common.Blake2bHash(encMsg)
 }
 
-// IsHandshake returns false
-func (*TransactionMessage) IsHandshake() bool {
+// IsValidHandshake returns false
+func (*TransactionMessage) IsValidHandshake() bool {
 	return false
 }
 
@@ -84,8 +84,8 @@ func (*transactionHandshake) Type() byte {
 	return 1
 }
 
-// IsHandshake returns true
-func (*transactionHandshake) IsHandshake() bool {
+// IsValidHandshake returns true
+func (*transactionHandshake) IsValidHandshake() bool {
 	return true
 }
 

@@ -63,8 +63,8 @@ func (*GrandpaHandshake) Hash() (common.Hash, error) {
 	return common.Hash{}, nil
 }
 
-// IsHandshake returns true
-func (*GrandpaHandshake) IsHandshake() bool {
+// IsValidHandshake returns true
+func (*GrandpaHandshake) IsValidHandshake() bool {
 	return true
 }
 

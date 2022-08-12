@@ -14,4 +14,5 @@ var (
 	errHandshakeTimeout              = errors.New("handshake timeout reached")
 	errBlockRequestFromNumberInvalid = errors.New("block request message From number is not valid")
 	errInvalidStartingBlockType      = errors.New("invalid StartingBlock in messsage")
+	errInboundHanshakeExists         = errors.New("an inbound handshake already exists for given peer")
 )

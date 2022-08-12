@@ -75,8 +75,8 @@ func (bm *BlockAnnounceMessage) Hash() (common.Hash, error) {
 	return common.Blake2bHash(encMsg)
 }
 
-// IsHandshake returns false
-func (*BlockAnnounceMessage) IsHandshake() bool {
+// IsValidHandshake returns false
+func (*BlockAnnounceMessage) IsValidHandshake() bool {
 	return false
 }
 
@@ -138,8 +138,8 @@ func (*BlockAnnounceHandshake) Type() byte {
 	return 0
 }
 
-// IsHandshake returns true if handshakes's role is valid.
-func (hs *BlockAnnounceHandshake) IsHandshake() bool {
+// IsValidHandshake returns true if handshakes's role is valid.
+func (hs *BlockAnnounceHandshake) IsValidHandshake() bool {
 	switch hs.Roles {
 	case common.AuthorityRole, common.FullNodeRole, common.LightClientRole:
 		return true

@@ -22,7 +22,7 @@ const handshakeTimeout = time.Second * 10
 type Handshake interface {
 	Message
 	Type() byte
-	IsHandshake() bool
+	IsValidHandshake() bool
 }
 
 // the following are used for RegisterNotificationsProtocol
@@ -133,11 +133,10 @@ func (s *Service) createNotificationsMessageHandler(
 			ok   bool
 			msg  NotificationsMessage
 			peer = stream.Conn().RemotePeer()
-			hs   Handshake
 		)
 
-		if hs, ok = m.(Handshake); ok && hs.IsHandshake() {
-			return s.handleHandshake(info, stream, hs, peer)
+		if msg.IsValidHandshake() {
+			return s.handleHandshake(info, stream, msg, peer)
 		}
 
 		if msg, ok = m.(NotificationsMessage); !ok {
@@ -190,41 +189,43 @@ func (s *Service) handleHandshake(info *notificationsProtocol, stream network.St
 	// ie it is an inbound stream and we only send the handshake over it.
 	// we do not send any other data over this stream, we would need to open a new outbound stream.
 	hsData := info.peersData.getInboundHandshakeData(peer)
-	if hsData == nil {
-		logger.Tracef("receiver: validating handshake using protocol %s", info.protocolID)
+	if hsData != nil {
+		return fmt.Errorf("%w: %s", errInboundHanshakeExists, peer)
+	}
 
-		hsData = newHandshakeData(true, false, stream)
-		info.peersData.setInboundHandshakeData(peer, hsData)
+	logger.Tracef("receiver: validating handshake using protocol %s", info.protocolID)
 
-		err := info.handshakeValidator(peer, hs)
-		if err != nil {
-			logger.Tracef(
-				"failed to validate handshake from peer %s using protocol %s: %s",
-				peer, info.protocolID, err)
-			return errCannotValidateHandshake
-		}
+	hsData = newHandshakeData(true, false, stream)
+	info.peersData.setInboundHandshakeData(peer, hsData)
 
-		hsData.validated = true
-		info.peersData.setInboundHandshakeData(peer, hsData)
+	err := info.handshakeValidator(peer, hs)
+	if err != nil {
+		logger.Tracef(
+			"failed to validate handshake from peer %s using protocol %s: %s",
+			peer, info.protocolID, err)
+		return errCannotValidateHandshake
+	}
 
-		// once validated, send back a handshake
-		resp, err := info.getHandshake()
-		if err != nil {
-			logger.Warnf("failed to get handshake using protocol %s: %s", info.protocolID, err)
-			return err
-		}
+	hsData.validated = true
+	info.peersData.setInboundHandshakeData(peer, hsData)
 
-		err = s.host.writeToStream(stream, resp)
-		if err != nil {
-			logger.Tracef("failed to send handshake to peer %s using protocol %s: %s", peer, info.protocolID, err)
-			return err
-		}
+	// once validated, send back a handshake
+	resp, err := info.getHandshake()
+	if err != nil {
+		logger.Warnf("failed to get handshake using protocol %s: %s", info.protocolID, err)
+		return err
+	}
 
-		logger.Tracef("receiver: sent handshake to peer %s using protocol %s", peer, info.protocolID)
+	err = s.host.writeToStream(stream, resp)
+	if err != nil {
+		logger.Tracef("failed to send handshake to peer %s using protocol %s: %s", peer, info.protocolID, err)
+		return err
+	}
 
-		if err := stream.CloseWrite(); err != nil {
-			logger.Tracef("failed to close stream for writing: %s", err)
-		}
+	logger.Tracef("receiver: sent handshake to peer %s using protocol %s", peer, info.protocolID)
+
+	if err := stream.CloseWrite(); err != nil {
+		logger.Tracef("failed to close stream for writing: %s", err)
 	}
 
 	return nil

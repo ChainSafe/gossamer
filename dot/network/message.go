@@ -36,7 +36,7 @@ type NotificationsMessage interface {
 	Message
 	Type() byte
 	Hash() (common.Hash, error)
-	IsHandshake() bool
+	IsValidHandshake() bool
 }
 
 //nolint:revive
@@ -382,7 +382,7 @@ func (cm *ConsensusMessage) Hash() (common.Hash, error) {
 	return common.Blake2bHash(encMsg)
 }
 
-// IsHandshake returns false
-func (cm *ConsensusMessage) IsHandshake() bool {
+// IsValidHandshake returns false
+func (cm *ConsensusMessage) IsValidHandshake() bool {
 	return false
 }
