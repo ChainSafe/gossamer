@@ -261,7 +261,7 @@ func (s *Service) handleCodeSubstitution(hash common.Hash,
 
 	// this needs to create a new runtime instance, otherwise it will update
 	// the blocks that reference the current runtime version to use the code substition
-	cfg := runtime.InstanceConfig{
+	cfg := wasmer.InstanceConfig{
 		Storage:     state,
 		Keystore:    rt.Keystore(),
 		NodeStorage: rt.NodeStorage(),

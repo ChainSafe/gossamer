@@ -269,7 +269,7 @@ func newStateService(t *testing.T, ctrl *gomock.Controller) *state.Service {
 
 	stateSrvc.Epoch = epochState
 
-	var rtCfg runtime.InstanceConfig
+	var rtCfg wasmer.InstanceConfig
 
 	rtCfg.Storage = rtstorage.NewTrieState(genTrie)
 

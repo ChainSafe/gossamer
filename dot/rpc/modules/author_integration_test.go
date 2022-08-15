@@ -40,7 +40,7 @@ type useRuntimeInstace func(*testing.T, *storage.TrieState) runtime.Instance
 func useInstanceFromGenesis(t *testing.T, rtStorage *storage.TrieState) (instance runtime.Instance) {
 	t.Helper()
 
-	cfg := runtime.InstanceConfig{
+	cfg := wasmer.InstanceConfig{
 		Storage: rtStorage,
 		LogLvl:  log.Warn,
 		NodeStorage: runtime.NodeStorage{
@@ -62,7 +62,7 @@ func useInstanceFromRuntimeV0910(t *testing.T, rtStorage *storage.TrieState) (in
 
 	rtStorage.Set(common.CodeKey, bytes)
 
-	cfg := runtime.InstanceConfig{
+	cfg := wasmer.InstanceConfig{
 		Role:     0,
 		LogLvl:   log.Critical,
 		Storage:  rtStorage,
