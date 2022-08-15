@@ -136,7 +136,11 @@ func (s *Service) createNotificationsMessageHandler(
 		)
 
 		if msg.IsValidHandshake() {
-			return s.handleHandshake(info, stream, msg, peer)
+			err := s.handleHandshake(info, stream, msg, peer)
+			if err != nil {
+				return fmt.Errorf("handling handshake: %w", err)
+			}
+			return nil
 		}
 
 		if msg, ok = m.(NotificationsMessage); !ok {
