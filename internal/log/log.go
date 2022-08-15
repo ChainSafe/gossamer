@@ -42,7 +42,6 @@ func (l *Logger) log(logLevel Level, s string, args ...interface{}) {
 	}
 
 	line += "\n"
-
 	_, _ = io.WriteString(l.settings.writer, line)
 }
 
