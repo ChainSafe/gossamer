@@ -212,8 +212,7 @@ func (s *Service) handleHandshake(info *notificationsProtocol, stream network.St
 	// once validated, send back a handshake
 	resp, err := info.getHandshake()
 	if err != nil {
-		logger.Warnf("failed to get handshake using protocol %s: %s", info.protocolID, err)
-		return err
+		return fmt.Errorf("failed to get handshake using protocol %s: %s", info.protocolID, err)
 	}
 
 	err = s.host.writeToStream(stream, resp)
