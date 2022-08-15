@@ -93,9 +93,9 @@ func newHandshakeData(received, validated bool, stream network.Stream) *handshak
 	}
 }
 
-// createDecoder combines notification message decoder and handshake decoder. The combined
-// decoder decodes using handshake decoder if we already have handshake data stored for given
-// peer, otherwise it decodes using notification message decoder.
+// createDecoder combines the notification message decoder and the handshake decoder. The combined
+// decoder decodes using the handshake decoder if we already have handshake data stored for a given
+// peer, otherwise it decodes using the notification message decoder.
 func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecoder,
 	messageDecoder MessageDecoder) messageDecoder {
 	return func(in []byte, peer peer.ID, inbound bool) (Message, error) {
