@@ -176,7 +176,7 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 		// Discard message
 		// TODO: affect peer reputation, this is shameful impolite behaviour
 		// https://github.com/ChainSafe/gossamer/issues/2505
-		return nil, errRoundOutOfBounds //nolint:nilnil
+		return nil, errRoundOutOfBounds
 	}
 
 	if m.Round < s.state.round {
