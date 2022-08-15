@@ -355,7 +355,7 @@ func TestRuntimeChannelListener_Listen(t *testing.T) {
 	require.NoError(t, err)
 	code, err := os.ReadFile(polkadotRuntimeFilepath)
 	require.NoError(t, err)
-	version, err := wasmer.CheckRuntimeVersion(code)
+	version, err := wasmer.GetRuntimeVersion(code)
 	require.NoError(t, err)
 
 	expectedUpdatedVersion := modules.StateRuntimeVersionResponse{

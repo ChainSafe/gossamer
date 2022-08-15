@@ -944,7 +944,7 @@ func ext_misc_runtime_version_version_1(context unsafe.Pointer, dataSpan C.int64
 	instanceContext := wasm.IntoInstanceContext(context)
 	code := asMemorySlice(instanceContext, dataSpan)
 
-	version, err := CheckRuntimeVersion(code)
+	version, err := GetRuntimeVersion(code)
 	if err != nil {
 		logger.Errorf("failed to get runtime version: %s", err)
 		out, _ := toWasmMemoryOptional(instanceContext, nil)
