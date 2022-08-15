@@ -226,20 +226,19 @@ func decodeMessage(cm *network.ConsensusMessage) (m GrandpaMessage, err error) {
 		m = &val
 	case CommitMessage:
 		m = &val
-
 	case VersionedNeighbourPacket:
 		switch NeighbourMessage := val.Value().(type) {
 		case NeighbourPacketV1:
 			m = &NeighbourMessage
 		default:
-			return nil, ErrInvalidMessageType
+			return nil, fmt.Errorf("%w", ErrInvalidMessageType)
 		}
 	case CatchUpRequest:
 		m = &val
 	case CatchUpResponse:
 		m = &val
 	default:
-		return nil, ErrInvalidMessageType
+		return nil, fmt.Errorf("%w", ErrInvalidMessageType)
 	}
 
 	return m, nil

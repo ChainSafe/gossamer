@@ -105,7 +105,7 @@ func TestSendNeighbourMessage(t *testing.T) {
 
 	// waits 1.5 seconds and then finalize the block
 	// we will first send a neighbour message with the initial values
-	// ant then send another nighbor message with the finalized block values
+	// and send another neighbour message with the finalized block values
 	time.Sleep(1500 * time.Millisecond)
 	err = st.Block.SetFinalisedHash(hash, round, setID)
 	require.NoError(t, err)
@@ -126,7 +126,7 @@ func TestSendNeighbourMessage(t *testing.T) {
 	}
 
 	select {
-	case <-time.After(time.Second * 1):
+	case <-time.After(time.Second):
 		t.Fatal("did not send message")
 	case msg := <-gs.network.(*testNetwork).out:
 		expected := &NeighbourPacketV1{
