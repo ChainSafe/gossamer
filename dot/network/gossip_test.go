@@ -84,7 +84,7 @@ func TestGossip(t *testing.T) {
 		Digest: types.NewDigest(),
 	}
 
-	_, err = nodeA.host.send(addrInfoB.ID, "", announceMessage)
+	_, err = nodeA.host.send(addrInfoB.ID, "/gossamer/test/0/block-announces/1", announceMessage)
 	require.NoError(t, err)
 
 	time.Sleep(TestMessageTimeout)
