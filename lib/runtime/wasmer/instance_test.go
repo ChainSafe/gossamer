@@ -36,14 +36,13 @@ func TestPointerSize(t *testing.T) {
 	require.Equal(t, in, res)
 }
 
-func TestInstance_CheckRuntimeVersion(t *testing.T) {
-	instance := NewTestInstance(t, runtime.NODE_RUNTIME)
+func Test_GetRuntimeVersion(t *testing.T) {
 	polkadotRuntimeFilepath, err := runtime.GetRuntime(
 		context.Background(), runtime.POLKADOT_RUNTIME)
 	require.NoError(t, err)
 	code, err := os.ReadFile(polkadotRuntimeFilepath)
 	require.NoError(t, err)
-	version, err := instance.CheckRuntimeVersion(code)
+	version, err := GetRuntimeVersion(code)
 	require.NoError(t, err)
 
 	expected := runtime.NewVersionData(
@@ -63,6 +62,18 @@ func TestInstance_CheckRuntimeVersion(t *testing.T) {
 	require.Equal(t, expected.SpecVersion(), version.SpecVersion())
 	require.Equal(t, expected.ImplVersion(), version.ImplVersion())
 	require.Equal(t, expected.TransactionVersion(), version.TransactionVersion())
+}
+
+func Benchmark_GetRuntimeVersion(b *testing.B) {
+	polkadotRuntimeFilepath, err := runtime.GetRuntime(
+		context.Background(), runtime.POLKADOT_RUNTIME)
+	require.NoError(b, err)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		code, _ := os.ReadFile(polkadotRuntimeFilepath)
+		_, _ = GetRuntimeVersion(code)
+	}
 }
 
 func TestDecompressWasm(t *testing.T) {

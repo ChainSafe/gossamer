@@ -110,7 +110,6 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	rtype "github.com/ChainSafe/gossamer/lib/common/types"
 	"github.com/ChainSafe/gossamer/lib/crypto"
@@ -118,7 +117,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/secp256k1"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/trie/proof"
@@ -944,20 +942,9 @@ func ext_misc_runtime_version_version_1(context unsafe.Pointer, dataSpan C.int64
 	logger.Trace("executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
-	data := asMemorySlice(instanceContext, dataSpan)
+	code := asMemorySlice(instanceContext, dataSpan)
 
-	cfg := runtime.InstanceConfig{
-		LogLvl:  log.DoNotChange,
-		Storage: rtstorage.NewTrieState(nil),
-	}
-
-	instance, err := NewInstance(data, cfg)
-	if err != nil {
-		logger.Errorf("failed to create instance: %s", err)
-		return 0
-	}
-
-	version, err := instance.Version()
+	version, err := GetRuntimeVersion(code)
 	if err != nil {
 		logger.Errorf("failed to get runtime version: %s", err)
 		out, _ := toWasmMemoryOptional(instanceContext, nil)
