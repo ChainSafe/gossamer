@@ -194,7 +194,7 @@ func (s *Service) handleHandshake(info *notificationsProtocol, stream network.St
 	// we do not send any other data over this stream, we would need to open a new outbound stream.
 	hsData := info.peersData.getInboundHandshakeData(peer)
 	if hsData != nil {
-		return fmt.Errorf("%w: %s", errInboundHanshakeExists, peer)
+		return fmt.Errorf("%w: for peer id %s", errInboundHanshakeExists, peer)
 	}
 
 	logger.Tracef("receiver: validating handshake using protocol %s", info.protocolID)
