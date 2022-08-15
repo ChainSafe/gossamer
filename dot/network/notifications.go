@@ -200,10 +200,8 @@ func (s *Service) handleHandshake(info *notificationsProtocol, stream network.St
 
 	err := info.handshakeValidator(peer, hs)
 	if err != nil {
-		logger.Tracef(
-			"failed to validate handshake from peer %s using protocol %s: %s",
-			peer, info.protocolID, err)
-		return errCannotValidateHandshake
+		return fmt.Errorf("%w from peer %s using protocol %s: %s",
+			errCannotValidateHandshake, peer, info.protocolID, err)
 	}
 
 	hsData.validated = true
@@ -217,14 +215,13 @@ func (s *Service) handleHandshake(info *notificationsProtocol, stream network.St
 
 	err = s.host.writeToStream(stream, resp)
 	if err != nil {
-		logger.Tracef("failed to send handshake to peer %s using protocol %s: %s", peer, info.protocolID, err)
-		return err
+		return fmt.Errorf("failed to send handshake to peer %s using protocol %s: %w", peer, info.protocolID, err)
 	}
 
 	logger.Tracef("receiver: sent handshake to peer %s using protocol %s", peer, info.protocolID)
 
 	if err := stream.CloseWrite(); err != nil {
-		logger.Tracef("failed to close stream for writing: %s", err)
+		return fmt.Errorf("failed to close stream for writing: %s", err)
 	}
 
 	return nil
