@@ -206,7 +206,7 @@ func TestNewCatchUpResponse(t *testing.T) {
 }
 
 func TestNeighbourMessageToConsensusMessage(t *testing.T) {
-	msg := &V1NeighbourMessage{
+	msg := &NeighbourPacketV1{
 		Round:  2,
 		SetID:  3,
 		Number: 255,

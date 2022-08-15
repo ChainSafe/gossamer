@@ -69,7 +69,7 @@ func TestHandleNetworkMessage(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, propagate)
 
-	neighbourMsg := &V1NeighbourMessage{}
+	neighbourMsg := &NeighbourPacketV1{}
 	cm, err = neighbourMsg.ToConsensusMessage()
 	require.NoError(t, err)
 
@@ -102,29 +102,40 @@ func TestSendNeighbourMessage(t *testing.T) {
 	hash := block.Header.Hash()
 	round := uint64(7)
 	setID := uint64(33)
+
+	// waits 1.5 seconds and then finalize the block
+	// we will first send a neighbour message with the initial values
+	// ant then send another nighbor message with the finalized block values
+	time.Sleep(1500 * time.Millisecond)
 	err = st.Block.SetFinalisedHash(hash, round, setID)
 	require.NoError(t, err)
-
-	expected := &V1NeighbourMessage{
-		SetID:  setID,
-		Round:  round,
-		Number: 1,
-	}
 
 	select {
 	case <-time.After(time.Second):
 		t.Fatal("did not send message")
 	case msg := <-gs.network.(*testNetwork).out:
-		nm, ok := msg.(*V1NeighbourMessage)
+		expected := &NeighbourPacketV1{
+			SetID:  0,
+			Round:  0,
+			Number: 0,
+		}
+
+		nm, ok := msg.(*NeighbourPacketV1)
 		require.True(t, ok)
 		require.Equal(t, expected, nm)
 	}
 
 	select {
-	case <-time.After(time.Second * 2):
+	case <-time.After(time.Second * 1):
 		t.Fatal("did not send message")
 	case msg := <-gs.network.(*testNetwork).out:
-		nm, ok := msg.(*V1NeighbourMessage)
+		expected := &NeighbourPacketV1{
+			SetID:  setID,
+			Round:  round,
+			Number: 1,
+		}
+
+		nm, ok := msg.(*NeighbourPacketV1)
 		require.True(t, ok)
 		require.Equal(t, expected, nm)
 	}

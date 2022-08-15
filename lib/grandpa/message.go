@@ -77,55 +77,57 @@ func (v *VoteMessage) ToConsensusMessage() (*ConsensusMessage, error) {
 	}, nil
 }
 
-// VersionedNeighbourMessage represents the enum of nighbor messages
-type VersionedNeighbourMessage scale.VaryingDataType
+// VersionedNeighbourPacket represents the enum of nighbor messages
+type VersionedNeighbourPacket scale.VaryingDataType
 
 // Index Returns VDT index
-func (VersionedNeighbourMessage) Index() uint { return 2 }
+func (VersionedNeighbourPacket) Index() uint { return 2 }
 
-func newVersionedNighborMessage() VersionedNeighbourMessage {
-	vdt := scale.MustNewVaryingDataType(V1NeighbourMessage{})
+func newVersionedNighborMessage() VersionedNeighbourPacket {
+	vdt := scale.MustNewVaryingDataType(NeighbourPacketV1{})
 
-	return VersionedNeighbourMessage(vdt)
+	return VersionedNeighbourPacket(vdt)
 }
 
 // Set updates the current VDT value to be `val`
-func (vnm *VersionedNeighbourMessage) Set(val scale.VaryingDataTypeValue) (err error) {
+func (vnm *VersionedNeighbourPacket) Set(val scale.VaryingDataTypeValue) (err error) {
 	vdt := scale.VaryingDataType(*vnm)
 	err = vdt.Set(val)
 	if err != nil {
 		return
 	}
-	*vnm = VersionedNeighbourMessage(vdt)
+	*vnm = VersionedNeighbourPacket(vdt)
 	return
 }
 
 // Value returns the current VDT value
-func (vnm *VersionedNeighbourMessage) Value() (val scale.VaryingDataTypeValue) {
+func (vnm *VersionedNeighbourPacket) Value() (val scale.VaryingDataTypeValue) {
 	vdt := scale.VaryingDataType(*vnm)
 	return vdt.Value()
 }
 
-// V1NeighbourMessage represents a network-level neighbour message
-type V1NeighbourMessage struct {
+// NeighbourPacketV1 represents a network-level neighbour message
+// currently, round and setID represents a struct containing an u64
+// https://github.com/paritytech/substrate/blob/master/client/finality-grandpa/src/communication/mod.rs#L660
+type NeighbourPacketV1 struct {
 	Round  uint64
 	SetID  uint64
 	Number uint32
 }
 
 // Index Returns VDT index
-func (V1NeighbourMessage) Index() uint { return 1 }
+func (NeighbourPacketV1) Index() uint { return 1 }
 
 // ToConsensusMessage converts the NeighbourMessage into a network-level consensus message
-func (m *V1NeighbourMessage) ToConsensusMessage() (*network.ConsensusMessage, error) {
-	versionedNeighbourMessage := newVersionedNighborMessage()
-	err := versionedNeighbourMessage.Set(*m)
+func (m *NeighbourPacketV1) ToConsensusMessage() (*network.ConsensusMessage, error) {
+	versionedNeighbourPacket := newVersionedNighborMessage()
+	err := versionedNeighbourPacket.Set(*m)
 	if err != nil {
 		return nil, err
 	}
 
 	msg := newGrandpaMessage()
-	err = msg.Set(versionedNeighbourMessage)
+	err = msg.Set(versionedNeighbourPacket)
 	if err != nil {
 		return nil, err
 	}

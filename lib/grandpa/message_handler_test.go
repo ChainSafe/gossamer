@@ -132,7 +132,7 @@ func TestDecodeMessage_NeighbourMessage(t *testing.T) {
 	msg, err := decodeMessage(cm)
 	require.NoError(t, err)
 
-	expected := &V1NeighbourMessage{
+	expected := &NeighbourPacketV1{
 		Round:  2,
 		SetID:  3,
 		Number: 255,
@@ -194,13 +194,13 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
 
-	v1NeighbourMessage := &V1NeighbourMessage{
+	NeighbourPacketV1 := &NeighbourPacketV1{
 		Round:  2,
 		SetID:  3,
 		Number: 1,
 	}
 
-	_, err := h.handleMessage("", v1NeighbourMessage)
+	_, err := h.handleMessage("", NeighbourPacketV1)
 	require.NoError(t, err)
 
 	digest := types.NewDigest()
@@ -224,7 +224,7 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 	err = st.Block.AddBlock(block)
 	require.NoError(t, err)
 
-	out, err := h.handleMessage("", v1NeighbourMessage)
+	out, err := h.handleMessage("", NeighbourPacketV1)
 	require.NoError(t, err)
 	require.Nil(t, out)
 }
