@@ -217,12 +217,9 @@ func NewTestExtrinsic(t *testing.T, rt Instance, genHash, blockHash common.Hash,
 	c, err := ctypes.NewCall(meta, call, args...)
 	require.NoError(t, err)
 
-	fmt.Println("genH in nte: ", genHash)
-	fmt.Println("bbh in nte: ", blockHash)
-
 	ext := ctypes.NewExtrinsic(c)
 	o := ctypes.SignatureOptions{
-		BlockHash:          ctypes.Hash(common.BytesToHash(common.MustHexToBytes("0xb5d8b5ddc7bb5764001428385f23f2935211c70cd8ce6d0e1096c7a7c32b926c"))),
+		BlockHash:          ctypes.Hash(blockHash),
 		Era:                ctypes.ExtrinsicEra{IsImmortalEra: false},
 		GenesisHash:        ctypes.Hash(genHash),
 		Nonce:              ctypes.NewUCompactFromUInt(nonce),
