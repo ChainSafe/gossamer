@@ -145,10 +145,10 @@ func CreateTestService(t *testing.T, genesisFilePath string,
 
 	// Hash of encrypted centrifuge extrinsic
 	testCallArguments := []byte{0xab, 0xcd}
-	extHex := runtime.NewTestExtrinsic(t, cfg.Runtime, genesisHeader.Hash(), genesisHeader.Hash(),
+	extHex := runtime.NewTestExtrinsic(t, cfg.Runtime, genesisHeader.Hash(), cfg.BlockState.BestBlockHash(),
 		0, "System.remark", testCallArguments)
 	encExtrinsic := common.MustHexToBytes(extHex)
-	
+
 	runtime.InitializeRuntimeLatestToTest(t, cfg.Runtime, genesisHeader.Hash())
 
 	if cfg.Network == nil {
