@@ -17,9 +17,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/sync"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
@@ -48,101 +46,6 @@ func balanceKey(t *testing.T, pub []byte) (bKey []byte) {
 	bKey = append(bKey, h2...)
 	bKey = append(bKey, pub...)
 	return
-}
-
-func generateTestValidRemarkTxnsLatestRuntime(t *testing.T, genesisFilePath string,
-	pubKey []byte, accInfo types.AccountInfo) ([]byte, runtime.Instance) {
-	t.Helper()
-	gen, err := genesis.NewGenesisFromJSONRaw(genesisFilePath)
-	require.NoError(t, err)
-
-	genTrie, err := genesis.NewTrieFromGenesis(gen)
-	require.NoError(t, err)
-
-	genState, err := rtstorage.NewTrieState(genTrie)
-	require.NoError(t, err)
-
-	nodeStorage := runtime.NodeStorage{
-		BaseDB: runtime.NewInMemoryDB(t),
-	}
-	cfg := runtime.InstanceConfig{
-		Storage:     genState,
-		LogLvl:      log.Error,
-		NodeStorage: nodeStorage,
-	}
-
-	rt, err := wasmer.NewRuntimeFromGenesis(cfg)
-	require.NoError(t, err)
-
-	aliceBalanceKey := balanceKey(t, pubKey)
-	encBal, err := scale.Marshal(accInfo)
-	require.NoError(t, err)
-
-	rt.(*wasmer.Instance).GetContext().Storage.Set(aliceBalanceKey, encBal)
-	// this key is System.UpgradedToDualRefCount -> set to true since all accounts have been upgraded to v0.9 format
-	rt.(*wasmer.Instance).GetContext().Storage.Set(common.UpgradedToDualRefKey, []byte{1})
-
-	genesisHeader := &types.Header{
-		Number:    0,
-		StateRoot: genTrie.MustHash(),
-	}
-
-	// Hash of encrypted centrifuge extrinsic
-	testCallArguments := []byte{0xab, 0xcd}
-	extHex := runtime.NewTestExtrinsic(t, rt, genesisHeader.Hash(), genesisHeader.Hash(),
-		0, "System.remark", testCallArguments)
-	extBytes := common.MustHexToBytes(extHex)
-
-	runtime.InitializeRuntimeLatestToTest(t, rt, genesisHeader.Hash())
-	return extBytes, rt
-}
-
-func generateTestValidRemarkTxns(t *testing.T, genesisFilePath string,
-	pubKey []byte, accInfo types.AccountInfo) ([]byte, runtime.Instance) {
-	t.Helper()
-	gen, err := genesis.NewGenesisFromJSONRaw(genesisFilePath)
-	require.NoError(t, err)
-
-	genTrie, err := genesis.NewTrieFromGenesis(gen)
-	require.NoError(t, err)
-
-	genState, err := rtstorage.NewTrieState(genTrie)
-	require.NoError(t, err)
-
-	nodeStorage := runtime.NodeStorage{
-		BaseDB: runtime.NewInMemoryDB(t),
-	}
-	cfg := runtime.InstanceConfig{
-		Storage:     genState,
-		LogLvl:      log.Error,
-		NodeStorage: nodeStorage,
-	}
-
-	rt, err := wasmer.NewRuntimeFromGenesis(cfg)
-	require.NoError(t, err)
-
-	aliceBalanceKey := balanceKey(t, pubKey)
-	encBal, err := scale.Marshal(accInfo)
-	require.NoError(t, err)
-
-	rt.(*wasmer.Instance).GetContext().Storage.Set(aliceBalanceKey, encBal)
-	// this key is System.UpgradedToDualRefCount -> set to true since all accounts have been upgraded to v0.9 format
-	rt.(*wasmer.Instance).GetContext().Storage.Set(common.UpgradedToDualRefKey, []byte{1})
-
-	genesisHeader := &types.Header{
-		Number:    0,
-		StateRoot: genTrie.MustHash(),
-	}
-
-	// Hash of encrypted centrifuge extrinsic
-	testCallArguments := []byte{0xab, 0xcd}
-	extHex := runtime.NewTestExtrinsic(t, rt, genesisHeader.Hash(), genesisHeader.Hash(),
-		0, "System.remark", testCallArguments)
-	extBytes := common.MustHexToBytes(extHex)
-
-	// error is from here (prob with formatting)
-	runtime.InitializeRuntimeToTest(t, rt, genesisHeader.Hash())
-	return extBytes, rt
 }
 
 func TestStartService(t *testing.T) {
@@ -457,65 +360,7 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 }
 
 func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
-	accountInfo := types.AccountInfo{
-		Nonce: 0,
-		Data: types.AccountData{
-			Free:       scale.MustNewUint128(big.NewInt(1152921504606846976)),
-			Reserved:   scale.MustNewUint128(big.NewInt(0)),
-			MiscFrozen: scale.MustNewUint128(big.NewInt(0)),
-			FreeFrozen: scale.MustNewUint128(big.NewInt(0)),
-		},
-	}
-	keyring, err := keystore.NewSr25519Keyring()
-	require.NoError(t, err)
-	alicePub := common.MustHexToBytes(keyring.Alice().Public().Hex())
-	genesisFilePath, err := utils.GetGssmrGenesisRawPath()
-	require.NoError(t, err)
-	encExt, runtimeInstance := generateTestValidRemarkTxns(t, genesisFilePath, alicePub, accountInfo)
-	cfg := &Config{
-		Runtime: runtimeInstance,
-	}
-
-	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
-
-	transactionState := state.NewTransactionState(telemetryMock)
-	tx := &transaction.ValidTransaction{
-		Extrinsic: types.Extrinsic(encExt),
-		Validity:  &transaction.Validity{Priority: 1},
-	}
-	_ = transactionState.AddToPool(tx)
-
-	service := NewTestService(t, cfg)
-	service.transactionState = transactionState
-
-	// provides is a list of transaction hashes that depend on this tx, see:
-	// https://github.com/paritytech/substrate/blob/5420de3face1349a97eb954ae71c5b0b940c31de/core/sr-primitives/src/transaction_validity.rs#L195
-	provides := common.MustHexToBytes("0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d00000000")
-	txnValidity := &transaction.Validity{
-		Priority:  39325240425794630,
-		Provides:  [][]byte{provides},
-		Longevity: 18446744073709551614,
-		Propagate: true,
-	}
-
-	expectedTx := transaction.NewValidTransaction(tx.Extrinsic, txnValidity)
-
-	service.maintainTransactionPool(&types.Block{
-		Body: *types.NewBody([]types.Extrinsic{}),
-	})
-
-	resultTx := transactionState.Pop()
-	require.Equal(t, expectedTx, resultTx)
-
-	transactionState.RemoveExtrinsic(tx.Extrinsic)
-	head := transactionState.Pop()
-	require.Nil(t, head)
-}
-
-func TestMaintainTransactionPool_EmptyBlockNew(t *testing.T) {
-	// Best block hash is zero here for some reason, weird
+	// TODO fix
 	accountInfo := types.AccountInfo{
 		Nonce: 0,
 		Data: types.AccountData{
@@ -536,7 +381,7 @@ func TestMaintainTransactionPool_EmptyBlockNew(t *testing.T) {
 
 	tx := &transaction.ValidTransaction{
 		Extrinsic: types.Extrinsic(encExt),
-		Validity:  &transaction.Validity{},
+		Validity:  &transaction.Validity{Priority: 1},
 	}
 	_ = service.transactionState.AddToPool(tx)
 
@@ -544,7 +389,7 @@ func TestMaintainTransactionPool_EmptyBlockNew(t *testing.T) {
 	// https://github.com/paritytech/substrate/blob/5420de3face1349a97eb954ae71c5b0b940c31de/core/sr-primitives/src/transaction_validity.rs#L195
 	provides := common.MustHexToBytes("0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d00000000")
 	txnValidity := &transaction.Validity{
-		Priority:  36074,
+		Priority:  39325240425794630,
 		Provides:  [][]byte{provides},
 		Longevity: 18446744073709551614,
 		Propagate: true,

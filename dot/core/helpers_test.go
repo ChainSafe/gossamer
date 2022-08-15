@@ -45,7 +45,6 @@ func CreateTestService(t *testing.T, genesisFilePath string,
 
 	// Genesis header made
 	genesisHeader := &types.Header{
-		Number:    0,
 		StateRoot: genTrie.MustHash(),
 	}
 
@@ -82,7 +81,6 @@ func CreateTestService(t *testing.T, genesisFilePath string,
 		stateSrvc = state.NewService(config)
 		stateSrvc.UseMemDB()
 
-		// A diff runtime and genesis is made here ughhhh
 		err := stateSrvc.Initialise(gen, genesisHeader, genTrie)
 		require.NoError(t, err)
 

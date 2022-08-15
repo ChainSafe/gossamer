@@ -424,17 +424,18 @@ func (s *Service) maintainTransactionPool(block *types.Block) {
 			logger.Errorf(err.Error())
 		}
 
-		rt, err := s.blockState.GetRuntime(nil)
+		rt, err := s.blockState.GetRuntime(&bestBlockHash)
 		if err != nil {
 			logger.Warnf("failed to get runtime to re-validate transactions in pool: %s", err)
 			continue
 		}
+
 		rt.SetContextStorage(ts)
 		externalExt, err := s.buildExternalTransaction(rt, tx.Extrinsic)
 		if err != nil {
 			logger.Errorf("Unable to build external transaction: %s", err)
 		}
-
+		fmt.Println("best bh3: ", s.blockState.BestBlockHash())
 		transactionValidity, transactionValidityErr, err := rt.ValidateTransaction(externalExt)
 		if err != nil || transactionValidityErr != nil {
 			if err == nil {
@@ -630,14 +631,12 @@ func (s *Service) buildExternalTransaction(rt runtime.Instance, ext types.Extrin
 
 	txQueueVersion := runtimeVersion.TaggedTransactionQueueVersion(runtimeVersion)
 	var externalExt types.Extrinsic
-	var bbh common.Hash
 	switch txQueueVersion {
 	case supportedTxVersion:
-		bbh = s.blockState.BestBlockHash()
 		externalExt = types.Extrinsic(concatenateByteSlices([][]byte{
 			{byte(types.TxnExternal)},
 			ext,
-			bbh.ToBytes(),
+			s.blockState.BestBlockHash().ToBytes(),
 		}))
 	case previousSupportedTxVersion:
 		externalExt = types.Extrinsic(concatenateByteSlices([][]byte{
@@ -647,6 +646,5 @@ func (s *Service) buildExternalTransaction(rt runtime.Instance, ext types.Extrin
 	default:
 		return types.Extrinsic{}, errInvalidTransactionQueueVersion
 	}
-	fmt.Println("bbh in bet: ", bbh)
 	return externalExt, nil
 }

@@ -393,6 +393,5 @@ func InitializeRuntimeLatestToTest(t *testing.T, instance Instance, parentHash c
 		Header: *res,
 		Body:   *types.NewBody(types.BytesArrayToExtrinsics(exts)),
 	}
-	fmt.Println(res.Hash())
 	return block
 }
