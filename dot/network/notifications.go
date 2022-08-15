@@ -93,9 +93,9 @@ func newHandshakeData(received, validated bool, stream network.Stream) *handshak
 	}
 }
 
-// createDecoder combines notification message decoder and handshake decoder. The combined
-// decoder decodes using handshake decoder if we already have handshake data stored for given
-// peer, otherwise it decodes using notification message decoder.
+// createDecoder combines the notification message decoder and the handshake decoder. The combined
+// decoder decodes using the handshake decoder if we already have handshake data stored for a given
+// peer, otherwise it decodes using the notification message decoder.
 func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecoder,
 	messageDecoder MessageDecoder) messageDecoder {
 	return func(in []byte, peer peer.ID, inbound bool) (Message, error) {
@@ -136,7 +136,11 @@ func (s *Service) createNotificationsMessageHandler(
 		)
 
 		if msg.IsValidHandshake() {
-			return s.handleHandshake(info, stream, msg, peer)
+			err := s.handleHandshake(info, stream, msg, peer)
+			if err != nil {
+				return fmt.Errorf("handling handshake: %w", err)
+			}
+			return nil
 		}
 
 		if msg, ok = m.(NotificationsMessage); !ok {
@@ -190,7 +194,7 @@ func (s *Service) handleHandshake(info *notificationsProtocol, stream network.St
 	// we do not send any other data over this stream, we would need to open a new outbound stream.
 	hsData := info.peersData.getInboundHandshakeData(peer)
 	if hsData != nil {
-		return fmt.Errorf("%w: %s", errInboundHanshakeExists, peer)
+		return fmt.Errorf("%w: for peer id %s", errInboundHanshakeExists, peer)
 	}
 
 	logger.Tracef("receiver: validating handshake using protocol %s", info.protocolID)
