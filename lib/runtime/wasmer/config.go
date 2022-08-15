@@ -10,8 +10,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 )
 
-// InstanceConfig represents a runtime instance configuration
-type InstanceConfig struct {
+// Config is the configuration used to create a
+// Wasmer runtime instance.
+type Config struct {
 	Storage     runtime.Storage
 	Keystore    *keystore.GlobalKeystore
 	LogLvl      log.Level

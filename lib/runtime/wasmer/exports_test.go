@@ -174,7 +174,7 @@ func TestInstance_Version_KusamaRuntime(t *testing.T) {
 	// set state to genesis state
 	genState := storage.NewTrieState(genTrie)
 
-	cfg := InstanceConfig{
+	cfg := Config{
 		Storage: genState,
 		LogLvl:  log.Critical,
 	}
@@ -296,7 +296,7 @@ func TestNodeRuntime_ValidateTransaction(t *testing.T) {
 	// set state to genesis state
 	genState := storage.NewTrieState(genTrie)
 
-	cfg := InstanceConfig{
+	cfg := Config{
 		Storage: genState,
 		LogLvl:  log.Critical,
 	}
@@ -526,7 +526,7 @@ func TestInstance_ExecuteBlock_GossamerRuntime(t *testing.T) {
 	// set state to genesis state
 	genState := storage.NewTrieState(genTrie)
 
-	cfg := InstanceConfig{
+	cfg := Config{
 		Storage: genState,
 		LogLvl:  log.Critical,
 	}
@@ -556,7 +556,7 @@ func TestInstance_ApplyExtrinsic_GossamerRuntime(t *testing.T) {
 	// set state to genesis state
 	genState := storage.NewTrieState(genTrie)
 
-	cfg := InstanceConfig{
+	cfg := Config{
 		Storage: genState,
 		LogLvl:  log.Critical,
 	}
@@ -616,7 +616,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 	// set state to genesis state
 	genState := storage.NewTrieState(genTrie)
 
-	cfg := InstanceConfig{
+	cfg := Config{
 		Storage: genState,
 		LogLvl:  log.Critical,
 	}
@@ -668,7 +668,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 	// set state to genesis state
 	genState := storage.NewTrieState(genTrie)
 
-	cfg := InstanceConfig{
+	cfg := Config{
 		Storage: genState,
 		LogLvl:  log.Critical,
 	}
@@ -714,7 +714,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock3784(t *testing.T) {
 	// set state to genesis state
 	state3783 := storage.NewTrieState(gossTrie3783)
 
-	cfg := InstanceConfig{
+	cfg := Config{
 		Storage: state3783,
 		LogLvl:  log.Critical,
 	}
@@ -760,7 +760,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock901442(t *testing.T) {
 	// set state to genesis state
 	state901441 := storage.NewTrieState(ksmTrie901441)
 
-	cfg := InstanceConfig{
+	cfg := Config{
 		Storage: state901441,
 		LogLvl:  log.Critical,
 	}
@@ -806,7 +806,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1377831(t *testing.T) {
 	// set state to genesis state
 	state := storage.NewTrieState(ksmTrie)
 
-	cfg := InstanceConfig{
+	cfg := Config{
 		Storage: state,
 		LogLvl:  log.Critical,
 	}
@@ -852,7 +852,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1482003(t *testing.T) {
 	// set state to genesis state
 	state := storage.NewTrieState(ksmTrie)
 
-	cfg := InstanceConfig{
+	cfg := Config{
 		Storage: state,
 		LogLvl:  log.Critical,
 	}
@@ -900,7 +900,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock4939774(t *testing.T) {
 	// set state to genesis state
 	state := storage.NewTrieState(ksmTrie)
 
-	cfg := InstanceConfig{
+	cfg := Config{
 		Storage: state,
 		LogLvl:  log.Critical,
 	}
@@ -943,7 +943,7 @@ func TestInstance_ExecuteBlock_PolkadotBlock1089328(t *testing.T) {
 	// set state to genesis state
 	state := storage.NewTrieState(dotTrie)
 
-	cfg := InstanceConfig{
+	cfg := Config{
 		Storage: state,
 		LogLvl:  log.Critical,
 	}

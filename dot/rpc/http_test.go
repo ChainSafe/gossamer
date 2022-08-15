@@ -413,7 +413,7 @@ func newCoreServiceTest(t *testing.T) *core.Service {
 	err = cfg.Keystore.Acco.Insert(kp)
 	require.NoError(t, err)
 
-	var rtCfg wasmer.InstanceConfig
+	var rtCfg wasmer.Config
 
 	rtCfg.Storage = rtstorage.NewTrieState(genTrie)
 

@@ -609,7 +609,7 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 			bHash, codeHash, previousVersion.SpecVersion(), currCodeHash, newVersion.SpecVersion())
 	}
 
-	rtCfg := wasmer.InstanceConfig{
+	rtCfg := wasmer.Config{
 		Storage:     newState,
 		Keystore:    rt.Keystore(),
 		NodeStorage: rt.NodeStorage(),

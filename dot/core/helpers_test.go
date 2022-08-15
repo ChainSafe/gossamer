@@ -91,7 +91,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	}
 
 	if cfg.Runtime == nil {
-		var rtCfg wasmer.InstanceConfig
+		var rtCfg wasmer.Config
 
 		rtCfg.Storage = rtstorage.NewTrieState(genTrie)
 

@@ -63,7 +63,7 @@ func newTestSyncer(t *testing.T) *Service {
 	// initialise runtime
 	genState := rtstorage.NewTrieState(genTrie)
 
-	rtCfg := wasmer.InstanceConfig{
+	rtCfg := wasmer.Config{
 		Storage: genState,
 		LogLvl:  log.Critical,
 	}
