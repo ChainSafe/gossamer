@@ -24,7 +24,7 @@ func (l *Logger) log(logLevel Level, s string, args ...interface{}) {
 		s = fmt.Sprintf(s, args...)
 	}
 
-	line := time.Now().Format(time.RFC3339) + " " + logLevel.ColouredString() + " " + s
+	line := time.Now().Format(time.RFC3339) + " " + logLevel.format() + " " + s
 
 	callerString := getCallerString(l.settings.caller)
 	if callerString != "" {

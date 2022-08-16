@@ -34,7 +34,7 @@ func Test_Logger_log(t *testing.T) {
 			},
 			level:       Trace,
 			s:           "some words",
-			outputRegex: timePrefixRegex + "TRACE some words\n$",
+			outputRegex: timePrefixRegex + "TRACE    some words\n$",
 		},
 		"do not log at trace": {
 			logger: &Logger{
@@ -58,7 +58,7 @@ func Test_Logger_log(t *testing.T) {
 			},
 			level:       Debug,
 			s:           "some words",
-			outputRegex: timePrefixRegex + "DEBUG some words\n$",
+			outputRegex: timePrefixRegex + "DEBUG    some words\n$",
 		},
 		"format string": {
 			logger: &Logger{
@@ -71,7 +71,7 @@ func Test_Logger_log(t *testing.T) {
 			level:       Trace,
 			s:           "some %s",
 			args:        []interface{}{"words"},
-			outputRegex: timePrefixRegex + "TRACE some words\n$",
+			outputRegex: timePrefixRegex + "TRACE    some words\n$",
 		},
 		"show caller": {
 			logger: &Logger{
@@ -83,7 +83,7 @@ func Test_Logger_log(t *testing.T) {
 			},
 			level:       Trace,
 			s:           "some words",
-			outputRegex: timePrefixRegex + "TRACE some words\tlog_test.go:L[0-9]+:func[0-9]+\n$",
+			outputRegex: timePrefixRegex + "TRACE    some words\tlog_test.go:L[0-9]+:func[0-9]+\n$",
 		},
 		"context": {
 			logger: &Logger{
@@ -99,7 +99,7 @@ func Test_Logger_log(t *testing.T) {
 			},
 			level:       Trace,
 			s:           "some words",
-			outputRegex: timePrefixRegex + "TRACE some words\tkey1=a,b key2=c,d\n$",
+			outputRegex: timePrefixRegex + "TRACE    some words\tkey1=a,b key2=c,d\n$",
 		},
 	}
 
@@ -157,18 +157,18 @@ func Test_Logger_LevelsLog(t *testing.T) {
 	lines = lines[:len(lines)-1]
 
 	expectedRegexes := []string{
-		timePrefixRegex + "TRACE some trace$",
-		timePrefixRegex + "DEBUG some debug$",
-		timePrefixRegex + "INFO  some info$",
-		timePrefixRegex + "WARN  some warn$",
-		timePrefixRegex + "ERROR some error$",
-		timePrefixRegex + "CRIT  some critical$",
-		timePrefixRegex + "TRACE some 2nd trace$",
-		timePrefixRegex + "DEBUG some 2nd debug$",
-		timePrefixRegex + "INFO  some 2nd info$",
-		timePrefixRegex + "WARN  some 2nd warn$",
-		timePrefixRegex + "ERROR some 2nd error$",
-		timePrefixRegex + "CRIT  some 2nd critical$",
+		timePrefixRegex + "TRACE    some trace$",
+		timePrefixRegex + "DEBUG    some debug$",
+		timePrefixRegex + "INFO     some info$",
+		timePrefixRegex + "WARN     some warn$",
+		timePrefixRegex + "ERROR    some error$",
+		timePrefixRegex + "CRITICAL some critical$",
+		timePrefixRegex + "TRACE    some 2nd trace$",
+		timePrefixRegex + "DEBUG    some 2nd debug$",
+		timePrefixRegex + "INFO     some 2nd info$",
+		timePrefixRegex + "WARN     some 2nd warn$",
+		timePrefixRegex + "ERROR    some 2nd error$",
+		timePrefixRegex + "CRITICAL some 2nd critical$",
 	}
 
 	require.Equal(t, len(expectedRegexes), len(lines))

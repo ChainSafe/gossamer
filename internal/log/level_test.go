@@ -11,17 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestLogs(t *testing.T) {
-	logger := New()
-	logger.Trace("Test Test  ")
-	logger.Debug("Test Test  ")
-	logger.Info("Test Test  ")
-	logger.Warn("Test Test  ")
-	logger.Error("Test Test  ")
-	logger.Critical("Test Test  ")
-}
-
-func Test_Level_ColouredString(t *testing.T) {
+func Test_Level_Format(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
@@ -54,7 +44,7 @@ func Test_Level_ColouredString(t *testing.T) {
 		},
 		"unknown": {
 			level: 178,
-			s:     "???",
+			s:     "???     ",
 		},
 	}
 
@@ -63,7 +53,7 @@ func Test_Level_ColouredString(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			s := testCase.level.ColouredString()
+			s := testCase.level.format()
 			// Note: fatih/colour is clever enough to not add colours
 			// when running tests, so the string is effectively without
 			// colour here.
@@ -98,23 +88,23 @@ func Test_ParseLevel(t *testing.T) {
 			err: errors.New("level integer can only be between 0 and 5 included: 6"),
 		},
 		"trace": {
-			s:     "TRACE   ",
+			s:     "TRACE",
 			level: Trace,
 		},
 		"debug": {
-			s:     "DEBUG   ",
+			s:     "DEBUG",
 			level: Debug,
 		},
 		"info": {
-			s:     "INFO    ",
+			s:     "INFO",
 			level: Info,
 		},
 		"warn": {
-			s:     "WARN    ",
+			s:     "WARN",
 			level: Warn,
 		},
 		"error": {
-			s:     "ERROR   ",
+			s:     "ERROR",
 			level: Error,
 		},
 		"critical": {

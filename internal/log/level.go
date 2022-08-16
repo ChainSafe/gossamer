@@ -52,28 +52,7 @@ func (level Level) String() (s string) {
 	}
 }
 
-func (l Level) formatWithTrailingSpaces() (formatted string) {
-	switch l {
-	case Trace:
-		return "TRACE   "
-	case Debug:
-		return "DEBUG   "
-	case Info:
-		return "INFO    "
-	case Warn:
-		return "WARN    "
-	case Error:
-		return "ERROR   "
-	case Critical:
-		return "CRITICAL"
-	default:
-		return "???"
-	}
-}
-
-// ColouredString returns the corresponding coloured
-// string for the level.
-func (level Level) ColouredString() (s string) {
+func (level Level) format() (s string) {
 	attribute := color.Reset
 
 	switch level {
@@ -92,7 +71,7 @@ func (level Level) ColouredString() (s string) {
 	}
 
 	c := color.New(attribute)
-	return c.Sprint(level.String())
+	return c.Sprintf("%-8s", level.String())
 }
 
 var (
