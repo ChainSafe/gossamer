@@ -409,16 +409,11 @@ func (l *RuntimeVersionListener) Listen() {
 	if err != nil {
 		return
 	}
-	ver := modules.StateRuntimeVersionResponse{}
-	ver.SpecName = string(rtVersion.SpecName)
-	ver.ImplName = string(rtVersion.ImplName)
-	ver.AuthoringVersion = rtVersion.AuthoringVersion
-	ver.SpecVersion = rtVersion.SpecVersion
-	ver.ImplVersion = rtVersion.ImplVersion
-	ver.TransactionVersion = rtVersion.TransactionVersion
-	ver.Apis = modules.ConvertAPIs(rtVersion.APIItems)
 
-	go l.wsconn.safeSend(newSubscriptionResponse(stateRuntimeVersionMethod, l.subID, ver))
+	versionResponse := modules.NewStateRuntimeVersionResponse(rtVersion)
+	subscriptionResponse := newSubscriptionResponse(
+		stateRuntimeVersionMethod, l.subID, versionResponse)
+	go l.wsconn.safeSend(subscriptionResponse)
 
 	// listen for runtime updates
 	go func() {
@@ -428,17 +423,10 @@ func (l *RuntimeVersionListener) Listen() {
 				return
 			}
 
-			ver := modules.StateRuntimeVersionResponse{}
-
-			ver.SpecName = string(info.SpecName)
-			ver.ImplName = string(info.ImplName)
-			ver.AuthoringVersion = info.AuthoringVersion
-			ver.SpecVersion = info.SpecVersion
-			ver.ImplVersion = info.ImplVersion
-			ver.TransactionVersion = info.TransactionVersion
-			ver.Apis = modules.ConvertAPIs(info.APIItems)
-
-			l.wsconn.safeSend(newSubscriptionResponse(stateRuntimeVersionMethod, l.subID, ver))
+			versionResponse := modules.NewStateRuntimeVersionResponse(info)
+			subscriptionResponse := newSubscriptionResponse(
+				stateRuntimeVersionMethod, l.subID, versionResponse)
+			l.wsconn.safeSend(subscriptionResponse)
 		}
 	}()
 }
