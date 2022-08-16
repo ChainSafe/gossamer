@@ -22,7 +22,7 @@ const handshakeTimeout = time.Second * 10
 type Handshake interface {
 	Message
 	Type() byte
-	IsValidHandshake() bool
+	IsValid() bool
 }
 
 // the following are used for RegisterNotificationsProtocol
@@ -135,8 +135,12 @@ func (s *Service) createNotificationsMessageHandler(
 			peer = stream.Conn().RemotePeer()
 		)
 
-		if msg.IsValidHandshake() {
-			err := s.handleHandshake(info, stream, msg, peer)
+		hs, ok := msg.(Handshake)
+		if ok {
+			if hs.IsValid() {
+				return errInvalidRole
+			}
+			err := s.handleHandshake(info, stream, hs, peer)
 			if err != nil {
 				return fmt.Errorf("handling handshake: %w", err)
 			}

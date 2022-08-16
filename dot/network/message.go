@@ -19,8 +19,8 @@ import (
 
 // Message types for notifications protocol messages. Used internally to map message to protocol.
 const (
-	BlockAnnounceMsgType byte = 3
-	TransactionMsgType   byte = 4
+	blockAnnounceMsgType byte = 3
+	transactionMsgType   byte = 4
 	ConsensusMsgType     byte = 5
 )
 
@@ -36,7 +36,6 @@ type NotificationsMessage interface {
 	Message
 	Type() byte
 	Hash() (common.Hash, error)
-	IsValidHandshake() bool
 }
 
 //nolint:revive
@@ -380,9 +379,4 @@ func (cm *ConsensusMessage) Hash() (common.Hash, error) {
 		return common.Hash{}, fmt.Errorf("cannot encode message: %w", err)
 	}
 	return common.Blake2bHash(encMsg)
-}
-
-// IsValidHandshake returns false
-func (cm *ConsensusMessage) IsValidHandshake() bool {
-	return false
 }

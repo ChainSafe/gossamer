@@ -15,7 +15,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-var errInvalidRole = errors.New("invalid role")
 var (
 	_ NotificationsMessage = &BlockAnnounceMessage{}
 	_ Handshake            = (*BlockAnnounceHandshake)(nil)
@@ -31,9 +30,9 @@ type BlockAnnounceMessage struct {
 	BestBlock      bool
 }
 
-// Type returns BlockAnnounceMsgType
+// Type returns blockAnnounceMsgType
 func (*BlockAnnounceMessage) Type() byte {
-	return BlockAnnounceMsgType
+	return blockAnnounceMsgType
 }
 
 // string formats a BlockAnnounceMessage as a string
@@ -73,11 +72,6 @@ func (bm *BlockAnnounceMessage) Hash() (common.Hash, error) {
 	}
 
 	return common.Blake2bHash(encMsg)
-}
-
-// IsValidHandshake returns false
-func (*BlockAnnounceMessage) IsValidHandshake() bool {
-	return false
 }
 
 func decodeBlockAnnounceHandshake(in []byte) (Handshake, error) {
@@ -138,8 +132,8 @@ func (*BlockAnnounceHandshake) Type() byte {
 	return 0
 }
 
-// IsValidHandshake returns true if handshakes's role is valid.
-func (hs *BlockAnnounceHandshake) IsValidHandshake() bool {
+// IsValid returns true if handshakes's role is valid.
+func (hs *BlockAnnounceHandshake) IsValid() bool {
 	switch hs.Roles {
 	case common.AuthorityRole, common.FullNodeRole, common.LightClientRole:
 		return true
@@ -182,7 +176,7 @@ func (s *Service) validateBlockAnnounceHandshake(from peer.ID, hs Handshake) err
 		return errors.New("genesis hash mismatch")
 	}
 
-	np, ok := s.notificationsProtocols[BlockAnnounceMsgType]
+	np, ok := s.notificationsProtocols[blockAnnounceMsgType]
 	if !ok {
 		// this should never happen.
 		return nil

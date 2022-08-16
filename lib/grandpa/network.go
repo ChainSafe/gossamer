@@ -18,7 +18,7 @@ import (
 
 const (
 	grandpaID1          = "grandpa/1"
-	GrandpaMsgType byte = 3
+	grandpaMsgType byte = 3
 
 	neighbourMessageInterval = 5 * time.Minute
 )
@@ -55,13 +55,13 @@ func (hs *GrandpaHandshake) Decode(in []byte) error {
 	return scale.Unmarshal(in, hs)
 }
 
-// Type returns GrandpaMsgType.
+// Type returns grandpaMsgType.
 func (*GrandpaHandshake) Type() byte {
-	return GrandpaMsgType
+	return grandpaMsgType
 }
 
-// IsValidHandshake return if it is a valid handshake.
-func (hs *GrandpaHandshake) IsValidHandshake() bool {
+// IsValid return if it is a valid handshake.
+func (hs *GrandpaHandshake) IsValid() bool {
 	switch hs.Roles {
 	case common.AuthorityRole, common.FullNodeRole:
 		return true

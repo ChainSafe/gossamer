@@ -28,9 +28,9 @@ type TransactionMessage struct {
 	Extrinsics []types.Extrinsic
 }
 
-// Type returns TransactionMsgType
+// Type returns transactionMsgType
 func (*TransactionMessage) Type() byte {
-	return TransactionMsgType
+	return transactionMsgType
 }
 
 // String returns the TransactionMessage extrinsics
@@ -57,11 +57,6 @@ func (tm *TransactionMessage) Hash() (common.Hash, error) {
 	return common.Blake2bHash(encMsg)
 }
 
-// IsValidHandshake returns false
-func (*TransactionMessage) IsValidHandshake() bool {
-	return false
-}
-
 type transactionHandshake struct{}
 
 // String formats a transactionHandshake as a string
@@ -79,13 +74,13 @@ func (*transactionHandshake) Decode(_ []byte) error {
 	return nil
 }
 
-// Type ...
+// Type returns tra
 func (*transactionHandshake) Type() byte {
 	return 1
 }
 
-// IsValidHandshake returns true
-func (*transactionHandshake) IsValidHandshake() bool {
+// IsValid returns true
+func (*transactionHandshake) IsValid() bool {
 	return true
 }
 
@@ -135,7 +130,7 @@ func (s *Service) startTxnBatchProcessing(txnBatchCh chan *batchMessage, slotDur
 						continue
 					}
 					if !hasSeen {
-						s.broadcastExcluding(s.notificationsProtocols[TransactionMsgType], txnMsg.peer, txnMsg.msg)
+						s.broadcastExcluding(s.notificationsProtocols[transactionMsgType], txnMsg.peer, txnMsg.msg)
 					}
 				}
 			}
