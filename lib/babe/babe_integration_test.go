@@ -301,3 +301,30 @@ func TestService_PauseAndResume(t *testing.T) {
 	err = bs.Stop()
 	require.NoError(t, err)
 }
+
+func TestService_HandleSlotWithSameSlot(t *testing.T) {
+	cfg := &ServiceConfig{
+		Authority: true,
+		Lead:      true,
+	}
+	babeService := createTestService(t, cfg)
+
+	err := babeService.Start()
+	require.NoError(t, err)
+	defer func() {
+		_ = babeService.Stop()
+	}()
+
+	time.Sleep(babeService.constants.slotDuration * 2)
+
+	header, err := babeService.blockState.BestBlockHeader()
+	require.NoError(t, err)
+
+	bestBlockSlotNum, err := babeService.blockState.GetSlotForBlock(header.Hash())
+	require.NoError(t, err)
+
+	// todo: create predigest
+	var preRuntimeDigest *types.PreRuntimeDigest
+	err = babeService.handleSlot(babeService.epochHandler.epochNumber, bestBlockSlotNum-1, babeService.epochHandler.epochData.authorityIndex, preRuntimeDigest)
+	require.ErrorAs(t, err, errLaggingSlot)
+}
