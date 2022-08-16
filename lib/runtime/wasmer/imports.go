@@ -1007,7 +1007,7 @@ func ext_default_child_storage_read_version_1(context unsafe.Pointer,
 		return 0
 	}
 
-	valueBuf, valueLen := runtime.Int64ToPointerAndSize(int64(valueOut))
+	valueBuf, valueLen := splitPointerSize(int64(valueOut))
 	copy(memory[valueBuf:valueBuf+valueLen], value[offset:])
 
 	size := uint32(len(value[offset:]))
@@ -1994,12 +1994,9 @@ func ext_storage_read_version_1(context unsafe.Pointer, keySpan, valueOut C.int6
 	}
 
 	var size uint32
-
-	if int(offset) > len(value) {
-		size = uint32(0)
-	} else {
+	if uint32(offset) <= uint32(len(value)) {
 		size = uint32(len(value[offset:]))
-		valueBuf, valueLen := runtime.Int64ToPointerAndSize(int64(valueOut))
+		valueBuf, valueLen := splitPointerSize(int64(valueOut))
 		copy(memory[valueBuf:valueBuf+valueLen], value[offset:])
 	}
 

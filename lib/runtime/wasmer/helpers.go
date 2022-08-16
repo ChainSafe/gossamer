@@ -16,10 +16,22 @@ import (
 	"github.com/wasmerio/go-ext-wasm/wasmer"
 )
 
+// toPointerSize converts an uint32 pointer and uint32 size
+// to an int64 pointer size.
+func toPointerSize(ptr, size uint32) (pointerSize int64) {
+	return int64(ptr) | (int64(size) << 32)
+}
+
+// splitPointerSize converts an int64 pointer size to an
+// uint32 pointer and an uint32 size.
+func splitPointerSize(pointerSize int64) (ptr, size uint32) {
+	return uint32(pointerSize), uint32(pointerSize >> 32)
+}
+
 // asMemorySlice converts a 64 bit pointer size to a Go byte slice.
 func asMemorySlice(context wasmer.InstanceContext, pointerSize C.int64_t) (data []byte) {
 	memory := context.Memory().Data()
-	ptr, size := runtime.Int64ToPointerAndSize(int64(pointerSize))
+	ptr, size := splitPointerSize(int64(pointerSize))
 	return memory[ptr : ptr+size]
 }
 
@@ -42,7 +54,7 @@ func toWasmMemory(context wasmer.InstanceContext, data []byte) (
 	}
 
 	copy(memory[ptr:ptr+size], data)
-	pointerSize = runtime.PointerAndSizeToInt64(int32(ptr), int32(size))
+	pointerSize = toPointerSize(ptr, size)
 	return pointerSize, nil
 }
 
