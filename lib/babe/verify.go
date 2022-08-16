@@ -340,32 +340,32 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 func (b *verifier) verifyBlockEquivocation(header *types.Header) (bool, error) {
 	author, err := getAuthorityIndex(header)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("failed to get authority index for %s: %w", header.Hash(), err)
 	}
 	currentHash := header.Hash()
 	slot, err := b.blockState.GetSlotForBlock(currentHash)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("failed to get slot for block %s: %w", currentHash, err)
 	}
 
-	blocksBySlot, err := b.blockState.GetBlocksBySlot(slot)
+	blocksInSlot, err := b.blockState.GetBlocksBySlot(slot)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("failed to get blocks produced in slot %d: %w", slot, err)
 	}
 
-	for _, blockBySlot := range blocksBySlot {
-		if blockBySlot.Equal(currentHash) {
+	for _, blockInSlot := range blocksInSlot {
+		if blockInSlot.Equal(currentHash) {
 			continue
 		}
 
-		existingHeader, err := b.blockState.GetHeader(blockBySlot)
+		existingHeader, err := b.blockState.GetHeader(blockInSlot)
 		if err != nil {
-			return false, err
+			return false, fmt.Errorf("failed to get header for block %s: %w", blockInSlot, err)
 		}
 
 		authorOfExistingHeader, err := getAuthorityIndex(existingHeader)
 		if err != nil {
-			return false, err
+			return false, fmt.Errorf("failed to get authority index for block %s: %w", blockInSlot, err)
 		}
 		if authorOfExistingHeader != author {
 			continue

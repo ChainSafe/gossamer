@@ -254,12 +254,12 @@ func (bs *BlockState) GetHashByNumber(num uint) (common.Hash, error) {
 func (bs *BlockState) GetBlocksBySlot(slotNum uint64) ([]common.Hash, error) {
 	highestFinalisedHash, err := bs.GetHighestFinalisedHash()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get highest finalised hash: %w", err)
 	}
 
 	descendants, err := bs.bt.GetAllDescendants(highestFinalisedHash)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get descendants of %s: %w", highestFinalisedHash, err)
 	}
 
 	blocksWithGivenSlot := []common.Hash{}
