@@ -170,7 +170,7 @@ func GetRuntimeVersion(code []byte) (version runtime.Version, err error) {
 
 	version, err = instance.Version()
 	if err != nil {
-		return nil, fmt.Errorf("running runtime: %w", err)
+		return version, fmt.Errorf("running runtime: %w", err)
 	}
 
 	return version, nil

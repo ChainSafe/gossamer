@@ -415,9 +415,7 @@ func (_m *Instance) Version() (runtime.Version, error) {
 	if rf, ok := ret.Get(0).(func() runtime.Version); ok {
 		r0 = rf()
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(runtime.Version)
-		}
+		r0 = ret.Get(0).(runtime.Version)
 	}
 
 	var r1 error

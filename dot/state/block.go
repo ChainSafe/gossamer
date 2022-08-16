@@ -598,7 +598,7 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 
 		// only update runtime during code substitution if runtime SpecVersion is updated
 		previousVersion, _ := rt.Version()
-		if previousVersion.SpecVersion() == newVersion.SpecVersion() {
+		if previousVersion.SpecVersion == newVersion.SpecVersion {
 			logger.Info("not upgrading runtime code during code substitution")
 			bs.StoreRuntime(bHash, rt)
 			return nil
@@ -606,7 +606,7 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 
 		logger.Infof(
 			"🔄 detected runtime code change, upgrading with block %s from previous code hash %s and spec %d to new code hash %s and spec %d...", //nolint:lll
-			bHash, codeHash, previousVersion.SpecVersion(), currCodeHash, newVersion.SpecVersion())
+			bHash, codeHash, previousVersion.SpecVersion, currCodeHash, newVersion.SpecVersion)
 	}
 
 	rtCfg := wasmer.Config{

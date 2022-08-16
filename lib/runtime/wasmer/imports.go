@@ -951,7 +951,14 @@ func ext_misc_runtime_version_version_1(context unsafe.Pointer, dataSpan C.int64
 		return C.int64_t(out)
 	}
 
-	encodedData, err := version.Encode()
+	// Note the encoding contains all the latest Core_version fields as defined in
+	// https://spec.polkadot.network/#defn-rt-core-version
+	// In other words, decoding older version data with missing fields
+	// and then encoding it will result in a longer encoding due to the
+	// extra version fields. This however remains compatible since the
+	// version fields are still encoded in the same order and an older
+	// decoder would succeed with the longer encoding.
+	encodedData, err := scale.Marshal(version)
 	if err != nil {
 		logger.Errorf("failed to encode result: %s", err)
 		return 0
