@@ -31,10 +31,7 @@ func TestServiceRegistry_StartStopAll(t *testing.T) {
 	r.RegisterService(m)
 
 	r.StartAll()
-	m.AssertCalled(t, "Start")
-
 	r.StopAll()
-	m.AssertCalled(t, "Stop")
 }
 
 func TestServiceRegistry_Get_Err(t *testing.T) {

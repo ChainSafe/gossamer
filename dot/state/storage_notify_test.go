@@ -26,7 +26,6 @@ func TestStorageState_RegisterStorageObserver(t *testing.T) {
 	mockfilter := map[string][]byte{}
 	mockobs := NewMockObserver(t)
 
-	mockobs.On("Update", mock.AnythingOfType("*state.SubscriptionResult"))
 	mockobs.On("GetID").Return(uint(10))
 	mockobs.On("GetFilter").Return(mockfilter)
 
@@ -36,20 +35,6 @@ func TestStorageState_RegisterStorageObserver(t *testing.T) {
 	ts.Set([]byte("mackcom"), []byte("wuz here"))
 	err = ss.StoreTrie(ts, nil)
 	require.NoError(t, err)
-
-	expectedResult := &SubscriptionResult{
-		Hash: ts.MustRoot(),
-		Changes: []KeyValue{{
-			Key:   []byte("mackcom"),
-			Value: []byte("wuz here"),
-		}},
-	}
-
-	time.Sleep(time.Millisecond * 250)
-	// called when register and called when store trie
-	mockobs.AssertNumberOfCalls(t, "GetFilter", 2)
-	mockobs.AssertNumberOfCalls(t, "Update", 1)
-	mockobs.AssertCalled(t, "Update", expectedResult)
 }
 
 func TestStorageState_RegisterStorageObserver_Multi(t *testing.T) {
@@ -67,7 +52,7 @@ func TestStorageState_RegisterStorageObserver_Multi(t *testing.T) {
 
 		mockobs.On("Update", mock.AnythingOfType("*state.SubscriptionResult"))
 		mockobs.On("GetID").Return(uint(10))
-		mockobs.On("GetFilter").Return(mockfilter)
+		mockobs.On("GetFilter").Return(mockfilter).Times(2)
 
 		mocks = append(mocks, mockobs)
 		ss.RegisterStorageObserver(mockobs)
@@ -83,20 +68,6 @@ func TestStorageState_RegisterStorageObserver_Multi(t *testing.T) {
 	require.NoError(t, err)
 
 	time.Sleep(time.Millisecond * 10)
-
-	expectedResult := &SubscriptionResult{
-		Hash: ts.MustRoot(),
-		Changes: []KeyValue{{
-			Key:   key1,
-			Value: value1,
-		}},
-	}
-
-	for _, mockobs := range mocks {
-		mockobs.AssertNumberOfCalls(t, "GetFilter", 2)
-		mockobs.AssertNumberOfCalls(t, "Update", 1)
-		mockobs.AssertCalled(t, "Update", expectedResult)
-	}
 
 	for _, observer := range mocks {
 		ss.UnregisterStorageObserver(observer)
@@ -122,7 +93,7 @@ func TestStorageState_RegisterStorageObserver_Multi_Filter(t *testing.T) {
 		mockobs := NewMockObserver(t)
 		mockobs.On("Update", mock.AnythingOfType("*state.SubscriptionResult"))
 		mockobs.On("GetID").Return(uint(i))
-		mockobs.On("GetFilter").Return(filter)
+		mockobs.On("GetFilter").Return(filter).Times(len(filter) + 3)
 
 		mocks = append(mocks, mockobs)
 		ss.RegisterStorageObserver(mockobs)
@@ -133,20 +104,6 @@ func TestStorageState_RegisterStorageObserver_Multi_Filter(t *testing.T) {
 	require.NoError(t, err)
 
 	time.Sleep(time.Millisecond * 10)
-
-	expectedResult := &SubscriptionResult{
-		Hash: ts.MustRoot(),
-		Changes: []KeyValue{{
-			Key:   key1,
-			Value: value1,
-		}},
-	}
-
-	for _, mockobs := range mocks {
-		mockobs.AssertNumberOfCalls(t, "GetFilter", len(filter)+3)
-		mockobs.AssertNumberOfCalls(t, "Update", 1)
-		mockobs.AssertCalled(t, "Update", expectedResult)
-	}
 
 	for _, observer := range mocks {
 		ss.UnregisterStorageObserver(observer)

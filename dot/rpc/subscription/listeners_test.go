@@ -148,8 +148,6 @@ func TestBlockFinalizedListener_Listen(t *testing.T) {
 	bfl.Listen()
 	defer func() {
 		require.NoError(t, bfl.Stop())
-		time.Sleep(time.Millisecond * 10)
-		BlockAPI.AssertCalled(t, "FreeFinalisedNotifierChannel", mock.AnythingOfType("chan *types.FinalisationInfo"))
 	}()
 
 	notifyChan <- &types.FinalisationInfo{
@@ -213,10 +211,6 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 	esl.Listen()
 	defer func() {
 		require.NoError(t, esl.Stop())
-		time.Sleep(time.Millisecond * 10)
-
-		BlockAPI.AssertCalled(t, "FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block"))
-		BlockAPI.AssertCalled(t, "FreeFinalisedNotifierChannel", mock.AnythingOfType("chan *types.FinalisationInfo"))
 	}()
 
 	notifyImportedChan <- block

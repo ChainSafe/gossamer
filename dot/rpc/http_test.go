@@ -56,10 +56,6 @@ func TestRegisterModules(t *testing.T) {
 	}
 
 	NewHTTPServer(cfg)
-
-	for _, modName := range mods {
-		rpcapiMocks.AssertCalled(t, "BuildMethodNames", mock.Anything, modName)
-	}
 }
 
 func TestNewHTTPServer(t *testing.T) {
