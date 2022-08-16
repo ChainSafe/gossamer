@@ -17,8 +17,7 @@ import (
 )
 
 const (
-	grandpaID1          = "grandpa/1"
-	grandpaMsgType byte = 3
+	grandpaID1 = "grandpa/1"
 
 	neighbourMessageInterval = 5 * time.Minute
 )
@@ -53,11 +52,6 @@ func (hs *GrandpaHandshake) Encode() ([]byte, error) {
 // Decode the message into a GrandpaHandshake
 func (hs *GrandpaHandshake) Decode(in []byte) error {
 	return scale.Unmarshal(in, hs)
-}
-
-// Type returns grandpaMsgType.
-func (*GrandpaHandshake) Type() byte {
-	return grandpaMsgType
 }
 
 // IsValid return if it is a valid handshake.

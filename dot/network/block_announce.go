@@ -127,11 +127,6 @@ func (hs *BlockAnnounceHandshake) Decode(in []byte) error {
 	return nil
 }
 
-// Type ...
-func (*BlockAnnounceHandshake) Type() byte {
-	return 0
-}
-
 // IsValid returns true if handshakes's role is valid.
 func (hs *BlockAnnounceHandshake) IsValid() bool {
 	switch hs.Roles {

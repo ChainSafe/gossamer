@@ -74,11 +74,6 @@ func (*transactionHandshake) Decode(_ []byte) error {
 	return nil
 }
 
-// Type returns tra
-func (*transactionHandshake) Type() byte {
-	return 1
-}
-
 // IsValid returns true
 func (*transactionHandshake) IsValid() bool {
 	return true

@@ -21,7 +21,6 @@ const handshakeTimeout = time.Second * 10
 // Handshake is the interface all handshakes for notifications protocols must implement
 type Handshake interface {
 	Message
-	Type() byte
 	IsValid() bool
 }
 
