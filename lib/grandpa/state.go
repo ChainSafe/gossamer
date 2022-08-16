@@ -58,6 +58,7 @@ type GrandpaState interface { //nolint:revive
 
 // Network is the interface required by GRANDPA for the network
 type Network interface {
+	GossipMessageTo(peer peer.ID, msg network.NotificationsMessage)
 	GossipMessage(msg network.NotificationsMessage)
 	SendMessage(to peer.ID, msg NotificationsMessage) error
 	RegisterNotificationsProtocol(sub protocol.ID,

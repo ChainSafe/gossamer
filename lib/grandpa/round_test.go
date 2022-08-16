@@ -45,6 +45,21 @@ func newTestNetwork(t *testing.T) *testNetwork {
 	}
 }
 
+func (n *testNetwork) GossipMessageTo(peer peer.ID, msg NotificationsMessage) {
+	cm, ok := msg.(*ConsensusMessage)
+	require.True(n.t, ok)
+
+	gmsg, err := decodeMessage(cm)
+	require.NoError(n.t, err)
+
+	switch gmsg.(type) {
+	case *CommitMessage:
+		n.finalised <- gmsg
+	default:
+		n.out <- gmsg
+	}
+}
+
 func (n *testNetwork) GossipMessage(msg NotificationsMessage) {
 	cm, ok := msg.(*ConsensusMessage)
 	require.True(n.t, ok)

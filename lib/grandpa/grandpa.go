@@ -78,6 +78,8 @@ type Service struct {
 	finalisedCh chan *types.FinalisationInfo
 
 	telemetry telemetry.Client
+
+	viewTracker *peerViewTracker
 }
 
 // Config represents a GRANDPA service configuration
@@ -166,6 +168,7 @@ func NewService(cfg *Config) (*Service, error) {
 		finalisedCh:        finalisedCh,
 		interval:           cfg.Interval,
 		telemetry:          cfg.Telemetry,
+		viewTracker:        newPeerViewTracker(),
 	}
 
 	if err := s.registerProtocol(); err != nil {
@@ -199,7 +202,7 @@ func (s *Service) Start() error {
 		}
 	}()
 
-	go s.sendNeighbourMessage(neighbourMessageInterval)
+	go s.notifyNeighbours(neighbourMessageInterval)
 
 	return nil
 }
@@ -343,7 +346,14 @@ func (s *Service) initiateRound() error {
 	s.precommits = new(sync.Map)
 	s.pvEquivocations = make(map[ed25519.PublicKeyBytes][]*SignedVote)
 	s.pcEquivocations = make(map[ed25519.PublicKeyBytes][]*SignedVote)
+	neighbourMessage := &NeighbourPacketV1{
+		Round:  s.state.round,
+		SetID:  s.state.setID,
+		Number: uint32(s.head.Number),
+	}
 	s.roundLock.Unlock()
+
+	s.sendNeighbourMessage(neighbourMessage)
 
 	best, err := s.blockState.BestBlockHeader()
 	if err != nil {

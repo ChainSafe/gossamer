@@ -60,7 +60,7 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 		return nil, h.handleCommitMessage(msg)
 	case *NeighbourPacketV1:
 		// we can afford to not retry handling neighbour message, if it errors.
-		return nil, h.handleNeighbourMessage(msg)
+		return nil, h.handleNeighbourMessage(from, msg)
 	case *CatchUpRequest:
 		return h.handleCatchUpRequest(msg)
 	case *CatchUpResponse:
@@ -78,31 +78,15 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 	}
 }
 
-func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourPacketV1) error {
-	currFinalized, err := h.blockState.GetFinalisedHeader(0, 0)
+func (h *MessageHandler) handleNeighbourMessage(who peer.ID, msg *NeighbourPacketV1) error {
+	err := h.grandpa.viewTracker.updatePeerView(who, msg)
 	if err != nil {
-		return err
+		return fmt.Errorf("uptading view: %w", err)
 	}
 
-	// ignore neighbour messages where our best finalised number is greater than theirs
-	if currFinalized.Number >= uint(msg.Number) {
-		return nil
-	}
+	logger.Debugf("peer %s updated view: now at round %d, set id %d",
+		who, msg.Round, msg.SetID)
 
-	// TODO; determine if there is some reason we don't receive justifications in responses near the head (usually),
-	// and remove the following code if it's fixed. (#1815)
-	head, err := h.blockState.BestBlockNumber()
-	if err != nil {
-		return err
-	}
-
-	// ignore neighbour messages that are above our head
-	if uint(msg.Number) > head {
-		return nil
-	}
-
-	logger.Debugf("got neighbour message with number %d, set id %d and round %d", msg.Number, msg.SetID, msg.Round)
-	// TODO: should we send a justification request here? potentially re-connect this to sync package? (#1815)
 	return nil
 }
 

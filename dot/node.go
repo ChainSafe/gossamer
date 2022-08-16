@@ -345,6 +345,8 @@ func newNode(cfg *Config,
 	if err != nil {
 		return nil, err
 	}
+	networkSrvc.AttachConnectionObserver(fg)
+
 	nodeSrvcs = append(nodeSrvcs, fg)
 
 	syncer, err := builder.newSyncService(cfg, stateSrvc, fg, ver, coreSrvc, networkSrvc, telemetryMailer)

@@ -511,6 +511,39 @@ func (s *Service) IsStopped() bool {
 	return s.ctx.Err() != nil
 }
 
+func (s *Service) GossipMessageTo(peer peer.ID, msg NotificationsMessage) {
+	if s.host == nil || msg == nil || s.IsStopped() {
+		return
+	}
+
+	logger.Debugf("gossiping from host %s message of type %d: %s",
+		s.host.id(), msg.Type(), msg)
+
+	// check if the message is part of a notifications protocol
+	s.notificationsMu.Lock()
+	defer s.notificationsMu.Unlock()
+
+	for msgID, prtl := range s.notificationsProtocols {
+		if msg.Type() != msgID || prtl == nil {
+			continue
+		}
+
+		logger.Tracef("broadcasting message from notifications sub-protocol %s", prtl.protocolID)
+
+		hs, err := prtl.getHandshake()
+		if err != nil {
+			logger.Errorf("failed to get handshake using protocol %s: %s", prtl.protocolID, err)
+			return
+		}
+
+		prtl.peersData.setMutex(peer)
+
+		go s.sendData(peer, hs, prtl, msg)
+	}
+
+	logger.Errorf("message type %d not supported by any notifications protocol", msg.Type())
+}
+
 // GossipMessage gossips a notifications protocol message to our peers
 func (s *Service) GossipMessage(msg NotificationsMessage) {
 	if s.host == nil || msg == nil || s.IsStopped() {
@@ -603,6 +636,26 @@ func (s *Service) Peers() []common.PeerInfo {
 	}
 
 	return peers
+}
+
+// AttachConnectionObserver appends a observer to the list of observers
+func (s *Service) AttachConnectionObserver(connObs ConnectionObserver) {
+	s.host.cm.observersMutex.Lock()
+	defer s.host.cm.observersMutex.Unlock()
+	s.host.cm.observers = append(s.host.cm.observers, connObs)
+}
+
+// DetachConnectionObserver removes the observer from the list
+func (s *Service) DetachConnectionObserver(connObs ConnectionObserver) {
+	s.host.cm.observersMutex.Lock()
+	defer s.host.cm.observersMutex.Unlock()
+
+	observers := s.host.cm.observers
+	for i, observer := range observers {
+		if observer == connObs {
+			s.host.cm.observers = append(observers[:i], observers[i+1:]...)
+		}
+	}
 }
 
 // AddReservedPeers insert new peers to the peerstore with PermanentAddrTTL

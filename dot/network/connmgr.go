@@ -15,9 +15,14 @@ import (
 	"github.com/ChainSafe/gossamer/dot/peerset"
 )
 
+// ConnectionObserver interface enables observers to reach on connection/disconnection events
+type ConnectionObserver interface {
+	OnPeerConnected(peer peer.ID)
+	OnPeerDisconnected(peer peer.ID)
+}
+
 // ConnManager implements connmgr.ConnManager
 type ConnManager struct {
-	sync.Mutex
 	host              *host
 	min, max          int
 	connectHandler    func(peer.ID)
@@ -31,6 +36,9 @@ type ConnManager struct {
 	persistentPeers *sync.Map // map[peer.ID]struct{}
 
 	peerSetHandler PeerSetHandler
+
+	observersMutex *sync.RWMutex
+	observers      []ConnectionObserver
 }
 
 func newConnManager(min, max int, peerSetCfg *peerset.ConfigSet) (*ConnManager, error) {
@@ -118,6 +126,12 @@ func (cm *ConnManager) Connected(n network.Network, c network.Conn) {
 	if cm.connectHandler != nil {
 		cm.connectHandler(c.RemotePeer())
 	}
+
+	cm.observersMutex.RLock()
+	defer cm.observersMutex.RUnlock()
+	for _, observer := range cm.observers {
+		observer.OnPeerConnected(c.RemotePeer())
+	}
 }
 
 // Disconnected is called when a connection closed
@@ -128,4 +142,11 @@ func (cm *ConnManager) Disconnected(_ network.Network, c network.Conn) {
 	if cm.disconnectHandler != nil {
 		cm.disconnectHandler(c.RemotePeer())
 	}
+
+	cm.observersMutex.RLock()
+	defer cm.observersMutex.RUnlock()
+	for _, observer := range cm.observers {
+		observer.OnPeerDisconnected(c.RemotePeer())
+	}
+
 }
