@@ -330,6 +330,7 @@ func (bt *BlockTree) GetAllBlocks() []Hash {
 	return bt.root.getAllDescendants(nil)
 }
 
+// GetAllDescendants returns all blocks that are descendants of the given block.
 func (bt *BlockTree) GetAllDescendants(a common.Hash) ([]Hash, error) {
 	bt.RLock()
 	defer bt.RUnlock()
