@@ -125,6 +125,10 @@ import (
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
 
+const (
+	validateSignatureFail = "failed to validate signature"
+)
+
 //export ext_logging_log_version_1
 func ext_logging_log_version_1(context unsafe.Pointer, level C.int32_t, targetData, msgData C.int64_t) {
 	logger.Trace("executing...")
@@ -487,8 +491,13 @@ func ext_crypto_ecdsa_verify_version_2(context unsafe.Pointer, sig C.int32_t, ms
 		return C.int32_t(1)
 	}
 
-	if ok, err := pub.Verify(hash[:], signature); err != nil || !ok {
-		logger.Errorf("failed to validate signature: %s", err)
+	ok, err := pub.Verify(hash[:], signature)
+	if err != nil || !ok {
+		message := validateSignatureFail
+		if err != nil {
+			message += ": " + err.Error()
+		}
+		logger.Errorf(message)
 		return C.int32_t(0)
 	}
 
@@ -714,8 +723,13 @@ func ext_crypto_sr25519_verify_version_1(context unsafe.Pointer, sig C.int32_t,
 		return 1
 	}
 
-	if ok, err := pub.VerifyDeprecated(message, signature); err != nil || !ok {
-		logger.Debugf("failed to validate signature: %s", err)
+	ok, err := pub.VerifyDeprecated(message, signature)
+	if err != nil || !ok {
+		message := validateSignatureFail
+		if err != nil {
+			message += ": " + err.Error()
+		}
+		logger.Debugf(message)
 		// this fails at block 3876, which seems to be expected, based on discussions
 		return 1
 	}
@@ -757,8 +771,13 @@ func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t,
 		return 1
 	}
 
-	if ok, err := pub.Verify(message, signature); err != nil || !ok {
-		logger.Errorf("failed to validate signature: %s", err)
+	ok, err := pub.Verify(message, signature)
+	if err != nil || !ok {
+		message := validateSignatureFail
+		if err != nil {
+			message += ": " + err.Error()
+		}
+		logger.Errorf(message)
 		return 0
 	}
 
