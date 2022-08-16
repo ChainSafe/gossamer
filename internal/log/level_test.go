@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_Level_Format(t *testing.T) {
+func Test_Level_format(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
