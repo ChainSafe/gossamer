@@ -682,7 +682,7 @@ func (s *Service) deleteVote(key ed25519.PublicKeyBytes, stage Subround) {
 // implements `BeforeBestBlockBy` a custom voting rule that guarantees that our vote is always
 // behind the best block by at least N blocks, unless the base number is < N blocks behind the
 // best, in which case it votes for the base.
-// (https://github.com/paritytech/substrate/blob/1fd71c7845d6c28c532795ec79106d959dd1fe30/client/finality-grandpa/src/voting_rule.rs#L92)
+// (https://github.com/paritytech/substrate/blob/master/client/finality-grandpa/src/voting_rule.rs#L92)
 func (s *Service) determineBestHeaderToPrevote(finalizedHeader, bestBlockHeader *types.Header) (
 	headerToPrevote *types.Header, err error) {
 	gensisHash := s.blockState.GenesisHash()
@@ -703,7 +703,7 @@ func (s *Service) determineBestHeaderToPrevote(finalizedHeader, bestBlockHeader 
 
 	headerToPrevote = bestBlockHeader
 	for i := 0; i < 2; i++ {
-		headerToPrevote, err := s.blockState.GetHeader(headerToPrevote.ParentHash)
+		headerToPrevote, err = s.blockState.GetHeader(headerToPrevote.ParentHash)
 		if err != nil {
 			return headerToPrevote, fmt.Errorf("get parent header: %w", err)
 		}
