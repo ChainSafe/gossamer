@@ -53,15 +53,15 @@ func toWasmMemorySized(context wasmer.InstanceContext, data []byte) (
 	allocator := context.Data().(*runtime.Context).Allocator
 
 	size := uint32(len(data))
-	ptr, err := allocator.Allocate(size)
+	pointer, err = allocator.Allocate(size)
 	if err != nil {
 		return 0, fmt.Errorf("allocating: %w", err)
 	}
 
 	memory := context.Memory().Data()
-	copy(memory[ptr:ptr+size], data)
+	copy(memory[pointer:pointer+size], data)
 
-	return ptr, nil
+	return pointer, nil
 }
 
 // toWasmMemoryOptional scale encodes the byte slice `data`, writes it to wasm memory
