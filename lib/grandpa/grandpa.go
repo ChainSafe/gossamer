@@ -74,8 +74,9 @@ type Service struct {
 	bestFinalCandidate map[uint64]*Vote // map of round number -> best final candidate
 
 	// channels for communication with other services
-	in          chan *networkVoteMessage // only used to receive *VoteMessage
-	finalisedCh chan *types.FinalisationInfo
+	in               chan *networkVoteMessage // only used to receive *VoteMessage
+	finalisedCh      chan *types.FinalisationInfo
+	neighbourMessage *NeighbourMessage // cached neighbour message
 
 	telemetry telemetry.Client
 }
@@ -199,7 +200,7 @@ func (s *Service) Start() error {
 		}
 	}()
 
-	go s.notifyNeighbor(neighbourMessageInterval)
+	go s.sendNeighbourMessage(neighbourMessageInterval)
 
 	return nil
 }
@@ -343,13 +344,6 @@ func (s *Service) initiateRound() error {
 	s.precommits = new(sync.Map)
 	s.pvEquivocations = make(map[ed25519.PublicKeyBytes][]*SignedVote)
 	s.pcEquivocations = make(map[ed25519.PublicKeyBytes][]*SignedVote)
-
-	s.sendNeighborMessage(&NeighbourMessage{
-		Version: 1,
-		Round:   s.state.round,
-		SetID:   s.state.setID,
-		Number:  uint32(s.head.Number),
-	})
 	s.roundLock.Unlock()
 
 	best, err := s.blockState.BestBlockHeader()

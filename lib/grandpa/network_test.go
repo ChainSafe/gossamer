@@ -4,17 +4,13 @@
 package grandpa
 
 import (
-	"context"
-	"sync"
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/golang/mock/gomock"
 
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -82,82 +78,57 @@ func TestHandleNetworkMessage(t *testing.T) {
 	require.False(t, propagate)
 }
 
-func TestNotifyNeighbor(t *testing.T) {
-	const interval = 2 * time.Second
+func TestSendNeighbourMessage(t *testing.T) {
+	gs, st := newTestService(t)
+	go gs.sendNeighbourMessage(time.Second)
 
-	tests := map[string]struct {
-		notifyInterval     time.Duration
-		finalizeBlock      bool
-		finalizeBlockAfter time.Duration
-		expectWithin       time.Duration
-	}{
-		"should_send_neighbour_message": {
-			expectWithin:   2 * time.Second,
-			notifyInterval: interval,
+	digest := types.NewDigest()
+	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest.Add(*prd)
+	require.NoError(t, err)
+	block := &types.Block{
+		Header: types.Header{
+			ParentHash: st.Block.GenesisHash(),
+			Number:     1,
+			Digest:     digest,
 		},
-		"should_reset_timer_and_then_send_neighbour_message": {
-			finalizeBlock:      true,
-			finalizeBlockAfter: 1 * time.Second,
-			notifyInterval:     interval,
-			expectWithin:       3 * time.Second,
-		},
+		Body: types.Body{},
 	}
 
-	for tname, tt := range tests {
-		tt := tt
-		t.Run(tname, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			mockedNet := NewMockNetwork(ctrl)
-			mockedCh := make(chan *types.FinalisationInfo)
+	err = st.Block.AddBlock(block)
+	require.NoError(t, err)
 
-			ctx, cancel := context.WithCancel(context.Background())
-			defer cancel()
+	hash := block.Header.Hash()
+	round := uint64(7)
+	setID := uint64(33)
+	err = st.Block.SetFinalisedHash(hash, round, setID)
+	require.NoError(t, err)
 
-			s := Service{
-				ctx: ctx,
-				state: &State{
-					round: 1,
-					setID: 0,
-				},
-				finalisedCh: mockedCh,
-				head:        &types.Header{Number: 0},
-				network:     mockedNet,
-			}
+	expected := &NeighbourMessage{
+		Version: 1,
+		SetID:   setID,
+		Round:   round,
+		Number:  1,
+	}
 
-			expectedNeighborMessage := &NeighbourMessage{
-				Version: 1,
-				Round:   s.state.round,
-				SetID:   s.state.setID,
-				Number:  uint32(s.head.Number),
-			}
-			cm, err := expectedNeighborMessage.ToConsensusMessage()
-			require.NoError(t, err)
+	select {
+	case <-time.After(time.Second):
+		t.Fatal("did not send message")
+	case msg := <-gs.network.(*testNetwork).out:
+		nm, ok := msg.(*NeighbourMessage)
+		require.True(t, ok)
+		require.Equal(t, expected, nm)
+	}
 
-			timecheck := new(time.Time)
+	require.Equal(t, expected, gs.neighbourMessage)
 
-			wg := new(sync.WaitGroup)
-			wg.Add(1)
-
-			ensureGossipMessageCalledRightTime := func(_ network.NotificationsMessage) {
-				defer wg.Done()
-				const roundAround = 1 * time.Second
-
-				calledWithin := time.Since(*timecheck)
-				calledWithin = calledWithin.Round(roundAround) // avoid decimal points
-				assert.Equal(t, tt.expectWithin, calledWithin)
-			}
-
-			mockedNet.EXPECT().GossipMessage(cm).Times(1).DoAndReturn(ensureGossipMessageCalledRightTime)
-
-			*timecheck = time.Now()
-			go s.notifyNeighbor(tt.notifyInterval)
-
-			if tt.finalizeBlock {
-				<-time.After(tt.finalizeBlockAfter)
-				mockedCh <- &types.FinalisationInfo{}
-			}
-
-			wg.Wait()
-		})
+	select {
+	case <-time.After(time.Second * 2):
+		t.Fatal("did not send message")
+	case msg := <-gs.network.(*testNetwork).out:
+		nm, ok := msg.(*NeighbourMessage)
+		require.True(t, ok)
+		require.Equal(t, expected, nm)
 	}
 }

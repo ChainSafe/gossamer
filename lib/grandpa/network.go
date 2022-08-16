@@ -174,30 +174,38 @@ func (s *Service) sendMessage(msg GrandpaMessage) error {
 	return nil
 }
 
-// notifyNeighbor will gossip a NeighbourMessage every 5 minutes, however we reset the ticker
-// whenever a finalisation occur meaning that a neighbour message already was sent by s.initiateRound()
-func (s *Service) notifyNeighbor(interval time.Duration) {
+func (s *Service) sendNeighbourMessage(interval time.Duration) {
 	t := time.NewTicker(interval)
 	defer t.Stop()
-
 	for {
 		select {
 		case <-s.ctx.Done():
 			return
 		case <-t.C:
-			s.roundLock.Lock()
-			nm := &NeighbourMessage{
-				Version: 1,
-				Round:   s.state.round,
-				SetID:   s.state.setID,
-				Number:  uint32(s.head.Number),
+			if s.neighbourMessage == nil {
+				continue
 			}
-			s.roundLock.Unlock()
+		case info, ok := <-s.finalisedCh:
+			if !ok {
+				// channel was closed
+				return
+			}
 
-			s.sendNeighborMessage(nm)
-		case <-s.finalisedCh:
-			t = time.NewTicker(interval)
+			s.neighbourMessage = &NeighbourMessage{
+				Version: 1,
+				Round:   info.Round,
+				SetID:   info.SetID,
+				Number:  uint32(info.Header.Number),
+			}
 		}
+
+		cm, err := s.neighbourMessage.ToConsensusMessage()
+		if err != nil {
+			logger.Warnf("failed to convert NeighbourMessage to network message: %s", err)
+			continue
+		}
+
+		s.network.GossipMessage(cm)
 	}
 }
 
