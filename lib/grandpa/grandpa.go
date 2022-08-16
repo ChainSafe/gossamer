@@ -718,9 +718,7 @@ func (s *Service) determineBestHeaderToPrevote(finalizedHeader, bestBlockHeader 
 }
 
 // determinePreVote determines what block is our pre-voted block for the current round
-func (s *Service) determinePreVote() (*Vote, error) {
-	var vote *Vote
-
+func (s *Service) determinePreVote() (vote *Vote, err error) {
 	bestBlockHeader, err := s.blockState.BestBlockHeader()
 	if err != nil {
 		return nil, fmt.Errorf("cannot get best block header: %w", err)
@@ -732,6 +730,17 @@ func (s *Service) determinePreVote() (*Vote, error) {
 	}
 
 	vote = NewVoteFromHeader(headerToPrevote)
+
+	// if we receive a vote message from the primary with a
+	// block that's greater than or equal to the current pre-voted block
+	// and greater than the best final candidate from the last round, we choose that.
+	// otherwise, we simply choose the head of our chain.
+	primary := s.derivePrimary()
+	prm, has := s.loadVote(primary.PublicKeyBytes(), prevote)
+	if has && prm.Vote.Number >= uint32(s.head.Number) {
+		vote = &prm.Vote
+	}
+
 	nextChange, err := s.grandpaState.NextGrandpaAuthorityChange(
 		headerToPrevote.Hash(), headerToPrevote.Number)
 
