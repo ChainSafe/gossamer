@@ -1,3 +1,4 @@
+# https://deepsource.io/docs/analyzer/go/
 version = 1
 
 test_patterns = ["**/*_test.go"]
@@ -5,20 +6,17 @@ test_patterns = ["**/*_test.go"]
 exclude_patterns = [
     "docs/**/*",
     "tests/**/*",
-    "scripts/**/*",
     "cmd/gossamer/test_inputs/*",
-    "chain/**/*",
-    "dot/config/**/*",
-    "dot/rpc/modules/test_data",
-    "lib/runtime/test_data",
-    "**/*_test.go",
+    "chain/**/*.json",
+    "**/test_data",
     "**/mocks/*",
-    "**/mock_*"
+    "**/mock_*",
 ]
 
 [[analyzers]]
 name = "go"
 enabled = true
+cgo_enabled = true
 
 [analyzers.meta]
-import_paths = ["github.com/ChainSafe/gossamer"]
+import_root = "github.com/ChainSafe/gossamer"

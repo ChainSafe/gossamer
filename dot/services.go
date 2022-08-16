@@ -134,7 +134,7 @@ func createRuntime(cfg *Config, ns runtime.NodeStorage, st *state.Service,
 	var rt runtime.Instance
 	switch cfg.Core.WasmInterpreter {
 	case wasmer.Name:
-		rtCfg := runtime.InstanceConfig{
+		rtCfg := wasmer.Config{
 			Storage:     ts,
 			Keystore:    ks,
 			LogLvl:      cfg.Log.RuntimeLvl,

@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"math/big"
 	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -52,7 +51,7 @@ func balanceKey(t *testing.T, pub []byte) (bKey []byte) {
 
 func generateTestValidRemarkTxns(t *testing.T, pubKey []byte, accInfo types.AccountInfo) ([]byte, runtime.Instance) {
 	t.Helper()
-	projectRootPath := filepath.Join(utils.GetProjectRootPathTest(t), "chain/gssmr/genesis.json")
+	projectRootPath := utils.GetGssmrV3SubstrateGenesisRawPathTest(t)
 	gen, err := genesis.NewGenesisFromJSONRaw(projectRootPath)
 	require.NoError(t, err)
 
@@ -64,7 +63,7 @@ func generateTestValidRemarkTxns(t *testing.T, pubKey []byte, accInfo types.Acco
 	nodeStorage := runtime.NodeStorage{
 		BaseDB: runtime.NewInMemoryDB(t),
 	}
-	cfg := runtime.InstanceConfig{
+	cfg := wasmer.Config{
 		Storage:     genState,
 		LogLvl:      log.Error,
 		NodeStorage: nodeStorage,
@@ -409,6 +408,8 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	require.Equal(t, transaction.NewValidTransaction(tx, validity), pending[0])
 }
 
+// TODO: add test against latest gssmr runtime
+// See https://github.com/ChainSafe/gossamer/issues/2702
 func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
 	accountInfo := types.AccountInfo{
 		Nonce: 0,
@@ -465,6 +466,8 @@ func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
 	require.Nil(t, head)
 }
 
+// TODO: add test against latest gssmr runtime
+// See https://github.com/ChainSafe/gossamer/issues/2702
 func TestMaintainTransactionPool_BlockWithExtrinsics(t *testing.T) {
 	accountInfo := types.AccountInfo{
 		Nonce: 0,
@@ -577,7 +580,7 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	v, err := rt.Version()
 	require.NoError(t, err)
 
-	currSpecVersion := v.SpecVersion()   // genesis runtime version.
+	currSpecVersion := v.SpecVersion     // genesis runtime version.
 	hash := s.blockState.BestBlockHash() // genesisHash
 
 	digest := types.NewDigest()
@@ -612,7 +615,7 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 
 	v, err = parentRt.Version()
 	require.NoError(t, err)
-	require.Equal(t, v.SpecVersion(), currSpecVersion)
+	require.Equal(t, v.SpecVersion, currSpecVersion)
 
 	bhash1 := newBlock1.Header.Hash()
 	err = s.blockState.HandleRuntimeChanges(ts, parentRt, bhash1)
@@ -634,14 +637,14 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 
 	v, err = rt.Version()
 	require.NoError(t, err)
-	require.Equal(t, v.SpecVersion(), currSpecVersion)
+	require.Equal(t, v.SpecVersion, currSpecVersion)
 
 	rt, err = s.blockState.GetRuntime(&rtUpdateBhash)
 	require.NoError(t, err)
 
 	v, err = rt.Version()
 	require.NoError(t, err)
-	require.Equal(t, v.SpecVersion(), updatedSpecVersion)
+	require.Equal(t, v.SpecVersion, updatedSpecVersion)
 }
 
 func TestService_HandleCodeSubstitutes(t *testing.T) {

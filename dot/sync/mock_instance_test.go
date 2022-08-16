@@ -80,21 +80,6 @@ func (mr *MockInstanceMockRecorder) CheckInherents() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckInherents", reflect.TypeOf((*MockInstance)(nil).CheckInherents))
 }
 
-// CheckRuntimeVersion mocks base method.
-func (m *MockInstance) CheckRuntimeVersion(arg0 []byte) (runtime.Version, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CheckRuntimeVersion", arg0)
-	ret0, _ := ret[0].(runtime.Version)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// CheckRuntimeVersion indicates an expected call of CheckRuntimeVersion.
-func (mr *MockInstanceMockRecorder) CheckRuntimeVersion(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckRuntimeVersion", reflect.TypeOf((*MockInstance)(nil).CheckRuntimeVersion), arg0)
-}
-
 // DecodeSessionKeys mocks base method.
 func (m *MockInstance) DecodeSessionKeys(arg0 []byte) ([]byte, error) {
 	m.ctrl.T.Helper()

@@ -261,7 +261,7 @@ func (s *Service) handleCodeSubstitution(hash common.Hash,
 
 	// this needs to create a new runtime instance, otherwise it will update
 	// the blocks that reference the current runtime version to use the code substition
-	cfg := runtime.InstanceConfig{
+	cfg := wasmer.Config{
 		Storage:     state,
 		Keystore:    rt.Keystore(),
 		NodeStorage: rt.NodeStorage(),
@@ -454,7 +454,8 @@ func (s *Service) DecodeSessionKeys(enc []byte) ([]byte, error) {
 }
 
 // GetRuntimeVersion gets the current RuntimeVersion
-func (s *Service) GetRuntimeVersion(bhash *common.Hash) (runtime.Version, error) {
+func (s *Service) GetRuntimeVersion(bhash *common.Hash) (
+	version runtime.Version, err error) {
 	var stateRootHash *common.Hash
 
 	// If block hash is not nil then fetch the state root corresponding to the block.
@@ -462,18 +463,18 @@ func (s *Service) GetRuntimeVersion(bhash *common.Hash) (runtime.Version, error)
 		var err error
 		stateRootHash, err = s.storageState.GetStateRootFromBlock(bhash)
 		if err != nil {
-			return nil, err
+			return version, err
 		}
 	}
 
 	ts, err := s.storageState.TrieState(stateRootHash)
 	if err != nil {
-		return nil, err
+		return version, err
 	}
 
 	rt, err := s.blockState.GetRuntime(bhash)
 	if err != nil {
-		return nil, err
+		return version, err
 	}
 
 	rt.SetContextStorage(ts)
