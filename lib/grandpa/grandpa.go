@@ -679,36 +679,39 @@ func (s *Service) deleteVote(key ed25519.PublicKeyBytes, stage Subround) {
 	}
 }
 
-// implements `BeforeBestBlockBy` a custom voting rule that guarantees that our vote is always
-// behind the best block by at least N blocks, unless the base number is < N blocks behind the
-// best, in which case it votes for the base.
-// (https://github.com/paritytech/substrate/blob/master/client/finality-grandpa/src/voting_rule.rs#L92)
 func (s *Service) determineBestHeaderToPrevote(finalizedHeader, bestBlockHeader *types.Header) (
 	headerToPrevote *types.Header, err error) {
-	gensisHash := s.blockState.GenesisHash()
-	isGenesisHash := gensisHash.Equal(bestBlockHeader.Hash())
-	if isGenesisHash || finalizedHeader.Hash().Equal(bestBlockHeader.Hash()) {
+	genesisHash := s.blockState.GenesisHash()
+	bestBlockHash := bestBlockHeader.Hash()
+
+	isGenesisHash := genesisHash.Equal(bestBlockHash)
+	if isGenesisHash || finalizedHeader.Hash().Equal(bestBlockHash) {
 		return bestBlockHeader, nil
 	}
 
-	isDescendant, err := s.blockState.IsDescendantOf(finalizedHeader.Hash(), bestBlockHeader.Hash())
+	isDescendant, err := s.blockState.IsDescendantOf(finalizedHeader.Hash(), bestBlockHash)
 	if err != nil {
-		return headerToPrevote, fmt.Errorf("determine ancestry: %w", err)
+		return nil, fmt.Errorf("determining ancestry: %w", err)
 	}
 
 	if !isDescendant {
-		return headerToPrevote, fmt.Errorf("%w: %s is not ancestor of %s",
-			blocktree.ErrNoCommonAncestor, bestBlockHeader.Hash().Short(), bestBlockHeader.Hash().Short())
+		return nil, fmt.Errorf("%w: %s is not ancestor of %s",
+			blocktree.ErrNoCommonAncestor, bestBlockHash.Short(), bestBlockHash.Short())
 	}
 
+	// implements `BeforeBestBlockBy` a custom voting rule that guarantees that our vote is always
+	// behind the best block by at least N blocks, unless the base number is < N blocks behind the
+	// best, in which case it votes for the base.
+	// (https://github.com/paritytech/substrate/blob/master/client/finality-grandpa/src/voting_rule.rs#L92)
 	headerToPrevote = bestBlockHeader
-	for i := 0; i < 2; i++ {
+	const beforeBestBlockBy = 2
+	for i := 0; i < beforeBestBlockBy; i++ {
 		headerToPrevote, err = s.blockState.GetHeader(headerToPrevote.ParentHash)
 		if err != nil {
 			return headerToPrevote, fmt.Errorf("get parent header: %w", err)
 		}
 
-		isGenesisHash := gensisHash.Equal(headerToPrevote.Hash())
+		isGenesisHash := genesisHash.Equal(headerToPrevote.Hash())
 		if finalizedHeader.Hash().Equal(headerToPrevote.Hash()) || isGenesisHash {
 			break
 		}
@@ -726,7 +729,7 @@ func (s *Service) determinePreVote() (vote *Vote, err error) {
 
 	headerToPrevote, err := s.determineBestHeaderToPrevote(s.head, bestBlockHeader)
 	if err != nil {
-		return nil, fmt.Errorf("determine best hash to prevote: %w", err)
+		return nil, fmt.Errorf("determining best hash to prevote: %w", err)
 	}
 
 	vote = NewVoteFromHeader(headerToPrevote)
