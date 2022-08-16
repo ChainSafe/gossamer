@@ -24,7 +24,6 @@ type networkVoteMessage struct {
 
 // receiveVoteMessages receives messages from the in channel until a grandpa round finishes.
 func (s *Service) receiveVoteMessages(ctx context.Context) {
-	logger.Debug("receiving pre-vote messages...")
 	for {
 		select {
 		case msg, ok := <-s.in:
