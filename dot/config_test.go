@@ -462,8 +462,8 @@ func TestLogConfig_String(t *testing.T) {
 				BlockProducerLvl:  log.Warn,
 				FinalityGadgetLvl: log.Error,
 			},
-			want: "core: DEBUG   , digest: INFO    , sync: WARN    , network: ERROR   , rpc: CRITICAL, " +
-				"state: DEBUG   , runtime: INFO    , block producer: WARN    , finality gadget: ERROR   ",
+			want: "core: DEBUG, digest: INFO, sync: WARN, network: ERROR, rpc: CRITICAL, " +
+				"state: DEBUG, runtime: INFO, block producer: WARN, finality gadget: ERROR",
 		},
 	}
 	for _, tt := range tests {
