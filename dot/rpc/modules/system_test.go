@@ -23,8 +23,9 @@ import (
 func TestSystemModule_ChainTest(t *testing.T) {
 	mockSystemAPI := mocks.NewSystemAPI(t)
 	mockSystemAPI.On("ChainName").Return("polkadot", nil)
-	sm := NewSystemModule(mocks.NewNetworkAPI(t), mockSystemAPI, mocks.NewCoreAPI(t),
-		mocks.NewStorageAPI(t), new(mocks.TransactionStateAPI), mocks.NewBlockAPI(t), nil)
+	sm := &SystemModule{
+		systemAPI: mockSystemAPI,
+	}
 
 	req := &EmptyRequest{}
 	var res string
@@ -37,8 +38,9 @@ func TestSystemModule_ChainTest(t *testing.T) {
 func TestSystemModule_NameTest(t *testing.T) {
 	mockSystemAPI := mocks.NewSystemAPI(t)
 	mockSystemAPI.On("SystemName").Return("kusama", nil)
-	sm := NewSystemModule(mocks.NewNetworkAPI(t), mockSystemAPI, mocks.NewCoreAPI(t),
-		mocks.NewStorageAPI(t), new(mocks.TransactionStateAPI), mocks.NewBlockAPI(t), nil)
+	sm := &SystemModule{
+		systemAPI: mockSystemAPI,
+	}
 
 	req := &EmptyRequest{}
 	var res string
@@ -51,8 +53,9 @@ func TestSystemModule_NameTest(t *testing.T) {
 func TestSystemModule_ChainTypeTest(t *testing.T) {
 	mockSystemAPI := mocks.NewSystemAPI(t)
 	mockSystemAPI.On("ChainType").Return("testChainType", nil)
-	sm := NewSystemModule(mocks.NewNetworkAPI(t), mockSystemAPI, mocks.NewCoreAPI(t),
-		mocks.NewStorageAPI(t), new(mocks.TransactionStateAPI), mocks.NewBlockAPI(t), nil)
+	sm := &SystemModule{
+		systemAPI: mockSystemAPI,
+	}
 
 	req := &EmptyRequest{}
 	var res string
@@ -66,8 +69,9 @@ func TestSystemModule_PropertiesTest(t *testing.T) {
 	var emptyMap map[string]interface{}
 	mockSystemAPI := mocks.NewSystemAPI(t)
 	mockSystemAPI.On("Properties").Return(emptyMap)
-	sm := NewSystemModule(mocks.NewNetworkAPI(t), mockSystemAPI, mocks.NewCoreAPI(t),
-		mocks.NewStorageAPI(t), new(mocks.TransactionStateAPI), mocks.NewBlockAPI(t), nil)
+	sm := &SystemModule{
+		systemAPI: mockSystemAPI,
+	}
 
 	req := &EmptyRequest{}
 	var resMap interface{}
@@ -79,8 +83,9 @@ func TestSystemModule_PropertiesTest(t *testing.T) {
 func TestSystemModule_SystemVersionTest(t *testing.T) {
 	mockSystemAPI := mocks.NewSystemAPI(t)
 	mockSystemAPI.On("SystemVersion").Return("1.2.1", nil)
-	sm := NewSystemModule(mocks.NewNetworkAPI(t), mockSystemAPI, mocks.NewCoreAPI(t),
-		mocks.NewStorageAPI(t), new(mocks.TransactionStateAPI), mocks.NewBlockAPI(t), nil)
+	sm := &SystemModule{
+		systemAPI: mockSystemAPI,
+	}
 
 	req := &EmptyRequest{}
 	var res string
@@ -93,8 +98,9 @@ func TestSystemModule_SystemVersionTest(t *testing.T) {
 func TestSystemModule_HealthTest(t *testing.T) {
 	mockNetworkAPI := mocks.NewNetworkAPI(t)
 	mockNetworkAPI.On("Health").Return(common.Health{}, nil)
-	sm := NewSystemModule(mockNetworkAPI, mocks.NewSystemAPI(t), mocks.NewCoreAPI(t),
-		mocks.NewStorageAPI(t), new(mocks.TransactionStateAPI), mocks.NewBlockAPI(t), nil)
+	sm := &SystemModule{
+		networkAPI: mockNetworkAPI,
+	}
 
 	req := &EmptyRequest{}
 	var sysHealthRes SystemHealthResponse
@@ -106,8 +112,9 @@ func TestSystemModule_HealthTest(t *testing.T) {
 func TestSystemModule_NetworkStateTest(t *testing.T) {
 	mockNetworkAPI := mocks.NewNetworkAPI(t)
 	mockNetworkAPI.On("NetworkState").Return(common.NetworkState{}, nil)
-	sm := NewSystemModule(mockNetworkAPI, mocks.NewSystemAPI(t), mocks.NewCoreAPI(t),
-		mocks.NewStorageAPI(t), new(mocks.TransactionStateAPI), mocks.NewBlockAPI(t), nil)
+	sm := &SystemModule{
+		networkAPI: mockNetworkAPI,
+	}
 
 	req := &EmptyRequest{}
 	var networkStateRes SystemNetworkStateResponse
@@ -119,8 +126,9 @@ func TestSystemModule_NetworkStateTest(t *testing.T) {
 func TestSystemModule_PeersTest(t *testing.T) {
 	mockNetworkAPI := mocks.NewNetworkAPI(t)
 	mockNetworkAPI.On("Peers").Return([]common.PeerInfo{}, nil)
-	sm := NewSystemModule(mockNetworkAPI, mocks.NewSystemAPI(t), mocks.NewCoreAPI(t),
-		mocks.NewStorageAPI(t), new(mocks.TransactionStateAPI), mocks.NewBlockAPI(t), nil)
+	sm := &SystemModule{
+		networkAPI: mockNetworkAPI,
+	}
 
 	req := &EmptyRequest{}
 	var sysPeerRes SystemPeersResponse

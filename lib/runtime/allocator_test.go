@@ -13,26 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newMemoryMock(t *testing.T, size uint32) *mockMemory {
-	m := newMockMemory(t)
-	testobj := make([]byte, size)
-
-	m.On("Data").Return(testobj)
-	lengthcall := m.On("Length")
-	lengthcall.RunFn = func(args mock.Arguments) {
-		lengthcall.ReturnArguments = mock.Arguments{uint32(len(testobj))}
-	}
-
-	growcall := m.On("Grow", mock.Anything)
-	growcall.RunFn = func(args mock.Arguments) {
-		arg := args[0].(uint32)
-		testobj = append(testobj, make([]byte, PageSize*arg)...)
-		growcall.ReturnArguments = mock.Arguments{nil}
-	}
-
-	return m
-}
-
 // struct to hold data for a round of tests
 type testHolder struct {
 	offset uint32
@@ -278,7 +258,16 @@ var allTests = []testHolder{
 //  test holder
 func TestAllocator(t *testing.T) {
 	for _, test := range allTests {
-		memmock := newMemoryMock(t, 1<<16)
+		memmock := newMockMemory(t)
+		const size = 1 << 16
+		testobj := make([]byte, size)
+
+		memmock.On("Data").Return(testobj)
+		lengthcall := memmock.On("Length")
+		lengthcall.RunFn = func(args mock.Arguments) {
+			lengthcall.ReturnArguments = mock.Arguments{uint32(len(testobj))}
+		}
+
 		allocator := NewAllocator(memmock, test.offset)
 
 		for _, theTest := range test.tests {
@@ -324,7 +313,21 @@ func compareState(allocator FreeingBumpHeapAllocator, state allocatorState,
 
 // test that allocator should grow memory if the allocation request is larger than current size
 func TestShouldGrowMemory(t *testing.T) {
-	mem := newMemoryMock(t, 1<<16)
+	mem := newMockMemory(t)
+	const size = 1 << 16
+	testobj := make([]byte, size)
+	mem.On("Data").Return(testobj)
+	lengthcall := mem.On("Length")
+	lengthcall.RunFn = func(args mock.Arguments) {
+		lengthcall.ReturnArguments = mock.Arguments{uint32(len(testobj))}
+	}
+	growcall := mem.On("Grow", mock.Anything)
+	growcall.RunFn = func(args mock.Arguments) {
+		arg := args[0].(uint32)
+		testobj = append(testobj, make([]byte, PageSize*arg)...)
+		growcall.ReturnArguments = mock.Arguments{nil}
+	}
+
 	currentSize := mem.Length()
 
 	fbha := NewAllocator(mem, 0)
@@ -337,7 +340,21 @@ func TestShouldGrowMemory(t *testing.T) {
 
 // test that the allocator should grow memory if it's already full
 func TestShouldGrowMemoryIfFull(t *testing.T) {
-	mem := newMemoryMock(t, 1<<16)
+	mem := newMockMemory(t)
+	const size = 1 << 16
+	testobj := make([]byte, size)
+	mem.On("Data").Return(testobj)
+	lengthcall := mem.On("Length").Return(uint32(size))
+	lengthcall.RunFn = func(args mock.Arguments) {
+		lengthcall.ReturnArguments = mock.Arguments{uint32(len(testobj))}
+	}
+	growcall := mem.On("Grow", mock.Anything)
+	growcall.RunFn = func(args mock.Arguments) {
+		arg := args[0].(uint32)
+		testobj = append(testobj, make([]byte, PageSize*arg)...)
+		growcall.ReturnArguments = mock.Arguments{nil}
+	}
+
 	currentSize := mem.Length()
 	fbha := NewAllocator(mem, 0)
 
@@ -357,10 +374,13 @@ func TestShouldGrowMemoryIfFull(t *testing.T) {
 // test to confirm that allocator can allocate the MaxPossibleAllocation
 func TestShouldAllocateMaxPossibleAllocationSize(t *testing.T) {
 	// given, grow heap memory so that we have at least MaxPossibleAllocation available
-	mem := newMemoryMock(t, 1<<16)
-
-	pagesNeeded := (MaxPossibleAllocation / PageSize) - (mem.Length() / PageSize) + 1
-	mem = newMemoryMock(t, mem.Length()+pagesNeeded*65*1024)
+	const initialSize = 1 << 16
+	const pagesNeeded = (MaxPossibleAllocation / PageSize) - (initialSize / PageSize) + 1
+	mem := newMockMemory(t)
+	const size = initialSize + pagesNeeded*65*1024
+	testobj := make([]byte, size)
+	mem.On("Data").Return(testobj)
+	mem.On("Length").Return(uint32(size))
 
 	fbha := NewAllocator(mem, 0)
 
@@ -376,7 +396,10 @@ func TestShouldAllocateMaxPossibleAllocationSize(t *testing.T) {
 
 // test that allocator should not allocate memory if request is too large
 func TestShouldNotAllocateIfRequestSizeTooLarge(t *testing.T) {
-	fbha := NewAllocator(newMemoryMock(t, 1<<16), 0)
+	memory := newMockMemory(t)
+	memory.On("Length").Return(uint32(1 << 16))
+
+	fbha := NewAllocator(memory, 0)
 
 	// when
 	_, err := fbha.Allocate(MaxPossibleAllocation + 1)

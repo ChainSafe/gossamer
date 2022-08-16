@@ -214,15 +214,11 @@ func TestUnsafeRPCJustToLocalhost(t *testing.T) {
 	_, err := buf.Write(data)
 	require.NoError(t, err)
 
-	netmock := mocks.NewNetworkAPI(t)
-	netmock.On("AddReservedPeers", mock.AnythingOfType("string")).Return(nil)
-
 	cfg := &HTTPServerConfig{
-		Modules:    []string{"system"},
-		RPCPort:    7880,
-		RPCAPI:     NewService(),
-		RPCUnsafe:  true,
-		NetworkAPI: netmock,
+		Modules:   []string{"system"},
+		RPCPort:   7880,
+		RPCAPI:    NewService(),
+		RPCUnsafe: true,
 	}
 
 	s := NewHTTPServer(cfg)

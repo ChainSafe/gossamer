@@ -36,9 +36,6 @@ func TestAuthorModule_HasSessionKeys(t *testing.T) {
 		"9a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc38520426026696d6f6e8034309a9d2a24213896ff06895" +
 		"db16aade8b6502f3a71cf56374cc3852042602661756469")
 
-	coreMockAPIDecodeErr := mocks.NewCoreAPI(t)
-	coreMockAPIDecodeErr.On("DecodeSessionKeys", []byte{0x4, 0x1}).Return(nil, errors.New("decodeSessionKeys err"))
-
 	coreMockAPIUnmarshalErr := mocks.NewCoreAPI(t)
 	coreMockAPIUnmarshalErr.On("DecodeSessionKeys", []byte{0x4, 0x1}).Return([]byte{0x4, 0x1}, nil)
 
@@ -72,7 +69,7 @@ func TestAuthorModule_HasSessionKeys(t *testing.T) {
 		{
 			name: "Empty Request",
 			fields: fields{
-				authorModule: NewAuthorModule(log.New(log.SetWriter(io.Discard)), coreMockAPIDecodeErr, nil),
+				authorModule: NewAuthorModule(log.New(log.SetWriter(io.Discard)), nil, nil),
 			},
 			args: args{
 				req: &HasSessionKeyRequest{},
@@ -317,12 +314,6 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 	mockCoreAPIHappyGran := mocks.NewCoreAPI(t)
 	mockCoreAPIHappyGran.On("InsertKey", kp2, "gran").Return(nil)
 
-	mockCoreAPIBadKey := mocks.NewCoreAPI(t)
-	mockCoreAPIBadKey.On("InsertKey", kp3, "babe").Return(nil)
-
-	mockCoreAPIUnknownKey := mocks.NewCoreAPI(t)
-	mockCoreAPIUnknownKey.On("InsertKey", kp3, "mack").Return(nil)
-
 	type fields struct {
 		logger     log.LeveledLogger
 		coreAPI    CoreAPI
@@ -369,8 +360,7 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 		{
 			name: "invalid key",
 			fields: fields{
-				logger:  log.New(log.SetWriter(io.Discard)),
-				coreAPI: mockCoreAPIBadKey,
+				logger: log.New(log.SetWriter(io.Discard)),
 			},
 			args: args{
 				req: &KeyInsertRequest{"babe",
@@ -383,8 +373,7 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 		{
 			name: "unknown key",
 			fields: fields{
-				logger:  log.New(log.SetWriter(io.Discard)),
-				coreAPI: mockCoreAPIUnknownKey,
+				logger: log.New(log.SetWriter(io.Discard)),
 			},
 			args: args{
 				req: &KeyInsertRequest{

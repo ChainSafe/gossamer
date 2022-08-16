@@ -123,7 +123,6 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 	mockBlockAPI.On("GetHashByNumber", uint(21)).Return(testHash, nil)
 
 	mockBlockAPIErr := mocks.NewBlockAPI(t)
-	mockBlockAPIErr.On("BestBlockHash").Return(testHash, nil)
 	mockBlockAPIErr.On("GetHashByNumber", uint(21)).Return(nil, errors.New("GetBlockHash Error"))
 
 	expRes := ChainHashResponse(testHash.String())

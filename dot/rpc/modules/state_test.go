@@ -40,7 +40,6 @@ func TestStateModuleGetPairs(t *testing.T) {
 
 	mockStorageAPI := mocks.NewStorageAPI(t)
 	mockStorageAPI.On("GetStateRootFromBlock", &hash).Return(&hash, nil)
-	mockStorageAPI.On("Entries", &hash).Return(m, nil)
 	mockStorageAPI.On("GetKeysWithPrefix", &hash, common.MustHexToBytes(str)).Return([][]byte{{1}, {1}}, nil)
 	mockStorageAPI.On("GetStorage", &hash, []byte{1}).Return([]byte{21}, nil)
 
@@ -50,12 +49,10 @@ func TestStateModuleGetPairs(t *testing.T) {
 
 	mockStorageAPIGetKeysEmpty := mocks.NewStorageAPI(t)
 	mockStorageAPIGetKeysEmpty.On("GetStateRootFromBlock", &hash).Return(&hash, nil)
-	mockStorageAPIGetKeysEmpty.On("Entries", &hash).Return(m, nil)
 	mockStorageAPIGetKeysEmpty.On("GetKeysWithPrefix", &hash, common.MustHexToBytes(str)).Return([][]byte{}, nil)
 
 	mockStorageAPIGetKeysErr := mocks.NewStorageAPI(t)
 	mockStorageAPIGetKeysErr.On("GetStateRootFromBlock", &hash).Return(&hash, nil)
-	mockStorageAPIGetKeysErr.On("Entries", &hash).Return(m, nil)
 	mockStorageAPIGetKeysErr.On("GetKeysWithPrefix", &hash, common.MustHexToBytes(str)).
 		Return(nil, errors.New("GetKeysWithPrefix Err"))
 
@@ -68,7 +65,6 @@ func TestStateModuleGetPairs(t *testing.T) {
 
 	mockStorageAPIGetStorageErr := mocks.NewStorageAPI(t)
 	mockStorageAPIGetStorageErr.On("GetStateRootFromBlock", &hash).Return(&hash, nil)
-	mockStorageAPIGetStorageErr.On("Entries", &hash).Return(m, nil)
 	mockStorageAPIGetStorageErr.On("GetKeysWithPrefix", &hash, common.MustHexToBytes(str)).Return([][]byte{{2}, {2}}, nil)
 	mockStorageAPIGetStorageErr.On("GetStorage", &hash, []byte{2}).Return(nil, errors.New("GetStorage Err"))
 

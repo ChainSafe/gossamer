@@ -160,19 +160,10 @@ var testGenesisData = &genesis.Data{
 	ChainType: "Local",
 }
 
-func newMockSystemAPI(t *testing.T) *mocks.SystemAPI {
-	sysapimock := mocks.NewSystemAPI(t)
-	sysapimock.On("SystemName").Return(testSystemInfo.SystemName)
-	sysapimock.On("SystemVersion").Return(testSystemInfo.SystemVersion)
-	sysapimock.On("ChainName").Return(testGenesisData.Name)
-	sysapimock.On("Properties").Return(nil)
-	sysapimock.On("ChainType").Return(testGenesisData.ChainType)
-
-	return sysapimock
-}
-
 func TestSystemModule_Chain(t *testing.T) {
-	sys := NewSystemModule(nil, newMockSystemAPI(t), nil, nil, nil, nil, nil)
+	api := mocks.NewSystemAPI(t)
+	api.On("ChainName").Return(testGenesisData.Name)
+	sys := NewSystemModule(nil, api, nil, nil, nil, nil, nil)
 
 	res := new(string)
 	err := sys.Chain(nil, nil, res)
@@ -181,7 +172,8 @@ func TestSystemModule_Chain(t *testing.T) {
 }
 
 func TestSystemModule_ChainType(t *testing.T) {
-	api := newMockSystemAPI(t)
+	api := mocks.NewSystemAPI(t)
+	api.On("ChainType").Return(testGenesisData.ChainType)
 
 	sys := NewSystemModule(nil, api, nil, nil, nil, nil, nil)
 
@@ -190,7 +182,9 @@ func TestSystemModule_ChainType(t *testing.T) {
 	require.Equal(t, testGenesisData.ChainType, *res)
 }
 func TestSystemModule_Name(t *testing.T) {
-	sys := NewSystemModule(nil, newMockSystemAPI(t), nil, nil, nil, nil, nil)
+	api := mocks.NewSystemAPI(t)
+	api.On("SystemName").Return(testSystemInfo.SystemName)
+	sys := NewSystemModule(nil, api, nil, nil, nil, nil, nil)
 
 	res := new(string)
 	err := sys.Name(nil, nil, res)
@@ -199,7 +193,10 @@ func TestSystemModule_Name(t *testing.T) {
 }
 
 func TestSystemModule_Version(t *testing.T) {
-	sys := NewSystemModule(nil, newMockSystemAPI(t), nil, nil, nil, nil, nil)
+	api := mocks.NewSystemAPI(t)
+	api.On("SystemVersion").Return(testSystemInfo.SystemVersion)
+
+	sys := NewSystemModule(nil, api, nil, nil, nil, nil, nil)
 
 	res := new(string)
 	err := sys.Version(nil, nil, res)
@@ -208,7 +205,10 @@ func TestSystemModule_Version(t *testing.T) {
 }
 
 func TestSystemModule_Properties(t *testing.T) {
-	sys := NewSystemModule(nil, newMockSystemAPI(t), nil, nil, nil, nil, nil)
+	api := mocks.NewSystemAPI(t)
+	api.On("Properties").Return(nil)
+
+	sys := NewSystemModule(nil, api, nil, nil, nil, nil, nil)
 
 	expected := map[string]interface{}(nil)
 

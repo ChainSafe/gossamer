@@ -56,7 +56,6 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 	mockBlockAPI := apimocks.NewBlockAPI(t)
 
 	hash := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
-	mockBlockAPI.On("GetBlockHash").Return(hash)
 	mockBlockAPI.On("BestBlockHash").Return(hash)
 
 	mockStorageAPI.On("GetStateRootFromBlock", &hash).Return(&sr, nil)
@@ -167,7 +166,6 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 	mockBlockAPI := apimocks.NewBlockAPI(t)
 
 	hash := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
-	mockBlockAPI.On("GetBlockHash").Return(hash)
 	mockBlockAPI.On("BestBlockHash").Return(hash)
 
 	mockStorageAPI.On("GetStateRootFromBlock", &hash).Return(&sr, nil)
@@ -279,7 +277,6 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 	mockBlockAPI := apimocks.NewBlockAPI(t)
 
 	hash := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
-	mockBlockAPI.On("GetBlockHash").Return(hash)
 	mockBlockAPI.On("BestBlockHash").Return(hash)
 
 	mockStorageAPI.On("GetStateRootFromBlock", &hash).Return(&sr, nil)
@@ -391,7 +388,6 @@ func TestChildStateModule_GetStorage(t *testing.T) {
 	mockBlockAPI := apimocks.NewBlockAPI(t)
 
 	hash := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
-	mockBlockAPI.On("GetBlockHash").Return(hash)
 	mockBlockAPI.On("BestBlockHash").Return(hash)
 
 	mockStorageAPI.On("GetStateRootFromBlock", &hash).Return(&sr, nil)

@@ -17,36 +17,39 @@ import (
 // NewMockeryStorageAPI creates and return an rpc StorageAPI interface mock
 func NewMockeryStorageAPI(t *testing.T) *modulesmocks.StorageAPI {
 	m := modulesmocks.NewStorageAPI(t)
-	m.On("GetStorage", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]uint8")).Return(nil, nil)
+	m.On("GetStorage", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]uint8")).Return(nil, nil).Maybe()
 	m.On("GetStorageFromChild", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]uint8"),
-		mock.AnythingOfType("[]uint8")).Return(nil, nil)
-	m.On("Entries", mock.AnythingOfType("*common.Hash")).Return(nil, nil)
-	m.On("GetStorageByBlockHash", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("[]uint8")).Return(nil, nil)
-	m.On("RegisterStorageObserver", mock.Anything)
-	m.On("UnregisterStorageObserver", mock.Anything)
-	m.On("GetStateRootFromBlock", mock.AnythingOfType("*common.Hash")).Return(nil, nil)
-	m.On("GetKeysWithPrefix", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]uint8")).Return(nil, nil)
+		mock.AnythingOfType("[]uint8")).Return(nil, nil).Maybe()
+	m.On("Entries", mock.AnythingOfType("*common.Hash")).Return(nil, nil).Maybe()
+	m.On("GetStorageByBlockHash", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("[]uint8")).
+		Return(nil, nil).Maybe()
+	m.On("RegisterStorageObserver", mock.Anything).Maybe()
+	m.On("UnregisterStorageObserver", mock.Anything).Maybe()
+	m.On("GetStateRootFromBlock", mock.AnythingOfType("*common.Hash")).Return(nil, nil).Maybe()
+	m.On("GetKeysWithPrefix", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]uint8")).Return(nil, nil).Maybe()
 	return m
 }
 
 // NewMockeryBlockAPI creates and return an rpc BlockAPI interface mock
 func NewMockeryBlockAPI(t *testing.T) *modulesmocks.BlockAPI {
 	m := modulesmocks.NewBlockAPI(t)
-	m.On("GetHeader", mock.AnythingOfType("common.Hash")).Return(nil, nil)
-	m.On("BestBlockHash").Return(common.Hash{})
-	m.On("GetBlockByHash", mock.AnythingOfType("common.Hash")).Return(nil, nil)
-	m.On("GetHashByNumber", mock.AnythingOfType("uint")).Return(nil, nil)
-	m.On("GetFinalisedHash", mock.AnythingOfType("uint64"), mock.AnythingOfType("uint64")).Return(common.Hash{}, nil)
-	m.On("GetHighestFinalisedHash").Return(common.Hash{}, nil)
-	m.On("GetImportedBlockNotifierChannel").Return(make(chan *types.Block, 5))
-	m.On("FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block"))
-	m.On("GetFinalisedNotifierChannel").Return(make(chan *types.FinalisationInfo, 5))
-	m.On("FreeFinalisedNotifierChannel", mock.AnythingOfType("chan *types.FinalisationInfo"))
-	m.On("GetJustification", mock.AnythingOfType("common.Hash")).Return(make([]byte, 10), nil)
-	m.On("HasJustification", mock.AnythingOfType("common.Hash")).Return(true, nil)
+	m.On("GetHeader", mock.AnythingOfType("common.Hash")).Return(nil, nil).Maybe()
+	m.On("BestBlockHash").Return(common.Hash{}).Maybe()
+	m.On("GetBlockByHash", mock.AnythingOfType("common.Hash")).Return(nil, nil).Maybe()
+	m.On("GetHashByNumber", mock.AnythingOfType("uint")).Return(nil, nil).Maybe()
+	m.On("GetFinalisedHash", mock.AnythingOfType("uint64"), mock.AnythingOfType("uint64")).
+		Return(common.Hash{}, nil).Maybe()
+	m.On("GetHighestFinalisedHash").Return(common.Hash{}, nil).Maybe()
+	m.On("GetImportedBlockNotifierChannel").Return(make(chan *types.Block, 5)).Maybe()
+	m.On("FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block")).Maybe()
+	m.On("GetFinalisedNotifierChannel").Return(make(chan *types.FinalisationInfo, 5)).Maybe()
+	m.On("FreeFinalisedNotifierChannel", mock.AnythingOfType("chan *types.FinalisationInfo")).Maybe()
+	m.On("GetJustification", mock.AnythingOfType("common.Hash")).Return(make([]byte, 10), nil).Maybe()
+	m.On("HasJustification", mock.AnythingOfType("common.Hash")).Return(true, nil).Maybe()
 	m.On("SubChain", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash")).
-		Return(make([]common.Hash, 0), nil)
-	m.On("RegisterRuntimeUpdatedChannel", mock.AnythingOfType("chan<- runtime.Version")).Return(uint32(0), nil)
+		Return(make([]common.Hash, 0), nil).Maybe()
+	m.On("RegisterRuntimeUpdatedChannel", mock.AnythingOfType("chan<- runtime.Version")).
+		Return(uint32(0), nil).Maybe()
 
 	return m
 }
@@ -54,21 +57,21 @@ func NewMockeryBlockAPI(t *testing.T) *modulesmocks.BlockAPI {
 // NewMockTransactionStateAPI creates and return an rpc TransactionStateAPI interface mock
 func NewMockTransactionStateAPI(t *testing.T) *modulesmocks.TransactionStateAPI {
 	m := modulesmocks.NewTransactionStateAPI(t)
-	m.On("FreeStatusNotifierChannel", mock.AnythingOfType("chan transaction.Status"))
-	m.On("GetStatusNotifierChannel", mock.AnythingOfType("types.Extrinsic")).Return(make(chan transaction.Status))
-	m.On("AddToPool", mock.AnythingOfType("transaction.ValidTransaction")).Return(common.Hash{})
+	m.On("FreeStatusNotifierChannel", mock.AnythingOfType("chan transaction.Status")).Maybe()
+	m.On("GetStatusNotifierChannel", mock.AnythingOfType("types.Extrinsic")).Return(make(chan transaction.Status)).Maybe()
+	m.On("AddToPool", mock.AnythingOfType("transaction.ValidTransaction")).Return(common.Hash{}).Maybe()
 	return m
 }
 
 // NewMockCoreAPI creates and return an rpc CoreAPI interface mock
 func NewMockCoreAPI(t *testing.T) *modulesmocks.CoreAPI {
 	m := modulesmocks.NewCoreAPI(t)
-	m.On("InsertKey", mock.AnythingOfType("crypto.Keypair"), mock.AnythingOfType("string")).Return(nil)
-	m.On("HasKey", mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(false, nil)
+	m.On("InsertKey", mock.AnythingOfType("crypto.Keypair"), mock.AnythingOfType("string")).Return(nil).Maybe()
+	m.On("HasKey", mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(false, nil).Maybe()
 	m.On("GetRuntimeVersion", mock.AnythingOfType("*common.Hash")).
-		Return(runtime.Version{SpecName: []byte(`mock-spec`)}, nil)
-	m.On("IsBlockProducer").Return(false)
-	m.On("HandleSubmittedExtrinsic", mock.AnythingOfType("types.Extrinsic")).Return(nil)
-	m.On("GetMetadata", mock.AnythingOfType("*common.Hash")).Return(nil, nil)
+		Return(runtime.Version{SpecName: []byte(`mock-spec`)}, nil).Maybe()
+	m.On("IsBlockProducer").Return(false).Maybe()
+	m.On("HandleSubmittedExtrinsic", mock.AnythingOfType("types.Extrinsic")).Return(nil).Maybe()
+	m.On("GetMetadata", mock.AnythingOfType("*common.Hash")).Return(nil, nil).Maybe()
 	return m
 }

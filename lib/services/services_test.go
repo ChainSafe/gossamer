@@ -41,8 +41,6 @@ func TestServiceRegistry_Get_Err(t *testing.T) {
 	r := NewServiceRegistry(log.New(log.SetWriter(io.Discard)))
 
 	a := mocks.NewService(t)
-	a.On("Start").Return(nil)
-	a.On("Stop").Return(nil)
 
 	r.RegisterService(a)
 	require.NotNil(t, r.Get(a))

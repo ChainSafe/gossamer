@@ -104,8 +104,6 @@ func TestBlockListener_Listen(t *testing.T) {
 	go bl.Listen()
 	defer func() {
 		require.NoError(t, bl.Stop())
-		time.Sleep(time.Millisecond * 10)
-		BlockAPI.AssertCalled(t, "FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block"))
 	}()
 
 	notifyChan <- &block
