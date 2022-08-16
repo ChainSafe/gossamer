@@ -102,7 +102,7 @@ func ParseLevel(s string) (level Level, err error) {
 		return Warn, nil
 	case Error.String():
 		return Error, nil
-	case Critical.String():
+	case Critical.String(), "CRIT":
 		return Critical, nil
 	}
 	return 0, fmt.Errorf("%w: %s", ErrLevelNotRecognised, s)
