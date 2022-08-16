@@ -41,7 +41,7 @@ func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie) 
 	return r
 }
 
-func setupConfig(t *testing.T, tt *trie.Trie, lvl log.Level, role common.Roles) runtime.InstanceConfig {
+func setupConfig(t *testing.T, tt *trie.Trie, lvl log.Level, role common.Roles) Config {
 	t.Helper()
 
 	s := storage.NewTrieState(tt)
@@ -52,7 +52,7 @@ func setupConfig(t *testing.T, tt *trie.Trie, lvl log.Level, role common.Roles) 
 		BaseDB:            runtime.NewInMemoryDB(t), // we're using a local storage here since this is a test runtime
 	}
 
-	return runtime.InstanceConfig{
+	return Config{
 		Storage:     s,
 		Keystore:    keystore.NewGlobalKeystore(),
 		LogLvl:      lvl,

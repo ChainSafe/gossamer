@@ -410,13 +410,13 @@ func (l *RuntimeVersionListener) Listen() {
 		return
 	}
 	ver := modules.StateRuntimeVersionResponse{}
-	ver.SpecName = string(rtVersion.SpecName())
-	ver.ImplName = string(rtVersion.ImplName())
-	ver.AuthoringVersion = rtVersion.AuthoringVersion()
-	ver.SpecVersion = rtVersion.SpecVersion()
-	ver.ImplVersion = rtVersion.ImplVersion()
-	ver.TransactionVersion = rtVersion.TransactionVersion()
-	ver.Apis = modules.ConvertAPIs(rtVersion.APIItems())
+	ver.SpecName = string(rtVersion.SpecName)
+	ver.ImplName = string(rtVersion.ImplName)
+	ver.AuthoringVersion = rtVersion.AuthoringVersion
+	ver.SpecVersion = rtVersion.SpecVersion
+	ver.ImplVersion = rtVersion.ImplVersion
+	ver.TransactionVersion = rtVersion.TransactionVersion
+	ver.Apis = modules.ConvertAPIs(rtVersion.APIItems)
 
 	go l.wsconn.safeSend(newSubscriptionResponse(stateRuntimeVersionMethod, l.subID, ver))
 
@@ -430,13 +430,13 @@ func (l *RuntimeVersionListener) Listen() {
 
 			ver := modules.StateRuntimeVersionResponse{}
 
-			ver.SpecName = string(info.SpecName())
-			ver.ImplName = string(info.ImplName())
-			ver.AuthoringVersion = info.AuthoringVersion()
-			ver.SpecVersion = info.SpecVersion()
-			ver.ImplVersion = info.ImplVersion()
-			ver.TransactionVersion = info.TransactionVersion()
-			ver.Apis = modules.ConvertAPIs(info.APIItems())
+			ver.SpecName = string(info.SpecName)
+			ver.ImplName = string(info.ImplName)
+			ver.AuthoringVersion = info.AuthoringVersion
+			ver.SpecVersion = info.SpecVersion
+			ver.ImplVersion = info.ImplVersion
+			ver.TransactionVersion = info.TransactionVersion
+			ver.Apis = modules.ConvertAPIs(info.APIItems)
 
 			l.wsconn.safeSend(newSubscriptionResponse(stateRuntimeVersionMethod, l.subID, ver))
 		}

@@ -110,7 +110,6 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	rtype "github.com/ChainSafe/gossamer/lib/common/types"
 	"github.com/ChainSafe/gossamer/lib/crypto"
@@ -118,13 +117,16 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/secp256k1"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/trie/proof"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
+)
+
+const (
+	validateSignatureFail = "failed to validate signature"
 )
 
 //export ext_logging_log_version_1
@@ -489,8 +491,13 @@ func ext_crypto_ecdsa_verify_version_2(context unsafe.Pointer, sig C.int32_t, ms
 		return C.int32_t(1)
 	}
 
-	if ok, err := pub.Verify(hash[:], signature); err != nil || !ok {
-		logger.Errorf("failed to validate signature: %s", err)
+	ok, err := pub.Verify(hash[:], signature)
+	if err != nil || !ok {
+		message := validateSignatureFail
+		if err != nil {
+			message += ": " + err.Error()
+		}
+		logger.Errorf(message)
 		return C.int32_t(0)
 	}
 
@@ -716,8 +723,13 @@ func ext_crypto_sr25519_verify_version_1(context unsafe.Pointer, sig C.int32_t,
 		return 1
 	}
 
-	if ok, err := pub.VerifyDeprecated(message, signature); err != nil || !ok {
-		logger.Debugf("failed to validate signature: %s", err)
+	ok, err := pub.VerifyDeprecated(message, signature)
+	if err != nil || !ok {
+		message := validateSignatureFail
+		if err != nil {
+			message += ": " + err.Error()
+		}
+		logger.Debugf(message)
 		// this fails at block 3876, which seems to be expected, based on discussions
 		return 1
 	}
@@ -759,8 +771,13 @@ func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t,
 		return 1
 	}
 
-	if ok, err := pub.Verify(message, signature); err != nil || !ok {
-		logger.Errorf("failed to validate signature: %s", err)
+	ok, err := pub.Verify(message, signature)
+	if err != nil || !ok {
+		message := validateSignatureFail
+		if err != nil {
+			message += ": " + err.Error()
+		}
+		logger.Errorf(message)
 		return 0
 	}
 
@@ -944,27 +961,23 @@ func ext_misc_runtime_version_version_1(context unsafe.Pointer, dataSpan C.int64
 	logger.Trace("executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
-	data := asMemorySlice(instanceContext, dataSpan)
+	code := asMemorySlice(instanceContext, dataSpan)
 
-	cfg := runtime.InstanceConfig{
-		LogLvl:  log.DoNotChange,
-		Storage: rtstorage.NewTrieState(nil),
-	}
-
-	instance, err := NewInstance(data, cfg)
-	if err != nil {
-		logger.Errorf("failed to create instance: %s", err)
-		return 0
-	}
-
-	version, err := instance.Version()
+	version, err := GetRuntimeVersion(code)
 	if err != nil {
 		logger.Errorf("failed to get runtime version: %s", err)
 		out, _ := toWasmMemoryOptional(instanceContext, nil)
 		return C.int64_t(out)
 	}
 
-	encodedData, err := version.Encode()
+	// Note the encoding contains all the latest Core_version fields as defined in
+	// https://spec.polkadot.network/#defn-rt-core-version
+	// In other words, decoding older version data with missing fields
+	// and then encoding it will result in a longer encoding due to the
+	// extra version fields. This however remains compatible since the
+	// version fields are still encoded in the same order and an older
+	// decoder would succeed with the longer encoding.
+	encodedData, err := scale.Marshal(version)
 	if err != nil {
 		logger.Errorf("failed to encode result: %s", err)
 		return 0
