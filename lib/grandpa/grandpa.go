@@ -742,7 +742,7 @@ func (s *Service) determinePreVote() (vote *Vote, err error) {
 	}
 
 	nextChange, err := s.grandpaState.NextGrandpaAuthorityChange(
-		headerToPrevote.Hash(), headerToPrevote.Number)
+		vote.Hash, uint(vote.Number))
 
 	if errors.Is(err, state.ErrNoNextAuthorityChange) {
 		return vote, nil
