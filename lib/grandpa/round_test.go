@@ -4,7 +4,6 @@
 package grandpa
 
 import (
-	//"fmt"
 	"context"
 	"fmt"
 	"math/rand"
@@ -228,13 +227,9 @@ func broadcastVotes(from <-chan GrandpaMessage, to []chan *networkVoteMessage, d
 				return
 			}
 
-			switch message := v.(type) {
-			case *VoteMessage:
-				tc <- &networkVoteMessage{
-					msg: message,
-				}
+			tc <- &networkVoteMessage{
+				msg: v.(*VoteMessage),
 			}
-
 		}
 	}
 }

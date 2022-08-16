@@ -139,13 +139,7 @@ func (s *Service) createNotificationsMessageHandler(
 			return fmt.Errorf("could not check if message was seen before: %w", err)
 		}
 
-		// sometimes substrate can send prevote/precommit messages already seen by
-		// gossamer but those messages are related to another round, for example to
-		// finalize a block Y substrate sends prevotes and precommits to Y in round r
-		// and in the round r + 1 it is possible to receive prevotes for block Y again, this
-		// is not a problem and we can improve the gossamer behaviour implementing Polite GRANDPA #2505
-		_, isConsensusMsg := msg.(*ConsensusMessage)
-		if hasSeen && !isConsensusMsg {
+		if hasSeen {
 			// report peer if we get duplicate gossip message.
 			s.host.cm.peerSetHandler.ReportPeer(peerset.ReputationChange{
 				Value:  peerset.DuplicateGossipValue,
