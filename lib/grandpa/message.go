@@ -21,7 +21,7 @@ type GrandpaMessage interface { //nolint:revive
 // NewGrandpaMessage returns a new VaryingDataType to represent a GrandpaMessage
 func newGrandpaMessage() scale.VaryingDataType {
 	return scale.MustNewVaryingDataType(
-		VoteMessage{}, CommitMessage{}, newVersionedNeighbourMessage(),
+		VoteMessage{}, CommitMessage{}, newVersionedNeighbourPacket(),
 		CatchUpRequest{}, CatchUpResponse{})
 }
 
@@ -83,7 +83,7 @@ type VersionedNeighbourPacket scale.VaryingDataType
 // Index Returns VDT index
 func (VersionedNeighbourPacket) Index() uint { return 2 }
 
-func newVersionedNeighbourMessage() VersionedNeighbourPacket {
+func newVersionedNeighbourPacket() VersionedNeighbourPacket {
 	vdt := scale.MustNewVaryingDataType(NeighbourPacketV1{})
 
 	return VersionedNeighbourPacket(vdt)
@@ -120,7 +120,7 @@ func (NeighbourPacketV1) Index() uint { return 1 }
 
 // ToConsensusMessage converts the NeighbourMessage into a network-level consensus message
 func (m *NeighbourPacketV1) ToConsensusMessage() (*network.ConsensusMessage, error) {
-	versionedNeighbourPacket := newVersionedNeighbourMessage()
+	versionedNeighbourPacket := newVersionedNeighbourPacket()
 	err := versionedNeighbourPacket.Set(*m)
 	if err != nil {
 		return nil, fmt.Errorf("setting neighbour packet v1: %w", err)
