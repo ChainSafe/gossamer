@@ -497,12 +497,12 @@ func (s *Service) playGrandpaRound() error {
 		s.prevotes.Store(s.publicKeyBytes(), spv)
 	}
 
-	determinePrevoteCh := make(chan struct{})
-	go s.receiveVoteMessages(ctx, determinePrevoteCh)
+	determinePrecommitCh := make(chan struct{})
+	go s.receiveVoteMessages(ctx, determinePrecommitCh)
 	go s.sendPrevoteMessage(ctx, vm)
 
 	// determine and broadcast pre-commit only after seen prevote messages
-	<-determinePrevoteCh
+	<-determinePrecommitCh
 	pc, err := s.determinePreCommit()
 	if err != nil {
 		return err
