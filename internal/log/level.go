@@ -92,17 +92,17 @@ func ParseLevel(s string) (level Level, err error) {
 	}
 
 	switch strings.ToUpper(s) {
-	case Trace.String(), "TRACE":
+	case Trace.String():
 		return Trace, nil
-	case Debug.String(), "DEBUG":
+	case Debug.String():
 		return Debug, nil
-	case Info.String(), "INFO":
+	case Info.String():
 		return Info, nil
-	case Warn.String(), "WARN":
+	case Warn.String():
 		return Warn, nil
-	case Error.String(), "ERROR":
+	case Error.String():
 		return Error, nil
-	case Critical.String(), "CRITICAL", "CRIT":
+	case Critical.String():
 		return Critical, nil
 	}
 	return 0, fmt.Errorf("%w: %s", ErrLevelNotRecognised, s)
