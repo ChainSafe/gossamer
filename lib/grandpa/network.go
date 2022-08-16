@@ -209,18 +209,6 @@ func (s *Service) sendNeighbourMessage(interval time.Duration) {
 	}
 }
 
-func (s *Service) sendNeighborMessage(nm *NeighbourMessage) {
-	logger.Tracef("send neighbour message: %v", nm)
-
-	cm, err := nm.ToConsensusMessage()
-	if err != nil {
-		logger.Warnf("failed to convert NeighbourMessage to network message: %s", err)
-		return
-	}
-
-	s.network.GossipMessage(cm)
-}
-
 // decodeMessage decodes a network-level consensus message into a GRANDPA VoteMessage or CommitMessage
 func decodeMessage(cm *network.ConsensusMessage) (m GrandpaMessage, err error) {
 	msg := newGrandpaMessage()
