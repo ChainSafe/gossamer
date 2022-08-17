@@ -63,7 +63,7 @@ func generateTestValidRemarkTxns(t *testing.T, pubKey []byte, accInfo types.Acco
 	nodeStorage := runtime.NodeStorage{
 		BaseDB: runtime.NewInMemoryDB(t),
 	}
-	cfg := runtime.InstanceConfig{
+	cfg := wasmer.Config{
 		Storage:     genState,
 		LogLvl:      log.Error,
 		NodeStorage: nodeStorage,
@@ -580,7 +580,7 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	v, err := rt.Version()
 	require.NoError(t, err)
 
-	currSpecVersion := v.SpecVersion()   // genesis runtime version.
+	currSpecVersion := v.SpecVersion     // genesis runtime version.
 	hash := s.blockState.BestBlockHash() // genesisHash
 
 	digest := types.NewDigest()
@@ -615,7 +615,7 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 
 	v, err = parentRt.Version()
 	require.NoError(t, err)
-	require.Equal(t, v.SpecVersion(), currSpecVersion)
+	require.Equal(t, v.SpecVersion, currSpecVersion)
 
 	bhash1 := newBlock1.Header.Hash()
 	err = s.blockState.HandleRuntimeChanges(ts, parentRt, bhash1)
@@ -637,14 +637,14 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 
 	v, err = rt.Version()
 	require.NoError(t, err)
-	require.Equal(t, v.SpecVersion(), currSpecVersion)
+	require.Equal(t, v.SpecVersion, currSpecVersion)
 
 	rt, err = s.blockState.GetRuntime(&rtUpdateBhash)
 	require.NoError(t, err)
 
 	v, err = rt.Version()
 	require.NoError(t, err)
-	require.Equal(t, v.SpecVersion(), updatedSpecVersion)
+	require.Equal(t, v.SpecVersion, updatedSpecVersion)
 }
 
 func TestService_HandleCodeSubstitutes(t *testing.T) {

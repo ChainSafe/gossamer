@@ -223,9 +223,9 @@ func NewTestExtrinsic(t *testing.T, rt Instance, genHash, blockHash common.Hash,
 		Era:                ctypes.ExtrinsicEra{IsImmortalEra: false},
 		GenesisHash:        ctypes.Hash(genHash),
 		Nonce:              ctypes.NewUCompactFromUInt(nonce),
-		SpecVersion:        ctypes.U32(rv.SpecVersion()),
+		SpecVersion:        ctypes.U32(rv.SpecVersion),
 		Tip:                ctypes.NewUCompactFromUInt(0),
-		TransactionVersion: ctypes.U32(rv.TransactionVersion()),
+		TransactionVersion: ctypes.U32(rv.TransactionVersion),
 	}
 
 	// Sign the transaction using Alice's key

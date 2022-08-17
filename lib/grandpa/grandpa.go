@@ -475,6 +475,10 @@ func (s *Service) primaryBroadcastCommitMessage() {
 // playGrandpaRound executes a round of GRANDPA
 // at the end of this round, a block will be finalised.
 func (s *Service) playGrandpaRound() error {
+	if s.paused.Load().(bool) {
+		return ErrServicePaused
+	}
+
 	logger.Debugf("starting round %d with set id %d",
 		s.state.round, s.state.setID)
 	start := time.Now()
@@ -485,14 +489,6 @@ func (s *Service) playGrandpaRound() error {
 	isPrimary, err := s.handleIsPrimary()
 	if err != nil {
 		return err
-	}
-
-	logger.Debug("receiving pre-vote messages...")
-	go s.receiveVoteMessages(ctx)
-	time.Sleep(s.interval)
-
-	if s.paused.Load().(bool) {
-		return ErrServicePaused
 	}
 
 	// broadcast pre-vote
@@ -510,25 +506,12 @@ func (s *Service) playGrandpaRound() error {
 		s.prevotes.Store(s.publicKeyBytes(), spv)
 	}
 
-	logger.Debugf("sending pre-vote message %s...", pv)
-	roundComplete := make(chan struct{})
-	// roundComplete is a signal channel which is closed when the round completes
-	// (will receive the default value of channel's type), so we don't need to
-	// explicitly send a value.
-	defer close(roundComplete)
+	determinePrecommitCh := make(chan struct{})
+	go s.receiveVoteMessages(ctx, determinePrecommitCh)
+	go s.sendPrevoteMessage(ctx, vm)
 
-	// continue to send prevote messages until round is done
-	go s.sendVoteMessage(prevote, vm, roundComplete)
-
-	logger.Debug("receiving pre-commit messages...")
-	// through goroutine s.receiveVoteMessages(ctx)
-	time.Sleep(s.interval)
-
-	if s.paused.Load().(bool) {
-		return ErrServicePaused
-	}
-
-	// broadcast pre-commit
+	// determine and broadcast pre-commit only after seen prevote messages
+	<-determinePrecommitCh
 	pc, err := s.determinePreCommit()
 	if err != nil {
 		return err
@@ -538,14 +521,12 @@ func (s *Service) playGrandpaRound() error {
 	if err != nil {
 		return err
 	}
-
 	s.precommits.Store(s.publicKeyBytes(), spc)
-	logger.Debugf("sending pre-commit message %s...", pc)
 
-	// continue to send precommit messages until round is done
-	go s.sendVoteMessage(precommit, pcm, roundComplete)
+	go s.sendPrecommitMessage(ctx, pcm)
 
-	if err = s.attemptToFinalize(); err != nil {
+	err = s.attemptToFinalize()
+	if err != nil {
 		logger.Errorf("failed to finalise: %s", err)
 		return err
 	}
@@ -554,27 +535,47 @@ func (s *Service) playGrandpaRound() error {
 	return nil
 }
 
-func (s *Service) sendVoteMessage(stage Subround, msg *VoteMessage, roundComplete <-chan struct{}) {
+func (s *Service) sendPrecommitMessage(ctx context.Context, vm *VoteMessage) {
+	logger.Debugf("sending pre-commit message %s...", vm.Message)
+
 	ticker := time.NewTicker(s.interval * 4)
 	defer ticker.Stop()
 
 	// Though this looks like we are sending messages multiple times,
 	// caching would make sure that they are being sent only once.
 	for {
-		if s.paused.Load().(bool) {
-			return
-		}
-
-		if err := s.sendMessage(msg); err != nil {
-			logger.Warnf("could not send message for stage %s: %s", stage, err)
-		} else {
-			logger.Tracef("sent vote message for stage %s: %s", stage, msg.Message)
-		}
-
 		select {
-		case <-roundComplete:
-			return
 		case <-ticker.C:
+		case <-ctx.Done():
+			return
+		}
+
+		if err := s.sendMessage(vm); err != nil {
+			logger.Warnf("could not send message for stage %s: %s", precommit, err)
+		} else {
+			logger.Warnf("sent vote message for stage %s: %s", precommit, vm.Message)
+		}
+	}
+}
+
+func (s *Service) sendPrevoteMessage(ctx context.Context, vm *VoteMessage) {
+	logger.Debugf("sending pre-vote message %s...", vm)
+
+	ticker := time.NewTicker(s.interval * 4)
+	defer ticker.Stop()
+
+	// Though this looks like we are sending messages multiple times,
+	// caching would make sure that they are being sent only once.
+	for {
+		select {
+		case <-ticker.C:
+		case <-ctx.Done():
+			return
+		}
+		if err := s.sendMessage(vm); err != nil {
+			logger.Warnf("could not send message for stage %s: %s", prevote, err)
+		} else {
+			logger.Warnf("sent vote message for stage %s: %s", prevote, vm.Message)
 		}
 	}
 }
@@ -583,15 +584,16 @@ func (s *Service) sendVoteMessage(stage Subround, msg *VoteMessage, roundComplet
 func (s *Service) attemptToFinalize() error {
 	ticker := time.NewTicker(s.interval / 100)
 
+	var (
+		bestFinalCandidate *types.GrandpaVote
+		precommitCount     uint64
+	)
+
 	for {
 		select {
 		case <-s.ctx.Done():
 			return errors.New("context cancelled")
 		case <-ticker.C:
-		}
-
-		if s.paused.Load().(bool) {
-			return ErrServicePaused
 		}
 
 		has, _ := s.blockState.HasFinalisedBlock(s.state.round, s.state.setID)
@@ -613,50 +615,54 @@ func (s *Service) attemptToFinalize() error {
 			return nil // a block was finalised, seems like we missed some messages
 		}
 
-		bfc, err := s.getBestFinalCandidate()
+		var err error
+		bestFinalCandidate, err = s.getBestFinalCandidate()
 		if err != nil {
 			return err
 		}
 
-		pc, err := s.getTotalVotesForBlock(bfc.Hash, precommit)
+		precommitCount, err = s.getTotalVotesForBlock(bestFinalCandidate.Hash, precommit)
 		if err != nil {
 			return err
 		}
 
-		if bfc.Number < uint32(s.head.Number) || pc <= s.state.threshold() {
+		// once we reach the threshold we should stop sending precommit messages to other peers
+		if bestFinalCandidate.Number < uint32(s.head.Number) || precommitCount <= s.state.threshold() {
 			continue
 		}
 
-		if err = s.finalise(); err != nil {
-			return err
-		}
-
-		// if we haven't received a finalisation message for this block yet, broadcast a finalisation message
-		votes := s.getDirectVotes(precommit)
-		logger.Debugf("block was finalised for round %d and set id %d. "+
-			"Head hash is %s, %d direct votes for bfc and %d total votes for bfc",
-			s.state.round, s.state.setID, s.head.Hash(), votes[*bfc], pc)
-
-		cm, err := s.newCommitMessage(s.head, s.state.round)
-		if err != nil {
-			return err
-		}
-
-		msg, err := cm.ToConsensusMessage()
-		if err != nil {
-			return err
-		}
-
-		logger.Debugf("sending CommitMessage: %v", cm)
-		s.network.GossipMessage(msg)
-
-		s.telemetry.SendMessage(telemetry.NewAfgFinalizedBlocksUpTo(
-			s.head.Hash(),
-			fmt.Sprint(s.head.Number),
-		))
-
-		return nil
+		break
 	}
+
+	if err := s.finalise(); err != nil {
+		return err
+	}
+
+	// if we haven't received a finalisation message for this block yet, broadcast a finalisation message
+	votes := s.getDirectVotes(precommit)
+	logger.Debugf("block was finalised for round %d and set id %d. "+
+		"Head hash is %s, %d direct votes for bfc and %d total votes for bfc",
+		s.state.round, s.state.setID, s.head.Hash(), votes[*bestFinalCandidate], precommitCount)
+
+	cm, err := s.newCommitMessage(s.head, s.state.round)
+	if err != nil {
+		return err
+	}
+
+	msg, err := cm.ToConsensusMessage()
+	if err != nil {
+		return err
+	}
+
+	logger.Debugf("sending CommitMessage: %v", cm)
+	s.network.GossipMessage(msg)
+
+	s.telemetry.SendMessage(telemetry.NewAfgFinalizedBlocksUpTo(
+		s.head.Hash(),
+		fmt.Sprint(s.head.Number),
+	))
+
+	return nil
 }
 
 func (s *Service) loadVote(key ed25519.PublicKeyBytes, stage Subround) (*SignedVote, bool) {
@@ -971,7 +977,8 @@ func (s *Service) getPreVotedBlock() (Vote, error) {
 
 	// if there are multiple, find the one with the highest number and return it
 	highest := Vote{
-		Number: uint32(0),
+		Hash:   s.head.Hash(),
+		Number: uint32(s.head.Number),
 	}
 
 	for h, n := range blocks {
@@ -1015,7 +1022,8 @@ func (s *Service) getGrandpaGHOST() (Vote, error) {
 
 	// if there are multiple, find the one with the highest number and return it
 	highest := Vote{
-		Number: uint32(0),
+		Hash:   s.head.Hash(),
+		Number: uint32(s.head.Number),
 	}
 
 	for h, n := range blocks {

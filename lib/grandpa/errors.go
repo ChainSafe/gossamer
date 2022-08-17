@@ -99,4 +99,5 @@ var (
 	errVoteToSignatureMismatch = errors.New("votes and authority count mismatch")
 	errVoteBlockMismatch       = errors.New("block in vote is not descendant of previously finalised block")
 	errVoteFromSelf            = errors.New("got vote from ourselves")
+	errRoundOutOfBounds        = errors.New("round out of bounds")
 )

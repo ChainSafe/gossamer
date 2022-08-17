@@ -23,7 +23,16 @@ type networkVoteMessage struct {
 }
 
 // receiveVoteMessages receives messages from the in channel until a grandpa round finishes.
-func (s *Service) receiveVoteMessages(ctx context.Context) {
+func (s *Service) receiveVoteMessages(ctx context.Context, determinePrecommitCh chan<- struct{}) {
+	defer close(determinePrecommitCh)
+	logger.Debug("receiving pre-vote messages...")
+
+	threshold := s.state.threshold()
+
+	// we should determine the precommit only when we reach the
+	// prevotes threshold otherwise we should wait for them
+	prevotesThresholdReached := false
+
 	for {
 		select {
 		case msg, ok := <-s.in:
@@ -35,34 +44,22 @@ func (s *Service) receiveVoteMessages(ctx context.Context) {
 				continue
 			}
 
-			logger.Debugf("received vote message %v from %s", msg.msg, msg.from)
 			vm := msg.msg
-
-			switch vm.Message.Stage {
-			case prevote, primaryProposal:
-				s.telemetry.SendMessage(
-					telemetry.NewAfgReceivedPrevote(
-						vm.Message.BlockHash,
-						fmt.Sprint(vm.Message.Number),
-						vm.Message.AuthorityID.String(),
-					),
-				)
-			case precommit:
-				s.telemetry.SendMessage(
-					telemetry.NewAfgReceivedPrecommit(
-						vm.Message.BlockHash,
-						fmt.Sprint(vm.Message.Number),
-						vm.Message.AuthorityID.String(),
-					),
-				)
-			default:
-				logger.Warnf("unsupported stage %s", vm.Message.Stage.String())
-			}
+			logger.Debugf("received vote message %v from %s", msg.msg, msg.from)
+			s.sendTelemetryVoteMessage(msg.msg)
 
 			v, err := s.validateVoteMessage(msg.from, vm)
 			if err != nil {
 				logger.Debugf("failed to validate vote message %v: %s", vm, err)
 				continue
+			}
+
+			// when a given vote is validated so we should check
+			// if we have reached the prevotes threshold which
+			prevotesThreshold := s.lenVotes(prevote) - 1
+			if !prevotesThresholdReached && prevotesThreshold >= int(threshold) {
+				prevotesThresholdReached = true
+				determinePrecommitCh <- struct{}{}
 			}
 
 			logger.Debugf(
@@ -74,6 +71,29 @@ func (s *Service) receiveVoteMessages(ctx context.Context) {
 			logger.Trace("returning from receiveMessages")
 			return
 		}
+	}
+}
+
+func (s *Service) sendTelemetryVoteMessage(vm *VoteMessage) {
+	switch vm.Message.Stage {
+	case prevote, primaryProposal:
+		s.telemetry.SendMessage(
+			telemetry.NewAfgReceivedPrevote(
+				vm.Message.BlockHash,
+				fmt.Sprint(vm.Message.Number),
+				vm.Message.AuthorityID.String(),
+			),
+		)
+	case precommit:
+		s.telemetry.SendMessage(
+			telemetry.NewAfgReceivedPrecommit(
+				vm.Message.BlockHash,
+				fmt.Sprint(vm.Message.Number),
+				vm.Message.AuthorityID.String(),
+			),
+		)
+	default:
+		logger.Warnf("unsupported stage %s", vm.Message.Stage.String())
 	}
 }
 
@@ -156,7 +176,7 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 		// Discard message
 		// TODO: affect peer reputation, this is shameful impolite behaviour
 		// https://github.com/ChainSafe/gossamer/issues/2505
-		return nil, nil //nolint:nilnil
+		return nil, errRoundOutOfBounds
 	}
 
 	if m.Round < s.state.round {

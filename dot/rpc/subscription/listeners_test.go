@@ -351,12 +351,11 @@ func TestRuntimeChannelListener_Listen(t *testing.T) {
 	expectedInitialResponse.Method = "state_runtimeVersion"
 	expectedInitialResponse.Params.Result = expectedInitialVersion
 
-	instance := wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
 	polkadotRuntimeFilepath, err := runtime.GetRuntime(context.Background(), runtime.POLKADOT_RUNTIME)
 	require.NoError(t, err)
 	code, err := os.ReadFile(polkadotRuntimeFilepath)
 	require.NoError(t, err)
-	version, err := instance.CheckRuntimeVersion(code)
+	version, err := wasmer.GetRuntimeVersion(code)
 	require.NoError(t, err)
 
 	expectedUpdatedVersion := modules.StateRuntimeVersionResponse{
@@ -366,7 +365,7 @@ func TestRuntimeChannelListener_Listen(t *testing.T) {
 		SpecVersion:        25,
 		ImplVersion:        0,
 		TransactionVersion: 5,
-		Apis:               modules.ConvertAPIs(version.APIItems()),
+		Apis:               modules.ConvertAPIs(version.APIItems),
 	}
 
 	expectedUpdateResponse := newSubcriptionBaseResponseJSON()
