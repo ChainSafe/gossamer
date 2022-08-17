@@ -303,7 +303,7 @@ func TestService_PauseAndResume(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestService_HandleSlotWithSameSlot(t *testing.T) {
+func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
 	cfg := &ServiceConfig{
 		Authority: true,
 		Lead:      true,
@@ -359,4 +359,67 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 		preRuntimeDigest)
 
 	require.ErrorIs(t, err, errLaggingSlot)
+}
+
+func TestService_HandleSlotWithSameSlot(t *testing.T) {
+	cfg := &ServiceConfig{
+		Authority: true,
+		Lead:      true,
+	}
+	babeService := createTestService(t, cfg)
+
+	err := babeService.Start()
+	require.NoError(t, err)
+	defer func() {
+		_ = babeService.Stop()
+	}()
+
+	// add a block
+	parentHash := babeService.blockState.GenesisHash()
+	rt, err := babeService.blockState.GetRuntime(nil)
+	require.NoError(t, err)
+
+	epochData, err := babeService.initiateEpoch(testEpochIndex)
+	require.NoError(t, err)
+
+	ext := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0, "System.remark", []byte{0xab, 0xcd})
+	block := createTestBlock(t, babeService, emptyHeader, [][]byte{common.MustHexToBytes(ext)},
+		1, testEpochIndex, epochData)
+
+	babeService.blockState.AddBlock(block)
+	time.Sleep(babeService.constants.slotDuration * 10)
+
+	bestBlockHeader, err := babeService.blockState.BestBlockHeader()
+	require.NoError(t, err)
+
+	bestBlockSlotNum, err := babeService.blockState.GetSlotForBlock(bestBlockHeader.Hash())
+	require.NoError(t, err)
+
+	slotnum := uint64(1)
+	slot := Slot{
+		start:    time.Now(),
+		duration: 1 * time.Second,
+		number:   slotnum,
+	}
+	testVRFOutputAndProof := &VrfOutputAndProof{}
+	preRuntimeDigest, err := types.NewBabePrimaryPreDigest(
+		0, slot.number,
+		testVRFOutputAndProof.output,
+		testVRFOutputAndProof.proof,
+	).ToPreRuntimeDigest()
+
+	require.NoError(t, err)
+
+	err = babeService.handleSlot(
+		babeService.epochHandler.epochNumber,
+		bestBlockSlotNum,
+		babeService.epochHandler.epochData.authorityIndex,
+		preRuntimeDigest)
+
+	require.NoError(t, err)
+
+	// test that newly created block is sibling of bestBlockHeader
+	siblings := babeService.blockState.GetAllBlocksAtDepth(bestBlockHeader.ParentHash)
+	require.GreaterOrEqual(t, len(siblings), 2)
+	require.Contains(t, bestBlockHeader.Hash(), siblings)
 }
