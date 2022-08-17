@@ -11,7 +11,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func Test_NewTries(t *testing.T) {
@@ -19,8 +18,7 @@ func Test_NewTries(t *testing.T) {
 
 	tr := trie.NewEmptyTrie()
 
-	rootToTrie, err := NewTries(tr)
-	require.NoError(t, err)
+	rootToTrie := NewTries(tr)
 
 	expectedTries := &Tries{
 		rootToTrie: map[common.Hash]*trie.Trie{

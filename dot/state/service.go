@@ -108,15 +108,12 @@ func (s *Service) SetupBase() error {
 }
 
 // Start initialises the Storage database and the Block database.
-func (s *Service) Start() error {
+func (s *Service) Start() (err error) {
 	if !s.isMemDB && (s.Storage != nil || s.Block != nil || s.Epoch != nil || s.Grandpa != nil) {
 		return nil
 	}
 
-	tries, err := NewTries(trie.NewEmptyTrie())
-	if err != nil {
-		return fmt.Errorf("cannot create tries: %w", err)
-	}
+	tries := NewTries(trie.NewEmptyTrie())
 
 	// create block state
 	s.Block, err = NewBlockState(s.db, tries, s.Telemetry)

@@ -42,7 +42,7 @@ type Tries struct {
 
 // NewTries creates a new thread safe map of root hash
 // to trie using the trie given as a first trie.
-func NewTries(t *trie.Trie) (trs *Tries, err error) {
+func NewTries(t *trie.Trie) (tries *Tries) {
 	return &Tries{
 		rootToTrie: map[common.Hash]*trie.Trie{
 			t.MustHash(): t,
@@ -50,7 +50,7 @@ func NewTries(t *trie.Trie) (trs *Tries, err error) {
 		triesGauge:    triesGauge,
 		setCounter:    setCounter,
 		deleteCounter: deleteCounter,
-	}, nil
+	}
 }
 
 // softSet sets the given trie at the given root hash
