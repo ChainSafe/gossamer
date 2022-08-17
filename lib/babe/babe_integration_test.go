@@ -323,8 +323,20 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 	bestBlockSlotNum, err := babeService.blockState.GetSlotForBlock(header.Hash())
 	require.NoError(t, err)
 
-	// todo: create predigest
-	var preRuntimeDigest *types.PreRuntimeDigest
+	slotnum := uint64(1)
+	slot := Slot{
+		start:    time.Now(),
+		duration: 1 * time.Second,
+		number:   slotnum,
+	}
+	testVRFOutputAndProof := &VrfOutputAndProof{}
+	preRuntimeDigest, err := types.NewBabePrimaryPreDigest(
+		0, slot.number,
+		testVRFOutputAndProof.output,
+		testVRFOutputAndProof.proof,
+	).ToPreRuntimeDigest()
+	require.NoError(t, err)
+
 	err = babeService.handleSlot(babeService.epochHandler.epochNumber, bestBlockSlotNum-1, babeService.epochHandler.epochData.authorityIndex, preRuntimeDigest)
 	require.ErrorAs(t, err, errLaggingSlot)
 }
