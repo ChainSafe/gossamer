@@ -497,11 +497,16 @@ func (s *Service) playGrandpaRound() error {
 		s.prevotes.Store(s.publicKeyBytes(), spv)
 	}
 
-	determinePrecommitCh := make(chan struct{})
-	go s.receiveVoteMessages(ctx, determinePrecommitCh)
+	var (
+		finalizableCh        = make(chan struct{})
+		determinePrecommitCh = make(chan struct{})
+	)
+
+	go s.receiveVoteMessages(ctx, determinePrecommitCh, finalizableCh)
+
 	go s.sendPrevoteMessage(ctx, vm, determinePrecommitCh)
 
-	// determine and broadcast pre-commit only after seen prevote messages
+	// determine and broadcast pre-commit just after seen prevote messages
 	<-determinePrecommitCh
 	pc, err := s.determinePreCommit()
 	if err != nil {
@@ -515,11 +520,8 @@ func (s *Service) playGrandpaRound() error {
 	s.precommits.Store(s.publicKeyBytes(), spc)
 
 	go s.sendPrecommitMessage(ctx, pcm)
-	err = s.attemptToFinalize()
-	if err != nil {
-		logger.Errorf("failed to finalise: %s", err)
-		return err
-	}
+	// waits until round is finalizable
+	<-finalizableCh
 
 	logger.Debugf("round completed in %s", time.Since(start))
 	return nil
@@ -571,91 +573,6 @@ func (s *Service) sendPrevoteMessage(ctx context.Context, vm *VoteMessage, deter
 			logger.Warnf("sent vote message for stage %s: %s", prevote, vm.Message)
 		}
 	}
-}
-
-// attemptToFinalize loops until the round is finalisable
-func (s *Service) attemptToFinalize() error {
-	ticker := time.NewTicker(s.interval / 100)
-
-	var (
-		bestFinalCandidate *types.GrandpaVote
-		precommitCount     uint64
-	)
-
-	for {
-		select {
-		case <-s.ctx.Done():
-			return errors.New("context cancelled")
-		case <-ticker.C:
-		}
-
-		has, _ := s.blockState.HasFinalisedBlock(s.state.round, s.state.setID)
-		if has {
-			logger.Debugf("block was finalised for round %d", s.state.round)
-			return nil // a block was finalised, seems like we missed some messages
-		}
-
-		highestRound, highestSetID, _ := s.blockState.GetHighestRoundAndSetID()
-		if highestRound > s.state.round {
-			logger.Debugf("block was finalised for round %d and set id %d",
-				highestRound, highestSetID)
-			return nil // a block was finalised, seems like we missed some messages
-		}
-
-		if highestSetID > s.state.setID {
-			logger.Debugf("block was finalised for round %d and set id %d",
-				highestRound, highestSetID)
-			return nil // a block was finalised, seems like we missed some messages
-		}
-
-		var err error
-		bestFinalCandidate, err = s.getBestFinalCandidate()
-		if err != nil {
-			return err
-		}
-
-		precommitCount, err = s.getTotalVotesForBlock(bestFinalCandidate.Hash, precommit)
-		if err != nil {
-			return err
-		}
-
-		// once we reach the threshold we should stop sending precommit messages to other peers
-		if bestFinalCandidate.Number < uint32(s.head.Number) || precommitCount <= s.state.threshold() {
-			continue
-		}
-
-		break
-	}
-
-	if err := s.finalise(); err != nil {
-		return err
-	}
-
-	// if we haven't received a finalisation message for this block yet, broadcast a finalisation message
-	votes := s.getDirectVotes(precommit)
-	logger.Debugf("block was finalised for round %d and set id %d. "+
-		"Head hash is %s, %d direct votes for bfc and %d total votes for bfc",
-		s.state.round, s.state.setID, s.head.Hash(), votes[*bestFinalCandidate], precommitCount)
-
-	cm, err := s.newCommitMessage(s.head, s.state.round)
-	if err != nil {
-		return err
-	}
-
-	msg, err := cm.ToConsensusMessage()
-	if err != nil {
-		return err
-	}
-
-	logger.Debugf("sending CommitMessage: %v", cm)
-	s.network.GossipMessage(msg)
-
-	s.telemetry.SendMessage(telemetry.NewAfgFinalizedBlocksUpTo(
-		s.head.Hash(),
-		fmt.Sprint(s.head.Number),
-	))
-
-	return nil
 }
 
 func (s *Service) loadVote(key ed25519.PublicKeyBytes, stage Subround) (*SignedVote, bool) {

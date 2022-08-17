@@ -23,8 +23,10 @@ type networkVoteMessage struct {
 }
 
 // receiveVoteMessages receives messages from the in channel until a grandpa round finishes.
-func (s *Service) receiveVoteMessages(ctx context.Context, determinePrecommitCh chan<- struct{}) {
+func (s *Service) receiveVoteMessages(ctx context.Context, determinePrecommitCh, finalizableCh chan<- struct{}) {
+	defer close(finalizableCh)
 	defer close(determinePrecommitCh)
+
 	logger.Debug("receiving pre-vote messages...")
 
 	threshold := s.state.threshold()
@@ -54,6 +56,12 @@ func (s *Service) receiveVoteMessages(ctx context.Context, determinePrecommitCh 
 				continue
 			}
 
+			logger.Debugf(
+				"validated vote message %v from %s, round %d, subround %d, "+
+					"prevote count %d, precommit count %d, votes needed %d",
+				v, vm.Message.AuthorityID, vm.Round, vm.Message.Stage,
+				s.lenVotes(prevote), s.lenVotes(precommit), s.state.threshold()+1)
+
 			// when a given vote is validated we should check
 			// if we have reached the prevotes threshold
 			prevotesThreshold := s.lenVotes(prevote) - 1
@@ -62,11 +70,19 @@ func (s *Service) receiveVoteMessages(ctx context.Context, determinePrecommitCh 
 				determinePrecommitCh <- struct{}{}
 			}
 
-			logger.Debugf(
-				"validated vote message %v from %s, round %d, subround %d, "+
-					"prevote count %d, precommit count %d, votes needed %d",
-				v, vm.Message.AuthorityID, vm.Round, vm.Message.Stage,
-				s.lenVotes(prevote), s.lenVotes(precommit), s.state.threshold()+1)
+			switch vm.Message.Stage {
+			case precommit:
+				isFinalizable, err := s.attemptToFinalize()
+				if err != nil {
+					logger.Errorf("attempt to finalize: %w", err)
+					continue
+				}
+
+				if isFinalizable {
+					return
+				}
+			}
+
 		case <-ctx.Done():
 			logger.Trace("returning from receiveMessages")
 			return
@@ -95,6 +111,77 @@ func (s *Service) sendTelemetryVoteMessage(vm *VoteMessage) {
 	default:
 		logger.Warnf("unsupported stage %s", vm.Message.Stage.String())
 	}
+}
+
+// attemptToFinalize loops until the round is finalisable
+func (s *Service) attemptToFinalize() (isFinalizable bool, err error) {
+	// check if the current round contains a finalized block
+	has, _ := s.blockState.HasFinalisedBlock(s.state.round, s.state.setID)
+	if has {
+		logger.Debugf("block was finalised for round %d", s.state.round)
+		return true, nil
+	}
+
+	// a block was finalised, seems like we missed some messages
+	highestRound, highestSetID, _ := s.blockState.GetHighestRoundAndSetID()
+	if highestRound > s.state.round {
+		logger.Debugf("block was finalised for round %d and set id %d",
+			highestRound, highestSetID)
+		return true, nil
+	}
+
+	// a block was finalised, seems like we missed some messages
+	if highestSetID > s.state.setID {
+		logger.Debugf("block was finalised for round %d and set id %d",
+			highestRound, highestSetID)
+		return true, nil
+	}
+
+	bestFinalCandidate, err := s.getBestFinalCandidate()
+	if err != nil {
+		return false, fmt.Errorf("getting best final candidate: %w", err)
+	}
+
+	precommitCount, err := s.getTotalVotesForBlock(bestFinalCandidate.Hash, precommit)
+	if err != nil {
+		return false, fmt.Errorf("getting total votes for block %s: %w",
+			bestFinalCandidate.Hash.Short(), err)
+	}
+
+	// once we reach the threshold we should stop sending precommit messages to other peers
+	if bestFinalCandidate.Number < uint32(s.head.Number) || precommitCount <= s.state.threshold() {
+		return false, nil
+	}
+
+	if err := s.finalise(); err != nil {
+		return false, fmt.Errorf("finalising: %w", err)
+	}
+
+	// if we haven't received a finalisation message for this block yet, broadcast a finalisation message
+	votes := s.getDirectVotes(precommit)
+	logger.Debugf("block was finalised for round %d and set id %d. "+
+		"Head hash is %s, %d direct votes for bfc and %d total votes for bfc",
+		s.state.round, s.state.setID, s.head.Hash(), votes[*bestFinalCandidate], precommitCount)
+
+	cm, err := s.newCommitMessage(s.head, s.state.round)
+	if err != nil {
+		return true, nil // TODO: move the commit message gossip outside this function
+	}
+
+	msg, err := cm.ToConsensusMessage()
+	if err != nil {
+		return true, nil // TODO: move the commit message gossip outside this function
+	}
+
+	logger.Debugf("sending CommitMessage: %v", cm)
+	s.network.GossipMessage(msg)
+
+	s.telemetry.SendMessage(telemetry.NewAfgFinalizedBlocksUpTo(
+		s.head.Hash(),
+		fmt.Sprint(s.head.Number),
+	))
+
+	return true, nil
 }
 
 func (s *Service) createSignedVoteAndVoteMessage(vote *Vote, stage Subround) (*SignedVote, *VoteMessage, error) {
