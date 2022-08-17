@@ -26,8 +26,22 @@ func TestStorageState_RegisterStorageObserver(t *testing.T) {
 	mockfilter := map[string][]byte{}
 	mockobs := NewMockObserver(t)
 
-	mockobs.On("GetID").Return(uint(10))
-	mockobs.On("GetFilter").Return(mockfilter)
+	mockobs.On("GetID").Return(uint(10)).Times(2)
+
+	var fireAndForgetMockCallsWG sync.WaitGroup
+
+	fireAndForgetMockCallsWG.Add(2)
+	getFilterCall := mockobs.On("GetFilter").Return(mockfilter).Times(2)
+	getFilterCall.RunFn = func(args mock.Arguments) {
+		fireAndForgetMockCallsWG.Done()
+	}
+
+	fireAndForgetMockCallsWG.Add(1)
+	lastMockCall := mockobs.On("Update", mock.AnythingOfType("*state.SubscriptionResult")).
+		Return(map[string][]byte{}).Once()
+	lastMockCall.RunFn = func(args mock.Arguments) {
+		fireAndForgetMockCallsWG.Done()
+	}
 
 	ss.RegisterStorageObserver(mockobs)
 	defer ss.UnregisterStorageObserver(mockobs)
@@ -35,6 +49,11 @@ func TestStorageState_RegisterStorageObserver(t *testing.T) {
 	ts.Set([]byte("mackcom"), []byte("wuz here"))
 	err = ss.StoreTrie(ts, nil)
 	require.NoError(t, err)
+
+	// We need to wait since GetFilter and Update are called
+	// in fire and forget goroutines. Not ideal, but it's out of scope
+	// to refactor the production code in this commit.
+	fireAndForgetMockCallsWG.Wait()
 }
 
 func TestStorageState_RegisterStorageObserver_Multi(t *testing.T) {
