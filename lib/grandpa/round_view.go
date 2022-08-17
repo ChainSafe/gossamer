@@ -42,6 +42,21 @@ func (p *peerViewTracker) updatePeerView(who peer.ID, msg *NeighbourPacketV1) er
 	return nil
 }
 
+func (p *peerViewTracker) getPeersAtRound(r uint64) (peers peer.IDSlice) {
+	peers = make(peer.IDSlice, 0, len(p.peers))
+
+	p.mutex.RLock()
+	defer p.mutex.RUnlock()
+
+	for peer, v := range p.peers {
+		if v.Round == r {
+			peers = append(peers, peer)
+		}
+	}
+
+	return peers
+}
+
 func (p *peerViewTracker) removePeerView(who peer.ID) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
@@ -52,24 +67,4 @@ func newPeerViewTracker() *peerViewTracker {
 	return &peerViewTracker{
 		peers: make(map[peer.ID]view),
 	}
-}
-
-// OnPeerConnected will send neighbour message
-func (s *Service) OnPeerConnected(who peer.ID) {
-	s.roundLock.Lock()
-	neighbourMessage := &NeighbourPacketV1{
-		Round:  s.state.round,
-		SetID:  s.state.setID,
-		Number: uint32(s.head.Number),
-	}
-	s.roundLock.Unlock()
-
-	logger.Debugf("peer %s connected: sending neighbour message: %v",
-		who, neighbourMessage)
-	s.sendNeighbourMessageTo(who, neighbourMessage)
-}
-
-func (s *Service) OnPeerDisconnected(who peer.ID) {
-	logger.Debugf("peer %s disconnected: removing its view", who)
-	s.viewTracker.removePeerView(who)
 }

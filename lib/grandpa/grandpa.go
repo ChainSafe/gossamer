@@ -535,6 +535,37 @@ func (s *Service) playGrandpaRound() error {
 	return nil
 }
 
+func (s *Service) sendPrevoteMessage(ctx context.Context, vm *VoteMessage) {
+	voteMessage, err := vm.ToConsensusMessage()
+	if err != nil {
+		logger.Criticalf("transforming vote message into consensus message: %s", err)
+		return
+	}
+
+	logger.Debugf("sending pre-vote message %s...", vm)
+
+	ticker := time.NewTicker(s.interval * 4)
+	defer ticker.Stop()
+
+	// Though this looks like we are sending messages multiple times,
+	// caching would make sure that they are being sent only once.
+	for {
+		select {
+		case <-ticker.C:
+		case <-ctx.Done():
+			return
+		}
+
+		peers := s.viewTracker.getPeersAtRound(vm.Round)
+		if len(peers) > 0 {
+			for _, peer := range peers {
+				s.network.GossipMessageTo(peer, voteMessage)
+				logger.Warnf("sent prevote message to %s: %s", peer, vm)
+			}
+		}
+	}
+}
+
 func (s *Service) sendPrecommitMessage(ctx context.Context, vm *VoteMessage) {
 	logger.Debugf("sending pre-commit message %s...", vm.Message)
 
@@ -554,28 +585,6 @@ func (s *Service) sendPrecommitMessage(ctx context.Context, vm *VoteMessage) {
 			logger.Warnf("could not send message for stage %s: %s", precommit, err)
 		} else {
 			logger.Warnf("sent vote message for stage %s: %s", precommit, vm.Message)
-		}
-	}
-}
-
-func (s *Service) sendPrevoteMessage(ctx context.Context, vm *VoteMessage) {
-	logger.Debugf("sending pre-vote message %s...", vm)
-
-	ticker := time.NewTicker(s.interval * 4)
-	defer ticker.Stop()
-
-	// Though this looks like we are sending messages multiple times,
-	// caching would make sure that they are being sent only once.
-	for {
-		select {
-		case <-ticker.C:
-		case <-ctx.Done():
-			return
-		}
-		if err := s.sendMessage(vm); err != nil {
-			logger.Warnf("could not send message for stage %s: %s", prevote, err)
-		} else {
-			logger.Warnf("sent vote message for stage %s: %s", prevote, vm.Message)
 		}
 	}
 }

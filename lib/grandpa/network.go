@@ -68,6 +68,26 @@ func (*GrandpaHandshake) IsHandshake() bool {
 	return true
 }
 
+// OnPeerConnected will send neighbour message
+func (s *Service) OnPeerConnected(who peer.ID) {
+	s.roundLock.Lock()
+	neighbourMessage := &NeighbourPacketV1{
+		Round:  s.state.round,
+		SetID:  s.state.setID,
+		Number: uint32(s.head.Number),
+	}
+	s.roundLock.Unlock()
+
+	logger.Debugf("peer %s connected: sending neighbour message: %v",
+		who, neighbourMessage)
+	s.sendNeighbourMessageTo(who, neighbourMessage)
+}
+
+func (s *Service) OnPeerDisconnected(who peer.ID) {
+	logger.Debugf("peer %s disconnected: removing its view", who)
+	s.viewTracker.removePeerView(who)
+}
+
 func (s *Service) registerProtocol() error {
 	genesisHash := s.blockState.GenesisHash().String()
 	genesisHash = strings.TrimPrefix(genesisHash, "0x")
