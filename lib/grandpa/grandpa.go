@@ -472,6 +472,7 @@ func (s *Service) playGrandpaRound() error {
 
 	logger.Debugf("starting round %d with set id %d",
 		s.state.round, s.state.setID)
+
 	start := time.Now()
 
 	ctx, cancel := context.WithCancel(s.ctx)
@@ -504,7 +505,7 @@ func (s *Service) playGrandpaRound() error {
 
 	go s.receiveVoteMessages(ctx, determinePrecommitCh, finalizableCh)
 
-	go s.sendPrevoteMessage(ctx, vm, determinePrecommitCh)
+	go s.sendPrevoteMessage(vm, determinePrecommitCh)
 
 	// determine and broadcast pre-commit just after seen prevote messages
 	<-determinePrecommitCh
@@ -519,7 +520,7 @@ func (s *Service) playGrandpaRound() error {
 	}
 	s.precommits.Store(s.publicKeyBytes(), spc)
 
-	go s.sendPrecommitMessage(ctx, pcm)
+	go s.sendPrecommitMessage(pcm, finalizableCh)
 	// waits until round is finalizable
 	<-finalizableCh
 
@@ -527,7 +528,7 @@ func (s *Service) playGrandpaRound() error {
 	return nil
 }
 
-func (s *Service) sendPrecommitMessage(ctx context.Context, vm *VoteMessage) {
+func (s *Service) sendPrecommitMessage(vm *VoteMessage, isFinalizable <-chan struct{}) {
 	logger.Debugf("sending pre-commit message %s...", vm.Message)
 
 	ticker := time.NewTicker(s.interval * 4)
@@ -538,7 +539,7 @@ func (s *Service) sendPrecommitMessage(ctx context.Context, vm *VoteMessage) {
 	for {
 		select {
 		case <-ticker.C:
-		case <-ctx.Done():
+		case <-isFinalizable:
 			return
 		}
 
@@ -550,7 +551,7 @@ func (s *Service) sendPrecommitMessage(ctx context.Context, vm *VoteMessage) {
 	}
 }
 
-func (s *Service) sendPrevoteMessage(ctx context.Context, vm *VoteMessage, determinePrecommitCh <-chan struct{}) {
+func (s *Service) sendPrevoteMessage(vm *VoteMessage, determinePrecommitCh <-chan struct{}) {
 	logger.Debugf("sending pre-vote message %s...", vm)
 
 	ticker := time.NewTicker(s.interval * 4)
@@ -562,8 +563,6 @@ func (s *Service) sendPrevoteMessage(ctx context.Context, vm *VoteMessage, deter
 		select {
 		case <-ticker.C:
 		case <-determinePrecommitCh:
-			return
-		case <-ctx.Done():
 			return
 		}
 
