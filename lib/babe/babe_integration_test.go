@@ -15,6 +15,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/babe/mocks"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -315,7 +316,20 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 		_ = babeService.Stop()
 	}()
 
-	time.Sleep(babeService.constants.slotDuration * 2)
+	// add a block
+	parentHash := babeService.blockState.GenesisHash()
+	rt, err := babeService.blockState.GetRuntime(nil)
+	require.NoError(t, err)
+
+	epochData, err := babeService.initiateEpoch(testEpochIndex)
+	require.NoError(t, err)
+
+	ext := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0, "System.remark", []byte{0xab, 0xcd})
+	block := createTestBlock(t, babeService, emptyHeader, [][]byte{common.MustHexToBytes(ext)},
+		1, testEpochIndex, epochData)
+
+	babeService.blockState.AddBlock(block)
+	time.Sleep(babeService.constants.slotDuration * 10)
 
 	header, err := babeService.blockState.BestBlockHeader()
 	require.NoError(t, err)
@@ -335,8 +349,14 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 		testVRFOutputAndProof.output,
 		testVRFOutputAndProof.proof,
 	).ToPreRuntimeDigest()
+
 	require.NoError(t, err)
 
-	err = babeService.handleSlot(babeService.epochHandler.epochNumber, bestBlockSlotNum-1, babeService.epochHandler.epochData.authorityIndex, preRuntimeDigest)
-	require.ErrorAs(t, err, errLaggingSlot)
+	err = babeService.handleSlot(
+		babeService.epochHandler.epochNumber,
+		bestBlockSlotNum-1,
+		babeService.epochHandler.epochData.authorityIndex,
+		preRuntimeDigest)
+
+	require.ErrorIs(t, err, errLaggingSlot)
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 )
 
@@ -100,8 +101,22 @@ func newGenesisTrieAndHeader(t *testing.T, gen *Genesis) (*trie.Trie, *types.Hea
 	genTrie, err := NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
+	babeDigest := types.NewBabeDigest()
+	err = babeDigest.Set(types.BabePrimaryPreDigest{AuthorityIndex: 0})
+	require.NoError(t, err)
+
+	bdEnc, err := scale.Marshal(babeDigest)
+	require.NoError(t, err)
+
+	digest := types.NewDigest()
+	err = digest.Add(types.PreRuntimeDigest{
+		ConsensusEngineID: types.BabeEngineID,
+		Data:              bdEnc,
+	})
+	require.NoError(t, err)
+
 	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}),
-		genTrie.MustHash(), trie.EmptyHash, 0, types.NewDigest())
+		genTrie.MustHash(), trie.EmptyHash, 0, digest)
 	require.NoError(t, err)
 
 	return genTrie, genesisHeader
