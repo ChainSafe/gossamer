@@ -54,8 +54,8 @@ func (s *Service) receiveVoteMessages(ctx context.Context, determinePrecommitCh 
 				continue
 			}
 
-			// when a given vote is validated so we should check
-			// if we have reached the prevotes threshold which
+			// when a given vote is validated we should check
+			// if we have reached the prevotes threshold
 			prevotesThreshold := s.lenVotes(prevote) - 1
 			if !prevotesThresholdReached && prevotesThreshold >= int(threshold) {
 				prevotesThresholdReached = true

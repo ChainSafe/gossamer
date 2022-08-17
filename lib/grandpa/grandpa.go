@@ -499,7 +499,7 @@ func (s *Service) playGrandpaRound() error {
 
 	determinePrecommitCh := make(chan struct{})
 	go s.receiveVoteMessages(ctx, determinePrecommitCh)
-	go s.sendPrevoteMessage(ctx, vm)
+	go s.sendPrevoteMessage(ctx, vm, determinePrecommitCh)
 
 	// determine and broadcast pre-commit only after seen prevote messages
 	<-determinePrecommitCh
@@ -515,7 +515,6 @@ func (s *Service) playGrandpaRound() error {
 	s.precommits.Store(s.publicKeyBytes(), spc)
 
 	go s.sendPrecommitMessage(ctx, pcm)
-
 	err = s.attemptToFinalize()
 	if err != nil {
 		logger.Errorf("failed to finalise: %s", err)
@@ -549,7 +548,7 @@ func (s *Service) sendPrecommitMessage(ctx context.Context, vm *VoteMessage) {
 	}
 }
 
-func (s *Service) sendPrevoteMessage(ctx context.Context, vm *VoteMessage) {
+func (s *Service) sendPrevoteMessage(ctx context.Context, vm *VoteMessage, determinePrecommitCh <-chan struct{}) {
 	logger.Debugf("sending pre-vote message %s...", vm)
 
 	ticker := time.NewTicker(s.interval * 4)
@@ -560,9 +559,12 @@ func (s *Service) sendPrevoteMessage(ctx context.Context, vm *VoteMessage) {
 	for {
 		select {
 		case <-ticker.C:
+		case <-determinePrecommitCh:
+			return
 		case <-ctx.Done():
 			return
 		}
+
 		if err := s.sendMessage(vm); err != nil {
 			logger.Warnf("could not send message for stage %s: %s", prevote, err)
 		} else {
