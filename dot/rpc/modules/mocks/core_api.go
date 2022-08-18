@@ -118,17 +118,24 @@ func (_m *CoreAPI) GetRuntimeVersion(bhash *common.Hash) (runtime.Version, error
 }
 
 // HandleSubmittedExtrinsic provides a mock function with given fields: _a0
-func (_m *CoreAPI) HandleSubmittedExtrinsic(_a0 types.Extrinsic) error {
+func (_m *CoreAPI) HandleSubmittedExtrinsic(_a0 types.Extrinsic) (bool, error) {
 	ret := _m.Called(_a0)
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(types.Extrinsic) error); ok {
+	var r0 bool
+	if rf, ok := ret.Get(0).(func(types.Extrinsic) bool); ok {
 		r0 = rf(_a0)
 	} else {
-		r0 = ret.Error(0)
+		r0 = ret.Get(0).(bool)
 	}
 
-	return r0
+	var r1 error
+	if rf, ok := ret.Get(1).(func(types.Extrinsic) error); ok {
+		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // HasKey provides a mock function with given fields: pubKeyStr, keyType

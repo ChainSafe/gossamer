@@ -10,7 +10,3 @@ import (
 // ErrInvalidTransaction is returned if the call to runtime function
 // TaggedTransactionQueueValidateTransaction fails with value of [1, 0, x]
 var ErrInvalidTransaction = &json2.Error{Code: 1010, Message: "Invalid Transaction"}
-
-// ErrUnknownTransaction is returned if the call to runtime function
-// TaggedTransactionQueueValidateTransaction fails with value of [1, 1, x]
-var ErrUnknownTransaction = &json2.Error{Code: 1011, Message: "Unknown Transaction Validity"}

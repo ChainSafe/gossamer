@@ -150,11 +150,11 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 		24, 225, 37, 154, 163, 143}
 	errMockCoreAPI := mocks.NewCoreAPI(t)
 	errMockCoreAPI.On("HandleSubmittedExtrinsic",
-		types.Extrinsic(common.MustHexToBytes(fmt.Sprintf("0x%x", testInvalidExt)))).Return(fmt.Errorf("some error"))
+		types.Extrinsic(common.MustHexToBytes(fmt.Sprintf("0x%x", testInvalidExt)))).Return(false, fmt.Errorf("some error"))
 
 	mockCoreAPI := mocks.NewCoreAPI(t)
 	mockCoreAPI.On("HandleSubmittedExtrinsic",
-		types.Extrinsic(common.MustHexToBytes(fmt.Sprintf("0x%x", testExt)))).Return(nil)
+		types.Extrinsic(common.MustHexToBytes(fmt.Sprintf("0x%x", testExt)))).Return(false, nil)
 	type fields struct {
 		logger     log.LeveledLogger
 		coreAPI    CoreAPI

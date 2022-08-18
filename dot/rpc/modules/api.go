@@ -98,7 +98,7 @@ type CoreAPI interface {
 	InsertKey(kp crypto.Keypair, keystoreType string) error
 	HasKey(pubKeyStr string, keyType string) (bool, error)
 	GetRuntimeVersion(bhash *common.Hash) (runtime.Version, error)
-	HandleSubmittedExtrinsic(types.Extrinsic) error
+	HandleSubmittedExtrinsic(types.Extrinsic) (bool, error)
 	GetMetadata(bhash *common.Hash) ([]byte, error)
 	DecodeSessionKeys(enc []byte) ([]byte, error)
 	GetReadProofAt(block common.Hash, keys [][]byte) (common.Hash, [][]byte, error)

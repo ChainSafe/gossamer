@@ -216,6 +216,6 @@ func (am *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *Ex
 	ext := types.Extrinsic(extBytes)
 
 	*res = ExtrinsicHashResponse(ext.Hash().String())
-	err = am.coreAPI.HandleSubmittedExtrinsic(ext)
+	_, err = am.coreAPI.HandleSubmittedExtrinsic(ext)
 	return err
 }

@@ -461,52 +461,52 @@ func (s *Service) GetRuntimeVersion(bhash *common.Hash) (
 }
 
 // HandleSubmittedExtrinsic is used to send a Transaction message containing a Extrinsic @ext
-func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
+func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) (isTxnValidityErr bool, err error) {
 	if s.net == nil {
-		return nil
+		return false, nil
 	}
 
 	if s.transactionState.Exists(ext) {
-		return nil
+		return false, nil
 	}
 
 	bestBlockHash := s.blockState.BestBlockHash()
 
 	stateRoot, err := s.storageState.GetStateRootFromBlock(&bestBlockHash)
 	if err != nil {
-		return fmt.Errorf("could not get state root from block %s: %w", bestBlockHash, err)
+		return false, fmt.Errorf("could not get state root from block %s: %w", bestBlockHash, err)
 	}
 
 	ts, err := s.storageState.TrieState(stateRoot)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	rt, err := s.blockState.GetRuntime(&bestBlockHash)
 	if err != nil {
 		logger.Critical("failed to get runtime")
-		return err
+		return false, err
 	}
 
 	rt.SetContextStorage(ts)
 	// the transaction source is External
 	externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))
-	txv, txnValidityErr, err := rt.ValidateTransaction(externalExt)
+	transactionValidity, txnValidityErr, err := rt.ValidateTransaction(externalExt)
 	if err != nil || txnValidityErr != nil {
 		if txnValidityErr != nil {
-			return txnValidityErr.Error()
+			return true, txnValidityErr.Error()
 		}
-		return err
+		return false, err
 	}
 
 	// add transaction to pool
-	vtx := transaction.NewValidTransaction(ext, txv)
+	vtx := transaction.NewValidTransaction(ext, transactionValidity)
 	s.transactionState.AddToPool(vtx)
 
 	// broadcast transaction
 	msg := &network.TransactionMessage{Extrinsics: []types.Extrinsic{ext}}
 	s.net.GossipMessage(msg)
-	return nil
+	return false, nil
 }
 
 // GetMetadata calls runtime Metadata_metadata function
