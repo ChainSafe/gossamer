@@ -498,30 +498,30 @@ func (s *Service) playGrandpaRound() error {
 	// logger.Debugf("round completed in %s", time.Since(start))
 	// return nil
 
-	select {
-	// cancel from context
-	case <-s.ctx.Done():
-		return nil
+	for {
+		select {
+		// cancel from context
+		case <-s.ctx.Done():
+			return nil
 
-	case <-determinePrecommit:
-		pc, err := s.determinePreCommit()
-		if err != nil {
-			return err
+		case <-determinePrecommit:
+			pc, err := s.determinePreCommit()
+			if err != nil {
+				return err
+			}
+
+			spc, pcm, err := s.createSignedVoteAndVoteMessage(pc, precommit)
+			if err != nil {
+				return err
+			}
+			s.precommits.Store(s.publicKeyBytes(), spc)
+			go s.sendPrecommitMessage(pcm, cancel)
+
+		case <-finalizable:
+			logger.Debugf("round completed in %s", time.Since(start))
+			return nil
 		}
-
-		spc, pcm, err := s.createSignedVoteAndVoteMessage(pc, precommit)
-		if err != nil {
-			return err
-		}
-		s.precommits.Store(s.publicKeyBytes(), spc)
-		go s.sendPrecommitMessage(pcm, cancel)
-
-	case <-finalizable:
-		logger.Debugf("round completed in %s", time.Since(start))
-		return nil
 	}
-
-	return fmt.Errorf("how did we end up here?")
 }
 
 func (s *Service) sendPrecommitMessage(vm *VoteMessage, cancel <-chan struct{}) {
