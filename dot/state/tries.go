@@ -53,6 +53,14 @@ func NewTries(t *trie.Trie) (tries *Tries) {
 	}
 }
 
+func (t *Tries) SetEmptyTrie() {
+	t.softSet(trie.EmptyHash, trie.NewEmptyTrie())
+}
+
+func (t *Tries) SetTrie(trie *trie.Trie) {
+	t.softSet(trie.MustHash(), trie)
+}
+
 // softSet sets the given trie at the given root hash
 // in the memory map only if it is not already set.
 func (t *Tries) softSet(root common.Hash, trie *trie.Trie) {

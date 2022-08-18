@@ -32,6 +32,49 @@ func Test_NewTries(t *testing.T) {
 	assert.Equal(t, expectedTries, rootToTrie)
 }
 
+func Test_Tries_SetEmptyTrie(t *testing.T) {
+	t.Parallel()
+
+	tr := trie.NewTrie(&node.Node{Key: []byte{1}})
+
+	tries := NewTries(tr)
+	tries.SetEmptyTrie()
+
+	expectedTries := &Tries{
+		rootToTrie: map[common.Hash]*trie.Trie{
+			tr.MustHash():  tr,
+			trie.EmptyHash: trie.NewEmptyTrie(),
+		},
+		triesGauge:    triesGauge,
+		setCounter:    setCounter,
+		deleteCounter: deleteCounter,
+	}
+
+	assert.Equal(t, expectedTries, tries)
+}
+
+func Test_Tries_SetTrie(t *testing.T) {
+	t.Parallel()
+
+	trieA := trie.NewTrie(&node.Node{Key: []byte{1}})
+	trieB := trie.NewTrie(&node.Node{Key: []byte{2}})
+
+	tries := NewTries(trieA)
+	tries.SetTrie(trieB)
+
+	expectedTries := &Tries{
+		rootToTrie: map[common.Hash]*trie.Trie{
+			trieA.MustHash(): trieA,
+			trieB.MustHash(): trieB,
+		},
+		triesGauge:    triesGauge,
+		setCounter:    setCounter,
+		deleteCounter: deleteCounter,
+	}
+
+	assert.Equal(t, expectedTries, tries)
+}
+
 //go:generate mockgen -destination=mock_gauge_test.go -package $GOPACKAGE github.com/prometheus/client_golang/prometheus Gauge
 //go:generate mockgen -destination=mock_counter_test.go -package $GOPACKAGE github.com/prometheus/client_golang/prometheus Counter
 
