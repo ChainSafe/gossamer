@@ -42,7 +42,8 @@ func newState(t *testing.T) (*state.BlockState, *state.EpochState) {
 	db := state.NewInMemoryDB(t)
 
 	_, genesisTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
-	tries := state.NewTries(genesisTrie)
+	tries := state.NewTries()
+	tries.SetTrie(genesisTrie)
 	bs, err := state.NewBlockStateFromGenesis(db, tries, genesisHeader, telemetryMock)
 	require.NoError(t, err)
 	es, err := state.NewEpochStateFromGenesis(db, bs, genesisBABEConfig)

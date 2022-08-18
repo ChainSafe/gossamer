@@ -41,12 +41,10 @@ type Tries struct {
 }
 
 // NewTries creates a new thread safe map of root hash
-// to trie using the trie given as a first trie.
-func NewTries(t *trie.Trie) (tries *Tries) {
+// to trie.
+func NewTries() (tries *Tries) {
 	return &Tries{
-		rootToTrie: map[common.Hash]*trie.Trie{
-			t.MustHash(): t,
-		},
+		rootToTrie:    make(map[common.Hash]*trie.Trie),
 		triesGauge:    triesGauge,
 		setCounter:    setCounter,
 		deleteCounter: deleteCounter,

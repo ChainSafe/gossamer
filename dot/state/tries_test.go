@@ -16,14 +16,10 @@ import (
 func Test_NewTries(t *testing.T) {
 	t.Parallel()
 
-	tr := trie.NewEmptyTrie()
-
-	rootToTrie := NewTries(tr)
+	rootToTrie := NewTries()
 
 	expectedTries := &Tries{
-		rootToTrie: map[common.Hash]*trie.Trie{
-			tr.MustHash(): tr,
-		},
+		rootToTrie:    map[common.Hash]*trie.Trie{},
 		triesGauge:    triesGauge,
 		setCounter:    setCounter,
 		deleteCounter: deleteCounter,
@@ -35,14 +31,11 @@ func Test_NewTries(t *testing.T) {
 func Test_Tries_SetEmptyTrie(t *testing.T) {
 	t.Parallel()
 
-	tr := trie.NewTrie(&node.Node{Key: []byte{1}})
-
-	tries := NewTries(tr)
+	tries := NewTries()
 	tries.SetEmptyTrie()
 
 	expectedTries := &Tries{
 		rootToTrie: map[common.Hash]*trie.Trie{
-			tr.MustHash():  tr,
 			trie.EmptyHash: trie.NewEmptyTrie(),
 		},
 		triesGauge:    triesGauge,
@@ -56,16 +49,14 @@ func Test_Tries_SetEmptyTrie(t *testing.T) {
 func Test_Tries_SetTrie(t *testing.T) {
 	t.Parallel()
 
-	trieA := trie.NewTrie(&node.Node{Key: []byte{1}})
-	trieB := trie.NewTrie(&node.Node{Key: []byte{2}})
+	tr := trie.NewTrie(&node.Node{Key: []byte{1}})
 
-	tries := NewTries(trieA)
-	tries.SetTrie(trieB)
+	tries := NewTries()
+	tries.SetTrie(tr)
 
 	expectedTries := &Tries{
 		rootToTrie: map[common.Hash]*trie.Trie{
-			trieA.MustHash(): trieA,
-			trieB.MustHash(): trieB,
+			tr.MustHash(): tr,
 		},
 		triesGauge:    triesGauge,
 		setCounter:    setCounter,

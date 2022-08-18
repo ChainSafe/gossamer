@@ -113,7 +113,8 @@ func (s *Service) Start() (err error) {
 		return nil
 	}
 
-	tries := NewTries(trie.NewEmptyTrie())
+	tries := NewTries()
+	tries.SetEmptyTrie()
 
 	// create block state
 	s.Block, err = NewBlockState(s.db, tries, s.Telemetry)
