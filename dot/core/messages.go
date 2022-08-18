@@ -30,8 +30,10 @@ func (s *Service) validateTransaction(peerID peer.ID, head *types.Header, rt Run
 
 	// validate each transaction
 	externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, tx...))
-	validity, err = rt.ValidateTransaction(externalExt)
+	validity, _, err = rt.ValidateTransaction(externalExt)
 	if err != nil {
+		// Need to check type of the error
+
 		if errors.Is(err, runtime.ErrInvalidTransaction) {
 			s.net.ReportPeer(peerset.ReputationChange{
 				Value:  peerset.BadTransactionValue,

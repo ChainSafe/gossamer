@@ -349,8 +349,8 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 			externalExt := make(types.Extrinsic, 0, 1+len(ext))
 			externalExt = append(externalExt, byte(types.TxnExternal))
 			externalExt = append(externalExt, ext...)
-			txv, err := rt.ValidateTransaction(externalExt)
-			if err != nil {
+			txv, txnValidityErr, err := rt.ValidateTransaction(externalExt)
+			if err != nil || txnValidityErr != nil {
 				logger.Debugf("failed to validate transaction for extrinsic %s: %s", ext, err)
 				continue
 			}
@@ -382,8 +382,8 @@ func (s *Service) maintainTransactionPool(block *types.Block) {
 			continue
 		}
 
-		txnValidity, err := rt.ValidateTransaction(tx.Extrinsic)
-		if err != nil {
+		txnValidity, txnValidityErr, err := rt.ValidateTransaction(tx.Extrinsic)
+		if err != nil || txnValidityErr != nil {
 			s.transactionState.RemoveExtrinsic(tx.Extrinsic)
 			continue
 		}
@@ -488,8 +488,11 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 	rt.SetContextStorage(ts)
 	// the transaction source is External
 	externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))
-	txv, err := rt.ValidateTransaction(externalExt)
-	if err != nil {
+	txv, txnValidityErr, err := rt.ValidateTransaction(externalExt)
+	if err != nil || txnValidityErr != nil {
+		if txnValidityErr != nil {
+			return txnValidityErr.Error()
+		}
 		return err
 	}
 
