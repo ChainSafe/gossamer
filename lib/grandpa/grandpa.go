@@ -475,7 +475,7 @@ func (s *Service) playGrandpaRound() error {
 	defer close(cancel)
 
 	determinePrecommit, finalizable := s.receiveVoteMessages(cancel)
-	s.sendPrevoteMessage(vm, cancel)
+	go s.sendPrevoteMessage(vm, cancel)
 
 	// // determine and broadcast pre-commit just after seen prevote messages
 	// <-determinePrecommit
@@ -548,28 +548,26 @@ func (s *Service) sendPrecommitMessage(vm *VoteMessage, cancel <-chan struct{}) 
 }
 
 func (s *Service) sendPrevoteMessage(vm *VoteMessage, cancel <-chan struct{}) {
-	go func() {
-		logger.Debugf("sending pre-vote message %s...", vm)
+	logger.Debugf("sending pre-vote message %s...", vm)
 
-		ticker := time.NewTicker(s.interval * 4)
-		defer ticker.Stop()
+	ticker := time.NewTicker(s.interval * 4)
+	defer ticker.Stop()
 
-		// Though this looks like we are sending messages multiple times,
-		// caching would make sure that they are being sent only once.
-		for {
-			select {
-			case <-ticker.C:
-			case <-cancel:
-				return
-			}
-
-			if err := s.sendMessage(vm); err != nil {
-				logger.Warnf("could not send message for stage %s: %s", prevote, err)
-			} else {
-				logger.Warnf("sent vote message for stage %s: %s", prevote, vm.Message)
-			}
+	// Though this looks like we are sending messages multiple times,
+	// caching would make sure that they are being sent only once.
+	for {
+		select {
+		case <-ticker.C:
+		case <-cancel:
+			return
 		}
-	}()
+
+		if err := s.sendMessage(vm); err != nil {
+			logger.Warnf("could not send message for stage %s: %s", prevote, err)
+		} else {
+			logger.Warnf("sent vote message for stage %s: %s", prevote, vm.Message)
+		}
+	}
 }
 
 func (s *Service) loadVote(key ed25519.PublicKeyBytes, stage Subround) (*SignedVote, bool) {
