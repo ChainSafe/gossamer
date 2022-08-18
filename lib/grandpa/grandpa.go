@@ -448,8 +448,8 @@ func (s *Service) playGrandpaRound() error {
 
 	start := time.Now()
 
-	ctx, cancel := context.WithCancel(s.ctx)
-	defer cancel()
+	// ctx, cancel := context.WithCancel(s.ctx)
+	// defer cancel()
 
 	isPrimary, err := s.handleIsPrimary()
 	if err != nil {
@@ -471,37 +471,60 @@ func (s *Service) playGrandpaRound() error {
 		s.prevotes.Store(s.publicKeyBytes(), spv)
 	}
 
-	var (
-		finalizableCh        = make(chan struct{})
-		determinePrecommitCh = make(chan struct{})
-	)
+	cancel := make(chan struct{})
+	defer close(cancel)
 
-	go s.receiveVoteMessages(ctx, determinePrecommitCh, finalizableCh)
+	determinePrecommit, finalizable := s.receiveVoteMessages(cancel)
+	s.sendPrevoteMessage(vm, cancel)
 
-	go s.sendPrevoteMessage(vm, determinePrecommitCh)
+	// // determine and broadcast pre-commit just after seen prevote messages
+	// <-determinePrecommit
 
-	// determine and broadcast pre-commit just after seen prevote messages
-	<-determinePrecommitCh
-	pc, err := s.determinePreCommit()
-	if err != nil {
-		return err
-	}
+	// pc, err := s.determinePreCommit()
+	// if err != nil {
+	// 	return err
+	// }
 
-	spc, pcm, err := s.createSignedVoteAndVoteMessage(pc, precommit)
-	if err != nil {
-		return err
-	}
-	s.precommits.Store(s.publicKeyBytes(), spc)
+	// spc, pcm, err := s.createSignedVoteAndVoteMessage(pc, precommit)
+	// if err != nil {
+	// 	return err
+	// }
+	// s.precommits.Store(s.publicKeyBytes(), spc)
 
-	go s.sendPrecommitMessage(pcm, finalizableCh)
+	// go s.sendPrecommitMessage(pcm, finalizable)
 	// waits until round is finalizable
-	<-finalizableCh
+	// <-finalizable
 
-	logger.Debugf("round completed in %s", time.Since(start))
-	return nil
+	// logger.Debugf("round completed in %s", time.Since(start))
+	// return nil
+
+	select {
+	// cancel from context
+	case <-s.ctx.Done():
+		return nil
+
+	case <-determinePrecommit:
+		pc, err := s.determinePreCommit()
+		if err != nil {
+			return err
+		}
+
+		spc, pcm, err := s.createSignedVoteAndVoteMessage(pc, precommit)
+		if err != nil {
+			return err
+		}
+		s.precommits.Store(s.publicKeyBytes(), spc)
+		go s.sendPrecommitMessage(pcm, cancel)
+
+	case <-finalizable:
+		logger.Debugf("round completed in %s", time.Since(start))
+		return nil
+	}
+
+	return fmt.Errorf("how did we end up here?")
 }
 
-func (s *Service) sendPrecommitMessage(vm *VoteMessage, isFinalizable <-chan struct{}) {
+func (s *Service) sendPrecommitMessage(vm *VoteMessage, cancel <-chan struct{}) {
 	logger.Debugf("sending pre-commit message %s...", vm.Message)
 
 	ticker := time.NewTicker(s.interval * 4)
@@ -512,7 +535,7 @@ func (s *Service) sendPrecommitMessage(vm *VoteMessage, isFinalizable <-chan str
 	for {
 		select {
 		case <-ticker.C:
-		case <-isFinalizable:
+		case <-cancel:
 			return
 		}
 
@@ -524,27 +547,29 @@ func (s *Service) sendPrecommitMessage(vm *VoteMessage, isFinalizable <-chan str
 	}
 }
 
-func (s *Service) sendPrevoteMessage(vm *VoteMessage, determinePrecommitCh <-chan struct{}) {
-	logger.Debugf("sending pre-vote message %s...", vm)
+func (s *Service) sendPrevoteMessage(vm *VoteMessage, cancel <-chan struct{}) {
+	go func() {
+		logger.Debugf("sending pre-vote message %s...", vm)
 
-	ticker := time.NewTicker(s.interval * 4)
-	defer ticker.Stop()
+		ticker := time.NewTicker(s.interval * 4)
+		defer ticker.Stop()
 
-	// Though this looks like we are sending messages multiple times,
-	// caching would make sure that they are being sent only once.
-	for {
-		select {
-		case <-ticker.C:
-		case <-determinePrecommitCh:
-			return
+		// Though this looks like we are sending messages multiple times,
+		// caching would make sure that they are being sent only once.
+		for {
+			select {
+			case <-ticker.C:
+			case <-cancel:
+				return
+			}
+
+			if err := s.sendMessage(vm); err != nil {
+				logger.Warnf("could not send message for stage %s: %s", prevote, err)
+			} else {
+				logger.Warnf("sent vote message for stage %s: %s", prevote, vm.Message)
+			}
 		}
-
-		if err := s.sendMessage(vm); err != nil {
-			logger.Warnf("could not send message for stage %s: %s", prevote, err)
-		} else {
-			logger.Warnf("sent vote message for stage %s: %s", prevote, vm.Message)
-		}
-	}
+	}()
 }
 
 func (s *Service) loadVote(key ed25519.PublicKeyBytes, stage Subround) (*SignedVote, bool) {
