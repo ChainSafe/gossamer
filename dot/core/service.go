@@ -491,31 +491,10 @@ func (s *Service) DecodeSessionKeys(enc []byte) ([]byte, error) {
 // GetRuntimeVersion gets the current RuntimeVersion
 func (s *Service) GetRuntimeVersion(bhash *common.Hash) (
 	version runtime.Version, err error) {
-	var stateRootHash *common.Hash
-
-	// If block hash is not nil then fetch the state root corresponding to the block.
-	if bhash != nil {
-		var err error
-		stateRootHash, err = s.storageState.GetStateRootFromBlock(bhash)
-		if err != nil {
-			return version, err
-		}
-	} else {
-		bhash = new(common.Hash)
-		*bhash = s.blockState.BestBlockHash()
-	}
-
-	ts, err := s.storageState.TrieState(stateRootHash)
+	rt, err := prepareRuntime(bhash, s.storageState, s.blockState)
 	if err != nil {
-		return version, err
+		return version, fmt.Errorf("setting up runtime: %w", err)
 	}
-
-	rt, err := s.blockState.GetRuntime(*bhash)
-	if err != nil {
-		return version, err
-	}
-
-	rt.SetContextStorage(ts)
 	return rt.Version(), nil
 }
 
@@ -570,33 +549,11 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 }
 
 // GetMetadata calls runtime Metadata_metadata function
-func (s *Service) GetMetadata(bhash *common.Hash) ([]byte, error) {
-	var (
-		stateRootHash *common.Hash
-		err           error
-	)
-
-	// If block hash is not nil then fetch the state root corresponding to the block.
-	if bhash != nil {
-		stateRootHash, err = s.storageState.GetStateRootFromBlock(bhash)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		bhash = new(common.Hash)
-		*bhash = s.blockState.BestBlockHash()
-	}
-	ts, err := s.storageState.TrieState(stateRootHash)
+func (s *Service) GetMetadata(bhash *common.Hash) (metadata []byte, err error) {
+	rt, err := prepareRuntime(bhash, s.storageState, s.blockState)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("setting up runtime: %w", err)
 	}
-
-	rt, err := s.blockState.GetRuntime(*bhash)
-	if err != nil {
-		return nil, err
-	}
-
-	rt.SetContextStorage(ts)
 	return rt.Metadata()
 }
 
@@ -639,4 +596,34 @@ func (s *Service) buildExternalTransaction(rt runtime.Instance, ext types.Extrin
 		return nil, fmt.Errorf("%w: %d", errInvalidTransactionQueueVersion, txQueueVersion)
 	}
 	return types.Extrinsic(bytes.Join(extrinsicParts, nil)), nil
+}
+
+func prepareRuntime(blockHash *common.Hash, storageState StorageState,
+	blockState BlockState) (instance runtime.Instance, err error) {
+	var stateRootHash *common.Hash
+	if blockHash != nil {
+		stateRootHash, err = storageState.GetStateRootFromBlock(blockHash)
+		if err != nil {
+			return nil, fmt.Errorf("getting state root from block hash: %w", err)
+		}
+	}
+
+	trieState, err := storageState.TrieState(stateRootHash)
+	if err != nil {
+		return nil, fmt.Errorf("getting trie state: %w", err)
+	}
+
+	var blockHashValue common.Hash
+	if blockHash != nil {
+		blockHashValue = *blockHash
+	} else {
+		blockHashValue = blockState.BestBlockHash()
+	}
+	instance, err = blockState.GetRuntime(blockHashValue)
+	if err != nil {
+		return nil, fmt.Errorf("getting runtime: %w", err)
+	}
+
+	instance.SetContextStorage(trieState)
+	return instance, nil
 }
