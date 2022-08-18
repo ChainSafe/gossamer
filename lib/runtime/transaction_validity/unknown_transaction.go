@@ -14,7 +14,7 @@ import (
 type UnknownTransaction scale.VaryingDataType
 
 // Index fulfils the VaryingDataTypeValue interface.  T
-func (u UnknownTransaction) Index() uint {
+func (UnknownTransaction) Index() uint {
 	return 1
 }
 
@@ -28,19 +28,19 @@ var (
 type ValidityCannotLookup struct{}
 
 // Index Returns VDT index
-func (_ ValidityCannotLookup) Index() uint { return 0 }
+func (ValidityCannotLookup) Index() uint { return 0 }
 
 // NoUnsignedValidator No validator found for the given unsigned transaction
 type NoUnsignedValidator struct{}
 
 // Index Returns VDT index
-func (_ NoUnsignedValidator) Index() uint { return 1 }
+func (NoUnsignedValidator) Index() uint { return 1 }
 
 // UnknownCustom Any other custom unknown validity that is not covered
 type UnknownCustom uint8
 
 // Index Returns VDT index
-func (_ UnknownCustom) Index() uint { return 2 }
+func (UnknownCustom) Index() uint { return 2 }
 
 func newUnknownError(data scale.VaryingDataTypeValue) error {
 	return fmt.Errorf("unknown error: %d", data)

@@ -5,12 +5,12 @@ package core
 
 import (
 	"fmt"
-	txnvalidity "github.com/ChainSafe/gossamer/lib/runtime/transaction_validity"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	txnvalidity "github.com/ChainSafe/gossamer/lib/runtime/transaction_validity"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 
 	"github.com/libp2p/go-libp2p-core/peer"

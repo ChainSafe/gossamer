@@ -13,7 +13,7 @@ import (
 type InvalidTransaction scale.VaryingDataType
 
 // Index fulfils the VaryingDataTypeValue interface.  T
-func (i InvalidTransaction) Index() uint {
+func (InvalidTransaction) Index() uint {
 	return 0
 }
 
@@ -33,43 +33,43 @@ var (
 type Call struct{}
 
 // Index Returns VDT index
-func (_ Call) Index() uint { return 0 }
+func (Call) Index() uint { return 0 }
 
 // Payment General error to do with the inability to pay some fees (e.g. account balance too low)
 type Payment struct{}
 
 // Index Returns VDT index
-func (_ Payment) Index() uint { return 1 }
+func (Payment) Index() uint { return 1 }
 
 // Future General error to do with the transaction not yet being valid (e.g. nonce too high)
 type Future struct{}
 
 // Index Returns VDT index
-func (_ Future) Index() uint { return 2 }
+func (Future) Index() uint { return 2 }
 
 // Stale General error to do with the transaction being outdated (e.g. nonce too low)
 type Stale struct{}
 
 // Index Returns VDT index
-func (_ Stale) Index() uint { return 3 }
+func (Stale) Index() uint { return 3 }
 
 // BadProof General error to do with the transaction’s proofs (e.g. signature)
 type BadProof struct{}
 
 // Index Returns VDT index
-func (_ BadProof) Index() uint { return 4 }
+func (BadProof) Index() uint { return 4 }
 
 // AncientBirthBlock The transaction birth block is ancient
 type AncientBirthBlock struct{}
 
 // Index Returns VDT index
-func (_ AncientBirthBlock) Index() uint { return 5 }
+func (AncientBirthBlock) Index() uint { return 5 }
 
 // ExhaustsResources The transaction would exhaust the resources of current block
 type ExhaustsResources struct{}
 
 // Index Returns VDT index
-func (_ ExhaustsResources) Index() uint { return 6 }
+func (ExhaustsResources) Index() uint { return 6 }
 
 var invalidCustom InvalidCustom
 
@@ -77,19 +77,19 @@ var invalidCustom InvalidCustom
 type InvalidCustom uint8
 
 // Index Returns VDT index
-func (_ InvalidCustom) Index() uint { return 7 }
+func (InvalidCustom) Index() uint { return 7 }
 
 // BadMandatory An extrinsic with a Mandatory dispatch resulted in Error
 type BadMandatory struct{}
 
 // Index Returns VDT index
-func (_ BadMandatory) Index() uint { return 8 }
+func (BadMandatory) Index() uint { return 8 }
 
 // MandatoryDispatch A transaction with a mandatory dispatch
 type MandatoryDispatch struct{}
 
 // Index Returns VDT index
-func (_ MandatoryDispatch) Index() uint { return 9 }
+func (MandatoryDispatch) Index() uint { return 9 }
 
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
 func (i *InvalidTransaction) Set(val scale.VaryingDataTypeValue) (err error) {
