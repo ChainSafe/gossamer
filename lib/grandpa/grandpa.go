@@ -338,25 +338,15 @@ func (s *Service) initiateRound() error {
 
 	// make sure no votes can be validated while we are incrementing rounds
 	s.roundLock.Lock()
+	defer s.roundLock.Unlock()
+
 	s.state.round++
 	logger.Debugf("incrementing grandpa round, next round will be %d", s.state.round)
 	s.prevotes = new(sync.Map)
 	s.precommits = new(sync.Map)
 	s.pvEquivocations = make(map[ed25519.PublicKeyBytes][]*SignedVote)
 	s.pcEquivocations = make(map[ed25519.PublicKeyBytes][]*SignedVote)
-	s.roundLock.Unlock()
 
-	best, err := s.blockState.BestBlockHeader()
-	if err != nil {
-		return err
-	}
-
-	if best.Number > 0 {
-		return nil
-	}
-
-	// don't begin grandpa until we are at block 1
-	s.waitForFirstBlock()
 	return nil
 }
 
@@ -384,23 +374,6 @@ func (s *Service) initiate() error {
 
 		if s.ctx.Err() != nil {
 			return errors.New("context cancelled")
-		}
-	}
-}
-
-func (s *Service) waitForFirstBlock() {
-	ch := s.blockState.GetImportedBlockNotifierChannel()
-	defer s.blockState.FreeImportedBlockNotifierChannel(ch)
-
-	// loop until block 1
-	for {
-		select {
-		case block := <-ch:
-			if block != nil && block.Header.Number > 0 {
-				return
-			}
-		case <-s.ctx.Done():
-			return
 		}
 	}
 }

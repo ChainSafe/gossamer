@@ -113,7 +113,7 @@ func (s *Service) sendTelemetryVoteMessage(vm *VoteMessage) {
 	}
 }
 
-// attemptToFinalize loops until the round is finalisable
+// attemptToFinalize check if we should finalize the current round or waiting for more votes
 func (s *Service) attemptToFinalize() (isFinalizable bool, err error) {
 	// check if the current round contains a finalized block
 	has, _ := s.blockState.HasFinalisedBlock(s.state.round, s.state.setID)
@@ -165,12 +165,14 @@ func (s *Service) attemptToFinalize() (isFinalizable bool, err error) {
 
 	cm, err := s.newCommitMessage(s.head, s.state.round)
 	if err != nil {
-		return true, nil // TODO: move the commit message gossip outside this function
+		// TODO: move the commit message gossip outside this function
+		return true, nil
 	}
 
 	msg, err := cm.ToConsensusMessage()
 	if err != nil {
-		return true, nil // TODO: move the commit message gossip outside this function
+		// TODO: move the commit message gossip outside this function
+		return true, nil
 	}
 
 	logger.Debugf("sending CommitMessage: %v", cm)
