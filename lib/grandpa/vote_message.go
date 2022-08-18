@@ -79,6 +79,24 @@ func (s *Service) receiveVoteMessages(ctx context.Context, determinePrecommitCh,
 				}
 
 				if isFinalizable {
+					cm, err := s.newCommitMessage(s.head, s.state.round)
+					if err != nil {
+						logger.Errorf("generating commit message: %s", err)
+						return
+					}
+
+					msg, err := cm.ToConsensusMessage()
+					if err != nil {
+						logger.Errorf("transforming commit into consensus message: %s", err)
+						return
+					}
+
+					logger.Debugf("sending CommitMessage: %v", cm)
+					s.network.GossipMessage(msg)
+					s.telemetry.SendMessage(telemetry.NewAfgFinalizedBlocksUpTo(
+						s.head.Hash(),
+						fmt.Sprint(s.head.Number),
+					))
 					return
 				}
 			}
@@ -153,7 +171,8 @@ func (s *Service) attemptToFinalize() (isFinalizable bool, err error) {
 		return false, nil
 	}
 
-	if err := s.finalise(); err != nil {
+	err = s.finalise()
+	if err != nil {
 		return false, fmt.Errorf("finalising: %w", err)
 	}
 
@@ -162,26 +181,6 @@ func (s *Service) attemptToFinalize() (isFinalizable bool, err error) {
 	logger.Debugf("block was finalised for round %d and set id %d. "+
 		"Head hash is %s, %d direct votes for bfc and %d total votes for bfc",
 		s.state.round, s.state.setID, s.head.Hash(), votes[*bestFinalCandidate], precommitCount)
-
-	cm, err := s.newCommitMessage(s.head, s.state.round)
-	if err != nil {
-		// TODO: move the commit message gossip outside this function
-		return true, nil
-	}
-
-	msg, err := cm.ToConsensusMessage()
-	if err != nil {
-		// TODO: move the commit message gossip outside this function
-		return true, nil
-	}
-
-	logger.Debugf("sending CommitMessage: %v", cm)
-	s.network.GossipMessage(msg)
-
-	s.telemetry.SendMessage(telemetry.NewAfgFinalizedBlocksUpTo(
-		s.head.Hash(),
-		fmt.Sprint(s.head.Number),
-	))
 
 	return true, nil
 }
