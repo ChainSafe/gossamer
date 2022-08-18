@@ -1093,7 +1093,7 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 	ext := types.Extrinsic{}
 	externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))
 	execTest := func(t *testing.T, s *Service, ext types.Extrinsic, expErr error) {
-		err := s.HandleSubmittedExtrinsic(ext)
+		_, err := s.HandleSubmittedExtrinsic(ext)
 		assert.ErrorIs(t, err, expErr)
 		if expErr != nil {
 			assert.EqualError(t, err, expErr.Error())
