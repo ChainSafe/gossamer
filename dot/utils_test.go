@@ -62,7 +62,7 @@ func TestCreateJSONRawFile(t *testing.T) {
 				bs: &BuildSpec{genesis: NewTestGenesis(t)},
 				fp: filepath.Join(t.TempDir(), "/test.json"),
 			},
-			expectedHash: "6453fb6118dab594944a7ed68111fdccc3a68253c9d71ac05f27aa2359507c85",
+			expectedHash: "d7f9bb9dfc9623f70f733f1ac2b0dcb9b3718fe40a6ade4410c259ef2fe4838f",
 		},
 	}
 	for _, tt := range tests {
