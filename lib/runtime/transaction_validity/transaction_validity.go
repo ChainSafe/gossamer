@@ -9,13 +9,9 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-/// Information on a transaction's validity and, if valid, on how it relates to other transactions.
-//pub type TransactionValidity = Result<ValidTransaction, TransactionValidityError>;
-
 // TransactionValidityError Information on a transaction's validity and, if valid,
 // on how it relates to other transactions. It is a result of the form:
 // Result<ValidTransaction, TransactionValidityError>
-// nolint
 type TransactionValidityError scale.VaryingDataType
 
 var (
