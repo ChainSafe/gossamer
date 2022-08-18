@@ -308,7 +308,7 @@ func (mr *MockBlockStateMockRecorder) GetReceipt(arg0 interface{}) *gomock.Call 
 }
 
 // GetRuntime mocks base method.
-func (m *MockBlockState) GetRuntime(arg0 *common.Hash) (runtime.Instance, error) {
+func (m *MockBlockState) GetRuntime(arg0 common.Hash) (runtime.Instance, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetRuntime", arg0)
 	ret0, _ := ret[0].(runtime.Instance)

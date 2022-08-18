@@ -157,7 +157,8 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 	genHeader, err := s.blockState.BestBlockHeader()
 	require.NoError(t, err)
 
-	rt, err := s.blockState.GetRuntime(nil)
+	bestBlockHash := s.blockState.BestBlockHash()
+	rt, err := s.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
 	ts, err := s.storageState.TrieState(nil)

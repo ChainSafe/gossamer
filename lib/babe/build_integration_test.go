@@ -70,7 +70,8 @@ func createTestBlock(t *testing.T, babeService *Service, parent *types.Header,
 		number:   slotNumber,
 	}
 
-	rt, err := babeService.blockState.GetRuntime(nil)
+	bestBlockHash := babeService.blockState.BestBlockHash()
+	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
 	preRuntimeDigest, err := claimSlot(epoch, slotNumber, epochData, babeService.keypair)
@@ -89,7 +90,8 @@ func TestBuildBlock_ok(t *testing.T) {
 	babeService := createTestService(t, ServiceConfig{})
 
 	parentHash := babeService.blockState.GenesisHash()
-	rt, err := babeService.blockState.GetRuntime(nil)
+	bestBlockHash := babeService.blockState.BestBlockHash()
+	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
@@ -149,7 +151,8 @@ func TestApplyExtrinsic(t *testing.T) {
 	parentHeader, err := babeService.blockState.GetHeader(parentHash)
 	require.NoError(t, err)
 
-	rt, err := babeService.blockState.GetRuntime(nil)
+	bestBlockHash := babeService.blockState.BestBlockHash()
+	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
 	ts, err := babeService.storageState.TrieState(nil)
@@ -210,7 +213,8 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	parentHash := common.MustHexToHash("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
 	header := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, 1, types.NewDigest())
 
-	rt, err := babeService.blockState.GetRuntime(nil)
+	bestBlockHash := babeService.blockState.BestBlockHash()
+	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
 	//initialise block header
@@ -327,7 +331,8 @@ func TestBuildBlock_failing(t *testing.T) {
 		number:   1000,
 	}
 
-	rt, err := babeService.blockState.GetRuntime(nil)
+	bestBlockHash := babeService.blockState.BestBlockHash()
+	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
 	const authorityIndex uint32 = 0

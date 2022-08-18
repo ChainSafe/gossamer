@@ -218,7 +218,7 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 	logger.Debugf("imported block %s and stored state trie with root %s",
 		block.Header.Hash(), state.MustRoot())
 
-	rt, err := s.blockState.GetRuntime(&block.Header.ParentHash)
+	rt, err := s.blockState.GetRuntime(block.Header.ParentHash)
 	if err != nil {
 		return err
 	}
@@ -262,7 +262,7 @@ func (s *Service) handleCodeSubstitution(hash common.Hash,
 		return fmt.Errorf("%w: for hash %s", ErrEmptyRuntimeCode, hash)
 	}
 
-	rt, err := s.blockState.GetRuntime(&hash)
+	rt, err := s.blockState.GetRuntime(hash)
 	if err != nil {
 		return fmt.Errorf("getting runtime from block state: %w", err)
 	}
@@ -352,7 +352,8 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 	}
 
 	// Check transaction validation on the best block.
-	rt, err := s.blockState.GetRuntime(nil)
+	bestBlockHash := s.blockState.BestBlockHash()
+	rt, err := s.blockState.GetRuntime(bestBlockHash)
 	if err != nil {
 		return err
 	}
@@ -425,7 +426,8 @@ func (s *Service) maintainTransactionPool(block *types.Block, bestBlockHash comm
 	// re-validate transactions in the pool and move them to the queue
 	txs := s.transactionState.PendingInPool()
 	for _, tx := range txs {
-		rt, err := s.blockState.GetRuntime(&bestBlockHash)
+		bestBlockHash := s.blockState.BestBlockHash()
+		rt, err := s.blockState.GetRuntime(bestBlockHash)
 		if err != nil {
 			return fmt.Errorf("failed to get runtime to re-validate transactions in pool: %s", err)
 		}
@@ -477,7 +479,8 @@ func (s *Service) HasKey(pubKeyStr, keystoreType string) (bool, error) {
 
 // DecodeSessionKeys executes the runtime DecodeSessionKeys and return the scale encoded keys
 func (s *Service) DecodeSessionKeys(enc []byte) ([]byte, error) {
-	rt, err := s.blockState.GetRuntime(nil)
+	bestBlockHash := s.blockState.BestBlockHash()
+	rt, err := s.blockState.GetRuntime(bestBlockHash)
 	if err != nil {
 		return nil, err
 	}
@@ -497,6 +500,9 @@ func (s *Service) GetRuntimeVersion(bhash *common.Hash) (
 		if err != nil {
 			return version, err
 		}
+	} else {
+		bhash = new(common.Hash)
+		*bhash = s.blockState.BestBlockHash()
 	}
 
 	ts, err := s.storageState.TrieState(stateRootHash)
@@ -504,7 +510,7 @@ func (s *Service) GetRuntimeVersion(bhash *common.Hash) (
 		return version, err
 	}
 
-	rt, err := s.blockState.GetRuntime(bhash)
+	rt, err := s.blockState.GetRuntime(*bhash)
 	if err != nil {
 		return version, err
 	}
@@ -535,7 +541,7 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 		return err
 	}
 
-	rt, err := s.blockState.GetRuntime(&bestBlockHash)
+	rt, err := s.blockState.GetRuntime(bestBlockHash)
 	if err != nil {
 		logger.Critical("failed to get runtime")
 		return err
@@ -576,13 +582,16 @@ func (s *Service) GetMetadata(bhash *common.Hash) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
+	} else {
+		bhash = new(common.Hash)
+		*bhash = s.blockState.BestBlockHash()
 	}
 	ts, err := s.storageState.TrieState(stateRootHash)
 	if err != nil {
 		return nil, err
 	}
 
-	rt, err := s.blockState.GetRuntime(bhash)
+	rt, err := s.blockState.GetRuntime(*bhash)
 	if err != nil {
 		return nil, err
 	}

@@ -70,7 +70,7 @@ type BlockState interface {
 	SubChain(start, end common.Hash) ([]common.Hash, error)
 	GetBlockBody(hash common.Hash) (*types.Body, error)
 	HandleRuntimeChanges(newState *rtstorage.TrieState, in runtime.Instance, bHash common.Hash) error
-	GetRuntime(*common.Hash) (runtime.Instance, error)
+	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
 	StoreRuntime(common.Hash, runtime.Instance)
 }
 
