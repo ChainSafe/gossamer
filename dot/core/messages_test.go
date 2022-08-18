@@ -5,15 +5,16 @@ package core
 
 import (
 	"errors"
+	"github.com/stretchr/testify/require"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/runtime"
 	mocksruntime "github.com/ChainSafe/gossamer/lib/runtime/mocks"
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
+	txnValidity "github.com/ChainSafe/gossamer/lib/runtime/transaction_validity"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 
 	"github.com/golang/mock/gomock"
@@ -64,9 +65,10 @@ type mockSetContextStorage struct {
 }
 
 type mockValidateTxn struct {
-	input    types.Extrinsic
-	validity *transaction.Validity
-	err      error
+	input       types.Extrinsic
+	validity    *transaction.Validity
+	validityErr *txnValidity.TransactionValidityError
+	err         error
 }
 
 type mockRuntime struct {
@@ -117,6 +119,13 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 	runtimeMock := mocksruntime.NewInstance(t)
 	runtimeMock2 := mocksruntime.NewInstance(t)
 	runtimeMock3 := mocksruntime.NewInstance(t)
+
+	transactionValidityErr := txnValidity.NewTransactionValidityError()
+	invalidTransaction := txnValidity.NewInvalidTransaction()
+	err := invalidTransaction.Set(txnValidity.Future{})
+	require.NoError(t, err)
+	err = transactionValidityErr.Set(invalidTransaction)
+	require.NoError(t, err)
 
 	type args struct {
 		peerID peer.ID
@@ -256,8 +265,8 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 				runtime:           runtimeMock2,
 				setContextStorage: &mockSetContextStorage{trieState: &storage.TrieState{}},
 				validateTxn: &mockValidateTxn{
-					input: types.Extrinsic(append([]byte{byte(types.TxnExternal)}, testExtrinsic[0]...)),
-					err:   runtime.ErrInvalidTransaction,
+					input:       types.Extrinsic(append([]byte{byte(types.TxnExternal)}, testExtrinsic[0]...)),
+					validityErr: &transactionValidityErr,
 				},
 			},
 			args: args{
@@ -359,7 +368,8 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 				rt := tt.mockRuntime.runtime
 				rt.On("SetContextStorage", tt.mockRuntime.setContextStorage.trieState)
 				rt.On("ValidateTransaction", tt.mockRuntime.validateTxn.input).
-					Return(tt.mockRuntime.validateTxn.validity, tt.mockRuntime.validateTxn.err)
+					Return(tt.mockRuntime.validateTxn.validity,
+						tt.mockRuntime.validateTxn.validityErr, tt.mockRuntime.validateTxn.err)
 			}
 
 			res, err := s.HandleTransactionMessage(tt.args.peerID, tt.args.msg)

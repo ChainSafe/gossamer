@@ -351,6 +351,9 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 			externalExt = append(externalExt, ext...)
 			txv, txnValidityErr, err := rt.ValidateTransaction(externalExt)
 			if err != nil || txnValidityErr != nil {
+				if txnValidityErr != nil {
+					err = txnValidityErr.Error()
+				}
 				logger.Debugf("failed to validate transaction for extrinsic %s: %s", ext, err)
 				continue
 			}

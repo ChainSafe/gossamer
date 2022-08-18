@@ -224,11 +224,11 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 		},
 		"instance creation error": {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
-				storedRuntime := NewMockInstance(ctrl)
-				storedRuntime.EXPECT().Keystore().Return(nil)
-				storedRuntime.EXPECT().NodeStorage().Return(runtime.NodeStorage{})
-				storedRuntime.EXPECT().NetworkService().Return(nil)
-				storedRuntime.EXPECT().Validator().Return(false)
+				storedRuntime := mocksruntime.NewInstance(t)
+				storedRuntime.On("Keystore").Return(nil)
+				storedRuntime.On("NodeStorage").Return(runtime.NodeStorage{})
+				storedRuntime.On("NetworkService").Return(nil)
+				storedRuntime.On("Validator").Return(false)
 
 				blockState := NewMockBlockState(ctrl)
 				blockState.EXPECT().GetRuntime(hashPtr(common.Hash{0x01})).
@@ -251,11 +251,11 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 		},
 		"store code substitution block hash error": {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
-				storedRuntime := NewMockInstance(ctrl)
-				storedRuntime.EXPECT().Keystore().Return(nil)
-				storedRuntime.EXPECT().NodeStorage().Return(runtime.NodeStorage{})
-				storedRuntime.EXPECT().NetworkService().Return(nil)
-				storedRuntime.EXPECT().Validator().Return(true)
+				storedRuntime := mocksruntime.NewInstance(t)
+				storedRuntime.On("Keystore").Return(nil)
+				storedRuntime.On("NodeStorage").Return(runtime.NodeStorage{})
+				storedRuntime.On("NetworkService").Return(nil)
+				storedRuntime.On("Validator").Return(true)
 
 				blockState := NewMockBlockState(ctrl)
 				blockState.EXPECT().GetRuntime(hashPtr(common.Hash{0x01})).
@@ -280,11 +280,11 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 		},
 		"success": {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
-				storedRuntime := NewMockInstance(ctrl)
-				storedRuntime.EXPECT().Keystore().Return(nil)
-				storedRuntime.EXPECT().NodeStorage().Return(runtime.NodeStorage{})
-				storedRuntime.EXPECT().NetworkService().Return(nil)
-				storedRuntime.EXPECT().Validator().Return(true)
+				storedRuntime := mocksruntime.NewInstance(t)
+				storedRuntime.On("Keystore").Return(nil)
+				storedRuntime.On("NodeStorage").Return(runtime.NodeStorage{})
+				storedRuntime.On("NetworkService").Return(nil)
+				storedRuntime.On("Validator").Return(true)
 
 				blockState := NewMockBlockState(ctrl)
 				blockState.EXPECT().GetRuntime(hashPtr(common.Hash{0x01})).
@@ -595,7 +595,7 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		runtimeMock := mocksruntime.NewInstance(t)
 		runtimeMock.On("ValidateTransaction", types.Extrinsic{21}).
-			Return(&transaction.Validity{Propagate: true}, nil)
+			Return(&transaction.Validity{Propagate: true}, nil, nil)
 		mockTxnState := NewMockTransactionState(ctrl)
 		mockTxnState.EXPECT().RemoveExtrinsic(types.Extrinsic{21})
 		mockTxnState.EXPECT().PendingInPool().Return([]*transaction.ValidTransaction{vt})
@@ -820,7 +820,7 @@ func TestService_handleChainReorg(t *testing.T) {
 		mockBlockState.EXPECT().GetRuntime(nil).Return(runtimeMockErr, nil)
 		mockBlockState.EXPECT().GetBlockBody(testCurrentHash).Return(nil, errDummyErr)
 		mockBlockState.EXPECT().GetBlockBody(testAncestorHash).Return(body, nil)
-		runtimeMockErr.On("ValidateTransaction", externExt).Return(nil, errTestDummyError)
+		runtimeMockErr.On("ValidateTransaction", externExt).Return(nil, nil, errTestDummyError)
 
 		service := &Service{
 			blockState: mockBlockState,
@@ -840,7 +840,7 @@ func TestService_handleChainReorg(t *testing.T) {
 		mockBlockState.EXPECT().GetBlockBody(testCurrentHash).Return(nil, errDummyErr)
 		mockBlockState.EXPECT().GetBlockBody(testAncestorHash).Return(body, nil)
 		runtimeMockOk.On("ValidateTransaction", externExt).
-			Return(testValidity, nil)
+			Return(testValidity, nil, nil)
 		mockTxnStateOk := NewMockTransactionState(ctrl)
 		mockTxnStateOk.EXPECT().AddToPool(vtx).Return(common.Hash{})
 
@@ -1165,7 +1165,7 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 		mockTxnState.EXPECT().Exists(types.Extrinsic{})
 
 		runtimeMockErr.On("SetContextStorage", &rtstorage.TrieState{})
-		runtimeMockErr.On("ValidateTransaction", externalExt).Return(nil, errDummyErr)
+		runtimeMockErr.On("ValidateTransaction", externalExt).Return(nil, nil, errDummyErr)
 		service := &Service{
 			storageState:     mockStorageState,
 			transactionState: mockTxnState,
@@ -1185,7 +1185,7 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 		mockBlockState.EXPECT().GetRuntime(&common.Hash{}).Return(runtimeMock, nil).MaxTimes(2)
 		runtimeMock.On("SetContextStorage", &rtstorage.TrieState{})
 		runtimeMock.On("ValidateTransaction", externalExt).
-			Return(&transaction.Validity{Propagate: true}, nil)
+			Return(&transaction.Validity{Propagate: true}, nil, nil)
 
 		mockStorageState := NewMockStorageState(ctrl)
 		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(&rtstorage.TrieState{}, nil)

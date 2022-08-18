@@ -366,7 +366,7 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	rt, err := s.blockState.GetRuntime(&bhash)
 	require.NoError(t, err)
 
-	validity, err := rt.ValidateTransaction(tx)
+	validity, _, err := rt.ValidateTransaction(tx)
 	require.NoError(t, err)
 
 	// get common ancestor

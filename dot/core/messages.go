@@ -4,8 +4,8 @@
 package core
 
 import (
-	"errors"
 	"fmt"
+	txnvalidity "github.com/ChainSafe/gossamer/lib/runtime/transaction_validity"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
@@ -30,18 +30,23 @@ func (s *Service) validateTransaction(peerID peer.ID, head *types.Header, rt Run
 
 	// validate each transaction
 	externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, tx...))
-	validity, _, err = rt.ValidateTransaction(externalExt)
+	validity, txnValidityErr, err := rt.ValidateTransaction(externalExt)
 	if err != nil {
-		// Need to check type of the error
-
-		if errors.Is(err, runtime.ErrInvalidTransaction) {
+		logger.Debugf("failed to validate transaction: %s", err)
+		return nil, false, err
+	}
+	if txnValidityErr != nil {
+		switch err := txnValidityErr.Value().(type) {
+		// TODO with custom result type have Error() func for txnValidityErr
+		case txnvalidity.InvalidTransaction:
 			s.net.ReportPeer(peerset.ReputationChange{
 				Value:  peerset.BadTransactionValue,
 				Reason: peerset.BadTransactionReason,
 			}, peerID)
+			logger.Debugf("failed to validate transaction: %s", err.Error())
+		case txnvalidity.UnknownTransaction:
+			logger.Debugf("failed to validate transaction: %s", err.Error())
 		}
-
-		logger.Debugf("failed to validate transaction: %s", err)
 		return nil, false, nil
 	}
 
@@ -84,6 +89,7 @@ func (s *Service) HandleTransactionMessage(peerID peer.ID, msg *network.Transact
 	for _, tx := range txs {
 		validity, isValidTxn, err := s.validateTransaction(peerID, head, rt, tx)
 		if err != nil {
+			// Believe don't hit this if isValidTxn, but verify in review
 			return false, fmt.Errorf("failed validating transaction for peerID %s: %w", peerID, err)
 		}
 
