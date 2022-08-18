@@ -39,7 +39,6 @@ func Test_hashToRuntime_get(t *testing.T) {
 		"hash does not exist": {
 			htr: &hashToRuntime{
 				mapping: map[Hash]runtime.Instance{
-					//{4, 5, 6}: NewMockInstance(nil),
 					{4, 5, 6}: runtimeMocks.NewInstance(t),
 				},
 			},
