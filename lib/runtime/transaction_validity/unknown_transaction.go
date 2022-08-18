@@ -28,19 +28,19 @@ var (
 type ValidityCannotLookup struct{}
 
 // Index Returns VDT index
-func (err ValidityCannotLookup) Index() uint { return 0 }
+func (_ ValidityCannotLookup) Index() uint { return 0 }
 
 // NoUnsignedValidator No validator found for the given unsigned transaction
 type NoUnsignedValidator struct{}
 
 // Index Returns VDT index
-func (err NoUnsignedValidator) Index() uint { return 1 }
+func (_ NoUnsignedValidator) Index() uint { return 1 }
 
 // UnknownCustom Any other custom unknown validity that is not covered
 type UnknownCustom uint8
 
 // Index Returns VDT index
-func (err UnknownCustom) Index() uint { return 2 }
+func (_ UnknownCustom) Index() uint { return 2 }
 
 func newUnknownError(data scale.VaryingDataTypeValue) error {
 	return fmt.Errorf("unknown error: %d", data)
