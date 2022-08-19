@@ -6,12 +6,12 @@ package sync
 import (
 	"context"
 	"errors"
-	mocksruntime "github.com/ChainSafe/gossamer/lib/runtime/mocks"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
+	mocksruntime "github.com/ChainSafe/gossamer/lib/runtime/mocks"
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/golang/mock/gomock"
@@ -735,7 +735,7 @@ func Test_chainProcessor_processReadyBlocks(t *testing.T) {
 				mockBlockState.EXPECT().HasHeader(common.Hash{}).Return(false, nil)
 				mockBlockState.EXPECT().HasBlockBody(common.Hash{}).Return(false, nil)
 				mockBlockState.EXPECT().CompareAndSetBlockData(&types.BlockData{}).DoAndReturn(func(*types.
-				BlockData) error {
+					BlockData) error {
 					close(done)
 					return nil
 				})
@@ -813,7 +813,7 @@ func Test_chainProcessor_processReadyBlocks(t *testing.T) {
 				mockStorageState.EXPECT().Lock()
 				mockStorageState.EXPECT().Unlock()
 				mockStorageState.EXPECT().TrieState(&common.Hash{}).DoAndReturn(func(hash *common.Hash) (*storage.
-				TrieState, error) {
+					TrieState, error) {
 					close(done)
 					return nil, mockError
 				})
