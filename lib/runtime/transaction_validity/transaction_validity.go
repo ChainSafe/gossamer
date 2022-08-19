@@ -44,9 +44,8 @@ func (tve *TransactionValidityError) Error() string {
 		unknownTxn, ok2 := tve.Value().(UnknownTransaction)
 		if !ok2 {
 			return errInvalidTypeCast.Error()
-		} else {
-			return unknownTxn.Error()
 		}
+		return unknownTxn.Error()
 	} else {
 		return invalidTxn.Error()
 	}
