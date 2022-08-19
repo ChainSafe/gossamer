@@ -52,25 +52,23 @@ func setupConfig(t *testing.T, tt *trie.Trie, lvl log.Level,
 		BaseDB:            runtime.NewInMemoryDB(t), // we're using a local storage here since this is a test runtime
 	}
 
-	var versions *testVersions
+	version := (*runtime.Version)(nil)
 	if targetRuntime == runtime.HOST_API_TEST_RUNTIME {
 		// Force state version to 0 since the host api test runtime
 		// does not implement the Core_version call so we cannot get the
 		// state version from it.
-		versions = &testVersions{
-			stateVersion: 0,
-		}
+		version = &runtime.Version{}
 	}
 
 	return Config{
-		Storage:      s,
-		Keystore:     keystore.NewGlobalKeystore(),
-		LogLvl:       lvl,
-		NodeStorage:  ns,
-		Network:      new(runtime.TestRuntimeNetwork),
-		Transaction:  newTransactionStateMock(),
-		Role:         role,
-		testVersions: versions,
+		Storage:     s,
+		Keystore:    keystore.NewGlobalKeystore(),
+		LogLvl:      lvl,
+		NodeStorage: ns,
+		Network:     new(runtime.TestRuntimeNetwork),
+		Transaction: newTransactionStateMock(),
+		Role:        role,
+		testVersion: version,
 	}
 }
 

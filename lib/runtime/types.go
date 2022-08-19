@@ -7,7 +7,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime/offchain"
-	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
 // NodeStorageType type to identify offchain storage type
@@ -57,7 +56,7 @@ type Context struct {
 	Transaction     TransactionState
 	SigVerifier     *crypto.SignatureVerifier
 	OffchainHTTPSet *offchain.HTTPSet
-	StateVersion    trie.Version
+	Version         Version
 }
 
 // NewValidateTransactionError returns an error based on a return value from TaggedTransactionQueueValidateTransaction
