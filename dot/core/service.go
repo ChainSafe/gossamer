@@ -492,10 +492,10 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) (isTxnValidityEr
 	// the transaction source is External
 	externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))
 	transactionValidity, txnValidityErr, err := rt.ValidateTransaction(externalExt)
-	if err != nil || txnValidityErr != nil {
-		if txnValidityErr != nil {
-			return true, txnValidityErr.Error()
-		}
+	if txnValidityErr != nil {
+		return true, txnValidityErr.Error()
+	}
+	if err != nil {
 		return false, err
 	}
 
