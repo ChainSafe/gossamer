@@ -158,11 +158,11 @@ func TestValidateBlockAnnounceHandshake(t *testing.T) {
 
 	nodeA := createTestService(t, configA)
 	nodeA.noGossip = true
-	nodeA.notificationsProtocols[BlockAnnounceMsgType] = &notificationsProtocol{
+	nodeA.notificationsProtocols[blockAnnounceMsgType] = &notificationsProtocol{
 		peersData: newPeersData(),
 	}
 	testPeerID := peer.ID("noot")
-	nodeA.notificationsProtocols[BlockAnnounceMsgType].peersData.setInboundHandshakeData(testPeerID, &handshakeData{})
+	nodeA.notificationsProtocols[blockAnnounceMsgType].peersData.setInboundHandshakeData(testPeerID, &handshakeData{})
 
 	err := nodeA.validateBlockAnnounceHandshake(testPeerID, &BlockAnnounceHandshake{
 		Roles:           common.FullNodeRole,

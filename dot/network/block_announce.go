@@ -15,10 +15,9 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-var errInvalidRole = errors.New("invalid role")
 var (
 	_ NotificationsMessage = &BlockAnnounceMessage{}
-	_ NotificationsMessage = &BlockAnnounceHandshake{}
+	_ Handshake            = (*BlockAnnounceHandshake)(nil)
 )
 
 // BlockAnnounceMessage is a state block header
@@ -31,9 +30,9 @@ type BlockAnnounceMessage struct {
 	BestBlock      bool
 }
 
-// Type returns BlockAnnounceMsgType
+// Type returns blockAnnounceMsgType
 func (*BlockAnnounceMessage) Type() byte {
-	return BlockAnnounceMsgType
+	return blockAnnounceMsgType
 }
 
 // string formats a BlockAnnounceMessage as a string
@@ -73,11 +72,6 @@ func (bm *BlockAnnounceMessage) Hash() (common.Hash, error) {
 	}
 
 	return common.Blake2bHash(encMsg)
-}
-
-// IsHandshake returns false
-func (*BlockAnnounceMessage) IsHandshake() bool {
-	return false
 }
 
 func decodeBlockAnnounceHandshake(in []byte) (Handshake, error) {
@@ -133,25 +127,14 @@ func (hs *BlockAnnounceHandshake) Decode(in []byte) error {
 	return nil
 }
 
-// Type ...
-func (*BlockAnnounceHandshake) Type() byte {
-	return 0
-}
-
-// Hash returns blake2b hash of block announce handshake.
-func (hs *BlockAnnounceHandshake) Hash() (common.Hash, error) {
-	// scale encode each extrinsic
-	encMsg, err := hs.Encode()
-	if err != nil {
-		return common.Hash{}, fmt.Errorf("cannot encode handshake: %w", err)
+// IsValid returns true if handshakes's role is valid.
+func (hs *BlockAnnounceHandshake) IsValid() bool {
+	switch hs.Roles {
+	case common.AuthorityRole, common.FullNodeRole, common.LightClientRole:
+		return true
+	default:
+		return false
 	}
-
-	return common.Blake2bHash(encMsg)
-}
-
-// IsHandshake returns true
-func (*BlockAnnounceHandshake) IsHandshake() bool {
-	return true
 }
 
 func (s *Service) getBlockAnnounceHandshake() (Handshake, error) {
@@ -188,7 +171,7 @@ func (s *Service) validateBlockAnnounceHandshake(from peer.ID, hs Handshake) err
 		return errors.New("genesis hash mismatch")
 	}
 
-	np, ok := s.notificationsProtocols[BlockAnnounceMsgType]
+	np, ok := s.notificationsProtocols[blockAnnounceMsgType]
 	if !ok {
 		// this should never happen.
 		return nil

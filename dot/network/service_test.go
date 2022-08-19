@@ -272,7 +272,7 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, stream)
 
-	protocol := nodeA.notificationsProtocols[BlockAnnounceMsgType]
+	protocol := nodeA.notificationsProtocols[blockAnnounceMsgType]
 	protocol.peersData.setOutboundHandshakeData(nodeB.host.id(), &handshakeData{
 		received:  true,
 		validated: true,
