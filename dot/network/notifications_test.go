@@ -186,7 +186,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 
 	// try invalid handshake
 	testHandshake := &BlockAnnounceHandshake{
-		Roles:           4,
+		Roles:           common.AuthorityRole,
 		BestBlockNumber: 77,
 		BestBlockHash:   common.Hash{1},
 		// we are using a different genesis here, thus this
@@ -195,7 +195,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 	}
 
 	err = handler(stream, testHandshake)
-	require.Equal(t, errCannotValidateHandshake, err)
+	require.ErrorIs(t, err, errCannotValidateHandshake)
 	data := info.peersData.getInboundHandshakeData(testPeerID)
 	require.NotNil(t, data)
 	require.True(t, data.received)

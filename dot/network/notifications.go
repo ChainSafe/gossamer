@@ -134,9 +134,9 @@ func (s *Service) createNotificationsMessageHandler(
 			peer = stream.Conn().RemotePeer()
 		)
 
-		hs, ok := msg.(Handshake)
+		hs, ok := m.(Handshake)
 		if ok {
-			if hs.IsValid() {
+			if !hs.IsValid() {
 				return errInvalidRole
 			}
 			err := s.handleHandshake(info, stream, hs, peer)
