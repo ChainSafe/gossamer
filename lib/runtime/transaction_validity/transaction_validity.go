@@ -46,9 +46,8 @@ func (tve *TransactionValidityError) Error() string {
 			return errInvalidTypeCast.Error()
 		}
 		return unknownTxn.Error()
-	} else {
-		return invalidTxn.Error()
 	}
+	return invalidTxn.Error()
 }
 
 // NewTransactionValidityError is constructor for TransactionValidityError
