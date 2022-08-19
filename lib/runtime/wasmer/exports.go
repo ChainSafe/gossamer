@@ -8,7 +8,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	txnvalidity "github.com/ChainSafe/gossamer/lib/runtime/transaction_validity"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
@@ -20,13 +19,13 @@ import (
 // the caller can handle as it seems fit, as this will vary per use case. 2) normal error
 // returned if something fails in the process i.e. unmarshalling error
 func (in *Instance) ValidateTransaction(e types.Extrinsic) (
-	*transaction.Validity, *txnvalidity.TransactionValidityError, error) {
+	*transaction.Validity, *runtime.TransactionValidityError, error) {
 	ret, err := in.Exec(runtime.TaggedTransactionQueueValidateTransaction, e)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return txnvalidity.UnmarshalTransactionValidity(ret)
+	return runtime.UnmarshalTransactionValidity(ret)
 }
 
 // Version returns the instance version.

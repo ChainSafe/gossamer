@@ -12,8 +12,6 @@ import (
 
 	transaction "github.com/ChainSafe/gossamer/lib/transaction"
 
-	transactionValidity "github.com/ChainSafe/gossamer/lib/runtime/transaction_validity"
-
 	types "github.com/ChainSafe/gossamer/dot/types"
 )
 
@@ -373,7 +371,7 @@ func (_m *Instance) UpdateRuntimeCode(_a0 []byte) error {
 }
 
 // ValidateTransaction provides a mock function with given fields: e
-func (_m *Instance) ValidateTransaction(e types.Extrinsic) (*transaction.Validity, *transactionValidity.TransactionValidityError, error) {
+func (_m *Instance) ValidateTransaction(e types.Extrinsic) (*transaction.Validity, *runtime.TransactionValidityError, error) {
 	ret := _m.Called(e)
 
 	var r0 *transaction.Validity
@@ -385,12 +383,12 @@ func (_m *Instance) ValidateTransaction(e types.Extrinsic) (*transaction.Validit
 		}
 	}
 
-	var r1 *transactionValidity.TransactionValidityError
-	if rf, ok := ret.Get(1).(func(types.Extrinsic) *transactionValidity.TransactionValidityError); ok {
+	var r1 *runtime.TransactionValidityError
+	if rf, ok := ret.Get(1).(func(types.Extrinsic) *runtime.TransactionValidityError); ok {
 		r1 = rf(e)
 	} else {
 		if ret.Get(1) != nil {
-			r1 = ret.Get(1).(*transactionValidity.TransactionValidityError)
+			r1 = ret.Get(1).(*runtime.TransactionValidityError)
 		}
 	}
 

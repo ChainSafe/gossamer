@@ -13,7 +13,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	mocksruntime "github.com/ChainSafe/gossamer/lib/runtime/mocks"
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
-	txnValidity "github.com/ChainSafe/gossamer/lib/runtime/transaction_validity"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 
 	"github.com/golang/mock/gomock"
@@ -67,7 +66,7 @@ type mockSetContextStorage struct {
 type mockValidateTxn struct {
 	input       types.Extrinsic
 	validity    *transaction.Validity
-	validityErr *txnValidity.TransactionValidityError
+	validityErr *runtime.TransactionValidityError
 	err         error
 }
 
@@ -120,9 +119,9 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 	runtimeMock2 := mocksruntime.NewInstance(t)
 	runtimeMock3 := mocksruntime.NewInstance(t)
 
-	transactionValidityErr := txnValidity.NewTransactionValidityError()
-	invalidTransaction := txnValidity.NewInvalidTransaction()
-	err := invalidTransaction.Set(txnValidity.Future{})
+	transactionValidityErr := runtime.NewTransactionValidityError()
+	invalidTransaction := runtime.NewInvalidTransaction()
+	err := invalidTransaction.Set(runtime.Future{})
 	require.NoError(t, err)
 	err = transactionValidityErr.Set(invalidTransaction)
 	require.NoError(t, err)
