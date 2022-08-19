@@ -106,7 +106,6 @@ func TestChainProcessor_HandleBlockResponse_MissingBlocks(t *testing.T) {
 	parent, err = responder.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
 
-	bestBlockHash = syncer.blockState.BestBlockHash()
 	rt, err = syncer.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
