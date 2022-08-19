@@ -37,9 +37,7 @@ func Test_marshalYAML(t *testing.T) {
 							PrometheusURL: "http://127.0.0.1:9876/metrics",
 							Metrics: []string{
 								"gossamer_*",
-								"network_*",
-								"service_*",
-								"system_*",
+								"go_*",
 							},
 							HealthServiceCheck: true,
 						},
@@ -60,9 +58,7 @@ func Test_marshalYAML(t *testing.T) {
 							PrometheusURL: "http://127.0.0.1:9876/metrics",
 							Metrics: []string{
 								"gossamer_*",
-								"network_*",
-								"service_*",
-								"system_*",
+								"go_*",
 							},
 							HealthServiceCheck: true,
 							Namespace:          "SomeNamespace",
