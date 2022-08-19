@@ -5,7 +5,6 @@ package core
 
 import (
 	"errors"
-	"github.com/stretchr/testify/require"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -20,6 +19,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var errDummyErr = errors.New("dummy error for testing")

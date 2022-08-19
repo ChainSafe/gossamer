@@ -5,6 +5,7 @@ package runtime
 
 import (
 	"errors"
+
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
