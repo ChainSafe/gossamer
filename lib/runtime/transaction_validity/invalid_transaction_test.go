@@ -31,17 +31,11 @@ func TestInvalidTransactionErrors(t *testing.T) {
 			validity, validityErr, err := UnmarshalTransactionValidity(c.test)
 			require.NoError(t, err)
 
-			var valErr error
+			var valErr string
 			if validityErr != nil {
-				switch err := validityErr.Value().(type) {
-				// TODO with custom result type have Error() func for txnValidityErr
-				case InvalidTransaction:
-					valErr = err.Error()
-				case UnknownTransaction:
-					valErr = err.Error()
-				}
+				valErr = validityErr.Error()
 			}
-			require.Equal(t, c.expErr, valErr)
+			require.Equal(t, c.expErr.Error(), valErr)
 			require.Equal(t, c.expValidity, validity)
 		})
 	}

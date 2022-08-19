@@ -14,7 +14,11 @@ import (
 )
 
 // ValidateTransaction runs the extrinsic through the runtime function
-// TaggedTransactionQueue_validate_transaction and returns *Validity
+// TaggedTransactionQueue_validate_transaction and returns *Validity. Two types of errors
+// are returned here: 1) *txnvalidity.TransactionValidityError is a VDT containing
+// VDTs of the types of transaction validity errors. The whole VDT is returned so
+// the caller can handle as it seems fit, as this will vary per use case. 2) normal error
+// returned if something fails in the process i.e. unmarshalling error
 func (in *Instance) ValidateTransaction(e types.Extrinsic) (
 	*transaction.Validity, *txnvalidity.TransactionValidityError, error) {
 	ret, err := in.Exec(runtime.TaggedTransactionQueueValidateTransaction, e)

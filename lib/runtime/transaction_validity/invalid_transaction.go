@@ -118,29 +118,29 @@ func NewInvalidTransaction() InvalidTransaction {
 	return InvalidTransaction(vdt)
 }
 
-func (i *InvalidTransaction) Error() error {
+func (i *InvalidTransaction) Error() string {
 	switch val := i.Value().(type) {
 	case Call:
-		return errUnexpectedTxCall
+		return errUnexpectedTxCall.Error()
 	case Payment:
-		return errInvalidPayment
+		return errInvalidPayment.Error()
 	case Future:
-		return errInvalidTransaction
+		return errInvalidTransaction.Error()
 	case Stale:
-		return errOutdatedTransaction
+		return errOutdatedTransaction.Error()
 	case BadProof:
-		return errBadProof
+		return errBadProof.Error()
 	case AncientBirthBlock:
-		return errAncientBirthBlock
+		return errAncientBirthBlock.Error()
 	case ExhaustsResources:
-		return errExhaustsResources
+		return errExhaustsResources.Error()
 	case InvalidCustom:
-		return newUnknownError(val)
+		return newUnknownError(val).Error()
 	case BadMandatory:
-		return errMandatoryDispatchError
+		return errMandatoryDispatchError.Error()
 	case MandatoryDispatch:
-		return errInvalidMandatoryDispatch
+		return errInvalidMandatoryDispatch.Error()
 	}
 
-	return errInvalidResult
+	return errInvalidResult.Error()
 }

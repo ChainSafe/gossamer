@@ -72,15 +72,15 @@ func NewUnknownTransaction() UnknownTransaction {
 	return UnknownTransaction(vdt)
 }
 
-func (u *UnknownTransaction) Error() error {
+func (u *UnknownTransaction) Error() string {
 	switch val := u.Value().(type) {
 	case ValidityCannotLookup:
-		return errLookupFailed
+		return errLookupFailed.Error()
 	case NoUnsignedValidator:
-		return errValidatorNotFound
+		return errValidatorNotFound.Error()
 	case UnknownCustom:
-		return newUnknownError(val)
+		return newUnknownError(val).Error()
 	}
 
-	return errInvalidResult
+	return errInvalidResult.Error()
 }

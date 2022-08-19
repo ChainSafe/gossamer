@@ -37,17 +37,17 @@ func (tve *TransactionValidityError) Value() (val scale.VaryingDataTypeValue) {
 	return vdt.Value()
 }
 
-func (tve *TransactionValidityError) Error() error {
-	val, ok := tve.Value().(InvalidTransaction)
+func (tve *TransactionValidityError) Error() string {
+	invalidTxn, ok := tve.Value().(InvalidTransaction)
 	if !ok {
-		val2, ok2 := tve.Value().(UnknownTransaction)
-		if !ok || !ok2 {
-			return errInvalidTypeCast
+		unknownTxn, ok2 := tve.Value().(UnknownTransaction)
+		if !ok2 {
+			return errInvalidTypeCast.Error()
 		} else {
-			return val2.Error()
+			return unknownTxn.Error()
 		}
 	} else {
-		return val.Error()
+		return invalidTxn.Error()
 	}
 }
 
