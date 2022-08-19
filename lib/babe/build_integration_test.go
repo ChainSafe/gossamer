@@ -273,8 +273,7 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	err = ctypes.Decode(decoded, meta)
 	require.NoError(t, err)
 
-	rv, err := rt.Version()
-	require.NoError(t, err)
+	rv := rt.Version()
 
 	bob, err := ctypes.NewMultiAddressFromHexAccountID(
 		"0x90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22")

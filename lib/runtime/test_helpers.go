@@ -211,7 +211,7 @@ func NewTestExtrinsic(t *testing.T, rt Instance, genHash, blockHash common.Hash,
 	err = ctypes.Decode(decoded, meta)
 	require.NoError(t, err)
 
-	rv, err := rt.Version()
+	rv := rt.Version()
 	require.NoError(t, err)
 
 	c, err := ctypes.NewCall(meta, call, args...)

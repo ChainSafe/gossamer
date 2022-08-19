@@ -109,31 +109,19 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		codeHash: cfg.CodeHash,
 	}
 
-	version, err := getVersion(instance, cfg.testVersion)
-	if err != nil {
-		instance.close()
-		return nil, fmt.Errorf("getting state version: %w", err)
+	if cfg.testVersion != nil {
+		instance.ctx.Version = *cfg.testVersion
+	} else {
+		instance.ctx.Version, err = instance.version()
+		if err != nil {
+			instance.close()
+			return nil, fmt.Errorf("getting instance version: %w", err)
+		}
 	}
 
-	instance.ctx.Version = version
 	wasmInstance.SetContextData(instance.ctx)
 
 	return instance, nil
-}
-
-func getVersion(instance *Instance, testVersion *runtime.Version) (
-	version runtime.Version, err error) {
-	if testVersion != nil {
-		return *testVersion, nil
-	}
-
-	// Find runtime version from running instance
-	version, err = instance.Version()
-	if err != nil {
-		return version, fmt.Errorf("getting instance version: %w", err)
-	}
-
-	return version, nil
 }
 
 // decompressWasm decompresses a Wasm blob that may or may not be compressed with zstd
@@ -181,7 +169,7 @@ func (in *Instance) UpdateRuntimeCode(code []byte) (err error) {
 
 	// Find runtime instance version and cache it in its
 	// instance context.
-	version, err := in.Version()
+	version, err := in.version()
 	if err != nil {
 		in.close()
 		return fmt.Errorf("getting instance version: %w", err)
@@ -204,7 +192,7 @@ func GetRuntimeVersion(code []byte) (version runtime.Version, err error) {
 	}
 	defer instance.Stop()
 
-	version, err = instance.Version()
+	version, err = instance.version()
 	if err != nil {
 		return version, fmt.Errorf("running runtime: %w", err)
 	}

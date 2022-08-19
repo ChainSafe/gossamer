@@ -478,7 +478,7 @@ func (s *Service) GetRuntimeVersion(bhash *common.Hash) (
 	}
 
 	rt.SetContextStorage(ts)
-	return rt.Version()
+	return rt.Version(), nil
 }
 
 // HandleSubmittedExtrinsic is used to send a Transaction message containing a Extrinsic @ext
