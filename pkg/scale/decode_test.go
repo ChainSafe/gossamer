@@ -344,6 +344,30 @@ func Test_decodeState_decodeUint(t *testing.T) {
 			want: []byte{0x02, 0x00, 0x01, 0x0},
 		},
 		{
+			name:    "uint(0) mode 1, error",
+			in:      int(0),
+			want:    []byte{0x01, 0x00},
+			wantErr: true,
+		},
+		{
+			name:    "uint(0) mode 2, error",
+			in:      int(0),
+			want:    []byte{0x02, 0x00, 0x00, 0x0},
+			wantErr: true,
+		},
+		{
+			name:    "uint(0) mode 3, error",
+			in:      int(0),
+			want:    []byte{0x03, 0x00, 0x00, 0x0},
+			wantErr: true,
+		},
+		{
+			name:    "mode 3, 64bit, error",
+			in:      int(0),
+			want:    []byte{19, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0},
+			wantErr: true,
+		},
+		{
 			name: "[]int{1 << 32, 2, 3, 1 << 32}",
 			in:   uint(4),
 			want: []byte{0x10, 0x07, 0x00, 0x00, 0x00, 0x00, 0x01, 0x08, 0x0c, 0x07, 0x00, 0x00, 0x00, 0x00, 0x01},
