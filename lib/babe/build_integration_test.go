@@ -197,7 +197,7 @@ func TestApplyExtrinsic(t *testing.T) {
 
 	extHex := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0, "System.remark", []byte{0xab, 0xcd})
 	extBytes := common.MustHexToBytes(extHex)
-	_, _, err = rt.ValidateTransaction(append([]byte{byte(types.TxnExternal)}, extBytes...))
+	_, err = rt.ValidateTransaction(append([]byte{byte(types.TxnExternal)}, extBytes...))
 	require.NoError(t, err)
 
 	digest2 := types.NewDigest()
@@ -286,7 +286,7 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	encoder := cscale.NewEncoder(&extEnc)
 	ext.Encode(*encoder)
 
-	txVal, _, err := rt.ValidateTransaction(append([]byte{byte(types.TxnLocal)}, extEnc.Bytes()...))
+	txVal, err := rt.ValidateTransaction(append([]byte{byte(types.TxnLocal)}, extEnc.Bytes()...))
 	require.NoError(t, err)
 
 	vtx := transaction.NewValidTransaction(extEnc.Bytes(), txVal)

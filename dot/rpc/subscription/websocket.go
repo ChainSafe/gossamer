@@ -332,15 +332,16 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener
 	c.Subscriptions[extSubmitListener.subID] = extSubmitListener
 	c.mu.Unlock()
 
-	isTxnValidityErr, err := c.CoreAPI.HandleSubmittedExtrinsic(extBytes)
-	if isTxnValidityErr {
-		c.safeSend(newSubscriptionResponse(authorExtrinsicUpdatesMethod, extSubmitListener.subID, "invalid"))
-		return nil, err
-	} else if err != nil {
+	err = c.CoreAPI.HandleSubmittedExtrinsic(extBytes)
+	if err != nil {
+		var txnValidityErr *runtime.TransactionValidityError
+		if errors.As(err, &txnValidityErr) {
+			c.safeSend(newSubscriptionResponse(authorExtrinsicUpdatesMethod, extSubmitListener.subID, "invalid"))
+			return nil, err
+		}
 		c.safeSendError(reqID, nil, err.Error())
 		return nil, err
 	}
-
 	c.safeSend(NewSubscriptionResponseJSON(extSubmitListener.subID, reqID))
 
 	// todo (ed) determine which peer extrinsic has been broadcast to, and set status (#1535)

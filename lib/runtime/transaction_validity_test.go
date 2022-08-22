@@ -4,12 +4,26 @@
 package runtime
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/stretchr/testify/require"
 )
+
+func TestErrorsAsFunction(t *testing.T) {
+	transactionValidityErr := NewTransactionValidityError()
+	unknownTransaction := NewUnknownTransaction()
+	err := unknownTransaction.Set(NoUnsignedValidator{})
+	require.NoError(t, err)
+	err = transactionValidityErr.Set(unknownTransaction)
+	require.NoError(t, err)
+
+	var txnValErr *TransactionValidityError
+	isTxnValErr := errors.As(&transactionValidityErr, &txnValErr)
+	require.True(t, isTxnValErr)
+}
 
 func TestInvalidTransactionValidity(t *testing.T) {
 	transactionValidityErr := NewTransactionValidityError()

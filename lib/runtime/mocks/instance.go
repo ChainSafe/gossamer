@@ -371,7 +371,7 @@ func (_m *Instance) UpdateRuntimeCode(_a0 []byte) error {
 }
 
 // ValidateTransaction provides a mock function with given fields: e
-func (_m *Instance) ValidateTransaction(e types.Extrinsic) (*transaction.Validity, *runtime.TransactionValidityError, error) {
+func (_m *Instance) ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error) {
 	ret := _m.Called(e)
 
 	var r0 *transaction.Validity
@@ -383,23 +383,14 @@ func (_m *Instance) ValidateTransaction(e types.Extrinsic) (*transaction.Validit
 		}
 	}
 
-	var r1 *runtime.TransactionValidityError
-	if rf, ok := ret.Get(1).(func(types.Extrinsic) *runtime.TransactionValidityError); ok {
+	var r1 error
+	if rf, ok := ret.Get(1).(func(types.Extrinsic) error); ok {
 		r1 = rf(e)
 	} else {
-		if ret.Get(1) != nil {
-			r1 = ret.Get(1).(*runtime.TransactionValidityError)
-		}
+		r1 = ret.Error(1)
 	}
 
-	var r2 error
-	if rf, ok := ret.Get(2).(func(types.Extrinsic) error); ok {
-		r2 = rf(e)
-	} else {
-		r2 = ret.Error(2)
-	}
-
-	return r0, r1, r2
+	return r0, r1
 }
 
 // Validator provides a mock function with given fields:

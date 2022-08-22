@@ -64,10 +64,9 @@ type mockSetContextStorage struct {
 }
 
 type mockValidateTxn struct {
-	input       types.Extrinsic
-	validity    *transaction.Validity
-	validityErr *runtime.TransactionValidityError
-	err         error
+	input    types.Extrinsic
+	validity *transaction.Validity
+	err      error
 }
 
 type mockRuntime struct {
@@ -264,8 +263,8 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 				runtime:           runtimeMock2,
 				setContextStorage: &mockSetContextStorage{trieState: &storage.TrieState{}},
 				validateTxn: &mockValidateTxn{
-					input:       types.Extrinsic(append([]byte{byte(types.TxnExternal)}, testExtrinsic[0]...)),
-					validityErr: &transactionValidityErr,
+					input: types.Extrinsic(append([]byte{byte(types.TxnExternal)}, testExtrinsic[0]...)),
+					err:   &transactionValidityErr,
 				},
 			},
 			args: args{
@@ -367,8 +366,7 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 				rt := tt.mockRuntime.runtime
 				rt.On("SetContextStorage", tt.mockRuntime.setContextStorage.trieState)
 				rt.On("ValidateTransaction", tt.mockRuntime.validateTxn.input).
-					Return(tt.mockRuntime.validateTxn.validity,
-						tt.mockRuntime.validateTxn.validityErr, tt.mockRuntime.validateTxn.err)
+					Return(tt.mockRuntime.validateTxn.validity, tt.mockRuntime.validateTxn.err)
 			}
 
 			res, err := s.HandleTransactionMessage(tt.args.peerID, tt.args.msg)

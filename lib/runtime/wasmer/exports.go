@@ -19,10 +19,10 @@ import (
 // the caller can handle as it seems fit, as this will vary per use case. 2) normal error
 // returned if something fails in the process i.e. unmarshalling error
 func (in *Instance) ValidateTransaction(e types.Extrinsic) (
-	*transaction.Validity, *runtime.TransactionValidityError, error) {
+	*transaction.Validity, error) {
 	ret, err := in.Exec(runtime.TaggedTransactionQueueValidateTransaction, e)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	return runtime.UnmarshalTransactionValidity(ret)

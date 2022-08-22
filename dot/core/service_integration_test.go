@@ -366,7 +366,7 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	rt, err := s.blockState.GetRuntime(&bhash)
 	require.NoError(t, err)
 
-	validity, _, err := rt.ValidateTransaction(tx)
+	validity, err := rt.ValidateTransaction(tx)
 	require.NoError(t, err)
 
 	// get common ancestor
@@ -555,7 +555,7 @@ func TestService_HandleSubmittedExtrinsic(t *testing.T) {
 
 	extBytes := createExtrinsic(t, rt, genHeader.Hash(), 0)
 
-	_, err = s.HandleSubmittedExtrinsic(extBytes)
+	err = s.HandleSubmittedExtrinsic(extBytes)
 	require.NoError(t, err)
 }
 

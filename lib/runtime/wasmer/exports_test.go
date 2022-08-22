@@ -348,7 +348,7 @@ func TestNodeRuntime_ValidateTransaction(t *testing.T) {
 	extBytes = append([]byte{byte(types.TxnExternal)}, extBytes...)
 
 	runtime.InitializeRuntimeToTest(t, rt, genesisHeader.Hash())
-	_, _, err = rt.ValidateTransaction(extBytes)
+	_, err = rt.ValidateTransaction(extBytes)
 	require.NoError(t, err)
 }
 

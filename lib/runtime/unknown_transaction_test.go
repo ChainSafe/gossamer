@@ -13,11 +13,10 @@ import (
 
 func TestUnknownTransactionErrors(t *testing.T) {
 	testCases := []struct {
-		name          string
-		test          []byte
-		expErr        error
-		expValidity   *transaction.Validity
-		isValidityErr bool
+		name        string
+		test        []byte
+		expErr      error
+		expValidity *transaction.Validity
 	}{
 		{
 			name:   "lookup failed",
@@ -28,12 +27,14 @@ func TestUnknownTransactionErrors(t *testing.T) {
 
 	for _, c := range testCases {
 		t.Run(c.name, func(t *testing.T) {
-			validity, validityErr, err := UnmarshalTransactionValidity(c.test)
-			require.NoError(t, err)
+			validity, err := UnmarshalTransactionValidity(c.test)
+			if c.expErr == nil {
+				require.NoError(t, err)
+			}
 
 			var valErr string
-			if validityErr != nil {
-				valErr = validityErr.Error()
+			if err != nil {
+				valErr = err.Error()
 			}
 			require.Equal(t, c.expErr.Error(), valErr)
 			require.Equal(t, c.expValidity, validity)

@@ -61,13 +61,13 @@ func NewTransactionValidityError() TransactionValidityError {
 
 // UnmarshalTransactionValidity Takes the result of the validateTransaction runtime call and unmarshalls it
 // TODO use custom result type here
-func UnmarshalTransactionValidity(res []byte) (*transaction.Validity, *TransactionValidityError, error) {
+func UnmarshalTransactionValidity(res []byte) (*transaction.Validity, error) {
 	validTxn := transaction.Validity{}
 	txnValidityErrResult := NewTransactionValidityError()
 	txnValidityResult := scale.NewResult(validTxn, txnValidityErrResult)
 	err := scale.Unmarshal(res, &txnValidityResult)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	txnValidityRes, err := txnValidityResult.Unwrap()
 	if err != nil {
@@ -75,18 +75,18 @@ func UnmarshalTransactionValidity(res []byte) (*transaction.Validity, *Transacti
 		case scale.WrappedErr:
 			txnValidityErr, ok := errType.Err.(TransactionValidityError)
 			if !ok {
-				return nil, nil, errInvalidTypeCast
+				return nil, errInvalidTypeCast
 			}
-			return nil, &txnValidityErr, nil
+			return nil, &txnValidityErr
 		default:
-			return nil, nil, errInvalidResult
+			return nil, errInvalidResult
 		}
 	} else {
 		switch validity := txnValidityRes.(type) {
 		case transaction.Validity:
-			return &validity, nil, nil
+			return &validity, nil
 		default:
-			return nil, nil, errInvalidType
+			return nil, errInvalidType
 		}
 	}
 }
