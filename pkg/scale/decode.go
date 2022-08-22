@@ -482,7 +482,7 @@ func (ds *decodeState) decodeUint(dstv reflect.Value) (err error) {
 	const maxUint64 = ^uint64(0)
 	prefix, err := ds.ReadByte()
 	if err != nil {
-		return fmt.Errorf("reading from buffer: %w", err)
+		return fmt.Errorf("reading byte: %w", err)
 	}
 
 	in := dstv.Interface()
@@ -496,7 +496,7 @@ func (ds *decodeState) decodeUint(dstv reflect.Value) (err error) {
 	case 1:
 		buf, err := ds.ReadByte()
 		if err != nil {
-			return fmt.Errorf("reading from buffer: %w", err)
+			return fmt.Errorf("reading byte: %w", err)
 		}
 		value = uint64(binary.LittleEndian.Uint16([]byte{prefix, buf}) >> 2)
 		if value <= 0b0011_1111 || value > 0b0111_1111_1111_1111 {
@@ -506,7 +506,7 @@ func (ds *decodeState) decodeUint(dstv reflect.Value) (err error) {
 		buf := make([]byte, 3)
 		_, err = ds.Read(buf)
 		if err != nil {
-			return fmt.Errorf("reading from buffer: %w", err)
+			return fmt.Errorf("reading bytes: %w", err)
 		}
 		value = uint64(binary.LittleEndian.Uint32(append([]byte{prefix}, buf...)) >> 2)
 		if value <= 0b0011_1111_1111_1111 || value > uint64(maxUint32>>2) {
@@ -517,16 +517,16 @@ func (ds *decodeState) decodeUint(dstv reflect.Value) (err error) {
 		buf := make([]byte, byteLen)
 		_, err = ds.Read(buf)
 		if err != nil {
-			return fmt.Errorf("reading from buffer: %w", err)
+			return fmt.Errorf("reading bytes: %w", err)
 		}
 		switch byteLen {
 		case 4:
 			value = uint64(binary.LittleEndian.Uint32(buf))
 			if value <= uint64(maxUint32>>2) {
-				return ErrU32OutOfRange
+				return fmt.Errorf("%w: %d (%b)", ErrU32OutOfRange, value, value)
 			}
 		case 8:
-			uintSize := 32 << (^uint(0) >> 32 & 1)
+			const uintSize = 32 << (^uint(0) >> 32 & 1)
 			if uintSize == 32 {
 				return ErrU64NotSupported
 			}
@@ -534,10 +534,10 @@ func (ds *decodeState) decodeUint(dstv reflect.Value) (err error) {
 			copy(tmp, buf)
 			value = binary.LittleEndian.Uint64(tmp)
 			if value <= maxUint64>>8 {
-				return ErrU64OutOfRange
+				return fmt.Errorf("%w: %d (%b)", ErrU64OutOfRange, value, value)
 			}
 		default:
-			return fmt.Errorf("unexpected prefix decoding compact uint: %d", prefix)
+			return fmt.Errorf("%w: %d", ErrCompactUintPrefixUnknown, prefix)
 
 		}
 	}
@@ -546,10 +546,13 @@ func (ds *decodeState) decodeUint(dstv reflect.Value) (err error) {
 	return
 }
 
-var ErrU16OutOfRange = errors.New("uint16 out of range")
-var ErrU32OutOfRange = errors.New("uint32 out of range")
-var ErrU64OutOfRange = errors.New("uint64 out of range")
-var ErrU64NotSupported = errors.New("uint64 is not supported")
+var (
+	ErrU16OutOfRange            = errors.New("uint16 out of range")
+	ErrU32OutOfRange            = errors.New("uint32 out of range")
+	ErrU64OutOfRange            = errors.New("uint64 out of range")
+	ErrU64NotSupported          = errors.New("uint64 is not supported")
+	ErrCompactUintPrefixUnknown = errors.New("unknown prefix for compact uint")
+)
 
 // decodeLength is helper method which calls decodeUint and casts to int
 func (ds *decodeState) decodeLength() (l uint, err error) {

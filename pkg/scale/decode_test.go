@@ -305,6 +305,7 @@ func Test_Decoder_Decode_MultipleCalls(t *testing.T) {
 }
 
 func Test_decodeState_decodeUint(t *testing.T) {
+	t.Parallel()
 	decodeUint32Tests := tests{
 		{
 			name: "int(1) mode 0",
@@ -354,7 +355,7 @@ func Test_decodeState_decodeUint(t *testing.T) {
 			wantErr: true,
 		},
 	}
-	t.Parallel()
+
 	for _, tt := range decodeUint32Tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
