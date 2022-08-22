@@ -165,6 +165,7 @@ func NewService(cfg *Config) (*Service, error) {
 		bestFinalCandidate: make(map[uint64]*Vote),
 		head:               head,
 		in:                 make(chan *networkVoteMessage, 1024),
+		receivedCommit:     make(chan *CommitMessage),
 		resumed:            make(chan struct{}),
 		network:            cfg.Network,
 		finalisedCh:        finalisedCh,
@@ -1263,6 +1264,21 @@ func (s *Service) handleCommitMessage(msg *CommitMessage) error {
 	}
 
 	s.receivedCommit <- msg
+
+	err = s.blockState.SetFinalisedHash(msg.Vote.Hash, msg.Round, s.state.setID)
+	if err != nil {
+		return fmt.Errorf("setting finalised hash %s: %w", msg.Vote.Hash.Short(), err)
+	}
+
+	pcs, err := compactToJustification(msg.Precommits, msg.AuthData)
+	if err != nil {
+		return fmt.Errorf("compacting justification: %w", err)
+	}
+
+	err = s.grandpaState.SetPrecommits(msg.Round, msg.SetID, pcs)
+	if err != nil {
+		return fmt.Errorf("setting precommits: %w", err)
+	}
 
 	// TODO: re-add catch-up logic (#1531)
 	return nil

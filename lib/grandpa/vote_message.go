@@ -27,14 +27,15 @@ func (s *Service) receiveVoteMessages(cancel <-chan struct{}) (determinePrecommi
 	finalizableCh = make(chan struct{})
 
 	go func() {
-		// defer close(finalizableCh)
-		// defer close(determinePrecommitCh)
 		defer func() {
 			if determinePrecommitCh != nil {
 				close(determinePrecommitCh)
 			}
 			if finalizableCh != nil {
 				close(finalizableCh)
+			}
+			if s.receivedCommit != nil {
+				close(s.receivedCommit)
 			}
 		}()
 
@@ -49,24 +50,6 @@ func (s *Service) receiveVoteMessages(cancel <-chan struct{}) (determinePrecommi
 			select {
 			case commit, ok := <-s.receivedCommit:
 				if !ok {
-					return
-				}
-
-				err := s.blockState.SetFinalisedHash(commit.Vote.Hash, commit.Round, s.state.setID)
-				if err != nil {
-					logger.Criticalf("setting finalised hash %s: %s", commit.Vote.Hash.Short(), err)
-					return
-				}
-
-				pcs, err := compactToJustification(commit.Precommits, commit.AuthData)
-				if err != nil {
-					logger.Criticalf("compacting justification: %w", err)
-					return
-				}
-
-				err = s.grandpaState.SetPrecommits(commit.Round, commit.SetID, pcs)
-				if err != nil {
-					logger.Criticalf("setting precommits: %s", err)
 					return
 				}
 
