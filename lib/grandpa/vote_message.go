@@ -39,7 +39,6 @@ func (s *Service) receiveVoteMessages(cancel <-chan struct{}) (determinePrecommi
 		}()
 
 		logger.Debug("receiving pre-vote messages...")
-
 		threshold := s.state.threshold()
 
 		// we should determine the precommit only when we reach the
@@ -48,6 +47,35 @@ func (s *Service) receiveVoteMessages(cancel <-chan struct{}) (determinePrecommi
 
 		for {
 			select {
+			case commit, ok := <-s.receivedCommit:
+				if !ok {
+					return
+				}
+
+				err := s.blockState.SetFinalisedHash(commit.Vote.Hash, commit.Round, s.state.setID)
+				if err != nil {
+					logger.Criticalf("setting finalised hash %s: %s", commit.Vote.Hash.Short(), err)
+					return
+				}
+
+				pcs, err := compactToJustification(commit.Precommits, commit.AuthData)
+				if err != nil {
+					logger.Criticalf("compacting justification: %w", err)
+					return
+				}
+
+				err = s.grandpaState.SetPrecommits(commit.Round, commit.SetID, pcs)
+				if err != nil {
+					logger.Criticalf("setting precommits: %s", err)
+					return
+				}
+
+				if commit.Round == s.state.round {
+					close(finalizableCh)
+					finalizableCh = nil
+					return
+				}
+
 			case msg, ok := <-s.in:
 				if !ok {
 					return
@@ -80,7 +108,6 @@ func (s *Service) receiveVoteMessages(cancel <-chan struct{}) (determinePrecommi
 					prevotesThresholdReached = true
 					close(determinePrecommitCh)
 					determinePrecommitCh = nil
-
 				}
 
 				switch vm.Message.Stage {
@@ -94,25 +121,6 @@ func (s *Service) receiveVoteMessages(cancel <-chan struct{}) (determinePrecommi
 					if isFinalizable {
 						close(finalizableCh)
 						finalizableCh = nil
-
-						cm, err := s.newCommitMessage(s.head, s.state.round)
-						if err != nil {
-							logger.Errorf("generating commit message: %s", err)
-							return
-						}
-
-						msg, err := cm.ToConsensusMessage()
-						if err != nil {
-							logger.Errorf("transforming commit into consensus message: %s", err)
-							return
-						}
-
-						logger.Debugf("sending CommitMessage: %v", cm)
-						s.network.GossipMessage(msg)
-						s.telemetry.SendMessage(telemetry.NewAfgFinalizedBlocksUpTo(
-							s.head.Hash(),
-							fmt.Sprint(s.head.Number),
-						))
 						return
 					}
 				}

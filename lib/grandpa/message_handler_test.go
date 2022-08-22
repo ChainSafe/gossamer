@@ -245,7 +245,7 @@ func TestMessageHandler_VerifyJustification_InvalidSig(t *testing.T) {
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
-	err := h.verifyJustification(just, gs.state.round, gs.state.setID, precommit)
+	err := verifyJustification(just, gs.state.round, gs.state.setID, precommit, h.grandpa.authorities())
 	require.Equal(t, err, ErrInvalidSignature)
 }
 
@@ -454,7 +454,7 @@ func TestVerifyJustification(t *testing.T) {
 		AuthorityID: kr.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 	}
 
-	err := h.verifyJustification(just, 77, gs.state.setID, precommit)
+	err := verifyJustification(just, 77, gs.state.setID, precommit, h.grandpa.authorities())
 	require.NoError(t, err)
 }
 
@@ -474,7 +474,7 @@ func TestVerifyJustification_InvalidSignature(t *testing.T) {
 		AuthorityID: kr.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 	}
 
-	err := h.verifyJustification(just, 77, gs.state.setID, precommit)
+	err := verifyJustification(just, 77, gs.state.setID, precommit, h.grandpa.authorities())
 	require.EqualError(t, err, ErrInvalidSignature.Error())
 }
 
@@ -497,7 +497,7 @@ func TestVerifyJustification_InvalidAuthority(t *testing.T) {
 		AuthorityID: fakeKey.Public().(*ed25519.PublicKey).AsBytes(),
 	}
 
-	err = h.verifyJustification(just, 77, gs.state.setID, precommit)
+	err = verifyJustification(just, 77, gs.state.setID, precommit, h.grandpa.authorities())
 	require.EqualError(t, err, ErrVoterNotFound.Error())
 }
 
@@ -1082,7 +1082,9 @@ func Test_VerifyCommitMessageJustification_ShouldRemoveEquivocatoryVotes(t *test
 		AuthData:   authData,
 	}
 
-	err = h.verifyCommitMessageJustification(testCommitData)
+	err = verifyCommitMessageJustification(testCommitData, h.grandpa.state.setID,
+		h.grandpa.state.threshold(), h.grandpa.authorities(), h.blockState)
+
 	require.NoError(t, err)
 }
 
