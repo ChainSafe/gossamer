@@ -6,6 +6,7 @@
 package babe
 
 import (
+	"fmt"
 	"path/filepath"
 	"testing"
 	"time"
@@ -388,18 +389,18 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 
 	babeService.blockState.AddBlock(block)
 	time.Sleep(babeService.constants.slotDuration * 10)
-
+	_ = babeService.Stop()
 	bestBlockHeader, err := babeService.blockState.BestBlockHeader()
 	require.NoError(t, err)
 
 	bestBlockSlotNum, err := babeService.blockState.GetSlotForBlock(bestBlockHeader.Hash())
 	require.NoError(t, err)
 
-	slotnum := uint64(1)
+	// slotnum := uint64(1)
 	slot := Slot{
 		start:    time.Now(),
 		duration: 1 * time.Second,
-		number:   slotnum,
+		number:   bestBlockSlotNum,
 	}
 	testVRFOutputAndProof := &VrfOutputAndProof{}
 	preRuntimeDigest, err := types.NewBabePrimaryPreDigest(
@@ -417,9 +418,15 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 		preRuntimeDigest)
 
 	require.NoError(t, err)
+	fmt.Printf("\nbestBlockHeader %s\nblock number %d\n\n", bestBlockHeader.Hash(), bestBlockHeader.Number)
 
+	time.Sleep(20 * time.Second)
 	// test that newly created block is sibling of bestBlockHeader
 	siblings := babeService.blockState.GetAllBlocksAtDepth(bestBlockHeader.ParentHash)
+	fmt.Println()
+	fmt.Println(siblings)
+	temphead, _ := babeService.blockState.GetHeader(siblings[0])
+	fmt.Printf("temphead number %d\n\n", temphead.Number)
 	require.GreaterOrEqual(t, len(siblings), 2)
 	require.Contains(t, bestBlockHeader.Hash(), siblings)
 }
