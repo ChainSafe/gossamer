@@ -1032,62 +1032,29 @@ func TestServiceGetRuntimeVersion(t *testing.T) {
 		assert.Equal(t, exp, res)
 	}
 
-	t.Run("get state root err", func(t *testing.T) {
-		t.Parallel()
-		ctrl := gomock.NewController(t)
-		mockStorageState := NewMockStorageState(ctrl)
-		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(nil, errDummyErr)
-		service := &Service{
-			storageState: mockStorageState,
-		}
-		execTest(t, service, &common.Hash{}, runtime.Version{}, errDummyErr)
-	})
-
-	t.Run("trie state err", func(t *testing.T) {
-		t.Parallel()
-		ctrl := gomock.NewController(t)
-		mockStorageState := NewMockStorageState(ctrl)
-		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(&common.Hash{}, nil)
-		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(nil, errDummyErr)
-		service := &Service{
-			storageState: mockStorageState,
-		}
-		execTest(t, service, &common.Hash{}, runtime.Version{}, errDummyErr)
-	})
-
 	t.Run("get runtime err", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
-		mockStorageState := NewMockStorageState(ctrl)
-		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(&common.Hash{}, nil)
-		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(ts, nil).MaxTimes(2)
-
 		mockBlockState := NewMockBlockState(ctrl)
-		mockBlockState.EXPECT().GetRuntime(&common.Hash{}).Return(nil, errDummyErr)
+		mockBlockState.EXPECT().GetRuntime(&common.Hash{1}).Return(nil, errDummyErr)
 		service := &Service{
-			storageState: mockStorageState,
-			blockState:   mockBlockState,
+			blockState: mockBlockState,
 		}
-		execTest(t, service, &common.Hash{}, runtime.Version{}, errDummyErr)
+		execTest(t, service, &common.Hash{1}, runtime.Version{}, errDummyErr)
 	})
 
 	t.Run("happy path", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
-		mockStorageState := NewMockStorageState(ctrl)
-		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(&common.Hash{}, nil).MaxTimes(2)
-		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(ts, nil).MaxTimes(2)
-
 		runtimeMock := new(mocksruntime.Instance)
 		mockBlockState := NewMockBlockState(ctrl)
-		mockBlockState.EXPECT().GetRuntime(&common.Hash{}).Return(runtimeMock, nil)
+		mockBlockState.EXPECT().GetRuntime(&common.Hash{1}).Return(runtimeMock, nil)
 		runtimeMock.On("SetContextStorage", ts)
 		runtimeMock.On("Version").Return(rv, nil)
 		service := &Service{
-			storageState: mockStorageState,
-			blockState:   mockBlockState,
+			blockState: mockBlockState,
 		}
-		execTest(t, service, &common.Hash{}, rv, nil)
+		execTest(t, service, &common.Hash{1}, rv, nil)
 	})
 }
 
