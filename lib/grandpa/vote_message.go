@@ -5,7 +5,6 @@ package grandpa
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"fmt"
 
@@ -23,89 +22,99 @@ type networkVoteMessage struct {
 }
 
 // receiveVoteMessages receives messages from the in channel until a grandpa round finishes.
-func (s *Service) receiveVoteMessages(ctx context.Context, determinePrecommitCh, finalizableCh chan<- struct{}) {
-	defer close(finalizableCh)
-	defer close(determinePrecommitCh)
+func (s *Service) receiveVoteMessages(cancel <-chan struct{}) (determinePrecommitCh, finalizableCh chan struct{}) {
+	determinePrecommitCh = make(chan struct{})
+	finalizableCh = make(chan struct{})
 
-	logger.Debug("receiving pre-vote messages...")
-
-	threshold := s.state.threshold()
-
-	// we should determine the precommit only when we reach the
-	// prevotes threshold otherwise we should wait for them
-	prevotesThresholdReached := false
-
-	for {
-		select {
-		case msg, ok := <-s.in:
-			if !ok {
-				return
+	go func() {
+		defer func() {
+			if determinePrecommitCh != nil {
+				close(determinePrecommitCh)
 			}
-
-			if msg == nil || msg.msg == nil {
-				continue
+			if finalizableCh != nil {
+				close(finalizableCh)
 			}
-
-			vm := msg.msg
-			logger.Debugf("received vote message %v from %s", msg.msg, msg.from)
-			s.sendTelemetryVoteMessage(msg.msg)
-
-			v, err := s.validateVoteMessage(msg.from, vm)
-			if err != nil {
-				logger.Debugf("failed to validate vote message %v: %s", vm, err)
-				continue
+			if s.receivedCommit != nil {
+				close(s.receivedCommit)
 			}
+		}()
 
-			logger.Debugf(
-				"validated vote message %v from %s, round %d, subround %d, "+
-					"prevote count %d, precommit count %d, votes needed %d",
-				v, vm.Message.AuthorityID, vm.Round, vm.Message.Stage,
-				s.lenVotes(prevote), s.lenVotes(precommit), s.state.threshold()+1)
+		logger.Debug("receiving pre-vote messages...")
+		threshold := s.state.threshold()
 
-			// when a given vote is validated we should check
-			// if we have reached the prevotes threshold
-			prevotesThreshold := s.lenVotes(prevote) - 1
-			if !prevotesThresholdReached && prevotesThreshold >= int(threshold) {
-				prevotesThresholdReached = true
-				determinePrecommitCh <- struct{}{}
-			}
+		// we should determine the precommit only when we reach the
+		// prevotes threshold otherwise we should wait for them
+		prevotesThresholdReached := false
 
-			switch vm.Message.Stage {
-			case precommit:
-				isFinalizable, err := s.attemptToFinalize()
-				if err != nil {
-					logger.Errorf("attempt to finalize: %w", err)
+		for {
+			select {
+			case commit, ok := <-s.receivedCommit:
+				if !ok {
+					return
+				}
+
+				if commit.Round == s.state.round {
+					close(finalizableCh)
+					finalizableCh = nil
+					return
+				}
+
+			case msg, ok := <-s.in:
+				if !ok {
+					return
+				}
+
+				if msg == nil || msg.msg == nil {
 					continue
 				}
 
-				if isFinalizable {
-					cm, err := s.newCommitMessage(s.head, s.state.round)
-					if err != nil {
-						logger.Errorf("generating commit message: %s", err)
-						return
-					}
+				vm := msg.msg
+				logger.Debugf("received vote message %v from %s", msg.msg, msg.from)
+				s.sendTelemetryVoteMessage(msg.msg)
 
-					msg, err := cm.ToConsensusMessage()
-					if err != nil {
-						logger.Errorf("transforming commit into consensus message: %s", err)
-						return
-					}
-
-					logger.Debugf("sending CommitMessage: %v", cm)
-					s.network.GossipMessage(msg)
-					s.telemetry.SendMessage(telemetry.NewAfgFinalizedBlocksUpTo(
-						s.head.Hash(),
-						fmt.Sprint(s.head.Number),
-					))
-					return
+				v, err := s.validateVoteMessage(msg.from, vm)
+				if err != nil {
+					logger.Debugf("failed to validate vote message %v: %s", vm, err)
+					continue
 				}
-			}
 
-		case <-ctx.Done():
-			logger.Trace("returning from receiveMessages")
-			return
+				logger.Debugf(
+					"validated vote message %v from %s, round %d, subround %d, "+
+						"prevote count %d, precommit count %d, votes needed %d",
+					v, vm.Message.AuthorityID, vm.Round, vm.Message.Stage,
+					s.lenVotes(prevote), s.lenVotes(precommit), s.state.threshold()+1)
+
+				// when a given vote is validated we should check
+				// if we have reached the prevotes threshold
+				prevotesThreshold := s.lenVotes(prevote) - 1
+				if !prevotesThresholdReached && prevotesThreshold >= int(threshold) {
+					prevotesThresholdReached = true
+					close(determinePrecommitCh)
+					determinePrecommitCh = nil
+				}
+
+				switch vm.Message.Stage {
+				case precommit:
+					isFinalizable, err := s.attemptToFinalize()
+					if err != nil {
+						logger.Errorf("attempt to finalize: %w", err)
+						continue
+					}
+
+					if isFinalizable {
+						close(finalizableCh)
+						finalizableCh = nil
+						return
+					}
+				}
+
+			case <-cancel:
+				logger.Trace("returning from receiveMessages")
+				return
+			}
 		}
-	}
+	}()
+	return
 }
 
 func (s *Service) sendTelemetryVoteMessage(vm *VoteMessage) {
