@@ -20,7 +20,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/golang/mock/gomock"
@@ -28,7 +27,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, nonce uint64) types.Extrinsic {
+func createExtrinsic(t *testing.T, rt RuntimeInstance, genHash common.Hash, nonce uint64) types.Extrinsic {
 	t.Helper()
 	rawMeta, err := rt.Metadata()
 	require.NoError(t, err)

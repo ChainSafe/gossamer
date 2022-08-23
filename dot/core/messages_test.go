@@ -39,7 +39,7 @@ type mockBestHeader struct {
 }
 
 type mockGetRuntime struct {
-	runtime runtime.Instance
+	runtime RuntimeInstance
 	err     error
 }
 

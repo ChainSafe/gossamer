@@ -12,12 +12,40 @@ import (
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
 
-//go:generate mockgen -destination=mock_core_test.go -package $GOPACKAGE . BlockState,StorageState,TransactionState,Network,EpochState,CodeSubstitutedState
+// RuntimeInstance for runtime methods
+type RuntimeInstance interface {
+	UpdateRuntimeCode([]byte) error
+	Stop()
+	NodeStorage() runtime.NodeStorage
+	NetworkService() runtime.BasicNetwork
+	Keystore() *keystore.GlobalKeystore
+	Validator() bool
+	Exec(function string, data []byte) ([]byte, error)
+	SetContextStorage(s runtime.Storage)
+	GetCodeHash() common.Hash
+	Version() (runtime.Version, error)
+	Metadata() ([]byte, error)
+	BabeConfiguration() (*types.BabeConfiguration, error)
+	GrandpaAuthorities() ([]types.Authority, error)
+	ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error)
+	InitializeBlock(header *types.Header) error
+	InherentExtrinsics(data []byte) ([]byte, error)
+	ApplyExtrinsic(data types.Extrinsic) ([]byte, error)
+	FinalizeBlock() (*types.Header, error)
+	ExecuteBlock(block *types.Block) ([]byte, error)
+	DecodeSessionKeys(enc []byte) ([]byte, error)
+	PaymentQueryInfo(ext []byte) (*types.TransactionPaymentQueryInfo, error)
+	CheckInherents()
+	RandomSeed()
+	OffchainWorker()
+	GenerateSessionKeys()
+}
 
 // BlockState interface for block state methods
 type BlockState interface {

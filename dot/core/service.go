@@ -68,7 +68,7 @@ type Config struct {
 	TransactionState TransactionState
 	Network          Network
 	Keystore         *keystore.GlobalKeystore
-	Runtime          runtime.Instance
+	Runtime          RuntimeInstance
 
 	CodeSubstitutes      map[common.Hash]string
 	CodeSubstitutedState CodeSubstitutedState
