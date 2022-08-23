@@ -221,7 +221,7 @@ func TestAuthorModule_SubmitExtrinsic_AlreadyInPool(t *testing.T) {
 	extBytes := common.MustHexToBytes(extHex)
 
 	integrationTestController.storageState = &state.StorageState{}
-	integrationTestController.network = NewMockNetwork(ctrl)
+	integrationTestController.network = NewMockNetwork(nil)
 
 	// setup auth module
 	auth := newAuthorModule(t, integrationTestController)

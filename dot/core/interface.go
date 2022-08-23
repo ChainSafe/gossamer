@@ -6,15 +6,14 @@ package core
 import (
 	"sync"
 
-	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/ChainSafe/gossamer/lib/runtime"
-
 	"github.com/libp2p/go-libp2p-core/peer"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
@@ -28,8 +27,7 @@ type RuntimeInstance interface {
 	Keystore() *keystore.GlobalKeystore
 	Validator() bool
 	Exec(function string, data []byte) ([]byte, error)
-	SetContextStorage(s runtime.Storage) // used to set the TrieState before a runtime call
-
+	SetContextStorage(s runtime.Storage)
 	GetCodeHash() common.Hash
 	Version() (runtime.Version, error)
 	Metadata() ([]byte, error)
@@ -43,10 +41,7 @@ type RuntimeInstance interface {
 	ExecuteBlock(block *types.Block) ([]byte, error)
 	DecodeSessionKeys(enc []byte) ([]byte, error)
 	PaymentQueryInfo(ext []byte) (*types.TransactionPaymentQueryInfo, error)
-
-	CheckInherents() // TODO: use this in block verification process (#1873)
-
-	// parameters and return values for these are undefined in the spec
+	CheckInherents()
 	RandomSeed()
 	OffchainWorker()
 	GenerateSessionKeys()
