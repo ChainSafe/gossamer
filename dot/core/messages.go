@@ -50,20 +50,6 @@ func (s *Service) validateTransaction(peerID peer.ID, head *types.Header, rt Run
 		logger.Debugf("failed to validate transaction: %s", err)
 		return nil, false, err
 	}
-	//if txnValidityErr != nil {
-	//	switch err := txnValidityErr.Value().(type) {
-	//	// TODO with custom result type have Error() func for txnValidityErr
-	//	case runtime.InvalidTransaction:
-	//		s.net.ReportPeer(peerset.ReputationChange{
-	//			Value:  peerset.BadTransactionValue,
-	//			Reason: peerset.BadTransactionReason,
-	//		}, peerID)
-	//		logger.Debugf("failed to validate transaction: %s", err.Error())
-	//	case runtime.UnknownTransaction:
-	//		logger.Debugf("failed to validate transaction: %s", err.Error())
-	//	}
-	//	return nil, false, nil
-	//}
 
 	vtx := transaction.NewValidTransaction(tx, validity)
 
