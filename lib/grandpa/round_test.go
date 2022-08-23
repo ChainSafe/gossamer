@@ -748,56 +748,61 @@ func TestSendingVotesInRightStage(t *testing.T) {
 		stageMap.Store(pk.AsBytes(), signedVote)
 	}
 
+	doneCh := make(chan struct{})
 	go func() {
-		expectedVote := NewVote(testGenesisHeader.Hash(), uint32(testGenesisHeader.Number))
-		_, expectedPrevoteMessage, err := grandpa.createSignedVoteAndVoteMessage(expectedVote, prevote)
+		defer close(doneCh)
+		err = grandpa.playGrandpaRound()
 		require.NoError(t, err)
-
-		pv, err := expectedPrevoteMessage.ToConsensusMessage()
-		require.NoError(t, err)
-		mockedNet.EXPECT().
-			GossipMessage(pv).
-			Times(2)
-
-		// should send 2 prevote messages and then stop since we reach the enough amount of prevotes
-		time.Sleep(subroundInterval * 4)
-
-		// given that we are BOB and we already had predetermined our prevote in a set
-		// of 4 authorities (ALICE, BOB, CHARLIE and DAVE) then we only need 2 more prevotes
-		persistVote(grandpa, *votersPublicKeys[0], prevote) // persiste prevote for alice
-		persistVote(grandpa, *votersPublicKeys[2], prevote) // persiste prevote for charlie
-
-		_, expectedPrecommit, err := grandpa.createSignedVoteAndVoteMessage(expectedVote, precommit)
-		require.NoError(t, err)
-
-		pc, err := expectedPrecommit.ToConsensusMessage()
-		require.NoError(t, err)
-		mockedNet.EXPECT().
-			GossipMessage(pc).
-			Times(1)
-
-		commitMessage := &CommitMessage{
-			Round:      0,
-			Vote:       *NewVoteFromHeader(testGenesisHeader),
-			Precommits: []types.GrandpaVote{},
-			AuthData:   []AuthData{},
-		}
-		expectedGossipCommitMessage, err := commitMessage.ToConsensusMessage()
-		require.NoError(t, err)
-		mockedNet.EXPECT().
-			GossipMessage(expectedGossipCommitMessage).
-			Times(1)
-
-		// should send 1 precommit message and after we persit enough precommit
-		// votes we will close the `done` channel which will return from the `sendPrecommitMessage` goroutine
-		time.Sleep(subroundInterval * 2)
-
-		// given that we are BOB and we already had predetermined the precommit given the prevotes
-		// we only need 2 more precommit messages
-		persistVote(grandpa, *votersPublicKeys[0], precommit) // persiste prevote for alice
-		persistVote(grandpa, *votersPublicKeys[2], precommit) // persiste prevote for charlie
 	}()
 
-	err = grandpa.playGrandpaRound()
+	expectedVote := NewVote(testGenesisHeader.Hash(), uint32(testGenesisHeader.Number))
+	_, expectedPrevoteMessage, err := grandpa.createSignedVoteAndVoteMessage(expectedVote, prevote)
+	require.NoError(t, err)
+
+	pv, err := expectedPrevoteMessage.ToConsensusMessage()
+	require.NoError(t, err)
+	mockedNet.EXPECT().
+		GossipMessage(pv).
+		Times(2)
+
+	// should send 2 prevote messages and then stop since we reach the enough amount of prevotes
+	time.Sleep(subroundInterval * 4)
+
+	// given that we are BOB and we already had predetermined our prevote in a set
+	// of 4 authorities (ALICE, BOB, CHARLIE and DAVE) then we only need 2 more prevotes
+	persistVote(grandpa, *votersPublicKeys[0], prevote) // persiste prevote for alice
+	persistVote(grandpa, *votersPublicKeys[2], prevote) // persiste prevote for charlie
+
+	_, expectedPrecommit, err := grandpa.createSignedVoteAndVoteMessage(expectedVote, precommit)
+	require.NoError(t, err)
+
+	pc, err := expectedPrecommit.ToConsensusMessage()
+	require.NoError(t, err)
+	mockedNet.EXPECT().
+		GossipMessage(pc).
+		Times(1)
+
+	commitMessage := &CommitMessage{
+		Round:      0,
+		Vote:       *NewVoteFromHeader(testGenesisHeader),
+		Precommits: []types.GrandpaVote{},
+		AuthData:   []AuthData{},
+	}
+	expectedGossipCommitMessage, err := commitMessage.ToConsensusMessage()
+	require.NoError(t, err)
+	mockedNet.EXPECT().
+		GossipMessage(expectedGossipCommitMessage).
+		Times(1)
+
+	// should send 1 precommit message and after we persit enough precommit
+	// votes we will close the `done` channel which will return from the `sendPrecommitMessage` goroutine
+	time.Sleep(subroundInterval * 2)
+
+	// given that we are BOB and we already had predetermined the precommit given the prevotes
+	// we only need 2 more precommit messages
+	persistVote(grandpa, *votersPublicKeys[0], precommit) // persiste prevote for alice
+	persistVote(grandpa, *votersPublicKeys[2], precommit) // persiste prevote for charlie
+
+	<-doneCh
 	assert.NoError(t, err)
 }
