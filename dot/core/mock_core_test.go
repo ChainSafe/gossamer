@@ -285,10 +285,10 @@ func (mr *MockBlockStateMockRecorder) GetImportedBlockNotifierChannel() *gomock.
 }
 
 // GetRuntime mocks base method.
-func (m *MockBlockState) GetRuntime(arg0 *common.Hash) (runtime.Instance, error) {
+func (m *MockBlockState) GetRuntime(arg0 *common.Hash) (RuntimeInstance, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetRuntime", arg0)
-	ret0, _ := ret[0].(runtime.Instance)
+	ret0, _ := ret[0].(RuntimeInstance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -315,7 +315,7 @@ func (mr *MockBlockStateMockRecorder) GetSlotForBlock(arg0 interface{}) *gomock.
 }
 
 // HandleRuntimeChanges mocks base method.
-func (m *MockBlockState) HandleRuntimeChanges(arg0 *storage.TrieState, arg1 runtime.Instance, arg2 common.Hash) error {
+func (m *MockBlockState) HandleRuntimeChanges(arg0 *storage.TrieState, arg1 RuntimeInstance, arg2 common.Hash) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "HandleRuntimeChanges", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
@@ -344,7 +344,7 @@ func (mr *MockBlockStateMockRecorder) HighestCommonAncestor(arg0, arg1 interface
 }
 
 // StoreRuntime mocks base method.
-func (m *MockBlockState) StoreRuntime(arg0 common.Hash, arg1 runtime.Instance) {
+func (m *MockBlockState) StoreRuntime(arg0 common.Hash, arg1 RuntimeInstance) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "StoreRuntime", arg0, arg1)
 }
