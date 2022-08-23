@@ -103,7 +103,7 @@ type ServiceIFace interface {
 // Builder struct to hold babe builder functions
 type Builder struct{}
 
-//NewServiceIFace returns a new Babe Service using the provided VRF keys and runtime
+// NewServiceIFace returns a new Babe Service using the provided VRF keys and runtime
 func (Builder) NewServiceIFace(cfg *ServiceConfig) (ServiceIFace, error) {
 	if err := cfg.Validate(); err != nil {
 		return nil, fmt.Errorf("could not verify service config: %w", err)
