@@ -45,7 +45,7 @@ func TestConfig(t *testing.T) {
 					FinalityGadgetLvl: log.Info,
 				},
 				Init: InitConfig{
-					Genesis: "./chain/dev/genesis-spec.json",
+					Genesis: "./chain/dev/genesis.json",
 				},
 				Account: AccountConfig{
 					Key: "alice",
@@ -106,7 +106,7 @@ func TestConfig(t *testing.T) {
 					FinalityGadgetLvl: log.Info,
 				},
 				Init: InitConfig{
-					Genesis: "./chain/gssmr/genesis-spec.json",
+					Genesis: "./chain/gssmr/genesis.json",
 				},
 				Account: AccountConfig{},
 				Core: CoreConfig{
