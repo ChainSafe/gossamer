@@ -651,12 +651,7 @@ func (s *Service) determinePreCommit() (*Vote, error) {
 	s.preVotedBlock[s.state.round] = &pvb
 	s.mapLock.Unlock()
 
-	bestBlockHeader, err := s.blockState.BestBlockHeader()
-	if err != nil {
-		return nil, fmt.Errorf("cannot retrieve best block header: %w", err)
-	}
-
-	nextChange, err := s.grandpaState.NextGrandpaAuthorityChange(bestBlockHeader.Hash(), bestBlockHeader.Number)
+	nextChange, err := s.grandpaState.NextGrandpaAuthorityChange(pvb.Hash, uint(pvb.Number))
 	if errors.Is(err, state.ErrNoNextAuthorityChange) {
 		return &pvb, nil
 	} else if err != nil {

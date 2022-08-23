@@ -28,9 +28,7 @@ func (s *Service) receiveVoteMessages(cancel <-chan struct{}) (determinePrecommi
 
 	go func() {
 		defer func() {
-			if determinePrecommitCh != nil {
-				close(determinePrecommitCh)
-			}
+			close(determinePrecommitCh)
 			if finalizableCh != nil {
 				close(finalizableCh)
 			}
@@ -86,12 +84,10 @@ func (s *Service) receiveVoteMessages(cancel <-chan struct{}) (determinePrecommi
 				prevotesThreshold := s.lenVotes(prevote) - 1
 				if !prevotesThresholdReached && prevotesThreshold >= int(threshold) {
 					prevotesThresholdReached = true
-					close(determinePrecommitCh)
-					determinePrecommitCh = nil
+					determinePrecommitCh <- struct{}{}
 				}
 
-				switch vm.Message.Stage {
-				case precommit:
+				if vm.Message.Stage == precommit {
 					isFinalizable, err := s.attemptToFinalize()
 					if err != nil {
 						logger.Errorf("attempt to finalize: %w", err)
@@ -207,10 +203,11 @@ func (s *Service) createSignedVoteAndVoteMessage(vote *Vote, stage Subround) (*S
 		return nil, nil, err
 	}
 
+	publicBytes := s.keypair.Public().(*ed25519.PublicKey).AsBytes()
 	pc := &SignedVote{
 		Vote:        *vote,
 		Signature:   ed25519.NewSignatureBytes(sig),
-		AuthorityID: s.keypair.Public().(*ed25519.PublicKey).AsBytes(),
+		AuthorityID: publicBytes,
 	}
 
 	sm := &SignedMessage{
@@ -218,7 +215,7 @@ func (s *Service) createSignedVoteAndVoteMessage(vote *Vote, stage Subround) (*S
 		BlockHash:   pc.Vote.Hash,
 		Number:      pc.Vote.Number,
 		Signature:   ed25519.NewSignatureBytes(sig),
-		AuthorityID: s.keypair.Public().(*ed25519.PublicKey).AsBytes(),
+		AuthorityID: publicBytes,
 	}
 
 	vm := &VoteMessage{

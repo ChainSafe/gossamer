@@ -24,7 +24,6 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -630,21 +629,21 @@ func TestSendingVotesInRightStage(t *testing.T) {
 	mockedGrandpaState.EXPECT().
 		NextGrandpaAuthorityChange(testGenesisHeader.Hash(), testGenesisHeader.Number).
 		Return(uint(0), state.ErrNoNextAuthorityChange).
-		Times(2)
+		AnyTimes()
 	mockedGrandpaState.EXPECT().
-		SetPrevotes(uint64(0), uint64(0), gomock.AssignableToTypeOf([]types.GrandpaSignedVote{})).
+		SetPrevotes(uint64(1), uint64(0), gomock.AssignableToTypeOf([]types.GrandpaSignedVote{})).
 		Return(nil).
 		Times(1)
 	mockedGrandpaState.EXPECT().
-		SetPrecommits(uint64(0), uint64(0), gomock.AssignableToTypeOf([]types.GrandpaSignedVote{})).
+		SetPrecommits(uint64(1), uint64(0), gomock.AssignableToTypeOf([]types.GrandpaSignedVote{})).
 		Return(nil).
 		Times(1)
 	mockedGrandpaState.EXPECT().
-		SetLatestRound(uint64(0)).
+		SetLatestRound(uint64(1)).
 		Return(nil).
 		Times(1)
 	mockedGrandpaState.EXPECT().
-		GetPrecommits(uint64(0), uint64(0)).
+		GetPrecommits(uint64(1), uint64(0)).
 		Return([]types.GrandpaSignedVote{}, nil).
 		Times(1)
 
@@ -656,9 +655,13 @@ func TestSendingVotesInRightStage(t *testing.T) {
 	// since the next 3 function has been called based on the amount of time we wait until we get enough
 	// prevotes is hard to define a corret amount of times this function shoud be called
 	mockedState.EXPECT().
-		HasFinalisedBlock(uint64(0), uint64(0)).
+		HasFinalisedBlock(uint64(1), uint64(0)).
 		Return(false, nil).
 		AnyTimes()
+	mockedState.EXPECT().
+		HasHeader(testGenesisHeader.Hash()).
+		Return(true, nil).
+		Times(4)
 	mockedState.EXPECT().
 		GetHighestRoundAndSetID().
 		Return(uint64(0), uint64(0), nil).
@@ -681,11 +684,10 @@ func TestSendingVotesInRightStage(t *testing.T) {
 		Return(testGenesisHeader, nil).
 		Times(1)
 	mockedState.EXPECT().
-		SetFinalisedHash(testGenesisHeader.Hash(), uint64(0), uint64(0)).
+		SetFinalisedHash(testGenesisHeader.Hash(), uint64(1), uint64(0)).
 		Return(nil).
 		Times(1)
 
-	mockedTelemetry := NewMockClient(ctrl)
 	expectedFinalizedTelemetryMessage := telemetry.NewAfgFinalizedBlocksUpTo(
 		testGenesisHeader.Hash(),
 		fmt.Sprint(testGenesisHeader.Number),
@@ -693,19 +695,36 @@ func TestSendingVotesInRightStage(t *testing.T) {
 	expectedAlicePrevoteTelemetryMessage := telemetry.NewAfgReceivedPrevote(
 		testGenesisHeader.Hash(),
 		fmt.Sprint(testGenesisHeader.Number),
-		grandpaVoters[0].String(),
+		grandpaVoters[0].PublicKeyBytes().String(),
 	)
 	expectedCharliePrevoteTelemetryMessage := telemetry.NewAfgReceivedPrevote(
 		testGenesisHeader.Hash(),
 		fmt.Sprint(testGenesisHeader.Number),
-		grandpaVoters[2].String(),
+		grandpaVoters[2].PublicKeyBytes().String(),
+	)
+	expectedAlicePrecommitTelemetryMessage := telemetry.NewAfgReceivedPrecommit(
+		testGenesisHeader.Hash(),
+		fmt.Sprint(testGenesisHeader.Number),
+		grandpaVoters[0].PublicKeyBytes().String(),
+	)
+	expectedCharliePrecommitTelemetryMessage := telemetry.NewAfgReceivedPrecommit(
+		testGenesisHeader.Hash(),
+		fmt.Sprint(testGenesisHeader.Number),
+		grandpaVoters[2].PublicKeyBytes().String(),
 	)
 
+	mockedTelemetry := NewMockClient(ctrl)
 	mockedTelemetry.EXPECT().
 		SendMessage(expectedAlicePrevoteTelemetryMessage).
 		Times(1)
 	mockedTelemetry.EXPECT().
 		SendMessage(expectedCharliePrevoteTelemetryMessage).
+		Times(1)
+	mockedTelemetry.EXPECT().
+		SendMessage(expectedAlicePrecommitTelemetryMessage).
+		Times(1)
+	mockedTelemetry.EXPECT().
+		SendMessage(expectedCharliePrecommitTelemetryMessage).
 		Times(1)
 	mockedTelemetry.EXPECT().
 		SendMessage(expectedFinalizedTelemetryMessage).
@@ -728,7 +747,7 @@ func TestSendingVotesInRightStage(t *testing.T) {
 		in:           make(chan *networkVoteMessage),
 		interval:     subroundInterval,
 		state: &State{
-			round:  0,
+			round:  1,
 			setID:  0,
 			voters: grandpaVoters,
 		},
@@ -743,14 +762,17 @@ func TestSendingVotesInRightStage(t *testing.T) {
 	}
 	grandpa.paused.Store(false)
 
-	doneCh := make(chan struct{})
-	go func() {
-		defer close(doneCh)
-		err = grandpa.playGrandpaRound()
-		require.NoError(t, err)
-	}()
-
 	expectedVote := NewVote(testGenesisHeader.Hash(), uint32(testGenesisHeader.Number))
+	_, expectedPrimaryProposal, err := grandpa.createSignedVoteAndVoteMessage(expectedVote, primaryProposal)
+	require.NoError(t, err)
+
+	primaryProposal, err := expectedPrimaryProposal.ToConsensusMessage()
+	require.NoError(t, err)
+	mockedNet.EXPECT().
+		GossipMessage(primaryProposal).
+		Times(1)
+
+	// first of all we should determine our precommit based on our chain view
 	_, expectedPrevoteMessage, err := grandpa.createSignedVoteAndVoteMessage(expectedVote, prevote)
 	require.NoError(t, err)
 
@@ -758,28 +780,9 @@ func TestSendingVotesInRightStage(t *testing.T) {
 	require.NoError(t, err)
 	mockedNet.EXPECT().
 		GossipMessage(pv).
-		Times(2)
+		AnyTimes()
 
-	// given that we are BOB and we already had predetermined our prevote in a set
-	// of 4 authorities (ALICE, BOB, CHARLIE and DAVE) then we only need 2 more prevotes
-	aliceVoteOn := NewVote(testGenesisHeader.Hash(), uint32(testGenesisHeader.Number))
-	_, aliceVoteMessage, err := createSignedVoteUsing(t, votersPublicKeys[0], aliceVoteOn, prevote, 1, 0)
-	require.NoError(t, err)
-
-	grandpa.in <- &networkVoteMessage{
-		from: peer.ID("alice"),
-		msg:  aliceVoteMessage,
-	}
-
-	charlieVoteOn := NewVote(testGenesisHeader.Hash(), uint32(testGenesisHeader.Number))
-	_, charlieVoteMessage, err := createSignedVoteUsing(t, votersPublicKeys[2], charlieVoteOn, prevote, 1, 0)
-	require.NoError(t, err)
-
-	grandpa.in <- &networkVoteMessage{
-		from: peer.ID("charlie"),
-		msg:  charlieVoteMessage,
-	}
-
+	// after receive enough prevotes our node should define a precommit message and send it
 	_, expectedPrecommitMessage, err := grandpa.createSignedVoteAndVoteMessage(expectedVote, precommit)
 	require.NoError(t, err)
 
@@ -787,10 +790,55 @@ func TestSendingVotesInRightStage(t *testing.T) {
 	require.NoError(t, err)
 	mockedNet.EXPECT().
 		GossipMessage(pc).
-		Times(1)
+		AnyTimes()
+
+	doneCh := make(chan struct{})
+	go func() {
+		defer close(doneCh)
+		err = grandpa.playGrandpaRound()
+		require.NoError(t, err)
+	}()
+
+	time.Sleep(grandpa.interval * 5)
+
+	// given that we are BOB and we already had predetermined our prevote in a set
+	// of 4 authorities (ALICE, BOB, CHARLIE and DAVE) then we only need 2 more prevotes
+	_, aliceVoteMessage, err := createSignedVoteUsing(t, votersPublicKeys[0], expectedVote, prevote, 1, 0)
+	require.NoError(t, err)
+
+	grandpa.in <- &networkVoteMessage{
+		from: peer.ID("alice"),
+		msg:  aliceVoteMessage,
+	}
+
+	_, charlieVoteMessage, err := createSignedVoteUsing(t, votersPublicKeys[2], expectedVote, prevote, 1, 0)
+	require.NoError(t, err)
+
+	grandpa.in <- &networkVoteMessage{
+		from: peer.ID("charlie"),
+		msg:  charlieVoteMessage,
+	}
+
+	// given that we are BOB and we already had predetermined the precommit given the prevotes
+	// we only need 2 more precommit messages
+	_, alicePrecommitMessage, err := createSignedVoteUsing(t, votersPublicKeys[0], expectedVote, precommit, 1, 0)
+	require.NoError(t, err)
+
+	grandpa.in <- &networkVoteMessage{
+		from: peer.ID("alice"),
+		msg:  alicePrecommitMessage,
+	}
+
+	_, charliePrecommitMessage, err := createSignedVoteUsing(t, votersPublicKeys[2], expectedVote, precommit, 1, 0)
+	require.NoError(t, err)
+
+	grandpa.in <- &networkVoteMessage{
+		from: peer.ID("charlie"),
+		msg:  charliePrecommitMessage,
+	}
 
 	commitMessage := &CommitMessage{
-		Round:      0,
+		Round:      1,
 		Vote:       *NewVoteFromHeader(testGenesisHeader),
 		Precommits: []types.GrandpaVote{},
 		AuthData:   []AuthData{},
@@ -801,32 +849,7 @@ func TestSendingVotesInRightStage(t *testing.T) {
 		GossipMessage(expectedGossipCommitMessage).
 		Times(1)
 
-	// should send 1 precommit message and after we persit enough precommit
-	// votes we will close the `done` channel which will return from the `sendPrecommitMessage` goroutine
-	time.Sleep(subroundInterval * 2)
-
-	// given that we are BOB and we already had predetermined the precommit given the prevotes
-	// we only need 2 more precommit messages
-	alicePrecommitedTo := NewVote(testGenesisHeader.Hash(), uint32(testGenesisHeader.Number))
-	_, alicePrecommitMessage, err := createSignedVoteUsing(t, votersPublicKeys[0], alicePrecommitedTo, precommit, 1, 0)
-	require.NoError(t, err)
-
-	grandpa.in <- &networkVoteMessage{
-		from: peer.ID("alice"),
-		msg:  alicePrecommitMessage,
-	}
-
-	charliePrecommitedTo := NewVote(testGenesisHeader.Hash(), uint32(testGenesisHeader.Number))
-	_, charliePrecommitMessage, err := createSignedVoteUsing(t, votersPublicKeys[2], charliePrecommitedTo, prevote, 1, 0)
-	require.NoError(t, err)
-
-	grandpa.in <- &networkVoteMessage{
-		from: peer.ID("charlie"),
-		msg:  charliePrecommitMessage,
-	}
-
 	<-doneCh
-	assert.NoError(t, err)
 }
 
 func createSignedVoteUsing(t *testing.T, kp *ed25519.Keypair, vote *Vote, stage Subround, round, setID uint64) (*SignedVote, *VoteMessage, error) {
