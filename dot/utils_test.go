@@ -116,7 +116,7 @@ func TestNewTestConfig(t *testing.T) {
 					BlockProducerLvl:  3,
 					FinalityGadgetLvl: 3,
 				},
-				Init: InitConfig{Genesis: "./chain/gssmr/genesis-spec.json"},
+				Init: InitConfig{Genesis: "./chain/gssmr/genesis.json"},
 				Core: CoreConfig{
 					Roles:            4,
 					BabeAuthority:    true,
