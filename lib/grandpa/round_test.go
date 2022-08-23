@@ -20,6 +20,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/golang/mock/gomock"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
@@ -602,7 +603,6 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 			err := gs.blockState.(*state.BlockState).AddBlock(block)
 			require.NoError(t, err)
 		}
-
 	}
 }
 
@@ -610,18 +610,18 @@ func TestSendingVotesInRightStage(t *testing.T) {
 	ed25519Keyring, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
-	currentAuthority := ed25519Keyring.Bob().(*ed25519.Keypair)
-	votersPublicKeys := []*ed25519.PublicKey{
-		ed25519Keyring.Alice().(*ed25519.Keypair).Public().(*ed25519.PublicKey),
-		currentAuthority.Public().(*ed25519.PublicKey),
-		ed25519Keyring.Charlie().(*ed25519.Keypair).Public().(*ed25519.PublicKey),
-		ed25519Keyring.Dave().(*ed25519.Keypair).Public().(*ed25519.PublicKey),
+	bobAuthority := ed25519Keyring.Bob().(*ed25519.Keypair)
+	votersPublicKeys := []*ed25519.Keypair{
+		ed25519Keyring.Alice().(*ed25519.Keypair),
+		bobAuthority,
+		ed25519Keyring.Charlie().(*ed25519.Keypair),
+		ed25519Keyring.Dave().(*ed25519.Keypair),
 	}
 
 	grandpaVoters := make([]types.GrandpaVoter, len(votersPublicKeys))
 	for idx, pk := range votersPublicKeys {
 		grandpaVoters[idx] = types.GrandpaVoter{
-			Key: *pk,
+			Key: *pk.Public().(*ed25519.PublicKey),
 		}
 	}
 
@@ -690,6 +690,23 @@ func TestSendingVotesInRightStage(t *testing.T) {
 		testGenesisHeader.Hash(),
 		fmt.Sprint(testGenesisHeader.Number),
 	)
+	expectedAlicePrevoteTelemetryMessage := telemetry.NewAfgReceivedPrevote(
+		testGenesisHeader.Hash(),
+		fmt.Sprint(testGenesisHeader.Number),
+		grandpaVoters[0].String(),
+	)
+	expectedCharliePrevoteTelemetryMessage := telemetry.NewAfgReceivedPrevote(
+		testGenesisHeader.Hash(),
+		fmt.Sprint(testGenesisHeader.Number),
+		grandpaVoters[2].String(),
+	)
+
+	mockedTelemetry.EXPECT().
+		SendMessage(expectedAlicePrevoteTelemetryMessage).
+		Times(1)
+	mockedTelemetry.EXPECT().
+		SendMessage(expectedCharliePrevoteTelemetryMessage).
+		Times(1)
 	mockedTelemetry.EXPECT().
 		SendMessage(expectedFinalizedTelemetryMessage).
 		Times(1)
@@ -717,7 +734,7 @@ func TestSendingVotesInRightStage(t *testing.T) {
 		},
 		head:               testGenesisHeader,
 		authority:          true,
-		keypair:            currentAuthority,
+		keypair:            bobAuthority,
 		prevotes:           new(sync.Map),
 		precommits:         new(sync.Map),
 		preVotedBlock:      make(map[uint64]*Vote),
@@ -725,28 +742,6 @@ func TestSendingVotesInRightStage(t *testing.T) {
 		telemetry:          mockedTelemetry,
 	}
 	grandpa.paused.Store(false)
-
-	ed25519Keyring.Bob().(*ed25519.Keypair).Public()
-	persistVote := func(grandpaSrvc *Service, pk ed25519.PublicKey, stage Subround) {
-		// dummy vote, the goal is ensure we stop sending
-		// messages when we reach a enough amount of prevotes
-		vote := NewVote(testGenesisHeader.Hash(), uint32(testGenesisHeader.Number))
-		signedVote := &SignedVote{
-			Vote:        *vote,
-			Signature:   [64]byte{},
-			AuthorityID: pk.AsBytes(),
-		}
-
-		var stageMap *sync.Map
-		switch stage {
-		case precommit:
-			stageMap = grandpaSrvc.precommits
-		case prevote:
-			stageMap = grandpaSrvc.prevotes
-		}
-
-		stageMap.Store(pk.AsBytes(), signedVote)
-	}
 
 	doneCh := make(chan struct{})
 	go func() {
@@ -765,18 +760,30 @@ func TestSendingVotesInRightStage(t *testing.T) {
 		GossipMessage(pv).
 		Times(2)
 
-	// should send 2 prevote messages and then stop since we reach the enough amount of prevotes
-	time.Sleep(subroundInterval * 4)
-
 	// given that we are BOB and we already had predetermined our prevote in a set
 	// of 4 authorities (ALICE, BOB, CHARLIE and DAVE) then we only need 2 more prevotes
-	persistVote(grandpa, *votersPublicKeys[0], prevote) // persiste prevote for alice
-	persistVote(grandpa, *votersPublicKeys[2], prevote) // persiste prevote for charlie
-
-	_, expectedPrecommit, err := grandpa.createSignedVoteAndVoteMessage(expectedVote, precommit)
+	aliceVoteOn := NewVote(testGenesisHeader.Hash(), uint32(testGenesisHeader.Number))
+	_, aliceVoteMessage, err := createSignedVoteUsing(t, votersPublicKeys[0], aliceVoteOn, prevote, 1, 0)
 	require.NoError(t, err)
 
-	pc, err := expectedPrecommit.ToConsensusMessage()
+	grandpa.in <- &networkVoteMessage{
+		from: peer.ID("alice"),
+		msg:  aliceVoteMessage,
+	}
+
+	charlieVoteOn := NewVote(testGenesisHeader.Hash(), uint32(testGenesisHeader.Number))
+	_, charlieVoteMessage, err := createSignedVoteUsing(t, votersPublicKeys[2], charlieVoteOn, prevote, 1, 0)
+	require.NoError(t, err)
+
+	grandpa.in <- &networkVoteMessage{
+		from: peer.ID("charlie"),
+		msg:  charlieVoteMessage,
+	}
+
+	_, expectedPrecommitMessage, err := grandpa.createSignedVoteAndVoteMessage(expectedVote, precommit)
+	require.NoError(t, err)
+
+	pc, err := expectedPrecommitMessage.ToConsensusMessage()
 	require.NoError(t, err)
 	mockedNet.EXPECT().
 		GossipMessage(pc).
@@ -800,9 +807,65 @@ func TestSendingVotesInRightStage(t *testing.T) {
 
 	// given that we are BOB and we already had predetermined the precommit given the prevotes
 	// we only need 2 more precommit messages
-	persistVote(grandpa, *votersPublicKeys[0], precommit) // persiste prevote for alice
-	persistVote(grandpa, *votersPublicKeys[2], precommit) // persiste prevote for charlie
+	alicePrecommitedTo := NewVote(testGenesisHeader.Hash(), uint32(testGenesisHeader.Number))
+	_, alicePrecommitMessage, err := createSignedVoteUsing(t, votersPublicKeys[0], alicePrecommitedTo, precommit, 1, 0)
+	require.NoError(t, err)
+
+	grandpa.in <- &networkVoteMessage{
+		from: peer.ID("alice"),
+		msg:  alicePrecommitMessage,
+	}
+
+	charliePrecommitedTo := NewVote(testGenesisHeader.Hash(), uint32(testGenesisHeader.Number))
+	_, charliePrecommitMessage, err := createSignedVoteUsing(t, votersPublicKeys[2], charliePrecommitedTo, prevote, 1, 0)
+	require.NoError(t, err)
+
+	grandpa.in <- &networkVoteMessage{
+		from: peer.ID("charlie"),
+		msg:  charliePrecommitMessage,
+	}
 
 	<-doneCh
 	assert.NoError(t, err)
+}
+
+func createSignedVoteUsing(t *testing.T, kp *ed25519.Keypair, vote *Vote, stage Subround, round, setID uint64) (*SignedVote, *VoteMessage, error) {
+	t.Helper()
+
+	msg, err := scale.Marshal(FullVote{
+		Stage: stage,
+		Vote:  *vote,
+		Round: round,
+		SetID: setID,
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	sig, err := kp.Sign(msg)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	pc := &SignedVote{
+		Vote:        *vote,
+		Signature:   ed25519.NewSignatureBytes(sig),
+		AuthorityID: kp.Public().(*ed25519.PublicKey).AsBytes(),
+	}
+
+	sm := &SignedMessage{
+		Stage:       stage,
+		BlockHash:   pc.Vote.Hash,
+		Number:      pc.Vote.Number,
+		Signature:   ed25519.NewSignatureBytes(sig),
+		AuthorityID: kp.Public().(*ed25519.PublicKey).AsBytes(),
+	}
+
+	vm := &VoteMessage{
+		Round:   round,
+		SetID:   setID,
+		Message: *sm,
+	}
+
+	return pc, vm, nil
 }

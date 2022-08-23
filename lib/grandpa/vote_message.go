@@ -34,9 +34,6 @@ func (s *Service) receiveVoteMessages(cancel <-chan struct{}) (determinePrecommi
 			if finalizableCh != nil {
 				close(finalizableCh)
 			}
-			if s.receivedCommit != nil {
-				close(s.receivedCommit)
-			}
 		}()
 
 		logger.Debug("receiving pre-vote messages...")
