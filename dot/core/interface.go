@@ -19,6 +19,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
 
+// RuntimeInstance for runtime methods
 type RuntimeInstance interface {
 	UpdateRuntimeCode([]byte) error
 	Stop()
