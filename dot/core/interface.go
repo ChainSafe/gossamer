@@ -16,6 +16,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
 // RuntimeInstance for runtime methods
@@ -30,6 +31,7 @@ type RuntimeInstance interface {
 	SetContextStorage(s runtime.Storage)
 	GetCodeHash() common.Hash
 	Version() (version runtime.Version)
+	StateVersion() (stateVersion trie.Version)
 	Metadata() ([]byte, error)
 	BabeConfiguration() (*types.BabeConfiguration, error)
 	GrandpaAuthorities() ([]types.Authority, error)
@@ -70,7 +72,7 @@ type BlockState interface {
 	SubChain(start, end common.Hash) ([]common.Hash, error)
 	GetBlockBody(hash common.Hash) (*types.Body, error)
 	HandleRuntimeChanges(newState *rtstorage.TrieState, in runtime.Instance, bHash common.Hash) error
-	GetRuntime(*common.Hash) (runtime.Instance, error)
+	GetRuntime(blockHash *common.Hash) (instance runtime.Instance, err error)
 	StoreRuntime(common.Hash, runtime.Instance)
 }
 
@@ -78,11 +80,13 @@ type BlockState interface {
 type StorageState interface {
 	LoadCode(root *common.Hash) ([]byte, error)
 	LoadCodeHash(root *common.Hash) (common.Hash, error)
-	TrieState(root *common.Hash) (*rtstorage.TrieState, error)
-	StoreTrie(*rtstorage.TrieState, *types.Header) error
+	TrieState(root *common.Hash, stateVersion trie.Version) (*rtstorage.TrieState, error)
+	StoreTrie(trieState *rtstorage.TrieState, blockHeader *types.Header,
+		stateVersion trie.Version) error
 	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
 	GetStorage(root *common.Hash, key []byte) ([]byte, error)
-	GenerateTrieProof(stateRoot common.Hash, keys [][]byte) ([][]byte, error)
+	GenerateTrieProof(stateRoot common.Hash, keys [][]byte,
+		stateVersion trie.Version) (encodedNodes [][]byte, err error)
 	sync.Locker
 }
 

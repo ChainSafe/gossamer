@@ -28,6 +28,7 @@ type Instance interface {
 	// Version returns the version from the runtime.
 	// This should return the cached version and be cheap to execute.
 	Version() (version Version)
+	StateVersion() (stateVersion trie.Version)
 	Metadata() ([]byte, error)
 	BabeConfiguration() (*types.BabeConfiguration, error)
 	GrandpaAuthorities() ([]types.Authority, error)
@@ -50,11 +51,11 @@ type Instance interface {
 
 // Storage interface
 type Storage interface {
-	Set(key []byte, value []byte)
+	Set(key []byte, value []byte, stateVersion trie.Version)
 	Get(key []byte) []byte
-	Root() (common.Hash, error)
-	SetChild(keyToChild []byte, child *trie.Trie) error
-	SetChildStorage(keyToChild, key, value []byte) error
+	Root(stateVersion trie.Version) (common.Hash, error)
+	SetChild(keyToChild []byte, child *trie.Trie, stateVersion trie.Version) error
+	SetChildStorage(keyToChild, key, value []byte, stateVersion trie.Version) error
 	GetChildStorage(keyToChild, key []byte) ([]byte, error)
 	Delete(key []byte)
 	DeleteChild(keyToChild []byte)

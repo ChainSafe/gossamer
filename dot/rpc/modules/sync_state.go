@@ -8,6 +8,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
 // GenSyncSpecRequest represents request to get chain specification.
@@ -43,21 +44,17 @@ type syncState struct {
 }
 
 // NewStateSync creates an instance of SyncStateAPI given a chain specification.
-func NewStateSync(gData *genesis.Data, storageAPI StorageAPI) (SyncStateAPI, error) {
+func NewStateSync(gData *genesis.Data, storageAPI StorageAPI,
+	stateVersion trie.Version) (stateSync SyncStateAPI, err error) {
 	tmpGen := &genesis.Genesis{
-		Name:       "",
-		ID:         "",
-		Bootnodes:  nil,
-		ProtocolID: "",
 		Genesis: genesis.Fields{
-			Runtime: nil,
+			Raw:     make(map[string]map[string]string),
+			Runtime: make(map[string]map[string]interface{}),
 		},
 	}
-	tmpGen.Genesis.Raw = make(map[string]map[string]string)
-	tmpGen.Genesis.Runtime = make(map[string]map[string]interface{})
 
 	// set genesis fields data
-	ent, err := storageAPI.Entries(nil)
+	ent, err := storageAPI.Entries(nil, stateVersion)
 	if err != nil {
 		return nil, err
 	}

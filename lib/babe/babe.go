@@ -483,17 +483,19 @@ func (b *Service) handleSlot(epoch, slotNum uint64,
 	b.storageState.Lock()
 	defer b.storageState.Unlock()
 
-	// set runtime trie before building block
-	// if block building is successful, store the resulting trie in the storage state
-	ts, err := b.storageState.TrieState(&parent.StateRoot)
-	if err != nil || ts == nil {
-		logger.Errorf("failed to get parent trie with parent state root %s: %s", parent.StateRoot, err)
-		return err
-	}
-
 	hash := parent.Hash()
 	rt, err := b.blockState.GetRuntime(&hash)
 	if err != nil {
+		return fmt.Errorf("getting runtime: %w", err)
+	}
+
+	stateVersion := rt.StateVersion()
+
+	// set runtime trie before building block
+	// if block building is successful, store the resulting trie in the storage state
+	ts, err := b.storageState.TrieState(&parent.StateRoot, stateVersion)
+	if err != nil || ts == nil {
+		logger.Errorf("failed to get parent trie with parent state root %s: %s", parent.StateRoot, err)
 		return err
 	}
 

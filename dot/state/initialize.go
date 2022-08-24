@@ -54,6 +54,8 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 		return err
 	}
 
+	stateVersion := rt.StateVersion()
+
 	babeCfg, err := s.loadBabeConfigurationFromRuntime(rt)
 	if err != nil {
 		return err
@@ -66,7 +68,7 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 	}
 
 	tries := NewTries()
-	tries.SetTrie(t)
+	tries.SetTrie(t, stateVersion)
 
 	// create block state from genesis block
 	blockState, err := NewBlockStateFromGenesis(db, tries, header, s.Telemetry)

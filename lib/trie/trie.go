@@ -13,8 +13,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-// EmptyHash is the empty trie hash.
-var EmptyHash, _ = NewEmptyTrie().Hash()
+// EmptyHash is the empty trie hash, which is the same for
+// both the V0 and V1 state trie versions
+var EmptyHash, _ = NewEmptyTrie().Hash(V0)
 
 // Trie is a base 16 modified Merkle Patricia trie.
 type Trie struct {
@@ -167,8 +168,8 @@ func encodeRoot(root *Node, buffer node.Buffer) (err error) {
 
 // MustHash returns the hashed root of the trie.
 // It panics if it fails to hash the root node.
-func (t *Trie) MustHash() common.Hash {
-	h, err := t.Hash()
+func (t *Trie) MustHash(version Version) common.Hash {
+	h, err := t.Hash(version)
 	if err != nil {
 		panic(err)
 	}
@@ -177,7 +178,7 @@ func (t *Trie) MustHash() common.Hash {
 }
 
 // Hash returns the hashed root of the trie.
-func (t *Trie) Hash() (rootHash common.Hash, err error) {
+func (t *Trie) Hash(version Version) (rootHash common.Hash, err error) {
 	buffer := pools.EncodingBuffers.Get().(*bytes.Buffer)
 	buffer.Reset()
 	defer pools.EncodingBuffers.Put(buffer)
@@ -317,14 +318,15 @@ func findNextKeyChild(children []*Node, startIndex byte,
 
 // Put inserts a value into the trie at the
 // key specified in little Endian format.
-func (t *Trie) Put(keyLE, value []byte) {
+func (t *Trie) Put(keyLE, value []byte, version Version) {
 	nibblesKey := codec.KeyLEToNibbles(keyLE)
-	t.root, _ = t.insert(t.root, nibblesKey, value)
+	t.root, _ = t.insert(t.root, nibblesKey, value, version)
 }
 
 // insert inserts a value in the trie at the key specified.
 // It may create one or more new nodes or update an existing node.
-func (t *Trie) insert(parent *Node, key, value []byte) (newParent *Node, nodesCreated uint32) {
+func (t *Trie) insert(parent *Node, key, value []byte, version Version) (
+	newParent *Node, nodesCreated uint32) {
 	if parent == nil {
 		const nodesCreated = 1
 		return &Node{
@@ -338,12 +340,12 @@ func (t *Trie) insert(parent *Node, key, value []byte) (newParent *Node, nodesCr
 	// TODO ensure all values have dirty set to true
 
 	if parent.Kind() == node.Branch {
-		return t.insertInBranch(parent, key, value)
+		return t.insertInBranch(parent, key, value, version)
 	}
-	return t.insertInLeaf(parent, key, value)
+	return t.insertInLeaf(parent, key, value, version)
 }
 
-func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte) (
+func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte, version Version) (
 	newParent *Node, nodesCreated uint32) {
 	if bytes.Equal(parentLeaf.Key, key) {
 		nodesCreated = 0
@@ -413,7 +415,7 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte) (
 	return newBranchParent, nodesCreated
 }
 
-func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte) (
+func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte, version Version) (
 	newParent *Node, nodesCreated uint32) {
 	copySettings := node.DefaultCopySettings
 	parentBranch = t.prepBranchForMutation(parentBranch, copySettings)
@@ -439,7 +441,7 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte) (
 			}
 			nodesCreated = 1
 		} else {
-			child, nodesCreated = t.insert(child, remainingKey, value)
+			child, nodesCreated = t.insert(child, remainingKey, value, version)
 		}
 
 		parentBranch.Children[childIndex] = child
@@ -471,7 +473,7 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte) (
 		childIndex := key[commonPrefixLength]
 		remainingKey := key[commonPrefixLength+1:]
 		var additionalNodesCreated uint32
-		newParentBranch.Children[childIndex], additionalNodesCreated = t.insert(nil, remainingKey, value)
+		newParentBranch.Children[childIndex], additionalNodesCreated = t.insert(nil, remainingKey, value, version)
 		nodesCreated += additionalNodesCreated
 		newParentBranch.Descendants += additionalNodesCreated
 	}
@@ -482,7 +484,7 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte) (
 // LoadFromMap loads the given data mapping of key to value into the trie.
 // The keys are in hexadecimal little Endian encoding and the values
 // are hexadecimal encoded.
-func (t *Trie) LoadFromMap(data map[string]string) (err error) {
+func (t *Trie) LoadFromMap(data map[string]string, version Version) (err error) {
 	for key, value := range data {
 		keyLEBytes, err := common.HexToBytes(key)
 		if err != nil {
@@ -494,7 +496,7 @@ func (t *Trie) LoadFromMap(data map[string]string) (err error) {
 			return fmt.Errorf("cannot convert value hex to bytes: %w", err)
 		}
 
-		t.Put(keyLEBytes, valueBytes)
+		t.Put(keyLEBytes, valueBytes, version)
 	}
 
 	return nil

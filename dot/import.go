@@ -13,6 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
@@ -21,11 +22,6 @@ import (
 
 // ImportState imports the state in the given files to the database with the given path.
 func ImportState(basepath, stateFP, headerFP string, firstSlot uint64) error {
-	tr, err := newTrieFromPairs(stateFP)
-	if err != nil {
-		return err
-	}
-
 	header, err := newHeaderFromFile(headerFP)
 	if err != nil {
 		return err
@@ -37,11 +33,28 @@ func ImportState(basepath, stateFP, headerFP string, firstSlot uint64) error {
 		Path:     basepath,
 		LogLevel: log.Info,
 	}
-	srv := state.NewService(config)
-	return srv.Import(header, tr, firstSlot)
+	dotService := state.NewService(config)
+
+	blockHash := header.Hash()
+	runtimeCode, err := dotService.Storage.LoadCode(&blockHash)
+	if err != nil {
+		return fmt.Errorf("loading code from storage: %w", err)
+	}
+
+	stateVersion, err := wasmer.GetRuntimeStateVersion(runtimeCode)
+	if err != nil {
+		return fmt.Errorf("getting runtime state version: %w", err)
+	}
+
+	trie, err := newTrieFromPairs(stateFP, stateVersion)
+	if err != nil {
+		return fmt.Errorf("creating trie from pairs: %w", err)
+	}
+
+	return dotService.Import(header, trie, firstSlot, stateVersion)
 }
 
-func newTrieFromPairs(filename string) (*trie.Trie, error) {
+func newTrieFromPairs(filename string, stateVersion trie.Version) (*trie.Trie, error) {
 	data, err := os.ReadFile(filepath.Clean(filename))
 	if err != nil {
 		return nil, err
@@ -63,7 +76,7 @@ func newTrieFromPairs(filename string) (*trie.Trie, error) {
 	}
 
 	tr := trie.NewEmptyTrie()
-	err = tr.LoadFromMap(entries)
+	err = tr.LoadFromMap(entries, stateVersion)
 	if err != nil {
 		return nil, err
 	}

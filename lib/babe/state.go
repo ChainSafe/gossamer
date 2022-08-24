@@ -12,6 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
 //go:generate mockgen -destination=./mock_state_test.go -package $GOPACKAGE . BlockState,ImportedBlockNotifierManager,StorageState,TransactionState,EpochState,DigestHandler,BlockImportHandler
@@ -47,7 +48,7 @@ type ImportedBlockNotifierManager interface {
 
 // StorageState interface for storage state methods
 type StorageState interface {
-	TrieState(hash *common.Hash) (*rtstorage.TrieState, error)
+	TrieState(hash *common.Hash, stateVersion trie.Version) (*rtstorage.TrieState, error)
 	sync.Locker
 }
 

@@ -12,6 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
@@ -50,7 +51,7 @@ type BlockState interface {
 
 // StorageState is the interface for the storage state
 type StorageState interface {
-	TrieState(root *common.Hash) (*rtstorage.TrieState, error)
+	TrieState(root *common.Hash, stateVersion trie.Version) (*rtstorage.TrieState, error)
 	LoadCodeHash(*common.Hash) (common.Hash, error)
 	sync.Locker
 }

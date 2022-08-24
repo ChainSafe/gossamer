@@ -73,8 +73,9 @@ func NewStorageState(db chaindb.Database, blockState *BlockState,
 }
 
 // StoreTrie stores the given trie in the StorageState and writes it to the database
-func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) error {
-	root := ts.MustRoot()
+func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header,
+	stateVersion trie.Version) error {
+	root := ts.MustRoot(stateVersion)
 
 	s.tries.softSet(root, ts.Trie())
 
@@ -104,13 +105,13 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) 
 		return err
 	}
 
-	go s.notifyAll(root)
+	go s.notifyAll(root, stateVersion)
 	return nil
 }
 
 // TrieState returns the TrieState for a given state root.
 // If no state root is provided, it returns the TrieState for the current chain head.
-func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error) {
+func (s *StorageState) TrieState(root *common.Hash, version trie.Version) (*rtstorage.TrieState, error) {
 	if root == nil {
 		sr, err := s.blockState.BestBlockStateRoot()
 		if err != nil {
@@ -122,13 +123,13 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 	t := s.tries.get(*root)
 	if t == nil {
 		var err error
-		t, err = s.LoadFromDB(*root)
+		t, err = s.LoadFromDB(*root, version)
 		if err != nil {
 			return nil, err
 		}
 
 		s.tries.softSet(*root, t)
-	} else if t.MustHash() != *root {
+	} else if t.MustHash(version) != *root {
 		panic("trie does not have expected root")
 	}
 
@@ -140,18 +141,18 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 }
 
 // LoadFromDB loads an encoded trie from the DB where the key is `root`
-func (s *StorageState) LoadFromDB(root common.Hash) (*trie.Trie, error) {
+func (s *StorageState) LoadFromDB(root common.Hash, version trie.Version) (*trie.Trie, error) {
 	t := trie.NewEmptyTrie()
-	err := t.Load(s.db, root)
+	err := t.Load(s.db, root, version)
 	if err != nil {
 		return nil, err
 	}
 
-	s.tries.softSet(t.MustHash(), t)
+	s.tries.softSet(t.MustHash(version), t)
 	return t, nil
 }
 
-func (s *StorageState) loadTrie(root *common.Hash) (*trie.Trie, error) {
+func (s *StorageState) loadTrie(root *common.Hash, version trie.Version) (*trie.Trie, error) {
 	if root == nil {
 		sr, err := s.blockState.BestBlockStateRoot()
 		if err != nil {
@@ -165,7 +166,7 @@ func (s *StorageState) loadTrie(root *common.Hash) (*trie.Trie, error) {
 		return t, nil
 	}
 
-	tr, err := s.LoadFromDB(*root)
+	tr, err := s.LoadFromDB(*root, version)
 	if err != nil {
 		return nil, fmt.Errorf("trie does not exist at root %s: %w", *root, err)
 	}
@@ -244,9 +245,11 @@ func (s *StorageState) StorageRoot() (common.Hash, error) {
 	return s.blockState.BestBlockStateRoot()
 }
 
-// Entries returns Entries from the trie with the given state root
-func (s *StorageState) Entries(root *common.Hash) (map[string][]byte, error) {
-	tr, err := s.loadTrie(root)
+// Entries returns the entries from the trie corresponding to the given state
+// root as a map of key (string of LE encoded bytes) to value byte slice.
+func (s *StorageState) Entries(root *common.Hash, version trie.Version) (
+	entries map[string][]byte, err error) {
+	tr, err := s.loadTrie(root, version)
 	if err != nil {
 		return nil, err
 	}
@@ -256,8 +259,9 @@ func (s *StorageState) Entries(root *common.Hash) (map[string][]byte, error) {
 
 // GetKeysWithPrefix returns all that match the given prefix for the given hash
 // (or best block state root if hash is nil) in lexicographic order
-func (s *StorageState) GetKeysWithPrefix(root *common.Hash, prefix []byte) ([][]byte, error) {
-	tr, err := s.loadTrie(root)
+func (s *StorageState) GetKeysWithPrefix(root *common.Hash, prefix []byte,
+	version trie.Version) ([][]byte, error) {
+	tr, err := s.loadTrie(root, version)
 	if err != nil {
 		return nil, err
 	}
@@ -266,8 +270,9 @@ func (s *StorageState) GetKeysWithPrefix(root *common.Hash, prefix []byte) ([][]
 }
 
 // GetStorageChild returns a child trie, if it exists
-func (s *StorageState) GetStorageChild(root *common.Hash, keyToChild []byte) (*trie.Trie, error) {
-	tr, err := s.loadTrie(root)
+func (s *StorageState) GetStorageChild(root *common.Hash, keyToChild []byte,
+	version trie.Version) (*trie.Trie, error) {
+	tr, err := s.loadTrie(root, version)
 	if err != nil {
 		return nil, err
 	}
@@ -276,8 +281,9 @@ func (s *StorageState) GetStorageChild(root *common.Hash, keyToChild []byte) (*t
 }
 
 // GetStorageFromChild get a value from a child trie
-func (s *StorageState) GetStorageFromChild(root *common.Hash, keyToChild, key []byte) ([]byte, error) {
-	tr, err := s.loadTrie(root)
+func (s *StorageState) GetStorageFromChild(root *common.Hash, keyToChild,
+	key []byte, version trie.Version) (value []byte, err error) {
+	tr, err := s.loadTrie(root, version)
 	if err != nil {
 		return nil, err
 	}
@@ -301,7 +307,7 @@ func (s *StorageState) LoadCodeHash(hash *common.Hash) (common.Hash, error) {
 }
 
 // GenerateTrieProof returns the proofs related to the keys on the state root trie
-func (s *StorageState) GenerateTrieProof(stateRoot common.Hash, keys [][]byte) (
-	encodedProofNodes [][]byte, err error) {
-	return proof.Generate(stateRoot[:], keys, s.db)
+func (s *StorageState) GenerateTrieProof(stateRoot common.Hash, keys [][]byte,
+	version trie.Version) (encodedProofNodes [][]byte, err error) {
+	return proof.Generate(stateRoot[:], keys, s.db, version)
 }

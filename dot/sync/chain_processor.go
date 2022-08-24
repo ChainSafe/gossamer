@@ -4,7 +4,6 @@
 package sync
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -12,6 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
+	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
 //go:generate mockgen -destination=mock_chain_processor_test.go -package=$GOPACKAGE . ChainProcessor
@@ -142,10 +142,16 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 			}
 		}
 
+		instance, err := s.blockState.GetRuntime(&block.Header.ParentHash)
+		if err != nil {
+			return fmt.Errorf("getting runtime instance: %w", err)
+		}
+		stateVersion := instance.StateVersion()
+
 		// TODO: this is probably unnecessary, since the state is already in the database
 		// however, this case shouldn't be hit often, since it's only hit if the node state
 		// is rewinded or if the node shuts down unexpectedly (#1784)
-		state, err := s.storageState.TrieState(&block.Header.StateRoot)
+		state, err := s.storageState.TrieState(&block.Header.StateRoot, stateVersion)
 		if err != nil {
 			logger.Warnf("failed to load state for block with hash %s: %s", block.Header.Hash(), err)
 			return err
@@ -202,30 +208,34 @@ func (s *chainProcessor) handleBody(body *types.Body) {
 	}
 }
 
-// handleHeader handles blocks (header+body) included in BlockResponses
+// handleBlock handles blocks (header+body) included in BlockResponses
 func (s *chainProcessor) handleBlock(block *types.Block) error {
 	parent, err := s.blockState.GetHeader(block.Header.ParentHash)
 	if err != nil {
 		return fmt.Errorf("%w: %s", errFailedToGetParent, err)
 	}
 
-	s.storageState.Lock()
-	defer s.storageState.Unlock()
-
-	ts, err := s.storageState.TrieState(&parent.StateRoot)
-	if err != nil {
-		return err
-	}
-
-	root := ts.MustRoot()
-	if !bytes.Equal(parent.StateRoot[:], root[:]) {
-		panic("parent state root does not match snapshot state root")
-	}
-
 	hash := parent.Hash()
 	rt, err := s.blockState.GetRuntime(&hash)
 	if err != nil {
+		return fmt.Errorf("getting runtime for parent hash: %w", err)
+	}
+
+	stateVersion := rt.StateVersion()
+
+	s.storageState.Lock()
+	defer s.storageState.Unlock()
+
+	ts, err := s.storageState.TrieState(&parent.StateRoot, stateVersion)
+	if err != nil {
 		return err
+	}
+
+	// TODO shall we remove this? Both are coming from the internal state
+	rootV0 := ts.MustRoot(trie.V0)
+	if !rootV0.Equal(parent.StateRoot) {
+		// TODO add extra check with rootV1 when v1 is supported
+		panic("parent state root does not match snapshot state root")
 	}
 
 	rt.SetContextStorage(ts)
@@ -236,7 +246,7 @@ func (s *chainProcessor) handleBlock(block *types.Block) error {
 	}
 
 	if err = s.blockImportHandler.HandleBlockImport(block, ts); err != nil {
-		return err
+		return fmt.Errorf("handling block import: %w", err)
 	}
 
 	logger.Debugf("🔗 imported block number %d with hash %s", block.Header.Number, block.Header.Hash())

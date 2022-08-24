@@ -29,10 +29,11 @@ type Database interface {
 // for the trie corresponding to the root hash given, and for
 // the slice of (Little Endian) full keys given. The database given
 // is used to load the trie using the root hash given.
-func Generate(rootHash []byte, fullKeys [][]byte, database Database) (
-	encodedProofNodes [][]byte, err error) {
+func Generate(rootHash []byte, fullKeys [][]byte, database Database,
+	stateVersion trie.Version) (encodedProofNodes [][]byte, err error) {
 	trie := trie.NewEmptyTrie()
-	if err := trie.Load(database, common.BytesToHash(rootHash)); err != nil {
+	err = trie.Load(database, common.BytesToHash(rootHash), stateVersion)
+	if err != nil {
 		return nil, fmt.Errorf("loading trie: %w", err)
 	}
 	rootNode := trie.RootNode()

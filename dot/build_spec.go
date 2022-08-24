@@ -112,8 +112,19 @@ func BuildFromDB(path string) (*BuildSpec, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot start state service: %w", err)
 	}
+
+	bestBlockStateRoot, err := stateSrvc.Block.BestBlockStateRoot()
+	if err != nil {
+		return nil, fmt.Errorf("getting best block state root: %w", err)
+	}
+
+	instance, err := stateSrvc.Block.GetRuntime(&bestBlockStateRoot)
+	if err != nil {
+		return nil, fmt.Errorf("getting runtime instance for best block state root: %w", err)
+	}
+
 	// set genesis fields data
-	ent, err := stateSrvc.Storage.Entries(nil)
+	ent, err := stateSrvc.Storage.Entries(&bestBlockStateRoot, instance.StateVersion())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get storage trie entries: %w", err)
 	}
