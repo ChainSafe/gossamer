@@ -25,7 +25,8 @@ var (
 // A nil error is returned on success.
 // Note this is exported because it is imported and used by:
 // https://github.com/ComposableFi/ibc-go/blob/6d62edaa1a3cb0768c430dab81bb195e0b0c72db/modules/light-clients/11-beefy/types/client_state.go#L78
-func Verify(encodedProofNodes [][]byte, rootHash, key, value []byte) (err error) {
+func Verify(encodedProofNodes [][]byte, rootHash, key, value []byte,
+	stateVersion trie.Version) (err error) {
 	proofTrie, err := buildTrie(encodedProofNodes, rootHash)
 	if err != nil {
 		return fmt.Errorf("building trie from proof encoded nodes: %w", err)

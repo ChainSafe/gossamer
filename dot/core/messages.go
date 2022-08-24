@@ -19,7 +19,11 @@ func (s *Service) validateTransaction(head *types.Header, rt RuntimeInstance,
 	tx types.Extrinsic) (validity *transaction.Validity, err error) {
 	s.storageState.Lock()
 
-	ts, err := s.storageState.TrieState(&head.StateRoot)
+	// Note this is a cheap call getting the runtime cached version
+	// so we can call this in this function and not pass it as argument.
+	stateVersion := rt.StateVersion()
+
+	ts, err := s.storageState.TrieState(&head.StateRoot, stateVersion)
 	s.storageState.Unlock()
 	if err != nil {
 		return nil, fmt.Errorf("cannot get trie state from storage for root %s: %w", head.StateRoot, err)

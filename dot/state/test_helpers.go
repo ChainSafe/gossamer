@@ -236,17 +236,18 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 }
 
 func generateBlockWithRandomTrie(t *testing.T, serv *Service,
-	parent *common.Hash, bNum uint) (*types.Block, *runtime.TrieState) {
-	trieState, err := serv.Storage.TrieState(nil)
+	parent *common.Hash, bNum uint, stateVersion trie.Version) (
+	block *types.Block, trieState *runtime.TrieState) {
+	trieState, err := serv.Storage.TrieState(nil, stateVersion)
 	require.NoError(t, err)
 
 	// Generate random data for trie state.
 	rand := time.Now().UnixNano()
 	key := []byte("testKey" + fmt.Sprint(rand))
 	value := []byte("testValue" + fmt.Sprint(rand))
-	trieState.Set(key, value)
+	trieState.Set(key, value, stateVersion)
 
-	trieStateRoot, err := trieState.Root()
+	trieStateRoot, err := trieState.Root(stateVersion)
 	require.NoError(t, err)
 
 	if parent == nil {
@@ -257,7 +258,7 @@ func generateBlockWithRandomTrie(t *testing.T, serv *Service,
 	body, err := types.NewBodyFromBytes([]byte{})
 	require.NoError(t, err)
 
-	block := &types.Block{
+	block = &types.Block{
 		Header: types.Header{
 			ParentHash: *parent,
 			Number:     bNum,

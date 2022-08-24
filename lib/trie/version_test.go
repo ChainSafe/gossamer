@@ -4,6 +4,7 @@
 package trie
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -49,23 +50,32 @@ func Test_ParseVersion(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		s          string
+		x          any
 		version    Version
 		errWrapped error
 		errMessage string
 	}{
 		"v0": {
-			s:       "v0",
+			x:       "v0",
 			version: V0,
 		},
 		"V0": {
-			s:       "V0",
+			x:       "V0",
 			version: V0,
 		},
-		"invalid": {
-			s:          "xyz",
-			errWrapped: ErrParseVersion,
-			errMessage: "parsing version failed: \"xyz\" must be v0",
+		"invalid string": {
+			x:          "xyz",
+			errWrapped: ErrVersionNotValid,
+			errMessage: "parsing version failed: xyz",
+		},
+		"0 uint32": {
+			x:       uint32(0),
+			version: V0,
+		},
+		"invalid uint32": {
+			x:          uint32(100),
+			errWrapped: ErrVersionNotValid,
+			errMessage: "parsing version failed: v100",
 		},
 	}
 
@@ -74,7 +84,16 @@ func Test_ParseVersion(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			version, err := ParseVersion(testCase.s)
+			var version Version
+			var err error
+			switch typedX := testCase.x.(type) {
+			case string:
+				version, err = ParseVersion(typedX)
+			case uint32:
+				version, err = ParseVersion(typedX)
+			default:
+				panic(fmt.Sprintf("unsupported type %T", testCase.x))
+			}
 
 			assert.Equal(t, testCase.version, version)
 			assert.ErrorIs(t, err, testCase.errWrapped)

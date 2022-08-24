@@ -68,10 +68,10 @@ func (s *TrieState) RollbackStorageTransaction() {
 }
 
 // Set sets a key-value pair in the trie
-func (s *TrieState) Set(key, value []byte) {
+func (s *TrieState) Set(key, value []byte, version trie.Version) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	s.t.Put(key, value)
+	s.t.Put(key, value, version)
 }
 
 // Get gets a value from the trie
@@ -82,13 +82,13 @@ func (s *TrieState) Get(key []byte) []byte {
 }
 
 // MustRoot returns the trie's root hash. It panics if it fails to compute the root.
-func (s *TrieState) MustRoot() common.Hash {
-	return s.t.MustHash()
+func (s *TrieState) MustRoot(version trie.Version) common.Hash {
+	return s.t.MustHash(version)
 }
 
 // Root returns the trie's root hash
-func (s *TrieState) Root() (common.Hash, error) {
-	return s.t.Hash()
+func (s *TrieState) Root(version trie.Version) (common.Hash, error) {
+	return s.t.Hash(version)
 }
 
 // Has returns whether or not a key exists
@@ -139,17 +139,19 @@ func (s *TrieState) TrieEntries() map[string][]byte {
 }
 
 // SetChild sets the child trie at the given key
-func (s *TrieState) SetChild(keyToChild []byte, child *trie.Trie) error {
+func (s *TrieState) SetChild(keyToChild []byte, child *trie.Trie,
+	version trie.Version) (err error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	return s.t.PutChild(keyToChild, child)
+	return s.t.PutChild(keyToChild, child, version)
 }
 
 // SetChildStorage sets a key-value pair in a child trie
-func (s *TrieState) SetChildStorage(keyToChild, key, value []byte) error {
+func (s *TrieState) SetChildStorage(keyToChild, key, value []byte,
+	version trie.Version) (err error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	return s.t.PutIntoChild(keyToChild, key, value)
+	return s.t.PutIntoChild(keyToChild, key, value, version)
 }
 
 // GetChild returns the child trie at the given key

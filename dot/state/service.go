@@ -142,8 +142,15 @@ func (s *Service) Start() (err error) {
 		return fmt.Errorf("failed to create storage state: %w", err)
 	}
 
+	bestBlockHash := s.Block.BestBlockHash()
+	instance, err := s.Block.GetRuntime(&bestBlockHash)
+	if err != nil {
+		return fmt.Errorf("getting runtime instance: %w", err)
+	}
+	stateVersion := instance.StateVersion()
+
 	// load current storage state trie into memory
-	_, err = s.Storage.LoadFromDB(stateRoot)
+	_, err = s.Storage.LoadFromDB(stateRoot, stateVersion)
 	if err != nil {
 		return fmt.Errorf("failed to load storage trie from database: %w", err)
 	}
@@ -263,7 +270,8 @@ func (s *Service) Stop() error {
 
 // Import imports the given state corresponding to the given header and sets the head of the chain
 // to it. Additionally, it uses the first slot to correctly set the epoch number of the block.
-func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) error {
+func (s *Service) Import(header *types.Header, t *trie.Trie,
+	firstSlot uint64, stateVersion trie.Version) error {
 	var err error
 	// initialise database using data directory
 	if !s.isMemDB {
@@ -308,7 +316,7 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 		return err
 	}
 
-	root := t.MustHash()
+	root := t.MustHash(stateVersion)
 	if root != header.StateRoot {
 		return fmt.Errorf("trie state root does not equal header state root")
 	}

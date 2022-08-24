@@ -4,6 +4,7 @@
 package modules
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -66,7 +67,13 @@ func (cs *ChildStateModule) GetKeys(_ *http.Request, req *GetKeysRequest, res *[
 		return err
 	}
 
-	trie, err := cs.storageAPI.GetStorageChild(stateRoot, req.Key)
+	instance, err := cs.blockAPI.GetRuntime(&hash)
+	if err != nil {
+		return fmt.Errorf("getting runtime instance: %w", err)
+	}
+	stateVersion := instance.StateVersion()
+
+	trie, err := cs.storageAPI.GetStorageChild(stateRoot, req.Key, stateVersion)
 	if err != nil {
 		return err
 	}
@@ -96,7 +103,14 @@ func (cs *ChildStateModule) GetStorageSize(_ *http.Request, req *GetChildStorage
 		return err
 	}
 
-	item, err := cs.storageAPI.GetStorageFromChild(stateRoot, req.KeyChild, req.EntryKey)
+	instance, err := cs.blockAPI.GetRuntime(&hash)
+	if err != nil {
+		return fmt.Errorf("getting runtime instance: %w", err)
+	}
+	stateVersion := instance.StateVersion()
+
+	item, err := cs.storageAPI.GetStorageFromChild(stateRoot,
+		req.KeyChild, req.EntryKey, stateVersion)
 	if err != nil {
 		return err
 	}
@@ -123,7 +137,14 @@ func (cs *ChildStateModule) GetStorageHash(_ *http.Request, req *GetStorageHash,
 		return err
 	}
 
-	item, err := cs.storageAPI.GetStorageFromChild(stateRoot, req.KeyChild, req.EntryKey)
+	instance, err := cs.blockAPI.GetRuntime(&hash)
+	if err != nil {
+		return fmt.Errorf("getting runtime instance: %w", err)
+	}
+	stateVersion := instance.StateVersion()
+
+	item, err := cs.storageAPI.GetStorageFromChild(stateRoot,
+		req.KeyChild, req.EntryKey, stateVersion)
 	if err != nil {
 		return err
 	}
@@ -155,7 +176,14 @@ func (cs *ChildStateModule) GetStorage(
 		return err
 	}
 
-	item, err = cs.storageAPI.GetStorageFromChild(stateRoot, req.ChildStorageKey, req.Key)
+	instance, err := cs.blockAPI.GetRuntime(&hash)
+	if err != nil {
+		return fmt.Errorf("getting runtime instance: %w", err)
+	}
+	stateVersion := instance.StateVersion()
+
+	item, err = cs.storageAPI.GetStorageFromChild(stateRoot,
+		req.ChildStorageKey, req.Key, stateVersion)
 	if err != nil {
 		return err
 	}

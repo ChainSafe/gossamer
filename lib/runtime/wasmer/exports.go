@@ -9,6 +9,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -47,6 +48,12 @@ func (in *Instance) version() (version runtime.Version, err error) {
 	}
 
 	return version, nil
+}
+
+// StateVersion returns the typed instance state version.
+// This is cheap to call since the instance state version is cached.
+func (in *Instance) StateVersion() (stateVersion trie.Version) {
+	return in.ctx.StateVersion
 }
 
 // Metadata calls runtime function Metadata_metadata

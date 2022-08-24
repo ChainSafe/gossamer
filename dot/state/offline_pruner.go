@@ -11,7 +11,6 @@ import (
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/dgraph-io/badger/v2"
 	"github.com/dgraph-io/badger/v2/pb"
@@ -115,8 +114,14 @@ func (p *OfflinePruner) SetBloomFilter() (err error) {
 
 	// loop from latest to last `retainBlockNum` blocks
 	for blockNum := header.Number; blockNum > 0 && blockNum >= latestBlockNum-uint(p.retainBlockNum); {
-		var tr *trie.Trie
-		tr, err = p.storageState.LoadFromDB(header.StateRoot)
+		blockHash := header.Hash()
+		instance, err := p.blockState.GetRuntime(&blockHash)
+		if err != nil {
+			return fmt.Errorf("getting runtime instance: %w", err)
+		}
+		stateVersion := instance.StateVersion()
+
+		tr, err := p.storageState.LoadFromDB(header.StateRoot, stateVersion)
 		if err != nil {
 			return err
 		}

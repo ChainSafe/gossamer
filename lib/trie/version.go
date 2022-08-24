@@ -30,15 +30,30 @@ func (v Version) String() string {
 	}
 }
 
-var ErrParseVersion = errors.New("parsing version failed")
+var ErrVersionNotValid = errors.New("version not valid")
 
-// ParseVersion parses a state trie version string.
-func ParseVersion(s string) (version Version, err error) {
+// ParseVersion parses a state trie version string or uint32.
+func ParseVersion[T string | uint32](x T) (version Version, err error) {
+	var s string
+	switch value := any(x).(type) {
+	case string:
+		s = value
+	case uint32:
+		s = fmt.Sprintf("V%d", value)
+	default:
+		panic(fmt.Sprintf("unsupported type %T", x))
+	}
+
 	switch {
 	case strings.EqualFold(s, V0.String()):
 		return V0, nil
 	default:
-		return version, fmt.Errorf("%w: %q must be %s",
-			ErrParseVersion, s, V0)
+		return version, fmt.Errorf("%w: %s", ErrVersionNotValid, s)
+	}
+}
+
+func enforceValidVersion(version Version) {
+	if version != V0 {
+		panic(fmt.Sprintf("unsupported version %d", version))
 	}
 }

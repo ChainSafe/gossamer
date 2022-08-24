@@ -22,6 +22,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	cscale "github.com/centrifuge/go-substrate-rpc-client/v4/scale"
 	ctypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
 )
@@ -60,6 +61,7 @@ type Service struct {
 
 // Config holds the configuration for the core Service.
 type Config struct {
+	// TODO add state version field here
 	LogLvl log.Level
 
 	BlockState       BlockState
@@ -82,7 +84,7 @@ func NewService(cfg *Config) (*Service, error) {
 	blockAddCh := make(chan *types.Block, 256)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	srv := &Service{
+	return &Service{
 		ctx:                  ctx,
 		cancel:               cancel,
 		keys:                 cfg.Keystore,
@@ -94,9 +96,7 @@ func NewService(cfg *Config) (*Service, error) {
 		blockAddCh:           blockAddCh,
 		codeSubstitute:       cfg.CodeSubstitutes,
 		codeSubstitutedState: cfg.CodeSubstitutedState,
-	}
-
-	return srv, nil
+	}, nil
 }
 
 // Start starts the core service
@@ -115,14 +115,17 @@ func (s *Service) Stop() error {
 	return nil
 }
 
-// StorageRoot returns the hash of the storage root
-func (s *Service) StorageRoot() (common.Hash, error) {
-	ts, err := s.storageState.TrieState(nil)
+// StorageRoot returns the hash of the storage root.
+// It is only used by tests, but has to exported because
+// internal fields are not exported to other packages.
+func (s *Service) StorageRoot(stateVersion trie.Version) (
+	rootHash common.Hash, err error) {
+	ts, err := s.storageState.TrieState(nil, stateVersion)
 	if err != nil {
-		return common.Hash{}, err
+		return rootHash, err
 	}
 
-	return ts.Root()
+	return ts.Root(stateVersion)
 }
 
 // HandleBlockImport handles a block that was imported via the network
@@ -164,8 +167,15 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 		return ErrNilBlockHandlerParameter
 	}
 
+	rt, err := s.blockState.GetRuntime(&block.Header.ParentHash)
+	if err != nil {
+		return fmt.Errorf("getting runtime: %w", err)
+	}
+
+	stateVersion := rt.StateVersion()
+
 	// store updates state trie nodes in database
-	err := s.storageState.StoreTrie(state, &block.Header)
+	err = s.storageState.StoreTrie(state, &block.Header, stateVersion)
 	if err != nil {
 		logger.Warnf("failed to store state trie for imported block %s: %s",
 			block.Header.Hash(), err)
@@ -184,12 +194,7 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 	}
 
 	logger.Debugf("imported block %s and stored state trie with root %s",
-		block.Header.Hash(), state.MustRoot())
-
-	rt, err := s.blockState.GetRuntime(&block.Header.ParentHash)
-	if err != nil {
-		return err
-	}
+		block.Header.Hash(), state.MustRoot(stateVersion))
 
 	// check for runtime changes
 	if err := s.blockState.HandleRuntimeChanges(state, rt, block.Header.Hash()); err != nil {
@@ -443,14 +448,18 @@ func (s *Service) GetRuntimeVersion(bhash *common.Hash) (
 		}
 	}
 
-	ts, err := s.storageState.TrieState(stateRootHash)
+	rt, err := s.blockState.GetRuntime(bhash)
 	if err != nil {
 		return version, err
 	}
 
-	rt, err := s.blockState.GetRuntime(bhash)
+	stateVersion := rt.StateVersion()
+
+	// Note: not too sure why this trie state call is needed,
+	// but some RPC tests fail without it.
+	ts, err := s.storageState.TrieState(stateRootHash, stateVersion)
 	if err != nil {
-		return version, err
+		return version, fmt.Errorf("getting trie state: %w", err)
 	}
 
 	rt.SetContextStorage(ts)
@@ -474,15 +483,16 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 		return fmt.Errorf("could not get state root from block %s: %w", bestBlockHash, err)
 	}
 
-	ts, err := s.storageState.TrieState(stateRoot)
-	if err != nil {
-		return err
-	}
-
 	rt, err := s.blockState.GetRuntime(&bestBlockHash)
 	if err != nil {
-		logger.Critical("failed to get runtime")
-		return err
+		return fmt.Errorf("getting runtime: %w", err)
+	}
+
+	stateVersion := rt.StateVersion()
+
+	ts, err := s.storageState.TrieState(stateRoot, stateVersion)
+	if err != nil {
+		return fmt.Errorf("computing trie state: %w", err)
 	}
 
 	rt.SetContextStorage(ts)
@@ -504,11 +514,8 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 }
 
 // GetMetadata calls runtime Metadata_metadata function
-func (s *Service) GetMetadata(bhash *common.Hash) ([]byte, error) {
-	var (
-		stateRootHash *common.Hash
-		err           error
-	)
+func (s *Service) GetMetadata(bhash *common.Hash) (metadata []byte, err error) {
+	var stateRootHash *common.Hash
 
 	// If block hash is not nil then fetch the state root corresponding to the block.
 	if bhash != nil {
@@ -517,12 +524,15 @@ func (s *Service) GetMetadata(bhash *common.Hash) ([]byte, error) {
 			return nil, err
 		}
 	}
-	ts, err := s.storageState.TrieState(stateRootHash)
+
+	rt, err := s.blockState.GetRuntime(bhash)
 	if err != nil {
 		return nil, err
 	}
 
-	rt, err := s.blockState.GetRuntime(bhash)
+	stateVersion := rt.StateVersion()
+
+	ts, err := s.storageState.TrieState(stateRootHash, stateVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -544,7 +554,13 @@ func (s *Service) GetReadProofAt(block common.Hash, keys [][]byte) (
 		return hash, nil, err
 	}
 
-	proofForKeys, err = s.storageState.GenerateTrieProof(stateRoot, keys)
+	instance, err := s.blockState.GetRuntime(&block)
+	if err != nil {
+		return hash, nil, fmt.Errorf("getting runtime instance: %w", err)
+	}
+	stateVersion := instance.StateVersion()
+
+	proofForKeys, err = s.storageState.GenerateTrieProof(stateRoot, keys, stateVersion)
 	if err != nil {
 		return hash, nil, err
 	}

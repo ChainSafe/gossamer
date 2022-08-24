@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
 // KeyValue struct to hold key value pairs
@@ -47,7 +48,7 @@ type Observer interface {
 }
 
 // RegisterStorageObserver to add abserver to notification list
-func (s *StorageState) RegisterStorageObserver(o Observer) {
+func (s *StorageState) RegisterStorageObserver(o Observer) (err error) {
 	s.observerListMutex.Lock()
 	defer s.observerListMutex.Unlock()
 	s.observerList = append(s.observerList, o)
@@ -55,15 +56,22 @@ func (s *StorageState) RegisterStorageObserver(o Observer) {
 	// notifyObserver here to send storage value of current state
 	sr, err := s.blockState.BestBlockStateRoot()
 	if err != nil {
-		logger.Debugf("error registering storage change channel: %s", err)
-		return
+		return fmt.Errorf("getting best block state root: %w", err)
 	}
+
+	instance, err := s.blockState.GetRuntime(&sr)
+	if err != nil {
+		return fmt.Errorf("getting runtime instance: %w", err)
+	}
+	stateVersion := instance.StateVersion()
+
 	go func() {
-		if err := s.notifyObserver(sr, o); err != nil {
+		if err := s.notifyObserver(sr, o, stateVersion); err != nil {
 			logger.Warnf("failed to notify storage subscriptions: %s", err)
 		}
 	}()
 
+	return nil
 }
 
 // UnregisterStorageObserver removes observer from notification list
@@ -73,19 +81,20 @@ func (s *StorageState) UnregisterStorageObserver(o Observer) {
 	s.observerList = s.removeFromSlice(s.observerList, o)
 }
 
-func (s *StorageState) notifyAll(root common.Hash) {
+func (s *StorageState) notifyAll(root common.Hash, stateVersion trie.Version) {
 	s.observerListMutex.RLock()
 	defer s.observerListMutex.RUnlock()
 	for _, observer := range s.observerList {
-		err := s.notifyObserver(root, observer)
+		err := s.notifyObserver(root, observer, stateVersion)
 		if err != nil {
 			logger.Warnf("failed to notify storage subscriptions: %s", err)
 		}
 	}
 }
 
-func (s *StorageState) notifyObserver(root common.Hash, o Observer) error {
-	t, err := s.TrieState(&root)
+func (s *StorageState) notifyObserver(root common.Hash, o Observer,
+	stateVersion trie.Version) (err error) {
+	t, err := s.TrieState(&root, stateVersion)
 	if err != nil {
 		return err
 	}

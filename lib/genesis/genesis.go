@@ -4,6 +4,9 @@
 package genesis
 
 import (
+	"errors"
+	"fmt"
+
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
@@ -92,6 +95,24 @@ func (g *Genesis) ToRaw() error {
 	g.Genesis.Raw = make(map[string]map[string]string)
 	g.Genesis.Raw["top"] = res
 	return nil
+}
+
+var ErrRuntimeCodeNotFound = errors.New("runtime code not found")
+
+// RuntimeCode returns the runtime bytes stored in the ":code" key.
+func (g *Genesis) RuntimeCode() (runtimeCode []byte, err error) {
+	const hexCodeTrieKey = "0x3a636f6465" // :code in hexadecimal
+	hexRuntimeCode, ok := g.Genesis.Raw["top"][hexCodeTrieKey]
+	if !ok {
+		return nil, fmt.Errorf("%w", ErrRuntimeCodeNotFound)
+	}
+
+	runtimeCode, err = common.HexToBytes(hexRuntimeCode)
+	if err != nil {
+		return nil, fmt.Errorf("converting runtime code hex to bytes: %w", err)
+	}
+
+	return runtimeCode, nil
 }
 
 func interfaceToTelemetryEndpoint(endpoints []interface{}) []*TelemetryEndpoint {

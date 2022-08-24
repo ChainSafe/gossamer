@@ -203,7 +203,11 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (L
 
 	c.mu.Unlock()
 
-	c.StorageAPI.RegisterStorageObserver(stgobs)
+	err := c.StorageAPI.RegisterStorageObserver(stgobs)
+	if err != nil {
+		return nil, fmt.Errorf("registering storage observer: %w", err)
+	}
+
 	initRes := NewSubscriptionResponseJSON(stgobs.id, reqID)
 	c.safeSend(initRes)
 

@@ -144,6 +144,11 @@ func (*nodeBuilder) initNode(cfg *Config) error {
 		}
 	}
 
+	stateVersion, err := wasmer.StateVersionFromGenesis(*gen)
+	if err != nil {
+		return fmt.Errorf("getting genesis state version: %w", err)
+	}
+
 	// create trie from genesis
 	t, err := wasmer.NewTrieFromGenesis(*gen)
 	if err != nil {
@@ -151,7 +156,7 @@ func (*nodeBuilder) initNode(cfg *Config) error {
 	}
 
 	// create genesis block from trie
-	header, err := t.GenesisBlock()
+	header, err := t.GenesisBlock(stateVersion)
 	if err != nil {
 		return fmt.Errorf("failed to create genesis block from trie: %w", err)
 	}

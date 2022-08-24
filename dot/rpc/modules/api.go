@@ -21,13 +21,13 @@ import (
 // StorageAPI is the interface for the storage state
 type StorageAPI interface {
 	GetStorage(root *common.Hash, key []byte) ([]byte, error)
-	GetStorageChild(root *common.Hash, keyToChild []byte) (*trie.Trie, error)
-	GetStorageFromChild(root *common.Hash, keyToChild, key []byte) ([]byte, error)
+	GetStorageChild(root *common.Hash, keyToChild []byte, stateVersion trie.Version) (*trie.Trie, error)
+	GetStorageFromChild(root *common.Hash, keyToChild, key []byte, stateVersion trie.Version) ([]byte, error)
 	GetStorageByBlockHash(bhash *common.Hash, key []byte) ([]byte, error)
-	Entries(root *common.Hash) (map[string][]byte, error)
+	Entries(root *common.Hash, stateVersion trie.Version) (map[string][]byte, error)
 	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
-	GetKeysWithPrefix(root *common.Hash, prefix []byte) ([][]byte, error)
-	RegisterStorageObserver(observer state.Observer)
+	GetKeysWithPrefix(root *common.Hash, prefix []byte, stateVersion trie.Version) ([][]byte, error)
+	RegisterStorageObserver(observer state.Observer) (err error)
 	UnregisterStorageObserver(observer state.Observer)
 }
 
@@ -101,7 +101,8 @@ type CoreAPI interface {
 	HandleSubmittedExtrinsic(types.Extrinsic) error
 	GetMetadata(bhash *common.Hash) ([]byte, error)
 	DecodeSessionKeys(enc []byte) ([]byte, error)
-	GetReadProofAt(block common.Hash, keys [][]byte) (common.Hash, [][]byte, error)
+	GetReadProofAt(block common.Hash, keys [][]byte) (
+		blockHash common.Hash, encodedNodes [][]byte, err error)
 }
 
 //go:generate mockery --name RPCAPI --structname RPCAPI --case underscore --keeptree

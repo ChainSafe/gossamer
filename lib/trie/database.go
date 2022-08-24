@@ -83,7 +83,8 @@ func (t *Trie) storeNode(db chaindb.Batch, n *Node) (err error) {
 
 // Load reconstructs the trie from the database from the given root hash.
 // It is used when restarting the node to load the current state trie.
-func (t *Trie) Load(db Database, rootHash common.Hash) error {
+func (t *Trie) Load(db Database, rootHash common.Hash,
+	version Version) (err error) {
 	if rootHash == EmptyHash {
 		t.root = nil
 		return nil
@@ -106,10 +107,10 @@ func (t *Trie) Load(db Database, rootHash common.Hash) error {
 	t.root.Encoding = encodedNode
 	t.root.MerkleValue = rootHashBytes
 
-	return t.loadNode(db, t.root)
+	return t.loadNode(db, t.root, version)
 }
 
-func (t *Trie) loadNode(db Database, n *Node) error {
+func (t *Trie) loadNode(db Database, n *Node, version Version) error {
 	if n.Kind() != node.Branch {
 		return nil
 	}
@@ -149,7 +150,7 @@ func (t *Trie) loadNode(db Database, n *Node) error {
 		decodedNode.MerkleValue = merkleValue
 		branch.Children[i] = decodedNode
 
-		err = t.loadNode(db, decodedNode)
+		err = t.loadNode(db, decodedNode, version)
 		if err != nil {
 			return fmt.Errorf("loading child at index %d with Merkle value 0x%x: %w", i, merkleValue, err)
 		}
@@ -170,12 +171,12 @@ func (t *Trie) loadNode(db Database, n *Node) error {
 		childTrie := NewEmptyTrie()
 		value := t.Get(key)
 		rootHash := common.BytesToHash(value)
-		err := childTrie.Load(db, rootHash)
+		err := childTrie.Load(db, rootHash, version)
 		if err != nil {
 			return fmt.Errorf("failed to load child trie with root hash=%s: %w", rootHash, err)
 		}
 
-		hash, err := childTrie.Hash()
+		hash, err := childTrie.Hash(version)
 		if err != nil {
 			return fmt.Errorf("cannot hash chilld trie at key 0x%x: %w", key, err)
 		}

@@ -121,7 +121,12 @@ func createRuntime(cfg *Config, ns runtime.NodeStorage, st *state.Service,
 		code = common.MustHexToBytes(codeString)
 	}
 
-	ts, err := st.Storage.TrieState(nil)
+	stateVersion, err := wasmer.GetRuntimeStateVersion(code)
+	if err != nil {
+		return nil, fmt.Errorf("getting runtime state version: %w", err)
+	}
+
+	ts, err := st.Storage.TrieState(nil, stateVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -321,12 +326,19 @@ func (nodeBuilder) createRPCService(params rpcServiceSettings) (*rpc.HTTPServer,
 	)
 	rpcService := rpc.NewService()
 
+	bestBlockHash := params.state.Block.BestBlockHash()
+	instance, err := params.state.Block.GetRuntime(&bestBlockHash)
+	if err != nil {
+		return nil, fmt.Errorf("getting runtime instance: %w", err)
+	}
+	stateVersion := instance.StateVersion()
+
 	genesisData, err := params.state.Base.LoadGenesisData()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load genesis data: %s", err)
 	}
 
-	syncStateSrvc, err := modules.NewStateSync(genesisData, params.state.Storage)
+	syncStateSrvc, err := modules.NewStateSync(genesisData, params.state.Storage, stateVersion)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create sync state service: %s", err)
 	}

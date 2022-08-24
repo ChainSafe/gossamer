@@ -200,6 +200,23 @@ func GetRuntimeVersion(code []byte) (version runtime.Version, err error) {
 	return version, nil
 }
 
+// GetRuntimeStateVersion finds the runtime version by initiating a temporary
+// runtime instance using the WASM code provided, and returns its typed
+// state version.
+func GetRuntimeStateVersion(code []byte) (stateVersion trie.Version, err error) {
+	coreVersion, err := GetRuntimeVersion(code)
+	if err != nil {
+		return stateVersion, fmt.Errorf("getting runtime version: %w", err)
+	}
+
+	stateVersion, err = trie.ParseVersion(coreVersion.StateVersion)
+	if err != nil {
+		return stateVersion, fmt.Errorf("parsing state version: %w", err)
+	}
+
+	return stateVersion, nil
+}
+
 var (
 	ErrCodeEmpty      = errors.New("code is empty")
 	ErrWASMDecompress = errors.New("wasm decompression failed")

@@ -189,19 +189,29 @@ func NewStateModule(net NetworkAPI, storage StorageAPI, core CoreAPI, blockAPI B
 // GetPairs returns the keys with prefix, leave empty to get all the keys.
 func (sm *StateModule) GetPairs(_ *http.Request, req *StatePairRequest, res *StatePairResponse) error {
 	var (
+		blockHash     common.Hash
 		stateRootHash *common.Hash
 		err           error
 	)
 
 	if req.Bhash != nil {
+		blockHash = *req.Bhash
 		stateRootHash, err = sm.storageAPI.GetStateRootFromBlock(req.Bhash)
 		if err != nil {
 			return err
 		}
+	} else {
+		blockHash = sm.blockAPI.BestBlockHash()
 	}
 
+	instance, err := sm.blockAPI.GetRuntime(&blockHash)
+	if err != nil {
+		return fmt.Errorf("getting runtime instance: %w", err)
+	}
+	stateVersion := instance.StateVersion()
+
 	if req.Prefix == nil || *req.Prefix == "" || *req.Prefix == "0x" {
-		pairs, err := sm.storageAPI.Entries(stateRootHash)
+		pairs, err := sm.storageAPI.Entries(stateRootHash, stateVersion)
 		if err != nil {
 			return err
 		}
@@ -216,7 +226,7 @@ func (sm *StateModule) GetPairs(_ *http.Request, req *StatePairRequest, res *Sta
 	if err != nil {
 		return fmt.Errorf("cannot convert hex prefix %s to bytes: %w", *req.Prefix, err)
 	}
-	keys, err := sm.storageAPI.GetKeysWithPrefix(stateRootHash, reqBytes)
+	keys, err := sm.storageAPI.GetKeysWithPrefix(stateRootHash, reqBytes, stateVersion)
 	if err != nil {
 		return err
 	}
@@ -255,7 +265,21 @@ func (sm *StateModule) GetKeysPaged(_ *http.Request, req *StateStorageKeyRequest
 	if err != nil {
 		return err
 	}
-	keys, err := sm.storageAPI.GetKeysWithPrefix(req.Block, hPrefix)
+
+	var blockHash common.Hash
+	if req.Block != nil {
+		blockHash = *req.Block
+	} else {
+		blockHash = sm.blockAPI.BestBlockHash()
+	}
+
+	instance, err := sm.blockAPI.GetRuntime(&blockHash)
+	if err != nil {
+		return fmt.Errorf("getting runtime instance: %w", err)
+	}
+	stateVersion := instance.StateVersion()
+
+	keys, err := sm.storageAPI.GetKeysWithPrefix(req.Block, hPrefix, stateVersion)
 	if err != nil {
 		return fmt.Errorf("cannot get keys with prefix %s: %w", hPrefix, err)
 	}

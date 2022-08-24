@@ -7,6 +7,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime/offchain"
+	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
 // NodeStorageType type to identify offchain storage type
@@ -57,4 +58,8 @@ type Context struct {
 	SigVerifier     *crypto.SignatureVerifier
 	OffchainHTTPSet *offchain.HTTPSet
 	Version         Version
+	// StateVersion is the cached state version parsed
+	// from the core version. It is cached on top of the
+	// Version field so it doesn't need to be parsed every time.
+	StateVersion trie.Version
 }

@@ -823,7 +823,7 @@ func ext_trie_blake2_256_root_version_1(context unsafe.Pointer, dataSpan C.int64
 	}
 
 	for _, kv := range kvs {
-		t.Put(kv.Key, kv.Value)
+		t.Put(kv.Key, kv.Value, trie.V0)
 	}
 
 	// allocate memory for value and copy value to memory
@@ -833,7 +833,7 @@ func ext_trie_blake2_256_root_version_1(context unsafe.Pointer, dataSpan C.int64
 		return 0
 	}
 
-	hash, err := t.Hash()
+	hash, err := t.Hash(trie.V0)
 	if err != nil {
 		logger.Errorf("failed computing trie Merkle root hash: %s", err)
 		return 0
@@ -871,7 +871,7 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 			"put key=0x%x and value=0x%x",
 			key, val)
 
-		t.Put(key, val)
+		t.Put(key, val, trie.V0)
 	}
 
 	// allocate memory for value and copy value to memory
@@ -881,7 +881,7 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 		return 0
 	}
 
-	hash, err := t.Hash()
+	hash, err := t.Hash(trie.V0)
 	if err != nil {
 		logger.Errorf("failed computing trie Merkle root hash: %s", err)
 		return 0
@@ -920,7 +920,7 @@ func ext_trie_blake2_256_verify_proof_version_1(context unsafe.Pointer,
 	mem := instanceContext.Memory().Data()
 	trieRoot := mem[rootSpan : rootSpan+32]
 
-	err = proof.Verify(encodedProofNodes, trieRoot, key, value)
+	err = proof.Verify(encodedProofNodes, trieRoot, key, value, trie.V0)
 	if err != nil {
 		logger.Errorf("failed proof verification: %s", err)
 		return C.int32_t(0)
@@ -1140,7 +1140,7 @@ func ext_default_child_storage_root_version_1(context unsafe.Pointer,
 		return 0
 	}
 
-	childRoot, err := child.Hash()
+	childRoot, err := child.Hash(trie.V0)
 	if err != nil {
 		logger.Errorf("failed to encode child root: %s", err)
 		return 0
@@ -1171,7 +1171,7 @@ func ext_default_child_storage_set_version_1(context unsafe.Pointer,
 	cp := make([]byte, len(value))
 	copy(cp, value)
 
-	err := storage.SetChildStorage(childStorageKey, key, cp)
+	err := storage.SetChildStorage(childStorageKey, key, cp, ctx.StateVersion)
 	if err != nil {
 		logger.Errorf("failed to set value in child storage: %s", err)
 		return
@@ -1818,7 +1818,7 @@ func ext_storage_append_version_1(context unsafe.Pointer, keySpan, valueSpan C.i
 	cp := make([]byte, len(valueAppend))
 	copy(cp, valueAppend)
 
-	err := storageAppend(storage, key, cp)
+	err := storageAppend(storage, key, cp, ctx.StateVersion)
 	if err != nil {
 		logger.Errorf("failed appending to storage: %s", err)
 	}
@@ -2016,7 +2016,7 @@ func ext_storage_root_version_1(context unsafe.Pointer) C.int64_t {
 	instanceContext := wasm.IntoInstanceContext(context)
 	storage := instanceContext.Data().(*runtime.Context).Storage
 
-	root, err := storage.Root()
+	root, err := storage.Root(trie.V0)
 	if err != nil {
 		logger.Errorf("failed to get storage root: %s", err)
 		return 0
@@ -2056,7 +2056,8 @@ func ext_storage_set_version_1(context unsafe.Pointer, keySpan, valueSpan C.int6
 	logger.Debugf(
 		"key 0x%x has value 0x%x",
 		key, value)
-	storage.Set(key, cp)
+
+	storage.Set(key, cp, ctx.StateVersion)
 }
 
 //export ext_storage_start_transaction_version_1
