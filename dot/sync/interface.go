@@ -10,12 +10,45 @@ import (
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-//go:generate mockgen -destination=mock_interface_test.go -package=$GOPACKAGE . BlockState,StorageState,CodeSubstitutedState,TransactionState,BabeVerifier,FinalityGadget,BlockImportHandler,Network
+// RuntimeInstance is the interface for runtime Instance
+type RuntimeInstance interface {
+	UpdateRuntimeCode([]byte) error
+	Stop()
+	NodeStorage() runtime.NodeStorage
+	NetworkService() runtime.BasicNetwork
+	Keystore() *keystore.GlobalKeystore
+	Validator() bool
+	Exec(function string, data []byte) ([]byte, error)
+	SetContextStorage(s runtime.Storage) // used to set the TrieState before a runtime call
+
+	GetCodeHash() common.Hash
+	Version() (runtime.Version, error)
+	Metadata() ([]byte, error)
+	BabeConfiguration() (*types.BabeConfiguration, error)
+	GrandpaAuthorities() ([]types.Authority, error)
+	ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error)
+	InitializeBlock(header *types.Header) error
+	InherentExtrinsics(data []byte) ([]byte, error)
+	ApplyExtrinsic(data types.Extrinsic) ([]byte, error)
+	FinalizeBlock() (*types.Header, error)
+	ExecuteBlock(block *types.Block) ([]byte, error)
+	DecodeSessionKeys(enc []byte) ([]byte, error)
+	PaymentQueryInfo(ext []byte) (*types.TransactionPaymentQueryInfo, error)
+
+	CheckInherents() // TODO: use this in block verification process (#1873)
+
+	// parameters and return values for these are undefined in the spec
+	RandomSeed()
+	OffchainWorker()
+	GenerateSessionKeys()
+}
 
 // BlockState is the interface for the block state
 type BlockState interface {

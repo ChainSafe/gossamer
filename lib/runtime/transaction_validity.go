@@ -60,7 +60,7 @@ func NewTransactionValidityError() TransactionValidityError {
 }
 
 // UnmarshalTransactionValidity Takes the result of the validateTransaction runtime call and unmarshalls it
-// TODO use custom result type here
+// TODO use custom result issue #2780
 func UnmarshalTransactionValidity(res []byte) (*transaction.Validity, error) {
 	validTxn := transaction.Validity{}
 	txnValidityErrResult := NewTransactionValidityError()

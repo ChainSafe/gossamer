@@ -11,14 +11,11 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
-	mocksruntime "github.com/ChainSafe/gossamer/lib/runtime/mocks"
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
-
-//go:generate mockgen -destination=mock_instance_test.go -package=$GOPACKAGE github.com/ChainSafe/gossamer/lib/runtime Instance
 
 func Test_chainProcessor_handleBlock(t *testing.T) {
 	t.Parallel()
@@ -88,10 +85,9 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 				mockBlockState.EXPECT().GetHeader(common.Hash{}).Return(&types.Header{
 					StateRoot: testHash,
 				}, nil)
-				mockInstance := mocksruntime.NewInstance(t)
-				mockInstance.On("SetContextStorage", trieState)
-				mockInstance.On("ExecuteBlock", &types.Block{Body: types.Body{}}).
-					Return(nil, mockError)
+				mockInstance := NewMockRuntimeInstance(ctrl)
+				mockInstance.EXPECT().SetContextStorage(trieState)
+				mockInstance.EXPECT().ExecuteBlock(&types.Block{Body: types.Body{}}).Return(nil, mockError)
 				mockBlockState.EXPECT().GetRuntime(&testParentHash).Return(mockInstance, nil)
 				chainProcessor.blockState = mockBlockState
 				mockStorageState := NewMockStorageState(ctrl)
@@ -114,9 +110,9 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 					StateRoot: testHash,
 				}, nil)
 				mockBlock := &types.Block{Body: types.Body{}}
-				mockInstance := mocksruntime.NewInstance(t)
-				mockInstance.On("SetContextStorage", trieState)
-				mockInstance.On("ExecuteBlock", mockBlock).Return(nil, nil)
+				mockInstance := NewMockRuntimeInstance(ctrl)
+				mockInstance.EXPECT().SetContextStorage(trieState)
+				mockInstance.EXPECT().ExecuteBlock(mockBlock).Return(nil, nil)
 				mockBlockState.EXPECT().GetRuntime(&testParentHash).Return(mockInstance, nil)
 				chainProcessor.blockState = mockBlockState
 				mockStorageState := NewMockStorageState(ctrl)
@@ -149,9 +145,9 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 				mockHeaderHash := mockHeader.Hash()
 				mockBlockState.EXPECT().GetHeader(common.Hash{}).Return(mockHeader, nil)
 
-				mockInstance := mocksruntime.NewInstance(t)
-				mockInstance.On("SetContextStorage", trieState)
-				mockInstance.On("ExecuteBlock", mockBlock).Return(nil, nil)
+				mockInstance := NewMockRuntimeInstance(ctrl)
+				mockInstance.EXPECT().SetContextStorage(trieState)
+				mockInstance.EXPECT().ExecuteBlock(mockBlock).Return(nil, nil)
 				mockBlockState.EXPECT().GetRuntime(&mockHeaderHash).Return(mockInstance, nil)
 				chainProcessor.blockState = mockBlockState
 				mockStorageState := NewMockStorageState(ctrl)
@@ -616,9 +612,9 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 				runtimeHash := common.MustHexToHash("0x7db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a")
 				mockBlock := &types.Block{Header: types.Header{}, Body: types.Body{}}
 
-				mockInstance := mocksruntime.NewInstance(t)
-				mockInstance.On("SetContextStorage", mockTrieState)
-				mockInstance.On("ExecuteBlock", mockBlock).Return(nil, nil)
+				mockInstance := NewMockRuntimeInstance(ctrl)
+				mockInstance.EXPECT().SetContextStorage(mockTrieState)
+				mockInstance.EXPECT().ExecuteBlock(mockBlock).Return(nil, nil)
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().HasHeader(common.Hash{}).Return(false, nil)
 				mockBlockState.EXPECT().HasBlockBody(common.Hash{}).Return(false, nil)
@@ -660,9 +656,9 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 				mockTrieState := storage.NewTrieState(nil)
 				mockBlock := &types.Block{Header: types.Header{}, Body: types.Body{}}
 
-				mockInstance := mocksruntime.NewInstance(t)
-				mockInstance.On("SetContextStorage", mockTrieState)
-				mockInstance.On("ExecuteBlock", mockBlock).Return(nil, nil)
+				mockInstance := NewMockRuntimeInstance(ctrl)
+				mockInstance.EXPECT().SetContextStorage(mockTrieState)
+				mockInstance.EXPECT().ExecuteBlock(mockBlock).Return(nil, nil)
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().HasHeader(common.Hash{}).Return(false, nil)
 				mockBlockState.EXPECT().HasBlockBody(common.Hash{}).Return(false, nil)
