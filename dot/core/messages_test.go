@@ -11,7 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	mocksruntime "github.com/ChainSafe/gossamer/lib/runtime/mocks"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 
@@ -70,7 +70,7 @@ type mockValidateTxn struct {
 }
 
 type mockRuntime struct {
-	runtime           *mocksruntime.Instance
+	runtime           *MockRuntimeInstance
 	setContextStorage *mockSetContextStorage
 	validateTxn       *mockValidateTxn
 }
@@ -114,9 +114,9 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 	testEmptyHeader := types.NewEmptyHeader()
 	testExtrinsic := []types.Extrinsic{{1, 2, 3}}
 
-	runtimeMock := mocksruntime.NewInstance(t)
-	runtimeMock2 := mocksruntime.NewInstance(t)
-	runtimeMock3 := mocksruntime.NewInstance(t)
+	runtimeMock := NewMockRuntimeInstance(gomock.NewController(t))
+	runtimeMock2 := NewMockRuntimeInstance(gomock.NewController(t))
+	runtimeMock3 := NewMockRuntimeInstance(gomock.NewController(t))
 
 	transactionValidityErr := runtime.NewTransactionValidityError()
 	invalidTransaction := runtime.NewInvalidTransaction()
@@ -364,9 +364,12 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 			}
 			if tt.mockRuntime != nil {
 				rt := tt.mockRuntime.runtime
-				rt.On("SetContextStorage", tt.mockRuntime.setContextStorage.trieState)
-				rt.On("ValidateTransaction", tt.mockRuntime.validateTxn.input).
+				rt.EXPECT().SetContextStorage(tt.mockRuntime.setContextStorage.trieState)
+				rt.EXPECT().ValidateTransaction(tt.mockRuntime.validateTxn.input).
 					Return(tt.mockRuntime.validateTxn.validity, tt.mockRuntime.validateTxn.err)
+				//rt.On("SetContextStorage", tt.mockRuntime.setContextStorage.trieState)
+				// rt.On("ValidateTransaction", tt.mockRuntime.validateTxn.input).
+				// 	Return(tt.mockRuntime.validateTxn.validity, tt.mockRuntime.validateTxn.err)
 			}
 
 			res, err := s.HandleTransactionMessage(tt.args.peerID, tt.args.msg)
