@@ -852,7 +852,8 @@ func TestSendingVotesInRightStage(t *testing.T) {
 	<-doneCh
 }
 
-func createSignedVoteUsing(t *testing.T, kp *ed25519.Keypair, vote *Vote, stage Subround, round, setID uint64) (*SignedVote, *VoteMessage, error) {
+func createSignedVoteUsing(t *testing.T, kp *ed25519.Keypair, vote *Vote,
+	stage Subround, round, setID uint64) (*SignedVote, *VoteMessage, error) {
 	t.Helper()
 
 	msg, err := scale.Marshal(FullVote{

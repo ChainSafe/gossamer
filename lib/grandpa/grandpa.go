@@ -76,10 +76,9 @@ type Service struct {
 	bestFinalCandidate map[uint64]*Vote // map of round number -> best final candidate
 
 	// channels for communication with other services
-	in               chan *networkVoteMessage // only used to receive *VoteMessage
-	finalisedCh      chan *types.FinalisationInfo
-	neighbourMessage *NeighbourPacketV1 // cached neighbour message
-	receivedCommit   chan *CommitMessage
+	in             chan *networkVoteMessage // only used to receive *VoteMessage
+	finalisedCh    chan *types.FinalisationInfo
+	receivedCommit chan *CommitMessage
 
 	telemetry telemetry.Client
 }
