@@ -853,7 +853,7 @@ func TestSendingVotesInRightStage(t *testing.T) {
 }
 
 func createSignedVoteUsing(t *testing.T, kp *ed25519.Keypair, vote *Vote,
-	stage Subround, round, setID uint64) (*SignedVote, *VoteMessage, error) {
+	stage Subround, round, setID uint64) (*SignedVote, *VoteMessage, error) { //nolint:unparam
 	t.Helper()
 
 	msg, err := scale.Marshal(FullVote{
