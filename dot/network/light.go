@@ -37,7 +37,7 @@ func (s *Service) handleLightMsg(stream libp2pnetwork.Stream, msg Message) (err 
 	defer func() {
 		err := stream.Close()
 		if err != nil {
-			logger.Warnf("failed to close stream: %w", err)
+			logger.Warnf("failed to close stream: %s", err)
 		}
 	}()
 

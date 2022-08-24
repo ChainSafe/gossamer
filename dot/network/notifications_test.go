@@ -270,9 +270,7 @@ func Test_HandshakeTimeout(t *testing.T) {
 	connAToB := nodeA.host.p2pHost.Network().ConnsToPeer(nodeB.host.id())
 	for _, stream := range connAToB[0].GetStreams() {
 		err := stream.Close()
-		if err != nil {
-			logger.Warnf("failed to close stream: %w", err)
-		}
+		require.NoError(t, err)
 	}
 
 	testHandshakeMsg := &BlockAnnounceHandshake{

@@ -62,7 +62,7 @@ func (sm *streamManager) cleanupStreams() {
 		if time.Since(lastReceived) > cleanupStreamInterval {
 			err := stream.Close()
 			if err != nil {
-				logger.Warnf("failed to close stream: %w", err)
+				logger.Warnf("failed to close inactive stream: %s", err)
 			}
 			delete(sm.streamData, id)
 		}

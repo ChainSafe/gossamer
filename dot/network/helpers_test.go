@@ -92,7 +92,7 @@ func (s *testStreamHandler) readStream(stream libp2pnetwork.Stream,
 			logger.Debugf("failed to read from stream using protocol %s: %s", stream.Protocol(), err)
 			err := stream.Close()
 			if err != nil {
-				logger.Warnf("failed to close stream: %w", err)
+				logger.Warnf("failed to close stream: %s", err)
 			}
 			return
 		}
@@ -110,7 +110,7 @@ func (s *testStreamHandler) readStream(stream libp2pnetwork.Stream,
 			logger.Errorf("failed to handle message %s from stream: %s", msg, err)
 			err := stream.Close()
 			if err != nil {
-				logger.Warnf("failed to close stream: %w", err)
+				logger.Warnf("failed to close stream: %s", err)
 			}
 			return
 		}

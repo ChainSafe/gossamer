@@ -37,7 +37,7 @@ func (s *Service) DoBlockRequest(to peer.ID, req *BlockRequestMessage) (*BlockRe
 	defer func() {
 		err := stream.Close()
 		if err != nil {
-			logger.Warnf("failed to close stream: %w", err)
+			logger.Warnf("failed to close stream: %s", err)
 		}
 	}()
 
@@ -107,7 +107,7 @@ func (s *Service) handleSyncMessage(stream libp2pnetwork.Stream, msg Message) er
 	defer func() {
 		err := stream.Close()
 		if err != nil {
-			logger.Warnf("failed to close stream: %w", err)
+			logger.Warnf("failed to close stream: %s", err)
 		}
 	}()
 
