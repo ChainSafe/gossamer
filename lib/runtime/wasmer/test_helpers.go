@@ -31,17 +31,17 @@ func NewTestInstance(t *testing.T, targetRuntime string) *Instance {
 func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie) *Instance {
 	t.Helper()
 
-	cfg := setupConfig(t, tt, DefaultTestLogLvl, common.NoNetworkRole)
+	cfg := setupConfig(t, tt, DefaultTestLogLvl, common.NoNetworkRole, targetRuntime)
 	runtimeFilepath, err := runtime.GetRuntime(context.Background(), targetRuntime)
 	require.NoError(t, err)
 
 	r, err := NewInstanceFromFile(runtimeFilepath, cfg)
-	require.NoError(t, err, "Got error when trying to create new VM", "targetRuntime", targetRuntime)
-	require.NotNil(t, r, "Could not create new VM instance", "targetRuntime", targetRuntime)
+	require.NoError(t, err)
 	return r
 }
 
-func setupConfig(t *testing.T, tt *trie.Trie, lvl log.Level, role common.Roles) Config {
+func setupConfig(t *testing.T, tt *trie.Trie, lvl log.Level,
+	role common.Roles, targetRuntime string) Config {
 	t.Helper()
 
 	s := storage.NewTrieState(tt)
@@ -52,6 +52,14 @@ func setupConfig(t *testing.T, tt *trie.Trie, lvl log.Level, role common.Roles) 
 		BaseDB:            runtime.NewInMemoryDB(t), // we're using a local storage here since this is a test runtime
 	}
 
+	version := (*runtime.Version)(nil)
+	if targetRuntime == runtime.HOST_API_TEST_RUNTIME {
+		// Force state version to 0 since the host api test runtime
+		// does not implement the Core_version call so we cannot get the
+		// state version from it.
+		version = &runtime.Version{}
+	}
+
 	return Config{
 		Storage:     s,
 		Keystore:    keystore.NewGlobalKeystore(),
@@ -60,6 +68,7 @@ func setupConfig(t *testing.T, tt *trie.Trie, lvl log.Level, role common.Roles) 
 		Network:     new(runtime.TestRuntimeNetwork),
 		Transaction: newTransactionStateMock(),
 		Role:        role,
+		testVersion: version,
 	}
 }
 

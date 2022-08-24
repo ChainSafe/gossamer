@@ -40,8 +40,7 @@ func createExtrinsic(t *testing.T, rt RuntimeInstance, genHash common.Hash, nonc
 	err = ctypes.Decode(decoded, meta)
 	require.NoError(t, err)
 
-	rv, err := rt.Version()
-	require.NoError(t, err)
+	rv := rt.Version()
 
 	c, err := ctypes.NewCall(meta, "System.remark", []byte{0xab, 0xcd})
 	require.NoError(t, err)

@@ -30,7 +30,7 @@ func Test_Instance_Version(t *testing.T) {
 	t.Parallel()
 
 	type InstanceVersion interface {
-		Version() (runtime.Version, error)
+		Version() (version runtime.Version)
 	}
 
 	testCases := map[string]struct {
@@ -280,8 +280,7 @@ func Test_Instance_Version(t *testing.T) {
 			t.Parallel()
 
 			instance := testCase.instanceBuilder(t)
-			version, err := instance.Version()
-			require.NoError(t, err)
+			version := instance.Version()
 			assert.Equal(t, testCase.expectedVersion, version)
 		})
 	}

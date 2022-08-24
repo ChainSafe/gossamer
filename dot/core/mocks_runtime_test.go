@@ -374,12 +374,11 @@ func (mr *MockInstanceMockRecorder) Validator() *gomock.Call {
 }
 
 // Version mocks base method.
-func (m *MockInstance) Version() (runtime.Version, error) {
+func (m *MockInstance) Version() runtime.Version {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Version")
 	ret0, _ := ret[0].(runtime.Version)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	return ret0
 }
 
 // Version indicates an expected call of Version.
