@@ -269,7 +269,10 @@ func Test_HandshakeTimeout(t *testing.T) {
 	info.peersData.deleteOutboundHandshakeData(nodeB.host.id())
 	connAToB := nodeA.host.p2pHost.Network().ConnsToPeer(nodeB.host.id())
 	for _, stream := range connAToB[0].GetStreams() {
-		_ = stream.Close()
+		err := stream.Close()
+		if err != nil {
+			logger.Warnf("failed to close stream: %w", err)
+		}
 	}
 
 	testHandshakeMsg := &BlockAnnounceHandshake{
