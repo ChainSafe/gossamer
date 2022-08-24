@@ -348,7 +348,7 @@ func initAction(ctx *cli.Context) error {
 
 func buildSpecAction(ctx *cli.Context) error {
 	// set logger to critical, so output only contains genesis data
-	err := ctx.Set("log", "crit")
+	err := ctx.Set("log", "critical")
 	if err != nil {
 		return err
 	}

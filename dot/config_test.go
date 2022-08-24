@@ -45,7 +45,7 @@ func TestConfig(t *testing.T) {
 					FinalityGadgetLvl: log.Info,
 				},
 				Init: InitConfig{
-					Genesis: "./chain/dev/genesis-spec.json",
+					Genesis: "./chain/dev/genesis.json",
 				},
 				Account: AccountConfig{
 					Key: "alice",
@@ -106,7 +106,7 @@ func TestConfig(t *testing.T) {
 					FinalityGadgetLvl: log.Info,
 				},
 				Init: InitConfig{
-					Genesis: "./chain/gssmr/genesis-spec.json",
+					Genesis: "./chain/gssmr/genesis.json",
 				},
 				Account: AccountConfig{},
 				Core: CoreConfig{
@@ -446,8 +446,8 @@ func TestLogConfig_String(t *testing.T) {
 		{
 			name:      "default case",
 			logConfig: LogConfig{},
-			want: "core: CRIT, digest: CRIT, sync: CRIT, network: CRIT, rpc: CRIT, state: CRIT, runtime: CRIT, " +
-				"block producer: CRIT, finality gadget: CRIT",
+			want: "core: CRITICAL, digest: CRITICAL, sync: CRITICAL, network: CRITICAL, rpc: CRITICAL, " +
+				"state: CRITICAL, runtime: CRITICAL, block producer: CRITICAL, finality gadget: CRITICAL",
 		},
 		{
 			name: "change fields case",
@@ -462,8 +462,8 @@ func TestLogConfig_String(t *testing.T) {
 				BlockProducerLvl:  log.Warn,
 				FinalityGadgetLvl: log.Error,
 			},
-			want: "core: DBUG, digest: INFO, sync: WARN, network: EROR, rpc: CRIT, state: DBUG, runtime: INFO, " +
-				"block producer: WARN, finality gadget: EROR",
+			want: "core: DEBUG, digest: INFO, sync: WARN, network: ERROR, rpc: CRITICAL, " +
+				"state: DEBUG, runtime: INFO, block producer: WARN, finality gadget: ERROR",
 		},
 	}
 	for _, tt := range tests {

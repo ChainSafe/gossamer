@@ -78,7 +78,7 @@ type Service struct {
 	// channels for communication with other services
 	in               chan *networkVoteMessage // only used to receive *VoteMessage
 	finalisedCh      chan *types.FinalisationInfo
-	neighbourMessage *NeighbourMessage // cached neighbour message
+	neighbourMessage *NeighbourPacketV1 // cached neighbour message
 	receivedCommit   chan *CommitMessage
 
 	telemetry telemetry.Client

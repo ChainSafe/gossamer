@@ -20,7 +20,8 @@ const handshakeTimeout = time.Second * 10
 
 // Handshake is the interface all handshakes for notifications protocols must implement
 type Handshake interface {
-	NotificationsMessage
+	Message
+	IsValid() bool
 }
 
 // the following are used for RegisterNotificationsProtocol
@@ -91,6 +92,9 @@ func newHandshakeData(received, validated bool, stream network.Stream) *handshak
 	}
 }
 
+// createDecoder combines the notification message decoder and the handshake decoder. The combined
+// decoder decodes using the handshake decoder if we already have handshake data stored for a given
+// peer, otherwise it decodes using the notification message decoder.
 func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecoder,
 	messageDecoder MessageDecoder) messageDecoder {
 	return func(in []byte, peer peer.ID, inbound bool) (Message, error) {
@@ -130,6 +134,18 @@ func (s *Service) createNotificationsMessageHandler(
 			peer = stream.Conn().RemotePeer()
 		)
 
+		hs, ok := m.(Handshake)
+		if ok {
+			if !hs.IsValid() {
+				return errInvalidRole
+			}
+			err := s.handleHandshake(info, stream, hs, peer)
+			if err != nil {
+				return fmt.Errorf("handling handshake: %w", err)
+			}
+			return nil
+		}
+
 		if msg, ok = m.(NotificationsMessage); !ok {
 			return fmt.Errorf("%w: expected %T but got %T", errMessageTypeNotValid, (NotificationsMessage)(nil), msg)
 		}
@@ -145,62 +161,6 @@ func (s *Service) createNotificationsMessageHandler(
 				Value:  peerset.DuplicateGossipValue,
 				Reason: peerset.DuplicateGossipReason,
 			}, peer)
-			return nil
-		}
-
-		if msg.IsHandshake() {
-			logger.Tracef("received handshake on notifications sub-protocol %s from peer %s, message is: %s",
-				info.protocolID, stream.Conn().RemotePeer(), msg)
-
-			hs, ok := msg.(Handshake)
-			if !ok {
-				// NOTE: As long as, Handshake interface and NotificationMessage interfaces are same,
-				// this error would never happen.
-				return errMessageIsNotHandshake
-			}
-
-			// if we are the receiver and haven't received the handshake already, validate it
-			// note: if this function is being called, it's being called via SetStreamHandler,
-			// ie it is an inbound stream and we only send the handshake over it.
-			// we do not send any other data over this stream, we would need to open a new outbound stream.
-			hsData := info.peersData.getInboundHandshakeData(peer)
-			if hsData == nil {
-				logger.Tracef("receiver: validating handshake using protocol %s", info.protocolID)
-
-				hsData = newHandshakeData(true, false, stream)
-				info.peersData.setInboundHandshakeData(peer, hsData)
-
-				err := info.handshakeValidator(peer, hs)
-				if err != nil {
-					logger.Tracef(
-						"failed to validate handshake from peer %s using protocol %s: %s",
-						peer, info.protocolID, err)
-					return errCannotValidateHandshake
-				}
-
-				hsData.validated = true
-				info.peersData.setInboundHandshakeData(peer, hsData)
-
-				// once validated, send back a handshake
-				resp, err := info.getHandshake()
-				if err != nil {
-					logger.Warnf("failed to get handshake using protocol %s: %s", info.protocolID, err)
-					return err
-				}
-
-				err = s.host.writeToStream(stream, resp)
-				if err != nil {
-					logger.Tracef("failed to send handshake to peer %s using protocol %s: %s", peer, info.protocolID, err)
-					return err
-				}
-
-				logger.Tracef("receiver: sent handshake to peer %s using protocol %s", peer, info.protocolID)
-
-				if err := stream.CloseWrite(); err != nil {
-					logger.Tracef("failed to close stream for writing: %s", err)
-				}
-			}
-
 			return nil
 		}
 
@@ -224,6 +184,54 @@ func (s *Service) createNotificationsMessageHandler(
 		s.broadcastExcluding(info, peer, msg)
 		return nil
 	}
+}
+
+func (s *Service) handleHandshake(info *notificationsProtocol, stream network.Stream,
+	hs Handshake, peer peer.ID) error {
+	logger.Tracef("received handshake on notifications sub-protocol %s from peer %s, message is: %s",
+		info.protocolID, stream.Conn().RemotePeer(), hs)
+
+	// if we are the receiver and haven't received the handshake already, validate it
+	// note: if this function is being called, it's being called via SetStreamHandler,
+	// ie it is an inbound stream and we only send the handshake over it.
+	// we do not send any other data over this stream, we would need to open a new outbound stream.
+	hsData := info.peersData.getInboundHandshakeData(peer)
+	if hsData != nil {
+		return fmt.Errorf("%w: for peer id %s", errInboundHanshakeExists, peer)
+	}
+
+	logger.Tracef("receiver: validating handshake using protocol %s", info.protocolID)
+
+	hsData = newHandshakeData(true, false, stream)
+	info.peersData.setInboundHandshakeData(peer, hsData)
+
+	err := info.handshakeValidator(peer, hs)
+	if err != nil {
+		return fmt.Errorf("%w from peer %s using protocol %s: %s",
+			errCannotValidateHandshake, peer, info.protocolID, err)
+	}
+
+	hsData.validated = true
+	info.peersData.setInboundHandshakeData(peer, hsData)
+
+	// once validated, send back a handshake
+	resp, err := info.getHandshake()
+	if err != nil {
+		return fmt.Errorf("failed to get handshake using protocol %s: %s", info.protocolID, err)
+	}
+
+	err = s.host.writeToStream(stream, resp)
+	if err != nil {
+		return fmt.Errorf("failed to send handshake to peer %s using protocol %s: %w", peer, info.protocolID, err)
+	}
+
+	logger.Tracef("receiver: sent handshake to peer %s using protocol %s", peer, info.protocolID)
+
+	if err := stream.CloseWrite(); err != nil {
+		return fmt.Errorf("failed to close stream for writing: %s", err)
+	}
+
+	return nil
 }
 
 func closeOutboundStream(info *notificationsProtocol, peerID peer.ID, stream network.Stream) {

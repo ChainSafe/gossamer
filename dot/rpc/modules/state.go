@@ -14,7 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-//StateGetReadProofRequest json fields
+// StateGetReadProofRequest json fields
 type StateGetReadProofRequest struct {
 	Keys []string
 	Hash common.Hash
@@ -112,7 +112,7 @@ type StateStorageKeysResponse []string
 // StateMetadataResponse holds the metadata
 type StateMetadataResponse string
 
-//StateGetReadProofResponse holds the response format
+// StateGetReadProofResponse holds the response format
 type StateGetReadProofResponse struct {
 	At    common.Hash `json:"at"`
 	Proof []string    `json:"proof"`
@@ -142,6 +142,30 @@ type StateRuntimeVersionResponse struct {
 	ImplVersion        uint32        `json:"implVersion"`
 	TransactionVersion uint32        `json:"transactionVersion"`
 	Apis               []interface{} `json:"apis"`
+}
+
+// NewStateRuntimeVersionResponse converts a runtime.Version to a
+// StateRuntimeVersionResponse struct.
+func NewStateRuntimeVersionResponse(runtimeVersion runtime.Version) (
+	response StateRuntimeVersionResponse) {
+	apisResponse := make([]interface{}, len(runtimeVersion.APIItems))
+	for i, apiItem := range runtimeVersion.APIItems {
+		hexItemName := hex.EncodeToString(apiItem.Name[:])
+		apisResponse[i] = []interface{}{
+			"0x" + hexItemName,
+			apiItem.Ver,
+		}
+	}
+
+	return StateRuntimeVersionResponse{
+		SpecName:           string(runtimeVersion.SpecName),
+		ImplName:           string(runtimeVersion.ImplName),
+		AuthoringVersion:   runtimeVersion.AuthoringVersion,
+		SpecVersion:        runtimeVersion.SpecVersion,
+		ImplVersion:        runtimeVersion.ImplVersion,
+		TransactionVersion: runtimeVersion.TransactionVersion,
+		Apis:               apisResponse,
+	}
 }
 
 // StateModule is an RPC module providing access to storage API points.
@@ -296,7 +320,7 @@ func (sm *StateModule) GetReadProof(
 }
 
 // GetRuntimeVersion Get the runtime version at a given block.
-//  If no block hash is provided, the latest version gets returned.
+// If no block hash is provided, the latest version gets returned.
 func (sm *StateModule) GetRuntimeVersion(
 	_ *http.Request, req *StateRuntimeVersionRequest, res *StateRuntimeVersionResponse) error {
 	rtVersion, err := sm.coreAPI.GetRuntimeVersion(req.Bhash)
@@ -304,14 +328,7 @@ func (sm *StateModule) GetRuntimeVersion(
 		return err
 	}
 
-	res.SpecName = string(rtVersion.SpecName)
-	res.ImplName = string(rtVersion.ImplName)
-	res.AuthoringVersion = rtVersion.AuthoringVersion
-	res.SpecVersion = rtVersion.SpecVersion
-	res.ImplVersion = rtVersion.ImplVersion
-	res.TransactionVersion = rtVersion.TransactionVersion
-	res.Apis = ConvertAPIs(rtVersion.APIItems)
-
+	*res = NewStateRuntimeVersionResponse(rtVersion)
 	return nil
 }
 
@@ -488,14 +505,4 @@ func (sm *StateModule) SubscribeRuntimeVersion(
 func (*StateModule) SubscribeStorage(
 	_ *http.Request, _ *StateStorageQueryRangeRequest, _ *StorageChangeSetResponse) error {
 	return nil
-}
-
-// ConvertAPIs runtime.APIItems to []interface
-func ConvertAPIs(in []runtime.APIItem) []interface{} {
-	ret := make([]interface{}, 0)
-	for _, item := range in {
-		encStr := hex.EncodeToString(item.Name[:])
-		ret = append(ret, []interface{}{"0x" + encStr, item.Ver})
-	}
-	return ret
 }
