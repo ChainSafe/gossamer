@@ -96,10 +96,10 @@ func (i *InvalidTransaction) Set(val scale.VaryingDataTypeValue) (err error) {
 	vdt := scale.VaryingDataType(*i)
 	err = vdt.Set(val)
 	if err != nil {
-		return
+		return err
 	}
 	*i = InvalidTransaction(vdt)
-	return
+	return nil
 }
 
 // Value will return value from underying VaryingDataType

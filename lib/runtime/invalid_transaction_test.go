@@ -26,7 +26,9 @@ func TestInvalidTransactionErrors(t *testing.T) {
 	}
 
 	for _, c := range testCases {
+		c := c
 		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
 			validity, err := UnmarshalTransactionValidity(c.test)
 			if c.expErr == nil {
 				require.NoError(t, err)
