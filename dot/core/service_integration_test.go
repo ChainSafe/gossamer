@@ -628,15 +628,6 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	err = s.blockState.HandleRuntimeChanges(ts, parentRt, rtUpdateBhash)
 	require.NoError(t, err)
 
-	// bhash1 runtime should not be updated
-	// todo (ed) refactor these checks so they work with new runtime handler
-	//rt, err = s.blockState.GetRuntime(&bhash1)
-	//require.NoError(t, err)
-	//
-	//v, err = rt.Version()
-	//require.NoError(t, err)
-	//require.Equal(t, v.SpecVersion, currSpecVersion)
-
 	rt, err = s.blockState.GetRuntime(&rtUpdateBhash)
 	require.NoError(t, err)
 
