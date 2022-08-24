@@ -11,7 +11,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	runtimeMocks "github.com/ChainSafe/gossamer/lib/runtime/mocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -39,7 +38,7 @@ func Test_hashToRuntime_get(t *testing.T) {
 		"hash does not exist": {
 			htr: &hashToRuntime{
 				mapping: map[Hash]runtime.Instance{
-					{4, 5, 6}: runtimeMocks.NewInstance(t),
+					{4, 5, 6}: NewMockInstance(nil),
 				},
 			},
 			hash: common.Hash{1, 2, 3},
@@ -47,11 +46,11 @@ func Test_hashToRuntime_get(t *testing.T) {
 		"hash exists": {
 			htr: &hashToRuntime{
 				mapping: map[Hash]runtime.Instance{
-					{1, 2, 3}: runtimeMocks.NewInstance(t),
+					{1, 2, 3}: NewMockInstance(nil),
 				},
 			},
 			hash:     common.Hash{1, 2, 3},
-			instance: runtimeMocks.NewInstance(t),
+			instance: NewMockInstance(nil),
 		},
 	}
 
@@ -81,17 +80,17 @@ func Test_hashToRuntime_set(t *testing.T) {
 				mapping: map[Hash]runtime.Instance{},
 			},
 			hash:     common.Hash{1, 2, 3},
-			instance: runtimeMocks.NewInstance(t),
+			instance: NewMockInstance(nil),
 			expectedHtr: &hashToRuntime{
 				mapping: map[Hash]runtime.Instance{
-					{1, 2, 3}: runtimeMocks.NewInstance(t),
+					{1, 2, 3}: NewMockInstance(nil),
 				},
 			},
 		},
 		"override instance": {
 			initialHtr: &hashToRuntime{
 				mapping: map[Hash]runtime.Instance{
-					{1, 2, 3}: runtimeMocks.NewInstance(t),
+					{1, 2, 3}: NewMockInstance(nil),
 				},
 			},
 			hash:     common.Hash{1, 2, 3},
@@ -138,7 +137,7 @@ func Test_hashToRuntime_delete(t *testing.T) {
 		"hash deleted": {
 			initialHtr: &hashToRuntime{
 				mapping: map[Hash]runtime.Instance{
-					{1, 2, 3}: runtimeMocks.NewInstance(t),
+					{1, 2, 3}: NewMockInstance(nil),
 				},
 			},
 			hash: common.Hash{1, 2, 3},
@@ -196,7 +195,7 @@ func Test_hashToRuntime_threadSafety(t *testing.T) {
 
 	htr := newHashToRuntime()
 	hash := common.Hash{1, 2, 3}
-	instance := runtimeMocks.NewInstance(t)
+	instance := NewMockInstance(nil)
 
 	for i := 0; i < parallelism; i++ {
 		go runInLoop(func() {
