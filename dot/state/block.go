@@ -626,6 +626,7 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 		return err
 	}
 
+	bs.ClearRuntimes()
 	bs.StoreRuntime(bHash, instance)
 
 	err = bs.baseState.StoreCodeSubstitutedBlockHash(common.Hash{})
@@ -654,6 +655,11 @@ func (bs *BlockState) GetRuntime(hash *common.Hash) (runtime.Instance, error) {
 // StoreRuntime stores the runtime for corresponding block hash.
 func (bs *BlockState) StoreRuntime(hash common.Hash, rt runtime.Instance) {
 	bs.bt.StoreRuntime(hash, rt)
+}
+
+// ClearRuntimes deletes references to runtime instances stored in block tree
+func (bs *BlockState) ClearRuntimes() {
+	bs.bt.ClearRuntimes()
 }
 
 // GetNonFinalisedBlocks get all the blocks in the blocktree
