@@ -29,7 +29,7 @@ type RuntimeInstance interface {
 	SetContextStorage(s runtime.Storage) // used to set the TrieState before a runtime call
 
 	GetCodeHash() common.Hash
-	Version() (runtime.Version, error)
+	Version() runtime.Version
 	Metadata() ([]byte, error)
 	BabeConfiguration() (*types.BabeConfiguration, error)
 	GrandpaAuthorities() ([]types.Authority, error)
