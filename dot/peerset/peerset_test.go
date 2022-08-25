@@ -88,7 +88,6 @@ func TestAddReservedPeers(t *testing.T) {
 			waitGroup.Done()
 		}()
 		waitGroup.Wait()
-		//time.Sleep(time.Millisecond * 100)
 
 		checkReservedNodePeerExists(t, ps, peerID)
 		checkPeerIsInNoSlotsNode(t, ps.peerState, peerID, testSetID)
@@ -174,7 +173,6 @@ func TestPeerSetIncoming(t *testing.T) {
 			waitGroup.Done()
 		}()
 		waitGroup.Wait()
-		//time.Sleep(time.Millisecond * 100)
 
 		checkNodePeerExists(t, ps.peerState, tt.pid)
 
@@ -217,7 +215,6 @@ func TestPeerSetDiscovered(t *testing.T) {
 		waitGroup.Done()
 	}()
 	waitGroup.Wait()
-	//time.Sleep(200 * time.Millisecond)
 
 	checkNodePeerExists(t, ps.peerState, discovered1)
 	checkNodePeerExists(t, ps.peerState, discovered2)
@@ -259,7 +256,6 @@ func TestReAllocAfterBanned(t *testing.T) {
 		waitGroup.Done()
 	}()
 	waitGroup.Wait()
-	//time.Sleep(time.Millisecond * 100)
 
 	checkMessageStatus(t, <-ps.resultMsgCh, Drop)
 
@@ -315,7 +311,6 @@ func TestRemovePeer(t *testing.T) {
 		waitGroup.Done()
 	}()
 	waitGroup.Wait()
-	//time.Sleep(200 * time.Millisecond)
 
 	require.Len(t, ps.resultMsgCh, 2)
 	for len(ps.resultMsgCh) != 0 {
@@ -352,7 +347,6 @@ func TestSetReservePeer(t *testing.T) {
 		waitGroup.Done()
 	}()
 	waitGroup.Wait()
-	//time.Sleep(200 * time.Millisecond)
 
 	checkPeerSetReservedNodeCount(t, ps, 2)
 	for _, p := range newRsrPeerSet {
