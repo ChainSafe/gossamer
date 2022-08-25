@@ -4,6 +4,7 @@
 package peerset
 
 import (
+	"sync"
 	"testing"
 	"time"
 
@@ -78,9 +79,16 @@ func TestAddReservedPeers(t *testing.T) {
 
 	reservedPeers := peer.IDSlice{reservedPeer, reservedPeer2}
 
+	var waitGroup sync.WaitGroup
+
 	for _, peerID := range reservedPeers {
-		handler.AddReservedPeer(testSetID, peerID)
-		time.Sleep(time.Millisecond * 100)
+		waitGroup.Add(1)
+		go func() {
+			handler.AddReservedPeer(testSetID, peerID)
+			waitGroup.Done()
+		}()
+		waitGroup.Wait()
+		//time.Sleep(time.Millisecond * 100)
 
 		checkReservedNodePeerExists(t, ps, peerID)
 		checkPeerIsInNoSlotsNode(t, ps.peerState, peerID, testSetID)
@@ -152,14 +160,21 @@ func TestPeerSetIncoming(t *testing.T) {
 		},
 	}
 
+	var waitGroup sync.WaitGroup
+
 	for _, tt := range incomingPeers {
 
 		// all the incoming peers are unknow before calling the Incoming method
 		status := ps.peerState.peerStatus(testSetID, tt.pid)
 		require.Equal(t, unknownPeer, status)
 
-		handler.Incoming(testSetID, tt.pid)
-		time.Sleep(time.Millisecond * 100)
+		waitGroup.Add(1)
+		go func() {
+			handler.Incoming(testSetID, tt.pid)
+			waitGroup.Done()
+		}()
+		waitGroup.Wait()
+		//time.Sleep(time.Millisecond * 100)
 
 		checkNodePeerExists(t, ps.peerState, tt.pid)
 
@@ -190,11 +205,19 @@ func TestPeerSetDiscovered(t *testing.T) {
 	// reserved nodes should not increase the numOut count
 	checkPeerStateSetNumOut(t, ps.peerState, testSetID, 0)
 
-	handler.AddPeer(0, discovered1)
-	handler.AddPeer(0, discovered1)
-	handler.AddPeer(0, discovered2)
+	var waitGroup sync.WaitGroup
 
-	time.Sleep(200 * time.Millisecond)
+	waitGroup.Add(3)
+	go func() {
+		handler.AddPeer(0, discovered1)
+		handler.AddPeer(0, discovered1)
+		handler.AddPeer(0, discovered2)
+		waitGroup.Done()
+		waitGroup.Done()
+		waitGroup.Done()
+	}()
+	waitGroup.Wait()
+	//time.Sleep(200 * time.Millisecond)
 
 	checkNodePeerExists(t, ps.peerState, discovered1)
 	checkNodePeerExists(t, ps.peerState, discovered2)
@@ -227,9 +250,17 @@ func TestReAllocAfterBanned(t *testing.T) {
 
 	// We ban a node by setting its reputation under the threshold.
 	rep := newReputationChange(BannedThresholdValue-1, "")
-	handler.ReportPeer(rep, peer1)
 
-	time.Sleep(time.Millisecond * 100)
+	var waitGroup sync.WaitGroup
+
+	waitGroup.Add(1)
+	go func() {
+		handler.ReportPeer(rep, peer1)
+		waitGroup.Done()
+	}()
+	waitGroup.Wait()
+	//time.Sleep(time.Millisecond * 100)
+
 	checkMessageStatus(t, <-ps.resultMsgCh, Drop)
 
 	// banning a incoming peer should decrease the numIn count by 1
@@ -276,8 +307,15 @@ func TestRemovePeer(t *testing.T) {
 	require.Len(t, ps.peerState.nodes, 2)
 	checkPeerStateSetNumOut(t, ps.peerState, testSetID, 2)
 
-	handler.RemovePeer(testSetID, discovered1, discovered2)
-	time.Sleep(200 * time.Millisecond)
+	var waitGroup sync.WaitGroup
+
+	waitGroup.Add(1)
+	go func() {
+		handler.RemovePeer(testSetID, discovered1, discovered2)
+		waitGroup.Done()
+	}()
+	waitGroup.Wait()
+	//time.Sleep(200 * time.Millisecond)
 
 	require.Len(t, ps.resultMsgCh, 2)
 	for len(ps.resultMsgCh) != 0 {
@@ -304,9 +342,17 @@ func TestSetReservePeer(t *testing.T) {
 	require.Len(t, ps.reservedNode, 2)
 
 	newRsrPeerSet := peer.IDSlice{reservedPeer, peer.ID("newRsrPeer")}
-	// add newRsrPeer but remove reservedPeer2
-	handler.SetReservedPeer(testSetID, newRsrPeerSet...)
-	time.Sleep(200 * time.Millisecond)
+
+	var waitGroup sync.WaitGroup
+
+	waitGroup.Add(1)
+	go func() {
+		// add newRsrPeer but remove reservedPeer2
+		handler.SetReservedPeer(testSetID, newRsrPeerSet...)
+		waitGroup.Done()
+	}()
+	waitGroup.Wait()
+	//time.Sleep(200 * time.Millisecond)
 
 	checkPeerSetReservedNodeCount(t, ps, 2)
 	for _, p := range newRsrPeerSet {
