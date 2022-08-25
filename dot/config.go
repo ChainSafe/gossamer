@@ -163,8 +163,7 @@ type StateConfig struct {
 }
 
 func (s *StateConfig) String() string {
-	return "" +
-		"rewind " + fmt.Sprint(s.Rewind)
+	return "rewind " + fmt.Sprint(s.Rewind)
 }
 
 // networkServiceEnabled returns true if the network service is enabled

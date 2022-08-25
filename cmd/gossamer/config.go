@@ -929,9 +929,9 @@ func setDotPprofConfig(ctx *cli.Context, tomlCfg ctoml.PprofConfig, cfg *dot.Ppr
 }
 
 func setStateConfig(ctx *cli.Context, tomlCfg ctoml.StateConfig, cfg *dot.StateConfig) {
-	if tomlCfg.Rewind > 0 {
-		cfg.Rewind = tomlCfg.Rewind
-	} else if ctx.GlobalIsSet(RewindFlag.Name) {
+	if ctx.GlobalIsSet(RewindFlag.Name) {
 		cfg.Rewind = ctx.GlobalUint(RewindFlag.Name)
+	} else if tomlCfg.Rewind > 0 {
+		cfg.Rewind = tomlCfg.Rewind
 	}
 }
