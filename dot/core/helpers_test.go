@@ -153,8 +153,6 @@ func newTestService(t *testing.T, cfg Config) *Service {
 	t.Helper()
 	ctrl := gomock.NewController(t)
 
-	cfg.LogLvl = 3
-
 	var stateSrvc *state.Service
 	testDatadirPath := t.TempDir()
 
