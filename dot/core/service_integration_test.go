@@ -31,7 +31,8 @@ import (
 )
 
 func TestStartService(t *testing.T) {
-	s := NewTestService(t, nil)
+	cfg := Config{}
+	s := NewTestService(t, cfg)
 
 	err := s.Start()
 	require.NoError(t, err)
@@ -44,7 +45,7 @@ func TestAnnounceBlock(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	net := NewMockNetwork(ctrl)
 
-	cfg := &Config{
+	cfg := Config{
 		Network: net,
 	}
 
@@ -98,7 +99,7 @@ func TestService_InsertKey(t *testing.T) {
 	t.Parallel()
 	ks := keystore.NewGlobalKeystore()
 
-	cfg := &Config{
+	cfg := Config{
 		Keystore: ks,
 	}
 	s := NewTestService(t, cfg)
@@ -156,7 +157,7 @@ func TestService_HasKey(t *testing.T) {
 	require.NoError(t, err)
 	ks.Acco.Insert(kr.Alice())
 
-	cfg := &Config{
+	cfg := Config{
 		Keystore: ks,
 	}
 	s := NewTestService(t, cfg)
@@ -180,7 +181,7 @@ func TestService_HasKey_UnknownType(t *testing.T) {
 	require.NoError(t, err)
 	ks.Acco.Insert(kr.Alice())
 
-	cfg := &Config{
+	cfg := Config{
 		Keystore: ks,
 	}
 
@@ -191,7 +192,8 @@ func TestService_HasKey_UnknownType(t *testing.T) {
 }
 
 func TestHandleChainReorg_NoReorg(t *testing.T) {
-	s := NewTestService(t, nil)
+	cfg := Config{}
+	s := NewTestService(t, cfg)
 	state.AddBlocksToState(t, s.blockState.(*state.BlockState), 4, false)
 
 	head, err := s.blockState.BestBlockHeader()
@@ -203,7 +205,8 @@ func TestHandleChainReorg_NoReorg(t *testing.T) {
 
 func TestHandleChainReorg_WithReorg_Trans(t *testing.T) {
 	t.Skip() // TODO: tx fails to validate in handleChainReorg() with "Invalid transaction" (#1026)
-	s := NewTestService(t, nil)
+	cfg := Config{}
+	s := NewTestService(t, cfg)
 	bs := s.blockState
 
 	parent, err := bs.BestBlockHeader()
@@ -260,7 +263,8 @@ func TestHandleChainReorg_WithReorg_Trans(t *testing.T) {
 }
 
 func TestHandleChainReorg_WithReorg_NoTransactions(t *testing.T) {
-	s := NewTestService(t, nil)
+	cfg := Config{}
+	s := NewTestService(t, cfg)
 	const height = 5
 	const branch = 3
 	branches := map[uint]int{branch: 1}
@@ -284,7 +288,7 @@ func TestHandleChainReorg_WithReorg_NoTransactions(t *testing.T) {
 func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	t.Skip() // need to update this test to use a valid transaction
 
-	cfg := &Config{
+	cfg := Config{
 		Runtime: wasmer.NewTestInstance(t, runtime.NODE_RUNTIME),
 	}
 
@@ -439,7 +443,8 @@ func TestMaintainTransactionPoolLatestTxnQueue_BlockWithExtrinsics(t *testing.T)
 }
 
 func TestService_GetRuntimeVersion(t *testing.T) {
-	s := NewTestService(t, nil)
+	cfg := Config{}
+	s := NewTestService(t, cfg)
 	rt, err := s.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
@@ -450,9 +455,9 @@ func TestService_GetRuntimeVersion(t *testing.T) {
 }
 
 func TestService_HandleSubmittedExtrinsic(t *testing.T) {
-	cfg := &Config{}
 	ctrl := gomock.NewController(t)
 
+	cfg := Config{}
 	net := NewMockNetwork(ctrl)
 	net.EXPECT().GossipMessage(gomock.AssignableToTypeOf(new(network.TransactionMessage)))
 	cfg.Network = net
@@ -479,7 +484,8 @@ func TestService_HandleSubmittedExtrinsic(t *testing.T) {
 }
 
 func TestService_GetMetadata(t *testing.T) {
-	s := NewTestService(t, nil)
+	cfg := Config{}
+	s := NewTestService(t, cfg)
 	res, err := s.GetMetadata(nil)
 	require.NoError(t, err)
 	require.Greater(t, len(res), 10000)
@@ -490,7 +496,8 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 		updatedSpecVersion        = uint32(262)
 		updateNodeRuntimeWasmPath = "../../tests/polkadotjs_test/test/node_runtime.compact.wasm"
 	)
-	s := NewTestService(t, nil)
+	cfg := Config{}
+	s := NewTestService(t, cfg)
 
 	rt, err := s.blockState.GetRuntime(nil)
 	require.NoError(t, err)
@@ -561,7 +568,8 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 }
 
 func TestService_HandleCodeSubstitutes(t *testing.T) {
-	s := NewTestService(t, nil)
+	cfg := Config{}
+	s := NewTestService(t, cfg)
 
 	runtimeFilepath, err := runtime.GetRuntime(context.Background(), runtime.POLKADOT_RUNTIME)
 	require.NoError(t, err)
@@ -587,7 +595,8 @@ func TestService_HandleCodeSubstitutes(t *testing.T) {
 }
 
 func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
-	s := NewTestService(t, nil)
+	cfg := Config{}
+	s := NewTestService(t, cfg)
 
 	parentRt, err := s.blockState.GetRuntime(nil)
 	require.NoError(t, err)

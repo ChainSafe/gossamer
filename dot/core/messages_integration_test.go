@@ -72,7 +72,7 @@ func TestService_HandleBlockProduced(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	net := NewMockNetwork(ctrl)
-	cfg := &Config{
+	cfg := Config{
 		Network:  net,
 		Keystore: keystore.NewGlobalKeystore(),
 	}
@@ -146,7 +146,7 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 		gomock.AssignableToTypeOf(peer.ID("")),
 	).AnyTimes()
 
-	cfg := &Config{
+	cfg := Config{
 		Keystore:         ks,
 		TransactionState: state.NewTransactionState(telemetryMock),
 		Network:          net,

@@ -149,13 +149,9 @@ func createTestService(t *testing.T, genesisFilePath string,
 }
 
 // NewTestService creates a new test core service
-func NewTestService(t *testing.T, cfg *Config) *Service {
+func NewTestService(t *testing.T, cfg Config) *Service {
 	t.Helper()
 	ctrl := gomock.NewController(t)
-
-	if cfg == nil {
-		cfg = &Config{}
-	}
 
 	if cfg.Keystore == nil {
 		cfg.Keystore = keystore.NewGlobalKeystore()
@@ -256,7 +252,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		cfg.CodeSubstitutedState = stateSrvc.Base
 	}
 
-	s, err := NewService(*cfg)
+	s, err := NewService(cfg)
 	require.NoError(t, err)
 
 	return s
