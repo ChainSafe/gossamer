@@ -15,7 +15,9 @@ import (
 
 // Authority struct to hold authority data
 type Authority struct {
-	Key    crypto.PublicKey
+	Key crypto.PublicKey
+	// Weight exists for potential improvements in the protocol and could
+	// have a use-case in the future. In polkadot all authorities have the weight = 1.
 	Weight uint64
 }
 

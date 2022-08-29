@@ -562,7 +562,6 @@ func (b *Service) handleSlot(epoch, slotNum uint64,
 		return err
 	}
 
-	fmt.Printf("block %s\nblock number %d\n\n", block.Header.Hash(), block.Header.Number)
 	logger.Infof(
 		"built block %d with hash %s, state root %s, epoch %d and slot %d",
 		block.Header.Number, block.Header.Hash(), block.Header.StateRoot, epoch, slotNum)
