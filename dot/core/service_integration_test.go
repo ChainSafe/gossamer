@@ -42,7 +42,7 @@ func TestStartService(t *testing.T) {
 		Keystore: keyStore,
 	}
 
-	s := NewTestService(t, cfg)
+	s := newTestService(t, cfg)
 
 	err = s.Start()
 	require.NoError(t, err)
@@ -66,7 +66,7 @@ func TestAnnounceBlock(t *testing.T) {
 		Network:  net,
 	}
 
-	s := NewTestService(t, cfg)
+	s := newTestService(t, cfg)
 	err = s.Start()
 	require.NoError(t, err)
 	defer s.Stop()
@@ -118,7 +118,7 @@ func TestService_InsertKey(t *testing.T) {
 	cfg := Config{
 		Keystore: keystore.NewGlobalKeystore(),
 	}
-	s := NewTestService(t, cfg)
+	s := newTestService(t, cfg)
 
 	kr, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
@@ -176,7 +176,7 @@ func TestService_HasKey(t *testing.T) {
 	cfg := Config{
 		Keystore: ks,
 	}
-	s := NewTestService(t, cfg)
+	s := newTestService(t, cfg)
 
 	res, err := s.HasKey(kr.Alice().Public().Hex(), "acco")
 	require.NoError(t, err)
@@ -201,7 +201,7 @@ func TestService_HasKey_UnknownType(t *testing.T) {
 		Keystore: ks,
 	}
 
-	s := NewTestService(t, cfg)
+	s := newTestService(t, cfg)
 	res, err := s.HasKey(kr.Alice().Public().Hex(), "xxxx")
 	require.EqualError(t, err, "invalid keystore name")
 	require.False(t, res)
@@ -218,7 +218,7 @@ func TestHandleChainReorg_NoReorg(t *testing.T) {
 		Keystore: keyStore,
 	}
 
-	s := NewTestService(t, cfg)
+	s := newTestService(t, cfg)
 	state.AddBlocksToState(t, s.blockState.(*state.BlockState), 4, false)
 
 	head, err := s.blockState.BestBlockHeader()
@@ -241,7 +241,7 @@ func TestHandleChainReorg_WithReorg_Trans(t *testing.T) {
 		Keystore: keyStore,
 	}
 
-	s := NewTestService(t, cfg)
+	s := newTestService(t, cfg)
 	bs := s.blockState
 
 	parent, err := bs.BestBlockHeader()
@@ -308,7 +308,7 @@ func TestHandleChainReorg_WithReorg_NoTransactions(t *testing.T) {
 		Keystore: keyStore,
 	}
 
-	s := NewTestService(t, cfg)
+	s := newTestService(t, cfg)
 	const height = 5
 	const branch = 3
 	branches := map[uint]int{branch: 1}
@@ -343,7 +343,7 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 		Runtime:  wasmer.NewTestInstance(t, runtime.NODE_RUNTIME),
 	}
 
-	s := NewTestService(t, cfg)
+	s := newTestService(t, cfg)
 	const height = 5
 	const branch = 3
 	state.AddBlocksToState(t, s.blockState.(*state.BlockState), height, false)
@@ -503,7 +503,7 @@ func TestService_GetRuntimeVersion(t *testing.T) {
 	cfg := Config{
 		Keystore: keyStore,
 	}
-	s := NewTestService(t, cfg)
+	s := newTestService(t, cfg)
 	rt, err := s.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
@@ -528,7 +528,7 @@ func TestService_HandleSubmittedExtrinsic(t *testing.T) {
 	net := NewMockNetwork(ctrl)
 	net.EXPECT().GossipMessage(gomock.AssignableToTypeOf(new(network.TransactionMessage)))
 	cfg.Network = net
-	s := NewTestService(t, cfg)
+	s := newTestService(t, cfg)
 
 	genHeader, err := s.blockState.BestBlockHeader()
 	require.NoError(t, err)
@@ -560,7 +560,7 @@ func TestService_GetMetadata(t *testing.T) {
 	cfg := Config{
 		Keystore: keyStore,
 	}
-	s := NewTestService(t, cfg)
+	s := newTestService(t, cfg)
 	res, err := s.GetMetadata(nil)
 	require.NoError(t, err)
 	require.Greater(t, len(res), 10000)
@@ -581,7 +581,7 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	cfg := Config{
 		Keystore: keyStore,
 	}
-	s := NewTestService(t, cfg)
+	s := newTestService(t, cfg)
 
 	rt, err := s.blockState.GetRuntime(nil)
 	require.NoError(t, err)
@@ -661,7 +661,7 @@ func TestService_HandleCodeSubstitutes(t *testing.T) {
 	cfg := Config{
 		Keystore: keyStore,
 	}
-	s := NewTestService(t, cfg)
+	s := newTestService(t, cfg)
 
 	runtimeFilepath, err := runtime.GetRuntime(context.Background(), runtime.POLKADOT_RUNTIME)
 	require.NoError(t, err)
@@ -696,7 +696,7 @@ func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 	cfg := Config{
 		Keystore: keyStore,
 	}
-	s := NewTestService(t, cfg)
+	s := newTestService(t, cfg)
 
 	parentRt, err := s.blockState.GetRuntime(nil)
 	require.NoError(t, err)

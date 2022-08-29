@@ -77,7 +77,7 @@ func TestService_HandleBlockProduced(t *testing.T) {
 		Keystore: keystore.NewGlobalKeystore(),
 	}
 
-	s := NewTestService(t, cfg)
+	s := newTestService(t, cfg)
 	err := s.Start()
 	require.NoError(t, err)
 
@@ -152,7 +152,7 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 		Network:          net,
 	}
 
-	s := NewTestService(t, cfg)
+	s := newTestService(t, cfg)
 	genHash := s.blockState.GenesisHash()
 	genHeader, err := s.blockState.BestBlockHeader()
 	require.NoError(t, err)
