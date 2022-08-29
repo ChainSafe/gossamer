@@ -18,6 +18,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/sync"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
@@ -31,10 +32,19 @@ import (
 )
 
 func TestStartService(t *testing.T) {
-	cfg := Config{}
+	keyStore := keystore.NewGlobalKeystore()
+	kp, err := sr25519.GenerateKeypair()
+	require.NoError(t, err)
+	err = keyStore.Acco.Insert(kp)
+	require.NoError(t, err)
+
+	cfg := Config{
+		Keystore: keyStore,
+	}
+
 	s := NewTestService(t, cfg)
 
-	err := s.Start()
+	err = s.Start()
 	require.NoError(t, err)
 
 	err = s.Stop()
@@ -45,12 +55,19 @@ func TestAnnounceBlock(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	net := NewMockNetwork(ctrl)
 
+	keyStore := keystore.NewGlobalKeystore()
+	kp, err := sr25519.GenerateKeypair()
+	require.NoError(t, err)
+	err = keyStore.Acco.Insert(kp)
+	require.NoError(t, err)
+
 	cfg := Config{
-		Network: net,
+		Keystore: keyStore,
+		Network:  net,
 	}
 
 	s := NewTestService(t, cfg)
-	err := s.Start()
+	err = s.Start()
 	require.NoError(t, err)
 	defer s.Stop()
 
@@ -97,10 +114,9 @@ func TestAnnounceBlock(t *testing.T) {
 
 func TestService_InsertKey(t *testing.T) {
 	t.Parallel()
-	ks := keystore.NewGlobalKeystore()
 
 	cfg := Config{
-		Keystore: ks,
+		Keystore: keystore.NewGlobalKeystore(),
 	}
 	s := NewTestService(t, cfg)
 
@@ -192,7 +208,16 @@ func TestService_HasKey_UnknownType(t *testing.T) {
 }
 
 func TestHandleChainReorg_NoReorg(t *testing.T) {
-	cfg := Config{}
+	keyStore := keystore.NewGlobalKeystore()
+	kp, err := sr25519.GenerateKeypair()
+	require.NoError(t, err)
+	err = keyStore.Acco.Insert(kp)
+	require.NoError(t, err)
+
+	cfg := Config{
+		Keystore: keyStore,
+	}
+
 	s := NewTestService(t, cfg)
 	state.AddBlocksToState(t, s.blockState.(*state.BlockState), 4, false)
 
@@ -205,7 +230,17 @@ func TestHandleChainReorg_NoReorg(t *testing.T) {
 
 func TestHandleChainReorg_WithReorg_Trans(t *testing.T) {
 	t.Skip() // TODO: tx fails to validate in handleChainReorg() with "Invalid transaction" (#1026)
-	cfg := Config{}
+
+	keyStore := keystore.NewGlobalKeystore()
+	kp, err := sr25519.GenerateKeypair()
+	require.NoError(t, err)
+	err = keyStore.Acco.Insert(kp)
+	require.NoError(t, err)
+
+	cfg := Config{
+		Keystore: keyStore,
+	}
+
 	s := NewTestService(t, cfg)
 	bs := s.blockState
 
@@ -263,7 +298,16 @@ func TestHandleChainReorg_WithReorg_Trans(t *testing.T) {
 }
 
 func TestHandleChainReorg_WithReorg_NoTransactions(t *testing.T) {
-	cfg := Config{}
+	keyStore := keystore.NewGlobalKeystore()
+	kp, err := sr25519.GenerateKeypair()
+	require.NoError(t, err)
+	err = keyStore.Acco.Insert(kp)
+	require.NoError(t, err)
+
+	cfg := Config{
+		Keystore: keyStore,
+	}
+
 	s := NewTestService(t, cfg)
 	const height = 5
 	const branch = 3
@@ -281,15 +325,22 @@ func TestHandleChainReorg_WithReorg_NoTransactions(t *testing.T) {
 		other = leaves[0]
 	}
 
-	err := s.handleChainReorg(other, head)
+	err = s.handleChainReorg(other, head)
 	require.NoError(t, err)
 }
 
 func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	t.Skip() // need to update this test to use a valid transaction
 
+	keyStore := keystore.NewGlobalKeystore()
+	kp, err := sr25519.GenerateKeypair()
+	require.NoError(t, err)
+	err = keyStore.Acco.Insert(kp)
+	require.NoError(t, err)
+
 	cfg := Config{
-		Runtime: wasmer.NewTestInstance(t, runtime.NODE_RUNTIME),
+		Keystore: keyStore,
+		Runtime:  wasmer.NewTestInstance(t, runtime.NODE_RUNTIME),
 	}
 
 	s := NewTestService(t, cfg)
@@ -443,7 +494,15 @@ func TestMaintainTransactionPoolLatestTxnQueue_BlockWithExtrinsics(t *testing.T)
 }
 
 func TestService_GetRuntimeVersion(t *testing.T) {
-	cfg := Config{}
+	keyStore := keystore.NewGlobalKeystore()
+	kp, err := sr25519.GenerateKeypair()
+	require.NoError(t, err)
+	err = keyStore.Acco.Insert(kp)
+	require.NoError(t, err)
+
+	cfg := Config{
+		Keystore: keyStore,
+	}
 	s := NewTestService(t, cfg)
 	rt, err := s.blockState.GetRuntime(nil)
 	require.NoError(t, err)
@@ -457,7 +516,15 @@ func TestService_GetRuntimeVersion(t *testing.T) {
 func TestService_HandleSubmittedExtrinsic(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
-	cfg := Config{}
+	keyStore := keystore.NewGlobalKeystore()
+	kp, err := sr25519.GenerateKeypair()
+	require.NoError(t, err)
+	err = keyStore.Acco.Insert(kp)
+	require.NoError(t, err)
+
+	cfg := Config{
+		Keystore: keyStore,
+	}
 	net := NewMockNetwork(ctrl)
 	net.EXPECT().GossipMessage(gomock.AssignableToTypeOf(new(network.TransactionMessage)))
 	cfg.Network = net
@@ -484,7 +551,15 @@ func TestService_HandleSubmittedExtrinsic(t *testing.T) {
 }
 
 func TestService_GetMetadata(t *testing.T) {
-	cfg := Config{}
+	keyStore := keystore.NewGlobalKeystore()
+	kp, err := sr25519.GenerateKeypair()
+	require.NoError(t, err)
+	err = keyStore.Acco.Insert(kp)
+	require.NoError(t, err)
+
+	cfg := Config{
+		Keystore: keyStore,
+	}
 	s := NewTestService(t, cfg)
 	res, err := s.GetMetadata(nil)
 	require.NoError(t, err)
@@ -496,7 +571,16 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 		updatedSpecVersion        = uint32(262)
 		updateNodeRuntimeWasmPath = "../../tests/polkadotjs_test/test/node_runtime.compact.wasm"
 	)
-	cfg := Config{}
+
+	keyStore := keystore.NewGlobalKeystore()
+	kp, err := sr25519.GenerateKeypair()
+	require.NoError(t, err)
+	err = keyStore.Acco.Insert(kp)
+	require.NoError(t, err)
+
+	cfg := Config{
+		Keystore: keyStore,
+	}
 	s := NewTestService(t, cfg)
 
 	rt, err := s.blockState.GetRuntime(nil)
@@ -568,7 +652,15 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 }
 
 func TestService_HandleCodeSubstitutes(t *testing.T) {
-	cfg := Config{}
+	keyStore := keystore.NewGlobalKeystore()
+	kp, err := sr25519.GenerateKeypair()
+	require.NoError(t, err)
+	err = keyStore.Acco.Insert(kp)
+	require.NoError(t, err)
+
+	cfg := Config{
+		Keystore: keyStore,
+	}
 	s := NewTestService(t, cfg)
 
 	runtimeFilepath, err := runtime.GetRuntime(context.Background(), runtime.POLKADOT_RUNTIME)
@@ -595,7 +687,15 @@ func TestService_HandleCodeSubstitutes(t *testing.T) {
 }
 
 func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
-	cfg := Config{}
+	keyStore := keystore.NewGlobalKeystore()
+	kp, err := sr25519.GenerateKeypair()
+	require.NoError(t, err)
+	err = keyStore.Acco.Insert(kp)
+	require.NoError(t, err)
+
+	cfg := Config{
+		Keystore: keyStore,
+	}
 	s := NewTestService(t, cfg)
 
 	parentRt, err := s.blockState.GetRuntime(nil)

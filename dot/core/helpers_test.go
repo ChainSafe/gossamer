@@ -13,9 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
@@ -152,16 +150,6 @@ func createTestService(t *testing.T, genesisFilePath string,
 func NewTestService(t *testing.T, cfg Config) *Service {
 	t.Helper()
 	ctrl := gomock.NewController(t)
-
-	if cfg.Keystore == nil {
-		cfg.Keystore = keystore.NewGlobalKeystore()
-		kp, err := sr25519.GenerateKeypair()
-		if err != nil {
-			t.Fatal(err)
-		}
-		err = cfg.Keystore.Acco.Insert(kp)
-		require.NoError(t, err)
-	}
 
 	cfg.LogLvl = 3
 
