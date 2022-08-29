@@ -107,7 +107,10 @@ func TestImportState(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			err := ImportState(tt.args.basepath, tt.args.stateFP, tt.args.headerFP, tt.args.firstSlot)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
@@ -175,7 +178,10 @@ func Test_newHeaderFromFile(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got, err := newHeaderFromFile(tt.filename)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
@@ -208,7 +214,10 @@ func Test_newTrieFromPairs(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got, err := newTrieFromPairs(tt.filename)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())

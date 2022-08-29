@@ -132,11 +132,10 @@ func TestDecodeMessage_NeighbourMessage(t *testing.T) {
 	msg, err := decodeMessage(cm)
 	require.NoError(t, err)
 
-	expected := &NeighbourMessage{
-		Version: 1,
-		Round:   2,
-		SetID:   3,
-		Number:  255,
+	expected := &NeighbourPacketV1{
+		Round:  2,
+		SetID:  3,
+		Number: 255,
 	}
 	require.Equal(t, expected, msg)
 }
@@ -195,13 +194,13 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
 
-	msg := &NeighbourMessage{
-		Version: 1,
-		Round:   2,
-		SetID:   3,
-		Number:  1,
+	NeighbourPacketV1 := &NeighbourPacketV1{
+		Round:  2,
+		SetID:  3,
+		Number: 1,
 	}
-	_, err := h.handleMessage("", msg)
+
+	_, err := h.handleMessage("", NeighbourPacketV1)
 	require.NoError(t, err)
 
 	digest := types.NewDigest()
@@ -225,7 +224,7 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 	err = st.Block.AddBlock(block)
 	require.NoError(t, err)
 
-	out, err := h.handleMessage("", msg)
+	out, err := h.handleMessage("", NeighbourPacketV1)
 	require.NoError(t, err)
 	require.Nil(t, out)
 }
@@ -1252,6 +1251,8 @@ func signFakeFullVote(
 }
 
 func TestService_VerifyBlockJustification(t *testing.T) {
+	t.Parallel()
+
 	precommits := buildTestJustification(t, 2, 1, 0, kr, precommit)
 	justification := newJustification(1, testHash, 1, precommits)
 	justificationBytes, err := scale.Marshal(*justification)

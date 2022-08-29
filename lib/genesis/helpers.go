@@ -16,8 +16,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
-	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -661,60 +659,17 @@ func addAuthoritiesValues(k1, k2 string, kt crypto.KeyType, value []byte, gen *G
 		gen.Genesis.Runtime[k1] = make(map[string]interface{})
 	}
 
-	// decode authorities values into []interface that will be decoded into json array
-	ava := [][]interface{}{}
-	reader := new(bytes.Buffer)
-	_, err := reader.Write(value)
+	var auths []types.AuthorityRaw
+	err := scale.Unmarshal(value, &auths)
 	if err != nil {
 		return err
 	}
 
-	var alen int
-	err = scale.Unmarshal(value, &alen)
+	authAddrs, err := types.AuthoritiesRawToAuthorityAsAddress(auths, kt)
 	if err != nil {
 		return err
 	}
-	for i := 0; i < alen; i++ {
-		var auth []interface{}
-		buf := make([]byte, 32)
-		if _, err = reader.Read(buf); err == nil {
-			var arr = [32]byte{}
-			copy(arr[:], buf)
-			pa, err := bytesToAddress(kt, arr[:])
-			if err != nil {
-				return err
-			}
-			auth = append(auth, pa)
-		}
-		b := make([]byte, 8)
-		if _, err = reader.Read(b); err != nil {
-			return fmt.Errorf("reading from buffer: %w", err)
-		}
-		var iv uint64
-		err = scale.Unmarshal(b, &iv)
 
-		if err != nil {
-			return err
-		}
-		auth = append(auth, iv)
-		ava = append(ava, auth)
-	}
-
-	gen.Genesis.Runtime[k1][k2] = ava
+	gen.Genesis.Runtime[k1][k2] = authAddrs
 	return nil
-}
-
-func bytesToAddress(kt crypto.KeyType, v []byte) (common.Address, error) {
-	var pk crypto.PublicKey
-	var err error
-	switch kt {
-	case crypto.Ed25519Type:
-		pk, err = ed25519.NewPublicKey(v)
-	case crypto.Sr25519Type:
-		pk, err = sr25519.NewPublicKey(v)
-	}
-	if err != nil {
-		return "", err
-	}
-	return crypto.PublicKeyToAddress(pk), nil
 }

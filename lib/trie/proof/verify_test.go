@@ -337,7 +337,7 @@ func Test_loadProof(t *testing.T) {
 				Descendants: 1,
 				Dirty:       true,
 				Children: padRightChildren([]*node.Node{
-					{HashDigest: []byte{3}},
+					{MerkleValue: []byte{3}},
 				}),
 			},
 			merkleValueToEncoding: map[string][]byte{},
@@ -354,7 +354,7 @@ func Test_loadProof(t *testing.T) {
 				Descendants: 1,
 				Dirty:       true,
 				Children: padRightChildren([]*node.Node{
-					{HashDigest: []byte{2}},
+					{MerkleValue: []byte{2}},
 				}),
 			},
 			merkleValueToEncoding: map[string][]byte{
@@ -384,8 +384,8 @@ func Test_loadProof(t *testing.T) {
 				Descendants: 2,
 				Dirty:       true,
 				Children: padRightChildren([]*node.Node{
-					{HashDigest: []byte{2}}, // found
-					{HashDigest: []byte{3}}, // not found
+					{MerkleValue: []byte{2}}, // found
+					{MerkleValue: []byte{3}}, // not found
 				}),
 			},
 			merkleValueToEncoding: map[string][]byte{
@@ -415,7 +415,7 @@ func Test_loadProof(t *testing.T) {
 				Descendants: 2,
 				Dirty:       true,
 				Children: padRightChildren([]*node.Node{
-					{HashDigest: []byte{2}},
+					{MerkleValue: []byte{2}},
 				}),
 			},
 			merkleValueToEncoding: map[string][]byte{
@@ -456,7 +456,7 @@ func Test_loadProof(t *testing.T) {
 				Descendants: 1,
 				Dirty:       true,
 				Children: padRightChildren([]*node.Node{
-					{HashDigest: []byte{2}},
+					{MerkleValue: []byte{2}},
 				}),
 			},
 			merkleValueToEncoding: map[string][]byte{
@@ -468,7 +468,7 @@ func Test_loadProof(t *testing.T) {
 				Descendants: 1,
 				Dirty:       true,
 				Children: padRightChildren([]*node.Node{
-					{HashDigest: []byte{2}},
+					{MerkleValue: []byte{2}},
 				}),
 			},
 			errWrapped: node.ErrVariantUnknown,
@@ -483,7 +483,7 @@ func Test_loadProof(t *testing.T) {
 				Descendants: 1,
 				Dirty:       true,
 				Children: padRightChildren([]*node.Node{
-					{HashDigest: []byte{2}},
+					{MerkleValue: []byte{2}},
 				}),
 			},
 			merkleValueToEncoding: map[string][]byte{
@@ -528,7 +528,7 @@ func Test_loadProof(t *testing.T) {
 				Descendants: 1,
 				Dirty:       true,
 				Children: padRightChildren([]*node.Node{
-					{HashDigest: []byte{2}},
+					{MerkleValue: []byte{2}},
 				}),
 			},
 			merkleValueToEncoding: map[string][]byte{
@@ -556,8 +556,8 @@ func Test_loadProof(t *testing.T) {
 						Dirty:       true,
 						Children: padRightChildren([]*node.Node{
 							{
-								HashDigest: blake2bNode(t, leafLarge),
-								Dirty:      true,
+								MerkleValue: blake2bNode(t, leafLarge),
+								Dirty:       true,
 							},
 						}),
 					},

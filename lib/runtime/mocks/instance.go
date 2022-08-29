@@ -71,29 +71,6 @@ func (_m *Instance) CheckInherents() {
 	_m.Called()
 }
 
-// CheckRuntimeVersion provides a mock function with given fields: _a0
-func (_m *Instance) CheckRuntimeVersion(_a0 []byte) (runtime.Version, error) {
-	ret := _m.Called(_a0)
-
-	var r0 runtime.Version
-	if rf, ok := ret.Get(0).(func([]byte) runtime.Version); ok {
-		r0 = rf(_a0)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(runtime.Version)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func([]byte) error); ok {
-		r1 = rf(_a0)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // DecodeSessionKeys provides a mock function with given fields: enc
 func (_m *Instance) DecodeSessionKeys(enc []byte) ([]byte, error) {
 	ret := _m.Called(enc)
@@ -438,9 +415,7 @@ func (_m *Instance) Version() (runtime.Version, error) {
 	if rf, ok := ret.Get(0).(func() runtime.Version); ok {
 		r0 = rf()
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(runtime.Version)
-		}
+		r0 = ret.Get(0).(runtime.Version)
 	}
 
 	var r1 error

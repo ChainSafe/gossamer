@@ -91,7 +91,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	}
 
 	if cfg.Runtime == nil {
-		var rtCfg runtime.InstanceConfig
+		var rtCfg wasmer.Config
 
 		rtCfg.Storage = rtstorage.NewTrieState(genTrie)
 
@@ -139,3 +139,22 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 
 	return s
 }
+
+func getGssmrRuntimeCode(t *testing.T) (code []byte) {
+	t.Helper()
+
+	path, err := utils.GetGssmrGenesisRawPath()
+	require.NoError(t, err)
+
+	gssmrGenesis, err := genesis.NewGenesisFromJSONRaw(path)
+	require.NoError(t, err)
+
+	trie, err := genesis.NewTrieFromGenesis(gssmrGenesis)
+	require.NoError(t, err)
+
+	trieState := rtstorage.NewTrieState(trie)
+
+	return trieState.LoadCode()
+}
+
+func hashPtr(h common.Hash) *common.Hash { return &h }

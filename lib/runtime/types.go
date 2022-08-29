@@ -4,8 +4,6 @@
 package runtime
 
 import (
-	"github.com/ChainSafe/gossamer/internal/log"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime/offchain"
@@ -45,18 +43,6 @@ func (n *NodeStorage) SetPersistent(k, v []byte) error {
 // GetPersistent retrieve a key and value from PERSISTENT node storage
 func (n *NodeStorage) GetPersistent(k []byte) ([]byte, error) {
 	return n.PersistentStorage.Get(k)
-}
-
-// InstanceConfig represents a runtime instance configuration
-type InstanceConfig struct {
-	Storage     Storage
-	Keystore    *keystore.GlobalKeystore
-	LogLvl      log.Level
-	Role        byte
-	NodeStorage NodeStorage
-	Network     BasicNetwork
-	Transaction TransactionState
-	CodeHash    common.Hash
 }
 
 // Context is the context for the wasm interpreter's imported functions

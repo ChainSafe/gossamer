@@ -16,6 +16,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/pprof"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -74,7 +75,7 @@ func newStateServiceWithoutMock(t *testing.T) *state.Service {
 
 	stateSrvc.Epoch = epochState
 
-	var rtCfg runtime.InstanceConfig
+	var rtCfg wasmer.Config
 
 	rtCfg.Storage = rtstorage.NewTrieState(genTrie)
 
@@ -96,7 +97,7 @@ func TestCreateCoreService(t *testing.T) {
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
-	cfg.Core.Roles = types.FullNodeRole
+	cfg.Core.Roles = common.FullNodeRole
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
 	cfg.Init.Genesis = genFile
@@ -193,7 +194,7 @@ func TestCreateRPCService(t *testing.T) {
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
-	cfg.Core.Roles = types.FullNodeRole
+	cfg.Core.Roles = common.FullNodeRole
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
 	cfg.Init.Genesis = genFile
@@ -242,7 +243,7 @@ func TestCreateBABEService_Integration(t *testing.T) {
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
-	cfg.Core.Roles = types.FullNodeRole
+	cfg.Core.Roles = common.FullNodeRole
 	cfg.Init.Genesis = genFile
 
 	err := InitNode(cfg)
@@ -277,7 +278,7 @@ func TestCreateGrandpaService(t *testing.T) {
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
-	cfg.Core.Roles = types.AuthorityRole
+	cfg.Core.Roles = common.AuthorityRole
 	cfg.Init.Genesis = genFile
 
 	err := InitNode(cfg)
@@ -344,7 +345,7 @@ func TestNewWebSocketServer(t *testing.T) {
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
-	cfg.Core.Roles = types.FullNodeRole
+	cfg.Core.Roles = common.FullNodeRole
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
 	cfg.Init.Genesis = genFile
@@ -438,7 +439,7 @@ func Test_createDigestHandler(t *testing.T) {
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
-	cfg.Core.Roles = types.AuthorityRole
+	cfg.Core.Roles = common.AuthorityRole
 	cfg.Init.Genesis = genFile
 
 	err := InitNode(cfg)

@@ -15,7 +15,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-var ErrProvidedKeyDoesNotMatch = errors.New("generated public key does not equal provide public key")
+var ErrProvidedKeyDoesNotMatch = errors.New("generated public key does not equal provided public key")
 
 // AuthorModule holds a pointer to the API
 type AuthorModule struct {

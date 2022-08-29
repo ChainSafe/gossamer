@@ -20,6 +20,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TODO: add test against latest gssmr runtime
+// See https://github.com/ChainSafe/gossamer/issues/2703
 func TestChainProcessor_HandleBlockResponse_ValidChain(t *testing.T) {
 	syncer := newTestSyncer(t)
 	responder := newTestSyncer(t)
@@ -79,6 +81,8 @@ func TestChainProcessor_HandleBlockResponse_ValidChain(t *testing.T) {
 	}
 }
 
+// TODO: add test against latest gssmr runtime
+// See https://github.com/ChainSafe/gossamer/issues/2703
 func TestChainProcessor_HandleBlockResponse_MissingBlocks(t *testing.T) {
 	syncer := newTestSyncer(t)
 
@@ -154,6 +158,8 @@ func TestChainProcessor_HandleBlockResponse_NoBlockData(t *testing.T) {
 	require.Equal(t, ErrNilBlockData, err)
 }
 
+// TODO: add test against latest gssmr runtime
+// See https://github.com/ChainSafe/gossamer/issues/2703
 func TestChainProcessor_HandleBlockResponse_BlockData(t *testing.T) {
 	syncer := newTestSyncer(t)
 
@@ -183,6 +189,8 @@ func TestChainProcessor_HandleBlockResponse_BlockData(t *testing.T) {
 	}
 }
 
+// TODO: add test against latest gssmr runtime
+// See https://github.com/ChainSafe/gossamer/issues/2703
 func TestChainProcessor_ExecuteBlock(t *testing.T) {
 	syncer := newTestSyncer(t)
 

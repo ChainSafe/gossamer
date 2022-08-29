@@ -75,14 +75,14 @@ func (_m *NetworkAPI) NetworkState() common.NetworkState {
 }
 
 // NodeRoles provides a mock function with given fields:
-func (_m *NetworkAPI) NodeRoles() byte {
+func (_m *NetworkAPI) NodeRoles() common.Roles {
 	ret := _m.Called()
 
-	var r0 byte
-	if rf, ok := ret.Get(0).(func() byte); ok {
+	var r0 common.Roles
+	if rf, ok := ret.Get(0).(func() common.Roles); ok {
 		r0 = rf()
 	} else {
-		r0 = ret.Get(0).(byte)
+		r0 = ret.Get(0).(common.Roles)
 	}
 
 	return r0

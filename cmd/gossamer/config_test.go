@@ -21,6 +21,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/utils"
@@ -974,7 +975,7 @@ func TestGlobalNodeName_WhenNodeAlreadyHasStoredName(t *testing.T) {
 	err = os.WriteFile(genPath, genData, os.ModePerm)
 	require.NoError(t, err)
 
-	cfg.Core.Roles = types.FullNodeRole
+	cfg.Core.Roles = common.FullNodeRole
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
 	cfg.Init.Genesis = genPath
@@ -1132,7 +1133,7 @@ func Test_getLogLevel(t *testing.T) {
 			level:        log.Error,
 		},
 		"flag string value": {
-			flagsKVStore: newMockGetStringer(map[string]string{"x": "eror"}),
+			flagsKVStore: newMockGetStringer(map[string]string{"x": "error"}),
 			flagName:     "x",
 			level:        log.Error,
 		},
@@ -1148,7 +1149,7 @@ func Test_getLogLevel(t *testing.T) {
 		},
 		"toml string value": {
 			flagsKVStore: newMockGetStringer(map[string]string{}),
-			tomlValue:    "eror",
+			tomlValue:    "error",
 			level:        log.Error,
 		},
 		"toml bad string value": {
@@ -1157,7 +1158,7 @@ func Test_getLogLevel(t *testing.T) {
 			err:          errors.New("cannot parse log level string: level is not recognised: garbage"),
 		},
 		"flag takes precedence": {
-			flagsKVStore: newMockGetStringer(map[string]string{"x": "eror"}),
+			flagsKVStore: newMockGetStringer(map[string]string{"x": "error"}),
 			flagName:     "x",
 			tomlValue:    "warn",
 			level:        log.Error,

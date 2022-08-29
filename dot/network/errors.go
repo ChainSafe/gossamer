@@ -10,9 +10,10 @@ import (
 var (
 	errCannotValidateHandshake       = errors.New("failed to validate handshake")
 	errMessageTypeNotValid           = errors.New("message type is not valid")
-	errMessageIsNotHandshake         = errors.New("failed to convert message to Handshake")
 	errInvalidHandshakeForPeer       = errors.New("peer previously sent invalid handshake")
 	errHandshakeTimeout              = errors.New("handshake timeout reached")
 	errBlockRequestFromNumberInvalid = errors.New("block request message From number is not valid")
 	errInvalidStartingBlockType      = errors.New("invalid StartingBlock in messsage")
+	errInboundHanshakeExists         = errors.New("an inbound handshake already exists for given peer")
+	errInvalidRole                   = errors.New("invalid role")
 )

@@ -18,16 +18,16 @@ func Test_Node_SetDirty(t *testing.T) {
 	}{
 		"not dirty to dirty": {
 			node: Node{
-				Encoding:   []byte{1},
-				HashDigest: []byte{1},
+				Encoding:    []byte{1},
+				MerkleValue: []byte{1},
 			},
 			expected: Node{Dirty: true},
 		},
 		"dirty to dirty": {
 			node: Node{
-				Encoding:   []byte{1},
-				HashDigest: []byte{1},
-				Dirty:      true,
+				Encoding:    []byte{1},
+				MerkleValue: []byte{1},
+				Dirty:       true,
 			},
 			expected: Node{Dirty: true},
 		},
@@ -54,23 +54,23 @@ func Test_Node_SetClean(t *testing.T) {
 	}{
 		"not dirty to not dirty": {
 			node: Node{
-				Encoding:   []byte{1},
-				HashDigest: []byte{1},
+				Encoding:    []byte{1},
+				MerkleValue: []byte{1},
 			},
 			expected: Node{
-				Encoding:   []byte{1},
-				HashDigest: []byte{1},
+				Encoding:    []byte{1},
+				MerkleValue: []byte{1},
 			},
 		},
 		"dirty to not dirty": {
 			node: Node{
-				Encoding:   []byte{1},
-				HashDigest: []byte{1},
-				Dirty:      true,
+				Encoding:    []byte{1},
+				MerkleValue: []byte{1},
+				Dirty:       true,
 			},
 			expected: Node{
-				Encoding:   []byte{1},
-				HashDigest: []byte{1},
+				Encoding:    []byte{1},
+				MerkleValue: []byte{1},
 			},
 		},
 	}

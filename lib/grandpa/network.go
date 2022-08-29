@@ -17,7 +17,8 @@ import (
 )
 
 const (
-	grandpaID1               = "grandpa/1"
+	grandpaID1 = "grandpa/1"
+
 	neighbourMessageInterval = 5 * time.Minute
 )
 
@@ -35,7 +36,7 @@ type ConsensusMessage = network.ConsensusMessage
 
 // GrandpaHandshake is exchanged by nodes that are beginning the grandpa protocol
 type GrandpaHandshake struct { //nolint:revive
-	Roles byte
+	Roles common.Roles
 }
 
 // String formats a BlockAnnounceHandshake as a string
@@ -53,19 +54,14 @@ func (hs *GrandpaHandshake) Decode(in []byte) error {
 	return scale.Unmarshal(in, hs)
 }
 
-// Type ...
-func (*GrandpaHandshake) Type() byte {
-	return 0
-}
-
-// Hash ...
-func (*GrandpaHandshake) Hash() (common.Hash, error) {
-	return common.Hash{}, nil
-}
-
-// IsHandshake returns true
-func (*GrandpaHandshake) IsHandshake() bool {
-	return true
+// IsValid return if it is a valid handshake.
+func (hs *GrandpaHandshake) IsValid() bool {
+	switch hs.Roles {
+	case common.AuthorityRole, common.FullNodeRole:
+		return true
+	default:
+		return false
+	}
 }
 
 func (s *Service) registerProtocol() error {
@@ -87,12 +83,12 @@ func (s *Service) registerProtocol() error {
 }
 
 func (s *Service) getHandshake() (Handshake, error) {
-	var roles byte
+	var roles common.Roles
 
 	if s.authority {
-		roles = 4
+		roles = common.AuthorityRole
 	} else {
-		roles = 1
+		roles = common.FullNodeRole
 	}
 
 	return &GrandpaHandshake{
@@ -153,9 +149,7 @@ func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) (
 	}
 
 	switch m.(type) {
-	case *NeighbourMessage:
-		return false, nil
-	case *CatchUpResponse:
+	case *NeighbourPacketV1, *CatchUpResponse:
 		return false, nil
 	}
 
@@ -177,29 +171,35 @@ func (s *Service) sendMessage(msg GrandpaMessage) error {
 func (s *Service) sendNeighbourMessage(interval time.Duration) {
 	t := time.NewTicker(interval)
 	defer t.Stop()
+
+	var neighbourMessage *NeighbourPacketV1
 	for {
 		select {
 		case <-s.ctx.Done():
 			return
+
 		case <-t.C:
-			if s.neighbourMessage == nil {
-				continue
+			s.roundLock.Lock()
+			neighbourMessage = &NeighbourPacketV1{
+				Round:  s.state.round,
+				SetID:  s.state.setID,
+				Number: uint32(s.head.Number),
 			}
+			s.roundLock.Unlock()
+
 		case info, ok := <-s.finalisedCh:
 			if !ok {
-				// channel was closed
 				return
 			}
 
-			s.neighbourMessage = &NeighbourMessage{
-				Version: 1,
-				Round:   info.Round,
-				SetID:   info.SetID,
-				Number:  uint32(info.Header.Number),
+			neighbourMessage = &NeighbourPacketV1{
+				Round:  info.Round,
+				SetID:  info.SetID,
+				Number: uint32(info.Header.Number),
 			}
 		}
 
-		cm, err := s.neighbourMessage.ToConsensusMessage()
+		cm, err := neighbourMessage.ToConsensusMessage()
 		if err != nil {
 			logger.Warnf("failed to convert NeighbourMessage to network message: %s", err)
 			continue
@@ -222,14 +222,19 @@ func decodeMessage(cm *network.ConsensusMessage) (m GrandpaMessage, err error) {
 		m = &val
 	case CommitMessage:
 		m = &val
-	case NeighbourMessage:
-		m = &val
+	case VersionedNeighbourPacket:
+		switch NeighbourMessage := val.Value().(type) {
+		case NeighbourPacketV1:
+			m = &NeighbourMessage
+		default:
+			return nil, fmt.Errorf("%w", ErrInvalidMessageType)
+		}
 	case CatchUpRequest:
 		m = &val
 	case CatchUpResponse:
 		m = &val
 	default:
-		return nil, ErrInvalidMessageType
+		return nil, fmt.Errorf("%w", ErrInvalidMessageType)
 	}
 
 	return m, nil

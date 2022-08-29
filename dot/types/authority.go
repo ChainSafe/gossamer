@@ -10,6 +10,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 )
 
@@ -95,6 +96,8 @@ func (a *Authority) FromRawSr25519(raw *AuthorityRaw) error {
 		return err
 	}
 
+	_ = id.Hex()
+
 	a.Key = id
 	a.Weight = raw.Weight
 	return nil
@@ -117,4 +120,33 @@ func AuthoritiesToRaw(auths []Authority) []AuthorityRaw {
 		raw[i] = *auth.ToRaw()
 	}
 	return raw
+}
+
+// AuthorityAsAddress represents an Authority with their address instead of public key
+type AuthorityAsAddress struct {
+	Address common.Address
+	Weight  uint64
+}
+
+// AuthoritiesRawToAuthorityAsAddress converts an array of AuthorityRaws into an array of AuthorityAsAddress
+func AuthoritiesRawToAuthorityAsAddress(authsRaw []AuthorityRaw, kt crypto.KeyType) ([]AuthorityAsAddress, error) {
+	auths := make([]AuthorityAsAddress, len(authsRaw))
+	for i, authRaw := range authsRaw {
+		var pk crypto.PublicKey
+		var err error
+		switch kt {
+		case crypto.Ed25519Type:
+			pk, err = ed25519.NewPublicKey(authRaw.Key[:])
+		case crypto.Sr25519Type:
+			pk, err = sr25519.NewPublicKey(authRaw.Key[:])
+		}
+		if err != nil {
+			return nil, err
+		}
+		auths[i] = AuthorityAsAddress{
+			Address: crypto.PublicKeyToAddress(pk),
+			Weight:  authRaw.Weight,
+		}
+	}
+	return auths, nil
 }

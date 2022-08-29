@@ -121,9 +121,9 @@ func Test_Trie_updateGeneration(t *testing.T) {
 		"trie generation higher and hash": {
 			trieGeneration: 2,
 			node: &Node{
-				Generation: 1,
-				Key:        []byte{1},
-				HashDigest: []byte{1, 2, 3},
+				Generation:  1,
+				Key:         []byte{1},
+				MerkleValue: []byte{1, 2, 3},
 			},
 			copySettings: node.DefaultCopySettings,
 			newNode: &Node{
@@ -496,9 +496,10 @@ func Test_Trie_Hash(t *testing.T) {
 					Descendants: 1,
 					Children: padRightChildren([]*Node{
 						{
-							Key:      []byte{9},
-							SubValue: []byte{1},
-							Encoding: []byte{0x41, 0x09, 0x04, 0x01},
+							Key:         []byte{9},
+							SubValue:    []byte{1},
+							Encoding:    []byte{0x41, 0x09, 0x04, 0x01},
+							MerkleValue: []byte{0x41, 0x09, 0x04, 0x01},
 						},
 					}),
 				},

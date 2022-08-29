@@ -9,6 +9,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/pprof"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -50,7 +51,7 @@ func TestConfig(t *testing.T) {
 					Key: "alice",
 				},
 				Core: CoreConfig{
-					Roles:            byte(4),
+					Roles:            common.AuthorityRole,
 					BabeAuthority:    true,
 					BABELead:         true,
 					GrandpaAuthority: true,
@@ -109,7 +110,7 @@ func TestConfig(t *testing.T) {
 				},
 				Account: AccountConfig{},
 				Core: CoreConfig{
-					Roles:            byte(4),
+					Roles:            common.AuthorityRole,
 					BabeAuthority:    true,
 					GrandpaAuthority: true,
 					WasmInterpreter:  "wasmer",
@@ -170,7 +171,7 @@ func TestConfig(t *testing.T) {
 				},
 				Account: AccountConfig{},
 				Core: CoreConfig{
-					Roles:           byte(1),
+					Roles:           common.FullNodeRole,
 					WasmInterpreter: "wasmer",
 					GrandpaInterval: 0,
 				},
@@ -227,7 +228,7 @@ func TestConfig(t *testing.T) {
 				},
 				Init: InitConfig{Genesis: "./chain/polkadot/genesis.json"},
 				Core: CoreConfig{
-					Roles:           byte(1),
+					Roles:           common.FullNodeRole,
 					WasmInterpreter: "wasmer",
 				},
 				Network: NetworkConfig{
@@ -445,8 +446,8 @@ func TestLogConfig_String(t *testing.T) {
 		{
 			name:      "default case",
 			logConfig: LogConfig{},
-			want: "core: CRIT, digest: CRIT, sync: CRIT, network: CRIT, rpc: CRIT, state: CRIT, runtime: CRIT, " +
-				"block producer: CRIT, finality gadget: CRIT",
+			want: "core: CRITICAL, digest: CRITICAL, sync: CRITICAL, network: CRITICAL, rpc: CRITICAL, " +
+				"state: CRITICAL, runtime: CRITICAL, block producer: CRITICAL, finality gadget: CRITICAL",
 		},
 		{
 			name: "change fields case",
@@ -461,8 +462,8 @@ func TestLogConfig_String(t *testing.T) {
 				BlockProducerLvl:  log.Warn,
 				FinalityGadgetLvl: log.Error,
 			},
-			want: "core: DBUG, digest: INFO, sync: WARN, network: EROR, rpc: CRIT, state: DBUG, runtime: INFO, " +
-				"block producer: WARN, finality gadget: EROR",
+			want: "core: DEBUG, digest: INFO, sync: WARN, network: ERROR, rpc: CRITICAL, " +
+				"state: DEBUG, runtime: INFO, block producer: WARN, finality gadget: ERROR",
 		},
 	}
 	for _, tt := range tests {

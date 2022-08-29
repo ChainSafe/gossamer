@@ -20,9 +20,9 @@ import (
 	"github.com/golang/mock/gomock"
 
 	"github.com/ChainSafe/gossamer/internal/log"
-	cscale "github.com/centrifuge/go-substrate-rpc-client/v3/scale"
-	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
-	ctypes "github.com/centrifuge/go-substrate-rpc-client/v3/types"
+	cscale "github.com/centrifuge/go-substrate-rpc-client/v4/scale"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
+	ctypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/stretchr/testify/require"
 )
@@ -100,6 +100,8 @@ func createTestBlock(t *testing.T, babeService *Service, parent *types.Header,
 	return block
 }
 
+// TODO: add test against latest dev runtime
+// See https://github.com/ChainSafe/gossamer/issues/2704
 func TestBuildBlock_ok(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
@@ -139,6 +141,8 @@ func TestBuildBlock_ok(t *testing.T) {
 	require.Equal(t, 1, len(extsBytes))
 }
 
+// TODO: add test against latest dev runtime
+// See https://github.com/ChainSafe/gossamer/issues/2704
 func TestApplyExtrinsic(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
@@ -233,6 +237,8 @@ func TestApplyExtrinsic(t *testing.T) {
 	require.NoError(t, err)
 }
 
+// TODO: add test against latest dev runtime
+// See https://github.com/ChainSafe/gossamer/issues/2704
 func TestBuildAndApplyExtrinsic(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
@@ -264,7 +270,7 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	require.NoError(t, err)
 
 	meta := &ctypes.Metadata{}
-	err = ctypes.DecodeFromBytes(decoded, meta)
+	err = ctypes.Decode(decoded, meta)
 	require.NoError(t, err)
 
 	rv, err := rt.Version()
@@ -287,9 +293,9 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 		Era:                ctypes.ExtrinsicEra{IsImmortalEra: true},
 		GenesisHash:        genHash,
 		Nonce:              ctypes.NewUCompactFromUInt(uint64(0)),
-		SpecVersion:        ctypes.U32(rv.SpecVersion()),
+		SpecVersion:        ctypes.U32(rv.SpecVersion),
 		Tip:                ctypes.NewUCompactFromUInt(0),
-		TransactionVersion: ctypes.U32(rv.TransactionVersion()),
+		TransactionVersion: ctypes.U32(rv.TransactionVersion),
 	}
 
 	// Sign the transaction using Alice's default account
@@ -406,6 +412,8 @@ func TestDecodeExtrinsicBody(t *testing.T) {
 	require.True(t, contains)
 }
 
+// TODO: add test against latest dev runtime
+// See https://github.com/ChainSafe/gossamer/issues/2704
 func TestBuildBlockTimeMonitor(t *testing.T) {
 	metrics.Enabled = true
 	metrics.Unregister(buildBlockTimer)

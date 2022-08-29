@@ -16,7 +16,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -64,7 +63,7 @@ func newTestSyncer(t *testing.T) *Service {
 	// initialise runtime
 	genState := rtstorage.NewTrieState(genTrie)
 
-	rtCfg := runtime.InstanceConfig{
+	rtCfg := wasmer.Config{
 		Storage: genState,
 		LogLvl:  log.Critical,
 	}
@@ -124,7 +123,7 @@ func newTestSyncer(t *testing.T) *Service {
 }
 
 func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie, *types.Header) {
-	fp := utils.GetGssmrGenesisRawPathTest(t)
+	fp := utils.GetGssmrV3SubstrateGenesisRawPathTest(t)
 	gen, err := genesis.NewGenesisFromJSONRaw(fp)
 	require.NoError(t, err)
 

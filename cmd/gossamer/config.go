@@ -16,7 +16,6 @@ import (
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
-	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -572,9 +571,9 @@ func setDotAccountConfig(ctx *cli.Context, tomlCfg ctoml.AccountConfig, cfg *dot
 
 // setDotCoreConfig sets dot.CoreConfig using flag values from the cli context
 func setDotCoreConfig(ctx *cli.Context, tomlCfg ctoml.CoreConfig, cfg *dot.CoreConfig) {
-	cfg.Roles = tomlCfg.Roles
-	cfg.BabeAuthority = tomlCfg.Roles == types.AuthorityRole
-	cfg.GrandpaAuthority = tomlCfg.Roles == types.AuthorityRole
+	cfg.Roles = common.Roles(tomlCfg.Roles)
+	cfg.BabeAuthority = common.Roles(tomlCfg.Roles) == common.AuthorityRole
+	cfg.GrandpaAuthority = common.Roles(tomlCfg.Roles) == common.AuthorityRole
 	cfg.GrandpaInterval = time.Second * time.Duration(tomlCfg.GrandpaInterval)
 
 	cfg.BABELead = tomlCfg.BABELead
@@ -586,14 +585,14 @@ func setDotCoreConfig(ctx *cli.Context, tomlCfg ctoml.CoreConfig, cfg *dot.CoreC
 	if roles := ctx.GlobalString(RolesFlag.Name); roles != "" {
 		// convert string to byte
 		n, err := strconv.Atoi(roles)
-		b := byte(n)
+		b := common.Roles(n)
 		if err != nil {
 			logger.Errorf("failed to convert Roles to byte: %s", err)
-		} else if b == types.AuthorityRole {
+		} else if b == common.AuthorityRole {
 			// if roles byte is 4, act as an authority (see Table D.2)
 			logger.Debug("authority enabled (roles=4)")
 			cfg.Roles = b
-		} else if b > types.AuthorityRole {
+		} else if b > common.AuthorityRole {
 			// if roles byte is greater than 4, invalid roles byte (see Table D.2)
 			logger.Errorf("invalid roles option provided, authority disabled (roles=%d)", b)
 		} else {
@@ -605,15 +604,15 @@ func setDotCoreConfig(ctx *cli.Context, tomlCfg ctoml.CoreConfig, cfg *dot.CoreC
 
 	// to turn on BABE but not grandpa, cfg.Roles must be set to 4
 	// and cfg.GrandpaAuthority must be set to false
-	if cfg.Roles == types.AuthorityRole && !tomlCfg.BabeAuthority {
+	if cfg.Roles == common.AuthorityRole && !tomlCfg.BabeAuthority {
 		cfg.BabeAuthority = false
 	}
 
-	if cfg.Roles == types.AuthorityRole && !tomlCfg.GrandpaAuthority {
+	if cfg.Roles == common.AuthorityRole && !tomlCfg.GrandpaAuthority {
 		cfg.GrandpaAuthority = false
 	}
 
-	if cfg.Roles != types.AuthorityRole {
+	if cfg.Roles != common.AuthorityRole {
 		cfg.BabeAuthority = false
 		cfg.GrandpaAuthority = false
 	}
@@ -805,9 +804,9 @@ func setSystemInfoConfig(ctx *cli.Context, cfg *dot.Config) {
 func updateDotConfigFromGenesisJSONRaw(tomlCfg ctoml.Config, cfg *dot.Config) {
 	cfg.Account.Key = tomlCfg.Account.Key
 	cfg.Account.Unlock = tomlCfg.Account.Unlock
-	cfg.Core.Roles = tomlCfg.Core.Roles
-	cfg.Core.BabeAuthority = tomlCfg.Core.Roles == types.AuthorityRole
-	cfg.Core.GrandpaAuthority = tomlCfg.Core.Roles == types.AuthorityRole
+	cfg.Core.Roles = common.Roles(tomlCfg.Core.Roles)
+	cfg.Core.BabeAuthority = common.Roles(tomlCfg.Core.Roles) == common.AuthorityRole
+	cfg.Core.GrandpaAuthority = common.Roles(tomlCfg.Core.Roles) == common.AuthorityRole
 
 	// use default genesis file if genesis configuration not provided, for example,
 	// if we load a toml configuration file without a defined genesis init value or

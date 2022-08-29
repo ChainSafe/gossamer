@@ -10,7 +10,7 @@ func (n *Node) SetDirty() {
 	// This means its cached encoding and hash fields are no longer
 	// valid. To improve memory usage, we clear these fields.
 	n.Encoding = nil
-	n.HashDigest = nil
+	n.MerkleValue = nil
 }
 
 // SetClean sets the dirty status to false for the node.

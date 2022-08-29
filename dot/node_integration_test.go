@@ -15,7 +15,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
-	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -92,7 +91,7 @@ func TestNewNodeIntegration(t *testing.T) {
 	err = keystore.LoadKeystore("alice", ks.Babe)
 	require.NoError(t, err)
 
-	cfg.Core.Roles = types.FullNodeRole
+	cfg.Core.Roles = common.FullNodeRole
 
 	node, err := NewNode(cfg, ks)
 	require.NoError(t, err)
@@ -121,7 +120,7 @@ func TestNewNode_Authority(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 1, ks.Babe.Size())
 
-	cfg.Core.Roles = types.AuthorityRole
+	cfg.Core.Roles = common.AuthorityRole
 
 	node, err := NewNode(cfg, ks)
 	require.NoError(t, err)
@@ -150,7 +149,7 @@ func TestStartStopNode(t *testing.T) {
 	err = keystore.LoadKeystore("alice", ks.Babe)
 	require.NoError(t, err)
 
-	cfg.Core.Roles = types.FullNodeRole
+	cfg.Core.Roles = common.FullNodeRole
 
 	node, err := NewNode(cfg, ks)
 	require.NoError(t, err)
@@ -168,7 +167,7 @@ func TestInitNode_LoadStorageRoot(t *testing.T) {
 
 	genPath := newTestGenesisAndRuntime(t)
 
-	cfg.Core.Roles = types.FullNodeRole
+	cfg.Core.Roles = common.FullNodeRole
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
 	cfg.Init.Genesis = genPath
@@ -217,7 +216,7 @@ func TestInitNode_LoadBalances(t *testing.T) {
 
 	genPath := newTestGenesisAndRuntime(t)
 
-	cfg.Core.Roles = types.FullNodeRole
+	cfg.Core.Roles = common.FullNodeRole
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
 	cfg.Init.Genesis = genPath
@@ -256,7 +255,7 @@ func TestNode_PersistGlobalName_WhenInitialize(t *testing.T) {
 	cfg := NewTestConfig(t)
 	cfg.Global.Name = globalName
 
-	cfg.Core.Roles = types.FullNodeRole
+	cfg.Core.Roles = common.FullNodeRole
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
 	cfg.Init.Genesis = newTestGenesisAndRuntime(t)

@@ -47,7 +47,7 @@ type Instance struct {
 }
 
 // NewRuntimeFromGenesis creates a runtime instance from the genesis data
-func NewRuntimeFromGenesis(cfg runtime.InstanceConfig) (instance runtime.Instance, err error) {
+func NewRuntimeFromGenesis(cfg Config) (instance runtime.Instance, err error) {
 	if cfg.Storage == nil {
 		return nil, errors.New("storage is nil")
 	}
@@ -61,7 +61,7 @@ func NewRuntimeFromGenesis(cfg runtime.InstanceConfig) (instance runtime.Instanc
 }
 
 // NewInstanceFromTrie returns a new runtime instance with the code provided in the given trie
-func NewInstanceFromTrie(t *trie.Trie, cfg runtime.InstanceConfig) (*Instance, error) {
+func NewInstanceFromTrie(t *trie.Trie, cfg Config) (*Instance, error) {
 	code := t.Get(common.CodeKey)
 	if len(code) == 0 {
 		return nil, fmt.Errorf("cannot find :code in trie")
@@ -71,7 +71,7 @@ func NewInstanceFromTrie(t *trie.Trie, cfg runtime.InstanceConfig) (*Instance, e
 }
 
 // NewInstanceFromFile instantiates a runtime from a .wasm file
-func NewInstanceFromFile(fp string, cfg runtime.InstanceConfig) (*Instance, error) {
+func NewInstanceFromFile(fp string, cfg Config) (*Instance, error) {
 	// Reads the WebAssembly module as bytes.
 	bytes, err := wasm.ReadBytes(fp)
 	if err != nil {
@@ -82,7 +82,7 @@ func NewInstanceFromFile(fp string, cfg runtime.InstanceConfig) (*Instance, erro
 }
 
 // NewInstance instantiates a runtime from raw wasm bytecode
-func NewInstance(code []byte, cfg runtime.InstanceConfig) (instance *Instance, err error) {
+func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 	logger.Patch(log.SetLevel(cfg.LogLvl), log.SetCallerFunc(true))
 
 	wasmInstance, allocator, err := setupVM(code)
@@ -94,7 +94,7 @@ func NewInstance(code []byte, cfg runtime.InstanceConfig) (instance *Instance, e
 		Storage:         cfg.Storage,
 		Allocator:       allocator,
 		Keystore:        cfg.Keystore,
-		Validator:       cfg.Role == byte(4),
+		Validator:       cfg.Role == common.AuthorityRole,
 		NodeStorage:     cfg.NodeStorage,
 		Network:         cfg.Network,
 		Transaction:     cfg.Transaction,
@@ -120,7 +120,7 @@ func decompressWasm(code []byte) ([]byte, error) {
 
 	decoder, err := zstd.NewReader(nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create zstd decoder: %w", err)
+		return nil, fmt.Errorf("creating zstd reader: %s", err)
 	}
 
 	return decoder.DecodeAll(code[len(compressionFlag):], nil)
@@ -156,29 +156,29 @@ func (in *Instance) UpdateRuntimeCode(code []byte) (err error) {
 	return nil
 }
 
-// CheckRuntimeVersion calculates runtime Version for runtime blob passed in
-func (in *Instance) CheckRuntimeVersion(code []byte) (runtime.Version, error) {
-	in.mutex.Lock()
-	defer in.mutex.Unlock()
-
-	wasmInstance, allocator, err := setupVM(code)
+// GetRuntimeVersion finds the runtime version by initiating a temporary
+// runtime instance using the WASM code provided, and querying it.
+func GetRuntimeVersion(code []byte) (version runtime.Version, err error) {
+	config := Config{
+		LogLvl: log.DoNotChange,
+	}
+	instance, err := NewInstance(code, config)
 	if err != nil {
-		return nil, fmt.Errorf("setting up VM: %w", err)
+		return version, fmt.Errorf("creating runtime instance: %w", err)
+	}
+	defer instance.Stop()
+
+	version, err = instance.Version()
+	if err != nil {
+		return version, fmt.Errorf("running runtime: %w", err)
 	}
 
-	in.ctx.Allocator = allocator // TODO we should no change the allocator of the parent instance
-	wasmInstance.SetContextData(in.ctx)
-
-	instance := Instance{
-		vm:  wasmInstance,
-		ctx: in.ctx,
-	}
-
-	return instance.Version()
+	return version, nil
 }
 
 var (
-	ErrCodeEmpty = errors.New("code is empty")
+	ErrCodeEmpty      = errors.New("code is empty")
+	ErrWASMDecompress = errors.New("wasm decompression failed")
 )
 
 func setupVM(code []byte) (instance wasm.Instance,
@@ -189,7 +189,9 @@ func setupVM(code []byte) (instance wasm.Instance,
 
 	code, err = decompressWasm(code)
 	if err != nil {
-		return instance, nil, fmt.Errorf("decompressing WASM code: %w", err)
+		// Note the sentinel error is wrapped here since the ztsd Go library
+		// does not return any exported sentinel errors.
+		return instance, nil, fmt.Errorf("%w: %s", ErrWASMDecompress, err)
 	}
 
 	imports, err := importsNodeRuntime()

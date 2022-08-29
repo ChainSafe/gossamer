@@ -31,7 +31,7 @@ const (
 )
 
 func TestChainRPC(t *testing.T) {
-	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
+	genesisPath := libutils.GetDevV3SubstrateGenesisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.Init.Genesis = genesisPath
 	tomlConfig.Core.BABELead = true
@@ -122,8 +122,8 @@ func TestChainRPC(t *testing.T) {
 	assert.NotEqual(t, finalizedHead, blockHash)
 }
 
-func TestChainSubscriptionRPC(t *testing.T) {
-	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
+func TestChainSubscriptionRPC(t *testing.T) { //nolint:tparallel
+	genesisPath := libutils.GetDevV3SubstrateGenesisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.Init.Genesis = genesisPath
 	tomlConfig.Core.BABELead = true

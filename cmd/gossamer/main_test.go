@@ -268,7 +268,7 @@ func TestBuildSpecCommandWithOutput(t *testing.T) {
 	buildSpecCommand := runTestGossamer(t,
 		"build-spec",
 		"--raw",
-		"--genesis-spec", utils.GetGssmrGenesisPathTest(t),
+		"--genesis-spec", utils.GetGssmrGenesisRawPathTest(t),
 		"--output", tmpOutputfile)
 
 	time.Sleep(5 * time.Second)

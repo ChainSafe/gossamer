@@ -134,7 +134,7 @@ func createRuntime(cfg *Config, ns runtime.NodeStorage, st *state.Service,
 	var rt runtime.Instance
 	switch cfg.Core.WasmInterpreter {
 	case wasmer.Name:
-		rtCfg := runtime.InstanceConfig{
+		rtCfg := wasmer.Config{
 			Storage:     ts,
 			Keystore:    ks,
 			LogLvl:      cfg.Log.RuntimeLvl,
@@ -224,7 +224,7 @@ func (nodeBuilder) createCoreService(cfg *Config, ks *keystore.GlobalKeystore,
 	st *state.Service, net *network.Service, dh *digest.Handler) (
 	*core.Service, error) {
 	logger.Debug("creating core service" +
-		asAuthority(cfg.Core.Roles == types.AuthorityRole) +
+		asAuthority(cfg.Core.Roles == common.AuthorityRole) +
 		"...")
 
 	genesisData, err := st.Base.LoadGenesisData()
