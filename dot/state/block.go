@@ -59,6 +59,7 @@ type BlockState struct {
 	lastFinalised     common.Hash
 	unfinalisedBlocks *hashToBlockMap
 	tries             *Tries
+	storageState      *StorageState
 
 	// block notifiers
 	imported                       map[chan *types.Block]struct{}
@@ -72,13 +73,14 @@ type BlockState struct {
 }
 
 // NewBlockState will create a new BlockState backed by the database located at basePath
-func NewBlockState(db chaindb.Database, trs *Tries, telemetry telemetry.Client) (*BlockState, error) {
+func NewBlockState(db chaindb.Database, trs *Tries, telemetry telemetry.Client, storageState *StorageState) (*BlockState, error) {
 	bs := &BlockState{
 		dbPath:                     db.Path(),
 		baseState:                  NewBaseState(db),
 		db:                         chaindb.NewTable(db, blockPrefix),
 		unfinalisedBlocks:          newHashToBlockMap(),
 		tries:                      trs,
+		storageState:               storageState,
 		imported:                   make(map[chan *types.Block]struct{}),
 		finalised:                  make(map[chan *types.FinalisationInfo]struct{}),
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
@@ -650,6 +652,36 @@ func (bs *BlockState) GetRuntime(hash *common.Hash) (runtime.Instance, error) {
 	}
 
 	return bs.bt.GetBlockRuntime(*hash)
+}
+
+func (bs *BlockState) GetRuntimeFromDB(blockHash *common.Hash) (instance runtime.Instance, err error) {
+	var stateRootHash *common.Hash
+	if blockHash != nil {
+		stateRootHash, err = bs.storageState.GetStateRootFromBlock(blockHash)
+		if err != nil {
+			return nil, fmt.Errorf("getting state root from block hash: %w", err)
+		}
+	}
+
+	trieState, err := bs.storageState.TrieState(stateRootHash)
+	if err != nil {
+		return nil, fmt.Errorf("getting trie state: %w", err)
+	}
+
+	var blockHashValue common.Hash
+	if blockHash != nil {
+		blockHashValue = *blockHash
+	} else {
+		blockHashValue = bs.BestBlockHash()
+	}
+	bs.storageState.LoadCode(&blockHashValue)
+	instance, err = blockState.GetRuntime(blockHashValue)
+	if err != nil {
+		return nil, fmt.Errorf("getting runtime: %w", err)
+	}
+
+	instance.SetContextStorage(trieState)
+	return instance, nil
 }
 
 // StoreRuntime stores the runtime for corresponding block hash.

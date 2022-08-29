@@ -628,6 +628,16 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	err = s.blockState.HandleRuntimeChanges(ts, parentRt, rtUpdateBhash)
 	require.NoError(t, err)
 
+	ver1, err := s.GetRuntimeVersion(&bhash1)
+	fmt.Printf("ver1 %v, err %v\n", ver1, err)
+
+	// bhash1 runtime should not be updated
+	rt, err = s.blockState.GetRuntime(&bhash1)
+	require.NoError(t, err)
+
+	v = rt.Version()
+	require.Equal(t, v.SpecVersion, currSpecVersion)
+
 	rt, err = s.blockState.GetRuntime(&rtUpdateBhash)
 	require.NoError(t, err)
 
