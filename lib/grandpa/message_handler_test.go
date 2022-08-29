@@ -257,7 +257,7 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
 	err := st.Grandpa.SetPrecommits(round, gs.state.setID, just)
 	require.NoError(t, err)
 
-	fm, err := gs.newCommitMessage(gs.head, round)
+	fm, err := gs.newCommitMessage(gs.head, round, gs.state.setID)
 	require.NoError(t, err)
 	fm.Vote = *NewVote(testHash, uint32(round))
 
@@ -302,7 +302,7 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_MinVoteError(t *testing.T
 	err := st.Grandpa.SetPrecommits(round, gs.state.setID, just)
 	require.NoError(t, err)
 
-	fm, err := gs.newCommitMessage(testGenesisHeader, round)
+	fm, err := gs.newCommitMessage(testGenesisHeader, round, gs.state.setID)
 	require.NoError(t, err)
 
 	ctrl := gomock.NewController(t)
@@ -328,7 +328,7 @@ func TestMessageHandler_CommitMessage_WithCatchUpRequest(t *testing.T) {
 	err := st.Grandpa.SetPrecommits(77, gs.state.setID, just)
 	require.NoError(t, err)
 
-	fm, err := gs.newCommitMessage(gs.head, 77)
+	fm, err := gs.newCommitMessage(gs.head, 77, gs.state.setID)
 	require.NoError(t, err)
 
 	gs.state.voters = gs.state.voters[:1]

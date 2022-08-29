@@ -425,7 +425,7 @@ func (s *Service) handleIsPrimary() (bool, error) {
 // broadcast commit message from the previous round to the network
 // ignore errors, since it's not critical to broadcast
 func (s *Service) primaryBroadcastCommitMessage() {
-	cm, err := s.newCommitMessage(s.head, s.state.round-1)
+	cm, err := s.newCommitMessage(s.head, s.state.round-1, s.state.setID)
 	if err != nil {
 		return
 	}
@@ -474,8 +474,8 @@ func (s *Service) playGrandpaRound() error {
 	cancel := make(chan struct{})
 	defer close(cancel)
 
-	determinePrecommit, finalizable := s.receiveVoteMessages(cancel)
-	go s.sendPrevoteMessage(vm, determinePrecommit, cancel)
+	performCh := s.receiveVoteMessages(cancel)
+	go s.sendPrevoteMessage(vm, performCh, cancel)
 
 	for {
 		select {
@@ -483,90 +483,82 @@ func (s *Service) playGrandpaRound() error {
 		case <-s.ctx.Done():
 			return nil
 
-		case <-determinePrecommit:
-			pc, err := s.determinePreCommit()
-			if err != nil {
-				return err
+		case action := <-performCh:
+			switch action {
+			case determinePrecommit:
+				pc, err := s.determinePreCommit()
+				if err != nil {
+					return err
+				}
+
+				spc, pcm, err := s.createSignedVoteAndVoteMessage(pc, precommit)
+				if err != nil {
+					return err
+				}
+
+				s.precommits.Store(s.publicKeyBytes(), spc)
+				s.sendPrecommitMessage(pcm)
+
+			case finalize:
+				cm, err := s.newCommitMessage(s.head, s.state.round, s.state.setID)
+				if err != nil {
+					logger.Errorf("generating commit message: %s", err)
+					return err
+				}
+
+				msg, err := cm.ToConsensusMessage()
+				if err != nil {
+					logger.Errorf("transforming commit into consensus message: %s", err)
+					return err
+				}
+
+				logger.Debugf("sending CommitMessage: %v", cm)
+				s.network.GossipMessage(msg)
+				s.telemetry.SendMessage(telemetry.NewAfgFinalizedBlocksUpTo(
+					s.head.Hash(),
+					fmt.Sprint(s.head.Number),
+				))
+
+				logger.Debugf("round completed in %s", time.Since(start))
+				return nil
 			}
-
-			spc, pcm, err := s.createSignedVoteAndVoteMessage(pc, precommit)
-			if err != nil {
-				return err
-			}
-			s.precommits.Store(s.publicKeyBytes(), spc)
-			go s.sendPrecommitMessage(pcm, cancel)
-
-		case <-finalizable:
-			cm, err := s.newCommitMessage(s.head, s.state.round)
-			if err != nil {
-				logger.Errorf("generating commit message: %s", err)
-				return err
-			}
-
-			msg, err := cm.ToConsensusMessage()
-			if err != nil {
-				logger.Errorf("transforming commit into consensus message: %s", err)
-				return err
-			}
-
-			logger.Debugf("sending CommitMessage: %v", cm)
-			s.network.GossipMessage(msg)
-			s.telemetry.SendMessage(telemetry.NewAfgFinalizedBlocksUpTo(
-				s.head.Hash(),
-				fmt.Sprint(s.head.Number),
-			))
-
-			logger.Debugf("round completed in %s", time.Since(start))
-			return nil
 		}
 	}
 }
 
-func (s *Service) sendPrecommitMessage(vm *VoteMessage, cancel <-chan struct{}) {
+func (s *Service) sendPrecommitMessage(vm *VoteMessage) {
 	logger.Debugf("sending pre-commit message %s...", vm.Message)
 
-	ticker := time.NewTicker(s.interval * 4)
-	defer ticker.Stop()
-
-	// Though this looks like we are sending messages multiple times,
-	// caching would make sure that they are being sent only once.
-	for {
-		select {
-		case <-ticker.C:
-		case <-cancel:
-			return
-		}
-
-		if err := s.sendMessage(vm); err != nil {
-			logger.Warnf("could not send message for stage %s: %s", precommit, err)
-		} else {
-			logger.Warnf("sent vote message for stage %s: %s", precommit, vm.Message)
-		}
+	if err := s.sendMessage(vm); err != nil {
+		logger.Warnf("could not send message for stage %s: %s\n", precommit, err)
+	} else {
+		logger.Warnf("sent vote message for stage %s: %s\n", precommit, vm.Message)
 	}
 }
 
-func (s *Service) sendPrevoteMessage(vm *VoteMessage, determinePrecommit, cancel <-chan struct{}) {
+func (s *Service) sendPrevoteMessage(vm *VoteMessage, perform <-chan action, cancel <-chan struct{}) {
 	logger.Debugf("sending pre-vote message %s...", vm)
 
-	ticker := time.NewTicker(s.interval * 4)
-	defer ticker.Stop()
-
-	// Though this looks like we are sending messages multiple times,
-	// caching would make sure that they are being sent only once.
-	for {
-		select {
-		case <-ticker.C:
-		case <-determinePrecommit:
-			return
-		case <-cancel:
-			return
+	timer := time.NewTimer(s.interval * 4)
+	defer func() {
+		if !timer.Stop() {
+			<-timer.C
 		}
+	}()
 
-		if err := s.sendMessage(vm); err != nil {
-			logger.Warnf("could not send message for stage %s: %s", prevote, err)
-		} else {
-			logger.Warnf("sent vote message for stage %s: %s", prevote, vm.Message)
-		}
+	// no matter the output of `perform` channel we should stop sending prevotes
+	select {
+	case <-timer.C:
+	case <-perform:
+		return
+	case <-cancel:
+		return
+	}
+
+	if err := s.sendMessage(vm); err != nil {
+		logger.Warnf("could not send message for stage %s: %s", prevote, err)
+	} else {
+		logger.Warnf("sent vote message for stage %s: %s", prevote, vm.Message)
 	}
 }
 
@@ -1257,8 +1249,6 @@ func (s *Service) handleCommitMessage(msg *CommitMessage) error {
 		return err
 	}
 
-	s.receivedCommit <- msg
-
 	err = s.blockState.SetFinalisedHash(msg.Vote.Hash, msg.Round, s.state.setID)
 	if err != nil {
 		return fmt.Errorf("setting finalised hash %s: %w", msg.Vote.Hash.Short(), err)
@@ -1273,6 +1263,11 @@ func (s *Service) handleCommitMessage(msg *CommitMessage) error {
 	if err != nil {
 		return fmt.Errorf("setting precommits: %w", err)
 	}
+
+	// ensure the persistence of informations
+	// and then notify the grandpa service about
+	// a received commit message
+	s.receivedCommit <- msg
 
 	// TODO: re-add catch-up logic (#1531)
 	return nil

@@ -16,23 +16,26 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
+var errBeforeFinalizedBlock = errors.New("before latest finalized block")
+
 type networkVoteMessage struct {
 	from peer.ID
 	msg  *VoteMessage
 }
 
+type action byte
+
+const (
+	determinePrecommit action = iota
+	finalize
+)
+
 // receiveVoteMessages receives messages from the in channel until a grandpa round finishes.
-func (s *Service) receiveVoteMessages(cancel <-chan struct{}) (determinePrecommitCh, finalizableCh chan struct{}) {
-	determinePrecommitCh = make(chan struct{})
-	finalizableCh = make(chan struct{})
+func (s *Service) receiveVoteMessages(cancel <-chan struct{}) (perform chan action) {
+	perform = make(chan action)
 
 	go func() {
-		defer func() {
-			close(determinePrecommitCh)
-			if finalizableCh != nil {
-				close(finalizableCh)
-			}
-		}()
+		defer close(perform)
 
 		logger.Debug("receiving pre-vote messages...")
 		threshold := s.state.threshold()
@@ -49,8 +52,7 @@ func (s *Service) receiveVoteMessages(cancel <-chan struct{}) (determinePrecommi
 				}
 
 				if commit.Round == s.state.round {
-					close(finalizableCh)
-					finalizableCh = nil
+					perform <- finalize
 					return
 				}
 
@@ -84,7 +86,7 @@ func (s *Service) receiveVoteMessages(cancel <-chan struct{}) (determinePrecommi
 				prevotesThreshold := s.lenVotes(prevote) - 1
 				if !prevotesThresholdReached && prevotesThreshold >= int(threshold) {
 					prevotesThresholdReached = true
-					determinePrecommitCh <- struct{}{}
+					perform <- determinePrecommit
 				}
 
 				if vm.Message.Stage == precommit {
@@ -95,8 +97,7 @@ func (s *Service) receiveVoteMessages(cancel <-chan struct{}) (determinePrecommi
 					}
 
 					if isFinalizable {
-						close(finalizableCh)
-						finalizableCh = nil
+						perform <- finalize
 						return
 					}
 				}
@@ -107,7 +108,8 @@ func (s *Service) receiveVoteMessages(cancel <-chan struct{}) (determinePrecommi
 			}
 		}
 	}()
-	return
+
+	return perform
 }
 
 func (s *Service) sendTelemetryVoteMessage(vm *VoteMessage) {
@@ -160,6 +162,11 @@ func (s *Service) attemptToFinalize() (isFinalizable bool, err error) {
 	bestFinalCandidate, err := s.getBestFinalCandidate()
 	if err != nil {
 		return false, fmt.Errorf("getting best final candidate: %w", err)
+	}
+
+	if bestFinalCandidate.Number < uint32(s.head.Number) {
+		return false, fmt.Errorf("%w: candidate number %d, latest finalized block number %d",
+			errBeforeFinalizedBlock, bestFinalCandidate.Number, s.head.Number)
 	}
 
 	precommitCount, err := s.getTotalVotesForBlock(bestFinalCandidate.Hash, precommit)
@@ -278,7 +285,8 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 			return nil, err
 		}
 
-		cm, err := s.newCommitMessage(header, m.Round)
+		// TODO: should we use `m.SetID` or `s.state.setID`?
+		cm, err := s.newCommitMessage(header, m.Round, s.state.setID)
 		if err != nil {
 			return nil, err
 		}
