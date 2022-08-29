@@ -5,13 +5,13 @@ package wasmer
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"math/big"
 	"os"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -26,253 +26,264 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestInstance_Version_NodeRuntime_v098(t *testing.T) {
-	expected := runtime.NewVersionData(
-		[]byte("node"),
-		[]byte("substrate-node"),
-		10,
-		267,
-		0,
-		nil,
-		2,
-	)
+func Test_Instance_Version(t *testing.T) {
+	t.Parallel()
 
-	instance := NewTestInstance(t, runtime.NODE_RUNTIME_v098)
-
-	version, err := instance.Version()
-	require.NoError(t, err)
-
-	t.Logf("SpecName: %s\n", version.SpecName())
-	t.Logf("ImplName: %s\n", version.ImplName())
-	t.Logf("AuthoringVersion: %d\n", version.AuthoringVersion())
-	t.Logf("SpecVersion: %d\n", version.SpecVersion())
-	t.Logf("ImplVersion: %d\n", version.ImplVersion())
-	t.Logf("TransactionVersion: %d\n", version.TransactionVersion())
-
-	require.Equal(t, 13, len(version.APIItems()))
-	require.Equal(t, expected.SpecName(), version.SpecName())
-	require.Equal(t, expected.ImplName(), version.ImplName())
-	require.Equal(t, expected.AuthoringVersion(), version.AuthoringVersion())
-	require.Equal(t, expected.SpecVersion(), version.SpecVersion())
-	require.Equal(t, expected.ImplVersion(), version.ImplVersion())
-	require.Equal(t, expected.TransactionVersion(), version.TransactionVersion())
-}
-
-func TestInstance_Version_PolkadotRuntime_v0910(t *testing.T) {
-	expected := runtime.NewVersionData(
-		[]byte("polkadot"),
-		[]byte("parity-polkadot"),
-		0,
-		9100,
-		0,
-		nil,
-		8,
-	)
-
-	instance := NewTestInstance(t, runtime.POLKADOT_RUNTIME_v0910)
-	version, err := instance.Version()
-	require.NoError(t, err)
-
-	t.Logf("SpecName: %s\n", version.SpecName())
-	t.Logf("ImplName: %s\n", version.ImplName())
-	t.Logf("AuthoringVersion: %d\n", version.AuthoringVersion())
-	t.Logf("SpecVersion: %d\n", version.SpecVersion())
-	t.Logf("ImplVersion: %d\n", version.ImplVersion())
-	t.Logf("TransactionVersion: %d\n", version.TransactionVersion())
-
-	require.Equal(t, 14, len(version.APIItems()))
-	require.Equal(t, expected.SpecName(), version.SpecName())
-	require.Equal(t, expected.ImplName(), version.ImplName())
-	require.Equal(t, expected.AuthoringVersion(), version.AuthoringVersion())
-	require.Equal(t, expected.SpecVersion(), version.SpecVersion())
-	require.Equal(t, expected.ImplVersion(), version.ImplVersion())
-	require.Equal(t, expected.TransactionVersion(), version.TransactionVersion())
-}
-
-func TestInstance_Version_PolkadotRuntime_v0917(t *testing.T) {
-	instance := NewTestInstance(t, runtime.POLKADOT_RUNTIME_v0917)
-	version, err := instance.Version()
-	require.NoError(t, err)
-
-	expectedSpecName := []byte("polkadot")
-	expectedImplName := []byte("parity-polkadot")
-	const (
-		expectedAuthoringVersion   uint32 = 0
-		expectedSpecVersion        uint32 = 9170
-		expectedImplVersion        uint32 = 0
-		expectedTransactionVersion uint32 = 11
-	)
-	expectedAPIItems := []runtime.APIItem{
-		{Name: [8]uint8{0xdf, 0x6a, 0xcb, 0x68, 0x99, 0x7, 0x60, 0x9b}, Ver: 0x4},
-		{Name: [8]uint8{0x37, 0xe3, 0x97, 0xfc, 0x7c, 0x91, 0xf5, 0xe4}, Ver: 0x1},
-		{Name: [8]uint8{0x40, 0xfe, 0x3a, 0xd4, 0x1, 0xf8, 0x95, 0x9a}, Ver: 0x5},
-		{Name: [8]uint8{0xd2, 0xbc, 0x98, 0x97, 0xee, 0xd0, 0x8f, 0x15}, Ver: 0x3},
-		{Name: [8]uint8{0xf7, 0x8b, 0x27, 0x8b, 0xe5, 0x3f, 0x45, 0x4c}, Ver: 0x2},
-		{Name: [8]uint8{0xaf, 0x2c, 0x2, 0x97, 0xa2, 0x3e, 0x6d, 0x3d}, Ver: 0x2},
-		{Name: [8]uint8{0x49, 0xea, 0xaf, 0x1b, 0x54, 0x8a, 0xc, 0xb0}, Ver: 0x1},
-		{Name: [8]uint8{0x91, 0xd5, 0xdf, 0x18, 0xb0, 0xd2, 0xcf, 0x58}, Ver: 0x1},
-		{Name: [8]uint8{0xed, 0x99, 0xc5, 0xac, 0xb2, 0x5e, 0xed, 0xf5}, Ver: 0x3},
-		{Name: [8]uint8{0xcb, 0xca, 0x25, 0xe3, 0x9f, 0x14, 0x23, 0x87}, Ver: 0x2},
-		{Name: [8]uint8{0x68, 0x7a, 0xd4, 0x4a, 0xd3, 0x7f, 0x3, 0xc2}, Ver: 0x1},
-		{Name: [8]uint8{0xab, 0x3c, 0x5, 0x72, 0x29, 0x1f, 0xeb, 0x8b}, Ver: 0x1},
-		{Name: [8]uint8{0xbc, 0x9d, 0x89, 0x90, 0x4f, 0x5b, 0x92, 0x3f}, Ver: 0x1},
-		{Name: [8]uint8{0x37, 0xc8, 0xbb, 0x13, 0x50, 0xa9, 0xa2, 0xa8}, Ver: 0x1},
+	type InstanceVersion interface {
+		Version() (version runtime.Version)
 	}
 
-	assert.Equal(t, expectedAPIItems, version.APIItems())
-	assert.Equal(t, expectedSpecName, version.SpecName())
-	assert.Equal(t, expectedImplName, version.ImplName())
-	assert.Equal(t, expectedAuthoringVersion, version.AuthoringVersion())
-	assert.Equal(t, expectedSpecVersion, version.SpecVersion())
-	assert.Equal(t, expectedImplVersion, version.ImplVersion())
-	assert.Equal(t, expectedTransactionVersion, version.TransactionVersion())
-}
+	testCases := map[string]struct {
+		instanceBuilder func(t *testing.T) InstanceVersion
+		expectedVersion runtime.Version
+	}{
+		"dev": {
+			instanceBuilder: func(t *testing.T) InstanceVersion {
+				return NewTestInstance(t, runtime.DEV_RUNTIME)
+			},
+			expectedVersion: runtime.Version{
+				SpecName:         []byte("node"),
+				ImplName:         []byte("gossamer-node"),
+				AuthoringVersion: 10,
+				SpecVersion:      260,
+				ImplVersion:      0,
+				APIItems: []runtime.APIItem{
+					{Name: [8]uint8{0xdf, 0x6a, 0xcb, 0x68, 0x99, 0x7, 0x60, 0x9b}, Ver: 0x3},
+					{Name: [8]uint8{0x37, 0xe3, 0x97, 0xfc, 0x7c, 0x91, 0xf5, 0xe4}, Ver: 0x1},
+					{Name: [8]uint8{0x40, 0xfe, 0x3a, 0xd4, 0x1, 0xf8, 0x95, 0x9a}, Ver: 0x4},
+					{Name: [8]uint8{0xd2, 0xbc, 0x98, 0x97, 0xee, 0xd0, 0x8f, 0x15}, Ver: 0x2},
+					{Name: [8]uint8{0xf7, 0x8b, 0x27, 0x8b, 0xe5, 0x3f, 0x45, 0x4c}, Ver: 0x2},
+					{Name: [8]uint8{0xed, 0x99, 0xc5, 0xac, 0xb2, 0x5e, 0xed, 0xf5}, Ver: 0x2},
+					{Name: [8]uint8{0xcb, 0xca, 0x25, 0xe3, 0x9f, 0x14, 0x23, 0x87}, Ver: 0x2},
+					{Name: [8]uint8{0x68, 0x7a, 0xd4, 0x4a, 0xd3, 0x7f, 0x3, 0xc2}, Ver: 0x1},
+					{Name: [8]uint8{0xbc, 0x9d, 0x89, 0x90, 0x4f, 0x5b, 0x92, 0x3f}, Ver: 0x1},
+					{Name: [8]uint8{0x68, 0xb6, 0x6b, 0xa1, 0x22, 0xc9, 0x3f, 0xa7}, Ver: 0x1},
+					{Name: [8]uint8{0x37, 0xc8, 0xbb, 0x13, 0x50, 0xa9, 0xa2, 0xa8}, Ver: 0x1},
+					{Name: [8]uint8{0xab, 0x3c, 0x5, 0x72, 0x29, 0x1f, 0xeb, 0x8b}, Ver: 0x1},
+				},
+				TransactionVersion: 1,
+			},
+		},
+		"node v098": {
+			instanceBuilder: func(t *testing.T) InstanceVersion {
+				return NewTestInstance(t, runtime.NODE_RUNTIME_v098)
+			},
+			expectedVersion: runtime.Version{
+				SpecName:         []byte("node"),
+				ImplName:         []byte("substrate-node"),
+				AuthoringVersion: 10,
+				SpecVersion:      267,
+				ImplVersion:      0,
+				APIItems: []runtime.APIItem{
+					{Name: [8]uint8{0xdf, 0x6a, 0xcb, 0x68, 0x99, 0x7, 0x60, 0x9b}, Ver: 0x3},
+					{Name: [8]uint8{0x37, 0xe3, 0x97, 0xfc, 0x7c, 0x91, 0xf5, 0xe4}, Ver: 0x1},
+					{Name: [8]uint8{0x40, 0xfe, 0x3a, 0xd4, 0x1, 0xf8, 0x95, 0x9a}, Ver: 0x5},
+					{Name: [8]uint8{0xd2, 0xbc, 0x98, 0x97, 0xee, 0xd0, 0x8f, 0x15}, Ver: 0x2},
+					{Name: [8]uint8{0xf7, 0x8b, 0x27, 0x8b, 0xe5, 0x3f, 0x45, 0x4c}, Ver: 0x2},
+					{Name: [8]uint8{0xed, 0x99, 0xc5, 0xac, 0xb2, 0x5e, 0xed, 0xf5}, Ver: 0x2},
+					{Name: [8]uint8{0xcb, 0xca, 0x25, 0xe3, 0x9f, 0x14, 0x23, 0x87}, Ver: 0x2},
+					{Name: [8]uint8{0x68, 0x7a, 0xd4, 0x4a, 0xd3, 0x7f, 0x3, 0xc2}, Ver: 0x1},
+					{Name: [8]uint8{0xbc, 0x9d, 0x89, 0x90, 0x4f, 0x5b, 0x92, 0x3f}, Ver: 0x1},
+					{Name: [8]uint8{0x68, 0xb6, 0x6b, 0xa1, 0x22, 0xc9, 0x3f, 0xa7}, Ver: 0x1},
+					{Name: [8]uint8{0x37, 0xc8, 0xbb, 0x13, 0x50, 0xa9, 0xa2, 0xa8}, Ver: 0x1},
+					{Name: [8]uint8{0x91, 0xd5, 0xdf, 0x18, 0xb0, 0xd2, 0xcf, 0x58}, Ver: 0x1},
+					{Name: [8]uint8{0xab, 0x3c, 0x5, 0x72, 0x29, 0x1f, 0xeb, 0x8b}, Ver: 0x1},
+				},
+				TransactionVersion: 2,
+			},
+		},
+		"node": {
+			instanceBuilder: func(t *testing.T) InstanceVersion {
+				return NewTestInstance(t, runtime.NODE_RUNTIME)
+			},
+			expectedVersion: runtime.Version{
+				SpecName:         []byte("node"),
+				ImplName:         []byte("substrate-node"),
+				AuthoringVersion: 10,
+				SpecVersion:      264,
+				ImplVersion:      0,
+				APIItems: []runtime.APIItem{
+					{Name: [8]uint8{0xdf, 0x6a, 0xcb, 0x68, 0x99, 0x7, 0x60, 0x9b}, Ver: 0x3},
+					{Name: [8]uint8{0x37, 0xe3, 0x97, 0xfc, 0x7c, 0x91, 0xf5, 0xe4}, Ver: 0x1},
+					{Name: [8]uint8{0x40, 0xfe, 0x3a, 0xd4, 0x1, 0xf8, 0x95, 0x9a}, Ver: 0x4},
+					{Name: [8]uint8{0xd2, 0xbc, 0x98, 0x97, 0xee, 0xd0, 0x8f, 0x15}, Ver: 0x2},
+					{Name: [8]uint8{0xf7, 0x8b, 0x27, 0x8b, 0xe5, 0x3f, 0x45, 0x4c}, Ver: 0x2},
+					{Name: [8]uint8{0xed, 0x99, 0xc5, 0xac, 0xb2, 0x5e, 0xed, 0xf5}, Ver: 0x2},
+					{Name: [8]uint8{0xcb, 0xca, 0x25, 0xe3, 0x9f, 0x14, 0x23, 0x87}, Ver: 0x2},
+					{Name: [8]uint8{0x68, 0x7a, 0xd4, 0x4a, 0xd3, 0x7f, 0x3, 0xc2}, Ver: 0x1},
+					{Name: [8]uint8{0xbc, 0x9d, 0x89, 0x90, 0x4f, 0x5b, 0x92, 0x3f}, Ver: 0x1},
+					{Name: [8]uint8{0x68, 0xb6, 0x6b, 0xa1, 0x22, 0xc9, 0x3f, 0xa7}, Ver: 0x1},
+					{Name: [8]uint8{0x37, 0xc8, 0xbb, 0x13, 0x50, 0xa9, 0xa2, 0xa8}, Ver: 0x1},
+					{Name: [8]uint8{0x91, 0xd5, 0xdf, 0x18, 0xb0, 0xd2, 0xcf, 0x58}, Ver: 0x1},
+					{Name: [8]uint8{0xab, 0x3c, 0x5, 0x72, 0x29, 0x1f, 0xeb, 0x8b}, Ver: 0x1},
+				},
+				TransactionVersion: 2,
+			},
+		},
+		"kusama": {
+			instanceBuilder: func(t *testing.T) InstanceVersion {
+				genesisPath := utils.GetKusamaGenesisPath(t)
+				kusamaGenesis, err := genesis.NewGenesisFromJSONRaw(genesisPath)
+				require.NoError(t, err)
+				genesisTrie, err := genesis.NewTrieFromGenesis(kusamaGenesis)
+				require.NoError(t, err)
 
-func TestInstance_Version_PolkadotRuntime(t *testing.T) {
-	expected := runtime.NewVersionData(
-		[]byte("polkadot"),
-		[]byte("parity-polkadot"),
-		0,
-		25,
-		0,
-		nil,
-		5,
-	)
+				cfg := Config{
+					Storage: storage.NewTrieState(genesisTrie),
+					LogLvl:  log.Critical,
+				}
 
-	instance := NewTestInstance(t, runtime.POLKADOT_RUNTIME)
+				instance, err := NewRuntimeFromGenesis(cfg)
+				require.NoError(t, err)
+				return instance
+			},
+			expectedVersion: runtime.Version{
+				SpecName:         []byte("kusama"),
+				ImplName:         []byte("parity-kusama"),
+				AuthoringVersion: 2,
+				SpecVersion:      1020,
+				ImplVersion:      0,
+				APIItems: []runtime.APIItem{
+					{Name: [8]uint8{0xdf, 0x6a, 0xcb, 0x68, 0x99, 0x7, 0x60, 0x9b}, Ver: 0x2},
+					{Name: [8]uint8{0x37, 0xe3, 0x97, 0xfc, 0x7c, 0x91, 0xf5, 0xe4}, Ver: 0x1},
+					{Name: [8]uint8{0x40, 0xfe, 0x3a, 0xd4, 0x1, 0xf8, 0x95, 0x9a}, Ver: 0x4},
+					{Name: [8]uint8{0xd2, 0xbc, 0x98, 0x97, 0xee, 0xd0, 0x8f, 0x15}, Ver: 0x1},
+					{Name: [8]uint8{0xf7, 0x8b, 0x27, 0x8b, 0xe5, 0x3f, 0x45, 0x4c}, Ver: 0x1},
+					{Name: [8]uint8{0xaf, 0x2c, 0x2, 0x97, 0xa2, 0x3e, 0x6d, 0x3d}, Ver: 0x1},
+					{Name: [8]uint8{0xed, 0x99, 0xc5, 0xac, 0xb2, 0x5e, 0xed, 0xf5}, Ver: 0x2},
+					{Name: [8]uint8{0xcb, 0xca, 0x25, 0xe3, 0x9f, 0x14, 0x23, 0x87}, Ver: 0x1},
+					{Name: [8]uint8{0x68, 0x7a, 0xd4, 0x4a, 0xd3, 0x7f, 0x3, 0xc2}, Ver: 0x1},
+					{Name: [8]uint8{0xab, 0x3c, 0x5, 0x72, 0x29, 0x1f, 0xeb, 0x8b}, Ver: 0x1},
+					{Name: [8]uint8{0xbc, 0x9d, 0x89, 0x90, 0x4f, 0x5b, 0x92, 0x3f}, Ver: 0x1},
+					{Name: [8]uint8{0x37, 0xc8, 0xbb, 0x13, 0x50, 0xa9, 0xa2, 0xa8}, Ver: 0x1},
+				},
+			},
+		},
+		"polkadot v0825": {
+			instanceBuilder: func(t *testing.T) InstanceVersion {
+				return NewTestInstance(t, runtime.POLKADOT_RUNTIME)
+			},
+			expectedVersion: runtime.Version{
+				SpecName:         []byte("polkadot"),
+				ImplName:         []byte("parity-polkadot"),
+				AuthoringVersion: 0,
+				SpecVersion:      25,
+				ImplVersion:      0,
+				APIItems: []runtime.APIItem{
+					{Name: [8]uint8{0xdf, 0x6a, 0xcb, 0x68, 0x99, 0x7, 0x60, 0x9b}, Ver: 0x3},
+					{Name: [8]uint8{0x37, 0xe3, 0x97, 0xfc, 0x7c, 0x91, 0xf5, 0xe4}, Ver: 0x1},
+					{Name: [8]uint8{0x40, 0xfe, 0x3a, 0xd4, 0x1, 0xf8, 0x95, 0x9a}, Ver: 0x4},
+					{Name: [8]uint8{0xd2, 0xbc, 0x98, 0x97, 0xee, 0xd0, 0x8f, 0x15}, Ver: 0x2},
+					{Name: [8]uint8{0xf7, 0x8b, 0x27, 0x8b, 0xe5, 0x3f, 0x45, 0x4c}, Ver: 0x2},
+					{Name: [8]uint8{0xaf, 0x2c, 0x2, 0x97, 0xa2, 0x3e, 0x6d, 0x3d}, Ver: 0x1},
+					{Name: [8]uint8{0xed, 0x99, 0xc5, 0xac, 0xb2, 0x5e, 0xed, 0xf5}, Ver: 0x2},
+					{Name: [8]uint8{0xcb, 0xca, 0x25, 0xe3, 0x9f, 0x14, 0x23, 0x87}, Ver: 0x2},
+					{Name: [8]uint8{0x68, 0x7a, 0xd4, 0x4a, 0xd3, 0x7f, 0x3, 0xc2}, Ver: 0x1},
+					{Name: [8]uint8{0xab, 0x3c, 0x5, 0x72, 0x29, 0x1f, 0xeb, 0x8b}, Ver: 0x1},
+					{Name: [8]uint8{0xbc, 0x9d, 0x89, 0x90, 0x4f, 0x5b, 0x92, 0x3f}, Ver: 0x1},
+					{Name: [8]uint8{0x37, 0xc8, 0xbb, 0x13, 0x50, 0xa9, 0xa2, 0xa8}, Ver: 0x1},
+				},
+				TransactionVersion: 5,
+			},
+		},
+		"polkadot v0910": {
+			instanceBuilder: func(t *testing.T) InstanceVersion {
+				return NewTestInstance(t, runtime.POLKADOT_RUNTIME_v0910)
+			},
+			expectedVersion: runtime.Version{
+				SpecName:         []byte("polkadot"),
+				ImplName:         []byte("parity-polkadot"),
+				AuthoringVersion: 0,
+				SpecVersion:      9100,
+				ImplVersion:      0,
+				APIItems: []runtime.APIItem{
+					{Name: [8]uint8{0xdf, 0x6a, 0xcb, 0x68, 0x99, 0x7, 0x60, 0x9b}, Ver: 0x3},
+					{Name: [8]uint8{0x37, 0xe3, 0x97, 0xfc, 0x7c, 0x91, 0xf5, 0xe4}, Ver: 0x1},
+					{Name: [8]uint8{0x40, 0xfe, 0x3a, 0xd4, 0x1, 0xf8, 0x95, 0x9a}, Ver: 0x5},
+					{Name: [8]uint8{0xd2, 0xbc, 0x98, 0x97, 0xee, 0xd0, 0x8f, 0x15}, Ver: 0x3},
+					{Name: [8]uint8{0xf7, 0x8b, 0x27, 0x8b, 0xe5, 0x3f, 0x45, 0x4c}, Ver: 0x2},
+					{Name: [8]uint8{0xaf, 0x2c, 0x2, 0x97, 0xa2, 0x3e, 0x6d, 0x3d}, Ver: 0x1},
+					{Name: [8]uint8{0x49, 0xea, 0xaf, 0x1b, 0x54, 0x8a, 0xc, 0xb0}, Ver: 0x1},
+					{Name: [8]uint8{0x91, 0xd5, 0xdf, 0x18, 0xb0, 0xd2, 0xcf, 0x58}, Ver: 0x1},
+					{Name: [8]uint8{0xed, 0x99, 0xc5, 0xac, 0xb2, 0x5e, 0xed, 0xf5}, Ver: 0x3},
+					{Name: [8]uint8{0xcb, 0xca, 0x25, 0xe3, 0x9f, 0x14, 0x23, 0x87}, Ver: 0x2},
+					{Name: [8]uint8{0x68, 0x7a, 0xd4, 0x4a, 0xd3, 0x7f, 0x3, 0xc2}, Ver: 0x1},
+					{Name: [8]uint8{0xab, 0x3c, 0x5, 0x72, 0x29, 0x1f, 0xeb, 0x8b}, Ver: 0x1},
+					{Name: [8]uint8{0xbc, 0x9d, 0x89, 0x90, 0x4f, 0x5b, 0x92, 0x3f}, Ver: 0x1},
+					{Name: [8]uint8{0x37, 0xc8, 0xbb, 0x13, 0x50, 0xa9, 0xa2, 0xa8}, Ver: 0x1},
+				},
+				TransactionVersion: 8,
+			},
+		},
+		"runtime v0980": {
+			instanceBuilder: func(t *testing.T) InstanceVersion {
+				return NewTestInstance(t, runtime.NODE_RUNTIME_v098)
+			},
+			expectedVersion: runtime.Version{
+				SpecName:         []byte("node"),
+				ImplName:         []byte("substrate-node"),
+				AuthoringVersion: 10,
+				SpecVersion:      267,
+				ImplVersion:      0,
+				APIItems: []runtime.APIItem{
+					{Name: [8]uint8{0xdf, 0x6a, 0xcb, 0x68, 0x99, 0x7, 0x60, 0x9b}, Ver: 0x3},
+					{Name: [8]uint8{0x37, 0xe3, 0x97, 0xfc, 0x7c, 0x91, 0xf5, 0xe4}, Ver: 0x1},
+					{Name: [8]uint8{0x40, 0xfe, 0x3a, 0xd4, 0x1, 0xf8, 0x95, 0x9a}, Ver: 0x5},
+					{Name: [8]uint8{0xd2, 0xbc, 0x98, 0x97, 0xee, 0xd0, 0x8f, 0x15}, Ver: 0x2},
+					{Name: [8]uint8{0xf7, 0x8b, 0x27, 0x8b, 0xe5, 0x3f, 0x45, 0x4c}, Ver: 0x2},
+					{Name: [8]uint8{0xed, 0x99, 0xc5, 0xac, 0xb2, 0x5e, 0xed, 0xf5}, Ver: 0x2},
+					{Name: [8]uint8{0xcb, 0xca, 0x25, 0xe3, 0x9f, 0x14, 0x23, 0x87}, Ver: 0x2},
+					{Name: [8]uint8{0x68, 0x7a, 0xd4, 0x4a, 0xd3, 0x7f, 0x3, 0xc2}, Ver: 0x1},
+					{Name: [8]uint8{0xbc, 0x9d, 0x89, 0x90, 0x4f, 0x5b, 0x92, 0x3f}, Ver: 0x1},
+					{Name: [8]uint8{0x68, 0xb6, 0x6b, 0xa1, 0x22, 0xc9, 0x3f, 0xa7}, Ver: 0x1},
+					{Name: [8]uint8{0x37, 0xc8, 0xbb, 0x13, 0x50, 0xa9, 0xa2, 0xa8}, Ver: 0x1},
+					{Name: [8]uint8{0x91, 0xd5, 0xdf, 0x18, 0xb0, 0xd2, 0xcf, 0x58}, Ver: 0x1},
+					{Name: [8]uint8{0xab, 0x3c, 0x5, 0x72, 0x29, 0x1f, 0xeb, 0x8b}, Ver: 0x1},
+				},
+				TransactionVersion: 2,
+			},
+		},
+		"polkadot v0917": {
+			instanceBuilder: func(t *testing.T) InstanceVersion {
+				return NewTestInstance(t, runtime.POLKADOT_RUNTIME_v0917)
+			},
+			expectedVersion: runtime.Version{
+				SpecName:         []byte("polkadot"),
+				ImplName:         []byte("parity-polkadot"),
+				AuthoringVersion: 0,
+				SpecVersion:      9170,
+				ImplVersion:      0,
+				APIItems: []runtime.APIItem{
+					{Name: [8]uint8{0xdf, 0x6a, 0xcb, 0x68, 0x99, 0x7, 0x60, 0x9b}, Ver: 0x4},
+					{Name: [8]uint8{0x37, 0xe3, 0x97, 0xfc, 0x7c, 0x91, 0xf5, 0xe4}, Ver: 0x1},
+					{Name: [8]uint8{0x40, 0xfe, 0x3a, 0xd4, 0x1, 0xf8, 0x95, 0x9a}, Ver: 0x5},
+					{Name: [8]uint8{0xd2, 0xbc, 0x98, 0x97, 0xee, 0xd0, 0x8f, 0x15}, Ver: 0x3},
+					{Name: [8]uint8{0xf7, 0x8b, 0x27, 0x8b, 0xe5, 0x3f, 0x45, 0x4c}, Ver: 0x2},
+					{Name: [8]uint8{0xaf, 0x2c, 0x2, 0x97, 0xa2, 0x3e, 0x6d, 0x3d}, Ver: 0x2},
+					{Name: [8]uint8{0x49, 0xea, 0xaf, 0x1b, 0x54, 0x8a, 0xc, 0xb0}, Ver: 0x1},
+					{Name: [8]uint8{0x91, 0xd5, 0xdf, 0x18, 0xb0, 0xd2, 0xcf, 0x58}, Ver: 0x1},
+					{Name: [8]uint8{0xed, 0x99, 0xc5, 0xac, 0xb2, 0x5e, 0xed, 0xf5}, Ver: 0x3},
+					{Name: [8]uint8{0xcb, 0xca, 0x25, 0xe3, 0x9f, 0x14, 0x23, 0x87}, Ver: 0x2},
+					{Name: [8]uint8{0x68, 0x7a, 0xd4, 0x4a, 0xd3, 0x7f, 0x3, 0xc2}, Ver: 0x1},
+					{Name: [8]uint8{0xab, 0x3c, 0x5, 0x72, 0x29, 0x1f, 0xeb, 0x8b}, Ver: 0x1},
+					{Name: [8]uint8{0xbc, 0x9d, 0x89, 0x90, 0x4f, 0x5b, 0x92, 0x3f}, Ver: 0x1},
+					{Name: [8]uint8{0x37, 0xc8, 0xbb, 0x13, 0x50, 0xa9, 0xa2, 0xa8}, Ver: 0x1},
+				},
+				TransactionVersion: 11,
+			},
+		},
+	}
 
-	version, err := instance.Version()
-	require.NoError(t, err)
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 
-	t.Logf("SpecName: %s\n", version.SpecName())
-	t.Logf("ImplName: %s\n", version.ImplName())
-	t.Logf("AuthoringVersion: %d\n", version.AuthoringVersion())
-	t.Logf("SpecVersion: %d\n", version.SpecVersion())
-	t.Logf("ImplVersion: %d\n", version.ImplVersion())
-	t.Logf("TransactionVersion: %d\n", version.TransactionVersion())
-
-	require.Equal(t, 12, len(version.APIItems()))
-	require.Equal(t, expected.SpecName(), version.SpecName())
-	require.Equal(t, expected.ImplName(), version.ImplName())
-	require.Equal(t, expected.AuthoringVersion(), version.AuthoringVersion())
-	require.Equal(t, expected.SpecVersion(), version.SpecVersion())
-	require.Equal(t, expected.ImplVersion(), version.ImplVersion())
-	require.Equal(t, expected.TransactionVersion(), version.TransactionVersion())
-}
-
-func TestInstance_Version_KusamaRuntime(t *testing.T) {
-	genesisPath := utils.GetKusamaGenesisPath(t)
-	gen, err := genesis.NewGenesisFromJSONRaw(genesisPath)
-	require.NoError(t, err)
-
-	genTrie, err := genesis.NewTrieFromGenesis(gen)
-	require.NoError(t, err)
-
-	expectedGenesisRoot := common.MustHexToHash("0xb0006203c3a6e6bd2c6a17b1d4ae8ca49a31da0f4579da950b127774b44aef6b")
-	require.Equal(t, expectedGenesisRoot, genTrie.MustHash())
-
-	// set state to genesis state
-	genState, err := storage.NewTrieState(genTrie)
-	require.NoError(t, err)
-
-	cfg := &Config{}
-	cfg.Storage = genState
-	cfg.LogLvl = 4
-
-	instance, err := NewRuntimeFromGenesis(cfg)
-	require.NoError(t, err)
-
-	expected := runtime.NewVersionData(
-		[]byte("kusama"),
-		[]byte("parity-kusama"),
-		2,
-		1020,
-		0,
-		nil,
-		0,
-	)
-
-	version, err := instance.(*Instance).Version()
-	require.NoError(t, err)
-
-	t.Logf("SpecName: %s\n", version.SpecName())
-	t.Logf("ImplName: %s\n", version.ImplName())
-	t.Logf("AuthoringVersion: %d\n", version.AuthoringVersion())
-	t.Logf("SpecVersion: %d\n", version.SpecVersion())
-	t.Logf("ImplVersion: %d\n", version.ImplVersion())
-	t.Logf("TransactionVersion: %d\n", version.TransactionVersion())
-
-	require.Equal(t, 12, len(version.APIItems()))
-	require.Equal(t, expected.SpecName(), version.SpecName())
-	require.Equal(t, expected.ImplName(), version.ImplName())
-	require.Equal(t, expected.AuthoringVersion(), version.AuthoringVersion())
-	require.Equal(t, expected.SpecVersion(), version.SpecVersion())
-	require.Equal(t, expected.ImplVersion(), version.ImplVersion())
-	require.Equal(t, expected.TransactionVersion(), version.TransactionVersion())
-}
-
-func TestInstance_Version_NodeRuntime(t *testing.T) {
-	expected := runtime.NewVersionData(
-		[]byte("node"),
-		[]byte("substrate-node"),
-		10,
-		264,
-		0,
-		nil,
-		2,
-	)
-
-	instance := NewTestInstance(t, runtime.NODE_RUNTIME)
-
-	version, err := instance.Version()
-	require.NoError(t, err)
-
-	t.Logf("SpecName: %s\n", version.SpecName())
-	t.Logf("ImplName: %s\n", version.ImplName())
-	t.Logf("AuthoringVersion: %d\n", version.AuthoringVersion())
-	t.Logf("SpecVersion: %d\n", version.SpecVersion())
-	t.Logf("ImplVersion: %d\n", version.ImplVersion())
-	t.Logf("TransactionVersion: %d\n", version.TransactionVersion())
-
-	require.Equal(t, 13, len(version.APIItems()))
-	require.Equal(t, expected.SpecName(), version.SpecName())
-	require.Equal(t, expected.ImplName(), version.ImplName())
-	require.Equal(t, expected.AuthoringVersion(), version.AuthoringVersion())
-	require.Equal(t, expected.SpecVersion(), version.SpecVersion())
-	require.Equal(t, expected.ImplVersion(), version.ImplVersion())
-	require.Equal(t, expected.TransactionVersion(), version.TransactionVersion())
-}
-
-func TestInstance_Version_DevRuntime(t *testing.T) {
-	expected := runtime.NewVersionData(
-		[]byte("node"),
-		[]byte("gossamer-node"),
-		10,
-		260,
-		0,
-		nil,
-		1,
-	)
-
-	instance := NewTestInstance(t, runtime.DEV_RUNTIME)
-
-	version, err := instance.Version()
-	require.NoError(t, err)
-
-	t.Logf("SpecName: %s\n", version.SpecName())
-	t.Logf("ImplName: %s\n", version.ImplName())
-	t.Logf("AuthoringVersion: %d\n", version.AuthoringVersion())
-	t.Logf("SpecVersion: %d\n", version.SpecVersion())
-	t.Logf("ImplVersion: %d\n", version.ImplVersion())
-	t.Logf("TransactionVersion: %d\n", version.TransactionVersion())
-
-	require.Equal(t, 12, len(version.APIItems()))
-	require.Equal(t, expected.SpecName(), version.SpecName())
-	require.Equal(t, expected.ImplName(), version.ImplName())
-	require.Equal(t, expected.AuthoringVersion(), version.AuthoringVersion())
-	require.Equal(t, expected.SpecVersion(), version.SpecVersion())
-	require.Equal(t, expected.ImplVersion(), version.ImplVersion())
-	require.Equal(t, expected.TransactionVersion(), version.TransactionVersion())
+			instance := testCase.instanceBuilder(t)
+			version := instance.Version()
+			assert.Equal(t, testCase.expectedVersion, version)
+		})
+	}
 }
 
 func balanceKey(t *testing.T, pub []byte) []byte {
@@ -286,7 +297,7 @@ func balanceKey(t *testing.T, pub []byte) []byte {
 }
 
 func TestNodeRuntime_ValidateTransaction(t *testing.T) {
-	genesisPath := utils.GetGssmrGenesisRawPathTest(t)
+	genesisPath := utils.GetGssmrV3SubstrateGenesisRawPathTest(t)
 	gen, err := genesis.NewGenesisFromJSONRaw(genesisPath)
 	require.NoError(t, err)
 
@@ -294,12 +305,13 @@ func TestNodeRuntime_ValidateTransaction(t *testing.T) {
 	require.NoError(t, err)
 
 	// set state to genesis state
-	genState, err := storage.NewTrieState(genTrie)
-	require.NoError(t, err)
+	genState := storage.NewTrieState(genTrie)
 
-	cfg := &Config{}
-	cfg.Storage = genState
-	cfg.LogLvl = 4
+	cfg := Config{
+		Storage: genState,
+		LogLvl:  log.Critical,
+	}
+
 	nodeStorage := runtime.NodeStorage{}
 	nodeStorage.BaseDB = runtime.NewInMemoryDB(t)
 	cfg.NodeStorage = nodeStorage
@@ -505,12 +517,11 @@ func TestInstance_ExecuteBlock_NodeRuntime(t *testing.T) {
 	block := runtime.InitializeRuntimeToTest(t, instance, common.Hash{})
 
 	// reset state back to parent state before executing
-	parentState, err := storage.NewTrieState(nil)
-	require.NoError(t, err)
+	parentState := storage.NewTrieState(nil)
 	instance.SetContextStorage(parentState)
 
 	block.Header.Digest = types.NewDigest()
-	_, err = instance.ExecuteBlock(block)
+	_, err := instance.ExecuteBlock(block)
 	require.NoError(t, err)
 }
 
@@ -524,12 +535,12 @@ func TestInstance_ExecuteBlock_GossamerRuntime(t *testing.T) {
 	require.NoError(t, err)
 
 	// set state to genesis state
-	genState, err := storage.NewTrieState(genTrie)
-	require.NoError(t, err)
+	genState := storage.NewTrieState(genTrie)
 
-	cfg := &Config{}
-	cfg.Storage = genState
-	cfg.LogLvl = 4
+	cfg := Config{
+		Storage: genState,
+		LogLvl:  log.Critical,
+	}
 
 	instance, err := NewRuntimeFromGenesis(cfg)
 	require.NoError(t, err)
@@ -537,8 +548,7 @@ func TestInstance_ExecuteBlock_GossamerRuntime(t *testing.T) {
 	block := runtime.InitializeRuntimeToTest(t, instance, common.Hash{})
 
 	// reset state back to parent state before executing
-	parentState, err := storage.NewTrieState(genTrie)
-	require.NoError(t, err)
+	parentState := storage.NewTrieState(genTrie)
 	instance.SetContextStorage(parentState)
 
 	_, err = instance.ExecuteBlock(block)
@@ -555,19 +565,18 @@ func TestInstance_ApplyExtrinsic_GossamerRuntime(t *testing.T) {
 	require.NoError(t, err)
 
 	// set state to genesis state
-	genState, err := storage.NewTrieState(genTrie)
-	require.NoError(t, err)
+	genState := storage.NewTrieState(genTrie)
 
-	cfg := &Config{}
-	cfg.Storage = genState
-	cfg.LogLvl = 4
+	cfg := Config{
+		Storage: genState,
+		LogLvl:  log.Critical,
+	}
 
 	instance, err := NewRuntimeFromGenesis(cfg)
 	require.NoError(t, err)
 
 	// reset state back to parent state before executing
-	parentState, err := storage.NewTrieState(genTrie)
-	require.NoError(t, err)
+	parentState := storage.NewTrieState(genTrie)
 	instance.SetContextStorage(parentState)
 
 	parentHash := common.Hash{}
@@ -596,12 +605,11 @@ func TestInstance_ExecuteBlock_PolkadotRuntime(t *testing.T) {
 	block := runtime.InitializeRuntimeToTest(t, instance, common.Hash{})
 
 	// reset state back to parent state before executing
-	parentState, err := storage.NewTrieState(nil)
-	require.NoError(t, err)
+	parentState := storage.NewTrieState(nil)
 	instance.SetContextStorage(parentState)
 
 	block.Header.Digest = types.NewDigest()
-	_, err = instance.ExecuteBlock(block)
+	_, err := instance.ExecuteBlock(block)
 	require.NoError(t, err)
 }
 
@@ -617,12 +625,12 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 	require.Equal(t, expectedGenesisRoot, genTrie.MustHash())
 
 	// set state to genesis state
-	genState, err := storage.NewTrieState(genTrie)
-	require.NoError(t, err)
+	genState := storage.NewTrieState(genTrie)
 
-	cfg := &Config{}
-	cfg.Storage = genState
-	cfg.LogLvl = 5
+	cfg := Config{
+		Storage: genState,
+		LogLvl:  log.Critical,
+	}
 
 	instance, err := NewRuntimeFromGenesis(cfg)
 	require.NoError(t, err)
@@ -669,12 +677,12 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 	require.Equal(t, expectedGenesisRoot, genTrie.MustHash())
 
 	// set state to genesis state
-	genState, err := storage.NewTrieState(genTrie)
-	require.NoError(t, err)
+	genState := storage.NewTrieState(genTrie)
 
-	cfg := &Config{}
-	cfg.Storage = genState
-	cfg.LogLvl = 4
+	cfg := Config{
+		Storage: genState,
+		LogLvl:  log.Critical,
+	}
 
 	instance, err := NewRuntimeFromGenesis(cfg)
 	require.NoError(t, err)
@@ -715,12 +723,12 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock3784(t *testing.T) {
 	require.Equal(t, expectedRoot, gossTrie3783.MustHash())
 
 	// set state to genesis state
-	state3783, err := storage.NewTrieState(gossTrie3783)
-	require.NoError(t, err)
+	state3783 := storage.NewTrieState(gossTrie3783)
 
-	cfg := &Config{}
-	cfg.Storage = state3783
-	cfg.LogLvl = 4
+	cfg := Config{
+		Storage: state3783,
+		LogLvl:  log.Critical,
+	}
 
 	instance, err := NewInstanceFromTrie(gossTrie3783, cfg)
 	require.NoError(t, err)
@@ -761,12 +769,12 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock901442(t *testing.T) {
 	require.Equal(t, expectedRoot, ksmTrie901441.MustHash())
 
 	// set state to genesis state
-	state901441, err := storage.NewTrieState(ksmTrie901441)
-	require.NoError(t, err)
+	state901441 := storage.NewTrieState(ksmTrie901441)
 
-	cfg := &Config{}
-	cfg.Storage = state901441
-	cfg.LogLvl = 4
+	cfg := Config{
+		Storage: state901441,
+		LogLvl:  log.Critical,
+	}
 
 	instance, err := NewInstanceFromTrie(ksmTrie901441, cfg)
 	require.NoError(t, err)
@@ -807,12 +815,12 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1377831(t *testing.T) {
 	require.Equal(t, expectedRoot, ksmTrie.MustHash())
 
 	// set state to genesis state
-	state, err := storage.NewTrieState(ksmTrie)
-	require.NoError(t, err)
+	state := storage.NewTrieState(ksmTrie)
 
-	cfg := &Config{}
-	cfg.Storage = state
-	cfg.LogLvl = 4
+	cfg := Config{
+		Storage: state,
+		LogLvl:  log.Critical,
+	}
 
 	instance, err := NewInstanceFromTrie(ksmTrie, cfg)
 	require.NoError(t, err)
@@ -853,12 +861,12 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1482003(t *testing.T) {
 	require.Equal(t, expectedRoot, ksmTrie.MustHash())
 
 	// set state to genesis state
-	state, err := storage.NewTrieState(ksmTrie)
-	require.NoError(t, err)
+	state := storage.NewTrieState(ksmTrie)
 
-	cfg := &Config{}
-	cfg.Storage = state
-	cfg.LogLvl = 4
+	cfg := Config{
+		Storage: state,
+		LogLvl:  log.Critical,
+	}
 
 	instance, err := NewInstanceFromTrie(ksmTrie, cfg)
 	require.NoError(t, err)
@@ -901,12 +909,12 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock4939774(t *testing.T) {
 	require.Equal(t, expectedRoot, ksmTrie.MustHash())
 
 	// set state to genesis state
-	state, err := storage.NewTrieState(ksmTrie)
-	require.NoError(t, err)
+	state := storage.NewTrieState(ksmTrie)
 
-	cfg := &Config{}
-	cfg.Storage = state
-	cfg.LogLvl = 4
+	cfg := Config{
+		Storage: state,
+		LogLvl:  log.Critical,
+	}
 
 	instance, err := NewInstanceFromTrie(ksmTrie, cfg)
 	require.NoError(t, err)
@@ -944,12 +952,12 @@ func TestInstance_ExecuteBlock_PolkadotBlock1089328(t *testing.T) {
 	require.Equal(t, expectedRoot, dotTrie.MustHash())
 
 	// set state to genesis state
-	state, err := storage.NewTrieState(dotTrie)
-	require.NoError(t, err)
+	state := storage.NewTrieState(dotTrie)
 
-	cfg := &Config{}
-	cfg.Storage = state
-	cfg.LogLvl = 4
+	cfg := Config{
+		Storage: state,
+		LogLvl:  log.Critical,
+	}
 
 	instance, err := NewInstanceFromTrie(dotTrie, cfg)
 	require.NoError(t, err)
@@ -1008,15 +1016,14 @@ func TestInstance_DecodeSessionKeys(t *testing.T) {
 
 func TestInstance_PaymentQueryInfo(t *testing.T) {
 	tests := []struct {
-		extB   []byte
-		ext    string
-		err    error
-		expect *types.TransactionPaymentQueryInfo
+		extB       []byte
+		ext        string
+		errMessage string
+		expect     *types.TransactionPaymentQueryInfo
 	}{
 		{
 			// Was made with @polkadot/api on https://github.com/danforbes/polkadot-js-scripts/tree/create-signed-tx
 			ext: "0xd1018400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01bc2b6e35929aabd5b8bc4e5b0168c9bee59e2bb9d6098769f6683ecf73e44c776652d947a270d59f3d37eb9f9c8c17ec1b4cc473f2f9928ffdeef0f3abd43e85d502000000012844616e20466f72626573", //nolint:lll
-			err: nil,
 			expect: &types.TransactionPaymentQueryInfo{
 				Weight: 1973000,
 				Class:  0,
@@ -1029,12 +1036,14 @@ func TestInstance_PaymentQueryInfo(t *testing.T) {
 		{
 			// incomplete extrinsic
 			ext: "0x4ccde39a5684e7a56da23b22d4d9fbadb023baa19c56495432884d0640000000000000000000000000000000",
-			err: errors.New("Failed to call the `TransactionPaymentApi_query_info` exported function."), //nolint:revive
+			errMessage: "running runtime function: " +
+				"Failed to call the `TransactionPaymentApi_query_info` exported function.",
 		},
 		{
 			// incomplete extrinsic
 			extB: nil,
-			err:  errors.New("Failed to call the `TransactionPaymentApi_query_info` exported function."), //nolint:revive
+			errMessage: "running runtime function: " +
+				"Failed to call the `TransactionPaymentApi_query_info` exported function.",
 		},
 	}
 
@@ -1052,11 +1061,11 @@ func TestInstance_PaymentQueryInfo(t *testing.T) {
 		ins := NewTestInstance(t, runtime.NODE_RUNTIME)
 		info, err := ins.PaymentQueryInfo(extBytes)
 
-		if test.err != nil {
-			require.Error(t, err)
-			require.Equal(t, err.Error(), test.err.Error())
+		if test.errMessage != "" {
+			assert.EqualError(t, err, test.errMessage)
 			continue
 		}
+		require.NoError(t, err)
 
 		fmt.Println(info.PartialFee.String())
 		fmt.Println(test.expect.PartialFee.String())

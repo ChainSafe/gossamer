@@ -13,159 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_hashNode(t *testing.T) {
-	t.Parallel()
-
-	testCases := map[string]struct {
-		node       *Node
-		write      writeCall
-		errWrapped error
-		errMessage string
-	}{
-		"small leaf buffer write error": {
-			node: &Node{
-				Encoding: []byte{1, 2, 3},
-			},
-			write: writeCall{
-				written: []byte{1, 2, 3},
-				err:     errTest,
-			},
-			errWrapped: errTest,
-			errMessage: "cannot write encoded leaf to buffer: " +
-				"test error",
-		},
-		"small leaf success": {
-			node: &Node{
-				Encoding: []byte{1, 2, 3},
-			},
-			write: writeCall{
-				written: []byte{1, 2, 3},
-			},
-		},
-		"leaf hash sum buffer write error": {
-			node: &Node{
-				Encoding: []byte{
-					1, 2, 3, 4, 5, 6, 7, 8,
-					1, 2, 3, 4, 5, 6, 7, 8,
-					1, 2, 3, 4, 5, 6, 7, 8,
-					1, 2, 3, 4, 5, 6, 7, 8,
-					1, 2, 3, 4, 5, 6, 7, 8,
-				},
-			},
-			write: writeCall{
-				written: []byte{
-					107, 105, 154, 175, 253, 170, 232,
-					135, 240, 21, 207, 148, 82, 117,
-					249, 230, 80, 197, 254, 17, 149,
-					108, 50, 7, 80, 56, 114, 176,
-					84, 114, 125, 234},
-				err: errTest,
-			},
-			errWrapped: errTest,
-			errMessage: "cannot write hash sum of leaf to buffer: " +
-				"test error",
-		},
-		"leaf hash sum success": {
-			node: &Node{
-				Encoding: []byte{
-					1, 2, 3, 4, 5, 6, 7, 8,
-					1, 2, 3, 4, 5, 6, 7, 8,
-					1, 2, 3, 4, 5, 6, 7, 8,
-					1, 2, 3, 4, 5, 6, 7, 8,
-					1, 2, 3, 4, 5, 6, 7, 8,
-				},
-			},
-			write: writeCall{
-				written: []byte{
-					107, 105, 154, 175, 253, 170, 232,
-					135, 240, 21, 207, 148, 82, 117,
-					249, 230, 80, 197, 254, 17, 149,
-					108, 50, 7, 80, 56, 114, 176,
-					84, 114, 125, 234},
-			},
-		},
-		"empty branch": {
-			node: &Node{
-				Children: make([]*Node, ChildrenCapacity),
-			},
-			write: writeCall{
-				written: []byte{128, 0, 0},
-			},
-		},
-		"less than 32 bytes encoding": {
-			node: &Node{
-				Children: make([]*Node, ChildrenCapacity),
-				Key:      []byte{1, 2},
-			},
-			write: writeCall{
-				written: []byte{130, 18, 0, 0},
-			},
-		},
-		"less than 32 bytes encoding write error": {
-			node: &Node{
-				Children: make([]*Node, ChildrenCapacity),
-				Key:      []byte{1, 2},
-			},
-			write: writeCall{
-				written: []byte{130, 18, 0, 0},
-				err:     errTest,
-			},
-			errWrapped: errTest,
-			errMessage: "cannot write encoded branch to buffer: test error",
-		},
-		"more than 32 bytes encoding": {
-			node: &Node{
-				Children: make([]*Node, ChildrenCapacity),
-				Key:      repeatBytes(100, 1),
-			},
-			write: writeCall{
-				written: []byte{
-					70, 102, 188, 24, 31, 68, 86, 114,
-					95, 156, 225, 138, 175, 254, 176, 251,
-					81, 84, 193, 40, 11, 234, 142, 233,
-					69, 250, 158, 86, 72, 228, 66, 46},
-			},
-		},
-		"more than 32 bytes encoding write error": {
-			node: &Node{
-				Children: make([]*Node, ChildrenCapacity),
-				Key:      repeatBytes(100, 1),
-			},
-			write: writeCall{
-				written: []byte{
-					70, 102, 188, 24, 31, 68, 86, 114,
-					95, 156, 225, 138, 175, 254, 176, 251,
-					81, 84, 193, 40, 11, 234, 142, 233,
-					69, 250, 158, 86, 72, 228, 66, 46},
-				err: errTest,
-			},
-			errWrapped: errTest,
-			errMessage: "cannot write hash sum of branch to buffer: test error",
-		},
-	}
-
-	for name, testCase := range testCases {
-		testCase := testCase
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-			ctrl := gomock.NewController(t)
-
-			digestBuffer := NewMockWriter(ctrl)
-			digestBuffer.EXPECT().Write(testCase.write.written).
-				Return(testCase.write.n, testCase.write.err)
-
-			err := hashNode(testCase.node, digestBuffer)
-
-			if testCase.errWrapped != nil {
-				assert.ErrorIs(t, err, testCase.errWrapped)
-				assert.EqualError(t, err, testCase.errMessage)
-			} else {
-				require.NoError(t, err)
-			}
-		})
-	}
-}
-
 // Opportunistic parallel:	13781602 ns/op	14419488 B/op	  323575 allocs/op
 // Sequentially:			24269268 ns/op	20126525 B/op	  327668 allocs/op
 func Benchmark_encodeChildrenOpportunisticParallel(b *testing.B) {
@@ -188,8 +35,8 @@ func populateChildren(valueSize, depth int) (children []*Node) {
 	if depth == 0 {
 		for i := range children {
 			children[i] = &Node{
-				Key:   someValue,
-				Value: someValue,
+				Key:      someValue,
+				SubValue: someValue,
 			}
 		}
 		return children
@@ -198,7 +45,7 @@ func populateChildren(valueSize, depth int) (children []*Node) {
 	for i := range children {
 		children[i] = &Node{
 			Key:      someValue,
-			Value:    someValue,
+			SubValue: someValue,
 			Children: populateChildren(valueSize, depth-1),
 		}
 	}
@@ -218,7 +65,7 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 		"no children": {},
 		"first child not nil": {
 			children: []*Node{
-				{Key: []byte{1}, Value: []byte{2}},
+				{Key: []byte{1}, SubValue: []byte{2}},
 			},
 			writes: []writeCall{
 				{
@@ -231,7 +78,7 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
-				{Key: []byte{1}, Value: []byte{2}},
+				{Key: []byte{1}, SubValue: []byte{2}},
 			},
 			writes: []writeCall{
 				{
@@ -241,8 +88,8 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 		},
 		"first two children not nil": {
 			children: []*Node{
-				{Key: []byte{1}, Value: []byte{2}},
-				{Key: []byte{3}, Value: []byte{4}},
+				{Key: []byte{1}, SubValue: []byte{2}},
+				{Key: []byte{3}, SubValue: []byte{4}},
 			},
 			writes: []writeCall{
 				{
@@ -258,7 +105,7 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 				nil, nil, nil, nil,
 				nil, nil, nil, nil,
 				nil, nil, nil,
-				{Key: []byte{1}, Value: []byte{2}},
+				{Key: []byte{1}, SubValue: []byte{2}},
 				nil, nil, nil, nil,
 			},
 			writes: []writeCall{
@@ -278,7 +125,7 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 				{
 					Key: []byte{1},
 					Children: []*Node{
-						{Key: []byte{1}, Value: []byte{2}},
+						{Key: []byte{1}, SubValue: []byte{2}},
 					},
 				},
 			},
@@ -360,7 +207,7 @@ func Test_encodeChildrenSequentially(t *testing.T) {
 		"no children": {},
 		"first child not nil": {
 			children: []*Node{
-				{Key: []byte{1}, Value: []byte{2}},
+				{Key: []byte{1}, SubValue: []byte{2}},
 			},
 			writes: []writeCall{
 				{
@@ -373,7 +220,7 @@ func Test_encodeChildrenSequentially(t *testing.T) {
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
-				{Key: []byte{1}, Value: []byte{2}},
+				{Key: []byte{1}, SubValue: []byte{2}},
 			},
 			writes: []writeCall{
 				{
@@ -383,8 +230,8 @@ func Test_encodeChildrenSequentially(t *testing.T) {
 		},
 		"first two children not nil": {
 			children: []*Node{
-				{Key: []byte{1}, Value: []byte{2}},
-				{Key: []byte{3}, Value: []byte{4}},
+				{Key: []byte{1}, SubValue: []byte{2}},
+				{Key: []byte{3}, SubValue: []byte{4}},
 			},
 			writes: []writeCall{
 				{
@@ -400,7 +247,7 @@ func Test_encodeChildrenSequentially(t *testing.T) {
 				nil, nil, nil, nil,
 				nil, nil, nil, nil,
 				nil, nil, nil,
-				{Key: []byte{1}, Value: []byte{2}},
+				{Key: []byte{1}, SubValue: []byte{2}},
 				nil, nil, nil, nil,
 			},
 			writes: []writeCall{
@@ -480,8 +327,8 @@ func Test_encodeChild(t *testing.T) {
 		},
 		"leaf child": {
 			child: &Node{
-				Key:   []byte{1},
-				Value: []byte{2},
+				Key:      []byte{1},
+				SubValue: []byte{2},
 			},
 			writeCall: true,
 			write: writeCall{
@@ -490,11 +337,11 @@ func Test_encodeChild(t *testing.T) {
 		},
 		"branch child": {
 			child: &Node{
-				Key:   []byte{1},
-				Value: []byte{2},
+				Key:      []byte{1},
+				SubValue: []byte{2},
 				Children: []*Node{
 					nil, nil, {Key: []byte{5},
-						Value: []byte{6},
+						SubValue: []byte{6},
 					},
 				},
 			},
@@ -542,10 +389,10 @@ func Test_scaleEncodeHash(t *testing.T) {
 	}{
 		"branch": {
 			node: &Node{
-				Key:   []byte{1, 2},
-				Value: []byte{3, 4},
+				Key:      []byte{1, 2},
+				SubValue: []byte{3, 4},
 				Children: []*Node{
-					nil, nil, {Key: []byte{9}, Value: []byte{1}},
+					nil, nil, {Key: []byte{9}, SubValue: []byte{1}},
 				},
 			},
 			encoding: []byte{0x30, 0xc2, 0x12, 0x4, 0x0, 0x8, 0x3, 0x4, 0x10, 0x41, 0x9, 0x4, 0x1},

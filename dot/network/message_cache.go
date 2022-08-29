@@ -4,7 +4,6 @@
 package network
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
@@ -65,10 +64,6 @@ func (m *messageCache) exists(peer peer.ID, msg NotificationsMessage) bool {
 }
 
 func generateCacheKey(peer peer.ID, msg NotificationsMessage) ([]byte, error) {
-	if msg.IsHandshake() {
-		return nil, errors.New("cache does not support handshake messages")
-	}
-
 	msgHash, err := msg.Hash()
 	if err != nil {
 		return nil, fmt.Errorf("cannot hash notification message: %w", err)

@@ -31,38 +31,45 @@ func NewTestInstance(t *testing.T, targetRuntime string) *Instance {
 func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie) *Instance {
 	t.Helper()
 
-	cfg := setupConfig(t, tt, DefaultTestLogLvl, 0)
+	cfg := setupConfig(t, tt, DefaultTestLogLvl, common.NoNetworkRole, targetRuntime)
 	runtimeFilepath, err := runtime.GetRuntime(context.Background(), targetRuntime)
 	require.NoError(t, err)
 
 	r, err := NewInstanceFromFile(runtimeFilepath, cfg)
-	require.NoError(t, err, "Got error when trying to create new VM", "targetRuntime", targetRuntime)
-	require.NotNil(t, r, "Could not create new VM instance", "targetRuntime", targetRuntime)
+	require.NoError(t, err)
 	return r
 }
 
-func setupConfig(t *testing.T, tt *trie.Trie, lvl log.Level, role byte) *Config {
+func setupConfig(t *testing.T, tt *trie.Trie, lvl log.Level,
+	role common.Roles, targetRuntime string) Config {
 	t.Helper()
 
-	s, err := storage.NewTrieState(tt)
-	require.NoError(t, err)
+	s := storage.NewTrieState(tt)
 
 	ns := runtime.NodeStorage{
 		LocalStorage:      runtime.NewInMemoryDB(t),
 		PersistentStorage: runtime.NewInMemoryDB(t), // we're using a local storage here since this is a test runtime
 		BaseDB:            runtime.NewInMemoryDB(t), // we're using a local storage here since this is a test runtime
 	}
-	cfg := &Config{
-		Imports: ImportsNodeRuntime,
+
+	version := (*runtime.Version)(nil)
+	if targetRuntime == runtime.HOST_API_TEST_RUNTIME {
+		// Force state version to 0 since the host api test runtime
+		// does not implement the Core_version call so we cannot get the
+		// state version from it.
+		version = &runtime.Version{}
 	}
-	cfg.Storage = s
-	cfg.Keystore = keystore.NewGlobalKeystore()
-	cfg.LogLvl = lvl
-	cfg.NodeStorage = ns
-	cfg.Network = new(runtime.TestRuntimeNetwork)
-	cfg.Transaction = newTransactionStateMock()
-	cfg.Role = role
-	return cfg
+
+	return Config{
+		Storage:     s,
+		Keystore:    keystore.NewGlobalKeystore(),
+		LogLvl:      lvl,
+		NodeStorage: ns,
+		Network:     new(runtime.TestRuntimeNetwork),
+		Transaction: newTransactionStateMock(),
+		Role:        role,
+		testVersion: version,
+	}
 }
 
 // NewTransactionStateMock create and return an runtime Transaction State interface mock

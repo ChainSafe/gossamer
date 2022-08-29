@@ -10,6 +10,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/internal/trie/codec"
 	"github.com/ChainSafe/gossamer/internal/trie/node"
+	"github.com/ChainSafe/gossamer/internal/trie/pools"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
@@ -36,11 +37,13 @@ func Generate(rootHash []byte, fullKeys [][]byte, database Database) (
 	}
 	rootNode := trie.RootNode()
 
-	hashesSeen := make(map[string]struct{})
+	buffer := pools.DigestBuffers.Get().(*bytes.Buffer)
+	defer pools.DigestBuffers.Put(buffer)
+
+	merkleValuesSeen := make(map[string]struct{})
 	for _, fullKey := range fullKeys {
 		fullKeyNibbles := codec.KeyLEToNibbles(fullKey)
-		const isRoot = true
-		newEncodedProofNodes, err := walk(rootNode, fullKeyNibbles, isRoot)
+		newEncodedProofNodes, err := walkRoot(rootNode, fullKeyNibbles)
 		if err != nil {
 			// Note we wrap the full key context here since walk is recursive and
 			// may not be aware of the initial full key.
@@ -48,17 +51,18 @@ func Generate(rootHash []byte, fullKeys [][]byte, database Database) (
 		}
 
 		for _, encodedProofNode := range newEncodedProofNodes {
-			digest, err := common.Blake2bHash(encodedProofNode)
+			buffer.Reset()
+			err := node.MerkleValue(encodedProofNode, buffer)
 			if err != nil {
 				return nil, fmt.Errorf("blake2b hash: %w", err)
 			}
-			hashString := string(digest.ToBytes())
+			merkleValueString := buffer.String()
 
-			_, seen := hashesSeen[hashString]
+			_, seen := merkleValuesSeen[merkleValueString]
 			if seen {
 				continue
 			}
-			hashesSeen[hashString] = struct{}{}
+			merkleValuesSeen[merkleValueString] = struct{}{}
 
 			encodedProofNodes = append(encodedProofNodes, encodedProofNode)
 		}
@@ -67,7 +71,52 @@ func Generate(rootHash []byte, fullKeys [][]byte, database Database) (
 	return encodedProofNodes, nil
 }
 
-func walk(parent *node.Node, fullKey []byte, isRoot bool) (
+func walkRoot(root *node.Node, fullKey []byte) (
+	encodedProofNodes [][]byte, err error) {
+	if root == nil {
+		if len(fullKey) == 0 {
+			return nil, nil
+		}
+		return nil, ErrKeyNotFound
+	}
+
+	// Note we do not use sync.Pool buffers since we would have
+	// to copy it so it persists in encodedProofNodes.
+	encodingBuffer := bytes.NewBuffer(nil)
+	err = root.Encode(encodingBuffer)
+	if err != nil {
+		return nil, fmt.Errorf("encode node: %w", err)
+	}
+	encodedProofNodes = append(encodedProofNodes, encodingBuffer.Bytes())
+
+	nodeFound := len(fullKey) == 0 || bytes.Equal(root.Key, fullKey)
+	if nodeFound {
+		return encodedProofNodes, nil
+	}
+
+	if root.Kind() == node.Leaf && !nodeFound {
+		return nil, ErrKeyNotFound
+	}
+
+	nodeIsDeeper := len(fullKey) > len(root.Key)
+	if !nodeIsDeeper {
+		return nil, ErrKeyNotFound
+	}
+
+	commonLength := lenCommonPrefix(root.Key, fullKey)
+	childIndex := fullKey[commonLength]
+	nextChild := root.Children[childIndex]
+	nextFullKey := fullKey[commonLength+1:]
+	deeperEncodedProofNodes, err := walk(nextChild, nextFullKey)
+	if err != nil {
+		return nil, err // note: do not wrap since this is recursive
+	}
+
+	encodedProofNodes = append(encodedProofNodes, deeperEncodedProofNodes...)
+	return encodedProofNodes, nil
+}
+
+func walk(parent *node.Node, fullKey []byte) (
 	encodedProofNodes [][]byte, err error) {
 	if parent == nil {
 		if len(fullKey) == 0 {
@@ -84,9 +133,8 @@ func walk(parent *node.Node, fullKey []byte, isRoot bool) (
 		return nil, fmt.Errorf("encode node: %w", err)
 	}
 
-	if isRoot || encodingBuffer.Len() >= 32 {
-		// Only add the root node encoding (whatever its length)
-		// and child node encodings greater or equal to 32 bytes.
+	if encodingBuffer.Len() >= 32 {
+		// Only add (non root) node encodings greater or equal to 32 bytes.
 		// This is because child node encodings of less than 32 bytes
 		// are inlined in the parent node encoding, so there is no need
 		// to duplicate them in the proof generated.
@@ -98,7 +146,7 @@ func walk(parent *node.Node, fullKey []byte, isRoot bool) (
 		return encodedProofNodes, nil
 	}
 
-	if parent.Type() == node.Leaf && !nodeFound {
+	if parent.Kind() == node.Leaf && !nodeFound {
 		return nil, ErrKeyNotFound
 	}
 
@@ -111,8 +159,7 @@ func walk(parent *node.Node, fullKey []byte, isRoot bool) (
 	childIndex := fullKey[commonLength]
 	nextChild := parent.Children[childIndex]
 	nextFullKey := fullKey[commonLength+1:]
-	isRoot = false
-	deeperEncodedProofNodes, err := walk(nextChild, nextFullKey, isRoot)
+	deeperEncodedProofNodes, err := walk(nextChild, nextFullKey)
 	if err != nil {
 		return nil, err // note: do not wrap since this is recursive
 	}

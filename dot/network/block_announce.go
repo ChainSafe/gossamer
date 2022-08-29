@@ -17,7 +17,7 @@ import (
 
 var (
 	_ NotificationsMessage = &BlockAnnounceMessage{}
-	_ NotificationsMessage = &BlockAnnounceHandshake{}
+	_ Handshake            = (*BlockAnnounceHandshake)(nil)
 )
 
 // BlockAnnounceMessage is a state block header
@@ -30,14 +30,9 @@ type BlockAnnounceMessage struct {
 	BestBlock      bool
 }
 
-// SubProtocol returns the block-announces sub-protocol
-func (*BlockAnnounceMessage) SubProtocol() string {
-	return blockAnnounceID
-}
-
-// Type returns BlockAnnounceMsgType
+// Type returns blockAnnounceMsgType
 func (*BlockAnnounceMessage) Type() byte {
-	return BlockAnnounceMsgType
+	return blockAnnounceMsgType
 }
 
 // string formats a BlockAnnounceMessage as a string
@@ -79,11 +74,6 @@ func (bm *BlockAnnounceMessage) Hash() (common.Hash, error) {
 	return common.Blake2bHash(encMsg)
 }
 
-// IsHandshake returns false
-func (*BlockAnnounceMessage) IsHandshake() bool {
-	return false
-}
-
 func decodeBlockAnnounceHandshake(in []byte) (Handshake, error) {
 	hs := BlockAnnounceHandshake{}
 	err := scale.Unmarshal(in, &hs)
@@ -108,15 +98,10 @@ func decodeBlockAnnounceMessage(in []byte) (NotificationsMessage, error) {
 
 // BlockAnnounceHandshake is exchanged by nodes that are beginning the BlockAnnounce protocol
 type BlockAnnounceHandshake struct {
-	Roles           byte
+	Roles           common.Roles
 	BestBlockNumber uint32
 	BestBlockHash   common.Hash
 	GenesisHash     common.Hash
-}
-
-// SubProtocol returns the block-announces sub-protocol
-func (*BlockAnnounceHandshake) SubProtocol() string {
-	return blockAnnounceID
 }
 
 // String formats a BlockAnnounceHandshake as a string
@@ -142,25 +127,14 @@ func (hs *BlockAnnounceHandshake) Decode(in []byte) error {
 	return nil
 }
 
-// Type ...
-func (*BlockAnnounceHandshake) Type() byte {
-	return 0
-}
-
-// Hash returns blake2b hash of block announce handshake.
-func (hs *BlockAnnounceHandshake) Hash() (common.Hash, error) {
-	// scale encode each extrinsic
-	encMsg, err := hs.Encode()
-	if err != nil {
-		return common.Hash{}, fmt.Errorf("cannot encode handshake: %w", err)
+// IsValid returns true if handshakes's role is valid.
+func (hs *BlockAnnounceHandshake) IsValid() bool {
+	switch hs.Roles {
+	case common.AuthorityRole, common.FullNodeRole, common.LightClientRole:
+		return true
+	default:
+		return false
 	}
-
-	return common.Blake2bHash(encMsg)
-}
-
-// IsHandshake returns true
-func (*BlockAnnounceHandshake) IsHandshake() bool {
-	return true
 }
 
 func (s *Service) getBlockAnnounceHandshake() (Handshake, error) {
@@ -183,6 +157,12 @@ func (s *Service) validateBlockAnnounceHandshake(from peer.ID, hs Handshake) err
 		return errors.New("invalid handshake type")
 	}
 
+	switch bhs.Roles {
+	case common.FullNodeRole, common.LightClientRole, common.AuthorityRole:
+	default:
+		return fmt.Errorf("%w: %d", errInvalidRole, bhs.Roles)
+	}
+
 	if !bhs.GenesisHash.Equal(s.blockState.GenesisHash()) {
 		s.host.cm.peerSetHandler.ReportPeer(peerset.ReputationChange{
 			Value:  peerset.GenesisMismatch,
@@ -191,7 +171,7 @@ func (s *Service) validateBlockAnnounceHandshake(from peer.ID, hs Handshake) err
 		return errors.New("genesis hash mismatch")
 	}
 
-	np, ok := s.notificationsProtocols[BlockAnnounceMsgType]
+	np, ok := s.notificationsProtocols[blockAnnounceMsgType]
 	if !ok {
 		// this should never happen.
 		return nil

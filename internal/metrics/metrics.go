@@ -57,7 +57,7 @@ func NewServer(address string) (s *Server) {
 
 // Start will start a dedicated metrics server at the given address.
 func (s *Server) Start(address string) (err error) {
-	logger.Infof("Starting metrics server at http://%s/metrics", address)
+	logger.Infof("Starting metrics server to listen on %s", address)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	s.cancel = cancel

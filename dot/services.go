@@ -134,16 +134,15 @@ func createRuntime(cfg *Config, ns runtime.NodeStorage, st *state.Service,
 	var rt runtime.Instance
 	switch cfg.Core.WasmInterpreter {
 	case wasmer.Name:
-		rtCfg := &wasmer.Config{
-			Imports: wasmer.ImportsNodeRuntime,
+		rtCfg := wasmer.Config{
+			Storage:     ts,
+			Keystore:    ks,
+			LogLvl:      cfg.Log.RuntimeLvl,
+			NodeStorage: ns,
+			Network:     net,
+			Role:        cfg.Core.Roles,
+			CodeHash:    codeHash,
 		}
-		rtCfg.Storage = ts
-		rtCfg.Keystore = ks
-		rtCfg.LogLvl = cfg.Log.RuntimeLvl
-		rtCfg.NodeStorage = ns
-		rtCfg.Network = net
-		rtCfg.Role = cfg.Core.Roles
-		rtCfg.CodeHash = codeHash
 
 		// create runtime executor
 		rt, err = wasmer.NewInstance(code, rtCfg)
@@ -224,7 +223,7 @@ func (nodeBuilder) createCoreService(cfg *Config, ks *keystore.GlobalKeystore,
 	st *state.Service, net *network.Service, dh *digest.Handler) (
 	*core.Service, error) {
 	logger.Debug("creating core service" +
-		asAuthority(cfg.Core.Roles == types.AuthorityRole) +
+		asAuthority(cfg.Core.Roles == common.AuthorityRole) +
 		"...")
 
 	genesisData, err := st.Base.LoadGenesisData()

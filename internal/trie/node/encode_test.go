@@ -72,8 +72,8 @@ func Test_Node_Encode(t *testing.T) {
 		},
 		"leaf buffer write error for encoded key": {
 			node: &Node{
-				Key:   []byte{1, 2, 3},
-				Value: []byte{1},
+				Key:      []byte{1, 2, 3},
+				SubValue: []byte{1},
 			},
 			writes: []writeCall{
 				{
@@ -89,8 +89,8 @@ func Test_Node_Encode(t *testing.T) {
 		},
 		"leaf buffer write error for encoded value": {
 			node: &Node{
-				Key:   []byte{1, 2, 3},
-				Value: []byte{4, 5, 6},
+				Key:      []byte{1, 2, 3},
+				SubValue: []byte{4, 5, 6},
 			},
 			writes: []writeCall{
 				{
@@ -109,8 +109,8 @@ func Test_Node_Encode(t *testing.T) {
 		},
 		"leaf success": {
 			node: &Node{
-				Key:   []byte{1, 2, 3},
-				Value: []byte{4, 5, 6},
+				Key:      []byte{1, 2, 3},
+				SubValue: []byte{4, 5, 6},
 			},
 			writes: []writeCall{
 				{
@@ -170,7 +170,7 @@ func Test_Node_Encode(t *testing.T) {
 			node: &Node{
 				Children: make([]*Node, ChildrenCapacity),
 				Key:      []byte{1, 2, 3},
-				Value:    []byte{100},
+				SubValue: []byte{100},
 			},
 			writes: []writeCall{
 				{ // header
@@ -186,11 +186,11 @@ func Test_Node_Encode(t *testing.T) {
 		},
 		"buffer write error for children bitmap": {
 			node: &Node{
-				Key:   []byte{1, 2, 3},
-				Value: []byte{100},
+				Key:      []byte{1, 2, 3},
+				SubValue: []byte{100},
 				Children: []*Node{
-					nil, nil, nil, {Key: []byte{9}, Value: []byte{1}},
-					nil, nil, nil, {Key: []byte{11}, Value: []byte{1}},
+					nil, nil, nil, {Key: []byte{9}, SubValue: []byte{1}},
+					nil, nil, nil, {Key: []byte{11}, SubValue: []byte{1}},
 				},
 			},
 			writes: []writeCall{
@@ -210,11 +210,11 @@ func Test_Node_Encode(t *testing.T) {
 		},
 		"buffer write error for value": {
 			node: &Node{
-				Key:   []byte{1, 2, 3},
-				Value: []byte{100},
+				Key:      []byte{1, 2, 3},
+				SubValue: []byte{100},
 				Children: []*Node{
-					nil, nil, nil, {Key: []byte{9}, Value: []byte{1}},
-					nil, nil, nil, {Key: []byte{11}, Value: []byte{1}},
+					nil, nil, nil, {Key: []byte{9}, SubValue: []byte{1}},
+					nil, nil, nil, {Key: []byte{11}, SubValue: []byte{1}},
 				},
 			},
 			writes: []writeCall{
@@ -237,11 +237,11 @@ func Test_Node_Encode(t *testing.T) {
 		},
 		"buffer write error for children encoding": {
 			node: &Node{
-				Key:   []byte{1, 2, 3},
-				Value: []byte{100},
+				Key:      []byte{1, 2, 3},
+				SubValue: []byte{100},
 				Children: []*Node{
-					nil, nil, nil, {Key: []byte{9}, Value: []byte{1}},
-					nil, nil, nil, {Key: []byte{11}, Value: []byte{1}},
+					nil, nil, nil, {Key: []byte{9}, SubValue: []byte{1}},
+					nil, nil, nil, {Key: []byte{11}, SubValue: []byte{1}},
 				},
 			},
 			writes: []writeCall{
@@ -269,11 +269,11 @@ func Test_Node_Encode(t *testing.T) {
 		},
 		"success with children encoding": {
 			node: &Node{
-				Key:   []byte{1, 2, 3},
-				Value: []byte{100},
+				Key:      []byte{1, 2, 3},
+				SubValue: []byte{100},
 				Children: []*Node{
-					nil, nil, nil, {Key: []byte{9}, Value: []byte{1}},
-					nil, nil, nil, {Key: []byte{11}, Value: []byte{1}},
+					nil, nil, nil, {Key: []byte{9}, SubValue: []byte{1}},
+					nil, nil, nil, {Key: []byte{11}, SubValue: []byte{1}},
 				},
 			},
 			writes: []writeCall{

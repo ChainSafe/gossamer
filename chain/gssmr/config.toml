@@ -15,7 +15,7 @@ sync = ""
 digest = ""
 
 [init]
-genesis = "./chain/gssmr/genesis-spec.json"
+genesis = "./chain/gssmr/genesis.json"
 
 [account]
 key = ""
@@ -39,7 +39,18 @@ max-peers = 50
 enabled = false
 port = 8545
 host = "localhost"
-modules = ["system", "author", "chain", "state", "rpc", "grandpa", "offchain", "childstate", "syncstate", "payment"]
+modules = [
+    "system",
+    "author",
+    "chain",
+    "state",
+    "rpc",
+    "grandpa",
+    "offchain",
+    "childstate",
+    "syncstate",
+    "payment",
+]
 ws-port = 8546
 
 [pprof]

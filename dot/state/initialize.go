@@ -56,16 +56,15 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 	if err != nil {
 		return err
 	}
+	rt.Stop()
 
 	// write initial genesis values to database
 	if err = s.storeInitialValues(gen.GenesisData(), t); err != nil {
 		return fmt.Errorf("failed to write genesis values to database: %s", err)
 	}
 
-	tries, err := NewTries(t)
-	if err != nil {
-		return fmt.Errorf("cannot setup tries: %w", err)
-	}
+	tries := NewTries()
+	tries.SetTrie(t)
 
 	// create block state from genesis block
 	blockState, err := NewBlockStateFromGenesis(db, tries, header, s.Telemetry)
@@ -116,8 +115,6 @@ func (s *Service) loadBabeConfigurationFromRuntime(r runtime.Instance) (*types.B
 		return nil, fmt.Errorf("failed to fetch genesis babe configuration: %w", err)
 	}
 
-	r.Stop()
-
 	if s.BabeThresholdDenominator != 0 {
 		babeCfg.C1 = s.BabeThresholdNumerator
 		babeCfg.C2 = s.BabeThresholdDenominator
@@ -157,15 +154,13 @@ func (s *Service) storeInitialValues(data *genesis.Data, t *trie.Trie) error {
 // CreateGenesisRuntime creates runtime instance form genesis
 func (s *Service) CreateGenesisRuntime(t *trie.Trie, gen *genesis.Genesis) (runtime.Instance, error) {
 	// load genesis state into database
-	genTrie, err := rtstorage.NewTrieState(t)
-	if err != nil {
-		return nil, fmt.Errorf("failed to instantiate TrieState: %w", err)
-	}
+	genTrie := rtstorage.NewTrieState(t)
 
 	// create genesis runtime
-	rtCfg := &wasmer.Config{}
-	rtCfg.Storage = genTrie
-	rtCfg.LogLvl = s.logLvl
+	rtCfg := wasmer.Config{
+		LogLvl:  s.logLvl,
+		Storage: genTrie,
+	}
 
 	r, err := wasmer.NewRuntimeFromGenesis(rtCfg)
 	if err != nil {

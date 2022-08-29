@@ -73,17 +73,11 @@ var (
 	errChannelClosed              = errors.New("block notifier channel was closed")
 	errOverPrimarySlotThreshold   = errors.New("cannot claim slot, over primary threshold")
 	errNotOurTurnToPropose        = errors.New("cannot claim slot, not our turn to propose a block")
-	errGetEpochData               = errors.New("get epochData error")
-	errFailedFinalisation         = errors.New("failed to check finalisation")
-	errMissingDigest              = errors.New("chain head missing digest")
-	errSetFirstSlot               = errors.New("set first slot error")
-	errGetEpoch                   = errors.New("get epoch error")
-	errSkipVerify                 = errors.New("skipVerify error")
 	errMissingDigestItems         = errors.New("block header is missing digest items")
-	errDescendant                 = errors.New("descendant err")
 	errServicePaused              = errors.New("service paused")
 	errInvalidSlotTechnique       = errors.New("invalid slot claiming technique")
 	errNoBABEAuthorityKeyProvided = errors.New("cannot create BABE service as authority; no keypair provided")
+	errLastDigestItemNotSeal      = errors.New("last digest item is not seal")
 
 	other         Other
 	invalidCustom InvalidCustom
@@ -139,19 +133,19 @@ func (e UnmarshalError) Error() string {
 type Other string
 
 // Index Returns VDT index
-func (err Other) Index() uint { return 0 }
+func (Other) Index() uint { return 0 }
 
 // CannotLookup Failed to lookup some data
 type CannotLookup struct{}
 
 // Index Returns VDT index
-func (err CannotLookup) Index() uint { return 1 }
+func (CannotLookup) Index() uint { return 1 }
 
 // BadOrigin A bad origin
 type BadOrigin struct{}
 
 // Index Returns VDT index
-func (err BadOrigin) Index() uint { return 2 }
+func (BadOrigin) Index() uint { return 2 }
 
 // Module A custom error in a module
 type Module struct {
@@ -161,7 +155,7 @@ type Module struct {
 }
 
 // Index Returns VDT index
-func (err Module) Index() uint { return 3 }
+func (Module) Index() uint { return 3 }
 
 func (err Module) string() string {
 	return fmt.Sprintf("index: %d code: %d message: %x", err.Idx, err.Err, *err.Message)
@@ -171,79 +165,79 @@ func (err Module) string() string {
 type ValidityCannotLookup struct{}
 
 // Index Returns VDT index
-func (err ValidityCannotLookup) Index() uint { return 0 }
+func (ValidityCannotLookup) Index() uint { return 0 }
 
 // NoUnsignedValidator No validator found for the given unsigned transaction
 type NoUnsignedValidator struct{}
 
 // Index Returns VDT index
-func (err NoUnsignedValidator) Index() uint { return 1 }
+func (NoUnsignedValidator) Index() uint { return 1 }
 
 // UnknownCustom Any other custom unknown validity that is not covered
 type UnknownCustom uint8
 
 // Index Returns VDT index
-func (err UnknownCustom) Index() uint { return 2 }
+func (UnknownCustom) Index() uint { return 2 }
 
 // Call The call of the transaction is not expected
 type Call struct{}
 
 // Index Returns VDT index
-func (err Call) Index() uint { return 0 }
+func (Call) Index() uint { return 0 }
 
 // Payment General error to do with the inability to pay some fees (e.g. account balance too low)
 type Payment struct{}
 
 // Index Returns VDT index
-func (err Payment) Index() uint { return 1 }
+func (Payment) Index() uint { return 1 }
 
 // Future General error to do with the transaction not yet being valid (e.g. nonce too high)
 type Future struct{}
 
 // Index Returns VDT index
-func (err Future) Index() uint { return 2 }
+func (Future) Index() uint { return 2 }
 
 // Stale General error to do with the transaction being outdated (e.g. nonce too low)
 type Stale struct{}
 
 // Index Returns VDT index
-func (err Stale) Index() uint { return 3 }
+func (Stale) Index() uint { return 3 }
 
 // BadProof General error to do with the transaction’s proofs (e.g. signature)
 type BadProof struct{}
 
 // Index Returns VDT index
-func (err BadProof) Index() uint { return 4 }
+func (BadProof) Index() uint { return 4 }
 
 // AncientBirthBlock The transaction birth block is ancient
 type AncientBirthBlock struct{}
 
 // Index Returns VDT index
-func (err AncientBirthBlock) Index() uint { return 5 }
+func (AncientBirthBlock) Index() uint { return 5 }
 
 // ExhaustsResources The transaction would exhaust the resources of current block
 type ExhaustsResources struct{}
 
 // Index Returns VDT index
-func (err ExhaustsResources) Index() uint { return 6 }
+func (ExhaustsResources) Index() uint { return 6 }
 
 // InvalidCustom Any other custom invalid validity that is not covered
 type InvalidCustom uint8
 
 // Index Returns VDT index
-func (err InvalidCustom) Index() uint { return 7 }
+func (InvalidCustom) Index() uint { return 7 }
 
 // BadMandatory An extrinsic with a Mandatory dispatch resulted in Error
 type BadMandatory struct{}
 
 // Index Returns VDT index
-func (err BadMandatory) Index() uint { return 8 }
+func (BadMandatory) Index() uint { return 8 }
 
 // MandatoryDispatch A transaction with a mandatory dispatch
 type MandatoryDispatch struct{}
 
 // Index Returns VDT index
-func (err MandatoryDispatch) Index() uint { return 9 }
+func (MandatoryDispatch) Index() uint { return 9 }
 
 func determineErrType(vdt scale.VaryingDataType) error {
 	switch val := vdt.Value().(type) {

@@ -4,7 +4,6 @@
 package dot
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -95,21 +94,15 @@ func BuildFromDB(path string) (*BuildSpec, error) {
 	tmpGen.Genesis.Raw = make(map[string]map[string]string)
 	tmpGen.Genesis.Runtime = make(map[string]map[string]interface{})
 
-	// BootstrapMailer should not return an error here since there is no URLs to connect to
-	disabledTelemetry, err := telemetry.BootstrapMailer(context.TODO(), nil, false, nil)
-	if err != nil {
-		panic("telemetry should not fail at BuildFromDB function: " + err.Error())
-	}
-
 	config := state.Config{
 		Path:      path,
 		LogLevel:  log.Info,
-		Telemetry: disabledTelemetry,
+		Telemetry: telemetry.NewNoopMailer(),
 	}
 
 	stateSrvc := state.NewService(config)
 
-	err = stateSrvc.SetupBase()
+	err := stateSrvc.SetupBase()
 	if err != nil {
 		return nil, fmt.Errorf("cannot setup state database: %w", err)
 	}

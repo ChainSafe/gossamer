@@ -41,16 +41,26 @@ type Tries struct {
 }
 
 // NewTries creates a new thread safe map of root hash
-// to trie using the trie given as a first trie.
-func NewTries(t *trie.Trie) (trs *Tries, err error) {
+// to trie.
+func NewTries() (tries *Tries) {
 	return &Tries{
-		rootToTrie: map[common.Hash]*trie.Trie{
-			t.MustHash(): t,
-		},
+		rootToTrie:    make(map[common.Hash]*trie.Trie),
 		triesGauge:    triesGauge,
 		setCounter:    setCounter,
 		deleteCounter: deleteCounter,
-	}, nil
+	}
+}
+
+// SetEmptyTrie sets the empty trie in the tries.
+// Note the empty trie is the same for the v0 and the v1
+// state trie versions.
+func (t *Tries) SetEmptyTrie() {
+	t.softSet(trie.EmptyHash, trie.NewEmptyTrie())
+}
+
+// SetTrie sets the trie at its root hash in the tries map.
+func (t *Tries) SetTrie(trie *trie.Trie) {
+	t.softSet(trie.MustHash(), trie)
 }
 
 // softSet sets the given trie at the given root hash

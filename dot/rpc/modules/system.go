@@ -141,11 +141,11 @@ func (sm *SystemModule) NodeRoles(r *http.Request, req *EmptyRequest, res *[]int
 
 	role := sm.networkAPI.NodeRoles()
 	switch role {
-	case 1:
+	case common.FullNodeRole:
 		resultArray = append(resultArray, "Full")
-	case 2:
+	case common.LightClientRole:
 		resultArray = append(resultArray, "LightClient")
-	case 4:
+	case common.AuthorityRole:
 		resultArray = append(resultArray, "Authority")
 	default:
 		resultArray = append(resultArray, "UnknownRole")
@@ -171,7 +171,7 @@ func (sm *SystemModule) AccountNextIndex(r *http.Request, req *StringRequest, re
 	found := false
 	for _, v := range pending {
 		var ext ctypes.Extrinsic
-		err := ctypes.DecodeFromBytes(v.Extrinsic, &ext)
+		err := ctypes.Decode(v.Extrinsic, &ext)
 		if err != nil {
 			return err
 		}
@@ -203,7 +203,7 @@ func (sm *SystemModule) AccountNextIndex(r *http.Request, req *StringRequest, re
 		return err
 	}
 	var metadata ctypes.Metadata
-	err = ctypes.DecodeFromBytes(sdMeta, &metadata)
+	err = ctypes.Decode(sdMeta, &metadata)
 	if err != nil {
 		return err
 	}
@@ -218,7 +218,7 @@ func (sm *SystemModule) AccountNextIndex(r *http.Request, req *StringRequest, re
 		return err
 	}
 	var accountInfo ctypes.AccountInfo
-	err = ctypes.DecodeFromBytes(accountRaw, &accountInfo)
+	err = ctypes.Decode(accountRaw, &accountInfo)
 	if err != nil {
 		return err
 	}

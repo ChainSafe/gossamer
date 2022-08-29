@@ -14,10 +14,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -316,38 +317,64 @@ func TestStateModule_QueryStorage(t *testing.T) {
 		require.Error(t, err, "the start block hash cannot be an empty value")
 	})
 
-	t.Run("When coreAPI QueryStorage returns error", func(t *testing.T) {
-		coreapimock := new(mocks.CoreAPI)
-		coreapimock.On("QueryStorage", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash")).
-			Return(nil, errors.New("problem while querying"))
-
+	t.Run("When blockAPI returns error", func(t *testing.T) {
+		mockError := errors.New("mock test error")
+		ctrl := gomock.NewController(t)
+		mockBlockAPI := NewMockBlockAPI(ctrl)
+		mockBlockAPI.EXPECT().GetBlockByHash(common.Hash{1, 2}).Return(nil, mockError)
 		module := new(StateModule)
-		module.coreAPI = coreapimock
+		module.blockAPI = mockBlockAPI
 
 		req := new(StateStorageQueryRangeRequest)
 		req.StartBlock = common.NewHash([]byte{1, 2})
 
 		var res []StorageChangeSetResponse
 		err := module.QueryStorage(nil, req, &res)
-		require.Error(t, err)
-		coreapimock.AssertCalled(t, "QueryStorage", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash"))
+		assert.ErrorIs(t, err, mockError)
 	})
 
 	t.Run("When QueryStorage returns data", func(t *testing.T) {
-		blockhash := common.NewHash([]byte{123})
-
-		changes := map[common.Hash]core.QueryKeyValueChanges{
-			blockhash: core.QueryKeyValueChanges(map[string]string{
-				"0x80": "value",
-				"0x90": "another value",
-			}),
+		expectedChanges := [][2]*string{
+			makeChange("0x90", stringToHex("value")),
+			makeChange("0x80", stringToHex("another value")),
 		}
-		coreapimock := new(mocks.CoreAPI)
-		coreapimock.On("QueryStorage",
-			mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash"), "0x90", "0x80").Return(changes, nil)
+		expected := []StorageChangeSetResponse{
+			{
+				Block:   &common.Hash{1, 2},
+				Changes: expectedChanges,
+			},
+			{
+				Block:   &common.Hash{3, 4},
+				Changes: [][2]*string{},
+			},
+		}
+		ctrl := gomock.NewController(t)
+		mockBlockAPI := NewMockBlockAPI(ctrl)
+		mockBlockAPI.EXPECT().GetBlockByHash(common.Hash{1, 2}).Return(&types.Block{
+			Header: types.Header{
+				Number: 3,
+			},
+		}, nil)
+		mockBlockAPI.EXPECT().BestBlockHash().Return(common.Hash{3, 4})
+		mockBlockAPI.EXPECT().GetBlockByHash(common.Hash{3, 4}).Return(&types.Block{
+			Header: types.Header{
+				Number: 4,
+			},
+		}, nil)
+		mockBlockAPI.EXPECT().GetHashByNumber(uint(3)).Return(common.Hash{1, 2}, nil)
+		mockBlockAPI.EXPECT().GetHashByNumber(uint(4)).Return(common.Hash{3, 4}, nil)
+
+		mockStorageAPI := NewMockStorageAPI(ctrl)
+		mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{1, 2}, []byte{144}).Return([]byte(`value`), nil)
+		mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{1, 2}, []byte{128}).
+			Return([]byte(`another value`), nil)
+		mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{3, 4}, []byte{144}).Return([]byte(`value`), nil)
+		mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{3, 4}, []byte{128}).
+			Return([]byte(`another value`), nil)
 
 		module := new(StateModule)
-		module.coreAPI = coreapimock
+		module.blockAPI = mockBlockAPI
+		module.storageAPI = mockStorageAPI
 
 		req := new(StateStorageQueryRangeRequest)
 		req.StartBlock = common.NewHash([]byte{1, 2})
@@ -355,11 +382,8 @@ func TestStateModule_QueryStorage(t *testing.T) {
 
 		var res []StorageChangeSetResponse
 		err := module.QueryStorage(nil, req, &res)
-		require.NoError(t, err)
-		require.Len(t, res, 1)
-
-		coreapimock.AssertCalled(t, "QueryStorage",
-			mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash"), "0x90", "0x80")
+		assert.NoError(t, err)
+		assert.Equal(t, expected, res)
 	})
 }
 
@@ -556,5 +580,5 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 	require.NoError(t, err)
 
 	core := newCoreService(t, chain)
-	return NewStateModule(net, chain.Storage, core), &hash, &sr1
+	return NewStateModule(net, chain.Storage, core, nil), &hash, &sr1
 }

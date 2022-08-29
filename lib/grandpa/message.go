@@ -21,7 +21,7 @@ type GrandpaMessage interface { //nolint:revive
 // NewGrandpaMessage returns a new VaryingDataType to represent a GrandpaMessage
 func newGrandpaMessage() scale.VaryingDataType {
 	return scale.MustNewVaryingDataType(
-		VoteMessage{}, CommitMessage{}, NeighbourMessage{},
+		VoteMessage{}, CommitMessage{}, newVersionedNeighbourPacket(),
 		CatchUpRequest{}, CatchUpResponse{})
 }
 
@@ -57,7 +57,7 @@ type VoteMessage struct {
 }
 
 // Index Returns VDT index
-func (v VoteMessage) Index() uint { return 0 }
+func (VoteMessage) Index() uint { return 0 }
 
 // ToConsensusMessage converts the VoteMessage into a network-level consensus message
 func (v *VoteMessage) ToConsensusMessage() (*ConsensusMessage, error) {
@@ -77,21 +77,57 @@ func (v *VoteMessage) ToConsensusMessage() (*ConsensusMessage, error) {
 	}, nil
 }
 
-// NeighbourMessage represents a network-level neighbour message
-type NeighbourMessage struct {
-	Version byte
-	Round   uint64
-	SetID   uint64
-	Number  uint32
+// VersionedNeighbourPacket represents the enum of neighbour messages
+type VersionedNeighbourPacket scale.VaryingDataType
+
+// Index Returns VDT index
+func (VersionedNeighbourPacket) Index() uint { return 2 }
+
+func newVersionedNeighbourPacket() VersionedNeighbourPacket {
+	vdt := scale.MustNewVaryingDataType(NeighbourPacketV1{})
+
+	return VersionedNeighbourPacket(vdt)
+}
+
+// Set updates the current VDT value to be `val`
+func (vnp *VersionedNeighbourPacket) Set(val scale.VaryingDataTypeValue) (err error) {
+	vdt := scale.VaryingDataType(*vnp)
+	err = vdt.Set(val)
+	if err != nil {
+		return fmt.Errorf("setting varying data type value: %w", err)
+	}
+	*vnp = VersionedNeighbourPacket(vdt)
+	return nil
+}
+
+// Value returns the current VDT value
+func (vnp *VersionedNeighbourPacket) Value() (val scale.VaryingDataTypeValue) {
+	vdt := scale.VaryingDataType(*vnp)
+	return vdt.Value()
+}
+
+// NeighbourPacketV1 represents a network-level neighbour message
+// currently, round and setID represents a struct containing an u64
+// https://github.com/paritytech/substrate/blob/master/client/finality-grandpa/src/communication/mod.rs#L660
+type NeighbourPacketV1 struct {
+	Round  uint64
+	SetID  uint64
+	Number uint32
 }
 
 // Index Returns VDT index
-func (m NeighbourMessage) Index() uint { return 2 }
+func (NeighbourPacketV1) Index() uint { return 1 }
 
 // ToConsensusMessage converts the NeighbourMessage into a network-level consensus message
-func (m *NeighbourMessage) ToConsensusMessage() (*network.ConsensusMessage, error) {
+func (m *NeighbourPacketV1) ToConsensusMessage() (*network.ConsensusMessage, error) {
+	versionedNeighbourPacket := newVersionedNeighbourPacket()
+	err := versionedNeighbourPacket.Set(*m)
+	if err != nil {
+		return nil, fmt.Errorf("setting neighbour packet v1: %w", err)
+	}
+
 	msg := newGrandpaMessage()
-	err := msg.Set(*m)
+	err = msg.Set(versionedNeighbourPacket)
 	if err != nil {
 		return nil, err
 	}
@@ -137,7 +173,7 @@ func (s *Service) newCommitMessage(header *types.Header, round uint64) (*CommitM
 }
 
 // Index Returns VDT index
-func (f CommitMessage) Index() uint { return 1 }
+func (CommitMessage) Index() uint { return 1 }
 
 // ToConsensusMessage converts the CommitMessage into a network-level consensus message
 func (f *CommitMessage) ToConsensusMessage() (*ConsensusMessage, error) {
@@ -203,7 +239,7 @@ func newCatchUpRequest(round, setID uint64) *CatchUpRequest {
 }
 
 // Index Returns VDT index
-func (r CatchUpRequest) Index() uint { return 3 }
+func (CatchUpRequest) Index() uint { return 3 }
 
 // ToConsensusMessage converts the catchUpRequest into a network-level consensus message
 func (r *CatchUpRequest) ToConsensusMessage() (*ConsensusMessage, error) {
@@ -260,7 +296,7 @@ func (s *Service) newCatchUpResponse(round, setID uint64) (*CatchUpResponse, err
 }
 
 // Index Returns VDT index
-func (r CatchUpResponse) Index() uint { return 4 }
+func (CatchUpResponse) Index() uint { return 4 }
 
 // ToConsensusMessage converts the catchUpResponse into a network-level consensus message
 func (r *CatchUpResponse) ToConsensusMessage() (*ConsensusMessage, error) {

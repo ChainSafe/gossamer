@@ -5,6 +5,7 @@ package kusama
 
 import (
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 )
@@ -52,7 +53,7 @@ var (
 	// DefaultAuthority true if BABE block producer
 	DefaultAuthority = false
 	// DefaultRoles Default node roles
-	DefaultRoles = byte(1) // full node (see Table D.2)
+	DefaultRoles = common.FullNodeRole // full node (see Table D.2)
 	// DefaultWasmInterpreter is the name of the wasm interpreter to use by default
 	DefaultWasmInterpreter = wasmer.Name
 

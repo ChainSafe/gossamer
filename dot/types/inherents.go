@@ -96,7 +96,7 @@ func (d *InherentsData) Encode() ([]byte, error) {
 		return nil, err
 	}
 
-	_, err = buffer.Write(l[:])
+	_, err = buffer.Write(l)
 	if err != nil {
 		return nil, err
 	}

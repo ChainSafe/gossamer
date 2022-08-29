@@ -180,7 +180,6 @@ func TestService_getLatestEpochData_epochData(t *testing.T) {
 	require.NoError(t, err)
 	threshold, err := CalculateThreshold(genCfg.C1, genCfg.C2, len(data.Authorities))
 	require.NoError(t, err)
-
 	require.Equal(t, data.Authorities, ed.authorities)
 	require.Equal(t, data.Randomness, ed.randomness)
 	require.Equal(t, threshold, ed.threshold)

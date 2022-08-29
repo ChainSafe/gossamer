@@ -90,7 +90,10 @@ func (s *testStreamHandler) readStream(stream libp2pnetwork.Stream,
 			return
 		} else if err != nil {
 			logger.Debugf("failed to read from stream using protocol %s: %s", stream.Protocol(), err)
-			_ = stream.Close()
+			err := stream.Close()
+			if err != nil {
+				logger.Warnf("failed to close stream: %s", err)
+			}
 			return
 		}
 
@@ -105,7 +108,10 @@ func (s *testStreamHandler) readStream(stream libp2pnetwork.Stream,
 		err = handler(stream, msg)
 		if err != nil {
 			logger.Errorf("failed to handle message %s from stream: %s", msg, err)
-			_ = stream.Close()
+			err := stream.Close()
+			if err != nil {
+				logger.Warnf("failed to close stream: %s", err)
+			}
 			return
 		}
 	}
@@ -146,4 +152,29 @@ func testBlockAnnounceHandshakeDecoder(in []byte, _ peer.ID, _ bool) (Message, e
 	msg := new(BlockAnnounceHandshake)
 	err := msg.Decode(in)
 	return msg, err
+}
+
+// addrInfo returns the libp2p peer.AddrInfo of the host
+func addrInfo(h *host) peer.AddrInfo {
+	return peer.AddrInfo{
+		ID:    h.p2pHost.ID(),
+		Addrs: h.p2pHost.Addrs(),
+	}
+}
+
+// returns a slice of peers that are unprotected and may be pruned.
+func unprotectedPeers(cm *ConnManager, peers []peer.ID) []peer.ID {
+	unprot := []peer.ID{}
+	for _, id := range peers {
+		if cm.IsProtected(id, "") {
+			continue
+		}
+
+		_, isPersistent := cm.persistentPeers.Load(id)
+		if !isPersistent {
+			unprot = append(unprot, id)
+		}
+	}
+
+	return unprot
 }

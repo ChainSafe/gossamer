@@ -44,43 +44,43 @@ var (
 	// LogFlag cli service settings
 	LogFlag = cli.StringFlag{
 		Name:  "log",
-		Usage: "Global log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
+		Usage: "Global log level. Supports levels critical (silent), error, warn, info, debug and trace",
 	}
 	LogCoreLevelFlag = cli.StringFlag{
 		Name:  "log-core",
-		Usage: "Core package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
+		Usage: "Core package log level. Supports levels critical (silent), error, warn, info, debug and trace",
 	}
 	LogDigestLevelFlag = cli.StringFlag{
 		Name:  "log-digest",
-		Usage: "Digest package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
+		Usage: "Digest package log level. Supports levels critical (silent), error, warn, info, debug and trace",
 	}
 	LogSyncLevelFlag = cli.StringFlag{
 		Name:  "log-sync",
-		Usage: "Sync package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
+		Usage: "Sync package log level. Supports levels critical (silent), error, warn, info, debug and trace",
 	}
 	LogNetworkLevelFlag = cli.StringFlag{
 		Name:  "log-network",
-		Usage: "Network package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
+		Usage: "Network package log level. Supports levels critical (silent), error, warn, info, debug and trace",
 	}
 	LogRPCLevelFlag = cli.StringFlag{
 		Name:  "log-rpc",
-		Usage: "RPC package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
+		Usage: "RPC package log level. Supports levels critical (silent), error, warn, info, debug and trace",
 	}
 	LogStateLevelFlag = cli.StringFlag{
 		Name:  "log-state",
-		Usage: "State package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
+		Usage: "State package log level. Supports levels critical (silent), error, warn, info, debug and trace",
 	}
 	LogRuntimeLevelFlag = cli.StringFlag{
 		Name:  "log-runtime",
-		Usage: "Runtime package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
+		Usage: "Runtime package log level. Supports levels critical (silent), error, warn, info, debug and trace",
 	}
 	LogBabeLevelFlag = cli.StringFlag{
 		Name:  "log-babe",
-		Usage: "BABE package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
+		Usage: "BABE package log level. Supports levels critical (silent), error, warn, info, debug and trace",
 	}
 	LogGrandpaLevelFlag = cli.StringFlag{
 		Name:  "log-grandpa",
-		Usage: "Grandpa package log level. Supports levels crit (silent), eror, warn, info, dbug and trce (trace)",
+		Usage: "Grandpa package log level. Supports levels critical (silent), error, warn, info, debug and trace",
 	}
 
 	// NameFlag node implementation name

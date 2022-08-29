@@ -11,16 +11,48 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func Test_NewTries(t *testing.T) {
 	t.Parallel()
 
-	tr := trie.NewEmptyTrie()
+	rootToTrie := NewTries()
 
-	rootToTrie, err := NewTries(tr)
-	require.NoError(t, err)
+	expectedTries := &Tries{
+		rootToTrie:    map[common.Hash]*trie.Trie{},
+		triesGauge:    triesGauge,
+		setCounter:    setCounter,
+		deleteCounter: deleteCounter,
+	}
+
+	assert.Equal(t, expectedTries, rootToTrie)
+}
+
+func Test_Tries_SetEmptyTrie(t *testing.T) {
+	t.Parallel()
+
+	tries := NewTries()
+	tries.SetEmptyTrie()
+
+	expectedTries := &Tries{
+		rootToTrie: map[common.Hash]*trie.Trie{
+			trie.EmptyHash: trie.NewEmptyTrie(),
+		},
+		triesGauge:    triesGauge,
+		setCounter:    setCounter,
+		deleteCounter: deleteCounter,
+	}
+
+	assert.Equal(t, expectedTries, tries)
+}
+
+func Test_Tries_SetTrie(t *testing.T) {
+	t.Parallel()
+
+	tr := trie.NewTrie(&node.Node{Key: []byte{1}})
+
+	tries := NewTries()
+	tries.SetTrie(tr)
 
 	expectedTries := &Tries{
 		rootToTrie: map[common.Hash]*trie.Trie{
@@ -31,7 +63,7 @@ func Test_NewTries(t *testing.T) {
 		deleteCounter: deleteCounter,
 	}
 
-	assert.Equal(t, expectedTries, rootToTrie)
+	assert.Equal(t, expectedTries, tries)
 }
 
 //go:generate mockgen -destination=mock_gauge_test.go -package $GOPACKAGE github.com/prometheus/client_golang/prometheus Gauge
@@ -169,15 +201,15 @@ func Test_Tries_get(t *testing.T) {
 			tries: &Tries{
 				rootToTrie: map[common.Hash]*trie.Trie{
 					{1, 2, 3}: trie.NewTrie(&node.Node{
-						Key:   []byte{1, 2, 3},
-						Value: []byte{1},
+						Key:      []byte{1, 2, 3},
+						SubValue: []byte{1},
 					}),
 				},
 			},
 			root: common.Hash{1, 2, 3},
 			trie: trie.NewTrie(&node.Node{
-				Key:   []byte{1, 2, 3},
-				Value: []byte{1},
+				Key:      []byte{1, 2, 3},
+				SubValue: []byte{1},
 			}),
 		},
 		"not found in map": {

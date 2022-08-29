@@ -10,20 +10,22 @@ import (
 	"testing"
 	"time"
 
-	"github.com/centrifuge/go-substrate-rpc-client/v3/scale"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/scale"
 
 	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils/config"
 	"github.com/ChainSafe/gossamer/tests/utils/node"
 	"github.com/ChainSafe/gossamer/tests/utils/retry"
-	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v3"
-	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
-	"github.com/centrifuge/go-substrate-rpc-client/v3/types"
+	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v4"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/stretchr/testify/require"
 )
 
+// TODO: add test against latest dev runtime
+// See https://github.com/ChainSafe/gossamer/issues/2705
 func TestAuthorSubmitExtrinsic(t *testing.T) {
-	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
+	genesisPath := libutils.GetDevV3SubstrateGenesisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.Init.Genesis = genesisPath
 	tomlConfig.Core.BABELead = true
@@ -93,7 +95,7 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 	require.NotEqual(t, types.Hash{}, hash)
 }
 
-func TestAuthorRPC(t *testing.T) {
+func TestAuthorRPC(t *testing.T) { //nolint:tparallel
 	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
 	tomlConfig := config.Default()
 	tomlConfig.Init.Genesis = genesisPath

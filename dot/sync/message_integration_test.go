@@ -406,7 +406,7 @@ func TestService_checkOrGetDescendantHash_integration(t *testing.T) {
 	// supply descedant that's not on same chain as ancestor
 	ancestor, err = s.blockState.GetHashByNumber(9)
 	require.NoError(t, err)
-	res, err = s.checkOrGetDescendantHash(ancestor, &descendant, descendantNumber)
+	_, err = s.checkOrGetDescendantHash(ancestor, &descendant, descendantNumber)
 	require.Error(t, err)
 
 	// don't supply descendant, should return block on canonical chain

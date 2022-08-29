@@ -17,7 +17,7 @@ import (
 
 var (
 	_ NotificationsMessage = &TransactionMessage{}
-	_ NotificationsMessage = &transactionHandshake{}
+	_ Handshake            = (*transactionHandshake)(nil)
 )
 
 // txnBatchChTimeout is the timeout for adding a transaction to the batch processing channel
@@ -28,14 +28,9 @@ type TransactionMessage struct {
 	Extrinsics []types.Extrinsic
 }
 
-// SubProtocol returns the transactions sub-protocol
-func (*TransactionMessage) SubProtocol() string {
-	return transactionsID
-}
-
-// Type returns TransactionMsgType
+// Type returns transactionMsgType
 func (*TransactionMessage) Type() byte {
-	return TransactionMsgType
+	return transactionMsgType
 }
 
 // String returns the TransactionMessage extrinsics
@@ -62,17 +57,7 @@ func (tm *TransactionMessage) Hash() (common.Hash, error) {
 	return common.Blake2bHash(encMsg)
 }
 
-// IsHandshake returns false
-func (*TransactionMessage) IsHandshake() bool {
-	return false
-}
-
 type transactionHandshake struct{}
-
-// SubProtocol returns the transactions sub-protocol
-func (*transactionHandshake) SubProtocol() string {
-	return transactionsID
-}
 
 // String formats a transactionHandshake as a string
 func (*transactionHandshake) String() string {
@@ -89,18 +74,8 @@ func (*transactionHandshake) Decode(_ []byte) error {
 	return nil
 }
 
-// Type ...
-func (*transactionHandshake) Type() byte {
-	return 1
-}
-
-// Hash ...
-func (*transactionHandshake) Hash() (common.Hash, error) {
-	return common.Hash{}, nil
-}
-
-// IsHandshake returns true
-func (*transactionHandshake) IsHandshake() bool {
+// IsValid returns true
+func (*transactionHandshake) IsValid() bool {
 	return true
 }
 
@@ -112,7 +87,7 @@ func decodeTransactionHandshake(_ []byte) (Handshake, error) {
 	return &transactionHandshake{}, nil
 }
 
-func (s *Service) startTxnBatchProcessing(txnBatchCh chan *BatchMessage, slotDuration time.Duration) {
+func (s *Service) startTxnBatchProcessing(txnBatchCh chan *batchMessage, slotDuration time.Duration) {
 	protocolID := s.host.protocolID + transactionsID
 	ticker := time.NewTicker(slotDuration)
 	defer ticker.Stop()
@@ -150,7 +125,7 @@ func (s *Service) startTxnBatchProcessing(txnBatchCh chan *BatchMessage, slotDur
 						continue
 					}
 					if !hasSeen {
-						s.broadcastExcluding(s.notificationsProtocols[TransactionMsgType], txnMsg.peer, txnMsg.msg)
+						s.broadcastExcluding(s.notificationsProtocols[transactionMsgType], txnMsg.peer, txnMsg.msg)
 					}
 				}
 			}
@@ -158,11 +133,11 @@ func (s *Service) startTxnBatchProcessing(txnBatchCh chan *BatchMessage, slotDur
 	}
 }
 
-func (s *Service) createBatchMessageHandler(txnBatchCh chan *BatchMessage) NotificationsMessageBatchHandler {
+func (s *Service) createBatchMessageHandler(txnBatchCh chan *batchMessage) NotificationsMessageBatchHandler {
 	go s.startTxnBatchProcessing(txnBatchCh, s.cfg.SlotDuration)
 
 	return func(peer peer.ID, msg NotificationsMessage) {
-		data := &BatchMessage{
+		data := &batchMessage{
 			msg:  msg,
 			peer: peer,
 		}

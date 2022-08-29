@@ -47,16 +47,6 @@ var TestGenesis = &Genesis{
 	BadBlocks:          testBadBlocks,
 }
 
-// TestFieldsHR instance of human-readable Fields struct for testing, use with TestGenesis
-var TestFieldsHR = Fields{
-	Raw: map[string]map[string]string{},
-	Runtime: map[string]map[string]interface{}{
-		"System": {
-			"code": "mocktestcode",
-		},
-	},
-}
-
 // TestFieldsRaw instance of raw Fields struct for testing use with TestGenesis
 var TestFieldsRaw = Fields{
 	Raw: map[string]map[string]string{
@@ -67,40 +57,27 @@ var TestFieldsRaw = Fields{
 	},
 }
 
-// CreateTestGenesisJSONFile utility to create mock test genesis JSON file
-func CreateTestGenesisJSONFile(t *testing.T, asRaw bool) (filename string) {
-	tGen := &Genesis{
+// CreateTestGenesisJSONFile writes a genesis file using the fields given to
+// the current test temporary directory.
+func CreateTestGenesisJSONFile(t *testing.T, fields Fields) (filename string) {
+	rawGenesis := &Genesis{
 		Name:       "test",
 		ID:         "",
 		Bootnodes:  nil,
 		ProtocolID: "",
-		Genesis:    Fields{},
+		Genesis:    fields,
 	}
-
-	if asRaw {
-		tGen.Genesis = Fields{
-			Raw: map[string]map[string]string{},
-			Runtime: map[string]map[string]interface{}{
-				"System": {
-					"code": "mocktestcode",
-				},
-			},
-		}
-	} else {
-		tGen.Genesis = TestFieldsHR
-	}
-
-	bz, err := json.Marshal(tGen)
+	jsonData, err := json.Marshal(rawGenesis)
 	require.NoError(t, err)
 	filename = filepath.Join(t.TempDir(), "genesis-test")
-	err = os.WriteFile(filename, bz, os.ModePerm)
+	err = os.WriteFile(filename, jsonData, os.ModePerm)
 	require.NoError(t, err)
 	return filename
 }
 
 // NewTestGenesisWithTrieAndHeader generates genesis, genesis trie and genesis header
 func NewTestGenesisWithTrieAndHeader(t *testing.T) (*Genesis, *trie.Trie, *types.Header) {
-	genesisPath := utils.GetGssmrGenesisRawPathTest(t)
+	genesisPath := utils.GetGssmrV3SubstrateGenesisRawPathTest(t)
 	gen, err := NewGenesisFromJSONRaw(genesisPath)
 	require.NoError(t, err)
 
@@ -110,7 +87,7 @@ func NewTestGenesisWithTrieAndHeader(t *testing.T) (*Genesis, *trie.Trie, *types
 
 // NewDevGenesisWithTrieAndHeader generates test dev genesis, genesis trie and genesis header
 func NewDevGenesisWithTrieAndHeader(t *testing.T) (*Genesis, *trie.Trie, *types.Header) {
-	genesisPath := utils.GetDevGenesisPath(t)
+	genesisPath := utils.GetDevV3SubstrateGenesisPath(t)
 
 	gen, err := NewGenesisFromJSONRaw(genesisPath)
 	require.NoError(t, err)

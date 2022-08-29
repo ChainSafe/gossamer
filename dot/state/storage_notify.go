@@ -21,7 +21,7 @@ func (kv KeyValue) String() string {
 	return fmt.Sprintf("{Key: 0x%x, Value: 0x%x}", kv.Key, kv.Value)
 }
 
-//SubscriptionResult holds results of storage changes
+// SubscriptionResult holds results of storage changes
 type SubscriptionResult struct {
 	Hash    common.Hash
 	Changes []KeyValue

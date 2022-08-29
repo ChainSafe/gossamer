@@ -7,25 +7,48 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"io"
 	"math/big"
 	"reflect"
 )
 
+// Encoder scale encodes to a given io.Writer.
+type Encoder struct {
+	encodeState
+}
+
+// NewEncoder creates a new encoder with the given writer.
+func NewEncoder(writer io.Writer) (encoder *Encoder) {
+	return &Encoder{
+		encodeState: encodeState{
+			Writer:                 writer,
+			fieldScaleIndicesCache: cache,
+		},
+	}
+}
+
+// Encode scale encodes value to the encoder writer.
+func (e *Encoder) Encode(value interface{}) (err error) {
+	return e.marshal(value)
+}
+
 // Marshal takes in an interface{} and attempts to marshal into []byte
 func Marshal(v interface{}) (b []byte, err error) {
+	buffer := bytes.NewBuffer(nil)
 	es := encodeState{
+		Writer:                 buffer,
 		fieldScaleIndicesCache: cache,
 	}
 	err = es.marshal(v)
 	if err != nil {
 		return
 	}
-	b = es.Bytes()
+	b = buffer.Bytes()
 	return
 }
 
 type encodeState struct {
-	bytes.Buffer
+	io.Writer
 	*fieldScaleIndicesCache
 }
 
@@ -64,9 +87,9 @@ func (es *encodeState) marshal(in interface{}) (err error) {
 			elem := reflect.ValueOf(in).Elem()
 			switch elem.IsValid() {
 			case false:
-				err = es.WriteByte(0)
+				_, err = es.Write([]byte{0})
 			default:
-				err = es.WriteByte(1)
+				_, err = es.Write([]byte{1})
 				if err != nil {
 					return
 				}
@@ -133,13 +156,13 @@ func (es *encodeState) encodeResult(res Result) (err error) {
 	var in interface{}
 	switch res.mode {
 	case OK:
-		err = es.WriteByte(0)
+		_, err = es.Write([]byte{0})
 		if err != nil {
 			return
 		}
 		in = res.ok
 	case Err:
-		err = es.WriteByte(1)
+		_, err = es.Write([]byte{1})
 		if err != nil {
 			return
 		}
@@ -159,7 +182,7 @@ func (es *encodeState) encodeCustomVaryingDataType(in interface{}) (err error) {
 }
 
 func (es *encodeState) encodeVaryingDataType(vdt VaryingDataType) (err error) {
-	err = es.WriteByte(byte(vdt.value.Index()))
+	_, err = es.Write([]byte{byte(vdt.value.Index())})
 	if err != nil {
 		return
 	}

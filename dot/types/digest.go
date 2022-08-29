@@ -45,7 +45,7 @@ type ChangesTrieRootDigest struct {
 }
 
 // Index Returns VDT index
-func (d ChangesTrieRootDigest) Index() uint { return 2 }
+func (ChangesTrieRootDigest) Index() uint { return 2 }
 
 // String returns the digest as a string
 func (d *ChangesTrieRootDigest) String() string {
@@ -59,7 +59,7 @@ type PreRuntimeDigest struct {
 }
 
 // Index Returns VDT index
-func (d PreRuntimeDigest) Index() uint { return 6 }
+func (PreRuntimeDigest) Index() uint { return 6 }
 
 // NewBABEPreRuntimeDigest returns a PreRuntimeDigest with the BABE consensus ID
 func NewBABEPreRuntimeDigest(data []byte) *PreRuntimeDigest {
@@ -81,7 +81,7 @@ type ConsensusDigest struct {
 }
 
 // Index Returns VDT index
-func (d ConsensusDigest) Index() uint { return 4 }
+func (ConsensusDigest) Index() uint { return 4 }
 
 // String returns the digest as a string
 func (d ConsensusDigest) String() string {
@@ -95,7 +95,7 @@ type SealDigest struct {
 }
 
 // Index Returns VDT index
-func (d SealDigest) Index() uint { return 5 }
+func (SealDigest) Index() uint { return 5 }
 
 // String returns the digest as a string
 func (d *SealDigest) String() string {

@@ -344,19 +344,18 @@ func TestRuntimeChannelListener_Listen(t *testing.T) {
 
 	expectedInitialVersion := modules.StateRuntimeVersionResponse{
 		SpecName: "mock-spec",
-		Apis:     modules.ConvertAPIs(nil),
+		Apis:     []interface{}{},
 	}
 
 	expectedInitialResponse := newSubcriptionBaseResponseJSON()
 	expectedInitialResponse.Method = "state_runtimeVersion"
 	expectedInitialResponse.Params.Result = expectedInitialVersion
 
-	instance := wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
 	polkadotRuntimeFilepath, err := runtime.GetRuntime(context.Background(), runtime.POLKADOT_RUNTIME)
 	require.NoError(t, err)
 	code, err := os.ReadFile(polkadotRuntimeFilepath)
 	require.NoError(t, err)
-	version, err := instance.CheckRuntimeVersion(code)
+	version, err := wasmer.GetRuntimeVersion(code)
 	require.NoError(t, err)
 
 	expectedUpdatedVersion := modules.StateRuntimeVersionResponse{
@@ -366,7 +365,20 @@ func TestRuntimeChannelListener_Listen(t *testing.T) {
 		SpecVersion:        25,
 		ImplVersion:        0,
 		TransactionVersion: 5,
-		Apis:               modules.ConvertAPIs(version.APIItems()),
+		Apis: []interface{}{
+			[]interface{}{"0xdf6acb689907609b", uint32(0x3)},
+			[]interface{}{"0x37e397fc7c91f5e4", uint32(0x1)},
+			[]interface{}{"0x40fe3ad401f8959a", uint32(0x4)},
+			[]interface{}{"0xd2bc9897eed08f15", uint32(0x2)},
+			[]interface{}{"0xf78b278be53f454c", uint32(0x2)},
+			[]interface{}{"0xaf2c0297a23e6d3d", uint32(0x1)},
+			[]interface{}{"0xed99c5acb25eedf5", uint32(0x2)},
+			[]interface{}{"0xcbca25e39f142387", uint32(0x2)},
+			[]interface{}{"0x687ad44ad37f03c2", uint32(0x1)},
+			[]interface{}{"0xab3c0572291feb8b", uint32(0x1)},
+			[]interface{}{"0xbc9d89904f5b923f", uint32(0x1)},
+			[]interface{}{"0x37c8bb1350a9a2a8", uint32(0x1)},
+		},
 	}
 
 	expectedUpdateResponse := newSubcriptionBaseResponseJSON()

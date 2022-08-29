@@ -4,8 +4,11 @@
 package types
 
 import (
+	"errors"
 	"fmt"
 )
+
+var ErrNoFirstPreDigest = errors.New("first digest item is not pre-digest")
 
 // RandomnessLength is the length of the epoch randomness (32 bytes)
 const RandomnessLength = 32
@@ -21,6 +24,10 @@ const (
 	PrimaryAndSecondaryPlainSlots
 	// PrimaryAndSecondaryVRFSlots allows primary and secondary VRF slots.
 	PrimaryAndSecondaryVRFSlots
+)
+
+var (
+	ErrChainHeadMissingDigest = errors.New("chain head missing digest")
 )
 
 // BabeConfiguration contains the genesis data for BABE
@@ -102,12 +109,12 @@ type ConfigData struct {
 // GetSlotFromHeader returns the BABE slot from the given header
 func GetSlotFromHeader(header *Header) (uint64, error) {
 	if len(header.Digest.Types) == 0 {
-		return 0, fmt.Errorf("chain head missing digest")
+		return 0, ErrChainHeadMissingDigest
 	}
 
 	preDigest, ok := header.Digest.Types[0].Value().(PreRuntimeDigest)
 	if !ok {
-		return 0, fmt.Errorf("first digest item is not pre-digest")
+		return 0, fmt.Errorf("%w: got %T", ErrNoFirstPreDigest, header.Digest.Types[0].Value())
 	}
 
 	digest, err := DecodeBabePreDigest(preDigest.Data)
@@ -135,12 +142,12 @@ func IsPrimary(header *Header) (bool, error) {
 	}
 
 	if len(header.Digest.Types) == 0 {
-		return false, fmt.Errorf("chain head missing digest")
+		return false, ErrChainHeadMissingDigest
 	}
 
 	preDigest, ok := header.Digest.Types[0].Value().(PreRuntimeDigest)
 	if !ok {
-		return false, fmt.Errorf("first digest item is not pre-digest: type=%T", header.Digest.Types[0].Value())
+		return false, fmt.Errorf("%w: got %T", ErrNoFirstPreDigest, header.Digest.Types[0].Value())
 	}
 
 	digest, err := DecodeBabePreDigest(preDigest.Data)

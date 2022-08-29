@@ -24,8 +24,7 @@ import (
 func newTestGenesisFile(t *testing.T, cfg *Config) (filename string) {
 	t.Helper()
 
-	fp := utils.GetGssmrGenesisPathTest(t)
-
+	fp := utils.GetGssmrV3SubstrateGenesisPathTest(t)
 	gssmrGen, err := genesis.NewGenesisFromJSON(fp, 0)
 	require.NoError(t, err)
 
@@ -63,7 +62,7 @@ func TestCreateJSONRawFile(t *testing.T) {
 				bs: &BuildSpec{genesis: NewTestGenesis(t)},
 				fp: filepath.Join(t.TempDir(), "/test.json"),
 			},
-			expectedHash: "23356cdb5d3537d39b735726707216c9e329c7b8a2c8a41b25da0f5f936b3caa",
+			expectedHash: "d7f9bb9dfc9623f70f733f1ac2b0dcb9b3718fe40a6ade4410c259ef2fe4838f",
 		},
 	}
 	for _, tt := range tests {
@@ -117,7 +116,7 @@ func TestNewTestConfig(t *testing.T) {
 					BlockProducerLvl:  3,
 					FinalityGadgetLvl: 3,
 				},
-				Init: InitConfig{Genesis: "./chain/gssmr/genesis-spec.json"},
+				Init: InitConfig{Genesis: "./chain/gssmr/genesis.json"},
 				Core: CoreConfig{
 					Roles:            4,
 					BabeAuthority:    true,

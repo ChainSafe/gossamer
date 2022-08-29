@@ -84,7 +84,7 @@ func decodeBranch(reader io.Reader, variant byte, partialKeyLength uint16) (
 	sd := scale.NewDecoder(reader)
 
 	if variant == branchWithValueVariant.bits {
-		err := sd.Decode(&node.Value)
+		err := sd.Decode(&node.SubValue)
 		if err != nil {
 			return nil, fmt.Errorf("%w: %s", ErrDecodeValue, err)
 		}
@@ -104,8 +104,8 @@ func decodeBranch(reader io.Reader, variant byte, partialKeyLength uint16) (
 
 		const hashLength = 32
 		childNode := &Node{
-			HashDigest: hash,
-			Dirty:      true,
+			MerkleValue: hash,
+			Dirty:       true,
 		}
 		if len(hash) < hashLength {
 			// Handle inlined nodes
@@ -143,7 +143,7 @@ func decodeLeaf(reader io.Reader, partialKeyLength uint16) (node *Node, err erro
 	}
 
 	if len(value) > 0 {
-		node.Value = value
+		node.SubValue = value
 	}
 
 	return node, nil

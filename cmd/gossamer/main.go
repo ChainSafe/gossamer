@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	_ "time/tzdata"
 
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -14,6 +15,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/urfave/cli"
+
+	_ "github.com/breml/rootcerts"
 )
 
 const (
@@ -345,7 +348,7 @@ func initAction(ctx *cli.Context) error {
 
 func buildSpecAction(ctx *cli.Context) error {
 	// set logger to critical, so output only contains genesis data
-	err := ctx.Set("log", "crit")
+	err := ctx.Set("log", "critical")
 	if err != nil {
 		return err
 	}

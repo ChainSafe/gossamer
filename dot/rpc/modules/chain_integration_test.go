@@ -361,10 +361,9 @@ func newTestStateService(t *testing.T) *state.Service {
 	err = stateSrvc.Start()
 	require.NoError(t, err)
 
-	rtCfg := &wasmer.Config{}
+	var rtCfg wasmer.Config
 
-	rtCfg.Storage, err = rtstorage.NewTrieState(genTrie)
-	require.NoError(t, err)
+	rtCfg.Storage = rtstorage.NewTrieState(genTrie)
 
 	if stateSrvc != nil {
 		rtCfg.NodeStorage.BaseDB = stateSrvc.Base

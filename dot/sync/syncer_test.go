@@ -5,6 +5,7 @@ package sync
 
 import (
 	"errors"
+	"sync"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -317,15 +318,20 @@ func TestService_IsSynced(t *testing.T) {
 func TestService_Start(t *testing.T) {
 	t.Parallel()
 	ctrl := gomock.NewController(t)
-	done := make(chan struct{})
+
+	var allCalled sync.WaitGroup
 
 	chainSync := NewMockChainSync(ctrl)
+	allCalled.Add(1)
 	chainSync.EXPECT().start().DoAndReturn(func() {
-		close(done)
+		allCalled.Done()
 	})
 
 	chainProcessor := NewMockChainProcessor(ctrl)
-	chainProcessor.EXPECT().start()
+	allCalled.Add(1)
+	chainProcessor.EXPECT().processReadyBlocks().DoAndReturn(func() {
+		allCalled.Done()
+	})
 
 	service := Service{
 		chainSync:      chainSync,
@@ -333,7 +339,7 @@ func TestService_Start(t *testing.T) {
 	}
 
 	err := service.Start()
-	<-done
+	allCalled.Wait()
 	assert.NoError(t, err)
 }
 

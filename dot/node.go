@@ -411,7 +411,11 @@ func newNode(cfg *Config,
 	return node, nil
 }
 
-func setupTelemetry(cfg *Config, genesisData *genesis.Data) (mailer *telemetry.Mailer, err error) {
+func setupTelemetry(cfg *Config, genesisData *genesis.Data) (mailer telemetry.Client, err error) {
+	if cfg.Global.NoTelemetry {
+		return telemetry.NewNoopMailer(), nil
+	}
+
 	var telemetryEndpoints []*genesis.TelemetryEndpoint
 	if len(cfg.Global.TelemetryURLs) == 0 && genesisData != nil {
 		telemetryEndpoints = append(telemetryEndpoints, genesisData.TelemetryEndpoints...)
@@ -424,7 +428,7 @@ func setupTelemetry(cfg *Config, genesisData *genesis.Data) (mailer *telemetry.M
 
 	telemetryLogger := log.NewFromGlobal(log.AddContext("pkg", "telemetry"))
 	return telemetry.BootstrapMailer(context.TODO(),
-		telemetryEndpoints, !cfg.Global.NoTelemetry, telemetryLogger)
+		telemetryEndpoints, telemetryLogger)
 }
 
 // stores the global node name to reuse

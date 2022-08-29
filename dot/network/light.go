@@ -35,7 +35,10 @@ func (s *Service) decodeLightMessage(in []byte, peer peer.ID, _ bool) (Message, 
 
 func (s *Service) handleLightMsg(stream libp2pnetwork.Stream, msg Message) (err error) {
 	defer func() {
-		_ = stream.Close()
+		err := stream.Close()
+		if err != nil {
+			logger.Warnf("failed to close stream: %s", err)
+		}
 	}()
 
 	lr, ok := msg.(*LightRequest)
@@ -125,11 +128,6 @@ func newRequest() *request {
 	}
 }
 
-// SubProtocol returns the light sub-protocol
-func (l *LightRequest) SubProtocol() string {
-	return lightID
-}
-
 // Encode encodes a LightRequest message using SCALE and appends the type byte to the start
 func (l *LightRequest) Encode() ([]byte, error) {
 	req := request{
@@ -204,11 +202,6 @@ func newResponse() *response {
 		RemoteHeaderResponse:  *newRemoteHeaderResponse(),
 		RemoteChangesResponse: *newRemoteChangesResponse(),
 	}
-}
-
-// SubProtocol returns the light sub-protocol
-func (l *LightResponse) SubProtocol() string {
-	return lightID
 }
 
 // Encode encodes a LightResponse message using SCALE and appends the type byte to the start

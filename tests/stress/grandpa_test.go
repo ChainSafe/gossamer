@@ -16,8 +16,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TODO: add test against latest dev runtime
 func TestStress_Grandpa_OneAuthority(t *testing.T) {
-	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
+	genesisPath := libutils.GetDevV3SubstrateGenesisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.Core.BABELead = true
 	tomlConfig.Init.Genesis = genesisPath
@@ -62,9 +63,7 @@ func TestStress_Grandpa_ThreeAuthorities(t *testing.T) {
 	for round := uint64(1); round < numRounds+1; round++ {
 		const retryWait = time.Second
 		err := retry.UntilNoError(ctx, retryWait, func() (err error) {
-			const getFinalizedHeadByRoundTimeout = time.Second
-			_, err = compareFinalizedHeadsByRound(ctx, nodes, round, getFinalizedHeadByRoundTimeout)
-			return err
+			return compareFinalizedHeadsByRound(ctx, nodes, round)
 		})
 		require.NoError(t, err)
 	}
@@ -86,9 +85,7 @@ func TestStress_Grandpa_SixAuthorities(t *testing.T) {
 	for round := uint64(1); round < numRounds+1; round++ {
 		const retryWait = time.Second
 		err := retry.UntilNoError(ctx, retryWait, func() (err error) {
-			const getFinalizedHeadByRoundTimeout = time.Second
-			_, err = compareFinalizedHeadsByRound(ctx, nodes, round, getFinalizedHeadByRoundTimeout)
-			return err
+			return compareFinalizedHeadsByRound(ctx, nodes, round)
 		})
 		require.NoError(t, err)
 	}
@@ -112,9 +109,7 @@ func TestStress_Grandpa_NineAuthorities(t *testing.T) {
 	for round := uint64(1); round < numRounds+1; round++ {
 		const retryWait = time.Second
 		err := retry.UntilNoError(ctx, retryWait, func() (err error) {
-			const getFinalizedHeadByRoundTimeout = time.Second
-			_, err = compareFinalizedHeadsByRound(ctx, nodes, round, getFinalizedHeadByRoundTimeout)
-			return err
+			return compareFinalizedHeadsByRound(ctx, nodes, round)
 		})
 		require.NoError(t, err)
 	}
@@ -144,9 +139,7 @@ func TestStress_Grandpa_CatchUp(t *testing.T) {
 	for round := uint64(1); round < numRounds+1; round++ {
 		const retryWait = time.Second
 		err := retry.UntilNoError(ctx, retryWait, func() (err error) {
-			const getFinalizedHeadByRoundTimeout = time.Second
-			_, err = compareFinalizedHeadsByRound(ctx, nodes, round, getFinalizedHeadByRoundTimeout)
-			return err
+			return compareFinalizedHeadsByRound(ctx, nodes, round)
 		})
 		require.NoError(t, err)
 	}

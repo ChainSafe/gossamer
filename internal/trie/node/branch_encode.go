@@ -6,7 +6,6 @@ package node
 import (
 	"bytes"
 	"fmt"
-	"hash"
 	"io"
 	"runtime"
 
@@ -56,7 +55,7 @@ func encodeChildrenOpportunisticParallel(children []*Node, buffer io.Writer) (er
 	resultsCh := make(chan encodingAsyncResult, ChildrenCapacity)
 
 	for i, child := range children {
-		if child == nil || child.Type() == Leaf {
+		if child == nil || child.Kind() == Leaf {
 			runEncodeChild(child, i, resultsCh, nil)
 			continue
 		}
@@ -147,56 +146,15 @@ func encodeChild(child *Node, buffer io.Writer) (err error) {
 // and then SCALE encodes it. This is used to encode children
 // nodes of branches.
 func scaleEncodeHash(node *Node) (encoding []byte, err error) {
-	buffer := pools.DigestBuffers.Get().(*bytes.Buffer)
-	buffer.Reset()
-	defer pools.DigestBuffers.Put(buffer)
-
-	err = hashNode(node, buffer)
+	_, merkleValue, err := node.EncodeAndHash()
 	if err != nil {
-		return nil, fmt.Errorf("cannot hash %s: %w", node.Type(), err)
+		return nil, fmt.Errorf("encoding and hashing %s: %w", node.Kind(), err)
 	}
 
-	encoding, err = scale.Marshal(buffer.Bytes())
+	encoding, err = scale.Marshal(merkleValue)
 	if err != nil {
-		return nil, fmt.Errorf("cannot scale encode hashed %s: %w", node.Type(), err)
+		return nil, fmt.Errorf("cannot scale encode hashed %s: %w", node.Kind(), err)
 	}
 
 	return encoding, nil
-}
-
-func hashNode(node *Node, digestWriter io.Writer) (err error) {
-	encodingBuffer := pools.EncodingBuffers.Get().(*bytes.Buffer)
-	encodingBuffer.Reset()
-	defer pools.EncodingBuffers.Put(encodingBuffer)
-
-	err = node.Encode(encodingBuffer)
-	if err != nil {
-		return fmt.Errorf("cannot encode %s: %w", node.Type(), err)
-	}
-
-	// if length of encoded leaf is less than 32 bytes, do not hash
-	if encodingBuffer.Len() < 32 {
-		_, err = digestWriter.Write(encodingBuffer.Bytes())
-		if err != nil {
-			return fmt.Errorf("cannot write encoded %s to buffer: %w", node.Type(), err)
-		}
-		return nil
-	}
-
-	// otherwise, hash encoded node
-	hasher := pools.Hashers.Get().(hash.Hash)
-	hasher.Reset()
-	defer pools.Hashers.Put(hasher)
-
-	// Note: using the sync.Pool's buffer is useful here.
-	_, err = hasher.Write(encodingBuffer.Bytes())
-	if err != nil {
-		return fmt.Errorf("cannot hash encoding of %s: %w", node.Type(), err)
-	}
-
-	_, err = digestWriter.Write(hasher.Sum(nil))
-	if err != nil {
-		return fmt.Errorf("cannot write hash sum of %s to buffer: %w", node.Type(), err)
-	}
-	return nil
 }

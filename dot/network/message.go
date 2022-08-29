@@ -19,14 +19,13 @@ import (
 
 // Message types for notifications protocol messages. Used internally to map message to protocol.
 const (
-	BlockAnnounceMsgType byte = 3
-	TransactionMsgType   byte = 4
+	blockAnnounceMsgType byte = 3
+	transactionMsgType   byte = 4
 	ConsensusMsgType     byte = 5
 )
 
 // Message must be implemented by all network messages
 type Message interface {
-	SubProtocol() string
 	Encode() ([]byte, error)
 	Decode([]byte) error
 	String() string
@@ -37,7 +36,6 @@ type NotificationsMessage interface {
 	Message
 	Type() byte
 	Hash() (common.Hash, error)
-	IsHandshake() bool
 }
 
 //nolint:revive
@@ -80,11 +78,6 @@ type BlockRequestMessage struct {
 	EndBlockHash  *common.Hash
 	Direction     SyncDirection // 0 = ascending, 1 = descending
 	Max           *uint32
-}
-
-// SubProtocol returns the sync sub-protocol
-func (bm *BlockRequestMessage) SubProtocol() string {
-	return syncID
 }
 
 // String formats a BlockRequestMessage as a string
@@ -205,11 +198,6 @@ var _ Message = &BlockResponseMessage{}
 // BlockResponseMessage is sent in response to a BlockRequestMessage
 type BlockResponseMessage struct {
 	BlockData []*types.BlockData
-}
-
-// SubProtocol returns the sync sub-protocol
-func (bm *BlockResponseMessage) SubProtocol() string {
-	return syncID
 }
 
 // String formats a BlockResponseMessage as a string
@@ -362,11 +350,6 @@ type ConsensusMessage struct {
 	Data []byte
 }
 
-// SubProtocol returns the empty, since consensus message sub-protocol is determined by the package using it
-func (cm *ConsensusMessage) SubProtocol() string {
-	return ""
-}
-
 // Type returns ConsensusMsgType
 func (cm *ConsensusMessage) Type() byte {
 	return ConsensusMsgType
@@ -396,9 +379,4 @@ func (cm *ConsensusMessage) Hash() (common.Hash, error) {
 		return common.Hash{}, fmt.Errorf("cannot encode message: %w", err)
 	}
 	return common.Blake2bHash(encMsg)
-}
-
-// IsHandshake returns false
-func (cm *ConsensusMessage) IsHandshake() bool {
-	return false
 }

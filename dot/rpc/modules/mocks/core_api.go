@@ -3,9 +3,7 @@
 package mocks
 
 import (
-	core "github.com/ChainSafe/gossamer/dot/core"
 	common "github.com/ChainSafe/gossamer/lib/common"
-
 	crypto "github.com/ChainSafe/gossamer/lib/crypto"
 
 	mock "github.com/stretchr/testify/mock"
@@ -106,9 +104,7 @@ func (_m *CoreAPI) GetRuntimeVersion(bhash *common.Hash) (runtime.Version, error
 	if rf, ok := ret.Get(0).(func(*common.Hash) runtime.Version); ok {
 		r0 = rf(bhash)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(runtime.Version)
-		}
+		r0 = ret.Get(0).(runtime.Version)
 	}
 
 	var r1 error
@@ -168,36 +164,6 @@ func (_m *CoreAPI) InsertKey(kp crypto.Keypair, keystoreType string) error {
 	}
 
 	return r0
-}
-
-// QueryStorage provides a mock function with given fields: from, to, keys
-func (_m *CoreAPI) QueryStorage(from common.Hash, to common.Hash, keys ...string) (map[common.Hash]core.QueryKeyValueChanges, error) {
-	_va := make([]interface{}, len(keys))
-	for _i := range keys {
-		_va[_i] = keys[_i]
-	}
-	var _ca []interface{}
-	_ca = append(_ca, from, to)
-	_ca = append(_ca, _va...)
-	ret := _m.Called(_ca...)
-
-	var r0 map[common.Hash]core.QueryKeyValueChanges
-	if rf, ok := ret.Get(0).(func(common.Hash, common.Hash, ...string) map[common.Hash]core.QueryKeyValueChanges); ok {
-		r0 = rf(from, to, keys...)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(map[common.Hash]core.QueryKeyValueChanges)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(common.Hash, common.Hash, ...string) error); ok {
-		r1 = rf(from, to, keys...)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
 }
 
 type mockConstructorTestingTNewCoreAPI interface {

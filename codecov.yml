@@ -1,7 +1,8 @@
 coverage:
   range: "60...80"
   status:
-    gossamer:
+    patch: off
+    project:
       default:
         target: 60%
         # Only require global coverage to be 60%
@@ -80,5 +81,6 @@ ignore:
   - "**/*/errors.go"
   - "**/*/mocks/*.go"
   - "**/*/mock_*.go"
+  - "**/*/mocks_*.go"
   - "go.mod"
   - "go.sum"

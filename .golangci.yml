@@ -62,6 +62,7 @@ linters:
     - tparallel
     - unconvert
     - unparam
+    - usestdlibvars
     - varcheck
 
 issues:
@@ -102,6 +103,16 @@ issues:
     - linters:
         - lll
       source: "^//go:generate "
+
+    - linters:
+        - lll
+      path: lib/runtime/wasmer/imports\.go
+      source: "^// extern "
+
+    - linters:
+        - lll
+      path: lib/runtime/wasmer/imports\.go
+      source: '{"ext_.+", ext_.+, C.ext_.+},$'
 
     - source: "// https://"
       linters:

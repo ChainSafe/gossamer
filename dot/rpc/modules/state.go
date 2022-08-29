@@ -5,7 +5,6 @@ package modules
 
 import (
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -15,7 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-//StateGetReadProofRequest json fields
+// StateGetReadProofRequest json fields
 type StateGetReadProofRequest struct {
 	Keys []string
 	Hash common.Hash
@@ -113,7 +112,7 @@ type StateStorageKeysResponse []string
 // StateMetadataResponse holds the metadata
 type StateMetadataResponse string
 
-//StateGetReadProofResponse holds the response format
+// StateGetReadProofResponse holds the response format
 type StateGetReadProofResponse struct {
 	At    common.Hash `json:"at"`
 	Proof []string    `json:"proof"`
@@ -121,8 +120,11 @@ type StateGetReadProofResponse struct {
 
 // StorageChangeSetResponse is the struct that holds the block and changes
 type StorageChangeSetResponse struct {
-	Block   *common.Hash `json:"block"`
-	Changes [][]string   `json:"changes"`
+	Block *common.Hash `json:"block"`
+	// Changes is a slice of arrays of string pointers instead of just strings
+	// so that the JSON encoder can handle nil values as NULL instead of empty
+	// strings.
+	Changes [][2]*string `json:"changes"`
 }
 
 // KeyValueOption struct holds json fields
@@ -142,19 +144,45 @@ type StateRuntimeVersionResponse struct {
 	Apis               []interface{} `json:"apis"`
 }
 
+// NewStateRuntimeVersionResponse converts a runtime.Version to a
+// StateRuntimeVersionResponse struct.
+func NewStateRuntimeVersionResponse(runtimeVersion runtime.Version) (
+	response StateRuntimeVersionResponse) {
+	apisResponse := make([]interface{}, len(runtimeVersion.APIItems))
+	for i, apiItem := range runtimeVersion.APIItems {
+		hexItemName := hex.EncodeToString(apiItem.Name[:])
+		apisResponse[i] = []interface{}{
+			"0x" + hexItemName,
+			apiItem.Ver,
+		}
+	}
+
+	return StateRuntimeVersionResponse{
+		SpecName:           string(runtimeVersion.SpecName),
+		ImplName:           string(runtimeVersion.ImplName),
+		AuthoringVersion:   runtimeVersion.AuthoringVersion,
+		SpecVersion:        runtimeVersion.SpecVersion,
+		ImplVersion:        runtimeVersion.ImplVersion,
+		TransactionVersion: runtimeVersion.TransactionVersion,
+		Apis:               apisResponse,
+	}
+}
+
 // StateModule is an RPC module providing access to storage API points.
 type StateModule struct {
 	networkAPI NetworkAPI
 	storageAPI StorageAPI
 	coreAPI    CoreAPI
+	blockAPI   BlockAPI
 }
 
 // NewStateModule creates a new State module.
-func NewStateModule(net NetworkAPI, storage StorageAPI, core CoreAPI) *StateModule {
+func NewStateModule(net NetworkAPI, storage StorageAPI, core CoreAPI, blockAPI BlockAPI) *StateModule {
 	return &StateModule{
 		networkAPI: net,
 		storageAPI: storage,
 		coreAPI:    core,
+		blockAPI:   blockAPI,
 	}
 }
 
@@ -292,7 +320,7 @@ func (sm *StateModule) GetReadProof(
 }
 
 // GetRuntimeVersion Get the runtime version at a given block.
-//  If no block hash is provided, the latest version gets returned.
+// If no block hash is provided, the latest version gets returned.
 func (sm *StateModule) GetRuntimeVersion(
 	_ *http.Request, req *StateRuntimeVersionRequest, res *StateRuntimeVersionResponse) error {
 	rtVersion, err := sm.coreAPI.GetRuntimeVersion(req.Bhash)
@@ -300,14 +328,7 @@ func (sm *StateModule) GetRuntimeVersion(
 		return err
 	}
 
-	res.SpecName = string(rtVersion.SpecName())
-	res.ImplName = string(rtVersion.ImplName())
-	res.AuthoringVersion = rtVersion.AuthoringVersion()
-	res.SpecVersion = rtVersion.SpecVersion()
-	res.ImplVersion = rtVersion.ImplVersion()
-	res.TransactionVersion = rtVersion.TransactionVersion()
-	res.Apis = ConvertAPIs(rtVersion.APIItems())
-
+	*res = NewStateRuntimeVersionResponse(rtVersion)
 	return nil
 }
 
@@ -403,30 +424,63 @@ func (sm *StateModule) GetStorageSize(
 	return nil
 }
 
-// QueryStorage isn't implemented properly yet.
+// QueryStorage queries historical storage entries (by key) starting from a given request start block
+// and until a given end block, or until the best block if the given end block is nil.
 func (sm *StateModule) QueryStorage(
 	_ *http.Request, req *StateStorageQueryRangeRequest, res *[]StorageChangeSetResponse) error {
 	if req.StartBlock.IsEmpty() {
-		return errors.New("the start block hash cannot be an empty value")
+		return ErrStartBlockHashEmpty
 	}
 
-	changesByBlock, err := sm.coreAPI.QueryStorage(req.StartBlock, req.EndBlock, req.Keys...)
+	startBlock, err := sm.blockAPI.GetBlockByHash(req.StartBlock)
 	if err != nil {
 		return err
 	}
 
-	response := make([]StorageChangeSetResponse, 0, len(changesByBlock))
+	startBlockNumber := startBlock.Header.Number
 
-	for block, c := range changesByBlock {
-		var changes [][]string
+	endBlockHash := req.EndBlock
+	if req.EndBlock.IsEmpty() {
+		endBlockHash = sm.blockAPI.BestBlockHash()
+	}
+	endBlock, err := sm.blockAPI.GetBlockByHash(endBlockHash)
+	if err != nil {
+		return fmt.Errorf("getting block by hash: %w", err)
+	}
+	endBlockNumber := endBlock.Header.Number
 
-		for key, value := range c {
-			changes = append(changes, []string{key, value})
+	response := make([]StorageChangeSetResponse, 0, endBlockNumber-startBlockNumber)
+	lastValue := make([]*string, len(req.Keys))
+
+	for i := startBlockNumber; i <= endBlockNumber; i++ {
+		blockHash, err := sm.blockAPI.GetHashByNumber(i)
+		if err != nil {
+			return fmt.Errorf("cannot get hash by number: %w", err)
+		}
+		changes := make([][2]*string, 0, len(req.Keys))
+
+		for j, key := range req.Keys {
+			value, err := sm.storageAPI.GetStorageByBlockHash(&blockHash, common.MustHexToBytes(key))
+			if err != nil {
+				return fmt.Errorf("getting value by block hash: %w", err)
+			}
+			var hexValue *string
+			if len(value) > 0 {
+				hexValue = stringPtr(common.BytesToHex(value))
+			}
+
+			differentValueEncountered := i == startBlockNumber ||
+				lastValue[j] == nil && hexValue != nil ||
+				lastValue[j] != nil && *lastValue[j] != *hexValue
+			if differentValueEncountered {
+				changes = append(changes, [2]*string{stringPtr(key), hexValue})
+				lastValue[j] = hexValue
+			}
+
 		}
 
-		blochHash := block
 		response = append(response, StorageChangeSetResponse{
-			Block:   &blochHash,
+			Block:   &blockHash,
 			Changes: changes,
 		})
 	}
@@ -434,6 +488,8 @@ func (sm *StateModule) QueryStorage(
 	*res = response
 	return nil
 }
+
+func stringPtr(s string) *string { return &s }
 
 // SubscribeRuntimeVersion initialised a runtime version subscription and returns the current version
 // See dot/rpc/subscription
@@ -449,14 +505,4 @@ func (sm *StateModule) SubscribeRuntimeVersion(
 func (*StateModule) SubscribeStorage(
 	_ *http.Request, _ *StateStorageQueryRangeRequest, _ *StorageChangeSetResponse) error {
 	return nil
-}
-
-// ConvertAPIs runtime.APIItems to []interface
-func ConvertAPIs(in []runtime.APIItem) []interface{} {
-	ret := make([]interface{}, 0)
-	for _, item := range in {
-		encStr := hex.EncodeToString(item.Name[:])
-		ret = append(ret, []interface{}{"0x" + encStr, item.Ver})
-	}
-	return ret
 }

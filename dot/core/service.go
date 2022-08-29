@@ -34,8 +34,6 @@ var (
 // QueryKeyValueChanges represents the key-value data inside a block storage
 type QueryKeyValueChanges map[string]string
 
-type wasmerInstanceFunc func(code []byte, cfg *wasmer.Config) (instance *wasmer.Instance, err error)
-
 // Service is an overhead layer that allows communication between the runtime,
 // BABE session, and network service. It deals with the validation of transactions
 // and blocks by calling their respective validation functions in the runtime.
@@ -70,7 +68,7 @@ type Config struct {
 	TransactionState TransactionState
 	Network          Network
 	Keystore         *keystore.GlobalKeystore
-	Runtime          runtime.Instance
+	Runtime          RuntimeInstance
 
 	CodeSubstitutes      map[common.Hash]string
 	CodeSubstitutedState CodeSubstitutedState
@@ -224,7 +222,8 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 	}
 
 	// check if there was a runtime code substitution
-	if err := s.handleCodeSubstitution(block.Header.Hash(), state, wasmer.NewInstance); err != nil {
+	err = s.handleCodeSubstitution(block.Header.Hash(), state)
+	if err != nil {
 		logger.Criticalf("failed to substitute runtime code: %s", err)
 		return err
 	}
@@ -242,11 +241,8 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 	return nil
 }
 
-func (s *Service) handleCodeSubstitution(
-	hash common.Hash,
-	state *rtstorage.TrieState,
-	instance wasmerInstanceFunc,
-) error {
+func (s *Service) handleCodeSubstitution(hash common.Hash,
+	state *rtstorage.TrieState) (err error) {
 	value := s.codeSubstitute[hash]
 	if value == "" {
 		return nil
@@ -255,37 +251,35 @@ func (s *Service) handleCodeSubstitution(
 	logger.Infof("🔄 detected runtime code substitution, upgrading for block %s...", hash)
 	code := common.MustHexToBytes(value)
 	if len(code) == 0 {
-		return ErrEmptyRuntimeCode
+		return fmt.Errorf("%w: for hash %s", ErrEmptyRuntimeCode, hash)
 	}
 
 	rt, err := s.blockState.GetRuntime(&hash)
 	if err != nil {
-		return err
+		return fmt.Errorf("getting runtime from block state: %w", err)
 	}
 
 	// this needs to create a new runtime instance, otherwise it will update
 	// the blocks that reference the current runtime version to use the code substition
-	cfg := &wasmer.Config{
-		Imports: wasmer.ImportsNodeRuntime,
+	cfg := wasmer.Config{
+		Storage:     state,
+		Keystore:    rt.Keystore(),
+		NodeStorage: rt.NodeStorage(),
+		Network:     rt.NetworkService(),
 	}
-
-	cfg.Storage = state
-	cfg.Keystore = rt.Keystore()
-	cfg.NodeStorage = rt.NodeStorage()
-	cfg.Network = rt.NetworkService()
 
 	if rt.Validator() {
 		cfg.Role = 4
 	}
 
-	next, err := instance(code, cfg)
+	next, err := wasmer.NewInstance(code, cfg)
 	if err != nil {
-		return err
+		return fmt.Errorf("creating new runtime instance: %w", err)
 	}
 
 	err = s.codeSubstitutedState.StoreCodeSubstitutedBlockHash(hash)
 	if err != nil {
-		return err
+		return fmt.Errorf("storing code substituted block hash: %w", err)
 	}
 
 	s.blockState.StoreRuntime(hash, next)
@@ -460,7 +454,8 @@ func (s *Service) DecodeSessionKeys(enc []byte) ([]byte, error) {
 }
 
 // GetRuntimeVersion gets the current RuntimeVersion
-func (s *Service) GetRuntimeVersion(bhash *common.Hash) (runtime.Version, error) {
+func (s *Service) GetRuntimeVersion(bhash *common.Hash) (
+	version runtime.Version, err error) {
 	var stateRootHash *common.Hash
 
 	// If block hash is not nil then fetch the state root corresponding to the block.
@@ -468,22 +463,22 @@ func (s *Service) GetRuntimeVersion(bhash *common.Hash) (runtime.Version, error)
 		var err error
 		stateRootHash, err = s.storageState.GetStateRootFromBlock(bhash)
 		if err != nil {
-			return nil, err
+			return version, err
 		}
 	}
 
 	ts, err := s.storageState.TrieState(stateRootHash)
 	if err != nil {
-		return nil, err
+		return version, err
 	}
 
 	rt, err := s.blockState.GetRuntime(bhash)
 	if err != nil {
-		return nil, err
+		return version, err
 	}
 
 	rt.SetContextStorage(ts)
-	return rt.Version()
+	return rt.Version(), nil
 }
 
 // HandleSubmittedExtrinsic is used to send a Transaction message containing a Extrinsic @ext
@@ -532,7 +527,7 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 	return nil
 }
 
-//GetMetadata calls runtime Metadata_metadata function
+// GetMetadata calls runtime Metadata_metadata function
 func (s *Service) GetMetadata(bhash *common.Hash) ([]byte, error) {
 	var (
 		stateRootHash *common.Hash
@@ -558,61 +553,6 @@ func (s *Service) GetMetadata(bhash *common.Hash) ([]byte, error) {
 
 	rt.SetContextStorage(ts)
 	return rt.Metadata()
-}
-
-// QueryStorage returns the key-value data by block based on `keys` params
-// on every block starting `from` until `to` block, if `to` is not nil
-func (s *Service) QueryStorage(from, to common.Hash, keys ...string) (map[common.Hash]QueryKeyValueChanges, error) {
-	if to.IsEmpty() {
-		to = s.blockState.BestBlockHash()
-	}
-
-	blocksToQuery, err := s.blockState.SubChain(from, to)
-	if err != nil {
-		return nil, err
-	}
-
-	queries := make(map[common.Hash]QueryKeyValueChanges)
-
-	for _, hash := range blocksToQuery {
-		changes, err := s.tryQueryStorage(hash, keys...)
-		if err != nil {
-			return nil, err
-		}
-
-		queries[hash] = changes
-	}
-
-	return queries, nil
-}
-
-// tryQueryStorage will try to get all the `keys` inside the block's current state
-func (s *Service) tryQueryStorage(block common.Hash, keys ...string) (QueryKeyValueChanges, error) {
-	stateRootHash, err := s.storageState.GetStateRootFromBlock(&block)
-	if err != nil {
-		return nil, err
-	}
-
-	changes := make(QueryKeyValueChanges)
-	for _, k := range keys {
-		keyBytes, err := common.HexToBytes(k)
-		if err != nil {
-			return nil, err
-		}
-
-		storedData, err := s.storageState.GetStorage(stateRootHash, keyBytes)
-		if err != nil {
-			return nil, err
-		}
-
-		if storedData == nil {
-			continue
-		}
-
-		changes[k] = common.BytesToHex(storedData)
-	}
-
-	return changes, nil
 }
 
 // GetReadProofAt will return an array with the proofs for the keys passed as params

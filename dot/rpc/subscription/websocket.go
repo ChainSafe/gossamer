@@ -438,7 +438,7 @@ func (c *WSConn) prepareRequest(b []byte) (*http.Request, error) {
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", c.RPCHost, buff)
+	req, err := http.NewRequest(http.MethodPost, c.RPCHost, buff)
 	if err != nil {
 		logger.Warnf("failed request to rpc service: %s", err)
 		return nil, err

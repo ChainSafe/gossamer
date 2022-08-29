@@ -36,25 +36,23 @@ const (
 func (level Level) String() (s string) {
 	switch level {
 	case Trace:
-		return "TRCE"
+		return "TRACE"
 	case Debug:
-		return "DBUG"
+		return "DEBUG"
 	case Info:
 		return "INFO"
 	case Warn:
 		return "WARN"
 	case Error:
-		return "EROR"
+		return "ERROR"
 	case Critical:
-		return "CRIT"
+		return "CRITICAL"
 	default:
 		return "???"
 	}
 }
 
-// ColouredString returns the corresponding coloured
-// string for the level.
-func (level Level) ColouredString() (s string) {
+func (level Level) format() (s string) {
 	attribute := color.Reset
 
 	switch level {
@@ -73,7 +71,7 @@ func (level Level) ColouredString() (s string) {
 	}
 
 	c := color.New(attribute)
-	return c.Sprint(level.String())
+	return c.Sprintf("%-8s", level.String())
 }
 
 var (
@@ -94,17 +92,17 @@ func ParseLevel(s string) (level Level, err error) {
 	}
 
 	switch strings.ToUpper(s) {
-	case Trace.String(), "TRACE":
+	case Trace.String():
 		return Trace, nil
-	case Debug.String(), "DEBUG":
+	case Debug.String():
 		return Debug, nil
 	case Info.String():
 		return Info, nil
 	case Warn.String():
 		return Warn, nil
-	case Error.String(), "ERROR":
+	case Error.String():
 		return Error, nil
-	case Critical.String(), "CRITICAL":
+	case Critical.String():
 		return Critical, nil
 	}
 	return 0, fmt.Errorf("%w: %s", ErrLevelNotRecognised, s)

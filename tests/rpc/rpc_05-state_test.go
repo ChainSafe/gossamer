@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestStateRPCResponseValidation(t *testing.T) {
+func TestStateRPCResponseValidation(t *testing.T) { //nolint:tparallel
 	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
 	tomlConfig := config.Default()
 	tomlConfig.Init.Genesis = genesisPath
@@ -161,8 +161,10 @@ func TestStateRPCResponseValidation(t *testing.T) {
 	})
 }
 
+// TODO: add test against latest gssmr runtime
+// See https://github.com/ChainSafe/gossamer/issues/2705
 func TestStateRPCAPI(t *testing.T) {
-	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
+	genesisPath := libutils.GetGssmrV3SubstrateGenesisRawPathTest(t)
 	tomlConfig := config.Default()
 	tomlConfig.Init.Genesis = genesisPath
 	tomlConfig.Core.BABELead = true
@@ -363,7 +365,7 @@ func TestStateRPCAPI(t *testing.T) {
 }
 
 func TestRPCStructParamUnmarshal(t *testing.T) {
-	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
+	genesisPath := libutils.GetDevV3SubstrateGenesisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.Core.BABELead = true
 	tomlConfig.Init.Genesis = genesisPath

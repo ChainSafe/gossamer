@@ -104,7 +104,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounce(t *testing.T) {
 	testPeerID := b.host.id()
 
 	// connect nodes
-	addrInfoB := b.host.addrInfo()
+	addrInfoB := addrInfo(b.host)
 	err := s.host.connect(addrInfoB)
 	if failedToDial(err) {
 		time.Sleep(TestBackoffTimeout)
@@ -173,7 +173,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 	testPeerID := b.host.id()
 
 	// connect nodes
-	addrInfoB := b.host.addrInfo()
+	addrInfoB := addrInfo(b.host)
 	err := s.host.connect(addrInfoB)
 	if failedToDial(err) {
 		time.Sleep(TestBackoffTimeout)
@@ -186,7 +186,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 
 	// try invalid handshake
 	testHandshake := &BlockAnnounceHandshake{
-		Roles:           4,
+		Roles:           common.AuthorityRole,
 		BestBlockNumber: 77,
 		BestBlockHash:   common.Hash{1},
 		// we are using a different genesis here, thus this
@@ -195,7 +195,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 	}
 
 	err = handler(stream, testHandshake)
-	require.Equal(t, errCannotValidateHandshake, err)
+	require.ErrorIs(t, err, errCannotValidateHandshake)
 	data := info.peersData.getInboundHandshakeData(testPeerID)
 	require.NotNil(t, data)
 	require.True(t, data.received)
@@ -254,7 +254,7 @@ func Test_HandshakeTimeout(t *testing.T) {
 		// should not respond to a handshake message
 	})
 
-	addrInfosB := nodeB.host.addrInfo()
+	addrInfosB := addrInfo(nodeB.host)
 
 	err := nodeA.host.connect(addrInfosB)
 	// retry connect if "failed to dial" error
@@ -269,7 +269,8 @@ func Test_HandshakeTimeout(t *testing.T) {
 	info.peersData.deleteOutboundHandshakeData(nodeB.host.id())
 	connAToB := nodeA.host.p2pHost.Network().ConnsToPeer(nodeB.host.id())
 	for _, stream := range connAToB[0].GetStreams() {
-		_ = stream.Close()
+		err := stream.Close()
+		require.NoError(t, err)
 	}
 
 	testHandshakeMsg := &BlockAnnounceHandshake{
@@ -329,11 +330,11 @@ func TestCreateNotificationsMessageHandler_HandleTransaction(t *testing.T) {
 
 	srvc2 := createTestService(t, configB)
 
-	txnBatch := make(chan *BatchMessage, batchSize)
+	txnBatch := make(chan *batchMessage, batchSize)
 	txnBatchHandler := srvc1.createBatchMessageHandler(txnBatch)
 
 	// connect nodes
-	addrInfoB := srvc2.host.addrInfo()
+	addrInfoB := addrInfo(srvc2.host)
 	err := srvc1.host.connect(addrInfoB)
 	if failedToDial(err) {
 		time.Sleep(TestBackoffTimeout)

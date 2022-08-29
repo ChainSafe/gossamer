@@ -40,7 +40,7 @@ func TestWSConn_HandleConn(t *testing.T) {
 		`"error":{"code":null,"message":"error StorageAPI not set"},`+
 		`"id":1}`+"\n"), msg)
 
-	wsconn.StorageAPI = modules.NewMockStorageAPI()
+	wsconn.StorageAPI = modules.NewMockeryStorageAPI()
 
 	res, err = wsconn.initStorageChangeListener(1, nil)
 	require.Nil(t, res)
