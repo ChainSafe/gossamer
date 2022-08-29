@@ -155,6 +155,7 @@ func Test_Service_StorageRoot(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			service := tt.service
@@ -900,6 +901,7 @@ func TestServiceInsertKey(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			service := tt.service
@@ -956,6 +958,7 @@ func TestServiceHasKey(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			service := tt.service
