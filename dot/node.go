@@ -58,7 +58,7 @@ type nodeBuilderIface interface {
 	createRuntimeStorage(st *state.Service) (*runtime.NodeStorage, error)
 	loadRuntime(cfg *Config, ns *runtime.NodeStorage, stateSrvc *state.Service, ks *keystore.GlobalKeystore,
 		net *network.Service) error
-	createBlockVerifier(st *state.Service) (*babe.VerificationManager, error)
+	createBlockVerifier(st *state.Service) *babe.VerificationManager
 	createDigestHandler(lvl log.Level, st *state.Service) (*digest.Handler, error)
 	createCoreService(cfg *Config, ks *keystore.GlobalKeystore, st *state.Service, net *network.Service,
 		dh *digest.Handler) (*core.Service, error)
@@ -324,10 +324,7 @@ func newNode(cfg *Config,
 		return nil, err
 	}
 
-	ver, err := builder.createBlockVerifier(stateSrvc)
-	if err != nil {
-		return nil, err
-	}
+	ver := builder.createBlockVerifier(stateSrvc)
 
 	dh, err := builder.createDigestHandler(cfg.Log.DigestLvl, stateSrvc)
 	if err != nil {

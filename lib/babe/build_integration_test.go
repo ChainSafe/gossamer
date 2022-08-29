@@ -31,24 +31,9 @@ func TestSeal(t *testing.T) {
 	kp, err := sr25519.GenerateKeypair()
 	require.NoError(t, err)
 
-	cfg := &ServiceConfig{
-		Keypair: kp,
+	builder := &BlockBuilder{
+		keypair: kp,
 	}
-
-	babeService := createTestService(t, cfg)
-	babeService.epochHandler, err = babeService.initiateAndGetEpochHandler(0)
-	require.NoError(t, err)
-
-	authoringSlots := getAuthoringSlots(babeService.epochHandler.slotToPreRuntimeDigest)
-	require.NotEmpty(t, authoringSlots)
-
-	builder, _ := NewBlockBuilder(
-		babeService.keypair,
-		babeService.transactionState,
-		babeService.blockState,
-		babeService.epochHandler.epochData.authorityIndex,
-		babeService.epochHandler.slotToPreRuntimeDigest[authoringSlots[0]],
-	)
 
 	zeroHash, err := common.HexToHash("0x00")
 	require.NoError(t, err)

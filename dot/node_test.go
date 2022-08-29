@@ -192,8 +192,8 @@ func TestNewNode(t *testing.T) {
 		NodeStorage{}, nil)
 	m.EXPECT().loadRuntime(dotConfig, &runtime.NodeStorage{}, gomock.AssignableToTypeOf(&state.Service{}),
 		ks, gomock.AssignableToTypeOf(&network.Service{})).Return(nil)
-	m.EXPECT().createBlockVerifier(gomock.AssignableToTypeOf(&state.Service{})).Return(&babe.
-		VerificationManager{}, nil)
+	m.EXPECT().createBlockVerifier(gomock.AssignableToTypeOf(&state.Service{})).
+		Return(&babe.VerificationManager{})
 	m.EXPECT().createDigestHandler(log.Critical, gomock.AssignableToTypeOf(&state.Service{})).
 		Return(&digest.Handler{}, nil)
 	m.EXPECT().createCoreService(dotConfig, ks, gomock.AssignableToTypeOf(&state.Service{}),

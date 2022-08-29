@@ -9,14 +9,6 @@ import (
 )
 
 var (
-	// ErrNilBlockState is returned when BlockState is nil
-	ErrNilBlockState = errors.New("cannot have nil BlockState")
-
-	// ErrNilStorageState is returned when StorageState is nil
-	ErrNilStorageState = errors.New("cannot have nil StorageState")
-
-	// ErrNilKeystore is returned when keystore is nil
-	ErrNilKeystore = errors.New("cannot have nil keystore")
 
 	// ErrServiceStopped is returned when the service has been stopped
 	ErrServiceStopped = errors.New("service has been stopped")
@@ -24,27 +16,12 @@ var (
 	// ErrInvalidBlock is returned when a block cannot be verified
 	ErrInvalidBlock = errors.New("could not verify block")
 
-	// ErrNilVerifier is returned when trying to instantiate a Syncer without a Verifier
-	ErrNilVerifier = errors.New("cannot have nil Verifier")
-
-	// ErrNilRuntime is returned when trying to instantiate a Service or Syncer without a runtime
 	ErrNilRuntime = errors.New("cannot have nil runtime")
-
-	// ErrNilBlockProducer is returned when trying to instantiate a block producing Service without a block producer
-	ErrNilBlockProducer = errors.New("cannot have nil BlockProducer")
-
-	// ErrNilConsensusMessageHandler is returned when trying to instantiate a Service without a FinalityMessageHandler
-	ErrNilConsensusMessageHandler = errors.New("cannot have nil ErrNilFinalityMessageHandler")
 
 	ErrNilBlockHandlerParameter = errors.New("unable to handle block due to nil parameter")
 
-	// ErrNilNetwork is returned when the Network interface is nil
-	ErrNilNetwork = errors.New("cannot have nil Network")
-
 	// ErrEmptyRuntimeCode is returned when the storage :code is empty
 	ErrEmptyRuntimeCode = errors.New("new :code is empty")
-
-	errNilCodeSubstitutedState = errors.New("cannot have nil CodeSubstitutedStat")
 )
 
 // ErrNilChannel is returned if a channel is nil

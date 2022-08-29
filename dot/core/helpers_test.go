@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -114,10 +113,6 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		require.NoError(t, err)
 	}
 	cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), cfg.Runtime)
-
-	if cfg.Network == nil {
-		cfg.Network = new(network.Service) // only for nil check in NewService
-	}
 
 	if cfg.CodeSubstitutes == nil {
 		cfg.CodeSubstitutes = make(map[common.Hash]string)

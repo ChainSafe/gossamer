@@ -132,12 +132,6 @@ func Test_Service_StorageRoot(t *testing.T) {
 		expErrMsg     string
 	}{
 		{
-			name:      "nil storage state",
-			service:   &Service{},
-			expErr:    ErrNilStorageState,
-			expErrMsg: ErrNilStorageState.Error(),
-		},
-		{
 			name:          "storage trie state error",
 			service:       &Service{},
 			retErr:        errTestDummyError,

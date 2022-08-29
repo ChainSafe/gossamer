@@ -63,12 +63,11 @@ func (mr *MocknodeBuilderIfaceMockRecorder) createBABEService(cfg, st, ks, cs, t
 }
 
 // createBlockVerifier mocks base method.
-func (m *MocknodeBuilderIface) createBlockVerifier(st *state.Service) (*babe.VerificationManager, error) {
+func (m *MocknodeBuilderIface) createBlockVerifier(st *state.Service) *babe.VerificationManager {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "createBlockVerifier", st)
 	ret0, _ := ret[0].(*babe.VerificationManager)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	return ret0
 }
 
 // createBlockVerifier indicates an expected call of createBlockVerifier.
