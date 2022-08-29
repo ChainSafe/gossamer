@@ -375,7 +375,7 @@ func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 		gomock.AssignableToTypeOf(new(network.TransactionMessage))).
 		AnyTimes()
 
-	cfg := &core.Config{
+	cfg := core.Config{
 		Runtime:              rt,
 		Keystore:             ks,
 		TransactionState:     srvc.Transaction,

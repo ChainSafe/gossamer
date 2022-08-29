@@ -744,7 +744,7 @@ func newAuthorModule(t *testing.T, integrationTestController *integrationTestCon
 
 	codeSubstitutedStateMock := NewMockCodeSubstitutedState(nil)
 
-	cfg := &core.Config{
+	cfg := core.Config{
 		TransactionState:     integrationTestController.stateSrv.Transaction,
 		BlockState:           integrationTestController.stateSrv.Block,
 		StorageState:         integrationTestController.storageState,

@@ -238,7 +238,7 @@ func (nodeBuilder) createCoreService(cfg *Config, ks *keystore.GlobalKeystore,
 	}
 
 	// set core configuration
-	coreConfig := &core.Config{
+	coreConfig := core.Config{
 		LogLvl:               cfg.Log.CoreLvl,
 		BlockState:           st.Block,
 		EpochState:           st.Epoch,

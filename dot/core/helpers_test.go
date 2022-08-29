@@ -130,7 +130,7 @@ func createTestService(t *testing.T, genesisFilePath string,
 
 	cfgCodeSubstitutedState = stateSrvc.Base
 
-	cfg := &Config{
+	cfg := Config{
 		Keystore:             cfgKeystore,
 		LogLvl:               log.Critical,
 		BlockState:           cfgBlockState,
@@ -256,7 +256,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		cfg.CodeSubstitutedState = stateSrvc.Base
 	}
 
-	s, err := NewService(cfg)
+	s, err := NewService(*cfg)
 	require.NoError(t, err)
 
 	return s

@@ -77,7 +77,7 @@ type Config struct {
 
 // NewService returns a new core service that connects the runtime, BABE
 // session, and network service.
-func NewService(cfg *Config) (*Service, error) {
+func NewService(cfg Config) (*Service, error) {
 	logger.Patch(log.SetLevel(cfg.LogLvl))
 
 	blockAddCh := make(chan *types.Block, 256)
