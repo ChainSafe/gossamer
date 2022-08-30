@@ -32,14 +32,14 @@ nobootstrap = false
 nomdns = false
 
 [rpc]
-enabled = true
-external = true
+enabled = false
+external = false
 port = 8545
 host = "localhost"
 modules = ["system", "author", "chain", "state", "rpc", "grandpa", "offchain", "childstate", "syncstate", "payment"]
 ws-port = 8546
-ws = true
-ws-external = true
+ws = false
+ws-external = false
 
 [pprof]
 listening-address = "localhost:6060"
