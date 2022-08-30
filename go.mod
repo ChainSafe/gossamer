@@ -5,7 +5,9 @@ require (
 	github.com/ChainSafe/go-schnorrkel v1.0.1-0.20220711122024-027d287d27bf
 	github.com/OneOfOne/xxhash v1.2.8
 	github.com/breml/rootcerts v0.2.8
+	github.com/btcsuite/btcd/btcutil v1.1.2
 	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce
+	github.com/centrifuge/go-substrate-rpc-client/v4 v4.0.8
 	github.com/chyeh/pubip v0.0.0-20170203095919-b7e679cf541c
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/dgraph-io/badger/v2 v2.2007.4
@@ -16,7 +18,6 @@ require (
 	github.com/fatih/color v1.13.0
 	github.com/go-playground/validator/v10 v10.11.1
 	github.com/golang/mock v1.6.0
-	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-cmp v0.5.9
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
@@ -25,7 +26,6 @@ require (
 	github.com/gtank/merlin v0.1.1
 	github.com/holiman/bloomfilter/v2 v2.0.3
 	github.com/ipfs/go-ds-badger2 v0.1.3
-	github.com/ipfs/go-ipns v0.1.2 //indirect
 	github.com/jpillora/ipfilter v1.2.8
 	github.com/klauspost/compress v1.15.11
 	github.com/libp2p/go-libp2p v0.22.0
@@ -39,16 +39,19 @@ require (
 	github.com/stretchr/testify v1.8.1
 	github.com/urfave/cli v1.22.10
 	github.com/wasmerio/go-ext-wasm v0.3.2-0.20200326095750-0a32be6068ec
+	github.com/whyrusleeping/mdns v0.0.0-20190826153040-b9b60ed33aa9
 	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
 	golang.org/x/text v0.5.0
 	google.golang.org/protobuf v1.28.1
+)
+
+require (
 	github.com/ChainSafe/log15 v1.0.0 // indirect
 	github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6 // indirect
 	github.com/benbjohnson/clock v1.3.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.2.1 // indirect
-	github.com/centrifuge/go-substrate-rpc-client/v4 v4.0.4
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/cheekybits/genny v1.0.0 // indirect
@@ -75,6 +78,7 @@ require (
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
+	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/gopacket v1.1.19 // indirect
 	github.com/gtank/ristretto255 v0.1.2 // indirect
@@ -101,6 +105,7 @@ require (
 	github.com/libp2p/go-cidranger v1.1.0 // indirect
 	github.com/libp2p/go-flow-metrics v0.1.0 // indirect
 	github.com/libp2p/go-libp2p-asn-util v0.2.0 // indirect
+	github.com/libp2p/go-libp2p-core v0.20.0 // indirect
 	github.com/libp2p/go-libp2p-kbucket v0.4.7 // indirect
 	github.com/libp2p/go-libp2p-record v0.2.0 // indirect
 	github.com/libp2p/go-libp2p-routing-helpers v0.2.3 // indirect
@@ -110,7 +115,6 @@ require (
 	github.com/libp2p/go-openssl v0.1.0 // indirect
 	github.com/libp2p/go-reuseport v0.2.0 // indirect
 	github.com/libp2p/go-yamux/v3 v3.1.2 // indirect
-	github.com/libp2p/zeroconf/v2 v2.2.0 // indirect
 	github.com/lucas-clemente/quic-go v0.28.1 // indirect
 	github.com/marten-seemann/qtls-go1-16 v0.1.5 // indirect
 	github.com/marten-seemann/qtls-go1-17 v0.1.2 // indirect
@@ -161,8 +165,6 @@ require (
 	github.com/tomasen/realip v0.0.0-20180522021738-f0c99a92ddce // indirect
 	github.com/vedhavyas/go-subkey v1.0.3 // indirect
 	github.com/whyrusleeping/go-keyspace v0.0.0-20160322163242-5b898ac5add1 // indirect
-	github.com/whyrusleeping/mdns v0.0.0-20190826153040-b9b60ed33aa9
-	github.com/whyrusleeping/multiaddr-filter v0.0.0-20160516205228-e903e4adabd7 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
