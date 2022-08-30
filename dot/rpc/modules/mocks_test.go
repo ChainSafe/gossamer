@@ -361,6 +361,21 @@ func (mr *MockBlockAPIMockRecorder) GetRuntime(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRuntime", reflect.TypeOf((*MockBlockAPI)(nil).GetRuntime), arg0)
 }
 
+// GetRuntimeFromDB mocks base method.
+func (m *MockBlockAPI) GetRuntimeFromDB(arg0 *common.Hash) (runtime.Instance, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRuntimeFromDB", arg0)
+	ret0, _ := ret[0].(runtime.Instance)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetRuntimeFromDB indicates an expected call of GetRuntimeFromDB.
+func (mr *MockBlockAPIMockRecorder) GetRuntimeFromDB(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRuntimeFromDB", reflect.TypeOf((*MockBlockAPI)(nil).GetRuntimeFromDB), arg0)
+}
+
 // HasJustification mocks base method.
 func (m *MockBlockAPI) HasJustification(arg0 common.Hash) (bool, error) {
 	m.ctrl.T.Helper()

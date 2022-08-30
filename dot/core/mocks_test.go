@@ -300,6 +300,21 @@ func (mr *MockBlockStateMockRecorder) GetRuntime(arg0 interface{}) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRuntime", reflect.TypeOf((*MockBlockState)(nil).GetRuntime), arg0)
 }
 
+// GetRuntimeFromDB mocks base method.
+func (m *MockBlockState) GetRuntimeFromDB(arg0 *common.Hash) (runtime.Instance, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRuntimeFromDB", arg0)
+	ret0, _ := ret[0].(runtime.Instance)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetRuntimeFromDB indicates an expected call of GetRuntimeFromDB.
+func (mr *MockBlockStateMockRecorder) GetRuntimeFromDB(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRuntimeFromDB", reflect.TypeOf((*MockBlockState)(nil).GetRuntimeFromDB), arg0)
+}
+
 // GetSlotForBlock mocks base method.
 func (m *MockBlockState) GetSlotForBlock(arg0 common.Hash) (uint64, error) {
 	m.ctrl.T.Helper()

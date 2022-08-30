@@ -14,15 +14,15 @@ import (
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-
-	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 )
 
 const (
@@ -73,7 +73,8 @@ type BlockState struct {
 }
 
 // NewBlockState will create a new BlockState backed by the database located at basePath
-func NewBlockState(db chaindb.Database, trs *Tries, telemetry telemetry.Client, storageState *StorageState) (*BlockState, error) {
+func NewBlockState(db chaindb.Database, trs *Tries, telemetry telemetry.Client,
+	storageState *StorageState) (*BlockState, error) {
 	bs := &BlockState{
 		dbPath:                     db.Path(),
 		baseState:                  NewBaseState(db),
@@ -654,6 +655,7 @@ func (bs *BlockState) GetRuntime(hash *common.Hash) (runtime.Instance, error) {
 	return bs.bt.GetBlockRuntime(*hash)
 }
 
+// GetRuntimeFromDB gets the runtime for the corresponding block hash from DB
 func (bs *BlockState) GetRuntimeFromDB(blockHash *common.Hash) (instance runtime.Instance, err error) {
 	var stateRootHash *common.Hash
 	if blockHash != nil {
@@ -668,19 +670,15 @@ func (bs *BlockState) GetRuntimeFromDB(blockHash *common.Hash) (instance runtime
 		return nil, fmt.Errorf("getting trie state: %w", err)
 	}
 
-	var blockHashValue common.Hash
-	if blockHash != nil {
-		blockHashValue = *blockHash
-	} else {
-		blockHashValue = bs.BestBlockHash()
+	code := trieState.LoadCode()
+	config := wasmer.Config{
+		LogLvl: log.DoNotChange,
 	}
-	bs.storageState.LoadCode(&blockHashValue)
-	instance, err = blockState.GetRuntime(blockHashValue)
+	instance, err = wasmer.NewInstance(code, config)
 	if err != nil {
-		return nil, fmt.Errorf("getting runtime: %w", err)
+		return nil, fmt.Errorf("creating runtime instance: %w", err)
 	}
 
-	instance.SetContextStorage(trieState)
 	return instance, nil
 }
 
