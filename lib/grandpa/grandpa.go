@@ -475,7 +475,7 @@ func (s *Service) playGrandpaRound() error {
 	defer close(cancel)
 
 	performCh := s.receiveVoteMessages(cancel)
-	go s.sendPrevoteMessage(vm, performCh, cancel)
+	go s.sendPrevoteMessage(vm, cancel)
 
 	for {
 		select {
@@ -483,7 +483,11 @@ func (s *Service) playGrandpaRound() error {
 		case <-s.ctx.Done():
 			return nil
 
-		case action := <-performCh:
+		case action, ok := <-performCh:
+			if !ok {
+				break
+			}
+
 			switch action {
 			case determinePrecommit:
 				pc, err := s.determinePreCommit()
@@ -536,7 +540,7 @@ func (s *Service) sendPrecommitMessage(vm *VoteMessage) {
 	}
 }
 
-func (s *Service) sendPrevoteMessage(vm *VoteMessage, perform <-chan action, cancel <-chan struct{}) {
+func (s *Service) sendPrevoteMessage(vm *VoteMessage, cancel <-chan struct{}) {
 	logger.Debugf("sending pre-vote message %s...", vm)
 
 	timer := time.NewTimer(s.interval * 4)
@@ -549,8 +553,6 @@ func (s *Service) sendPrevoteMessage(vm *VoteMessage, perform <-chan action, can
 	// no matter the output of `perform` channel we should stop sending prevotes
 	select {
 	case <-timer.C:
-	case <-perform:
-		return
 	case <-cancel:
 		return
 	}
