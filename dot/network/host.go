@@ -18,13 +18,13 @@ import (
 	"github.com/dgraph-io/ristretto"
 	badger "github.com/ipfs/go-ds-badger2"
 	"github.com/libp2p/go-libp2p"
-	libp2phost "github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/metrics"
-	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/peerstore"
-	"github.com/libp2p/go-libp2p-core/protocol"
-	"github.com/libp2p/go-libp2p-peerstore/pstoreds"
+	libp2phost "github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/metrics"
+	"github.com/libp2p/go-libp2p/core/network"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/peerstore"
+	"github.com/libp2p/go-libp2p/core/protocol"
+	"github.com/libp2p/go-libp2p/p2p/host/peerstore/pstoremem"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
@@ -159,7 +159,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		return nil, err
 	}
 
-	ps, err := pstoreds.NewPeerstore(ctx, ds, pstoreds.DefaultOpts())
+	ps, err := pstoremem.NewPeerstore(ctx, ds, pstoremem.WithMaxProtocols(1024))
 	if err != nil {
 		return nil, err
 	}
@@ -259,7 +259,7 @@ func (h *host) close() error {
 }
 
 // registerStreamHandler registers the stream handler for the given protocol id.
-func (h *host) registerStreamHandler(pid protocol.ID, handler func(libp2pnetwork.Stream)) {
+func (h *host) registerStreamHandler(pid protocol.ID, handler func(network.Stream)) {
 	h.p2pHost.SetStreamHandler(pid, handler)
 }
 
@@ -288,7 +288,7 @@ func (h *host) bootstrap() {
 
 // send creates a new outbound stream with the given peer and writes the message. It also returns
 // the newly created stream.
-func (h *host) send(p peer.ID, pid protocol.ID, msg Message) (libp2pnetwork.Stream, error) {
+func (h *host) send(p peer.ID, pid protocol.ID, msg Message) (network.Stream, error) {
 	// open outbound stream with host protocol id
 	stream, err := h.p2pHost.NewStream(h.ctx, p, pid)
 	if err != nil {
@@ -312,7 +312,7 @@ func (h *host) send(p peer.ID, pid protocol.ID, msg Message) (libp2pnetwork.Stre
 	return stream, nil
 }
 
-func (h *host) writeToStream(s libp2pnetwork.Stream, msg Message) error {
+func (h *host) writeToStream(s network.Stream, msg Message) error {
 	encMsg, err := msg.Encode()
 	if err != nil {
 		return err

@@ -14,7 +14,7 @@ import (
 	"time"
 
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/peer"
 
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/network"
