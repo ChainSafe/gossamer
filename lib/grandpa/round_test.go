@@ -357,12 +357,12 @@ func TestPlayGrandpaRound(t *testing.T) {
 			producedCommitMessages := make([]*CommitMessage, len(grandpaServices))
 			for idx, grandpaService := range grandpaServices {
 				idx := idx
-				neighbors := neighbourServices[idx]
-				tt.defineBlockTree(t, grandpaServices[idx].blockState, neighbors)
+				neighbours := neighbourServices[idx]
+				tt.defineBlockTree(t, grandpaServices[idx].blockState, neighbours)
 
 				// if the service is an equivocator it should send a different vote
 				// into the same round to all its neighbour peers
-				serviceNetworkMock := func(serviceIdx int, neighbors []*Service,
+				serviceNetworkMock := func(serviceIdx int, neighbours []*Service,
 					equivocateVote *networkVoteMessage) func(any) {
 					return func(arg0 any) {
 						consensusMessage, ok := arg0.(*network.ConsensusMessage)
@@ -373,7 +373,7 @@ func TestPlayGrandpaRound(t *testing.T) {
 
 						switch msg := message.(type) {
 						case *VoteMessage:
-							for _, neighbour := range neighbors {
+							for _, neighbour := range neighbours {
 								voteMessage := &networkVoteMessage{
 									from: peer.ID(fmt.Sprint(serviceIdx)),
 									msg:  msg,
@@ -431,7 +431,7 @@ func TestPlayGrandpaRound(t *testing.T) {
 				grandpaService.network = mockNet
 				mockNet.EXPECT().
 					GossipMessage(gomock.Any()).
-					DoAndReturn(serviceNetworkMock(idx, neighbors, equivocatedVoteMessage)).
+					DoAndReturn(serviceNetworkMock(idx, neighbours, equivocatedVoteMessage)).
 					AnyTimes()
 			}
 
@@ -552,10 +552,10 @@ func TestPlayGrandpaRoundMultipleRounds(t *testing.T) {
 
 	neighbourServices := make([][]*Service, len(grandpaServices))
 	for idx := range grandpaServices {
-		neighbors := make([]*Service, len(grandpaServices)-1)
-		copy(neighbors, grandpaServices[:idx])
-		copy(neighbors[idx:], grandpaServices[idx+1:])
-		neighbourServices[idx] = neighbors
+		neighbours := make([]*Service, len(grandpaServices)-1)
+		copy(neighbours, grandpaServices[:idx])
+		copy(neighbours[idx:], grandpaServices[idx+1:])
+		neighbourServices[idx] = neighbours
 	}
 
 	const totalRounds = 10
@@ -571,13 +571,13 @@ func TestPlayGrandpaRoundMultipleRounds(t *testing.T) {
 		}
 
 		// every grandpa service should produce a commit message
-		// indicating that it achieved a finalization in the round
+		// indicating that it achieved a finalisation in the round
 		producedCommitMessages := make([]*CommitMessage, len(grandpaServices))
 		for idx, grandpaService := range grandpaServices {
 			idx := idx
-			neighbors := neighbourServices[idx]
+			neighbours := neighbourServices[idx]
 
-			serviceNetworkMock := func(serviceIdx int, neighbors []*Service) func(any) {
+			serviceNetworkMock := func(serviceIdx int, neighbours []*Service) func(any) {
 				return func(arg0 any) {
 					consensusMessage, ok := arg0.(*network.ConsensusMessage)
 					require.True(t, ok, "expecting *network.ConsensusMessage, got %T", arg0)
@@ -587,14 +587,14 @@ func TestPlayGrandpaRoundMultipleRounds(t *testing.T) {
 
 					switch msg := message.(type) {
 					case *VoteMessage:
-						for _, neighbor := range neighbors {
+						for _, neighbour := range neighbours {
 							voteMessage := &networkVoteMessage{
 								from: peer.ID(fmt.Sprint(serviceIdx)),
 								msg:  msg,
 							}
 
 							select {
-							case neighbor.in <- voteMessage:
+							case neighbour.in <- voteMessage:
 							default:
 							}
 						}
@@ -618,7 +618,7 @@ func TestPlayGrandpaRoundMultipleRounds(t *testing.T) {
 			grandpaService.network = mockNet
 			mockNet.EXPECT().
 				GossipMessage(gomock.Any()).
-				Do(serviceNetworkMock(idx, neighbors)).
+				Do(serviceNetworkMock(idx, neighbours)).
 				AnyTimes()
 		}
 
