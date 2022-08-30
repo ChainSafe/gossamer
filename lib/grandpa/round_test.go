@@ -27,8 +27,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var testTimeout = 20 * time.Second
-
 type testJustificationRequest struct {
 	to  peer.ID
 	num uint32
@@ -92,7 +90,7 @@ func (*testNetwork) RegisterNotificationsProtocol(
 func (n *testNetwork) SendBlockReqestByHash(_ common.Hash) {}
 
 func setupGrandpa(t *testing.T, kp *ed25519.Keypair) (
-	*Service, chan *networkVoteMessage, chan GrandpaMessage, chan GrandpaMessage) {
+	*Service, chan *networkVoteMessage) {
 	st := newTestState(t)
 	net := newTestNetwork(t)
 
@@ -118,7 +116,7 @@ func setupGrandpa(t *testing.T, kp *ed25519.Keypair) (
 
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
-	return gs, gs.in, net.out, net.finalised
+	return gs, gs.in
 }
 
 func TestGrandpa_BaseCase(t *testing.T) {
@@ -132,7 +130,7 @@ func TestGrandpa_BaseCase(t *testing.T) {
 	precommits := new(sync.Map)
 
 	for i, gs := range gss {
-		gs, _, _, _ = setupGrandpa(t, kr.Keys[i])
+		gs, _ = setupGrandpa(t, kr.Keys[i])
 		gss[i] = gs
 		state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 15, false)
 		pv, err := gs.determinePreVote()
@@ -177,7 +175,7 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 	precommits := new(sync.Map)
 
 	for i, gs := range gss {
-		gs, _, _, _ = setupGrandpa(t, kr.Keys[i])
+		gs, _ = setupGrandpa(t, kr.Keys[i])
 		gss[i] = gs
 
 		r := uint(rand.Intn(2)) // 0 or 1
@@ -227,7 +225,7 @@ func TestPlayGrandpaRound(t *testing.T) {
 	tests := map[string]struct {
 		voters          []*ed25519.Keypair
 		whoEquivocates  map[int]struct{}
-		defineBlockTree func(t *testing.T, blockState BlockState, neighborServices []*Service)
+		defineBlockTree func(t *testing.T, blockState BlockState, neighbourServices []*Service)
 	}{
 		// this asserts that all validators finalise the same block if they all see the
 		// same pre-votes and pre-commits, even if their chains are different lengths
@@ -253,7 +251,7 @@ func TestPlayGrandpaRound(t *testing.T) {
 				ed25519Keyring.Charlie().(*ed25519.Keypair),
 				ed25519Keyring.Ian().(*ed25519.Keypair),
 			},
-			defineBlockTree: func(t *testing.T, blockState BlockState, neighborServices []*Service) {
+			defineBlockTree: func(t *testing.T, blockState BlockState, neighbourServices []*Service) {
 				const diff uint = 5
 				rand := uint(rand.Intn(int(diff)))
 
@@ -262,9 +260,9 @@ func TestPlayGrandpaRound(t *testing.T) {
 				headers, _ := state.AddBlocksToState(t, blockState.(*state.BlockState),
 					baseLenght+rand, withBranches)
 
-				// sync the created blocks with the neighbor services
+				// sync the created blocks with the neighbour services
 				// letting them know about those blocks
-				for _, ns := range neighborServices {
+				for _, ns := range neighbourServices {
 					for _, header := range headers {
 						block := &types.Block{
 							Header: *header,
@@ -294,7 +292,7 @@ func TestPlayGrandpaRound(t *testing.T) {
 				// this creates a tree with 2 branches starting at depth 2
 				branches := map[uint]int{2: 1}
 				const baseLenght = 4
-				state.AddBlocksToStateWithFixedBranches(t, blockState.(*state.BlockState), 4, branches)
+				state.AddBlocksToStateWithFixedBranches(t, blockState.(*state.BlockState), baseLenght, branches)
 			},
 		},
 	}
@@ -348,22 +346,22 @@ func TestPlayGrandpaRound(t *testing.T) {
 				grandpaServices[idx].paused.Store(false)
 			}
 
-			neighborServices := make([][]*Service, len(grandpaServices))
+			neighbourServices := make([][]*Service, len(grandpaServices))
 			for idx := range grandpaServices {
-				neighbors := make([]*Service, len(grandpaServices)-1)
-				copy(neighbors, grandpaServices[:idx])
-				copy(neighbors[idx:], grandpaServices[idx+1:])
-				neighborServices[idx] = neighbors
+				neighbours := make([]*Service, len(grandpaServices)-1)
+				copy(neighbours, grandpaServices[:idx])
+				copy(neighbours[idx:], grandpaServices[idx+1:])
+				neighbourServices[idx] = neighbours
 			}
 
 			producedCommitMessages := make([]*CommitMessage, len(grandpaServices))
 			for idx, grandpaService := range grandpaServices {
 				idx := idx
-				neighbors := neighborServices[idx]
+				neighbors := neighbourServices[idx]
 				tt.defineBlockTree(t, grandpaServices[idx].blockState, neighbors)
 
 				// if the service is an equivocator it should send a different vote
-				// into the same round to all its neighbor peers
+				// into the same round to all its neighbour peers
 				serviceNetworkMock := func(serviceIdx int, neighbors []*Service,
 					equivocateVote *networkVoteMessage) func(any) {
 					return func(arg0 any) {
@@ -375,20 +373,20 @@ func TestPlayGrandpaRound(t *testing.T) {
 
 						switch msg := message.(type) {
 						case *VoteMessage:
-							for _, neighbor := range neighbors {
+							for _, neighbour := range neighbors {
 								voteMessage := &networkVoteMessage{
 									from: peer.ID(fmt.Sprint(serviceIdx)),
 									msg:  msg,
 								}
 
 								select {
-								case neighbor.in <- voteMessage:
+								case neighbour.in <- voteMessage:
 								default:
 								}
 
 								if equivocateVote != nil {
 									select {
-									case neighbor.in <- equivocateVote:
+									case neighbour.in <- equivocateVote:
 									default:
 									}
 								}
@@ -442,7 +440,7 @@ func TestPlayGrandpaRound(t *testing.T) {
 				wg.Add(1)
 
 				// executes playGrandpaRound in a goroutine and
-				// assert the results after the services reach a finalization
+				// assert the results after the services reach a finalisation
 				go func(wg *sync.WaitGroup, gs *Service) {
 					defer wg.Done()
 					defer close(gs.in)
@@ -552,12 +550,12 @@ func TestPlayGrandpaRoundMultipleRounds(t *testing.T) {
 			baseLenght, withBranches)
 	}
 
-	neighborServices := make([][]*Service, len(grandpaServices))
+	neighbourServices := make([][]*Service, len(grandpaServices))
 	for idx := range grandpaServices {
 		neighbors := make([]*Service, len(grandpaServices)-1)
 		copy(neighbors, grandpaServices[:idx])
 		copy(neighbors[idx:], grandpaServices[idx+1:])
-		neighborServices[idx] = neighbors
+		neighbourServices[idx] = neighbors
 	}
 
 	const totalRounds = 10
@@ -573,11 +571,11 @@ func TestPlayGrandpaRoundMultipleRounds(t *testing.T) {
 		}
 
 		// every grandpa service should produce a commit message
-		// indicating that it achived a finalization in the round
+		// indicating that it achieved a finalization in the round
 		producedCommitMessages := make([]*CommitMessage, len(grandpaServices))
 		for idx, grandpaService := range grandpaServices {
 			idx := idx
-			neighbors := neighborServices[idx]
+			neighbors := neighbourServices[idx]
 
 			serviceNetworkMock := func(serviceIdx int, neighbors []*Service) func(any) {
 				return func(arg0 any) {
@@ -628,7 +626,7 @@ func TestPlayGrandpaRoundMultipleRounds(t *testing.T) {
 		for _, grandpaService := range grandpaServices {
 			wg.Add(1)
 			// executes playGrandpaRound in a goroutine and
-			// assert the results after the services reach a finalization
+			// assert the results after the services reach a finalisation
 			go func(wg *sync.WaitGroup, gs *Service) {
 				defer wg.Done()
 				err := gs.playGrandpaRound()
@@ -660,13 +658,13 @@ func TestPlayGrandpaRoundMultipleRounds(t *testing.T) {
 	}
 }
 
-// assertChainGrowth ensure that each service reach the same finalization result
+// assertChainGrowth ensure that each service reach the same finalisation result
 // and that the result belongs to the same chain as the previously finalized block
 func assertSameFinalizationAndChainGrowth(t *testing.T, services []*Service, currentRount, setID uint64) {
 	finalizedHeaderCurrentRound := make([]*types.Header, len(services))
 	for idx, grandpaService := range services {
 		finalizedHeader, err := grandpaService.blockState.GetFinalisedHeader(
-			uint64(currentRount), setID)
+			currentRount, setID)
 		require.NoError(t, err)
 		require.NotNil(t, finalizedHeader, "round %d does not contain an header", currentRount)
 		finalizedHeaderCurrentRound[idx] = finalizedHeader

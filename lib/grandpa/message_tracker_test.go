@@ -38,7 +38,7 @@ func TestMessageTracker_ValidateMessage(t *testing.T) {
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
-	gs, _, _, _ := setupGrandpa(t, kr.Bob().(*ed25519.Keypair))
+	gs, _ := setupGrandpa(t, kr.Bob().(*ed25519.Keypair))
 	state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 3, false)
 	gs.tracker = newTracker(gs.blockState, gs.messageHandler)
 
@@ -62,7 +62,7 @@ func TestMessageTracker_SendMessage(t *testing.T) {
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
-	gs, in, _, _ := setupGrandpa(t, kr.Bob().(*ed25519.Keypair))
+	gs, in := setupGrandpa(t, kr.Bob().(*ed25519.Keypair))
 	state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 3, false)
 	gs.tracker = newTracker(gs.blockState, gs.messageHandler)
 	gs.tracker.start()
@@ -113,7 +113,7 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
-	gs, _, _, _ := setupGrandpa(t, kr.Bob().(*ed25519.Keypair))
+	gs, _ := setupGrandpa(t, kr.Bob().(*ed25519.Keypair))
 	state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 3, false)
 	err = gs.Start()
 	require.NoError(t, err)
@@ -166,7 +166,7 @@ func TestMessageTracker_MapInsideMap(t *testing.T) {
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
-	gs, _, _, _ := setupGrandpa(t, kr.Bob().(*ed25519.Keypair))
+	gs, _ := setupGrandpa(t, kr.Bob().(*ed25519.Keypair))
 	state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 3, false)
 	gs.tracker = newTracker(gs.blockState, gs.messageHandler)
 
@@ -194,7 +194,7 @@ func TestMessageTracker_handleTick(t *testing.T) {
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
-	gs, in, _, _ := setupGrandpa(t, kr.Bob().(*ed25519.Keypair))
+	gs, in := setupGrandpa(t, kr.Bob().(*ed25519.Keypair))
 	gs.tracker = newTracker(gs.blockState, gs.messageHandler)
 
 	testHash := common.Hash{1, 2, 3}
