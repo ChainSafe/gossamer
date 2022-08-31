@@ -27,95 +27,13 @@ func TestNewService(t *testing.T) {
 		err        error
 	}{
 		{
-			name: "nil Network",
-			cfgBuilder: func(_ *gomock.Controller) *Config {
-				return &Config{}
-			},
-			err: errNilNetwork,
-		},
-		{
-			name: "nil BlockState",
-			cfgBuilder: func(_ *gomock.Controller) *Config {
-				return &Config{
-					Network: NewMockNetwork(nil),
-				}
-			},
-			err: errNilBlockState,
-		},
-		{
-			name: "nil StorageState",
-			cfgBuilder: func(_ *gomock.Controller) *Config {
-				return &Config{
-					Network:    NewMockNetwork(nil),
-					BlockState: NewMockBlockState(nil),
-				}
-			},
-			err: errNilStorageState,
-		},
-		{
-			name: "nil FinalityGadget",
-			cfgBuilder: func(_ *gomock.Controller) *Config {
-				return &Config{
-					Network:      NewMockNetwork(nil),
-					BlockState:   NewMockBlockState(nil),
-					StorageState: NewMockStorageState(nil),
-				}
-			},
-			err: errNilFinalityGadget,
-		},
-		{
-			name: "nil TransactionState",
-			cfgBuilder: func(_ *gomock.Controller) *Config {
-				return &Config{
-					Network:        NewMockNetwork(nil),
-					BlockState:     NewMockBlockState(nil),
-					StorageState:   NewMockStorageState(nil),
-					FinalityGadget: NewMockFinalityGadget(nil),
-				}
-			},
-			err: errNilTransactionState,
-		},
-		{
-			name: "nil Verifier",
-			cfgBuilder: func(_ *gomock.Controller) *Config {
-				return &Config{
-					Network:          NewMockNetwork(nil),
-					BlockState:       NewMockBlockState(nil),
-					StorageState:     NewMockStorageState(nil),
-					FinalityGadget:   NewMockFinalityGadget(nil),
-					TransactionState: NewMockTransactionState(nil),
-				}
-			},
-			err: errNilVerifier,
-		},
-		{
-			name: "nil BlockImportHandler",
-			cfgBuilder: func(_ *gomock.Controller) *Config {
-				return &Config{
-					Network:          NewMockNetwork(nil),
-					BlockState:       NewMockBlockState(nil),
-					StorageState:     NewMockStorageState(nil),
-					FinalityGadget:   NewMockFinalityGadget(nil),
-					TransactionState: NewMockTransactionState(nil),
-					BabeVerifier:     NewMockBabeVerifier(nil),
-				}
-			},
-			err: errNilBlockImportHandler,
-		},
-		{
 			name: "working example",
 			cfgBuilder: func(ctrl *gomock.Controller) *Config {
 				blockState := NewMockBlockState(ctrl)
 				blockState.EXPECT().GetFinalisedNotifierChannel().
 					Return(make(chan *types.FinalisationInfo))
 				return &Config{
-					Network:            NewMockNetwork(nil),
-					BlockState:         blockState,
-					StorageState:       NewMockStorageState(nil),
-					FinalityGadget:     NewMockFinalityGadget(nil),
-					TransactionState:   NewMockTransactionState(nil),
-					BabeVerifier:       NewMockBabeVerifier(nil),
-					BlockImportHandler: NewMockBlockImportHandler(nil),
+					BlockState: blockState,
 				}
 			},
 			want: &Service{},

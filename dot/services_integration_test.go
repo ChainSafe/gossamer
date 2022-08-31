@@ -138,8 +138,7 @@ func TestCreateBlockVerifier(t *testing.T) {
 	require.NoError(t, err)
 	stateSrvc.Epoch = &state.EpochState{}
 
-	_, err = builder.createBlockVerifier(stateSrvc)
-	require.NoError(t, err)
+	_ = builder.createBlockVerifier(stateSrvc)
 }
 
 func TestCreateSyncService(t *testing.T) {
@@ -158,8 +157,7 @@ func TestCreateSyncService(t *testing.T) {
 	ks := keystore.NewGlobalKeystore()
 	require.NotNil(t, ks)
 
-	ver, err := builder.createBlockVerifier(stateSrvc)
-	require.NoError(t, err)
+	ver := builder.createBlockVerifier(stateSrvc)
 
 	dh, err := builder.createDigestHandler(cfg.Log.DigestLvl, stateSrvc)
 	require.NoError(t, err)

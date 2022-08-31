@@ -58,9 +58,7 @@ func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *
 
 	logger.Patch(log.SetLevel(defaultTestLogLvl))
 
-	vm, err := NewVerificationManager(dbSrv.Block, dbSrv.Epoch)
-	require.NoError(t, err)
-	return vm
+	return NewVerificationManager(dbSrv.Block, dbSrv.Epoch)
 }
 
 // TODO: add test against latest dev runtime
@@ -369,12 +367,11 @@ func TestVerifyPimarySlotWinner(t *testing.T) {
 	}
 	epochData.authorities = Authorities
 
-	verifier, err := newVerifier(babeService.blockState, testEpochIndex, &verifierInfo{
+	verifier := newVerifier(babeService.blockState, testEpochIndex, &verifierInfo{
 		authorities: epochData.authorities,
 		threshold:   epochData.threshold,
 		randomness:  epochData.randomness,
 	})
-	require.NoError(t, err)
 
 	ok, err = verifier.verifyPrimarySlotWinner(d.AuthorityIndex, slotNumber, d.VRFOutput, d.VRFProof)
 	require.NoError(t, err)
@@ -391,12 +388,11 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 
 	block := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1, testEpochIndex, epochData)
 
-	verifier, err := newVerifier(babeService.blockState, testEpochIndex, &verifierInfo{
+	verifier := newVerifier(babeService.blockState, testEpochIndex, &verifierInfo{
 		authorities: epochData.authorities,
 		threshold:   epochData.threshold,
 		randomness:  epochData.randomness,
 	})
-	require.NoError(t, err)
 
 	err = verifier.verifyAuthorshipRight(&block.Header)
 	require.NoError(t, err)
@@ -430,12 +426,11 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	err = babeService.blockState.AddBlock(block)
 	require.NoError(t, err)
 
-	verifier, err := newVerifier(babeService.blockState, testEpochIndex, &verifierInfo{
+	verifier := newVerifier(babeService.blockState, testEpochIndex, &verifierInfo{
 		authorities: epochData.authorities,
 		threshold:   epochData.threshold,
 		randomness:  epochData.randomness,
 	})
-	require.NoError(t, err)
 
 	err = verifier.verifyAuthorshipRight(&block.Header)
 	require.NoError(t, err)
@@ -515,8 +510,7 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 
 	digestHandler.Start()
 
-	verificationManager, err := NewVerificationManager(stateService.Block, epochState)
-	require.NoError(t, err)
+	verificationManager := NewVerificationManager(stateService.Block, epochState)
 
 	/*
 	* lets issue different blocks starting from genesis (a fork)
