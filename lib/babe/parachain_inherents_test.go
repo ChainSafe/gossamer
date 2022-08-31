@@ -4,10 +4,12 @@
 package babe
 
 import (
+	"bytes"
 	"fmt"
 	reflect "reflect"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
@@ -236,4 +238,42 @@ func TestValidityAttestation(t *testing.T) {
 		})
 	}
 
+}
+
+func TestParachainInherents(t *testing.T) {
+	expectedbytes := []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+
+	// corresponding rust struct
+	//
+	// let para_int: polkadot_primitives::v2::InherentData = polkadot_primitives::v2::InherentData {
+	// 	bitfields: Vec::new(),
+	// 	backed_candidates: Vec::new(),
+	// 	disputes: Vec::new(),
+	// 	parent_header: polkadot_core_primitives::Header {
+	// 	   number: 0,
+	// 	   digest: Default::default(),
+	// 	   extrinsics_root: Default::default(),
+	// 	   parent_hash: Default::default(),
+	// 	   state_root : Default::default(),
+	//    },
+	// };
+
+	parachainInherent := ParachainInherentData{
+		Bitfields:        []UncheckedSignedAvailabilityBitfield{},
+		BackedCandidates: []BackedCandidate{},
+		Disputes:         MultiDisputeStatementSet{},
+		ParentHeader: types.Header{
+			ParentHash:     common.Hash{},
+			Number:         0,
+			StateRoot:      common.Hash{},
+			ExtrinsicsRoot: common.Hash{},
+			Digest:         scale.VaryingDataTypeSlice{},
+		},
+	}
+
+	encoded, err := scale.Marshal(parachainInherent)
+	require.NoError(t, err)
+
+	require.Equal(t, len(expectedbytes), len(encoded))
+	require.True(t, bytes.Equal(encoded, expectedbytes))
 }

@@ -943,12 +943,6 @@ func ext_trie_blake2_256_ordered_root_version_2(context unsafe.Pointer, dataSpan
 	return C.int32_t(ptr)
 }
 
-// func ext_trie_blake2_256_ordered_root_version_2(context unsafe.Pointer,
-// 	dataSpan C.int64_t, version C.int32_t) C.f {
-// 	// TODO: update to use state trie version 1 (#2418)
-// 	return ext_trie_blake2_256_ordered_root_version_1(context, dataSpan)
-// }
-
 //export ext_trie_blake2_256_verify_proof_version_1
 func ext_trie_blake2_256_verify_proof_version_1(context unsafe.Pointer,
 	rootSpan C.int32_t, proofSpan, keySpan, valueSpan C.int64_t) C.int32_t {

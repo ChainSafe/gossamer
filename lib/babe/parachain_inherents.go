@@ -343,5 +343,5 @@ type ParachainInherentData struct {
 	// Sets of dispute votes for inclusion,
 	Disputes MultiDisputeStatementSet `scale:"3"` // []DisputeStatementSet
 	// The parent block header. Used for checking state proofs.
-	ParentHeader *types.Header `scale:"4"`
+	ParentHeader types.Header `scale:"4"`
 }
