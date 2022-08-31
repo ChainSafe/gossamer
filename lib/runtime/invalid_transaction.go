@@ -5,7 +5,6 @@ package runtime
 
 import (
 	"errors"
-
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -142,5 +141,5 @@ func (i *InvalidTransaction) Error() string {
 		return errInvalidMandatoryDispatch.Error()
 	}
 
-	return errInvalidResult.Error()
+	panic(errInvalidResult)
 }

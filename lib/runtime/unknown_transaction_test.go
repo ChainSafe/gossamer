@@ -15,28 +15,29 @@ func TestUnknownTransactionErrors(t *testing.T) {
 	testCases := []struct {
 		name        string
 		test        []byte
-		expErr      error
+		expErr      bool
+		expErrMsg   string
 		expValidity *transaction.Validity
 	}{
 		{
-			name:   "lookup failed",
-			test:   []byte{1, 1, 0},
-			expErr: errLookupFailed,
+			name:      "lookup failed",
+			test:      []byte{1, 1, 0},
+			expErrMsg: "lookup failed",
+			expErr:    true,
 		},
 	}
 
 	for _, c := range testCases {
 		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
 			validity, err := UnmarshalTransactionValidity(c.test)
-			if c.expErr == nil {
+			if !c.expErr {
 				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
+				require.EqualError(t, err, c.expErrMsg)
 			}
 
-			var valErr string
-			if err != nil {
-				valErr = err.Error()
-			}
-			require.Equal(t, c.expErr.Error(), valErr)
 			require.Equal(t, c.expValidity, validity)
 		})
 	}

@@ -15,13 +15,15 @@ func TestInvalidTransactionErrors(t *testing.T) {
 	testCases := []struct {
 		name        string
 		test        []byte
-		expErr      error
+		expErr      bool
+		expErrMsg   string
 		expValidity *transaction.Validity
 	}{
 		{
-			name:   "ancient birth block",
-			test:   []byte{1, 0, 5},
-			expErr: errAncientBirthBlock,
+			name:      "ancient birth block",
+			test:      []byte{1, 0, 5},
+			expErrMsg: "ancient birth block",
+			expErr:    true,
 		},
 	}
 
@@ -30,15 +32,13 @@ func TestInvalidTransactionErrors(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 			validity, err := UnmarshalTransactionValidity(c.test)
-			if c.expErr == nil {
+			if !c.expErr {
 				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
+				require.EqualError(t, err, c.expErrMsg)
 			}
 
-			var valErr string
-			if err != nil {
-				valErr = err.Error()
-			}
-			require.Equal(t, c.expErr.Error(), valErr)
 			require.Equal(t, c.expValidity, validity)
 		})
 	}

@@ -82,5 +82,5 @@ func (u *UnknownTransaction) Error() string {
 		return newUnknownError(val).Error()
 	}
 
-	return errInvalidResult.Error()
+	panic(errInvalidResult)
 }
