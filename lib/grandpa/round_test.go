@@ -443,13 +443,16 @@ func TestPlayGrandpaRound(t *testing.T) {
 				// assert the results after the services reach a finalisation
 				go func(wg *sync.WaitGroup, gs *Service) {
 					defer wg.Done()
-					defer close(gs.in)
 					err := gs.playGrandpaRound()
 					require.NoError(t, err)
 				}(wg, grandpaService)
 			}
 
 			wg.Wait()
+
+			for _, grandpaService := range grandpaServices {
+				close(grandpaService.in)
+			}
 
 			var latestHash common.Hash = grandpaServices[0].head.Hash()
 			for _, grandpaService := range grandpaServices[1:] {

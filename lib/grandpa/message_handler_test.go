@@ -282,8 +282,7 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
-	h := NewMessageHandler(gs, st.Block, telemetryMock)
-	out, err := h.handleMessage("", fm)
+	out, err := gs.messageHandler.handleMessage("", fm)
 	require.NoError(t, err)
 	require.Nil(t, out)
 

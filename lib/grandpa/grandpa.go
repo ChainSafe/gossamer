@@ -164,7 +164,7 @@ func NewService(cfg *Config) (*Service, error) {
 		bestFinalCandidate: make(map[uint64]*Vote),
 		head:               head,
 		in:                 make(chan *networkVoteMessage, 1024),
-		receivedCommit:     make(chan *CommitMessage),
+		receivedCommit:     make(chan *CommitMessage, 1024),
 		resumed:            make(chan struct{}),
 		network:            cfg.Network,
 		finalisedCh:        finalisedCh,
