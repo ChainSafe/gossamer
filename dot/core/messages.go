@@ -42,6 +42,9 @@ func (s *Service) validateTransaction(peerID peer.ID, head *types.Header, rt Run
 					Value:  peerset.BadTransactionValue,
 					Reason: peerset.BadTransactionReason,
 				}, peerID)
+			case runtime.UnknownTransaction: // do nothing
+			default:
+				panic(fmt.Sprintf("unsupported transaction validity error: %T", txnValidityErr.Value()))
 			}
 		}
 		return nil, false, nil

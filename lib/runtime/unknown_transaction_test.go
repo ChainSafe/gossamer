@@ -12,6 +12,7 @@ import (
 )
 
 func TestUnknownTransactionErrors(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		name        string
 		test        []byte

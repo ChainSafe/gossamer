@@ -114,9 +114,10 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 	testEmptyHeader := types.NewEmptyHeader()
 	testExtrinsic := []types.Extrinsic{{1, 2, 3}}
 
-	runtimeMock := NewMockRuntimeInstance(gomock.NewController(t))
-	runtimeMock2 := NewMockRuntimeInstance(gomock.NewController(t))
-	runtimeMock3 := NewMockRuntimeInstance(gomock.NewController(t))
+	ctrl := gomock.NewController(t)
+	runtimeMock := NewMockRuntimeInstance(ctrl)
+	runtimeMock2 := NewMockRuntimeInstance(ctrl)
+	runtimeMock3 := NewMockRuntimeInstance(ctrl)
 
 	transactionValidityErr := runtime.NewTransactionValidityError()
 	invalidTransaction := runtime.NewInvalidTransaction()
@@ -367,9 +368,6 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 				rt.EXPECT().SetContextStorage(tt.mockRuntime.setContextStorage.trieState)
 				rt.EXPECT().ValidateTransaction(tt.mockRuntime.validateTxn.input).
 					Return(tt.mockRuntime.validateTxn.validity, tt.mockRuntime.validateTxn.err)
-				//rt.On("SetContextStorage", tt.mockRuntime.setContextStorage.trieState)
-				// rt.On("ValidateTransaction", tt.mockRuntime.validateTxn.input).
-				// 	Return(tt.mockRuntime.validateTxn.validity, tt.mockRuntime.validateTxn.err)
 			}
 
 			res, err := s.HandleTransactionMessage(tt.args.peerID, tt.args.msg)
