@@ -967,13 +967,6 @@ func TestDeterminePreVote_NoPrimaryPreVote(t *testing.T) {
 	header, err := st.Block.BestBlockHeader()
 	require.NoError(t, err)
 
-	// the prevoted block should be 2 blocks behind the best block header
-	header, err = st.Block.GetHeader(header.ParentHash)
-	require.NoError(t, err)
-
-	header, err = st.Block.GetHeader(header.ParentHash)
-	require.NoError(t, err)
-
 	require.Equal(t, header.Hash(), pv.Hash)
 }
 

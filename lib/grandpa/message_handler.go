@@ -328,7 +328,7 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 		return fmt.Errorf("cannot verify ancestry of highest finalised block: %w", err)
 	}
 	if !isDescendant {
-		return errVoteBlockMismatch
+		return fmt.Errorf("%w", errVoteBlockMismatch)
 	}
 
 	eqvVoters := getEquivocatoryVoters(fm.AuthData)

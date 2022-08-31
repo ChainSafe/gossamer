@@ -45,5 +45,7 @@ var (
 	// ErrNoCommonAncestor is returned when a common ancestor cannot be found between two nodes
 	ErrNoCommonAncestor = errors.New("no common ancestor between two nodes")
 
+	ErrNotADescendant = errors.New("not a descendant")
+
 	errUnexpectedNumber = errors.New("block number is not parent number + 1")
 )
