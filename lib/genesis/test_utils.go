@@ -16,35 +16,23 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const testProtocolID = "/gossamer/test/0"
-
-var testBootnodes = []string{
-	"/dns4/p2p.cc3-0.kusama.network/tcp/30100/p2p/QmeCit3Nif4VfNqrEJsdYHZGcKzRCnZvGxg6hha1iNj4mk",
-	"/dns4/p2p.cc3-1.kusama.network/tcp/30100/p2p/QmchDJtEGiEWf7Ag58HNoTg9jSGzxkSZ23VgmF6xiLKKsZ",
-}
-
-var testEndpoints = []interface{}{}
-var testEndpoint1 = []interface{}{"wss://telemetry.polkadot.io/submit/", float64(1)}
-var testProperties = map[string]interface{}{
-	"ss58Format":    float64(0),
-	"tokenDecimals": float64(10),
-	"tokenSymbol":   "DOT",
-}
-
-var testForkBlocks = []string{"fork1", "forkBlock2"}
-
-var testBadBlocks = []string{"badBlock1", "badBlock2"}
-
 // TestGenesis instance of Genesis struct for testing
 var TestGenesis = &Genesis{
-	Name:               "gossamer",
-	ID:                 "gossamer",
-	Bootnodes:          testBootnodes,
-	TelemetryEndpoints: append(testEndpoints, testEndpoint1),
-	ProtocolID:         testProtocolID,
-	Properties:         testProperties,
-	ForkBlocks:         testForkBlocks,
-	BadBlocks:          testBadBlocks,
+	Name: "gossamer",
+	ID:   "gossamer",
+	Bootnodes: []string{
+		"/dns4/p2p.cc3-0.kusama.network/tcp/30100/p2p/QmeCit3Nif4VfNqrEJsdYHZGcKzRCnZvGxg6hha1iNj4mk",
+		"/dns4/p2p.cc3-1.kusama.network/tcp/30100/p2p/QmchDJtEGiEWf7Ag58HNoTg9jSGzxkSZ23VgmF6xiLKKsZ",
+	},
+	TelemetryEndpoints: []interface{}{"wss://telemetry.polkadot.io/submit/", float64(1)},
+	ProtocolID:         "/gossamer/test/0",
+	Properties: map[string]interface{}{
+		"ss58Format":    float64(0),
+		"tokenDecimals": float64(10),
+		"tokenSymbol":   "DOT",
+	},
+	ForkBlocks: []string{"fork1", "forkBlock2"},
+	BadBlocks:  []string{"badBlock1", "badBlock2"},
 }
 
 // TestFieldsRaw instance of raw Fields struct for testing use with TestGenesis
@@ -61,11 +49,8 @@ var TestFieldsRaw = Fields{
 // the current test temporary directory.
 func CreateTestGenesisJSONFile(t *testing.T, fields Fields) (filename string) {
 	rawGenesis := &Genesis{
-		Name:       "test",
-		ID:         "",
-		Bootnodes:  nil,
-		ProtocolID: "",
-		Genesis:    fields,
+		Name:    "test",
+		Genesis: fields,
 	}
 	jsonData, err := json.Marshal(rawGenesis)
 	require.NoError(t, err)
