@@ -15,7 +15,6 @@ import (
 	babemocks "github.com/ChainSafe/gossamer/lib/babe/mocks"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
@@ -41,7 +40,7 @@ func newState(t *testing.T) (*state.BlockState, *state.EpochState) {
 
 	db := state.NewInMemoryDB(t)
 
-	_, genesisTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	_, genesisTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
 	tries := state.NewTries()
 	tries.SetTrie(genesisTrie)
 	bs, err := state.NewBlockStateFromGenesis(db, tries, genesisHeader, telemetryMock)

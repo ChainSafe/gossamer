@@ -10,7 +10,6 @@ import (
 
 	apimocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/genesis"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
@@ -21,7 +20,7 @@ import (
 func createTestTrieState(t *testing.T) (*trie.Trie, common.Hash) {
 	t.Helper()
 
-	_, genTrie, _ := genesis.NewTestGenesisWithTrieAndHeader(t)
+	_, genTrie, _ := newTestGenesisWithTrieAndHeader(t)
 	tr := rtstorage.NewTrieState(genTrie)
 
 	tr.Set([]byte(":first_key"), []byte(":value1"))

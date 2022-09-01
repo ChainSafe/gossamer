@@ -19,7 +19,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/golang/mock/gomock"
@@ -501,7 +500,7 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 		SecondarySlots:     0,
 	}
 
-	genesis, trie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	genesis, trie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)

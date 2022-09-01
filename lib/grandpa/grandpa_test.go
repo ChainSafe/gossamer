@@ -13,7 +13,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
@@ -50,7 +49,7 @@ func newTestState(t *testing.T) *state.Service {
 
 	t.Cleanup(func() { db.Close() })
 
-	_, genTrie, _ := genesis.NewTestGenesisWithTrieAndHeader(t)
+	_, genTrie, _ := newTestGenesisWithTrieAndHeader(t)
 	tries := state.NewTries()
 	tries.SetTrie(genTrie)
 	block, err := state.NewBlockStateFromGenesis(db, tries, testGenesisHeader, telemetryMock)

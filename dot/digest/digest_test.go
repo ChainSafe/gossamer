@@ -15,7 +15,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/golang/mock/gomock"
@@ -40,7 +39,7 @@ func newTestHandler(t *testing.T) (*Handler, *state.Service) {
 	stateSrvc := state.NewService(config)
 	stateSrvc.UseMemDB()
 
-	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
 	err := stateSrvc.Initialise(gen, genHeader, genTrie)
 	require.NoError(t, err)
 
