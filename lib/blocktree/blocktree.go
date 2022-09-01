@@ -421,7 +421,5 @@ func (bt *BlockTree) GetBlockRuntime(hash common.Hash) (runtime.Instance, error)
 
 // ClearRuntimes deletes all runtime instances from BlockTree runtime map
 func (bt *BlockTree) ClearRuntimes() {
-	bt.runtimes.mutex.Lock()
-	bt.runtimes.mapping = make(map[Hash]runtime.Instance)
-	bt.runtimes.mutex.Unlock()
+	bt.runtimes.clearRuntimes()
 }
