@@ -453,10 +453,10 @@ func (s *Service) GetRuntimeVersion(bhash *common.Hash) (
 	}
 
 	rt, err := s.blockState.GetRuntime(bhash)
-	if err != nil && err == blocktree.ErrFailedToGetRuntime {
+	if errors.Is(err, blocktree.ErrFailedToGetRuntime) {
 		rt, err = s.blockState.GetRuntimeFromDB(bhash)
 		if err != nil {
-			return version, err
+			return version, fmt.Errorf("getting runtime from database: %w", err)
 		}
 	} else if err != nil {
 		return version, err
@@ -532,10 +532,10 @@ func (s *Service) GetMetadata(bhash *common.Hash) ([]byte, error) {
 	}
 
 	rt, err := s.blockState.GetRuntime(bhash)
-	if err != nil && err == blocktree.ErrFailedToGetRuntime {
+	if errors.Is(err, blocktree.ErrFailedToGetRuntime) {
 		rt, err = s.blockState.GetRuntimeFromDB(bhash)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("getting runtime from database: %w", err)
 		}
 	} else if err != nil {
 		return nil, err
