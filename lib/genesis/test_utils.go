@@ -16,35 +16,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestGenesis instance of Genesis struct for testing
-var TestGenesis = &Genesis{
-	Name: "gossamer",
-	ID:   "gossamer",
-	Bootnodes: []string{
-		"/dns4/p2p.cc3-0.kusama.network/tcp/30100/p2p/QmeCit3Nif4VfNqrEJsdYHZGcKzRCnZvGxg6hha1iNj4mk",
-		"/dns4/p2p.cc3-1.kusama.network/tcp/30100/p2p/QmchDJtEGiEWf7Ag58HNoTg9jSGzxkSZ23VgmF6xiLKKsZ",
-	},
-	TelemetryEndpoints: []interface{}{"wss://telemetry.polkadot.io/submit/", float64(1)},
-	ProtocolID:         "/gossamer/test/0",
-	Properties: map[string]interface{}{
-		"ss58Format":    float64(0),
-		"tokenDecimals": float64(10),
-		"tokenSymbol":   "DOT",
-	},
-	ForkBlocks: []string{"fork1", "forkBlock2"},
-	BadBlocks:  []string{"badBlock1", "badBlock2"},
-}
-
-// TestFieldsRaw instance of raw Fields struct for testing use with TestGenesis
-var TestFieldsRaw = Fields{
-	Raw: map[string]map[string]string{
-		"top": {
-			"0x3a636f6465": "mocktestcode",
-			common.BytesToHex(common.UpgradedToDualRefKey): "0x01",
-		},
-	},
-}
-
 // CreateTestGenesisJSONFile writes a genesis file using the fields given to
 // the current test temporary directory.
 func CreateTestGenesisJSONFile(t *testing.T, fields Fields) (filename string) {
