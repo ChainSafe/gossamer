@@ -4,9 +4,6 @@
 package genesis
 
 import (
-	"encoding/json"
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -15,21 +12,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/require"
 )
-
-// CreateTestGenesisJSONFile writes a genesis file using the fields given to
-// the current test temporary directory.
-func CreateTestGenesisJSONFile(t *testing.T, fields Fields) (filename string) {
-	rawGenesis := &Genesis{
-		Name:    "test",
-		Genesis: fields,
-	}
-	jsonData, err := json.Marshal(rawGenesis)
-	require.NoError(t, err)
-	filename = filepath.Join(t.TempDir(), "genesis-test")
-	err = os.WriteFile(filename, jsonData, os.ModePerm)
-	require.NoError(t, err)
-	return filename
-}
 
 // NewTestGenesisWithTrieAndHeader generates genesis, genesis trie and genesis header
 func NewTestGenesisWithTrieAndHeader(t *testing.T) (*Genesis, *trie.Trie, *types.Header) {
