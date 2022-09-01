@@ -123,9 +123,8 @@ func Test_Instance_Version(t *testing.T) {
 		"kusama": {
 			instanceBuilder: func(t *testing.T) InstanceVersion {
 				genesisPath := utils.GetKusamaGenesisPath(t)
-				kusamaGenesis, err := genesis.NewGenesisFromJSONRaw(genesisPath)
-				require.NoError(t, err)
-				genesisTrie, err := genesis.NewTrieFromGenesis(kusamaGenesis)
+				kusamaGenesis := genesisFromRawJSON(t, genesisPath)
+				genesisTrie, err := genesis.NewTrieFromGenesis(&kusamaGenesis)
 				require.NoError(t, err)
 
 				cfg := Config{
@@ -298,10 +297,8 @@ func balanceKey(t *testing.T, pub []byte) []byte {
 
 func TestNodeRuntime_ValidateTransaction(t *testing.T) {
 	genesisPath := utils.GetGssmrV3SubstrateGenesisRawPathTest(t)
-	gen, err := genesis.NewGenesisFromJSONRaw(genesisPath)
-	require.NoError(t, err)
-
-	genTrie, err := genesis.NewTrieFromGenesis(gen)
+	gen := genesisFromRawJSON(t, genesisPath)
+	genTrie, err := genesis.NewTrieFromGenesis(&gen)
 	require.NoError(t, err)
 
 	// set state to genesis state
@@ -528,10 +525,8 @@ func TestInstance_ExecuteBlock_NodeRuntime(t *testing.T) {
 func TestInstance_ExecuteBlock_GossamerRuntime(t *testing.T) {
 	t.Skip() // TODO: this fails with "syscall frame is no longer valid" (#1026)
 	genesisPath := utils.GetGssmrGenesisRawPathTest(t)
-	gen, err := genesis.NewGenesisFromJSONRaw(genesisPath)
-	require.NoError(t, err)
-
-	genTrie, err := genesis.NewTrieFromGenesis(gen)
+	gen := genesisFromRawJSON(t, genesisPath)
+	genTrie, err := genesis.NewTrieFromGenesis(&gen)
 	require.NoError(t, err)
 
 	// set state to genesis state
@@ -558,10 +553,8 @@ func TestInstance_ExecuteBlock_GossamerRuntime(t *testing.T) {
 func TestInstance_ApplyExtrinsic_GossamerRuntime(t *testing.T) {
 	t.Skip() // TODO: this fails with "syscall frame is no longer valid" (#1026)
 	genesisPath := utils.GetGssmrGenesisRawPathTest(t)
-	gen, err := genesis.NewGenesisFromJSONRaw(genesisPath)
-	require.NoError(t, err)
-
-	genTrie, err := genesis.NewTrieFromGenesis(gen)
+	gen := genesisFromRawJSON(t, genesisPath)
+	genTrie, err := genesis.NewTrieFromGenesis(&gen)
 	require.NoError(t, err)
 
 	// set state to genesis state
@@ -615,10 +608,8 @@ func TestInstance_ExecuteBlock_PolkadotRuntime(t *testing.T) {
 
 func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 	genesisPath := utils.GetPolkadotGenesisPath(t)
-	gen, err := genesis.NewGenesisFromJSONRaw(genesisPath)
-	require.NoError(t, err)
-
-	genTrie, err := genesis.NewTrieFromGenesis(gen)
+	gen := genesisFromRawJSON(t, genesisPath)
+	genTrie, err := genesis.NewTrieFromGenesis(&gen)
 	require.NoError(t, err)
 
 	expectedGenesisRoot := common.MustHexToHash("0x29d0d972cd27cbc511e9589fcb7a4506d5eb6a9e8df205f00472e5ab354a4e17")
@@ -667,10 +658,8 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 	genesisPath := utils.GetKusamaGenesisPath(t)
-	gen, err := genesis.NewGenesisFromJSONRaw(genesisPath)
-	require.NoError(t, err)
-
-	genTrie, err := genesis.NewTrieFromGenesis(gen)
+	gen := genesisFromRawJSON(t, genesisPath)
+	genTrie, err := genesis.NewTrieFromGenesis(&gen)
 	require.NoError(t, err)
 
 	expectedGenesisRoot := common.MustHexToHash("0xb0006203c3a6e6bd2c6a17b1d4ae8ca49a31da0f4579da950b127774b44aef6b")
