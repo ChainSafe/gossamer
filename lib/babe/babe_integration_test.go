@@ -57,7 +57,7 @@ func createTestService(t *testing.T, cfg ServiceConfig) *Service {
 	wasmer.DefaultTestLogLvl = 1
 
 	gen, genTrie, genHeader := newDevGenesisWithTrieAndHeader(t)
-	genesisHeader = genHeader
+	genesisHeader = &genHeader
 
 	var err error
 
@@ -96,7 +96,7 @@ func createTestService(t *testing.T, cfg ServiceConfig) *Service {
 		dbSrv = state.NewService(config)
 		dbSrv.UseMemDB()
 
-		err = dbSrv.Initialise(gen, genHeader, genTrie)
+		err = dbSrv.Initialise(&gen, &genHeader, &genTrie)
 		require.NoError(t, err)
 
 		err = dbSrv.Start()
@@ -112,7 +112,7 @@ func createTestService(t *testing.T, cfg ServiceConfig) *Service {
 	}
 
 	var rtCfg wasmer.Config
-	rtCfg.Storage = rtstorage.NewTrieState(genTrie)
+	rtCfg.Storage = rtstorage.NewTrieState(&genTrie)
 
 	storageState := cfg.StorageState.(core.StorageState)
 	rtCfg.CodeHash, err = storageState.LoadCodeHash(nil)

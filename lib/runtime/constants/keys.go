@@ -9,7 +9,7 @@ const (
 	// BABEAuthoritiesKeyHex is the hex encoding of:
 	// Twox128Hash("Babe") + Twox128Hash("Authorities")
 	BABEAuthoritiesKeyHex = babePrefixHex + "5e0621c4869aa60c02be9adcc98a0d1d"
-	// BABEAuthoritiesKeyHex is the hex encoding of:
+	// BABERandomnessKeyHex is the hex encoding of:
 	// Twox128Hash("Babe") + Twox128Hash("Randomness")
 	BABERandomnessKeyHex = babePrefixHex + "7a414cb008e0e61e46722aa60abdd672"
 
