@@ -5,14 +5,12 @@ package genesis
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/lib/runtime/constants"
 	"github.com/stretchr/testify/require"
 )
 
@@ -311,23 +309,5 @@ func TestFormatKey(t *testing.T) {
 
 	out, err := formatKey(kv)
 	require.NoError(t, err)
-	require.Equal(t, fmt.Sprintf("0x%x", runtime.BABEAuthoritiesKey()), out)
-}
-
-func TestNewTrieFromGenesis(t *testing.T) {
-	var rawGenesis = &Genesis{}
-	raw := make(map[string]map[string]string)
-	raw["top"] = make(map[string]string)
-	raw["top"]["0x3a636f6465"] = "0x0102" // raw :code
-	rawGenesis.Genesis = Fields{
-		Raw: raw,
-	}
-
-	expTrie := trie.NewEmptyTrie()
-	expTrie.Put([]byte(`:code`), []byte{1, 2})
-
-	trie, err := NewTrieFromGenesis(rawGenesis)
-	require.NoError(t, err)
-
-	require.Equal(t, expTrie, trie)
+	require.Equal(t, constants.BABEAuthoritiesKeyHex, out)
 }

@@ -55,7 +55,7 @@ func generateTestValidRemarkTxns(t *testing.T, pubKey []byte, accInfo types.Acco
 	gen, err := genesis.NewGenesisFromJSONRaw(projectRootPath)
 	require.NoError(t, err)
 
-	genTrie, err := genesis.NewTrieFromGenesis(gen)
+	genTrie, err := wasmer.NewTrieFromGenesis(*gen)
 	require.NoError(t, err)
 
 	genState := rtstorage.NewTrieState(genTrie)
