@@ -235,13 +235,13 @@ func (_m *BlockAPI) GetRuntime(hash *common.Hash) (runtime.Instance, error) {
 	return r0, r1
 }
 
-// GetRuntimeFromDB provides a mock function with given fields: hash
-func (_m *BlockAPI) GetRuntimeFromDB(hash *common.Hash) (runtime.Instance, error) {
-	ret := _m.Called(hash)
+// GetRuntimeFromDB provides a mock function with given fields: blockHash
+func (_m *BlockAPI) GetRuntimeFromDB(blockHash *common.Hash) (runtime.Instance, error) {
+	ret := _m.Called(blockHash)
 
 	var r0 runtime.Instance
 	if rf, ok := ret.Get(0).(func(*common.Hash) runtime.Instance); ok {
-		r0 = rf(hash)
+		r0 = rf(blockHash)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(runtime.Instance)
@@ -250,7 +250,7 @@ func (_m *BlockAPI) GetRuntimeFromDB(hash *common.Hash) (runtime.Instance, error
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(*common.Hash) error); ok {
-		r1 = rf(hash)
+		r1 = rf(blockHash)
 	} else {
 		r1 = ret.Error(1)
 	}
