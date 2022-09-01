@@ -5,18 +5,14 @@ package network
 
 import (
 	"context"
-	"time"
 
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
-	libp2pdiscovery "github.com/libp2p/go-libp2p/p2p/discovery/mdns_legacy"
+	libp2pdiscovery "github.com/libp2p/go-libp2p/p2p/discovery/mdns"
 )
 
-// MDNSPeriod is 1 minute
-const MDNSPeriod = time.Minute
-
-// Notifee See https://godoc.org/github.com/libp2p/go-libp2p/p2p/discovery#Notifee
+// Notifee see https://pkg.go.dev/github.com/libp2p/go-libp2p@v0.22.0/p2p/discovery/mdns#Notifee
 type Notifee struct {
 	logger log.LeveledLogger
 	ctx    context.Context
@@ -41,29 +37,18 @@ func newMDNS(host *host) *mdns {
 // startMDNS starts a new mDNS discovery service
 func (m *mdns) start() {
 	m.logger.Debugf(
-		"Starting mDNS discovery service with host %s, period %s and protocol %s...",
-		m.host.id(), MDNSPeriod, m.host.protocolID)
+		"Starting mDNS discovery service with host %s and protocol %s...",
+		m.host.id(), m.host.protocolID)
 
 	// create and start service
-	mdns, err := libp2pdiscovery.NewMdnsService(
-		m.host.ctx,
-		m.host.p2pHost,
-		MDNSPeriod,
-		string(m.host.protocolID),
-	)
-	if err != nil {
-		m.logger.Errorf("Failed to start mDNS discovery service: %s", err)
-		return
-	}
-
-	// register Notifee on service
-	mdns.RegisterNotifee(Notifee{
+	serviceName := string(m.host.protocolID)
+	notifee := &Notifee{
 		logger: m.logger,
 		ctx:    m.host.ctx,
 		host:   m.host,
-	})
-
-	m.mdns = mdns
+	}
+	m.mdns = libp2pdiscovery.NewMdnsService(
+		m.host.p2pHost, serviceName, notifee)
 }
 
 // close shuts down the mDNS discovery service
