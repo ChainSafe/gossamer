@@ -244,7 +244,7 @@ func TestMessageHandler_VerifyJustification_InvalidSig(t *testing.T) {
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
-	err := h.verifyJustification(just, gs.state.round, gs.state.setID, precommit)
+	err := verifyJustification(just, gs.state.round, gs.state.setID, precommit, h.grandpa.authorities())
 	require.Equal(t, err, ErrInvalidSignature)
 }
 
@@ -257,7 +257,7 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
 	err := st.Grandpa.SetPrecommits(round, gs.state.setID, just)
 	require.NoError(t, err)
 
-	fm, err := gs.newCommitMessage(gs.head, round)
+	fm, err := gs.newCommitMessage(gs.head, round, gs.state.setID)
 	require.NoError(t, err)
 	fm.Vote = *NewVote(testHash, uint32(round))
 
@@ -282,8 +282,7 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
-	h := NewMessageHandler(gs, st.Block, telemetryMock)
-	out, err := h.handleMessage("", fm)
+	out, err := gs.messageHandler.handleMessage("", fm)
 	require.NoError(t, err)
 	require.Nil(t, out)
 
@@ -302,7 +301,7 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_MinVoteError(t *testing.T
 	err := st.Grandpa.SetPrecommits(round, gs.state.setID, just)
 	require.NoError(t, err)
 
-	fm, err := gs.newCommitMessage(testGenesisHeader, round)
+	fm, err := gs.newCommitMessage(testGenesisHeader, round, gs.state.setID)
 	require.NoError(t, err)
 
 	ctrl := gomock.NewController(t)
@@ -328,7 +327,7 @@ func TestMessageHandler_CommitMessage_WithCatchUpRequest(t *testing.T) {
 	err := st.Grandpa.SetPrecommits(77, gs.state.setID, just)
 	require.NoError(t, err)
 
-	fm, err := gs.newCommitMessage(gs.head, 77)
+	fm, err := gs.newCommitMessage(gs.head, 77, gs.state.setID)
 	require.NoError(t, err)
 
 	gs.state.voters = gs.state.voters[:1]
@@ -453,7 +452,7 @@ func TestVerifyJustification(t *testing.T) {
 		AuthorityID: kr.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 	}
 
-	err := h.verifyJustification(just, 77, gs.state.setID, precommit)
+	err := verifyJustification(just, 77, gs.state.setID, precommit, h.grandpa.authorities())
 	require.NoError(t, err)
 }
 
@@ -473,7 +472,7 @@ func TestVerifyJustification_InvalidSignature(t *testing.T) {
 		AuthorityID: kr.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 	}
 
-	err := h.verifyJustification(just, 77, gs.state.setID, precommit)
+	err := verifyJustification(just, 77, gs.state.setID, precommit, h.grandpa.authorities())
 	require.EqualError(t, err, ErrInvalidSignature.Error())
 }
 
@@ -496,7 +495,7 @@ func TestVerifyJustification_InvalidAuthority(t *testing.T) {
 		AuthorityID: fakeKey.Public().(*ed25519.PublicKey).AsBytes(),
 	}
 
-	err = h.verifyJustification(just, 77, gs.state.setID, precommit)
+	err = verifyJustification(just, 77, gs.state.setID, precommit, h.grandpa.authorities())
 	require.EqualError(t, err, ErrVoterNotFound.Error())
 }
 
@@ -1081,7 +1080,9 @@ func Test_VerifyCommitMessageJustification_ShouldRemoveEquivocatoryVotes(t *test
 		AuthData:   authData,
 	}
 
-	err = h.verifyCommitMessageJustification(testCommitData)
+	err = verifyCommitMessageJustification(testCommitData, h.grandpa.state.setID,
+		h.grandpa.state.threshold(), h.grandpa.authorities(), h.blockState)
+
 	require.NoError(t, err)
 }
 

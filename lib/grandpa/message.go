@@ -21,7 +21,7 @@ type GrandpaMessage interface { //nolint:revive
 // NewGrandpaMessage returns a new VaryingDataType to represent a GrandpaMessage
 func newGrandpaMessage() scale.VaryingDataType {
 	return scale.MustNewVaryingDataType(
-		VoteMessage{}, CommitMessage{}, newVersionedNighborMessage(),
+		VoteMessage{}, CommitMessage{}, newVersionedNeighbourPacket(),
 		CatchUpRequest{}, CatchUpResponse{})
 }
 
@@ -81,32 +81,32 @@ func (v *VoteMessage) ToConsensusMessage() (*ConsensusMessage, error) {
 	}, nil
 }
 
-// VersionedNeighbourPacket represents the enum of nighbor messages
+// VersionedNeighbourPacket represents the enum of neighbour messages
 type VersionedNeighbourPacket scale.VaryingDataType
 
 // Index Returns VDT index
 func (VersionedNeighbourPacket) Index() uint { return 2 }
 
-func newVersionedNighborMessage() VersionedNeighbourPacket {
+func newVersionedNeighbourPacket() VersionedNeighbourPacket {
 	vdt := scale.MustNewVaryingDataType(NeighbourPacketV1{})
 
 	return VersionedNeighbourPacket(vdt)
 }
 
 // Set updates the current VDT value to be `val`
-func (vnm *VersionedNeighbourPacket) Set(val scale.VaryingDataTypeValue) (err error) {
-	vdt := scale.VaryingDataType(*vnm)
+func (vnp *VersionedNeighbourPacket) Set(val scale.VaryingDataTypeValue) (err error) {
+	vdt := scale.VaryingDataType(*vnp)
 	err = vdt.Set(val)
 	if err != nil {
-		return
+		return fmt.Errorf("setting varying data type value: %w", err)
 	}
-	*vnm = VersionedNeighbourPacket(vdt)
-	return
+	*vnp = VersionedNeighbourPacket(vdt)
+	return nil
 }
 
 // Value returns the current VDT value
-func (vnm *VersionedNeighbourPacket) Value() (val scale.VaryingDataTypeValue) {
-	vdt := scale.VaryingDataType(*vnm)
+func (vnp *VersionedNeighbourPacket) Value() (val scale.VaryingDataTypeValue) {
+	vdt := scale.VaryingDataType(*vnp)
 	return vdt.Value()
 }
 
@@ -124,10 +124,10 @@ func (NeighbourPacketV1) Index() uint { return 1 }
 
 // ToConsensusMessage converts the NeighbourMessage into a network-level consensus message
 func (m *NeighbourPacketV1) ToConsensusMessage() (*network.ConsensusMessage, error) {
-	versionedNeighbourPacket := newVersionedNighborMessage()
+	versionedNeighbourPacket := newVersionedNeighbourPacket()
 	err := versionedNeighbourPacket.Set(*m)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("setting neighbour packet v1: %w", err)
 	}
 
 	msg := newGrandpaMessage()
@@ -161,8 +161,8 @@ type CommitMessage struct {
 	AuthData   []AuthData
 }
 
-func (s *Service) newCommitMessage(header *types.Header, round uint64) (*CommitMessage, error) {
-	pcs, err := s.grandpaState.GetPrecommits(round, s.state.setID)
+func (s *Service) newCommitMessage(header *types.Header, round, setID uint64) (*CommitMessage, error) {
+	pcs, err := s.grandpaState.GetPrecommits(round, setID)
 	if err != nil {
 		return nil, err
 	}

@@ -20,14 +20,12 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/golang/mock/gomock"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-var testTimeout = 20 * time.Second
 
 type testJustificationRequest struct {
 	to  peer.ID
@@ -107,7 +105,7 @@ func (*testNetwork) RegisterNotificationsProtocol(
 func (n *testNetwork) SendBlockReqestByHash(_ common.Hash) {}
 
 func setupGrandpa(t *testing.T, kp *ed25519.Keypair) (
-	*Service, chan *networkVoteMessage, chan GrandpaMessage, chan GrandpaMessage) {
+	*Service, chan *networkVoteMessage) {
 	st := newTestState(t)
 	net := newTestNetwork(t)
 
@@ -133,7 +131,7 @@ func setupGrandpa(t *testing.T, kp *ed25519.Keypair) (
 
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
-	return gs, gs.in, net.out, net.finalised
+	return gs, gs.in
 }
 
 func TestGrandpa_BaseCase(t *testing.T) {
@@ -147,7 +145,7 @@ func TestGrandpa_BaseCase(t *testing.T) {
 	precommits := new(sync.Map)
 
 	for i, gs := range gss {
-		gs, _, _, _ = setupGrandpa(t, kr.Keys[i])
+		gs, _ = setupGrandpa(t, kr.Keys[i])
 		gss[i] = gs
 		state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 15, false)
 		pv, err := gs.determinePreVote()
@@ -192,7 +190,7 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 	precommits := new(sync.Map)
 
 	for i, gs := range gss {
-		gs, _, _, _ = setupGrandpa(t, kr.Keys[i])
+		gs, _ = setupGrandpa(t, kr.Keys[i])
 		gss[i] = gs
 
 		r := uint(rand.Intn(2)) // 0 or 1
@@ -235,389 +233,487 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 	}
 }
 
-func broadcastVotes(from <-chan GrandpaMessage, to []chan *networkVoteMessage, done *bool) {
-	for v := range from {
-		for _, tc := range to {
-			if *done {
-				return
-			}
-
-			tc <- &networkVoteMessage{
-				msg: v.(*VoteMessage),
-			}
-		}
-	}
-}
-
-func cleanup(gs *Service, in chan *networkVoteMessage, done *bool) {
-	*done = true
-	close(in)
-	gs.cancel()
-}
-
-func TestPlayGrandpaRound_BaseCase(t *testing.T) {
-	// this asserts that all validators finalise the same block if they all see the
-	// same pre-votes and pre-commits, even if their chains are different lengths
-	kr, err := keystore.NewEd25519Keyring()
+func TestPlayGrandpaRound(t *testing.T) {
+	ed25519Keyring, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
-	gss := make([]*Service, len(kr.Keys))
-	ins := make([]chan *networkVoteMessage, len(kr.Keys))
-	outs := make([]chan GrandpaMessage, len(kr.Keys))
-	fins := make([]chan GrandpaMessage, len(kr.Keys))
-	done := false
+	tests := map[string]struct {
+		voters          []*ed25519.Keypair
+		whoEquivocates  map[int]struct{}
+		defineBlockTree func(t *testing.T, blockState BlockState, neighbourServices []*Service)
+	}{
+		// this asserts that all validators finalise the same block if they all see the
+		// same pre-votes and pre-commits, even if their chains are different lengths
+		"base_case": {
+			voters: []*ed25519.Keypair{
+				ed25519Keyring.Alice().(*ed25519.Keypair),
+				ed25519Keyring.Bob().(*ed25519.Keypair),
+				ed25519Keyring.Charlie().(*ed25519.Keypair),
+				ed25519Keyring.Ian().(*ed25519.Keypair),
+				ed25519Keyring.George().(*ed25519.Keypair),
+			},
+			defineBlockTree: func(t *testing.T, blockState BlockState, _ []*Service) {
+				const withBranches = false
+				const baseLenght = 4
+				state.AddBlocksToState(t, blockState.(*state.BlockState), baseLenght, withBranches)
+			},
+		},
 
-	for i := range gss {
-		gs, in, out, fin := setupGrandpa(t, kr.Keys[i])
-		defer cleanup(gs, in, &done)
+		"varying_chain": {
+			voters: []*ed25519.Keypair{
+				ed25519Keyring.Alice().(*ed25519.Keypair),
+				ed25519Keyring.Bob().(*ed25519.Keypair),
+				ed25519Keyring.Charlie().(*ed25519.Keypair),
+				ed25519Keyring.Ian().(*ed25519.Keypair),
+			},
+			defineBlockTree: func(t *testing.T, blockState BlockState, neighbourServices []*Service) {
+				const diff uint = 5
+				rand := uint(rand.Intn(int(diff)))
 
-		gss[i] = gs
-		ins[i] = in
-		outs[i] = out
-		fins[i] = fin
+				const withBranches = false
+				const baseLenght = 4
+				headers, _ := state.AddBlocksToState(t, blockState.(*state.BlockState),
+					baseLenght+rand, withBranches)
 
-		state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 4, false)
-	}
-
-	for _, out := range outs {
-		go broadcastVotes(out, ins, &done)
-	}
-
-	for _, gs := range gss {
-		time.Sleep(time.Millisecond * 100)
-		go gs.initiate()
-	}
-
-	wg := sync.WaitGroup{}
-	wg.Add(len(kr.Keys))
-
-	finalised := make([]*CommitMessage, len(kr.Keys))
-
-	for i, fin := range fins {
-		go func(i int, fin <-chan GrandpaMessage) {
-			select {
-			case f := <-fin:
-
-				// receive first message, which is finalised block from previous round
-				if f.(*CommitMessage).Round == 0 {
-					select {
-					case f = <-fin:
-					case <-time.After(testTimeout):
-						t.Errorf("did not receive finalised block from %d", i)
+				// sync the created blocks with the neighbour services
+				// letting them know about those blocks
+				for _, ns := range neighbourServices {
+					for _, header := range headers {
+						block := &types.Block{
+							Header: *header,
+							Body:   types.Body{},
+						}
+						ns.blockState.(*state.BlockState).AddBlock(block)
 					}
 				}
+			},
+		},
 
-				finalised[i] = f.(*CommitMessage)
+		"with_equivocations": {
+			voters: []*ed25519.Keypair{
+				ed25519Keyring.Alice().(*ed25519.Keypair),
+				ed25519Keyring.Bob().(*ed25519.Keypair),
+				ed25519Keyring.Charlie().(*ed25519.Keypair),
+				ed25519Keyring.Dave().(*ed25519.Keypair),
+				ed25519Keyring.Ian().(*ed25519.Keypair),
+			},
+			// alice and charlie equivocates
+			// it is a map as it is easy to check
+			whoEquivocates: map[int]struct{}{
+				3: {},
+				4: {},
+			},
+			defineBlockTree: func(t *testing.T, blockState BlockState, _ []*Service) {
+				// this creates a tree with 2 branches starting at depth 2
+				branches := map[uint]int{2: 1}
+				const baseLenght = 4
+				state.AddBlocksToStateWithFixedBranches(t, blockState.(*state.BlockState), baseLenght, branches)
+			},
+		},
+	}
 
-			case <-time.After(testTimeout):
-				t.Errorf("did not receive finalised block from %d", i)
+	for tname, tt := range tests {
+		tt := tt
+		t.Run(tname, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			grandpaServices := make([]*Service, len(tt.voters))
+			grandpaVoters := make([]types.GrandpaVoter, 0, len(tt.voters))
+
+			for _, kp := range tt.voters {
+				grandpaVoters = append(grandpaVoters, types.GrandpaVoter{
+					Key: *kp.Public().(*ed25519.PublicKey),
+				})
 			}
-			wg.Done()
-		}(i, fin)
 
-	}
+			for idx := range tt.voters {
+				// gossamer gossip a prevote/precommit message and then waits `subroundInterval` * 4
+				// to issue another prevote/precommit message
+				const subroundInterval = 100 * time.Millisecond
+				ctx, cancel := context.WithCancel(context.Background())
+				defer cancel()
 
-	wg.Wait()
-
-	for _, fb := range finalised {
-		require.NotNil(t, fb)
-		require.GreaterOrEqual(t, len(fb.Precommits), len(kr.Keys)/2)
-		finalised[0].Precommits = []Vote{}
-		finalised[0].AuthData = []AuthData{}
-		fb.Precommits = []Vote{}
-		fb.AuthData = []AuthData{}
-		require.Equal(t, finalised[0], fb)
-	}
-}
-
-func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
-	// this asserts that all validators finalise the same block if they all see the
-	// same pre-votes and pre-commits, even if their chains are different lengths (+/-1 block)
-	kr, err := keystore.NewEd25519Keyring()
-	require.NoError(t, err)
-
-	gss := make([]*Service, len(kr.Keys))
-	ins := make([]chan *networkVoteMessage, len(kr.Keys))
-	outs := make([]chan GrandpaMessage, len(kr.Keys))
-	fins := make([]chan GrandpaMessage, len(kr.Keys))
-	done := false
-
-	// this represents the chains that will be slightly ahead of the others
-	headers := []*types.Header{}
-	const diff uint = 1
-
-	for i := range gss {
-		gs, in, out, fin := setupGrandpa(t, kr.Keys[i])
-		defer cleanup(gs, in, &done)
-
-		gss[i] = gs
-		ins[i] = in
-		outs[i] = out
-		fins[i] = fin
-
-		r := uint(rand.Intn(int(diff)))
-		chain, _ := state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 4+r, false)
-		if r == diff-1 {
-			headers = chain
-		}
-	}
-
-	for _, out := range outs {
-		go broadcastVotes(out, ins, &done)
-	}
-
-	for _, gs := range gss {
-		time.Sleep(time.Millisecond * 100)
-		go gs.initiate()
-	}
-
-	// mimic the chains syncing and catching up
-	for _, gs := range gss {
-		for _, h := range headers {
-			time.Sleep(time.Millisecond * 10)
-			block := &types.Block{
-				Header: *h,
-				Body:   types.Body{},
-			}
-			gs.blockState.(*state.BlockState).AddBlock(block)
-		}
-	}
-
-	wg := sync.WaitGroup{}
-	wg.Add(len(kr.Keys))
-
-	finalised := make([]*CommitMessage, len(kr.Keys))
-
-	for i, fin := range fins {
-
-		go func(i int, fin <-chan GrandpaMessage) {
-			select {
-			case f := <-fin:
-
-				// receive first message, which is finalised block from previous round
-				if f.(*CommitMessage).Round == 0 {
-					select {
-					case f = <-fin:
-					case <-time.After(testTimeout):
-						t.Errorf("did not receive finalised block from %d", i)
-					}
+				st := newTestState(t)
+				grandpaServices[idx] = &Service{
+					ctx:          ctx,
+					cancel:       cancel,
+					paused:       atomic.Value{},
+					blockState:   st.Block,
+					grandpaState: st.Grandpa,
+					//defined as in the grandpa service
+					in:             make(chan *networkVoteMessage, 1024),
+					receivedCommit: make(chan *CommitMessage),
+					interval:       subroundInterval,
+					state: &State{
+						round:  1,
+						setID:  0,
+						voters: grandpaVoters,
+					},
+					head:               testGenesisHeader,
+					authority:          true,
+					keypair:            tt.voters[idx],
+					prevotes:           new(sync.Map),
+					precommits:         new(sync.Map),
+					preVotedBlock:      make(map[uint64]*Vote),
+					bestFinalCandidate: make(map[uint64]*Vote),
+					pvEquivocations:    make(map[ed25519.PublicKeyBytes][]*SignedVote),
+					pcEquivocations:    make(map[ed25519.PublicKeyBytes][]*SignedVote),
 				}
-
-				finalised[i] = f.(*CommitMessage)
-
-			case <-time.After(testTimeout):
-				t.Errorf("did not receive finalised block from %d", i)
+				grandpaServices[idx].paused.Store(false)
 			}
-			wg.Done()
-		}(i, fin)
 
-	}
-
-	wg.Wait()
-
-	for _, fb := range finalised {
-		require.NotNil(t, fb)
-		require.GreaterOrEqual(t, len(fb.Precommits), len(kr.Keys)/2)
-		require.GreaterOrEqual(t, len(fb.AuthData), len(kr.Keys)/2)
-		finalised[0].Precommits = []Vote{}
-		finalised[0].AuthData = []AuthData{}
-		fb.Precommits = []Vote{}
-		fb.AuthData = []AuthData{}
-		require.Equal(t, finalised[0], fb)
-	}
-}
-
-func TestPlayGrandpaRound_WithEquivocation(t *testing.T) {
-	// this asserts that all validators finalise the same block even if 2/9 of voters equivocate
-	kr, err := keystore.NewEd25519Keyring()
-	require.NoError(t, err)
-
-	gss := make([]*Service, len(kr.Keys))
-	ins := make([]chan *networkVoteMessage, len(kr.Keys))
-	outs := make([]chan GrandpaMessage, len(kr.Keys))
-	fins := make([]chan GrandpaMessage, len(kr.Keys))
-
-	done := false
-
-	for i := range gss {
-		gs, in, out, fin := setupGrandpa(t, kr.Keys[i])
-		defer cleanup(gs, in, &done)
-
-		gss[i] = gs
-		ins[i] = in
-		outs[i] = out
-		fins[i] = fin
-
-		// this creates a tree with 2 branches starting at depth 2
-		branches := map[uint]int{2: 1}
-		state.AddBlocksToStateWithFixedBranches(t, gs.blockState.(*state.BlockState), 4, branches)
-	}
-
-	// should have blocktree for all nodes
-	leaves := gss[0].blockState.Leaves()
-
-	for _, out := range outs {
-		go broadcastVotes(out, ins, &done)
-	}
-
-	for _, gs := range gss {
-		time.Sleep(time.Millisecond * 100)
-		go gs.initiate()
-	}
-
-	// nodes 7 and 8 will equivocate
-	for _, gs := range gss[7:] {
-		vote, err := NewVoteFromHash(leaves[1], gs.blockState)
-		require.NoError(t, err)
-
-		_, vmsg, err := gs.createSignedVoteAndVoteMessage(vote, prevote)
-		require.NoError(t, err)
-
-		for _, in := range ins {
-			in <- &networkVoteMessage{
-				msg: vmsg,
+			neighbourServices := make([][]*Service, len(grandpaServices))
+			for idx := range grandpaServices {
+				neighbours := make([]*Service, len(grandpaServices)-1)
+				copy(neighbours, grandpaServices[:idx])
+				copy(neighbours[idx:], grandpaServices[idx+1:])
+				neighbourServices[idx] = neighbours
 			}
-		}
-	}
 
-	wg := sync.WaitGroup{}
-	wg.Add(len(kr.Keys))
+			producedCommitMessages := make([]*CommitMessage, len(grandpaServices))
+			for idx, grandpaService := range grandpaServices {
+				idx := idx
+				neighbours := neighbourServices[idx]
+				tt.defineBlockTree(t, grandpaServices[idx].blockState, neighbours)
 
-	finalised := make([]*CommitMessage, len(kr.Keys))
+				// if the service is an equivocator it should send a different vote
+				// into the same round to all its neighbour peers
+				serviceNetworkMock := func(serviceIdx int, neighbours []*Service,
+					equivocateVote *networkVoteMessage) func(any) {
+					return func(arg0 any) {
+						consensusMessage, ok := arg0.(*network.ConsensusMessage)
+						require.True(t, ok, "expecting *network.ConsensusMessage, got %T", arg0)
 
-	for i, fin := range fins {
+						message, err := decodeMessage(consensusMessage)
+						require.NoError(t, err)
 
-		go func(i int, fin <-chan GrandpaMessage) {
-			select {
-			case f := <-fin:
+						switch msg := message.(type) {
+						case *VoteMessage:
+							for _, neighbour := range neighbours {
+								voteMessage := &networkVoteMessage{
+									from: peer.ID(fmt.Sprint(serviceIdx)),
+									msg:  msg,
+								}
 
-				// receive first message, which is finalised block from previous round
-				if f.(*CommitMessage).Round == 0 {
+								select {
+								case neighbour.in <- voteMessage:
+								default:
+								}
 
-					select {
-					case f = <-fin:
-					case <-time.After(testTimeout):
-						t.Errorf("did not receive finalised block from %d", i)
-					}
-				}
-
-				finalised[i] = f.(*CommitMessage)
-			case <-time.After(testTimeout):
-				t.Errorf("did not receive finalised block from %d", i)
-			}
-			wg.Done()
-		}(i, fin)
-
-	}
-
-	wg.Wait()
-
-	for _, fb := range finalised {
-		require.NotNil(t, fb)
-		require.GreaterOrEqual(t, len(fb.Precommits), len(kr.Keys)/2)
-		require.GreaterOrEqual(t, len(fb.AuthData), len(kr.Keys)/2)
-		finalised[0].Precommits = []Vote{}
-		finalised[0].AuthData = []AuthData{}
-		fb.Precommits = []Vote{}
-		fb.AuthData = []AuthData{}
-		require.Equal(t, finalised[0], fb)
-	}
-}
-
-func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
-	// this asserts that all validators finalise the same block in successive rounds
-	kr, err := keystore.NewEd25519Keyring()
-	require.NoError(t, err)
-
-	gss := make([]*Service, len(kr.Keys))
-	ins := make([]chan *networkVoteMessage, len(kr.Keys))
-	outs := make([]chan GrandpaMessage, len(kr.Keys))
-	fins := make([]chan GrandpaMessage, len(kr.Keys))
-	done := false
-
-	for i := range gss {
-		gs, in, out, fin := setupGrandpa(t, kr.Keys[i])
-		defer cleanup(gs, in, &done)
-
-		gss[i] = gs
-		ins[i] = in
-		outs[i] = out
-		fins[i] = fin
-
-		state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 4, false)
-	}
-
-	for _, out := range outs {
-		go broadcastVotes(out, ins, &done)
-	}
-
-	for _, gs := range gss {
-		// start rounds at slightly different times to account for real-time node differences
-		time.Sleep(time.Millisecond * 100)
-		go gs.initiate()
-	}
-
-	rounds := 10
-
-	for j := 0; j < rounds; j++ {
-
-		wg := sync.WaitGroup{}
-		wg.Add(len(kr.Keys))
-
-		finalised := make([]*CommitMessage, len(kr.Keys))
-
-		for i, fin := range fins {
-
-			go func(i int, fin <-chan GrandpaMessage) {
-				select {
-				case f := <-fin:
-
-					// receive first message, which is finalised block from previous round
-					if f.(*CommitMessage).Round == uint64(j) {
-						select {
-						case f = <-fin:
-						case <-time.After(testTimeout):
-							t.Errorf("did not receive finalised block from %d", i)
+								if equivocateVote != nil {
+									select {
+									case neighbour.in <- equivocateVote:
+									default:
+									}
+								}
+							}
+						case *CommitMessage:
+							producedCommitMessages[serviceIdx] = msg
 						}
 					}
-
-					finalised[i] = f.(*CommitMessage)
-				case <-time.After(testTimeout):
-					t.Errorf("did not receive finalised block from %d", i)
 				}
-				wg.Done()
-			}(i, fin)
 
+				// In this test it is not important to assert the arguments
+				// to the telemetry SendMessage mocked func
+				// the TestSendingVotesInRightStage does it properly
+				telemetryMock := NewMockClient(ctrl)
+				grandpaService.telemetry = telemetryMock
+				telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+				// if the voter is an equivocator then we issue a vote
+				// to another block into the same round and set id
+				var equivocatedVoteMessage *networkVoteMessage
+				_, isEquivocator := tt.whoEquivocates[idx]
+				if isEquivocator {
+					leaves := grandpaService.blockState.Leaves()
+
+					vote, err := NewVoteFromHash(leaves[1], grandpaService.blockState)
+					require.NoError(t, err)
+
+					_, vmsg, err := grandpaService.createSignedVoteAndVoteMessage(
+						vote, prevote)
+					require.NoError(t, err)
+
+					equivocatedVoteMessage = &networkVoteMessage{
+						from: peer.ID(fmt.Sprint(idx)),
+						msg:  vmsg,
+					}
+				}
+
+				// The network mock works like a wire between the running
+				// services, and it is not important to assert the arguments
+				// the TestSendingVotesInRightStage does it properly
+				mockNet := NewMockNetwork(ctrl)
+				grandpaService.network = mockNet
+				mockNet.EXPECT().
+					GossipMessage(gomock.Any()).
+					DoAndReturn(serviceNetworkMock(idx, neighbours, equivocatedVoteMessage)).
+					AnyTimes()
+			}
+
+			wg := new(sync.WaitGroup)
+			for _, grandpaService := range grandpaServices {
+				wg.Add(1)
+
+				// executes playGrandpaRound in a goroutine and
+				// assert the results after the services reach a finalisation
+				go func(wg *sync.WaitGroup, gs *Service) {
+					defer wg.Done()
+					err := gs.playGrandpaRound()
+					require.NoError(t, err)
+				}(wg, grandpaService)
+			}
+
+			wg.Wait()
+
+			for _, grandpaService := range grandpaServices {
+				close(grandpaService.in)
+			}
+
+			var latestHash common.Hash = grandpaServices[0].head.Hash()
+			for _, grandpaService := range grandpaServices[1:] {
+				serviceFinalizedHash := grandpaService.head.Hash()
+				eql := serviceFinalizedHash.Equal(latestHash)
+				if !eql {
+					t.Errorf("miss match service finalized hash\n\texpecting %s\n\tgot%s\n",
+						latestHash, serviceFinalizedHash)
+				}
+				latestHash = serviceFinalizedHash
+			}
+
+			var latestCommit *CommitMessage = producedCommitMessages[0]
+			for _, commitMessage := range producedCommitMessages[1:] {
+				require.NotNil(t, commitMessage)
+				require.GreaterOrEqual(t, len(commitMessage.Precommits), len(tt.voters)/2)
+				require.GreaterOrEqual(t, len(commitMessage.AuthData), len(tt.voters)/2)
+
+				require.Equal(t, latestCommit.Round, commitMessage.Round)
+				require.Equal(t, latestCommit.SetID, commitMessage.SetID)
+				require.Equal(t, latestCommit.Vote, commitMessage.Vote)
+				latestCommit = commitMessage
+			}
+
+			// assert that the services who got an equivocator vote
+			// stored that information in the map properly
+			if len(tt.whoEquivocates) > 0 {
+				for idx, grandpaService := range grandpaServices {
+					// who equivocates does not take itself in to account
+					_, isEquivocator := tt.whoEquivocates[idx]
+					if isEquivocator {
+						require.LessOrEqual(t, len(grandpaService.pvEquivocations), len(tt.whoEquivocates)-1,
+							"%s does not have enough equivocations", grandpaService.publicKeyBytes())
+					} else {
+						require.LessOrEqual(t, len(grandpaService.pvEquivocations), len(tt.whoEquivocates),
+							"%s does not have enough equivocations", grandpaService.publicKeyBytes())
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestPlayGrandpaRoundMultipleRounds(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	ed25519Keyring, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	voters := []*ed25519.Keypair{
+		ed25519Keyring.Alice().(*ed25519.Keypair),
+		ed25519Keyring.Bob().(*ed25519.Keypair),
+		ed25519Keyring.Charlie().(*ed25519.Keypair),
+		ed25519Keyring.Dave().(*ed25519.Keypair),
+		ed25519Keyring.Ian().(*ed25519.Keypair),
+	}
+
+	grandpaVoters := make([]types.GrandpaVoter, 0, len(voters))
+	for _, kp := range voters {
+		grandpaVoters = append(grandpaVoters, types.GrandpaVoter{
+			Key: *kp.Public().(*ed25519.PublicKey),
+		})
+	}
+
+	grandpaServices := make([]*Service, len(voters))
+	for idx := range voters {
+		const subroundInterval = 100 * time.Millisecond
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		st := newTestState(t)
+		grandpaServices[idx] = &Service{
+			ctx:            ctx,
+			cancel:         cancel,
+			paused:         atomic.Value{},
+			blockState:     st.Block,
+			grandpaState:   st.Grandpa,
+			receivedCommit: make(chan *CommitMessage),
+			interval:       subroundInterval,
+			in:             make(chan *networkVoteMessage, 1024),
+			state: &State{
+				round:  1,
+				setID:  0,
+				voters: grandpaVoters,
+			},
+			head:               testGenesisHeader,
+			authority:          true,
+			keypair:            voters[idx],
+			preVotedBlock:      make(map[uint64]*Vote),
+			bestFinalCandidate: make(map[uint64]*Vote),
+		}
+		grandpaServices[idx].paused.Store(false)
+
+		const withBranches = false
+		const baseLenght = 4
+		state.AddBlocksToState(t,
+			grandpaServices[idx].blockState.(*state.BlockState),
+			baseLenght, withBranches)
+	}
+
+	neighbourServices := make([][]*Service, len(grandpaServices))
+	for idx := range grandpaServices {
+		neighbours := make([]*Service, len(grandpaServices)-1)
+		copy(neighbours, grandpaServices[:idx])
+		copy(neighbours[idx:], grandpaServices[idx+1:])
+		neighbourServices[idx] = neighbours
+	}
+
+	const totalRounds = 10
+	for currentRound := 1; currentRound <= totalRounds; currentRound++ {
+		fmt.Printf("=== starting round %d === \n", currentRound)
+		for _, grandpaService := range grandpaServices {
+			grandpaService.in = make(chan *networkVoteMessage, 1024)
+			grandpaService.state.round = uint64(currentRound)
+			grandpaService.prevotes = new(sync.Map)
+			grandpaService.precommits = new(sync.Map)
+			grandpaService.pvEquivocations = make(map[ed25519.PublicKeyBytes][]*SignedVote)
+			grandpaService.pcEquivocations = make(map[ed25519.PublicKeyBytes][]*SignedVote)
 		}
 
+		// every grandpa service should produce a commit message
+		// indicating that it achieved a finalisation in the round
+		producedCommitMessages := make([]*CommitMessage, len(grandpaServices))
+		for idx, grandpaService := range grandpaServices {
+			idx := idx
+			neighbours := neighbourServices[idx]
+
+			serviceNetworkMock := func(serviceIdx int, neighbours []*Service) func(any) {
+				return func(arg0 any) {
+					consensusMessage, ok := arg0.(*network.ConsensusMessage)
+					require.True(t, ok, "expecting *network.ConsensusMessage, got %T", arg0)
+
+					message, err := decodeMessage(consensusMessage)
+					require.NoError(t, err)
+
+					switch msg := message.(type) {
+					case *VoteMessage:
+						for _, neighbour := range neighbours {
+							voteMessage := &networkVoteMessage{
+								from: peer.ID(fmt.Sprint(serviceIdx)),
+								msg:  msg,
+							}
+
+							select {
+							case neighbour.in <- voteMessage:
+							default:
+							}
+						}
+					case *CommitMessage:
+						producedCommitMessages[serviceIdx] = msg
+					}
+				}
+			}
+
+			// In this test it is not important to assert the arguments
+			// to the telemetry SendMessage mocked func
+			// the TestSendingVotesInRightStage does it properly
+			telemetryMock := NewMockClient(ctrl)
+			grandpaService.telemetry = telemetryMock
+			telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+			// The network mock works like a wire between the running
+			// services, and it is not important to assert the arguments
+			// the TestSendingVotesInRightStage does it properly
+			mockNet := NewMockNetwork(ctrl)
+			grandpaService.network = mockNet
+			mockNet.EXPECT().
+				GossipMessage(gomock.Any()).
+				Do(serviceNetworkMock(idx, neighbours)).
+				AnyTimes()
+		}
+
+		wg := new(sync.WaitGroup)
+		for _, grandpaService := range grandpaServices {
+			wg.Add(1)
+			// executes playGrandpaRound in a goroutine and
+			// assert the results after the services reach a finalisation
+			go func(wg *sync.WaitGroup, gs *Service) {
+				defer wg.Done()
+				err := gs.playGrandpaRound()
+				require.NoError(t, err)
+			}(wg, grandpaService)
+		}
 		wg.Wait()
 
-		for _, fb := range finalised {
-			require.NotNil(t, fb)
-			require.Greater(t, len(fb.Precommits), len(kr.Keys)/2)
-			require.Greater(t, len(fb.AuthData), len(kr.Keys)/2)
-			finalised[0].Precommits = []Vote{}
-			finalised[0].AuthData = []AuthData{}
-			fb.Precommits = []Vote{}
-			fb.AuthData = []AuthData{}
-			require.Equal(t, finalised[0], fb)
-
-			if j == rounds-1 {
-				require.Greater(t, int(fb.Vote.Number), 4)
-			}
+		for _, grandpaService := range grandpaServices {
+			close(grandpaService.in)
 		}
 
-		chain, _ := state.AddBlocksToState(t, gss[0].blockState.(*state.BlockState), 1, false)
-		block := &types.Block{
-			Header: *(chain[0]),
-			Body:   types.Body{},
-		}
+		const setID uint64 = 0
+		assertSameFinalizationAndChainGrowth(t, grandpaServices,
+			uint64(currentRound), setID)
 
-		for _, gs := range gss[1:] {
-			err := gs.blockState.(*state.BlockState).AddBlock(block)
-			require.NoError(t, err)
-		}
+		var latestCommit *CommitMessage = producedCommitMessages[0]
+		for _, commitMessage := range producedCommitMessages[1:] {
+			require.NotNil(t, commitMessage)
+			require.GreaterOrEqual(t, len(commitMessage.Precommits), len(voters)/2)
+			require.GreaterOrEqual(t, len(commitMessage.AuthData), len(voters)/2)
 
+			require.Equal(t, commitMessage.Round, uint64(currentRound))
+			require.Equal(t, latestCommit.Round, commitMessage.Round)
+			require.Equal(t, latestCommit.SetID, commitMessage.SetID)
+			require.Equal(t, latestCommit.Vote, commitMessage.Vote)
+			latestCommit = commitMessage
+		}
+	}
+}
+
+// assertChainGrowth ensure that each service reach the same finalisation result
+// and that the result belongs to the same chain as the previously finalized block
+func assertSameFinalizationAndChainGrowth(t *testing.T, services []*Service, currentRount, setID uint64) {
+	finalizedHeaderCurrentRound := make([]*types.Header, len(services))
+	for idx, grandpaService := range services {
+		finalizedHeader, err := grandpaService.blockState.GetFinalisedHeader(
+			currentRount, setID)
+		require.NoError(t, err)
+		require.NotNil(t, finalizedHeader, "round %d does not contain an header", currentRount)
+		finalizedHeaderCurrentRound[idx] = finalizedHeader
+	}
+
+	var latestFinalized common.Hash = finalizedHeaderCurrentRound[0].Hash()
+	for _, finalizedHead := range finalizedHeaderCurrentRound[1:] {
+		eq := finalizedHead.Hash().Equal(latestFinalized)
+		if !eq {
+			t.Errorf("miss match finalized hash\n\texpected %s\n\tgot%s\n",
+				latestFinalized, finalizedHead)
+		}
+		latestFinalized = finalizedHead.Hash()
+	}
+
+	previousRound := currentRount - 1
+	// considering that we start from round 1
+	// there is nothing to compare before
+	if previousRound == 0 {
+		return
+	}
+
+	for _, grandpaService := range services {
+		previouslyFinalized, err := grandpaService.blockState.
+			GetFinalisedHeader(previousRound, setID)
+		require.NoError(t, err)
+
+		descendant, err := grandpaService.blockState.IsDescendantOf(
+			previouslyFinalized.Hash(), latestFinalized)
+		require.NoError(t, err)
+		require.True(t, descendant)
 	}
 }
 
@@ -625,18 +721,18 @@ func TestSendingVotesInRightStage(t *testing.T) {
 	ed25519Keyring, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
-	currentAuthority := ed25519Keyring.Bob().(*ed25519.Keypair)
-	votersPublicKeys := []*ed25519.PublicKey{
-		ed25519Keyring.Alice().(*ed25519.Keypair).Public().(*ed25519.PublicKey),
-		currentAuthority.Public().(*ed25519.PublicKey),
-		ed25519Keyring.Charlie().(*ed25519.Keypair).Public().(*ed25519.PublicKey),
-		ed25519Keyring.Dave().(*ed25519.Keypair).Public().(*ed25519.PublicKey),
+	bobAuthority := ed25519Keyring.Bob().(*ed25519.Keypair)
+	votersPublicKeys := []*ed25519.Keypair{
+		ed25519Keyring.Alice().(*ed25519.Keypair),
+		bobAuthority,
+		ed25519Keyring.Charlie().(*ed25519.Keypair),
+		ed25519Keyring.Dave().(*ed25519.Keypair),
 	}
 
 	grandpaVoters := make([]types.GrandpaVoter, len(votersPublicKeys))
 	for idx, pk := range votersPublicKeys {
 		grandpaVoters[idx] = types.GrandpaVoter{
-			Key: *pk,
+			Key: *pk.Public().(*ed25519.PublicKey),
 		}
 	}
 
@@ -645,21 +741,21 @@ func TestSendingVotesInRightStage(t *testing.T) {
 	mockedGrandpaState.EXPECT().
 		NextGrandpaAuthorityChange(testGenesisHeader.Hash(), testGenesisHeader.Number).
 		Return(uint(0), state.ErrNoNextAuthorityChange).
-		Times(2)
+		AnyTimes()
 	mockedGrandpaState.EXPECT().
-		SetPrevotes(uint64(0), uint64(0), gomock.AssignableToTypeOf([]types.GrandpaSignedVote{})).
+		SetPrevotes(uint64(1), uint64(0), gomock.AssignableToTypeOf([]types.GrandpaSignedVote{})).
 		Return(nil).
 		Times(1)
 	mockedGrandpaState.EXPECT().
-		SetPrecommits(uint64(0), uint64(0), gomock.AssignableToTypeOf([]types.GrandpaSignedVote{})).
+		SetPrecommits(uint64(1), uint64(0), gomock.AssignableToTypeOf([]types.GrandpaSignedVote{})).
 		Return(nil).
 		Times(1)
 	mockedGrandpaState.EXPECT().
-		SetLatestRound(uint64(0)).
+		SetLatestRound(uint64(1)).
 		Return(nil).
 		Times(1)
 	mockedGrandpaState.EXPECT().
-		GetPrecommits(uint64(0), uint64(0)).
+		GetPrecommits(uint64(1), uint64(0)).
 		Return([]types.GrandpaSignedVote{}, nil).
 		Times(1)
 
@@ -671,9 +767,13 @@ func TestSendingVotesInRightStage(t *testing.T) {
 	// since the next 3 function has been called based on the amount of time we wait until we get enough
 	// prevotes is hard to define a corret amount of times this function shoud be called
 	mockedState.EXPECT().
-		HasFinalisedBlock(uint64(0), uint64(0)).
+		HasFinalisedBlock(uint64(1), uint64(0)).
 		Return(false, nil).
 		AnyTimes()
+	mockedState.EXPECT().
+		HasHeader(testGenesisHeader.Hash()).
+		Return(true, nil).
+		Times(4)
 	mockedState.EXPECT().
 		GetHighestRoundAndSetID().
 		Return(uint64(0), uint64(0), nil).
@@ -696,15 +796,48 @@ func TestSendingVotesInRightStage(t *testing.T) {
 		Return(testGenesisHeader, nil).
 		Times(1)
 	mockedState.EXPECT().
-		SetFinalisedHash(testGenesisHeader.Hash(), uint64(0), uint64(0)).
+		SetFinalisedHash(testGenesisHeader.Hash(), uint64(1), uint64(0)).
 		Return(nil).
 		Times(1)
 
-	mockedTelemetry := NewMockClient(ctrl)
 	expectedFinalizedTelemetryMessage := telemetry.NewAfgFinalizedBlocksUpTo(
 		testGenesisHeader.Hash(),
 		fmt.Sprint(testGenesisHeader.Number),
 	)
+	expectedAlicePrevoteTelemetryMessage := telemetry.NewAfgReceivedPrevote(
+		testGenesisHeader.Hash(),
+		fmt.Sprint(testGenesisHeader.Number),
+		grandpaVoters[0].PublicKeyBytes().String(),
+	)
+	expectedCharliePrevoteTelemetryMessage := telemetry.NewAfgReceivedPrevote(
+		testGenesisHeader.Hash(),
+		fmt.Sprint(testGenesisHeader.Number),
+		grandpaVoters[2].PublicKeyBytes().String(),
+	)
+	expectedAlicePrecommitTelemetryMessage := telemetry.NewAfgReceivedPrecommit(
+		testGenesisHeader.Hash(),
+		fmt.Sprint(testGenesisHeader.Number),
+		grandpaVoters[0].PublicKeyBytes().String(),
+	)
+	expectedCharliePrecommitTelemetryMessage := telemetry.NewAfgReceivedPrecommit(
+		testGenesisHeader.Hash(),
+		fmt.Sprint(testGenesisHeader.Number),
+		grandpaVoters[2].PublicKeyBytes().String(),
+	)
+
+	mockedTelemetry := NewMockClient(ctrl)
+	mockedTelemetry.EXPECT().
+		SendMessage(expectedAlicePrevoteTelemetryMessage).
+		Times(1)
+	mockedTelemetry.EXPECT().
+		SendMessage(expectedCharliePrevoteTelemetryMessage).
+		Times(1)
+	mockedTelemetry.EXPECT().
+		SendMessage(expectedAlicePrecommitTelemetryMessage).
+		Times(1)
+	mockedTelemetry.EXPECT().
+		SendMessage(expectedCharliePrecommitTelemetryMessage).
+		Times(1)
 	mockedTelemetry.EXPECT().
 		SendMessage(expectedFinalizedTelemetryMessage).
 		Times(1)
@@ -726,13 +859,13 @@ func TestSendingVotesInRightStage(t *testing.T) {
 		in:           make(chan *networkVoteMessage),
 		interval:     subroundInterval,
 		state: &State{
-			round:  0,
+			round:  1,
 			setID:  0,
 			voters: grandpaVoters,
 		},
 		head:               testGenesisHeader,
 		authority:          true,
-		keypair:            currentAuthority,
+		keypair:            bobAuthority,
 		prevotes:           new(sync.Map),
 		precommits:         new(sync.Map),
 		preVotedBlock:      make(map[uint64]*Vote),
@@ -741,78 +874,134 @@ func TestSendingVotesInRightStage(t *testing.T) {
 	}
 	grandpa.paused.Store(false)
 
-	ed25519Keyring.Bob().(*ed25519.Keypair).Public()
-	persistVote := func(grandpaSrvc *Service, pk ed25519.PublicKey, stage Subround) {
-		// dummy vote, the goal is ensure we stop sending
-		// messages when we reach a enough amount of prevotes
-		vote := NewVote(testGenesisHeader.Hash(), uint32(testGenesisHeader.Number))
-		signedVote := &SignedVote{
-			Vote:        *vote,
-			Signature:   [64]byte{},
-			AuthorityID: pk.AsBytes(),
-		}
+	expectedVote := NewVote(testGenesisHeader.Hash(), uint32(testGenesisHeader.Number))
+	_, expectedPrimaryProposal, err := grandpa.createSignedVoteAndVoteMessage(expectedVote, primaryProposal)
+	require.NoError(t, err)
 
-		var stageMap *sync.Map
-		switch stage {
-		case precommit:
-			stageMap = grandpaSrvc.precommits
-		case prevote:
-			stageMap = grandpaSrvc.prevotes
-		}
+	primaryProposal, err := expectedPrimaryProposal.ToConsensusMessage()
+	require.NoError(t, err)
+	mockedNet.EXPECT().
+		GossipMessage(primaryProposal).
+		Times(1)
 
-		stageMap.Store(pk.AsBytes(), signedVote)
-	}
+	// first of all we should determine our precommit based on our chain view
+	_, expectedPrevoteMessage, err := grandpa.createSignedVoteAndVoteMessage(expectedVote, prevote)
+	require.NoError(t, err)
 
+	pv, err := expectedPrevoteMessage.ToConsensusMessage()
+	require.NoError(t, err)
+	mockedNet.EXPECT().
+		GossipMessage(pv).
+		AnyTimes()
+
+	// after receive enough prevotes our node should define a precommit message and send it
+	_, expectedPrecommitMessage, err := grandpa.createSignedVoteAndVoteMessage(expectedVote, precommit)
+	require.NoError(t, err)
+
+	pc, err := expectedPrecommitMessage.ToConsensusMessage()
+	require.NoError(t, err)
+	mockedNet.EXPECT().
+		GossipMessage(pc).
+		AnyTimes()
+
+	doneCh := make(chan struct{})
 	go func() {
-		expectedVote := NewVote(testGenesisHeader.Hash(), uint32(testGenesisHeader.Number))
-		_, expectedPrevoteMessage, err := grandpa.createSignedVoteAndVoteMessage(expectedVote, prevote)
+		defer close(doneCh)
+		err = grandpa.playGrandpaRound()
 		require.NoError(t, err)
-
-		pv, err := expectedPrevoteMessage.ToConsensusMessage()
-		require.NoError(t, err)
-		mockedNet.EXPECT().
-			GossipMessage(pv).
-			Times(2)
-
-		// should send 2 prevote messages and then stop since we reach the enough amount of prevotes
-		time.Sleep(subroundInterval * 4)
-
-		// given that we are BOB and we already had predetermined our prevote in a set
-		// of 4 authorities (ALICE, BOB, CHARLIE and DAVE) then we only need 2 more prevotes
-		persistVote(grandpa, *votersPublicKeys[0], prevote) // persiste prevote for alice
-		persistVote(grandpa, *votersPublicKeys[2], prevote) // persiste prevote for charlie
-
-		_, expectedPrecommit, err := grandpa.createSignedVoteAndVoteMessage(expectedVote, precommit)
-		require.NoError(t, err)
-
-		pc, err := expectedPrecommit.ToConsensusMessage()
-		require.NoError(t, err)
-		mockedNet.EXPECT().
-			GossipMessage(pc).
-			Times(1)
-
-		commitMessage := &CommitMessage{
-			Round:      0,
-			Vote:       *NewVoteFromHeader(testGenesisHeader),
-			Precommits: []types.GrandpaVote{},
-			AuthData:   []AuthData{},
-		}
-		expectedGossipCommitMessage, err := commitMessage.ToConsensusMessage()
-		require.NoError(t, err)
-		mockedNet.EXPECT().
-			GossipMessage(expectedGossipCommitMessage).
-			Times(1)
-
-		// should send 1 precommit message and after we persit enough precommit
-		// votes we will close the `done` channel which will return from the `sendPrecommitMessage` goroutine
-		time.Sleep(subroundInterval * 2)
-
-		// given that we are BOB and we already had predetermined the precommit given the prevotes
-		// we only need 2 more precommit messages
-		persistVote(grandpa, *votersPublicKeys[0], precommit) // persiste prevote for alice
-		persistVote(grandpa, *votersPublicKeys[2], precommit) // persiste prevote for charlie
 	}()
 
-	err = grandpa.playGrandpaRound()
-	assert.NoError(t, err)
+	time.Sleep(grandpa.interval * 5)
+
+	// given that we are BOB and we already had predetermined our prevote in a set
+	// of 4 authorities (ALICE, BOB, CHARLIE and DAVE) then we only need 2 more prevotes
+	_, aliceVoteMessage, err := createSignedVoteUsing(t, votersPublicKeys[0], expectedVote, prevote, 1, 0)
+	require.NoError(t, err)
+
+	grandpa.in <- &networkVoteMessage{
+		from: peer.ID("alice"),
+		msg:  aliceVoteMessage,
+	}
+
+	_, charlieVoteMessage, err := createSignedVoteUsing(t, votersPublicKeys[2], expectedVote, prevote, 1, 0)
+	require.NoError(t, err)
+
+	grandpa.in <- &networkVoteMessage{
+		from: peer.ID("charlie"),
+		msg:  charlieVoteMessage,
+	}
+
+	// given that we are BOB and we already had predetermined the precommit given the prevotes
+	// we only need 2 more precommit messages
+	_, alicePrecommitMessage, err := createSignedVoteUsing(t, votersPublicKeys[0], expectedVote, precommit, 1, 0)
+	require.NoError(t, err)
+
+	grandpa.in <- &networkVoteMessage{
+		from: peer.ID("alice"),
+		msg:  alicePrecommitMessage,
+	}
+
+	_, charliePrecommitMessage, err := createSignedVoteUsing(t, votersPublicKeys[2], expectedVote, precommit, 1, 0)
+	require.NoError(t, err)
+
+	grandpa.in <- &networkVoteMessage{
+		from: peer.ID("charlie"),
+		msg:  charliePrecommitMessage,
+	}
+
+	commitMessage := &CommitMessage{
+		Round:      1,
+		Vote:       *NewVoteFromHeader(testGenesisHeader),
+		Precommits: []types.GrandpaVote{},
+		AuthData:   []AuthData{},
+	}
+	expectedGossipCommitMessage, err := commitMessage.ToConsensusMessage()
+	require.NoError(t, err)
+	mockedNet.EXPECT().
+		GossipMessage(expectedGossipCommitMessage).
+		Times(1)
+
+	<-doneCh
+}
+
+func createSignedVoteUsing(t *testing.T, kp *ed25519.Keypair, vote *Vote,
+	stage Subround, round, setID uint64) (*SignedVote, *VoteMessage, error) { //nolint:unparam
+	t.Helper()
+
+	msg, err := scale.Marshal(FullVote{
+		Stage: stage,
+		Vote:  *vote,
+		Round: round,
+		SetID: setID,
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	sig, err := kp.Sign(msg)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	pc := &SignedVote{
+		Vote:        *vote,
+		Signature:   ed25519.NewSignatureBytes(sig),
+		AuthorityID: kp.Public().(*ed25519.PublicKey).AsBytes(),
+	}
+
+	sm := &SignedMessage{
+		Stage:       stage,
+		BlockHash:   pc.Vote.Hash,
+		Number:      pc.Vote.Number,
+		Signature:   ed25519.NewSignatureBytes(sig),
+		AuthorityID: kp.Public().(*ed25519.PublicKey).AsBytes(),
+	}
+
+	vm := &VoteMessage{
+		Round:   round,
+		SetID:   setID,
+		Message: *sm,
+	}
+
+	return pc, vm, nil
 }

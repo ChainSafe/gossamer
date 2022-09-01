@@ -15,7 +15,7 @@ sync = ""
 digest = ""
 
 [init]
-genesis = "./chain/gssmr/genesis-spec.json"
+genesis = "./chain/gssmr/genesis.json"
 
 [account]
 key = ""

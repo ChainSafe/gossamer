@@ -16,7 +16,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-func (s *Service) validateTransaction(peerID peer.ID, head *types.Header, rt runtime.Instance,
+func (s *Service) validateTransaction(peerID peer.ID, head *types.Header, rt RuntimeInstance,
 	tx types.Extrinsic) (validity *transaction.Validity, valid bool, err error) {
 	s.storageState.Lock()
 

@@ -17,7 +17,8 @@ import (
 )
 
 const (
-	grandpaID1               = "grandpa/1"
+	grandpaID1 = "grandpa/1"
+
 	neighbourMessageInterval = 5 * time.Minute
 )
 
@@ -35,7 +36,7 @@ type ConsensusMessage = network.ConsensusMessage
 
 // GrandpaHandshake is exchanged by nodes that are beginning the grandpa protocol
 type GrandpaHandshake struct { //nolint:revive
-	Roles byte
+	Roles common.Roles
 }
 
 // String formats a BlockAnnounceHandshake as a string
@@ -53,19 +54,14 @@ func (hs *GrandpaHandshake) Decode(in []byte) error {
 	return scale.Unmarshal(in, hs)
 }
 
-// Type ...
-func (*GrandpaHandshake) Type() byte {
-	return 0
-}
-
-// Hash ...
-func (*GrandpaHandshake) Hash() (common.Hash, error) {
-	return common.Hash{}, nil
-}
-
-// IsHandshake returns true
-func (*GrandpaHandshake) IsHandshake() bool {
-	return true
+// IsValid return if it is a valid handshake.
+func (hs *GrandpaHandshake) IsValid() bool {
+	switch hs.Roles {
+	case common.AuthorityRole, common.FullNodeRole:
+		return true
+	default:
+		return false
+	}
 }
 
 // OnPeerConnected will send neighbour message
@@ -107,12 +103,12 @@ func (s *Service) registerProtocol() error {
 }
 
 func (s *Service) getHandshake() (Handshake, error) {
-	var roles byte
+	var roles common.Roles
 
 	if s.authority {
-		roles = 4
+		roles = common.AuthorityRole
 	} else {
-		roles = 1
+		roles = common.FullNodeRole
 	}
 
 	return &GrandpaHandshake{
@@ -202,6 +198,7 @@ func (s *Service) notifyNeighbours(interval time.Duration) {
 		select {
 		case <-s.ctx.Done():
 			return
+
 		case <-t.C:
 			s.roundLock.Lock()
 			neighbourMessage := &NeighbourPacketV1{
@@ -269,7 +266,7 @@ func decodeMessage(cm *network.ConsensusMessage) (m GrandpaMessage, err error) {
 	case CatchUpResponse:
 		m = &val
 	default:
-		return nil, ErrInvalidMessageType
+		return nil, fmt.Errorf("%w", ErrInvalidMessageType)
 	}
 
 	return m, nil

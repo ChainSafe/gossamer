@@ -41,7 +41,7 @@ func TestCommitMessageEncode(t *testing.T) {
 	err := st.Grandpa.SetPrecommits(77, gs.state.setID, just)
 	require.NoError(t, err)
 
-	fm, err := gs.newCommitMessage(gs.head, 77)
+	fm, err := gs.newCommitMessage(gs.head, 77, 0)
 	require.NoError(t, err)
 	precommits, authData := justificationToCompact(just)
 
@@ -121,7 +121,7 @@ func TestCommitMessageToConsensusMessage(t *testing.T) {
 	err := st.Grandpa.SetPrecommits(77, gs.state.setID, just)
 	require.NoError(t, err)
 
-	fm, err := gs.newCommitMessage(gs.head, 77)
+	fm, err := gs.newCommitMessage(gs.head, 77, 0)
 	require.NoError(t, err)
 	precommits, authData := justificationToCompact(just)
 

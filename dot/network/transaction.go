@@ -17,7 +17,7 @@ import (
 
 var (
 	_ NotificationsMessage = &TransactionMessage{}
-	_ NotificationsMessage = &transactionHandshake{}
+	_ Handshake            = (*transactionHandshake)(nil)
 )
 
 // txnBatchChTimeout is the timeout for adding a transaction to the batch processing channel
@@ -28,9 +28,9 @@ type TransactionMessage struct {
 	Extrinsics []types.Extrinsic
 }
 
-// Type returns TransactionMsgType
+// Type returns transactionMsgType
 func (*TransactionMessage) Type() byte {
-	return TransactionMsgType
+	return transactionMsgType
 }
 
 // String returns the TransactionMessage extrinsics
@@ -57,11 +57,6 @@ func (tm *TransactionMessage) Hash() (common.Hash, error) {
 	return common.Blake2bHash(encMsg)
 }
 
-// IsHandshake returns false
-func (*TransactionMessage) IsHandshake() bool {
-	return false
-}
-
 type transactionHandshake struct{}
 
 // String formats a transactionHandshake as a string
@@ -79,18 +74,8 @@ func (*transactionHandshake) Decode(_ []byte) error {
 	return nil
 }
 
-// Type ...
-func (*transactionHandshake) Type() byte {
-	return 1
-}
-
-// Hash ...
-func (*transactionHandshake) Hash() (common.Hash, error) {
-	return common.Hash{}, nil
-}
-
-// IsHandshake returns true
-func (*transactionHandshake) IsHandshake() bool {
+// IsValid returns true
+func (*transactionHandshake) IsValid() bool {
 	return true
 }
 
@@ -140,7 +125,7 @@ func (s *Service) startTxnBatchProcessing(txnBatchCh chan *batchMessage, slotDur
 						continue
 					}
 					if !hasSeen {
-						s.broadcastExcluding(s.notificationsProtocols[TransactionMsgType], txnMsg.peer, txnMsg.msg)
+						s.broadcastExcluding(s.notificationsProtocols[transactionMsgType], txnMsg.peer, txnMsg.msg)
 					}
 				}
 			}

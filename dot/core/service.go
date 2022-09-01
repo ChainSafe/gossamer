@@ -68,7 +68,7 @@ type Config struct {
 	TransactionState TransactionState
 	Network          Network
 	Keystore         *keystore.GlobalKeystore
-	Runtime          runtime.Instance
+	Runtime          RuntimeInstance
 
 	CodeSubstitutes      map[common.Hash]string
 	CodeSubstitutedState CodeSubstitutedState
@@ -527,7 +527,7 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 	return nil
 }
 
-//GetMetadata calls runtime Metadata_metadata function
+// GetMetadata calls runtime Metadata_metadata function
 func (s *Service) GetMetadata(bhash *common.Hash) ([]byte, error) {
 	var (
 		stateRootHash *common.Hash

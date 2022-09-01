@@ -50,7 +50,7 @@ func TestHandleNetworkMessage(t *testing.T) {
 	err := st.Grandpa.SetPrecommits(77, gs.state.setID, just)
 	require.NoError(t, err)
 
-	fm, err := gs.newCommitMessage(gs.head, 77)
+	fm, err := gs.newCommitMessage(gs.head, 77, 0)
 	require.NoError(t, err)
 
 	cm, err := fm.ToConsensusMessage()

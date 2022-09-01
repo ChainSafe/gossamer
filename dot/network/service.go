@@ -244,7 +244,7 @@ func (s *Service) Start() error {
 	// register block announce protocol
 	err := s.RegisterNotificationsProtocol(
 		s.host.protocolID+blockAnnounceID,
-		BlockAnnounceMsgType,
+		blockAnnounceMsgType,
 		s.getBlockAnnounceHandshake,
 		decodeBlockAnnounceHandshake,
 		s.validateBlockAnnounceHandshake,
@@ -264,7 +264,7 @@ func (s *Service) Start() error {
 	// register transactions protocol
 	err = s.RegisterNotificationsProtocol(
 		s.host.protocolID+transactionsID,
-		TransactionMsgType,
+		transactionMsgType,
 		s.getTransactionHandshake,
 		decodeTransactionHandshake,
 		validateTransactionHandshake,
@@ -346,9 +346,9 @@ func (s *Service) updateMetrics() {
 			nodeLatencyGauge.Set(float64(
 				s.host.p2pHost.Peerstore().LatencyEWMA(s.host.id()).Milliseconds()))
 			inboundBlockAnnounceStreamsGauge.Set(float64(
-				s.getNumStreams(BlockAnnounceMsgType, true)))
+				s.getNumStreams(blockAnnounceMsgType, true)))
 			outboundBlockAnnounceStreamsGauge.Set(float64(
-				s.getNumStreams(BlockAnnounceMsgType, false)))
+				s.getNumStreams(blockAnnounceMsgType, false)))
 			inboundGrandpaStreamsGauge.Set(float64(s.getNumStreams(ConsensusMsgType, true)))
 			outboundGrandpaStreamsGauge.Set(float64(s.getNumStreams(ConsensusMsgType, false)))
 			inboundStreamsGauge.Set(float64(s.getTotalStreams(true)))
@@ -613,7 +613,7 @@ func (s *Service) Peers() []common.PeerInfo {
 	var peers []common.PeerInfo
 
 	s.notificationsMu.RLock()
-	np := s.notificationsProtocols[BlockAnnounceMsgType]
+	np := s.notificationsProtocols[blockAnnounceMsgType]
 	s.notificationsMu.RUnlock()
 
 	for _, p := range s.host.peers() {
