@@ -16,7 +16,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/babe"
-	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -234,7 +233,7 @@ func newStateService(t *testing.T, ctrl *gomock.Controller) *state.Service {
 	}
 	stateSrvc := state.NewService(stateConfig)
 	stateSrvc.UseMemDB()
-	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
 	err := stateSrvc.Initialise(genData, genesisHeader, genTrie)
 	require.NoError(t, err)
 

@@ -13,7 +13,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -290,7 +289,7 @@ func TestChainGetBlockHash_Array(t *testing.T) {
 func TestChainGetFinalizedHead(t *testing.T) {
 	state := newTestStateService(t)
 	svc := NewChainModule(state.Block)
-	_, _, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	_, _, genesisHeader := newTestGenesisWithTrieAndHeader(t)
 	var res ChainHashResponse
 	err := svc.GetFinalizedHead(nil, &EmptyRequest{}, &res)
 	require.NoError(t, err)
@@ -308,7 +307,7 @@ func TestChainGetFinalizedHeadByRound(t *testing.T) {
 	err := svc.GetFinalizedHeadByRound(nil, &req, &res)
 	require.NoError(t, err)
 
-	_, _, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	_, _, genesisHeader := newTestGenesisWithTrieAndHeader(t)
 	expected := genesisHeader.Hash()
 	require.Equal(t, common.BytesToHex(expected[:]), res)
 
@@ -353,7 +352,7 @@ func newTestStateService(t *testing.T) *state.Service {
 	stateSrvc := state.NewService(config)
 	stateSrvc.UseMemDB()
 
-	gen, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	gen, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
 
 	err := stateSrvc.Initialise(gen, genesisHeader, genTrie)
 	require.NoError(t, err)

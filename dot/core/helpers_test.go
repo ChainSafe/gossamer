@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -16,6 +17,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
@@ -45,7 +47,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	var stateSrvc *state.Service
 	testDatadirPath := t.TempDir()
 
-	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
 
 	if cfg.BlockState == nil || cfg.StorageState == nil ||
 		cfg.TransactionState == nil || cfg.EpochState == nil ||
@@ -133,6 +135,27 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	require.NoError(t, err)
 
 	return s
+}
+
+func newTestGenesisWithTrieAndHeader(t *testing.T) (
+	gen *genesis.Genesis, genesisTrie *trie.Trie, genesisHeader *types.Header) {
+	genesisPath := utils.GetGssmrV3SubstrateGenesisRawPathTest(t)
+	gen, err := genesis.NewGenesisFromJSONRaw(genesisPath)
+	require.NoError(t, err)
+
+	genesisTrie, err = genesis.NewTrieFromGenesis(gen)
+	require.NoError(t, err)
+
+	parentHash := common.NewHash([]byte{0})
+	stateRoot := genesisTrie.MustHash()
+	extrinsicRoot := trie.EmptyHash
+	const number = 0
+	digest := types.NewDigest()
+	genesisHeader, err = types.NewHeader(parentHash,
+		stateRoot, extrinsicRoot, number, digest)
+	require.NoError(t, err)
+
+	return gen, genesisTrie, genesisHeader
 }
 
 func getGssmrRuntimeCode(t *testing.T) (code []byte) {
