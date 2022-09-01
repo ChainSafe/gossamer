@@ -143,7 +143,7 @@ func newTestGenesisWithTrieAndHeader(t *testing.T) (
 	gen, err := genesis.NewGenesisFromJSONRaw(genesisPath)
 	require.NoError(t, err)
 
-	genesisTrie, err = genesis.NewTrieFromGenesis(gen)
+	genesisTrie, err = wasmer.NewTrieFromGenesis(*gen)
 	require.NoError(t, err)
 
 	parentHash := common.NewHash([]byte{0})
@@ -167,7 +167,7 @@ func getGssmrRuntimeCode(t *testing.T) (code []byte) {
 	gssmrGenesis, err := genesis.NewGenesisFromJSONRaw(path)
 	require.NoError(t, err)
 
-	trie, err := genesis.NewTrieFromGenesis(gssmrGenesis)
+	trie, err := wasmer.NewTrieFromGenesis(*gssmrGenesis)
 	require.NoError(t, err)
 
 	trieState := rtstorage.NewTrieState(trie)

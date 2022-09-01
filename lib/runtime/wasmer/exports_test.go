@@ -14,8 +14,8 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/constants"
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer/testdata"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -124,7 +124,7 @@ func Test_Instance_Version(t *testing.T) {
 			instanceBuilder: func(t *testing.T) InstanceVersion {
 				genesisPath := utils.GetKusamaGenesisPath(t)
 				kusamaGenesis := genesisFromRawJSON(t, genesisPath)
-				genesisTrie, err := genesis.NewTrieFromGenesis(&kusamaGenesis)
+				genesisTrie, err := NewTrieFromGenesis(kusamaGenesis)
 				require.NoError(t, err)
 
 				cfg := Config{
@@ -298,7 +298,7 @@ func balanceKey(t *testing.T, pub []byte) []byte {
 func TestNodeRuntime_ValidateTransaction(t *testing.T) {
 	genesisPath := utils.GetGssmrV3SubstrateGenesisRawPathTest(t)
 	gen := genesisFromRawJSON(t, genesisPath)
-	genTrie, err := genesis.NewTrieFromGenesis(&gen)
+	genTrie, err := NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
 	// set state to genesis state
@@ -358,7 +358,8 @@ func TestInstance_GrandpaAuthorities_NodeRuntime(t *testing.T) {
 	value, err := common.HexToBytes("0x0108eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640100000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000") //nolint:lll
 	require.NoError(t, err)
 
-	tt.Put(runtime.GrandpaAuthoritiesKey, value)
+	key := common.MustHexToBytes(constants.GrandpaAuthoritiesKeyHex)
+	tt.Put(key, value)
 
 	rt := NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt)
 
@@ -385,7 +386,8 @@ func TestInstance_GrandpaAuthorities_PolkadotRuntime(t *testing.T) {
 	value, err := common.HexToBytes("0x0108eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640100000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000") //nolint:lll
 	require.NoError(t, err)
 
-	tt.Put(runtime.GrandpaAuthoritiesKey, value)
+	key := common.MustHexToBytes(constants.GrandpaAuthoritiesKeyHex)
+	tt.Put(key, value)
 
 	rt := NewTestInstanceWithTrie(t, runtime.POLKADOT_RUNTIME, tt)
 
@@ -447,12 +449,14 @@ func TestInstance_BabeConfiguration_NodeRuntime_WithAuthorities(t *testing.T) {
 
 	rvalue, err := common.HexToHash("0x01")
 	require.NoError(t, err)
-	tt.Put(runtime.BABERandomnessKey(), rvalue[:])
+	key := common.MustHexToBytes(constants.BABERandomnessKeyHex)
+	tt.Put(key, rvalue[:])
 
 	avalue, err := common.HexToBytes("0x08eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640100000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000") //nolint:lll
 	require.NoError(t, err)
 
-	tt.Put(runtime.BABEAuthoritiesKey(), avalue)
+	key = common.MustHexToBytes(constants.BABEAuthoritiesKeyHex)
+	tt.Put(key, avalue)
 
 	rt := NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt)
 
@@ -526,7 +530,7 @@ func TestInstance_ExecuteBlock_GossamerRuntime(t *testing.T) {
 	t.Skip() // TODO: this fails with "syscall frame is no longer valid" (#1026)
 	genesisPath := utils.GetGssmrGenesisRawPathTest(t)
 	gen := genesisFromRawJSON(t, genesisPath)
-	genTrie, err := genesis.NewTrieFromGenesis(&gen)
+	genTrie, err := NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
 	// set state to genesis state
@@ -554,7 +558,7 @@ func TestInstance_ApplyExtrinsic_GossamerRuntime(t *testing.T) {
 	t.Skip() // TODO: this fails with "syscall frame is no longer valid" (#1026)
 	genesisPath := utils.GetGssmrGenesisRawPathTest(t)
 	gen := genesisFromRawJSON(t, genesisPath)
-	genTrie, err := genesis.NewTrieFromGenesis(&gen)
+	genTrie, err := NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
 	// set state to genesis state
@@ -609,7 +613,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime(t *testing.T) {
 func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 	genesisPath := utils.GetPolkadotGenesisPath(t)
 	gen := genesisFromRawJSON(t, genesisPath)
-	genTrie, err := genesis.NewTrieFromGenesis(&gen)
+	genTrie, err := NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
 	expectedGenesisRoot := common.MustHexToHash("0x29d0d972cd27cbc511e9589fcb7a4506d5eb6a9e8df205f00472e5ab354a4e17")
@@ -659,7 +663,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 	genesisPath := utils.GetKusamaGenesisPath(t)
 	gen := genesisFromRawJSON(t, genesisPath)
-	genTrie, err := genesis.NewTrieFromGenesis(&gen)
+	genTrie, err := NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
 	expectedGenesisRoot := common.MustHexToHash("0xb0006203c3a6e6bd2c6a17b1d4ae8ca49a31da0f4579da950b127774b44aef6b")

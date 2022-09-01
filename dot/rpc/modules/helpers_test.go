@@ -8,6 +8,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/require"
@@ -27,7 +28,7 @@ func newTestGenesisWithTrieAndHeader(t *testing.T) (
 	gen, err := genesis.NewGenesisFromJSONRaw(genesisPath)
 	require.NoError(t, err)
 
-	genesisTrie, err = genesis.NewTrieFromGenesis(gen)
+	genesisTrie, err = wasmer.NewTrieFromGenesis(*gen)
 	require.NoError(t, err)
 
 	parentHash := common.NewHash([]byte{0})
