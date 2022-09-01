@@ -1,10 +1,11 @@
 // Copyright 2022 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package runtime
+package errors
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -26,18 +27,19 @@ func (tve *TransactionValidityError) Set(val scale.VaryingDataTypeValue) (err er
 	vdt := scale.VaryingDataType(*tve)
 	err = vdt.Set(val)
 	if err != nil {
-		return
+		return err
 	}
 	*tve = TransactionValidityError(vdt)
-	return
+	return nil
 }
 
-// Value will return value from underying VaryingDataType
+// Value will return the value from the underlying VaryingDataType
 func (tve *TransactionValidityError) Value() (val scale.VaryingDataTypeValue) {
 	vdt := scale.VaryingDataType(*tve)
 	return vdt.Value()
 }
 
+// Error will return the error underlying TransactionValidityError
 func (tve *TransactionValidityError) Error() string {
 	invalidTxn, ok := tve.Value().(InvalidTransaction)
 	if !ok {
@@ -71,22 +73,19 @@ func UnmarshalTransactionValidity(res []byte) (*transaction.Validity, error) {
 	}
 	txnValidityRes, err := txnValidityResult.Unwrap()
 	if err != nil {
-		switch errType := err.(type) {
-		case scale.WrappedErr:
-			txnValidityErr, ok := errType.Err.(TransactionValidityError)
+		scaleWrappedErr, ok := err.(scale.WrappedErr)
+		if ok {
+			txnValidityErr, ok := scaleWrappedErr.Err.(TransactionValidityError)
 			if !ok {
-				return nil, errInvalidTypeCast
+				return nil, fmt.Errorf("%w: %T", errInvalidTypeCast, scaleWrappedErr.Err)
 			}
 			return nil, &txnValidityErr
-		default:
-			return nil, errInvalidResult
 		}
-	} else {
-		switch validity := txnValidityRes.(type) {
-		case transaction.Validity:
-			return &validity, nil
-		default:
-			return nil, errInvalidType
-		}
+		return nil, fmt.Errorf("%w: %T", errInvalidResult, err)
 	}
+	validity, ok := txnValidityRes.(transaction.Validity)
+	if ok {
+		return &validity, nil
+	}
+	return nil, fmt.Errorf("%w", errInvalidType)
 }

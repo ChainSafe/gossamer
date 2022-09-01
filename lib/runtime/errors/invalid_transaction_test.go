@@ -1,7 +1,7 @@
 // Copyright 2022 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package runtime
+package errors
 
 import (
 	"testing"
@@ -11,20 +11,20 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestInvalidTransactionErrors(t *testing.T) {
+func Test_InvalidTransaction_Errors(t *testing.T) {
 	t.Parallel()
 	testCases := []struct {
 		name        string
-		test        []byte
+		encodedData []byte
 		expErr      bool
 		expErrMsg   string
 		expValidity *transaction.Validity
 	}{
 		{
-			name:      "ancient birth block",
-			test:      []byte{1, 0, 5},
-			expErrMsg: "ancient birth block",
-			expErr:    true,
+			name:        "ancient birth block",
+			encodedData: []byte{1, 0, 5},
+			expErrMsg:   "ancient birth block",
+			expErr:      true,
 		},
 	}
 
@@ -32,7 +32,7 @@ func TestInvalidTransactionErrors(t *testing.T) {
 		c := c
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			validity, err := UnmarshalTransactionValidity(c.test)
+			validity, err := UnmarshalTransactionValidity(c.encodedData)
 			if !c.expErr {
 				require.NoError(t, err)
 			} else {

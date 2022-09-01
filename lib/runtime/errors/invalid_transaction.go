@@ -1,11 +1,9 @@
 // Copyright 2022 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package runtime
+package errors
 
 import (
-	"errors"
-
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -16,18 +14,6 @@ type InvalidTransaction scale.VaryingDataType
 func (InvalidTransaction) Index() uint {
 	return 0
 }
-
-var (
-	errUnexpectedTxCall         = errors.New("call of the transaction is not expected")
-	errInvalidPayment           = errors.New("invalid payment")
-	errInvalidTransaction       = errors.New("invalid transaction")
-	errOutdatedTransaction      = errors.New("outdated transaction")
-	errBadProof                 = errors.New("bad proof")
-	errAncientBirthBlock        = errors.New("ancient birth block")
-	errExhaustsResources        = errors.New("exhausts resources")
-	errMandatoryDispatchError   = errors.New("mandatory dispatch error")
-	errInvalidMandatoryDispatch = errors.New("invalid mandatory dispatch")
-)
 
 // Call The call of the transaction is not expected
 type Call struct{}
@@ -71,8 +57,6 @@ type ExhaustsResources struct{}
 // Index Returns VDT index
 func (ExhaustsResources) Index() uint { return 6 }
 
-var invalidCustom InvalidCustom
-
 // InvalidCustom Any other custom invalid validity that is not covered
 type InvalidCustom uint8
 
@@ -111,7 +95,7 @@ func (i *InvalidTransaction) Value() (val scale.VaryingDataTypeValue) {
 // NewInvalidTransaction is constructor for InvalidTransaction
 func NewInvalidTransaction() InvalidTransaction {
 	vdt, err := scale.NewVaryingDataType(Call{}, Payment{}, Future{}, Stale{}, BadProof{}, AncientBirthBlock{},
-		ExhaustsResources{}, invalidCustom, BadMandatory{}, MandatoryDispatch{})
+		ExhaustsResources{}, InvalidCustom(0), BadMandatory{}, MandatoryDispatch{})
 	if err != nil {
 		panic(err)
 	}
@@ -121,26 +105,26 @@ func NewInvalidTransaction() InvalidTransaction {
 func (i *InvalidTransaction) Error() string {
 	switch val := i.Value().(type) {
 	case Call:
-		return errUnexpectedTxCall.Error()
+		return "call of the transaction is not expected"
 	case Payment:
-		return errInvalidPayment.Error()
+		return "invalid payment"
 	case Future:
-		return errInvalidTransaction.Error()
+		return "invalid transaction"
 	case Stale:
-		return errOutdatedTransaction.Error()
+		return "outdated transaction"
 	case BadProof:
-		return errBadProof.Error()
+		return "bad proof"
 	case AncientBirthBlock:
-		return errAncientBirthBlock.Error()
+		return "ancient birth block"
 	case ExhaustsResources:
-		return errExhaustsResources.Error()
+		return "exhausts resources"
 	case InvalidCustom:
 		return newUnknownError(val).Error()
 	case BadMandatory:
-		return errMandatoryDispatchError.Error()
+		return "mandatory dispatch error"
 	case MandatoryDispatch:
-		return errInvalidMandatoryDispatch.Error()
+		return "invalid mandatory dispatch"
+	default:
+		panic("invalidTransaction: invalid error value")
 	}
-
-	panic(errInvalidResult)
 }

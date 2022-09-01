@@ -8,6 +8,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/errors"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
@@ -25,7 +26,7 @@ func (in *Instance) ValidateTransaction(e types.Extrinsic) (
 		return nil, err
 	}
 
-	return runtime.UnmarshalTransactionValidity(ret)
+	return errors.UnmarshalTransactionValidity(ret)
 }
 
 // Version returns the instance version.

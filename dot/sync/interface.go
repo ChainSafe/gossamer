@@ -26,8 +26,7 @@ type RuntimeInstance interface {
 	Keystore() *keystore.GlobalKeystore
 	Validator() bool
 	Exec(function string, data []byte) ([]byte, error)
-	SetContextStorage(s runtime.Storage) // used to set the TrieState before a runtime call
-
+	SetContextStorage(s runtime.Storage)
 	GetCodeHash() common.Hash
 	Version() runtime.Version
 	Metadata() ([]byte, error)
@@ -41,10 +40,7 @@ type RuntimeInstance interface {
 	ExecuteBlock(block *types.Block) ([]byte, error)
 	DecodeSessionKeys(enc []byte) ([]byte, error)
 	PaymentQueryInfo(ext []byte) (*types.TransactionPaymentQueryInfo, error)
-
-	CheckInherents() // TODO: use this in block verification process (#1873)
-
-	// parameters and return values for these are undefined in the spec
+	CheckInherents()
 	RandomSeed()
 	OffchainWorker()
 	GenerateSessionKeys()

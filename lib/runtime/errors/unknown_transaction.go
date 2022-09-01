@@ -1,10 +1,9 @@
 // Copyright 2022 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package runtime
+package errors
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -17,12 +16,6 @@ type UnknownTransaction scale.VaryingDataType
 func (UnknownTransaction) Index() uint {
 	return 1
 }
-
-var (
-	errLookupFailed      = errors.New("lookup failed")
-	errValidatorNotFound = errors.New("validator not found")
-	unknownCustom        UnknownCustom
-)
 
 // ValidityCannotLookup Could not look up some information that is required to validate the transaction
 type ValidityCannotLookup struct{}
@@ -43,7 +36,7 @@ type UnknownCustom uint8
 func (UnknownCustom) Index() uint { return 2 }
 
 func newUnknownError(data scale.VaryingDataTypeValue) error {
-	return fmt.Errorf("unknown error: %d", data)
+	return fmt.Errorf("unknown error: %v", data)
 }
 
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
@@ -51,10 +44,10 @@ func (u *UnknownTransaction) Set(val scale.VaryingDataTypeValue) (err error) {
 	vdt := scale.VaryingDataType(*u)
 	err = vdt.Set(val)
 	if err != nil {
-		return
+		return err
 	}
 	*u = UnknownTransaction(vdt)
-	return
+	return nil
 }
 
 // Value will return value from underying VaryingDataType
@@ -65,7 +58,7 @@ func (u *UnknownTransaction) Value() (val scale.VaryingDataTypeValue) {
 
 // NewUnknownTransaction is constructor for Unknown
 func NewUnknownTransaction() UnknownTransaction {
-	vdt, err := scale.NewVaryingDataType(ValidityCannotLookup{}, NoUnsignedValidator{}, unknownCustom)
+	vdt, err := scale.NewVaryingDataType(ValidityCannotLookup{}, NoUnsignedValidator{}, UnknownCustom(0))
 	if err != nil {
 		panic(err)
 	}
@@ -75,12 +68,12 @@ func NewUnknownTransaction() UnknownTransaction {
 func (u *UnknownTransaction) Error() string {
 	switch val := u.Value().(type) {
 	case ValidityCannotLookup:
-		return errLookupFailed.Error()
+		return "lookup failed"
 	case NoUnsignedValidator:
-		return errValidatorNotFound.Error()
+		return "validator not found"
 	case UnknownCustom:
 		return newUnknownError(val).Error()
+	default:
+		panic("unknownTransaction: invalid error value")
 	}
-
-	panic(errInvalidResult)
 }

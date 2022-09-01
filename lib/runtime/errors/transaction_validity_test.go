@@ -1,7 +1,7 @@
 // Copyright 2022 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package runtime
+package errors
 
 import (
 	"errors"
@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestErrorsAsFunction(t *testing.T) {
+func Test_ErrorsAs_Function(t *testing.T) {
 	transactionValidityErr := NewTransactionValidityError()
 	unknownTransaction := NewUnknownTransaction()
 	err := unknownTransaction.Set(NoUnsignedValidator{})
@@ -25,7 +25,7 @@ func TestErrorsAsFunction(t *testing.T) {
 	require.True(t, isTxnValErr)
 }
 
-func TestInvalidTransactionValidity(t *testing.T) {
+func Test_InvalidTransactionValidity(t *testing.T) {
 	transactionValidityErr := NewTransactionValidityError()
 	invalidTransaction := NewInvalidTransaction()
 	err := invalidTransaction.Set(Future{})
@@ -44,7 +44,7 @@ func TestInvalidTransactionValidity(t *testing.T) {
 	require.True(t, isChildCorrectType)
 }
 
-func TestUnknownTransactionValidity(t *testing.T) {
+func Test_UnknownTransactionValidity(t *testing.T) {
 	transactionValidityErr := NewTransactionValidityError()
 	unknownTransaction := NewUnknownTransaction()
 	err := unknownTransaction.Set(NoUnsignedValidator{})
@@ -63,7 +63,7 @@ func TestUnknownTransactionValidity(t *testing.T) {
 	require.True(t, isChildCorrectType)
 }
 
-func TestUnknownTransactionValidityEncodingAndDecoding(t *testing.T) {
+func Test_UnknownTransactionValidity_EncodingAndDecoding(t *testing.T) {
 	transactionValidityErr := NewTransactionValidityError()
 	unknownTransaction := NewUnknownTransaction()
 	err := unknownTransaction.Set(NoUnsignedValidator{})

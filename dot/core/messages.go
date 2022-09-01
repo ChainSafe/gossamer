@@ -10,7 +10,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/runtime"
+	runtimeErrors "github.com/ChainSafe/gossamer/lib/runtime/errors"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -33,16 +33,16 @@ func (s *Service) validateTransaction(peerID peer.ID, head *types.Header, rt Run
 	validity, err = rt.ValidateTransaction(externalExt)
 	if err != nil {
 		logger.Debugf("failed to validate transaction: %s", err)
-		var txnValidityErr *runtime.TransactionValidityError
+		var txnValidityErr *runtimeErrors.TransactionValidityError
 		if errors.As(err, &txnValidityErr) {
 			switch txnValidityErr.Value().(type) {
 			// TODO use custom result issue #2780
-			case runtime.InvalidTransaction:
+			case runtimeErrors.InvalidTransaction:
 				s.net.ReportPeer(peerset.ReputationChange{
 					Value:  peerset.BadTransactionValue,
 					Reason: peerset.BadTransactionReason,
 				}, peerID)
-			case runtime.UnknownTransaction: // do nothing
+			case runtimeErrors.UnknownTransaction: // do nothing
 			default:
 				panic(fmt.Sprintf("unsupported transaction validity error: %T", txnValidityErr.Value()))
 			}

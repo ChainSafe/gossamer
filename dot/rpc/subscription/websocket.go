@@ -19,6 +19,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	runtimeErrors "github.com/ChainSafe/gossamer/lib/runtime/errors"
 	"github.com/gorilla/websocket"
 )
 
@@ -334,7 +335,7 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener
 
 	err = c.CoreAPI.HandleSubmittedExtrinsic(extBytes)
 	if err != nil {
-		var txnValidityErr *runtime.TransactionValidityError
+		var txnValidityErr *runtimeErrors.TransactionValidityError
 		if errors.As(err, &txnValidityErr) {
 			c.safeSend(newSubscriptionResponse(authorExtrinsicUpdatesMethod, extSubmitListener.subID, "invalid"))
 		} else {
