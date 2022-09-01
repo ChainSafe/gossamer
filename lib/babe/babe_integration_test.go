@@ -57,7 +57,7 @@ var (
 func createTestService(t *testing.T, cfg ServiceConfig) *Service {
 	wasmer.DefaultTestLogLvl = 1
 
-	gen, genTrie, genHeader := genesis.NewDevGenesisWithTrieAndHeader(t)
+	gen, genTrie, genHeader := newDevGenesisWithTrieAndHeader(t)
 	genesisHeader = genHeader
 
 	var err error

@@ -23,17 +23,6 @@ func NewTestGenesisWithTrieAndHeader(t *testing.T) (*Genesis, *trie.Trie, *types
 	return gen, tr, h
 }
 
-// NewDevGenesisWithTrieAndHeader generates test dev genesis, genesis trie and genesis header
-func NewDevGenesisWithTrieAndHeader(t *testing.T) (*Genesis, *trie.Trie, *types.Header) {
-	genesisPath := utils.GetDevV3SubstrateGenesisPath(t)
-
-	gen, err := NewGenesisFromJSONRaw(genesisPath)
-	require.NoError(t, err)
-
-	tr, h := newGenesisTrieAndHeader(t, gen)
-	return gen, tr, h
-}
-
 func newGenesisTrieAndHeader(t *testing.T, gen *Genesis) (*trie.Trie, *types.Header) {
 	genTrie, err := NewTrieFromGenesis(gen)
 	require.NoError(t, err)

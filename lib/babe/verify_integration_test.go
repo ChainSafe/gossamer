@@ -42,7 +42,7 @@ func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *
 	dbSrv := state.NewService(config)
 	dbSrv.UseMemDB()
 
-	gen, genTrie, genHeader := genesis.NewDevGenesisWithTrieAndHeader(t)
+	gen, genTrie, genHeader := newDevGenesisWithTrieAndHeader(t)
 	err := dbSrv.Initialise(gen, genHeader, genTrie)
 	require.NoError(t, err)
 
