@@ -176,7 +176,7 @@ func TestNewNode(t *testing.T) {
 			return nil, fmt.Errorf("failed to create genesis block from trie: %w", err)
 		}
 		stateSrvc.Telemetry = mockTelemetryClient
-		err = stateSrvc.Initialise(gen, &header, trie)
+		err = stateSrvc.Initialise(gen, &header, &trie)
 		if err != nil {
 			return nil, fmt.Errorf("failed to initialise state service: %s", err)
 		}

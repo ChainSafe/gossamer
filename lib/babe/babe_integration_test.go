@@ -154,7 +154,7 @@ func newTestServiceSetupParameters(t *testing.T) (*Service, *state.EpochState, *
 	dbSrv.UseMemDB()
 
 	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
-	err := dbSrv.Initialise(gen, genHeader, genTrie)
+	err := dbSrv.Initialise(&gen, &genHeader, &genTrie)
 	require.NoError(t, err)
 
 	err = dbSrv.Start()
@@ -165,7 +165,7 @@ func newTestServiceSetupParameters(t *testing.T) (*Service, *state.EpochState, *
 	})
 
 	rtCfg := wasmer.Config{
-		Storage: rtstorage.NewTrieState(genTrie),
+		Storage: rtstorage.NewTrieState(&genTrie),
 	}
 
 	rt, err := wasmer.NewRuntimeFromGenesis(rtCfg)

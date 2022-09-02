@@ -176,7 +176,7 @@ func (*nodeBuilder) initNode(cfg *Config) error {
 	stateSrvc := state.NewService(config)
 
 	// initialise state service with genesis data, block, and trie
-	err = stateSrvc.Initialise(gen, &header, t)
+	err = stateSrvc.Initialise(gen, &header, &t)
 	if err != nil {
 		return fmt.Errorf("failed to initialise state service: %s", err)
 	}

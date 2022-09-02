@@ -47,7 +47,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	var stateSrvc *state.Service
 	testDatadirPath := t.TempDir()
 
-	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
+	gen, genesisTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
 
 	if cfg.BlockState == nil || cfg.StorageState == nil ||
 		cfg.TransactionState == nil || cfg.EpochState == nil ||
@@ -64,7 +64,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		stateSrvc = state.NewService(config)
 		stateSrvc.UseMemDB()
 
-		err := stateSrvc.Initialise(gen, genHeader, genTrie)
+		err := stateSrvc.Initialise(&gen, &genesisHeader, &genesisTrie)
 		require.NoError(t, err)
 
 		err = stateSrvc.Start()
@@ -94,7 +94,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	if cfg.Runtime == nil {
 		var rtCfg wasmer.Config
 
-		rtCfg.Storage = rtstorage.NewTrieState(genTrie)
+		rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
 
 		var err error
 		rtCfg.CodeHash, err = cfg.StorageState.LoadCodeHash(nil)
@@ -138,12 +138,13 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 }
 
 func newTestGenesisWithTrieAndHeader(t *testing.T) (
-	gen *genesis.Genesis, genesisTrie *trie.Trie, genesisHeader *types.Header) {
+	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
 	genesisPath := utils.GetGssmrV3SubstrateGenesisRawPathTest(t)
-	gen, err := genesis.NewGenesisFromJSONRaw(genesisPath)
+	genPtr, err := genesis.NewGenesisFromJSONRaw(genesisPath)
 	require.NoError(t, err)
+	gen = *genPtr
 
-	genesisTrie, err = wasmer.NewTrieFromGenesis(*gen)
+	genesisTrie, err = wasmer.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
 	parentHash := common.NewHash([]byte{0})
@@ -151,9 +152,10 @@ func newTestGenesisWithTrieAndHeader(t *testing.T) (
 	extrinsicRoot := trie.EmptyHash
 	const number = 0
 	digest := types.NewDigest()
-	genesisHeader, err = types.NewHeader(parentHash,
+	genesisHeaderPtr, err := types.NewHeader(parentHash,
 		stateRoot, extrinsicRoot, number, digest)
 	require.NoError(t, err)
+	genesisHeader = *genesisHeaderPtr
 
 	return gen, genesisTrie, genesisHeader
 }
@@ -167,10 +169,10 @@ func getGssmrRuntimeCode(t *testing.T) (code []byte) {
 	gssmrGenesis, err := genesis.NewGenesisFromJSONRaw(path)
 	require.NoError(t, err)
 
-	trie, err := wasmer.NewTrieFromGenesis(*gssmrGenesis)
+	genesisTrie, err := wasmer.NewTrieFromGenesis(*gssmrGenesis)
 	require.NoError(t, err)
 
-	trieState := rtstorage.NewTrieState(trie)
+	trieState := rtstorage.NewTrieState(&genesisTrie)
 
 	return trieState.LoadCode()
 }

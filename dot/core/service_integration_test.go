@@ -55,10 +55,10 @@ func generateTestValidRemarkTxns(t *testing.T, pubKey []byte, accInfo types.Acco
 	gen, err := genesis.NewGenesisFromJSONRaw(projectRootPath)
 	require.NoError(t, err)
 
-	genTrie, err := wasmer.NewTrieFromGenesis(*gen)
+	genesisTrie, err := wasmer.NewTrieFromGenesis(*gen)
 	require.NoError(t, err)
 
-	genState := rtstorage.NewTrieState(genTrie)
+	genState := rtstorage.NewTrieState(&genesisTrie)
 
 	nodeStorage := runtime.NodeStorage{
 		BaseDB: runtime.NewInMemoryDB(t),
@@ -82,7 +82,7 @@ func generateTestValidRemarkTxns(t *testing.T, pubKey []byte, accInfo types.Acco
 
 	genesisHeader := &types.Header{
 		Number:    0,
-		StateRoot: genTrie.MustHash(),
+		StateRoot: genesisTrie.MustHash(),
 	}
 
 	// Hash of encrypted centrifuge extrinsic

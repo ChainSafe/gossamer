@@ -192,13 +192,13 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 
 	tries := newTriesEmpty()
 
-	blockState, err := NewBlockStateFromGenesis(db, tries, genHeader, telemetryMock)
+	blockState, err := NewBlockStateFromGenesis(db, tries, &genHeader, telemetryMock)
 	require.NoError(t, err)
 
 	storage, err := NewStorageState(db, blockState, tries, pruner.Config{})
 	require.NoError(t, err)
 
-	trieState := runtime.NewTrieState(genTrie)
+	trieState := runtime.NewTrieState(&genTrie)
 
 	header, err := types.NewHeader(blockState.GenesisHash(), trieState.MustRoot(),
 		common.Hash{}, 1, types.NewDigest())
