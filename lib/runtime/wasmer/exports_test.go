@@ -577,8 +577,7 @@ func TestInstance_ApplyExtrinsic_GossamerRuntime(t *testing.T) {
 	instance.SetContextStorage(parentState)
 
 	parentHash := common.Hash{}
-	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, 1, types.NewDigest())
-	require.NoError(t, err)
+	header := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, 1, types.NewDigest())
 	err = instance.InitializeBlock(header)
 	require.NoError(t, err)
 

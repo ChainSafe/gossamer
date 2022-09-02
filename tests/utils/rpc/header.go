@@ -40,10 +40,6 @@ func headerResponseToHeader(rpcHeader modules.ChainBlockHeaderResponse) (header 
 		return nil, fmt.Errorf("malformed digest logs: %w", err)
 	}
 
-	header, err = types.NewHeader(parentHash, stateRoot, extrinsicsRoot, number, digest)
-	if err != nil {
-		return nil, fmt.Errorf("cannot create new header: %w", err)
-	}
-
+	header = types.NewHeader(parentHash, stateRoot, extrinsicsRoot, number, digest)
 	return header, nil
 }

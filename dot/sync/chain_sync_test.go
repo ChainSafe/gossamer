@@ -388,9 +388,8 @@ func TestChainSync_sync_bootstrap_withWorkerError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	cs := newTestChainSync(ctrl)
 	mockBlockState := NewMockBlockState(ctrl)
-	mockHeader, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, 0,
+	mockHeader := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, 0,
 		types.NewDigest())
-	require.NoError(t, err)
 	mockBlockState.EXPECT().BestBlockHeader().Return(mockHeader, nil).Times(2)
 	cs.blockState = mockBlockState
 	cs.handler = newBootstrapSyncer(mockBlockState)
@@ -438,9 +437,8 @@ func TestChainSync_sync_tip(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	cs := newTestChainSync(ctrl)
-	header, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, 1000,
+	header := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, 1000,
 		types.NewDigest())
-	require.NoError(t, err)
 
 	bs := NewMockBlockState(ctrl)
 	bs.EXPECT().BestBlockHeader().Return(header, nil)

@@ -456,9 +456,7 @@ func TestHeaderToJSON(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	header, err := types.NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, 21, vdts)
-	require.NoError(t, err)
-
+	header := types.NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, 21, vdts)
 	expRes, err := HeaderToJSON(*header)
 	require.NoError(t, err)
 	expResEmpty, err := HeaderToJSON(*emptyHeader)
