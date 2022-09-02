@@ -51,13 +51,13 @@ func newTestState(t *testing.T) *state.Service {
 
 	_, genTrie, _ := newTestGenesisWithTrieAndHeader(t)
 	tries := state.NewTries()
-	tries.SetTrie(genTrie)
+	tries.SetTrie(&genTrie)
 	block, err := state.NewBlockStateFromGenesis(db, tries, testGenesisHeader, telemetryMock)
 	require.NoError(t, err)
 
 	var rtCfg wasmer.Config
 
-	rtCfg.Storage = rtstorage.NewTrieState(genTrie)
+	rtCfg.Storage = rtstorage.NewTrieState(&genTrie)
 
 	rt, err := wasmer.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)

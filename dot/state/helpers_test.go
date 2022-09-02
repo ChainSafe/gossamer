@@ -90,12 +90,13 @@ func generateRandBytes(tb testing.TB, size int,
 }
 
 func newTestGenesisWithTrieAndHeader(t *testing.T) (
-	gen *genesis.Genesis, genesisTrie *trie.Trie, genesisHeader *types.Header) {
+	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
 	genesisPath := utils.GetGssmrV3SubstrateGenesisRawPathTest(t)
-	gen, err := genesis.NewGenesisFromJSONRaw(genesisPath)
+	genesisPtr, err := genesis.NewGenesisFromJSONRaw(genesisPath)
 	require.NoError(t, err)
+	gen = *genesisPtr
 
-	genesisTrie, err = wasmer.NewTrieFromGenesis(*gen)
+	genesisTrie, err = wasmer.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
 	parentHash := common.NewHash([]byte{0})
@@ -103,9 +104,10 @@ func newTestGenesisWithTrieAndHeader(t *testing.T) (
 	extrinsicRoot := trie.EmptyHash
 	const number = 0
 	digest := types.NewDigest()
-	genesisHeader, err = types.NewHeader(parentHash,
+	genesisHeaderPtr, err := types.NewHeader(parentHash,
 		stateRoot, extrinsicRoot, number, digest)
 	require.NoError(t, err)
+	genesisHeader = *genesisHeaderPtr
 
 	return gen, genesisTrie, genesisHeader
 }

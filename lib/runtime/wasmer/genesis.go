@@ -16,18 +16,19 @@ var (
 )
 
 // NewTrieFromGenesis creates a new trie from the raw genesis data
-func NewTrieFromGenesis(gen genesis.Genesis) (tr *trie.Trie, err error) {
-	tr = trie.NewEmptyTrie()
+func NewTrieFromGenesis(gen genesis.Genesis) (tr trie.Trie, err error) {
+	triePtr := trie.NewEmptyTrie()
+	tr = *triePtr
 	genesisFields := gen.GenesisFields()
 	keyValues, ok := genesisFields.Raw["top"]
 	if !ok {
-		return nil, fmt.Errorf("%w: in genesis %s",
+		return tr, fmt.Errorf("%w: in genesis %s",
 			ErrGenesisTopNotFound, gen.Name)
 	}
 
 	err = tr.LoadFromMap(keyValues)
 	if err != nil {
-		return nil, fmt.Errorf("loading genesis top key values into trie: %w", err)
+		return tr, fmt.Errorf("loading genesis top key values into trie: %w", err)
 	}
 
 	return tr, nil

@@ -352,9 +352,9 @@ func newTestStateService(t *testing.T) *state.Service {
 	stateSrvc := state.NewService(config)
 	stateSrvc.UseMemDB()
 
-	gen, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	gen, genesisTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
 
-	err := stateSrvc.Initialise(gen, genesisHeader, genTrie)
+	err := stateSrvc.Initialise(&gen, &genesisHeader, &genesisTrie)
 	require.NoError(t, err)
 
 	err = stateSrvc.Start()
@@ -362,7 +362,7 @@ func newTestStateService(t *testing.T) *state.Service {
 
 	var rtCfg wasmer.Config
 
-	rtCfg.Storage = rtstorage.NewTrieState(genTrie)
+	rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
 
 	if stateSrvc != nil {
 		rtCfg.NodeStorage.BaseDB = stateSrvc.Base

@@ -42,8 +42,8 @@ func newState(t *testing.T) (*state.BlockState, *state.EpochState) {
 
 	_, genesisTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
 	tries := state.NewTries()
-	tries.SetTrie(genesisTrie)
-	bs, err := state.NewBlockStateFromGenesis(db, tries, genesisHeader, telemetryMock)
+	tries.SetTrie(&genesisTrie)
+	bs, err := state.NewBlockStateFromGenesis(db, tries, &genesisHeader, telemetryMock)
 	require.NoError(t, err)
 	es, err := state.NewEpochStateFromGenesis(db, bs, genesisBABEConfig)
 	require.NoError(t, err)
