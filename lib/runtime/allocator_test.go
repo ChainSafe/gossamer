@@ -419,13 +419,8 @@ func TestShouldWriteU32CorrectlyIntoLe(t *testing.T) {
 	// NOTE: we used the go's binary.LittleEndianPutUint32 function
 	//  so this test isn't necessary, but is included for completeness
 
-	//given
 	heap := make([]byte, 5)
-
-	// when
 	binary.LittleEndian.PutUint32(heap, 1)
-
-	//then
 	if !reflect.DeepEqual(heap, []byte{1, 0, 0, 0, 0}) {
 		t.Error("Error Write U32 to LE")
 	}
@@ -436,13 +431,8 @@ func TestShouldWriteU32MaxCorrectlyIntoLe(t *testing.T) {
 	// NOTE: we used the go's binary.LittleEndianPutUint32 function
 	//  so this test isn't necessary, but is included for completeness
 
-	//given
 	heap := make([]byte, 5)
-
-	// when
 	binary.LittleEndian.PutUint32(heap, math.MaxUint32)
-
-	//then
 	if !reflect.DeepEqual(heap, []byte{255, 255, 255, 255, 0}) {
 		t.Error("Error Write U32 MAX to LE")
 	}
@@ -450,13 +440,8 @@ func TestShouldWriteU32MaxCorrectlyIntoLe(t *testing.T) {
 
 // test that getItemSizeFromIndex method gets expected item size from index
 func TestShouldGetItemFromIndex(t *testing.T) {
-	// given
 	index := uint(0)
-
-	// when
 	itemSize := getItemSizeFromIndex(index)
-
-	//then
 	if itemSize != 8 {
 		t.Error("item_size should be 8, got item_size:", itemSize)
 	}
@@ -465,13 +450,8 @@ func TestShouldGetItemFromIndex(t *testing.T) {
 // that that getItemSizeFromIndex method gets expected item size from index
 //  max index position
 func TestShouldGetMaxFromIndex(t *testing.T) {
-	// given
 	index := uint(21)
-
-	// when
 	itemSize := getItemSizeFromIndex(index)
-
-	//then
 	if itemSize != MaxPossibleAllocation {
 		t.Errorf("item_size should be %d, got item_size: %d", MaxPossibleAllocation, itemSize)
 	}
