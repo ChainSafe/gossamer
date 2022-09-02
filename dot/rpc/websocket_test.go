@@ -65,10 +65,10 @@ func TestHTTPServer_ServeHTTP(t *testing.T) {
 		SystemName: "gossamer",
 	}
 	sysAPI := system.NewService(si, nil)
-	bAPI := modules.NewMockeryBlockAPI()
-	sAPI := modules.NewMockeryStorageAPI()
+	bAPI := modules.NewMockeryBlockAPI(t)
+	sAPI := modules.NewMockeryStorageAPI(t)
 
-	TxStateAPI := modules.NewMockTransactionStateAPI()
+	TxStateAPI := modules.NewMockTransactionStateAPI(t)
 
 	cfg := &HTTPServerConfig{
 		Modules:             []string{"system", "chain"},

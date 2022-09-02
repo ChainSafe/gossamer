@@ -17,10 +17,10 @@ import (
 
 func TestSyncStateModule_GenSyncSpec(t *testing.T) {
 	g := new(genesis.Genesis)
-	mockSyncStateAPI := new(mocks.SyncStateAPI)
+	mockSyncStateAPI := mocks.NewSyncStateAPI(t)
 	mockSyncStateAPI.On("GenSyncSpec", true).Return(g, nil)
 
-	mockSyncStateAPIErr := new(mocks.SyncStateAPI)
+	mockSyncStateAPIErr := mocks.NewSyncStateAPI(t)
 	mockSyncStateAPIErr.On("GenSyncSpec", true).Return(nil, errors.New("GenSyncSpec error"))
 
 	syncStateModule := NewSyncStateModule(mockSyncStateAPI)
@@ -84,10 +84,10 @@ func TestNewStateSync(t *testing.T) {
 	g1 := &genesis.Genesis{}
 	g2 := &genesis.Genesis{}
 	raw := make(map[string][]byte)
-	mockStorageAPI := new(mocks.StorageAPI)
+	mockStorageAPI := mocks.NewStorageAPI(t)
 	mockStorageAPI.On("Entries", (*common.Hash)(nil)).Return(raw, nil)
 
-	mockStorageAPIErr := new(mocks.StorageAPI)
+	mockStorageAPIErr := mocks.NewStorageAPI(t)
 	mockStorageAPIErr.On("Entries", (*common.Hash)(nil)).Return(nil, errors.New("entries error"))
 
 	type args struct {

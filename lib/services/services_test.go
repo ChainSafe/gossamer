@@ -24,25 +24,20 @@ func TestServiceRegistry_RegisterService(t *testing.T) {
 func TestServiceRegistry_StartStopAll(t *testing.T) {
 	r := NewServiceRegistry(log.New(log.SetWriter(io.Discard)))
 
-	m := new(mocks.Service)
+	m := mocks.NewService(t)
 	m.On("Start").Return(nil)
 	m.On("Stop").Return(nil)
 
 	r.RegisterService(m)
 
 	r.StartAll()
-	m.AssertCalled(t, "Start")
-
 	r.StopAll()
-	m.AssertCalled(t, "Stop")
 }
 
 func TestServiceRegistry_Get_Err(t *testing.T) {
 	r := NewServiceRegistry(log.New(log.SetWriter(io.Discard)))
 
-	a := new(mocks.Service)
-	a.On("Start").Return(nil)
-	a.On("Stop").Return(nil)
+	a := mocks.NewService(t)
 
 	r.RegisterService(a)
 	require.NotNil(t, r.Get(a))

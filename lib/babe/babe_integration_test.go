@@ -54,25 +54,13 @@ var (
 
 //go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
 
-func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
+func createTestService(t *testing.T, cfg ServiceConfig) *Service {
 	wasmer.DefaultTestLogLvl = 1
 
 	gen, genTrie, genHeader := genesis.NewDevGenesisWithTrieAndHeader(t)
 	genesisHeader = genHeader
 
 	var err error
-
-	if cfg == nil {
-		cfg = &ServiceConfig{
-			Authority: true,
-		}
-	}
-
-	cfg.BlockImportHandler = new(mocks.BlockImportHandler)
-	cfg.BlockImportHandler.(*mocks.BlockImportHandler).
-		On("HandleBlockProduced",
-			mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState")).
-		Return(nil)
 
 	if cfg.Keypair == nil {
 		cfg.Keypair = keyring.Alice().(*sr25519.Keypair)
@@ -146,7 +134,7 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 
 	cfg.IsDev = true
 	cfg.LogLvl = defaultTestLogLvl
-	babeService, err := NewService(cfg)
+	babeService, err := NewService(&cfg)
 	require.NoError(t, err)
 	return babeService
 }
@@ -209,9 +197,15 @@ func TestService_SlotDuration(t *testing.T) {
 }
 
 func TestService_ProducesBlocks(t *testing.T) {
-	cfg := &ServiceConfig{
-		Authority: true,
-		Lead:      true,
+	blockImportHandler := mocks.NewBlockImportHandler(t)
+	blockImportHandler.
+		On("HandleBlockProduced",
+			mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState")).
+		Return(nil)
+	cfg := ServiceConfig{
+		Authority:          true,
+		Lead:               true,
+		BlockImportHandler: blockImportHandler,
 	}
 	babeService := createTestService(t, cfg)
 
@@ -263,9 +257,8 @@ func TestService_GetAuthorityIndex(t *testing.T) {
 }
 
 func TestStartAndStop(t *testing.T) {
-	bs := createTestService(t, &ServiceConfig{
-		LogLvl: log.Critical,
-	})
+	serviceConfig := ServiceConfig{}
+	bs := createTestService(t, serviceConfig)
 	err := bs.Start()
 	require.NoError(t, err)
 	err = bs.Stop()
@@ -273,9 +266,8 @@ func TestStartAndStop(t *testing.T) {
 }
 
 func TestService_PauseAndResume(t *testing.T) {
-	bs := createTestService(t, &ServiceConfig{
-		LogLvl: log.Critical,
-	})
+	serviceConfig := ServiceConfig{}
+	bs := createTestService(t, serviceConfig)
 	err := bs.Start()
 	require.NoError(t, err)
 	time.Sleep(time.Second)

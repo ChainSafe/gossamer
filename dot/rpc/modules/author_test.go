@@ -36,23 +36,20 @@ func TestAuthorModule_HasSessionKeys(t *testing.T) {
 		"9a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc38520426026696d6f6e8034309a9d2a24213896ff06895" +
 		"db16aade8b6502f3a71cf56374cc3852042602661756469")
 
-	coreMockAPIDecodeErr := new(mocks.CoreAPI)
-	coreMockAPIDecodeErr.On("DecodeSessionKeys", []byte{0x4, 0x1}).Return(nil, errors.New("decodeSessionKeys err"))
-
-	coreMockAPIUnmarshalErr := new(mocks.CoreAPI)
+	coreMockAPIUnmarshalErr := mocks.NewCoreAPI(t)
 	coreMockAPIUnmarshalErr.On("DecodeSessionKeys", []byte{0x4, 0x1}).Return([]byte{0x4, 0x1}, nil)
 
-	coreMockAPIOk := new(mocks.CoreAPI)
+	coreMockAPIOk := mocks.NewCoreAPI(t)
 	coreMockAPIOk.On("DecodeSessionKeys", pkeys).Return(data, nil)
 	coreMockAPIOk.On("HasKey", mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(true, nil)
 
-	coreMockAPIErr := new(mocks.CoreAPI)
+	coreMockAPIErr := mocks.NewCoreAPI(t)
 	coreMockAPIErr.On("DecodeSessionKeys", pkeys).Return(data, nil)
 	coreMockAPIErr.On("HasKey", mock.AnythingOfType("string"),
 		mock.AnythingOfType("string")).
 		Return(false, errors.New("HasKey err"))
 
-	coreMockAPIInvalidDec := new(mocks.CoreAPI)
+	coreMockAPIInvalidDec := mocks.NewCoreAPI(t)
 	coreMockAPIInvalidDec.On("DecodeSessionKeys", pkeys).Return([]byte{0x0}, nil)
 
 	type fields struct {
@@ -72,7 +69,7 @@ func TestAuthorModule_HasSessionKeys(t *testing.T) {
 		{
 			name: "Empty Request",
 			fields: fields{
-				authorModule: NewAuthorModule(log.New(log.SetWriter(io.Discard)), coreMockAPIDecodeErr, nil),
+				authorModule: NewAuthorModule(log.New(log.SetWriter(io.Discard)), nil, nil),
 			},
 			args: args{
 				req: &HasSessionKeyRequest{},
@@ -151,11 +148,11 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 		201, 74, 231, 222, 101, 85, 108, 102, 39, 31, 190, 210, 14, 215, 124, 19, 160, 180, 203, 54, 110, 167, 163,
 		149, 45, 12, 108, 80, 221, 65, 238, 57, 237, 199, 16, 10, 33, 185, 8, 244, 184, 243, 139, 5, 87, 252, 245,
 		24, 225, 37, 154, 163, 143}
-	errMockCoreAPI := &mocks.CoreAPI{}
+	errMockCoreAPI := mocks.NewCoreAPI(t)
 	errMockCoreAPI.On("HandleSubmittedExtrinsic",
 		types.Extrinsic(common.MustHexToBytes(fmt.Sprintf("0x%x", testInvalidExt)))).Return(fmt.Errorf("some error"))
 
-	mockCoreAPI := &mocks.CoreAPI{}
+	mockCoreAPI := mocks.NewCoreAPI(t)
 	mockCoreAPI.On("HandleSubmittedExtrinsic",
 		types.Extrinsic(common.MustHexToBytes(fmt.Sprintf("0x%x", testExt)))).Return(nil)
 	type fields struct {
@@ -226,10 +223,10 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 }
 
 func TestAuthorModule_PendingExtrinsics(t *testing.T) {
-	emptyMockTransactionStateAPI := &mocks.TransactionStateAPI{}
+	emptyMockTransactionStateAPI := mocks.NewTransactionStateAPI(t)
 	emptyMockTransactionStateAPI.On("Pending").Return([]*transaction.ValidTransaction{})
 
-	mockTransactionStateAPI := &mocks.TransactionStateAPI{}
+	mockTransactionStateAPI := mocks.NewTransactionStateAPI(t)
 	mockTransactionStateAPI.On("Pending").Return([]*transaction.ValidTransaction{
 		{
 			Extrinsic: types.NewExtrinsic([]byte("someExtrinsic")),
@@ -311,17 +308,11 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 	require.NoError(t, err)
 	_ = kp3.Public().Hex()
 
-	mockCoreAPIHappyBabe := &mocks.CoreAPI{}
+	mockCoreAPIHappyBabe := mocks.NewCoreAPI(t)
 	mockCoreAPIHappyBabe.On("InsertKey", kp1, "babe").Return(nil)
 
-	mockCoreAPIHappyGran := &mocks.CoreAPI{}
+	mockCoreAPIHappyGran := mocks.NewCoreAPI(t)
 	mockCoreAPIHappyGran.On("InsertKey", kp2, "gran").Return(nil)
-
-	mockCoreAPIBadKey := &mocks.CoreAPI{}
-	mockCoreAPIBadKey.On("InsertKey", kp3, "babe").Return(nil)
-
-	mockCoreAPIUnknownKey := &mocks.CoreAPI{}
-	mockCoreAPIUnknownKey.On("InsertKey", kp3, "mack").Return(nil)
 
 	type fields struct {
 		logger     log.LeveledLogger
@@ -369,8 +360,7 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 		{
 			name: "invalid key",
 			fields: fields{
-				logger:  log.New(log.SetWriter(io.Discard)),
-				coreAPI: mockCoreAPIBadKey,
+				logger: log.New(log.SetWriter(io.Discard)),
 			},
 			args: args{
 				req: &KeyInsertRequest{"babe",
@@ -383,8 +373,7 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 		{
 			name: "unknown key",
 			fields: fields{
-				logger:  log.New(log.SetWriter(io.Discard)),
-				coreAPI: mockCoreAPIUnknownKey,
+				logger: log.New(log.SetWriter(io.Discard)),
 			},
 			args: args{
 				req: &KeyInsertRequest{
@@ -418,13 +407,13 @@ func TestAuthorModule_HasKey(t *testing.T) {
 	kr, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 
-	mockCoreAPITrue := &mocks.CoreAPI{}
+	mockCoreAPITrue := mocks.NewCoreAPI(t)
 	mockCoreAPITrue.On("HasKey", kr.Alice().Public().Hex(), "babe").Return(true, nil)
 
-	mockCoreAPIFalse := &mocks.CoreAPI{}
+	mockCoreAPIFalse := mocks.NewCoreAPI(t)
 	mockCoreAPIFalse.On("HasKey", kr.Alice().Public().Hex(), "babe").Return(false, nil)
 
-	mockCoreAPIErr := &mocks.CoreAPI{}
+	mockCoreAPIErr := mocks.NewCoreAPI(t)
 	mockCoreAPIErr.On("HasKey", kr.Alice().Public().Hex(), "babe").Return(false, fmt.Errorf("some error"))
 
 	type fields struct {
