@@ -21,8 +21,8 @@ func NewTrieFromGenesis(gen genesis.Genesis) (tr *trie.Trie, err error) {
 	genesisFields := gen.GenesisFields()
 	keyValues, ok := genesisFields.Raw["top"]
 	if !ok {
-		return nil, fmt.Errorf("%w: in mapping %v",
-			ErrGenesisTopNotFound, genesisFields.Raw)
+		return nil, fmt.Errorf("%w: in genesis %s",
+			ErrGenesisTopNotFound, gen.Name)
 	}
 
 	err = tr.LoadFromMap(keyValues)
