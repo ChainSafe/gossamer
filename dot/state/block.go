@@ -643,20 +643,26 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 }
 
 // GetRuntime gets the runtime for the corresponding block hash.
-func (bs *BlockState) GetRuntime(hash *common.Hash) (runtime.Instance, error) {
-	if hash == nil {
-		rt, err := bs.bt.GetBlockRuntime(bs.BestBlockHash())
+func (bs *BlockState) GetRuntime(blockHash *common.Hash) (instance runtime.Instance, err error) {
+	if blockHash == nil {
+		instance, err = bs.bt.GetBlockRuntime(bs.BestBlockHash())
+	} else {
+		instance, err = bs.bt.GetBlockRuntime(*blockHash)
+	}
+	if errors.Is(err, blocktree.ErrFailedToGetRuntime) {
+		instance, err = bs.getRuntimeFromDB(blockHash)
 		if err != nil {
-			return nil, err
+			return instance, fmt.Errorf("getting runtime from database: %w", err)
 		}
-		return rt, nil
+	} else if err != nil {
+		return instance, err
 	}
 
-	return bs.bt.GetBlockRuntime(*hash)
+	return
 }
 
-// GetRuntimeFromDB gets the runtime for the corresponding block hash from DB
-func (bs *BlockState) GetRuntimeFromDB(blockHash *common.Hash) (instance runtime.Instance, err error) {
+// getRuntimeFromDB gets the runtime for the corresponding block hash from DB
+func (bs *BlockState) getRuntimeFromDB(blockHash *common.Hash) (instance runtime.Instance, err error) {
 	var stateRootHash *common.Hash
 	if blockHash != nil {
 		stateRootHash, err = bs.storageState.GetStateRootFromBlock(blockHash)

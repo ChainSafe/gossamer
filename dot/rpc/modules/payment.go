@@ -4,11 +4,9 @@
 package modules
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 
-	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
@@ -49,15 +47,9 @@ func (p *PaymentModule) QueryInfo(_ *http.Request, req *PaymentQueryInfoRequest,
 	}
 
 	r, err := p.blockAPI.GetRuntime(&hash)
-	if errors.Is(err, blocktree.ErrFailedToGetRuntime) {
-		r, err = p.blockAPI.GetRuntimeFromDB(&hash)
-		if err != nil {
-			return fmt.Errorf("getting runtime from database: %w", err)
-		}
-	} else if err != nil {
-		return err
+	if err != nil {
+		return fmt.Errorf("getting runtime: %w", err)
 	}
-
 	ext, err := common.HexToBytes(req.Ext)
 	if err != nil {
 		return err
