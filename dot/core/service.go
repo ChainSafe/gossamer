@@ -454,7 +454,7 @@ func (s *Service) GetRuntimeVersion(bhash *common.Hash) (
 
 	rt, err := s.blockState.GetRuntime(bhash)
 	if err != nil {
-		return version, fmt.Errorf("getting runtime: %w", err)
+		return version, err
 	}
 
 	rt.SetContextStorage(ts)
@@ -528,7 +528,7 @@ func (s *Service) GetMetadata(bhash *common.Hash) ([]byte, error) {
 
 	rt, err := s.blockState.GetRuntime(bhash)
 	if err != nil {
-		return nil, fmt.Errorf("getting runtime: %w", err)
+		return nil, err
 	}
 
 	rt.SetContextStorage(ts)
