@@ -9,7 +9,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	runtimererrors "github.com/ChainSafe/gossamer/lib/runtime/errors"
 	"os"
 	"testing"
 
@@ -26,6 +25,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	runtimererrors "github.com/ChainSafe/gossamer/lib/runtime/errors"
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/transaction"
