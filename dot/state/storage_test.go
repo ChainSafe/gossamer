@@ -24,7 +24,7 @@ func newTestStorageState(t *testing.T) *StorageState {
 	db := NewInMemoryDB(t)
 
 	tries := newTriesEmpty()
-	bs := newTestBlockState(t, testGenesisHeader, tries)
+	bs := newTestBlockState(t, tries)
 
 	s, err := NewStorageState(db, bs, tries, pruner.Config{})
 	require.NoError(t, err)
