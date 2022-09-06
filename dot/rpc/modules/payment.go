@@ -4,7 +4,6 @@
 package modules
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -48,7 +47,7 @@ func (p *PaymentModule) QueryInfo(_ *http.Request, req *PaymentQueryInfoRequest,
 
 	r, err := p.blockAPI.GetRuntime(&hash)
 	if err != nil {
-		return fmt.Errorf("getting runtime: %w", err)
+		return err
 	}
 	ext, err := common.HexToBytes(req.Ext)
 	if err != nil {
