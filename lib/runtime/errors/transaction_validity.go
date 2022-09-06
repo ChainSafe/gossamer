@@ -6,6 +6,7 @@ package errors
 import (
 	"errors"
 	"fmt"
+	
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
