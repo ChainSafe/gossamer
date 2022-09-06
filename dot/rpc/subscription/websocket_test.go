@@ -232,11 +232,12 @@ func TestWSConn_HandleConn(t *testing.T) {
 	transactionValidityErr := errors.NewTransactionValidityError()
 	invalidTransaction := errors.NewInvalidTransaction()
 	err = invalidTransaction.Set(errors.Future{})
+	errMsg := fmt.Errorf("%w: %s", errors.ErrInvalidTxn, transactionValidityErr.Error())
 
 	require.NoError(t, err)
 	coreAPI := new(mocks.CoreAPI)
 	coreAPI.On("HandleSubmittedExtrinsic", mock.AnythingOfType("types.Extrinsic")).
-		Return(&transactionValidityErr)
+		Return(errMsg)
 	wsconn.CoreAPI = coreAPI
 	listner, err = wsconn.initExtrinsicWatch(0,
 		[]interface{}{"0xa9018400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d019e91c8d44bf01ffe36d54f9e43dade2b2fc653270a0e002daed1581435c2e1755bc4349f1434876089d99c9dac4d4128e511c2a3e0788a2a74dd686519cb7c83000000000104ab"}) //nolint:lll

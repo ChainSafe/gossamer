@@ -6,7 +6,6 @@ package errors
 import (
 	"errors"
 	"fmt"
-
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
@@ -61,6 +60,11 @@ func NewTransactionValidityError() TransactionValidityError {
 	return TransactionValidityError(vdt)
 }
 
+var (
+	ErrInvalidTxn = errors.New("invalid transaction")
+	ErrUnknownTxn = errors.New("unknown transaction")
+)
+
 // UnmarshalTransactionValidity Takes the result of the validateTransaction runtime call and unmarshalls it
 // TODO use custom result issue #2780
 func UnmarshalTransactionValidity(res []byte) (*transaction.Validity, error) {
@@ -77,9 +81,19 @@ func UnmarshalTransactionValidity(res []byte) (*transaction.Validity, error) {
 		if ok {
 			txnValidityErr, ok := scaleWrappedErr.Err.(TransactionValidityError)
 			if !ok {
+				fmt.Println("here")
 				return nil, fmt.Errorf("%w: %T", errInvalidTypeCast, scaleWrappedErr.Err)
 			}
-			return nil, &txnValidityErr
+
+			switch txnValidityErr.Value().(type) {
+			// TODO use custom result issue #2780
+			case InvalidTransaction:
+				return nil, fmt.Errorf("%w: %s", ErrInvalidTxn, txnValidityErr.Error())
+			case UnknownTransaction: // do nothing
+				return nil, fmt.Errorf("%w: %s", ErrUnknownTxn, txnValidityErr.Error())
+			default:
+				panic(fmt.Sprintf("unsupported transaction validity error: %T", txnValidityErr.Value()))
+			}
 		}
 		return nil, fmt.Errorf("%w: %T", errInvalidResult, err)
 	}

@@ -33,19 +33,13 @@ func (s *Service) validateTransaction(peerID peer.ID, head *types.Header, rt Run
 	validity, err = rt.ValidateTransaction(externalExt)
 	if err != nil {
 		logger.Debugf("failed to validate transaction: %s", err)
-		var txnValidityErr *runtimeErrors.TransactionValidityError
-		if errors.As(err, &txnValidityErr) {
-			switch txnValidityErr.Value().(type) {
-			// TODO use custom result issue #2780
-			case runtimeErrors.InvalidTransaction:
-				s.net.ReportPeer(peerset.ReputationChange{
-					Value:  peerset.BadTransactionValue,
-					Reason: peerset.BadTransactionReason,
-				}, peerID)
-			case runtimeErrors.UnknownTransaction: // do nothing
-			default:
-				panic(fmt.Sprintf("unsupported transaction validity error: %T", txnValidityErr.Value()))
-			}
+		switch {
+		case errors.Is(err, runtimeErrors.ErrInvalidTxn):
+			s.net.ReportPeer(peerset.ReputationChange{
+				Value:  peerset.BadTransactionValue,
+				Reason: peerset.BadTransactionReason,
+			}, peerID)
+		case errors.Is(err, runtimeErrors.ErrUnknownTxn):
 		}
 		return nil, false, nil
 	}
