@@ -206,8 +206,6 @@ func (s *Service) Start() error {
 		}
 	}()
 
-	go s.notifyNeighbours(neighbourMessageInterval)
-
 	return nil
 }
 
@@ -452,12 +450,12 @@ func (s *Service) playGrandpaRound() error {
 	logger.Debugf("starting round %d with set id %d",
 		s.state.round, s.state.setID)
 
-	start := time.Now()
+	cancel := make(chan struct{})
+	defer close(cancel)
 
-	isPrimary, err := s.handleIsPrimary()
-	if err != nil {
-		return err
-	}
+	go s.sendNeighborMessage(cancel)
+
+	start := time.Now()
 
 	// broadcast pre-vote
 	pv, err := s.determinePreVote()
@@ -470,12 +468,7 @@ func (s *Service) playGrandpaRound() error {
 		return err
 	}
 
-	if !isPrimary {
-		s.prevotes.Store(s.publicKeyBytes(), spv)
-	}
-
-	cancel := make(chan struct{})
-	defer close(cancel)
+	s.prevotes.Store(s.publicKeyBytes(), spv)
 
 	performCh := s.receiveVoteMessages(cancel)
 	go s.sendPrevoteMessage(vm, cancel)
@@ -488,7 +481,7 @@ func (s *Service) playGrandpaRound() error {
 
 		case action, ok := <-performCh:
 			if !ok {
-				break
+				return errors.New("perform channel closed")
 			}
 
 			switch action {
@@ -504,9 +497,13 @@ func (s *Service) playGrandpaRound() error {
 				}
 
 				s.precommits.Store(s.publicKeyBytes(), spc)
-				s.sendPrecommitMessage(pcm)
+				go s.sendPrecommitMessage(pcm, cancel)
 
-			case finalize:
+			case finalizeThroughCommit:
+				logger.Debugf("round completed in %s", time.Since(start))
+				return nil
+
+			case finalizeThroughVotes:
 				cm, err := s.newCommitMessage(s.head, s.state.round, s.state.setID)
 				if err != nil {
 					logger.Errorf("generating commit message: %s", err)
@@ -533,37 +530,99 @@ func (s *Service) playGrandpaRound() error {
 	}
 }
 
-func (s *Service) sendPrecommitMessage(vm *VoteMessage) {
+func (s *Service) sendNeighborMessage(cancel <-chan struct{}) {
+	s.roundLock.Lock()
+	neighbourMessage := &NeighbourPacketV1{
+		Round:  s.state.round,
+		SetID:  s.state.setID,
+		Number: uint32(s.head.Number),
+	}
+	s.roundLock.Unlock()
+
+	watch := s.viewTracker.Watch(s.interval, func(v view) bool {
+		wasNotATarget := v.latestNeighborSent == nil
+		containsOldNeighborMessage := v.latestNeighborSent.Round < neighbourMessage.Round
+
+		return wasNotATarget || containsOldNeighborMessage
+	}, cancel)
+
+	for {
+		select {
+		case <-cancel:
+			return
+
+		case peers := <-watch:
+			for _, peer := range peers {
+				s.sendNeighbourMessageTo(peer, neighbourMessage)
+				logger.Warnf("sent neighbor message to peer %s: %v", peer, neighbourMessage)
+			}
+
+			s.viewTracker.markNeighborAsSent(peers, neighbourMessage)
+		}
+	}
+}
+
+func (s *Service) sendPrecommitMessage(vm *VoteMessage, cancel <-chan struct{}) {
 	logger.Debugf("sending pre-commit message %s...", vm.Message)
 
-	if err := s.sendMessage(vm); err != nil {
-		logger.Warnf("could not send message for stage %s: %s\n", precommit, err)
-	} else {
-		logger.Warnf("sent vote message for stage %s: %s\n", precommit, vm.Message)
+	voteConsensusMessage, err := vm.ToConsensusMessage()
+	if err != nil {
+		logger.Errorf("transform vote message into consensus message: %s...", err)
+	}
+
+	watch := s.viewTracker.Watch(s.interval, func(peerView view) bool {
+		inTheSameRound := peerView.Round == vm.Round
+		wasNotATarget := peerView.PrevoteSent && !peerView.PrecommitSent
+
+		return inTheSameRound && wasNotATarget
+	}, cancel)
+
+	for {
+		select {
+		case peers := <-watch:
+			for _, peerID := range peers {
+				s.network.GossipMessageTo(peerID, voteConsensusMessage)
+				logger.Warnf("sent vote message to peer %s: %s", peerID, vm.Message)
+			}
+
+			s.viewTracker.markAsSent(peers, precommit)
+
+		case <-cancel:
+			return
+		}
 	}
 }
 
 func (s *Service) sendPrevoteMessage(vm *VoteMessage, cancel <-chan struct{}) {
 	logger.Debugf("sending pre-vote message %s...", vm)
 
-	timer := time.NewTimer(s.interval * 4)
-	defer func() {
-		if !timer.Stop() {
-			<-timer.C
-		}
-	}()
-
-	// no matter the output of `perform` channel we should stop sending prevotes
-	select {
-	case <-timer.C:
-	case <-cancel:
-		return
+	voteConsensusMessage, err := vm.ToConsensusMessage()
+	if err != nil {
+		logger.Errorf("transform vote message into consensus message: %s...", err)
 	}
 
-	if err := s.sendMessage(vm); err != nil {
-		logger.Warnf("could not send message for stage %s: %s", prevote, err)
-	} else {
-		logger.Warnf("sent vote message for stage %s: %s", prevote, vm.Message)
+	watch := s.viewTracker.Watch(s.interval*5, func(peerView view) bool {
+		neighborMessageSent := peerView.latestNeighborSent != nil &&
+			peerView.latestNeighborSent.Round == vm.Round
+		inTheSameRound := peerView.Round == vm.Round
+		wasNotATarget := !peerView.PrevoteSent
+
+		return neighborMessageSent && inTheSameRound && wasNotATarget
+	}, cancel)
+
+	for {
+		select {
+		case peers := <-watch:
+			for _, peerID := range peers {
+				s.network.GossipMessageTo(peerID, voteConsensusMessage)
+				logger.Warnf("sent vote message to peer %s: %s", peerID, vm.Message)
+			}
+
+			s.viewTracker.markAsSent(peers, prevote)
+
+		case <-cancel:
+			return
+		}
 	}
 }
 

@@ -83,6 +83,7 @@ func (h *MessageHandler) handleNeighbourMessage(who peer.ID, msg *NeighbourPacke
 		return fmt.Errorf("uptading view: %w", err)
 	}
 
+	logger.Debugf("peer %s update view round %d, set id %d", who, msg.Round, msg.SetID)
 	return nil
 }
 

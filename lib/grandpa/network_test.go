@@ -149,7 +149,7 @@ func TestNotifyNeighbor(t *testing.T) {
 			mockedNet.EXPECT().GossipMessage(cm).Times(1).DoAndReturn(ensureGossipMessageCalledRightTime)
 
 			*timecheck = time.Now()
-			go s.notifyNeighbours(tt.notifyInterval)
+			//go s.notifyNeighbours(tt.notifyInterval)
 
 			if tt.finalizeBlock {
 				<-time.After(tt.finalizeBlockAfter)

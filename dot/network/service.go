@@ -539,6 +539,7 @@ func (s *Service) GossipMessageTo(peer peer.ID, msg NotificationsMessage) {
 		prtl.peersData.setMutex(peer)
 
 		go s.sendData(peer, hs, prtl, msg)
+		return
 	}
 
 	logger.Errorf("message type %d not supported by any notifications protocol", msg.Type())

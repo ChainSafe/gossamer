@@ -180,7 +180,9 @@ func TestGetPeersAtRound(t *testing.T) {
 				require.NoError(t, err)
 			}
 
-			actual := tracker.getPeersAtRound(tt.fromRound)
+			actual := tracker.Retrieve(func(v view) bool {
+				return v.Round == tt.fromRound
+			})
 
 			// ensure the same order before compare
 			sort.Sort(actual)

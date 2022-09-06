@@ -66,22 +66,16 @@ func (hs *GrandpaHandshake) IsValid() bool {
 
 // OnPeerConnected will send neighbour message
 func (s *Service) OnPeerConnected(who peer.ID) {
-	s.roundLock.Lock()
-	neighbourMessage := &NeighbourPacketV1{
-		Round:  s.state.round,
-		SetID:  s.state.setID,
-		Number: uint32(s.head.Number),
+	ok := s.viewTracker.trackPeer(who)
+	if !ok {
+		logger.Debugf("peer %s already tracked", who)
 	}
-	s.roundLock.Unlock()
-
-	logger.Debugf("peer %s connected: sending neighbour message: %v",
-		who, neighbourMessage)
-	s.sendNeighbourMessageTo(who, neighbourMessage)
 }
 
 func (s *Service) OnPeerDisconnected(who peer.ID) {
-	logger.Debugf("peer %s disconnected: removing its view", who)
-	s.viewTracker.removePeerView(who)
+	logger.Debugf("peer %s disconnected", who)
+	s.viewTracker.forgetMessages(who)
+	//s.viewTracker.removePeerView(who)
 }
 
 func (s *Service) registerProtocol() error {
@@ -177,47 +171,9 @@ func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) (
 }
 
 // sendMessage sends a vote message to be gossiped to the network
-func (s *Service) sendMessage(msg GrandpaMessage) error {
-	cm, err := msg.ToConsensusMessage()
-	if err != nil {
-		return err
-	}
-
-	s.network.GossipMessage(cm)
-	logger.Tracef("sent message: %v", msg)
+func (s *Service) sendMessage(cm *network.ConsensusMessage, peer peer.ID) error {
+	s.network.GossipMessageTo(peer, cm)
 	return nil
-}
-
-// notifyNeighbours will gossip a NeighbourMessage every 5 minutes, however we reset the ticker
-// whenever a finalisation occur meaning that a neighbour message already was sent by s.initiateRound()
-func (s *Service) notifyNeighbours(interval time.Duration) {
-	t := time.NewTicker(interval)
-	defer t.Stop()
-
-	for {
-		select {
-		case <-s.ctx.Done():
-			return
-
-		case <-t.C:
-			s.roundLock.Lock()
-			neighbourMessage := &NeighbourPacketV1{
-				Round:  s.state.round,
-				SetID:  s.state.setID,
-				Number: uint32(s.head.Number),
-			}
-			s.roundLock.Unlock()
-
-			s.sendNeighbourMessage(neighbourMessage)
-
-		case _, ok := <-s.finalisedCh:
-			if !ok {
-				return
-			}
-
-			t = time.NewTicker(interval)
-		}
-	}
 }
 
 func (s *Service) sendNeighbourMessageTo(who peer.ID, message *NeighbourPacketV1) {
@@ -253,7 +209,6 @@ func decodeMessage(cm *network.ConsensusMessage) (m GrandpaMessage, err error) {
 		m = &val
 	case CommitMessage:
 		m = &val
-
 	case VersionedNeighbourPacket:
 		switch NeighbourMessage := val.Value().(type) {
 		case NeighbourPacketV1:

@@ -37,7 +37,7 @@ type ConnManager struct {
 
 	peerSetHandler PeerSetHandler
 
-	observersMutex *sync.RWMutex
+	observersMutex sync.RWMutex
 	observers      []ConnectionObserver
 }
 

@@ -27,7 +27,8 @@ type action byte
 
 const (
 	determinePrecommit action = iota
-	finalize
+	finalizeThroughCommit
+	finalizeThroughVotes
 )
 
 // receiveVoteMessages receives messages from the in channel until a grandpa round finishes.
@@ -51,8 +52,12 @@ func (s *Service) receiveVoteMessages(cancel <-chan struct{}) (perform chan acti
 					return
 				}
 
-				if commit.Round == s.state.round {
-					perform <- finalize
+				s.roundLock.Lock()
+				currentRound := s.state.round
+				s.roundLock.Unlock()
+
+				if commit.Round == currentRound {
+					perform <- finalizeThroughCommit
 					return
 				}
 
@@ -97,7 +102,7 @@ func (s *Service) receiveVoteMessages(cancel <-chan struct{}) (perform chan acti
 					}
 
 					if isFinalizable {
-						perform <- finalize
+						perform <- finalizeThroughVotes
 						return
 					}
 				}
