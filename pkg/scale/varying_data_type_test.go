@@ -529,13 +529,12 @@ func TestVaryingDataTypeSlice_Add(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		vdts := &tt.vdts
 		t.Run(tt.name, func(t *testing.T) {
-			if err := vdts.Add(tt.args.values...); (err != nil) != tt.wantErr {
+			if err := tt.vdts.Add(tt.args.values...); (err != nil) != tt.wantErr {
 				t.Errorf("VaryingDataTypeSlice.Add() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if !reflect.DeepEqual(vdts.Types, tt.wantValues) {
-				t.Errorf("NewVaryingDataType() = %v, want %v", vdts.Types, tt.wantValues)
+			if !reflect.DeepEqual(tt.vdts.Types, tt.wantValues) {
+				t.Errorf("NewVaryingDataType() = %v, want %v", tt.vdts.Types, tt.wantValues)
 			}
 		})
 	}
