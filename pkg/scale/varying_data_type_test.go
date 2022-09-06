@@ -529,8 +529,8 @@ func TestVaryingDataTypeSlice_Add(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		vdts := &tt.vdts
 		t.Run(tt.name, func(t *testing.T) {
-			vdts := &tt.vdts
 			if err := vdts.Add(tt.args.values...); (err != nil) != tt.wantErr {
 				t.Errorf("VaryingDataTypeSlice.Add() error = %v, wantErr %v", err, tt.wantErr)
 			}

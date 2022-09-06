@@ -112,7 +112,7 @@ func ExampleVaryingDataTypeSlice() {
 	}
 }
 
-func TestExamples(t *testing.T) {
+func TestExamples(_ *testing.T) {
 	ExampleVaryingDataType()
 	ExampleVaryingDataTypeSlice()
 }

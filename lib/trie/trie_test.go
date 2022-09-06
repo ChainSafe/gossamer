@@ -3851,7 +3851,7 @@ func Benchmark_concatSlices(b *testing.B) {
 	// 16993 ns/op	  245760 B/op	       1 allocs/op
 	b.Run("direct append", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			concatenated := append(slice1, slice2...)
+			concatenated := append(slice1, slice2...) //skipcq: CRT-D0001
 			concatenated[0] = 1
 		}
 	})

@@ -169,7 +169,7 @@ func TestPeek(t *testing.T) {
 	}
 }
 
-func TestPriorityQueueConcurrentCalls(t *testing.T) {
+func TestPriorityQueueConcurrentCalls(_ *testing.T) {
 	pq := NewPriorityQueue()
 
 	go func() {
