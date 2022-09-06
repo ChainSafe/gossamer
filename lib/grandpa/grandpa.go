@@ -541,7 +541,8 @@ func (s *Service) sendNeighborMessage(cancel <-chan struct{}) {
 
 	watch := s.viewTracker.Watch(s.interval, func(v view) bool {
 		wasNotATarget := v.latestNeighborSent == nil
-		containsOldNeighborMessage := v.latestNeighborSent.Round < neighbourMessage.Round
+		containsOldNeighborMessage := v.latestNeighborSent != nil &&
+			v.latestNeighborSent.Round < neighbourMessage.Round
 
 		return wasNotATarget || containsOldNeighborMessage
 	}, cancel)
