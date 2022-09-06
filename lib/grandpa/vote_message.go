@@ -47,19 +47,13 @@ func (s *Service) receiveVoteMessages(cancel <-chan struct{}) (perform chan acti
 
 		for {
 			select {
-			case commit, ok := <-s.receivedCommit:
+			case _, ok := <-s.receivedCommit:
 				if !ok {
 					return
 				}
 
-				s.roundLock.Lock()
-				currentRound := s.state.round
-				s.roundLock.Unlock()
-
-				if commit.Round == currentRound {
-					perform <- finalizeThroughCommit
-					return
-				}
+				perform <- finalizeThroughCommit
+				return
 
 			case msg, ok := <-s.in:
 				if !ok {
