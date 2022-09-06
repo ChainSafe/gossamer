@@ -241,10 +241,10 @@ func TestValidityAttestation(t *testing.T) {
 }
 
 func TestParachainInherents(t *testing.T) {
-	expectedbytes := []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-
+	expectedParaInherentsbytes := []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+	expectedInherentsBytes := []byte{4, 112, 97, 114, 97, 99, 104, 110, 48, 149, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 	// corresponding rust struct
-	//
+	// ----------------------------------------
 	// let para_int: polkadot_primitives::v2::InherentData = polkadot_primitives::v2::InherentData {
 	// 	bitfields: Vec::new(),
 	// 	backed_candidates: Vec::new(),
@@ -257,6 +257,12 @@ func TestParachainInherents(t *testing.T) {
 	// 	   state_root : Default::default(),
 	//    },
 	// };
+	// ----------------------------------------
+	// way to get inherents encoding from rust
+	// ----------------------------------------
+	// let mut inherents: sp_inherents::InherentData = sp_inherents::InherentData::new();
+	// inherents.put_data(*b"parachn0", &para_int).unwrap();
+	// println!("{:?}", inherents.encode());
 
 	parachainInherent := ParachainInherentData{
 		Bitfields:        []UncheckedSignedAvailabilityBitfield{},
@@ -271,9 +277,19 @@ func TestParachainInherents(t *testing.T) {
 		},
 	}
 
-	encoded, err := scale.Marshal(parachainInherent)
+	actualParaInherentBytes, err := scale.Marshal(parachainInherent)
 	require.NoError(t, err)
 
-	require.Equal(t, len(expectedbytes), len(encoded))
-	require.True(t, bytes.Equal(encoded, expectedbytes))
+	require.Equal(t, len(expectedParaInherentsbytes), len(actualParaInherentBytes))
+	require.True(t, bytes.Equal(actualParaInherentBytes, expectedParaInherentsbytes))
+
+	idata := types.NewInherentsData()
+	err = idata.SetStructInherent(types.Parachn0, parachainInherent)
+	require.NoError(t, err)
+
+	actualInherentsBytes, err := idata.Encode()
+	require.NoError(t, err)
+	require.Equal(t, len(expectedInherentsBytes), len(actualInherentsBytes))
+	require.True(t, bytes.Equal(expectedInherentsBytes, actualInherentsBytes))
+
 }

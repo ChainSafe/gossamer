@@ -253,10 +253,22 @@ func buildBlockInherents(slot Slot, rt runtime.Instance) ([][]byte, error) {
 	}
 
 	parachainInherent := ParachainInherentData{
-		Bitfields:        []UncheckedSignedAvailabilityBitfield{},
+		Bitfields: []UncheckedSignedAvailabilityBitfield{
+			{
+				Payload:        []byte(""),
+				ValidatorIndex: 0,
+				Signature:      Signature{},
+			},
+		},
 		BackedCandidates: []BackedCandidate{},
 		Disputes:         MultiDisputeStatementSet{},
-		ParentHeader:     types.Header{},
+		ParentHeader: types.Header{
+			ParentHash:     common.Hash{},
+			Number:         0,
+			StateRoot:      common.Hash{},
+			ExtrinsicsRoot: common.Hash{},
+			Digest:         scale.VaryingDataTypeSlice{},
+		},
 	}
 
 	// add parachn0 and newheads
@@ -266,6 +278,7 @@ func buildBlockInherents(slot Slot, rt runtime.Instance) ([][]byte, error) {
 	if err = idata.SetStructInherent(types.Parachn0, parachainInherent); err != nil {
 		return nil, err
 	}
+
 	if err = idata.SetStructInherent(types.Newheads, []byte{0}); err != nil {
 		return nil, err
 	}

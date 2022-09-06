@@ -74,7 +74,12 @@ func (d *InherentsData) SetStructInherent(key []byte, value interface{}) error {
 		return errors.New("inherent key must be 8 bytes")
 	}
 
-	venc, err := scale.Marshal(value)
+	data, err := scale.Marshal(value)
+	if err != nil {
+		return err
+	}
+
+	venc, err := scale.Marshal(data)
 	if err != nil {
 		return err
 	}
