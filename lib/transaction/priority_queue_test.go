@@ -5,7 +5,9 @@ package transaction
 
 import (
 	"reflect"
+	"sync"
 	"testing"
+	"time"
 )
 
 func TestPriorityQueue(t *testing.T) {
@@ -172,17 +174,39 @@ func TestPeek(t *testing.T) {
 func TestPriorityQueueConcurrentCalls(_ *testing.T) {
 	pq := NewPriorityQueue()
 
+	const parallelism = 2
+
+	var startWg, endWg sync.WaitGroup
+	startWg.Add(parallelism)
+	endWg.Add(parallelism)
+
+	timedOut := make(chan struct{})
 	go func() {
-		pq.Push(&ValidTransaction{Validity: &Validity{Priority: 1}})
-		pq.Peek()
-		pq.Pop()
-	}()
-	go func() {
-		pq.Push(&ValidTransaction{Validity: &Validity{Priority: 1}})
-		pq.Peek()
-		pq.Pop()
+		startWg.Wait()
+		const duration = 100 * time.Millisecond
+		timer := time.NewTimer(duration)
+		<-timer.C
+		close(timedOut)
 	}()
 
+	for i := 0; i < parallelism; i++ {
+		go func() {
+			defer endWg.Done()
+			startWg.Done()
+			for {
+				select {
+				case <-timedOut:
+					return
+				default:
+				}
+				_, _ = pq.Push(&ValidTransaction{Validity: &Validity{Priority: 1}})
+				_ = pq.Peek()
+				_ = pq.Pop()
+			}
+		}()
+	}
+
+	endWg.Wait()
 }
 
 func TestPending(t *testing.T) {
