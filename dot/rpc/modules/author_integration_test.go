@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	runtimererrors "github.com/ChainSafe/gossamer/lib/runtime/errors"
 	"os"
 	"testing"
 
@@ -181,7 +182,8 @@ func TestAuthorModule_SubmitExtrinsic_invalid(t *testing.T) {
 
 	res := new(ExtrinsicHashResponse)
 	err := auth.SubmitExtrinsic(nil, &Extrinsic{extHex}, res)
-	require.EqualError(t, err, "ancient birth block")
+	expMsg := fmt.Errorf("%w: %s", runtimererrors.ErrInvalidTxn, "ancient birth block").Error()
+	require.EqualError(t, err, expMsg)
 
 	txOnPool := integrationTestController.stateSrv.Transaction.PendingInPool()
 	require.Len(t, txOnPool, 0)
