@@ -4,7 +4,7 @@
 package wasmer
 
 // #include <stdlib.h>
-import "C"
+import "C" //skipcq: SCC-compile
 
 import (
 	"fmt"
