@@ -16,3 +16,10 @@ RUN wget -qO- https://deb.nodesource.com/setup_14.x | bash - && \
 #   rm /tmp/glibc.apk
 
 RUN go install github.com/google/addlicense@v1.0.0
+
+# TODO remove these once we can get the latest debian image
+RUN echo "deb https://deb.debian.org/debian bookworm main" >> /etc/apt/sources.list && \
+  apt-get update && \
+  apt-get install -y -t bookworm git && \
+  go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.50 && \
+  go install github.com/vektra/mockery/v2@v2.14
