@@ -150,8 +150,8 @@ func Test_unmarshal_optionality(t *testing.T) {
 			switch in := tt.in.(type) {
 			case VaryingDataType:
 				// copy the inputted vdt cause we need the cached values
-				copy := in
-				vdt := copy
+				cp := in
+				vdt := cp
 				vdt.value = nil
 				var dst interface{} = &vdt
 				if err := Unmarshal(tt.want, &dst); (err != nil) != tt.wantErr {
