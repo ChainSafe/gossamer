@@ -5,13 +5,13 @@ package scale
 
 import (
 	"bytes"
-	"github.com/stretchr/testify/assert"
 	"math/big"
 	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_decodeState_decodeFixedWidthInt(t *testing.T) {
