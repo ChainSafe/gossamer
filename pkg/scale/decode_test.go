@@ -5,13 +5,13 @@ package scale
 
 import (
 	"bytes"
+	"github.com/stretchr/testify/assert"
 	"math/big"
 	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/stretchr/testify/assert"
 )
 
 func Test_decodeState_decodeFixedWidthInt(t *testing.T) {
@@ -388,18 +388,16 @@ func Test_decodeState_decodeUint(t *testing.T) {
 			dstv := reflect.ValueOf(&dst)
 			elem := indirect(dstv)
 
-			buf := &bytes.Buffer{}
-			ds := decodeState{}
-			_, err := buf.Write(tt.want)
-			assert.NoError(t, err)
-			ds.Reader = buf
-			err = ds.decodeUint(elem)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("decodeState.decodeUint error = %v, wantErr %v", err, tt.wantErr)
+			ds := decodeState{
+				Reader: bytes.NewBuffer(tt.want),
 			}
-			if !reflect.DeepEqual(dst, tt.in) {
-				t.Errorf("decodeState.decodeUint = %v, want %v", dst, tt.in)
+			err := ds.decodeUint(elem)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
 			}
+			assert.Equal(t, tt.in, dst)
 		})
 	}
 }
