@@ -6,7 +6,7 @@ package genesis
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_interfaceToTelemetryEndpoint(t *testing.T) {
@@ -58,7 +58,7 @@ func Test_interfaceToTelemetryEndpoint(t *testing.T) {
 			t.Parallel()
 
 			telemetryEndpoints := interfaceToTelemetryEndpoint(testCase.endpoints)
-			assert.Equal(t, testCase.expected, telemetryEndpoints)
+			require.Equal(t, testCase.expected, telemetryEndpoints)
 		})
 	}
 }
