@@ -4,6 +4,8 @@
 package genesis
 
 import (
+	"encoding/json"
+
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
@@ -46,8 +48,22 @@ type TelemetryEndpoint struct {
 
 // Fields stores genesis raw data, and human readable runtime data
 type Fields struct {
-	Raw     map[string]map[string]string      `json:"raw,omitempty"`
-	Runtime map[string]map[string]interface{} `json:"runtime,omitempty"`
+	Raw     map[string]map[string]string `json:"raw,omitempty"`
+	Runtime runtimeMap                   `json:"runtime,omitempty"`
+}
+
+type runtimeMap map[string]map[string]interface{}
+
+func (r runtimeMap) MarshalJSON() ([]byte, error) {
+	return json.Marshal(map[string]map[string]interface{}(r))
+}
+
+func (r *runtimeMap) UnmarshalJSON(data []byte) error {
+	rtmt := map[string]map[string]interface{}(*r)
+	err := json.Unmarshal(data, &rtmt)
+	*r = runtimeMap(rtmt)
+
+	return err
 }
 
 // GenesisData formats genesis for trie storage
