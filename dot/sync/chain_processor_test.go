@@ -602,6 +602,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 			blockData: &types.BlockData{
 				Justification: &[]byte{1, 2, 3},
 			},
+			expectedError: mockError,
 		},
 		"has header body false": {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {

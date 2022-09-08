@@ -156,8 +156,9 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 			return fmt.Errorf("loading trie state: %w", err)
 		}
 
-		if err := s.blockImportHandler.HandleBlockImport(block, state, announceImportedBlock); err != nil {
-			logger.Warnf("failed to handle block import: %s", err)
+		err = s.blockImportHandler.HandleBlockImport(block, state, announceImportedBlock)
+		if err != nil {
+			return fmt.Errorf("handling block import: %w", err)
 		}
 
 		return nil
