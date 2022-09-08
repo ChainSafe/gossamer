@@ -51,6 +51,6 @@ func ExampleResult() {
 	}
 }
 
-func TestExampleResult(t *testing.T) {
+func TestExampleResult(_ *testing.T) {
 	ExampleResult()
 }

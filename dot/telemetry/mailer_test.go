@@ -37,7 +37,7 @@ func newTestMailer(t *testing.T, handler http.HandlerFunc) (mailer *Mailer) {
 		srv.Close()
 	})
 
-	wsAddr := strings.Replace(srv.URL, "http", "ws", -1)
+	wsAddr := strings.ReplaceAll(srv.URL, "http", "ws")
 	var testEndpoint1 = &genesis.TelemetryEndpoint{
 		Endpoint:  wsAddr,
 		Verbosity: 0,
