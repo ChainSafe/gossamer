@@ -127,7 +127,6 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 		// code block can be removed (#1784)
 		block, err := s.blockState.GetBlockByHash(bd.Hash)
 		if err != nil {
-			logger.Debugf("failed to get block header for hash %s: %s", bd.Hash, err)
 			return fmt.Errorf("getting block by hash: %w", err)
 		}
 
@@ -139,7 +138,6 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 		if errors.Is(err, blocktree.ErrBlockExists) {
 			return nil
 		} else if err != nil {
-			logger.Warnf("failed to add block with hash %s to blocktree: %s", bd.Hash, err)
 			return fmt.Errorf("adding block to blocktree: %w", err)
 		}
 
@@ -156,7 +154,6 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 		// is rewinded or if the node shuts down unexpectedly (#1784)
 		state, err := s.storageState.TrieState(&block.Header.StateRoot)
 		if err != nil {
-			logger.Warnf("failed to load state for block with hash %s: %s", block.Header.Hash(), err)
 			return fmt.Errorf("loading trie state: %w", err)
 		}
 
@@ -182,7 +179,6 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 		}
 
 		if err := s.handleBlock(block, announceImportedBlock); err != nil {
-			logger.Debugf("failed to handle block number %d: %s", block.Header.Number, err)
 			return fmt.Errorf("handling block: %w", err)
 		}
 
