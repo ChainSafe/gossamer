@@ -1179,8 +1179,7 @@ func addBlocksToState(t *testing.T, blockState *state.BlockState, depth uint) {
 
 	previousHash := blockState.BestBlockHash()
 
-	rt, err := blockState.GetRuntime(nil)
-	require.NoError(t, err)
+	rt := blockState.GetBestBlockRuntime()
 
 	head, err := blockState.BestBlockHeader()
 	require.NoError(t, err)

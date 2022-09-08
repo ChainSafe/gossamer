@@ -339,11 +339,12 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 					tt.mockBlockState.bestHeader.header,
 					tt.mockBlockState.bestHeader.err)
 
-				if tt.mockBlockState.getRuntime != nil {
-					blockState.EXPECT().GetRuntime(gomock.Any()).Return(
-						tt.mockBlockState.getRuntime.runtime,
-						tt.mockBlockState.getRuntime.err)
-				}
+				//if tt.mockBlockState.getRuntime != nil {
+				// todo(ed) re-implement
+				//blockState.EXPECT().GetRuntime(gomock.Any()).Return(
+				//	tt.mockBlockState.getRuntime.runtime,
+				//	tt.mockBlockState.getRuntime.err)
+				//}
 				s.blockState = blockState
 			}
 			if tt.mockStorageState != nil {

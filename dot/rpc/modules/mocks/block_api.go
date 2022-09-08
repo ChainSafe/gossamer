@@ -42,6 +42,22 @@ func (_m *BlockAPI) FreeImportedBlockNotifierChannel(ch chan *types.Block) {
 	_m.Called(ch)
 }
 
+// GetBestBlockRuntime provides a mock function with given fields:
+func (_m *BlockAPI) GetBestBlockRuntime() runtime.Instance {
+	ret := _m.Called()
+
+	var r0 runtime.Instance
+	if rf, ok := ret.Get(0).(func() runtime.Instance); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(runtime.Instance)
+		}
+	}
+
+	return r0
+}
+
 // GetBlockByHash provides a mock function with given fields: hash
 func (_m *BlockAPI) GetBlockByHash(hash common.Hash) (*types.Block, error) {
 	ret := _m.Called(hash)
@@ -204,29 +220,6 @@ func (_m *BlockAPI) GetJustification(hash common.Hash) ([]byte, error) {
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(common.Hash) error); ok {
-		r1 = rf(hash)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// GetRuntime provides a mock function with given fields: hash
-func (_m *BlockAPI) GetRuntime(hash *common.Hash) (runtime.Instance, error) {
-	ret := _m.Called(hash)
-
-	var r0 runtime.Instance
-	if rf, ok := ret.Get(0).(func(*common.Hash) runtime.Instance); ok {
-		r0 = rf(hash)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(runtime.Instance)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(*common.Hash) error); ok {
 		r1 = rf(hash)
 	} else {
 		r1 = ret.Error(1)

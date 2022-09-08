@@ -156,8 +156,7 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 	tb := []testBranch{}
 	arrivalTime := time.Now()
 
-	rt, err := blockState.GetRuntime(nil)
-	require.NoError(t, err)
+	rt := blockState.GetBestBlockRuntime()
 
 	head, err := blockState.BestBlockHeader()
 	require.NoError(t, err)

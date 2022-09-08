@@ -182,6 +182,20 @@ func (mr *MockBlockStateMockRecorder) GetAllBlocksAtDepth(arg0 interface{}) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllBlocksAtDepth", reflect.TypeOf((*MockBlockState)(nil).GetAllBlocksAtDepth), arg0)
 }
 
+// GetBestBlockRuntime mocks base method.
+func (m *MockBlockState) GetBestBlockRuntime() runtime.Instance {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetBestBlockRuntime")
+	ret0, _ := ret[0].(runtime.Instance)
+	return ret0
+}
+
+// GetBestBlockRuntime indicates an expected call of GetBestBlockRuntime.
+func (mr *MockBlockStateMockRecorder) GetBestBlockRuntime() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBestBlockRuntime", reflect.TypeOf((*MockBlockState)(nil).GetBestBlockRuntime))
+}
+
 // GetBlockBody mocks base method.
 func (m *MockBlockState) GetBlockBody(arg0 common.Hash) (*types.Body, error) {
 	m.ctrl.T.Helper()
@@ -283,21 +297,6 @@ func (m *MockBlockState) GetImportedBlockNotifierChannel() chan *types.Block {
 func (mr *MockBlockStateMockRecorder) GetImportedBlockNotifierChannel() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetImportedBlockNotifierChannel", reflect.TypeOf((*MockBlockState)(nil).GetImportedBlockNotifierChannel))
-}
-
-// GetRuntime mocks base method.
-func (m *MockBlockState) GetRuntime(arg0 *common.Hash) (runtime.Instance, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRuntime", arg0)
-	ret0, _ := ret[0].(runtime.Instance)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetRuntime indicates an expected call of GetRuntime.
-func (mr *MockBlockStateMockRecorder) GetRuntime(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRuntime", reflect.TypeOf((*MockBlockState)(nil).GetRuntime), arg0)
 }
 
 // GetSlotForBlock mocks base method.

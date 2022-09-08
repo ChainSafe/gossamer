@@ -30,8 +30,7 @@ func TestChainProcessor_HandleBlockResponse_ValidChain(t *testing.T) {
 	parent, err := responder.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
 
-	rt, err := responder.blockState.GetRuntime(nil)
-	require.NoError(t, err)
+	rt := responder.blockState.GetBestBlockRuntime()
 
 	for i := 0; i < maxResponseSize*2; i++ {
 		block := BuildBlock(t, rt, parent, nil)
@@ -89,8 +88,7 @@ func TestChainProcessor_HandleBlockResponse_MissingBlocks(t *testing.T) {
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
 
-	rt, err := syncer.blockState.GetRuntime(nil)
-	require.NoError(t, err)
+	rt := syncer.blockState.GetBestBlockRuntime()
 
 	for i := 0; i < 4; i++ {
 		block := BuildBlock(t, rt, parent, nil)
@@ -104,8 +102,7 @@ func TestChainProcessor_HandleBlockResponse_MissingBlocks(t *testing.T) {
 	parent, err = responder.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
 
-	rt, err = responder.blockState.GetRuntime(nil)
-	require.NoError(t, err)
+	rt = responder.blockState.GetBestBlockRuntime()
 
 	for i := 0; i < 16; i++ {
 		block := BuildBlock(t, rt, parent, nil)
@@ -166,8 +163,7 @@ func TestChainProcessor_HandleBlockResponse_BlockData(t *testing.T) {
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
 
-	rt, err := syncer.blockState.GetRuntime(nil)
-	require.NoError(t, err)
+	rt := syncer.blockState.GetBestBlockRuntime()
 
 	block := BuildBlock(t, rt, parent, nil)
 
@@ -197,8 +193,7 @@ func TestChainProcessor_ExecuteBlock(t *testing.T) {
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
 
-	rt, err := syncer.blockState.GetRuntime(nil)
-	require.NoError(t, err)
+	rt := syncer.blockState.GetBestBlockRuntime()
 
 	block := BuildBlock(t, rt, parent, nil)
 

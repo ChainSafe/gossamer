@@ -14,7 +14,6 @@ import (
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -642,51 +641,59 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 	return nil
 }
 
-// GetRuntime gets the runtime for the corresponding block hash.
-func (bs *BlockState) GetRuntime(blockHash *common.Hash) (instance runtime.Instance, err error) {
-	if blockHash == nil {
-		instance, err = bs.bt.GetBlockRuntime(bs.BestBlockHash())
-	} else {
-		instance, err = bs.bt.GetBlockRuntime(*blockHash)
-	}
-	if errors.Is(err, blocktree.ErrFailedToGetRuntime) {
-		instance, err = bs.getRuntimeFromDB(blockHash)
-		if err != nil {
-			return instance, fmt.Errorf("getting runtime from database: %w", err)
-		}
-	} else if err != nil {
-		return instance, err
-	}
+//func (bs *BlockState) GetRuntime(blockHash *common.Hash) (instance runtime.Instance, err error) {
+//	if blockHash == nil {
+//		instance, err = bs.bt.GetBlockRuntime(bs.BestBlockHash())
+//	} else {
+//		instance, err = bs.bt.GetBlockRuntime(*blockHash)
+//	}
+//	if errors.Is(err, blocktree.ErrFailedToGetRuntime) {
+//		instance, err = bs.getRuntimeFromDB(blockHash)
+//		if err != nil {
+//			return instance, fmt.Errorf("getting runtime from database: %w", err)
+//		}
+//	} else if err != nil {
+//		return instance, err
+//	}
+//
+//	return
+//}
 
+//  GetBestBlockRuntime returns the current runtime instance for the best block
+func (bs *BlockState) GetBestBlockRuntime() (instance runtime.Instance) {
+	instance, err := bs.bt.GetBlockRuntime(bs.BestBlockHash())
+	if err != nil {
+		logger.Errorf("error retrieving block runtime")
+	}
 	return
 }
 
-// getRuntimeFromDB gets the runtime for the corresponding block hash from DB
-func (bs *BlockState) getRuntimeFromDB(blockHash *common.Hash) (instance runtime.Instance, err error) {
-	var stateRootHash *common.Hash
-	if blockHash != nil {
-		stateRootHash, err = bs.storageState.GetStateRootFromBlock(blockHash)
-		if err != nil {
-			return nil, fmt.Errorf("getting state root from block hash: %w", err)
-		}
-	}
-
-	trieState, err := bs.storageState.TrieState(stateRootHash)
-	if err != nil {
-		return nil, fmt.Errorf("getting trie state: %w", err)
-	}
-
-	code := trieState.LoadCode()
-	config := wasmer.Config{
-		LogLvl: log.DoNotChange,
-	}
-	instance, err = wasmer.NewInstance(code, config)
-	if err != nil {
-		return nil, fmt.Errorf("creating runtime instance: %w", err)
-	}
-
-	return instance, nil
-}
+//// getRuntimeFromDB gets the runtime for the corresponding block hash from DB
+//func (bs *BlockState) getRuntimeFromDB(blockHash *common.Hash) (instance runtime.Instance, err error) {
+//	var stateRootHash *common.Hash
+//	if blockHash != nil {
+//		stateRootHash, err = bs.storageState.GetStateRootFromBlock(blockHash)
+//		if err != nil {
+//			return nil, fmt.Errorf("getting state root from block hash: %w", err)
+//		}
+//	}
+//
+//	trieState, err := bs.storageState.TrieState(stateRootHash)
+//	if err != nil {
+//		return nil, fmt.Errorf("getting trie state: %w", err)
+//	}
+//
+//	code := trieState.LoadCode()
+//	config := wasmer.Config{
+//		LogLvl: log.DoNotChange,
+//	}
+//	instance, err = wasmer.NewInstance(code, config)
+//	if err != nil {
+//		return nil, fmt.Errorf("creating runtime instance: %w", err)
+//	}
+//
+//	return instance, nil
+//}
 
 // StoreRuntime stores the runtime for corresponding block hash.
 func (bs *BlockState) StoreRuntime(hash common.Hash, rt runtime.Instance) {

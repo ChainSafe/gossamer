@@ -220,18 +220,19 @@ func (s *chainProcessor) handleBlock(block *types.Block) error {
 		panic("parent state root does not match snapshot state root")
 	}
 
-	hash := parent.Hash()
-	rt, err := s.blockState.GetRuntime(&hash)
-	if err != nil {
-		return err
-	}
-
-	rt.SetContextStorage(ts)
-
-	_, err = rt.ExecuteBlock(block)
-	if err != nil {
-		return fmt.Errorf("failed to execute block %d: %w", block.Header.Number, err)
-	}
+	// todo(ed) recreate GetRuntime
+	//hash := parent.Hash()
+	//rt, err := s.blockState.GetRuntime(&hash)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//rt.SetContextStorage(ts)
+	//
+	//_, err = rt.ExecuteBlock(block)
+	//if err != nil {
+	//	return fmt.Errorf("failed to execute block %d: %w", block.Header.Number, err)
+	//}
 
 	if err = s.blockImportHandler.HandleBlockImport(block, ts); err != nil {
 		return err

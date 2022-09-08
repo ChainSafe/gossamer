@@ -228,6 +228,20 @@ func (mr *MockBlockAPIMockRecorder) FreeImportedBlockNotifierChannel(arg0 interf
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FreeImportedBlockNotifierChannel", reflect.TypeOf((*MockBlockAPI)(nil).FreeImportedBlockNotifierChannel), arg0)
 }
 
+// GetBestBlockRuntime mocks base method.
+func (m *MockBlockAPI) GetBestBlockRuntime() runtime.Instance {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetBestBlockRuntime")
+	ret0, _ := ret[0].(runtime.Instance)
+	return ret0
+}
+
+// GetBestBlockRuntime indicates an expected call of GetBestBlockRuntime.
+func (mr *MockBlockAPIMockRecorder) GetBestBlockRuntime() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBestBlockRuntime", reflect.TypeOf((*MockBlockAPI)(nil).GetBestBlockRuntime))
+}
+
 // GetBlockByHash mocks base method.
 func (m *MockBlockAPI) GetBlockByHash(arg0 common.Hash) (*types.Block, error) {
 	m.ctrl.T.Helper()
@@ -344,21 +358,6 @@ func (m *MockBlockAPI) GetJustification(arg0 common.Hash) ([]byte, error) {
 func (mr *MockBlockAPIMockRecorder) GetJustification(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetJustification", reflect.TypeOf((*MockBlockAPI)(nil).GetJustification), arg0)
-}
-
-// GetRuntime mocks base method.
-func (m *MockBlockAPI) GetRuntime(arg0 *common.Hash) (runtime.Instance, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRuntime", arg0)
-	ret0, _ := ret[0].(runtime.Instance)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetRuntime indicates an expected call of GetRuntime.
-func (mr *MockBlockAPIMockRecorder) GetRuntime(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRuntime", reflect.TypeOf((*MockBlockAPI)(nil).GetRuntime), arg0)
 }
 
 // HasJustification mocks base method.

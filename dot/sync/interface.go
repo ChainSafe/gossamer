@@ -68,7 +68,7 @@ type BlockState interface {
 	AddBlockToBlockTree(block *types.Block) error
 	GetHashByNumber(blockNumber uint) (common.Hash, error)
 	GetBlockByHash(common.Hash) (*types.Block, error)
-	GetRuntime(*common.Hash) (runtime.Instance, error)
+	GetBestBlockRuntime() (instance runtime.Instance)
 	StoreRuntime(common.Hash, runtime.Instance)
 	GetHighestFinalisedHeader() (*types.Header, error)
 	GetFinalisedNotifierChannel() chan *types.FinalisationInfo

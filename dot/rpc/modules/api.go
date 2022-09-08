@@ -50,7 +50,7 @@ type BlockAPI interface {
 	SubChain(start, end common.Hash) ([]common.Hash, error)
 	RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (uint32, error)
 	UnregisterRuntimeUpdatedChannel(id uint32) bool
-	GetRuntime(hash *common.Hash) (runtime.Instance, error)
+	GetBestBlockRuntime() runtime.Instance
 }
 
 //go:generate mockery --name NetworkAPI --structname NetworkAPI --case underscore --keeptree

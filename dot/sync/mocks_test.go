@@ -143,6 +143,20 @@ func (mr *MockBlockStateMockRecorder) GetAllBlocksAtNumber(arg0 interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllBlocksAtNumber", reflect.TypeOf((*MockBlockState)(nil).GetAllBlocksAtNumber), arg0)
 }
 
+// GetBestBlockRuntime mocks base method.
+func (m *MockBlockState) GetBestBlockRuntime() runtime.Instance {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetBestBlockRuntime")
+	ret0, _ := ret[0].(runtime.Instance)
+	return ret0
+}
+
+// GetBestBlockRuntime indicates an expected call of GetBestBlockRuntime.
+func (mr *MockBlockStateMockRecorder) GetBestBlockRuntime() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBestBlockRuntime", reflect.TypeOf((*MockBlockState)(nil).GetBestBlockRuntime))
+}
+
 // GetBlockBody mocks base method.
 func (m *MockBlockState) GetBlockBody(arg0 common.Hash) (*types.Body, error) {
 	m.ctrl.T.Helper()
@@ -305,21 +319,6 @@ func (m *MockBlockState) GetReceipt(arg0 common.Hash) ([]byte, error) {
 func (mr *MockBlockStateMockRecorder) GetReceipt(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReceipt", reflect.TypeOf((*MockBlockState)(nil).GetReceipt), arg0)
-}
-
-// GetRuntime mocks base method.
-func (m *MockBlockState) GetRuntime(arg0 *common.Hash) (runtime.Instance, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRuntime", arg0)
-	ret0, _ := ret[0].(runtime.Instance)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetRuntime indicates an expected call of GetRuntime.
-func (mr *MockBlockStateMockRecorder) GetRuntime(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRuntime", reflect.TypeOf((*MockBlockState)(nil).GetRuntime), arg0)
 }
 
 // HasBlockBody mocks base method.
