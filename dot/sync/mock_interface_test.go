@@ -13,6 +13,7 @@ import (
 	common "github.com/ChainSafe/gossamer/lib/common"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
 	storage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	trie "github.com/ChainSafe/gossamer/lib/trie"
 	gomock "github.com/golang/mock/gomock"
 	peer "github.com/libp2p/go-libp2p-core/peer"
 )
@@ -485,18 +486,18 @@ func (mr *MockStorageStateMockRecorder) Lock() *gomock.Call {
 }
 
 // TrieState mocks base method.
-func (m *MockStorageState) TrieState(arg0 *common.Hash) (*storage.TrieState, error) {
+func (m *MockStorageState) TrieState(arg0 *common.Hash, arg1 trie.Version) (*storage.TrieState, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "TrieState", arg0)
+	ret := m.ctrl.Call(m, "TrieState", arg0, arg1)
 	ret0, _ := ret[0].(*storage.TrieState)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // TrieState indicates an expected call of TrieState.
-func (mr *MockStorageStateMockRecorder) TrieState(arg0 interface{}) *gomock.Call {
+func (mr *MockStorageStateMockRecorder) TrieState(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TrieState", reflect.TypeOf((*MockStorageState)(nil).TrieState), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TrieState", reflect.TypeOf((*MockStorageState)(nil).TrieState), arg0, arg1)
 }
 
 // Unlock mocks base method.

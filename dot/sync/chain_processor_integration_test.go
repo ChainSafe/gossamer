@@ -194,16 +194,18 @@ func TestChainProcessor_HandleBlockResponse_BlockData(t *testing.T) {
 func TestChainProcessor_ExecuteBlock(t *testing.T) {
 	syncer := newTestSyncer(t)
 
-	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
+	parent, err := syncer.blockState.BestBlockHeader()
 	require.NoError(t, err)
 
 	rt, err := syncer.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
+	stateVersion := rt.StateVersion()
+
 	block := BuildBlock(t, rt, parent, nil)
 
 	// reset parentState
-	parentState, err := syncer.chainProcessor.(*chainProcessor).storageState.TrieState(&parent.StateRoot)
+	parentState, err := syncer.chainProcessor.(*chainProcessor).storageState.TrieState(&parent.StateRoot, stateVersion)
 	require.NoError(t, err)
 	rt.SetContextStorage(parentState)
 

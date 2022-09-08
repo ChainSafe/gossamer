@@ -15,6 +15,8 @@ import (
 func Test_Generate_Verify(t *testing.T) {
 	t.Parallel()
 
+	const version = trie.V0
+
 	keys := []string{
 		"cat",
 		"catapulta",
@@ -23,30 +25,30 @@ func Test_Generate_Verify(t *testing.T) {
 		"doguinho",
 	}
 
-	trie := trie.NewEmptyTrie()
+	testTrie := trie.NewEmptyTrie()
 
 	for i, key := range keys {
 		value := fmt.Sprintf("%x-%d", key, i)
-		trie.Put([]byte(key), []byte(value))
+		testTrie.Put([]byte(key), []byte(value), version)
 	}
 
-	rootHash, err := trie.Hash()
+	rootHash, err := testTrie.Hash(version)
 	require.NoError(t, err)
 
 	database, err := chaindb.NewBadgerDB(&chaindb.Config{
 		InMemory: true,
 	})
 	require.NoError(t, err)
-	err = trie.Store(database)
+	err = testTrie.Store(database)
 	require.NoError(t, err)
 
 	for i, key := range keys {
 		fullKeys := [][]byte{[]byte(key)}
-		proof, err := Generate(rootHash.ToBytes(), fullKeys, database)
+		proof, err := Generate(rootHash.ToBytes(), fullKeys, database, version)
 		require.NoError(t, err)
 
 		expectedValue := fmt.Sprintf("%x-%d", key, i)
-		err = Verify(proof, rootHash.ToBytes(), []byte(key), []byte(expectedValue))
+		err = Verify(proof, rootHash.ToBytes(), []byte(key), []byte(expectedValue), version)
 		require.NoError(t, err)
 	}
 }

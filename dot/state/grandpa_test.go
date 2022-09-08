@@ -123,7 +123,7 @@ func TestGrandpaState_LatestRound(t *testing.T) {
 	require.Equal(t, uint64(99), r)
 }
 
-func testBlockState(t *testing.T, db chaindb.Database) *BlockState {
+func testBlockState(t *testing.T, db chaindb.Database, stateVersion trie.Version) *BlockState {
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
@@ -135,7 +135,7 @@ func testBlockState(t *testing.T, db chaindb.Database) *BlockState {
 	// loads in-memory tries with genesis state root, should be deleted
 	// after another block is finalised
 	tr := trie.NewEmptyTrie()
-	err = tr.Load(bs.db, header.StateRoot)
+	err = tr.Load(bs.db, header.StateRoot, stateVersion)
 	require.NoError(t, err)
 	bs.tries.softSet(header.StateRoot, tr)
 
@@ -149,7 +149,8 @@ func TestAddScheduledChangesKeepTheRightForkTree(t *testing.T) { //nolint:tparal
 	require.NoError(t, err)
 
 	db := NewInMemoryDB(t)
-	blockState := testBlockState(t, db)
+	const stateVersion = trie.V0
+	blockState := testBlockState(t, db, stateVersion)
 
 	gs, err := NewGrandpaStateFromGenesis(db, blockState, nil)
 	require.NoError(t, err)
@@ -285,7 +286,8 @@ func TestForcedScheduledChangesOrder(t *testing.T) {
 	require.NoError(t, err)
 
 	db := NewInMemoryDB(t)
-	blockState := testBlockState(t, db)
+	const stateVersion = trie.V0
+	blockState := testBlockState(t, db, stateVersion)
 
 	gs, err := NewGrandpaStateFromGenesis(db, blockState, nil)
 	require.NoError(t, err)
@@ -351,7 +353,8 @@ func TestShouldNotAddMoreThanOneForcedChangeInTheSameFork(t *testing.T) {
 	require.NoError(t, err)
 
 	db := NewInMemoryDB(t)
-	blockState := testBlockState(t, db)
+	const stateVersion = trie.V0
+	blockState := testBlockState(t, db, stateVersion)
 
 	gs, err := NewGrandpaStateFromGenesis(db, blockState, nil)
 	require.NoError(t, err)
@@ -529,7 +532,7 @@ func TestNextGrandpaAuthorityChange(t *testing.T) {
 			t.Parallel()
 
 			db := NewInMemoryDB(t)
-			blockState := testBlockState(t, db)
+			blockState := testBlockState(t, db, trie.V0)
 
 			gs, err := NewGrandpaStateFromGenesis(db, blockState, nil)
 			require.NoError(t, err)
@@ -730,7 +733,7 @@ func TestApplyForcedChanges(t *testing.T) {
 			t.Parallel()
 
 			db := NewInMemoryDB(t)
-			blockState := testBlockState(t, db)
+			blockState := testBlockState(t, db, trie.V0)
 
 			voters := types.NewGrandpaVotersFromAuthorities(genesisAuths)
 			gs, err := NewGrandpaStateFromGenesis(db, blockState, voters)
@@ -852,7 +855,7 @@ func TestApplyScheduledChangesKeepDescendantForcedChanges(t *testing.T) {
 			t.Parallel()
 
 			db := NewInMemoryDB(t)
-			blockState := testBlockState(t, db)
+			blockState := testBlockState(t, db, trie.V0)
 
 			voters := types.NewGrandpaVotersFromAuthorities(genesisAuths)
 			gs, err := NewGrandpaStateFromGenesis(db, blockState, voters)
@@ -1081,7 +1084,7 @@ func TestApplyScheduledChangeGetApplicableChange(t *testing.T) {
 			t.Parallel()
 
 			db := NewInMemoryDB(t)
-			blockState := testBlockState(t, db)
+			blockState := testBlockState(t, db, trie.V0)
 
 			voters := types.NewGrandpaVotersFromAuthorities(genesisAuths)
 			gs, err := NewGrandpaStateFromGenesis(db, blockState, voters)
@@ -1308,7 +1311,7 @@ func TestApplyScheduledChange(t *testing.T) {
 			t.Parallel()
 
 			db := NewInMemoryDB(t)
-			blockState := testBlockState(t, db)
+			blockState := testBlockState(t, db, trie.V0)
 
 			genesisAuths, err := types.GrandpaAuthoritiesRawToAuthorities(genesisGrandpaVoters)
 			require.NoError(t, err)

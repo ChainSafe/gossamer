@@ -12,6 +12,7 @@ import (
 	keystore "github.com/ChainSafe/gossamer/lib/keystore"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
 	transaction "github.com/ChainSafe/gossamer/lib/transaction"
+	trie "github.com/ChainSafe/gossamer/lib/trie"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -316,6 +317,20 @@ func (m *MockInstance) SetContextStorage(arg0 runtime.Storage) {
 func (mr *MockInstanceMockRecorder) SetContextStorage(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetContextStorage", reflect.TypeOf((*MockInstance)(nil).SetContextStorage), arg0)
+}
+
+// StateVersion mocks base method.
+func (m *MockInstance) StateVersion() trie.Version {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "StateVersion")
+	ret0, _ := ret[0].(trie.Version)
+	return ret0
+}
+
+// StateVersion indicates an expected call of StateVersion.
+func (mr *MockInstanceMockRecorder) StateVersion() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StateVersion", reflect.TypeOf((*MockInstance)(nil).StateVersion))
 }
 
 // Stop mocks base method.

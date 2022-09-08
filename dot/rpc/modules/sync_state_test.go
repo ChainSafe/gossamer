@@ -11,6 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/trie"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -81,18 +82,23 @@ func TestSyncStateModule_GenSyncSpec(t *testing.T) {
 }
 
 func TestNewStateSync(t *testing.T) {
+	const stateVersion = trie.V0
+
 	g1 := &genesis.Genesis{}
 	g2 := &genesis.Genesis{}
 	raw := make(map[string][]byte)
 	mockStorageAPI := mocks.NewStorageAPI(t)
-	mockStorageAPI.On("Entries", (*common.Hash)(nil)).Return(raw, nil)
+	mockStorageAPI.On("Entries", (*common.Hash)(nil), stateVersion).
+		Return(raw, nil)
 
 	mockStorageAPIErr := mocks.NewStorageAPI(t)
-	mockStorageAPIErr.On("Entries", (*common.Hash)(nil)).Return(nil, errors.New("entries error"))
+	mockStorageAPIErr.On("Entries", (*common.Hash)(nil), stateVersion).
+		Return(nil, errors.New("entries error"))
 
 	type args struct {
-		gData      *genesis.Data
-		storageAPI StorageAPI
+		gData        *genesis.Data
+		storageAPI   StorageAPI
+		stateVersion trie.Version
 	}
 	tests := []struct {
 		name   string
@@ -103,8 +109,9 @@ func TestNewStateSync(t *testing.T) {
 		{
 			name: "OK Case",
 			args: args{
-				gData:      g1.GenesisData(),
-				storageAPI: mockStorageAPI,
+				gData:        g1.GenesisData(),
+				storageAPI:   mockStorageAPI,
+				stateVersion: stateVersion,
 			},
 			exp: syncState{chainSpecification: &genesis.Genesis{
 				Name:       "",
@@ -121,15 +128,16 @@ func TestNewStateSync(t *testing.T) {
 		{
 			name: "Err Case",
 			args: args{
-				gData:      g2.GenesisData(),
-				storageAPI: mockStorageAPIErr,
+				gData:        g2.GenesisData(),
+				storageAPI:   mockStorageAPIErr,
+				stateVersion: stateVersion,
 			},
 			expErr: errors.New("entries error"),
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			res, err := NewStateSync(tt.args.gData, tt.args.storageAPI)
+			res, err := NewStateSync(tt.args.gData, tt.args.storageAPI, tt.args.stateVersion)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {

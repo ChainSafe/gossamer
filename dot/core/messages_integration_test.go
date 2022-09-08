@@ -20,6 +20,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/golang/mock/gomock"
@@ -107,7 +108,8 @@ func TestService_HandleBlockProduced(t *testing.T) {
 
 	net.EXPECT().GossipMessage(expected)
 
-	state, err := s.storageState.TrieState(nil)
+	const stateVersion = trie.V0 // TODO should we get this from something?
+	state, err := s.storageState.TrieState(nil, stateVersion)
 	require.NoError(t, err)
 
 	err = s.HandleBlockProduced(&newBlock, state)
@@ -153,7 +155,8 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 	rt, err := s.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
-	ts, err := s.storageState.TrieState(nil)
+	const stateVersion = trie.V0 // TODO should we get this from something?
+	ts, err := s.storageState.TrieState(nil, stateVersion)
 	require.NoError(t, err)
 	rt.SetContextStorage(ts)
 

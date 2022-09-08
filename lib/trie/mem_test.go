@@ -93,7 +93,8 @@ func populateTrieAtPrefix(trie *Trie,
 	for keyString, value := range kv {
 		key := append(prefix, []byte(keyString)...) //skipcq: CRT-D0001
 
-		trie.Put(key, value)
+		const version = V0
+		trie.Put(key, value, version)
 	}
 }
 
@@ -109,6 +110,7 @@ func mutateTrieLeavesAtPrefix(trie *Trie,
 			newValue[i], newValue[j] = newValue[j], newValue[i]
 		}
 
-		trie.Put(key, value)
+		const version = V0
+		trie.Put(key, value, version)
 	}
 }

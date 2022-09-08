@@ -40,9 +40,9 @@ func newState(t *testing.T) (*state.BlockState, *state.EpochState) {
 
 	db := state.NewInMemoryDB(t)
 
-	_, genesisTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	_, genesisTrie, genesisHeader, stateVersion := newTestGenesisWithTrieAndHeader(t)
 	tries := state.NewTries()
-	tries.SetTrie(&genesisTrie)
+	tries.SetTrie(&genesisTrie, stateVersion)
 	bs, err := state.NewBlockStateFromGenesis(db, tries, &genesisHeader, telemetryMock)
 	require.NoError(t, err)
 	es, err := state.NewEpochStateFromGenesis(db, bs, genesisBABEConfig)
@@ -57,6 +57,9 @@ func newBABEService(t *testing.T) *babe.Service {
 	bs, es := newState(t)
 	tt := trie.NewEmptyTrie()
 	rt := wasmer.NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt)
+
+	stateVersion := rt.StateVersion()
+
 	bs.StoreRuntime(bs.GenesisHash(), rt)
 	tt.Put(
 		common.MustHexToBytes("0x886726f904d8372fdabb7707870c2fad"),
@@ -67,7 +70,7 @@ func newBABEService(t *testing.T) *babe.Service {
 			"0d4a9e054df4e01000000000000001cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07c010000"+
 			"00000000004603307f855321776922daeea21ee31720388d097cdaac66f05a6f8462b317570100000000000000be1d9d59d"+
 			"e1283380100550a7b024501cb62d6cc40e3db35fcc5cf341814986e01000000000000001206960f920a23f7f4c43cc9081"+
-			"ec2ed0721f31a9bef2c10fd7602e16e08a32c0100000000000000"))
+			"ec2ed0721f31a9bef2c10fd7602e16e08a32c0100000000000000"), stateVersion)
 
 	cfg := &babe.ServiceConfig{
 		BlockState:         bs,

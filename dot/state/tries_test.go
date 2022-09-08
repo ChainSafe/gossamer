@@ -49,14 +49,16 @@ func Test_Tries_SetEmptyTrie(t *testing.T) {
 func Test_Tries_SetTrie(t *testing.T) {
 	t.Parallel()
 
+	const stateVersion = trie.V0
+
 	tr := trie.NewTrie(&node.Node{Key: []byte{1}})
 
 	tries := NewTries()
-	tries.SetTrie(tr)
+	tries.SetTrie(tr, stateVersion)
 
 	expectedTries := &Tries{
 		rootToTrie: map[common.Hash]*trie.Trie{
-			tr.MustHash(): tr,
+			tr.MustHash(stateVersion): tr,
 		},
 		triesGauge:    triesGauge,
 		setCounter:    setCounter,

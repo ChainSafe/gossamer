@@ -32,17 +32,23 @@ func newTestStorageState(t *testing.T, tries *Tries) *StorageState {
 
 func TestStorage_StoreAndLoadTrie(t *testing.T) {
 	storage := newTestStorageState(t, newTriesEmpty())
-	ts, err := storage.TrieState(&trie.EmptyHash)
+
+	bestBlockHash := storage.blockState.BestBlockHash()
+	instance, err := storage.blockState.GetRuntime(&bestBlockHash)
+	require.NoError(t, err)
+	stateVersion := instance.StateVersion()
+
+	ts, err := storage.TrieState(&trie.EmptyHash, stateVersion)
 	require.NoError(t, err)
 
-	root, err := ts.Root()
+	root, err := ts.Root(stateVersion)
 	require.NoError(t, err)
-	err = storage.StoreTrie(ts, nil)
+	err = storage.StoreTrie(ts, nil, stateVersion)
 	require.NoError(t, err)
 
 	time.Sleep(time.Millisecond * 100)
 
-	trie, err := storage.LoadFromDB(root)
+	trie, err := storage.LoadFromDB(root, stateVersion)
 	require.NoError(t, err)
 	ts2 := runtime.NewTrieState(trie)
 	new := ts2.Snapshot()
@@ -51,16 +57,22 @@ func TestStorage_StoreAndLoadTrie(t *testing.T) {
 
 func TestStorage_GetStorageByBlockHash(t *testing.T) {
 	storage := newTestStorageState(t, newTriesEmpty())
-	ts, err := storage.TrieState(&trie.EmptyHash)
+
+	bestBlockHash := storage.blockState.BestBlockHash()
+	instance, err := storage.blockState.GetRuntime(&bestBlockHash)
+	require.NoError(t, err)
+	stateVersion := instance.StateVersion()
+
+	ts, err := storage.TrieState(&trie.EmptyHash, stateVersion)
 	require.NoError(t, err)
 
 	key := []byte("testkey")
 	value := []byte("testvalue")
-	ts.Set(key, value)
+	ts.Set(key, value, stateVersion)
 
-	root, err := ts.Root()
+	root, err := ts.Root(stateVersion)
 	require.NoError(t, err)
-	err = storage.StoreTrie(ts, nil)
+	err = storage.StoreTrie(ts, nil, stateVersion)
 	require.NoError(t, err)
 
 	body, err := types.NewBodyFromBytes([]byte{})
@@ -86,27 +98,39 @@ func TestStorage_GetStorageByBlockHash(t *testing.T) {
 
 func TestStorage_TrieState(t *testing.T) {
 	storage := newTestStorageState(t, newTriesEmpty())
-	ts, err := storage.TrieState(&trie.EmptyHash)
-	require.NoError(t, err)
-	ts.Set([]byte("noot"), []byte("washere"))
 
-	root, err := ts.Root()
+	bestBlockHash := storage.blockState.BestBlockHash()
+	instance, err := storage.blockState.GetRuntime(&bestBlockHash)
 	require.NoError(t, err)
-	err = storage.StoreTrie(ts, nil)
+	stateVersion := instance.StateVersion()
+
+	ts, err := storage.TrieState(&trie.EmptyHash, stateVersion)
+	require.NoError(t, err)
+	ts.Set([]byte("noot"), []byte("washere"), stateVersion)
+
+	root, err := ts.Root(stateVersion)
+	require.NoError(t, err)
+	err = storage.StoreTrie(ts, nil, stateVersion)
 	require.NoError(t, err)
 
 	time.Sleep(time.Millisecond * 100)
 
 	// get trie from db
 	storage.blockState.tries.delete(root)
-	ts3, err := storage.TrieState(&root)
+	ts3, err := storage.TrieState(&root, stateVersion)
 	require.NoError(t, err)
-	require.Equal(t, ts.Trie().MustHash(), ts3.Trie().MustHash())
+	require.Equal(t, ts.Trie().MustHash(stateVersion), ts3.Trie().MustHash(stateVersion))
 }
 
 func TestStorage_LoadFromDB(t *testing.T) {
 	storage := newTestStorageState(t, newTriesEmpty())
-	ts, err := storage.TrieState(&trie.EmptyHash)
+
+	bestBlockHash := storage.blockState.BestBlockHash()
+	instance, err := storage.blockState.GetRuntime(&bestBlockHash)
+	require.NoError(t, err)
+	stateVersion := instance.StateVersion()
+
+	ts, err := storage.TrieState(&trie.EmptyHash, stateVersion)
 	require.NoError(t, err)
 
 	trieKV := []struct {
@@ -119,14 +143,14 @@ func TestStorage_LoadFromDB(t *testing.T) {
 	}
 
 	for _, kv := range trieKV {
-		ts.Set(kv.key, kv.value)
+		ts.Set(kv.key, kv.value, stateVersion)
 	}
 
-	root, err := ts.Root()
+	root, err := ts.Root(stateVersion)
 	require.NoError(t, err)
 
 	// Write trie to disk.
-	err = storage.StoreTrie(ts, nil)
+	err = storage.StoreTrie(ts, nil, stateVersion)
 	require.NoError(t, err)
 
 	// Clear trie from cache and fetch data from disk.
@@ -138,27 +162,33 @@ func TestStorage_LoadFromDB(t *testing.T) {
 
 	storage.blockState.tries.delete(root)
 
-	prefixKeys, err := storage.GetKeysWithPrefix(&root, []byte("ke"))
+	prefixKeys, err := storage.GetKeysWithPrefix(&root, []byte("ke"), stateVersion)
 	require.NoError(t, err)
 	require.Equal(t, 2, len(prefixKeys))
 
 	storage.blockState.tries.delete(root)
 
-	entries, err := storage.Entries(&root)
+	entries, err := storage.Entries(&root, stateVersion)
 	require.NoError(t, err)
 	require.Equal(t, 3, len(entries))
 }
 
 func TestStorage_StoreTrie_NotSyncing(t *testing.T) {
 	storage := newTestStorageState(t, newTriesEmpty())
-	ts, err := storage.TrieState(&trie.EmptyHash)
+
+	bestBlockHash := storage.blockState.BestBlockHash()
+	instance, err := storage.blockState.GetRuntime(&bestBlockHash)
+	require.NoError(t, err)
+	stateVersion := instance.StateVersion()
+
+	ts, err := storage.TrieState(&trie.EmptyHash, stateVersion)
 	require.NoError(t, err)
 
 	key := []byte("testkey")
 	value := []byte("testvalue")
-	ts.Set(key, value)
+	ts.Set(key, value, stateVersion)
 
-	err = storage.StoreTrie(ts, nil)
+	err = storage.StoreTrie(ts, nil, stateVersion)
 	require.NoError(t, err)
 	require.Equal(t, 2, storage.blockState.tries.len())
 }
@@ -169,7 +199,7 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	db, err := utils.SetupDatabase(basepath, false)
 	require.NoError(t, err)
 
-	_, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
+	_, genTrie, genHeader, stateVersion := newTestGenesisWithTrieAndHeader(t)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
@@ -185,9 +215,9 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	}
 	testChildTrie := trie.NewTrie(trieRoot)
 
-	testChildTrie.Put([]byte("keyInsidechild"), []byte("voila"))
+	testChildTrie.Put([]byte("keyInsidechild"), []byte("voila"), stateVersion)
 
-	err = genTrie.PutChild([]byte("keyToChild"), testChildTrie)
+	err = genTrie.PutChild([]byte("keyToChild"), testChildTrie, stateVersion)
 	require.NoError(t, err)
 
 	tries := newTriesEmpty()
@@ -200,26 +230,26 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 
 	trieState := runtime.NewTrieState(&genTrie)
 
-	header, err := types.NewHeader(blockState.GenesisHash(), trieState.MustRoot(),
+	header, err := types.NewHeader(blockState.GenesisHash(), trieState.MustRoot(stateVersion),
 		common.Hash{}, 1, types.NewDigest())
 	require.NoError(t, err)
 
-	err = storage.StoreTrie(trieState, header)
+	err = storage.StoreTrie(trieState, header, stateVersion)
 	require.NoError(t, err)
 
-	rootHash, err := genTrie.Hash()
+	rootHash, err := genTrie.Hash(stateVersion)
 	require.NoError(t, err)
 
-	_, err = storage.GetStorageChild(&rootHash, []byte("keyToChild"))
+	_, err = storage.GetStorageChild(&rootHash, []byte("keyToChild"), stateVersion)
 	require.NoError(t, err)
 
 	// Clear trie from cache and fetch data from disk.
 	storage.blockState.tries.delete(rootHash)
 
-	_, err = storage.GetStorageChild(&rootHash, []byte("keyToChild"))
+	_, err = storage.GetStorageChild(&rootHash, []byte("keyToChild"), stateVersion)
 	require.NoError(t, err)
 
-	value, err := storage.GetStorageFromChild(&rootHash, []byte("keyToChild"), []byte("keyInsidechild"))
+	value, err := storage.GetStorageFromChild(&rootHash, []byte("keyToChild"), []byte("keyInsidechild"), stateVersion)
 	require.NoError(t, err)
 
 	require.Equal(t, []byte("voila"), value)

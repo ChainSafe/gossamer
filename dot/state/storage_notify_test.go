@@ -20,7 +20,12 @@ import (
 func TestStorageState_RegisterStorageObserver(t *testing.T) {
 	ss := newTestStorageState(t, newTriesEmpty())
 
-	ts, err := ss.TrieState(nil)
+	bestBlockHash := ss.blockState.BestBlockHash()
+	instance, err := ss.blockState.GetRuntime(&bestBlockHash)
+	require.NoError(t, err)
+	stateVersion := instance.StateVersion()
+
+	ts, err := ss.TrieState(nil, stateVersion)
 	require.NoError(t, err)
 
 	mockfilter := map[string][]byte{}
@@ -46,8 +51,8 @@ func TestStorageState_RegisterStorageObserver(t *testing.T) {
 	ss.RegisterStorageObserver(mockobs)
 	defer ss.UnregisterStorageObserver(mockobs)
 
-	ts.Set([]byte("mackcom"), []byte("wuz here"))
-	err = ss.StoreTrie(ts, nil)
+	ts.Set([]byte("mackcom"), []byte("wuz here"), stateVersion)
+	err = ss.StoreTrie(ts, nil, stateVersion)
 	require.NoError(t, err)
 
 	// We need to wait since GetFilter and Update are called
@@ -58,7 +63,13 @@ func TestStorageState_RegisterStorageObserver(t *testing.T) {
 
 func TestStorageState_RegisterStorageObserver_Multi(t *testing.T) {
 	ss := newTestStorageState(t, newTriesEmpty())
-	ts, err := ss.TrieState(nil)
+
+	bestBlockHash := ss.blockState.BestBlockHash()
+	runtime, err := ss.blockState.GetRuntime(&bestBlockHash)
+	require.NoError(t, err)
+	stateVersion := runtime.StateVersion()
+
+	ts, err := ss.TrieState(nil, stateVersion)
 	require.NoError(t, err)
 
 	num := 5
@@ -74,16 +85,16 @@ func TestStorageState_RegisterStorageObserver_Multi(t *testing.T) {
 		mockobs.On("GetFilter").Return(mockfilter).Times(2)
 
 		mocks = append(mocks, mockobs)
-		ss.RegisterStorageObserver(mockobs)
+		err = ss.RegisterStorageObserver(mockobs)
 		require.NoError(t, err)
 	}
 
 	key1 := []byte("key1")
 	value1 := []byte("value1")
 
-	ts.Set(key1, value1)
+	ts.Set(key1, value1, stateVersion)
 
-	err = ss.StoreTrie(ts, nil)
+	err = ss.StoreTrie(ts, nil, stateVersion)
 	require.NoError(t, err)
 
 	time.Sleep(time.Millisecond * 10)
@@ -96,7 +107,13 @@ func TestStorageState_RegisterStorageObserver_Multi(t *testing.T) {
 func TestStorageState_RegisterStorageObserver_Multi_Filter(t *testing.T) {
 	t.Skip() // this seems to fail often on CI
 	ss := newTestStorageState(t, newTriesEmpty())
-	ts, err := ss.TrieState(nil)
+
+	bestBlockHash := ss.blockState.BestBlockHash()
+	instance, err := ss.blockState.GetRuntime(&bestBlockHash)
+	require.NoError(t, err)
+	stateVersion := instance.StateVersion()
+
+	ts, err := ss.TrieState(nil, stateVersion)
 	require.NoError(t, err)
 
 	key1 := []byte("key1")
@@ -115,11 +132,12 @@ func TestStorageState_RegisterStorageObserver_Multi_Filter(t *testing.T) {
 		mockobs.On("GetFilter").Return(filter).Times(len(filter) + 3)
 
 		mocks = append(mocks, mockobs)
-		ss.RegisterStorageObserver(mockobs)
+		err = ss.RegisterStorageObserver(mockobs)
+		require.NoError(t, err)
 	}
 
-	ts.Set(key1, value1)
-	err = ss.StoreTrie(ts, nil)
+	ts.Set(key1, value1, stateVersion)
+	err = ss.StoreTrie(ts, nil, stateVersion)
 	require.NoError(t, err)
 
 	time.Sleep(time.Millisecond * 10)

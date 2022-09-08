@@ -12,6 +12,8 @@ import (
 
 	transaction "github.com/ChainSafe/gossamer/lib/transaction"
 
+	trie "github.com/ChainSafe/gossamer/lib/trie"
+
 	types "github.com/ChainSafe/gossamer/dot/types"
 )
 
@@ -349,6 +351,20 @@ func (_m *Instance) RandomSeed() {
 // SetContextStorage provides a mock function with given fields: s
 func (_m *Instance) SetContextStorage(s runtime.Storage) {
 	_m.Called(s)
+}
+
+// StateVersion provides a mock function with given fields:
+func (_m *Instance) StateVersion() trie.Version {
+	ret := _m.Called()
+
+	var r0 trie.Version
+	if rf, ok := ret.Get(0).(func() trie.Version); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Get(0).(trie.Version)
+	}
+
+	return r0
 }
 
 // Stop provides a mock function with given fields:

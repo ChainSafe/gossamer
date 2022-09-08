@@ -240,28 +240,32 @@ func setupChildStateStorage(t *testing.T) (*ChildStateModule, common.Hash) {
 	t.Helper()
 
 	st := newTestStateService(t)
+	bestBlockHash := st.Block.BestBlockHash()
+	instance, err := st.Block.GetRuntime(&bestBlockHash)
+	require.NoError(t, err)
+	stateVersion := instance.StateVersion()
 
-	tr, err := st.Storage.TrieState(nil)
+	tr, err := st.Storage.TrieState(nil, stateVersion)
 	require.NoError(t, err)
 
-	tr.Set([]byte(":first_key"), []byte(":value1"))
-	tr.Set([]byte(":second_key"), []byte(":second_value"))
+	tr.Set([]byte(":first_key"), []byte(":value1"), stateVersion)
+	tr.Set([]byte(":second_key"), []byte(":second_value"), stateVersion)
 
 	childTr := trie.NewEmptyTrie()
-	childTr.Put([]byte(":child_first"), []byte(":child_first_value"))
-	childTr.Put([]byte(":child_second"), []byte(":child_second_value"))
-	childTr.Put([]byte(":another_child"), []byte("value"))
+	childTr.Put([]byte(":child_first"), []byte(":child_first_value"), stateVersion)
+	childTr.Put([]byte(":child_second"), []byte(":child_second_value"), stateVersion)
+	childTr.Put([]byte(":another_child"), []byte("value"), stateVersion)
 
-	err = tr.SetChild([]byte(":child_storage_key"), childTr)
+	err = tr.SetChild([]byte(":child_storage_key"), childTr, stateVersion)
 	require.NoError(t, err)
 
-	stateRoot, err := tr.Root()
+	stateRoot, err := tr.Root(stateVersion)
 	require.NoError(t, err)
 
 	bb, err := st.Block.BestBlock()
 	require.NoError(t, err)
 
-	err = st.Storage.StoreTrie(tr, nil)
+	err = st.Storage.StoreTrie(tr, nil, stateVersion)
 	require.NoError(t, err)
 
 	digest := types.NewDigest()

@@ -23,7 +23,8 @@ func makeChange(keyHex, valueHex string) [2]*string {
 }
 
 func newTestGenesisWithTrieAndHeader(t *testing.T) (
-	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
+	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header,
+	stateVersion trie.Version) {
 	t.Helper()
 
 	genesisPath := utils.GetGssmrV3SubstrateGenesisRawPathTest(t)
@@ -34,8 +35,11 @@ func newTestGenesisWithTrieAndHeader(t *testing.T) (
 	genesisTrie, err = wasmer.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
+	stateVersion, err = wasmer.StateVersionFromGenesis(gen)
+	require.NoError(t, err)
+
 	parentHash := common.NewHash([]byte{0})
-	stateRoot := genesisTrie.MustHash()
+	stateRoot := genesisTrie.MustHash(stateVersion)
 	extrinsicRoot := trie.EmptyHash
 	const number = 0
 	digest := types.NewDigest()
@@ -44,5 +48,5 @@ func newTestGenesisWithTrieAndHeader(t *testing.T) (
 	require.NoError(t, err)
 	genesisHeader = *genesisHeaderPtr
 
-	return gen, genesisTrie, genesisHeader
+	return gen, genesisTrie, genesisHeader, stateVersion
 }

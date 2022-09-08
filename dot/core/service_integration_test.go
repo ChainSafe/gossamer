@@ -25,6 +25,7 @@ import (
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/golang/mock/gomock"
@@ -49,7 +50,8 @@ func balanceKey(t *testing.T, pub []byte) (bKey []byte) {
 	return
 }
 
-func generateTestValidRemarkTxns(t *testing.T, pubKey []byte, accInfo types.AccountInfo) ([]byte, RuntimeInstance) {
+func generateTestValidRemarkTxns(t *testing.T, pubKey []byte, accInfo types.AccountInfo) (
+	[]byte, RuntimeInstance) {
 	t.Helper()
 	projectRootPath := utils.GetGssmrV3SubstrateGenesisRawPathTest(t)
 	gen, err := genesis.NewGenesisFromJSONRaw(projectRootPath)
@@ -76,13 +78,17 @@ func generateTestValidRemarkTxns(t *testing.T, pubKey []byte, accInfo types.Acco
 	encBal, err := scale.Marshal(accInfo)
 	require.NoError(t, err)
 
-	rt.(*wasmer.Instance).GetContext().Storage.Set(aliceBalanceKey, encBal)
+	// TODO is it ok to use the genesis state version here?
+	stateVersion, err := wasmer.StateVersionFromGenesis(*gen)
+	require.NoError(t, err)
+
+	rt.(*wasmer.Instance).GetContext().Storage.Set(aliceBalanceKey, encBal, stateVersion)
 	// this key is System.UpgradedToDualRefCount -> set to true since all accounts have been upgraded to v0.9 format
-	rt.(*wasmer.Instance).GetContext().Storage.Set(common.UpgradedToDualRefKey, []byte{1})
+	rt.(*wasmer.Instance).GetContext().Storage.Set(common.UpgradedToDualRefKey, []byte{1}, stateVersion)
 
 	genesisHeader := &types.Header{
 		Number:    0,
-		StateRoot: genesisTrie.MustHash(),
+		StateRoot: genesisTrie.MustHash(stateVersion),
 	}
 
 	// Hash of encrypted centrifuge extrinsic
@@ -148,7 +154,8 @@ func TestAnnounceBlock(t *testing.T) {
 
 	net.EXPECT().GossipMessage(expected)
 
-	state, err := s.storageState.TrieState(nil)
+	const stateVersion = trie.V0 // TODO should we get this from something?
+	state, err := s.storageState.TrieState(nil, stateVersion)
 	require.NoError(t, err)
 
 	err = s.HandleBlockProduced(&newBlock, state)
@@ -266,6 +273,7 @@ func TestHandleChainReorg_NoReorg(t *testing.T) {
 
 func TestHandleChainReorg_WithReorg_Trans(t *testing.T) {
 	t.Skip() // TODO: tx fails to validate in handleChainReorg() with "Invalid transaction" (#1026)
+
 	s := NewTestService(t, nil)
 	bs := s.blockState
 
@@ -345,7 +353,7 @@ func TestHandleChainReorg_WithReorg_NoTransactions(t *testing.T) {
 }
 
 func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
-	t.Skip() // need to update this test to use a valid transaction
+	t.Skip() // need to update this test to use a valid trans
 
 	cfg := &Config{
 		Runtime: wasmer.NewTestInstance(t, runtime.NODE_RUNTIME),
@@ -544,7 +552,8 @@ func TestService_HandleSubmittedExtrinsic(t *testing.T) {
 	rt, err := s.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
-	ts, err := s.storageState.TrieState(nil)
+	const stateVersion = trie.V0 // TODO should we get this from something?
+	ts, err := s.storageState.TrieState(nil, stateVersion)
 	require.NoError(t, err)
 	rt.SetContextStorage(ts)
 
@@ -605,7 +614,8 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 		Body: *types.NewBody([]types.Extrinsic{[]byte("Updated Runtime")}),
 	}
 
-	ts, err := s.storageState.TrieState(nil) // Pass genesis root
+	const stateVersion = trie.V0                           // TODO should we get this from something?
+	ts, err := s.storageState.TrieState(nil, stateVersion) // Pass genesis root
 	require.NoError(t, err)
 
 	parentRt, err := s.blockState.GetRuntime(&hash)
@@ -621,7 +631,7 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	testRuntime, err := os.ReadFile(updateNodeRuntimeWasmPath)
 	require.NoError(t, err)
 
-	ts.Set(common.CodeKey, testRuntime)
+	ts.Set(common.CodeKey, testRuntime, stateVersion)
 	rtUpdateBhash := newBlockRTUpdate.Header.Hash()
 
 	// update runtime for new block
@@ -700,10 +710,11 @@ func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 	testRuntime, err := os.ReadFile(runtimeFilepath)
 	require.NoError(t, err)
 
-	ts, err = s.storageState.TrieState(nil)
+	const stateVersion = trie.V0 // TODO should we get this from something?
+	ts, err = s.storageState.TrieState(nil, stateVersion)
 	require.NoError(t, err)
 
-	ts.Set(common.CodeKey, testRuntime)
+	ts.Set(common.CodeKey, testRuntime, stateVersion)
 	rtUpdateBhash := newBlock.Header.Hash()
 
 	// update runtime for new block

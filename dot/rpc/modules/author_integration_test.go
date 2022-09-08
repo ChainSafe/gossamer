@@ -59,7 +59,9 @@ func useInstanceFromRuntimeV0910(t *testing.T, rtStorage *storage.TrieState) (in
 	bytes, err := os.ReadFile(testRuntimeFilePath)
 	require.NoError(t, err)
 
-	rtStorage.Set(common.CodeKey, bytes)
+	// Runtime v0910 uses state version v0 only.
+	const stateVersion = trie.V0
+	rtStorage.Set(common.CodeKey, bytes, stateVersion)
 
 	cfg := wasmer.Config{
 		Role:     0,
@@ -81,6 +83,7 @@ func useInstanceFromRuntimeV0910(t *testing.T, rtStorage *storage.TrieState) (in
 
 func TestAuthorModule_Pending_Integration(t *testing.T) {
 	t.Parallel()
+
 	integrationTestController := setupStateAndRuntime(t, t.TempDir(), nil)
 
 	auth := newAuthorModule(t, integrationTestController)
@@ -107,6 +110,7 @@ func TestAuthorModule_Pending_Integration(t *testing.T) {
 
 func TestAuthorModule_SubmitExtrinsic_Integration(t *testing.T) {
 	t.Parallel()
+
 	integrationTestController := setupStateAndPopulateTrieState(t, t.TempDir(), useInstanceFromGenesis)
 
 	ctrl := gomock.NewController(t)
@@ -162,6 +166,7 @@ func TestAuthorModule_SubmitExtrinsic_Integration(t *testing.T) {
 
 func TestAuthorModule_SubmitExtrinsic_invalid(t *testing.T) {
 	t.Parallel()
+
 	integrationTestController := setupStateAndRuntime(t, t.TempDir(), useInstanceFromGenesis)
 
 	genesisHash := integrationTestController.genesisHeader.Hash()
@@ -202,6 +207,7 @@ func TestAuthorModule_SubmitExtrinsic_invalid_input(t *testing.T) {
 
 func TestAuthorModule_SubmitExtrinsic_AlreadyInPool(t *testing.T) {
 	t.Parallel()
+
 	integrationTestController := setupStateAndRuntime(t, t.TempDir(), useInstanceFromGenesis)
 
 	ctrl := gomock.NewController(t)
@@ -250,6 +256,7 @@ func TestAuthorModule_SubmitExtrinsic_AlreadyInPool(t *testing.T) {
 
 func TestAuthorModule_InsertKey_Integration(t *testing.T) {
 	t.Parallel()
+
 	integrationTestController := setupStateAndRuntime(t, t.TempDir(), useInstanceFromGenesis)
 	auth := newAuthorModule(t, integrationTestController)
 
@@ -332,6 +339,7 @@ func TestAuthorModule_InsertKey_Integration(t *testing.T) {
 
 func TestAuthorModule_HasKey_Integration(t *testing.T) {
 	t.Parallel()
+
 	integrationTestController := setupStateAndRuntime(t, t.TempDir(), useInstanceFromGenesis)
 
 	ks := keystore.NewGlobalKeystore()
@@ -400,6 +408,8 @@ func TestAuthorModule_HasKey_Integration(t *testing.T) {
 
 func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 	t.Parallel()
+	const stateVersion = trie.V0
+
 	integrationTestController := setupStateAndRuntime(t, t.TempDir(), useInstanceFromGenesis)
 	auth := newAuthorModule(t, integrationTestController)
 
@@ -498,6 +508,7 @@ func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 
 func TestAuthorModule_SubmitExtrinsic_WithVersion_V0910(t *testing.T) {
 	t.Parallel()
+
 	integrationTestController := setupStateAndPopulateTrieState(t, t.TempDir(), useInstanceFromRuntimeV0910)
 
 	ctrl := gomock.NewController(t)
@@ -568,10 +579,11 @@ type integrationTestController struct {
 	keystore      *keystore.GlobalKeystore
 }
 
-func setupStateAndRuntime(t *testing.T, basepath string, useInstance useRuntimeInstace) *integrationTestController {
+func setupStateAndRuntime(t *testing.T, basepath string,
+	useInstance useRuntimeInstace) *integrationTestController {
 	t.Helper()
 
-	gen, genesisTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	gen, genesisTrie, genesisHeader, stateVersion := newTestGenesisWithTrieAndHeader(t)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
@@ -614,7 +626,7 @@ func setupStateAndRuntime(t *testing.T, basepath string, useInstance useRuntimeI
 	}
 
 	if useInstance != nil {
-		rtStorage, err := state2test.Storage.TrieState(nil)
+		rtStorage, err := state2test.Storage.TrieState(nil, stateVersion)
 		require.NoError(t, err)
 
 		rt := useInstance(t, rtStorage)
@@ -631,7 +643,7 @@ func setupStateAndPopulateTrieState(t *testing.T, basepath string,
 	useInstance useRuntimeInstace) *integrationTestController {
 	t.Helper()
 
-	gen, genesisTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	gen, genesisTrie, genesisHeader, stateVersion := newTestGenesisWithTrieAndHeader(t)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
@@ -675,10 +687,11 @@ func setupStateAndPopulateTrieState(t *testing.T, basepath string,
 	}
 
 	if useInstance != nil {
-		rtStorage, err := state2test.Storage.TrieState(nil)
+		rtStorage, err := state2test.Storage.TrieState(nil, stateVersion)
 		require.NoError(t, err)
 
 		rt := useInstance(t, rtStorage)
+		stateVersion = rt.StateVersion()
 
 		integrationTestController.runtime = rt
 
@@ -690,7 +703,7 @@ func setupStateAndPopulateTrieState(t *testing.T, basepath string,
 		err = state2test.Block.AddBlock(b)
 		require.NoError(t, err)
 
-		err = state2test.Storage.StoreTrie(rtStorage, &b.Header)
+		err = state2test.Storage.StoreTrie(rtStorage, &b.Header, stateVersion)
 		require.NoError(t, err)
 
 		state2test.Block.StoreRuntime(b.Header.Hash(), rt)

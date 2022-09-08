@@ -99,16 +99,17 @@ func (s *chainProcessor) processReadyBlocks() {
 // or the index of the block data that errored on failure.
 func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 	if bd == nil {
-		return ErrNilBlockData
+		return fmt.Errorf("%w", ErrNilBlockData)
 	}
 
 	hasHeader, err := s.blockState.HasHeader(bd.Hash)
 	if err != nil {
-		return fmt.Errorf("failed to check if block state has header for hash %s: %w", bd.Hash, err)
+		return fmt.Errorf("checking header in block state: %w", err)
 	}
+
 	hasBody, err := s.blockState.HasBlockBody(bd.Hash)
 	if err != nil {
-		return fmt.Errorf("failed to check block state has body for hash %s: %w", bd.Hash, err)
+		return fmt.Errorf("checking block body in block state: %w", err)
 	}
 
 	if hasHeader && hasBody {
@@ -118,8 +119,7 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 		// code block can be removed (#1784)
 		block, err := s.blockState.GetBlockByHash(bd.Hash)
 		if err != nil {
-			logger.Debugf("failed to get block header for hash %s: %s", bd.Hash, err)
-			return err
+			return fmt.Errorf("getting block by hash from block state: %w", err)
 		}
 
 		logger.Debugf(
@@ -130,8 +130,7 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 		if errors.Is(err, blocktree.ErrBlockExists) {
 			return nil
 		} else if err != nil {
-			logger.Warnf("failed to add block with hash %s to blocktree: %s", bd.Hash, err)
-			return err
+			return fmt.Errorf("adding block to block tree: %w", err)
 		}
 
 		if bd.Justification != nil {
@@ -153,12 +152,11 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 		// is rewinded or if the node shuts down unexpectedly (#1784)
 		state, err := s.storageState.TrieState(&block.Header.StateRoot, stateVersion)
 		if err != nil {
-			logger.Warnf("failed to load state for block with hash %s: %s", block.Header.Hash(), err)
-			return err
+			return fmt.Errorf("running trie state: %w", err)
 		}
 
 		if err := s.blockImportHandler.HandleBlockImport(block, state); err != nil {
-			logger.Warnf("failed to handle block import: %s", err)
+			return fmt.Errorf("handling block import: %w", err)
 		}
 
 		return nil
@@ -168,7 +166,7 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 
 	if bd.Header != nil && bd.Body != nil {
 		if err := s.babeVerifier.VerifyBlock(bd.Header); err != nil {
-			return err
+			return fmt.Errorf("babe verifying block: %w", err)
 		}
 
 		s.handleBody(bd.Body)

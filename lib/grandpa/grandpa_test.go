@@ -38,6 +38,8 @@ var (
 //go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
 
 func newTestState(t *testing.T) *state.Service {
+	t.Helper()
+
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
@@ -49,9 +51,13 @@ func newTestState(t *testing.T) *state.Service {
 
 	t.Cleanup(func() { db.Close() })
 
-	_, genTrie, _ := newTestGenesisWithTrieAndHeader(t)
+	genesis, genTrie, _ := newTestGenesisWithTrieAndHeader(t)
+
+	stateVersion, err := wasmer.StateVersionFromGenesis(genesis)
+	require.NoError(t, err)
+
 	tries := state.NewTries()
-	tries.SetTrie(&genTrie)
+	tries.SetTrie(&genTrie, stateVersion)
 	block, err := state.NewBlockStateFromGenesis(db, tries, testGenesisHeader, telemetryMock)
 	require.NoError(t, err)
 

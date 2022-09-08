@@ -32,6 +32,7 @@ func Test_Instance_Version(t *testing.T) {
 	type InstanceVersion interface {
 		Version() (version runtime.Version)
 	}
+	const stateVersion = trie.V0
 
 	testCases := map[string]struct {
 		instanceBuilder func(t *testing.T) InstanceVersion
@@ -332,13 +333,13 @@ func TestNodeRuntime_ValidateTransaction(t *testing.T) {
 	encBal, err := scale.Marshal(accInfo)
 	require.NoError(t, err)
 
-	rt.(*Instance).ctx.Storage.Set(aliceBalanceKey, encBal)
+	rt.(*Instance).ctx.Storage.Set(aliceBalanceKey, encBal, rt.StateVersion())
 	// this key is System.UpgradedToDualRefCount -> set to true since all accounts have been upgraded to v0.9 format
-	rt.(*Instance).ctx.Storage.Set(common.UpgradedToDualRefKey, []byte{1})
+	rt.(*Instance).ctx.Storage.Set(common.UpgradedToDualRefKey, []byte{1}, rt.StateVersion())
 
 	genesisHeader := &types.Header{
 		Number:    0,
-		StateRoot: genTrie.MustHash(),
+		StateRoot: genTrie.MustHash(trie.V0),
 	}
 
 	extHex := runtime.NewTestExtrinsic(t, rt, genesisHeader.Hash(), genesisHeader.Hash(),
@@ -354,14 +355,13 @@ func TestNodeRuntime_ValidateTransaction(t *testing.T) {
 
 func TestInstance_GrandpaAuthorities_NodeRuntime(t *testing.T) {
 	tt := trie.NewEmptyTrie()
+	rt := NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt)
 
 	value, err := common.HexToBytes("0x0108eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640100000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000") //nolint:lll
 	require.NoError(t, err)
 
 	key := common.MustHexToBytes(constants.GrandpaAuthoritiesKeyHex)
-	tt.Put(key, value)
-
-	rt := NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt)
+	tt.Put(key, value, rt.StateVersion())
 
 	auths, err := rt.GrandpaAuthorities()
 	require.NoError(t, err)
@@ -382,14 +382,13 @@ func TestInstance_GrandpaAuthorities_NodeRuntime(t *testing.T) {
 
 func TestInstance_GrandpaAuthorities_PolkadotRuntime(t *testing.T) {
 	tt := trie.NewEmptyTrie()
+	rt := NewTestInstanceWithTrie(t, runtime.POLKADOT_RUNTIME, tt)
 
 	value, err := common.HexToBytes("0x0108eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640100000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000") //nolint:lll
 	require.NoError(t, err)
 
 	key := common.MustHexToBytes(constants.GrandpaAuthoritiesKeyHex)
-	tt.Put(key, value)
-
-	rt := NewTestInstanceWithTrie(t, runtime.POLKADOT_RUNTIME, tt)
+	tt.Put(key, value, rt.StateVersion())
 
 	auths, err := rt.GrandpaAuthorities()
 	require.NoError(t, err)
@@ -446,19 +445,18 @@ func TestInstance_BabeConfiguration_DevRuntime_NoAuthorities(t *testing.T) {
 
 func TestInstance_BabeConfiguration_NodeRuntime_WithAuthorities(t *testing.T) {
 	tt := trie.NewEmptyTrie()
+	rt := NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt)
 
 	rvalue, err := common.HexToHash("0x01")
 	require.NoError(t, err)
 	key := common.MustHexToBytes(constants.BABERandomnessKeyHex)
-	tt.Put(key, rvalue[:])
+	tt.Put(key, rvalue[:], rt.StateVersion())
 
 	avalue, err := common.HexToBytes("0x08eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640100000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000") //nolint:lll
 	require.NoError(t, err)
 
 	key = common.MustHexToBytes(constants.BABEAuthoritiesKeyHex)
-	tt.Put(key, avalue)
-
-	rt := NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt)
+	tt.Put(key, avalue, rt.StateVersion())
 
 	cfg, err := rt.BabeConfiguration()
 	require.NoError(t, err)
@@ -617,7 +615,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 	require.NoError(t, err)
 
 	expectedGenesisRoot := common.MustHexToHash("0x29d0d972cd27cbc511e9589fcb7a4506d5eb6a9e8df205f00472e5ab354a4e17")
-	require.Equal(t, expectedGenesisRoot, genTrie.MustHash())
+	require.Equal(t, expectedGenesisRoot, genTrie.MustHash(trie.V0))
 
 	// set state to genesis state
 	genState := storage.NewTrieState(&genTrie)
@@ -667,7 +665,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 	require.NoError(t, err)
 
 	expectedGenesisRoot := common.MustHexToHash("0xb0006203c3a6e6bd2c6a17b1d4ae8ca49a31da0f4579da950b127774b44aef6b")
-	require.Equal(t, expectedGenesisRoot, genTrie.MustHash())
+	require.Equal(t, expectedGenesisRoot, genTrie.MustHash(trie.V0))
 
 	// set state to genesis state
 	genState := storage.NewTrieState(&genTrie)
@@ -711,9 +709,10 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 }
 
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock3784(t *testing.T) {
-	gossTrie3783 := newTrieFromPairs(t, "../test_data/kusama/block3783.out")
+	const stateVersion = trie.V0 // block3783 was using v0 state trie
+	gossTrie3783 := newTrieFromPairs(t, "../test_data/kusama/block3783.out", stateVersion)
 	expectedRoot := common.MustHexToHash("0x948338bc0976aee78879d559a1f42385407e5a481b05a91d2a9386aa7507e7a0")
-	require.Equal(t, expectedRoot, gossTrie3783.MustHash())
+	require.Equal(t, expectedRoot, gossTrie3783.MustHash(trie.V0))
 
 	// set state to genesis state
 	state3783 := storage.NewTrieState(gossTrie3783)
@@ -757,9 +756,10 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock3784(t *testing.T) {
 }
 
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock901442(t *testing.T) {
-	ksmTrie901441 := newTrieFromPairs(t, "../test_data/kusama/block901441.out")
+	const stateVersion = trie.V0 // block901441 was using v0 state trie
+	ksmTrie901441 := newTrieFromPairs(t, "../test_data/kusama/block901441.out", stateVersion)
 	expectedRoot := common.MustHexToHash("0x3a2ef7ee032f5810160bb8f3ffe3e3377bb6f2769ee9f79a5425973347acd504")
-	require.Equal(t, expectedRoot, ksmTrie901441.MustHash())
+	require.Equal(t, expectedRoot, ksmTrie901441.MustHash(trie.V0))
 
 	// set state to genesis state
 	state901441 := storage.NewTrieState(ksmTrie901441)
@@ -803,9 +803,10 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock901442(t *testing.T) {
 }
 
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1377831(t *testing.T) {
-	ksmTrie := newTrieFromPairs(t, "../test_data/kusama/block1377830.out")
+	const stateVersion = trie.V0 // block1377830 was using v0 state trie
+	ksmTrie := newTrieFromPairs(t, "../test_data/kusama/block1377830.out", stateVersion)
 	expectedRoot := common.MustHexToHash("0xe4de6fecda9e9e35f937d159665cf984bc1a68048b6c78912de0aeb6bd7f7e99")
-	require.Equal(t, expectedRoot, ksmTrie.MustHash())
+	require.Equal(t, expectedRoot, ksmTrie.MustHash(trie.V0))
 
 	// set state to genesis state
 	state := storage.NewTrieState(ksmTrie)
@@ -849,9 +850,10 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1377831(t *testing.T) {
 }
 
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1482003(t *testing.T) {
-	ksmTrie := newTrieFromPairs(t, "../test_data/kusama/block1482002.out")
+	const stateVersion = trie.V0 // block1482002 was using v0 state trie
+	ksmTrie := newTrieFromPairs(t, "../test_data/kusama/block1482002.out", stateVersion)
 	expectedRoot := common.MustHexToHash("0x09f9ca28df0560c2291aa16b56e15e07d1e1927088f51356d522722aa90ca7cb")
-	require.Equal(t, expectedRoot, ksmTrie.MustHash())
+	require.Equal(t, expectedRoot, ksmTrie.MustHash(trie.V0))
 
 	// set state to genesis state
 	state := storage.NewTrieState(ksmTrie)
@@ -897,9 +899,10 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1482003(t *testing.T) {
 
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock4939774(t *testing.T) {
 	t.Skip("skip for now as block4939773 is too large")
-	ksmTrie := newTrieFromPairs(t, "../test_data/kusama/block4939773.out")
+	const stateVersion = trie.V0 // block4939773 was using v0 state trie
+	ksmTrie := newTrieFromPairs(t, "../test_data/kusama/block4939773.out", stateVersion)
 	expectedRoot := common.MustHexToHash("0xc45748e6e8632b44fc32b04cc4380098a9584cbd63ffbc59adce189574fc36fe")
-	require.Equal(t, expectedRoot, ksmTrie.MustHash())
+	require.Equal(t, expectedRoot, ksmTrie.MustHash(trie.V0))
 
 	// set state to genesis state
 	state := storage.NewTrieState(ksmTrie)
@@ -940,9 +943,10 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock4939774(t *testing.T) {
 }
 
 func TestInstance_ExecuteBlock_PolkadotBlock1089328(t *testing.T) {
-	dotTrie := newTrieFromPairs(t, "../test_data/polkadot/block1089327.json")
+	const stateVersion = trie.V0 // block1089327 was using v0 state trie
+	dotTrie := newTrieFromPairs(t, "../test_data/polkadot/block1089327.json", stateVersion)
 	expectedRoot := common.MustHexToHash("0x87ed9ebe7fb645d3b5b0255cc16e78ed022d9fbb52486105436e15a74557535b")
-	require.Equal(t, expectedRoot, dotTrie.MustHash())
+	require.Equal(t, expectedRoot, dotTrie.MustHash(trie.V0))
 
 	// set state to genesis state
 	state := storage.NewTrieState(dotTrie)
@@ -1069,7 +1073,7 @@ func TestInstance_PaymentQueryInfo(t *testing.T) {
 	}
 }
 
-func newTrieFromPairs(t *testing.T, filename string) *trie.Trie {
+func newTrieFromPairs(t *testing.T, filename string, stateVersion trie.Version) *trie.Trie {
 	data, err := os.ReadFile(filename)
 	require.NoError(t, err)
 
@@ -1085,7 +1089,7 @@ func newTrieFromPairs(t *testing.T, filename string) *trie.Trie {
 	}
 
 	tr := trie.NewEmptyTrie()
-	err = tr.LoadFromMap(entries)
+	err = tr.LoadFromMap(entries, stateVersion)
 	require.NoError(t, err)
 	return tr
 }

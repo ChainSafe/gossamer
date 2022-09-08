@@ -17,15 +17,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewTrieFromPairs(t *testing.T) {
-	fp := setupStateFile(t)
-	trie, err := newTrieFromPairs(fp)
-	require.NoError(t, err)
-
-	expectedRoot := common.MustHexToHash("0x09f9ca28df0560c2291aa16b56e15e07d1e1927088f51356d522722aa90ca7cb")
-	require.Equal(t, expectedRoot, trie.MustHash())
-}
-
 func TestNewHeaderFromFile(t *testing.T) {
 	fp := setupHeaderFile(t)
 	header, err := newHeaderFromFile(fp)

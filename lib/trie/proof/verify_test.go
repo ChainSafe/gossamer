@@ -44,6 +44,7 @@ func Test_Verify(t *testing.T) {
 		rootHash          []byte
 		keyLE             []byte
 		value             []byte
+		version           trie.Version
 		errWrapped        error
 		errMessage        string
 	}{
@@ -61,6 +62,7 @@ func Test_Verify(t *testing.T) {
 			},
 			rootHash:   blake2bNode(t, branch),
 			keyLE:      []byte{1, 1}, // nil child of branch
+			version:    trie.V0,
 			errWrapped: ErrKeyNotFoundInProofTrie,
 			errMessage: "key not found in proof trie: " +
 				"0x0101 in proof trie for root hash " +
@@ -74,6 +76,7 @@ func Test_Verify(t *testing.T) {
 			},
 			rootHash: blake2bNode(t, branch),
 			keyLE:    []byte{0x34, 0x21}, // inlined short leaf of branch
+			version:  trie.V0,
 		},
 		"key found with mismatching value": {
 			encodedProofNodes: [][]byte{
@@ -84,6 +87,7 @@ func Test_Verify(t *testing.T) {
 			rootHash:   blake2bNode(t, branch),
 			keyLE:      []byte{0x34, 0x21}, // inlined short leaf of branch
 			value:      []byte{2},
+			version:    trie.V0,
 			errWrapped: ErrValueMismatchProofTrie,
 			errMessage: "value found in proof trie does not match: " +
 				"expected value 0x02 but got value 0x01 from proof trie",
@@ -97,6 +101,7 @@ func Test_Verify(t *testing.T) {
 			rootHash: blake2bNode(t, branch),
 			keyLE:    []byte{0x34, 0x32}, // large hash-referenced leaf of branch
 			value:    generateBytes(t, 40),
+			version:  trie.V0,
 		},
 	}
 
@@ -105,7 +110,8 @@ func Test_Verify(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			err := Verify(testCase.encodedProofNodes, testCase.rootHash, testCase.keyLE, testCase.value)
+			err := Verify(testCase.encodedProofNodes, testCase.rootHash,
+				testCase.keyLE, testCase.value, testCase.version)
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if testCase.errWrapped != nil {
