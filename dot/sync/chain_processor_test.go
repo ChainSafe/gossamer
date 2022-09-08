@@ -291,11 +291,6 @@ func Test_chainProcessor_handleJustification(t *testing.T) {
 		sentinelError         error
 		errorMessage          string
 	}{
-		"nil justification and header": {
-			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
-				return chainProcessor{}
-			},
-		},
 		"invalid justification": {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
 				mockFinalityGadget := NewMockFinalityGadget(ctrl)

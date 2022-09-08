@@ -263,10 +263,6 @@ func (s *chainProcessor) handleBlock(block *types.Block, announceImportedBlock b
 }
 
 func (s *chainProcessor) handleJustification(header *types.Header, justification []byte) (err error) {
-	if len(justification) == 0 {
-		return nil
-	}
-
 	headerHash := header.Hash()
 	returnedJustification, err := s.finalityGadget.VerifyBlockJustification(headerHash, justification)
 	if err != nil {
