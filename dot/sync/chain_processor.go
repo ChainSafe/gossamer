@@ -130,12 +130,11 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 			return fmt.Errorf("getting block by hash: %w", err)
 		}
 
-		logger.Debugf(
-			"skipping block number %d with hash %s, already have",
-			block.Header.Number, bd.Hash) // TODO is this valid?
-
 		err = s.blockState.AddBlockToBlockTree(block)
 		if errors.Is(err, blocktree.ErrBlockExists) {
+			logger.Debugf(
+				"block number %d with hash %s already exists in block tree, skipping it.",
+				block.Header.Number, bd.Hash)
 			return nil
 		} else if err != nil {
 			return fmt.Errorf("adding block to blocktree: %w", err)
