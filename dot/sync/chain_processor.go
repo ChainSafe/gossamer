@@ -108,14 +108,15 @@ func (s *chainProcessor) processReadyBlocks() {
 // processBlockData processes the BlockData from a BlockResponse and
 // returns the index of the last BlockData it handled on success,
 // or the index of the block data that errored on failure.
-func (c *chainProcessor) processBlockData(bd types.BlockData) error { //nolint:revive
-	logger.Debugf("processing block data with hash %s", bd.Hash)
+func (c *chainProcessor) processBlockData(blockData types.BlockData) error { //nolint:revive
+	logger.Debugf("processing block data with hash %s", blockData.Hash)
 
-	hasHeader, err := c.blockState.HasHeader(bd.Hash)
+	hasHeader, err := c.blockState.HasHeader(blockData.Hash)
 	if err != nil {
 		return fmt.Errorf("checking if block state has header: %w", err)
 	}
-	hasBody, err := c.blockState.HasBlockBody(bd.Hash)
+
+	hasBody, err := c.blockState.HasBlockBody(blockData.Hash)
 	if err != nil {
 		return fmt.Errorf("checking if block state has body: %w", err)
 	}
@@ -123,7 +124,7 @@ func (c *chainProcessor) processBlockData(bd types.BlockData) error { //nolint:r
 	// while in bootstrap mode we don't need to broadcast block announcements
 	announceImportedBlock := c.chainSync.syncState() == tip
 	if hasHeader && hasBody {
-		err = c.processBlockDataWithStateHeaderAndBody(bd, announceImportedBlock)
+		err = c.processBlockDataWithStateHeaderAndBody(blockData, announceImportedBlock)
 		if err != nil {
 			return fmt.Errorf("processing block data with header and "+
 				"body in block state: %w", err)
@@ -131,22 +132,22 @@ func (c *chainProcessor) processBlockData(bd types.BlockData) error { //nolint:r
 		return nil
 	}
 
-	if bd.Header != nil && bd.Body != nil {
-		err = c.processBlockDataWithHeaderAndBody(bd, announceImportedBlock)
+	if blockData.Header != nil && blockData.Body != nil {
+		err = c.processBlockDataWithHeaderAndBody(blockData, announceImportedBlock)
 		if err != nil {
 			return fmt.Errorf("processing block data with header and body: %w", err)
 		}
-		logger.Debugf("block with hash %s processed", bd.Hash)
+		logger.Debugf("block with hash %s processed", blockData.Hash)
 	}
 
-	if bd.Justification != nil && bd.Header != nil {
-		err = c.handleJustification(bd.Header, *bd.Justification)
+	if blockData.Justification != nil && blockData.Header != nil {
+		err = c.handleJustification(blockData.Header, *blockData.Justification)
 		if err != nil {
 			return fmt.Errorf("handling justification: %w", err)
 		}
 	}
 
-	if err := c.blockState.CompareAndSetBlockData(&bd); err != nil {
+	if err := c.blockState.CompareAndSetBlockData(&blockData); err != nil {
 		return fmt.Errorf("comparing and setting block data: %w", err)
 	}
 
