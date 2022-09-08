@@ -132,10 +132,13 @@ func testBlockState(t *testing.T, db chaindb.Database) *BlockState {
 	bs, err := NewBlockStateFromGenesis(db, newTriesEmpty(), header, telemetryMock)
 	require.NoError(t, err)
 
+	runtime, err := bs.GetRuntime(nil)
+	require.NoError(t, err)
+
 	// loads in-memory tries with genesis state root, should be deleted
 	// after another block is finalised
 	tr := trie.NewEmptyTrie()
-	err = tr.Load(bs.db, header.StateRoot)
+	err = tr.Load(bs.db, header.StateRoot, runtime.StateVersion())
 	require.NoError(t, err)
 	bs.tries.softSet(header.StateRoot, tr)
 

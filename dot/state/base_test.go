@@ -21,23 +21,25 @@ func TestTrie_StoreAndLoadFromDB(t *testing.T) {
 	const size = 500
 	kv := generateKeyValues(t, generator, size)
 
+	const stateVersion = trie.V0
+
 	for keyString, value := range kv {
 		key := []byte(keyString)
-		tt.Put(key, value)
+		tt.Put(key, value, stateVersion)
 	}
 
 	err := tt.Store(db)
 	require.NoError(t, err)
 
-	encroot, err := tt.Hash()
+	encroot, err := tt.Hash(stateVersion)
 	require.NoError(t, err)
 
-	expected := tt.MustHash()
+	expected := tt.MustHash(stateVersion)
 
 	tt = trie.NewEmptyTrie()
-	err = tt.Load(db, encroot)
+	err = tt.Load(db, encroot, stateVersion)
 	require.NoError(t, err)
-	require.Equal(t, expected, tt.MustHash())
+	require.Equal(t, expected, tt.MustHash(stateVersion))
 }
 
 func TestStoreAndLoadGenesisData(t *testing.T) {

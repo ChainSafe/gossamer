@@ -25,7 +25,8 @@ import (
 //go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
 //go:generate mockgen -destination=mock_grandpa_test.go -package $GOPACKAGE . GrandpaState
 
-func newTestHandler(t *testing.T) (*Handler, *state.Service) {
+func newTestHandler(t *testing.T) (
+	handler *Handler, stateService *state.Service) {
 	testDatadirPath := t.TempDir()
 
 	ctrl := gomock.NewController(t)
@@ -36,22 +37,22 @@ func newTestHandler(t *testing.T) (*Handler, *state.Service) {
 		Path:      testDatadirPath,
 		Telemetry: telemetryMock,
 	}
-	stateSrvc := state.NewService(config)
-	stateSrvc.UseMemDB()
+	stateService = state.NewService(config)
+	stateService.UseMemDB()
 
 	gen, genesisTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
-	err := stateSrvc.Initialise(&gen, &genesisHeader, &genesisTrie)
+	err := stateService.Initialise(&gen, &genesisHeader, &genesisTrie)
 	require.NoError(t, err)
 
-	err = stateSrvc.SetupBase()
+	err = stateService.SetupBase()
 	require.NoError(t, err)
 
-	err = stateSrvc.Start()
+	err = stateService.Start()
 	require.NoError(t, err)
 
-	dh, err := NewHandler(log.Critical, stateSrvc.Block, stateSrvc.Epoch, stateSrvc.Grandpa)
+	handler, err = NewHandler(log.Critical, stateService.Block, stateService.Epoch, stateService.Grandpa)
 	require.NoError(t, err)
-	return dh, stateSrvc
+	return handler, stateService
 }
 
 func TestHandler_GrandpaScheduledChange(t *testing.T) {

@@ -167,7 +167,7 @@ func TestApplyExtrinsic(t *testing.T) {
 	rt, err := babeService.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
-	ts, err := babeService.storageState.TrieState(nil)
+	ts, err := babeService.storageState.TrieState(nil, rt.StateVersion())
 	require.NoError(t, err)
 	rt.SetContextStorage(ts)
 

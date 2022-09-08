@@ -287,8 +287,14 @@ func setupSystemModule(t *testing.T) *SystemModule {
 	// setup service
 	net := newNetworkService(t)
 	chain := newTestStateService(t)
+
+	bestBlockHash := chain.Block.BestBlockHash()
+	instance, err := chain.Block.GetRuntime(&bestBlockHash)
+	require.NoError(t, err)
+	stateVersion := instance.StateVersion()
+
 	// init storage with test data
-	ts, err := chain.Storage.TrieState(nil)
+	ts, err := chain.Storage.TrieState(nil, stateVersion)
 	require.NoError(t, err)
 
 	aliceAcctStoKey, err := common.HexToBytes("0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c" +
@@ -308,9 +314,9 @@ func setupSystemModule(t *testing.T) *SystemModule {
 
 	aliceAcctEncoded, err := scale.Marshal(aliceAcctInfo)
 	require.NoError(t, err)
-	ts.Set(aliceAcctStoKey, aliceAcctEncoded)
+	ts.Set(aliceAcctStoKey, aliceAcctEncoded, stateVersion)
 
-	err = chain.Storage.StoreTrie(ts, nil)
+	err = chain.Storage.StoreTrie(ts, nil, stateVersion)
 	require.NoError(t, err)
 
 	digest := types.NewDigest()
@@ -323,7 +329,7 @@ func setupSystemModule(t *testing.T) *SystemModule {
 		Header: types.Header{
 			Number:     3,
 			ParentHash: chain.Block.BestBlockHash(),
-			StateRoot:  ts.MustRoot(),
+			StateRoot:  ts.MustRoot(stateVersion),
 			Digest:     digest,
 		},
 		Body: types.Body{},

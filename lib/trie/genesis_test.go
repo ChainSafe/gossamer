@@ -22,11 +22,13 @@ func Test_Trie_GenesisBlock(t *testing.T) {
 
 	testCases := map[string]struct {
 		trie          Trie
+		stateVersion  Version
 		genesisHeader types.Header
 		errSentinel   error
 		errMessage    string
 	}{
 		"empty trie": {
+			stateVersion: V0,
 			genesisHeader: withHash(types.Header{
 				ParentHash:     common.Hash{0},
 				StateRoot:      EmptyHash,
@@ -41,6 +43,7 @@ func Test_Trie_GenesisBlock(t *testing.T) {
 					SubValue: []byte{4, 5, 6},
 				},
 			},
+			stateVersion: V0,
 			genesisHeader: withHash(types.Header{
 				ParentHash: common.Hash{0},
 				StateRoot: common.Hash{
@@ -61,7 +64,7 @@ func Test_Trie_GenesisBlock(t *testing.T) {
 
 			trie := testCase.trie
 
-			genesisHeader, err := trie.GenesisBlock()
+			genesisHeader, err := trie.GenesisBlock(testCase.stateVersion)
 
 			assert.ErrorIs(t, err, testCase.errSentinel)
 			if testCase.errSentinel != nil {

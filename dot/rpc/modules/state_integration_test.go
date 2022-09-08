@@ -539,17 +539,23 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 	// setup service
 	net := newNetworkService(t)
 	chain := newTestStateService(t)
+
+	bestBlockHash := chain.Block.BestBlockHash()
+	instance, err := chain.Block.GetRuntime(&bestBlockHash)
+	require.NoError(t, err)
+	stateVersion := instance.StateVersion()
+
 	// init storage with test data
-	ts, err := chain.Storage.TrieState(nil)
+	ts, err := chain.Storage.TrieState(nil, stateVersion)
 	require.NoError(t, err)
 
-	ts.Set([]byte(`:key2`), []byte(`value2`))
-	ts.Set([]byte(`:key1`), []byte(`value1`))
-	ts.SetChildStorage([]byte(`:child1`), []byte(`:key1`), []byte(`:childValue1`))
+	ts.Set([]byte(`:key2`), []byte(`value2`), stateVersion)
+	ts.Set([]byte(`:key1`), []byte(`value1`), stateVersion)
+	ts.SetChildStorage([]byte(`:child1`), []byte(`:key1`), []byte(`:childValue1`), stateVersion)
 
-	sr1, err := ts.Root()
+	sr1, err := ts.Root(stateVersion)
 	require.NoError(t, err)
-	err = chain.Storage.StoreTrie(ts, nil)
+	err = chain.Storage.StoreTrie(ts, nil, stateVersion)
 	require.NoError(t, err)
 
 	digest := types.NewDigest()

@@ -54,7 +54,7 @@ func newTestMemDBService(t *testing.T) *Service {
 func TestService_Start(t *testing.T) {
 	state := newTestService(t)
 
-	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader, _ := newTestGenesisWithTrieAndHeader(t)
 	err := state.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
@@ -71,12 +71,12 @@ func TestService_Start(t *testing.T) {
 func TestService_Initialise(t *testing.T) {
 	state := newTestService(t)
 
-	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader, stateVersion := newTestGenesisWithTrieAndHeader(t)
 	err := state.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
 	genesisHeaderPtr, err := types.NewHeader(common.NewHash([]byte{77}),
-		genTrie.MustHash(), trie.EmptyHash, 0, types.NewDigest())
+		genTrie.MustHash(stateVersion), trie.EmptyHash, 0, types.NewDigest())
 	require.NoError(t, err)
 
 	err = state.Initialise(&genData, genesisHeaderPtr, &genTrie)
@@ -96,7 +96,7 @@ func TestService_Initialise(t *testing.T) {
 func TestMemDB_Start(t *testing.T) {
 	state := newTestMemDBService(t)
 
-	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader, _ := newTestGenesisWithTrieAndHeader(t)
 	err := state.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
@@ -124,7 +124,7 @@ func TestService_BlockTree(t *testing.T) {
 
 	stateA := NewService(config)
 
-	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader, _ := newTestGenesisWithTrieAndHeader(t)
 	err := stateA.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
@@ -175,7 +175,8 @@ func TestService_StorageTriePruning(t *testing.T) {
 	serv := NewService(config)
 	serv.UseMemDB()
 
-	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader, stateVersion := newTestGenesisWithTrieAndHeader(t)
+
 	err := serv.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
@@ -187,12 +188,12 @@ func TestService_StorageTriePruning(t *testing.T) {
 
 	const totalBlock uint = 10
 	for i := uint(1); i < totalBlock; i++ {
-		block, trieState := generateBlockWithRandomTrie(t, serv, &parentHash, i)
+		block, trieState := generateBlockWithRandomTrie(t, serv, &parentHash, i, stateVersion)
 
 		err = serv.Storage.blockState.AddBlock(block)
 		require.NoError(t, err)
 
-		err = serv.Storage.StoreTrie(trieState, &block.Header)
+		err = serv.Storage.StoreTrie(trieState, &block.Header, stateVersion)
 		require.NoError(t, err)
 
 		blocks = append(blocks, block)
@@ -202,7 +203,7 @@ func TestService_StorageTriePruning(t *testing.T) {
 	time.Sleep(2 * time.Second)
 
 	for _, b := range blocks {
-		_, err := serv.Storage.LoadFromDB(b.Header.StateRoot)
+		_, err := serv.Storage.LoadFromDB(b.Header.StateRoot, stateVersion)
 		if b.Header.Number >= totalBlock-retainBlocks-1 {
 			require.NoError(t, err, fmt.Sprintf("Got error for block %d", b.Header.Number))
 			continue
@@ -224,7 +225,8 @@ func TestService_PruneStorage(t *testing.T) {
 	serv := NewService(config)
 	serv.UseMemDB()
 
-	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader, stateVersion := newTestGenesisWithTrieAndHeader(t)
+
 	err := serv.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
@@ -238,7 +240,7 @@ func TestService_PruneStorage(t *testing.T) {
 
 	var toFinalize common.Hash
 	for i := uint(0); i < 3; i++ {
-		block, trieState := generateBlockWithRandomTrie(t, serv, nil, i+1)
+		block, trieState := generateBlockWithRandomTrie(t, serv, nil, i+1, stateVersion)
 		digest := types.NewDigest()
 		prd, err := types.NewBabeSecondaryPlainPreDigest(0, uint64(i+1)).ToPreRuntimeDigest()
 		require.NoError(t, err)
@@ -249,7 +251,7 @@ func TestService_PruneStorage(t *testing.T) {
 		err = serv.Storage.blockState.AddBlock(block)
 		require.NoError(t, err)
 
-		err = serv.Storage.StoreTrie(trieState, nil)
+		err = serv.Storage.StoreTrie(trieState, nil, stateVersion)
 		require.NoError(t, err)
 
 		// Only finalise a block at height 3
@@ -262,19 +264,19 @@ func TestService_PruneStorage(t *testing.T) {
 	var prunedArr []prunedBlock
 	parentHash := serv.Block.GenesisHash()
 	for i := uint(0); i < 3; i++ {
-		block, trieState := generateBlockWithRandomTrie(t, serv, &parentHash, i+1)
+		block, trieState := generateBlockWithRandomTrie(t, serv, &parentHash, i+1, stateVersion)
 
 		err = serv.Storage.blockState.AddBlock(block)
 		require.NoError(t, err)
 
-		err = serv.Storage.StoreTrie(trieState, nil)
+		err = serv.Storage.StoreTrie(trieState, nil, stateVersion)
 		require.NoError(t, err)
 
 		// Store the other blocks that will be pruned.
 		copiedTrie := trieState.Trie().DeepCopy()
 
 		var rootHash common.Hash
-		rootHash, err = copiedTrie.Hash()
+		rootHash, err = copiedTrie.Hash(stateVersion)
 		require.NoError(t, err)
 
 		prunedArr = append(prunedArr, prunedBlock{hash: block.Header.StateRoot, dbKey: rootHash[:]})
@@ -305,7 +307,7 @@ func TestService_Rewind(t *testing.T) {
 	serv := NewService(config)
 	serv.UseMemDB()
 
-	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader, _ := newTestGenesisWithTrieAndHeader(t)
 	err := serv.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
@@ -363,7 +365,8 @@ func TestService_Import(t *testing.T) {
 	serv := NewService(config)
 	serv.UseMemDB()
 
-	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader, stateVersion := newTestGenesisWithTrieAndHeader(t)
+
 	err := serv.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
@@ -377,7 +380,7 @@ func TestService_Import(t *testing.T) {
 		"bnm",
 	}
 	for _, tc := range testCases {
-		tr.Put([]byte(tc), []byte(tc))
+		tr.Put([]byte(tc), []byte(tc), stateVersion)
 	}
 
 	digest := types.NewDigest()
@@ -387,13 +390,13 @@ func TestService_Import(t *testing.T) {
 	require.NoError(t, err)
 	header := &types.Header{
 		Number:    77,
-		StateRoot: tr.MustHash(),
+		StateRoot: tr.MustHash(stateVersion),
 		Digest:    digest,
 	}
 
 	firstSlot := uint64(100)
 
-	err = serv.Import(header, tr, firstSlot)
+	err = serv.Import(header, tr, firstSlot, stateVersion)
 	require.NoError(t, err)
 
 	err = serv.Start()

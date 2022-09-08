@@ -170,8 +170,11 @@ func TestNewNode(t *testing.T) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to create trie from genesis: %w", err)
 		}
-		// create genesis block from trie
-		header, err := trie.GenesisBlock()
+
+		stateVersion, err := wasmer.StateVersionFromGenesis(*gen)
+		require.NoError(t, err)
+
+		header, err := trie.GenesisBlock(stateVersion)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create genesis block from trie: %w", err)
 		}

@@ -15,6 +15,7 @@ import (
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
 	storage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	transaction "github.com/ChainSafe/gossamer/lib/transaction"
+	trie "github.com/ChainSafe/gossamer/lib/trie"
 	gomock "github.com/golang/mock/gomock"
 	peer "github.com/libp2p/go-libp2p-core/peer"
 )
@@ -395,18 +396,18 @@ func (m *MockStorageState) EXPECT() *MockStorageStateMockRecorder {
 }
 
 // GenerateTrieProof mocks base method.
-func (m *MockStorageState) GenerateTrieProof(arg0 common.Hash, arg1 [][]byte) ([][]byte, error) {
+func (m *MockStorageState) GenerateTrieProof(arg0 common.Hash, arg1 [][]byte, arg2 trie.Version) ([][]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GenerateTrieProof", arg0, arg1)
+	ret := m.ctrl.Call(m, "GenerateTrieProof", arg0, arg1, arg2)
 	ret0, _ := ret[0].([][]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GenerateTrieProof indicates an expected call of GenerateTrieProof.
-func (mr *MockStorageStateMockRecorder) GenerateTrieProof(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockStorageStateMockRecorder) GenerateTrieProof(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateTrieProof", reflect.TypeOf((*MockStorageState)(nil).GenerateTrieProof), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateTrieProof", reflect.TypeOf((*MockStorageState)(nil).GenerateTrieProof), arg0, arg1, arg2)
 }
 
 // GetStateRootFromBlock mocks base method.
@@ -482,32 +483,32 @@ func (mr *MockStorageStateMockRecorder) Lock() *gomock.Call {
 }
 
 // StoreTrie mocks base method.
-func (m *MockStorageState) StoreTrie(arg0 *storage.TrieState, arg1 *types.Header) error {
+func (m *MockStorageState) StoreTrie(arg0 *storage.TrieState, arg1 *types.Header, arg2 trie.Version) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "StoreTrie", arg0, arg1)
+	ret := m.ctrl.Call(m, "StoreTrie", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // StoreTrie indicates an expected call of StoreTrie.
-func (mr *MockStorageStateMockRecorder) StoreTrie(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockStorageStateMockRecorder) StoreTrie(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StoreTrie", reflect.TypeOf((*MockStorageState)(nil).StoreTrie), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StoreTrie", reflect.TypeOf((*MockStorageState)(nil).StoreTrie), arg0, arg1, arg2)
 }
 
 // TrieState mocks base method.
-func (m *MockStorageState) TrieState(arg0 *common.Hash) (*storage.TrieState, error) {
+func (m *MockStorageState) TrieState(arg0 *common.Hash, arg1 trie.Version) (*storage.TrieState, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "TrieState", arg0)
+	ret := m.ctrl.Call(m, "TrieState", arg0, arg1)
 	ret0, _ := ret[0].(*storage.TrieState)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // TrieState indicates an expected call of TrieState.
-func (mr *MockStorageStateMockRecorder) TrieState(arg0 interface{}) *gomock.Call {
+func (mr *MockStorageStateMockRecorder) TrieState(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TrieState", reflect.TypeOf((*MockStorageState)(nil).TrieState), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TrieState", reflect.TypeOf((*MockStorageState)(nil).TrieState), arg0, arg1)
 }
 
 // Unlock mocks base method.
@@ -1106,6 +1107,20 @@ func (m *MockRuntimeInstance) SetContextStorage(arg0 runtime.Storage) {
 func (mr *MockRuntimeInstanceMockRecorder) SetContextStorage(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetContextStorage", reflect.TypeOf((*MockRuntimeInstance)(nil).SetContextStorage), arg0)
+}
+
+// StateVersion mocks base method.
+func (m *MockRuntimeInstance) StateVersion() trie.Version {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "StateVersion")
+	ret0, _ := ret[0].(trie.Version)
+	return ret0
+}
+
+// StateVersion indicates an expected call of StateVersion.
+func (mr *MockRuntimeInstanceMockRecorder) StateVersion() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StateVersion", reflect.TypeOf((*MockRuntimeInstance)(nil).StateVersion))
 }
 
 // Stop mocks base method.

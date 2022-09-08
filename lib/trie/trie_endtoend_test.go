@@ -27,7 +27,7 @@ const (
 	getLeaf
 )
 
-func buildSmallTrie() *Trie {
+func buildSmallTrie(version Version) *Trie { //nolint:unparam
 	trie := NewEmptyTrie()
 
 	tests := []keyValues{
@@ -40,7 +40,7 @@ func buildSmallTrie() *Trie {
 	}
 
 	for _, test := range tests {
-		trie.Put(test.key, test.value)
+		trie.Put(test.key, test.value, version)
 	}
 
 	return trie
@@ -50,7 +50,7 @@ func runTests(t *testing.T, trie *Trie, tests []keyValues) {
 	for _, test := range tests {
 		switch test.op {
 		case put:
-			trie.Put(test.key, test.value)
+			trie.Put(test.key, test.value, test.version)
 		case get:
 			val := trie.Get(test.key)
 			assert.Equal(t, test.value, val)
@@ -67,16 +67,16 @@ func TestPutAndGetBranch(t *testing.T) {
 	trie := NewEmptyTrie()
 
 	tests := []keyValues{
-		{key: []byte{0x01, 0x35}, value: []byte("spaghetti"), op: put},
-		{key: []byte{0x01, 0x35, 0x79}, value: []byte("gnocchi"), op: put},
-		{key: []byte{0x07}, value: []byte("ramen"), op: put},
-		{key: []byte{0xf2}, value: []byte("pho"), op: put},
-		{key: []byte("noot"), value: nil, op: get},
-		{key: []byte{0}, value: nil, op: get},
-		{key: []byte{0x01, 0x35}, value: []byte("spaghetti"), op: get},
-		{key: []byte{0x01, 0x35, 0x79}, value: []byte("gnocchi"), op: get},
-		{key: []byte{0x07}, value: []byte("ramen"), op: get},
-		{key: []byte{0xf2}, value: []byte("pho"), op: get},
+		{version: V0, key: []byte{0x01, 0x35}, value: []byte("spaghetti"), op: put},
+		{version: V0, key: []byte{0x01, 0x35, 0x79}, value: []byte("gnocchi"), op: put},
+		{version: V0, key: []byte{0x07}, value: []byte("ramen"), op: put},
+		{version: V0, key: []byte{0xf2}, value: []byte("pho"), op: put},
+		{version: V0, key: []byte("noot"), value: nil, op: get},
+		{version: V0, key: []byte{0}, value: nil, op: get},
+		{version: V0, key: []byte{0x01, 0x35}, value: []byte("spaghetti"), op: get},
+		{version: V0, key: []byte{0x01, 0x35, 0x79}, value: []byte("gnocchi"), op: get},
+		{version: V0, key: []byte{0x07}, value: []byte("ramen"), op: get},
+		{version: V0, key: []byte{0xf2}, value: []byte("pho"), op: get},
 	}
 
 	runTests(t, trie, tests)
@@ -86,28 +86,29 @@ func TestPutAndGetOddKeyLengths(t *testing.T) {
 	trie := NewEmptyTrie()
 
 	tests := []keyValues{
-		{key: []byte{0x43, 0xc1}, value: []byte("noot"), op: put},
-		{key: []byte{0x49, 0x29}, value: []byte("nootagain"), op: put},
-		{key: []byte{0x43, 0x0c}, value: []byte("odd"), op: put},
-		{key: []byte{0x4f, 0x4d}, value: []byte("stuff"), op: put},
-		{key: []byte{0x4f, 0xbc}, value: []byte("stuffagain"), op: put},
-		{key: []byte{0x43, 0xc1}, value: []byte("noot"), op: get},
-		{key: []byte{0x49, 0x29}, value: []byte("nootagain"), op: get},
-		{key: []byte{0x43, 0x0c}, value: []byte("odd"), op: get},
-		{key: []byte{0x4f, 0x4d}, value: []byte("stuff"), op: get},
-		{key: []byte{0x4f, 0xbc}, value: []byte("stuffagain"), op: get},
+		{version: V0, key: []byte{0x43, 0xc1}, value: []byte("noot"), op: put},
+		{version: V0, key: []byte{0x49, 0x29}, value: []byte("nootagain"), op: put},
+		{version: V0, key: []byte{0x43, 0x0c}, value: []byte("odd"), op: put},
+		{version: V0, key: []byte{0x4f, 0x4d}, value: []byte("stuff"), op: put},
+		{version: V0, key: []byte{0x4f, 0xbc}, value: []byte("stuffagain"), op: put},
+		{version: V0, key: []byte{0x43, 0xc1}, value: []byte("noot"), op: get},
+		{version: V0, key: []byte{0x49, 0x29}, value: []byte("nootagain"), op: get},
+		{version: V0, key: []byte{0x43, 0x0c}, value: []byte("odd"), op: get},
+		{version: V0, key: []byte{0x4f, 0x4d}, value: []byte("stuff"), op: get},
+		{version: V0, key: []byte{0x4f, 0xbc}, value: []byte("stuffagain"), op: get},
 	}
 
 	runTests(t, trie, tests)
 }
 
 func Fuzz_Trie_PutAndGet(f *testing.F) {
+	const stateVersion = V0
 	trie := NewEmptyTrie()
 	var trieMutex sync.Mutex
 
 	f.Fuzz(func(t *testing.T, key, value []byte) {
 		trieMutex.Lock()
-		trie.Put(key, value)
+		trie.Put(key, value, stateVersion)
 		retrievedValue := trie.Get(key)
 		trieMutex.Unlock()
 		assert.Equal(t, retrievedValue, value)
@@ -118,79 +119,81 @@ func TestGetPartialKey(t *testing.T) {
 	trie := NewEmptyTrie()
 
 	tests := []keyValues{
-		{key: []byte{0x01, 0x35}, value: []byte("pen"), op: put},
-		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: put},
-		{key: []byte{0x01, 0x35, 0x07}, value: []byte("odd"), op: put},
-		{key: []byte{}, value: []byte("floof"), op: put},
-		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: getLeaf},
-		{key: []byte{0x01, 0x35, 0x07}, value: []byte("odd"), op: del},
-		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: getLeaf},
-		{key: []byte{0x01, 0x35}, value: []byte("pen"), op: getLeaf},
-		{key: []byte{0x01, 0x35, 0x07}, value: []byte("odd"), op: put},
-		{key: []byte{0x01, 0x35, 0x07}, value: []byte("odd"), op: getLeaf},
-		{key: []byte{0xf2}, value: []byte("pen"), op: put},
-		{key: []byte{0x09, 0xd3}, value: []byte("noot"), op: put},
-		{key: []byte{}, value: []byte("floof"), op: get},
-		{key: []byte{0x01, 0x35}, value: []byte("pen"), op: getLeaf},
-		{key: []byte{0xf2}, value: []byte("pen"), op: getLeaf},
-		{key: []byte{0x09, 0xd3}, value: []byte("noot"), op: getLeaf},
+		{version: V0, key: []byte{0x01, 0x35}, value: []byte("pen"), op: put},
+		{version: V0, key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: put},
+		{version: V0, key: []byte{0x01, 0x35, 0x07}, value: []byte("odd"), op: put},
+		{version: V0, key: []byte{}, value: []byte("floof"), op: put},
+		{version: V0, key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: getLeaf},
+		{version: V0, key: []byte{0x01, 0x35, 0x07}, value: []byte("odd"), op: del},
+		{version: V0, key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: getLeaf},
+		{version: V0, key: []byte{0x01, 0x35}, value: []byte("pen"), op: getLeaf},
+		{version: V0, key: []byte{0x01, 0x35, 0x07}, value: []byte("odd"), op: put},
+		{version: V0, key: []byte{0x01, 0x35, 0x07}, value: []byte("odd"), op: getLeaf},
+		{version: V0, key: []byte{0xf2}, value: []byte("pen"), op: put},
+		{version: V0, key: []byte{0x09, 0xd3}, value: []byte("noot"), op: put},
+		{version: V0, key: []byte{}, value: []byte("floof"), op: get},
+		{version: V0, key: []byte{0x01, 0x35}, value: []byte("pen"), op: getLeaf},
+		{version: V0, key: []byte{0xf2}, value: []byte("pen"), op: getLeaf},
+		{version: V0, key: []byte{0x09, 0xd3}, value: []byte("noot"), op: getLeaf},
 	}
 
 	runTests(t, trie, tests)
 }
 
 func TestDeleteSmall(t *testing.T) {
-	trie := buildSmallTrie()
+	const stateVersion = V0
+	trie := buildSmallTrie(stateVersion)
 
 	tests := []keyValues{
-		{key: []byte{}, value: []byte("floof"), op: del},
-		{key: []byte{}, value: nil, op: get},
-		{key: []byte{}, value: []byte("floof"), op: put},
+		{version: stateVersion, key: []byte{}, value: []byte("floof"), op: del},
+		{version: stateVersion, key: []byte{}, value: nil, op: get},
+		{version: stateVersion, key: []byte{}, value: []byte("floof"), op: put},
 
-		{key: []byte{0x09, 0xd3}, value: []byte("noot"), op: del},
-		{key: []byte{0x09, 0xd3}, value: nil, op: get},
-		{key: []byte{0x01, 0x35}, value: []byte("pen"), op: get},
-		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: get},
-		{key: []byte{0x09, 0xd3}, value: []byte("noot"), op: put},
+		{version: stateVersion, key: []byte{0x09, 0xd3}, value: []byte("noot"), op: del},
+		{version: stateVersion, key: []byte{0x09, 0xd3}, value: nil, op: get},
+		{version: stateVersion, key: []byte{0x01, 0x35}, value: []byte("pen"), op: get},
+		{version: stateVersion, key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: get},
+		{version: stateVersion, key: []byte{0x09, 0xd3}, value: []byte("noot"), op: put},
 
-		{key: []byte{0xf2}, value: []byte("feather"), op: del},
-		{key: []byte{0xf2}, value: nil, op: get},
-		{key: []byte{0xf2}, value: []byte("feather"), op: put},
+		{version: stateVersion, key: []byte{0xf2}, value: []byte("feather"), op: del},
+		{version: stateVersion, key: []byte{0xf2}, value: nil, op: get},
+		{version: stateVersion, key: []byte{0xf2}, value: []byte("feather"), op: put},
 
-		{key: []byte{}, value: []byte("floof"), op: del},
-		{key: []byte{0xf2}, value: []byte("feather"), op: del},
-		{key: []byte{}, value: nil, op: get},
-		{key: []byte{0x01, 0x35}, value: []byte("pen"), op: get},
-		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: get},
-		{key: []byte{}, value: []byte("floof"), op: put},
-		{key: []byte{0xf2}, value: []byte("feather"), op: put},
+		{version: stateVersion, key: []byte{}, value: []byte("floof"), op: del},
+		{version: stateVersion, key: []byte{0xf2}, value: []byte("feather"), op: del},
+		{version: stateVersion, key: []byte{}, value: nil, op: get},
+		{version: stateVersion, key: []byte{0x01, 0x35}, value: []byte("pen"), op: get},
+		{version: stateVersion, key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: get},
+		{version: stateVersion, key: []byte{}, value: []byte("floof"), op: put},
+		{version: stateVersion, key: []byte{0xf2}, value: []byte("feather"), op: put},
 
-		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: del},
-		{key: []byte{0x01, 0x35, 0x79}, value: nil, op: get},
-		{key: []byte{0x01, 0x35}, value: []byte("pen"), op: get},
-		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: put},
+		{version: stateVersion, key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: del},
+		{version: stateVersion, key: []byte{0x01, 0x35, 0x79}, value: nil, op: get},
+		{version: stateVersion, key: []byte{0x01, 0x35}, value: []byte("pen"), op: get},
+		{version: stateVersion, key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: put},
 
-		{key: []byte{0x01, 0x35}, value: []byte("pen"), op: del},
-		{key: []byte{0x01, 0x35}, value: nil, op: get},
-		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: get},
-		{key: []byte{0x01, 0x35}, value: []byte("pen"), op: put},
+		{version: stateVersion, key: []byte{0x01, 0x35}, value: []byte("pen"), op: del},
+		{version: stateVersion, key: []byte{0x01, 0x35}, value: nil, op: get},
+		{version: stateVersion, key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: get},
+		{version: stateVersion, key: []byte{0x01, 0x35}, value: []byte("pen"), op: put},
 
-		{key: []byte{0x01, 0x35, 0x07}, value: []byte("odd"), op: del},
-		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: get},
-		{key: []byte{0x01, 0x35}, value: []byte("pen"), op: get},
+		{version: stateVersion, key: []byte{0x01, 0x35, 0x07}, value: []byte("odd"), op: del},
+		{version: stateVersion, key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: get},
+		{version: stateVersion, key: []byte{0x01, 0x35}, value: []byte("pen"), op: get},
 	}
 
 	runTests(t, trie, tests)
 }
 
 func TestDeleteCombineBranch(t *testing.T) {
-	trie := buildSmallTrie()
+	const stateVersion = V0
+	trie := buildSmallTrie(stateVersion)
 
 	tests := []keyValues{
-		{key: []byte{0x01, 0x35, 0x46}, value: []byte("raccoon"), op: put},
-		{key: []byte{0x01, 0x35, 0x46, 0x77}, value: []byte("rat"), op: put},
-		{key: []byte{0x09, 0xd3}, value: []byte("noot"), op: del},
-		{key: []byte{0x09, 0xd3}, value: nil, op: get},
+		{version: stateVersion, key: []byte{0x01, 0x35, 0x46}, value: []byte("raccoon"), op: put},
+		{version: stateVersion, key: []byte{0x01, 0x35, 0x46, 0x77}, value: []byte("rat"), op: put},
+		{version: stateVersion, key: []byte{0x09, 0xd3}, value: []byte("noot"), op: del},
+		{version: stateVersion, key: []byte{0x09, 0xd3}, value: nil, op: get},
 	}
 
 	runTests(t, trie, tests)
@@ -200,22 +203,22 @@ func TestDeleteFromBranch(t *testing.T) {
 	trie := NewEmptyTrie()
 
 	tests := []keyValues{
-		{key: []byte{0x06, 0x15, 0xfc}, value: []byte("noot"), op: put},
-		{key: []byte{0x06, 0x2b, 0xa9}, value: []byte("nootagain"), op: put},
-		{key: []byte{0x06, 0xaf, 0xb1}, value: []byte("odd"), op: put},
-		{key: []byte{0x06, 0xa3, 0xff}, value: []byte("stuff"), op: put},
-		{key: []byte{0x43, 0x21}, value: []byte("stuffagain"), op: put},
-		{key: []byte{0x06, 0x15, 0xfc}, value: []byte("noot"), op: get},
-		{key: []byte{0x06, 0x2b, 0xa9}, value: []byte("nootagain"), op: get},
-		{key: []byte{0x06, 0x15, 0xfc}, value: []byte("noot"), op: del},
-		{key: []byte{0x06, 0x15, 0xfc}, value: nil, op: get},
-		{key: []byte{0x06, 0x2b, 0xa9}, value: []byte("nootagain"), op: get},
-		{key: []byte{0x06, 0xaf, 0xb1}, value: []byte("odd"), op: get},
-		{key: []byte{0x06, 0xaf, 0xb1}, value: []byte("odd"), op: del},
-		{key: []byte{0x06, 0x2b, 0xa9}, value: []byte("nootagain"), op: get},
-		{key: []byte{0x06, 0xa3, 0xff}, value: []byte("stuff"), op: get},
-		{key: []byte{0x06, 0xa3, 0xff}, value: []byte("stuff"), op: del},
-		{key: []byte{0x06, 0x2b, 0xa9}, value: []byte("nootagain"), op: get},
+		{version: V0, key: []byte{0x06, 0x15, 0xfc}, value: []byte("noot"), op: put},
+		{version: V0, key: []byte{0x06, 0x2b, 0xa9}, value: []byte("nootagain"), op: put},
+		{version: V0, key: []byte{0x06, 0xaf, 0xb1}, value: []byte("odd"), op: put},
+		{version: V0, key: []byte{0x06, 0xa3, 0xff}, value: []byte("stuff"), op: put},
+		{version: V0, key: []byte{0x43, 0x21}, value: []byte("stuffagain"), op: put},
+		{version: V0, key: []byte{0x06, 0x15, 0xfc}, value: []byte("noot"), op: get},
+		{version: V0, key: []byte{0x06, 0x2b, 0xa9}, value: []byte("nootagain"), op: get},
+		{version: V0, key: []byte{0x06, 0x15, 0xfc}, value: []byte("noot"), op: del},
+		{version: V0, key: []byte{0x06, 0x15, 0xfc}, value: nil, op: get},
+		{version: V0, key: []byte{0x06, 0x2b, 0xa9}, value: []byte("nootagain"), op: get},
+		{version: V0, key: []byte{0x06, 0xaf, 0xb1}, value: []byte("odd"), op: get},
+		{version: V0, key: []byte{0x06, 0xaf, 0xb1}, value: []byte("odd"), op: del},
+		{version: V0, key: []byte{0x06, 0x2b, 0xa9}, value: []byte("nootagain"), op: get},
+		{version: V0, key: []byte{0x06, 0xa3, 0xff}, value: []byte("stuff"), op: get},
+		{version: V0, key: []byte{0x06, 0xa3, 0xff}, value: []byte("stuff"), op: del},
+		{version: V0, key: []byte{0x06, 0x2b, 0xa9}, value: []byte("nootagain"), op: get},
 	}
 
 	runTests(t, trie, tests)
@@ -225,20 +228,20 @@ func TestDeleteOddKeyLengths(t *testing.T) {
 	trie := NewEmptyTrie()
 
 	tests := []keyValues{
-		{key: []byte{0x43, 0xc1}, value: []byte("noot"), op: put},
-		{key: []byte{0x43, 0xc1}, value: []byte("noot"), op: get},
-		{key: []byte{0x49, 0x29}, value: []byte("nootagain"), op: put},
-		{key: []byte{0x49, 0x29}, value: []byte("nootagain"), op: get},
-		{key: []byte{0x43, 0x0c}, value: []byte("odd"), op: put},
-		{key: []byte{0x43, 0x0c}, value: []byte("odd"), op: get},
-		{key: []byte{0x4f, 0x4d}, value: []byte("stuff"), op: put},
-		{key: []byte{0x4f, 0x4d}, value: []byte("stuff"), op: get},
-		{key: []byte{0x43, 0x0c}, value: []byte("odd"), op: del},
-		{key: []byte{0x43, 0x0c}, value: nil, op: get},
-		{key: []byte{0xf4, 0xbc}, value: []byte("spaghetti"), op: put},
-		{key: []byte{0xf4, 0xbc}, value: []byte("spaghetti"), op: get},
-		{key: []byte{0x4f, 0x4d}, value: []byte("stuff"), op: get},
-		{key: []byte{0x43, 0xc1}, value: []byte("noot"), op: get},
+		{version: V0, key: []byte{0x43, 0xc1}, value: []byte("noot"), op: put},
+		{version: V0, key: []byte{0x43, 0xc1}, value: []byte("noot"), op: get},
+		{version: V0, key: []byte{0x49, 0x29}, value: []byte("nootagain"), op: put},
+		{version: V0, key: []byte{0x49, 0x29}, value: []byte("nootagain"), op: get},
+		{version: V0, key: []byte{0x43, 0x0c}, value: []byte("odd"), op: put},
+		{version: V0, key: []byte{0x43, 0x0c}, value: []byte("odd"), op: get},
+		{version: V0, key: []byte{0x4f, 0x4d}, value: []byte("stuff"), op: put},
+		{version: V0, key: []byte{0x4f, 0x4d}, value: []byte("stuff"), op: get},
+		{version: V0, key: []byte{0x43, 0x0c}, value: []byte("odd"), op: del},
+		{version: V0, key: []byte{0x43, 0x0c}, value: nil, op: get},
+		{version: V0, key: []byte{0xf4, 0xbc}, value: []byte("spaghetti"), op: put},
+		{version: V0, key: []byte{0xf4, 0xbc}, value: []byte("spaghetti"), op: get},
+		{version: V0, key: []byte{0x4f, 0x4d}, value: []byte("stuff"), op: get},
+		{version: V0, key: []byte{0x43, 0xc1}, value: []byte("noot"), op: get},
 	}
 
 	runTests(t, trie, tests)
@@ -268,13 +271,13 @@ func TestTrieDiff(t *testing.T) {
 	var testKey = []byte("testKey")
 
 	tests := []keyValues{
-		{key: testKey, value: testKey},
-		{key: []byte("testKey1"), value: []byte("testKey1")},
-		{key: []byte("testKey2"), value: []byte("testKey2")},
+		{version: V0, key: testKey, value: testKey},
+		{version: V0, key: []byte("testKey1"), value: []byte("testKey1")},
+		{version: V0, key: []byte("testKey2"), value: []byte("testKey2")},
 	}
 
 	for _, test := range tests {
-		trie.Put(test.key, test.value)
+		trie.Put(test.key, test.value, test.version)
 	}
 
 	newTrie := trie.Snapshot()
@@ -282,15 +285,15 @@ func TestTrieDiff(t *testing.T) {
 	require.NoError(t, err)
 
 	tests = []keyValues{
-		{key: testKey, value: []byte("newTestKey2")},
-		{key: []byte("testKey2"), value: []byte("newKey")},
-		{key: []byte("testKey3"), value: []byte("testKey3")},
-		{key: []byte("testKey4"), value: []byte("testKey2")},
-		{key: []byte("testKey5"), value: []byte("testKey5")},
+		{version: V0, key: testKey, value: []byte("newTestKey2")},
+		{version: V0, key: []byte("testKey2"), value: []byte("newKey")},
+		{version: V0, key: []byte("testKey3"), value: []byte("testKey3")},
+		{version: V0, key: []byte("testKey4"), value: []byte("testKey2")},
+		{version: V0, key: []byte("testKey5"), value: []byte("testKey5")},
 	}
 
 	for _, test := range tests {
-		newTrie.Put(test.key, test.value)
+		newTrie.Put(test.key, test.value, test.version)
 	}
 	deletedMerkleValues := newTrie.deletedMerkleValues
 	require.Len(t, deletedMerkleValues, 3)
@@ -304,7 +307,9 @@ func TestTrieDiff(t *testing.T) {
 	}
 
 	dbTrie := NewEmptyTrie()
-	err = dbTrie.Load(storageDB, common.BytesToHash(newTrie.root.MerkleValue))
+	err = dbTrie.Load(storageDB,
+		common.BytesToHash(newTrie.root.MerkleValue),
+		V0)
 	require.NoError(t, err)
 }
 
@@ -316,8 +321,9 @@ func TestDelete(t *testing.T) {
 	kv := generateKeyValues(t, generator, kvSize)
 
 	for keyString, value := range kv {
+		const stateVersion = V0
 		key := []byte(keyString)
-		trie.Put(key, value)
+		trie.Put(key, value, stateVersion)
 	}
 
 	dcTrie := trie.DeepCopy()
@@ -326,13 +332,13 @@ func TestDelete(t *testing.T) {
 	ssTrie := trie.Snapshot()
 
 	// Get the Trie root hash for all the 3 tries.
-	tHash, err := trie.Hash()
+	tHash, err := trie.Hash(V0)
 	require.NoError(t, err)
 
-	dcTrieHash, err := dcTrie.Hash()
+	dcTrieHash, err := dcTrie.Hash(V0)
 	require.NoError(t, err)
 
-	ssTrieHash, err := ssTrie.Hash()
+	ssTrieHash, err := ssTrie.Hash(V0)
 	require.NoError(t, err)
 
 	// Root hash for all the 3 tries should be equal.
@@ -353,13 +359,13 @@ func TestDelete(t *testing.T) {
 	}
 
 	// Get the updated root hash of all tries.
-	tHash, err = trie.Hash()
+	tHash, err = trie.Hash(V0)
 	require.NoError(t, err)
 
-	dcTrieHash, err = dcTrie.Hash()
+	dcTrieHash, err = dcTrie.Hash(V0)
 	require.NoError(t, err)
 
-	ssTrieHash, err = ssTrie.Hash()
+	ssTrieHash, err = ssTrie.Hash(V0)
 	require.NoError(t, err)
 
 	// Only the current trie should have a different root hash since it is updated.
@@ -369,15 +375,15 @@ func TestDelete(t *testing.T) {
 
 func TestClearPrefix(t *testing.T) {
 	tests := []keyValues{
-		{key: []byte{0x01, 0x35}, value: []byte("spaghetti"), op: put},
-		{key: []byte{0x01, 0x35, 0x79}, value: []byte("gnocchi"), op: put},
-		{key: []byte{0x01, 0x35, 0x79, 0xab}, value: []byte("spaghetti"), op: put},
-		{key: []byte{0x01, 0x35, 0x79, 0xab, 0x9}, value: []byte("gnocchi"), op: put},
-		{key: []byte{0x07, 0x3a}, value: []byte("ramen"), op: put},
-		{key: []byte{0x07, 0x3b}, value: []byte("noodles"), op: put},
-		{key: []byte{0xf2}, value: []byte("pho"), op: put},
-		{key: []byte{0xff, 0xee, 0xdd, 0xcc, 0xbb, 0x11}, value: []byte("asd"), op: put},
-		{key: []byte{0xff, 0xee, 0xdd, 0xcc, 0xaa, 0x11}, value: []byte("fgh"), op: put},
+		{version: V0, key: []byte{0x01, 0x35}, value: []byte("spaghetti"), op: put},
+		{version: V0, key: []byte{0x01, 0x35, 0x79}, value: []byte("gnocchi"), op: put},
+		{version: V0, key: []byte{0x01, 0x35, 0x79, 0xab}, value: []byte("spaghetti"), op: put},
+		{version: V0, key: []byte{0x01, 0x35, 0x79, 0xab, 0x9}, value: []byte("gnocchi"), op: put},
+		{version: V0, key: []byte{0x07, 0x3a}, value: []byte("ramen"), op: put},
+		{version: V0, key: []byte{0x07, 0x3b}, value: []byte("noodles"), op: put},
+		{version: V0, key: []byte{0xf2}, value: []byte("pho"), op: put},
+		{version: V0, key: []byte{0xff, 0xee, 0xdd, 0xcc, 0xbb, 0x11}, value: []byte("asd"), op: put},
+		{version: V0, key: []byte{0xff, 0xee, 0xdd, 0xcc, 0xaa, 0x11}, value: []byte("fgh"), op: put},
 	}
 
 	// prefix to clear cases
@@ -400,7 +406,7 @@ func TestClearPrefix(t *testing.T) {
 		trie := NewEmptyTrie()
 
 		for _, test := range tests {
-			trie.Put(test.key, test.value)
+			trie.Put(test.key, test.value, test.version)
 		}
 
 		dcTrie := trie.DeepCopy()
@@ -409,13 +415,13 @@ func TestClearPrefix(t *testing.T) {
 		ssTrie := trie.Snapshot()
 
 		// Get the Trie root hash for all the 3 tries.
-		tHash, err := trie.Hash()
+		tHash, err := trie.Hash(V0)
 		require.NoError(t, err)
 
-		dcTrieHash, err := dcTrie.Hash()
+		dcTrieHash, err := dcTrie.Hash(V0)
 		require.NoError(t, err)
 
-		ssTrieHash, err := ssTrie.Hash()
+		ssTrieHash, err := ssTrie.Hash(V0)
 		require.NoError(t, err)
 
 		// Root hash for all the 3 tries should be equal.
@@ -441,13 +447,13 @@ func TestClearPrefix(t *testing.T) {
 		}
 
 		// Get the updated root hash of all tries.
-		tHash, err = trie.Hash()
+		tHash, err = trie.Hash(V0)
 		require.NoError(t, err)
 
-		dcTrieHash, err = dcTrie.Hash()
+		dcTrieHash, err = dcTrie.Hash(V0)
 		require.NoError(t, err)
 
-		ssTrieHash, err = ssTrie.Hash()
+		ssTrieHash, err = ssTrie.Hash(V0)
 		require.NoError(t, err)
 
 		// Only the current trie should have a different root hash since it is updated.
@@ -466,13 +472,13 @@ func TestClearPrefix_Small(t *testing.T) {
 	ssTrie := trie.Snapshot()
 
 	// Get the Trie root hash for all the 3 tries.
-	tHash, err := trie.Hash()
+	tHash, err := trie.Hash(V0)
 	require.NoError(t, err)
 
-	dcTrieHash, err := dcTrie.Hash()
+	dcTrieHash, err := dcTrie.Hash(V0)
 	require.NoError(t, err)
 
-	ssTrieHash, err := ssTrie.Hash()
+	ssTrieHash, err := ssTrie.Hash(V0)
 	require.NoError(t, err)
 
 	// Root hash for all the 3 tries should be equal.
@@ -485,7 +491,8 @@ func TestClearPrefix_Small(t *testing.T) {
 		"other",
 	}
 	for _, key := range keys {
-		ssTrie.Put([]byte(key), []byte(key))
+		const stateVersion = V0
+		ssTrie.Put([]byte(key), []byte(key), stateVersion)
 	}
 
 	ssTrie.ClearPrefix([]byte("noo"))
@@ -499,13 +506,13 @@ func TestClearPrefix_Small(t *testing.T) {
 	require.Equal(t, expectedRoot, ssTrie.root)
 
 	// Get the updated root hash of all tries.
-	tHash, err = trie.Hash()
+	tHash, err = trie.Hash(V0)
 	require.NoError(t, err)
 
-	dcTrieHash, err = dcTrie.Hash()
+	dcTrieHash, err = dcTrie.Hash(V0)
 	require.NoError(t, err)
 
-	ssTrieHash, err = ssTrie.Hash()
+	ssTrieHash, err = ssTrie.Hash(V0)
 	require.NoError(t, err)
 
 	require.Equal(t, tHash, dcTrieHash)
@@ -531,32 +538,32 @@ func TestTrie_ClearPrefixVsDelete(t *testing.T) {
 
 	cases := [][]keyValues{
 		{
-			{key: []byte{0x01, 0x35}, value: []byte("pen")},
-			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
-			{key: []byte{0x01, 0x35, 0x7}, value: []byte("g")},
-			{key: []byte{0x01, 0x35, 0x99}, value: []byte("h")},
-			{key: []byte{0xf2}, value: []byte("feather")},
-			{key: []byte{0xf2, 0x3}, value: []byte("f")},
-			{key: []byte{0x09, 0xd3}, value: []byte("noot")},
-			{key: []byte{0x07}, value: []byte("ramen")},
-			{key: []byte{0}, value: nil},
+			{key: []byte{0x01, 0x35}, value: []byte("pen"), version: V0},
+			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), version: V0},
+			{key: []byte{0x01, 0x35, 0x7}, value: []byte("g"), version: V0},
+			{key: []byte{0x01, 0x35, 0x99}, value: []byte("h"), version: V0},
+			{key: []byte{0xf2}, value: []byte("feather"), version: V0},
+			{key: []byte{0xf2, 0x3}, value: []byte("f"), version: V0},
+			{key: []byte{0x09, 0xd3}, value: []byte("noot"), version: V0},
+			{key: []byte{0x07}, value: []byte("ramen"), version: V0},
+			{key: []byte{0}, value: nil, version: V0},
 		},
 		{
-			{key: []byte{0x01, 0x35}, value: []byte("pen")},
-			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
-			{key: []byte{0x01, 0x35, 0x70}, value: []byte("g")},
-			{key: []byte{0xf2}, value: []byte("feather")},
-			{key: []byte{0xf2, 0x30}, value: []byte("f")},
-			{key: []byte{0x09, 0xd3}, value: []byte("noot")},
-			{key: []byte{0x07}, value: []byte("ramen")},
+			{key: []byte{0x01, 0x35}, value: []byte("pen"), version: V0},
+			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), version: V0},
+			{key: []byte{0x01, 0x35, 0x70}, value: []byte("g"), version: V0},
+			{key: []byte{0xf2}, value: []byte("feather"), version: V0},
+			{key: []byte{0xf2, 0x30}, value: []byte("f"), version: V0},
+			{key: []byte{0x09, 0xd3}, value: []byte("noot"), version: V0},
+			{key: []byte{0x07}, value: []byte("ramen"), version: V0},
 		},
 		{
-			{key: []byte("asdf"), value: []byte("asdf")},
-			{key: []byte("ghjk"), value: []byte("ghjk")},
-			{key: []byte("qwerty"), value: []byte("qwerty")},
-			{key: []byte("uiopl"), value: []byte("uiopl")},
-			{key: []byte("zxcv"), value: []byte("zxcv")},
-			{key: []byte("bnm"), value: []byte("bnm")},
+			{key: []byte("asdf"), value: []byte("asdf"), version: V0},
+			{key: []byte("ghjk"), value: []byte("ghjk"), version: V0},
+			{key: []byte("qwerty"), value: []byte("qwerty"), version: V0},
+			{key: []byte("uiopl"), value: []byte("uiopl"), version: V0},
+			{key: []byte("zxcv"), value: []byte("zxcv"), version: V0},
+			{key: []byte("bnm"), value: []byte("bnm"), version: V0},
 		},
 	}
 
@@ -566,8 +573,8 @@ func TestTrie_ClearPrefixVsDelete(t *testing.T) {
 			trieClearPrefix := NewEmptyTrie()
 
 			for _, test := range testCase {
-				trieDelete.Put(test.key, test.value)
-				trieClearPrefix.Put(test.key, test.value)
+				trieDelete.Put(test.key, test.value, test.version)
+				trieClearPrefix.Put(test.key, test.value, test.version)
 			}
 
 			prefixedKeys := trieDelete.GetKeysWithPrefix(prefix)
@@ -577,25 +584,25 @@ func TestTrie_ClearPrefixVsDelete(t *testing.T) {
 
 			trieClearPrefix.ClearPrefix(prefix)
 
-			require.Equal(t, trieClearPrefix.MustHash(), trieDelete.MustHash())
+			require.Equal(t, trieClearPrefix.MustHash(V0), trieDelete.MustHash(V0))
 		}
 	}
 }
 
 func TestSnapshot(t *testing.T) {
 	tests := []keyValues{
-		{key: []byte{0x01, 0x35}, value: []byte("spaghetti"), op: put},
-		{key: []byte{0x01, 0x35, 0x79}, value: []byte("gnocchi"), op: put},
-		{key: []byte{0x01, 0x35, 0x79, 0xab}, value: []byte("spaghetti"), op: put},
-		{key: []byte{0x01, 0x35, 0x79, 0xab, 0x9}, value: []byte("gnocchi"), op: put},
-		{key: []byte{0x07, 0x3a}, value: []byte("ramen"), op: put},
-		{key: []byte{0x07, 0x3b}, value: []byte("noodles"), op: put},
-		{key: []byte{0xf2}, value: []byte("pho"), op: put},
+		{key: []byte{0x01, 0x35}, value: []byte("spaghetti"), op: put, version: V0},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("gnocchi"), op: put, version: V0},
+		{key: []byte{0x01, 0x35, 0x79, 0xab}, value: []byte("spaghetti"), op: put, version: V0},
+		{key: []byte{0x01, 0x35, 0x79, 0xab, 0x9}, value: []byte("gnocchi"), op: put, version: V0},
+		{key: []byte{0x07, 0x3a}, value: []byte("ramen"), op: put, version: V0},
+		{key: []byte{0x07, 0x3b}, value: []byte("noodles"), op: put, version: V0},
+		{key: []byte{0xf2}, value: []byte("pho"), op: put, version: V0},
 	}
 
 	expectedTrie := NewEmptyTrie()
 	for _, test := range tests {
-		expectedTrie.Put(test.key, test.value)
+		expectedTrie.Put(test.key, test.value, test.version)
 	}
 
 	// put all keys except first
@@ -604,14 +611,14 @@ func TestSnapshot(t *testing.T) {
 		if i == 0 {
 			continue
 		}
-		parentTrie.Put(test.key, test.value)
+		parentTrie.Put(test.key, test.value, test.version)
 	}
 
 	newTrie := parentTrie.Snapshot()
-	newTrie.Put(tests[0].key, tests[0].value)
+	newTrie.Put(tests[0].key, tests[0].value, tests[0].version)
 
-	require.Equal(t, expectedTrie.MustHash(), newTrie.MustHash())
-	require.NotEqual(t, parentTrie.MustHash(), newTrie.MustHash())
+	require.Equal(t, expectedTrie.MustHash(V0), newTrie.MustHash(V0))
+	require.NotEqual(t, parentTrie.MustHash(V0), newTrie.MustHash(V0))
 }
 
 func Test_Trie_NextKey_Random(t *testing.T) {
@@ -635,7 +642,8 @@ func Test_Trie_NextKey_Random(t *testing.T) {
 
 	for _, key := range sortedKeys {
 		value := []byte{1}
-		trie.Put(key, value)
+		const stateVersion = V0
+		trie.Put(key, value, stateVersion)
 	}
 
 	for i, key := range sortedKeys {
@@ -659,11 +667,12 @@ func Benchmark_Trie_Hash(b *testing.B) {
 	trie := NewEmptyTrie()
 	for keyString, value := range kv {
 		key := []byte(keyString)
-		trie.Put(key, value)
+		const stateVersion = V0
+		trie.Put(key, value, stateVersion)
 	}
 
 	b.StartTimer()
-	_, err := trie.Hash()
+	_, err := trie.Hash(V0)
 	b.StopTimer()
 
 	require.NoError(b, err)
@@ -689,9 +698,10 @@ func TestTrie_ConcurrentSnapshotWrites(t *testing.T) {
 	testCases := make([][]keyValues, workers)
 	expectedTries := make([]*Trie, workers)
 
+	const stateVersion = V0
 	for i := 0; i < workers; i++ {
 		testCases[i] = make([]keyValues, size)
-		expectedTries[i] = buildSmallTrie()
+		expectedTries[i] = buildSmallTrie(stateVersion)
 		for j := 0; j < size; j++ {
 			k := make([]byte, 2)
 			_, err := generator.Read(k)
@@ -700,7 +710,7 @@ func TestTrie_ConcurrentSnapshotWrites(t *testing.T) {
 
 			switch op {
 			case put:
-				expectedTries[i].Put(k, k)
+				expectedTries[i].Put(k, k, stateVersion)
 			case del:
 				expectedTries[i].Delete(k)
 			case clearPrefix:
@@ -721,7 +731,7 @@ func TestTrie_ConcurrentSnapshotWrites(t *testing.T) {
 	snapshotedTries := make([]*Trie, workers)
 
 	for i := 0; i < workers; i++ {
-		snapshotedTries[i] = buildSmallTrie().Snapshot()
+		snapshotedTries[i] = buildSmallTrie(stateVersion).Snapshot()
 
 		go func(trie *Trie, operations []keyValues,
 			startWg, finishWg *sync.WaitGroup) {
@@ -731,7 +741,7 @@ func TestTrie_ConcurrentSnapshotWrites(t *testing.T) {
 			for _, operation := range operations {
 				switch operation.op {
 				case put:
-					trie.Put(operation.key, operation.key)
+					trie.Put(operation.key, operation.key, stateVersion)
 				case del:
 					trie.Delete(operation.key)
 				case clearPrefix:
@@ -745,8 +755,8 @@ func TestTrie_ConcurrentSnapshotWrites(t *testing.T) {
 
 	for i := 0; i < workers; i++ {
 		assert.Equal(t,
-			expectedTries[i].MustHash(),
-			snapshotedTries[i].MustHash())
+			expectedTries[i].MustHash(V0),
+			snapshotedTries[i].MustHash(V0))
 	}
 }
 
@@ -768,37 +778,37 @@ func TestTrie_ClearPrefixLimit(t *testing.T) {
 
 	cases := [][]keyValues{
 		{
-			{key: []byte{0x01, 0x35}, value: []byte("pen")},
-			{key: []byte{0x01, 0x36}, value: []byte("pencil")},
-			{key: []byte{0x02}, value: []byte("feather")},
-			{key: []byte{0x03}, value: []byte("birds")},
+			{key: []byte{0x01, 0x35}, value: []byte("pen"), version: V0},
+			{key: []byte{0x01, 0x36}, value: []byte("pencil"), version: V0},
+			{key: []byte{0x02}, value: []byte("feather"), version: V0},
+			{key: []byte{0x03}, value: []byte("birds"), version: V0},
 		},
 		{
-			{key: []byte{0x01, 0x35}, value: []byte("pen")},
-			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
-			{key: []byte{0x01, 0x35, 0x7}, value: []byte("g")},
-			{key: []byte{0x01, 0x35, 0x99}, value: []byte("h")},
-			{key: []byte{0xf2}, value: []byte("feather")},
-			{key: []byte{0xf2, 0x3}, value: []byte("f")},
-			{key: []byte{0x09, 0xd3}, value: []byte("noot")},
-			{key: []byte{0x07}, value: []byte("ramen")},
+			{key: []byte{0x01, 0x35}, value: []byte("pen"), version: V0},
+			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), version: V0},
+			{key: []byte{0x01, 0x35, 0x7}, value: []byte("g"), version: V0},
+			{key: []byte{0x01, 0x35, 0x99}, value: []byte("h"), version: V0},
+			{key: []byte{0xf2}, value: []byte("feather"), version: V0},
+			{key: []byte{0xf2, 0x3}, value: []byte("f"), version: V0},
+			{key: []byte{0x09, 0xd3}, value: []byte("noot"), version: V0},
+			{key: []byte{0x07}, value: []byte("ramen"), version: V0},
 		},
 		{
-			{key: []byte{0x01, 0x35}, value: []byte("pen")},
-			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
-			{key: []byte{0x01, 0x35, 0x70}, value: []byte("g")},
-			{key: []byte{0xf2}, value: []byte("feather")},
-			{key: []byte{0xf2, 0x30}, value: []byte("f")},
-			{key: []byte{0x09, 0xd3}, value: []byte("noot")},
-			{key: []byte{0x07}, value: []byte("ramen")},
+			{key: []byte{0x01, 0x35}, value: []byte("pen"), version: V0},
+			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), version: V0},
+			{key: []byte{0x01, 0x35, 0x70}, value: []byte("g"), version: V0},
+			{key: []byte{0xf2}, value: []byte("feather"), version: V0},
+			{key: []byte{0xf2, 0x30}, value: []byte("f"), version: V0},
+			{key: []byte{0x09, 0xd3}, value: []byte("noot"), version: V0},
+			{key: []byte{0x07}, value: []byte("ramen"), version: V0},
 		},
 		{
-			{key: []byte("asdf"), value: []byte("asdf")},
-			{key: []byte("ghjk"), value: []byte("ghjk")},
-			{key: []byte("qwerty"), value: []byte("qwerty")},
-			{key: []byte("uiopl"), value: []byte("uiopl")},
-			{key: []byte("zxcv"), value: []byte("zxcv")},
-			{key: []byte("bnm"), value: []byte("bnm")},
+			{key: []byte("asdf"), value: []byte("asdf"), version: V0},
+			{key: []byte("ghjk"), value: []byte("ghjk"), version: V0},
+			{key: []byte("qwerty"), value: []byte("qwerty"), version: V0},
+			{key: []byte("uiopl"), value: []byte("uiopl"), version: V0},
+			{key: []byte("zxcv"), value: []byte("zxcv"), version: V0},
+			{key: []byte("bnm"), value: []byte("bnm"), version: V0},
 		},
 	}
 
@@ -812,7 +822,7 @@ func TestTrie_ClearPrefixLimit(t *testing.T) {
 			trieClearPrefix := NewEmptyTrie()
 
 			for _, test := range testCase {
-				trieClearPrefix.Put(test.key, test.value)
+				trieClearPrefix.Put(test.key, test.value, test.version)
 			}
 
 			num, allDeleted := trieClearPrefix.ClearPrefixLimit(prefix, uint32(lim))
@@ -869,40 +879,40 @@ func TestTrie_ClearPrefixLimitSnapshot(t *testing.T) {
 
 	cases := [][]keyValues{
 		{
-			{key: []byte{0x01}, value: []byte("feather")},
+			{key: []byte{0x01}, value: []byte("feather"), version: V0},
 		},
 		{
-			{key: []byte{0x01, 0x35}, value: []byte("pen")},
-			{key: []byte{0x01, 0x36}, value: []byte("pencil")},
-			{key: []byte{0x02}, value: []byte("feather")},
-			{key: []byte{0x03}, value: []byte("birds")},
+			{key: []byte{0x01, 0x35}, value: []byte("pen"), version: V0},
+			{key: []byte{0x01, 0x36}, value: []byte("pencil"), version: V0},
+			{key: []byte{0x02}, value: []byte("feather"), version: V0},
+			{key: []byte{0x03}, value: []byte("birds"), version: V0},
 		},
 		{
-			{key: []byte{0x01, 0x35}, value: []byte("pen")},
-			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
-			{key: []byte{0x01, 0x35, 0x7}, value: []byte("g")},
-			{key: []byte{0x01, 0x35, 0x99}, value: []byte("h")},
-			{key: []byte{0xf2}, value: []byte("feather")},
-			{key: []byte{0xf2, 0x3}, value: []byte("f")},
-			{key: []byte{0x09, 0xd3}, value: []byte("noot")},
-			{key: []byte{0x07}, value: []byte("ramen")},
+			{key: []byte{0x01, 0x35}, value: []byte("pen"), version: V0},
+			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), version: V0},
+			{key: []byte{0x01, 0x35, 0x7}, value: []byte("g"), version: V0},
+			{key: []byte{0x01, 0x35, 0x99}, value: []byte("h"), version: V0},
+			{key: []byte{0xf2}, value: []byte("feather"), version: V0},
+			{key: []byte{0xf2, 0x3}, value: []byte("f"), version: V0},
+			{key: []byte{0x09, 0xd3}, value: []byte("noot"), version: V0},
+			{key: []byte{0x07}, value: []byte("ramen"), version: V0},
 		},
 		{
-			{key: []byte{0x01, 0x35}, value: []byte("pen")},
-			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
-			{key: []byte{0x01, 0x35, 0x70}, value: []byte("g")},
-			{key: []byte{0xf2}, value: []byte("feather")},
-			{key: []byte{0xf2, 0x30}, value: []byte("f")},
-			{key: []byte{0x09, 0xd3}, value: []byte("noot")},
-			{key: []byte{0x07}, value: []byte("ramen")},
+			{key: []byte{0x01, 0x35}, value: []byte("pen"), version: V0},
+			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), version: V0},
+			{key: []byte{0x01, 0x35, 0x70}, value: []byte("g"), version: V0},
+			{key: []byte{0xf2}, value: []byte("feather"), version: V0},
+			{key: []byte{0xf2, 0x30}, value: []byte("f"), version: V0},
+			{key: []byte{0x09, 0xd3}, value: []byte("noot"), version: V0},
+			{key: []byte{0x07}, value: []byte("ramen"), version: V0},
 		},
 		{
-			{key: []byte("asdf"), value: []byte("asdf")},
-			{key: []byte("ghjk"), value: []byte("ghjk")},
-			{key: []byte("qwerty"), value: []byte("qwerty")},
-			{key: []byte("uiopl"), value: []byte("uiopl")},
-			{key: []byte("zxcv"), value: []byte("zxcv")},
-			{key: []byte("bnm"), value: []byte("bnm")},
+			{key: []byte("asdf"), value: []byte("asdf"), version: V0},
+			{key: []byte("ghjk"), value: []byte("ghjk"), version: V0},
+			{key: []byte("qwerty"), value: []byte("qwerty"), version: V0},
+			{key: []byte("uiopl"), value: []byte("uiopl"), version: V0},
+			{key: []byte("zxcv"), value: []byte("zxcv"), version: V0},
+			{key: []byte("bnm"), value: []byte("bnm"), version: V0},
 		},
 	}
 
@@ -917,7 +927,7 @@ func TestTrie_ClearPrefixLimitSnapshot(t *testing.T) {
 				trieClearPrefix := NewEmptyTrie()
 
 				for _, test := range testCase {
-					trieClearPrefix.Put(test.key, test.value)
+					trieClearPrefix.Put(test.key, test.value, test.version)
 				}
 
 				dcTrie := trieClearPrefix.DeepCopy()
@@ -926,13 +936,13 @@ func TestTrie_ClearPrefixLimitSnapshot(t *testing.T) {
 				ssTrie := trieClearPrefix.Snapshot()
 
 				// Get the Trie root hash for all the 3 tries.
-				tHash, err := trieClearPrefix.Hash()
+				tHash, err := trieClearPrefix.Hash(V0)
 				require.NoError(t, err)
 
-				dcTrieHash, err := dcTrie.Hash()
+				dcTrieHash, err := dcTrie.Hash(V0)
 				require.NoError(t, err)
 
-				ssTrieHash, err := ssTrie.Hash()
+				ssTrieHash, err := ssTrie.Hash(V0)
 				require.NoError(t, err)
 
 				// Root hash for all the 3 tries should be equal.
@@ -967,13 +977,13 @@ func TestTrie_ClearPrefixLimitSnapshot(t *testing.T) {
 				}
 
 				// Get the updated root hash of all tries.
-				tHash, err = trieClearPrefix.Hash()
+				tHash, err = trieClearPrefix.Hash(V0)
 				require.NoError(t, err)
 
-				dcTrieHash, err = dcTrie.Hash()
+				dcTrieHash, err = dcTrie.Hash(V0)
 				require.NoError(t, err)
 
-				ssTrieHash, err = ssTrie.Hash()
+				ssTrieHash, err = ssTrie.Hash(V0)
 				require.NoError(t, err)
 
 				// If node got deleted then root hash must be updated else it has same root hash.
@@ -997,12 +1007,13 @@ func Test_encodeRoot_fuzz(t *testing.T) {
 
 	const randomBatches = 3
 
+	const stateVersion = V0
 	for i := 0; i < randomBatches; i++ {
 		const kvSize = 16
 		kv := generateKeyValues(t, generator, kvSize)
 		for keyString, value := range kv {
 			key := []byte(keyString)
-			trie.Put(key, value)
+			trie.Put(key, value, stateVersion)
 
 			retrievedValue := trie.Get(key)
 			assert.Equal(t, value, retrievedValue)
@@ -1056,8 +1067,9 @@ func Test_Trie_Descendants_Fuzz(t *testing.T) {
 		return bytes.Compare(keys[i], keys[j]) < 0
 	})
 
+	const stateVersion = V0
 	for _, key := range keys {
-		trie.Put(key, kv[string(key)])
+		trie.Put(key, kv[string(key)], stateVersion)
 	}
 
 	testDescendants(t, trie.root)

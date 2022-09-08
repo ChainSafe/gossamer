@@ -35,10 +35,15 @@ func newTestBlockState(t *testing.T, tries *Tries) *BlockState {
 	bs, err := NewBlockStateFromGenesis(db, tries, header, telemetryMock)
 	require.NoError(t, err)
 
+	bestBlockHash := bs.BestBlockHash()
+	instance, err := bs.GetRuntime(&bestBlockHash)
+	require.NoError(t, err)
+	stateVersion := instance.StateVersion()
+
 	// loads in-memory tries with genesis state root, should be deleted
 	// after another block is finalised
 	tr := trie.NewEmptyTrie()
-	err = tr.Load(bs.db, header.StateRoot)
+	err = tr.Load(bs.db, header.StateRoot, stateVersion)
 	require.NoError(t, err)
 	bs.tries.softSet(header.StateRoot, tr)
 
@@ -349,6 +354,7 @@ func TestGetHashByNumber(t *testing.T) {
 
 func TestAddBlock_WithReOrg(t *testing.T) {
 	t.Skip() // TODO: this should be fixed after state refactor PR
+
 	bs := newTestBlockState(t, newTriesEmpty())
 
 	header1a := &types.Header{
@@ -479,7 +485,6 @@ func TestAddBlockToBlockTree(t *testing.T) {
 
 func TestNumberIsFinalised(t *testing.T) {
 	tries := newTriesEmpty()
-
 	bs := newTestBlockState(t, tries)
 	fin, err := bs.NumberIsFinalised(0)
 	require.NoError(t, err)

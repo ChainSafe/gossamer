@@ -12,6 +12,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -25,9 +26,10 @@ var testCases = []string{
 }
 
 func TestTrieState_SetGet(t *testing.T) {
+	const stateVersion = trie.V0
 	testFunc := func(ts *TrieState) {
 		for _, tc := range testCases {
-			ts.Set([]byte(tc), []byte(tc))
+			ts.Set([]byte(tc), []byte(tc), stateVersion)
 		}
 
 		for _, tc := range testCases {
@@ -41,9 +43,10 @@ func TestTrieState_SetGet(t *testing.T) {
 }
 
 func TestTrieState_Delete(t *testing.T) {
+	const stateVersion = trie.V0
 	testFunc := func(ts *TrieState) {
 		for _, tc := range testCases {
-			ts.Set([]byte(tc), []byte(tc))
+			ts.Set([]byte(tc), []byte(tc), stateVersion)
 		}
 
 		ts.Delete([]byte(testCases[0]))
@@ -56,17 +59,35 @@ func TestTrieState_Delete(t *testing.T) {
 }
 
 func TestTrieState_Root(t *testing.T) {
-	testFunc := func(ts *TrieState) {
-		for _, tc := range testCases {
-			ts.Set([]byte(tc), []byte(tc))
-		}
+	t.Parallel()
 
-		expected := ts.MustRoot()
-		require.Equal(t, expected, ts.MustRoot())
+	testCases := map[string]struct {
+		keyValues    map[string][]byte
+		expectedRoot common.Hash
+		version      trie.Version
+	}{
+		"empty v0 trie": {
+			expectedRoot: trie.EmptyHash,
+			version:      trie.V0,
+		},
 	}
 
-	ts := &TrieState{t: trie.NewEmptyTrie()}
-	testFunc(ts)
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			ts := &TrieState{t: trie.NewEmptyTrie()}
+			for k, v := range testCase.keyValues {
+				ts.Set([]byte(k), v, testCase.version)
+			}
+
+			root, err := ts.Root(testCase.version)
+			require.NoError(t, err)
+
+			assert.Equal(t, testCase.expectedRoot, root)
+		})
+	}
 }
 
 func TestTrieState_ClearPrefix(t *testing.T) {
@@ -78,8 +99,9 @@ func TestTrieState_ClearPrefix(t *testing.T) {
 		"other",
 	}
 
+	const stateVersion = trie.V0
 	for i, key := range keys {
-		ts.Set([]byte(key), []byte{byte(i)})
+		ts.Set([]byte(key), []byte{byte(i)}, stateVersion)
 	}
 
 	ts.ClearPrefix([]byte("noo"))
@@ -104,13 +126,14 @@ func TestTrieState_ClearPrefixInChild(t *testing.T) {
 		"other",
 	}
 
+	const stateVersion = trie.V0
 	for i, key := range keys {
-		child.Put([]byte(key), []byte{byte(i)})
+		child.Put([]byte(key), []byte{byte(i)}, stateVersion)
 	}
 
 	keyToChild := []byte("keytochild")
 
-	err := ts.SetChild(keyToChild, child)
+	err := ts.SetChild(keyToChild, child, trie.V0)
 	require.NoError(t, err)
 
 	err = ts.ClearPrefixInChild(keyToChild, []byte("noo"))
@@ -130,8 +153,9 @@ func TestTrieState_ClearPrefixInChild(t *testing.T) {
 func TestTrieState_NextKey(t *testing.T) {
 	ts := &TrieState{t: trie.NewEmptyTrie()}
 
+	const stateVersion = trie.V0
 	for _, tc := range testCases {
-		ts.Set([]byte(tc), []byte(tc))
+		ts.Set([]byte(tc), []byte(tc), stateVersion)
 	}
 
 	sort.Slice(testCases, func(i, j int) bool {
@@ -151,13 +175,14 @@ func TestTrieState_NextKey(t *testing.T) {
 func TestTrieState_CommitStorageTransaction(t *testing.T) {
 	ts := &TrieState{t: trie.NewEmptyTrie()}
 
+	const stateVersion = trie.V0
 	for _, tc := range testCases {
-		ts.Set([]byte(tc), []byte(tc))
+		ts.Set([]byte(tc), []byte(tc), stateVersion)
 	}
 
 	ts.BeginStorageTransaction()
 	testValue := []byte("noot")
-	ts.Set([]byte(testCases[0]), testValue)
+	ts.Set([]byte(testCases[0]), testValue, stateVersion)
 	ts.CommitStorageTransaction()
 
 	val := ts.Get([]byte(testCases[0]))
@@ -167,13 +192,14 @@ func TestTrieState_CommitStorageTransaction(t *testing.T) {
 func TestTrieState_RollbackStorageTransaction(t *testing.T) {
 	ts := &TrieState{t: trie.NewEmptyTrie()}
 
+	const stateVersion = trie.V0
 	for _, tc := range testCases {
-		ts.Set([]byte(tc), []byte(tc))
+		ts.Set([]byte(tc), []byte(tc), stateVersion)
 	}
 
 	ts.BeginStorageTransaction()
 	testValue := []byte("noot")
-	ts.Set([]byte(testCases[0]), testValue)
+	ts.Set([]byte(testCases[0]), testValue, stateVersion)
 	ts.RollbackStorageTransaction()
 
 	val := ts.Get([]byte(testCases[0]))
@@ -190,13 +216,14 @@ func TestTrieState_DeleteChildLimit(t *testing.T) {
 		"key2",
 	}
 
+	const stateVersion = trie.V0
 	for i, key := range keys {
-		child.Put([]byte(key), []byte{byte(i)})
+		child.Put([]byte(key), []byte{byte(i)}, stateVersion)
 	}
 
 	keyToChild := []byte("keytochild")
 
-	err := ts.SetChild(keyToChild, child)
+	err := ts.SetChild(keyToChild, child, trie.V0)
 	require.NoError(t, err)
 
 	testLimitBytes := make([]byte, 4)

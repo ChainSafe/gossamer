@@ -27,8 +27,11 @@ func newTestGenesisWithTrieAndHeader(t *testing.T) (
 	genesisTrie, err = wasmer.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
+	stateVersion, err := wasmer.StateVersionFromGenesis(gen)
+	require.NoError(t, err)
+
 	parentHash := common.NewHash([]byte{0})
-	stateRoot := genesisTrie.MustHash()
+	stateRoot := genesisTrie.MustHash(stateVersion)
 	extrinsicRoot := trie.EmptyHash
 	const number = 0
 	digest := types.NewDigest()

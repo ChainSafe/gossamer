@@ -415,20 +415,32 @@ func Test_encodeRoot(t *testing.T) {
 func Test_Trie_MustHash(t *testing.T) {
 	t.Parallel()
 
-	t.Run("success", func(t *testing.T) {
-		t.Parallel()
+	testCases := map[string]struct {
+		version Version
+		trie    Trie
+		hash    common.Hash
+	}{
+		"v0": {
+			version: V0,
+			trie:    Trie{},
+			hash: common.Hash{
+				0x3, 0x17, 0xa, 0x2e, 0x75, 0x97, 0xb7, 0xb7,
+				0xe3, 0xd8, 0x4c, 0x5, 0x39, 0x1d, 0x13, 0x9a,
+				0x62, 0xb1, 0x57, 0xe7, 0x87, 0x86, 0xd8, 0xc0,
+				0x82, 0xf2, 0x9d, 0xcf, 0x4c, 0x11, 0x13, 0x14},
+		},
+	}
 
-		var trie Trie
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 
-		hash := trie.MustHash()
+			hash := testCase.trie.MustHash(testCase.version)
 
-		expectedHash := common.Hash{
-			0x3, 0x17, 0xa, 0x2e, 0x75, 0x97, 0xb7, 0xb7,
-			0xe3, 0xd8, 0x4c, 0x5, 0x39, 0x1d, 0x13, 0x9a,
-			0x62, 0xb1, 0x57, 0xe7, 0x87, 0x86, 0xd8, 0xc0,
-			0x82, 0xf2, 0x9d, 0xcf, 0x4c, 0x11, 0x13, 0x14}
-		assert.Equal(t, expectedHash, hash)
-	})
+			assert.Equal(t, testCase.hash, hash)
+		})
+	}
 }
 
 func Test_Trie_Hash(t *testing.T) {
@@ -436,25 +448,28 @@ func Test_Trie_Hash(t *testing.T) {
 
 	testCases := map[string]struct {
 		trie         Trie
+		version      Version
 		hash         common.Hash
 		errWrapped   error
 		errMessage   string
 		expectedTrie Trie
 	}{
-		"nil root": {
+		"v0 nil root": {
+			version: V0,
 			hash: common.Hash{
 				0x3, 0x17, 0xa, 0x2e, 0x75, 0x97, 0xb7, 0xb7,
 				0xe3, 0xd8, 0x4c, 0x5, 0x39, 0x1d, 0x13, 0x9a,
 				0x62, 0xb1, 0x57, 0xe7, 0x87, 0x86, 0xd8, 0xc0,
 				0x82, 0xf2, 0x9d, 0xcf, 0x4c, 0x11, 0x13, 0x14},
 		},
-		"leaf root": {
+		"v0 leaf root": {
 			trie: Trie{
 				root: &Node{
 					Key:      []byte{1, 2, 3},
 					SubValue: []byte{1},
 				},
 			},
+			version: V0,
 			hash: common.Hash{
 				0xa8, 0x13, 0x7c, 0xee, 0xb4, 0xad, 0xea, 0xac,
 				0x9e, 0x5b, 0x37, 0xe2, 0x8e, 0x7d, 0x64, 0x78,
@@ -468,7 +483,7 @@ func Test_Trie_Hash(t *testing.T) {
 				},
 			},
 		},
-		"branch root": {
+		"v0 branch root": {
 			trie: Trie{
 				root: &Node{
 					Key:         []byte{1, 2, 3},
@@ -479,6 +494,7 @@ func Test_Trie_Hash(t *testing.T) {
 					}),
 				},
 			},
+			version: V0,
 			hash: common.Hash{
 				0xaa, 0x7e, 0x57, 0x48, 0xb0, 0x27, 0x4d, 0x18,
 				0xf5, 0x1c, 0xfd, 0x36, 0x4c, 0x4b, 0x56, 0x4a,
@@ -507,7 +523,7 @@ func Test_Trie_Hash(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			hash, err := testCase.trie.Hash()
+			hash, err := testCase.trie.Hash(V0)
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if testCase.errWrapped != nil {
@@ -655,7 +671,7 @@ func Test_Trie_Entries(t *testing.T) {
 		}
 
 		for k, v := range kv {
-			trie.Put([]byte(k), v)
+			trie.Put([]byte(k), v, V0)
 		}
 
 		entries := trie.Entries()
@@ -1003,6 +1019,7 @@ func Test_Trie_Put(t *testing.T) {
 		trie         Trie
 		key          []byte
 		value        []byte
+		version      Version
 		expectedTrie Trie
 	}{
 		"trie with key and value": {
@@ -1013,8 +1030,9 @@ func Test_Trie_Put(t *testing.T) {
 					SubValue: []byte{1},
 				},
 			},
-			key:   []byte{0x12, 0x16},
-			value: []byte{2},
+			key:     []byte{0x12, 0x16},
+			value:   []byte{2},
+			version: V0,
 			expectedTrie: Trie{
 				generation: 1,
 				root: &Node{
@@ -1047,7 +1065,7 @@ func Test_Trie_Put(t *testing.T) {
 			t.Parallel()
 
 			trie := testCase.trie
-			trie.Put(testCase.key, testCase.value)
+			trie.Put(testCase.key, testCase.value, testCase.version)
 
 			assert.Equal(t, testCase.expectedTrie, trie)
 		})
@@ -1062,6 +1080,7 @@ func Test_Trie_insert(t *testing.T) {
 		parent       *Node
 		key          []byte
 		value        []byte
+		version      Version
 		newNode      *Node
 		nodesCreated uint32
 	}{
@@ -1069,8 +1088,9 @@ func Test_Trie_insert(t *testing.T) {
 			trie: Trie{
 				generation: 1,
 			},
-			key:   []byte{1},
-			value: []byte("leaf"),
+			key:     []byte{1},
+			value:   []byte("leaf"),
+			version: V0,
 			newNode: &Node{
 				Key:        []byte{1},
 				SubValue:   []byte("leaf"),
@@ -1092,8 +1112,9 @@ func Test_Trie_insert(t *testing.T) {
 					{Key: []byte{2}, SubValue: []byte{1}},
 				}),
 			},
-			key:   []byte{1, 0},
-			value: []byte("leaf"),
+			key:     []byte{1, 0},
+			value:   []byte("leaf"),
+			version: V0,
 			newNode: &Node{
 				Key:         []byte{1},
 				SubValue:    []byte("branch"),
@@ -1120,8 +1141,9 @@ func Test_Trie_insert(t *testing.T) {
 				Key:      []byte{1},
 				SubValue: []byte("original leaf"),
 			},
-			key:   []byte{1},
-			value: []byte("new leaf"),
+			key:     []byte{1},
+			value:   []byte("new leaf"),
+			version: V0,
 			newNode: &Node{
 				Key:        []byte{1},
 				SubValue:   []byte("new leaf"),
@@ -1137,8 +1159,9 @@ func Test_Trie_insert(t *testing.T) {
 				Key:      []byte{1},
 				SubValue: []byte("same"),
 			},
-			key:   []byte{1},
-			value: []byte("same"),
+			key:     []byte{1},
+			value:   []byte("same"),
+			version: V0,
 			newNode: &Node{
 				Key:      []byte{1},
 				SubValue: []byte("same"),
@@ -1152,8 +1175,9 @@ func Test_Trie_insert(t *testing.T) {
 				Key:      []byte{1},
 				SubValue: []byte("original leaf"),
 			},
-			key:   []byte{1, 0},
-			value: []byte("leaf"),
+			key:     []byte{1, 0},
+			value:   []byte("leaf"),
+			version: V0,
 			newNode: &Node{
 				Key:         []byte{1},
 				SubValue:    []byte("original leaf"),
@@ -1179,8 +1203,9 @@ func Test_Trie_insert(t *testing.T) {
 				Key:      []byte{1, 2},
 				SubValue: []byte("original leaf"),
 			},
-			key:   []byte{2, 3},
-			value: []byte("leaf"),
+			key:     []byte{2, 3},
+			value:   []byte("leaf"),
+			version: V0,
 			newNode: &Node{
 				Key:         []byte{},
 				Dirty:       true,
@@ -1212,8 +1237,9 @@ func Test_Trie_insert(t *testing.T) {
 				Key:      []byte{1},
 				SubValue: []byte{1},
 			},
-			key:   []byte{1},
-			value: []byte("leaf"),
+			key:     []byte{1},
+			value:   []byte("leaf"),
+			version: V0,
 			newNode: &Node{
 				Key:        []byte{1},
 				SubValue:   []byte("leaf"),
@@ -1229,8 +1255,9 @@ func Test_Trie_insert(t *testing.T) {
 				Key:      []byte{1, 2},
 				SubValue: []byte{1},
 			},
-			key:   []byte{1},
-			value: []byte("leaf"),
+			key:     []byte{1},
+			value:   []byte("leaf"),
+			version: V0,
 			newNode: &Node{
 				Key:         []byte{1},
 				SubValue:    []byte("leaf"),
@@ -1259,7 +1286,8 @@ func Test_Trie_insert(t *testing.T) {
 			trie := testCase.trie
 			expectedTrie := *trie.DeepCopy()
 
-			newNode, nodesCreated := trie.insert(testCase.parent, testCase.key, testCase.value)
+			newNode, nodesCreated := trie.insert(testCase.parent,
+				testCase.key, testCase.value, testCase.version)
 
 			assert.Equal(t, testCase.newNode, newNode)
 			assert.Equal(t, testCase.nodesCreated, nodesCreated)
@@ -1275,6 +1303,7 @@ func Test_Trie_insertInBranch(t *testing.T) {
 		parent       *Node
 		key          []byte
 		value        []byte
+		version      Version
 		newNode      *Node
 		nodesCreated uint32
 	}{
@@ -1287,8 +1316,9 @@ func Test_Trie_insertInBranch(t *testing.T) {
 					{Key: []byte{1}, SubValue: []byte{1}},
 				}),
 			},
-			key:   []byte{2},
-			value: []byte("new"),
+			key:     []byte{2},
+			value:   []byte("new"),
+			version: V0,
 			newNode: &Node{
 				Key:         []byte{2},
 				SubValue:    []byte("new"),
@@ -1308,8 +1338,9 @@ func Test_Trie_insertInBranch(t *testing.T) {
 					{Key: []byte{1}, SubValue: []byte{1}},
 				}),
 			},
-			key:   []byte{2},
-			value: []byte("new"),
+			key:     []byte{2},
+			value:   []byte("new"),
+			version: V0,
 			newNode: &Node{
 				Key:         []byte{2},
 				SubValue:    []byte("new"),
@@ -1329,8 +1360,9 @@ func Test_Trie_insertInBranch(t *testing.T) {
 					{Key: []byte{1}, SubValue: []byte{1}},
 				}),
 			},
-			key:   []byte{2, 3, 4, 5},
-			value: []byte{6},
+			key:     []byte{2, 3, 4, 5},
+			value:   []byte{6},
+			version: V0,
 			newNode: &Node{
 				Key:         []byte{2},
 				SubValue:    []byte{5},
@@ -1364,8 +1396,9 @@ func Test_Trie_insertInBranch(t *testing.T) {
 					},
 				}),
 			},
-			key:   []byte{2, 3, 4, 5, 6},
-			value: []byte{6},
+			key:     []byte{2, 3, 4, 5, 6},
+			value:   []byte{6},
+			version: V0,
 			newNode: &Node{
 				Key:         []byte{2},
 				SubValue:    []byte{5},
@@ -1400,8 +1433,9 @@ func Test_Trie_insertInBranch(t *testing.T) {
 					{Key: []byte{1}, SubValue: []byte{1}},
 				}),
 			},
-			key:   []byte{2, 4, 5, 6},
-			value: []byte{6},
+			key:     []byte{2, 4, 5, 6},
+			value:   []byte{6},
+			version: V0,
 			newNode: &Node{
 				Key:         []byte{2},
 				Dirty:       true,
@@ -1435,8 +1469,9 @@ func Test_Trie_insertInBranch(t *testing.T) {
 					{Key: []byte{1}, SubValue: []byte{1}},
 				}),
 			},
-			key:   []byte{3},
-			value: []byte{6},
+			key:     []byte{3},
+			value:   []byte{6},
+			version: V0,
 			newNode: &Node{
 				Key:         []byte{},
 				Dirty:       true,
@@ -1470,8 +1505,9 @@ func Test_Trie_insertInBranch(t *testing.T) {
 					{Key: []byte{1}, SubValue: []byte{1}},
 				}),
 			},
-			key:   []byte{},
-			value: []byte{6},
+			key:     []byte{},
+			value:   []byte{6},
+			version: V0,
 			newNode: &Node{
 				Key:         []byte{},
 				SubValue:    []byte{6},
@@ -1501,7 +1537,8 @@ func Test_Trie_insertInBranch(t *testing.T) {
 
 			trie := new(Trie)
 
-			newNode, nodesCreated := trie.insertInBranch(testCase.parent, testCase.key, testCase.value)
+			newNode, nodesCreated := trie.insertInBranch(testCase.parent,
+				testCase.key, testCase.value, testCase.version)
 
 			assert.Equal(t, testCase.newNode, newNode)
 			assert.Equal(t, testCase.nodesCreated, nodesCreated)
@@ -1516,18 +1553,21 @@ func Test_Trie_LoadFromMap(t *testing.T) {
 	testCases := map[string]struct {
 		trie         Trie
 		data         map[string]string
+		version      Version
 		expectedTrie Trie
 		errWrapped   error
 		errMessage   string
 	}{
 		"nil data": {},
 		"empty data": {
-			data: map[string]string{},
+			data:    map[string]string{},
+			version: V0,
 		},
 		"bad key": {
 			data: map[string]string{
 				"0xa": "0x01",
 			},
+			version:    V0,
 			errWrapped: hex.ErrLength,
 			errMessage: "cannot convert key hex to bytes: encoding/hex: odd length hex string: 0xa",
 		},
@@ -1535,6 +1575,7 @@ func Test_Trie_LoadFromMap(t *testing.T) {
 			data: map[string]string{
 				"0x01": "0xa",
 			},
+			version:    V0,
 			errWrapped: hex.ErrLength,
 			errMessage: "cannot convert value hex to bytes: encoding/hex: odd length hex string: 0xa",
 		},
@@ -1544,6 +1585,7 @@ func Test_Trie_LoadFromMap(t *testing.T) {
 				"0x0120": "0x07",
 				"0x0130": "0x08",
 			},
+			version: V0,
 			expectedTrie: Trie{
 				root: &Node{
 					Key:         []byte{00, 01},
@@ -1591,6 +1633,7 @@ func Test_Trie_LoadFromMap(t *testing.T) {
 				"0x0120": "0x07",
 				"0x0130": "0x08",
 			},
+			version: V0,
 			expectedTrie: Trie{
 				root: &Node{
 					Key:         []byte{00, 01},
@@ -1623,7 +1666,7 @@ func Test_Trie_LoadFromMap(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			err := testCase.trie.LoadFromMap(testCase.data)
+			err := testCase.trie.LoadFromMap(testCase.data, testCase.version)
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if testCase.errWrapped != nil {

@@ -66,7 +66,7 @@ func Test_ParseVersion(t *testing.T) {
 		"invalid string": {
 			x:          "xyz",
 			errWrapped: ErrVersionNotValid,
-			errMessage: "parsing version failed: xyz",
+			errMessage: "version not valid: xyz",
 		},
 		"0 uint32": {
 			x:       uint32(0),
@@ -75,7 +75,7 @@ func Test_ParseVersion(t *testing.T) {
 		"invalid uint32": {
 			x:          uint32(100),
 			errWrapped: ErrVersionNotValid,
-			errMessage: "parsing version failed: v100",
+			errMessage: "version not valid: V100",
 		},
 	}
 

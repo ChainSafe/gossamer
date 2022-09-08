@@ -14,6 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/ChainSafe/gossamer/lib/trie"
 
 	"github.com/golang/mock/gomock"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -350,7 +351,8 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 				storageState := NewMockStorageState(ctrl)
 				storageState.EXPECT().Lock()
 				storageState.EXPECT().Unlock()
-				storageState.EXPECT().TrieState(tt.mockStorageState.input).Return(
+				const stateVersion = trie.V0
+				storageState.EXPECT().TrieState(tt.mockStorageState.input, stateVersion).Return(
 					tt.mockStorageState.trieState,
 					tt.mockStorageState.err)
 				s.storageState = storageState

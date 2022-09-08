@@ -16,13 +16,13 @@ type StorageAPI struct {
 	mock.Mock
 }
 
-// Entries provides a mock function with given fields: root
-func (_m *StorageAPI) Entries(root *common.Hash) (map[string][]byte, error) {
-	ret := _m.Called(root)
+// Entries provides a mock function with given fields: root, stateVersion
+func (_m *StorageAPI) Entries(root *common.Hash, stateVersion trie.Version) (map[string][]byte, error) {
+	ret := _m.Called(root, stateVersion)
 
 	var r0 map[string][]byte
-	if rf, ok := ret.Get(0).(func(*common.Hash) map[string][]byte); ok {
-		r0 = rf(root)
+	if rf, ok := ret.Get(0).(func(*common.Hash, trie.Version) map[string][]byte); ok {
+		r0 = rf(root, stateVersion)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(map[string][]byte)
@@ -30,8 +30,8 @@ func (_m *StorageAPI) Entries(root *common.Hash) (map[string][]byte, error) {
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(*common.Hash) error); ok {
-		r1 = rf(root)
+	if rf, ok := ret.Get(1).(func(*common.Hash, trie.Version) error); ok {
+		r1 = rf(root, stateVersion)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -39,13 +39,13 @@ func (_m *StorageAPI) Entries(root *common.Hash) (map[string][]byte, error) {
 	return r0, r1
 }
 
-// GetKeysWithPrefix provides a mock function with given fields: root, prefix
-func (_m *StorageAPI) GetKeysWithPrefix(root *common.Hash, prefix []byte) ([][]byte, error) {
-	ret := _m.Called(root, prefix)
+// GetKeysWithPrefix provides a mock function with given fields: root, prefix, stateVersion
+func (_m *StorageAPI) GetKeysWithPrefix(root *common.Hash, prefix []byte, stateVersion trie.Version) ([][]byte, error) {
+	ret := _m.Called(root, prefix, stateVersion)
 
 	var r0 [][]byte
-	if rf, ok := ret.Get(0).(func(*common.Hash, []byte) [][]byte); ok {
-		r0 = rf(root, prefix)
+	if rf, ok := ret.Get(0).(func(*common.Hash, []byte, trie.Version) [][]byte); ok {
+		r0 = rf(root, prefix, stateVersion)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([][]byte)
@@ -53,8 +53,8 @@ func (_m *StorageAPI) GetKeysWithPrefix(root *common.Hash, prefix []byte) ([][]b
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(*common.Hash, []byte) error); ok {
-		r1 = rf(root, prefix)
+	if rf, ok := ret.Get(1).(func(*common.Hash, []byte, trie.Version) error); ok {
+		r1 = rf(root, prefix, stateVersion)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -131,13 +131,13 @@ func (_m *StorageAPI) GetStorageByBlockHash(bhash *common.Hash, key []byte) ([]b
 	return r0, r1
 }
 
-// GetStorageChild provides a mock function with given fields: root, keyToChild
-func (_m *StorageAPI) GetStorageChild(root *common.Hash, keyToChild []byte) (*trie.Trie, error) {
-	ret := _m.Called(root, keyToChild)
+// GetStorageChild provides a mock function with given fields: root, keyToChild, stateVersion
+func (_m *StorageAPI) GetStorageChild(root *common.Hash, keyToChild []byte, stateVersion trie.Version) (*trie.Trie, error) {
+	ret := _m.Called(root, keyToChild, stateVersion)
 
 	var r0 *trie.Trie
-	if rf, ok := ret.Get(0).(func(*common.Hash, []byte) *trie.Trie); ok {
-		r0 = rf(root, keyToChild)
+	if rf, ok := ret.Get(0).(func(*common.Hash, []byte, trie.Version) *trie.Trie); ok {
+		r0 = rf(root, keyToChild, stateVersion)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*trie.Trie)
@@ -145,8 +145,8 @@ func (_m *StorageAPI) GetStorageChild(root *common.Hash, keyToChild []byte) (*tr
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(*common.Hash, []byte) error); ok {
-		r1 = rf(root, keyToChild)
+	if rf, ok := ret.Get(1).(func(*common.Hash, []byte, trie.Version) error); ok {
+		r1 = rf(root, keyToChild, stateVersion)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -154,13 +154,13 @@ func (_m *StorageAPI) GetStorageChild(root *common.Hash, keyToChild []byte) (*tr
 	return r0, r1
 }
 
-// GetStorageFromChild provides a mock function with given fields: root, keyToChild, key
-func (_m *StorageAPI) GetStorageFromChild(root *common.Hash, keyToChild []byte, key []byte) ([]byte, error) {
-	ret := _m.Called(root, keyToChild, key)
+// GetStorageFromChild provides a mock function with given fields: root, keyToChild, key, stateVersion
+func (_m *StorageAPI) GetStorageFromChild(root *common.Hash, keyToChild []byte, key []byte, stateVersion trie.Version) ([]byte, error) {
+	ret := _m.Called(root, keyToChild, key, stateVersion)
 
 	var r0 []byte
-	if rf, ok := ret.Get(0).(func(*common.Hash, []byte, []byte) []byte); ok {
-		r0 = rf(root, keyToChild, key)
+	if rf, ok := ret.Get(0).(func(*common.Hash, []byte, []byte, trie.Version) []byte); ok {
+		r0 = rf(root, keyToChild, key, stateVersion)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]byte)
@@ -168,8 +168,8 @@ func (_m *StorageAPI) GetStorageFromChild(root *common.Hash, keyToChild []byte, 
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(*common.Hash, []byte, []byte) error); ok {
-		r1 = rf(root, keyToChild, key)
+	if rf, ok := ret.Get(1).(func(*common.Hash, []byte, []byte, trie.Version) error); ok {
+		r1 = rf(root, keyToChild, key, stateVersion)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -178,8 +178,17 @@ func (_m *StorageAPI) GetStorageFromChild(root *common.Hash, keyToChild []byte, 
 }
 
 // RegisterStorageObserver provides a mock function with given fields: observer
-func (_m *StorageAPI) RegisterStorageObserver(observer state.Observer) {
-	_m.Called(observer)
+func (_m *StorageAPI) RegisterStorageObserver(observer state.Observer) error {
+	ret := _m.Called(observer)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(state.Observer) error); ok {
+		r0 = rf(observer)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
 }
 
 // UnregisterStorageObserver provides a mock function with given fields: observer

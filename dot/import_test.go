@@ -12,6 +12,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -197,20 +198,23 @@ func Test_newTrieFromPairs(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name     string
-		filename string
-		want     common.Hash
-		err      error
+		name         string
+		filename     string
+		stateVersion trie.Version
+		want         common.Hash
+		err          error
 	}{
 		{
-			name: "no arguments",
-			err:  errors.New("read .: is a directory"),
-			want: common.Hash{},
+			name:         "no arguments",
+			stateVersion: trie.V0,
+			err:          errors.New("read .: is a directory"),
+			want:         common.Hash{},
 		},
 		{
-			name:     "working example",
-			filename: setupStateFile(t),
-			want:     common.MustHexToHash("0x09f9ca28df0560c2291aa16b56e15e07d1e1927088f51356d522722aa90ca7cb"),
+			name:         "working example",
+			stateVersion: trie.V0,
+			filename:     setupStateFile(t),
+			want:         common.MustHexToHash("0x09f9ca28df0560c2291aa16b56e15e07d1e1927088f51356d522722aa90ca7cb"),
 		},
 	}
 	for _, tt := range tests {
@@ -218,7 +222,7 @@ func Test_newTrieFromPairs(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := newTrieFromPairs(tt.filename)
+			got, err := newTrieFromPairs(tt.filename, tt.stateVersion)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
@@ -227,7 +231,7 @@ func Test_newTrieFromPairs(t *testing.T) {
 			if tt.want.IsEmpty() {
 				assert.Nil(t, got)
 			} else {
-				assert.Equal(t, tt.want, got.MustHash())
+				assert.Equal(t, tt.want, got.MustHash(tt.stateVersion))
 			}
 		})
 	}

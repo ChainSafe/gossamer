@@ -22,9 +22,10 @@ type writeCall struct {
 var errTest = errors.New("test error")
 
 type keyValues struct {
-	key   []byte
-	value []byte
-	op    int
+	key     []byte
+	value   []byte
+	version Version
+	op      int
 }
 
 // newGenerator creates a new PRNG seeded with the
@@ -99,7 +100,8 @@ func makeSeededTrie(t *testing.T, size int) (
 
 	for keyString, value := range keyValues {
 		key := []byte(keyString)
-		trie.Put(key, value)
+		const version = V0
+		trie.Put(key, value, version)
 	}
 
 	return trie, keyValues

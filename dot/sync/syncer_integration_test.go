@@ -86,7 +86,12 @@ func newTestSyncer(t *testing.T) *Service {
 		gomock.AssignableToTypeOf(&rtstorage.TrieState{})).DoAndReturn(
 		func(block *types.Block, ts *rtstorage.TrieState) error {
 			// store updates state trie nodes in database
-			if err = stateSrvc.Storage.StoreTrie(ts, &block.Header); err != nil {
+			blockHash := block.Header.Hash()
+			instance, err := stateSrvc.Block.GetRuntime(&blockHash)
+			require.NoError(t, err)
+			stateVersion := instance.StateVersion()
+
+			if err = stateSrvc.Storage.StoreTrie(ts, &block.Header, stateVersion); err != nil {
 				logger.Warnf("failed to store state trie for imported block %s: %s", block.Header.Hash(), err)
 				return err
 			}
@@ -97,7 +102,7 @@ func newTestSyncer(t *testing.T) *Service {
 
 			stateSrvc.Block.StoreRuntime(block.Header.Hash(), instance)
 			logger.Debugf("imported block %s and stored state trie with root %s",
-				block.Header.Hash(), ts.MustRoot())
+				block.Header.Hash(), ts.MustRoot(stateVersion))
 			return nil
 		}).AnyTimes()
 	cfg.BlockImportHandler = blockImportHandler
@@ -133,8 +138,11 @@ func newTestGenesisWithTrieAndHeader(t *testing.T) (
 	genesisTrie, err = wasmer.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
+	stateVersion, err := wasmer.StateVersionFromGenesis(gen)
+	require.NoError(t, err)
+
 	parentHash := common.NewHash([]byte{0})
-	stateRoot := genesisTrie.MustHash()
+	stateRoot := genesisTrie.MustHash(stateVersion)
 	extrinsicRoot := trie.EmptyHash
 	const number = 0
 	digest := types.NewDigest()

@@ -35,10 +35,6 @@ func newEpochStateFromGenesis(t *testing.T) *EpochState {
 	return s
 }
 
-func TestNewEpochStateFromGenesis(t *testing.T) {
-	_ = newEpochStateFromGenesis(t)
-}
-
 func TestEpochState_CurrentEpoch(t *testing.T) {
 	s := newEpochStateFromGenesis(t)
 	epoch, err := s.GetCurrentEpoch()

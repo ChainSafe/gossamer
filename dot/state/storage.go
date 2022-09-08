@@ -120,6 +120,9 @@ func (s *StorageState) TrieState(root *common.Hash, version trie.Version) (*rtst
 		root = &sr
 	}
 
+	// TODO get state version from runtime corresponding to block hash corresponding to state root given?
+	// Or keep it injected?
+
 	t := s.tries.get(*root)
 	if t == nil {
 		var err error

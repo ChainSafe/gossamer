@@ -22,6 +22,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/require"
@@ -186,11 +187,15 @@ func TestInitNode_LoadStorageRoot(t *testing.T) {
 	node, err := NewNode(cfg, ks)
 	require.NoError(t, err)
 
-	expected := &trie.Trie{}
-	err = expected.LoadFromMap(gen.GenesisFields().Raw["top"])
+	stateVersion, err := wasmer.StateVersionFromGenesis(*gen)
 	require.NoError(t, err)
 
-	expectedRoot, err := expected.Hash()
+	expected := trie.NewEmptyTrie()
+	keyValues := gen.GenesisFields().Raw["top"]
+	err = expected.LoadFromMap(keyValues, stateVersion)
+	require.NoError(t, err)
+
+	expectedRoot, err := expected.Hash(stateVersion)
 	require.NoError(t, err)
 
 	coreServiceInterface := node.ServiceRegistry.Get(&core.Service{})
@@ -199,7 +204,7 @@ func TestInitNode_LoadStorageRoot(t *testing.T) {
 	require.True(t, ok, "could not find core service")
 	require.NotNil(t, coreSrvc)
 
-	stateRoot, err := coreSrvc.StorageRoot()
+	stateRoot, err := coreSrvc.StorageRoot(stateVersion)
 	require.NoError(t, err)
 	require.Equal(t, expectedRoot, stateRoot)
 }

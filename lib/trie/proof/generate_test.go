@@ -32,6 +32,7 @@ func Test_Generate(t *testing.T) {
 		rootHash          []byte
 		fullKeysNibbles   [][]byte
 		databaseBuilder   func(ctrl *gomock.Controller) Database
+		version           trie.Version
 		encodedProofNodes [][]byte
 		errWrapped        error
 		errMessage        string
@@ -44,6 +45,7 @@ func Test_Generate(t *testing.T) {
 					Return(nil, errTest)
 				return mockDatabase
 			},
+			version:    trie.V0,
 			errWrapped: errTest,
 			errMessage: "loading trie: " +
 				"failed to find root key " +
@@ -63,6 +65,7 @@ func Test_Generate(t *testing.T) {
 					Return(encodedRoot, nil)
 				return mockDatabase
 			},
+			version:    trie.V0,
 			errWrapped: ErrKeyNotFound,
 			errMessage: "walking to node at key 0x01: key not found",
 		},
@@ -79,6 +82,7 @@ func Test_Generate(t *testing.T) {
 					Return(encodedRoot, nil)
 				return mockDatabase
 			},
+			version: trie.V0,
 			encodedProofNodes: [][]byte{
 				encodeNode(t, node.Node{
 					Key:      []byte{1},
@@ -106,6 +110,7 @@ func Test_Generate(t *testing.T) {
 					Return(encodedRoot, nil)
 				return mockDatabase
 			},
+			version: trie.V0,
 			encodedProofNodes: [][]byte{
 				encodeNode(t, node.Node{
 					Key:      []byte{1},
@@ -149,6 +154,7 @@ func Test_Generate(t *testing.T) {
 
 				return mockDatabase
 			},
+			version: trie.V0,
 			encodedProofNodes: [][]byte{
 				encodeNode(t, node.Node{
 					Key:      []byte{1, 2},
@@ -210,6 +216,7 @@ func Test_Generate(t *testing.T) {
 
 				return mockDatabase
 			},
+			version: trie.V0,
 			encodedProofNodes: [][]byte{
 				encodeNode(t, node.Node{
 					Key:      []byte{1, 2},
@@ -255,7 +262,7 @@ func Test_Generate(t *testing.T) {
 			}
 
 			encodedProofNodes, err := Generate(testCase.rootHash,
-				fullKeysLE, database)
+				fullKeysLE, database, testCase.version)
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if testCase.errWrapped != nil {
@@ -828,9 +835,10 @@ func Test_lenCommonPrefix(t *testing.T) {
 // so the code is kept to this inefficient-looking append,
 // which is in the end quite performant still.
 func Benchmark_walkRoot(b *testing.B) {
-	trie := trie.NewEmptyTrie()
+	benchTrie := trie.NewEmptyTrie()
 
 	// Build a deep trie.
+	const version = trie.V0
 	const trieDepth = 1000
 	for i := 0; i < trieDepth; i++ {
 		keySize := 1 + i
@@ -838,13 +846,13 @@ func Benchmark_walkRoot(b *testing.B) {
 		const trieValueSize = 10
 		value := make([]byte, trieValueSize)
 
-		trie.Put(key, value)
+		benchTrie.Put(key, value, version)
 	}
 
 	longestKeyLE := make([]byte, trieDepth)
 	longestKeyNibbles := codec.KeyLEToNibbles(longestKeyLE)
 
-	rootNode := trie.RootNode()
+	rootNode := benchTrie.RootNode()
 	encodedProofNodes, err := walkRoot(rootNode, longestKeyNibbles)
 	require.NoError(b, err)
 	require.Equal(b, len(encodedProofNodes), trieDepth)
