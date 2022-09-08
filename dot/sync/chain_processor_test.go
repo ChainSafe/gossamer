@@ -8,6 +8,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -1068,6 +1069,147 @@ func Test_chainProcessor_processBlockDataWithStateHeaderAndBody(t *testing.T) {
 			processor := testCase.chainProcessorBuilder(ctrl)
 
 			err := processor.processBlockDataWithStateHeaderAndBody(
+				testCase.blockData, testCase.announceImportedBlock)
+
+			assert.ErrorIs(t, err, testCase.sentinelError)
+			if testCase.sentinelError != nil {
+				assert.EqualError(t, err, testCase.errorMessage)
+			}
+		})
+	}
+}
+
+func Test_chainProcessor_processBlockDataWithHeaderAndBody(t *testing.T) {
+	t.Parallel()
+
+	errTest := errors.New("test error")
+
+	testCases := map[string]struct {
+		chainProcessorBuilder func(ctrl *gomock.Controller) chainProcessor
+		blockData             types.BlockData
+		announceImportedBlock bool
+		sentinelError         error
+		errorMessage          string
+	}{
+		"verify block error": {
+			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
+				babeVerifier := NewMockBabeVerifier(ctrl)
+				babeVerifier.EXPECT().VerifyBlock(&types.Header{Number: 1}).
+					Return(errTest)
+
+				return chainProcessor{
+					babeVerifier: babeVerifier,
+				}
+			},
+			blockData: types.BlockData{
+				Header: &types.Header{Number: 1},
+			},
+			sentinelError: errTest,
+			errorMessage:  "babe verifying block: test error",
+		},
+		"handle block error": {
+			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
+				babeVerifier := NewMockBabeVerifier(ctrl)
+				expectedHeader := &types.Header{ParentHash: common.Hash{1}}
+				babeVerifier.EXPECT().VerifyBlock(expectedHeader).
+					Return(nil)
+
+				transactionState := NewMockTransactionState(ctrl)
+				transactionState.EXPECT().RemoveExtrinsic(types.Extrinsic{2})
+
+				blockState := NewMockBlockState(ctrl)
+				blockState.EXPECT().GetHeader(common.Hash{1}).
+					Return(nil, errTest)
+
+				return chainProcessor{
+					babeVerifier:     babeVerifier,
+					transactionState: transactionState,
+					blockState:       blockState,
+				}
+			},
+			blockData: types.BlockData{
+				Header: &types.Header{ParentHash: common.Hash{1}},
+				Body:   &types.Body{{2}},
+			},
+			sentinelError: errFailedToGetParent,
+			errorMessage:  "handling block: failed to get parent header: test error",
+		},
+		"success": {
+			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
+				babeVerifier := NewMockBabeVerifier(ctrl)
+				expectedHeader := &types.Header{
+					ParentHash: common.Hash{1},
+					Number:     5,
+				}
+				babeVerifier.EXPECT().VerifyBlock(expectedHeader).
+					Return(nil)
+
+				transactionState := NewMockTransactionState(ctrl)
+				transactionState.EXPECT().RemoveExtrinsic(types.Extrinsic{2})
+
+				blockState := NewMockBlockState(ctrl)
+				parentHeader := &types.Header{StateRoot: trie.EmptyHash}
+				blockState.EXPECT().GetHeader(common.Hash{1}).
+					Return(parentHeader, nil)
+
+				storageState := NewMockStorageState(ctrl)
+				lockCall := storageState.EXPECT().Lock()
+				storageState.EXPECT().Unlock().After(lockCall)
+				trieState := storage.NewTrieState(nil)
+				storageState.EXPECT().TrieState(&trie.EmptyHash).
+					Return(trieState, nil)
+
+				parentHeaderHash := parentHeader.Hash()
+				instance := NewMockRuntimeInstance(ctrl)
+				blockState.EXPECT().GetRuntime(parentHeaderHash).
+					Return(instance, nil)
+
+				instance.EXPECT().SetContextStorage(trieState)
+				block := &types.Block{
+					Header: *expectedHeader,
+					Body:   types.Body{{2}},
+				}
+				instance.EXPECT().ExecuteBlock(block).Return(nil, nil)
+
+				blockImportHandler := NewMockBlockImportHandler(ctrl)
+				const announceImportedBlock = true
+				blockImportHandler.EXPECT().HandleBlockImport(block, trieState, announceImportedBlock).
+					Return(nil)
+
+				telemetryClient := NewMockClient(ctrl)
+				headerHash := common.MustHexToHash("0x18d21d2901e4a4ac6a8c6431da2dfee1b8701f31a9e49283a082e6c744d4117c")
+				message := telemetry.NewBlockImport(&headerHash, expectedHeader.Number, "NetworkInitialSync")
+				telemetryClient.EXPECT().SendMessage(message)
+
+				return chainProcessor{
+					babeVerifier:       babeVerifier,
+					transactionState:   transactionState,
+					blockState:         blockState,
+					storageState:       storageState,
+					blockImportHandler: blockImportHandler,
+					telemetry:          telemetryClient,
+				}
+			},
+			blockData: types.BlockData{
+				Header: &types.Header{
+					ParentHash: common.Hash{1},
+					Number:     5,
+				},
+				Body: &types.Body{{2}},
+			},
+			announceImportedBlock: true,
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			ctrl := gomock.NewController(t)
+
+			processor := testCase.chainProcessorBuilder(ctrl)
+
+			err := processor.processBlockDataWithHeaderAndBody(
 				testCase.blockData, testCase.announceImportedBlock)
 
 			assert.ErrorIs(t, err, testCase.sentinelError)
