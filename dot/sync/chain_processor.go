@@ -87,7 +87,7 @@ func (s *chainProcessor) processReadyBlocks() {
 			return
 		}
 
-		if err := s.processBlockData(bd); err != nil {
+		if err := s.processBlockData(*bd); err != nil {
 			// depending on the error, we might want to save this block for later
 			if !errors.Is(err, errFailedToGetParent) {
 				logger.Errorf("block data processing for block with hash %s failed: %s", bd.Hash, err)
@@ -108,7 +108,7 @@ func (s *chainProcessor) processReadyBlocks() {
 // processBlockData processes the BlockData from a BlockResponse and
 // returns the index of the last BlockData it handled on success,
 // or the index of the block data that errored on failure.
-func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
+func (s *chainProcessor) processBlockData(bd types.BlockData) error {
 	logger.Debugf("processing block data with hash %s", bd.Hash)
 
 	hasHeader, err := s.blockState.HasHeader(bd.Hash)
@@ -123,7 +123,7 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 	// while in bootstrap mode we don't need to broadcast block announcements
 	announceImportedBlock := s.chainSync.syncState() == tip
 	if hasHeader && hasBody {
-		err = s.processBlockDataWithStateHeaderAndBody(*bd, announceImportedBlock)
+		err = s.processBlockDataWithStateHeaderAndBody(bd, announceImportedBlock)
 		if err != nil {
 			return fmt.Errorf("processing block data with header and "+
 				"body in block state: %w", err)
@@ -132,7 +132,7 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 	}
 
 	if bd.Header != nil && bd.Body != nil {
-		err = s.processBlockDataWithHeaderAndBody(*bd, announceImportedBlock)
+		err = s.processBlockDataWithHeaderAndBody(bd, announceImportedBlock)
 		if err != nil {
 			return fmt.Errorf("processing block data with header and body: %w", err)
 		}
@@ -146,7 +146,7 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 		}
 	}
 
-	if err := s.blockState.CompareAndSetBlockData(bd); err != nil {
+	if err := s.blockState.CompareAndSetBlockData(&bd); err != nil {
 		return fmt.Errorf("comparing and setting block data: %w", err)
 	}
 

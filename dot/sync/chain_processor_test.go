@@ -368,7 +368,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 
 	tests := map[string]struct {
 		chainProcessorBuilder func(ctrl *gomock.Controller) chainProcessor
-		blockData             *types.BlockData
+		blockData             types.BlockData
 		expectedError         error
 	}{
 		"handle has header error": {
@@ -380,7 +380,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 					blockState: mockBlockState,
 				}
 			},
-			blockData:     &types.BlockData{},
+			blockData:     types.BlockData{},
 			expectedError: mockError,
 		},
 		"handle has block body error": {
@@ -392,7 +392,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 					blockState: mockBlockState,
 				}
 			},
-			blockData:     &types.BlockData{},
+			blockData:     types.BlockData{},
 			expectedError: mockError,
 		},
 		"handle getBlockByHash error": {
@@ -409,7 +409,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 					chainSync:  mockChainSync,
 				}
 			},
-			blockData:     &types.BlockData{},
+			blockData:     types.BlockData{},
 			expectedError: mockError,
 		},
 		"handle AddBlockToBlockTree error": {
@@ -439,7 +439,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 					blockImportHandler: mockBlockImportHandler,
 				}
 			},
-			blockData: &types.BlockData{
+			blockData: types.BlockData{
 				Justification: &[]byte{1, 2, 3},
 			},
 		},
@@ -474,7 +474,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 					finalityGadget: finalityGadget,
 				}
 			},
-			blockData: &types.BlockData{
+			blockData: types.BlockData{
 				Hash:          common.Hash{1},
 				Justification: &[]byte{1, 2, 3},
 			},
@@ -520,7 +520,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 					blockImportHandler: mockBlockImportHandler,
 				}
 			},
-			blockData: &types.BlockData{
+			blockData: types.BlockData{
 				Justification: &[]byte{1, 2, 3},
 			},
 		},
@@ -555,7 +555,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 					storageState:   mockStorageState,
 				}
 			},
-			blockData: &types.BlockData{
+			blockData: types.BlockData{
 				Justification: &[]byte{1, 2, 3},
 			},
 			expectedError: mockError,
@@ -599,7 +599,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 					blockImportHandler: mockBlockImportHandler,
 				}
 			},
-			blockData: &types.BlockData{
+			blockData: types.BlockData{
 				Justification: &[]byte{1, 2, 3},
 			},
 			expectedError: mockError,
@@ -619,7 +619,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 					blockState: mockBlockState,
 				}
 			},
-			blockData: &types.BlockData{},
+			blockData: types.BlockData{},
 		},
 		"handle babe verify block error": {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
@@ -638,7 +638,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 					babeVerifier: mockBabeVerifier,
 				}
 			},
-			blockData: &types.BlockData{
+			blockData: types.BlockData{
 				Header: &types.Header{},
 				Body:   &types.Body{},
 			},
@@ -662,7 +662,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 					babeVerifier: mockBabeVerifier,
 				}
 			},
-			blockData: &types.BlockData{
+			blockData: types.BlockData{
 				Header: &types.Header{},
 				Body:   &types.Body{},
 			},
@@ -688,7 +688,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 					blockState: mockBlockState,
 				}
 			},
-			blockData: &types.BlockData{
+			blockData: types.BlockData{
 				Hash: common.Hash{1, 2, 3},
 			},
 			expectedError: mockError,
@@ -722,7 +722,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 					blockImportHandler: mockBlockImportHandler,
 				}
 			},
-			blockData: &types.BlockData{
+			blockData: types.BlockData{
 				Hash: common.Hash{1, 2, 3},
 			},
 		},
@@ -748,7 +748,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 					finalityGadget: finalityGadget,
 				}
 			},
-			blockData: &types.BlockData{
+			blockData: types.BlockData{
 				Hash:          common.Hash{1},
 				Header:        &types.Header{Number: 2},
 				Justification: &[]byte{1, 2, 3},
@@ -769,7 +769,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 					blockState: mockBlockState,
 				}
 			},
-			blockData:     &types.BlockData{},
+			blockData:     types.BlockData{},
 			expectedError: mockError,
 		},
 		"handle header": {
@@ -818,7 +818,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 					telemetry:          mockTelemetry,
 				}
 			},
-			blockData: &types.BlockData{
+			blockData: types.BlockData{
 				Header: &types.Header{
 					Number: 0,
 				},
@@ -875,7 +875,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 					finalityGadget:     mockFinalityGadget,
 				}
 			},
-			blockData: &types.BlockData{
+			blockData: types.BlockData{
 				Header: &types.Header{
 					Number: 0,
 				},

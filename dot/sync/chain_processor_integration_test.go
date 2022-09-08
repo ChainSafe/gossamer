@@ -57,7 +57,7 @@ func TestChainProcessor_HandleBlockResponse_ValidChain(t *testing.T) {
 
 	// process response
 	for _, bd := range resp.BlockData {
-		err = syncer.chainProcessor.(*chainProcessor).processBlockData(bd)
+		err = syncer.chainProcessor.(*chainProcessor).processBlockData(*bd)
 		require.NoError(t, err)
 	}
 
@@ -77,7 +77,7 @@ func TestChainProcessor_HandleBlockResponse_ValidChain(t *testing.T) {
 
 	// process response
 	for _, bd := range resp.BlockData {
-		err = syncer.chainProcessor.(*chainProcessor).processBlockData(bd)
+		err = syncer.chainProcessor.(*chainProcessor).processBlockData(*bd)
 		require.NoError(t, err)
 	}
 }
@@ -130,7 +130,7 @@ func TestChainProcessor_HandleBlockResponse_MissingBlocks(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, bd := range resp.BlockData {
-		err = syncer.chainProcessor.(*chainProcessor).processBlockData(bd)
+		err = syncer.chainProcessor.(*chainProcessor).processBlockData(*bd)
 		require.True(t, errors.Is(err, errFailedToGetParent))
 	}
 }
@@ -180,7 +180,7 @@ func TestChainProcessor_HandleBlockResponse_BlockData(t *testing.T) {
 	}
 
 	for _, bd := range msg.BlockData {
-		err = syncer.chainProcessor.(*chainProcessor).processBlockData(bd)
+		err = syncer.chainProcessor.(*chainProcessor).processBlockData(*bd)
 		require.NoError(t, err)
 	}
 }
