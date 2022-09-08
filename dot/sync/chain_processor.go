@@ -111,11 +111,11 @@ func (s *chainProcessor) processReadyBlocks() {
 func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 	hasHeader, err := s.blockState.HasHeader(bd.Hash)
 	if err != nil {
-		return fmt.Errorf("failed to check if block state has header for hash %s: %w", bd.Hash, err)
+		return fmt.Errorf("checking if block state has header: %w", err)
 	}
 	hasBody, err := s.blockState.HasBlockBody(bd.Hash)
 	if err != nil {
-		return fmt.Errorf("failed to check block state has body for hash %s: %w", bd.Hash, err)
+		return fmt.Errorf("checking if block state has body: %w", err)
 	}
 
 	// while in bootstrap mode we don't need to broadcast block announcements
@@ -128,7 +128,7 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 		block, err := s.blockState.GetBlockByHash(bd.Hash)
 		if err != nil {
 			logger.Debugf("failed to get block header for hash %s: %s", bd.Hash, err)
-			return err
+			return fmt.Errorf("getting block by hash: %w", err)
 		}
 
 		logger.Debugf(
@@ -140,7 +140,7 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 			return nil
 		} else if err != nil {
 			logger.Warnf("failed to add block with hash %s to blocktree: %s", bd.Hash, err)
-			return err
+			return fmt.Errorf("adding block to blocktree: %w", err)
 		}
 
 		if bd.Justification != nil {
@@ -157,7 +157,7 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 		state, err := s.storageState.TrieState(&block.Header.StateRoot)
 		if err != nil {
 			logger.Warnf("failed to load state for block with hash %s: %s", block.Header.Hash(), err)
-			return err
+			return fmt.Errorf("loading trie state: %w", err)
 		}
 
 		if err := s.blockImportHandler.HandleBlockImport(block, state, announceImportedBlock); err != nil {
@@ -171,7 +171,7 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 
 	if bd.Header != nil && bd.Body != nil {
 		if err := s.babeVerifier.VerifyBlock(bd.Header); err != nil {
-			return err
+			return fmt.Errorf("babe verifying block: %w", err)
 		}
 
 		s.handleBody(bd.Body)
@@ -183,7 +183,7 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 
 		if err := s.handleBlock(block, announceImportedBlock); err != nil {
 			logger.Debugf("failed to handle block number %d: %s", block.Header.Number, err)
-			return err
+			return fmt.Errorf("handling block: %w", err)
 		}
 
 		logger.Debugf("block with hash %s processed", bd.Hash)
@@ -198,7 +198,7 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 	}
 
 	if err := s.blockState.CompareAndSetBlockData(bd); err != nil {
-		return fmt.Errorf("failed to compare and set data: %w", err)
+		return fmt.Errorf("comparing and setting block data: %w", err)
 	}
 
 	return nil
