@@ -154,12 +154,6 @@ func TestChainProcessor_handleBody_ShouldRemoveIncludedExtrinsics(t *testing.T) 
 	require.Nil(t, inQueue, "queue should be empty")
 }
 
-func TestChainProcessor_HandleBlockResponse_NoBlockData(t *testing.T) {
-	syncer := newTestSyncer(t)
-	err := syncer.chainProcessor.(*chainProcessor).processBlockData(nil)
-	require.Equal(t, ErrNilBlockData, err)
-}
-
 // TODO: add test against latest gssmr runtime
 // See https://github.com/ChainSafe/gossamer/issues/2703
 func TestChainProcessor_HandleBlockResponse_BlockData(t *testing.T) {

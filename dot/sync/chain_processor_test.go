@@ -371,13 +371,6 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 		blockData             *types.BlockData
 		expectedError         error
 	}{
-		"nil block data": {
-			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
-				return chainProcessor{}
-			},
-			blockData:     nil,
-			expectedError: ErrNilBlockData,
-		},
 		"handle has header error": {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
 				mockBlockState := NewMockBlockState(ctrl)

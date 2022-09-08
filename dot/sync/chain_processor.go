@@ -109,10 +109,6 @@ func (s *chainProcessor) processReadyBlocks() {
 // returns the index of the last BlockData it handled on success,
 // or the index of the block data that errored on failure.
 func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
-	if bd == nil {
-		return ErrNilBlockData
-	}
-
 	hasHeader, err := s.blockState.HasHeader(bd.Hash)
 	if err != nil {
 		return fmt.Errorf("failed to check if block state has header for hash %s: %w", bd.Hash, err)
