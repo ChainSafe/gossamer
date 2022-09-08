@@ -142,7 +142,6 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 		}
 
 		if bd.Justification != nil {
-			logger.Debugf("handling Justification for block number %d with hash %s...", block.Header.Number, bd.Hash)
 			err = s.handleJustification(&block.Header, *bd.Justification)
 			if err != nil {
 				return fmt.Errorf("handling justification: %w", err)
@@ -186,7 +185,6 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 	}
 
 	if bd.Justification != nil && bd.Header != nil {
-		logger.Debugf("handling Justification for block number %d with hash %s...", bd.Number(), bd.Hash)
 		err = s.handleJustification(bd.Header, *bd.Justification)
 		if err != nil {
 			return fmt.Errorf("handling justification: %w", err)
@@ -255,6 +253,8 @@ func (s *chainProcessor) handleBlock(block *types.Block, announceImportedBlock b
 }
 
 func (s *chainProcessor) handleJustification(header *types.Header, justification []byte) (err error) {
+	logger.Debugf("handling justification for block %d...", header.Number)
+
 	headerHash := header.Hash()
 	returnedJustification, err := s.finalityGadget.VerifyBlockJustification(headerHash, justification)
 	if err != nil {
