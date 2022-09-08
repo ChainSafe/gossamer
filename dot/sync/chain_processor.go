@@ -108,22 +108,22 @@ func (s *chainProcessor) processReadyBlocks() {
 // processBlockData processes the BlockData from a BlockResponse and
 // returns the index of the last BlockData it handled on success,
 // or the index of the block data that errored on failure.
-func (s *chainProcessor) processBlockData(bd types.BlockData) error {
+func (c *chainProcessor) processBlockData(bd types.BlockData) error { //nolint:revive
 	logger.Debugf("processing block data with hash %s", bd.Hash)
 
-	hasHeader, err := s.blockState.HasHeader(bd.Hash)
+	hasHeader, err := c.blockState.HasHeader(bd.Hash)
 	if err != nil {
 		return fmt.Errorf("checking if block state has header: %w", err)
 	}
-	hasBody, err := s.blockState.HasBlockBody(bd.Hash)
+	hasBody, err := c.blockState.HasBlockBody(bd.Hash)
 	if err != nil {
 		return fmt.Errorf("checking if block state has body: %w", err)
 	}
 
 	// while in bootstrap mode we don't need to broadcast block announcements
-	announceImportedBlock := s.chainSync.syncState() == tip
+	announceImportedBlock := c.chainSync.syncState() == tip
 	if hasHeader && hasBody {
-		err = s.processBlockDataWithStateHeaderAndBody(bd, announceImportedBlock)
+		err = c.processBlockDataWithStateHeaderAndBody(bd, announceImportedBlock)
 		if err != nil {
 			return fmt.Errorf("processing block data with header and "+
 				"body in block state: %w", err)
@@ -132,7 +132,7 @@ func (s *chainProcessor) processBlockData(bd types.BlockData) error {
 	}
 
 	if bd.Header != nil && bd.Body != nil {
-		err = s.processBlockDataWithHeaderAndBody(bd, announceImportedBlock)
+		err = c.processBlockDataWithHeaderAndBody(bd, announceImportedBlock)
 		if err != nil {
 			return fmt.Errorf("processing block data with header and body: %w", err)
 		}
@@ -140,13 +140,13 @@ func (s *chainProcessor) processBlockData(bd types.BlockData) error {
 	}
 
 	if bd.Justification != nil && bd.Header != nil {
-		err = s.handleJustification(bd.Header, *bd.Justification)
+		err = c.handleJustification(bd.Header, *bd.Justification)
 		if err != nil {
 			return fmt.Errorf("handling justification: %w", err)
 		}
 	}
 
-	if err := s.blockState.CompareAndSetBlockData(&bd); err != nil {
+	if err := c.blockState.CompareAndSetBlockData(&bd); err != nil {
 		return fmt.Errorf("comparing and setting block data: %w", err)
 	}
 
