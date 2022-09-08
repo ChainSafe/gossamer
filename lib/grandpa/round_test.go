@@ -219,6 +219,8 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 }
 
 func TestPlayGrandpaRound(t *testing.T) {
+	t.Parallel()
+
 	ed25519Keyring, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 

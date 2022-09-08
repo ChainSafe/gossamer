@@ -1320,7 +1320,7 @@ func verifyCommitMessageJustification(commitMessage *CommitMessage, setID uint64
 
 	isDescendant, err := blockState.IsDescendantOf(highestFinalizedHeader.Hash(), commitMessage.Vote.Hash)
 	if err != nil {
-		return fmt.Errorf("verifiyng ancestry of highest finalised block: %w", err)
+		return fmt.Errorf("verifying ancestry of highest finalised block: %w", err)
 	}
 
 	if !isDescendant {
