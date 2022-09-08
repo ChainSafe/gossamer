@@ -897,6 +897,187 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 	}
 }
 
+func Test_chainProcessor_processBlockDataWithStateHeaderAndBody(t *testing.T) {
+	t.Parallel()
+
+	errTest := errors.New("test error")
+
+	testCases := map[string]struct {
+		chainProcessorBuilder func(ctrl *gomock.Controller) chainProcessor
+		blockData             types.BlockData
+		announceImportedBlock bool
+		sentinelError         error
+		errorMessage          string
+	}{
+		"get block by hash error": {
+			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
+				blockState := NewMockBlockState(ctrl)
+				blockState.EXPECT().GetBlockByHash(common.Hash{1}).
+					Return(nil, errTest)
+				return chainProcessor{
+					blockState: blockState,
+				}
+			},
+			blockData:     types.BlockData{Hash: common.Hash{1}},
+			sentinelError: errTest,
+			errorMessage:  "getting block by hash: test error",
+		},
+		"block already exists in blocktree": {
+			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
+				blockState := NewMockBlockState(ctrl)
+				block := &types.Block{Header: types.Header{Number: 2}}
+				blockState.EXPECT().GetBlockByHash(common.Hash{1}).Return(block, nil)
+				blockState.EXPECT().AddBlockToBlockTree(block).Return(blocktree.ErrBlockExists)
+				return chainProcessor{
+					blockState: blockState,
+				}
+			},
+			blockData: types.BlockData{Hash: common.Hash{1}},
+		},
+		"add block to blocktree error": {
+			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
+				blockState := NewMockBlockState(ctrl)
+				block := &types.Block{Header: types.Header{Number: 2}}
+				blockState.EXPECT().GetBlockByHash(common.Hash{1}).Return(block, nil)
+				blockState.EXPECT().AddBlockToBlockTree(block).Return(errTest)
+				return chainProcessor{
+					blockState: blockState,
+				}
+			},
+			blockData:     types.BlockData{Hash: common.Hash{1}},
+			sentinelError: errTest,
+			errorMessage:  "adding block to blocktree: test error",
+		},
+		"handle justification error": {
+			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
+				blockState := NewMockBlockState(ctrl)
+				blockHeader := types.Header{Number: 2}
+				blockHeaderHash := blockHeader.Hash()
+				block := &types.Block{Header: blockHeader}
+				blockState.EXPECT().GetBlockByHash(common.Hash{1}).Return(block, nil)
+				blockState.EXPECT().AddBlockToBlockTree(block).Return(nil)
+
+				finalityGadget := NewMockFinalityGadget(ctrl)
+				finalityGadget.EXPECT().
+					VerifyBlockJustification(blockHeaderHash, []byte{3}).
+					Return(nil, errTest)
+
+				return chainProcessor{
+					blockState:     blockState,
+					finalityGadget: finalityGadget,
+				}
+			},
+			blockData: types.BlockData{
+				Hash:          common.Hash{1},
+				Justification: &[]byte{3},
+			},
+			sentinelError: errTest,
+			errorMessage:  "handling justification: verifying block number 2 justification: test error",
+		},
+		"trie state error": {
+			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
+				blockState := NewMockBlockState(ctrl)
+				blockHeader := types.Header{StateRoot: common.Hash{2}}
+				block := &types.Block{Header: blockHeader}
+				blockState.EXPECT().GetBlockByHash(common.Hash{1}).Return(block, nil)
+				blockState.EXPECT().AddBlockToBlockTree(block).Return(nil)
+
+				storageState := NewMockStorageState(ctrl)
+				storageState.EXPECT().TrieState(&common.Hash{2}).
+					Return(nil, errTest)
+
+				return chainProcessor{
+					blockState:   blockState,
+					storageState: storageState,
+				}
+			},
+			blockData: types.BlockData{
+				Hash: common.Hash{1},
+			},
+			sentinelError: errTest,
+			errorMessage:  "loading trie state: test error",
+		},
+		"handle block import error": {
+			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
+				blockState := NewMockBlockState(ctrl)
+				blockHeader := types.Header{StateRoot: common.Hash{2}}
+				block := &types.Block{Header: blockHeader}
+				blockState.EXPECT().GetBlockByHash(common.Hash{1}).Return(block, nil)
+				blockState.EXPECT().AddBlockToBlockTree(block).Return(nil)
+
+				storageState := NewMockStorageState(ctrl)
+				trieState := storage.NewTrieState(nil)
+				storageState.EXPECT().TrieState(&common.Hash{2}).
+					Return(trieState, nil)
+
+				blockImportHandler := NewMockBlockImportHandler(ctrl)
+				const announceImportedBlock = true
+				blockImportHandler.EXPECT().HandleBlockImport(block, trieState, announceImportedBlock).
+					Return(errTest)
+
+				return chainProcessor{
+					blockState:         blockState,
+					storageState:       storageState,
+					blockImportHandler: blockImportHandler,
+				}
+			},
+			blockData: types.BlockData{
+				Hash: common.Hash{1},
+			},
+			announceImportedBlock: true,
+			sentinelError:         errTest,
+			errorMessage:          "handling block import: test error",
+		},
+		"success": {
+			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
+				blockState := NewMockBlockState(ctrl)
+				blockHeader := types.Header{StateRoot: common.Hash{2}}
+				block := &types.Block{Header: blockHeader}
+				blockState.EXPECT().GetBlockByHash(common.Hash{1}).Return(block, nil)
+				blockState.EXPECT().AddBlockToBlockTree(block).Return(nil)
+
+				storageState := NewMockStorageState(ctrl)
+				trieState := storage.NewTrieState(nil)
+				storageState.EXPECT().TrieState(&common.Hash{2}).
+					Return(trieState, nil)
+
+				blockImportHandler := NewMockBlockImportHandler(ctrl)
+				const announceImportedBlock = true
+				blockImportHandler.EXPECT().HandleBlockImport(block, trieState, announceImportedBlock).
+					Return(nil)
+
+				return chainProcessor{
+					blockState:         blockState,
+					storageState:       storageState,
+					blockImportHandler: blockImportHandler,
+				}
+			},
+			blockData: types.BlockData{
+				Hash: common.Hash{1},
+			},
+			announceImportedBlock: true,
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			ctrl := gomock.NewController(t)
+
+			processor := testCase.chainProcessorBuilder(ctrl)
+
+			err := processor.processBlockDataWithStateHeaderAndBody(
+				testCase.blockData, testCase.announceImportedBlock)
+
+			assert.ErrorIs(t, err, testCase.sentinelError)
+			if testCase.sentinelError != nil {
+				assert.EqualError(t, err, testCase.errorMessage)
+			}
+		})
+	}
+}
+
 func Test_chainProcessor_processReadyBlocks(t *testing.T) {
 	t.Parallel()
 	mockError := errors.New("test mock error")
