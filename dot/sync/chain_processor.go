@@ -132,21 +132,10 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 	}
 
 	if bd.Header != nil && bd.Body != nil {
-		if err := s.babeVerifier.VerifyBlock(bd.Header); err != nil {
-			return fmt.Errorf("babe verifying block: %w", err)
+		err = s.processBlockDataWithHeaderAndBody(*bd, announceImportedBlock)
+		if err != nil {
+			return fmt.Errorf("processing block data with header and body: %w", err)
 		}
-
-		s.handleBody(bd.Body)
-
-		block := &types.Block{
-			Header: *bd.Header,
-			Body:   *bd.Body,
-		}
-
-		if err := s.handleBlock(block, announceImportedBlock); err != nil {
-			return fmt.Errorf("handling block: %w", err)
-		}
-
 		logger.Debugf("block with hash %s processed", bd.Hash)
 	}
 
@@ -203,6 +192,28 @@ func (c *chainProcessor) processBlockDataWithStateHeaderAndBody(blockData types.
 	err = c.blockImportHandler.HandleBlockImport(block, state, announceImportedBlock)
 	if err != nil {
 		return fmt.Errorf("handling block import: %w", err)
+	}
+
+	return nil
+}
+
+func (c *chainProcessor) processBlockDataWithHeaderAndBody(blockData types.BlockData,
+	announceImportedBlock bool) (err error) { //nolint:revive
+	err = c.babeVerifier.VerifyBlock(blockData.Header)
+	if err != nil {
+		return fmt.Errorf("babe verifying block: %w", err)
+	}
+
+	c.handleBody(blockData.Body)
+
+	block := &types.Block{
+		Header: *blockData.Header,
+		Body:   *blockData.Body,
+	}
+
+	err = c.handleBlock(block, announceImportedBlock)
+	if err != nil {
+		return fmt.Errorf("handling block: %w", err)
 	}
 
 	return nil
