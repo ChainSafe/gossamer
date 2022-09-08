@@ -300,6 +300,8 @@ func TestPlayGrandpaRound(t *testing.T) {
 	for tname, tt := range tests {
 		tt := tt
 		t.Run(tname, func(t *testing.T) {
+			t.Parallel()
+
 			ctrl := gomock.NewController(t)
 			grandpaServices := make([]*Service, len(tt.voters))
 			grandpaVoters := make([]types.GrandpaVoter, 0, len(tt.voters))
@@ -324,7 +326,7 @@ func TestPlayGrandpaRound(t *testing.T) {
 					paused:       atomic.Value{},
 					blockState:   st.Block,
 					grandpaState: st.Grandpa,
-					//defined as in the grandpa service
+					// defined as in the grandpa service
 					in:             make(chan *networkVoteMessage, 1024),
 					receivedCommit: make(chan *CommitMessage),
 					interval:       subroundInterval,
@@ -497,6 +499,8 @@ func TestPlayGrandpaRound(t *testing.T) {
 }
 
 func TestPlayGrandpaRoundMultipleRounds(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 
 	ed25519Keyring, err := keystore.NewEd25519Keyring()
@@ -563,7 +567,6 @@ func TestPlayGrandpaRoundMultipleRounds(t *testing.T) {
 
 	const totalRounds = 10
 	for currentRound := 1; currentRound <= totalRounds; currentRound++ {
-		fmt.Printf("=== starting round %d === \n", currentRound)
 		for _, grandpaService := range grandpaServices {
 			grandpaService.in = make(chan *networkVoteMessage, 1024)
 			grandpaService.state.round = uint64(currentRound)
@@ -703,6 +706,8 @@ func assertSameFinalizationAndChainGrowth(t *testing.T, services []*Service, cur
 }
 
 func TestSendingVotesInRightStage(t *testing.T) {
+	t.Parallel()
+
 	ed25519Keyring, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 

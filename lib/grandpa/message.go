@@ -57,7 +57,7 @@ type VoteMessage struct {
 }
 
 func (v VoteMessage) String() string {
-	return fmt.Sprintf("round=%d, setID=%d, message=%s", v.Round, v.SetID, v.Message)
+	return fmt.Sprintf("round=%d, setID=%d, message={%s}", v.Round, v.SetID, v.Message)
 }
 
 // Index Returns VDT index

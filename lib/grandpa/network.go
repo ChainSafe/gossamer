@@ -156,18 +156,6 @@ func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) (
 	return true, nil
 }
 
-// sendMessage sends a vote message to be gossiped to the network
-func (s *Service) sendMessage(msg GrandpaMessage) error {
-	cm, err := msg.ToConsensusMessage()
-	if err != nil {
-		return err
-	}
-
-	s.network.GossipMessage(cm)
-	logger.Tracef("sent message: %v", msg)
-	return nil
-}
-
 func (s *Service) sendNeighbourMessage(interval time.Duration) {
 	t := time.NewTicker(interval)
 	defer t.Stop()
