@@ -123,45 +123,11 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 	// while in bootstrap mode we don't need to broadcast block announcements
 	announceImportedBlock := s.chainSync.syncState() == tip
 	if hasHeader && hasBody {
-		// TODO: fix this; sometimes when the node shuts down the "best block" isn't stored properly,
-		// so when the node restarts it has blocks higher than what it thinks is the best, causing it not to sync
-		// if we update the node to only store finalised blocks in the database, this should be fixed and the entire
-		// code block can be removed (#1784)
-		block, err := s.blockState.GetBlockByHash(bd.Hash)
+		err = s.processBlockDataWithStateHeaderAndBody(*bd, announceImportedBlock)
 		if err != nil {
-			return fmt.Errorf("getting block by hash: %w", err)
+			return fmt.Errorf("processing block data with header and "+
+				"body in block state: %w", err)
 		}
-
-		err = s.blockState.AddBlockToBlockTree(block)
-		if errors.Is(err, blocktree.ErrBlockExists) {
-			logger.Debugf(
-				"block number %d with hash %s already exists in block tree, skipping it.",
-				block.Header.Number, bd.Hash)
-			return nil
-		} else if err != nil {
-			return fmt.Errorf("adding block to blocktree: %w", err)
-		}
-
-		if bd.Justification != nil {
-			err = s.handleJustification(&block.Header, *bd.Justification)
-			if err != nil {
-				return fmt.Errorf("handling justification: %w", err)
-			}
-		}
-
-		// TODO: this is probably unnecessary, since the state is already in the database
-		// however, this case shouldn't be hit often, since it's only hit if the node state
-		// is rewinded or if the node shuts down unexpectedly (#1784)
-		state, err := s.storageState.TrieState(&block.Header.StateRoot)
-		if err != nil {
-			return fmt.Errorf("loading trie state: %w", err)
-		}
-
-		err = s.blockImportHandler.HandleBlockImport(block, state, announceImportedBlock)
-		if err != nil {
-			return fmt.Errorf("handling block import: %w", err)
-		}
-
 		return nil
 	}
 
@@ -193,6 +159,50 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 
 	if err := s.blockState.CompareAndSetBlockData(bd); err != nil {
 		return fmt.Errorf("comparing and setting block data: %w", err)
+	}
+
+	return nil
+}
+
+func (c *chainProcessor) processBlockDataWithStateHeaderAndBody(blockData types.BlockData,
+	announceImportedBlock bool) (err error) { //nolint:revive
+	// TODO: fix this; sometimes when the node shuts down the "best block" isn't stored properly,
+	// so when the node restarts it has blocks higher than what it thinks is the best, causing it not to sync
+	// if we update the node to only store finalised blocks in the database, this should be fixed and the entire
+	// code block can be removed (#1784)
+	block, err := c.blockState.GetBlockByHash(blockData.Hash)
+	if err != nil {
+		return fmt.Errorf("getting block by hash: %w", err)
+	}
+
+	err = c.blockState.AddBlockToBlockTree(block)
+	if errors.Is(err, blocktree.ErrBlockExists) {
+		logger.Debugf(
+			"block number %d with hash %s already exists in block tree, skipping it.",
+			block.Header.Number, blockData.Hash)
+		return nil
+	} else if err != nil {
+		return fmt.Errorf("adding block to blocktree: %w", err)
+	}
+
+	if blockData.Justification != nil {
+		err = c.handleJustification(&block.Header, *blockData.Justification)
+		if err != nil {
+			return fmt.Errorf("handling justification: %w", err)
+		}
+	}
+
+	// TODO: this is probably unnecessary, since the state is already in the database
+	// however, this case shouldn't be hit often, since it's only hit if the node state
+	// is rewinded or if the node shuts down unexpectedly (#1784)
+	state, err := c.storageState.TrieState(&block.Header.StateRoot)
+	if err != nil {
+		return fmt.Errorf("loading trie state: %w", err)
+	}
+
+	err = c.blockImportHandler.HandleBlockImport(block, state, announceImportedBlock)
+	if err != nil {
+		return fmt.Errorf("handling block import: %w", err)
 	}
 
 	return nil
