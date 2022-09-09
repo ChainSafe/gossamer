@@ -112,7 +112,7 @@ func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot, rt runtime.In
 	logger.Trace("initialised block")
 
 	// add block inherents
-	inherents, err := buildBlockInherents(slot, rt)
+	inherents, err := buildBlockInherents(slot, rt, parent)
 	if err != nil {
 		return nil, fmt.Errorf("cannot build inherents: %s", err)
 	}
@@ -237,7 +237,7 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt runtime.Instance) []*t
 	return included
 }
 
-func buildBlockInherents(slot Slot, rt runtime.Instance) ([][]byte, error) {
+func buildBlockInherents(slot Slot, rt runtime.Instance, parent *types.Header) ([][]byte, error) {
 	// Setup inherents: add timstap0
 	idata := types.NewInherentsData()
 	timestamp := uint64(time.Now().UnixMilli())
@@ -253,22 +253,7 @@ func buildBlockInherents(slot Slot, rt runtime.Instance) ([][]byte, error) {
 	}
 
 	parachainInherent := ParachainInherentData{
-		Bitfields: []UncheckedSignedAvailabilityBitfield{
-			{
-				Payload:        []byte(""),
-				ValidatorIndex: 0,
-				Signature:      Signature{},
-			},
-		},
-		BackedCandidates: []BackedCandidate{},
-		Disputes:         MultiDisputeStatementSet{},
-		ParentHeader: types.Header{
-			ParentHash:     common.Hash{},
-			Number:         0,
-			StateRoot:      common.Hash{},
-			ExtrinsicsRoot: common.Hash{},
-			Digest:         scale.VaryingDataTypeSlice{},
-		},
+		ParentHeader: *parent,
 	}
 
 	// add parachn0 and newheads

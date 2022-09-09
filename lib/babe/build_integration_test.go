@@ -181,6 +181,8 @@ func TestApplyExtrinsic(t *testing.T) {
 	require.NoError(t, err)
 
 	parentHash := babeService.blockState.GenesisHash()
+	parentHeader, err := babeService.blockState.GetHeader(parentHash)
+	require.NoError(t, err)
 
 	rt, err := babeService.blockState.GetRuntime(nil)
 	require.NoError(t, err)
@@ -207,7 +209,7 @@ func TestApplyExtrinsic(t *testing.T) {
 	err = rt.InitializeBlock(header)
 	require.NoError(t, err)
 
-	_, err = buildBlockInherents(slot, rt)
+	_, err = buildBlockInherents(slot, rt, parentHeader)
 	require.NoError(t, err)
 
 	header1, err := rt.FinalizeBlock()
@@ -226,7 +228,7 @@ func TestApplyExtrinsic(t *testing.T) {
 	err = rt.InitializeBlock(header2)
 	require.NoError(t, err)
 
-	_, err = buildBlockInherents(slot, rt)
+	_, err = buildBlockInherents(slot, rt, parentHeader)
 	require.NoError(t, err)
 
 	res, err := rt.ApplyExtrinsic(extBytes)
