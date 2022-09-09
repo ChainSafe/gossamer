@@ -235,7 +235,7 @@ func TestWSConn_HandleConn(t *testing.T) {
 	errMsg := fmt.Errorf("%w: %s", errors.ErrInvalidTxn, transactionValidityErr.Error())
 
 	require.NoError(t, err)
-	coreAPI := new(mocks.CoreAPI)
+	coreAPI := mocks.NewCoreAPI(t)
 	coreAPI.On("HandleSubmittedExtrinsic", mock.AnythingOfType("types.Extrinsic")).
 		Return(errMsg)
 	wsconn.CoreAPI = coreAPI

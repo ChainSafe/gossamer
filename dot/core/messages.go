@@ -39,9 +39,11 @@ func (s *Service) validateTransaction(peerID peer.ID, head *types.Header, rt Run
 				Value:  peerset.BadTransactionValue,
 				Reason: peerset.BadTransactionReason,
 			}, peerID)
+			return nil, false, nil
 		case errors.Is(err, runtimererrors.ErrUnknownTxn):
+			return nil, false, nil
 		}
-		return nil, false, nil
+		return nil, false, err
 	}
 
 	vtx := transaction.NewValidTransaction(tx, validity)

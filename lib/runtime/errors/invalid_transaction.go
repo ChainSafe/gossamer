@@ -4,13 +4,15 @@
 package errors
 
 import (
+	"fmt"
+
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-// InvalidTransaction is child VDT of TransactionValidityError
+// InvalidTransaction is child VDT of transactionValidityError
 type InvalidTransaction scale.VaryingDataType
 
-// Index fulfils the VaryingDataTypeValue interface.  T
+// Index returns the VDT index
 func (InvalidTransaction) Index() uint {
 	return 0
 }
@@ -18,62 +20,112 @@ func (InvalidTransaction) Index() uint {
 // Call The call of the transaction is not expected
 type Call struct{}
 
-// Index Returns VDT index
+// Index returns the VDT index
 func (Call) Index() uint { return 0 }
+
+// Error returns the error message associated with the Call
+func (Call) Error() string {
+	return "call of the transaction is not expected"
+}
 
 // Payment General error to do with the inability to pay some fees (e.g. account balance too low)
 type Payment struct{}
 
-// Index Returns VDT index
+// Index returns the VDT index
 func (Payment) Index() uint { return 1 }
+
+// Error returns the error message associated with the Payment
+func (Payment) Error() string {
+	return "invalid payment"
+}
 
 // Future General error to do with the transaction not yet being valid (e.g. nonce too high)
 type Future struct{}
 
-// Index Returns VDT index
+// Index returns the VDT index
 func (Future) Index() uint { return 2 }
+
+// Error returns the error message associated with the Future
+func (Future) Error() string {
+	return "invalid transaction"
+}
 
 // Stale General error to do with the transaction being outdated (e.g. nonce too low)
 type Stale struct{}
 
-// Index Returns VDT index
+// Index returns the VDT index
 func (Stale) Index() uint { return 3 }
+
+// Error returns the error message associated with the Stale
+func (Stale) Error() string {
+	return "outdated transaction"
+}
 
 // BadProof General error to do with the transaction’s proofs (e.g. signature)
 type BadProof struct{}
 
-// Index Returns VDT index
+// Index returns the VDT index
 func (BadProof) Index() uint { return 4 }
+
+// Error returns the error message associated with the BadProof
+func (BadProof) Error() string {
+	return "bad proof"
+}
 
 // AncientBirthBlock The transaction birth block is ancient
 type AncientBirthBlock struct{}
 
-// Index Returns VDT index
+// Index returns the VDT index
 func (AncientBirthBlock) Index() uint { return 5 }
+
+// Error returns the error message associated with the AncientBirthBlock
+func (AncientBirthBlock) Error() string {
+	return "ancient birth block"
+}
 
 // ExhaustsResources The transaction would exhaust the resources of current block
 type ExhaustsResources struct{}
 
-// Index Returns VDT index
+// Index returns the VDT index
 func (ExhaustsResources) Index() uint { return 6 }
+
+// Error returns the error message associated with the ExhaustsResources
+func (ExhaustsResources) Error() string {
+	return "exhausts resources"
+}
 
 // InvalidCustom Any other custom invalid validity that is not covered
 type InvalidCustom uint8
 
-// Index Returns VDT index
+// Index returns the VDT index
 func (InvalidCustom) Index() uint { return 7 }
+
+// Error returns the error message associated with the Call
+func (i InvalidCustom) Error() string {
+	return newUnknownError(i).Error()
+}
 
 // BadMandatory An extrinsic with a Mandatory dispatch resulted in Error
 type BadMandatory struct{}
 
-// Index Returns VDT index
+// Index returns the VDT index
 func (BadMandatory) Index() uint { return 8 }
+
+// Error returns the error message associated with the BadMandatory
+func (BadMandatory) Error() string {
+	return "mandatory dispatch error"
+}
 
 // MandatoryDispatch A transaction with a mandatory dispatch
 type MandatoryDispatch struct{}
 
-// Index Returns VDT index
+// Index returns the VDT index
 func (MandatoryDispatch) Index() uint { return 9 }
+
+// Error returns the error message associated with the MandatoryDispatch
+func (MandatoryDispatch) Error() string {
+	return "invalid mandatory dispatch"
+}
 
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
 func (i *InvalidTransaction) Set(val scale.VaryingDataTypeValue) (err error) {
@@ -102,29 +154,12 @@ func NewInvalidTransaction() InvalidTransaction {
 	return InvalidTransaction(vdt)
 }
 
+// Error returns the error message associated with the InvalidTransaction
 func (i *InvalidTransaction) Error() string {
-	switch val := i.Value().(type) {
-	case Call:
-		return "call of the transaction is not expected"
-	case Payment:
-		return "invalid payment"
-	case Future:
-		return "invalid transaction"
-	case Stale:
-		return "outdated transaction"
-	case BadProof:
-		return "bad proof"
-	case AncientBirthBlock:
-		return "ancient birth block"
-	case ExhaustsResources:
-		return "exhausts resources"
-	case InvalidCustom:
-		return newUnknownError(val).Error()
-	case BadMandatory:
-		return "mandatory dispatch error"
-	case MandatoryDispatch:
-		return "invalid mandatory dispatch"
-	default:
-		panic("invalidTransaction: invalid error value")
+	value := i.Value()
+	err, ok := value.(error)
+	if !ok {
+		panic(fmt.Sprintf("%T does not implement the error type", value))
 	}
+	return err.Error()
 }

@@ -9,10 +9,10 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-// UnknownTransaction is child VDT of TransactionValidityError
+// UnknownTransaction is child VDT of transactionValidityError
 type UnknownTransaction scale.VaryingDataType
 
-// Index fulfils the VaryingDataTypeValue interface.  T
+// Index returns the VDT index
 func (UnknownTransaction) Index() uint {
 	return 1
 }
@@ -20,20 +20,35 @@ func (UnknownTransaction) Index() uint {
 // ValidityCannotLookup Could not look up some information that is required to validate the transaction
 type ValidityCannotLookup struct{}
 
-// Index Returns VDT index
+// Index returns the VDT index
 func (ValidityCannotLookup) Index() uint { return 0 }
+
+// Error returns the error message associated with the ValidityCannotLookup
+func (ValidityCannotLookup) Error() string {
+	return "lookup failed"
+}
 
 // NoUnsignedValidator No validator found for the given unsigned transaction
 type NoUnsignedValidator struct{}
 
-// Index Returns VDT index
+// Index returns the VDT index
 func (NoUnsignedValidator) Index() uint { return 1 }
+
+// Error returns the error message associated with the NoUnsignedValidator
+func (NoUnsignedValidator) Error() string {
+	return "validator not found"
+}
 
 // UnknownCustom Any other custom unknown validity that is not covered
 type UnknownCustom uint8
 
-// Index Returns VDT index
+// Index returns the VDT index
 func (UnknownCustom) Index() uint { return 2 }
+
+// Error returns the error message associated with the UnknownCustom
+func (m UnknownCustom) Error() string {
+	return newUnknownError(m).Error()
+}
 
 func newUnknownError(data scale.VaryingDataTypeValue) error {
 	return fmt.Errorf("unknown error: %v", data)
@@ -66,14 +81,10 @@ func NewUnknownTransaction() UnknownTransaction {
 }
 
 func (u *UnknownTransaction) Error() string {
-	switch val := u.Value().(type) {
-	case ValidityCannotLookup:
-		return "lookup failed"
-	case NoUnsignedValidator:
-		return "validator not found"
-	case UnknownCustom:
-		return newUnknownError(val).Error()
-	default:
-		panic("unknownTransaction: invalid error value")
+	value := u.Value()
+	err, ok := value.(error)
+	if !ok {
+		panic(fmt.Sprintf("%T does not implement the error type", value))
 	}
+	return err.Error()
 }

@@ -20,7 +20,7 @@ func Test_ErrorsAs_Function(t *testing.T) {
 	err = transactionValidityErr.Set(unknownTransaction)
 	require.NoError(t, err)
 
-	var txnValErr *TransactionValidityError
+	var txnValErr *transactionValidityError
 	isTxnValErr := errors.As(&transactionValidityErr, &txnValErr)
 	require.True(t, isTxnValErr)
 }
