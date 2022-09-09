@@ -641,6 +641,19 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 	return nil
 }
 
+// GetRuntime gets the runtime for the corresponding block hash.
+func (bs *BlockState) GetRuntime(hash *common.Hash) (runtime.Instance, error) {
+	if hash == nil {
+		rt, err := bs.bt.GetBlockRuntime(bs.BestBlockHash())
+		if err != nil {
+			return nil, err
+		}
+		return rt, nil
+	}
+
+	return bs.bt.GetBlockRuntime(*hash)
+}
+
 //func (bs *BlockState) GetRuntime(blockHash *common.Hash) (instance runtime.Instance, err error) {
 //	if blockHash == nil {
 //		instance, err = bs.bt.GetBlockRuntime(bs.BestBlockHash())
