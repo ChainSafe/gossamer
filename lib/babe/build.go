@@ -229,13 +229,13 @@ func buildBlockInherents(slot Slot, rt runtime.Instance) ([][]byte, error) {
 	// Setup inherents: add timstap0
 	idata := types.NewInherentsData()
 	timestamp := uint64(time.Now().UnixMilli())
-	err := idata.SetInt64Inherent(types.Timstap0, timestamp)
+	err := idata.SetInherent(types.Timstap0, timestamp)
 	if err != nil {
 		return nil, err
 	}
 
 	// add babeslot
-	err = idata.SetInt64Inherent(types.Babeslot, slot.number)
+	err = idata.SetInherent(types.Babeslot, slot.number)
 	if err != nil {
 		return nil, err
 	}

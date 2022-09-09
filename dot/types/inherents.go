@@ -5,22 +5,41 @@ package types
 
 import (
 	"bytes"
-	"encoding/binary"
-	"errors"
 	"fmt"
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-var (
-	// Timstap0 is an inherent key.
-	Timstap0 = []byte("timstap0")
-	// Babeslot is an inherent key.
-	Babeslot = []byte("babeslot")
-	// Uncles00 is an inherent key.
-	Uncles00 = []byte("uncles00")
+// InherentIdentifier is an identifier for an inherent.
+type InherentIdentifier uint
+
+const (
+	// Timstap0 is the identifier for the `timestamp` inherent.
+	Timstap0 InherentIdentifier = iota
+	// Babeslot is the BABE inherent identifier.
+	Babeslot
+	// Uncles00 is the identifier for the `uncles` inherent.
+	Uncles00
 )
+
+// Bytes returns a byte array of given inherent identifier.
+func (ii InherentIdentifier) Bytes() [8]byte {
+
+	kb := [8]byte{}
+	switch ii {
+	case Timstap0:
+		copy(kb[:], []byte("timstap0"))
+	case Babeslot:
+		copy(kb[:], []byte("babeslot"))
+	case Uncles00:
+		copy(kb[:], []byte("uncles00"))
+	default:
+		panic("invalid inherent identifier")
+	}
+
+	return kb
+}
 
 // InherentsData contains a mapping of inherent keys to values
 // keys must be 8 bytes, values are a scale-encoded byte array
@@ -43,24 +62,20 @@ func (d *InherentsData) String() string {
 	return str
 }
 
-// SetInt64Inherent set an inherent of type uint64
-func (d *InherentsData) SetInt64Inherent(key []byte, data uint64) error {
-	if len(key) != 8 {
-		return errors.New("inherent key must be 8 bytes")
-	}
-
-	val := make([]byte, 8)
-	binary.LittleEndian.PutUint64(val, data)
-
-	venc, err := scale.Marshal(val)
+// SetInherent sets a inherent.
+func (d *InherentsData) SetInherent(inherentIdentifier InherentIdentifier, value interface{}) error {
+	data, err := scale.Marshal(value)
 	if err != nil {
 		return err
 	}
 
-	kb := [8]byte{}
-	copy(kb[:], key)
+	venc, err := scale.Marshal(data)
+	if err != nil {
+		return err
+	}
 
-	d.data[kb] = venc
+	d.data[inherentIdentifier.Bytes()] = venc
+
 	return nil
 }
 
