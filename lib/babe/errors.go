@@ -71,6 +71,7 @@ var (
 	errInvalidSlotTechnique       = errors.New("invalid slot claiming technique")
 	errNoBABEAuthorityKeyProvided = errors.New("cannot create BABE service as authority; no keypair provided")
 	errLastDigestItemNotSeal      = errors.New("last digest item is not seal")
+	errLaggingSlot                = errors.New("cannot claim slot, current slot is smaller than slot of best block")
 
 	other         Other
 	invalidCustom InvalidCustom

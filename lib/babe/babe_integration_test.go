@@ -15,6 +15,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/babe/mocks"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -292,4 +293,174 @@ func TestService_PauseAndResume(t *testing.T) {
 
 	err = bs.Stop()
 	require.NoError(t, err)
+}
+
+func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
+	cfg := &ServiceConfig{
+		Authority: true,
+		Lead:      true,
+	}
+	babeService := createTestService(t, cfg)
+
+	err := babeService.Start()
+	require.NoError(t, err)
+	defer func() {
+		_ = babeService.Stop()
+	}()
+
+	// add a block
+	parentHash := babeService.blockState.GenesisHash()
+	rt, err := babeService.blockState.GetRuntime(nil)
+	require.NoError(t, err)
+
+	epochData, err := babeService.initiateEpoch(testEpochIndex)
+	require.NoError(t, err)
+
+	ext := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0, "System.remark", []byte{0xab, 0xcd})
+	block := createTestBlock(t, babeService, emptyHeader, [][]byte{common.MustHexToBytes(ext)},
+		1, testEpochIndex, epochData)
+
+	babeService.blockState.AddBlock(block)
+	time.Sleep(babeService.constants.slotDuration * 1)
+
+	header, err := babeService.blockState.BestBlockHeader()
+	require.NoError(t, err)
+
+	bestBlockSlotNum, err := babeService.blockState.GetSlotForBlock(header.Hash())
+	require.NoError(t, err)
+
+	slotnum := uint64(1)
+	slot := Slot{
+		start:    time.Now(),
+		duration: 1 * time.Second,
+		number:   slotnum,
+	}
+	testVRFOutputAndProof := &VrfOutputAndProof{}
+	preRuntimeDigest, err := types.NewBabePrimaryPreDigest(
+		0, slot.number,
+		testVRFOutputAndProof.output,
+		testVRFOutputAndProof.proof,
+	).ToPreRuntimeDigest()
+
+	require.NoError(t, err)
+
+	err = babeService.handleSlot(
+		babeService.epochHandler.epochNumber,
+		bestBlockSlotNum-1,
+		babeService.epochHandler.epochData.authorityIndex,
+		preRuntimeDigest)
+
+	require.ErrorIs(t, err, errLaggingSlot)
+}
+
+func TestService_HandleSlotWithSameSlot(t *testing.T) {
+	alice := keyring.Alice().(*sr25519.Keypair)
+	bob := keyring.Bob().(*sr25519.Keypair)
+
+	// Create babe service for alice
+	cfgAlice := &ServiceConfig{
+		Authority: true,
+		Lead:      true,
+		Keypair:   alice,
+	}
+	cfgAlice.AuthData = []types.Authority{
+		{
+			Key:    alice.Public().(*sr25519.PublicKey),
+			Weight: 1,
+		},
+		{
+			Key:    bob.Public().(*sr25519.PublicKey),
+			Weight: 1,
+		},
+	}
+
+	// Create babe service for bob
+	cfgBob := &ServiceConfig{
+		Authority: true,
+		Lead:      true,
+		Keypair:   bob,
+	}
+	cfgBob.AuthData = []types.Authority{
+		{
+			Key:    alice.Public().(*sr25519.PublicKey),
+			Weight: 1,
+		},
+		{
+			Key:    bob.Public().(*sr25519.PublicKey),
+			Weight: 1,
+		},
+	}
+
+	babeServiceBob := createTestService(t, cfgBob)
+
+	err := babeServiceBob.Start()
+	require.NoError(t, err)
+	defer func() {
+		_ = babeServiceBob.Stop()
+	}()
+
+	time.Sleep(babeServiceBob.constants.slotDuration * 5)
+
+	// create a block using bob
+	parentHash := babeServiceBob.blockState.GenesisHash()
+	rt, err := babeServiceBob.blockState.GetRuntime(nil)
+	require.NoError(t, err)
+
+	epochData, err := babeServiceBob.initiateEpoch(testEpochIndex)
+	require.NoError(t, err)
+
+	ext := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0, "System.remark", []byte{0xab, 0xcd})
+	block := createTestBlock(t, babeServiceBob, emptyHeader, [][]byte{common.MustHexToBytes(ext)},
+		1, testEpochIndex, epochData)
+
+	err = babeServiceBob.Stop()
+	require.NoError(t, err)
+
+	babeServiceAlice := createTestService(t, cfgAlice)
+
+	err = babeServiceAlice.Start()
+	require.NoError(t, err)
+	defer func() {
+		_ = babeServiceAlice.Stop()
+	}()
+	time.Sleep(babeServiceAlice.constants.slotDuration * 1)
+
+	// Add block created by Bob to Alice
+	babeServiceAlice.blockState.AddBlock(block)
+
+	time.Sleep(babeServiceAlice.constants.slotDuration * 1)
+
+	bestBlockHeader, err := babeServiceAlice.blockState.BestBlockHeader()
+	require.NoError(t, err)
+
+	require.Equal(t, block.Header.Hash().String(), bestBlockHeader.Hash().String())
+
+	// If the slot we are claiming is same as slot in best header, test that we don't
+	// through any error and can claim slot.
+	bestBlockSlotNum, err := babeServiceAlice.blockState.GetSlotForBlock(bestBlockHeader.Hash())
+	require.NoError(t, err)
+
+	err = babeServiceAlice.Stop()
+	require.NoError(t, err)
+
+	slot := Slot{
+		start:    time.Now(),
+		duration: 1 * time.Second,
+		number:   bestBlockSlotNum,
+	}
+	testVRFOutputAndProof := &VrfOutputAndProof{}
+	preRuntimeDigest, err := types.NewBabePrimaryPreDigest(
+		0, slot.number,
+		testVRFOutputAndProof.output,
+		testVRFOutputAndProof.proof,
+	).ToPreRuntimeDigest()
+	require.NoError(t, err)
+
+	err = babeServiceAlice.handleSlot(
+		babeServiceAlice.epochHandler.epochNumber,
+		bestBlockSlotNum,
+		babeServiceAlice.epochHandler.epochData.authorityIndex,
+		preRuntimeDigest)
+	require.NoError(t, err)
+
 }
