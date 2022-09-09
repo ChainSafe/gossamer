@@ -540,6 +540,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 
 	mockBlockState.EXPECT().GetAllBlocksAtDepth(gomock.Any()).Return(h1)
 	mockBlockState.EXPECT().GetHeader(h).Return(types.NewEmptyHeader(), nil)
+	mockBlockState.EXPECT().GetSlotForBlock(gomock.AssignableToTypeOf(common.Hash{})).Return(uint64(1), nil)
 
 	mockBlockStateErr.EXPECT().GetAllBlocksAtDepth(gomock.Any()).Return(h1)
 	mockBlockStateErr.EXPECT().GetHeader(h).Return(nil, errors.New("get header error"))
