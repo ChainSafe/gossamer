@@ -296,7 +296,7 @@ func TestService_PauseAndResume(t *testing.T) {
 }
 
 func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
-	cfg := &ServiceConfig{
+	cfg := ServiceConfig{
 		Authority: true,
 		Lead:      true,
 	}
@@ -358,7 +358,7 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 	bob := keyring.Bob().(*sr25519.Keypair)
 
 	// Create babe service for alice
-	cfgAlice := &ServiceConfig{
+	cfgAlice := ServiceConfig{
 		Authority: true,
 		Lead:      true,
 		Keypair:   alice,
@@ -375,7 +375,7 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 	}
 
 	// Create babe service for bob
-	cfgBob := &ServiceConfig{
+	cfgBob := ServiceConfig{
 		Authority: true,
 		Lead:      true,
 		Keypair:   bob,
