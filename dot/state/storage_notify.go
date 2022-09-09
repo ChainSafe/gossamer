@@ -48,6 +48,8 @@ type Observer interface {
 
 // RegisterStorageObserver to add abserver to notification list
 func (s *StorageState) RegisterStorageObserver(o Observer) {
+	s.observerListMutex.Lock()
+	defer s.observerListMutex.Unlock()
 	s.observerList = append(s.observerList, o)
 
 	// notifyObserver here to send storage value of current state
@@ -66,12 +68,14 @@ func (s *StorageState) RegisterStorageObserver(o Observer) {
 
 // UnregisterStorageObserver removes observer from notification list
 func (s *StorageState) UnregisterStorageObserver(o Observer) {
+	s.observerListMutex.Lock()
+	defer s.observerListMutex.Unlock()
 	s.observerList = s.removeFromSlice(s.observerList, o)
 }
 
 func (s *StorageState) notifyAll(root common.Hash) {
-	s.changedLock.RLock()
-	defer s.changedLock.RUnlock()
+	s.observerListMutex.RLock()
+	defer s.observerListMutex.RUnlock()
 	for _, observer := range s.observerList {
 		err := s.notifyObserver(root, observer)
 		if err != nil {
@@ -132,8 +136,6 @@ func (s *StorageState) notifyObserver(root common.Hash, o Observer) error {
 }
 
 func (s *StorageState) removeFromSlice(observerList []Observer, observerToRemove Observer) []Observer {
-	s.changedLock.Lock()
-	defer s.changedLock.Unlock()
 	observerListLength := len(observerList)
 	for i, observer := range observerList {
 		if observerToRemove.GetID() == observer.GetID() {

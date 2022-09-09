@@ -102,7 +102,7 @@ func (b *Body) HasExtrinsic(target Extrinsic) (bool, error) {
 			return true, nil
 		}
 
-		//otherwise try to encode and compare
+		// otherwise try to encode and compare
 		encext, err := scale.Marshal(currext)
 		if err != nil {
 			return false, fmt.Errorf("fail while scale encode: %w", err)

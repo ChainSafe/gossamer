@@ -37,9 +37,9 @@ type StorageState struct {
 	sync.RWMutex
 
 	// change notifiers
-	changedLock  sync.RWMutex
-	observerList []Observer
-	pruner       pruner.Pruner
+	observerListMutex sync.RWMutex
+	observerList      []Observer
+	pruner            pruner.Pruner
 }
 
 // NewStorageState creates a new StorageState backed by the given block state

@@ -98,7 +98,7 @@ package wasmer
 //
 // extern void ext_transaction_index_index_version_1(void *context, int32_t a, int32_t b, int32_t c);
 // extern void ext_transaction_index_renew_version_1(void *context, int32_t a, int32_t b);
-import "C"
+import "C" //skipcq: SCC-compile
 
 import (
 	"encoding/binary"

@@ -19,7 +19,6 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/golang/mock/gomock"
 
-	"github.com/ChainSafe/gossamer/internal/log"
 	cscale "github.com/centrifuge/go-substrate-rpc-client/v4/scale"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	ctypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
@@ -31,24 +30,9 @@ func TestSeal(t *testing.T) {
 	kp, err := sr25519.GenerateKeypair()
 	require.NoError(t, err)
 
-	cfg := &ServiceConfig{
-		Keypair: kp,
+	builder := &BlockBuilder{
+		keypair: kp,
 	}
-
-	babeService := createTestService(t, cfg)
-	babeService.epochHandler, err = babeService.initiateAndGetEpochHandler(0)
-	require.NoError(t, err)
-
-	authoringSlots := getAuthoringSlots(babeService.epochHandler.slotToPreRuntimeDigest)
-	require.NotEmpty(t, authoringSlots)
-
-	builder, _ := NewBlockBuilder(
-		babeService.keypair,
-		babeService.transactionState,
-		babeService.blockState,
-		babeService.epochHandler.epochData.authorityIndex,
-		babeService.epochHandler.slotToPreRuntimeDigest[authoringSlots[0]],
-	)
 
 	zeroHash, err := common.HexToHash("0x00")
 	require.NoError(t, err)
@@ -107,9 +91,8 @@ func TestBuildBlock_ok(t *testing.T) {
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
-	cfg := &ServiceConfig{
+	cfg := ServiceConfig{
 		TransactionState: state.NewTransactionState(telemetryMock),
-		LogLvl:           log.Info,
 	}
 
 	babeService := createTestService(t, cfg)
@@ -148,9 +131,8 @@ func TestApplyExtrinsic(t *testing.T) {
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
-	cfg := &ServiceConfig{
+	cfg := ServiceConfig{
 		TransactionState: state.NewTransactionState(telemetryMock),
-		LogLvl:           log.Info,
 	}
 
 	babeService := createTestService(t, cfg)
@@ -246,9 +228,8 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
-	cfg := &ServiceConfig{
+	cfg := ServiceConfig{
 		TransactionState: state.NewTransactionState(telemetryMock),
-		LogLvl:           log.Info,
 	}
 
 	babeService := createTestService(t, cfg)
@@ -327,7 +308,7 @@ func TestBuildBlock_failing(t *testing.T) {
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
-	cfg := &ServiceConfig{
+	cfg := ServiceConfig{
 		TransactionState: state.NewTransactionState(telemetryMock),
 	}
 
@@ -419,7 +400,11 @@ func TestBuildBlockTimeMonitor(t *testing.T) {
 	metrics.Enabled = true
 	metrics.Unregister(buildBlockTimer)
 
-	babeService := createTestService(t, nil)
+	cfg := ServiceConfig{
+		Authority: true,
+	}
+
+	babeService := createTestService(t, cfg)
 
 	parent, err := babeService.blockState.BestBlockHeader()
 	require.NoError(t, err)
