@@ -205,14 +205,6 @@ func (t *Trie) PopulateNodeHashes(n *Node, hashesSet map[common.Hash]struct{}) {
 	}
 }
 
-// PutInDB inserts a value in the trie at the key given.
-// It writes the updated nodes from the changed node up to the root node
-// to the database in a batch operation.
-func (t *Trie) PutInDB(db chaindb.Database, key, value []byte) error {
-	t.Put(key, value)
-	return t.WriteDirty(db)
-}
-
 // DeleteFromDB deletes a value from the trie at the key given.
 // It writes the updated nodes from the changed node up to the root node
 // to the database in a batch operation.
