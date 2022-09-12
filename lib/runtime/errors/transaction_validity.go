@@ -11,10 +11,10 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-// transactionValidityError Information on a transaction's validity and, if valid,
+// TransactionValidityError Information on a transaction's validity and, if valid,
 // on how it relates to other transactions. It is a result of the form:
-// Result<ValidTransaction, transactionValidityError>
-type transactionValidityError scale.VaryingDataType
+// Result<ValidTransaction, TransactionValidityError>
+type TransactionValidityError scale.VaryingDataType
 
 var (
 	errInvalidType     = errors.New("invalid validity type")
@@ -23,24 +23,24 @@ var (
 )
 
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (tve *transactionValidityError) Set(val scale.VaryingDataTypeValue) (err error) {
+func (tve *TransactionValidityError) Set(val scale.VaryingDataTypeValue) (err error) {
 	vdt := scale.VaryingDataType(*tve)
 	err = vdt.Set(val)
 	if err != nil {
 		return err
 	}
-	*tve = transactionValidityError(vdt)
+	*tve = TransactionValidityError(vdt)
 	return nil
 }
 
 // Value will return the value from the underlying VaryingDataType
-func (tve *transactionValidityError) Value() (val scale.VaryingDataTypeValue) {
+func (tve *TransactionValidityError) Value() (val scale.VaryingDataTypeValue) {
 	vdt := scale.VaryingDataType(*tve)
 	return vdt.Value()
 }
 
-// Error will return the error underlying transactionValidityError
-func (tve *transactionValidityError) Error() string {
+// Error will return the error underlying TransactionValidityError
+func (tve *TransactionValidityError) Error() string {
 	invalidTxn, ok := tve.Value().(InvalidTransaction)
 	if !ok {
 		unknownTxn, ok2 := tve.Value().(UnknownTransaction)
@@ -52,13 +52,13 @@ func (tve *transactionValidityError) Error() string {
 	return invalidTxn.Error()
 }
 
-// NewTransactionValidityError is constructor for transactionValidityError
-func NewTransactionValidityError() transactionValidityError {
+// NewTransactionValidityError is constructor for TransactionValidityError
+func NewTransactionValidityError() TransactionValidityError {
 	vdt, err := scale.NewVaryingDataType(NewInvalidTransaction(), NewUnknownTransaction())
 	if err != nil {
 		panic(err)
 	}
-	return transactionValidityError(vdt)
+	return TransactionValidityError(vdt)
 }
 
 var (
@@ -80,7 +80,7 @@ func UnmarshalTransactionValidity(res []byte) (*transaction.Validity, error) {
 	if err != nil {
 		scaleWrappedErr, ok := err.(scale.WrappedErr)
 		if ok {
-			txnValidityErr, ok := scaleWrappedErr.Err.(transactionValidityError)
+			txnValidityErr, ok := scaleWrappedErr.Err.(TransactionValidityError)
 			if !ok {
 				return nil, fmt.Errorf("%w: %T", errInvalidTypeCast, scaleWrappedErr.Err)
 			}

@@ -9,7 +9,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-// UnknownTransaction is child VDT of transactionValidityError
+// UnknownTransaction is child VDT of TransactionValidityError
 type UnknownTransaction scale.VaryingDataType
 
 // Index returns the VDT index
