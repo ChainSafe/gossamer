@@ -296,9 +296,15 @@ func TestService_PauseAndResume(t *testing.T) {
 }
 
 func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
+	blockImportHandler := new(mocks.BlockImportHandler)
+	blockImportHandler.
+		On("HandleBlockProduced",
+			mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState")).
+		Return(nil)
 	cfg := ServiceConfig{
-		Authority: true,
-		Lead:      true,
+		Authority:          true,
+		Lead:               true,
+		BlockImportHandler: blockImportHandler,
 	}
 	babeService := createTestService(t, cfg)
 
@@ -375,10 +381,16 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 	}
 
 	// Create babe service for bob
+	blockImportHandler := new(mocks.BlockImportHandler)
+	blockImportHandler.
+		On("HandleBlockProduced",
+			mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState")).
+		Return(nil)
 	cfgBob := ServiceConfig{
-		Authority: true,
-		Lead:      true,
-		Keypair:   bob,
+		Authority:          true,
+		Lead:               true,
+		Keypair:            bob,
+		BlockImportHandler: blockImportHandler,
 	}
 	cfgBob.AuthData = []types.Authority{
 		{
@@ -399,7 +411,7 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 		_ = babeServiceBob.Stop()
 	}()
 
-	time.Sleep(babeServiceBob.constants.slotDuration * 5)
+	time.Sleep(5 * babeServiceBob.constants.slotDuration)
 
 	// create a block using bob
 	parentHash := babeServiceBob.blockState.GenesisHash()
@@ -423,12 +435,12 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 	defer func() {
 		_ = babeServiceAlice.Stop()
 	}()
-	time.Sleep(babeServiceAlice.constants.slotDuration * 1)
+	time.Sleep(babeServiceAlice.constants.slotDuration)
 
 	// Add block created by Bob to Alice
 	babeServiceAlice.blockState.AddBlock(block)
 
-	time.Sleep(babeServiceAlice.constants.slotDuration * 1)
+	time.Sleep(babeServiceAlice.constants.slotDuration)
 
 	bestBlockHeader, err := babeServiceAlice.blockState.BestBlockHeader()
 	require.NoError(t, err)
