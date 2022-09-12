@@ -19,6 +19,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	cscale "github.com/centrifuge/go-substrate-rpc-client/v4/scale"
@@ -189,17 +190,16 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 	logger.Debugf("imported block %s and stored state trie with root %s",
 		block.Header.Hash(), state.MustRoot())
 
-	// todo(ed) re-implement
-	//rt, err := s.blockState.GetRuntime(&block.Header.ParentHash)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//// check for runtime changes
-	//if err := s.blockState.HandleRuntimeChanges(state, rt, block.Header.Hash()); err != nil {
-	//	logger.Criticalf("failed to update runtime code: %s", err)
-	//	return err
-	//}
+	rt, err := s.blockState.GetRuntime(&block.Header.ParentHash)
+	if err != nil {
+		return err
+	}
+
+	// check for runtime changes
+	if err := s.blockState.HandleRuntimeChanges(state, rt, block.Header.Hash()); err != nil {
+		logger.Criticalf("failed to update runtime code: %s", err)
+		return err
+	}
 
 	// check if there was a runtime code substitution
 	err = s.handleCodeSubstitution(block.Header.Hash(), state)
@@ -237,35 +237,35 @@ func (s *Service) handleCodeSubstitution(hash common.Hash,
 	}
 
 	// todo(ed) re-implement
-	//rt, err := s.blockState.GetRuntime(&hash)
-	//if err != nil {
-	//	return fmt.Errorf("getting runtime from block state: %w", err)
-	//}
-	//
-	//// this needs to create a new runtime instance, otherwise it will update
-	//// the blocks that reference the current runtime version to use the code substition
-	//cfg := wasmer.Config{
-	//	Storage:     state,
-	//	Keystore:    rt.Keystore(),
-	//	NodeStorage: rt.NodeStorage(),
-	//	Network:     rt.NetworkService(),
-	//}
-	//
-	//if rt.Validator() {
-	//	cfg.Role = 4
-	//}
-	//
-	//next, err := wasmer.NewInstance(code, cfg)
-	//if err != nil {
-	//	return fmt.Errorf("creating new runtime instance: %w", err)
-	//}
+	rt, err := s.blockState.GetRuntime(&hash)
+	if err != nil {
+		return fmt.Errorf("getting runtime from block state: %w", err)
+	}
+
+	// this needs to create a new runtime instance, otherwise it will update
+	// the blocks that reference the current runtime version to use the code substition
+	cfg := wasmer.Config{
+		Storage:     state,
+		Keystore:    rt.Keystore(),
+		NodeStorage: rt.NodeStorage(),
+		Network:     rt.NetworkService(),
+	}
+
+	if rt.Validator() {
+		cfg.Role = 4
+	}
+
+	next, err := wasmer.NewInstance(code, cfg)
+	if err != nil {
+		return fmt.Errorf("creating new runtime instance: %w", err)
+	}
 
 	err = s.codeSubstitutedState.StoreCodeSubstitutedBlockHash(hash)
 	if err != nil {
 		return fmt.Errorf("storing code substituted block hash: %w", err)
 	}
 
-	//s.blockState.StoreRuntime(hash, next)
+	s.blockState.StoreRuntime(hash, next)
 	return nil
 }
 
@@ -429,31 +429,29 @@ func (s *Service) DecodeSessionKeys(enc []byte) ([]byte, error) {
 // GetRuntimeVersion gets the current RuntimeVersion
 func (s *Service) GetRuntimeVersion(bhash *common.Hash) (
 	version runtime.Version, err error) {
-	//var stateRootHash *common.Hash
-	//
-	//// If block hash is not nil then fetch the state root corresponding to the block.
-	//if bhash != nil {
-	//	var err error
-	//	stateRootHash, err = s.storageState.GetStateRootFromBlock(bhash)
-	//	if err != nil {
-	//		return version, err
-	//	}
-	//}
+	var stateRootHash *common.Hash
 
-	// todo(ed) re-implment
-	//ts, err := s.storageState.TrieState(stateRootHash)
-	//if err != nil {
-	//	return version, err
-	//}
+	// If block hash is not nil then fetch the state root corresponding to the block.
+	if bhash != nil {
+		var err error
+		stateRootHash, err = s.storageState.GetStateRootFromBlock(bhash)
+		if err != nil {
+			return version, err
+		}
+	}
 
-	//rt, err := s.blockState.GetRuntime(bhash)
-	//if err != nil {
-	//	return version, err
-	//}
-	//
-	//rt.SetContextStorage(ts)
-	//return rt.Version(), nil
-	return version, nil
+	ts, err := s.storageState.TrieState(stateRootHash)
+	if err != nil {
+		return version, err
+	}
+
+	rt, err := s.blockState.GetRuntime(bhash)
+	if err != nil {
+		return version, err
+	}
+
+	rt.SetContextStorage(ts)
+	return rt.Version(), nil
 }
 
 // HandleSubmittedExtrinsic is used to send a Transaction message containing a Extrinsic @ext
@@ -500,32 +498,30 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 
 // GetMetadata calls runtime Metadata_metadata function
 func (s *Service) GetMetadata(bhash *common.Hash) ([]byte, error) {
-	//var (
-	//	stateRootHash *common.Hash
-	//	err           error
-	//)
-	//
-	//// If block hash is not nil then fetch the state root corresponding to the block.
-	//if bhash != nil {
-	//	stateRootHash, err = s.storageState.GetStateRootFromBlock(bhash)
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//}
-	// todo(ed) re-implement
-	//ts, err := s.storageState.TrieState(stateRootHash)
-	//if err != nil {
-	//	return nil, err
-	//}
+	var (
+		stateRootHash *common.Hash
+		err           error
+	)
 
-	//rt, err := s.blockState.GetRuntime(bhash)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//rt.SetContextStorage(ts)
-	//return rt.Metadata()
-	return nil, nil
+	// If block hash is not nil then fetch the state root corresponding to the block.
+	if bhash != nil {
+		stateRootHash, err = s.storageState.GetStateRootFromBlock(bhash)
+		if err != nil {
+			return nil, err
+		}
+	}
+	ts, err := s.storageState.TrieState(stateRootHash)
+	if err != nil {
+		return nil, err
+	}
+
+	rt, err := s.blockState.GetRuntime(bhash)
+	if err != nil {
+		return nil, err
+	}
+
+	rt.SetContextStorage(ts)
+	return rt.Metadata()
 }
 
 // GetReadProofAt will return an array with the proofs for the keys passed as params

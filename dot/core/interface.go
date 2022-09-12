@@ -71,6 +71,7 @@ type BlockState interface {
 	GetBlockBody(hash common.Hash) (*types.Body, error)
 	HandleRuntimeChanges(newState *rtstorage.TrieState, in runtime.Instance, bHash common.Hash) error
 	GetBestBlockRuntime() runtime.Instance
+	GetRuntime(hash *common.Hash) (instance runtime.Instance, err error)
 	StoreRuntime(common.Hash, runtime.Instance)
 }
 

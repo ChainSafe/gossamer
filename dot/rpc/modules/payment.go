@@ -38,35 +38,34 @@ func NewPaymentModule(blockAPI BlockAPI) *PaymentModule {
 
 // QueryInfo query the known data about the fee of an extrinsic at the given block
 func (p *PaymentModule) QueryInfo(_ *http.Request, req *PaymentQueryInfoRequest, res *PaymentQueryInfoResponse) error {
-	// todo(ed) re-implement
-	//var hash common.Hash
-	//if req.Hash == nil {
-	//	hash = p.blockAPI.BestBlockHash()
-	//} else {
-	//	hash = *req.Hash
-	//}
+	var hash common.Hash
+	if req.Hash == nil {
+		hash = p.blockAPI.BestBlockHash()
+	} else {
+		hash = *req.Hash
+	}
 
-	//r, err := p.blockAPI.GetRuntime(&hash)
-	//if err != nil {
-	//	return err
-	//}
-	//ext, err := common.HexToBytes(req.Ext)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//encQueryInfo, err := r.PaymentQueryInfo(ext)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//if encQueryInfo != nil {
-	//	*res = PaymentQueryInfoResponse{
-	//		Weight:     encQueryInfo.Weight,
-	//		Class:      encQueryInfo.Class,
-	//		PartialFee: encQueryInfo.PartialFee.String(),
-	//	}
-	//}
+	r, err := p.blockAPI.GetRuntime(&hash)
+	if err != nil {
+		return err
+	}
+	ext, err := common.HexToBytes(req.Ext)
+	if err != nil {
+		return err
+	}
+
+	encQueryInfo, err := r.PaymentQueryInfo(ext)
+	if err != nil {
+		return err
+	}
+
+	if encQueryInfo != nil {
+		*res = PaymentQueryInfoResponse{
+			Weight:     encQueryInfo.Weight,
+			Class:      encQueryInfo.Class,
+			PartialFee: encQueryInfo.PartialFee.String(),
+		}
+	}
 
 	return nil
 }

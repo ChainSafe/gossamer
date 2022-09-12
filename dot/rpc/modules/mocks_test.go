@@ -360,6 +360,21 @@ func (mr *MockBlockAPIMockRecorder) GetJustification(arg0 interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetJustification", reflect.TypeOf((*MockBlockAPI)(nil).GetJustification), arg0)
 }
 
+// GetRuntime mocks base method.
+func (m *MockBlockAPI) GetRuntime(arg0 *common.Hash) (runtime.Instance, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRuntime", arg0)
+	ret0, _ := ret[0].(runtime.Instance)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetRuntime indicates an expected call of GetRuntime.
+func (mr *MockBlockAPIMockRecorder) GetRuntime(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRuntime", reflect.TypeOf((*MockBlockAPI)(nil).GetRuntime), arg0)
+}
+
 // HasJustification mocks base method.
 func (m *MockBlockAPI) HasJustification(arg0 common.Hash) (bool, error) {
 	m.ctrl.T.Helper()

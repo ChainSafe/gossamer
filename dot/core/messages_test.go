@@ -40,7 +40,6 @@ type mockBestHeader struct {
 
 type mockGetRuntime struct {
 	runtime RuntimeInstance
-	err     error
 }
 
 type mockBlockState struct {
@@ -163,25 +162,26 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 			expErr:    errDummyErr,
 			expErrMsg: errDummyErr.Error(),
 		},
-		{
-			name: "get runtime error",
-			mockNetwork: &mockNetwork{
-				IsSynced: true,
-			},
-			mockBlockState: &mockBlockState{
-				bestHeader: &mockBestHeader{
-					header: testEmptyHeader,
-				},
-				getRuntime: &mockGetRuntime{
-					err: errDummyErr,
-				},
-			},
-			args: args{
-				msg: &network.TransactionMessage{Extrinsics: []types.Extrinsic{}},
-			},
-			expErr:    errDummyErr,
-			expErrMsg: errDummyErr.Error(),
-		},
+		//{
+		// todo(ed) confirm this is no longer necessary since GetBestBlockRuntime doesn't return error
+		//	name: "get runtime error",
+		//	mockNetwork: &mockNetwork{
+		//		IsSynced: true,
+		//	},
+		//	mockBlockState: &mockBlockState{
+		//		bestHeader: &mockBestHeader{
+		//			header: testEmptyHeader,
+		//		},
+		//		getRuntime: &mockGetRuntime{
+		//			err: errDummyErr,
+		//		},
+		//	},
+		//	args: args{
+		//		msg: &network.TransactionMessage{Extrinsics: []types.Extrinsic{}},
+		//	},
+		//	expErr:    errDummyErr,
+		//	expErrMsg: errDummyErr.Error(),
+		//},
 		{
 			name: "happy path no loop",
 			mockNetwork: &mockNetwork{
@@ -339,12 +339,10 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 					tt.mockBlockState.bestHeader.header,
 					tt.mockBlockState.bestHeader.err)
 
-				//if tt.mockBlockState.getRuntime != nil {
-				// todo(ed) re-implement
-				//blockState.EXPECT().GetRuntime(gomock.Any()).Return(
-				//	tt.mockBlockState.getRuntime.runtime,
-				//	tt.mockBlockState.getRuntime.err)
-				//}
+				if tt.mockBlockState.getRuntime != nil {
+					blockState.EXPECT().GetBestBlockRuntime().Return(
+						tt.mockBlockState.getRuntime.runtime)
+				}
 				s.blockState = blockState
 			}
 			if tt.mockStorageState != nil {

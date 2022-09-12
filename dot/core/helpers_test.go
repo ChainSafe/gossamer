@@ -177,5 +177,4 @@ func getGssmrRuntimeCode(t *testing.T) (code []byte) {
 	return trieState.LoadCode()
 }
 
-// todo(ed) remove if not used
-//func hashPtr(h common.Hash) *common.Hash { return &h }
+func hashPtr(h common.Hash) *common.Hash { return &h }
