@@ -4,7 +4,9 @@
 package state
 
 import (
+	"context"
 	"sync"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 
@@ -28,8 +30,9 @@ type TransactionState struct {
 
 // NewTransactionState returns a new TransactionState
 func NewTransactionState(telemetry telemetry.Client) *TransactionState {
+	const popTryWait = 10 * time.Millisecond
 	return &TransactionState{
-		queue:            transaction.NewPriorityQueue(),
+		queue:            transaction.NewPriorityQueue(popTryWait),
 		pool:             transaction.NewPool(),
 		notifierChannels: make(map[chan transaction.Status]string),
 		telemetry:        telemetry,
@@ -43,8 +46,8 @@ func (s *TransactionState) Push(vt *transaction.ValidTransaction) (common.Hash, 
 }
 
 // Pop removes and returns the head of the queue
-func (s *TransactionState) Pop() *transaction.ValidTransaction {
-	return s.queue.Pop()
+func (s *TransactionState) Pop(ctx context.Context) *transaction.ValidTransaction {
+	return s.queue.Pop(ctx)
 }
 
 // Peek returns the head of the queue without removing it

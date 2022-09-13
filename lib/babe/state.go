@@ -4,6 +4,7 @@
 package babe
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -54,7 +55,7 @@ type StorageState interface {
 // TransactionState is the interface for transaction queue methods
 type TransactionState interface {
 	Push(vt *transaction.ValidTransaction) (common.Hash, error)
-	Pop() *transaction.ValidTransaction
+	Pop(ctx context.Context) *transaction.ValidTransaction
 	Peek() *transaction.ValidTransaction
 }
 

@@ -5,8 +5,10 @@ package transaction
 
 import (
 	"container/heap"
+	"context"
 	"errors"
 	"sync"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -80,14 +82,18 @@ type PriorityQueue struct {
 	pq        priorityQueue
 	currOrder uint64
 	txs       map[common.Hash]*Item
+	waitNext  time.Duration
 	sync.Mutex
 }
 
-// NewPriorityQueue creates new instance of PriorityQueue
-func NewPriorityQueue() *PriorityQueue {
+// NewPriorityQueue creates new instance of PriorityQueue which
+// waits for `popTryWait` duration before trying to poll the next item
+// from the queue when calling the Pop method.
+func NewPriorityQueue(popTryWait time.Duration) *PriorityQueue {
 	spq := &PriorityQueue{
-		pq:  make(priorityQueue, 0),
-		txs: make(map[common.Hash]*Item),
+		pq:       make(priorityQueue, 0),
+		txs:      make(map[common.Hash]*Item),
+		waitNext: popTryWait,
 	}
 
 	heap.Init(&spq.pq)
@@ -141,11 +147,20 @@ func (spq *PriorityQueue) Push(txn *ValidTransaction) (common.Hash, error) {
 
 // Pop removes the transaction with has the highest priority value from the queue and returns it.
 // If there are multiple transaction with same priority value then it return them in FIFO order.
-func (spq *PriorityQueue) Pop() *ValidTransaction {
+func (spq *PriorityQueue) Pop(ctx context.Context) *ValidTransaction {
 	spq.Lock()
 	defer spq.Unlock()
-	if spq.pq.Len() == 0 {
-		return nil
+
+	for spq.pq.Len() == 0 {
+		timer := time.NewTimer(spq.waitNext)
+		select {
+		case <-timer.C:
+		case <-ctx.Done():
+			if !timer.Stop() {
+				<-timer.C
+			}
+			return nil
+		}
 	}
 
 	item := heap.Pop(&spq.pq).(*Item)
