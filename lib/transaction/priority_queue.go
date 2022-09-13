@@ -147,18 +147,23 @@ func (spq *PriorityQueue) Push(txn *ValidTransaction) (common.Hash, error) {
 func (spq *PriorityQueue) PopChannel(timer *time.Timer) (tx chan *ValidTransaction) {
 	popChannel := make(chan *ValidTransaction)
 	go func() {
+		var pollTimer <-chan time.Time = nil
+		var pop = func() {
+			txn := spq.Pop()
+			if txn != nil {
+				popChannel <- txn
+			} else {
+				pollTimer = time.NewTimer(spq.sleepTime).C
+			}
+		}
 		for {
 			select {
 			case <-timer.C:
 				close(popChannel)
+			case <-pollTimer:
+				pop()
 			default:
-				txn := spq.Pop()
-
-				if txn != nil {
-					popChannel <- txn
-				} else {
-					time.Sleep(spq.sleepTime)
-				}
+				pop()
 			}
 		}
 	}()
