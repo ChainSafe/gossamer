@@ -44,25 +44,25 @@ func TestConfigFromChainFlag(t *testing.T) {
 		{
 			"Test gossamer --chain gssmr",
 			[]string{"chain", "name", "pruning", "retain-blocks"},
-			[]interface{}{"gssmr", dot.GssmrConfig().Global.Name, gssmr.DefaultPruningMode, gssmr.DefaultRetainBlocks},
+			[]interface{}{"gssmr", dot.GssmrConfig().Global.Name, gssmr.DefaultPruningEnabled, gssmr.DefaultRetainBlocks},
 			dot.GssmrConfig(),
 		},
 		{
 			"Test gossamer --chain kusama",
 			[]string{"chain", "name", "pruning", "retain-blocks"},
-			[]interface{}{"kusama", dot.KusamaConfig().Global.Name, gssmr.DefaultPruningMode, gssmr.DefaultRetainBlocks},
+			[]interface{}{"kusama", dot.KusamaConfig().Global.Name, gssmr.DefaultPruningEnabled, gssmr.DefaultRetainBlocks},
 			dot.KusamaConfig(),
 		},
 		{
 			"Test gossamer --chain polkadot",
 			[]string{"chain", "name", "pruning", "retain-blocks"},
-			[]interface{}{"polkadot", dot.PolkadotConfig().Global.Name, gssmr.DefaultPruningMode, gssmr.DefaultRetainBlocks},
+			[]interface{}{"polkadot", dot.PolkadotConfig().Global.Name, gssmr.DefaultPruningEnabled, gssmr.DefaultRetainBlocks},
 			dot.PolkadotConfig(),
 		},
 		{
 			"Test gossamer --chain dev",
 			[]string{"chain", "name", "pruning", "retain-blocks"},
-			[]interface{}{"dev", dot.DevConfig().Global.Name, dev.DefaultPruningMode, dev.DefaultRetainBlocks},
+			[]interface{}{"dev", dot.DevConfig().Global.Name, dev.DefaultPruningEnabled, dev.DefaultRetainBlocks},
 			dot.DevConfig(),
 		},
 	}
@@ -96,7 +96,7 @@ func TestInitConfigFromFlags(t *testing.T) {
 		{
 			"Test gossamer --genesis",
 			[]string{"config", "genesis", "pruning", "retain-blocks"},
-			[]interface{}{testCfgFile, "test_genesis", dev.DefaultPruningMode, dev.DefaultRetainBlocks},
+			[]interface{}{testCfgFile, "test_genesis", dev.DefaultPruningEnabled, dev.DefaultRetainBlocks},
 			dot.InitConfig{
 				Genesis: "test_genesis",
 			},

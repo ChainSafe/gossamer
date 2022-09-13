@@ -82,7 +82,7 @@ func TestExportCommand(t *testing.T) {
 			[]string{"config", "genesis", "bootnodes", "name", "force", "pruning", "retain-blocks"},
 			[]interface{}{
 				testConfig, genFile, testBootnode,
-				"Gossamer", "true", gssmr.DefaultPruningMode,
+				"Gossamer", "true", "false",
 				gssmr.DefaultRetainBlocks},
 			&dot.Config{
 				Global: testCfg.Global,
@@ -120,7 +120,7 @@ func TestExportCommand(t *testing.T) {
 			[]string{"config", "genesis", "protocol", "force", "name", "pruning", "retain-blocks"},
 			[]interface{}{
 				testConfig, genFile, testProtocol,
-				"true", "Gossamer", gssmr.DefaultPruningMode,
+				"true", "Gossamer", "false",
 				gssmr.DefaultRetainBlocks},
 			&dot.Config{
 				Global: testCfg.Global,

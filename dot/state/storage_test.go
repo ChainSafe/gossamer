@@ -7,9 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/state/pruner"
+	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/pruner/archive"
 	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/lib/common"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
@@ -24,11 +25,10 @@ func newTestStorageState(t *testing.T) *StorageState {
 	db := NewInMemoryDB(t)
 
 	tries := newTriesEmpty()
+	storageTable := chaindb.NewTable(db, storagePrefix)
 	bs := newTestBlockState(t, tries)
-
-	s, err := NewStorageState(db, bs, tries, pruner.Config{})
-	require.NoError(t, err)
-	return s
+	pruner := archive.New()
+	return newStorageState(storageTable, bs, tries, pruner)
 }
 
 func TestStorage_StoreAndLoadTrie(t *testing.T) {
@@ -197,8 +197,9 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	blockState, err := NewBlockStateFromGenesis(db, tries, &genHeader, telemetryMock)
 	require.NoError(t, err)
 
-	storage, err := NewStorageState(db, blockState, tries, pruner.Config{})
-	require.NoError(t, err)
+	storageTable := chaindb.NewTable(db, storagePrefix)
+	pruner := archive.New()
+	storage := newStorageState(storageTable, blockState, tries, pruner)
 
 	trieState := runtime.NewTrieState(&genTrie)
 

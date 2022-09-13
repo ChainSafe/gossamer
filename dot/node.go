@@ -19,7 +19,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/rpc"
 	"github.com/ChainSafe/gossamer/dot/state"
-	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	dotsync "github.com/ChainSafe/gossamer/dot/sync"
 	"github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
@@ -163,9 +162,9 @@ func (*nodeBuilder) initNode(cfg *Config) error {
 	config := state.Config{
 		Path:     cfg.Global.BasePath,
 		LogLevel: cfg.Global.LogLvl,
-		PrunerCfg: pruner.Config{
-			Mode:           cfg.Global.Pruning,
-			RetainedBlocks: cfg.Global.RetainBlocks,
+		PrunerCfg: state.PrunerConfig{
+			Enabled:      cfg.Global.Pruning,
+			RetainBlocks: cfg.Global.RetainBlocks,
 		},
 		Telemetry: telemetryMailer,
 		Metrics:   metrics.NewIntervalConfig(cfg.Global.PublishMetrics),

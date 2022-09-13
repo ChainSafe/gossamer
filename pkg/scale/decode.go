@@ -424,6 +424,14 @@ func (ds *decodeState) decodeMap(dstv reflect.Value) (err error) {
 	if err != nil {
 		return fmt.Errorf("decoding length: %w", err)
 	}
+
+	if dstv.IsNil() {
+		keyType := dstv.Type().Key()
+		valueType := dstv.Type().Elem()
+		aMapType := reflect.MapOf(keyType, valueType)
+		dstv.Set(reflect.MakeMapWithSize(aMapType, int(numberOfTuples)))
+	}
+
 	in := dstv.Interface()
 
 	for i := uint(0); i < numberOfTuples; i++ {

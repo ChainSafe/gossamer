@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 
 	"github.com/ChainSafe/chaindb"
-	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/pruner/archive"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
@@ -73,10 +73,9 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 	}
 
 	// create storage state from genesis trie
-	storageState, err := NewStorageState(db, blockState, tries, pruner.Config{})
-	if err != nil {
-		return fmt.Errorf("failed to create storage state from trie: %s", err)
-	}
+	storageTable := chaindb.NewTable(db, storagePrefix)
+	pruner := archive.New()
+	storageState := newStorageState(storageTable, blockState, tries, pruner)
 
 	epochState, err := NewEpochStateFromGenesis(db, blockState, babeCfg)
 	if err != nil {
@@ -143,10 +142,6 @@ func (s *Service) storeInitialValues(data *genesis.Data, t *trie.Trie) error {
 	// write genesis data to state database
 	if err := s.Base.StoreGenesisData(data); err != nil {
 		return fmt.Errorf("failed to write genesis data to database: %s", err)
-	}
-
-	if err := s.Base.storePruningData(s.PrunerCfg); err != nil {
-		return fmt.Errorf("failed to write pruning data to database: %s", err)
 	}
 
 	return nil

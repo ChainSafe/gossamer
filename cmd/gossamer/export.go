@@ -70,6 +70,7 @@ func dotConfigToToml(dcfg *dot.Config) *ctoml.Config {
 		},
 	}
 
+	pruningEnabled := dcfg.Global.Pruning
 	cfg.Global = ctoml.GlobalConfig{
 		Name:           dcfg.Global.Name,
 		ID:             dcfg.Global.ID,
@@ -77,7 +78,7 @@ func dotConfigToToml(dcfg *dot.Config) *ctoml.Config {
 		LogLvl:         dcfg.Global.LogLvl.String(),
 		MetricsAddress: dcfg.Global.MetricsAddress,
 		RetainBlocks:   dcfg.Global.RetainBlocks,
-		Pruning:        string(dcfg.Global.Pruning),
+		Pruning:        &pruningEnabled,
 	}
 
 	cfg.Log = ctoml.LogConfig{

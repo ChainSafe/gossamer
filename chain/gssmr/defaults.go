@@ -30,8 +30,8 @@ var (
 	// DefaultLvl is the default log level
 	DefaultLvl = log.Info
 
-	// DefaultPruningMode is the default pruning mode
-	DefaultPruningMode = "archive"
+	// DefaultPruningEnabled describes if online pruning should be enabled by default.
+	DefaultPruningEnabled = false
 	// DefaultRetainBlocks is the default retained blocks
 	DefaultRetainBlocks = uint32(512)
 

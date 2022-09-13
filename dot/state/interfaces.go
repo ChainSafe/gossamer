@@ -103,3 +103,9 @@ type BabeConfigurer interface {
 type Telemetry interface {
 	SendMessage(msg json.Marshaler)
 }
+
+// Pruner tracks state deltas and prunes keys from the storage database.
+type Pruner interface {
+	RecordAndPrune(deletedNodeHashes, insertedNodeHashes map[common.Hash]struct{},
+		blockHash common.Hash, blockNumber uint32) error
+}

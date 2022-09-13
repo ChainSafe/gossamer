@@ -7,10 +7,11 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/metrics"
+	"github.com/ChainSafe/gossamer/internal/pruner/archive"
+	"github.com/ChainSafe/gossamer/internal/pruner/full"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
@@ -36,7 +37,7 @@ type Service struct {
 	Grandpa     *GrandpaState
 	closeCh     chan interface{}
 
-	PrunerCfg pruner.Config
+	PrunerCfg PrunerConfig
 	Telemetry Telemetry
 
 	// Below are for testing only.
@@ -48,9 +49,15 @@ type Service struct {
 type Config struct {
 	Path      string
 	LogLevel  log.Level
-	PrunerCfg pruner.Config
+	PrunerCfg PrunerConfig
 	Telemetry Telemetry
 	Metrics   metrics.IntervalConfig
+}
+
+// PrunerConfig is the configuration for the state pruner.
+type PrunerConfig struct {
+	Enabled      bool
+	RetainBlocks uint32
 }
 
 // NewService create a new instance of Service
@@ -130,16 +137,19 @@ func (s *Service) Start() (err error) {
 	stateRoot := bestHeader.StateRoot
 	logger.Debugf("start with latest state root: %s", stateRoot)
 
-	pr, err := s.Base.loadPruningData()
-	if err != nil {
-		return err
-	}
-
 	// create storage state
-	s.Storage, err = NewStorageState(s.db, s.Block, tries, pr)
-	if err != nil {
-		return fmt.Errorf("failed to create storage state: %w", err)
+	storageTable := chaindb.NewTable(s.db, storagePrefix)
+	journalTable := chaindb.NewTable(s.db, journalPrefix)
+	var p Pruner
+	if s.PrunerCfg.Enabled {
+		p, err = full.New(journalTable, storageTable, s.PrunerCfg.RetainBlocks, s.Block, logger)
+		if err != nil {
+			return fmt.Errorf("creating full node pruner: %w", err)
+		}
+	} else {
+		p = archive.New()
 	}
+	s.Storage = newStorageState(storageTable, s.Block, tries, p)
 
 	// load current storage state trie into memory
 	_, err = s.Storage.LoadFromDB(stateRoot)

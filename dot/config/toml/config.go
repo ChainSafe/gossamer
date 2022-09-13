@@ -24,7 +24,7 @@ type GlobalConfig struct {
 	LogLvl         string `toml:"log,omitempty"`
 	MetricsAddress string `toml:"metrics-address,omitempty"`
 	RetainBlocks   uint32 `toml:"retain-blocks,omitempty"`
-	Pruning        string `toml:"pruning,omitempty"`
+	Pruning        *bool  `toml:"pruning,omitempty"`
 }
 
 // LogConfig represents the log levels for individual packages

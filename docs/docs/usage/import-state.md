@@ -10,7 +10,7 @@ permalink: /usage/import-state/
 
 Gossamer supports the ability to import state exported from gossamer or substrate. To retrieve the state from an existing node, you will need to run the node in **archive** mode. For example, with Kusama:
 ```
-./target/release/polkadot --chain=kusama --pruning archive --rpc-methods unsafe --rpc-port 8545
+./target/release/polkadot --chain=kusama --rpc-methods unsafe --rpc-port 8545
 ```
 
 Since we will be using the RPC method `state_getPairs` which is marked `unsafe`, you will need to use the `--rpc-methods unsafe` option.

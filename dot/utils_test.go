@@ -102,7 +102,6 @@ func TestNewTestConfig(t *testing.T) {
 					NoTelemetry:    true,
 					TelemetryURLs:  nil,
 					RetainBlocks:   0,
-					Pruning:        "",
 				},
 				Log: LogConfig{
 					CoreLvl:           3,

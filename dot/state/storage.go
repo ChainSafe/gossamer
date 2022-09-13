@@ -9,8 +9,8 @@ import (
 	"sync"
 
 	"github.com/ChainSafe/chaindb"
-	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/pruner/full"
 	"github.com/ChainSafe/gossamer/lib/common"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -18,7 +18,11 @@ import (
 )
 
 // storagePrefix storage key prefix.
-var storagePrefix = "storage"
+const (
+	storagePrefix = "storage"
+	journalPrefix = "journal"
+)
+
 var codeKey = common.CodeKey
 
 // ErrTrieDoesNotExist is returned when attempting to interact with a trie that is not stored in the StorageState
@@ -39,22 +43,19 @@ type StorageState struct {
 	// change notifiers
 	observerListMutex sync.RWMutex
 	observerList      []Observer
-	pruner            pruner.Pruner
+	pruner            Pruner
 }
 
-// NewStorageState creates a new StorageState backed by the given block state
-// and database located at basePath.
-func NewStorageState(db *chaindb.BadgerDB, blockState *BlockState,
-	tries *Tries, onlinePruner pruner.Config) (*StorageState, error) {
-	storageTable := chaindb.NewTable(db, storagePrefix)
-
+// newStorageState creates a new StorageState backed by the given block state
+// and database table.
+func newStorageState(storageTable chaindb.Database, blockState *BlockState,
+	tries *Tries, pruner Pruner) (storageState *StorageState) {
 	return &StorageState{
-		blockState:   blockState,
-		tries:        tries,
-		db:           storageTable,
-		observerList: []Observer{},
-		pruner:       &pruner.ArchiveNode{},
-	}, nil
+		blockState: blockState,
+		tries:      tries,
+		db:         storageTable,
+		pruner:     pruner,
+	}
 }
 
 // StoreTrie stores the given trie in the StorageState and writes it to the database
@@ -63,13 +64,31 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) 
 
 	s.tries.softSet(root, ts.Trie())
 
+	if header == nil {
+		if _, ok := s.pruner.(*full.Pruner); ok {
+			panic("block header cannot be empty for Full node pruner")
+		}
+	}
+
 	if header != nil {
 		insertedMerkleValues, deletedMerkleValues, err := ts.GetChangedNodeHashes()
 		if err != nil {
 			return fmt.Errorf("failed to get state trie inserted keys: block %s %w", header.Hash(), err)
 		}
 
-		err = s.pruner.StoreJournalRecord(deletedMerkleValues, insertedMerkleValues, header.Hash(), int64(header.Number))
+		// Temporary work-around until we drop merkle values for node hashes in another PR (already opened).
+		insertedNodeHashes := make(map[common.Hash]struct{}, len(insertedMerkleValues))
+		for k := range insertedMerkleValues {
+			nodeHash := common.NewHash([]byte(k))
+			insertedNodeHashes[nodeHash] = struct{}{}
+		}
+		deletedNodeHashes := make(map[common.Hash]struct{}, len(deletedMerkleValues))
+		for k := range deletedMerkleValues {
+			nodeHash := common.NewHash([]byte(k))
+			deletedNodeHashes[nodeHash] = struct{}{}
+		}
+
+		err = s.pruner.RecordAndPrune(deletedNodeHashes, insertedNodeHashes, header.Hash(), uint32(header.Number))
 		if err != nil {
 			return err
 		}

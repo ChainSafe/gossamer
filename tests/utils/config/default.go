@@ -16,7 +16,6 @@ func Default() toml.Config {
 			LogLvl:         "info",
 			MetricsAddress: "localhost:9876",
 			RetainBlocks:   256,
-			Pruning:        "archive",
 		},
 		Log: toml.LogConfig{
 			CoreLvl: "info",

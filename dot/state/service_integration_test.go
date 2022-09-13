@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -168,8 +167,6 @@ func TestService_BlockTree(t *testing.T) {
 }
 
 func TestService_StorageTriePruning(t *testing.T) {
-	t.Skip() // Unskip once https://github.com/ChainSafe/gossamer/pull/2831 is done
-
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
@@ -178,9 +175,9 @@ func TestService_StorageTriePruning(t *testing.T) {
 	config := Config{
 		Path:     t.TempDir(),
 		LogLevel: log.Info,
-		PrunerCfg: pruner.Config{
-			// Mode:           pruner.Full,
-			RetainedBlocks: uint32(retainBlocks),
+		PrunerCfg: PrunerConfig{
+			Enabled:      true,
+			RetainBlocks: uint32(retainBlocks),
 		},
 		Telemetry: telemetryMock,
 	}

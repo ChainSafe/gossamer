@@ -64,7 +64,11 @@ func (nodeBuilder) createStateService(cfg *Config) (*state.Service, error) {
 	config := state.Config{
 		Path:     cfg.Global.BasePath,
 		LogLevel: cfg.Log.StateLvl,
-		Metrics:  metrics.NewIntervalConfig(cfg.Global.PublishMetrics),
+		PrunerCfg: state.PrunerConfig{
+			Enabled:      cfg.Global.Pruning,
+			RetainBlocks: cfg.Global.RetainBlocks,
+		},
+		Metrics: metrics.NewIntervalConfig(cfg.Global.PublishMetrics),
 	}
 
 	stateSrvc := state.NewService(config)

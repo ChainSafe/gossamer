@@ -12,7 +12,6 @@ import (
 	"github.com/ChainSafe/gossamer/chain/gssmr"
 	"github.com/ChainSafe/gossamer/chain/kusama"
 	"github.com/ChainSafe/gossamer/chain/polkadot"
-	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/pprof"
@@ -48,7 +47,7 @@ type GlobalConfig struct {
 	NoTelemetry    bool
 	TelemetryURLs  []genesis.TelemetryEndpoint
 	RetainBlocks   uint32
-	Pruning        pruner.Mode
+	Pruning        bool
 }
 
 // LogConfig represents the log levels for individual packages
@@ -195,7 +194,7 @@ func GssmrConfig() *Config {
 			LogLvl:         gssmr.DefaultLvl,
 			MetricsAddress: gssmr.DefaultMetricsAddress,
 			RetainBlocks:   gssmr.DefaultRetainBlocks,
-			Pruning:        pruner.Mode(gssmr.DefaultPruningMode),
+			Pruning:        gssmr.DefaultPruningEnabled,
 			TelemetryURLs:  gssmr.DefaultTelemetryURLs,
 		},
 		Log: LogConfig{
@@ -258,7 +257,7 @@ func KusamaConfig() *Config {
 			LogLvl:         kusama.DefaultLvl,
 			MetricsAddress: kusama.DefaultMetricsAddress,
 			RetainBlocks:   gssmr.DefaultRetainBlocks,
-			Pruning:        pruner.Mode(gssmr.DefaultPruningMode),
+			Pruning:        gssmr.DefaultPruningEnabled,
 			TelemetryURLs:  kusama.DefaultTelemetryURLs,
 		},
 		Log: LogConfig{
@@ -314,7 +313,7 @@ func PolkadotConfig() *Config {
 			BasePath:       polkadot.DefaultBasePath,
 			LogLvl:         polkadot.DefaultLvl,
 			RetainBlocks:   gssmr.DefaultRetainBlocks,
-			Pruning:        pruner.Mode(gssmr.DefaultPruningMode),
+			Pruning:        gssmr.DefaultPruningEnabled,
 			MetricsAddress: gssmr.DefaultMetricsAddress,
 			TelemetryURLs:  polkadot.DefaultTelemetryURLs,
 		},
@@ -372,7 +371,7 @@ func DevConfig() *Config {
 			LogLvl:         dev.DefaultLvl,
 			MetricsAddress: dev.DefaultMetricsAddress,
 			RetainBlocks:   dev.DefaultRetainBlocks,
-			Pruning:        pruner.Mode(dev.DefaultPruningMode),
+			Pruning:        dev.DefaultPruningEnabled,
 			TelemetryURLs:  dev.DefaultTelemetryURLs,
 		},
 		Log: LogConfig{

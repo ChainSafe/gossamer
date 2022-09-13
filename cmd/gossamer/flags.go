@@ -366,10 +366,9 @@ var (
 	}
 
 	// PruningFlag triggers the online pruning of historical state tries.
-	PruningFlag = cli.StringFlag{
+	PruningFlag = cli.BoolFlag{
 		Name:  "pruning",
-		Usage: `State trie online pruning ("archive")`,
-		Value: dev.DefaultPruningMode,
+		Usage: `Enable state trie online pruning`,
 	}
 )
 

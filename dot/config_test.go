@@ -31,7 +31,6 @@ func TestConfig(t *testing.T) {
 					LogLvl:         log.Info,
 					MetricsAddress: ":9876",
 					RetainBlocks:   512,
-					Pruning:        "archive",
 				},
 				Log: LogConfig{
 					CoreLvl:           log.Info,
@@ -91,7 +90,6 @@ func TestConfig(t *testing.T) {
 					LogLvl:         log.Info,
 					MetricsAddress: "localhost:9876",
 					RetainBlocks:   512,
-					Pruning:        "archive",
 				},
 				Log: LogConfig{
 					CoreLvl:           log.Info,
@@ -151,7 +149,6 @@ func TestConfig(t *testing.T) {
 					LogLvl:         log.Info,
 					MetricsAddress: "localhost:9876",
 					RetainBlocks:   512,
-					Pruning:        "archive",
 				},
 				Log: LogConfig{
 					CoreLvl:           log.Info,
@@ -211,7 +208,6 @@ func TestConfig(t *testing.T) {
 					LogLvl:         log.Info,
 					MetricsAddress: "localhost:9876",
 					RetainBlocks:   512,
-					Pruning:        "archive",
 				},
 				Log: LogConfig{
 					CoreLvl:           log.Info,
