@@ -14,7 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-//StateGetReadProofRequest json fields
+// StateGetReadProofRequest json fields
 type StateGetReadProofRequest struct {
 	Keys []string
 	Hash common.Hash
@@ -112,7 +112,7 @@ type StateStorageKeysResponse []string
 // StateMetadataResponse holds the metadata
 type StateMetadataResponse string
 
-//StateGetReadProofResponse holds the response format
+// StateGetReadProofResponse holds the response format
 type StateGetReadProofResponse struct {
 	At    common.Hash `json:"at"`
 	Proof []string    `json:"proof"`

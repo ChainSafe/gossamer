@@ -32,7 +32,7 @@ type keyValues struct {
 func newGenerator() (prng *rand.Rand) {
 	seed := time.Now().UnixNano()
 	source := rand.NewSource(seed)
-	return rand.New(source)
+	return rand.New(source) //skipcq: GSC-G404
 }
 
 func generateKeyValues(tb testing.TB, generator *rand.Rand, size int) (kv map[string][]byte) {

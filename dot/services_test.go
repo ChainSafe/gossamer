@@ -4,7 +4,6 @@
 package dot
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/core"
@@ -184,16 +183,6 @@ func Test_nodeBuilder_createBABEService(t *testing.T) {
 			err:      ErrNoKeysProvided,
 		},
 		{
-			name: "config error",
-			args: args{
-				cfg:              cfg,
-				initStateService: false,
-				ks:               ks2.Babe,
-			},
-			expected: nil,
-			err:      babe.ErrNilBlockState,
-		},
-		{
 			name: "base case",
 			args: args{
 				cfg:              cfg,
@@ -214,9 +203,6 @@ func Test_nodeBuilder_createBABEService(t *testing.T) {
 			mockBabeBuilder.EXPECT().NewServiceIFace(
 				gomock.AssignableToTypeOf(&babe.ServiceConfig{})).DoAndReturn(func(cfg *babe.ServiceConfig) (babe.
 				ServiceIFace, error) {
-				if reflect.ValueOf(cfg.BlockState).Kind() == reflect.Ptr && reflect.ValueOf(cfg.BlockState).IsNil() {
-					return nil, babe.ErrNilBlockState
-				}
 				return mockBabeIFace, nil
 			}).AnyTimes()
 			builder := nodeBuilder{}

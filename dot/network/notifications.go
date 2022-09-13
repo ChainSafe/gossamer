@@ -242,7 +242,10 @@ func closeOutboundStream(info *notificationsProtocol, peerID peer.ID, stream net
 	)
 
 	info.peersData.deleteOutboundHandshakeData(peerID)
-	_ = stream.Close()
+	err := stream.Close()
+	if err != nil {
+		logger.Warnf("failed to close outbound stream: %s", err)
+	}
 }
 
 func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtocol, msg NotificationsMessage) {

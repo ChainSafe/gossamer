@@ -26,16 +26,13 @@ const (
 // construct a block for this slot with the given parent
 func (b *Service) buildBlock(parent *types.Header, slot Slot, rt runtime.Instance,
 	authorityIndex uint32, preRuntimeDigest *types.PreRuntimeDigest) (*types.Block, error) {
-	builder, err := NewBlockBuilder(
+	builder := NewBlockBuilder(
 		b.keypair,
 		b.transactionState,
 		b.blockState,
 		authorityIndex,
 		preRuntimeDigest,
 	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create block builder: %w", err)
-	}
 
 	// is necessary to enable ethmetrics to be possible register values
 	ethmetrics.Enabled = true
@@ -69,23 +66,14 @@ func NewBlockBuilder(
 	bs BlockState,
 	authidx uint32,
 	preRuntimeDigest *types.PreRuntimeDigest,
-) (*BlockBuilder, error) {
-	if ts == nil {
-		return nil, ErrNilTransactionState
-	}
-	if bs == nil {
-		return nil, ErrNilBlockState
-	}
-
-	bb := &BlockBuilder{
+) *BlockBuilder {
+	return &BlockBuilder{
 		keypair:               kp,
 		transactionState:      ts,
 		blockState:            bs,
 		currentAuthorityIndex: authidx,
 		preRuntimeDigest:      preRuntimeDigest,
 	}
-
-	return bb, nil
 }
 
 func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot, rt runtime.Instance) (*types.Block, error) {

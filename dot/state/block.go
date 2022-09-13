@@ -597,7 +597,7 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 		}
 
 		// only update runtime during code substitution if runtime SpecVersion is updated
-		previousVersion, _ := rt.Version()
+		previousVersion := rt.Version()
 		if previousVersion.SpecVersion == newVersion.SpecVersion {
 			logger.Info("not upgrading runtime code during code substitution")
 			bs.StoreRuntime(bHash, rt)
@@ -633,10 +633,7 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 		return fmt.Errorf("failed to update code substituted block hash: %w", err)
 	}
 
-	newVersion, err := rt.Version()
-	if err != nil {
-		return fmt.Errorf("failed to retrieve runtime version: %w", err)
-	}
+	newVersion := rt.Version()
 	go bs.notifyRuntimeUpdated(newVersion)
 	return nil
 }

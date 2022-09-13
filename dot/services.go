@@ -415,13 +415,8 @@ func (nodeBuilder) createGRANDPAService(cfg *Config, st *state.Service, ks keyst
 	return grandpa.NewService(gsCfg)
 }
 
-func (nodeBuilder) createBlockVerifier(st *state.Service) (*babe.VerificationManager, error) {
-	ver, err := babe.NewVerificationManager(st.Block, st.Epoch)
-	if err != nil {
-		return nil, err
-	}
-
-	return ver, nil
+func (nodeBuilder) createBlockVerifier(st *state.Service) *babe.VerificationManager {
+	return babe.NewVerificationManager(st.Block, st.Epoch)
 }
 
 func (nodeBuilder) newSyncService(cfg *Config, st *state.Service, fg sync.FinalityGadget,

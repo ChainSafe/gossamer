@@ -49,7 +49,7 @@ func balanceKey(t *testing.T, pub []byte) (bKey []byte) {
 	return
 }
 
-func generateTestValidRemarkTxns(t *testing.T, pubKey []byte, accInfo types.AccountInfo) ([]byte, runtime.Instance) {
+func generateTestValidRemarkTxns(t *testing.T, pubKey []byte, accInfo types.AccountInfo) ([]byte, RuntimeInstance) {
 	t.Helper()
 	projectRootPath := utils.GetGssmrV3SubstrateGenesisRawPathTest(t)
 	gen, err := genesis.NewGenesisFromJSONRaw(projectRootPath)
@@ -522,8 +522,7 @@ func TestService_GetRuntimeVersion(t *testing.T) {
 	rt, err := s.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
-	rtExpected, err := rt.Version()
-	require.NoError(t, err)
+	rtExpected := rt.Version()
 
 	rtv, err := s.GetRuntimeVersion(nil)
 	require.NoError(t, err)
@@ -577,8 +576,7 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	rt, err := s.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
-	v, err := rt.Version()
-	require.NoError(t, err)
+	v := rt.Version()
 
 	currSpecVersion := v.SpecVersion     // genesis runtime version.
 	hash := s.blockState.BestBlockHash() // genesisHash
@@ -613,8 +611,7 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	parentRt, err := s.blockState.GetRuntime(&hash)
 	require.NoError(t, err)
 
-	v, err = parentRt.Version()
-	require.NoError(t, err)
+	v = parentRt.Version()
 	require.Equal(t, v.SpecVersion, currSpecVersion)
 
 	bhash1 := newBlock1.Header.Hash()
@@ -635,15 +632,13 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	rt, err = s.blockState.GetRuntime(&bhash1)
 	require.NoError(t, err)
 
-	v, err = rt.Version()
-	require.NoError(t, err)
+	v = rt.Version()
 	require.Equal(t, v.SpecVersion, currSpecVersion)
 
 	rt, err = s.blockState.GetRuntime(&rtUpdateBhash)
 	require.NoError(t, err)
 
-	v, err = rt.Version()
-	require.NoError(t, err)
+	v = rt.Version()
 	require.Equal(t, v.SpecVersion, updatedSpecVersion)
 }
 

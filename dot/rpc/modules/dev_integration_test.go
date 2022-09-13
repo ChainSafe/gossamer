@@ -42,8 +42,8 @@ func newState(t *testing.T) (*state.BlockState, *state.EpochState) {
 	db := state.NewInMemoryDB(t)
 
 	_, genesisTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
-	tries, err := state.NewTries(genesisTrie)
-	require.NoError(t, err)
+	tries := state.NewTries()
+	tries.SetTrie(genesisTrie)
 	bs, err := state.NewBlockStateFromGenesis(db, tries, genesisHeader, telemetryMock)
 	require.NoError(t, err)
 	es, err := state.NewEpochStateFromGenesis(db, bs, genesisBABEConfig)
@@ -75,7 +75,7 @@ func newBABEService(t *testing.T) *babe.Service {
 		EpochState:         es,
 		Keypair:            kr.Alice().(*sr25519.Keypair),
 		IsDev:              true,
-		BlockImportHandler: new(babemocks.BlockImportHandler),
+		BlockImportHandler: babemocks.NewBlockImportHandler(t),
 	}
 
 	babe, err := babe.NewService(cfg)

@@ -108,7 +108,7 @@ func Test_Logger_Patch(t *testing.T) {
 	}
 }
 
-func Test_Logger_patch(t *testing.T) {
+func Test_Logger_patchWithoutLocking(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {

@@ -24,14 +24,14 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 	u, err := scale.NewUint128(new(big.Int).SetBytes([]byte{1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6}))
 	require.NoError(t, err)
 
-	runtimeMock := new(mocksruntime.Instance)
-	runtimeMock2 := new(mocksruntime.Instance)
-	runtimeErrorMock := new(mocksruntime.Instance)
+	runtimeMock := mocksruntime.NewInstance(t)
+	runtimeMock2 := mocksruntime.NewInstance(t)
+	runtimeErrorMock := mocksruntime.NewInstance(t)
 
-	blockAPIMock := new(mocks.BlockAPI)
-	blockAPIMock2 := new(mocks.BlockAPI)
-	blockErrorAPIMock1 := new(mocks.BlockAPI)
-	blockErrorAPIMock2 := new(mocks.BlockAPI)
+	blockAPIMock := mocks.NewBlockAPI(t)
+	blockAPIMock2 := mocks.NewBlockAPI(t)
+	blockErrorAPIMock1 := mocks.NewBlockAPI(t)
+	blockErrorAPIMock2 := mocks.NewBlockAPI(t)
 
 	blockAPIMock.On("BestBlockHash").Return(testHash, nil)
 	blockAPIMock.On("GetRuntime", &testHash).Return(runtimeMock, nil)

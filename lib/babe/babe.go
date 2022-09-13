@@ -74,18 +74,6 @@ func (sc *ServiceConfig) Validate() error {
 		return errNoBABEAuthorityKeyProvided
 	}
 
-	if sc.BlockState == nil {
-		return ErrNilBlockState
-	}
-
-	if sc.EpochState == nil {
-		return errNilEpochState
-	}
-
-	if sc.BlockImportHandler == nil {
-		return errNilBlockImportHandler
-	}
-
 	return nil
 }
 
@@ -103,7 +91,7 @@ type ServiceIFace interface {
 // Builder struct to hold babe builder functions
 type Builder struct{}
 
-//NewServiceIFace returns a new Babe Service using the provided VRF keys and runtime
+// NewServiceIFace returns a new Babe Service using the provided VRF keys and runtime
 func (Builder) NewServiceIFace(cfg *ServiceConfig) (ServiceIFace, error) {
 	if err := cfg.Validate(); err != nil {
 		return nil, fmt.Errorf("could not verify service config: %w", err)
@@ -159,18 +147,6 @@ func (Builder) NewServiceIFace(cfg *ServiceConfig) (ServiceIFace, error) {
 func NewService(cfg *ServiceConfig) (*Service, error) {
 	if cfg.Keypair == nil && cfg.Authority {
 		return nil, errors.New("cannot create BABE service as authority; no keypair provided")
-	}
-
-	if cfg.BlockState == nil {
-		return nil, ErrNilBlockState
-	}
-
-	if cfg.EpochState == nil {
-		return nil, errNilEpochState
-	}
-
-	if cfg.BlockImportHandler == nil {
-		return nil, errNilBlockImportHandler
 	}
 
 	logger.Patch(log.SetLevel(cfg.LogLvl))
@@ -378,16 +354,6 @@ func (b *Service) getAuthorityIndex(Authorities []types.Authority) (uint32, erro
 }
 
 func (b *Service) initiate() {
-	if b.blockState == nil {
-		logger.Errorf("block authoring: %s", ErrNilBlockState)
-		return
-	}
-
-	if b.storageState == nil {
-		logger.Errorf("block authoring: %s", errNilStorageState)
-		return
-	}
-
 	// we should consider better error handling for this - we should
 	// retry to run the engine at some point (maybe the next epoch) if
 	// there's an error.

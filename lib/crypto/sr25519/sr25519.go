@@ -369,7 +369,6 @@ func (k *PublicKey) VrfVerify(t *merlin.Transcript, out [VRFOutputLength]byte,
 		return false, err
 	}
 
-	//inout := o.AttachInput(k.key, t)
 	sr25519Key, err := sr25519.NewOutput(out)
 	if err != nil {
 		return false, fmt.Errorf("creating sr25519 key: %w", err)

@@ -41,7 +41,7 @@ func Test_ext_offchain_timestamp_version_1(t *testing.T) {
 	res, err := runtimeFunc(0, 0)
 	require.NoError(t, err)
 
-	outputPtr, outputLength := runtime.Int64ToPointerAndSize(res.ToI64())
+	outputPtr, outputLength := splitPointerSize(res.ToI64())
 	memory := inst.vm.Memory.Data()
 	data := memory[outputPtr : outputPtr+outputLength]
 	var timestamp int64
@@ -1833,6 +1833,7 @@ func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	for name, testcase := range testcases {
+		testcase := testcase
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
