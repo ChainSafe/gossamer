@@ -40,7 +40,7 @@ require (
 	github.com/prometheus/client_model v0.2.0
 	github.com/qdm12/gotree v0.2.0
 	github.com/stretchr/testify v1.8.0
-	github.com/urfave/cli v1.22.9
+	github.com/urfave/cli v1.22.10
 	github.com/wasmerio/go-ext-wasm v0.3.2-0.20200326095750-0a32be6068ec
 	golang.org/x/crypto v0.0.0-20220518034528-6f7dac969898
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
