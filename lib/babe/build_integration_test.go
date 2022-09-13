@@ -59,7 +59,8 @@ func createTestBlock(t *testing.T, babeService *Service, parent *types.Header,
 	exts [][]byte, slotNumber, epoch uint64, epochData *epochData) *types.Block {
 	for _, ext := range exts {
 		vtx := transaction.NewValidTransaction(ext, &transaction.Validity{})
-		_, _ = babeService.transactionState.Push(vtx)
+		_, err := babeService.transactionState.Push(vtx)
+		require.NoError(t, err)
 	}
 
 	duration, err := time.ParseDuration("1s")

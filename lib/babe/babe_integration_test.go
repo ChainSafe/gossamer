@@ -62,6 +62,14 @@ func createTestService(t *testing.T, cfg ServiceConfig) *Service {
 	genesisHeader = genHeader
 
 	var err error
+	if cfg.BlockImportHandler == nil {
+		blockImportHandler := new(mocks.BlockImportHandler)
+		blockImportHandler.
+			On("HandleBlockProduced",
+				mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState")).
+			Return(nil)
+		cfg.BlockImportHandler = blockImportHandler
+	}
 
 	if cfg.Keypair == nil {
 		cfg.Keypair = keyring.Alice().(*sr25519.Keypair)
@@ -296,7 +304,7 @@ func TestService_PauseAndResume(t *testing.T) {
 }
 
 func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
-	cfg := &ServiceConfig{
+	cfg := ServiceConfig{
 		Authority: true,
 		Lead:      true,
 	}
@@ -358,7 +366,7 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 	bob := keyring.Bob().(*sr25519.Keypair)
 
 	// Create babe service for alice
-	cfgAlice := &ServiceConfig{
+	cfgAlice := ServiceConfig{
 		Authority: true,
 		Lead:      true,
 		Keypair:   alice,
@@ -375,7 +383,7 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 	}
 
 	// Create babe service for bob
-	cfgBob := &ServiceConfig{
+	cfgBob := ServiceConfig{
 		Authority: true,
 		Lead:      true,
 		Keypair:   bob,
@@ -403,14 +411,17 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 
 	// create a block using bob
 	parentHash := babeServiceBob.blockState.GenesisHash()
-	rt, err := babeServiceBob.blockState.GetRuntime(nil)
+	parentHeader, err := babeServiceBob.blockState.GetHeader(parentHash)
+	require.NoError(t, err)
+
+	rt, err := babeServiceBob.blockState.GetRuntime(&parentHash)
 	require.NoError(t, err)
 
 	epochData, err := babeServiceBob.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
 	ext := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0, "System.remark", []byte{0xab, 0xcd})
-	block := createTestBlock(t, babeServiceBob, emptyHeader, [][]byte{common.MustHexToBytes(ext)},
+	block := createTestBlock(t, babeServiceBob, parentHeader, [][]byte{common.MustHexToBytes(ext)},
 		1, testEpochIndex, epochData)
 
 	err = babeServiceBob.Stop()
