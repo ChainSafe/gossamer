@@ -13,7 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
-	"github.com/ChainSafe/gossamer/lib/runtime/errors"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/gorilla/websocket"
@@ -229,10 +229,10 @@ func TestWSConn_HandleConn(t *testing.T) {
 	require.Equal(t, `{"jsonrpc":"2.0","result":8,"id":0}`+"\n", string(msg))
 
 	// test initExtrinsicWatch with invalid transaction
-	transactionValidityErr := errors.NewTransactionValidityError()
-	invalidTransaction := errors.NewInvalidTransaction()
-	err = invalidTransaction.Set(errors.Future{})
-	errMsg := fmt.Errorf("%w: %s", errors.ErrInvalidTxn, transactionValidityErr)
+	transactionValidityErr := runtime.NewTransactionValidityError()
+	invalidTransaction := runtime.NewInvalidTransaction()
+	err = invalidTransaction.Set(runtime.Future{})
+	errMsg := fmt.Errorf("%w: %s", runtime.ErrInvalidTxn, transactionValidityErr)
 
 	require.NoError(t, err)
 	coreAPI := mocks.NewCoreAPI(t)

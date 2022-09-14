@@ -25,7 +25,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	runtimererrors "github.com/ChainSafe/gossamer/lib/runtime/errors"
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/transaction"
@@ -182,7 +181,7 @@ func TestAuthorModule_SubmitExtrinsic_invalid(t *testing.T) {
 
 	res := new(ExtrinsicHashResponse)
 	err := auth.SubmitExtrinsic(nil, &Extrinsic{extHex}, res)
-	expMsg := fmt.Sprintf("%s: %s", runtimererrors.ErrInvalidTxn, "ancient birth block")
+	expMsg := fmt.Sprintf("%s: %s", runtime.ErrInvalidTxn, "ancient birth block")
 	require.EqualError(t, err, expMsg)
 
 	txOnPool := integrationTestController.stateSrv.Transaction.PendingInPool()

@@ -12,7 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	runtimererrors "github.com/ChainSafe/gossamer/lib/runtime/errors"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 
@@ -120,13 +120,13 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 	runtimeMock2 := NewMockRuntimeInstance(ctrl)
 	runtimeMock3 := NewMockRuntimeInstance(ctrl)
 
-	transactionValidityErr := runtimererrors.NewTransactionValidityError()
-	invalidTransaction := runtimererrors.NewInvalidTransaction()
-	err := invalidTransaction.Set(runtimererrors.Future{})
+	transactionValidityErr := runtime.NewTransactionValidityError()
+	invalidTransaction := runtime.NewInvalidTransaction()
+	err := invalidTransaction.Set(runtime.Future{})
 	require.NoError(t, err)
 	err = transactionValidityErr.Set(invalidTransaction)
 	require.NoError(t, err)
-	errMsg := fmt.Errorf("%w: %s", runtimererrors.ErrInvalidTxn, transactionValidityErr.Error())
+	errMsg := fmt.Errorf("%w: %s", runtime.ErrInvalidTxn, transactionValidityErr.Error())
 
 	type args struct {
 		peerID peer.ID
