@@ -16,12 +16,6 @@ import (
 // Result<ValidTransaction, TransactionValidityError>
 type TransactionValidityError scale.VaryingDataType
 
-var (
-	errInvalidType     = errors.New("invalid validity type")
-	errInvalidResult   = errors.New("invalid error value")
-	errInvalidTypeCast = errors.New("invalid type cast")
-)
-
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
 func (tve *TransactionValidityError) Set(val scale.VaryingDataTypeValue) (err error) {
 	vdt := scale.VaryingDataType(*tve)
@@ -40,12 +34,12 @@ func (tve *TransactionValidityError) Value() (val scale.VaryingDataTypeValue) {
 }
 
 // Error will return the error underlying TransactionValidityError
-func (tve *TransactionValidityError) Error() string {
+func (tve TransactionValidityError) Error() string {
 	invalidTxn, ok := tve.Value().(InvalidTransaction)
 	if !ok {
 		unknownTxn, ok2 := tve.Value().(UnknownTransaction)
 		if !ok2 {
-			return errInvalidTypeCast.Error()
+			return "invalid type cast"
 		}
 		return unknownTxn.Error()
 	}
@@ -53,12 +47,13 @@ func (tve *TransactionValidityError) Error() string {
 }
 
 // NewTransactionValidityError is constructor for TransactionValidityError
-func NewTransactionValidityError() TransactionValidityError {
+func NewTransactionValidityError() *TransactionValidityError {
 	vdt, err := scale.NewVaryingDataType(NewInvalidTransaction(), NewUnknownTransaction())
 	if err != nil {
 		panic(err)
 	}
-	return TransactionValidityError(vdt)
+	tve := TransactionValidityError(vdt)
+	return &tve
 }
 
 var (
@@ -71,7 +66,7 @@ var (
 func UnmarshalTransactionValidity(res []byte) (*transaction.Validity, error) {
 	validTxn := transaction.Validity{}
 	txnValidityErrResult := NewTransactionValidityError()
-	txnValidityResult := scale.NewResult(validTxn, txnValidityErrResult)
+	txnValidityResult := scale.NewResult(validTxn, *txnValidityErrResult)
 	err := scale.Unmarshal(res, &txnValidityResult)
 	if err != nil {
 		return nil, fmt.Errorf("scale decoding transaction validity result: %w", err)
@@ -82,24 +77,24 @@ func UnmarshalTransactionValidity(res []byte) (*transaction.Validity, error) {
 		if ok {
 			txnValidityErr, ok := scaleWrappedErr.Err.(TransactionValidityError)
 			if !ok {
-				return nil, fmt.Errorf("%w: %T", errInvalidTypeCast, scaleWrappedErr.Err)
+				return nil, fmt.Errorf("%w: %T", errors.New("invalid type cast"), scaleWrappedErr.Err)
 			}
 
 			switch txnValidityErr.Value().(type) {
 			// TODO use custom result issue #2780
 			case InvalidTransaction:
 				return nil, fmt.Errorf("%w: %s", ErrInvalidTxn, txnValidityErr.Error())
-			case UnknownTransaction: // do nothing
+			case UnknownTransaction:
 				return nil, fmt.Errorf("%w: %s", ErrUnknownTxn, txnValidityErr.Error())
 			default:
 				panic(fmt.Sprintf("unsupported transaction validity error: %T", txnValidityErr.Value()))
 			}
 		}
-		return nil, fmt.Errorf("%w: %T", errInvalidResult, err)
+		return nil, fmt.Errorf("%w: %T", errors.New("invalid error value"), err)
 	}
 	validity, ok := txnValidityRes.(transaction.Validity)
 	if !ok {
-		return nil, fmt.Errorf("%w", errInvalidType)
+		return nil, fmt.Errorf("%w", errors.New("invalid validity type"))
 	}
 	return &validity, nil
 }

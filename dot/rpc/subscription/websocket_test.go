@@ -232,7 +232,7 @@ func TestWSConn_HandleConn(t *testing.T) {
 	transactionValidityErr := errors.NewTransactionValidityError()
 	invalidTransaction := errors.NewInvalidTransaction()
 	err = invalidTransaction.Set(errors.Future{})
-	errMsg := fmt.Errorf("%w: %s", errors.ErrInvalidTxn, transactionValidityErr.Error())
+	errMsg := fmt.Errorf("%w: %s", errors.ErrInvalidTxn, transactionValidityErr)
 
 	require.NoError(t, err)
 	coreAPI := mocks.NewCoreAPI(t)

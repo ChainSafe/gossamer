@@ -5,7 +5,7 @@ package errors
 
 import (
 	"fmt"
-
+	
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -15,6 +15,43 @@ type InvalidTransaction scale.VaryingDataType
 // Index returns the VDT index
 func (InvalidTransaction) Index() uint {
 	return 0
+}
+
+// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
+func (i *InvalidTransaction) Set(val scale.VaryingDataTypeValue) (err error) {
+	vdt := scale.VaryingDataType(*i)
+	err = vdt.Set(val)
+	if err != nil {
+		return err
+	}
+	*i = InvalidTransaction(vdt)
+	return nil
+}
+
+// Value will return value from underying VaryingDataType
+func (i *InvalidTransaction) Value() (val scale.VaryingDataTypeValue) {
+	vdt := scale.VaryingDataType(*i)
+	return vdt.Value()
+}
+
+// Error returns the error message associated with the InvalidTransaction
+func (i InvalidTransaction) Error() string {
+	value := i.Value()
+	err, ok := value.(error)
+	if !ok {
+		panic(fmt.Sprintf("%T does not implement the error type", value))
+	}
+	return err.Error()
+}
+
+// NewInvalidTransaction is constructor for InvalidTransaction
+func NewInvalidTransaction() InvalidTransaction {
+	vdt, err := scale.NewVaryingDataType(Call{}, Payment{}, Future{}, Stale{}, BadProof{}, AncientBirthBlock{},
+		ExhaustsResources{}, InvalidCustom(0), BadMandatory{}, MandatoryDispatch{})
+	if err != nil {
+		panic(err)
+	}
+	return InvalidTransaction(vdt)
 }
 
 // Call The call of the transaction is not expected
@@ -125,41 +162,4 @@ func (MandatoryDispatch) Index() uint { return 9 }
 // Error returns the error message associated with the MandatoryDispatch
 func (MandatoryDispatch) Error() string {
 	return "invalid mandatory dispatch"
-}
-
-// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (i *InvalidTransaction) Set(val scale.VaryingDataTypeValue) (err error) {
-	vdt := scale.VaryingDataType(*i)
-	err = vdt.Set(val)
-	if err != nil {
-		return err
-	}
-	*i = InvalidTransaction(vdt)
-	return nil
-}
-
-// Value will return value from underying VaryingDataType
-func (i *InvalidTransaction) Value() (val scale.VaryingDataTypeValue) {
-	vdt := scale.VaryingDataType(*i)
-	return vdt.Value()
-}
-
-// NewInvalidTransaction is constructor for InvalidTransaction
-func NewInvalidTransaction() InvalidTransaction {
-	vdt, err := scale.NewVaryingDataType(Call{}, Payment{}, Future{}, Stale{}, BadProof{}, AncientBirthBlock{},
-		ExhaustsResources{}, InvalidCustom(0), BadMandatory{}, MandatoryDispatch{})
-	if err != nil {
-		panic(err)
-	}
-	return InvalidTransaction(vdt)
-}
-
-// Error returns the error message associated with the InvalidTransaction
-func (i *InvalidTransaction) Error() string {
-	value := i.Value()
-	err, ok := value.(error)
-	if !ok {
-		panic(fmt.Sprintf("%T does not implement the error type", value))
-	}
-	return err.Error()
 }

@@ -17,6 +17,41 @@ func (UnknownTransaction) Index() uint {
 	return 1
 }
 
+// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
+func (u *UnknownTransaction) Set(val scale.VaryingDataTypeValue) (err error) {
+	vdt := scale.VaryingDataType(*u)
+	err = vdt.Set(val)
+	if err != nil {
+		return err
+	}
+	*u = UnknownTransaction(vdt)
+	return nil
+}
+
+// Value will return value from underying VaryingDataType
+func (u *UnknownTransaction) Value() (val scale.VaryingDataTypeValue) {
+	vdt := scale.VaryingDataType(*u)
+	return vdt.Value()
+}
+
+func (u UnknownTransaction) Error() string {
+	value := u.Value()
+	err, ok := value.(error)
+	if !ok {
+		panic(fmt.Sprintf("%T does not implement the error type", value))
+	}
+	return err.Error()
+}
+
+// NewUnknownTransaction is constructor for Unknown
+func NewUnknownTransaction() UnknownTransaction {
+	vdt, err := scale.NewVaryingDataType(ValidityCannotLookup{}, NoUnsignedValidator{}, UnknownCustom(0))
+	if err != nil {
+		panic(err)
+	}
+	return UnknownTransaction(vdt)
+}
+
 // ValidityCannotLookup Could not look up some information that is required to validate the transaction
 type ValidityCannotLookup struct{}
 
@@ -52,39 +87,4 @@ func (m UnknownCustom) Error() string {
 
 func newUnknownError(data scale.VaryingDataTypeValue) error {
 	return fmt.Errorf("unknown error: %v", data)
-}
-
-// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (u *UnknownTransaction) Set(val scale.VaryingDataTypeValue) (err error) {
-	vdt := scale.VaryingDataType(*u)
-	err = vdt.Set(val)
-	if err != nil {
-		return err
-	}
-	*u = UnknownTransaction(vdt)
-	return nil
-}
-
-// Value will return value from underying VaryingDataType
-func (u *UnknownTransaction) Value() (val scale.VaryingDataTypeValue) {
-	vdt := scale.VaryingDataType(*u)
-	return vdt.Value()
-}
-
-// NewUnknownTransaction is constructor for Unknown
-func NewUnknownTransaction() UnknownTransaction {
-	vdt, err := scale.NewVaryingDataType(ValidityCannotLookup{}, NoUnsignedValidator{}, UnknownCustom(0))
-	if err != nil {
-		panic(err)
-	}
-	return UnknownTransaction(vdt)
-}
-
-func (u *UnknownTransaction) Error() string {
-	value := u.Value()
-	err, ok := value.(error)
-	if !ok {
-		panic(fmt.Sprintf("%T does not implement the error type", value))
-	}
-	return err.Error()
 }

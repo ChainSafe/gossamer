@@ -21,7 +21,7 @@ func Test_ErrorsAs_Function(t *testing.T) {
 	require.NoError(t, err)
 
 	var txnValErr *TransactionValidityError
-	isTxnValErr := errors.As(&transactionValidityErr, &txnValErr)
+	isTxnValErr := errors.As(transactionValidityErr, &txnValErr)
 	require.True(t, isTxnValErr)
 }
 
