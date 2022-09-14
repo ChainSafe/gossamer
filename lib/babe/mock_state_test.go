@@ -255,6 +255,21 @@ func (mr *MockBlockStateMockRecorder) GetImportedBlockNotifierChannel() *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetImportedBlockNotifierChannel", reflect.TypeOf((*MockBlockState)(nil).GetImportedBlockNotifierChannel))
 }
 
+// GetRuntime mocks base method.
+func (m *MockBlockState) GetRuntime(arg0 *common.Hash) (runtime.Instance, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRuntime", arg0)
+	ret0, _ := ret[0].(runtime.Instance)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetRuntime indicates an expected call of GetRuntime.
+func (mr *MockBlockStateMockRecorder) GetRuntime(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRuntime", reflect.TypeOf((*MockBlockState)(nil).GetRuntime), arg0)
+}
+
 // GetSlotForBlock mocks base method.
 func (m *MockBlockState) GetSlotForBlock(arg0 common.Hash) (uint64, error) {
 	m.ctrl.T.Helper()

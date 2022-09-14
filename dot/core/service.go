@@ -242,14 +242,7 @@ func (s *Service) handleCodeSubstitution(hash common.Hash,
 	}
 
 	rt, err := s.blockState.GetRuntime(&hash)
-	if errors.Is(err, blocktree.ErrFailedToGetRuntime) {
-		rt, err = s.getRuntimeFromDB(&hash)
-		if err != nil {
-			return err
-		}
-		rt.Stop()
-	}
-	if err != nil && !errors.Is(err, blocktree.ErrFailedToGetRuntime) {
+	if err != nil {
 		return fmt.Errorf("getting runtime from block state: %w", err)
 	}
 

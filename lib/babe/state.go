@@ -35,6 +35,7 @@ type BlockState interface {
 	IsDescendantOf(parent, child common.Hash) (bool, error)
 	NumberIsFinalised(blockNumber uint) (bool, error)
 	GetBestBlockRuntime() runtime.Instance
+	GetRuntime(hash *common.Hash) (instance runtime.Instance, err error)
 	StoreRuntime(common.Hash, runtime.Instance)
 	ImportedBlockNotifierManager
 }
