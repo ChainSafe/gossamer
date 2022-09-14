@@ -8,6 +8,8 @@ import (
 
 	state "github.com/ChainSafe/gossamer/dot/state"
 
+	storage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+
 	trie "github.com/ChainSafe/gossamer/lib/trie"
 )
 
@@ -180,6 +182,29 @@ func (_m *StorageAPI) GetStorageFromChild(root *common.Hash, keyToChild []byte, 
 // RegisterStorageObserver provides a mock function with given fields: observer
 func (_m *StorageAPI) RegisterStorageObserver(observer state.Observer) {
 	_m.Called(observer)
+}
+
+// TrieState provides a mock function with given fields: root
+func (_m *StorageAPI) TrieState(root *common.Hash) (*storage.TrieState, error) {
+	ret := _m.Called(root)
+
+	var r0 *storage.TrieState
+	if rf, ok := ret.Get(0).(func(*common.Hash) *storage.TrieState); ok {
+		r0 = rf(root)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*storage.TrieState)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*common.Hash) error); ok {
+		r1 = rf(root)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // UnregisterStorageObserver provides a mock function with given fields: observer

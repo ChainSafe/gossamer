@@ -571,11 +571,10 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 	err = chain.Block.AddBlock(b)
 	require.NoError(t, err)
 
-	// todo(ed) reimplement
-	//rt, err := chain.Block.GetRuntime(&b.Header.ParentHash)
-	//require.NoError(t, err)
-	//
-	//chain.Block.StoreRuntime(b.Header.Hash(), rt)
+	rt, err := chain.Block.GetRuntime(&b.Header.ParentHash)
+	require.NoError(t, err)
+
+	chain.Block.StoreRuntime(b.Header.Hash(), rt)
 
 	hash, err := chain.Block.GetHashByNumber(3)
 	require.NoError(t, err)

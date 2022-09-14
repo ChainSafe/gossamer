@@ -58,7 +58,6 @@ type BlockState struct {
 	lastFinalised     common.Hash
 	unfinalisedBlocks *hashToBlockMap
 	tries             *Tries
-	storageState      *StorageState
 
 	// block notifiers
 	imported                       map[chan *types.Block]struct{}
@@ -80,7 +79,6 @@ func NewBlockState(db chaindb.Database, trs *Tries, telemetry telemetry.Client,
 		db:                         chaindb.NewTable(db, blockPrefix),
 		unfinalisedBlocks:          newHashToBlockMap(),
 		tries:                      trs,
-		storageState:               storageState,
 		imported:                   make(map[chan *types.Block]struct{}),
 		finalised:                  make(map[chan *types.FinalisationInfo]struct{}),
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
@@ -628,7 +626,7 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 		return err
 	}
 
-	bs.ClearRuntimes()
+	bs.clearRuntimes()
 	bs.StoreRuntime(bHash, instance)
 
 	err = bs.baseState.StoreCodeSubstitutedBlockHash(common.Hash{})
@@ -676,7 +674,7 @@ func (bs *BlockState) GetRuntime(hash *common.Hash) (runtime.Instance, error) {
 func (bs *BlockState) GetBestBlockRuntime() (instance runtime.Instance) {
 	instance, err := bs.bt.GetBlockRuntime(bs.BestBlockHash())
 	if err != nil {
-		logger.Errorf("error retrieving block runtime")
+		logger.Errorf("error retrieving block runtime: %w", err)
 	}
 	return
 }
@@ -713,8 +711,8 @@ func (bs *BlockState) StoreRuntime(hash common.Hash, rt runtime.Instance) {
 	bs.bt.StoreRuntime(hash, rt)
 }
 
-// ClearRuntimes deletes references to runtime instances stored in block tree
-func (bs *BlockState) ClearRuntimes() {
+// clearRuntimes deletes references to runtime instances stored in block tree
+func (bs *BlockState) clearRuntimes() {
 	bs.bt.ClearRuntimes()
 }
 

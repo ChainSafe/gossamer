@@ -4,9 +4,15 @@
 package modules
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
 
+	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 )
 
 // PaymentQueryInfoRequest represents the request to get the fee of an extrinsic in a given block
@@ -26,13 +32,15 @@ type PaymentQueryInfoResponse struct {
 
 // PaymentModule holds all the RPC implementation of polkadot payment rpc api
 type PaymentModule struct {
-	blockAPI BlockAPI
+	blockAPI   BlockAPI
+	storageAPI StorageAPI
 }
 
 // NewPaymentModule returns a pointer to PaymentModule
-func NewPaymentModule(blockAPI BlockAPI) *PaymentModule {
+func NewPaymentModule(blockAPI BlockAPI, storageAPI StorageAPI) *PaymentModule {
 	return &PaymentModule{
-		blockAPI: blockAPI,
+		blockAPI:   blockAPI,
+		storageAPI: storageAPI,
 	}
 }
 
@@ -46,7 +54,14 @@ func (p *PaymentModule) QueryInfo(_ *http.Request, req *PaymentQueryInfoRequest,
 	}
 
 	r, err := p.blockAPI.GetRuntime(&hash)
-	if err != nil {
+	if errors.Is(err, blocktree.ErrFailedToGetRuntime) {
+		r, err = p.getRuntimeFromDB(&hash)
+		if err != nil {
+			return err
+		}
+		r.Stop()
+	}
+	if err != nil && !errors.Is(err, blocktree.ErrFailedToGetRuntime) {
 		return err
 	}
 	ext, err := common.HexToBytes(req.Ext)
@@ -68,4 +83,31 @@ func (p *PaymentModule) QueryInfo(_ *http.Request, req *PaymentQueryInfoRequest,
 	}
 
 	return nil
+}
+
+// getRuntimeFromDB gets the runtime for the corresponding block hash from storageState
+func (p *PaymentModule) getRuntimeFromDB(blockHash *common.Hash) (instance runtime.Instance, err error) {
+	var stateRootHash *common.Hash
+	if blockHash != nil {
+		stateRootHash, err = p.storageAPI.GetStateRootFromBlock(blockHash)
+		if err != nil {
+			return nil, fmt.Errorf("getting state root from block hash: %w", err)
+		}
+	}
+
+	trieState, err := p.storageAPI.TrieState(stateRootHash)
+	if err != nil {
+		return nil, fmt.Errorf("getting trie state: %w", err)
+	}
+
+	code := trieState.LoadCode()
+	config := wasmer.Config{
+		LogLvl: log.DoNotChange,
+	}
+	instance, err = wasmer.NewInstance(code, config)
+	if err != nil {
+		return nil, fmt.Errorf("creating runtime instance: %w", err)
+	}
+
+	return instance, nil
 }

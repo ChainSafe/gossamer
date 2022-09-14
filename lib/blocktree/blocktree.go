@@ -419,7 +419,7 @@ func (bt *BlockTree) GetBlockRuntime(hash common.Hash) (runtime.Instance, error)
 	return ins, nil
 }
 
-// ClearRuntimes deletes all runtime instances from BlockTree runtime map
+// ClearRuntimes deletes all runtime instances from the BlockTree runtime map
 func (bt *BlockTree) ClearRuntimes() {
 	bt.runtimes.clearRuntimes()
 }
