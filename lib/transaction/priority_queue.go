@@ -78,19 +78,19 @@ func (pq *priorityQueue) Pop() interface{} {
 
 // PriorityQueue is a thread safe wrapper over `priorityQueue`
 type PriorityQueue struct {
-	pq        priorityQueue
-	currOrder uint64
-	txs       map[common.Hash]*Item
-	sleepTime time.Duration
+	pq           priorityQueue
+	currOrder    uint64
+	txs          map[common.Hash]*Item
+	pollInterval time.Duration
 	sync.Mutex
 }
 
 // NewPriorityQueue creates new instance of PriorityQueue
 func NewPriorityQueue() *PriorityQueue {
 	spq := &PriorityQueue{
-		pq:        make(priorityQueue, 0),
-		txs:       make(map[common.Hash]*Item),
-		sleepTime: time.Millisecond * 10,
+		pq:           make(priorityQueue, 0),
+		txs:          make(map[common.Hash]*Item),
+		pollInterval: time.Millisecond * 10,
 	}
 
 	heap.Init(&spq.pq)
@@ -147,18 +147,23 @@ func (spq *PriorityQueue) Push(txn *ValidTransaction) (common.Hash, error) {
 func (spq *PriorityQueue) PopChannel(timer *time.Timer) (tx chan *ValidTransaction) {
 	popChannel := make(chan *ValidTransaction)
 	go func() {
+		var pollTimer <-chan time.Time = nil
+		var pop = func() {
+			txn := spq.Pop()
+			if txn != nil {
+				popChannel <- txn
+			} else {
+				pollTimer = time.NewTimer(spq.pollInterval).C
+			}
+		}
 		for {
 			select {
 			case <-timer.C:
 				close(popChannel)
+			case <-pollTimer:
+				pop()
 			default:
-				txn := spq.Pop()
-
-				if txn != nil {
-					popChannel <- txn
-				} else {
-					time.Sleep(spq.sleepTime)
-				}
+				pop()
 			}
 		}
 	}()

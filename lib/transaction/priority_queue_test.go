@@ -313,3 +313,53 @@ func TestPopChannel(t *testing.T) {
 		counter++
 	}
 }
+
+func TestPopChannelEnds(t *testing.T) {
+	pq := NewPriorityQueue()
+	// increase sleep time greater than timer
+	pq.pollInterval = 2 * time.Second
+	slotTimer := time.NewTimer(time.Second)
+
+	start := time.Now()
+
+	popChan := pq.PopChannel(slotTimer)
+	tests := []*ValidTransaction{
+		{
+			Extrinsic: []byte("a"),
+			Validity:  &Validity{Priority: 1},
+		},
+		{
+			Extrinsic: []byte("b"),
+			Validity:  &Validity{Priority: 4},
+		},
+		{
+			Extrinsic: []byte("c"),
+			Validity:  &Validity{Priority: 2},
+		},
+		{
+			Extrinsic: []byte("d"),
+			Validity:  &Validity{Priority: 17},
+		},
+		{
+			Extrinsic: []byte("e"),
+			Validity:  &Validity{Priority: 2},
+		},
+	}
+
+	expected := []int{3, 1, 2, 4, 0}
+
+	for _, test := range tests {
+		pq.Push(test)
+	}
+
+	counter := 0
+	for txn := range popChan {
+		assert.Equal(t, tests[expected[counter]], txn)
+		counter++
+	}
+
+	d := time.Since(start)
+	// assert between 1s and 1.1s
+	assert.GreaterOrEqual(t, d, time.Second)
+	assert.LessOrEqual(t, d, time.Second+(time.Millisecond*100))
+}
