@@ -162,6 +162,10 @@ type StateConfig struct {
 	Rewind uint
 }
 
+func (s *StateConfig) String() string {
+	return "rewind " + fmt.Sprint(s.Rewind)
+}
+
 // networkServiceEnabled returns true if the network service is enabled
 func networkServiceEnabled(cfg *Config) bool {
 	return cfg.Core.Roles != common.NoNetworkRole
