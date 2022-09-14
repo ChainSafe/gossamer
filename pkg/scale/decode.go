@@ -595,7 +595,7 @@ func (ds *decodeState) decodeUint(dstv reflect.Value) (err error) {
 			copy(tmp, buf)
 			o = binary.LittleEndian.Uint64(tmp)
 		} else {
-			return errDecodeInteger
+			return fmt.Errorf("%w: for byte length %d", ErrDecodeInteger, byteLen)
 		}
 		dstv.Set(reflect.ValueOf(o).Convert(reflect.TypeOf(in)))
 	}
