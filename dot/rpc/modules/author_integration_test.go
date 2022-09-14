@@ -181,8 +181,7 @@ func TestAuthorModule_SubmitExtrinsic_invalid(t *testing.T) {
 
 	res := new(ExtrinsicHashResponse)
 	err := auth.SubmitExtrinsic(nil, &Extrinsic{extHex}, res)
-	expMsg := fmt.Sprintf("%s: %s", runtime.ErrInvalidTxn, "ancient birth block")
-	require.EqualError(t, err, expMsg)
+	require.EqualError(t, err, "ancient birth block")
 
 	txOnPool := integrationTestController.stateSrv.Transaction.PendingInPool()
 	require.Len(t, txOnPool, 0)

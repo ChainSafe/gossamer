@@ -4,7 +4,6 @@
 package core
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -33,14 +32,18 @@ func (s *Service) validateTransaction(peerID peer.ID, head *types.Header, rt Run
 	validity, err = rt.ValidateTransaction(externalExt)
 	if err != nil {
 		logger.Debugf("failed to validate transaction: %s", err)
-		switch {
-		case errors.Is(err, runtime.ErrInvalidTxn):
+		txnValidityErr, ok := err.(*runtime.TransactionValidityError)
+		if !ok {
+			return nil, false, err
+		}
+		switch txnValidityErr.Value().(type) {
+		case runtime.InvalidTransaction:
 			s.net.ReportPeer(peerset.ReputationChange{
 				Value:  peerset.BadTransactionValue,
 				Reason: peerset.BadTransactionReason,
 			}, peerID)
 			return nil, false, nil
-		case errors.Is(err, runtime.ErrUnknownTxn):
+		case runtime.UnknownTransaction:
 			return nil, false, nil
 		}
 		return nil, false, err

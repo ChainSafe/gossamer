@@ -4,7 +4,6 @@
 package runtime
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/transaction"
@@ -24,7 +23,7 @@ func Test_UnknownTransaction_Errors(t *testing.T) {
 		{
 			name:        "lookup failed",
 			encodedData: []byte{1, 1, 0},
-			expErrMsg:   fmt.Errorf("%w: %s", ErrUnknownTxn, "lookup failed").Error(),
+			expErrMsg:   "lookup failed",
 			expErr:      true,
 		},
 	}

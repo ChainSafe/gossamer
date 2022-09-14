@@ -334,9 +334,13 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener
 
 	err = c.CoreAPI.HandleSubmittedExtrinsic(extBytes)
 	if err != nil {
-		switch {
-		case errors.Is(err, runtime.ErrInvalidTxn),
-			errors.Is(err, runtime.ErrUnknownTxn):
+		txnValidityErr, ok := err.(*runtime.TransactionValidityError)
+		if !ok {
+			return nil, fmt.Errorf("handling submitted extrinsic: %w", err)
+		}
+		switch txnValidityErr.Value().(type) {
+		case runtime.InvalidTransaction,
+			runtime.UnknownTransaction:
 			c.safeSend(newSubscriptionResponse(authorExtrinsicUpdatesMethod, extSubmitListener.subID, "invalid"))
 		default:
 			c.safeSendError(reqID, nil, err.Error())

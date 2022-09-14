@@ -35,15 +35,17 @@ func (tve *TransactionValidityError) Value() (val scale.VaryingDataTypeValue) {
 
 // Error will return the error underlying TransactionValidityError
 func (tve TransactionValidityError) Error() string {
-	invalidTxn, ok := tve.Value().(InvalidTransaction)
-	if !ok {
-		unknownTxn, ok2 := tve.Value().(UnknownTransaction)
-		if !ok2 {
-			return "invalid type cast"
-		}
-		return unknownTxn.Error()
+	if tve.Value() == nil {
+		return "unset TransactionValidityError"
 	}
-	return invalidTxn.Error()
+	switch err := tve.Value().(type) {
+	case InvalidTransaction:
+		return err.Error()
+	case UnknownTransaction:
+		return err.Error()
+	default:
+		return fmt.Sprintf("unexpected value: %T %v", err, err)
+	}
 }
 
 // NewTransactionValidityError is constructor for TransactionValidityError
@@ -55,11 +57,6 @@ func NewTransactionValidityError() *TransactionValidityError {
 	tve := TransactionValidityError(vdt)
 	return &tve
 }
-
-var (
-	ErrInvalidTxn = errors.New("invalid transaction")
-	ErrUnknownTxn = errors.New("unknown transaction")
-)
 
 // UnmarshalTransactionValidity takes the result of the validateTransaction runtime call and unmarshalls it
 // TODO use custom result issue #2780
@@ -80,14 +77,14 @@ func UnmarshalTransactionValidity(res []byte) (*transaction.Validity, error) {
 				return nil, fmt.Errorf("%w: %T", errors.New("invalid type cast"), scaleWrappedErr.Err)
 			}
 
-			switch txnValidityErr.Value().(type) {
+			switch val := txnValidityErr.Value().(type) {
 			// TODO use custom result issue #2780
 			case InvalidTransaction:
-				return nil, fmt.Errorf("%w: %s", ErrInvalidTxn, txnValidityErr.Error())
+				return nil, val
 			case UnknownTransaction:
-				return nil, fmt.Errorf("%w: %s", ErrUnknownTxn, txnValidityErr.Error())
+				return nil, val
 			default:
-				panic(fmt.Sprintf("unsupported transaction validity error: %T", txnValidityErr.Value()))
+				return nil, fmt.Errorf("unsupported transaction validity error: %T", txnValidityErr.Value())
 			}
 		}
 		return nil, fmt.Errorf("%w: %T", errors.New("invalid error value"), err)

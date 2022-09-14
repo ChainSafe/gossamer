@@ -4,7 +4,6 @@
 package runtime
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/transaction"
@@ -24,7 +23,7 @@ func Test_InvalidTransaction_Errors(t *testing.T) {
 		{
 			name:        "ancient birth block",
 			encodedData: []byte{1, 0, 5},
-			expErrMsg:   fmt.Errorf("%w: %s", ErrInvalidTxn, "ancient birth block").Error(),
+			expErrMsg:   "ancient birth block",
 			expErr:      true,
 		},
 	}

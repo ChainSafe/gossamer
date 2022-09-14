@@ -5,7 +5,6 @@ package core
 
 import (
 	"errors"
-	"fmt"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -126,7 +125,6 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 	require.NoError(t, err)
 	err = transactionValidityErr.Set(invalidTransaction)
 	require.NoError(t, err)
-	errMsg := fmt.Errorf("%w: %s", runtime.ErrInvalidTxn, transactionValidityErr.Error())
 
 	type args struct {
 		peerID peer.ID
@@ -267,7 +265,7 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 				setContextStorage: &mockSetContextStorage{trieState: &storage.TrieState{}},
 				validateTxn: &mockValidateTxn{
 					input: types.Extrinsic(append([]byte{byte(types.TxnExternal)}, testExtrinsic[0]...)),
-					err:   errMsg,
+					err:   transactionValidityErr,
 				},
 			},
 			args: args{
