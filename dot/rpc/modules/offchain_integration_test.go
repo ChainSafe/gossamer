@@ -23,7 +23,7 @@ func TestOffchainStorageGet(t *testing.T) {
 
 	for kind, test := range testFuncs {
 		expectedValue := common.BytesToHex([]byte("some-value"))
-		st := new(mocks.RuntimeStorageAPI)
+		st := mocks.NewRuntimeStorageAPI(t)
 		st.On(test, mock.AnythingOfType("[]uint8")).Return([]byte("some-value"), nil).Once()
 
 		m := new(OffchainModule)
@@ -38,7 +38,6 @@ func TestOffchainStorageGet(t *testing.T) {
 		err := m.LocalStorageGet(nil, req, &res)
 		require.NoError(t, err)
 		require.Equal(t, res, StringResponse(expectedValue))
-		st.AssertCalled(t, test, mock.AnythingOfType("[]uint8"))
 
 		st.
 			On(test, mock.AnythingOfType("[]uint8")).
@@ -47,7 +46,6 @@ func TestOffchainStorageGet(t *testing.T) {
 
 		err = m.LocalStorageGet(nil, req, nil)
 		require.Error(t, err, "problem to retrieve")
-		st.AssertCalled(t, test, mock.AnythingOfType("[]uint8"))
 	}
 }
 
@@ -76,7 +74,7 @@ func TestOffchainStorageSet(t *testing.T) {
 	}
 
 	for kind, test := range testFuncs {
-		st := new(mocks.RuntimeStorageAPI)
+		st := mocks.NewRuntimeStorageAPI(t)
 		st.On(test, mock.AnythingOfType("[]uint8"), mock.AnythingOfType("[]uint8")).Return(nil).Once()
 
 		m := new(OffchainModule)
@@ -92,7 +90,6 @@ func TestOffchainStorageSet(t *testing.T) {
 		err := m.LocalStorageSet(nil, req, &res)
 		require.NoError(t, err)
 		require.Empty(t, res)
-		st.AssertCalled(t, test, mock.AnythingOfType("[]uint8"), mock.AnythingOfType("[]uint8"))
 
 		st.
 			On(test, mock.AnythingOfType("[]uint8"), mock.AnythingOfType("[]uint8")).
@@ -102,6 +99,5 @@ func TestOffchainStorageSet(t *testing.T) {
 		err = m.LocalStorageSet(nil, req, &res)
 		require.Error(t, err, "problem to store")
 		require.Empty(t, res)
-		st.AssertCalled(t, test, mock.AnythingOfType("[]uint8"), mock.AnythingOfType("[]uint8"))
 	}
 }

@@ -29,7 +29,7 @@ type RuntimeInstance interface {
 	Exec(function string, data []byte) ([]byte, error)
 	SetContextStorage(s runtime.Storage)
 	GetCodeHash() common.Hash
-	Version() (runtime.Version, error)
+	Version() (version runtime.Version)
 	Metadata() ([]byte, error)
 	BabeConfiguration() (*types.BabeConfiguration, error)
 	GrandpaAuthorities() ([]types.Authority, error)

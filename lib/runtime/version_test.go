@@ -39,7 +39,7 @@ func Test_DecodeVersion(t *testing.T) {
 				{255, 255}, // error
 			}),
 			errWrapped: ErrDecodingVersionField,
-			errMessage: "decoding version field impl name: could not decode invalid integer",
+			errMessage: "decoding version field impl name: unknown prefix for compact uint: 255",
 		},
 		// TODO add transaction version decode error once
 		// https://github.com/ChainSafe/gossamer/pull/2683
@@ -56,6 +56,23 @@ func Test_DecodeVersion(t *testing.T) {
 		// 	}),
 		// 	errWrapped: ErrDecoding,
 		// 	errMessage: "decoding transaction version: could not decode invalid integer",
+		// },
+		// TODO add state version decode error once
+		// https://github.com/ChainSafe/gossamer/pull/2683
+		// is merged.
+		// "state version decode error": {
+		// 	encoded: concatBytes([][]byte{
+		// 		scaleEncode(t, []byte("a")),   // spec name
+		// 		scaleEncode(t, []byte("b")),   // impl name
+		// 		scaleEncode(t, uint32(1)),     // authoring version
+		// 		scaleEncode(t, uint32(2)),     // spec version
+		// 		scaleEncode(t, uint32(3)),     // impl version
+		// 		scaleEncode(t, []APIItem{{}}), // api items
+		// 		scaleEncode(t, uint32(4)),     // transaction version
+		// 		{1, 2, 3},                     // state version
+		// 	}),
+		// 	errWrapped: ErrDecoding,
+		// 	errMessage: "decoding state version: could not decode invalid integer",
 		// },
 		"no optional field set": {
 			encoded: []byte{
@@ -90,6 +107,25 @@ func Test_DecodeVersion(t *testing.T) {
 					Ver:  6,
 				}},
 				TransactionVersion: 7,
+			},
+		},
+		"transaction and state versions set": {
+			encoded: []byte{
+				0x4, 0x1, 0x4, 0x2, 0x3, 0x0, 0x0, 0x0, 0x4, 0x0, 0x0, 0x0,
+				0x5, 0x0, 0x0, 0x0, 0x4, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7,
+				0x8, 0x6, 0x0, 0x0, 0x0, 0x7, 0x0, 0x0, 0x0, 0x4, 0x0, 0x0, 0x0},
+			version: Version{
+				SpecName:         []byte{1},
+				ImplName:         []byte{2},
+				AuthoringVersion: 3,
+				SpecVersion:      4,
+				ImplVersion:      5,
+				APIItems: []APIItem{{
+					Name: [8]byte{1, 2, 3, 4, 5, 6, 7, 8},
+					Ver:  6,
+				}},
+				TransactionVersion: 7,
+				StateVersion:       4,
 			},
 		},
 	}
@@ -130,11 +166,12 @@ func Test_Version_Scale(t *testing.T) {
 					Ver:  6,
 				}},
 				TransactionVersion: 7,
+				StateVersion:       4,
 			},
 			encoding: []byte{
 				0x4, 0x1, 0x4, 0x2, 0x3, 0x0, 0x0, 0x0, 0x4, 0x0, 0x0, 0x0,
 				0x5, 0x0, 0x0, 0x0, 0x4, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7,
-				0x8, 0x6, 0x0, 0x0, 0x0, 0x7, 0x0, 0x0, 0x0},
+				0x8, 0x6, 0x0, 0x0, 0x0, 0x7, 0x0, 0x0, 0x0, 0x4, 0x0, 0x0, 0x0},
 			decoded: Version{
 				SpecName:         []byte{1},
 				ImplName:         []byte{2},
@@ -146,6 +183,7 @@ func Test_Version_Scale(t *testing.T) {
 					Ver:  6,
 				}},
 				TransactionVersion: 7,
+				StateVersion:       4,
 			},
 		},
 	}

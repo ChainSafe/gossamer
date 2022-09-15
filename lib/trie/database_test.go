@@ -71,7 +71,9 @@ func Test_Trie_WriteDirty_Put(t *testing.T) {
 	oneKeySet := pickKeys(keyValues, generator, 1)
 	existingKey := oneKeySet[0]
 	existingValue := keyValues[string(existingKey)]
-	newValue := append(existingValue, 99)
+	newValue := make([]byte, len(existingValue))
+	copy(newValue, existingValue)
+	newValue = append(newValue, 99)
 	trie.Put(existingKey, newValue)
 	err = trie.WriteDirty(db)
 	require.NoError(t, err)

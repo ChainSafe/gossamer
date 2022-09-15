@@ -41,34 +41,6 @@ type Config struct {
 
 // NewService returns a new *sync.Service
 func NewService(cfg *Config) (*Service, error) {
-	if cfg.Network == nil {
-		return nil, errNilNetwork
-	}
-
-	if cfg.BlockState == nil {
-		return nil, errNilBlockState
-	}
-
-	if cfg.StorageState == nil {
-		return nil, errNilStorageState
-	}
-
-	if cfg.FinalityGadget == nil {
-		return nil, errNilFinalityGadget
-	}
-
-	if cfg.TransactionState == nil {
-		return nil, errNilTransactionState
-	}
-
-	if cfg.BabeVerifier == nil {
-		return nil, errNilVerifier
-	}
-
-	if cfg.BlockImportHandler == nil {
-		return nil, errNilBlockImportHandler
-	}
-
 	logger.Patch(log.SetLevel(cfg.LogLvl))
 
 	readyBlocks := newBlockQueue(maxResponseSize * 30)

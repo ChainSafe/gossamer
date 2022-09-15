@@ -10,12 +10,6 @@ import (
 )
 
 var (
-	ErrNilBlockState    = errors.New("cannot have nil BlockState")
-	ErrNilGrandpaState  = errors.New("cannot have nil GrandpaState")
-	ErrNilDigestHandler = errors.New("cannot have nil DigestHandler")
-	ErrNilKeypair       = errors.New("cannot have nil keypair")
-	ErrNilNetwork       = errors.New("cannot have nil Network")
-
 	// ErrBlockDoesNotExist is returned when trying to validate a vote for a block that doesn't exist
 	ErrBlockDoesNotExist = errors.New("block does not exist")
 

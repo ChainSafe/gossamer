@@ -20,9 +20,6 @@ var (
 	// ErrEndNodeNotFound is returned if the end of a subchain does not exist
 	ErrEndNodeNotFound = errors.New("end node does not exist")
 
-	// ErrNilDatabase is returned in the database is nil
-	ErrNilDatabase = errors.New("blocktree database is nil")
-
 	// ErrNilDescendant is returned if calling subchain with a nil node
 	ErrNilDescendant = errors.New("descendant node is nil")
 

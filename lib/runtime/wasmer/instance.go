@@ -103,11 +103,25 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 	}
 	wasmInstance.SetContextData(runtimeCtx)
 
-	return &Instance{
+	instance = &Instance{
 		vm:       wasmInstance,
 		ctx:      runtimeCtx,
 		codeHash: cfg.CodeHash,
-	}, nil
+	}
+
+	if cfg.testVersion != nil {
+		instance.ctx.Version = *cfg.testVersion
+	} else {
+		instance.ctx.Version, err = instance.version()
+		if err != nil {
+			instance.close()
+			return nil, fmt.Errorf("getting instance version: %w", err)
+		}
+	}
+
+	wasmInstance.SetContextData(instance.ctx)
+
+	return instance, nil
 }
 
 // decompressWasm decompresses a Wasm blob that may or may not be compressed with zstd
@@ -153,6 +167,16 @@ func (in *Instance) UpdateRuntimeCode(code []byte) (err error) {
 
 	in.vm = wasmInstance
 
+	// Find runtime instance version and cache it in its
+	// instance context.
+	version, err := in.version()
+	if err != nil {
+		in.close()
+		return fmt.Errorf("getting instance version: %w", err)
+	}
+	in.ctx.Version = version
+	wasmInstance.SetContextData(in.ctx)
+
 	return nil
 }
 
@@ -168,7 +192,7 @@ func GetRuntimeVersion(code []byte) (version runtime.Version, err error) {
 	}
 	defer instance.Stop()
 
-	version, err = instance.Version()
+	version, err = instance.version()
 	if err != nil {
 		return version, fmt.Errorf("running runtime: %w", err)
 	}
@@ -297,7 +321,7 @@ func (in *Instance) Exec(function string, data []byte) (result []byte, err error
 		return nil, fmt.Errorf("running runtime function: %w", err)
 	}
 
-	outputPtr, outputLength := runtime.Int64ToPointerAndSize(wasmValue.ToI64())
+	outputPtr, outputLength := splitPointerSize(wasmValue.ToI64())
 	memory = in.vm.Memory.Data() // call Data() again to get larger slice
 	return memory[outputPtr : outputPtr+outputLength], nil
 }

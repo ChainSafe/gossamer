@@ -114,9 +114,9 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 	testEmptyHeader := types.NewEmptyHeader()
 	testExtrinsic := []types.Extrinsic{{1, 2, 3}}
 
-	runtimeMock := new(mocksruntime.Instance)
-	runtimeMock2 := new(mocksruntime.Instance)
-	runtimeMock3 := new(mocksruntime.Instance)
+	runtimeMock := mocksruntime.NewInstance(t)
+	runtimeMock2 := mocksruntime.NewInstance(t)
+	runtimeMock3 := mocksruntime.NewInstance(t)
 
 	type args struct {
 		peerID peer.ID

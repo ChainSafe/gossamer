@@ -30,8 +30,16 @@ func (in *Instance) ValidateTransaction(e types.Extrinsic) (*transaction.Validit
 	return v, err
 }
 
-// Version calls runtime function Core_Version
-func (in *Instance) Version() (version runtime.Version, err error) {
+// Version returns the instance version.
+// This is cheap to call since the instance version is cached.
+// Note the instance version is set at creation and on code update.
+func (in *Instance) Version() (version runtime.Version) {
+	return in.ctx.Version
+}
+
+// version calls runtime function Core_Version and returns the
+// decoded version structure.
+func (in *Instance) version() (version runtime.Version, err error) {
 	res, err := in.Exec(runtime.CoreVersion, []byte{})
 	if err != nil {
 		return version, err

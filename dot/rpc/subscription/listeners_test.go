@@ -83,7 +83,7 @@ func TestBlockListener_Listen(t *testing.T) {
 	wsconn, ws, cancel := setupWSConn(t)
 	defer cancel()
 
-	BlockAPI := new(mocks.BlockAPI)
+	BlockAPI := mocks.NewBlockAPI(t)
 	BlockAPI.On("FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block"))
 
 	wsconn.BlockAPI = BlockAPI
@@ -104,8 +104,6 @@ func TestBlockListener_Listen(t *testing.T) {
 	go bl.Listen()
 	defer func() {
 		require.NoError(t, bl.Stop())
-		time.Sleep(time.Millisecond * 10)
-		BlockAPI.AssertCalled(t, "FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block"))
 	}()
 
 	notifyChan <- &block
@@ -131,7 +129,7 @@ func TestBlockFinalizedListener_Listen(t *testing.T) {
 	wsconn, ws, cancel := setupWSConn(t)
 	defer cancel()
 
-	BlockAPI := new(mocks.BlockAPI)
+	BlockAPI := mocks.NewBlockAPI(t)
 	BlockAPI.On("FreeFinalisedNotifierChannel", mock.AnythingOfType("chan *types.FinalisationInfo"))
 
 	wsconn.BlockAPI = BlockAPI
@@ -150,8 +148,6 @@ func TestBlockFinalizedListener_Listen(t *testing.T) {
 	bfl.Listen()
 	defer func() {
 		require.NoError(t, bfl.Stop())
-		time.Sleep(time.Millisecond * 10)
-		BlockAPI.AssertCalled(t, "FreeFinalisedNotifierChannel", mock.AnythingOfType("chan *types.FinalisationInfo"))
 	}()
 
 	notifyChan <- &types.FinalisationInfo{
@@ -183,13 +179,13 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 	notifyFinalizedChan := make(chan *types.FinalisationInfo, 100)
 	txStatusChan := make(chan transaction.Status)
 
-	BlockAPI := new(mocks.BlockAPI)
+	BlockAPI := mocks.NewBlockAPI(t)
 	BlockAPI.On("FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block"))
 	BlockAPI.On("FreeFinalisedNotifierChannel", mock.AnythingOfType("chan *types.FinalisationInfo"))
 
 	wsconn.BlockAPI = BlockAPI
 
-	TxStateAPI := modules.NewMockTransactionStateAPI()
+	TxStateAPI := modules.NewMockTransactionStateAPI(t)
 	wsconn.TxStateAPI = TxStateAPI
 
 	esl := ExtrinsicSubmitListener{
@@ -215,10 +211,6 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 	esl.Listen()
 	defer func() {
 		require.NoError(t, esl.Stop())
-		time.Sleep(time.Millisecond * 10)
-
-		BlockAPI.AssertCalled(t, "FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block"))
-		BlockAPI.AssertCalled(t, "FreeFinalisedNotifierChannel", mock.AnythingOfType("chan *types.FinalisationInfo"))
 	}()
 
 	notifyImportedChan <- block
@@ -262,7 +254,7 @@ func TestGrandpaJustification_Listen(t *testing.T) {
 		mockedJustBytes, err := scale.Marshal(mockedJust)
 		require.NoError(t, err)
 
-		blockStateMock := new(mocks.BlockAPI)
+		blockStateMock := mocks.NewBlockAPI(t)
 		blockStateMock.On("GetJustification", mock.AnythingOfType("common.Hash")).Return(mockedJustBytes, nil)
 		blockStateMock.On("FreeFinalisedNotifierChannel", mock.AnythingOfType("chan *types.FinalisationInfo"))
 		wsconn.BlockAPI = blockStateMock
@@ -339,7 +331,7 @@ func TestRuntimeChannelListener_Listen(t *testing.T) {
 		wsconn:        mockConnection,
 		subID:         0,
 		runtimeUpdate: notifyChan,
-		coreAPI:       modules.NewMockCoreAPI(),
+		coreAPI:       modules.NewMockCoreAPI(t),
 	}
 
 	expectedInitialVersion := modules.StateRuntimeVersionResponse{
