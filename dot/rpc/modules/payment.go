@@ -59,7 +59,7 @@ func (p *PaymentModule) QueryInfo(_ *http.Request, req *PaymentQueryInfoRequest,
 		if err != nil {
 			return err
 		}
-		r.Stop()
+		defer r.Stop()
 	}
 	if err != nil && !errors.Is(err, blocktree.ErrFailedToGetRuntime) {
 		return err

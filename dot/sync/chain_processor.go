@@ -231,7 +231,7 @@ func (s *chainProcessor) handleBlock(block *types.Block) error {
 		if err != nil {
 			return err
 		}
-		rt.Stop()
+		defer rt.Stop()
 	}
 	if err != nil && !errors.Is(err, blocktree.ErrFailedToGetRuntime) {
 		return err

@@ -196,7 +196,7 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 		if err != nil {
 			return err
 		}
-		rt.Stop()
+		defer rt.Stop()
 	}
 	if err != nil && !errors.Is(err, blocktree.ErrFailedToGetRuntime) {
 		return err
