@@ -30,12 +30,9 @@ func newTestBlockState(t *testing.T, tries *Tries) *BlockState {
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	db := NewInMemoryDB(t)
-	header := types.Header{
-		StateRoot: trie.EmptyHash,
-		Digest:    types.NewDigest(),
-	}
+	header := testGenesisHeader
 
-	bs, err := NewBlockStateFromGenesis(db, tries, &header, telemetryMock)
+	bs, err := NewBlockStateFromGenesis(db, tries, header, telemetryMock)
 	require.NoError(t, err)
 
 	// loads in-memory tries with genesis state root, should be deleted
