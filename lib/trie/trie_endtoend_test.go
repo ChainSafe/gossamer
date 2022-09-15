@@ -113,7 +113,7 @@ func Fuzz_Trie_PutAndGet_Single(f *testing.F) {
 func Test_Trie_PutAndGet_Multiple(t *testing.T) {
 	trie := NewEmptyTrie()
 
-	const numberOfKeyValuePairs = 10000
+	const numberOfKeyValuePairs = 60000
 
 	generator := newGenerator()
 	keyValues := generateKeyValues(t, generator, numberOfKeyValuePairs)
