@@ -123,14 +123,16 @@ func Test_Trie_PutAndGet_Multiple(t *testing.T) {
 
 		// Check value is inserted correctly.
 		retrievedValue := trie.Get(key)
-		assert.Equal(t, retrievedValue, value)
+		require.Equalf(t, retrievedValue, value,
+			"for key (nibbles) 0x%x", codec.KeyLEToNibbles(key))
 	}
 
 	// Check values were not mismoved in the trie.
 	for keyString, value := range keyValues {
 		key := []byte(keyString)
 		retrievedValue := trie.Get(key)
-		assert.Equal(t, retrievedValue, value)
+		require.Equalf(t, retrievedValue, value,
+			"for key (nibbles) 0x%x", codec.KeyLEToNibbles(key))
 	}
 }
 
