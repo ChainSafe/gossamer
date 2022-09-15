@@ -78,8 +78,10 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) 
 
 	s.tries.softSet(root, ts.Trie())
 
-	if _, ok := s.pruner.(*pruner.FullNode); header == nil && ok {
-		return fmt.Errorf("block cannot be empty for Full node pruner")
+	if header == nil {
+		if _, ok := s.pruner.(*pruner.FullNode); ok {
+			panic("block header cannot be empty for Full node pruner")
+		}
 	}
 
 	if header != nil {
