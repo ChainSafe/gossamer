@@ -86,7 +86,7 @@ func newTestVoters() []Voter {
 	return vs
 }
 
-func newTestService(t *testing.T) (*Service, *state.Service) {
+func newTestService(t *testing.T, kp ...*ed25519.Keypair) (*Service, *state.Service) {
 	st := newTestState(t)
 	net := newTestNetwork(t)
 
@@ -98,11 +98,18 @@ func newTestService(t *testing.T) (*Service, *state.Service) {
 		BlockState:   st.Block,
 		GrandpaState: st.Grandpa,
 		Voters:       voters,
-		Keypair:      kr.Alice().(*ed25519.Keypair),
 		Authority:    true,
 		Network:      net,
 		Interval:     time.Second,
 		Telemetry:    telemetryMock,
+	}
+
+	if len(kp) == 0 {
+		cfg.Keypair = kr.Alice().(*ed25519.Keypair)
+	} else if len(kp) > 1 {
+		t.Fatalf("expecting only one *ed25519.Keypair, got: %d", len(kp))
+	} else {
+		cfg.Keypair = kp[0]
 	}
 
 	gs, err := NewService(cfg)

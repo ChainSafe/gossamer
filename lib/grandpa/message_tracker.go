@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
@@ -19,7 +20,7 @@ type tracker struct {
 	handler    *MessageHandler
 	votes      votesTracker
 	commits    commitsTracker
-	mapLock    sync.Mutex
+	mapLock    sync.RWMutex
 	in         chan *types.Block // receive imported block from BlockState
 	stopped    chan struct{}
 
@@ -38,7 +39,7 @@ func newTracker(bs BlockState, handler *MessageHandler) *tracker {
 		handler:                 handler,
 		votes:                   newVotesTracker(votesCapacity),
 		commits:                 newCommitsTracker(commitsCapacity),
-		mapLock:                 sync.Mutex{},
+		mapLock:                 sync.RWMutex{},
 		in:                      bs.GetImportedBlockNotifierChannel(),
 		stopped:                 make(chan struct{}),
 		catchUpResponseMessages: make(map[uint64]*CatchUpResponse),
@@ -128,10 +129,13 @@ func (t *tracker) handleBlock(b *types.Block) {
 }
 
 func (t *tracker) handleTick() {
-	t.mapLock.Lock()
-	defer t.mapLock.Unlock()
+	t.mapLock.RLock()
+	networkVoteMessages := t.votes.networkVoteMessages()
+	t.mapLock.RUnlock()
 
-	for _, networkVoteMessage := range t.votes.networkVoteMessages() {
+	blocksToRemoveFromTracker := make([]common.Hash, 0, len(networkVoteMessages))
+
+	for _, networkVoteMessage := range networkVoteMessages {
 		peerID := networkVoteMessage.from
 		message := networkVoteMessage.msg
 		_, err := t.handler.handleMessage(peerID, message)
@@ -141,8 +145,15 @@ func (t *tracker) handleTick() {
 		}
 
 		if message.Round < t.handler.grandpa.state.round && message.SetID == t.handler.grandpa.state.setID {
-			t.votes.delete(message.Message.BlockHash)
+			blocksToRemoveFromTracker = append(blocksToRemoveFromTracker, message.Message.BlockHash)
 		}
+	}
+
+	t.mapLock.Lock()
+	defer t.mapLock.Unlock()
+
+	for _, blockHash := range blocksToRemoveFromTracker {
+		t.votes.delete(blockHash)
 	}
 
 	t.commits.forEach(func(cm *CommitMessage) {

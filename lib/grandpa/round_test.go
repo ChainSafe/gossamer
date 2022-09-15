@@ -20,7 +20,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/golang/mock/gomock"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
@@ -89,8 +88,7 @@ func (*testNetwork) RegisterNotificationsProtocol(
 
 func (n *testNetwork) SendBlockReqestByHash(_ common.Hash) {}
 
-func setupGrandpa(t *testing.T, kp *ed25519.Keypair) (
-	*Service, chan *networkVoteMessage) {
+func setupGrandpa(t *testing.T, kp *ed25519.Keypair) *Service {
 	st := newTestState(t)
 	net := newTestNetwork(t)
 
@@ -116,52 +114,7 @@ func setupGrandpa(t *testing.T, kp *ed25519.Keypair) (
 
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
-	return gs, gs.in
-}
-
-func TestGrandpa_BaseCase(t *testing.T) {
-	// this is a base test case that asserts that all validators finalise the same block if they all see the
-	// same pre-votes and pre-commits, even if their chains are different
-	kr, err := keystore.NewEd25519Keyring()
-	require.NoError(t, err)
-
-	gss := make([]*Service, len(kr.Keys))
-	prevotes := new(sync.Map)
-	precommits := new(sync.Map)
-
-	for i, gs := range gss {
-		gs, _ = setupGrandpa(t, kr.Keys[i])
-		gss[i] = gs
-		state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 15, false)
-		pv, err := gs.determinePreVote()
-		require.NoError(t, err)
-		prevotes.Store(gs.publicKeyBytes(), &SignedVote{
-			Vote: *pv,
-		})
-	}
-
-	for _, gs := range gss {
-		gs.prevotes = prevotes
-		gs.precommits = precommits
-	}
-
-	for _, gs := range gss {
-		pc, err := gs.determinePreCommit()
-		require.NoError(t, err)
-		precommits.Store(gs.publicKeyBytes(), &SignedVote{
-			Vote: *pc,
-		})
-		err = gs.finalise()
-		require.NoError(t, err)
-		has, err := gs.blockState.HasJustification(gs.head.Hash())
-		require.NoError(t, err)
-		require.True(t, has)
-	}
-
-	finalised := gss[0].head.Hash()
-	for _, gs := range gss {
-		require.Equal(t, finalised, gs.head.Hash())
-	}
+	return gs
 }
 
 func TestGrandpa_DifferentChains(t *testing.T) {
@@ -175,7 +128,7 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 	precommits := new(sync.Map)
 
 	for i, gs := range gss {
-		gs, _ = setupGrandpa(t, kr.Keys[i])
+		gs = setupGrandpa(t, kr.Keys[i])
 		gss[i] = gs
 
 		r := uint(rand.Intn(2)) // 0 or 1
@@ -328,10 +281,7 @@ func TestPlayGrandpaRound(t *testing.T) {
 					paused:       atomic.Value{},
 					blockState:   st.Block,
 					grandpaState: st.Grandpa,
-					// defined as in the grandpa service
-					in:             make(chan *networkVoteMessage, 1024),
-					receivedCommit: make(chan *CommitMessage),
-					interval:       subroundInterval,
+					interval:     subroundInterval,
 					state: &State{
 						round:  1,
 						setID:  0,
@@ -367,7 +317,7 @@ func TestPlayGrandpaRound(t *testing.T) {
 				// if the service is an equivocator it should send a different vote
 				// into the same round to all its neighbour peers
 				serviceNetworkMock := func(serviceIdx int, neighbours []*Service,
-					equivocateVote *networkVoteMessage) func(any) {
+					equivocateVote *VoteMessage) func(any) {
 					return func(arg0 any) {
 						consensusMessage, ok := arg0.(*network.ConsensusMessage)
 						require.True(t, ok, "expecting *network.ConsensusMessage, got %T", arg0)
@@ -378,21 +328,9 @@ func TestPlayGrandpaRound(t *testing.T) {
 						switch msg := message.(type) {
 						case *VoteMessage:
 							for _, neighbour := range neighbours {
-								voteMessage := &networkVoteMessage{
-									from: peer.ID(fmt.Sprint(serviceIdx)),
-									msg:  msg,
-								}
-
-								select {
-								case neighbour.in <- voteMessage:
-								default:
-								}
-
+								neighbour.handleVoteMessage(peer.ID(fmt.Sprint(serviceIdx)), msg)
 								if equivocateVote != nil {
-									select {
-									case neighbour.in <- equivocateVote:
-									default:
-									}
+									neighbour.handleVoteMessage(peer.ID(fmt.Sprint(serviceIdx)), equivocateVote)
 								}
 							}
 						case *CommitMessage:
@@ -410,7 +348,7 @@ func TestPlayGrandpaRound(t *testing.T) {
 
 				// if the voter is an equivocator then we issue a vote
 				// to another block into the same round and set id
-				var equivocatedVoteMessage *networkVoteMessage
+				var equivocatedVoteMessage *VoteMessage
 				_, isEquivocator := tt.whoEquivocates[idx]
 				if isEquivocator {
 					leaves := grandpaService.blockState.Leaves()
@@ -422,10 +360,7 @@ func TestPlayGrandpaRound(t *testing.T) {
 						vote, prevote)
 					require.NoError(t, err)
 
-					equivocatedVoteMessage = &networkVoteMessage{
-						from: peer.ID(fmt.Sprint(idx)),
-						msg:  vmsg,
-					}
+					equivocatedVoteMessage = vmsg
 				}
 
 				// The network mock works like a wire between the running
@@ -453,10 +388,6 @@ func TestPlayGrandpaRound(t *testing.T) {
 			}
 
 			wg.Wait()
-
-			for _, grandpaService := range grandpaServices {
-				close(grandpaService.in)
-			}
 
 			var latestHash common.Hash = grandpaServices[0].head.Hash()
 			for _, grandpaService := range grandpaServices[1:] {
@@ -531,14 +462,12 @@ func TestPlayGrandpaRoundMultipleRounds(t *testing.T) {
 
 		st := newTestState(t)
 		grandpaServices[idx] = &Service{
-			ctx:            ctx,
-			cancel:         cancel,
-			paused:         atomic.Value{},
-			blockState:     st.Block,
-			grandpaState:   st.Grandpa,
-			receivedCommit: make(chan *CommitMessage),
-			interval:       subroundInterval,
-			in:             make(chan *networkVoteMessage, 1024),
+			ctx:          ctx,
+			cancel:       cancel,
+			paused:       atomic.Value{},
+			blockState:   st.Block,
+			grandpaState: st.Grandpa,
+			interval:     subroundInterval,
 			state: &State{
 				round:  1,
 				setID:  0,
@@ -570,7 +499,6 @@ func TestPlayGrandpaRoundMultipleRounds(t *testing.T) {
 	const totalRounds = 10
 	for currentRound := 1; currentRound <= totalRounds; currentRound++ {
 		for _, grandpaService := range grandpaServices {
-			grandpaService.in = make(chan *networkVoteMessage, 1024)
 			grandpaService.state.round = uint64(currentRound)
 			grandpaService.prevotes = new(sync.Map)
 			grandpaService.precommits = new(sync.Map)
@@ -596,15 +524,7 @@ func TestPlayGrandpaRoundMultipleRounds(t *testing.T) {
 					switch msg := message.(type) {
 					case *VoteMessage:
 						for _, neighbour := range neighbours {
-							voteMessage := &networkVoteMessage{
-								from: peer.ID(fmt.Sprint(serviceIdx)),
-								msg:  msg,
-							}
-
-							select {
-							case neighbour.in <- voteMessage:
-							default:
-							}
+							neighbour.handleVoteMessage(peer.ID(fmt.Sprint(serviceIdx)), msg)
 						}
 					case *CommitMessage:
 						producedCommitMessages[serviceIdx] = msg
@@ -642,10 +562,6 @@ func TestPlayGrandpaRoundMultipleRounds(t *testing.T) {
 			}(wg, grandpaService)
 		}
 		wg.Wait()
-
-		for _, grandpaService := range grandpaServices {
-			close(grandpaService.in)
-		}
 
 		const setID uint64 = 0
 		assertSameFinalizationAndChainGrowth(t, grandpaServices,
@@ -848,7 +764,6 @@ func TestSendingVotesInRightStage(t *testing.T) {
 		network:      mockedNet,
 		blockState:   mockedState,
 		grandpaState: mockedGrandpaState,
-		in:           make(chan *networkVoteMessage),
 		interval:     subroundInterval,
 		state: &State{
 			round:  1,
@@ -907,39 +822,22 @@ func TestSendingVotesInRightStage(t *testing.T) {
 
 	// given that we are BOB and we already had predetermined our prevote in a set
 	// of 4 authorities (ALICE, BOB, CHARLIE and DAVE) then we only need 2 more prevotes
-	_, aliceVoteMessage, err := createSignedVoteUsing(t, votersPublicKeys[0], expectedVote, prevote, 1, 0)
+	_, aliceVoteMessage := createAndSignVoteMessage(t, votersPublicKeys[0], 1, 0, expectedVote, prevote)
+	grandpa.handleVoteMessage(peer.ID("alice"), aliceVoteMessage)
+
+	_, charlieVoteMessage := createAndSignVoteMessage(t, votersPublicKeys[2], 1, 0, expectedVote, prevote)
 	require.NoError(t, err)
-
-	grandpa.in <- &networkVoteMessage{
-		from: peer.ID("alice"),
-		msg:  aliceVoteMessage,
-	}
-
-	_, charlieVoteMessage, err := createSignedVoteUsing(t, votersPublicKeys[2], expectedVote, prevote, 1, 0)
-	require.NoError(t, err)
-
-	grandpa.in <- &networkVoteMessage{
-		from: peer.ID("charlie"),
-		msg:  charlieVoteMessage,
-	}
+	grandpa.handleVoteMessage(peer.ID("charlie"), charlieVoteMessage)
 
 	// given that we are BOB and we already had predetermined the precommit given the prevotes
 	// we only need 2 more precommit messages
-	_, alicePrecommitMessage, err := createSignedVoteUsing(t, votersPublicKeys[0], expectedVote, precommit, 1, 0)
+	_, alicePrecommitMessage := createAndSignVoteMessage(t, votersPublicKeys[0], 1, 0, expectedVote, precommit)
 	require.NoError(t, err)
+	grandpa.handleVoteMessage(peer.ID("alice"), alicePrecommitMessage)
 
-	grandpa.in <- &networkVoteMessage{
-		from: peer.ID("alice"),
-		msg:  alicePrecommitMessage,
-	}
-
-	_, charliePrecommitMessage, err := createSignedVoteUsing(t, votersPublicKeys[2], expectedVote, precommit, 1, 0)
+	_, charliePrecommitMessage := createAndSignVoteMessage(t, votersPublicKeys[2], 1, 0, expectedVote, precommit)
 	require.NoError(t, err)
-
-	grandpa.in <- &networkVoteMessage{
-		from: peer.ID("charlie"),
-		msg:  charliePrecommitMessage,
-	}
+	grandpa.handleVoteMessage(peer.ID("charlie"), charliePrecommitMessage)
 
 	commitMessage := &CommitMessage{
 		Round:      1,
@@ -954,46 +852,4 @@ func TestSendingVotesInRightStage(t *testing.T) {
 		Times(1)
 
 	<-doneCh
-}
-
-func createSignedVoteUsing(t *testing.T, kp *ed25519.Keypair, vote *Vote,
-	stage Subround, round, setID uint64) (*SignedVote, *VoteMessage, error) { //nolint:unparam
-	t.Helper()
-
-	msg, err := scale.Marshal(FullVote{
-		Stage: stage,
-		Vote:  *vote,
-		Round: round,
-		SetID: setID,
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	sig, err := kp.Sign(msg)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	pc := &SignedVote{
-		Vote:        *vote,
-		Signature:   ed25519.NewSignatureBytes(sig),
-		AuthorityID: kp.Public().(*ed25519.PublicKey).AsBytes(),
-	}
-
-	sm := &SignedMessage{
-		Stage:       stage,
-		BlockHash:   pc.Vote.Hash,
-		Number:      pc.Vote.Number,
-		Signature:   ed25519.NewSignatureBytes(sig),
-		AuthorityID: kp.Public().(*ed25519.PublicKey).AsBytes(),
-	}
-
-	vm := &VoteMessage{
-		Round:   round,
-		SetID:   setID,
-		Message: *sm,
-	}
-
-	return pc, vm, nil
 }

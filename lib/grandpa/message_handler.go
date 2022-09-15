@@ -48,12 +48,7 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 
 	switch msg := m.(type) {
 	case *VoteMessage:
-		// send vote message to grandpa service
-		h.grandpa.in <- &networkVoteMessage{
-			from: from,
-			msg:  msg,
-		}
-
+		h.grandpa.handleVoteMessage(from, msg)
 		return nil, nil
 	case *CommitMessage:
 		return nil, h.grandpa.handleCommitMessage(msg)

@@ -5,15 +5,9 @@ package grandpa
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 )
-
-// errRoundMismatch is returned when trying to validate a vote message that isn't for the current round
-func errRoundMismatch(got, want uint64) error {
-	return fmt.Errorf("rounds do not match: got %d, want %d", got, want)
-}
 
 var (
 	ErrNilBlockState    = errors.New("cannot have nil BlockState")
@@ -102,4 +96,5 @@ var (
 	errVoteBlockMismatch       = errors.New("block in vote is not descendant of previously finalised block")
 	errVoteFromSelf            = errors.New("got vote from ourselves")
 	errRoundOutOfBounds        = errors.New("round out of bounds")
+	errRoundsMismatch          = errors.New("rounds mismatch")
 )

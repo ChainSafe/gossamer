@@ -161,12 +161,17 @@ func TestMessageHandler_VoteMessage(t *testing.T) {
 
 	v, err := NewVoteFromHash(st.Block.BestBlockHash(), st.Block)
 	require.NoError(t, err)
-
-	gs.state.setID = 99
-	gs.state.round = 77
 	v.Number = 0x7777
-	_, vm, err := gs.createSignedVoteAndVoteMessage(v, precommit)
-	require.NoError(t, err)
+
+	charlieAuthority := kr.Charlie().(*ed25519.Keypair)
+
+	const round = 99
+	const setID = 77
+
+	gs.state.round = round
+	gs.state.setID = setID
+
+	createdSigned, vm := createAndSignVoteMessage(t, charlieAuthority, round, setID, v, precommit)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
@@ -177,12 +182,10 @@ func TestMessageHandler_VoteMessage(t *testing.T) {
 	require.NoError(t, err)
 	require.Nil(t, out)
 
-	select {
-	case vote := <-gs.in:
-		require.Equal(t, vm, vote.msg)
-	case <-time.After(time.Second):
-		t.Fatal("did not receive VoteMessage")
-	}
+	charlieAuthorityPublicKeyBytes := charlieAuthority.Public().(*ed25519.PublicKey).AsBytes()
+	gotSignedVote, ok := gs.loadVote(charlieAuthorityPublicKeyBytes, precommit)
+	require.True(t, ok)
+	require.Equal(t, createdSigned, gotSignedVote)
 }
 
 func TestMessageHandler_NeighbourMessage(t *testing.T) {
@@ -243,9 +246,20 @@ func TestMessageHandler_VerifyJustification_InvalidSig(t *testing.T) {
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
+	// scale encode the message to assert the wrapped error message
+	expectedFullVote := FullVote{
+		Stage: precommit,
+		Vote:  just.Vote,
+		Round: gs.state.round,
+		SetID: gs.state.setID,
+	}
+	expectedErr := fmt.Errorf("%w: 0x%x for message {%v}", ErrInvalidSignature, just.Signature, expectedFullVote)
+
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
 	err := verifyJustification(just, gs.state.round, gs.state.setID, precommit, h.grandpa.authorities())
-	require.Equal(t, err, ErrInvalidSignature)
+
+	require.ErrorIs(t, err, ErrInvalidSignature)
+	require.EqualError(t, expectedErr, err.Error())
 }
 
 func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
@@ -310,7 +324,10 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_MinVoteError(t *testing.T
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
 	out, err := h.handleMessage("", fm)
-	require.EqualError(t, err, ErrMinVotesNotMet.Error())
+
+	expectedErrString := "verifying commit message justification: minimum number of votes not met in a Justification: for finalisation message; need 6 votes but received only 0 votes" //nolint:lll
+	require.EqualError(t, err, expectedErrString)
+	require.ErrorIs(t, err, ErrMinVotesNotMet)
 	require.Nil(t, out)
 }
 
@@ -464,16 +481,26 @@ func TestVerifyJustification_InvalidSignature(t *testing.T) {
 	gs, st := newTestService(t)
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
 
+	const round = 77
 	vote := NewVote(testHash, 123)
 	just := &SignedVote{
 		Vote: *vote,
 		// create signed vote with mismatched vote number
-		Signature:   createSignedVoteMsg(t, vote.Number+1, 77, gs.state.setID, kr.Alice().(*ed25519.Keypair), precommit),
+		Signature:   createSignedVoteMsg(t, vote.Number+1, round, gs.state.setID, kr.Alice().(*ed25519.Keypair), precommit),
 		AuthorityID: kr.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 	}
 
-	err := verifyJustification(just, 77, gs.state.setID, precommit, h.grandpa.authorities())
-	require.EqualError(t, err, ErrInvalidSignature.Error())
+	expectedFullVote := FullVote{
+		Stage: precommit,
+		Vote:  just.Vote,
+		Round: round,
+		SetID: gs.state.setID,
+	}
+
+	expectedErr := fmt.Errorf("%w: 0x%x for message {%v}", ErrInvalidSignature, just.Signature, expectedFullVote)
+	err := verifyJustification(just, round, gs.state.setID, precommit, h.grandpa.authorities())
+	require.ErrorIs(t, err, ErrInvalidSignature)
+	require.EqualError(t, err, expectedErr.Error())
 }
 
 func TestVerifyJustification_InvalidAuthority(t *testing.T) {
@@ -495,8 +522,13 @@ func TestVerifyJustification_InvalidAuthority(t *testing.T) {
 		AuthorityID: fakeKey.Public().(*ed25519.PublicKey).AsBytes(),
 	}
 
+	encodedAuthorityID, err := just.AuthorityID.Encode()
+	require.NoError(t, err)
+
+	expectedErr := fmt.Errorf("%w: authority ID 0x%x", ErrVoterNotFound, encodedAuthorityID)
 	err = verifyJustification(just, 77, gs.state.setID, precommit, h.grandpa.authorities())
-	require.EqualError(t, err, ErrVoterNotFound.Error())
+	require.ErrorIs(t, err, ErrVoterNotFound)
+	require.EqualError(t, err, expectedErr.Error())
 }
 
 func TestMessageHandler_VerifyPreVoteJustification(t *testing.T) {

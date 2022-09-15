@@ -23,95 +23,6 @@ type networkVoteMessage struct {
 	msg  *VoteMessage
 }
 
-type action byte
-
-const (
-	determinePrecommit action = iota
-	finalize
-)
-
-// receiveVoteMessages receives messages from the in channel until a grandpa round finishes.
-func (s *Service) receiveVoteMessages(cancel <-chan struct{}) (perform chan action) {
-	perform = make(chan action)
-
-	go func() {
-		defer close(perform)
-
-		logger.Debug("receiving pre-vote messages...")
-		threshold := s.state.threshold()
-
-		// we should determine the precommit only when we reach the
-		// prevotes threshold otherwise we should wait for them
-		prevotesThresholdReached := false
-
-		for {
-			select {
-			case commit, ok := <-s.receivedCommit:
-				if !ok {
-					return
-				}
-
-				if commit.Round == s.state.round {
-					perform <- finalize
-					return
-				}
-
-			case msg, ok := <-s.in:
-				if !ok {
-					return
-				}
-
-				if msg == nil || msg.msg == nil {
-					continue
-				}
-
-				vm := msg.msg
-				logger.Debugf("received vote message %v from %s", msg.msg, msg.from)
-				s.sendTelemetryVoteMessage(msg.msg)
-
-				v, err := s.validateVoteMessage(msg.from, vm)
-				if err != nil {
-					logger.Debugf("failed to validate vote message %v: %s", vm, err)
-					continue
-				}
-
-				logger.Debugf(
-					"validated vote message %v from %s, round %d, subround %d, "+
-						"prevote count %d, precommit count %d, votes needed %d",
-					v, vm.Message.AuthorityID, vm.Round, vm.Message.Stage,
-					s.lenVotes(prevote), s.lenVotes(precommit), s.state.threshold()+1)
-
-				// when a given vote is validated we should check
-				// if we have reached the prevotes threshold
-				prevotesThreshold := s.lenVotes(prevote) - 1
-				if !prevotesThresholdReached && prevotesThreshold >= int(threshold) {
-					prevotesThresholdReached = true
-					perform <- determinePrecommit
-				}
-
-				if vm.Message.Stage == precommit {
-					isFinalizable, err := s.attemptToFinalize()
-					if err != nil {
-						logger.Errorf("attempt to finalize: %w", err)
-						continue
-					}
-
-					if isFinalizable {
-						perform <- finalize
-						return
-					}
-				}
-
-			case <-cancel:
-				logger.Trace("returning from receiveMessages")
-				return
-			}
-		}
-	}()
-
-	return perform
-}
-
 func (s *Service) sendTelemetryVoteMessage(vm *VoteMessage) {
 	switch vm.Message.Stage {
 	case prevote, primaryProposal:
@@ -133,65 +44,6 @@ func (s *Service) sendTelemetryVoteMessage(vm *VoteMessage) {
 	default:
 		logger.Warnf("unsupported stage %s", vm.Message.Stage.String())
 	}
-}
-
-// attemptToFinalize check if we should finalize the current round or waiting for more votes
-func (s *Service) attemptToFinalize() (isFinalizable bool, err error) {
-	// check if the current round contains a finalized block
-	has, _ := s.blockState.HasFinalisedBlock(s.state.round, s.state.setID)
-	if has {
-		logger.Debugf("block was finalised for round %d", s.state.round)
-		return true, nil
-	}
-
-	// a block was finalised, seems like we missed some messages
-	highestRound, highestSetID, _ := s.blockState.GetHighestRoundAndSetID()
-	if highestRound > s.state.round {
-		logger.Debugf("block was finalised for round %d and set id %d",
-			highestRound, highestSetID)
-		return true, nil
-	}
-
-	// a block was finalised, seems like we missed some messages
-	if highestSetID > s.state.setID {
-		logger.Debugf("block was finalised for round %d and set id %d",
-			highestRound, highestSetID)
-		return true, nil
-	}
-
-	bestFinalCandidate, err := s.getBestFinalCandidate()
-	if err != nil {
-		return false, fmt.Errorf("getting best final candidate: %w", err)
-	}
-
-	if bestFinalCandidate.Number < uint32(s.head.Number) {
-		return false, fmt.Errorf("%w: candidate number %d, latest finalized block number %d",
-			errBeforeFinalizedBlock, bestFinalCandidate.Number, s.head.Number)
-	}
-
-	precommitCount, err := s.getTotalVotesForBlock(bestFinalCandidate.Hash, precommit)
-	if err != nil {
-		return false, fmt.Errorf("getting total votes for block %s: %w",
-			bestFinalCandidate.Hash.Short(), err)
-	}
-
-	// once we reach the threshold we should stop sending precommit messages to other peers
-	if bestFinalCandidate.Number < uint32(s.head.Number) || precommitCount <= s.state.threshold() {
-		return false, nil
-	}
-
-	err = s.finalise()
-	if err != nil {
-		return false, fmt.Errorf("finalising: %w", err)
-	}
-
-	// if we haven't received a finalisation message for this block yet, broadcast a finalisation message
-	votes := s.getDirectVotes(precommit)
-	logger.Debugf("block was finalised for round %d and set id %d. "+
-		"Head hash is %s, %d direct votes for bfc and %d total votes for bfc",
-		s.state.round, s.state.setID, s.head.Hash(), votes[*bestFinalCandidate], precommitCount)
-
-	return true, nil
 }
 
 func (s *Service) createSignedVoteAndVoteMessage(vote *Vote, stage Subround) (*SignedVote, *VoteMessage, error) {
@@ -246,14 +98,14 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 	if err != nil {
 		// TODO Affect peer reputation
 		// https://github.com/ChainSafe/gossamer/issues/2505
-		return nil, err
+		return nil, fmt.Errorf("creating public key: %w", err)
 	}
 
 	err = validateMessageSignature(pk, m)
 	if err != nil {
 		// TODO Affect peer reputation
 		// https://github.com/ChainSafe/gossamer/issues/2505
-		return nil, err
+		return nil, fmt.Errorf("validating message signature: %w", err)
 	}
 
 	if m.SetID != s.state.setID {
@@ -274,7 +126,8 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 		// Discard message
 		// TODO: affect peer reputation, this is shameful impolite behaviour
 		// https://github.com/ChainSafe/gossamer/issues/2505
-		return nil, errRoundOutOfBounds
+		return nil, fmt.Errorf("%w: received round: %d, round should be between: <%d, %d>",
+			errRoundOutOfBounds, m.Round, minRoundAccepted, maxRoundAccepted)
 	}
 
 	if m.Round < s.state.round {
@@ -282,19 +135,19 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 		// peer doesn't know round was finalised, send out another commit message
 		header, err := s.blockState.GetFinalisedHeader(m.Round, m.SetID)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("getting finalised header: %w", err)
 		}
 
 		// TODO: should we use `m.SetID` or `s.state.setID`?
 		cm, err := s.newCommitMessage(header, m.Round, s.state.setID)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("creating commit message: %w", err)
 		}
 
 		// send finalised block from previous round to network
 		msg, err := cm.ToConsensusMessage()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("transforming into consensus message: %w", err)
 		}
 
 		if err = s.network.SendMessage(from, msg); err != nil {
@@ -302,19 +155,20 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 		}
 
 		// TODO: get justification if your round is lower, or just do catch-up? (#1815)
-		return nil, errRoundMismatch(m.Round, s.state.round)
+		return nil, fmt.Errorf("%w: got %d, want %d", errRoundsMismatch, m.Round, s.state.round)
 	} else if m.Round > s.state.round {
+
 		// Message round is higher by 1 than the round of our state,
 		// we may be lagging behind, so store the message in the tracker
 		// for processing later in the coming few milliseconds.
 		s.tracker.addVote(from, m)
-		return nil, errRoundMismatch(m.Round, s.state.round)
+		return nil, fmt.Errorf("%w: got %d, want %d", errRoundsMismatch, m.Round, s.state.round)
 	}
 
 	// check for equivocation ie. multiple votes within one subround
 	voter, err := s.state.pubkeyToVoter(pk)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("transforming public key into a voter: %w", err)
 	}
 
 	vote := NewVote(m.Message.BlockHash, m.Message.Number)
@@ -322,7 +176,7 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 	// if the vote is from ourselves, return an error
 	kb := [32]byte(s.publicKeyBytes())
 	if bytes.Equal(m.Message.AuthorityID[:], kb[:]) {
-		return nil, errVoteFromSelf
+		return nil, fmt.Errorf("%w", errVoteFromSelf)
 	}
 
 	err = s.validateVote(vote)
@@ -333,7 +187,7 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 		s.tracker.addVote(from, m)
 	}
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("validating vote: %w", err)
 	}
 
 	just := &SignedVote{
@@ -344,7 +198,7 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 
 	equivocated := s.checkForEquivocation(voter, just, m.Message.Stage)
 	if equivocated {
-		return nil, ErrEquivocation
+		return nil, fmt.Errorf("%w", ErrEquivocation)
 	}
 
 	switch m.Message.Stage {
