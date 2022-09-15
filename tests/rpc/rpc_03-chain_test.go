@@ -56,6 +56,8 @@ func TestChainRPC(t *testing.T) {
 			return false, fmt.Errorf("cannot convert header number to uint: %w", err)
 		}
 
+		fmt.Printf("%s -> %s\n", finalizedHead, finalizedBlock.Block.Header.Number)
+
 		switch finalizedNumber {
 		case 0, 1:
 			return false, nil
@@ -86,6 +88,10 @@ func TestChainRPC(t *testing.T) {
 	}
 	header.Digest.Logs = nil
 
+	blockNumber, err := common.HexToUint(header.Number)
+	require.NoError(t, err)
+	assert.GreaterOrEqual(t, blockNumber, uint(2))
+
 	var block modules.ChainBlockResponse
 	fetchWithTimeout(ctx, t, "chain_getBlock", fmt.Sprintf(`["`+header.ParentHash+`"]`), &block)
 
@@ -102,19 +108,16 @@ func TestChainRPC(t *testing.T) {
 	}
 	block.Block.Header.Digest.Logs = nil
 	assert.Len(t, block.Block.Body, 1)
-	const bodyRegex = `^0x280403000b[0-9a-z]{8}8201$`
+	const bodyRegex = `^0x280403000b[0-9a-z]{8}8301$`
 	assert.Regexp(t, bodyRegex, block.Block.Body[0])
 	block.Block.Body = nil
 
-	// Assert remaining struct with predictable fields
-	expectedBlock := modules.ChainBlockResponse{
-		Block: modules.ChainBlock{
-			Header: modules.ChainBlockHeaderResponse{
-				Number: "0x01",
-			},
-		},
-	}
-	assert.Equal(t, expectedBlock, block)
+	blockNumber, err = common.HexToUint(header.Number)
+	require.NoError(t, err)
+	assert.GreaterOrEqual(t, blockNumber, uint(1))
+
+	waitMoreBlocksTimer := time.NewTimer(3 * time.Second)
+	<-waitMoreBlocksTimer.C
 
 	var blockHash string
 	fetchWithTimeout(ctx, t, "chain_getBlockHash", "[]", &blockHash)
