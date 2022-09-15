@@ -205,31 +205,6 @@ func (t *Trie) PopulateNodeHashes(n *Node, hashesSet map[common.Hash]struct{}) {
 	}
 }
 
-// PutInDB inserts a value in the trie at the key given.
-// It writes the updated nodes from the changed node up to the root node
-// to the database in a batch operation.
-func (t *Trie) PutInDB(db chaindb.Database, key, value []byte) error {
-	t.Put(key, value)
-	return t.WriteDirty(db)
-}
-
-// DeleteFromDB deletes a value from the trie at the key given.
-// It writes the updated nodes from the changed node up to the root node
-// to the database in a batch operation.
-func (t *Trie) DeleteFromDB(db chaindb.Database, key []byte) error {
-	t.Delete(key)
-	return t.WriteDirty(db)
-}
-
-// ClearPrefixFromDB deletes all nodes with keys starting the given prefix
-// from the trie. It writes the updated nodes from the changed node up to
-// the root node to the database in a batch operation.
-// in a batch operation.
-func (t *Trie) ClearPrefixFromDB(db chaindb.Database, prefix []byte) error {
-	t.ClearPrefix(prefix)
-	return t.WriteDirty(db)
-}
-
 // GetFromDB retrieves a value at the given key from the trie using the database.
 // It recursively descends into the trie using the database starting
 // from the root node until it reaches the node with the given key.
