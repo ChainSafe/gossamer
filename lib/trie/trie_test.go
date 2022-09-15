@@ -2671,7 +2671,6 @@ func Test_Trie_deleteNodesLimit(t *testing.T) {
 	testCases := map[string]struct {
 		trie          Trie
 		parent        *Node
-		prefix        []byte
 		limit         uint32
 		newNode       *Node
 		valuesDeleted uint32
@@ -2806,8 +2805,7 @@ func Test_Trie_deleteNodesLimit(t *testing.T) {
 					{Key: []byte{3}, SubValue: []byte{1}},
 				}),
 			},
-			prefix: []byte{1, 2},
-			limit:  2,
+			limit: 2,
 			newNode: &Node{
 				Key:        []byte{3, 5, 3},
 				SubValue:   []byte{1},
@@ -2828,7 +2826,7 @@ func Test_Trie_deleteNodesLimit(t *testing.T) {
 			expectedTrie := *trie.DeepCopy()
 
 			newNode, valuesDeleted, nodesRemoved :=
-				trie.deleteNodesLimit(testCase.parent, testCase.prefix, testCase.limit)
+				trie.deleteNodesLimit(testCase.parent, testCase.limit)
 
 			assert.Equal(t, testCase.newNode, newNode)
 			assert.Equal(t, testCase.valuesDeleted, valuesDeleted)
