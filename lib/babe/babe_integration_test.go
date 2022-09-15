@@ -407,28 +407,11 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 		_ = babeServiceBob.Stop()
 	}()
 
+	// wait till bob creates a block
 	time.Sleep(babeServiceBob.constants.slotDuration * 5)
 
-	// create a block using bob
-	parentHash := babeServiceBob.blockState.GenesisHash()
-	parentHeader, err := babeServiceBob.blockState.GetHeader(parentHash)
+	block, err := babeServiceBob.blockState.BestBlock()
 	require.NoError(t, err)
-
-	rt, err := babeServiceBob.blockState.GetRuntime(&parentHash)
-	require.NoError(t, err)
-	time.Sleep(babeServiceBob.constants.slotDuration * 5)
-
-	epochNumber := babeServiceBob.epochHandler.epochNumber
-
-	epochData, err := babeServiceBob.initiateEpoch(epochNumber)
-	require.NoError(t, err)
-
-	slotNumber, err := babeServiceBob.blockState.GetSlotForBlock(parentHash)
-	require.NoError(t, err)
-
-	ext := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0, "System.remark", []byte{0xab, 0xcd})
-	block := createTestBlock(t, babeServiceBob, parentHeader, [][]byte{common.MustHexToBytes(ext)},
-		slotNumber+1, epochNumber, epochData)
 
 	err = babeServiceBob.Stop()
 	require.NoError(t, err)
