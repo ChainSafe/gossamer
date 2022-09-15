@@ -233,7 +233,13 @@ func TestChainSubscriptionRPC(t *testing.T) { //nolint:tparallel
 			assertResult32BHex(t, result, "parentHash")
 			assertResult32BHex(t, result, "stateRoot")
 			assertResult32BHex(t, result, "extrinsicsRoot")
-			assertResultDigest(t, result)
+
+			// genesis block does not contains any digest data
+			if number == uint(0) {
+				delete(result, "digest")
+			} else {
+				assertResultDigest(t, result)
+			}
 
 			remainingExpected := subscription.Params{
 				Result:         map[string]interface{}{},
@@ -245,7 +251,8 @@ func TestChainSubscriptionRPC(t *testing.T) { //nolint:tparallel
 		// Check block numbers grow by zero or one in order of responses.
 		for i, blockNumber := range blockNumbers {
 			if i == 0 {
-				assert.Equal(t, uint(1), blockNumber)
+				// the first finalized block could be block 0 as well
+				assert.GreaterOrEqual(t, uint(0), blockNumber)
 				continue
 			}
 			assert.GreaterOrEqual(t, blockNumber, blockNumbers[i-1])
