@@ -172,8 +172,7 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 	require.NotEmpty(t, pending)
 	require.Equal(t, extBytes, pending[0].Extrinsic)
 
-	const nonce = 110
-	invalidExtBytes := createExtrinsic(t, rt, common.Hash{1}, nonce)
+	invalidExtBytes := types.Extrinsic{byte(1)}
 	msg = &network.TransactionMessage{Extrinsics: []types.Extrinsic{invalidExtBytes}}
 	shouldPropagate, err = s.HandleTransactionMessage(peer1, msg)
 	require.Error(t, err)
