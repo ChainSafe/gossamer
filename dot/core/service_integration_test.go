@@ -554,6 +554,7 @@ func TestService_HandleSubmittedExtrinsic(t *testing.T) {
 	require.NoError(t, err)
 
 	extBytes := createExtrinsic(t, rt, genHeader.Hash(), 0)
+	fmt.Println(extBytes)
 
 	err = s.HandleSubmittedExtrinsic(extBytes)
 	require.NoError(t, err)

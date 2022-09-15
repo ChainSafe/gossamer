@@ -48,15 +48,15 @@ var testCalls = []struct {
 	{
 		call:     []byte(`{"jsonrpc":"2.0","method":"chain_subscribeFinalizedHeads","params":[],"id":5}`),
 		expected: []byte(`{"jsonrpc":"2.0","result":3,"id":5}` + "\n")},
+	//{
+	//	call: []byte(`{"jsonrpc":"2.0","method":"author_submitAndWatchExtrinsic","params":["0x010203"],"id":6}`),
+	//	expected: []byte(`{"jsonrpc":"2.0","error":{"code":null,` +
+	//		`"message":"running runtime function: Failed to call the ` +
+	//		"`" + `TaggedTransactionQueue_validate_transaction` + "`" +
+	//		` exported function."},"id":6}` + "\n")},
 	{
-		call: []byte(`{"jsonrpc":"2.0","method":"author_submitAndWatchExtrinsic","params":["0x010203"],"id":6}`),
-		expected: []byte(`{"jsonrpc":"2.0","error":{"code":null,` +
-			`"message":"running runtime function: Failed to call the ` +
-			"`" + `TaggedTransactionQueue_validate_transaction` + "`" +
-			` exported function."},"id":6}` + "\n")},
-	{
-		call:     []byte(`{"jsonrpc":"2.0","method":"state_subscribeRuntimeVersion","params":[],"id":7}`),
-		expected: []byte(`{"jsonrpc":"2.0","result":6,"id":7}` + "\n")},
+		call:     []byte(`{"jsonrpc":"2.0","method":"state_subscribeRuntimeVersion","params":[],"id":6}`),
+		expected: []byte(`{"jsonrpc":"2.0","result":5,"id":6}` + "\n")},
 }
 
 func TestHTTPServer_ServeHTTP(t *testing.T) {

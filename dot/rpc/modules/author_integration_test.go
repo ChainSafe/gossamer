@@ -218,6 +218,7 @@ func TestAuthorModule_SubmitExtrinsic_AlreadyInPool(t *testing.T) {
 	// creating an extrisinc to the System.remark call using a sample argument
 	extHex := runtime.NewTestExtrinsic(t,
 		integrationTestController.runtime, genesisHash, genesisHash, 0, "System.remark", []byte{})
+	fmt.Println(extHex)
 	extBytes := common.MustHexToBytes(extHex)
 
 	integrationTestController.storageState = &state.StorageState{}

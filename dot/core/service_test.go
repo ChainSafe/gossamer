@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -1090,6 +1091,7 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 	t.Parallel()
 	ext := types.Extrinsic{}
 	externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))
+	fmt.Println(ext)
 	execTest := func(t *testing.T, s *Service, ext types.Extrinsic, expErr error) {
 		err := s.HandleSubmittedExtrinsic(ext)
 		assert.ErrorIs(t, err, expErr)
