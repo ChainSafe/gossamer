@@ -77,26 +77,6 @@ type Config struct {
 // NewService returns a new core service that connects the runtime, BABE
 // session, and network service.
 func NewService(cfg *Config) (*Service, error) {
-	if cfg.Keystore == nil {
-		return nil, ErrNilKeystore
-	}
-
-	if cfg.BlockState == nil {
-		return nil, ErrNilBlockState
-	}
-
-	if cfg.StorageState == nil {
-		return nil, ErrNilStorageState
-	}
-
-	if cfg.Network == nil {
-		return nil, ErrNilNetwork
-	}
-
-	if cfg.CodeSubstitutedState == nil {
-		return nil, errNilCodeSubstitutedState
-	}
-
 	logger.Patch(log.SetLevel(cfg.LogLvl))
 
 	blockAddCh := make(chan *types.Block, 256)
@@ -137,10 +117,6 @@ func (s *Service) Stop() error {
 
 // StorageRoot returns the hash of the storage root
 func (s *Service) StorageRoot() (common.Hash, error) {
-	if s.storageState == nil {
-		return common.Hash{}, ErrNilStorageState
-	}
-
 	ts, err := s.storageState.TrieState(nil)
 	if err != nil {
 		return common.Hash{}, err
@@ -478,7 +454,7 @@ func (s *Service) GetRuntimeVersion(bhash *common.Hash) (
 	}
 
 	rt.SetContextStorage(ts)
-	return rt.Version()
+	return rt.Version(), nil
 }
 
 // HandleSubmittedExtrinsic is used to send a Transaction message containing a Extrinsic @ext

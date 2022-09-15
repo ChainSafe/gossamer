@@ -21,4 +21,5 @@ type Config struct {
 	Network     runtime.BasicNetwork
 	Transaction runtime.TransactionState
 	CodeHash    common.Hash
+	testVersion *runtime.Version
 }

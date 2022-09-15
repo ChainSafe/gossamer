@@ -108,7 +108,14 @@ func TestChainRPC(t *testing.T) {
 	}
 	block.Block.Header.Digest.Logs = nil
 	assert.Len(t, block.Block.Body, 1)
-	const bodyRegex = `^0x280403000b[0-9a-z]{8}8301$`
+	const bodyRegex = "^0x" +
+		"28" + // base 10
+		"04" + // not signed extrinsic of the 4th extrinsic version
+		"03" + // pallet index enum
+		"00" + // call index enum
+		// Extrinsic argument
+		"0b" + // 0b0000_1011 big int
+		"[0-9a-z]{12}$"
 	assert.Regexp(t, bodyRegex, block.Block.Body[0])
 	block.Block.Body = nil
 

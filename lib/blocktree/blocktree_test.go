@@ -60,7 +60,7 @@ func createTestBlockTree(t *testing.T, header *types.Header, number uint) (*Bloc
 
 	// branch tree randomly
 	branches := []testBranch{}
-	r := *rand.New(rand.NewSource(rand.Int63()))
+	r := rand.New(rand.NewSource(time.Now().UnixNano())) //skipcq: GSC-G404
 
 	at := int64(0)
 
@@ -418,14 +418,14 @@ func TestBlockTree_Prune(t *testing.T) {
 		}
 	}
 
-	copy := bt.DeepCopy()
+	blockTreeCopy := bt.DeepCopy()
 
 	// pick some block to finalise
 	finalised := bt.root.children[0].children[0].children[0]
 	pruned := bt.Prune(finalised.hash)
 
 	for _, prunedHash := range pruned {
-		prunedNode := copy.getNode(prunedHash)
+		prunedNode := blockTreeCopy.getNode(prunedHash)
 		if prunedNode.isDescendantOf(finalised) {
 			t.Fatal("pruned node that's descendant of finalised node!!")
 		}

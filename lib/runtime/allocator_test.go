@@ -13,26 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newMemoryMock(size uint32) *mockMemory {
-	m := new(mockMemory)
-	testobj := make([]byte, size)
-
-	m.On("Data").Return(testobj)
-	lengthcall := m.On("Length")
-	lengthcall.RunFn = func(args mock.Arguments) {
-		lengthcall.ReturnArguments = mock.Arguments{uint32(len(testobj))}
-	}
-
-	growcall := m.On("Grow", mock.Anything)
-	growcall.RunFn = func(args mock.Arguments) {
-		arg := args[0].(uint32)
-		testobj = append(testobj, make([]byte, PageSize*arg)...)
-		growcall.ReturnArguments = mock.Arguments{nil}
-	}
-
-	return m
-}
-
 // struct to hold data for a round of tests
 type testHolder struct {
 	offset uint32
@@ -278,7 +258,16 @@ var allTests = []testHolder{
 //  test holder
 func TestAllocator(t *testing.T) {
 	for _, test := range allTests {
-		memmock := newMemoryMock(1 << 16)
+		memmock := newMockMemory(t)
+		const size = 1 << 16
+		testobj := make([]byte, size)
+
+		memmock.On("Data").Return(testobj)
+		lengthcall := memmock.On("Length")
+		lengthcall.RunFn = func(args mock.Arguments) {
+			lengthcall.ReturnArguments = mock.Arguments{uint32(len(testobj))}
+		}
+
 		allocator := NewAllocator(memmock, test.offset)
 
 		for _, theTest := range test.tests {
@@ -324,7 +313,21 @@ func compareState(allocator FreeingBumpHeapAllocator, state allocatorState,
 
 // test that allocator should grow memory if the allocation request is larger than current size
 func TestShouldGrowMemory(t *testing.T) {
-	mem := newMemoryMock(1 << 16)
+	mem := newMockMemory(t)
+	const size = 1 << 16
+	testobj := make([]byte, size)
+	mem.On("Data").Return(testobj)
+	lengthcall := mem.On("Length")
+	lengthcall.RunFn = func(args mock.Arguments) {
+		lengthcall.ReturnArguments = mock.Arguments{uint32(len(testobj))}
+	}
+	growcall := mem.On("Grow", mock.Anything)
+	growcall.RunFn = func(args mock.Arguments) {
+		arg := args[0].(uint32)
+		testobj = append(testobj, make([]byte, PageSize*arg)...)
+		growcall.ReturnArguments = mock.Arguments{nil}
+	}
+
 	currentSize := mem.Length()
 
 	fbha := NewAllocator(mem, 0)
@@ -337,7 +340,21 @@ func TestShouldGrowMemory(t *testing.T) {
 
 // test that the allocator should grow memory if it's already full
 func TestShouldGrowMemoryIfFull(t *testing.T) {
-	mem := newMemoryMock(1 << 16)
+	mem := newMockMemory(t)
+	const size = 1 << 16
+	testobj := make([]byte, size)
+	mem.On("Data").Return(testobj)
+	lengthcall := mem.On("Length").Return(uint32(size))
+	lengthcall.RunFn = func(args mock.Arguments) {
+		lengthcall.ReturnArguments = mock.Arguments{uint32(len(testobj))}
+	}
+	growcall := mem.On("Grow", mock.Anything)
+	growcall.RunFn = func(args mock.Arguments) {
+		arg := args[0].(uint32)
+		testobj = append(testobj, make([]byte, PageSize*arg)...)
+		growcall.ReturnArguments = mock.Arguments{nil}
+	}
+
 	currentSize := mem.Length()
 	fbha := NewAllocator(mem, 0)
 
@@ -357,10 +374,13 @@ func TestShouldGrowMemoryIfFull(t *testing.T) {
 // test to confirm that allocator can allocate the MaxPossibleAllocation
 func TestShouldAllocateMaxPossibleAllocationSize(t *testing.T) {
 	// given, grow heap memory so that we have at least MaxPossibleAllocation available
-	mem := newMemoryMock(1 << 16)
-
-	pagesNeeded := (MaxPossibleAllocation / PageSize) - (mem.Length() / PageSize) + 1
-	mem = newMemoryMock(mem.Length() + pagesNeeded*65*1024)
+	const initialSize = 1 << 16
+	const pagesNeeded = (MaxPossibleAllocation / PageSize) - (initialSize / PageSize) + 1
+	mem := newMockMemory(t)
+	const size = initialSize + pagesNeeded*65*1024
+	testobj := make([]byte, size)
+	mem.On("Data").Return(testobj)
+	mem.On("Length").Return(uint32(size))
 
 	fbha := NewAllocator(mem, 0)
 
@@ -376,7 +396,10 @@ func TestShouldAllocateMaxPossibleAllocationSize(t *testing.T) {
 
 // test that allocator should not allocate memory if request is too large
 func TestShouldNotAllocateIfRequestSizeTooLarge(t *testing.T) {
-	fbha := NewAllocator(newMemoryMock(1<<16), 0)
+	memory := newMockMemory(t)
+	memory.On("Length").Return(uint32(1 << 16))
+
+	fbha := NewAllocator(memory, 0)
 
 	// when
 	_, err := fbha.Allocate(MaxPossibleAllocation + 1)
@@ -396,13 +419,8 @@ func TestShouldWriteU32CorrectlyIntoLe(t *testing.T) {
 	// NOTE: we used the go's binary.LittleEndianPutUint32 function
 	//  so this test isn't necessary, but is included for completeness
 
-	//given
 	heap := make([]byte, 5)
-
-	// when
 	binary.LittleEndian.PutUint32(heap, 1)
-
-	//then
 	if !reflect.DeepEqual(heap, []byte{1, 0, 0, 0, 0}) {
 		t.Error("Error Write U32 to LE")
 	}
@@ -413,13 +431,8 @@ func TestShouldWriteU32MaxCorrectlyIntoLe(t *testing.T) {
 	// NOTE: we used the go's binary.LittleEndianPutUint32 function
 	//  so this test isn't necessary, but is included for completeness
 
-	//given
 	heap := make([]byte, 5)
-
-	// when
 	binary.LittleEndian.PutUint32(heap, math.MaxUint32)
-
-	//then
 	if !reflect.DeepEqual(heap, []byte{255, 255, 255, 255, 0}) {
 		t.Error("Error Write U32 MAX to LE")
 	}
@@ -427,13 +440,8 @@ func TestShouldWriteU32MaxCorrectlyIntoLe(t *testing.T) {
 
 // test that getItemSizeFromIndex method gets expected item size from index
 func TestShouldGetItemFromIndex(t *testing.T) {
-	// given
 	index := uint(0)
-
-	// when
 	itemSize := getItemSizeFromIndex(index)
-
-	//then
 	if itemSize != 8 {
 		t.Error("item_size should be 8, got item_size:", itemSize)
 	}
@@ -442,13 +450,8 @@ func TestShouldGetItemFromIndex(t *testing.T) {
 // that that getItemSizeFromIndex method gets expected item size from index
 //  max index position
 func TestShouldGetMaxFromIndex(t *testing.T) {
-	// given
 	index := uint(21)
-
-	// when
 	itemSize := getItemSizeFromIndex(index)
-
-	//then
 	if itemSize != MaxPossibleAllocation {
 		t.Errorf("item_size should be %d, got item_size: %d", MaxPossibleAllocation, itemSize)
 	}

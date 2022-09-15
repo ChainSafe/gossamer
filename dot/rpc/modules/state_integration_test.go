@@ -491,7 +491,7 @@ func TestStateModule_GetKeysPaged(t *testing.T) {
 }
 
 func TestGetReadProof_WhenCoreAPIReturnsError(t *testing.T) {
-	coreAPIMock := new(mocks.CoreAPI)
+	coreAPIMock := mocks.NewCoreAPI(t)
 	coreAPIMock.
 		On("GetReadProofAt", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("[][]uint8")).
 		Return(common.Hash{}, nil, errors.New("mocked error"))
@@ -510,7 +510,7 @@ func TestGetReadProof_WhenReturnsProof(t *testing.T) {
 	expectedBlock := common.BytesToHash([]byte("random hash"))
 	mockedProof := [][]byte{[]byte("proof-1"), []byte("proof-2")}
 
-	coreAPIMock := new(mocks.CoreAPI)
+	coreAPIMock := mocks.NewCoreAPI(t)
 	coreAPIMock.
 		On("GetReadProofAt", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("[][]uint8")).
 		Return(expectedBlock, mockedProof, nil)

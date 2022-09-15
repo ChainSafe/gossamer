@@ -98,22 +98,6 @@ type Config struct {
 
 // NewService returns a new GRANDPA Service instance.
 func NewService(cfg *Config) (*Service, error) {
-	if cfg.BlockState == nil {
-		return nil, ErrNilBlockState
-	}
-
-	if cfg.GrandpaState == nil {
-		return nil, ErrNilGrandpaState
-	}
-
-	if cfg.Keypair == nil && cfg.Authority {
-		return nil, ErrNilKeypair
-	}
-
-	if cfg.Network == nil {
-		return nil, ErrNilNetwork
-	}
-
 	logger.Patch(log.SetLevel(cfg.LogLvl))
 
 	var pub string

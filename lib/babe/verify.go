@@ -44,21 +44,13 @@ type VerificationManager struct {
 }
 
 // NewVerificationManager returns a new NewVerificationManager
-func NewVerificationManager(blockState BlockState, epochState EpochState) (*VerificationManager, error) {
-	if blockState == nil {
-		return nil, ErrNilBlockState
-	}
-
-	if epochState == nil {
-		return nil, errNilEpochState
-	}
-
+func NewVerificationManager(blockState BlockState, epochState EpochState) *VerificationManager {
 	return &VerificationManager{
 		epochState: epochState,
 		blockState: blockState,
 		epochInfo:  make(map[uint64]*verifierInfo),
 		onDisabled: make(map[uint64]map[uint32][]*onDisabledInfo),
-	}, nil
+	}
 }
 
 // SetOnDisabled sets the BABE authority with the given index as disabled for the rest of the epoch
@@ -188,10 +180,7 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 
 	v.lock.Unlock()
 
-	verifier, err := newVerifier(v.blockState, epoch, info)
-	if err != nil {
-		return fmt.Errorf("failed to create new BABE verifier: %w", err)
-	}
+	verifier := newVerifier(v.blockState, epoch, info)
 
 	return verifier.verifyAuthorshipRight(header)
 }
@@ -231,11 +220,7 @@ type verifier struct {
 }
 
 // newVerifier returns a Verifier for the epoch described by the given descriptor
-func newVerifier(blockState BlockState, epoch uint64, info *verifierInfo) (*verifier, error) {
-	if blockState == nil {
-		return nil, ErrNilBlockState
-	}
-
+func newVerifier(blockState BlockState, epoch uint64, info *verifierInfo) *verifier {
 	return &verifier{
 		blockState:     blockState,
 		epoch:          epoch,
@@ -243,7 +228,7 @@ func newVerifier(blockState BlockState, epoch uint64, info *verifierInfo) (*veri
 		randomness:     info.randomness,
 		threshold:      info.threshold,
 		secondarySlots: info.secondarySlots,
-	}, nil
+	}
 }
 
 // verifyAuthorshipRight verifies that the authority that produced a block was authorized to produce it.
