@@ -32,11 +32,7 @@ func (s *Service) validateTransaction(peerID peer.ID, head *types.Header, rt Run
 	validity, err = rt.ValidateTransaction(externalExt)
 	if err != nil {
 		logger.Debugf("failed to validate transaction: %s", err)
-		txnValidityErr, ok := err.(*runtime.TransactionValidityError)
-		if !ok {
-			return nil, false, err
-		}
-		switch txnValidityErr.Value().(type) {
+		switch err.(type) {
 		case runtime.InvalidTransaction:
 			s.net.ReportPeer(peerset.ReputationChange{
 				Value:  peerset.BadTransactionValue,

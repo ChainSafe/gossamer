@@ -119,11 +119,8 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 	runtimeMock2 := NewMockRuntimeInstance(ctrl)
 	runtimeMock3 := NewMockRuntimeInstance(ctrl)
 
-	transactionValidityErr := runtime.NewTransactionValidityError()
 	invalidTransaction := runtime.NewInvalidTransaction()
 	err := invalidTransaction.Set(runtime.Future{})
-	require.NoError(t, err)
-	err = transactionValidityErr.Set(invalidTransaction)
 	require.NoError(t, err)
 
 	type args struct {
@@ -265,7 +262,7 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 				setContextStorage: &mockSetContextStorage{trieState: &storage.TrieState{}},
 				validateTxn: &mockValidateTxn{
 					input: types.Extrinsic(append([]byte{byte(types.TxnExternal)}, testExtrinsic[0]...)),
-					err:   transactionValidityErr,
+					err:   invalidTransaction,
 				},
 			},
 			args: args{
