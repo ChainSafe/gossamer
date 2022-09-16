@@ -206,7 +206,7 @@ func NewDisputeStatement() DisputeStatement {
 // CollatorID is the collator's relay-chain account ID
 type CollatorID []byte
 
-// CollatorSignature is signature on candidate's block data by a collator.
+// CollatorSignature is the signature on a candidate's block data signed by a collator.
 type CollatorSignature Signature
 
 //  ValidationCodeHash is the blake2-256 hash of the validation code bytes.
