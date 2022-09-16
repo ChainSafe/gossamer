@@ -93,29 +93,27 @@ func createTestService(t *testing.T, cfg ServiceConfig) *Service {
 	require.NoError(t, err)
 
 	var dbSrv *state.Service
-	if cfg.BlockState == nil || cfg.StorageState == nil || cfg.EpochState == nil {
-		config := state.Config{
-			Path:      testDatadirPath,
-			LogLevel:  log.Info,
-			Telemetry: telemetryMock,
-		}
-		dbSrv = state.NewService(config)
-		dbSrv.UseMemDB()
-
-		err = dbSrv.Initialise(gen, genHeader, genTrie)
-		require.NoError(t, err)
-
-		err = dbSrv.Start()
-		require.NoError(t, err)
-
-		t.Cleanup(func() {
-			_ = dbSrv.Stop()
-		})
-
-		cfg.BlockState = dbSrv.Block
-		cfg.StorageState = dbSrv.Storage
-		cfg.EpochState = dbSrv.Epoch
+	config := state.Config{
+		Path:      testDatadirPath,
+		LogLevel:  log.Info,
+		Telemetry: telemetryMock,
 	}
+	dbSrv = state.NewService(config)
+	dbSrv.UseMemDB()
+
+	err = dbSrv.Initialise(gen, genHeader, genTrie)
+	require.NoError(t, err)
+
+	err = dbSrv.Start()
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		_ = dbSrv.Stop()
+	})
+
+	cfg.BlockState = dbSrv.Block
+	cfg.StorageState = dbSrv.Storage
+	cfg.EpochState = dbSrv.Epoch
 
 	var rtCfg wasmer.Config
 	rtCfg.Storage = rtstorage.NewTrieState(genTrie)
@@ -195,7 +193,8 @@ func (m *MockNetwork) GossipMessage(arg0 network.NotificationsMessage) {
 // GossipMessage indicates an expected call of GossipMessage.
 func (mr *MockNetworkMockRecorder) GossipMessage(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GossipMessage", reflect.TypeOf((*MockNetwork)(nil).GossipMessage), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(
+		mr.mock, "GossipMessage", reflect.TypeOf((*MockNetwork)(nil).GossipMessage), arg0)
 }
 
 // IsSynced mocks base method.
@@ -209,7 +208,8 @@ func (m *MockNetwork) IsSynced() bool {
 // IsSynced indicates an expected call of IsSynced.
 func (mr *MockNetworkMockRecorder) IsSynced() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsSynced", reflect.TypeOf((*MockNetwork)(nil).IsSynced))
+	return mr.mock.ctrl.RecordCallWithMethodType(
+		mr.mock, "IsSynced", reflect.TypeOf((*MockNetwork)(nil).IsSynced))
 }
 
 // ReportPeer mocks base method.
@@ -221,7 +221,8 @@ func (m *MockNetwork) ReportPeer(arg0 peerset.ReputationChange, arg1 peer.ID) {
 // ReportPeer indicates an expected call of ReportPeer.
 func (mr *MockNetworkMockRecorder) ReportPeer(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReportPeer", reflect.TypeOf((*MockNetwork)(nil).ReportPeer), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(
+		mr.mock, "ReportPeer", reflect.TypeOf((*MockNetwork)(nil).ReportPeer), arg0, arg1)
 }
 
 func newTestServiceSetupParameters(t *testing.T) (*Service, *state.EpochState, *types.BabeConfiguration) {
@@ -282,15 +283,15 @@ func TestService_SlotDuration(t *testing.T) {
 }
 
 func TestService_ProducesBlocks(t *testing.T) {
-	blockImportHandler := mocks.NewBlockImportHandler(t)
-	blockImportHandler.
-		On("HandleBlockProduced",
-			mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState")).
-		Return(nil)
+	// blockImportHandler := mocks.NewBlockImportHandler(t)
+	// blockImportHandler.
+	// 	On("HandleBlockProduced",
+	// 		mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState")).
+	// 	Return(nil)
 	cfg := ServiceConfig{
-		Authority:          true,
-		Lead:               true,
-		BlockImportHandler: blockImportHandler,
+		Authority: true,
+		Lead:      true,
+		// BlockImportHandler: blockImportHandler,
 	}
 	babeService := createTestService(t, cfg)
 
@@ -342,8 +343,7 @@ func TestService_GetAuthorityIndex(t *testing.T) {
 }
 
 func TestStartAndStop(t *testing.T) {
-	serviceConfig := ServiceConfig{}
-	bs := createTestService(t, serviceConfig)
+	bs := createTestService(t, ServiceConfig{})
 	err := bs.Start()
 	require.NoError(t, err)
 	err = bs.Stop()
@@ -351,8 +351,7 @@ func TestStartAndStop(t *testing.T) {
 }
 
 func TestService_PauseAndResume(t *testing.T) {
-	serviceConfig := ServiceConfig{}
-	bs := createTestService(t, serviceConfig)
+	bs := createTestService(t, ServiceConfig{})
 	err := bs.Start()
 	require.NoError(t, err)
 	time.Sleep(time.Second)
