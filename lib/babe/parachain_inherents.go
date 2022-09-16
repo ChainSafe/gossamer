@@ -101,11 +101,11 @@ func (v *ValidDisputeStatementKind) Set(val scale.VaryingDataTypeValue) (err err
 	vdt := scale.VaryingDataType(*v)
 	err = vdt.Set(val)
 	if err != nil {
-		return
+		return fmt.Errorf("setting value to varying data type: %w", err)
 	}
 	// store original ParentVDT with VaryingDataType that has been set
 	*v = ValidDisputeStatementKind(vdt)
-	return
+	return nil
 }
 
 // Value will return value from underying VaryingDataType
