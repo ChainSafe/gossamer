@@ -15,6 +15,7 @@ import (
 )
 
 func TestCheckForEquivocation_NoEquivocation(t *testing.T) {
+	t.Parallel()
 	st := newTestState(t)
 	net := newTestNetwork(t)
 
@@ -44,6 +45,7 @@ func TestCheckForEquivocation_NoEquivocation(t *testing.T) {
 }
 
 func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
+	t.Parallel()
 	st := newTestState(t)
 	net := newTestNetwork(t)
 
@@ -84,6 +86,7 @@ func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
 }
 
 func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
+	t.Parallel()
 	st := newTestState(t)
 	net := newTestNetwork(t)
 
@@ -134,6 +137,7 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 }
 
 func TestValidateMessage_Valid(t *testing.T) {
+	t.Parallel()
 	st := newTestState(t)
 	net := newTestNetwork(t)
 
@@ -166,6 +170,7 @@ func TestValidateMessage_Valid(t *testing.T) {
 }
 
 func TestValidateMessage_InvalidSignature(t *testing.T) {
+	t.Parallel()
 	st := newTestState(t)
 	net := newTestNetwork(t)
 
@@ -200,6 +205,7 @@ func TestValidateMessage_InvalidSignature(t *testing.T) {
 }
 
 func TestValidateMessage_SetIDMismatch(t *testing.T) {
+	t.Parallel()
 	st := newTestState(t)
 	net := newTestNetwork(t)
 
@@ -232,6 +238,7 @@ func TestValidateMessage_SetIDMismatch(t *testing.T) {
 }
 
 func TestValidateMessage_Equivocation(t *testing.T) {
+	t.Parallel()
 	st := newTestState(t)
 	net := newTestNetwork(t)
 
@@ -275,6 +282,7 @@ func TestValidateMessage_Equivocation(t *testing.T) {
 }
 
 func TestValidateMessage_BlockDoesNotExist(t *testing.T) {
+	t.Parallel()
 	st := newTestState(t)
 	net := newTestNetwork(t)
 
@@ -310,6 +318,7 @@ func TestValidateMessage_BlockDoesNotExist(t *testing.T) {
 }
 
 func TestValidateMessage_IsNotDescendant(t *testing.T) {
+	t.Parallel()
 	st := newTestState(t)
 	net := newTestNetwork(t)
 

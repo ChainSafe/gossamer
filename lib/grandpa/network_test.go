@@ -15,6 +15,7 @@ import (
 )
 
 func TestGrandpaHandshake_Encode(t *testing.T) {
+	t.Parallel()
 	hs := &GrandpaHandshake{
 		Roles: 4,
 	}
@@ -34,6 +35,7 @@ func TestGrandpaHandshake_Encode(t *testing.T) {
 }
 
 func TestHandleNetworkMessage(t *testing.T) {
+	t.Parallel()
 	gs, st := newTestService(t)
 
 	just := []SignedVote{
@@ -79,6 +81,7 @@ func TestHandleNetworkMessage(t *testing.T) {
 }
 
 func TestSendNeighbourMessage(t *testing.T) {
+	t.Parallel()
 	gs, st := newTestService(t)
 	go gs.sendNeighbourMessage(time.Second)
 

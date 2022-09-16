@@ -89,6 +89,7 @@ func (*testNetwork) RegisterNotificationsProtocol(
 func (n *testNetwork) SendBlockReqestByHash(_ common.Hash) {}
 
 func setupGrandpa(t *testing.T, kp *ed25519.Keypair) *Service {
+	t.Helper()
 	st := newTestState(t)
 	net := newTestNetwork(t)
 
@@ -118,6 +119,7 @@ func setupGrandpa(t *testing.T, kp *ed25519.Keypair) *Service {
 }
 
 func TestGrandpa_DifferentChains(t *testing.T) {
+	t.Parallel()
 	// this asserts that all validators finalise the same block if they all see the
 	// same pre-votes and pre-commits, even if their chains are different lengths (+/-1 block)
 	kr, err := keystore.NewEd25519Keyring()
@@ -585,6 +587,7 @@ func TestPlayGrandpaRoundMultipleRounds(t *testing.T) {
 // assertChainGrowth ensure that each service reach the same finalisation result
 // and that the result belongs to the same chain as the previously finalized block
 func assertSameFinalizationAndChainGrowth(t *testing.T, services []*Service, currentRount, setID uint64) {
+	t.Helper()
 	finalizedHeaderCurrentRound := make([]*types.Header, len(services))
 	for idx, grandpaService := range services {
 		finalizedHeader, err := grandpaService.blockState.GetFinalisedHeader(

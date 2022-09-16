@@ -30,6 +30,7 @@ var testSignature = [64]byte{1, 2, 3, 4}
 var testAuthorityID = [32]byte{5, 6, 7, 8}
 
 func TestCommitMessageEncode(t *testing.T) {
+	t.Parallel()
 	exp := common.MustHexToBytes("0x4d0000000000000000000000000000007db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a00000000040a0b0c0d00000000000000000000000000000000000000000000000000000000e7030000040102030400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000088dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee") //nolint:lll
 
 	kr, err := keystore.NewEd25519Keyring()
@@ -68,6 +69,7 @@ func TestCommitMessageEncode(t *testing.T) {
 }
 
 func TestVoteMessageToConsensusMessage(t *testing.T) {
+	t.Parallel()
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
@@ -118,6 +120,7 @@ func TestVoteMessageToConsensusMessage(t *testing.T) {
 }
 
 func TestCommitMessageToConsensusMessage(t *testing.T) {
+	t.Parallel()
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
@@ -148,6 +151,7 @@ func TestCommitMessageToConsensusMessage(t *testing.T) {
 }
 
 func TestNewCatchUpResponse(t *testing.T) {
+	t.Parallel()
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
@@ -221,6 +225,7 @@ func TestNewCatchUpResponse(t *testing.T) {
 }
 
 func TestNeighbourMessageToConsensusMessage(t *testing.T) {
+	t.Parallel()
 	msg := &NeighbourPacketV1{
 		Round:  2,
 		SetID:  3,

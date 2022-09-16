@@ -40,6 +40,7 @@ func getMessageFromVotesTracker(votes votesTracker,
 }
 
 func TestMessageTracker_ValidateMessage(t *testing.T) {
+	t.Parallel()
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
@@ -67,6 +68,7 @@ func TestMessageTracker_ValidateMessage(t *testing.T) {
 }
 
 func TestMessageTracker_SendMessage(t *testing.T) {
+	t.Parallel()
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
@@ -123,6 +125,7 @@ func TestMessageTracker_SendMessage(t *testing.T) {
 }
 
 func TestMessageTracker_ProcessMessage(t *testing.T) {
+	t.Parallel()
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
@@ -179,6 +182,7 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 }
 
 func TestMessageTracker_MapInsideMap(t *testing.T) {
+	t.Parallel()
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
