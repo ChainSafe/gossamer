@@ -11,7 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-// signature could be one of Ed25519 signature, Sr25519 signature or ECDSA/SECP256k1 signature.
+// Signature could be one of Ed25519 signature, Sr25519 signature or ECDSA/SECP256k1 signature.
 type Signature [64]byte
 
 // ValidityAttestation is an implicit or explicit attestation to the validity of a parachain
@@ -31,7 +31,7 @@ func (validityAttestation *ValidityAttestation) Set(val scale.VaryingDataTypeVal
 	return nil
 }
 
-// Value will return value from underying VaryingDataType
+// Value returns the value from the underlying VaryingDataType
 func (validityAttestation *ValidityAttestation) Value() (val scale.VaryingDataTypeValue) {
 	vdt := scale.VaryingDataType(*validityAttestation)
 	return vdt.Value()
@@ -74,11 +74,11 @@ func (distputedStatement *DisputeStatement) Set(val scale.VaryingDataTypeValue) 
 	vdt := scale.VaryingDataType(*distputedStatement)
 	err = vdt.Set(val)
 	if err != nil {
-		return
+		return fmt.Errorf("setting value to varying data type: %w", err)
 	}
 	// store original ParentVDT with VaryingDataType that has been set
 	*distputedStatement = DisputeStatement(vdt)
-	return
+	return nil
 }
 
 // Value will return value from underying VaryingDataType
@@ -101,11 +101,11 @@ func (v *ValidDisputeStatementKind) Set(val scale.VaryingDataTypeValue) (err err
 	vdt := scale.VaryingDataType(*v)
 	err = vdt.Set(val)
 	if err != nil {
-		return
+		return fmt.Errorf("setting value to varying data type: %w", err)
 	}
 	// store original ParentVDT with VaryingDataType that has been set
 	*v = ValidDisputeStatementKind(vdt)
-	return
+	return nil
 }
 
 // Value will return value from underying VaryingDataType
@@ -160,11 +160,11 @@ func (in *InvalidDisputeStatementKind) Set(val scale.VaryingDataTypeValue) (err 
 	vdt := scale.VaryingDataType(*in)
 	err = vdt.Set(val)
 	if err != nil {
-		return
+		return fmt.Errorf("setting value to varying data type: %w", err)
 	}
 	// store original ParentVDT with VaryingDataType that has been set
 	*in = InvalidDisputeStatementKind(vdt)
-	return
+	return nil
 }
 
 // Value will return value from underying VaryingDataType
@@ -206,7 +206,7 @@ func NewDisputeStatement() DisputeStatement {
 // collatorID is the collator's relay-chain account ID
 type collatorID []byte
 
-// collatorSignature is signature on candidate's block data by a collator.
+// CollatorSignature is the signature on a candidate's block data signed by a collator.
 type collatorSignature Signature
 
 //  validationCodeHash is the blake2-256 hash of the validation code bytes.
