@@ -6,14 +6,10 @@
 package babe
 
 import (
-	"path/filepath"
-	reflect "reflect"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/core"
-	"github.com/ChainSafe/gossamer/dot/network"
-	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -25,10 +21,8 @@ import (
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/golang/mock/gomock"
-	"github.com/libp2p/go-libp2p-core/peer"
 
 	mock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -85,10 +79,6 @@ func createTestService(t *testing.T, cfg ServiceConfig) *Service {
 
 	cfg.Telemetry = telemetryMock
 
-	if cfg.TransactionState == nil {
-		cfg.TransactionState = state.NewTransactionState(telemetryMock)
-	}
-
 	testDatadirPath := t.TempDir()
 	require.NoError(t, err)
 
@@ -123,12 +113,7 @@ func createTestService(t *testing.T, cfg ServiceConfig) *Service {
 	require.NoError(t, err)
 
 	nodeStorage := runtime.NodeStorage{}
-	if dbSrv != nil {
-		nodeStorage.BaseDB = dbSrv.Base
-	} else {
-		nodeStorage.BaseDB, err = utils.SetupDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
-		require.NoError(t, err)
-	}
+	nodeStorage.BaseDB = dbSrv.Base
 
 	rtCfg.NodeStorage = nodeStorage
 	rt, err := wasmer.NewRuntimeFromGenesis(rtCfg)
@@ -140,7 +125,7 @@ func createTestService(t *testing.T, cfg ServiceConfig) *Service {
 	babeService, err := NewService(&cfg)
 	require.NoError(t, err)
 
-	mockNetwork := NewMockNetwork(ctrl)
+	mockNetwork := core.NewMockNetwork(ctrl)
 	mockNetwork.EXPECT().GossipMessage(gomock.Any()).AnyTimes()
 
 	coreConfig := core.Config{
@@ -158,71 +143,6 @@ func createTestService(t *testing.T, cfg ServiceConfig) *Service {
 	babeService.blockImportHandler = core.NewTestService(t, &coreConfig)
 
 	return babeService
-}
-
-// TODO for Kishan: move to a separate file or reuse it
-// MockNetwork is a mock of Network interface.
-type MockNetwork struct {
-	ctrl     *gomock.Controller
-	recorder *MockNetworkMockRecorder
-}
-
-// MockNetworkMockRecorder is the mock recorder for MockNetwork.
-type MockNetworkMockRecorder struct {
-	mock *MockNetwork
-}
-
-// NewMockNetwork creates a new mock instance.
-func NewMockNetwork(ctrl *gomock.Controller) *MockNetwork {
-	mock := &MockNetwork{ctrl: ctrl}
-	mock.recorder = &MockNetworkMockRecorder{mock}
-	return mock
-}
-
-// EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockNetwork) EXPECT() *MockNetworkMockRecorder {
-	return m.recorder
-}
-
-// GossipMessage mocks base method.
-func (m *MockNetwork) GossipMessage(arg0 network.NotificationsMessage) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "GossipMessage", arg0)
-}
-
-// GossipMessage indicates an expected call of GossipMessage.
-func (mr *MockNetworkMockRecorder) GossipMessage(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(
-		mr.mock, "GossipMessage", reflect.TypeOf((*MockNetwork)(nil).GossipMessage), arg0)
-}
-
-// IsSynced mocks base method.
-func (m *MockNetwork) IsSynced() bool {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IsSynced")
-	ret0, _ := ret[0].(bool)
-	return ret0
-}
-
-// IsSynced indicates an expected call of IsSynced.
-func (mr *MockNetworkMockRecorder) IsSynced() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(
-		mr.mock, "IsSynced", reflect.TypeOf((*MockNetwork)(nil).IsSynced))
-}
-
-// ReportPeer mocks base method.
-func (m *MockNetwork) ReportPeer(arg0 peerset.ReputationChange, arg1 peer.ID) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "ReportPeer", arg0, arg1)
-}
-
-// ReportPeer indicates an expected call of ReportPeer.
-func (mr *MockNetworkMockRecorder) ReportPeer(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(
-		mr.mock, "ReportPeer", reflect.TypeOf((*MockNetwork)(nil).ReportPeer), arg0, arg1)
 }
 
 func newTestServiceSetupParameters(t *testing.T) (*Service, *state.EpochState, *types.BabeConfiguration) {
