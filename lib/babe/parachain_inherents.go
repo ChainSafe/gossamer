@@ -4,6 +4,8 @@
 package babe
 
 import (
+	"fmt"
+
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -22,11 +24,11 @@ func (validityAttestation *ValidityAttestation) Set(val scale.VaryingDataTypeVal
 	vdt := scale.VaryingDataType(*validityAttestation)
 	err = vdt.Set(val)
 	if err != nil {
-		return
+		return fmt.Errorf("setting value to varying data type: %w", err)
 	}
 	// store original ParentVDT with VaryingDataType that has been set
 	*validityAttestation = ValidityAttestation(vdt)
-	return
+	return nil
 }
 
 // Value will return value from underying VaryingDataType
