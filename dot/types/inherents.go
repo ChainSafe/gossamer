@@ -6,7 +6,6 @@ package types
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"math/big"
 
@@ -50,7 +49,7 @@ func (d *InherentsData) String() string {
 // SetInt64Inherent set an inherent of type uint64
 func (d *InherentsData) SetInt64Inherent(key []byte, data uint64) error {
 	if len(key) != 8 {
-		return errors.New("inherent key must be 8 bytes")
+		panic(fmt.Sprintf("inherent key must be 8 bytes but is: %v", key))
 	}
 
 	val := make([]byte, 8)
@@ -71,7 +70,7 @@ func (d *InherentsData) SetInt64Inherent(key []byte, data uint64) error {
 // SetStructInherent sets a struct inherent.
 func (d *InherentsData) SetStructInherent(key []byte, value interface{}) error {
 	if len(key) != 8 {
-		return errors.New("inherent key must be 8 bytes")
+		panic(fmt.Sprintf("inherent key must be 8 bytes but is: %v", key))
 	}
 
 	data, err := scale.Marshal(value)
