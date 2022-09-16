@@ -335,7 +335,8 @@ func Test_decodeLeaf(t *testing.T) {
 			variant:          leafVariant.bits,
 			partialKeyLength: 1,
 			errWrapped:       ErrDecodeValue,
-			errMessage:       "cannot decode value: unknown prefix for compact uint: 255",
+			errMessage: "cannot decode value: unmarshalling []: decoding []byte: decoding length: decoding " +
+				"uint: unknown prefix for compact uint: 255",
 		},
 		"zero value": {
 			reader: bytes.NewBuffer([]byte{
