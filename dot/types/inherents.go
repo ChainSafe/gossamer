@@ -63,7 +63,7 @@ func (d *InherentsData) String() string {
 }
 
 // SetInherent sets a inherent.
-func (d *InherentsData) SetInherent(inherentIdentifier InherentIdentifier, value interface{}) error {
+func (d *InherentsData) SetInherent(inherentIdentifier InherentIdentifier, value any) error {
 	data, err := scale.Marshal(value)
 	if err != nil {
 		return err
