@@ -81,7 +81,7 @@ func (d *InherentsData) SetStructInherent(key []byte, value interface{}) error {
 
 	venc, err := scale.Marshal(data)
 	if err != nil {
-		return err
+		return fmt.Errorf("scale encoding encoded value: %w", err)
 	}
 
 	kb := [8]byte{}
