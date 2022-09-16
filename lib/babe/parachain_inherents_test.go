@@ -288,7 +288,6 @@ func TestParachainInherents(t *testing.T) {
 
 	actualInherentsBytes, err := idata.Encode()
 	require.NoError(t, err)
-	require.Equal(t, len(expectedInherentsBytes), len(actualInherentsBytes))
-	require.True(t, bytes.Equal(expectedInherentsBytes, actualInherentsBytes))
+	require.Equal(t, expectedInherentsBytes, actualInherentsBytes)
 
 }
