@@ -229,11 +229,12 @@ func (s *chainProcessor) handleBlock(block *types.Block) error {
 	if errors.Is(err, blocktree.ErrFailedToGetRuntime) {
 		rt, err = s.getRuntimeFromDB(&hash)
 		if err != nil {
-			return err
+			return fmt.Errorf("getting runtime from database: %w", err)
 		}
+		// ensure the runtime stops and releases resources since it was
+		// instantiated from disk just for this function call.
 		defer rt.Stop()
-	}
-	if err != nil && !errors.Is(err, blocktree.ErrFailedToGetRuntime) {
+	} else if err != nil {
 		return err
 	}
 

@@ -57,11 +57,10 @@ func (p *PaymentModule) QueryInfo(_ *http.Request, req *PaymentQueryInfoRequest,
 	if errors.Is(err, blocktree.ErrFailedToGetRuntime) {
 		r, err = p.getRuntimeFromDB(&hash)
 		if err != nil {
-			return err
+			return fmt.Errorf("getting runtime from database: %w", err)
 		}
 		defer r.Stop()
-	}
-	if err != nil && !errors.Is(err, blocktree.ErrFailedToGetRuntime) {
+	} else if err != nil {
 		return err
 	}
 	ext, err := common.HexToBytes(req.Ext)

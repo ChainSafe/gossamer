@@ -656,7 +656,7 @@ func (bs *BlockState) GetRuntime(hash *common.Hash) (runtime.Instance, error) {
 func (bs *BlockState) GetBestBlockRuntime() (instance runtime.Instance) {
 	instance, err := bs.bt.GetBlockRuntime(bs.BestBlockHash())
 	if err != nil {
-		logger.Errorf("error retrieving block runtime: %w", err)
+		panic(fmt.Sprintf("we should always succeed getting the best block runtime but an error orrurred: %s", err))
 	}
 	return
 }

@@ -38,13 +38,9 @@ type mockBestHeader struct {
 	err    error
 }
 
-type mockGetRuntime struct {
-	runtime RuntimeInstance
-}
-
 type mockBlockState struct {
 	bestHeader *mockBestHeader
-	getRuntime *mockGetRuntime
+	runtime    RuntimeInstance
 }
 
 type mockStorageState struct {
@@ -177,9 +173,7 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 				bestHeader: &mockBestHeader{
 					header: testEmptyHeader,
 				},
-				getRuntime: &mockGetRuntime{
-					runtime: runtimeMock,
-				},
+				runtime: runtimeMock,
 			},
 			args: args{
 				peerID: peer.ID("jimbo"),
@@ -195,9 +189,7 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 				bestHeader: &mockBestHeader{
 					header: testEmptyHeader,
 				},
-				getRuntime: &mockGetRuntime{
-					runtime: runtimeMock,
-				},
+				runtime: runtimeMock,
 			},
 			mockStorageState: &mockStorageState{
 				input: &common.Hash{},
@@ -229,9 +221,7 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 				bestHeader: &mockBestHeader{
 					header: testEmptyHeader,
 				},
-				getRuntime: &mockGetRuntime{
-					runtime: runtimeMock2,
-				},
+				runtime: runtimeMock2,
 			},
 			mockStorageState: &mockStorageState{
 				input:     &common.Hash{},
@@ -268,9 +258,7 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 				bestHeader: &mockBestHeader{
 					header: testEmptyHeader,
 				},
-				getRuntime: &mockGetRuntime{
-					runtime: runtimeMock3,
-				},
+				runtime: runtimeMock3,
 			},
 			mockStorageState: &mockStorageState{
 				input:     &common.Hash{},
@@ -315,13 +303,12 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 			}
 			if tt.mockBlockState != nil {
 				blockState := NewMockBlockState(ctrl)
-				blockState.EXPECT().BestBlockHeader().Return(
-					tt.mockBlockState.bestHeader.header,
-					tt.mockBlockState.bestHeader.err)
+				blockState.EXPECT().BestBlockHeader().
+					Return(tt.mockBlockState.bestHeader.header, tt.mockBlockState.bestHeader.err)
 
-				if tt.mockBlockState.getRuntime != nil {
-					blockState.EXPECT().GetBestBlockRuntime().Return(
-						tt.mockBlockState.getRuntime.runtime)
+				if tt.mockBlockState.runtime != nil {
+					blockState.EXPECT().GetBestBlockRuntime().
+						Return(tt.mockBlockState.runtime)
 				}
 				s.blockState = blockState
 			}
@@ -329,9 +316,8 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 				storageState := NewMockStorageState(ctrl)
 				storageState.EXPECT().Lock()
 				storageState.EXPECT().Unlock()
-				storageState.EXPECT().TrieState(tt.mockStorageState.input).Return(
-					tt.mockStorageState.trieState,
-					tt.mockStorageState.err)
+				storageState.EXPECT().TrieState(tt.mockStorageState.input).
+					Return(tt.mockStorageState.trieState, tt.mockStorageState.err)
 				s.storageState = storageState
 			}
 			if tt.mockTxnState != nil {

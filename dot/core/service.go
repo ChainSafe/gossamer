@@ -192,13 +192,14 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 
 	rt, err := s.blockState.GetRuntime(&block.Header.ParentHash)
 	if errors.Is(err, blocktree.ErrFailedToGetRuntime) {
-		rt, err = s.getRuntimeFromDB(&block.Header.ParentHash)
+		rt, err = s.getRuntimeFromDB(block.Header.ParentHash)
 		if err != nil {
-			return err
+			return fmt.Errorf("getting runtime from database: %w", err)
 		}
+		// ensure the runtime stops and releases resources since it was
+		// instantiated from disk just for this function call.
 		defer rt.Stop()
-	}
-	if err != nil && !errors.Is(err, blocktree.ErrFailedToGetRuntime) {
+	} else if err != nil {
 		return err
 	}
 
@@ -451,16 +452,15 @@ func (s *Service) GetRuntimeVersion(bhash *common.Hash) (
 
 	rt, err := s.blockState.GetRuntime(bhash)
 	if errors.Is(err, blocktree.ErrFailedToGetRuntime) {
-		rt, err = s.getRuntimeFromDB(bhash)
+		rt, err = s.getRuntimeFromDB(*bhash)
 		if err != nil {
-			return version, err
+			return version, fmt.Errorf("getting runtime from database: %w", err)
 		}
 		version = rt.Version()
 
 		rt.Stop()
 		return version, nil
-	}
-	if err != nil && !errors.Is(err, blocktree.ErrFailedToGetRuntime) {
+	} else if err != nil {
 		return version, err
 	}
 
@@ -531,18 +531,19 @@ func (s *Service) GetMetadata(bhash *common.Hash) ([]byte, error) {
 
 	rt, err := s.blockState.GetRuntime(bhash)
 	if errors.Is(err, blocktree.ErrFailedToGetRuntime) {
-		rt, err = s.getRuntimeFromDB(bhash)
+		rt, err = s.getRuntimeFromDB(*bhash)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("getting runtime from database: %w", err)
 		}
 		metadata, err := rt.Metadata()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("getting runtime metadata: %w", err)
 		}
-		rt.Stop()
+		// ensure the runtime stops and releases resources since it was
+		// instantiated from disk just for this function call.
+		defer rt.Stop()
 		return metadata, nil
-	}
-	if err != nil && !errors.Is(err, blocktree.ErrFailedToGetRuntime) {
+	} else if err != nil {
 		return nil, err
 	}
 
@@ -572,13 +573,11 @@ func (s *Service) GetReadProofAt(block common.Hash, keys [][]byte) (
 }
 
 // getRuntimeFromDB gets the runtime for the corresponding block hash from storageState
-func (s *Service) getRuntimeFromDB(blockHash *common.Hash) (instance runtime.Instance, err error) {
+func (s *Service) getRuntimeFromDB(blockHash common.Hash) (instance runtime.Instance, err error) {
 	var stateRootHash *common.Hash
-	if blockHash != nil {
-		stateRootHash, err = s.storageState.GetStateRootFromBlock(blockHash)
-		if err != nil {
-			return nil, fmt.Errorf("getting state root from block hash: %w", err)
-		}
+	stateRootHash, err = s.storageState.GetStateRootFromBlock(&blockHash)
+	if err != nil {
+		return nil, fmt.Errorf("getting state root from block hash: %w", err)
 	}
 
 	trieState, err := s.storageState.TrieState(stateRootHash)

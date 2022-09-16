@@ -12,7 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
@@ -30,7 +30,7 @@ type StorageAPI interface {
 	GetKeysWithPrefix(root *common.Hash, prefix []byte) ([][]byte, error)
 	RegisterStorageObserver(observer state.Observer)
 	UnregisterStorageObserver(observer state.Observer)
-	TrieState(root *common.Hash) (*rtstorage.TrieState, error)
+	TrieState(root *common.Hash) (*storage.TrieState, error)
 }
 
 //go:generate mockery --name BlockAPI --structname BlockAPI --case underscore --keeptree
