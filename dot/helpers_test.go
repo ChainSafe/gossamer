@@ -19,6 +19,8 @@ import (
 )
 
 func writeGenesisToTestJSON(t *testing.T, genesis genesis.Genesis) (filename string) {
+	t.Helper()
+
 	jsonData, err := json.Marshal(genesis)
 	require.NoError(t, err)
 	filename = filepath.Join(t.TempDir(), "genesis-test")

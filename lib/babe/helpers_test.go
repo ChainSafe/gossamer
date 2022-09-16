@@ -18,6 +18,7 @@ import (
 // newDevGenesisWithTrieAndHeader generates test dev genesis, genesis trie and genesis header
 func newDevGenesisWithTrieAndHeader(t *testing.T) (
 	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
+	t.Helper()
 	genesisPath := utils.GetDevV3SubstrateGenesisPath(t)
 
 	genesisPtr, err := genesis.NewGenesisFromJSONRaw(genesisPath)
