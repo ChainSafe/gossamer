@@ -32,7 +32,6 @@ func (validityAttestation *ValidityAttestation) Set(val scale.VaryingDataTypeVal
 // Value will return value from underying VaryingDataType
 func (validityAttestation *ValidityAttestation) Value() (val scale.VaryingDataTypeValue) {
 	vdt := scale.VaryingDataType(*validityAttestation)
-	// reflect.ValueOf(vdt).Field(1).String()
 	return vdt.Value()
 }
 
