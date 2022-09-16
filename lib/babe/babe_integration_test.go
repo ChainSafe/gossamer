@@ -24,7 +24,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/golang/mock/gomock"
 
-	mock "github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -104,6 +104,7 @@ func createTestService(t *testing.T, cfg ServiceConfig) *Service {
 	cfg.BlockState = dbSrv.Block
 	cfg.StorageState = dbSrv.Storage
 	cfg.EpochState = dbSrv.Epoch
+	cfg.TransactionState = dbSrv.Transaction
 
 	var rtCfg wasmer.Config
 	rtCfg.Storage = rtstorage.NewTrieState(genTrie)
@@ -125,22 +126,24 @@ func createTestService(t *testing.T, cfg ServiceConfig) *Service {
 	babeService, err := NewService(&cfg)
 	require.NoError(t, err)
 
-	mockNetwork := core.NewMockNetwork(ctrl)
-	mockNetwork.EXPECT().GossipMessage(gomock.Any()).AnyTimes()
+	if cfg.BlockImportHandler == nil {
+		mockNetwork := core.NewMockNetwork(ctrl)
+		mockNetwork.EXPECT().GossipMessage(gomock.Any()).AnyTimes()
 
-	coreConfig := core.Config{
-		BlockState:           dbSrv.Block,
-		EpochState:           dbSrv.Epoch,
-		StorageState:         storageState,
-		TransactionState:     dbSrv.Transaction,
-		Runtime:              rt,
-		Keystore:             rtCfg.Keystore,
-		Network:              mockNetwork,
-		CodeSubstitutedState: dbSrv.Base,
-		CodeSubstitutes:      make(map[common.Hash]string),
+		coreConfig := core.Config{
+			BlockState:           dbSrv.Block,
+			EpochState:           dbSrv.Epoch,
+			StorageState:         storageState,
+			TransactionState:     dbSrv.Transaction,
+			Runtime:              rt,
+			Keystore:             rtCfg.Keystore,
+			Network:              mockNetwork,
+			CodeSubstitutedState: dbSrv.Base,
+			CodeSubstitutes:      make(map[common.Hash]string),
+		}
+
+		babeService.blockImportHandler = core.NewTestService(t, &coreConfig)
 	}
-
-	babeService.blockImportHandler = core.NewTestService(t, &coreConfig)
 
 	return babeService
 }
@@ -203,15 +206,15 @@ func TestService_SlotDuration(t *testing.T) {
 }
 
 func TestService_ProducesBlocks(t *testing.T) {
-	// blockImportHandler := mocks.NewBlockImportHandler(t)
-	// blockImportHandler.
-	// 	On("HandleBlockProduced",
-	// 		mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState")).
-	// 	Return(nil)
+	blockImportHandler := mocks.NewBlockImportHandler(t)
+	blockImportHandler.
+		On("HandleBlockProduced",
+			mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState")).
+		Return(nil)
 	cfg := ServiceConfig{
-		Authority: true,
-		Lead:      true,
-		// BlockImportHandler: blockImportHandler,
+		Authority:          true,
+		Lead:               true,
+		BlockImportHandler: blockImportHandler,
 	}
 	babeService := createTestService(t, cfg)
 
