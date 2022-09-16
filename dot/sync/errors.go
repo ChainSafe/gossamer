@@ -5,7 +5,6 @@ package sync
 
 import (
 	"errors"
-	"fmt"
 )
 
 var (
@@ -40,8 +39,3 @@ var (
 	errStartAndEndMismatch          = errors.New("request start and end hash are not on the same chain")
 	errFailedToGetDescendant        = errors.New("failed to find descendant block")
 )
-
-// ErrNilChannel is returned if a channel is nil
-func ErrNilChannel(s string) error {
-	return fmt.Errorf("cannot have nil channel %s", s)
-}
