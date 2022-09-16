@@ -76,7 +76,7 @@ func (d *InherentsData) SetStructInherent(key []byte, value interface{}) error {
 
 	data, err := scale.Marshal(value)
 	if err != nil {
-		return err
+		return fmt.Errorf("scale encoding value: %w", err)
 	}
 
 	venc, err := scale.Marshal(data)
