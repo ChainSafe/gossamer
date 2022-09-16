@@ -105,7 +105,8 @@ func Test_Trie_WriteDirty_Delete(t *testing.T) {
 
 	deletedKeys := make(map[string]struct{}, len(keysToDelete))
 	for _, keyToDelete := range keysToDelete {
-		err = trie.DeleteFromDB(db, keyToDelete)
+		trie.Delete(keyToDelete)
+		err = trie.WriteDirty(db)
 		require.NoError(t, err)
 
 		deletedKeys[string(keyToDelete)] = struct{}{}
@@ -144,7 +145,8 @@ func Test_Trie_WriteDirty_ClearPrefix(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, keyToClearPrefix := range keysToClearPrefix {
-		err = trie.ClearPrefixFromDB(db, keyToClearPrefix)
+		trie.ClearPrefix(keyToClearPrefix)
+		err = trie.WriteDirty(db)
 		require.NoError(t, err)
 	}
 
