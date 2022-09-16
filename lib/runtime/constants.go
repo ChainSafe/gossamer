@@ -26,8 +26,8 @@ const (
 
 	// v0.9.17 polkadot runtime
 	POLKADOT_RUNTIME_v0917     = "polkadot_runtime-v917"
-	POLKADOT_RUNTIME_FP_v0917  = "polkadot_runtime-v9170.compact.compressed.wasm"
-	POLKADOT_RUNTIME_URL_v0917 = "https://github.com/paritytech/polkadot/releases/download/v0.9.17-rc4/polkadot_runtime-v9170.compact.compressed.wasm?raw=true" //nolint:lll
+	POLKADOT_RUNTIME_FP_v0917  = "polkadot_runtime-v917.compact.wasm"
+	POLKADOT_RUNTIME_URL_v0917 = "https://github.com/paritytech/polkadot/blob/c583355a599200d64e9202d05f47860d824b4dcf/target/release/wbuild/polkadot-runtime/polkadot_runtime.compact.wasm?raw=true" //nolint:lll
 
 	// v0.9.25 polkadot runtime
 	POLKADOT_RUNTIME_v0925     = "polkadot_runtime-v9250"

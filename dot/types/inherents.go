@@ -73,12 +73,7 @@ func (d *InherentsData) SetStructInherent(key []byte, value interface{}) error {
 		panic(fmt.Sprintf("inherent key must be 8 bytes but is: %v", key))
 	}
 
-	data, err := scale.Marshal(value)
-	if err != nil {
-		return fmt.Errorf("scale encoding value: %w", err)
-	}
-
-	venc, err := scale.Marshal(data)
+	venc, err := scale.Marshal(value)
 	if err != nil {
 		return fmt.Errorf("scale encoding encoded value: %w", err)
 	}
@@ -110,7 +105,12 @@ func (d *InherentsData) Encode() ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		_, err = buffer.Write(v)
+
+		venc, err := scale.Marshal(v)
+		if err != nil {
+			return nil, fmt.Errorf("scale encoding encoded value: %w", err)
+		}
+		_, err = buffer.Write(venc)
 		if err != nil {
 			return nil, err
 		}
