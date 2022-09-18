@@ -5,6 +5,7 @@ package types
 
 import (
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"io"
 
@@ -124,6 +125,19 @@ func AuthoritiesToRaw(auths []Authority) []AuthorityRaw {
 type AuthorityAsAddress struct {
 	Address common.Address
 	Weight  uint64
+}
+
+// Custom Unmarshal method for AuthorityAsAddress.
+func (a *AuthorityAsAddress) UnmarshalJSON(buf []byte) error {
+	tmp := []interface{}{&a.Address, &a.Weight}
+	wantLen := len(tmp)
+	if err := json.Unmarshal(buf, &tmp); err != nil {
+		return err
+	}
+	if newLen := len(tmp); newLen != wantLen {
+		return fmt.Errorf("wrong number of fields in AuthorityAsAddress: %d != %d", newLen, wantLen)
+	}
+	return nil
 }
 
 // AuthoritiesRawToAuthorityAsAddress converts an array of AuthorityRaws into an array of AuthorityAsAddress

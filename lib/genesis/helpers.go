@@ -90,19 +90,35 @@ func NewGenesisBlockFromTrie(t *trie.Trie) (*types.Header, error) {
 
 // trimGenesisAuthority iterates over authorities in genesis and keeps only `authCount` number of authorities.
 func trimGenesisAuthority(g *Genesis, authCount int) {
-	for k, authMap := range g.Genesis.Runtime {
-		if k != "Babe" && k != "Grandpa" {
+	const (
+		babeConst    = "Babe"
+		grandpaConst = "Grandpa"
+	)
+	runtimeRefObjVal := reflect.Indirect(reflect.ValueOf(g.Genesis.Runtime))
+
+	for i := 0; i < runtimeRefObjVal.NumField(); i++ {
+		k := runtimeRefObjVal.Type().Field(i).Name
+		var authorities []types.AuthorityAsAddress
+		var newAuthorities []types.AuthorityAsAddress
+
+		if k != babeConst && k != grandpaConst {
 			continue
 		}
-		authorities, _ := authMap["Authorities"].([]interface{})
-		var newAuthorities []interface{}
+
+		authorities = runtimeRefObjVal.Field(i).FieldByName("Authorities").Interface().([]types.AuthorityAsAddress)
+
 		for _, authority := range authorities {
 			if len(newAuthorities) >= authCount {
 				break
 			}
 			newAuthorities = append(newAuthorities, authority)
 		}
-		authMap["Authorities"] = newAuthorities
+
+		if k == babeConst {
+			g.Genesis.Runtime.Babe.Authorities = newAuthorities
+		} else if k == grandpaConst {
+			g.Genesis.Runtime.Grandpa.Authorities = newAuthorities
+		}
 	}
 }
 
@@ -119,7 +135,7 @@ func NewGenesisFromJSON(file string, authCount int) (*Genesis, error) {
 	}
 
 	grt := g.Genesis.Runtime
-	res, err := buildRawMap(grt)
+	res, err := buildRawMap(*grt)
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +176,7 @@ type keyValue struct {
 	iVal     []interface{}
 }
 
-func generatePalletKeyValue(k string, v map[string]interface{}, res map[string]string) (bool, error) {
+func generatePalletKeyValue(k string, v interface{}, res map[string]string) (bool, error) {
 	jsonBody, err := json.Marshal(v)
 	if err != nil {
 		return false, err
@@ -216,9 +232,13 @@ func generatePalletKeyValue(k string, v map[string]interface{}, res map[string]s
 	return true, nil
 }
 
-func buildRawMap(m map[string]map[string]interface{}) (map[string]string, error) {
+func buildRawMap(m Runtime) (map[string]string, error) {
 	res := make(map[string]string)
-	for k, v := range m {
+	mRefObjVal := reflect.ValueOf(m)
+
+	for i := 0; i < mRefObjVal.NumField(); i++ {
+		k := mRefObjVal.Type().Field(i).Name
+		v := mRefObjVal.Field(i).Interface()
 		kv := new(keyValue)
 		kv.key = append(kv.key, k)
 
@@ -259,8 +279,11 @@ func buildRawMap(m map[string]map[string]interface{}) (map[string]string, error)
 	return res, nil
 }
 
-func buildRawMapInterface(m map[string]interface{}, kv *keyValue) error {
-	for k, v := range m {
+func buildRawMapInterface(m interface{}, kv *keyValue) error {
+	mRefObjVal := reflect.ValueOf(m)
+	for i := 0; i < mRefObjVal.NumField(); i++ {
+		k := mRefObjVal.Type().Field(i).Name
+		v := mRefObjVal.Field(i).Interface()
 		kv.key = append(kv.key, k)
 		switch v2 := v.(type) {
 		case []interface{}:
@@ -623,14 +646,14 @@ func BuildFromMap(m map[string][]byte, gen *Genesis) error {
 		case "0x3a6772616e6470615f617574686f726974696573":
 			// handle :grandpa_authorities
 			//  slice value since it was encoded starting with 0x01
-			err := addAuthoritiesValues("grandpa", "authorities", crypto.Ed25519Type, v[1:], gen)
+			err := addAuthoritiesValues("grandpa", crypto.Ed25519Type, v[1:], gen)
 			if err != nil {
 				return err
 			}
 			addRawValue(key, v, gen)
 		case fmt.Sprintf("0x%x", runtime.BABEAuthoritiesKey()):
 			// handle Babe Authorities
-			err := addAuthoritiesValues("babe", "authorities", crypto.Sr25519Type, v, gen)
+			err := addAuthoritiesValues("babe", crypto.Sr25519Type, v, gen)
 			if err != nil {
 				return err
 			}
@@ -648,17 +671,10 @@ func addRawValue(key string, value []byte, gen *Genesis) {
 }
 
 func addCodeValue(value []byte, gen *Genesis) {
-	if gen.Genesis.Runtime["system"] == nil {
-		gen.Genesis.Runtime["system"] = make(map[string]interface{})
-	}
-	gen.Genesis.Runtime["system"]["code"] = common.BytesToHex(value)
+	gen.Genesis.Runtime.System.Code = common.BytesToHex(value)
 }
 
-func addAuthoritiesValues(k1, k2 string, kt crypto.KeyType, value []byte, gen *Genesis) error {
-	if gen.Genesis.Runtime[k1] == nil {
-		gen.Genesis.Runtime[k1] = make(map[string]interface{})
-	}
-
+func addAuthoritiesValues(k1 string, kt crypto.KeyType, value []byte, gen *Genesis) error {
 	var auths []types.AuthorityRaw
 	err := scale.Unmarshal(value, &auths)
 	if err != nil {
@@ -670,6 +686,10 @@ func addAuthoritiesValues(k1, k2 string, kt crypto.KeyType, value []byte, gen *G
 		return err
 	}
 
-	gen.Genesis.Runtime[k1][k2] = authAddrs
+	if k1 == "Babe" {
+		gen.Genesis.Runtime.Babe.Authorities = authAddrs
+	} else if k1 == "Grandpa" {
+		gen.Genesis.Runtime.Grandpa.Authorities = authAddrs
+	}
 	return nil
 }

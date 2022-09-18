@@ -6,10 +6,12 @@ package genesis
 import (
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"os"
 	"path/filepath"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -80,41 +82,39 @@ func TestNewGenesisFromJSON(t *testing.T) {
 
 	// create human readable test genesis
 	testGenesis := &Genesis{}
-	hrData := make(map[string]map[string]interface{})
-	hrData["System"] = map[string]interface{}{"code": "0xfoo"} // system code entry
-	hrData["Babe"] = make(map[string]interface{})
-	hrData["Babe"]["Authorities"] = []interface{}{"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", 1} // babe authority data
-	hrData["Grandpa"] = make(map[string]interface{})
-	hrData["Grandpa"]["Authorities"] = []interface{}{"5DFNv4Txc4b88qHqQ6GG4D646QcT4fN3jjS2G3r1PyZkfDut", 0} // grandpa authority data
-	hrData["Balances"] = make(map[string]interface{})
-	hrData["Balances"]["balances"] = []interface{}{"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", 1234234234} // balances
+	hrData := new(Runtime)
+	hrData.System = &System{Code: "0xfoo"} // system code entry
+	BabeAuth1 := types.AuthorityAsAddress{Address: "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", Weight: 1}
+	BabeAuth2 := types.AuthorityAsAddress{Address: "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", Weight: 1}
+	hrData.Babe.Authorities = []types.AuthorityAsAddress{BabeAuth1, BabeAuth2} // babe authority data
+	GrandpaAuth1 := types.AuthorityAsAddress{Address: "5DFNv4Txc4b88qHqQ6GG4D646QcT4fN3jjS2G3r1PyZkfDut", Weight: 0}
+	hrData.Grandpa.Authorities = []types.AuthorityAsAddress{GrandpaAuth1} // grandpa authority data
+	balConf1 := BalancesFields{"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", *big.NewInt(1234234234)}
+	hrData.Balances.Balances = append(hrData.Balances.Balances, balConf1) // balances
 	// Add test cases for new fields...
-	hrData["Society"] = make(map[string]interface{})
-	hrData["Society"] = map[string]interface{}{
-		"Pot":        0,
-		"MaxMembers": 999,
-		"Members": []interface{}{
+	hrData.Society = Society{
+		Pot:        0,
+		MaxMembers: 999,
+		Members: []string{
 			"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
 			"5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
 		}}
 
-	hrData["Staking"] = make(map[string]interface{})
-	hrData["Staking"] = map[string]interface{}{
-		"HistoryDepth":          84,
-		"ValidatorCount":        2,
-		"MinimumValidatorCount": 1,
-		"ForceEra":              "NotForcing",
-		"SlashRewardFraction":   100000000,
-		"Invulnerables": []interface{}{
+	hrData.Staking = Staking{
+		HistoryDepth:          84,
+		ValidatorCount:        2,
+		MinimumValidatorCount: 1,
+		ForceEra:              "NotForcing",
+		SlashRewardFraction:   100000000,
+		Invulnerables: []string{
 			"5GNJqTPyNqANBkUVMN1LPPrxXnFouWXoe2wNSmmEoLctxiZY",
 		},
-		"CanceledSlashPayout": 0,
+		CanceledSlashPayout: 0,
 	}
 
-	hrData["Session"] = make(map[string]interface{})
-	hrData["Session"] = map[string]interface{}{
-		"NextKeys": []interface{}{
-			[]interface{}{
+	hrData.Session = Session{
+		NextKeys: [][]interface{}{
+			{
 				"5GNJqTPyNqANBkUVMN1LPPrxXnFouWXoe2wNSmmEoLctxiZY",
 				"5GNJqTPyNqANBkUVMN1LPPrxXnFouWXoe2wNSmmEoLctxiZY",
 				map[string]interface{}{
@@ -127,142 +127,139 @@ func TestNewGenesisFromJSON(t *testing.T) {
 		},
 	}
 
-	hrData["Instance1Collective"] = make(map[string]interface{})
-	hrData["Instance1Collective"] = map[string]interface{}{
-		"Phantom": nil,
-		"Members": []interface{}{},
+	hrData.Instance1Collective = Instance1Collective{
+		Phantom: nil,
+		Members: []interface{}{},
 	}
-	hrData["Instance2Collective"] = make(map[string]interface{})
-	hrData["Instance2Collective"] = map[string]interface{}{
-		"Phantom": nil,
-		"Members": []interface{}{
+	hrData.Instance2Collective = Instance2Collective{
+		Phantom: nil,
+		Members: []string{
 			"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
 			"5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
 		},
 	}
 
-	hrData["Instance1Membership"] = make(map[string]interface{})
-	hrData["Instance1Membership"] = map[string]interface{}{
-		"Members": []interface{}{},
-		"Phantom": nil,
+	hrData.Instance1Membership = Instance1Membership{
+		Members: []interface{}{},
+		Phantom: nil,
 	}
 
-	hrData["Contracts"] = make(map[string]interface{})
-	hrData["Contracts"] = map[string]interface{}{
-		"CurrentSchedule": map[string]interface{}{
-			"version":        0,
-			"enable_println": true,
-			"limits": map[string]interface{}{
-				"event_topics":  4,
-				"stack_height":  512,
-				"globals":       256,
-				"parameters":    128,
-				"memory_pages":  16,
-				"table_size":    4096,
-				"br_table_size": 256,
-				"subject_len":   32,
-				"code_size":     524288,
+	// hrData["Contracts"] = make(map[string]interface{})
+	hrData.Contracts = Contracts{
+		CurrentSchedule: CurrentSchedule{
+			Version:       0,
+			EnablePrintln: true,
+			Limits: Limits{
+				EventTopics: 4,
+				StackHeight: 512,
+				Globals:     256,
+				Parameters:  128,
+				MemoryPages: 16,
+				TableSize:   4096,
+				BrTableSize: 256,
+				SubjectLen:  32,
+				CodeSize:    524288,
 			},
-			"instruction_weights": map[string]interface{}{
-				"i64const":                1557,
-				"i64load":                 158540,
-				"i64store":                229708,
-				"select":                  6302,
-				"if":                      7435,
-				"br":                      3350,
-				"br_if":                   6245,
-				"br_table":                11117,
-				"br_table_per_entry":      138,
-				"call":                    94453,
-				"call_indirect":           194301,
-				"call_indirect_per_param": 1934,
-				"local_get":               1604,
-				"local_set":               1902,
-				"local_tee":               1539,
-				"global_get":              6223,
-				"global_set":              10421,
-				"memory_current":          1937,
-				"memory_grow":             145165750,
-				"i64clz":                  2087,
-				"i64ctz":                  2137,
-				"i64popcnt":               2666,
-				"i64eqz":                  2031,
-				"i64extendsi32":           2134,
-				"i64extendui32":           2122,
-				"i32wrapi64":              2190,
-				"i64eq":                   2549,
-				"i64ne":                   2401,
-				"i64lts":                  2525,
-				"i64ltu":                  2721,
-				"i64gts":                  2460,
-				"i64gtu":                  2532,
-				"i64les":                  2449,
-				"i64leu":                  2405,
-				"i64ges":                  2590,
-				"i64geu":                  2578,
-				"i64add":                  2478,
-				"i64sub":                  2457,
-				"i64mul":                  2566,
-				"i64divs":                 8299,
-				"i64divu":                 7435,
-				"i64rems":                 8273,
-				"i64remu":                 7458,
-				"i64and":                  2452,
-				"i64or":                   2477,
-				"i64xor":                  2486,
-				"i64shl":                  2582,
-				"i64shrs":                 2662,
-				"i64shru":                 2557,
-				"i64rotl":                 2598,
-				"i64rotr":                 2628,
+			InstructionWeights: InstructionWeights{
+				I64Const:             1557,
+				I64Load:              158540,
+				I64Store:             229708,
+				Select:               6302,
+				If:                   7435,
+				Br:                   3350,
+				BrIf:                 6245,
+				BrTable:              11117,
+				BrTablePerEntry:      138,
+				Call:                 94453,
+				CallIndirect:         194301,
+				CallIndirectPerParam: 1934,
+				LocalGet:             1604,
+				LocalSet:             1902,
+				LocalTee:             1539,
+				GlobalGet:            6223,
+				GlobalSet:            10421,
+				MemoryCurrent:        1937,
+				MemoryGrow:           145165750,
+				I64Clz:               2087,
+				I64Ctz:               2137,
+				I64Popcnt:            2666,
+				I64Eqz:               2031,
+				I64Extendsi32:        2134,
+				I64Extendui32:        2122,
+				I32Wrapi64:           2190,
+				I64Eq:                2549,
+				I64Ne:                2401,
+				I64Lts:               2525,
+				I64Ltu:               2721,
+				I64Gts:               2460,
+				I64Gtu:               2532,
+				I64Les:               2449,
+				I64Leu:               2405,
+				I64Ges:               2590,
+				I64Geu:               2578,
+				I64Add:               2478,
+				I64Sub:               2457,
+				I64Mul:               2566,
+				I64Divs:              8299,
+				I64Divu:              7435,
+				I64Rems:              8273,
+				I64Remu:              7458,
+				I64And:               2452,
+				I64Or:                2477,
+				I64Xor:               2486,
+				I64Shl:               2582,
+				I64Shrs:              2662,
+				I64Shru:              2557,
+				I64Rotl:              2598,
+				I64Rotr:              2628,
 			},
-			"host_fn_weights": map[string]interface{}{
-				"caller":                      2759380,
-				"address":                     2738080,
-				"gas_left":                    2691730,
-				"balance":                     5813530,
-				"value_transferred":           2694330,
-				"minimum_balance":             2687200,
-				"tombstone_deposit":           2682800,
-				"rent_allowance":              6042350,
-				"block_number":                2671070,
-				"now":                         2688970,
-				"weight_to_fee":               5144000,
-				"gas":                         1341340,
-				"input":                       7486000,
-				"input_per_byte":              267,
-				"return":                      4566000,
-				"return_per_byte":             767,
-				"terminate":                   656188000,
-				"restore_to":                  831326000,
-				"restore_to_per_delta":        162477350,
-				"random":                      6611210,
-				"deposit_event":               9351480,
-				"deposit_event_per_topic":     130855350,
-				"deposit_event_per_byte":      2441,
-				"set_rent_allowance":          7078720,
-				"set_storage":                 300078730,
-				"set_storage_per_byte":        734,
-				"clear_storage":               147613550,
-				"get_storage":                 34731640,
-				"get_storage_per_byte":        1510,
-				"transfer":                    179679660,
-				"call":                        152650930,
-				"call_transfer_surcharge":     144660370,
-				"call_per_input_byte":         583,
-				"call_per_output_byte":        804,
-				"instantiate":                 585886230,
-				"instantiate_per_input_byte":  597,
-				"instantiate_per_output_byte": 821,
-				"instantiate_per_salt_byte":   2779,
-				"hash_sha2_256":               2523380,
-				"hash_sha2_256_per_byte":      4202,
-				"hash_keccak_256":             2660970,
-				"hash_keccak_256_per_byte":    3362,
-				"hash_blake2_256":             2399310,
-				"hash_blake2_256_per_byte":    1564,
-				"hash_blake2_128":             2392870,
-				"hash_blake2_128_per_byte":    1563,
+			HostFnWeights: HostFnWeights{
+				Caller:                   2759380,
+				Address:                  2738080,
+				GasLeft:                  2691730,
+				Balance:                  5813530,
+				ValueTransferred:         2694330,
+				MinimumBalance:           2687200,
+				TombstoneDeposit:         2682800,
+				RentAllowance:            6042350,
+				BlockNumber:              2671070,
+				Now:                      2688970,
+				WeightToFee:              5144000,
+				Gas:                      1341340,
+				Input:                    7486000,
+				InputPerByte:             267,
+				Return:                   4566000,
+				ReturnPerByte:            767,
+				Terminate:                656188000,
+				RestoreTo:                831326000,
+				RestoreToPerDelta:        162477350,
+				Random:                   6611210,
+				DepositEvent:             9351480,
+				DepositEventPerTopic:     130855350,
+				DepositEventPerByte:      2441,
+				SetRentAllowance:         7078720,
+				SetStorage:               300078730,
+				SetStoragePerByte:        734,
+				ClearStorage:             147613550,
+				GetStorage:               34731640,
+				GetStoragePerByte:        1510,
+				Transfer:                 179679660,
+				Call:                     152650930,
+				CallTransferSurcharge:    144660370,
+				CallPerInputByte:         583,
+				CallPerOutputByte:        804,
+				Instantiate:              585886230,
+				InstantiatePerInputByte:  597,
+				InstantiatePerOutputByte: 821,
+				InstantiatePerSaltByte:   2779,
+				HashSha2256:              2523380,
+				HashSha2256PerByte:       4202,
+				HashKeccak256:            2660970,
+				HashKeccak256PerByte:     3362,
+				HashBlake2256:            2399310,
+				HashBlake2256PerByte:     1564,
+				HashBlake2128:            2392870,
+				HashBlake2128PerByte:     1563,
 			},
 		},
 	}

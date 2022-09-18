@@ -92,7 +92,7 @@ func BuildFromDB(path string) (*BuildSpec, error) {
 		},
 	}
 	tmpGen.Genesis.Raw = make(map[string]map[string]string)
-	tmpGen.Genesis.Runtime = make(map[string]map[string]interface{})
+	tmpGen.Genesis.Runtime = new(genesis.Runtime)
 
 	config := state.Config{
 		Path:      path,

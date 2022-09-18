@@ -24,9 +24,9 @@ func TestBuildFromGenesis_Integration(t *testing.T) {
 
 	genesisFields := genesis.Fields{
 		Raw: map[string]map[string]string{},
-		Runtime: map[string]map[string]interface{}{
-			"System": {
-				"code": "mocktestcode",
+		Runtime: &genesis.Runtime{
+			System: &genesis.System{
+				Code: "mocktestcode",
 			},
 		},
 	}
@@ -132,5 +132,5 @@ func TestBuildFromDB_Integration(t *testing.T) {
 	err = json.Unmarshal(res, &jGen)
 	require.NoError(t, err)
 
-	require.Equal(t, expected.Genesis.Raw["top"][codeHex], jGen.Genesis.Runtime["system"]["code"])
+	require.Equal(t, expected.Genesis.Raw["top"][codeHex], jGen.Genesis.Runtime.System.Code)
 }

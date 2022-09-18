@@ -142,7 +142,7 @@ func TestBuildFromDB(t *testing.T) {
 				ProtocolID: "gssmr_test",
 				Genesis: genesis.Fields{
 					Raw:     map[string]map[string]string{},
-					Runtime: map[string]map[string]interface{}{},
+					Runtime: new(genesis.Runtime),
 				},
 			}}},
 		{name: "invalid db path", path: t.TempDir(),
@@ -159,7 +159,7 @@ func TestBuildFromDB(t *testing.T) {
 			}
 			if tt.want != nil {
 				got.genesis.Genesis.Raw = map[string]map[string]string{}
-				got.genesis.Genesis.Runtime = map[string]map[string]interface{}{}
+				got.genesis.Genesis.Runtime = new(genesis.Runtime)
 				assert.Equal(t, tt.want, got)
 			}
 		})
@@ -169,9 +169,9 @@ func TestBuildFromDB(t *testing.T) {
 func TestBuildFromGenesis(t *testing.T) {
 	genesisFields := genesis.Fields{
 		Raw: map[string]map[string]string{},
-		Runtime: map[string]map[string]interface{}{
-			"System": {
-				"code": "mocktestcode",
+		Runtime: &genesis.Runtime{
+			System: &genesis.System{
+				Code: "mocktestcode",
 			},
 		},
 	}
@@ -205,7 +205,11 @@ func TestBuildFromGenesis(t *testing.T) {
 					Raw: map[string]map[string]string{"top" +
 						"": {"0x26aa394eea5630e07c48ae0c9558cef7c21aab032aaa6e946ca50ad39ab66603": "0x01",
 						"0x3a636f6465": "mocktestcode"}},
-					Runtime: map[string]map[string]interface{}{"System": {"code": "mocktestcode"}},
+					Runtime: &genesis.Runtime{
+						System: &genesis.System{
+							Code: "mocktestcode",
+						},
+					},
 				},
 			}},
 		},
