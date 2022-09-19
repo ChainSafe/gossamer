@@ -155,7 +155,7 @@ func TestBuildFromDB(t *testing.T) {
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 			if tt.want != nil {
 				got.genesis.Genesis.Raw = map[string]map[string]string{}
