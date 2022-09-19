@@ -475,7 +475,8 @@ func (b *Service) handleSlot(epoch, slotNum uint64,
 		}
 
 		if bestBlockSlotNum > slotNum {
-			return errLaggingSlot
+			return fmt.Errorf("%w: best block slot number is %d and got slot number %d",
+				errLaggingSlot, bestBlockSlotNum, slotNum)
 		}
 
 		if bestBlockSlotNum == slotNum {
