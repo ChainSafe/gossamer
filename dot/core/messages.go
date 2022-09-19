@@ -15,7 +15,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-func (s *Service) validateTransaction(peerID peer.ID, head *types.Header, rt RuntimeInstance,
+func (s *Service) validateTransaction(head *types.Header, rt RuntimeInstance,
 	tx types.Extrinsic) (validity *transaction.Validity, err error) {
 	s.storageState.Lock()
 
@@ -73,7 +73,7 @@ func (s *Service) HandleTransactionMessage(peerID peer.ID, msg *network.Transact
 	allTxsAreValid := true
 	for _, tx := range txs {
 		isValidTxn := true
-		validity, err := s.validateTransaction(peerID, head, rt, tx)
+		validity, err := s.validateTransaction(head, rt, tx)
 		if err != nil {
 			switch err.(type) {
 			case runtime.InvalidTransaction:
