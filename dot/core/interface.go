@@ -84,6 +84,7 @@ type StorageState interface {
 	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
 	GetStorage(root *common.Hash, key []byte) ([]byte, error)
 	GenerateTrieProof(stateRoot common.Hash, keys [][]byte) ([][]byte, error)
+	GetRuntimeFromDB(blockHash common.Hash) (instance runtime.Instance, err error)
 	sync.Locker
 }
 

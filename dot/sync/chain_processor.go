@@ -11,11 +11,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 )
 
 // ChainProcessor processes ready blocks.
@@ -227,7 +223,7 @@ func (s *chainProcessor) handleBlock(block *types.Block) error {
 	hash := parent.Hash()
 	rt, err := s.blockState.GetRuntime(&hash)
 	if errors.Is(err, blocktree.ErrFailedToGetRuntime) {
-		rt, err = s.getRuntimeFromDB(&hash)
+		rt, err = s.storageState.GetRuntimeFromDB(hash)
 		if err != nil {
 			return fmt.Errorf("getting runtime from database: %w", err)
 		}
@@ -280,29 +276,29 @@ func (s *chainProcessor) handleJustification(header *types.Header, justification
 	return nil
 }
 
-// getRuntimeFromDB gets the runtime for the corresponding block hash from storageState
-func (s *chainProcessor) getRuntimeFromDB(blockHash *common.Hash) (instance runtime.Instance, err error) {
-	var stateRootHash *common.Hash
-	if blockHash != nil {
-		stateRootHash, err = s.storageState.GetStateRootFromBlock(blockHash)
-		if err != nil {
-			return nil, fmt.Errorf("getting state root from block hash: %w", err)
-		}
-	}
-
-	trieState, err := s.storageState.TrieState(stateRootHash)
-	if err != nil {
-		return nil, fmt.Errorf("getting trie state: %w", err)
-	}
-
-	code := trieState.LoadCode()
-	config := wasmer.Config{
-		LogLvl: log.DoNotChange,
-	}
-	instance, err = wasmer.NewInstance(code, config)
-	if err != nil {
-		return nil, fmt.Errorf("creating runtime instance: %w", err)
-	}
-
-	return instance, nil
-}
+//// getRuntimeFromDB gets the runtime for the corresponding block hash from storageState
+//func (s *chainProcessor) getRuntimeFromDB(blockHash *common.Hash) (instance runtime.Instance, err error) {
+//	var stateRootHash *common.Hash
+//	if blockHash != nil {
+//		stateRootHash, err = s.storageState.GetStateRootFromBlock(blockHash)
+//		if err != nil {
+//			return nil, fmt.Errorf("getting state root from block hash: %w", err)
+//		}
+//	}
+//
+//	trieState, err := s.storageState.TrieState(stateRootHash)
+//	if err != nil {
+//		return nil, fmt.Errorf("getting trie state: %w", err)
+//	}
+//
+//	code := trieState.LoadCode()
+//	config := wasmer.Config{
+//		LogLvl: log.DoNotChange,
+//	}
+//	instance, err = wasmer.NewInstance(code, config)
+//	if err != nil {
+//		return nil, fmt.Errorf("creating runtime instance: %w", err)
+//	}
+//
+//	return instance, nil
+//}

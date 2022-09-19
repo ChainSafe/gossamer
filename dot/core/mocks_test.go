@@ -423,6 +423,21 @@ func (mr *MockStorageStateMockRecorder) GenerateTrieProof(arg0, arg1 interface{}
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateTrieProof", reflect.TypeOf((*MockStorageState)(nil).GenerateTrieProof), arg0, arg1)
 }
 
+// GetRuntimeFromDB mocks base method.
+func (m *MockStorageState) GetRuntimeFromDB(arg0 common.Hash) (runtime.Instance, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRuntimeFromDB", arg0)
+	ret0, _ := ret[0].(runtime.Instance)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetRuntimeFromDB indicates an expected call of GetRuntimeFromDB.
+func (mr *MockStorageStateMockRecorder) GetRuntimeFromDB(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRuntimeFromDB", reflect.TypeOf((*MockStorageState)(nil).GetRuntimeFromDB), arg0)
+}
+
 // GetStateRootFromBlock mocks base method.
 func (m *MockStorageState) GetStateRootFromBlock(arg0 *common.Hash) (*common.Hash, error) {
 	m.ctrl.T.Helper()

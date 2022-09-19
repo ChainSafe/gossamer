@@ -11,8 +11,11 @@ import (
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/trie/proof"
 )
@@ -304,4 +307,29 @@ func (s *StorageState) LoadCodeHash(hash *common.Hash) (common.Hash, error) {
 func (s *StorageState) GenerateTrieProof(stateRoot common.Hash, keys [][]byte) (
 	encodedProofNodes [][]byte, err error) {
 	return proof.Generate(stateRoot[:], keys, s.db)
+}
+
+// GetRuntimeFromDB gets the runtime for the corresponding block hash from storageState
+func (s *StorageState) GetRuntimeFromDB(blockHash common.Hash) (instance runtime.Instance, err error) {
+	var stateRootHash *common.Hash
+	stateRootHash, err = s.GetStateRootFromBlock(&blockHash)
+	if err != nil {
+		return nil, fmt.Errorf("getting state root from block hash: %w", err)
+	}
+
+	trieState, err := s.TrieState(stateRootHash)
+	if err != nil {
+		return nil, fmt.Errorf("getting trie state: %w", err)
+	}
+
+	code := trieState.LoadCode()
+	config := wasmer.Config{
+		LogLvl: log.DoNotChange,
+	}
+	instance, err = wasmer.NewInstance(code, config)
+	if err != nil {
+		return nil, fmt.Errorf("creating runtime instance: %w", err)
+	}
+
+	return instance, nil
 }

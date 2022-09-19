@@ -192,7 +192,7 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 
 	rt, err := s.blockState.GetRuntime(&block.Header.ParentHash)
 	if errors.Is(err, blocktree.ErrFailedToGetRuntime) {
-		rt, err = s.getRuntimeFromDB(block.Header.ParentHash)
+		rt, err = s.storageState.GetRuntimeFromDB(block.Header.ParentHash)
 		if err != nil {
 			return fmt.Errorf("getting runtime from database: %w", err)
 		}
@@ -452,7 +452,7 @@ func (s *Service) GetRuntimeVersion(bhash *common.Hash) (
 
 	rt, err := s.blockState.GetRuntime(bhash)
 	if errors.Is(err, blocktree.ErrFailedToGetRuntime) {
-		rt, err = s.getRuntimeFromDB(*bhash)
+		rt, err = s.storageState.GetRuntimeFromDB(*bhash)
 		if err != nil {
 			return version, fmt.Errorf("getting runtime from database: %w", err)
 		}
@@ -531,7 +531,7 @@ func (s *Service) GetMetadata(bhash *common.Hash) ([]byte, error) {
 
 	rt, err := s.blockState.GetRuntime(bhash)
 	if errors.Is(err, blocktree.ErrFailedToGetRuntime) {
-		rt, err = s.getRuntimeFromDB(*bhash)
+		rt, err = s.storageState.GetRuntimeFromDB(*bhash)
 		if err != nil {
 			return nil, fmt.Errorf("getting runtime from database: %w", err)
 		}
@@ -570,29 +570,4 @@ func (s *Service) GetReadProofAt(block common.Hash, keys [][]byte) (
 	}
 
 	return block, proofForKeys, nil
-}
-
-// getRuntimeFromDB gets the runtime for the corresponding block hash from storageState
-func (s *Service) getRuntimeFromDB(blockHash common.Hash) (instance runtime.Instance, err error) {
-	var stateRootHash *common.Hash
-	stateRootHash, err = s.storageState.GetStateRootFromBlock(&blockHash)
-	if err != nil {
-		return nil, fmt.Errorf("getting state root from block hash: %w", err)
-	}
-
-	trieState, err := s.storageState.TrieState(stateRootHash)
-	if err != nil {
-		return nil, fmt.Errorf("getting trie state: %w", err)
-	}
-
-	code := trieState.LoadCode()
-	config := wasmer.Config{
-		LogLvl: log.DoNotChange,
-	}
-	instance, err = wasmer.NewInstance(code, config)
-	if err != nil {
-		return nil, fmt.Errorf("creating runtime instance: %w", err)
-	}
-
-	return instance, nil
 }
