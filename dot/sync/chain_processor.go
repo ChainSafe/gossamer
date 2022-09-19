@@ -176,9 +176,9 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 			Body:   *bd.Body,
 		}
 
-		if err := s.handleBlock(block); err != nil {
-			logger.Debugf("failed to handle block number %d: %s", block.Header.Number, err)
-			return err
+		err = s.handleBlock(block)
+		if err != nil {
+			return fmt.Errorf("handling block: %w", err)
 		}
 
 		logger.Debugf("block with hash %s processed", bd.Hash)
@@ -193,7 +193,7 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 	}
 
 	if err := s.blockState.CompareAndSetBlockData(bd); err != nil {
-		return fmt.Errorf("failed to compare and set data: %w", err)
+		return fmt.Errorf("comparing and setting block data: %w", err)
 	}
 
 	return nil
@@ -226,7 +226,7 @@ func (s *chainProcessor) handleBlock(block *types.Block) error {
 
 	ts, err := s.storageState.TrieState(&parent.StateRoot, stateVersion)
 	if err != nil {
-		return err
+		return fmt.Errorf("trie state: %w", err)
 	}
 
 	// TODO shall we remove this? Both are coming from the internal state
