@@ -48,13 +48,14 @@ func (i InvalidTransaction) Error() string {
 }
 
 // NewInvalidTransaction is constructor for InvalidTransaction
-func NewInvalidTransaction() InvalidTransaction {
+func NewInvalidTransaction() *InvalidTransaction {
 	vdt, err := scale.NewVaryingDataType(Call{}, Payment{}, Future{}, Stale{}, BadProof{}, AncientBirthBlock{},
 		ExhaustsResources{}, InvalidCustom(0), BadMandatory{}, MandatoryDispatch{})
 	if err != nil {
 		panic(err)
 	}
-	return InvalidTransaction(vdt)
+	invalidTxnVdr := InvalidTransaction(vdt)
+	return &invalidTxnVdr
 }
 
 // Call The call of the transaction is not expected
@@ -140,7 +141,7 @@ type InvalidCustom uint8
 // Index returns the VDT index
 func (InvalidCustom) Index() uint { return 7 }
 
-// Error returns the error message associated with the Call
+// Error returns the error message associated with the InvalidCustom
 func (i InvalidCustom) Error() string {
 	return newUnknownError(i).Error()
 }

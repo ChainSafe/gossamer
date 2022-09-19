@@ -230,7 +230,7 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 				},
 			},
 			expErr: errDummyErr,
-			expErrMsg: "failed validating transaction for peerID D1KeRhQ: cannot get trie state from storage" +
+			expErrMsg: "validating transaction from peerID D1KeRhQ: cannot get trie state from storage" +
 				" for root 0x0000000000000000000000000000000000000000000000000000000000000000: dummy error for testing",
 		},
 		{
@@ -262,7 +262,7 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 				setContextStorage: &mockSetContextStorage{trieState: &storage.TrieState{}},
 				validateTxn: &mockValidateTxn{
 					input: types.Extrinsic(append([]byte{byte(types.TxnExternal)}, testExtrinsic[0]...)),
-					err:   invalidTransaction,
+					err:   *invalidTransaction,
 				},
 			},
 			args: args{

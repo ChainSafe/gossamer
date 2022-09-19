@@ -9,7 +9,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-// UnknownTransaction is child VDT of TransactionValidityError
+// UnknownTransaction is the child VDT of TransactionValidityError
 type UnknownTransaction scale.VaryingDataType
 
 // Index returns the VDT index
@@ -28,7 +28,7 @@ func (u *UnknownTransaction) Set(val scale.VaryingDataTypeValue) (err error) {
 	return nil
 }
 
-// Value will return value from underying VaryingDataType
+// Value will return value from the underying VaryingDataType
 func (u *UnknownTransaction) Value() (val scale.VaryingDataTypeValue) {
 	vdt := scale.VaryingDataType(*u)
 	return vdt.Value()

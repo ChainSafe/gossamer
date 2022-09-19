@@ -50,7 +50,7 @@ func (tve TransactionValidityError) Error() string {
 
 // NewTransactionValidityError is constructor for TransactionValidityError
 func NewTransactionValidityError() *TransactionValidityError {
-	vdt, err := scale.NewVaryingDataType(NewInvalidTransaction(), NewUnknownTransaction())
+	vdt, err := scale.NewVaryingDataType(*NewInvalidTransaction(), NewUnknownTransaction())
 	if err != nil {
 		panic(err)
 	}
@@ -66,28 +66,28 @@ func UnmarshalTransactionValidity(res []byte) (*transaction.Validity, error) {
 	txnValidityResult := scale.NewResult(validTxn, *txnValidityErrResult)
 	err := scale.Unmarshal(res, &txnValidityResult)
 	if err != nil {
-		return nil, fmt.Errorf("scale decoding transaction validity result: %w", err)
+		return nil, fmt.Errorf("scale decoding transaction validity result: %s", err)
 	}
 	txnValidityRes, err := txnValidityResult.Unwrap()
 	if err != nil {
 		scaleWrappedErr, ok := err.(scale.WrappedErr)
-		if ok {
-			txnValidityErr, ok := scaleWrappedErr.Err.(TransactionValidityError)
-			if !ok {
-				return nil, fmt.Errorf("%w: %T", errors.New("invalid type cast"), scaleWrappedErr.Err)
-			}
-
-			switch val := txnValidityErr.Value().(type) {
-			// TODO use custom result issue #2780
-			case InvalidTransaction:
-				return nil, val
-			case UnknownTransaction:
-				return nil, val
-			default:
-				return nil, fmt.Errorf("unsupported transaction validity error: %T", txnValidityErr.Value())
-			}
+		if !ok {
+			return nil, fmt.Errorf("unwrapping transaction validity result: %s", err)
 		}
-		return nil, fmt.Errorf("%w: %T", errors.New("invalid error value"), err)
+		txnValidityErr, ok := scaleWrappedErr.Err.(TransactionValidityError)
+		if !ok {
+			return nil, fmt.Errorf("%w: %T", errors.New("invalid type cast"), scaleWrappedErr.Err)
+		}
+
+		switch val := txnValidityErr.Value().(type) {
+		// TODO use custom result issue #2780
+		case InvalidTransaction:
+			return nil, val
+		case UnknownTransaction:
+			return nil, val
+		default:
+			return nil, fmt.Errorf("unsupported transaction validity error: %T", txnValidityErr.Value())
+		}
 	}
 	validity, ok := txnValidityRes.(transaction.Validity)
 	if !ok {

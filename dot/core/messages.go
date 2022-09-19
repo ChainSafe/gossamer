@@ -70,34 +70,32 @@ func (s *Service) HandleTransactionMessage(peerID peer.ID, msg *network.Transact
 		return false, err
 	}
 
-	allTxsAreValid := true
+	allTxnsAreValid := true
 	for _, tx := range txs {
-		isValidTxn := true
+		txnIsValid := true
 		validity, err := s.validateTransaction(head, rt, tx)
 		if err != nil {
+			txnIsValid = false
+			allTxnsAreValid = false
 			switch err.(type) {
 			case runtime.InvalidTransaction:
-				isValidTxn = false
-				allTxsAreValid = false
 				s.net.ReportPeer(peerset.ReputationChange{
 					Value:  peerset.BadTransactionValue,
 					Reason: peerset.BadTransactionReason,
 				}, peerID)
 			case runtime.UnknownTransaction:
-				isValidTxn = false
-				allTxsAreValid = false
 			default:
-				return false, fmt.Errorf("failed validating transaction for peerID %s: %w", peerID, err)
+				return false, fmt.Errorf("validating transaction from peerID %s: %w", peerID, err)
 			}
 		}
 
-		if isValidTxn && validity.Propagate {
+		if txnIsValid && validity.Propagate {
 			// find tx(s) that should propagate
 			toPropagate = append(toPropagate, tx)
 		}
 	}
 
-	if allTxsAreValid {
+	if allTxnsAreValid {
 		s.net.ReportPeer(peerset.ReputationChange{
 			Value:  peerset.GoodTransactionValue,
 			Reason: peerset.GoodTransactionReason,

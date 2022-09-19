@@ -4,25 +4,70 @@
 package runtime
 
 import (
-	"errors"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/stretchr/testify/require"
 )
 
-func Test_ErrorsAs_Function(t *testing.T) {
-	transactionValidityErr := NewTransactionValidityError()
-	unknownTransaction := NewUnknownTransaction()
-	err := unknownTransaction.Set(NoUnsignedValidator{})
-	require.NoError(t, err)
-	err = transactionValidityErr.Set(unknownTransaction)
-	require.NoError(t, err)
+func Test_UnmarshalTransactionValidity(t *testing.T) {
+	t.Parallel()
 
-	var txnValErr *TransactionValidityError
-	isTxnValErr := errors.As(transactionValidityErr, &txnValErr)
-	require.True(t, isTxnValErr)
+	txtValidity := transaction.Validity{Priority: 1}
+	txnValidityResult := scale.NewResult(transaction.Validity{}, NewTransactionValidityError())
+	err := txnValidityResult.Set(scale.OK, txtValidity)
+	require.NoError(t, err)
+	encResult, err := scale.Marshal(txnValidityResult)
+	require.NoError(t, err)
+	testCases := []struct {
+		name        string
+		encodedData []byte
+		expErr      bool
+		expErrMsg   string
+		expValidity *transaction.Validity
+	}{
+		{
+			name:        "ancient birth block",
+			encodedData: []byte{1, 0, 5},
+			expErrMsg:   "ancient birth block",
+			expErr:      true,
+		},
+		{
+			name:        "lookup failed",
+			encodedData: []byte{1, 1, 0},
+			expErrMsg:   "lookup failed",
+			expErr:      true,
+		},
+		{
+			name:        "unmarshal error",
+			encodedData: []byte{1},
+			expErrMsg:   "scale decoding transaction validity result: EOF",
+			expErr:      true,
+		},
+		{
+			name:        "valid case",
+			encodedData: encResult,
+			expValidity: &txtValidity,
+		},
+	}
+
+	for _, c := range testCases {
+		c := c
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			validity, err := UnmarshalTransactionValidity(c.encodedData)
+			if !c.expErr {
+				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
+				require.EqualError(t, err, c.expErrMsg)
+			}
+
+			require.Equal(t, c.expValidity, validity)
+		})
+	}
 }
 
 func Test_InvalidTransactionValidity(t *testing.T) {
