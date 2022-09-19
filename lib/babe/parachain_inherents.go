@@ -11,8 +11,8 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-// Signature could be one of Ed25519 signature, Sr25519 signature or ECDSA/SECP256k1 signature.
-type Signature [64]byte
+// signature could be one of Ed25519 signature, Sr25519 signature or ECDSA/SECP256k1 signature.
+type signature [64]byte
 
 // ValidityAttestation is an implicit or explicit attestation to the validity of a parachain
 // candidate.
@@ -37,25 +37,25 @@ func (validityAttestation *ValidityAttestation) Value() (val scale.VaryingDataTy
 	return vdt.Value()
 }
 
-// Implicit is for implicit attestation.
-type Implicit ValidatorSignature
+// implicit is for implicit attestation.
+type implicit validatorSignature
 
 // Index returns VDT index
-func (Implicit) Index() uint {
+func (implicit) Index() uint {
 	return 1
 }
 
-// Explicit is for explicit attestation.
-type Explicit ValidatorSignature
+// explicit is for explicit attestation.
+type explicit validatorSignature
 
 // Index returns VDT index
-func (Explicit) Index() uint {
+func (explicit) Index() uint {
 	return 2
 }
 
-// NewValidityAttestation creates a ValidityAttestation varying data type.
-func NewValidityAttestation() ValidityAttestation {
-	vdt, err := scale.NewVaryingDataType(Implicit{}, Explicit{})
+// newValidityAttestation creates a ValidityAttestation varying data type.
+func newValidityAttestation() ValidityAttestation {
+	vdt, err := scale.NewVaryingDataType(implicit{}, explicit{})
 	if err != nil {
 		panic(err)
 	}
@@ -87,16 +87,16 @@ func (distputedStatement *DisputeStatement) Value() (val scale.VaryingDataTypeVa
 	return vdt.Value()
 }
 
-// ValidDisputeStatementKind is a kind of statements of validity on a candidate.
-type ValidDisputeStatementKind scale.VaryingDataType
+// validDisputeStatementKind is a kind of statements of validity on a candidate.
+type validDisputeStatementKind scale.VaryingDataType
 
 // Index returns VDT index
-func (ValidDisputeStatementKind) Index() uint {
+func (validDisputeStatementKind) Index() uint {
 	return 0
 }
 
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (v *ValidDisputeStatementKind) Set(val scale.VaryingDataTypeValue) (err error) {
+func (v *validDisputeStatementKind) Set(val scale.VaryingDataTypeValue) (err error) {
 	// cast to VaryingDataType to use VaryingDataType.Set method
 	vdt := scale.VaryingDataType(*v)
 	err = vdt.Set(val)
@@ -104,21 +104,21 @@ func (v *ValidDisputeStatementKind) Set(val scale.VaryingDataTypeValue) (err err
 		return fmt.Errorf("setting value to varying data type: %w", err)
 	}
 	// store original ParentVDT with VaryingDataType that has been set
-	*v = ValidDisputeStatementKind(vdt)
+	*v = validDisputeStatementKind(vdt)
 	return nil
 }
 
 // Value will return value from underying VaryingDataType
-func (v *ValidDisputeStatementKind) Value() (val scale.VaryingDataTypeValue) {
+func (v *validDisputeStatementKind) Value() (val scale.VaryingDataTypeValue) {
 	vdt := scale.VaryingDataType(*v)
 	return vdt.Value()
 }
 
 // ExplicitValidDisputeStatementKind is an explicit statement issued as part of a dispute.
-type ExplicitValidDisputeStatementKind struct{}
+type explicitValidDisputeStatementKind struct{}
 
 // Index returns VDT index
-func (ExplicitValidDisputeStatementKind) Index() uint {
+func (explicitValidDisputeStatementKind) Index() uint {
 	return 0
 }
 
@@ -146,16 +146,16 @@ func (approvalChecking) Index() uint {
 	return 3
 }
 
-// InvalidDisputeStatementKind is a kind of statements of invalidity on a candidate.
-type InvalidDisputeStatementKind scale.VaryingDataType
+// invalidDisputeStatementKind is a kind of statements of invalidity on a candidate.
+type invalidDisputeStatementKind scale.VaryingDataType
 
 // Index returns VDT index
-func (InvalidDisputeStatementKind) Index() uint {
+func (invalidDisputeStatementKind) Index() uint {
 	return 1
 }
 
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (in *InvalidDisputeStatementKind) Set(val scale.VaryingDataTypeValue) (err error) {
+func (in *invalidDisputeStatementKind) Set(val scale.VaryingDataTypeValue) (err error) {
 	// cast to VaryingDataType to use VaryingDataType.Set method
 	vdt := scale.VaryingDataType(*in)
 	err = vdt.Set(val)
@@ -163,12 +163,12 @@ func (in *InvalidDisputeStatementKind) Set(val scale.VaryingDataTypeValue) (err 
 		return fmt.Errorf("setting value to varying data type: %w", err)
 	}
 	// store original ParentVDT with VaryingDataType that has been set
-	*in = InvalidDisputeStatementKind(vdt)
+	*in = invalidDisputeStatementKind(vdt)
 	return nil
 }
 
 // Value will return value from underying VaryingDataType
-func (in *InvalidDisputeStatementKind) Value() (val scale.VaryingDataTypeValue) {
+func (in *invalidDisputeStatementKind) Value() (val scale.VaryingDataTypeValue) {
 	vdt := scale.VaryingDataType(*in)
 	return vdt.Value()
 }
@@ -181,21 +181,21 @@ func (explicitInvalidDisputeStatementKind) Index() uint {
 	return 0
 }
 
-// NewDisputeStatement create a new DisputeStatement varying data type.
-func NewDisputeStatement() DisputeStatement {
-	invalidDisputeStatementKind, err := scale.NewVaryingDataType(explicitInvalidDisputeStatementKind{})
+// newDisputeStatement create a new DisputeStatement varying data type.
+func newDisputeStatement() DisputeStatement {
+	idsKind, err := scale.NewVaryingDataType(explicitInvalidDisputeStatementKind{})
 	if err != nil {
 		panic(err)
 	}
 
-	validDisputeStatementKind, err := scale.NewVaryingDataType(
-		ExplicitValidDisputeStatementKind{}, backingSeconded{}, backingValid{}, approvalChecking{})
+	vdsKind, err := scale.NewVaryingDataType(
+		explicitValidDisputeStatementKind{}, backingSeconded{}, backingValid{}, approvalChecking{})
 	if err != nil {
 		panic(err)
 	}
 
 	vdt, err := scale.NewVaryingDataType(
-		ValidDisputeStatementKind(validDisputeStatementKind), InvalidDisputeStatementKind(invalidDisputeStatementKind))
+		validDisputeStatementKind(vdsKind), invalidDisputeStatementKind(idsKind))
 	if err != nil {
 		panic(err)
 	}
@@ -207,7 +207,7 @@ func NewDisputeStatement() DisputeStatement {
 type collatorID []byte
 
 // CollatorSignature is the signature on a candidate's block data signed by a collator.
-type collatorSignature Signature
+type collatorSignature signature
 
 //  validationCodeHash is the blake2-256 hash of the validation code bytes.
 type validationCodeHash common.Hash
@@ -283,23 +283,23 @@ type committedCandidateReceipt struct {
 	Commitments candidateCommitments `scale:"2"`
 }
 
-// UncheckedSignedAvailabilityBitfield is a set of unchecked signed availability bitfields.
+// uncheckedSignedAvailabilityBitfield is a set of unchecked signed availability bitfields.
 // Should be sorted by validator index, ascending.
-type UncheckedSignedAvailabilityBitfield struct {
+type uncheckedSignedAvailabilityBitfield struct {
 	// The payload is part of the signed data. The rest is the signing context,
 	// which is known both at signing and at validation.
 	Payload []byte `scale:"1"`
 	// The index of the validator signing this statement.
 	ValidatorIndex uint32 `scale:"2"`
 	/// The signature by the validator of the signed payload.
-	Signature Signature `scale:"3"`
+	Signature signature `scale:"3"`
 	// go does not have phantom data
 	// /// This ensures the real payload is tracked at the typesystem level.
 	// real_payload: sp_std::marker::PhantomData<RealPayload>,
 }
 
-// BackedCandidate is a backed (or backable, depending on context) candidate.
-type BackedCandidate struct {
+// backedCandidate is a backed (or backable, depending on context) candidate.
+type backedCandidate struct {
 	// The candidate referred to.
 	Candidate committedCandidateReceipt `scale:"1"`
 	// The validity votes themselves, expressed as signatures.
@@ -308,41 +308,41 @@ type BackedCandidate struct {
 	ValidatorIndices []byte `scale:"3"`
 }
 
-// MultiDisputeStatementSet is a set of dispute statements.
-type MultiDisputeStatementSet []DisputeStatementSet
+// multiDisputeStatementSet is a set of dispute statements.
+type multiDisputeStatementSet []disputeStatementSet
 
-// ValidatorIndex is the index of the validator.
-type ValidatorIndex uint32
+// validatorIndex is the index of the validator.
+type validatorIndex uint32
 
-// ValidatorSignature is the signature with which parachain validators sign blocks.
-type ValidatorSignature Signature
+// validatorSignature is the signature with which parachain validators sign blocks.
+type validatorSignature signature
 
-// Statement about the candidate.
+// statement about the candidate.
 // Used as translation of `Vec<(DisputeStatement, ValidatorIndex, ValidatorSignature)>` from rust to go
-type Statement struct {
-	ValidatorIndex     ValidatorIndex
-	ValidatorSignature ValidatorSignature
+type statement struct {
+	ValidatorIndex     validatorIndex
+	ValidatorSignature validatorSignature
 	DisputeStatement   DisputeStatement
 }
 
-// DisputeStatementSet is a set of statements about a specific candidate.
-type DisputeStatementSet struct {
+// disputeStatementSet is a set of statements about a specific candidate.
+type disputeStatementSet struct {
 	// The candidate referenced by this set.
 	CandidateHash common.Hash `scale:"1"`
 	// The session index of the candidate.
 	Session uint32 `scale:"2"`
 	// Statements about the candidate.
-	Statements []Statement `scale:"3"`
+	Statements []statement `scale:"3"`
 }
 
 // ParachainInherentData is parachains inherent-data passed into the runtime by a block author.
 type ParachainInherentData struct {
 	// Signed bitfields by validators about availability.
-	Bitfields []UncheckedSignedAvailabilityBitfield `scale:"1"`
+	Bitfields []uncheckedSignedAvailabilityBitfield `scale:"1"`
 	// Backed candidates for inclusion in the block.
-	BackedCandidates []BackedCandidate `scale:"2"`
+	BackedCandidates []backedCandidate `scale:"2"`
 	// Sets of dispute votes for inclusion,
-	Disputes MultiDisputeStatementSet `scale:"3"` // []DisputeStatementSet
+	Disputes multiDisputeStatementSet `scale:"3"` // []DisputeStatementSet
 	// The parent block header. Used for checking state proofs.
 	ParentHeader types.Header `scale:"4"`
 }

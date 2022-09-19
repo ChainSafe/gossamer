@@ -2132,6 +2132,7 @@ func ext_storage_root_version_1(context unsafe.Pointer) C.int64_t {
 
 //export ext_storage_root_version_2
 func ext_storage_root_version_2(context unsafe.Pointer, version C.int32_t) C.int64_t {
+	//	return ext_storage_root_version_1(context)
 	logger.Trace("executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
