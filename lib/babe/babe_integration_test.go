@@ -436,7 +436,7 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 
 	slot := Slot{
 		start:    time.Now(),
-		duration: 1 * time.Second,
+		duration: time.Second,
 		number:   bestBlockSlotNum,
 	}
 	testVRFOutputAndProof := &VrfOutputAndProof{}
