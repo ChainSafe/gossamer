@@ -41,8 +41,7 @@ func Marshal(v interface{}) (b []byte, err error) {
 	}
 	err = es.marshal(v)
 	if err != nil {
-		err = fmt.Errorf("marshalling: %w", err)
-		return
+		return nil, err
 	}
 	b = buffer.Bytes()
 	return
@@ -58,7 +57,7 @@ func (es *encodeState) marshal(in interface{}) (err error) {
 	case int:
 		err = es.encodeUint(uint(in))
 		if err != nil {
-			err = fmt.Errorf("encoding Uint: %w", err)
+			err = fmt.Errorf("encoding integer: %w", err)
 		}
 	case uint:
 		err = es.encodeUint(in)
@@ -68,7 +67,7 @@ func (es *encodeState) marshal(in interface{}) (err error) {
 	case int8, uint8, int16, uint16, int32, uint32, int64, uint64:
 		err = es.encodeFixedWidthInt(in)
 		if err != nil {
-			err = fmt.Errorf("encoding FixedWidthInt: %w", err)
+			err = fmt.Errorf("encoding fixed width int: %w", err)
 		}
 	case *big.Int:
 		err = es.encodeBigInt(in)
@@ -83,7 +82,7 @@ func (es *encodeState) marshal(in interface{}) (err error) {
 	case []byte:
 		err = es.encodeBytes(in)
 		if err != nil {
-			err = fmt.Errorf("encoding []byte: %w", err)
+			err = fmt.Errorf("encoding byte slice: %w", err)
 		}
 	case string:
 		err = es.encodeBytes([]byte(in))
@@ -128,11 +127,11 @@ func (es *encodeState) marshal(in interface{}) (err error) {
 			default:
 				_, err = es.Write([]byte{1})
 				if err != nil {
-					return fmt.Errorf("encoding option failed: %w", err)
+					return fmt.Errorf("writing option header 1: %w", err)
 				}
 				err = es.marshal(elem.Interface())
 				if err != nil {
-					err = fmt.Errorf("encoding option failed: %w", err)
+					err = fmt.Errorf("encoding option: %w", err)
 				}
 			}
 		case reflect.Struct:
@@ -213,14 +212,14 @@ func (es *encodeState) encodeResult(res Result) (err error) {
 	case OK:
 		_, err = es.Write([]byte{0})
 		if err != nil {
-			err = fmt.Errorf("encoding Result: %w", err)
+			err = fmt.Errorf("writing result ok header 0: %w", err)
 			return
 		}
 		in = res.ok
 	case Err:
 		_, err = es.Write([]byte{1})
 		if err != nil {
-			err = fmt.Errorf("encoding Result: %w", err)
+			err = fmt.Errorf("writing result error header 1: %w", err)
 			return
 		}
 		in = res.err
@@ -230,7 +229,7 @@ func (es *encodeState) encodeResult(res Result) (err error) {
 	default:
 		err = es.marshal(in)
 		if err != nil {
-			err = fmt.Errorf("encoding Result: %w", err)
+			return err
 		}
 	}
 	return
@@ -240,7 +239,7 @@ func (es *encodeState) encodeCustomVaryingDataType(in interface{}) (err error) {
 	vdt := reflect.ValueOf(in).Convert(reflect.TypeOf(VaryingDataType{})).Interface().(VaryingDataType)
 	err = es.encodeVaryingDataType(vdt)
 	if err != nil {
-		err = fmt.Errorf("encoding CustomVaryingDataType: %w", err)
+		return fmt.Errorf("encoding varying data type: %w", err)
 	}
 	return
 }
@@ -252,7 +251,7 @@ func (es *encodeState) encodeVaryingDataType(vdt VaryingDataType) (err error) {
 	}
 	err = es.marshal(vdt.value)
 	if err != nil {
-		err = fmt.Errorf("encoding VaryingDataType: %w", err)
+		return fmt.Errorf("encoding VDT value: %w", err)
 	}
 	return
 }
@@ -260,7 +259,7 @@ func (es *encodeState) encodeVaryingDataType(vdt VaryingDataType) (err error) {
 func (es *encodeState) encodeVaryingDataTypeSlice(vdts VaryingDataTypeSlice) (err error) {
 	err = es.marshal(vdts.Types)
 	if err != nil {
-		err = fmt.Errorf("encoding VaryingDataTypeSlice: %w", err)
+		return fmt.Errorf("encoding VDTS types: %w", err)
 	}
 	return
 }
@@ -269,14 +268,12 @@ func (es *encodeState) encodeSlice(in interface{}) (err error) {
 	v := reflect.ValueOf(in)
 	err = es.encodeLength(v.Len())
 	if err != nil {
-		err = fmt.Errorf("encoding Slice: %w", err)
-		return
+		return fmt.Errorf("encoding length: %w", err)
 	}
 	for i := 0; i < v.Len(); i++ {
 		err = es.marshal(v.Index(i).Interface())
 		if err != nil {
-			err = fmt.Errorf("encoding Slice: %w", err)
-			return
+			return fmt.Errorf("encoding slice element at index %d: %w", i, err)
 		}
 	}
 	return
@@ -289,8 +286,7 @@ func (es *encodeState) encodeArray(in interface{}) (err error) {
 	for i := 0; i < v.Len(); i++ {
 		err = es.marshal(v.Index(i).Interface())
 		if err != nil {
-			err = fmt.Errorf("encoding Array: %w", err)
-			return
+			return fmt.Errorf("encoding array element at index %d: %w", i, err)
 		}
 	}
 	return
@@ -303,21 +299,21 @@ func (es *encodeState) encodeArray(in interface{}) (err error) {
 func (es *encodeState) encodeBigInt(i *big.Int) (err error) {
 	switch {
 	case i == nil:
-		err = ErrEncodeBigInt
+		err = fmt.Errorf("%w", ErrBigIntIsNil)
 	case i.Cmp(new(big.Int).Lsh(big.NewInt(1), 6)) < 0:
 		err = binary.Write(es, binary.LittleEndian, uint8(i.Int64()<<2))
 		if err != nil {
-			err = fmt.Errorf("encoding BigInt: %w", err)
+			err = fmt.Errorf("writing binary for big int %s: %w", i, err)
 		}
 	case i.Cmp(new(big.Int).Lsh(big.NewInt(1), 14)) < 0:
 		err = binary.Write(es, binary.LittleEndian, uint16(i.Int64()<<2)+1)
 		if err != nil {
-			err = fmt.Errorf("encoding BigInt: %w", err)
+			err = fmt.Errorf("writing binary for big int %s: %w", i, err)
 		}
 	case i.Cmp(new(big.Int).Lsh(big.NewInt(1), 30)) < 0:
 		err = binary.Write(es, binary.LittleEndian, uint32(i.Int64()<<2)+2)
 		if err != nil {
-			err = fmt.Errorf("encoding BigInt: %w", err)
+			err = fmt.Errorf("writing binary for big int %s: %w", i, err)
 		}
 	default:
 		numBytes := len(i.Bytes())
@@ -327,13 +323,13 @@ func (es *encodeState) encodeBigInt(i *big.Int) (err error) {
 		// write byte which encodes mode and length
 		err = binary.Write(es, binary.LittleEndian, lengthByte)
 		if err != nil {
-			err = fmt.Errorf("encoding BigInt: %w", err)
+			err = fmt.Errorf("writing mode and length byte for big int %s: %w", i, err)
 		}
 		if err == nil {
 			// write integer itself
 			err = binary.Write(es, binary.LittleEndian, reverseBytes(i.Bytes()))
 			if err != nil {
-				err = fmt.Errorf("encoding BigInt: %w", err)
+				err = fmt.Errorf("writing binary for big int %s: %w", i, err)
 			}
 		}
 	}
@@ -348,12 +344,12 @@ func (es *encodeState) encodeBool(l bool) (err error) {
 	case true:
 		_, err = es.Write([]byte{0x01})
 		if err != nil {
-			err = fmt.Errorf("encoding bool: %w", err)
+			err = fmt.Errorf("writing 0x01 to encode state: %w", err)
 		}
 	case false:
 		_, err = es.Write([]byte{0x00})
 		if err != nil {
-			err = fmt.Errorf("encoding bool: %w", err)
+			err = fmt.Errorf("writing 0x00 to encode state: %w", err)
 		}
 	}
 	return
@@ -366,13 +362,13 @@ func (es *encodeState) encodeBool(l bool) (err error) {
 func (es *encodeState) encodeBytes(b []byte) (err error) {
 	err = es.encodeLength(len(b))
 	if err != nil {
-		err = fmt.Errorf("encoding []byte: %w", err)
+		err = fmt.Errorf("encoding length: %w", err)
 		return
 	}
 
 	_, err = es.Write(b)
 	if err != nil {
-		err = fmt.Errorf("encoding []byte: %w", err)
+		err = fmt.Errorf("writing byte slice to encode state: %w", err)
 	}
 	return
 }
@@ -432,7 +428,7 @@ func (es *encodeState) encodeFixedWidthInt(i interface{}) (err error) {
 func (es *encodeState) encodeStruct(in interface{}) (err error) {
 	v, indices, err := es.fieldScaleIndices(in)
 	if err != nil {
-		return fmt.Errorf("encoding Struct: %w", err)
+		return fmt.Errorf("finding field scale indices for struct %#v: %w", in, err)
 	}
 	for _, i := range indices {
 		field := v.Field(i.fieldIndex)
@@ -441,8 +437,7 @@ func (es *encodeState) encodeStruct(in interface{}) (err error) {
 		}
 		err = es.marshal(field.Interface())
 		if err != nil {
-			err = fmt.Errorf("encoding Struct: %w", err)
-			return
+			return fmt.Errorf("encoding struct field %#v: %w", field.Interface(), err)
 		}
 	}
 	return
@@ -452,7 +447,7 @@ func (es *encodeState) encodeStruct(in interface{}) (err error) {
 func (es *encodeState) encodeLength(l int) (err error) {
 	err = es.encodeUint(uint(l))
 	if err != nil {
-		err = fmt.Errorf("encoding Length: %w", err)
+		err = fmt.Errorf("encoding uint: %w", err)
 	}
 	return
 }
@@ -471,17 +466,17 @@ func (es *encodeState) encodeUint(i uint) (err error) {
 	case i < 1<<6:
 		err = binary.Write(es, binary.LittleEndian, byte(i)<<2)
 		if err != nil {
-			err = fmt.Errorf("encoding uint: %w", err)
+			err = fmt.Errorf("writing binary for uint %d: %w", i, err)
 		}
 	case i < 1<<14:
 		err = binary.Write(es, binary.LittleEndian, uint16(i<<2)+1)
 		if err != nil {
-			err = fmt.Errorf("encoding uint: %w", err)
+			err = fmt.Errorf("writing binary for uint %d: %w", i, err)
 		}
 	case i < 1<<30:
 		err = binary.Write(es, binary.LittleEndian, uint32(i<<2)+2)
 		if err != nil {
-			err = fmt.Errorf("encoding uint: %w", err)
+			err = fmt.Errorf("writing binary for uint %d: %w", i, err)
 		}
 	default:
 		o := make([]byte, 8)
@@ -500,13 +495,13 @@ func (es *encodeState) encodeUint(i uint) (err error) {
 
 		err = binary.Write(es, binary.LittleEndian, lengthByte)
 		if err != nil {
-			err = fmt.Errorf("encoding uint: %w", err)
+			err = fmt.Errorf("encoding uint %d: %w", i, err)
 		}
 		if err == nil {
 			binary.LittleEndian.PutUint64(o, uint64(i))
 			err = binary.Write(es, binary.LittleEndian, o[0:numBytes])
 			if err != nil {
-				err = fmt.Errorf("encoding uint: %w", err)
+				err = fmt.Errorf("writing binary for uint %d: %w", i, err)
 			}
 		}
 	}
@@ -521,7 +516,7 @@ func (es *encodeState) encodeUint128(i *Uint128) (err error) {
 	}
 	err = binary.Write(es, binary.LittleEndian, padBytes(i.Bytes(), binary.LittleEndian))
 	if err != nil {
-		err = fmt.Errorf("encoding Uint128: %w", err)
+		err = fmt.Errorf("writing binary for Uint128 %s: %w", i, err)
 	}
 	return
 }

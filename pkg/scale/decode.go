@@ -6,6 +6,7 @@ package scale
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"math/big"
@@ -75,7 +76,7 @@ func Unmarshal(data []byte, dst interface{}) (err error) {
 
 	err = ds.unmarshal(elem)
 	if err != nil {
-		return fmt.Errorf("unmarshalling %v: %w", elem, err)
+		return fmt.Errorf("unmarshalling %#v: %w", elem, err)
 	}
 	return
 }
@@ -97,7 +98,7 @@ func (d *Decoder) Decode(dst interface{}) (err error) {
 
 	err = d.unmarshal(elem)
 	if err != nil {
-		return fmt.Errorf("unmarshalling %v: %w", elem, err)
+		return fmt.Errorf("unmarshalling %#v: %w", elem, err)
 	}
 	return
 }
@@ -554,7 +555,9 @@ func (ds *decodeState) decodeBool(dstv reflect.Value) (err error) {
 
 // decodeUint will decode unsigned integer
 func (ds *decodeState) decodeUint(dstv reflect.Value) (err error) {
-	b, err := ds.ReadByte()
+	const maxUint32 = ^uint32(0)
+	const maxUint64 = ^uint64(0)
+	prefix, err := ds.ReadByte()
 	if err != nil {
 		return fmt.Errorf("reading byte: %w", err)
 	}
@@ -562,42 +565,57 @@ func (ds *decodeState) decodeUint(dstv reflect.Value) (err error) {
 	in := dstv.Interface()
 	temp := reflect.New(reflect.TypeOf(in))
 	// check mode of encoding, stored at 2 least significant bits
-	mode := b & 3
-	switch {
-	case mode <= 2:
-		var val int64
-		val, err = ds.decodeSmallInt(b, mode)
+	mode := prefix % 4
+	var value uint64
+	switch mode {
+	case 0:
+		value = uint64(prefix >> 2)
+	case 1:
+		buf, err := ds.ReadByte()
 		if err != nil {
 			return fmt.Errorf("reading byte: %w", err)
 		}
 		value = uint64(binary.LittleEndian.Uint16([]byte{prefix, buf}) >> 2)
-		if value <= 0b0011_1111 || value > 0b0111_1111_1111_1111 {
+		if value <= 0x0011_1111 || value > 0b0111_1111_1111_1111 {
 			return fmt.Errorf("%w: %d (%b)", ErrU16OutOfRange, value, value)
 		}
-		temp.Elem().Set(reflect.ValueOf(val).Convert(reflect.TypeOf(in)))
-		dstv.Set(temp.Elem())
-	default:
-		// >4 byte mode
-		topSixBits := b >> 2
-		byteLen := uint(topSixBits) + 4
-
+	case 2:
+		buf := make([]byte, 3)
+		_, err = ds.Read(buf)
+		if err != nil {
+			return fmt.Errorf("reading byte: %w", err)
+		}
+		value = uint64(binary.LittleEndian.Uint32(append([]byte{prefix}, buf...)) >> 2)
+		if value <= 0b0011_1111_1111_1111 || value > uint64(maxUint32>>2) {
+			return fmt.Errorf("%w: %d (%b)", ErrU32OutOfRange, value, value)
+		}
+	case 3:
+		byteLen := (prefix >> 2) + 4
 		buf := make([]byte, byteLen)
 		_, err = ds.Read(buf)
 		if err != nil {
 			return fmt.Errorf("reading bytes: %w", err)
 		}
-
-		var o uint64
-		if byteLen == 4 {
-			o = uint64(binary.LittleEndian.Uint32(buf))
-		} else if byteLen > 4 && byteLen <= 8 {
+		switch byteLen {
+		case 4:
+			value = uint64(binary.LittleEndian.Uint32(buf))
+			if value <= uint64(maxUint32>>2) {
+				return fmt.Errorf("%w: %d (%b)", ErrU32OutOfRange, value, value)
+			}
+		case 8:
+			const uintSize = 32 << (^uint(0) >> 32 & 1)
+			if uintSize == 32 {
+				return ErrU64NotSupported
+			}
 			tmp := make([]byte, 8)
 			copy(tmp, buf)
-			o = binary.LittleEndian.Uint64(tmp)
-		} else {
-			return fmt.Errorf("%w: for byte length %d", ErrDecodeInteger, byteLen)
+			value = binary.LittleEndian.Uint64(tmp)
+			if value <= maxUint64>>8 {
+				return fmt.Errorf("%w: %d (%b)", ErrU64OutOfRange, value, value)
+			}
+		default:
+			return fmt.Errorf("%w: %d", ErrCompactUintPrefixUnknown, prefix)
 		}
-		dstv.Set(reflect.ValueOf(o).Convert(reflect.TypeOf(in)))
 	}
 	temp.Elem().Set(reflect.ValueOf(value).Convert(reflect.TypeOf(in)))
 	dstv.Set(temp.Elem())
