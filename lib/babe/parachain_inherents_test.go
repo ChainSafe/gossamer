@@ -80,6 +80,8 @@ func TestInvalidDisputeStatementKind(t *testing.T) {
 
 	for _, c := range testCases {
 		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+
 			invalidDisputeStatementKind, err := scale.NewVaryingDataType(
 				explicitInvalidDisputeStatementKind{})
 			require.NoError(t, err)
