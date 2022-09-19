@@ -311,7 +311,8 @@ func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
 	err := babeService.Start()
 	require.NoError(t, err)
 	defer func() {
-		_ = babeService.Stop()
+		err = babeService.Stop()
+		require.NoError(t, err)
 	}()
 
 	// add a block
