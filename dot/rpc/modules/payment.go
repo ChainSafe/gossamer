@@ -63,6 +63,7 @@ func (p *PaymentModule) QueryInfo(_ *http.Request, req *PaymentQueryInfoRequest,
 	} else if err != nil {
 		return err
 	}
+
 	ext, err := common.HexToBytes(req.Ext)
 	if err != nil {
 		return err

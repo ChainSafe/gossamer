@@ -535,13 +535,13 @@ func (s *Service) GetMetadata(bhash *common.Hash) ([]byte, error) {
 		if err != nil {
 			return nil, fmt.Errorf("getting runtime from database: %w", err)
 		}
+		// ensure the runtime stops and releases resources since it was
+		// instantiated from disk just for this function call.
+		defer rt.Stop()
 		metadata, err := rt.Metadata()
 		if err != nil {
 			return nil, fmt.Errorf("getting runtime metadata: %w", err)
 		}
-		// ensure the runtime stops and releases resources since it was
-		// instantiated from disk just for this function call.
-		defer rt.Stop()
 		return metadata, nil
 	} else if err != nil {
 		return nil, err
