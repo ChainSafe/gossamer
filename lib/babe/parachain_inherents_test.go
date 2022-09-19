@@ -4,8 +4,6 @@
 package babe
 
 import (
-	"fmt"
-	"reflect"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -16,6 +14,8 @@ import (
 )
 
 func TestValidDisputeStatementKind(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name          string
 		enumValue     scale.VaryingDataTypeValue
@@ -46,6 +46,8 @@ func TestValidDisputeStatementKind(t *testing.T) {
 
 	for _, c := range testCases {
 		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+
 			vdsKind, err := scale.NewVaryingDataType(
 				explicitValidDisputeStatementKind{}, backingSeconded{}, backingValid{}, approvalChecking{})
 			require.NoError(t, err)
@@ -62,6 +64,8 @@ func TestValidDisputeStatementKind(t *testing.T) {
 }
 
 func TestInvalidDisputeStatementKind(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name          string
 		enumValue     scale.VaryingDataTypeValue
@@ -92,6 +96,8 @@ func TestInvalidDisputeStatementKind(t *testing.T) {
 }
 
 func TestDisputeStatement(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name          string
 		vdt           DisputeStatement
@@ -178,6 +184,8 @@ func TestDisputeStatement(t *testing.T) {
 
 	for _, c := range testCases {
 		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+
 			bytes, err := scale.Marshal(c.vdt)
 			require.NoError(t, err)
 
@@ -187,14 +195,14 @@ func TestDisputeStatement(t *testing.T) {
 			err = scale.Unmarshal(bytes, &newDst)
 			require.NoError(t, err)
 
-			if !reflect.DeepEqual(c.vdt, newDst) {
-				panic(fmt.Errorf("uh oh: \n%+v \n\n%+v", c.vdt, newDst))
-			}
+			assert.Equal(t, c.vdt, newDst)
 		})
 	}
 }
 
 func TestValidityAttestation(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name          string
 		enumValue     scale.VaryingDataTypeValue
@@ -214,6 +222,8 @@ func TestValidityAttestation(t *testing.T) {
 
 	for _, c := range testCases {
 		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+
 			validityAttestation := newValidityAttestation()
 			err := validityAttestation.Set(c.enumValue)
 			require.NoError(t, err)
@@ -227,15 +237,14 @@ func TestValidityAttestation(t *testing.T) {
 			err = scale.Unmarshal(bytes, &newDst)
 			require.NoError(t, err)
 
-			if !reflect.DeepEqual(validityAttestation, newDst) {
-				panic(fmt.Errorf("uh oh: \n%+v \n\n%+v", validityAttestation, newDst))
-			}
+			assert.Equal(t, validityAttestation, newDst)
 		})
 	}
-
 }
 
 func TestParachainInherents(t *testing.T) {
+	t.Parallel()
+
 	expectedParaInherentsbytes := []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}                                            //nolint:lll
 	expectedInherentsBytes := []byte{4, 112, 97, 114, 97, 99, 104, 110, 48, 149, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0} //nolint:lll
 	// corresponding rust struct
@@ -259,18 +268,7 @@ func TestParachainInherents(t *testing.T) {
 	// inherents.put_data(*b"parachn0", &para_int).unwrap();
 	// println!("{:?}", inherents.encode());
 
-	parachainInherent := ParachainInherentData{
-		Bitfields:        []uncheckedSignedAvailabilityBitfield{},
-		BackedCandidates: []backedCandidate{},
-		Disputes:         multiDisputeStatementSet{},
-		ParentHeader: types.Header{
-			ParentHash:     common.Hash{},
-			Number:         0,
-			StateRoot:      common.Hash{},
-			ExtrinsicsRoot: common.Hash{},
-			Digest:         scale.VaryingDataTypeSlice{},
-		},
-	}
+	parachainInherent := ParachainInherentData{}
 
 	actualParaInherentBytes, err := scale.Marshal(parachainInherent)
 	require.NoError(t, err)
@@ -284,5 +282,4 @@ func TestParachainInherents(t *testing.T) {
 	actualInherentsBytes, err := idata.Encode()
 	require.NoError(t, err)
 	require.Equal(t, expectedInherentsBytes, actualInherentsBytes)
-
 }
