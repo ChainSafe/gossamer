@@ -338,7 +338,7 @@ func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
 	slotnum := uint64(1)
 	slot := Slot{
 		start:    time.Now(),
-		duration: 1 * time.Second,
+		duration: time.Second,
 		number:   slotnum,
 	}
 	testVRFOutputAndProof := &VrfOutputAndProof{}
