@@ -327,7 +327,7 @@ func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
 		1, testEpochIndex, epochData)
 
 	babeService.blockState.AddBlock(block)
-	time.Sleep(babeService.constants.slotDuration * 1)
+	time.Sleep(babeService.constants.slotDuration)
 
 	header, err := babeService.blockState.BestBlockHeader()
 	require.NoError(t, err)
