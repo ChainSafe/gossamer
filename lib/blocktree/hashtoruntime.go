@@ -37,3 +37,9 @@ func (h *hashToRuntime) delete(hash Hash) {
 	defer h.mutex.Unlock()
 	delete(h.mapping, hash)
 }
+
+func (h *hashToRuntime) len() (length int) {
+	h.mutex.RLock()
+	defer h.mutex.RUnlock()
+	return len(h.mapping)
+}
