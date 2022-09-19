@@ -429,8 +429,8 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, block.Header.Hash(), bestBlockHeader.Hash())
 
-	// If the slot we are claiming is same as slot in best header, test that we don't
-	// through any error and can claim slot.
+	// If the slot we are claiming is the same as the slot of the best block header, test that we can
+	// still claim the slot without error.
 	bestBlockSlotNum, err := babeServiceAlice.blockState.GetSlotForBlock(bestBlockHeader.Hash())
 	require.NoError(t, err)
 
