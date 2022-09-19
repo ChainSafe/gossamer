@@ -119,6 +119,12 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		}
 	}
 
+	instance.ctx.StateVersion, err = trie.ParseVersion(instance.ctx.Version.StateVersion)
+	if err != nil {
+		instance.close()
+		return nil, fmt.Errorf("parsing state version: %w", err)
+	}
+
 	wasmInstance.SetContextData(instance.ctx)
 
 	return instance, nil
@@ -175,6 +181,13 @@ func (in *Instance) UpdateRuntimeCode(code []byte) (err error) {
 		return fmt.Errorf("getting instance version: %w", err)
 	}
 	in.ctx.Version = version
+
+	in.ctx.StateVersion, err = trie.ParseVersion(in.ctx.Version.StateVersion)
+	if err != nil {
+		in.close()
+		return fmt.Errorf("parsing state version: %w", err)
+	}
+
 	wasmInstance.SetContextData(in.ctx)
 
 	return nil

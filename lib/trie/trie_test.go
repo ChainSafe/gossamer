@@ -305,12 +305,14 @@ func Test_encodeRoot(t *testing.T) {
 
 	testCases := map[string]struct {
 		root         *Node
+		version      Version
 		bufferCalls  bufferCalls
 		errWrapped   error
 		errMessage   string
 		expectedRoot *Node
 	}{
 		"nil root and no error": {
+			version: V0,
 			bufferCalls: bufferCalls{
 				writeCalls: []writeCall{
 					{written: []byte{0}},
@@ -318,6 +320,7 @@ func Test_encodeRoot(t *testing.T) {
 			},
 		},
 		"nil root and write error": {
+			version: V0,
 			bufferCalls: bufferCalls{
 				writeCalls: []writeCall{
 					{
@@ -334,6 +337,7 @@ func Test_encodeRoot(t *testing.T) {
 				Key:      []byte{1, 2},
 				SubValue: []byte{1},
 			},
+			version: V0,
 			bufferCalls: bufferCalls{
 				writeCalls: []writeCall{
 					{
@@ -354,6 +358,7 @@ func Test_encodeRoot(t *testing.T) {
 				Key:      []byte{1, 2},
 				SubValue: []byte{1},
 			},
+			version: V0,
 			bufferCalls: bufferCalls{
 				writeCalls: []writeCall{
 					{written: []byte{66}},
@@ -401,7 +406,7 @@ func Test_encodeRoot(t *testing.T) {
 					Return(testCase.bufferCalls.bytesReturn)
 			}
 
-			err := encodeRoot(testCase.root, buffer)
+			err := encodeRoot(testCase.root, testCase.version, buffer)
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if testCase.errWrapped != nil {

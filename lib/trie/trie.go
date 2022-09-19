@@ -155,7 +155,8 @@ func (t *Trie) RootNode() *Node {
 }
 
 // encodeRoot writes the encoding of the root node to the buffer.
-func encodeRoot(root *Node, buffer node.Buffer) (err error) {
+func encodeRoot(root *Node, version Version, buffer node.Buffer) (err error) {
+	enforceValidVersion(version)
 	if root == nil {
 		_, err = buffer.Write([]byte{0})
 		if err != nil {
@@ -183,7 +184,7 @@ func (t *Trie) Hash(version Version) (rootHash common.Hash, err error) {
 	buffer.Reset()
 	defer pools.EncodingBuffers.Put(buffer)
 
-	err = encodeRoot(t.root, buffer)
+	err = encodeRoot(t.root, version, buffer)
 	if err != nil {
 		return [32]byte{}, err
 	}

@@ -18,6 +18,7 @@ import (
 var (
 	ErrKeyNotFoundInProofTrie = errors.New("key not found in proof trie")
 	ErrValueMismatchProofTrie = errors.New("value found in proof trie does not match")
+	ErrVersionNotSupported    = errors.New("version not supported")
 )
 
 // Verify verifies a given key and value belongs to the trie by creating
@@ -27,6 +28,10 @@ var (
 // https://github.com/ComposableFi/ibc-go/blob/6d62edaa1a3cb0768c430dab81bb195e0b0c72db/modules/light-clients/11-beefy/types/client_state.go#L78
 func Verify(encodedProofNodes [][]byte, rootHash, key, value []byte,
 	stateVersion trie.Version) (err error) {
+	if stateVersion != trie.V0 {
+		return fmt.Errorf("%w: %d", ErrVersionNotSupported, stateVersion)
+	}
+
 	proofTrie, err := buildTrie(encodedProofNodes, rootHash)
 	if err != nil {
 		return fmt.Errorf("building trie from proof encoded nodes: %w", err)
