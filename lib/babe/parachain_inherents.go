@@ -122,27 +122,27 @@ func (ExplicitValidDisputeStatementKind) Index() uint {
 	return 0
 }
 
-// BackingSeconded is a seconded statement on a candidate from the backing phase.
-type BackingSeconded common.Hash
+// backingSeconded is a seconded statement on a candidate from the backing phase.
+type backingSeconded common.Hash
 
 // Index returns VDT index
-func (BackingSeconded) Index() uint {
+func (backingSeconded) Index() uint {
 	return 1
 }
 
-// BackingValid is a valid statement on a candidate from the backing phase.
-type BackingValid common.Hash
+// backingValid is a valid statement on a candidate from the backing phase.
+type backingValid common.Hash
 
 // Index returns VDT index
-func (BackingValid) Index() uint {
+func (backingValid) Index() uint {
 	return 2
 }
 
-// ApprovalChecking is an approval vote from the approval checking phase.
-type ApprovalChecking struct{}
+// approvalChecking is an approval vote from the approval checking phase.
+type approvalChecking struct{}
 
 // Index returns VDT index
-func (ApprovalChecking) Index() uint {
+func (approvalChecking) Index() uint {
 	return 3
 }
 
@@ -173,23 +173,23 @@ func (in *InvalidDisputeStatementKind) Value() (val scale.VaryingDataTypeValue) 
 	return vdt.Value()
 }
 
-// ExplicitInvalidDisputeStatementKind is an explicit statement issued as part of a dispute.
-type ExplicitInvalidDisputeStatementKind struct{}
+// explicitInvalidDisputeStatementKind is an explicit statement issued as part of a dispute.
+type explicitInvalidDisputeStatementKind struct{}
 
 // Index returns VDT index
-func (ExplicitInvalidDisputeStatementKind) Index() uint {
+func (explicitInvalidDisputeStatementKind) Index() uint {
 	return 0
 }
 
 // NewDisputeStatement create a new DisputeStatement varying data type.
 func NewDisputeStatement() DisputeStatement {
-	invalidDisputeStatementKind, err := scale.NewVaryingDataType(ExplicitInvalidDisputeStatementKind{})
+	invalidDisputeStatementKind, err := scale.NewVaryingDataType(explicitInvalidDisputeStatementKind{})
 	if err != nil {
 		panic(err)
 	}
 
 	validDisputeStatementKind, err := scale.NewVaryingDataType(
-		ExplicitValidDisputeStatementKind{}, BackingSeconded{}, BackingValid{}, ApprovalChecking{})
+		ExplicitValidDisputeStatementKind{}, backingSeconded{}, backingValid{}, approvalChecking{})
 	if err != nil {
 		panic(err)
 	}
