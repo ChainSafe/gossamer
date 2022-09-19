@@ -184,7 +184,6 @@ func TestDisputeStatement(t *testing.T) {
 			bytes, err := scale.Marshal(c.vdt)
 			require.NoError(t, err)
 
-			fmt.Printf("0x%x\n", c.encodingValue)
 			require.Equal(t, c.encodingValue, bytes)
 
 			newDst := NewDisputeStatement()
