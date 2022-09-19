@@ -30,6 +30,7 @@ type RuntimeInstance interface {
 	SetContextStorage(s runtime.Storage)
 	GetCodeHash() common.Hash
 	Version() runtime.Version
+	StateVersion() (stateVersion trie.Version)
 	Metadata() ([]byte, error)
 	BabeConfiguration() (*types.BabeConfiguration, error)
 	GrandpaAuthorities() ([]types.Authority, error)

@@ -1079,6 +1079,20 @@ func (mr *MockRuntimeInstanceMockRecorder) SetContextStorage(arg0 interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetContextStorage", reflect.TypeOf((*MockRuntimeInstance)(nil).SetContextStorage), arg0)
 }
 
+// StateVersion mocks base method.
+func (m *MockRuntimeInstance) StateVersion() trie.Version {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "StateVersion")
+	ret0, _ := ret[0].(trie.Version)
+	return ret0
+}
+
+// StateVersion indicates an expected call of StateVersion.
+func (mr *MockRuntimeInstanceMockRecorder) StateVersion() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StateVersion", reflect.TypeOf((*MockRuntimeInstance)(nil).StateVersion))
+}
+
 // Stop mocks base method.
 func (m *MockRuntimeInstance) Stop() {
 	m.ctrl.T.Helper()
