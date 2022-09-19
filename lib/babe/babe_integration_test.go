@@ -423,7 +423,7 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 	err = babeServiceAlice.blockState.AddBlock(block)
 	require.NoError(t, err)
 
-	time.Sleep(babeServiceBob.constants.slotDuration * 1)
+	time.Sleep(babeServiceBob.constants.slotDuration)
 
 	bestBlockHeader, err := babeServiceAlice.blockState.BestBlockHeader()
 	require.NoError(t, err)
