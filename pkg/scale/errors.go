@@ -20,4 +20,5 @@ var (
 	ErrResultAlreadySet                  = errors.New("result already has an assigned value")
 	ErrAddVaryingDataTypeValueNotInCache = errors.New("failed to add VaryingDataTypeValue not in cache")
 	ErrMustProvideVaryingDataTypeValue   = errors.New("must provide at least one VaryingDataTypeValue")
+	ErrBigIntIsNil                       = errors.New("big int is nil")
 )
