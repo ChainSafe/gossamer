@@ -415,7 +415,7 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 	err = babeServiceBob.Stop()
 	require.NoError(t, err)
 
-	time.Sleep(babeServiceBob.constants.slotDuration * 1)
+	time.Sleep(babeServiceBob.constants.slotDuration)
 
 	babeServiceAlice := createTestService(t, cfgAlice)
 
