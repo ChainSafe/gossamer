@@ -37,6 +37,9 @@ func (i *InvalidTransaction) Value() (val scale.VaryingDataTypeValue) {
 // Error returns the error message associated with the InvalidTransaction
 func (i InvalidTransaction) Error() string {
 	value := i.Value()
+	if value == nil {
+		return "invalidTransaction hasn't been set"
+	}
 	err, ok := value.(error)
 	if !ok {
 		panic(fmt.Sprintf("%T does not implement the error type", value))

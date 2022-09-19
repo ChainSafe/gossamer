@@ -36,6 +36,9 @@ func (u *UnknownTransaction) Value() (val scale.VaryingDataTypeValue) {
 
 func (u UnknownTransaction) Error() string {
 	value := u.Value()
+	if value == nil {
+		return "unknownTransaction hasn't been set"
+	}
 	err, ok := value.(error)
 	if !ok {
 		panic(fmt.Sprintf("%T does not implement the error type", value))
