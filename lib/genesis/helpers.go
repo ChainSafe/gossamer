@@ -16,7 +16,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
-	"github.com/ChainSafe/gossamer/lib/runtime/constants"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -546,7 +545,7 @@ func buildBalances(kv *keyValue, res map[string]string) error {
 	for i := range kv.iVal {
 		if i%2 == 0 {
 			// build key
-			bKey := common.MustHexToBytes(constants.SystemAccountKeyHex)
+			bKey := common.MustHexToBytes(systemAccountKeyHex)
 
 			addHash, err := common.Blake2b128(kv.iVal[i].([]byte))
 			if err != nil {
@@ -587,7 +586,7 @@ func BuildFromMap(m map[string][]byte, gen *Genesis) error {
 			// handle :code
 			addCodeValue(v, gen)
 			addRawValue(key, v, gen)
-		case constants.GrandpaAuthoritiesKeyHex:
+		case GrandpaAuthoritiesKeyHex:
 			// handle :grandpa_authorities
 			//  slice value since it was encoded starting with 0x01
 			err := addAuthoritiesValues("grandpa", "authorities", crypto.Ed25519Type, v[1:], gen)
@@ -595,7 +594,7 @@ func BuildFromMap(m map[string][]byte, gen *Genesis) error {
 				return err
 			}
 			addRawValue(key, v, gen)
-		case constants.BABEAuthoritiesKeyHex:
+		case BABEAuthoritiesKeyHex:
 			// handle Babe Authorities
 			err := addAuthoritiesValues("babe", "authorities", crypto.Sr25519Type, v, gen)
 			if err != nil {

@@ -1,7 +1,7 @@
 // Copyright 2022 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package constants
+package genesis
 
 const (
 	// babePrefixHex is the hex encoding of: Twox128Hash("Babe")
@@ -19,7 +19,7 @@ const (
 
 	// systemPrefixHex is the hex encoding of: Twox128Hash("System")
 	systemPrefixHex = "0x26aa394eea5630e07c48ae0c9558cef7"
-	// SystemAccountKeyHex is the hex encoding of:
+	// systemAccountKeyHex is the hex encoding of:
 	// Twox128Hash("Babe") + Twox128Hash("Account")
-	SystemAccountKeyHex = systemPrefixHex + "b99d880ec681799c0cf30e8886371da9"
+	systemAccountKeyHex = systemPrefixHex + "b99d880ec681799c0cf30e8886371da9"
 )

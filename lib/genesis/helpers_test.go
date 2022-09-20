@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/runtime/constants"
 	"github.com/stretchr/testify/require"
 )
 
@@ -309,5 +308,5 @@ func TestFormatKey(t *testing.T) {
 
 	out, err := formatKey(kv)
 	require.NoError(t, err)
-	require.Equal(t, constants.BABEAuthoritiesKeyHex, out)
+	require.Equal(t, BABEAuthoritiesKeyHex, out)
 }
