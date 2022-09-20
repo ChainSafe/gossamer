@@ -12,7 +12,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/genesis"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
@@ -170,7 +169,7 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	db, err := utils.SetupDatabase(basepath, false)
 	require.NoError(t, err)
 
-	_, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	_, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
@@ -193,13 +192,13 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 
 	tries := newTriesEmpty()
 
-	blockState, err := NewBlockStateFromGenesis(db, tries, genHeader, telemetryMock)
+	blockState, err := NewBlockStateFromGenesis(db, tries, &genHeader, telemetryMock)
 	require.NoError(t, err)
 
 	storage, err := NewStorageState(db, blockState, tries, pruner.Config{})
 	require.NoError(t, err)
 
-	trieState := runtime.NewTrieState(genTrie)
+	trieState := runtime.NewTrieState(&genTrie)
 
 	header, err := types.NewHeader(blockState.GenesisHash(), trieState.MustRoot(),
 		common.Hash{}, 1, types.NewDigest())

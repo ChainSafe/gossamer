@@ -5,23 +5,37 @@ package genesis
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/stretchr/testify/require"
 )
 
 func TestNewGenesisRawFromJSON(t *testing.T) {
-	testRaw := map[string]map[string]string{}
-	testRaw["top"] = map[string]string{"0x3a636f6465": "0x0102"}
-
-	expected := TestGenesis
-	expected.Genesis = Fields{Raw: testRaw}
+	expected := &Genesis{
+		Name: "gossamer",
+		ID:   "gossamer",
+		Bootnodes: []string{
+			"/dns4/p2p.cc3-0.kusama.network/tcp/30100/p2p/QmeCit3Nif4VfNqrEJsdYHZGcKzRCnZvGxg6hha1iNj4mk",
+			"/dns4/p2p.cc3-1.kusama.network/tcp/30100/p2p/QmchDJtEGiEWf7Ag58HNoTg9jSGzxkSZ23VgmF6xiLKKsZ",
+		},
+		TelemetryEndpoints: []interface{}{"wss://telemetry.polkadot.io/submit/", float64(1)},
+		ProtocolID:         "/gossamer/test/0",
+		Properties: map[string]interface{}{
+			"ss58Format":    float64(0),
+			"tokenDecimals": float64(10),
+			"tokenSymbol":   "DOT",
+		},
+		ForkBlocks: []string{"fork1", "forkBlock2"},
+		BadBlocks:  []string{"badBlock1", "badBlock2"},
+		Genesis: Fields{
+			Raw: map[string]map[string]string{
+				"top": {"0x3a636f6465": "0x0102"},
+			},
+		},
+	}
 
 	// Grab json encoded bytes
 	bz, err := json.Marshal(expected)
@@ -294,23 +308,5 @@ func TestFormatKey(t *testing.T) {
 
 	out, err := formatKey(kv)
 	require.NoError(t, err)
-	require.Equal(t, fmt.Sprintf("0x%x", runtime.BABEAuthoritiesKey()), out)
-}
-
-func TestNewTrieFromGenesis(t *testing.T) {
-	var rawGenesis = &Genesis{}
-	raw := make(map[string]map[string]string)
-	raw["top"] = make(map[string]string)
-	raw["top"]["0x3a636f6465"] = "0x0102" // raw :code
-	rawGenesis.Genesis = Fields{
-		Raw: raw,
-	}
-
-	expTrie := trie.NewEmptyTrie()
-	expTrie.Put([]byte(`:code`), []byte{1, 2})
-
-	trie, err := NewTrieFromGenesis(rawGenesis)
-	require.NoError(t, err)
-
-	require.Equal(t, expTrie, trie)
+	require.Equal(t, BABEAuthoritiesKeyHex, out)
 }

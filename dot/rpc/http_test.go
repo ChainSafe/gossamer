@@ -27,7 +27,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
@@ -365,7 +364,7 @@ func newCoreServiceTest(t *testing.T) *core.Service {
 
 	testDatadirPath := t.TempDir()
 
-	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	gen, genesisTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
@@ -380,7 +379,7 @@ func newCoreServiceTest(t *testing.T) *core.Service {
 	stateSrvc := state.NewService(config)
 	stateSrvc.UseMemDB()
 
-	err := stateSrvc.Initialise(gen, genHeader, genTrie)
+	err := stateSrvc.Initialise(&gen, &genesisHeader, &genesisTrie)
 	require.NoError(t, err)
 
 	err = stateSrvc.SetupBase()
@@ -407,7 +406,7 @@ func newCoreServiceTest(t *testing.T) *core.Service {
 
 	var rtCfg wasmer.Config
 
-	rtCfg.Storage = rtstorage.NewTrieState(genTrie)
+	rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
 
 	rtCfg.CodeHash, err = cfg.StorageState.LoadCodeHash(nil)
 	require.NoError(t, err)
