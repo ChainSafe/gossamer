@@ -115,6 +115,7 @@ type decodeState struct {
 	io.Reader
 }
 
+//nolint:gocyclo
 func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {
 	in := dstv.Interface()
 	switch in.(type) {

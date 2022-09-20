@@ -25,7 +25,7 @@ var MaxUint128 = &Uint128{
 func MustNewUint128(in interface{}, order ...binary.ByteOrder) (u *Uint128) {
 	u, err := NewUint128(in, order...)
 	if err != nil {
-		panic(fmt.Sprintf("creating Uint128: %s", err))
+		panic(err)
 	}
 	return
 }

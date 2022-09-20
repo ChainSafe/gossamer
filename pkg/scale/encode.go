@@ -52,6 +52,7 @@ type encodeState struct {
 	*fieldScaleIndicesCache
 }
 
+//nolint:gocyclo
 func (es *encodeState) marshal(in interface{}) (err error) {
 	switch in := in.(type) {
 	case int:
@@ -124,6 +125,9 @@ func (es *encodeState) marshal(in interface{}) (err error) {
 			switch elem.IsValid() {
 			case false:
 				_, err = es.Write([]byte{0})
+				if err != nil {
+					return fmt.Errorf("encoding pointer: %w", err)
+				}
 			default:
 				_, err = es.Write([]byte{1})
 				if err != nil {
@@ -203,7 +207,7 @@ func (es *encodeState) encodeCustomPrimitive(in interface{}) (err error) {
 
 func (es *encodeState) encodeResult(res Result) (err error) {
 	if !res.IsSet() {
-		err = fmt.Errorf("%w: %+v", ErrEncodeResult, res)
+		err = fmt.Errorf("%w: %+v", ErrResultNotSet, res)
 		return
 	}
 
@@ -511,7 +515,7 @@ func (es *encodeState) encodeUint(i uint) (err error) {
 // encodeUint128 encodes a Uint128
 func (es *encodeState) encodeUint128(i *Uint128) (err error) {
 	if i == nil {
-		err = fmt.Errorf("%w: nil", ErrEncodeUint128)
+		err = fmt.Errorf("%w", ErrUint128IsNil)
 		return
 	}
 	err = binary.Write(es, binary.LittleEndian, padBytes(i.Bytes(), binary.LittleEndian))
