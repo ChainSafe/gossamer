@@ -14,26 +14,26 @@ import (
 // signature could be one of Ed25519 signature, Sr25519 signature or ECDSA/SECP256k1 signature.
 type signature [64]byte
 
-// ValidityAttestation is an implicit or explicit attestation to the validity of a parachain
+// validityAttestation is an implicit or explicit attestation to the validity of a parachain
 // candidate.
-type ValidityAttestation scale.VaryingDataType
+type validityAttestation scale.VaryingDataType
 
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (validityAttestation *ValidityAttestation) Set(val scale.VaryingDataTypeValue) (err error) {
+func (va *validityAttestation) Set(val scale.VaryingDataTypeValue) (err error) {
 	// cast to VaryingDataType to use VaryingDataType.Set method
-	vdt := scale.VaryingDataType(*validityAttestation)
+	vdt := scale.VaryingDataType(*va)
 	err = vdt.Set(val)
 	if err != nil {
 		return fmt.Errorf("setting value to varying data type: %w", err)
 	}
 	// store original ParentVDT with VaryingDataType that has been set
-	*validityAttestation = ValidityAttestation(vdt)
+	*va = validityAttestation(vdt)
 	return nil
 }
 
 // Value returns the value from the underlying VaryingDataType
-func (validityAttestation *ValidityAttestation) Value() (val scale.VaryingDataTypeValue) {
-	vdt := scale.VaryingDataType(*validityAttestation)
+func (va *validityAttestation) Value() (val scale.VaryingDataTypeValue) {
+	vdt := scale.VaryingDataType(*va)
 	return vdt.Value()
 }
 
@@ -54,22 +54,22 @@ func (explicit) Index() uint {
 }
 
 // newValidityAttestation creates a ValidityAttestation varying data type.
-func newValidityAttestation() ValidityAttestation {
+func newValidityAttestation() validityAttestation {
 	vdt, err := scale.NewVaryingDataType(implicit{}, explicit{})
 	if err != nil {
 		panic(err)
 	}
 
-	return ValidityAttestation(vdt)
+	return validityAttestation(vdt)
 }
 
-// DisputeStatement is a statement about a candidate, to be used within the dispute
+// disputeStatement is a statement about a candidate, to be used within the dispute
 // resolution process. Statements are either in favour of the candidate's validity
 // or against it.
-type DisputeStatement scale.VaryingDataType
+type disputeStatement scale.VaryingDataType
 
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (distputedStatement *DisputeStatement) Set(val scale.VaryingDataTypeValue) (err error) {
+func (distputedStatement *disputeStatement) Set(val scale.VaryingDataTypeValue) (err error) {
 	// cast to VaryingDataType to use VaryingDataType.Set method
 	vdt := scale.VaryingDataType(*distputedStatement)
 	err = vdt.Set(val)
@@ -77,12 +77,12 @@ func (distputedStatement *DisputeStatement) Set(val scale.VaryingDataTypeValue) 
 		return fmt.Errorf("setting value to varying data type: %w", err)
 	}
 	// store original ParentVDT with VaryingDataType that has been set
-	*distputedStatement = DisputeStatement(vdt)
+	*distputedStatement = disputeStatement(vdt)
 	return nil
 }
 
 // Value will return value from underying VaryingDataType
-func (distputedStatement *DisputeStatement) Value() (val scale.VaryingDataTypeValue) {
+func (distputedStatement *disputeStatement) Value() (val scale.VaryingDataTypeValue) {
 	vdt := scale.VaryingDataType(*distputedStatement)
 	return vdt.Value()
 }
@@ -182,7 +182,7 @@ func (explicitInvalidDisputeStatementKind) Index() uint {
 }
 
 // newDisputeStatement create a new DisputeStatement varying data type.
-func newDisputeStatement() DisputeStatement {
+func newDisputeStatement() disputeStatement {
 	idsKind, err := scale.NewVaryingDataType(explicitInvalidDisputeStatementKind{})
 	if err != nil {
 		panic(err)
@@ -200,7 +200,7 @@ func newDisputeStatement() DisputeStatement {
 		panic(err)
 	}
 
-	return DisputeStatement(vdt)
+	return disputeStatement(vdt)
 }
 
 // collatorID is the collator's relay-chain account ID
@@ -300,7 +300,7 @@ type backedCandidate struct {
 	// The candidate referred to.
 	Candidate committedCandidateReceipt `scale:"1"`
 	// The validity votes themselves, expressed as signatures.
-	ValidityVotes []ValidityAttestation `scale:"2"`
+	ValidityVotes []validityAttestation `scale:"2"`
 	// The indices of the validators within the group, expressed as a bitfield.
 	ValidatorIndices []byte `scale:"3"`
 }
@@ -319,7 +319,7 @@ type validatorSignature signature
 type statement struct {
 	ValidatorIndex     validatorIndex
 	ValidatorSignature validatorSignature
-	DisputeStatement   DisputeStatement
+	DisputeStatement   disputeStatement
 }
 
 // disputeStatementSet is a set of statements about a specific candidate.

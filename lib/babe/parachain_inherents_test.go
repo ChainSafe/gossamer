@@ -101,13 +101,14 @@ func TestDisputeStatement(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
-		name          string
-		vdt           DisputeStatement
+		name string
+		// vdt           DisputeStatement
+		vdtBuilder    func(t *testing.T) disputeStatement
 		encodingValue []uint8
 	}{
 		{
 			name: "Valid Explicit",
-			vdt: func() DisputeStatement {
+			vdtBuilder: func(t *testing.T) disputeStatement {
 				vdsKind, err := scale.NewVaryingDataType(
 					explicitValidDisputeStatementKind{}, backingSeconded{}, backingValid{}, approvalChecking{})
 				require.NoError(t, err)
@@ -115,18 +116,18 @@ func TestDisputeStatement(t *testing.T) {
 				err = vdsKind.Set(explicitValidDisputeStatementKind{})
 				require.NoError(t, err)
 
-				disputeStatement := newDisputeStatement()
-				err = disputeStatement.Set(validDisputeStatementKind(vdsKind))
+				ds := newDisputeStatement()
+				err = ds.Set(validDisputeStatementKind(vdsKind))
 				require.NoError(t, err)
 
-				return disputeStatement
-			}(),
+				return ds
+			},
 
 			encodingValue: []byte{0x0, 0x0},
 		},
 		{
 			name: "Valid ApprovalChecking",
-			vdt: func() DisputeStatement {
+			vdtBuilder: func(t *testing.T) disputeStatement {
 				vdsKind, err := scale.NewVaryingDataType(
 					explicitValidDisputeStatementKind{}, backingSeconded{}, backingValid{}, approvalChecking{},
 				)
@@ -135,17 +136,17 @@ func TestDisputeStatement(t *testing.T) {
 				err = vdsKind.Set(approvalChecking{})
 				require.NoError(t, err)
 
-				disputeStatement := newDisputeStatement()
-				err = disputeStatement.Set(validDisputeStatementKind(vdsKind))
+				ds := newDisputeStatement()
+				err = ds.Set(validDisputeStatementKind(vdsKind))
 				require.NoError(t, err)
 
-				return disputeStatement
-			}(),
+				return ds
+			},
 			encodingValue: []byte{0x0, 0x3},
 		},
 		{
 			name: "Valid BackingSeconded",
-			vdt: func() DisputeStatement {
+			vdtBuilder: func(t *testing.T) disputeStatement {
 				vdsKind, err := scale.NewVaryingDataType(
 					explicitValidDisputeStatementKind{}, backingSeconded{}, backingValid{}, approvalChecking{},
 				)
@@ -154,18 +155,18 @@ func TestDisputeStatement(t *testing.T) {
 				err = vdsKind.Set(backingSeconded(common.Hash{}))
 				require.NoError(t, err)
 
-				disputeStatement := newDisputeStatement()
-				err = disputeStatement.Set(validDisputeStatementKind(vdsKind))
+				ds := newDisputeStatement()
+				err = ds.Set(validDisputeStatementKind(vdsKind))
 				require.NoError(t, err)
 
-				return disputeStatement
-			}(),
+				return ds
+			},
 			encodingValue: []byte{0x0, 0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}, //nolint:lll
 
 		},
 		{
 			name: "Invalid Explicit",
-			vdt: func() DisputeStatement {
+			vdtBuilder: func(t *testing.T) disputeStatement {
 				idsKind, err := scale.NewVaryingDataType(
 					explicitInvalidDisputeStatementKind{},
 				)
@@ -179,7 +180,7 @@ func TestDisputeStatement(t *testing.T) {
 				require.NoError(t, err)
 
 				return disputeStatement
-			}(),
+			},
 			encodingValue: []byte{0x1, 0x0},
 		},
 	}
@@ -188,7 +189,9 @@ func TestDisputeStatement(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			bytes, err := scale.Marshal(c.vdt)
+			disputeStatement := c.vdtBuilder(t)
+
+			bytes, err := scale.Marshal(disputeStatement)
 			require.NoError(t, err)
 
 			require.Equal(t, c.encodingValue, bytes)
@@ -197,7 +200,7 @@ func TestDisputeStatement(t *testing.T) {
 			err = scale.Unmarshal(bytes, &newDst)
 			require.NoError(t, err)
 
-			assert.Equal(t, c.vdt, newDst)
+			assert.Equal(t, disputeStatement, newDst)
 		})
 	}
 }
