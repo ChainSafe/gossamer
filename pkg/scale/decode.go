@@ -576,7 +576,7 @@ func (ds *decodeState) decodeUint(dstv reflect.Value) (err error) {
 			return fmt.Errorf("reading byte: %w", err)
 		}
 		value = uint64(binary.LittleEndian.Uint16([]byte{prefix, buf}) >> 2)
-		if value <= 0x0011_1111 || value > 0b0111_1111_1111_1111 {
+		if value <= 0b0011_1111 || value > 0b0111_1111_1111_1111 {
 			return fmt.Errorf("%w: %d (%b)", ErrU16OutOfRange, value, value)
 		}
 	case 2:
