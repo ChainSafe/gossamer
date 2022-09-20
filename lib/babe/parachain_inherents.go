@@ -293,9 +293,6 @@ type uncheckedSignedAvailabilityBitfield struct {
 	ValidatorIndex uint32 `scale:"2"`
 	/// The signature by the validator of the signed payload.
 	Signature signature `scale:"3"`
-	// go does not have phantom data
-	// /// This ensures the real payload is tracked at the typesystem level.
-	// real_payload: sp_std::marker::PhantomData<RealPayload>,
 }
 
 // backedCandidate is a backed (or backable, depending on context) candidate.
