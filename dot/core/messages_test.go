@@ -262,7 +262,7 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 				setContextStorage: &mockSetContextStorage{trieState: &storage.TrieState{}},
 				validateTxn: &mockValidateTxn{
 					input: types.Extrinsic(append([]byte{byte(types.TxnExternal)}, testExtrinsic[0]...)),
-					err:   *invalidTransaction,
+					err:   invalidTransaction,
 				},
 			},
 			args: args{

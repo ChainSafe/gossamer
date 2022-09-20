@@ -48,14 +48,13 @@ func (i InvalidTransaction) Error() string {
 }
 
 // NewInvalidTransaction is constructor for InvalidTransaction
-func NewInvalidTransaction() *InvalidTransaction {
+func NewInvalidTransaction() InvalidTransaction {
 	vdt, err := scale.NewVaryingDataType(Call{}, Payment{}, Future{}, Stale{}, BadProof{}, AncientBirthBlock{},
 		ExhaustsResources{}, InvalidCustom(0), BadMandatory{}, MandatoryDispatch{})
 	if err != nil {
 		panic(err)
 	}
-	invalidTxnVdr := InvalidTransaction(vdt)
-	return &invalidTxnVdr
+	return InvalidTransaction(vdt)
 }
 
 // Call The call of the transaction is not expected

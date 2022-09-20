@@ -44,13 +44,13 @@ func (tve TransactionValidityError) Error() string {
 	case UnknownTransaction:
 		return err.Error()
 	default:
-		return fmt.Sprintf("unexpected value: %T %v", err, err)
+		panic(fmt.Sprintf("unexpected value: %T %v", err, err))
 	}
 }
 
 // NewTransactionValidityError is constructor for TransactionValidityError
 func NewTransactionValidityError() *TransactionValidityError {
-	vdt, err := scale.NewVaryingDataType(*NewInvalidTransaction(), NewUnknownTransaction())
+	vdt, err := scale.NewVaryingDataType(NewInvalidTransaction(), NewUnknownTransaction())
 	if err != nil {
 		panic(err)
 	}
