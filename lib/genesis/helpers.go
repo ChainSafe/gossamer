@@ -185,11 +185,11 @@ func generatePalletKeyValue(k string, v interface{}, res map[string]string) (boo
 	var s interface{}
 	switch k {
 	case societyConst:
-		s = &society{}
+		s = &Society{}
 	case stakingConst:
-		s = &staking{}
+		s = &Staking{}
 	case contractsConst:
-		c := &contracts{}
+		c := &Contracts{}
 		if err = json.Unmarshal(jsonBody, c); err != nil {
 			return false, err
 		}
@@ -200,7 +200,7 @@ func generatePalletKeyValue(k string, v interface{}, res map[string]string) (boo
 		}
 		return true, nil
 	case sessionConst:
-		sc := &session{}
+		sc := &Session{}
 		if err = json.Unmarshal(jsonBody, sc); err != nil {
 			return false, err
 		}
@@ -211,13 +211,13 @@ func generatePalletKeyValue(k string, v interface{}, res map[string]string) (boo
 		}
 		return true, nil
 	case instance1CollectiveConst:
-		s = &instance1Collective{}
+		s = &Instance1Collective{}
 	case instance2CollectiveConst:
-		s = &instance2Collective{}
+		s = &Instance2Collective{}
 	case instance1MembershipConst:
-		s = &instance1Membership{}
+		s = &Instance1Membership{}
 	case phragmenElectionConst:
-		s = &phragmenElection{}
+		s = &PhragmenElection{}
 	default:
 		return false, nil
 	}
@@ -415,7 +415,7 @@ func generateStorageValue(i interface{}, idx int) ([]byte, error) {
 	return encode, nil
 }
 
-func generateContractKeyValue(c *contracts, prefixKey string, res map[string]string) error {
+func generateContractKeyValue(c *Contracts, prefixKey string, res map[string]string) error {
 	var (
 		key string
 		err error
@@ -482,20 +482,22 @@ func formatKey(kv *keyValue) (string, error) {
 	}
 }
 
-func generateSessionKeyValue(s *session, prefixKey string, res map[string]string) error {
+func generateSessionKeyValue(s *Session, prefixKey string, res map[string]string) error {
 	val := reflect.ValueOf(s).Elem()
 	moduleName, err := common.Twox128Hash([]byte(prefixKey))
 	if err != nil {
 		return err
 	}
 
-	storageVal, ok := val.Field(0).Interface().([][]interface{})
+	storageVal, ok := val.Field(0).Interface().([]NextKeys)
 	if !ok {
 		return nil
 	}
 
 	for _, strV := range storageVal {
-		for _, v := range strV {
+		refValOfStrV := reflect.ValueOf(strV)
+		for idx := 0; idx < refValOfStrV.NumField(); idx++ {
+			v := refValOfStrV.Field(idx).Interface()
 			var validatorAccID []byte
 			switch t := v.(type) {
 			case string:
@@ -515,7 +517,7 @@ func generateSessionKeyValue(s *session, prefixKey string, res map[string]string
 				prefix := bytes.Join([][]byte{moduleName, nextKeyHash}, nil)
 				suffix := bytes.Join([][]byte{accIDHash, validatorAccID}, nil)
 				res[common.BytesToHex(append(prefix, suffix...))] = common.BytesToHex(validatorAccID)
-			case map[string]interface{}:
+			case KeyOwner:
 				var storagePrefixKey []byte
 				storagePrefixKey, err = common.Twox128Hash([]byte("KeyOwner"))
 				if err != nil {
@@ -523,26 +525,31 @@ func generateSessionKeyValue(s *session, prefixKey string, res map[string]string
 				}
 
 				storagePrefixKey = append(moduleName, storagePrefixKey...)
-				for key, v1 := range t {
+
+				refValOfT := reflect.ValueOf(t)
+				for idxT := 0; idxT < refValOfT.NumField(); idxT++ {
+					key := refValOfT.Type().Field(idxT).Name
+					v1 := refValOfT.Field(idxT).String()
+
 					var addressKey []byte
 					switch key {
-					case "grandpa":
-						addressKey, err = generateAddressHash(v1.(string), "gran")
+					case "Grandpa":
+						addressKey, err = generateAddressHash(v1, "gran")
 						if err != nil {
 							return err
 						}
-					case "babe":
-						addressKey, err = generateAddressHash(v1.(string), "babe")
+					case "Babe":
+						addressKey, err = generateAddressHash(v1, "babe")
 						if err != nil {
 							return err
 						}
-					case "im_online":
-						addressKey, err = generateAddressHash(v1.(string), "imon")
+					case "ImOnline":
+						addressKey, err = generateAddressHash(v1, "imon")
 						if err != nil {
 							return err
 						}
-					case "authority_discovery":
-						addressKey, err = generateAddressHash(v1.(string), "audi")
+					case "AuthorityDiscovery":
+						addressKey, err = generateAddressHash(v1, "audi")
 						if err != nil {
 							return err
 						}

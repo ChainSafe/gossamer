@@ -71,16 +71,16 @@ type Runtime struct {
 	Instance1Membership Instance1Membership `json:"Instance1Membership"`
 	Contracts           Contracts           `json:"Contracts"`
 	Society             Society             `json:"Society"`
-	Indices             Indices             `json:"indices"`
-	ImOnline            ImOnline            `json:"imOnline"`
-	AuthorityDiscovery  AuthorityDiscovery  `json:"authorityDiscovery"`
-	Vesting             Vesting             `json:"vesting"`
-	NominationPools     NominationPools     `json:"nominationPools"`
-	Configuration       Configuration       `json:"configuration"`
-	Paras               Paras               `json:"paras"`
-	Hrmp                Hrmp                `json:"hrmp"`
-	Registrar           Registrar           `json:"registrar"`
-	XcmPallet           XcmPallet           `json:"xcmPallet"`
+	//Indices             Indices             `json:"indices"`
+	//ImOnline            ImOnline            `json:"imOnline"`
+	//AuthorityDiscovery AuthorityDiscovery `json:"authorityDiscovery"`
+	//Vesting            Vesting            `json:"vesting"`
+	NominationPools NominationPools `json:"nominationPools"`
+	Configuration   Configuration   `json:"configuration"`
+	// Paras           Paras           `json:"paras"`
+	// Hrmp            Hrmp            `json:"hrmp"`
+	Registrar Registrar `json:"registrar"`
+	XcmPallet XcmPallet `json:"xcmPallet"`
 }
 
 // System is ...
@@ -123,8 +123,23 @@ type Sudo struct {
 
 // Session is ...
 type Session struct {
-	Keys     [][]interface{} `json:"keys"`
-	NextKeys [][]interface{} `json:"NextKeys"`
+	// Keys     [][]interface{} `json:"keys"`
+	NextKeys []NextKeys `json:"NextKeys"`
+}
+
+// NextKeys is ...
+type NextKeys struct {
+	AccountId1 string
+	AccountId2 string
+	KeyOwner   KeyOwner
+}
+
+// KeyOwner is ...
+type KeyOwner struct {
+	Grandpa            string `json:"grandpa"`
+	Babe               string `json:"babe"`
+	ImOnline           string `json:"im_online"`
+	AuthorityDiscovery string `json:"authority_discovery"`
 }
 
 // Staking is ...
@@ -147,8 +162,8 @@ type Staking struct {
 
 // Instance1Collective is ...
 type Instance1Collective struct {
-	Phantom interface{}   `json:"Phantom"`
-	Members []interface{} `json:"Members"`
+	Phantom interface{} `json:"Phantom"`
+	Members []string    `json:"Members"`
 }
 
 // Instance2Collective is ...
@@ -160,13 +175,18 @@ type Instance2Collective struct {
 // PhragmenElection is ...
 type PhragmenElection struct {
 	// TODO: figure out the correct encoding format of members data (#1866)
-	Members [][]interface{} `json:"Members"`
+	Members []MembersFields `json:"Members"`
+}
+
+type MembersFields struct {
+	AccountID string
+	Balance   big.Int
 }
 
 // Instance1Membership is ...
 type Instance1Membership struct {
-	Members []interface{} `json:"Members"`
-	Phantom interface{}   `json:"Phantom"`
+	Members []string    `json:"Members"`
+	Phantom interface{} `json:"Phantom"`
 }
 
 // Contracts is ...
@@ -308,26 +328,6 @@ type Society struct {
 	Members    []string `json:"Members"`
 }
 
-// Indices is ...
-type Indices struct {
-	Indices []interface{} `json:"indices"`
-}
-
-// ImOnline is ...
-type ImOnline struct {
-	Keys []interface{} `json:"keys"`
-}
-
-// AuthorityDiscovery is ...
-type AuthorityDiscovery struct {
-	Keys []interface{} `json:"keys"`
-}
-
-// Vesting is ...
-type Vesting struct {
-	Vesting []interface{} `json:"vesting"`
-}
-
 // NominationPools is ...
 type NominationPools struct {
 	MinJoinBond       int64 `json:"minJoinBond"`
@@ -390,14 +390,14 @@ type Config struct {
 }
 
 // Paras is ...
-type Paras struct {
-	Paras []interface{} `json:"paras"`
-}
+// type Paras struct {
+// 	Paras []interface{} `json:"paras"`
+// }
 
 // Hrmp is ...
-type Hrmp struct {
-	PreopenHrmpChannels []interface{} `json:"preopenHrmpChannels"`
-}
+// type Hrmp struct {
+// 	PreopenHrmpChannels []interface{} `json:"preopenHrmpChannels"`
+// }
 
 // Registrar is ...
 type Registrar struct {
@@ -491,11 +491,12 @@ func (r *Runtime) UnmarshalJSON(data []byte) error {
 	return err
 }
 
-// Custom Unmarshal method for BalancesFields.
+//Custom Unmarshal method for BalancesFields.
 func (b *BalancesFields) UnmarshalJSON(buf []byte) error {
 	tmp := []interface{}{&b.AccountID, &b.Balance}
 	wantLen := len(tmp)
 	if err := json.Unmarshal(buf, &tmp); err != nil {
+		fmt.Println("===>  Error in balance unmarshal.")
 		return err
 	}
 	if newLen := len(tmp); newLen != wantLen {

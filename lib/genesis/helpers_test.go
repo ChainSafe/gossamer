@@ -113,15 +113,15 @@ func TestNewGenesisFromJSON(t *testing.T) {
 	}
 
 	hrData.Session = Session{
-		NextKeys: [][]interface{}{
+		NextKeys: []NextKeys{
 			{
 				"5GNJqTPyNqANBkUVMN1LPPrxXnFouWXoe2wNSmmEoLctxiZY",
 				"5GNJqTPyNqANBkUVMN1LPPrxXnFouWXoe2wNSmmEoLctxiZY",
-				map[string]interface{}{
-					"grandpa":             "5FA9nQDVg267DEd8m1ZypXLBnvN7SFxYwV7ndqSYGiN9TTpu",
-					"babe":                "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
-					"im_online":           "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
-					"authority_discovery": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+				KeyOwner{
+					Grandpa:            "5FA9nQDVg267DEd8m1ZypXLBnvN7SFxYwV7ndqSYGiN9TTpu",
+					Babe:               "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+					ImOnline:           "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+					AuthorityDiscovery: "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
 				},
 			},
 		},
@@ -129,7 +129,7 @@ func TestNewGenesisFromJSON(t *testing.T) {
 
 	hrData.Instance1Collective = Instance1Collective{
 		Phantom: nil,
-		Members: []interface{}{},
+		Members: []string{},
 	}
 	hrData.Instance2Collective = Instance2Collective{
 		Phantom: nil,
@@ -140,7 +140,7 @@ func TestNewGenesisFromJSON(t *testing.T) {
 	}
 
 	hrData.Instance1Membership = Instance1Membership{
-		Members: []interface{}{},
+		Members: []string{},
 		Phantom: nil,
 	}
 

@@ -132,6 +132,7 @@ func (a *AuthorityAsAddress) UnmarshalJSON(buf []byte) error {
 	tmp := []interface{}{&a.Address, &a.Weight}
 	wantLen := len(tmp)
 	if err := json.Unmarshal(buf, &tmp); err != nil {
+		fmt.Println("==>  Error in AuthorityAsAddress Unmarshal.")
 		return err
 	}
 	if newLen := len(tmp); newLen != wantLen {
