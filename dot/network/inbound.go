@@ -45,6 +45,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder
 			s.host.id(), peer, msg)
 
 		if err = handler(stream, msg); err != nil {
+			// TODO: should we response on certain kinds of messages?
 			logger.Tracef("failed to handle message %s from stream id %s: %s", msg, stream.ID(), err)
 			return
 		}

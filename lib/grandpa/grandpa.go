@@ -433,12 +433,17 @@ func (s *Service) playGrandpaRound() error {
 		currentRound, currentSetID)
 
 	cancel := make(chan struct{})
-	defer close(cancel)
+	engineEndCh := make(chan struct{})
 
-	roundActions := s.finalizationEngine(cancel)
+	roundActions := s.finalizationEngine(engineEndCh, cancel)
 
 	for { //nolint:gosimple
 		select {
+		case <-s.ctx.Done():
+			close(cancel)
+			<-engineEndCh
+
+			return s.ctx.Err()
 		case action, ok := <-roundActions:
 			if !ok {
 				return nil
@@ -448,19 +453,19 @@ func (s *Service) playGrandpaRound() error {
 			case determinePrevote:
 				isPrimary, err := s.handleIsPrimary()
 				if err != nil {
-					return err
+					return fmt.Errorf("handling primary: %w", err)
 				}
 
 				// broadcast pre-vote
 				preVote, err := s.determinePreVote()
 				if err != nil {
-					return err
+					return fmt.Errorf("determining pre-vote: %w", err)
 				}
 
 				signedpreVote, prevoteMessage, err :=
 					s.createSignedVoteAndVoteMessage(preVote, prevote)
 				if err != nil {
-					return err
+					return fmt.Errorf("creating signed vote: %w", err)
 				}
 
 				if !isPrimary {
@@ -472,7 +477,7 @@ func (s *Service) playGrandpaRound() error {
 			case determinePrecommit:
 				preComit, err := s.determinePreCommit()
 				if err != nil {
-					return fmt.Errorf("determining precommit: %w", err)
+					return fmt.Errorf("determining pre-commit: %w", err)
 				}
 
 				signedpreComit, precommitMessage, err :=
@@ -488,7 +493,7 @@ func (s *Service) playGrandpaRound() error {
 			case finalize:
 				commitMessage, err := s.newCommitMessage(s.head, s.state.round, s.state.setID)
 				if err != nil {
-					return fmt.Errorf("generating commit message: %w", err)
+					return fmt.Errorf("creating commit message: %w", err)
 				}
 
 				commitConsensusMessage, err := commitMessage.ToConsensusMessage()
@@ -496,7 +501,7 @@ func (s *Service) playGrandpaRound() error {
 					return fmt.Errorf("transforming commit into consensus message: %w", err)
 				}
 
-				logger.Debugf("sending CommitMessage: %v", commitMessage)
+				logger.Debugf("sending commit message: %v", commitMessage)
 
 				s.network.GossipMessage(commitConsensusMessage)
 				s.telemetry.SendMessage(telemetry.NewAfgFinalizedBlocksUpTo(
@@ -521,10 +526,11 @@ const (
 	finalize
 )
 
-func (s *Service) finalizationEngine(cancel <-chan struct{}) <-chan action {
+func (s *Service) finalizationEngine(engineEndCh chan<- struct{}, cancel <-chan struct{}) <-chan action {
 	performAction := make(chan action)
 
 	go func() {
+		defer close(engineEndCh)
 		defer close(performAction)
 
 		determinePrevoteTimer := time.NewTimer(s.interval * 2)
@@ -594,6 +600,7 @@ func (s *Service) finalizationEngine(cancel <-chan struct{}) <-chan action {
 					continue
 				}
 
+				// TODO: if a round is already completable we should not complete it again
 				performAction <- finalize
 				return
 			}
@@ -1379,6 +1386,7 @@ func (s *Service) handleVoteMessage(from peer.ID, vote *VoteMessage) {
 
 	v, err := s.validateVoteMessage(from, vote)
 	if err != nil {
+		// TODO: log in the outer most layer and maybe split the erros from the return error string
 		logger.Debugf("failed to validate vote message {%v}: %s", vote, err)
 		return
 	}
