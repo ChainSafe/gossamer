@@ -20,10 +20,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newTestStorageState(t *testing.T, tries *Tries) *StorageState {
+func newTestStorageState(t *testing.T) *StorageState {
 	db := NewInMemoryDB(t)
 
-	bs := newTestBlockState(t, testGenesisHeader, tries)
+	tries := newTriesEmpty()
+	bs := newTestBlockState(t, tries)
 
 	s, err := NewStorageState(db, bs, tries, pruner.Config{})
 	require.NoError(t, err)
@@ -31,7 +32,7 @@ func newTestStorageState(t *testing.T, tries *Tries) *StorageState {
 }
 
 func TestStorage_StoreAndLoadTrie(t *testing.T) {
-	storage := newTestStorageState(t, newTriesEmpty())
+	storage := newTestStorageState(t)
 	ts, err := storage.TrieState(&trie.EmptyHash)
 	require.NoError(t, err)
 
@@ -50,7 +51,7 @@ func TestStorage_StoreAndLoadTrie(t *testing.T) {
 }
 
 func TestStorage_GetStorageByBlockHash(t *testing.T) {
-	storage := newTestStorageState(t, newTriesEmpty())
+	storage := newTestStorageState(t)
 	ts, err := storage.TrieState(&trie.EmptyHash)
 	require.NoError(t, err)
 
@@ -85,7 +86,7 @@ func TestStorage_GetStorageByBlockHash(t *testing.T) {
 }
 
 func TestStorage_TrieState(t *testing.T) {
-	storage := newTestStorageState(t, newTriesEmpty())
+	storage := newTestStorageState(t)
 	ts, err := storage.TrieState(&trie.EmptyHash)
 	require.NoError(t, err)
 	ts.Set([]byte("noot"), []byte("washere"))
@@ -105,7 +106,7 @@ func TestStorage_TrieState(t *testing.T) {
 }
 
 func TestStorage_LoadFromDB(t *testing.T) {
-	storage := newTestStorageState(t, newTriesEmpty())
+	storage := newTestStorageState(t)
 	ts, err := storage.TrieState(&trie.EmptyHash)
 	require.NoError(t, err)
 
@@ -150,7 +151,7 @@ func TestStorage_LoadFromDB(t *testing.T) {
 }
 
 func TestStorage_StoreTrie_NotSyncing(t *testing.T) {
-	storage := newTestStorageState(t, newTriesEmpty())
+	storage := newTestStorageState(t)
 	ts, err := storage.TrieState(&trie.EmptyHash)
 	require.NoError(t, err)
 
