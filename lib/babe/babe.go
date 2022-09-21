@@ -483,7 +483,7 @@ func (b *Service) handleSlot(epoch, slotNum uint64,
 			// pick parent of best block instead to handle slot
 			newParentHeader, err := b.blockState.GetHeader(parentHeader.ParentHash)
 			if err != nil {
-				return fmt.Errorf("could not get header for hash %s: %w", parentHeader.ParentHash, err)
+				return fmt.Errorf("could not get header: %w", err)
 			}
 			if newParentHeader == nil {
 				return errNilParentHeader
