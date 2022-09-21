@@ -1,6 +1,7 @@
 // Copyright 2022 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
-package modules
+
+package babe
 
 import (
 	"testing"
@@ -14,12 +15,25 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func stringToHex(s string) (hex string) {
-	return common.BytesToHex([]byte(s))
-}
+// newDevGenesisWithTrieAndHeader generates test dev genesis, genesis trie and genesis header
+func newDevGenesisWithTrieAndHeader(t *testing.T) (
+	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
+	t.Helper()
+	genesisPath := utils.GetDevV3SubstrateGenesisPath(t)
 
-func makeChange(keyHex, valueHex string) [2]*string {
-	return [2]*string{&keyHex, &valueHex}
+	genesisPtr, err := genesis.NewGenesisFromJSONRaw(genesisPath)
+	require.NoError(t, err)
+	gen = *genesisPtr
+
+	genesisTrie, err = wasmer.NewTrieFromGenesis(gen)
+	require.NoError(t, err)
+
+	genesisHeaderPtr, err := types.NewHeader(common.NewHash([]byte{0}),
+		genesisTrie.MustHash(), trie.EmptyHash, 0, types.NewDigest())
+	require.NoError(t, err)
+	genesisHeader = *genesisHeaderPtr
+
+	return gen, genesisTrie, genesisHeader
 }
 
 func newTestGenesisWithTrieAndHeader(t *testing.T) (
