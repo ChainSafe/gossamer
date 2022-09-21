@@ -441,11 +441,10 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 		duration: time.Second,
 		number:   bestBlockSlotNum,
 	}
-	testVRFOutputAndProof := &VrfOutputAndProof{}
 	preRuntimeDigest, err := types.NewBabePrimaryPreDigest(
 		0, slot.number,
-		testVRFOutputAndProof.output,
-		testVRFOutputAndProof.proof,
+		[sr25519.VRFOutputLength]byte{},
+		[sr25519.VRFProofLength]byte{},
 	).ToPreRuntimeDigest()
 	require.NoError(t, err)
 
