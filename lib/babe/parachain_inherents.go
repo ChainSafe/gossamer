@@ -258,7 +258,7 @@ type outboundHrmpMessage struct {
 // validationCode is Parachain validation code.
 type validationCode []byte
 
-// HeadData is Parachain head data included in the chain.
+// headData is Parachain head data included in the chain.
 type headData []byte
 
 // candidateCommitments are Commitments made in a `CandidateReceipt`. Many of these are outputs of validation.
