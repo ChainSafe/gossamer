@@ -309,8 +309,8 @@ func (s *StorageState) GenerateTrieProof(stateRoot common.Hash, keys [][]byte) (
 	return proof.Generate(stateRoot[:], keys, s.db)
 }
 
-// GetRuntimeFromDB gets the runtime for the corresponding block hash from storageState
-func (s *StorageState) GetRuntimeFromDB(blockHash common.Hash) (instance runtime.Instance, err error) {
+// GetRuntime gets the runtime for the corresponding block hash from storageState
+func (s *StorageState) GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error) {
 	var stateRootHash *common.Hash
 	stateRootHash, err = s.GetStateRootFromBlock(&blockHash)
 	if err != nil {

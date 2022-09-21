@@ -473,19 +473,19 @@ func (m *MockStorageState) EXPECT() *MockStorageStateMockRecorder {
 	return m.recorder
 }
 
-// GetRuntimeFromDB mocks base method.
-func (m *MockStorageState) GetRuntimeFromDB(arg0 common.Hash) (runtime.Instance, error) {
+// GetRuntime mocks base method.
+func (m *MockStorageState) GetRuntime(arg0 common.Hash) (runtime.Instance, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRuntimeFromDB", arg0)
+	ret := m.ctrl.Call(m, "GetRuntime", arg0)
 	ret0, _ := ret[0].(runtime.Instance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetRuntimeFromDB indicates an expected call of GetRuntimeFromDB.
-func (mr *MockStorageStateMockRecorder) GetRuntimeFromDB(arg0 interface{}) *gomock.Call {
+// GetRuntime indicates an expected call of GetRuntime.
+func (mr *MockStorageStateMockRecorder) GetRuntime(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRuntimeFromDB", reflect.TypeOf((*MockStorageState)(nil).GetRuntimeFromDB), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRuntime", reflect.TypeOf((*MockStorageState)(nil).GetRuntime), arg0)
 }
 
 // GetStateRootFromBlock mocks base method.

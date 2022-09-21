@@ -192,7 +192,7 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 
 	rt, err := s.blockState.GetRuntime(&block.Header.ParentHash)
 	if errors.Is(err, blocktree.ErrFailedToGetRuntime) {
-		rt, err = s.storageState.GetRuntimeFromDB(block.Header.ParentHash)
+		rt, err = s.storageState.GetRuntime(block.Header.ParentHash)
 		if err != nil {
 			return fmt.Errorf("getting runtime from database: %w", err)
 		}
@@ -452,7 +452,7 @@ func (s *Service) GetRuntimeVersion(bhash *common.Hash) (
 
 	rt, err := s.blockState.GetRuntime(bhash)
 	if errors.Is(err, blocktree.ErrFailedToGetRuntime) {
-		rt, err = s.storageState.GetRuntimeFromDB(*bhash)
+		rt, err = s.storageState.GetRuntime(*bhash)
 		if err != nil {
 			return version, fmt.Errorf("getting runtime from database: %w", err)
 		}
@@ -531,7 +531,7 @@ func (s *Service) GetMetadata(bhash *common.Hash) ([]byte, error) {
 
 	rt, err := s.blockState.GetRuntime(bhash)
 	if errors.Is(err, blocktree.ErrFailedToGetRuntime) {
-		rt, err = s.storageState.GetRuntimeFromDB(*bhash)
+		rt, err = s.storageState.GetRuntime(*bhash)
 		if err != nil {
 			return nil, fmt.Errorf("getting runtime from database: %w", err)
 		}

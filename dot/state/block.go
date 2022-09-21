@@ -658,7 +658,7 @@ func (bs *BlockState) GetBestBlockRuntime() (instance runtime.Instance) {
 	if err != nil {
 		panic(fmt.Sprintf("we should always succeed getting the best block runtime but an error orrurred: %s", err))
 	}
-	return
+	return instance
 }
 
 // StoreRuntime stores the runtime for corresponding block hash.
