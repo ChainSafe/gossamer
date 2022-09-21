@@ -206,7 +206,7 @@ func newDisputeStatement() disputeStatement {
 // collatorID is the collator's relay-chain account ID
 type collatorID []byte
 
-// CollatorSignature is the signature on a candidate's block data signed by a collator.
+// collatorSignature is the signature on a candidate's block data signed by a collator.
 type collatorSignature signature
 
 //  validationCodeHash is the blake2-256 hash of the validation code bytes.
@@ -258,7 +258,7 @@ type outboundHrmpMessage struct {
 // validationCode is Parachain validation code.
 type validationCode []byte
 
-// HeadData is Parachain head data included in the chain.
+// headData is Parachain head data included in the chain.
 type headData []byte
 
 // candidateCommitments are Commitments made in a `CandidateReceipt`. Many of these are outputs of validation.
@@ -291,7 +291,7 @@ type uncheckedSignedAvailabilityBitfield struct {
 	Payload []byte `scale:"1"`
 	// The index of the validator signing this statement.
 	ValidatorIndex uint32 `scale:"2"`
-	/// The signature by the validator of the signed payload.
+	// The signature by the validator of the signed payload.
 	Signature signature `scale:"3"`
 }
 
