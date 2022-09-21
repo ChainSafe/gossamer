@@ -343,11 +343,10 @@ func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
 		duration: time.Second,
 		number:   slotnum,
 	}
-	testVRFOutputAndProof := &VrfOutputAndProof{}
 	preRuntimeDigest, err := types.NewBabePrimaryPreDigest(
 		0, slot.number,
-		testVRFOutputAndProof.output,
-		testVRFOutputAndProof.proof,
+		[sr25519.VRFOutputLength]byte,
+		[sr25519.VRFProofLength]byte,
 	).ToPreRuntimeDigest()
 
 	require.NoError(t, err)
