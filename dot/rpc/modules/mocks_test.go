@@ -69,6 +69,21 @@ func (mr *MockStorageAPIMockRecorder) GetKeysWithPrefix(arg0, arg1 interface{}) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetKeysWithPrefix", reflect.TypeOf((*MockStorageAPI)(nil).GetKeysWithPrefix), arg0, arg1)
 }
 
+// GetRuntime mocks base method.
+func (m *MockStorageAPI) GetRuntime(arg0 common.Hash) (runtime.Instance, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRuntime", arg0)
+	ret0, _ := ret[0].(runtime.Instance)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetRuntime indicates an expected call of GetRuntime.
+func (mr *MockStorageAPIMockRecorder) GetRuntime(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRuntime", reflect.TypeOf((*MockStorageAPI)(nil).GetRuntime), arg0)
+}
+
 // GetStateRootFromBlock mocks base method.
 func (m *MockStorageAPI) GetStateRootFromBlock(arg0 *common.Hash) (*common.Hash, error) {
 	m.ctrl.T.Helper()

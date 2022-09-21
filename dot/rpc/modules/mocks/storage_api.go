@@ -6,6 +6,8 @@ import (
 	common "github.com/ChainSafe/gossamer/lib/common"
 	mock "github.com/stretchr/testify/mock"
 
+	runtime "github.com/ChainSafe/gossamer/lib/runtime"
+
 	state "github.com/ChainSafe/gossamer/dot/state"
 
 	storage "github.com/ChainSafe/gossamer/lib/runtime/storage"
@@ -57,6 +59,29 @@ func (_m *StorageAPI) GetKeysWithPrefix(root *common.Hash, prefix []byte) ([][]b
 	var r1 error
 	if rf, ok := ret.Get(1).(func(*common.Hash, []byte) error); ok {
 		r1 = rf(root, prefix)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetRuntime provides a mock function with given fields: blockHash
+func (_m *StorageAPI) GetRuntime(blockHash common.Hash) (runtime.Instance, error) {
+	ret := _m.Called(blockHash)
+
+	var r0 runtime.Instance
+	if rf, ok := ret.Get(0).(func(common.Hash) runtime.Instance); ok {
+		r0 = rf(blockHash)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(runtime.Instance)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(common.Hash) error); ok {
+		r1 = rf(blockHash)
 	} else {
 		r1 = ret.Error(1)
 	}

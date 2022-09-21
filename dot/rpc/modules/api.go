@@ -31,6 +31,7 @@ type StorageAPI interface {
 	RegisterStorageObserver(observer state.Observer)
 	UnregisterStorageObserver(observer state.Observer)
 	TrieState(root *common.Hash) (*storage.TrieState, error)
+	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
 }
 
 //go:generate mockery --name BlockAPI --structname BlockAPI --case underscore --keeptree
