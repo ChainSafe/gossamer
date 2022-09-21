@@ -386,15 +386,15 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 		Authority: true,
 		Lead:      true,
 		Keypair:   bob,
-	}
-	cfgBob.AuthData = []types.Authority{
-		{
-			Key:    alice.Public().(*sr25519.PublicKey),
-			Weight: 1,
-		},
-		{
-			Key:    bob.Public().(*sr25519.PublicKey),
-			Weight: 1,
+		AuthData: []types.Authority{
+			{
+				Key:    alice.Public().(*sr25519.PublicKey),
+				Weight: 1,
+			},
+			{
+				Key:    bob.Public().(*sr25519.PublicKey),
+				Weight: 1,
+			},
 		},
 	}
 
