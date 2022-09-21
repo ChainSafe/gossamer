@@ -471,7 +471,7 @@ func (b *Service) handleSlot(epoch, slotNum uint64,
 	if !atGenesisBlock {
 		bestBlockSlotNum, err := b.blockState.GetSlotForBlock(parentHeader.Hash())
 		if err != nil {
-			return fmt.Errorf("could not get slot for block %s: %w", parentHeader.Hash(), err)
+			return fmt.Errorf("could not get slot for block: %w", err)
 		}
 
 		if bestBlockSlotNum > slotNum {
