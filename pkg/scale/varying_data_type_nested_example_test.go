@@ -28,13 +28,9 @@ func (pvdt *ParentVDT) Set(val scale.VaryingDataTypeValue) (err error) {
 }
 
 // Value will return value from underying VaryingDataType
-func (pvdt *ParentVDT) Value() (val scale.VaryingDataTypeValue) {
+func (pvdt *ParentVDT) Value() (val scale.VaryingDataTypeValue, err error) {
 	vdt := scale.VaryingDataType(*pvdt)
-	vdtValue, _ := vdt.Value() //todo make this (and other VDTs?) return error
-	//if err != nil {
-	//	return nil, err
-	//}
-	return vdtValue
+	return vdt.Value()
 }
 
 // NewParentVDT is constructor for ParentVDT
@@ -70,10 +66,9 @@ func (cvdt *ChildVDT) Set(val scale.VaryingDataTypeValue) (err error) {
 }
 
 // Value will return value from underying VaryingDataType
-func (cvdt *ChildVDT) Value() (val scale.VaryingDataTypeValue) {
+func (cvdt *ChildVDT) Value() (val scale.VaryingDataTypeValue, err error) {
 	vdt := scale.VaryingDataType(*cvdt)
-	vdtValue, _ := vdt.Value()
-	return vdtValue
+	return vdt.Value()
 }
 
 // NewChildVDT is constructor for ChildVDT
@@ -161,11 +156,19 @@ func Example() {
 	}
 
 	// validate ParentVDT.Value()
-	fmt.Printf("parent.Value(): %+v\n", parent.Value())
+	parentVal, err := parent.Value()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("parent.Value(): %+v\n", parentVal)
 	// should cast to ChildVDT, since that was set earlier
-	valChildVDT := parent.Value().(ChildVDT)
+	valChildVDT := parentVal.(ChildVDT)
 	// validate ChildVDT.Value() as ChildInt16(888)
-	fmt.Printf("child.Value(): %+v\n", valChildVDT.Value())
+	childVdtValue, err := valChildVDT.Value()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("child.Value(): %+v\n", childVdtValue)
 
 	// marshal into scale encoded bytes
 	bytes, err := scale.Marshal(parent)
