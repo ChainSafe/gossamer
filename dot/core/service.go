@@ -488,13 +488,13 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 	rt.SetContextStorage(ts)
 	// the transaction source is External
 	externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))
-	txv, err := rt.ValidateTransaction(externalExt)
+	transactionValidity, err := rt.ValidateTransaction(externalExt)
 	if err != nil {
 		return err
 	}
 
 	// add transaction to pool
-	vtx := transaction.NewValidTransaction(ext, txv)
+	vtx := transaction.NewValidTransaction(ext, transactionValidity)
 	s.transactionState.AddToPool(vtx)
 
 	// broadcast transaction
