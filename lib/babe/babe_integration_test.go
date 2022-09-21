@@ -407,7 +407,7 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 	}()
 
 	// wait till bob creates a block
-	time.Sleep(babeServiceBob.constants.slotDuration * 1)
+	time.Sleep(babeServiceBob.constants.slotDuration)
 	require.NoError(t, err)
 
 	block, err := babeServiceBob.blockState.GetBlockByNumber(1)
