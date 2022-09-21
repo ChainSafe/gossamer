@@ -229,13 +229,13 @@ func buildBlockInherents(slot Slot, rt runtime.Instance, parent *types.Header) (
 	// Setup inherents: add timstap0
 	idata := types.NewInherentsData()
 	timestamp := uint64(time.Now().UnixMilli())
-	err := idata.SetInt64Inherent(types.Timstap0, timestamp)
+	err := idata.SetInherent(types.Timstap0, timestamp)
 	if err != nil {
 		return nil, err
 	}
 
 	// add babeslot
-	err = idata.SetInt64Inherent(types.Babeslot, slot.number)
+	err = idata.SetInherent(types.Babeslot, slot.number)
 	if err != nil {
 		return nil, err
 	}
@@ -248,11 +248,11 @@ func buildBlockInherents(slot Slot, rt runtime.Instance, parent *types.Header) (
 	// for now we can use "empty" values, as we require parachain-specific
 	// logic to actually provide the data.
 
-	if err = idata.SetStructInherent(types.Parachn0, parachainInherent); err != nil {
+	if err = idata.SetInherent(types.Parachn0, parachainInherent); err != nil {
 		return nil, fmt.Errorf("setting struct inherent %q: %w", types.Parachn0, err)
 	}
 
-	if err = idata.SetStructInherent(types.Newheads, []byte{0}); err != nil {
+	if err = idata.SetInherent(types.Newheads, []byte{0}); err != nil {
 		return nil, fmt.Errorf("setting struct inherent %q: %w", types.Newheads, err)
 	}
 

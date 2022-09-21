@@ -5,7 +5,6 @@ package types
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 	"math/big"
 
@@ -28,7 +27,7 @@ var (
 // InherentsData contains a mapping of inherent keys to values
 // keys must be 8 bytes, values are a scale-encoded byte array
 type InherentsData struct {
-	data map[[8]byte]([]byte)
+	data map[[8]byte][]byte
 }
 
 // NewInherentsData returns InherentsData
@@ -46,29 +45,8 @@ func (d *InherentsData) String() string {
 	return str
 }
 
-// SetInt64Inherent set an inherent of type uint64
-func (d *InherentsData) SetInt64Inherent(key []byte, data uint64) error {
-	if len(key) != 8 {
-		panic(fmt.Sprintf("inherent key must be 8 bytes but is: %v", key))
-	}
-
-	val := make([]byte, 8)
-	binary.LittleEndian.PutUint64(val, data)
-
-	venc, err := scale.Marshal(val)
-	if err != nil {
-		return err
-	}
-
-	kb := [8]byte{}
-	copy(kb[:], key)
-
-	d.data[kb] = venc
-	return nil
-}
-
-// SetStructInherent sets a struct inherent.
-func (d *InherentsData) SetStructInherent(key []byte, value interface{}) error {
+// SetInherent sets any scale encodable value with the provided key.
+func (d *InherentsData) SetInherent(key []byte, value interface{}) error {
 	if len(key) != 8 {
 		panic(fmt.Sprintf("inherent key must be 8 bytes but is: %v", key))
 	}
