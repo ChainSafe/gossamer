@@ -68,7 +68,6 @@ func (bs *BlockState) notifyImported(block *types.Block) {
 			}
 		}(ch)
 	}
-
 }
 
 func (bs *BlockState) notifyFinalized(hash common.Hash, round, setID uint64) {

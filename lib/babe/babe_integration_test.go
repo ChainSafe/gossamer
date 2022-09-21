@@ -312,7 +312,8 @@ func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
 	err := babeService.Start()
 	require.NoError(t, err)
 	defer func() {
-		_ = babeService.Stop()
+		err = babeService.Stop()
+		require.NoError(t, err)
 	}()
 
 	// add a block
@@ -328,7 +329,7 @@ func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
 		1, testEpochIndex, epochData)
 
 	babeService.blockState.AddBlock(block)
-	time.Sleep(babeService.constants.slotDuration * 1)
+	time.Sleep(babeService.constants.slotDuration)
 
 	header, err := babeService.blockState.BestBlockHeader()
 	require.NoError(t, err)
@@ -339,7 +340,7 @@ func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
 	slotnum := uint64(1)
 	slot := Slot{
 		start:    time.Now(),
-		duration: 1 * time.Second,
+		duration: time.Second,
 		number:   slotnum,
 	}
 	testVRFOutputAndProof := &VrfOutputAndProof{}
@@ -369,15 +370,15 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 		Authority: true,
 		Lead:      true,
 		Keypair:   alice,
-	}
-	cfgAlice.AuthData = []types.Authority{
-		{
-			Key:    alice.Public().(*sr25519.PublicKey),
-			Weight: 1,
-		},
-		{
-			Key:    bob.Public().(*sr25519.PublicKey),
-			Weight: 1,
+		AuthData: []types.Authority{
+			{
+				Key:    alice.Public().(*sr25519.PublicKey),
+				Weight: 1,
+			},
+			{
+				Key:    bob.Public().(*sr25519.PublicKey),
+				Weight: 1,
+			},
 		},
 	}
 
@@ -416,7 +417,7 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 	err = babeServiceBob.Stop()
 	require.NoError(t, err)
 
-	time.Sleep(babeServiceBob.constants.slotDuration * 1)
+	time.Sleep(babeServiceBob.constants.slotDuration)
 
 	babeServiceAlice := createTestService(t, cfgAlice)
 
@@ -424,20 +425,20 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 	err = babeServiceAlice.blockState.AddBlock(block)
 	require.NoError(t, err)
 
-	time.Sleep(babeServiceBob.constants.slotDuration * 1)
+	time.Sleep(babeServiceBob.constants.slotDuration)
 
 	bestBlockHeader, err := babeServiceAlice.blockState.BestBlockHeader()
 	require.NoError(t, err)
-	require.Equal(t, block.Header.Hash().String(), bestBlockHeader.Hash().String())
+	require.Equal(t, block.Header.Hash(), bestBlockHeader.Hash())
 
-	// If the slot we are claiming is same as slot in best header, test that we don't
-	// through any error and can claim slot.
+	// If the slot we are claiming is the same as the slot of the best block header, test that we can
+	// still claim the slot without error.
 	bestBlockSlotNum, err := babeServiceAlice.blockState.GetSlotForBlock(bestBlockHeader.Hash())
 	require.NoError(t, err)
 
 	slot := Slot{
 		start:    time.Now(),
-		duration: 1 * time.Second,
+		duration: time.Second,
 		number:   bestBlockSlotNum,
 	}
 	testVRFOutputAndProof := &VrfOutputAndProof{}
