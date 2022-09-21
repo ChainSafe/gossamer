@@ -135,11 +135,15 @@ func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 
 	// remove seal digest only
 	for _, d := range block.Header.Digest.Types {
-		switch d.Value().(type) {
+		digestValue, err := d.Value()
+		if err != nil {
+			return nil, err
+		}
+		switch digestValue.(type) {
 		case types.SealDigest:
 			continue
 		default:
-			err = b.Header.Digest.Add(d.Value())
+			err = b.Header.Digest.Add(digestValue)
 			if err != nil {
 				return nil, err
 			}

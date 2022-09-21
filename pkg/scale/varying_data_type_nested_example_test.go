@@ -30,7 +30,11 @@ func (pvdt *ParentVDT) Set(val scale.VaryingDataTypeValue) (err error) {
 // Value will return value from underying VaryingDataType
 func (pvdt *ParentVDT) Value() (val scale.VaryingDataTypeValue) {
 	vdt := scale.VaryingDataType(*pvdt)
-	return vdt.Value()
+	vdtValue, _ := vdt.Value() //todo make this (and other VDTs?) return error
+	//if err != nil {
+	//	return nil, err
+	//}
+	return vdtValue
 }
 
 // NewParentVDT is constructor for ParentVDT
@@ -68,7 +72,8 @@ func (cvdt *ChildVDT) Set(val scale.VaryingDataTypeValue) (err error) {
 // Value will return value from underying VaryingDataType
 func (cvdt *ChildVDT) Value() (val scale.VaryingDataTypeValue) {
 	vdt := scale.VaryingDataType(*cvdt)
-	return vdt.Value()
+	vdtValue, _ := vdt.Value()
+	return vdtValue
 }
 
 // NewChildVDT is constructor for ChildVDT

@@ -231,6 +231,7 @@ func newVerifier(blockState BlockState, epoch uint64, info *verifierInfo) *verif
 	}
 }
 
+//gocyclo:ignore
 // verifyAuthorshipRight verifies that the authority that produced a block was authorized to produce it.
 func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	// header should have 2 digest items (possibly more in the future)
@@ -245,14 +246,22 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	preDigestItem := header.Digest.Types[0]
 	sealItem := header.Digest.Types[len(header.Digest.Types)-1]
 
-	preDigest, ok := preDigestItem.Value().(types.PreRuntimeDigest)
+	preDigestItemValue, err := preDigestItem.Value()
+	if err != nil {
+		return err
+	}
+	preDigest, ok := preDigestItemValue.(types.PreRuntimeDigest)
 	if !ok {
-		return fmt.Errorf("%w: got %T", types.ErrNoFirstPreDigest, preDigestItem.Value())
+		return fmt.Errorf("%w: got %T", types.ErrNoFirstPreDigest, preDigestItemValue)
 	}
 
-	seal, ok := sealItem.Value().(types.SealDigest)
+	sealItemValue, err := sealItem.Value()
+	if err != nil {
+		return err
+	}
+	seal, ok := sealItemValue.(types.SealDigest)
 	if !ok {
-		return fmt.Errorf("%w: got %T", errLastDigestItemNotSeal, sealItem.Value())
+		return fmt.Errorf("%w: got %T", errLastDigestItemNotSeal, sealItemValue)
 	}
 
 	babePreDigest, err := b.verifyPreRuntimeDigest(&preDigest)
@@ -277,7 +286,11 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	// remove seal before verifying signature
 	h := types.NewDigest()
 	for _, val := range header.Digest.Types[:len(header.Digest.Types)-1] {
-		err = h.Add(val.Value())
+		digestValue, err := val.Value()
+		if err != nil {
+			return err
+		}
+		err = h.Add(digestValue)
 		if err != nil {
 			return err
 		}
@@ -285,7 +298,11 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 
 	header.Digest = h
 	defer func() {
-		if err = header.Digest.Add(sealItem.Value()); err != nil {
+		sealItemVal, err := sealItem.Value()
+		if err != nil {
+			logger.Errorf(err.Error())
+		}
+		if err = header.Digest.Add(sealItemVal); err != nil {
 			logger.Errorf("failed to re-add seal to digest: %s", err)
 		}
 	}()
@@ -329,10 +346,13 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 			return fmt.Errorf("current header missing digest")
 		}
 
-		currentPreDigestItem := currentHeader.Digest.Types[0]
-		currentPreDigest, ok := currentPreDigestItem.Value().(types.PreRuntimeDigest)
+		currentPreDigestItemValue, err := currentHeader.Digest.Types[0].Value()
+		if err != nil {
+			return err
+		}
+		currentPreDigest, ok := currentPreDigestItemValue.(types.PreRuntimeDigest)
 		if !ok {
-			return fmt.Errorf("%w: got %T", types.ErrNoFirstPreDigest, currentPreDigestItem.Value())
+			return fmt.Errorf("%w: got %T", types.ErrNoFirstPreDigest, currentPreDigestItemValue)
 		}
 
 		currentBabePreDigest, err := b.verifyPreRuntimeDigest(&currentPreDigest)
@@ -476,7 +496,11 @@ func getAuthorityIndex(header *types.Header) (uint32, error) {
 		return 0, fmt.Errorf("no digest provided")
 	}
 
-	preDigest, ok := header.Digest.Types[0].Value().(types.PreRuntimeDigest)
+	digestValue, err := header.Digest.Types[0].Value()
+	if err != nil {
+		return 0, err
+	}
+	preDigest, ok := digestValue.(types.PreRuntimeDigest)
 	if !ok {
 		return 0, fmt.Errorf("first digest item is not pre-runtime digest")
 	}

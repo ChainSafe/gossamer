@@ -66,8 +66,11 @@ func (vdt *VaryingDataType) Set(value VaryingDataTypeValue) (err error) {
 }
 
 // Value returns value stored in vdt
-func (vdt *VaryingDataType) Value() VaryingDataTypeValue {
-	return vdt.value
+func (vdt *VaryingDataType) Value() (VaryingDataTypeValue, error) {
+	if vdt.value == nil {
+		return nil, fmt.Errorf("vdt value is nil")
+	}
+	return vdt.value, nil
 }
 
 // NewVaryingDataType is constructor for VaryingDataType

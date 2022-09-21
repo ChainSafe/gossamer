@@ -103,9 +103,14 @@ func (h *Handler) toConsensusDigests(scaleVaryingTypes []scale.VaryingDataType) 
 	consensusDigests := make([]types.ConsensusDigest, 0, len(scaleVaryingTypes))
 
 	for _, d := range scaleVaryingTypes {
-		digest, ok := d.Value().(types.ConsensusDigest)
+		digestValue, err := d.Value()
+		if err != nil {
+			h.logger.Debug(err.Error())
+			continue
+		}
+		digest, ok := digestValue.(types.ConsensusDigest)
 		if !ok {
-			h.logger.Debugf("digest type not supported: %T", d.Value())
+			h.logger.Debugf("digest type not supported: %T", digestValue)
 			continue
 		}
 
@@ -135,7 +140,11 @@ func checkForGRANDPAForcedChanges(digests []types.ConsensusDigest) ([]types.Cons
 			return nil, fmt.Errorf("cannot unmarshal GRANDPA consensus digest: %w", err)
 		}
 
-		switch data.Value().(type) {
+		dataValue, err := data.Value()
+		if err != nil {
+			return nil, err
+		}
+		switch dataValue.(type) {
 		case types.GrandpaScheduledChange:
 		case types.GrandpaForcedChange:
 			hasForcedChange = true
@@ -178,7 +187,11 @@ func (h *Handler) handleConsensusDigest(d *types.ConsensusDigest, header *types.
 func (h *Handler) handleBabeConsensusDigest(digest scale.VaryingDataType, header *types.Header) error {
 	headerHash := header.Hash()
 
-	switch val := digest.Value().(type) {
+	digestValue, err := digest.Value()
+	if err != nil {
+		return err
+	}
+	switch val := digestValue.(type) {
 	case types.NextEpochData:
 		currEpoch, err := h.epochState.GetEpochForBlock(header)
 		if err != nil {

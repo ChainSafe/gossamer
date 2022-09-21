@@ -138,7 +138,9 @@ func Test_newHeaderFromFile(t *testing.T) {
 	preRuntimeDigestItem := types.NewDigestItem()
 	err := preRuntimeDigestItem.Set(preRuntimeDigest)
 	require.NoError(t, err)
-	digest.Add(preRuntimeDigestItem.Value())
+	preRuntimeDigestItemValue, err := preRuntimeDigestItem.Value()
+	require.NoError(t, err)
+	digest.Add(preRuntimeDigestItemValue)
 
 	sealDigest := types.SealDigest{
 		ConsensusEngineID: types.BabeEngineID,
@@ -151,7 +153,9 @@ func Test_newHeaderFromFile(t *testing.T) {
 	sealDigestItem := types.NewDigestItem()
 	err = sealDigestItem.Set(sealDigest)
 	require.NoError(t, err)
-	digest.Add(sealDigestItem.Value())
+	sealDigestItemValue, err := sealDigestItem.Value()
+	require.NoError(t, err)
+	digest.Add(sealDigestItemValue)
 
 	expectedHeader := &types.Header{
 		ParentHash:     common.MustHexToHash("0x3b45c9c22dcece75a30acc9c2968cb311e6b0557350f83b430f47559db786975"),

@@ -217,13 +217,21 @@ func decodeMessage(cm *network.ConsensusMessage) (m GrandpaMessage, err error) {
 		return nil, err
 	}
 
-	switch val := msg.Value().(type) {
+	msgValue, err := msg.Value()
+	if err != nil {
+		return nil, err
+	}
+	switch val := msgValue.(type) {
 	case VoteMessage:
 		m = &val
 	case CommitMessage:
 		m = &val
 	case VersionedNeighbourPacket:
-		switch NeighbourMessage := val.Value().(type) {
+		neighbourMessageVal, err := val.Value()
+		if err != nil {
+			return nil, err
+		}
+		switch NeighbourMessage := neighbourMessageVal.(type) {
 		case NeighbourPacketV1:
 			m = &NeighbourMessage
 		default:

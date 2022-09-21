@@ -140,7 +140,11 @@ func (s *Service) HandleBlockProduced(block *types.Block, state *rtstorage.TrieS
 
 	digest := types.NewDigest()
 	for i := range block.Header.Digest.Types {
-		err := digest.Add(block.Header.Digest.Types[i].Value())
+		digestValue, err := block.Header.Digest.Types[i].Value()
+		if err != nil {
+			return err
+		}
+		err = digest.Add(digestValue)
 		if err != nil {
 			return err
 		}

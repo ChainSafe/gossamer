@@ -30,17 +30,18 @@ func (tve *TransactionValidityError) Set(val scale.VaryingDataTypeValue) (err er
 }
 
 // Value will return the value from the underlying VaryingDataType
-func (tve *TransactionValidityError) Value() (val scale.VaryingDataTypeValue) {
+func (tve *TransactionValidityError) Value() (val scale.VaryingDataTypeValue, err error) {
 	vdt := scale.VaryingDataType(*tve)
 	return vdt.Value()
 }
 
 // Error will return the error underlying TransactionValidityError
 func (tve TransactionValidityError) Error() string {
-	if tve.Value() == nil {
-		return "unset TransactionValidityError"
+	value, err := tve.Value()
+	if err != nil {
+		return err.Error()
 	}
-	err, ok := tve.Value().(error)
+	err, ok := value.(error)
 	if !ok {
 		panic(fmt.Sprintf("unexpected value: %T %v", err, err))
 	}
@@ -78,14 +79,18 @@ func UnmarshalTransactionValidity(res []byte) (*transaction.Validity, error) {
 			panic(fmt.Sprintf("%s: %T", errInvalidTypeCast, scaleWrappedErr.Err))
 		}
 
-		switch val := txnValidityErr.Value().(type) {
+		txnValidityErrValue, err := txnValidityErr.Value()
+		if err != nil {
+			return nil, err
+		}
+		switch val := txnValidityErrValue.(type) {
 		// TODO use custom result issue #2780
 		case InvalidTransaction:
 			return nil, val
 		case UnknownTransaction:
 			return nil, val
 		default:
-			panic(fmt.Sprintf("unsupported transaction validity error: %T", txnValidityErr.Value()))
+			panic(fmt.Sprintf("unsupported transaction validity error: %T", txnValidityErrValue))
 		}
 	}
 	validity, ok := txnValidityRes.(transaction.Validity)

@@ -127,7 +127,11 @@ func newHeaderFromFile(filename string) (*types.Header, error) {
 			return nil, err
 		}
 
-		err = digest.Add(digestItem.Value())
+		digestItemVal, err := digestItem.Value()
+		if err != nil {
+			return nil, err
+		}
+		err = digest.Add(digestItemVal)
 		if err != nil {
 			return nil, err
 		}

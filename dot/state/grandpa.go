@@ -84,7 +84,11 @@ func NewGrandpaState(db chaindb.Database, bs *BlockState) *GrandpaState {
 
 // HandleGRANDPADigest receives a decoded GRANDPA digest and calls the right function to handles the digest
 func (s *GrandpaState) HandleGRANDPADigest(header *types.Header, digest scale.VaryingDataType) error {
-	switch val := digest.Value().(type) {
+	digestValue, err := digest.Value()
+	if err != nil {
+		return err
+	}
+	switch val := digestValue.(type) {
 	case types.GrandpaScheduledChange:
 		return s.addScheduledChange(header, val)
 	case types.GrandpaForcedChange:
