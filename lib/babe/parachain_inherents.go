@@ -291,7 +291,7 @@ type uncheckedSignedAvailabilityBitfield struct {
 	Payload []byte `scale:"1"`
 	// The index of the validator signing this statement.
 	ValidatorIndex uint32 `scale:"2"`
-	/// The signature by the validator of the signed payload.
+	// The signature by the validator of the signed payload.
 	Signature signature `scale:"3"`
 }
 
