@@ -486,7 +486,7 @@ func (b *Service) handleSlot(epoch, slotNum uint64,
 				return fmt.Errorf("could not get header: %w", err)
 			}
 			if newParentHeader == nil {
-				return errNilParentHeader
+				return fmt.Errorf("%w: for block hash %s", errNilParentHeader, parentHeader.ParentHash)
 			}
 			parentHeader = newParentHeader
 		}
