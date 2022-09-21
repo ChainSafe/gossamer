@@ -17,7 +17,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/pprof"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -54,8 +53,8 @@ func newStateServiceWithoutMock(t *testing.T) *state.Service {
 	}
 	stateSrvc := state.NewService(stateConfig)
 	stateSrvc.UseMemDB()
-	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
-	err := stateSrvc.Initialise(genData, genesisHeader, genTrie)
+	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	err := stateSrvc.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
 	err = stateSrvc.SetupBase()
@@ -77,7 +76,7 @@ func newStateServiceWithoutMock(t *testing.T) *state.Service {
 
 	var rtCfg wasmer.Config
 
-	rtCfg.Storage = rtstorage.NewTrieState(genTrie)
+	rtCfg.Storage = rtstorage.NewTrieState(&genTrie)
 
 	rtCfg.CodeHash, err = stateSrvc.Storage.LoadCodeHash(nil)
 	require.NoError(t, err)

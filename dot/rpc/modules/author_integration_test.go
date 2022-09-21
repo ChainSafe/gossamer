@@ -571,7 +571,7 @@ type integrationTestController struct {
 func setupStateAndRuntime(t *testing.T, basepath string, useInstance useRuntimeInstace) *integrationTestController {
 	t.Helper()
 
-	gen, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	gen, genesisTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
@@ -591,7 +591,7 @@ func setupStateAndRuntime(t *testing.T, basepath string, useInstance useRuntimeI
 	state2test.UseMemDB()
 
 	state2test.Transaction = state.NewTransactionState(telemetryMock)
-	err := state2test.Initialise(gen, genesisHeader, genTrie)
+	err := state2test.Initialise(&gen, &genesisHeader, &genesisTrie)
 	require.NoError(t, err)
 
 	err = state2test.Start()
@@ -604,9 +604,9 @@ func setupStateAndRuntime(t *testing.T, basepath string, useInstance useRuntimeI
 	ks := keystore.NewGlobalKeystore()
 	net2test := NewMockNetwork(nil)
 	integrationTestController := &integrationTestController{
-		genesis:       gen,
-		genesisTrie:   genTrie,
-		genesisHeader: genesisHeader,
+		genesis:       &gen,
+		genesisTrie:   &genesisTrie,
+		genesisHeader: &genesisHeader,
 		stateSrv:      state2test,
 		storageState:  state2test.Storage,
 		keystore:      ks,
@@ -631,7 +631,7 @@ func setupStateAndPopulateTrieState(t *testing.T, basepath string,
 	useInstance useRuntimeInstace) *integrationTestController {
 	t.Helper()
 
-	gen, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	gen, genesisTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
@@ -652,7 +652,7 @@ func setupStateAndPopulateTrieState(t *testing.T, basepath string,
 
 	state2test.Transaction = state.NewTransactionState(telemetryMock)
 
-	err := state2test.Initialise(gen, genesisHeader, genTrie)
+	err := state2test.Initialise(&gen, &genesisHeader, &genesisTrie)
 	require.NoError(t, err)
 
 	err = state2test.Start()
@@ -665,9 +665,9 @@ func setupStateAndPopulateTrieState(t *testing.T, basepath string,
 	net2test := NewMockNetwork(nil)
 	ks := keystore.NewGlobalKeystore()
 	integrationTestController := &integrationTestController{
-		genesis:       gen,
-		genesisTrie:   genTrie,
-		genesisHeader: genesisHeader,
+		genesis:       &gen,
+		genesisTrie:   &genesisTrie,
+		genesisHeader: &genesisHeader,
 		stateSrv:      state2test,
 		storageState:  state2test.Storage,
 		keystore:      ks,

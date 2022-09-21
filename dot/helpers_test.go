@@ -1,8 +1,12 @@
 // Copyright 2022 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
-package modules
+
+package dot
 
 import (
+	"encoding/json"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -14,12 +18,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func stringToHex(s string) (hex string) {
-	return common.BytesToHex([]byte(s))
-}
+func writeGenesisToTestJSON(t *testing.T, genesis genesis.Genesis) (filename string) {
+	t.Helper()
 
-func makeChange(keyHex, valueHex string) [2]*string {
-	return [2]*string{&keyHex, &valueHex}
+	jsonData, err := json.Marshal(genesis)
+	require.NoError(t, err)
+	filename = filepath.Join(t.TempDir(), "genesis-test")
+	err = os.WriteFile(filename, jsonData, os.ModePerm)
+	require.NoError(t, err)
+	return filename
 }
 
 func newTestGenesisWithTrieAndHeader(t *testing.T) (
@@ -27,9 +34,9 @@ func newTestGenesisWithTrieAndHeader(t *testing.T) (
 	t.Helper()
 
 	genesisPath := utils.GetGssmrV3SubstrateGenesisRawPathTest(t)
-	genesisPtr, err := genesis.NewGenesisFromJSONRaw(genesisPath)
+	genPtr, err := genesis.NewGenesisFromJSONRaw(genesisPath)
 	require.NoError(t, err)
-	gen = *genesisPtr
+	gen = *genPtr
 
 	genesisTrie, err = wasmer.NewTrieFromGenesis(gen)
 	require.NoError(t, err)

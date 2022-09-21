@@ -1,6 +1,7 @@
 // Copyright 2022 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
-package modules
+
+package rpc
 
 import (
 	"testing"
@@ -13,14 +14,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/require"
 )
-
-func stringToHex(s string) (hex string) {
-	return common.BytesToHex([]byte(s))
-}
-
-func makeChange(keyHex, valueHex string) [2]*string {
-	return [2]*string{&keyHex, &valueHex}
-}
 
 func newTestGenesisWithTrieAndHeader(t *testing.T) (
 	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
