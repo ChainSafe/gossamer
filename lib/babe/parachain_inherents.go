@@ -69,15 +69,15 @@ func newValidityAttestation() validityAttestation {
 type disputeStatement scale.VaryingDataType
 
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (distputedStatement *disputeStatement) Set(val scale.VaryingDataTypeValue) (err error) {
+func (d *disputeStatement) Set(val scale.VaryingDataTypeValue) (err error) {
 	// cast to VaryingDataType to use VaryingDataType.Set method
-	vdt := scale.VaryingDataType(*distputedStatement)
+	vdt := scale.VaryingDataType(*d)
 	err = vdt.Set(val)
 	if err != nil {
 		return fmt.Errorf("setting value to varying data type: %w", err)
 	}
 	// store original ParentVDT with VaryingDataType that has been set
-	*distputedStatement = disputeStatement(vdt)
+	*d = disputeStatement(vdt)
 	return nil
 }
 
