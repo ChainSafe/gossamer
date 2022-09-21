@@ -442,8 +442,8 @@ func (s *Service) playGrandpaRound() error {
 		case <-s.ctx.Done():
 			close(cancel)
 			<-engineEndCh
-
 			return s.ctx.Err()
+
 		case action, ok := <-roundActions:
 			if !ok {
 				return nil
@@ -523,15 +523,33 @@ type action byte
 const (
 	determinePrevote action = iota
 	determinePrecommit
+	alreadyFinalized
 	finalize
 )
 
+var errChannelBusy = errors.New("channel busy")
+
+type performActionCh chan action
+
+func (p performActionCh) push(action action) error {
+	select {
+	case p <- action:
+		return nil
+	default:
+		return fmt.Errorf("%w", errChannelBusy)
+	}
+}
+
+func (p performActionCh) close() {
+	close(p)
+}
+
 func (s *Service) finalizationEngine(engineEndCh chan<- struct{}, cancel <-chan struct{}) <-chan action {
-	performAction := make(chan action)
+	performAction := performActionCh(make(chan action))
 
 	go func() {
 		defer close(engineEndCh)
-		defer close(performAction)
+		defer performAction.close()
 
 		determinePrevoteTimer := time.NewTimer(s.interval * 2)
 		determinePrecommitTimer := time.NewTimer(s.interval * 4)
@@ -552,7 +570,11 @@ func (s *Service) finalizationEngine(engineEndCh chan<- struct{}, cancel <-chan 
 				return
 
 			case <-determinePrevoteTimer.C:
-				performAction <- determinePrevote
+				err := performAction.push(determinePrevote)
+				if err != nil {
+					logger.Warnf("failed to pushing action(determinePrevote): %s", err)
+					return
+				}
 
 			case <-determinePrecommitTimer.C:
 				prevoteGrandpaGhost, err := s.getPreVotedBlock()
@@ -577,7 +599,12 @@ func (s *Service) finalizationEngine(engineEndCh chan<- struct{}, cancel <-chan 
 					break
 				}
 
-				performAction <- determinePrecommit
+				err = performAction.push(determinePrecommit)
+				if err != nil {
+					logger.Warnf("failed to pushing action(determinePrecommit): %s", err)
+					return
+				}
+
 				precommited = true
 			}
 		}
@@ -589,7 +616,23 @@ func (s *Service) finalizationEngine(engineEndCh chan<- struct{}, cancel <-chan 
 			select {
 			case <-cancel:
 				return
+
 			case <-attemptFinalizationTicker.C:
+				alreadyCompletable, err := s.checkRoundAlreadyCompletable()
+				if err != nil {
+					logger.Errorf("checking round is completable: %w", err)
+					continue
+				}
+
+				if alreadyCompletable {
+					err = performAction.push(alreadyFinalized)
+					if err != nil {
+						logger.Warnf("failed to pushing action(alreadyFinalized): %s", err)
+					}
+
+					return
+				}
+
 				finalizable, err := s.attemptToFinalize()
 				if err != nil {
 					logger.Errorf("attempting to finalize: %s", err)
@@ -600,8 +643,10 @@ func (s *Service) finalizationEngine(engineEndCh chan<- struct{}, cancel <-chan 
 					continue
 				}
 
-				// TODO: if a round is already completable we should not complete it again
-				performAction <- finalize
+				err = performAction.push(finalize)
+				if err != nil {
+					logger.Warnf("failed to pushing action(alreadyFinalized): %s", err)
+				}
 				return
 			}
 		}
@@ -668,15 +713,6 @@ func (s *Service) retrieveBestFinalCandidate() (bestFinalCandidate *types.Grandp
 
 // attemptToFinalize check if we should finalize the current round
 func (s *Service) attemptToFinalize() (isFinalizable bool, err error) {
-	alreadyCompletable, err := s.checkRoundAlreadyCompletable()
-	if err != nil {
-		return false, fmt.Errorf("checking round is completable: %w", err)
-	}
-
-	if alreadyCompletable {
-		return true, err
-	}
-
 	bestFinalCandidate, precommitCount, err := s.retrieveBestFinalCandidate()
 	if err != nil {
 		return false, fmt.Errorf("getting best final candidate: %w", err)
