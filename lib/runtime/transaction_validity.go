@@ -11,6 +11,8 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
+var errInvalidTypeCast = errors.New("invalid type cast")
+
 // TransactionValidityError Information on a transaction's validity and, if valid,
 // on how it relates to other transactions. It is a result of the form:
 // Result<ValidTransaction, TransactionValidityError>
@@ -38,14 +40,11 @@ func (tve TransactionValidityError) Error() string {
 	if tve.Value() == nil {
 		return "unset TransactionValidityError"
 	}
-	switch err := tve.Value().(type) {
-	case InvalidTransaction:
-		return err.Error()
-	case UnknownTransaction:
-		return err.Error()
-	default:
+	err, ok := tve.Value().(error)
+	if !ok {
 		panic(fmt.Sprintf("unexpected value: %T %v", err, err))
 	}
+	return err.Error()
 }
 
 // NewTransactionValidityError is constructor for TransactionValidityError
@@ -66,17 +65,17 @@ func UnmarshalTransactionValidity(res []byte) (*transaction.Validity, error) {
 	txnValidityResult := scale.NewResult(validTxn, *txnValidityErrResult)
 	err := scale.Unmarshal(res, &txnValidityResult)
 	if err != nil {
-		return nil, fmt.Errorf("scale decoding transaction validity result: %s", err)
+		return nil, fmt.Errorf("scale decoding transaction validity result: %w", err)
 	}
 	txnValidityRes, err := txnValidityResult.Unwrap()
 	if err != nil {
 		scaleWrappedErr, ok := err.(scale.WrappedErr)
 		if !ok {
-			return nil, fmt.Errorf("unwrapping transaction validity result: %s", err)
+			panic(fmt.Errorf("unwrapping transaction validity result: %w", err))
 		}
 		txnValidityErr, ok := scaleWrappedErr.Err.(TransactionValidityError)
 		if !ok {
-			return nil, fmt.Errorf("%w: %T", errors.New("invalid type cast"), scaleWrappedErr.Err)
+			panic(fmt.Errorf("%w: %T", errInvalidTypeCast, scaleWrappedErr.Err))
 		}
 
 		switch val := txnValidityErr.Value().(type) {
@@ -86,7 +85,7 @@ func UnmarshalTransactionValidity(res []byte) (*transaction.Validity, error) {
 		case UnknownTransaction:
 			return nil, val
 		default:
-			return nil, fmt.Errorf("unsupported transaction validity error: %T", txnValidityErr.Value())
+			panic(fmt.Errorf("unsupported transaction validity error: %T", txnValidityErr.Value()))
 		}
 	}
 	validity, ok := txnValidityRes.(transaction.Validity)

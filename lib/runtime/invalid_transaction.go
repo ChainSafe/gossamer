@@ -28,7 +28,7 @@ func (i *InvalidTransaction) Set(val scale.VaryingDataTypeValue) (err error) {
 	return nil
 }
 
-// Value will return value from underying VaryingDataType
+// Value will return the value from the underying VaryingDataType
 func (i *InvalidTransaction) Value() (val scale.VaryingDataTypeValue) {
 	vdt := scale.VaryingDataType(*i)
 	return vdt.Value()

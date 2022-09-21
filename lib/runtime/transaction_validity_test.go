@@ -78,6 +78,10 @@ func Test_InvalidTransactionValidity(t *testing.T) {
 	err = transactionValidityErr.Set(invalidTransaction)
 	require.NoError(t, err)
 
+	expErrMsg := "invalid transaction"
+	errMsg := transactionValidityErr.Error()
+	require.Equal(t, expErrMsg, errMsg)
+
 	val := transactionValidityErr.Value()
 	_, isParentCorrectType := val.(InvalidTransaction)
 	require.True(t, isParentCorrectType)
@@ -96,6 +100,10 @@ func Test_UnknownTransactionValidity(t *testing.T) {
 	require.NoError(t, err)
 	err = transactionValidityErr.Set(unknownTransaction)
 	require.NoError(t, err)
+
+	expErrMsg := "validator not found"
+	errMsg := transactionValidityErr.Error()
+	require.Equal(t, expErrMsg, errMsg)
 
 	val := transactionValidityErr.Value()
 	_, isParentCorrectType := val.(UnknownTransaction)
