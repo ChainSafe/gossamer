@@ -77,7 +77,7 @@ func (s *Service) HandleTransactionMessage(peerID peer.ID, msg *network.Transact
 		if err != nil {
 			txnIsValid = false
 			allTxnsAreValid = false
-			switch err.(type) {
+			switch err := err.(type) {
 			case runtime.InvalidTransaction:
 				s.net.ReportPeer(peerset.ReputationChange{
 					Value:  peerset.BadTransactionValue,
