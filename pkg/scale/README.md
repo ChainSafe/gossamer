@@ -355,7 +355,7 @@ func (pvdt *ParentVDT) Set(val scale.VaryingDataTypeValue) (err error) {
 }
 
 // Value will return value from underying VaryingDataType
-func (pvdt *ParentVDT) Value() (val scale.VaryingDataTypeValue) {
+func (pvdt *ParentVDT) Value() (val scale.VaryingDataTypeValue, err error) {
 	vdt := scale.VaryingDataType(*pvdt)
 	return vdt.Value()
 }
@@ -393,7 +393,7 @@ func (cvdt *ChildVDT) Set(val scale.VaryingDataTypeValue) (err error) {
 }
 
 // Value will return value from underying VaryingDataType
-func (cvdt *ChildVDT) Value() (val scale.VaryingDataTypeValue) {
+func (cvdt *ChildVDT) Value() (val scale.VaryingDataTypeValue, err error) {
 	vdt := scale.VaryingDataType(*cvdt)
 	return vdt.Value()
 }
@@ -483,11 +483,19 @@ func ExampleNestedVaryingDataType() {
 	}
 
 	// validate ParentVDT.Value()
-	fmt.Printf("parent.Value(): %+v\n", parent.Value())
+	parentValue, err := parent.Value()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("parent.Value(): %+v\n", parentValue)
 	// should cast to ChildVDT, since that was set earlier
-	valChildVDT := parent.Value().(ChildVDT)
+	valChildVDT := parentValue.(ChildVDT)
 	// validate ChildVDT.Value() as ChildInt16(888)
-	fmt.Printf("child.Value(): %+v\n", valChildVDT.Value())
+	valChildVDTValue, err := valChildVDT.Value()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("child.Value(): %+v\n", valChildVDTValue)
 
 	// marshal into scale encoded bytes
 	bytes, err := scale.Marshal(parent)
