@@ -234,7 +234,8 @@ func TestChainProcessor_HandleJustification(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	syncer.chainProcessor.(*chainProcessor).handleJustification(header, just)
+	err = syncer.chainProcessor.(*chainProcessor).handleJustification(header, just)
+	require.NoError(t, err)
 
 	res, err := syncer.blockState.GetJustification(header.Hash())
 	require.NoError(t, err)
