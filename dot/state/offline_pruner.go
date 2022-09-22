@@ -47,7 +47,7 @@ func NewOfflinePruner(inputDBPath, prunedDBPath string, bloomSize uint64,
 	// create blockState state
 	// NewBlockState on pruner execution does not use telemetry
 	// todo(ed) determine if setting storage to nil is correct
-	blockState, err := NewBlockState(db, tries, nil, nil)
+	blockState, err := NewBlockState(db, tries, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create block state: %w", err)
 	}

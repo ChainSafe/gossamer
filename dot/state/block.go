@@ -71,8 +71,7 @@ type BlockState struct {
 }
 
 // NewBlockState will create a new BlockState backed by the database located at basePath
-func NewBlockState(db chaindb.Database, trs *Tries, telemetry telemetry.Client,
-	storageState *StorageState) (*BlockState, error) {
+func NewBlockState(db chaindb.Database, trs *Tries, telemetry telemetry.Client) (*BlockState, error) {
 	bs := &BlockState{
 		dbPath:                     db.Path(),
 		baseState:                  NewBaseState(db),

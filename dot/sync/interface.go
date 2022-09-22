@@ -82,7 +82,6 @@ type BlockState interface {
 type StorageState interface {
 	TrieState(root *common.Hash) (*rtstorage.TrieState, error)
 	LoadCodeHash(*common.Hash) (common.Hash, error)
-	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
 	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
 	sync.Locker
 }

@@ -12,7 +12,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
@@ -30,7 +29,6 @@ type StorageAPI interface {
 	GetKeysWithPrefix(root *common.Hash, prefix []byte) ([][]byte, error)
 	RegisterStorageObserver(observer state.Observer)
 	UnregisterStorageObserver(observer state.Observer)
-	TrieState(root *common.Hash) (*storage.TrieState, error)
 	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
 }
 
@@ -53,7 +51,6 @@ type BlockAPI interface {
 	SubChain(start, end common.Hash) ([]common.Hash, error)
 	RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (uint32, error)
 	UnregisterRuntimeUpdatedChannel(id uint32) bool
-	GetBestBlockRuntime() runtime.Instance
 	GetRuntime(hash *common.Hash) (instance runtime.Instance, err error)
 }
 
