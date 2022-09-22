@@ -13,10 +13,10 @@ import (
 	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/lib/common"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/golang/mock/gomock"
-
 	"github.com/stretchr/testify/require"
 )
 
@@ -223,4 +223,24 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, []byte("voila"), value)
+}
+
+func TestStorageState_GetRuntime(t *testing.T) {
+	state := newTestService(t)
+
+	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	err := state.Initialise(&genData, &genesisHeader, &genTrie)
+	require.NoError(t, err)
+	genesisRuntime, err := wasmer.NewInstanceFromTrie(&genTrie, wasmer.Config{})
+	require.NoError(t, err)
+	err = state.SetupBase()
+	require.NoError(t, err)
+
+	err = state.Start()
+	require.NoError(t, err)
+
+	bestBlockHash := state.Block.BestBlockHash()
+	retrievedRuntime, err := state.Storage.GetRuntime(bestBlockHash)
+	require.NoError(t, err)
+	require.Equal(t, genesisRuntime.Version(), retrievedRuntime.Version())
 }
