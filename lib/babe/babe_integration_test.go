@@ -386,15 +386,15 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 		Authority: true,
 		Lead:      true,
 		Keypair:   bob,
-	}
-	cfgBob.AuthData = []types.Authority{
-		{
-			Key:    alice.Public().(*sr25519.PublicKey),
-			Weight: 1,
-		},
-		{
-			Key:    bob.Public().(*sr25519.PublicKey),
-			Weight: 1,
+		AuthData: []types.Authority{
+			{
+				Key:    alice.Public().(*sr25519.PublicKey),
+				Weight: 1,
+			},
+			{
+				Key:    bob.Public().(*sr25519.PublicKey),
+				Weight: 1,
+			},
 		},
 	}
 
@@ -407,7 +407,7 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 	}()
 
 	// wait till bob creates a block
-	time.Sleep(babeServiceBob.constants.slotDuration * 1)
+	time.Sleep(babeServiceBob.constants.slotDuration)
 	require.NoError(t, err)
 
 	block, err := babeServiceBob.blockState.GetBlockByNumber(1)
