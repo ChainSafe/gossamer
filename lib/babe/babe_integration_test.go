@@ -90,8 +90,6 @@ func createTestService(t *testing.T, cfg ServiceConfig) *Service {
 	dbSrv = state.NewService(config)
 	dbSrv.UseMemDB()
 
-	// err = dbSrv.Initialise(gen, genHeader, genTrie)
-	// require.NoError(t, err)
 	err = dbSrv.Initialise(&gen, &genHeader, &genTrie)
 	require.NoError(t, err)
 
