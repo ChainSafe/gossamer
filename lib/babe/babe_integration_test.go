@@ -128,7 +128,7 @@ func createTestService(t *testing.T, cfg ServiceConfig) *Service {
 	require.NoError(t, err)
 
 	if cfg.BlockImportHandler == nil {
-		mockNetwork := core.NewMockNetwork(ctrl)
+		mockNetwork := mocks.NewMockNetwork(ctrl)
 		mockNetwork.EXPECT().GossipMessage(gomock.Any()).AnyTimes()
 
 		coreConfig := core.Config{
@@ -143,7 +143,7 @@ func createTestService(t *testing.T, cfg ServiceConfig) *Service {
 			CodeSubstitutes:      make(map[common.Hash]string),
 		}
 
-		babeService.blockImportHandler = core.NewTestService(t, &coreConfig)
+		babeService.blockImportHandler = NewTestService(t, &coreConfig)
 	}
 
 	return babeService
