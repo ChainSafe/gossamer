@@ -292,14 +292,14 @@ func TestTrieDiff(t *testing.T) {
 	for _, test := range tests {
 		newTrie.Put(test.key, test.value)
 	}
-	deletedKeys := newTrie.deletedKeys
-	require.Len(t, deletedKeys, 3)
+	deletedMerkleValues := newTrie.deletedMerkleValues
+	require.Len(t, deletedMerkleValues, 3)
 
 	err = newTrie.WriteDirty(storageDB)
 	require.NoError(t, err)
 
-	for key := range deletedKeys {
-		err = storageDB.Del(key.ToBytes())
+	for deletedMerkleValue := range deletedMerkleValues {
+		err = storageDB.Del([]byte(deletedMerkleValue))
 		require.NoError(t, err)
 	}
 
