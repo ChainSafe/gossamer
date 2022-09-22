@@ -48,10 +48,10 @@ func (s *TransactionState) Pop() *transaction.ValidTransaction {
 	return s.queue.Pop()
 }
 
-// PopChannel returns a *transaction.ValidTransaction channel to be signalled
-// when the next Push() is called on the queue.
-func (s *TransactionState) PopChannel(timer *time.Timer) (tx chan *transaction.ValidTransaction) {
-	return s.queue.PopChannel(timer)
+// PopWithTimer returns the next valid transaction from the queue.
+// When the timer expires, it returns `nil`.
+func (s *TransactionState) PopWithTimer(timer *time.Timer) (transaction *transaction.ValidTransaction) {
+	return s.queue.PopWithTimer(timer)
 }
 
 // Peek returns the head of the queue without removing it

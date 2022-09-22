@@ -273,11 +273,10 @@ func TestRemoveExtrinsic(t *testing.T) {
 	}
 }
 
-func TestPopChannel(t *testing.T) {
+func Test_PopWithTimer(t *testing.T) {
 	pq := NewPriorityQueue()
 	slotTimer := time.NewTimer(time.Second)
 
-	popChan := pq.PopChannel(slotTimer)
 	tests := []*ValidTransaction{
 		{
 			Extrinsic: []byte("a"),
@@ -308,13 +307,17 @@ func TestPopChannel(t *testing.T) {
 	}
 
 	counter := 0
-	for txn := range popChan {
+	for {
+		txn := pq.PopWithTimer(slotTimer)
+		if txn == nil {
+			break
+		}
 		assert.Equal(t, tests[expected[counter]], txn)
 		counter++
 	}
 }
 
-func TestPopChannelEnds(t *testing.T) {
+func Test_PopWithTimer_Ends(t *testing.T) {
 	pq := NewPriorityQueue()
 	// increase sleep time greater than timer
 	pq.pollInterval = 2 * time.Second
@@ -322,7 +325,6 @@ func TestPopChannelEnds(t *testing.T) {
 
 	start := time.Now()
 
-	popChan := pq.PopChannel(slotTimer)
 	tests := []*ValidTransaction{
 		{
 			Extrinsic: []byte("a"),
@@ -353,7 +355,11 @@ func TestPopChannelEnds(t *testing.T) {
 	}
 
 	counter := 0
-	for txn := range popChan {
+	for {
+		txn := pq.PopWithTimer(slotTimer)
+		if txn == nil {
+			break
+		}
 		assert.Equal(t, tests[expected[counter]], txn)
 		counter++
 	}

@@ -177,9 +177,14 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt runtime.Instance) []*t
 	slotEnd := slot.start.Add(slot.duration * 2 / 3) // reserve last 1/3 of slot for block finalisation
 	timeout := time.Until(slotEnd)
 	slotTimer := time.NewTimer(timeout)
-	popChan := b.transactionState.PopChannel(slotTimer)
 
-	for txn := range popChan {
+	for {
+		txn := b.transactionState.PopWithTimer(slotTimer)
+		slotTimerExpired := txn == nil
+		if slotTimerExpired {
+			break
+		}
+
 		// handle txn
 		extrinsic := txn.Extrinsic
 		logger.Tracef("build block, applying extrinsic %s", extrinsic)

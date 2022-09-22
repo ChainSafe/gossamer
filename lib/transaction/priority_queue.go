@@ -142,33 +142,33 @@ func (spq *PriorityQueue) Push(txn *ValidTransaction) (common.Hash, error) {
 	return hash, nil
 }
 
-// PopChannel returns a *ValedTransaction channel to be signalled
-// when the next Push() is called on the queue.
-func (spq *PriorityQueue) PopChannel(timer *time.Timer) (tx chan *ValidTransaction) {
-	popChannel := make(chan *ValidTransaction)
+// PopWithTimer returns the next valid transaction from the queue.
+// When the timer expires, it returns `nil`.
+func (spq *PriorityQueue) PopWithTimer(timer *time.Timer) (transaction *ValidTransaction) {
+	transactionChannel := make(chan *ValidTransaction)
 	go func() {
-		var pollTimer <-chan time.Time = nil
-		var pop = func() {
-			txn := spq.Pop()
-			if txn != nil {
-				popChannel <- txn
-			} else {
-				pollTimer = time.NewTimer(spq.pollInterval).C
-			}
-		}
+		pollTicker := time.NewTicker(spq.pollInterval)
+		defer pollTicker.Stop()
+
 		for {
 			select {
 			case <-timer.C:
-				close(popChannel)
-			case <-pollTimer:
-				pop()
-			default:
-				pop()
+				transactionChannel <- nil
+				return
+			case <-pollTicker.C:
 			}
+
+			transaction := spq.Pop()
+			if transaction == nil {
+				continue
+			}
+
+			transactionChannel <- transaction
+			return
 		}
 	}()
 
-	return popChannel
+	return <-transactionChannel
 }
 
 // Pop removes the transaction with has the highest priority value from the queue and returns it.
