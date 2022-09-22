@@ -21,6 +21,10 @@ const (
 	Babeslot
 	// Uncles00 is the identifier for the `uncles` inherent.
 	Uncles00
+	// Parachn0 is an inherent key for parachains inherent.
+	Parachn0
+	// Newheads is an inherent key for new minimally-attested parachain heads.
+	Newheads
 )
 
 // Bytes returns a byte array of given inherent identifier.
@@ -34,6 +38,10 @@ func (ii InherentIdentifier) Bytes() [8]byte {
 		copy(kb[:], []byte("babeslot"))
 	case Uncles00:
 		copy(kb[:], []byte("uncles00"))
+	case Parachn0:
+		copy(kb[:], []byte("parachn0"))
+	case Newheads:
+		copy(kb[:], []byte("newheads"))
 	default:
 		panic("invalid inherent identifier")
 	}
@@ -69,12 +77,7 @@ func (d *InherentsData) SetInherent(inherentIdentifier InherentIdentifier, value
 		return err
 	}
 
-	venc, err := scale.Marshal(data)
-	if err != nil {
-		return err
-	}
-
-	d.data[inherentIdentifier.Bytes()] = venc
+	d.data[inherentIdentifier.Bytes()] = data
 
 	return nil
 }
@@ -99,7 +102,12 @@ func (d *InherentsData) Encode() ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		_, err = buffer.Write(v)
+
+		venc, err := scale.Marshal(v)
+		if err != nil {
+			return nil, fmt.Errorf("scale encoding encoded value: %w", err)
+		}
+		_, err = buffer.Write(venc)
 		if err != nil {
 			return nil, err
 		}

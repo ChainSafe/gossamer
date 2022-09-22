@@ -18,10 +18,10 @@ var EmptyHash, _ = NewEmptyTrie().Hash()
 
 // Trie is a base 16 modified Merkle Patricia trie.
 type Trie struct {
-	generation  uint64
-	root        *Node
-	childTries  map[common.Hash]*Trie
-	deletedKeys map[common.Hash]struct{}
+	generation          uint64
+	root                *Node
+	childTries          map[common.Hash]*Trie
+	deletedMerkleValues map[string]struct{}
 }
 
 // NewEmptyTrie creates a trie with a nil root
@@ -32,10 +32,10 @@ func NewEmptyTrie() *Trie {
 // NewTrie creates a trie with an existing root node
 func NewTrie(root *Node) *Trie {
 	return &Trie{
-		root:        root,
-		childTries:  make(map[common.Hash]*Trie),
-		generation:  0, // Initially zero but increases after every snapshot.
-		deletedKeys: make(map[common.Hash]struct{}),
+		root:                root,
+		childTries:          make(map[common.Hash]*Trie),
+		generation:          0, // Initially zero but increases after every snapshot.
+		deletedMerkleValues: make(map[string]struct{}),
 	}
 }
 
@@ -50,17 +50,17 @@ func (t *Trie) Snapshot() (newTrie *Trie) {
 	rootCopySettings.CopyCached = true
 	for rootHash, childTrie := range t.childTries {
 		childTries[rootHash] = &Trie{
-			generation:  childTrie.generation + 1,
-			root:        childTrie.root.Copy(rootCopySettings),
-			deletedKeys: make(map[common.Hash]struct{}),
+			generation:          childTrie.generation + 1,
+			root:                childTrie.root.Copy(rootCopySettings),
+			deletedMerkleValues: make(map[string]struct{}),
 		}
 	}
 
 	return &Trie{
-		generation:  t.generation + 1,
-		root:        t.root,
-		childTries:  childTries,
-		deletedKeys: make(map[common.Hash]struct{}),
+		generation:          t.generation + 1,
+		root:                t.root,
+		childTries:          childTries,
+		deletedMerkleValues: make(map[string]struct{}),
 	}
 }
 
@@ -71,7 +71,7 @@ func (t *Trie) prepLeafForMutation(currentLeaf *Node,
 		// of current leaf.
 		newLeaf = currentLeaf
 	} else {
-		newLeaf = updateGeneration(currentLeaf, t.generation, t.deletedKeys, copySettings)
+		newLeaf = updateGeneration(currentLeaf, t.generation, t.deletedMerkleValues, copySettings)
 	}
 	newLeaf.SetDirty()
 	return newLeaf
@@ -84,7 +84,7 @@ func (t *Trie) prepBranchForMutation(currentBranch *Node,
 		// of current branch.
 		newBranch = currentBranch
 	} else {
-		newBranch = updateGeneration(currentBranch, t.generation, t.deletedKeys, copySettings)
+		newBranch = updateGeneration(currentBranch, t.generation, t.deletedMerkleValues, copySettings)
 	}
 	newBranch.SetDirty()
 	return newBranch
@@ -94,17 +94,17 @@ func (t *Trie) prepBranchForMutation(currentBranch *Node,
 // an older trie generation (snapshot) so we deep copy the
 // node and update the generation on the newer copy.
 func updateGeneration(currentNode *Node, trieGeneration uint64,
-	deletedHashes map[common.Hash]struct{}, copySettings node.CopySettings) (
+	deletedMerkleValues map[string]struct{}, copySettings node.CopySettings) (
 	newNode *Node) {
 	newNode = currentNode.Copy(copySettings)
 	newNode.Generation = trieGeneration
 
 	// The hash of the node from a previous snapshotted trie
 	// is usually already computed.
-	deletedHashBytes := currentNode.MerkleValue
-	if len(deletedHashBytes) > 0 {
-		deletedHash := common.BytesToHash(deletedHashBytes)
-		deletedHashes[deletedHash] = struct{}{}
+	deletedMerkleValue := currentNode.MerkleValue
+	if len(deletedMerkleValue) > 0 {
+		deletedMerkleValueString := string(deletedMerkleValue)
+		deletedMerkleValues[deletedMerkleValueString] = struct{}{}
 	}
 
 	return newNode
@@ -124,10 +124,10 @@ func (t *Trie) DeepCopy() (trieCopy *Trie) {
 		generation: t.generation,
 	}
 
-	if t.deletedKeys != nil {
-		trieCopy.deletedKeys = make(map[common.Hash]struct{}, len(t.deletedKeys))
-		for k := range t.deletedKeys {
-			trieCopy.deletedKeys[k] = struct{}{}
+	if t.deletedMerkleValues != nil {
+		trieCopy.deletedMerkleValues = make(map[string]struct{}, len(t.deletedMerkleValues))
+		for k := range t.deletedMerkleValues {
+			trieCopy.deletedMerkleValues[k] = struct{}{}
 		}
 	}
 
@@ -688,8 +688,7 @@ func (t *Trie) clearPrefixLimitBranch(branch *Node, prefix []byte, limit uint32)
 	newParent = branch
 
 	if bytes.HasPrefix(branch.Key, prefix) {
-		nilPrefix := ([]byte)(nil)
-		newParent, valuesDeleted, nodesRemoved = t.deleteNodesLimit(branch, nilPrefix, limit)
+		newParent, valuesDeleted, nodesRemoved = t.deleteNodesLimit(branch, limit)
 		allDeleted = newParent == nil
 		return newParent, valuesDeleted, nodesRemoved, allDeleted
 	}
@@ -743,8 +742,7 @@ func (t *Trie) clearPrefixLimitChild(branch *Node, prefix []byte, limit uint32) 
 		return newParent, valuesDeleted, nodesRemoved, allDeleted
 	}
 
-	nilPrefix := ([]byte)(nil)
-	child, valuesDeleted, nodesRemoved = t.deleteNodesLimit(child, nilPrefix, limit)
+	child, valuesDeleted, nodesRemoved = t.deleteNodesLimit(child, limit)
 	if valuesDeleted == 0 {
 		allDeleted = branch.Children[childIndex] == nil
 		return branch, valuesDeleted, nodesRemoved, allDeleted
@@ -764,7 +762,7 @@ func (t *Trie) clearPrefixLimitChild(branch *Node, prefix []byte, limit uint32) 
 	return newParent, valuesDeleted, nodesRemoved, allDeleted
 }
 
-func (t *Trie) deleteNodesLimit(parent *Node, prefix []byte, limit uint32) (
+func (t *Trie) deleteNodesLimit(parent *Node, limit uint32) (
 	newParent *Node, valuesDeleted, nodesRemoved uint32) {
 	if limit == 0 {
 		valuesDeleted, nodesRemoved = 0, 0
@@ -783,8 +781,6 @@ func (t *Trie) deleteNodesLimit(parent *Node, prefix []byte, limit uint32) (
 
 	branch := parent
 
-	fullKey := concatenateSlices(prefix, branch.Key)
-
 	nilChildren := node.ChildrenCapacity - branch.NumChildren()
 
 	var newDeleted, newNodesRemoved uint32
@@ -796,7 +792,7 @@ func (t *Trie) deleteNodesLimit(parent *Node, prefix []byte, limit uint32) (
 
 		copySettings := node.DefaultCopySettings
 		branch = t.prepBranchForMutation(branch, copySettings)
-		branch.Children[i], newDeleted, newNodesRemoved = t.deleteNodesLimit(child, fullKey, limit)
+		branch.Children[i], newDeleted, newNodesRemoved = t.deleteNodesLimit(child, limit)
 		if branch.Children[i] == nil {
 			nilChildren++
 		}
@@ -807,7 +803,7 @@ func (t *Trie) deleteNodesLimit(parent *Node, prefix []byte, limit uint32) (
 
 		branch.SetDirty()
 
-		newParent, branchChildMerged = handleDeletion(branch, fullKey)
+		newParent, branchChildMerged = handleDeletion(branch, branch.Key)
 		if branchChildMerged {
 			nodesRemoved++
 		}

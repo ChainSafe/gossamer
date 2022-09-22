@@ -16,7 +16,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/babe/mocks"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
@@ -57,8 +56,8 @@ var (
 func createTestService(t *testing.T, cfg ServiceConfig) *Service {
 	wasmer.DefaultTestLogLvl = 1
 
-	gen, genTrie, genHeader := genesis.NewDevGenesisWithTrieAndHeader(t)
-	genesisHeader = genHeader
+	gen, genTrie, genHeader := newDevGenesisWithTrieAndHeader(t)
+	genesisHeader = &genHeader
 
 	var err error
 
@@ -97,7 +96,7 @@ func createTestService(t *testing.T, cfg ServiceConfig) *Service {
 		dbSrv = state.NewService(config)
 		dbSrv.UseMemDB()
 
-		err = dbSrv.Initialise(gen, genHeader, genTrie)
+		err = dbSrv.Initialise(&gen, &genHeader, &genTrie)
 		require.NoError(t, err)
 
 		err = dbSrv.Start()
@@ -113,7 +112,7 @@ func createTestService(t *testing.T, cfg ServiceConfig) *Service {
 	}
 
 	var rtCfg wasmer.Config
-	rtCfg.Storage = rtstorage.NewTrieState(genTrie)
+	rtCfg.Storage = rtstorage.NewTrieState(&genTrie)
 
 	storageState := cfg.StorageState.(core.StorageState)
 	rtCfg.CodeHash, err = storageState.LoadCodeHash(nil)
@@ -154,8 +153,8 @@ func newTestServiceSetupParameters(t *testing.T) (*Service, *state.EpochState, *
 	dbSrv := state.NewService(config)
 	dbSrv.UseMemDB()
 
-	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
-	err := dbSrv.Initialise(gen, genHeader, genTrie)
+	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
+	err := dbSrv.Initialise(&gen, &genHeader, &genTrie)
 	require.NoError(t, err)
 
 	err = dbSrv.Start()
@@ -166,7 +165,7 @@ func newTestServiceSetupParameters(t *testing.T) (*Service, *state.EpochState, *
 	})
 
 	rtCfg := wasmer.Config{
-		Storage: rtstorage.NewTrieState(genTrie),
+		Storage: rtstorage.NewTrieState(&genTrie),
 	}
 
 	rt, err := wasmer.NewRuntimeFromGenesis(rtCfg)

@@ -26,7 +26,7 @@ type GrandpaScheduledChange struct {
 	Delay uint32
 }
 
-// Index Returns VDT index
+// Index returns VDT index
 func (GrandpaScheduledChange) Index() uint { return 1 }
 
 // GrandpaForcedChange represents a GRANDPA forced authority change
@@ -39,7 +39,7 @@ type GrandpaForcedChange struct {
 	Delay              uint32
 }
 
-// Index Returns VDT index
+// Index returns VDT index
 func (GrandpaForcedChange) Index() uint { return 2 }
 
 // GrandpaOnDisabled represents a GRANDPA authority being disabled
@@ -47,7 +47,7 @@ type GrandpaOnDisabled struct {
 	ID uint64
 }
 
-// Index Returns VDT index
+// Index returns VDT index
 func (GrandpaOnDisabled) Index() uint { return 3 }
 
 // GrandpaPause represents an authority set pause
@@ -55,7 +55,7 @@ type GrandpaPause struct {
 	Delay uint32
 }
 
-// Index Returns VDT index
+// Index returns VDT index
 func (GrandpaPause) Index() uint { return 4 }
 
 // GrandpaResume represents an authority set resume
@@ -63,7 +63,7 @@ type GrandpaResume struct {
 	Delay uint32
 }
 
-// Index Returns VDT index
+// Index returns VDT index
 func (GrandpaResume) Index() uint { return 5 }
 
 // NextEpochData is the digest that contains the data for the upcoming BABE epoch.
@@ -73,7 +73,7 @@ type NextEpochData struct {
 	Randomness  [RandomnessLength]byte
 }
 
-// Index Returns VDT index
+// Index returns VDT index
 func (NextEpochData) Index() uint { return 1 }
 
 func (d NextEpochData) String() string {
@@ -98,7 +98,7 @@ type BABEOnDisabled struct {
 	ID uint32
 }
 
-// Index Returns VDT index
+// Index returns VDT index
 func (BABEOnDisabled) Index() uint { return 2 }
 
 // NextConfigData is the digest that contains changes to the BABE configuration.
@@ -109,7 +109,7 @@ type NextConfigData struct {
 	SecondarySlots byte
 }
 
-// Index Returns VDT index
+// Index returns VDT index
 func (NextConfigData) Index() uint { return 3 }
 
 // ToConfigData returns the NextConfigData as ConfigData

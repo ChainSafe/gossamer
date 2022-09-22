@@ -12,7 +12,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/genesis"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
@@ -21,10 +20,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newTestStorageState(t *testing.T, tries *Tries) *StorageState {
+func newTestStorageState(t *testing.T) *StorageState {
 	db := NewInMemoryDB(t)
 
-	bs := newTestBlockState(t, testGenesisHeader, tries)
+	tries := newTriesEmpty()
+	bs := newTestBlockState(t, tries)
 
 	s, err := NewStorageState(db, bs, tries, pruner.Config{})
 	require.NoError(t, err)
@@ -32,7 +32,7 @@ func newTestStorageState(t *testing.T, tries *Tries) *StorageState {
 }
 
 func TestStorage_StoreAndLoadTrie(t *testing.T) {
-	storage := newTestStorageState(t, newTriesEmpty())
+	storage := newTestStorageState(t)
 	ts, err := storage.TrieState(&trie.EmptyHash)
 	require.NoError(t, err)
 
@@ -51,7 +51,7 @@ func TestStorage_StoreAndLoadTrie(t *testing.T) {
 }
 
 func TestStorage_GetStorageByBlockHash(t *testing.T) {
-	storage := newTestStorageState(t, newTriesEmpty())
+	storage := newTestStorageState(t)
 	ts, err := storage.TrieState(&trie.EmptyHash)
 	require.NoError(t, err)
 
@@ -86,7 +86,7 @@ func TestStorage_GetStorageByBlockHash(t *testing.T) {
 }
 
 func TestStorage_TrieState(t *testing.T) {
-	storage := newTestStorageState(t, newTriesEmpty())
+	storage := newTestStorageState(t)
 	ts, err := storage.TrieState(&trie.EmptyHash)
 	require.NoError(t, err)
 	ts.Set([]byte("noot"), []byte("washere"))
@@ -106,7 +106,7 @@ func TestStorage_TrieState(t *testing.T) {
 }
 
 func TestStorage_LoadFromDB(t *testing.T) {
-	storage := newTestStorageState(t, newTriesEmpty())
+	storage := newTestStorageState(t)
 	ts, err := storage.TrieState(&trie.EmptyHash)
 	require.NoError(t, err)
 
@@ -151,7 +151,7 @@ func TestStorage_LoadFromDB(t *testing.T) {
 }
 
 func TestStorage_StoreTrie_NotSyncing(t *testing.T) {
-	storage := newTestStorageState(t, newTriesEmpty())
+	storage := newTestStorageState(t)
 	ts, err := storage.TrieState(&trie.EmptyHash)
 	require.NoError(t, err)
 
@@ -170,7 +170,7 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	db, err := utils.SetupDatabase(basepath, false)
 	require.NoError(t, err)
 
-	_, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	_, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
@@ -193,13 +193,13 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 
 	tries := newTriesEmpty()
 
-	blockState, err := NewBlockStateFromGenesis(db, tries, genHeader, telemetryMock)
+	blockState, err := NewBlockStateFromGenesis(db, tries, &genHeader, telemetryMock)
 	require.NoError(t, err)
 
 	storage, err := NewStorageState(db, blockState, tries, pruner.Config{})
 	require.NoError(t, err)
 
-	trieState := runtime.NewTrieState(genTrie)
+	trieState := runtime.NewTrieState(&genTrie)
 
 	header, err := types.NewHeader(blockState.GenesisHash(), trieState.MustRoot(),
 		common.Hash{}, 1, types.NewDigest())

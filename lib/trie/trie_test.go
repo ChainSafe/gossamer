@@ -18,8 +18,8 @@ import (
 
 func Test_NewEmptyTrie(t *testing.T) {
 	expectedTrie := &Trie{
-		childTries:  make(map[common.Hash]*Trie),
-		deletedKeys: map[common.Hash]struct{}{},
+		childTries:          make(map[common.Hash]*Trie),
+		deletedMerkleValues: map[string]struct{}{},
 	}
 	trie := NewEmptyTrie()
 	assert.Equal(t, expectedTrie, trie)
@@ -35,8 +35,8 @@ func Test_NewTrie(t *testing.T) {
 			Key:      []byte{0},
 			SubValue: []byte{17},
 		},
-		childTries:  make(map[common.Hash]*Trie),
-		deletedKeys: map[common.Hash]struct{}{},
+		childTries:          make(map[common.Hash]*Trie),
+		deletedMerkleValues: map[string]struct{}{},
 	}
 	trie := NewTrie(root)
 	assert.Equal(t, expectedTrie, trie)
@@ -52,21 +52,21 @@ func Test_Trie_Snapshot(t *testing.T) {
 			{1}: {
 				generation: 1,
 				root:       &Node{Key: []byte{1}, SubValue: []byte{1}},
-				deletedKeys: map[common.Hash]struct{}{
-					{1}: {},
+				deletedMerkleValues: map[string]struct{}{
+					"a": {},
 				},
 			},
 			{2}: {
 				generation: 2,
 				root:       &Node{Key: []byte{2}, SubValue: []byte{1}},
-				deletedKeys: map[common.Hash]struct{}{
-					{2}: {},
+				deletedMerkleValues: map[string]struct{}{
+					"b": {},
 				},
 			},
 		},
-		deletedKeys: map[common.Hash]struct{}{
-			{1}: {},
-			{2}: {},
+		deletedMerkleValues: map[string]struct{}{
+			"a": {},
+			"b": {},
 		},
 	}
 
@@ -75,17 +75,17 @@ func Test_Trie_Snapshot(t *testing.T) {
 		root:       &Node{Key: []byte{8}, SubValue: []byte{1}},
 		childTries: map[common.Hash]*Trie{
 			{1}: {
-				generation:  2,
-				root:        &Node{Key: []byte{1}, SubValue: []byte{1}},
-				deletedKeys: map[common.Hash]struct{}{},
+				generation:          2,
+				root:                &Node{Key: []byte{1}, SubValue: []byte{1}},
+				deletedMerkleValues: map[string]struct{}{},
 			},
 			{2}: {
-				generation:  3,
-				root:        &Node{Key: []byte{2}, SubValue: []byte{1}},
-				deletedKeys: map[common.Hash]struct{}{},
+				generation:          3,
+				root:                &Node{Key: []byte{2}, SubValue: []byte{1}},
+				deletedMerkleValues: map[string]struct{}{},
 			},
 		},
-		deletedKeys: map[common.Hash]struct{}{},
+		deletedMerkleValues: map[string]struct{}{},
 	}
 
 	newTrie := trie.Snapshot()
@@ -97,12 +97,12 @@ func Test_Trie_updateGeneration(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		trieGeneration        uint64
-		node                  *Node
-		copySettings          node.CopySettings
-		newNode               *Node
-		copied                bool
-		expectedDeletedHashes map[common.Hash]struct{}
+		trieGeneration              uint64
+		node                        *Node
+		copySettings                node.CopySettings
+		newNode                     *Node
+		copied                      bool
+		expectedDeletedMerkleValues map[string]struct{}
 	}{
 		"trie generation higher and empty hash": {
 			trieGeneration: 2,
@@ -115,8 +115,8 @@ func Test_Trie_updateGeneration(t *testing.T) {
 				Generation: 2,
 				Key:        []byte{1},
 			},
-			copied:                true,
-			expectedDeletedHashes: map[common.Hash]struct{}{},
+			copied:                      true,
+			expectedDeletedMerkleValues: map[string]struct{}{},
 		},
 		"trie generation higher and hash": {
 			trieGeneration: 2,
@@ -131,13 +131,8 @@ func Test_Trie_updateGeneration(t *testing.T) {
 				Key:        []byte{1},
 			},
 			copied: true,
-			expectedDeletedHashes: map[common.Hash]struct{}{
-				{
-					0, 0, 0, 0, 0, 0, 0, 0, 0,
-					0, 0, 0, 0, 0, 0, 0, 0, 0,
-					0, 0, 0, 0, 0, 0, 0, 0, 0,
-					0, 0, 1, 2, 3,
-				}: {},
+			expectedDeletedMerkleValues: map[string]struct{}{
+				string([]byte{1, 2, 3}): {},
 			},
 		},
 	}
@@ -147,13 +142,13 @@ func Test_Trie_updateGeneration(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			deletedHashes := make(map[common.Hash]struct{})
+			deletedMerkleValues := make(map[string]struct{})
 
 			newNode := updateGeneration(testCase.node, testCase.trieGeneration,
-				deletedHashes, testCase.copySettings)
+				deletedMerkleValues, testCase.copySettings)
 
 			assert.Equal(t, testCase.newNode, newNode)
-			assert.Equal(t, testCase.expectedDeletedHashes, deletedHashes)
+			assert.Equal(t, testCase.expectedDeletedMerkleValues, deletedMerkleValues)
 
 			// Check for deep copy
 			if newNode != nil && testCase.copied {
@@ -201,7 +196,7 @@ func testTrieForDeepCopy(t *testing.T, original, copy *Trie) {
 		return
 	}
 	assertPointersNotEqual(t, original.generation, copy.generation)
-	assertPointersNotEqual(t, original.deletedKeys, copy.deletedKeys)
+	assertPointersNotEqual(t, original.deletedMerkleValues, copy.deletedMerkleValues)
 	assertPointersNotEqual(t, original.childTries, copy.childTries)
 	for hashKey, childTrie := range copy.childTries {
 		originalChildTrie := original.childTries[hashKey]
@@ -230,15 +225,15 @@ func Test_Trie_DeepCopy(t *testing.T) {
 					{1, 2, 3}: {
 						generation: 2,
 						root:       &Node{Key: []byte{1}, SubValue: []byte{1}},
-						deletedKeys: map[common.Hash]struct{}{
-							{1, 2, 3}: {},
-							{3, 4, 5}: {},
+						deletedMerkleValues: map[string]struct{}{
+							"a": {},
+							"b": {},
 						},
 					},
 				},
-				deletedKeys: map[common.Hash]struct{}{
-					{1, 2, 3}: {},
-					{3, 4, 5}: {},
+				deletedMerkleValues: map[string]struct{}{
+					"a": {},
+					"b": {},
 				},
 			},
 			trieCopy: &Trie{
@@ -248,15 +243,15 @@ func Test_Trie_DeepCopy(t *testing.T) {
 					{1, 2, 3}: {
 						generation: 2,
 						root:       &Node{Key: []byte{1}, SubValue: []byte{1}},
-						deletedKeys: map[common.Hash]struct{}{
-							{1, 2, 3}: {},
-							{3, 4, 5}: {},
+						deletedMerkleValues: map[string]struct{}{
+							"a": {},
+							"b": {},
 						},
 					},
 				},
-				deletedKeys: map[common.Hash]struct{}{
-					{1, 2, 3}: {},
-					{3, 4, 5}: {},
+				deletedMerkleValues: map[string]struct{}{
+					"a": {},
+					"b": {},
 				},
 			},
 		},
@@ -648,9 +643,8 @@ func Test_Trie_Entries(t *testing.T) {
 		t.Parallel()
 
 		trie := Trie{
-			root:        nil,
-			childTries:  make(map[common.Hash]*Trie),
-			deletedKeys: make(map[common.Hash]struct{}),
+			root:       nil,
+			childTries: make(map[common.Hash]*Trie),
 		}
 
 		kv := map[string][]byte{
@@ -2671,7 +2665,6 @@ func Test_Trie_deleteNodesLimit(t *testing.T) {
 	testCases := map[string]struct {
 		trie          Trie
 		parent        *Node
-		prefix        []byte
 		limit         uint32
 		newNode       *Node
 		valuesDeleted uint32
@@ -2806,8 +2799,7 @@ func Test_Trie_deleteNodesLimit(t *testing.T) {
 					{Key: []byte{3}, SubValue: []byte{1}},
 				}),
 			},
-			prefix: []byte{1, 2},
-			limit:  2,
+			limit: 2,
 			newNode: &Node{
 				Key:        []byte{3, 5, 3},
 				SubValue:   []byte{1},
@@ -2828,7 +2820,7 @@ func Test_Trie_deleteNodesLimit(t *testing.T) {
 			expectedTrie := *trie.DeepCopy()
 
 			newNode, valuesDeleted, nodesRemoved :=
-				trie.deleteNodesLimit(testCase.parent, testCase.prefix, testCase.limit)
+				trie.deleteNodesLimit(testCase.parent, testCase.limit)
 
 			assert.Equal(t, testCase.newNode, newNode)
 			assert.Equal(t, testCase.valuesDeleted, valuesDeleted)
