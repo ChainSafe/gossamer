@@ -85,13 +85,13 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) 
 	}
 
 	if header != nil {
-		insertedNodeHashes, err := ts.GetInsertedNodeHashes()
+		insertedMerkleValues, err := ts.GetInsertedMerkleValues()
 		if err != nil {
 			return fmt.Errorf("failed to get state trie inserted keys: block %s %w", header.Hash(), err)
 		}
 
-		deletedNodeHashes := ts.GetDeletedNodeHashes()
-		err = s.pruner.StoreJournalRecord(deletedNodeHashes, insertedNodeHashes, header.Hash(), int64(header.Number))
+		deletedMerkleValues := ts.GetDeletedMerkleValues()
+		err = s.pruner.StoreJournalRecord(deletedMerkleValues, insertedMerkleValues, header.Hash(), int64(header.Number))
 		if err != nil {
 			return err
 		}

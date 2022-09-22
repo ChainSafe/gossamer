@@ -51,7 +51,7 @@ type Config struct {
 
 // Pruner is implemented by FullNode and ArchiveNode.
 type Pruner interface {
-	StoreJournalRecord(deletedHashesSet, insertedHashesSet map[common.Hash]struct{},
+	StoreJournalRecord(deletedMerkleValues, insertedMerkleValues map[string]struct{},
 		blockHash common.Hash, blockNum int64) error
 }
 
@@ -59,25 +59,26 @@ type Pruner interface {
 type ArchiveNode struct{}
 
 // StoreJournalRecord for archive node doesn't do anything.
-func (*ArchiveNode) StoreJournalRecord(_, _ map[common.Hash]struct{},
+func (*ArchiveNode) StoreJournalRecord(_, _ map[string]struct{},
 	_ common.Hash, _ int64) error {
 	return nil
 }
 
 type deathRecord struct {
-	blockHash   common.Hash
-	deletedKeys map[common.Hash]int64 // Mapping from deleted key hash to block number.
+	blockHash                       common.Hash
+	deletedMerkleValueToBlockNumber map[string]int64
 }
 
 type deathRow []*deathRecord
 
 // FullNode stores state trie diff and allows online state trie pruning
 type FullNode struct {
-	logger     log.LeveledLogger
-	deathList  []deathRow
-	storageDB  chaindb.Database
-	journalDB  chaindb.Database
-	deathIndex map[common.Hash]int64 // Mapping from deleted key hash to block number.
+	logger    log.LeveledLogger
+	deathList []deathRow
+	storageDB chaindb.Database
+	journalDB chaindb.Database
+	// deathIndex is the mapping from deleted node Merkle value to block number.
+	deathIndex map[string]int64
 	// pendingNumber is the block number to be pruned.
 	// Initial value is set to 1 and is incremented after every block pruning.
 	pendingNumber int64
@@ -88,10 +89,10 @@ type FullNode struct {
 type journalRecord struct {
 	// blockHash of the block corresponding to journal record
 	blockHash common.Hash
-	// Hash of keys that are inserted into state trie of the block
-	insertedHashesSet map[common.Hash]struct{}
-	// Hash of keys that are deleted from state trie of the block
-	deletedHashesSet map[common.Hash]struct{}
+	// Merkle values of nodes inserted in the state trie of the block
+	insertedMerkleValues map[string]struct{}
+	// Merkle values of nodes deleted from the state trie of the block
+	deletedMerkleValues map[string]struct{}
 }
 
 type journalKey struct {
@@ -99,12 +100,12 @@ type journalKey struct {
 	blockHash common.Hash
 }
 
-func newJournalRecord(hash common.Hash, insertedHashesSet,
-	deletedHashesSet map[common.Hash]struct{}) *journalRecord {
+func newJournalRecord(hash common.Hash, insertedMerkleValues,
+	deletedMerkleValues map[string]struct{}) *journalRecord {
 	return &journalRecord{
-		blockHash:         hash,
-		insertedHashesSet: insertedHashesSet,
-		deletedHashesSet:  deletedHashesSet,
+		blockHash:            hash,
+		insertedMerkleValues: insertedMerkleValues,
+		deletedMerkleValues:  deletedMerkleValues,
 	}
 }
 
@@ -112,7 +113,7 @@ func newJournalRecord(hash common.Hash, insertedHashesSet,
 func NewFullNode(db, storageDB chaindb.Database, retainBlocks int64, l log.LeveledLogger) (Pruner, error) {
 	p := &FullNode{
 		deathList:    make([]deathRow, 0),
-		deathIndex:   make(map[common.Hash]int64),
+		deathIndex:   make(map[string]int64),
 		storageDB:    storageDB,
 		journalDB:    chaindb.NewTable(db, journalPrefix),
 		retainBlocks: retainBlocks,
@@ -140,9 +141,9 @@ func NewFullNode(db, storageDB chaindb.Database, retainBlocks int64, l log.Level
 }
 
 // StoreJournalRecord stores journal record into DB and add deathRow into deathList
-func (p *FullNode) StoreJournalRecord(deletedHashesSet, insertedHashesSet map[common.Hash]struct{},
+func (p *FullNode) StoreJournalRecord(deletedMerkleValues, insertedMerkleValues map[string]struct{},
 	blockHash common.Hash, blockNum int64) error {
-	jr := newJournalRecord(blockHash, insertedHashesSet, deletedHashesSet)
+	jr := newJournalRecord(blockHash, insertedMerkleValues, deletedMerkleValues)
 
 	key := &journalKey{blockNum, blockHash}
 	err := p.storeJournal(key, jr)
@@ -168,13 +169,13 @@ func (p *FullNode) addDeathRow(jr *journalRecord, blockNum int64) {
 		return
 	}
 
-	p.processInsertedKeys(jr.insertedHashesSet, jr.blockHash)
+	p.processInsertedKeys(jr.insertedMerkleValues, jr.blockHash)
 
-	// add deleted keys from journal to death index
-	deletedKeys := make(map[common.Hash]int64, len(jr.deletedHashesSet))
-	for k := range jr.deletedHashesSet {
+	// add deleted node Merkle values from journal to death index
+	deletedMerkleValueToBlockNumber := make(map[string]int64, len(jr.deletedMerkleValues))
+	for k := range jr.deletedMerkleValues {
 		p.deathIndex[k] = blockNum
-		deletedKeys[k] = blockNum
+		deletedMerkleValueToBlockNumber[k] = blockNum
 	}
 
 	blockIndex := blockNum - p.pendingNumber
@@ -183,8 +184,8 @@ func (p *FullNode) addDeathRow(jr *journalRecord, blockNum int64) {
 	}
 
 	record := &deathRecord{
-		blockHash:   jr.blockHash,
-		deletedKeys: deletedKeys,
+		blockHash:                       jr.blockHash,
+		deletedMerkleValueToBlockNumber: deletedMerkleValueToBlockNumber,
 	}
 
 	// add deathRow to deathList
@@ -192,8 +193,8 @@ func (p *FullNode) addDeathRow(jr *journalRecord, blockNum int64) {
 }
 
 // Remove re-inserted keys
-func (p *FullNode) processInsertedKeys(insertedHashesSet map[common.Hash]struct{}, blockHash common.Hash) {
-	for k := range insertedHashesSet {
+func (p *FullNode) processInsertedKeys(insertedMerkleValues map[string]struct{}, blockHash common.Hash) {
+	for k := range insertedMerkleValues {
 		num, ok := p.deathIndex[k]
 		if !ok {
 			continue
@@ -201,7 +202,7 @@ func (p *FullNode) processInsertedKeys(insertedHashesSet map[common.Hash]struct{
 		records := p.deathList[num-p.pendingNumber]
 		for _, v := range records {
 			if v.blockHash == blockHash {
-				delete(v.deletedKeys, k)
+				delete(v.deletedMerkleValueToBlockNumber, k)
 			}
 		}
 		delete(p.deathIndex, k)
@@ -229,14 +230,14 @@ func (p *FullNode) start() {
 
 		sdbBatch := p.storageDB.NewBatch()
 		for _, record := range row {
-			err := p.deleteKeys(sdbBatch, record.deletedKeys)
+			err := p.deleteKeys(sdbBatch, record.deletedMerkleValueToBlockNumber)
 			if err != nil {
 				p.logger.Warnf("failed to prune keys for block number %d: %s", blockNum, err)
 				sdbBatch.Reset()
 				return
 			}
 
-			for k := range record.deletedKeys {
+			for k := range record.deletedMerkleValueToBlockNumber {
 				delete(p.deathIndex, k)
 			}
 		}
@@ -373,9 +374,9 @@ func (p *FullNode) getLastPrunedIndex() (int64, error) {
 	return blockNum, nil
 }
 
-func (*FullNode) deleteKeys(b chaindb.Batch, nodesHash map[common.Hash]int64) error {
-	for k := range nodesHash {
-		err := b.Del(k.ToBytes())
+func (*FullNode) deleteKeys(b chaindb.Batch, deletedMerkleValueToBlockNumber map[string]int64) error {
+	for merkleValue := range deletedMerkleValueToBlockNumber {
+		err := b.Del([]byte(merkleValue))
 		if err != nil {
 			return err
 		}
