@@ -11,7 +11,6 @@ import (
 	types "github.com/ChainSafe/gossamer/dot/types"
 	common "github.com/ChainSafe/gossamer/lib/common"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
-	storage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	trie "github.com/ChainSafe/gossamer/lib/trie"
 	gomock "github.com/golang/mock/gomock"
 )
@@ -171,21 +170,6 @@ func (mr *MockStorageAPIMockRecorder) RegisterStorageObserver(arg0 interface{}) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterStorageObserver", reflect.TypeOf((*MockStorageAPI)(nil).RegisterStorageObserver), arg0)
 }
 
-// TrieState mocks base method.
-func (m *MockStorageAPI) TrieState(arg0 *common.Hash) (*storage.TrieState, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "TrieState", arg0)
-	ret0, _ := ret[0].(*storage.TrieState)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// TrieState indicates an expected call of TrieState.
-func (mr *MockStorageAPIMockRecorder) TrieState(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TrieState", reflect.TypeOf((*MockStorageAPI)(nil).TrieState), arg0)
-}
-
 // UnregisterStorageObserver mocks base method.
 func (m *MockStorageAPI) UnregisterStorageObserver(arg0 state.Observer) {
 	m.ctrl.T.Helper()
@@ -257,20 +241,6 @@ func (m *MockBlockAPI) FreeImportedBlockNotifierChannel(arg0 chan *types.Block) 
 func (mr *MockBlockAPIMockRecorder) FreeImportedBlockNotifierChannel(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FreeImportedBlockNotifierChannel", reflect.TypeOf((*MockBlockAPI)(nil).FreeImportedBlockNotifierChannel), arg0)
-}
-
-// GetBestBlockRuntime mocks base method.
-func (m *MockBlockAPI) GetBestBlockRuntime() runtime.Instance {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetBestBlockRuntime")
-	ret0, _ := ret[0].(runtime.Instance)
-	return ret0
-}
-
-// GetBestBlockRuntime indicates an expected call of GetBestBlockRuntime.
-func (mr *MockBlockAPIMockRecorder) GetBestBlockRuntime() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBestBlockRuntime", reflect.TypeOf((*MockBlockAPI)(nil).GetBestBlockRuntime))
 }
 
 // GetBlockByHash mocks base method.
