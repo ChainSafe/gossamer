@@ -490,18 +490,18 @@ func (mr *MockTransactionStateMockRecorder) Pop() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Pop", reflect.TypeOf((*MockTransactionState)(nil).Pop))
 }
 
-// PopChannel mocks base method.
-func (m *MockTransactionState) PopChannel(arg0 *time.Timer) chan *transaction.ValidTransaction {
+// PopWithTimer mocks base method.
+func (m *MockTransactionState) PopWithTimer(arg0 *time.Timer) *transaction.ValidTransaction {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PopChannel", arg0)
-	ret0, _ := ret[0].(chan *transaction.ValidTransaction)
+	ret := m.ctrl.Call(m, "PopWithTimer", arg0)
+	ret0, _ := ret[0].(*transaction.ValidTransaction)
 	return ret0
 }
 
-// PopChannel indicates an expected call of PopChannel.
-func (mr *MockTransactionStateMockRecorder) PopChannel(arg0 interface{}) *gomock.Call {
+// PopWithTimer indicates an expected call of PopWithTimer.
+func (mr *MockTransactionStateMockRecorder) PopWithTimer(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PopChannel", reflect.TypeOf((*MockTransactionState)(nil).PopChannel), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PopWithTimer", reflect.TypeOf((*MockTransactionState)(nil).PopWithTimer), arg0)
 }
 
 // Push mocks base method.
