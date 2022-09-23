@@ -6,5 +6,5 @@ package scale
 import "errors"
 
 var (
-	ErrVaryingDataTypeValueNotSet = errors.New("VaryingDataTypeValue has not been set")
+	ErrVaryingDataTypeNotSet = errors.New("VaryingDataTypeValue has not been set")
 )

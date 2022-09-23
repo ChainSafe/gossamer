@@ -68,7 +68,7 @@ func (vdt *VaryingDataType) Set(value VaryingDataTypeValue) (err error) {
 // Value returns value stored in vdt
 func (vdt *VaryingDataType) Value() (VaryingDataTypeValue, error) {
 	if vdt.value == nil {
-		return nil, ErrVaryingDataTypeValueNotSet
+		return nil, ErrVaryingDataTypeNotSet
 	}
 	return vdt.value, nil
 }
