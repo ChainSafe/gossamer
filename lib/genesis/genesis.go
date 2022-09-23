@@ -57,11 +57,11 @@ type Fields struct {
 
 // Runtime is ...
 type Runtime struct {
-	System              *System             `json:"system"`
-	Babe                Babe                `json:"babe"`
-	Grandpa             Grandpa             `json:"grandpa"`
-	Balances            Balances            `json:"balances"`
-	TransactionPayment  interface{}         `json:"transactionPayment"`
+	System   *System  `json:"system"`
+	Babe     Babe     `json:"babe"`
+	Grandpa  Grandpa  `json:"grandpa"`
+	Balances Balances `json:"balances"`
+	//TransactionPayment  interface{}         `json:"transactionPayment"`
 	Sudo                Sudo                `json:"sudo"`
 	Session             Session             `json:"session"`
 	Staking             Staking             `json:"staking"`
@@ -71,16 +71,16 @@ type Runtime struct {
 	Instance1Membership Instance1Membership `json:"Instance1Membership"`
 	Contracts           Contracts           `json:"Contracts"`
 	Society             Society             `json:"Society"`
-	//Indices             Indices             `json:"indices"`
-	//ImOnline            ImOnline            `json:"imOnline"`
-	//AuthorityDiscovery AuthorityDiscovery `json:"authorityDiscovery"`
-	//Vesting            Vesting            `json:"vesting"`
-	NominationPools NominationPools `json:"nominationPools"`
-	Configuration   Configuration   `json:"configuration"`
-	// Paras           Paras           `json:"paras"`
-	// Hrmp            Hrmp            `json:"hrmp"`
-	Registrar Registrar `json:"registrar"`
-	XcmPallet XcmPallet `json:"xcmPallet"`
+	Indices             Indices             `json:"indices"`
+	ImOnline            ImOnline            `json:"imOnline"`
+	AuthorityDiscovery  AuthorityDiscovery  `json:"authorityDiscovery"`
+	Vesting             Vesting             `json:"vesting"`
+	NominationPools     NominationPools     `json:"nominationPools"`
+	Configuration       Configuration       `json:"configuration"`
+	Paras               Paras               `json:"paras"`
+	Hrmp                Hrmp                `json:"hrmp"`
+	Registrar           Registrar           `json:"registrar"`
+	XcmPallet           XcmPallet           `json:"xcmPallet"`
 }
 
 // System is ...
@@ -328,6 +328,26 @@ type Society struct {
 	Members    []string `json:"Members"`
 }
 
+// Indices is ...
+type Indices struct {
+	Indices []interface{} `json:"indices"`
+}
+
+// ImOnline is ...
+type ImOnline struct {
+	Keys []interface{} `json:"keys"`
+}
+
+// AuthorityDiscovery is ...
+type AuthorityDiscovery struct {
+	Keys []interface{} `json:"keys"`
+}
+
+// Vesting is ...
+type Vesting struct {
+	Vesting []interface{} `json:"vesting"`
+}
+
 // NominationPools is ...
 type NominationPools struct {
 	MinJoinBond       int64 `json:"minJoinBond"`
@@ -390,14 +410,14 @@ type Config struct {
 }
 
 // Paras is ...
-// type Paras struct {
-// 	Paras []interface{} `json:"paras"`
-// }
+type Paras struct {
+	Paras []interface{} `json:"paras"`
+}
 
 // Hrmp is ...
-// type Hrmp struct {
-// 	PreopenHrmpChannels []interface{} `json:"preopenHrmpChannels"`
-// }
+type Hrmp struct {
+	PreopenHrmpChannels []interface{} `json:"preopenHrmpChannels"`
+}
 
 // Registrar is ...
 type Registrar struct {
@@ -496,11 +516,25 @@ func (b *BalancesFields) UnmarshalJSON(buf []byte) error {
 	tmp := []interface{}{&b.AccountID, &b.Balance}
 	wantLen := len(tmp)
 	if err := json.Unmarshal(buf, &tmp); err != nil {
-		fmt.Println("===>  Error in balance unmarshal.")
-		return err
+		return fmt.Errorf("error in balance marshal: %w", err)
 	}
 	if newLen := len(tmp); newLen != wantLen {
 		return fmt.Errorf("wrong number of fields in BalancesFields: %d != %d", newLen, wantLen)
 	}
 	return nil
+}
+
+// Custom marshal method for AuthorityAsAddress.
+func (b BalancesFields) MarshalJSON() ([]byte, error) {
+	tmp := []interface{}{&b.AccountID, &b.Balance}
+	wantLen := len(tmp)
+
+	buf, err := json.Marshal(tmp)
+	if err != nil {
+		return nil, fmt.Errorf("error in balance marshal: %w", err)
+	}
+	if newLen := len(tmp); newLen != wantLen {
+		return nil, fmt.Errorf("wrong number of fields in BalancesFields: %d != %d", newLen, wantLen)
+	}
+	return buf, nil
 }

@@ -251,6 +251,11 @@ func buildRawMap(m Runtime) (map[string]string, error) {
 			continue
 		}
 
+		// if v != nil {
+		// 	if err = buildRawMapInterface(v, kv); err != nil {
+		// 		return nil, err
+		// 	}
+		// }
 		if err = buildRawMapInterface(v, kv); err != nil {
 			return nil, err
 		}
@@ -268,6 +273,13 @@ func buildRawMap(m Runtime) (map[string]string, error) {
 			return nil, err
 		}
 
+		if k == "Babe" {
+			kv.valueLen = big.NewInt(int64(len(m.Babe.Authorities)))
+		} else if k == "Grandpa" {
+			kv.valueLen = big.NewInt(int64(len(m.Grandpa.Authorities)))
+		}
+
+		// fmt.Printf("%+v ==>\n", kv)
 		value, err := formatValue(kv)
 		if err != nil {
 			return nil, err
@@ -280,12 +292,32 @@ func buildRawMap(m Runtime) (map[string]string, error) {
 }
 
 func buildRawMapInterface(m interface{}, kv *keyValue) error {
-	mRefObjVal := reflect.ValueOf(m)
+
+	mRefObjVal := reflect.Indirect(reflect.ValueOf(m))
+	fmt.Printf("\n\n(buildRawMapInterface)  ===> m = %+v\n\n", mRefObjVal.Field(0))
 	for i := 0; i < mRefObjVal.NumField(); i++ {
 		k := mRefObjVal.Type().Field(i).Name
-		v := mRefObjVal.Field(i).Interface()
 		kv.key = append(kv.key, k)
-		switch v2 := v.(type) {
+		v := mRefObjVal.Field(i)
+
+		fmt.Printf("\n(buildRawMapInterface) v= %v\n", v)
+
+		if typeOfV := v.Type().String(); typeOfV == "big.Int" {
+			fmt.Println("=====> I am here In big.Int.")
+			encVal, err := scale.Marshal(v.Interface().(big.Int))
+			if err != nil {
+				return err
+			}
+			kv.value = kv.value + fmt.Sprintf("%x", encVal)
+			kv.iVal = append(kv.iVal, v.Interface().(big.Int))
+			continue
+		}
+		if typeOfV := v.Type().String(); typeOfV == "common.Address" {
+			fmt.Println("=====> I am here common.Address.")
+			break
+		}
+
+		switch v2 := v.Interface().(type) {
 		case []interface{}:
 			kv.valueLen = big.NewInt(int64(len(v2)))
 			if err := buildRawArrayInterface(v2, kv); err != nil {
@@ -293,6 +325,23 @@ func buildRawMapInterface(m interface{}, kv *keyValue) error {
 			}
 		case string:
 			kv.value = v2
+		default:
+			switch reflect.ValueOf(v2).Kind() {
+			case reflect.Slice:
+				v3 := reflect.ValueOf(v2)
+				listOfStruct := []interface{}{}
+				for i := 0; i < v3.Len(); i++ {
+					listOfStruct = append(listOfStruct, v3.Index(i))
+				}
+				kv.valueLen = big.NewInt(int64(v3.Len()))
+				if err := buildRawArrayInterface(listOfStruct, kv); err != nil {
+					return err
+				}
+			case reflect.Struct:
+				if err := buildRawMapInterface(v2, kv); err != nil {
+					return err
+				}
+			}
 		}
 	}
 	return nil
@@ -300,6 +349,8 @@ func buildRawMapInterface(m interface{}, kv *keyValue) error {
 
 func buildRawArrayInterface(a []interface{}, kv *keyValue) error {
 	for _, v := range a {
+		fmt.Println("\n  =>  INSIDE buildRawArrayInterface")
+		fmt.Printf("(array element) v= %v", v)
 		switch v2 := v.(type) {
 		case []interface{}:
 			err := buildRawArrayInterface(v2, kv)
@@ -318,6 +369,38 @@ func buildRawArrayInterface(a []interface{}, kv *keyValue) error {
 			}
 			kv.value = kv.value + fmt.Sprintf("%x", encVal)
 			kv.iVal = append(kv.iVal, big.NewInt(int64(v2)))
+		case int:
+			encVal, err := scale.Marshal(uint64(v2))
+			if err != nil {
+				return err
+			}
+			kv.value = kv.value + fmt.Sprintf("%x", encVal)
+			kv.iVal = append(kv.iVal, big.NewInt(int64(v2)))
+		default:
+
+			switch reflect.ValueOf(v2).Kind() {
+
+			case reflect.Slice:
+				v3 := reflect.ValueOf(v2)
+				listOfStruct := []interface{}{}
+
+				// fmt.Printf("\n\n== > key = %v | type of v = %T", k, v2)
+				// fmt.Printf("\nInside Default--Slice.\n")
+
+				for i := 0; i < v3.Len(); i++ {
+					listOfStruct = append(listOfStruct, v3.Index(i))
+					// fmt.Println(listOfStruct[i])
+				}
+				err := buildRawArrayInterface(listOfStruct, kv)
+				if err != nil {
+					return err
+				}
+			case reflect.Struct:
+				fmt.Printf("\nbuildRawArrayInterface v=%v\n", v2)
+				if err := buildRawMapInterface(v2, kv); err != nil {
+					return err
+				}
+			}
 		}
 	}
 	return nil
@@ -589,9 +672,10 @@ func formatValue(kv *keyValue) (string, error) {
 			return fmt.Sprintf("0x01%x%v", lenEnc, kv.value), nil
 		}
 		return "", fmt.Errorf("error formatting value for grandpa authorities")
-	case reflect.DeepEqual([]string{"System", "code"}, kv.key):
+	case reflect.DeepEqual([]string{"System", "Code"}, kv.key):
 		return kv.value, nil
 	case reflect.DeepEqual([]string{"Sudo", "Key"}, kv.key):
+		fmt.Println("common.Address(kv.value) ==> ", kv.value)
 		return common.BytesToHex(crypto.PublicAddressToByteArray(common.Address(kv.value))), nil
 	default:
 		if kv.valueLen != nil {
