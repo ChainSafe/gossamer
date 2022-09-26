@@ -10,14 +10,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	"github.com/golang/mock/gomock"
 
 	cscale "github.com/centrifuge/go-substrate-rpc-client/v4/scale"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
@@ -59,7 +57,8 @@ func createTestBlock(t *testing.T, babeService *Service, parent *types.Header,
 	exts [][]byte, slotNumber, epoch uint64, epochData *epochData) *types.Block {
 	for _, ext := range exts {
 		vtx := transaction.NewValidTransaction(ext, &transaction.Validity{})
-		_, _ = babeService.transactionState.Push(vtx)
+		_, err := babeService.transactionState.Push(vtx)
+		require.NoError(t, err)
 	}
 
 	duration, err := time.ParseDuration("1s")
@@ -87,15 +86,7 @@ func createTestBlock(t *testing.T, babeService *Service, parent *types.Header,
 // TODO: add test against latest dev runtime
 // See https://github.com/ChainSafe/gossamer/issues/2704
 func TestBuildBlock_ok(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
-
-	cfg := ServiceConfig{
-		TransactionState: state.NewTransactionState(telemetryMock),
-	}
-
-	babeService := createTestService(t, cfg)
+	babeService := createTestService(t, ServiceConfig{})
 
 	parentHash := babeService.blockState.GenesisHash()
 	rt, err := babeService.blockState.GetRuntime(nil)
@@ -127,15 +118,7 @@ func TestBuildBlock_ok(t *testing.T) {
 // TODO: add test against latest dev runtime
 // See https://github.com/ChainSafe/gossamer/issues/2704
 func TestApplyExtrinsic(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
-
-	cfg := ServiceConfig{
-		TransactionState: state.NewTransactionState(telemetryMock),
-	}
-
-	babeService := createTestService(t, cfg)
+	babeService := createTestService(t, ServiceConfig{})
 	const authorityIndex = 0
 
 	duration, err := time.ParseDuration("1s")
@@ -222,15 +205,7 @@ func TestApplyExtrinsic(t *testing.T) {
 // TODO: add test against latest dev runtime
 // See https://github.com/ChainSafe/gossamer/issues/2704
 func TestBuildAndApplyExtrinsic(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
-
-	cfg := ServiceConfig{
-		TransactionState: state.NewTransactionState(telemetryMock),
-	}
-
-	babeService := createTestService(t, cfg)
+	babeService := createTestService(t, ServiceConfig{})
 
 	parentHash := common.MustHexToHash("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
 	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, 1, types.NewDigest())
@@ -302,15 +277,7 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 func TestBuildBlock_failing(t *testing.T) {
 	t.Skip()
 
-	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
-
-	cfg := ServiceConfig{
-		TransactionState: state.NewTransactionState(telemetryMock),
-	}
-
-	babeService := createTestService(t, cfg)
+	babeService := createTestService(t, ServiceConfig{})
 
 	// see https://github.com/noot/substrate/blob/add-blob/core/test-runtime/src/system.rs#L468
 	// add a valid transaction
