@@ -151,10 +151,8 @@ func newDevGenesisWithTrieAndHeader(t *testing.T) (
 	genesisTrie, err = wasmer.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
-	genesisHeaderPtr, err := types.NewHeader(common.NewHash([]byte{0}),
+	genesisHeader = *types.NewHeader(common.NewHash([]byte{0}),
 		genesisTrie.MustHash(), trie.EmptyHash, 0, types.NewDigest())
-	require.NoError(t, err)
-	genesisHeader = *genesisHeaderPtr
 
 	return gen, genesisTrie, genesisHeader
 }
@@ -176,10 +174,8 @@ func newTestGenesisWithTrieAndHeader(t *testing.T) (
 	extrinsicRoot := trie.EmptyHash
 	const number = 0
 	digest := types.NewDigest()
-	genesisHeaderPtr, err := types.NewHeader(parentHash,
+	genesisHeader = *types.NewHeader(parentHash,
 		stateRoot, extrinsicRoot, number, digest)
-	require.NoError(t, err)
-	genesisHeader = *genesisHeaderPtr
 
 	return gen, genesisTrie, genesisHeader
 }

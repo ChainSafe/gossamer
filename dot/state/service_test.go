@@ -75,9 +75,8 @@ func TestService_Initialise(t *testing.T) {
 	err := state.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
-	genesisHeaderPtr, err := types.NewHeader(common.NewHash([]byte{77}),
+	genesisHeaderPtr := types.NewHeader(common.NewHash([]byte{77}),
 		genTrie.MustHash(), trie.EmptyHash, 0, types.NewDigest())
-	require.NoError(t, err)
 
 	err = state.Initialise(&genData, genesisHeaderPtr, &genTrie)
 	require.NoError(t, err)

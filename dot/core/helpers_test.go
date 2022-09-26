@@ -154,10 +154,8 @@ func newTestGenesisWithTrieAndHeader(t *testing.T) (
 	extrinsicRoot := trie.EmptyHash
 	const number = 0
 	digest := types.NewDigest()
-	genesisHeaderPtr, err := types.NewHeader(parentHash,
+	genesisHeader = *types.NewHeader(parentHash,
 		stateRoot, extrinsicRoot, number, digest)
-	require.NoError(t, err)
-	genesisHeader = *genesisHeaderPtr
 
 	return gen, genesisTrie, genesisHeader
 }

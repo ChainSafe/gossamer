@@ -238,9 +238,7 @@ func TestVerificationManager_VerifyBlock_Secondary(t *testing.T) {
 	err = digest.Add(*seal)
 	require.NoError(t, err)
 
-	header, err := types.NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, number, digest)
-	require.NoError(t, err)
-
+	header := types.NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, number, digest)
 	block := types.Block{
 		Header: *header,
 		Body:   nil,

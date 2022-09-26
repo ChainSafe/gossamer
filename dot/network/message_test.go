@@ -173,8 +173,7 @@ func TestEncodeBlockResponseMessage_WithBody(t *testing.T) {
 		0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
 		0xa, 0xb, 0xc, 0xd, 0xe, 0xf})
 
-	header, err := types.NewHeader(testHash, testHash, testHash, 1, types.NewDigest())
-	require.NoError(t, err)
+	header := types.NewHeader(testHash, testHash, testHash, 1, types.NewDigest())
 
 	exts := [][]byte{{1, 3, 5, 7}, {9, 1, 2}, {3, 4, 5}}
 	body := types.NewBody(types.BytesArrayToExtrinsics(exts))
@@ -225,8 +224,7 @@ func TestEncodeBlockResponseMessage_WithAll(t *testing.T) {
 		0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
 		0xa, 0xb, 0xc, 0xd, 0xe, 0xf})
 
-	header, err := types.NewHeader(testHash, testHash, testHash, 1, types.NewDigest())
-	require.NoError(t, err)
+	header := types.NewHeader(testHash, testHash, testHash, 1, types.NewDigest())
 
 	exts := [][]byte{{1, 3, 5, 7}, {9, 1, 2}, {3, 4, 5}}
 	body := types.NewBody(types.BytesArrayToExtrinsics(exts))

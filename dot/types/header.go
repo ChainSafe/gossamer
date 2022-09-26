@@ -22,17 +22,16 @@ type Header struct {
 
 // NewHeader creates a new block header and sets its hash field
 func NewHeader(parentHash, stateRoot, extrinsicsRoot common.Hash,
-	number uint, digest scale.VaryingDataTypeSlice) (*Header, error) {
-	bh := &Header{
+	number uint, digest scale.VaryingDataTypeSlice) (blockHeader *Header) {
+	blockHeader = &Header{
 		ParentHash:     parentHash,
 		Number:         number,
 		StateRoot:      stateRoot,
 		ExtrinsicsRoot: extrinsicsRoot,
 		Digest:         digest,
 	}
-
-	bh.Hash()
-	return bh, nil
+	blockHeader.Hash()
+	return blockHeader
 }
 
 // NewEmptyHeader returns a new header with all zero values

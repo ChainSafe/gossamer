@@ -35,8 +35,7 @@ func TestSeal(t *testing.T) {
 	zeroHash, err := common.HexToHash("0x00")
 	require.NoError(t, err)
 
-	header, err := types.NewHeader(zeroHash, zeroHash, zeroHash, 0, types.NewDigest())
-	require.NoError(t, err)
+	header := types.NewHeader(zeroHash, zeroHash, zeroHash, 0, types.NewDigest())
 
 	encHeader, err := scale.Marshal(*header)
 	require.NoError(t, err)
@@ -165,8 +164,7 @@ func TestApplyExtrinsic(t *testing.T) {
 	err = digest.Add(*preDigest)
 	require.NoError(t, err)
 
-	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, 1, digest)
-	require.NoError(t, err)
+	header := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, 1, digest)
 
 	//initialise block header
 	err = rt.InitializeBlock(header)
@@ -186,8 +184,7 @@ func TestApplyExtrinsic(t *testing.T) {
 	digest2 := types.NewDigest()
 	err = digest2.Add(*preDigest2)
 	require.NoError(t, err)
-	header2, err := types.NewHeader(header1.Hash(), common.Hash{}, common.Hash{}, 2, digest2)
-	require.NoError(t, err)
+	header2 := types.NewHeader(header1.Hash(), common.Hash{}, common.Hash{}, 2, digest2)
 	err = rt.InitializeBlock(header2)
 	require.NoError(t, err)
 
@@ -208,8 +205,7 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	babeService := createTestService(t, ServiceConfig{})
 
 	parentHash := common.MustHexToHash("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
-	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, 1, types.NewDigest())
-	require.NoError(t, err)
+	header := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, 1, types.NewDigest())
 
 	rt, err := babeService.blockState.GetRuntime(nil)
 	require.NoError(t, err)

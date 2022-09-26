@@ -113,7 +113,7 @@ func TestService_HandleBlockAnnounce(t *testing.T) {
 
 func newMockChainSync(ctrl *gomock.Controller) ChainSync {
 	mock := NewMockChainSync(ctrl)
-	header, _ := types.NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, 1,
+	header := types.NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, 1,
 		scale.VaryingDataTypeSlice{})
 
 	mock.EXPECT().setBlockAnnounce(peer.ID("1"), header).Return(nil).AnyTimes()
