@@ -76,7 +76,7 @@ func Unmarshal(data []byte, dst interface{}) (err error) {
 
 	err = ds.unmarshal(elem)
 	if err != nil {
-		return fmt.Errorf("unmarshalling %#v: %w", elem, err)
+		return fmt.Errorf("unmarshalling: %w", err)
 	}
 	return
 }
