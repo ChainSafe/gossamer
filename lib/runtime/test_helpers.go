@@ -255,10 +255,10 @@ func InitializeRuntimeToTest(t *testing.T, instance Instance, parentHash common.
 	require.NoError(t, err)
 
 	idata := types.NewInherentsData()
-	err = idata.SetInherent(types.Timstap0, 1)
+	err = idata.SetInherent(types.Timstap0, uint64(1))
 	require.NoError(t, err)
 
-	err = idata.SetInherent(types.Babeslot, 1)
+	err = idata.SetInherent(types.Babeslot, uint64(1))
 	require.NoError(t, err)
 
 	ienc, err := idata.Encode()

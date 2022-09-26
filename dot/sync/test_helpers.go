@@ -33,7 +33,7 @@ func BuildBlock(t *testing.T, instance runtime.Instance, parent *types.Header, e
 	err = idata.SetInherent(types.Timstap0, uint64(time.Now().Unix()))
 	require.NoError(t, err)
 
-	err = idata.SetInherent(types.Babeslot, 1)
+	err = idata.SetInherent(types.Babeslot, uint64(1))
 	require.NoError(t, err)
 
 	ienc, err := idata.Encode()
