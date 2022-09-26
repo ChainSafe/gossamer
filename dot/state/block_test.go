@@ -16,6 +16,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -577,11 +578,6 @@ func TestBlockState_GetBestBlockRuntime_panic(t *testing.T) {
 }
 
 func TestBlockState_clearRuntimes(t *testing.T) {
-	defer func() {
-		r := recover()
-		require.Equal(t, "we should always succeed getting the best block runtime but an error occurred: "+
-			"failed to get runtime instance", r)
-	}()
 	blockState := newTestBlockState(t, newTriesEmpty())
 	cfg := wasmer.Config{}
 	polkadotRuntimeFilepath, err := runtime.GetRuntime(
@@ -598,6 +594,6 @@ func TestBlockState_clearRuntimes(t *testing.T) {
 	require.Equal(t, runtimeInstance, resultInstance)
 
 	blockState.clearRuntimes()
-	instanceAfterClear := blockState.GetBestBlockRuntime()
-	require.Equal(t, nil, instanceAfterClear)
+	assert.PanicsWithValue(t, "we should always succeed getting the best block runtime but an error occurred: "+
+		"failed to get runtime instance", func() { blockState.GetBestBlockRuntime() })
 }
