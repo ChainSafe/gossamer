@@ -3,4 +3,4 @@
 
 package babe
 
-//go:generate mockgen -destination=mocks/network.go -source=../../dot/core/interface.go -package mocks dot/core Network
+//go:generate mockgen -destination=mocks/network.go -package=mocks github.com/ChainSafe/gossamer/dot/core Network
