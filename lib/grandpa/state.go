@@ -54,8 +54,6 @@ type GrandpaState interface { //nolint:revive
 	NextGrandpaAuthorityChange(bestBlockHash common.Hash, bestBlockNumber uint) (blockHeight uint, err error)
 }
 
-//go:generate mockery --name Network --structname Network --case underscore --keeptree
-
 // Network is the interface required by GRANDPA for the network
 type Network interface {
 	GossipMessage(msg network.NotificationsMessage)

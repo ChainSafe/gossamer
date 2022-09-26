@@ -49,11 +49,11 @@ var testCalls = []struct {
 		call:     []byte(`{"jsonrpc":"2.0","method":"chain_subscribeFinalizedHeads","params":[],"id":5}`),
 		expected: []byte(`{"jsonrpc":"2.0","result":3,"id":5}` + "\n")},
 	{
-		call: []byte(`{"jsonrpc":"2.0","method":"author_submitAndWatchExtrinsic","params":["0x010203"],"id":6}`),
-		expected: []byte(`{"jsonrpc":"2.0","error":{"code":null,` +
-			`"message":"running runtime function: Failed to call the ` +
-			"`" + `TaggedTransactionQueue_validate_transaction` + "`" +
-			` exported function."},"id":6}` + "\n")},
+		call: []byte(`{"jsonrpc":"2.0","method":"author_submitAndWatchExtrinsic","params":["0xad018400d43593c` +
+			`715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d010ad5f15867dd0ef29d9a1ec3f9558c735a7bedd3c27bddd85` +
+			`6b4af633c66c622289431745eebd4d8e41879ba1bfb7aa7d537740ecfeed8c0aa8e36d4b4e49d81000000000108abcd"],"id":6}`),
+		expected: []byte(`{"jsonrpc":"2.0","method":"author_extrinsicUpdate",` +
+			`"params":{"result":"invalid","subscription":4}}` + "\n")},
 	{
 		call:     []byte(`{"jsonrpc":"2.0","method":"state_subscribeRuntimeVersion","params":[],"id":7}`),
 		expected: []byte(`{"jsonrpc":"2.0","result":6,"id":7}` + "\n")},

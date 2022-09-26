@@ -271,18 +271,18 @@ func (s *TrieState) LoadCodeHash() (common.Hash, error) {
 	return common.Blake2bHash(code)
 }
 
-// GetInsertedNodeHashes returns a set of hashes of all nodes
-// that were inserted into state trie since the last block produced.
-func (s *TrieState) GetInsertedNodeHashes() (hashesSet map[common.Hash]struct{}, err error) {
+// GetInsertedMerkleValues returns the set of all node Merkle value inserted
+// into the state trie since the last block produced.
+func (s *TrieState) GetInsertedMerkleValues() (merkleValues map[string]struct{}, err error) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
-	return s.t.GetInsertedNodeHashes()
+	return s.t.GetInsertedMerkleValues()
 }
 
-// GetDeletedNodeHashes returns the hash of nodes that were deleted
+// GetDeletedMerkleValues returns the set of all node Merkle values deleted
 // from the state trie since the last block produced.
-func (s *TrieState) GetDeletedNodeHashes() (hashesSet map[common.Hash]struct{}) {
+func (s *TrieState) GetDeletedMerkleValues() (merkleValues map[string]struct{}) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
-	return s.t.GetDeletedNodeHashes()
+	return s.t.GetDeletedMerkleValues()
 }
