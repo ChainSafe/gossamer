@@ -338,29 +338,34 @@ func (s *Service) initiateRound() error {
 // initiate initates the grandpa service to begin voting in sequential rounds
 func (s *Service) initiate() error {
 	for {
-		err := s.initiateRound()
+		finalizationEngine := newFinalizationEngine()
+		handleVoting := newHandleVotingRound(finalizationEngine.actionCh)
+
+		finalizationHandler := newFinalizationHandler(
+			handleVoting, finalizationEngine,
+		)
+
+		errsCh, err := finalizationHandler.Start()
 		if err != nil {
-			logger.Warnf("failed to initiate round for round %d: %s", s.state.round, err)
-			return err
+			return fmt.Errorf("starting finalization handler: %w", err)
 		}
 
-		err = s.playGrandpaRound()
-		if errors.Is(err, ErrServicePaused) {
-			logger.Info("service paused")
-			// wait for service to un-pause
-			<-s.resumed
-			err = s.initiate()
-		}
+		for err := range errsCh {
+			logger.Errorf("finalization handler: %s", err)
 
-		if err != nil {
-			logger.Warnf("failed to play grandpa round: %s", err)
-			continue
-		}
-
-		if s.ctx.Err() != nil {
-			return errors.New("context cancelled")
+			if errors.Is(err, errChannelBusy) {
+				return stopFinalizationHandler(finalizationHandler)
+			}
 		}
 	}
+}
+
+func stopFinalizationHandler(finalizationHandler *finalizationHandler) error {
+	err := finalizationHandler.Stop()
+	if err != nil {
+		return fmt.Errorf("stopping finalization handler: %w", err)
+	}
+	return nil
 }
 
 func (s *Service) handleIsPrimary() (bool, error) {
@@ -514,34 +519,6 @@ func (s *Service) playGrandpaRound() error {
 			}
 		}
 	}
-}
-
-// actions that should take place accordingly to votes the
-// finalisation engine knows about
-type action byte
-
-const (
-	determinePrevote action = iota
-	determinePrecommit
-	alreadyFinalized
-	finalize
-)
-
-var errChannelBusy = errors.New("channel busy")
-
-type performActionCh chan action
-
-func (p performActionCh) push(action action) error {
-	select {
-	case p <- action:
-		return nil
-	default:
-		return fmt.Errorf("%w", errChannelBusy)
-	}
-}
-
-func (p performActionCh) close() {
-	close(p)
 }
 
 func (s *Service) finalizationEngine(engineEndCh chan<- struct{}, cancel <-chan struct{}) <-chan action {
