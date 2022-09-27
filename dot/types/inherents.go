@@ -52,19 +52,19 @@ func (ii InherentIdentifier) Bytes() [8]byte {
 // InherentsData contains a mapping of inherent keys to values
 // keys must be 8 bytes, values are a scale-encoded byte array
 type InherentsData struct {
-	data map[[8]byte]([]byte)
+	Data map[[8]byte][]byte
 }
 
 // NewInherentsData returns InherentsData
 func NewInherentsData() *InherentsData {
 	return &InherentsData{
-		data: make(map[[8]byte]([]byte)),
+		Data: make(map[[8]byte]([]byte)),
 	}
 }
 
 func (d *InherentsData) String() string {
 	str := ""
-	for k, v := range d.data {
+	for k, v := range d.Data {
 		str = str + fmt.Sprintf("key=%v\tvalue=%v\n", k, v)
 	}
 	return str
@@ -77,14 +77,14 @@ func (d *InherentsData) SetInherent(inherentIdentifier InherentIdentifier, value
 		return err
 	}
 
-	d.data[inherentIdentifier.Bytes()] = data
+	d.Data[inherentIdentifier.Bytes()] = data
 
 	return nil
 }
 
 // Encode will encode a given []byte using scale.Encode
 func (d *InherentsData) Encode() ([]byte, error) {
-	length := big.NewInt(int64(len(d.data)))
+	length := big.NewInt(int64(len(d.Data)))
 	buffer := bytes.Buffer{}
 
 	l, err := scale.Marshal(length)
@@ -97,7 +97,7 @@ func (d *InherentsData) Encode() ([]byte, error) {
 		return nil, err
 	}
 
-	for k, v := range d.data {
+	for k, v := range d.Data {
 		_, err = buffer.Write(k[:])
 		if err != nil {
 			return nil, err
