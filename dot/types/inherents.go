@@ -4,9 +4,7 @@
 package types
 
 import (
-	"bytes"
 	"fmt"
-	"math/big"
 
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
@@ -80,37 +78,4 @@ func (d *InherentsData) SetInherent(inherentIdentifier InherentIdentifier, value
 	d.Data[inherentIdentifier.Bytes()] = data
 
 	return nil
-}
-
-// Encode will encode a given []byte using scale.Encode
-func (d *InherentsData) Encode() ([]byte, error) {
-	length := big.NewInt(int64(len(d.Data)))
-	buffer := bytes.Buffer{}
-
-	l, err := scale.Marshal(length)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = buffer.Write(l)
-	if err != nil {
-		return nil, err
-	}
-
-	for k, v := range d.Data {
-		_, err = buffer.Write(k[:])
-		if err != nil {
-			return nil, err
-		}
-
-		venc, err := scale.Marshal(v)
-		if err != nil {
-			return nil, fmt.Errorf("scale encoding encoded value: %w", err)
-		}
-		_, err = buffer.Write(venc)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return buffer.Bytes(), nil
 }
