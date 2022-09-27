@@ -183,6 +183,8 @@ func (h *handleVotingRound) playGrandpaRound() {
 					h.grandpaService.prevotes.Store(h.grandpaService.publicKeyBytes(), signedpreVote)
 				}
 
+				logger.Warnf("sending pre-vote message: {%v}", prevoteMessage)
+
 				h.grandpaService.sendPrevoteMessage(prevoteMessage)
 
 			case determinePrecommit:
@@ -198,6 +200,8 @@ func (h *handleVotingRound) playGrandpaRound() {
 					h.errsCh <- fmt.Errorf("creating signed vote: %w", err)
 					return
 				}
+
+				logger.Warnf("sending pre-vote message: {%v}", precommitMessage)
 
 				h.grandpaService.precommits.Store(h.grandpaService.publicKeyBytes(), signedpreComit)
 
@@ -248,14 +252,14 @@ type finalizationEngine struct {
 
 	stopCh     chan struct{}
 	engineDone chan struct{}
-	actionCh   <-chan action
+	actionCh   chan action
 	errsCh     chan error
 }
 
 func newFinalizationEngine(service *Service) *finalizationEngine {
 	return &finalizationEngine{
 		grandpaService: service,
-		actionCh:       make(<-chan action),
+		actionCh:       make(chan action),
 		errsCh:         make(chan error),
 		stopCh:         make(chan struct{}),
 		engineDone:     make(chan struct{}),
@@ -263,7 +267,7 @@ func newFinalizationEngine(service *Service) *finalizationEngine {
 }
 
 func (f *finalizationEngine) Start() (errsCh <-chan error, err error) {
-	f.actionCh = f.playFinalization(f.grandpaService.interval, f.stopCh)
+	go f.playFinalization(f.grandpaService.interval, f.stopCh)
 	return f.errsCh, nil
 }
 
@@ -282,97 +286,101 @@ func (f *finalizationEngine) Stop() (err error) {
 	return nil
 }
 
-func (f *finalizationEngine) playFinalization(gossipInterval time.Duration, stop <-chan struct{}) <-chan action {
-	performAction := make(chan action)
+func (f *finalizationEngine) playFinalization(gossipInterval time.Duration, stop <-chan struct{}) {
+	defer close(f.engineDone)
 
-	go func() {
-		defer close(performAction)
-		defer close(f.engineDone)
+	determinePrevoteTimer := time.NewTimer(gossipInterval * 2)
+	determinePrecommitTimer := time.NewTimer(gossipInterval * 4)
 
-		determinePrevoteTimer := time.NewTimer(gossipInterval * 2)
-		determinePrecommitTimer := time.NewTimer(gossipInterval * 4)
+	var precommited bool = false
 
-		var precommited bool = false
-
-		for !precommited {
-			select {
-			case <-stop:
-				if !determinePrevoteTimer.Stop() {
-					<-determinePrevoteTimer.C
-				}
-
-				if !determinePrecommitTimer.Stop() {
-					<-determinePrecommitTimer.C
-				}
-
-				return
-
-			case <-determinePrevoteTimer.C:
-				performAction <- determinePrevote
-
-			case <-determinePrecommitTimer.C:
-				prevoteGrandpaGhost, err := f.grandpaService.getPreVotedBlock()
-
-				if errors.Is(err, ErrNoGHOST) {
-					determinePrecommitTimer.Reset(gossipInterval * 4)
-					break
-				} else if err != nil {
-					f.errsCh <- fmt.Errorf("getting grandpa ghost: %w", err)
-					return
-				}
-
-				latestFinalizedHash := f.grandpaService.head.Hash()
-				isDescendant, err := f.grandpaService.blockState.IsDescendantOf(latestFinalizedHash, prevoteGrandpaGhost.Hash)
-				if err != nil {
-					f.errsCh <- fmt.Errorf("checking grandpa ghost ancestry: %w", err)
-					return
-				}
-
-				if !isDescendant {
-					determinePrecommitTimer.Reset(gossipInterval * 4)
-					break
-				}
-
-				performAction <- determinePrecommit
-				precommited = true
+	for !precommited {
+		select {
+		case <-stop:
+			if !determinePrevoteTimer.Stop() {
+				<-determinePrevoteTimer.C
 			}
-		}
 
-		attemptFinalizationTicker := time.NewTicker(gossipInterval / 2)
-		defer attemptFinalizationTicker.Stop()
+			if !determinePrecommitTimer.Stop() {
+				<-determinePrecommitTimer.C
+			}
 
-		for {
-			select {
-			case <-stop:
-				return
+			return
 
-			case <-attemptFinalizationTicker.C:
-				alreadyCompletable, err := f.grandpaService.checkRoundAlreadyCompletable()
-				if err != nil {
-					f.errsCh <- fmt.Errorf("checking round is completable: %w", err)
-					continue
-				}
+		case <-determinePrevoteTimer.C:
+			f.actionCh <- determinePrevote
 
-				if alreadyCompletable {
-					performAction <- alreadyFinalized
-					return
-				}
-
-				finalizable, err := f.grandpaService.attemptToFinalize()
-				if err != nil {
-					f.errsCh <- fmt.Errorf("attempting to finalize: %w", err)
-					continue
-				}
-
-				if !finalizable {
-					continue
-				}
-
-				performAction <- finalize
+		case <-determinePrecommitTimer.C:
+			prevoteGrandpaGhost, err := f.grandpaService.getPreVotedBlock()
+			if errors.Is(err, ErrNoGHOST) {
+				determinePrecommitTimer.Reset(gossipInterval * 4)
+				break
+			} else if err != nil {
+				f.errsCh <- fmt.Errorf("getting grandpa ghost: %w", err)
 				return
 			}
-		}
-	}()
 
-	return performAction
+			total, err := f.grandpaService.getTotalVotesForBlock(prevoteGrandpaGhost.Hash, prevote)
+			if err != nil {
+				f.errsCh <- fmt.Errorf("%w: getting grandpa ghost: %s", errVotingRound, err)
+				return
+			}
+
+			if total <= f.grandpaService.state.threshold() {
+				determinePrecommitTimer.Reset(gossipInterval * 4)
+				break
+			}
+
+			latestFinalizedHash := f.grandpaService.head.Hash()
+			isDescendant, err := f.grandpaService.blockState.IsDescendantOf(latestFinalizedHash, prevoteGrandpaGhost.Hash)
+			if err != nil {
+				f.errsCh <- fmt.Errorf("checking grandpa ghost ancestry: %w", err)
+				return
+			}
+
+			if !isDescendant {
+				determinePrecommitTimer.Reset(gossipInterval * 4)
+				break
+			}
+
+			f.actionCh <- determinePrecommit
+			precommited = true
+		}
+	}
+
+	attemptFinalizationTicker := time.NewTicker(gossipInterval / 2)
+	defer attemptFinalizationTicker.Stop()
+
+	for {
+		select {
+		case <-stop:
+			return
+
+		case <-attemptFinalizationTicker.C:
+			alreadyCompletable, err := f.grandpaService.checkRoundAlreadyCompletable()
+			if err != nil {
+				f.errsCh <- fmt.Errorf("checking round is completable: %w", err)
+				continue
+			}
+
+			if alreadyCompletable {
+				f.actionCh <- alreadyFinalized
+				return
+			}
+
+			finalizable, err := f.grandpaService.attemptToFinalize()
+			if err != nil {
+				f.errsCh <- fmt.Errorf("attempting to finalize: %w", err)
+				continue
+			}
+
+			if !finalizable {
+				continue
+			}
+
+			f.actionCh <- finalize
+			return
+		}
+	}
+
 }
