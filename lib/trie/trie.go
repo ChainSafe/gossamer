@@ -861,8 +861,6 @@ func (t *Trie) deleteNodesLimit(parent *Node, limit uint32,
 
 	branch := parent
 
-	fullKey := concatenateSlices(prefix, branch.Key)
-
 	nilChildren := node.ChildrenCapacity - branch.NumChildren()
 
 	var newDeleted, newNodesRemoved uint32
@@ -890,7 +888,7 @@ func (t *Trie) deleteNodesLimit(parent *Node, limit uint32,
 
 		branch.SetDirty()
 
-		newParent, branchChildMerged = handleDeletion(branch, fullKey)
+		newParent, branchChildMerged = handleDeletion(branch, branch.Key)
 		if branchChildMerged {
 			nodesRemoved++
 		}

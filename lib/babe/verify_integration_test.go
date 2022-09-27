@@ -19,7 +19,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/golang/mock/gomock"
@@ -42,8 +41,8 @@ func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *
 	dbSrv := state.NewService(config)
 	dbSrv.UseMemDB()
 
-	gen, genTrie, genHeader := genesis.NewDevGenesisWithTrieAndHeader(t)
-	err := dbSrv.Initialise(gen, genHeader, genTrie)
+	gen, genesisTrie, genesisHeader := newDevGenesisWithTrieAndHeader(t)
+	err := dbSrv.Initialise(&gen, &genesisHeader, &genesisTrie)
 	require.NoError(t, err)
 
 	err = dbSrv.Start()
@@ -499,7 +498,7 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 		SecondarySlots:     0,
 	}
 
-	genesis, trie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	genesis, trie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
@@ -517,7 +516,7 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 
 	stateService.UseMemDB()
 
-	err := stateService.Initialise(genesis, genesisHeader, trie)
+	err := stateService.Initialise(&genesis, &genesisHeader, &trie)
 	require.NoError(t, err)
 
 	inMemoryDB, err := chaindb.NewBadgerDB(&chaindb.Config{
@@ -547,7 +546,7 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 		C2:             10,
 		SecondarySlots: 1,
 	}
-	aliceBlockHeader := issueConsensusDigestsBlockFromGenesis(t, genesisHeader, keyring.KeyAlice,
+	aliceBlockHeader := issueConsensusDigestsBlockFromGenesis(t, &genesisHeader, keyring.KeyAlice,
 		stateService, aliceBlockNextEpoch, aliceBlockNextConfigData)
 
 	bobBlockNextEpoch := types.NextEpochData{
@@ -558,7 +557,7 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 		C2:             8,
 		SecondarySlots: 1,
 	}
-	bobBlockHeader := issueConsensusDigestsBlockFromGenesis(t, genesisHeader, keyring.KeyBob,
+	bobBlockHeader := issueConsensusDigestsBlockFromGenesis(t, &genesisHeader, keyring.KeyBob,
 		stateService, bobBlockNextEpoch, bobBlockNextConfigData)
 
 	// wait for digest handleBlockImport goroutine gets the imported

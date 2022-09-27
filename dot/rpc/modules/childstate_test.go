@@ -20,8 +20,8 @@ import (
 func createTestTrieState(t *testing.T) (*trie.Trie, common.Hash) {
 	t.Helper()
 
-	_, genTrie, _ := newTestGenesisWithTrieAndHeader(t)
-	tr := rtstorage.NewTrieState(&genTrie)
+	_, genesisTrie, _ := newTestGenesisWithTrieAndHeader(t)
+	tr := rtstorage.NewTrieState(&genesisTrie)
 
 	tr.Set([]byte(":first_key"), []byte(":value1"))
 	tr.Set([]byte(":second_key"), []byte(":second_value"))

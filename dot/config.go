@@ -239,7 +239,6 @@ func GssmrConfig() *Config {
 			WSPort:  gssmr.DefaultRPCWSPort,
 		},
 		Pprof: PprofConfig{
-			Enabled: gssmr.DefaultPprofEnabled,
 			Settings: pprof.Settings{
 				ListeningAddress: gssmr.DefaultPprofListeningAddress,
 				BlockProfileRate: gssmr.DefaultPprofBlockRate,
@@ -297,7 +296,6 @@ func KusamaConfig() *Config {
 			WSPort:  kusama.DefaultRPCWSPort,
 		},
 		Pprof: PprofConfig{
-			Enabled: kusama.DefaultPprofEnabled,
 			Settings: pprof.Settings{
 				ListeningAddress: kusama.DefaultPprofListeningAddress,
 				BlockProfileRate: kusama.DefaultPprofBlockRate,
@@ -355,7 +353,6 @@ func PolkadotConfig() *Config {
 			WSPort:  polkadot.DefaultRPCWSPort,
 		},
 		Pprof: PprofConfig{
-			Enabled: polkadot.DefaultPprofEnabled,
 			Settings: pprof.Settings{
 				ListeningAddress: polkadot.DefaultPprofListeningAddress,
 				BlockProfileRate: polkadot.DefaultPprofBlockRate,
@@ -418,7 +415,6 @@ func DevConfig() *Config {
 			WS:      dev.DefaultWSEnabled,
 		},
 		Pprof: PprofConfig{
-			Enabled: dev.DefaultPprofEnabled,
 			Settings: pprof.Settings{
 				ListeningAddress: dev.DefaultPprofListeningAddress,
 				BlockProfileRate: dev.DefaultPprofBlockRate,
