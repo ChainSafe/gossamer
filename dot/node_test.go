@@ -166,17 +166,17 @@ func TestNewNode(t *testing.T) {
 			return nil, fmt.Errorf("failed to load genesis from file: %w", err)
 		}
 		// create trie from genesis
-		trie, err := wasmer.NewTrieFromGenesis(*gen)
+		trie, err := genesis.NewTrieFromGenesis(gen)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create trie from genesis: %w", err)
 		}
 		// create genesis block from trie
-		header, err := trie.GenesisBlock()
+		header, err := genesis.NewGenesisBlockFromTrie(trie)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create genesis block from trie: %w", err)
 		}
 		stateSrvc.Telemetry = mockTelemetryClient
-		err = stateSrvc.Initialise(gen, &header, &trie)
+		err = stateSrvc.Initialise(gen, header, trie)
 		if err != nil {
 			return nil, fmt.Errorf("failed to initialise state service: %s", err)
 		}

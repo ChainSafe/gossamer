@@ -9,56 +9,44 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_interfaceToTelemetryEndpoint(t *testing.T) {
-	t.Parallel()
-
-	testCases := map[string]struct {
-		endpoints []interface{}
-		expected  []*TelemetryEndpoint
+func TestInterfaceToTelemetryEndpoint(t *testing.T) {
+	testcases := []struct {
+		description string
+		values      []interface{}
+		expected    []*TelemetryEndpoint
 	}{
-		"sub element not a slice": {
-			endpoints: []interface{}{
-				struct{}{},
-			},
+		{
+			"Test with wrong interface type",
+			[]interface{}{"string"},
+			nil,
 		},
-		"wrong interface type": {
-			endpoints: []interface{}{
-				[]interface{}{"string"},
-			},
+		{
+			"Test with interface field len != 2",
+			append(testEndpoints, []interface{}{"wss://telemetry.polkadot.io/submit/"}),
+			nil,
 		},
-		"wrong interface field length": {
-			endpoints: []interface{}{
-				[]interface{}{"wss://telemetry.polkadot.io/submit/"},
-			},
+		{
+			"Test with interface field 0 wrong type",
+			append(testEndpoints, []interface{}{float32(0), "wss://telemetry.polkadot.io/submit/"}),
+			nil,
 		},
-		"wrong interface field position": {
-			endpoints: []interface{}{
-				[]interface{}{float64(0), "wss://telemetry.polkadot.io/submit/"},
-			},
+		{
+			"Test with interface field 1 wrong type",
+			append(testEndpoints, []interface{}{"wss://telemetry.polkadot.io/submit/", "1"}),
+			nil,
 		},
-		"interface field 1 wrong type": {
-			endpoints: []interface{}{
-				[]interface{}{"wss://telemetry.polkadot.io/submit/", "1"},
-			},
-		},
-		"success": {
-			endpoints: []interface{}{
-				[]interface{}{"wss://telemetry.polkadot.io/submit/", float64(1)},
-			},
-			expected: []*TelemetryEndpoint{{
+		{
+			"Test with correctly formed values",
+			append(testEndpoints, testEndpoint1),
+			append([]*TelemetryEndpoint{}, &TelemetryEndpoint{
 				Endpoint:  "wss://telemetry.polkadot.io/submit/",
 				Verbosity: 1,
-			}},
+			}),
 		},
 	}
 
-	for name, testCase := range testCases {
-		testCase := testCase
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-
-			telemetryEndpoints := interfaceToTelemetryEndpoint(testCase.endpoints)
-			require.Equal(t, testCase.expected, telemetryEndpoints)
-		})
+	for _, test := range testcases {
+		res := interfaceToTelemetryEndpoint(test.values)
+		require.Equal(t, test.expected, res)
 	}
 }

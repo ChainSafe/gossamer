@@ -32,7 +32,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/lib/utils"
 )
@@ -145,13 +144,13 @@ func (*nodeBuilder) initNode(cfg *Config) error {
 	}
 
 	// create trie from genesis
-	t, err := wasmer.NewTrieFromGenesis(*gen)
+	t, err := genesis.NewTrieFromGenesis(gen)
 	if err != nil {
 		return fmt.Errorf("failed to create trie from genesis: %w", err)
 	}
 
 	// create genesis block from trie
-	header, err := t.GenesisBlock()
+	header, err := genesis.NewGenesisBlockFromTrie(t)
 	if err != nil {
 		return fmt.Errorf("failed to create genesis block from trie: %w", err)
 	}
@@ -176,7 +175,7 @@ func (*nodeBuilder) initNode(cfg *Config) error {
 	stateSrvc := state.NewService(config)
 
 	// initialise state service with genesis data, block, and trie
-	err = stateSrvc.Initialise(gen, &header, &t)
+	err = stateSrvc.Initialise(gen, header, t)
 	if err != nil {
 		return fmt.Errorf("failed to initialise state service: %s", err)
 	}

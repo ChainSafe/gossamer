@@ -16,6 +16,8 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
+	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -52,6 +54,38 @@ func NewGenesisFromJSONRaw(file string) (*Genesis, error) {
 	g := new(Genesis)
 	err = json.Unmarshal(data, g)
 	return g, err
+}
+
+// NewTrieFromGenesis creates a new trie from the raw genesis data
+func NewTrieFromGenesis(g *Genesis) (*trie.Trie, error) {
+	t := trie.NewEmptyTrie()
+
+	r := g.GenesisFields().Raw["top"]
+
+	err := t.LoadFromMap(r)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create trie from genesis: %s", err)
+	}
+
+	return t, nil
+}
+
+// NewGenesisBlockFromTrie creates a genesis block from the provided trie
+func NewGenesisBlockFromTrie(t *trie.Trie) (*types.Header, error) {
+
+	// create state root from trie hash
+	stateRoot, err := t.Hash()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create state root from trie hash: %s", err)
+	}
+
+	// create genesis block header
+	header, err := types.NewHeader(common.NewHash([]byte{0}), stateRoot, trie.EmptyHash, 0, types.NewDigest())
+	if err != nil {
+		return nil, fmt.Errorf("failed to create genesis block header: %s", err)
+	}
+
+	return header, nil
 }
 
 // trimGenesisAuthority iterates over authorities in genesis and keeps only `authCount` number of authorities.
@@ -545,7 +579,7 @@ func buildBalances(kv *keyValue, res map[string]string) error {
 	for i := range kv.iVal {
 		if i%2 == 0 {
 			// build key
-			bKey := common.MustHexToBytes(systemAccountKeyHex)
+			bKey := runtime.SystemAccountPrefix()
 
 			addHash, err := common.Blake2b128(kv.iVal[i].([]byte))
 			if err != nil {
@@ -586,7 +620,7 @@ func BuildFromMap(m map[string][]byte, gen *Genesis) error {
 			// handle :code
 			addCodeValue(v, gen)
 			addRawValue(key, v, gen)
-		case GrandpaAuthoritiesKeyHex:
+		case "0x3a6772616e6470615f617574686f726974696573":
 			// handle :grandpa_authorities
 			//  slice value since it was encoded starting with 0x01
 			err := addAuthoritiesValues("grandpa", "authorities", crypto.Ed25519Type, v[1:], gen)
@@ -594,7 +628,7 @@ func BuildFromMap(m map[string][]byte, gen *Genesis) error {
 				return err
 			}
 			addRawValue(key, v, gen)
-		case BABEAuthoritiesKeyHex:
+		case fmt.Sprintf("0x%x", runtime.BABEAuthoritiesKey()):
 			// handle Babe Authorities
 			err := addAuthoritiesValues("babe", "authorities", crypto.Sr25519Type, v, gen)
 			if err != nil {

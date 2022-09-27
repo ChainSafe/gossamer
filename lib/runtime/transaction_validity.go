@@ -15,7 +15,7 @@ var errInvalidTypeCast = errors.New("invalid type cast")
 
 // TransactionValidityError Information on a transaction's validity and, if valid,
 // on how it relates to other transactions. It is a result of the form:
-// Result<transaction.Validity, TransactionValidityError>
+// Result<ValidTransaction, TransactionValidityError>
 type TransactionValidityError scale.VaryingDataType
 
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType

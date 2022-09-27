@@ -88,6 +88,7 @@ type StorageState interface {
 
 // TransactionState is the interface for transaction state methods
 type TransactionState interface {
+	Pop() *transaction.ValidTransaction
 	Push(vt *transaction.ValidTransaction) (common.Hash, error)
 	AddToPool(vt *transaction.ValidTransaction) common.Hash
 	RemoveExtrinsic(ext types.Extrinsic)

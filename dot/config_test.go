@@ -74,6 +74,7 @@ func TestConfig(t *testing.T) {
 					WS:     true,
 				},
 				Pprof: PprofConfig{
+					Enabled: true,
 					Settings: pprof.Settings{
 						ListeningAddress: "localhost:6060",
 					},
@@ -133,6 +134,7 @@ func TestConfig(t *testing.T) {
 					WSUnsafeExternal: false,
 				},
 				Pprof: PprofConfig{
+					Enabled: true,
 					Settings: pprof.Settings{
 						ListeningAddress: "localhost:6060",
 						BlockProfileRate: 0,

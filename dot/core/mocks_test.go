@@ -587,6 +587,20 @@ func (mr *MockTransactionStateMockRecorder) PendingInPool() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PendingInPool", reflect.TypeOf((*MockTransactionState)(nil).PendingInPool))
 }
 
+// Pop mocks base method.
+func (m *MockTransactionState) Pop() *transaction.ValidTransaction {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Pop")
+	ret0, _ := ret[0].(*transaction.ValidTransaction)
+	return ret0
+}
+
+// Pop indicates an expected call of Pop.
+func (mr *MockTransactionStateMockRecorder) Pop() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Pop", reflect.TypeOf((*MockTransactionState)(nil).Pop))
+}
+
 // Push mocks base method.
 func (m *MockTransactionState) Push(arg0 *transaction.ValidTransaction) (common.Hash, error) {
 	m.ctrl.T.Helper()

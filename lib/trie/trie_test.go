@@ -2708,6 +2708,7 @@ func Test_Trie_deleteNodesLimit(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
+<<<<<<< HEAD
 		trie                Trie
 		parent              *Node
 		limit               uint32
@@ -2715,6 +2716,15 @@ func Test_Trie_deleteNodesLimit(t *testing.T) {
 		newNode             *Node
 		valuesDeleted       uint32
 		nodesRemoved        uint32
+=======
+		trie          Trie
+		parent        *Node
+		prefix        []byte
+		limit         uint32
+		newNode       *Node
+		valuesDeleted uint32
+		nodesRemoved  uint32
+>>>>>>> ccb2005e (reset branch for new head)
 	}{
 		"zero limit": {
 			trie: Trie{
@@ -2845,7 +2855,8 @@ func Test_Trie_deleteNodesLimit(t *testing.T) {
 					{Key: []byte{3}, SubValue: []byte{1}},
 				}),
 			},
-			limit: 2,
+			prefix: []byte{1, 2},
+			limit:  2,
 			newNode: &Node{
 				Key:        []byte{3, 5, 3},
 				SubValue:   []byte{1},
@@ -2866,8 +2877,12 @@ func Test_Trie_deleteNodesLimit(t *testing.T) {
 			expectedTrie := *trie.DeepCopy()
 
 			newNode, valuesDeleted, nodesRemoved :=
+<<<<<<< HEAD
 				trie.deleteNodesLimit(testCase.parent,
 					testCase.limit, testCase.deletedMerkleValues)
+=======
+				trie.deleteNodesLimit(testCase.parent, testCase.prefix, testCase.limit)
+>>>>>>> ccb2005e (reset branch for new head)
 
 			assert.Equal(t, testCase.newNode, newNode)
 			assert.Equal(t, testCase.valuesDeleted, valuesDeleted)

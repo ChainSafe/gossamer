@@ -24,13 +24,15 @@ var testGenesisHeader = &types.Header{
 	Digest:    types.NewDigest(),
 }
 
-func newTestBlockState(t *testing.T, tries *Tries) *BlockState {
+func newTestBlockState(t *testing.T, header *types.Header, tries *Tries) *BlockState {
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	db := NewInMemoryDB(t)
-	header := testGenesisHeader
+	if header == nil {
+		header = testGenesisHeader
+	}
 
 	bs, err := NewBlockStateFromGenesis(db, tries, header, telemetryMock)
 	require.NoError(t, err)
@@ -46,7 +48,7 @@ func newTestBlockState(t *testing.T, tries *Tries) *BlockState {
 }
 
 func TestSetAndGetHeader(t *testing.T) {
-	bs := newTestBlockState(t, newTriesEmpty())
+	bs := newTestBlockState(t, nil, newTriesEmpty())
 
 	header := &types.Header{
 		Number:    0,
@@ -63,7 +65,7 @@ func TestSetAndGetHeader(t *testing.T) {
 }
 
 func TestHasHeader(t *testing.T) {
-	bs := newTestBlockState(t, newTriesEmpty())
+	bs := newTestBlockState(t, nil, newTriesEmpty())
 
 	header := &types.Header{
 		Number:    0,
@@ -80,7 +82,7 @@ func TestHasHeader(t *testing.T) {
 }
 
 func TestGetBlockByNumber(t *testing.T) {
-	bs := newTestBlockState(t, newTriesEmpty())
+	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
 
 	blockHeader := &types.Header{
 		ParentHash: testGenesisHeader.Hash(),
@@ -102,7 +104,7 @@ func TestGetBlockByNumber(t *testing.T) {
 }
 
 func TestAddBlock(t *testing.T) {
-	bs := newTestBlockState(t, newTriesEmpty())
+	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
 
 	// Create header
 	header0 := &types.Header{
@@ -165,7 +167,7 @@ func TestAddBlock(t *testing.T) {
 }
 
 func TestGetSlotForBlock(t *testing.T) {
-	bs := newTestBlockState(t, newTriesEmpty())
+	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
 	expectedSlot := uint64(77)
 
 	babeHeader := types.NewBabeDigest()
@@ -196,7 +198,7 @@ func TestGetSlotForBlock(t *testing.T) {
 }
 
 func TestIsBlockOnCurrentChain(t *testing.T) {
-	bs := newTestBlockState(t, newTriesEmpty())
+	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
 	currChain, branchChains := AddBlocksToState(t, bs, 3, false)
 
 	for _, header := range currChain {
@@ -219,7 +221,7 @@ func TestIsBlockOnCurrentChain(t *testing.T) {
 }
 
 func TestAddBlock_BlockNumberToHash(t *testing.T) {
-	bs := newTestBlockState(t, newTriesEmpty())
+	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
 	currChain, branchChains := AddBlocksToState(t, bs, 8, false)
 
 	bestHash := bs.BestBlockHash()
@@ -267,7 +269,7 @@ func TestAddBlock_BlockNumberToHash(t *testing.T) {
 }
 
 func TestFinalization_DeleteBlock(t *testing.T) {
-	bs := newTestBlockState(t, newTriesEmpty())
+	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
 	AddBlocksToState(t, bs, 5, false)
 
 	btBefore := bs.bt.DeepCopy()
@@ -322,7 +324,7 @@ func TestFinalization_DeleteBlock(t *testing.T) {
 }
 
 func TestGetHashByNumber(t *testing.T) {
-	bs := newTestBlockState(t, newTriesEmpty())
+	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
 
 	res, err := bs.GetHashByNumber(0)
 	require.NoError(t, err)
@@ -349,7 +351,7 @@ func TestGetHashByNumber(t *testing.T) {
 
 func TestAddBlock_WithReOrg(t *testing.T) {
 	t.Skip() // TODO: this should be fixed after state refactor PR
-	bs := newTestBlockState(t, newTriesEmpty())
+	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
 
 	header1a := &types.Header{
 		Number:     1,
@@ -458,7 +460,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 }
 
 func TestAddBlockToBlockTree(t *testing.T) {
-	bs := newTestBlockState(t, newTriesEmpty())
+	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
 
 	header := &types.Header{
 		Number:     1,
@@ -480,7 +482,7 @@ func TestAddBlockToBlockTree(t *testing.T) {
 func TestNumberIsFinalised(t *testing.T) {
 	tries := newTriesEmpty()
 
-	bs := newTestBlockState(t, tries)
+	bs := newTestBlockState(t, testGenesisHeader, tries)
 	fin, err := bs.NumberIsFinalised(0)
 	require.NoError(t, err)
 	require.True(t, fin)

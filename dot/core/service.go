@@ -31,6 +31,9 @@ var (
 	logger                  = log.NewFromGlobal(log.AddContext("pkg", "core"))
 )
 
+const supportedTxVersion = 3
+const previousSupportedTxVersion = 2
+
 // QueryKeyValueChanges represents the key-value data inside a block storage
 type QueryKeyValueChanges map[string]string
 
@@ -293,6 +296,9 @@ func (s *Service) handleCodeSubstitution(hash common.Hash,
 // does not need to be completed before the next block can be imported.
 func (s *Service) handleBlocksAsync() {
 	for {
+		// TODO Look into if this is best way to get prev
+		// Maybe pass in block and get parent rather than assume that
+		// best block hash is the parent
 		prev := s.blockState.BestBlockHash()
 
 		select {
@@ -373,15 +379,17 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 				continue
 			}
 
-			externalExt := make(types.Extrinsic, 0, 1+len(ext))
-			externalExt = append(externalExt, byte(types.TxnExternal))
-			externalExt = append(externalExt, ext...)
-			txv, err := rt.ValidateTransaction(externalExt)
+			externalExt, err := s.buildExternalTransaction(rt, ext)
+			if err != nil {
+				return fmt.Errorf("building external transaction: %w", err)
+			}
+
+			transactionValidity, err := rt.ValidateTransaction(externalExt)
 			if err != nil {
 				logger.Debugf("failed to validate transaction for extrinsic %s: %s", ext, err)
 				continue
 			}
-			vtx := transaction.NewValidTransaction(ext, txv)
+			vtx := transaction.NewValidTransaction(ext, transactionValidity)
 			s.transactionState.AddToPool(vtx)
 		}
 	}
@@ -399,17 +407,33 @@ func (s *Service) maintainTransactionPool(block *types.Block) {
 		s.transactionState.RemoveExtrinsic(ext)
 	}
 
+	bestBlockHash := s.blockState.BestBlockHash()
+	stateRoot, err := s.storageState.GetStateRootFromBlock(&bestBlockHash)
+	if err != nil {
+		logger.Errorf("could not get state root from block %s: %w", bestBlockHash, err)
+	}
+
+	ts, err := s.storageState.TrieState(stateRoot)
+	if err != nil {
+		logger.Errorf(err.Error())
+	}
+
 	// re-validate transactions in the pool and move them to the queue
 	txs := s.transactionState.PendingInPool()
 	for _, tx := range txs {
-		// get the best block corresponding runtime
-		rt, err := s.blockState.GetRuntime(nil)
+		rt, err := s.blockState.GetRuntime(&bestBlockHash)
 		if err != nil {
 			logger.Warnf("failed to get runtime to re-validate transactions in pool: %s", err)
 			continue
 		}
 
-		txnValidity, err := rt.ValidateTransaction(tx.Extrinsic)
+		rt.SetContextStorage(ts)
+		externalExt, err := s.buildExternalTransaction(rt, tx.Extrinsic)
+		if err != nil {
+			logger.Errorf("Unable to build external transaction: %s", err)
+		}
+
+		txnValidity, err := rt.ValidateTransaction(externalExt)
 		if err != nil {
 			s.transactionState.RemoveExtrinsic(tx.Extrinsic)
 			continue
@@ -513,8 +537,12 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 	}
 
 	rt.SetContextStorage(ts)
-	// the transaction source is External
-	externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))
+
+	externalExt, err := s.buildExternalTransaction(rt, ext)
+	if err != nil {
+		return fmt.Errorf("building external transaction: %w", err)
+	}
+
 	transactionValidity, err := rt.ValidateTransaction(externalExt)
 	if err != nil {
 		return err
@@ -577,4 +605,28 @@ func (s *Service) GetReadProofAt(block common.Hash, keys [][]byte) (
 	}
 
 	return block, proofForKeys, nil
+}
+
+// buildExternalTransaction builds an external transaction based on the current TransactionQueueAPIVersion
+// See https://github.com/paritytech/substrate/blob/polkadot-v0.9.25/primitives/transaction-pool/src/runtime_api.rs#L25-L55
+func (s *Service) buildExternalTransaction(rt runtime.Instance, ext types.Extrinsic) (types.Extrinsic, error) {
+	runtimeVersion := rt.Version()
+	txQueueVersion := runtimeVersion.TaggedTransactionQueueVersion(runtimeVersion)
+	var externalExt types.Extrinsic
+	switch txQueueVersion {
+	case supportedTxVersion:
+		externalExt = types.Extrinsic(concatenateByteSlices([][]byte{
+			{byte(types.TxnExternal)},
+			ext,
+			s.blockState.BestBlockHash().ToBytes(),
+		}))
+	case previousSupportedTxVersion:
+		externalExt = types.Extrinsic(concatenateByteSlices([][]byte{
+			{byte(types.TxnExternal)},
+			ext,
+		}))
+	default:
+		return types.Extrinsic{}, errInvalidTransactionQueueVersion
+	}
+	return externalExt, nil
 }

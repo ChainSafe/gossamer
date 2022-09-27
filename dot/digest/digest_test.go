@@ -39,8 +39,8 @@ func newTestHandler(t *testing.T) (*Handler, *state.Service) {
 	stateSrvc := state.NewService(config)
 	stateSrvc.UseMemDB()
 
-	gen, genesisTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
-	err := stateSrvc.Initialise(&gen, &genesisHeader, &genesisTrie)
+	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
+	err := stateSrvc.Initialise(&gen, &genHeader, &genTrie)
 	require.NoError(t, err)
 
 	err = stateSrvc.SetupBase()

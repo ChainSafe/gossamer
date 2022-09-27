@@ -8,7 +8,6 @@ import (
 	"context"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -42,6 +41,7 @@ const (
 	specVersion        = 25
 	implVersion        = 0
 	transactionVersion = 0
+	stateVersion       = 0
 )
 
 func generateTestCentrifugeMetadata(t *testing.T) *ctypes.Metadata {
@@ -112,7 +112,12 @@ func generateExtrinsic(t *testing.T) (extrinsic, externalExtrinsic types.Extrins
 	require.NoError(t, err)
 
 	encExt := []types.Extrinsic{extEnc.Bytes()}
-	testExternalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, encExt[0]...))
+	testHeader := types.NewEmptyHeader()
+	testExternalExt := types.Extrinsic(concatenateByteSlices([][]byte{
+		{byte(types.TxnExternal)},
+		encExt[0],
+		testHeader.StateRoot.ToBytes(),
+	}))
 	testUnencryptedBody := types.NewBody(encExt)
 	return encExt[0], testExternalExt, testUnencryptedBody
 }
@@ -555,20 +560,46 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 			Propagate: true,
 		}
 
-		extrinsic := types.Extrinsic{21}
-		vt := transaction.NewValidTransaction(extrinsic, validity)
+		ext := types.Extrinsic{21}
+		externalExt := types.Extrinsic(concatenateByteSlices([][]byte{
+			{byte(types.TxnExternal)},
+			ext,
+			testHeader.StateRoot.ToBytes(),
+		}))
+		vt := transaction.NewValidTransaction(ext, validity)
 
 		ctrl := gomock.NewController(t)
 		runtimeMock := NewMockRuntimeInstance(ctrl)
-		runtimeMock.EXPECT().ValidateTransaction(types.Extrinsic{21}).Return(nil, errTestDummyError)
+		runtimeMock.EXPECT().ValidateTransaction(externalExt).Return(nil, errTestDummyError)
+		runtimeMock.EXPECT().Version().Return(runtime.Version{
+			SpecName:         []byte("polkadot"),
+			ImplName:         []byte("parity-polkadot"),
+			AuthoringVersion: authoringVersion,
+			SpecVersion:      specVersion,
+			ImplVersion:      implVersion,
+			APIItems: []runtime.APIItem{{
+				Name: [8]byte{0xd2, 0xbc, 0x98, 0x97, 0xee, 0xd0, 0x8f, 0x15},
+				Ver:  3,
+			}},
+			TransactionVersion: transactionVersion,
+			StateVersion:       stateVersion,
+		})
+		runtimeMock.EXPECT().SetContextStorage(&rtstorage.TrieState{})
+
 		mockTxnState := NewMockTransactionState(ctrl)
 		mockTxnState.EXPECT().RemoveExtrinsic(types.Extrinsic{21}).Times(2)
 		mockTxnState.EXPECT().PendingInPool().Return([]*transaction.ValidTransaction{vt})
 		mockBlockState := NewMockBlockState(ctrl)
-		mockBlockState.EXPECT().GetRuntime(nil).Return(runtimeMock, nil)
+		mockBlockState.EXPECT().GetRuntime(&common.Hash{}).Return(runtimeMock, nil)
+		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{}).Times(2)
+
+		mockStorageState := NewMockStorageState(ctrl)
+		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(&rtstorage.TrieState{}, nil)
+		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(&common.Hash{}, nil)
 		service := &Service{
 			transactionState: mockTxnState,
 			blockState:       mockBlockState,
+			storageState:     mockStorageState,
 		}
 		service.maintainTransactionPool(&block)
 	})
@@ -589,24 +620,49 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 			Propagate: true,
 		}
 
-		extrinsic := types.Extrinsic{21}
-		vt := transaction.NewValidTransaction(extrinsic, validity)
-		tx := transaction.NewValidTransaction(types.Extrinsic{21}, &transaction.Validity{Propagate: true})
+		ext := types.Extrinsic{21}
+		externalExt := types.Extrinsic(concatenateByteSlices([][]byte{
+			{byte(types.TxnExternal)},
+			ext,
+			testHeader.StateRoot.ToBytes(),
+		}))
+		vt := transaction.NewValidTransaction(ext, validity)
+		tx := transaction.NewValidTransaction(ext, &transaction.Validity{Propagate: true})
 
 		ctrl := gomock.NewController(t)
 		runtimeMock := NewMockRuntimeInstance(ctrl)
-		runtimeMock.EXPECT().ValidateTransaction(types.Extrinsic{21}).
-			Return(&transaction.Validity{Propagate: true}, nil)
+		runtimeMock.EXPECT().ValidateTransaction(externalExt).Return(&transaction.Validity{Propagate: true}, nil)
+		runtimeMock.EXPECT().Version().Return(runtime.Version{
+			SpecName:         []byte("polkadot"),
+			ImplName:         []byte("parity-polkadot"),
+			AuthoringVersion: authoringVersion,
+			SpecVersion:      specVersion,
+			ImplVersion:      implVersion,
+			APIItems: []runtime.APIItem{{
+				Name: [8]byte{0xd2, 0xbc, 0x98, 0x97, 0xee, 0xd0, 0x8f, 0x15},
+				Ver:  3,
+			}},
+			TransactionVersion: transactionVersion,
+			StateVersion:       stateVersion,
+		})
+		runtimeMock.EXPECT().SetContextStorage(&rtstorage.TrieState{})
 		mockTxnState := NewMockTransactionState(ctrl)
 		mockTxnState.EXPECT().RemoveExtrinsic(types.Extrinsic{21})
 		mockTxnState.EXPECT().PendingInPool().Return([]*transaction.ValidTransaction{vt})
 		mockTxnState.EXPECT().Push(tx).Return(common.Hash{}, nil)
 		mockTxnState.EXPECT().RemoveExtrinsicFromPool(types.Extrinsic{21})
+
 		mockBlockStateOk := NewMockBlockState(ctrl)
-		mockBlockStateOk.EXPECT().GetRuntime(nil).Return(runtimeMock, nil)
+		mockBlockStateOk.EXPECT().GetRuntime(&common.Hash{}).Return(runtimeMock, nil)
+		mockBlockStateOk.EXPECT().BestBlockHash().Return(common.Hash{}).Times(2)
+
+		mockStorageState := NewMockStorageState(ctrl)
+		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(&rtstorage.TrieState{}, nil)
+		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(&common.Hash{}, nil)
 		service := &Service{
 			transactionState: mockTxnState,
 			blockState:       mockBlockStateOk,
+			storageState:     mockStorageState,
 		}
 		service.maintainTransactionPool(&block)
 	})
@@ -676,29 +732,55 @@ func Test_Service_handleBlocksAsync(t *testing.T) {
 		}
 
 		extrinsic := types.Extrinsic{21}
+		testHeader := types.NewEmptyHeader()
+		externalExt := types.Extrinsic(concatenateByteSlices([][]byte{
+			{byte(types.TxnExternal)},
+			extrinsic,
+			testHeader.StateRoot.ToBytes(),
+		}))
 		vt := transaction.NewValidTransaction(extrinsic, validity)
 
-		testHeader := types.NewEmptyHeader()
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
 		block.Header.Number = 21
 
 		ctrl := gomock.NewController(t)
 		runtimeMock := NewMockRuntimeInstance(ctrl)
-		runtimeMock.EXPECT().ValidateTransaction(types.Extrinsic{21}).Return(nil, errTestDummyError)
+		runtimeMock.EXPECT().ValidateTransaction(externalExt).Return(nil, errTestDummyError)
+		runtimeMock.EXPECT().Version().Return(runtime.Version{
+			SpecName:         []byte("polkadot"),
+			ImplName:         []byte("parity-polkadot"),
+			AuthoringVersion: authoringVersion,
+			SpecVersion:      specVersion,
+			ImplVersion:      implVersion,
+			APIItems: []runtime.APIItem{{
+				Name: [8]byte{0xd2, 0xbc, 0x98, 0x97, 0xee, 0xd0, 0x8f, 0x15},
+				Ver:  3,
+			}},
+			TransactionVersion: transactionVersion,
+			StateVersion:       stateVersion,
+		})
+		runtimeMock.EXPECT().SetContextStorage(&rtstorage.TrieState{})
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{}).Times(2)
 		mockBlockState.EXPECT().HighestCommonAncestor(common.Hash{}, block.Header.Hash()).
 			Return(common.Hash{}, errTestDummyError)
-		mockBlockState.EXPECT().GetRuntime(nil).Return(runtimeMock, nil)
+		mockBlockState.EXPECT().GetRuntime(&common.Hash{}).Return(runtimeMock, nil)
+		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{}).Times(2)
+
 		mockTxnStateErr := NewMockTransactionState(ctrl)
 		mockTxnStateErr.EXPECT().RemoveExtrinsic(types.Extrinsic{21}).Times(2)
 		mockTxnStateErr.EXPECT().PendingInPool().Return([]*transaction.ValidTransaction{vt})
+
+		mockStorageState := NewMockStorageState(ctrl)
+		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(&rtstorage.TrieState{}, nil)
+		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(&common.Hash{}, nil)
 		blockAddChan := make(chan *types.Block)
 		go func() {
 			blockAddChan <- &block
 			close(blockAddChan)
 		}()
 		service := &Service{
+			storageState:     mockStorageState,
 			blockState:       mockBlockState,
 			transactionState: mockTxnStateErr,
 			blockAddCh:       blockAddChan,
@@ -813,7 +895,23 @@ func TestService_handleChainReorg(t *testing.T) {
 	t.Run("invalid transaction", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
+
 		runtimeMockErr := NewMockRuntimeInstance(ctrl)
+		runtimeMockErr.EXPECT().ValidateTransaction(externExt).Return(nil, errTestDummyError)
+		runtimeMockErr.EXPECT().Version().Return(runtime.Version{
+			SpecName:         []byte("polkadot"),
+			ImplName:         []byte("parity-polkadot"),
+			AuthoringVersion: authoringVersion,
+			SpecVersion:      specVersion,
+			ImplVersion:      implVersion,
+			APIItems: []runtime.APIItem{{
+				Name: [8]byte{0xd2, 0xbc, 0x98, 0x97, 0xee, 0xd0, 0x8f, 0x15},
+				Ver:  3,
+			}},
+			TransactionVersion: transactionVersion,
+			StateVersion:       stateVersion,
+		})
+
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().HighestCommonAncestor(testPrevHash, testCurrentHash).
 			Return(testAncestorHash, nil)
@@ -821,7 +919,7 @@ func TestService_handleChainReorg(t *testing.T) {
 		mockBlockState.EXPECT().GetRuntime(nil).Return(runtimeMockErr, nil)
 		mockBlockState.EXPECT().GetBlockBody(testCurrentHash).Return(nil, errDummyErr)
 		mockBlockState.EXPECT().GetBlockBody(testAncestorHash).Return(body, nil)
-		runtimeMockErr.EXPECT().ValidateTransaction(externExt).Return(nil, errTestDummyError)
+		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{})
 
 		service := &Service{
 			blockState: mockBlockState,
@@ -833,6 +931,21 @@ func TestService_handleChainReorg(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 		runtimeMockOk := NewMockRuntimeInstance(ctrl)
+		runtimeMockOk.EXPECT().ValidateTransaction(externExt).Return(testValidity, nil)
+		runtimeMockOk.EXPECT().Version().Return(runtime.Version{
+			SpecName:         []byte("polkadot"),
+			ImplName:         []byte("parity-polkadot"),
+			AuthoringVersion: authoringVersion,
+			SpecVersion:      specVersion,
+			ImplVersion:      implVersion,
+			APIItems: []runtime.APIItem{{
+				Name: [8]byte{0xd2, 0xbc, 0x98, 0x97, 0xee, 0xd0, 0x8f, 0x15},
+				Ver:  3,
+			}},
+			TransactionVersion: transactionVersion,
+			StateVersion:       stateVersion,
+		})
+
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().HighestCommonAncestor(testPrevHash, testCurrentHash).
 			Return(testAncestorHash, nil)
@@ -840,7 +953,7 @@ func TestService_handleChainReorg(t *testing.T) {
 		mockBlockState.EXPECT().GetRuntime(nil).Return(runtimeMockOk, nil)
 		mockBlockState.EXPECT().GetBlockBody(testCurrentHash).Return(nil, errDummyErr)
 		mockBlockState.EXPECT().GetBlockBody(testAncestorHash).Return(body, nil)
-		runtimeMockOk.EXPECT().ValidateTransaction(externExt).Return(testValidity, nil)
+		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{})
 		mockTxnStateOk := NewMockTransactionState(ctrl)
 		mockTxnStateOk.EXPECT().AddToPool(vtx).Return(common.Hash{})
 
@@ -1091,8 +1204,12 @@ func TestServiceGetRuntimeVersion(t *testing.T) {
 func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 	t.Parallel()
 	ext := types.Extrinsic{}
-	externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))
-	fmt.Println(ext)
+	testHeader := types.NewEmptyHeader()
+	externalExt := types.Extrinsic(concatenateByteSlices([][]byte{
+		{byte(types.TxnExternal)},
+		ext,
+		testHeader.StateRoot.ToBytes(),
+	}))
 	execTest := func(t *testing.T, s *Service, ext types.Extrinsic, expErr error) {
 		err := s.HandleSubmittedExtrinsic(ext)
 		assert.ErrorIs(t, err, expErr)
@@ -1157,6 +1274,7 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{})
 		runtimeMockErr := NewMockRuntimeInstance(ctrl)
 		mockBlockState.EXPECT().GetRuntime(&common.Hash{}).Return(runtimeMockErr, nil).MaxTimes(2)
+		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{})
 
 		mockStorageState := NewMockStorageState(ctrl)
 		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(&rtstorage.TrieState{}, nil)
@@ -1165,8 +1283,21 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 		mockTxnState := NewMockTransactionState(ctrl)
 		mockTxnState.EXPECT().Exists(types.Extrinsic{})
 
-		runtimeMockErr.EXPECT().SetContextStorage(&rtstorage.TrieState{})
 		runtimeMockErr.EXPECT().ValidateTransaction(externalExt).Return(nil, errDummyErr)
+		runtimeMockErr.EXPECT().Version().Return(runtime.Version{
+			SpecName:         []byte("polkadot"),
+			ImplName:         []byte("parity-polkadot"),
+			AuthoringVersion: authoringVersion,
+			SpecVersion:      specVersion,
+			ImplVersion:      implVersion,
+			APIItems: []runtime.APIItem{{
+				Name: [8]byte{0xd2, 0xbc, 0x98, 0x97, 0xee, 0xd0, 0x8f, 0x15},
+				Ver:  3,
+			}},
+			TransactionVersion: transactionVersion,
+			StateVersion:       stateVersion,
+		})
+		runtimeMockErr.EXPECT().SetContextStorage(&rtstorage.TrieState{})
 		service := &Service{
 			storageState:     mockStorageState,
 			transactionState: mockTxnState,
@@ -1184,8 +1315,23 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{})
 		mockBlockState.EXPECT().GetRuntime(&common.Hash{}).Return(runtimeMock, nil).MaxTimes(2)
-		runtimeMock.EXPECT().SetContextStorage(&rtstorage.TrieState{})
+		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{})
+
 		runtimeMock.EXPECT().ValidateTransaction(externalExt).Return(&transaction.Validity{Propagate: true}, nil)
+		runtimeMock.EXPECT().Version().Return(runtime.Version{
+			SpecName:         []byte("polkadot"),
+			ImplName:         []byte("parity-polkadot"),
+			AuthoringVersion: authoringVersion,
+			SpecVersion:      specVersion,
+			ImplVersion:      implVersion,
+			APIItems: []runtime.APIItem{{
+				Name: [8]byte{0xd2, 0xbc, 0x98, 0x97, 0xee, 0xd0, 0x8f, 0x15},
+				Ver:  3,
+			}},
+			TransactionVersion: transactionVersion,
+			StateVersion:       stateVersion,
+		})
+		runtimeMock.EXPECT().SetContextStorage(&rtstorage.TrieState{})
 
 		mockStorageState := NewMockStorageState(ctrl)
 		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(&rtstorage.TrieState{}, nil)

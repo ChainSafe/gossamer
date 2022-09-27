@@ -890,10 +890,9 @@ func updateDotConfigFromGenesisData(ctx *cli.Context, cfg *dot.Config) error {
 }
 
 func setDotPprofConfig(ctx *cli.Context, tomlCfg ctoml.PprofConfig, cfg *dot.PprofConfig) {
-	// Flag takes precedence over TOML config, default is ignored.
-	if ctx.GlobalIsSet(PprofServerFlag.Name) {
-		cfg.Enabled = ctx.GlobalBool(PprofServerFlag.Name)
-	} else {
+	if !cfg.Enabled {
+		// only allow to enable pprof from the TOML configuration.
+		// If it is enabled by default, it cannot be disabled.
 		cfg.Enabled = tomlCfg.Enabled
 	}
 
@@ -911,6 +910,13 @@ func setDotPprofConfig(ctx *cli.Context, tomlCfg ctoml.PprofConfig, cfg *dot.Ppr
 		// mutex rate must be 0 (disabled) by default, since we
 		// cannot disable it here.
 		cfg.Settings.MutexProfileRate = tomlCfg.MutexRate
+	}
+
+	// check --pprofserver flag and update node configuration
+	if enabled := ctx.GlobalBool(PprofServerFlag.Name); enabled || cfg.Enabled {
+		cfg.Enabled = true
+	} else if ctx.IsSet(PprofServerFlag.Name) && !enabled {
+		cfg.Enabled = false
 	}
 
 	// check --pprofaddress flag and update node configuration

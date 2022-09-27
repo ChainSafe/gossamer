@@ -9,7 +9,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-// InvalidTransaction is a child VDT of TransactionValidityError
+// InvalidTransaction is child VDT of TransactionValidityError
 type InvalidTransaction scale.VaryingDataType
 
 // Index returns the VDT index
@@ -140,7 +140,7 @@ type InvalidCustom uint8
 // Index returns the VDT index
 func (InvalidCustom) Index() uint { return 7 }
 
-// Error returns the error message associated with the InvalidCustom
+// Error returns the error message associated with the Call
 func (i InvalidCustom) Error() string {
 	return newUnknownError(i).Error()
 }

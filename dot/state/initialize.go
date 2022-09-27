@@ -10,7 +10,6 @@ import (
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
@@ -125,8 +124,7 @@ func (s *Service) loadBabeConfigurationFromRuntime(r runtime.Instance) (*types.B
 }
 
 func loadGrandpaAuthorities(t *trie.Trie) ([]types.GrandpaVoter, error) {
-	key := common.MustHexToBytes(genesis.GrandpaAuthoritiesKeyHex)
-	authsRaw := t.Get(key)
+	authsRaw := t.Get(runtime.GrandpaAuthoritiesKey)
 	if authsRaw == nil {
 		return []types.GrandpaVoter{}, nil
 	}

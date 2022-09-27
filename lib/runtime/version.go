@@ -31,8 +31,23 @@ type Version struct {
 }
 
 var (
+	// Blake2-8("TaggedTransactionQueue")
+	encodedTaggedTransactionQueue = [8]byte{0xd2, 0xbc, 0x98, 0x97, 0xee, 0xd0, 0x8f, 0x15}
+
 	ErrDecodingVersionField = errors.New("decoding version field")
 )
+
+// TaggedTransactionQueueVersion returns the TaggedTransactionQueueAPI version
+func (*Version) TaggedTransactionQueueVersion(runtimeVersion Version) uint32 {
+	txQueueVersion := uint32(0)
+	for _, v := range runtimeVersion.APIItems {
+		if v.Name == encodedTaggedTransactionQueue {
+			txQueueVersion = v.Ver
+			break
+		}
+	}
+	return txQueueVersion
+}
 
 // DecodeVersion scale decodes the encoded version data.
 // For older version data with missing fields (such as `transaction_version`)

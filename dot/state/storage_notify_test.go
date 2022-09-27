@@ -18,7 +18,7 @@ import (
 )
 
 func TestStorageState_RegisterStorageObserver(t *testing.T) {
-	ss := newTestStorageState(t)
+	ss := newTestStorageState(t, newTriesEmpty())
 
 	ts, err := ss.TrieState(nil)
 	require.NoError(t, err)
@@ -57,7 +57,7 @@ func TestStorageState_RegisterStorageObserver(t *testing.T) {
 }
 
 func TestStorageState_RegisterStorageObserver_Multi(t *testing.T) {
-	ss := newTestStorageState(t)
+	ss := newTestStorageState(t, newTriesEmpty())
 	ts, err := ss.TrieState(nil)
 	require.NoError(t, err)
 
@@ -95,7 +95,7 @@ func TestStorageState_RegisterStorageObserver_Multi(t *testing.T) {
 
 func TestStorageState_RegisterStorageObserver_Multi_Filter(t *testing.T) {
 	t.Skip() // this seems to fail often on CI
-	ss := newTestStorageState(t)
+	ss := newTestStorageState(t, newTriesEmpty())
 	ts, err := ss.TrieState(nil)
 	require.NoError(t, err)
 

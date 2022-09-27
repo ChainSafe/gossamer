@@ -28,7 +28,11 @@ func (s *Service) validateTransaction(head *types.Header, rt RuntimeInstance,
 	rt.SetContextStorage(ts)
 
 	// validate each transaction
-	externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, tx...))
+	externalExt, err := s.buildExternalTransaction(rt, tx)
+	if err != nil {
+		return nil, fmt.Errorf("building transaction: %s", err)
+	}
+
 	validity, err = rt.ValidateTransaction(externalExt)
 	if err != nil {
 		logger.Debugf("failed to validate transaction: %s", err)
@@ -70,32 +74,34 @@ func (s *Service) HandleTransactionMessage(peerID peer.ID, msg *network.Transact
 		return false, err
 	}
 
-	allTxnsAreValid := true
+	allTxsAreValid := true
 	for _, tx := range txs {
-		txnIsValid := true
+		isValidTxn := true
 		validity, err := s.validateTransaction(head, rt, tx)
 		if err != nil {
-			txnIsValid = false
-			allTxnsAreValid = false
-			switch err := err.(type) {
+			switch err.(type) {
 			case runtime.InvalidTransaction:
+				isValidTxn = false
+				allTxsAreValid = false
 				s.net.ReportPeer(peerset.ReputationChange{
 					Value:  peerset.BadTransactionValue,
 					Reason: peerset.BadTransactionReason,
 				}, peerID)
 			case runtime.UnknownTransaction:
+				isValidTxn = false
+				allTxsAreValid = false
 			default:
-				return false, fmt.Errorf("validating transaction from peerID %s: %w", peerID, err)
+				return false, fmt.Errorf("failed validating transaction for peerID %s: %w", peerID, err)
 			}
 		}
 
-		if txnIsValid && validity.Propagate {
+		if isValidTxn && validity.Propagate {
 			// find tx(s) that should propagate
 			toPropagate = append(toPropagate, tx)
 		}
 	}
 
-	if allTxnsAreValid {
+	if allTxsAreValid {
 		s.net.ReportPeer(peerset.ReputationChange{
 			Value:  peerset.GoodTransactionValue,
 			Reason: peerset.GoodTransactionReason,

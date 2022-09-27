@@ -3,6 +3,10 @@
 
 package runtime
 
+import (
+	"github.com/ChainSafe/gossamer/lib/common"
+)
+
 //nolint:revive
 const (
 	// v0.9 substrate runtime
@@ -58,7 +62,7 @@ const (
 		"29/westend_runtime-v9290.compact.compressed.wasm?raw=true"
 )
 
-const (
+var (
 	// CoreVersion is the runtime API call Core_version
 	CoreVersion = "Core_version"
 	// CoreInitializeBlock is the runtime API call Core_initialize_block
@@ -88,3 +92,30 @@ const (
 	// TransactionPaymentCallAPIQueryCallFeeDetails returns call query call fee details
 	TransactionPaymentCallAPIQueryCallFeeDetails = "TransactionPaymentCallApi_query_call_fee_details"
 )
+
+// GrandpaAuthoritiesKey is the location of GRANDPA authority data
+// in the storage trie for LEGACY_NODE_RUNTIME and NODE_RUNTIME
+var GrandpaAuthoritiesKey, _ = common.HexToBytes("0x3a6772616e6470615f617574686f726974696573")
+
+// BABEPrefix is the prefix for all BABE related storage values
+var BABEPrefix, _ = common.Twox128Hash([]byte("Babe"))
+
+// BABEAuthoritiesKey is the location of the BABE authorities in the storage trie for NODE_RUNTIME
+func BABEAuthoritiesKey() []byte {
+	key, _ := common.Twox128Hash([]byte("Authorities"))
+	return append(BABEPrefix, key...)
+}
+
+// BABERandomnessKey is the location of the BABE initial randomness in the storage trie for NODE_RUNTIME
+func BABERandomnessKey() []byte {
+	key, _ := common.Twox128Hash([]byte("Randomness"))
+	return append(BABEPrefix, key...)
+}
+
+// SystemAccountPrefix is the prefix for all System Account related storage values
+func SystemAccountPrefix() []byte {
+	// build prefix
+	prefix, _ := common.Twox128Hash([]byte(`System`))
+	part2, _ := common.Twox128Hash([]byte(`Account`))
+	return append(prefix, part2...)
+}

@@ -29,6 +29,10 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
+	ctypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
+
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -77,6 +81,47 @@ func useInstanceFromRuntimeV0910(t *testing.T, rtStorage *storage.TrieState) (in
 	require.NoError(t, err)
 
 	return runtimeInstance
+}
+
+func createExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, nonce uint64) types.Extrinsic {
+	t.Helper()
+	rawMeta, err := rt.Metadata()
+	require.NoError(t, err)
+
+	var decoded []byte
+	err = scale.Unmarshal(rawMeta, &decoded)
+	require.NoError(t, err)
+
+	meta := &ctypes.Metadata{}
+
+	err = ctypes.Decode(decoded, meta)
+	require.NoError(t, err)
+
+	rv := rt.Version()
+
+	c, err := ctypes.NewCall(meta, "System.remark", []byte{0xab, 0xcd})
+	require.NoError(t, err)
+
+	ext := ctypes.NewExtrinsic(c)
+	options := ctypes.SignatureOptions{
+		BlockHash:          ctypes.Hash(genHash),
+		Era:                ctypes.ExtrinsicEra{IsImmortalEra: false},
+		GenesisHash:        ctypes.Hash(genHash),
+		Nonce:              ctypes.NewUCompactFromUInt(nonce),
+		SpecVersion:        ctypes.U32(rv.SpecVersion),
+		Tip:                ctypes.NewUCompactFromUInt(0),
+		TransactionVersion: ctypes.U32(rv.TransactionVersion),
+	}
+
+	// Sign the transaction using Alice's key
+	err = ext.Sign(signature.TestKeyringPairAlice, options)
+	require.NoError(t, err)
+
+	extEnc, err := ctypes.EncodeToHex(ext)
+	require.NoError(t, err)
+
+	extBytes := types.Extrinsic(common.MustHexToBytes(extEnc))
+	return extBytes
 }
 
 func TestAuthorModule_Pending_Integration(t *testing.T) {
@@ -218,6 +263,7 @@ func TestAuthorModule_SubmitExtrinsic_AlreadyInPool(t *testing.T) {
 	// creating an extrisinc to the System.remark call using a sample argument
 	extHex := runtime.NewTestExtrinsic(t,
 		integrationTestController.runtime, genesisHash, genesisHash, 0, "System.remark", []byte{})
+	fmt.Println(extHex)
 	extBytes := common.MustHexToBytes(extHex)
 
 	integrationTestController.storageState = &state.StorageState{}
@@ -510,19 +556,11 @@ func TestAuthorModule_SubmitExtrinsic_WithVersion_V0910(t *testing.T) {
 	integrationTestController.stateSrv.Transaction = state.NewTransactionState(telemetryMock)
 
 	genesisHash := integrationTestController.genesisHeader.Hash()
-
-	extHex := runtime.NewTestExtrinsic(t,
-		integrationTestController.runtime, genesisHash, genesisHash, 1, "System.remark", []byte{0xab, 0xcd})
-
-	// to extrinsic works with a runtime version 0910 we need to
-	// append the block hash bytes at the end of the extrinsics
-	hashBytes := genesisHash.ToBytes()
-	extBytes := append(common.MustHexToBytes(extHex), hashBytes...)
-
-	extHex = common.BytesToHex(extBytes)
+	ext := createExtrinsic(t, integrationTestController.runtime, genesisHash, 0)
+	extHex := common.BytesToHex(ext)
 
 	net2test := NewMockNetwork(ctrl)
-	net2test.EXPECT().GossipMessage(&network.TransactionMessage{Extrinsics: []types.Extrinsic{extBytes}})
+	net2test.EXPECT().GossipMessage(&network.TransactionMessage{Extrinsics: []types.Extrinsic{ext}})
 	integrationTestController.network = net2test
 
 	// setup auth module
@@ -532,16 +570,13 @@ func TestAuthorModule_SubmitExtrinsic_WithVersion_V0910(t *testing.T) {
 	err := auth.SubmitExtrinsic(nil, &Extrinsic{extHex}, res)
 	require.NoError(t, err)
 
-	expectedExtrinsic := types.NewExtrinsic(extBytes)
+	expectedExtrinsic := types.NewExtrinsic(ext)
 	expected := &transaction.ValidTransaction{
 		Extrinsic: expectedExtrinsic,
 		Validity: &transaction.Validity{
 			Priority: 4295664014726,
-			Requires: [][]byte{
-				common.MustHexToBytes("0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d00000000"),
-			},
 			Provides: [][]byte{
-				common.MustHexToBytes("0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01000000"),
+				common.MustHexToBytes("0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d00000000"),
 			},
 			Longevity: 18446744073709551613,
 			Propagate: true,
@@ -571,7 +606,7 @@ type integrationTestController struct {
 func setupStateAndRuntime(t *testing.T, basepath string, useInstance useRuntimeInstace) *integrationTestController {
 	t.Helper()
 
-	gen, genesisTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	gen, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
@@ -591,7 +626,7 @@ func setupStateAndRuntime(t *testing.T, basepath string, useInstance useRuntimeI
 	state2test.UseMemDB()
 
 	state2test.Transaction = state.NewTransactionState(telemetryMock)
-	err := state2test.Initialise(&gen, &genesisHeader, &genesisTrie)
+	err := state2test.Initialise(&gen, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
 	err = state2test.Start()
@@ -605,7 +640,7 @@ func setupStateAndRuntime(t *testing.T, basepath string, useInstance useRuntimeI
 	net2test := NewMockNetwork(nil)
 	integrationTestController := &integrationTestController{
 		genesis:       &gen,
-		genesisTrie:   &genesisTrie,
+		genesisTrie:   &genTrie,
 		genesisHeader: &genesisHeader,
 		stateSrv:      state2test,
 		storageState:  state2test.Storage,
@@ -631,7 +666,7 @@ func setupStateAndPopulateTrieState(t *testing.T, basepath string,
 	useInstance useRuntimeInstace) *integrationTestController {
 	t.Helper()
 
-	gen, genesisTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	gen, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
@@ -652,7 +687,7 @@ func setupStateAndPopulateTrieState(t *testing.T, basepath string,
 
 	state2test.Transaction = state.NewTransactionState(telemetryMock)
 
-	err := state2test.Initialise(&gen, &genesisHeader, &genesisTrie)
+	err := state2test.Initialise(&gen, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
 	err = state2test.Start()
@@ -666,7 +701,7 @@ func setupStateAndPopulateTrieState(t *testing.T, basepath string,
 	ks := keystore.NewGlobalKeystore()
 	integrationTestController := &integrationTestController{
 		genesis:       &gen,
-		genesisTrie:   &genesisTrie,
+		genesisTrie:   &genTrie,
 		genesisHeader: &genesisHeader,
 		stateSrv:      state2test,
 		storageState:  state2test.Storage,
