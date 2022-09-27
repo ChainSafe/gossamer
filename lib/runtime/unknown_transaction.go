@@ -29,15 +29,15 @@ func (u *UnknownTransaction) Set(val scale.VaryingDataTypeValue) (err error) {
 }
 
 // Value will return value from the underying VaryingDataType
-func (u *UnknownTransaction) Value() (val scale.VaryingDataTypeValue) {
+func (u *UnknownTransaction) Value() (val scale.VaryingDataTypeValue, err error) {
 	vdt := scale.VaryingDataType(*u)
 	return vdt.Value()
 }
 
 func (u UnknownTransaction) Error() string {
-	value := u.Value()
-	if value == nil {
-		return "unknownTransaction hasn't been set"
+	value, err := u.Value()
+	if err != nil {
+		return fmt.Sprintf("getting unknown transaction value: %s", err)
 	}
 	err, ok := value.(error)
 	if !ok {

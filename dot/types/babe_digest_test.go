@@ -35,7 +35,9 @@ func TestBabePrimaryPreDigest_EncodeAndDecode(t *testing.T) {
 	require.NoError(t, err)
 	bh2, err := DecodeBabePreDigest(enc)
 	require.NoError(t, err)
-	require.Equal(t, bh.Value(), bh2)
+	bhValue, err := bh.Value()
+	require.NoError(t, err)
+	require.Equal(t, bhValue, bh2)
 }
 
 func TestBabeSecondaryPlainPreDigest_EncodeAndDecode(t *testing.T) {
@@ -50,7 +52,9 @@ func TestBabeSecondaryPlainPreDigest_EncodeAndDecode(t *testing.T) {
 	require.NoError(t, err)
 	bh2, err := DecodeBabePreDigest(enc)
 	require.NoError(t, err)
-	require.Equal(t, bh.Value(), bh2)
+	bhValue, err := bh.Value()
+	require.NoError(t, err)
+	require.Equal(t, bhValue, bh2)
 }
 
 func TestBabeSecondaryVRFPreDigest_EncodeAndDecode(t *testing.T) {
@@ -75,5 +79,7 @@ func TestBabeSecondaryVRFPreDigest_EncodeAndDecode(t *testing.T) {
 	require.NoError(t, err)
 	bh2, err := DecodeBabePreDigest(enc)
 	require.NoError(t, err)
-	require.Equal(t, bh.Value(), bh2)
+	bhValue, err := bh.Value()
+	require.NoError(t, err)
+	require.Equal(t, bhValue, bh2)
 }

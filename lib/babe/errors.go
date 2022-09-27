@@ -234,7 +234,11 @@ type MandatoryDispatch struct{}
 func (MandatoryDispatch) Index() uint { return 9 }
 
 func determineErrType(vdt scale.VaryingDataType) error {
-	switch val := vdt.Value().(type) {
+	vdtVal, err := vdt.Value()
+	if err != nil {
+		return fmt.Errorf("getting vdt value: %w", err)
+	}
+	switch val := vdtVal.(type) {
 	case Other:
 		return &DispatchOutcomeError{fmt.Sprintf("unknown error: %s", val)}
 	case CannotLookup:
