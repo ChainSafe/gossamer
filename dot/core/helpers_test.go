@@ -18,6 +18,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/golang/mock/gomock"
@@ -48,7 +49,7 @@ func CreateTestService(t *testing.T, genesisFilePath string,
 	require.NoError(t, err)
 
 	// Trie Created
-	genTrie, err := genesis.NewTrieFromGenesis(gen)
+	genesisTrie, err := wasmer.NewTrieFromGenesis(*gen)
 	require.NoError(t, err)
 
 	// Extrinsic and context related stuff
@@ -57,7 +58,7 @@ func CreateTestService(t *testing.T, genesisFilePath string,
 	require.NoError(t, err)
 
 	genesisHeader := &types.Header{
-		StateRoot: genTrie.MustHash(),
+		StateRoot: genesisTrie.MustHash(),
 		Number:    0,
 	}
 
@@ -92,7 +93,7 @@ func CreateTestService(t *testing.T, genesisFilePath string,
 		stateSrvc = state.NewService(config)
 		stateSrvc.UseMemDB()
 
-		err := stateSrvc.Initialise(gen, genesisHeader, genTrie)
+		err := stateSrvc.Initialise(gen, genesisHeader, &genesisTrie)
 		require.NoError(t, err)
 
 		// Start state service
@@ -124,7 +125,7 @@ func CreateTestService(t *testing.T, genesisFilePath string,
 	if cfg.Runtime == nil {
 		// Okay no errors, but test doesn't pass
 		var rtCfg wasmer.Config
-		rtCfg.Storage = rtstorage.NewTrieState(genTrie)
+		rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
 
 		var err error
 		rtCfg.CodeHash, err = cfg.StorageState.LoadCodeHash(nil)
@@ -205,7 +206,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	var stateSrvc *state.Service
 	testDatadirPath := t.TempDir()
 
-	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	gen, genesisTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
 
 	if cfg.BlockState == nil || cfg.StorageState == nil ||
 		cfg.TransactionState == nil || cfg.EpochState == nil ||
@@ -222,7 +223,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		stateSrvc = state.NewService(config)
 		stateSrvc.UseMemDB()
 
-		err := stateSrvc.Initialise(gen, genHeader, genTrie)
+		err := stateSrvc.Initialise(&gen, &genesisHeader, &genesisTrie)
 		require.NoError(t, err)
 
 		err = stateSrvc.Start()
@@ -252,7 +253,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	if cfg.Runtime == nil {
 		var rtCfg wasmer.Config
 
-		rtCfg.Storage = rtstorage.NewTrieState(genTrie)
+		rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
 
 		var err error
 		rtCfg.CodeHash, err = cfg.StorageState.LoadCodeHash(nil)
@@ -295,6 +296,29 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	return s
 }
 
+func newTestGenesisWithTrieAndHeader(t *testing.T) (
+	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
+	t.Helper()
+
+	genesisPath := utils.GetGssmrV3SubstrateGenesisRawPathTest(t)
+	genPtr, err := genesis.NewGenesisFromJSONRaw(genesisPath)
+	require.NoError(t, err)
+	gen = *genPtr
+
+	genesisTrie, err = wasmer.NewTrieFromGenesis(gen)
+	require.NoError(t, err)
+
+	parentHash := common.NewHash([]byte{0})
+	stateRoot := genesisTrie.MustHash()
+	extrinsicRoot := trie.EmptyHash
+	const number = 0
+	digest := types.NewDigest()
+	genesisHeader = *types.NewHeader(parentHash,
+		stateRoot, extrinsicRoot, number, digest)
+
+	return gen, genesisTrie, genesisHeader
+}
+
 func getGssmrRuntimeCode(t *testing.T) (code []byte) {
 	t.Helper()
 
@@ -304,10 +328,10 @@ func getGssmrRuntimeCode(t *testing.T) (code []byte) {
 	gssmrGenesis, err := genesis.NewGenesisFromJSONRaw(path)
 	require.NoError(t, err)
 
-	trie, err := genesis.NewTrieFromGenesis(gssmrGenesis)
+	genesisTrie, err := wasmer.NewTrieFromGenesis(*gssmrGenesis)
 	require.NoError(t, err)
 
-	trieState := rtstorage.NewTrieState(trie)
+	trieState := rtstorage.NewTrieState(&genesisTrie)
 
 	return trieState.LoadCode()
 }
