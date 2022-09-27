@@ -22,9 +22,8 @@ import (
 )
 
 func newTestTipSyncer(t *testing.T) *tipSyncer {
-	finHeader, err := types.NewHeader(common.NewHash([]byte{0}),
+	finHeader := types.NewHeader(common.NewHash([]byte{0}),
 		trie.EmptyHash, trie.EmptyHash, 200, types.NewDigest())
-	require.NoError(t, err)
 
 	ctrl := gomock.NewController(t)
 	bs := NewMockBlockState(ctrl)

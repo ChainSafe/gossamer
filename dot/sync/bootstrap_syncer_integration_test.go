@@ -18,15 +18,13 @@ import (
 )
 
 func newTestBootstrapSyncer(t *testing.T) *bootstrapSyncer {
-	header, err := types.NewHeader(
+	header := types.NewHeader(
 		common.NewHash([]byte{0}), trie.EmptyHash,
 		trie.EmptyHash, 100, types.NewDigest())
-	require.NoError(t, err)
 
-	finHeader, err := types.NewHeader(
+	finHeader := types.NewHeader(
 		common.NewHash([]byte{0}), trie.EmptyHash,
 		trie.EmptyHash, 200, types.NewDigest())
-	require.NoError(t, err)
 
 	ctrl := gomock.NewController(t)
 	bs := NewMockBlockState(ctrl)

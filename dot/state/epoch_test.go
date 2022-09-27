@@ -29,7 +29,7 @@ var genesisBABEConfig = &types.BabeConfiguration{
 
 func newEpochStateFromGenesis(t *testing.T) *EpochState {
 	db := NewInMemoryDB(t)
-	blockState := newTestBlockState(t, nil, newTriesEmpty())
+	blockState := newTestBlockState(t, newTriesEmpty())
 	s, err := NewEpochStateFromGenesis(db, blockState, genesisBABEConfig)
 	require.NoError(t, err)
 	return s
@@ -183,7 +183,7 @@ func TestEpochState_SetAndGetSlotDuration(t *testing.T) {
 
 func TestEpochState_GetEpochFromTime(t *testing.T) {
 	s := newEpochStateFromGenesis(t)
-	s.blockState = newTestBlockState(t, testGenesisHeader, newTriesEmpty())
+	s.blockState = newTestBlockState(t, newTriesEmpty())
 
 	epochDuration, err := time.ParseDuration(
 		fmt.Sprintf("%dms",

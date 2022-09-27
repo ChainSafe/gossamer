@@ -175,6 +175,7 @@ func (nb nodeBuilder) createBABEService(cfg *Config, st *state.Service, ks keyst
 	cs *core.Service, telemetryMailer telemetry.Client) (babe.ServiceIFace, error) {
 	return nb.createBABEServiceWithBuilder(cfg, st, ks, cs, telemetryMailer, babe.Builder{})
 }
+
 func (nodeBuilder) createBABEServiceWithBuilder(cfg *Config, st *state.Service, ks keystore.Keystore,
 	cs *core.Service, telemetryMailer telemetry.Client, newBabeService ServiceBuilder) (babe.
 	ServiceIFace, error) {

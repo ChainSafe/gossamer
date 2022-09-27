@@ -13,7 +13,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/golang/mock/gomock"
 
@@ -55,8 +54,8 @@ func newTestMemDBService(t *testing.T) *Service {
 func TestService_Start(t *testing.T) {
 	state := newTestService(t)
 
-	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
-	err := state.Initialise(genData, genesisHeader, genTrie)
+	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	err := state.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
 	err = state.SetupBase()
@@ -72,15 +71,14 @@ func TestService_Start(t *testing.T) {
 func TestService_Initialise(t *testing.T) {
 	state := newTestService(t)
 
-	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
-	err := state.Initialise(genData, genesisHeader, genTrie)
+	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	err := state.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
-	genesisHeader, err = types.NewHeader(common.NewHash([]byte{77}),
+	genesisHeaderPtr := types.NewHeader(common.NewHash([]byte{77}),
 		genTrie.MustHash(), trie.EmptyHash, 0, types.NewDigest())
-	require.NoError(t, err)
 
-	err = state.Initialise(genData, genesisHeader, genTrie)
+	err = state.Initialise(&genData, genesisHeaderPtr, &genTrie)
 	require.NoError(t, err)
 
 	err = state.SetupBase()
@@ -91,14 +89,14 @@ func TestService_Initialise(t *testing.T) {
 
 	head, err := state.Block.BestBlockHeader()
 	require.NoError(t, err)
-	require.Equal(t, genesisHeader, head)
+	require.Equal(t, genesisHeaderPtr, head)
 }
 
 func TestMemDB_Start(t *testing.T) {
 	state := newTestMemDBService(t)
 
-	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
-	err := state.Initialise(genData, genesisHeader, genTrie)
+	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	err := state.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
 	err = state.Start()
@@ -125,8 +123,8 @@ func TestService_BlockTree(t *testing.T) {
 
 	stateA := NewService(config)
 
-	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
-	err := stateA.Initialise(genData, genesisHeader, genTrie)
+	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	err := stateA.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
 	err = stateA.SetupBase()
@@ -176,8 +174,8 @@ func TestService_StorageTriePruning(t *testing.T) {
 	serv := NewService(config)
 	serv.UseMemDB()
 
-	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
-	err := serv.Initialise(genData, genesisHeader, genTrie)
+	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	err := serv.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
 	err = serv.Start()
@@ -225,8 +223,8 @@ func TestService_PruneStorage(t *testing.T) {
 	serv := NewService(config)
 	serv.UseMemDB()
 
-	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
-	err := serv.Initialise(genData, genesisHeader, genTrie)
+	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	err := serv.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
 	err = serv.Start()
@@ -306,8 +304,8 @@ func TestService_Rewind(t *testing.T) {
 	serv := NewService(config)
 	serv.UseMemDB()
 
-	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
-	err := serv.Initialise(genData, genesisHeader, genTrie)
+	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	err := serv.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
 	err = serv.Start()
@@ -364,8 +362,8 @@ func TestService_Import(t *testing.T) {
 	serv := NewService(config)
 	serv.UseMemDB()
 
-	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
-	err := serv.Initialise(genData, genesisHeader, genTrie)
+	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	err := serv.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
 	tr := trie.NewEmptyTrie()
