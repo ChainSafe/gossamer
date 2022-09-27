@@ -31,8 +31,7 @@ func TestEmptyBlock(t *testing.T) {
 	extrinsicsRoot, err := common.HexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
 	require.NoError(t, err)
 
-	header, err := NewHeader(parentHash, stateRoot, extrinsicsRoot, 1, NewDigest())
-	require.NoError(t, err)
+	header := NewHeader(parentHash, stateRoot, extrinsicsRoot, 1, NewDigest())
 
 	block = NewBlock(*header, Body{})
 	isEmpty = block.Empty()
@@ -57,8 +56,7 @@ func TestEncodeAndDecodeBlock(t *testing.T) {
 	extrinsicsRoot, err := common.HexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
 	require.NoError(t, err)
 
-	header, err := NewHeader(parentHash, stateRoot, extrinsicsRoot, 1, NewDigest())
-	require.NoError(t, err)
+	header := NewHeader(parentHash, stateRoot, extrinsicsRoot, 1, NewDigest())
 
 	block := NewBlock(*header, *NewBody([]Extrinsic{[]byte{4, 1}}))
 
@@ -96,15 +94,13 @@ func TestDeepCopyBlock(t *testing.T) {
 }
 
 func TestMustEncodeBlock(t *testing.T) {
-	h1, err := NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, 0, NewDigest())
-	require.NoError(t, err)
+	h1 := NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, 0, NewDigest())
 
 	b1 := NewBlock(*h1, *NewBody([]Extrinsic{[]byte{4, 1}}))
 	enc, err := b1.Encode()
 	require.NoError(t, err)
 
-	h2, err := NewHeader(common.Hash{0x1, 0x2}, common.Hash{}, common.Hash{}, 0, NewDigest())
-	require.NoError(t, err)
+	h2 := NewHeader(common.Hash{0x1, 0x2}, common.Hash{}, common.Hash{}, 0, NewDigest())
 
 	b2 := NewBlock(*h2, *NewBody([]Extrinsic{[]byte{0xa, 0xb}}))
 	enc2, err := b2.Encode()

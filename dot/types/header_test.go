@@ -30,14 +30,12 @@ func TestEmptyHeader(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	head2, err := NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, 0, vdts)
-	require.NoError(t, err)
+	head2 := NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, 0, vdts)
 
 	isEmpty = head2.Empty()
 	require.False(t, isEmpty)
 
-	head3, err := NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, 21, vdts)
-	require.NoError(t, err)
+	head3 := NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, 21, vdts)
 
 	isEmpty = head3.Empty()
 	require.False(t, isEmpty)
@@ -64,8 +62,7 @@ func TestEncodeAndDecodeHeader(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	headerVdt, err := NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, 0, vdts)
-	require.NoError(t, err)
+	headerVdt := NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, 0, vdts)
 
 	encVdt, err := scale.Marshal(*headerVdt)
 	require.NoError(t, err)
@@ -97,8 +94,7 @@ func TestHeaderDeepCopy(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	header, err := NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, 1, vdts)
-	require.NoError(t, err)
+	header := NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, 1, vdts)
 
 	dc, err := header.DeepCopy()
 	require.NoError(t, err)

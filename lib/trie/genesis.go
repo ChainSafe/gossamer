@@ -21,10 +21,6 @@ func (t *Trie) GenesisBlock() (genesisHeader types.Header, err error) {
 	extrinsicRoot := EmptyHash
 	const blockNumber = 0
 	digest := types.NewDigest()
-	genesisHeaderPtr, err := types.NewHeader(parentHash, rootHash, extrinsicRoot, blockNumber, digest)
-	if err != nil {
-		return genesisHeader, fmt.Errorf("creating genesis block header: %w", err)
-	}
-
-	return *genesisHeaderPtr, nil
+	genesisHeader = *types.NewHeader(parentHash, rootHash, extrinsicRoot, blockNumber, digest)
+	return genesisHeader, nil
 }
