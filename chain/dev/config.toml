@@ -1,16 +1,16 @@
 [global]
-basepath = "~/.gossamer/dev"
+basepath = "./tmp/dev"
 log = "info"
 metrics-address = ":9876"
 
 [log]
 core = ""
-network = ""
+network = "trace"
 rpc = ""
 state = ""
 runtime = ""
 babe = ""
-grandpa = ""
+grandpa = "trace"
 sync = ""
 digest = ""
 
@@ -18,14 +18,13 @@ digest = ""
 genesis = "./chain/dev/genesis.json"
 
 [account]
-key = ""
+key = "bob"
 unlock = ""
 
 [core]
 roles = 4
 babe-authority = true
 grandpa-authority = true
-babe-lead = true
 
 [network]
 port = 7001

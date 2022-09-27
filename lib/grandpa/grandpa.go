@@ -185,8 +185,6 @@ func (s *Service) Start() error {
 		}
 	}()
 
-	go s.sendNeighbourMessage(neighbourMessageInterval)
-
 	return nil
 }
 
@@ -338,13 +336,7 @@ func (s *Service) initiateRound() error {
 // initiate initates the grandpa service to begin voting in sequential rounds
 func (s *Service) initiate() error {
 	for {
-		finalizationEngine := newFinalizationEngine()
-		handleVoting := newHandleVotingRound(finalizationEngine.actionCh)
-
-		finalizationHandler := newFinalizationHandler(
-			handleVoting, finalizationEngine,
-		)
-
+		finalizationHandler := newFinalizationHandler(s)
 		errsCh, err := finalizationHandler.Start()
 		if err != nil {
 			return fmt.Errorf("starting finalization handler: %w", err)
@@ -353,8 +345,9 @@ func (s *Service) initiate() error {
 		for err := range errsCh {
 			logger.Errorf("finalization handler: %s", err)
 
-			if errors.Is(err, errChannelBusy) {
-				return stopFinalizationHandler(finalizationHandler)
+			if errors.Is(err, errVotingRound) {
+				stopFinalizationHandler(finalizationHandler)
+				return err
 			}
 		}
 	}
@@ -424,212 +417,6 @@ func (s *Service) primaryBroadcastCommitMessage() {
 	}
 
 	s.network.GossipMessage(msg)
-}
-
-// playGrandpaRound executes a round of GRANDPA
-// at the end of this round, a block will be finalised.
-func (s *Service) playGrandpaRound() error {
-	currentRound := s.state.round
-	currentSetID := s.state.setID
-
-	start := time.Now()
-
-	logger.Debugf("starting round %d with set id %d",
-		currentRound, currentSetID)
-
-	cancel := make(chan struct{})
-	engineEndCh := make(chan struct{})
-
-	roundActions := s.finalizationEngine(engineEndCh, cancel)
-
-	for { //nolint:gosimple
-		select {
-		case <-s.ctx.Done():
-			close(cancel)
-			<-engineEndCh
-			return s.ctx.Err()
-
-		case action, ok := <-roundActions:
-			if !ok {
-				return nil
-			}
-
-			switch action {
-			case determinePrevote:
-				isPrimary, err := s.handleIsPrimary()
-				if err != nil {
-					return fmt.Errorf("handling primary: %w", err)
-				}
-
-				// broadcast pre-vote
-				preVote, err := s.determinePreVote()
-				if err != nil {
-					return fmt.Errorf("determining pre-vote: %w", err)
-				}
-
-				signedpreVote, prevoteMessage, err :=
-					s.createSignedVoteAndVoteMessage(preVote, prevote)
-				if err != nil {
-					return fmt.Errorf("creating signed vote: %w", err)
-				}
-
-				if !isPrimary {
-					s.prevotes.Store(s.publicKeyBytes(), signedpreVote)
-				}
-
-				s.sendPrevoteMessage(prevoteMessage)
-
-			case determinePrecommit:
-				preComit, err := s.determinePreCommit()
-				if err != nil {
-					return fmt.Errorf("determining pre-commit: %w", err)
-				}
-
-				signedpreComit, precommitMessage, err :=
-					s.createSignedVoteAndVoteMessage(preComit, precommit)
-				if err != nil {
-					return fmt.Errorf("creating signed vote: %w", err)
-				}
-
-				s.precommits.Store(s.publicKeyBytes(), signedpreComit)
-
-				s.sendPrecommitMessage(precommitMessage)
-
-			case finalize:
-				commitMessage, err := s.newCommitMessage(s.head, s.state.round, s.state.setID)
-				if err != nil {
-					return fmt.Errorf("creating commit message: %w", err)
-				}
-
-				commitConsensusMessage, err := commitMessage.ToConsensusMessage()
-				if err != nil {
-					return fmt.Errorf("transforming commit into consensus message: %w", err)
-				}
-
-				logger.Debugf("sending commit message: %v", commitMessage)
-
-				s.network.GossipMessage(commitConsensusMessage)
-				s.telemetry.SendMessage(telemetry.NewAfgFinalizedBlocksUpTo(
-					s.head.Hash(),
-					fmt.Sprint(s.head.Number),
-				))
-
-				logger.Debugf("round completed in %s", time.Since(start))
-				return nil
-			}
-		}
-	}
-}
-
-func (s *Service) finalizationEngine(engineEndCh chan<- struct{}, cancel <-chan struct{}) <-chan action {
-	performAction := performActionCh(make(chan action))
-
-	go func() {
-		defer close(engineEndCh)
-		defer performAction.close()
-
-		determinePrevoteTimer := time.NewTimer(s.interval * 2)
-		determinePrecommitTimer := time.NewTimer(s.interval * 4)
-
-		var precommited bool = false
-
-		for !precommited {
-			select {
-			case <-cancel:
-				if !determinePrevoteTimer.Stop() {
-					<-determinePrevoteTimer.C
-				}
-
-				if !determinePrecommitTimer.Stop() {
-					<-determinePrecommitTimer.C
-				}
-
-				return
-
-			case <-determinePrevoteTimer.C:
-				err := performAction.push(determinePrevote)
-				if err != nil {
-					logger.Warnf("failed to pushing action(determinePrevote): %s", err)
-					return
-				}
-
-			case <-determinePrecommitTimer.C:
-				prevoteGrandpaGhost, err := s.getPreVotedBlock()
-
-				if errors.Is(err, ErrNoGHOST) {
-					determinePrecommitTimer.Reset(s.interval * 4)
-					break
-				} else if err != nil {
-					logger.Criticalf("getting grandpa ghost: %s", err)
-					return
-				}
-
-				latestFinalizedHash := s.head.Hash()
-				isDescendant, err := s.blockState.IsDescendantOf(latestFinalizedHash, prevoteGrandpaGhost.Hash)
-				if err != nil {
-					logger.Criticalf("checking grandpa ghost ancestry: %s", err)
-					return
-				}
-
-				if !isDescendant {
-					determinePrecommitTimer.Reset(s.interval * 4)
-					break
-				}
-
-				err = performAction.push(determinePrecommit)
-				if err != nil {
-					logger.Warnf("failed to pushing action(determinePrecommit): %s", err)
-					return
-				}
-
-				precommited = true
-			}
-		}
-
-		attemptFinalizationTicker := time.NewTicker(s.interval / 2)
-		defer attemptFinalizationTicker.Stop()
-
-		for {
-			select {
-			case <-cancel:
-				return
-
-			case <-attemptFinalizationTicker.C:
-				alreadyCompletable, err := s.checkRoundAlreadyCompletable()
-				if err != nil {
-					logger.Errorf("checking round is completable: %w", err)
-					continue
-				}
-
-				if alreadyCompletable {
-					err = performAction.push(alreadyFinalized)
-					if err != nil {
-						logger.Warnf("failed to pushing action(alreadyFinalized): %s", err)
-					}
-
-					return
-				}
-
-				finalizable, err := s.attemptToFinalize()
-				if err != nil {
-					logger.Errorf("attempting to finalize: %s", err)
-					continue
-				}
-
-				if !finalizable {
-					continue
-				}
-
-				err = performAction.push(finalize)
-				if err != nil {
-					logger.Warnf("failed to pushing action(alreadyFinalized): %s", err)
-				}
-				return
-			}
-		}
-	}()
-
-	return performAction
 }
 
 func (s *Service) checkRoundAlreadyCompletable() (bool, error) {

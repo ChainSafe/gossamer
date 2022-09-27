@@ -9,6 +9,8 @@ import (
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 )
 
+var errVotingRound = errors.New("voting round error")
+
 type finalizationHandler struct {
 	votingRound        *handleVotingRound
 	finalizationEngine *finalizationEngine
@@ -18,8 +20,10 @@ type finalizationHandler struct {
 	stopCh         chan struct{}
 }
 
-func newFinalizationHandler(votingRound *handleVotingRound,
-	finalizationEngine *finalizationEngine) *finalizationHandler {
+func newFinalizationHandler(service *Service) *finalizationHandler {
+	finalizationEngine := newFinalizationEngine(service)
+	votingRound := newHandleVotingRound(service, finalizationEngine.actionCh)
+
 	return &finalizationHandler{
 		votingRound:        votingRound,
 		finalizationEngine: finalizationEngine,
@@ -28,23 +32,8 @@ func newFinalizationHandler(votingRound *handleVotingRound,
 	}
 }
 
-func (fh *finalizationHandler) fanout(inErrs <-chan error) {
-	defer fh.wg.Done()
-
-	for {
-		select {
-		case err, ok := <-inErrs:
-			if !ok {
-				return
-			}
-			fh.observableErrs <- err
-		case <-fh.stopCh:
-			return
-		}
-	}
-}
-
 func (fh *finalizationHandler) Start() (errsCh <-chan error, err error) {
+
 	finalizationEngErrsCh, err := fh.finalizationEngine.Start()
 	if err != nil {
 		return nil, fmt.Errorf("starting finalization engine: %w", err)
@@ -55,9 +44,22 @@ func (fh *finalizationHandler) Start() (errsCh <-chan error, err error) {
 		return nil, fmt.Errorf("starting handle voting: %w", err)
 	}
 
-	fh.wg.Add(2)
-	go fh.fanout(finalizationEngErrsCh)
-	go fh.fanout(handleVotingErrsCh)
+	wg := sync.WaitGroup{}
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		for err := range handleVotingErrsCh {
+			fh.observableErrs <- fmt.Errorf("%w: %s", errVotingRound, err)
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		for err := range finalizationEngErrsCh {
+			fh.observableErrs <- err
+		}
+	}()
 
 	return fh.observableErrs, nil
 }
@@ -99,8 +101,9 @@ type handleVotingRound struct {
 	engineDone           <-chan struct{}
 }
 
-func newHandleVotingRound(finalizationEngineCh <-chan action) *handleVotingRound {
+func newHandleVotingRound(service *Service, finalizationEngineCh <-chan action) *handleVotingRound {
 	return &handleVotingRound{
+		grandpaService:       service,
 		errsCh:               make(chan error),
 		stopCh:               make(chan struct{}),
 		engineDone:           make(chan struct{}),
@@ -119,7 +122,6 @@ func (h *handleVotingRound) Start() (errsCh <-chan error, err error) {
 }
 
 func (h *handleVotingRound) Stop() (err error) {
-	close(h.errsCh)
 	close(h.stopCh)
 
 	timeout := 5 * time.Second
@@ -129,6 +131,7 @@ func (h *handleVotingRound) Stop() (err error) {
 		return fmt.Errorf("%w", errTimeoutWhileStoping)
 	}
 
+	close(h.errsCh)
 	return
 }
 
@@ -143,12 +146,14 @@ func (h *handleVotingRound) playGrandpaRound() {
 	for { //nolint:gosimple
 		select {
 		case <-h.grandpaService.ctx.Done():
-			h.errsCh <- h.grandpaService.ctx.Err()
+			err := h.grandpaService.ctx.Err()
+			if err != nil {
+				h.errsCh <- err
+			}
 			return
 
 		case action, ok := <-h.finalizationEngineCh:
 			if !ok {
-				h.errsCh <- fmt.Errorf("%w", errEngineChannelClosed)
 				return
 			}
 
@@ -238,23 +243,6 @@ const (
 	finalize
 )
 
-var errChannelBusy = errors.New("channel busy")
-
-type performActionCh chan action
-
-func (p performActionCh) push(action action) error {
-	select {
-	case p <- action:
-		return nil
-	default:
-		return fmt.Errorf("%w: action %v", errChannelBusy, action)
-	}
-}
-
-func (p performActionCh) close() {
-	close(p)
-}
-
 type finalizationEngine struct {
 	grandpaService *Service
 
@@ -264,11 +252,13 @@ type finalizationEngine struct {
 	errsCh     chan error
 }
 
-func newFinalizationEngine() *finalizationEngine {
+func newFinalizationEngine(service *Service) *finalizationEngine {
 	return &finalizationEngine{
-		errsCh:     make(chan error),
-		stopCh:     make(chan struct{}),
-		engineDone: make(chan struct{}),
+		grandpaService: service,
+		actionCh:       make(<-chan action),
+		errsCh:         make(chan error),
+		stopCh:         make(chan struct{}),
+		engineDone:     make(chan struct{}),
 	}
 }
 
@@ -278,7 +268,6 @@ func (f *finalizationEngine) Start() (errsCh <-chan error, err error) {
 }
 
 func (f *finalizationEngine) Stop() (err error) {
-	close(f.errsCh)
 	close(f.stopCh)
 
 	timeout := 5 * time.Second
@@ -288,17 +277,17 @@ func (f *finalizationEngine) Stop() (err error) {
 		return fmt.Errorf("%w", errTimeoutWhileStoping)
 	}
 
+	close(f.errsCh)
+
 	return nil
 }
 
 func (f *finalizationEngine) playFinalization(gossipInterval time.Duration, stop <-chan struct{}) <-chan action {
-	performAction := performActionCh(make(chan action))
+	performAction := make(chan action)
 
 	go func() {
-		defer func() {
-			performAction.close()
-			close(f.engineDone)
-		}()
+		defer close(performAction)
+		defer close(f.engineDone)
 
 		determinePrevoteTimer := time.NewTimer(gossipInterval * 2)
 		determinePrecommitTimer := time.NewTimer(gossipInterval * 4)
@@ -319,12 +308,7 @@ func (f *finalizationEngine) playFinalization(gossipInterval time.Duration, stop
 				return
 
 			case <-determinePrevoteTimer.C:
-				err := performAction.push(determinePrevote)
-
-				if err != nil {
-					f.errsCh <- fmt.Errorf("pushing action: %w", err)
-					return
-				}
+				performAction <- determinePrevote
 
 			case <-determinePrecommitTimer.C:
 				prevoteGrandpaGhost, err := f.grandpaService.getPreVotedBlock()
@@ -349,12 +333,7 @@ func (f *finalizationEngine) playFinalization(gossipInterval time.Duration, stop
 					break
 				}
 
-				err = performAction.push(determinePrecommit)
-				if err != nil {
-					f.errsCh <- fmt.Errorf("pushing action: %w", err)
-					return
-				}
-
+				performAction <- determinePrecommit
 				precommited = true
 			}
 		}
@@ -375,10 +354,7 @@ func (f *finalizationEngine) playFinalization(gossipInterval time.Duration, stop
 				}
 
 				if alreadyCompletable {
-					err = performAction.push(alreadyFinalized)
-					if err != nil {
-						f.errsCh <- fmt.Errorf("pushing action: %w", err)
-					}
+					performAction <- alreadyFinalized
 					return
 				}
 
@@ -392,10 +368,7 @@ func (f *finalizationEngine) playFinalization(gossipInterval time.Duration, stop
 					continue
 				}
 
-				err = performAction.push(finalize)
-				if err != nil {
-					f.errsCh <- fmt.Errorf("pushing action: %w", err)
-				}
+				performAction <- finalize
 				return
 			}
 		}
