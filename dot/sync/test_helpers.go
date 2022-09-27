@@ -30,13 +30,13 @@ func BuildBlock(t *testing.T, instance runtime.Instance, parent *types.Header, e
 	require.NoError(t, err)
 
 	idata := types.NewInherentsData()
-	err = idata.SetInt64Inherent(types.Timstap0, uint64(time.Now().Unix()))
+	err = idata.SetInherent(types.Timstap0, uint64(time.Now().Unix()))
 	require.NoError(t, err)
 
-	err = idata.SetInt64Inherent(types.Babeslot, 1)
+	err = idata.SetInherent(types.Babeslot, uint64(1))
 	require.NoError(t, err)
 
-	ienc, err := idata.Encode()
+	ienc, err := scale.Marshal(*idata)
 	require.NoError(t, err)
 
 	// Call BlockBuilder_inherent_extrinsics which returns the inherents as encoded extrinsics
