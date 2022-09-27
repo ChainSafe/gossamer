@@ -105,12 +105,12 @@ func (h *Handler) toConsensusDigests(scaleVaryingTypes []scale.VaryingDataType) 
 	for _, d := range scaleVaryingTypes {
 		digestValue, err := d.Value()
 		if err != nil {
-			h.logger.Debug(err.Error())
+			h.logger.Error(err.Error())
 			continue
 		}
 		digest, ok := digestValue.(types.ConsensusDigest)
 		if !ok {
-			h.logger.Debugf("digest type not supported: %T", digestValue)
+			h.logger.Errorf("digest type not supported: %T", digestValue)
 			continue
 		}
 
@@ -128,7 +128,7 @@ func (h *Handler) toConsensusDigests(scaleVaryingTypes []scale.VaryingDataType) 
 func checkForGRANDPAForcedChanges(digests []types.ConsensusDigest) ([]types.ConsensusDigest, error) {
 	var hasForcedChange bool
 	digestsWithoutScheduled := make([]types.ConsensusDigest, 0, len(digests))
-	for _, digest := range digests {
+	for i, digest := range digests {
 		if digest.ConsensusEngineID != types.GrandpaEngineID {
 			digestsWithoutScheduled = append(digestsWithoutScheduled, digest)
 			continue
@@ -142,7 +142,7 @@ func checkForGRANDPAForcedChanges(digests []types.ConsensusDigest) ([]types.Cons
 
 		dataValue, err := data.Value()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("getting value of digest type at index %d: %w", i, err)
 		}
 		switch dataValue.(type) {
 		case types.GrandpaScheduledChange:
@@ -189,7 +189,7 @@ func (h *Handler) handleBabeConsensusDigest(digest scale.VaryingDataType, header
 
 	digestValue, err := digest.Value()
 	if err != nil {
-		return err
+		return fmt.Errorf("getting digest value: %w", err)
 	}
 	switch val := digestValue.(type) {
 	case types.NextEpochData:

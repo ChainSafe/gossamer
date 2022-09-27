@@ -38,7 +38,7 @@ func (i *InvalidTransaction) Value() (val scale.VaryingDataTypeValue, err error)
 func (i InvalidTransaction) Error() string {
 	value, err := i.Value()
 	if err != nil {
-		return err.Error()
+		return fmt.Sprintf("getting invalid transaction value: %s", err)
 	}
 	err, ok := value.(error)
 	if !ok {

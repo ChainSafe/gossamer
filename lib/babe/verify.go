@@ -248,7 +248,7 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 
 	preDigestItemValue, err := preDigestItem.Value()
 	if err != nil {
-		return err
+		return fmt.Errorf("getting pre digest item value: %w", err)
 	}
 	preDigest, ok := preDigestItemValue.(types.PreRuntimeDigest)
 	if !ok {
@@ -257,7 +257,7 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 
 	sealItemValue, err := sealItem.Value()
 	if err != nil {
-		return err
+		return fmt.Errorf("getting seal item value: %w", err)
 	}
 	seal, ok := sealItemValue.(types.SealDigest)
 	if !ok {
@@ -288,7 +288,7 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	for _, val := range header.Digest.Types[:len(header.Digest.Types)-1] {
 		digestValue, err := val.Value()
 		if err != nil {
-			return err
+			return fmt.Errorf("getting digest type value: %w", err)
 		}
 		err = h.Add(digestValue)
 		if err != nil {
@@ -300,7 +300,7 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	defer func() {
 		sealItemVal, err := sealItem.Value()
 		if err != nil {
-			logger.Errorf(err.Error())
+			logger.Errorf("getting seal item value: %s", err)
 		}
 		if err = header.Digest.Add(sealItemVal); err != nil {
 			logger.Errorf("failed to re-add seal to digest: %s", err)
@@ -348,7 +348,7 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 
 		currentPreDigestItemValue, err := currentHeader.Digest.Types[0].Value()
 		if err != nil {
-			return err
+			return fmt.Errorf("getting current header first digest type value: %w", err)
 		}
 		currentPreDigest, ok := currentPreDigestItemValue.(types.PreRuntimeDigest)
 		if !ok {
@@ -498,7 +498,7 @@ func getAuthorityIndex(header *types.Header) (uint32, error) {
 
 	digestValue, err := header.Digest.Types[0].Value()
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("getting first digest type value: %w", err)
 	}
 	preDigest, ok := digestValue.(types.PreRuntimeDigest)
 	if !ok {

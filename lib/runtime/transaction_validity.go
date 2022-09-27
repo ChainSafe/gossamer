@@ -39,7 +39,7 @@ func (tve *TransactionValidityError) Value() (val scale.VaryingDataTypeValue, er
 func (tve TransactionValidityError) Error() string {
 	value, err := tve.Value()
 	if err != nil {
-		return err.Error()
+		return fmt.Sprintf("getting transaction validity error value: %s", err)
 	}
 	err, ok := value.(error)
 	if !ok {
@@ -81,7 +81,7 @@ func UnmarshalTransactionValidity(res []byte) (*transaction.Validity, error) {
 
 		txnValidityErrValue, err := txnValidityErr.Value()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("getting transaction validity error value: %w", err)
 		}
 		switch val := txnValidityErrValue.(type) {
 		// TODO use custom result issue #2780

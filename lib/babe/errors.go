@@ -236,7 +236,7 @@ func (MandatoryDispatch) Index() uint { return 9 }
 func determineErrType(vdt scale.VaryingDataType) error {
 	vdtVal, err := vdt.Value()
 	if err != nil {
-		return err
+		return fmt.Errorf("getting vdt value: %w", err)
 	}
 	switch val := vdtVal.(type) {
 	case Other:

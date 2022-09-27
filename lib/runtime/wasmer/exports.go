@@ -137,7 +137,7 @@ func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 	for _, d := range block.Header.Digest.Types {
 		digestValue, err := d.Value()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("getting digest type value: %w", err)
 		}
 		switch digestValue.(type) {
 		case types.SealDigest:

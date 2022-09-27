@@ -37,7 +37,7 @@ func (u *UnknownTransaction) Value() (val scale.VaryingDataTypeValue, err error)
 func (u UnknownTransaction) Error() string {
 	value, err := u.Value()
 	if err != nil {
-		return err.Error()
+		return fmt.Sprintf("getting unknown transaction value: %s", err)
 	}
 	err, ok := value.(error)
 	if !ok {

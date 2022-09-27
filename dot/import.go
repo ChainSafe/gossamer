@@ -129,7 +129,7 @@ func newHeaderFromFile(filename string) (*types.Header, error) {
 
 		digestItemVal, err := digestItem.Value()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("getting digest item value: %w", err)
 		}
 		err = digest.Add(digestItemVal)
 		if err != nil {

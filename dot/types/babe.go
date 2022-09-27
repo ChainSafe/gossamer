@@ -114,7 +114,7 @@ func GetSlotFromHeader(header *Header) (uint64, error) {
 
 	digestValue, err := header.Digest.Types[0].Value()
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("getting first digest type value: %w", err)
 	}
 	preDigest, ok := digestValue.(PreRuntimeDigest)
 	if !ok {
@@ -151,7 +151,7 @@ func IsPrimary(header *Header) (bool, error) {
 
 	digestValue, err := header.Digest.Types[0].Value()
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("getting first digest type value: %w", err)
 	}
 	preDigest, ok := digestValue.(PreRuntimeDigest)
 	if !ok {

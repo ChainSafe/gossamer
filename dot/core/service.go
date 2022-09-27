@@ -142,7 +142,7 @@ func (s *Service) HandleBlockProduced(block *types.Block, state *rtstorage.TrieS
 	for i := range block.Header.Digest.Types {
 		digestValue, err := block.Header.Digest.Types[i].Value()
 		if err != nil {
-			return err
+			return fmt.Errorf("getting value of digest type at index %d: %w", i, err)
 		}
 		err = digest.Add(digestValue)
 		if err != nil {

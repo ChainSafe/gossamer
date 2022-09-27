@@ -86,7 +86,7 @@ func NewGrandpaState(db chaindb.Database, bs *BlockState) *GrandpaState {
 func (s *GrandpaState) HandleGRANDPADigest(header *types.Header, digest scale.VaryingDataType) error {
 	digestValue, err := digest.Value()
 	if err != nil {
-		return err
+		return fmt.Errorf("getting digest value: %w", err)
 	}
 	switch val := digestValue.(type) {
 	case types.GrandpaScheduledChange:
