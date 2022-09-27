@@ -234,7 +234,11 @@ func Test_chainProcessor_handleBody(t *testing.T) {
 func Test_chainProcessor_handleJustification(t *testing.T) {
 	t.Parallel()
 
-	expectedHash := common.MustHexToHash("0xdcdd89927d8a348e00257e1ecc8617f45edb5118efff3ea2f9961b2ad9b7690a")
+	header := &types.Header{
+		Number: 2,
+	}
+	headerHash := header.Hash()
+	errTest := errors.New("test error")
 
 	type args struct {
 		header        *types.Header
@@ -243,6 +247,8 @@ func Test_chainProcessor_handleJustification(t *testing.T) {
 	tests := map[string]struct {
 		chainProcessorBuilder func(ctrl *gomock.Controller) chainProcessor
 		args                  args
+		sentinelError         error
+		errorMessage          string
 	}{
 		"nil justification and header": {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
@@ -252,52 +258,50 @@ func Test_chainProcessor_handleJustification(t *testing.T) {
 		"invalid justification": {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
 				mockFinalityGadget := NewMockFinalityGadget(ctrl)
-				mockFinalityGadget.EXPECT().VerifyBlockJustification(expectedHash,
-					[]byte(`x`)).Return(nil, errors.New("error"))
+				mockFinalityGadget.EXPECT().VerifyBlockJustification(headerHash,
+					[]byte(`x`)).Return(nil, errTest)
 				return chainProcessor{
 					finalityGadget: mockFinalityGadget,
 				}
 			},
 			args: args{
-				header: &types.Header{
-					Number: 0,
-				},
+				header:        header,
 				justification: []byte(`x`),
 			},
+			sentinelError: errTest,
+			errorMessage:  "verifying block number 2 justification: test error",
 		},
 		"set justification error": {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
 				mockBlockState := NewMockBlockState(ctrl)
-				mockBlockState.EXPECT().SetJustification(expectedHash, []byte(`xx`)).Return(errors.New("fake error"))
+				mockBlockState.EXPECT().SetJustification(headerHash, []byte(`xx`)).Return(errTest)
 				mockFinalityGadget := NewMockFinalityGadget(ctrl)
-				mockFinalityGadget.EXPECT().VerifyBlockJustification(expectedHash, []byte(`xx`)).Return([]byte(`xx`), nil)
+				mockFinalityGadget.EXPECT().VerifyBlockJustification(headerHash, []byte(`xx`)).Return([]byte(`xx`), nil)
 				return chainProcessor{
 					blockState:     mockBlockState,
 					finalityGadget: mockFinalityGadget,
 				}
 			},
 			args: args{
-				header: &types.Header{
-					Number: 0,
-				},
+				header:        header,
 				justification: []byte(`xx`),
 			},
+			sentinelError: errTest,
+			errorMessage:  "setting justification for block number 2: test error",
 		},
 		"base case set": {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
 				mockBlockState := NewMockBlockState(ctrl)
-				mockBlockState.EXPECT().SetJustification(expectedHash, []byte(`1234`)).Return(nil)
+				mockBlockState.EXPECT().SetJustification(headerHash, []byte(`1234`)).Return(nil)
 				mockFinalityGadget := NewMockFinalityGadget(ctrl)
-				mockFinalityGadget.EXPECT().VerifyBlockJustification(expectedHash, []byte(`1234`)).Return([]byte(`1234`), nil)
+				mockFinalityGadget.EXPECT().VerifyBlockJustification(headerHash, []byte(`1234`)).Return([]byte(`1234`), nil)
 				return chainProcessor{
 					blockState:     mockBlockState,
 					finalityGadget: mockFinalityGadget,
 				}
 			},
 			args: args{
-				header: &types.Header{
-					Number: 0,
-				},
+				header:        header,
 				justification: []byte(`1234`),
 			},
 		},
@@ -307,8 +311,15 @@ func Test_chainProcessor_handleJustification(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			ctrl := gomock.NewController(t)
-			s := tt.chainProcessorBuilder(ctrl)
-			s.handleJustification(tt.args.header, tt.args.justification)
+
+			processor := tt.chainProcessorBuilder(ctrl)
+
+			err := processor.handleJustification(tt.args.header, tt.args.justification)
+
+			assert.ErrorIs(t, err, tt.sentinelError)
+			if tt.sentinelError != nil {
+				assert.EqualError(t, err, tt.errorMessage)
+			}
 		})
 	}
 }
@@ -393,6 +404,39 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 			blockData: &types.BlockData{
 				Justification: &[]byte{1, 2, 3},
 			},
+		},
+		"header and body - fail to handle justification": {
+			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
+				header := types.Header{
+					Number: uint(1),
+				}
+				headerHash := header.Hash()
+				block := &types.Block{
+					Header: header,
+				}
+
+				blockState := NewMockBlockState(ctrl)
+				blockState.EXPECT().HasHeader(common.Hash{1}).Return(true, nil)
+				blockState.EXPECT().HasBlockBody(common.Hash{1}).Return(true, nil)
+				blockState.EXPECT().GetBlockByHash(common.Hash{1}).
+					Return(block, nil)
+				blockState.EXPECT().AddBlockToBlockTree(block).Return(nil)
+
+				finalityGadget := NewMockFinalityGadget(ctrl)
+				finalityGadget.EXPECT().
+					VerifyBlockJustification(headerHash, []byte{1, 2, 3}).
+					Return(nil, mockError)
+
+				return chainProcessor{
+					blockState:     blockState,
+					finalityGadget: finalityGadget,
+				}
+			},
+			blockData: &types.BlockData{
+				Hash:          common.Hash{1},
+				Justification: &[]byte{1, 2, 3},
+			},
+			expectedError: mockError,
 		},
 		"handle block data justification != nil": {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
@@ -591,6 +635,31 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 			blockData: &types.BlockData{
 				Hash: common.Hash{1, 2, 3},
 			},
+		},
+		"no header and body - fail to handle justification": {
+			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
+				blockState := NewMockBlockState(ctrl)
+				blockState.EXPECT().HasHeader(common.Hash{1}).Return(false, nil)
+				blockState.EXPECT().HasBlockBody(common.Hash{1}).Return(true, nil)
+
+				finalityGadget := NewMockFinalityGadget(ctrl)
+				expectedBlockDataHeader := &types.Header{Number: 2}
+				expectedBlockDataHeaderHash := expectedBlockDataHeader.Hash()
+				finalityGadget.EXPECT().
+					VerifyBlockJustification(expectedBlockDataHeaderHash, []byte{1, 2, 3}).
+					Return(nil, mockError)
+
+				return chainProcessor{
+					blockState:     blockState,
+					finalityGadget: finalityGadget,
+				}
+			},
+			blockData: &types.BlockData{
+				Hash:          common.Hash{1},
+				Header:        &types.Header{Number: 2},
+				Justification: &[]byte{1, 2, 3},
+			},
+			expectedError: mockError,
 		},
 		"handle compareAndSetBlockData error": {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {

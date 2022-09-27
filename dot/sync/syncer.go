@@ -92,13 +92,7 @@ func (s *Service) HandleBlockAnnounceHandshake(from peer.ID, msg *network.BlockA
 // HandleBlockAnnounce notifies the `chainSync` module that we have received a block announcement from the given peer.
 func (s *Service) HandleBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMessage) error {
 	logger.Debug("received BlockAnnounceMessage")
-
-	// create header from message
-	header, err := types.NewHeader(msg.ParentHash, msg.StateRoot, msg.ExtrinsicsRoot, msg.Number, msg.Digest)
-	if err != nil {
-		return err
-	}
-
+	header := types.NewHeader(msg.ParentHash, msg.StateRoot, msg.ExtrinsicsRoot, msg.Number, msg.Digest)
 	return s.chainSync.setBlockAnnounce(from, header)
 }
 

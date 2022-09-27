@@ -34,8 +34,7 @@ func TestNumber(t *testing.T) {
 		0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
 		0xa, 0xb, 0xc, 0xd, 0xe, 0xf})
 
-	headerVdt, err := NewHeader(testHash, testHash, testHash, 5, testDigest)
-	require.NoError(t, err)
+	headerVdt := NewHeader(testHash, testHash, testHash, 5, testDigest)
 
 	bd := BlockData{
 		Hash:          common.NewHash([]byte{0}),
@@ -90,8 +89,7 @@ func TestBlockDataEncodeAndDecodeHeader(t *testing.T) {
 		0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
 		0xa, 0xb, 0xc, 0xd, 0xe, 0xf})
 
-	headerVdt, err := NewHeader(testHash, testHash, testHash, 1, testDigest)
-	require.NoError(t, err)
+	headerVdt := NewHeader(testHash, testHash, testHash, 1, testDigest)
 
 	bd := BlockData{
 		Hash:          common.NewHash([]byte{0}),
@@ -160,8 +158,7 @@ func TestBlockDataEncodeAndDecodeAll(t *testing.T) {
 		0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
 		0xa, 0xb, 0xc, 0xd, 0xe, 0xf})
 
-	headerVdt, err := NewHeader(testHash, testHash, testHash, 1, testDigest)
-	require.NoError(t, err)
+	headerVdt := NewHeader(testHash, testHash, testHash, 1, testDigest)
 
 	bd := BlockData{
 		Hash:          hash,

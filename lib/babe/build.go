@@ -86,10 +86,7 @@ func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot, rt runtime.In
 	if err != nil {
 		return nil, err
 	}
-	header, err := types.NewHeader(parent.Hash(), common.Hash{}, common.Hash{}, number, digest)
-	if err != nil {
-		return nil, err
-	}
+	header := types.NewHeader(parent.Hash(), common.Hash{}, common.Hash{}, number, digest)
 
 	// initialise block header
 	err = rt.InitializeBlock(header)
