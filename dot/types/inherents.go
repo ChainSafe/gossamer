@@ -56,7 +56,7 @@ type InherentsData struct {
 // NewInherentsData returns InherentsData
 func NewInherentsData() *InherentsData {
 	return &InherentsData{
-		Data: make(map[[8]byte]([]byte)),
+		Data: make(map[[8]byte][]byte),
 	}
 }
 
