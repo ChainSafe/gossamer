@@ -101,8 +101,7 @@ func TestDisputeStatement(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
-		name string
-		// vdt           DisputeStatement
+		name          string
 		vdtBuilder    func(t *testing.T) disputeStatement
 		encodingValue []uint8
 	}{
@@ -226,6 +225,7 @@ func TestValidityAttestation(t *testing.T) {
 	}
 
 	for _, c := range testCases {
+		c := c
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 

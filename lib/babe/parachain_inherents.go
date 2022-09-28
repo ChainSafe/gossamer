@@ -339,7 +339,7 @@ type ParachainInherentData struct {
 	// Backed candidates for inclusion in the block.
 	BackedCandidates []backedCandidate `scale:"2"`
 	// Sets of dispute votes for inclusion,
-	Disputes multiDisputeStatementSet `scale:"3"` // []DisputeStatementSet
+	Disputes multiDisputeStatementSet `scale:"3"`
 	// The parent block header. Used for checking state proofs.
 	ParentHeader types.Header `scale:"4"`
 }
