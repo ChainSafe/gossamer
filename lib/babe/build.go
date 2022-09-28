@@ -250,7 +250,7 @@ func buildBlockInherents(slot Slot, rt runtime.Instance, parent *types.Header) (
 	}
 
 	if err = idata.SetInherent(types.Newheads, []byte{0}); err != nil {
-		return nil, fmt.Errorf("setting struct inherent %q: %w", types.Newheads, err)
+		return nil, fmt.Errorf("setting inherent %q: %w", types.Newheads, err)
 	}
 
 	ienc, err := scale.Marshal(*idata)
