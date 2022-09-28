@@ -1,29 +1,33 @@
 package grandpa
 
-import "github.com/ChainSafe/gossamer/dot/peerset"
+// This file is where the reputation change types are declared. Ones that require
+// no calculation are defined as variables, while the ones that do (or take params)
+// are defined as structs where the fields are the parameters needed to calculate
+// the cost
 
-// Costs/benefits that don't require calculation
-var (
-	pastRejection = peerset.ReputationChange{
-		Value:  peerset.Reputation(-50),
-		Reason: "Grandpa: Past message",
-	}
+// Costs/benefits that don't require calculation, example:
 
-	invalidViewChange = peerset.ReputationChange{
-		Value:  peerset.Reputation(-500),
-		Reason: "Grandpa: Invalid view change",
-	}
-)
+//var (
+//	pastRejection = peerset.ReputationChange{
+//		Value:  peerset.Reputation(-50),
+//		Reason: "Grandpa: Past message",
+//	}
 
-// Ones that do implement the cost function
+//	invalidViewChange = peerset.ReputationChange{
+//		Value:  peerset.Reputation(-500),
+//		Reason: "Grandpa: Invalid view change",
+//	}
+//)
 
-type BadCommitMessage struct {
-	signaturesChecked   int
-	blocksLoaded        int
-	equivocationsCaught int
-}
+// Ones that do implement the cost function, example:
 
-func (BadCommitMessage) cost() peerset.ReputationChange {
-	// TODO implement
-	return peerset.ReputationChange{}
-}
+//type BadCommitMessage struct {
+//	signaturesChecked   int
+//	blocksLoaded        int
+//	equivocationsCaught int
+//}
+
+//func (BadCommitMessage) cost() peerset.ReputationChange {
+//	// TODO implement
+//	return peerset.ReputationChange{}
+//}
