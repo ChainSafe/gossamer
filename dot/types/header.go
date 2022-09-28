@@ -67,7 +67,11 @@ func (bh *Header) DeepCopy() (*Header, error) {
 	if len(bh.Digest.Types) > 0 {
 		cp.Digest = NewDigest()
 		for _, d := range bh.Digest.Types {
-			err := cp.Digest.Add(d.Value())
+			digestValue, err := d.Value()
+			if err != nil {
+				return nil, fmt.Errorf("getting digest type value: %w", err)
+			}
+			err = cp.Digest.Add(digestValue)
 			if err != nil {
 				return nil, err
 			}

@@ -113,7 +113,11 @@ func rpcLogsToDigest(logs []string) (digest scale.VaryingDataTypeSlice, err erro
 			return digest, fmt.Errorf("malformed digest item bytes: %w", err)
 		}
 
-		err = digest.Add(di.Value())
+		digestValue, err := di.Value()
+		if err != nil {
+			return digest, err
+		}
+		err = digest.Add(digestValue)
 		if err != nil {
 			return digest, fmt.Errorf("cannot add digest item to digest: %w", err)
 		}
