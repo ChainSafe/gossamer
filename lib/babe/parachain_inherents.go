@@ -32,7 +32,7 @@ func (va *validityAttestation) Set(val scale.VaryingDataTypeValue) (err error) {
 }
 
 // Value returns the value from the underlying VaryingDataType
-func (va *validityAttestation) Value() (val scale.VaryingDataTypeValue) {
+func (va *validityAttestation) Value() (scale.VaryingDataTypeValue, error) {
 	vdt := scale.VaryingDataType(*va)
 	return vdt.Value()
 }
@@ -82,7 +82,7 @@ func (d *disputeStatement) Set(val scale.VaryingDataTypeValue) (err error) {
 }
 
 // Value will return value from underying VaryingDataType
-func (d *disputeStatement) Value() (val scale.VaryingDataTypeValue) {
+func (d *disputeStatement) Value() (scale.VaryingDataTypeValue, error) {
 	vdt := scale.VaryingDataType(*d)
 	return vdt.Value()
 }
@@ -109,7 +109,7 @@ func (v *validDisputeStatementKind) Set(val scale.VaryingDataTypeValue) (err err
 }
 
 // Value will return value from underying VaryingDataType
-func (v *validDisputeStatementKind) Value() (val scale.VaryingDataTypeValue) { //skipcq
+func (v *validDisputeStatementKind) Value() (scale.VaryingDataTypeValue, error) { //skipcq
 	vdt := scale.VaryingDataType(*v)
 	return vdt.Value()
 }
@@ -168,7 +168,7 @@ func (in *invalidDisputeStatementKind) Set(val scale.VaryingDataTypeValue) (err 
 }
 
 // Value will return value from underying VaryingDataType
-func (in *invalidDisputeStatementKind) Value() (val scale.VaryingDataTypeValue) { //skipcq
+func (in *invalidDisputeStatementKind) Value() (scale.VaryingDataTypeValue, error) { //skipcq
 	vdt := scale.VaryingDataType(*in)
 	return vdt.Value()
 }
