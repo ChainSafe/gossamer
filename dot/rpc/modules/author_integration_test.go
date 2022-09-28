@@ -97,31 +97,31 @@ func createExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, non
 	err = ctypes.Decode(decoded, meta)
 	require.NoError(t, err)
 
-	rv := rt.Version()
+	runtimeVersion := rt.Version()
 
-	c, err := ctypes.NewCall(meta, "System.remark", []byte{0xab, 0xcd})
+	metaCall, err := ctypes.NewCall(meta, "System.remark", []byte{0xab, 0xcd})
 	require.NoError(t, err)
 
-	ext := ctypes.NewExtrinsic(c)
+	extrinsic := ctypes.NewExtrinsic(metaCall)
 	options := ctypes.SignatureOptions{
 		BlockHash:          ctypes.Hash(genHash),
 		Era:                ctypes.ExtrinsicEra{IsImmortalEra: false},
 		GenesisHash:        ctypes.Hash(genHash),
 		Nonce:              ctypes.NewUCompactFromUInt(nonce),
-		SpecVersion:        ctypes.U32(rv.SpecVersion),
+		SpecVersion:        ctypes.U32(runtimeVersion.SpecVersion),
 		Tip:                ctypes.NewUCompactFromUInt(0),
-		TransactionVersion: ctypes.U32(rv.TransactionVersion),
+		TransactionVersion: ctypes.U32(runtimeVersion.TransactionVersion),
 	}
 
 	// Sign the transaction using Alice's key
-	err = ext.Sign(signature.TestKeyringPairAlice, options)
+	err = extrinsic.Sign(signature.TestKeyringPairAlice, options)
 	require.NoError(t, err)
 
-	extEnc, err := ctypes.EncodeToHex(ext)
+	extEnc, err := ctypes.EncodeToHex(extrinsic)
 	require.NoError(t, err)
 
-	extBytes := types.Extrinsic(common.MustHexToBytes(extEnc))
-	return extBytes
+	extrinsicBytes := common.MustHexToBytes(extEnc)
+	return extrinsicBytes
 }
 
 func TestAuthorModule_Pending_Integration(t *testing.T) {
@@ -555,11 +555,11 @@ func TestAuthorModule_SubmitExtrinsic_WithVersion_V0910(t *testing.T) {
 	integrationTestController.stateSrv.Transaction = state.NewTransactionState(telemetryMock)
 
 	genesisHash := integrationTestController.genesisHeader.Hash()
-	ext := createExtrinsic(t, integrationTestController.runtime, genesisHash, 0)
-	extHex := common.BytesToHex(ext)
+	extrinsic := createExtrinsic(t, integrationTestController.runtime, genesisHash, 0)
+	extHex := common.BytesToHex(extrinsic)
 
 	net2test := NewMockNetwork(ctrl)
-	net2test.EXPECT().GossipMessage(&network.TransactionMessage{Extrinsics: []types.Extrinsic{ext}})
+	net2test.EXPECT().GossipMessage(&network.TransactionMessage{Extrinsics: []types.Extrinsic{extrinsic}})
 	integrationTestController.network = net2test
 
 	// setup auth module
@@ -569,7 +569,7 @@ func TestAuthorModule_SubmitExtrinsic_WithVersion_V0910(t *testing.T) {
 	err := auth.SubmitExtrinsic(nil, &Extrinsic{extHex}, res)
 	require.NoError(t, err)
 
-	expectedExtrinsic := types.NewExtrinsic(ext)
+	expectedExtrinsic := types.NewExtrinsic(extrinsic)
 	expected := &transaction.ValidTransaction{
 		Extrinsic: expectedExtrinsic,
 		Validity: &transaction.Validity{

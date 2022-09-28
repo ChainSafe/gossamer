@@ -4,6 +4,7 @@
 package core
 
 import (
+	"bytes"
 	"errors"
 	"testing"
 
@@ -263,11 +264,11 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 				runtime:           runtimeMock2,
 				setContextStorage: &mockSetContextStorage{trieState: &storage.TrieState{}},
 				validateTxn: &mockValidateTxn{
-					input: types.Extrinsic(concatenateByteSlices([][]byte{
+					input: types.Extrinsic(bytes.Join([][]byte{
 						{byte(types.TxnExternal)},
 						testExtrinsic[0],
 						testEmptyHeader.StateRoot.ToBytes(),
-					})),
+					}, nil)),
 					err: invalidTransaction,
 				},
 			},
@@ -315,11 +316,11 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 				runtime:           runtimeMock3,
 				setContextStorage: &mockSetContextStorage{trieState: &storage.TrieState{}},
 				validateTxn: &mockValidateTxn{
-					input: types.Extrinsic(concatenateByteSlices([][]byte{
+					input: types.Extrinsic(bytes.Join([][]byte{
 						{byte(types.TxnExternal)},
 						testExtrinsic[0],
 						testEmptyHeader.StateRoot.ToBytes(),
-					})),
+					}, nil)),
 					validity: &transaction.Validity{Propagate: true},
 				},
 			},

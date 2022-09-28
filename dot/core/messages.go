@@ -30,7 +30,7 @@ func (s *Service) validateTransaction(head *types.Header, rt RuntimeInstance,
 	// validate each transaction
 	externalExt, err := s.buildExternalTransaction(rt, tx)
 	if err != nil {
-		return nil, fmt.Errorf("building transaction: %s", err)
+		return nil, fmt.Errorf("building external transaction: %s", err)
 	}
 
 	validity, err = rt.ValidateTransaction(externalExt)

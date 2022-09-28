@@ -38,15 +38,13 @@ var (
 )
 
 // TaggedTransactionQueueVersion returns the TaggedTransactionQueueAPI version
-func (*Version) TaggedTransactionQueueVersion(runtimeVersion Version) uint32 {
-	txQueueVersion := uint32(0)
-	for _, v := range runtimeVersion.APIItems {
-		if v.Name == encodedTaggedTransactionQueue {
-			txQueueVersion = v.Ver
-			break
+func TaggedTransactionQueueVersion(runtimeVersion Version) (txQueueVersion uint32) {
+	for _, apiItem := range runtimeVersion.APIItems {
+		if apiItem.Name == encodedTaggedTransactionQueue {
+			return apiItem.Ver
 		}
 	}
-	return txQueueVersion
+	return 0
 }
 
 // DecodeVersion scale decodes the encoded version data.

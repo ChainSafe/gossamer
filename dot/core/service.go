@@ -31,9 +31,6 @@ var (
 	logger                  = log.NewFromGlobal(log.AddContext("pkg", "core"))
 )
 
-const supportedTxVersion = 3
-const previousSupportedTxVersion = 2
-
 // QueryKeyValueChanges represents the key-value data inside a block storage
 type QueryKeyValueChanges map[string]string
 
@@ -610,21 +607,19 @@ func (s *Service) GetReadProofAt(block common.Hash, keys [][]byte) (
 // buildExternalTransaction builds an external transaction based on the current TransactionQueueAPIVersion
 // See https://github.com/paritytech/substrate/blob/polkadot-v0.9.25/primitives/transaction-pool/src/runtime_api.rs#L25-L55
 func (s *Service) buildExternalTransaction(rt runtime.Instance, ext types.Extrinsic) (types.Extrinsic, error) {
+	const supportedTxVersion = 3
+	const previousSupportedTxVersion = 2
+
 	runtimeVersion := rt.Version()
-	txQueueVersion := runtimeVersion.TaggedTransactionQueueVersion(runtimeVersion)
+	txQueueVersion := runtime.TaggedTransactionQueueVersion(runtimeVersion)
 	var externalExt types.Extrinsic
 	switch txQueueVersion {
 	case supportedTxVersion:
-		externalExt = types.Extrinsic(concatenateByteSlices([][]byte{
-			{byte(types.TxnExternal)},
-			ext,
-			s.blockState.BestBlockHash().ToBytes(),
-		}))
+		extrinsicParts := [][]byte{{byte(types.TxnExternal)}, ext, s.blockState.BestBlockHash().ToBytes()}
+		externalExt = types.Extrinsic(bytes.Join(extrinsicParts, nil))
 	case previousSupportedTxVersion:
-		externalExt = types.Extrinsic(concatenateByteSlices([][]byte{
-			{byte(types.TxnExternal)},
-			ext,
-		}))
+		extrinsicParts := [][]byte{{byte(types.TxnExternal)}, ext}
+		externalExt = types.Extrinsic(bytes.Join(extrinsicParts, nil))
 	default:
 		return types.Extrinsic{}, errInvalidTransactionQueueVersion
 	}

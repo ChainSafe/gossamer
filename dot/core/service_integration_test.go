@@ -357,7 +357,7 @@ func TestMaintainTransactionPoolLatestTxnQueue_EmptyBlock(t *testing.T) {
 	require.NoError(t, err)
 
 	ctrl := gomock.NewController(t)
-	service, encExt := CreateTestService(t, genesisFilePath, alicePub, accountInfo, ctrl)
+	service, encExt := createTestService(t, genesisFilePath, alicePub, accountInfo, ctrl)
 
 	tx := &transaction.ValidTransaction{
 		Extrinsic: types.Extrinsic(encExt),
@@ -406,7 +406,7 @@ func TestMaintainTransactionPoolLatestTxnQueue_BlockWithExtrinsics(t *testing.T)
 	require.NoError(t, err)
 
 	ctrl := gomock.NewController(t)
-	service, encExt := CreateTestService(t, genesisFilePath, alicePub, accountInfo, ctrl)
+	service, encExt := createTestService(t, genesisFilePath, alicePub, accountInfo, ctrl)
 
 	tx := &transaction.ValidTransaction{
 		Extrinsic: types.Extrinsic(encExt),

@@ -4,6 +4,7 @@
 package core
 
 import (
+	"bytes"
 	"path/filepath"
 	"testing"
 
@@ -34,26 +35,24 @@ func balanceKey(t *testing.T, pub []byte) (bKey []byte) {
 	require.NoError(t, err)
 	h2, err := common.Blake2b128(pub)
 	require.NoError(t, err)
-	bytes := [][]byte{h0, h1, h2, pub}
-	return concatenateByteSlices(bytes)
+	bytesToConcat := [][]byte{h0, h1, h2, pub}
+	return bytes.Join(bytesToConcat, nil)
 }
 
-// CreateTestService is a new helper function to clean up orchestration for testing the txnPool
-func CreateTestService(t *testing.T, genesisFilePath string,
-	pubKey []byte, accInfo types.AccountInfo, ctrl *gomock.Controller) (s *Service, encExtrinsic []byte) {
+// Creates test service, used now for testing txnPool but can be used elsewhere when needed
+func createTestService(t *testing.T, genesisFilePath string,
+	pubKey []byte, accountInfo types.AccountInfo, ctrl *gomock.Controller) (service *Service, encodedExtrinsic []byte) {
 	t.Helper()
 
-	// Create genesis
 	gen, err := genesis.NewGenesisFromJSONRaw(genesisFilePath)
 	require.NoError(t, err)
 
-	// Trie Created
 	genesisTrie, err := wasmer.NewTrieFromGenesis(*gen)
 	require.NoError(t, err)
 
 	// Extrinsic and context related stuff
 	aliceBalanceKey := balanceKey(t, pubKey)
-	encodedAccountInfo, err := scale.Marshal(accInfo)
+	encodedAccountInfo, err := scale.Marshal(accountInfo)
 	require.NoError(t, err)
 
 	genesisHeader := &types.Header{
@@ -110,13 +109,7 @@ func CreateTestService(t *testing.T, genesisFilePath string,
 	require.NoError(t, err)
 
 	nodeStorage := runtime.NodeStorage{}
-
-	if stateSrvc != nil {
-		nodeStorage.BaseDB = stateSrvc.Base
-	} else {
-		nodeStorage.BaseDB, err = utils.SetupDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
-		require.NoError(t, err)
-	}
+	nodeStorage.BaseDB = stateSrvc.Base
 
 	rtCfg.NodeStorage = nodeStorage
 
@@ -133,7 +126,7 @@ func CreateTestService(t *testing.T, genesisFilePath string,
 	testCallArguments := []byte{0xab, 0xcd}
 	extHex := runtime.NewTestExtrinsic(t, cfg.Runtime, genesisHeader.Hash(), cfg.BlockState.BestBlockHash(),
 		0, "System.remark", testCallArguments)
-	encExtrinsic = common.MustHexToBytes(extHex)
+	encodedExtrinsic = common.MustHexToBytes(extHex)
 
 	cfg.Network = new(network.Service) // only for nil check in NewService
 
@@ -148,10 +141,10 @@ func CreateTestService(t *testing.T, genesisFilePath string,
 
 	cfg.CodeSubstitutedState = stateSrvc.Base
 
-	s, err = NewService(cfg)
+	service, err = NewService(cfg)
 	require.NoError(t, err)
 
-	return s, encExtrinsic
+	return service, encodedExtrinsic
 }
 
 // NewTestService creates a new test core service
