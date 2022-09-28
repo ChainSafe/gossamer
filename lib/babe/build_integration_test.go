@@ -208,7 +208,7 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	rt := babeService.blockState.GetBestBlockRuntime()
 
 	//initialise block header
-	err = rt.InitializeBlock(header)
+	err := rt.InitializeBlock(header)
 	require.NoError(t, err)
 
 	// build extrinsic
