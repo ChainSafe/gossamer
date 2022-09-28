@@ -246,7 +246,7 @@ func buildBlockInherents(slot Slot, rt runtime.Instance, parent *types.Header) (
 	// logic to actually provide the data.
 
 	if err = idata.SetInherent(types.Parachn0, parachainInherent); err != nil {
-		return nil, fmt.Errorf("setting struct inherent %q: %w", types.Parachn0, err)
+		return nil, fmt.Errorf("setting inherent %q: %w", types.Parachn0, err)
 	}
 
 	if err = idata.SetInherent(types.Newheads, []byte{0}); err != nil {
