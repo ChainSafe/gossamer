@@ -383,45 +383,45 @@ func (es *encodeState) encodeFixedWidthInt(i interface{}) (err error) {
 	case int8:
 		err = binary.Write(es, binary.LittleEndian, byte(i))
 		if err != nil {
-			err = fmt.Errorf("encoding FixedWidthInt: %w", err)
+			err = fmt.Errorf("encoding int8: %w", err)
 		}
 	case uint8:
 		err = binary.Write(es, binary.LittleEndian, i)
 		if err != nil {
-			err = fmt.Errorf("encoding FixedWidthInt: %w", err)
+			err = fmt.Errorf("encoding uint8: %w", err)
 		}
 	case int16:
 		err = binary.Write(es, binary.LittleEndian, uint16(i))
 		if err != nil {
-			err = fmt.Errorf("encoding FixedWidthInt: %w", err)
+			err = fmt.Errorf("encoding int16: %w", err)
 		}
 	case uint16:
 		err = binary.Write(es, binary.LittleEndian, i)
 		if err != nil {
-			err = fmt.Errorf("encoding FixedWidthInt: %w", err)
+			err = fmt.Errorf("encoding uint16: %w", err)
 		}
 	case int32:
 		err = binary.Write(es, binary.LittleEndian, uint32(i))
 		if err != nil {
-			err = fmt.Errorf("encoding FixedWidthInt: %w", err)
+			err = fmt.Errorf("encoding int32: %w", err)
 		}
 	case uint32:
 		err = binary.Write(es, binary.LittleEndian, i)
 		if err != nil {
-			err = fmt.Errorf("encoding FixedWidthInt: %w", err)
+			err = fmt.Errorf("encoding uint32: %w", err)
 		}
 	case int64:
 		err = binary.Write(es, binary.LittleEndian, uint64(i))
 		if err != nil {
-			err = fmt.Errorf("encoding FixedWidthInt: %w", err)
+			err = fmt.Errorf("encoding int64: %w", err)
 		}
 	case uint64:
 		err = binary.Write(es, binary.LittleEndian, i)
 		if err != nil {
-			err = fmt.Errorf("encoding FixedWidthInt: %w", err)
+			err = fmt.Errorf("encoding uint64: %w", err)
 		}
 	default:
-		err = fmt.Errorf("%w: invalid type: %T", ErrEncodeFixedWidthInt, i)
+		panic(fmt.Sprintf("invalid type: %T", i))
 	}
 	return
 }
@@ -499,7 +499,7 @@ func (es *encodeState) encodeUint(i uint) (err error) {
 
 		err = binary.Write(es, binary.LittleEndian, lengthByte)
 		if err != nil {
-			err = fmt.Errorf("encoding uint %d: %w", i, err)
+			err = fmt.Errorf("writing binary for length of uint %d: %w", i, err)
 		}
 		if err == nil {
 			binary.LittleEndian.PutUint64(o, uint64(i))
