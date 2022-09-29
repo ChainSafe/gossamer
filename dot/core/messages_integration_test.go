@@ -11,6 +11,7 @@ import (
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	ctypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
@@ -37,7 +38,7 @@ func createExtrinsic(t *testing.T, rt RuntimeInstance, genHash common.Hash, nonc
 	require.NoError(t, err)
 
 	meta := &ctypes.Metadata{}
-	err = ctypes.Decode(decoded, meta)
+	err = codec.Decode(decoded, meta)
 	require.NoError(t, err)
 
 	rv := rt.Version()
@@ -60,7 +61,7 @@ func createExtrinsic(t *testing.T, rt RuntimeInstance, genHash common.Hash, nonc
 	err = ext.Sign(signature.TestKeyringPairAlice, options)
 	require.NoError(t, err)
 
-	extEnc, err := ctypes.EncodeToHex(ext)
+	extEnc, err := codec.EncodeToHex(ext)
 	require.NoError(t, err)
 
 	extBytes := types.Extrinsic(common.MustHexToBytes(extEnc))
