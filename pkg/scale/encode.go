@@ -232,25 +232,7 @@ func (es *encodeState) encodeMap(in interface{}) (err error) {
 		return
 	}
 
-	for _, key := range v.MapKeys() {
-		err = es.marshal(key.Interface())
-		if err != nil {
-			return
-		}
-
-		mapValue := v.MapIndex(key)
-		if !mapValue.CanInterface() {
-			continue
-		}
-
-		err = es.marshal(mapValue.Interface())
-		if err != nil {
-			return
-		}
-	}
 	for i := v.MapRange(); i.Next(); {
-		fmt.Println(i.Key(), "\t:", i.Value())
-
 		key := i.Key()
 		err = es.marshal(key.Interface())
 		if err != nil {
