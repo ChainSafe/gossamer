@@ -21,4 +21,5 @@ var (
 	ErrAddVaryingDataTypeValueNotInCache = errors.New("failed to add VaryingDataTypeValue not in cache")
 	ErrMustProvideVaryingDataTypeValue   = errors.New("must provide at least one VaryingDataTypeValue")
 	ErrBigIntIsNil                       = errors.New("big int is nil")
+	ErrVaryingDataTypeNotSet             = errors.New("varying data type not set")
 )
