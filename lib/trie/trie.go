@@ -331,8 +331,8 @@ func (t *Trie) Put(keyLE, value []byte) {
 func (t *Trie) insert(parent *Node, key, value []byte) (
 	newParent *Node, mutated bool, nodesCreated uint32) {
 	if parent == nil {
-		const nodesCreated = 1
-		const mutated = true
+		mutated = true
+		nodesCreated = 1
 		return &Node{
 			Key:        key,
 			SubValue:   value,
@@ -354,7 +354,7 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte) (
 	if bytes.Equal(parentLeaf.Key, key) {
 		nodesCreated = 0
 		if parentLeaf.SubValueEqual(value) {
-			const mutated = false
+			mutated = false
 			return parentLeaf, mutated, nodesCreated
 		}
 
@@ -362,7 +362,7 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte) (
 		copySettings.CopyValue = false
 		parentLeaf = t.prepLeafForMutation(parentLeaf, copySettings)
 		parentLeaf.SubValue = value
-		const mutated = true
+		mutated = true
 		return parentLeaf, mutated, nodesCreated
 	}
 
@@ -434,12 +434,12 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte) (
 
 	if bytes.Equal(key, parentBranch.Key) {
 		if parentBranch.SubValueEqual(value) {
-			const mutated = false
+			mutated = false
 			return parentBranch, mutated, 0
 		}
 		parentBranch = t.prepBranchForMutation(parentBranch, copySettings)
 		parentBranch.SubValue = value
-		const mutated = true
+		mutated = true
 		return parentBranch, mutated, 0
 	}
 
@@ -461,7 +461,7 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte) (
 			parentBranch = t.prepBranchForMutation(parentBranch, copySettings)
 			parentBranch.Children[childIndex] = child
 			parentBranch.Descendants += nodesCreated
-			const mutated = true
+			mutated = true
 			return parentBranch, mutated, nodesCreated
 		}
 
