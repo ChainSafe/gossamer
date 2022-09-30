@@ -66,17 +66,13 @@ func Unmarshal(data []byte, dst interface{}) (err error) {
 
 	elem := indirect(dstv)
 
-	buf := &bytes.Buffer{}
 	ds := decodeState{}
-	_, err = buf.Write(data)
-	if err != nil {
-		return err
-	}
-	ds.Reader = buf
+
+	ds.Reader = bytes.NewBuffer(data)
 
 	err = ds.unmarshal(elem)
 	if err != nil {
-		return fmt.Errorf("unmarshalling: %w", err)
+		return err
 	}
 	return
 }
@@ -98,9 +94,9 @@ func (d *Decoder) Decode(dst interface{}) (err error) {
 
 	err = d.unmarshal(elem)
 	if err != nil {
-		return fmt.Errorf("unmarshalling %#v: %w", elem, err)
+		return err
 	}
-	return
+	return nil
 }
 
 // NewDecoder is constructor for Decoder
@@ -733,56 +729,56 @@ func (ds *decodeState) decodeFixedWidthInt(dstv reflect.Value) (err error) {
 		var b byte
 		b, err = ds.ReadByte()
 		if err != nil {
-			return fmt.Errorf("reading byte: %w", err)
+			return fmt.Errorf("reading byte for int8: %w", err)
 		}
 		out = int8(b)
 	case uint8:
 		var b byte
 		b, err = ds.ReadByte()
 		if err != nil {
-			return fmt.Errorf("reading byte: %w", err)
+			return fmt.Errorf("reading byte for uint8: %w", err)
 		}
 		out = b
 	case int16:
 		buf := make([]byte, 2)
 		_, err = ds.Read(buf)
 		if err != nil {
-			return fmt.Errorf("reading buffer: %w", err)
+			return fmt.Errorf("reading buffer for int16: %w", err)
 		}
 		out = int16(binary.LittleEndian.Uint16(buf))
 	case uint16:
 		buf := make([]byte, 2)
 		_, err = ds.Read(buf)
 		if err != nil {
-			return fmt.Errorf("reading buffer: %w", err)
+			return fmt.Errorf("reading buffer for uint16: %w", err)
 		}
 		out = binary.LittleEndian.Uint16(buf)
 	case int32:
 		buf := make([]byte, 4)
 		_, err = ds.Read(buf)
 		if err != nil {
-			return fmt.Errorf("reading buffer: %w", err)
+			return fmt.Errorf("reading buffer for int32: %w", err)
 		}
 		out = int32(binary.LittleEndian.Uint32(buf))
 	case uint32:
 		buf := make([]byte, 4)
 		_, err = ds.Read(buf)
 		if err != nil {
-			return fmt.Errorf("reading buffer: %w", err)
+			return fmt.Errorf("reading buffer for uint32: %w", err)
 		}
 		out = binary.LittleEndian.Uint32(buf)
 	case int64:
 		buf := make([]byte, 8)
 		_, err = ds.Read(buf)
 		if err != nil {
-			return fmt.Errorf("reading buffer: %w", err)
+			return fmt.Errorf("reading buffer for int64: %w", err)
 		}
 		out = int64(binary.LittleEndian.Uint64(buf))
 	case uint64:
 		buf := make([]byte, 8)
 		_, err = ds.Read(buf)
 		if err != nil {
-			return fmt.Errorf("reading buffer: %w", err)
+			return fmt.Errorf("reading buffer for uint64: %w", err)
 		}
 		out = binary.LittleEndian.Uint64(buf)
 	default:
