@@ -28,6 +28,7 @@ import (
 	cscale "github.com/centrifuge/go-substrate-rpc-client/v4/scale"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	ctypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -53,7 +54,7 @@ func generateTestCentrifugeMetadata(t *testing.T) *ctypes.Metadata {
 	require.NoError(t, err)
 
 	meta := &ctypes.Metadata{}
-	err = ctypes.Decode(decoded, meta)
+	err = codec.Decode(decoded, meta)
 	require.NoError(t, err)
 	return meta
 }

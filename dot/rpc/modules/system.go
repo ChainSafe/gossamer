@@ -15,6 +15,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/btcsuite/btcutil/base58"
 	ctypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 )
 
 // SystemModule is an RPC module providing access to core API points
@@ -171,7 +172,7 @@ func (sm *SystemModule) AccountNextIndex(r *http.Request, req *StringRequest, re
 	found := false
 	for _, v := range pending {
 		var ext ctypes.Extrinsic
-		err := ctypes.Decode(v.Extrinsic, &ext)
+		err := codec.Decode(v.Extrinsic, &ext)
 		if err != nil {
 			return err
 		}
@@ -203,7 +204,7 @@ func (sm *SystemModule) AccountNextIndex(r *http.Request, req *StringRequest, re
 		return err
 	}
 	var metadata ctypes.Metadata
-	err = ctypes.Decode(sdMeta, &metadata)
+	err = codec.Decode(sdMeta, &metadata)
 	if err != nil {
 		return err
 	}
@@ -218,7 +219,7 @@ func (sm *SystemModule) AccountNextIndex(r *http.Request, req *StringRequest, re
 		return err
 	}
 	var accountInfo ctypes.AccountInfo
-	err = ctypes.Decode(accountRaw, &accountInfo)
+	err = codec.Decode(accountRaw, &accountInfo)
 	if err != nil {
 		return err
 	}
