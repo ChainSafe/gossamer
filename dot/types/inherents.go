@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	"math/big"
+	"reflect"
 
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
@@ -97,7 +98,10 @@ func (d *InherentsData) Encode() ([]byte, error) {
 		return nil, err
 	}
 
-	for k, v := range d.Data {
+	for i := reflect.ValueOf(d.Data).MapRange(); i.Next(); {
+		k := i.Key().Interface().([8]byte)
+		v := i.Value().Interface().([]byte)
+
 		_, err = buffer.Write(k[:])
 		if err != nil {
 			return nil, err
@@ -112,5 +116,6 @@ func (d *InherentsData) Encode() ([]byte, error) {
 			return nil, err
 		}
 	}
+
 	return buffer.Bytes(), nil
 }
