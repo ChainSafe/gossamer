@@ -550,12 +550,12 @@ func TestNumberIsFinalised(t *testing.T) {
 
 func TestBlockState_GetBestBlockRuntime(t *testing.T) {
 	blockState := newTestBlockState(t, newTriesEmpty())
-	cfg := wasmer.Config{}
 	polkadotRuntimeFilepath, err := runtime.GetRuntime(
 		context.Background(), runtime.POLKADOT_RUNTIME)
 	require.NoError(t, err)
 	code, err := os.ReadFile(polkadotRuntimeFilepath)
 	require.NoError(t, err)
+	cfg := wasmer.Config{}
 	runtimeInstance, err := wasmer.NewInstance(code, cfg)
 	require.NoError(t, err)
 	bestBlockHash := blockState.BestBlockHash()
@@ -567,14 +567,12 @@ func TestBlockState_GetBestBlockRuntime(t *testing.T) {
 
 func TestBlockState_GetBestBlockRuntime_panic(t *testing.T) {
 	blockState := newTestBlockState(t, newTriesEmpty())
-	defer func() {
-		r := recover()
-		require.Equal(t, "we should always succeed getting the best block runtime but an error occurred: "+
-			"failed to get runtime instance", r)
-	}()
 
-	resultInstance := blockState.GetBestBlockRuntime()
-	require.Equal(t, nil, resultInstance)
+	const expectedMessage = "we should always succeed getting the best block " +
+		"runtime but an error occurred: failed to get runtime instance"
+	require.PanicsWithValue(t, expectedMessage, func() {
+		_ = blockState.GetBestBlockRuntime()
+	})
 }
 
 func TestBlockState_clearRuntimes(t *testing.T) {
