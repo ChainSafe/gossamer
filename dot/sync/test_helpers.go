@@ -29,7 +29,7 @@ func BuildBlock(t *testing.T, instance runtime.Instance, parent *types.Header, e
 	err = instance.InitializeBlock(header)
 	require.NoError(t, err)
 
-	idata := types.NewInherentsData()
+	idata := types.NewInherentData()
 	err = idata.SetInherent(types.Timstap0, uint64(time.Now().Unix()))
 	require.NoError(t, err)
 

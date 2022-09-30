@@ -9,11 +9,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestInherentsDataMarshal(t *testing.T) {
+func TestInherentDataMarshal(t *testing.T) {
 	tests := []struct {
-		name             string
-		getInherentsData func(t *testing.T) *InherentsData
-		want             []byte
+		name            string
+		getInherentData func(t *testing.T) *InherentData
+		want            []byte
 	}{
 		{
 			/*
@@ -22,8 +22,8 @@ func TestInherentsDataMarshal(t *testing.T) {
 				data.put_data(*b"babeslot", &timestamp).unwrap();
 				data.put_data(*b"timstap0", &timestamp).unwrap();
 			*/
-			getInherentsData: func(t *testing.T) *InherentsData {
-				id := NewInherentsData()
+			getInherentData: func(t *testing.T) *InherentData {
+				id := NewInherentData()
 				err := id.SetInherent(Babeslot, uint64(99))
 				require.NoError(t, err)
 
@@ -36,7 +36,7 @@ func TestInherentsDataMarshal(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			idata := tt.getInherentsData(t)
+			idata := tt.getInherentData(t)
 			got, err := idata.Encode()
 			require.NoError(t, err)
 			require.Equal(t, tt.want, got)

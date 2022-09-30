@@ -255,7 +255,7 @@ func InitializeRuntimeToTest(t *testing.T, instance Instance, parentHash common.
 	err := instance.InitializeBlock(header)
 	require.NoError(t, err)
 
-	idata := types.NewInherentsData()
+	idata := types.NewInherentData()
 	err = idata.SetInherent(types.Timstap0, uint64(1))
 	require.NoError(t, err)
 

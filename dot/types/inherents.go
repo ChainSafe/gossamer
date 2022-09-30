@@ -50,20 +50,20 @@ func (ii InherentIdentifier) Bytes() [8]byte {
 	return kb
 }
 
-// InherentsData contains a mapping of inherent keys to values
+// InherentData contains a mapping of inherent keys to values
 // keys must be 8 bytes, values are a scale-encoded byte array
-type InherentsData struct {
+type InherentData struct {
 	Data map[[8]byte][]byte
 }
 
-// NewInherentsData returns InherentsData
-func NewInherentsData() *InherentsData {
-	return &InherentsData{
+// NewInherentData returns InherentData
+func NewInherentData() *InherentData {
+	return &InherentData{
 		Data: make(map[[8]byte][]byte),
 	}
 }
 
-func (d *InherentsData) String() string {
+func (d *InherentData) String() string {
 	str := ""
 	for k, v := range d.Data {
 		str = str + fmt.Sprintf("key=%v\tvalue=%v\n", k, v)
@@ -72,7 +72,7 @@ func (d *InherentsData) String() string {
 }
 
 // SetInherent sets a inherent.
-func (d *InherentsData) SetInherent(inherentIdentifier InherentIdentifier, value any) error {
+func (d *InherentData) SetInherent(inherentIdentifier InherentIdentifier, value any) error {
 	data, err := scale.Marshal(value)
 	if err != nil {
 		return err
@@ -84,7 +84,7 @@ func (d *InherentsData) SetInherent(inherentIdentifier InherentIdentifier, value
 }
 
 // Encode will encode a given []byte using scale.Encode
-func (d *InherentsData) Encode() ([]byte, error) {
+func (d *InherentData) Encode() ([]byte, error) {
 	length := big.NewInt(int64(len(d.Data)))
 	buffer := bytes.Buffer{}
 
