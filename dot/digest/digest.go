@@ -110,7 +110,6 @@ func (h *Handler) toConsensusDigests(scaleVaryingTypes []scale.VaryingDataType) 
 		}
 		digest, ok := digestValue.(types.ConsensusDigest)
 		if !ok {
-			h.logger.Errorf("digest type not supported: %T", digestValue)
 			continue
 		}
 
