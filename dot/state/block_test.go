@@ -549,6 +549,7 @@ func TestNumberIsFinalised(t *testing.T) {
 }
 
 func TestBlockState_GetBestBlockRuntime(t *testing.T) {
+	t.Parallel()
 	blockState := newTestBlockState(t, newTriesEmpty())
 	polkadotRuntimeFilepath, err := runtime.GetRuntime(
 		context.Background(), runtime.POLKADOT_RUNTIME)
@@ -576,6 +577,7 @@ func TestBlockState_GetBestBlockRuntime_panic(t *testing.T) {
 }
 
 func TestBlockState_clearRuntimes(t *testing.T) {
+	t.Parallel()
 	blockState := newTestBlockState(t, newTriesEmpty())
 	cfg := wasmer.Config{}
 	polkadotRuntimeFilepath, err := runtime.GetRuntime(
