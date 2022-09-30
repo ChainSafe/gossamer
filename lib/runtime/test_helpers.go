@@ -261,7 +261,7 @@ func InitializeRuntimeToTest(t *testing.T, instance Instance, parentHash common.
 	err = idata.SetInherent(types.Babeslot, uint64(1))
 	require.NoError(t, err)
 
-	ienc, err := scale.Marshal(*idata)
+	ienc, err := idata.Encode()
 	require.NoError(t, err)
 
 	// Call BlockBuilder_inherent_extrinsics which returns the inherents as extrinsics

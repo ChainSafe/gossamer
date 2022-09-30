@@ -106,8 +106,6 @@ func (es *encodeState) marshal(in interface{}) (err error) {
 			err = es.encodeArray(in)
 		case reflect.Slice:
 			err = es.encodeSlice(in)
-		case reflect.Map:
-			err = es.encodeMap(in)
 		default:
 			err = fmt.Errorf("unsupported type: %T", in)
 		}
@@ -218,33 +216,6 @@ func (es *encodeState) encodeArray(in interface{}) (err error) {
 	v := reflect.ValueOf(in)
 	for i := 0; i < v.Len(); i++ {
 		err = es.marshal(v.Index(i).Interface())
-		if err != nil {
-			return
-		}
-	}
-	return
-}
-
-func (es *encodeState) encodeMap(in interface{}) (err error) {
-	v := reflect.ValueOf(in)
-	err = es.encodeLength(v.Len())
-	if err != nil {
-		return
-	}
-
-	for i := v.MapRange(); i.Next(); {
-		key := i.Key()
-		err = es.marshal(key.Interface())
-		if err != nil {
-			return
-		}
-
-		mapValue := i.Value()
-		if !mapValue.CanInterface() {
-			continue
-		}
-
-		err = es.marshal(mapValue.Interface())
 		if err != nil {
 			return
 		}

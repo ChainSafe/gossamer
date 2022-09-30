@@ -6,7 +6,6 @@ package types
 import (
 	"testing"
 
-	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 )
 
@@ -38,7 +37,7 @@ func TestInherentsDataMarshal(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			idata := tt.getInherentsData(t)
-			got, err := scale.Marshal(*idata)
+			got, err := idata.Encode()
 			require.NoError(t, err)
 			require.Equal(t, tt.want, got)
 		})

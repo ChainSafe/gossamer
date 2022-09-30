@@ -295,7 +295,7 @@ func TestParachainInherents(t *testing.T) {
 	err = idata.SetInherent(types.Parachn0, parachainInherent)
 	require.NoError(t, err)
 
-	actualInherentsBytes, err := scale.Marshal(*idata)
+	actualInherentsBytes, err := idata.Encode()
 	require.NoError(t, err)
 	require.Equal(t, expectedInherentsBytes, actualInherentsBytes)
 }
