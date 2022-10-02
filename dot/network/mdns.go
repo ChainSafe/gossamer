@@ -18,14 +18,14 @@ const MDNSPeriod = time.Minute
 
 // Notifee See https://godoc.org/github.com/libp2p/go-libp2p/p2p/discovery#Notifee
 type Notifee struct {
-	logger log.LeveledLogger
+	logger Logger
 	ctx    context.Context
 	host   *host
 }
 
 // mdns submodule
 type mdns struct {
-	logger log.LeveledLogger
+	logger Logger
 	host   *host
 	mdns   libp2pdiscovery.Service
 }

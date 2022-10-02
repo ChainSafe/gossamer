@@ -71,7 +71,7 @@ func createTestService(t *testing.T, cfg ServiceConfig) *Service {
 	}
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	cfg.Telemetry = telemetryMock
@@ -106,7 +106,7 @@ func createTestService(t *testing.T, cfg ServiceConfig) *Service {
 	var rtCfg wasmer.Config
 	rtCfg.Storage = rtstorage.NewTrieState(&genTrie)
 
-	storageState := cfg.StorageState.(core.StorageState)
+	storageState := cfg.StorageState.(*state.StorageState)
 	rtCfg.CodeHash, err = storageState.LoadCodeHash(nil)
 	require.NoError(t, err)
 
@@ -116,7 +116,7 @@ func createTestService(t *testing.T, cfg ServiceConfig) *Service {
 	rtCfg.NodeStorage = nodeStorage
 	rt, err := wasmer.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
-	cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), rt)
+	cfg.BlockState.(*state.BlockState).StoreRuntime(cfg.BlockState.BestBlockHash(), rt)
 
 	cfg.IsDev = true
 	cfg.LogLvl = defaultTestLogLvl
@@ -129,7 +129,6 @@ func createTestService(t *testing.T, cfg ServiceConfig) *Service {
 
 		coreConfig := core.Config{
 			BlockState:           dbSrv.Block,
-			EpochState:           dbSrv.Epoch,
 			StorageState:         storageState,
 			TransactionState:     dbSrv.Transaction,
 			Runtime:              rt,
@@ -147,7 +146,7 @@ func createTestService(t *testing.T, cfg ServiceConfig) *Service {
 
 func newTestServiceSetupParameters(t *testing.T) (*Service, *state.EpochState, *types.BabeConfiguration) {
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	testDatadirPath := t.TempDir()

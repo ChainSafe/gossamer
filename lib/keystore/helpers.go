@@ -112,11 +112,19 @@ func GenerateKeypair(keytype string, kp crypto.Keypair, basepath string, passwor
 }
 
 // LoadKeystore loads a new keystore and inserts the test key into the keystore
-func LoadKeystore(key string, ks Keystore) error {
+func LoadKeystore(key string, ks TyperInserter) (err error) {
 	if key != "" {
-
-		var kr Keyring
-		var err error
+		var kr interface {
+			Alice() crypto.Keypair
+			Bob() crypto.Keypair
+			Charlie() crypto.Keypair
+			Dave() crypto.Keypair
+			Eve() crypto.Keypair
+			Ferdie() crypto.Keypair
+			George() crypto.Keypair
+			Heather() crypto.Keypair
+			Ian() crypto.Keypair
+		}
 
 		switch ks.Type() {
 		case crypto.Ed25519Type:
@@ -225,7 +233,7 @@ func ImportRawPrivateKey(key, keytype, basepath string, password []byte) (string
 
 // UnlockKeys unlocks keys specified by the --unlock flag with the passwords given by --password
 // and places them into the keystore
-func UnlockKeys(ks Keystore, dir, unlock, password string) error {
+func UnlockKeys(ks Inserter, dir, unlock, password string) error {
 	var indices []int
 	var passwords []string
 	var err error
@@ -311,7 +319,7 @@ func DetermineKeyType(t string) crypto.KeyType {
 
 // HasKey returns true if given hex encoded public key string is found in keystore, false otherwise, error if there
 // are issues decoding string
-func HasKey(pubKeyStr, keyType string, keystore Keystore) (bool, error) {
+func HasKey(pubKeyStr, keyType string, keystore AddressKeypairGetter) (bool, error) {
 	keyBytes, err := common.HexToBytes(pubKeyStr)
 	if err != nil {
 		return false, err

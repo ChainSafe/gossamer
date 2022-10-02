@@ -31,13 +31,34 @@ var (
 // Keystore provides key management functionality
 type Keystore interface {
 	Name() Name
-	Type() crypto.KeyType
-	Insert(kp crypto.Keypair) error
-	GetKeypairFromAddress(pub common.Address) crypto.Keypair
+	Typer
+	Inserter
+	AddressKeypairGetter
+	Keypairs() []crypto.Keypair
 	GetKeypair(pub crypto.PublicKey) crypto.Keypair
 	PublicKeys() []crypto.PublicKey
-	Keypairs() []crypto.Keypair
 	Size() int
+}
+
+// AddressKeypairGetter gets a keypair from an address.
+type AddressKeypairGetter interface {
+	GetKeypairFromAddress(pub common.Address) crypto.Keypair
+}
+
+// TyperInserter has the Type and Insert methods.
+type TyperInserter interface {
+	Typer
+	Inserter
+}
+
+// Typer returns the key type.
+type Typer interface {
+	Type() crypto.KeyType
+}
+
+// Inserter inserts a keypair.
+type Inserter interface {
+	Insert(kp crypto.Keypair) error
 }
 
 // GlobalKeystore defines the various keystores used by the node

@@ -17,7 +17,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/sync"
 	"github.com/ChainSafe/gossamer/dot/system"
-	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/metrics"
@@ -34,13 +33,21 @@ import (
 	"github.com/ChainSafe/gossamer/lib/utils"
 )
 
+// BlockProducer to produce blocks
+type BlockProducer interface {
+	Pause() error
+	Resume() error
+	EpochLength() uint64
+	SlotDuration() uint64
+}
+
 type rpcServiceSettings struct {
 	config        *Config
 	nodeStorage   *runtime.NodeStorage
 	state         *state.Service
 	core          *core.Service
 	network       *network.Service
-	blockProducer modules.BlockProducerAPI
+	blockProducer BlockProducer
 	system        *system.Service
 	blockFinality *grandpa.Service
 	syncer        *sync.Service
@@ -104,7 +111,7 @@ func (nodeBuilder) createRuntimeStorage(st *state.Service) (*runtime.NodeStorage
 
 func createRuntime(cfg *Config, ns runtime.NodeStorage, st *state.Service,
 	ks *keystore.GlobalKeystore, net *network.Service, code []byte) (
-	runtime.Instance, error) {
+	rt runtimeInterface, err error) {
 	logger.Info("creating runtime with interpreter " + cfg.Core.WasmInterpreter + "...")
 
 	// check if code substitute is in use, if so replace code
@@ -131,7 +138,6 @@ func createRuntime(cfg *Config, ns runtime.NodeStorage, st *state.Service,
 		return nil, err
 	}
 
-	var rt runtime.Instance
 	switch cfg.Core.WasmInterpreter {
 	case wasmer.Name:
 		rtCfg := wasmer.Config{
@@ -166,19 +172,26 @@ func asAuthority(authority bool) string {
 
 // ServiceBuilder interface to define the building of babe service
 type ServiceBuilder interface {
-	NewServiceIFace(cfg *babe.ServiceConfig) (babe.ServiceIFace, error)
+	NewServiceIFace(cfg *babe.ServiceConfig) (service *babe.Service, err error)
 }
 
 var _ ServiceBuilder = (*babe.Builder)(nil)
 
-func (nb nodeBuilder) createBABEService(cfg *Config, st *state.Service, ks keystore.Keystore,
-	cs *core.Service, telemetryMailer telemetry.Client) (babe.ServiceIFace, error) {
+func (nb nodeBuilder) createBABEService(cfg *Config, st *state.Service, ks KeyStore,
+	cs *core.Service, telemetryMailer Telemetry) (service *babe.Service, err error) {
 	return nb.createBABEServiceWithBuilder(cfg, st, ks, cs, telemetryMailer, babe.Builder{})
 }
 
-func (nodeBuilder) createBABEServiceWithBuilder(cfg *Config, st *state.Service, ks keystore.Keystore,
-	cs *core.Service, telemetryMailer telemetry.Client, newBabeService ServiceBuilder) (babe.
-	ServiceIFace, error) {
+// KeyStore is the keystore interface for the BABE service.
+type KeyStore interface {
+	Name() keystore.Name
+	Type() string
+	Keypairs() []crypto.Keypair
+}
+
+func (nodeBuilder) createBABEServiceWithBuilder(cfg *Config, st *state.Service, ks KeyStore,
+	cs *core.Service, telemetryMailer Telemetry, newBabeService ServiceBuilder) (
+	service *babe.Service, err error) {
 	logger.Info("creating BABE service" +
 		asAuthority(cfg.Core.BabeAuthority) + "...")
 
@@ -241,7 +254,6 @@ func (nodeBuilder) createCoreService(cfg *Config, ks *keystore.GlobalKeystore,
 	coreConfig := &core.Config{
 		LogLvl:               cfg.Log.CoreLvl,
 		BlockState:           st.Block,
-		EpochState:           st.Epoch,
 		StorageState:         st.Storage,
 		TransactionState:     st.Transaction,
 		Keystore:             ks,
@@ -264,7 +276,7 @@ func (nodeBuilder) createCoreService(cfg *Config, ks *keystore.GlobalKeystore,
 
 // createNetworkService creates a network service from the command configuration and genesis data
 func (nodeBuilder) createNetworkService(cfg *Config, stateSrvc *state.Service,
-	telemetryMailer telemetry.Client) (*network.Service, error) {
+	telemetryMailer Telemetry) (*network.Service, error) {
 	logger.Debugf(
 		"creating network service with roles %d, port %d, bootnodes %s, protocol ID %s, nobootstrap=%t and noMDNS=%t...",
 		cfg.Core.Roles, cfg.Network.Port, strings.Join(cfg.Network.Bootnodes, ","), cfg.Network.ProtocolID,
@@ -374,8 +386,8 @@ func (nodeBuilder) createSystemService(cfg *types.SystemInfo, stateSrvc *state.S
 }
 
 // createGRANDPAService creates a new GRANDPA service
-func (nodeBuilder) createGRANDPAService(cfg *Config, st *state.Service, ks keystore.Keystore,
-	net *network.Service, telemetryMailer telemetry.Client) (*grandpa.Service, error) {
+func (nodeBuilder) createGRANDPAService(cfg *Config, st *state.Service, ks KeyStore,
+	net *network.Service, telemetryMailer Telemetry) (*grandpa.Service, error) {
 	bestBlockHash := st.Block.BestBlockHash()
 	rt, err := st.Block.GetRuntime(bestBlockHash)
 	if err != nil {
@@ -420,8 +432,8 @@ func (nodeBuilder) createBlockVerifier(st *state.Service) *babe.VerificationMana
 	return babe.NewVerificationManager(st.Block, st.Epoch)
 }
 
-func (nodeBuilder) newSyncService(cfg *Config, st *state.Service, fg sync.FinalityGadget,
-	verifier *babe.VerificationManager, cs *core.Service, net *network.Service, telemetryMailer telemetry.Client) (
+func (nodeBuilder) newSyncService(cfg *Config, st *state.Service, fg BlockJustificationVerifier,
+	verifier *babe.VerificationManager, cs *core.Service, net *network.Service, telemetryMailer Telemetry) (
 	*sync.Service, error) {
 	slotDuration, err := st.Epoch.GetSlotDuration()
 	if err != nil {

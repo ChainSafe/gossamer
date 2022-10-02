@@ -70,7 +70,7 @@ func createTestService(t *testing.T, genesisFilePath string,
 	testDatadirPath := t.TempDir()
 
 	// Set up block and storage state
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	stateConfig := state.Config{
@@ -107,9 +107,9 @@ func createTestService(t *testing.T, genesisFilePath string,
 	cfgRuntime, err := wasmer.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
 
-	cfgRuntime.(*wasmer.Instance).GetContext().Storage.Put(aliceBalanceKey, encodedAccountInfo)
+	cfgRuntime.GetContext().Storage.Put(aliceBalanceKey, encodedAccountInfo)
 	// this key is System.UpgradedToDualRefCount -> set to true since all accounts have been upgraded to v0.9 format
-	cfgRuntime.(*wasmer.Instance).GetContext().Storage.Put(common.UpgradedToDualRefKey, []byte{1})
+	cfgRuntime.GetContext().Storage.Put(common.UpgradedToDualRefKey, []byte{1})
 
 	cfgBlockState.StoreRuntime(cfgBlockState.BestBlockHash(), cfgRuntime)
 
@@ -136,7 +136,6 @@ func createTestService(t *testing.T, genesisFilePath string,
 		BlockState:           cfgBlockState,
 		StorageState:         cfgStorageState,
 		TransactionState:     stateSrvc.Transaction,
-		EpochState:           stateSrvc.Epoch,
 		CodeSubstitutedState: cfgCodeSubstitutedState,
 		Runtime:              cfgRuntime,
 		Network:              new(network.Service),
@@ -175,9 +174,8 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	gen, genesisTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
 
 	if cfg.BlockState == nil || cfg.StorageState == nil ||
-		cfg.TransactionState == nil || cfg.EpochState == nil ||
-		cfg.CodeSubstitutedState == nil {
-		telemetryMock := NewMockClient(ctrl)
+		cfg.TransactionState == nil || cfg.CodeSubstitutedState == nil {
+		telemetryMock := NewMockTelemetry(ctrl)
 		telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 		config := state.Config{
@@ -208,10 +206,6 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		cfg.TransactionState = stateSrvc.Transaction
 	}
 
-	if cfg.EpochState == nil {
-		cfg.EpochState = stateSrvc.Epoch
-	}
-
 	if cfg.CodeSubstitutedState == nil {
 		cfg.CodeSubstitutedState = stateSrvc.Base
 	}
@@ -222,7 +216,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
 
 		var err error
-		rtCfg.CodeHash, err = cfg.StorageState.LoadCodeHash(nil)
+		rtCfg.CodeHash, err = cfg.StorageState.(*state.StorageState).LoadCodeHash(nil)
 		require.NoError(t, err)
 
 		nodeStorage := runtime.NodeStorage{}

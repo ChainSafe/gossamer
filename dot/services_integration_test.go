@@ -15,7 +15,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	rpc "github.com/ChainSafe/gossamer/dot/rpc"
 	"github.com/ChainSafe/gossamer/dot/state"
-	sync "github.com/ChainSafe/gossamer/dot/sync"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -37,7 +36,6 @@ func Test_nodeBuilder_createBABEService(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
-	mockBabeIFace := NewMockServiceIFace(ctrl)
 
 	cfg := NewTestConfig(t)
 
@@ -50,14 +48,14 @@ func Test_nodeBuilder_createBABEService(t *testing.T) {
 	type args struct {
 		cfg              *Config
 		initStateService bool
-		ks               keystore.Keystore
+		ks               KeyStore
 		cs               *core.Service
-		telemetryMailer  telemetry.Client
+		telemetryMailer  Telemetry
 	}
 	tests := []struct {
 		name     string
 		args     args
-		expected babe.ServiceIFace
+		expected *babe.Service
 		err      error
 	}{
 		{
@@ -87,7 +85,7 @@ func Test_nodeBuilder_createBABEService(t *testing.T) {
 				initStateService: true,
 				ks:               ks2.Babe,
 			},
-			expected: mockBabeIFace,
+			expected: &babe.Service{},
 			err:      nil,
 		},
 	}
@@ -99,12 +97,13 @@ func Test_nodeBuilder_createBABEService(t *testing.T) {
 			stateSrvc := newStateService(t, ctrl)
 			mockBabeBuilder := NewMockServiceBuilder(ctrl)
 			mockBabeBuilder.EXPECT().NewServiceIFace(
-				gomock.AssignableToTypeOf(&babe.ServiceConfig{})).DoAndReturn(func(cfg *babe.ServiceConfig) (babe.
-				ServiceIFace, error) {
-				return mockBabeIFace, nil
-			}).AnyTimes()
+				gomock.AssignableToTypeOf(&babe.ServiceConfig{})).
+				DoAndReturn(
+					func(cfg *babe.ServiceConfig) (*babe.Service, error) {
+						return &babe.Service{}, nil
+					}).AnyTimes()
 			builder := nodeBuilder{}
-			var got babe.ServiceIFace
+			var got *babe.Service
 			if tt.args.initStateService {
 				got, err = builder.createBABEServiceWithBuilder(tt.args.cfg, stateSrvc, tt.args.ks, tt.args.cs,
 					tt.args.telemetryMailer, mockBabeBuilder)
@@ -263,7 +262,7 @@ func Test_nodeBuilder_createGRANDPAService(t *testing.T) {
 	require.NoError(t, err)
 	tests := []struct {
 		name      string
-		ks        keystore.Keystore
+		ks        KeyStore
 		expectNil bool
 		err       error
 	}{
@@ -360,11 +359,11 @@ func Test_nodeBuilder_newSyncService(t *testing.T) {
 	t.Parallel()
 	finalityGadget := &grandpa.Service{}
 	type args struct {
-		fg              sync.FinalityGadget
+		fg              BlockJustificationVerifier
 		verifier        *babe.VerificationManager
 		cs              *core.Service
 		net             *network.Service
-		telemetryMailer telemetry.Client
+		telemetryMailer Telemetry
 	}
 	tests := []struct {
 		name      string

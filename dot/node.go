@@ -42,7 +42,7 @@ var logger = log.NewFromGlobal(log.AddContext("pkg", "dot"))
 // Node is a container for all the components of a node.
 type Node struct {
 	Name            string
-	ServiceRegistry services.ServiceRegisterer // registry of all node services
+	ServiceRegistry serviceRegisterer // registry of all node services
 	wg              sync.WaitGroup
 	started         chan struct{}
 	metricsServer   *metrics.Server
@@ -54,7 +54,7 @@ type nodeBuilderIface interface {
 	isNodeInitialised(basepath string) error
 	initNode(config *Config) error
 	createStateService(config *Config) (*state.Service, error)
-	createNetworkService(cfg *Config, stateSrvc *state.Service, telemetryMailer telemetry.Client) (*network.Service,
+	createNetworkService(cfg *Config, stateSrvc *state.Service, telemetryMailer Telemetry) (*network.Service,
 		error)
 	createRuntimeStorage(st *state.Service) (*runtime.NodeStorage, error)
 	loadRuntime(cfg *Config, ns *runtime.NodeStorage, stateSrvc *state.Service, ks *keystore.GlobalKeystore,
@@ -63,12 +63,13 @@ type nodeBuilderIface interface {
 	createDigestHandler(lvl log.Level, st *state.Service) (*digest.Handler, error)
 	createCoreService(cfg *Config, ks *keystore.GlobalKeystore, st *state.Service, net *network.Service,
 		dh *digest.Handler) (*core.Service, error)
-	createGRANDPAService(cfg *Config, st *state.Service, ks keystore.Keystore,
-		net *network.Service, telemetryMailer telemetry.Client) (*grandpa.Service, error)
-	newSyncService(cfg *Config, st *state.Service, fg dotsync.FinalityGadget, verifier *babe.VerificationManager,
-		cs *core.Service, net *network.Service, telemetryMailer telemetry.Client) (*dotsync.Service, error)
-	createBABEService(cfg *Config, st *state.Service, ks keystore.Keystore, cs *core.Service,
-		telemetryMailer telemetry.Client) (babe.ServiceIFace, error)
+	createGRANDPAService(cfg *Config, st *state.Service, ks KeyStore,
+		net *network.Service, telemetryMailer Telemetry) (*grandpa.Service, error)
+	newSyncService(cfg *Config, st *state.Service, finalityGadget BlockJustificationVerifier,
+		verifier *babe.VerificationManager, cs *core.Service, net *network.Service,
+		telemetryMailer Telemetry) (*dotsync.Service, error)
+	createBABEService(cfg *Config, st *state.Service, ks KeyStore, cs *core.Service,
+		telemetryMailer Telemetry) (service *babe.Service, err error)
 	createSystemService(cfg *types.SystemInfo, stateSrvc *state.Service) (*system.Service, error)
 	createRPCService(params rpcServiceSettings) (*rpc.HTTPServer, error)
 }
@@ -226,7 +227,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 func newNode(cfg *Config,
 	ks *keystore.GlobalKeystore,
 	builder nodeBuilderIface,
-	serviceRegistry services.ServiceRegisterer) (*Node, error) {
+	serviceRegistry serviceRegisterer) (*Node, error) {
 	// set garbage collection percent to 10%
 	// can be overwritten by setting the GOGC env variable, which defaults to 100
 	prev := debug.SetGCPercent(10)
@@ -248,7 +249,7 @@ func newNode(cfg *Config,
 		cfg.Global.Name, cfg.Global.ID, cfg.Global.BasePath)
 
 	var (
-		nodeSrvcs   []services.Service
+		nodeSrvcs   []service
 		networkSrvc *network.Service
 	)
 
@@ -409,7 +410,7 @@ func newNode(cfg *Config,
 	return node, nil
 }
 
-func setupTelemetry(cfg *Config, genesisData *genesis.Data) (mailer telemetry.Client, err error) {
+func setupTelemetry(cfg *Config, genesisData *genesis.Data) (mailer Telemetry, err error) {
 	if cfg.Global.NoTelemetry {
 		return telemetry.NewNoopMailer(), nil
 	}
@@ -493,7 +494,7 @@ func (n *nodeBuilder) loadRuntime(cfg *Config, ns *runtime.NodeStorage,
 	stateSrvc *state.Service, ks *keystore.GlobalKeystore,
 	net *network.Service) error {
 	blocks := stateSrvc.Block.GetNonFinalisedBlocks()
-	runtimeCode := make(map[string]runtime.Instance)
+	runtimeCode := make(map[string]runtimeInterface)
 	for i := range blocks {
 		hash := &blocks[i]
 		code, err := stateSrvc.Storage.GetStorageByBlockHash(hash, []byte(":code"))

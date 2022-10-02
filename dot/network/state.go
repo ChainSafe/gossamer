@@ -16,11 +16,8 @@ import (
 // BlockState interface for block state methods
 type BlockState interface {
 	BestBlockHeader() (*types.Header, error)
-	BestBlockNumber() (blockNumber uint, err error)
 	GenesisHash() common.Hash
-	HasBlockBody(common.Hash) (bool, error)
 	GetHighestFinalisedHeader() (*types.Header, error)
-	GetHashByNumber(num uint) (common.Hash, error)
 }
 
 // Syncer is implemented by the syncing service
@@ -58,19 +55,15 @@ type PeerAdd interface {
 	Incoming(int, ...peer.ID)
 	AddReservedPeer(int, ...peer.ID)
 	AddPeer(int, ...peer.ID)
-	SetReservedPeer(int, ...peer.ID)
 }
 
 // PeerRemove is the interface used by the PeerSetHandler to remove peers from peerSet.
 type PeerRemove interface {
-	DisconnectPeer(int, ...peer.ID)
 	RemoveReservedPeer(int, ...peer.ID)
-	RemovePeer(int, ...peer.ID)
 }
 
 // Peer is the interface used by the PeerSetHandler to get the peer data from peerSet.
 type Peer interface {
-	PeerReputation(peer.ID) (peerset.Reputation, error)
 	SortedPeers(idx int) chan peer.IDSlice
 	Messages() chan peerset.Message
 }

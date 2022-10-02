@@ -25,19 +25,6 @@ var sr25519PrivateKeys = []string{
 	"0x7c04eea9d31ce0d9ee256d7c561dc29f20d1119a125e95713c967dcd8d14f22d",
 }
 
-// Keyring represents a test keyring
-type Keyring interface {
-	Alice() crypto.Keypair
-	Bob() crypto.Keypair
-	Charlie() crypto.Keypair
-	Dave() crypto.Keypair
-	Eve() crypto.Keypair
-	Ferdie() crypto.Keypair
-	George() crypto.Keypair
-	Heather() crypto.Keypair
-	Ian() crypto.Keypair
-}
-
 // Sr25519Keyring represents a test keyring
 type Sr25519Keyring struct {
 	KeyAlice   *sr25519.Keypair

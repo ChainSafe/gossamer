@@ -20,6 +20,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -205,8 +207,15 @@ func generateEd25519Signatures(t *testing.T, n int) []*crypto.SignatureInfo {
 	return signs
 }
 
+// MetadataVersioner is an interface for getting metadata
+// and version from a runtime.
+type MetadataVersioner interface {
+	Metadataer
+	Versioner
+}
+
 // NewTestExtrinsic builds a new extrinsic using centrifuge pkg
-func NewTestExtrinsic(t *testing.T, rt Instance, genHash, blockHash common.Hash,
+func NewTestExtrinsic(t *testing.T, rt MetadataVersioner, genHash, blockHash common.Hash,
 	nonce uint64, call string, args ...interface{}) string {
 	t.Helper()
 
@@ -246,6 +255,48 @@ func NewTestExtrinsic(t *testing.T, rt Instance, genHash, blockHash common.Hash,
 	require.NoError(t, err)
 
 	return extEnc
+}
+
+//go:generate mockery --name Instance --structname Instance --case underscore --keeptree
+
+// Instance is the interface to interact with the runtime.
+type Instance interface {
+	UpdateRuntimeCode([]byte) error
+	Stop()
+	NodeStorage() NodeStorage
+	NetworkService() BasicNetwork
+	Keystore() *keystore.GlobalKeystore
+	Validator() bool
+	Exec(function string, data []byte) ([]byte, error)
+	SetContextStorage(s Storage)
+	GetCodeHash() common.Hash
+	Versioner
+	Metadataer
+	BabeConfiguration() (*types.BabeConfiguration, error)
+	GrandpaAuthorities() ([]types.Authority, error)
+	ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error)
+	InitializeBlock(header *types.Header) error
+	InherentExtrinsics(data []byte) ([]byte, error)
+	ApplyExtrinsic(data types.Extrinsic) ([]byte, error)
+	FinalizeBlock() (*types.Header, error)
+	ExecuteBlock(block *types.Block) ([]byte, error)
+	DecodeSessionKeys(enc []byte) ([]byte, error)
+	PaymentQueryInfo(ext []byte) (*types.RuntimeDispatchInfo, error)
+	CheckInherents()
+	RandomSeed()
+	OffchainWorker()
+	GenerateSessionKeys()
+}
+
+// Versioner returns the version from the runtime.
+// This should return the cached version and be cheap to execute.
+type Versioner interface {
+	Version() (version Version)
+}
+
+// Metadataer returns the metadata from the runtime.
+type Metadataer interface {
+	Metadata() (metadata []byte, err error)
 }
 
 // InitializeRuntimeToTest sets a new block using the runtime functions to set initial data into the host

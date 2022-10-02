@@ -4,12 +4,14 @@
 package core
 
 import (
+	"encoding/json"
 	"sync"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -51,37 +53,21 @@ type RuntimeInstance interface {
 type BlockState interface {
 	BestBlockHash() common.Hash
 	BestBlockHeader() (*types.Header, error)
-	BestBlockNumber() (blockNumber uint, err error)
-	BestBlockStateRoot() (common.Hash, error)
-	BestBlock() (*types.Block, error)
 	AddBlock(*types.Block) error
-	GetAllBlocksAtDepth(hash common.Hash) []common.Hash
-	GetBlockByHash(common.Hash) (*types.Block, error)
 	GetBlockStateRoot(bhash common.Hash) (common.Hash, error)
-	GenesisHash() common.Hash
-	GetSlotForBlock(common.Hash) (uint64, error)
-	GetFinalisedHeader(uint64, uint64) (*types.Header, error)
-	GetFinalisedHash(uint64, uint64) (common.Hash, error)
-	GetImportedBlockNotifierChannel() chan *types.Block
-	FreeImportedBlockNotifierChannel(ch chan *types.Block)
-	GetFinalisedNotifierChannel() chan *types.FinalisationInfo
-	FreeFinalisedNotifierChannel(ch chan *types.FinalisationInfo)
 	SubChain(start, end common.Hash) ([]common.Hash, error)
 	GetBlockBody(hash common.Hash) (*types.Body, error)
-	HandleRuntimeChanges(newState *rtstorage.TrieState, in runtime.Instance, bHash common.Hash) error
-	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
-	StoreRuntime(common.Hash, runtime.Instance)
+	HandleRuntimeChanges(newState *rtstorage.TrieState, in state.Runtime, bHash common.Hash) error
+	GetRuntime(blockHash common.Hash) (instance state.Runtime, err error)
+	StoreRuntime(blockHash common.Hash, runtime state.Runtime)
 	LowestCommonAncestor(a, b common.Hash) (common.Hash, error)
 }
 
 // StorageState interface for storage state methods
 type StorageState interface {
-	LoadCode(root *common.Hash) ([]byte, error)
-	LoadCodeHash(root *common.Hash) (common.Hash, error)
 	TrieState(root *common.Hash) (*rtstorage.TrieState, error)
 	StoreTrie(*rtstorage.TrieState, *types.Header) error
 	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
-	GetStorage(root *common.Hash, key []byte) ([]byte, error)
 	GenerateTrieProof(stateRoot common.Hash, keys [][]byte) ([][]byte, error)
 	sync.Locker
 }
@@ -103,15 +89,12 @@ type Network interface {
 	ReportPeer(change peerset.ReputationChange, p peer.ID)
 }
 
-// EpochState is the interface for state.EpochState
-type EpochState interface {
-	GetEpochForBlock(header *types.Header) (uint64, error)
-	SetCurrentEpoch(epoch uint64) error
-	GetCurrentEpoch() (uint64, error)
-}
-
 // CodeSubstitutedState interface to handle storage of code substitute state
 type CodeSubstitutedState interface {
-	LoadCodeSubstitutedBlockHash() common.Hash
 	StoreCodeSubstitutedBlockHash(hash common.Hash) error
+}
+
+// Telemetry is the telemetry client to send telemetry messages.
+type Telemetry interface {
+	SendMessage(msg json.Marshaler)
 }

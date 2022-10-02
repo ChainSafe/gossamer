@@ -29,7 +29,7 @@ var testGenesisHeader = &types.Header{
 
 func newTestBlockState(t *testing.T, tries *Tries) *BlockState {
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	db := NewInMemoryDB(t)
@@ -625,7 +625,7 @@ func TestRange(t *testing.T) {
 			blocksToPersistAtDisk: 128,
 			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
 				genesisHeader *types.Header) *BlockState {
-				telemetryMock := NewMockClient(ctrl)
+				telemetryMock := NewMockTelemetry(ctrl)
 				telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 				db := NewInMemoryDB(t)
@@ -655,7 +655,7 @@ func TestRange(t *testing.T) {
 			blocksToPersistAtDisk: 0,
 			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
 				genesisHeader *types.Header) *BlockState {
-				telemetryMock := NewMockClient(ctrl)
+				telemetryMock := NewMockTelemetry(ctrl)
 				telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 				db := NewInMemoryDB(t)
@@ -685,7 +685,7 @@ func TestRange(t *testing.T) {
 			blocksToPersistAtDisk: 64,
 			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
 				genesisHeader *types.Header) *BlockState {
-				telemetryMock := NewMockClient(ctrl)
+				telemetryMock := NewMockTelemetry(ctrl)
 				telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 				db := NewInMemoryDB(t)
@@ -717,7 +717,7 @@ func TestRange(t *testing.T) {
 				"querying database: [mocked] cannot read, database closed ex",
 			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
 				genesisHeader *types.Header) *BlockState {
-				telemetryMock := NewMockClient(ctrl)
+				telemetryMock := NewMockTelemetry(ctrl)
 				telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 				db := NewInMemoryDB(t)
@@ -752,7 +752,7 @@ func TestRange(t *testing.T) {
 			blocksToPersistAtDisk: 0,
 			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
 				genesisHeader *types.Header) *BlockState {
-				telemetryMock := NewMockClient(ctrl)
+				telemetryMock := NewMockTelemetry(ctrl)
 				telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 				db := NewInMemoryDB(t)
@@ -784,7 +784,7 @@ func TestRange(t *testing.T) {
 			stringErr:             "start greater than end",
 			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
 				genesisHeader *types.Header) *BlockState {
-				telemetryMock := NewMockClient(ctrl)
+				telemetryMock := NewMockTelemetry(ctrl)
 				telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 				db := NewInMemoryDB(t)
@@ -817,7 +817,7 @@ func TestRange(t *testing.T) {
 				"getting blocks in range: start greater than end",
 			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
 				genesisHeader *types.Header) *BlockState {
-				telemetryMock := NewMockClient(ctrl)
+				telemetryMock := NewMockTelemetry(ctrl)
 				telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 				db := NewInMemoryDB(t)
@@ -850,7 +850,7 @@ func TestRange(t *testing.T) {
 				"querying database: Key not found",
 			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
 				genesisHeader *types.Header) *BlockState {
-				telemetryMock := NewMockClient(ctrl)
+				telemetryMock := NewMockTelemetry(ctrl)
 				telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 				db := NewInMemoryDB(t)
@@ -942,7 +942,7 @@ func TestRange(t *testing.T) {
 func Test_loadHeaderFromDisk_WithGenesisBlock(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	db := NewInMemoryDB(t)

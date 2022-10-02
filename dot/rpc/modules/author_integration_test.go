@@ -11,10 +11,12 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"sync"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/core"
-	"github.com/ChainSafe/gossamer/dot/network"
+	network "github.com/ChainSafe/gossamer/dot/network"
+	peerset "github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/state"
 	telemetry "github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -37,13 +39,14 @@ import (
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 
 	"github.com/golang/mock/gomock"
+	peer "github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/require"
 )
 
-type useRuntimeInstace func(*testing.T, *storage.TrieState) runtime.Instance
+type useRuntimeInstance func(*testing.T, *storage.TrieState) Runtime
 
 // useInstanceFromGenesis creates a new runtime instance given a trie state
-func useInstanceFromGenesis(t *testing.T, rtStorage *storage.TrieState) (instance runtime.Instance) {
+func useInstanceFromGenesis(t *testing.T, rtStorage *storage.TrieState) (instance Runtime) {
 	t.Helper()
 
 	cfg := wasmer.Config{
@@ -60,7 +63,7 @@ func useInstanceFromGenesis(t *testing.T, rtStorage *storage.TrieState) (instanc
 	return runtimeInstance
 }
 
-func useInstanceFromRuntimeV0910(t *testing.T, rtStorage *storage.TrieState) (instance runtime.Instance) {
+func useInstanceFromRuntimeV0910(t *testing.T, rtStorage *storage.TrieState) (instance Runtime) {
 	testRuntimeFilePath, err := runtime.GetRuntime(context.Background(), runtime.POLKADOT_RUNTIME_v0910)
 	require.NoError(t, err)
 	bytes, err := os.ReadFile(testRuntimeFilePath)
@@ -159,7 +162,7 @@ func TestAuthorModule_SubmitExtrinsic_Integration(t *testing.T) {
 	integrationTestController := setupStateAndPopulateTrieState(t, t.TempDir(), useInstanceFromGenesis)
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().
 		SendMessage(
 			telemetry.NewTxpoolImport(0, 1),
@@ -254,7 +257,7 @@ func TestAuthorModule_SubmitExtrinsic_AlreadyInPool(t *testing.T) {
 	integrationTestController := setupStateAndRuntime(t, t.TempDir(), useInstanceFromGenesis)
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().
 		SendMessage(
 			telemetry.NewTxpoolImport(0, 1),
@@ -269,7 +272,6 @@ func TestAuthorModule_SubmitExtrinsic_AlreadyInPool(t *testing.T) {
 		integrationTestController.runtime, genesisHash, genesisHash, 0, "System.remark", []byte{})
 	extBytes := common.MustHexToBytes(extHex)
 
-	integrationTestController.storageState = &state.StorageState{}
 	integrationTestController.network = NewMockNetwork(nil)
 
 	// setup auth module
@@ -551,7 +553,7 @@ func TestAuthorModule_SubmitExtrinsic_WithVersion_V0910(t *testing.T) {
 	integrationTestController := setupStateAndPopulateTrieState(t, t.TempDir(), useInstanceFromRuntimeV0910)
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().
 		SendMessage(
 			telemetry.NewTxpoolImport(0, 1),
@@ -596,24 +598,38 @@ func TestAuthorModule_SubmitExtrinsic_WithVersion_V0910(t *testing.T) {
 	require.Equal(t, expectedHash, *res)
 }
 
+type coreNetwork interface {
+	GossipMessage(network.NotificationsMessage)
+	IsSynced() bool
+	ReportPeer(change peerset.ReputationChange, p peer.ID)
+}
+
+type coreStorageState interface {
+	TrieState(root *common.Hash) (*storage.TrieState, error)
+	StoreTrie(*storage.TrieState, *types.Header) error
+	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
+	GenerateTrieProof(stateRoot common.Hash, keys [][]byte) ([][]byte, error)
+	sync.Locker
+}
+
 type integrationTestController struct {
 	genesis       *genesis.Genesis
 	genesisTrie   *trie.Trie
 	genesisHeader *types.Header
-	runtime       runtime.Instance
+	runtime       Runtime
 	stateSrv      *state.Service
-	network       core.Network
-	storageState  core.StorageState
+	network       coreNetwork
+	storageState  coreStorageState
 	keystore      *keystore.GlobalKeystore
 }
 
-func setupStateAndRuntime(t *testing.T, basepath string, useInstance useRuntimeInstace) *integrationTestController {
+func setupStateAndRuntime(t *testing.T, basepath string, useInstance useRuntimeInstance) *integrationTestController {
 	t.Helper()
 
 	gen, genesisTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().
 		SendMessage(
 			telemetry.NewNotifyFinalized(
@@ -667,13 +683,13 @@ func setupStateAndRuntime(t *testing.T, basepath string, useInstance useRuntimeI
 }
 
 func setupStateAndPopulateTrieState(t *testing.T, basepath string,
-	useInstance useRuntimeInstace) *integrationTestController {
+	useInstance useRuntimeInstance) *integrationTestController {
 	t.Helper()
 
 	gen, genesisTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().
 		SendMessage(
 			telemetry.NewNotifyFinalized(

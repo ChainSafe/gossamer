@@ -12,7 +12,7 @@ import (
 
 type afgFinalizedBlocksUpToTM AfgFinalizedBlocksUpTo
 
-var _ Message = (*AfgFinalizedBlocksUpTo)(nil)
+var _ json.Marshaler = (*AfgFinalizedBlocksUpTo)(nil)
 
 // AfgFinalizedBlocksUpTo holds telemetry message of type `afg.finalized_blocks_up_to`,
 // which is supposed to be sent when GRANDPA client finalises new blocks.

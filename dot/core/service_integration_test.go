@@ -30,6 +30,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+//go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE . Telemetry
+
 func TestStartService(t *testing.T) {
 	s := NewTestService(t, nil)
 
@@ -61,7 +63,8 @@ func TestAnnounceBlock(t *testing.T) {
 	require.NoError(t, err)
 
 	// Used to define the state root of new block for testing
-	genesisBlock, err := s.blockState.GetBlockByHash(s.blockState.GenesisHash())
+	genesisHash := s.blockState.(*state.BlockState).GenesisHash()
+	genesisBlock, err := s.blockState.(*state.BlockState).GetBlockByHash(genesisHash)
 	require.NoError(t, err)
 
 	newBlock := types.Block{
@@ -246,7 +249,7 @@ func TestHandleChainReorg_WithReorg_Trans(t *testing.T) {
 	nonce := uint64(0)
 
 	// Add extrinsic to block `block41`
-	ext := createExtrinsic(t, rt, bs.GenesisHash(), nonce)
+	ext := createExtrinsic(t, rt, bs.(*state.BlockState).GenesisHash(), nonce)
 
 	block41 := sync.BuildBlock(t, rt, &block31.Header, ext)
 	bs.StoreRuntime(block41.Header.Hash(), rt)
@@ -587,7 +590,7 @@ func TestService_HandleCodeSubstitutes(t *testing.T) {
 	ts := rtstorage.NewTrieState(trie.NewEmptyTrie())
 	err = s.handleCodeSubstitution(blockHash, ts)
 	require.NoError(t, err)
-	codSub := s.codeSubstitutedState.LoadCodeSubstitutedBlockHash()
+	codSub := s.codeSubstitutedState.(*state.BaseState).LoadCodeSubstitutedBlockHash()
 	require.Equal(t, blockHash, codSub)
 }
 

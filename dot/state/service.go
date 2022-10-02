@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
-	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/metrics"
@@ -38,7 +37,7 @@ type Service struct {
 	closeCh     chan interface{}
 
 	PrunerCfg pruner.Config
-	Telemetry telemetry.Client
+	Telemetry Telemetry
 
 	// Below are for testing only.
 	BabeThresholdNumerator   uint64
@@ -50,7 +49,7 @@ type Config struct {
 	Path      string
 	LogLevel  log.Level
 	PrunerCfg pruner.Config
-	Telemetry telemetry.Client
+	Telemetry Telemetry
 	Metrics   metrics.IntervalConfig
 }
 

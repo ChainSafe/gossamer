@@ -10,7 +10,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -51,15 +50,6 @@ func NewMockeryBlockAPI(t *testing.T) *modulesmocks.BlockAPI {
 	m.On("RegisterRuntimeUpdatedChannel", mock.AnythingOfType("chan<- runtime.Version")).
 		Return(uint32(0), nil).Maybe()
 
-	return m
-}
-
-// NewMockTransactionStateAPI creates and return an rpc TransactionStateAPI interface mock
-func NewMockTransactionStateAPI(t *testing.T) *modulesmocks.TransactionStateAPI {
-	m := modulesmocks.NewTransactionStateAPI(t)
-	m.On("FreeStatusNotifierChannel", mock.AnythingOfType("chan transaction.Status")).Maybe()
-	m.On("GetStatusNotifierChannel", mock.AnythingOfType("types.Extrinsic")).Return(make(chan transaction.Status)).Maybe()
-	m.On("AddToPool", mock.AnythingOfType("transaction.ValidTransaction")).Return(common.Hash{}).Maybe()
 	return m
 }
 

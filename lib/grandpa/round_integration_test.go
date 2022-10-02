@@ -73,7 +73,7 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	t.Log(gss[0].blockState.BlocktreeAsString())
+	t.Log(gss[0].blockState.(*state.BlockState).BlocktreeAsString())
 	finalised := gss[0].head.Hash()
 
 	for _, gs := range gss[:1] {
@@ -252,7 +252,7 @@ func TestPlayGrandpaRound(t *testing.T) {
 				// In this test it is not important to assert the arguments
 				// to the telemetry SendMessage mocked func
 				// the TestSendingVotesInRightStage does it properly
-				telemetryMock := NewMockClient(ctrl)
+				telemetryMock := NewMockTelemetry(ctrl)
 				grandpaService.telemetry = telemetryMock
 				telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
@@ -261,7 +261,7 @@ func TestPlayGrandpaRound(t *testing.T) {
 				var equivocatedVoteMessage *VoteMessage
 				_, isEquivocator := tt.whoEquivocates[idx]
 				if isEquivocator {
-					leaves := grandpaService.blockState.Leaves()
+					leaves := grandpaService.blockState.(*state.BlockState).Leaves()
 
 					vote, err := NewVoteFromHash(leaves[1], grandpaService.blockState)
 					require.NoError(t, err)
@@ -432,7 +432,7 @@ func TestPlayGrandpaRoundMultipleRounds(t *testing.T) {
 			// In this test it is not important to assert the arguments
 			// to the telemetry SendMessage mocked func
 			// the TestSendingVotesInRightStage does it properly
-			telemetryMock := NewMockClient(ctrl)
+			telemetryMock := NewMockTelemetry(ctrl)
 			grandpaService.telemetry = telemetryMock
 			telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
@@ -645,7 +645,7 @@ func TestSendingVotesInRightStage(t *testing.T) {
 		grandpaVoters[2].PublicKeyBytes().String(),
 	)
 
-	mockedTelemetry := NewMockClient(ctrl)
+	mockedTelemetry := NewMockTelemetry(ctrl)
 	mockedTelemetry.EXPECT().
 		SendMessage(expectedAlicePrevoteTelemetryMessage)
 	mockedTelemetry.EXPECT().

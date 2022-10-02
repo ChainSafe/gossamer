@@ -121,7 +121,7 @@ func setConfigTestDefaults(t *testing.T, cfg *network.Config) {
 	cfg.SlotDuration = time.Second
 
 	if cfg.Telemetry == nil {
-		telemetryMock := NewMockClient(ctrl)
+		telemetryMock := NewMockTelemetry(ctrl)
 		telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 		cfg.Telemetry = telemetryMock
 	}

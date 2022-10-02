@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/ChainSafe/chaindb"
-	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -69,11 +68,11 @@ type BlockState struct {
 	runtimeUpdateSubscriptionsLock sync.RWMutex
 	runtimeUpdateSubscriptions     map[uint32]chan<- runtime.Version
 
-	telemetry telemetry.Client
+	telemetry Telemetry
 }
 
 // NewBlockState will create a new BlockState backed by the database located at basePath
-func NewBlockState(db chaindb.Database, trs *Tries, telemetry telemetry.Client) (*BlockState, error) {
+func NewBlockState(db chaindb.Database, trs *Tries, telemetry Telemetry) (*BlockState, error) {
 	bs := &BlockState{
 		dbPath:                     db.Path(),
 		baseState:                  NewBaseState(db),
@@ -106,7 +105,7 @@ func NewBlockState(db chaindb.Database, trs *Tries, telemetry telemetry.Client) 
 // NewBlockStateFromGenesis initialises a BlockState from a genesis header,
 // saving it to the database located at basePath
 func NewBlockStateFromGenesis(db chaindb.Database, trs *Tries, header *types.Header,
-	telemetryMailer telemetry.Client) (*BlockState, error) {
+	telemetryMailer Telemetry) (*BlockState, error) {
 	bs := &BlockState{
 		bt:                         blocktree.NewBlockTreeFromRoot(header),
 		baseState:                  NewBaseState(db),
@@ -732,7 +731,7 @@ func (bs *BlockState) setArrivalTime(hash common.Hash, arrivalTime time.Time) er
 
 // HandleRuntimeChanges handles the update in runtime.
 func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
-	rt runtime.Instance, bHash common.Hash) error {
+	rt Runtime, bHash common.Hash) error {
 	currCodeHash, err := newState.LoadCodeHash()
 	if err != nil {
 		return err
@@ -802,12 +801,12 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 }
 
 // GetRuntime gets the runtime instance pointer for the block hash given.
-func (bs *BlockState) GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error) {
+func (bs *BlockState) GetRuntime(blockHash common.Hash) (instance Runtime, err error) {
 	return bs.bt.GetBlockRuntime(blockHash)
 }
 
 // StoreRuntime stores the runtime for corresponding block hash.
-func (bs *BlockState) StoreRuntime(hash common.Hash, rt runtime.Instance) {
+func (bs *BlockState) StoreRuntime(hash common.Hash, rt Runtime) {
 	bs.bt.StoreRuntime(hash, rt)
 }
 

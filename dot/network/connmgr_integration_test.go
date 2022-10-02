@@ -50,7 +50,7 @@ func TestMinPeers(t *testing.T) {
 	// check that peer count is at least greater than minimum number of peers,
 	// even after trying to disconnect from all peers
 	for _, node := range nodes {
-		nodeB.host.cm.peerSetHandler.DisconnectPeer(0, node.host.id())
+		nodeB.host.cm.peerSetHandler.(*peerset.Handler).DisconnectPeer(0, node.host.id())
 	}
 
 	require.GreaterOrEqual(t, nodeB.host.peerCount(), min)
@@ -154,7 +154,7 @@ func TestPersistentPeers(t *testing.T) {
 	require.NotEqual(t, 0, len(conns))
 
 	// if A disconnects from B, B should reconnect
-	nodeA.host.cm.peerSetHandler.DisconnectPeer(0, nodeB.host.id())
+	nodeA.host.cm.peerSetHandler.(*peerset.Handler).DisconnectPeer(0, nodeB.host.id())
 
 	time.Sleep(time.Millisecond * 500)
 
@@ -191,7 +191,7 @@ func TestRemovePeer(t *testing.T) {
 	// nodeB will be connected to nodeA through bootnodes.
 	require.Equal(t, 1, nodeB.host.peerCount())
 
-	nodeB.host.cm.peerSetHandler.RemovePeer(0, nodeA.host.id())
+	nodeB.host.cm.peerSetHandler.(*peerset.Handler).RemovePeer(0, nodeA.host.id())
 	time.Sleep(time.Millisecond * 200)
 
 	require.Equal(t, 0, nodeB.host.peerCount())
@@ -230,7 +230,7 @@ func TestSetReservedPeer(t *testing.T) {
 	require.Equal(t, 2, node3.host.peerCount())
 
 	node3.host.p2pHost.Peerstore().AddAddrs(addrC.ID, addrC.Addrs, peerstore.PermanentAddrTTL)
-	node3.host.cm.peerSetHandler.SetReservedPeer(0, addrC.ID)
+	node3.host.cm.peerSetHandler.(*peerset.Handler).SetReservedPeer(0, addrC.ID)
 	time.Sleep(200 * time.Millisecond)
 
 	// reservedOnly mode is not yet implemented, so nodeA and nodeB won't be disconnected (#1888).

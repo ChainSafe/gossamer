@@ -18,7 +18,7 @@ import (
 
 func TestConcurrencySetHeader(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	threads := runtime.NumCPU()

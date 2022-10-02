@@ -75,7 +75,7 @@ func TestHandler_SendMulti(t *testing.T) {
 		[]byte(`{"target_hash":"0x5814aec3e28527f81f65841e034872f3a30337cf6c33b2d258bba6071e37e27c","target_number":"1","voter":"","msg":"afg.received_prevote","ts":`),                        //nolint:lll
 	}
 
-	messages := []Message{
+	messages := []json.Marshaler{
 		NewBandwidth(2, 3, 1),
 		NewTxpoolImport(1, 2),
 		NewSystemConnected(false, "chain", &firstHash,
@@ -135,7 +135,7 @@ func TestHandler_SendMulti(t *testing.T) {
 	var wg sync.WaitGroup
 	for _, message := range messages {
 		wg.Add(1)
-		go func(msg Message) {
+		go func(msg json.Marshaler) {
 			mailer.SendMessage(msg)
 			wg.Done()
 		}(message)
@@ -222,7 +222,7 @@ func TestListenerConcurrency(t *testing.T) {
 func TestTelemetryMarshalMessage(t *testing.T) {
 	t.Parallel()
 	tests := map[string]struct {
-		message  Message
+		message  json.Marshaler
 		expected string
 	}{
 		"AfgAuthoritySet_marshal": {
