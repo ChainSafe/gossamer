@@ -23,6 +23,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -374,20 +375,7 @@ func TestPlayGrandpaRound(t *testing.T) {
 					AnyTimes()
 			}
 
-			wg := new(sync.WaitGroup)
-			for _, grandpaService := range grandpaServices {
-				wg.Add(1)
-
-				// executes playGrandpaRound in a goroutine and
-				// assert the results after the services reach a finalisation
-				go func(wg *sync.WaitGroup, gs *Service) {
-					defer wg.Done()
-					err := gs.playGrandpaRound()
-					require.NoError(t, err)
-				}(wg, grandpaService)
-			}
-
-			wg.Wait()
+			runFinalizationServices(t, grandpaServices)
 
 			var latestHash common.Hash = grandpaServices[0].head.Hash()
 			for _, grandpaService := range grandpaServices[1:] {
@@ -550,18 +538,9 @@ func TestPlayGrandpaRoundMultipleRounds(t *testing.T) {
 				AnyTimes()
 		}
 
-		wg := new(sync.WaitGroup)
-		for _, grandpaService := range grandpaServices {
-			wg.Add(1)
-			// executes playGrandpaRound in a goroutine and
-			// assert the results after the services reach a finalisation
-			go func(wg *sync.WaitGroup, gs *Service) {
-				defer wg.Done()
-				err := gs.playGrandpaRound()
-				require.NoError(t, err)
-			}(wg, grandpaService)
-		}
-		wg.Wait()
+		// for each grandpa service we should start the finalization and voting round
+		// engines and waits for them to reach finalization
+		runFinalizationServices(t, grandpaServices)
 
 		const setID uint64 = 0
 		assertSameFinalizationAndChainGrowth(t, grandpaServices,
@@ -580,6 +559,142 @@ func TestPlayGrandpaRoundMultipleRounds(t *testing.T) {
 			latestCommit = commitMessage
 		}
 	}
+}
+
+func runFinalizationService(t *testing.T, grandpaService *Service) {
+	t.Helper()
+
+	finEngine := newFinalizationEngine(grandpaService)
+	votingRound := newHandleVotingRound(grandpaService, finEngine.actionCh)
+
+	finErrCh, err := finEngine.Start()
+	require.NoError(t, err)
+
+	votingErrsCh, err := votingRound.Start()
+	require.NoError(t, err)
+
+	innerErr := make(chan error)
+	defer close(innerErr)
+
+	wg := new(sync.WaitGroup)
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		for err := range finErrCh {
+			innerErr <- err
+			return
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		for err := range votingErrsCh {
+			innerErr <- err
+			return
+		}
+	}()
+
+	select {
+	case <-innerErr:
+		stopServices(t, finEngine)
+		stopServices(t, votingRound)
+		wg.Wait()
+
+	case <-waitServices([]*finalizationEngine{finEngine},
+		[]*handleVotingRound{votingRound}):
+		stopServices(t, finEngine)
+		stopServices(t, votingRound)
+		wg.Wait()
+	}
+}
+
+// runFinalizationServices is designed to handle many grandpa services and starts, for each service,
+// the finalization engine and the voting round engine which will take care of reach finalization
+func runFinalizationServices(t *testing.T, grandpaServices []*Service) {
+	t.Helper()
+
+	finalizationEngines := make([]*finalizationEngine, len(grandpaServices))
+	votingRounds := make([]*handleVotingRound, len(grandpaServices))
+
+	for idx, grandpaService := range grandpaServices {
+		finalizationEngine := newFinalizationEngine(grandpaService)
+		votingRound := newHandleVotingRound(grandpaService, finalizationEngine.actionCh)
+
+		finalizationEngines[idx] = finalizationEngine
+		votingRounds[idx] = votingRound
+	}
+
+	innerErr := make(chan error)
+	defer close(innerErr)
+
+	wg := new(sync.WaitGroup)
+	for _, finalizationEngine := range finalizationEngines {
+		errsCh, err := finalizationEngine.Start()
+		require.NoError(t, err)
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for err := range errsCh {
+				innerErr <- err
+				return
+			}
+		}()
+	}
+
+	for _, votingRound := range votingRounds {
+		errsCh, err := votingRound.Start()
+		require.NoError(t, err)
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for err := range errsCh {
+				innerErr <- err
+				return
+			}
+		}()
+	}
+
+	select {
+	case <-innerErr:
+		stopServices(t, finalizationEngines...)
+		stopServices(t, votingRounds...)
+		wg.Wait()
+
+	case <-waitServices(finalizationEngines, votingRounds):
+		stopServices(t, finalizationEngines...)
+		stopServices(t, votingRounds...)
+		wg.Wait()
+	}
+}
+
+type stopable interface {
+	Stop() (err error)
+}
+
+func stopServices[T stopable](t *testing.T, srvs ...T) {
+	t.Helper()
+
+	for _, service := range srvs {
+		err := service.Stop()
+		assert.NoError(t, err)
+	}
+}
+
+func waitServices(finalizationEngines []*finalizationEngine, votingRounds []*handleVotingRound) (allDone <-chan struct{}) {
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for _, finEngines := range finalizationEngines {
+			<-finEngines.engineDone
+		}
+
+		for _, votingRound := range votingRounds {
+			<-votingRound.engineDone
+		}
+	}()
+	return done
 }
 
 // assertChainGrowth ensure that each service reach the same finalisation result
@@ -690,11 +805,13 @@ func TestSendingVotesInRightStage(t *testing.T) {
 		IsDescendantOf(testGenesisHeader.Hash(), testGenesisHeader.Hash()).
 		Return(true, nil).
 		AnyTimes()
+
 	mockedState.EXPECT().
 		BestBlockHeader().
 		Return(testGenesisHeader, nil).
 		Times(2)
-		// we cannot assert the bytes since some votes is defined while playing grandpa round
+
+	// we cannot assert the bytes since some votes is defined while playing grandpa round
 	mockedState.EXPECT().
 		SetJustification(testGenesisHeader.Hash(), gomock.AssignableToTypeOf([]byte{})).
 		Return(nil).
@@ -756,7 +873,7 @@ func TestSendingVotesInRightStage(t *testing.T) {
 
 	// gossamer gossip a prevote/precommit message and then waits `subroundInterval` * 4
 	// to issue another prevote/precommit message
-	const subroundInterval = 100 * time.Millisecond
+	const subroundInterval = time.Second
 	grandpa := &Service{
 		ctx:          ctx,
 		cancel:       cancel,
@@ -811,11 +928,11 @@ func TestSendingVotesInRightStage(t *testing.T) {
 		GossipMessage(pc).
 		AnyTimes()
 
-	doneCh := make(chan struct{})
+	wg := sync.WaitGroup{}
+	wg.Add(1)
 	go func() {
-		defer close(doneCh)
-		err = grandpa.playGrandpaRound()
-		require.NoError(t, err)
+		defer wg.Done()
+		runFinalizationService(t, grandpa)
 	}()
 
 	time.Sleep(grandpa.interval * 5)
@@ -851,5 +968,5 @@ func TestSendingVotesInRightStage(t *testing.T) {
 		GossipMessage(expectedGossipCommitMessage).
 		Times(1)
 
-	<-doneCh
+	wg.Wait()
 }

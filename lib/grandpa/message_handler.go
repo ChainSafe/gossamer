@@ -72,7 +72,26 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 	}
 }
 
+func (h *MessageHandler) notifyNeighbors(neighbourMessage *NeighbourPacketV1) {
+	cm, err := neighbourMessage.ToConsensusMessage()
+	if err != nil {
+		logger.Warnf("failed to convert NeighbourMessage to network message: %s", err)
+	} else {
+		logger.Warnf("sending neighbor message: %v", neighbourMessage)
+		h.grandpa.network.GossipMessage(cm)
+	}
+}
+
 func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourPacketV1) error {
+	h.grandpa.roundLock.Lock()
+	neighbourMessage := &NeighbourPacketV1{
+		Round:  h.grandpa.state.round,
+		SetID:  h.grandpa.state.setID,
+		Number: uint32(h.grandpa.head.Number),
+	}
+	h.grandpa.roundLock.Unlock()
+	h.notifyNeighbors(neighbourMessage)
+
 	currFinalized, err := h.blockState.GetFinalisedHeader(0, 0)
 	if err != nil {
 		return err

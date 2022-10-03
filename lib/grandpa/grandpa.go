@@ -175,13 +175,9 @@ func (s *Service) Start() error {
 	s.tracker.start()
 
 	go func() {
-		for {
-			// TODO: sometimes grandpa fails to initiate due to a "Key not found"
-			// error, this shouldn't happen.
-			if err := s.initiate(); err != nil {
-				logger.Criticalf("failed to initiate: %s", err)
-			}
-			time.Sleep(s.interval)
+		err := s.initiate()
+		if err != nil {
+			logger.Errorf("grandpa service: %s", err)
 		}
 	}()
 
@@ -303,7 +299,7 @@ func (s *Service) initiateRound() error {
 		s.state.round = round
 	}
 
-	s.head, err = s.blockState.GetFinalisedHeader(s.state.round, s.state.setID)
+	s.head, err = s.blockState.GetFinalisedHeader(round, setID)
 	if err != nil {
 		logger.Criticalf("failed to get finalised header for round %d: %s", round, err)
 		return err
@@ -335,22 +331,26 @@ func (s *Service) initiateRound() error {
 
 // initiate initates the grandpa service to begin voting in sequential rounds
 func (s *Service) initiate() error {
-	for {
-		finalizationHandler := newFinalizationHandler(s)
-		errsCh, err := finalizationHandler.Start()
-		if err != nil {
-			return fmt.Errorf("starting finalization handler: %w", err)
-		}
+	finalizationHandler := newFinalizationHandler(s)
+	errsCh, err := finalizationHandler.Start()
+	if err != nil {
+		return fmt.Errorf("starting finalization handler: %w", err)
+	}
 
-		for err := range errsCh {
-			logger.Errorf("finalization handler: %s", err)
+	for err := range errsCh {
+		logger.Errorf("finalization handler: %s", err)
 
-			if errors.Is(err, errVotingRound) {
-				stopFinalizationHandler(finalizationHandler)
-				return err
+		if errors.Is(err, errStartingService) || errors.Is(err, errVotingRound) {
+			errStop := stopFinalizationHandler(finalizationHandler)
+			if errStop != nil {
+				return errStop
 			}
+
+			return err
 		}
 	}
+
+	return nil
 }
 
 func stopFinalizationHandler(finalizationHandler *finalizationHandler) error {
@@ -420,6 +420,8 @@ func (s *Service) primaryBroadcastCommitMessage() {
 }
 
 func (s *Service) checkRoundAlreadyCompletable() (bool, error) {
+	logger.Debugf("(checkRoundAlreadyCompletable) round: %d, set id: %d", s.state.round, s.state.setID)
+
 	// check if the current round contains a finalized block
 	has, err := s.blockState.HasFinalisedBlock(s.state.round, s.state.setID)
 	if err != nil {

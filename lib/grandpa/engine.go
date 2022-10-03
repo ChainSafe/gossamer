@@ -12,80 +12,139 @@ import (
 var errVotingRound = errors.New("voting round error")
 
 type finalizationHandler struct {
-	votingRound        *handleVotingRound
-	finalizationEngine *finalizationEngine
-
-	wg             sync.WaitGroup
+	timeoutStop    time.Duration
+	grandpaService *Service
 	observableErrs chan error
 	stopCh         chan struct{}
+	handlerDone    chan struct{}
 }
 
 func newFinalizationHandler(service *Service) *finalizationHandler {
-	finalizationEngine := newFinalizationEngine(service)
-	votingRound := newHandleVotingRound(service, finalizationEngine.actionCh)
-
 	return &finalizationHandler{
-		votingRound:        votingRound,
-		finalizationEngine: finalizationEngine,
-		observableErrs:     make(chan error),
-		stopCh:             make(chan struct{}),
+		timeoutStop:    5 * time.Second,
+		grandpaService: service,
+		observableErrs: make(chan error),
+		stopCh:         make(chan struct{}),
+		handlerDone:    make(chan struct{}),
+	}
+}
+
+func (fh *finalizationHandler) stopServices(finalizationEngine *finalizationEngine,
+	votingRound *handleVotingRound) error {
+	stopErr := make([]error, 2)
+	err := finalizationEngine.Stop()
+	if err != nil {
+		stopErr = append(stopErr, fmt.Errorf("stopping finalization engine: %w", err))
+	}
+
+	err = votingRound.Stop()
+	if err != nil {
+		stopErr = append(stopErr, fmt.Errorf("stopping voting round: %w", err))
+	}
+
+	if len(stopErr) > 0 {
+		return stopErr[0]
+	}
+
+	return nil
+}
+
+func (fh *finalizationHandler) waitServices(finalizationEngine *finalizationEngine,
+	votingRound *handleVotingRound) (doneCh <-chan struct{}) {
+	done := make(chan struct{})
+
+	go func() {
+		defer close(done)
+
+		<-finalizationEngine.engineDone
+		<-votingRound.engineDone
+	}()
+
+	return done
+}
+
+var errStartingService = errors.New("starting service")
+
+func (fh *finalizationHandler) runFinalization() {
+	defer close(fh.handlerDone)
+
+	for {
+		err := fh.grandpaService.initiateRound()
+		if err != nil {
+			fh.observableErrs <- fmt.Errorf("%w: initiating round: %s", errStartingService, err)
+			return
+		}
+
+		finalizationEngine := newFinalizationEngine(fh.grandpaService)
+		votingRound := newHandleVotingRound(fh.grandpaService, finalizationEngine.actionCh)
+
+		finalizationEngErrsCh, err := finalizationEngine.Start()
+		if err != nil {
+			fh.observableErrs <- fmt.Errorf("%w: finalization engine: %s", errStartingService, err)
+			return
+		}
+
+		handleVotingErrsCh, err := votingRound.Start()
+		if err != nil {
+			fh.observableErrs <- fmt.Errorf("%w: voting round: %s", errStartingService, err)
+			return
+
+		}
+
+		innerWg := sync.WaitGroup{}
+		innerWg.Add(2)
+
+		go func() {
+			defer innerWg.Done()
+			for err := range handleVotingErrsCh {
+				fh.observableErrs <- fmt.Errorf("%w: %s", errVotingRound, err)
+			}
+		}()
+
+		go func() {
+			defer innerWg.Done()
+			for err := range finalizationEngErrsCh {
+				fh.observableErrs <- err
+			}
+		}()
+
+		select {
+		case <-fh.stopCh:
+			err := fh.stopServices(finalizationEngine, votingRound)
+			if err != nil {
+				fh.observableErrs <- err
+			}
+
+			innerWg.Wait()
+			return
+
+		case <-fh.waitServices(finalizationEngine, votingRound):
+			err := fh.stopServices(finalizationEngine, votingRound)
+			if err != nil {
+				fh.observableErrs <- err
+				return
+			}
+
+			innerWg.Wait()
+		}
 	}
 }
 
 func (fh *finalizationHandler) Start() (errsCh <-chan error, err error) {
-
-	finalizationEngErrsCh, err := fh.finalizationEngine.Start()
-	if err != nil {
-		return nil, fmt.Errorf("starting finalization engine: %w", err)
-	}
-
-	handleVotingErrsCh, err := fh.votingRound.Start()
-	if err != nil {
-		return nil, fmt.Errorf("starting handle voting: %w", err)
-	}
-
-	wg := sync.WaitGroup{}
-	wg.Add(2)
-
-	go func() {
-		defer wg.Done()
-		for err := range handleVotingErrsCh {
-			fh.observableErrs <- fmt.Errorf("%w: %s", errVotingRound, err)
-		}
-	}()
-
-	go func() {
-		defer wg.Done()
-		for err := range finalizationEngErrsCh {
-			fh.observableErrs <- err
-		}
-	}()
-
+	go fh.runFinalization()
 	return fh.observableErrs, nil
 }
 
 func (fh *finalizationHandler) Stop() (err error) {
-	stopErrs := make([]error, 0, 2)
-
-	err = fh.votingRound.Stop()
-	if err != nil {
-		stopErrs = append(stopErrs, fmt.Errorf("stopping voting round: %w", err))
-	}
-
-	err = fh.finalizationEngine.Stop()
-	if err != nil {
-		stopErrs = append(stopErrs, fmt.Errorf("stopping finalization engine: %w", err))
-	}
-
 	close(fh.stopCh)
-	fh.wg.Wait()
+
+	select {
+	case <-fh.handlerDone:
+	case <-time.After(fh.timeoutStop):
+		return fmt.Errorf("%w", errTimeoutWhileStoping)
+	}
 
 	close(fh.observableErrs)
-
-	if len(stopErrs) > 0 {
-		return stopErrs[0]
-	}
-
 	return nil
 }
 
@@ -96,13 +155,15 @@ type handleVotingRound struct {
 	grandpaService *Service
 	errsCh         chan error
 
+	timeoutStop          time.Duration
 	finalizationEngineCh <-chan action
-	stopCh               chan<- struct{}
-	engineDone           <-chan struct{}
+	stopCh               chan struct{}
+	engineDone           chan struct{}
 }
 
 func newHandleVotingRound(service *Service, finalizationEngineCh <-chan action) *handleVotingRound {
 	return &handleVotingRound{
+		timeoutStop:          5 * time.Second,
 		grandpaService:       service,
 		errsCh:               make(chan error),
 		stopCh:               make(chan struct{}),
@@ -112,11 +173,6 @@ func newHandleVotingRound(service *Service, finalizationEngineCh <-chan action) 
 }
 
 func (h *handleVotingRound) Start() (errsCh <-chan error, err error) {
-	err = h.grandpaService.initiateRound()
-	if err != nil {
-		return nil, fmt.Errorf("initiating round: %w", err)
-	}
-
 	go h.playGrandpaRound()
 	return h.errsCh, nil
 }
@@ -124,10 +180,9 @@ func (h *handleVotingRound) Start() (errsCh <-chan error, err error) {
 func (h *handleVotingRound) Stop() (err error) {
 	close(h.stopCh)
 
-	timeout := 5 * time.Second
 	select {
 	case <-h.engineDone:
-	case <-time.After(timeout):
+	case <-time.After(h.timeoutStop):
 		return fmt.Errorf("%w", errTimeoutWhileStoping)
 	}
 
@@ -138,6 +193,8 @@ func (h *handleVotingRound) Stop() (err error) {
 // playGrandpaRound executes a round of GRANDPA
 // at the end of this round, a block will be finalised.
 func (h *handleVotingRound) playGrandpaRound() {
+	defer close(h.engineDone)
+
 	start := time.Now()
 
 	logger.Debugf("starting round %d with set id %d",
@@ -145,6 +202,9 @@ func (h *handleVotingRound) playGrandpaRound() {
 
 	for { //nolint:gosimple
 		select {
+		case <-h.stopCh:
+			return
+
 		case <-h.grandpaService.ctx.Done():
 			err := h.grandpaService.ctx.Err()
 			if err != nil {
@@ -161,7 +221,7 @@ func (h *handleVotingRound) playGrandpaRound() {
 			case determinePrevote:
 				isPrimary, err := h.grandpaService.handleIsPrimary()
 				if err != nil {
-					h.errsCh <- fmt.Errorf("handling primary: %w", err)
+					h.errsCh <- fmt.Errorf("determining pre-vote: %w", err)
 					return
 				}
 
@@ -184,7 +244,6 @@ func (h *handleVotingRound) playGrandpaRound() {
 				}
 
 				logger.Warnf("sending pre-vote message: {%v}", prevoteMessage)
-
 				h.grandpaService.sendPrevoteMessage(prevoteMessage)
 
 			case determinePrecommit:
@@ -231,6 +290,11 @@ func (h *handleVotingRound) playGrandpaRound() {
 
 				logger.Debugf("round completed in %s", time.Since(start))
 				return
+
+			case alreadyFinalized:
+				logger.Debugf("round completed in %s", time.Since(start))
+				return
+
 			}
 		}
 	}
@@ -250,15 +314,17 @@ const (
 type finalizationEngine struct {
 	grandpaService *Service
 
-	stopCh     chan struct{}
-	engineDone chan struct{}
-	actionCh   chan action
-	errsCh     chan error
+	timeoutStop time.Duration
+	stopCh      chan struct{}
+	engineDone  chan struct{}
+	actionCh    chan action
+	errsCh      chan error
 }
 
 func newFinalizationEngine(service *Service) *finalizationEngine {
 	return &finalizationEngine{
 		grandpaService: service,
+		timeoutStop:    5 * time.Second,
 		actionCh:       make(chan action),
 		errsCh:         make(chan error),
 		stopCh:         make(chan struct{}),
@@ -274,10 +340,9 @@ func (f *finalizationEngine) Start() (errsCh <-chan error, err error) {
 func (f *finalizationEngine) Stop() (err error) {
 	close(f.stopCh)
 
-	timeout := 5 * time.Second
 	select {
 	case <-f.engineDone:
-	case <-time.After(timeout):
+	case <-time.After(f.timeoutStop):
 		return fmt.Errorf("%w", errTimeoutWhileStoping)
 	}
 
@@ -308,14 +373,35 @@ func (f *finalizationEngine) playFinalization(gossipInterval time.Duration, stop
 			return
 
 		case <-determinePrevoteTimer.C:
+			alreadyCompletable, err := f.grandpaService.checkRoundAlreadyCompletable()
+			if err != nil {
+				f.errsCh <- fmt.Errorf("%w: checking round is completable: %s",
+					errVotingRound, err)
+				return
+			}
+
+			if alreadyCompletable {
+				f.actionCh <- alreadyFinalized
+				return
+			}
+
 			f.actionCh <- determinePrevote
 
 		case <-determinePrecommitTimer.C:
+			alreadyCompletable, err := f.grandpaService.checkRoundAlreadyCompletable()
+			if err != nil {
+				f.errsCh <- fmt.Errorf("%w: checking round is completable: %s",
+					errVotingRound, err)
+				return
+			}
+
+			if alreadyCompletable {
+				f.actionCh <- alreadyFinalized
+				return
+			}
+
 			prevoteGrandpaGhost, err := f.grandpaService.getPreVotedBlock()
-			if errors.Is(err, ErrNoGHOST) {
-				determinePrecommitTimer.Reset(gossipInterval * 4)
-				break
-			} else if err != nil {
+			if err != nil {
 				f.errsCh <- fmt.Errorf("getting grandpa ghost: %w", err)
 				return
 			}
@@ -339,8 +425,7 @@ func (f *finalizationEngine) playFinalization(gossipInterval time.Duration, stop
 			}
 
 			if !isDescendant {
-				determinePrecommitTimer.Reset(gossipInterval * 4)
-				break
+				panic("block with supermajority does not belong to the latest finalized block")
 			}
 
 			f.actionCh <- determinePrecommit
@@ -352,34 +437,32 @@ func (f *finalizationEngine) playFinalization(gossipInterval time.Duration, stop
 	defer attemptFinalizationTicker.Stop()
 
 	for {
+		alreadyCompletable, err := f.grandpaService.checkRoundAlreadyCompletable()
+		if err != nil {
+			f.errsCh <- fmt.Errorf("checking round is completable: %w", err)
+			return
+		}
+
+		if alreadyCompletable {
+			f.actionCh <- alreadyFinalized
+			return
+		}
+
+		finalizable, err := f.grandpaService.attemptToFinalize()
+		if err != nil {
+			f.errsCh <- fmt.Errorf("attempting to finalize: %w", err)
+			return
+		}
+
+		if finalizable {
+			f.actionCh <- finalize
+			return
+		}
+
 		select {
 		case <-stop:
 			return
-
 		case <-attemptFinalizationTicker.C:
-			alreadyCompletable, err := f.grandpaService.checkRoundAlreadyCompletable()
-			if err != nil {
-				f.errsCh <- fmt.Errorf("checking round is completable: %w", err)
-				continue
-			}
-
-			if alreadyCompletable {
-				f.actionCh <- alreadyFinalized
-				return
-			}
-
-			finalizable, err := f.grandpaService.attemptToFinalize()
-			if err != nil {
-				f.errsCh <- fmt.Errorf("attempting to finalize: %w", err)
-				continue
-			}
-
-			if !finalizable {
-				continue
-			}
-
-			f.actionCh <- finalize
-			return
 		}
 	}
 

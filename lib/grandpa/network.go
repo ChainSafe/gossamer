@@ -156,47 +156,6 @@ func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) (
 	return true, nil
 }
 
-func (s *Service) sendNeighbourMessage(interval time.Duration) {
-	t := time.NewTicker(interval)
-	defer t.Stop()
-
-	var neighbourMessage *NeighbourPacketV1
-	for {
-		select {
-		case <-s.ctx.Done():
-			return
-
-		case <-t.C:
-			s.roundLock.Lock()
-			neighbourMessage = &NeighbourPacketV1{
-				Round:  s.state.round,
-				SetID:  s.state.setID,
-				Number: uint32(s.head.Number),
-			}
-			s.roundLock.Unlock()
-
-		case info, ok := <-s.finalisedCh:
-			if !ok {
-				return
-			}
-
-			neighbourMessage = &NeighbourPacketV1{
-				Round:  info.Round,
-				SetID:  info.SetID,
-				Number: uint32(info.Header.Number),
-			}
-		}
-
-		cm, err := neighbourMessage.ToConsensusMessage()
-		if err != nil {
-			logger.Warnf("failed to convert NeighbourMessage to network message: %s", err)
-			continue
-		}
-
-		s.network.GossipMessage(cm)
-	}
-}
-
 // decodeMessage decodes a network-level consensus message into a GRANDPA VoteMessage or CommitMessage
 func decodeMessage(cm *network.ConsensusMessage) (m GrandpaMessage, err error) {
 	msg := newGrandpaMessage()
