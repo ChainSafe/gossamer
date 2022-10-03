@@ -29,16 +29,16 @@ func (i *InvalidTransaction) Set(val scale.VaryingDataTypeValue) (err error) {
 }
 
 // Value will return the value from the underying VaryingDataType
-func (i *InvalidTransaction) Value() (val scale.VaryingDataTypeValue) {
+func (i *InvalidTransaction) Value() (val scale.VaryingDataTypeValue, err error) {
 	vdt := scale.VaryingDataType(*i)
 	return vdt.Value()
 }
 
 // Error returns the error message associated with the InvalidTransaction
 func (i InvalidTransaction) Error() string {
-	value := i.Value()
-	if value == nil {
-		return "invalidTransaction hasn't been set"
+	value, err := i.Value()
+	if err != nil {
+		return fmt.Sprintf("getting invalid transaction value: %s", err)
 	}
 	err, ok := value.(error)
 	if !ok {

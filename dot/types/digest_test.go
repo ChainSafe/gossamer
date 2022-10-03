@@ -67,7 +67,11 @@ func TestDecodeSingleDigest(t *testing.T) {
 	err = scale.Unmarshal(enc, &v)
 	require.NoError(t, err)
 
-	require.Equal(t, di.Value(), v.Value())
+	diValue, err := di.Value()
+	require.NoError(t, err)
+	vValue, err := v.Value()
+	require.NoError(t, err)
+	require.Equal(t, diValue, vValue)
 }
 
 func TestDecodeDigest(t *testing.T) {
@@ -106,7 +110,11 @@ func TestChangesTrieRootDigest(t *testing.T) {
 	err = scale.Unmarshal(enc, &v)
 	require.NoError(t, err)
 
-	require.Equal(t, di.Value(), v.Value())
+	diValue, err := di.Value()
+	require.NoError(t, err)
+	vValue, err := v.Value()
+	require.NoError(t, err)
+	require.Equal(t, diValue, vValue)
 }
 
 func TestPreRuntimeDigest(t *testing.T) {
@@ -129,7 +137,11 @@ func TestPreRuntimeDigest(t *testing.T) {
 	err = scale.Unmarshal(enc, &v)
 	require.NoError(t, err)
 
-	require.Equal(t, di.Value(), v.Value())
+	diValue, err := di.Value()
+	require.NoError(t, err)
+	vValue, err := v.Value()
+	require.NoError(t, err)
+	require.Equal(t, diValue, vValue)
 }
 
 func TestConsensusDigest(t *testing.T) {
@@ -152,7 +164,11 @@ func TestConsensusDigest(t *testing.T) {
 	err = scale.Unmarshal(enc, &v)
 	require.NoError(t, err)
 
-	require.Equal(t, di.Value(), v.Value())
+	diValue, err := di.Value()
+	require.NoError(t, err)
+	vValue, err := v.Value()
+	require.NoError(t, err)
+	require.Equal(t, diValue, vValue)
 }
 
 func TestSealDigest(t *testing.T) {
@@ -175,5 +191,9 @@ func TestSealDigest(t *testing.T) {
 	err = scale.Unmarshal(enc, &v)
 	require.NoError(t, err)
 
-	require.Equal(t, di.Value(), v.Value())
+	diValue, err := di.Value()
+	require.NoError(t, err)
+	vValue, err := v.Value()
+	require.NoError(t, err)
+	require.Equal(t, diValue, vValue)
 }

@@ -82,13 +82,15 @@ func Test_InvalidTransactionValidity(t *testing.T) {
 	errMsg := transactionValidityErr.Error()
 	require.Equal(t, expErrMsg, errMsg)
 
-	val := transactionValidityErr.Value()
+	val, err := transactionValidityErr.Value()
+	require.NoError(t, err)
 	_, isParentCorrectType := val.(InvalidTransaction)
 	require.True(t, isParentCorrectType)
 
 	invTransaction, ok := val.(InvalidTransaction)
 	require.True(t, ok)
-	childVal := invTransaction.Value()
+	childVal, err := invTransaction.Value()
+	require.NoError(t, err)
 	_, isChildCorrectType := childVal.(Future)
 	require.True(t, isChildCorrectType)
 }
@@ -105,13 +107,15 @@ func Test_UnknownTransactionValidity(t *testing.T) {
 	errMsg := transactionValidityErr.Error()
 	require.Equal(t, expErrMsg, errMsg)
 
-	val := transactionValidityErr.Value()
+	val, err := transactionValidityErr.Value()
+	require.NoError(t, err)
 	_, isParentCorrectType := val.(UnknownTransaction)
 	require.True(t, isParentCorrectType)
 
 	unknownTransaction, ok := val.(UnknownTransaction)
 	require.True(t, ok)
-	childVal := unknownTransaction.Value()
+	childVal, err := unknownTransaction.Value()
+	require.NoError(t, err)
 	_, isChildCorrectType := childVal.(NoUnsignedValidator)
 	require.True(t, isChildCorrectType)
 }

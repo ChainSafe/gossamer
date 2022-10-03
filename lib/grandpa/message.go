@@ -105,7 +105,7 @@ func (vnp *VersionedNeighbourPacket) Set(val scale.VaryingDataTypeValue) (err er
 }
 
 // Value returns the current VDT value
-func (vnp *VersionedNeighbourPacket) Value() (val scale.VaryingDataTypeValue) {
+func (vnp *VersionedNeighbourPacket) Value() (val scale.VaryingDataTypeValue, err error) {
 	vdt := scale.VaryingDataType(*vnp)
 	return vdt.Value()
 }
