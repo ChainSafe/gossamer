@@ -351,7 +351,7 @@ func (ds *decodeState) decodeResult(dstv reflect.Value) (err error) {
 		dstv.Set(reflect.ValueOf(res))
 	default:
 		bytes, _ := io.ReadAll(ds.Reader)
-		err = fmt.Errorf("%w: value: %v, bytes: %v", ErrUnsupportedResult, rb, bytes)
+		err = fmt.Errorf("%w: value: %v, bytes: %v", errUnsupportedResult, rb, bytes)
 	}
 	return
 }
@@ -392,7 +392,7 @@ func (ds *decodeState) decodePointer(dstv reflect.Value) (err error) {
 		}
 	default:
 		bytes, _ := io.ReadAll(ds.Reader)
-		err = fmt.Errorf("%w: value: %v, bytes: %v", ErrUnsupportedOption, rb, bytes)
+		err = fmt.Errorf("%w: value: %v, bytes: %v", errUnsupportedOption, rb, bytes)
 	}
 	return
 }
@@ -442,7 +442,7 @@ func (ds *decodeState) decodeVaryingDataType(dstv reflect.Value) (err error) {
 	vdt := dstv.Interface().(VaryingDataType)
 	val, ok := vdt.cache[uint(b)]
 	if !ok {
-		err = fmt.Errorf("%w: for key %d", ErrFindVDT, uint(b))
+		err = fmt.Errorf("%w: for key %d", errFindVDT, uint(b))
 		return
 	}
 
@@ -541,7 +541,7 @@ func (ds *decodeState) decodeBool(dstv reflect.Value) (err error) {
 	case 0x01:
 		b = true
 	default:
-		err = fmt.Errorf("%w: %s", ErrDecodeBool, err)
+		err = fmt.Errorf("%w: %s", errDecodeBool, err)
 	}
 	dstv.Set(reflect.ValueOf(b))
 	return

@@ -207,7 +207,7 @@ func (es *encodeState) encodeCustomPrimitive(in interface{}) (err error) {
 
 func (es *encodeState) encodeResult(res Result) (err error) {
 	if !res.IsSet() {
-		err = fmt.Errorf("%w: %+v", ErrResultNotSet, res)
+		err = fmt.Errorf("%w: %+v", errResultNotSet, res)
 		return
 	}
 
@@ -303,7 +303,7 @@ func (es *encodeState) encodeArray(in interface{}) (err error) {
 func (es *encodeState) encodeBigInt(i *big.Int) (err error) {
 	switch {
 	case i == nil:
-		err = fmt.Errorf("%w", ErrBigIntIsNil)
+		err = fmt.Errorf("%w", errBigIntIsNil)
 	case i.Cmp(new(big.Int).Lsh(big.NewInt(1), 6)) < 0:
 		err = binary.Write(es, binary.LittleEndian, uint8(i.Int64()<<2))
 		if err != nil {
@@ -515,7 +515,7 @@ func (es *encodeState) encodeUint(i uint) (err error) {
 // encodeUint128 encodes a Uint128
 func (es *encodeState) encodeUint128(i *Uint128) (err error) {
 	if i == nil {
-		err = fmt.Errorf("%w", ErrUint128IsNil)
+		err = fmt.Errorf("%w", errUint128IsNil)
 		return
 	}
 	err = binary.Write(es, binary.LittleEndian, padBytes(i.Bytes(), binary.LittleEndian))
