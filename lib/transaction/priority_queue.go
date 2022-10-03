@@ -88,9 +88,8 @@ type PriorityQueue struct {
 // NewPriorityQueue creates new instance of PriorityQueue
 func NewPriorityQueue() *PriorityQueue {
 	spq := &PriorityQueue{
-		pq:           make(priorityQueue, 0),
 		txs:          make(map[common.Hash]*Item),
-		pollInterval: time.Millisecond * 10,
+		pollInterval: 10 * time.Millisecond,
 	}
 
 	heap.Init(&spq.pq)
@@ -145,6 +144,11 @@ func (spq *PriorityQueue) Push(txn *ValidTransaction) (common.Hash, error) {
 // PopWithTimer returns the next valid transaction from the queue.
 // When the timer expires, it returns `nil`.
 func (spq *PriorityQueue) PopWithTimer(timer *time.Timer) (transaction *ValidTransaction) {
+	transaction = spq.Pop()
+	if transaction != nil {
+		return transaction
+	}
+
 	transactionChannel := make(chan *ValidTransaction)
 	go func() {
 		pollTicker := time.NewTicker(spq.pollInterval)

@@ -317,55 +317,75 @@ func Test_PopWithTimer(t *testing.T) {
 	}
 }
 
-func Test_PopWithTimer_Ends(t *testing.T) {
-	pq := NewPriorityQueue()
-	// increase sleep time greater than timer
-	pq.pollInterval = 2 * time.Second
-	slotTimer := time.NewTimer(time.Second)
+func Test_PriorityQueue_PopWithTimer(t *testing.T) {
+	t.Parallel()
 
-	start := time.Now()
-
-	tests := []*ValidTransaction{
-		{
-			Extrinsic: []byte("a"),
-			Validity:  &Validity{Priority: 1},
+	testCases := map[string]struct {
+		queueBuilder  func() *PriorityQueue
+		queueModifier func(queue *PriorityQueue, done chan<- struct{})
+		timer         *time.Timer
+		transaction   *ValidTransaction
+	}{
+		"empty queue polled once": {
+			// test should last 1ns
+			queueBuilder: NewPriorityQueue,
+			timer:        time.NewTimer(time.Nanosecond),
 		},
-		{
-			Extrinsic: []byte("b"),
-			Validity:  &Validity{Priority: 4},
+		"empty queue polled multiple times": {
+			// test should last 1ms
+			queueBuilder: func() *PriorityQueue {
+				queue := NewPriorityQueue()
+				queue.pollInterval = time.Nanosecond
+				return queue
+			},
+			timer: time.NewTimer(time.Millisecond),
 		},
-		{
-			Extrinsic: []byte("c"),
-			Validity:  &Validity{Priority: 2},
+		"queue with one element polled once": {
+			// test should be instantaneous
+			queueBuilder: func() *PriorityQueue {
+				queue := NewPriorityQueue()
+				queue.Push(&ValidTransaction{Validity: &Validity{Priority: 1}})
+				return queue
+			},
+			timer:       time.NewTimer(time.Nanosecond),
+			transaction: &ValidTransaction{Validity: &Validity{Priority: 1}},
 		},
-		{
-			Extrinsic: []byte("d"),
-			Validity:  &Validity{Priority: 17},
-		},
-		{
-			Extrinsic: []byte("e"),
-			Validity:  &Validity{Priority: 2},
+		"queue polled multiple times until new element": {
+			// test should last 1ms
+			queueBuilder: func() *PriorityQueue {
+				queue := NewPriorityQueue()
+				queue.pollInterval = time.Nanosecond
+				return queue
+			},
+			queueModifier: func(queue *PriorityQueue, done chan<- struct{}) {
+				close(done)
+				time.Sleep(time.Millisecond)
+				queue.Push(&ValidTransaction{Validity: &Validity{Priority: 1}})
+			},
+			timer:       time.NewTimer(time.Second),
+			transaction: &ValidTransaction{Validity: &Validity{Priority: 1}},
 		},
 	}
 
-	expected := []int{3, 1, 2, 4, 0}
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 
-	for _, test := range tests {
-		pq.Push(test)
+			queue := testCase.queueBuilder()
+
+			modifyDone := make(chan struct{})
+			if testCase.queueModifier != nil {
+				// modify queue asynchronously while popping
+				go testCase.queueModifier(queue, modifyDone)
+			} else {
+				close(modifyDone)
+			}
+
+			transaction := queue.PopWithTimer(testCase.timer)
+			<-modifyDone
+			testCase.timer.Stop()
+			assert.Equal(t, testCase.transaction, transaction)
+		})
 	}
-
-	counter := 0
-	for {
-		txn := pq.PopWithTimer(slotTimer)
-		if txn == nil {
-			break
-		}
-		assert.Equal(t, tests[expected[counter]], txn)
-		counter++
-	}
-
-	d := time.Since(start)
-	// assert between 1s and 1.1s
-	assert.GreaterOrEqual(t, d, time.Second)
-	assert.LessOrEqual(t, d, time.Second+(time.Millisecond*100))
 }

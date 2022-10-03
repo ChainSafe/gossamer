@@ -185,7 +185,6 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt runtime.Instance) []*t
 			break
 		}
 
-		// handle txn
 		extrinsic := txn.Extrinsic
 		logger.Tracef("build block, applying extrinsic %s", extrinsic)
 
@@ -223,6 +222,7 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt runtime.Instance) []*t
 		logger.Debugf("build block applied extrinsic %s", extrinsic)
 		included = append(included, txn)
 	}
+
 	return included
 }
 
