@@ -43,8 +43,9 @@ func Test_UnmarshalTransactionValidity(t *testing.T) {
 		{
 			name:        "unmarshal error",
 			encodedData: []byte{1},
-			expErrMsg:   "scale decoding transaction validity result: EOF",
-			expErr:      true,
+			expErrMsg: "scale decoding transaction validity result: decoding Result: unmarshalling result error: " +
+				"decoding custom varying data type: decoding varying data type: reading byte: EOF",
+			expErr: true,
 		},
 		{
 			name:        "valid case",

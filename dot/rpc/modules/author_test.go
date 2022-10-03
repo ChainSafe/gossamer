@@ -86,7 +86,7 @@ func TestAuthorModule_HasSessionKeys(t *testing.T) {
 				req: &HasSessionKeyRequest{"0x01"},
 			},
 			exp:    false,
-			expErr: errors.New("unmarshalling: decoding pointer: unsupported option: value: 4, bytes: [1]"),
+			expErr: errors.New("decoding pointer: unsupported option: value: 4, bytes: [1]"),
 		},
 		{
 			name: "happy path",

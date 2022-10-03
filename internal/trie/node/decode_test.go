@@ -166,7 +166,7 @@ func Test_decodeBranch(t *testing.T) {
 			variant:          branchVariant.bits,
 			partialKeyLength: 1,
 			errWrapped:       ErrDecodeChildHash,
-			errMessage: "cannot decode child hash: at index 10: unmarshalling []uint8(nil): " +
+			errMessage: "cannot decode child hash: at index 10: " +
 				"decoding []byte: decoding length: decoding uint: reading byte: EOF",
 		},
 		"success for branch variant": {
@@ -204,8 +204,7 @@ func Test_decodeBranch(t *testing.T) {
 			variant:          branchWithValueVariant.bits,
 			partialKeyLength: 1,
 			errWrapped:       ErrDecodeValue,
-			errMessage: "cannot decode value: unmarshalling []uint8(nil): decoding []byte: decoding length: " +
-				"decoding uint: reading byte: EOF",
+			errMessage:       "cannot decode value: decoding []byte: decoding length: decoding uint: reading byte: EOF",
 		},
 		"success for branch with value": {
 			reader: bytes.NewBuffer(concatByteSlices([][]byte{
@@ -335,7 +334,7 @@ func Test_decodeLeaf(t *testing.T) {
 			variant:          leafVariant.bits,
 			partialKeyLength: 1,
 			errWrapped:       ErrDecodeValue,
-			errMessage: "cannot decode value: unmarshalling []: decoding []byte: decoding length: decoding " +
+			errMessage: "cannot decode value: decoding []byte: decoding length: decoding " +
 				"uint: unknown prefix for compact uint: 255",
 		},
 		"zero value": {

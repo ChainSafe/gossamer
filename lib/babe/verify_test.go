@@ -165,13 +165,9 @@ func Test_getAuthorityIndex(t *testing.T) {
 		{
 			name: "Invalid Preruntime Digest Type",
 			args: args{headerInvalidPre},
-			expErr: errors.New("cannot decode babe header from pre-digest: unmarshalling {<nil> map[1:{0 0 " +
-				"[0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0] " +
-				"[0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 " +
-				"0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]} 2:{0 0} 3:{0 0 [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 " +
-				"0 0 0 0 0 0 0] [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 " +
-				"0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]}]}: decoding varying data type: unmarshalling: " +
-				"decoding struct: unmarshalling field at index {0 0}: decoding fixed width int: reading buffer: EOF"),
+			expErr: errors.New("cannot decode babe header from pre-digest: decoding varying data type: " +
+				"unmarshalling: decoding struct: unmarshalling field at index 0: decoding fixed width int: " +
+				"reading buffer for uint32: EOF"),
 		},
 		{
 			name: "BabePrimaryPreDigest Type",
@@ -388,11 +384,7 @@ func Test_verifier_verifyPreRuntimeDigest(t *testing.T) {
 			name:     "Invalid PreRuntimeDigest",
 			verifier: verifier{},
 			args:     args{&types.PreRuntimeDigest{Data: []byte{0}}},
-			expErr: errors.New("unmarshalling {<nil> map[1:{0 0 [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 " +
-				"0 0 0 0 0 0 0 0 0 0] [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 " +
-				"0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]} 2:{0 0} 3:{0 0 [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 " +
-				"0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0] [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 " +
-				"0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]}]}: " +
+			expErr: errors.New(
 				"decoding varying data type: unable to find VaryingDataTypeValue with index: for key 0"),
 		},
 		{
@@ -626,13 +618,9 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 			name:     "invalid preruntime digest data",
 			verifier: verifier{},
 			header:   header2,
-			expErr: errors.New("failed to verify pre-runtime digest: unmarshalling {<nil> map[1:{0 0 [0 0 0 0 " +
-				"0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0] [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 " +
-				"0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]} 2:{0 0} " +
-				"3:{0 0 [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0] [0 0 0 0 0 0 0 0 0 0 0 0 0 " +
-				"0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 " +
-				"0]}]}: decoding varying data type: unmarshalling: decoding struct: unmarshalling field at index {0 " +
-				"0}: decoding fixed width int: reading buffer: EOF"),
+			expErr: errors.New("failed to verify pre-runtime digest: decoding varying data type: unmarshalling: " +
+				"decoding struct: unmarshalling field at index 0: decoding fixed width int: reading buffer for " +
+				"uint32: EOF"),
 		},
 		{
 			name:     "invalid seal length",
