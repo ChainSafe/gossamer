@@ -222,15 +222,17 @@ func (s *chainProcessor) handleBlock(block *types.Block) error {
 
 	hash := parent.Hash()
 	rt, err := s.blockState.GetRuntime(&hash)
-	if errors.Is(err, blocktree.ErrFailedToGetRuntime) {
-		rt, err = s.storageState.GetRuntime(hash)
-		if err != nil {
-			return fmt.Errorf("getting runtime from database: %w", err)
-		}
-		// ensure the runtime stops and releases resources since it was
-		// instantiated from disk just for this function call.
-		defer rt.Stop()
-	} else if err != nil {
+	// todo(ed): handle error
+	//if errors.Is(err, blocktree.ErrFailedToGetRuntime) {
+	//	rt, err = s.storageState.GetRuntime(hash)
+	//	if err != nil {
+	//		return fmt.Errorf("getting runtime from database: %w", err)
+	//	}
+	//	// ensure the runtime stops and releases resources since it was
+	//	// instantiated from disk just for this function call.
+	//	defer rt.Stop()
+	//} else
+	if err != nil {
 		return err
 	}
 

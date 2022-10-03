@@ -64,7 +64,10 @@ func (s *Service) HandleTransactionMessage(peerID peer.ID, msg *network.Transact
 		return false, err
 	}
 
-	rt := s.blockState.GetBestBlockRuntime()
+	rt, err := s.blockState.GetRuntime(nil)
+	if err != nil {
+		return false, err
+	}
 
 	allTxnsAreValid := true
 	for _, tx := range txs {

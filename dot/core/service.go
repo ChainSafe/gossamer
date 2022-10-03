@@ -191,15 +191,17 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 		block.Header.Hash(), state.MustRoot())
 
 	rt, err := s.blockState.GetRuntime(&block.Header.ParentHash)
-	if errors.Is(err, blocktree.ErrFailedToGetRuntime) {
-		rt, err = s.storageState.GetRuntime(block.Header.ParentHash)
-		if err != nil {
-			return fmt.Errorf("getting runtime from database: %w", err)
-		}
-		// ensure the runtime stops and releases resources since it was
-		// instantiated from disk just for this function call.
-		defer rt.Stop()
-	} else if err != nil {
+	// todo(ed) confirm error is handled
+	//if errors.Is(err, blocktree.ErrFailedToGetRuntime) {
+	//	rt, err = s.storageState.GetRuntime(block.Header.ParentHash)
+	//	if err != nil {
+	//		return fmt.Errorf("getting runtime from database: %w", err)
+	//	}
+	//	// ensure the runtime stops and releases resources since it was
+	//	// instantiated from disk just for this function call.
+	//	defer rt.Stop()
+	//} else
+	if err != nil {
 		return err
 	}
 
@@ -329,7 +331,10 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 	}
 
 	// Check transaction validation on the best block.
-	rt := s.blockState.GetBestBlockRuntime()
+	rt, err := s.blockState.GetRuntime(nil)
+	if err != nil {
+		return err
+	}
 
 	if rt == nil {
 		return ErrNilRuntime
@@ -385,7 +390,11 @@ func (s *Service) maintainTransactionPool(block *types.Block) {
 	txs := s.transactionState.PendingInPool()
 	for _, tx := range txs {
 		// get the best block corresponding runtime
-		rt := s.blockState.GetBestBlockRuntime()
+		rt, err := s.blockState.GetRuntime(nil)
+		if err != nil {
+			// todo(ed) determine how to handle this error
+			logger.Errorf("%w", err)
+		}
 
 		txnValidity, err := rt.ValidateTransaction(tx.Extrinsic)
 		if err != nil {
@@ -426,7 +435,10 @@ func (s *Service) HasKey(pubKeyStr, keystoreType string) (bool, error) {
 
 // DecodeSessionKeys executes the runtime DecodeSessionKeys and return the scale encoded keys
 func (s *Service) DecodeSessionKeys(enc []byte) ([]byte, error) {
-	rt := s.blockState.GetBestBlockRuntime()
+	rt, err := s.blockState.GetRuntime(nil)
+	if err != nil {
+		return nil, err
+	}
 
 	return rt.DecodeSessionKeys(enc)
 }
@@ -451,16 +463,18 @@ func (s *Service) GetRuntimeVersion(bhash *common.Hash) (
 	}
 
 	rt, err := s.blockState.GetRuntime(bhash)
-	if errors.Is(err, blocktree.ErrFailedToGetRuntime) {
-		rt, err = s.storageState.GetRuntime(*bhash)
-		if err != nil {
-			return version, fmt.Errorf("getting runtime from database: %w", err)
-		}
-		version = rt.Version()
-
-		rt.Stop()
-		return version, nil
-	} else if err != nil {
+	// todo(ed) confirm error is handled correctly
+	//if errors.Is(err, blocktree.ErrFailedToGetRuntime) {
+	//	rt, err = s.storageState.GetRuntime(*bhash)
+	//	if err != nil {
+	//		return version, fmt.Errorf("getting runtime from database: %w", err)
+	//	}
+	//	version = rt.Version()
+	//
+	//	rt.Stop()
+	//	return version, nil
+	//} else
+	if err != nil {
 		return version, err
 	}
 
@@ -490,7 +504,10 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 		return err
 	}
 
-	rt := s.blockState.GetBestBlockRuntime()
+	rt, err := s.blockState.GetRuntime(nil)
+	if err != nil {
+		return err
+	}
 
 	rt.SetContextStorage(ts)
 	// the transaction source is External
@@ -530,20 +547,22 @@ func (s *Service) GetMetadata(bhash *common.Hash) ([]byte, error) {
 	}
 
 	rt, err := s.blockState.GetRuntime(bhash)
-	if errors.Is(err, blocktree.ErrFailedToGetRuntime) {
-		rt, err = s.storageState.GetRuntime(*bhash)
-		if err != nil {
-			return nil, fmt.Errorf("getting runtime from database: %w", err)
-		}
-		// ensure the runtime stops and releases resources since it was
-		// instantiated from disk just for this function call.
-		defer rt.Stop()
-		metadata, err := rt.Metadata()
-		if err != nil {
-			return nil, fmt.Errorf("getting runtime metadata: %w", err)
-		}
-		return metadata, nil
-	} else if err != nil {
+	// todo (ed): confirm error is handled correctly
+	//if errors.Is(err, blocktree.ErrFailedToGetRuntime) {
+	//	rt, err = s.storageState.GetRuntime(*bhash)
+	//	if err != nil {
+	//		return nil, fmt.Errorf("getting runtime from database: %w", err)
+	//	}
+	//	// ensure the runtime stops and releases resources since it was
+	//	// instantiated from disk just for this function call.
+	//	defer rt.Stop()
+	//	metadata, err := rt.Metadata()
+	//	if err != nil {
+	//		return nil, fmt.Errorf("getting runtime metadata: %w", err)
+	//	}
+	//	return metadata, nil
+	//} else
+	if err != nil {
 		return nil, err
 	}
 

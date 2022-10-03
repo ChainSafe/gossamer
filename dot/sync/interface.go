@@ -68,7 +68,7 @@ type BlockState interface {
 	AddBlockToBlockTree(block *types.Block) error
 	GetHashByNumber(blockNumber uint) (common.Hash, error)
 	GetBlockByHash(common.Hash) (*types.Block, error)
-	GetBestBlockRuntime() (instance runtime.Instance)
+	//GetBestBlockRuntime() (instance runtime.Instance)
 	GetRuntime(hash *common.Hash) (runtime.Instance, error)
 	StoreRuntime(common.Hash, runtime.Instance)
 	GetHighestFinalisedHeader() (*types.Header, error)
@@ -82,7 +82,7 @@ type BlockState interface {
 type StorageState interface {
 	TrieState(root *common.Hash) (*rtstorage.TrieState, error)
 	LoadCodeHash(*common.Hash) (common.Hash, error)
-	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
+	//GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
 	sync.Locker
 }
 

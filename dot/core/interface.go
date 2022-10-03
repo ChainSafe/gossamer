@@ -70,7 +70,7 @@ type BlockState interface {
 	SubChain(start, end common.Hash) ([]common.Hash, error)
 	GetBlockBody(hash common.Hash) (*types.Body, error)
 	HandleRuntimeChanges(newState *rtstorage.TrieState, in runtime.Instance, bHash common.Hash) error
-	GetBestBlockRuntime() runtime.Instance
+	//GetBestBlockRuntime() runtime.Instance
 	GetRuntime(hash *common.Hash) (instance runtime.Instance, err error)
 	StoreRuntime(common.Hash, runtime.Instance)
 }
@@ -84,7 +84,7 @@ type StorageState interface {
 	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
 	GetStorage(root *common.Hash, key []byte) ([]byte, error)
 	GenerateTrieProof(stateRoot common.Hash, keys [][]byte) ([][]byte, error)
-	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
+	//GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
 	sync.Locker
 }
 

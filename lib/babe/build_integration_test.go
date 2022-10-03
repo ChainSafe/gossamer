@@ -70,7 +70,8 @@ func createTestBlock(t *testing.T, babeService *Service, parent *types.Header,
 		number:   slotNumber,
 	}
 
-	rt := babeService.blockState.GetBestBlockRuntime()
+	rt, err := babeService.blockState.GetRuntime(nil)
+	require.NoError(t, err)
 
 	preRuntimeDigest, err := claimSlot(epoch, slotNumber, epochData, babeService.keypair)
 	require.NoError(t, err)
@@ -88,7 +89,8 @@ func TestBuildBlock_ok(t *testing.T) {
 	babeService := createTestService(t, ServiceConfig{})
 
 	parentHash := babeService.blockState.GenesisHash()
-	rt := babeService.blockState.GetBestBlockRuntime()
+	rt, err := babeService.blockState.GetRuntime(nil)
+	require.NoError(t, err)
 
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
@@ -145,7 +147,8 @@ func TestApplyExtrinsic(t *testing.T) {
 
 	parentHash := babeService.blockState.GenesisHash()
 
-	rt := babeService.blockState.GetBestBlockRuntime()
+	rt, err := babeService.blockState.GetRuntime(nil)
+	require.NoError(t, err)
 
 	ts, err := babeService.storageState.TrieState(nil)
 	require.NoError(t, err)
@@ -205,10 +208,11 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	parentHash := common.MustHexToHash("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
 	header := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, 1, types.NewDigest())
 
-	rt := babeService.blockState.GetBestBlockRuntime()
+	rt, err := babeService.blockState.GetRuntime(nil)
+	require.NoError(t, err)
 
 	//initialise block header
-	err := rt.InitializeBlock(header)
+	err = rt.InitializeBlock(header)
 	require.NoError(t, err)
 
 	// build extrinsic
@@ -321,7 +325,8 @@ func TestBuildBlock_failing(t *testing.T) {
 		number:   1000,
 	}
 
-	rt := babeService.blockState.GetBestBlockRuntime()
+	rt, err := babeService.blockState.GetRuntime(nil)
+	require.NoError(t, err)
 
 	const authorityIndex uint32 = 0
 	_, err = babeService.buildBlock(parentHeader, slot, rt, authorityIndex, &types.PreRuntimeDigest{})
