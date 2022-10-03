@@ -538,8 +538,8 @@ func TestPlayGrandpaRoundMultipleRounds(t *testing.T) {
 				AnyTimes()
 		}
 
-		// for each grandpa service we should start the finalization and voting round
-		// engines and waits for them to reach finalization
+		// for each grandpa service we should start the finalisation and voting round
+		// engines and waits for them to reach finalisation
 		runFinalizationServices(t, grandpaServices)
 
 		const setID uint64 = 0
@@ -609,7 +609,7 @@ func runFinalizationService(t *testing.T, grandpaService *Service) {
 }
 
 // runFinalizationServices is designed to handle many grandpa services and starts, for each service,
-// the finalization engine and the voting round engine which will take care of reach finalization
+// the finalisation engine and the voting round engine which will take care of reach finalisation
 func runFinalizationServices(t *testing.T, grandpaServices []*Service) {
 	t.Helper()
 
@@ -682,7 +682,8 @@ func stopServices[T stopable](t *testing.T, srvs ...T) {
 	}
 }
 
-func waitServices(finalizationEngines []*finalizationEngine, votingRounds []*handleVotingRound) (allDone <-chan struct{}) {
+func waitServices(finalizationEngines []*finalizationEngine,
+	votingRounds []*handleVotingRound) (allDone <-chan struct{}) {
 	done := make(chan struct{})
 	go func() {
 		defer close(done)

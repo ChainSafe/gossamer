@@ -6,7 +6,6 @@ package grandpa
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -16,11 +15,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/protocol"
 )
 
-const (
-	grandpaID1 = "grandpa/1"
-
-	neighbourMessageInterval = 5 * time.Minute
-)
+const grandpaID1 = "grandpa/1"
 
 // Handshake is an alias for network.Handshake
 type Handshake = network.Handshake

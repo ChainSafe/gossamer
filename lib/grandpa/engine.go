@@ -1,3 +1,6 @@
+// Copyright 2022 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package grandpa
 
 import (
@@ -34,7 +37,7 @@ func (fh *finalizationHandler) stopServices(finalizationEngine *finalizationEngi
 	stopErr := make([]error, 2)
 	err := finalizationEngine.Stop()
 	if err != nil {
-		stopErr = append(stopErr, fmt.Errorf("stopping finalization engine: %w", err))
+		stopErr = append(stopErr, fmt.Errorf("stopping finalisation engine: %w", err))
 	}
 
 	err = votingRound.Stop()
@@ -80,7 +83,7 @@ func (fh *finalizationHandler) runFinalization() {
 
 		finalizationEngErrsCh, err := finalizationEngine.Start()
 		if err != nil {
-			fh.observableErrs <- fmt.Errorf("%w: finalization engine: %s", errStartingService, err)
+			fh.observableErrs <- fmt.Errorf("%w: finalisation engine: %s", errStartingService, err)
 			return
 		}
 
@@ -149,19 +152,18 @@ func (fh *finalizationHandler) Stop() (err error) {
 }
 
 var errTimeoutWhileStoping = errors.New("timeout while stopping")
-var errEngineChannelClosed = errors.New("engine channel closed")
 
 type handleVotingRound struct {
 	grandpaService *Service
 	errsCh         chan error
 
 	timeoutStop          time.Duration
-	finalizationEngineCh <-chan action
+	finalizationEngineCh <-chan engineAction
 	stopCh               chan struct{}
 	engineDone           chan struct{}
 }
 
-func newHandleVotingRound(service *Service, finalizationEngineCh <-chan action) *handleVotingRound {
+func newHandleVotingRound(service *Service, finalizationEngineCh <-chan engineAction) *handleVotingRound {
 	return &handleVotingRound{
 		timeoutStop:          5 * time.Second,
 		grandpaService:       service,
@@ -200,7 +202,7 @@ func (h *handleVotingRound) playGrandpaRound() {
 	logger.Debugf("starting round %d with set id %d",
 		h.grandpaService.state.round, h.grandpaService.state.setID)
 
-	for { //nolint:gosimple
+	for {
 		select {
 		case <-h.stopCh:
 			return
@@ -302,10 +304,10 @@ func (h *handleVotingRound) playGrandpaRound() {
 
 // actions that should take place accordingly to votes the
 // finalisation engine knows about
-type action byte
+type engineAction byte
 
 const (
-	determinePrevote action = iota
+	determinePrevote engineAction = iota
 	determinePrecommit
 	alreadyFinalized
 	finalize
@@ -317,7 +319,7 @@ type finalizationEngine struct {
 	timeoutStop time.Duration
 	stopCh      chan struct{}
 	engineDone  chan struct{}
-	actionCh    chan action
+	actionCh    chan engineAction
 	errsCh      chan error
 }
 
@@ -325,7 +327,7 @@ func newFinalizationEngine(service *Service) *finalizationEngine {
 	return &finalizationEngine{
 		grandpaService: service,
 		timeoutStop:    5 * time.Second,
-		actionCh:       make(chan action),
+		actionCh:       make(chan engineAction),
 		errsCh:         make(chan error),
 		stopCh:         make(chan struct{}),
 		engineDone:     make(chan struct{}),

@@ -77,7 +77,7 @@ func (h *MessageHandler) notifyNeighbors(neighbourMessage *NeighbourPacketV1) {
 	if err != nil {
 		logger.Warnf("failed to convert NeighbourMessage to network message: %s", err)
 	} else {
-		logger.Warnf("sending neighbor message: %v", neighbourMessage)
+		logger.Warnf("sending neighbour message: %v", neighbourMessage)
 		h.grandpa.network.GossipMessage(cm)
 	}
 }
