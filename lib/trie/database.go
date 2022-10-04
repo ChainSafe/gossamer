@@ -185,46 +185,29 @@ func (t *Trie) loadNode(db Database, n *Node) error {
 	return nil
 }
 
-// PopulateMerkleValues writes the Merkle value of each children of the node given
-// as keys to the map merkleValues.
-func (t *Trie) PopulateMerkleValues(n *Node,
-	merkleValues map[string]struct{}) (err error) {
+// PopulateMerkleValues writes the Merkle values of the node given and of
+// all its descendant nodes as keys to the map merkleValues.
+// It is assumed the node and its descendant nodes have their Merkle value already
+// computed.
+func PopulateMerkleValues(n *Node, merkleValues map[string]struct{}) {
 	if n == nil {
-		return nil
+		return
 	}
 
-	merkleValue := n.MerkleValue
-	if len(merkleValue) == 0 {
-		// Compute and cache node Merkle value if it is absent.
-		if n == t.root {
-			merkleValue, err = n.CalculateRootMerkleValue()
-			if err != nil {
-				return fmt.Errorf("calculating Merkle value for root node: %w", err)
-			}
-		} else {
-			merkleValue, err = n.CalculateMerkleValue()
-			if err != nil {
-				return fmt.Errorf("calculating Merkle value for node: %w", err)
-			}
-		}
+	if len(n.MerkleValue) == 0 {
+		panic(fmt.Sprintf("node with key 0x%x has no Merkle value computed", n.Key))
 	}
 
-	merkleValues[string(merkleValue)] = struct{}{}
+	merkleValues[string(n.MerkleValue)] = struct{}{}
 
 	if n.Kind() == node.Leaf {
-		return nil
+		return
 	}
 
 	branch := n
 	for _, child := range branch.Children {
-		err = t.PopulateMerkleValues(child, merkleValues)
-		if err != nil {
-			// Note: do not wrap error since this is recursive.
-			return err
-		}
+		PopulateMerkleValues(child, merkleValues)
 	}
-
-	return nil
 }
 
 // GetFromDB retrieves a value at the given key from the trie using the database.
