@@ -6,9 +6,12 @@
 package modules
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	cscale "github.com/centrifuge/go-substrate-rpc-client/v4/scale"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	"os"
 	"testing"
 
@@ -94,7 +97,7 @@ func createExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, non
 
 	meta := &ctypes.Metadata{}
 
-	err = ctypes.Decode(decoded, meta)
+	err = codec.Decode(decoded, meta)
 	require.NoError(t, err)
 
 	runtimeVersion := rt.Version()
@@ -117,11 +120,12 @@ func createExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, non
 	err = extrinsic.Sign(signature.TestKeyringPairAlice, options)
 	require.NoError(t, err)
 
-	extEnc, err := ctypes.EncodeToHex(extrinsic)
+	extEnc := bytes.Buffer{}
+	encoder := cscale.NewEncoder(&extEnc)
+	err = extrinsic.Encode(*encoder)
 	require.NoError(t, err)
-
-	extrinsicBytes := common.MustHexToBytes(extEnc)
-	return extrinsicBytes
+	
+	return extEnc.Bytes()
 }
 
 func TestAuthorModule_Pending_Integration(t *testing.T) {
