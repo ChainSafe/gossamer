@@ -1,12 +1,12 @@
-// Copyright 2021 ChainSafe Systems (ON)
+// Copyright 2022 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
 package grandpa
 
 // This file is where the reputation change types are declared. Ones that require
 // no calculation are defined as variables, while the ones that do (or take params)
-// are defined as structs where the fields are the parameters needed to calculate
-// the cost
+// are defined as functions where the parameters needed to calculate
+// the cost are passed in
 
 // Costs/benefits that don't require calculation, example:
 
@@ -24,13 +24,7 @@ package grandpa
 
 // Ones that do implement the cost function, example:
 
-//type BadCommitMessage struct {
-//	signaturesChecked   int
-//	blocksLoaded        int
-//	equivocationsCaught int
-//}
-
-//func (BadCommitMessage) cost() peerset.ReputationChange {
+//func calculateBadCommitMessageCost(signaturesChecked int, blocksLoaded int, equivocationsCaught int) peerset.ReputationChange {
 //	// TODO implement
 //	return peerset.ReputationChange{}
 //}
