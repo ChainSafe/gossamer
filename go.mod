@@ -4,7 +4,7 @@ require (
 	github.com/ChainSafe/chaindb v0.1.5-0.20220708005902-df45dbc8e840
 	github.com/ChainSafe/go-schnorrkel v1.0.1-0.20220711122024-027d287d27bf
 	github.com/OneOfOne/xxhash v1.2.8
-	github.com/breml/rootcerts v0.2.7
+	github.com/breml/rootcerts v0.2.8
 	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce
 	github.com/chyeh/pubip v0.0.0-20170203095919-b7e679cf541c
 	github.com/cosmos/go-bip39 v1.0.0
