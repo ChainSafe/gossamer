@@ -657,9 +657,10 @@ func runFinalizationServices(t *testing.T, grandpaServices []*Service) {
 	}
 
 	select {
-	case <-innerErr:
+	case err := <-innerErr:
 		stopServices(t, finalizationEngines...)
 		stopServices(t, votingRounds...)
+		t.Errorf("inner service failed: %s", err)
 		wg.Wait()
 
 	case <-waitServices(finalizationEngines, votingRounds):

@@ -427,7 +427,7 @@ func (f *finalizationEngine) playFinalization(gossipInterval time.Duration, stop
 			}
 
 			if !isDescendant {
-				panic("block with supermajority does not belong to the latest finalized block")
+				panic("block with supermajority does not belong to the latest finalized block chain")
 			}
 
 			f.actionCh <- determinePrecommit
