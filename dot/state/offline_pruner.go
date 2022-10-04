@@ -121,10 +121,7 @@ func (p *OfflinePruner) SetBloomFilter() (err error) {
 			return err
 		}
 
-		err = tr.PopulateMerkleValues(tr.RootNode(), merkleValues)
-		if err != nil {
-			return fmt.Errorf("populating Merkle values from trie: %w", err)
-		}
+		trie.PopulateMerkleValues(tr.RootNode(), merkleValues)
 
 		// get parent header of current block
 		header, err = p.blockState.GetHeader(header.ParentHash)
