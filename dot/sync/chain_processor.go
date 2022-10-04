@@ -140,7 +140,7 @@ func (c *chainProcessor) processBlockData(blockData types.BlockData) error { //n
 		logger.Debugf("block with hash %s processed", blockData.Hash)
 	}
 
-	if blockData.Justification != nil && blockData.Header != nil {
+	if blockData.Justification != nil && len(*blockData.Justification) > 0 && blockData.Header != nil {
 		err = c.handleJustification(blockData.Header, *blockData.Justification)
 		if err != nil {
 			return fmt.Errorf("handling justification: %w", err)
@@ -175,7 +175,7 @@ func (c *chainProcessor) processBlockDataWithStateHeaderAndBody(blockData types.
 		return fmt.Errorf("adding block to blocktree: %w", err)
 	}
 
-	if blockData.Justification != nil {
+	if blockData.Justification != nil && len(*blockData.Justification) > 0 {
 		err = c.handleJustification(&block.Header, *blockData.Justification)
 		if err != nil {
 			return fmt.Errorf("handling justification: %w", err)
