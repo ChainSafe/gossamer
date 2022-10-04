@@ -4,19 +4,14 @@
 package state
 
 import (
-	"context"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -548,52 +543,53 @@ func TestNumberIsFinalised(t *testing.T) {
 	require.False(t, fin)
 }
 
-func TestBlockState_GetBestBlockRuntime(t *testing.T) {
-	t.Parallel()
-	blockState := newTestBlockState(t, newTriesEmpty())
-	polkadotRuntimeFilepath, err := runtime.GetRuntime(
-		context.Background(), runtime.POLKADOT_RUNTIME)
-	require.NoError(t, err)
-	code, err := os.ReadFile(polkadotRuntimeFilepath)
-	require.NoError(t, err)
-	cfg := wasmer.Config{}
-	runtimeInstance, err := wasmer.NewInstance(code, cfg)
-	require.NoError(t, err)
-	bestBlockHash := blockState.BestBlockHash()
-	blockState.bt.StoreRuntime(bestBlockHash, runtimeInstance)
-
-	resultInstance := blockState.GetBestBlockRuntime()
-	require.Equal(t, runtimeInstance, resultInstance)
-}
-
-func TestBlockState_GetBestBlockRuntime_panic(t *testing.T) {
-	blockState := newTestBlockState(t, newTriesEmpty())
-
-	const expectedMessage = "we should always succeed getting the best block " +
-		"runtime but an error occurred: failed to get runtime instance"
-	require.PanicsWithValue(t, expectedMessage, func() {
-		_ = blockState.GetBestBlockRuntime()
-	})
-}
-
-func TestBlockState_clearRuntimes(t *testing.T) {
-	t.Parallel()
-	blockState := newTestBlockState(t, newTriesEmpty())
-	cfg := wasmer.Config{}
-	polkadotRuntimeFilepath, err := runtime.GetRuntime(
-		context.Background(), runtime.POLKADOT_RUNTIME)
-	require.NoError(t, err)
-	code, err := os.ReadFile(polkadotRuntimeFilepath)
-	require.NoError(t, err)
-	runtimeInstance, err := wasmer.NewInstance(code, cfg)
-	require.NoError(t, err)
-	bestBlockHash := blockState.BestBlockHash()
-	blockState.bt.StoreRuntime(bestBlockHash, runtimeInstance)
-
-	resultInstance := blockState.GetBestBlockRuntime()
-	require.Equal(t, runtimeInstance, resultInstance)
-
-	blockState.clearRuntimes()
-	assert.PanicsWithValue(t, "we should always succeed getting the best block runtime but an error occurred: "+
-		"failed to get runtime instance", func() { blockState.GetBestBlockRuntime() })
-}
+// todo(ed) determine how to replace these tests (if needed)
+//func TestBlockState_GetBestBlockRuntime(t *testing.T) {
+//	t.Parallel()
+//	blockState := newTestBlockState(t, newTriesEmpty())
+//	polkadotRuntimeFilepath, err := runtime.GetRuntime(
+//		context.Background(), runtime.POLKADOT_RUNTIME)
+//	require.NoError(t, err)
+//	code, err := os.ReadFile(polkadotRuntimeFilepath)
+//	require.NoError(t, err)
+//	cfg := wasmer.Config{}
+//	runtimeInstance, err := wasmer.NewInstance(code, cfg)
+//	require.NoError(t, err)
+//	bestBlockHash := blockState.BestBlockHash()
+//	blockState.bt.StoreRuntime(bestBlockHash, runtimeInstance)
+//
+//	resultInstance := blockState.GetBestBlockRuntime()
+//	require.Equal(t, runtimeInstance, resultInstance)
+//}
+//
+//func TestBlockState_GetBestBlockRuntime_panic(t *testing.T) {
+//	blockState := newTestBlockState(t, newTriesEmpty())
+//
+//	const expectedMessage = "we should always succeed getting the best block " +
+//		"runtime but an error occurred: failed to get runtime instance"
+//	require.PanicsWithValue(t, expectedMessage, func() {
+//		_ = blockState.GetBestBlockRuntime()
+//	})
+//}
+//
+//func TestBlockState_clearRuntimes(t *testing.T) {
+//	t.Parallel()
+//	blockState := newTestBlockState(t, newTriesEmpty())
+//	cfg := wasmer.Config{}
+//	polkadotRuntimeFilepath, err := runtime.GetRuntime(
+//		context.Background(), runtime.POLKADOT_RUNTIME)
+//	require.NoError(t, err)
+//	code, err := os.ReadFile(polkadotRuntimeFilepath)
+//	require.NoError(t, err)
+//	runtimeInstance, err := wasmer.NewInstance(code, cfg)
+//	require.NoError(t, err)
+//	bestBlockHash := blockState.BestBlockHash()
+//	blockState.bt.StoreRuntime(bestBlockHash, runtimeInstance)
+//
+//	resultInstance := blockState.GetBestBlockRuntime()
+//	require.Equal(t, runtimeInstance, resultInstance)
+//
+//	blockState.clearRuntimes()
+//	assert.PanicsWithValue(t, "we should always succeed getting the best block runtime but an error occurred: "+
+//		"failed to get runtime instance", func() { blockState.GetBestBlockRuntime() })
+//}

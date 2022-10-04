@@ -652,13 +652,13 @@ func (bs *BlockState) GetRuntime(hash *common.Hash) (runtime.Instance, error) {
 }
 
 //  GetBestBlockRuntime returns the current runtime instance for the best block
-func (bs *BlockState) GetBestBlockRuntime() (instance runtime.Instance) {
-	instance, err := bs.bt.GetBlockRuntime(bs.BestBlockHash())
-	if err != nil {
-		panic(fmt.Sprintf("we should always succeed getting the best block runtime but an error occurred: %s", err))
-	}
-	return instance
-}
+//func (bs *BlockState) GetBestBlockRuntime() (instance runtime.Instance) {
+//	instance, err := bs.bt.GetBlockRuntime(bs.BestBlockHash())
+//	if err != nil {
+//		panic(fmt.Sprintf("we should always succeed getting the best block runtime but an error occurred: %s", err))
+//	}
+//	return instance
+//}
 
 // StoreRuntime stores the runtime for corresponding block hash.
 func (bs *BlockState) StoreRuntime(hash common.Hash, rt runtime.Instance) {

@@ -504,8 +504,9 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 		return err
 	}
 
-	rt, err := s.blockState.GetRuntime(nil)
+	rt, err := s.blockState.GetRuntime(&bestBlockHash)
 	if err != nil {
+		logger.Criticalf("failed to get runtime")
 		return err
 	}
 

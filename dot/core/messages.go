@@ -64,7 +64,8 @@ func (s *Service) HandleTransactionMessage(peerID peer.ID, msg *network.Transact
 		return false, err
 	}
 
-	rt, err := s.blockState.GetRuntime(nil)
+	hash := head.Hash()
+	rt, err := s.blockState.GetRuntime(&hash)
 	if err != nil {
 		return false, err
 	}

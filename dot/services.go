@@ -376,7 +376,10 @@ func (nodeBuilder) createSystemService(cfg *types.SystemInfo, stateSrvc *state.S
 // createGRANDPAService creates a new GRANDPA service
 func (nodeBuilder) createGRANDPAService(cfg *Config, st *state.Service, ks keystore.Keystore,
 	net *network.Service, telemetryMailer telemetry.Client) (*grandpa.Service, error) {
-	rt := st.Block.GetBestBlockRuntime()
+	rt, err := st.Block.GetRuntime(nil)
+	if err != nil {
+		return nil, err
+	}
 
 	ad, err := rt.GrandpaAuthorities()
 	if err != nil {

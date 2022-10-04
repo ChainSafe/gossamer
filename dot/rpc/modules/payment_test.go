@@ -32,7 +32,6 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 	blockAPIMock2 := mocks.NewBlockAPI(t)
 	blockErrorAPIMock1 := mocks.NewBlockAPI(t)
 	blockErrorAPIMock2 := mocks.NewBlockAPI(t)
-	storageAPIMock := mocks.NewStorageAPI(t)
 
 	blockAPIMock.On("BestBlockHash").Return(testHash, nil)
 	blockAPIMock.On("GetRuntime", &testHash).Return(runtimeMock, nil)
@@ -52,7 +51,7 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 	runtimeErrorMock.On("PaymentQueryInfo", common.MustHexToBytes("0x0000")).
 		Return(nil, errors.New("PaymentQueryInfo error"))
 
-	paymentModule := NewPaymentModule(blockAPIMock, storageAPIMock)
+	paymentModule := NewPaymentModule(blockAPIMock)
 	type fields struct {
 		blockAPI BlockAPI
 	}

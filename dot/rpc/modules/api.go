@@ -29,7 +29,8 @@ type StorageAPI interface {
 	GetKeysWithPrefix(root *common.Hash, prefix []byte) ([][]byte, error)
 	RegisterStorageObserver(observer state.Observer)
 	UnregisterStorageObserver(observer state.Observer)
-	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
+	// todo(ed) this may need to be re-added
+	//GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
 }
 
 //go:generate mockery --name BlockAPI --structname BlockAPI --case underscore --keeptree

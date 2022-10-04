@@ -4,11 +4,8 @@
 package modules
 
 import (
-	"errors"
-	"fmt"
 	"net/http"
 
-	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
@@ -29,15 +26,13 @@ type PaymentQueryInfoResponse struct {
 
 // PaymentModule holds all the RPC implementation of polkadot payment rpc api
 type PaymentModule struct {
-	blockAPI   BlockAPI
-	storageAPI StorageAPI
+	blockAPI BlockAPI
 }
 
 // NewPaymentModule returns a pointer to PaymentModule
-func NewPaymentModule(blockAPI BlockAPI, storageAPI StorageAPI) *PaymentModule {
+func NewPaymentModule(blockAPI BlockAPI) *PaymentModule {
 	return &PaymentModule{
-		blockAPI:   blockAPI,
-		storageAPI: storageAPI,
+		blockAPI: blockAPI,
 	}
 }
 
@@ -51,13 +46,15 @@ func (p *PaymentModule) QueryInfo(_ *http.Request, req *PaymentQueryInfoRequest,
 	}
 
 	r, err := p.blockAPI.GetRuntime(&hash)
-	if errors.Is(err, blocktree.ErrFailedToGetRuntime) {
-		r, err = p.storageAPI.GetRuntime(hash)
-		if err != nil {
-			return fmt.Errorf("getting runtime from database: %w", err)
-		}
-		defer r.Stop()
-	} else if err != nil {
+	// todo(ed) confirm error is handled
+	//if errors.Is(err, blocktree.ErrFailedToGetRuntime) {
+	//	r, err = p.storageAPI.GetRuntime(hash)
+	//	if err != nil {
+	//		return fmt.Errorf("getting runtime from database: %w", err)
+	//	}
+	//	defer r.Stop()
+	//} else
+	if err != nil {
 		return err
 	}
 
