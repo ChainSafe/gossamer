@@ -293,9 +293,7 @@ func (s *Service) handleCodeSubstitution(hash common.Hash,
 // does not need to be completed before the next block can be imported.
 func (s *Service) handleBlocksAsync() {
 	for {
-		// TODO Look into if this is best way to get prev
-		// Maybe pass in block and get parent rather than assume that
-		// best block hash is the parent
+		// TODO Move this down to befre handleChainReorg call
 		prev := s.blockState.BestBlockHash()
 
 		select {
@@ -428,6 +426,7 @@ func (s *Service) maintainTransactionPool(block *types.Block) {
 		externalExt, err := s.buildExternalTransaction(rt, tx.Extrinsic)
 		if err != nil {
 			logger.Errorf("Unable to build external transaction: %s", err)
+			continue
 		}
 
 		txnValidity, err := rt.ValidateTransaction(externalExt)
