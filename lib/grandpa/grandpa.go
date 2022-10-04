@@ -1231,7 +1231,7 @@ func (s *Service) handleCommitMessage(commitMessage *CommitMessage) error {
 
 	has, err := s.blockState.HasFinalisedBlock(commitMessage.Round, s.state.setID)
 	if err != nil {
-		return fmt.Errorf("checking if there is finalized block: %w", err)
+		return fmt.Errorf("checking for a finalized block in the block state: %w", err)
 	}
 
 	if has {
@@ -1271,7 +1271,8 @@ func (s *Service) handleCommitMessage(commitMessage *CommitMessage) error {
 func verifyCommitMessageJustification(commitMessage *CommitMessage, setID uint64, threshold uint64,
 	authorities []*types.Authority, blockState BlockState) error {
 	if len(commitMessage.Precommits) != len(commitMessage.AuthData) {
-		return fmt.Errorf("%w", ErrPrecommitSignatureMismatch)
+		return fmt.Errorf("%w: precommits len: %d, authorities len: %d",
+			ErrPrecommitSignatureMismatch, len(commitMessage.Precommits), len(commitMessage.AuthData))
 	}
 
 	if commitMessage.SetID != setID {
@@ -1347,7 +1348,6 @@ func verifyCommitMessageJustification(commitMessage *CommitMessage, setID uint64
 
 func verifyJustification(just *SignedVote, round, setID uint64,
 	stage Subround, authorities []*types.Authority) error {
-	// verify signature
 	fullVote := FullVote{
 		Stage: stage,
 		Vote:  just.Vote,

@@ -31,8 +31,9 @@ var testGenesisHeader = &types.Header{
 }
 
 var (
-	kr, _  = keystore.NewEd25519Keyring()
-	voters = newTestVoters()
+	kr, _        = keystore.NewEd25519Keyring()
+	aliceKeyPair = kr.Alice().(*ed25519.Keypair)
+	voters       = newTestVoters()
 )
 
 //go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
@@ -85,7 +86,7 @@ func newTestVoters() []Voter {
 	return vs
 }
 
-func newTestService(t *testing.T, kp ...*ed25519.Keypair) (*Service, *state.Service) {
+func newTestService(t *testing.T, kp *ed25519.Keypair) (*Service, *state.Service) {
 	st := newTestState(t)
 	net := newTestNetwork(t)
 
@@ -101,14 +102,7 @@ func newTestService(t *testing.T, kp ...*ed25519.Keypair) (*Service, *state.Serv
 		Network:      net,
 		Interval:     time.Second,
 		Telemetry:    telemetryMock,
-	}
-
-	if len(kp) == 0 {
-		cfg.Keypair = kr.Alice().(*ed25519.Keypair)
-	} else if len(kp) > 1 {
-		t.Fatalf("expecting only one *ed25519.Keypair, got: %d", len(kp))
-	} else {
-		cfg.Keypair = kp[0]
+		Keypair:      kp,
 	}
 
 	gs, err := NewService(cfg)
@@ -117,7 +111,7 @@ func newTestService(t *testing.T, kp ...*ed25519.Keypair) (*Service, *state.Serv
 }
 
 func TestUpdateAuthorities(t *testing.T) {
-	gs, _ := newTestService(t)
+	gs, _ := newTestService(t, aliceKeyPair)
 	err := gs.updateAuthorities()
 	require.NoError(t, err)
 	require.Equal(t, uint64(0), gs.state.setID)
@@ -140,7 +134,7 @@ func TestUpdateAuthorities(t *testing.T) {
 }
 
 func TestGetDirectVotes(t *testing.T) {
-	gs, _ := newTestService(t)
+	gs, _ := newTestService(t, aliceKeyPair)
 
 	voteA := Vote{
 		Hash:   common.Hash{0xa},
@@ -173,7 +167,7 @@ func TestGetDirectVotes(t *testing.T) {
 }
 
 func TestGetVotesForBlock_NoDescendantVotes(t *testing.T) {
-	gs, st := newTestService(t)
+	gs, st := newTestService(t, aliceKeyPair)
 
 	branches := map[uint]int{6: 1}
 	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches)
@@ -209,7 +203,7 @@ func TestGetVotesForBlock_NoDescendantVotes(t *testing.T) {
 }
 
 func TestGetVotesForBlock_DescendantVotes(t *testing.T) {
-	gs, st := newTestService(t)
+	gs, st := newTestService(t, aliceKeyPair)
 
 	branches := map[uint]int{6: 1}
 	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches)
@@ -259,7 +253,7 @@ func TestGetVotesForBlock_DescendantVotes(t *testing.T) {
 }
 
 func TestGetPossibleSelectedAncestors_SameAncestor(t *testing.T) {
-	gs, st := newTestService(t)
+	gs, st := newTestService(t, aliceKeyPair)
 
 	// this creates a tree with 3 branches all starting at depth 6
 	branches := map[uint]int{6: 2}
@@ -313,7 +307,7 @@ func TestGetPossibleSelectedAncestors_SameAncestor(t *testing.T) {
 }
 
 func TestGetPossibleSelectedAncestors_VaryingAncestor(t *testing.T) {
-	gs, st := newTestService(t)
+	gs, st := newTestService(t, aliceKeyPair)
 
 	// this creates a tree with branches starting at depth 6 and another branch starting at depth 7
 	branches := map[uint]int{6: 1, 7: 1}
@@ -367,7 +361,7 @@ func TestGetPossibleSelectedAncestors_VaryingAncestor(t *testing.T) {
 }
 
 func TestGetPossibleSelectedAncestors_VaryingAncestor_MoreBranches(t *testing.T) {
-	gs, st := newTestService(t)
+	gs, st := newTestService(t, aliceKeyPair)
 
 	// this creates a tree with 2 branches starting at depth 6 and 1 branch starting at depth 7,
 	branches := map[uint]int{6: 2, 7: 1}
@@ -427,7 +421,7 @@ func TestGetPossibleSelectedAncestors_VaryingAncestor_MoreBranches(t *testing.T)
 }
 
 func TestGetPossibleSelectedBlocks_OneBlock(t *testing.T) {
-	gs, st := newTestService(t)
+	gs, st := newTestService(t, aliceKeyPair)
 
 	branches := map[uint]int{6: 1}
 	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches)
@@ -459,7 +453,7 @@ func TestGetPossibleSelectedBlocks_OneBlock(t *testing.T) {
 }
 
 func TestGetPossibleSelectedBlocks_EqualVotes_SameAncestor(t *testing.T) {
-	gs, st := newTestService(t)
+	gs, st := newTestService(t, aliceKeyPair)
 
 	// this creates a tree with 3 branches all starting at depth 6
 	branches := map[uint]int{6: 2}
@@ -506,7 +500,7 @@ func TestGetPossibleSelectedBlocks_EqualVotes_SameAncestor(t *testing.T) {
 }
 
 func TestGetPossibleSelectedBlocks_EqualVotes_VaryingAncestor(t *testing.T) {
-	gs, st := newTestService(t)
+	gs, st := newTestService(t, aliceKeyPair)
 
 	// this creates a tree with branches starting at depth 6 and another branch starting at depth 7
 	branches := map[uint]int{6: 1, 7: 1}
@@ -554,7 +548,7 @@ func TestGetPossibleSelectedBlocks_EqualVotes_VaryingAncestor(t *testing.T) {
 }
 
 func TestGetPossibleSelectedBlocks_OneThirdEquivocating(t *testing.T) {
-	gs, st := newTestService(t)
+	gs, st := newTestService(t, aliceKeyPair)
 
 	branches := map[uint]int{6: 1}
 	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches)
@@ -595,7 +589,7 @@ func TestGetPossibleSelectedBlocks_OneThirdEquivocating(t *testing.T) {
 }
 
 func TestGetPossibleSelectedBlocks_MoreThanOneThirdEquivocating(t *testing.T) {
-	gs, st := newTestService(t)
+	gs, st := newTestService(t, aliceKeyPair)
 
 	branches := map[uint]int{6: 1, 7: 1}
 	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches)
@@ -642,7 +636,7 @@ func TestGetPossibleSelectedBlocks_MoreThanOneThirdEquivocating(t *testing.T) {
 }
 
 func TestGetPreVotedBlock_OneBlock(t *testing.T) {
-	gs, st := newTestService(t)
+	gs, st := newTestService(t, aliceKeyPair)
 
 	branches := map[uint]int{6: 1}
 	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches)
@@ -673,7 +667,7 @@ func TestGetPreVotedBlock_OneBlock(t *testing.T) {
 }
 
 func TestGetPreVotedBlock_MultipleCandidates(t *testing.T) {
-	gs, st := newTestService(t)
+	gs, st := newTestService(t, aliceKeyPair)
 
 	// this creates a tree with branches starting at depth 6 and another branch starting at depth 7
 	branches := map[uint]int{6: 1, 7: 1}
@@ -719,7 +713,7 @@ func TestGetPreVotedBlock_MultipleCandidates(t *testing.T) {
 }
 
 func TestGetPreVotedBlock_EvenMoreCandidates(t *testing.T) {
-	gs, st := newTestService(t)
+	gs, st := newTestService(t, aliceKeyPair)
 
 	// this creates a tree with 6 total branches, one each from depth 3 to 7
 	branches := map[uint]int{3: 1, 4: 1, 5: 1, 6: 1, 7: 1}
@@ -787,7 +781,7 @@ func TestGetPreVotedBlock_EvenMoreCandidates(t *testing.T) {
 }
 
 func TestFindParentWithNumber(t *testing.T) {
-	gs, st := newTestService(t)
+	gs, st := newTestService(t, aliceKeyPair)
 
 	// no branches needed
 	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, nil)
@@ -807,7 +801,7 @@ func TestFindParentWithNumber(t *testing.T) {
 
 func TestGetBestFinalCandidate_OneBlock(t *testing.T) {
 	// this tests the case when the prevoted block and the precommited block are the same
-	gs, st := newTestService(t)
+	gs, st := newTestService(t, aliceKeyPair)
 
 	branches := map[uint]int{6: 1}
 	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches)
@@ -845,7 +839,7 @@ func TestGetBestFinalCandidate_OneBlock(t *testing.T) {
 
 func TestGetBestFinalCandidate_PrecommitAncestor(t *testing.T) {
 	// this tests the case when the highest precommited block is an ancestor of the prevoted block
-	gs, st := newTestService(t)
+	gs, st := newTestService(t, aliceKeyPair)
 
 	branches := map[uint]int{6: 1}
 	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches)
@@ -888,7 +882,7 @@ func TestGetBestFinalCandidate_PrecommitAncestor(t *testing.T) {
 func TestGetBestFinalCandidate_NoPrecommit(t *testing.T) {
 	// this tests the case when no blocks have >=2/3 precommit votes
 	// it should return the prevoted block
-	gs, st := newTestService(t)
+	gs, st := newTestService(t, aliceKeyPair)
 
 	branches := map[uint]int{6: 1}
 	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches)
@@ -924,7 +918,7 @@ func TestGetBestFinalCandidate_NoPrecommit(t *testing.T) {
 func TestGetBestFinalCandidate_PrecommitOnAnotherChain(t *testing.T) {
 	// this tests the case when the precommited block is on another chain than the prevoted block
 	// this should return their highest common ancestor
-	gs, st := newTestService(t)
+	gs, st := newTestService(t, aliceKeyPair)
 
 	branches := map[uint]int{6: 1}
 	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches)
@@ -964,7 +958,7 @@ func TestGetBestFinalCandidate_PrecommitOnAnotherChain(t *testing.T) {
 }
 
 func TestDeterminePreVote_NoPrimaryPreVote(t *testing.T) {
-	gs, st := newTestService(t)
+	gs, st := newTestService(t, aliceKeyPair)
 
 	state.AddBlocksToState(t, st.Block, 3, false)
 	pv, err := gs.determinePreVote()
@@ -976,7 +970,7 @@ func TestDeterminePreVote_NoPrimaryPreVote(t *testing.T) {
 }
 
 func TestDeterminePreVote_WithPrimaryPreVote(t *testing.T) {
-	gs, st := newTestService(t)
+	gs, st := newTestService(t, aliceKeyPair)
 
 	state.AddBlocksToState(t, st.Block, 3, false)
 	header, err := st.Block.BestBlockHeader()
@@ -997,7 +991,7 @@ func TestDeterminePreVote_WithPrimaryPreVote(t *testing.T) {
 }
 
 func TestDeterminePreVote_WithInvalidPrimaryPreVote(t *testing.T) {
-	gs, st := newTestService(t)
+	gs, st := newTestService(t, aliceKeyPair)
 
 	state.AddBlocksToState(t, st.Block, 3, false)
 	header, err := st.Block.BestBlockHeader()
@@ -1019,7 +1013,7 @@ func TestDeterminePreVote_WithInvalidPrimaryPreVote(t *testing.T) {
 }
 
 func TestGetGrandpaGHOST_CommonAncestor(t *testing.T) {
-	gs, st := newTestService(t)
+	gs, st := newTestService(t, aliceKeyPair)
 
 	branches := map[uint]int{6: 1}
 	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches)
@@ -1053,7 +1047,7 @@ func TestGetGrandpaGHOST_CommonAncestor(t *testing.T) {
 }
 
 func TestGetGrandpaGHOST_MultipleCandidates(t *testing.T) {
-	gs, st := newTestService(t)
+	gs, st := newTestService(t, aliceKeyPair)
 
 	// this creates a tree with branches starting at depth 3 and another branch starting at depth 7
 	branches := map[uint]int{3: 1, 7: 1}
@@ -1103,7 +1097,7 @@ func TestGetGrandpaGHOST_MultipleCandidates(t *testing.T) {
 
 func TestGrandpaServiceCreateJustification_ShouldCountEquivocatoryVotes(t *testing.T) {
 	// setup granpda service
-	gs, st := newTestService(t)
+	gs, st := newTestService(t, aliceKeyPair)
 	now := time.Unix(1000, 0)
 
 	const previousBlocksToAdd = 9

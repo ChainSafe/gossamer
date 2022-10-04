@@ -51,7 +51,12 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 		h.grandpa.handleVoteMessage(from, msg)
 		return nil, nil
 	case *CommitMessage:
-		return nil, h.grandpa.handleCommitMessage(msg)
+		err := h.grandpa.handleCommitMessage(msg)
+		if err != nil {
+			return nil, fmt.Errorf("handling commit message: %w", err)
+		}
+
+		return nil, nil
 	case *NeighbourPacketV1:
 		// we can afford to not retry handling neighbour message, if it errors.
 		return nil, h.handleNeighbourMessage(msg)

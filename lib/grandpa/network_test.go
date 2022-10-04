@@ -32,7 +32,7 @@ func TestGrandpaHandshake_Encode(t *testing.T) {
 }
 
 func TestHandleNetworkMessage(t *testing.T) {
-	gs, st := newTestService(t)
+	gs, st := newTestService(t, aliceKeyPair)
 
 	just := []SignedVote{
 		{
@@ -77,7 +77,7 @@ func TestHandleNetworkMessage(t *testing.T) {
 }
 
 // func TestSendNeighbourMessage(t *testing.T) {
-// 	gs, st := newTestService(t)
+// 	gs, st := newTestService(t, aliceKeyPair)
 // 	go gs.sendNeighbourMessage(time.Second)
 
 // 	digest := types.NewDigest()
