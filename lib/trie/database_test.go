@@ -158,7 +158,100 @@ func Test_Trie_WriteDirty_ClearPrefix(t *testing.T) {
 	assert.Equal(t, trie.String(), trieFromDB.String())
 }
 
-func Test_Trie_GetFromDB(t *testing.T) {
+func Test_PopulateMerkleValues(t *testing.T) {
+	t.Parallel()
+
+	someNode := &Node{Key: []byte{1}, SubValue: []byte{2}}
+
+	testCases := map[string]struct {
+		trie         *Trie
+		node         *Node
+		merkleValues map[string]struct{}
+		errSentinel  error
+		errMessage   string
+	}{
+		"nil node": {
+			trie:         &Trie{},
+			merkleValues: map[string]struct{}{},
+		},
+		"leaf node": {
+			trie: &Trie{},
+			node: &Node{MerkleValue: []byte("a")},
+			merkleValues: map[string]struct{}{
+				"a": {},
+			},
+		},
+		"leaf node without Merkle value": {
+			trie: &Trie{},
+			node: &Node{Key: []byte{1}, SubValue: []byte{2}},
+			merkleValues: map[string]struct{}{
+				"A\x01\x04\x02": {},
+			},
+		},
+		"root leaf node without Merkle value": {
+			trie: &Trie{
+				root: someNode,
+			},
+			node: someNode,
+			merkleValues: map[string]struct{}{
+				"`Qm\v\xb6\xe1\xbb\xfb\x12\x93\xf1\xb2v\xea\x95\x05\xe9\xf4\xa4\xe7ُb\r\x05\x11^\v\x85'J\xe1": {},
+			},
+		},
+		"branch node": {
+			trie: &Trie{},
+			node: &Node{
+				MerkleValue: []byte("a"),
+				Children: padRightChildren([]*Node{
+					{MerkleValue: []byte("b")},
+				}),
+			},
+			merkleValues: map[string]struct{}{
+				"a": {},
+				"b": {},
+			},
+		},
+		"nested branch node": {
+			trie: &Trie{},
+			node: &Node{
+				MerkleValue: []byte("a"),
+				Children: padRightChildren([]*Node{
+					{MerkleValue: []byte("b")},
+					{
+						MerkleValue: []byte("c"),
+						Children: padRightChildren([]*Node{
+							{MerkleValue: []byte("d")},
+						}),
+					},
+				}),
+			},
+			merkleValues: map[string]struct{}{
+				"a": {},
+				"b": {},
+				"c": {},
+				"d": {},
+			},
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			merkleValues := make(map[string]struct{})
+
+			err := testCase.trie.PopulateMerkleValues(testCase.node, merkleValues)
+
+			assert.ErrorIs(t, err, testCase.errSentinel)
+			if testCase.errSentinel != nil {
+				assert.EqualError(t, err, testCase.errMessage)
+			}
+			assert.Equal(t, testCase.merkleValues, merkleValues)
+		})
+	}
+}
+
+func Test_GetFromDB(t *testing.T) {
 	t.Parallel()
 
 	const size = 1000
