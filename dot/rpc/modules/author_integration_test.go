@@ -10,8 +10,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	cscale "github.com/centrifuge/go-substrate-rpc-client/v4/scale"
-	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	"os"
 	"testing"
 
@@ -33,8 +31,10 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	cscale "github.com/centrifuge/go-substrate-rpc-client/v4/scale"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	ctypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
@@ -124,7 +124,7 @@ func createExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, non
 	encoder := cscale.NewEncoder(&extEnc)
 	err = extrinsic.Encode(*encoder)
 	require.NoError(t, err)
-	
+
 	return extEnc.Bytes()
 }
 

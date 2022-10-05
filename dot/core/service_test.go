@@ -601,7 +601,8 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 			blockState:       mockBlockState,
 			storageState:     mockStorageState,
 		}
-		service.maintainTransactionPool(&block)
+		err := service.maintainTransactionPool(&block)
+		require.NoError(t, err)
 	})
 
 	t.Run("Validate Transaction ok", func(t *testing.T) {
@@ -664,7 +665,8 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 			blockState:       mockBlockStateOk,
 			storageState:     mockStorageState,
 		}
-		service.maintainTransactionPool(&block)
+		err := service.maintainTransactionPool(&block)
+		require.NoError(t, err)
 	})
 }
 

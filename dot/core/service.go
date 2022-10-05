@@ -308,7 +308,9 @@ func (s *Service) handleBlocksAsync() {
 				logger.Warnf("failed to re-add transactions to chain upon re-org: %s", err)
 			}
 
-			s.maintainTransactionPool(block)
+			if err := s.maintainTransactionPool(block); err != nil {
+				logger.Warnf("failed to maintain txn pool after re-org: %s", err)
+			}
 		case <-s.ctx.Done():
 			return
 		}
@@ -394,7 +396,7 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 // the new block, revalidates the transactions in the pool, and moves
 // them to the queue if valid.
 // See https://github.com/paritytech/substrate/blob/74804b5649eccfb83c90aec87bdca58e5d5c8789/client/transaction-pool/src/lib.rs#L545
-func (s *Service) maintainTransactionPool(block *types.Block) {
+func (s *Service) maintainTransactionPool(block *types.Block) error {
 	// remove extrinsics included in a block
 	for _, ext := range block.Body {
 		s.transactionState.RemoveExtrinsic(ext)
@@ -404,11 +406,13 @@ func (s *Service) maintainTransactionPool(block *types.Block) {
 	stateRoot, err := s.storageState.GetStateRootFromBlock(&bestBlockHash)
 	if err != nil {
 		logger.Errorf("could not get state root from block %s: %w", bestBlockHash, err)
+		return err
 	}
 
 	ts, err := s.storageState.TrieState(stateRoot)
 	if err != nil {
 		logger.Errorf(err.Error())
+		return err
 	}
 
 	// re-validate transactions in the pool and move them to the queue
@@ -441,6 +445,7 @@ func (s *Service) maintainTransactionPool(block *types.Block) {
 		s.transactionState.RemoveExtrinsicFromPool(tx.Extrinsic)
 		logger.Tracef("moved transaction %s to queue", h)
 	}
+	return nil
 }
 
 // InsertKey inserts keypair into the account keystore

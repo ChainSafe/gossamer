@@ -377,9 +377,10 @@ func TestMaintainTransactionPoolLatestTxnQueue_EmptyBlock(t *testing.T) {
 
 	expectedTx := transaction.NewValidTransaction(tx.Extrinsic, txnValidity)
 
-	service.maintainTransactionPool(&types.Block{
+	err = service.maintainTransactionPool(&types.Block{
 		Body: *types.NewBody([]types.Extrinsic{}),
 	})
+	require.NoError(t, err)
 
 	resultTx := service.transactionState.Pop()
 	require.Equal(t, expectedTx, resultTx)
@@ -414,9 +415,10 @@ func TestMaintainTransactionPoolLatestTxnQueue_BlockWithExtrinsics(t *testing.T)
 	}
 	_ = service.transactionState.AddToPool(tx)
 
-	service.maintainTransactionPool(&types.Block{
+	err = service.maintainTransactionPool(&types.Block{
 		Body: types.Body([]types.Extrinsic{encExt}),
 	})
+	require.NoError(t, err)
 
 	res := []*transaction.ValidTransaction{}
 	for {
