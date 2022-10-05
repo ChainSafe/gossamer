@@ -100,6 +100,10 @@ func (fh *finalizationHandler) runFinalization() {
 		go func() {
 			defer innerWg.Done()
 			for err := range handleVotingErrsCh {
+				if err == nil {
+					return
+				}
+
 				fh.observableErrs <- fmt.Errorf("%w: %s", errVotingRound, err)
 			}
 		}()
@@ -107,11 +111,29 @@ func (fh *finalizationHandler) runFinalization() {
 		go func() {
 			defer innerWg.Done()
 			for err := range finalizationEngErrsCh {
+				if err == nil {
+					return
+				}
+
 				fh.observableErrs <- err
 			}
 		}()
 
 		select {
+		case <-fh.grandpaService.ctx.Done():
+			err := fh.stopServices(finalizationEngine, votingRound)
+			if err != nil {
+				fh.observableErrs <- err
+			}
+
+			err = fh.grandpaService.ctx.Err()
+			if err != nil {
+				fh.observableErrs <- err
+			}
+
+			innerWg.Wait()
+			return
+
 		case <-fh.stopCh:
 			err := fh.stopServices(finalizationEngine, votingRound)
 			if err != nil {
@@ -205,13 +227,6 @@ func (h *handleVotingRound) playGrandpaRound() {
 	for {
 		select {
 		case <-h.stopCh:
-			return
-
-		case <-h.grandpaService.ctx.Done():
-			err := h.grandpaService.ctx.Err()
-			if err != nil {
-				h.errsCh <- err
-			}
 			return
 
 		case action, ok := <-h.finalizationEngineCh:

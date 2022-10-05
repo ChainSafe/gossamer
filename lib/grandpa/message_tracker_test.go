@@ -127,7 +127,10 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 	require.NoError(t, err)
 
 	gs := setupGrandpa(t, kr.Bob().(*ed25519.Keypair))
+	defer gs.cancel()
+
 	state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 3, false)
+
 	err = gs.Start()
 	require.NoError(t, err)
 
