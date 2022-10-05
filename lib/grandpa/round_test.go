@@ -581,7 +581,10 @@ func runFinalizationService(t *testing.T, grandpaService *Service) {
 	go func() {
 		defer wg.Done()
 		for err := range finErrCh {
-			innerErr <- err
+			if err != nil {
+				innerErr <- err
+				continue
+			}
 			return
 		}
 	}()
@@ -589,7 +592,10 @@ func runFinalizationService(t *testing.T, grandpaService *Service) {
 	go func() {
 		defer wg.Done()
 		for err := range votingErrsCh {
-			innerErr <- err
+			if err != nil {
+				innerErr <- err
+				continue
+			}
 			return
 		}
 	}()
@@ -636,7 +642,11 @@ func runFinalizationServices(t *testing.T, grandpaServices []*Service) {
 		go func() {
 			defer wg.Done()
 			for err := range errsCh {
-				innerErr <- err
+				if err != nil {
+					innerErr <- err
+					continue
+				}
+
 				return
 			}
 		}()
@@ -650,7 +660,10 @@ func runFinalizationServices(t *testing.T, grandpaServices []*Service) {
 		go func() {
 			defer wg.Done()
 			for err := range errsCh {
-				innerErr <- err
+				if err != nil {
+					innerErr <- err
+					continue
+				}
 				return
 			}
 		}()
@@ -660,8 +673,9 @@ func runFinalizationServices(t *testing.T, grandpaServices []*Service) {
 	case err := <-innerErr:
 		stopServices(t, finalizationEngines...)
 		stopServices(t, votingRounds...)
-		t.Errorf("inner service failed: %s", err)
 		wg.Wait()
+
+		t.Errorf("inner service failed: %s", err)
 
 	case <-waitServices(finalizationEngines, votingRounds):
 		stopServices(t, finalizationEngines...)
