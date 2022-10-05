@@ -159,7 +159,7 @@ func toWasmMemoryFixedSizeOptional(context wasmer.InstanceContext, data []byte) 
 	return toWasmMemory(context, encodedOptionalFixedSize)
 }
 
-func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
+func storageAppend(storage runtime.Storage, key, valueToAppend []byte) (err error) {
 	// this function assumes the item in storage is a SCALE encoded array of items
 	// the valueToAppend is a new item, so it appends the item and increases the length prefix by 1
 	currentValue := storage.Get(key)
@@ -210,7 +210,16 @@ func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 		}
 	}
 
-	logger.Debugf("resulting value: 0x%x", value)
-	storage.Set(key, value)
+	err = storage.Set(key, value)
+	if err != nil {
+		return fmt.Errorf("settings key and value in storage: %w", err)
+	}
+
 	return nil
+}
+
+func panicOnError(err error) {
+	if err != nil {
+		panic(err)
+	}
 }
