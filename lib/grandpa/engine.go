@@ -52,20 +52,6 @@ func (fh *finalizationHandler) stopServices(finalizationEngine *finalizationEngi
 	return nil
 }
 
-func (fh *finalizationHandler) waitServices(finalizationEngine *finalizationEngine,
-	votingRound *handleVotingRound) (doneCh <-chan struct{}) {
-	done := make(chan struct{})
-
-	go func() {
-		defer close(done)
-
-		<-finalizationEngine.engineDone
-		<-votingRound.engineDone
-	}()
-
-	return done
-}
-
 var errStartingService = errors.New("starting service")
 
 func (fh *finalizationHandler) runFinalization() {
@@ -100,57 +86,56 @@ func (fh *finalizationHandler) runFinalization() {
 		go func() {
 			defer innerWg.Done()
 			for err := range handleVotingErrsCh {
-				if err == nil {
-					return
+				if err != nil {
+					fh.observableErrs <- fmt.Errorf("%w: %s", errVotingRound, err)
+					continue
 				}
-
-				fh.observableErrs <- fmt.Errorf("%w: %s", errVotingRound, err)
+				return
 			}
 		}()
 
 		go func() {
 			defer innerWg.Done()
 			for err := range finalizationEngErrsCh {
-				if err == nil {
-					return
+				if err != nil {
+					fh.observableErrs <- err
+					continue
 				}
-
-				fh.observableErrs <- err
+				return
 			}
 		}()
 
+		waitServicesCh := make(chan struct{})
+		go func() {
+			defer close(waitServicesCh)
+			innerWg.Wait()
+		}()
+
 		select {
-		case <-fh.grandpaService.ctx.Done():
-			err := fh.stopServices(finalizationEngine, votingRound)
-			if err != nil {
-				fh.observableErrs <- err
-			}
-
-			err = fh.grandpaService.ctx.Err()
-			if err != nil {
-				fh.observableErrs <- err
-			}
-
-			innerWg.Wait()
-			return
-
-		case <-fh.stopCh:
-			err := fh.stopServices(finalizationEngine, votingRound)
-			if err != nil {
-				fh.observableErrs <- err
-			}
-
-			innerWg.Wait()
-			return
-
-		case <-fh.waitServices(finalizationEngine, votingRound):
+		case <-waitServicesCh:
 			err := fh.stopServices(finalizationEngine, votingRound)
 			if err != nil {
 				fh.observableErrs <- err
 				return
 			}
 
+		case <-fh.grandpaService.ctx.Done():
+			err := fh.stopServices(finalizationEngine, votingRound)
 			innerWg.Wait()
+
+			if err != nil {
+				fh.observableErrs <- err
+			}
+			return
+
+		case <-fh.stopCh:
+			err := fh.stopServices(finalizationEngine, votingRound)
+			innerWg.Wait()
+
+			if err != nil {
+				fh.observableErrs <- err
+			}
+			return
 		}
 	}
 }
@@ -277,7 +262,7 @@ func (h *handleVotingRound) playGrandpaRound() {
 					return
 				}
 
-				logger.Warnf("sending pre-vote message: {%v}", precommitMessage)
+				logger.Warnf("sending pre-commit message: {%v}", precommitMessage)
 
 				h.grandpaService.precommits.Store(h.grandpaService.publicKeyBytes(), signedpreComit)
 
@@ -306,12 +291,13 @@ func (h *handleVotingRound) playGrandpaRound() {
 				))
 
 				logger.Debugf("round completed in %s", time.Since(start))
+				h.errsCh <- nil
 				return
 
 			case alreadyFinalized:
 				logger.Debugf("round completed in %s", time.Since(start))
+				h.errsCh <- nil
 				return
-
 			}
 		}
 	}
@@ -462,6 +448,7 @@ func (f *finalizationEngine) playFinalization(gossipInterval time.Duration, stop
 
 		if alreadyCompletable {
 			f.actionCh <- alreadyFinalized
+			f.errsCh <- nil
 			return
 		}
 
@@ -473,6 +460,7 @@ func (f *finalizationEngine) playFinalization(gossipInterval time.Duration, stop
 
 		if finalizable {
 			f.actionCh <- finalize
+			f.errsCh <- nil
 			return
 		}
 
