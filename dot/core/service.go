@@ -293,9 +293,6 @@ func (s *Service) handleCodeSubstitution(hash common.Hash,
 // does not need to be completed before the next block can be imported.
 func (s *Service) handleBlocksAsync() {
 	for {
-		// TODO Move this down to befre handleChainReorg call
-		prev := s.blockState.BestBlockHash()
-
 		select {
 		case block, ok := <-s.blockAddCh:
 			if !ok {
@@ -306,6 +303,7 @@ func (s *Service) handleBlocksAsync() {
 				continue
 			}
 
+			prev := s.blockState.BestBlockHash()
 			if err := s.handleChainReorg(prev, block.Header.Hash()); err != nil {
 				logger.Warnf("failed to re-add transactions to chain upon re-org: %s", err)
 			}

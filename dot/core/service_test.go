@@ -672,14 +672,10 @@ func Test_Service_handleBlocksAsync(t *testing.T) {
 	t.Parallel()
 	t.Run("cancelled context", func(t *testing.T) {
 		t.Parallel()
-		ctrl := gomock.NewController(t)
-		mockBlockState := NewMockBlockState(ctrl)
-		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{})
 		blockAddChan := make(chan *types.Block)
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
 		service := &Service{
-			blockState: mockBlockState,
 			blockAddCh: blockAddChan,
 			ctx:        ctx,
 		}
@@ -688,13 +684,9 @@ func Test_Service_handleBlocksAsync(t *testing.T) {
 
 	t.Run("channel not ok", func(t *testing.T) {
 		t.Parallel()
-		ctrl := gomock.NewController(t)
-		mockBlockState := NewMockBlockState(ctrl)
-		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{})
 		blockAddChan := make(chan *types.Block)
 		close(blockAddChan)
 		service := &Service{
-			blockState: mockBlockState,
 			blockAddCh: blockAddChan,
 			ctx:        context.Background(),
 		}
@@ -703,16 +695,12 @@ func Test_Service_handleBlocksAsync(t *testing.T) {
 
 	t.Run("nil block", func(t *testing.T) {
 		t.Parallel()
-		ctrl := gomock.NewController(t)
-		mockBlockState := NewMockBlockState(ctrl)
-		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{}).Times(2)
 		blockAddChan := make(chan *types.Block)
 		go func() {
 			blockAddChan <- nil
 			close(blockAddChan)
 		}()
 		service := &Service{
-			blockState: mockBlockState,
 			blockAddCh: blockAddChan,
 			ctx:        context.Background(),
 		}
@@ -765,7 +753,7 @@ func Test_Service_handleBlocksAsync(t *testing.T) {
 		mockBlockState.EXPECT().HighestCommonAncestor(common.Hash{}, block.Header.Hash()).
 			Return(common.Hash{}, errTestDummyError)
 		mockBlockState.EXPECT().GetRuntime(&common.Hash{}).Return(runtimeMock, nil)
-		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{}).Times(2)
+		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{})
 
 		mockTxnStateErr := NewMockTransactionState(ctrl)
 		mockTxnStateErr.EXPECT().RemoveExtrinsic(types.Extrinsic{21}).Times(2)
