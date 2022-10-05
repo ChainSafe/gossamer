@@ -239,7 +239,7 @@ func TestSystemModule_AccountNextIndex_StoragePending(t *testing.T) {
 		Validity:  new(transaction.Validity),
 	}
 	expectedPending := U64Response(uint64(4))
-	sys.txStateAPI.AddToPool(vtx)
+	sys.txStateAPI.(*state.TransactionState).AddToPool(vtx)
 
 	err = sys.AccountNextIndex(nil, &req, res)
 	require.NoError(t, err)
@@ -276,7 +276,7 @@ func TestSystemModule_AccountNextIndex_Pending(t *testing.T) {
 		Validity:  new(transaction.Validity),
 	}
 	expectedPending := U64Response(uint64(4))
-	sys.txStateAPI.AddToPool(vtx)
+	sys.txStateAPI.(*state.TransactionState).AddToPool(vtx)
 
 	err := sys.AccountNextIndex(nil, &req, res)
 	require.NoError(t, err)
