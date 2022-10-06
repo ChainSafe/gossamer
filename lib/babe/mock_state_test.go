@@ -491,7 +491,7 @@ func (mr *MockTransactionStateMockRecorder) Pop() *gomock.Call {
 }
 
 // PopWithTimer mocks base method.
-func (m *MockTransactionState) PopWithTimer(arg0 *time.Timer) *transaction.ValidTransaction {
+func (m *MockTransactionState) PopWithTimer(arg0 <-chan time.Time) *transaction.ValidTransaction {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PopWithTimer", arg0)
 	ret0, _ := ret[0].(*transaction.ValidTransaction)
