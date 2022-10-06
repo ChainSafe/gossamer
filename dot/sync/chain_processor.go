@@ -83,7 +83,7 @@ func (s *chainProcessor) stop() {
 func (s *chainProcessor) processReadyBlocks() {
 	for {
 		bd := s.readyBlocks.pop(s.ctx)
-		if s.ctx.Err() != nil {
+		if bd == nil { // context was canceled
 			return
 		}
 
@@ -111,19 +111,19 @@ func (s *chainProcessor) processReadyBlocks() {
 func (c *chainProcessor) processBlockData(blockData types.BlockData) error { //nolint:revive
 	logger.Debugf("processing block data with hash %s", blockData.Hash)
 
-	hasHeader, err := c.blockState.HasHeader(blockData.Hash)
+	headerInState, err := c.blockState.HasHeader(blockData.Hash)
 	if err != nil {
 		return fmt.Errorf("checking if block state has header: %w", err)
 	}
 
-	hasBody, err := c.blockState.HasBlockBody(blockData.Hash)
+	bodyInState, err := c.blockState.HasBlockBody(blockData.Hash)
 	if err != nil {
 		return fmt.Errorf("checking if block state has body: %w", err)
 	}
 
 	// while in bootstrap mode we don't need to broadcast block announcements
 	announceImportedBlock := c.chainSync.syncState() == tip
-	if hasHeader && hasBody {
+	if headerInState && bodyInState {
 		err = c.processBlockDataWithStateHeaderAndBody(blockData, announceImportedBlock)
 		if err != nil {
 			return fmt.Errorf("processing block data with header and "+
@@ -140,7 +140,7 @@ func (c *chainProcessor) processBlockData(blockData types.BlockData) error { //n
 		logger.Debugf("block with hash %s processed", blockData.Hash)
 	}
 
-	if blockData.Justification != nil && len(*blockData.Justification) > 0 && blockData.Header != nil {
+	if blockData.Header != nil && blockData.Justification != nil && len(*blockData.Justification) > 0 {
 		err = c.handleJustification(blockData.Header, *blockData.Justification)
 		if err != nil {
 			return fmt.Errorf("handling justification: %w", err)
