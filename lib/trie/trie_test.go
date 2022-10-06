@@ -1063,6 +1063,7 @@ func Test_Trie_insert(t *testing.T) {
 		key          []byte
 		value        []byte
 		newNode      *Node
+		mutated      bool
 		nodesCreated uint32
 	}{
 		"nil parent": {
@@ -1077,6 +1078,7 @@ func Test_Trie_insert(t *testing.T) {
 				Generation: 1,
 				Dirty:      true,
 			},
+			mutated:      true,
 			nodesCreated: 1,
 		},
 		"branch parent": {
@@ -1110,6 +1112,7 @@ func Test_Trie_insert(t *testing.T) {
 					{Key: []byte{2}, SubValue: []byte{1}},
 				}),
 			},
+			mutated:      true,
 			nodesCreated: 1,
 		},
 		"override leaf parent": {
@@ -1128,6 +1131,7 @@ func Test_Trie_insert(t *testing.T) {
 				Generation: 1,
 				Dirty:      true,
 			},
+			mutated: true,
 		},
 		"write same leaf value to leaf parent": {
 			trie: Trie{
@@ -1169,6 +1173,7 @@ func Test_Trie_insert(t *testing.T) {
 					},
 				}),
 			},
+			mutated:      true,
 			nodesCreated: 1,
 		},
 		"write leaf as divergent child next to parent leaf": {
@@ -1202,9 +1207,10 @@ func Test_Trie_insert(t *testing.T) {
 					},
 				}),
 			},
+			mutated:      true,
 			nodesCreated: 2,
 		},
-		"write leaf into nil value leaf": {
+		"override leaf value": {
 			trie: Trie{
 				generation: 1,
 			},
@@ -1220,8 +1226,9 @@ func Test_Trie_insert(t *testing.T) {
 				Dirty:      true,
 				Generation: 1,
 			},
+			mutated: true,
 		},
-		"write leaf as child to nil value leaf": {
+		"write leaf as child to leaf": {
 			trie: Trie{
 				generation: 1,
 			},
@@ -1247,6 +1254,7 @@ func Test_Trie_insert(t *testing.T) {
 					},
 				}),
 			},
+			mutated:      true,
 			nodesCreated: 1,
 		},
 	}
@@ -1259,9 +1267,10 @@ func Test_Trie_insert(t *testing.T) {
 			trie := testCase.trie
 			expectedTrie := *trie.DeepCopy()
 
-			newNode, nodesCreated := trie.insert(testCase.parent, testCase.key, testCase.value)
+			newNode, mutated, nodesCreated := trie.insert(testCase.parent, testCase.key, testCase.value)
 
 			assert.Equal(t, testCase.newNode, newNode)
+			assert.Equal(t, testCase.mutated, mutated)
 			assert.Equal(t, testCase.nodesCreated, nodesCreated)
 			assert.Equal(t, expectedTrie, trie)
 		})
@@ -1276,8 +1285,29 @@ func Test_Trie_insertInBranch(t *testing.T) {
 		key          []byte
 		value        []byte
 		newNode      *Node
+		mutated      bool
 		nodesCreated uint32
 	}{
+		"insert existing value to branch": {
+			parent: &Node{
+				Key:         []byte{2},
+				SubValue:    []byte("same"),
+				Descendants: 1,
+				Children: padRightChildren([]*Node{
+					{Key: []byte{1}, SubValue: []byte{1}},
+				}),
+			},
+			key:   []byte{2},
+			value: []byte("same"),
+			newNode: &Node{
+				Key:         []byte{2},
+				SubValue:    []byte("same"),
+				Descendants: 1,
+				Children: padRightChildren([]*Node{
+					{Key: []byte{1}, SubValue: []byte{1}},
+				}),
+			},
+		},
 		"update with branch": {
 			parent: &Node{
 				Key:         []byte{2},
@@ -1298,6 +1328,7 @@ func Test_Trie_insertInBranch(t *testing.T) {
 					{Key: []byte{1}, SubValue: []byte{1}},
 				}),
 			},
+			mutated: true,
 		},
 		"update with leaf": {
 			parent: &Node{
@@ -1319,6 +1350,7 @@ func Test_Trie_insertInBranch(t *testing.T) {
 					{Key: []byte{1}, SubValue: []byte{1}},
 				}),
 			},
+			mutated: true,
 		},
 		"add leaf as direct child": {
 			parent: &Node{
@@ -1346,7 +1378,28 @@ func Test_Trie_insertInBranch(t *testing.T) {
 					},
 				}),
 			},
+			mutated:      true,
 			nodesCreated: 1,
+		},
+		"insert same leaf as existing direct child leaf": {
+			parent: &Node{
+				Key:         []byte{2},
+				SubValue:    []byte{5},
+				Descendants: 1,
+				Children: padRightChildren([]*Node{
+					{Key: []byte{1}, SubValue: []byte{1}},
+				}),
+			},
+			key:   []byte{2, 0, 1},
+			value: []byte{1},
+			newNode: &Node{
+				Key:         []byte{2},
+				SubValue:    []byte{5},
+				Descendants: 1,
+				Children: padRightChildren([]*Node{
+					{Key: []byte{1}, SubValue: []byte{1}},
+				}),
+			},
 		},
 		"add leaf as nested child": {
 			parent: &Node{
@@ -1389,6 +1442,7 @@ func Test_Trie_insertInBranch(t *testing.T) {
 					},
 				}),
 			},
+			mutated:      true,
 			nodesCreated: 1,
 		},
 		"split branch for longer key": {
@@ -1424,6 +1478,7 @@ func Test_Trie_insertInBranch(t *testing.T) {
 					},
 				}),
 			},
+			mutated:      true,
 			nodesCreated: 2,
 		},
 		"split root branch": {
@@ -1459,6 +1514,7 @@ func Test_Trie_insertInBranch(t *testing.T) {
 					},
 				}),
 			},
+			mutated:      true,
 			nodesCreated: 2,
 		},
 		"update with leaf at empty key": {
@@ -1490,6 +1546,7 @@ func Test_Trie_insertInBranch(t *testing.T) {
 					},
 				}),
 			},
+			mutated:      true,
 			nodesCreated: 1,
 		},
 	}
@@ -1501,9 +1558,10 @@ func Test_Trie_insertInBranch(t *testing.T) {
 
 			trie := new(Trie)
 
-			newNode, nodesCreated := trie.insertInBranch(testCase.parent, testCase.key, testCase.value)
+			newNode, mutated, nodesCreated := trie.insertInBranch(testCase.parent, testCase.key, testCase.value)
 
 			assert.Equal(t, testCase.newNode, newNode)
+			assert.Equal(t, testCase.mutated, mutated)
 			assert.Equal(t, testCase.nodesCreated, nodesCreated)
 			assert.Equal(t, new(Trie), trie) // check no mutation
 		})

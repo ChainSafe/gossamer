@@ -18,9 +18,13 @@ var EmptyHash, _ = NewEmptyTrie().Hash()
 
 // Trie is a base 16 modified Merkle Patricia trie.
 type Trie struct {
-	generation          uint64
-	root                *Node
-	childTries          map[common.Hash]*Trie
+	generation uint64
+	root       *Node
+	childTries map[common.Hash]*Trie
+	// deletedMerkleValues are the node Merkle values that were deleted
+	// from this trie since the last snapshot. These are used by the online
+	// pruner to detect with database keys (trie node Merkle values) can
+	// be deleted.
 	deletedMerkleValues map[string]struct{}
 }
 
@@ -319,20 +323,22 @@ func findNextKeyChild(children []*Node, startIndex byte,
 // key specified in little Endian format.
 func (t *Trie) Put(keyLE, value []byte) {
 	nibblesKey := codec.KeyLEToNibbles(keyLE)
-	t.root, _ = t.insert(t.root, nibblesKey, value)
+	t.root, _, _ = t.insert(t.root, nibblesKey, value)
 }
 
 // insert inserts a value in the trie at the key specified.
 // It may create one or more new nodes or update an existing node.
-func (t *Trie) insert(parent *Node, key, value []byte) (newParent *Node, nodesCreated uint32) {
+func (t *Trie) insert(parent *Node, key, value []byte) (
+	newParent *Node, mutated bool, nodesCreated uint32) {
 	if parent == nil {
-		const nodesCreated = 1
+		mutated = true
+		nodesCreated = 1
 		return &Node{
 			Key:        key,
 			SubValue:   value,
 			Generation: t.generation,
 			Dirty:      true,
-		}, nodesCreated
+		}, mutated, nodesCreated
 	}
 
 	// TODO ensure all values have dirty set to true
@@ -344,23 +350,26 @@ func (t *Trie) insert(parent *Node, key, value []byte) (newParent *Node, nodesCr
 }
 
 func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte) (
-	newParent *Node, nodesCreated uint32) {
+	newParent *Node, mutated bool, nodesCreated uint32) {
 	if bytes.Equal(parentLeaf.Key, key) {
 		nodesCreated = 0
-		if bytes.Equal(value, parentLeaf.SubValue) {
-			return parentLeaf, nodesCreated
+		if parentLeaf.SubValueEqual(value) {
+			mutated = false
+			return parentLeaf, mutated, nodesCreated
 		}
 
 		copySettings := node.DefaultCopySettings
 		copySettings.CopyValue = false
 		parentLeaf = t.prepLeafForMutation(parentLeaf, copySettings)
 		parentLeaf.SubValue = value
-		return parentLeaf, nodesCreated
+		mutated = true
+		return parentLeaf, mutated, nodesCreated
 	}
 
 	commonPrefixLength := lenCommonPrefix(key, parentLeaf.Key)
 
 	// Convert the current leaf parent into a branch parent
+	mutated = true
 	newBranchParent := &Node{
 		Key:        key[:commonPrefixLength],
 		Generation: t.generation,
@@ -376,15 +385,18 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte) (
 		if len(key) < len(parentLeafKey) {
 			// Move the current leaf parent as a child to the new branch.
 			copySettings := node.DefaultCopySettings
-			parentLeaf = t.prepLeafForMutation(parentLeaf, copySettings)
 			childIndex := parentLeafKey[commonPrefixLength]
-			parentLeaf.Key = parentLeaf.Key[commonPrefixLength+1:]
+			newParentLeafKey := parentLeaf.Key[commonPrefixLength+1:]
+			if !bytes.Equal(parentLeaf.Key, newParentLeafKey) {
+				parentLeaf = t.prepLeafForMutation(parentLeaf, copySettings)
+				parentLeaf.Key = newParentLeafKey
+			}
 			newBranchParent.Children[childIndex] = parentLeaf
 			newBranchParent.Descendants++
 			nodesCreated++
 		}
 
-		return newBranchParent, nodesCreated
+		return newBranchParent, mutated, nodesCreated
 	}
 
 	if len(parentLeaf.Key) == commonPrefixLength {
@@ -393,9 +405,12 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte) (
 	} else {
 		// make the leaf a child of the new branch
 		copySettings := node.DefaultCopySettings
-		parentLeaf = t.prepLeafForMutation(parentLeaf, copySettings)
 		childIndex := parentLeafKey[commonPrefixLength]
-		parentLeaf.Key = parentLeaf.Key[commonPrefixLength+1:]
+		newParentLeafKey := parentLeaf.Key[commonPrefixLength+1:]
+		if !bytes.Equal(parentLeaf.Key, newParentLeafKey) {
+			parentLeaf = t.prepLeafForMutation(parentLeaf, copySettings)
+			parentLeaf.Key = newParentLeafKey
+		}
 		newBranchParent.Children[childIndex] = parentLeaf
 		newBranchParent.Descendants++
 		nodesCreated++
@@ -410,17 +425,22 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte) (
 	newBranchParent.Descendants++
 	nodesCreated++
 
-	return newBranchParent, nodesCreated
+	return newBranchParent, mutated, nodesCreated
 }
 
 func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte) (
-	newParent *Node, nodesCreated uint32) {
+	newParent *Node, mutated bool, nodesCreated uint32) {
 	copySettings := node.DefaultCopySettings
-	parentBranch = t.prepBranchForMutation(parentBranch, copySettings)
 
 	if bytes.Equal(key, parentBranch.Key) {
+		if parentBranch.SubValueEqual(value) {
+			mutated = false
+			return parentBranch, mutated, 0
+		}
+		parentBranch = t.prepBranchForMutation(parentBranch, copySettings)
 		parentBranch.SubValue = value
-		return parentBranch, 0
+		mutated = true
+		return parentBranch, mutated, 0
 	}
 
 	if bytes.HasPrefix(key, parentBranch.Key) {
@@ -438,17 +458,27 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte) (
 				Dirty:      true,
 			}
 			nodesCreated = 1
-		} else {
-			child, nodesCreated = t.insert(child, remainingKey, value)
+			parentBranch = t.prepBranchForMutation(parentBranch, copySettings)
+			parentBranch.Children[childIndex] = child
+			parentBranch.Descendants += nodesCreated
+			mutated = true
+			return parentBranch, mutated, nodesCreated
 		}
 
+		child, mutated, nodesCreated = t.insert(child, remainingKey, value)
+		if !mutated {
+			return parentBranch, mutated, 0
+		}
+
+		parentBranch = t.prepBranchForMutation(parentBranch, copySettings)
 		parentBranch.Children[childIndex] = child
 		parentBranch.Descendants += nodesCreated
-		return parentBranch, nodesCreated
+		return parentBranch, mutated, nodesCreated
 	}
 
 	// we need to branch out at the point where the keys diverge
 	// update partial keys, new branch has key up to matching length
+	mutated = true
 	nodesCreated = 1
 	commonPrefixLength := lenCommonPrefix(key, parentBranch.Key)
 	newParentBranch := &Node{
@@ -461,6 +491,8 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte) (
 	oldParentIndex := parentBranch.Key[commonPrefixLength]
 	remainingOldParentKey := parentBranch.Key[commonPrefixLength+1:]
 
+	// Note: parentBranch.Key != remainingOldParentKey
+	parentBranch = t.prepBranchForMutation(parentBranch, copySettings)
 	parentBranch.Key = remainingOldParentKey
 	newParentBranch.Children[oldParentIndex] = parentBranch
 	newParentBranch.Descendants += 1 + parentBranch.Descendants
@@ -471,12 +503,12 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte) (
 		childIndex := key[commonPrefixLength]
 		remainingKey := key[commonPrefixLength+1:]
 		var additionalNodesCreated uint32
-		newParentBranch.Children[childIndex], additionalNodesCreated = t.insert(nil, remainingKey, value)
+		newParentBranch.Children[childIndex], _, additionalNodesCreated = t.insert(nil, remainingKey, value)
 		nodesCreated += additionalNodesCreated
 		newParentBranch.Descendants += additionalNodesCreated
 	}
 
-	return newParentBranch, nodesCreated
+	return newParentBranch, mutated, nodesCreated
 }
 
 // LoadFromMap loads the given data mapping of key to value into the trie.
@@ -792,7 +824,11 @@ func (t *Trie) deleteNodesLimit(parent *Node, limit uint32) (
 
 		copySettings := node.DefaultCopySettings
 		branch = t.prepBranchForMutation(branch, copySettings)
+
 		branch.Children[i], newDeleted, newNodesRemoved = t.deleteNodesLimit(child, limit)
+		// Note: newDeleted can never be zero here since the limit isn't zero
+		// and the child is not nil. Therefore it is safe to prepare the branch
+		// for mutation right before this call.
 		if branch.Children[i] == nil {
 			nilChildren++
 		}
