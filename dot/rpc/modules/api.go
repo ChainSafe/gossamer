@@ -83,9 +83,6 @@ type BlockProducerAPI interface {
 
 // TransactionStateAPI ...
 type TransactionStateAPI interface {
-	AddToPool(*transaction.ValidTransaction) common.Hash
-	Pop() *transaction.ValidTransaction
-	Peek() *transaction.ValidTransaction
 	Pending() []*transaction.ValidTransaction
 	GetStatusNotifierChannel(ext types.Extrinsic) chan transaction.Status
 	FreeStatusNotifierChannel(ch chan transaction.Status)

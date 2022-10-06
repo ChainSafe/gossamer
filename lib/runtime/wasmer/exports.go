@@ -13,21 +13,17 @@ import (
 )
 
 // ValidateTransaction runs the extrinsic through the runtime function
-// TaggedTransactionQueue_validate_transaction and returns *Validity
-func (in *Instance) ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error) {
+// TaggedTransactionQueue_validate_transaction and returns **transaction.Validity. The error can
+// be a VDT of either transaction.InvalidTransaction or transaction.UnknownTransaction, or can represent
+// a normal error i.e. unmarshalling error
+func (in *Instance) ValidateTransaction(e types.Extrinsic) (
+	*transaction.Validity, error) {
 	ret, err := in.Exec(runtime.TaggedTransactionQueueValidateTransaction, e)
 	if err != nil {
 		return nil, err
 	}
 
-	if ret[0] != 0 {
-		return nil, runtime.NewValidateTransactionError(ret)
-	}
-
-	v := transaction.NewValidity(0, [][]byte{{}}, [][]byte{{}}, 0, false)
-	err = scale.Unmarshal(ret[1:], v)
-
-	return v, err
+	return runtime.UnmarshalTransactionValidity(ret)
 }
 
 // Version returns the instance version.
@@ -139,11 +135,15 @@ func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 
 	// remove seal digest only
 	for _, d := range block.Header.Digest.Types {
-		switch d.Value().(type) {
+		digestValue, err := d.Value()
+		if err != nil {
+			return nil, fmt.Errorf("getting digest type value: %w", err)
+		}
+		switch digestValue.(type) {
 		case types.SealDigest:
 			continue
 		default:
-			err = b.Header.Digest.Add(d.Value())
+			err = b.Header.Digest.Add(digestValue)
 			if err != nil {
 				return nil, err
 			}

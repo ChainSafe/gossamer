@@ -27,7 +27,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
@@ -38,7 +37,7 @@ import (
 )
 
 func TestRegisterModules(t *testing.T) {
-	rpcapiMocks := new(mocks.RPCAPI)
+	rpcapiMocks := mocks.NewRPCAPI(t)
 
 	mods := []string{
 		"system", "author", "chain",
@@ -56,10 +55,6 @@ func TestRegisterModules(t *testing.T) {
 	}
 
 	NewHTTPServer(cfg)
-
-	for _, modName := range mods {
-		rpcapiMocks.AssertCalled(t, "BuildMethodNames", mock.Anything, modName)
-	}
 }
 
 func TestNewHTTPServer(t *testing.T) {
@@ -177,7 +172,7 @@ func TestRPCUnsafeExpose(t *testing.T) {
 	_, err := buf.Write(data)
 	require.NoError(t, err)
 
-	netmock := new(mocks.NetworkAPI)
+	netmock := mocks.NewNetworkAPI(t)
 	netmock.On("AddReservedPeers", mock.AnythingOfType("string")).Return(nil)
 
 	cfg := &HTTPServerConfig{
@@ -214,15 +209,11 @@ func TestUnsafeRPCJustToLocalhost(t *testing.T) {
 	_, err := buf.Write(data)
 	require.NoError(t, err)
 
-	netmock := new(mocks.NetworkAPI)
-	netmock.On("AddReservedPeers", mock.AnythingOfType("string")).Return(nil)
-
 	cfg := &HTTPServerConfig{
-		Modules:    []string{"system"},
-		RPCPort:    7880,
-		RPCAPI:     NewService(),
-		RPCUnsafe:  true,
-		NetworkAPI: netmock,
+		Modules:   []string{"system"},
+		RPCPort:   7880,
+		RPCAPI:    NewService(),
+		RPCUnsafe: true,
 	}
 
 	s := NewHTTPServer(cfg)
@@ -262,7 +253,7 @@ func TestRPCExternalEnable_UnsafeExternalNotEnabled(t *testing.T) {
 	safebuf := new(bytes.Buffer)
 	safebuf.Write(safeData)
 
-	netmock := new(mocks.NetworkAPI)
+	netmock := mocks.NewNetworkAPI(t)
 	netmock.On("NetworkState").Return(common.NetworkState{
 		PeerID: "peer id",
 	})
@@ -373,7 +364,7 @@ func newCoreServiceTest(t *testing.T) *core.Service {
 
 	testDatadirPath := t.TempDir()
 
-	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	gen, genesisTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
@@ -388,7 +379,7 @@ func newCoreServiceTest(t *testing.T) *core.Service {
 	stateSrvc := state.NewService(config)
 	stateSrvc.UseMemDB()
 
-	err := stateSrvc.Initialise(gen, genHeader, genTrie)
+	err := stateSrvc.Initialise(&gen, &genesisHeader, &genesisTrie)
 	require.NoError(t, err)
 
 	err = stateSrvc.SetupBase()
@@ -415,7 +406,7 @@ func newCoreServiceTest(t *testing.T) *core.Service {
 
 	var rtCfg wasmer.Config
 
-	rtCfg.Storage = rtstorage.NewTrieState(genTrie)
+	rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
 
 	rtCfg.CodeHash, err = cfg.StorageState.LoadCodeHash(nil)
 	require.NoError(t, err)

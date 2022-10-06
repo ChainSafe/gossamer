@@ -5,23 +5,37 @@ package genesis
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/stretchr/testify/require"
 )
 
 func TestNewGenesisRawFromJSON(t *testing.T) {
-	testRaw := map[string]map[string]string{}
-	testRaw["top"] = map[string]string{"0x3a636f6465": "0x0102"}
-
-	expected := TestGenesis
-	expected.Genesis = Fields{Raw: testRaw}
+	expected := &Genesis{
+		Name: "gossamer",
+		ID:   "gossamer",
+		Bootnodes: []string{
+			"/dns4/p2p.cc3-0.kusama.network/tcp/30100/p2p/QmeCit3Nif4VfNqrEJsdYHZGcKzRCnZvGxg6hha1iNj4mk",
+			"/dns4/p2p.cc3-1.kusama.network/tcp/30100/p2p/QmchDJtEGiEWf7Ag58HNoTg9jSGzxkSZ23VgmF6xiLKKsZ",
+		},
+		TelemetryEndpoints: []interface{}{"wss://telemetry.polkadot.io/submit/", float64(1)},
+		ProtocolID:         "/gossamer/test/0",
+		Properties: map[string]interface{}{
+			"ss58Format":    float64(0),
+			"tokenDecimals": float64(10),
+			"tokenSymbol":   "DOT",
+		},
+		ForkBlocks: []string{"fork1", "forkBlock2"},
+		BadBlocks:  []string{"badBlock1", "badBlock2"},
+		Genesis: Fields{
+			Raw: map[string]map[string]string{
+				"top": {"0x3a636f6465": "0x0102"},
+			},
+		},
+	}
 
 	// Grab json encoded bytes
 	bz, err := json.Marshal(expected)
@@ -63,7 +77,7 @@ func TestNewGenesisFromJSON(t *testing.T) {
 	expRaw["top"]["0x5f3e4907f716ac89b6347d15ececedcac29a0310e1bb45d20cace77ccb62c97d"] = "0x00e1f505"                                                                                                                                         // Staking
 	expRaw["top"]["0x5f3e4907f716ac89b6347d15ececedcaf7dad0317324aecae8744b87fc95f2f3"] = "0x00e1f505"                                                                                                                                         // Staking
 	expRaw["top"]["0x5f3e4907f716ac89b6347d15ececedcaf7dad0317324aecae8744b87fc95f2f3"] = zeroByte                                                                                                                                             // Staking
-	expRaw["top"]["0xcec5070d609dd3497f72bde07fc96ba04c014e6bf8b8c2c011e7290b85696bb3e535263148daaf49be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f"] = "0xbe5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f" //Session
+	expRaw["top"]["0xcec5070d609dd3497f72bde07fc96ba04c014e6bf8b8c2c011e7290b85696bb3e535263148daaf49be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f"] = "0xbe5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f" // Session
 	expRaw["top"]["0xcec5070d609dd3497f72bde07fc96ba0726380404683fc89e8233450c8aa195066b8d48da86b869b6261626580d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"] = "0x"                                                       // Session
 	expRaw["top"]["0xcec5070d609dd3497f72bde07fc96ba0726380404683fc89e8233450c8aa1950c9b0c13125732d276175646980d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"] = "0x"                                                       // Session
 	expRaw["top"]["0xcec5070d609dd3497f72bde07fc96ba0726380404683fc89e8233450c8aa1950ed43a85541921049696d6f6e80d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"] = "0x"                                                       // Session
@@ -294,23 +308,5 @@ func TestFormatKey(t *testing.T) {
 
 	out, err := formatKey(kv)
 	require.NoError(t, err)
-	require.Equal(t, fmt.Sprintf("0x%x", runtime.BABEAuthoritiesKey()), out)
-}
-
-func TestNewTrieFromGenesis(t *testing.T) {
-	var rawGenesis = &Genesis{}
-	raw := make(map[string]map[string]string)
-	raw["top"] = make(map[string]string)
-	raw["top"]["0x3a636f6465"] = "0x0102" // raw :code
-	rawGenesis.Genesis = Fields{
-		Raw: raw,
-	}
-
-	expTrie := trie.NewEmptyTrie()
-	expTrie.Put([]byte(`:code`), []byte{1, 2})
-
-	trie, err := NewTrieFromGenesis(rawGenesis)
-	require.NoError(t, err)
-
-	require.Equal(t, expTrie, trie)
+	require.Equal(t, BABEAuthoritiesKeyHex, out)
 }

@@ -77,26 +77,6 @@ type Config struct {
 // NewService returns a new core service that connects the runtime, BABE
 // session, and network service.
 func NewService(cfg *Config) (*Service, error) {
-	if cfg.Keystore == nil {
-		return nil, ErrNilKeystore
-	}
-
-	if cfg.BlockState == nil {
-		return nil, ErrNilBlockState
-	}
-
-	if cfg.StorageState == nil {
-		return nil, ErrNilStorageState
-	}
-
-	if cfg.Network == nil {
-		return nil, ErrNilNetwork
-	}
-
-	if cfg.CodeSubstitutedState == nil {
-		return nil, errNilCodeSubstitutedState
-	}
-
 	logger.Patch(log.SetLevel(cfg.LogLvl))
 
 	blockAddCh := make(chan *types.Block, 256)
@@ -137,10 +117,6 @@ func (s *Service) Stop() error {
 
 // StorageRoot returns the hash of the storage root
 func (s *Service) StorageRoot() (common.Hash, error) {
-	if s.storageState == nil {
-		return common.Hash{}, ErrNilStorageState
-	}
-
 	ts, err := s.storageState.TrieState(nil)
 	if err != nil {
 		return common.Hash{}, err
@@ -164,7 +140,11 @@ func (s *Service) HandleBlockProduced(block *types.Block, state *rtstorage.TrieS
 
 	digest := types.NewDigest()
 	for i := range block.Header.Digest.Types {
-		err := digest.Add(block.Header.Digest.Types[i].Value())
+		digestValue, err := block.Header.Digest.Types[i].Value()
+		if err != nil {
+			return fmt.Errorf("getting value of digest type at index %d: %w", i, err)
+		}
+		err = digest.Add(digestValue)
 		if err != nil {
 			return err
 		}
@@ -512,13 +492,13 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 	rt.SetContextStorage(ts)
 	// the transaction source is External
 	externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))
-	txv, err := rt.ValidateTransaction(externalExt)
+	transactionValidity, err := rt.ValidateTransaction(externalExt)
 	if err != nil {
 		return err
 	}
 
 	// add transaction to pool
-	vtx := transaction.NewValidTransaction(ext, txv)
+	vtx := transaction.NewValidTransaction(ext, transactionValidity)
 	s.transactionState.AddToPool(vtx)
 
 	// broadcast transaction

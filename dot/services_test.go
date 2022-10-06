@@ -4,7 +4,6 @@
 package dot
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/core"
@@ -17,7 +16,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/babe"
-	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -184,16 +182,6 @@ func Test_nodeBuilder_createBABEService(t *testing.T) {
 			err:      ErrNoKeysProvided,
 		},
 		{
-			name: "config error",
-			args: args{
-				cfg:              cfg,
-				initStateService: false,
-				ks:               ks2.Babe,
-			},
-			expected: nil,
-			err:      babe.ErrNilBlockState,
-		},
-		{
 			name: "base case",
 			args: args{
 				cfg:              cfg,
@@ -214,9 +202,6 @@ func Test_nodeBuilder_createBABEService(t *testing.T) {
 			mockBabeBuilder.EXPECT().NewServiceIFace(
 				gomock.AssignableToTypeOf(&babe.ServiceConfig{})).DoAndReturn(func(cfg *babe.ServiceConfig) (babe.
 				ServiceIFace, error) {
-				if reflect.ValueOf(cfg.BlockState).Kind() == reflect.Ptr && reflect.ValueOf(cfg.BlockState).IsNil() {
-					return nil, babe.ErrNilBlockState
-				}
 				return mockBabeIFace, nil
 			}).AnyTimes()
 			builder := nodeBuilder{}
@@ -248,8 +233,8 @@ func newStateService(t *testing.T, ctrl *gomock.Controller) *state.Service {
 	}
 	stateSrvc := state.NewService(stateConfig)
 	stateSrvc.UseMemDB()
-	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
-	err := stateSrvc.Initialise(genData, genesisHeader, genTrie)
+	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	err := stateSrvc.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
 	err = stateSrvc.SetupBase()
@@ -271,7 +256,7 @@ func newStateService(t *testing.T, ctrl *gomock.Controller) *state.Service {
 
 	var rtCfg wasmer.Config
 
-	rtCfg.Storage = rtstorage.NewTrieState(genTrie)
+	rtCfg.Storage = rtstorage.NewTrieState(&genTrie)
 
 	rtCfg.CodeHash, err = stateSrvc.Storage.LoadCodeHash(nil)
 	require.NoError(t, err)

@@ -18,14 +18,9 @@ func TestCheckForEquivocation_NoEquivocation(t *testing.T) {
 	st := newTestState(t)
 	net := newTestNetwork(t)
 
-	kr, err := keystore.NewEd25519Keyring()
-	require.NoError(t, err)
-
 	cfg := &Config{
 		BlockState:   st.Block,
 		GrandpaState: st.Grandpa,
-		Voters:       voters,
-		Keypair:      kr.Bob().(*ed25519.Keypair),
 		Network:      net,
 		Interval:     time.Second,
 	}
@@ -52,14 +47,9 @@ func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
 	st := newTestState(t)
 	net := newTestNetwork(t)
 
-	kr, err := keystore.NewEd25519Keyring()
-	require.NoError(t, err)
-
 	cfg := &Config{
 		BlockState:   st.Block,
 		GrandpaState: st.Grandpa,
-		Voters:       voters,
-		Keypair:      kr.Bob().(*ed25519.Keypair),
 		Network:      net,
 		Interval:     time.Second,
 	}
@@ -97,14 +87,9 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 	st := newTestState(t)
 	net := newTestNetwork(t)
 
-	kr, err := keystore.NewEd25519Keyring()
-	require.NoError(t, err)
-
 	cfg := &Config{
 		BlockState:   st.Block,
 		GrandpaState: st.Grandpa,
-		Voters:       voters,
-		Keypair:      kr.Bob().(*ed25519.Keypair),
 		Network:      net,
 		Interval:     time.Second,
 	}
@@ -159,7 +144,6 @@ func TestValidateMessage_Valid(t *testing.T) {
 		BlockState:   st.Block,
 		GrandpaState: st.Grandpa,
 		Voters:       voters,
-		Keypair:      kr.Bob().(*ed25519.Keypair),
 		Network:      net,
 		Interval:     time.Second,
 	}
@@ -191,8 +175,6 @@ func TestValidateMessage_InvalidSignature(t *testing.T) {
 	cfg := &Config{
 		BlockState:   st.Block,
 		GrandpaState: st.Grandpa,
-		Voters:       voters,
-		Keypair:      kr.Bob().(*ed25519.Keypair),
 		Network:      net,
 		Interval:     time.Second,
 	}
@@ -225,7 +207,6 @@ func TestValidateMessage_SetIDMismatch(t *testing.T) {
 	cfg := &Config{
 		BlockState:   st.Block,
 		GrandpaState: st.Grandpa,
-		Keypair:      kr.Bob().(*ed25519.Keypair),
 		Network:      net,
 		Interval:     time.Second,
 	}
@@ -259,7 +240,6 @@ func TestValidateMessage_Equivocation(t *testing.T) {
 		BlockState:   st.Block,
 		GrandpaState: st.Grandpa,
 		Voters:       voters,
-		Keypair:      kr.Bob().(*ed25519.Keypair),
 		Network:      net,
 		Interval:     time.Second,
 	}
@@ -302,7 +282,6 @@ func TestValidateMessage_BlockDoesNotExist(t *testing.T) {
 		BlockState:   st.Block,
 		GrandpaState: st.Grandpa,
 		Voters:       voters,
-		Keypair:      kr.Bob().(*ed25519.Keypair),
 		Network:      net,
 		Interval:     time.Second,
 	}
@@ -336,7 +315,6 @@ func TestValidateMessage_IsNotDescendant(t *testing.T) {
 		BlockState:   st.Block,
 		GrandpaState: st.Grandpa,
 		Voters:       voters,
-		Keypair:      kr.Bob().(*ed25519.Keypair),
 		Network:      net,
 		Interval:     time.Second,
 	}

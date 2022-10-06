@@ -24,7 +24,11 @@ func DecodeBabePreDigest(in []byte) (scale.VaryingDataTypeValue, error) {
 		return nil, err
 	}
 
-	switch msg := babeDigest.Value().(type) {
+	babeDigestValue, err := babeDigest.Value()
+	if err != nil {
+		return nil, fmt.Errorf("getting babe digest value: %w", err)
+	}
+	switch msg := babeDigestValue.(type) {
 	case BabePrimaryPreDigest, BabeSecondaryPlainPreDigest, BabeSecondaryVRFPreDigest:
 		return msg, nil
 	}

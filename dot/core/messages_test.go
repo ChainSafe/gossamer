@@ -12,13 +12,13 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	mocksruntime "github.com/ChainSafe/gossamer/lib/runtime/mocks"
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 
 	"github.com/golang/mock/gomock"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var errDummyErr = errors.New("dummy error for testing")
@@ -70,7 +70,7 @@ type mockValidateTxn struct {
 }
 
 type mockRuntime struct {
-	runtime           *mocksruntime.Instance
+	runtime           *MockRuntimeInstance
 	setContextStorage *mockSetContextStorage
 	validateTxn       *mockValidateTxn
 }
@@ -114,9 +114,14 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 	testEmptyHeader := types.NewEmptyHeader()
 	testExtrinsic := []types.Extrinsic{{1, 2, 3}}
 
-	runtimeMock := new(mocksruntime.Instance)
-	runtimeMock2 := new(mocksruntime.Instance)
-	runtimeMock3 := new(mocksruntime.Instance)
+	ctrl := gomock.NewController(t)
+	runtimeMock := NewMockRuntimeInstance(ctrl)
+	runtimeMock2 := NewMockRuntimeInstance(ctrl)
+	runtimeMock3 := NewMockRuntimeInstance(ctrl)
+
+	invalidTransaction := runtime.NewInvalidTransaction()
+	err := invalidTransaction.Set(runtime.Future{})
+	require.NoError(t, err)
 
 	type args struct {
 		peerID peer.ID
@@ -225,7 +230,7 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 				},
 			},
 			expErr: errDummyErr,
-			expErrMsg: "failed validating transaction for peerID D1KeRhQ: cannot get trie state from storage" +
+			expErrMsg: "validating transaction from peerID D1KeRhQ: cannot get trie state from storage" +
 				" for root 0x0000000000000000000000000000000000000000000000000000000000000000: dummy error for testing",
 		},
 		{
@@ -257,7 +262,7 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 				setContextStorage: &mockSetContextStorage{trieState: &storage.TrieState{}},
 				validateTxn: &mockValidateTxn{
 					input: types.Extrinsic(append([]byte{byte(types.TxnExternal)}, testExtrinsic[0]...)),
-					err:   runtime.ErrInvalidTransaction,
+					err:   invalidTransaction,
 				},
 			},
 			args: args{
@@ -357,8 +362,8 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 			}
 			if tt.mockRuntime != nil {
 				rt := tt.mockRuntime.runtime
-				rt.On("SetContextStorage", tt.mockRuntime.setContextStorage.trieState)
-				rt.On("ValidateTransaction", tt.mockRuntime.validateTxn.input).
+				rt.EXPECT().SetContextStorage(tt.mockRuntime.setContextStorage.trieState)
+				rt.EXPECT().ValidateTransaction(tt.mockRuntime.validateTxn.input).
 					Return(tt.mockRuntime.validateTxn.validity, tt.mockRuntime.validateTxn.err)
 			}
 

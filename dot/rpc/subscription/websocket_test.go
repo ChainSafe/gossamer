@@ -8,14 +8,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
-	"github.com/ChainSafe/gossamer/pkg/scale"
-
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/pkg/scale"
+
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -40,7 +40,7 @@ func TestWSConn_HandleConn(t *testing.T) {
 		`"error":{"code":null,"message":"error StorageAPI not set"},`+
 		`"id":1}`+"\n"), msg)
 
-	wsconn.StorageAPI = modules.NewMockeryStorageAPI()
+	wsconn.StorageAPI = modules.NewMockeryStorageAPI(t)
 
 	res, err = wsconn.initStorageChangeListener(1, nil)
 	require.Nil(t, res)
@@ -166,7 +166,7 @@ func TestWSConn_HandleConn(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":null,"message":"error BlockAPI not set"},"id":1}`+"\n"), msg)
 
-	wsconn.BlockAPI = modules.NewMockeryBlockAPI()
+	wsconn.BlockAPI = modules.NewMockeryBlockAPI(t)
 
 	res, err = wsconn.initBlockListener(1, nil)
 	require.NoError(t, err)
@@ -196,7 +196,7 @@ func TestWSConn_HandleConn(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":null,"message":"error BlockAPI not set"},"id":1}`+"\n"), msg)
 
-	wsconn.BlockAPI = modules.NewMockeryBlockAPI()
+	wsconn.BlockAPI = modules.NewMockeryBlockAPI(t)
 
 	res, err = wsconn.initBlockFinalizedListener(1, nil)
 	require.NoError(t, err)
@@ -207,9 +207,9 @@ func TestWSConn_HandleConn(t *testing.T) {
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":7,"id":1}`+"\n"), msg)
 
 	// test initExtrinsicWatch
-	wsconn.CoreAPI = modules.NewMockCoreAPI()
+	wsconn.CoreAPI = modules.NewMockCoreAPI(t)
 	wsconn.BlockAPI = nil
-	wsconn.TxStateAPI = modules.NewMockTransactionStateAPI()
+	wsconn.TxStateAPI = modules.NewMockTransactionStateAPI(t)
 	listner, err := wsconn.initExtrinsicWatch(0, []string{"NotHex"})
 	require.EqualError(t, err, "could not byteify non 0x prefixed string: NotHex")
 	require.Nil(t, listner)
@@ -218,7 +218,7 @@ func TestWSConn_HandleConn(t *testing.T) {
 	require.EqualError(t, err, "error BlockAPI not set")
 	require.Nil(t, listner)
 
-	wsconn.BlockAPI = modules.NewMockeryBlockAPI()
+	wsconn.BlockAPI = modules.NewMockeryBlockAPI(t)
 	listner, err = wsconn.initExtrinsicWatch(0, []interface{}{"0x26aa"})
 	require.NoError(t, err)
 	require.NotNil(t, listner)
@@ -229,8 +229,14 @@ func TestWSConn_HandleConn(t *testing.T) {
 	require.Equal(t, `{"jsonrpc":"2.0","result":8,"id":0}`+"\n", string(msg))
 
 	// test initExtrinsicWatch with invalid transaction
-	coreAPI := new(mocks.CoreAPI)
-	coreAPI.On("HandleSubmittedExtrinsic", mock.AnythingOfType("types.Extrinsic")).Return(runtime.ErrInvalidTransaction)
+	invalidTransaction := runtime.NewInvalidTransaction()
+	err = invalidTransaction.Set(runtime.Future{})
+	require.NoError(t, err)
+
+	require.NoError(t, err)
+	coreAPI := mocks.NewCoreAPI(t)
+	coreAPI.On("HandleSubmittedExtrinsic", mock.AnythingOfType("types.Extrinsic")).
+		Return(invalidTransaction)
 	wsconn.CoreAPI = coreAPI
 	listner, err = wsconn.initExtrinsicWatch(0,
 		[]interface{}{"0xa9018400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d019e91c8d44bf01ffe36d54f9e43dade2b2fc653270a0e002daed1581435c2e1755bc4349f1434876089d99c9dac4d4128e511c2a3e0788a2a74dd686519cb7c83000000000104ab"}) //nolint:lll
@@ -253,8 +259,8 @@ func TestWSConn_HandleConn(t *testing.T) {
 	mockedJustBytes, err := scale.Marshal(mockedJust)
 	require.NoError(t, err)
 
-	wsconn.CoreAPI = modules.NewMockCoreAPI()
-	BlockAPI := new(mocks.BlockAPI)
+	wsconn.CoreAPI = modules.NewMockCoreAPI(t)
+	BlockAPI := mocks.NewBlockAPI(t)
 
 	fCh := make(chan *types.FinalisationInfo, 5)
 	BlockAPI.On("GetFinalisedNotifierChannel").Return(fCh)
@@ -306,7 +312,7 @@ func TestSubscribeAllHeads(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":null,"message":"error BlockAPI not set"},"id":1}`+"\n"), msg)
 
-	mockBlockAPI := new(mocks.BlockAPI)
+	mockBlockAPI := mocks.NewBlockAPI(t)
 
 	wsconn.BlockAPI = mockBlockAPI
 

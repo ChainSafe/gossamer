@@ -19,63 +19,6 @@ import (
 // hex encoding for ":code", used as key for code is raw genesis files.
 const codeHex = "0x3a636f6465"
 
-func TestBuildFromGenesis_Integration(t *testing.T) {
-	t.Parallel()
-
-	genesisFields := genesis.Fields{
-		Raw: map[string]map[string]string{},
-		Runtime: map[string]map[string]interface{}{
-			"System": {
-				"code": "mocktestcode",
-			},
-		},
-	}
-	file := genesis.CreateTestGenesisJSONFile(t, genesisFields)
-	bs, err := BuildFromGenesis(file, 0)
-
-	const expectedChainType = "TESTCHAINTYPE"
-	expectedProperties := map[string]interface{}{
-		"ss58Format":    0.0,
-		"tokenDecimals": 0.0,
-		"tokenSymbol":   "TEST",
-	}
-
-	bs.genesis.ChainType = expectedChainType
-	bs.genesis.Properties = expectedProperties
-
-	require.NoError(t, err)
-
-	// confirm human-readable fields
-	hr, err := bs.ToJSON()
-	require.NoError(t, err)
-	jGen := genesis.Genesis{}
-	err = json.Unmarshal(hr, &jGen)
-	require.NoError(t, err)
-	genesis.TestGenesis.Genesis = genesisFields
-	require.Equal(t, genesis.TestGenesis.Genesis.Runtime, jGen.Genesis.Runtime)
-	require.Equal(t, expectedChainType, jGen.ChainType)
-	require.Equal(t, expectedProperties, jGen.Properties)
-
-	// confirm raw fields
-	raw, err := bs.ToJSONRaw()
-	require.NoError(t, err)
-	jGenRaw := genesis.Genesis{}
-	err = json.Unmarshal(raw, &jGenRaw)
-	require.NoError(t, err)
-	genesis.TestGenesis.Genesis = genesis.TestFieldsRaw
-	require.Equal(t, genesis.TestGenesis.Genesis.Raw, jGenRaw.Genesis.Raw)
-	require.Equal(t, expectedChainType, jGenRaw.ChainType)
-	require.Equal(t, expectedProperties, jGenRaw.Properties)
-}
-
-func TestBuildFromGenesis_WhenGenesisDoesNotExists(t *testing.T) {
-	t.Parallel()
-
-	bs, err := BuildFromGenesis("/not/exists/genesis.json", 0)
-	require.Nil(t, bs)
-	require.ErrorIs(t, err, os.ErrNotExist)
-}
-
 func TestWriteGenesisSpecFile_Integration(t *testing.T) {
 	cfg := NewTestConfig(t)
 	cfg.Init.Genesis = utils.GetGssmrGenesisRawPathTest(t)

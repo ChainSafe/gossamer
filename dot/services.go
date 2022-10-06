@@ -175,6 +175,7 @@ func (nb nodeBuilder) createBABEService(cfg *Config, st *state.Service, ks keyst
 	cs *core.Service, telemetryMailer telemetry.Client) (babe.ServiceIFace, error) {
 	return nb.createBABEServiceWithBuilder(cfg, st, ks, cs, telemetryMailer, babe.Builder{})
 }
+
 func (nodeBuilder) createBABEServiceWithBuilder(cfg *Config, st *state.Service, ks keystore.Keystore,
 	cs *core.Service, telemetryMailer telemetry.Client, newBabeService ServiceBuilder) (babe.
 	ServiceIFace, error) {
@@ -414,13 +415,8 @@ func (nodeBuilder) createGRANDPAService(cfg *Config, st *state.Service, ks keyst
 	return grandpa.NewService(gsCfg)
 }
 
-func (nodeBuilder) createBlockVerifier(st *state.Service) (*babe.VerificationManager, error) {
-	ver, err := babe.NewVerificationManager(st.Block, st.Epoch)
-	if err != nil {
-		return nil, err
-	}
-
-	return ver, nil
+func (nodeBuilder) createBlockVerifier(st *state.Service) *babe.VerificationManager {
+	return babe.NewVerificationManager(st.Block, st.Epoch)
 }
 
 func (nodeBuilder) newSyncService(cfg *Config, st *state.Service, fg sync.FinalityGadget,

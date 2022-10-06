@@ -122,8 +122,8 @@ func TestGrandpaModule_RoundState(t *testing.T) {
 		})
 	}
 
-	mockBlockAPI := new(mocks.BlockAPI)
-	mockBlockFinalityAPI := new(mocks.BlockFinalityAPI)
+	mockBlockAPI := mocks.NewBlockAPI(t)
+	mockBlockFinalityAPI := mocks.NewBlockFinalityAPI(t)
 	mockBlockFinalityAPI.On("GetVoters").Return(voters)
 	mockBlockFinalityAPI.On("GetSetID").Return(uint64(0))
 	mockBlockFinalityAPI.On("GetRound").Return(uint64(2))

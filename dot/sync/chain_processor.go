@@ -14,8 +14,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 )
 
-//go:generate mockgen -destination=mock_chain_processor_test.go -package=$GOPACKAGE . ChainProcessor
-
 // ChainProcessor processes ready blocks.
 // it is implemented by *chainProcessor
 type ChainProcessor interface {
@@ -136,7 +134,10 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 
 		if bd.Justification != nil {
 			logger.Debugf("handling Justification for block number %d with hash %s...", block.Header.Number, bd.Hash)
-			s.handleJustification(&block.Header, *bd.Justification)
+			err = s.handleJustification(&block.Header, *bd.Justification)
+			if err != nil {
+				return fmt.Errorf("handling justification: %w", err)
+			}
 		}
 
 		// TODO: this is probably unnecessary, since the state is already in the database
@@ -179,7 +180,10 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 
 	if bd.Justification != nil && bd.Header != nil {
 		logger.Debugf("handling Justification for block number %d with hash %s...", bd.Number(), bd.Hash)
-		s.handleJustification(bd.Header, *bd.Justification)
+		err = s.handleJustification(bd.Header, *bd.Justification)
+		if err != nil {
+			return fmt.Errorf("handling justification: %w", err)
+		}
 	}
 
 	if err := s.blockState.CompareAndSetBlockData(bd); err != nil {
@@ -244,22 +248,22 @@ func (s *chainProcessor) handleBlock(block *types.Block) error {
 	return nil
 }
 
-func (s *chainProcessor) handleJustification(header *types.Header, justification []byte) {
-	if len(justification) == 0 || header == nil {
-		return
+func (s *chainProcessor) handleJustification(header *types.Header, justification []byte) (err error) {
+	if len(justification) == 0 {
+		return nil
 	}
 
-	returnedJustification, err := s.finalityGadget.VerifyBlockJustification(header.Hash(), justification)
+	headerHash := header.Hash()
+	returnedJustification, err := s.finalityGadget.VerifyBlockJustification(headerHash, justification)
 	if err != nil {
-		logger.Warnf("failed to verify block number %d and hash %s justification: %s", header.Number, header.Hash(), err)
-		return
+		return fmt.Errorf("verifying block number %d justification: %w", header.Number, err)
 	}
 
-	err = s.blockState.SetJustification(header.Hash(), returnedJustification)
+	err = s.blockState.SetJustification(headerHash, returnedJustification)
 	if err != nil {
-		logger.Errorf("failed tostore justification: %s", err)
-		return
+		return fmt.Errorf("setting justification for block number %d: %w", header.Number, err)
 	}
 
-	logger.Infof("🔨 finalised block number %d with hash %s", header.Number, header.Hash())
+	logger.Infof("🔨 finalised block number %d with hash %s", header.Number, headerHash)
+	return nil
 }
