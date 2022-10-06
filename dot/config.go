@@ -47,7 +47,7 @@ type GlobalConfig struct {
 	MetricsAddress string
 	NoTelemetry    bool
 	TelemetryURLs  []genesis.TelemetryEndpoint
-	RetainBlocks   int64
+	RetainBlocks   uint32
 	Pruning        pruner.Mode
 }
 
