@@ -273,50 +273,6 @@ func TestRemoveExtrinsic(t *testing.T) {
 	}
 }
 
-func Test_PopWithTimer(t *testing.T) {
-	pq := NewPriorityQueue()
-	slotTimer := time.NewTimer(time.Second)
-
-	tests := []*ValidTransaction{
-		{
-			Extrinsic: []byte("a"),
-			Validity:  &Validity{Priority: 1},
-		},
-		{
-			Extrinsic: []byte("b"),
-			Validity:  &Validity{Priority: 4},
-		},
-		{
-			Extrinsic: []byte("c"),
-			Validity:  &Validity{Priority: 2},
-		},
-		{
-			Extrinsic: []byte("d"),
-			Validity:  &Validity{Priority: 17},
-		},
-		{
-			Extrinsic: []byte("e"),
-			Validity:  &Validity{Priority: 2},
-		},
-	}
-
-	expected := []int{3, 1, 2, 4, 0}
-
-	for _, test := range tests {
-		pq.Push(test)
-	}
-
-	counter := 0
-	for {
-		txn := pq.PopWithTimer(slotTimer)
-		if txn == nil {
-			break
-		}
-		assert.Equal(t, tests[expected[counter]], txn)
-		counter++
-	}
-}
-
 func Test_PriorityQueue_PopWithTimer(t *testing.T) {
 	t.Parallel()
 
@@ -382,7 +338,7 @@ func Test_PriorityQueue_PopWithTimer(t *testing.T) {
 				close(modifyDone)
 			}
 
-			transaction := queue.PopWithTimer(testCase.timer)
+			transaction := queue.PopWithTimer(testCase.timer.C)
 			<-modifyDone
 			testCase.timer.Stop()
 			assert.Equal(t, testCase.transaction, transaction)

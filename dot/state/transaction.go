@@ -50,8 +50,8 @@ func (s *TransactionState) Pop() *transaction.ValidTransaction {
 
 // PopWithTimer returns the next valid transaction from the queue.
 // When the timer expires, it returns `nil`.
-func (s *TransactionState) PopWithTimer(timer *time.Timer) (transaction *transaction.ValidTransaction) {
-	return s.queue.PopWithTimer(timer)
+func (s *TransactionState) PopWithTimer(timerCh <-chan time.Time) (transaction *transaction.ValidTransaction) {
+	return s.queue.PopWithTimer(timerCh)
 }
 
 // Peek returns the head of the queue without removing it

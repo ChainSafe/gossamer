@@ -179,7 +179,7 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt runtime.Instance) []*t
 	slotTimer := time.NewTimer(timeout)
 
 	for {
-		txn := b.transactionState.PopWithTimer(slotTimer)
+		txn := b.transactionState.PopWithTimer(slotTimer.C)
 		slotTimerExpired := txn == nil
 		if slotTimerExpired {
 			break

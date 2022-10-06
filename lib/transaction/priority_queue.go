@@ -143,7 +143,7 @@ func (spq *PriorityQueue) Push(txn *ValidTransaction) (common.Hash, error) {
 
 // PopWithTimer returns the next valid transaction from the queue.
 // When the timer expires, it returns `nil`.
-func (spq *PriorityQueue) PopWithTimer(timer *time.Timer) (transaction *ValidTransaction) {
+func (spq *PriorityQueue) PopWithTimer(timerCh <-chan time.Time) (transaction *ValidTransaction) {
 	transaction = spq.Pop()
 	if transaction != nil {
 		return transaction
@@ -156,7 +156,7 @@ func (spq *PriorityQueue) PopWithTimer(timer *time.Timer) (transaction *ValidTra
 
 		for {
 			select {
-			case <-timer.C:
+			case <-timerCh:
 				transactionChannel <- nil
 				return
 			case <-pollTicker.C:
