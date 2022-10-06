@@ -430,7 +430,7 @@ func pruneState(ctx *cli.Context) error {
 	flagValue := ctx.GlobalUint64(RetainBlockNumberFlag.Name)
 
 	if uint64(uint32Max) < flagValue {
-		return fmt.Errorf("retain blocks value overflows uint32 boundaries, must be less than, %d", uint32Max)
+		return fmt.Errorf("retain blocks value overflows uint32 boundaries, must be less than or equal to: %d", uint32Max)
 	}
 
 	retainBlocks := uint32(flagValue)
