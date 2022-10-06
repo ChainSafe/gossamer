@@ -179,6 +179,7 @@ type keyValue struct {
 func generatePalletKeyValue(k string, v interface{}, res map[string]string) (bool, error) {
 	jsonBody, err := json.Marshal(v)
 	if err != nil {
+		fmt.Println("ERROR IN json.Marshal(v)")
 		return false, err
 	}
 
@@ -191,22 +192,26 @@ func generatePalletKeyValue(k string, v interface{}, res map[string]string) (boo
 	case contractsConst:
 		c := &Contracts{}
 		if err = json.Unmarshal(jsonBody, c); err != nil {
+			fmt.Println("ERROR IN contractsConst-unmarshall")
 			return false, err
 		}
 
 		err = generateContractKeyValue(c, k, res)
 		if err != nil {
+			fmt.Println("ERROR IN contractsConst-generateContractKeyValue")
 			return false, err
 		}
 		return true, nil
 	case sessionConst:
 		sc := &Session{}
 		if err = json.Unmarshal(jsonBody, sc); err != nil {
+			fmt.Println("ERROR IN sessionConst-unmarshall")
 			return false, err
 		}
 
 		err = generateSessionKeyValue(sc, k, res)
 		if err != nil {
+			fmt.Println("ERROR IN sessionConst-generateSessionKeyValue")
 			return false, err
 		}
 		return true, nil
@@ -222,11 +227,13 @@ func generatePalletKeyValue(k string, v interface{}, res map[string]string) (boo
 		return false, nil
 	}
 	if err = json.Unmarshal(jsonBody, s); err != nil {
+		fmt.Println("ERROR IN line-230, helpers.go")
 		return false, err
 	}
 	err = generateKeyValue(s, k, res)
 
 	if err != nil {
+		fmt.Println("ERROR IN line-230, helpers.go")
 		return false, err
 	}
 	return true, nil
@@ -294,64 +301,63 @@ func buildRawMap(m Runtime) (map[string]string, error) {
 func buildRawMapInterface(m interface{}, kv *keyValue) error {
 
 	mRefObjVal := reflect.Indirect(reflect.ValueOf(m))
-	fmt.Printf("\n\n(buildRawMapInterface)  ===> m = %+v\n\n", mRefObjVal.Field(0))
+
+	// fmt.Printf("\n\n(buildRawMapInterface)  ===> m = %+v\n\n", mRefObjVal)
 	for i := 0; i < mRefObjVal.NumField(); i++ {
 		k := mRefObjVal.Type().Field(i).Name
 		kv.key = append(kv.key, k)
 		v := mRefObjVal.Field(i)
-
-		fmt.Printf("\n(buildRawMapInterface) v= %v\n", v)
-
-		if typeOfV := v.Type().String(); typeOfV == "big.Int" {
-			fmt.Println("=====> I am here In big.Int.")
-			encVal, err := scale.Marshal(v.Interface().(big.Int))
-			if err != nil {
-				return err
-			}
-			kv.value = kv.value + fmt.Sprintf("%x", encVal)
-			kv.iVal = append(kv.iVal, v.Interface().(big.Int))
-			continue
-		}
-		if typeOfV := v.Type().String(); typeOfV == "common.Address" {
-			fmt.Println("=====> I am here common.Address.")
-			break
-		}
+		fmt.Println("\n kv.key = ", kv.key)
+		// fmt.Printf("\n(buildRawMapInterface) k = %s | V = %+v\n", k, v)
 
 		switch v2 := v.Interface().(type) {
-		case []interface{}:
-			kv.valueLen = big.NewInt(int64(len(v2)))
-			if err := buildRawArrayInterface(v2, kv); err != nil {
-				return err
-			}
 		case string:
 			kv.value = v2
+			fmt.Println("kv.value = ", kv.value)
+		case uint64, int64, int:
+			kv.value = fmt.Sprint(v2)
+			fmt.Println("kv.value = ", kv.value)
 		default:
-			switch reflect.ValueOf(v2).Kind() {
+			switch v.Kind() {
 			case reflect.Slice:
-				v3 := reflect.ValueOf(v2)
 				listOfStruct := []interface{}{}
-				for i := 0; i < v3.Len(); i++ {
-					listOfStruct = append(listOfStruct, v3.Index(i))
+				for i := 0; i < v.Len(); i++ {
+					listOfStruct = append(listOfStruct, v.Index(i).Interface())
+					// fmt.Printf("(buildRawMapInterface) listOfStruct[%v] =>  %+v \n", i, listOfStruct[i])
 				}
-				kv.valueLen = big.NewInt(int64(v3.Len()))
+				// fmt.Println("(buildRawMapInterface) listOfStruct => ", listOfStruct)
+				kv.valueLen = big.NewInt(int64(v.Len()))
 				if err := buildRawArrayInterface(listOfStruct, kv); err != nil {
 					return err
 				}
+				fmt.Println("kv.value = ", kv.value)
 			case reflect.Struct:
-				if err := buildRawMapInterface(v2, kv); err != nil {
+				kv.valueLen = big.NewInt(int64(v.NumField()))
+				if err := buildRawStructInterface(v2, kv); err != nil {
 					return err
 				}
+				fmt.Println("kv.value = ", kv.value)
+				// for Debug...
+				// default:
+				// 	fmt.Println("*#* (buildRawMapInterface) unknown type ? = ", reflect.TypeOf(v2))
 			}
 		}
+
 	}
 	return nil
 }
 
-func buildRawArrayInterface(a []interface{}, kv *keyValue) error {
-	for _, v := range a {
-		fmt.Println("\n  =>  INSIDE buildRawArrayInterface")
-		fmt.Printf("(array element) v= %v", v)
-		switch v2 := v.(type) {
+func buildRawStructInterface(m interface{}, kv *keyValue) error {
+	mRefObjVal := reflect.Indirect(reflect.ValueOf(m))
+
+	// fmt.Printf("\n\n(buildRawStructInterface)  ===> m = %+v\n\n", mRefObjVal)
+	for i := 0; i < mRefObjVal.NumField(); i++ {
+		//k := mRefObjVal.Type().Field(i).Name
+		v := mRefObjVal.Field(i)
+		// fmt.Println("\n kv.key = ", kv.key)
+		// fmt.Printf("\n(buildRawMapInterface) k = %s | V = %+v\n", k, v)
+
+		switch v2 := v.Interface().(type) {
 		case []interface{}:
 			err := buildRawArrayInterface(v2, kv)
 			if err != nil {
@@ -359,10 +365,35 @@ func buildRawArrayInterface(a []interface{}, kv *keyValue) error {
 			}
 		case string:
 			// TODO: check to confirm it's an address (#1865)
+			fmt.Println("v2 at line-462 = ", v2)
+			// var tba []byte
+			// if v2 != "" {
+			// 	tba = crypto.PublicAddressToByteArray(common.Address(v2))
+			// }
 			tba := crypto.PublicAddressToByteArray(common.Address(v2))
 			kv.value = kv.value + fmt.Sprintf("%x", tba)
 			kv.iVal = append(kv.iVal, tba)
-		case float64:
+		case common.Address:
+			// TODO: check to confirm it's an address (#1865)
+			tba := crypto.PublicAddressToByteArray(v2)
+			kv.value = kv.value + fmt.Sprintf("%x", tba)
+			kv.iVal = append(kv.iVal, tba)
+		case big.Int:
+			encVal, err := scale.Marshal(v2)
+			//encVal, err := v2.MarshalJSON()
+			if err != nil {
+				return err
+			}
+			kv.value = kv.value + fmt.Sprintf("%x", encVal)
+			kv.iVal = append(kv.iVal, encVal)
+			// case []int:
+			// 	encVal, err := scale.Marshal(v2)
+			// 	if err != nil {
+			// 		return err
+			// 	}
+			// 	kv.value = kv.value + fmt.Sprintf("%x", encVal)
+			// 	kv.iVal = append(kv.iVal, v2)
+		case int64:
 			encVal, err := scale.Marshal(uint64(v2))
 			if err != nil {
 				return err
@@ -376,30 +407,76 @@ func buildRawArrayInterface(a []interface{}, kv *keyValue) error {
 			}
 			kv.value = kv.value + fmt.Sprintf("%x", encVal)
 			kv.iVal = append(kv.iVal, big.NewInt(int64(v2)))
+		case uint64:
+			encVal, err := scale.Marshal(uint64(v2))
+			if err != nil {
+				return err
+			}
+			kv.value = kv.value + fmt.Sprintf("%x", encVal)
+			kv.iVal = append(kv.iVal, big.NewInt(int64(v2)))
+		case bool:
+			encVal, err := scale.Marshal(v2)
+			if err != nil {
+				return err
+			}
+			kv.value = kv.value + fmt.Sprintf("%x", encVal)
+			kv.iVal = append(kv.iVal, v2)
 		default:
-
-			switch reflect.ValueOf(v2).Kind() {
-
+			switch v.Kind() {
 			case reflect.Slice:
-				v3 := reflect.ValueOf(v2)
-				listOfStruct := []interface{}{}
 
-				// fmt.Printf("\n\n== > key = %v | type of v = %T", k, v2)
-				// fmt.Printf("\nInside Default--Slice.\n")
-
-				for i := 0; i < v3.Len(); i++ {
-					listOfStruct = append(listOfStruct, v3.Index(i))
-					// fmt.Println(listOfStruct[i])
+				list := []interface{}{}
+				for i := 0; i < v.Len(); i++ {
+					list = append(list, v.Index(i).Interface())
 				}
-				err := buildRawArrayInterface(listOfStruct, kv)
-				if err != nil {
+				kv.valueLen = big.NewInt(int64(v.Len()))
+				if err := buildRawArrayInterface(list, kv); err != nil {
 					return err
 				}
 			case reflect.Struct:
-				fmt.Printf("\nbuildRawArrayInterface v=%v\n", v2)
-				if err := buildRawMapInterface(v2, kv); err != nil {
+				// fmt.Printf("\n(buildRawArrayInterface) v=%+v\n", v2)
+				kv.valueLen = big.NewInt(int64(v.NumField()))
+				if err := buildRawStructInterface(v2, kv); err != nil {
 					return err
 				}
+				// for Debug...
+				// default:
+				// 	fmt.Println("*#* (buildRawStructInterface) unknown type ? = ", reflect.TypeOf(v2))
+
+			}
+		}
+	}
+	return nil
+}
+
+func buildRawArrayInterface(a []interface{}, kv *keyValue) error {
+	for _, v := range a {
+		// fmt.Println("\n  =>  INSIDE buildRawArrayInterface")
+		// fmt.Println("\n kv.key = ", kv.key)
+		// fmt.Printf("(array element) v= %v", v)
+		switch v2 := v.(type) {
+		case int:
+			encVal, err := scale.Marshal(uint64(v2))
+			if err != nil {
+				return err
+			}
+			kv.value = kv.value + fmt.Sprintf("%x", encVal)
+			kv.iVal = append(kv.iVal, big.NewInt(int64(v2)))
+		case string:
+			// TODO: check to confirm it's an address (#1865)
+			tba := crypto.PublicAddressToByteArray(common.Address(v2))
+			kv.value = kv.value + fmt.Sprintf("%x", tba)
+			kv.iVal = append(kv.iVal, tba)
+		default:
+			switch reflect.ValueOf(v2).Kind() {
+			case reflect.Struct:
+				// fmt.Printf("\n(buildRawArrayInterface) v=%+v\n", v2)
+				if err := buildRawStructInterface(v2, kv); err != nil {
+					return err
+				}
+				// for Debug...
+				// default:
+				// 	fmt.Println("*#* (buildRawArrayInterface) unknown type ? = ", reflect.TypeOf(v2))
 			}
 		}
 	}
@@ -420,14 +497,16 @@ func generateStorageKey(modulePrefix, storageKey string) (string, error) {
 }
 
 func generateStorageValue(i interface{}, idx int) ([]byte, error) {
+	//fmt.Printf("Value of i in generateStorageValue = %+v \n", i)
 	val := reflect.ValueOf(i)
 	var (
 		encode []byte
 		err    error
 	)
 
-	switch t := reflect.Indirect(val).Field(idx).Interface().(type) {
-	case int64, uint64, uint32, *scale.Uint128:
+	idxField := reflect.Indirect(val).Field(idx)
+	switch t := idxField.Interface().(type) {
+	case int, int64, uint64, uint32, *scale.Uint128:
 		encode, err = scale.Marshal(t)
 		if err != nil {
 			return nil, err
@@ -493,7 +572,25 @@ func generateStorageValue(i interface{}, idx int) ([]byte, error) {
 			return nil, err
 		}
 	default:
-		return nil, fmt.Errorf("invalid value type")
+		// fmt.Printf("\n missing Type in generateStorageValue = %+v | t = %+v", reflect.TypeOf(t), t)
+		switch idxField.Kind() {
+		case reflect.Slice:
+			//fmt.Printf("\n=====?> in generateStorageValue = %+v | t = %+v\n", reflect.TypeOf(t), t)
+
+			sliceOfT := []interface{}{}
+			for i := 0; i < idxField.Len(); i++ {
+				sliceOfT = append(sliceOfT, idxField.Index(i).Interface())
+				// fmt.Printf("(buildRawMapInterface) listOfStruct[%v] =>  %+v \n", i, listOfStruct[i])
+			}
+			for _, data := range sliceOfT {
+				// for print types of data.
+				fmt.Printf("\n=====?> in Slice data = %+v | t = %+v\n", reflect.TypeOf(data), data)
+			}
+		default:
+			fmt.Printf("\n missing Type in generateStorageValue = %+v | t = %+v\n", reflect.TypeOf(t), t)
+			return nil, fmt.Errorf("invalid value type")
+		}
+		//fmt.Printf("\n missing Type in generateStorageValue = %+v | t = %+v\n", reflect.TypeOf(t), t)
 	}
 	return encode, nil
 }
@@ -535,11 +632,13 @@ func generateKeyValue(s interface{}, prefixKey string, res map[string]string) er
 
 		key, err := generateStorageKey(prefixKey, storageKey)
 		if err != nil {
+			fmt.Println("\nERROR IN generateStorageKey")
 			return err
 		}
 
 		value, err := generateStorageValue(s, i)
 		if err != nil {
+			fmt.Println("\nERROR IN generateStorageValue")
 			return err
 		}
 

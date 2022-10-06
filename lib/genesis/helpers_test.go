@@ -279,6 +279,8 @@ func TestNewGenesisFromJSON(t *testing.T) {
 
 	// create genesis based on file just created, this will fill Raw field of genesis
 	testGenesisProcessed, err := NewGenesisFromJSON(filename, 2)
+
+	fmt.Printf("\n!@#$********* |||  => testGenesisProcessed = %+v \n err = %+v", testGenesisProcessed, err)
 	require.NoError(t, err)
 
 	require.Equal(t, expectedGenesis.Genesis.Raw, testGenesisProcessed.Genesis.Raw)

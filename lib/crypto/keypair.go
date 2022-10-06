@@ -77,7 +77,11 @@ func publicKeyBytesToAddress(b []byte) common.Address {
 
 // PublicAddressToByteArray returns []byte address for given PublicKey Address
 func PublicAddressToByteArray(add common.Address) []byte {
-	k := base58.Decode(string(add))
+	var k []byte
+	if add == "" {
+		return k
+	}
+	k = base58.Decode(string(add))
 	return k[1:33]
 }
 

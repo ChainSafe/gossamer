@@ -154,10 +154,10 @@ type Staking struct {
 	CanceledSlashPayout   int      `json:"CanceledSlashPayout"`
 	// TODO: figure out below fields storage key. (#1868)
 	// Stakers               [][]interface{} `json:"stakers"`
-	MinNominatorBond  int         `json:"minNominatorBond"`
-	MinValidatorBond  int         `json:"minValidatorBond"`
-	MaxValidatorCount interface{} `json:"maxValidatorCount"`
-	MaxNominatorCount interface{} `json:"maxNominatorCount"`
+	MinNominatorBond  int `json:"minNominatorBond"`
+	MinValidatorBond  int `json:"minValidatorBond"`
+	MaxValidatorCount int `json:"maxValidatorCount"`
+	MaxNominatorCount int `json:"maxNominatorCount"`
 }
 
 // Instance1Collective is ...
