@@ -63,7 +63,7 @@ func populateKeyValueMap(tb testing.TB, kv map[string][]byte,
 			continue
 		}
 
-		const minValueSize = 2
+		const minValueSize = 0
 		value := generateRandBytesMinMax(tb, minValueSize, maxValueSize, generator)
 
 		kv[keyString] = value
