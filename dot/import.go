@@ -62,13 +62,12 @@ func newTrieFromPairs(filename string) (*trie.Trie, error) {
 		entries[pairArr[0].(string)] = pairArr[1].(string)
 	}
 
-	tr := trie.NewEmptyTrie()
-	err = tr.LoadFromMap(entries)
+	tr, err := trie.LoadFromMap(entries)
 	if err != nil {
 		return nil, err
 	}
 
-	return tr, nil
+	return &tr, nil
 }
 
 func newHeaderFromFile(filename string) (*types.Header, error) {
