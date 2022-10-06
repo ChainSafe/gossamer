@@ -489,7 +489,7 @@ func setDotGlobalConfigFromFlags(ctx *cli.Context, cfg *dot.GlobalConfig) error 
 	flagValue := ctx.Uint64(RetainBlockNumberFlag.Name)
 
 	if uint64(uint32Max) < flagValue {
-		return fmt.Errorf("retain blocks value overflows uint32 boundaries, must be less than, %d", uint32Max)
+		return fmt.Errorf("retain blocks value overflows uint32 boundaries, must be less or equal than: %d", uint32Max)
 	}
 
 	cfg.RetainBlocks = uint32(flagValue)
