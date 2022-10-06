@@ -26,6 +26,11 @@ type Trie struct {
 	// pruner to detect with database keys (trie node Merkle values) can
 	// be deleted.
 	deletedMerkleValues map[string]struct{}
+	// newDeletedMerkleValues contains deleted Merkle values for operations
+	// in progress. Its goal is to prevent having the trie `deletedMerkleValues`
+	// in a bad state if one of the trie operation modified some (deep copied) trie
+	// node and then failed.
+	newDeletedMerkleValues map[string]struct{}
 }
 
 // NewEmptyTrie creates a trie with a nil root
@@ -36,10 +41,11 @@ func NewEmptyTrie() *Trie {
 // NewTrie creates a trie with an existing root node
 func NewTrie(root *Node) *Trie {
 	return &Trie{
-		root:                root,
-		childTries:          make(map[common.Hash]*Trie),
-		generation:          0, // Initially zero but increases after every snapshot.
-		deletedMerkleValues: make(map[string]struct{}),
+		root:                   root,
+		childTries:             make(map[common.Hash]*Trie),
+		generation:             0, // Initially zero but increases after every snapshot.
+		deletedMerkleValues:    make(map[string]struct{}),
+		newDeletedMerkleValues: make(map[string]struct{}),
 	}
 }
 
@@ -54,18 +60,32 @@ func (t *Trie) Snapshot() (newTrie *Trie) {
 	rootCopySettings.CopyCached = true
 	for rootHash, childTrie := range t.childTries {
 		childTries[rootHash] = &Trie{
-			generation:          childTrie.generation + 1,
-			root:                childTrie.root.Copy(rootCopySettings),
-			deletedMerkleValues: make(map[string]struct{}),
+			generation:             childTrie.generation + 1,
+			root:                   childTrie.root.Copy(rootCopySettings),
+			deletedMerkleValues:    make(map[string]struct{}),
+			newDeletedMerkleValues: make(map[string]struct{}),
 		}
 	}
 
 	return &Trie{
-		generation:          t.generation + 1,
-		root:                t.root,
-		childTries:          childTries,
-		deletedMerkleValues: make(map[string]struct{}),
+		generation:             t.generation + 1,
+		root:                   t.root,
+		childTries:             childTries,
+		deletedMerkleValues:    make(map[string]struct{}),
+		newDeletedMerkleValues: make(map[string]struct{}),
 	}
+}
+
+// handleTrackedDeltas modifies the trie deleted merkle values set
+// only if the error is nil. In all cases, it resets the
+// `newDeletedMerkleValues` map.
+func (t *Trie) handleTrackedDeltas(err error) {
+	if err == nil {
+		for merkleValue := range t.newDeletedMerkleValues {
+			t.deletedMerkleValues[merkleValue] = struct{}{}
+		}
+	}
+	t.newDeletedMerkleValues = make(map[string]struct{})
 }
 
 func (t *Trie) prepLeafForMutation(currentLeaf *Node,
@@ -75,7 +95,7 @@ func (t *Trie) prepLeafForMutation(currentLeaf *Node,
 		// of current leaf.
 		newLeaf = currentLeaf
 	} else {
-		newLeaf = updateGeneration(currentLeaf, t.generation, t.deletedMerkleValues, copySettings)
+		newLeaf = updateGeneration(currentLeaf, t.generation, t.newDeletedMerkleValues, copySettings)
 	}
 	newLeaf.SetDirty()
 	return newLeaf
@@ -88,7 +108,7 @@ func (t *Trie) prepBranchForMutation(currentBranch *Node,
 		// of current branch.
 		newBranch = currentBranch
 	} else {
-		newBranch = updateGeneration(currentBranch, t.generation, t.deletedMerkleValues, copySettings)
+		newBranch = updateGeneration(currentBranch, t.generation, t.newDeletedMerkleValues, copySettings)
 	}
 	newBranch.SetDirty()
 	return newBranch
@@ -322,6 +342,13 @@ func findNextKeyChild(children []*Node, startIndex byte,
 // Put inserts a value into the trie at the
 // key specified in little Endian format.
 func (t *Trie) Put(keyLE, value []byte) {
+	defer func() {
+		t.handleTrackedDeltas(nil)
+	}()
+	t.insertKeyLE(keyLE, value)
+}
+
+func (t *Trie) insertKeyLE(keyLE, value []byte) {
 	nibblesKey := codec.KeyLEToNibbles(keyLE)
 	t.root, _, _ = t.insert(t.root, nibblesKey, value)
 }
@@ -516,6 +543,11 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte) (
 // are hexadecimal encoded.
 func LoadFromMap(data map[string]string) (trie Trie, err error) {
 	trie = *NewEmptyTrie()
+
+	defer func() {
+		trie.handleTrackedDeltas(err)
+	}()
+
 	for key, value := range data {
 		keyLEBytes, err := common.HexToBytes(key)
 		if err != nil {
@@ -527,7 +559,7 @@ func LoadFromMap(data map[string]string) (trie Trie, err error) {
 			return Trie{}, fmt.Errorf("cannot convert value hex to bytes: %w", err)
 		}
 
-		trie.Put(keyLEBytes, valueBytes)
+		trie.insertKeyLE(keyLEBytes, valueBytes)
 	}
 
 	return trie, nil
@@ -682,6 +714,10 @@ func retrieveFromBranch(branch *Node, key []byte) (value []byte) {
 // keys and a boolean indicating if all keys with the prefix were deleted
 // within the limit.
 func (t *Trie) ClearPrefixLimit(prefixLE []byte, limit uint32) (deleted uint32, allDeleted bool) {
+	defer func() {
+		t.handleTrackedDeltas(nil)
+	}()
+
 	if limit == 0 {
 		return 0, false
 	}
@@ -866,6 +902,10 @@ func (t *Trie) deleteNodesLimit(parent *Node, limit uint32) (
 // ClearPrefix deletes all nodes in the trie for which the key contains the
 // prefix given in little Endian format.
 func (t *Trie) ClearPrefix(prefixLE []byte) {
+	defer func() {
+		t.handleTrackedDeltas(nil)
+	}()
+
 	if len(prefixLE) == 0 {
 		t.root = nil
 		return
@@ -951,6 +991,10 @@ func (t *Trie) clearPrefixAtNode(parent *Node, prefix []byte) (
 // matching the key given in little Endian format.
 // If no node is found at this key, nothing is deleted.
 func (t *Trie) Delete(keyLE []byte) {
+	defer func() {
+		t.handleTrackedDeltas(nil)
+	}()
+
 	key := codec.KeyLEToNibbles(keyLE)
 	t.root, _, _ = t.deleteAtNode(t.root, key)
 }
