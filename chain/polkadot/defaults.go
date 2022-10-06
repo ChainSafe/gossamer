@@ -28,7 +28,7 @@ var (
 	// DefaultPruningMode is the default pruning mode
 	DefaultPruningMode = "archive"
 	// DefaultRetainBlocks is the default pruning mode
-	DefaultRetainBlocks = int64(512)
+	DefaultRetainBlocks = uint32(512)
 
 	// DefaultTelemetryURLs is the default URL of the telemetry server to connect to.
 	DefaultTelemetryURLs []genesis.TelemetryEndpoint

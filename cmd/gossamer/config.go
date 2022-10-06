@@ -485,7 +485,7 @@ func setDotGlobalConfigFromFlags(ctx *cli.Context, cfg *dot.GlobalConfig) error 
 		cfg.MetricsAddress = metricsAddress
 	}
 
-	cfg.RetainBlocks = ctx.Int64(RetainBlockNumberFlag.Name)
+	cfg.RetainBlocks = uint32(ctx.Uint64(RetainBlockNumberFlag.Name))
 	cfg.Pruning = pruner.Mode(ctx.String(PruningFlag.Name))
 	cfg.NoTelemetry = ctx.Bool("no-telemetry")
 
