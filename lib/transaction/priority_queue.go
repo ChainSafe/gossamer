@@ -7,6 +7,7 @@ import (
 	"container/heap"
 	"errors"
 	"sync"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -77,17 +78,18 @@ func (pq *priorityQueue) Pop() interface{} {
 
 // PriorityQueue is a thread safe wrapper over `priorityQueue`
 type PriorityQueue struct {
-	pq        priorityQueue
-	currOrder uint64
-	txs       map[common.Hash]*Item
+	pq           priorityQueue
+	currOrder    uint64
+	txs          map[common.Hash]*Item
+	pollInterval time.Duration
 	sync.Mutex
 }
 
 // NewPriorityQueue creates new instance of PriorityQueue
 func NewPriorityQueue() *PriorityQueue {
 	spq := &PriorityQueue{
-		pq:  make(priorityQueue, 0),
-		txs: make(map[common.Hash]*Item),
+		txs:          make(map[common.Hash]*Item),
+		pollInterval: 10 * time.Millisecond,
 	}
 
 	heap.Init(&spq.pq)
@@ -137,6 +139,40 @@ func (spq *PriorityQueue) Push(txn *ValidTransaction) (common.Hash, error) {
 
 	transactionQueueGauge.Set(float64(spq.pq.Len()))
 	return hash, nil
+}
+
+// PopWithTimer returns the next valid transaction from the queue.
+// When the timer expires, it returns `nil`.
+func (spq *PriorityQueue) PopWithTimer(timerCh <-chan time.Time) (transaction *ValidTransaction) {
+	transaction = spq.Pop()
+	if transaction != nil {
+		return transaction
+	}
+
+	transactionChannel := make(chan *ValidTransaction)
+	go func() {
+		pollTicker := time.NewTicker(spq.pollInterval)
+		defer pollTicker.Stop()
+
+		for {
+			select {
+			case <-timerCh:
+				transactionChannel <- nil
+				return
+			case <-pollTicker.C:
+			}
+
+			transaction := spq.Pop()
+			if transaction == nil {
+				continue
+			}
+
+			transactionChannel <- transaction
+			return
+		}
+	}()
+
+	return <-transactionChannel
 }
 
 // Pop removes the transaction with has the highest priority value from the queue and returns it.
