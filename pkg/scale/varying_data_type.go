@@ -59,7 +59,7 @@ type VaryingDataType struct {
 func (vdt *VaryingDataType) Set(value VaryingDataTypeValue) (err error) {
 	_, ok := vdt.cache[value.Index()]
 	if !ok {
-		err = fmt.Errorf("%w: %v (%T)", ErrAddVaryingDataTypeValueNotInCache, value, value)
+		err = fmt.Errorf("%w: %v (%T)", ErrUnsupportedVaryingDataTypeValue, value, value)
 		return
 	}
 	vdt.value = value

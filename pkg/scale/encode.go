@@ -207,7 +207,7 @@ func (es *encodeState) encodeCustomPrimitive(in interface{}) (err error) {
 
 func (es *encodeState) encodeResult(res Result) (err error) {
 	if !res.IsSet() {
-		err = fmt.Errorf("%w: %+v", errResultNotSet, res)
+		err = fmt.Errorf("%w: %+v", ErrResultNotSet, res)
 		return
 	}
 
@@ -306,19 +306,10 @@ func (es *encodeState) encodeBigInt(i *big.Int) (err error) {
 		err = fmt.Errorf("%w", errBigIntIsNil)
 	case i.Cmp(new(big.Int).Lsh(big.NewInt(1), 6)) < 0:
 		err = binary.Write(es, binary.LittleEndian, uint8(i.Int64()<<2))
-		if err != nil {
-			err = fmt.Errorf("writing binary for big int %s: %w", i, err)
-		}
 	case i.Cmp(new(big.Int).Lsh(big.NewInt(1), 14)) < 0:
 		err = binary.Write(es, binary.LittleEndian, uint16(i.Int64()<<2)+1)
-		if err != nil {
-			err = fmt.Errorf("writing binary for big int %s: %w", i, err)
-		}
 	case i.Cmp(new(big.Int).Lsh(big.NewInt(1), 30)) < 0:
 		err = binary.Write(es, binary.LittleEndian, uint32(i.Int64()<<2)+2)
-		if err != nil {
-			err = fmt.Errorf("writing binary for big int %s: %w", i, err)
-		}
 	default:
 		numBytes := len(i.Bytes())
 		topSixBits := uint8(numBytes - 4)

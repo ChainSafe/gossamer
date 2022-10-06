@@ -118,22 +118,22 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {
 	case *big.Int:
 		err = ds.decodeBigInt(dstv)
 		if err != nil {
-			return fmt.Errorf("decoding big integer: %w", err)
+			return fmt.Errorf("decoding *big.Int integer: %w", err)
 		}
 	case *Uint128:
 		err = ds.decodeUint128(dstv)
 		if err != nil {
-			return fmt.Errorf("decoding uint128: %w", err)
+			return fmt.Errorf("decoding *UInt128: %w", err)
 		}
 	case int, uint:
 		err = ds.decodeUint(dstv)
 		if err != nil {
-			return fmt.Errorf("decoding uint: %w", err)
+			return fmt.Errorf("decoding %T: %w", in, err)
 		}
 	case int8, uint8, int16, uint16, int32, uint32, int64, uint64:
 		err = ds.decodeFixedWidthInt(dstv)
 		if err != nil {
-			return fmt.Errorf("decoding fixed width int: %w", err)
+			return fmt.Errorf("decoding fixed width %T: %w", in, err)
 		}
 	case []byte:
 		err = ds.decodeBytes(dstv)
@@ -158,12 +158,12 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {
 	case VaryingDataType:
 		err = ds.decodeVaryingDataType(dstv)
 		if err != nil {
-			return fmt.Errorf("decoding varying data type: %w", err)
+			return fmt.Errorf("decoding VaryingDataType: %w", err)
 		}
 	case VaryingDataTypeSlice:
 		err = ds.decodeVaryingDataTypeSlice(dstv)
 		if err != nil {
-			return fmt.Errorf("decoding varying data type slice: %w", err)
+			return fmt.Errorf("decoding VaryingDataTypeSlice: %w", err)
 		}
 	default:
 		t := reflect.TypeOf(in)
@@ -404,7 +404,7 @@ func (ds *decodeState) decodeVaryingDataTypeSlice(dstv reflect.Value) (err error
 		err = fmt.Errorf("decoding length: %w", err)
 		return
 	}
-	for i := 0; i < l; i++ {
+	for i := uint(0); i < l; i++ {
 		vdt := vdts.VaryingDataType
 		vdtv := reflect.New(reflect.TypeOf(vdt))
 		vdtv.Elem().Set(reflect.ValueOf(vdt))
@@ -442,7 +442,7 @@ func (ds *decodeState) decodeVaryingDataType(dstv reflect.Value) (err error) {
 	vdt := dstv.Interface().(VaryingDataType)
 	val, ok := vdt.cache[uint(b)]
 	if !ok {
-		err = fmt.Errorf("%w: for key %d", errFindVDT, uint(b))
+		err = fmt.Errorf("%w: for key %d", errUnknownVaryingDataTypeValue, uint(b))
 		return
 	}
 
@@ -469,7 +469,7 @@ func (ds *decodeState) decodeSlice(dstv reflect.Value) (err error) {
 	}
 	in := dstv.Interface()
 	temp := reflect.New(reflect.ValueOf(in).Type())
-	for i := 0; i < l; i++ {
+	for i := uint(0); i < l; i++ {
 		tempElemType := reflect.TypeOf(in).Elem()
 		tempElem := reflect.New(tempElemType).Elem()
 
@@ -541,7 +541,7 @@ func (ds *decodeState) decodeBool(dstv reflect.Value) (err error) {
 	case 0x01:
 		b = true
 	default:
-		err = fmt.Errorf("%w: %s", errDecodeBool, err)
+		err = fmt.Errorf("%w", errDecodeBool)
 	}
 	dstv.Set(reflect.ValueOf(b))
 	return
@@ -625,14 +625,14 @@ var (
 )
 
 // decodeLength is helper method which calls decodeUint and casts to int
-func (ds *decodeState) decodeLength() (l int, err error) {
+func (ds *decodeState) decodeLength() (l uint, err error) {
 	dstv := reflect.New(reflect.TypeOf(l))
 	err = ds.decodeUint(dstv.Elem())
 	if err != nil {
 		err = fmt.Errorf("decoding uint: %w", err)
 		return
 	}
-	l = dstv.Elem().Interface().(int)
+	l = dstv.Elem().Interface().(uint)
 	return
 }
 
@@ -778,7 +778,7 @@ func (ds *decodeState) decodeFixedWidthInt(dstv reflect.Value) (err error) {
 		buf := make([]byte, 8)
 		_, err = ds.Read(buf)
 		if err != nil {
-			return fmt.Errorf("reading buffer for uint64: %w", err)
+			return err
 		}
 		out = binary.LittleEndian.Uint64(buf)
 	default:
