@@ -359,10 +359,10 @@ var (
 
 	// RetainBlockNumberFlag retain number of block from latest block while pruning,
 	// valid for the use with prune-state subcommand
-	RetainBlockNumberFlag = cli.Int64Flag{
+	RetainBlockNumberFlag = cli.Uint64Flag{
 		Name:  "retain-blocks",
 		Usage: "Retain number of block from latest block while pruning",
-		Value: dev.DefaultRetainBlocks,
+		Value: uint64(dev.DefaultRetainBlocks),
 	}
 
 	// PruningFlag triggers the online pruning of historical state tries.

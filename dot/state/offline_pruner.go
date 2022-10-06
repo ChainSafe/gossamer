@@ -27,7 +27,7 @@ type OfflinePruner struct {
 	blockState     *BlockState
 	bloom          *bloomState
 	bestBlockHash  common.Hash
-	retainBlockNum int64
+	retainBlockNum uint32
 
 	inputDBPath  string
 	prunedDBPath string
@@ -35,7 +35,7 @@ type OfflinePruner struct {
 
 // NewOfflinePruner creates an instance of OfflinePruner.
 func NewOfflinePruner(inputDBPath, prunedDBPath string, bloomSize uint64,
-	retainBlockNum int64) (*OfflinePruner, error) {
+	retainBlockNum uint32) (*OfflinePruner, error) {
 	db, err := utils.LoadChainDB(inputDBPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load DB %w", err)
