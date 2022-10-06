@@ -165,8 +165,8 @@ func Test_getAuthorityIndex(t *testing.T) {
 		{
 			name: "Invalid Preruntime Digest Type",
 			args: args{headerInvalidPre},
-			expErr: errors.New("cannot decode babe header from pre-digest: decoding varying data type: " +
-				"unmarshalling: decoding struct: unmarshalling field at index 0: decoding fixed width int: " +
+			expErr: errors.New("cannot decode babe header from pre-digest: decoding VaryingDataType: " +
+				"unmarshalling: decoding struct: unmarshalling field at index 0: decoding fixed width uint32: " +
 				"reading buffer for uint32: EOF"),
 		},
 		{
@@ -385,7 +385,7 @@ func Test_verifier_verifyPreRuntimeDigest(t *testing.T) {
 			verifier: verifier{},
 			args:     args{&types.PreRuntimeDigest{Data: []byte{0}}},
 			expErr: errors.New(
-				"decoding varying data type: unable to find VaryingDataTypeValue with index: for key 0"),
+				"decoding VaryingDataType: unable to find VaryingDataTypeValue with index: for key 0"),
 		},
 		{
 			name:     "Invalid BlockProducer Index",
@@ -618,8 +618,8 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 			name:     "invalid preruntime digest data",
 			verifier: verifier{},
 			header:   header2,
-			expErr: errors.New("failed to verify pre-runtime digest: decoding varying data type: unmarshalling: " +
-				"decoding struct: unmarshalling field at index 0: decoding fixed width int: reading buffer for " +
+			expErr: errors.New("failed to verify pre-runtime digest: decoding VaryingDataType: unmarshalling: " +
+				"decoding struct: unmarshalling field at index 0: decoding fixed width uint32: reading buffer for " +
 				"uint32: EOF"),
 		},
 		{

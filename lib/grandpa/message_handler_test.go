@@ -1287,7 +1287,7 @@ func TestService_VerifyBlockJustification(t *testing.T) {
 			},
 			want: nil,
 			wantErr: errors.New("decoding struct: unmarshalling field at index 1: decoding struct: unmarshalling " +
-				"field at index 0: decoding array: unmarshalling array element at index 0: decoding fixed width int" +
+				"field at index 0: decoding array: unmarshalling array element at index 0: decoding fixed width uint8" +
 				": reading byte for uint8: EOF"),
 		},
 		"valid justification": {
