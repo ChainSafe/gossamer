@@ -8,6 +8,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestPriorityQueue(t *testing.T) {
@@ -268,5 +270,78 @@ func TestRemoveExtrinsic(t *testing.T) {
 	res := pq.Pop()
 	if !reflect.DeepEqual(res, tests[1]) {
 		t.Fatalf("Fail: got %v expected %v", res, tests[1])
+	}
+}
+
+func Test_PriorityQueue_PopWithTimer(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		queueBuilder  func() *PriorityQueue
+		queueModifier func(queue *PriorityQueue, done chan<- struct{})
+		timer         *time.Timer
+		transaction   *ValidTransaction
+	}{
+		"empty queue polled once": {
+			// test should last 1ns
+			queueBuilder: NewPriorityQueue,
+			timer:        time.NewTimer(time.Nanosecond),
+		},
+		"empty queue polled multiple times": {
+			// test should last 1ms
+			queueBuilder: func() *PriorityQueue {
+				queue := NewPriorityQueue()
+				queue.pollInterval = time.Nanosecond
+				return queue
+			},
+			timer: time.NewTimer(time.Millisecond),
+		},
+		"queue with one element polled once": {
+			// test should be instantaneous
+			queueBuilder: func() *PriorityQueue {
+				queue := NewPriorityQueue()
+				queue.Push(&ValidTransaction{Validity: &Validity{Priority: 1}})
+				return queue
+			},
+			timer:       time.NewTimer(time.Nanosecond),
+			transaction: &ValidTransaction{Validity: &Validity{Priority: 1}},
+		},
+		"queue polled multiple times until new element": {
+			// test should last 1ms
+			queueBuilder: func() *PriorityQueue {
+				queue := NewPriorityQueue()
+				queue.pollInterval = time.Nanosecond
+				return queue
+			},
+			queueModifier: func(queue *PriorityQueue, done chan<- struct{}) {
+				close(done)
+				time.Sleep(time.Millisecond)
+				queue.Push(&ValidTransaction{Validity: &Validity{Priority: 1}})
+			},
+			timer:       time.NewTimer(time.Second),
+			transaction: &ValidTransaction{Validity: &Validity{Priority: 1}},
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			queue := testCase.queueBuilder()
+
+			modifyDone := make(chan struct{})
+			if testCase.queueModifier != nil {
+				// modify queue asynchronously while popping
+				go testCase.queueModifier(queue, modifyDone)
+			} else {
+				close(modifyDone)
+			}
+
+			transaction := queue.PopWithTimer(testCase.timer.C)
+			<-modifyDone
+			testCase.timer.Stop()
+			assert.Equal(t, testCase.transaction, transaction)
+		})
 	}
 }

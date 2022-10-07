@@ -23,7 +23,7 @@ type GlobalConfig struct {
 	BasePath       string `toml:"basepath,omitempty"`
 	LogLvl         string `toml:"log,omitempty"`
 	MetricsAddress string `toml:"metrics-address,omitempty"`
-	RetainBlocks   int64  `toml:"retain-blocks,omitempty"`
+	RetainBlocks   uint32 `toml:"retain-blocks,omitempty"`
 	Pruning        string `toml:"pruning,omitempty"`
 }
 
