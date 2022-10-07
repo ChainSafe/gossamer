@@ -482,7 +482,14 @@ func setDotGlobalConfigFromFlags(ctx *cli.Context, cfg *dot.GlobalConfig) error 
 		cfg.MetricsAddress = metricsAddress
 	}
 
-	cfg.RetainBlocks = ctx.Int64(RetainBlockNumberFlag.Name)
+	const uint32Max = ^uint32(0)
+	flagValue := ctx.Uint64(RetainBlockNumberFlag.Name)
+
+	if uint64(uint32Max) < flagValue {
+		return fmt.Errorf("retain blocks value overflows uint32 boundaries, must be less than or equal to: %d", uint32Max)
+	}
+
+	cfg.RetainBlocks = uint32(flagValue)
 	cfg.Pruning = pruner.Mode(ctx.String(PruningFlag.Name))
 	cfg.NoTelemetry = ctx.Bool("no-telemetry")
 
