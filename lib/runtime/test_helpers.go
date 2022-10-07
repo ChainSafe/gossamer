@@ -72,6 +72,9 @@ func GetRuntime(ctx context.Context, runtime string) (
 	case NODE_RUNTIME_v098:
 		runtimeFilename = NODE_RUNTIME_FP_v098
 		url = NODE_RUNTIME_URL_v098
+	case POLKADOT_RUNTIME_v0925:
+		runtimeFilename = POLKADOT_RUNTIME_FP_v0925
+		url = POLKADOT_RUNTIME_URL_v0925
 	case POLKADOT_RUNTIME_v0917:
 		runtimeFilename = POLKADOT_RUNTIME_FP_v0917
 		url = POLKADOT_RUNTIME_URL_v0917
@@ -252,11 +255,11 @@ func InitializeRuntimeToTest(t *testing.T, instance Instance, parentHash common.
 	err := instance.InitializeBlock(header)
 	require.NoError(t, err)
 
-	idata := types.NewInherentsData()
-	err = idata.SetInt64Inherent(types.Timstap0, 1)
+	idata := types.NewInherentData()
+	err = idata.SetInherent(types.Timstap0, uint64(1))
 	require.NoError(t, err)
 
-	err = idata.SetInt64Inherent(types.Babeslot, 1)
+	err = idata.SetInherent(types.Babeslot, uint64(1))
 	require.NoError(t, err)
 
 	ienc, err := idata.Encode()
