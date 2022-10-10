@@ -632,7 +632,7 @@ func (cs *chainSync) dispatchWorker(w *worker) {
 		"start hash %s, target hash %s, "+
 		"request data %d, direction %s",
 		w.id,
-		w.startNumber, w.targetNumber,
+		*w.startNumber, *w.targetNumber,
 		w.startHash, w.targetHash,
 		w.requestData, w.direction)
 
