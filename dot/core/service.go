@@ -132,7 +132,13 @@ func (s *Service) HandleBlockImport(block *types.Block, state *rtstorage.TrieSta
 		return fmt.Errorf("handling block: %s", err)
 	}
 
-	const isBestBlock = false
+	isBestBlock := false
+	bestBlockHash := s.blockState.BestBlockHash()
+
+	if bestBlockHash.Equal(block.Header.Hash()) {
+		isBestBlock = true
+	}
+
 	blockAnnounce, err := createBlockAnnounce(block, isBestBlock)
 	if err != nil {
 		logger.Errorf("creating block announce: %s", err)
