@@ -511,25 +511,26 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte) (
 	return newParentBranch, mutated, nodesCreated
 }
 
-// LoadFromMap loads the given data mapping of key to value into the trie.
+// LoadFromMap loads the given data mapping of key to value into a new empty trie.
 // The keys are in hexadecimal little Endian encoding and the values
 // are hexadecimal encoded.
-func (t *Trie) LoadFromMap(data map[string]string) (err error) {
+func LoadFromMap(data map[string]string) (trie Trie, err error) {
+	trie = *NewEmptyTrie()
 	for key, value := range data {
 		keyLEBytes, err := common.HexToBytes(key)
 		if err != nil {
-			return fmt.Errorf("cannot convert key hex to bytes: %w", err)
+			return Trie{}, fmt.Errorf("cannot convert key hex to bytes: %w", err)
 		}
 
 		valueBytes, err := common.HexToBytes(value)
 		if err != nil {
-			return fmt.Errorf("cannot convert value hex to bytes: %w", err)
+			return Trie{}, fmt.Errorf("cannot convert value hex to bytes: %w", err)
 		}
 
-		t.Put(keyLEBytes, valueBytes)
+		trie.Put(keyLEBytes, valueBytes)
 	}
 
-	return nil
+	return trie, nil
 }
 
 // GetKeysWithPrefix returns all keys in little Endian
