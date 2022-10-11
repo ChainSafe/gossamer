@@ -21,7 +21,7 @@ import (
 )
 
 // PrivateKeyToKeypair returns a public, private keypair given a private key
-func PrivateKeyToKeypair(priv crypto.PrivateKey) (kp crypto.Keypair, err error) {
+func PrivateKeyToKeypair(priv crypto.PrivateKey) (kp KeyPair, err error) {
 	if key, ok := priv.(*sr25519.PrivateKey); ok {
 		kp, err = sr25519.NewKeypairFromPrivate(key)
 	} else if key, ok := priv.(*ed25519.PrivateKey); ok {
@@ -51,7 +51,7 @@ func DecodePrivateKey(in []byte, keytype crypto.KeyType) (priv crypto.PrivateKey
 }
 
 // DecodeKeyPairFromHex turns an hex-encoded private key into a keypair
-func DecodeKeyPairFromHex(keystr []byte, keytype crypto.KeyType) (kp crypto.Keypair, err error) {
+func DecodeKeyPairFromHex(keystr []byte, keytype crypto.KeyType) (kp KeyPair, err error) {
 	switch keytype {
 	case crypto.Sr25519Type:
 		kp, err = sr25519.NewKeypairFromSeed(keystr)
@@ -67,7 +67,7 @@ func DecodeKeyPairFromHex(keystr []byte, keytype crypto.KeyType) (kp crypto.Keyp
 // GenerateKeypair create a new keypair with the corresponding type and saves
 // it to basepath/keystore/[public key].key in json format encrypted using the
 // specified password and returns the resulting filepath of the new key
-func GenerateKeypair(keytype string, kp crypto.Keypair, basepath string, password []byte) (string, error) {
+func GenerateKeypair(keytype string, kp PublicPrivater, basepath string, password []byte) (string, error) {
 	if keytype == "" {
 		keytype = crypto.Sr25519Type
 	}
@@ -115,15 +115,15 @@ func GenerateKeypair(keytype string, kp crypto.Keypair, basepath string, passwor
 func LoadKeystore(key string, ks TyperInserter) (err error) {
 	if key != "" {
 		var kr interface {
-			Alice() crypto.Keypair
-			Bob() crypto.Keypair
-			Charlie() crypto.Keypair
-			Dave() crypto.Keypair
-			Eve() crypto.Keypair
-			Ferdie() crypto.Keypair
-			George() crypto.Keypair
-			Heather() crypto.Keypair
-			Ian() crypto.Keypair
+			Alice() KeyPair
+			Bob() KeyPair
+			Charlie() KeyPair
+			Dave() KeyPair
+			Eve() KeyPair
+			Ferdie() KeyPair
+			George() KeyPair
+			Heather() KeyPair
+			Ian() KeyPair
 		}
 
 		switch ks.Type() {
@@ -204,7 +204,7 @@ func ImportKeypair(fp, dir string) (string, error) {
 
 // ImportRawPrivateKey imports a raw private key and saves it to the keystore directory
 func ImportRawPrivateKey(key, keytype, basepath string, password []byte) (string, error) {
-	var kp crypto.Keypair
+	var kp PublicPrivater
 	var err error
 
 	if keytype == "" {

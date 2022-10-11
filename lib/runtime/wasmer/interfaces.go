@@ -5,6 +5,7 @@ package wasmer
 
 import (
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
@@ -56,4 +57,12 @@ type BasicNetwork interface {
 // TransactionState is the interface for the transaction state.
 type TransactionState interface {
 	AddToPool(vt *transaction.ValidTransaction) common.Hash
+}
+
+// KeyPair is a key pair to sign messages and from which
+// the public key can be obtained.
+type KeyPair interface {
+	Sign(msg []byte) ([]byte, error)
+	Public() crypto.PublicKey
+	Type() crypto.KeyType
 }

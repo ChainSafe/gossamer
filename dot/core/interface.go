@@ -14,6 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
@@ -97,4 +98,12 @@ type CodeSubstitutedState interface {
 // Telemetry is the telemetry client to send telemetry messages.
 type Telemetry interface {
 	SendMessage(msg json.Marshaler)
+}
+
+// KeyPair is a key pair to sign messages and from which
+// the public key and key type can be obtained.
+type KeyPair interface {
+	Type() crypto.KeyType
+	Sign(msg []byte) ([]byte, error)
+	Public() crypto.PublicKey
 }

@@ -15,7 +15,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
@@ -452,7 +451,7 @@ func (s *Service) maintainTransactionPool(block *types.Block, bestBlockHash comm
 }
 
 // InsertKey inserts keypair into the account keystore
-func (s *Service) InsertKey(kp crypto.Keypair, keystoreType string) error {
+func (s *Service) InsertKey(kp KeyPair, keystoreType string) error {
 	ks, err := s.keys.GetKeystore([]byte(keystoreType))
 	if err != nil {
 		return err

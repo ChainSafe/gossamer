@@ -104,7 +104,7 @@ func getKeystorePassword(ctx *cli.Context) []byte {
 
 // KeypairInserter inserts a keypair.
 type KeypairInserter interface {
-	Insert(kp crypto.Keypair) error
+	Insert(kp keystore.KeyPair) error
 }
 
 // unlockKeystore compares the length of passwords to the length of accounts,

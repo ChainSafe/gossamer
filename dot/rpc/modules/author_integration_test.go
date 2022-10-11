@@ -349,10 +349,14 @@ func TestAuthorModule_InsertKey_Integration(t *testing.T) {
 		t.Run(tname, func(t *testing.T) {
 			t.Parallel()
 
-			var expectedKp crypto.Keypair
+			type keyPair interface {
+				Public() crypto.PublicKey
+			}
+
+			var expectedKp keyPair
 			var pubkey string
 
-			if kp, ok := tt.kp.(crypto.Keypair); ok {
+			if kp, ok := tt.kp.(keyPair); ok {
 				expectedKp = kp
 				pubkey = kp.Public().Hex()
 			} else {

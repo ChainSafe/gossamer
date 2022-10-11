@@ -34,15 +34,15 @@ type Keystore interface {
 	Typer
 	Inserter
 	AddressKeypairGetter
-	Keypairs() []crypto.Keypair
-	GetKeypair(pub crypto.PublicKey) crypto.Keypair
+	Keypairs() []KeyPair
+	GetKeypair(pub crypto.PublicKey) KeyPair
 	PublicKeys() []crypto.PublicKey
 	Size() int
 }
 
 // AddressKeypairGetter gets a keypair from an address.
 type AddressKeypairGetter interface {
-	GetKeypairFromAddress(pub common.Address) crypto.Keypair
+	GetKeypairFromAddress(pub common.Address) KeyPair
 }
 
 // TyperInserter has the Type and Insert methods.
@@ -51,14 +51,9 @@ type TyperInserter interface {
 	Inserter
 }
 
-// Typer returns the key type.
-type Typer interface {
-	Type() crypto.KeyType
-}
-
 // Inserter inserts a keypair.
 type Inserter interface {
-	Insert(kp crypto.Keypair) error
+	Insert(kp KeyPair) error
 }
 
 // GlobalKeystore defines the various keystores used by the node

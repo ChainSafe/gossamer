@@ -6,10 +6,10 @@ package rpc
 import (
 	"encoding/json"
 
+	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
@@ -82,7 +82,7 @@ type TransactionStateAPI interface {
 
 // CoreAPI is the interface for the core methods
 type CoreAPI interface {
-	InsertKey(kp crypto.Keypair, keystoreType string) error
+	InsertKey(kp core.KeyPair, keystoreType string) error
 	HasKey(pubKeyStr string, keyType string) (bool, error)
 	GetRuntimeVersion(bhash *common.Hash) (runtime.Version, error)
 	HandleSubmittedExtrinsic(types.Extrinsic) error

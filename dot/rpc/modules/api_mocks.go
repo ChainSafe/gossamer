@@ -56,7 +56,7 @@ func NewMockeryBlockAPI(t *testing.T) *modulesmocks.BlockAPI {
 // NewMockCoreAPI creates and return an rpc CoreAPI interface mock
 func NewMockCoreAPI(t *testing.T) *modulesmocks.CoreAPI {
 	m := modulesmocks.NewCoreAPI(t)
-	m.On("InsertKey", mock.AnythingOfType("crypto.Keypair"), mock.AnythingOfType("string")).Return(nil).Maybe()
+	m.On("InsertKey", mock.AnythingOfType("core.Keypair"), mock.AnythingOfType("string")).Return(nil).Maybe()
 	m.On("HasKey", mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(false, nil).Maybe()
 	m.On("GetRuntimeVersion", mock.AnythingOfType("*common.Hash")).
 		Return(runtime.Version{SpecName: []byte(`mock-spec`)}, nil).Maybe()

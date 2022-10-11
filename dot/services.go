@@ -186,7 +186,7 @@ func (nb nodeBuilder) createBABEService(cfg *Config, st *state.Service, ks KeySt
 type KeyStore interface {
 	Name() keystore.Name
 	Type() string
-	Keypairs() []crypto.Keypair
+	Keypairs() []keystore.KeyPair
 }
 
 func (nodeBuilder) createBABEServiceWithBuilder(cfg *Config, st *state.Service, ks KeyStore,
