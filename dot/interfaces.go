@@ -20,9 +20,9 @@ type service interface {
 	Stop() error
 }
 
-// serviceRegisterer can register a service interface, start or stop all services,
+// ServiceRegisterer can register a service interface, start or stop all services,
 // and get a particular service.
-type serviceRegisterer interface {
+type ServiceRegisterer interface {
 	RegisterService(service services.Service)
 	StartAll()
 	StopAll()

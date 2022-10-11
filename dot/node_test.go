@@ -95,7 +95,8 @@ func TestLoadGlobalNodeName(t *testing.T) {
 	}
 }
 
-//go:generate mockgen -destination=mock_service_registry_test.go -package=$GOPACKAGE github.com/ChainSafe/gossamer/lib/services Service,ServiceRegisterer
+//go:generate mockgen -destination=mock_service_registry_test.go -package=$GOPACKAGE github.com/ChainSafe/gossamer/lib/services Service
+//go:generate mockgen -destination=mocks_test.go -package=$GOPACKAGE . ServiceRegisterer
 
 //go:generate mockgen -destination=mock_block_state_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/network BlockState
 

@@ -42,7 +42,7 @@ var logger = log.NewFromGlobal(log.AddContext("pkg", "dot"))
 // Node is a container for all the components of a node.
 type Node struct {
 	Name            string
-	ServiceRegistry serviceRegisterer // registry of all node services
+	ServiceRegistry ServiceRegisterer // registry of all node services
 	wg              sync.WaitGroup
 	started         chan struct{}
 	metricsServer   *metrics.Server
@@ -227,7 +227,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore) (*Node, error) {
 func newNode(cfg *Config,
 	ks *keystore.GlobalKeystore,
 	builder nodeBuilderIface,
-	serviceRegistry serviceRegisterer) (*Node, error) {
+	serviceRegistry ServiceRegisterer) (*Node, error) {
 	// set garbage collection percent to 10%
 	// can be overwritten by setting the GOGC env variable, which defaults to 100
 	prev := debug.SetGCPercent(10)
