@@ -1568,19 +1568,27 @@ func Test_Trie_insertInBranch(t *testing.T) {
 	}
 }
 
-func Test_Trie_LoadFromMap(t *testing.T) {
+func Test_LoadFromMap(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		trie         Trie
 		data         map[string]string
 		expectedTrie Trie
 		errWrapped   error
 		errMessage   string
 	}{
-		"nil data": {},
+		"nil data": {
+			expectedTrie: Trie{
+				childTries:          map[common.Hash]*Trie{},
+				deletedMerkleValues: map[string]struct{}{},
+			},
+		},
 		"empty data": {
 			data: map[string]string{},
+			expectedTrie: Trie{
+				childTries:          map[common.Hash]*Trie{},
+				deletedMerkleValues: map[string]struct{}{},
+			},
 		},
 		"bad key": {
 			data: map[string]string{
@@ -1622,56 +1630,8 @@ func Test_Trie_LoadFromMap(t *testing.T) {
 						},
 					}),
 				},
-			},
-		},
-		"override trie": {
-			trie: Trie{
-				root: &Node{
-					Key:         []byte{00, 01},
-					SubValue:    []byte{106},
-					Dirty:       true,
-					Descendants: 2,
-					Children: padRightChildren([]*Node{
-						{
-							SubValue: []byte{9},
-						},
-						nil,
-						{
-							Key:      []byte{0},
-							SubValue: []byte{107},
-							Dirty:    true,
-						},
-					}),
-				},
-			},
-			data: map[string]string{
-				"0x01":   "0x06",
-				"0x0120": "0x07",
-				"0x0130": "0x08",
-			},
-			expectedTrie: Trie{
-				root: &Node{
-					Key:         []byte{00, 01},
-					SubValue:    []byte{6},
-					Dirty:       true,
-					Descendants: 3,
-					Children: padRightChildren([]*Node{
-						{
-							SubValue: []byte{9},
-						},
-						nil,
-						{
-							Key:      []byte{0},
-							SubValue: []byte{7},
-							Dirty:    true,
-						},
-						{
-							Key:      []byte{0},
-							SubValue: []byte{8},
-							Dirty:    true,
-						},
-					}),
-				},
+				childTries:          map[common.Hash]*Trie{},
+				deletedMerkleValues: map[string]struct{}{},
 			},
 		},
 	}
@@ -1681,14 +1641,14 @@ func Test_Trie_LoadFromMap(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			err := testCase.trie.LoadFromMap(testCase.data)
+			trie, err := LoadFromMap(testCase.data)
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if testCase.errWrapped != nil {
 				assert.EqualError(t, err, testCase.errMessage)
 			}
 
-			assert.Equal(t, testCase.expectedTrie, testCase.trie)
+			assert.Equal(t, testCase.expectedTrie, trie)
 		})
 	}
 }

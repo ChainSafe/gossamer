@@ -1083,8 +1083,7 @@ func newTrieFromPairs(t *testing.T, filename string) *trie.Trie {
 		entries[pairArr[0].(string)] = pairArr[1].(string)
 	}
 
-	tr := trie.NewEmptyTrie()
-	err = tr.LoadFromMap(entries)
+	tr, err := trie.LoadFromMap(entries)
 	require.NoError(t, err)
-	return tr
+	return &tr
 }
