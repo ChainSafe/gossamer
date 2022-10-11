@@ -238,7 +238,6 @@ func (s *chainProcessor) handleBlock(block *types.Block) error {
 	}
 
 	logger.Debugf("🔗 imported block number %d with hash %s", block.Header.Number, block.Header.Hash())
-	// should we announce the block here?
 
 	blockHash := block.Header.Hash()
 	s.telemetry.SendMessage(telemetry.NewBlockImport(
