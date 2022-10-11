@@ -186,8 +186,7 @@ func TestInitNode_LoadStorageRoot(t *testing.T) {
 	node, err := NewNode(cfg, ks)
 	require.NoError(t, err)
 
-	expected := &trie.Trie{}
-	err = expected.LoadFromMap(gen.GenesisFields().Raw["top"])
+	expected, err := trie.LoadFromMap(gen.GenesisFields().Raw["top"])
 	require.NoError(t, err)
 
 	expectedRoot, err := expected.Hash()
