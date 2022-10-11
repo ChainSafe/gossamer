@@ -26,11 +26,11 @@ type Trie struct {
 	// pruner to detect with database keys (trie node Merkle values) can
 	// be deleted.
 	deletedMerkleValues map[string]struct{}
-	// newDeletedMerkleValues contains deleted Merkle values for operations
+	// pendingDeletedMerkleValues contains deleted Merkle values for operations
 	// in progress. Its goal is to prevent having the trie `deletedMerkleValues`
 	// in a bad state if one of the trie operation modified some (deep copied) trie
 	// node and then failed.
-	newDeletedMerkleValues map[string]struct{}
+	pendingDeletedMerkleValues map[string]struct{}
 }
 
 // NewEmptyTrie creates a trie with a nil root
@@ -41,11 +41,11 @@ func NewEmptyTrie() *Trie {
 // NewTrie creates a trie with an existing root node
 func NewTrie(root *Node) *Trie {
 	return &Trie{
-		root:                   root,
-		childTries:             make(map[common.Hash]*Trie),
-		generation:             0, // Initially zero but increases after every snapshot.
-		deletedMerkleValues:    make(map[string]struct{}),
-		newDeletedMerkleValues: make(map[string]struct{}),
+		root:                       root,
+		childTries:                 make(map[common.Hash]*Trie),
+		generation:                 0, // Initially zero but increases after every snapshot.
+		deletedMerkleValues:        make(map[string]struct{}),
+		pendingDeletedMerkleValues: make(map[string]struct{}),
 	}
 }
 
@@ -60,32 +60,32 @@ func (t *Trie) Snapshot() (newTrie *Trie) {
 	rootCopySettings.CopyCached = true
 	for rootHash, childTrie := range t.childTries {
 		childTries[rootHash] = &Trie{
-			generation:             childTrie.generation + 1,
-			root:                   childTrie.root.Copy(rootCopySettings),
-			deletedMerkleValues:    make(map[string]struct{}),
-			newDeletedMerkleValues: make(map[string]struct{}),
+			generation:                 childTrie.generation + 1,
+			root:                       childTrie.root.Copy(rootCopySettings),
+			deletedMerkleValues:        make(map[string]struct{}),
+			pendingDeletedMerkleValues: make(map[string]struct{}),
 		}
 	}
 
 	return &Trie{
-		generation:             t.generation + 1,
-		root:                   t.root,
-		childTries:             childTries,
-		deletedMerkleValues:    make(map[string]struct{}),
-		newDeletedMerkleValues: make(map[string]struct{}),
+		generation:                 t.generation + 1,
+		root:                       t.root,
+		childTries:                 childTries,
+		deletedMerkleValues:        make(map[string]struct{}),
+		pendingDeletedMerkleValues: make(map[string]struct{}),
 	}
 }
 
 // handleTrackedDeltas modifies the trie deleted merkle values set
 // only if the error is nil. In all cases, it resets the
-// `newDeletedMerkleValues` map.
+// `pendingDeletedMerkleValues` map.
 func (t *Trie) handleTrackedDeltas(err error) {
 	if err == nil {
-		for merkleValue := range t.newDeletedMerkleValues {
+		for merkleValue := range t.pendingDeletedMerkleValues {
 			t.deletedMerkleValues[merkleValue] = struct{}{}
 		}
 	}
-	t.newDeletedMerkleValues = make(map[string]struct{})
+	t.pendingDeletedMerkleValues = make(map[string]struct{})
 }
 
 func (t *Trie) prepLeafForMutation(currentLeaf *Node,
@@ -95,7 +95,7 @@ func (t *Trie) prepLeafForMutation(currentLeaf *Node,
 		// of current leaf.
 		newLeaf = currentLeaf
 	} else {
-		newLeaf = updateGeneration(currentLeaf, t.generation, t.newDeletedMerkleValues, copySettings)
+		newLeaf = updateGeneration(currentLeaf, t.generation, t.pendingDeletedMerkleValues, copySettings)
 	}
 	newLeaf.SetDirty()
 	return newLeaf
@@ -108,7 +108,7 @@ func (t *Trie) prepBranchForMutation(currentBranch *Node,
 		// of current branch.
 		newBranch = currentBranch
 	} else {
-		newBranch = updateGeneration(currentBranch, t.generation, t.newDeletedMerkleValues, copySettings)
+		newBranch = updateGeneration(currentBranch, t.generation, t.pendingDeletedMerkleValues, copySettings)
 	}
 	newBranch.SetDirty()
 	return newBranch

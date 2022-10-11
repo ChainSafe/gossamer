@@ -18,9 +18,9 @@ import (
 
 func Test_NewEmptyTrie(t *testing.T) {
 	expectedTrie := &Trie{
-		childTries:             make(map[common.Hash]*Trie),
-		deletedMerkleValues:    map[string]struct{}{},
-		newDeletedMerkleValues: map[string]struct{}{},
+		childTries:                 make(map[common.Hash]*Trie),
+		deletedMerkleValues:        map[string]struct{}{},
+		pendingDeletedMerkleValues: map[string]struct{}{},
 	}
 	trie := NewEmptyTrie()
 	assert.Equal(t, expectedTrie, trie)
@@ -36,9 +36,9 @@ func Test_NewTrie(t *testing.T) {
 			Key:      []byte{0},
 			SubValue: []byte{17},
 		},
-		childTries:             make(map[common.Hash]*Trie),
-		deletedMerkleValues:    map[string]struct{}{},
-		newDeletedMerkleValues: map[string]struct{}{},
+		childTries:                 make(map[common.Hash]*Trie),
+		deletedMerkleValues:        map[string]struct{}{},
+		pendingDeletedMerkleValues: map[string]struct{}{},
 	}
 	trie := NewTrie(root)
 	assert.Equal(t, expectedTrie, trie)
@@ -57,7 +57,7 @@ func Test_Trie_Snapshot(t *testing.T) {
 				deletedMerkleValues: map[string]struct{}{
 					"a": {},
 				},
-				newDeletedMerkleValues: map[string]struct{}{
+				pendingDeletedMerkleValues: map[string]struct{}{
 					"a temp": {},
 				},
 			},
@@ -67,7 +67,7 @@ func Test_Trie_Snapshot(t *testing.T) {
 				deletedMerkleValues: map[string]struct{}{
 					"b": {},
 				},
-				newDeletedMerkleValues: map[string]struct{}{
+				pendingDeletedMerkleValues: map[string]struct{}{
 					"b temp": {},
 				},
 			},
@@ -76,7 +76,7 @@ func Test_Trie_Snapshot(t *testing.T) {
 			"a": {},
 			"b": {},
 		},
-		newDeletedMerkleValues: map[string]struct{}{
+		pendingDeletedMerkleValues: map[string]struct{}{
 			"a temp": {},
 			"b temp": {},
 		},
@@ -87,20 +87,20 @@ func Test_Trie_Snapshot(t *testing.T) {
 		root:       &Node{Key: []byte{8}, SubValue: []byte{1}},
 		childTries: map[common.Hash]*Trie{
 			{1}: {
-				generation:             2,
-				root:                   &Node{Key: []byte{1}, SubValue: []byte{1}},
-				deletedMerkleValues:    map[string]struct{}{},
-				newDeletedMerkleValues: map[string]struct{}{},
+				generation:                 2,
+				root:                       &Node{Key: []byte{1}, SubValue: []byte{1}},
+				deletedMerkleValues:        map[string]struct{}{},
+				pendingDeletedMerkleValues: map[string]struct{}{},
 			},
 			{2}: {
-				generation:             3,
-				root:                   &Node{Key: []byte{2}, SubValue: []byte{1}},
-				deletedMerkleValues:    map[string]struct{}{},
-				newDeletedMerkleValues: map[string]struct{}{},
+				generation:                 3,
+				root:                       &Node{Key: []byte{2}, SubValue: []byte{1}},
+				deletedMerkleValues:        map[string]struct{}{},
+				pendingDeletedMerkleValues: map[string]struct{}{},
 			},
 		},
-		deletedMerkleValues:    map[string]struct{}{},
-		newDeletedMerkleValues: map[string]struct{}{},
+		deletedMerkleValues:        map[string]struct{}{},
+		pendingDeletedMerkleValues: map[string]struct{}{},
 	}
 
 	newTrie := trie.Snapshot()
@@ -1022,8 +1022,8 @@ func Test_Trie_Put(t *testing.T) {
 	}{
 		"trie with key and value": {
 			trie: Trie{
-				generation:             1,
-				newDeletedMerkleValues: map[string]struct{}{},
+				generation:                 1,
+				pendingDeletedMerkleValues: map[string]struct{}{},
 				root: &Node{
 					Key:      []byte{1, 2, 0, 5},
 					SubValue: []byte{1},
@@ -1032,8 +1032,8 @@ func Test_Trie_Put(t *testing.T) {
 			key:   []byte{0x12, 0x16},
 			value: []byte{2},
 			expectedTrie: Trie{
-				generation:             1,
-				newDeletedMerkleValues: map[string]struct{}{},
+				generation:                 1,
+				pendingDeletedMerkleValues: map[string]struct{}{},
 				root: &Node{
 					Key:         []byte{1, 2},
 					Generation:  1,
@@ -1596,17 +1596,17 @@ func Test_LoadFromMap(t *testing.T) {
 	}{
 		"nil data": {
 			expectedTrie: Trie{
-				childTries:             map[common.Hash]*Trie{},
-				deletedMerkleValues:    map[string]struct{}{},
-				newDeletedMerkleValues: map[string]struct{}{},
+				childTries:                 map[common.Hash]*Trie{},
+				deletedMerkleValues:        map[string]struct{}{},
+				pendingDeletedMerkleValues: map[string]struct{}{},
 			},
 		},
 		"empty data": {
 			data: map[string]string{},
 			expectedTrie: Trie{
-				childTries:             map[common.Hash]*Trie{},
-				deletedMerkleValues:    map[string]struct{}{},
-				newDeletedMerkleValues: map[string]struct{}{},
+				childTries:                 map[common.Hash]*Trie{},
+				deletedMerkleValues:        map[string]struct{}{},
+				pendingDeletedMerkleValues: map[string]struct{}{},
 			},
 		},
 		"bad key": {
@@ -1614,7 +1614,7 @@ func Test_LoadFromMap(t *testing.T) {
 				"0xa": "0x01",
 			},
 			expectedTrie: Trie{
-				newDeletedMerkleValues: map[string]struct{}{},
+				pendingDeletedMerkleValues: map[string]struct{}{},
 			},
 			errWrapped: hex.ErrLength,
 			errMessage: "cannot convert key hex to bytes: encoding/hex: odd length hex string: 0xa",
@@ -1624,7 +1624,7 @@ func Test_LoadFromMap(t *testing.T) {
 				"0x01": "0xa",
 			},
 			expectedTrie: Trie{
-				newDeletedMerkleValues: map[string]struct{}{},
+				pendingDeletedMerkleValues: map[string]struct{}{},
 			},
 			errWrapped: hex.ErrLength,
 			errMessage: "cannot convert value hex to bytes: encoding/hex: odd length hex string: 0xa",
@@ -1644,9 +1644,9 @@ func Test_LoadFromMap(t *testing.T) {
 					},
 					Dirty: true,
 				},
-				childTries:             map[common.Hash]*Trie{},
-				deletedMerkleValues:    map[string]struct{}{},
-				newDeletedMerkleValues: map[string]struct{}{},
+				childTries:                 map[common.Hash]*Trie{},
+				deletedMerkleValues:        map[string]struct{}{},
+				pendingDeletedMerkleValues: map[string]struct{}{},
 			},
 		},
 		"load key values": {
@@ -1675,9 +1675,9 @@ func Test_LoadFromMap(t *testing.T) {
 						},
 					}),
 				},
-				childTries:             map[common.Hash]*Trie{},
-				deletedMerkleValues:    map[string]struct{}{},
-				newDeletedMerkleValues: map[string]struct{}{},
+				childTries:                 map[common.Hash]*Trie{},
+				deletedMerkleValues:        map[string]struct{}{},
+				pendingDeletedMerkleValues: map[string]struct{}{},
 			},
 		},
 	}
@@ -2146,7 +2146,7 @@ func Test_Trie_ClearPrefixLimit(t *testing.T) {
 	}{
 		"limit is zero": {
 			expectedTrie: Trie{
-				newDeletedMerkleValues: map[string]struct{}{},
+				pendingDeletedMerkleValues: map[string]struct{}{},
 			},
 		},
 		"clear prefix limit": {
@@ -2169,7 +2169,7 @@ func Test_Trie_ClearPrefixLimit(t *testing.T) {
 			deleted:    2,
 			allDeleted: true,
 			expectedTrie: Trie{
-				newDeletedMerkleValues: map[string]struct{}{},
+				pendingDeletedMerkleValues: map[string]struct{}{},
 			},
 		},
 	}
@@ -2914,7 +2914,7 @@ func Test_Trie_ClearPrefix(t *testing.T) {
 				root: &Node{SubValue: []byte{1}},
 			},
 			expectedTrie: Trie{
-				newDeletedMerkleValues: map[string]struct{}{},
+				pendingDeletedMerkleValues: map[string]struct{}{},
 			},
 		},
 		"empty prefix": {
@@ -2923,13 +2923,13 @@ func Test_Trie_ClearPrefix(t *testing.T) {
 			},
 			prefix: []byte{},
 			expectedTrie: Trie{
-				newDeletedMerkleValues: map[string]struct{}{},
+				pendingDeletedMerkleValues: map[string]struct{}{},
 			},
 		},
 		"empty trie": {
 			prefix: []byte{0x12},
 			expectedTrie: Trie{
-				newDeletedMerkleValues: map[string]struct{}{},
+				pendingDeletedMerkleValues: map[string]struct{}{},
 			},
 		},
 		"clear prefix": {
@@ -2962,7 +2962,7 @@ func Test_Trie_ClearPrefix(t *testing.T) {
 					SubValue: []byte{1},
 					Dirty:    true,
 				},
-				newDeletedMerkleValues: map[string]struct{}{},
+				pendingDeletedMerkleValues: map[string]struct{}{},
 			},
 		},
 	}
@@ -3295,7 +3295,7 @@ func Test_Trie_Delete(t *testing.T) {
 				root: &Node{SubValue: []byte{1}},
 			},
 			expectedTrie: Trie{
-				newDeletedMerkleValues: map[string]struct{}{},
+				pendingDeletedMerkleValues: map[string]struct{}{},
 			},
 		},
 		"empty key": {
@@ -3303,13 +3303,13 @@ func Test_Trie_Delete(t *testing.T) {
 				root: &Node{SubValue: []byte{1}},
 			},
 			expectedTrie: Trie{
-				newDeletedMerkleValues: map[string]struct{}{},
+				pendingDeletedMerkleValues: map[string]struct{}{},
 			},
 		},
 		"empty trie": {
 			key: []byte{0x12},
 			expectedTrie: Trie{
-				newDeletedMerkleValues: map[string]struct{}{},
+				pendingDeletedMerkleValues: map[string]struct{}{},
 			},
 		},
 		"delete branch node": {
@@ -3358,7 +3358,7 @@ func Test_Trie_Delete(t *testing.T) {
 						},
 					}),
 				},
-				newDeletedMerkleValues: map[string]struct{}{},
+				pendingDeletedMerkleValues: map[string]struct{}{},
 			},
 		},
 	}
