@@ -132,16 +132,12 @@ func (s *Service) HandleBlockImport(block *types.Block, state *rtstorage.TrieSta
 		return fmt.Errorf("handling block: %s", err)
 	}
 
-	isBestBlock := false
 	bestBlockHash := s.blockState.BestBlockHash()
-
-	if bestBlockHash.Equal(block.Header.Hash()) {
-		isBestBlock = true
-	}
+	isBestBlock := bestBlockHash.Equal(block.Header.Hash())
 
 	blockAnnounce, err := createBlockAnnounce(block, isBestBlock)
 	if err != nil {
-		logger.Errorf("creating block announce: %s", err)
+		return fmt.Errorf("creating block announce: %w", err)
 	}
 
 	s.net.GossipMessage(blockAnnounce)
@@ -160,7 +156,7 @@ func (s *Service) HandleBlockProduced(block *types.Block, state *rtstorage.TrieS
 	const isBestBlock = true
 	blockAnnounce, err := createBlockAnnounce(block, isBestBlock)
 	if err != nil {
-		logger.Errorf("creating block announce: %s", err)
+		return fmt.Errorf("creating block announce: %w", err)
 	}
 
 	s.net.GossipMessage(blockAnnounce)
