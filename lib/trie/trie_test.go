@@ -90,7 +90,7 @@ func Test_Trie_Snapshot(t *testing.T) {
 
 	newTrie := trie.Snapshot()
 
-	assert.Equal(t, expectedTrie, newTrie)
+	assert.Equal(t, expectedTrie.childTries, newTrie.childTries)
 }
 
 func Test_Trie_updateGeneration(t *testing.T) {
@@ -1058,13 +1058,14 @@ func Test_Trie_insert(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		trie         Trie
-		parent       *Node
-		key          []byte
-		value        []byte
-		newNode      *Node
-		mutated      bool
-		nodesCreated uint32
+		trie                Trie
+		parent              *Node
+		key                 []byte
+		value               []byte
+		deletedMerkleValues map[string]struct{}
+		newNode             *Node
+		mutated             bool
+		nodesCreated        uint32
 	}{
 		"nil parent": {
 			trie: Trie{
@@ -1267,7 +1268,9 @@ func Test_Trie_insert(t *testing.T) {
 			trie := testCase.trie
 			expectedTrie := *trie.DeepCopy()
 
-			newNode, mutated, nodesCreated := trie.insert(testCase.parent, testCase.key, testCase.value)
+			newNode, mutated, nodesCreated := trie.insert(
+				testCase.parent, testCase.key, testCase.value,
+				testCase.deletedMerkleValues)
 
 			assert.Equal(t, testCase.newNode, newNode)
 			assert.Equal(t, testCase.mutated, mutated)
@@ -1281,12 +1284,13 @@ func Test_Trie_insertInBranch(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		parent       *Node
-		key          []byte
-		value        []byte
-		newNode      *Node
-		mutated      bool
-		nodesCreated uint32
+		parent              *Node
+		key                 []byte
+		value               []byte
+		deletedMerkleValues map[string]struct{}
+		newNode             *Node
+		mutated             bool
+		nodesCreated        uint32
 	}{
 		"insert existing value to branch": {
 			parent: &Node{
@@ -1558,7 +1562,9 @@ func Test_Trie_insertInBranch(t *testing.T) {
 
 			trie := new(Trie)
 
-			newNode, mutated, nodesCreated := trie.insertInBranch(testCase.parent, testCase.key, testCase.value)
+			newNode, mutated, nodesCreated := trie.insertInBranch(
+				testCase.parent, testCase.key, testCase.value,
+				testCase.deletedMerkleValues)
 
 			assert.Equal(t, testCase.newNode, newNode)
 			assert.Equal(t, testCase.mutated, mutated)
@@ -1604,7 +1610,26 @@ func Test_LoadFromMap(t *testing.T) {
 			errWrapped: hex.ErrLength,
 			errMessage: "cannot convert value hex to bytes: encoding/hex: odd length hex string: 0xa",
 		},
-		"load into empty trie": {
+		"load large key value": {
+			data: map[string]string{
+				"0x01": "0x1234567812345678123456781234567812345678123456781234567812345678", // 32 bytes
+			},
+			expectedTrie: Trie{
+				root: &Node{
+					Key: []byte{00, 01},
+					SubValue: []byte{
+						0x12, 0x34, 0x56, 0x78, 0x12, 0x34, 0x56, 0x78,
+						0x12, 0x34, 0x56, 0x78, 0x12, 0x34, 0x56, 0x78,
+						0x12, 0x34, 0x56, 0x78, 0x12, 0x34, 0x56, 0x78,
+						0x12, 0x34, 0x56, 0x78, 0x12, 0x34, 0x56, 0x78,
+					},
+					Dirty: true,
+				},
+				childTries:          map[common.Hash]*Trie{},
+				deletedMerkleValues: map[string]struct{}{},
+			},
+		},
+		"load key values": {
 			data: map[string]string{
 				"0x01":   "0x06",
 				"0x0120": "0x07",
@@ -2141,14 +2166,15 @@ func Test_Trie_clearPrefixLimitAtNode(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		trie          Trie
-		parent        *Node
-		prefix        []byte
-		limit         uint32
-		newParent     *Node
-		valuesDeleted uint32
-		nodesRemoved  uint32
-		allDeleted    bool
+		trie                Trie
+		parent              *Node
+		prefix              []byte
+		limit               uint32
+		deletedMerkleValues map[string]struct{}
+		newParent           *Node
+		valuesDeleted       uint32
+		nodesRemoved        uint32
+		allDeleted          bool
 	}{
 		"limit is zero": {
 			allDeleted: true,
@@ -2666,7 +2692,8 @@ func Test_Trie_clearPrefixLimitAtNode(t *testing.T) {
 			expectedTrie := *trie.DeepCopy()
 
 			newParent, valuesDeleted, nodesRemoved, allDeleted :=
-				trie.clearPrefixLimitAtNode(testCase.parent, testCase.prefix, testCase.limit)
+				trie.clearPrefixLimitAtNode(testCase.parent, testCase.prefix,
+					testCase.limit, testCase.deletedMerkleValues)
 
 			assert.Equal(t, testCase.newParent, newParent)
 			assert.Equal(t, testCase.valuesDeleted, valuesDeleted)
@@ -2681,12 +2708,13 @@ func Test_Trie_deleteNodesLimit(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		trie          Trie
-		parent        *Node
-		limit         uint32
-		newNode       *Node
-		valuesDeleted uint32
-		nodesRemoved  uint32
+		trie                Trie
+		parent              *Node
+		limit               uint32
+		deletedMerkleValues map[string]struct{}
+		newNode             *Node
+		valuesDeleted       uint32
+		nodesRemoved        uint32
 	}{
 		"zero limit": {
 			trie: Trie{
@@ -2838,7 +2866,8 @@ func Test_Trie_deleteNodesLimit(t *testing.T) {
 			expectedTrie := *trie.DeepCopy()
 
 			newNode, valuesDeleted, nodesRemoved :=
-				trie.deleteNodesLimit(testCase.parent, testCase.limit)
+				trie.deleteNodesLimit(testCase.parent,
+					testCase.limit, testCase.deletedMerkleValues)
 
 			assert.Equal(t, testCase.newNode, newNode)
 			assert.Equal(t, testCase.valuesDeleted, valuesDeleted)
@@ -2928,11 +2957,12 @@ func Test_Trie_clearPrefixAtNode(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		trie         Trie
-		parent       *Node
-		prefix       []byte
-		newParent    *Node
-		nodesRemoved uint32
+		trie                Trie
+		parent              *Node
+		prefix              []byte
+		deletedMerkleValues map[string]struct{}
+		newParent           *Node
+		nodesRemoved        uint32
 	}{
 		"delete one of two children of branch": {
 			trie: Trie{
@@ -3209,8 +3239,8 @@ func Test_Trie_clearPrefixAtNode(t *testing.T) {
 			trie := testCase.trie
 			expectedTrie := *trie.DeepCopy()
 
-			newParent, nodesRemoved :=
-				trie.clearPrefixAtNode(testCase.parent, testCase.prefix)
+			newParent, nodesRemoved := trie.clearPrefixAtNode(
+				testCase.parent, testCase.prefix, testCase.deletedMerkleValues)
 
 			assert.Equal(t, testCase.newParent, newParent)
 			assert.Equal(t, testCase.nodesRemoved, nodesRemoved)
@@ -3314,12 +3344,13 @@ func Test_Trie_deleteAtNode(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		trie         Trie
-		parent       *Node
-		key          []byte
-		newParent    *Node
-		updated      bool
-		nodesRemoved uint32
+		trie                Trie
+		parent              *Node
+		key                 []byte
+		deletedMerkleValues map[string]struct{}
+		newParent           *Node
+		updated             bool
+		nodesRemoved        uint32
 	}{
 		"nil parent": {
 			key: []byte{1},
@@ -3610,7 +3641,8 @@ func Test_Trie_deleteAtNode(t *testing.T) {
 			}
 			expectedTrie := *testCase.trie.DeepCopy()
 
-			newParent, updated, nodesRemoved := testCase.trie.deleteAtNode(testCase.parent, testCase.key)
+			newParent, updated, nodesRemoved := testCase.trie.deleteAtNode(
+				testCase.parent, testCase.key, testCase.deletedMerkleValues)
 
 			assert.Equal(t, testCase.newParent, newParent)
 			assert.Equal(t, testCase.updated, updated)
