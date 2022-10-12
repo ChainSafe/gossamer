@@ -10,9 +10,9 @@ import (
 
 	"github.com/libp2p/go-libp2p-core/peer"
 
-	"github.com/hashicorp/mdns"
 	"github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
+	"github.com/whyrusleeping/mdns"
 )
 
 // Notifee is notified when a new peer is found.
