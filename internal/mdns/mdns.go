@@ -49,10 +49,7 @@ func NewService(p2pHost IDNetworker, serviceTag string,
 
 // Start starts the mDNS service.
 func (s *Service) Start() (err error) {
-	ips, port, err := getMDNSIPsAndPort(s.p2pHost)
-	if err != nil {
-		return fmt.Errorf("getting MDNS ips and port: %w", err)
-	}
+	ips, port := getMDNSIPsAndPort(s.p2pHost)
 
 	hostID := s.p2pHost.ID()
 

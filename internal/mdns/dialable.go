@@ -15,10 +15,11 @@ var (
 	ErrTCPListenAddressNotFound = errors.New("TCP listen address not found")
 )
 
-func getMDNSIPsAndPort(p2pHost Networker) (ips []net.IP, port uint16, err error) {
+func getMDNSIPsAndPort(p2pHost Networker) (ips []net.IP, port uint16) {
 	tcpAddresses, err := getDialableListenAddrs(p2pHost)
 	if err != nil {
-		return nil, 0, fmt.Errorf("getting dialable listen addresses: %w", err)
+		const defaultPort = 4001
+		return nil, defaultPort
 	}
 
 	ips = make([]net.IP, len(tcpAddresses))
@@ -27,7 +28,7 @@ func getMDNSIPsAndPort(p2pHost Networker) (ips []net.IP, port uint16, err error)
 	}
 	port = uint16(tcpAddresses[0].Port)
 
-	return ips, port, nil
+	return ips, port
 }
 
 func getDialableListenAddrs(p2pHost Networker) (tcpAddresses []*net.TCPAddr, err error) {
