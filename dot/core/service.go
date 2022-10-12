@@ -620,7 +620,7 @@ func (s *Service) buildExternalTransaction(rt runtime.Instance, ext types.Extrin
 		extrinsicParts := [][]byte{{byte(types.TxnExternal)}, ext}
 		externalExt = types.Extrinsic(bytes.Join(extrinsicParts, nil))
 	default:
-		return types.Extrinsic{}, errInvalidTransactionQueueVersion
+		return types.Extrinsic{}, fmt.Errorf("%w: %d", errInvalidTransactionQueueVersion, txQueueVersion)
 	}
 	return externalExt, nil
 }
