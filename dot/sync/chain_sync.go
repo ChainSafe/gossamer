@@ -627,18 +627,18 @@ func (cs *chainSync) tryDispatchWorker(w *worker) {
 // if it fails due to any reason, it sets the worker `err` and returns
 // this function always places the worker into the `resultCh` for result handling upon return
 func (cs *chainSync) dispatchWorker(w *worker) {
-	if w.targetNumber == nil || w.startNumber == nil {
-		return
-	}
-
 	logger.Debugf("dispatching sync worker id %d, "+
 		"start number %d, target number %d, "+
 		"start hash %s, target hash %s, "+
 		"request data %d, direction %s",
 		w.id,
-		*w.startNumber, *w.targetNumber,
+		w.startNumber, w.targetNumber,
 		w.startHash, w.targetHash,
 		w.requestData, w.direction)
+
+	if w.targetNumber == nil || w.startNumber == nil {
+		return
+	}
 
 	start := time.Now()
 	defer func() {

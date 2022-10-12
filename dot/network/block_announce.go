@@ -208,6 +208,9 @@ func (s *Service) handleBlockAnnounceMessage(from peer.ID, msg NotificationsMess
 		return false, errors.New("invalid message")
 	}
 
-	err = s.syncer.HandleBlockAnnounce(from, bam)
-	return false, err
+	if err = s.syncer.HandleBlockAnnounce(from, bam); err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
