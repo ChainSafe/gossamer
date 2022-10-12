@@ -18,3 +18,8 @@ type Logger interface {
 	Warnf(format string, args ...interface{})
 	Errorf(format string, args ...interface{})
 }
+
+type MDNS interface {
+	Start() error
+	Stop() error
+}
