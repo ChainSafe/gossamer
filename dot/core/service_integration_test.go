@@ -377,9 +377,10 @@ func TestMaintainTransactionPoolLatestTxnQueue_EmptyBlock(t *testing.T) {
 
 	expectedTx := transaction.NewValidTransaction(tx.Extrinsic, txnValidity)
 
+	bestBlockHash := service.blockState.BestBlockHash()
 	err = service.maintainTransactionPool(&types.Block{
 		Body: *types.NewBody([]types.Extrinsic{}),
-	})
+	}, bestBlockHash)
 	require.NoError(t, err)
 
 	resultTx := service.transactionState.Pop()
@@ -415,9 +416,10 @@ func TestMaintainTransactionPoolLatestTxnQueue_BlockWithExtrinsics(t *testing.T)
 	}
 	_ = service.transactionState.AddToPool(tx)
 
+	bestBlockHash := service.blockState.BestBlockHash()
 	err = service.maintainTransactionPool(&types.Block{
 		Body: types.Body([]types.Extrinsic{encExt}),
-	})
+	}, bestBlockHash)
 	require.NoError(t, err)
 
 	res := []*transaction.ValidTransaction{}

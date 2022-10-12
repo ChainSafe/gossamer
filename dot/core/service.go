@@ -303,12 +303,12 @@ func (s *Service) handleBlocksAsync() {
 				continue
 			}
 
-			prev := s.blockState.BestBlockHash()
-			if err := s.handleChainReorg(prev, block.Header.Hash()); err != nil {
+			bestBlockHash := s.blockState.BestBlockHash()
+			if err := s.handleChainReorg(bestBlockHash, block.Header.Hash()); err != nil {
 				logger.Warnf("failed to re-add transactions to chain upon re-org: %s", err)
 			}
 
-			if err := s.maintainTransactionPool(block); err != nil {
+			if err := s.maintainTransactionPool(block, bestBlockHash); err != nil {
 				logger.Warnf("failed to maintain txn pool after re-org: %s", err)
 			}
 		case <-s.ctx.Done():
@@ -396,13 +396,12 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 // the new block, revalidates the transactions in the pool, and moves
 // them to the queue if valid.
 // See https://github.com/paritytech/substrate/blob/74804b5649eccfb83c90aec87bdca58e5d5c8789/client/transaction-pool/src/lib.rs#L545
-func (s *Service) maintainTransactionPool(block *types.Block) error {
+func (s *Service) maintainTransactionPool(block *types.Block, bestBlockHash common.Hash) error {
 	// remove extrinsics included in a block
 	for _, ext := range block.Body {
 		s.transactionState.RemoveExtrinsic(ext)
 	}
 
-	bestBlockHash := s.blockState.BestBlockHash()
 	stateRoot, err := s.storageState.GetStateRootFromBlock(&bestBlockHash)
 	if err != nil {
 		logger.Errorf("could not get state root from block %s: %w", bestBlockHash, err)

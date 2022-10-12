@@ -591,7 +591,7 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 		mockTxnState.EXPECT().PendingInPool().Return([]*transaction.ValidTransaction{vt})
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().GetRuntime(&common.Hash{}).Return(runtimeMock, nil)
-		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{}).Times(2)
+		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{})
 
 		mockStorageState := NewMockStorageState(ctrl)
 		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(&rtstorage.TrieState{}, nil)
@@ -601,7 +601,7 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 			blockState:       mockBlockState,
 			storageState:     mockStorageState,
 		}
-		err := service.maintainTransactionPool(&block)
+		err := service.maintainTransactionPool(&block, common.Hash{})
 		require.NoError(t, err)
 	})
 
@@ -655,7 +655,7 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 
 		mockBlockStateOk := NewMockBlockState(ctrl)
 		mockBlockStateOk.EXPECT().GetRuntime(&common.Hash{}).Return(runtimeMock, nil)
-		mockBlockStateOk.EXPECT().BestBlockHash().Return(common.Hash{}).Times(2)
+		mockBlockStateOk.EXPECT().BestBlockHash().Return(common.Hash{})
 
 		mockStorageState := NewMockStorageState(ctrl)
 		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(&rtstorage.TrieState{}, nil)
@@ -665,7 +665,7 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 			blockState:       mockBlockStateOk,
 			storageState:     mockStorageState,
 		}
-		err := service.maintainTransactionPool(&block)
+		err := service.maintainTransactionPool(&block, common.Hash{})
 		require.NoError(t, err)
 	})
 }
@@ -755,7 +755,6 @@ func Test_Service_handleBlocksAsync(t *testing.T) {
 		mockBlockState.EXPECT().HighestCommonAncestor(common.Hash{}, block.Header.Hash()).
 			Return(common.Hash{}, errTestDummyError)
 		mockBlockState.EXPECT().GetRuntime(&common.Hash{}).Return(runtimeMock, nil)
-		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{})
 
 		mockTxnStateErr := NewMockTransactionState(ctrl)
 		mockTxnStateErr.EXPECT().RemoveExtrinsic(types.Extrinsic{21}).Times(2)

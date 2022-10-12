@@ -30,7 +30,7 @@ func (s *Service) validateTransaction(head *types.Header, rt RuntimeInstance,
 	// validate each transaction
 	externalExt, err := s.buildExternalTransaction(rt, tx)
 	if err != nil {
-		return nil, fmt.Errorf("building external transaction: %s", err)
+		return nil, fmt.Errorf("building external transaction: %w", err)
 	}
 
 	validity, err = rt.ValidateTransaction(externalExt)
@@ -76,26 +76,24 @@ func (s *Service) HandleTransactionMessage(peerID peer.ID, msg *network.Transact
 
 	allTxsAreValid := true
 	for _, tx := range txs {
-		isValidTxn := true
 		validity, err := s.validateTransaction(head, rt, tx)
 		if err != nil {
+			allTxsAreValid = false
 			switch err.(type) {
 			case runtime.InvalidTransaction:
-				isValidTxn = false
-				allTxsAreValid = false
 				s.net.ReportPeer(peerset.ReputationChange{
 					Value:  peerset.BadTransactionValue,
 					Reason: peerset.BadTransactionReason,
 				}, peerID)
+				continue
 			case runtime.UnknownTransaction:
-				isValidTxn = false
-				allTxsAreValid = false
+				continue
 			default:
 				return false, fmt.Errorf("failed validating transaction for peerID %s: %w", peerID, err)
 			}
 		}
 
-		if isValidTxn && validity.Propagate {
+		if validity.Propagate {
 			// find tx(s) that should propagate
 			toPropagate = append(toPropagate, tx)
 		}
