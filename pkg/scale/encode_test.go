@@ -909,6 +909,14 @@ var (
 		},
 	}
 
+	mapTests = tests{
+		{
+			// name: "testMap1",
+			// in:   ,
+			// want: ,
+		},
+	}
+
 	allTests = newTests(
 		fixedWidthIntegerTests, variableWidthIntegerTests, stringTests,
 		boolTests, structTests, sliceTests, arrayTests,
@@ -1091,6 +1099,24 @@ func Test_encodeState_encodeArray(t *testing.T) {
 			}
 			if !reflect.DeepEqual(buffer.Bytes(), tt.want) {
 				t.Errorf("encodeState.encodeArray() = %v, want %v", buffer.Bytes(), tt.want)
+			}
+		})
+	}
+}
+
+func Test_encodeState_encodeMap(t *testing.T) {
+	for _, tt := range mapTests {
+		t.Run(tt.name, func(t *testing.T) {
+			buffer := bytes.NewBuffer(nil)
+			es := &encodeState{
+				Writer:                 buffer,
+				fieldScaleIndicesCache: cache,
+			}
+			if err := es.marshal(tt.in); (err != nil) != tt.wantErr {
+				t.Errorf("encodeState.encodeMap() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if !reflect.DeepEqual(buffer.Bytes(), tt.want) {
+				t.Errorf("encodeState.encodeMap() = %v, want %v", buffer.Bytes(), tt.want)
 			}
 		})
 	}
