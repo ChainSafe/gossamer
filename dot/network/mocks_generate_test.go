@@ -1,7 +1,8 @@
 // Copyright 2022 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package core
+package network
 
-//go:generate mockgen -destination=mocks_test.go -package $GOPACKAGE . BlockState,StorageState,TransactionState,Network,EpochState,CodeSubstitutedState,RuntimeInstance
 //go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
+//go:generate mockgen -destination=mock_syncer_test.go -package $GOPACKAGE . Syncer
+//go:generate mockgen -destination=mock_block_state_test.go -package $GOPACKAGE . BlockState

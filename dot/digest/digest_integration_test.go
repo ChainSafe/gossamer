@@ -24,9 +24,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-//go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
-//go:generate mockgen -destination=mock_grandpa_test.go -package $GOPACKAGE . GrandpaState
-
 func newTestHandler(t *testing.T) (*Handler, *state.Service) {
 	testDatadirPath := t.TempDir()
 

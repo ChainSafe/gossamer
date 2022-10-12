@@ -119,8 +119,6 @@ func TestMemDB_Start(t *testing.T) {
 	require.NoError(t, err)
 }
 
-//go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
-
 func TestService_BlockTree(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)

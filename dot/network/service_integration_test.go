@@ -16,8 +16,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 )
 
-//go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
-
 func createServiceHelper(t *testing.T, num int) []*Service {
 	t.Helper()
 

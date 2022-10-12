@@ -188,9 +188,6 @@ func failedToDial(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "failed to dial")
 }
 
-//go:generate mockgen -destination=mock_syncer_test.go -package $GOPACKAGE . Syncer
-//go:generate mockgen -destination=mock_block_state_test.go -package $GOPACKAGE . BlockState
-
 // helper method to create and start a new network service
 func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	t.Helper()
