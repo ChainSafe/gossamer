@@ -60,16 +60,11 @@ func createTestService(t *testing.T, genesisFilePath string,
 		Number:    0,
 	}
 
-	cfg := &Config{}
-
-	//Construct keystore
-	cfg.Keystore = keystore.NewGlobalKeystore()
+	cfgKeystore := keystore.NewGlobalKeystore()
 	kp, err := sr25519.GenerateKeypair()
 	require.NoError(t, err)
-	err = cfg.Keystore.Acco.Insert(kp)
+	err = cfgKeystore.Acco.Insert(kp)
 	require.NoError(t, err)
-
-	cfg.LogLvl = log.Critical
 
 	// Create state service
 	var stateSrvc *state.Service
@@ -79,13 +74,13 @@ func createTestService(t *testing.T, genesisFilePath string,
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
-	config := state.Config{
+	stateConfig := state.Config{
 		Path:      testDatadirPath,
-		LogLevel:  log.Info,
+		LogLevel:  log.Critical,
 		Telemetry: telemetryMock,
 	}
 
-	stateSrvc = state.NewService(config)
+	stateSrvc = state.NewService(stateConfig)
 	stateSrvc.UseMemDB()
 
 	err = stateSrvc.Initialise(gen, genesisHeader, &genesisTrie)
@@ -95,17 +90,15 @@ func createTestService(t *testing.T, genesisFilePath string,
 	err = stateSrvc.Start()
 	require.NoError(t, err)
 
-	cfg.BlockState = stateSrvc.Block
-	cfg.StorageState = stateSrvc.Storage
-	cfg.TransactionState = stateSrvc.Transaction
-	cfg.EpochState = stateSrvc.Epoch
-	cfg.CodeSubstitutedState = stateSrvc.Base
+	cfgBlockState := stateSrvc.Block
+	cfgStorageState := stateSrvc.Storage
+	cfgCodeSubstitutedState := stateSrvc.Base
 
 	// Runtime stuff
 	var rtCfg wasmer.Config
 	rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
 
-	rtCfg.CodeHash, err = cfg.StorageState.LoadCodeHash(nil)
+	rtCfg.CodeHash, err = cfgStorageState.LoadCodeHash(nil)
 	require.NoError(t, err)
 
 	nodeStorage := runtime.NodeStorage{}
@@ -113,34 +106,44 @@ func createTestService(t *testing.T, genesisFilePath string,
 
 	rtCfg.NodeStorage = nodeStorage
 
-	cfg.Runtime, err = wasmer.NewRuntimeFromGenesis(rtCfg)
+	cfgRuntime, err := wasmer.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
 
-	cfg.Runtime.(*wasmer.Instance).GetContext().Storage.Set(aliceBalanceKey, encodedAccountInfo)
+	cfgRuntime.(*wasmer.Instance).GetContext().Storage.Set(aliceBalanceKey, encodedAccountInfo)
 	// this key is System.UpgradedToDualRefCount -> set to true since all accounts have been upgraded to v0.9 format
-	cfg.Runtime.(*wasmer.Instance).GetContext().Storage.Set(common.UpgradedToDualRefKey, []byte{1})
+	cfgRuntime.(*wasmer.Instance).GetContext().Storage.Set(common.UpgradedToDualRefKey, []byte{1})
 
-	cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), cfg.Runtime)
+	cfgBlockState.StoreRuntime(cfgBlockState.BestBlockHash(), cfgRuntime)
 
 	// Hash of encrypted centrifuge extrinsic
 	testCallArguments := []byte{0xab, 0xcd}
-	extHex := runtime.NewTestExtrinsic(t, cfg.Runtime, genesisHeader.Hash(), cfg.BlockState.BestBlockHash(),
+	extHex := runtime.NewTestExtrinsic(t, cfgRuntime, genesisHeader.Hash(), cfgBlockState.BestBlockHash(),
 		0, "System.remark", testCallArguments)
 	encodedExtrinsic = common.MustHexToBytes(extHex)
 
-	cfg.Network = new(network.Service) // only for nil check in NewService
+	cfgCodeSubstitutes := make(map[common.Hash]string)
 
-	cfg.CodeSubstitutes = make(map[common.Hash]string)
-
-	genesisData, err := cfg.CodeSubstitutedState.(*state.BaseState).LoadGenesisData()
+	genesisData, err := cfgCodeSubstitutedState.LoadGenesisData()
 	require.NoError(t, err)
 
 	for k, v := range genesisData.CodeSubstitutes {
-		cfg.CodeSubstitutes[common.MustHexToHash(k)] = v
+		cfgCodeSubstitutes[common.MustHexToHash(k)] = v
 	}
 
-	cfg.CodeSubstitutedState = stateSrvc.Base
+	cfgCodeSubstitutedState = stateSrvc.Base
 
+	cfg := &Config{
+		Keystore:             cfgKeystore,
+		LogLvl:               log.Critical,
+		BlockState:           cfgBlockState,
+		StorageState:         cfgStorageState,
+		TransactionState:     stateSrvc.Transaction,
+		EpochState:           stateSrvc.Epoch,
+		CodeSubstitutedState: cfgCodeSubstitutedState,
+		Runtime:              cfgRuntime,
+		Network:              new(network.Service),
+		CodeSubstitutes:      cfgCodeSubstitutes,
+	}
 	service, err = NewService(cfg)
 	require.NoError(t, err)
 
