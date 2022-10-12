@@ -33,10 +33,24 @@ const (
 	TxnExternal
 )
 
-// TransactionPaymentQueryInfo represents the basic information of a given encoded extrinsic
-type TransactionPaymentQueryInfo struct {
+// RuntimeDispatchInfo represents information related to a dispatchable's class, weight, and fee that can be queried
+//  from the runtime
+type RuntimeDispatchInfo struct {
 	Weight uint64
 	// Class could be Normal (0), Operational (1), Mandatory (2)
 	Class      int
 	PartialFee *scale.Uint128
+}
+
+// InclusionFee represent base fee and adjusted weight and length fees
+type InclusionFee struct {
+	BaseFee           *scale.Uint128
+	LenFee            *scale.Uint128
+	AdjustedWeightFee *scale.Uint128
+}
+
+// FeeDetails composed of InclusionFee and Tip
+type FeeDetails struct {
+	InclusionFee InclusionFee
+	Tip          *scale.Uint128
 }
