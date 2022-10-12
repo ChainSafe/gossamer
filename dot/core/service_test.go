@@ -711,71 +711,30 @@ func Test_Service_handleBlocksAsync(t *testing.T) {
 
 	t.Run("handleChainReorg error", func(t *testing.T) {
 		t.Parallel()
-		validity := &transaction.Validity{
-			Priority: 0x3e8,
-			Requires: [][]byte{{0xb5, 0x47, 0xb1, 0x90, 0x37, 0x10, 0x7e, 0x1f, 0x79, 0x4c,
-				0xa8, 0x69, 0x0, 0xa1, 0xb5, 0x98}},
-			Provides: [][]byte{{0xe4, 0x80, 0x7d, 0x1b, 0x67, 0x49, 0x37, 0xbf, 0xc7, 0x89,
-				0xbb, 0xdd, 0x88, 0x6a, 0xdd, 0xd6}},
-			Longevity: 0x40,
-			Propagate: true,
-		}
 
-		extrinsic := types.Extrinsic{21}
 		testHeader := types.NewEmptyHeader()
-		externalExt := types.Extrinsic(bytes.Join([][]byte{
-			{byte(types.TxnExternal)},
-			extrinsic,
-			testHeader.StateRoot.ToBytes(),
-		}, nil))
-		vt := transaction.NewValidTransaction(extrinsic, validity)
-
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
 		block.Header.Number = 21
 
 		ctrl := gomock.NewController(t)
-		runtimeMock := NewMockRuntimeInstance(ctrl)
-		runtimeMock.EXPECT().ValidateTransaction(externalExt).Return(nil, errTestDummyError)
-		runtimeMock.EXPECT().Version().Return(runtime.Version{
-			SpecName:         []byte("polkadot"),
-			ImplName:         []byte("parity-polkadot"),
-			AuthoringVersion: authoringVersion,
-			SpecVersion:      specVersion,
-			ImplVersion:      implVersion,
-			APIItems: []runtime.APIItem{{
-				Name: [8]byte{0xd2, 0xbc, 0x98, 0x97, 0xee, 0xd0, 0x8f, 0x15},
-				Ver:  3,
-			}},
-			TransactionVersion: transactionVersion,
-			StateVersion:       stateVersion,
-		})
-		runtimeMock.EXPECT().SetContextStorage(&rtstorage.TrieState{})
 		mockBlockState := NewMockBlockState(ctrl)
-		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{}).Times(2)
+		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{})
 		mockBlockState.EXPECT().HighestCommonAncestor(common.Hash{}, block.Header.Hash()).
 			Return(common.Hash{}, errTestDummyError)
-		mockBlockState.EXPECT().GetRuntime(&common.Hash{}).Return(runtimeMock, nil)
 
-		mockTxnStateErr := NewMockTransactionState(ctrl)
-		mockTxnStateErr.EXPECT().RemoveExtrinsic(types.Extrinsic{21}).Times(2)
-		mockTxnStateErr.EXPECT().PendingInPool().Return([]*transaction.ValidTransaction{vt})
-
-		mockStorageState := NewMockStorageState(ctrl)
-		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(&rtstorage.TrieState{}, nil)
-		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(&common.Hash{}, nil)
 		blockAddChan := make(chan *types.Block)
 		go func() {
 			blockAddChan <- &block
 			close(blockAddChan)
 		}()
 		service := &Service{
-			storageState:     mockStorageState,
-			blockState:       mockBlockState,
-			transactionState: mockTxnStateErr,
-			blockAddCh:       blockAddChan,
-			ctx:              context.Background(),
+			blockState: mockBlockState,
+			blockAddCh: blockAddChan,
+			ctx:        context.Background(),
 		}
-		service.handleBlocksAsync()
+		
+		assert.PanicsWithError(t, "failed to re-add transactions to chain upon re-org: test dummy error",
+			service.handleBlocksAsync, "The code panics as expected")
 	})
 }
 

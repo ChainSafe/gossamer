@@ -89,7 +89,7 @@ func (s *Service) HandleTransactionMessage(peerID peer.ID, msg *network.Transact
 			case runtime.UnknownTransaction:
 				continue
 			default:
-				return false, fmt.Errorf("failed validating transaction for peerID %s: %w", peerID, err)
+				return false, fmt.Errorf("validating transaction from peerID %s: %w", peerID, err)
 			}
 		}
 
