@@ -35,7 +35,10 @@ func (s *Service) decodeLightMessage(in []byte, peer peer.ID, _ bool) (Message, 
 
 func (s *Service) handleLightMsg(stream libp2pnetwork.Stream, msg Message) (err error) {
 	defer func() {
-		_ = stream.Close()
+		err := stream.Close()
+		if err != nil {
+			logger.Warnf("failed to close stream: %s", err)
+		}
 	}()
 
 	lr, ok := msg.(*LightRequest)

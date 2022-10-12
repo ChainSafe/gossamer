@@ -17,10 +17,10 @@ type KeyType = string
 // Ed25519Type ed25519
 const Ed25519Type KeyType = "ed25519"
 
-//Sr25519Type sr25519
+// Sr25519Type sr25519
 const Sr25519Type KeyType = "sr25519"
 
-//Secp256k1Type secp256k1
+// Secp256k1Type secp256k1
 const Secp256k1Type KeyType = "secp256k1"
 
 // UnknownType is used by the GenericKeystore

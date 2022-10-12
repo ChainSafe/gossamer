@@ -10,6 +10,7 @@ import (
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
@@ -63,10 +64,8 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 		return fmt.Errorf("failed to write genesis values to database: %s", err)
 	}
 
-	tries, err := NewTries(t)
-	if err != nil {
-		return fmt.Errorf("cannot setup tries: %w", err)
-	}
+	tries := NewTries()
+	tries.SetTrie(t)
 
 	// create block state from genesis block
 	blockState, err := NewBlockStateFromGenesis(db, tries, header, s.Telemetry)
@@ -126,7 +125,8 @@ func (s *Service) loadBabeConfigurationFromRuntime(r runtime.Instance) (*types.B
 }
 
 func loadGrandpaAuthorities(t *trie.Trie) ([]types.GrandpaVoter, error) {
-	authsRaw := t.Get(runtime.GrandpaAuthoritiesKey)
+	key := common.MustHexToBytes(genesis.GrandpaAuthoritiesKeyHex)
+	authsRaw := t.Get(key)
 	if authsRaw == nil {
 		return []types.GrandpaVoter{}, nil
 	}
@@ -159,7 +159,7 @@ func (s *Service) CreateGenesisRuntime(t *trie.Trie, gen *genesis.Genesis) (runt
 	genTrie := rtstorage.NewTrieState(t)
 
 	// create genesis runtime
-	rtCfg := runtime.InstanceConfig{
+	rtCfg := wasmer.Config{
 		LogLvl:  s.logLvl,
 		Storage: genTrie,
 	}

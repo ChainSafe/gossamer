@@ -47,7 +47,7 @@ type Instance struct {
 }
 
 // NewRuntimeFromGenesis creates a runtime instance from the genesis data
-func NewRuntimeFromGenesis(cfg runtime.InstanceConfig) (instance runtime.Instance, err error) {
+func NewRuntimeFromGenesis(cfg Config) (instance runtime.Instance, err error) {
 	if cfg.Storage == nil {
 		return nil, errors.New("storage is nil")
 	}
@@ -61,7 +61,7 @@ func NewRuntimeFromGenesis(cfg runtime.InstanceConfig) (instance runtime.Instanc
 }
 
 // NewInstanceFromTrie returns a new runtime instance with the code provided in the given trie
-func NewInstanceFromTrie(t *trie.Trie, cfg runtime.InstanceConfig) (*Instance, error) {
+func NewInstanceFromTrie(t *trie.Trie, cfg Config) (*Instance, error) {
 	code := t.Get(common.CodeKey)
 	if len(code) == 0 {
 		return nil, fmt.Errorf("cannot find :code in trie")
@@ -71,7 +71,7 @@ func NewInstanceFromTrie(t *trie.Trie, cfg runtime.InstanceConfig) (*Instance, e
 }
 
 // NewInstanceFromFile instantiates a runtime from a .wasm file
-func NewInstanceFromFile(fp string, cfg runtime.InstanceConfig) (*Instance, error) {
+func NewInstanceFromFile(fp string, cfg Config) (*Instance, error) {
 	// Reads the WebAssembly module as bytes.
 	bytes, err := wasm.ReadBytes(fp)
 	if err != nil {
@@ -82,7 +82,7 @@ func NewInstanceFromFile(fp string, cfg runtime.InstanceConfig) (*Instance, erro
 }
 
 // NewInstance instantiates a runtime from raw wasm bytecode
-func NewInstance(code []byte, cfg runtime.InstanceConfig) (instance *Instance, err error) {
+func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 	logger.Patch(log.SetLevel(cfg.LogLvl), log.SetCallerFunc(true))
 
 	wasmInstance, allocator, err := setupVM(code)
@@ -103,11 +103,25 @@ func NewInstance(code []byte, cfg runtime.InstanceConfig) (instance *Instance, e
 	}
 	wasmInstance.SetContextData(runtimeCtx)
 
-	return &Instance{
+	instance = &Instance{
 		vm:       wasmInstance,
 		ctx:      runtimeCtx,
 		codeHash: cfg.CodeHash,
-	}, nil
+	}
+
+	if cfg.testVersion != nil {
+		instance.ctx.Version = *cfg.testVersion
+	} else {
+		instance.ctx.Version, err = instance.version()
+		if err != nil {
+			instance.close()
+			return nil, fmt.Errorf("getting instance version: %w", err)
+		}
+	}
+
+	wasmInstance.SetContextData(instance.ctx)
+
+	return instance, nil
 }
 
 // decompressWasm decompresses a Wasm blob that may or may not be compressed with zstd
@@ -153,28 +167,37 @@ func (in *Instance) UpdateRuntimeCode(code []byte) (err error) {
 
 	in.vm = wasmInstance
 
+	// Find runtime instance version and cache it in its
+	// instance context.
+	version, err := in.version()
+	if err != nil {
+		in.close()
+		return fmt.Errorf("getting instance version: %w", err)
+	}
+	in.ctx.Version = version
+	wasmInstance.SetContextData(in.ctx)
+
 	return nil
 }
 
-// CheckRuntimeVersion calculates runtime Version for runtime blob passed in
-func (in *Instance) CheckRuntimeVersion(code []byte) (runtime.Version, error) {
-	in.mutex.Lock()
-	defer in.mutex.Unlock()
-
-	wasmInstance, allocator, err := setupVM(code)
+// GetRuntimeVersion finds the runtime version by initiating a temporary
+// runtime instance using the WASM code provided, and querying it.
+func GetRuntimeVersion(code []byte) (version runtime.Version, err error) {
+	config := Config{
+		LogLvl: log.DoNotChange,
+	}
+	instance, err := NewInstance(code, config)
 	if err != nil {
-		return nil, fmt.Errorf("setting up VM: %w", err)
+		return version, fmt.Errorf("creating runtime instance: %w", err)
+	}
+	defer instance.Stop()
+
+	version, err = instance.version()
+	if err != nil {
+		return version, fmt.Errorf("running runtime: %w", err)
 	}
 
-	in.ctx.Allocator = allocator // TODO we should no change the allocator of the parent instance
-	wasmInstance.SetContextData(in.ctx)
-
-	instance := Instance{
-		vm:  wasmInstance,
-		ctx: in.ctx,
-	}
-
-	return instance.Version()
+	return version, nil
 }
 
 var (
@@ -298,7 +321,7 @@ func (in *Instance) Exec(function string, data []byte) (result []byte, err error
 		return nil, fmt.Errorf("running runtime function: %w", err)
 	}
 
-	outputPtr, outputLength := runtime.Int64ToPointerAndSize(wasmValue.ToI64())
+	outputPtr, outputLength := splitPointerSize(wasmValue.ToI64())
 	memory = in.vm.Memory.Data() // call Data() again to get larger slice
 	return memory[outputPtr : outputPtr+outputLength], nil
 }

@@ -15,7 +15,6 @@ import (
 	babemocks "github.com/ChainSafe/gossamer/lib/babe/mocks"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
@@ -41,10 +40,10 @@ func newState(t *testing.T) (*state.BlockState, *state.EpochState) {
 
 	db := state.NewInMemoryDB(t)
 
-	_, genesisTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
-	tries, err := state.NewTries(genesisTrie)
-	require.NoError(t, err)
-	bs, err := state.NewBlockStateFromGenesis(db, tries, genesisHeader, telemetryMock)
+	_, genesisTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	tries := state.NewTries()
+	tries.SetTrie(&genesisTrie)
+	bs, err := state.NewBlockStateFromGenesis(db, tries, &genesisHeader, telemetryMock)
 	require.NoError(t, err)
 	es, err := state.NewEpochStateFromGenesis(db, bs, genesisBABEConfig)
 	require.NoError(t, err)
@@ -75,7 +74,7 @@ func newBABEService(t *testing.T) *babe.Service {
 		EpochState:         es,
 		Keypair:            kr.Alice().(*sr25519.Keypair),
 		IsDev:              true,
-		BlockImportHandler: new(babemocks.BlockImportHandler),
+		BlockImportHandler: babemocks.NewBlockImportHandler(t),
 	}
 
 	babe, err := babe.NewService(cfg)

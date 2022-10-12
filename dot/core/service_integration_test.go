@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"math/big"
 	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -50,21 +49,21 @@ func balanceKey(t *testing.T, pub []byte) (bKey []byte) {
 	return
 }
 
-func generateTestValidRemarkTxns(t *testing.T, pubKey []byte, accInfo types.AccountInfo) ([]byte, runtime.Instance) {
+func generateTestValidRemarkTxns(t *testing.T, pubKey []byte, accInfo types.AccountInfo) ([]byte, RuntimeInstance) {
 	t.Helper()
-	projectRootPath := filepath.Join(utils.GetProjectRootPathTest(t), "chain/gssmr/genesis.json")
+	projectRootPath := utils.GetGssmrV3SubstrateGenesisRawPathTest(t)
 	gen, err := genesis.NewGenesisFromJSONRaw(projectRootPath)
 	require.NoError(t, err)
 
-	genTrie, err := genesis.NewTrieFromGenesis(gen)
+	genesisTrie, err := wasmer.NewTrieFromGenesis(*gen)
 	require.NoError(t, err)
 
-	genState := rtstorage.NewTrieState(genTrie)
+	genState := rtstorage.NewTrieState(&genesisTrie)
 
 	nodeStorage := runtime.NodeStorage{
 		BaseDB: runtime.NewInMemoryDB(t),
 	}
-	cfg := runtime.InstanceConfig{
+	cfg := wasmer.Config{
 		Storage:     genState,
 		LogLvl:      log.Error,
 		NodeStorage: nodeStorage,
@@ -83,7 +82,7 @@ func generateTestValidRemarkTxns(t *testing.T, pubKey []byte, accInfo types.Acco
 
 	genesisHeader := &types.Header{
 		Number:    0,
-		StateRoot: genTrie.MustHash(),
+		StateRoot: genesisTrie.MustHash(),
 	}
 
 	// Hash of encrypted centrifuge extrinsic
@@ -409,6 +408,8 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	require.Equal(t, transaction.NewValidTransaction(tx, validity), pending[0])
 }
 
+// TODO: add test against latest gssmr runtime
+// See https://github.com/ChainSafe/gossamer/issues/2702
 func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
 	accountInfo := types.AccountInfo{
 		Nonce: 0,
@@ -465,6 +466,8 @@ func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
 	require.Nil(t, head)
 }
 
+// TODO: add test against latest gssmr runtime
+// See https://github.com/ChainSafe/gossamer/issues/2702
 func TestMaintainTransactionPool_BlockWithExtrinsics(t *testing.T) {
 	accountInfo := types.AccountInfo{
 		Nonce: 0,
@@ -519,8 +522,7 @@ func TestService_GetRuntimeVersion(t *testing.T) {
 	rt, err := s.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
-	rtExpected, err := rt.Version()
-	require.NoError(t, err)
+	rtExpected := rt.Version()
 
 	rtv, err := s.GetRuntimeVersion(nil)
 	require.NoError(t, err)
@@ -574,10 +576,9 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	rt, err := s.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
-	v, err := rt.Version()
-	require.NoError(t, err)
+	v := rt.Version()
 
-	currSpecVersion := v.SpecVersion()   // genesis runtime version.
+	currSpecVersion := v.SpecVersion     // genesis runtime version.
 	hash := s.blockState.BestBlockHash() // genesisHash
 
 	digest := types.NewDigest()
@@ -610,9 +611,8 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	parentRt, err := s.blockState.GetRuntime(&hash)
 	require.NoError(t, err)
 
-	v, err = parentRt.Version()
-	require.NoError(t, err)
-	require.Equal(t, v.SpecVersion(), currSpecVersion)
+	v = parentRt.Version()
+	require.Equal(t, v.SpecVersion, currSpecVersion)
 
 	bhash1 := newBlock1.Header.Hash()
 	err = s.blockState.HandleRuntimeChanges(ts, parentRt, bhash1)
@@ -632,16 +632,14 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	rt, err = s.blockState.GetRuntime(&bhash1)
 	require.NoError(t, err)
 
-	v, err = rt.Version()
-	require.NoError(t, err)
-	require.Equal(t, v.SpecVersion(), currSpecVersion)
+	v = rt.Version()
+	require.Equal(t, v.SpecVersion, currSpecVersion)
 
 	rt, err = s.blockState.GetRuntime(&rtUpdateBhash)
 	require.NoError(t, err)
 
-	v, err = rt.Version()
-	require.NoError(t, err)
-	require.Equal(t, v.SpecVersion(), updatedSpecVersion)
+	v = rt.Version()
+	require.Equal(t, v.SpecVersion, updatedSpecVersion)
 }
 
 func TestService_HandleCodeSubstitutes(t *testing.T) {

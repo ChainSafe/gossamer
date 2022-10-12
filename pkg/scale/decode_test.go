@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_decodeState_decodeFixedWidthInt(t *testing.T) {
@@ -150,8 +151,8 @@ func Test_unmarshal_optionality(t *testing.T) {
 			switch in := tt.in.(type) {
 			case VaryingDataType:
 				// copy the inputted vdt cause we need the cached values
-				copy := in
-				vdt := copy
+				cp := in
+				vdt := cp
 				vdt.value = nil
 				var dst interface{} = &vdt
 				if err := Unmarshal(tt.want, &dst); (err != nil) != tt.wantErr {
@@ -299,6 +300,104 @@ func Test_Decoder_Decode_MultipleCalls(t *testing.T) {
 					return
 				}
 			}
+		})
+	}
+}
+
+func Test_decodeState_decodeUint(t *testing.T) {
+	t.Parallel()
+	decodeUint32Tests := tests{
+		{
+			name: "int(1) mode 0",
+			in:   uint32(1),
+			want: []byte{0x04},
+		},
+		{
+			name: "int(16383) mode 1",
+			in:   int(16383),
+			want: []byte{0xfd, 0xff},
+		},
+		{
+			name: "int(1073741823) mode 2",
+			in:   int(1073741823),
+			want: []byte{0xfe, 0xff, 0xff, 0xff},
+		},
+		{
+			name: "int(4294967295) mode 3",
+			in:   int(4294967295),
+			want: []byte{0x3, 0xff, 0xff, 0xff, 0xff},
+		},
+		{
+			name: "myCustomInt(9223372036854775807) mode 3, 64bit",
+			in:   myCustomInt(9223372036854775807),
+			want: []byte{19, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f},
+		},
+		{
+			name:    "uint(overload)",
+			in:      int(0),
+			want:    []byte{0x07, 0x08, 0x09, 0x10, 0x0, 0x40},
+			wantErr: true,
+		},
+		{
+			name: "uint(16384) mode 2",
+			in:   int(16384),
+			want: []byte{0x02, 0x00, 0x01, 0x0},
+		},
+		{
+			name:    "uint(0) mode 1, error",
+			in:      int(0),
+			want:    []byte{0x01, 0x00},
+			wantErr: true,
+		},
+		{
+			name:    "uint(0) mode 2, error",
+			in:      int(0),
+			want:    []byte{0x02, 0x00, 0x00, 0x0},
+			wantErr: true,
+		},
+		{
+			name:    "uint(0) mode 3, error",
+			in:      int(0),
+			want:    []byte{0x03, 0x00, 0x00, 0x0},
+			wantErr: true,
+		},
+		{
+			name:    "mode 3, 64bit, error",
+			in:      int(0),
+			want:    []byte{19, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0},
+			wantErr: true,
+		},
+		{
+			name: "[]int{1 << 32, 2, 3, 1 << 32}",
+			in:   uint(4),
+			want: []byte{0x10, 0x07, 0x00, 0x00, 0x00, 0x00, 0x01, 0x08, 0x0c, 0x07, 0x00, 0x00, 0x00, 0x00, 0x01},
+		},
+		{
+			name:    "[4]int{1 << 32, 2, 3, 1 << 32}",
+			in:      [4]int{0, 0, 0, 0},
+			want:    []byte{0x07, 0x00, 0x00, 0x00, 0x00, 0x01, 0x08, 0x0c, 0x07, 0x00, 0x00, 0x00, 0x00, 0x01},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range decodeUint32Tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			dst := reflect.New(reflect.TypeOf(tt.in)).Elem().Interface()
+			dstv := reflect.ValueOf(&dst)
+			elem := indirect(dstv)
+
+			ds := decodeState{
+				Reader: bytes.NewBuffer(tt.want),
+			}
+			err := ds.decodeUint(elem)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tt.in, dst)
 		})
 	}
 }

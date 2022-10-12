@@ -19,6 +19,8 @@ import (
 
 var polkadotSuite = "polkadot"
 
+// TODO: add test against latest dev runtime
+// See https://github.com/ChainSafe/gossamer/issues/2705
 func TestStartGossamerAndPolkadotAPI(t *testing.T) {
 	if utils.MODE != polkadotSuite {
 		t.Log("Going to skip polkadot.js/api suite tests")
@@ -46,7 +48,7 @@ func TestStartGossamerAndPolkadotAPI(t *testing.T) {
 	t.Log("starting gossamer for polkadot.js/api tests...")
 
 	tomlConfig := config.Default()
-	tomlConfig.Init.Genesis = libutils.GetDevGenesisSpecPathTest(t)
+	tomlConfig.Init.Genesis = libutils.GetDevV3SubstrateGenesisPath(t)
 	tomlConfig.Core.BABELead = true
 	tomlConfig.RPC.WS = true
 	tomlConfig.RPC.Unsafe = true

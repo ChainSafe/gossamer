@@ -68,7 +68,7 @@ type Config struct {
 	TransactionState TransactionState
 	Network          Network
 	Keystore         *keystore.GlobalKeystore
-	Runtime          runtime.Instance
+	Runtime          RuntimeInstance
 
 	CodeSubstitutes      map[common.Hash]string
 	CodeSubstitutedState CodeSubstitutedState
@@ -77,26 +77,6 @@ type Config struct {
 // NewService returns a new core service that connects the runtime, BABE
 // session, and network service.
 func NewService(cfg *Config) (*Service, error) {
-	if cfg.Keystore == nil {
-		return nil, ErrNilKeystore
-	}
-
-	if cfg.BlockState == nil {
-		return nil, ErrNilBlockState
-	}
-
-	if cfg.StorageState == nil {
-		return nil, ErrNilStorageState
-	}
-
-	if cfg.Network == nil {
-		return nil, ErrNilNetwork
-	}
-
-	if cfg.CodeSubstitutedState == nil {
-		return nil, errNilCodeSubstitutedState
-	}
-
 	logger.Patch(log.SetLevel(cfg.LogLvl))
 
 	blockAddCh := make(chan *types.Block, 256)
@@ -137,10 +117,6 @@ func (s *Service) Stop() error {
 
 // StorageRoot returns the hash of the storage root
 func (s *Service) StorageRoot() (common.Hash, error) {
-	if s.storageState == nil {
-		return common.Hash{}, ErrNilStorageState
-	}
-
 	ts, err := s.storageState.TrieState(nil)
 	if err != nil {
 		return common.Hash{}, err
@@ -164,7 +140,11 @@ func (s *Service) HandleBlockProduced(block *types.Block, state *rtstorage.TrieS
 
 	digest := types.NewDigest()
 	for i := range block.Header.Digest.Types {
-		err := digest.Add(block.Header.Digest.Types[i].Value())
+		digestValue, err := block.Header.Digest.Types[i].Value()
+		if err != nil {
+			return fmt.Errorf("getting value of digest type at index %d: %w", i, err)
+		}
+		err = digest.Add(digestValue)
 		if err != nil {
 			return err
 		}
@@ -261,7 +241,7 @@ func (s *Service) handleCodeSubstitution(hash common.Hash,
 
 	// this needs to create a new runtime instance, otherwise it will update
 	// the blocks that reference the current runtime version to use the code substition
-	cfg := runtime.InstanceConfig{
+	cfg := wasmer.Config{
 		Storage:     state,
 		Keystore:    rt.Keystore(),
 		NodeStorage: rt.NodeStorage(),
@@ -454,7 +434,8 @@ func (s *Service) DecodeSessionKeys(enc []byte) ([]byte, error) {
 }
 
 // GetRuntimeVersion gets the current RuntimeVersion
-func (s *Service) GetRuntimeVersion(bhash *common.Hash) (runtime.Version, error) {
+func (s *Service) GetRuntimeVersion(bhash *common.Hash) (
+	version runtime.Version, err error) {
 	var stateRootHash *common.Hash
 
 	// If block hash is not nil then fetch the state root corresponding to the block.
@@ -462,22 +443,22 @@ func (s *Service) GetRuntimeVersion(bhash *common.Hash) (runtime.Version, error)
 		var err error
 		stateRootHash, err = s.storageState.GetStateRootFromBlock(bhash)
 		if err != nil {
-			return nil, err
+			return version, err
 		}
 	}
 
 	ts, err := s.storageState.TrieState(stateRootHash)
 	if err != nil {
-		return nil, err
+		return version, err
 	}
 
 	rt, err := s.blockState.GetRuntime(bhash)
 	if err != nil {
-		return nil, err
+		return version, err
 	}
 
 	rt.SetContextStorage(ts)
-	return rt.Version()
+	return rt.Version(), nil
 }
 
 // HandleSubmittedExtrinsic is used to send a Transaction message containing a Extrinsic @ext
@@ -511,13 +492,13 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 	rt.SetContextStorage(ts)
 	// the transaction source is External
 	externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))
-	txv, err := rt.ValidateTransaction(externalExt)
+	transactionValidity, err := rt.ValidateTransaction(externalExt)
 	if err != nil {
 		return err
 	}
 
 	// add transaction to pool
-	vtx := transaction.NewValidTransaction(ext, txv)
+	vtx := transaction.NewValidTransaction(ext, transactionValidity)
 	s.transactionState.AddToPool(vtx)
 
 	// broadcast transaction
@@ -526,7 +507,7 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 	return nil
 }
 
-//GetMetadata calls runtime Metadata_metadata function
+// GetMetadata calls runtime Metadata_metadata function
 func (s *Service) GetMetadata(bhash *common.Hash) ([]byte, error) {
 	var (
 		stateRootHash *common.Hash

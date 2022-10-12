@@ -134,10 +134,7 @@ func createDotConfig(ctx *cli.Context) (*dot.Config, error) {
 	setDotNetworkConfig(ctx, tomlCfg.Network, &cfg.Network)
 	setDotRPCConfig(ctx, tomlCfg.RPC, &cfg.RPC)
 	setDotPprofConfig(ctx, tomlCfg.Pprof, &cfg.Pprof)
-
-	if rewind := ctx.GlobalUint(RewindFlag.Name); rewind != 0 {
-		cfg.State.Rewind = rewind
-	}
+	setStateConfig(ctx, tomlCfg.State, &cfg.State)
 
 	// set system info
 	setSystemInfoConfig(ctx, cfg)
@@ -485,7 +482,14 @@ func setDotGlobalConfigFromFlags(ctx *cli.Context, cfg *dot.GlobalConfig) error 
 		cfg.MetricsAddress = metricsAddress
 	}
 
-	cfg.RetainBlocks = ctx.Int64(RetainBlockNumberFlag.Name)
+	const uint32Max = ^uint32(0)
+	flagValue := ctx.Uint64(RetainBlockNumberFlag.Name)
+
+	if uint64(uint32Max) < flagValue {
+		return fmt.Errorf("retain blocks value overflows uint32 boundaries, must be less than or equal to: %d", uint32Max)
+	}
+
+	cfg.RetainBlocks = uint32(flagValue)
 	cfg.Pruning = pruner.Mode(ctx.String(PruningFlag.Name))
 	cfg.NoTelemetry = ctx.Bool("no-telemetry")
 
@@ -886,9 +890,10 @@ func updateDotConfigFromGenesisData(ctx *cli.Context, cfg *dot.Config) error {
 }
 
 func setDotPprofConfig(ctx *cli.Context, tomlCfg ctoml.PprofConfig, cfg *dot.PprofConfig) {
-	if !cfg.Enabled {
-		// only allow to enable pprof from the TOML configuration.
-		// If it is enabled by default, it cannot be disabled.
+	// Flag takes precedence over TOML config, default is ignored.
+	if ctx.GlobalIsSet(PprofServerFlag.Name) {
+		cfg.Enabled = ctx.GlobalBool(PprofServerFlag.Name)
+	} else {
 		cfg.Enabled = tomlCfg.Enabled
 	}
 
@@ -908,13 +913,6 @@ func setDotPprofConfig(ctx *cli.Context, tomlCfg ctoml.PprofConfig, cfg *dot.Ppr
 		cfg.Settings.MutexProfileRate = tomlCfg.MutexRate
 	}
 
-	// check --pprofserver flag and update node configuration
-	if enabled := ctx.GlobalBool(PprofServerFlag.Name); enabled || cfg.Enabled {
-		cfg.Enabled = true
-	} else if ctx.IsSet(PprofServerFlag.Name) && !enabled {
-		cfg.Enabled = false
-	}
-
 	// check --pprofaddress flag and update node configuration
 	if address := ctx.GlobalString(PprofAddressFlag.Name); address != "" {
 		cfg.Settings.ListeningAddress = address
@@ -929,4 +927,12 @@ func setDotPprofConfig(ctx *cli.Context, tomlCfg ctoml.PprofConfig, cfg *dot.Ppr
 	}
 
 	logger.Debug("pprof configuration: " + cfg.String())
+}
+
+func setStateConfig(ctx *cli.Context, tomlCfg ctoml.StateConfig, cfg *dot.StateConfig) {
+	if ctx.GlobalIsSet(RewindFlag.Name) {
+		cfg.Rewind = ctx.GlobalUint(RewindFlag.Name)
+	} else if tomlCfg.Rewind > 0 {
+		cfg.Rewind = tomlCfg.Rewind
+	}
 }

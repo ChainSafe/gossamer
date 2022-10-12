@@ -13,7 +13,6 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/core"
-	coremocks "github.com/ChainSafe/gossamer/dot/core/mocks"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	telemetry "github.com/ChainSafe/gossamer/dot/telemetry"
@@ -40,7 +39,7 @@ type useRuntimeInstace func(*testing.T, *storage.TrieState) runtime.Instance
 func useInstanceFromGenesis(t *testing.T, rtStorage *storage.TrieState) (instance runtime.Instance) {
 	t.Helper()
 
-	cfg := runtime.InstanceConfig{
+	cfg := wasmer.Config{
 		Storage: rtStorage,
 		LogLvl:  log.Warn,
 		NodeStorage: runtime.NodeStorage{
@@ -62,7 +61,7 @@ func useInstanceFromRuntimeV0910(t *testing.T, rtStorage *storage.TrieState) (in
 
 	rtStorage.Set(common.CodeKey, bytes)
 
-	cfg := runtime.InstanceConfig{
+	cfg := wasmer.Config{
 		Role:     0,
 		LogLvl:   log.Critical,
 		Storage:  rtStorage,
@@ -127,7 +126,7 @@ func TestAuthorModule_SubmitExtrinsic_Integration(t *testing.T) {
 
 	extBytes := common.MustHexToBytes(extHex)
 
-	net2test := coremocks.NewMockNetwork(ctrl)
+	net2test := NewMockNetwork(ctrl)
 	net2test.EXPECT().GossipMessage(&network.TransactionMessage{Extrinsics: []types.Extrinsic{extBytes}})
 	integrationTestController.network = net2test
 
@@ -172,7 +171,7 @@ func TestAuthorModule_SubmitExtrinsic_invalid(t *testing.T) {
 		integrationTestController.runtime, genesisHash, genesisHash, 0, "System.remark", []byte{})
 
 	ctrl := gomock.NewController(t)
-	net2test := coremocks.NewMockNetwork(ctrl)
+	net2test := NewMockNetwork(ctrl)
 	net2test.EXPECT().GossipMessage(nil).MaxTimes(0)
 
 	integrationTestController.network = net2test
@@ -182,7 +181,7 @@ func TestAuthorModule_SubmitExtrinsic_invalid(t *testing.T) {
 
 	res := new(ExtrinsicHashResponse)
 	err := auth.SubmitExtrinsic(nil, &Extrinsic{extHex}, res)
-	require.EqualError(t, err, runtime.ErrInvalidTransaction.Message)
+	require.EqualError(t, err, "ancient birth block")
 
 	txOnPool := integrationTestController.stateSrv.Transaction.PendingInPool()
 	require.Len(t, txOnPool, 0)
@@ -221,15 +220,8 @@ func TestAuthorModule_SubmitExtrinsic_AlreadyInPool(t *testing.T) {
 		integrationTestController.runtime, genesisHash, genesisHash, 0, "System.remark", []byte{})
 	extBytes := common.MustHexToBytes(extHex)
 
-	storageState := coremocks.NewMockStorageState(ctrl)
-	// should not call storage.TrieState
-	storageState.EXPECT().TrieState(nil).MaxTimes(0)
-	integrationTestController.storageState = storageState
-
-	net2test := coremocks.NewMockNetwork(ctrl)
-	// should not call network.GossipMessage
-	net2test.EXPECT().GossipMessage(nil).MaxTimes(0)
-	integrationTestController.network = net2test
+	integrationTestController.storageState = &state.StorageState{}
+	integrationTestController.network = NewMockNetwork(nil)
 
 	// setup auth module
 	auth := newAuthorModule(t, integrationTestController)
@@ -529,7 +521,7 @@ func TestAuthorModule_SubmitExtrinsic_WithVersion_V0910(t *testing.T) {
 
 	extHex = common.BytesToHex(extBytes)
 
-	net2test := coremocks.NewMockNetwork(ctrl)
+	net2test := NewMockNetwork(ctrl)
 	net2test.EXPECT().GossipMessage(&network.TransactionMessage{Extrinsics: []types.Extrinsic{extBytes}})
 	integrationTestController.network = net2test
 
@@ -579,7 +571,7 @@ type integrationTestController struct {
 func setupStateAndRuntime(t *testing.T, basepath string, useInstance useRuntimeInstace) *integrationTestController {
 	t.Helper()
 
-	gen, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	gen, genesisTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
@@ -599,7 +591,7 @@ func setupStateAndRuntime(t *testing.T, basepath string, useInstance useRuntimeI
 	state2test.UseMemDB()
 
 	state2test.Transaction = state.NewTransactionState(telemetryMock)
-	err := state2test.Initialise(gen, genesisHeader, genTrie)
+	err := state2test.Initialise(&gen, &genesisHeader, &genesisTrie)
 	require.NoError(t, err)
 
 	err = state2test.Start()
@@ -610,11 +602,11 @@ func setupStateAndRuntime(t *testing.T, basepath string, useInstance useRuntimeI
 	})
 
 	ks := keystore.NewGlobalKeystore()
-	net2test := coremocks.NewMockNetwork(nil)
+	net2test := NewMockNetwork(nil)
 	integrationTestController := &integrationTestController{
-		genesis:       gen,
-		genesisTrie:   genTrie,
-		genesisHeader: genesisHeader,
+		genesis:       &gen,
+		genesisTrie:   &genesisTrie,
+		genesisHeader: &genesisHeader,
 		stateSrv:      state2test,
 		storageState:  state2test.Storage,
 		keystore:      ks,
@@ -639,7 +631,7 @@ func setupStateAndPopulateTrieState(t *testing.T, basepath string,
 	useInstance useRuntimeInstace) *integrationTestController {
 	t.Helper()
 
-	gen, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	gen, genesisTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
@@ -660,7 +652,7 @@ func setupStateAndPopulateTrieState(t *testing.T, basepath string,
 
 	state2test.Transaction = state.NewTransactionState(telemetryMock)
 
-	err := state2test.Initialise(gen, genesisHeader, genTrie)
+	err := state2test.Initialise(&gen, &genesisHeader, &genesisTrie)
 	require.NoError(t, err)
 
 	err = state2test.Start()
@@ -670,12 +662,12 @@ func setupStateAndPopulateTrieState(t *testing.T, basepath string,
 		state2test.Stop()
 	})
 
-	net2test := coremocks.NewMockNetwork(nil)
+	net2test := NewMockNetwork(nil)
 	ks := keystore.NewGlobalKeystore()
 	integrationTestController := &integrationTestController{
-		genesis:       gen,
-		genesisTrie:   genTrie,
-		genesisHeader: genesisHeader,
+		genesis:       &gen,
+		genesisTrie:   &genesisTrie,
+		genesisHeader: &genesisHeader,
 		stateSrv:      state2test,
 		storageState:  state2test.Storage,
 		keystore:      ks,

@@ -344,7 +344,7 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 	_, err = nodeA.host.send(nodeB.host.id(), nodeB.host.protocolID+blockAnnounceID, testHandshake)
 	require.NoError(t, err)
 
-	info := nodeA.notificationsProtocols[BlockAnnounceMsgType]
+	info := nodeA.notificationsProtocols[blockAnnounceMsgType]
 
 	// Set handshake data to received
 	info.peersData.setInboundHandshakeData(nodeB.host.id(), &handshakeData{

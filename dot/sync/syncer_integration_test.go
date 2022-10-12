@@ -16,7 +16,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -26,7 +25,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-//go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
 func newTestSyncer(t *testing.T) *Service {
 	ctrl := gomock.NewController(t)
 
@@ -47,7 +45,7 @@ func newTestSyncer(t *testing.T) *Service {
 	stateSrvc.UseMemDB()
 
 	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
-	err := stateSrvc.Initialise(gen, genHeader, genTrie)
+	err := stateSrvc.Initialise(&gen, &genHeader, &genTrie)
 	require.NoError(t, err)
 
 	err = stateSrvc.Start()
@@ -62,9 +60,9 @@ func newTestSyncer(t *testing.T) *Service {
 	}
 
 	// initialise runtime
-	genState := rtstorage.NewTrieState(genTrie)
+	genState := rtstorage.NewTrieState(&genTrie)
 
-	rtCfg := runtime.InstanceConfig{
+	rtCfg := wasmer.Config{
 		Storage: genState,
 		LogLvl:  log.Critical,
 	}
@@ -123,18 +121,28 @@ func newTestSyncer(t *testing.T) *Service {
 	return syncer
 }
 
-func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie, *types.Header) {
-	fp := utils.GetGssmrGenesisRawPathTest(t)
-	gen, err := genesis.NewGenesisFromJSONRaw(fp)
+func newTestGenesisWithTrieAndHeader(t *testing.T) (
+	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
+	t.Helper()
+
+	genesisPath := utils.GetGssmrV3SubstrateGenesisRawPathTest(t)
+	genesisPtr, err := genesis.NewGenesisFromJSONRaw(genesisPath)
+	require.NoError(t, err)
+	gen = *genesisPtr
+
+	genesisTrie, err = wasmer.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
-	genTrie, err := genesis.NewTrieFromGenesis(gen)
-	require.NoError(t, err)
+	parentHash := common.NewHash([]byte{0})
+	stateRoot := genesisTrie.MustHash()
+	extrinsicRoot := trie.EmptyHash
+	const number = 0
+	digest := types.NewDigest()
+	genesisHeaderPtr := types.NewHeader(parentHash,
+		stateRoot, extrinsicRoot, number, digest)
+	genesisHeader = *genesisHeaderPtr
 
-	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}),
-		genTrie.MustHash(), trie.EmptyHash, 0, types.NewDigest())
-	require.NoError(t, err)
-	return gen, genTrie, genesisHeader
+	return gen, genesisTrie, genesisHeader
 }
 
 func TestHighestBlock(t *testing.T) {

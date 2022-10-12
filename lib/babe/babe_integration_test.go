@@ -6,7 +6,6 @@
 package babe
 
 import (
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -15,17 +14,16 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/babe/mocks"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/golang/mock/gomock"
 
-	mock "github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -54,25 +52,13 @@ var (
 
 //go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
 
-func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
+func createTestService(t *testing.T, cfg ServiceConfig) *Service {
 	wasmer.DefaultTestLogLvl = 1
 
-	gen, genTrie, genHeader := genesis.NewDevGenesisWithTrieAndHeader(t)
-	genesisHeader = genHeader
+	gen, genTrie, genHeader := newDevGenesisWithTrieAndHeader(t)
+	genesisHeader = &genHeader
 
 	var err error
-
-	if cfg == nil {
-		cfg = &ServiceConfig{
-			Authority: true,
-		}
-	}
-
-	cfg.BlockImportHandler = new(mocks.BlockImportHandler)
-	cfg.BlockImportHandler.(*mocks.BlockImportHandler).
-		On("HandleBlockProduced",
-			mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState")).
-		Return(nil)
 
 	if cfg.Keypair == nil {
 		cfg.Keypair = keyring.Alice().(*sr25519.Keypair)
@@ -92,52 +78,42 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 
 	cfg.Telemetry = telemetryMock
 
-	if cfg.TransactionState == nil {
-		cfg.TransactionState = state.NewTransactionState(telemetryMock)
-	}
-
 	testDatadirPath := t.TempDir()
 	require.NoError(t, err)
 
 	var dbSrv *state.Service
-	if cfg.BlockState == nil || cfg.StorageState == nil || cfg.EpochState == nil {
-		config := state.Config{
-			Path:      testDatadirPath,
-			LogLevel:  log.Info,
-			Telemetry: telemetryMock,
-		}
-		dbSrv = state.NewService(config)
-		dbSrv.UseMemDB()
-
-		err = dbSrv.Initialise(gen, genHeader, genTrie)
-		require.NoError(t, err)
-
-		err = dbSrv.Start()
-		require.NoError(t, err)
-
-		t.Cleanup(func() {
-			_ = dbSrv.Stop()
-		})
-
-		cfg.BlockState = dbSrv.Block
-		cfg.StorageState = dbSrv.Storage
-		cfg.EpochState = dbSrv.Epoch
+	config := state.Config{
+		Path:      testDatadirPath,
+		LogLevel:  log.Info,
+		Telemetry: telemetryMock,
 	}
+	dbSrv = state.NewService(config)
+	dbSrv.UseMemDB()
 
-	var rtCfg runtime.InstanceConfig
-	rtCfg.Storage = rtstorage.NewTrieState(genTrie)
+	err = dbSrv.Initialise(&gen, &genHeader, &genTrie)
+	require.NoError(t, err)
+
+	err = dbSrv.Start()
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		_ = dbSrv.Stop()
+	})
+
+	cfg.BlockState = dbSrv.Block
+	cfg.StorageState = dbSrv.Storage
+	cfg.EpochState = dbSrv.Epoch
+	cfg.TransactionState = dbSrv.Transaction
+
+	var rtCfg wasmer.Config
+	rtCfg.Storage = rtstorage.NewTrieState(&genTrie)
 
 	storageState := cfg.StorageState.(core.StorageState)
 	rtCfg.CodeHash, err = storageState.LoadCodeHash(nil)
 	require.NoError(t, err)
 
 	nodeStorage := runtime.NodeStorage{}
-	if dbSrv != nil {
-		nodeStorage.BaseDB = dbSrv.Base
-	} else {
-		nodeStorage.BaseDB, err = utils.SetupDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
-		require.NoError(t, err)
-	}
+	nodeStorage.BaseDB = dbSrv.Base
 
 	rtCfg.NodeStorage = nodeStorage
 	rt, err := wasmer.NewRuntimeFromGenesis(rtCfg)
@@ -146,8 +122,28 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 
 	cfg.IsDev = true
 	cfg.LogLvl = defaultTestLogLvl
-	babeService, err := NewService(cfg)
+	babeService, err := NewService(&cfg)
 	require.NoError(t, err)
+
+	if cfg.BlockImportHandler == nil {
+		mockNetwork := mocks.NewMockNetwork(ctrl)
+		mockNetwork.EXPECT().GossipMessage(gomock.Any()).AnyTimes()
+
+		coreConfig := core.Config{
+			BlockState:           dbSrv.Block,
+			EpochState:           dbSrv.Epoch,
+			StorageState:         storageState,
+			TransactionState:     dbSrv.Transaction,
+			Runtime:              rt,
+			Keystore:             rtCfg.Keystore,
+			Network:              mockNetwork,
+			CodeSubstitutedState: dbSrv.Base,
+			CodeSubstitutes:      make(map[common.Hash]string),
+		}
+
+		babeService.blockImportHandler = NewTestService(t, &coreConfig)
+	}
+
 	return babeService
 }
 
@@ -166,8 +162,8 @@ func newTestServiceSetupParameters(t *testing.T) (*Service, *state.EpochState, *
 	dbSrv := state.NewService(config)
 	dbSrv.UseMemDB()
 
-	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
-	err := dbSrv.Initialise(gen, genHeader, genTrie)
+	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
+	err := dbSrv.Initialise(&gen, &genHeader, &genTrie)
 	require.NoError(t, err)
 
 	err = dbSrv.Start()
@@ -177,8 +173,8 @@ func newTestServiceSetupParameters(t *testing.T) (*Service, *state.EpochState, *
 		_ = dbSrv.Stop()
 	})
 
-	rtCfg := runtime.InstanceConfig{
-		Storage: rtstorage.NewTrieState(genTrie),
+	rtCfg := wasmer.Config{
+		Storage: rtstorage.NewTrieState(&genTrie),
 	}
 
 	rt, err := wasmer.NewRuntimeFromGenesis(rtCfg)
@@ -209,9 +205,15 @@ func TestService_SlotDuration(t *testing.T) {
 }
 
 func TestService_ProducesBlocks(t *testing.T) {
-	cfg := &ServiceConfig{
-		Authority: true,
-		Lead:      true,
+	blockImportHandler := mocks.NewBlockImportHandler(t)
+	blockImportHandler.
+		On("HandleBlockProduced",
+			mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState")).
+		Return(nil)
+	cfg := ServiceConfig{
+		Authority:          true,
+		Lead:               true,
+		BlockImportHandler: blockImportHandler,
 	}
 	babeService := createTestService(t, cfg)
 
@@ -263,9 +265,7 @@ func TestService_GetAuthorityIndex(t *testing.T) {
 }
 
 func TestStartAndStop(t *testing.T) {
-	bs := createTestService(t, &ServiceConfig{
-		LogLvl: log.Critical,
-	})
+	bs := createTestService(t, ServiceConfig{})
 	err := bs.Start()
 	require.NoError(t, err)
 	err = bs.Stop()
@@ -273,9 +273,7 @@ func TestStartAndStop(t *testing.T) {
 }
 
 func TestService_PauseAndResume(t *testing.T) {
-	bs := createTestService(t, &ServiceConfig{
-		LogLvl: log.Critical,
-	})
+	bs := createTestService(t, ServiceConfig{})
 	err := bs.Start()
 	require.NoError(t, err)
 	time.Sleep(time.Second)
@@ -300,4 +298,160 @@ func TestService_PauseAndResume(t *testing.T) {
 
 	err = bs.Stop()
 	require.NoError(t, err)
+}
+
+func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
+	cfg := ServiceConfig{
+		Authority: true,
+		Lead:      true,
+	}
+	babeService := createTestService(t, cfg)
+
+	err := babeService.Start()
+	require.NoError(t, err)
+	defer func() {
+		err = babeService.Stop()
+		require.NoError(t, err)
+	}()
+
+	// add a block
+	parentHash := babeService.blockState.GenesisHash()
+	rt, err := babeService.blockState.GetRuntime(nil)
+	require.NoError(t, err)
+
+	epochData, err := babeService.initiateEpoch(testEpochIndex)
+	require.NoError(t, err)
+
+	ext := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0, "System.remark", []byte{0xab, 0xcd})
+	block := createTestBlock(t, babeService, emptyHeader, [][]byte{common.MustHexToBytes(ext)},
+		1, testEpochIndex, epochData)
+
+	babeService.blockState.AddBlock(block)
+	time.Sleep(babeService.constants.slotDuration)
+
+	header, err := babeService.blockState.BestBlockHeader()
+	require.NoError(t, err)
+
+	bestBlockSlotNum, err := babeService.blockState.GetSlotForBlock(header.Hash())
+	require.NoError(t, err)
+
+	slotnum := uint64(1)
+	slot := Slot{
+		start:    time.Now(),
+		duration: time.Second,
+		number:   slotnum,
+	}
+	preRuntimeDigest, err := types.NewBabePrimaryPreDigest(
+		0, slot.number,
+		[sr25519.VRFOutputLength]byte{},
+		[sr25519.VRFProofLength]byte{},
+	).ToPreRuntimeDigest()
+
+	require.NoError(t, err)
+
+	err = babeService.handleSlot(
+		babeService.epochHandler.epochNumber,
+		bestBlockSlotNum-1,
+		babeService.epochHandler.epochData.authorityIndex,
+		preRuntimeDigest)
+
+	require.ErrorIs(t, err, errLaggingSlot)
+}
+
+func TestService_HandleSlotWithSameSlot(t *testing.T) {
+	alice := keyring.Alice().(*sr25519.Keypair)
+	bob := keyring.Bob().(*sr25519.Keypair)
+
+	// Create babe service for alice
+	cfgAlice := ServiceConfig{
+		Authority: true,
+		Lead:      true,
+		Keypair:   alice,
+		AuthData: []types.Authority{
+			{
+				Key:    alice.Public().(*sr25519.PublicKey),
+				Weight: 1,
+			},
+			{
+				Key:    bob.Public().(*sr25519.PublicKey),
+				Weight: 1,
+			},
+		},
+	}
+
+	// Create babe service for bob
+	cfgBob := ServiceConfig{
+		Authority: true,
+		Lead:      true,
+		Keypair:   bob,
+		AuthData: []types.Authority{
+			{
+				Key:    alice.Public().(*sr25519.PublicKey),
+				Weight: 1,
+			},
+			{
+				Key:    bob.Public().(*sr25519.PublicKey),
+				Weight: 1,
+			},
+		},
+	}
+
+	babeServiceBob := createTestService(t, cfgBob)
+
+	err := babeServiceBob.Start()
+	require.NoError(t, err)
+	defer func() {
+		_ = babeServiceBob.Stop()
+	}()
+
+	// wait till bob creates a block
+	time.Sleep(babeServiceBob.constants.slotDuration)
+	require.NoError(t, err)
+
+	block, err := babeServiceBob.blockState.GetBlockByNumber(1)
+	require.NoError(t, err)
+
+	err = babeServiceBob.Stop()
+	require.NoError(t, err)
+
+	time.Sleep(babeServiceBob.constants.slotDuration)
+
+	babeServiceAlice := createTestService(t, cfgAlice)
+
+	// Add block created by Bob to Alice
+	err = babeServiceAlice.blockState.AddBlock(block)
+	require.NoError(t, err)
+
+	time.Sleep(babeServiceBob.constants.slotDuration)
+
+	bestBlockHeader, err := babeServiceAlice.blockState.BestBlockHeader()
+	require.NoError(t, err)
+	require.Equal(t, block.Header.Hash(), bestBlockHeader.Hash())
+
+	// If the slot we are claiming is the same as the slot of the best block header, test that we can
+	// still claim the slot without error.
+	bestBlockSlotNum, err := babeServiceAlice.blockState.GetSlotForBlock(bestBlockHeader.Hash())
+	require.NoError(t, err)
+
+	slot := Slot{
+		start:    time.Now(),
+		duration: time.Second,
+		number:   bestBlockSlotNum,
+	}
+	preRuntimeDigest, err := types.NewBabePrimaryPreDigest(
+		0, slot.number,
+		[sr25519.VRFOutputLength]byte{},
+		[sr25519.VRFProofLength]byte{},
+	).ToPreRuntimeDigest()
+	require.NoError(t, err)
+
+	// slot gets occupied even if it has been occupied by a block
+	// authored by someone else
+	err = babeServiceAlice.handleSlot(
+		testEpochIndex,
+		bestBlockSlotNum,
+		0,
+		preRuntimeDigest)
+	require.NoError(t, err)
+
 }

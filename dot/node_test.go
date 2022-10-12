@@ -166,17 +166,17 @@ func TestNewNode(t *testing.T) {
 			return nil, fmt.Errorf("failed to load genesis from file: %w", err)
 		}
 		// create trie from genesis
-		trie, err := genesis.NewTrieFromGenesis(gen)
+		trie, err := wasmer.NewTrieFromGenesis(*gen)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create trie from genesis: %w", err)
 		}
 		// create genesis block from trie
-		header, err := genesis.NewGenesisBlockFromTrie(trie)
+		header, err := trie.GenesisBlock()
 		if err != nil {
 			return nil, fmt.Errorf("failed to create genesis block from trie: %w", err)
 		}
 		stateSrvc.Telemetry = mockTelemetryClient
-		err = stateSrvc.Initialise(gen, header, trie)
+		err = stateSrvc.Initialise(gen, &header, &trie)
 		if err != nil {
 			return nil, fmt.Errorf("failed to initialise state service: %s", err)
 		}
@@ -192,8 +192,8 @@ func TestNewNode(t *testing.T) {
 		NodeStorage{}, nil)
 	m.EXPECT().loadRuntime(dotConfig, &runtime.NodeStorage{}, gomock.AssignableToTypeOf(&state.Service{}),
 		ks, gomock.AssignableToTypeOf(&network.Service{})).Return(nil)
-	m.EXPECT().createBlockVerifier(gomock.AssignableToTypeOf(&state.Service{})).Return(&babe.
-		VerificationManager{}, nil)
+	m.EXPECT().createBlockVerifier(gomock.AssignableToTypeOf(&state.Service{})).
+		Return(&babe.VerificationManager{})
 	m.EXPECT().createDigestHandler(log.Critical, gomock.AssignableToTypeOf(&state.Service{})).
 		Return(&digest.Handler{}, nil)
 	m.EXPECT().createCoreService(dotConfig, ks, gomock.AssignableToTypeOf(&state.Service{}),

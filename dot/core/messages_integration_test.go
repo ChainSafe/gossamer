@@ -11,6 +11,7 @@ import (
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	ctypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
@@ -20,7 +21,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/golang/mock/gomock"
@@ -28,7 +28,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, nonce uint64) types.Extrinsic {
+func createExtrinsic(t *testing.T, rt RuntimeInstance, genHash common.Hash, nonce uint64) types.Extrinsic {
 	t.Helper()
 	rawMeta, err := rt.Metadata()
 	require.NoError(t, err)
@@ -38,11 +38,10 @@ func createExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, non
 	require.NoError(t, err)
 
 	meta := &ctypes.Metadata{}
-	err = ctypes.Decode(decoded, meta)
+	err = codec.Decode(decoded, meta)
 	require.NoError(t, err)
 
-	rv, err := rt.Version()
-	require.NoError(t, err)
+	rv := rt.Version()
 
 	c, err := ctypes.NewCall(meta, "System.remark", []byte{0xab, 0xcd})
 	require.NoError(t, err)
@@ -53,16 +52,16 @@ func createExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, non
 		Era:                ctypes.ExtrinsicEra{IsImmortalEra: false},
 		GenesisHash:        ctypes.Hash(genHash),
 		Nonce:              ctypes.NewUCompactFromUInt(nonce),
-		SpecVersion:        ctypes.U32(rv.SpecVersion()),
+		SpecVersion:        ctypes.U32(rv.SpecVersion),
 		Tip:                ctypes.NewUCompactFromUInt(0),
-		TransactionVersion: ctypes.U32(rv.TransactionVersion()),
+		TransactionVersion: ctypes.U32(rv.TransactionVersion),
 	}
 
 	// Sign the transaction using Alice's key
 	err = ext.Sign(signature.TestKeyringPairAlice, options)
 	require.NoError(t, err)
 
-	extEnc, err := ctypes.EncodeToHex(ext)
+	extEnc, err := codec.EncodeToHex(ext)
 	require.NoError(t, err)
 
 	extBytes := types.Extrinsic(common.MustHexToBytes(extEnc))
@@ -174,9 +173,9 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 	require.NotEmpty(t, pending)
 	require.Equal(t, extBytes, pending[0].Extrinsic)
 
-	extBytes = []byte(`bogus extrinsic`)
-	msg = &network.TransactionMessage{Extrinsics: []types.Extrinsic{extBytes}}
+	invalidExtBytes := types.Extrinsic{byte(1)}
+	msg = &network.TransactionMessage{Extrinsics: []types.Extrinsic{invalidExtBytes}}
 	shouldPropagate, err = s.HandleTransactionMessage(peer1, msg)
-	require.NoError(t, err)
+	require.Error(t, err)
 	require.False(t, shouldPropagate)
 }

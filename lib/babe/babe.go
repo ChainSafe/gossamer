@@ -74,18 +74,6 @@ func (sc *ServiceConfig) Validate() error {
 		return errNoBABEAuthorityKeyProvided
 	}
 
-	if sc.BlockState == nil {
-		return ErrNilBlockState
-	}
-
-	if sc.EpochState == nil {
-		return errNilEpochState
-	}
-
-	if sc.BlockImportHandler == nil {
-		return errNilBlockImportHandler
-	}
-
 	return nil
 }
 
@@ -103,7 +91,7 @@ type ServiceIFace interface {
 // Builder struct to hold babe builder functions
 type Builder struct{}
 
-//NewServiceIFace returns a new Babe Service using the provided VRF keys and runtime
+// NewServiceIFace returns a new Babe Service using the provided VRF keys and runtime
 func (Builder) NewServiceIFace(cfg *ServiceConfig) (ServiceIFace, error) {
 	if err := cfg.Validate(); err != nil {
 		return nil, fmt.Errorf("could not verify service config: %w", err)
@@ -159,18 +147,6 @@ func (Builder) NewServiceIFace(cfg *ServiceConfig) (ServiceIFace, error) {
 func NewService(cfg *ServiceConfig) (*Service, error) {
 	if cfg.Keypair == nil && cfg.Authority {
 		return nil, errors.New("cannot create BABE service as authority; no keypair provided")
-	}
-
-	if cfg.BlockState == nil {
-		return nil, ErrNilBlockState
-	}
-
-	if cfg.EpochState == nil {
-		return nil, errNilEpochState
-	}
-
-	if cfg.BlockImportHandler == nil {
-		return nil, errNilBlockImportHandler
 	}
 
 	logger.Patch(log.SetLevel(cfg.LogLvl))
@@ -378,16 +354,6 @@ func (b *Service) getAuthorityIndex(Authorities []types.Authority) (uint32, erro
 }
 
 func (b *Service) initiate() {
-	if b.blockState == nil {
-		logger.Errorf("block authoring: %s", ErrNilBlockState)
-		return
-	}
-
-	if b.storageState == nil {
-		logger.Errorf("block authoring: %s", errNilStorageState)
-		return
-	}
-
 	// we should consider better error handling for this - we should
 	// retry to run the engine at some point (maybe the next epoch) if
 	// there's an error.
@@ -488,32 +454,65 @@ func (b *Service) handleEpoch(epoch uint64) (next uint64, err error) {
 	return next, nil
 }
 
-func (b *Service) handleSlot(epoch, slotNum uint64,
-	authorityIndex uint32,
-	preRuntimeDigest *types.PreRuntimeDigest,
-) error {
+func (b *Service) getParentForBlockAuthoring(slotNum uint64) (*types.Header, error) {
 	parentHeader, err := b.blockState.BestBlockHeader()
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("could not get best block header: %w", err)
 	}
 
 	if parentHeader == nil {
-		return errNilParentHeader
+		return nil, errNilParentHeader
+	}
+
+	atGenesisBlock := b.blockState.GenesisHash().Equal(parentHeader.Hash())
+	if !atGenesisBlock {
+		bestBlockSlotNum, err := b.blockState.GetSlotForBlock(parentHeader.Hash())
+		if err != nil {
+			return nil, fmt.Errorf("could not get slot for block: %w", err)
+		}
+
+		if bestBlockSlotNum > slotNum {
+			return nil, fmt.Errorf("%w: best block slot number is %d and got slot number %d",
+				errLaggingSlot, bestBlockSlotNum, slotNum)
+		}
+
+		if bestBlockSlotNum == slotNum {
+			// pick parent of best block instead to handle slot
+			newParentHeader, err := b.blockState.GetHeader(parentHeader.ParentHash)
+			if err != nil {
+				return nil, fmt.Errorf("could not get header: %w", err)
+			}
+			if newParentHeader == nil {
+				return nil, fmt.Errorf("%w: for block hash %s", errNilParentHeader, parentHeader.ParentHash)
+			}
+			parentHeader = newParentHeader
+		}
 	}
 
 	// there is a chance that the best block header may change in the course of building the block,
 	// so let's copy it first.
 	parent, err := parentHeader.DeepCopy()
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("could not create deep copy of parent header: %w", err)
 	}
 
+	return parent, nil
+}
+
+func (b *Service) handleSlot(epoch, slotNum uint64,
+	authorityIndex uint32,
+	preRuntimeDigest *types.PreRuntimeDigest,
+) error {
 	currentSlot := Slot{
 		start:    time.Now(),
 		duration: b.constants.slotDuration,
 		number:   slotNum,
 	}
 
+	parent, err := b.getParentForBlockAuthoring(slotNum)
+	if err != nil {
+		return fmt.Errorf("could not get parent for claiming slot %d: %w", slotNum, err)
+	}
 	b.storageState.Lock()
 	defer b.storageState.Unlock()
 

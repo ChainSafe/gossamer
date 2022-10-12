@@ -18,17 +18,30 @@ import (
 )
 
 func TestStorageState_RegisterStorageObserver(t *testing.T) {
-	ss := newTestStorageState(t, newTriesEmpty())
+	ss := newTestStorageState(t)
 
 	ts, err := ss.TrieState(nil)
 	require.NoError(t, err)
 
 	mockfilter := map[string][]byte{}
-	mockobs := &MockObserver{}
+	mockobs := NewMockObserver(t)
 
-	mockobs.On("Update", mock.AnythingOfType("*state.SubscriptionResult"))
-	mockobs.On("GetID").Return(uint(10))
-	mockobs.On("GetFilter").Return(mockfilter)
+	mockobs.On("GetID").Return(uint(10)).Times(2)
+
+	var fireAndForgetMockCallsWG sync.WaitGroup
+
+	fireAndForgetMockCallsWG.Add(2)
+	getFilterCall := mockobs.On("GetFilter").Return(mockfilter).Times(2)
+	getFilterCall.RunFn = func(args mock.Arguments) {
+		fireAndForgetMockCallsWG.Done()
+	}
+
+	fireAndForgetMockCallsWG.Add(1)
+	lastMockCall := mockobs.On("Update", mock.AnythingOfType("*state.SubscriptionResult")).
+		Return(map[string][]byte{}).Once()
+	lastMockCall.RunFn = func(args mock.Arguments) {
+		fireAndForgetMockCallsWG.Done()
+	}
 
 	ss.RegisterStorageObserver(mockobs)
 	defer ss.UnregisterStorageObserver(mockobs)
@@ -37,23 +50,14 @@ func TestStorageState_RegisterStorageObserver(t *testing.T) {
 	err = ss.StoreTrie(ts, nil)
 	require.NoError(t, err)
 
-	expectedResult := &SubscriptionResult{
-		Hash: ts.MustRoot(),
-		Changes: []KeyValue{{
-			Key:   []byte("mackcom"),
-			Value: []byte("wuz here"),
-		}},
-	}
-
-	time.Sleep(time.Millisecond * 250)
-	// called when register and called when store trie
-	mockobs.AssertNumberOfCalls(t, "GetFilter", 2)
-	mockobs.AssertNumberOfCalls(t, "Update", 1)
-	mockobs.AssertCalled(t, "Update", expectedResult)
+	// We need to wait since GetFilter and Update are called
+	// in fire and forget goroutines. Not ideal, but it's out of scope
+	// to refactor the production code in this commit.
+	fireAndForgetMockCallsWG.Wait()
 }
 
 func TestStorageState_RegisterStorageObserver_Multi(t *testing.T) {
-	ss := newTestStorageState(t, newTriesEmpty())
+	ss := newTestStorageState(t)
 	ts, err := ss.TrieState(nil)
 	require.NoError(t, err)
 
@@ -63,11 +67,11 @@ func TestStorageState_RegisterStorageObserver_Multi(t *testing.T) {
 
 	for i := 0; i < num; i++ {
 		mockfilter := map[string][]byte{}
-		mockobs := &MockObserver{}
+		mockobs := NewMockObserver(t)
 
 		mockobs.On("Update", mock.AnythingOfType("*state.SubscriptionResult"))
 		mockobs.On("GetID").Return(uint(10))
-		mockobs.On("GetFilter").Return(mockfilter)
+		mockobs.On("GetFilter").Return(mockfilter).Times(2)
 
 		mocks = append(mocks, mockobs)
 		ss.RegisterStorageObserver(mockobs)
@@ -84,20 +88,6 @@ func TestStorageState_RegisterStorageObserver_Multi(t *testing.T) {
 
 	time.Sleep(time.Millisecond * 10)
 
-	expectedResult := &SubscriptionResult{
-		Hash: ts.MustRoot(),
-		Changes: []KeyValue{{
-			Key:   key1,
-			Value: value1,
-		}},
-	}
-
-	for _, mockobs := range mocks {
-		mockobs.AssertNumberOfCalls(t, "GetFilter", 2)
-		mockobs.AssertNumberOfCalls(t, "Update", 1)
-		mockobs.AssertCalled(t, "Update", expectedResult)
-	}
-
 	for _, observer := range mocks {
 		ss.UnregisterStorageObserver(observer)
 	}
@@ -105,7 +95,7 @@ func TestStorageState_RegisterStorageObserver_Multi(t *testing.T) {
 
 func TestStorageState_RegisterStorageObserver_Multi_Filter(t *testing.T) {
 	t.Skip() // this seems to fail often on CI
-	ss := newTestStorageState(t, newTriesEmpty())
+	ss := newTestStorageState(t)
 	ts, err := ss.TrieState(nil)
 	require.NoError(t, err)
 
@@ -119,10 +109,10 @@ func TestStorageState_RegisterStorageObserver_Multi_Filter(t *testing.T) {
 	}
 
 	for i := 0; i < num; i++ {
-		mockobs := &MockObserver{}
+		mockobs := NewMockObserver(t)
 		mockobs.On("Update", mock.AnythingOfType("*state.SubscriptionResult"))
 		mockobs.On("GetID").Return(uint(i))
-		mockobs.On("GetFilter").Return(filter)
+		mockobs.On("GetFilter").Return(filter).Times(len(filter) + 3)
 
 		mocks = append(mocks, mockobs)
 		ss.RegisterStorageObserver(mockobs)
@@ -133,20 +123,6 @@ func TestStorageState_RegisterStorageObserver_Multi_Filter(t *testing.T) {
 	require.NoError(t, err)
 
 	time.Sleep(time.Millisecond * 10)
-
-	expectedResult := &SubscriptionResult{
-		Hash: ts.MustRoot(),
-		Changes: []KeyValue{{
-			Key:   key1,
-			Value: value1,
-		}},
-	}
-
-	for _, mockobs := range mocks {
-		mockobs.AssertNumberOfCalls(t, "GetFilter", len(filter)+3)
-		mockobs.AssertNumberOfCalls(t, "Update", 1)
-		mockobs.AssertCalled(t, "Update", expectedResult)
-	}
 
 	for _, observer := range mocks {
 		ss.UnregisterStorageObserver(observer)

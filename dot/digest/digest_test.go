@@ -15,7 +15,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/golang/mock/gomock"
@@ -40,8 +39,8 @@ func newTestHandler(t *testing.T) (*Handler, *state.Service) {
 	stateSrvc := state.NewService(config)
 	stateSrvc.UseMemDB()
 
-	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
-	err := stateSrvc.Initialise(gen, genHeader, genTrie)
+	gen, genesisTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	err := stateSrvc.Initialise(&gen, &genesisHeader, &genesisTrie)
 	require.NoError(t, err)
 
 	err = stateSrvc.SetupBase()
@@ -369,7 +368,9 @@ func TestHandler_HandleNextEpochData(t *testing.T) {
 	stored, err := handler.epochState.(*state.EpochState).GetEpochData(targetEpoch, nil)
 	require.NoError(t, err)
 
-	act, ok := digest.Value().(types.NextEpochData)
+	digestValue, err := digest.Value()
+	require.NoError(t, err)
+	act, ok := digestValue.(types.NextEpochData)
 	if !ok {
 		t.Fatal()
 	}
@@ -426,7 +427,9 @@ func TestHandler_HandleNextConfigData(t *testing.T) {
 
 	handler.handleBlockFinalisation(ctx)
 
-	act, ok := digest.Value().(types.NextConfigData)
+	digestValue, err := digest.Value()
+	require.NoError(t, err)
+	act, ok := digestValue.(types.NextConfigData)
 	if !ok {
 		t.Fatal()
 	}

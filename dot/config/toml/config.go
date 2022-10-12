@@ -11,6 +11,7 @@ type Config struct {
 	Account AccountConfig `toml:"account,omitempty"`
 	Core    CoreConfig    `toml:"core,omitempty"`
 	Network NetworkConfig `toml:"network,omitempty"`
+	State   StateConfig   `toml:"state,omitempty"`
 	RPC     RPCConfig     `toml:"rpc,omitempty"`
 	Pprof   PprofConfig   `toml:"pprof,omitempty"`
 }
@@ -22,7 +23,7 @@ type GlobalConfig struct {
 	BasePath       string `toml:"basepath,omitempty"`
 	LogLvl         string `toml:"log,omitempty"`
 	MetricsAddress string `toml:"metrics-address,omitempty"`
-	RetainBlocks   int64  `toml:"retain-blocks,omitempty"`
+	RetainBlocks   uint32 `toml:"retain-blocks,omitempty"`
 	Pruning        string `toml:"pruning,omitempty"`
 }
 
@@ -75,6 +76,11 @@ type CoreConfig struct {
 	WasmInterpreter  string `toml:"wasm-interpreter,omitempty"`
 	GrandpaInterval  uint32 `toml:"grandpa-interval,omitempty"`
 	BABELead         bool   `toml:"babe-lead,omitempty"`
+}
+
+// StateConfig contains the configuration for the state.
+type StateConfig struct {
+	Rewind uint `toml:"rewind,omitempty"`
 }
 
 // RPCConfig is to marshal/unmarshal toml RPC config vars

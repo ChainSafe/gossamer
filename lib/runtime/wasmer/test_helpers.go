@@ -14,7 +14,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/mocks"
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -31,17 +30,17 @@ func NewTestInstance(t *testing.T, targetRuntime string) *Instance {
 func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie) *Instance {
 	t.Helper()
 
-	cfg := setupConfig(t, tt, DefaultTestLogLvl, common.NoNetworkRole)
+	cfg := setupConfig(t, tt, DefaultTestLogLvl, common.NoNetworkRole, targetRuntime)
 	runtimeFilepath, err := runtime.GetRuntime(context.Background(), targetRuntime)
 	require.NoError(t, err)
 
 	r, err := NewInstanceFromFile(runtimeFilepath, cfg)
-	require.NoError(t, err, "Got error when trying to create new VM", "targetRuntime", targetRuntime)
-	require.NotNil(t, r, "Could not create new VM instance", "targetRuntime", targetRuntime)
+	require.NoError(t, err)
 	return r
 }
 
-func setupConfig(t *testing.T, tt *trie.Trie, lvl log.Level, role common.Roles) runtime.InstanceConfig {
+func setupConfig(t *testing.T, tt *trie.Trie, lvl log.Level,
+	role common.Roles, targetRuntime string) Config {
 	t.Helper()
 
 	s := storage.NewTrieState(tt)
@@ -52,20 +51,22 @@ func setupConfig(t *testing.T, tt *trie.Trie, lvl log.Level, role common.Roles) 
 		BaseDB:            runtime.NewInMemoryDB(t), // we're using a local storage here since this is a test runtime
 	}
 
-	return runtime.InstanceConfig{
+	version := (*runtime.Version)(nil)
+	if targetRuntime == runtime.HOST_API_TEST_RUNTIME {
+		// Force state version to 0 since the host api test runtime
+		// does not implement the Core_version call so we cannot get the
+		// state version from it.
+		version = &runtime.Version{}
+	}
+
+	return Config{
 		Storage:     s,
 		Keystore:    keystore.NewGlobalKeystore(),
 		LogLvl:      lvl,
 		NodeStorage: ns,
 		Network:     new(runtime.TestRuntimeNetwork),
-		Transaction: newTransactionStateMock(),
+		Transaction: mocks.NewTransactionState(t),
 		Role:        role,
+		testVersion: version,
 	}
-}
-
-// NewTransactionStateMock create and return an runtime Transaction State interface mock
-func newTransactionStateMock() *mocks.TransactionState {
-	m := new(mocks.TransactionState)
-	m.On("AddToPool", mock.AnythingOfType("*transaction.ValidTransaction")).Return(common.BytesToHash([]byte("test")))
-	return m
 }

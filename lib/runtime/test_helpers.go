@@ -25,6 +25,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	ctypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/require"
 )
@@ -71,6 +72,9 @@ func GetRuntime(ctx context.Context, runtime string) (
 	case NODE_RUNTIME_v098:
 		runtimeFilename = NODE_RUNTIME_FP_v098
 		url = NODE_RUNTIME_URL_v098
+	case POLKADOT_RUNTIME_v0925:
+		runtimeFilename = POLKADOT_RUNTIME_FP_v0925
+		url = POLKADOT_RUNTIME_URL_v0925
 	case POLKADOT_RUNTIME_v0917:
 		runtimeFilename = POLKADOT_RUNTIME_FP_v0917
 		url = POLKADOT_RUNTIME_URL_v0917
@@ -208,10 +212,10 @@ func NewTestExtrinsic(t *testing.T, rt Instance, genHash, blockHash common.Hash,
 	require.NoError(t, err)
 
 	meta := &ctypes.Metadata{}
-	err = ctypes.Decode(decoded, meta)
+	err = codec.Decode(decoded, meta)
 	require.NoError(t, err)
 
-	rv, err := rt.Version()
+	rv := rt.Version()
 	require.NoError(t, err)
 
 	c, err := ctypes.NewCall(meta, call, args...)
@@ -223,16 +227,16 @@ func NewTestExtrinsic(t *testing.T, rt Instance, genHash, blockHash common.Hash,
 		Era:                ctypes.ExtrinsicEra{IsImmortalEra: false},
 		GenesisHash:        ctypes.Hash(genHash),
 		Nonce:              ctypes.NewUCompactFromUInt(nonce),
-		SpecVersion:        ctypes.U32(rv.SpecVersion()),
+		SpecVersion:        ctypes.U32(rv.SpecVersion),
 		Tip:                ctypes.NewUCompactFromUInt(0),
-		TransactionVersion: ctypes.U32(rv.TransactionVersion()),
+		TransactionVersion: ctypes.U32(rv.TransactionVersion),
 	}
 
 	// Sign the transaction using Alice's key
 	err = ext.Sign(signature.TestKeyringPairAlice, o)
 	require.NoError(t, err)
 
-	extEnc, err := ctypes.EncodeToHex(ext)
+	extEnc, err := codec.EncodeToHex(ext)
 	require.NoError(t, err)
 
 	return extEnc
@@ -251,11 +255,11 @@ func InitializeRuntimeToTest(t *testing.T, instance Instance, parentHash common.
 	err := instance.InitializeBlock(header)
 	require.NoError(t, err)
 
-	idata := types.NewInherentsData()
-	err = idata.SetInt64Inherent(types.Timstap0, 1)
+	idata := types.NewInherentData()
+	err = idata.SetInherent(types.Timstap0, uint64(1))
 	require.NoError(t, err)
 
-	err = idata.SetInt64Inherent(types.Babeslot, 1)
+	err = idata.SetInherent(types.Babeslot, uint64(1))
 	require.NoError(t, err)
 
 	ienc, err := idata.Encode()

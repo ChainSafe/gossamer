@@ -19,7 +19,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/golang/mock/gomock"
@@ -42,8 +41,8 @@ func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *
 	dbSrv := state.NewService(config)
 	dbSrv.UseMemDB()
 
-	gen, genTrie, genHeader := genesis.NewDevGenesisWithTrieAndHeader(t)
-	err := dbSrv.Initialise(gen, genHeader, genTrie)
+	gen, genesisTrie, genesisHeader := newDevGenesisWithTrieAndHeader(t)
+	err := dbSrv.Initialise(&gen, &genesisHeader, &genesisTrie)
 	require.NoError(t, err)
 
 	err = dbSrv.Start()
@@ -58,14 +57,19 @@ func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *
 
 	logger.Patch(log.SetLevel(defaultTestLogLvl))
 
-	vm, err := NewVerificationManager(dbSrv.Block, dbSrv.Epoch)
-	require.NoError(t, err)
-	return vm
+	return NewVerificationManager(dbSrv.Block, dbSrv.Epoch)
 }
 
+// TODO: add test against latest dev runtime
+// See https://github.com/ChainSafe/gossamer/issues/2704
 func TestVerificationManager_OnDisabled_InvalidIndex(t *testing.T) {
 	vm := newTestVerificationManager(t, nil)
-	babeService := createTestService(t, nil)
+
+	cfg := ServiceConfig{
+		Authority: true,
+	}
+	babeService := createTestService(t, cfg)
+
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
@@ -74,14 +78,15 @@ func TestVerificationManager_OnDisabled_InvalidIndex(t *testing.T) {
 	require.Equal(t, err, ErrInvalidBlockProducerIndex)
 }
 
+// TODO: add test against latest dev runtime
+// See https://github.com/ChainSafe/gossamer/issues/2704
 func TestVerificationManager_OnDisabled_NewDigest(t *testing.T) {
 	kp, err := sr25519.GenerateKeypair()
 	require.NoError(t, err)
 
-	cfg := &ServiceConfig{
+	cfg := ServiceConfig{
 		Keypair: kp,
 	}
-
 	babeService := createTestService(t, cfg)
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
@@ -111,14 +116,15 @@ func TestVerificationManager_OnDisabled_NewDigest(t *testing.T) {
 	require.NoError(t, err)
 }
 
+// TODO: add test against latest dev runtime
+// See https://github.com/ChainSafe/gossamer/issues/2704
 func TestVerificationManager_OnDisabled_DuplicateDigest(t *testing.T) {
 	kp, err := sr25519.GenerateKeypair()
 	require.NoError(t, err)
 
-	cfg := &ServiceConfig{
+	cfg := ServiceConfig{
 		Keypair: kp,
 	}
-
 	babeService := createTestService(t, cfg)
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
@@ -146,8 +152,14 @@ func TestVerificationManager_OnDisabled_DuplicateDigest(t *testing.T) {
 	require.Equal(t, ErrAuthorityAlreadyDisabled, err)
 }
 
+// TODO: add test against latest dev runtime
+// See https://github.com/ChainSafe/gossamer/issues/2704
 func TestVerificationManager_VerifyBlock_Ok(t *testing.T) {
-	babeService := createTestService(t, nil)
+	serviceConfig := ServiceConfig{
+		Authority: true,
+	}
+	babeService := createTestService(t, serviceConfig)
+
 	rt, err := babeService.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
@@ -168,8 +180,14 @@ func TestVerificationManager_VerifyBlock_Ok(t *testing.T) {
 	require.NoError(t, err)
 }
 
+// TODO: add test against latest dev runtime
+// See https://github.com/ChainSafe/gossamer/issues/2704
 func TestVerificationManager_VerifyBlock_Secondary(t *testing.T) {
-	babeService := createTestService(t, nil)
+	serviceConfig := ServiceConfig{
+		Authority: true,
+	}
+	babeService := createTestService(t, serviceConfig)
+
 	rt, err := babeService.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
@@ -220,9 +238,7 @@ func TestVerificationManager_VerifyBlock_Secondary(t *testing.T) {
 	err = digest.Add(*seal)
 	require.NoError(t, err)
 
-	header, err := types.NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, number, digest)
-	require.NoError(t, err)
-
+	header := types.NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, number, digest)
 	block := types.Block{
 		Header: *header,
 		Body:   nil,
@@ -233,7 +249,11 @@ func TestVerificationManager_VerifyBlock_Secondary(t *testing.T) {
 
 func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 	t.Skip() // TODO: no idea why it's complaining it can't find the epoch data. fix later
-	babeService := createTestService(t, nil)
+	serviceConfig := ServiceConfig{
+		Authority: true,
+	}
+	babeService := createTestService(t, serviceConfig)
+
 	rt, err := babeService.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
@@ -276,8 +296,14 @@ func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 	require.NoError(t, err)
 }
 
+// TODO: add test against latest dev runtime
+// See https://github.com/ChainSafe/gossamer/issues/2704
 func TestVerificationManager_VerifyBlock_InvalidBlockOverThreshold(t *testing.T) {
-	babeService := createTestService(t, nil)
+	serviceConfig := ServiceConfig{
+		Authority: true,
+	}
+	babeService := createTestService(t, serviceConfig)
+
 	rt, err := babeService.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
@@ -299,8 +325,14 @@ func TestVerificationManager_VerifyBlock_InvalidBlockOverThreshold(t *testing.T)
 	require.Equal(t, ErrVRFOutputOverThreshold, errors.Unwrap(err))
 }
 
+// TODO: add test against latest dev runtime
+// See https://github.com/ChainSafe/gossamer/issues/2704
 func TestVerificationManager_VerifyBlock_InvalidBlockAuthority(t *testing.T) {
-	babeService := createTestService(t, nil)
+	serviceConfig := ServiceConfig{
+		Authority: true,
+	}
+	babeService := createTestService(t, serviceConfig)
+
 	rt, err := babeService.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
@@ -326,10 +358,9 @@ func TestVerifyPimarySlotWinner(t *testing.T) {
 	kp, err := sr25519.GenerateKeypair()
 	require.NoError(t, err)
 
-	cfg := &ServiceConfig{
+	cfg := ServiceConfig{
 		Keypair: kp,
 	}
-
 	babeService := createTestService(t, cfg)
 	epochData, err := babeService.initiateEpoch(0)
 	require.NoError(t, err)
@@ -355,42 +386,48 @@ func TestVerifyPimarySlotWinner(t *testing.T) {
 	}
 	epochData.authorities = Authorities
 
-	verifier, err := newVerifier(babeService.blockState, testEpochIndex, &verifierInfo{
+	verifier := newVerifier(babeService.blockState, testEpochIndex, &verifierInfo{
 		authorities: epochData.authorities,
 		threshold:   epochData.threshold,
 		randomness:  epochData.randomness,
 	})
-	require.NoError(t, err)
 
 	ok, err = verifier.verifyPrimarySlotWinner(d.AuthorityIndex, slotNumber, d.VRFOutput, d.VRFProof)
 	require.NoError(t, err)
 	require.True(t, ok)
 }
 
+// TODO: add test against latest dev runtime
+// See https://github.com/ChainSafe/gossamer/issues/2704
 func TestVerifyAuthorshipRight(t *testing.T) {
-	babeService := createTestService(t, nil)
+	serviceConfig := ServiceConfig{
+		Authority: true,
+	}
+	babeService := createTestService(t, serviceConfig)
+
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 	epochData.threshold = maxThreshold
 
 	block := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1, testEpochIndex, epochData)
 
-	verifier, err := newVerifier(babeService.blockState, testEpochIndex, &verifierInfo{
+	verifier := newVerifier(babeService.blockState, testEpochIndex, &verifierInfo{
 		authorities: epochData.authorities,
 		threshold:   epochData.threshold,
 		randomness:  epochData.randomness,
 	})
-	require.NoError(t, err)
 
 	err = verifier.verifyAuthorshipRight(&block.Header)
 	require.NoError(t, err)
 }
 
+// TODO: add test against latest dev runtime
+// See https://github.com/ChainSafe/gossamer/issues/2704
 func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	kp, err := sr25519.GenerateKeypair()
 	require.NoError(t, err)
 
-	cfg := &ServiceConfig{
+	cfg := ServiceConfig{
 		Keypair: kp,
 	}
 
@@ -412,12 +449,11 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	err = babeService.blockState.AddBlock(block)
 	require.NoError(t, err)
 
-	verifier, err := newVerifier(babeService.blockState, testEpochIndex, &verifierInfo{
+	verifier := newVerifier(babeService.blockState, testEpochIndex, &verifierInfo{
 		authorities: epochData.authorities,
 		threshold:   epochData.threshold,
 		randomness:  epochData.randomness,
 	})
-	require.NoError(t, err)
 
 	err = verifier.verifyAuthorshipRight(&block.Header)
 	require.NoError(t, err)
@@ -462,7 +498,7 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 		SecondarySlots:     0,
 	}
 
-	genesis, trie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	genesis, trie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
@@ -480,7 +516,7 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 
 	stateService.UseMemDB()
 
-	err := stateService.Initialise(genesis, genesisHeader, trie)
+	err := stateService.Initialise(&genesis, &genesisHeader, &trie)
 	require.NoError(t, err)
 
 	inMemoryDB, err := chaindb.NewBadgerDB(&chaindb.Config{
@@ -497,8 +533,7 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 
 	digestHandler.Start()
 
-	verificationManager, err := NewVerificationManager(stateService.Block, epochState)
-	require.NoError(t, err)
+	verificationManager := NewVerificationManager(stateService.Block, epochState)
 
 	/*
 	* lets issue different blocks starting from genesis (a fork)
@@ -511,7 +546,7 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 		C2:             10,
 		SecondarySlots: 1,
 	}
-	aliceBlockHeader := issueConsensusDigestsBlockFromGenesis(t, genesisHeader, keyring.KeyAlice,
+	aliceBlockHeader := issueConsensusDigestsBlockFromGenesis(t, &genesisHeader, keyring.KeyAlice,
 		stateService, aliceBlockNextEpoch, aliceBlockNextConfigData)
 
 	bobBlockNextEpoch := types.NextEpochData{
@@ -522,7 +557,7 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 		C2:             8,
 		SecondarySlots: 1,
 	}
-	bobBlockHeader := issueConsensusDigestsBlockFromGenesis(t, genesisHeader, keyring.KeyBob,
+	bobBlockHeader := issueConsensusDigestsBlockFromGenesis(t, &genesisHeader, keyring.KeyBob,
 		stateService, bobBlockNextEpoch, bobBlockNextConfigData)
 
 	// wait for digest handleBlockImport goroutine gets the imported

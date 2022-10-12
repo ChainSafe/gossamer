@@ -74,9 +74,8 @@ type Service struct {
 	bestFinalCandidate map[uint64]*Vote // map of round number -> best final candidate
 
 	// channels for communication with other services
-	in               chan *networkVoteMessage // only used to receive *VoteMessage
-	finalisedCh      chan *types.FinalisationInfo
-	neighbourMessage *NeighbourMessage // cached neighbour message
+	in          chan *networkVoteMessage // only used to receive *VoteMessage
+	finalisedCh chan *types.FinalisationInfo
 
 	telemetry telemetry.Client
 }
@@ -96,22 +95,6 @@ type Config struct {
 
 // NewService returns a new GRANDPA Service instance.
 func NewService(cfg *Config) (*Service, error) {
-	if cfg.BlockState == nil {
-		return nil, ErrNilBlockState
-	}
-
-	if cfg.GrandpaState == nil {
-		return nil, ErrNilGrandpaState
-	}
-
-	if cfg.Keypair == nil && cfg.Authority {
-		return nil, ErrNilKeypair
-	}
-
-	if cfg.Network == nil {
-		return nil, ErrNilNetwork
-	}
-
 	logger.Patch(log.SetLevel(cfg.LogLvl))
 
 	var pub string

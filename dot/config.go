@@ -47,7 +47,7 @@ type GlobalConfig struct {
 	MetricsAddress string
 	NoTelemetry    bool
 	TelemetryURLs  []genesis.TelemetryEndpoint
-	RetainBlocks   int64
+	RetainBlocks   uint32
 	Pruning        pruner.Mode
 }
 
@@ -162,6 +162,10 @@ type StateConfig struct {
 	Rewind uint
 }
 
+func (s *StateConfig) String() string {
+	return "rewind " + fmt.Sprint(s.Rewind)
+}
+
 // networkServiceEnabled returns true if the network service is enabled
 func networkServiceEnabled(cfg *Config) bool {
 	return cfg.Core.Roles != common.NoNetworkRole
@@ -235,7 +239,6 @@ func GssmrConfig() *Config {
 			WSPort:  gssmr.DefaultRPCWSPort,
 		},
 		Pprof: PprofConfig{
-			Enabled: gssmr.DefaultPprofEnabled,
 			Settings: pprof.Settings{
 				ListeningAddress: gssmr.DefaultPprofListeningAddress,
 				BlockProfileRate: gssmr.DefaultPprofBlockRate,
@@ -293,7 +296,6 @@ func KusamaConfig() *Config {
 			WSPort:  kusama.DefaultRPCWSPort,
 		},
 		Pprof: PprofConfig{
-			Enabled: kusama.DefaultPprofEnabled,
 			Settings: pprof.Settings{
 				ListeningAddress: kusama.DefaultPprofListeningAddress,
 				BlockProfileRate: kusama.DefaultPprofBlockRate,
@@ -351,7 +353,6 @@ func PolkadotConfig() *Config {
 			WSPort:  polkadot.DefaultRPCWSPort,
 		},
 		Pprof: PprofConfig{
-			Enabled: polkadot.DefaultPprofEnabled,
 			Settings: pprof.Settings{
 				ListeningAddress: polkadot.DefaultPprofListeningAddress,
 				BlockProfileRate: polkadot.DefaultPprofBlockRate,
@@ -414,7 +415,6 @@ func DevConfig() *Config {
 			WS:      dev.DefaultWSEnabled,
 		},
 		Pprof: PprofConfig{
-			Enabled: dev.DefaultPprofEnabled,
 			Settings: pprof.Settings{
 				ListeningAddress: dev.DefaultPprofListeningAddress,
 				BlockProfileRate: dev.DefaultPprofBlockRate,

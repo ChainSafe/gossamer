@@ -10,14 +10,13 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	runtimemocks "github.com/ChainSafe/gossamer/lib/runtime/mocks"
 	"github.com/stretchr/testify/require"
 )
 
 var testMessageTimeout = time.Second * 3
 
 func TestImportChannel(t *testing.T) {
-	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
+	bs := newTestBlockState(t, newTriesEmpty())
 	ch := bs.GetImportedBlockNotifierChannel()
 
 	defer bs.FreeImportedBlockNotifierChannel(ch)
@@ -34,7 +33,7 @@ func TestImportChannel(t *testing.T) {
 }
 
 func TestFreeImportedBlockNotifierChannel(t *testing.T) {
-	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
+	bs := newTestBlockState(t, newTriesEmpty())
 	ch := bs.GetImportedBlockNotifierChannel()
 	require.Equal(t, 1, len(bs.imported))
 
@@ -43,7 +42,7 @@ func TestFreeImportedBlockNotifierChannel(t *testing.T) {
 }
 
 func TestFinalizedChannel(t *testing.T) {
-	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
+	bs := newTestBlockState(t, newTriesEmpty())
 
 	ch := bs.GetFinalisedNotifierChannel()
 
@@ -65,7 +64,7 @@ func TestFinalizedChannel(t *testing.T) {
 }
 
 func TestImportChannel_Multi(t *testing.T) {
-	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
+	bs := newTestBlockState(t, newTriesEmpty())
 
 	num := 5
 	chs := make([]chan *types.Block, num)
@@ -97,7 +96,7 @@ func TestImportChannel_Multi(t *testing.T) {
 }
 
 func TestFinalizedChannel_Multi(t *testing.T) {
-	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
+	bs := newTestBlockState(t, newTriesEmpty())
 
 	num := 5
 	chs := make([]chan *types.FinalisationInfo, num)
@@ -134,7 +133,7 @@ func TestFinalizedChannel_Multi(t *testing.T) {
 }
 
 func TestService_RegisterUnRegisterRuntimeUpdatedChannel(t *testing.T) {
-	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
+	bs := newTestBlockState(t, newTriesEmpty())
 	ch := make(chan<- runtime.Version)
 	chID, err := bs.RegisterRuntimeUpdatedChannel(ch)
 	require.NoError(t, err)
@@ -145,11 +144,14 @@ func TestService_RegisterUnRegisterRuntimeUpdatedChannel(t *testing.T) {
 }
 
 func TestService_RegisterUnRegisterConcurrentCalls(t *testing.T) {
-	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
+	bs := newTestBlockState(t, newTriesEmpty())
 
 	go func() {
 		for i := 0; i < 100; i++ {
-			testVer := NewMockVersion(uint32(i))
+			testVer := runtime.Version{
+				SpecName:    []byte("mock-spec"),
+				SpecVersion: uint32(i),
+			}
 			go bs.notifyRuntimeUpdated(testVer)
 		}
 	}()
@@ -164,17 +166,4 @@ func TestService_RegisterUnRegisterConcurrentCalls(t *testing.T) {
 			require.True(t, unReg)
 		}()
 	}
-}
-
-// NewMockVersion creates and returns an runtime Version interface mock
-func NewMockVersion(specVer uint32) *runtimemocks.Version {
-	m := new(runtimemocks.Version)
-	m.On("SpecName").Return([]byte(`mock-spec`))
-	m.On("ImplName").Return(nil)
-	m.On("AuthoringVersion").Return(uint32(0))
-	m.On("SpecVersion").Return(specVer)
-	m.On("ImplVersion").Return(uint32(0))
-	m.On("TransactionVersion").Return(uint32(0))
-	m.On("APIItems").Return(nil)
-	return m
 }

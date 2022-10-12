@@ -16,7 +16,6 @@ import (
 // Instance is the interface a v0.8 runtime instance must implement
 type Instance interface {
 	UpdateRuntimeCode([]byte) error
-	CheckRuntimeVersion([]byte) (Version, error)
 	Stop()
 	NodeStorage() NodeStorage
 	NetworkService() BasicNetwork
@@ -26,7 +25,9 @@ type Instance interface {
 	SetContextStorage(s Storage) // used to set the TrieState before a runtime call
 
 	GetCodeHash() common.Hash
-	Version() (Version, error)
+	// Version returns the version from the runtime.
+	// This should return the cached version and be cheap to execute.
+	Version() (version Version)
 	Metadata() ([]byte, error)
 	BabeConfiguration() (*types.BabeConfiguration, error)
 	GrandpaAuthorities() ([]types.Authority, error)

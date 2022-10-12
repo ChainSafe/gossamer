@@ -51,30 +51,3 @@ func TestMessageCache(t *testing.T) {
 	ok = msgCache.exists(peerID, msg)
 	require.False(t, ok)
 }
-
-func TestMessageCacheError(t *testing.T) {
-	t.Parallel()
-
-	cacheSize := 64 << 20 // 64 MB
-	msgCache, err := newMessageCache(ristretto.Config{
-		NumCounters: int64(float64(cacheSize) * 0.05 * 2),
-		MaxCost:     int64(float64(cacheSize) * 0.95),
-		BufferItems: 64,
-		Cost: func(value interface{}) int64 {
-			return int64(1)
-		},
-	}, 800*time.Millisecond)
-	require.NoError(t, err)
-
-	peerID := peer.ID("gossamer")
-	msg := &BlockAnnounceHandshake{
-		Roles:           4,
-		BestBlockNumber: 77,
-		BestBlockHash:   common.Hash{1},
-		GenesisHash:     common.Hash{2},
-	}
-
-	ok, err := msgCache.put(peerID, msg)
-	require.Error(t, err, "cache does not support handshake messages")
-	require.False(t, ok)
-}

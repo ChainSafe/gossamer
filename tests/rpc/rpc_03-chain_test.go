@@ -31,7 +31,7 @@ const (
 )
 
 func TestChainRPC(t *testing.T) {
-	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
+	genesisPath := libutils.GetDevV3SubstrateGenesisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.Init.Genesis = genesisPath
 	tomlConfig.Core.BABELead = true
@@ -102,7 +102,14 @@ func TestChainRPC(t *testing.T) {
 	}
 	block.Block.Header.Digest.Logs = nil
 	assert.Len(t, block.Block.Body, 1)
-	const bodyRegex = `^0x280403000b[0-9a-z]{8}8201$`
+	const bodyRegex = "^0x" +
+		"28" + // base 10
+		"04" + // not signed extrinsic of the 4th extrinsic version
+		"03" + // pallet index enum
+		"00" + // call index enum
+		// Extrinsic argument
+		"0b" + // 0b0000_1011 big int
+		"[0-9a-z]{12}$"
 	assert.Regexp(t, bodyRegex, block.Block.Body[0])
 	block.Block.Body = nil
 
@@ -123,7 +130,7 @@ func TestChainRPC(t *testing.T) {
 }
 
 func TestChainSubscriptionRPC(t *testing.T) { //nolint:tparallel
-	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
+	genesisPath := libutils.GetDevV3SubstrateGenesisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.Init.Genesis = genesisPath
 	tomlConfig.Core.BABELead = true

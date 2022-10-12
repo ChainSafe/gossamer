@@ -8,8 +8,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/require"
 )
 
@@ -27,7 +31,7 @@ func newTriesEmpty() *Tries {
 func newGenerator() (prng *rand.Rand) {
 	seed := time.Now().UnixNano()
 	source := rand.NewSource(seed)
-	return rand.New(source)
+	return rand.New(source) //skipcq: GSC-G404
 }
 
 func generateKeyValues(tb testing.TB, generator *rand.Rand, size int) (kv map[string][]byte) {
@@ -59,7 +63,7 @@ func populateKeyValueMap(tb testing.TB, kv map[string][]byte,
 			continue
 		}
 
-		const minValueSize = 2
+		const minValueSize = 0
 		value := generateRandBytesMinMax(tb, minValueSize, maxValueSize, generator)
 
 		kv[keyString] = value
@@ -83,4 +87,27 @@ func generateRandBytes(tb testing.TB, size int,
 	_, err := generator.Read(b)
 	require.NoError(tb, err)
 	return b
+}
+
+func newTestGenesisWithTrieAndHeader(t *testing.T) (
+	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
+	t.Helper()
+
+	genesisPath := utils.GetGssmrV3SubstrateGenesisRawPathTest(t)
+	genesisPtr, err := genesis.NewGenesisFromJSONRaw(genesisPath)
+	require.NoError(t, err)
+	gen = *genesisPtr
+
+	genesisTrie, err = wasmer.NewTrieFromGenesis(gen)
+	require.NoError(t, err)
+
+	parentHash := common.NewHash([]byte{0})
+	stateRoot := genesisTrie.MustHash()
+	extrinsicRoot := trie.EmptyHash
+	const number = 0
+	digest := types.NewDigest()
+	genesisHeader = *types.NewHeader(parentHash,
+		stateRoot, extrinsicRoot, number, digest)
+
+	return gen, genesisTrie, genesisHeader
 }

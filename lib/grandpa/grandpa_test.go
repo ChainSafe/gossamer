@@ -13,9 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -51,15 +49,15 @@ func newTestState(t *testing.T) *state.Service {
 
 	t.Cleanup(func() { db.Close() })
 
-	_, genTrie, _ := genesis.NewTestGenesisWithTrieAndHeader(t)
-	tries, err := state.NewTries(genTrie)
-	require.NoError(t, err)
+	_, genTrie, _ := newTestGenesisWithTrieAndHeader(t)
+	tries := state.NewTries()
+	tries.SetTrie(&genTrie)
 	block, err := state.NewBlockStateFromGenesis(db, tries, testGenesisHeader, telemetryMock)
 	require.NoError(t, err)
 
-	var rtCfg runtime.InstanceConfig
+	var rtCfg wasmer.Config
 
-	rtCfg.Storage = rtstorage.NewTrieState(genTrie)
+	rtCfg.Storage = rtstorage.NewTrieState(&genTrie)
 
 	rt, err := wasmer.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)

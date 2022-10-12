@@ -186,7 +186,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 
 	// try invalid handshake
 	testHandshake := &BlockAnnounceHandshake{
-		Roles:           4,
+		Roles:           common.AuthorityRole,
 		BestBlockNumber: 77,
 		BestBlockHash:   common.Hash{1},
 		// we are using a different genesis here, thus this
@@ -195,7 +195,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 	}
 
 	err = handler(stream, testHandshake)
-	require.Equal(t, errCannotValidateHandshake, err)
+	require.ErrorIs(t, err, errCannotValidateHandshake)
 	data := info.peersData.getInboundHandshakeData(testPeerID)
 	require.NotNil(t, data)
 	require.True(t, data.received)
@@ -269,7 +269,8 @@ func Test_HandshakeTimeout(t *testing.T) {
 	info.peersData.deleteOutboundHandshakeData(nodeB.host.id())
 	connAToB := nodeA.host.p2pHost.Network().ConnsToPeer(nodeB.host.id())
 	for _, stream := range connAToB[0].GetStreams() {
-		_ = stream.Close()
+		err := stream.Close()
+		require.NoError(t, err)
 	}
 
 	testHandshakeMsg := &BlockAnnounceHandshake{

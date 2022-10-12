@@ -15,10 +15,10 @@ sync = ""
 digest = ""
 
 [init]
-genesis = "./chain/dev/genesis-spec.json"
+genesis = "./chain/dev/genesis.json"
 
 [account]
-key = "alice"
+key = ""
 unlock = ""
 
 [core]
@@ -37,11 +37,21 @@ enabled = true
 ws = true
 port = 8545
 host = "localhost"
-modules = ["system", "author", "chain", "state", "rpc", "grandpa", "offchain", "childstate", "syncstate", "payment"]
+modules = [
+    "system",
+    "author",
+    "chain",
+    "state",
+    "rpc",
+    "grandpa",
+    "offchain",
+    "childstate",
+    "syncstate",
+    "payment",
+]
 ws-port = 8546
 
 [pprof]
-enabled = false
 listening-address = "localhost:6060"
 block-rate = 0
 mutex-rate = 0

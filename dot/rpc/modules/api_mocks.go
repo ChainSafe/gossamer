@@ -4,81 +4,74 @@
 package modules
 
 import (
+	"testing"
+
 	modulesmocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	runtimemocks "github.com/ChainSafe/gossamer/lib/runtime/mocks"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/stretchr/testify/mock"
 )
 
 // NewMockeryStorageAPI creates and return an rpc StorageAPI interface mock
-func NewMockeryStorageAPI() *modulesmocks.StorageAPI {
-	m := new(modulesmocks.StorageAPI)
-	m.On("GetStorage", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]uint8")).Return(nil, nil)
+func NewMockeryStorageAPI(t *testing.T) *modulesmocks.StorageAPI {
+	m := modulesmocks.NewStorageAPI(t)
+	m.On("GetStorage", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]uint8")).Return(nil, nil).Maybe()
 	m.On("GetStorageFromChild", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]uint8"),
-		mock.AnythingOfType("[]uint8")).Return(nil, nil)
-	m.On("Entries", mock.AnythingOfType("*common.Hash")).Return(nil, nil)
-	m.On("GetStorageByBlockHash", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("[]uint8")).Return(nil, nil)
-	m.On("RegisterStorageObserver", mock.Anything)
-	m.On("UnregisterStorageObserver", mock.Anything)
-	m.On("GetStateRootFromBlock", mock.AnythingOfType("*common.Hash")).Return(nil, nil)
-	m.On("GetKeysWithPrefix", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]uint8")).Return(nil, nil)
+		mock.AnythingOfType("[]uint8")).Return(nil, nil).Maybe()
+	m.On("Entries", mock.AnythingOfType("*common.Hash")).Return(nil, nil).Maybe()
+	m.On("GetStorageByBlockHash", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("[]uint8")).
+		Return(nil, nil).Maybe()
+	m.On("RegisterStorageObserver", mock.Anything).Maybe()
+	m.On("UnregisterStorageObserver", mock.Anything).Maybe()
+	m.On("GetStateRootFromBlock", mock.AnythingOfType("*common.Hash")).Return(nil, nil).Maybe()
+	m.On("GetKeysWithPrefix", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]uint8")).Return(nil, nil).Maybe()
 	return m
 }
 
 // NewMockeryBlockAPI creates and return an rpc BlockAPI interface mock
-func NewMockeryBlockAPI() *modulesmocks.BlockAPI {
-	m := new(modulesmocks.BlockAPI)
-	m.On("GetHeader", mock.AnythingOfType("common.Hash")).Return(nil, nil)
-	m.On("BestBlockHash").Return(common.Hash{})
-	m.On("GetBlockByHash", mock.AnythingOfType("common.Hash")).Return(nil, nil)
-	m.On("GetHashByNumber", mock.AnythingOfType("uint")).Return(nil, nil)
-	m.On("GetFinalisedHash", mock.AnythingOfType("uint64"), mock.AnythingOfType("uint64")).Return(common.Hash{}, nil)
-	m.On("GetHighestFinalisedHash").Return(common.Hash{}, nil)
-	m.On("GetImportedBlockNotifierChannel").Return(make(chan *types.Block, 5))
-	m.On("FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block"))
-	m.On("GetFinalisedNotifierChannel").Return(make(chan *types.FinalisationInfo, 5))
-	m.On("FreeFinalisedNotifierChannel", mock.AnythingOfType("chan *types.FinalisationInfo"))
-	m.On("GetJustification", mock.AnythingOfType("common.Hash")).Return(make([]byte, 10), nil)
-	m.On("HasJustification", mock.AnythingOfType("common.Hash")).Return(true, nil)
+func NewMockeryBlockAPI(t *testing.T) *modulesmocks.BlockAPI {
+	m := modulesmocks.NewBlockAPI(t)
+	m.On("GetHeader", mock.AnythingOfType("common.Hash")).Return(nil, nil).Maybe()
+	m.On("BestBlockHash").Return(common.Hash{}).Maybe()
+	m.On("GetBlockByHash", mock.AnythingOfType("common.Hash")).Return(nil, nil).Maybe()
+	m.On("GetHashByNumber", mock.AnythingOfType("uint")).Return(nil, nil).Maybe()
+	m.On("GetFinalisedHash", mock.AnythingOfType("uint64"), mock.AnythingOfType("uint64")).
+		Return(common.Hash{}, nil).Maybe()
+	m.On("GetHighestFinalisedHash").Return(common.Hash{}, nil).Maybe()
+	m.On("GetImportedBlockNotifierChannel").Return(make(chan *types.Block, 5)).Maybe()
+	m.On("FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block")).Maybe()
+	m.On("GetFinalisedNotifierChannel").Return(make(chan *types.FinalisationInfo, 5)).Maybe()
+	m.On("FreeFinalisedNotifierChannel", mock.AnythingOfType("chan *types.FinalisationInfo")).Maybe()
+	m.On("GetJustification", mock.AnythingOfType("common.Hash")).Return(make([]byte, 10), nil).Maybe()
+	m.On("HasJustification", mock.AnythingOfType("common.Hash")).Return(true, nil).Maybe()
 	m.On("SubChain", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash")).
-		Return(make([]common.Hash, 0), nil)
-	m.On("RegisterRuntimeUpdatedChannel", mock.AnythingOfType("chan<- runtime.Version")).Return(uint32(0), nil)
+		Return(make([]common.Hash, 0), nil).Maybe()
+	m.On("RegisterRuntimeUpdatedChannel", mock.AnythingOfType("chan<- runtime.Version")).
+		Return(uint32(0), nil).Maybe()
 
 	return m
 }
 
 // NewMockTransactionStateAPI creates and return an rpc TransactionStateAPI interface mock
-func NewMockTransactionStateAPI() *modulesmocks.TransactionStateAPI {
-	m := new(modulesmocks.TransactionStateAPI)
-	m.On("FreeStatusNotifierChannel", mock.AnythingOfType("chan transaction.Status"))
-	m.On("GetStatusNotifierChannel", mock.AnythingOfType("types.Extrinsic")).Return(make(chan transaction.Status))
-	m.On("AddToPool", mock.AnythingOfType("transaction.ValidTransaction")).Return(common.Hash{})
+func NewMockTransactionStateAPI(t *testing.T) *modulesmocks.TransactionStateAPI {
+	m := modulesmocks.NewTransactionStateAPI(t)
+	m.On("FreeStatusNotifierChannel", mock.AnythingOfType("chan transaction.Status")).Maybe()
+	m.On("GetStatusNotifierChannel", mock.AnythingOfType("types.Extrinsic")).Return(make(chan transaction.Status)).Maybe()
+	m.On("AddToPool", mock.AnythingOfType("transaction.ValidTransaction")).Return(common.Hash{}).Maybe()
 	return m
 }
 
 // NewMockCoreAPI creates and return an rpc CoreAPI interface mock
-func NewMockCoreAPI() *modulesmocks.CoreAPI {
-	m := new(modulesmocks.CoreAPI)
-	m.On("InsertKey", mock.AnythingOfType("crypto.Keypair"), mock.AnythingOfType("string")).Return(nil)
-	m.On("HasKey", mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(false, nil)
-	m.On("GetRuntimeVersion", mock.AnythingOfType("*common.Hash")).Return(NewMockVersion(), nil)
-	m.On("IsBlockProducer").Return(false)
-	m.On("HandleSubmittedExtrinsic", mock.AnythingOfType("types.Extrinsic")).Return(nil)
-	m.On("GetMetadata", mock.AnythingOfType("*common.Hash")).Return(nil, nil)
-	return m
-}
-
-// NewMockVersion creates and returns an runtime Version interface mock
-func NewMockVersion() *runtimemocks.Version {
-	m := new(runtimemocks.Version)
-	m.On("SpecName").Return([]byte(`mock-spec`))
-	m.On("ImplName").Return(nil)
-	m.On("AuthoringVersion").Return(uint32(0))
-	m.On("SpecVersion").Return(uint32(0))
-	m.On("ImplVersion").Return(uint32(0))
-	m.On("TransactionVersion").Return(uint32(0))
-	m.On("APIItems").Return(nil)
+func NewMockCoreAPI(t *testing.T) *modulesmocks.CoreAPI {
+	m := modulesmocks.NewCoreAPI(t)
+	m.On("InsertKey", mock.AnythingOfType("crypto.Keypair"), mock.AnythingOfType("string")).Return(nil).Maybe()
+	m.On("HasKey", mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(false, nil).Maybe()
+	m.On("GetRuntimeVersion", mock.AnythingOfType("*common.Hash")).
+		Return(runtime.Version{SpecName: []byte(`mock-spec`)}, nil).Maybe()
+	m.On("IsBlockProducer").Return(false).Maybe()
+	m.On("HandleSubmittedExtrinsic", mock.AnythingOfType("types.Extrinsic")).Return(nil).Maybe()
+	m.On("GetMetadata", mock.AnythingOfType("*common.Hash")).Return(nil, nil).Maybe()
 	return m
 }

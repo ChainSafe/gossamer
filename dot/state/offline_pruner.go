@@ -27,7 +27,7 @@ type OfflinePruner struct {
 	blockState     *BlockState
 	bloom          *bloomState
 	bestBlockHash  common.Hash
-	retainBlockNum int64
+	retainBlockNum uint32
 
 	inputDBPath  string
 	prunedDBPath string
@@ -35,16 +35,14 @@ type OfflinePruner struct {
 
 // NewOfflinePruner creates an instance of OfflinePruner.
 func NewOfflinePruner(inputDBPath, prunedDBPath string, bloomSize uint64,
-	retainBlockNum int64) (*OfflinePruner, error) {
+	retainBlockNum uint32) (*OfflinePruner, error) {
 	db, err := utils.LoadChainDB(inputDBPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load DB %w", err)
 	}
 
-	tries, err := NewTries(trie.NewEmptyTrie())
-	if err != nil {
-		return nil, fmt.Errorf("cannot setup tries: %w", err)
-	}
+	tries := NewTries()
+	tries.SetEmptyTrie()
 
 	// create blockState state
 	// NewBlockState on pruner execution does not use telemetry
@@ -107,7 +105,7 @@ func (p *OfflinePruner) SetBloomFilter() (err error) {
 	}
 
 	latestBlockNum := header.Number
-	keys := make(map[common.Hash]struct{})
+	merkleValues := make(map[string]struct{})
 
 	logger.Infof("Latest block number is %d", latestBlockNum)
 
@@ -123,7 +121,7 @@ func (p *OfflinePruner) SetBloomFilter() (err error) {
 			return err
 		}
 
-		tr.PopulateNodeHashes(tr.RootNode(), keys)
+		tr.PopulateMerkleValues(tr.RootNode(), merkleValues)
 
 		// get parent header of current block
 		header, err = p.blockState.GetHeader(header.ParentHash)
@@ -133,14 +131,14 @@ func (p *OfflinePruner) SetBloomFilter() (err error) {
 		blockNum = header.Number
 	}
 
-	for key := range keys {
-		err = p.bloom.put(key.ToBytes())
+	for key := range merkleValues {
+		err = p.bloom.put([]byte(key))
 		if err != nil {
 			return err
 		}
 	}
 
-	logger.Infof("Total keys added in bloom filter: %d", len(keys))
+	logger.Infof("Total keys added in bloom filter: %d", len(merkleValues))
 	return nil
 }
 

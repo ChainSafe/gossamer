@@ -4,8 +4,6 @@
 package runtime
 
 import (
-	"github.com/ChainSafe/gossamer/internal/log"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime/offchain"
@@ -47,18 +45,6 @@ func (n *NodeStorage) GetPersistent(k []byte) ([]byte, error) {
 	return n.PersistentStorage.Get(k)
 }
 
-// InstanceConfig represents a runtime instance configuration
-type InstanceConfig struct {
-	Storage     Storage
-	Keystore    *keystore.GlobalKeystore
-	LogLvl      log.Level
-	Role        common.Roles
-	NodeStorage NodeStorage
-	Network     BasicNetwork
-	Transaction TransactionState
-	CodeHash    common.Hash
-}
-
 // Context is the context for the wasm interpreter's imported functions
 type Context struct {
 	Storage         Storage
@@ -70,24 +56,5 @@ type Context struct {
 	Transaction     TransactionState
 	SigVerifier     *crypto.SignatureVerifier
 	OffchainHTTPSet *offchain.HTTPSet
-}
-
-// NewValidateTransactionError returns an error based on a return value from TaggedTransactionQueueValidateTransaction
-func NewValidateTransactionError(res []byte) error {
-	// confirm we have an error
-	if res[0] == 0 {
-		return nil
-	}
-
-	if res[1] == 0 {
-		// transaction is invalid
-		return ErrInvalidTransaction
-	}
-
-	if res[1] == 1 {
-		// transaction validity can't be determined
-		return ErrUnknownTransaction
-	}
-
-	return ErrCannotValidateTx
+	Version         Version
 }

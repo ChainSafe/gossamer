@@ -19,7 +19,7 @@ help: Makefile
 
 .PHONY: lint
 lint:
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.47
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.48
 	golangci-lint run
 
 clean:

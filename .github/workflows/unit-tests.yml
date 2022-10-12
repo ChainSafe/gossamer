@@ -66,13 +66,19 @@ jobs:
           chmod +x $HOME/.local/bin/subkey
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
+      - name: Run devnet unit tests
+        run: |
+          cd devnet && \
+          go test -timeout=10m ./... && \
+          cd ..
+
       - name: Run unit tests
         run: go test -short -coverprofile=coverage.out -covermode=atomic -timeout=45m ./...
 
       - name: Test State - Race
         run: make test-state-race
 
-      - uses: codecov/codecov-action@v3.1.0
+      - uses: codecov/codecov-action@v3.1.1
         with:
           if_ci_failed: success
           informational: true

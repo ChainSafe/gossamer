@@ -44,21 +44,13 @@ type VerificationManager struct {
 }
 
 // NewVerificationManager returns a new NewVerificationManager
-func NewVerificationManager(blockState BlockState, epochState EpochState) (*VerificationManager, error) {
-	if blockState == nil {
-		return nil, ErrNilBlockState
-	}
-
-	if epochState == nil {
-		return nil, errNilEpochState
-	}
-
+func NewVerificationManager(blockState BlockState, epochState EpochState) *VerificationManager {
 	return &VerificationManager{
 		epochState: epochState,
 		blockState: blockState,
 		epochInfo:  make(map[uint64]*verifierInfo),
 		onDisabled: make(map[uint64]map[uint32][]*onDisabledInfo),
-	}, nil
+	}
 }
 
 // SetOnDisabled sets the BABE authority with the given index as disabled for the rest of the epoch
@@ -188,10 +180,7 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 
 	v.lock.Unlock()
 
-	verifier, err := newVerifier(v.blockState, epoch, info)
-	if err != nil {
-		return fmt.Errorf("failed to create new BABE verifier: %w", err)
-	}
+	verifier := newVerifier(v.blockState, epoch, info)
 
 	return verifier.verifyAuthorshipRight(header)
 }
@@ -231,11 +220,7 @@ type verifier struct {
 }
 
 // newVerifier returns a Verifier for the epoch described by the given descriptor
-func newVerifier(blockState BlockState, epoch uint64, info *verifierInfo) (*verifier, error) {
-	if blockState == nil {
-		return nil, ErrNilBlockState
-	}
-
+func newVerifier(blockState BlockState, epoch uint64, info *verifierInfo) *verifier {
 	return &verifier{
 		blockState:     blockState,
 		epoch:          epoch,
@@ -243,9 +228,10 @@ func newVerifier(blockState BlockState, epoch uint64, info *verifierInfo) (*veri
 		randomness:     info.randomness,
 		threshold:      info.threshold,
 		secondarySlots: info.secondarySlots,
-	}, nil
+	}
 }
 
+//gocyclo:ignore
 // verifyAuthorshipRight verifies that the authority that produced a block was authorized to produce it.
 func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	// header should have 2 digest items (possibly more in the future)
@@ -260,14 +246,22 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	preDigestItem := header.Digest.Types[0]
 	sealItem := header.Digest.Types[len(header.Digest.Types)-1]
 
-	preDigest, ok := preDigestItem.Value().(types.PreRuntimeDigest)
+	preDigestItemValue, err := preDigestItem.Value()
+	if err != nil {
+		return fmt.Errorf("getting pre digest item value: %w", err)
+	}
+	preDigest, ok := preDigestItemValue.(types.PreRuntimeDigest)
 	if !ok {
-		return fmt.Errorf("%w: got %T", types.ErrNoFirstPreDigest, preDigestItem.Value())
+		return fmt.Errorf("%w: got %T", types.ErrNoFirstPreDigest, preDigestItemValue)
 	}
 
-	seal, ok := sealItem.Value().(types.SealDigest)
+	sealItemValue, err := sealItem.Value()
+	if err != nil {
+		return fmt.Errorf("getting seal item value: %w", err)
+	}
+	seal, ok := sealItemValue.(types.SealDigest)
 	if !ok {
-		return fmt.Errorf("%w: got %T", errLastDigestItemNotSeal, sealItem.Value())
+		return fmt.Errorf("%w: got %T", errLastDigestItemNotSeal, sealItemValue)
 	}
 
 	babePreDigest, err := b.verifyPreRuntimeDigest(&preDigest)
@@ -292,7 +286,11 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	// remove seal before verifying signature
 	h := types.NewDigest()
 	for _, val := range header.Digest.Types[:len(header.Digest.Types)-1] {
-		err = h.Add(val.Value())
+		digestValue, err := val.Value()
+		if err != nil {
+			return fmt.Errorf("getting digest type value: %w", err)
+		}
+		err = h.Add(digestValue)
 		if err != nil {
 			return err
 		}
@@ -300,7 +298,11 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 
 	header.Digest = h
 	defer func() {
-		if err = header.Digest.Add(sealItem.Value()); err != nil {
+		sealItemVal, err := sealItem.Value()
+		if err != nil {
+			logger.Errorf("getting seal item value: %s", err)
+		}
+		if err = header.Digest.Add(sealItemVal); err != nil {
 			logger.Errorf("failed to re-add seal to digest: %s", err)
 		}
 	}()
@@ -488,7 +490,11 @@ func getAuthorityIndex(header *types.Header) (uint32, error) {
 		return 0, fmt.Errorf("no digest provided")
 	}
 
-	preDigest, ok := header.Digest.Types[0].Value().(types.PreRuntimeDigest)
+	digestValue, err := header.Digest.Types[0].Value()
+	if err != nil {
+		return 0, fmt.Errorf("getting first digest type value: %w", err)
+	}
+	preDigest, ok := digestValue.(types.PreRuntimeDigest)
 	if !ok {
 		return 0, fmt.Errorf("first digest item is not pre-runtime digest")
 	}

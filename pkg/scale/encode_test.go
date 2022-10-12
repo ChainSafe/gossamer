@@ -4,11 +4,73 @@
 package scale
 
 import (
+	"bytes"
 	"math/big"
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func Test_NewEncoder(t *testing.T) {
+	t.Parallel()
+
+	cache.Lock()
+	defer cache.Unlock()
+
+	writer := bytes.NewBuffer(nil)
+	encoder := NewEncoder(writer)
+
+	expectedEncoder := &Encoder{
+		encodeState: encodeState{
+			Writer:                 writer,
+			fieldScaleIndicesCache: cache,
+		},
+	}
+
+	assert.Equal(t, expectedEncoder, encoder)
+}
+
+func Test_Encoder_Encode(t *testing.T) {
+	t.Parallel()
+
+	buffer := bytes.NewBuffer(nil)
+	encoder := NewEncoder(buffer)
+
+	err := encoder.Encode(uint16(1))
+	require.NoError(t, err)
+
+	err = encoder.Encode(uint8(2))
+	require.NoError(t, err)
+
+	array := [2]byte{4, 5}
+	err = encoder.Encode(array)
+	require.NoError(t, err)
+
+	type T struct {
+		Array [2]byte
+	}
+
+	someStruct := T{Array: [2]byte{6, 7}}
+	err = encoder.Encode(someStruct)
+	require.NoError(t, err)
+
+	structSlice := []T{{Array: [2]byte{8, 9}}}
+	err = encoder.Encode(structSlice)
+	require.NoError(t, err)
+
+	written := buffer.Bytes()
+	expectedWritten := []byte{
+		1, 0,
+		2,
+		4, 5,
+		6, 7,
+		4, 8, 9,
+	}
+	assert.Equal(t, expectedWritten, written)
+}
 
 type test struct {
 	name    string
@@ -113,6 +175,11 @@ var (
 			name: "int(1)",
 			in:   int(1),
 			want: []byte{0x04},
+		},
+		{
+			name: "int(42)",
+			in:   int(42),
+			want: []byte{0xa8},
 		},
 		{
 			name: "int(16383)",
@@ -398,7 +465,8 @@ var (
 		"We love you! We believe in open source as wonderful form of giving.", // n = 67
 		strings.Repeat("We need a longer string to test with. "+
 			"Let's multiple this several times.", 230), // n = 72 * 230 = 16560
-		"Let's test some special ASCII characters: ~  · © ÿ", // n = 55 (UTF-8 encoding versus n = 51 with ASCII encoding)
+		"Let's test some special ASCII characters: ~ \u0080 · © ÿ",
+		// n = 55 (UTF-8 encoding versus n = 51 with ASCII encoding)
 	}
 	stringTests = tests{
 		{
@@ -758,9 +826,11 @@ var (
 			want: []byte{0x10, 0x03, 0x00, 0x00, 0x00, 0x40, 0x08, 0x0c, 0x10},
 		},
 		{
-			name: "[]int{1 << 32, 2, 3, 1 << 32}",
-			in:   []int{1 << 32, 2, 3, 1 << 32},
-			want: []byte{0x10, 0x07, 0x00, 0x00, 0x00, 0x00, 0x01, 0x08, 0x0c, 0x07, 0x00, 0x00, 0x00, 0x00, 0x01},
+			name: "[]int64{1 << 32, 2, 3, 1 << 32}",
+			in:   []int64{1 << 32, 2, 3, 1 << 32},
+			want: []byte{0x10, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00,
+				0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
+				0x00},
 		},
 		{
 			name: "[]bool{true, false, true}",
@@ -801,9 +871,11 @@ var (
 			want: []byte{0x03, 0x00, 0x00, 0x00, 0x40, 0x08, 0x0c, 0x10},
 		},
 		{
-			name: "[4]int{1 << 32, 2, 3, 1 << 32}",
-			in:   [4]int{1 << 32, 2, 3, 1 << 32},
-			want: []byte{0x07, 0x00, 0x00, 0x00, 0x00, 0x01, 0x08, 0x0c, 0x07, 0x00, 0x00, 0x00, 0x00, 0x01},
+			name: "[4]int64{1 << 32, 2, 3, 1 << 32}",
+			in:   [4]int64{1 << 32, 2, 3, 1 << 32},
+			want: []byte{0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00,
+				0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
+				0x00},
 		},
 		{
 			name: "[3]bool{true, false, true}",
@@ -869,12 +941,15 @@ type MyStructWithPrivate struct {
 func Test_encodeState_encodeFixedWidthInteger(t *testing.T) {
 	for _, tt := range fixedWidthIntegerTests {
 		t.Run(tt.name, func(t *testing.T) {
-			es := &encodeState{}
+			buffer := bytes.NewBuffer(nil)
+			es := &encodeState{
+				Writer: buffer,
+			}
 			if err := es.marshal(tt.in); (err != nil) != tt.wantErr {
 				t.Errorf("encodeState.encodeFixedWidthInt() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if !reflect.DeepEqual(es.Buffer.Bytes(), tt.want) {
-				t.Errorf("encodeState.encodeFixedWidthInt() = %v, want %v", es.Buffer.Bytes(), tt.want)
+			if !reflect.DeepEqual(buffer.Bytes(), tt.want) {
+				t.Errorf("encodeState.encodeFixedWidthInt() = %v, want %v", buffer.Bytes(), tt.want)
 			}
 		})
 	}
@@ -883,12 +958,15 @@ func Test_encodeState_encodeFixedWidthInteger(t *testing.T) {
 func Test_encodeState_encodeVariableWidthIntegers(t *testing.T) {
 	for _, tt := range variableWidthIntegerTests {
 		t.Run(tt.name, func(t *testing.T) {
-			es := &encodeState{}
+			buffer := bytes.NewBuffer(nil)
+			es := &encodeState{
+				Writer: buffer,
+			}
 			if err := es.marshal(tt.in); (err != nil) != tt.wantErr {
 				t.Errorf("encodeState.encodeFixedWidthInt() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if !reflect.DeepEqual(es.Buffer.Bytes(), tt.want) {
-				t.Errorf("encodeState.encodeFixedWidthInt() = %v, want %v", es.Buffer.Bytes(), tt.want)
+			if !reflect.DeepEqual(buffer.Bytes(), tt.want) {
+				t.Errorf("encodeState.encodeFixedWidthInt() = %v, want %v", buffer.Bytes(), tt.want)
 			}
 		})
 	}
@@ -897,12 +975,15 @@ func Test_encodeState_encodeVariableWidthIntegers(t *testing.T) {
 func Test_encodeState_encodeBigInt(t *testing.T) {
 	for _, tt := range bigIntTests {
 		t.Run(tt.name, func(t *testing.T) {
-			es := &encodeState{}
+			buffer := bytes.NewBuffer(nil)
+			es := &encodeState{
+				Writer: buffer,
+			}
 			if err := es.marshal(tt.in); (err != nil) != tt.wantErr {
 				t.Errorf("encodeState.encodeBigInt() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if !reflect.DeepEqual(es.Buffer.Bytes(), tt.want) {
-				t.Errorf("encodeState.encodeBigInt() = %v, want %v", es.Buffer.Bytes(), tt.want)
+			if !reflect.DeepEqual(buffer.Bytes(), tt.want) {
+				t.Errorf("encodeState.encodeBigInt() = %v, want %v", buffer.Bytes(), tt.want)
 			}
 		})
 	}
@@ -911,12 +992,15 @@ func Test_encodeState_encodeBigInt(t *testing.T) {
 func Test_encodeState_encodeUint128(t *testing.T) {
 	for _, tt := range uint128Tests {
 		t.Run(tt.name, func(t *testing.T) {
-			es := &encodeState{}
+			buffer := bytes.NewBuffer(nil)
+			es := &encodeState{
+				Writer: buffer,
+			}
 			if err := es.marshal(tt.in); (err != nil) != tt.wantErr {
 				t.Errorf("encodeState.encodeUin128() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if !reflect.DeepEqual(es.Buffer.Bytes(), tt.want) {
-				t.Errorf("encodeState.encodeUin128() = %v, want %v", es.Buffer.Bytes(), tt.want)
+			if !reflect.DeepEqual(buffer.Bytes(), tt.want) {
+				t.Errorf("encodeState.encodeUin128() = %v, want %v", buffer.Bytes(), tt.want)
 			}
 		})
 	}
@@ -925,12 +1009,16 @@ func Test_encodeState_encodeUint128(t *testing.T) {
 func Test_encodeState_encodeBytes(t *testing.T) {
 	for _, tt := range stringTests {
 		t.Run(tt.name, func(t *testing.T) {
-			es := &encodeState{}
+
+			buffer := bytes.NewBuffer(nil)
+			es := &encodeState{
+				Writer: buffer,
+			}
 			if err := es.marshal(tt.in); (err != nil) != tt.wantErr {
 				t.Errorf("encodeState.encodeBytes() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if !reflect.DeepEqual(es.Buffer.Bytes(), tt.want) {
-				t.Errorf("encodeState.encodeBytes() = %v, want %v", es.Buffer.Bytes(), tt.want)
+			if !reflect.DeepEqual(buffer.Bytes(), tt.want) {
+				t.Errorf("encodeState.encodeBytes() = %v, want %v", buffer.Bytes(), tt.want)
 			}
 		})
 	}
@@ -939,12 +1027,16 @@ func Test_encodeState_encodeBytes(t *testing.T) {
 func Test_encodeState_encodeBool(t *testing.T) {
 	for _, tt := range boolTests {
 		t.Run(tt.name, func(t *testing.T) {
-			es := &encodeState{}
+
+			buffer := bytes.NewBuffer(nil)
+			es := &encodeState{
+				Writer: buffer,
+			}
 			if err := es.marshal(tt.in); (err != nil) != tt.wantErr {
 				t.Errorf("encodeState.encodeBool() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if !reflect.DeepEqual(es.Buffer.Bytes(), tt.want) {
-				t.Errorf("encodeState.encodeBool() = %v, want %v", es.Buffer.Bytes(), tt.want)
+			if !reflect.DeepEqual(buffer.Bytes(), tt.want) {
+				t.Errorf("encodeState.encodeBool() = %v, want %v", buffer.Bytes(), tt.want)
 			}
 		})
 	}
@@ -953,12 +1045,16 @@ func Test_encodeState_encodeBool(t *testing.T) {
 func Test_encodeState_encodeStruct(t *testing.T) {
 	for _, tt := range structTests {
 		t.Run(tt.name, func(t *testing.T) {
-			es := &encodeState{fieldScaleIndicesCache: cache}
+			buffer := bytes.NewBuffer(nil)
+			es := &encodeState{
+				Writer:                 buffer,
+				fieldScaleIndicesCache: cache,
+			}
 			if err := es.marshal(tt.in); (err != nil) != tt.wantErr {
 				t.Errorf("encodeState.encodeStruct() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if !reflect.DeepEqual(es.Buffer.Bytes(), tt.want) {
-				t.Errorf("encodeState.encodeStruct() = %v, want %v", es.Buffer.Bytes(), tt.want)
+			if !reflect.DeepEqual(buffer.Bytes(), tt.want) {
+				t.Errorf("encodeState.encodeStruct() = %v, want %v", buffer.Bytes(), tt.want)
 			}
 		})
 	}
@@ -967,12 +1063,16 @@ func Test_encodeState_encodeStruct(t *testing.T) {
 func Test_encodeState_encodeSlice(t *testing.T) {
 	for _, tt := range sliceTests {
 		t.Run(tt.name, func(t *testing.T) {
-			es := &encodeState{fieldScaleIndicesCache: cache}
+			buffer := bytes.NewBuffer(nil)
+			es := &encodeState{
+				Writer:                 buffer,
+				fieldScaleIndicesCache: cache,
+			}
 			if err := es.marshal(tt.in); (err != nil) != tt.wantErr {
 				t.Errorf("encodeState.encodeSlice() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if !reflect.DeepEqual(es.Buffer.Bytes(), tt.want) {
-				t.Errorf("encodeState.encodeSlice() = %v, want %v", es.Buffer.Bytes(), tt.want)
+			if !reflect.DeepEqual(buffer.Bytes(), tt.want) {
+				t.Errorf("encodeState.encodeSlice() = %v, want %v", buffer.Bytes(), tt.want)
 			}
 		})
 	}
@@ -981,12 +1081,16 @@ func Test_encodeState_encodeSlice(t *testing.T) {
 func Test_encodeState_encodeArray(t *testing.T) {
 	for _, tt := range arrayTests {
 		t.Run(tt.name, func(t *testing.T) {
-			es := &encodeState{fieldScaleIndicesCache: cache}
+			buffer := bytes.NewBuffer(nil)
+			es := &encodeState{
+				Writer:                 buffer,
+				fieldScaleIndicesCache: cache,
+			}
 			if err := es.marshal(tt.in); (err != nil) != tt.wantErr {
 				t.Errorf("encodeState.encodeArray() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if !reflect.DeepEqual(es.Buffer.Bytes(), tt.want) {
-				t.Errorf("encodeState.encodeArray() = %v, want %v", es.Buffer.Bytes(), tt.want)
+			if !reflect.DeepEqual(buffer.Bytes(), tt.want) {
+				t.Errorf("encodeState.encodeArray() = %v, want %v", buffer.Bytes(), tt.want)
 			}
 		})
 	}
@@ -1007,12 +1111,16 @@ func Test_marshal_optionality(t *testing.T) {
 	}
 	for _, tt := range ptrTests {
 		t.Run(tt.name, func(t *testing.T) {
-			es := &encodeState{fieldScaleIndicesCache: cache}
+			buffer := bytes.NewBuffer(nil)
+			es := &encodeState{
+				Writer:                 buffer,
+				fieldScaleIndicesCache: cache,
+			}
 			if err := es.marshal(tt.in); (err != nil) != tt.wantErr {
 				t.Errorf("encodeState.encodeFixedWidthInt() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if !reflect.DeepEqual(es.Buffer.Bytes(), tt.want) {
-				t.Errorf("encodeState.encodeFixedWidthInt() = %v, want %v", es.Buffer.Bytes(), tt.want)
+			if !reflect.DeepEqual(buffer.Bytes(), tt.want) {
+				t.Errorf("encodeState.encodeFixedWidthInt() = %v, want %v", buffer.Bytes(), tt.want)
 			}
 		})
 	}
@@ -1043,12 +1151,16 @@ func Test_marshal_optionality_nil_cases(t *testing.T) {
 	}
 	for _, tt := range ptrTests {
 		t.Run(tt.name, func(t *testing.T) {
-			es := &encodeState{fieldScaleIndicesCache: cache}
+			buffer := bytes.NewBuffer(nil)
+			es := &encodeState{
+				Writer:                 buffer,
+				fieldScaleIndicesCache: cache,
+			}
 			if err := es.marshal(tt.in); (err != nil) != tt.wantErr {
 				t.Errorf("encodeState.encodeFixedWidthInt() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if !reflect.DeepEqual(es.Buffer.Bytes(), tt.want) {
-				t.Errorf("encodeState.encodeFixedWidthInt() = %v, want %v", es.Buffer.Bytes(), tt.want)
+			if !reflect.DeepEqual(buffer.Bytes(), tt.want) {
+				t.Errorf("encodeState.encodeFixedWidthInt() = %v, want %v", buffer.Bytes(), tt.want)
 			}
 		})
 	}

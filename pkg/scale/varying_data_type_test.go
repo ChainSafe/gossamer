@@ -4,6 +4,7 @@
 package scale
 
 import (
+	"bytes"
 	"math/big"
 	"reflect"
 	"testing"
@@ -293,13 +294,17 @@ var varyingDataTypeTests = tests{
 func Test_encodeState_encodeVaryingDataType(t *testing.T) {
 	for _, tt := range varyingDataTypeTests {
 		t.Run(tt.name, func(t *testing.T) {
-			es := &encodeState{fieldScaleIndicesCache: cache}
+			buffer := bytes.NewBuffer(nil)
+			es := &encodeState{
+				Writer:                 buffer,
+				fieldScaleIndicesCache: cache,
+			}
 			vdt := tt.in.(VaryingDataType)
 			if err := es.marshal(vdt); (err != nil) != tt.wantErr {
 				t.Errorf("encodeState.marshal() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if !reflect.DeepEqual(es.Buffer.Bytes(), tt.want) {
-				t.Errorf("encodeState.marshal() = %v, want %v", es.Buffer.Bytes(), tt.want)
+			if !reflect.DeepEqual(buffer.Bytes(), tt.want) {
+				t.Errorf("encodeState.marshal() = %v, want %v", buffer.Bytes(), tt.want)
 			}
 		})
 	}
@@ -318,7 +323,17 @@ func Test_decodeState_decodeVaryingDataType(t *testing.T) {
 				return
 			}
 			vdt := tt.in.(VaryingDataType)
-			diff := cmp.Diff(dst.Value(), vdt.Value(), cmpopts.IgnoreUnexported(big.Int{}, VDTValue2{}, MyStructWithIgnore{}))
+			dstVal, err := dst.Value()
+			if err != nil {
+				t.Errorf("%v", err)
+				return
+			}
+			vdtVal, err := vdt.Value()
+			if err != nil {
+				t.Errorf("%v", err)
+				return
+			}
+			diff := cmp.Diff(dstVal, vdtVal, cmpopts.IgnoreUnexported(big.Int{}, VDTValue2{}, MyStructWithIgnore{}))
 			if diff != "" {
 				t.Errorf("decodeState.unmarshal() = %s", diff)
 			}
@@ -329,14 +344,18 @@ func Test_decodeState_decodeVaryingDataType(t *testing.T) {
 func Test_encodeState_encodeCustomVaryingDataType(t *testing.T) {
 	for _, tt := range varyingDataTypeTests {
 		t.Run(tt.name, func(t *testing.T) {
-			es := &encodeState{fieldScaleIndicesCache: cache}
+			buffer := bytes.NewBuffer(nil)
+			es := &encodeState{
+				Writer:                 buffer,
+				fieldScaleIndicesCache: cache,
+			}
 			vdt := tt.in.(VaryingDataType)
 			cvdt := customVDT(vdt)
 			if err := es.marshal(cvdt); (err != nil) != tt.wantErr {
 				t.Errorf("encodeState.encodeStruct() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if !reflect.DeepEqual(es.Buffer.Bytes(), tt.want) {
-				t.Errorf("encodeState.encodeStruct() = %v, want %v", es.Buffer.Bytes(), tt.want)
+			if !reflect.DeepEqual(buffer.Bytes(), tt.want) {
+				t.Errorf("encodeState.encodeStruct() = %v, want %v", buffer.Bytes(), tt.want)
 			}
 		})
 	}
@@ -357,7 +376,17 @@ func Test_decodeState_decodeCustomVaryingDataType(t *testing.T) {
 
 			dstVDT := reflect.ValueOf(tt.in).Convert(reflect.TypeOf(VaryingDataType{})).Interface().(VaryingDataType)
 			inVDT := reflect.ValueOf(tt.in).Convert(reflect.TypeOf(VaryingDataType{})).Interface().(VaryingDataType)
-			diff := cmp.Diff(dstVDT.Value(), inVDT.Value(),
+			dstVDTVal, err := dstVDT.Value()
+			if err != nil {
+				t.Errorf("%v", err)
+				return
+			}
+			inVDTVal, err := inVDT.Value()
+			if err != nil {
+				t.Errorf("%v", err)
+				return
+			}
+			diff := cmp.Diff(dstVDTVal, inVDTVal,
 				cmpopts.IgnoreUnexported(big.Int{}, VDTValue2{}, MyStructWithIgnore{}))
 			if diff != "" {
 				t.Errorf("decodeState.unmarshal() = %s", diff)
@@ -521,12 +550,11 @@ func TestVaryingDataTypeSlice_Add(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			vdts := &tt.vdts
-			if err := vdts.Add(tt.args.values...); (err != nil) != tt.wantErr {
+			if err := tt.vdts.Add(tt.args.values...); (err != nil) != tt.wantErr {
 				t.Errorf("VaryingDataTypeSlice.Add() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if !reflect.DeepEqual(vdts.Types, tt.wantValues) {
-				t.Errorf("NewVaryingDataType() = %v, want %v", vdts.Types, tt.wantValues)
+			if !reflect.DeepEqual(tt.vdts.Types, tt.wantValues) {
+				t.Errorf("NewVaryingDataType() = %v, want %v", tt.vdts.Types, tt.wantValues)
 			}
 		})
 	}

@@ -63,7 +63,7 @@ func concatBytes(slices [][]byte) (concatenated []byte) {
 // deterministic unit tests.
 func generateBytes(t *testing.T, length uint) (bytes []byte) {
 	t.Helper()
-	generator := rand.New(rand.NewSource(0))
+	generator := rand.New(rand.NewSource(0)) //skipcq: GSC-G404
 	bytes = make([]byte, length)
 	_, err := generator.Read(bytes)
 	require.NoError(t, err)

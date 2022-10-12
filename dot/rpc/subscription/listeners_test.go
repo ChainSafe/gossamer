@@ -83,7 +83,7 @@ func TestBlockListener_Listen(t *testing.T) {
 	wsconn, ws, cancel := setupWSConn(t)
 	defer cancel()
 
-	BlockAPI := new(mocks.BlockAPI)
+	BlockAPI := mocks.NewBlockAPI(t)
 	BlockAPI.On("FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block"))
 
 	wsconn.BlockAPI = BlockAPI
@@ -104,8 +104,6 @@ func TestBlockListener_Listen(t *testing.T) {
 	go bl.Listen()
 	defer func() {
 		require.NoError(t, bl.Stop())
-		time.Sleep(time.Millisecond * 10)
-		BlockAPI.AssertCalled(t, "FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block"))
 	}()
 
 	notifyChan <- &block
@@ -131,7 +129,7 @@ func TestBlockFinalizedListener_Listen(t *testing.T) {
 	wsconn, ws, cancel := setupWSConn(t)
 	defer cancel()
 
-	BlockAPI := new(mocks.BlockAPI)
+	BlockAPI := mocks.NewBlockAPI(t)
 	BlockAPI.On("FreeFinalisedNotifierChannel", mock.AnythingOfType("chan *types.FinalisationInfo"))
 
 	wsconn.BlockAPI = BlockAPI
@@ -150,8 +148,6 @@ func TestBlockFinalizedListener_Listen(t *testing.T) {
 	bfl.Listen()
 	defer func() {
 		require.NoError(t, bfl.Stop())
-		time.Sleep(time.Millisecond * 10)
-		BlockAPI.AssertCalled(t, "FreeFinalisedNotifierChannel", mock.AnythingOfType("chan *types.FinalisationInfo"))
 	}()
 
 	notifyChan <- &types.FinalisationInfo{
@@ -183,13 +179,13 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 	notifyFinalizedChan := make(chan *types.FinalisationInfo, 100)
 	txStatusChan := make(chan transaction.Status)
 
-	BlockAPI := new(mocks.BlockAPI)
+	BlockAPI := mocks.NewBlockAPI(t)
 	BlockAPI.On("FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block"))
 	BlockAPI.On("FreeFinalisedNotifierChannel", mock.AnythingOfType("chan *types.FinalisationInfo"))
 
 	wsconn.BlockAPI = BlockAPI
 
-	TxStateAPI := modules.NewMockTransactionStateAPI()
+	TxStateAPI := modules.NewMockTransactionStateAPI(t)
 	wsconn.TxStateAPI = TxStateAPI
 
 	esl := ExtrinsicSubmitListener{
@@ -215,10 +211,6 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 	esl.Listen()
 	defer func() {
 		require.NoError(t, esl.Stop())
-		time.Sleep(time.Millisecond * 10)
-
-		BlockAPI.AssertCalled(t, "FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block"))
-		BlockAPI.AssertCalled(t, "FreeFinalisedNotifierChannel", mock.AnythingOfType("chan *types.FinalisationInfo"))
 	}()
 
 	notifyImportedChan <- block
@@ -262,7 +254,7 @@ func TestGrandpaJustification_Listen(t *testing.T) {
 		mockedJustBytes, err := scale.Marshal(mockedJust)
 		require.NoError(t, err)
 
-		blockStateMock := new(mocks.BlockAPI)
+		blockStateMock := mocks.NewBlockAPI(t)
 		blockStateMock.On("GetJustification", mock.AnythingOfType("common.Hash")).Return(mockedJustBytes, nil)
 		blockStateMock.On("FreeFinalisedNotifierChannel", mock.AnythingOfType("chan *types.FinalisationInfo"))
 		wsconn.BlockAPI = blockStateMock
@@ -339,24 +331,23 @@ func TestRuntimeChannelListener_Listen(t *testing.T) {
 		wsconn:        mockConnection,
 		subID:         0,
 		runtimeUpdate: notifyChan,
-		coreAPI:       modules.NewMockCoreAPI(),
+		coreAPI:       modules.NewMockCoreAPI(t),
 	}
 
 	expectedInitialVersion := modules.StateRuntimeVersionResponse{
 		SpecName: "mock-spec",
-		Apis:     modules.ConvertAPIs(nil),
+		Apis:     []interface{}{},
 	}
 
 	expectedInitialResponse := newSubcriptionBaseResponseJSON()
 	expectedInitialResponse.Method = "state_runtimeVersion"
 	expectedInitialResponse.Params.Result = expectedInitialVersion
 
-	instance := wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
 	polkadotRuntimeFilepath, err := runtime.GetRuntime(context.Background(), runtime.POLKADOT_RUNTIME)
 	require.NoError(t, err)
 	code, err := os.ReadFile(polkadotRuntimeFilepath)
 	require.NoError(t, err)
-	version, err := instance.CheckRuntimeVersion(code)
+	version, err := wasmer.GetRuntimeVersion(code)
 	require.NoError(t, err)
 
 	expectedUpdatedVersion := modules.StateRuntimeVersionResponse{
@@ -366,7 +357,20 @@ func TestRuntimeChannelListener_Listen(t *testing.T) {
 		SpecVersion:        25,
 		ImplVersion:        0,
 		TransactionVersion: 5,
-		Apis:               modules.ConvertAPIs(version.APIItems()),
+		Apis: []interface{}{
+			[]interface{}{"0xdf6acb689907609b", uint32(0x3)},
+			[]interface{}{"0x37e397fc7c91f5e4", uint32(0x1)},
+			[]interface{}{"0x40fe3ad401f8959a", uint32(0x4)},
+			[]interface{}{"0xd2bc9897eed08f15", uint32(0x2)},
+			[]interface{}{"0xf78b278be53f454c", uint32(0x2)},
+			[]interface{}{"0xaf2c0297a23e6d3d", uint32(0x1)},
+			[]interface{}{"0xed99c5acb25eedf5", uint32(0x2)},
+			[]interface{}{"0xcbca25e39f142387", uint32(0x2)},
+			[]interface{}{"0x687ad44ad37f03c2", uint32(0x1)},
+			[]interface{}{"0xab3c0572291feb8b", uint32(0x1)},
+			[]interface{}{"0xbc9d89904f5b923f", uint32(0x1)},
+			[]interface{}{"0x37c8bb1350a9a2a8", uint32(0x1)},
+		},
 	}
 
 	expectedUpdateResponse := newSubcriptionBaseResponseJSON()
