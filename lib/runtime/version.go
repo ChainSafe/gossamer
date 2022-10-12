@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -31,14 +32,12 @@ type Version struct {
 }
 
 var (
-	// Blake2-8("TaggedTransactionQueue")
-	encodedTaggedTransactionQueue = [8]byte{0xd2, 0xbc, 0x98, 0x97, 0xee, 0xd0, 0x8f, 0x15}
-
 	ErrDecodingVersionField = errors.New("decoding version field")
 )
 
 // TaggedTransactionQueueVersion returns the TaggedTransactionQueueAPI version
 func TaggedTransactionQueueVersion(runtimeVersion Version) (txQueueVersion uint32) {
+	encodedTaggedTransactionQueue := common.MustBlake2b8([]byte("TaggedTransactionQueue"))
 	for _, apiItem := range runtimeVersion.APIItems {
 		if apiItem.Name == encodedTaggedTransactionQueue {
 			return apiItem.Ver

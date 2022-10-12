@@ -120,8 +120,8 @@ func createExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, non
 	err = extrinsic.Sign(signature.TestKeyringPairAlice, options)
 	require.NoError(t, err)
 
-	extEnc := bytes.Buffer{}
-	encoder := cscale.NewEncoder(&extEnc)
+	extEnc := bytes.NewBuffer(nil)
+	encoder := cscale.NewEncoder(extEnc)
 	err = extrinsic.Encode(*encoder)
 	require.NoError(t, err)
 

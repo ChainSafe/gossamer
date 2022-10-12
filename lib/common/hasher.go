@@ -27,6 +27,24 @@ func Blake2b128(in []byte) ([]byte, error) {
 	return h.Sum(nil), nil
 }
 
+// MustBlake2b8 returns the first 8 bytes of the Blake2b hash of the input data
+func MustBlake2b8(data []byte) (digest [8]byte) {
+	const bytes = 8
+	hasher, err := blake2b.New(bytes, nil)
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = hasher.Write(data)
+	if err != nil {
+		panic(err)
+	}
+
+	digestBytes := hasher.Sum(nil)
+	copy(digest[:], digestBytes)
+	return digest
+}
+
 // Blake2bHash returns the 256-bit blake2b hash of the input data
 func Blake2bHash(in []byte) (Hash, error) {
 	h, err := blake2b.New256(nil)
