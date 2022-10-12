@@ -305,11 +305,11 @@ func (s *Service) handleBlocksAsync() {
 
 			bestBlockHash := s.blockState.BestBlockHash()
 			if err := s.handleChainReorg(bestBlockHash, block.Header.Hash()); err != nil {
-				logger.Warnf("failed to re-add transactions to chain upon re-org: %s", err)
+				panic(fmt.Errorf("failed to re-add transactions to chain upon re-org: %s", err))
 			}
 
 			if err := s.maintainTransactionPool(block, bestBlockHash); err != nil {
-				logger.Warnf("failed to maintain txn pool after re-org: %s", err)
+				panic(fmt.Errorf("failed to maintain txn pool after re-org: %s", err))
 			}
 		case <-s.ctx.Done():
 			return
@@ -376,7 +376,8 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 
 			externalExt, err := s.buildExternalTransaction(rt, ext)
 			if err != nil {
-				return fmt.Errorf("building external transaction: %w", err)
+				logger.Debugf("building external transaction: %w", err)
+				continue
 			}
 
 			transactionValidity, err := rt.ValidateTransaction(externalExt)
@@ -608,17 +609,14 @@ func (s *Service) GetReadProofAt(block common.Hash, keys [][]byte) (
 // buildExternalTransaction builds an external transaction based on the current TransactionQueueAPIVersion
 // See https://github.com/paritytech/substrate/blob/polkadot-v0.9.25/primitives/transaction-pool/src/runtime_api.rs#L25-L55
 func (s *Service) buildExternalTransaction(rt runtime.Instance, ext types.Extrinsic) (types.Extrinsic, error) {
-	const supportedTxVersion = 3
-	const previousSupportedTxVersion = 2
-
 	runtimeVersion := rt.Version()
 	txQueueVersion := runtime.TaggedTransactionQueueVersion(runtimeVersion)
 	var externalExt types.Extrinsic
 	switch txQueueVersion {
-	case supportedTxVersion:
+	case 3:
 		extrinsicParts := [][]byte{{byte(types.TxnExternal)}, ext, s.blockState.BestBlockHash().ToBytes()}
 		externalExt = types.Extrinsic(bytes.Join(extrinsicParts, nil))
-	case previousSupportedTxVersion:
+	case 2:
 		extrinsicParts := [][]byte{{byte(types.TxnExternal)}, ext}
 		externalExt = types.Extrinsic(bytes.Join(extrinsicParts, nil))
 	default:
