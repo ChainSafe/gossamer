@@ -480,9 +480,10 @@ func Test_Service_HandleBlockProduced(t *testing.T) {
 	t.Parallel()
 	execTest := func(t *testing.T, s *Service, block *types.Block, trieState *rtstorage.TrieState, expErr error) {
 		err := s.HandleBlockProduced(block, trieState)
-		assert.ErrorIs(t, err, expErr)
+		require.ErrorIs(t, err, expErr)
 		if expErr != nil {
-			assert.EqualError(t, err, expErr.Error())
+			wrapped := fmt.Errorf("handling block: %w", expErr)
+			assert.EqualError(t, err, wrapped.Error())
 		}
 	}
 	t.Run("nil input", func(t *testing.T) {

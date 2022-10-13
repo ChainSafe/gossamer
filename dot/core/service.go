@@ -150,7 +150,7 @@ func (s *Service) HandleBlockImport(block *types.Block, state *rtstorage.TrieSta
 func (s *Service) HandleBlockProduced(block *types.Block, state *rtstorage.TrieState) error {
 	err := s.handleBlock(block, state)
 	if err != nil {
-		return fmt.Errorf("handling block: %s", err)
+		return fmt.Errorf("handling block: %w", err)
 	}
 
 	const isBestBlock = true
