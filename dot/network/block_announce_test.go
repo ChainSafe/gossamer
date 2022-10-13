@@ -143,7 +143,7 @@ func TestHandleBlockAnnounceMessage(t *testing.T) {
 
 	propagate, err := s.handleBlockAnnounceMessage(peerID, msg)
 	require.NoError(t, err)
-	require.True(t, propagate)
+	require.False(t, propagate)
 }
 
 func TestValidateBlockAnnounceHandshake(t *testing.T) {
