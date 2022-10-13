@@ -52,7 +52,7 @@ func (fh *finalizationHandler) stopServices(finalizationEngine *finalizationEngi
 	return nil
 }
 
-var errStartingService = errors.New("starting service")
+var errRunFinalization = errors.New("runFinalization error")
 
 func (fh *finalizationHandler) runFinalization() {
 	defer close(fh.handlerDone)
@@ -60,7 +60,7 @@ func (fh *finalizationHandler) runFinalization() {
 	for {
 		err := fh.grandpaService.initiateRound()
 		if err != nil {
-			fh.observableErrs <- fmt.Errorf("%w: initiating round: %s", errStartingService, err)
+			fh.observableErrs <- fmt.Errorf("%w: initiating round: %s", errRunFinalization, err)
 			return
 		}
 
@@ -69,13 +69,13 @@ func (fh *finalizationHandler) runFinalization() {
 
 		finalizationEngErrsCh, err := finalizationEngine.Start()
 		if err != nil {
-			fh.observableErrs <- fmt.Errorf("%w: finalisation engine: %s", errStartingService, err)
+			fh.observableErrs <- fmt.Errorf("%w: finalisation engine: %s", errRunFinalization, err)
 			return
 		}
 
 		handleVotingErrsCh, err := votingRound.Start()
 		if err != nil {
-			fh.observableErrs <- fmt.Errorf("%w: voting round: %s", errStartingService, err)
+			fh.observableErrs <- fmt.Errorf("%w: voting round: %s", errRunFinalization, err)
 			return
 
 		}

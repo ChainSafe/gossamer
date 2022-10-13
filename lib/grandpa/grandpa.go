@@ -342,7 +342,7 @@ func (s *Service) initiate() error {
 	for err := range errsCh {
 		logger.Errorf("finalisation handler: %s", err)
 
-		if errors.Is(err, errStartingService) || errors.Is(err, errVotingRound) {
+		if errors.Is(err, errRunFinalization) || errors.Is(err, errVotingRound) {
 			errStop := stopFinalizationHandler(finalizationHandler)
 			if errStop != nil {
 				return errStop
