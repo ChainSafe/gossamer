@@ -8,6 +8,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
+
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -20,9 +22,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+
 	cscale "github.com/centrifuge/go-substrate-rpc-client/v4/scale"
 	ctypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
-	"sync"
 )
 
 var (
