@@ -1250,6 +1250,8 @@ func Test_chainSync_start(t *testing.T) {
 var blockAnnounceHeader = &types.Header{Number: 2}
 
 func Test_chainSync_setBlockAnnounce(t *testing.T) {
+	t.Parallel()
+
 	type args struct {
 		from   peer.ID
 		header *types.Header
@@ -1322,7 +1324,7 @@ func Test_chainSync_setBlockAnnounce(t *testing.T) {
 				return chainSync{
 					blockState:    mockBlockState,
 					pendingBlocks: mockDisjointBlockSet,
-					peerState: make(map[peer.ID]*peerState),
+					peerState:     make(map[peer.ID]*peerState),
 					// creating an buffered channel for this specific test
 					// since it will put a work on the queue and an unbufered channel
 					// will hang until we read on this channel and the goal is to
@@ -1334,6 +1336,7 @@ func Test_chainSync_setBlockAnnounce(t *testing.T) {
 	}
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 			ctrl := gomock.NewController(t)
 			sync := tt.chainSyncBuilder(ctrl)
 			err := sync.setBlockAnnounce(tt.args.from, tt.args.header)

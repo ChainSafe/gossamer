@@ -154,6 +154,8 @@ func TestHandleBlockAnnounceMessage(t *testing.T) {
 		tt := tt
 
 		t.Run(tname, func(t *testing.T) {
+			t.Parallel()
+
 			config := &Config{
 				BasePath:    t.TempDir(),
 				Port:        availablePort(t),
