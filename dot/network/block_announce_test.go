@@ -7,8 +7,10 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	gomock "github.com/golang/mock/gomock"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/require"
@@ -126,24 +128,56 @@ func TestDecodeBlockAnnounceHandshake(t *testing.T) {
 func TestHandleBlockAnnounceMessage(t *testing.T) {
 	t.Parallel()
 
-	config := &Config{
-		BasePath:    t.TempDir(),
-		Port:        availablePort(t),
-		NoBootstrap: true,
-		NoMDNS:      true,
+	testCases := map[string]struct {
+		propagate  bool
+		mockSyncer func(*testing.T, peer.ID, *BlockAnnounceMessage) Syncer
+	}{
+		"block already exists": {
+			mockSyncer: func(t *testing.T, peer peer.ID, blockAnnounceMessage *BlockAnnounceMessage) Syncer {
+				ctrl := gomock.NewController(t)
+				syncer := NewMockSyncer(ctrl)
+				syncer.EXPECT().
+					HandleBlockAnnounce(peer, blockAnnounceMessage).
+					Return(blocktree.ErrBlockExists).
+					Times(1)
+
+				return syncer
+			},
+			propagate: true,
+		},
+		"block does not exists": {
+			propagate: false,
+		},
 	}
 
-	s := createTestService(t, config)
+	for tname, tt := range testCases {
+		tt := tt
 
-	peerID := peer.ID("noot")
-	msg := &BlockAnnounceMessage{
-		Number: 10,
-		Digest: types.NewDigest(),
+		t.Run(tname, func(t *testing.T) {
+			config := &Config{
+				BasePath:    t.TempDir(),
+				Port:        availablePort(t),
+				NoBootstrap: true,
+				NoMDNS:      true,
+			}
+
+			peerID := peer.ID("noot")
+			msg := &BlockAnnounceMessage{
+				Number: 10,
+				Digest: types.NewDigest(),
+			}
+
+			if tt.mockSyncer != nil {
+				config.Syncer = tt.mockSyncer(t, peerID, msg)
+			}
+
+			s := createTestService(t, config)
+			gotPropagate, err := s.handleBlockAnnounceMessage(peerID, msg)
+
+			require.NoError(t, err)
+			require.Equal(t, tt.propagate, gotPropagate)
+		})
 	}
-
-	propagate, err := s.handleBlockAnnounceMessage(peerID, msg)
-	require.NoError(t, err)
-	require.False(t, propagate)
 }
 
 func TestValidateBlockAnnounceHandshake(t *testing.T) {

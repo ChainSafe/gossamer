@@ -21,6 +21,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 )
@@ -251,7 +252,7 @@ func (cs *chainSync) setBlockAnnounce(from peer.ID, header *types.Header) error 
 	}
 
 	if has {
-		return nil
+		return blocktree.ErrBlockExists
 	}
 
 	if err = cs.pendingBlocks.addHeader(header); err != nil {
