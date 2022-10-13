@@ -104,6 +104,63 @@ func Test_Trie_Snapshot(t *testing.T) {
 	assert.Equal(t, expectedTrie.childTries, newTrie.childTries)
 }
 
+func Test_Trie_handleTrackedDeltas(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		trie                       Trie
+		success                    bool
+		pendingDeletedMerkleValues map[string]struct{}
+		expectedTrie               Trie
+	}{
+		"no success": {
+			trie: Trie{
+				deletedMerkleValues: map[string]struct{}{
+					"a": {},
+				},
+			},
+			pendingDeletedMerkleValues: map[string]struct{}{
+				"b": {},
+			},
+			expectedTrie: Trie{
+				deletedMerkleValues: map[string]struct{}{
+					"a": {},
+				},
+			},
+		},
+		"success": {
+			trie: Trie{
+				deletedMerkleValues: map[string]struct{}{
+					"a": {},
+				},
+			},
+			success: true,
+			pendingDeletedMerkleValues: map[string]struct{}{
+				"a": {},
+				"b": {},
+			},
+			expectedTrie: Trie{
+				deletedMerkleValues: map[string]struct{}{
+					"a": {},
+					"b": {},
+				},
+			},
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			trie := testCase.trie
+			trie.handleTrackedDeltas(testCase.success, testCase.pendingDeletedMerkleValues)
+
+			assert.Equal(t, testCase.expectedTrie, trie)
+		})
+	}
+}
+
 func Test_Trie_updateGeneration(t *testing.T) {
 	t.Parallel()
 
