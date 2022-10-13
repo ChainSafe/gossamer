@@ -1065,7 +1065,7 @@ func (t *Trie) ClearPrefix(prefixLE []byte) (err error) {
 
 		PopulateNodeHashes(t.root, pendingDeletedMerkleValues)
 		t.root = nil
-		return
+		return nil
 	}
 
 	prefix := codec.KeyLEToNibbles(prefixLE)
