@@ -805,13 +805,14 @@ func (t *Trie) ClearPrefixLimit(prefixLE []byte, limit uint32) (
 	prefix := codec.KeyLEToNibbles(prefixLE)
 	prefix = bytes.TrimSuffix(prefix, []byte{0})
 
-	t.root, deleted, _, allDeleted, err = t.clearPrefixLimitAtNode(
+	root, deleted, _, allDeleted, err := t.clearPrefixLimitAtNode(
 		t.root, prefix, limit, pendingDeletedMerkleValues)
 	if err != nil {
 		// Note: no need to wrap the error really since the private function has
 		// the same name as the exported function `ClearPrefixLimit`.
 		return 0, false, err
 	}
+	t.root = root
 
 	return deleted, allDeleted, nil
 }
