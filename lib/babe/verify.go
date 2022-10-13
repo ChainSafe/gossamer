@@ -339,13 +339,15 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 }
 
 // verifyBlockEquivocation checks if given block's author has occupied corresponding slot more than once.
+// It returns true if block was equivocated.
 func (b *verifier) verifyBlockEquivocation(header *types.Header) (bool, error) {
 	author, err := getAuthorityIndex(header)
 	if err != nil {
 		return false, fmt.Errorf("failed to get authority index for %s: %w", header.Hash(), err)
 	}
+
 	currentHash := header.Hash()
-	slot, err := b.blockState.GetSlotForBlock(currentHash)
+	slot, err := types.GetSlotFromHeader(header)
 	if err != nil {
 		return false, fmt.Errorf("failed to get slot for block %s: %w", currentHash, err)
 	}
@@ -373,10 +375,10 @@ func (b *verifier) verifyBlockEquivocation(header *types.Header) (bool, error) {
 			continue
 		}
 
-		return false, nil
+		return true, nil
 	}
 
-	return true, nil
+	return false, nil
 }
 
 func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (scale.VaryingDataTypeValue, error) {
@@ -487,7 +489,7 @@ func (b *verifier) verifyPrimarySlotWinner(authorityIndex uint32,
 
 func getAuthorityIndex(header *types.Header) (uint32, error) {
 	if len(header.Digest.Types) == 0 {
-		return 0, fmt.Errorf("no digest provided")
+		return 0, errNoDigest
 	}
 
 	digestValue, err := header.Digest.Types[0].Value()

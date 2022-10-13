@@ -266,6 +266,9 @@ func (bs *BlockState) GetBlocksBySlot(slotNum uint64) ([]common.Hash, error) {
 
 	for _, desc := range descendants {
 		descSlot, err := bs.GetSlotForBlock(desc)
+		if errors.Is(err, types.ErrGenesisHeader) {
+			continue
+		}
 		if err != nil {
 			return blocksWithGivenSlot, fmt.Errorf("could not get slot for block %s: %w", desc, err)
 		}
