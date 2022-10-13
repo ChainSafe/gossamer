@@ -15,7 +15,7 @@ sync = ""
 digest = ""
 
 [init]
-genesis = "./chain/westend-local/westend-local-spec-raw-v0.9.28.json"
+genesis = "./chain/westend-local/westend-local-spec-raw-v0.9.29.json"
 
 [account]
 key = "bob"
