@@ -150,25 +150,40 @@ func Test_Trie_handleTrackedDeltas(t *testing.T) {
 	}
 }
 
-func Test_Trie_updateGeneration(t *testing.T) {
+func Test_Trie_prepForMutation(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
 		trie                               Trie
-		node                               *Node
-		pendingDeletedMerkleValues         map[string]struct{}
+		currentNode                        *Node
 		copySettings                       node.CopySettings
+		pendingDeletedMerkleValues         map[string]struct{}
 		newNode                            *Node
+		copied                             bool
 		errSentinel                        error
 		errMessage                         string
-		copied                             bool
 		expectedPendingDeletedMerkleValues map[string]struct{}
 	}{
+		"no update": {
+			trie: Trie{
+				generation: 1,
+			},
+			currentNode: &Node{
+				Generation: 1,
+				Key:        []byte{1},
+			},
+			copySettings: node.DefaultCopySettings,
+			newNode: &Node{
+				Generation: 1,
+				Key:        []byte{1},
+				Dirty:      true,
+			},
+		},
 		"update without registering deleted merkle value": {
 			trie: Trie{
 				generation: 2,
 			},
-			node: &Node{
+			currentNode: &Node{
 				Generation: 1,
 				Key:        []byte{1},
 			},
@@ -176,6 +191,7 @@ func Test_Trie_updateGeneration(t *testing.T) {
 			newNode: &Node{
 				Generation: 2,
 				Key:        []byte{1},
+				Dirty:      true,
 			},
 			copied: true,
 		},
@@ -184,7 +200,7 @@ func Test_Trie_updateGeneration(t *testing.T) {
 				generation: 2,
 			},
 			pendingDeletedMerkleValues: map[string]struct{}{},
-			node: &Node{
+			currentNode: &Node{
 				Generation: 1,
 				Key:        []byte{1},
 				SubValue: []byte{
@@ -202,6 +218,7 @@ func Test_Trie_updateGeneration(t *testing.T) {
 					9, 10, 11, 12, 13, 14, 15, 16,
 					17, 18, 19, 20, 21, 22, 23, 24,
 					25, 26, 27, 28, 29, 30, 31, 32},
+				Dirty: true,
 			},
 			copied: true,
 			expectedPendingDeletedMerkleValues: map[string]struct{}{
@@ -215,18 +232,19 @@ func Test_Trie_updateGeneration(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
+			trie := testCase.trie
 			expectedTrie := *testCase.trie.DeepCopy()
 
-			newNode, err := testCase.trie.updateGeneration(
-				testCase.node, testCase.pendingDeletedMerkleValues, testCase.copySettings)
+			newNode, err := trie.prepForMutation(testCase.currentNode, testCase.copySettings,
+				testCase.pendingDeletedMerkleValues)
 
-			assert.ErrorIs(t, err, testCase.errSentinel)
+			require.ErrorIs(t, err, testCase.errSentinel)
 			if testCase.errSentinel != nil {
 				assert.EqualError(t, err, testCase.errMessage)
 			}
 			assert.Equal(t, testCase.newNode, newNode)
-			assert.Equal(t, expectedTrie, testCase.trie)
 			assert.Equal(t, testCase.expectedPendingDeletedMerkleValues, testCase.pendingDeletedMerkleValues)
+			assert.Equal(t, expectedTrie, trie)
 
 			// Check for deep copy
 			if newNode != nil && testCase.copied {
@@ -235,7 +253,7 @@ func Test_Trie_updateGeneration(t *testing.T) {
 				} else {
 					newNode.SetDirty()
 				}
-				assert.NotEqual(t, testCase.node, newNode)
+				assert.NotEqual(t, testCase.newNode, newNode)
 			}
 		})
 	}

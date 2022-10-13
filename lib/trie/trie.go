@@ -80,57 +80,25 @@ func (t *Trie) handleTrackedDeltas(success bool, pendingDeletedMerkleValues map[
 	}
 }
 
-func (t *Trie) prepLeafForMutation(currentLeaf *Node,
+func (t *Trie) prepForMutation(currentNode *Node,
 	copySettings node.CopySettings,
 	pendingDeletedMerkleValues map[string]struct{}) (
-	newLeaf *Node, err error) {
-	if currentLeaf.Generation == t.generation {
-		// no need to deep copy and update generation
-		// of current leaf.
-		newLeaf = currentLeaf
+	newNode *Node, err error) {
+	if currentNode.Generation == t.generation {
+		// no need to track deleted node, deep copy the node and
+		// update the node generation.
+		newNode = currentNode
 	} else {
-		newLeaf, err = t.updateGeneration(currentLeaf, pendingDeletedMerkleValues, copySettings)
+		isRoot := currentNode == t.root
+		err = registerDeletedMerkleValue(currentNode, isRoot,
+			pendingDeletedMerkleValues)
 		if err != nil {
-			return nil, fmt.Errorf("updating generation: %w", err)
+			return nil, fmt.Errorf("registering deleted node: %w", err)
 		}
+		newNode = currentNode.Copy(copySettings)
+		newNode.Generation = t.generation
 	}
-	newLeaf.SetDirty()
-	return newLeaf, nil
-}
-
-func (t *Trie) prepBranchForMutation(currentBranch *Node,
-	copySettings node.CopySettings,
-	pendingDeletedMerkleValues map[string]struct{}) (
-	newBranch *Node, err error) {
-	if currentBranch.Generation == t.generation {
-		// no need to deep copy and update generation
-		// of current branch.
-		newBranch = currentBranch
-	} else {
-		newBranch, err = t.updateGeneration(currentBranch, pendingDeletedMerkleValues, copySettings)
-		if err != nil {
-			return nil, fmt.Errorf("updating generation: %w", err)
-		}
-	}
-	newBranch.SetDirty()
-	return newBranch, nil
-}
-
-// updateGeneration is called when the currentNode is from
-// an older trie generation (snapshot) so we deep copy the
-// node and update the generation on the newer copy.
-func (t *Trie) updateGeneration(currentNode *Node,
-	pendingDeletedMerkleValues map[string]struct{},
-	copySettings node.CopySettings) (newNode *Node, err error) {
-	isRoot := currentNode == t.root
-	err = registerDeletedMerkleValue(currentNode, isRoot, pendingDeletedMerkleValues)
-	if err != nil {
-		return nil, fmt.Errorf("registering deleted merkle value: %w", err)
-	}
-
-	newNode = currentNode.Copy(copySettings)
-	newNode.Generation = t.generation
-
+	newNode.SetDirty()
 	return newNode, nil
 }
 
@@ -434,7 +402,7 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
 
 		copySettings := node.DefaultCopySettings
 		copySettings.CopyValue = false
-		parentLeaf, err = t.prepLeafForMutation(parentLeaf, copySettings, deletedMerkleValues)
+		parentLeaf, err = t.prepForMutation(parentLeaf, copySettings, deletedMerkleValues)
 		if err != nil {
 			return nil, false, 0, fmt.Errorf("preparing leaf for mutation: %w", err)
 		}
@@ -466,7 +434,7 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
 			childIndex := parentLeafKey[commonPrefixLength]
 			newParentLeafKey := parentLeaf.Key[commonPrefixLength+1:]
 			if !bytes.Equal(parentLeaf.Key, newParentLeafKey) {
-				parentLeaf, err = t.prepLeafForMutation(parentLeaf, copySettings, deletedMerkleValues)
+				parentLeaf, err = t.prepForMutation(parentLeaf, copySettings, deletedMerkleValues)
 				if err != nil {
 					return nil, false, 0, fmt.Errorf("preparing leaf for mutation: %w", err)
 				}
@@ -489,7 +457,7 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
 		childIndex := parentLeafKey[commonPrefixLength]
 		newParentLeafKey := parentLeaf.Key[commonPrefixLength+1:]
 		if !bytes.Equal(parentLeaf.Key, newParentLeafKey) {
-			parentLeaf, err = t.prepLeafForMutation(parentLeaf, copySettings, deletedMerkleValues)
+			parentLeaf, err = t.prepForMutation(parentLeaf, copySettings, deletedMerkleValues)
 			if err != nil {
 				return nil, false, 0, fmt.Errorf("preparing leaf for mutation: %w", err)
 			}
@@ -522,7 +490,7 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte,
 			mutated = false
 			return parentBranch, mutated, 0, nil
 		}
-		parentBranch, err = t.prepBranchForMutation(parentBranch, copySettings, deletedMerkleValues)
+		parentBranch, err = t.prepForMutation(parentBranch, copySettings, deletedMerkleValues)
 		if err != nil {
 			return nil, false, 0, fmt.Errorf("preparing branch for mutation: %w", err)
 		}
@@ -546,7 +514,7 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte,
 				Dirty:      true,
 			}
 			nodesCreated = 1
-			parentBranch, err = t.prepBranchForMutation(parentBranch, copySettings, deletedMerkleValues)
+			parentBranch, err = t.prepForMutation(parentBranch, copySettings, deletedMerkleValues)
 			if err != nil {
 				return nil, false, 0, fmt.Errorf("preparing branch for mutation: %w", err)
 			}
@@ -564,7 +532,7 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte,
 			return parentBranch, mutated, 0, nil
 		}
 
-		parentBranch, err = t.prepBranchForMutation(parentBranch, copySettings, deletedMerkleValues)
+		parentBranch, err = t.prepForMutation(parentBranch, copySettings, deletedMerkleValues)
 		if err != nil {
 			return nil, false, 0, fmt.Errorf("preparing branch for mutation: %w", err)
 		}
@@ -590,7 +558,7 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte,
 	remainingOldParentKey := parentBranch.Key[commonPrefixLength+1:]
 
 	// Note: parentBranch.Key != remainingOldParentKey
-	parentBranch, err = t.prepBranchForMutation(parentBranch, copySettings, deletedMerkleValues)
+	parentBranch, err = t.prepForMutation(parentBranch, copySettings, deletedMerkleValues)
 	if err != nil {
 		return nil, false, 0, fmt.Errorf("preparing branch for mutation: %w", err)
 	}
@@ -900,7 +868,7 @@ func (t *Trie) clearPrefixLimitBranch(branch *Node, prefix []byte, limit uint32,
 	}
 
 	copySettings := node.DefaultCopySettings
-	branch, err = t.prepBranchForMutation(branch, copySettings, deletedMerkleValues)
+	branch, err = t.prepForMutation(branch, copySettings, deletedMerkleValues)
 	if err != nil {
 		return nil, 0, 0, false, fmt.Errorf("preparing branch for mutation: %w", err)
 	}
@@ -947,7 +915,7 @@ func (t *Trie) clearPrefixLimitChild(branch *Node, prefix []byte, limit uint32,
 	}
 
 	copySettings := node.DefaultCopySettings
-	branch, err = t.prepBranchForMutation(branch, copySettings, deletedMerkleValues)
+	branch, err = t.prepForMutation(branch, copySettings, deletedMerkleValues)
 	if err != nil {
 		return nil, 0, 0, false, fmt.Errorf("preparing branch for mutation: %w", err)
 	}
@@ -1001,7 +969,7 @@ func (t *Trie) deleteNodesLimit(parent *Node, limit uint32,
 	// Note: there is at least one non-nil child and the limit isn't zero,
 	// therefore it is safe to prepare the branch for mutation.
 	copySettings := node.DefaultCopySettings
-	branch, err = t.prepBranchForMutation(branch, copySettings, deletedMerkleValues)
+	branch, err = t.prepForMutation(branch, copySettings, deletedMerkleValues)
 	if err != nil {
 		return nil, 0, 0, fmt.Errorf("preparing branch for mutation: %w", err)
 	}
@@ -1128,7 +1096,7 @@ func (t *Trie) clearPrefixAtNode(parent *Node, prefix []byte,
 
 		nodesRemoved = 1 + child.Descendants
 		copySettings := node.DefaultCopySettings
-		branch, err = t.prepBranchForMutation(branch, copySettings, deletedMerkleValues)
+		branch, err = t.prepForMutation(branch, copySettings, deletedMerkleValues)
 		if err != nil {
 			return nil, 0, fmt.Errorf("preparing branch for mutation: %w", err)
 		}
@@ -1174,7 +1142,7 @@ func (t *Trie) clearPrefixAtNode(parent *Node, prefix []byte,
 	}
 
 	copySettings := node.DefaultCopySettings
-	branch, err = t.prepBranchForMutation(branch, copySettings, deletedMerkleValues)
+	branch, err = t.prepForMutation(branch, copySettings, deletedMerkleValues)
 	if err != nil {
 		return nil, 0, fmt.Errorf("preparing branch for mutation: %w", err)
 	}
@@ -1266,7 +1234,7 @@ func (t *Trie) deleteBranch(branch *Node, key []byte,
 	if len(key) == 0 || bytes.Equal(branch.Key, key) {
 		copySettings := node.DefaultCopySettings
 		copySettings.CopyValue = false
-		branch, err = t.prepBranchForMutation(branch, copySettings, deletedMerkleValues)
+		branch, err = t.prepForMutation(branch, copySettings, deletedMerkleValues)
 		if err != nil {
 			return nil, false, 0, fmt.Errorf("preparing branch for mutation: %w", err)
 		}
@@ -1309,7 +1277,7 @@ func (t *Trie) deleteBranch(branch *Node, key []byte,
 	}
 
 	copySettings := node.DefaultCopySettings
-	branch, err = t.prepBranchForMutation(branch, copySettings, deletedMerkleValues)
+	branch, err = t.prepForMutation(branch, copySettings, deletedMerkleValues)
 	if err != nil {
 		return nil, false, 0, fmt.Errorf("preparing branch for mutation: %w", err)
 	}
