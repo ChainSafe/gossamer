@@ -8,8 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sync"
-
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -24,6 +22,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	cscale "github.com/centrifuge/go-substrate-rpc-client/v4/scale"
 	ctypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
+	"sync"
 )
 
 var (
@@ -403,6 +402,7 @@ func (s *Service) maintainTransactionPool(block *types.Block, bestBlockHash comm
 		s.transactionState.RemoveExtrinsic(ext)
 	}
 
+	fmt.Println(bestBlockHash)
 	stateRoot, err := s.storageState.GetStateRootFromBlock(&bestBlockHash)
 	if err != nil {
 		logger.Errorf("could not get state root from block %s: %w", bestBlockHash, err)

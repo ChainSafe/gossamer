@@ -60,11 +60,16 @@ func TestAnnounceBlock(t *testing.T) {
 	err = digest.Add(*prd)
 	require.NoError(t, err)
 
+	// Used to define the state root of new block for testing
+	genesisBlock, err := s.blockState.GetBlockByHash(s.blockState.GenesisHash())
+	require.NoError(t, err)
+
 	newBlock := types.Block{
 		Header: types.Header{
 			Number:     1,
 			ParentHash: s.blockState.BestBlockHash(),
 			Digest:     digest,
+			StateRoot:  genesisBlock.Header.StateRoot,
 		},
 		Body: *types.NewBody([]types.Extrinsic{}),
 	}
