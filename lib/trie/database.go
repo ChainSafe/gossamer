@@ -186,7 +186,7 @@ func (t *Trie) loadNode(db Database, n *Node) error {
 }
 
 // PopulateMerkleValues writes the Merkle values of the node given and of
-// all its descendant nodes as keys to the map merkleValues.
+// all its descendant nodes as keys to the merkleValues map.
 // It is assumed the node and its descendant nodes have their Merkle value already
 // computed.
 func PopulateMerkleValues(n *Node, merkleValues map[string]struct{}) {
