@@ -209,7 +209,6 @@ func (s *Service) handleBlockAnnounceMessage(from peer.ID, msg NotificationsMess
 		return false, errors.New("invalid message")
 	}
 
-	// TODO announce if we already have the block
 	err = s.syncer.HandleBlockAnnounce(from, bam)
 	if errors.Is(err, blocktree.ErrBlockExists) {
 		return true, nil
