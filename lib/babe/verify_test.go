@@ -21,6 +21,7 @@ import (
 func newTestHeader(t *testing.T, digest ...scale.VaryingDataTypeValue) *types.Header {
 	t.Helper()
 	header := types.NewEmptyHeader()
+	header.Number = 1
 	for _, d := range digest {
 		err := header.Digest.Add(d)
 		assert.NoError(t, err)
@@ -499,28 +500,23 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	assert.NoError(t, err)
 	testHeaderPrimary := types.NewEmptyHeader()
 	testHeaderPrimary.Digest = testDigestPrimary
-	testHeaderPrimary.Number = 1
 	// Secondary Plain Test Header
 	testParentPrd, err := testBabeSecondaryPlainPreDigest.ToPreRuntimeDigest()
 	assert.NoError(t, err)
 	testParentHeader := newTestHeader(t, *testParentPrd)
-	testParentHeader.Number = 1
 	testParentHash := encodeAndHashHeader(t, testParentHeader)
 	testSecondaryPrd, err := testBabeSecondaryPlainPreDigest.ToPreRuntimeDigest()
 	assert.NoError(t, err)
 	testSecPlainHeader := newTestHeader(t, *testSecondaryPrd)
 	testSecPlainHeader.ParentHash = testParentHash
-	testSecPlainHeader.Number = 1
 	// Secondary Vrf Test Header
 	encParentVrfDigest := newEncodedBabeDigest(t, testBabeSecondaryVRFPreDigest)
 	testParentVrfHeader := newTestHeader(t, *types.NewBABEPreRuntimeDigest(encParentVrfDigest))
-	testParentVrfHeader.Number = 1
 
 	testVrfParentHash := encodeAndHashHeader(t, testParentVrfHeader)
 	encVrfHeader := newEncodedBabeDigest(t, testBabeSecondaryVRFPreDigest)
 	testSecVrfHeader := newTestHeader(t, *types.NewBABEPreRuntimeDigest(encVrfHeader))
 	testSecVrfHeader.ParentHash = testVrfParentHash
-	testSecVrfHeader.Number = 1
 
 	h := common.MustHexToHash("0x01")
 	h1 := []common.Hash{h}
@@ -533,26 +529,23 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 
 	// Case 0: First element not preruntime digest
 	header0 := newTestHeader(t, testInvalidSeal, testInvalidSeal)
-	header0.Number = 1
+
 	// Case 1: Last element not seal
 	header1 := newTestHeader(t, testInvalidPreRuntimeDigest, testInvalidPreRuntimeDigest)
-	header1.Number = 1
 
 	// Case 2: Fail to verify preruntime digest
 	header2 := newTestHeader(t, testInvalidPreRuntimeDigest, testInvalidSeal)
-	header2.Number = 1
+
 	// Case 3: Invalid Seal Length
 	babePrd, err := testBabePrimaryPreDigest.ToPreRuntimeDigest()
 	assert.NoError(t, err)
 	header3 := newTestHeader(t, *babePrd, testInvalidSeal)
-	header3.Number = 1
 	babeVerifier := newTestVerifier(kp, mockBlockState, scale.MaxUint128, false)
 
 	// Case 4: Invalid signature - BabePrimaryPreDigest
 	babePrd2, err := testBabePrimaryPreDigest.ToPreRuntimeDigest()
 	assert.NoError(t, err)
 	header4 := newTestHeader(t, *babePrd2)
-	header4.Number = 1
 	signAndAddSeal(t, kp, header4, []byte{1})
 	babeVerifier2 := newTestVerifier(kp, mockBlockState, scale.MaxUint128, false)
 
@@ -560,7 +553,6 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	babeSecPlainPrd, err := testBabeSecondaryPlainPreDigest.ToPreRuntimeDigest()
 	assert.NoError(t, err)
 	header5 := newTestHeader(t, *babeSecPlainPrd)
-	header5.Number = 1
 	signAndAddSeal(t, kp, header5, []byte{1})
 	babeVerifier3 := newTestVerifier(kp, mockBlockState, scale.MaxUint128, true)
 
@@ -568,7 +560,6 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	encSecVrfDigest := newEncodedBabeDigest(t, testBabeSecondaryVRFPreDigest)
 	assert.NoError(t, err)
 	header6 := newTestHeader(t, *types.NewBABEPreRuntimeDigest(encSecVrfDigest))
-	header6.Number = 1
 	signAndAddSeal(t, kp, header6, []byte{1})
 	babeVerifier4 := newTestVerifier(kp, mockBlockState, scale.MaxUint128, true)
 
@@ -576,7 +567,6 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	babeParentPrd, err := testBabePrimaryPreDigest.ToPreRuntimeDigest()
 	assert.NoError(t, err)
 	babeParentHeader := newTestHeader(t, *babeParentPrd)
-	babeParentHeader.Number = 1
 
 	parentHash := encodeAndHashHeader(t, babeParentHeader)
 	babePrd3, err := testBabePrimaryPreDigest.ToPreRuntimeDigest()
@@ -584,7 +574,6 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 
 	header7 := newTestHeader(t, *babePrd3)
 	header7.ParentHash = parentHash
-	header7.Number = 1
 
 	hash := encodeAndHashHeader(t, header7)
 	signAndAddSeal(t, kp, header7, hash[:])
@@ -700,7 +689,6 @@ func Test_verifier_verifyAuthorshipRightEquivocatory(t *testing.T) {
 	assert.NoError(t, err)
 
 	headerExisting := newTestHeader(t, *prdExisting)
-	headerExisting.Number = 1
 	hashExisting := encodeAndHashHeader(t, headerExisting)
 	signAndAddSeal(t, kp, headerExisting, hashExisting[:])
 
@@ -734,58 +722,54 @@ func Test_verifier_verifyAuthorshipRightEquivocatory(t *testing.T) {
 	verifierEquivocatoryPrimary := newVerifier(mockBlockStateEquiv1, 1, vi)
 
 	headerEquivocatoryPrimary := newTestHeader(t, *prd1)
-	headerEquivocatoryPrimary.Number = 1
 	hashEquivocatoryPrimary := encodeAndHashHeader(t, headerEquivocatoryPrimary)
 	signAndAddSeal(t, kp, headerEquivocatoryPrimary, hashEquivocatoryPrimary[:])
 
 	mockBlockStateEquiv1.EXPECT().GetHeader(hashEquivocatoryPrimary).Return(headerEquivocatoryPrimary, nil)
-	mockBlockStateEquiv1.EXPECT().GetBlocksBySlot(gomock.Any()).Return([]common.Hash{hashEquivocatoryPrimary, hashExisting}, nil)
+	mockBlockStateEquiv1.EXPECT().GetBlocksBySlot(gomock.Any()).Return(
+		[]common.Hash{hashEquivocatoryPrimary, hashExisting}, nil)
 
 	// Secondary Plain Test Header
 	testParentPrd, err := testBabeSecondaryPlainPreDigest.ToPreRuntimeDigest()
 	assert.NoError(t, err)
 	testParentHeader := newTestHeader(t, *testParentPrd)
-	testParentHeader.Number = 1
 
 	testParentHash := encodeAndHashHeader(t, testParentHeader)
 	testSecondaryPrd, err := testBabeSecondaryPlainPreDigest.ToPreRuntimeDigest()
 	assert.NoError(t, err)
 	testSecPlainHeader := newTestHeader(t, *testSecondaryPrd)
 	testSecPlainHeader.ParentHash = testParentHash
-	testSecPlainHeader.Number = 1
 
 	babeSecPlainPrd2, err := testBabeSecondaryPlainPreDigest.ToPreRuntimeDigest()
 	assert.NoError(t, err)
 	headerEquivocatorySecondaryPlain := newTestHeader(t, *babeSecPlainPrd2)
-	headerEquivocatorySecondaryPlain.Number = 1
 
 	hashEquivocatorySecondaryPlain := encodeAndHashHeader(t, headerEquivocatorySecondaryPlain)
 	signAndAddSeal(t, kp, headerEquivocatorySecondaryPlain, hashEquivocatorySecondaryPlain[:])
 	babeVerifier8 := newTestVerifier(kp, mockBlockStateEquiv2, scale.MaxUint128, true)
 
 	mockBlockStateEquiv2.EXPECT().GetHeader(hashEquivocatorySecondaryPlain).Return(headerEquivocatorySecondaryPlain, nil)
-	mockBlockStateEquiv2.EXPECT().GetBlocksBySlot(gomock.Any()).Return([]common.Hash{hashEquivocatorySecondaryPlain, hashExisting}, nil)
+	mockBlockStateEquiv2.EXPECT().GetBlocksBySlot(gomock.Any()).Return(
+		[]common.Hash{hashEquivocatorySecondaryPlain, hashExisting}, nil)
 
 	// Secondary Vrf Test Header
 	encParentVrfDigest := newEncodedBabeDigest(t, testBabeSecondaryVRFPreDigest)
 	testParentVrfHeader := newTestHeader(t, *types.NewBABEPreRuntimeDigest(encParentVrfDigest))
-	testParentVrfHeader.Number = 1
 
 	testVrfParentHash := encodeAndHashHeader(t, testParentVrfHeader)
 	encVrfHeader := newEncodedBabeDigest(t, testBabeSecondaryVRFPreDigest)
 	testSecVrfHeader := newTestHeader(t, *types.NewBABEPreRuntimeDigest(encVrfHeader))
 	testSecVrfHeader.ParentHash = testVrfParentHash
-	testSecVrfHeader.Number = 1
 	encVrfDigest := newEncodedBabeDigest(t, testBabeSecondaryVRFPreDigest)
 	assert.NoError(t, err)
 	headerEquivocatorySecondaryVRF := newTestHeader(t, *types.NewBABEPreRuntimeDigest(encVrfDigest))
-	headerEquivocatorySecondaryVRF.Number = 1
 	hashEquivocatorySecondaryVRF := encodeAndHashHeader(t, headerEquivocatorySecondaryVRF)
 	signAndAddSeal(t, kp, headerEquivocatorySecondaryVRF, hashEquivocatorySecondaryVRF[:])
 	babeVerifierEquivocatorySecondaryVRF := newTestVerifier(kp, mockBlockStateEquiv3, scale.MaxUint128, true)
 
 	mockBlockStateEquiv3.EXPECT().GetHeader(hashEquivocatorySecondaryVRF).Return(headerEquivocatorySecondaryVRF, nil)
-	mockBlockStateEquiv3.EXPECT().GetBlocksBySlot(gomock.Any()).Return([]common.Hash{hashEquivocatorySecondaryVRF, hashExisting}, nil)
+	mockBlockStateEquiv3.EXPECT().GetBlocksBySlot(gomock.Any()).Return(
+		[]common.Hash{hashEquivocatorySecondaryVRF, hashExisting}, nil)
 
 	tests := []struct {
 		name     string
@@ -971,7 +955,6 @@ func TestVerificationManager_VerifyBlock(t *testing.T) {
 	encVrfDigest := newEncodedBabeDigest(t, testBabeSecondaryVRFPreDigest)
 	assert.NoError(t, err)
 	block1Header2 := newTestHeader(t, *types.NewBABEPreRuntimeDigest(encVrfDigest))
-	block1Header2.Number = 1
 
 	authority := types.NewAuthority(kp.Public(), uint64(1))
 	info := &verifierInfo{

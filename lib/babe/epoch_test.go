@@ -33,7 +33,6 @@ func TestBabeService_checkAndSetFirstSlot(t *testing.T) {
 	encDigest := newEncodedBabeDigest(t, testBabeSecondaryPlainPreDigest)
 	header := newTestHeader(t, *types.NewBABEPreRuntimeDigest(encDigest))
 
-	header.Number = 1
 	block := &types.Block{
 		Header: *header,
 	}
