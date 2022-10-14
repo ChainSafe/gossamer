@@ -9,7 +9,7 @@ var (
 	ErrUnsupportedDestination          = errors.New("must be a non-nil pointer to a destination")
 	errDecodeBool                      = errors.New("invalid byte for bool")
 	ErrUnsupportedType                 = errors.New("unsupported type")
-	errUnsupportedResult               = errors.New("unsupported result")
+	ErrUnsupportedResult               = errors.New("unsupported result")
 	errUnsupportedOption               = errors.New("unsupported option")
 	errUnknownVaryingDataTypeValue     = errors.New("unable to find VaryingDataTypeValue with index")
 	errUint128IsNil                    = errors.New("uint128 in nil")
