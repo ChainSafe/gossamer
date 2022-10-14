@@ -175,12 +175,12 @@ func (in *Instance) PaymentQueryInfo(ext []byte) (*types.RuntimeDispatchInfo, er
 		return nil, err
 	}
 
-	i := new(types.RuntimeDispatchInfo)
-	if err = scale.Unmarshal(resBytes, i); err != nil {
+	dispatchInfo := new(types.RuntimeDispatchInfo)
+	if err = scale.Unmarshal(resBytes, dispatchInfo); err != nil {
 		return nil, err
 	}
 
-	return i, nil
+	return dispatchInfo, nil
 }
 
 // QueryCallInfo returns information of a given extrinsic
@@ -195,12 +195,12 @@ func (in *Instance) QueryCallInfo(ext []byte) (*types.RuntimeDispatchInfo, error
 		return nil, err
 	}
 
-	i := new(types.RuntimeDispatchInfo)
-	if err = scale.Unmarshal(resBytes, i); err != nil {
+	dispatchInfo := new(types.RuntimeDispatchInfo)
+	if err = scale.Unmarshal(resBytes, dispatchInfo); err != nil {
 		return nil, err
 	}
 
-	return i, nil
+	return dispatchInfo, nil
 }
 
 // QueryCallFeeDetails returns call fee details for given call
@@ -215,12 +215,12 @@ func (in *Instance) QueryCallFeeDetails(ext []byte) (*types.FeeDetails, error) {
 		return nil, err
 	}
 
-	i := new(types.FeeDetails)
-	if err = scale.Unmarshal(resBytes, i); err != nil {
+	dispatchInfo := new(types.FeeDetails)
+	if err = scale.Unmarshal(resBytes, dispatchInfo); err != nil {
 		return nil, err
 	}
 
-	return i, nil
+	return dispatchInfo, nil
 }
 
 func (in *Instance) CheckInherents()      {} //nolint:revive

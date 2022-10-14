@@ -1089,6 +1089,7 @@ func newTrieFromPairs(t *testing.T, filename string) *trie.Trie {
 }
 
 func TestInstance_TransactionPaymentCallApi_QueryCallInfo(t *testing.T) {
+	t.Parallel()
 	ins := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
 	tests := []struct {
 		callHex    string
@@ -1148,6 +1149,7 @@ func TestInstance_TransactionPaymentCallApi_QueryCallInfo(t *testing.T) {
 }
 
 func TestInstance_TransactionPaymentCallApi_QueryCallFeeDetails(t *testing.T) {
+	t.Parallel()
 	ins := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
 	tests := []struct {
 		callHex    string
