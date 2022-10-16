@@ -159,6 +159,8 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {
 			err = ds.decodeArray(dstv)
 		case reflect.Slice:
 			err = ds.decodeSlice(dstv)
+		case reflect.Map:
+			err = ds.decodeMap(dstv)
 		default:
 			err = fmt.Errorf("unsupported type: %T", in)
 		}
@@ -408,6 +410,60 @@ func (ds *decodeState) decodeSlice(dstv reflect.Value) (err error) {
 		temp.Elem().Set(reflect.Append(temp.Elem(), tempElem))
 	}
 	dstv.Set(temp.Elem())
+
+	return
+}
+
+func (ds *decodeState) decodeMap(dstv reflect.Value) (err error) {
+	l, err := ds.decodeLength()
+	if err != nil {
+		return
+	}
+	in := dstv.Interface()
+	temp := reflect.New(reflect.ValueOf(in).Type())
+
+	//debug
+	fmt.Printf("temp ==> Type: %+v | value: %+v \n", reflect.TypeOf(temp.Interface()), temp)
+
+	for i := uint(0); i < l; i++ {
+
+		tempKeyType := reflect.TypeOf(in).Key()
+		tempKey := reflect.New(tempKeyType).Elem()
+
+		tempElemType := reflect.TypeOf(in).Elem()
+		tempElem := reflect.New(tempKeyType)
+
+		//debug
+		fmt.Printf("tempKeyType = %+v | tempKey = %+v \n", tempKeyType, tempKey)
+
+		err = ds.unmarshal(tempKey)
+		if err != nil {
+			//debug
+			fmt.Println("Error in 'ds.unmarshal(tempKey)' ")
+
+			return
+		}
+
+		//debug
+		fmt.Printf("tempKey after unmarshall ==> %+v \n", tempKey)
+		fmt.Println("================================================================================")
+
+		fmt.Printf("tempElemType = %+v | tempElem = %+v \n", tempElemType, tempElem)
+
+		err = ds.unmarshal(tempElem)
+		if err != nil {
+			//debug
+			fmt.Println("Error in 'ds.unmarshal(tempElem)' ")
+
+			return
+		}
+
+		//debug
+		fmt.Printf("tempElem after unmarshall ==> %+v \n", tempElem)
+
+		temp.SetMapIndex(tempKey, tempElem)
+	}
+	dstv.Elem().Set(temp.Elem())
 
 	return
 }

@@ -5,6 +5,7 @@ package scale
 
 import (
 	"bytes"
+	"fmt"
 	"math/big"
 	"reflect"
 	"testing"
@@ -129,6 +130,30 @@ func Test_decodeState_decodeSlice(t *testing.T) {
 				t.Errorf("decodeState.unmarshal() = %v, want %v", dst, tt.in)
 			}
 		})
+	}
+}
+
+func Test_decodeState_decodeMap(t *testing.T) {
+	for _, tt := range mapTests {
+
+		//debug
+		fmt.Printf("Print ==> tt.want = %v\n", tt.want)
+
+		t.Run(tt.name, func(t *testing.T) {
+			dst := reflect.New(reflect.TypeOf(tt.in)).Elem().Interface()
+			if err := Unmarshal(tt.want, &dst); (err != nil) != tt.wantErr {
+				t.Errorf("decodeState.unmarshal() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			//debug
+			fmt.Printf("dst = %v\n", dst)
+
+			if !reflect.DeepEqual(dst, tt.in) {
+				fmt.Printf("\n tt.in = %+v \n", tt.in)
+				t.Errorf("decodeState.unmarshal() = %v, want %v", dst, tt.in)
+			}
+
+		})
+		fmt.Println()
 	}
 }
 
