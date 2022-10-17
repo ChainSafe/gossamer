@@ -608,7 +608,7 @@ func (s *Service) GetReadProofAt(block common.Hash, keys [][]byte) (
 // See https://github.com/paritytech/substrate/blob/polkadot-v0.9.25/primitives/transaction-pool/src/runtime_api.rs#L25-L55
 func (s *Service) buildExternalTransaction(rt runtime.Instance, ext types.Extrinsic) (types.Extrinsic, error) {
 	runtimeVersion := rt.Version()
-	txQueueVersion := runtime.TaggedTransactionQueueVersion(runtimeVersion)
+	txQueueVersion := runtimeVersion.TaggedTransactionQueueVersion()
 	var externalExt types.Extrinsic
 	switch txQueueVersion {
 	case 3:

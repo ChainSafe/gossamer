@@ -36,9 +36,9 @@ var (
 )
 
 // TaggedTransactionQueueVersion returns the TaggedTransactionQueueAPI version
-func TaggedTransactionQueueVersion(runtimeVersion Version) (txQueueVersion uint32) {
+func (v Version) TaggedTransactionQueueVersion() (txQueueVersion uint32) {
 	encodedTaggedTransactionQueue := common.MustBlake2b8([]byte("TaggedTransactionQueue"))
-	for _, apiItem := range runtimeVersion.APIItems {
+	for _, apiItem := range v.APIItems {
 		if apiItem.Name == encodedTaggedTransactionQueue {
 			return apiItem.Ver
 		}
