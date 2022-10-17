@@ -34,9 +34,9 @@ func TestBlake128(t *testing.T) {
 }
 
 func Test_MustBlake2b8(t *testing.T) {
-	exp := [8]byte{0xd2, 0xbc, 0x98, 0x97, 0xee, 0xd0, 0x8f, 0x15}
-	res := common.MustBlake2b8([]byte("TaggedTransactionQueue"))
-	require.Equal(t, exp, res)
+	expectedDigest := [8]byte{0xd2, 0xbc, 0x98, 0x97, 0xee, 0xd0, 0x8f, 0x15}
+	digest := common.MustBlake2b8([]byte("TaggedTransactionQueue"))
+	require.Equal(t, expectedDigest, digest)
 }
 
 func TestBlake2bHash_EmptyHash(t *testing.T) {
