@@ -377,7 +377,7 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 
 			externalExt, err := s.buildExternalTransaction(rt, ext)
 			if err != nil {
-				logger.Debugf("building external transaction: %w", err)
+				logger.Debugf("building external transaction: %s", err)
 				continue
 			}
 
