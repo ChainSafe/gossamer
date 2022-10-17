@@ -290,7 +290,7 @@ func Test_Trie_prepForMutation(t *testing.T) {
 	}
 }
 
-func Test_registerDeletedMerkleValue(t *testing.T) {
+func Test_Trie_registerDeletedMerkleValue(t *testing.T) {
 	t.Parallel()
 
 	someSmallNode := &Node{
@@ -299,20 +299,32 @@ func Test_registerDeletedMerkleValue(t *testing.T) {
 	}
 
 	testCases := map[string]struct {
+		trie                               Trie
 		node                               *Node
-		isRoot                             bool
 		pendingDeletedMerkleValues         map[string]struct{}
 		expectedPendingDeletedMerkleValues map[string]struct{}
+		expectedTrie                       Trie
 	}{
 		"dirty node not registered": {
 			node: &Node{Dirty: true},
 		},
 		"clean root node registered": {
 			node:                       someSmallNode,
-			isRoot:                     true,
+			trie:                       Trie{root: someSmallNode},
 			pendingDeletedMerkleValues: map[string]struct{}{},
 			expectedPendingDeletedMerkleValues: map[string]struct{}{
 				"`Qm\v\xb6\xe1\xbb\xfb\x12\x93\xf1\xb2v\xea\x95\x05\xe9\xf4\xa4\xe7ُb\r\x05\x11^\v\x85'J\xe1": {},
+			},
+			expectedTrie: Trie{
+				root: &Node{
+					PartialKey: []byte{1},
+					SubValue:   []byte{2},
+					MerkleValue: []byte{
+						0x60, 0x51, 0x6d, 0x0b, 0xb6, 0xe1, 0xbb, 0xfb,
+						0x12, 0x93, 0xf1, 0xb2, 0x76, 0xea, 0x95, 0x05,
+						0xe9, 0xf4, 0xa4, 0xe7, 0xd9, 0x8f, 0x62, 0x0d,
+						0x05, 0x11, 0x5e, 0x0b, 0x85, 0x27, 0x4a, 0xe1},
+				},
 			},
 		},
 		"clean node with inlined Merkle value not registered": {
@@ -342,10 +354,14 @@ func Test_registerDeletedMerkleValue(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			err := registerDeletedMerkleValue(testCase.node, testCase.isRoot, testCase.pendingDeletedMerkleValues)
+			trie := testCase.trie
+
+			err := trie.registerDeletedMerkleValue(testCase.node,
+				testCase.pendingDeletedMerkleValues)
 
 			require.NoError(t, err)
 			assert.Equal(t, testCase.expectedPendingDeletedMerkleValues, testCase.pendingDeletedMerkleValues)
+			assert.Equal(t, testCase.expectedTrie, trie)
 		})
 	}
 }
@@ -3896,10 +3912,11 @@ func Test_Trie_deleteAtNode(t *testing.T) {
 	}
 }
 
-func Test_handleDeletion(t *testing.T) {
+func Test_Trie_handleDeletion(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
+		trie                        Trie
 		branch                      *Node
 		deletedKey                  []byte
 		deletedMerkleValues         map[string]struct{}
@@ -4019,7 +4036,10 @@ func Test_handleDeletion(t *testing.T) {
 				copy(expectedKey, testCase.deletedKey)
 			}
 
-			newNode, branchChildMerged, err := handleDeletion(
+			trie := testCase.trie
+			expectedTrie := *trie.DeepCopy()
+
+			newNode, branchChildMerged, err := trie.handleDeletion(
 				testCase.branch, testCase.deletedKey, testCase.deletedMerkleValues)
 
 			assert.ErrorIs(t, err, testCase.errSentinel)
@@ -4031,6 +4051,7 @@ func Test_handleDeletion(t *testing.T) {
 			assert.Equal(t, testCase.branchChildMerged, branchChildMerged)
 			assert.Equal(t, expectedKey, testCase.deletedKey)
 			assert.Equal(t, testCase.expectedDeletedMerkleValues, testCase.deletedMerkleValues)
+			assert.Equal(t, expectedTrie, trie)
 		})
 	}
 }
