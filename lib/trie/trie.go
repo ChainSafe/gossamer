@@ -1165,7 +1165,7 @@ func (t *Trie) Delete(keyLE []byte) (err error) {
 	key := codec.KeyLEToNibbles(keyLE)
 	root, _, _, err := t.deleteAtNode(t.root, key, pendingDeletedMerkleValues)
 	if err != nil {
-		return err
+		return fmt.Errorf("deleting key %x: %w", keyLE, err)
 	}
 	t.root = root
 	return nil
