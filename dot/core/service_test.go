@@ -734,7 +734,7 @@ func Test_Service_handleBlocksAsync(t *testing.T) {
 		}
 
 		assert.PanicsWithError(t, "failed to re-add transactions to chain upon re-org: test dummy error",
-			service.handleBlocksAsync, "The code panics as expected")
+			service.handleBlocksAsync)
 	})
 }
 
