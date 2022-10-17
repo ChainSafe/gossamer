@@ -159,6 +159,8 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {
 			err = ds.decodeArray(dstv)
 		case reflect.Slice:
 			err = ds.decodeSlice(dstv)
+		case reflect.Map:
+			err = ds.decodeMap(dstv)
 		default:
 			err = fmt.Errorf("unsupported type: %T", in)
 		}
@@ -423,6 +425,34 @@ func (ds *decodeState) decodeArray(dstv reflect.Value) (err error) {
 		}
 	}
 	dstv.Set(temp.Elem())
+	return
+}
+
+func (ds *decodeState) decodeMap(dstv reflect.Value) (err error) {
+	l, err := ds.decodeLength()
+	if err != nil {
+		return
+	}
+	in := dstv.Interface()
+
+	for i := uint(0); i < l; i++ {
+		tempKeyType := reflect.TypeOf(in).Key()
+		tempKey := reflect.New(tempKeyType).Elem()
+		err = ds.unmarshal(tempKey)
+		if err != nil {
+			return
+		}
+
+		tempElemType := reflect.TypeOf(in).Elem()
+		tempElem := reflect.New(tempElemType).Elem()
+		err = ds.unmarshal(tempElem)
+		if err != nil {
+			return
+		}
+
+		dstv.SetMapIndex(tempKey, tempElem)
+	}
+
 	return
 }
 
