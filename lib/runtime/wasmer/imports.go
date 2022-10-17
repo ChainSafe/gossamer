@@ -861,7 +861,7 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 		return 0
 	}
 
-	for i, val := range values {
+	for i, value := range values {
 		key, err := scale.Marshal(big.NewInt(int64(i)))
 		if err != nil {
 			logger.Errorf("failed scale encoding value index %d: %s", i, err)
@@ -869,9 +869,9 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 		}
 		logger.Tracef(
 			"put key=0x%x and value=0x%x",
-			key, val)
+			key, value)
 
-		t.Put(key, val)
+		t.Put(key, value)
 	}
 
 	// allocate memory for value and copy value to memory

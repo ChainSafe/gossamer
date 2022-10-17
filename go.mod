@@ -4,7 +4,7 @@ require (
 	github.com/ChainSafe/chaindb v0.1.5-0.20220708005902-df45dbc8e840
 	github.com/ChainSafe/go-schnorrkel v1.0.1-0.20220711122024-027d287d27bf
 	github.com/OneOfOne/xxhash v1.2.8
-	github.com/breml/rootcerts v0.2.7
+	github.com/breml/rootcerts v0.2.8
 	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce
 	github.com/chyeh/pubip v0.0.0-20170203095919-b7e679cf541c
 	github.com/cosmos/go-bip39 v1.0.0
@@ -26,8 +26,8 @@ require (
 	github.com/holiman/bloomfilter/v2 v2.0.3
 	github.com/ipfs/go-ds-badger2 v0.1.3
 	github.com/ipfs/go-ipns v0.1.2 //indirect
-	github.com/jpillora/ipfilter v1.2.7
-	github.com/klauspost/compress v1.15.10
+	github.com/jpillora/ipfilter v1.2.8
+	github.com/klauspost/compress v1.15.11
 	github.com/libp2p/go-libp2p v0.20.3
 	github.com/libp2p/go-libp2p-core v0.16.1
 	github.com/libp2p/go-libp2p-discovery v0.5.1
@@ -150,7 +150,7 @@ require (
 	github.com/opencontainers/runtime-spec v1.0.2 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58 // indirect
-	github.com/phuslu/iploc v1.0.20220730 // indirect
+	github.com/phuslu/iploc v1.0.20220830 // indirect
 	github.com/pierrec/xxHash v0.1.5 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect

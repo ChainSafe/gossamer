@@ -46,7 +46,7 @@ func (p Mode) IsValid() bool {
 // Config holds state trie pruning mode and retained blocks
 type Config struct {
 	Mode           Mode
-	RetainedBlocks int64
+	RetainedBlocks uint32
 }
 
 // Pruner is implemented by FullNode and ArchiveNode.
@@ -82,7 +82,7 @@ type FullNode struct {
 	// pendingNumber is the block number to be pruned.
 	// Initial value is set to 1 and is incremented after every block pruning.
 	pendingNumber int64
-	retainBlocks  int64
+	retainBlocks  uint32
 	sync.RWMutex
 }
 
@@ -110,7 +110,7 @@ func newJournalRecord(hash common.Hash, insertedMerkleValues,
 }
 
 // NewFullNode creates a Pruner for full node.
-func NewFullNode(db, storageDB chaindb.Database, retainBlocks int64, l log.LeveledLogger) (Pruner, error) {
+func NewFullNode(db, storageDB chaindb.Database, retainBlocks uint32, l log.LeveledLogger) (Pruner, error) {
 	p := &FullNode{
 		deathList:    make([]deathRow, 0),
 		deathIndex:   make(map[string]int64),
@@ -216,7 +216,7 @@ func (p *FullNode) start() {
 	checkPruning := func() {
 		p.Lock()
 		defer p.Unlock()
-		if int64(len(p.deathList)) <= p.retainBlocks {
+		if uint32(len(p.deathList)) <= p.retainBlocks {
 			canPrune = false
 			return
 		}

@@ -101,17 +101,39 @@ func TestPutAndGetOddKeyLengths(t *testing.T) {
 	runTests(t, trie, tests)
 }
 
-func Fuzz_Trie_PutAndGet(f *testing.F) {
-	trie := NewEmptyTrie()
-	var trieMutex sync.Mutex
-
+func Fuzz_Trie_PutAndGet_Single(f *testing.F) {
 	f.Fuzz(func(t *testing.T, key, value []byte) {
-		trieMutex.Lock()
+		trie := NewEmptyTrie()
 		trie.Put(key, value)
 		retrievedValue := trie.Get(key)
-		trieMutex.Unlock()
 		assert.Equal(t, retrievedValue, value)
 	})
+}
+
+func Test_Trie_PutAndGet_Multiple(t *testing.T) {
+	trie := NewEmptyTrie()
+
+	const numberOfKeyValuePairs = 60000
+
+	generator := newGenerator()
+	keyValues := generateKeyValues(t, generator, numberOfKeyValuePairs)
+	for keyString, value := range keyValues {
+		key := []byte(keyString)
+		trie.Put(key, value)
+
+		// Check value is inserted correctly.
+		retrievedValue := trie.Get(key)
+		require.Equalf(t, retrievedValue, value,
+			"for key (nibbles) 0x%x", codec.KeyLEToNibbles(key))
+	}
+
+	// Check values were not mismoved in the trie.
+	for keyString, value := range keyValues {
+		key := []byte(keyString)
+		retrievedValue := trie.Get(key)
+		require.Equalf(t, retrievedValue, value,
+			"for key (nibbles) 0x%x", codec.KeyLEToNibbles(key))
+	}
 }
 
 func TestGetPartialKey(t *testing.T) {

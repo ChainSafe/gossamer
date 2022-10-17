@@ -97,7 +97,7 @@ func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot, rt runtime.In
 	logger.Trace("initialised block")
 
 	// add block inherents
-	inherents, err := buildBlockInherents(slot, rt)
+	inherents, err := buildBlockInherents(slot, rt, parent)
 	if err != nil {
 		return nil, fmt.Errorf("cannot build inherents: %s", err)
 	}
@@ -174,11 +174,15 @@ func (b *BlockBuilder) buildBlockSeal(header *types.Header) (*types.SealDigest, 
 func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt runtime.Instance) []*transaction.ValidTransaction {
 	var included []*transaction.ValidTransaction
 
-	for !hasSlotEnded(slot) {
-		txn := b.transactionState.Pop()
-		// Transaction queue is empty.
-		if txn == nil {
-			continue
+	slotEnd := slot.start.Add(slot.duration * 2 / 3) // reserve last 1/3 of slot for block finalisation
+	timeout := time.Until(slotEnd)
+	slotTimer := time.NewTimer(timeout)
+
+	for {
+		txn := b.transactionState.PopWithTimer(slotTimer.C)
+		slotTimerExpired := txn == nil
+		if slotTimerExpired {
+			break
 		}
 
 		extrinsic := txn.Extrinsic
@@ -222,19 +226,35 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt runtime.Instance) []*t
 	return included
 }
 
-func buildBlockInherents(slot Slot, rt runtime.Instance) ([][]byte, error) {
+func buildBlockInherents(slot Slot, rt runtime.Instance, parent *types.Header) ([][]byte, error) {
 	// Setup inherents: add timstap0
-	idata := types.NewInherentsData()
+	idata := types.NewInherentData()
 	timestamp := uint64(time.Now().UnixMilli())
-	err := idata.SetInt64Inherent(types.Timstap0, timestamp)
+	err := idata.SetInherent(types.Timstap0, timestamp)
 	if err != nil {
 		return nil, err
 	}
 
 	// add babeslot
-	err = idata.SetInt64Inherent(types.Babeslot, slot.number)
+	err = idata.SetInherent(types.Babeslot, slot.number)
 	if err != nil {
 		return nil, err
+	}
+
+	parachainInherent := ParachainInherentData{
+		ParentHeader: *parent,
+	}
+
+	// add parachn0 and newheads
+	// for now we can use "empty" values, as we require parachain-specific
+	// logic to actually provide the data.
+
+	if err = idata.SetInherent(types.Parachn0, parachainInherent); err != nil {
+		return nil, fmt.Errorf("setting inherent %q: %w", types.Parachn0, err)
+	}
+
+	if err = idata.SetInherent(types.Newheads, []byte{0}); err != nil {
+		return nil, fmt.Errorf("setting inherent %q: %w", types.Newheads, err)
 	}
 
 	ienc, err := idata.Encode()
@@ -285,11 +305,6 @@ func (b *BlockBuilder) addToQueue(txs []*transaction.ValidTransaction) {
 			logger.Tracef("Added transaction with hash %s to queue", hash)
 		}
 	}
-}
-
-func hasSlotEnded(slot Slot) bool {
-	slotEnd := slot.start.Add(slot.duration * 2 / 3) // reserve last 1/3 of slot for block finalisation
-	return time.Since(slotEnd) >= 0
 }
 
 func extrinsicsToBody(inherents [][]byte, txs []*transaction.ValidTransaction) (types.Body, error) {

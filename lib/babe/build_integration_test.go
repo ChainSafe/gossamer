@@ -18,7 +18,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	cscale "github.com/centrifuge/go-substrate-rpc-client/v4/scale"
-	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
+	signaturev4 "github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	ctypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	"github.com/ethereum/go-ethereum/metrics"
@@ -146,6 +146,8 @@ func TestApplyExtrinsic(t *testing.T) {
 	require.NoError(t, err)
 
 	parentHash := babeService.blockState.GenesisHash()
+	parentHeader, err := babeService.blockState.GetHeader(parentHash)
+	require.NoError(t, err)
 
 	rt, err := babeService.blockState.GetRuntime(nil)
 	require.NoError(t, err)
@@ -171,7 +173,7 @@ func TestApplyExtrinsic(t *testing.T) {
 	err = rt.InitializeBlock(header)
 	require.NoError(t, err)
 
-	_, err = buildBlockInherents(slot, rt)
+	_, err = buildBlockInherents(slot, rt, parentHeader)
 	require.NoError(t, err)
 
 	header1, err := rt.FinalizeBlock()
@@ -189,7 +191,7 @@ func TestApplyExtrinsic(t *testing.T) {
 	err = rt.InitializeBlock(header2)
 	require.NoError(t, err)
 
-	_, err = buildBlockInherents(slot, rt)
+	_, err = buildBlockInherents(slot, rt, parentHeader)
 	require.NoError(t, err)
 
 	res, err := rt.ApplyExtrinsic(extBytes)
@@ -251,7 +253,7 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	}
 
 	// Sign the transaction using Alice's default account
-	err = ext.Sign(signature.TestKeyringPairAlice, o)
+	err = ext.Sign(signaturev4.TestKeyringPairAlice, o)
 	require.NoError(t, err)
 
 	extEnc := bytes.Buffer{}
