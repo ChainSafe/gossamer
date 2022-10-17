@@ -71,7 +71,9 @@ func (t *Trie) Snapshot() (newTrie *Trie) {
 // handleTrackedDeltas sets the pending deleted Merkle values in
 // the trie deleted merkle values set if and only if success is true.
 func (t *Trie) handleTrackedDeltas(success bool, pendingDeletedMerkleValues map[string]struct{}) {
-	if !success {
+	if !success || t.generation == 0 {
+		// Do not persist tracked deleted node hashes if the operation failed or
+		// if the trie generation is zero (first block, no trie snapshot done yet).
 		return
 	}
 

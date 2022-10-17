@@ -102,12 +102,30 @@ func Test_Trie_handleTrackedDeltas(t *testing.T) {
 		pendingDeletedMerkleValues map[string]struct{}
 		expectedTrie               Trie
 	}{
-		"no success": {
+		"no success and generation 1": {
+			trie: Trie{
+				generation: 1,
+				deletedMerkleValues: map[string]struct{}{
+					"a": {},
+				},
+			},
+			pendingDeletedMerkleValues: map[string]struct{}{
+				"b": {},
+			},
+			expectedTrie: Trie{
+				generation: 1,
+				deletedMerkleValues: map[string]struct{}{
+					"a": {},
+				},
+			},
+		},
+		"success and generation 0": {
 			trie: Trie{
 				deletedMerkleValues: map[string]struct{}{
 					"a": {},
 				},
 			},
+			success: true,
 			pendingDeletedMerkleValues: map[string]struct{}{
 				"b": {},
 			},
@@ -117,8 +135,9 @@ func Test_Trie_handleTrackedDeltas(t *testing.T) {
 				},
 			},
 		},
-		"success": {
+		"success and generation 1": {
 			trie: Trie{
+				generation: 1,
 				deletedMerkleValues: map[string]struct{}{
 					"a": {},
 				},
@@ -129,6 +148,7 @@ func Test_Trie_handleTrackedDeltas(t *testing.T) {
 				"b": {},
 			},
 			expectedTrie: Trie{
+				generation: 1,
 				deletedMerkleValues: map[string]struct{}{
 					"a": {},
 					"b": {},
@@ -3093,9 +3113,11 @@ func Test_Trie_ClearPrefix(t *testing.T) {
 		"nil prefix": {
 			trie: Trie{
 				root:                &Node{SubValue: []byte{1}},
+				generation:          1,
 				deletedMerkleValues: map[string]struct{}{},
 			},
 			expectedTrie: Trie{
+				generation: 1,
 				deletedMerkleValues: map[string]struct{}{
 					"\xf9jt\x15\"\xbc\xc1O\n\xea/p`DR$\x1dY\xb5\xf2ݫ\x9aiH\xfd\xb3\xfe\xf5\xf9\x86C": {},
 				},
@@ -3104,10 +3126,12 @@ func Test_Trie_ClearPrefix(t *testing.T) {
 		"empty prefix": {
 			trie: Trie{
 				root:                &Node{SubValue: []byte{1}},
+				generation:          1,
 				deletedMerkleValues: map[string]struct{}{},
 			},
 			prefix: []byte{},
 			expectedTrie: Trie{
+				generation: 1,
 				deletedMerkleValues: map[string]struct{}{
 					"\xf9jt\x15\"\xbc\xc1O\n\xea/p`DR$\x1dY\xb5\xf2ݫ\x9aiH\xfd\xb3\xfe\xf5\xf9\x86C": {},
 				},
@@ -3118,6 +3142,7 @@ func Test_Trie_ClearPrefix(t *testing.T) {
 		},
 		"clear prefix": {
 			trie: Trie{
+				generation: 1,
 				root: &Node{
 					Key:         []byte{1, 2},
 					Descendants: 3,
@@ -3138,13 +3163,19 @@ func Test_Trie_ClearPrefix(t *testing.T) {
 						},
 					}),
 				},
+				deletedMerkleValues: map[string]struct{}{},
 			},
 			prefix: []byte{0x12, 0x16},
 			expectedTrie: Trie{
+				generation: 1,
 				root: &Node{
-					Key:      []byte{1, 2, 0, 5},
-					SubValue: []byte{1},
-					Dirty:    true,
+					Key:        []byte{1, 2, 0, 5},
+					SubValue:   []byte{1},
+					Generation: 1,
+					Dirty:      true,
+				},
+				deletedMerkleValues: map[string]struct{}{
+					"_\xe1\b\xc8=\b2\x93S֑\x8e\x01\x04\xda̝!\x87\xfd\x9d\xaf\xa5\x82\xd1\xc52\xe5\xfe{.P": {},
 				},
 			},
 		},
@@ -3513,9 +3544,11 @@ func Test_Trie_Delete(t *testing.T) {
 		"nil key": {
 			trie: Trie{
 				root:                &Node{SubValue: []byte{1}},
+				generation:          1,
 				deletedMerkleValues: map[string]struct{}{},
 			},
 			expectedTrie: Trie{
+				generation: 1,
 				deletedMerkleValues: map[string]struct{}{
 					"\xf9jt\x15\"\xbc\xc1O\n\xea/p`DR$\x1dY\xb5\xf2ݫ\x9aiH\xfd\xb3\xfe\xf5\xf9\x86C": {},
 				},
@@ -3524,9 +3557,11 @@ func Test_Trie_Delete(t *testing.T) {
 		"empty key": {
 			trie: Trie{
 				root:                &Node{SubValue: []byte{1}},
+				generation:          1,
 				deletedMerkleValues: map[string]struct{}{},
 			},
 			expectedTrie: Trie{
+				generation: 1,
 				deletedMerkleValues: map[string]struct{}{
 					"\xf9jt\x15\"\xbc\xc1O\n\xea/p`DR$\x1dY\xb5\xf2ݫ\x9aiH\xfd\xb3\xfe\xf5\xf9\x86C": {},
 				},
