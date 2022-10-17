@@ -108,7 +108,7 @@ func (s *TrieState) Delete(key []byte) (err error) {
 	defer s.lock.Unlock()
 	err = s.t.Delete(key)
 	if err != nil {
-		return err
+		return fmt.Errorf("deleting from trie: %w", err)
 	}
 
 	return nil
