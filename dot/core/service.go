@@ -306,7 +306,7 @@ func (s *Service) handleBlocksAsync() {
 
 			bestBlockHash := s.blockState.BestBlockHash()
 			if err := s.handleChainReorg(bestBlockHash, block.Header.Hash()); err != nil {
-				panic(fmt.Errorf("failed to re-add transactions to chain upon re-org: %s", err))
+				panic(fmt.Sprintf("failed to re-add transactions to chain upon re-org: %s", err))
 			}
 
 			if err := s.maintainTransactionPool(block, bestBlockHash); err != nil {
