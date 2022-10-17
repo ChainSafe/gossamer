@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -742,7 +743,6 @@ func TestService_handleChainReorg(t *testing.T) {
 	t.Parallel()
 	execTest := func(t *testing.T, s *Service, prevHash common.Hash, currHash common.Hash, expErr error) {
 		err := s.handleChainReorg(prevHash, currHash)
-		assert.ErrorIs(t, err, expErr)
 		if expErr != nil {
 			assert.EqualError(t, err, expErr.Error())
 		}
@@ -872,7 +872,11 @@ func TestService_handleChainReorg(t *testing.T) {
 		service := &Service{
 			blockState: mockBlockState,
 		}
-		execTest(t, service, testPrevHash, testCurrentHash, nil)
+
+		expErr := fmt.Errorf("failed to validate transaction for extrinsic %s: %s",
+			ext,
+			errTestDummyError)
+		execTest(t, service, testPrevHash, testCurrentHash, expErr)
 	})
 
 	t.Run("happy path", func(t *testing.T) {

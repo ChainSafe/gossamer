@@ -377,14 +377,12 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 
 			externalExt, err := s.buildExternalTransaction(rt, ext)
 			if err != nil {
-				logger.Debugf("building external transaction: %s", err)
-				continue
+				return fmt.Errorf("building external transaction: %s", err)
 			}
 
 			transactionValidity, err := rt.ValidateTransaction(externalExt)
 			if err != nil {
-				logger.Debugf("failed to validate transaction for extrinsic %s: %s", ext, err)
-				continue
+				return fmt.Errorf("failed to validate transaction for extrinsic %s: %s", ext, err)
 			}
 			vtx := transaction.NewValidTransaction(ext, transactionValidity)
 			s.transactionState.AddToPool(vtx)
@@ -421,19 +419,18 @@ func (s *Service) maintainTransactionPool(block *types.Block, bestBlockHash comm
 	for _, tx := range txs {
 		rt, err := s.blockState.GetRuntime(&bestBlockHash)
 		if err != nil {
-			logger.Warnf("failed to get runtime to re-validate transactions in pool: %s", err)
-			continue
+			return fmt.Errorf("failed to get runtime to re-validate transactions in pool: %s", err)
 		}
 
 		rt.SetContextStorage(ts)
 		externalExt, err := s.buildExternalTransaction(rt, tx.Extrinsic)
 		if err != nil {
-			logger.Errorf("Unable to build external transaction: %s", err)
-			continue
+			return fmt.Errorf("building external transaction: %s", err)
 		}
 
 		txnValidity, err := rt.ValidateTransaction(externalExt)
 		if err != nil {
+			logger.Debugf("failed to validate transaction for extrinsic %s: %s", tx.Extrinsic, err)
 			s.transactionState.RemoveExtrinsic(tx.Extrinsic)
 			continue
 		}
