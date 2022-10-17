@@ -91,8 +91,7 @@ func (t *Trie) prepForMutation(currentNode *Node,
 		// update the node generation.
 		newNode = currentNode
 	} else {
-		isRoot := currentNode == t.root
-		err = registerDeletedMerkleValue(currentNode, isRoot,
+		err = t.registerDeletedMerkleValue(currentNode,
 			pendingDeletedMerkleValues)
 		if err != nil {
 			return nil, fmt.Errorf("registering deleted node: %w", err)
@@ -104,8 +103,9 @@ func (t *Trie) prepForMutation(currentNode *Node,
 	return newNode, nil
 }
 
-func registerDeletedMerkleValue(node *Node, isRoot bool,
+func (t *Trie) registerDeletedMerkleValue(node *Node,
 	pendingDeletedMerkleValues map[string]struct{}) (err error) {
+	isRoot := node == t.root
 	err = ensureMerkleValueIsCalculated(node, isRoot)
 	if err != nil {
 		return fmt.Errorf("ensuring Merkle value is calculated: %w", err)
@@ -810,8 +810,7 @@ func (t *Trie) clearPrefixLimitAtNode(parent *Node, prefix []byte,
 		// TODO check this is the same behaviour as in substrate
 		const allDeleted = true
 		if bytes.HasPrefix(parent.Key, prefix) {
-			isRoot := parent == t.root
-			err = registerDeletedMerkleValue(parent, isRoot, deletedMerkleValues)
+			err = t.registerDeletedMerkleValue(parent, deletedMerkleValues)
 			if err != nil {
 				return nil, 0, 0, false,
 					fmt.Errorf("registering deleted Merkle value: %w", err)
@@ -877,7 +876,7 @@ func (t *Trie) clearPrefixLimitBranch(branch *Node, prefix []byte, limit uint32,
 
 	branch.Children[childIndex] = child
 	branch.Descendants -= nodesRemoved
-	newParent, branchChildMerged, err := handleDeletion(branch, prefix, deletedMerkleValues)
+	newParent, branchChildMerged, err := t.handleDeletion(branch, prefix, deletedMerkleValues)
 	if err != nil {
 		return nil, 0, 0, false, fmt.Errorf("handling deletion: %w", err)
 	}
@@ -925,7 +924,7 @@ func (t *Trie) clearPrefixLimitChild(branch *Node, prefix []byte, limit uint32,
 	branch.Children[childIndex] = child
 	branch.Descendants -= nodesRemoved
 
-	newParent, branchChildMerged, err := handleDeletion(branch, prefix, deletedMerkleValues)
+	newParent, branchChildMerged, err := t.handleDeletion(branch, prefix, deletedMerkleValues)
 	if err != nil {
 		return nil, 0, 0, false, fmt.Errorf("handling deletion: %w", err)
 	}
@@ -952,8 +951,7 @@ func (t *Trie) deleteNodesLimit(parent *Node, limit uint32,
 	}
 
 	if parent.Kind() == node.Leaf {
-		isRoot := parent == t.root
-		err = registerDeletedMerkleValue(parent, isRoot, deletedMerkleValues)
+		err = t.registerDeletedMerkleValue(parent, deletedMerkleValues)
 		if err != nil {
 			return nil, 0, 0, fmt.Errorf("registering deleted merkle value: %w", err)
 		}
@@ -998,7 +996,7 @@ func (t *Trie) deleteNodesLimit(parent *Node, limit uint32,
 		nodesRemoved += newNodesRemoved
 		branch.Descendants -= newNodesRemoved
 
-		newParent, branchChildMerged, err = handleDeletion(branch, branch.Key, deletedMerkleValues)
+		newParent, branchChildMerged, err = t.handleDeletion(branch, branch.Key, deletedMerkleValues)
 		if err != nil {
 			return nil, 0, 0, fmt.Errorf("handling deletion: %w", err)
 		}
@@ -1103,8 +1101,7 @@ func (t *Trie) clearPrefixAtNode(parent *Node, prefix []byte,
 			return nil, 0, fmt.Errorf("preparing branch for mutation: %w", err)
 		}
 
-		const isRoot = false // child so it cannot be the root
-		err = registerDeletedMerkleValue(child, isRoot, deletedMerkleValues)
+		err = t.registerDeletedMerkleValue(child, deletedMerkleValues)
 		if err != nil {
 			return nil, 0, fmt.Errorf("registering deleted merkle value for child: %w", err)
 		}
@@ -1112,7 +1109,7 @@ func (t *Trie) clearPrefixAtNode(parent *Node, prefix []byte,
 		branch.Children[childIndex] = nil
 		branch.Descendants -= nodesRemoved
 		var branchChildMerged bool
-		newParent, branchChildMerged, err = handleDeletion(branch, prefix, deletedMerkleValues)
+		newParent, branchChildMerged, err = t.handleDeletion(branch, prefix, deletedMerkleValues)
 		if err != nil {
 			return nil, 0, fmt.Errorf("handling deletion: %w", err)
 		}
@@ -1151,7 +1148,7 @@ func (t *Trie) clearPrefixAtNode(parent *Node, prefix []byte,
 
 	branch.Descendants -= nodesRemoved
 	branch.Children[childIndex] = child
-	newParent, branchChildMerged, err := handleDeletion(branch, prefix, deletedMerkleValues)
+	newParent, branchChildMerged, err := t.handleDeletion(branch, prefix, deletedMerkleValues)
 	if err != nil {
 		return nil, 0, fmt.Errorf("handling deletion: %w", err)
 	}
@@ -1221,8 +1218,7 @@ func (t *Trie) deleteLeaf(parent *Node, key []byte,
 
 	newParent = nil
 
-	isRoot := parent == t.root
-	err = registerDeletedMerkleValue(parent, isRoot, deletedMerkleValues)
+	err = t.registerDeletedMerkleValue(parent, deletedMerkleValues)
 	if err != nil {
 		return nil, fmt.Errorf("registering deleted merkle value: %w", err)
 	}
@@ -1246,7 +1242,7 @@ func (t *Trie) deleteBranch(branch *Node, key []byte,
 		branch.SubValue = nil
 		deleted = true
 		var branchChildMerged bool
-		newParent, branchChildMerged, err = handleDeletion(branch, key, deletedMerkleValues)
+		newParent, branchChildMerged, err = t.handleDeletion(branch, key, deletedMerkleValues)
 		if err != nil {
 			return nil, false, 0, fmt.Errorf("handling deletion: %w", err)
 		}
@@ -1287,7 +1283,7 @@ func (t *Trie) deleteBranch(branch *Node, key []byte,
 	branch.Descendants -= nodesRemoved
 	branch.Children[childIndex] = newChild
 
-	newParent, branchChildMerged, err := handleDeletion(branch, key, deletedMerkleValues)
+	newParent, branchChildMerged, err := t.handleDeletion(branch, key, deletedMerkleValues)
 	if err != nil {
 		return nil, false, 0, fmt.Errorf("handling deletion: %w", err)
 	}
@@ -1305,7 +1301,7 @@ func (t *Trie) deleteBranch(branch *Node, key []byte,
 // In this first case, branchChildMerged is returned as true to keep track of the removal
 // of one node in callers.
 // If the branch has a value and no child, it will be changed into a leaf.
-func handleDeletion(branch *Node, key []byte,
+func (t *Trie) handleDeletion(branch *Node, key []byte,
 	deletedMerkleValues map[string]struct{}) (
 	newNode *Node, branchChildMerged bool, err error) {
 	childrenCount := 0
@@ -1343,8 +1339,7 @@ func handleDeletion(branch *Node, key []byte,
 		const branchChildMerged = true
 		childIndex := firstChildIndex
 		child := branch.Children[firstChildIndex]
-		const isRoot = false // child so it cannot be the root node
-		err = registerDeletedMerkleValue(child, isRoot, deletedMerkleValues)
+		err = t.registerDeletedMerkleValue(child, deletedMerkleValues)
 		if err != nil {
 			return nil, false, fmt.Errorf("registering deleted merkle value: %w", err)
 		}
