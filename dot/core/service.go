@@ -306,7 +306,7 @@ func (s *Service) handleBlocksAsync() {
 
 			bestBlockHash := s.blockState.BestBlockHash()
 			if err := s.handleChainReorg(bestBlockHash, block.Header.Hash()); err != nil {
-				panic(fmt.Sprintf("failed to re-add transactions to chain upon re-org: %s", err))
+				panic(fmt.Errorf("failed to re-add transactions to chain upon re-org: %s", err))
 			}
 
 			if err := s.maintainTransactionPool(block, bestBlockHash); err != nil {
@@ -403,7 +403,7 @@ func (s *Service) maintainTransactionPool(block *types.Block, bestBlockHash comm
 	for _, ext := range block.Body {
 		s.transactionState.RemoveExtrinsic(ext)
 	}
-	
+
 	stateRoot, err := s.storageState.GetStateRootFromBlock(&bestBlockHash)
 	if err != nil {
 		logger.Errorf("could not get state root from block %s: %w", bestBlockHash, err)
