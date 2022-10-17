@@ -403,8 +403,7 @@ func (s *Service) maintainTransactionPool(block *types.Block, bestBlockHash comm
 	for _, ext := range block.Body {
 		s.transactionState.RemoveExtrinsic(ext)
 	}
-
-	fmt.Println(bestBlockHash)
+	
 	stateRoot, err := s.storageState.GetStateRootFromBlock(&bestBlockHash)
 	if err != nil {
 		logger.Errorf("could not get state root from block %s: %w", bestBlockHash, err)
