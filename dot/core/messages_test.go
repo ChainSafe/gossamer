@@ -387,7 +387,7 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 					SpecVersion:      specVersion,
 					ImplVersion:      implVersion,
 					APIItems: []runtime.APIItem{{
-						Name: [8]byte{0xd2, 0xbc, 0x98, 0x97, 0xee, 0xd0, 0x8f, 0x15},
+						Name: common.MustBlake2b8([]byte("TaggedTransactionQueue")),
 						Ver:  3,
 					}},
 					TransactionVersion: transactionVersion,
