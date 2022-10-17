@@ -561,13 +561,13 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 			Propagate: true,
 		}
 
-		ext := types.Extrinsic{21}
+		extrinsic := types.Extrinsic{21}
 		externalExt := types.Extrinsic(bytes.Join([][]byte{
 			{byte(types.TxnExternal)},
-			ext,
+			extrinsic,
 			testHeader.StateRoot.ToBytes(),
 		}, nil))
-		vt := transaction.NewValidTransaction(ext, validity)
+		vt := transaction.NewValidTransaction(extrinsic, validity)
 
 		ctrl := gomock.NewController(t)
 		runtimeMock := NewMockRuntimeInstance(ctrl)
@@ -591,18 +591,18 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 		mockTxnState.EXPECT().RemoveExtrinsic(types.Extrinsic{21}).Times(2)
 		mockTxnState.EXPECT().PendingInPool().Return([]*transaction.ValidTransaction{vt})
 		mockBlockState := NewMockBlockState(ctrl)
-		mockBlockState.EXPECT().GetRuntime(&common.Hash{}).Return(runtimeMock, nil)
+		mockBlockState.EXPECT().GetRuntime(&common.Hash{1}).Return(runtimeMock, nil)
 		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{})
 
 		mockStorageState := NewMockStorageState(ctrl)
-		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(&rtstorage.TrieState{}, nil)
-		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(&common.Hash{}, nil)
+		mockStorageState.EXPECT().TrieState(&common.Hash{1}).Return(&rtstorage.TrieState{}, nil)
+		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{1}).Return(&common.Hash{1}, nil)
 		service := &Service{
 			transactionState: mockTxnState,
 			blockState:       mockBlockState,
 			storageState:     mockStorageState,
 		}
-		err := service.maintainTransactionPool(&block, common.Hash{})
+		err := service.maintainTransactionPool(&block, common.Hash{1})
 		require.NoError(t, err)
 	})
 
@@ -655,18 +655,18 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 		mockTxnState.EXPECT().RemoveExtrinsicFromPool(types.Extrinsic{21})
 
 		mockBlockStateOk := NewMockBlockState(ctrl)
-		mockBlockStateOk.EXPECT().GetRuntime(&common.Hash{}).Return(runtimeMock, nil)
+		mockBlockStateOk.EXPECT().GetRuntime(&common.Hash{1}).Return(runtimeMock, nil)
 		mockBlockStateOk.EXPECT().BestBlockHash().Return(common.Hash{})
 
 		mockStorageState := NewMockStorageState(ctrl)
-		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(&rtstorage.TrieState{}, nil)
-		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(&common.Hash{}, nil)
+		mockStorageState.EXPECT().TrieState(&common.Hash{1}).Return(&rtstorage.TrieState{}, nil)
+		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{1}).Return(&common.Hash{1}, nil)
 		service := &Service{
 			transactionState: mockTxnState,
 			blockState:       mockBlockStateOk,
 			storageState:     mockStorageState,
 		}
-		err := service.maintainTransactionPool(&block, common.Hash{})
+		err := service.maintainTransactionPool(&block, common.Hash{1})
 		require.NoError(t, err)
 	})
 }

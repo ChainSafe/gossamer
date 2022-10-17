@@ -609,16 +609,15 @@ func (s *Service) GetReadProofAt(block common.Hash, keys [][]byte) (
 func (s *Service) buildExternalTransaction(rt runtime.Instance, ext types.Extrinsic) (types.Extrinsic, error) {
 	runtimeVersion := rt.Version()
 	txQueueVersion := runtimeVersion.TaggedTransactionQueueVersion()
-	var externalExt types.Extrinsic
+	var extrinsicParts [][]byte
 	switch txQueueVersion {
 	case 3:
-		extrinsicParts := [][]byte{{byte(types.TxnExternal)}, ext, s.blockState.BestBlockHash().ToBytes()}
-		externalExt = types.Extrinsic(bytes.Join(extrinsicParts, nil))
+		extrinsicParts = [][]byte{{byte(types.TxnExternal)}, ext, s.blockState.BestBlockHash().ToBytes()}
 	case 2:
-		extrinsicParts := [][]byte{{byte(types.TxnExternal)}, ext}
-		externalExt = types.Extrinsic(bytes.Join(extrinsicParts, nil))
+		extrinsicParts = [][]byte{{byte(types.TxnExternal)}, ext}
 	default:
 		return types.Extrinsic{}, fmt.Errorf("%w: %d", errInvalidTransactionQueueVersion, txQueueVersion)
 	}
-	return externalExt, nil
+	externalTransaction := types.Extrinsic(bytes.Join(extrinsicParts, nil))
+	return externalTransaction, nil
 }

@@ -413,17 +413,17 @@ func TestMaintainTransactionPoolLatestTxnQueue_BlockWithExtrinsics(t *testing.T)
 	require.NoError(t, err)
 
 	ctrl := gomock.NewController(t)
-	service, encExt := createTestService(t, genesisFilePath, alicePub, accountInfo, ctrl)
+	service, encodedExtrinsic := createTestService(t, genesisFilePath, alicePub, accountInfo, ctrl)
 
 	tx := &transaction.ValidTransaction{
-		Extrinsic: types.Extrinsic(encExt),
+		Extrinsic: types.Extrinsic(encodedExtrinsic),
 		Validity:  &transaction.Validity{Priority: 1},
 	}
 	_ = service.transactionState.AddToPool(tx)
 
 	bestBlockHash := service.blockState.BestBlockHash()
 	err = service.maintainTransactionPool(&types.Block{
-		Body: types.Body([]types.Extrinsic{encExt}),
+		Body: types.Body([]types.Extrinsic{encodedExtrinsic}),
 	}, bestBlockHash)
 	require.NoError(t, err)
 
