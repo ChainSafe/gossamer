@@ -138,9 +138,7 @@ func TestHandleBlockAnnounceMessage(t *testing.T) {
 				syncer := NewMockSyncer(ctrl)
 				syncer.EXPECT().
 					HandleBlockAnnounce(peer, blockAnnounceMessage).
-					Return(blocktree.ErrBlockExists).
-					Times(1)
-
+					Return(blocktree.ErrBlockExists)
 				return syncer
 			},
 			propagate: true,
@@ -173,8 +171,8 @@ func TestHandleBlockAnnounceMessage(t *testing.T) {
 				config.Syncer = tt.mockSyncer(t, peerID, msg)
 			}
 
-			s := createTestService(t, config)
-			gotPropagate, err := s.handleBlockAnnounceMessage(peerID, msg)
+			service := createTestService(t, config)
+			gotPropagate, err := service.handleBlockAnnounceMessage(peerID, msg)
 
 			require.NoError(t, err)
 			require.Equal(t, tt.propagate, gotPropagate)

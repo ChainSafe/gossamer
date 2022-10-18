@@ -1247,8 +1247,6 @@ func Test_chainSync_start(t *testing.T) {
 	}
 }
 
-var blockAnnounceHeader = &types.Header{Number: 2}
-
 func Test_chainSync_setBlockAnnounce(t *testing.T) {
 	t.Parallel()
 
@@ -1257,16 +1255,16 @@ func Test_chainSync_setBlockAnnounce(t *testing.T) {
 		header *types.Header
 	}
 	tests := map[string]struct {
-		chainSyncBuilder func(ctrl *gomock.Controller) chainSync
+		chainSyncBuilder func(*types.Header, *gomock.Controller) chainSync
 		args             args
 		wantErr          error
 	}{
 		"base case": {
 			wantErr: blocktree.ErrBlockExists,
 			args: args{
-				header: blockAnnounceHeader,
+				header: &types.Header{Number: 2},
 			},
-			chainSyncBuilder: func(ctrl *gomock.Controller) chainSync {
+			chainSyncBuilder: func(_ *types.Header, ctrl *gomock.Controller) chainSync {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().HasHeader(common.MustHexToHash(
 					"0x05bdcc454f60a08d427d05e7f19f240fdc391f570ab76fcb96ecca0b5823d3bf")).Return(true, nil)
@@ -1280,9 +1278,9 @@ func Test_chainSync_setBlockAnnounce(t *testing.T) {
 		"err_when_calling_has_header": {
 			wantErr: errors.New("checking header exists"),
 			args: args{
-				header: blockAnnounceHeader,
+				header: &types.Header{Number: 2},
 			},
-			chainSyncBuilder: func(ctrl *gomock.Controller) chainSync {
+			chainSyncBuilder: func(_ *types.Header, ctrl *gomock.Controller) chainSync {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().
 					HasHeader(common.MustHexToHash(
@@ -1297,9 +1295,9 @@ func Test_chainSync_setBlockAnnounce(t *testing.T) {
 		},
 		"adding_block_header_to_pending_blocks": {
 			args: args{
-				header: blockAnnounceHeader,
+				header: &types.Header{Number: 2},
 			},
-			chainSyncBuilder: func(ctrl *gomock.Controller) chainSync {
+			chainSyncBuilder: func(expectedHeader *types.Header, ctrl *gomock.Controller) chainSync {
 				argumentHeaderHash := common.MustHexToHash(
 					"0x05bdcc454f60a08d427d05e7f19f240fdc391f570ab76fcb96ecca0b5823d3bf")
 
@@ -1314,7 +1312,7 @@ func Test_chainSync_setBlockAnnounce(t *testing.T) {
 
 				mockDisjointBlockSet := NewMockDisjointBlockSet(ctrl)
 				mockDisjointBlockSet.EXPECT().
-					addHeader(blockAnnounceHeader).
+					addHeader(expectedHeader).
 					Return(nil)
 
 				mockDisjointBlockSet.EXPECT().
@@ -1335,10 +1333,11 @@ func Test_chainSync_setBlockAnnounce(t *testing.T) {
 		},
 	}
 	for name, tt := range tests {
+		tt := tt
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			ctrl := gomock.NewController(t)
-			sync := tt.chainSyncBuilder(ctrl)
+			sync := tt.chainSyncBuilder(tt.args.header, ctrl)
 			err := sync.setBlockAnnounce(tt.args.from, tt.args.header)
 			if tt.wantErr != nil {
 				assert.EqualError(t, err, tt.wantErr.Error())
@@ -1347,11 +1346,7 @@ func Test_chainSync_setBlockAnnounce(t *testing.T) {
 			}
 
 			if sync.workQueue != nil {
-				assert.LessOrEqual(t, len(sync.workQueue), 1)
-				if len(sync.workQueue) > 0 {
-					<-sync.workQueue
-					close(sync.workQueue)
-				}
+				assert.Equal(t, len(sync.workQueue), 1)
 			}
 		})
 	}

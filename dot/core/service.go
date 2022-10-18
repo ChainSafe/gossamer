@@ -129,7 +129,7 @@ func (s *Service) StorageRoot() (common.Hash, error) {
 func (s *Service) HandleBlockImport(block *types.Block, state *rtstorage.TrieState) error {
 	err := s.handleBlock(block, state)
 	if err != nil {
-		return fmt.Errorf("handling block: %s", err)
+		return fmt.Errorf("handling block: %w", err)
 	}
 
 	bestBlockHash := s.blockState.BestBlockHash()
@@ -173,7 +173,7 @@ func createBlockAnnounce(block *types.Block, isBestBlock bool) (
 		}
 		err = digest.Add(digestValue)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("adding digest value for type at index %d: %w", i, err)
 		}
 	}
 
