@@ -185,20 +185,25 @@ func (t *Trie) loadNode(db Database, n *Node) error {
 	return nil
 }
 
-// PopulateMerkleValues writes the Merkle values of the node given and of
-// all its descendant nodes as keys to the merkleValues map.
+// PopulateNodeHashes writes the node hash values of the node given and of
+// all its descendant nodes as keys to the nodeHashes map.
 // It is assumed the node and its descendant nodes have their Merkle value already
 // computed.
-func PopulateMerkleValues(n *Node, merkleValues map[string]struct{}) {
+func PopulateNodeHashes(n *Node, nodeHashes map[string]struct{}) {
 	if n == nil {
 		return
 	}
 
-	if len(n.MerkleValue) == 0 {
+	switch {
+	case len(n.MerkleValue) == 0:
 		panic(fmt.Sprintf("node with key 0x%x has no Merkle value computed", n.Key))
+	case len(n.MerkleValue) < 32:
+		// Inlined node where its Merkle value is its
+		// encoding and not the encoding hash digest.
+		return
 	}
 
-	merkleValues[string(n.MerkleValue)] = struct{}{}
+	nodeHashes[string(n.MerkleValue)] = struct{}{}
 
 	if n.Kind() == node.Leaf {
 		return
@@ -206,7 +211,7 @@ func PopulateMerkleValues(n *Node, merkleValues map[string]struct{}) {
 
 	branch := n
 	for _, child := range branch.Children {
-		PopulateMerkleValues(child, merkleValues)
+		PopulateNodeHashes(child, nodeHashes)
 	}
 }
 
