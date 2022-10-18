@@ -331,16 +331,16 @@ func (bt *BlockTree) GetAllBlocks() []Hash {
 }
 
 // GetAllDescendants returns all blocks that are descendants of the given block.
-func (bt *BlockTree) GetAllDescendants(a common.Hash) ([]Hash, error) {
+func (bt *BlockTree) GetAllDescendants(hash common.Hash) ([]Hash, error) {
 	bt.RLock()
 	defer bt.RUnlock()
 
-	an := bt.getNode(a)
-	if an == nil {
+	node := bt.getNode(hash)
+	if node == nil {
 		return []common.Hash{}, ErrNodeNotFound
 	}
 
-	return an.getAllDescendants(nil), nil
+	return node.getAllDescendants(nil), nil
 }
 
 // GetHashByNumber returns the block hash with the given number that is on the best chain.

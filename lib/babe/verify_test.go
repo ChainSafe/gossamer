@@ -491,24 +491,28 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 
 	// Primary Test Header
 	encTestDigest := newEncodedBabeDigest(t, types.BabePrimaryPreDigest{AuthorityIndex: 0})
-
 	testDigestPrimary := types.NewDigest()
 	err = testDigestPrimary.Add(types.PreRuntimeDigest{
 		ConsensusEngineID: types.BabeEngineID,
 		Data:              encTestDigest,
 	})
 	assert.NoError(t, err)
+
 	testHeaderPrimary := types.NewEmptyHeader()
 	testHeaderPrimary.Digest = testDigestPrimary
+
 	// Secondary Plain Test Header
 	testParentPrd, err := testBabeSecondaryPlainPreDigest.ToPreRuntimeDigest()
 	assert.NoError(t, err)
+
 	testParentHeader := newTestHeader(t, *testParentPrd)
 	testParentHash := encodeAndHashHeader(t, testParentHeader)
 	testSecondaryPrd, err := testBabeSecondaryPlainPreDigest.ToPreRuntimeDigest()
 	assert.NoError(t, err)
+
 	testSecPlainHeader := newTestHeader(t, *testSecondaryPrd)
 	testSecPlainHeader.ParentHash = testParentHash
+
 	// Secondary Vrf Test Header
 	encParentVrfDigest := newEncodedBabeDigest(t, testBabeSecondaryVRFPreDigest)
 	testParentVrfHeader := newTestHeader(t, *types.NewBABEPreRuntimeDigest(encParentVrfDigest))
