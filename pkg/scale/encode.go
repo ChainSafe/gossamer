@@ -229,29 +229,27 @@ func (es *encodeState) encodeMap(in interface{}) (err error) {
 	v := reflect.ValueOf(in)
 	err = es.encodeLength(v.Len())
 	if err != nil {
-		return
+		return fmt.Errorf("encoding length: %w", err)
 	}
 
-	for i := v.MapRange(); i.Next(); {
-		fmt.Println(i.Key(), "\t:", i.Value())
-
-		key := i.Key()
+	for keyValue := v.MapRange(); keyValue.Next(); {
+		key := keyValue.Key()
 		err = es.marshal(key.Interface())
 		if err != nil {
-			return
+			return fmt.Errorf("encoding map key: %w", err)
 		}
 
-		mapValue := i.Value()
+		mapValue := keyValue.Value()
 		if !mapValue.CanInterface() {
 			continue
 		}
 
 		err = es.marshal(mapValue.Interface())
 		if err != nil {
-			return
+			return fmt.Errorf("encoding map value: %w", err)
 		}
 	}
-	return
+	return nil
 }
 
 // encodeBigInt performs the same encoding as encodeInteger, except on a big.Int.

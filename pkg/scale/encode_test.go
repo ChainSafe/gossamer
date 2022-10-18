@@ -924,7 +924,8 @@ var (
 			want: []byte{
 				8, 2, 44, 115, 111, 109, 101, 32, 115, 116, 114, 105, 110, 103, 16, 44, 108, 111, 114, 101, 109, 32,
 				105, 112, 115, 117, 109,
-			}},
+			},
+		},
 	}
 
 	allTests = newTests(
@@ -1116,6 +1117,7 @@ func Test_encodeState_encodeArray(t *testing.T) {
 
 func Test_encodeState_encodeMap(t *testing.T) {
 	for _, tt := range mapTests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			buffer := bytes.NewBuffer(nil)
 			es := &encodeState{

@@ -153,6 +153,7 @@ func Test_decodeState_decodeMap(t *testing.T) {
 	}
 
 	for _, tt := range mapTests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			dst := map[int8][]byte{}
 			if err := Unmarshal(tt.want, &dst); (err != nil) != tt.wantErr {
@@ -201,7 +202,14 @@ func Test_unmarshal_optionality(t *testing.T) {
 					t.Errorf("decodeState.unmarshal() = %s", diff)
 				}
 			default:
-				dst := reflect.New(reflect.TypeOf(tt.in)).Interface()
+				var dst interface{}
+
+				if reflect.TypeOf(tt.in).Kind().String() == "map" {
+					dst = &(map[int8][]byte{})
+				} else {
+					dst = reflect.New(reflect.TypeOf(tt.in)).Interface()
+				}
+
 				if err := Unmarshal(tt.want, &dst); (err != nil) != tt.wantErr {
 					t.Errorf("decodeState.unmarshal() error = %v, wantErr %v", err, tt.wantErr)
 					return
