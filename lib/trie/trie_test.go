@@ -6,10 +6,11 @@ package trie
 import (
 	"bytes"
 	"encoding/hex"
-	"reflect"
+	reflect "reflect"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/trie/node"
+	"github.com/ChainSafe/gossamer/internal/trie/tracking"
 	"github.com/ChainSafe/gossamer/lib/common"
 	gomock "github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -18,8 +19,8 @@ import (
 
 func Test_NewEmptyTrie(t *testing.T) {
 	expectedTrie := &Trie{
-		childTries:          make(map[common.Hash]*Trie),
-		deletedMerkleValues: map[string]struct{}{},
+		childTries: make(map[common.Hash]*Trie),
+		deltas:     tracking.New(),
 	}
 	trie := NewEmptyTrie()
 	assert.Equal(t, expectedTrie, trie)
@@ -35,8 +36,8 @@ func Test_NewTrie(t *testing.T) {
 			Key:      []byte{0},
 			SubValue: []byte{17},
 		},
-		childTries:          make(map[common.Hash]*Trie),
-		deletedMerkleValues: map[string]struct{}{},
+		childTries: make(map[common.Hash]*Trie),
+		deltas:     tracking.New(),
 	}
 	trie := NewTrie(root)
 	assert.Equal(t, expectedTrie, trie)
@@ -45,6 +46,9 @@ func Test_NewTrie(t *testing.T) {
 func Test_Trie_Snapshot(t *testing.T) {
 	t.Parallel()
 
+	emptyDeltas := newDeltas(nil)
+	setDeltas := newDeltas([]common.Hash{{1}})
+
 	trie := &Trie{
 		generation: 8,
 		root:       &Node{Key: []byte{8}, SubValue: []byte{1}},
@@ -52,22 +56,15 @@ func Test_Trie_Snapshot(t *testing.T) {
 			{1}: {
 				generation: 1,
 				root:       &Node{Key: []byte{1}, SubValue: []byte{1}},
-				deletedMerkleValues: map[string]struct{}{
-					"a": {},
-				},
+				deltas:     setDeltas,
 			},
 			{2}: {
 				generation: 2,
 				root:       &Node{Key: []byte{2}, SubValue: []byte{1}},
-				deletedMerkleValues: map[string]struct{}{
-					"b": {},
-				},
+				deltas:     setDeltas,
 			},
 		},
-		deletedMerkleValues: map[string]struct{}{
-			"a": {},
-			"b": {},
-		},
+		deltas: setDeltas,
 	}
 
 	expectedTrie := &Trie{
@@ -75,17 +72,17 @@ func Test_Trie_Snapshot(t *testing.T) {
 		root:       &Node{Key: []byte{8}, SubValue: []byte{1}},
 		childTries: map[common.Hash]*Trie{
 			{1}: {
-				generation:          2,
-				root:                &Node{Key: []byte{1}, SubValue: []byte{1}},
-				deletedMerkleValues: map[string]struct{}{},
+				generation: 2,
+				root:       &Node{Key: []byte{1}, SubValue: []byte{1}},
+				deltas:     emptyDeltas,
 			},
 			{2}: {
-				generation:          3,
-				root:                &Node{Key: []byte{2}, SubValue: []byte{1}},
-				deletedMerkleValues: map[string]struct{}{},
+				generation: 3,
+				root:       &Node{Key: []byte{2}, SubValue: []byte{1}},
+				deltas:     emptyDeltas,
 			},
 		},
-		deletedMerkleValues: map[string]struct{}{},
+		deltas: emptyDeltas,
 	}
 
 	newTrie := trie.Snapshot()
@@ -97,62 +94,42 @@ func Test_Trie_handleTrackedDeltas(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		trie                       Trie
-		success                    bool
-		pendingDeletedMerkleValues map[string]struct{}
-		expectedTrie               Trie
+		trie          Trie
+		success       bool
+		pendingDeltas DeltaDeletedGetter
+		expectedTrie  Trie
 	}{
 		"no success and generation 1": {
 			trie: Trie{
 				generation: 1,
-				deletedMerkleValues: map[string]struct{}{
-					"a": {},
-				},
+				deltas:     newDeltas([]common.Hash{{1}}),
 			},
-			pendingDeletedMerkleValues: map[string]struct{}{
-				"b": {},
-			},
+			pendingDeltas: newDeltas([]common.Hash{{2}}),
 			expectedTrie: Trie{
 				generation: 1,
-				deletedMerkleValues: map[string]struct{}{
-					"a": {},
-				},
+				deltas:     newDeltas([]common.Hash{{1}}),
 			},
 		},
 		"success and generation 0": {
 			trie: Trie{
-				deletedMerkleValues: map[string]struct{}{
-					"a": {},
-				},
+				deltas: newDeltas([]common.Hash{{1}}),
 			},
-			success: true,
-			pendingDeletedMerkleValues: map[string]struct{}{
-				"b": {},
-			},
+			success:       true,
+			pendingDeltas: newDeltas([]common.Hash{{2}}),
 			expectedTrie: Trie{
-				deletedMerkleValues: map[string]struct{}{
-					"a": {},
-				},
+				deltas: newDeltas([]common.Hash{{1}}),
 			},
 		},
 		"success and generation 1": {
 			trie: Trie{
 				generation: 1,
-				deletedMerkleValues: map[string]struct{}{
-					"a": {},
-				},
+				deltas:     newDeltas([]common.Hash{{1}}),
 			},
-			success: true,
-			pendingDeletedMerkleValues: map[string]struct{}{
-				"a": {},
-				"b": {},
-			},
+			success:       true,
+			pendingDeltas: newDeltas([]common.Hash{{1}, {2}}),
 			expectedTrie: Trie{
 				generation: 1,
-				deletedMerkleValues: map[string]struct{}{
-					"a": {},
-					"b": {},
-				},
+				deltas:     newDeltas([]common.Hash{{1}, {2}}),
 			},
 		},
 	}
@@ -163,7 +140,7 @@ func Test_Trie_handleTrackedDeltas(t *testing.T) {
 			t.Parallel()
 
 			trie := testCase.trie
-			trie.handleTrackedDeltas(testCase.success, testCase.pendingDeletedMerkleValues)
+			trie.handleTrackedDeltas(testCase.success, testCase.pendingDeltas)
 
 			assert.Equal(t, testCase.expectedTrie, trie)
 		})
@@ -174,15 +151,15 @@ func Test_Trie_prepForMutation(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		trie                               Trie
-		currentNode                        *Node
-		copySettings                       node.CopySettings
-		pendingDeletedMerkleValues         map[string]struct{}
-		newNode                            *Node
-		copied                             bool
-		errSentinel                        error
-		errMessage                         string
-		expectedPendingDeletedMerkleValues map[string]struct{}
+		trie                  Trie
+		currentNode           *Node
+		copySettings          node.CopySettings
+		pendingDeltas         DeltaRecorder
+		newNode               *Node
+		copied                bool
+		errSentinel           error
+		errMessage            string
+		expectedPendingDeltas DeltaRecorder
 	}{
 		"no update": {
 			trie: Trie{
@@ -219,7 +196,7 @@ func Test_Trie_prepForMutation(t *testing.T) {
 			trie: Trie{
 				generation: 2,
 			},
-			pendingDeletedMerkleValues: map[string]struct{}{},
+			pendingDeltas: newDeltas(nil),
 			currentNode: &Node{
 				Generation: 1,
 				Key:        []byte{1},
@@ -241,9 +218,10 @@ func Test_Trie_prepForMutation(t *testing.T) {
 				Dirty: true,
 			},
 			copied: true,
-			expectedPendingDeletedMerkleValues: map[string]struct{}{
-				"\x98\xfc\xd6k\xa3\x12\u009e\xf1\x93\x05/\xd0\xc1Ln8\xb1X\xbd\\\x025\x06E\x94\xca\xcc\x1a\xb5\x96]": {},
-			},
+			expectedPendingDeltas: newDeltas([]common.Hash{{
+				0x98, 0xfc, 0xd6, 0x6b, 0xa3, 0x12, 0xc2, 0x9e, 0xf1, 0x93, 0x5, 0x2f, 0xd0, 0xc1, 0x4c, 0x6e,
+				0x38, 0xb1, 0x58, 0xbd, 0x5c, 0x2, 0x35, 0x6, 0x45, 0x94, 0xca, 0xcc, 0x1a, 0xb5, 0x96, 0x5d,
+			}}),
 		},
 	}
 
@@ -256,14 +234,14 @@ func Test_Trie_prepForMutation(t *testing.T) {
 			expectedTrie := *testCase.trie.DeepCopy()
 
 			newNode, err := trie.prepForMutation(testCase.currentNode, testCase.copySettings,
-				testCase.pendingDeletedMerkleValues)
+				testCase.pendingDeltas)
 
 			require.ErrorIs(t, err, testCase.errSentinel)
 			if testCase.errSentinel != nil {
 				assert.EqualError(t, err, testCase.errMessage)
 			}
 			assert.Equal(t, testCase.newNode, newNode)
-			assert.Equal(t, testCase.expectedPendingDeletedMerkleValues, testCase.pendingDeletedMerkleValues)
+			assert.Equal(t, testCase.expectedPendingDeltas, testCase.pendingDeltas)
 			assert.Equal(t, expectedTrie, trie)
 
 			// Check for deep copy
@@ -288,22 +266,25 @@ func Test_Trie_registerDeletedMerkleValue(t *testing.T) {
 	}
 
 	testCases := map[string]struct {
-		trie                               Trie
-		node                               *Node
-		pendingDeletedMerkleValues         map[string]struct{}
-		expectedPendingDeletedMerkleValues map[string]struct{}
-		expectedTrie                       Trie
+		trie                  Trie
+		node                  *Node
+		pendingDeltas         DeltaRecorder
+		expectedPendingDeltas DeltaRecorder
+		expectedTrie          Trie
 	}{
 		"dirty node not registered": {
 			node: &Node{Dirty: true},
 		},
 		"clean root node registered": {
-			node:                       someSmallNode,
-			trie:                       Trie{root: someSmallNode},
-			pendingDeletedMerkleValues: map[string]struct{}{},
-			expectedPendingDeletedMerkleValues: map[string]struct{}{
-				"`Qm\v\xb6\xe1\xbb\xfb\x12\x93\xf1\xb2v\xea\x95\x05\xe9\xf4\xa4\xe7ُb\r\x05\x11^\v\x85'J\xe1": {},
-			},
+			node:          someSmallNode,
+			trie:          Trie{root: someSmallNode},
+			pendingDeltas: newDeltas(nil),
+			expectedPendingDeltas: newDeltas([]common.Hash{{
+				0x60, 0x51, 0x6d, 0x0b, 0xb6, 0xe1, 0xbb, 0xfb,
+				0x12, 0x93, 0xf1, 0xb2, 0x76, 0xea, 0x95, 0x05,
+				0xe9, 0xf4, 0xa4, 0xe7, 0xd9, 0x8f, 0x62, 0x0d,
+				0x05, 0x11, 0x5e, 0x0b, 0x85, 0x27, 0x4a, 0xe1,
+			}}),
 			expectedTrie: Trie{
 				root: &Node{
 					Key:      []byte{1},
@@ -332,10 +313,11 @@ func Test_Trie_registerDeletedMerkleValue(t *testing.T) {
 					17, 18, 19, 20, 21, 22, 23, 24,
 					25, 26, 27, 28, 29, 30, 31, 32},
 			},
-			pendingDeletedMerkleValues: map[string]struct{}{},
-			expectedPendingDeletedMerkleValues: map[string]struct{}{
-				"\x98\xfc\xd6k\xa3\x12\u009e\xf1\x93\x05/\xd0\xc1Ln8\xb1X\xbd\\\x025\x06E\x94\xca\xcc\x1a\xb5\x96]": {},
-			},
+			pendingDeltas: newDeltas(nil),
+			expectedPendingDeltas: newDeltas([]common.Hash{{
+				0x98, 0xfc, 0xd6, 0x6b, 0xa3, 0x12, 0xc2, 0x9e, 0xf1, 0x93, 0x5, 0x2f, 0xd0, 0xc1, 0x4c, 0x6e,
+				0x38, 0xb1, 0x58, 0xbd, 0x5c, 0x2, 0x35, 0x6, 0x45, 0x94, 0xca, 0xcc, 0x1a, 0xb5, 0x96, 0x5d,
+			}}),
 		},
 	}
 
@@ -347,10 +329,10 @@ func Test_Trie_registerDeletedMerkleValue(t *testing.T) {
 			trie := testCase.trie
 
 			err := trie.registerDeletedMerkleValue(testCase.node,
-				testCase.pendingDeletedMerkleValues)
+				testCase.pendingDeltas)
 
 			require.NoError(t, err)
-			assert.Equal(t, testCase.expectedPendingDeletedMerkleValues, testCase.pendingDeletedMerkleValues)
+			assert.Equal(t, testCase.expectedPendingDeltas, testCase.pendingDeltas)
 			assert.Equal(t, testCase.expectedTrie, trie)
 		})
 	}
@@ -389,7 +371,7 @@ func testTrieForDeepCopy(t *testing.T, original, copy *Trie) {
 		return
 	}
 	assertPointersNotEqual(t, original.generation, copy.generation)
-	assertPointersNotEqual(t, original.deletedMerkleValues, copy.deletedMerkleValues)
+	assertPointersNotEqual(t, original.deltas, copy.deltas)
 	assertPointersNotEqual(t, original.childTries, copy.childTries)
 	for hashKey, childTrie := range copy.childTries {
 		originalChildTrie := original.childTries[hashKey]
@@ -418,16 +400,10 @@ func Test_Trie_DeepCopy(t *testing.T) {
 					{1, 2, 3}: {
 						generation: 2,
 						root:       &Node{Key: []byte{1}, SubValue: []byte{1}},
-						deletedMerkleValues: map[string]struct{}{
-							"a": {},
-							"b": {},
-						},
+						deltas:     newDeltas([]common.Hash{{1}, {2}}),
 					},
 				},
-				deletedMerkleValues: map[string]struct{}{
-					"a": {},
-					"b": {},
-				},
+				deltas: newDeltas([]common.Hash{{1}, {2}}),
 			},
 			trieCopy: &Trie{
 				generation: 1,
@@ -436,16 +412,10 @@ func Test_Trie_DeepCopy(t *testing.T) {
 					{1, 2, 3}: {
 						generation: 2,
 						root:       &Node{Key: []byte{1}, SubValue: []byte{1}},
-						deletedMerkleValues: map[string]struct{}{
-							"a": {},
-							"b": {},
-						},
+						deltas:     newDeltas([]common.Hash{{1}, {2}}),
 					},
 				},
-				deletedMerkleValues: map[string]struct{}{
-					"a": {},
-					"b": {},
-				},
+				deltas: newDeltas([]common.Hash{{1}, {2}}),
 			},
 		},
 	}
@@ -1200,8 +1170,8 @@ func Test_Trie_Put(t *testing.T) {
 	}{
 		"trie with key and value": {
 			trie: Trie{
-				generation:          1,
-				deletedMerkleValues: map[string]struct{}{},
+				generation: 1,
+				deltas:     newDeltas(nil),
 				root: &Node{
 					Key:      []byte{1, 2, 0, 5},
 					SubValue: []byte{1},
@@ -1211,9 +1181,12 @@ func Test_Trie_Put(t *testing.T) {
 			value: []byte{2},
 			expectedTrie: Trie{
 				generation: 1,
-				deletedMerkleValues: map[string]struct{}{
-					"\xa1\x95\b\x9c>\x8f\x8b[6\x97\x87\x00\xad\x95J\xed\x99\xe0\x84\x13\xcf\xc1\xe2\xb4\xc0\n]\x06J\xbef\xa9": {},
-				},
+				deltas: newDeltas([]common.Hash{
+					{
+						0xa1, 0x95, 0x08, 0x9c, 0x3e, 0x8f, 0x8b, 0x5b, 0x36, 0x97, 0x87, 0x00, 0xad, 0x95, 0x4a, 0xed,
+						0x99, 0xe0, 0x84, 0x13, 0xcf, 0xc1, 0xe2, 0xb4, 0xc0, 0x0a, 0x5d, 0x06, 0x4a, 0xbe, 0x66, 0xa9,
+					},
+				}),
 				root: &Node{
 					Key:         []byte{1, 2},
 					Generation:  1,
@@ -1255,15 +1228,15 @@ func Test_Trie_insert(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		trie                        Trie
-		parent                      *Node
-		key                         []byte
-		value                       []byte
-		deletedMerkleValues         map[string]struct{}
-		newNode                     *Node
-		mutated                     bool
-		nodesCreated                uint32
-		expectedDeletedMerkleValues map[string]struct{}
+		trie                  Trie
+		parent                *Node
+		key                   []byte
+		value                 []byte
+		pendingDeltas         DeltaRecorder
+		newNode               *Node
+		mutated               bool
+		nodesCreated          uint32
+		expectedPendingDeltas DeltaRecorder
 	}{
 		"nil parent": {
 			trie: Trie{
@@ -1473,14 +1446,14 @@ func Test_Trie_insert(t *testing.T) {
 
 			newNode, mutated, nodesCreated, err := trie.insert(
 				testCase.parent, testCase.key, testCase.value,
-				testCase.deletedMerkleValues)
+				testCase.pendingDeltas)
 
 			require.NoError(t, err)
 			assert.Equal(t, testCase.newNode, newNode)
 			assert.Equal(t, testCase.mutated, mutated)
 			assert.Equal(t, testCase.nodesCreated, nodesCreated)
 			assert.Equal(t, expectedTrie, trie)
-			assert.Equal(t, testCase.expectedDeletedMerkleValues, testCase.deletedMerkleValues)
+			assert.Equal(t, testCase.expectedPendingDeltas, testCase.pendingDeltas)
 		})
 	}
 }
@@ -1489,16 +1462,16 @@ func Test_Trie_insertInBranch(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		parent                      *Node
-		key                         []byte
-		value                       []byte
-		deletedMerkleValues         map[string]struct{}
-		newNode                     *Node
-		mutated                     bool
-		nodesCreated                uint32
-		errSentinel                 error
-		errMessage                  string
-		expectedDeletedMerkleValues map[string]struct{}
+		parent                *Node
+		key                   []byte
+		value                 []byte
+		pendingDeltas         DeltaRecorder
+		newNode               *Node
+		mutated               bool
+		nodesCreated          uint32
+		errSentinel           error
+		errMessage            string
+		expectedPendingDeltas DeltaRecorder
 	}{
 		"insert existing value to branch": {
 			parent: &Node{
@@ -1772,7 +1745,7 @@ func Test_Trie_insertInBranch(t *testing.T) {
 
 			newNode, mutated, nodesCreated, err := trie.insertInBranch(
 				testCase.parent, testCase.key, testCase.value,
-				testCase.deletedMerkleValues)
+				testCase.pendingDeltas)
 
 			assert.ErrorIs(t, err, testCase.errSentinel)
 			if testCase.errSentinel != nil {
@@ -1782,7 +1755,7 @@ func Test_Trie_insertInBranch(t *testing.T) {
 			assert.Equal(t, testCase.mutated, mutated)
 			assert.Equal(t, testCase.nodesCreated, nodesCreated)
 			assert.Equal(t, new(Trie), trie) // check no mutation
-			assert.Equal(t, testCase.expectedDeletedMerkleValues, testCase.deletedMerkleValues)
+			assert.Equal(t, testCase.expectedPendingDeltas, testCase.pendingDeltas)
 		})
 	}
 }
@@ -1798,15 +1771,15 @@ func Test_LoadFromMap(t *testing.T) {
 	}{
 		"nil data": {
 			expectedTrie: Trie{
-				childTries:          map[common.Hash]*Trie{},
-				deletedMerkleValues: map[string]struct{}{},
+				childTries: map[common.Hash]*Trie{},
+				deltas:     newDeltas(nil),
 			},
 		},
 		"empty data": {
 			data: map[string]string{},
 			expectedTrie: Trie{
-				childTries:          map[common.Hash]*Trie{},
-				deletedMerkleValues: map[string]struct{}{},
+				childTries: map[common.Hash]*Trie{},
+				deltas:     newDeltas(nil),
 			},
 		},
 		"bad key": {
@@ -1838,8 +1811,8 @@ func Test_LoadFromMap(t *testing.T) {
 					},
 					Dirty: true,
 				},
-				childTries:          map[common.Hash]*Trie{},
-				deletedMerkleValues: map[string]struct{}{},
+				childTries: map[common.Hash]*Trie{},
+				deltas:     newDeltas(nil),
 			},
 		},
 		"load key values": {
@@ -1868,8 +1841,8 @@ func Test_LoadFromMap(t *testing.T) {
 						},
 					}),
 				},
-				childTries:          map[common.Hash]*Trie{},
-				deletedMerkleValues: map[string]struct{}{},
+				childTries: map[common.Hash]*Trie{},
+				deltas:     newDeltas(nil),
 			},
 		},
 	}
@@ -2385,18 +2358,18 @@ func Test_Trie_clearPrefixLimitAtNode(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		trie                        Trie
-		parent                      *Node
-		prefix                      []byte
-		limit                       uint32
-		deletedMerkleValues         map[string]struct{}
-		newParent                   *Node
-		valuesDeleted               uint32
-		nodesRemoved                uint32
-		allDeleted                  bool
-		errSentinel                 error
-		errMessage                  string
-		expectedDeletedMerkleValues map[string]struct{}
+		trie                  Trie
+		parent                *Node
+		prefix                []byte
+		limit                 uint32
+		pendingDeltas         DeltaRecorder
+		newParent             *Node
+		valuesDeleted         uint32
+		nodesRemoved          uint32
+		allDeleted            bool
+		errSentinel           error
+		errMessage            string
+		expectedPendingDeltas DeltaRecorder
 	}{
 		"limit is zero": {
 			allDeleted: true,
@@ -2923,7 +2896,7 @@ func Test_Trie_clearPrefixLimitAtNode(t *testing.T) {
 
 			newParent, valuesDeleted, nodesRemoved, allDeleted, err :=
 				trie.clearPrefixLimitAtNode(testCase.parent, testCase.prefix,
-					testCase.limit, testCase.deletedMerkleValues)
+					testCase.limit, testCase.pendingDeltas)
 
 			assert.ErrorIs(t, err, testCase.errSentinel)
 			if testCase.errSentinel != nil {
@@ -2934,7 +2907,7 @@ func Test_Trie_clearPrefixLimitAtNode(t *testing.T) {
 			assert.Equal(t, testCase.nodesRemoved, nodesRemoved)
 			assert.Equal(t, testCase.allDeleted, allDeleted)
 			assert.Equal(t, expectedTrie, trie)
-			assert.Equal(t, testCase.expectedDeletedMerkleValues, testCase.deletedMerkleValues)
+			assert.Equal(t, testCase.expectedPendingDeltas, testCase.pendingDeltas)
 		})
 	}
 }
@@ -2943,16 +2916,16 @@ func Test_Trie_deleteNodesLimit(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		trie                        Trie
-		parent                      *Node
-		limit                       uint32
-		deletedMerkleValues         map[string]struct{}
-		newNode                     *Node
-		valuesDeleted               uint32
-		nodesRemoved                uint32
-		errSentinel                 error
-		errMessage                  string
-		expectedDeletedMerkleValues map[string]struct{}
+		trie                  Trie
+		parent                *Node
+		limit                 uint32
+		pendingDeltas         DeltaRecorder
+		newNode               *Node
+		valuesDeleted         uint32
+		nodesRemoved          uint32
+		errSentinel           error
+		errMessage            string
+		expectedPendingDeltas DeltaRecorder
 	}{
 		"zero limit": {
 			trie: Trie{
@@ -3110,7 +3083,7 @@ func Test_Trie_deleteNodesLimit(t *testing.T) {
 
 			newNode, valuesDeleted, nodesRemoved, err :=
 				trie.deleteNodesLimit(testCase.parent,
-					testCase.limit, testCase.deletedMerkleValues)
+					testCase.limit, testCase.pendingDeltas)
 
 			assert.ErrorIs(t, err, testCase.errSentinel)
 			if testCase.errSentinel != nil {
@@ -3120,7 +3093,7 @@ func Test_Trie_deleteNodesLimit(t *testing.T) {
 			assert.Equal(t, testCase.valuesDeleted, valuesDeleted)
 			assert.Equal(t, testCase.nodesRemoved, nodesRemoved)
 			assert.Equal(t, expectedTrie, trie)
-			assert.Equal(t, testCase.expectedDeletedMerkleValues, testCase.deletedMerkleValues)
+			assert.Equal(t, testCase.expectedPendingDeltas, testCase.pendingDeltas)
 		})
 	}
 }
@@ -3135,29 +3108,31 @@ func Test_Trie_ClearPrefix(t *testing.T) {
 	}{
 		"nil prefix": {
 			trie: Trie{
-				root:                &Node{SubValue: []byte{1}},
-				generation:          1,
-				deletedMerkleValues: map[string]struct{}{},
+				root:       &Node{SubValue: []byte{1}},
+				generation: 1,
+				deltas:     newDeltas(nil),
 			},
 			expectedTrie: Trie{
 				generation: 1,
-				deletedMerkleValues: map[string]struct{}{
-					"\xf9jt\x15\"\xbc\xc1O\n\xea/p`DR$\x1dY\xb5\xf2ݫ\x9aiH\xfd\xb3\xfe\xf5\xf9\x86C": {},
-				},
+				deltas: newDeltas([]common.Hash{{
+					0xf9, 0x6a, 0x74, 0x15, 0x22, 0xbc, 0xc1, 0x4f, 0x0a, 0xea, 0x2f, 0x70, 0x60, 0x44, 0x52, 0x24,
+					0x1d, 0x59, 0xb5, 0xf2, 0xdd, 0xab, 0x9a, 0x69, 0x48, 0xfd, 0xb3, 0xfe, 0xf5, 0xf9, 0x86, 0x43,
+				}}),
 			},
 		},
 		"empty prefix": {
 			trie: Trie{
-				root:                &Node{SubValue: []byte{1}},
-				generation:          1,
-				deletedMerkleValues: map[string]struct{}{},
+				root:       &Node{SubValue: []byte{1}},
+				generation: 1,
+				deltas:     newDeltas(nil),
 			},
 			prefix: []byte{},
 			expectedTrie: Trie{
 				generation: 1,
-				deletedMerkleValues: map[string]struct{}{
-					"\xf9jt\x15\"\xbc\xc1O\n\xea/p`DR$\x1dY\xb5\xf2ݫ\x9aiH\xfd\xb3\xfe\xf5\xf9\x86C": {},
-				},
+				deltas: newDeltas([]common.Hash{{
+					0xf9, 0x6a, 0x74, 0x15, 0x22, 0xbc, 0xc1, 0x4f, 0x0a, 0xea, 0x2f, 0x70, 0x60, 0x44, 0x52, 0x24,
+					0x1d, 0x59, 0xb5, 0xf2, 0xdd, 0xab, 0x9a, 0x69, 0x48, 0xfd, 0xb3, 0xfe, 0xf5, 0xf9, 0x86, 0x43,
+				}}),
 			},
 		},
 		"empty trie": {
@@ -3186,7 +3161,7 @@ func Test_Trie_ClearPrefix(t *testing.T) {
 						},
 					}),
 				},
-				deletedMerkleValues: map[string]struct{}{},
+				deltas: newDeltas(nil),
 			},
 			prefix: []byte{0x12, 0x16},
 			expectedTrie: Trie{
@@ -3197,9 +3172,10 @@ func Test_Trie_ClearPrefix(t *testing.T) {
 					Generation: 1,
 					Dirty:      true,
 				},
-				deletedMerkleValues: map[string]struct{}{
-					"_\xe1\b\xc8=\b2\x93S֑\x8e\x01\x04\xda̝!\x87\xfd\x9d\xaf\xa5\x82\xd1\xc52\xe5\xfe{.P": {},
-				},
+				deltas: newDeltas([]common.Hash{{
+					0x5f, 0xe1, 0x08, 0xc8, 0x3d, 0x08, 0x32, 0x93, 0x53, 0xd6, 0x91, 0x8e, 0x01, 0x04, 0xda, 0xcc,
+					0x9d, 0x21, 0x87, 0xfd, 0x9d, 0xaf, 0xa5, 0x82, 0xd1, 0xc5, 0x32, 0xe5, 0xfe, 0x7b, 0x2e, 0x50,
+				}}),
 			},
 		},
 	}
@@ -3228,14 +3204,14 @@ func Test_Trie_clearPrefixAtNode(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		trie                        Trie
-		parent                      *Node
-		prefix                      []byte
-		deletedMerkleValues         map[string]struct{}
-		newParent                   *Node
-		nodesRemoved                uint32
-		expectedTrie                Trie
-		expectedDeletedMerkleValues map[string]struct{}
+		trie                  Trie
+		parent                *Node
+		prefix                []byte
+		pendingDeltas         DeltaRecorder
+		newParent             *Node
+		nodesRemoved          uint32
+		expectedTrie          Trie
+		expectedPendingDeltas DeltaRecorder
 	}{
 		"delete one of two children of branch": {
 			trie: Trie{
@@ -3547,13 +3523,13 @@ func Test_Trie_clearPrefixAtNode(t *testing.T) {
 			trie := testCase.trie
 
 			newParent, nodesRemoved, err := trie.clearPrefixAtNode(
-				testCase.parent, testCase.prefix, testCase.deletedMerkleValues)
+				testCase.parent, testCase.prefix, testCase.pendingDeltas)
 
 			require.NoError(t, err)
 			assert.Equal(t, testCase.newParent, newParent)
 			assert.Equal(t, testCase.nodesRemoved, nodesRemoved)
 			assert.Equal(t, testCase.expectedTrie, trie)
-			assert.Equal(t, testCase.expectedDeletedMerkleValues, testCase.deletedMerkleValues)
+			assert.Equal(t, testCase.expectedPendingDeltas, testCase.pendingDeltas)
 		})
 	}
 }
@@ -3568,28 +3544,30 @@ func Test_Trie_Delete(t *testing.T) {
 	}{
 		"nil key": {
 			trie: Trie{
-				root:                &Node{SubValue: []byte{1}},
-				generation:          1,
-				deletedMerkleValues: map[string]struct{}{},
+				root:       &Node{SubValue: []byte{1}},
+				generation: 1,
+				deltas:     newDeltas(nil),
 			},
 			expectedTrie: Trie{
 				generation: 1,
-				deletedMerkleValues: map[string]struct{}{
-					"\xf9jt\x15\"\xbc\xc1O\n\xea/p`DR$\x1dY\xb5\xf2ݫ\x9aiH\xfd\xb3\xfe\xf5\xf9\x86C": {},
-				},
+				deltas: newDeltas([]common.Hash{{
+					0xf9, 0x6a, 0x74, 0x15, 0x22, 0xbc, 0xc1, 0x4f, 0x0a, 0xea, 0x2f, 0x70, 0x60, 0x44, 0x52, 0x24,
+					0x1d, 0x59, 0xb5, 0xf2, 0xdd, 0xab, 0x9a, 0x69, 0x48, 0xfd, 0xb3, 0xfe, 0xf5, 0xf9, 0x86, 0x43,
+				}}),
 			},
 		},
 		"empty key": {
 			trie: Trie{
-				root:                &Node{SubValue: []byte{1}},
-				generation:          1,
-				deletedMerkleValues: map[string]struct{}{},
+				root:       &Node{SubValue: []byte{1}},
+				generation: 1,
+				deltas:     newDeltas(nil),
 			},
 			expectedTrie: Trie{
 				generation: 1,
-				deletedMerkleValues: map[string]struct{}{
-					"\xf9jt\x15\"\xbc\xc1O\n\xea/p`DR$\x1dY\xb5\xf2ݫ\x9aiH\xfd\xb3\xfe\xf5\xf9\x86C": {},
-				},
+				deltas: newDeltas([]common.Hash{{
+					0xf9, 0x6a, 0x74, 0x15, 0x22, 0xbc, 0xc1, 0x4f, 0x0a, 0xea, 0x2f, 0x70, 0x60, 0x44, 0x52, 0x24,
+					0x1d, 0x59, 0xb5, 0xf2, 0xdd, 0xab, 0x9a, 0x69, 0x48, 0xfd, 0xb3, 0xfe, 0xf5, 0xf9, 0x86, 0x43,
+				}}),
 			},
 		},
 		"empty trie": {
@@ -3619,7 +3597,7 @@ func Test_Trie_Delete(t *testing.T) {
 						},
 					}),
 				},
-				deletedMerkleValues: map[string]struct{}{},
+				deltas: newDeltas(nil),
 			},
 			key: []byte{0x12, 0x16},
 			expectedTrie: Trie{
@@ -3644,9 +3622,10 @@ func Test_Trie_Delete(t *testing.T) {
 						},
 					}),
 				},
-				deletedMerkleValues: map[string]struct{}{
-					"=\x1b=r~\xe4\x04T\x9a]%1\xaa\xb9\xff\xf0\xee\xddŋ\xc3\v\xfe/\xe8+\x1a\f\xfe~v\xd5": {},
-				},
+				deltas: newDeltas([]common.Hash{{
+					0x3d, 0x1b, 0x3d, 0x72, 0x7e, 0xe4, 0x04, 0x54, 0x9a, 0x5d, 0x25, 0x31, 0xaa, 0xb9, 0xff, 0xf0,
+					0xee, 0xdd, 0xc5, 0x8b, 0xc3, 0x0b, 0xfe, 0x2f, 0xe8, 0x2b, 0x1a, 0x0c, 0xfe, 0x7e, 0x76, 0xd5,
+				}}),
 			},
 		},
 	}
@@ -3675,17 +3654,17 @@ func Test_Trie_deleteAtNode(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		trie                        Trie
-		parent                      *Node
-		key                         []byte
-		deletedMerkleValues         map[string]struct{}
-		newParent                   *Node
-		updated                     bool
-		nodesRemoved                uint32
-		errSentinel                 error
-		errMessage                  string
-		expectedTrie                Trie
-		expectedDeletedMerkleValues map[string]struct{}
+		trie                  Trie
+		parent                *Node
+		key                   []byte
+		pendingDeltas         DeltaRecorder
+		newParent             *Node
+		updated               bool
+		nodesRemoved          uint32
+		errSentinel           error
+		errMessage            string
+		expectedTrie          Trie
+		expectedPendingDeltas DeltaRecorder
 	}{
 		"nil parent": {
 			key: []byte{1},
@@ -4016,7 +3995,7 @@ func Test_Trie_deleteAtNode(t *testing.T) {
 			}
 
 			newParent, updated, nodesRemoved, err := testCase.trie.deleteAtNode(
-				testCase.parent, testCase.key, testCase.deletedMerkleValues)
+				testCase.parent, testCase.key, testCase.pendingDeltas)
 
 			assert.ErrorIs(t, err, testCase.errSentinel)
 			if testCase.errSentinel != nil {
@@ -4027,7 +4006,7 @@ func Test_Trie_deleteAtNode(t *testing.T) {
 			assert.Equal(t, testCase.nodesRemoved, nodesRemoved)
 			assert.Equal(t, testCase.expectedTrie, testCase.trie)
 			assert.Equal(t, expectedKey, testCase.key)
-			assert.Equal(t, testCase.expectedDeletedMerkleValues, testCase.deletedMerkleValues)
+			assert.Equal(t, testCase.expectedPendingDeltas, testCase.pendingDeltas)
 		})
 	}
 }
@@ -4036,15 +4015,15 @@ func Test_Trie_handleDeletion(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		trie                        Trie
-		branch                      *Node
-		deletedKey                  []byte
-		deletedMerkleValues         map[string]struct{}
-		newNode                     *Node
-		branchChildMerged           bool
-		errSentinel                 error
-		errMessage                  string
-		expectedDeletedMerkleValues map[string]struct{}
+		trie                  Trie
+		branch                *Node
+		deletedKey            []byte
+		pendingDeltas         DeltaRecorder
+		newNode               *Node
+		branchChildMerged     bool
+		errSentinel           error
+		errMessage            string
+		expectedPendingDeltas DeltaRecorder
 	}{
 		"branch with value and without children": {
 			branch: &Node{
@@ -4162,7 +4141,7 @@ func Test_Trie_handleDeletion(t *testing.T) {
 			expectedTrie := *trie.DeepCopy()
 
 			newNode, branchChildMerged, err := trie.handleDeletion(
-				testCase.branch, testCase.deletedKey, testCase.deletedMerkleValues)
+				testCase.branch, testCase.deletedKey, testCase.pendingDeltas)
 
 			assert.ErrorIs(t, err, testCase.errSentinel)
 			if testCase.errSentinel != nil {
@@ -4172,7 +4151,7 @@ func Test_Trie_handleDeletion(t *testing.T) {
 			assert.Equal(t, testCase.newNode, newNode)
 			assert.Equal(t, testCase.branchChildMerged, branchChildMerged)
 			assert.Equal(t, expectedKey, testCase.deletedKey)
-			assert.Equal(t, testCase.expectedDeletedMerkleValues, testCase.deletedMerkleValues)
+			assert.Equal(t, testCase.expectedPendingDeltas, testCase.pendingDeltas)
 			assert.Equal(t, expectedTrie, trie)
 		})
 	}
