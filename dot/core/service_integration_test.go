@@ -388,11 +388,11 @@ func TestMaintainTransactionPoolLatestTxnQueue_EmptyBlock(t *testing.T) {
 	}, bestBlockHash)
 	require.NoError(t, err)
 
-	resultTx := service.transactionState.Pop()
+	resultTx := service.transactionState.(*state.TransactionState).Pop()
 	require.Equal(t, expectedTx, resultTx)
 
 	service.transactionState.RemoveExtrinsic(tx.Extrinsic)
-	head := service.transactionState.Pop()
+	head := service.transactionState.(*state.TransactionState).Pop()
 	require.Nil(t, head)
 }
 
@@ -429,7 +429,7 @@ func TestMaintainTransactionPoolLatestTxnQueue_BlockWithExtrinsics(t *testing.T)
 
 	res := []*transaction.ValidTransaction{}
 	for {
-		tx := service.transactionState.Pop()
+		tx := service.transactionState.(*state.TransactionState).Pop()
 		if tx == nil {
 			break
 		}

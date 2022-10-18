@@ -35,15 +35,18 @@ var (
 	ErrDecodingVersionField = errors.New("decoding version field")
 )
 
-// TaggedTransactionQueueVersion returns the TaggedTransactionQueueAPI version
-func (v Version) TaggedTransactionQueueVersion() (txQueueVersion uint32) {
-	encodedTaggedTransactionQueue := common.MustBlake2b8([]byte("TaggedTransactionQueue"))
+// TaggedTransactionQueueVersion returns the TaggedTransactionQueue API version
+func (v Version) TaggedTransactionQueueVersion() (txQueueVersion uint32, err error) {
+	encodedTaggedTransactionQueue, err := common.Blake2b8([]byte("TaggedTransactionQueue"))
+	if err != nil {
+		return 0, fmt.Errorf("getting blake2b8: %s", err)
+	}
 	for _, apiItem := range v.APIItems {
 		if apiItem.Name == encodedTaggedTransactionQueue {
-			return apiItem.Ver
+			return apiItem.Ver, nil
 		}
 	}
-	return 0
+	return 0, fmt.Errorf("taggedTransactionQueueAPI not found")
 }
 
 // DecodeVersion scale decodes the encoded version data.

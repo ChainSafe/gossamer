@@ -367,6 +367,7 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 			decExt := &ctypes.Extrinsic{}
 			decoder := cscale.NewDecoder(bytes.NewReader(ext))
 			if err = decoder.Decode(&decExt); err != nil {
+				logger.Error(err.Error())
 				continue
 			}
 
@@ -382,7 +383,9 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 
 			transactionValidity, err := rt.ValidateTransaction(externalExt)
 			if err != nil {
-				return fmt.Errorf("failed to validate transaction for extrinsic %s: %s", ext, err)
+				logger.Debugf("failed to validate transaction for extrinsic %s: %s", ext, err)
+				s.transactionState.RemoveExtrinsic(ext)
+				continue
 			}
 			vtx := transaction.NewValidTransaction(ext, transactionValidity)
 			s.transactionState.AddToPool(vtx)
@@ -604,11 +607,14 @@ func (s *Service) GetReadProofAt(block common.Hash, keys [][]byte) (
 	return block, proofForKeys, nil
 }
 
-// buildExternalTransaction builds an external transaction based on the current TransactionQueueAPIVersion
+// buildExternalTransaction builds an external transaction based on the current transaction queue API version
 // See https://github.com/paritytech/substrate/blob/polkadot-v0.9.25/primitives/transaction-pool/src/runtime_api.rs#L25-L55
 func (s *Service) buildExternalTransaction(rt runtime.Instance, ext types.Extrinsic) (types.Extrinsic, error) {
 	runtimeVersion := rt.Version()
-	txQueueVersion := runtimeVersion.TaggedTransactionQueueVersion()
+	txQueueVersion, err := runtimeVersion.TaggedTransactionQueueVersion()
+	if err != nil {
+		return nil, err
+	}
 	var extrinsicParts [][]byte
 	switch txQueueVersion {
 	case 3:
@@ -616,8 +622,7 @@ func (s *Service) buildExternalTransaction(rt runtime.Instance, ext types.Extrin
 	case 2:
 		extrinsicParts = [][]byte{{byte(types.TxnExternal)}, ext}
 	default:
-		return types.Extrinsic{}, fmt.Errorf("%w: %d", errInvalidTransactionQueueVersion, txQueueVersion)
+		return nil, fmt.Errorf("%w: %d", errInvalidTransactionQueueVersion, txQueueVersion)
 	}
-	externalTransaction := types.Extrinsic(bytes.Join(extrinsicParts, nil))
-	return externalTransaction, nil
+	return types.Extrinsic(bytes.Join(extrinsicParts, nil)), nil
 }

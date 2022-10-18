@@ -35,8 +35,7 @@ func balanceKey(t *testing.T, pub []byte) (bKey []byte) {
 	require.NoError(t, err)
 	h2, err := common.Blake2b128(pub)
 	require.NoError(t, err)
-	bytesToConcat := [][]byte{h0, h1, h2, pub}
-	return bytes.Join(bytesToConcat, nil)
+	return bytes.Join([][]byte{h0, h1, h2, pub}, nil)
 }
 
 // Creates test service, used now for testing txnPool but can be used elsewhere when needed
@@ -94,7 +93,6 @@ func createTestService(t *testing.T, genesisFilePath string,
 	cfgStorageState := stateSrvc.Storage
 	cfgCodeSubstitutedState := stateSrvc.Base
 
-	// Runtime stuff
 	var rtCfg wasmer.Config
 	rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
 

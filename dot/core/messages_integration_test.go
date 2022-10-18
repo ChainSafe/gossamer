@@ -89,13 +89,14 @@ func TestService_HandleBlockProduced(t *testing.T) {
 	require.NoError(t, err)
 
 	// Used to define the state root of new block for testing
-	genesisBlock, err := s.blockState.GetBlockByHash(s.blockState.GenesisHash())
+	parentHash := s.blockState.GenesisHash()
+	genesisBlock, err := s.blockState.GetBlockByHash(parentHash)
 	require.NoError(t, err)
 
 	newBlock := types.Block{
 		Header: types.Header{
 			Number:     1,
-			ParentHash: s.blockState.BestBlockHash(),
+			ParentHash: parentHash,
 			Digest:     digest,
 			StateRoot:  genesisBlock.Header.StateRoot,
 		},

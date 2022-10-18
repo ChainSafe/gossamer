@@ -85,12 +85,11 @@ func (s *Service) HandleTransactionMessage(peerID peer.ID, msg *network.Transact
 					Value:  peerset.BadTransactionValue,
 					Reason: peerset.BadTransactionReason,
 				}, peerID)
-				continue
 			case runtime.UnknownTransaction:
-				continue
 			default:
 				return false, fmt.Errorf("validating transaction from peerID %s: %w", peerID, err)
 			}
+			continue
 		}
 
 		if validity.Propagate {
