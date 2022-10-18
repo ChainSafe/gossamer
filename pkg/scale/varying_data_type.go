@@ -25,7 +25,7 @@ func (vdts *VaryingDataTypeSlice) Add(values ...VaryingDataTypeValue) (err error
 		copied := vdts.VaryingDataType
 		err = copied.Set(val)
 		if err != nil {
-			err = fmt.Errorf("adding VaryingDataTypeValue: %w", err)
+			err = fmt.Errorf("setting VaryingDataTypeValue: %w", err)
 			return
 		}
 		vdts.Types = append(vdts.Types, copied)
@@ -44,7 +44,7 @@ func mustNewVaryingDataTypeSliceAndSet(vdt VaryingDataType,
 	values ...VaryingDataTypeValue) (vdts VaryingDataTypeSlice) {
 	vdts = NewVaryingDataTypeSlice(vdt)
 	if err := vdts.Add(values...); err != nil {
-		panic(fmt.Sprintf("adding VaryingDataTypeValue: %s", err))
+		panic(fmt.Sprintf("adding varying data type value: %s", err))
 	}
 	return
 }
@@ -96,7 +96,7 @@ func NewVaryingDataType(values ...VaryingDataTypeValue) (vdt VaryingDataType, er
 func MustNewVaryingDataType(values ...VaryingDataTypeValue) (vdt VaryingDataType) {
 	vdt, err := NewVaryingDataType(values...)
 	if err != nil {
-		panic(fmt.Sprintf("adding varying data type value: %s", err))
+		panic(err)
 	}
 	return
 }

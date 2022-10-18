@@ -140,7 +140,7 @@ func (es *encodeState) encodeCustomPrimitive(in interface{}) (err error) {
 	case reflect.Uint64:
 		in = reflect.ValueOf(in).Convert(reflect.TypeOf(uint64(0))).Interface()
 	default:
-		err = fmt.Errorf("%w: %T", ErrUnsupportedType, in)
+		err = fmt.Errorf("%w: %T", ErrUnsupportedCustomPrimitive, in)
 		return
 	}
 	err = es.marshal(in)
@@ -248,7 +248,7 @@ func (es *encodeState) encodeBigInt(i *big.Int) (err error) {
 			// write integer itself
 			err = binary.Write(es, binary.LittleEndian, reverseBytes(i.Bytes()))
 			if err != nil {
-				err = fmt.Errorf("writing binary for big int %s: %w", i, err)
+				err = fmt.Errorf("writing bytes %s: %w", i, err)
 			}
 		}
 	}

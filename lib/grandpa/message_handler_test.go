@@ -1285,8 +1285,9 @@ func TestService_VerifyBlockJustification(t *testing.T) {
 				hash:          common.Hash{},
 				justification: []byte{1, 2, 3},
 			},
-			want:    nil,
-			wantErr: errors.New("unmarshalling field at index 1: unmarshalling field at index 0: EOF"),
+			want: nil,
+			wantErr: errors.New("decoding struct: unmarshalling field at index 1: decoding struct: unmarshalling" +
+				" field at index 0: EOF"),
 		},
 		"valid justification": {
 			fields: fields{

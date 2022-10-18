@@ -19,4 +19,5 @@ var (
 	ErrMustProvideVaryingDataTypeValue = errors.New("must provide at least one VaryingDataTypeValue")
 	errBigIntIsNil                     = errors.New("big int is nil")
 	ErrVaryingDataTypeNotSet           = errors.New("varying data type not set")
+	ErrUnsupportedCustomPrimitive      = errors.New("unsupported type for custom primitive")
 )

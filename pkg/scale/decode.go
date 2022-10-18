@@ -64,15 +64,13 @@ func Unmarshal(data []byte, dst interface{}) (err error) {
 		return
 	}
 
-	elem := indirect(dstv)
-
 	ds := decodeState{}
 
 	ds.Reader = bytes.NewBuffer(data)
 
-	err = ds.unmarshal(elem)
+	err = ds.unmarshal(indirect(dstv))
 	if err != nil {
-		return err
+		return
 	}
 	return
 }
@@ -90,11 +88,9 @@ func (d *Decoder) Decode(dst interface{}) (err error) {
 		return
 	}
 
-	elem := indirect(dstv)
-
-	err = d.unmarshal(elem)
+	err = d.unmarshal(indirect(dstv))
 	if err != nil {
-		return err
+		return
 	}
 	return nil
 }
@@ -155,7 +151,7 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {
 		case reflect.Slice:
 			err = ds.decodeSlice(dstv)
 		default:
-			err = fmt.Errorf("invalid type: %T", in)
+			err = fmt.Errorf("%w: %T", ErrUnsupportedType, in)
 		}
 	}
 	return
@@ -443,7 +439,7 @@ func (ds *decodeState) decodeStruct(dstv reflect.Value) (err error) {
 		}
 		err = ds.unmarshal(field)
 		if err != nil {
-			return fmt.Errorf("unmarshalling field at index %d: %w", i.fieldIndex, err)
+			return fmt.Errorf("decoding struct: unmarshalling field at index %d: %w", i.fieldIndex, err)
 		}
 	}
 	dstv.Set(temp.Elem())
@@ -500,7 +496,7 @@ func (ds *decodeState) decodeUint(dstv reflect.Value) (err error) {
 		buf := make([]byte, 3)
 		_, err = ds.Read(buf)
 		if err != nil {
-			return fmt.Errorf("reading byte: %w", err)
+			return fmt.Errorf("reading bytes: %w", err)
 		}
 		value = uint64(binary.LittleEndian.Uint32(append([]byte{prefix}, buf...)) >> 2)
 		if value <= 0b0011_1111_1111_1111 || value > uint64(maxUint32>>2) {
@@ -629,7 +625,7 @@ func (ds *decodeState) decodeBigInt(dstv reflect.Value) (err error) {
 		buf := make([]byte, byteLen)
 		_, err = ds.Read(buf)
 		if err != nil {
-			err = fmt.Errorf("reading buffer: %w", err)
+			err = fmt.Errorf("reading bytes: %w", err)
 			break
 		}
 		o := reverseBytes(buf)

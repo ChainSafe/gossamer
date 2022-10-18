@@ -163,9 +163,10 @@ func Test_getAuthorityIndex(t *testing.T) {
 			expErr: errors.New("first digest item is not pre-runtime digest"),
 		},
 		{
-			name:   "Invalid Preruntime Digest Type",
-			args:   args{headerInvalidPre},
-			expErr: errors.New("cannot decode babe header from pre-digest: unmarshalling field at index 0: EOF"),
+			name: "Invalid Preruntime Digest Type",
+			args: args{headerInvalidPre},
+			expErr: errors.New("cannot decode babe header from pre-digest: decoding struct: unmarshalling field at" +
+				" index 0: EOF"),
 		},
 		{
 			name: "BabePrimaryPreDigest Type",
@@ -616,7 +617,8 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 			name:     "invalid preruntime digest data",
 			verifier: verifier{},
 			header:   header2,
-			expErr:   errors.New("failed to verify pre-runtime digest: unmarshalling field at index 0: EOF"),
+			expErr: errors.New("failed to verify pre-runtime digest: decoding struct: unmarshalling field at index" +
+				" 0: EOF"),
 		},
 		{
 			name:     "invalid seal length",
