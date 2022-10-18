@@ -151,6 +151,37 @@ func PopulateNodeHashes(n *Node, nodeHashes map[string]struct{}) {
 	}
 }
 
+// recordAllDeleted records the node hashes of the given node and all its descendants.
+// Note it does not record inlined nodes.
+// It is assumed the node and its descendant nodes have their Merkle value already
+// computed, or the function will panic.
+func recordAllDeleted(n *Node, recorder DeltaRecorder) {
+	if n == nil {
+		return
+	}
+
+	if len(n.MerkleValue) == 0 {
+		panic(fmt.Sprintf("node with key 0x%x has no Merkle value computed", n.PartialKey))
+	}
+
+	isInlined := len(n.MerkleValue) < 32
+	if isInlined {
+		return
+	}
+
+	nodeHash := common.NewHash(n.MerkleValue)
+	recorder.RecordDeleted(nodeHash)
+
+	if n.Kind() == node.Leaf {
+		return
+	}
+
+	branch := n
+	for _, child := range branch.Children {
+		recordAllDeleted(child, recorder)
+	}
+}
+
 // GetFromDB retrieves a value at the given key from the trie using the database.
 // It recursively descends into the trie using the database starting
 // from the root node until it reaches the node with the given key.
@@ -307,12 +338,14 @@ func (t *Trie) GetChangedNodeHashes() (inserted, deleted map[string]struct{}, er
 	inserted = make(map[string]struct{})
 	err = t.getInsertedNodeHashesAtNode(t.root, inserted)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("getting inserted node hashes: %w", err)
 	}
 
-	deleted = make(map[string]struct{}, len(t.deletedMerkleValues))
-	for k := range t.deletedMerkleValues {
-		deleted[k] = struct{}{}
+	deletedNodeHashes := t.deltas.Deleted()
+	// TODO return deletedNodeHashes directly after changing MerkleValue -> NodeHash
+	deleted = make(map[string]struct{}, len(deletedNodeHashes))
+	for nodeHash := range deletedNodeHashes {
+		deleted[string(nodeHash[:])] = struct{}{}
 	}
 
 	return inserted, deleted, nil
