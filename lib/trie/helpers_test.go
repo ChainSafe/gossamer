@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/internal/trie/node"
+	"github.com/ChainSafe/gossamer/internal/trie/tracking"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/require"
 )
 
@@ -134,4 +136,12 @@ func checkMerkleValuesAreSet(t *testing.T, n *Node) {
 	for _, child := range n.Children {
 		checkMerkleValuesAreSet(t, child)
 	}
+}
+
+func newDeltas(deleted []common.Hash) (deltas *tracking.Deltas) {
+	deltas = tracking.New()
+	for _, hash := range deleted {
+		deltas.RecordDeleted(hash)
+	}
+	return deltas
 }
