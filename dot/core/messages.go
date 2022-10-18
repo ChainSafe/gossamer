@@ -74,11 +74,11 @@ func (s *Service) HandleTransactionMessage(peerID peer.ID, msg *network.Transact
 		return false, err
 	}
 
-	allTxsAreValid := true
+	allTxnsAreValid := true
 	for _, tx := range txs {
 		validity, err := s.validateTransaction(head, rt, tx)
 		if err != nil {
-			allTxsAreValid = false
+			allTxnsAreValid = false
 			switch err.(type) {
 			case runtime.InvalidTransaction:
 				s.net.ReportPeer(peerset.ReputationChange{
@@ -99,7 +99,7 @@ func (s *Service) HandleTransactionMessage(peerID peer.ID, msg *network.Transact
 		}
 	}
 
-	if allTxsAreValid {
+	if allTxnsAreValid {
 		s.net.ReportPeer(peerset.ReputationChange{
 			Value:  peerset.GoodTransactionValue,
 			Reason: peerset.GoodTransactionReason,
