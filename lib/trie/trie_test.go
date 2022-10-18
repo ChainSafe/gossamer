@@ -1153,14 +1153,15 @@ func Test_Trie_insert(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		trie                Trie
-		parent              *Node
-		key                 []byte
-		value               []byte
-		deletedMerkleValues map[string]struct{}
-		newNode             *Node
-		mutated             bool
-		nodesCreated        uint32
+		trie                        Trie
+		parent                      *Node
+		key                         []byte
+		value                       []byte
+		deletedMerkleValues         map[string]struct{}
+		newNode                     *Node
+		mutated                     bool
+		nodesCreated                uint32
+		expectedDeletedMerkleValues map[string]struct{}
 	}{
 		"nil parent": {
 			trie: Trie{
@@ -1376,6 +1377,7 @@ func Test_Trie_insert(t *testing.T) {
 			assert.Equal(t, testCase.mutated, mutated)
 			assert.Equal(t, testCase.nodesCreated, nodesCreated)
 			assert.Equal(t, expectedTrie, trie)
+			assert.Equal(t, testCase.expectedDeletedMerkleValues, testCase.deletedMerkleValues)
 		})
 	}
 }
@@ -2280,17 +2282,18 @@ func Test_Trie_clearPrefixLimitAtNode(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		trie                Trie
-		parent              *Node
-		prefix              []byte
-		limit               uint32
-		deletedMerkleValues map[string]struct{}
-		newParent           *Node
-		valuesDeleted       uint32
-		nodesRemoved        uint32
-		allDeleted          bool
-		errSentinel         error
-		errMessage          string
+		trie                        Trie
+		parent                      *Node
+		prefix                      []byte
+		limit                       uint32
+		deletedMerkleValues         map[string]struct{}
+		newParent                   *Node
+		valuesDeleted               uint32
+		nodesRemoved                uint32
+		allDeleted                  bool
+		errSentinel                 error
+		errMessage                  string
+		expectedDeletedMerkleValues map[string]struct{}
 	}{
 		"limit is zero": {
 			allDeleted: true,
@@ -2826,6 +2829,7 @@ func Test_Trie_clearPrefixLimitAtNode(t *testing.T) {
 			assert.Equal(t, testCase.nodesRemoved, nodesRemoved)
 			assert.Equal(t, testCase.allDeleted, allDeleted)
 			assert.Equal(t, expectedTrie, trie)
+			assert.Equal(t, testCase.expectedDeletedMerkleValues, testCase.deletedMerkleValues)
 		})
 	}
 }
@@ -2834,15 +2838,16 @@ func Test_Trie_deleteNodesLimit(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		trie                Trie
-		parent              *Node
-		limit               uint32
-		deletedMerkleValues map[string]struct{}
-		newNode             *Node
-		valuesDeleted       uint32
-		nodesRemoved        uint32
-		errSentinel         error
-		errMessage          string
+		trie                        Trie
+		parent                      *Node
+		limit                       uint32
+		deletedMerkleValues         map[string]struct{}
+		newNode                     *Node
+		valuesDeleted               uint32
+		nodesRemoved                uint32
+		errSentinel                 error
+		errMessage                  string
+		expectedDeletedMerkleValues map[string]struct{}
 	}{
 		"zero limit": {
 			trie: Trie{
@@ -3009,6 +3014,7 @@ func Test_Trie_deleteNodesLimit(t *testing.T) {
 			assert.Equal(t, testCase.valuesDeleted, valuesDeleted)
 			assert.Equal(t, testCase.nodesRemoved, nodesRemoved)
 			assert.Equal(t, expectedTrie, trie)
+			assert.Equal(t, testCase.expectedDeletedMerkleValues, testCase.deletedMerkleValues)
 		})
 	}
 }
@@ -3116,13 +3122,14 @@ func Test_Trie_clearPrefixAtNode(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		trie                Trie
-		parent              *Node
-		prefix              []byte
-		deletedMerkleValues map[string]struct{}
-		newParent           *Node
-		nodesRemoved        uint32
-		expectedTrie        Trie
+		trie                        Trie
+		parent                      *Node
+		prefix                      []byte
+		deletedMerkleValues         map[string]struct{}
+		newParent                   *Node
+		nodesRemoved                uint32
+		expectedTrie                Trie
+		expectedDeletedMerkleValues map[string]struct{}
 	}{
 		"delete one of two children of branch": {
 			trie: Trie{
@@ -3439,6 +3446,7 @@ func Test_Trie_clearPrefixAtNode(t *testing.T) {
 			assert.Equal(t, testCase.newParent, newParent)
 			assert.Equal(t, testCase.nodesRemoved, nodesRemoved)
 			assert.Equal(t, testCase.expectedTrie, trie)
+			assert.Equal(t, testCase.expectedDeletedMerkleValues, testCase.deletedMerkleValues)
 		})
 	}
 }
@@ -3559,16 +3567,17 @@ func Test_Trie_deleteAtNode(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		trie                Trie
-		parent              *Node
-		key                 []byte
-		deletedMerkleValues map[string]struct{}
-		newParent           *Node
-		updated             bool
-		nodesRemoved        uint32
-		errSentinel         error
-		errMessage          string
-		expectedTrie        Trie
+		trie                        Trie
+		parent                      *Node
+		key                         []byte
+		deletedMerkleValues         map[string]struct{}
+		newParent                   *Node
+		updated                     bool
+		nodesRemoved                uint32
+		errSentinel                 error
+		errMessage                  string
+		expectedTrie                Trie
+		expectedDeletedMerkleValues map[string]struct{}
 	}{
 		"nil parent": {
 			key: []byte{1},
@@ -3908,6 +3917,7 @@ func Test_Trie_deleteAtNode(t *testing.T) {
 			assert.Equal(t, testCase.nodesRemoved, nodesRemoved)
 			assert.Equal(t, testCase.expectedTrie, testCase.trie)
 			assert.Equal(t, expectedKey, testCase.key)
+			assert.Equal(t, testCase.expectedDeletedMerkleValues, testCase.deletedMerkleValues)
 		})
 	}
 }
