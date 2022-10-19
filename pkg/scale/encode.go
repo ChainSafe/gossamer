@@ -109,7 +109,7 @@ func (es *encodeState) marshal(in interface{}) (err error) {
 		case reflect.Map:
 			err = es.encodeMap(in)
 		default:
-			err = fmt.Errorf("unsupported type: %T", in)
+			err = fmt.Errorf("%w: %T", ErrUnsupportedType, in)
 		}
 	}
 	return
@@ -142,7 +142,7 @@ func (es *encodeState) encodeCustomPrimitive(in interface{}) (err error) {
 	case reflect.Uint64:
 		in = reflect.ValueOf(in).Convert(reflect.TypeOf(uint64(0))).Interface()
 	default:
-		err = fmt.Errorf("unsupported type for custom primitive: %T", in)
+		err = fmt.Errorf("%w: %T", ErrUnsupportedCustomPrimitive, in)
 		return
 	}
 	err = es.marshal(in)
@@ -151,7 +151,7 @@ func (es *encodeState) encodeCustomPrimitive(in interface{}) (err error) {
 
 func (es *encodeState) encodeResult(res Result) (err error) {
 	if !res.IsSet() {
-		err = fmt.Errorf("Result is not set: %+v", res)
+		err = fmt.Errorf("%w: %+v", ErrResultNotSet, res)
 		return
 	}
 
@@ -259,7 +259,7 @@ func (es *encodeState) encodeMap(in interface{}) (err error) {
 func (es *encodeState) encodeBigInt(i *big.Int) (err error) {
 	switch {
 	case i == nil:
-		err = fmt.Errorf("nil *big.Int")
+		err = fmt.Errorf("%w", errBigIntIsNil)
 	case i.Cmp(new(big.Int).Lsh(big.NewInt(1), 6)) < 0:
 		err = binary.Write(es, binary.LittleEndian, uint8(i.Int64()<<2))
 	case i.Cmp(new(big.Int).Lsh(big.NewInt(1), 14)) < 0:
@@ -276,6 +276,9 @@ func (es *encodeState) encodeBigInt(i *big.Int) (err error) {
 		if err == nil {
 			// write integer itself
 			err = binary.Write(es, binary.LittleEndian, reverseBytes(i.Bytes()))
+			if err != nil {
+				err = fmt.Errorf("writing bytes %s: %w", i, err)
+			}
 		}
 	}
 	return
@@ -328,7 +331,7 @@ func (es *encodeState) encodeFixedWidthInt(i interface{}) (err error) {
 	case uint64:
 		err = binary.Write(es, binary.LittleEndian, i)
 	default:
-		err = fmt.Errorf("could not encode fixed width integer, invalid type: %T", i)
+		err = fmt.Errorf("invalid type: %T", i)
 	}
 	return
 }
@@ -403,7 +406,7 @@ func (es *encodeState) encodeUint(i uint) (err error) {
 // encodeUint128 encodes a Uint128
 func (es *encodeState) encodeUint128(i *Uint128) (err error) {
 	if i == nil {
-		err = fmt.Errorf("uint128 is nil: %v", i)
+		err = fmt.Errorf("%w", errUint128IsNil)
 		return
 	}
 	err = binary.Write(es, binary.LittleEndian, padBytes(i.Bytes(), binary.LittleEndian))
