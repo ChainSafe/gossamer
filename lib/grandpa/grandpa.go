@@ -339,20 +339,14 @@ func (s *Service) initiate() error {
 		return fmt.Errorf("starting finalisation handler: %w", err)
 	}
 
-	for err := range errsCh {
-		logger.Errorf("finalisation handler: %s", err)
-
-		if errors.Is(err, errRunFinalization) || errors.Is(err, errVotingRound) {
-			errStop := stopFinalizationHandler(finalizationHandler)
-			if errStop != nil {
-				return errStop
-			}
-
+	for {
+		select {
+		case <-s.ctx.Done():
+			return finalizationHandler.Stop()
+		case err := <-errsCh:
 			return err
 		}
 	}
-
-	return nil
 }
 
 func stopFinalizationHandler(finalizationHandler *finalizationHandler) error {

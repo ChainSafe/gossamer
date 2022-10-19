@@ -564,54 +564,9 @@ func TestPlayGrandpaRoundMultipleRounds(t *testing.T) {
 func runFinalizationService(t *testing.T, grandpaService *Service) {
 	t.Helper()
 
-	finEngine := newFinalizationEngine(grandpaService)
-	votingRound := newHandleVotingRound(grandpaService, finEngine.actionCh)
-
-	finErrCh, err := finEngine.Start()
+	finalizationHandler := newFinalizationHandler(grandpaService)
+	err := finalizationHandler.waitServices()
 	require.NoError(t, err)
-
-	votingErrsCh, err := votingRound.Start()
-	require.NoError(t, err)
-
-	innerErr := make(chan error)
-	defer close(innerErr)
-
-	wg := new(sync.WaitGroup)
-	wg.Add(2)
-	go func() {
-		defer wg.Done()
-		for err := range finErrCh {
-			if err != nil {
-				innerErr <- err
-				continue
-			}
-			return
-		}
-	}()
-
-	go func() {
-		defer wg.Done()
-		for err := range votingErrsCh {
-			if err != nil {
-				innerErr <- err
-				continue
-			}
-			return
-		}
-	}()
-
-	select {
-	case <-innerErr:
-		stopServices(t, finEngine)
-		stopServices(t, votingRound)
-		wg.Wait()
-
-	case <-waitServices([]*finalizationEngine{finEngine},
-		[]*handleVotingRound{votingRound}):
-		stopServices(t, finEngine)
-		stopServices(t, votingRound)
-		wg.Wait()
-	}
 }
 
 // runFinalizationServices is designed to handle many grandpa services and starts, for each service,
@@ -619,98 +574,23 @@ func runFinalizationService(t *testing.T, grandpaService *Service) {
 func runFinalizationServices(t *testing.T, grandpaServices []*Service) {
 	t.Helper()
 
-	finalizationEngines := make([]*finalizationEngine, len(grandpaServices))
-	votingRounds := make([]*handleVotingRound, len(grandpaServices))
-
+	finalizationHandlers := make([]*finalizationHandler, len(grandpaServices))
 	for idx, grandpaService := range grandpaServices {
-		finalizationEngine := newFinalizationEngine(grandpaService)
-		votingRound := newHandleVotingRound(grandpaService, finalizationEngine.actionCh)
-
-		finalizationEngines[idx] = finalizationEngine
-		votingRounds[idx] = votingRound
+		finalizationHandlers[idx] = newFinalizationHandler(grandpaService)
 	}
 
-	innerErr := make(chan error)
-	defer close(innerErr)
+	handlersWg := new(sync.WaitGroup)
+	handlersWg.Add(len(finalizationHandlers))
 
-	wg := new(sync.WaitGroup)
-	for _, finalizationEngine := range finalizationEngines {
-		errsCh, err := finalizationEngine.Start()
-		require.NoError(t, err)
-
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for err := range errsCh {
-				if err != nil {
-					innerErr <- err
-					continue
-				}
-
-				return
-			}
-		}()
+	for _, handler := range finalizationHandlers {
+		go func(t *testing.T, handler *finalizationHandler) {
+			defer handlersWg.Done()
+			err := handler.waitServices()
+			assert.NoError(t, err)
+		}(t, handler)
 	}
 
-	for _, votingRound := range votingRounds {
-		errsCh, err := votingRound.Start()
-		require.NoError(t, err)
-
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for err := range errsCh {
-				if err != nil {
-					innerErr <- err
-					continue
-				}
-				return
-			}
-		}()
-	}
-
-	select {
-	case err := <-innerErr:
-		stopServices(t, finalizationEngines...)
-		stopServices(t, votingRounds...)
-		wg.Wait()
-
-		t.Errorf("inner service failed: %s", err)
-
-	case <-waitServices(finalizationEngines, votingRounds):
-		stopServices(t, finalizationEngines...)
-		stopServices(t, votingRounds...)
-		wg.Wait()
-	}
-}
-
-type stopable interface {
-	Stop() (err error)
-}
-
-func stopServices[T stopable](t *testing.T, srvs ...T) {
-	t.Helper()
-
-	for _, service := range srvs {
-		err := service.Stop()
-		assert.NoError(t, err)
-	}
-}
-
-func waitServices(finalizationEngines []*finalizationEngine,
-	votingRounds []*handleVotingRound) (allDone <-chan struct{}) {
-	done := make(chan struct{})
-	go func() {
-		defer close(done)
-		for _, finEngines := range finalizationEngines {
-			<-finEngines.engineDone
-		}
-
-		for _, votingRound := range votingRounds {
-			<-votingRound.engineDone
-		}
-	}()
-	return done
+	handlersWg.Wait()
 }
 
 // assertChainGrowth ensure that each service reach the same finalisation result
