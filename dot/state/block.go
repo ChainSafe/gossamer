@@ -259,7 +259,7 @@ func (bs *BlockState) GetBlocksBySlot(slotNum uint64) ([]common.Hash, error) {
 
 	descendants, err := bs.bt.GetAllDescendants(highestFinalisedHash)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get descendants of %s: %w", highestFinalisedHash, err)
+		return nil, fmt.Errorf("failed to get descendants: %w", err)
 	}
 
 	blocksWithGivenSlot := []common.Hash{}
