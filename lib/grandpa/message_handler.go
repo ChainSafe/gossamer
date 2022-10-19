@@ -88,14 +88,16 @@ func (h *MessageHandler) notifyNeighbors(neighbourMessage *NeighbourPacketV1) {
 }
 
 func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourPacketV1) error {
-	h.grandpa.roundLock.Lock()
-	neighbourMessage := &NeighbourPacketV1{
-		Round:  h.grandpa.state.round,
-		SetID:  h.grandpa.state.setID,
-		Number: uint32(h.grandpa.head.Number),
+	if h.grandpa.authority {
+		h.grandpa.roundLock.Lock()
+		neighbourMessage := &NeighbourPacketV1{
+			Round:  h.grandpa.state.round,
+			SetID:  h.grandpa.state.setID,
+			Number: uint32(h.grandpa.head.Number),
+		}
+		h.grandpa.roundLock.Unlock()
+		h.notifyNeighbors(neighbourMessage)
 	}
-	h.grandpa.roundLock.Unlock()
-	h.notifyNeighbors(neighbourMessage)
 
 	currFinalized, err := h.blockState.GetFinalisedHeader(0, 0)
 	if err != nil {
