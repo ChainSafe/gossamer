@@ -338,7 +338,7 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	return nil
 }
 
-// verifyBlockEquivocation checks if given block's author has occupied corresponding slot more than once.
+// verifyBlockEquivocation checks if the given block's author has occupied the corresponding slot more than once.
 // It returns true if block was equivocated.
 func (b *verifier) verifyBlockEquivocation(header *types.Header) (bool, error) {
 	author, err := getAuthorityIndex(header)
