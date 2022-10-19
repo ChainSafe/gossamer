@@ -337,7 +337,7 @@ func (bt *BlockTree) GetAllDescendants(a common.Hash) ([]Hash, error) {
 
 	an := bt.getNode(a)
 	if an == nil {
-		return []common.Hash{}, ErrNodeNotFound
+		return []common.Hash{}, fmt.Errorf("%w: for block hash %s", ErrNodeNotFound, a)
 	}
 
 	return an.getAllDescendants(nil), nil
