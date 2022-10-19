@@ -489,7 +489,7 @@ func (b *verifier) verifyPrimarySlotWinner(authorityIndex uint32,
 
 func getAuthorityIndex(header *types.Header) (uint32, error) {
 	if len(header.Digest.Types) == 0 {
-		return 0, errNoDigest
+		return 0, fmt.Errorf("for block hash %s: %w", header.Hash(), errNoDigest)
 	}
 
 	digestValue, err := header.Digest.Types[0].Value()
