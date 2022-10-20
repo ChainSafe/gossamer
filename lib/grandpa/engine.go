@@ -18,6 +18,10 @@ type ephemeralService interface {
 }
 
 type finalizationHandler struct {
+	servicesLock       sync.Mutex
+	finalizationEngine ephemeralService
+	votingRound        ephemeralService
+
 	servicesBuilder func() (engine, voting ephemeralService)
 	timeoutStop     time.Duration
 	initiateRound   func() error
@@ -38,11 +42,12 @@ func newFinalizationHandler(service *Service) *finalizationHandler {
 
 	return &finalizationHandler{
 		servicesBuilder: builder,
-		timeoutStop:     5 * time.Second,
-		initiateRound:   service.initiateRound,
-		observableErrs:  make(chan error),
-		stopCh:          make(chan struct{}),
-		handlerDone:     make(chan struct{}),
+
+		timeoutStop:    5 * time.Second,
+		initiateRound:  service.initiateRound,
+		observableErrs: make(chan error),
+		stopCh:         make(chan struct{}),
+		handlerDone:    make(chan struct{}),
 	}
 }
 
@@ -51,9 +56,42 @@ func (fh *finalizationHandler) Start() (errsCh <-chan error, err error) {
 	return fh.observableErrs, nil
 }
 
+func (fh *finalizationHandler) stop() (err error) {
+	stopWg := new(sync.WaitGroup)
+	stopWg.Add(2)
+
+	fh.servicesLock.Lock()
+	defer fh.servicesLock.Unlock()
+
+	errorsCh := make(chan error, 2)
+	defer close(errorsCh)
+
+	go func() {
+		defer stopWg.Done()
+		errorsCh <- fh.finalizationEngine.Stop()
+	}()
+	go func() {
+		defer stopWg.Done()
+		errorsCh <- fh.votingRound.Stop()
+	}()
+
+	stopWg.Wait()
+
+	var stopErrs error
+	for i := 0; i < cap(errorsCh); i++ {
+		err := <-errorsCh
+		if err != nil {
+			stopErrs = fmt.Errorf("%s: %w", stopErrs, err)
+		}
+	}
+
+	return stopErrs
+}
+
 func (fh *finalizationHandler) Stop() (err error) {
 	close(fh.stopCh)
 
+	err = fh.stop()
 	select {
 	case <-fh.handlerDone:
 	case <-time.After(fh.timeoutStop):
@@ -61,7 +99,7 @@ func (fh *finalizationHandler) Stop() (err error) {
 	}
 
 	close(fh.observableErrs)
-	return nil
+	return err
 }
 
 func (fh *finalizationHandler) runFinalization() {
@@ -90,12 +128,14 @@ func (fh *finalizationHandler) runFinalization() {
 
 // waitServices will start the services and wait until they complete or
 func (fh *finalizationHandler) waitServices() error {
-	finalizationEngine, votingRound := fh.servicesBuilder()
+	fh.servicesLock.Lock()
+	fh.finalizationEngine, fh.votingRound = fh.servicesBuilder()
+	fh.servicesLock.Unlock()
 
 	finalizationEngineErr := make(chan error)
 	go func() {
 		defer close(finalizationEngineErr)
-		err := finalizationEngine.Start()
+		err := fh.finalizationEngine.Start()
 		if err != nil {
 			finalizationEngineErr <- err
 		}
@@ -104,7 +144,7 @@ func (fh *finalizationHandler) waitServices() error {
 	votingRoundErr := make(chan error)
 	go func() {
 		defer close(votingRoundErr)
-		err := votingRound.Start()
+		err := fh.votingRound.Start()
 		if err != nil {
 			votingRoundErr <- err
 		}
@@ -113,40 +153,29 @@ func (fh *finalizationHandler) waitServices() error {
 	for {
 		select {
 		case <-fh.stopCh:
-			stopWg := new(sync.WaitGroup)
-			stopWg.Add(2)
-
-			go func() {
-				defer stopWg.Done()
-				votingRound.Stop()
-				<-votingRoundErr
-			}()
-
-			go func() {
-				defer stopWg.Done()
-				finalizationEngine.Stop()
-				<-finalizationEngineErr
-			}()
-
-			stopWg.Wait()
 			return nil
 
-		case err := <-votingRoundErr:
-			finalizationEngine.Stop()
-			engineErr := <-finalizationEngineErr
-			if err == nil && engineErr != nil {
-				return engineErr
+		case err, ok := <-votingRoundErr:
+			if !ok {
+				votingRoundErr = nil
 			}
 
+			_ = fh.stop()
 			return err
-		case err := <-finalizationEngineErr:
-			votingRound.Stop()
-			votingErr := <-votingRoundErr
-			if err == nil && votingErr != nil {
-				return votingErr
+
+		case err, ok := <-finalizationEngineErr:
+			if !ok {
+				finalizationEngineErr = nil
 			}
 
+			_ = fh.stop()
 			return err
+
+		default:
+			finish := votingRoundErr == nil && finalizationEngineErr == nil
+			if finish {
+				return nil
+			}
 		}
 	}
 }
@@ -172,17 +201,18 @@ func newHandleVotingRound(service *Service, finalizationEngineCh <-chan engineAc
 }
 
 func (h *handleVotingRound) Stop() (err error) {
-	defer func() {
-		fmt.Println("STOPPING VOTING ROUND")
-	}()
-	close(h.stopCh)
+	if h.stopCh == nil {
+		return nil
+	}
 
+	close(h.stopCh)
 	select {
 	case <-h.engineDone:
 	case <-time.After(h.timeoutStop):
 		return fmt.Errorf("%w", errTimeoutWhileStoping)
 	}
 
+	h.stopCh = nil
 	return nil
 }
 
@@ -316,17 +346,18 @@ func newFinalizationEngine(service *Service) *finalizationEngine {
 }
 
 func (f *finalizationEngine) Stop() (err error) {
-	defer func() {
-		fmt.Println("STOPPING FINALIZATION ENGINE")
-	}()
-	close(f.stopCh)
+	if f.stopCh == nil {
+		return nil
+	}
 
+	close(f.stopCh)
 	select {
 	case <-f.engineDone:
 	case <-time.After(f.timeoutStop):
 		return fmt.Errorf("%w", errTimeoutWhileStoping)
 	}
 
+	f.stopCh = nil
 	close(f.actionCh)
 	return nil
 }
