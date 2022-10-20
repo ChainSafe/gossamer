@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"testing"
 
@@ -35,7 +34,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var errTestDummyError = errors.New("test dummy error")
+var errTestDummyError = fmt.Errorf("test dummy error")
 
 const (
 	authoringVersion   = 0
@@ -174,7 +173,7 @@ func Test_Service_StorageRoot(t *testing.T) {
 func Test_Service_handleCodeSubstitution(t *testing.T) {
 	t.Parallel()
 
-	errTest := errors.New("test error")
+	errTest := fmt.Errorf("test error")
 	validRuntimeCode := getGssmrRuntimeCode(t)
 
 	testCases := map[string]struct {

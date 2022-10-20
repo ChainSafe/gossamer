@@ -5,7 +5,6 @@ package rpc
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"math/rand"
 	"testing"
@@ -40,7 +39,7 @@ func TestChainRPC(t *testing.T) {
 	node.InitAndStartTest(ctx, t, cancel)
 
 	// Wait for Gossamer to produce block 2
-	errBlockNumberTooHigh := errors.New("block number is too high")
+	errBlockNumberTooHigh := fmt.Errorf("block number is too high")
 	const retryWaitDuration = 200 * time.Millisecond
 	err := retry.UntilOK(ctx, retryWaitDuration, func() (ok bool, err error) {
 		var header modules.ChainBlockHeaderResponse

@@ -4,7 +4,7 @@
 package sync
 
 import (
-	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -256,7 +256,7 @@ func TestService_checkOrGetDescendantHash(t *testing.T) {
 			},
 			args:          args{ancestor: common.Hash{2}, descendant: &common.Hash{1, 2}, descendantNumber: 1},
 			want:          common.Hash{},
-			expectedError: errors.New("invalid request, descendant number 2 is higher than ancestor 1"),
+			expectedError: fmt.Errorf("invalid request, descendant number 2 is higher than ancestor 1"),
 		},
 	}
 	for _, tt := range tests {
@@ -304,7 +304,7 @@ func TestService_getBlockData(t *testing.T) {
 		"requestedData RequestedDataHeader error": {
 			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 				mockBlockState := NewMockBlockState(ctrl)
-				mockBlockState.EXPECT().GetHeader(common.Hash{}).Return(nil, errors.New("empty hash"))
+				mockBlockState.EXPECT().GetHeader(common.Hash{}).Return(nil, fmt.Errorf("empty hash"))
 				return mockBlockState
 			},
 			args: args{
@@ -337,7 +337,7 @@ func TestService_getBlockData(t *testing.T) {
 		"requestedData RequestedDataBody error": {
 			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 				mockBlockState := NewMockBlockState(ctrl)
-				mockBlockState.EXPECT().GetBlockBody(common.Hash{}).Return(nil, errors.New("empty hash"))
+				mockBlockState.EXPECT().GetBlockBody(common.Hash{}).Return(nil, fmt.Errorf("empty hash"))
 				return mockBlockState
 			},
 

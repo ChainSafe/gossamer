@@ -4,7 +4,7 @@
 package modules
 
 import (
-	"errors"
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -21,7 +21,7 @@ import (
 func TestGrandpaModule_ProveFinality(t *testing.T) {
 	t.Parallel()
 
-	mockError := errors.New("test mock error")
+	mockError := fmt.Errorf("test mock error")
 
 	tests := map[string]struct {
 		blockAPIBuilder func(ctrl *gomock.Controller) BlockAPI

@@ -6,7 +6,6 @@ package secp256k1
 import (
 	"crypto/ecdsa"
 	"encoding/hex"
-	"errors"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -105,7 +104,7 @@ func NewKeypairFromPrivate(priv *PrivateKey) (*Keypair, error) {
 // NewPrivateKey will return a PrivateKey for a []byte
 func NewPrivateKey(in []byte) (*PrivateKey, error) {
 	if len(in) != PrivateKeyLength {
-		return nil, errors.New("input to create secp256k1 private key is not 32 bytes")
+		return nil, fmt.Errorf("input to create secp256k1 private key is not 32 bytes")
 	}
 	priv := new(PrivateKey)
 	err := priv.Decode(in)
@@ -145,7 +144,7 @@ func (*Keypair) Type() crypto.KeyType {
 // Sign will sign
 func (kp *Keypair) Sign(msg []byte) ([]byte, error) {
 	if len(msg) != MessageLength {
-		return nil, errors.New("invalid message length: not 32 byte hash")
+		return nil, fmt.Errorf("invalid message length: not 32 byte hash")
 	}
 
 	return secp256k1.Sign(msg, &kp.private.key)
@@ -164,11 +163,11 @@ func (kp *Keypair) Private() crypto.PrivateKey {
 // Verify a msg
 func (k *PublicKey) Verify(msg, sig []byte) (bool, error) {
 	if len(sig) != SignatureLength {
-		return false, errors.New("invalid signature length")
+		return false, fmt.Errorf("invalid signature length")
 	}
 
 	if len(msg) != MessageLength {
-		return false, errors.New("invalid message length: not 32 byte hash")
+		return false, fmt.Errorf("invalid message length: not 32 byte hash")
 	}
 
 	return secp256k1.VerifySignature(k.Encode(), msg, sig), nil
@@ -215,7 +214,7 @@ func (k *PublicKey) Hex() string {
 // Sign a message
 func (pk *PrivateKey) Sign(msg []byte) ([]byte, error) {
 	if len(msg) != MessageLength {
-		return nil, errors.New("invalid message length: not 32 byte hash")
+		return nil, fmt.Errorf("invalid message length: not 32 byte hash")
 	}
 
 	return secp256k1.Sign(msg, &pk.key)

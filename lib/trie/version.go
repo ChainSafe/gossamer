@@ -4,7 +4,6 @@
 package trie
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 )
@@ -30,7 +29,7 @@ func (v Version) String() string {
 	}
 }
 
-var ErrParseVersion = errors.New("parsing version failed")
+var ErrParseVersion = fmt.Errorf("parsing version failed")
 
 // ParseVersion parses a state trie version string.
 func ParseVersion(s string) (version Version, err error) {

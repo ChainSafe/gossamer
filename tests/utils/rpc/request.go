@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -52,8 +51,8 @@ func Post(ctx context.Context, endpoint, method, params string) (data []byte, er
 }
 
 var (
-	ErrResponseVersion = errors.New("unexpected response version received")
-	ErrResponseError   = errors.New("response error received")
+	ErrResponseVersion = fmt.Errorf("unexpected response version received")
+	ErrResponseError   = fmt.Errorf("response error received")
 )
 
 // Decode decodes []body into the target interface.

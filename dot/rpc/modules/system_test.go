@@ -4,7 +4,7 @@
 package modules
 
 import (
-	"errors"
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -228,7 +228,7 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 	mockCoreAPI.On("GetMetadata", (*common.Hash)(nil)).Return(common.MustHexToBytes(testdata.NewTestMetadata()), nil)
 
 	mockCoreAPIErr := mocks.NewCoreAPI(t)
-	mockCoreAPIErr.On("GetMetadata", (*common.Hash)(nil)).Return(nil, errors.New("getMetadata error"))
+	mockCoreAPIErr.On("GetMetadata", (*common.Hash)(nil)).Return(nil, fmt.Errorf("getMetadata error"))
 
 	// Magic number mismatch
 	mockCoreAPIMagicNumMismatch := mocks.NewCoreAPI(t)
@@ -240,7 +240,7 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 			"0000000000000000000000000000000000000000000000000000000000000000000000000000000000"), nil)
 
 	mockStorageAPIErr := mocks.NewStorageAPI(t)
-	mockStorageAPIErr.On("GetStorage", (*common.Hash)(nil), storageKeyHex).Return(nil, errors.New("getStorage error"))
+	mockStorageAPIErr.On("GetStorage", (*common.Hash)(nil), storageKeyHex).Return(nil, fmt.Errorf("getStorage error"))
 
 	type args struct {
 		r   *http.Request
@@ -257,7 +257,7 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 			name:      "Nil Request",
 			sysModule: NewSystemModule(nil, nil, mockCoreAPI, mockStorageAPI, mockTxStateAPI, nil, nil),
 			args:      args{},
-			expErr:    errors.New("account address must be valid"),
+			expErr:    fmt.Errorf("account address must be valid"),
 		},
 		{
 			name:      "Found",
@@ -281,7 +281,7 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 			args: args{
 				req: &StringRequest{String: "5FrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
 			},
-			expErr: errors.New("getMetadata error"),
+			expErr: fmt.Errorf("getMetadata error"),
 		},
 		{
 			name:      "Magic Number Mismatch",
@@ -289,7 +289,7 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 			args: args{
 				req: &StringRequest{String: "5FrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
 			},
-			expErr: errors.New("magic number mismatch: expected 0x6174656d, found 0xe03056ea"),
+			expErr: fmt.Errorf("magic number mismatch: expected 0x6174656d, found 0xe03056ea"),
 		},
 		{
 			name:      "GetStorage Err",
@@ -297,7 +297,7 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 			args: args{
 				req: &StringRequest{String: "5FrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
 			},
-			expErr: errors.New("getStorage error"),
+			expErr: fmt.Errorf("getStorage error"),
 		},
 	}
 	for _, tt := range tests {
@@ -323,7 +323,7 @@ func TestSystemModule_SyncState(t *testing.T) {
 
 	mockBlockAPIErr := mocks.NewBlockAPI(t)
 	mockBlockAPIErr.On("BestBlockHash").Return(hash)
-	mockBlockAPIErr.On("GetHeader", hash).Return(nil, errors.New("GetHeader Err"))
+	mockBlockAPIErr.On("GetHeader", hash).Return(nil, fmt.Errorf("GetHeader Err"))
 
 	mockNetworkAPI := mocks.NewNetworkAPI(t)
 	mockNetworkAPI.On("StartingBlock").Return(int64(23))
@@ -361,7 +361,7 @@ func TestSystemModule_SyncState(t *testing.T) {
 			args: args{
 				req: &EmptyRequest{},
 			},
-			expErr: errors.New("GetHeader Err"),
+			expErr: fmt.Errorf("GetHeader Err"),
 		},
 	}
 	for _, tt := range tests {
@@ -421,7 +421,7 @@ func TestSystemModule_LocalListenAddresses(t *testing.T) {
 				req: &EmptyRequest{},
 			},
 			exp:    []string{},
-			expErr: errors.New("multiaddress list is empty"),
+			expErr: fmt.Errorf("multiaddress list is empty"),
 		},
 	}
 	for _, tt := range tests {
@@ -480,7 +480,7 @@ func TestSystemModule_LocalPeerId(t *testing.T) {
 			args: args{
 				req: &EmptyRequest{},
 			},
-			expErr: errors.New("peer id cannot be empty"),
+			expErr: fmt.Errorf("peer id cannot be empty"),
 		},
 	}
 	for _, tt := range tests {
@@ -503,7 +503,7 @@ func TestSystemModule_AddReservedPeer(t *testing.T) {
 	mockNetworkAPI.On("AddReservedPeers", "jimbo").Return(nil)
 
 	mockNetworkAPIErr := mocks.NewNetworkAPI(t)
-	mockNetworkAPIErr.On("AddReservedPeers", "jimbo").Return(errors.New("addReservedPeer error"))
+	mockNetworkAPIErr.On("AddReservedPeers", "jimbo").Return(fmt.Errorf("addReservedPeer error"))
 
 	type args struct {
 		r   *http.Request
@@ -530,7 +530,7 @@ func TestSystemModule_AddReservedPeer(t *testing.T) {
 			args: args{
 				req: &StringRequest{"jimbo"},
 			},
-			expErr: errors.New("addReservedPeer error"),
+			expErr: fmt.Errorf("addReservedPeer error"),
 		},
 		{
 			name:      "Empty StringRequest Error",
@@ -538,7 +538,7 @@ func TestSystemModule_AddReservedPeer(t *testing.T) {
 			args: args{
 				req: &StringRequest{""},
 			},
-			expErr: errors.New("cannot add an empty reserved peer"),
+			expErr: fmt.Errorf("cannot add an empty reserved peer"),
 		},
 	}
 	for _, tt := range tests {
@@ -561,7 +561,7 @@ func TestSystemModule_RemoveReservedPeer(t *testing.T) {
 	mockNetworkAPI.On("RemoveReservedPeers", "jimbo").Return(nil)
 
 	mockNetworkAPIErr := mocks.NewNetworkAPI(t)
-	mockNetworkAPIErr.On("RemoveReservedPeers", "jimbo").Return(errors.New("removeReservedPeer error"))
+	mockNetworkAPIErr.On("RemoveReservedPeers", "jimbo").Return(fmt.Errorf("removeReservedPeer error"))
 
 	type args struct {
 		r   *http.Request
@@ -588,7 +588,7 @@ func TestSystemModule_RemoveReservedPeer(t *testing.T) {
 			args: args{
 				req: &StringRequest{"jimbo"},
 			},
-			expErr: errors.New("removeReservedPeer error"),
+			expErr: fmt.Errorf("removeReservedPeer error"),
 		},
 		{
 			name:      "Empty StringRequest Error",
@@ -596,7 +596,7 @@ func TestSystemModule_RemoveReservedPeer(t *testing.T) {
 			args: args{
 				req: &StringRequest{""},
 			},
-			expErr: errors.New("cannot remove an empty reserved peer"),
+			expErr: fmt.Errorf("cannot remove an empty reserved peer"),
 		},
 	}
 	for _, tt := range tests {

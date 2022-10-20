@@ -5,7 +5,6 @@ package wasmer
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"sync"
 
@@ -49,7 +48,7 @@ type Instance struct {
 // NewRuntimeFromGenesis creates a runtime instance from the genesis data
 func NewRuntimeFromGenesis(cfg Config) (instance runtime.Instance, err error) {
 	if cfg.Storage == nil {
-		return nil, errors.New("storage is nil")
+		return nil, fmt.Errorf("storage is nil")
 	}
 
 	code := cfg.Storage.LoadCode()
@@ -201,8 +200,8 @@ func GetRuntimeVersion(code []byte) (version runtime.Version, err error) {
 }
 
 var (
-	ErrCodeEmpty      = errors.New("code is empty")
-	ErrWASMDecompress = errors.New("wasm decompression failed")
+	ErrCodeEmpty      = fmt.Errorf("code is empty")
+	ErrWASMDecompress = fmt.Errorf("wasm decompression failed")
 )
 
 func setupVM(code []byte) (instance wasm.Instance,
@@ -286,8 +285,8 @@ func (in *Instance) close() {
 }
 
 var (
-	ErrInstanceIsStopped      = errors.New("instance is stopped")
-	ErrExportFunctionNotFound = errors.New("export function not found")
+	ErrInstanceIsStopped      = fmt.Errorf("instance is stopped")
+	ErrExportFunctionNotFound = fmt.Errorf("export function not found")
 )
 
 // Exec calls the given function with the given data

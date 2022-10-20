@@ -4,14 +4,14 @@
 package keystore
 
 import (
-	"errors"
+	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 )
 
 var (
-	ErrInvalidKeystoreName = errors.New("invalid keystore name")
+	ErrInvalidKeystoreName = fmt.Errorf("invalid keystore name")
 )
 
 // Name represents a defined keystore name

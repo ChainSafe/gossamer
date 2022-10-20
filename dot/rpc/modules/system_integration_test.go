@@ -6,7 +6,6 @@
 package modules
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
 	"os"
@@ -426,7 +425,7 @@ func TestSyncState(t *testing.T) {
 
 	require.Equal(t, expectedSyncState, res)
 
-	blockapiMock.On("GetHeader", fakeCommonHash).Return(nil, errors.New("Problems while getting header")).Once()
+	blockapiMock.On("GetHeader", fakeCommonHash).Return(nil, fmt.Errorf("Problems while getting header")).Once()
 	err = sysmodule.SyncState(nil, nil, nil)
 	require.Error(t, err)
 }
@@ -509,8 +508,8 @@ func TestAddReservedPeer(t *testing.T) {
 
 	t.Run("Test Add and Remove reserved peers without success", func(t *testing.T) {
 		networkMock := mocks.NewNetworkAPI(t)
-		networkMock.On("AddReservedPeers", mock.AnythingOfType("string")).Return(errors.New("some problems")).Once()
-		networkMock.On("RemoveReservedPeers", mock.AnythingOfType("string")).Return(errors.New("other problems")).Once()
+		networkMock.On("AddReservedPeers", mock.AnythingOfType("string")).Return(fmt.Errorf("some problems")).Once()
+		networkMock.On("RemoveReservedPeers", mock.AnythingOfType("string")).Return(fmt.Errorf("other problems")).Once()
 
 		sysModule := &SystemModule{
 			networkAPI: networkMock,

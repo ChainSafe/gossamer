@@ -4,7 +4,6 @@
 package network
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
@@ -168,7 +167,7 @@ func decodeTransactionMessage(in []byte) (NotificationsMessage, error) {
 func (s *Service) handleTransactionMessage(peerID peer.ID, msg NotificationsMessage) (bool, error) {
 	txMsg, ok := msg.(*TransactionMessage)
 	if !ok {
-		return false, errors.New("invalid transaction type")
+		return false, fmt.Errorf("invalid transaction type")
 	}
 
 	return s.transactionHandler.HandleTransactionMessage(peerID, txMsg)

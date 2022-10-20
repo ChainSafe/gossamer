@@ -5,7 +5,6 @@ package proof
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -16,8 +15,8 @@ import (
 )
 
 var (
-	ErrKeyNotFoundInProofTrie = errors.New("key not found in proof trie")
-	ErrValueMismatchProofTrie = errors.New("value found in proof trie does not match")
+	ErrKeyNotFoundInProofTrie = fmt.Errorf("key not found in proof trie")
+	ErrValueMismatchProofTrie = fmt.Errorf("value found in proof trie does not match")
 )
 
 // Verify verifies a given key and value belongs to the trie by creating
@@ -47,8 +46,8 @@ func Verify(encodedProofNodes [][]byte, rootHash, key, value []byte) (err error)
 }
 
 var (
-	ErrEmptyProof       = errors.New("proof slice empty")
-	ErrRootNodeNotFound = errors.New("root node not found in proof")
+	ErrEmptyProof       = fmt.Errorf("proof slice empty")
+	ErrRootNodeNotFound = fmt.Errorf("root node not found in proof")
 )
 
 // buildTrie sets a partial trie based on the proof slice of encoded nodes.

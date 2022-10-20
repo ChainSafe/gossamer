@@ -4,7 +4,6 @@
 package grandpa
 
 import (
-	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -1286,7 +1285,7 @@ func TestService_VerifyBlockJustification(t *testing.T) {
 				justification: []byte{1, 2, 3},
 			},
 			want: nil,
-			wantErr: errors.New("decoding struct: unmarshalling field at index 1: decoding struct: unmarshalling" +
+			wantErr: fmt.Errorf("decoding struct: unmarshalling field at index 1: decoding struct: unmarshalling" +
 				" field at index 0: EOF"),
 		},
 		"valid justification": {

@@ -5,7 +5,6 @@ package runtime
 
 import (
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"math/bits"
 )
@@ -88,7 +87,7 @@ func (fbha *FreeingBumpHeapAllocator) growHeap(numPages uint32) error {
 func (fbha *FreeingBumpHeapAllocator) Allocate(size uint32) (uint32, error) {
 	// test for space allocation
 	if size > MaxPossibleAllocation {
-		err := errors.New("size too large")
+		err := fmt.Errorf("size too large")
 		return 0, err
 	}
 	itemSize := nextPowerOf2GT8(size)
@@ -140,7 +139,7 @@ func (fbha *FreeingBumpHeapAllocator) Allocate(size uint32) (uint32, error) {
 func (fbha *FreeingBumpHeapAllocator) Deallocate(pointer uint32) error {
 	ptr := pointer - fbha.ptrOffset
 	if ptr < 8 {
-		return errors.New("invalid pointer for deallocation")
+		return fmt.Errorf("invalid pointer for deallocation")
 	}
 	listIndex := fbha.getHeapByte(ptr - 8)
 

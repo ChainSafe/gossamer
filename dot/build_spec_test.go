@@ -4,7 +4,7 @@
 package dot
 
 import (
-	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -146,7 +146,7 @@ func TestBuildFromDB(t *testing.T) {
 				},
 			}}},
 		{name: "invalid db path", path: t.TempDir(),
-			err: errors.New("cannot start state service: failed to create block state: cannot get block 0: Key not found")},
+			err: fmt.Errorf("cannot start state service: failed to create block state: cannot get block 0: Key not found")},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -194,7 +194,7 @@ func TestBuildFromGenesis(t *testing.T) {
 			args: args{
 				path: "/invalid/path",
 			},
-			err: errors.New("open /invalid/path: no such file or directory"),
+			err: fmt.Errorf("open /invalid/path: no such file or directory"),
 		},
 		{
 			name: "normal conditions",
@@ -296,7 +296,7 @@ func TestWriteGenesisSpecFile(t *testing.T) {
 				err := os.WriteFile(path, nil, os.ModePerm)
 				require.NoError(t, err)
 				tt.args.fp = path
-				expectedErrMessage = errors.New("file " + path + " already exists, rename to avoid overwriting")
+				expectedErrMessage = fmt.Errorf("file " + path + " already exists, rename to avoid overwriting")
 			}
 			err := WriteGenesisSpecFile(tt.args.data, tt.args.fp)
 			if expectedErrMessage != nil {

@@ -3,18 +3,18 @@
 
 package peerset
 
-import "errors"
+import "fmt"
 
 var (
-	ErrDisconnectReceivedForNonConnectedPeer = errors.New("received disconnect for non-connected node")
+	ErrDisconnectReceivedForNonConnectedPeer = fmt.Errorf("received disconnect for non-connected node")
 
-	ErrConfigSetIsEmpty = errors.New("config set is empty")
+	ErrConfigSetIsEmpty = fmt.Errorf("config set is empty")
 
-	ErrPeerDoesNotExist = errors.New("peer doesn't exist")
+	ErrPeerDoesNotExist = fmt.Errorf("peer doesn't exist")
 
-	ErrPeerDisconnected = errors.New("node is already disconnected")
+	ErrPeerDisconnected = fmt.Errorf("node is already disconnected")
 
-	ErrOutgoingSlotsUnavailable = errors.New("not enough outgoing slots")
+	ErrOutgoingSlotsUnavailable = fmt.Errorf("not enough outgoing slots")
 
-	ErrIncomingSlotsUnavailable = errors.New("not enough incoming slots")
+	ErrIncomingSlotsUnavailable = fmt.Errorf("not enough incoming slots")
 )

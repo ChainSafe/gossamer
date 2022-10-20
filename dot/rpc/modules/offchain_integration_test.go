@@ -6,7 +6,7 @@
 package modules
 
 import (
-	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
@@ -41,7 +41,7 @@ func TestOffchainStorageGet(t *testing.T) {
 
 		st.
 			On(test, mock.AnythingOfType("[]uint8")).
-			Return(nil, errors.New("problem to retrieve")).
+			Return(nil, fmt.Errorf("problem to retrieve")).
 			Once()
 
 		err = m.LocalStorageGet(nil, req, nil)
@@ -93,7 +93,7 @@ func TestOffchainStorageSet(t *testing.T) {
 
 		st.
 			On(test, mock.AnythingOfType("[]uint8"), mock.AnythingOfType("[]uint8")).
-			Return(errors.New("problem to store")).
+			Return(fmt.Errorf("problem to store")).
 			Once()
 
 		err = m.LocalStorageSet(nil, req, &res)

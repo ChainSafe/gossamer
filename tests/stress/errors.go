@@ -3,12 +3,10 @@
 
 package stress
 
-import (
-	"errors"
-)
+import "fmt"
 
 var (
-	errFinalizedBlockMismatch = errors.New("node finalised head hashes don't match")
-	errNoFinalizedBlock       = errors.New("did not finalise block for round")
-	errChainHeadMismatch      = errors.New("node chain head hashes don't match")
+	errFinalizedBlockMismatch = fmt.Errorf("node finalised head hashes don't match")
+	errNoFinalizedBlock       = fmt.Errorf("did not finalise block for round")
+	errChainHeadMismatch      = fmt.Errorf("node chain head hashes don't match")
 )

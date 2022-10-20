@@ -146,7 +146,7 @@ func (Builder) NewServiceIFace(cfg *ServiceConfig) (ServiceIFace, error) {
 // NewService function to create babe service
 func NewService(cfg *ServiceConfig) (*Service, error) {
 	if cfg.Keypair == nil && cfg.Authority {
-		return nil, errors.New("cannot create BABE service as authority; no keypair provided")
+		return nil, fmt.Errorf("cannot create BABE service as authority; no keypair provided")
 	}
 
 	logger.Patch(log.SetLevel(cfg.LogLvl))
@@ -313,7 +313,7 @@ func (b *Service) Stop() error {
 	defer b.Unlock()
 
 	if b.ctx.Err() != nil {
-		return errors.New("service already stopped")
+		return fmt.Errorf("service already stopped")
 	}
 
 	ethmetrics.Unregister(buildBlockTimer)

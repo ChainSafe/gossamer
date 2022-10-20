@@ -4,7 +4,7 @@
 package sync
 
 import (
-	"errors"
+	"fmt"
 	"sync"
 	"testing"
 
@@ -129,7 +129,7 @@ func newMockChainSync(ctrl *gomock.Controller) ChainSync {
 func Test_Service_HandleBlockAnnounceHandshake(t *testing.T) {
 	t.Parallel()
 
-	errTest := errors.New("test error")
+	errTest := fmt.Errorf("test error")
 
 	testCases := map[string]struct {
 		serviceBuilder func(ctrl *gomock.Controller) Service

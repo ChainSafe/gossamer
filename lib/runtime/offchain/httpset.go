@@ -5,7 +5,6 @@ package offchain
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -22,11 +21,11 @@ const (
 const maxConcurrentRequests = 1000
 
 var (
-	errIntBufferEmpty        = errors.New("int buffer exhausted")
-	errIntBufferFull         = errors.New("int buffer is full")
-	errRequestIDNotAvailable = errors.New("request id not available")
-	errRequestInvalid        = errors.New("request is invalid")
-	errInvalidHeaderKey      = errors.New("invalid header key")
+	errIntBufferEmpty        = fmt.Errorf("int buffer exhausted")
+	errIntBufferFull         = fmt.Errorf("int buffer is full")
+	errRequestIDNotAvailable = fmt.Errorf("request id not available")
+	errRequestInvalid        = fmt.Errorf("request is invalid")
+	errInvalidHeaderKey      = fmt.Errorf("invalid header key")
 )
 
 // requestIDBuffer created to control the amount of available non-duplicated ids

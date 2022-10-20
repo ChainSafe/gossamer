@@ -4,7 +4,6 @@
 package log
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -75,8 +74,8 @@ func (level Level) format() (s string) {
 }
 
 var (
-	ErrLevelNotRecognised     = errors.New("level is not recognised")
-	ErrLevelIntegerOutOfRange = errors.New("level integer can only be between 0 and 5 included")
+	ErrLevelNotRecognised     = fmt.Errorf("level is not recognised")
+	ErrLevelIntegerOutOfRange = fmt.Errorf("level integer can only be between 0 and 5 included")
 )
 
 // ParseLevel parses a string into a level, and returns an

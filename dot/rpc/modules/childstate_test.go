@@ -4,7 +4,7 @@
 package modules
 
 import (
-	"errors"
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -62,9 +62,9 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 
 	mockErrorStorageAPI1.On("GetStateRootFromBlock", &common.Hash{}).Return(nil, nil)
 	mockErrorStorageAPI1.On("GetStorageChild", (*common.Hash)(nil), []byte(nil)).
-		Return(nil, errors.New("GetStorageChild error"))
+		Return(nil, fmt.Errorf("GetStorageChild error"))
 
-	mockErrorStorageAPI2.On("GetStateRootFromBlock", &hash).Return(nil, errors.New("GetStateRootFromBlock error"))
+	mockErrorStorageAPI2.On("GetStateRootFromBlock", &hash).Return(nil, fmt.Errorf("GetStateRootFromBlock error"))
 
 	childStateModule := NewChildStateModule(mockStorageAPI, mockBlockAPI)
 	type fields struct {
@@ -121,7 +121,7 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 				},
 			},
 			exp:    []string{},
-			expErr: errors.New("GetStorageChild error"),
+			expErr: fmt.Errorf("GetStorageChild error"),
 		},
 		{
 			name: "GetStateRootFromBlock error",
@@ -135,7 +135,7 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 				},
 			},
 			exp:    []string{},
-			expErr: errors.New("GetStateRootFromBlock error"),
+			expErr: fmt.Errorf("GetStateRootFromBlock error"),
 		},
 	}
 	for _, tt := range tests {
@@ -173,9 +173,9 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 
 	mockErrorStorageAPI1.On("GetStateRootFromBlock", &hash).Return(nil, nil)
 	mockErrorStorageAPI1.On("GetStorageFromChild", (*common.Hash)(nil), []byte(nil), []byte(nil)).
-		Return(nil, errors.New("GetStorageChild error"))
+		Return(nil, fmt.Errorf("GetStorageChild error"))
 
-	mockErrorStorageAPI2.On("GetStateRootFromBlock", &hash).Return(nil, errors.New("GetStateRootFromBlock error"))
+	mockErrorStorageAPI2.On("GetStateRootFromBlock", &hash).Return(nil, fmt.Errorf("GetStateRootFromBlock error"))
 
 	childStateModule := NewChildStateModule(mockStorageAPI, mockBlockAPI)
 	type fields struct {
@@ -233,7 +233,7 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 					Hash: &hash,
 				},
 			},
-			expErr: errors.New("GetStorageChild error"),
+			expErr: fmt.Errorf("GetStorageChild error"),
 		},
 		{
 			name: "GetStateRootFromBlock error",
@@ -246,7 +246,7 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 					Hash: &hash,
 				},
 			},
-			expErr: errors.New("GetStateRootFromBlock error"),
+			expErr: fmt.Errorf("GetStateRootFromBlock error"),
 		},
 	}
 	for _, tt := range tests {
@@ -284,9 +284,9 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 
 	mockErrorStorageAPI1.On("GetStateRootFromBlock", &hash).Return(nil, nil)
 	mockErrorStorageAPI1.On("GetStorageFromChild", (*common.Hash)(nil), []byte(nil), []byte(nil)).
-		Return(nil, errors.New("GetStorageChild error"))
+		Return(nil, fmt.Errorf("GetStorageChild error"))
 
-	mockErrorStorageAPI2.On("GetStateRootFromBlock", &hash).Return(nil, errors.New("GetStateRootFromBlock error"))
+	mockErrorStorageAPI2.On("GetStateRootFromBlock", &hash).Return(nil, fmt.Errorf("GetStateRootFromBlock error"))
 
 	childStateModule := NewChildStateModule(mockStorageAPI, mockBlockAPI)
 	type fields struct {
@@ -344,7 +344,7 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 					Hash: &hash,
 				},
 			},
-			expErr: errors.New("GetStorageChild error"),
+			expErr: fmt.Errorf("GetStorageChild error"),
 		},
 		{
 			name: "GetStateRootFromBlock error",
@@ -357,7 +357,7 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 					Hash: &hash,
 				},
 			},
-			expErr: errors.New("GetStateRootFromBlock error"),
+			expErr: fmt.Errorf("GetStateRootFromBlock error"),
 		},
 	}
 	for _, tt := range tests {
@@ -395,9 +395,9 @@ func TestChildStateModule_GetStorage(t *testing.T) {
 
 	mockErrorStorageAPI1.On("GetStateRootFromBlock", &hash).Return(nil, nil)
 	mockErrorStorageAPI1.On("GetStorageFromChild", (*common.Hash)(nil), []byte(nil), []byte(nil)).
-		Return(nil, errors.New("GetStorageChild error"))
+		Return(nil, fmt.Errorf("GetStorageChild error"))
 
-	mockErrorStorageAPI2.On("GetStateRootFromBlock", &hash).Return(nil, errors.New("GetStateRootFromBlock error"))
+	mockErrorStorageAPI2.On("GetStateRootFromBlock", &hash).Return(nil, fmt.Errorf("GetStateRootFromBlock error"))
 
 	childStateModule := NewChildStateModule(mockStorageAPI, mockBlockAPI)
 	type fields struct {
@@ -455,7 +455,7 @@ func TestChildStateModule_GetStorage(t *testing.T) {
 					Hash: &hash,
 				},
 			},
-			expErr: errors.New("GetStorageChild error"),
+			expErr: fmt.Errorf("GetStorageChild error"),
 		},
 		{
 			name: "GetStateRootFromBlock error",
@@ -468,7 +468,7 @@ func TestChildStateModule_GetStorage(t *testing.T) {
 					Hash: &hash,
 				},
 			},
-			expErr: errors.New("GetStateRootFromBlock error"),
+			expErr: fmt.Errorf("GetStateRootFromBlock error"),
 		},
 	}
 	for _, tt := range tests {

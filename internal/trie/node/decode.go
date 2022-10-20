@@ -17,13 +17,13 @@ var (
 	// in the scale package.
 	// TODO remove once the following issue is done:
 	// https://github.com/ChainSafe/gossamer/issues/2631 .
-	ErrDecodeValue        = errors.New("cannot decode value")
-	ErrReadChildrenBitmap = errors.New("cannot read children bitmap")
+	ErrDecodeValue        = fmt.Errorf("cannot decode value")
+	ErrReadChildrenBitmap = fmt.Errorf("cannot read children bitmap")
 	// ErrDecodeChildHash is defined since no sentinel error is defined
 	// in the scale package.
 	// TODO remove once the following issue is done:
 	// https://github.com/ChainSafe/gossamer/issues/2631 .
-	ErrDecodeChildHash = errors.New("cannot decode child hash")
+	ErrDecodeChildHash = fmt.Errorf("cannot decode child hash")
 )
 
 // Decode decodes a node from a reader.

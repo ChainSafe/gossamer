@@ -4,7 +4,6 @@
 package rpc
 
 import (
-	"errors"
 	"fmt"
 	"net"
 	"strings"
@@ -28,13 +27,13 @@ func LocalRequestOnly(r *rpc.RequestInfo, i interface{}) error {
 	ip, _, err := net.SplitHostPort(r.Request.RemoteAddr)
 
 	if err != nil {
-		return errors.New("unable to parse IP")
+		return fmt.Errorf("unable to parse IP")
 	}
 	f := LocalhostFilter()
 	if allowed := f.Allowed(ip); allowed {
 		return nil
 	}
-	return errors.New("external HTTP request refused")
+	return fmt.Errorf("external HTTP request refused")
 }
 
 func snakeCaseFormat(method string) (string, error) {

@@ -4,7 +4,6 @@
 package babe
 
 import (
-	"errors"
 	"fmt"
 	"testing"
 
@@ -155,17 +154,17 @@ func Test_getAuthorityIndex(t *testing.T) {
 		{
 			name:   "No Digest",
 			args:   args{types.NewEmptyHeader()},
-			expErr: errors.New("no digest provided"),
+			expErr: fmt.Errorf("no digest provided"),
 		},
 		{
 			name:   "First Digest Invalid Type",
 			args:   args{headerNoPre},
-			expErr: errors.New("first digest item is not pre-runtime digest"),
+			expErr: fmt.Errorf("first digest item is not pre-runtime digest"),
 		},
 		{
 			name: "Invalid Preruntime Digest Type",
 			args: args{headerInvalidPre},
-			expErr: errors.New("cannot decode babe header from pre-digest: decoding struct: unmarshalling field at" +
+			expErr: fmt.Errorf("cannot decode babe header from pre-digest: decoding struct: unmarshalling field at" +
 				" index 0: EOF"),
 		},
 		{
@@ -383,7 +382,7 @@ func Test_verifier_verifyPreRuntimeDigest(t *testing.T) {
 			name:     "Invalid PreRuntimeDigest",
 			verifier: verifier{},
 			args:     args{&types.PreRuntimeDigest{Data: []byte{0}}},
-			expErr: errors.New(
+			expErr: fmt.Errorf(
 				"unable to find VaryingDataTypeValue with index: for key 0"),
 		},
 		{
@@ -406,7 +405,7 @@ func Test_verifier_verifyPreRuntimeDigest(t *testing.T) {
 			name:     "BabePrimaryPreDigest Case output over threshold",
 			verifier: *v1,
 			args:     args{prd1},
-			expErr:   errors.New("vrf output over threshold"),
+			expErr:   fmt.Errorf("vrf output over threshold"),
 		},
 		{
 			name:     "BabePrimaryPreDigest Case Invalid",
@@ -424,7 +423,7 @@ func Test_verifier_verifyPreRuntimeDigest(t *testing.T) {
 			name:     "BabeSecondaryPlainPreDigest invalid claim",
 			verifier: *vSec2,
 			args:     args{prd},
-			expErr:   errors.New("invalid secondary slot claim"),
+			expErr:   fmt.Errorf("invalid secondary slot claim"),
 		},
 		{
 			name:     "BabeSecondaryVRFPreDigest SecondarySlot false",
@@ -436,7 +435,7 @@ func Test_verifier_verifyPreRuntimeDigest(t *testing.T) {
 			name:     "BabeSecondaryVRFPreDigest invalid claim",
 			verifier: *vVRFSec2,
 			args:     args{babePRD},
-			expErr:   errors.New("invalid secondary slot claim"),
+			expErr:   fmt.Errorf("invalid secondary slot claim"),
 		},
 	}
 	for _, tt := range tests {
@@ -529,7 +528,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	mockBlockState.EXPECT().GetHeader(h).Return(types.NewEmptyHeader(), nil)
 
 	mockBlockStateErr.EXPECT().GetAllBlocksAtDepth(gomock.Any()).Return(h1)
-	mockBlockStateErr.EXPECT().GetHeader(h).Return(nil, errors.New("get header error"))
+	mockBlockStateErr.EXPECT().GetHeader(h).Return(nil, fmt.Errorf("get header error"))
 
 	// Case 0: First element not preruntime digest
 	header0 := newTestHeader(t, testInvalidSeal, testInvalidSeal)
@@ -617,14 +616,14 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 			name:     "invalid preruntime digest data",
 			verifier: verifier{},
 			header:   header2,
-			expErr: errors.New("failed to verify pre-runtime digest: decoding struct: unmarshalling field at index" +
+			expErr: fmt.Errorf("failed to verify pre-runtime digest: decoding struct: unmarshalling field at index" +
 				" 0: EOF"),
 		},
 		{
 			name:     "invalid seal length",
 			verifier: *babeVerifier,
 			header:   header3,
-			expErr:   errors.New("invalid signature length"),
+			expErr:   fmt.Errorf("invalid signature length"),
 		},
 		{
 			name:     "invalid seal signature - primary",
@@ -648,13 +647,13 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 			name:     "valid digest items, getAuthorityIndex error",
 			verifier: *babeVerifier5,
 			header:   header7,
-			expErr:   errors.New("failed to get authority index no digest provided"),
+			expErr:   fmt.Errorf("failed to get authority index no digest provided"),
 		},
 		{
 			name:     "get header err",
 			verifier: *babeVerifier6,
 			header:   header7,
-			expErr:   errors.New("failed get header get header error"),
+			expErr:   fmt.Errorf("failed get header get header error"),
 		},
 	}
 	for _, tt := range tests {
@@ -856,7 +855,7 @@ func TestVerificationManager_getVerifierInfo(t *testing.T) {
 		{
 			name:   "calculate threshold error",
 			vm:     vm2,
-			expErr: errors.New("failed to calculate threshold: invalid C1/C2: greater than 1"),
+			expErr: fmt.Errorf("failed to calculate threshold: invalid C1/C2: greater than 1"),
 		},
 		{
 			name: "happy path",
@@ -906,23 +905,23 @@ func TestVerificationManager_VerifyBlock(t *testing.T) {
 	mockEpochStateGetVerifierInfoErr := NewMockEpochState(ctrl)
 	mockEpochStateVerifyAuthorshipErr := NewMockEpochState(ctrl)
 
-	errTestNumberIsFinalised := errors.New("test number is finalised error")
+	errTestNumberIsFinalised := fmt.Errorf("test number is finalised error")
 	mockBlockStateCheckFinErr.EXPECT().NumberIsFinalised(uint(1)).Return(false, errTestNumberIsFinalised)
 
 	mockBlockStateNotFinal.EXPECT().NumberIsFinalised(uint(1)).Return(false, nil)
 
 	mockBlockStateNotFinal2.EXPECT().NumberIsFinalised(uint(1)).Return(false, nil)
-	errTestSetFirstSlot := errors.New("test set first slot error")
+	errTestSetFirstSlot := fmt.Errorf("test set first slot error")
 	mockEpochStateSetSlotErr.EXPECT().SetFirstSlot(uint64(1)).Return(errTestSetFirstSlot)
 
-	errTestGetEpoch := errors.New("test get epoch error")
+	errTestGetEpoch := fmt.Errorf("test get epoch error")
 	mockEpochStateGetEpochErr.EXPECT().GetEpochForBlock(testBlockHeaderEmpty).
 		Return(uint64(0), errTestGetEpoch)
 
 	mockEpochStateSkipVerifyErr.EXPECT().GetEpochForBlock(testBlockHeaderEmpty).Return(uint64(1), nil)
-	errTestGetEpochData := errors.New("test get epoch data error")
+	errTestGetEpochData := fmt.Errorf("test get epoch data error")
 	mockEpochStateSkipVerifyErr.EXPECT().GetEpochData(uint64(1), testBlockHeaderEmpty).Return(nil, errTestGetEpochData)
-	errTestSkipVerify := errors.New("test skip verify error")
+	errTestSkipVerify := fmt.Errorf("test skip verify error")
 	mockEpochStateSkipVerifyErr.EXPECT().SkipVerify(testBlockHeaderEmpty).Return(false, errTestSkipVerify)
 
 	mockEpochStateSkipVerifyTrue.EXPECT().GetEpochForBlock(testBlockHeaderEmpty).Return(uint64(1), nil)
@@ -1057,11 +1056,11 @@ func TestVerificationManager_SetOnDisabled(t *testing.T) {
 	mockEpochStateOk2 := NewMockEpochState(ctrl)
 	mockEpochStateOk3 := NewMockEpochState(ctrl)
 
-	errTestGetEpoch := errors.New("test get epoch error")
+	errTestGetEpoch := fmt.Errorf("test get epoch error")
 	mockEpochStateGetEpochErr.EXPECT().GetEpochForBlock(types.NewEmptyHeader()).Return(uint64(0), errTestGetEpoch)
 
 	mockEpochStateGetEpochDataErr.EXPECT().GetEpochForBlock(types.NewEmptyHeader()).Return(uint64(0), nil)
-	errTestGetEpochData := errors.New("test get epoch data error")
+	errTestGetEpochData := fmt.Errorf("test get epoch data error")
 	mockEpochStateGetEpochDataErr.EXPECT().GetEpochData(uint64(0), types.NewEmptyHeader()).Return(nil, errTestGetEpochData)
 
 	mockEpochStateIndexLenErr.EXPECT().GetEpochForBlock(types.NewEmptyHeader()).Return(uint64(2), nil)
@@ -1069,7 +1068,7 @@ func TestVerificationManager_SetOnDisabled(t *testing.T) {
 	mockEpochStateSetDisabledProd.EXPECT().GetEpochForBlock(types.NewEmptyHeader()).Return(uint64(2), nil)
 
 	mockEpochStateOk.EXPECT().GetEpochForBlock(types.NewEmptyHeader()).Return(uint64(2), nil)
-	errTestDescendant := errors.New("test descendant error")
+	errTestDescendant := fmt.Errorf("test descendant error")
 	mockBlockStateIsDescendantErr.EXPECT().IsDescendantOf(gomock.Any(), gomock.Any()).Return(false, errTestDescendant)
 
 	mockEpochStateOk2.EXPECT().GetEpochForBlock(testHeader).Return(uint64(2), nil)

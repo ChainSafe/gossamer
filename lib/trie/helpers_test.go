@@ -4,7 +4,7 @@
 package trie
 
 import (
-	"errors"
+	"fmt"
 	"math/rand"
 	"testing"
 	"time"
@@ -19,7 +19,7 @@ type writeCall struct {
 	err     error
 }
 
-var errTest = errors.New("test error")
+var errTest = fmt.Errorf("test error")
 
 type keyValues struct {
 	key   []byte

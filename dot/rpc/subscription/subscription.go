@@ -4,7 +4,6 @@
 package subscription
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 )
@@ -24,10 +23,10 @@ const (
 type setupListener func(reqid float64, params interface{}) (Listener, error)
 
 var (
-	errUknownParamSubscribeID = errors.New("invalid params format type")
-	errCannotParseID          = errors.New("could not parse param id")
-	errCannotFindListener     = errors.New("could not find listener")
-	errCannotFindUnsubsriber  = errors.New("could not find unsubsriber function")
+	errUknownParamSubscribeID = fmt.Errorf("invalid params format type")
+	errCannotParseID          = fmt.Errorf("could not parse param id")
+	errCannotFindListener     = fmt.Errorf("could not find listener")
+	errCannotFindUnsubsriber  = fmt.Errorf("could not find unsubsriber function")
 )
 
 func (c *WSConn) getSetupListener(method string) setupListener {

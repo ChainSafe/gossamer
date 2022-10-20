@@ -18,12 +18,12 @@ import (
 )
 
 var (
-	ErrConfigNotFound     = errors.New("config data not found")
-	ErrEpochNotInMemory   = errors.New("epoch not found in memory map")
-	errHashNotInMemory    = errors.New("hash not found in memory map")
-	errEpochNotInDatabase = errors.New("epoch data not found in the database")
-	errHashNotPersisted   = errors.New("hash with next epoch not found in database")
-	errNoPreRuntimeDigest = errors.New("header does not contain pre-runtime digest")
+	ErrConfigNotFound     = fmt.Errorf("config data not found")
+	ErrEpochNotInMemory   = fmt.Errorf("epoch not found in memory map")
+	errHashNotInMemory    = fmt.Errorf("hash not found in memory map")
+	errEpochNotInDatabase = fmt.Errorf("epoch data not found in the database")
+	errHashNotPersisted   = fmt.Errorf("hash with next epoch not found in database")
+	errNoPreRuntimeDigest = fmt.Errorf("header does not contain pre-runtime digest")
 )
 
 var (
@@ -84,7 +84,7 @@ func NewEpochStateFromGenesis(db chaindb.Database, blockState *BlockState,
 	}
 
 	if genesisConfig.EpochLength == 0 {
-		return nil, errors.New("epoch length is 0")
+		return nil, fmt.Errorf("epoch length is 0")
 	}
 
 	s := &EpochState{
@@ -193,7 +193,7 @@ func (s *EpochState) GetCurrentEpoch() (uint64, error) {
 // GetEpochForBlock checks the pre-runtime digest to determine what epoch the block was formed in.
 func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 	if header == nil {
-		return 0, errors.New("header is nil")
+		return 0, fmt.Errorf("header is nil")
 	}
 
 	firstSlot, err := s.baseState.loadFirstSlot()
@@ -457,7 +457,7 @@ func (s *EpochState) GetEpochFromTime(t time.Time) (uint64, error) {
 	slot := uint64(t.UnixNano()) / uint64(slotDuration.Nanoseconds())
 
 	if slot < firstSlot {
-		return 0, errors.New("given time is before network start")
+		return 0, fmt.Errorf("given time is before network start")
 	}
 
 	return (slot - firstSlot) / s.epochLength, nil
@@ -472,7 +472,7 @@ func (s *EpochState) SetFirstSlot(slot uint64) error {
 	}
 
 	if header.Number >= 1 {
-		return errors.New("first slot has already been set")
+		return fmt.Errorf("first slot has already been set")
 	}
 
 	return s.baseState.storeFirstSlot(slot)

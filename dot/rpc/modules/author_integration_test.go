@@ -7,7 +7,6 @@ package modules
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"testing"
@@ -289,7 +288,7 @@ func TestAuthorModule_InsertKey_Integration(t *testing.T) {
 			ksType:  "someothertype",
 			seed:    seed,
 			kp:      grandKp,
-			waitErr: errors.New("cannot decode key: invalid key type"),
+			waitErr: fmt.Errorf("cannot decode key: invalid key type"),
 		},
 	}
 
@@ -366,7 +365,7 @@ func TestAuthorModule_HasKey_Integration(t *testing.T) {
 			pub:     "0xaa11",
 			keytype: "babe",
 			hasKey:  false,
-			waitErr: errors.New("cannot create public key: input is not 32 bytes"),
+			waitErr: fmt.Errorf("cannot create public key: input is not 32 bytes"),
 		},
 		"invalid key type should return error": {
 			pub:     kr.Alice().Public().Hex(),
@@ -470,7 +469,7 @@ func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 		"empty public keys": {
 			pubSessionKeys: "", // babe
 			expect:         false,
-			waitErr:        errors.New("could not byteify non 0x prefixed string: "),
+			waitErr:        fmt.Errorf("could not byteify non 0x prefixed string: "),
 		},
 	}
 

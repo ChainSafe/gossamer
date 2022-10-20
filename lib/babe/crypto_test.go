@@ -4,7 +4,7 @@
 package babe
 
 import (
-	"errors"
+	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -50,7 +50,7 @@ func TestCalculateThreshold(t *testing.T) {
 				C2:       2,
 				numAuths: 0,
 			},
-			expErr: errors.New("invalid C1/C2: greater than 1"),
+			expErr: fmt.Errorf("invalid C1/C2: greater than 1"),
 		},
 		{
 			name: "max threshold",
@@ -138,7 +138,7 @@ func Test_claimPrimarySlot(t *testing.T) {
 				threshold: &scale.Uint128{},
 				keypair:   keyring.Alice().(*sr25519.Keypair),
 			},
-			expErr: errors.New("cannot claim slot, over primary threshold: for slot 1, epoch 2 and threshold 0"),
+			expErr: fmt.Errorf("cannot claim slot, over primary threshold: for slot 1, epoch 2 and threshold 0"),
 		},
 		{
 			name: "authority authorized",

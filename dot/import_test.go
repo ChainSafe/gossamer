@@ -5,7 +5,7 @@ package dot
 
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -94,7 +94,7 @@ func TestImportState(t *testing.T) {
 	}{
 		{
 			name: "no arguments",
-			err:  errors.New("read .: is a directory"),
+			err:  fmt.Errorf("read .: is a directory"),
 		},
 		{
 			name: "working example",
@@ -173,7 +173,7 @@ func Test_newHeaderFromFile(t *testing.T) {
 	}{
 		{
 			name: "no arguments",
-			err:  errors.New("read .: is a directory"),
+			err:  fmt.Errorf("read .: is a directory"),
 		},
 		{
 			name:     "working example",
@@ -208,7 +208,7 @@ func Test_newTrieFromPairs(t *testing.T) {
 	}{
 		{
 			name: "no arguments",
-			err:  errors.New("read .: is a directory"),
+			err:  fmt.Errorf("read .: is a directory"),
 			want: common.Hash{},
 		},
 		{

@@ -15,12 +15,12 @@ import (
 )
 
 var (
-	errPendingScheduledChanges = errors.New("pending scheduled changes needs to be applied")
-	errDuplicateHashes         = errors.New("duplicated hashes")
-	errAlreadyHasForcedChange  = errors.New("already has a forced change")
-	errUnfinalizedAncestor     = errors.New("unfinalized ancestor")
+	errPendingScheduledChanges = fmt.Errorf("pending scheduled changes needs to be applied")
+	errDuplicateHashes         = fmt.Errorf("duplicated hashes")
+	errAlreadyHasForcedChange  = fmt.Errorf("already has a forced change")
+	errUnfinalizedAncestor     = fmt.Errorf("unfinalized ancestor")
 
-	ErrNoNextAuthorityChange = errors.New("no next authority change")
+	ErrNoNextAuthorityChange = fmt.Errorf("no next authority change")
 )
 
 var (
@@ -361,7 +361,7 @@ func (s *GrandpaState) GetCurrentSetID() (uint64, error) {
 	}
 
 	if len(id) < 8 {
-		return 0, errors.New("invalid setID")
+		return 0, fmt.Errorf("invalid setID")
 	}
 
 	return binary.LittleEndian.Uint64(id), nil

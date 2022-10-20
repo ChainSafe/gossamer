@@ -5,7 +5,6 @@ package network
 
 import (
 	"encoding/binary"
-	"errors"
 	"fmt"
 
 	"google.golang.org/protobuf/proto"
@@ -164,7 +163,7 @@ func (bm *BlockRequestMessage) Decode(in []byte) error {
 		number := binary.LittleEndian.Uint32(from.Number)
 		startingBlock, err = variadic.NewUint32OrHash(number)
 	default:
-		err = errors.New("invalid StartingBlock")
+		err = fmt.Errorf("invalid StartingBlock")
 	}
 
 	if err != nil {

@@ -5,7 +5,6 @@ package sr25519
 
 import (
 	"crypto/rand"
-	"errors"
 	"fmt"
 	"testing"
 
@@ -149,7 +148,7 @@ func TestVerifySignature(t *testing.T) {
 			publicKey: []byte{},
 			signature: signature,
 			message:   message,
-			err:       errors.New("sr25519: cannot create public key: input is not 32 bytes"),
+			err:       fmt.Errorf("sr25519: cannot create public key: input is not 32 bytes"),
 		},
 		"invalid signature length": {
 			publicKey: publicKey,

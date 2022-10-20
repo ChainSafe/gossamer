@@ -4,7 +4,7 @@
 package node
 
 import (
-	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -18,7 +18,7 @@ type writeCall struct {
 	err     error
 }
 
-var errTest = errors.New("test error")
+var errTest = fmt.Errorf("test error")
 
 func Test_Node_Encode(t *testing.T) {
 	t.Parallel()

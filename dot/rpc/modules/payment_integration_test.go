@@ -6,7 +6,7 @@
 package modules
 
 import (
-	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
@@ -64,7 +64,7 @@ func TestPaymentQueryInfo(t *testing.T) {
 		blockAPIMock.On("BestBlockHash").Return(bestBlockHash)
 
 		blockAPIMock.On("GetRuntime", mock.AnythingOfType("*common.Hash")).
-			Return(nil, errors.New("mocked problems"))
+			Return(nil, fmt.Errorf("mocked problems"))
 
 		mod := &PaymentModule{
 			blockAPI: blockAPIMock,
@@ -83,7 +83,7 @@ func TestPaymentQueryInfo(t *testing.T) {
 
 	t.Run("When PaymentQueryInfo returns error", func(t *testing.T) {
 		runtimeMock := mocksruntime.NewInstance(t)
-		runtimeMock.On("PaymentQueryInfo", mock.AnythingOfType("[]uint8")).Return(nil, errors.New("mocked error"))
+		runtimeMock.On("PaymentQueryInfo", mock.AnythingOfType("[]uint8")).Return(nil, fmt.Errorf("mocked error"))
 
 		blockAPIMock := mocks.NewBlockAPI(t)
 		blockAPIMock.On("GetRuntime", mock.AnythingOfType("*common.Hash")).Return(runtimeMock, nil)

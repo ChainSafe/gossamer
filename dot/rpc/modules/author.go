@@ -4,7 +4,7 @@
 package modules
 
 import (
-	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -15,7 +15,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-var ErrProvidedKeyDoesNotMatch = errors.New("generated public key does not equal provided public key")
+var ErrProvidedKeyDoesNotMatch = fmt.Errorf("generated public key does not equal provided public key")
 
 // AuthorModule holds a pointer to the API
 type AuthorModule struct {

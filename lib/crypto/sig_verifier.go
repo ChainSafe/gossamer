@@ -4,14 +4,14 @@
 package crypto
 
 import (
-	"errors"
+	"fmt"
 	"sync"
 	"time"
 
 	"github.com/ChainSafe/gossamer/internal/log"
 )
 
-var ErrSignatureVerificationFailed = errors.New("failed to verify signature")
+var ErrSignatureVerificationFailed = fmt.Errorf("failed to verify signature")
 
 // SigVerifyFunc verifies a signature given a public key and a message
 type SigVerifyFunc func(pubkey, sig, msg []byte) (err error)

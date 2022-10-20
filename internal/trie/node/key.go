@@ -4,7 +4,6 @@
 package node
 
 import (
-	"errors"
 	"fmt"
 	"io"
 
@@ -13,7 +12,7 @@ import (
 
 const maxPartialKeyLength = ^uint16(0)
 
-var ErrReaderMismatchCount = errors.New("read unexpected number of bytes from reader")
+var ErrReaderMismatchCount = fmt.Errorf("read unexpected number of bytes from reader")
 
 // decodeKey decodes a key from a reader.
 func decodeKey(reader io.Reader, partialKeyLength uint16) (b []byte, err error) {

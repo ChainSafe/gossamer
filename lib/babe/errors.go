@@ -17,7 +17,6 @@
 package babe
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -25,53 +24,53 @@ import (
 
 var (
 	// ErrBadSlotClaim is returned when a slot claim is invalid
-	ErrBadSlotClaim = errors.New("could not verify slot claim VRF proof")
+	ErrBadSlotClaim = fmt.Errorf("could not verify slot claim VRF proof")
 
 	// ErrBadSecondarySlotClaim is returned when a slot claim is invalid
-	ErrBadSecondarySlotClaim = errors.New("invalid secondary slot claim")
+	ErrBadSecondarySlotClaim = fmt.Errorf("invalid secondary slot claim")
 
 	// ErrBadSignature is returned when a seal is invalid
-	ErrBadSignature = errors.New("could not verify signature")
+	ErrBadSignature = fmt.Errorf("could not verify signature")
 
 	// ErrProducerEquivocated is returned when a block producer has produced conflicting blocks
-	ErrProducerEquivocated = errors.New("block producer equivocated")
+	ErrProducerEquivocated = fmt.Errorf("block producer equivocated")
 
 	// ErrNotAuthorized is returned when the node is not authorized to produce a block
-	ErrNotAuthorized = errors.New("not authorized to produce block")
+	ErrNotAuthorized = fmt.Errorf("not authorized to produce block")
 
 	// ErrNoBABEHeader is returned when there is no BABE header found for a block, specifically when calculating randomness
-	ErrNoBABEHeader = errors.New("no BABE header found for block")
+	ErrNoBABEHeader = fmt.Errorf("no BABE header found for block")
 
 	// ErrVRFOutputOverThreshold is returned when the vrf output for a block is invalid
-	ErrVRFOutputOverThreshold = errors.New("vrf output over threshold")
+	ErrVRFOutputOverThreshold = fmt.Errorf("vrf output over threshold")
 
 	// ErrInvalidBlockProducerIndex is returned when the producer of a block isn't in the authority set
-	ErrInvalidBlockProducerIndex = errors.New("block producer is not in authority set")
+	ErrInvalidBlockProducerIndex = fmt.Errorf("block producer is not in authority set")
 
 	// ErrAuthorityAlreadyDisabled is returned when attempting to disabled an already-disabled authority
-	ErrAuthorityAlreadyDisabled = errors.New("authority has already been disabled")
+	ErrAuthorityAlreadyDisabled = fmt.Errorf("authority has already been disabled")
 
 	// ErrAuthorityDisabled is returned when attempting to verify a block produced by a disabled authority
-	ErrAuthorityDisabled = errors.New("authority has been disabled for the remaining slots in the epoch")
+	ErrAuthorityDisabled = fmt.Errorf("authority has been disabled for the remaining slots in the epoch")
 
 	// ErrNotAuthority is returned when trying to perform authority functions when not an authority
-	ErrNotAuthority = errors.New("node is not an authority")
+	ErrNotAuthority = fmt.Errorf("node is not an authority")
 
 	// ErrThresholdOneIsZero is returned when one of or both parameters to CalculateThreshold is zero
-	ErrThresholdOneIsZero = errors.New("numerator or denominator cannot be 0")
+	ErrThresholdOneIsZero = fmt.Errorf("numerator or denominator cannot be 0")
 
-	errNilParentHeader            = errors.New("parent header is nil")
-	errInvalidResult              = errors.New("invalid error value")
-	errFirstBlockTimeout          = errors.New("timed out waiting for first block")
-	errChannelClosed              = errors.New("block notifier channel was closed")
-	errOverPrimarySlotThreshold   = errors.New("cannot claim slot, over primary threshold")
-	errNotOurTurnToPropose        = errors.New("cannot claim slot, not our turn to propose a block")
-	errMissingDigestItems         = errors.New("block header is missing digest items")
-	errServicePaused              = errors.New("service paused")
-	errInvalidSlotTechnique       = errors.New("invalid slot claiming technique")
-	errNoBABEAuthorityKeyProvided = errors.New("cannot create BABE service as authority; no keypair provided")
-	errLastDigestItemNotSeal      = errors.New("last digest item is not seal")
-	errLaggingSlot                = errors.New("current slot is smaller than slot of best block")
+	errNilParentHeader            = fmt.Errorf("parent header is nil")
+	errInvalidResult              = fmt.Errorf("invalid error value")
+	errFirstBlockTimeout          = fmt.Errorf("timed out waiting for first block")
+	errChannelClosed              = fmt.Errorf("block notifier channel was closed")
+	errOverPrimarySlotThreshold   = fmt.Errorf("cannot claim slot, over primary threshold")
+	errNotOurTurnToPropose        = fmt.Errorf("cannot claim slot, not our turn to propose a block")
+	errMissingDigestItems         = fmt.Errorf("block header is missing digest items")
+	errServicePaused              = fmt.Errorf("service paused")
+	errInvalidSlotTechnique       = fmt.Errorf("invalid slot claiming technique")
+	errNoBABEAuthorityKeyProvided = fmt.Errorf("cannot create BABE service as authority; no keypair provided")
+	errLastDigestItemNotSeal      = fmt.Errorf("last digest item is not seal")
+	errLaggingSlot                = fmt.Errorf("current slot is smaller than slot of best block")
 
 	other         Other
 	invalidCustom InvalidCustom
@@ -97,17 +96,17 @@ func (e TransactionValidityError) Error() string {
 }
 
 var (
-	errUnexpectedTxCall         = errors.New("call of the transaction is not expected")
-	errInvalidPayment           = errors.New("invalid payment")
-	errInvalidTransaction       = errors.New("invalid transaction")
-	errOutdatedTransaction      = errors.New("outdated transaction")
-	errBadProof                 = errors.New("bad proof")
-	errAncientBirthBlock        = errors.New("ancient birth block")
-	errExhaustsResources        = errors.New("exhausts resources")
-	errMandatoryDispatchError   = errors.New("mandatory dispatch error")
-	errInvalidMandatoryDispatch = errors.New("invalid mandatory dispatch")
-	errLookupFailed             = errors.New("lookup failed")
-	errValidatorNotFound        = errors.New("validator not found")
+	errUnexpectedTxCall         = fmt.Errorf("call of the transaction is not expected")
+	errInvalidPayment           = fmt.Errorf("invalid payment")
+	errInvalidTransaction       = fmt.Errorf("invalid transaction")
+	errOutdatedTransaction      = fmt.Errorf("outdated transaction")
+	errBadProof                 = fmt.Errorf("bad proof")
+	errAncientBirthBlock        = fmt.Errorf("ancient birth block")
+	errExhaustsResources        = fmt.Errorf("exhausts resources")
+	errMandatoryDispatchError   = fmt.Errorf("mandatory dispatch error")
+	errInvalidMandatoryDispatch = fmt.Errorf("invalid mandatory dispatch")
+	errLookupFailed             = fmt.Errorf("lookup failed")
+	errValidatorNotFound        = fmt.Errorf("validator not found")
 )
 
 func newUnknownError(data scale.VaryingDataTypeValue) error {

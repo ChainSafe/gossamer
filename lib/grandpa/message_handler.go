@@ -22,7 +22,7 @@ import (
 )
 
 var (
-	ErrNeighbourVersionNotSupported = errors.New("neighbour version not supported")
+	ErrNeighbourVersionNotSupported = fmt.Errorf("neighbour version not supported")
 )
 
 // MessageHandler handles GRANDPA consensus messages

@@ -4,7 +4,6 @@
 package utils
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"os/user"
@@ -259,7 +258,7 @@ func GetProjectRootPathTest(t *testing.T) (rootPath string) {
 }
 
 var (
-	ErrFindProjectRoot = errors.New("cannot find project root")
+	ErrFindProjectRoot = fmt.Errorf("cannot find project root")
 )
 
 // GetProjectRootPath finds the root of the project where `go.mod` is

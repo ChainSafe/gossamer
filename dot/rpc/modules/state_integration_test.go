@@ -7,7 +7,6 @@ package modules
 
 import (
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"os"
 	"sort"
@@ -318,7 +317,7 @@ func TestStateModule_QueryStorage(t *testing.T) {
 	})
 
 	t.Run("When blockAPI returns error", func(t *testing.T) {
-		mockError := errors.New("mock test error")
+		mockError := fmt.Errorf("mock test error")
 		ctrl := gomock.NewController(t)
 		mockBlockAPI := NewMockBlockAPI(ctrl)
 		mockBlockAPI.EXPECT().GetBlockByHash(common.Hash{1, 2}).Return(nil, mockError)
@@ -494,7 +493,7 @@ func TestGetReadProof_WhenCoreAPIReturnsError(t *testing.T) {
 	coreAPIMock := mocks.NewCoreAPI(t)
 	coreAPIMock.
 		On("GetReadProofAt", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("[][]uint8")).
-		Return(common.Hash{}, nil, errors.New("mocked error"))
+		Return(common.Hash{}, nil, fmt.Errorf("mocked error"))
 
 	sm := new(StateModule)
 	sm.coreAPI = coreAPIMock

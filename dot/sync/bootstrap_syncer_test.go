@@ -4,7 +4,7 @@
 package sync
 
 import (
-	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -14,7 +14,7 @@ import (
 
 func Test_bootstrapSyncer_handleWorkerResult(t *testing.T) {
 	t.Parallel()
-	mockError := errors.New("mock testing error")
+	mockError := fmt.Errorf("mock testing error")
 
 	tests := map[string]struct {
 		blockStateBuilder func(ctrl *gomock.Controller) BlockState

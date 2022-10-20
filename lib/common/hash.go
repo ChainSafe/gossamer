@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"reflect"
@@ -104,7 +103,7 @@ func BytesToHash(b []byte) Hash {
 func (h *Hash) UnmarshalJSON(data []byte) error {
 	trimmedData := strings.Trim(string(data), "\"")
 	if len(trimmedData) < 2 {
-		return errors.New("invalid hash format")
+		return fmt.Errorf("invalid hash format")
 	}
 
 	var err error
@@ -122,7 +121,7 @@ func (h Hash) MarshalJSON() ([]byte, error) {
 // HexToHash turns a 0x prefixed hex string into type Hash
 func HexToHash(in string) (Hash, error) {
 	if strings.Compare(in[:2], "0x") != 0 {
-		return [32]byte{}, errors.New("could not byteify non 0x prefixed string")
+		return [32]byte{}, fmt.Errorf("could not byteify non 0x prefixed string")
 	}
 	in = in[2:]
 	out, err := hex.DecodeString(in)

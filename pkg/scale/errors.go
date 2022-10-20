@@ -3,21 +3,21 @@
 
 package scale
 
-import "errors"
+import "fmt"
 
 var (
-	ErrUnsupportedDestination          = errors.New("must be a non-nil pointer to a destination")
-	errDecodeBool                      = errors.New("invalid byte for bool")
-	ErrUnsupportedType                 = errors.New("unsupported type")
-	ErrUnsupportedResult               = errors.New("unsupported result")
-	errUnsupportedOption               = errors.New("unsupported option")
-	errUnknownVaryingDataTypeValue     = errors.New("unable to find VaryingDataTypeValue with index")
-	errUint128IsNil                    = errors.New("uint128 in nil")
-	ErrResultNotSet                    = errors.New("result not set")
-	ErrResultAlreadySet                = errors.New("result already has an assigned value")
-	ErrUnsupportedVaryingDataTypeValue = errors.New("unsupported VaryingDataTypeValue")
-	ErrMustProvideVaryingDataTypeValue = errors.New("must provide at least one VaryingDataTypeValue")
-	errBigIntIsNil                     = errors.New("big int is nil")
-	ErrVaryingDataTypeNotSet           = errors.New("varying data type not set")
-	ErrUnsupportedCustomPrimitive      = errors.New("unsupported type for custom primitive")
+	ErrUnsupportedDestination          = fmt.Errorf("must be a non-nil pointer to a destination")
+	errDecodeBool                      = fmt.Errorf("invalid byte for bool")
+	ErrUnsupportedType                 = fmt.Errorf("unsupported type")
+	ErrUnsupportedResult               = fmt.Errorf("unsupported result")
+	errUnsupportedOption               = fmt.Errorf("unsupported option")
+	errUnknownVaryingDataTypeValue     = fmt.Errorf("unable to find VaryingDataTypeValue with index")
+	errUint128IsNil                    = fmt.Errorf("uint128 in nil")
+	ErrResultNotSet                    = fmt.Errorf("result not set")
+	ErrResultAlreadySet                = fmt.Errorf("result already has an assigned value")
+	ErrUnsupportedVaryingDataTypeValue = fmt.Errorf("unsupported VaryingDataTypeValue")
+	ErrMustProvideVaryingDataTypeValue = fmt.Errorf("must provide at least one VaryingDataTypeValue")
+	errBigIntIsNil                     = fmt.Errorf("big int is nil")
+	ErrVaryingDataTypeNotSet           = fmt.Errorf("varying data type not set")
+	ErrUnsupportedCustomPrimitive      = fmt.Errorf("unsupported type for custom primitive")
 )

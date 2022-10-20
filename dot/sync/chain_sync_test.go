@@ -5,7 +5,7 @@ package sync
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -60,7 +60,7 @@ func Test_chainSyncState_String(t *testing.T) {
 func Test_chainSync_setPeerHead(t *testing.T) {
 	t.Parallel()
 
-	errTest := errors.New("test error")
+	errTest := fmt.Errorf("test error")
 	const somePeer = peer.ID("abc")
 	someHash := common.Hash{1, 2, 3, 4}
 
@@ -1293,7 +1293,7 @@ func Test_chainSync_getHighestBlock(t *testing.T) {
 	}{
 		{
 			name:          "error no peers",
-			expectedError: errors.New("no peers to sync with"),
+			expectedError: fmt.Errorf("no peers to sync with"),
 		},
 		{
 			name:             "base case",
@@ -1321,7 +1321,7 @@ func Test_chainSync_getHighestBlock(t *testing.T) {
 
 func Test_chainSync_handleResult(t *testing.T) {
 	t.Parallel()
-	mockError := errors.New("test mock error")
+	mockError := fmt.Errorf("test mock error")
 	tests := map[string]struct {
 		chainSyncBuilder func(ctrl *gomock.Controller, result *worker) chainSync
 		maxWorkerRetries uint16
@@ -1378,7 +1378,7 @@ func Test_chainSync_handleResult(t *testing.T) {
 			res: &worker{
 				ctx: context.Background(),
 				err: &workerError{
-					err: errors.New("dial backoff"),
+					err: fmt.Errorf("dial backoff"),
 				},
 			},
 		},
@@ -1409,7 +1409,7 @@ func Test_chainSync_handleResult(t *testing.T) {
 			res: &worker{
 				ctx: context.Background(),
 				err: &workerError{
-					err: errors.New("protocol not supported"),
+					err: fmt.Errorf("protocol not supported"),
 				},
 			},
 		},
@@ -1425,7 +1425,7 @@ func Test_chainSync_handleResult(t *testing.T) {
 			res: &worker{
 				ctx: context.Background(),
 				err: &workerError{
-					err: errors.New(""),
+					err: fmt.Errorf(""),
 				},
 			},
 		},
@@ -1441,7 +1441,7 @@ func Test_chainSync_handleResult(t *testing.T) {
 			res: &worker{
 				ctx: context.Background(),
 				err: &workerError{
-					err: errors.New(""),
+					err: fmt.Errorf(""),
 				},
 			},
 			err: mockError,
@@ -1458,7 +1458,7 @@ func Test_chainSync_handleResult(t *testing.T) {
 			res: &worker{
 				ctx: context.Background(),
 				err: &workerError{
-					err: errors.New(""),
+					err: fmt.Errorf(""),
 				},
 			},
 		},
@@ -1478,7 +1478,7 @@ func Test_chainSync_handleResult(t *testing.T) {
 			res: &worker{
 				ctx: context.Background(),
 				err: &workerError{
-					err: errors.New(""),
+					err: fmt.Errorf(""),
 				},
 				pendingBlock: newPendingBlock(common.Hash{}, 1, nil, nil, time.Now()),
 			},

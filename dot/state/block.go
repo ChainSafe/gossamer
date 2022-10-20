@@ -38,7 +38,7 @@ var (
 	messageQueuePrefix  = []byte("mqp") // messageQueuePrefix + hash -> message queue
 	justificationPrefix = []byte("jcp") // justificationPrefix + hash -> justification
 
-	errNilBlockBody = errors.New("block body is nil")
+	errNilBlockBody = fmt.Errorf("block body is nil")
 
 	syncedBlocksGauge = promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: "gossamer_network_syncer",
@@ -585,7 +585,7 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 		bHash, codeHash, currCodeHash)
 	code := newState.LoadCode()
 	if len(code) == 0 {
-		return errors.New("new :code is empty")
+		return fmt.Errorf("new :code is empty")
 	}
 
 	codeSubBlockHash := bs.baseState.LoadCodeSubstitutedBlockHash()

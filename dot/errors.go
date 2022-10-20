@@ -3,14 +3,12 @@
 
 package dot
 
-import (
-	"errors"
-)
+import "fmt"
 
 // ErrNoKeysProvided is returned when no keys are given for an authority node
-var ErrNoKeysProvided = errors.New("no keys provided for authority node")
+var ErrNoKeysProvided = fmt.Errorf("no keys provided for authority node")
 
 // ErrInvalidKeystoreType when trying to create a service with the wrong keystore type
-var ErrInvalidKeystoreType = errors.New("invalid keystore type")
+var ErrInvalidKeystoreType = fmt.Errorf("invalid keystore type")
 
-var ErrWasmInterpreterName = errors.New("unknown wasm interpreter name")
+var ErrWasmInterpreterName = fmt.Errorf("unknown wasm interpreter name")

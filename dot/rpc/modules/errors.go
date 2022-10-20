@@ -3,9 +3,9 @@
 
 package modules
 
-import "errors"
+import "fmt"
 
 var (
-	ErrSubscriptionTransport = errors.New("subscriptions are not available on this transport")
-	ErrStartBlockHashEmpty   = errors.New("the start block hash cannot be an empty value")
+	ErrSubscriptionTransport = fmt.Errorf("subscriptions are not available on this transport")
+	ErrStartBlockHashEmpty   = fmt.Errorf("the start block hash cannot be an empty value")
 )

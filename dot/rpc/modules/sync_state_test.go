@@ -4,7 +4,7 @@
 package modules
 
 import (
-	"errors"
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -21,7 +21,7 @@ func TestSyncStateModule_GenSyncSpec(t *testing.T) {
 	mockSyncStateAPI.On("GenSyncSpec", true).Return(g, nil)
 
 	mockSyncStateAPIErr := mocks.NewSyncStateAPI(t)
-	mockSyncStateAPIErr.On("GenSyncSpec", true).Return(nil, errors.New("GenSyncSpec error"))
+	mockSyncStateAPIErr.On("GenSyncSpec", true).Return(nil, fmt.Errorf("GenSyncSpec error"))
 
 	syncStateModule := NewSyncStateModule(mockSyncStateAPI)
 	type fields struct {
@@ -60,7 +60,7 @@ func TestSyncStateModule_GenSyncSpec(t *testing.T) {
 					Raw: true,
 				},
 			},
-			expErr: errors.New("GenSyncSpec error"),
+			expErr: fmt.Errorf("GenSyncSpec error"),
 		},
 	}
 	for _, tt := range tests {
@@ -88,7 +88,7 @@ func TestNewStateSync(t *testing.T) {
 	mockStorageAPI.On("Entries", (*common.Hash)(nil)).Return(raw, nil)
 
 	mockStorageAPIErr := mocks.NewStorageAPI(t)
-	mockStorageAPIErr.On("Entries", (*common.Hash)(nil)).Return(nil, errors.New("entries error"))
+	mockStorageAPIErr.On("Entries", (*common.Hash)(nil)).Return(nil, fmt.Errorf("entries error"))
 
 	type args struct {
 		gData      *genesis.Data
@@ -124,7 +124,7 @@ func TestNewStateSync(t *testing.T) {
 				gData:      g2.GenesisData(),
 				storageAPI: mockStorageAPIErr,
 			},
-			expErr: errors.New("entries error"),
+			expErr: fmt.Errorf("entries error"),
 		},
 	}
 	for _, tt := range tests {

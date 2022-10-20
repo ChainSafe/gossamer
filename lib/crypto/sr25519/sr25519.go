@@ -5,7 +5,6 @@ package sr25519
 
 import (
 	"encoding/hex"
-	"errors"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -96,7 +95,7 @@ func NewKeypairFromPrivate(priv *PrivateKey) (*Keypair, error) {
 // NewKeypairFromSeed returns a new sr25519 Keypair given a seed
 func NewKeypairFromSeed(keystr []byte) (*Keypair, error) {
 	if len(keystr) != SeedLength {
-		return nil, errors.New("cannot generate key from seed: seed is not 32 bytes long")
+		return nil, fmt.Errorf("cannot generate key from seed: seed is not 32 bytes long")
 	}
 
 	buf := [SeedLength]byte{}
@@ -162,7 +161,7 @@ func NewKeypairFromMnenomic(mnemonic, password string) (*Keypair, error) {
 // NewPrivateKey creates a new private key using the input bytes
 func NewPrivateKey(in []byte) (*PrivateKey, error) {
 	if len(in) != PrivateKeyLength {
-		return nil, errors.New("input to create sr25519 private key is not 32 bytes")
+		return nil, fmt.Errorf("input to create sr25519 private key is not 32 bytes")
 	}
 	priv := new(PrivateKey)
 	err := priv.Decode(in)
@@ -185,7 +184,7 @@ func GenerateKeypair() (*Keypair, error) {
 // NewPublicKey returns a sr25519 public key from 32 byte input
 func NewPublicKey(in []byte) (*PublicKey, error) {
 	if len(in) != PublicKeyLength {
-		return nil, errors.New("cannot create public key: input is not 32 bytes")
+		return nil, fmt.Errorf("cannot create public key: input is not 32 bytes")
 	}
 
 	buf := [PublicKeyLength]byte{}
@@ -227,7 +226,7 @@ func (kp *Keypair) VrfSign(t *merlin.Transcript) ([VRFOutputLength]byte, [VRFPro
 // Sign uses the private key to sign the message using the sr25519 signature algorithm
 func (k *PrivateKey) Sign(msg []byte) ([]byte, error) {
 	if k.key == nil {
-		return nil, errors.New("key is nil")
+		return nil, fmt.Errorf("key is nil")
 	}
 	t := sr25519.NewSigningContext(SigningContext, msg)
 	sig, err := k.key.Sign(t)
@@ -252,7 +251,7 @@ func (k *PrivateKey) VrfSign(t *merlin.Transcript) ([VRFOutputLength]byte, [VRFP
 // Public returns the public key corresponding to this private key
 func (k *PrivateKey) Public() (crypto.PublicKey, error) {
 	if k.key == nil {
-		return nil, errors.New("key is nil")
+		return nil, fmt.Errorf("key is nil")
 	}
 	pub, err := k.key.Public()
 	if err != nil {
@@ -274,7 +273,7 @@ func (k *PrivateKey) Encode() []byte {
 // Input must be 32 bytes, or else this function will error
 func (k *PrivateKey) Decode(in []byte) error {
 	if len(in) != PrivateKeyLength {
-		return errors.New("input to sr25519 private key decode is not 32 bytes")
+		return fmt.Errorf("input to sr25519 private key decode is not 32 bytes")
 	}
 	b := [PrivateKeyLength]byte{}
 	copy(b[:], in)
@@ -294,11 +293,11 @@ func (k *PrivateKey) Hex() string {
 // false otherwise
 func (k *PublicKey) Verify(msg, sig []byte) (bool, error) {
 	if k.key == nil {
-		return false, errors.New("nil public key")
+		return false, fmt.Errorf("nil public key")
 	}
 
 	if len(sig) != SignatureLength {
-		return false, errors.New("invalid signature length")
+		return false, fmt.Errorf("invalid signature length")
 	}
 
 	b := [SignatureLength]byte{}
@@ -320,11 +319,11 @@ func (k *PublicKey) Verify(msg, sig []byte) (bool, error) {
 // distinguish between sr25519 and ed25519 signatures.
 func (k *PublicKey) VerifyDeprecated(msg, sig []byte) (bool, error) {
 	if k.key == nil {
-		return false, errors.New("nil public key")
+		return false, fmt.Errorf("nil public key")
 	}
 
 	if len(sig) != SignatureLength {
-		return false, errors.New("invalid signature length")
+		return false, fmt.Errorf("invalid signature length")
 	}
 
 	b := [SignatureLength]byte{}
@@ -391,7 +390,7 @@ func (k *PublicKey) Encode() []byte {
 // Input must be 32 bytes, or else this function will error
 func (k *PublicKey) Decode(in []byte) error {
 	if len(in) != PublicKeyLength {
-		return errors.New("input to sr25519 public key decode is not 32 bytes")
+		return fmt.Errorf("input to sr25519 public key decode is not 32 bytes")
 	}
 	b := [PublicKeyLength]byte{}
 	copy(b[:], in)

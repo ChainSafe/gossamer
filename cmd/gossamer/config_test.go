@@ -7,7 +7,7 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -1140,7 +1140,7 @@ func Test_getLogLevel(t *testing.T) {
 		"flag bad string value": {
 			flagsKVStore: newMockGetStringer(map[string]string{"x": "garbage"}),
 			flagName:     "x",
-			err:          errors.New("cannot parse log level string: level is not recognised: garbage"),
+			err:          fmt.Errorf("cannot parse log level string: level is not recognised: garbage"),
 		},
 		"toml integer value": {
 			flagsKVStore: newMockGetStringer(map[string]string{}),
@@ -1155,7 +1155,7 @@ func Test_getLogLevel(t *testing.T) {
 		"toml bad string value": {
 			flagsKVStore: newMockGetStringer(map[string]string{}),
 			tomlValue:    "garbage",
-			err:          errors.New("cannot parse log level string: level is not recognised: garbage"),
+			err:          fmt.Errorf("cannot parse log level string: level is not recognised: garbage"),
 		},
 		"flag takes precedence": {
 			flagsKVStore: newMockGetStringer(map[string]string{"x": "error"}),
@@ -1192,7 +1192,7 @@ func Test_parseLogLevelString(t *testing.T) {
 		err            error
 	}{
 		"empty string": {
-			err: errors.New("cannot parse log level string: level is not recognised: "),
+			err: fmt.Errorf("cannot parse log level string: level is not recognised: "),
 		},
 		"valid integer": {
 			logLevelString: "1",
@@ -1200,11 +1200,11 @@ func Test_parseLogLevelString(t *testing.T) {
 		},
 		"minus one": {
 			logLevelString: "-1",
-			err:            errors.New("log level integer can only be between 0 and 5 included: log level given: -1"),
+			err:            fmt.Errorf("log level integer can only be between 0 and 5 included: log level given: -1"),
 		},
 		"over 5": {
 			logLevelString: "6",
-			err:            errors.New("log level integer can only be between 0 and 5 included: log level given: 6"),
+			err:            fmt.Errorf("log level integer can only be between 0 and 5 included: log level given: 6"),
 		},
 		"valid string": {
 			logLevelString: "error",

@@ -4,7 +4,6 @@
 package modules
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -47,7 +46,7 @@ func TestAuthorModule_HasSessionKeys(t *testing.T) {
 	coreMockAPIErr.On("DecodeSessionKeys", pkeys).Return(data, nil)
 	coreMockAPIErr.On("HasKey", mock.AnythingOfType("string"),
 		mock.AnythingOfType("string")).
-		Return(false, errors.New("HasKey err"))
+		Return(false, fmt.Errorf("HasKey err"))
 
 	coreMockAPIInvalidDec := mocks.NewCoreAPI(t)
 	coreMockAPIInvalidDec.On("DecodeSessionKeys", pkeys).Return([]byte{0x0}, nil)
@@ -75,7 +74,7 @@ func TestAuthorModule_HasSessionKeys(t *testing.T) {
 				req: &HasSessionKeyRequest{},
 			},
 			exp:    false,
-			expErr: errors.New("could not byteify non 0x prefixed string: "),
+			expErr: fmt.Errorf("could not byteify non 0x prefixed string: "),
 		},
 		{
 			name: "decodeSessionKeys err",
@@ -86,7 +85,7 @@ func TestAuthorModule_HasSessionKeys(t *testing.T) {
 				req: &HasSessionKeyRequest{"0x01"},
 			},
 			exp:    false,
-			expErr: errors.New("unsupported option: value: 4, bytes: [1]"),
+			expErr: fmt.Errorf("unsupported option: value: 4, bytes: [1]"),
 		},
 		{
 			name: "happy path",
@@ -107,7 +106,7 @@ func TestAuthorModule_HasSessionKeys(t *testing.T) {
 				req: &HasSessionKeyRequest{testReq},
 			},
 			exp:    false,
-			expErr: errors.New("HasKey err"),
+			expErr: fmt.Errorf("HasKey err"),
 		},
 		{
 			name: "Empty decodedKeys",
@@ -382,7 +381,7 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 					"0x6246ddf254e0b4b4e7dffefc8adf69d212b98ac2b579c362b473fec8c40b4c0a",
 				},
 			},
-			expErr: errors.New("cannot decode key: invalid key type"),
+			expErr: fmt.Errorf("cannot decode key: invalid key type"),
 		},
 	}
 	for _, tt := range tests {

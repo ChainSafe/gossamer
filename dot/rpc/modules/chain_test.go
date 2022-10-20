@@ -4,7 +4,7 @@
 package modules
 
 import (
-	"errors"
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -26,7 +26,7 @@ func TestChainModule_GetBlock(t *testing.T) {
 	mockBlockAPI.On("BestBlockHash").Return(testHash, nil)
 
 	mockBlockAPIGetHashErr := mocks.NewBlockAPI(t)
-	mockBlockAPIGetHashErr.On("GetBlockByHash", inputHash).Return(nil, errors.New("GetJustification error"))
+	mockBlockAPIGetHashErr.On("GetBlockByHash", inputHash).Return(nil, fmt.Errorf("GetJustification error"))
 
 	bodyBlock := types.NewEmptyBlock()
 	bodyBlock.Body = types.BytesArrayToExtrinsics([][]byte{{1}})
@@ -75,7 +75,7 @@ func TestChainModule_GetBlock(t *testing.T) {
 			args: args{
 				req: &ChainHashRequest{&testHash},
 			},
-			expErr: errors.New("GetJustification error"),
+			expErr: fmt.Errorf("GetJustification error"),
 		},
 		{
 			name: "GetBlock with body OK",
@@ -123,7 +123,7 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 	mockBlockAPI.On("GetHashByNumber", uint(21)).Return(testHash, nil)
 
 	mockBlockAPIErr := mocks.NewBlockAPI(t)
-	mockBlockAPIErr.On("GetHashByNumber", uint(21)).Return(nil, errors.New("GetBlockHash Error"))
+	mockBlockAPIErr.On("GetHashByNumber", uint(21)).Return(nil, fmt.Errorf("GetBlockHash Error"))
 
 	expRes := ChainHashResponse(testHash.String())
 	type fields struct {
@@ -179,7 +179,7 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 				req: &ChainBlockNumberRequest{uintptr(1)},
 			},
 			exp:    []string(nil),
-			expErr: errors.New("unknown request number type: uintptr"),
+			expErr: fmt.Errorf("unknown request number type: uintptr"),
 		},
 		{
 			name: "GetBlockHash string slice req err",
@@ -190,7 +190,7 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 				req: &ChainBlockNumberRequest{i},
 			},
 			exp:    []string(nil),
-			expErr: errors.New(`strconv.ParseUint: parsing "a": invalid syntax`),
+			expErr: fmt.Errorf(`strconv.ParseUint: parsing "a": invalid syntax`),
 		},
 		{
 			name: "GetBlockHash string req Err",
@@ -201,7 +201,7 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 				req: &ChainBlockNumberRequest{"21"},
 			},
 			exp:    []string(nil),
-			expErr: errors.New("GetBlockHash Error"),
+			expErr: fmt.Errorf("GetBlockHash Error"),
 		},
 	}
 	for _, tt := range tests {
@@ -227,7 +227,7 @@ func TestChainModule_GetFinalizedHead(t *testing.T) {
 	mockBlockAPI.On("GetHighestFinalisedHash").Return(testHash, nil)
 
 	mockBlockAPIErr := mocks.NewBlockAPI(t)
-	mockBlockAPIErr.On("GetHighestFinalisedHash").Return(nil, errors.New("GetHighestFinalisedHash Error"))
+	mockBlockAPIErr.On("GetHighestFinalisedHash").Return(nil, fmt.Errorf("GetHighestFinalisedHash Error"))
 
 	expRes := ChainHashResponse(common.BytesToHex(testHash[:]))
 	type fields struct {
@@ -262,7 +262,7 @@ func TestChainModule_GetFinalizedHead(t *testing.T) {
 			args: args{
 				req: &EmptyRequest{},
 			},
-			expErr: errors.New("GetHighestFinalisedHash Error"),
+			expErr: fmt.Errorf("GetHighestFinalisedHash Error"),
 		},
 	}
 	for _, tt := range tests {
@@ -288,7 +288,7 @@ func TestChainModule_GetFinalizedHeadByRound(t *testing.T) {
 	mockBlockAPI.On("GetFinalisedHash", uint64(21), uint64(21)).Return(testHash, nil)
 
 	mockBlockAPIErr := mocks.NewBlockAPI(t)
-	mockBlockAPIErr.On("GetFinalisedHash", uint64(21), uint64(21)).Return(nil, errors.New("GetFinalisedHash Error"))
+	mockBlockAPIErr.On("GetFinalisedHash", uint64(21), uint64(21)).Return(nil, fmt.Errorf("GetFinalisedHash Error"))
 
 	expRes := ChainHashResponse(common.BytesToHex(testHash[:]))
 	type fields struct {
@@ -329,7 +329,7 @@ func TestChainModule_GetFinalizedHeadByRound(t *testing.T) {
 					SetID: uint64(21),
 				},
 			},
-			expErr: errors.New("GetFinalisedHash Error"),
+			expErr: fmt.Errorf("GetFinalisedHash Error"),
 		},
 	}
 	for _, tt := range tests {
@@ -359,7 +359,7 @@ func TestChainModule_GetHeader(t *testing.T) {
 	mockBlockAPI.On("GetHeader", inputHash).Return(emptyHeader, nil)
 
 	mockBlockAPIErr := mocks.NewBlockAPI(t)
-	mockBlockAPIErr.On("GetHeader", inputHash).Return(nil, errors.New("GetFinalisedHash Error"))
+	mockBlockAPIErr.On("GetHeader", inputHash).Return(nil, fmt.Errorf("GetFinalisedHash Error"))
 
 	expRes, err := HeaderToJSON(*emptyHeader)
 	require.NoError(t, err)
@@ -396,7 +396,7 @@ func TestChainModule_GetHeader(t *testing.T) {
 			args: args{
 				req: &ChainHashRequest{&testHash},
 			},
-			expErr: errors.New("GetFinalisedHash Error"),
+			expErr: fmt.Errorf("GetFinalisedHash Error"),
 		},
 	}
 	for _, tt := range tests {

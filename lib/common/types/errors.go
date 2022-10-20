@@ -3,7 +3,7 @@
 
 package types
 
-import "errors"
+import "fmt"
 
 // ErrInvalidResult is returned when decoding a Result type fails
-var ErrInvalidResult = errors.New("decoding failed, invalid Result")
+var ErrInvalidResult = fmt.Errorf("decoding failed, invalid Result")

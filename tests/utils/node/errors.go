@@ -5,7 +5,6 @@ package node
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -109,7 +108,7 @@ func (e *errorsFanIn) removeWithoutLock(node string) {
 }
 
 var (
-	ErrWaitTimedOut = errors.New("waiting for all nodes timed out")
+	ErrWaitTimedOut = fmt.Errorf("waiting for all nodes timed out")
 )
 
 // waitForAll waits to collect all the runtime errors from all the

@@ -306,7 +306,7 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 	}, peer)
 }
 
-var errPeerDisconnected = errors.New("peer disconnected")
+var errPeerDisconnected = fmt.Errorf("peer disconnected")
 
 func (s *Service) sendHandshake(peer peer.ID, hs Handshake, info *notificationsProtocol) (network.Stream, error) {
 	// multiple processes could each call this upcoming section, opening multiple streams and

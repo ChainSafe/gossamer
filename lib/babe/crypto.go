@@ -4,7 +4,6 @@
 package babe
 
 import (
-	"errors"
 	"fmt"
 	"math"
 	"math/big"
@@ -147,7 +146,7 @@ func CalculateThreshold(C1, C2 uint64, numAuths int) (*scale.Uint128, error) {
 	}
 	c := float64(C1) / float64(C2)
 	if c > 1 {
-		return nil, errors.New("invalid C1/C2: greater than 1")
+		return nil, fmt.Errorf("invalid C1/C2: greater than 1")
 	}
 
 	// 1 / len(authorities)
@@ -175,7 +174,7 @@ func CalculateThreshold(C1, C2 uint64, numAuths int) (*scale.Uint128, error) {
 	}
 
 	if len(thresholdBig.Bytes()) > 16 {
-		return nil, errors.New("threshold must be under or equal to 16 bytes")
+		return nil, fmt.Errorf("threshold must be under or equal to 16 bytes")
 	}
 
 	return scale.NewUint128(thresholdBig)

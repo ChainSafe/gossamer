@@ -4,7 +4,6 @@
 package main
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -121,7 +120,7 @@ func Test_setupLogger(t *testing.T) {
 			"Test gossamer --log blah",
 			[]string{"log"},
 			[]interface{}{"blah"},
-			errors.New("cannot parse log level string: level is not recognised: blah"),
+			fmt.Errorf("cannot parse log level string: level is not recognised: blah"),
 		},
 	}
 

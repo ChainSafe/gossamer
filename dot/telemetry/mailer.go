@@ -6,7 +6,7 @@ package telemetry
 import (
 	"context"
 	"encoding/json"
-	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -15,7 +15,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var ErrTimoutMessageSending = errors.New("timeout sending telemetry message")
+var ErrTimoutMessageSending = fmt.Errorf("timeout sending telemetry message")
 
 type telemetryConnection struct {
 	wsconn    *websocket.Conn

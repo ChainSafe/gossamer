@@ -4,7 +4,7 @@
 package proof
 
 import (
-	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/trie/codec"
@@ -18,7 +18,7 @@ import (
 func Test_Generate(t *testing.T) {
 	t.Parallel()
 
-	errTest := errors.New("test error")
+	errTest := fmt.Errorf("test error")
 
 	someHash := make([]byte, 32)
 	for i := range someHash {

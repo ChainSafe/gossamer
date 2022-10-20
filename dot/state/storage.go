@@ -4,7 +4,6 @@
 package state
 
 import (
-	"errors"
 	"fmt"
 	"sync"
 
@@ -22,7 +21,7 @@ var storagePrefix = "storage"
 var codeKey = common.CodeKey
 
 // ErrTrieDoesNotExist is returned when attempting to interact with a trie that is not stored in the StorageState
-var ErrTrieDoesNotExist = errors.New("trie with given root does not exist")
+var ErrTrieDoesNotExist = fmt.Errorf("trie with given root does not exist")
 
 func errTrieDoesNotExist(hash common.Hash) error {
 	return fmt.Errorf("%w: %s", ErrTrieDoesNotExist, hash)

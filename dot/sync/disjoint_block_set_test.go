@@ -4,7 +4,7 @@
 package sync
 
 import (
-	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -153,7 +153,7 @@ func Test_disjointBlockSet_addHeader(t *testing.T) {
 				Number: 1,
 			},
 			expectedDisjointBlockSet: &disjointBlockSet{},
-			err:                      errors.New("cannot add block; set is at capacity"),
+			err:                      fmt.Errorf("cannot add block; set is at capacity"),
 		},
 		"add header": {
 			disjointBlockSet: &disjointBlockSet{

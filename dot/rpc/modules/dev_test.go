@@ -4,7 +4,7 @@
 package modules
 
 import (
-	"errors"
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -157,16 +157,16 @@ func TestDevModule_Control(t *testing.T) {
 	mockNetworkAPI := mocks.NewNetworkAPI(t)
 	mockErrorNetworkAPI := mocks.NewNetworkAPI(t)
 
-	mockErrorBlockProducerAPI.On("Pause").Return(errors.New("babe pause error"))
+	mockErrorBlockProducerAPI.On("Pause").Return(fmt.Errorf("babe pause error"))
 	mockBlockProducerAPI.On("Pause").Return(nil)
 
-	mockErrorBlockProducerAPI.On("Resume").Return(errors.New("babe resume error"))
+	mockErrorBlockProducerAPI.On("Resume").Return(fmt.Errorf("babe resume error"))
 	mockBlockProducerAPI.On("Resume").Return(nil)
 
-	mockErrorNetworkAPI.On("Stop").Return(errors.New("network stop error"))
+	mockErrorNetworkAPI.On("Stop").Return(fmt.Errorf("network stop error"))
 	mockNetworkAPI.On("Stop").Return(nil)
 
-	mockErrorNetworkAPI.On("Start").Return(errors.New("network start error"))
+	mockErrorNetworkAPI.On("Start").Return(fmt.Errorf("network start error"))
 	mockNetworkAPI.On("Start").Return(nil)
 
 	type fields struct {
@@ -193,7 +193,7 @@ func TestDevModule_Control(t *testing.T) {
 			args: args{
 				req: &[]string{"babe", "stop"},
 			},
-			expErr: errors.New("not a block producer"),
+			expErr: fmt.Errorf("not a block producer"),
 		},
 		{
 			name: "Babe Stop Error",
@@ -205,7 +205,7 @@ func TestDevModule_Control(t *testing.T) {
 				req: &[]string{"babe", "stop"},
 			},
 			exp:    "babe service stopped",
-			expErr: errors.New("babe pause error"),
+			expErr: fmt.Errorf("babe pause error"),
 		},
 		{
 			name: "Babe Stop OK",
@@ -228,7 +228,7 @@ func TestDevModule_Control(t *testing.T) {
 				req: &[]string{"babe", "start"},
 			},
 			exp:    "babe service started",
-			expErr: errors.New("babe resume error"),
+			expErr: fmt.Errorf("babe resume error"),
 		},
 		{
 			name: "Babe Start OK",
@@ -251,7 +251,7 @@ func TestDevModule_Control(t *testing.T) {
 				req: &[]string{"network", "stop"},
 			},
 			exp:    "network service stopped",
-			expErr: errors.New("network stop error"),
+			expErr: fmt.Errorf("network stop error"),
 		},
 		{
 			name: "Network Stop OK",
@@ -274,7 +274,7 @@ func TestDevModule_Control(t *testing.T) {
 				req: &[]string{"network", "start"},
 			},
 			exp:    "network service started",
-			expErr: errors.New("network start error"),
+			expErr: fmt.Errorf("network start error"),
 		},
 		{
 			name: "Network Start OK",

@@ -4,7 +4,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -290,7 +289,7 @@ func getLogLevel(flagsKVStore stringKVStore, flagName, tomlValue string, default
 	return parseLogLevelString(tomlValue)
 }
 
-var ErrLogLevelIntegerOutOfRange = errors.New("log level integer can only be between 0 and 5 included")
+var ErrLogLevelIntegerOutOfRange = fmt.Errorf("log level integer can only be between 0 and 5 included")
 
 func parseLogLevelString(logLevelString string) (logLevel log.Level, err error) {
 	levelInt, err := strconv.Atoi(logLevelString)

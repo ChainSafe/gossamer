@@ -5,7 +5,6 @@ package runtime
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -47,9 +46,9 @@ func NewInMemoryDB(t *testing.T) chaindb.Database {
 }
 
 var (
-	ErrRuntimeUnknown  = errors.New("runtime is not known")
-	ErrHTTPStatusNotOK = errors.New("HTTP status code received is not OK")
-	ErrOpenRuntimeFile = errors.New("cannot open the runtime target file")
+	ErrRuntimeUnknown  = fmt.Errorf("runtime is not known")
+	ErrHTTPStatusNotOK = fmt.Errorf("HTTP status code received is not OK")
+	ErrOpenRuntimeFile = fmt.Errorf("cannot open the runtime target file")
 )
 
 // GetRuntime returns the runtime file path located in the

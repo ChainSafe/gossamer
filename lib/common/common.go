@@ -6,7 +6,6 @@ package common
 import (
 	"encoding/binary"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"io"
 	"strconv"
@@ -14,7 +13,7 @@ import (
 )
 
 // ErrNoPrefix is returned when trying to convert a hex-encoded string with no 0x prefix
-var ErrNoPrefix = errors.New("could not byteify non 0x prefixed string")
+var ErrNoPrefix = fmt.Errorf("could not byteify non 0x prefixed string")
 
 // StringToInts turns a string consisting of ints separated by commas into an int array
 func StringToInts(in string) ([]int, error) {

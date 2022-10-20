@@ -4,7 +4,6 @@
 package types
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -33,7 +32,7 @@ func DecodeBabePreDigest(in []byte) (scale.VaryingDataTypeValue, error) {
 		return msg, nil
 	}
 
-	return nil, errors.New("cannot decode data with invalid BABE pre-runtime digest type")
+	return nil, fmt.Errorf("cannot decode data with invalid BABE pre-runtime digest type")
 }
 
 // BabePrimaryPreDigest as defined in Polkadot RE Spec, definition 5.10 in section 5.1.4

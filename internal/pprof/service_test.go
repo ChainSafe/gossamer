@@ -5,7 +5,7 @@ package pprof
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -35,7 +35,7 @@ func Test_NewService(t *testing.T) {
 func Test_Service_StartStop_success(t *testing.T) {
 	t.Parallel()
 
-	errDummy := errors.New("dummy")
+	errDummy := fmt.Errorf("dummy")
 
 	testCases := map[string]struct {
 		startDone    bool

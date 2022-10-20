@@ -6,7 +6,6 @@ package genesis
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"math/big"
 	"os"
@@ -418,7 +417,7 @@ func formatKey(kv *keyValue) (string, error) {
 		return common.BytesToHex(kb), nil
 	default:
 		if len(kv.key) < 2 {
-			return "", errors.New("key array less than 2")
+			return "", fmt.Errorf("key array less than 2")
 		}
 
 		return generateStorageKey(kv.key[0], kv.key[1])

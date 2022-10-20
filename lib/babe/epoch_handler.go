@@ -17,7 +17,7 @@ import (
 type handleSlotFunc = func(epoch, slotNum uint64, authorityIndex uint32, preRuntimeDigest *types.PreRuntimeDigest) error
 
 var (
-	errEpochPast = errors.New("cannot run epoch that has already passed")
+	errEpochPast = fmt.Errorf("cannot run epoch that has already passed")
 )
 
 type epochHandler struct {

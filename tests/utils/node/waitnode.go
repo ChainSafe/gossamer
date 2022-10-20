@@ -5,7 +5,6 @@ package node
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -30,7 +29,7 @@ func waitForNode(ctx context.Context, rpcPort string) (err error) {
 	return nil
 }
 
-var errNodeNotExpectingPeers = errors.New("node should expect to have peers")
+var errNodeNotExpectingPeers = fmt.Errorf("node should expect to have peers")
 
 // checkNodeStarted check if gossamer node is started
 func checkNodeStarted(ctx context.Context, gossamerHost string) error {

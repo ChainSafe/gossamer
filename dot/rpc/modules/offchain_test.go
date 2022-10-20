@@ -4,7 +4,6 @@
 package modules
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"testing"
@@ -18,7 +17,7 @@ import (
 func TestOffchainModule_LocalStorageGet(t *testing.T) {
 	mockRuntimeStorageAPI := mocks.NewRuntimeStorageAPI(t)
 	mockRuntimeStorageAPI.On("GetPersistent", common.MustHexToBytes("0x11111111111111")).
-		Return(nil, errors.New("GetPersistent error"))
+		Return(nil, fmt.Errorf("GetPersistent error"))
 	mockRuntimeStorageAPI.On("GetLocal", common.MustHexToBytes("0x11111111111111")).Return([]byte("some-value"), nil)
 	offChainModule := NewOffchainModule(mockRuntimeStorageAPI)
 
@@ -47,7 +46,7 @@ func TestOffchainModule_LocalStorageGet(t *testing.T) {
 					Key:  "0x11111111111111",
 				},
 			},
-			expErr: errors.New("GetPersistent error"),
+			expErr: fmt.Errorf("GetPersistent error"),
 		},
 		{
 			name: "Invalid Storage Kind",
@@ -86,7 +85,7 @@ func TestOffchainModule_LocalStorageGet(t *testing.T) {
 					Key:  "0x1",
 				},
 			},
-			expErr: errors.New("encoding/hex: odd length hex string: 0x1"),
+			expErr: fmt.Errorf("encoding/hex: odd length hex string: 0x1"),
 		},
 	}
 	for _, tt := range tests {
@@ -113,7 +112,7 @@ func TestOffchainModule_LocalStorageSet(t *testing.T) {
 		Return(nil)
 	mockRuntimeStorageAPI.On("SetPersistent",
 		common.MustHexToBytes("0x11111111111111"), common.MustHexToBytes("0x22222222222222")).
-		Return(errors.New("SetPersistent error"))
+		Return(fmt.Errorf("SetPersistent error"))
 
 	type fields struct {
 		nodeStorage RuntimeStorageAPI
@@ -153,7 +152,7 @@ func TestOffchainModule_LocalStorageSet(t *testing.T) {
 					Value: "0x22222222222222",
 				},
 			},
-			expErr: errors.New("encoding/hex: odd length hex string: 0x1"),
+			expErr: fmt.Errorf("encoding/hex: odd length hex string: 0x1"),
 		},
 		{
 			name: "Invalid Value",
@@ -167,7 +166,7 @@ func TestOffchainModule_LocalStorageSet(t *testing.T) {
 					Value: "0x2",
 				},
 			},
-			expErr: errors.New("encoding/hex: odd length hex string: 0x2"),
+			expErr: fmt.Errorf("encoding/hex: odd length hex string: 0x2"),
 		},
 		{
 			name: "setPersistentError",
@@ -181,7 +180,7 @@ func TestOffchainModule_LocalStorageSet(t *testing.T) {
 					Value: "0x22222222222222",
 				},
 			},
-			expErr: errors.New("SetPersistent error"),
+			expErr: fmt.Errorf("SetPersistent error"),
 		},
 		{
 			name: "Invalid Kind",

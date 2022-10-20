@@ -4,7 +4,6 @@
 package subscription
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
 	"reflect"
@@ -30,7 +29,7 @@ const (
 
 var (
 	// ErrCannotCancel when is not possible to cancel a goroutine after `cancelTimeout` seconds
-	ErrCannotCancel = errors.New("cannot cancel listening goroutines")
+	ErrCannotCancel = fmt.Errorf("cannot cancel listening goroutines")
 
 	defaultCancelTimeout = time.Second * 10
 )

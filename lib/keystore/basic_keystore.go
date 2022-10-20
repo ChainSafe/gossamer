@@ -5,7 +5,6 @@ package keystore
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"sync"
 
@@ -14,7 +13,7 @@ import (
 )
 
 var (
-	ErrKeyTypeNotSupported = errors.New("given key type is not supported by this keystore")
+	ErrKeyTypeNotSupported = fmt.Errorf("given key type is not supported by this keystore")
 )
 
 // BasicKeystore holds keys of a certain type

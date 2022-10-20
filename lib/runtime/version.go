@@ -31,7 +31,7 @@ type Version struct {
 }
 
 var (
-	ErrDecodingVersionField = errors.New("decoding version field")
+	ErrDecodingVersionField = fmt.Errorf("decoding version field")
 )
 
 // DecodeVersion scale decodes the encoded version data.

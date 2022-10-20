@@ -6,7 +6,6 @@ package network
 import (
 	crand "crypto/rand"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"io"
 	mrand "math/rand"
@@ -152,7 +151,7 @@ func uint64ToLEB128(in uint64) []byte {
 
 func readLEB128ToUint64(r io.Reader, buf []byte) (uint64, int, error) {
 	if len(buf) == 0 {
-		return 0, 0, errors.New("buffer has length 0")
+		return 0, 0, fmt.Errorf("buffer has length 0")
 	}
 
 	var out uint64
@@ -188,7 +187,7 @@ func readLEB128ToUint64(r io.Reader, buf []byte) (uint64, int, error) {
 // readStream reads from the stream into the given buffer, returning the number of bytes read
 func readStream(stream libp2pnetwork.Stream, bufPointer *[]byte, maxSize uint64) (int, error) {
 	if stream == nil {
-		return 0, errors.New("stream is nil")
+		return 0, fmt.Errorf("stream is nil")
 	}
 
 	var (

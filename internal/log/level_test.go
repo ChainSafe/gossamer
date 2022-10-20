@@ -4,7 +4,7 @@
 package log
 
 import (
-	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -73,7 +73,7 @@ func Test_ParseLevel(t *testing.T) {
 	}{
 		"-1": {
 			s:   "-1",
-			err: errors.New("level integer can only be between 0 and 5 included: -1"),
+			err: fmt.Errorf("level integer can only be between 0 and 5 included: -1"),
 		},
 		"0": {
 			s:     "0",
@@ -85,7 +85,7 @@ func Test_ParseLevel(t *testing.T) {
 		},
 		"6": {
 			s:   "6",
-			err: errors.New("level integer can only be between 0 and 5 included: 6"),
+			err: fmt.Errorf("level integer can only be between 0 and 5 included: 6"),
 		},
 		"trace": {
 			s:     "TRACE",
@@ -113,7 +113,7 @@ func Test_ParseLevel(t *testing.T) {
 		},
 		"invalid": {
 			s:   "someinvalid",
-			err: errors.New("level is not recognised: someinvalid"),
+			err: fmt.Errorf("level is not recognised: someinvalid"),
 		},
 	}
 

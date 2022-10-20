@@ -8,7 +8,6 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -123,7 +122,7 @@ func EncryptAndWriteToFile(path string, pk crypto.PrivateKey, password []byte) e
 	}
 
 	if keytype == "" {
-		return errors.New("cannot write key not of type sr25519, ed25519, secp256k1")
+		return fmt.Errorf("cannot write key not of type sr25519, ed25519, secp256k1")
 	}
 
 	keydata := &EncryptedKeystore{

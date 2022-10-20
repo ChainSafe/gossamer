@@ -6,7 +6,6 @@ package scale
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"io"
 	"math/big"
@@ -536,11 +535,11 @@ func (ds *decodeState) decodeUint(dstv reflect.Value) (err error) {
 }
 
 var (
-	ErrU16OutOfRange            = errors.New("uint16 out of range")
-	ErrU32OutOfRange            = errors.New("uint32 out of range")
-	ErrU64OutOfRange            = errors.New("uint64 out of range")
-	ErrU64NotSupported          = errors.New("uint64 is not supported")
-	ErrCompactUintPrefixUnknown = errors.New("unknown prefix for compact uint")
+	ErrU16OutOfRange            = fmt.Errorf("uint16 out of range")
+	ErrU32OutOfRange            = fmt.Errorf("uint32 out of range")
+	ErrU64OutOfRange            = fmt.Errorf("uint64 out of range")
+	ErrU64NotSupported          = fmt.Errorf("uint64 is not supported")
+	ErrCompactUintPrefixUnknown = fmt.Errorf("unknown prefix for compact uint")
 )
 
 // decodeLength is helper method which calls decodeUint and casts to int

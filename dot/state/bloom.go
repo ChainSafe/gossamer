@@ -5,14 +5,14 @@ package state
 
 import (
 	"encoding/binary"
-	"errors"
+	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	bloomfilter "github.com/holiman/bloomfilter/v2"
 )
 
 // ErrKeySize is returned when key size does not fit
-var ErrKeySize = errors.New("cannot have nil keystore")
+var ErrKeySize = fmt.Errorf("cannot have nil keystore")
 
 type bloomStateHasher []byte
 

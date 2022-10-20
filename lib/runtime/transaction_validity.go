@@ -4,14 +4,13 @@
 package runtime
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-var errInvalidTypeCast = errors.New("invalid type cast")
+var errInvalidTypeCast = fmt.Errorf("invalid type cast")
 
 // TransactionValidityError Information on a transaction's validity and, if valid,
 // on how it relates to other transactions. It is a result of the form:
@@ -95,7 +94,7 @@ func UnmarshalTransactionValidity(res []byte) (*transaction.Validity, error) {
 	}
 	validity, ok := txnValidityRes.(transaction.Validity)
 	if !ok {
-		return nil, fmt.Errorf("%w", errors.New("invalid validity type"))
+		return nil, fmt.Errorf("%w", fmt.Errorf("invalid validity type"))
 	}
 	return &validity, nil
 }

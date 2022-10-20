@@ -7,7 +7,7 @@
 package sync
 
 import (
-	"errors"
+	"fmt"
 	"path/filepath"
 	"testing"
 
@@ -163,7 +163,7 @@ func TestHighestBlock(t *testing.T) {
 			name: "when *chainSync.getHighestBlock() returns 0, error should return 0",
 			in: input{
 				highestBlock: 0,
-				err:          errors.New("fake error"),
+				err:          fmt.Errorf("fake error"),
 			},
 			out: output{
 				highestBlock: 0,

@@ -4,7 +4,6 @@
 package dot
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -87,7 +86,7 @@ func TestLoadGlobalNodeName(t *testing.T) {
 		{
 			name:     "wrong basepath test",
 			basepath: t.TempDir(),
-			err:      errors.New("Key not found"),
+			err:      fmt.Errorf("Key not found"),
 		},
 	}
 	for _, tt := range tests {

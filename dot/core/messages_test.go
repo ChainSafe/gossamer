@@ -4,7 +4,7 @@
 package core
 
 import (
-	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -21,7 +21,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var errDummyErr = errors.New("dummy error for testing")
+var errDummyErr = fmt.Errorf("dummy error for testing")
 
 type mockReportPeer struct {
 	change peerset.ReputationChange

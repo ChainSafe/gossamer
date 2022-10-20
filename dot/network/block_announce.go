@@ -4,7 +4,6 @@
 package network
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/peerset"
@@ -154,7 +153,7 @@ func (s *Service) getBlockAnnounceHandshake() (Handshake, error) {
 func (s *Service) validateBlockAnnounceHandshake(from peer.ID, hs Handshake) error {
 	bhs, ok := hs.(*BlockAnnounceHandshake)
 	if !ok {
-		return errors.New("invalid handshake type")
+		return fmt.Errorf("invalid handshake type")
 	}
 
 	switch bhs.Roles {
@@ -168,7 +167,7 @@ func (s *Service) validateBlockAnnounceHandshake(from peer.ID, hs Handshake) err
 			Value:  peerset.GenesisMismatch,
 			Reason: peerset.GenesisMismatchReason,
 		}, from)
-		return errors.New("genesis hash mismatch")
+		return fmt.Errorf("genesis hash mismatch")
 	}
 
 	np, ok := s.notificationsProtocols[blockAnnounceMsgType]
@@ -205,7 +204,7 @@ func (s *Service) validateBlockAnnounceHandshake(from peer.ID, hs Handshake) err
 func (s *Service) handleBlockAnnounceMessage(from peer.ID, msg NotificationsMessage) (propagate bool, err error) {
 	bam, ok := msg.(*BlockAnnounceMessage)
 	if !ok {
-		return false, errors.New("invalid message")
+		return false, fmt.Errorf("invalid message")
 	}
 
 	if err = s.syncer.HandleBlockAnnounce(from, bam); err != nil {

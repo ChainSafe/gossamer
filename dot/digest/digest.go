@@ -5,7 +5,6 @@ package digest
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -19,7 +18,7 @@ var (
 )
 
 var (
-	ErrUnknownConsensusEngineID = errors.New("unknown consensus engine ID")
+	ErrUnknownConsensusEngineID = fmt.Errorf("unknown consensus engine ID")
 )
 
 // Handler is used to handle consensus messages and relevant authority updates to BABE and GRANDPA
@@ -219,7 +218,7 @@ func (h *Handler) handleBabeConsensusDigest(digest scale.VaryingDataType, header
 		return nil
 	}
 
-	return errors.New("invalid consensus digest data")
+	return fmt.Errorf("invalid consensus digest data")
 }
 
 func (h *Handler) handleBlockImport(ctx context.Context) {

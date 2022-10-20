@@ -4,7 +4,7 @@
 package network
 
 import (
-	"errors"
+	"fmt"
 	"path"
 	"time"
 
@@ -152,7 +152,7 @@ func (c *Config) build() error {
 func (c *Config) checkState() (err error) {
 	// set NoStatus to true if we don't need BlockState
 	if c.BlockState == nil {
-		err = errors.New("failed to build configuration: BlockState required")
+		err = fmt.Errorf("failed to build configuration: BlockState required")
 	}
 
 	return err

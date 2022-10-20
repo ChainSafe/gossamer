@@ -5,7 +5,6 @@ package stress
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -70,7 +69,7 @@ func compareChainHeadsWithRetry(ctx context.Context, nodes node.Nodes,
 	}
 }
 
-var errBlockHashNotOne = errors.New("expected 1 block hash")
+var errBlockHashNotOne = fmt.Errorf("expected 1 block hash")
 
 // compareBlocksByNumber calls getBlockByNumber for each node in the array
 // it returns a map of block hashes to node key names, and an error if the hashes don't all match

@@ -4,7 +4,6 @@
 package wasmer
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -12,7 +11,7 @@ import (
 )
 
 var (
-	ErrGenesisTopNotFound = errors.New("genesis top not found")
+	ErrGenesisTopNotFound = fmt.Errorf("genesis top not found")
 )
 
 // NewTrieFromGenesis creates a new trie from the raw genesis data

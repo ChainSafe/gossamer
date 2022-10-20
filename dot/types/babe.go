@@ -4,11 +4,10 @@
 package types
 
 import (
-	"errors"
 	"fmt"
 )
 
-var ErrNoFirstPreDigest = errors.New("first digest item is not pre-digest")
+var ErrNoFirstPreDigest = fmt.Errorf("first digest item is not pre-digest")
 
 // RandomnessLength is the length of the epoch randomness (32 bytes)
 const RandomnessLength = 32
@@ -27,7 +26,7 @@ const (
 )
 
 var (
-	ErrChainHeadMissingDigest = errors.New("chain head missing digest")
+	ErrChainHeadMissingDigest = fmt.Errorf("chain head missing digest")
 )
 
 // BabeConfiguration contains the genesis data for BABE

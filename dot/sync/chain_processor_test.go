@@ -5,7 +5,7 @@ package sync
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -19,7 +19,7 @@ import (
 
 func Test_chainProcessor_handleBlock(t *testing.T) {
 	t.Parallel()
-	mockError := errors.New("test mock error")
+	mockError := fmt.Errorf("test mock error")
 	testHash := common.MustHexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
 	testParentHash := common.MustHexToHash("0x7db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a")
 
@@ -238,7 +238,7 @@ func Test_chainProcessor_handleJustification(t *testing.T) {
 		Number: 2,
 	}
 	headerHash := header.Hash()
-	errTest := errors.New("test error")
+	errTest := fmt.Errorf("test error")
 
 	type args struct {
 		header        *types.Header
@@ -327,7 +327,7 @@ func Test_chainProcessor_handleJustification(t *testing.T) {
 func Test_chainProcessor_processBlockData(t *testing.T) {
 	t.Parallel()
 
-	mockError := errors.New("mock test error")
+	mockError := fmt.Errorf("mock test error")
 	justification := []byte{0, 1, 2}
 
 	tests := map[string]struct {
@@ -786,7 +786,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 
 func Test_chainProcessor_processReadyBlocks(t *testing.T) {
 	t.Parallel()
-	mockError := errors.New("test mock error")
+	mockError := fmt.Errorf("test mock error")
 	tests := map[string]struct {
 		blockStateBuilder   func(ctrl *gomock.Controller, done chan struct{}) BlockState
 		blockData           *types.BlockData

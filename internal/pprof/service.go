@@ -5,7 +5,7 @@ package pprof
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"runtime"
 
 	"github.com/ChainSafe/gossamer/internal/httpserver"
@@ -32,7 +32,7 @@ func NewService(settings Settings, logger httpserver.Logger) *Service {
 	}
 }
 
-var ErrServerDoneBeforeReady = errors.New("server terminated before being ready")
+var ErrServerDoneBeforeReady = fmt.Errorf("server terminated before being ready")
 
 // Start starts the pprof server service.
 func (s *Service) Start() (err error) {

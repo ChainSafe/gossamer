@@ -4,7 +4,7 @@
 package sync
 
 import (
-	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -19,8 +19,8 @@ const (
 )
 
 var (
-	errUnknownBlock = errors.New("cannot add justification for unknown block")
-	errSetAtLimit   = errors.New("cannot add block; set is at capacity")
+	errUnknownBlock = fmt.Errorf("cannot add justification for unknown block")
+	errSetAtLimit   = fmt.Errorf("cannot add block; set is at capacity")
 )
 
 // DisjointBlockSet represents a set of incomplete blocks, or blocks

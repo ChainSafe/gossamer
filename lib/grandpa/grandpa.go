@@ -32,7 +32,7 @@ const (
 var (
 	logger = log.NewFromGlobal(log.AddContext("pkg", "grandpa"))
 
-	ErrUnsupportedSubround = errors.New("unsupported subround")
+	ErrUnsupportedSubround = fmt.Errorf("unsupported subround")
 	roundGauge             = promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: "gossamer_grandpa",
 		Name:      "round",
@@ -366,7 +366,7 @@ func (s *Service) initiate() error {
 		}
 
 		if s.ctx.Err() != nil {
-			return errors.New("context cancelled")
+			return fmt.Errorf("context cancelled")
 		}
 	}
 }
@@ -560,7 +560,7 @@ func (s *Service) attemptToFinalize() error {
 	for {
 		select {
 		case <-s.ctx.Done():
-			return errors.New("context cancelled")
+			return fmt.Errorf("context cancelled")
 		case <-ticker.C:
 		}
 

@@ -4,7 +4,7 @@
 package network
 
 import (
-	"errors"
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -245,7 +245,7 @@ func Test_HandshakeTimeout(t *testing.T) {
 
 	// create info and handler
 	testHandshakeDecoder := func([]byte) (Handshake, error) {
-		return nil, errors.New("unimplemented")
+		return nil, fmt.Errorf("unimplemented")
 	}
 	info := newNotificationsProtocol(nodeA.host.protocolID+blockAnnounceID, nodeA.getBlockAnnounceHandshake,
 		testHandshakeDecoder, nodeA.validateBlockAnnounceHandshake, maxBlockAnnounceNotificationSize)

@@ -5,7 +5,7 @@ package modules
 
 import (
 	"bytes"
-	"errors"
+	"fmt"
 	"math/big"
 	"net/http"
 	"strings"
@@ -162,7 +162,7 @@ func (sm *SystemModule) NodeRoles(r *http.Request, req *EmptyRequest, res *[]int
 // AccountNextIndex Returns the next valid index (aka. nonce) for given account.
 func (sm *SystemModule) AccountNextIndex(r *http.Request, req *StringRequest, res *U64Response) error {
 	if req == nil || req.String == "" {
-		return errors.New("account address must be valid")
+		return fmt.Errorf("account address must be valid")
 	}
 	addressPubKey := crypto.PublicAddressToByteArray(common.Address(req.String))
 
@@ -248,7 +248,7 @@ func (sm *SystemModule) LocalListenAddresses(r *http.Request, req *EmptyRequest,
 	netstate := sm.networkAPI.NetworkState()
 
 	if len(netstate.Multiaddrs) < 1 {
-		return errors.New("multiaddress list is empty")
+		return fmt.Errorf("multiaddress list is empty")
 	}
 
 	addrs := make([]string, len(netstate.Multiaddrs))
@@ -266,7 +266,7 @@ func (sm *SystemModule) LocalListenAddresses(r *http.Request, req *EmptyRequest,
 func (sm *SystemModule) LocalPeerId(r *http.Request, req *EmptyRequest, res *string) error {
 	netstate := sm.networkAPI.NetworkState()
 	if netstate.PeerID == "" {
-		return errors.New("peer id cannot be empty")
+		return fmt.Errorf("peer id cannot be empty")
 	}
 
 	*res = base58.Encode([]byte(netstate.PeerID))
@@ -276,7 +276,7 @@ func (sm *SystemModule) LocalPeerId(r *http.Request, req *EmptyRequest, res *str
 // AddReservedPeer adds a reserved peer. The string parameter should encode a p2p multiaddr.
 func (sm *SystemModule) AddReservedPeer(r *http.Request, req *StringRequest, res *[]byte) error {
 	if strings.TrimSpace(req.String) == "" {
-		return errors.New("cannot add an empty reserved peer")
+		return fmt.Errorf("cannot add an empty reserved peer")
 	}
 
 	return sm.networkAPI.AddReservedPeers(req.String)
@@ -285,7 +285,7 @@ func (sm *SystemModule) AddReservedPeer(r *http.Request, req *StringRequest, res
 // RemoveReservedPeer remove a reserved peer. The string should encode only the PeerId
 func (sm *SystemModule) RemoveReservedPeer(r *http.Request, req *StringRequest, res *[]byte) error {
 	if strings.TrimSpace(req.String) == "" {
-		return errors.New("cannot remove an empty reserved peer")
+		return fmt.Errorf("cannot remove an empty reserved peer")
 	}
 
 	return sm.networkAPI.RemoveReservedPeers(req.String)

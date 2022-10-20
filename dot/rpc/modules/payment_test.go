@@ -4,7 +4,7 @@
 package modules
 
 import (
-	"errors"
+	"fmt"
 	"math/big"
 	"net/http"
 	"testing"
@@ -40,7 +40,7 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 
 	blockErrorAPIMock1.On("GetRuntime", &testHash).Return(runtimeErrorMock, nil)
 
-	blockErrorAPIMock2.On("GetRuntime", &testHash).Return(nil, errors.New("GetRuntime error"))
+	blockErrorAPIMock2.On("GetRuntime", &testHash).Return(nil, fmt.Errorf("GetRuntime error"))
 
 	runtimeMock.On("PaymentQueryInfo", common.MustHexToBytes("0x0000")).Return(nil, nil)
 	runtimeMock2.On("PaymentQueryInfo", common.MustHexToBytes("0x0000")).Return(&types.TransactionPaymentQueryInfo{
@@ -49,7 +49,7 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 		PartialFee: u,
 	}, nil)
 	runtimeErrorMock.On("PaymentQueryInfo", common.MustHexToBytes("0x0000")).
-		Return(nil, errors.New("PaymentQueryInfo error"))
+		Return(nil, fmt.Errorf("PaymentQueryInfo error"))
 
 	paymentModule := NewPaymentModule(blockAPIMock)
 	type fields struct {
@@ -108,7 +108,7 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 					Ext: "0x0",
 				},
 			},
-			expErr: errors.New("encoding/hex: odd length hex string: 0x0"),
+			expErr: fmt.Errorf("encoding/hex: odd length hex string: 0x0"),
 		},
 		{
 			name: "Invalid Ext",
@@ -133,7 +133,7 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 					Hash: &testHash,
 				},
 			},
-			expErr: errors.New("PaymentQueryInfo error"),
+			expErr: fmt.Errorf("PaymentQueryInfo error"),
 		},
 		{
 			name: "GetRuntime error",
@@ -146,7 +146,7 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 					Hash: &testHash,
 				},
 			},
-			expErr: errors.New("GetRuntime error"),
+			expErr: fmt.Errorf("GetRuntime error"),
 		},
 	}
 	for _, tt := range tests {

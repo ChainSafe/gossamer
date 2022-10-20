@@ -6,7 +6,6 @@ package keystore
 import (
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -29,7 +28,7 @@ func PrivateKeyToKeypair(priv crypto.PrivateKey) (kp crypto.Keypair, err error) 
 	} else if key, ok := priv.(*secp256k1.PrivateKey); ok {
 		kp, err = secp256k1.NewKeypairFromPrivate(key)
 	} else {
-		return nil, errors.New("cannot decode key: invalid key type")
+		return nil, fmt.Errorf("cannot decode key: invalid key type")
 	}
 
 	return kp, err
@@ -44,7 +43,7 @@ func DecodePrivateKey(in []byte, keytype crypto.KeyType) (priv crypto.PrivateKey
 	} else if keytype == crypto.Secp256k1Type {
 		priv, err = secp256k1.NewPrivateKey(in)
 	} else {
-		return nil, errors.New("cannot decode key: invalid key type")
+		return nil, fmt.Errorf("cannot decode key: invalid key type")
 	}
 
 	return priv, err
@@ -58,7 +57,7 @@ func DecodeKeyPairFromHex(keystr []byte, keytype crypto.KeyType) (kp crypto.Keyp
 	case crypto.Ed25519Type:
 		kp, err = ed25519.NewKeypairFromSeed(keystr)
 	default:
-		return nil, errors.New("cannot decode key: invalid key type")
+		return nil, fmt.Errorf("cannot decode key: invalid key type")
 	}
 
 	return kp, err

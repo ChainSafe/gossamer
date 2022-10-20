@@ -4,7 +4,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	_ "time/tzdata"
@@ -161,15 +160,15 @@ func importStateAction(ctx *cli.Context) error {
 	)
 
 	if stateFP = ctx.String(StateFlag.Name); stateFP == "" {
-		return errors.New("must provide argument to --state")
+		return fmt.Errorf("must provide argument to --state")
 	}
 
 	if headerFP = ctx.String(HeaderFlag.Name); headerFP == "" {
-		return errors.New("must provide argument to --header")
+		return fmt.Errorf("must provide argument to --header")
 	}
 
 	if firstSlot = ctx.Int(FirstSlotFlag.Name); firstSlot == 0 {
-		return errors.New("must provide argument to --first-slot")
+		return fmt.Errorf("must provide argument to --first-slot")
 	}
 
 	cfg, err := createImportStateConfig(ctx)

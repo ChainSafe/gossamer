@@ -33,10 +33,10 @@ type httpclient interface {
 }
 
 var (
-	errUnexpectedType          = errors.New("unexpected type")
-	errUnexpectedParamLen      = errors.New("unexpected params length")
-	errCannotReadFromWebsocket = errors.New("cannot read message from websocket")
-	errEmptyMethod             = errors.New("empty method")
+	errUnexpectedType          = fmt.Errorf("unexpected type")
+	errUnexpectedParamLen      = fmt.Errorf("unexpected params length")
+	errCannotReadFromWebsocket = fmt.Errorf("cannot read message from websocket")
+	errEmptyMethod             = fmt.Errorf("empty method")
 )
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "rpc/subscription"))

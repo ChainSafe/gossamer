@@ -5,7 +5,7 @@ package transaction
 
 import (
 	"container/heap"
-	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -16,7 +16,7 @@ import (
 )
 
 // ErrTransactionExists is returned when trying to add a transaction to the queue that already exists
-var ErrTransactionExists = errors.New("transaction is already in queue")
+var ErrTransactionExists = fmt.Errorf("transaction is already in queue")
 
 var transactionQueueGauge = promauto.NewGauge(prometheus.GaugeOpts{
 	Namespace: "gossamer_state_transaction",

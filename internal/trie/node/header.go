@@ -4,7 +4,6 @@
 package node
 
 import (
-	"errors"
 	"fmt"
 	"io"
 )
@@ -67,7 +66,7 @@ func encodeHeader(node *Node, writer io.Writer) (err error) {
 }
 
 var (
-	ErrPartialKeyTooBig = errors.New("partial key length cannot be larger than 2^16")
+	ErrPartialKeyTooBig = fmt.Errorf("partial key length cannot be larger than 2^16")
 )
 
 func decodeHeader(reader io.Reader) (variant byte,
@@ -121,7 +120,7 @@ func decodeHeader(reader io.Reader) (variant byte,
 	}
 }
 
-var ErrVariantUnknown = errors.New("node variant is unknown")
+var ErrVariantUnknown = fmt.Errorf("node variant is unknown")
 
 // variantsOrderedByBitMask is an array of all variants sorted
 // in ascending order by the number of LHS set bits each variant mask has.

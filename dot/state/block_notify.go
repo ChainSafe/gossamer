@@ -4,7 +4,7 @@
 package state
 
 import (
-	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -127,7 +127,7 @@ func (bs *BlockState) RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (
 	defer bs.runtimeUpdateSubscriptionsLock.Unlock()
 
 	if len(bs.runtimeUpdateSubscriptions) == 256 {
-		return 0, errors.New("channel limit reached")
+		return 0, fmt.Errorf("channel limit reached")
 	}
 
 	id := bs.generateID()

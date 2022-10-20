@@ -5,7 +5,6 @@ package proof
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/internal/trie/codec"
@@ -16,7 +15,7 @@ import (
 )
 
 var (
-	ErrKeyNotFound = errors.New("key not found")
+	ErrKeyNotFound = fmt.Errorf("key not found")
 )
 
 // Database defines a key value Get method used

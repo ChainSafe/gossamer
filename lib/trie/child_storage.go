@@ -4,7 +4,6 @@
 package trie
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -13,7 +12,7 @@ import (
 // ChildStorageKeyPrefix is the prefix for all child storage keys
 var ChildStorageKeyPrefix = []byte(":child_storage:default:")
 
-var ErrChildTrieDoesNotExist = errors.New("child trie does not exist")
+var ErrChildTrieDoesNotExist = fmt.Errorf("child trie does not exist")
 
 // PutChild inserts a child trie into the main trie at key :child_storage:[keyToChild]
 // A child trie is added as a node (K, V) in the main trie. K is the child storage key

@@ -5,7 +5,7 @@ package network
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"math/big"
 	"strings"
 	"sync"
@@ -227,11 +227,11 @@ func (s *Service) SetTransactionHandler(handler TransactionHandler) {
 // Start starts the network service
 func (s *Service) Start() error {
 	if s.syncer == nil {
-		return errors.New("service Syncer is nil")
+		return fmt.Errorf("service Syncer is nil")
 	}
 
 	if s.transactionHandler == nil {
-		return errors.New("service TransactionHandler is nil")
+		return fmt.Errorf("service TransactionHandler is nil")
 	}
 
 	if s.IsStopped() {
@@ -489,7 +489,7 @@ func (s *Service) RegisterNotificationsProtocol(
 	defer s.notificationsMu.Unlock()
 
 	if _, has := s.notificationsProtocols[messageID]; has {
-		return errors.New("notifications protocol with message type already exists")
+		return fmt.Errorf("notifications protocol with message type already exists")
 	}
 
 	np := newNotificationsProtocol(protocolID, handshakeGetter, handshakeDecoder, handshakeValidator, maxSize)
@@ -555,7 +555,7 @@ func (s *Service) SendMessage(to peer.ID, msg NotificationsMessage) error {
 		return nil
 	}
 
-	return errors.New("message not supported by any notifications protocol")
+	return fmt.Errorf("message not supported by any notifications protocol")
 }
 
 // Health returns information about host needed for the rpc server

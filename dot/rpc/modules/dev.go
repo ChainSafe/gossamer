@@ -5,7 +5,7 @@ package modules
 
 import (
 	"encoding/binary"
-	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -37,7 +37,7 @@ func (m *DevModule) Control(r *http.Request, req *[]string, res *string) error {
 	switch reqA[0] {
 	case "babe":
 		if m.blockProducerAPI == nil {
-			return errors.New("not a block producer")
+			return fmt.Errorf("not a block producer")
 		}
 
 		switch reqA[1] {

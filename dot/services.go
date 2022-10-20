@@ -4,7 +4,6 @@
 package dot
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
@@ -394,7 +393,7 @@ func (nodeBuilder) createGRANDPAService(cfg *Config, st *state.Service, ks keyst
 
 	keys := ks.Keypairs()
 	if len(keys) == 0 && cfg.Core.GrandpaAuthority {
-		return nil, errors.New("no ed25519 keys provided for GRANDPA")
+		return nil, fmt.Errorf("no ed25519 keys provided for GRANDPA")
 	}
 
 	gsCfg := &grandpa.Config{
