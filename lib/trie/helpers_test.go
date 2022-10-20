@@ -147,10 +147,23 @@ func checkMerkleValuesAreSet(t *testing.T, n *Node) {
 	}
 }
 
-func newDeltas(deleted []common.Hash) (deltas *tracking.Deltas) {
-	deltas = tracking.New()
-	for _, hash := range deleted {
-		deltas.RecordDeleted(hash)
+type newDeltasOption func(deltas DeltaRecorder)
+
+func setDeleted(nodeHashesHex ...string) newDeltasOption {
+	return func(deltas DeltaRecorder) {
+		for _, nodeHashHex := range nodeHashesHex {
+			nodeHash := common.MustHexToHash(nodeHashHex)
+			deltas.RecordDeleted(nodeHash)
+		}
 	}
+}
+
+func newDeltas(options ...newDeltasOption) (deltas *tracking.Deltas) {
+	deltas = tracking.New()
+
+	for _, option := range options {
+		option(deltas)
+	}
+
 	return deltas
 }

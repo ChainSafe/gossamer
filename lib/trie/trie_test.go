@@ -46,8 +46,8 @@ func Test_NewTrie(t *testing.T) {
 func Test_Trie_Snapshot(t *testing.T) {
 	t.Parallel()
 
-	emptyDeltas := newDeltas(nil)
-	setDeltas := newDeltas([]common.Hash{{1}})
+	emptyDeltas := newDeltas()
+	setDeltas := newDeltas(setDeleted("0x01"))
 
 	trie := &Trie{
 		generation: 8,
@@ -102,34 +102,34 @@ func Test_Trie_handleTrackedDeltas(t *testing.T) {
 		"no success and generation 1": {
 			trie: Trie{
 				generation: 1,
-				deltas:     newDeltas([]common.Hash{{1}}),
+				deltas:     newDeltas(setDeleted("0x01")),
 			},
-			pendingDeltas: newDeltas([]common.Hash{{2}}),
+			pendingDeltas: newDeltas(setDeleted("0x02")),
 			expectedTrie: Trie{
 				generation: 1,
-				deltas:     newDeltas([]common.Hash{{1}}),
+				deltas:     newDeltas(setDeleted("0x01")),
 			},
 		},
 		"success and generation 0": {
 			trie: Trie{
-				deltas: newDeltas([]common.Hash{{1}}),
+				deltas: newDeltas(setDeleted("0x01")),
 			},
 			success:       true,
-			pendingDeltas: newDeltas([]common.Hash{{2}}),
+			pendingDeltas: newDeltas(setDeleted("0x02")),
 			expectedTrie: Trie{
-				deltas: newDeltas([]common.Hash{{1}}),
+				deltas: newDeltas(setDeleted("0x01")),
 			},
 		},
 		"success and generation 1": {
 			trie: Trie{
 				generation: 1,
-				deltas:     newDeltas([]common.Hash{{1}}),
+				deltas:     newDeltas(setDeleted("0x01")),
 			},
 			success:       true,
-			pendingDeltas: newDeltas([]common.Hash{{1}, {2}}),
+			pendingDeltas: newDeltas(setDeleted("0x01", "0x02")),
 			expectedTrie: Trie{
 				generation: 1,
-				deltas:     newDeltas([]common.Hash{{1}, {2}}),
+				deltas:     newDeltas(setDeleted("0x01", "0x02")),
 			},
 		},
 	}
@@ -196,7 +196,7 @@ func Test_Trie_prepForMutation(t *testing.T) {
 			trie: Trie{
 				generation: 2,
 			},
-			pendingDeltas: newDeltas(nil),
+			pendingDeltas: newDeltas(),
 			currentNode: &Node{
 				Generation: 1,
 				Key:        []byte{1},
@@ -217,11 +217,8 @@ func Test_Trie_prepForMutation(t *testing.T) {
 					25, 26, 27, 28, 29, 30, 31, 32},
 				Dirty: true,
 			},
-			copied: true,
-			expectedPendingDeltas: newDeltas([]common.Hash{{
-				0x98, 0xfc, 0xd6, 0x6b, 0xa3, 0x12, 0xc2, 0x9e, 0xf1, 0x93, 0x5, 0x2f, 0xd0, 0xc1, 0x4c, 0x6e,
-				0x38, 0xb1, 0x58, 0xbd, 0x5c, 0x2, 0x35, 0x6, 0x45, 0x94, 0xca, 0xcc, 0x1a, 0xb5, 0x96, 0x5d,
-			}}),
+			copied:                true,
+			expectedPendingDeltas: newDeltas(setDeleted("0x98fcd66ba312c29ef193052fd0c14c6e38b158bd5c0235064594cacc1ab5965d")),
 		},
 	}
 
@@ -276,15 +273,10 @@ func Test_Trie_registerDeletedMerkleValue(t *testing.T) {
 			node: &Node{Dirty: true},
 		},
 		"clean root node registered": {
-			node:          someSmallNode,
-			trie:          Trie{root: someSmallNode},
-			pendingDeltas: newDeltas(nil),
-			expectedPendingDeltas: newDeltas([]common.Hash{{
-				0x60, 0x51, 0x6d, 0x0b, 0xb6, 0xe1, 0xbb, 0xfb,
-				0x12, 0x93, 0xf1, 0xb2, 0x76, 0xea, 0x95, 0x05,
-				0xe9, 0xf4, 0xa4, 0xe7, 0xd9, 0x8f, 0x62, 0x0d,
-				0x05, 0x11, 0x5e, 0x0b, 0x85, 0x27, 0x4a, 0xe1,
-			}}),
+			node:                  someSmallNode,
+			trie:                  Trie{root: someSmallNode},
+			pendingDeltas:         newDeltas(),
+			expectedPendingDeltas: newDeltas(setDeleted("0x60516d0bb6e1bbfb1293f1b276ea9505e9f4a4e7d98f620d05115e0b85274ae1")),
 			expectedTrie: Trie{
 				root: &Node{
 					Key:      []byte{1},
@@ -313,11 +305,8 @@ func Test_Trie_registerDeletedMerkleValue(t *testing.T) {
 					17, 18, 19, 20, 21, 22, 23, 24,
 					25, 26, 27, 28, 29, 30, 31, 32},
 			},
-			pendingDeltas: newDeltas(nil),
-			expectedPendingDeltas: newDeltas([]common.Hash{{
-				0x98, 0xfc, 0xd6, 0x6b, 0xa3, 0x12, 0xc2, 0x9e, 0xf1, 0x93, 0x5, 0x2f, 0xd0, 0xc1, 0x4c, 0x6e,
-				0x38, 0xb1, 0x58, 0xbd, 0x5c, 0x2, 0x35, 0x6, 0x45, 0x94, 0xca, 0xcc, 0x1a, 0xb5, 0x96, 0x5d,
-			}}),
+			pendingDeltas:         newDeltas(),
+			expectedPendingDeltas: newDeltas(setDeleted("0x98fcd66ba312c29ef193052fd0c14c6e38b158bd5c0235064594cacc1ab5965d")),
 		},
 	}
 
@@ -400,10 +389,10 @@ func Test_Trie_DeepCopy(t *testing.T) {
 					{1, 2, 3}: {
 						generation: 2,
 						root:       &Node{Key: []byte{1}, SubValue: []byte{1}},
-						deltas:     newDeltas([]common.Hash{{1}, {2}}),
+						deltas:     newDeltas(setDeleted("0x01", "0x02")),
 					},
 				},
-				deltas: newDeltas([]common.Hash{{1}, {2}}),
+				deltas: newDeltas(setDeleted("0x01", "0x02")),
 			},
 			trieCopy: &Trie{
 				generation: 1,
@@ -412,10 +401,10 @@ func Test_Trie_DeepCopy(t *testing.T) {
 					{1, 2, 3}: {
 						generation: 2,
 						root:       &Node{Key: []byte{1}, SubValue: []byte{1}},
-						deltas:     newDeltas([]common.Hash{{1}, {2}}),
+						deltas:     newDeltas(setDeleted("0x01", "0x02")),
 					},
 				},
-				deltas: newDeltas([]common.Hash{{1}, {2}}),
+				deltas: newDeltas(setDeleted("0x01", "0x02")),
 			},
 		},
 	}
@@ -1171,7 +1160,7 @@ func Test_Trie_Put(t *testing.T) {
 		"trie with key and value": {
 			trie: Trie{
 				generation: 1,
-				deltas:     newDeltas(nil),
+				deltas:     newDeltas(),
 				root: &Node{
 					Key:      []byte{1, 2, 0, 5},
 					SubValue: []byte{1},
@@ -1181,12 +1170,7 @@ func Test_Trie_Put(t *testing.T) {
 			value: []byte{2},
 			expectedTrie: Trie{
 				generation: 1,
-				deltas: newDeltas([]common.Hash{
-					{
-						0xa1, 0x95, 0x08, 0x9c, 0x3e, 0x8f, 0x8b, 0x5b, 0x36, 0x97, 0x87, 0x00, 0xad, 0x95, 0x4a, 0xed,
-						0x99, 0xe0, 0x84, 0x13, 0xcf, 0xc1, 0xe2, 0xb4, 0xc0, 0x0a, 0x5d, 0x06, 0x4a, 0xbe, 0x66, 0xa9,
-					},
-				}),
+				deltas:     newDeltas(setDeleted("0xa195089c3e8f8b5b36978700ad954aed99e08413cfc1e2b4c00a5d064abe66a9")),
 				root: &Node{
 					Key:         []byte{1, 2},
 					Generation:  1,
@@ -1772,14 +1756,14 @@ func Test_LoadFromMap(t *testing.T) {
 		"nil data": {
 			expectedTrie: Trie{
 				childTries: map[common.Hash]*Trie{},
-				deltas:     newDeltas(nil),
+				deltas:     newDeltas(),
 			},
 		},
 		"empty data": {
 			data: map[string]string{},
 			expectedTrie: Trie{
 				childTries: map[common.Hash]*Trie{},
-				deltas:     newDeltas(nil),
+				deltas:     newDeltas(),
 			},
 		},
 		"bad key": {
@@ -1812,7 +1796,7 @@ func Test_LoadFromMap(t *testing.T) {
 					Dirty: true,
 				},
 				childTries: map[common.Hash]*Trie{},
-				deltas:     newDeltas(nil),
+				deltas:     newDeltas(),
 			},
 		},
 		"load key values": {
@@ -1842,7 +1826,7 @@ func Test_LoadFromMap(t *testing.T) {
 					}),
 				},
 				childTries: map[common.Hash]*Trie{},
-				deltas:     newDeltas(nil),
+				deltas:     newDeltas(),
 			},
 		},
 	}
@@ -3110,29 +3094,23 @@ func Test_Trie_ClearPrefix(t *testing.T) {
 			trie: Trie{
 				root:       &Node{SubValue: []byte{1}},
 				generation: 1,
-				deltas:     newDeltas(nil),
+				deltas:     newDeltas(),
 			},
 			expectedTrie: Trie{
 				generation: 1,
-				deltas: newDeltas([]common.Hash{{
-					0xf9, 0x6a, 0x74, 0x15, 0x22, 0xbc, 0xc1, 0x4f, 0x0a, 0xea, 0x2f, 0x70, 0x60, 0x44, 0x52, 0x24,
-					0x1d, 0x59, 0xb5, 0xf2, 0xdd, 0xab, 0x9a, 0x69, 0x48, 0xfd, 0xb3, 0xfe, 0xf5, 0xf9, 0x86, 0x43,
-				}}),
+				deltas:     newDeltas(setDeleted("0xf96a741522bcc14f0aea2f70604452241d59b5f2ddab9a6948fdb3fef5f98643")),
 			},
 		},
 		"empty prefix": {
 			trie: Trie{
 				root:       &Node{SubValue: []byte{1}},
 				generation: 1,
-				deltas:     newDeltas(nil),
+				deltas:     newDeltas(),
 			},
 			prefix: []byte{},
 			expectedTrie: Trie{
 				generation: 1,
-				deltas: newDeltas([]common.Hash{{
-					0xf9, 0x6a, 0x74, 0x15, 0x22, 0xbc, 0xc1, 0x4f, 0x0a, 0xea, 0x2f, 0x70, 0x60, 0x44, 0x52, 0x24,
-					0x1d, 0x59, 0xb5, 0xf2, 0xdd, 0xab, 0x9a, 0x69, 0x48, 0xfd, 0xb3, 0xfe, 0xf5, 0xf9, 0x86, 0x43,
-				}}),
+				deltas:     newDeltas(setDeleted("0xf96a741522bcc14f0aea2f70604452241d59b5f2ddab9a6948fdb3fef5f98643")),
 			},
 		},
 		"empty trie": {
@@ -3161,7 +3139,7 @@ func Test_Trie_ClearPrefix(t *testing.T) {
 						},
 					}),
 				},
-				deltas: newDeltas(nil),
+				deltas: newDeltas(),
 			},
 			prefix: []byte{0x12, 0x16},
 			expectedTrie: Trie{
@@ -3172,10 +3150,7 @@ func Test_Trie_ClearPrefix(t *testing.T) {
 					Generation: 1,
 					Dirty:      true,
 				},
-				deltas: newDeltas([]common.Hash{{
-					0x5f, 0xe1, 0x08, 0xc8, 0x3d, 0x08, 0x32, 0x93, 0x53, 0xd6, 0x91, 0x8e, 0x01, 0x04, 0xda, 0xcc,
-					0x9d, 0x21, 0x87, 0xfd, 0x9d, 0xaf, 0xa5, 0x82, 0xd1, 0xc5, 0x32, 0xe5, 0xfe, 0x7b, 0x2e, 0x50,
-				}}),
+				deltas: newDeltas(setDeleted("0x5fe108c83d08329353d6918e0104dacc9d2187fd9dafa582d1c532e5fe7b2e50")),
 			},
 		},
 	}
@@ -3546,28 +3521,22 @@ func Test_Trie_Delete(t *testing.T) {
 			trie: Trie{
 				root:       &Node{SubValue: []byte{1}},
 				generation: 1,
-				deltas:     newDeltas(nil),
+				deltas:     newDeltas(),
 			},
 			expectedTrie: Trie{
 				generation: 1,
-				deltas: newDeltas([]common.Hash{{
-					0xf9, 0x6a, 0x74, 0x15, 0x22, 0xbc, 0xc1, 0x4f, 0x0a, 0xea, 0x2f, 0x70, 0x60, 0x44, 0x52, 0x24,
-					0x1d, 0x59, 0xb5, 0xf2, 0xdd, 0xab, 0x9a, 0x69, 0x48, 0xfd, 0xb3, 0xfe, 0xf5, 0xf9, 0x86, 0x43,
-				}}),
+				deltas:     newDeltas(setDeleted("0xf96a741522bcc14f0aea2f70604452241d59b5f2ddab9a6948fdb3fef5f98643")),
 			},
 		},
 		"empty key": {
 			trie: Trie{
 				root:       &Node{SubValue: []byte{1}},
 				generation: 1,
-				deltas:     newDeltas(nil),
+				deltas:     newDeltas(),
 			},
 			expectedTrie: Trie{
 				generation: 1,
-				deltas: newDeltas([]common.Hash{{
-					0xf9, 0x6a, 0x74, 0x15, 0x22, 0xbc, 0xc1, 0x4f, 0x0a, 0xea, 0x2f, 0x70, 0x60, 0x44, 0x52, 0x24,
-					0x1d, 0x59, 0xb5, 0xf2, 0xdd, 0xab, 0x9a, 0x69, 0x48, 0xfd, 0xb3, 0xfe, 0xf5, 0xf9, 0x86, 0x43,
-				}}),
+				deltas:     newDeltas(setDeleted("0xf96a741522bcc14f0aea2f70604452241d59b5f2ddab9a6948fdb3fef5f98643")),
 			},
 		},
 		"empty trie": {
@@ -3597,7 +3566,7 @@ func Test_Trie_Delete(t *testing.T) {
 						},
 					}),
 				},
-				deltas: newDeltas(nil),
+				deltas: newDeltas(),
 			},
 			key: []byte{0x12, 0x16},
 			expectedTrie: Trie{
@@ -3622,10 +3591,7 @@ func Test_Trie_Delete(t *testing.T) {
 						},
 					}),
 				},
-				deltas: newDeltas([]common.Hash{{
-					0x3d, 0x1b, 0x3d, 0x72, 0x7e, 0xe4, 0x04, 0x54, 0x9a, 0x5d, 0x25, 0x31, 0xaa, 0xb9, 0xff, 0xf0,
-					0xee, 0xdd, 0xc5, 0x8b, 0xc3, 0x0b, 0xfe, 0x2f, 0xe8, 0x2b, 0x1a, 0x0c, 0xfe, 0x7e, 0x76, 0xd5,
-				}}),
+				deltas: newDeltas(setDeleted("0x3d1b3d727ee404549a5d2531aab9fff0eeddc58bc30bfe2fe82b1a0cfe7e76d5")),
 			},
 		},
 	}
