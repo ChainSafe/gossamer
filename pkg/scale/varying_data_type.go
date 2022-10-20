@@ -25,6 +25,7 @@ func (vdts *VaryingDataTypeSlice) Add(values ...VaryingDataTypeValue) (err error
 		copied := vdts.VaryingDataType
 		err = copied.Set(val)
 		if err != nil {
+			err = fmt.Errorf("setting VaryingDataTypeValue: %w", err)
 			return
 		}
 		vdts.Types = append(vdts.Types, copied)
@@ -43,7 +44,7 @@ func mustNewVaryingDataTypeSliceAndSet(vdt VaryingDataType,
 	values ...VaryingDataTypeValue) (vdts VaryingDataTypeSlice) {
 	vdts = NewVaryingDataTypeSlice(vdt)
 	if err := vdts.Add(values...); err != nil {
-		panic(err)
+		panic(fmt.Sprintf("adding varying data type value: %s", err))
 	}
 	return
 }
@@ -58,7 +59,7 @@ type VaryingDataType struct {
 func (vdt *VaryingDataType) Set(value VaryingDataTypeValue) (err error) {
 	_, ok := vdt.cache[value.Index()]
 	if !ok {
-		err = fmt.Errorf("unable to append VaryingDataTypeValue: %T, not in cache", value)
+		err = fmt.Errorf("%w: %v (%T)", ErrUnsupportedVaryingDataTypeValue, value, value)
 		return
 	}
 	vdt.value = value
@@ -76,7 +77,7 @@ func (vdt *VaryingDataType) Value() (VaryingDataTypeValue, error) {
 // NewVaryingDataType is constructor for VaryingDataType
 func NewVaryingDataType(values ...VaryingDataTypeValue) (vdt VaryingDataType, err error) {
 	if len(values) == 0 {
-		err = fmt.Errorf("must provide atleast one VaryingDataTypeValue")
+		err = fmt.Errorf("%w", ErrMustProvideVaryingDataTypeValue)
 		return
 	}
 	vdt.cache = make(map[uint]VaryingDataTypeValue)

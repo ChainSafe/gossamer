@@ -70,7 +70,7 @@ deps:
 ## build: Builds application binary and stores it in `./bin/gossamer`
 build:
 	@echo "  >  \033[32mBuilding binary...\033[0m "
-	go build -trimpath -o ./bin/gossamer ./cmd/gossamer
+	go build -trimpath -o ./bin/gossamer -ldflags="-s -w" ./cmd/gossamer
 
 ## debug: Builds application binary with debug flags and stores it in `./bin/gossamer`
 build-debug: clean

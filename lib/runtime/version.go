@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
@@ -69,7 +70,7 @@ func DecodeVersion(encoded []byte) (version Version, err error) {
 	for _, optionalField := range optionalFields {
 		err = decoder.Decode(optionalField.value)
 		if err != nil {
-			if err.Error() == "EOF" {
+			if errors.Is(err, io.EOF) {
 				return version, nil
 			}
 			return Version{}, fmt.Errorf("%w %s: %s", ErrDecodingVersionField, optionalField.name, err)
