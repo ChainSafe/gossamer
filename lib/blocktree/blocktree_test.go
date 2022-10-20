@@ -347,6 +347,15 @@ func TestBlockTree_GetAllBlocksAtNumber(t *testing.T) {
 	require.Equal(t, expected, hashes)
 }
 
+func TestBlockTreeGetAllDescendants(t *testing.T) {
+	// Create tree with number 4 (with 4 nodes)
+	bt, hashes := createFlatTree(t, 4)
+
+	descendants, err := bt.GetAllDescendants(bt.root.hash)
+	require.NoError(t, err)
+	require.NotEqual(t, hashes, descendants)
+}
+
 func TestBlockTree_IsDecendantOf(t *testing.T) {
 	// Create tree with number 4 (with 4 nodes)
 	bt, hashes := createFlatTree(t, 4)
