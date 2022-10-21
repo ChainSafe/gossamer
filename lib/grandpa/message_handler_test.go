@@ -1323,8 +1323,8 @@ func TestService_VerifyBlockJustification(t *testing.T) {
 				justification: []byte{1, 2, 3},
 			},
 			want: nil,
-			wantErr: errors.New("EOF, field: 0x0000000000000000000000000000000000000000000000000000000000000000, " +
-				"field: {Hash:0x0000000000000000000000000000000000000000000000000000000000000000 Number:0 Precommits:[]}"),
+			wantErr: errors.New("decoding struct: unmarshalling field at index 1: decoding struct: unmarshalling" +
+				" field at index 0: EOF"),
 		},
 		"valid justification": {
 			fields: fields{

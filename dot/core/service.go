@@ -127,40 +127,63 @@ func (s *Service) StorageRoot() (common.Hash, error) {
 
 // HandleBlockImport handles a block that was imported via the network
 func (s *Service) HandleBlockImport(block *types.Block, state *rtstorage.TrieState) error {
-	return s.handleBlock(block, state)
+	err := s.handleBlock(block, state)
+	if err != nil {
+		return fmt.Errorf("handling block: %w", err)
+	}
+
+	bestBlockHash := s.blockState.BestBlockHash()
+	isBestBlock := bestBlockHash.Equal(block.Header.Hash())
+
+	blockAnnounce, err := createBlockAnnounce(block, isBestBlock)
+	if err != nil {
+		return fmt.Errorf("creating block announce: %w", err)
+	}
+
+	s.net.GossipMessage(blockAnnounce)
+	return nil
 }
 
 // HandleBlockProduced handles a block that was produced by us
 // It is handled the same as an imported block in terms of state updates; the only difference
 // is we send a BlockAnnounceMessage to our peers.
 func (s *Service) HandleBlockProduced(block *types.Block, state *rtstorage.TrieState) error {
-	if err := s.handleBlock(block, state); err != nil {
-		return err
+	err := s.handleBlock(block, state)
+	if err != nil {
+		return fmt.Errorf("handling block: %w", err)
 	}
 
+	blockAnnounce, err := createBlockAnnounce(block, true)
+	if err != nil {
+		return fmt.Errorf("creating block announce: %w", err)
+	}
+
+	s.net.GossipMessage(blockAnnounce)
+	return nil
+}
+
+func createBlockAnnounce(block *types.Block, isBestBlock bool) (
+	blockAnnounce *network.BlockAnnounceMessage, err error) {
 	digest := types.NewDigest()
 	for i := range block.Header.Digest.Types {
 		digestValue, err := block.Header.Digest.Types[i].Value()
 		if err != nil {
-			return fmt.Errorf("getting value of digest type at index %d: %w", i, err)
+			return nil, fmt.Errorf("getting value of digest type at index %d: %w", i, err)
 		}
 		err = digest.Add(digestValue)
 		if err != nil {
-			return err
+			return nil, fmt.Errorf("adding digest value for type at index %d: %w", i, err)
 		}
 	}
 
-	msg := &network.BlockAnnounceMessage{
+	return &network.BlockAnnounceMessage{
 		ParentHash:     block.Header.ParentHash,
 		Number:         block.Header.Number,
 		StateRoot:      block.Header.StateRoot,
 		ExtrinsicsRoot: block.Header.ExtrinsicsRoot,
 		Digest:         digest,
-		BestBlock:      true,
-	}
-
-	s.net.GossipMessage(msg)
-	return nil
+		BestBlock:      isBestBlock,
+	}, nil
 }
 
 func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) error {
