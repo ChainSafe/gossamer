@@ -367,8 +367,7 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 			decExt := &ctypes.Extrinsic{}
 			decoder := cscale.NewDecoder(bytes.NewReader(ext))
 			if err = decoder.Decode(&decExt); err != nil {
-				logger.Error(err.Error())
-				continue
+				return fmt.Errorf("decoding extrinsic: %s", err)
 			}
 
 			// Inherent are not signed.
@@ -383,7 +382,7 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 
 			transactionValidity, err := rt.ValidateTransaction(externalExt)
 			if err != nil {
-				logger.Debugf("failed to validate transaction for extrinsic %s: %s", ext, err)
+				logger.Debugf("failed to validate transaction for extrinsic %s: %s skipping in chain reorg", ext, err)
 				s.transactionState.RemoveExtrinsic(ext)
 				continue
 			}
