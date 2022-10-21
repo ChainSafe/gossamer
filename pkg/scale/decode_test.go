@@ -132,6 +132,34 @@ func Test_decodeState_decodeSlice(t *testing.T) {
 	}
 }
 
+// // Rust code to encode a map of string to struct.
+// let mut btree_map: BTreeMap<String, User> = BTreeMap::new();
+// match btree_map.entry("string1".to_string()) {
+// 	Entry::Vacant(entry) => {
+// 		entry.insert(User{
+// 			active: true,
+// 			username: "lorem".to_string(),
+// 			email: "lorem@ipsum.org".to_string(),
+// 			sign_in_count: 1,
+// 		 });
+// 		()
+// 	},
+// 	Entry::Occupied(_) => (),
+// }
+// match btree_map.entry("string2".to_string()) {
+// 	Entry::Vacant(entry) => {
+// 		entry.insert(User{
+// 			active: false,
+// 			username: "john".to_string(),
+// 			email: "jack@gmail.com".to_string(),
+// 			sign_in_count: 73,
+// 		 });
+// 		()
+// 	},
+// 	Entry::Occupied(_) => (),
+// }
+// println!("{:?}", btree_map.encode());
+
 type user struct {
 	Active      bool
 	Username    string
