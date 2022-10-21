@@ -153,8 +153,7 @@ func (s *Service) HandleBlockProduced(block *types.Block, state *rtstorage.TrieS
 		return fmt.Errorf("handling block: %w", err)
 	}
 
-	const isBestBlock = true
-	blockAnnounce, err := createBlockAnnounce(block, isBestBlock)
+	blockAnnounce, err := createBlockAnnounce(block, true)
 	if err != nil {
 		return fmt.Errorf("creating block announce: %w", err)
 	}
