@@ -10,6 +10,7 @@ import (
 	"io"
 	"math/big"
 	"reflect"
+	"sort"
 )
 
 // Encoder scale encodes to a given io.Writer.
@@ -106,6 +107,8 @@ func (es *encodeState) marshal(in interface{}) (err error) {
 			err = es.encodeArray(in)
 		case reflect.Slice:
 			err = es.encodeSlice(in)
+		case reflect.Map:
+			err = es.encodeMap(in)
 		default:
 			err = fmt.Errorf("%w: %T", ErrUnsupportedType, in)
 		}
@@ -221,6 +224,40 @@ func (es *encodeState) encodeArray(in interface{}) (err error) {
 		}
 	}
 	return
+}
+
+func (es *encodeState) encodeMap(in interface{}) (err error) {
+	v := reflect.ValueOf(in)
+	err = es.encodeLength(v.Len())
+	if err != nil {
+		return fmt.Errorf("encoding length: %w", err)
+	}
+
+	mapKeys := v.MapKeys()
+
+	sort.Slice(mapKeys, func(i, j int) bool {
+		keyByteOfI, _ := Marshal(mapKeys[i].Interface())
+		keyByteOfJ, _ := Marshal(mapKeys[j].Interface())
+		return bytes.Compare(keyByteOfI, keyByteOfJ) < 0
+	})
+
+	for _, key := range mapKeys {
+		err = es.marshal(key.Interface())
+		if err != nil {
+			return fmt.Errorf("encoding map key: %w", err)
+		}
+
+		mapValue := v.MapIndex(key)
+		if !mapValue.CanInterface() {
+			continue
+		}
+
+		err = es.marshal(mapValue.Interface())
+		if err != nil {
+			return fmt.Errorf("encoding map value: %w", err)
+		}
+	}
+	return nil
 }
 
 // encodeBigInt performs the same encoding as encodeInteger, except on a big.Int.

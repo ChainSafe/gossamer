@@ -150,6 +150,8 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {
 			err = ds.decodeArray(dstv)
 		case reflect.Slice:
 			err = ds.decodeSlice(dstv)
+		case reflect.Map:
+			err = ds.decodeMap(dstv)
 		default:
 			err = fmt.Errorf("%w: %T", ErrUnsupportedType, in)
 		}
@@ -415,6 +417,34 @@ func (ds *decodeState) decodeArray(dstv reflect.Value) (err error) {
 	}
 	dstv.Set(temp.Elem())
 	return
+}
+
+func (ds *decodeState) decodeMap(dstv reflect.Value) (err error) {
+	numberOfTuples, err := ds.decodeLength()
+	if err != nil {
+		return fmt.Errorf("decoding length: %w", err)
+	}
+	in := dstv.Interface()
+
+	for i := uint(0); i < numberOfTuples; i++ {
+		tempKeyType := reflect.TypeOf(in).Key()
+		tempKey := reflect.New(tempKeyType).Elem()
+		err = ds.unmarshal(tempKey)
+		if err != nil {
+			return fmt.Errorf("decoding key %d of %d: %w", i+1, numberOfTuples, err)
+		}
+
+		tempElemType := reflect.TypeOf(in).Elem()
+		tempElem := reflect.New(tempElemType).Elem()
+		err = ds.unmarshal(tempElem)
+		if err != nil {
+			return fmt.Errorf("decoding value %d of %d: %w", i+1, numberOfTuples, err)
+		}
+
+		dstv.SetMapIndex(tempKey, tempElem)
+	}
+
+	return nil
 }
 
 // decodeStruct decodes a byte array representing a SCALE tuple.  The order of data is
