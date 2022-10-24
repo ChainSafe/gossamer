@@ -136,7 +136,7 @@ func (s *Service) HandleBlockImport(block *types.Block, state *rtstorage.TrieSta
 // is we send a BlockAnnounceMessage to our peers.
 func (s *Service) HandleBlockProduced(block *types.Block, state *rtstorage.TrieState) error {
 	if err := s.handleBlock(block, state); err != nil {
-		return err
+		return fmt.Errorf("handling block: %w", err)
 	}
 
 	digest := types.NewDigest()
