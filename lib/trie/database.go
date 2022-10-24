@@ -399,58 +399,22 @@ func (t *Trie) writeDirtyNode(db chaindb.Batch, n *Node) (err error) {
 
 // GetInsertedMerkleValues returns the set of node Merkle values
 // for each node that was inserted in the state trie since the last snapshot.
-func (t *Trie) GetInsertedMerkleValues() (merkleValues map[string]struct{}, err error) {
-	merkleValues = make(map[string]struct{})
-	err = t.getInsertedNodeHashesAtNode(t.root, merkleValues)
-	if err != nil {
-		return nil, err
+// Note the map is not deep copied so mutation will affect the trie.
+func (t *Trie) GetInsertedMerkleValues() (merkleValues map[string]struct{}) {
+	_, insertedNodeHashes := t.deltas.Get()
+	// TODO return insertedNodeHashes directly after changing MerkleValue -> NodeHash
+	merkleValues = make(map[string]struct{}, len(insertedNodeHashes))
+	for nodeHash := range insertedNodeHashes {
+		merkleValues[string(nodeHash[:])] = struct{}{}
 	}
-	return merkleValues, nil
-}
-
-func (t *Trie) getInsertedNodeHashesAtNode(n *Node, merkleValues map[string]struct{}) (err error) {
-	if n == nil || !n.Dirty {
-		return nil
-	}
-
-	var merkleValue []byte
-	if n == t.root {
-		merkleValue, err = n.CalculateRootMerkleValue()
-	} else {
-		merkleValue, err = n.CalculateMerkleValue()
-	}
-	if err != nil {
-		return fmt.Errorf(
-			"encoding and hashing node with Merkle value 0x%x: %w",
-			n.MerkleValue, err)
-	}
-
-	merkleValues[string(merkleValue)] = struct{}{}
-
-	if n.Kind() != node.Branch {
-		return nil
-	}
-
-	for _, child := range n.Children {
-		if child == nil {
-			continue
-		}
-
-		err := t.getInsertedNodeHashesAtNode(child, merkleValues)
-		if err != nil {
-			// Note: do not wrap error since this is called recursively.
-			return err
-		}
-	}
-
-	return nil
+	return merkleValues
 }
 
 // GetDeletedMerkleValues returns a set of all the node Merkle values for each
 // node that was deleted from the trie since the last snapshot was made.
 // The returned set is a copy of the internal set to prevent data corruption.
 func (t *Trie) GetDeletedMerkleValues() (merkleValues map[string]struct{}) {
-	deletedNodeHashes := t.deltas.Deleted()
+	deletedNodeHashes, _ := t.deltas.Get()
 	// TODO return deletedNodeHashes directly after changing MerkleValue -> NodeHash
 	merkleValues = make(map[string]struct{}, len(deletedNodeHashes))
 	for nodeHash := range deletedNodeHashes {

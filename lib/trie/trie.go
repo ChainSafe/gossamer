@@ -72,29 +72,37 @@ func (t *Trie) Snapshot() (newTrie *Trie) {
 
 // handleTrackedDeltas sets the pending deleted Merkle values in
 // the trie deleted merkle values set if and only if success is true.
-func (t *Trie) handleTrackedDeltas(success bool, pendingDeltas DeltaDeletedGetter) {
-	if !success || t.generation == 0 {
-		// Do not persist tracked deleted node hashes if the operation failed or
-		// if the trie generation is zero (first block, no trie snapshot done yet).
+func (t *Trie) handleTrackedDeltas(success bool, pendingDeltas DeltaGetter) {
+	if !success {
+		// Do not persist tracked deleted and inserted node hashes if the operation failed.
 		return
 	}
 
-	t.deltas.MergeWith(pendingDeltas)
+	// Do not persist tracked deleted node hashes if the trie
+	// generation is zero (first block, no trie snapshot done yet).
+	mergeDeleted := t.generation > 0
+
+	t.deltas.MergeWith(pendingDeltas, mergeDeleted)
 }
 
 func (t *Trie) prepForMutation(currentNode *Node,
 	copySettings node.CopySettings,
-	pendingDeltas DeltaRecorder) (
+	pendingDeltas DeltaDeletedRecorder) (
 	newNode *Node, err error) {
+	// We need to register all deleted Merkle values before
+	// node mutation so that we can detect re-inserted node.
+	// TODO store map of node pointers to save the scale encoding + hash
+	// for this purpose.
+	err = t.registerDeletedMerkleValue(currentNode, pendingDeltas)
+	if err != nil {
+		return nil, fmt.Errorf("registering deleted node: %w", err)
+	}
+
 	if currentNode.Generation == t.generation {
 		// no need to track deleted node, deep copy the node and
 		// update the node generation.
 		newNode = currentNode
 	} else {
-		err = t.registerDeletedMerkleValue(currentNode, pendingDeltas)
-		if err != nil {
-			return nil, fmt.Errorf("registering deleted node: %w", err)
-		}
 		newNode = currentNode.Copy(copySettings)
 		newNode.Generation = t.generation
 	}
@@ -103,7 +111,7 @@ func (t *Trie) prepForMutation(currentNode *Node,
 }
 
 func (t *Trie) registerDeletedMerkleValue(node *Node,
-	pendingDeltas DeltaRecorder) (err error) {
+	pendingDeltas DeltaDeletedRecorder) (err error) {
 	isRoot := node == t.root
 	err = ensureMerkleValueIsCalculated(node, isRoot)
 	if err != nil {
@@ -117,13 +125,28 @@ func (t *Trie) registerDeletedMerkleValue(node *Node,
 		return nil
 	}
 
-	if !node.Dirty {
-		// Only register deleted nodes that were not previously modified
-		// since the last trie snapshot.
-		nodeHash := common.NewHash(node.MerkleValue)
-		pendingDeltas.RecordDeleted(nodeHash)
+	nodeHash := common.NewHash(node.MerkleValue)
+	pendingDeltas.RecordDeleted(nodeHash)
+	return nil
+}
+
+func registerInsertedMerkleValue(node *Node, willBeRoot bool,
+	pendingDeltas DeltaInsertedRecorder) (
+	err error) {
+	err = ensureMerkleValueIsCalculated(node, willBeRoot)
+	if err != nil {
+		return fmt.Errorf("ensuring Merkle value is calculated: %w", err)
 	}
 
+	if len(node.MerkleValue) < 32 {
+		// Merkle values which are less than 32 bytes are inlined
+		// in the parent branch and are not stored on disk, so there
+		// is no need to track their insertion for the online pruning.
+		return nil
+	}
+
+	nodeHash := common.NewHash(node.MerkleValue)
+	pendingDeltas.RecordInserted(nodeHash)
 	return nil
 }
 
@@ -336,8 +359,7 @@ func findNextKeyChild(children []*Node, startIndex byte,
 func (t *Trie) Put(keyLE, value []byte) (err error) {
 	pendingDeltas := tracking.New()
 	defer func() {
-		const success = true
-		t.handleTrackedDeltas(success, pendingDeltas)
+		t.handleTrackedDeltas(err == nil, pendingDeltas)
 	}()
 	return t.insertKeyLE(keyLE, value, pendingDeltas)
 }
@@ -359,14 +381,21 @@ func (t *Trie) insert(parent *Node, key, value []byte,
 	pendingDeltas DeltaRecorder) (newParent *Node,
 	mutated bool, nodesCreated uint32, err error) {
 	if parent == nil {
-		mutated = true
-		nodesCreated = 1
-		return &Node{
+		newParent = &Node{
 			Key:        key,
 			SubValue:   value,
 			Generation: t.generation,
 			Dirty:      true,
-		}, mutated, nodesCreated, nil
+		}
+		isRoot := parent == t.root
+		err = registerInsertedMerkleValue(newParent, isRoot, pendingDeltas)
+		if err != nil {
+			return nil, false, 0, fmt.Errorf("registering leaf insertion: %w", err)
+		}
+
+		mutated = true
+		nodesCreated = 1
+		return newParent, mutated, nodesCreated, nil
 	}
 
 	// TODO ensure all values have dirty set to true
@@ -401,6 +430,7 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
 			return parentLeaf, mutated, nodesCreated, nil
 		}
 
+		isRoot := parentLeaf == t.root
 		copySettings := node.DefaultCopySettings
 		copySettings.CopyValue = false
 		parentLeaf, err = t.prepForMutation(parentLeaf, copySettings, pendingDeltas)
@@ -409,6 +439,12 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
 		}
 
 		parentLeaf.SubValue = value
+
+		err = registerInsertedMerkleValue(parentLeaf, isRoot, pendingDeltas)
+		if err != nil {
+			return nil, false, 0, fmt.Errorf("registering parent leaf subvalue update: %w", err)
+		}
+
 		mutated = true
 		return parentLeaf, mutated, nodesCreated, nil
 	}
@@ -417,6 +453,7 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
 
 	// Convert the current leaf parent into a branch parent
 	mutated = true
+	isRoot := parentLeaf == t.root
 	newBranchParent := &Node{
 		Key:        key[:commonPrefixLength],
 		Generation: t.generation,
@@ -439,11 +476,32 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
 				if err != nil {
 					return nil, false, 0, fmt.Errorf("preparing leaf for mutation: %w", err)
 				}
+
 				parentLeaf.Key = newParentLeafKey
+
+				err = registerInsertedMerkleValue(parentLeaf, isRoot, pendingDeltas)
+				if err != nil {
+					return nil, false, 0, fmt.Errorf("registering parent leaf key update: %w", err)
+				}
+			} else {
+				err = t.registerDeletedMerkleValue(parentLeaf, pendingDeltas)
+				if err != nil {
+					return nil, false, 0, fmt.Errorf("registering leaf deletion: %w", err)
+				}
 			}
 			newBranchParent.Children[childIndex] = parentLeaf
 			newBranchParent.Descendants++
 			nodesCreated++
+		} else {
+			err = t.registerDeletedMerkleValue(parentLeaf, pendingDeltas)
+			if err != nil {
+				return nil, false, 0, fmt.Errorf("registering leaf deletion: %w", err)
+			}
+		}
+
+		err = registerInsertedMerkleValue(newBranchParent, isRoot, pendingDeltas)
+		if err != nil {
+			return nil, false, 0, fmt.Errorf("registering branch insertion: %w", err)
 		}
 
 		return newBranchParent, mutated, nodesCreated, nil
@@ -452,6 +510,11 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
 	if len(parentLeaf.Key) == commonPrefixLength {
 		// the key of the parent leaf is at this new branch
 		newBranchParent.SubValue = parentLeaf.SubValue
+
+		err = t.registerDeletedMerkleValue(parentLeaf, pendingDeltas)
+		if err != nil {
+			return nil, false, 0, fmt.Errorf("registering leaf deletion: %w", err)
+		}
 	} else {
 		// make the leaf a child of the new branch
 		copySettings := node.DefaultCopySettings
@@ -463,19 +526,43 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
 				return nil, false, 0, fmt.Errorf("preparing leaf for mutation: %w", err)
 			}
 			parentLeaf.Key = newParentLeafKey
+			const parentLeafWillBeRoot = false
+			err = registerInsertedMerkleValue(parentLeaf, parentLeafWillBeRoot, pendingDeltas)
+			if err != nil {
+				return nil, false, 0, fmt.Errorf("registering child leaf key update: %w", err)
+			}
+		} else {
+			err = t.registerDeletedMerkleValue(parentLeaf, pendingDeltas)
+			if err != nil {
+				return nil, false, 0, fmt.Errorf("registering leaf deletion: %w", err)
+			}
 		}
 		newBranchParent.Children[childIndex] = parentLeaf
 		newBranchParent.Descendants++
 		nodesCreated++
 	}
 	childIndex := key[commonPrefixLength]
-	newBranchParent.Children[childIndex] = &Node{
+	newChild := &Node{
 		Key:        key[commonPrefixLength+1:],
 		SubValue:   value,
 		Generation: t.generation,
 		Dirty:      true,
 	}
+
+	const newChildIsRoot = false
+	err = registerInsertedMerkleValue(newChild, newChildIsRoot, pendingDeltas)
+	if err != nil {
+		return nil, false, 0, fmt.Errorf("registering new child node insertion: %w", err)
+	}
+
+	newBranchParent.Children[childIndex] = newChild
 	newBranchParent.Descendants++
+
+	err = registerInsertedMerkleValue(newBranchParent, isRoot, pendingDeltas)
+	if err != nil {
+		return nil, false, 0, fmt.Errorf("registering branch insertion: %w", err)
+	}
+
 	nodesCreated++
 
 	return newBranchParent, mutated, nodesCreated, nil
@@ -496,6 +583,13 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte,
 			return nil, false, 0, fmt.Errorf("preparing branch for mutation: %w", err)
 		}
 		parentBranch.SubValue = value
+
+		isRoot := parentBranch == t.root
+		err = registerInsertedMerkleValue(parentBranch, isRoot, pendingDeltas)
+		if err != nil {
+			return nil, false, 0, fmt.Errorf("registering branch subvalue update: %w", err)
+		}
+
 		mutated = true
 		return parentBranch, mutated, 0, nil
 	}
@@ -514,6 +608,13 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte,
 				Generation: t.generation,
 				Dirty:      true,
 			}
+
+			isRoot := false
+			err = registerInsertedMerkleValue(child, isRoot, pendingDeltas)
+			if err != nil {
+				return nil, false, 0, fmt.Errorf("registering child node insertion: %w", err)
+			}
+
 			nodesCreated = 1
 			parentBranch, err = t.prepForMutation(parentBranch, copySettings, pendingDeltas)
 			if err != nil {
@@ -521,6 +622,13 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte,
 			}
 			parentBranch.Children[childIndex] = child
 			parentBranch.Descendants += nodesCreated
+
+			isRoot = parentBranch == t.root
+			err = registerInsertedMerkleValue(parentBranch, isRoot, pendingDeltas)
+			if err != nil {
+				return nil, false, 0, fmt.Errorf("registering parent branch insertion: %w", err)
+			}
+
 			mutated = true
 			return parentBranch, mutated, nodesCreated, nil
 		}
@@ -533,6 +641,7 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte,
 			return parentBranch, mutated, 0, nil
 		}
 
+		isRoot := parentBranch == t.root
 		parentBranch, err = t.prepForMutation(parentBranch, copySettings, pendingDeltas)
 		if err != nil {
 			return nil, false, 0, fmt.Errorf("preparing branch for mutation: %w", err)
@@ -540,6 +649,12 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte,
 
 		parentBranch.Children[childIndex] = child
 		parentBranch.Descendants += nodesCreated
+
+		err = registerInsertedMerkleValue(parentBranch, isRoot, pendingDeltas)
+		if err != nil {
+			return nil, false, 0, fmt.Errorf("registering branch child update: %w", err)
+		}
+
 		return parentBranch, mutated, nodesCreated, nil
 	}
 
@@ -559,12 +674,19 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte,
 	remainingOldParentKey := parentBranch.Key[commonPrefixLength+1:]
 
 	// Note: parentBranch.Key != remainingOldParentKey
+	parentBranchWasRoot := parentBranch == t.root
 	parentBranch, err = t.prepForMutation(parentBranch, copySettings, pendingDeltas)
 	if err != nil {
 		return nil, false, 0, fmt.Errorf("preparing branch for mutation: %w", err)
 	}
 
 	parentBranch.Key = remainingOldParentKey
+	const parentBranchIsRoot = false // branch is now child of new branch
+	err = registerInsertedMerkleValue(parentBranch, parentBranchIsRoot, pendingDeltas)
+	if err != nil {
+		return nil, false, 0, fmt.Errorf("registering branch key update: %w", err)
+	}
+
 	newParentBranch.Children[oldParentIndex] = parentBranch
 	newParentBranch.Descendants += 1 + parentBranch.Descendants
 
@@ -583,6 +705,11 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte,
 
 		nodesCreated += additionalNodesCreated
 		newParentBranch.Descendants += additionalNodesCreated
+	}
+
+	err = registerInsertedMerkleValue(newParentBranch, parentBranchWasRoot, pendingDeltas)
+	if err != nil {
+		return nil, false, 0, fmt.Errorf("registering branch insertion: %w", err)
 	}
 
 	return newParentBranch, mutated, nodesCreated, nil
@@ -771,8 +898,7 @@ func (t *Trie) ClearPrefixLimit(prefixLE []byte, limit uint32) (
 	deleted uint32, allDeleted bool, err error) {
 	pendingDeltas := tracking.New()
 	defer func() {
-		const success = true
-		t.handleTrackedDeltas(success, pendingDeltas)
+		t.handleTrackedDeltas(err == nil, pendingDeltas)
 	}()
 
 	if limit == 0 {
@@ -829,6 +955,7 @@ func (t *Trie) clearPrefixLimitAtNode(parent *Node, prefix []byte,
 func (t *Trie) clearPrefixLimitBranch(branch *Node, prefix []byte, limit uint32,
 	pendingDeltas DeltaRecorder) (
 	newParent *Node, valuesDeleted, nodesRemoved uint32, allDeleted bool, err error) {
+	isRoot := branch == t.root
 	newParent = branch
 
 	if bytes.HasPrefix(branch.Key, prefix) {
@@ -884,12 +1011,18 @@ func (t *Trie) clearPrefixLimitBranch(branch *Node, prefix []byte, limit uint32,
 		nodesRemoved++
 	}
 
+	err = registerInsertedMerkleValue(newParent, isRoot, pendingDeltas)
+	if err != nil {
+		return nil, 0, 0, false, fmt.Errorf("registering branch child update: %w", err)
+	}
+
 	return newParent, valuesDeleted, nodesRemoved, allDeleted, nil
 }
 
 func (t *Trie) clearPrefixLimitChild(branch *Node, prefix []byte, limit uint32,
 	pendingDeltas DeltaRecorder) (
 	newParent *Node, valuesDeleted, nodesRemoved uint32, allDeleted bool, err error) {
+	isRoot := branch == t.root
 	newParent = branch
 
 	childIndex := prefix[len(branch.Key)]
@@ -928,6 +1061,11 @@ func (t *Trie) clearPrefixLimitChild(branch *Node, prefix []byte, limit uint32,
 		return nil, 0, 0, false, fmt.Errorf("handling deletion: %w", err)
 	}
 
+	err = registerInsertedMerkleValue(newParent, isRoot, pendingDeltas)
+	if err != nil {
+		return nil, 0, 0, false, fmt.Errorf("registering branch child update: %w", err)
+	}
+
 	if branchChildMerged {
 		nodesRemoved++
 	}
@@ -939,6 +1077,7 @@ func (t *Trie) clearPrefixLimitChild(branch *Node, prefix []byte, limit uint32,
 func (t *Trie) deleteNodesLimit(parent *Node, limit uint32,
 	pendingDeltas DeltaRecorder) (
 	newParent *Node, valuesDeleted, nodesRemoved uint32, err error) {
+	isRoot := parent == t.root
 	if limit == 0 {
 		valuesDeleted, nodesRemoved = 0, 0
 		return parent, valuesDeleted, nodesRemoved, nil
@@ -1010,6 +1149,11 @@ func (t *Trie) deleteNodesLimit(parent *Node, limit uint32,
 		}
 
 		if limit == 0 {
+			err = registerInsertedMerkleValue(newParent, isRoot, pendingDeltas)
+			if err != nil {
+				return nil, 0, 0, fmt.Errorf("registering branch child update: %w", err)
+			}
+
 			return newParent, valuesDeleted, nodesRemoved, nil
 		}
 	}
@@ -1027,8 +1171,7 @@ func (t *Trie) deleteNodesLimit(parent *Node, limit uint32,
 func (t *Trie) ClearPrefix(prefixLE []byte) (err error) {
 	pendingDeltas := tracking.New()
 	defer func() {
-		const success = true
-		t.handleTrackedDeltas(success, pendingDeltas)
+		t.handleTrackedDeltas(err == nil, pendingDeltas)
 	}()
 
 	if len(prefixLE) == 0 {
@@ -1058,13 +1201,14 @@ func (t *Trie) ClearPrefix(prefixLE []byte) (err error) {
 func (t *Trie) clearPrefixAtNode(parent *Node, prefix []byte,
 	pendingDeltas DeltaRecorder) (
 	newParent *Node, nodesRemoved uint32, err error) {
+	isRoot := parent == t.root
+
 	if parent == nil {
 		const nodesRemoved = 0
 		return nil, nodesRemoved, nil
 	}
 
 	if bytes.HasPrefix(parent.Key, prefix) {
-		isRoot := parent == t.root
 		err = ensureMerkleValueIsCalculated(parent, isRoot)
 		if err != nil {
 			nodesRemoved = 0
@@ -1116,6 +1260,12 @@ func (t *Trie) clearPrefixAtNode(parent *Node, prefix []byte,
 		if branchChildMerged {
 			nodesRemoved++
 		}
+
+		err = registerInsertedMerkleValue(newParent, isRoot, pendingDeltas)
+		if err != nil {
+			return nil, 0, fmt.Errorf("registering branch child update: %w", err)
+		}
+
 		return newParent, nodesRemoved, nil
 	}
 
@@ -1156,6 +1306,11 @@ func (t *Trie) clearPrefixAtNode(parent *Node, prefix []byte,
 		nodesRemoved++
 	}
 
+	err = registerInsertedMerkleValue(newParent, isRoot, pendingDeltas)
+	if err != nil {
+		return nil, 0, fmt.Errorf("registering branch child update: %w", err)
+	}
+
 	return newParent, nodesRemoved, nil
 }
 
@@ -1165,8 +1320,7 @@ func (t *Trie) clearPrefixAtNode(parent *Node, prefix []byte,
 func (t *Trie) Delete(keyLE []byte) (err error) {
 	pendingDeltas := tracking.New()
 	defer func() {
-		const success = true
-		t.handleTrackedDeltas(success, pendingDeltas)
+		t.handleTrackedDeltas(err == nil, pendingDeltas)
 	}()
 
 	key := codec.KeyLEToNibbles(keyLE)
@@ -1228,6 +1382,8 @@ func (t *Trie) deleteLeaf(parent *Node, key []byte,
 func (t *Trie) deleteBranch(branch *Node, key []byte,
 	pendingDeltas DeltaRecorder) (
 	newParent *Node, deleted bool, nodesRemoved uint32, err error) {
+	isRoot := branch == t.root
+
 	if len(key) == 0 || bytes.Equal(branch.Key, key) {
 		copySettings := node.DefaultCopySettings
 		copySettings.CopyValue = false
@@ -1249,6 +1405,12 @@ func (t *Trie) deleteBranch(branch *Node, key []byte,
 		if branchChildMerged {
 			nodesRemoved = 1
 		}
+
+		err = registerInsertedMerkleValue(newParent, isRoot, pendingDeltas)
+		if err != nil {
+			return nil, false, 0, fmt.Errorf("registering branch subvalue update: %w", err)
+		}
+
 		return newParent, deleted, nodesRemoved, nil
 	}
 
@@ -1291,10 +1453,15 @@ func (t *Trie) deleteBranch(branch *Node, key []byte,
 		nodesRemoved++
 	}
 
+	err = registerInsertedMerkleValue(newParent, isRoot, pendingDeltas)
+	if err != nil {
+		return nil, false, 0, fmt.Errorf("registering branch child update: %w", err)
+	}
+
 	return newParent, true, nodesRemoved, nil
 }
 
-// handleDeletion is called when a value is deleted from a branch to handle
+//t.handleDeletion is called when a value is deleted from a branch to handle
 // the eventual mutation of the branch depending on its children.
 // If the branch has no value and a single child, it will be combined with this child.
 // In this first case, branchChildMerged is returned as true to keep track of the removal
@@ -1320,7 +1487,7 @@ func (t *Trie) handleDeletion(branch *Node, key []byte,
 		const branchChildMerged = false
 		return branch, branchChildMerged, nil
 	case childrenCount == 0 && branch.SubValue != nil:
-		// The branch passed to handleDeletion is always a modified branch
+		// The branch passed tot.handleDeletion is always a modified branch
 		// so the original branch Merkle value is already tracked in the deleted
 		// Merkle values map.
 		const branchChildMerged = false
@@ -1332,7 +1499,7 @@ func (t *Trie) handleDeletion(branch *Node, key []byte,
 			Generation: branch.Generation,
 		}, branchChildMerged, nil
 	case childrenCount == 1 && branch.SubValue == nil:
-		// The branch passed to handleDeletion is always a modified branch
+		// The branch passed tot.handleDeletion is always a modified branch
 		// so the original branch Merkle value is already tracked in the deleted
 		// Merkle values map.
 		const branchChildMerged = true

@@ -16,7 +16,8 @@ func Test_New(t *testing.T) {
 	deltas := New()
 
 	expectedDeltas := &Deltas{
-		deletedNodeHashes: make(map[common.Hash]struct{}),
+		deletedNodeHashes:  make(map[common.Hash]struct{}),
+		insertedNodeHashes: make(map[common.Hash]struct{}),
 	}
 	assert.Equal(t, expectedDeltas, deltas)
 }
@@ -58,6 +59,17 @@ func Test_Deltas_RecordDeleted(t *testing.T) {
 				deletedNodeHashes: map[common.Hash]struct{}{{1}: {}},
 			},
 		},
+		"remove pending insertion": {
+			deltas: Deltas{
+				deletedNodeHashes:  map[common.Hash]struct{}{},
+				insertedNodeHashes: map[common.Hash]struct{}{{1}: {}},
+			},
+			nodeHash: common.Hash{1},
+			expectedDeltas: Deltas{
+				deletedNodeHashes:  map[common.Hash]struct{}{},
+				insertedNodeHashes: map[common.Hash]struct{}{},
+			},
+		},
 	}
 
 	for name, testCase := range testCases {
@@ -71,19 +83,53 @@ func Test_Deltas_RecordDeleted(t *testing.T) {
 	}
 }
 
-func Test_Deltas_Deleted(t *testing.T) {
+func Test_Deltas_RecordInserted(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		deltas     Deltas
-		nodeHashes map[common.Hash]struct{}
+		deltas         Deltas
+		nodeHash       common.Hash
+		expectedDeltas Deltas
 	}{
-		"empty deltas": {},
-		"non empty deltas": {
+		"set in empty deltas": {
 			deltas: Deltas{
-				deletedNodeHashes: map[common.Hash]struct{}{{1}: {}},
+				insertedNodeHashes: map[common.Hash]struct{}{},
 			},
-			nodeHashes: map[common.Hash]struct{}{{1}: {}},
+			nodeHash: common.Hash{1},
+			expectedDeltas: Deltas{
+				insertedNodeHashes: map[common.Hash]struct{}{{1}: {}},
+			},
+		},
+		"set in non empty deltas": {
+			deltas: Deltas{
+				insertedNodeHashes: map[common.Hash]struct{}{{1}: {}},
+			},
+			nodeHash: common.Hash{2},
+			expectedDeltas: Deltas{
+				insertedNodeHashes: map[common.Hash]struct{}{
+					{1}: {}, {2}: {},
+				},
+			},
+		},
+		"override in deltas": {
+			deltas: Deltas{
+				insertedNodeHashes: map[common.Hash]struct{}{{1}: {}},
+			},
+			nodeHash: common.Hash{1},
+			expectedDeltas: Deltas{
+				insertedNodeHashes: map[common.Hash]struct{}{{1}: {}},
+			},
+		},
+		"remove pending deletion": {
+			deltas: Deltas{
+				deletedNodeHashes:  map[common.Hash]struct{}{{1}: {}},
+				insertedNodeHashes: map[common.Hash]struct{}{},
+			},
+			nodeHash: common.Hash{1},
+			expectedDeltas: Deltas{
+				deletedNodeHashes:  map[common.Hash]struct{}{},
+				insertedNodeHashes: map[common.Hash]struct{}{},
+			},
 		},
 	}
 
@@ -92,8 +138,39 @@ func Test_Deltas_Deleted(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			nodeHashes := testCase.deltas.Deleted()
-			assert.Equal(t, testCase.nodeHashes, nodeHashes)
+			testCase.deltas.RecordInserted(testCase.nodeHash)
+			assert.Equal(t, testCase.expectedDeltas, testCase.deltas)
+		})
+	}
+}
+
+func Test_Deltas_Get(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		deltas             Deltas
+		deletedNodeHashes  map[common.Hash]struct{}
+		insertedNodeHashes map[common.Hash]struct{}
+	}{
+		"empty deltas": {},
+		"non empty deltas": {
+			deltas: Deltas{
+				insertedNodeHashes: map[common.Hash]struct{}{{1}: {}},
+				deletedNodeHashes:  map[common.Hash]struct{}{{2}: {}},
+			},
+			insertedNodeHashes: map[common.Hash]struct{}{{1}: {}},
+			deletedNodeHashes:  map[common.Hash]struct{}{{2}: {}},
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			insertedNodeHashes, deletedNodeHashes := testCase.deltas.Get()
+			assert.Equal(t, testCase.deletedNodeHashes, deletedNodeHashes)
+			assert.Equal(t, testCase.insertedNodeHashes, insertedNodeHashes)
 		})
 	}
 }
@@ -103,30 +180,54 @@ func Test_Deltas_MergeWith(t *testing.T) {
 
 	testCases := map[string]struct {
 		deltas         Deltas
-		deltasArg      DeletedGetter
+		deltasArg      Getter
+		mergeDeleted   bool
 		expectedDeltas Deltas
 	}{
 		"merge empty deltas": {
 			deltas: Deltas{
-				deletedNodeHashes: map[common.Hash]struct{}{{1}: {}},
+				deletedNodeHashes:  map[common.Hash]struct{}{{1}: {}},
+				insertedNodeHashes: map[common.Hash]struct{}{{2}: {}},
 			},
-			deltasArg: &Deltas{},
+			deltasArg:    &Deltas{},
+			mergeDeleted: true,
 			expectedDeltas: Deltas{
-				deletedNodeHashes: map[common.Hash]struct{}{{1}: {}},
+				deletedNodeHashes:  map[common.Hash]struct{}{{1}: {}},
+				insertedNodeHashes: map[common.Hash]struct{}{{2}: {}},
 			},
 		},
 		"merge deltas": {
 			deltas: Deltas{
-				deletedNodeHashes: map[common.Hash]struct{}{{1}: {}},
+				deletedNodeHashes: map[common.Hash]struct{}{
+					{1}: {},
+					{2}: {},
+				},
+				insertedNodeHashes: map[common.Hash]struct{}{
+					{5}: {},
+					{6}: {},
+				},
 			},
 			deltasArg: &Deltas{
 				deletedNodeHashes: map[common.Hash]struct{}{
-					{1}: {}, {2}: {},
+					{1}: {}, // already set as deleted
+					{5}: {}, // remove from inserted
+					{3}: {}, // add as deleted
+				},
+				insertedNodeHashes: map[common.Hash]struct{}{
+					{6}: {}, // already set as deleted
+					{2}: {}, // remove from deleted
+					{7}: {}, // add as inserted
 				},
 			},
+			mergeDeleted: true,
 			expectedDeltas: Deltas{
 				deletedNodeHashes: map[common.Hash]struct{}{
-					{1}: {}, {2}: {},
+					{1}: {},
+					{3}: {},
+				},
+				insertedNodeHashes: map[common.Hash]struct{}{
+					{6}: {},
+					{7}: {},
 				},
 			},
 		},
@@ -137,7 +238,7 @@ func Test_Deltas_MergeWith(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			testCase.deltas.MergeWith(testCase.deltasArg)
+			testCase.deltas.MergeWith(testCase.deltasArg, testCase.mergeDeleted)
 			assert.Equal(t, testCase.expectedDeltas, testCase.deltas)
 		})
 	}
@@ -157,10 +258,12 @@ func Test_Deltas_DeepCopy(t *testing.T) {
 		},
 		"filled deltas": {
 			deltasOriginal: &Deltas{
-				deletedNodeHashes: map[common.Hash]struct{}{{1}: {}},
+				deletedNodeHashes:  map[common.Hash]struct{}{{1}: {}},
+				insertedNodeHashes: map[common.Hash]struct{}{{2}: {}},
 			},
 			deltasCopy: &Deltas{
-				deletedNodeHashes: map[common.Hash]struct{}{{1}: {}},
+				deletedNodeHashes:  map[common.Hash]struct{}{{1}: {}},
+				insertedNodeHashes: map[common.Hash]struct{}{{2}: {}},
 			},
 		},
 	}

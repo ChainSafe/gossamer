@@ -158,6 +158,15 @@ func setDeleted(nodeHashesHex ...string) newDeltasOption {
 	}
 }
 
+func setInserted(nodeHashesHex ...string) newDeltasOption {
+	return func(deltas DeltaRecorder) {
+		for _, nodeHashHex := range nodeHashesHex {
+			nodeHash := common.MustHexToHash(nodeHashHex)
+			deltas.RecordInserted(nodeHash)
+		}
+	}
+}
+
 func newDeltas(options ...newDeltasOption) (deltas *tracking.Deltas) {
 	deltas = tracking.New()
 
@@ -166,4 +175,14 @@ func newDeltas(options ...newDeltasOption) (deltas *tracking.Deltas) {
 	}
 
 	return deltas
+}
+
+func nodeWithMerkleValue(node *Node) *Node {
+	_, _, _ = node.EncodeAndHash()
+	return node
+}
+
+func rootNodeWithMerkleValue(node *Node) *Node {
+	_, _, _ = node.EncodeAndHashRoot()
+	return node
 }

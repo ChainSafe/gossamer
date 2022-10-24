@@ -292,7 +292,7 @@ func (s *TrieState) LoadCodeHash() (common.Hash, error) {
 
 // GetInsertedMerkleValues returns the set of all node Merkle value inserted
 // into the state trie since the last block produced.
-func (s *TrieState) GetInsertedMerkleValues() (merkleValues map[string]struct{}, err error) {
+func (s *TrieState) GetInsertedMerkleValues() (merkleValues map[string]struct{}) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 	return s.t.GetInsertedMerkleValues()

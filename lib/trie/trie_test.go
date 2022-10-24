@@ -47,7 +47,7 @@ func Test_Trie_Snapshot(t *testing.T) {
 	t.Parallel()
 
 	emptyDeltas := newDeltas()
-	setDeltas := newDeltas(setDeleted("0x01"))
+	setDeltas := newDeltas(setDeleted("0x01"), setInserted("0x02"))
 
 	trie := &Trie{
 		generation: 8,
@@ -96,40 +96,44 @@ func Test_Trie_handleTrackedDeltas(t *testing.T) {
 	testCases := map[string]struct {
 		trie          Trie
 		success       bool
-		pendingDeltas DeltaDeletedGetter
+		pendingDeltas DeltaGetter
 		expectedTrie  Trie
 	}{
 		"no success and generation 1": {
 			trie: Trie{
 				generation: 1,
-				deltas:     newDeltas(setDeleted("0x01")),
+				deltas:     newDeltas(setDeleted("0x01"), setInserted("0x02")),
 			},
-			pendingDeltas: newDeltas(setDeleted("0x02")),
+			pendingDeltas: newDeltas(setDeleted("0x03"), setInserted("0x04")),
 			expectedTrie: Trie{
 				generation: 1,
-				deltas:     newDeltas(setDeleted("0x01")),
+				deltas:     newDeltas(setDeleted("0x01"), setInserted("0x02")),
 			},
 		},
 		"success and generation 0": {
 			trie: Trie{
-				deltas: newDeltas(setDeleted("0x01")),
+				deltas: newDeltas(),
 			},
 			success:       true,
-			pendingDeltas: newDeltas(setDeleted("0x02")),
+			pendingDeltas: newDeltas(setDeleted("0x01"), setInserted("0x02")),
 			expectedTrie: Trie{
-				deltas: newDeltas(setDeleted("0x01")),
+				deltas: newDeltas(setInserted("0x02")),
 			},
 		},
 		"success and generation 1": {
 			trie: Trie{
 				generation: 1,
-				deltas:     newDeltas(setDeleted("0x01")),
+				deltas:     newDeltas(setDeleted("0x01"), setInserted("0x03")),
 			},
-			success:       true,
-			pendingDeltas: newDeltas(setDeleted("0x01", "0x02")),
+			success: true,
+			pendingDeltas: newDeltas(
+				setDeleted("0x01", "0x02"),
+				setInserted("0x04")),
 			expectedTrie: Trie{
 				generation: 1,
-				deltas:     newDeltas(setDeleted("0x01", "0x02")),
+				deltas: newDeltas(
+					setDeleted("0x01", "0x02"),
+					setInserted("0x03", "0x04")),
 			},
 		},
 	}
@@ -192,7 +196,7 @@ func Test_Trie_prepForMutation(t *testing.T) {
 			},
 			copied: true,
 		},
-		"update and register deleted Merkle value": {
+		"update and register deleted node hash": {
 			trie: Trie{
 				generation: 2,
 			},
@@ -266,16 +270,22 @@ func Test_Trie_registerDeletedMerkleValue(t *testing.T) {
 		trie                  Trie
 		node                  *Node
 		pendingDeltas         DeltaRecorder
+		errSentinel           error
+		errMessage            string
+		expectedNode          *Node
 		expectedPendingDeltas DeltaRecorder
 		expectedTrie          Trie
 	}{
-		"dirty node not registered": {
-			node: &Node{Dirty: true},
-		},
-		"clean root node registered": {
-			node:                  someSmallNode,
-			trie:                  Trie{root: someSmallNode},
-			pendingDeltas:         newDeltas(),
+		"root node registered": {
+			node:          someSmallNode,
+			trie:          Trie{root: someSmallNode},
+			pendingDeltas: newDeltas(),
+			expectedNode: &Node{
+				Key:         []byte{1},
+				SubValue:    []byte{2},
+				MerkleValue: []byte{0x60, 0x51, 0x6d, 0xb, 0xb6, 0xe1, 0xbb, 0xfb, 0x12, 0x93, 0xf1, 0xb2, 0x76, 0xea, 0x95, 0x5, 0xe9, 0xf4, 0xa4, 0xe7, 0xd9, 0x8f, 0x62, 0xd, 0x5, 0x11, 0x5e, 0xb, 0x85, 0x27, 0x4a, 0xe1},
+				Encoding:    []byte{0x41, 0x1, 0x4, 0x2},
+			},
 			expectedPendingDeltas: newDeltas(setDeleted("0x60516d0bb6e1bbfb1293f1b276ea9505e9f4a4e7d98f620d05115e0b85274ae1")),
 			expectedTrie: Trie{
 				root: &Node{
@@ -290,13 +300,19 @@ func Test_Trie_registerDeletedMerkleValue(t *testing.T) {
 				},
 			},
 		},
-		"clean node with inlined Merkle value not registered": {
+		"node with inlined Merkle value not registered": {
 			node: &Node{
 				Key:      []byte{1},
 				SubValue: []byte{2},
 			},
+			expectedNode: &Node{
+				Key:         []byte{1},
+				SubValue:    []byte{2},
+				MerkleValue: []byte{0x41, 0x1, 0x4, 0x2},
+				Encoding:    []byte{0x41, 0x1, 0x4, 0x2},
+			},
 		},
-		"clean node with hash Merkle value registered": {
+		"node with hash Merkle value registered": {
 			node: &Node{
 				Key: []byte{1},
 				SubValue: []byte{
@@ -305,8 +321,38 @@ func Test_Trie_registerDeletedMerkleValue(t *testing.T) {
 					17, 18, 19, 20, 21, 22, 23, 24,
 					25, 26, 27, 28, 29, 30, 31, 32},
 			},
-			pendingDeltas:         newDeltas(),
+			pendingDeltas: newDeltas(),
+			expectedNode: &Node{
+				Key: []byte{1},
+				SubValue: []byte{
+					1, 2, 3, 4, 5, 6, 7, 8,
+					9, 10, 11, 12, 13, 14, 15, 16,
+					17, 18, 19, 20, 21, 22, 23, 24,
+					25, 26, 27, 28, 29, 30, 31, 32},
+				MerkleValue: common.MustHexToBytes("0x98fcd66ba312c29ef193052fd0c14c6e38b158bd5c0235064594cacc1ab5965d"),
+				Encoding:    []byte{0x41, 0x1, 0x80, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f, 0x20},
+			},
 			expectedPendingDeltas: newDeltas(setDeleted("0x98fcd66ba312c29ef193052fd0c14c6e38b158bd5c0235064594cacc1ab5965d")),
+		},
+		"remove previously inserted node hash": {
+			node: &Node{
+				MerkleValue: []byte{
+					1, 2, 3, 4, 5, 6, 7, 8,
+					1, 2, 3, 4, 5, 6, 7, 8,
+					1, 2, 3, 4, 5, 6, 7, 8,
+					1, 2, 3, 4, 5, 6, 7, 8,
+				},
+			},
+			pendingDeltas: newDeltas(setInserted("0x0102030405060708010203040506070801020304050607080102030405060708")),
+			expectedNode: &Node{
+				MerkleValue: []byte{
+					1, 2, 3, 4, 5, 6, 7, 8,
+					1, 2, 3, 4, 5, 6, 7, 8,
+					1, 2, 3, 4, 5, 6, 7, 8,
+					1, 2, 3, 4, 5, 6, 7, 8,
+				},
+			},
+			expectedPendingDeltas: newDeltas(),
 		},
 	}
 
@@ -320,9 +366,124 @@ func Test_Trie_registerDeletedMerkleValue(t *testing.T) {
 			err := trie.registerDeletedMerkleValue(testCase.node,
 				testCase.pendingDeltas)
 
-			require.NoError(t, err)
+			assert.ErrorIs(t, err, testCase.errSentinel)
+			if testCase.errSentinel != nil {
+				assert.EqualError(t, err, testCase.errMessage)
+			}
+
+			assert.Equal(t, testCase.expectedNode, testCase.node)
 			assert.Equal(t, testCase.expectedPendingDeltas, testCase.pendingDeltas)
 			assert.Equal(t, testCase.expectedTrie, trie)
+		})
+	}
+}
+
+func Test_registerInsertedMerkleValue(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		node                  *Node
+		willBeRoot            bool
+		pendingDeltas         DeltaInsertedRecorder
+		errSentinel           error
+		errMessage            string
+		expectedNode          *Node
+		expectedPendingDeltas DeltaInsertedRecorder
+	}{
+		"root node registered": {
+			node: &Node{
+				Key:      []byte{1},
+				SubValue: []byte{2},
+			},
+			willBeRoot:    true,
+			pendingDeltas: newDeltas(),
+			expectedNode: &Node{
+				Key:      []byte{1},
+				SubValue: []byte{2},
+				MerkleValue: []byte{
+					0x60, 0x51, 0x6d, 0x0b, 0xb6, 0xe1, 0xbb, 0xfb,
+					0x12, 0x93, 0xf1, 0xb2, 0x76, 0xea, 0x95, 0x05,
+					0xe9, 0xf4, 0xa4, 0xe7, 0xd9, 0x8f, 0x62, 0x0d,
+					0x05, 0x11, 0x5e, 0x0b, 0x85, 0x27, 0x4a, 0xe1},
+				Encoding: []byte{0x41, 0x01, 0x04, 0x02},
+			},
+			expectedPendingDeltas: newDeltas(setInserted("0x60516d0bb6e1bbfb1293f1b276ea9505e9f4a4e7d98f620d05115e0b85274ae1")),
+		},
+		"node with inlined Merkle value not registered": {
+			node: &Node{
+				Key:         []byte{1},
+				SubValue:    []byte{1},
+				MerkleValue: []byte{0x41, 0x01, 0x04, 0x01},
+			},
+			pendingDeltas: newDeltas(),
+			expectedNode: &Node{
+				Key:         []byte{1},
+				SubValue:    []byte{1},
+				MerkleValue: []byte{0x41, 0x01, 0x04, 0x01},
+			},
+			expectedPendingDeltas: newDeltas(),
+		},
+		"node with hash Merkle value registered": {
+			node: &Node{
+				Key: []byte{1},
+				SubValue: []byte{
+					1, 2, 3, 4, 5, 6, 7, 8,
+					9, 10, 11, 12, 13, 14, 15, 16,
+					17, 18, 19, 20, 21, 22, 23, 24,
+					25, 26, 27, 28, 29, 30, 31, 32},
+			},
+			pendingDeltas: newDeltas(),
+			expectedNode: &Node{
+				Key: []byte{1},
+				SubValue: []byte{
+					1, 2, 3, 4, 5, 6, 7, 8,
+					9, 10, 11, 12, 13, 14, 15, 16,
+					17, 18, 19, 20, 21, 22, 23, 24,
+					25, 26, 27, 28, 29, 30, 31, 32},
+				MerkleValue: common.MustHexToBytes("0x98fcd66ba312c29ef193052fd0c14c6e38b158bd5c0235064594cacc1ab5965d"),
+				Encoding:    []byte{0x41, 0x1, 0x80, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f, 0x20},
+			},
+			expectedPendingDeltas: newDeltas(setInserted("0x98fcd66ba312c29ef193052fd0c14c6e38b158bd5c0235064594cacc1ab5965d")),
+		},
+		"remove previously inserted node hash": {
+			node: &Node{
+				MerkleValue: []byte{
+					1, 2, 3, 4, 5, 6, 7, 8,
+					1, 2, 3, 4, 5, 6, 7, 8,
+					1, 2, 3, 4, 5, 6, 7, 8,
+					1, 2, 3, 4, 5, 6, 7, 8,
+				},
+			},
+			pendingDeltas: newDeltas(setDeleted("0x0102030405060708010203040506070801020304050607080102030405060708")),
+			expectedNode: &Node{
+				MerkleValue: []byte{
+					1, 2, 3, 4, 5, 6, 7, 8,
+					1, 2, 3, 4, 5, 6, 7, 8,
+					1, 2, 3, 4, 5, 6, 7, 8,
+					1, 2, 3, 4, 5, 6, 7, 8,
+				},
+			},
+			expectedPendingDeltas: newDeltas(),
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			node := testCase.node
+			pendingDeltas := testCase.pendingDeltas
+
+			err := registerInsertedMerkleValue(node, testCase.willBeRoot, pendingDeltas)
+
+			assert.ErrorIs(t, err, testCase.errSentinel)
+			if testCase.errSentinel != nil {
+				assert.EqualError(t, err, testCase.errMessage)
+			}
+
+			assert.Equal(t, testCase.expectedNode, node)
+			assert.Equal(t, testCase.expectedPendingDeltas, pendingDeltas)
 		})
 	}
 }
@@ -422,7 +583,6 @@ func Test_Trie_DeepCopy(t *testing.T) {
 		})
 	}
 }
-
 func Test_Trie_RootNode(t *testing.T) {
 	t.Parallel()
 
@@ -797,6 +957,7 @@ func Test_Trie_Entries(t *testing.T) {
 		trie := Trie{
 			root:       nil,
 			childTries: make(map[common.Hash]*Trie),
+			deltas:     newDeltas(),
 		}
 
 		kv := map[string][]byte{
@@ -1170,8 +1331,11 @@ func Test_Trie_Put(t *testing.T) {
 			value: []byte{2},
 			expectedTrie: Trie{
 				generation: 1,
-				deltas:     newDeltas(setDeleted("0xa195089c3e8f8b5b36978700ad954aed99e08413cfc1e2b4c00a5d064abe66a9")),
-				root: &Node{
+				deltas: newDeltas(
+					setDeleted("0xa195089c3e8f8b5b36978700ad954aed99e08413cfc1e2b4c00a5d064abe66a9"),
+					setInserted("0x9b99f73cecafbff1b80bfd39873a76a1bcb5c6203caaad62633054cf9b5e7f12"),
+				),
+				root: rootNodeWithMerkleValue(&Node{
 					Key:         []byte{1, 2},
 					Generation:  1,
 					Dirty:       true,
@@ -1190,7 +1354,7 @@ func Test_Trie_Put(t *testing.T) {
 							Dirty:      true,
 						},
 					}),
-				},
+				}),
 			},
 		},
 	}
@@ -1225,17 +1389,20 @@ func Test_Trie_insert(t *testing.T) {
 		"nil parent": {
 			trie: Trie{
 				generation: 1,
+				// nil root so insertion is for the root.
 			},
-			key:   []byte{1},
-			value: []byte("leaf"),
-			newNode: &Node{
+			key:           []byte{1},
+			value:         []byte("leaf"),
+			pendingDeltas: tracking.New(),
+			newNode: rootNodeWithMerkleValue(&Node{
 				Key:        []byte{1},
 				SubValue:   []byte("leaf"),
 				Generation: 1,
 				Dirty:      true,
-			},
-			mutated:      true,
-			nodesCreated: 1,
+			}),
+			mutated:               true,
+			nodesCreated:          1,
+			expectedPendingDeltas: newDeltas(setInserted("0x78a87bf765272ff7bad49f9fdae081498440b490cec58a0413ae003893a1edc0")),
 		},
 		"branch parent": {
 			trie: Trie{
@@ -1252,7 +1419,7 @@ func Test_Trie_insert(t *testing.T) {
 			},
 			key:   []byte{1, 0},
 			value: []byte("leaf"),
-			newNode: &Node{
+			newNode: nodeWithMerkleValue(&Node{
 				Key:         []byte{1},
 				SubValue:    []byte("branch"),
 				Generation:  1,
@@ -1266,13 +1433,11 @@ func Test_Trie_insert(t *testing.T) {
 						Dirty:      true,
 					},
 					{
-						Key:         []byte{2},
-						SubValue:    []byte{1},
-						Encoding:    []byte{0x41, 0x02, 0x04, 0x01},
-						MerkleValue: []byte{0x41, 0x02, 0x04, 0x01},
+						Key:      []byte{2},
+						SubValue: []byte{1},
 					},
 				}),
-			},
+			}),
 			mutated:      true,
 			nodesCreated: 1,
 		},
@@ -1286,12 +1451,12 @@ func Test_Trie_insert(t *testing.T) {
 			},
 			key:   []byte{1},
 			value: []byte("new leaf"),
-			newNode: &Node{
+			newNode: nodeWithMerkleValue(&Node{
 				Key:        []byte{1},
 				SubValue:   []byte("new leaf"),
 				Generation: 1,
 				Dirty:      true,
-			},
+			}),
 			mutated: true,
 		},
 		"write same leaf value to leaf parent": {
@@ -1319,7 +1484,7 @@ func Test_Trie_insert(t *testing.T) {
 			},
 			key:   []byte{1, 0},
 			value: []byte("leaf"),
-			newNode: &Node{
+			newNode: nodeWithMerkleValue(&Node{
 				Key:         []byte{1},
 				SubValue:    []byte("original leaf"),
 				Dirty:       true,
@@ -1327,13 +1492,15 @@ func Test_Trie_insert(t *testing.T) {
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
 					{
-						Key:        []byte{},
-						SubValue:   []byte("leaf"),
-						Generation: 1,
-						Dirty:      true,
+						Key:         []byte{},
+						SubValue:    []byte("leaf"),
+						Generation:  1,
+						Dirty:       true,
+						MerkleValue: []byte{0x40, 0x10, 0x6c, 0x65, 0x61, 0x66},
+						Encoding:    []byte{0x40, 0x10, 0x6c, 0x65, 0x61, 0x66},
 					},
 				}),
-			},
+			}),
 			mutated:      true,
 			nodesCreated: 1,
 		},
@@ -1347,7 +1514,7 @@ func Test_Trie_insert(t *testing.T) {
 			},
 			key:   []byte{2, 3},
 			value: []byte("leaf"),
-			newNode: &Node{
+			newNode: nodeWithMerkleValue(&Node{
 				Key:         []byte{},
 				Dirty:       true,
 				Generation:  1,
@@ -1367,10 +1534,11 @@ func Test_Trie_insert(t *testing.T) {
 						Dirty:      true,
 					},
 				}),
-			},
+			}),
 			mutated:      true,
 			nodesCreated: 2,
 		},
+
 		"override leaf value": {
 			trie: Trie{
 				generation: 1,
@@ -1381,12 +1549,12 @@ func Test_Trie_insert(t *testing.T) {
 			},
 			key:   []byte{1},
 			value: []byte("leaf"),
-			newNode: &Node{
+			newNode: nodeWithMerkleValue(&Node{
 				Key:        []byte{1},
 				SubValue:   []byte("leaf"),
 				Dirty:      true,
 				Generation: 1,
-			},
+			}),
 			mutated: true,
 		},
 		"write leaf as child to leaf": {
@@ -1399,7 +1567,7 @@ func Test_Trie_insert(t *testing.T) {
 			},
 			key:   []byte{1},
 			value: []byte("leaf"),
-			newNode: &Node{
+			newNode: nodeWithMerkleValue(&Node{
 				Key:         []byte{1},
 				SubValue:    []byte("leaf"),
 				Dirty:       true,
@@ -1414,7 +1582,7 @@ func Test_Trie_insert(t *testing.T) {
 						Generation: 1,
 					},
 				}),
-			},
+			}),
 			mutated:      true,
 			nodesCreated: 1,
 		},
@@ -1488,7 +1656,7 @@ func Test_Trie_insertInBranch(t *testing.T) {
 			},
 			key:   []byte{2},
 			value: []byte("new"),
-			newNode: &Node{
+			newNode: nodeWithMerkleValue(&Node{
 				Key:         []byte{2},
 				SubValue:    []byte("new"),
 				Dirty:       true,
@@ -1496,7 +1664,7 @@ func Test_Trie_insertInBranch(t *testing.T) {
 				Children: padRightChildren([]*Node{
 					{Key: []byte{1}, SubValue: []byte{1}},
 				}),
-			},
+			}),
 			mutated: true,
 		},
 		"update with leaf": {
@@ -1510,7 +1678,7 @@ func Test_Trie_insertInBranch(t *testing.T) {
 			},
 			key:   []byte{2},
 			value: []byte("new"),
-			newNode: &Node{
+			newNode: nodeWithMerkleValue(&Node{
 				Key:         []byte{2},
 				SubValue:    []byte("new"),
 				Dirty:       true,
@@ -1518,7 +1686,7 @@ func Test_Trie_insertInBranch(t *testing.T) {
 				Children: padRightChildren([]*Node{
 					{Key: []byte{1}, SubValue: []byte{1}},
 				}),
-			},
+			}),
 			mutated: true,
 		},
 		"add leaf as direct child": {
@@ -1532,7 +1700,7 @@ func Test_Trie_insertInBranch(t *testing.T) {
 			},
 			key:   []byte{2, 3, 4, 5},
 			value: []byte{6},
-			newNode: &Node{
+			newNode: nodeWithMerkleValue(&Node{
 				Key:         []byte{2},
 				SubValue:    []byte{5},
 				Dirty:       true,
@@ -1546,7 +1714,7 @@ func Test_Trie_insertInBranch(t *testing.T) {
 						Dirty:    true,
 					},
 				}),
-			},
+			}),
 			mutated:      true,
 			nodesCreated: 1,
 		},
@@ -1588,7 +1756,7 @@ func Test_Trie_insertInBranch(t *testing.T) {
 			},
 			key:   []byte{2, 3, 4, 5, 6},
 			value: []byte{6},
-			newNode: &Node{
+			newNode: nodeWithMerkleValue(&Node{
 				Key:         []byte{2},
 				SubValue:    []byte{5},
 				Dirty:       true,
@@ -1610,7 +1778,7 @@ func Test_Trie_insertInBranch(t *testing.T) {
 						}),
 					},
 				}),
-			},
+			}),
 			mutated:      true,
 			nodesCreated: 1,
 		},
@@ -1623,9 +1791,10 @@ func Test_Trie_insertInBranch(t *testing.T) {
 					{Key: []byte{1}, SubValue: []byte{1}},
 				}),
 			},
-			key:   []byte{2, 4, 5, 6},
-			value: []byte{6},
-			newNode: &Node{
+			key:           []byte{2, 4, 5, 6},
+			value:         []byte{6},
+			pendingDeltas: newDeltas(),
+			newNode: nodeWithMerkleValue(&Node{
 				Key:         []byte{2},
 				Dirty:       true,
 				Descendants: 3,
@@ -1646,9 +1815,10 @@ func Test_Trie_insertInBranch(t *testing.T) {
 						Dirty:    true,
 					},
 				}),
-			},
-			mutated:      true,
-			nodesCreated: 2,
+			}),
+			mutated:               true,
+			nodesCreated:          2,
+			expectedPendingDeltas: newDeltas(setInserted("0x60ad3b1cc18e5b4d4c9ee0716b669f29b47ff534ff0d0d19f5569187956cf2a6")),
 		},
 		"split root branch": {
 			parent: &Node{
@@ -1659,9 +1829,10 @@ func Test_Trie_insertInBranch(t *testing.T) {
 					{Key: []byte{1}, SubValue: []byte{1}},
 				}),
 			},
-			key:   []byte{3},
-			value: []byte{6},
-			newNode: &Node{
+			key:           []byte{3},
+			value:         []byte{6},
+			pendingDeltas: newDeltas(),
+			newNode: nodeWithMerkleValue(&Node{
 				Key:         []byte{},
 				Dirty:       true,
 				Descendants: 3,
@@ -1682,9 +1853,10 @@ func Test_Trie_insertInBranch(t *testing.T) {
 						Dirty:    true,
 					},
 				}),
-			},
-			mutated:      true,
-			nodesCreated: 2,
+			}),
+			mutated:               true,
+			nodesCreated:          2,
+			expectedPendingDeltas: newDeltas(setInserted("0x31bd05608eb94e813a9a7dc6df1dfbe036f1da369a4ad348dde39a63a4a28534")),
 		},
 		"update with leaf at empty key": {
 			parent: &Node{
@@ -1697,7 +1869,7 @@ func Test_Trie_insertInBranch(t *testing.T) {
 			},
 			key:   []byte{},
 			value: []byte{6},
-			newNode: &Node{
+			newNode: nodeWithMerkleValue(&Node{
 				Key:         []byte{},
 				SubValue:    []byte{6},
 				Dirty:       true,
@@ -1714,7 +1886,7 @@ func Test_Trie_insertInBranch(t *testing.T) {
 						}),
 					},
 				}),
-			},
+			}),
 			mutated:      true,
 			nodesCreated: 1,
 		},
@@ -1785,7 +1957,7 @@ func Test_LoadFromMap(t *testing.T) {
 				"0x01": "0x1234567812345678123456781234567812345678123456781234567812345678", // 32 bytes
 			},
 			expectedTrie: Trie{
-				root: &Node{
+				root: rootNodeWithMerkleValue(&Node{
 					Key: []byte{00, 01},
 					SubValue: []byte{
 						0x12, 0x34, 0x56, 0x78, 0x12, 0x34, 0x56, 0x78,
@@ -1794,9 +1966,9 @@ func Test_LoadFromMap(t *testing.T) {
 						0x12, 0x34, 0x56, 0x78, 0x12, 0x34, 0x56, 0x78,
 					},
 					Dirty: true,
-				},
+				}),
 				childTries: map[common.Hash]*Trie{},
-				deltas:     newDeltas(),
+				deltas:     newDeltas(setInserted("0xf08c302a30d93e2a0d908cbc5f0b6576a1504da653014e45559202eb311b6190")),
 			},
 		},
 		"load key values": {
@@ -1806,7 +1978,7 @@ func Test_LoadFromMap(t *testing.T) {
 				"0x0130": "0x08",
 			},
 			expectedTrie: Trie{
-				root: &Node{
+				root: rootNodeWithMerkleValue(&Node{
 					Key:         []byte{00, 01},
 					SubValue:    []byte{6},
 					Dirty:       true,
@@ -1824,9 +1996,11 @@ func Test_LoadFromMap(t *testing.T) {
 							Dirty:    true,
 						},
 					}),
-				},
+				}),
 				childTries: map[common.Hash]*Trie{},
-				deltas:     newDeltas(),
+				deltas: newDeltas(
+					setInserted("0xa7f756ea32b0cea054c2f4271e11d841286793335335f5c14a927462f783ad9b"),
+				),
 			},
 		},
 	}
@@ -2295,9 +2469,17 @@ func Test_Trie_ClearPrefixLimit(t *testing.T) {
 		errMessage   string
 		expectedTrie Trie
 	}{
-		"limit is zero": {},
+		"limit is zero": {
+			trie: Trie{
+				deltas: newDeltas(),
+			},
+			expectedTrie: Trie{
+				deltas: newDeltas(),
+			},
+		},
 		"clear prefix limit": {
 			trie: Trie{
+				generation: 1,
 				root: &Node{
 					Key:         []byte{1, 2},
 					SubValue:    []byte{1},
@@ -2310,11 +2492,16 @@ func Test_Trie_ClearPrefixLimit(t *testing.T) {
 						},
 					}),
 				},
+				deltas: newDeltas(),
 			},
 			prefix:     []byte{0x12},
 			limit:      5,
 			deleted:    2,
 			allDeleted: true,
+			expectedTrie: Trie{
+				generation: 1,
+				deltas:     newDeltas(setDeleted("0x468ef3570ba2dd6bfb998d96135900a9fad535afebe70625e318e3789f4c9989")),
+			},
 		},
 	}
 
@@ -2635,7 +2822,7 @@ func Test_Trie_clearPrefixLimitAtNode(t *testing.T) {
 			},
 			prefix: []byte{1},
 			limit:  1,
-			newParent: &Node{
+			newParent: nodeWithMerkleValue(&Node{
 				Key:         []byte{1},
 				SubValue:    []byte{1},
 				Dirty:       true,
@@ -2644,13 +2831,11 @@ func Test_Trie_clearPrefixLimitAtNode(t *testing.T) {
 				Children: padRightChildren([]*Node{
 					nil,
 					{
-						Key:         []byte{4},
-						SubValue:    []byte{1},
-						Encoding:    []byte{0x41, 0x04, 0x04, 0x01},
-						MerkleValue: []byte{0x41, 0x04, 0x04, 0x01},
+						Key:      []byte{4},
+						SubValue: []byte{1},
 					},
 				}),
-			},
+			}),
 			valuesDeleted: 1,
 			nodesRemoved:  1,
 		},
@@ -2665,11 +2850,11 @@ func Test_Trie_clearPrefixLimitAtNode(t *testing.T) {
 			},
 			prefix: []byte{1, 0},
 			limit:  1,
-			newParent: &Node{
+			newParent: nodeWithMerkleValue(&Node{
 				Key:      []byte{1},
 				SubValue: []byte{1},
 				Dirty:    true,
-			},
+			}),
 			valuesDeleted: 1,
 			nodesRemoved:  1,
 			allDeleted:    true,
@@ -2689,12 +2874,12 @@ func Test_Trie_clearPrefixLimitAtNode(t *testing.T) {
 			},
 			prefix: []byte{1},
 			limit:  2,
-			newParent: &Node{
+			newParent: nodeWithMerkleValue(&Node{
 				Key:        []byte{1},
 				SubValue:   []byte{1},
 				Dirty:      true,
 				Generation: 1,
-			},
+			}),
 			valuesDeleted: 2,
 			nodesRemoved:  2,
 		},
@@ -2742,7 +2927,7 @@ func Test_Trie_clearPrefixLimitAtNode(t *testing.T) {
 			},
 			prefix: []byte{1, 0},
 			limit:  1,
-			newParent: &Node{
+			newParent: nodeWithMerkleValue(&Node{
 				Key:         []byte{1},
 				SubValue:    []byte{1},
 				Dirty:       true,
@@ -2759,11 +2944,9 @@ func Test_Trie_clearPrefixLimitAtNode(t *testing.T) {
 						Key:      []byte{6},
 						SubValue: []byte{1},
 						// Not modified so same generation as before
-						Encoding:    []byte{0x41, 0x06, 0x04, 0x01},
-						MerkleValue: []byte{0x41, 0x06, 0x04, 0x01},
 					},
 				}),
-			},
+			}),
 			valuesDeleted: 1,
 			nodesRemoved:  1,
 		},
@@ -2788,12 +2971,12 @@ func Test_Trie_clearPrefixLimitAtNode(t *testing.T) {
 			},
 			prefix: []byte{1, 0, 2},
 			limit:  2,
-			newParent: &Node{
+			newParent: nodeWithMerkleValue(&Node{
 				Key:        []byte{1},
 				SubValue:   []byte{1},
 				Dirty:      true,
 				Generation: 1,
-			},
+			}),
 			valuesDeleted: 2,
 			nodesRemoved:  2,
 			allDeleted:    true,
@@ -2812,12 +2995,12 @@ func Test_Trie_clearPrefixLimitAtNode(t *testing.T) {
 			},
 			prefix: []byte{1, 0, 3},
 			limit:  3,
-			newParent: &Node{
+			newParent: nodeWithMerkleValue(&Node{
 				Key:        []byte{1, 1, 4},
 				SubValue:   []byte{1},
 				Dirty:      true,
 				Generation: 1,
-			},
+			}),
 			valuesDeleted: 1,
 			nodesRemoved:  2,
 			allDeleted:    true,
@@ -2836,12 +3019,12 @@ func Test_Trie_clearPrefixLimitAtNode(t *testing.T) {
 			},
 			prefix: []byte{1, 0},
 			limit:  3,
-			newParent: &Node{
+			newParent: nodeWithMerkleValue(&Node{
 				Key:        []byte{1, 1, 4},
 				SubValue:   []byte{1},
 				Dirty:      true,
 				Generation: 1,
-			},
+			}),
 			valuesDeleted: 1,
 			nodesRemoved:  2,
 			allDeleted:    true,
@@ -2987,7 +3170,7 @@ func Test_Trie_deleteNodesLimit(t *testing.T) {
 				}),
 			},
 			limit: 1,
-			newNode: &Node{
+			newNode: nodeWithMerkleValue(&Node{
 				Key:         []byte{3},
 				SubValue:    []byte{1, 2, 3},
 				Dirty:       true,
@@ -3002,7 +3185,7 @@ func Test_Trie_deleteNodesLimit(t *testing.T) {
 						MerkleValue: []byte{0x41, 0x02, 0x04, 0x01},
 					},
 				}),
-			},
+			}),
 			valuesDeleted: 1,
 			nodesRemoved:  1,
 		},
@@ -3020,12 +3203,12 @@ func Test_Trie_deleteNodesLimit(t *testing.T) {
 				}),
 			},
 			limit: 2,
-			newNode: &Node{
+			newNode: nodeWithMerkleValue(&Node{
 				Key:        []byte{3},
 				SubValue:   []byte{1, 2, 3},
 				Dirty:      true,
 				Generation: 1,
-			},
+			}),
 			valuesDeleted: 2,
 			nodesRemoved:  2,
 		},
@@ -3046,12 +3229,12 @@ func Test_Trie_deleteNodesLimit(t *testing.T) {
 				}),
 			},
 			limit: 2,
-			newNode: &Node{
+			newNode: nodeWithMerkleValue(&Node{
 				Key:        []byte{3, 5, 3},
 				SubValue:   []byte{1},
 				Generation: 1,
 				Dirty:      true,
-			},
+			}),
 			valuesDeleted: 2,
 			nodesRemoved:  3,
 		},
@@ -3114,7 +3297,13 @@ func Test_Trie_ClearPrefix(t *testing.T) {
 			},
 		},
 		"empty trie": {
+			trie: Trie{
+				deltas: newDeltas(),
+			},
 			prefix: []byte{0x12},
+			expectedTrie: Trie{
+				deltas: newDeltas(),
+			},
 		},
 		"clear prefix": {
 			trie: Trie{
@@ -3144,13 +3333,16 @@ func Test_Trie_ClearPrefix(t *testing.T) {
 			prefix: []byte{0x12, 0x16},
 			expectedTrie: Trie{
 				generation: 1,
-				root: &Node{
+				root: rootNodeWithMerkleValue(&Node{
 					Key:        []byte{1, 2, 0, 5},
 					SubValue:   []byte{1},
 					Generation: 1,
 					Dirty:      true,
-				},
-				deltas: newDeltas(setDeleted("0x5fe108c83d08329353d6918e0104dacc9d2187fd9dafa582d1c532e5fe7b2e50")),
+				}),
+				deltas: newDeltas(
+					setDeleted("0x5fe108c83d08329353d6918e0104dacc9d2187fd9dafa582d1c532e5fe7b2e50"),
+					setInserted("0xa195089c3e8f8b5b36978700ad954aed99e08413cfc1e2b4c00a5d064abe66a9"),
+				),
 			},
 		},
 	}
@@ -3201,12 +3393,12 @@ func Test_Trie_clearPrefixAtNode(t *testing.T) {
 				}),
 			},
 			prefix: []byte{1, 0},
-			newParent: &Node{
+			newParent: nodeWithMerkleValue(&Node{
 				Key:        []byte{1, 1, 4},
 				SubValue:   []byte{1},
 				Dirty:      true,
 				Generation: 1,
-			},
+			}),
 			nodesRemoved: 2,
 			expectedTrie: Trie{
 				generation: 1,
@@ -3376,7 +3568,7 @@ func Test_Trie_clearPrefixAtNode(t *testing.T) {
 				}),
 			},
 			prefix: []byte{1, 0, 3},
-			newParent: &Node{
+			newParent: nodeWithMerkleValue(&Node{
 				Key:         []byte{1},
 				SubValue:    []byte{1},
 				Dirty:       true,
@@ -3385,13 +3577,11 @@ func Test_Trie_clearPrefixAtNode(t *testing.T) {
 				Children: padRightChildren([]*Node{
 					nil,
 					{
-						Key:         []byte{4},
-						SubValue:    []byte{1},
-						Encoding:    []byte{0x41, 0x04, 0x04, 0x01},
-						MerkleValue: []byte{0x41, 0x04, 0x04, 0x01},
+						Key:      []byte{4},
+						SubValue: []byte{1},
 					},
 				}),
-			},
+			}),
 			nodesRemoved: 1,
 			expectedTrie: Trie{
 				generation: 1,
@@ -3410,12 +3600,12 @@ func Test_Trie_clearPrefixAtNode(t *testing.T) {
 				}),
 			},
 			prefix: []byte{1, 0},
-			newParent: &Node{
+			newParent: nodeWithMerkleValue(&Node{
 				Key:        []byte{1},
 				SubValue:   []byte{1},
 				Dirty:      true,
 				Generation: 1,
-			},
+			}),
 			nodesRemoved: 1,
 			expectedTrie: Trie{
 				generation: 1,
@@ -3444,7 +3634,7 @@ func Test_Trie_clearPrefixAtNode(t *testing.T) {
 				}),
 			},
 			prefix: []byte{1, 0, 3, 0},
-			newParent: &Node{
+			newParent: nodeWithMerkleValue(&Node{
 				Key:         []byte{1},
 				SubValue:    []byte{1},
 				Dirty:       true,
@@ -3458,7 +3648,7 @@ func Test_Trie_clearPrefixAtNode(t *testing.T) {
 						Generation: 1,
 					},
 				}),
-			},
+			}),
 			nodesRemoved: 1,
 			expectedTrie: Trie{
 				generation: 1,
@@ -3477,12 +3667,12 @@ func Test_Trie_clearPrefixAtNode(t *testing.T) {
 				}),
 			},
 			prefix: []byte{1, 0, 3},
-			newParent: &Node{
+			newParent: nodeWithMerkleValue(&Node{
 				Key:        []byte{1, 1, 4},
 				SubValue:   []byte{1},
 				Dirty:      true,
 				Generation: 1,
-			},
+			}),
 			nodesRemoved: 2,
 			expectedTrie: Trie{
 				generation: 1,
@@ -3540,6 +3730,12 @@ func Test_Trie_Delete(t *testing.T) {
 			},
 		},
 		"empty trie": {
+			trie: Trie{
+				deltas: newDeltas(),
+			},
+			expectedTrie: Trie{
+				deltas: newDeltas(),
+			},
 			key: []byte{0x12},
 		},
 		"delete branch node": {
@@ -3571,7 +3767,7 @@ func Test_Trie_Delete(t *testing.T) {
 			key: []byte{0x12, 0x16},
 			expectedTrie: Trie{
 				generation: 1,
-				root: &Node{
+				root: rootNodeWithMerkleValue(&Node{
 					Key:         []byte{1, 2},
 					Dirty:       true,
 					Generation:  1,
@@ -3590,8 +3786,11 @@ func Test_Trie_Delete(t *testing.T) {
 							Generation: 1,
 						},
 					}),
-				},
-				deltas: newDeltas(setDeleted("0x3d1b3d727ee404549a5d2531aab9fff0eeddc58bc30bfe2fe82b1a0cfe7e76d5")),
+				}),
+				deltas: newDeltas(
+					setDeleted("0x3d1b3d727ee404549a5d2531aab9fff0eeddc58bc30bfe2fe82b1a0cfe7e76d5"),
+					setInserted("0x72f7094237d3447ce8246ebb1deea8ef28d3586b8ae6ab4a1c5a020c092e8dd7"),
+				),
 			},
 		},
 	}
@@ -3693,12 +3892,12 @@ func Test_Trie_deleteAtNode(t *testing.T) {
 					},
 				}),
 			},
-			newParent: &Node{
+			newParent: nodeWithMerkleValue(&Node{
 				Key:        []byte{1, 0, 2},
 				SubValue:   []byte{1},
 				Dirty:      true,
 				Generation: 1,
-			},
+			}),
 			updated:      true,
 			nodesRemoved: 1,
 			expectedTrie: Trie{
@@ -3718,12 +3917,12 @@ func Test_Trie_deleteAtNode(t *testing.T) {
 				}),
 			},
 			key: []byte{},
-			newParent: &Node{
+			newParent: nodeWithMerkleValue(&Node{
 				Key:        []byte{1, 0, 2},
 				SubValue:   []byte{1},
 				Dirty:      true,
 				Generation: 1,
-			},
+			}),
 			updated:      true,
 			nodesRemoved: 1,
 			expectedTrie: Trie{
@@ -3743,12 +3942,12 @@ func Test_Trie_deleteAtNode(t *testing.T) {
 				}),
 			},
 			key: []byte{1},
-			newParent: &Node{
+			newParent: nodeWithMerkleValue(&Node{
 				Key:        []byte{1, 0, 2},
 				SubValue:   []byte{1},
 				Dirty:      true,
 				Generation: 1,
-			},
+			}),
 			updated:      true,
 			nodesRemoved: 1,
 			expectedTrie: Trie{
@@ -3771,12 +3970,12 @@ func Test_Trie_deleteAtNode(t *testing.T) {
 				}),
 			},
 			key: []byte{1, 0, 2},
-			newParent: &Node{
+			newParent: nodeWithMerkleValue(&Node{
 				Key:        []byte{1},
 				SubValue:   []byte{1},
 				Dirty:      true,
 				Generation: 1,
-			},
+			}),
 			updated:      true,
 			nodesRemoved: 1,
 			expectedTrie: Trie{
@@ -3858,12 +4057,12 @@ func Test_Trie_deleteAtNode(t *testing.T) {
 				}),
 			},
 			key: []byte{1, 0, 2},
-			newParent: &Node{
+			newParent: nodeWithMerkleValue(&Node{
 				Key:        []byte{1, 1, 2},
 				SubValue:   []byte{2},
 				Dirty:      true,
 				Generation: 1,
-			},
+			}),
 			updated:      true,
 			nodesRemoved: 2,
 			expectedTrie: Trie{
@@ -3884,7 +4083,7 @@ func Test_Trie_deleteAtNode(t *testing.T) {
 				}),
 			},
 			key: []byte{1},
-			newParent: &Node{
+			newParent: nodeWithMerkleValue(&Node{
 				Key:         []byte{1},
 				Generation:  1,
 				Dirty:       true,
@@ -3903,7 +4102,7 @@ func Test_Trie_deleteAtNode(t *testing.T) {
 						MerkleValue: []byte{0x41, 0x02, 0x04, 0x01},
 					},
 				}),
-			},
+			}),
 			updated: true,
 			expectedTrie: Trie{
 				generation: 1,

@@ -315,8 +315,8 @@ func TestTrieDiff(t *testing.T) {
 		newTrie.Put(test.key, test.value)
 	}
 
-	deletedMerkleValues := newTrie.deltas.Deleted()
-	expectedDeletdMerkleValues := map[common.Hash]struct{}{
+	_, deletedMerkleValues := newTrie.deltas.Get()
+	expectedDeletedMerkleValues := map[common.Hash]struct{}{
 		// root branch Merkle value which was modified (by its descendants).
 		// Other nodes result in an encoding of less than 32B so they are not
 		// tracked since they are inlined in the branch.
@@ -325,7 +325,7 @@ func TestTrieDiff(t *testing.T) {
 			0xe4, 0xb6, 0x8a, 0x60, 0xe5, 0x4d, 0xea, 0x68,
 			0x9c, 0xab, 0xbf, 0xbb, 0xc0, 0xfc, 0x72, 0x48}: {},
 	}
-	assert.Equal(t, expectedDeletdMerkleValues, deletedMerkleValues)
+	assert.Equal(t, expectedDeletedMerkleValues, deletedMerkleValues)
 
 	err = newTrie.WriteDirty(storageDB)
 	require.NoError(t, err)
@@ -522,12 +522,12 @@ func TestClearPrefix_Small(t *testing.T) {
 
 	ssTrie.ClearPrefix([]byte("noo"))
 
-	expectedRoot := &Node{
+	expectedRoot := rootNodeWithMerkleValue(&Node{
 		Key:        codec.KeyLEToNibbles([]byte("other")),
 		SubValue:   []byte("other"),
 		Generation: 1,
 		Dirty:      true,
-	}
+	})
 	require.Equal(t, expectedRoot, ssTrie.root)
 
 	// Get the updated root hash of all tries.
