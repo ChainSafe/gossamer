@@ -280,10 +280,10 @@ func (mr *MockInstanceMockRecorder) OffchainWorker() *gomock.Call {
 }
 
 // PaymentQueryInfo mocks base method.
-func (m *MockInstance) PaymentQueryInfo(arg0 []byte) (*types.TransactionPaymentQueryInfo, error) {
+func (m *MockInstance) PaymentQueryInfo(arg0 []byte) (*types.RuntimeDispatchInfo, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PaymentQueryInfo", arg0)
-	ret0, _ := ret[0].(*types.TransactionPaymentQueryInfo)
+	ret0, _ := ret[0].(*types.RuntimeDispatchInfo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
