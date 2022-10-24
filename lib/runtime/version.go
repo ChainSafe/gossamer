@@ -46,7 +46,7 @@ func (v Version) TaggedTransactionQueueVersion() (txQueueVersion uint32, err err
 			return apiItem.Ver, nil
 		}
 	}
-	return 0, fmt.Errorf("taggedTransactionQueueAPI not found")
+	return 0, errors.New("taggedTransactionQueueAPI not found")
 }
 
 // DecodeVersion scale decodes the encoded version data.
