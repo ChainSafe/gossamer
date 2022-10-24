@@ -164,7 +164,7 @@ func (in *Instance) DecodeSessionKeys(enc []byte) ([]byte, error) {
 }
 
 // PaymentQueryInfo returns information of a given extrinsic
-func (in *Instance) PaymentQueryInfo(ext []byte) (*types.TransactionPaymentQueryInfo, error) {
+func (in *Instance) PaymentQueryInfo(ext []byte) (*types.RuntimeDispatchInfo, error) {
 	encLen, err := scale.Marshal(uint32(len(ext)))
 	if err != nil {
 		return nil, err
@@ -175,12 +175,52 @@ func (in *Instance) PaymentQueryInfo(ext []byte) (*types.TransactionPaymentQuery
 		return nil, err
 	}
 
-	i := new(types.TransactionPaymentQueryInfo)
-	if err = scale.Unmarshal(resBytes, i); err != nil {
+	dispatchInfo := new(types.RuntimeDispatchInfo)
+	if err = scale.Unmarshal(resBytes, dispatchInfo); err != nil {
 		return nil, err
 	}
 
-	return i, nil
+	return dispatchInfo, nil
+}
+
+// QueryCallInfo returns information of a given extrinsic
+func (in *Instance) QueryCallInfo(ext []byte) (*types.RuntimeDispatchInfo, error) {
+	encLen, err := scale.Marshal(uint32(len(ext)))
+	if err != nil {
+		return nil, err
+	}
+
+	resBytes, err := in.Exec(runtime.TransactionPaymentCallAPIQueryCallInfo, append(ext, encLen...))
+	if err != nil {
+		return nil, err
+	}
+
+	dispatchInfo := new(types.RuntimeDispatchInfo)
+	if err = scale.Unmarshal(resBytes, dispatchInfo); err != nil {
+		return nil, err
+	}
+
+	return dispatchInfo, nil
+}
+
+// QueryCallFeeDetails returns call fee details for given call
+func (in *Instance) QueryCallFeeDetails(ext []byte) (*types.FeeDetails, error) {
+	encLen, err := scale.Marshal(uint32(len(ext)))
+	if err != nil {
+		return nil, err
+	}
+
+	resBytes, err := in.Exec(runtime.TransactionPaymentCallAPIQueryCallFeeDetails, append(ext, encLen...))
+	if err != nil {
+		return nil, err
+	}
+
+	dispatchInfo := new(types.FeeDetails)
+	if err = scale.Unmarshal(resBytes, dispatchInfo); err != nil {
+		return nil, err
+	}
+
+	return dispatchInfo, nil
 }
 
 func (in *Instance) CheckInherents()      {} //nolint:revive

@@ -24,7 +24,7 @@ func TestPaymentQueryInfo(t *testing.T) {
 	bestBlockHash := state.Block.BestBlockHash()
 
 	t.Run("When there is no errors", func(t *testing.T) {
-		mockedQueryInfo := &types.TransactionPaymentQueryInfo{
+		mockedQueryInfo := &types.RuntimeDispatchInfo{
 			Weight:     0,
 			Class:      0,
 			PartialFee: scale.MaxUint128,
