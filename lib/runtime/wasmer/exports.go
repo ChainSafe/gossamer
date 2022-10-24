@@ -13,7 +13,7 @@ import (
 )
 
 // ValidateTransaction runs the extrinsic through the runtime function
-// TaggedTransactionQueue_validate_transaction and returns **transaction.Validity. The error can
+// TaggedTransactionQueue_validate_transaction and returns *transaction.Validity. The error can
 // be a VDT of either transaction.InvalidTransaction or transaction.UnknownTransaction, or can represent
 // a normal error i.e. unmarshalling error
 func (in *Instance) ValidateTransaction(e types.Extrinsic) (
