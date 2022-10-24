@@ -41,11 +41,11 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 				}
 
 				return &finalizationHandler{
-					servicesBuilder: builder,
-					timeoutStop:     2 * time.Second,
-					observableErrs:  make(chan error),
-					stopCh:          make(chan struct{}),
-					handlerDone:     make(chan struct{}),
+					newServices:    builder,
+					timeoutStop:    2 * time.Second,
+					observableErrs: make(chan error),
+					stopCh:         make(chan struct{}),
+					handlerDone:    make(chan struct{}),
 				}
 			},
 		},
@@ -74,11 +74,11 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 				}
 
 				return &finalizationHandler{
-					servicesBuilder: builder,
-					timeoutStop:     2 * time.Second,
-					observableErrs:  make(chan error),
-					stopCh:          make(chan struct{}),
-					handlerDone:     make(chan struct{}),
+					newServices:    builder,
+					timeoutStop:    2 * time.Second,
+					observableErrs: make(chan error),
+					stopCh:         make(chan struct{}),
+					handlerDone:    make(chan struct{}),
 				}
 			},
 		},
@@ -118,11 +118,11 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 				}
 
 				return &finalizationHandler{
-					servicesBuilder: builder,
-					timeoutStop:     2 * time.Second,
-					observableErrs:  make(chan error),
-					stopCh:          make(chan struct{}),
-					handlerDone:     make(chan struct{}),
+					newServices:    builder,
+					timeoutStop:    2 * time.Second,
+					observableErrs: make(chan error),
+					stopCh:         make(chan struct{}),
+					handlerDone:    make(chan struct{}),
 				}
 			},
 		},
@@ -162,11 +162,11 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 				}
 
 				return &finalizationHandler{
-					servicesBuilder: builder,
-					timeoutStop:     2 * time.Second,
-					observableErrs:  make(chan error),
-					stopCh:          make(chan struct{}),
-					handlerDone:     make(chan struct{}),
+					newServices:    builder,
+					timeoutStop:    2 * time.Second,
+					observableErrs: make(chan error),
+					stopCh:         make(chan struct{}),
+					handlerDone:    make(chan struct{}),
 				}
 			},
 		},
@@ -223,7 +223,7 @@ func Test_FinalizationHandler_Stop_ShouldHalt_Services(t *testing.T) {
 	}
 
 	handler := &finalizationHandler{
-		servicesBuilder: builder,
+		newServices: builder,
 		// mocked initiate round function
 		initiateRound:  func() error { return nil },
 		timeoutStop:    2 * time.Second,

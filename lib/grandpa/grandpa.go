@@ -415,9 +415,7 @@ func (s *Service) primaryBroadcastCommitMessage() {
 	s.network.GossipMessage(msg)
 }
 
-func (s *Service) checkRoundAlreadyCompletable() (bool, error) {
-	logger.Debugf("(checkRoundAlreadyCompletable) round: %d, set id: %d", s.state.round, s.state.setID)
-
+func (s *Service) checkRoundCompletable() (bool, error) {
 	// check if the current round contains a finalized block
 	has, err := s.blockState.HasFinalisedBlock(s.state.round, s.state.setID)
 	if err != nil {
