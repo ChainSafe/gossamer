@@ -250,8 +250,8 @@ func (bs *BlockState) GetHashByNumber(num uint) (common.Hash, error) {
 	return common.NewHash(bh), nil
 }
 
-// GetBlocksBySlot gets all blocks that were produced in given slot.
-func (bs *BlockState) GetBlocksBySlot(slotNum uint64) ([]common.Hash, error) {
+// GetBlockHashesBySlot gets all blocks that were produced in given slot.
+func (bs *BlockState) GetBlockHashesBySlot(slotNum uint64) ([]common.Hash, error) {
 	highestFinalisedHash, err := bs.GetHighestFinalisedHash()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get highest finalised hash: %w", err)

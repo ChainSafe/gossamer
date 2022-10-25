@@ -138,7 +138,7 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 		if !block1IsFinal {
 			firstSlot, err := types.GetSlotFromHeader(header)
 			if err != nil {
-				return fmt.Errorf("failed to get slot from block 1: %w", err)
+				return fmt.Errorf("failed to get slot from header of block 1: %w", err)
 			}
 
 			logger.Debugf("syncing block 1, setting first slot as %d", firstSlot)
@@ -349,10 +349,10 @@ func (b *verifier) verifyBlockEquivocation(header *types.Header) (bool, error) {
 	currentHash := header.Hash()
 	slot, err := types.GetSlotFromHeader(header)
 	if err != nil {
-		return false, fmt.Errorf("failed to get slot for block %s: %w", currentHash, err)
+		return false, fmt.Errorf("failed to get slot from header of block %s: %w", currentHash, err)
 	}
 
-	blocksInSlot, err := b.blockState.GetBlocksBySlot(slot)
+	blocksInSlot, err := b.blockState.GetBlockHashesBySlot(slot)
 	if err != nil {
 		return false, fmt.Errorf("failed to get blocks produced in slot %d: %w", slot, err)
 	}

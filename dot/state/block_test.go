@@ -195,8 +195,8 @@ func TestGetSlotForBlock(t *testing.T) {
 	require.Equal(t, expectedSlot, res)
 }
 
-func TestGetBlocksBySlot(t *testing.T) {
-	// create two block in the same slot and test if GetBlocksBySlot gets us
+func TestGetBlockHashesBySlot(t *testing.T) {
+	// create two block in the same slot and test if GetBlockHashesBySlot gets us
 	// both the blocks
 	bs := newTestBlockState(t, newTriesEmpty())
 	slot := uint64(77)
@@ -244,7 +244,7 @@ func TestGetBlocksBySlot(t *testing.T) {
 	err = bs.AddBlock(block2)
 	require.NoError(t, err)
 
-	blocks, err := bs.GetBlocksBySlot(slot)
+	blocks, err := bs.GetBlockHashesBySlot(slot)
 	require.NoError(t, err)
 	require.Equal(t, len(blocks), 2)
 	require.Contains(t, blocks, block.Header.Hash())
