@@ -132,6 +132,121 @@ func Test_decodeState_decodeSlice(t *testing.T) {
 	}
 }
 
+// // Rust code to encode a map of string to struct.
+// let mut btree_map: BTreeMap<String, User> = BTreeMap::new();
+// match btree_map.entry("string1".to_string()) {
+// 	Entry::Vacant(entry) => {
+// 		entry.insert(User{
+// 			active: true,
+// 			username: "lorem".to_string(),
+// 			email: "lorem@ipsum.org".to_string(),
+// 			sign_in_count: 1,
+// 		 });
+// 		()
+// 	},
+// 	Entry::Occupied(_) => (),
+// }
+// match btree_map.entry("string2".to_string()) {
+// 	Entry::Vacant(entry) => {
+// 		entry.insert(User{
+// 			active: false,
+// 			username: "john".to_string(),
+// 			email: "jack@gmail.com".to_string(),
+// 			sign_in_count: 73,
+// 		 });
+// 		()
+// 	},
+// 	Entry::Occupied(_) => (),
+// }
+// println!("{:?}", btree_map.encode());
+
+type user struct {
+	Active      bool
+	Username    string
+	Email       string
+	SignInCount uint64
+}
+
+func Test_decodeState_decodeMap(t *testing.T) {
+	mapTests1 := []struct {
+		name           string
+		input          []byte
+		wantErr        bool
+		expectedOutput map[int8][]byte
+	}{
+		{
+			name:           "testing a map of int8 to a byte array 1",
+			input:          []byte{4, 2, 44, 115, 111, 109, 101, 32, 115, 116, 114, 105, 110, 103},
+			expectedOutput: map[int8][]byte{2: []byte("some string")},
+		},
+		{
+			name: "testing a map of int8 to a byte array 2",
+			input: []byte{
+				8, 2, 44, 115, 111, 109, 101, 32, 115, 116, 114, 105, 110, 103, 16, 44, 108, 111, 114, 101, 109, 32,
+				105, 112, 115, 117, 109,
+			},
+			expectedOutput: map[int8][]byte{
+				2:  []byte("some string"),
+				16: []byte("lorem ipsum"),
+			},
+		},
+	}
+
+	for _, tt := range mapTests1 {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			actualOutput := make(map[int8][]byte)
+			if err := Unmarshal(tt.input, &actualOutput); (err != nil) != tt.wantErr {
+				t.Errorf("decodeState.unmarshal() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			if !reflect.DeepEqual(actualOutput, tt.expectedOutput) {
+				t.Errorf("decodeState.unmarshal() = %v, want %v", actualOutput, tt.expectedOutput)
+			}
+		})
+	}
+
+	mapTests2 := []struct {
+		name           string
+		input          []byte
+		wantErr        bool
+		expectedOutput map[string]user
+	}{
+		{
+			name:  "testing a map of string to struct",
+			input: []byte{8, 28, 115, 116, 114, 105, 110, 103, 49, 1, 20, 108, 111, 114, 101, 109, 60, 108, 111, 114, 101, 109, 64, 105, 112, 115, 117, 109, 46, 111, 114, 103, 1, 0, 0, 0, 0, 0, 0, 0, 28, 115, 116, 114, 105, 110, 103, 50, 0, 16, 106, 111, 104, 110, 56, 106, 97, 99, 107, 64, 103, 109, 97, 105, 108, 46, 99, 111, 109, 73, 0, 0, 0, 0, 0, 0, 0}, //nolint:lll
+			expectedOutput: map[string]user{
+				"string1": {
+					Active:      true,
+					Username:    "lorem",
+					Email:       "lorem@ipsum.org",
+					SignInCount: 1,
+				},
+				"string2": {
+					Active:      false,
+					Username:    "john",
+					Email:       "jack@gmail.com",
+					SignInCount: 73,
+				},
+			},
+		},
+	}
+
+	for _, tt := range mapTests2 {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			actualOutput := make(map[string]user)
+			if err := Unmarshal(tt.input, &actualOutput); (err != nil) != tt.wantErr {
+				t.Errorf("decodeState.unmarshal() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			if !reflect.DeepEqual(actualOutput, tt.expectedOutput) {
+				t.Errorf("decodeState.unmarshal() = %v, want %v", actualOutput, tt.expectedOutput)
+			}
+		})
+	}
+}
+
 func Test_unmarshal_optionality(t *testing.T) {
 	var ptrTests tests
 	for _, t := range append(tests{}, allTests...) {
@@ -167,7 +282,14 @@ func Test_unmarshal_optionality(t *testing.T) {
 					t.Errorf("decodeState.unmarshal() = %s", diff)
 				}
 			default:
-				dst := reflect.New(reflect.TypeOf(tt.in)).Interface()
+				var dst interface{}
+
+				if reflect.TypeOf(tt.in).Kind().String() == "map" {
+					dst = &(map[int8][]byte{})
+				} else {
+					dst = reflect.New(reflect.TypeOf(tt.in)).Interface()
+				}
+
 				if err := Unmarshal(tt.want, &dst); (err != nil) != tt.wantErr {
 					t.Errorf("decodeState.unmarshal() error = %v, wantErr %v", err, tt.wantErr)
 					return

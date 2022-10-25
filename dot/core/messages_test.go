@@ -4,6 +4,7 @@
 package core
 
 import (
+	"bytes"
 	"errors"
 	"testing"
 
@@ -44,8 +45,9 @@ type mockGetRuntime struct {
 }
 
 type mockBlockState struct {
-	bestHeader *mockBestHeader
-	getRuntime *mockGetRuntime
+	bestHeader         *mockBestHeader
+	getRuntime         *mockGetRuntime
+	callsBestBlockHash bool
 }
 
 type mockStorageState struct {
@@ -252,6 +254,7 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 				getRuntime: &mockGetRuntime{
 					runtime: runtimeMock2,
 				},
+				callsBestBlockHash: true,
 			},
 			mockStorageState: &mockStorageState{
 				input:     &common.Hash{},
@@ -261,8 +264,12 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 				runtime:           runtimeMock2,
 				setContextStorage: &mockSetContextStorage{trieState: &storage.TrieState{}},
 				validateTxn: &mockValidateTxn{
-					input: types.Extrinsic(append([]byte{byte(types.TxnExternal)}, testExtrinsic[0]...)),
-					err:   invalidTransaction,
+					input: types.Extrinsic(bytes.Join([][]byte{
+						{byte(types.TxnExternal)},
+						testExtrinsic[0],
+						testEmptyHeader.StateRoot.ToBytes(),
+					}, nil)),
+					err: invalidTransaction,
 				},
 			},
 			args: args{
@@ -291,6 +298,7 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 				getRuntime: &mockGetRuntime{
 					runtime: runtimeMock3,
 				},
+				callsBestBlockHash: true,
 			},
 			mockStorageState: &mockStorageState{
 				input:     &common.Hash{},
@@ -308,7 +316,11 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 				runtime:           runtimeMock3,
 				setContextStorage: &mockSetContextStorage{trieState: &storage.TrieState{}},
 				validateTxn: &mockValidateTxn{
-					input:    types.Extrinsic(append([]byte{byte(types.TxnExternal)}, testExtrinsic[0]...)),
+					input: types.Extrinsic(bytes.Join([][]byte{
+						{byte(types.TxnExternal)},
+						testExtrinsic[0],
+						testEmptyHeader.StateRoot.ToBytes(),
+					}, nil)),
 					validity: &transaction.Validity{Propagate: true},
 				},
 			},
@@ -344,6 +356,9 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 						tt.mockBlockState.getRuntime.runtime,
 						tt.mockBlockState.getRuntime.err)
 				}
+				if tt.mockBlockState.callsBestBlockHash {
+					blockState.EXPECT().BestBlockHash().Return(common.Hash{})
+				}
 				s.blockState = blockState
 			}
 			if tt.mockStorageState != nil {
@@ -365,6 +380,19 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 				rt.EXPECT().SetContextStorage(tt.mockRuntime.setContextStorage.trieState)
 				rt.EXPECT().ValidateTransaction(tt.mockRuntime.validateTxn.input).
 					Return(tt.mockRuntime.validateTxn.validity, tt.mockRuntime.validateTxn.err)
+				rt.EXPECT().Version().Return(runtime.Version{
+					SpecName:         []byte("polkadot"),
+					ImplName:         []byte("parity-polkadot"),
+					AuthoringVersion: authoringVersion,
+					SpecVersion:      specVersion,
+					ImplVersion:      implVersion,
+					APIItems: []runtime.APIItem{{
+						Name: common.MustBlake2b8([]byte("TaggedTransactionQueue")),
+						Ver:  3,
+					}},
+					TransactionVersion: transactionVersion,
+					StateVersion:       stateVersion,
+				})
 			}
 
 			res, err := s.HandleTransactionMessage(tt.args.peerID, tt.args.msg)

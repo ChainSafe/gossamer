@@ -43,7 +43,7 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 	blockErrorAPIMock2.On("GetRuntime", &testHash).Return(nil, errors.New("GetRuntime error"))
 
 	runtimeMock.On("PaymentQueryInfo", common.MustHexToBytes("0x0000")).Return(nil, nil)
-	runtimeMock2.On("PaymentQueryInfo", common.MustHexToBytes("0x0000")).Return(&types.TransactionPaymentQueryInfo{
+	runtimeMock2.On("PaymentQueryInfo", common.MustHexToBytes("0x0000")).Return(&types.RuntimeDispatchInfo{
 		Weight:     uint64(21),
 		Class:      21,
 		PartialFee: u,

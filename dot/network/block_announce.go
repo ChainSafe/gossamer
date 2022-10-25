@@ -9,6 +9,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
@@ -208,9 +209,10 @@ func (s *Service) handleBlockAnnounceMessage(from peer.ID, msg NotificationsMess
 		return false, errors.New("invalid message")
 	}
 
-	if err = s.syncer.HandleBlockAnnounce(from, bam); err != nil {
-		return false, err
+	err = s.syncer.HandleBlockAnnounce(from, bam)
+	if errors.Is(err, blocktree.ErrBlockExists) {
+		return true, nil
 	}
 
-	return true, nil
+	return false, err
 }
