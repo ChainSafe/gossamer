@@ -99,7 +99,7 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 						return errors.New("mocked voting round fails")
 					})
 
-					// once the voting round fails the finalization handler
+					// once the voting round fails the finalisation handler
 					// should be awere of the error and call the stop method from
 					// the engine which will release the start method from engine service
 					engineStopCh := make(chan struct{})
@@ -131,7 +131,7 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 		},
 
 		"engine_fails_should_stop_voting_round_service": {
-			wantErr: errors.New("mocked finalization engine fails"),
+			wantErr: errors.New("mocked finalisation engine fails"),
 			createFinalizationHandler: func(ctrl *gomock.Controller) *finalizationHandler {
 				builder := func() (engine ephemeralService, voting ephemeralService) {
 					failTime := 2 * time.Second
@@ -140,10 +140,10 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 					mockEngine.EXPECT().Start().DoAndReturn(func() error {
 						timeToFail := time.NewTimer(failTime)
 						<-timeToFail.C
-						return errors.New("mocked finalization engine fails")
+						return errors.New("mocked finalisation engine fails")
 					})
 
-					// once the finalization engine fails the finalization handler
+					// once the finalisation engine fails the finalisation handler
 					// should be awere of the error and call the stop method from the
 					// voting round which will release the start method from voting round service
 					votingStopChannel := make(chan struct{})

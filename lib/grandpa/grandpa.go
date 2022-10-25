@@ -349,14 +349,6 @@ func (s *Service) initiate() error {
 	}
 }
 
-func stopFinalizationHandler(finalizationHandler *finalizationHandler) error {
-	err := finalizationHandler.Stop()
-	if err != nil {
-		return fmt.Errorf("stopping finalisation handler: %w", err)
-	}
-	return nil
-}
-
 func (s *Service) handleIsPrimary() (bool, error) {
 	// derive primary
 	primary := s.derivePrimary()

@@ -159,9 +159,9 @@ func (fh *finalizationHandler) waitServices() error {
 				votingRoundErr = nil
 			}
 
-			err = fh.stop()
+			stopErr := fh.stop()
 			if err != nil {
-				logger.Infof("stopping finalization handler: %s", err)
+				logger.Infof("stopping finalisation handler: %s", stopErr)
 			}
 			return err
 
@@ -170,9 +170,9 @@ func (fh *finalizationHandler) waitServices() error {
 				finalizationEngineErr = nil
 			}
 
-			err = fh.stop()
-			if err != nil {
-				logger.Infof("stopping finalization handler: %s", err)
+			stopErr := fh.stop()
+			if stopErr != nil {
+				logger.Infof("stopping finalisation handler: %s", stopErr)
 			}
 
 			return err
@@ -374,7 +374,7 @@ func (f *finalizationEngine) Start() (err error) {
 
 	err = f.finalizeRound()
 	if err != nil {
-		return fmt.Errorf("finalizing round: %w", err)
+		return fmt.Errorf("finalising round: %w", err)
 	}
 
 	return nil
