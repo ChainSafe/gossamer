@@ -353,7 +353,7 @@ func TestBlockTreeGetAllDescendants(t *testing.T) {
 
 	descendants, err := bt.GetAllDescendants(bt.root.hash)
 	require.NoError(t, err)
-	require.NotEqual(t, hashes, descendants)
+	require.Equal(t, hashes, descendants)
 }
 
 func TestBlockTree_IsDecendantOf(t *testing.T) {

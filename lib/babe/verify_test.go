@@ -686,13 +686,13 @@ func Test_verifier_verifyAuthorshipRightEquivocatory(t *testing.T) {
 
 	output2, proof2, err := kp.VrfSign(makeTranscript(Randomness{}, uint64(1), 2))
 	assert.NoError(t, err)
-	secDigestExisting := types.BabePrimaryPreDigest{
+	secondDigestExisting := types.BabePrimaryPreDigest{
 		AuthorityIndex: 1,
 		SlotNumber:     1,
 		VRFOutput:      output2,
 		VRFProof:       proof2,
 	}
-	prdExisting, err := secDigestExisting.ToPreRuntimeDigest()
+	prdExisting, err := secondDigestExisting.ToPreRuntimeDigest()
 	assert.NoError(t, err)
 
 	headerExisting := newTestHeader(t, *prdExisting)
@@ -996,7 +996,7 @@ func TestVerificationManager_VerifyBlock(t *testing.T) {
 			name:   "get slot from header error",
 			vm:     vm1,
 			header: block1Header,
-			expErr: fmt.Errorf("failed to get slot from block 1: %w", types.ErrChainHeadMissingDigest),
+			expErr: fmt.Errorf("failed to get slot from header of block 1: %w", types.ErrChainHeadMissingDigest),
 		},
 		{
 			name:   "set first slot error",

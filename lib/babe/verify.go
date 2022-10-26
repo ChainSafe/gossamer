@@ -352,24 +352,24 @@ func (b *verifier) verifyBlockEquivocation(header *types.Header) (bool, error) {
 		return false, fmt.Errorf("failed to get slot from header of block %s: %w", currentHash, err)
 	}
 
-	blocksInSlot, err := b.blockState.GetBlockHashesBySlot(slot)
+	blockHashesInSlot, err := b.blockState.GetBlockHashesBySlot(slot)
 	if err != nil {
 		return false, fmt.Errorf("failed to get blocks produced in slot %d: %w", slot, err)
 	}
 
-	for _, blockInSlot := range blocksInSlot {
-		if blockInSlot.Equal(currentHash) {
+	for _, blockHashInSlot := range blockHashesInSlot {
+		if blockHashInSlot.Equal(currentHash) {
 			continue
 		}
 
-		existingHeader, err := b.blockState.GetHeader(blockInSlot)
+		existingHeader, err := b.blockState.GetHeader(blockHashInSlot)
 		if err != nil {
-			return false, fmt.Errorf("failed to get header for block %s: %w", blockInSlot, err)
+			return false, fmt.Errorf("failed to get header for block %s: %w", blockHashInSlot, err)
 		}
 
 		authorOfExistingHeader, err := getAuthorityIndex(existingHeader)
 		if err != nil {
-			return false, fmt.Errorf("failed to get authority index for block %s: %w", blockInSlot, err)
+			return false, fmt.Errorf("failed to get authority index for block %s: %w", blockHashInSlot, err)
 		}
 		if authorOfExistingHeader != author {
 			continue
