@@ -329,7 +329,7 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 
 	equivocated, err := b.verifyBlockEquivocation(header)
 	if err != nil {
-		return fmt.Errorf("could not verify block equivocation for header %s: %w", header.Hash(), err)
+		return fmt.Errorf("could not verify block equivocation: %w", err)
 	}
 	if equivocated {
 		return ErrProducerEquivocated
