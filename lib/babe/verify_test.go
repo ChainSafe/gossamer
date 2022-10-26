@@ -647,7 +647,8 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 			name:     "valid digest items, getAuthorityIndex error",
 			verifier: *babeVerifier5,
 			header:   header7,
-			expErr:   fmt.Errorf("could not verify block equivocation: failed to get authority index for block %s: for block hash %s: %w", h, types.NewEmptyHeader().Hash(), errNoDigest),
+			expErr: fmt.Errorf("could not verify block equivocation: failed to get authority index for block %s: for block hash %s: %w", //nolint:lll
+				h, types.NewEmptyHeader().Hash(), errNoDigest),
 		},
 		{
 			name:     "get header err",
