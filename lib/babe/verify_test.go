@@ -156,7 +156,7 @@ func Test_getAuthorityIndex(t *testing.T) {
 		{
 			name:   "No Digest",
 			args:   args{types.NewEmptyHeader()},
-			expErr: errNoDigest,
+			expErr: fmt.Errorf("for block hash %s: %w", types.NewEmptyHeader().Hash(), errNoDigest),
 		},
 		{
 			name:   "First Digest Invalid Type",
@@ -647,13 +647,13 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 			name:     "valid digest items, getAuthorityIndex error",
 			verifier: *babeVerifier5,
 			header:   header7,
-			expErr:   errNoDigest,
+			expErr:   fmt.Errorf("could not verify block equivocation: failed to get authority index for block 0x0100000000000000000000000000000000000000000000000000000000000000: for block hash %s: %w", types.NewEmptyHeader().Hash(), errNoDigest),
 		},
 		{
 			name:     "get header err",
 			verifier: *babeVerifier6,
 			header:   header7,
-			expErr:   errors.New("failed to get header for block"),
+			expErr:   fmt.Errorf("could not verify block equivocation: failed to get header for block 0x0100000000000000000000000000000000000000000000000000000000000000: get header error"),
 		},
 	}
 	for _, tt := range tests {
@@ -661,7 +661,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 			b := &tt.verifier
 			err := b.verifyAuthorshipRight(tt.header)
 			if tt.expErr != nil {
-				assert.ErrorContains(t, err, tt.expErr.Error())
+				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
