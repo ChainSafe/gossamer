@@ -343,7 +343,7 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 func (b *verifier) verifyBlockEquivocation(header *types.Header) (bool, error) {
 	author, err := getAuthorityIndex(header)
 	if err != nil {
-		return false, fmt.Errorf("failed to get authority index for %s: %w", header.Hash(), err)
+		return false, fmt.Errorf("failed to get authority index: %w", err)
 	}
 
 	currentHash := header.Hash()
