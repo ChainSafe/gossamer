@@ -89,7 +89,7 @@ func (h *MessageHandler) notifyNeighbors(neighbourMessage *NeighbourPacketV1) {
 
 func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourPacketV1) error {
 	if h.grandpa.authority {
-		// TODO: this is a simple hack to ensure that the neighbor messages
+		// TODO: this is a simple hack to ensure that the neighbour messages
 		// sent by gossamer are being received by substrate nodes
 		// not intended to be a production code
 		h.grandpa.roundLock.Lock()
