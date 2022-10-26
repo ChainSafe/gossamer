@@ -319,15 +319,15 @@ func (_m *Instance) OffchainWorker() {
 }
 
 // PaymentQueryInfo provides a mock function with given fields: ext
-func (_m *Instance) PaymentQueryInfo(ext []byte) (*types.TransactionPaymentQueryInfo, error) {
+func (_m *Instance) PaymentQueryInfo(ext []byte) (*types.RuntimeDispatchInfo, error) {
 	ret := _m.Called(ext)
 
-	var r0 *types.TransactionPaymentQueryInfo
-	if rf, ok := ret.Get(0).(func([]byte) *types.TransactionPaymentQueryInfo); ok {
+	var r0 *types.RuntimeDispatchInfo
+	if rf, ok := ret.Get(0).(func([]byte) *types.RuntimeDispatchInfo); ok {
 		r0 = rf(ext)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.TransactionPaymentQueryInfo)
+			r0 = ret.Get(0).(*types.RuntimeDispatchInfo)
 		}
 	}
 

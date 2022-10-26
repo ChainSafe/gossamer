@@ -60,24 +60,15 @@ func indirect(dstv reflect.Value) (elem reflect.Value) {
 func Unmarshal(data []byte, dst interface{}) (err error) {
 	dstv := reflect.ValueOf(dst)
 	if dstv.Kind() != reflect.Ptr || dstv.IsNil() {
-		err = fmt.Errorf("unsupported dst: %T, must be a pointer to a destination", dst)
+		err = fmt.Errorf("%w: %T", ErrUnsupportedDestination, dst)
 		return
 	}
 
-	elem := indirect(dstv)
-	if err != nil {
-		return
-	}
-
-	buf := &bytes.Buffer{}
 	ds := decodeState{}
-	_, err = buf.Write(data)
-	if err != nil {
-		return
-	}
-	ds.Reader = buf
 
-	err = ds.unmarshal(elem)
+	ds.Reader = bytes.NewBuffer(data)
+
+	err = ds.unmarshal(indirect(dstv))
 	if err != nil {
 		return
 	}
@@ -93,15 +84,15 @@ type Decoder struct {
 func (d *Decoder) Decode(dst interface{}) (err error) {
 	dstv := reflect.ValueOf(dst)
 	if dstv.Kind() != reflect.Ptr || dstv.IsNil() {
-		err = fmt.Errorf("unsupported dst: %T, must be a pointer to a destination", dst)
+		err = fmt.Errorf("%w: %T", ErrUnsupportedDestination, dst)
 		return
 	}
 
-	elem := indirect(dstv)
+	err = d.unmarshal(indirect(dstv))
 	if err != nil {
 		return
 	}
-	return d.unmarshal(elem)
+	return nil
 }
 
 // NewDecoder is constructor for Decoder
@@ -159,8 +150,10 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {
 			err = ds.decodeArray(dstv)
 		case reflect.Slice:
 			err = ds.decodeSlice(dstv)
+		case reflect.Map:
+			err = ds.decodeMap(dstv)
 		default:
-			err = fmt.Errorf("unsupported type: %T", in)
+			err = fmt.Errorf("%w: %T", ErrUnsupportedType, in)
 		}
 	}
 	return
@@ -244,7 +237,7 @@ func (ds *decodeState) decodeCustomPrimitive(dstv reflect.Value) (err error) {
 			break
 		}
 	default:
-		err = fmt.Errorf("unsupported type for custom primitive: %T", in)
+		err = fmt.Errorf("%w: %T", ErrUnsupportedType, in)
 		return
 	}
 	dstv.Set(temp.Elem().Convert(inType))
@@ -291,7 +284,7 @@ func (ds *decodeState) decodeResult(dstv reflect.Value) (err error) {
 		dstv.Set(reflect.ValueOf(res))
 	default:
 		bytes, _ := io.ReadAll(ds.Reader)
-		err = fmt.Errorf("unsupported Result value: %v, bytes: %v", rb, bytes)
+		err = fmt.Errorf("%w: value: %v, bytes: %v", ErrUnsupportedResult, rb, bytes)
 	}
 	return
 }
@@ -324,7 +317,7 @@ func (ds *decodeState) decodePointer(dstv reflect.Value) (err error) {
 		}
 	default:
 		bytes, _ := io.ReadAll(ds.Reader)
-		err = fmt.Errorf("unsupported Option value: %v, bytes: %v", rb, bytes)
+		err = fmt.Errorf("%w: value: %v, bytes: %v", errUnsupportedOption, rb, bytes)
 	}
 	return
 }
@@ -372,7 +365,7 @@ func (ds *decodeState) decodeVaryingDataType(dstv reflect.Value) (err error) {
 	vdt := dstv.Interface().(VaryingDataType)
 	val, ok := vdt.cache[uint(b)]
 	if !ok {
-		err = fmt.Errorf("unable to find VaryingDataTypeValue with index: %d", uint(b))
+		err = fmt.Errorf("%w: for key %d", errUnknownVaryingDataTypeValue, uint(b))
 		return
 	}
 
@@ -426,6 +419,34 @@ func (ds *decodeState) decodeArray(dstv reflect.Value) (err error) {
 	return
 }
 
+func (ds *decodeState) decodeMap(dstv reflect.Value) (err error) {
+	numberOfTuples, err := ds.decodeLength()
+	if err != nil {
+		return fmt.Errorf("decoding length: %w", err)
+	}
+	in := dstv.Interface()
+
+	for i := uint(0); i < numberOfTuples; i++ {
+		tempKeyType := reflect.TypeOf(in).Key()
+		tempKey := reflect.New(tempKeyType).Elem()
+		err = ds.unmarshal(tempKey)
+		if err != nil {
+			return fmt.Errorf("decoding key %d of %d: %w", i+1, numberOfTuples, err)
+		}
+
+		tempElemType := reflect.TypeOf(in).Elem()
+		tempElem := reflect.New(tempElemType).Elem()
+		err = ds.unmarshal(tempElem)
+		if err != nil {
+			return fmt.Errorf("decoding value %d of %d: %w", i+1, numberOfTuples, err)
+		}
+
+		dstv.SetMapIndex(tempKey, tempElem)
+	}
+
+	return nil
+}
+
 // decodeStruct decodes a byte array representing a SCALE tuple.  The order of data is
 // determined by the source tuple in rust, or the struct field order in a go struct
 func (ds *decodeState) decodeStruct(dstv reflect.Value) (err error) {
@@ -448,8 +469,7 @@ func (ds *decodeState) decodeStruct(dstv reflect.Value) (err error) {
 		}
 		err = ds.unmarshal(field)
 		if err != nil {
-			err = fmt.Errorf("%s, field: %+v", err, field)
-			return
+			return fmt.Errorf("decoding struct: unmarshalling field at index %d: %w", i.fieldIndex, err)
 		}
 	}
 	dstv.Set(temp.Elem())
@@ -470,7 +490,7 @@ func (ds *decodeState) decodeBool(dstv reflect.Value) (err error) {
 	case 0x01:
 		b = true
 	default:
-		err = fmt.Errorf("could not decode invalid bool")
+		err = fmt.Errorf("%w", errDecodeBool)
 	}
 	dstv.Set(reflect.ValueOf(b))
 	return
@@ -538,7 +558,6 @@ func (ds *decodeState) decodeUint(dstv reflect.Value) (err error) {
 			}
 		default:
 			return fmt.Errorf("%w: %d", ErrCompactUintPrefixUnknown, prefix)
-
 		}
 	}
 	temp.Elem().Set(reflect.ValueOf(value).Convert(reflect.TypeOf(in)))
@@ -636,7 +655,7 @@ func (ds *decodeState) decodeBigInt(dstv reflect.Value) (err error) {
 		buf := make([]byte, byteLen)
 		_, err = ds.Read(buf)
 		if err != nil {
-			err = fmt.Errorf("could not decode invalid big.Int: %v", err)
+			err = fmt.Errorf("reading bytes: %w", err)
 			break
 		}
 		o := reverseBytes(buf)

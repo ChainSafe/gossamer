@@ -155,7 +155,7 @@ func (u *Uint128) UnmarshalJSON(data []byte) error {
 
 	dec, err := NewUint128(intVal)
 	if err != nil {
-		return err
+		return fmt.Errorf("creating uint128 from big integer: %w", err)
 	}
 	u.Upper = dec.Upper
 	u.Lower = dec.Lower

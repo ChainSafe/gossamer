@@ -10,6 +10,7 @@ import (
 	"io"
 	"math/big"
 	"reflect"
+	"sort"
 )
 
 // Encoder scale encodes to a given io.Writer.
@@ -106,8 +107,10 @@ func (es *encodeState) marshal(in interface{}) (err error) {
 			err = es.encodeArray(in)
 		case reflect.Slice:
 			err = es.encodeSlice(in)
+		case reflect.Map:
+			err = es.encodeMap(in)
 		default:
-			err = fmt.Errorf("unsupported type: %T", in)
+			err = fmt.Errorf("%w: %T", ErrUnsupportedType, in)
 		}
 	}
 	return
@@ -140,7 +143,7 @@ func (es *encodeState) encodeCustomPrimitive(in interface{}) (err error) {
 	case reflect.Uint64:
 		in = reflect.ValueOf(in).Convert(reflect.TypeOf(uint64(0))).Interface()
 	default:
-		err = fmt.Errorf("unsupported type for custom primitive: %T", in)
+		err = fmt.Errorf("%w: %T", ErrUnsupportedCustomPrimitive, in)
 		return
 	}
 	err = es.marshal(in)
@@ -149,7 +152,7 @@ func (es *encodeState) encodeCustomPrimitive(in interface{}) (err error) {
 
 func (es *encodeState) encodeResult(res Result) (err error) {
 	if !res.IsSet() {
-		err = fmt.Errorf("Result is not set: %+v", res)
+		err = fmt.Errorf("%w: %+v", ErrResultNotSet, res)
 		return
 	}
 
@@ -223,6 +226,40 @@ func (es *encodeState) encodeArray(in interface{}) (err error) {
 	return
 }
 
+func (es *encodeState) encodeMap(in interface{}) (err error) {
+	v := reflect.ValueOf(in)
+	err = es.encodeLength(v.Len())
+	if err != nil {
+		return fmt.Errorf("encoding length: %w", err)
+	}
+
+	mapKeys := v.MapKeys()
+
+	sort.Slice(mapKeys, func(i, j int) bool {
+		keyByteOfI, _ := Marshal(mapKeys[i].Interface())
+		keyByteOfJ, _ := Marshal(mapKeys[j].Interface())
+		return bytes.Compare(keyByteOfI, keyByteOfJ) < 0
+	})
+
+	for _, key := range mapKeys {
+		err = es.marshal(key.Interface())
+		if err != nil {
+			return fmt.Errorf("encoding map key: %w", err)
+		}
+
+		mapValue := v.MapIndex(key)
+		if !mapValue.CanInterface() {
+			continue
+		}
+
+		err = es.marshal(mapValue.Interface())
+		if err != nil {
+			return fmt.Errorf("encoding map value: %w", err)
+		}
+	}
+	return nil
+}
+
 // encodeBigInt performs the same encoding as encodeInteger, except on a big.Int.
 // if 2^30 <= n < 2^536 write
 // [lower 2 bits of first byte = 11] [upper 6 bits of first byte = # of bytes following less 4]
@@ -230,7 +267,7 @@ func (es *encodeState) encodeArray(in interface{}) (err error) {
 func (es *encodeState) encodeBigInt(i *big.Int) (err error) {
 	switch {
 	case i == nil:
-		err = fmt.Errorf("nil *big.Int")
+		err = fmt.Errorf("%w", errBigIntIsNil)
 	case i.Cmp(new(big.Int).Lsh(big.NewInt(1), 6)) < 0:
 		err = binary.Write(es, binary.LittleEndian, uint8(i.Int64()<<2))
 	case i.Cmp(new(big.Int).Lsh(big.NewInt(1), 14)) < 0:
@@ -247,6 +284,9 @@ func (es *encodeState) encodeBigInt(i *big.Int) (err error) {
 		if err == nil {
 			// write integer itself
 			err = binary.Write(es, binary.LittleEndian, reverseBytes(i.Bytes()))
+			if err != nil {
+				err = fmt.Errorf("writing bytes %s: %w", i, err)
+			}
 		}
 	}
 	return
@@ -299,7 +339,7 @@ func (es *encodeState) encodeFixedWidthInt(i interface{}) (err error) {
 	case uint64:
 		err = binary.Write(es, binary.LittleEndian, i)
 	default:
-		err = fmt.Errorf("could not encode fixed width integer, invalid type: %T", i)
+		err = fmt.Errorf("invalid type: %T", i)
 	}
 	return
 }
@@ -374,7 +414,7 @@ func (es *encodeState) encodeUint(i uint) (err error) {
 // encodeUint128 encodes a Uint128
 func (es *encodeState) encodeUint128(i *Uint128) (err error) {
 	if i == nil {
-		err = fmt.Errorf("uint128 is nil: %v", i)
+		err = fmt.Errorf("%w", errUint128IsNil)
 		return
 	}
 	err = binary.Write(es, binary.LittleEndian, padBytes(i.Bytes(), binary.LittleEndian))
