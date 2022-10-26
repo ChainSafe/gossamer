@@ -81,11 +81,11 @@ func (fh *finalizationHandler) start() {
 }
 
 func (fh *finalizationHandler) stop() (err error) {
-	stopWg := new(sync.WaitGroup)
-	stopWg.Add(2)
-
 	fh.servicesLock.Lock()
 	defer fh.servicesLock.Unlock()
+
+	stopWg := new(sync.WaitGroup)
+	stopWg.Add(2)
 
 	errs := [2]error{}
 	go func() {
@@ -160,7 +160,7 @@ func (fh *finalizationHandler) waitServices() error {
 			}
 
 			stopErr := fh.stop()
-			if err != nil {
+			if stopErr != nil {
 				logger.Infof("stopping finalisation handler: %s", stopErr)
 			}
 			return err

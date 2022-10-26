@@ -28,6 +28,7 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 						<-time.NewTimer(3 * time.Second).C
 						return nil
 					})
+					mockVoting.EXPECT().Stop().Return(nil)
 
 					engineStopCh := make(chan struct{})
 					mockEngine := NewMockephemeralService(ctrl)
@@ -61,6 +62,7 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 						<-time.NewTimer(3 * time.Second).C
 						return nil
 					})
+					mockEngine.EXPECT().Stop().Return(nil)
 
 					votingStopCh := make(chan struct{})
 					mockVoting := NewMockephemeralService(ctrl)
@@ -98,6 +100,7 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 						<-timeToFail.C
 						return errors.New("mocked voting round fails")
 					})
+					mockVoting.EXPECT().Stop().Return(nil)
 
 					// once the voting round fails the finalisation handler
 					// should be awere of the error and call the stop method from
@@ -142,6 +145,7 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 						<-timeToFail.C
 						return errors.New("mocked finalisation engine fails")
 					})
+					mockEngine.EXPECT().Stop().Return(nil)
 
 					// once the finalisation engine fails the finalisation handler
 					// should be awere of the error and call the stop method from the
@@ -248,7 +252,7 @@ func Test_FinalizationHandler_Stop_ShouldHalt_Services(t *testing.T) {
 	}()
 
 	// wait enough time to start subservices
-	time.After(2 * time.Second)
+	<-time.After(5 * time.Second)
 	err = handler.Stop()
 	require.NoError(t, err)
 

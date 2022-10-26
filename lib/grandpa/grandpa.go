@@ -342,6 +342,7 @@ func (s *Service) initiate() error {
 	for {
 		select {
 		case <-s.ctx.Done():
+			fmt.Println("context done <----> stopping finalization handler")
 			return finalizationHandler.Stop()
 		case err := <-errsCh:
 			return err
