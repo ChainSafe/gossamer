@@ -176,7 +176,7 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 	// if the vote is from ourselves, return an error
 	kb := [32]byte(s.publicKeyBytes())
 	if bytes.Equal(m.Message.AuthorityID[:], kb[:]) {
-		return nil, fmt.Errorf("%w", errVoteFromSelf)
+		return nil, errVoteFromSelf
 	}
 
 	err = s.validateVote(vote)
@@ -198,7 +198,7 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 
 	equivocated := s.checkForEquivocation(voter, just, m.Message.Stage)
 	if equivocated {
-		return nil, fmt.Errorf("%w", ErrEquivocation)
+		return nil, ErrEquivocation
 	}
 
 	switch m.Message.Stage {

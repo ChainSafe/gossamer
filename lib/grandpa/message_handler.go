@@ -77,16 +77,6 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 	}
 }
 
-func (h *MessageHandler) notifyNeighbors(neighbourMessage *NeighbourPacketV1) {
-	cm, err := neighbourMessage.ToConsensusMessage()
-	if err != nil {
-		logger.Warnf("failed to convert NeighbourMessage to network message: %s", err)
-	} else {
-		logger.Warnf("sending neighbour message: %v", neighbourMessage)
-		h.grandpa.network.GossipMessage(cm)
-	}
-}
-
 func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourPacketV1) error {
 	if h.grandpa.authority {
 		// TODO: this is a simple hack to ensure that the neighbour messages
@@ -99,7 +89,14 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourPacketV1) error {
 			Number: uint32(h.grandpa.head.Number),
 		}
 		h.grandpa.roundLock.Unlock()
-		h.notifyNeighbors(neighbourMessage)
+
+		cm, err := neighbourMessage.ToConsensusMessage()
+		if err != nil {
+			return fmt.Errorf("failed to convert NeighbourMessage to network message: %w", err)
+		}
+
+		logger.Debugf("sending neighbour message: %v", neighbourMessage)
+		h.grandpa.network.GossipMessage(cm)
 	}
 
 	currFinalized, err := h.blockState.GetFinalisedHeader(0, 0)

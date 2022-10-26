@@ -118,7 +118,7 @@ func (fh *finalizationHandler) Stop() (err error) {
 	select {
 	case <-fh.handlerDone:
 	case <-time.After(fh.timeoutStop):
-		return fmt.Errorf("%w", errTimeoutWhileStoping)
+		return errTimeoutWhileStoping
 	}
 
 	close(fh.observableErrs)
@@ -215,7 +215,7 @@ func (h *handleVotingRound) Stop() (err error) {
 	select {
 	case <-h.engineDone:
 	case <-time.After(h.timeoutStop):
-		return fmt.Errorf("%w", errTimeoutWhileStoping)
+		return errTimeoutWhileStoping
 	}
 
 	h.stopCh = nil
@@ -356,7 +356,7 @@ func (f *finalizationEngine) Stop() (err error) {
 	select {
 	case <-f.engineDone:
 	case <-time.After(f.timeoutStop):
-		return fmt.Errorf("%w", errTimeoutWhileStoping)
+		return errTimeoutWhileStoping
 	}
 
 	f.stopCh = nil
