@@ -436,7 +436,7 @@ func (f *finalizationEngine) defineRoundVotes() error {
 
 			if total <= f.grandpaService.state.threshold() {
 				determinePrecommitTimer.Reset(gossipInterval * 4)
-				break
+				continue
 			}
 
 			latestFinalizedHash := f.grandpaService.head.Hash()
