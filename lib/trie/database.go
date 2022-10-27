@@ -83,7 +83,8 @@ func (t *Trie) storeNode(db chaindb.Batch, n *Node) (err error) {
 
 // Load reconstructs the trie from the database from the given root hash.
 // It is used when restarting the node to load the current state trie.
-func (t *Trie) Load(db Database, rootHash common.Hash) error {
+// It does not affect the trie tracked deltas.
+func (t *Trie) Load(db Database, rootHash common.Hash) (err error) {
 	if rootHash == EmptyHash {
 		t.root = nil
 		return nil

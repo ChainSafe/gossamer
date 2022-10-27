@@ -282,6 +282,7 @@ func Test_Trie_PutChild_Store_Load(t *testing.T) {
 
 	const childTrieSize = 10
 	childTrie, _ := makeSeededTrie(t, childTrieSize)
+	childTrie.deltas = newDeltas() // reset since Load does not affect deltas
 
 	db := newTestDB(t)
 
