@@ -113,7 +113,7 @@ func Fuzz_Trie_PutAndGet_Single(f *testing.F) {
 func Test_Trie_PutAndGet_Multiple(t *testing.T) {
 	trie := NewEmptyTrie()
 
-	const numberOfKeyValuePairs = 60000
+	const numberOfKeyValuePairs = 600
 
 	generator := newGenerator()
 	keyValues := generateKeyValues(t, generator, numberOfKeyValuePairs)
@@ -651,7 +651,7 @@ func Test_Trie_NextKey_Random(t *testing.T) {
 
 	trie := NewEmptyTrie()
 
-	const minKVSize, maxKVSize = 1000, 10000
+	const minKVSize, maxKVSize = 100, 500
 	kvSize := minKVSize + generator.Intn(maxKVSize-minKVSize)
 	kv := generateKeyValues(t, generator, kvSize)
 
@@ -685,7 +685,7 @@ func Test_Trie_NextKey_Random(t *testing.T) {
 
 func Benchmark_Trie_Hash(b *testing.B) {
 	generator := newGenerator()
-	const kvSize = 1000000
+	const kvSize = 1000
 	kv := generateKeyValues(b, generator, kvSize)
 
 	trie := NewEmptyTrie()
@@ -715,7 +715,7 @@ func bToMb(b uint64) uint64 {
 
 func TestTrie_ConcurrentSnapshotWrites(t *testing.T) {
 	generator := newGenerator()
-	const size = 1000
+	const size = 100
 	const workers = 4
 
 	testCases := make([][]keyValues, workers)
@@ -1077,7 +1077,7 @@ func testDescendants(t *testing.T, root *Node) {
 
 func Test_Trie_Descendants_Fuzz(t *testing.T) {
 	generator := newGenerator()
-	const kvSize = 5000
+	const kvSize = 500
 	kv := generateKeyValues(t, generator, kvSize)
 
 	trie := NewEmptyTrie()

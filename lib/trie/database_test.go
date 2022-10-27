@@ -23,7 +23,7 @@ func newTestDB(t *testing.T) chaindb.Database {
 func Test_Trie_Store_Load(t *testing.T) {
 	t.Parallel()
 
-	const size = 1000
+	const size = 100
 	trie, _ := makeSeededTrie(t, size)
 
 	rootHash := trie.MustHash()
@@ -93,7 +93,7 @@ func Test_Trie_WriteDirty_Put(t *testing.T) {
 func Test_Trie_WriteDirty_Delete(t *testing.T) {
 	t.Parallel()
 
-	const size = 1000
+	const size = 100
 	trie, keyValues := makeSeededTrie(t, size)
 
 	generator := newGenerator()
@@ -134,7 +134,7 @@ func Test_Trie_WriteDirty_Delete(t *testing.T) {
 func Test_Trie_WriteDirty_ClearPrefix(t *testing.T) {
 	t.Parallel()
 
-	const size = 2000
+	const size = 100
 	trie, keyValues := makeSeededTrie(t, size)
 
 	generator := newGenerator()
@@ -257,7 +257,7 @@ func Test_PopulateNodeHashes(t *testing.T) {
 func Test_GetFromDB(t *testing.T) {
 	t.Parallel()
 
-	const size = 1000
+	const size = 100
 	trie, keyValues := makeSeededTrie(t, size)
 
 	db := newTestDB(t)
