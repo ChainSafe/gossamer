@@ -83,7 +83,7 @@ func newTestSyncer(t *testing.T) *Service {
 	cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), instance)
 	blockImportHandler := NewMockBlockImportHandler(ctrl)
 	blockImportHandler.EXPECT().HandleBlockImport(gomock.AssignableToTypeOf(&types.Block{}),
-		gomock.AssignableToTypeOf(&rtstorage.TrieState{})).DoAndReturn(
+		gomock.AssignableToTypeOf(&rtstorage.TrieState{}), false).DoAndReturn(
 		func(block *types.Block, ts *rtstorage.TrieState) error {
 			// store updates state trie nodes in database
 			if err = stateSrvc.Storage.StoreTrie(ts, &block.Header); err != nil {
