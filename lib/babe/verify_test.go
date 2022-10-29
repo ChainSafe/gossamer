@@ -528,7 +528,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	h1 := []common.Hash{h}
 
 	mockBlockState.EXPECT().GetHeader(h).Return(types.NewEmptyHeader(), nil)
-	mockBlockState.EXPECT().GetBlockHashesBySlot(gomock.AssignableToTypeOf(uint64(0))).Return(h1, nil)
+	mockBlockState.EXPECT().GetBlockHashesBySlot(uint64(1)).Return(h1, nil)
 
 	mockBlockStateErr.EXPECT().GetHeader(h).Return(nil, errors.New("get header error"))
 	mockBlockStateErr.EXPECT().GetBlockHashesBySlot(gomock.AssignableToTypeOf(uint64(0))).Return(h1, nil)
