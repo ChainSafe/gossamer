@@ -246,9 +246,8 @@ func TestGetBlockHashesBySlot(t *testing.T) {
 
 	blocks, err := bs.GetBlockHashesBySlot(slot)
 	require.NoError(t, err)
-	require.Equal(t, len(blocks), 2)
-	require.Contains(t, blocks, block.Header.Hash())
-	require.Contains(t, blocks, block2.Header.Hash())
+	expectedBlockHashes := []common.Hash{block.Header.Hash(), block2.Header.Hash()}
+	require.ElementsMatch(t, blocks, expectedBlockHashes)
 }
 
 func TestIsBlockOnCurrentChain(t *testing.T) {
