@@ -655,7 +655,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 			name:     "get header err",
 			verifier: *babeVerifier6,
 			header:   header7,
-			expErr: fmt.Errorf("could not verify block equivocation:"+
+			expErr: fmt.Errorf("could not verify block equivocation: "+
 				"failed to get header for block %s: get header error", h),
 		},
 	}
