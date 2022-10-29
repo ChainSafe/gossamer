@@ -734,7 +734,7 @@ func Test_verifier_verifyAuthorshipRightEquivocatory(t *testing.T) {
 	signAndAddSeal(t, kp, headerEquivocatoryPrimary, hashEquivocatoryPrimary[:])
 
 	mockBlockStateEquiv1.EXPECT().GetHeader(hashEquivocatoryPrimary).Return(headerEquivocatoryPrimary, nil)
-	mockBlockStateEquiv1.EXPECT().GetBlockHashesBySlot(gomock.AssignableToTypeOf(uint64(0))).Return(
+	mockBlockStateEquiv1.EXPECT().GetBlockHashesBySlot(uint64(1)).Return(
 		[]common.Hash{hashEquivocatoryPrimary, hashExisting}, nil)
 
 	// Secondary Plain Test Header
