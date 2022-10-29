@@ -348,6 +348,8 @@ func TestBlockTree_GetAllBlocksAtNumber(t *testing.T) {
 }
 
 func TestBlockTreeGetAllDescendants(t *testing.T) {
+	t.Parallel()
+
 	// Create tree with number 4 (with 4 nodes)
 	bt, hashes := createFlatTree(t, 4)
 

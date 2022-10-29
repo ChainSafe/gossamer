@@ -528,10 +528,10 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	h1 := []common.Hash{h}
 
 	mockBlockState.EXPECT().GetHeader(h).Return(types.NewEmptyHeader(), nil)
-	mockBlockState.EXPECT().GetBlockHashesBySlot(gomock.AssignableToTypeOf(uint64(0))).Return(h1, nil)
+	mockBlockState.EXPECT().GetBlockHashesBySlot(uint64(1)).Return(h1, nil)
 
 	mockBlockStateErr.EXPECT().GetHeader(h).Return(nil, errors.New("get header error"))
-	mockBlockStateErr.EXPECT().GetBlockHashesBySlot(gomock.AssignableToTypeOf(uint64(0))).Return(h1, nil)
+	mockBlockStateErr.EXPECT().GetBlockHashesBySlot(uint64(1)).Return(h1, nil)
 
 	// Case 0: First element not preruntime digest
 	header0 := newTestHeader(t, testInvalidSeal, testInvalidSeal)
@@ -736,7 +736,7 @@ func Test_verifier_verifyAuthorshipRightEquivocatory(t *testing.T) {
 	signAndAddSeal(t, kp, headerEquivocatoryPrimary, hashEquivocatoryPrimary[:])
 
 	mockBlockStateEquiv1.EXPECT().GetHeader(hashEquivocatoryPrimary).Return(headerEquivocatoryPrimary, nil)
-	mockBlockStateEquiv1.EXPECT().GetBlockHashesBySlot(gomock.AssignableToTypeOf(uint64(0))).Return(
+	mockBlockStateEquiv1.EXPECT().GetBlockHashesBySlot(uint64(1)).Return(
 		[]common.Hash{hashEquivocatoryPrimary, hashExisting}, nil)
 
 	// Secondary Plain Test Header
@@ -759,7 +759,7 @@ func Test_verifier_verifyAuthorshipRightEquivocatory(t *testing.T) {
 	babeVerifier8 := newTestVerifier(kp, mockBlockStateEquiv2, scale.MaxUint128, true)
 
 	mockBlockStateEquiv2.EXPECT().GetHeader(hashEquivocatorySecondaryPlain).Return(headerEquivocatorySecondaryPlain, nil)
-	mockBlockStateEquiv2.EXPECT().GetBlockHashesBySlot(gomock.AssignableToTypeOf(uint64(0))).Return(
+	mockBlockStateEquiv2.EXPECT().GetBlockHashesBySlot(uint64(1)).Return(
 		[]common.Hash{hashEquivocatorySecondaryPlain, hashExisting}, nil)
 
 	// Secondary Vrf Test Header
@@ -778,7 +778,7 @@ func Test_verifier_verifyAuthorshipRightEquivocatory(t *testing.T) {
 	babeVerifierEquivocatorySecondaryVRF := newTestVerifier(kp, mockBlockStateEquiv3, scale.MaxUint128, true)
 
 	mockBlockStateEquiv3.EXPECT().GetHeader(hashEquivocatorySecondaryVRF).Return(headerEquivocatorySecondaryVRF, nil)
-	mockBlockStateEquiv3.EXPECT().GetBlockHashesBySlot(gomock.AssignableToTypeOf(uint64(0))).Return(
+	mockBlockStateEquiv3.EXPECT().GetBlockHashesBySlot(uint64(1)).Return(
 		[]common.Hash{hashEquivocatorySecondaryVRF, hashExisting}, nil)
 
 	tests := []struct {

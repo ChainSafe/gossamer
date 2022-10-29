@@ -248,7 +248,6 @@ func TestGetBlockHashesBySlot(t *testing.T) {
 
 	blocks, err := bs.GetBlockHashesBySlot(slot)
 	require.NoError(t, err)
-
 	require.ElementsMatch(t, blocks, []common.Hash{block.Header.Hash(), block2.Header.Hash()})
 }
 
