@@ -757,7 +757,7 @@ func Test_verifier_verifyAuthorshipRightEquivocatory(t *testing.T) {
 	babeVerifier8 := newTestVerifier(kp, mockBlockStateEquiv2, scale.MaxUint128, true)
 
 	mockBlockStateEquiv2.EXPECT().GetHeader(hashEquivocatorySecondaryPlain).Return(headerEquivocatorySecondaryPlain, nil)
-	mockBlockStateEquiv2.EXPECT().GetBlockHashesBySlot(gomock.AssignableToTypeOf(uint64(0))).Return(
+	mockBlockStateEquiv2.EXPECT().GetBlockHashesBySlot(uint64(1)).Return(
 		[]common.Hash{hashEquivocatorySecondaryPlain, hashExisting}, nil)
 
 	// Secondary Vrf Test Header
