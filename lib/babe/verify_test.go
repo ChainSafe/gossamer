@@ -531,7 +531,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	mockBlockState.EXPECT().GetBlockHashesBySlot(uint64(1)).Return(h1, nil)
 
 	mockBlockStateErr.EXPECT().GetHeader(h).Return(nil, errors.New("get header error"))
-	mockBlockStateErr.EXPECT().GetBlockHashesBySlot(gomock.AssignableToTypeOf(uint64(0))).Return(h1, nil)
+	mockBlockStateErr.EXPECT().GetBlockHashesBySlot(uint64(1)).Return(h1, nil)
 
 	// Case 0: First element not preruntime digest
 	header0 := newTestHeader(t, testInvalidSeal, testInvalidSeal)
