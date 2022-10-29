@@ -776,7 +776,7 @@ func Test_verifier_verifyAuthorshipRightEquivocatory(t *testing.T) {
 	babeVerifierEquivocatorySecondaryVRF := newTestVerifier(kp, mockBlockStateEquiv3, scale.MaxUint128, true)
 
 	mockBlockStateEquiv3.EXPECT().GetHeader(hashEquivocatorySecondaryVRF).Return(headerEquivocatorySecondaryVRF, nil)
-	mockBlockStateEquiv3.EXPECT().GetBlockHashesBySlot(gomock.AssignableToTypeOf(uint64(0))).Return(
+	mockBlockStateEquiv3.EXPECT().GetBlockHashesBySlot(uint64(1)).Return(
 		[]common.Hash{hashEquivocatorySecondaryVRF, hashExisting}, nil)
 
 	tests := []struct {
