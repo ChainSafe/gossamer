@@ -647,14 +647,16 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 			name:     "valid digest items, getAuthorityIndex error",
 			verifier: *babeVerifier5,
 			header:   header7,
-			expErr: fmt.Errorf("could not verify block equivocation: failed to get authority index for block %s: for block hash %s: %w", //nolint:lll
+			expErr: fmt.Errorf("could not verify block equivocation: "+
+				"failed to get authority index for block %s: for block hash %s: %w",
 				h, types.NewEmptyHeader().Hash(), errNoDigest),
 		},
 		{
 			name:     "get header err",
 			verifier: *babeVerifier6,
 			header:   header7,
-			expErr:   fmt.Errorf("could not verify block equivocation: failed to get header for block %s: get header error", h),
+			expErr: fmt.Errorf("could not verify block equivocation:"+
+				"failed to get header for block %s: get header error", h),
 		},
 	}
 	for _, tt := range tests {
@@ -789,19 +791,19 @@ func Test_verifier_verifyAuthorshipRightEquivocatory(t *testing.T) {
 			name:     "equivocate - primary",
 			verifier: *verifierEquivocatoryPrimary,
 			header:   headerEquivocatoryPrimary,
-			expErr:   ErrProducerEquivocated,
+			expErr:   fmt.Errorf("%w for block header %s", ErrProducerEquivocated, headerEquivocatoryPrimary.Hash()),
 		},
 		{
 			name:     "equivocate - secondary plain",
 			verifier: *babeVerifier8,
 			header:   headerEquivocatorySecondaryPlain,
-			expErr:   ErrProducerEquivocated,
+			expErr:   fmt.Errorf("%w for block header %s", ErrProducerEquivocated, headerEquivocatorySecondaryPlain.Hash()),
 		},
 		{
 			name:     "equivocate - secondary vrf",
 			verifier: *babeVerifierEquivocatorySecondaryVRF,
 			header:   headerEquivocatorySecondaryVRF,
-			expErr:   ErrProducerEquivocated,
+			expErr:   fmt.Errorf("%w for block header %s", ErrProducerEquivocated, headerEquivocatorySecondaryVRF.Hash()),
 		},
 	}
 	for _, tt := range tests {

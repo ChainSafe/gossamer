@@ -196,6 +196,8 @@ func TestGetSlotForBlock(t *testing.T) {
 }
 
 func TestGetBlockHashesBySlot(t *testing.T) {
+	t.Parallel()
+
 	// create two block in the same slot and test if GetBlockHashesBySlot gets us
 	// both the blocks
 	bs := newTestBlockState(t, newTriesEmpty())
@@ -246,9 +248,8 @@ func TestGetBlockHashesBySlot(t *testing.T) {
 
 	blocks, err := bs.GetBlockHashesBySlot(slot)
 	require.NoError(t, err)
-	require.Equal(t, len(blocks), 2)
-	require.Contains(t, blocks, block.Header.Hash())
-	require.Contains(t, blocks, block2.Header.Hash())
+
+	require.ElementsMatch(t, blocks, []common.Hash{block.Header.Hash(), block2.Header.Hash()})
 }
 
 func TestIsBlockOnCurrentChain(t *testing.T) {

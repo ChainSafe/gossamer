@@ -354,7 +354,7 @@ func (b *verifier) verifyBlockEquivocation(header *types.Header) (bool, error) {
 
 	blockHashesInSlot, err := b.blockState.GetBlockHashesBySlot(slot)
 	if err != nil {
-		return false, fmt.Errorf("failed to get blocks produced in slot %d: %w", slot, err)
+		return false, fmt.Errorf("failed to get blocks produced in slot: %w", err)
 	}
 
 	for _, blockHashInSlot := range blockHashesInSlot {

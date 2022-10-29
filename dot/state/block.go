@@ -270,7 +270,7 @@ func (bs *BlockState) GetBlockHashesBySlot(slotNum uint64) ([]common.Hash, error
 			continue
 		}
 		if err != nil {
-			return blocksWithGivenSlot, fmt.Errorf("could not get slot for block %s: %w", desc, err)
+			return nil, fmt.Errorf("could not get slot for block %s: %w", desc, err)
 		}
 
 		if descSlot == slotNum {
