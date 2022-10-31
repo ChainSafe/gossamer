@@ -673,6 +673,143 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	}
 }
 
+func Test_verifier_verifyBlockEquivocation(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	// Generate keys
+	kp, err := sr25519.GenerateKeypair()
+	assert.NoError(t, err)
+
+	auth := types.NewAuthority(kp.Public(), uint64(1))
+	vi := &verifierInfo{
+		authorities: []types.Authority{*auth, *auth},
+		threshold:   scale.MaxUint128,
+	}
+
+	// Case 1. could not get authority index from header
+	verifier1 := newVerifier(NewMockBlockState(ctrl), 1, vi)
+	testHeader1 := types.NewEmptyHeader()
+
+	// Case 2. could not get slot from header
+	verifier2 := verifier1
+	output, proof, err := kp.VrfSign(makeTranscript(Randomness{}, uint64(1), 1))
+	assert.NoError(t, err)
+
+	testDigest := types.BabePrimaryPreDigest{
+		AuthorityIndex: 1,
+		SlotNumber:     1,
+		VRFOutput:      output,
+		VRFProof:       proof,
+	}
+	prd, err := testDigest.ToPreRuntimeDigest()
+	assert.NoError(t, err)
+
+	testHeader2 := newTestHeader(t, *prd)
+	testHeader2.Number = 0
+
+	// Case 3. could not get block hashes by slot
+	testHeader3 := newTestHeader(t, *prd)
+	testHeader3.Number = 1
+
+	mockBlockState3 := NewMockBlockState(ctrl)
+	mockBlockState3.EXPECT().GetBlockHashesBySlot(uint64(1)).Return(
+		nil, errors.New("test error"))
+
+	verifier3 := newVerifier(mockBlockState3, 1, vi)
+
+	// Case 4. no equivocation on finding the same block
+	testHeader4 := newTestHeader(t, *prd)
+	testHeader4.Number = 1
+	testHash4 := testHeader4.Hash()
+	mockBlockState4 := NewMockBlockState(ctrl)
+	mockBlockState4.EXPECT().GetBlockHashesBySlot(uint64(1)).Return(
+		[]common.Hash{testHash4}, nil)
+
+	verifier4 := newVerifier(mockBlockState4, 1, vi)
+
+	// Case 5. claiming a slot twice results in equivocation
+	testHeader5 := newTestHeader(t, *prd)
+	testHeader5.Number = 1
+
+	output5, proof5, err := kp.VrfSign(makeTranscript(Randomness{}, uint64(1), 2))
+	assert.NoError(t, err)
+
+	testDigest5 := types.BabePrimaryPreDigest{
+		AuthorityIndex: 1,
+		SlotNumber:     1,
+		VRFOutput:      output5,
+		VRFProof:       proof5,
+	}
+	prd5, err := testDigest5.ToPreRuntimeDigest()
+	assert.NoError(t, err)
+
+	existingHeader := newTestHeader(t, *prd5)
+	mockBlockState5 := NewMockBlockState(ctrl)
+	mockBlockState5.EXPECT().GetBlockHashesBySlot(uint64(1)).Return(
+		[]common.Hash{existingHeader.Hash()}, nil)
+	mockBlockState5.EXPECT().GetHeader(existingHeader.Hash()).Return(
+		existingHeader, nil)
+
+	verifier5 := newVerifier(mockBlockState5, 1, vi)
+
+	tests := []struct {
+		name        string
+		verifier    verifier
+		header      *types.Header
+		equivocated bool
+		expErr      error
+	}{
+		{
+			name:        "could not get authority index from header",
+			verifier:    *verifier1,
+			header:      testHeader1,
+			equivocated: false,
+			expErr:      fmt.Errorf("failed to get authority index: for block hash %s: %w", testHeader1.Hash(), errNoDigest),
+		},
+		{
+			name:        "could not get slot from header",
+			verifier:    *verifier2,
+			header:      testHeader2,
+			equivocated: false,
+			expErr:      fmt.Errorf("failed to get slot from header of block %s: %w", testHeader2.Hash(), types.ErrGenesisHeader),
+		},
+		{
+			name:        "could not get block hashes by slot",
+			verifier:    *verifier3,
+			header:      testHeader3,
+			equivocated: false,
+			expErr:      fmt.Errorf("failed to get blocks produced in slot: test error"),
+		},
+		{
+			name:        "no equivocation on finding the same block",
+			verifier:    *verifier4,
+			header:      testHeader4,
+			equivocated: false,
+			expErr:      nil,
+		},
+		{
+			name:        "claiming same slot twice results in equivocation",
+			verifier:    *verifier5,
+			header:      testHeader5,
+			equivocated: true,
+			expErr:      nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt := tt
+			equivocated, err := tt.verifier.verifyBlockEquivocation(tt.header)
+			assert.Equal(t, equivocated, tt.equivocated)
+			if tt.expErr != nil {
+				assert.EqualError(t, err, tt.expErr.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
 func Test_verifier_verifyAuthorshipRightEquivocatory(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
