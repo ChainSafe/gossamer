@@ -1098,15 +1098,15 @@ func Test_encodeState_encodeArray(t *testing.T) {
 
 func Test_encodeState_encodeMap(t *testing.T) {
 	mapTests := []struct {
-		name    string
-		in      interface{}
-		wantErr bool
-		want    [][]byte
+		name      string
+		in        interface{}
+		wantErr   bool
+		wantOneOf [][]byte
 	}{
 		{
-			name: "testMap1",
-			in:   map[int8][]byte{2: []byte("some string")},
-			want: [][]byte{{4, 2, 44, 115, 111, 109, 101, 32, 115, 116, 114, 105, 110, 103}},
+			name:      "testMap1",
+			in:        map[int8][]byte{2: []byte("some string")},
+			wantOneOf: [][]byte{{4, 2, 44, 115, 111, 109, 101, 32, 115, 116, 114, 105, 110, 103}},
 		},
 		{
 			name: "testMap2",
@@ -1114,7 +1114,7 @@ func Test_encodeState_encodeMap(t *testing.T) {
 				2:  []byte("some string"),
 				16: []byte("lorem ipsum"),
 			},
-			want: [][]byte{
+			wantOneOf: [][]byte{
 				{8, 2, 44, 115, 111, 109, 101, 32, 115, 116, 114, 105, 110, 103, 16, 44, 108, 111, 114, 101, 109, 32,
 					105, 112, 115, 117, 109},
 				{8, 16, 44, 108, 111, 114, 101, 109, 32, 105, 112, 115, 117, 109, 2, 44, 115, 111, 109, 101, 32, 115,
@@ -1134,17 +1134,7 @@ func Test_encodeState_encodeMap(t *testing.T) {
 			if err := es.marshal(tt.in); (err != nil) != tt.wantErr {
 				t.Errorf("encodeState.encodeMap() error = %v, wantErr %v", err, tt.wantErr)
 			}
-
-			gotExpectedEncode := false
-			for _, expectedValue := range tt.want {
-				if reflect.DeepEqual(buffer.Bytes(), expectedValue) {
-					gotExpectedEncode = true
-					break
-				}
-			}
-			if !gotExpectedEncode {
-				t.Errorf("encodeState.encodeMap() = %v, want %v", buffer.Bytes(), tt.want[0])
-			}
+			assert.Contains(t, tt.wantOneOf, buffer.Bytes())
 		})
 	}
 }

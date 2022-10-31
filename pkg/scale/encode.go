@@ -232,14 +232,15 @@ func (es *encodeState) encodeMap(in interface{}) (err error) {
 		return fmt.Errorf("encoding length: %w", err)
 	}
 
-	for keyValue := v.MapRange(); keyValue.Next(); {
-		key := keyValue.Key()
+	iterator := v.MapRange()
+	for iterator.Next() {
+		key := iterator.Key()
 		err = es.marshal(key.Interface())
 		if err != nil {
 			return fmt.Errorf("encoding map key: %w", err)
 		}
 
-		mapValue := keyValue.Value()
+		mapValue := iterator.Value()
 		if !mapValue.CanInterface() {
 			continue
 		}
