@@ -771,7 +771,8 @@ func Test_verifier_verifyBlockEquivocation(t *testing.T) {
 			verifier:    *verifier2,
 			header:      testHeader2,
 			equivocated: false,
-			expErr:      fmt.Errorf("failed to get slot from header of block %s: %w", testHeader2.Hash(), types.ErrGenesisHeader),
+			expErr: fmt.Errorf("failed to get slot from header of block %s: %w",
+				testHeader2.Hash(), types.ErrGenesisHeader),
 		},
 		{
 			name:        "could not get block hashes by slot",
