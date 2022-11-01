@@ -46,7 +46,7 @@ func NewService(cfg *Config) (*Service, error) {
 	readyBlocks := newBlockQueue(maxResponseSize * 30)
 	pendingBlocks := newDisjointBlockSet(pendingBlocksLimit)
 
-	csCfg := &chainSyncConfig{
+	csCfg := chainSyncConfig{
 		bs:            cfg.BlockState,
 		net:           cfg.Network,
 		readyBlocks:   readyBlocks,
@@ -57,7 +57,7 @@ func NewService(cfg *Config) (*Service, error) {
 	}
 	chainSync := newChainSync(csCfg)
 
-	cpCfg := &chainProcessorConfig{
+	cpCfg := chainProcessorConfig{
 		readyBlocks:        readyBlocks,
 		pendingBlocks:      pendingBlocks,
 		syncer:             chainSync,

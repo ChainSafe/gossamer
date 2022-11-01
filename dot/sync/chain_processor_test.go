@@ -1148,7 +1148,7 @@ func Test_newChainProcessor(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			cpCfg := &chainProcessorConfig{
+			cpCfg := chainProcessorConfig{
 				readyBlocks:        tt.args.readyBlocks,
 				pendingBlocks:      tt.args.pendingBlocks,
 				blockState:         tt.args.blockState,

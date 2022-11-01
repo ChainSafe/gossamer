@@ -198,9 +198,9 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 	err = handler(stream, testHandshake)
 	require.ErrorIs(t, err, errCannotValidateHandshake)
 
-	expectedError := fmt.Errorf("handling handshake: %w from peer %s using protocol %s: %s",
-		errCannotValidateHandshake, testPeerID, info.protocolID, errors.New("genesis hash mismatch"))
-	require.EqualError(t, err, expectedError.Error())
+	expectedErrorMessage := fmt.Sprintf("handling handshake: %s from peer %s using protocol %s: genesis hash mismatch",
+		errCannotValidateHandshake, testPeerID, info.protocolID)
+	require.EqualError(t, err, expectedErrorMessage)
 
 	data := info.peersData.getInboundHandshakeData(testPeerID)
 	require.NotNil(t, data)

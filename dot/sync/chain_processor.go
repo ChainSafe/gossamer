@@ -57,7 +57,7 @@ type chainProcessorConfig struct {
 	telemetry          telemetry.Client
 }
 
-func newChainProcessor(cfg *chainProcessorConfig) *chainProcessor {
+func newChainProcessor(cfg chainProcessorConfig) *chainProcessor {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &chainProcessor{
