@@ -482,14 +482,22 @@ func (s *Service) DecodeSessionKeys(encodedSessionKeys []byte) ([]byte, error) {
 	return rt.DecodeSessionKeys(encodedSessionKeys)
 }
 
-// GetRuntimeVersion gets the current RuntimeVersion
-func (s *Service) GetRuntimeVersion(bhash *common.Hash) (
+// GetRuntimeVersion gets the current runtime version.
+func (s *Service) GetRuntimeVersion(blockHash *common.Hash) (
 	version runtime.Version, err error) {
-	rt, err := prepareRuntime(bhash, s.storageState, s.blockState)
-	if err != nil {
-		return version, fmt.Errorf("setting up runtime: %w", err)
+	var blockHashValue common.Hash
+	if blockHash != nil {
+		blockHashValue = *blockHash
+	} else {
+		blockHashValue = s.blockState.BestBlockHash()
 	}
-	return rt.Version(), nil
+
+	runtime, err := s.blockState.GetRuntime(blockHashValue)
+	if err != nil {
+		return version, fmt.Errorf("getting runtime: %w", err)
+	}
+
+	return runtime.Version(), nil
 }
 
 // HandleSubmittedExtrinsic is used to send a Transaction message containing a Extrinsic @ext

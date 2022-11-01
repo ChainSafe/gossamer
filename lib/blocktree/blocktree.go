@@ -509,11 +509,12 @@ func (bt *BlockTree) StoreRuntime(hash common.Hash, in Runtime) {
 	bt.runtimes.set(hash, in)
 }
 
-// GetBlockRuntime returns block runtime for corresponding block hash.
-func (bt *BlockTree) GetBlockRuntime(hash common.Hash) (Runtime, error) {
-	ins := bt.runtimes.get(hash)
-	if ins == nil {
-		return nil, ErrFailedToGetRuntime
+// GetBlockRuntime returns the runtime corresponding to the given block hash.
+func (bt *BlockTree) GetBlockRuntime(blockHash common.Hash) (
+	instance Runtime, err error) {
+	instance = bt.runtimes.get(blockHash)
+	if instance == nil {
+		return nil, fmt.Errorf("%w: for block hash %s", ErrFailedToGetRuntime, blockHash)
 	}
-	return ins, nil
+	return instance, nil
 }

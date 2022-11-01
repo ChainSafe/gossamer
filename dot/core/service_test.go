@@ -22,7 +22,6 @@ import (
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	cscale "github.com/centrifuge/go-substrate-rpc-client/v4/scale"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
@@ -1092,8 +1091,6 @@ func TestServiceGetRuntimeVersion(t *testing.T) {
 		}},
 		TransactionVersion: transactionVersion,
 	}
-	emptyTrie := trie.NewEmptyTrie()
-	ts := rtstorage.NewTrieState(emptyTrie)
 
 	execTest := func(t *testing.T, s *Service, bhash *common.Hash, exp runtime.Version,
 		expErr error, expectedErrMessage string) {
@@ -1105,65 +1102,31 @@ func TestServiceGetRuntimeVersion(t *testing.T) {
 		assert.Equal(t, exp, res)
 	}
 
-	t.Run("get state root err", func(t *testing.T) {
-		t.Parallel()
-		ctrl := gomock.NewController(t)
-		mockStorageState := NewMockStorageState(ctrl)
-		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(nil, errDummyErr)
-		service := &Service{
-			storageState: mockStorageState,
-		}
-		const expectedErrMessage = "setting up runtime: getting state root from block hash: dummy error for testing"
-		execTest(t, service, &common.Hash{}, runtime.Version{}, errDummyErr, expectedErrMessage)
-	})
-
-	t.Run("trie state err", func(t *testing.T) {
-		t.Parallel()
-		ctrl := gomock.NewController(t)
-		mockStorageState := NewMockStorageState(ctrl)
-		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(&common.Hash{}, nil)
-		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(nil, errDummyErr)
-		service := &Service{
-			storageState: mockStorageState,
-		}
-		const expectedErrMessage = "setting up runtime: getting trie state: dummy error for testing"
-		execTest(t, service, &common.Hash{}, runtime.Version{}, errDummyErr, expectedErrMessage)
-	})
-
 	t.Run("get runtime err", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
-		mockStorageState := NewMockStorageState(ctrl)
-		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(&common.Hash{}, nil)
-		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(ts, nil).MaxTimes(2)
 
 		mockBlockState := NewMockBlockState(ctrl)
-		mockBlockState.EXPECT().GetRuntime(common.Hash{}).Return(nil, errDummyErr)
+		mockBlockState.EXPECT().GetRuntime(common.Hash{1}).Return(nil, errDummyErr)
 		service := &Service{
-			storageState: mockStorageState,
-			blockState:   mockBlockState,
+			blockState: mockBlockState,
 		}
 		const expectedErrMessage = "setting up runtime: getting runtime: dummy error for testing"
-		execTest(t, service, &common.Hash{}, runtime.Version{}, errDummyErr, expectedErrMessage)
+		execTest(t, service, &common.Hash{1}, runtime.Version{}, errDummyErr, expectedErrMessage)
 	})
 
 	t.Run("happy path", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
-		mockStorageState := NewMockStorageState(ctrl)
-		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(&common.Hash{}, nil).MaxTimes(2)
-		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(ts, nil).MaxTimes(2)
 
 		runtimeMock := NewMockRuntimeInstance(ctrl)
 		mockBlockState := NewMockBlockState(ctrl)
-		mockBlockState.EXPECT().GetRuntime(common.Hash{}).Return(runtimeMock, nil)
-		runtimeMock.EXPECT().SetContextStorage(ts)
+		mockBlockState.EXPECT().GetRuntime(common.Hash{1}).Return(runtimeMock, nil)
 		runtimeMock.EXPECT().Version().Return(rv)
 		service := &Service{
-			storageState: mockStorageState,
-			blockState:   mockBlockState,
+			blockState: mockBlockState,
 		}
-		execTest(t, service, &common.Hash{}, rv, nil, "")
+		execTest(t, service, &common.Hash{1}, rv, nil, "")
 	})
 }
 

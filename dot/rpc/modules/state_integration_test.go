@@ -63,7 +63,10 @@ func TestStateModule_GetRuntimeVersion(t *testing.T) {
 	}{
 		{params: ""},
 		{params: hash.String()},
-		{params: randomHash.String(), errMsg: ErrKeyNotFound},
+		{
+			params: randomHash.String(),
+			errMsg: fmt.Sprintf("failed to get runtime instance: for block hash %s", randomHash),
+		},
 	}
 
 	for _, test := range testCases {

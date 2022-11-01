@@ -268,7 +268,7 @@ func TestStateRPCAPI(t *testing.T) {
 			description: "Test invalid block hash state_getRuntimeVersion",
 			method:      "state_getRuntimeVersion",
 			params:      fmt.Sprintf(`["%s"]`, randomHash),
-			expected:    ErrKeyNotFound,
+			expected:    fmt.Sprintf("failed to get runtime instance: for block hash %s", randomHash),
 		},
 		{
 			description: "Test invalid block hash state_getPairs",
