@@ -341,7 +341,14 @@ func (t *Trie) Put(keyLE, value []byte) {
 		const success = true
 		t.handleTrackedDeltas(success, pendingDeletedMerkleValues)
 	}()
-	t.insertKeyLE(keyLE, value, pendingDeletedMerkleValues)
+
+	var subValue []byte
+	if value != nil {
+		subValue = make([]byte, len(value))
+		copy(subValue, value)
+	}
+
+	t.insertKeyLE(keyLE, subValue, pendingDeletedMerkleValues)
 }
 
 func (t *Trie) insertKeyLE(keyLE, value []byte, deletedMerkleValues map[string]struct{}) {
