@@ -223,7 +223,7 @@ func entries(parent *Node, prefix []byte, kv map[string][]byte) map[string][]byt
 		parentKey := parent.Key
 		fullKeyNibbles := concatenateSlices(prefix, parentKey)
 		keyLE := string(codec.NibblesToKeyLE(fullKeyNibbles))
-		kv[keyLE] = parent.SubValue
+		kv[keyLE] = copyBytes(parent.SubValue)
 		return kv
 	}
 
@@ -231,7 +231,7 @@ func entries(parent *Node, prefix []byte, kv map[string][]byte) map[string][]byt
 	if branch.SubValue != nil {
 		fullKeyNibbles := concatenateSlices(prefix, branch.Key)
 		keyLE := string(codec.NibblesToKeyLE(fullKeyNibbles))
-		kv[keyLE] = branch.SubValue
+		kv[keyLE] = copyBytes(branch.SubValue)
 	}
 
 	for i, child := range branch.Children {
