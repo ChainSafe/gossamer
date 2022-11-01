@@ -342,13 +342,7 @@ func (t *Trie) Put(keyLE, value []byte) {
 		t.handleTrackedDeltas(success, pendingDeletedMerkleValues)
 	}()
 
-	var subValue []byte
-	if value != nil {
-		subValue = make([]byte, len(value))
-		copy(subValue, value)
-	}
-
-	t.insertKeyLE(keyLE, subValue, pendingDeletedMerkleValues)
+	t.insertKeyLE(keyLE, copyBytes(value), pendingDeletedMerkleValues)
 }
 
 func (t *Trie) insertKeyLE(keyLE, value []byte, deletedMerkleValues map[string]struct{}) {
@@ -681,12 +675,7 @@ func makeChildPrefix(branchPrefix, branchKey []byte,
 func (t *Trie) Get(keyLE []byte) (value []byte) {
 	keyNibbles := codec.KeyLEToNibbles(keyLE)
 	subValue := retrieve(t.root, keyNibbles)
-	if subValue == nil {
-		return nil
-	}
-	value = make([]byte, len(subValue))
-	copy(value, subValue)
-	return value
+	return copyBytes(subValue)
 }
 
 func retrieve(parent *Node, key []byte) (value []byte) {
@@ -1189,6 +1178,16 @@ func lenCommonPrefix(a, b []byte) (length int) {
 	}
 
 	return length
+}
+
+func copyBytes(original []byte) (deepCopy []byte) {
+	if original == nil {
+		return nil
+	}
+
+	deepCopy = make([]byte, len(original))
+	copy(deepCopy, original)
+	return deepCopy
 }
 
 func concatenateSlices(sliceOne, sliceTwo []byte, otherSlices ...[]byte) (concatenated []byte) {

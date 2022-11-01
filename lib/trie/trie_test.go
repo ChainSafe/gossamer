@@ -3824,6 +3824,43 @@ func Test_lenCommonPrefix(t *testing.T) {
 	}
 }
 
+func Test_copyBytes(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		original []byte
+		deepCopy []byte
+	}{
+		"nil": {},
+		"empty slice": {
+			original: []byte{},
+			deepCopy: []byte{},
+		},
+		"non empty slice": {
+			original: []byte{1},
+			deepCopy: []byte{1},
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			deepCopy := copyBytes(testCase.original)
+
+			require.Equal(t, testCase.deepCopy, deepCopy)
+
+			if len(testCase.original) == 0 {
+				deepCopy = append(deepCopy, 1)
+			} else {
+				deepCopy[0]++
+			}
+			assert.NotEqual(t, testCase.original, deepCopy)
+		})
+	}
+}
+
 func Test_concatenateSlices(t *testing.T) {
 	t.Parallel()
 
