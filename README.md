@@ -33,11 +33,12 @@
 
 ## A Go Implementation of the Polkadot Host
 
-Gossamer is an implementation of the [Polkadot Host](https://github.com/w3f/polkadot-spec): a framework used to build and run nodes for different blockchain protocols that are compatible with the Polkadot ecosystem.  The core of the Polkadot Host is the wasm runtime which handles the logic of the chain.
+> **Warning**
+> 2022-11-01: Gossamer is pre-production software
 
-Gossamer includes node implementations for major blockchains within the Polkadot ecosystem and simplifies building node implementations for other blockchains. Runtimes built with [Substrate](https://github.com/paritytech/substrate) can plug their runtime into Gossamer to create a node implementation in Go.
+Gossamer is an implementation of the [Polkadot Host](https://wiki.polkadot.network/docs/learn-polkadot-host): an execution environment for the Polkadot runtime, which is materialized as a Web Assembly (Wasm) blob.  In addition to running an embedded Wasm executor, a Polkadot Host must orchestrate a number of interrelated services, such as [networking](dot/network/README.md), block production, block finalization, a JSON-RPC server, [and more](cmd/gossamer/README.md).
 
-For more information about Gossamer, the Polkadot ecosystem, and how to use Gossamer to build and run nodes for various blockchain protocols within the Polkadot ecosystem, check out the [Gossamer Docs](https://ChainSafe.github.io/gossamer).
+For more information about Gossamer, check out the [Gossamer Docs](https://ChainSafe.github.io/gossamer).
 
 ## Get Started
 
@@ -161,8 +162,9 @@ To start the polkadot node:
 
 ## Donate
 
-Our work on gossamer is funded by grants. If you'd like to donate, you can send us ETH or DAI at the following address:
-`0x764001D60E69f0C3D0b41B0588866cFaE796972c`
+Our work on Gossamer is funded by the community. If you'd like to donate, you can send DOT to
+[`14gaKBxYkbBh2SKGtRDdhuhtyGAs5XLh55bE5x4cDi5CmL75`](https://polkadot.subscan.io/account/14gaKBxYkbBh2SKGtRDdhuhtyGAs5XLh55bE5x4cDi5CmL75);
+ETH or DAI can be sent to `0x764001D60E69f0C3D0b41B0588866cFaE796972c`.
 
 ## ChainSafe Security Policy
 
