@@ -673,7 +673,13 @@ func makeChildPrefix(branchPrefix, branchKey []byte,
 // Note the key argument is given in little Endian format.
 func (t *Trie) Get(keyLE []byte) (value []byte) {
 	keyNibbles := codec.KeyLEToNibbles(keyLE)
-	return retrieve(t.root, keyNibbles)
+	subValue := retrieve(t.root, keyNibbles)
+	if subValue == nil {
+		return nil
+	}
+	value = make([]byte, len(subValue))
+	copy(value, subValue)
+	return value
 }
 
 func retrieve(parent *Node, key []byte) (value []byte) {
