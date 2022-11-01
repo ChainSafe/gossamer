@@ -129,10 +129,6 @@ func TestProtectUnprotectPeer(t *testing.T) {
 }
 
 func TestPersistentPeers(t *testing.T) {
-	if testing.Short() {
-		t.Skip() // this sometimes fails on CI
-	}
-
 	t.Parallel()
 
 	configA := &Config{
@@ -168,10 +164,6 @@ func TestPersistentPeers(t *testing.T) {
 }
 
 func TestRemovePeer(t *testing.T) {
-	if testing.Short() {
-		t.Skip() // this sometimes fails on CI
-	}
-
 	t.Parallel()
 
 	configA := &Config{
@@ -207,10 +199,6 @@ func TestRemovePeer(t *testing.T) {
 }
 
 func TestSetReservedPeer(t *testing.T) {
-	if testing.Short() {
-		t.Skip() // this sometimes fails on CI
-	}
-
 	t.Parallel()
 
 	nodes := make([]*Service, 3)
