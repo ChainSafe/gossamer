@@ -179,7 +179,6 @@ func Test_Example(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	time.Sleep(time.Second)
 	log.Printf("stopping subscription")
 	cancel()
 	log.Printf("waiting for subscription to close")

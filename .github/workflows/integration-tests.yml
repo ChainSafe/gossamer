@@ -28,6 +28,7 @@ jobs:
             github.com/ChainSafe/gossamer/dot/rpc,
             github.com/ChainSafe/gossamer/dot/rpc/modules,
             github.com/ChainSafe/gossamer/dot/rpc/subscription,
+            github.com/ChainSafe/gossamer/dot/state,
             github.com/ChainSafe/gossamer/lib/babe,
             github.com/ChainSafe/gossamer/dot/digest,
             github.com/ChainSafe/gossamer/dot/network,
