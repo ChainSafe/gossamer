@@ -10,7 +10,6 @@ import (
 	"io"
 	"math/big"
 	"reflect"
-	"sort"
 )
 
 // Encoder scale encodes to a given io.Writer.
@@ -233,21 +232,15 @@ func (es *encodeState) encodeMap(in interface{}) (err error) {
 		return fmt.Errorf("encoding length: %w", err)
 	}
 
-	mapKeys := v.MapKeys()
-
-	sort.Slice(mapKeys, func(i, j int) bool {
-		keyByteOfI, _ := Marshal(mapKeys[i].Interface())
-		keyByteOfJ, _ := Marshal(mapKeys[j].Interface())
-		return bytes.Compare(keyByteOfI, keyByteOfJ) < 0
-	})
-
-	for _, key := range mapKeys {
+	iterator := v.MapRange()
+	for iterator.Next() {
+		key := iterator.Key()
 		err = es.marshal(key.Interface())
 		if err != nil {
 			return fmt.Errorf("encoding map key: %w", err)
 		}
 
-		mapValue := v.MapIndex(key)
+		mapValue := iterator.Value()
 		if !mapValue.CanInterface() {
 			continue
 		}
