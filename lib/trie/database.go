@@ -196,6 +196,8 @@ func PopulateNodeHashes(n *Node, nodeHashes map[string]struct{}) {
 
 	switch {
 	case len(n.MerkleValue) == 0:
+		// TODO remove once lazy loading of nodes is implemented
+		// https://github.com/ChainSafe/gossamer/issues/2838
 		panic(fmt.Sprintf("node with key 0x%x has no Merkle value computed", n.Key))
 	case len(n.MerkleValue) < 32:
 		// Inlined node where its Merkle value is its
