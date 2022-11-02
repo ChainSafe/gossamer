@@ -105,7 +105,7 @@ func (p *OfflinePruner) SetBloomFilter() (err error) {
 	}
 
 	latestBlockNum := header.Number
-	merkleValues := make(map[string]struct{})
+	nodeHashes := make(map[common.Hash]struct{})
 
 	logger.Infof("Latest block number is %d", latestBlockNum)
 
@@ -121,7 +121,7 @@ func (p *OfflinePruner) SetBloomFilter() (err error) {
 			return err
 		}
 
-		trie.PopulateNodeHashes(tr.RootNode(), merkleValues)
+		trie.PopulateNodeHashes(tr.RootNode(), nodeHashes)
 
 		// get parent header of current block
 		header, err = p.blockState.GetHeader(header.ParentHash)
@@ -131,14 +131,14 @@ func (p *OfflinePruner) SetBloomFilter() (err error) {
 		blockNum = header.Number
 	}
 
-	for key := range merkleValues {
-		err = p.bloom.put([]byte(key))
+	for key := range nodeHashes {
+		err = p.bloom.put(key.ToBytes())
 		if err != nil {
 			return err
 		}
 	}
 
-	logger.Infof("Total keys added in bloom filter: %d", len(merkleValues))
+	logger.Infof("Total keys added in bloom filter: %d", len(nodeHashes))
 	return nil
 }
 
