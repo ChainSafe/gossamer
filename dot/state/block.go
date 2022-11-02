@@ -250,6 +250,37 @@ func (bs *BlockState) GetHashByNumber(num uint) (common.Hash, error) {
 	return common.NewHash(bh), nil
 }
 
+// GetBlockHashesBySlot gets all block hashes that were produced in the given slot.
+func (bs *BlockState) GetBlockHashesBySlot(slotNum uint64) ([]common.Hash, error) {
+	highestFinalisedHash, err := bs.GetHighestFinalisedHash()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get highest finalised hash: %w", err)
+	}
+
+	descendants, err := bs.bt.GetAllDescendants(highestFinalisedHash)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get descendants: %w", err)
+	}
+
+	blocksWithGivenSlot := []common.Hash{}
+
+	for _, desc := range descendants {
+		descSlot, err := bs.GetSlotForBlock(desc)
+		if errors.Is(err, types.ErrGenesisHeader) {
+			continue
+		}
+		if err != nil {
+			return nil, fmt.Errorf("could not get slot for block: %w", err)
+		}
+
+		if descSlot == slotNum {
+			blocksWithGivenSlot = append(blocksWithGivenSlot, desc)
+		}
+	}
+
+	return blocksWithGivenSlot, nil
+}
+
 // GetHeaderByNumber returns the block header on our best chain with the given number
 func (bs *BlockState) GetHeaderByNumber(num uint) (*types.Header, error) {
 	hash, err := bs.GetHashByNumber(num)
@@ -505,7 +536,7 @@ func (bs *BlockState) BestBlock() (*types.Block, error) {
 func (bs *BlockState) GetSlotForBlock(hash common.Hash) (uint64, error) {
 	header, err := bs.GetHeader(hash)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("getting header for hash %s: %w", hash, err)
 	}
 
 	return types.GetSlotFromHeader(header)
