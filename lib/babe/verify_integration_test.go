@@ -466,7 +466,8 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	require.NoError(t, err)
 
 	err = verifier.verifyAuthorshipRight(&block2.Header)
-	require.Equal(t, ErrProducerEquivocated, err)
+	require.ErrorIs(t, err, ErrProducerEquivocated)
+	require.EqualError(t, err, fmt.Sprintf("%s for block header %s", ErrProducerEquivocated, block2.Header.Hash()))
 }
 
 func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {

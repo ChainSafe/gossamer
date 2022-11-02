@@ -197,6 +197,21 @@ func (mr *MockBlockStateMockRecorder) GetBlockByNumber(arg0 interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockByNumber", reflect.TypeOf((*MockBlockState)(nil).GetBlockByNumber), arg0)
 }
 
+// GetBlockHashesBySlot mocks base method.
+func (m *MockBlockState) GetBlockHashesBySlot(arg0 uint64) ([]common.Hash, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetBlockHashesBySlot", arg0)
+	ret0, _ := ret[0].([]common.Hash)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetBlockHashesBySlot indicates an expected call of GetBlockHashesBySlot.
+func (mr *MockBlockStateMockRecorder) GetBlockHashesBySlot(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockHashesBySlot", reflect.TypeOf((*MockBlockState)(nil).GetBlockHashesBySlot), arg0)
+}
+
 // GetFinalisedHeader mocks base method.
 func (m *MockBlockState) GetFinalisedHeader(arg0, arg1 uint64) (*types.Header, error) {
 	m.ctrl.T.Helper()
