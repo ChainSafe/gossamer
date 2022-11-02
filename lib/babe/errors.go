@@ -72,6 +72,7 @@ var (
 	errNoBABEAuthorityKeyProvided = errors.New("cannot create BABE service as authority; no keypair provided")
 	errLastDigestItemNotSeal      = errors.New("last digest item is not seal")
 	errLaggingSlot                = errors.New("current slot is smaller than slot of best block")
+	errNoDigest                   = errors.New("no digest provided")
 
 	other         Other
 	invalidCustom InvalidCustom

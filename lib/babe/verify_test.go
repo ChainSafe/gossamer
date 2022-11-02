@@ -21,6 +21,7 @@ import (
 func newTestHeader(t *testing.T, digest ...scale.VaryingDataTypeValue) *types.Header {
 	t.Helper()
 	header := types.NewEmptyHeader()
+	header.Number = 1
 	for _, d := range digest {
 		err := header.Digest.Add(d)
 		assert.NoError(t, err)
@@ -155,7 +156,7 @@ func Test_getAuthorityIndex(t *testing.T) {
 		{
 			name:   "No Digest",
 			args:   args{types.NewEmptyHeader()},
-			expErr: errors.New("no digest provided"),
+			expErr: fmt.Errorf("for block hash %s: %w", types.NewEmptyHeader().Hash(), errNoDigest),
 		},
 		{
 			name:   "First Digest Invalid Type",
@@ -492,24 +493,25 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 
 	// Primary Test Header
 	encTestDigest := newEncodedBabeDigest(t, types.BabePrimaryPreDigest{AuthorityIndex: 0})
-
 	testDigestPrimary := types.NewDigest()
 	err = testDigestPrimary.Add(types.PreRuntimeDigest{
 		ConsensusEngineID: types.BabeEngineID,
 		Data:              encTestDigest,
 	})
 	assert.NoError(t, err)
+
 	testHeaderPrimary := types.NewEmptyHeader()
 	testHeaderPrimary.Digest = testDigestPrimary
 
 	// Secondary Plain Test Header
 	testParentPrd, err := testBabeSecondaryPlainPreDigest.ToPreRuntimeDigest()
 	assert.NoError(t, err)
-	testParentHeader := newTestHeader(t, *testParentPrd)
 
+	testParentHeader := newTestHeader(t, *testParentPrd)
 	testParentHash := encodeAndHashHeader(t, testParentHeader)
 	testSecondaryPrd, err := testBabeSecondaryPlainPreDigest.ToPreRuntimeDigest()
 	assert.NoError(t, err)
+
 	testSecPlainHeader := newTestHeader(t, *testSecondaryPrd)
 	testSecPlainHeader.ParentHash = testParentHash
 
@@ -525,11 +527,11 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	h := common.MustHexToHash("0x01")
 	h1 := []common.Hash{h}
 
-	mockBlockState.EXPECT().GetAllBlocksAtDepth(gomock.Any()).Return(h1)
 	mockBlockState.EXPECT().GetHeader(h).Return(types.NewEmptyHeader(), nil)
+	mockBlockState.EXPECT().GetBlockHashesBySlot(uint64(1)).Return(h1, nil)
 
-	mockBlockStateErr.EXPECT().GetAllBlocksAtDepth(gomock.Any()).Return(h1)
 	mockBlockStateErr.EXPECT().GetHeader(h).Return(nil, errors.New("get header error"))
+	mockBlockStateErr.EXPECT().GetBlockHashesBySlot(uint64(1)).Return(h1, nil)
 
 	// Case 0: First element not preruntime digest
 	header0 := newTestHeader(t, testInvalidSeal, testInvalidSeal)
@@ -550,7 +552,6 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	babePrd2, err := testBabePrimaryPreDigest.ToPreRuntimeDigest()
 	assert.NoError(t, err)
 	header4 := newTestHeader(t, *babePrd2)
-
 	signAndAddSeal(t, kp, header4, []byte{1})
 	babeVerifier2 := newTestVerifier(kp, mockBlockState, scale.MaxUint128, false)
 
@@ -558,7 +559,6 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	babeSecPlainPrd, err := testBabeSecondaryPlainPreDigest.ToPreRuntimeDigest()
 	assert.NoError(t, err)
 	header5 := newTestHeader(t, *babeSecPlainPrd)
-
 	signAndAddSeal(t, kp, header5, []byte{1})
 	babeVerifier3 := newTestVerifier(kp, mockBlockState, scale.MaxUint128, true)
 
@@ -566,7 +566,6 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	encSecVrfDigest := newEncodedBabeDigest(t, testBabeSecondaryVRFPreDigest)
 	assert.NoError(t, err)
 	header6 := newTestHeader(t, *types.NewBABEPreRuntimeDigest(encSecVrfDigest))
-
 	signAndAddSeal(t, kp, header6, []byte{1})
 	babeVerifier4 := newTestVerifier(kp, mockBlockState, scale.MaxUint128, true)
 
@@ -648,13 +647,16 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 			name:     "valid digest items, getAuthorityIndex error",
 			verifier: *babeVerifier5,
 			header:   header7,
-			expErr:   errors.New("failed to get authority index no digest provided"),
+			expErr: fmt.Errorf("could not verify block equivocation: "+
+				"failed to get authority index for block %s: for block hash %s: %w",
+				h, types.NewEmptyHeader().Hash(), errNoDigest),
 		},
 		{
 			name:     "get header err",
 			verifier: *babeVerifier6,
 			header:   header7,
-			expErr:   errors.New("failed get header get header error"),
+			expErr: fmt.Errorf("could not verify block equivocation: " +
+				"failed to get header for block: get header error"),
 		},
 	}
 	for _, tt := range tests {
@@ -667,6 +669,147 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 				assert.NoError(t, err)
 			}
 
+		})
+	}
+}
+
+func Test_verifier_verifyBlockEquivocation(t *testing.T) {
+	t.Parallel()
+
+	// Generate keys
+	kp, err := sr25519.GenerateKeypair()
+	assert.NoError(t, err)
+
+	auth := types.NewAuthority(kp.Public(), uint64(1))
+	vi := &verifierInfo{
+		authorities: []types.Authority{*auth, *auth},
+		threshold:   scale.MaxUint128,
+	}
+
+	// Case 1. could not get authority index from header
+	verifier1 := newVerifier(NewMockBlockState(gomock.NewController(t)), 1, vi)
+	testHeader1 := types.NewEmptyHeader()
+
+	// Case 2. could not get slot from header
+	verifier2 := verifier1
+	output, proof, err := kp.VrfSign(makeTranscript(Randomness{}, uint64(1), 1))
+	assert.NoError(t, err)
+
+	testDigest := types.BabePrimaryPreDigest{
+		AuthorityIndex: 1,
+		SlotNumber:     1,
+		VRFOutput:      output,
+		VRFProof:       proof,
+	}
+	prd, err := testDigest.ToPreRuntimeDigest()
+	assert.NoError(t, err)
+
+	testHeader2 := newTestHeader(t, *prd)
+	testHeader2.Number = 0
+
+	// Case 3. could not get block hashes by slot
+	testHeader3 := newTestHeader(t, *prd)
+	testHeader3.Number = 1
+
+	mockBlockState3 := NewMockBlockState(gomock.NewController(t))
+	mockBlockState3.EXPECT().GetBlockHashesBySlot(uint64(1)).Return(
+		nil, errors.New("test error"))
+
+	verifier3 := newVerifier(mockBlockState3, 1, vi)
+
+	// Case 4. no equivocation on finding the same block
+	testHeader4 := newTestHeader(t, *prd)
+	testHeader4.Number = 1
+	testHash4 := testHeader4.Hash()
+	mockBlockState4 := NewMockBlockState(gomock.NewController(t))
+	mockBlockState4.EXPECT().GetBlockHashesBySlot(uint64(1)).Return(
+		[]common.Hash{testHash4}, nil)
+
+	verifier4 := newVerifier(mockBlockState4, 1, vi)
+
+	// Case 5. claiming a slot twice results in equivocation
+	testHeader5 := newTestHeader(t, *prd)
+	testHeader5.Number = 1
+
+	output5, proof5, err := kp.VrfSign(makeTranscript(Randomness{}, uint64(1), 2))
+	assert.NoError(t, err)
+
+	testDigest5 := types.BabePrimaryPreDigest{
+		AuthorityIndex: 1,
+		SlotNumber:     1,
+		VRFOutput:      output5,
+		VRFProof:       proof5,
+	}
+	prd5, err := testDigest5.ToPreRuntimeDigest()
+	assert.NoError(t, err)
+
+	existingHeader := newTestHeader(t, *prd5)
+	mockBlockState5 := NewMockBlockState(gomock.NewController(t))
+	mockBlockState5.EXPECT().GetBlockHashesBySlot(uint64(1)).Return(
+		[]common.Hash{existingHeader.Hash()}, nil)
+	mockBlockState5.EXPECT().GetHeader(existingHeader.Hash()).Return(
+		existingHeader, nil)
+
+	verifier5 := newVerifier(mockBlockState5, 1, vi)
+
+	tests := []struct {
+		name        string
+		verifier    verifier
+		header      *types.Header
+		equivocated bool
+		expErr      error
+	}{
+		{
+			name:        "could not get authority index from header",
+			verifier:    *verifier1,
+			header:      testHeader1,
+			equivocated: false,
+			expErr:      fmt.Errorf("failed to get authority index: for block hash %s: %w", testHeader1.Hash(), errNoDigest),
+		},
+		{
+			name:        "could not get slot from header",
+			verifier:    *verifier2,
+			header:      testHeader2,
+			equivocated: false,
+			expErr: fmt.Errorf("failed to get slot from header of block %s: %w",
+				testHeader2.Hash(), types.ErrGenesisHeader),
+		},
+		{
+			name:        "could not get block hashes by slot",
+			verifier:    *verifier3,
+			header:      testHeader3,
+			equivocated: false,
+			expErr:      fmt.Errorf("failed to get blocks produced in slot: test error"),
+		},
+		{
+			name:        "no equivocation on finding the same block",
+			verifier:    *verifier4,
+			header:      testHeader4,
+			equivocated: false,
+			expErr:      nil,
+		},
+		{
+			name:        "claiming same slot twice results in equivocation",
+			verifier:    *verifier5,
+			header:      testHeader5,
+			equivocated: true,
+			expErr:      nil,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			equivocated, err := tt.verifier.verifyBlockEquivocation(tt.header)
+			assert.Equal(t, equivocated, tt.equivocated)
+			if tt.expErr != nil {
+				assert.EqualError(t, err, tt.expErr.Error())
+			} else {
+				assert.NoError(t, err)
+			}
 		})
 	}
 }
@@ -685,6 +828,21 @@ func Test_verifier_verifyAuthorshipRightEquivocatory(t *testing.T) {
 	output, proof, err := kp.VrfSign(makeTranscript(Randomness{}, uint64(1), 1))
 	assert.NoError(t, err)
 
+	output2, proof2, err := kp.VrfSign(makeTranscript(Randomness{}, uint64(1), 2))
+	assert.NoError(t, err)
+	secondDigestExisting := types.BabePrimaryPreDigest{
+		AuthorityIndex: 1,
+		SlotNumber:     1,
+		VRFOutput:      output2,
+		VRFProof:       proof2,
+	}
+	prdExisting, err := secondDigestExisting.ToPreRuntimeDigest()
+	assert.NoError(t, err)
+
+	headerExisting := newTestHeader(t, *prdExisting)
+	hashExisting := encodeAndHashHeader(t, headerExisting)
+	signAndAddSeal(t, kp, headerExisting, hashExisting[:])
+
 	testBabeSecondaryPlainPreDigest := types.BabeSecondaryPlainPreDigest{
 		AuthorityIndex: 1,
 		SlotNumber:     1,
@@ -696,11 +854,12 @@ func Test_verifier_verifyAuthorshipRightEquivocatory(t *testing.T) {
 		VrfProof:       proof,
 	}
 
-	//BabePrimaryPreDigest case
+	// BabePrimaryPreDigest case
 	secDigest1 := types.BabePrimaryPreDigest{
-		SlotNumber: 1,
-		VRFOutput:  output,
-		VRFProof:   proof,
+		AuthorityIndex: 1,
+		SlotNumber:     1,
+		VRFOutput:      output,
+		VRFProof:       proof,
 	}
 	prd1, err := secDigest1.ToPreRuntimeDigest()
 	assert.NoError(t, err)
@@ -717,9 +876,9 @@ func Test_verifier_verifyAuthorshipRightEquivocatory(t *testing.T) {
 	hashEquivocatoryPrimary := encodeAndHashHeader(t, headerEquivocatoryPrimary)
 	signAndAddSeal(t, kp, headerEquivocatoryPrimary, hashEquivocatoryPrimary[:])
 
-	mockBlockStateEquiv1.EXPECT().GetAllBlocksAtDepth(headerEquivocatoryPrimary.ParentHash).Return(
-		[]common.Hash{hashEquivocatoryPrimary})
 	mockBlockStateEquiv1.EXPECT().GetHeader(hashEquivocatoryPrimary).Return(headerEquivocatoryPrimary, nil)
+	mockBlockStateEquiv1.EXPECT().GetBlockHashesBySlot(uint64(1)).Return(
+		[]common.Hash{hashEquivocatoryPrimary, hashExisting}, nil)
 
 	// Secondary Plain Test Header
 	testParentPrd, err := testBabeSecondaryPlainPreDigest.ToPreRuntimeDigest()
@@ -740,9 +899,9 @@ func Test_verifier_verifyAuthorshipRightEquivocatory(t *testing.T) {
 	signAndAddSeal(t, kp, headerEquivocatorySecondaryPlain, hashEquivocatorySecondaryPlain[:])
 	babeVerifier8 := newTestVerifier(kp, mockBlockStateEquiv2, scale.MaxUint128, true)
 
-	mockBlockStateEquiv2.EXPECT().GetAllBlocksAtDepth(headerEquivocatorySecondaryPlain.ParentHash).Return(
-		[]common.Hash{hashEquivocatorySecondaryPlain})
 	mockBlockStateEquiv2.EXPECT().GetHeader(hashEquivocatorySecondaryPlain).Return(headerEquivocatorySecondaryPlain, nil)
+	mockBlockStateEquiv2.EXPECT().GetBlockHashesBySlot(uint64(1)).Return(
+		[]common.Hash{hashEquivocatorySecondaryPlain, hashExisting}, nil)
 
 	// Secondary Vrf Test Header
 	encParentVrfDigest := newEncodedBabeDigest(t, testBabeSecondaryVRFPreDigest)
@@ -752,17 +911,16 @@ func Test_verifier_verifyAuthorshipRightEquivocatory(t *testing.T) {
 	encVrfHeader := newEncodedBabeDigest(t, testBabeSecondaryVRFPreDigest)
 	testSecVrfHeader := newTestHeader(t, *types.NewBABEPreRuntimeDigest(encVrfHeader))
 	testSecVrfHeader.ParentHash = testVrfParentHash
-
 	encVrfDigest := newEncodedBabeDigest(t, testBabeSecondaryVRFPreDigest)
 	assert.NoError(t, err)
 	headerEquivocatorySecondaryVRF := newTestHeader(t, *types.NewBABEPreRuntimeDigest(encVrfDigest))
-
 	hashEquivocatorySecondaryVRF := encodeAndHashHeader(t, headerEquivocatorySecondaryVRF)
 	signAndAddSeal(t, kp, headerEquivocatorySecondaryVRF, hashEquivocatorySecondaryVRF[:])
 	babeVerifierEquivocatorySecondaryVRF := newTestVerifier(kp, mockBlockStateEquiv3, scale.MaxUint128, true)
-	mockBlockStateEquiv3.EXPECT().GetAllBlocksAtDepth(headerEquivocatorySecondaryVRF.ParentHash).Return(
-		[]common.Hash{hashEquivocatorySecondaryVRF})
+
 	mockBlockStateEquiv3.EXPECT().GetHeader(hashEquivocatorySecondaryVRF).Return(headerEquivocatorySecondaryVRF, nil)
+	mockBlockStateEquiv3.EXPECT().GetBlockHashesBySlot(uint64(1)).Return(
+		[]common.Hash{hashEquivocatorySecondaryVRF, hashExisting}, nil)
 
 	tests := []struct {
 		name     string
@@ -774,19 +932,19 @@ func Test_verifier_verifyAuthorshipRightEquivocatory(t *testing.T) {
 			name:     "equivocate - primary",
 			verifier: *verifierEquivocatoryPrimary,
 			header:   headerEquivocatoryPrimary,
-			expErr:   ErrProducerEquivocated,
+			expErr:   fmt.Errorf("%w for block header %s", ErrProducerEquivocated, headerEquivocatoryPrimary.Hash()),
 		},
 		{
 			name:     "equivocate - secondary plain",
 			verifier: *babeVerifier8,
 			header:   headerEquivocatorySecondaryPlain,
-			expErr:   ErrProducerEquivocated,
+			expErr:   fmt.Errorf("%w for block header %s", ErrProducerEquivocated, headerEquivocatorySecondaryPlain.Hash()),
 		},
 		{
 			name:     "equivocate - secondary vrf",
 			verifier: *babeVerifierEquivocatorySecondaryVRF,
 			header:   headerEquivocatorySecondaryVRF,
-			expErr:   ErrProducerEquivocated,
+			expErr:   fmt.Errorf("%w for block header %s", ErrProducerEquivocated, headerEquivocatorySecondaryVRF.Hash()),
 		},
 	}
 	for _, tt := range tests {
@@ -948,7 +1106,6 @@ func TestVerificationManager_VerifyBlock(t *testing.T) {
 	encVrfDigest := newEncodedBabeDigest(t, testBabeSecondaryVRFPreDigest)
 	assert.NoError(t, err)
 	block1Header2 := newTestHeader(t, *types.NewBABEPreRuntimeDigest(encVrfDigest))
-	block1Header2.Number = 1
 
 	authority := types.NewAuthority(kp.Public(), uint64(1))
 	info := &verifierInfo{
@@ -983,7 +1140,7 @@ func TestVerificationManager_VerifyBlock(t *testing.T) {
 			name:   "get slot from header error",
 			vm:     vm1,
 			header: block1Header,
-			expErr: fmt.Errorf("failed to get slot from block 1: %w", types.ErrChainHeadMissingDigest),
+			expErr: fmt.Errorf("failed to get slot from header of block 1: %w", types.ErrChainHeadMissingDigest),
 		},
 		{
 			name:   "set first slot error",

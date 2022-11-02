@@ -28,6 +28,7 @@ const (
 
 var (
 	ErrChainHeadMissingDigest = errors.New("chain head missing digest")
+	ErrGenesisHeader          = errors.New("genesis header doesn't have a slot")
 )
 
 // BabeConfiguration contains the genesis data for BABE
@@ -108,6 +109,10 @@ type ConfigData struct {
 
 // GetSlotFromHeader returns the BABE slot from the given header
 func GetSlotFromHeader(header *Header) (uint64, error) {
+	if header.Number == 0 {
+		return 0, ErrGenesisHeader
+	}
+
 	if len(header.Digest.Types) == 0 {
 		return 0, ErrChainHeadMissingDigest
 	}
