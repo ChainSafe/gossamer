@@ -132,7 +132,7 @@ func PopulateNodeHashes(n *Node, nodeHashes map[string]struct{}) {
 	case len(n.MerkleValue) == 0:
 		// TODO remove once lazy loading of nodes is implemented
 		// https://github.com/ChainSafe/gossamer/issues/2838
-		panic(fmt.Sprintf("node with key 0x%x has no Merkle value computed", n.Key))
+		panic(fmt.Sprintf("node with partial key 0x%x has no Merkle value computed", n.PartialKey))
 	case len(n.MerkleValue) < 32:
 		// Inlined node where its Merkle value is its
 		// encoding and not the encoding hash digest.
@@ -184,7 +184,7 @@ func GetFromDB(db chaindb.Database, rootHash common.Hash, key []byte) (
 func getFromDBAtNode(db chaindb.Database, n *Node, key []byte) (
 	value []byte, err error) {
 	if n.Kind() == node.Leaf {
-		if bytes.Equal(n.Key, key) {
+		if bytes.Equal(n.PartialKey, key) {
 			return n.SubValue, nil
 		}
 		return nil, nil
@@ -192,12 +192,12 @@ func getFromDBAtNode(db chaindb.Database, n *Node, key []byte) (
 
 	branch := n
 	// Key is equal to the key of this branch or is empty
-	if len(key) == 0 || bytes.Equal(branch.Key, key) {
+	if len(key) == 0 || bytes.Equal(branch.PartialKey, key) {
 		return branch.SubValue, nil
 	}
 
-	commonPrefixLength := lenCommonPrefix(branch.Key, key)
-	if len(key) < len(branch.Key) && bytes.Equal(branch.Key[:commonPrefixLength], key) {
+	commonPrefixLength := lenCommonPrefix(branch.PartialKey, key)
+	if len(key) < len(branch.PartialKey) && bytes.Equal(branch.PartialKey[:commonPrefixLength], key) {
 		// The key to search is a prefix of the node key and is smaller than the node key.
 		// Example: key to search: 0xabcd
 		//          branch key:    0xabcdef

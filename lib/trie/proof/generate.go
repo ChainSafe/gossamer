@@ -89,7 +89,7 @@ func walkRoot(root *node.Node, fullKey []byte) (
 	}
 	encodedProofNodes = append(encodedProofNodes, encodingBuffer.Bytes())
 
-	nodeFound := len(fullKey) == 0 || bytes.Equal(root.Key, fullKey)
+	nodeFound := len(fullKey) == 0 || bytes.Equal(root.PartialKey, fullKey)
 	if nodeFound {
 		return encodedProofNodes, nil
 	}
@@ -98,12 +98,12 @@ func walkRoot(root *node.Node, fullKey []byte) (
 		return nil, ErrKeyNotFound
 	}
 
-	nodeIsDeeper := len(fullKey) > len(root.Key)
+	nodeIsDeeper := len(fullKey) > len(root.PartialKey)
 	if !nodeIsDeeper {
 		return nil, ErrKeyNotFound
 	}
 
-	commonLength := lenCommonPrefix(root.Key, fullKey)
+	commonLength := lenCommonPrefix(root.PartialKey, fullKey)
 	childIndex := fullKey[commonLength]
 	nextChild := root.Children[childIndex]
 	nextFullKey := fullKey[commonLength+1:]
@@ -141,7 +141,7 @@ func walk(parent *node.Node, fullKey []byte) (
 		encodedProofNodes = append(encodedProofNodes, encodingBuffer.Bytes())
 	}
 
-	nodeFound := len(fullKey) == 0 || bytes.Equal(parent.Key, fullKey)
+	nodeFound := len(fullKey) == 0 || bytes.Equal(parent.PartialKey, fullKey)
 	if nodeFound {
 		return encodedProofNodes, nil
 	}
@@ -150,12 +150,12 @@ func walk(parent *node.Node, fullKey []byte) (
 		return nil, ErrKeyNotFound
 	}
 
-	nodeIsDeeper := len(fullKey) > len(parent.Key)
+	nodeIsDeeper := len(fullKey) > len(parent.PartialKey)
 	if !nodeIsDeeper {
 		return nil, ErrKeyNotFound
 	}
 
-	commonLength := lenCommonPrefix(parent.Key, fullKey)
+	commonLength := lenCommonPrefix(parent.PartialKey, fullKey)
 	childIndex := fullKey[commonLength]
 	nextChild := parent.Children[childIndex]
 	nextFullKey := fullKey[commonLength+1:]

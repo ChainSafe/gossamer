@@ -187,8 +187,8 @@ func Test_PopulateNodeHashes(t *testing.T) {
 			},
 		},
 		"leaf node without Merkle value": {
-			node:       &Node{Key: []byte{1}, SubValue: []byte{2}},
-			panicValue: "node with key 0x01 has no Merkle value computed",
+			node:       &Node{PartialKey: []byte{1}, SubValue: []byte{2}},
+			panicValue: "node with partial key 0x01 has no Merkle value computed",
 		},
 		"inlined branch node": {
 			node: &Node{

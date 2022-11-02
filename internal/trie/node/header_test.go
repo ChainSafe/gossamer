@@ -43,8 +43,8 @@ func Test_encodeHeader(t *testing.T) {
 		},
 		"branch with key of length 30": {
 			node: &Node{
-				Key:      make([]byte, 30),
-				Children: make([]*Node, ChildrenCapacity),
+				PartialKey: make([]byte, 30),
+				Children:   make([]*Node, ChildrenCapacity),
 			},
 			writes: []writeCall{
 				{written: []byte{branchVariant.bits | 30}},
@@ -52,8 +52,8 @@ func Test_encodeHeader(t *testing.T) {
 		},
 		"branch with key of length 62": {
 			node: &Node{
-				Key:      make([]byte, 62),
-				Children: make([]*Node, ChildrenCapacity),
+				PartialKey: make([]byte, 62),
+				Children:   make([]*Node, ChildrenCapacity),
 			},
 			writes: []writeCall{
 				{written: []byte{branchVariant.bits | 62}},
@@ -61,8 +61,8 @@ func Test_encodeHeader(t *testing.T) {
 		},
 		"branch with key of length 63": {
 			node: &Node{
-				Key:      make([]byte, 63),
-				Children: make([]*Node, ChildrenCapacity),
+				PartialKey: make([]byte, 63),
+				Children:   make([]*Node, ChildrenCapacity),
 			},
 			writes: []writeCall{
 				{written: []byte{branchVariant.bits | 63}},
@@ -72,8 +72,8 @@ func Test_encodeHeader(t *testing.T) {
 		},
 		"branch with key of length 64": {
 			node: &Node{
-				Key:      make([]byte, 64),
-				Children: make([]*Node, ChildrenCapacity),
+				PartialKey: make([]byte, 64),
+				Children:   make([]*Node, ChildrenCapacity),
 			},
 			writes: []writeCall{
 				{written: []byte{branchVariant.bits | 63}},
@@ -95,8 +95,8 @@ func Test_encodeHeader(t *testing.T) {
 		},
 		"branch with long key length write error": {
 			node: &Node{
-				Key:      make([]byte, int(^branchVariant.mask)+1),
-				Children: make([]*Node, ChildrenCapacity),
+				PartialKey: make([]byte, int(^branchVariant.mask)+1),
+				Children:   make([]*Node, ChildrenCapacity),
 			},
 			writes: []writeCall{
 				{
@@ -118,7 +118,7 @@ func Test_encodeHeader(t *testing.T) {
 		},
 		"leaf with key of length 30": {
 			node: &Node{
-				Key: make([]byte, 30),
+				PartialKey: make([]byte, 30),
 			},
 			writes: []writeCall{
 				{written: []byte{leafVariant.bits | 30}},
@@ -126,7 +126,7 @@ func Test_encodeHeader(t *testing.T) {
 		},
 		"leaf with short key write error": {
 			node: &Node{
-				Key: make([]byte, 30),
+				PartialKey: make([]byte, 30),
 			},
 			writes: []writeCall{
 				{
@@ -139,7 +139,7 @@ func Test_encodeHeader(t *testing.T) {
 		},
 		"leaf with key of length 62": {
 			node: &Node{
-				Key: make([]byte, 62),
+				PartialKey: make([]byte, 62),
 			},
 			writes: []writeCall{
 				{written: []byte{leafVariant.bits | 62}},
@@ -147,7 +147,7 @@ func Test_encodeHeader(t *testing.T) {
 		},
 		"leaf with key of length 63": {
 			node: &Node{
-				Key: make([]byte, 63),
+				PartialKey: make([]byte, 63),
 			},
 			writes: []writeCall{
 				{written: []byte{leafVariant.bits | 63}},
@@ -156,7 +156,7 @@ func Test_encodeHeader(t *testing.T) {
 		},
 		"leaf with key of length 64": {
 			node: &Node{
-				Key: make([]byte, 64),
+				PartialKey: make([]byte, 64),
 			},
 			writes: []writeCall{
 				{written: []byte{leafVariant.bits | 63}},
@@ -165,7 +165,7 @@ func Test_encodeHeader(t *testing.T) {
 		},
 		"leaf with long key first byte write error": {
 			node: &Node{
-				Key: make([]byte, 63),
+				PartialKey: make([]byte, 63),
 			},
 			writes: []writeCall{
 				{
@@ -178,7 +178,7 @@ func Test_encodeHeader(t *testing.T) {
 		},
 		"leaf with key length over 3 bytes": {
 			node: &Node{
-				Key: make([]byte, int(^leafVariant.mask)+0b1111_1111+0b0000_0001),
+				PartialKey: make([]byte, int(^leafVariant.mask)+0b1111_1111+0b0000_0001),
 			},
 			writes: []writeCall{
 				{written: []byte{leafVariant.bits | ^leafVariant.mask}},
@@ -188,7 +188,7 @@ func Test_encodeHeader(t *testing.T) {
 		},
 		"leaf with key length over 3 bytes and last byte zero": {
 			node: &Node{
-				Key: make([]byte, int(^leafVariant.mask)+0b1111_1111),
+				PartialKey: make([]byte, int(^leafVariant.mask)+0b1111_1111),
 			},
 			writes: []writeCall{
 				{written: []byte{leafVariant.bits | ^leafVariant.mask}},
@@ -231,7 +231,7 @@ func Test_encodeHeader(t *testing.T) {
 
 		const keyLength = uint(maxPartialKeyLength) + 1
 		node := &Node{
-			Key: make([]byte, keyLength),
+			PartialKey: make([]byte, keyLength),
 		}
 
 		assert.PanicsWithValue(t, "partial key length is too big: 65536", func() {
@@ -267,7 +267,7 @@ func Test_encodeHeader_At_Maximum(t *testing.T) {
 	buffer.Grow(expectedEncodingLength)
 
 	node := &Node{
-		Key: make([]byte, keyLength),
+		PartialKey: make([]byte, keyLength),
 	}
 
 	err := encodeHeader(node, buffer)

@@ -11,7 +11,7 @@ import (
 
 // encodeHeader writes the encoded header for the node.
 func encodeHeader(node *Node, writer io.Writer) (err error) {
-	partialKeyLength := len(node.Key)
+	partialKeyLength := len(node.PartialKey)
 	if partialKeyLength > int(maxPartialKeyLength) {
 		panic(fmt.Sprintf("partial key length is too big: %d", partialKeyLength))
 	}
