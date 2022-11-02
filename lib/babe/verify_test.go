@@ -655,8 +655,8 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 			name:     "get header err",
 			verifier: *babeVerifier6,
 			header:   header7,
-			expErr: fmt.Errorf("could not verify block equivocation: "+
-				"failed to get header for block %s: get header error", h),
+			expErr: fmt.Errorf("could not verify block equivocation: " +
+				"failed to get header for block: get header error"),
 		},
 	}
 	for _, tt := range tests {
@@ -674,7 +674,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 }
 
 func Test_verifier_verifyBlockEquivocation(t *testing.T) {
-	ctrl := gomock.NewController(t)
+	t.Parallel()
 
 	// Generate keys
 	kp, err := sr25519.GenerateKeypair()
@@ -687,7 +687,7 @@ func Test_verifier_verifyBlockEquivocation(t *testing.T) {
 	}
 
 	// Case 1. could not get authority index from header
-	verifier1 := newVerifier(NewMockBlockState(ctrl), 1, vi)
+	verifier1 := newVerifier(NewMockBlockState(gomock.NewController(t)), 1, vi)
 	testHeader1 := types.NewEmptyHeader()
 
 	// Case 2. could not get slot from header
@@ -711,7 +711,7 @@ func Test_verifier_verifyBlockEquivocation(t *testing.T) {
 	testHeader3 := newTestHeader(t, *prd)
 	testHeader3.Number = 1
 
-	mockBlockState3 := NewMockBlockState(ctrl)
+	mockBlockState3 := NewMockBlockState(gomock.NewController(t))
 	mockBlockState3.EXPECT().GetBlockHashesBySlot(uint64(1)).Return(
 		nil, errors.New("test error"))
 
@@ -721,7 +721,7 @@ func Test_verifier_verifyBlockEquivocation(t *testing.T) {
 	testHeader4 := newTestHeader(t, *prd)
 	testHeader4.Number = 1
 	testHash4 := testHeader4.Hash()
-	mockBlockState4 := NewMockBlockState(ctrl)
+	mockBlockState4 := NewMockBlockState(gomock.NewController(t))
 	mockBlockState4.EXPECT().GetBlockHashesBySlot(uint64(1)).Return(
 		[]common.Hash{testHash4}, nil)
 
@@ -744,7 +744,7 @@ func Test_verifier_verifyBlockEquivocation(t *testing.T) {
 	assert.NoError(t, err)
 
 	existingHeader := newTestHeader(t, *prd5)
-	mockBlockState5 := NewMockBlockState(ctrl)
+	mockBlockState5 := NewMockBlockState(gomock.NewController(t))
 	mockBlockState5.EXPECT().GetBlockHashesBySlot(uint64(1)).Return(
 		[]common.Hash{existingHeader.Hash()}, nil)
 	mockBlockState5.EXPECT().GetHeader(existingHeader.Hash()).Return(
@@ -798,8 +798,11 @@ func Test_verifier_verifyBlockEquivocation(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
+
 		t.Run(tt.name, func(t *testing.T) {
-			tt := tt
+			t.Parallel()
+
 			equivocated, err := tt.verifier.verifyBlockEquivocation(tt.header)
 			assert.Equal(t, equivocated, tt.equivocated)
 			if tt.expErr != nil {

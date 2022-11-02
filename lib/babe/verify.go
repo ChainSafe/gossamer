@@ -364,7 +364,7 @@ func (b *verifier) verifyBlockEquivocation(header *types.Header) (bool, error) {
 
 		existingHeader, err := b.blockState.GetHeader(blockHashInSlot)
 		if err != nil {
-			return false, fmt.Errorf("failed to get header for block %s: %w", blockHashInSlot, err)
+			return false, fmt.Errorf("failed to get header for block: %w", err)
 		}
 
 		authorOfExistingHeader, err := getAuthorityIndex(existingHeader)

@@ -270,7 +270,7 @@ func (bs *BlockState) GetBlockHashesBySlot(slotNum uint64) ([]common.Hash, error
 			continue
 		}
 		if err != nil {
-			return nil, fmt.Errorf("could not get slot for block %s: %w", desc, err)
+			return nil, fmt.Errorf("could not get slot for block: %w", err)
 		}
 
 		if descSlot == slotNum {
@@ -536,7 +536,7 @@ func (bs *BlockState) BestBlock() (*types.Block, error) {
 func (bs *BlockState) GetSlotForBlock(hash common.Hash) (uint64, error) {
 	header, err := bs.GetHeader(hash)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("getting header for hash %s: %w", hash, err)
 	}
 
 	return types.GetSlotFromHeader(header)
