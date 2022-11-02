@@ -1502,7 +1502,7 @@ func Test_ext_default_child_storage_storage_kill_version_2_limit_all(t *testing.
 
 	child, err = inst.ctx.Storage.GetChild(testChildKey)
 	require.NoError(t, err)
-	require.Equal(t, 0, len(child.Entries()))
+	require.Empty(t, child.Entries())
 }
 
 func Test_ext_default_child_storage_storage_kill_version_2_limit_1(t *testing.T) {

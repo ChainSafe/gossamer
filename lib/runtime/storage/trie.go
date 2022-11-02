@@ -189,7 +189,8 @@ func (s *TrieState) DeleteChildLimit(key []byte, limit *[]byte) (
 		return 0, false, err
 	}
 
-	qtyEntries := uint32(len(tr.Entries()))
+	childTrieEntries := tr.Entries()
+	qtyEntries := uint32(len(childTrieEntries))
 	if limit == nil {
 		err = s.t.DeleteChild(key)
 		if err != nil {
@@ -200,8 +201,8 @@ func (s *TrieState) DeleteChildLimit(key []byte, limit *[]byte) (
 	}
 	limitUint := binary.LittleEndian.Uint32(*limit)
 
-	keys := make([]string, 0, len(tr.Entries()))
-	for k := range tr.Entries() {
+	keys := make([]string, 0, qtyEntries)
+	for k := range childTrieEntries {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
