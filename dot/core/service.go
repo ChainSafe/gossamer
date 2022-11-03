@@ -127,10 +127,14 @@ func (s *Service) StorageRoot() (common.Hash, error) {
 }
 
 // HandleBlockImport handles a block that was imported via the network
-func (s *Service) HandleBlockImport(block *types.Block, state *rtstorage.TrieState) error {
+func (s *Service) HandleBlockImport(block *types.Block, state *rtstorage.TrieState, announce bool) error {
 	err := s.handleBlock(block, state)
 	if err != nil {
 		return fmt.Errorf("handling block: %w", err)
+	}
+
+	if !announce {
+		return nil
 	}
 
 	bestBlockHash := s.blockState.BestBlockHash()
