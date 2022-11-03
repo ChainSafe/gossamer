@@ -82,9 +82,12 @@ func (s *chainProcessor) stop() {
 
 func (s *chainProcessor) processReadyBlocks() {
 	for {
-		bd := s.readyBlocks.pop(s.ctx)
-		if bd == nil { // context was canceled
-			return
+		bd, err := s.readyBlocks.pop(s.ctx)
+		if err != nil {
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				return
+			}
+			panic(fmt.Sprintf("unhandled error: %s", err))
 		}
 
 		if err := s.processBlockData(*bd); err != nil {
