@@ -157,8 +157,8 @@ func (c *chainProcessor) processBlockData(blockData types.BlockData) error { //n
 	return nil
 }
 
-func (c *chainProcessor) processBlockDataWithStateHeaderAndBody(blockData types.BlockData,
-	announceImportedBlock bool) (err error) { //nolint:revive
+func (c *chainProcessor) processBlockDataWithStateHeaderAndBody(blockData types.BlockData, //nolint:revive
+	announceImportedBlock bool) (err error) {
 	// TODO: fix this; sometimes when the node shuts down the "best block" isn't stored properly,
 	// so when the node restarts it has blocks higher than what it thinks is the best, causing it not to sync
 	// if we update the node to only store finalised blocks in the database, this should be fixed and the entire
@@ -201,8 +201,8 @@ func (c *chainProcessor) processBlockDataWithStateHeaderAndBody(blockData types.
 	return nil
 }
 
-func (c *chainProcessor) processBlockDataWithHeaderAndBody(blockData types.BlockData,
-	announceImportedBlock bool) (err error) { //nolint:revive
+func (c *chainProcessor) processBlockDataWithHeaderAndBody(blockData types.BlockData, //nolint:revive
+	announceImportedBlock bool) (err error) {
 	err = c.babeVerifier.VerifyBlock(blockData.Header)
 	if err != nil {
 		return fmt.Errorf("babe verifying block: %w", err)
