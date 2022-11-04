@@ -1314,8 +1314,8 @@ func (t *Trie) handleDeletion(branch *Node, key []byte,
 		return branch, branchChildMerged, nil
 	case childrenCount == 0 && branch.StorageValue != nil:
 		// The branch passed to handleDeletion is always a modified branch
-		// so the original branch Merkle value is already tracked in the deleted
-		// Merkle values map.
+		// so the original branch node hash is already tracked in the
+		// pending deltas.
 		const branchChildMerged = false
 		commonPrefixLength := lenCommonPrefix(branch.PartialKey, key)
 		return &Node{
@@ -1326,8 +1326,8 @@ func (t *Trie) handleDeletion(branch *Node, key []byte,
 		}, branchChildMerged, nil
 	case childrenCount == 1 && branch.StorageValue == nil:
 		// The branch passed to handleDeletion is always a modified branch
-		// so the original branch Merkle value is already tracked in the deleted
-		// Merkle values map.
+		// so the original branch node hash is already tracked in the
+		// pending deltas.
 		const branchChildMerged = true
 		childIndex := firstChildIndex
 		child := branch.Children[firstChildIndex]
