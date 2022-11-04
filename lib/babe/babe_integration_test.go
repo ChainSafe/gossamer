@@ -141,7 +141,7 @@ func createTestService(t *testing.T, cfg ServiceConfig) *Service {
 			CodeSubstitutes:      make(map[common.Hash]string),
 		}
 
-		babeService.blockImportHandler = NewTestService(t, &coreConfig)
+		babeService.blockImportHandler = NewTestService(t, coreConfig)
 	}
 
 	return babeService

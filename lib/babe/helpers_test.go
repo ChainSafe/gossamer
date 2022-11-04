@@ -25,13 +25,9 @@ import (
 )
 
 // NewTestService creates a new test core service
-func NewTestService(t *testing.T, cfg *core.Config) *core.Service {
+func NewTestService(t *testing.T, cfg core.Config) *core.Service {
 	t.Helper()
 	ctrl := gomock.NewController(t)
-
-	if cfg == nil {
-		cfg = &core.Config{}
-	}
 
 	if cfg.Keystore == nil {
 		cfg.Keystore = keystore.NewGlobalKeystore()
