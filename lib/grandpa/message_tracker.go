@@ -19,7 +19,6 @@ type tracker struct {
 	handler    *MessageHandler
 	votes      votesTracker
 	commits    commitsTracker
-	mapLock    sync.Mutex
 	in         chan *types.Block // receive imported block from BlockState
 	stopped    chan struct{}
 
@@ -34,11 +33,11 @@ func newTracker(bs BlockState, handler *MessageHandler) *tracker {
 		commitsCapacity = 1000
 	)
 	return &tracker{
-		blockState:              bs,
-		handler:                 handler,
-		votes:                   newVotesTracker(votesCapacity),
-		commits:                 newCommitsTracker(commitsCapacity),
-		mapLock:                 sync.Mutex{},
+		blockState: bs,
+		handler:    handler,
+		votes:      newVotesTracker(votesCapacity),
+		commits:    newCommitsTracker(commitsCapacity),
+		// mapLock:                 sync.Mutex{},
 		in:                      bs.GetImportedBlockNotifierChannel(),
 		stopped:                 make(chan struct{}),
 		catchUpResponseMessages: make(map[uint64]*CatchUpResponse),
@@ -59,15 +58,10 @@ func (t *tracker) addVote(peerID peer.ID, message *VoteMessage) {
 		return
 	}
 
-	t.mapLock.Lock()
-	defer t.mapLock.Unlock()
-
 	t.votes.add(peerID, message)
 }
 
 func (t *tracker) addCommit(cm *CommitMessage) {
-	t.mapLock.Lock()
-	defer t.mapLock.Unlock()
 	t.commits.add(cm)
 }
 
@@ -100,9 +94,6 @@ func (t *tracker) handleBlocks() {
 }
 
 func (t *tracker) handleBlock(b *types.Block) {
-	t.mapLock.Lock()
-	defer t.mapLock.Unlock()
-
 	h := b.Header.Hash()
 	vms := t.votes.messages(h)
 	for _, v := range vms {
@@ -128,9 +119,6 @@ func (t *tracker) handleBlock(b *types.Block) {
 }
 
 func (t *tracker) handleTick() {
-	t.mapLock.Lock()
-	defer t.mapLock.Unlock()
-
 	for _, networkVoteMessage := range t.votes.networkVoteMessages() {
 		peerID := networkVoteMessage.from
 		message := networkVoteMessage.msg
