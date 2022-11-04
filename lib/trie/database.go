@@ -102,7 +102,6 @@ func (t *Trie) Load(db Database, rootHash common.Hash) error {
 	}
 
 	t.root = root
-	t.root.SetClean()
 	t.root.Encoding = encodedNode
 	t.root.MerkleValue = rootHashBytes
 
@@ -129,7 +128,6 @@ func (t *Trie) loadNode(db Database, n *Node) error {
 			if err != nil {
 				return fmt.Errorf("merkle value: %w", err)
 			}
-			child.SetClean()
 			continue
 		}
 
@@ -144,7 +142,6 @@ func (t *Trie) loadNode(db Database, n *Node) error {
 			return fmt.Errorf("decoding node with Merkle value 0x%x: %w", merkleValue, err)
 		}
 
-		decodedNode.SetClean()
 		decodedNode.Encoding = encodedNode
 		decodedNode.MerkleValue = merkleValue
 		branch.Children[i] = decodedNode
