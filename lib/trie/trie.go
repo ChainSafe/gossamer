@@ -882,8 +882,6 @@ func (t *Trie) deleteNodesLimit(parent *Node, limit uint32,
 		nodesRemoved += newNodesRemoved
 		branch.Descendants -= newNodesRemoved
 
-		branch.SetDirty()
-
 		newParent, branchChildMerged = handleDeletion(branch, branch.Key)
 		if branchChildMerged {
 			nodesRemoved++
