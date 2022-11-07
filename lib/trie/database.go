@@ -185,22 +185,35 @@ func (t *Trie) loadNode(db Database, n *Node) error {
 	return nil
 }
 
-// PopulateMerkleValues writes the Merkle value of each children of the node given
-// as keys to the map merkleValues.
-func (t *Trie) PopulateMerkleValues(n *Node, merkleValues map[string]struct{}) {
-	if n.Kind() != node.Branch {
+// PopulateNodeHashes writes the node hash values of the node given and of
+// all its descendant nodes as keys to the nodeHashes map.
+// It is assumed the node and its descendant nodes have their Merkle value already
+// computed.
+func PopulateNodeHashes(n *Node, nodeHashes map[string]struct{}) {
+	if n == nil {
+		return
+	}
+
+	switch {
+	case len(n.MerkleValue) == 0:
+		// TODO remove once lazy loading of nodes is implemented
+		// https://github.com/ChainSafe/gossamer/issues/2838
+		panic(fmt.Sprintf("node with key 0x%x has no Merkle value computed", n.Key))
+	case len(n.MerkleValue) < 32:
+		// Inlined node where its Merkle value is its
+		// encoding and not the encoding hash digest.
+		return
+	}
+
+	nodeHashes[string(n.MerkleValue)] = struct{}{}
+
+	if n.Kind() == node.Leaf {
 		return
 	}
 
 	branch := n
 	for _, child := range branch.Children {
-		if child == nil {
-			continue
-		}
-
-		merkleValues[string(child.MerkleValue)] = struct{}{}
-
-		t.PopulateMerkleValues(child, merkleValues)
+		PopulateNodeHashes(child, nodeHashes)
 	}
 }
 
