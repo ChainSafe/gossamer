@@ -106,7 +106,11 @@ func Fuzz_Trie_PutAndGet_Single(f *testing.F) {
 		trie := NewEmptyTrie()
 		trie.Put(key, value)
 		retrievedValue := trie.Get(key)
-		assert.Equal(t, retrievedValue, value)
+		if retrievedValue == nil {
+			assert.Empty(t, value)
+		} else {
+			assert.Equal(t, value, retrievedValue)
+		}
 	})
 }
 
