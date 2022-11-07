@@ -108,6 +108,7 @@ func (vt *votesTracker) cleanup() {
 func (vt *votesTracker) delete(blockHash common.Hash) {
 	vt.Lock()
 	defer vt.Unlock()
+
 	authIDToElement, has := vt.mapping[blockHash]
 	if !has {
 		return
@@ -148,9 +149,9 @@ func (vt *votesTracker) messages(blockHash common.Hash) (
 // as a slice of networkVoteMessages.
 func (vt *votesTracker) networkVoteMessages() (
 	messages []networkVoteMessage) {
-
 	vt.Lock()
 	defer vt.Unlock()
+
 	messages = make([]networkVoteMessage, 0, vt.linkedList.Len())
 	for _, authorityIDToElement := range vt.mapping {
 		for _, element := range authorityIDToElement {
