@@ -176,7 +176,7 @@ type chainSyncConfig struct {
 	slotDuration       time.Duration
 }
 
-func newChainSync(cfg *chainSyncConfig) *chainSync {
+func newChainSync(cfg chainSyncConfig) *chainSync {
 	ctx, cancel := context.WithCancel(context.Background())
 	const syncSamplesToKeep = 30
 	const logSyncPeriod = 5 * time.Second

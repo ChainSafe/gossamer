@@ -107,7 +107,7 @@ type FinalityGadget interface {
 
 // BlockImportHandler is the interface for the handler of newly imported blocks
 type BlockImportHandler interface {
-	HandleBlockImport(block *types.Block, state *rtstorage.TrieState) error
+	HandleBlockImport(block *types.Block, state *rtstorage.TrieState, announce bool) error
 }
 
 // Network is the interface for the network

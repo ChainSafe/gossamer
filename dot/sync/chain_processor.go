@@ -25,6 +25,8 @@ type chainProcessor struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
+	chainSync ChainSync
+
 	// blocks that are ready for processing. ie. their parent is known, or their parent is ahead
 	// of them within this channel and thus will be processed first
 	readyBlocks *blockQueue
@@ -42,24 +44,35 @@ type chainProcessor struct {
 	telemetry          telemetry.Client
 }
 
-func newChainProcessor(readyBlocks *blockQueue, pendingBlocks DisjointBlockSet,
-	blockState BlockState, storageState StorageState,
-	transactionState TransactionState, babeVerifier BabeVerifier,
-	finalityGadget FinalityGadget, blockImportHandler BlockImportHandler, telemetry telemetry.Client) *chainProcessor {
+type chainProcessorConfig struct {
+	readyBlocks        *blockQueue
+	pendingBlocks      DisjointBlockSet
+	syncer             ChainSync
+	blockState         BlockState
+	storageState       StorageState
+	transactionState   TransactionState
+	babeVerifier       BabeVerifier
+	finalityGadget     FinalityGadget
+	blockImportHandler BlockImportHandler
+	telemetry          telemetry.Client
+}
+
+func newChainProcessor(cfg chainProcessorConfig) *chainProcessor {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &chainProcessor{
 		ctx:                ctx,
 		cancel:             cancel,
-		readyBlocks:        readyBlocks,
-		pendingBlocks:      pendingBlocks,
-		blockState:         blockState,
-		storageState:       storageState,
-		transactionState:   transactionState,
-		babeVerifier:       babeVerifier,
-		finalityGadget:     finalityGadget,
-		blockImportHandler: blockImportHandler,
-		telemetry:          telemetry,
+		readyBlocks:        cfg.readyBlocks,
+		pendingBlocks:      cfg.pendingBlocks,
+		chainSync:          cfg.syncer,
+		blockState:         cfg.blockState,
+		storageState:       cfg.storageState,
+		transactionState:   cfg.transactionState,
+		babeVerifier:       cfg.babeVerifier,
+		finalityGadget:     cfg.finalityGadget,
+		blockImportHandler: cfg.blockImportHandler,
+		telemetry:          cfg.telemetry,
 	}
 }
 
@@ -109,6 +122,8 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 		return fmt.Errorf("failed to check block state has body for hash %s: %w", bd.Hash, err)
 	}
 
+	// while in bootstrap mode we don't need to broadcast block announcements
+	announceImportedBlock := s.chainSync.syncState() == tip
 	if hasHeader && hasBody {
 		// TODO: fix this; sometimes when the node shuts down the "best block" isn't stored properly,
 		// so when the node restarts it has blocks higher than what it thinks is the best, causing it not to sync
@@ -149,7 +164,7 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 			return err
 		}
 
-		if err := s.blockImportHandler.HandleBlockImport(block, state); err != nil {
+		if err := s.blockImportHandler.HandleBlockImport(block, state, announceImportedBlock); err != nil {
 			logger.Warnf("failed to handle block import: %s", err)
 		}
 
@@ -170,7 +185,7 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 			Body:   *bd.Body,
 		}
 
-		if err := s.handleBlock(block); err != nil {
+		if err := s.handleBlock(block, announceImportedBlock); err != nil {
 			logger.Debugf("failed to handle block number %d: %s", block.Header.Number, err)
 			return err
 		}
@@ -201,7 +216,7 @@ func (s *chainProcessor) handleBody(body *types.Body) {
 }
 
 // handleHeader handles blocks (header+body) included in BlockResponses
-func (s *chainProcessor) handleBlock(block *types.Block) error {
+func (s *chainProcessor) handleBlock(block *types.Block, announceImportedBlock bool) error {
 	parent, err := s.blockState.GetHeader(block.Header.ParentHash)
 	if err != nil {
 		return fmt.Errorf("%w: %s", errFailedToGetParent, err)
@@ -233,7 +248,7 @@ func (s *chainProcessor) handleBlock(block *types.Block) error {
 		return fmt.Errorf("failed to execute block %d: %w", block.Header.Number, err)
 	}
 
-	if err = s.blockImportHandler.HandleBlockImport(block, ts); err != nil {
+	if err = s.blockImportHandler.HandleBlockImport(block, ts, announceImportedBlock); err != nil {
 		return err
 	}
 

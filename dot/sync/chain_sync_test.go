@@ -865,7 +865,7 @@ func TestChainSync_validateResponse(t *testing.T) {
 			t.Parallel()
 			ctrl := gomock.NewController(t)
 
-			cfg := &chainSyncConfig{
+			cfg := chainSyncConfig{
 				bs:            tt.blockStateBuilder(ctrl),
 				pendingBlocks: newDisjointBlockSet(pendingBlocksLimit),
 				readyBlocks:   newBlockQueue(maxResponseSize),
@@ -1601,7 +1601,7 @@ func newTestChainSyncWithReadyBlocks(ctrl *gomock.Controller, readyBlocks *block
 	mockBlockState := NewMockBlockState(ctrl)
 	mockBlockState.EXPECT().GetFinalisedNotifierChannel().Return(make(chan *types.FinalisationInfo))
 
-	cfg := &chainSyncConfig{
+	cfg := chainSyncConfig{
 		bs:            mockBlockState,
 		readyBlocks:   readyBlocks,
 		pendingBlocks: newDisjointBlockSet(pendingBlocksLimit),

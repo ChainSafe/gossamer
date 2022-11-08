@@ -26,6 +26,7 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 	tests := map[string]struct {
 		chainProcessorBuilder func(ctrl *gomock.Controller) chainProcessor
 		block                 *types.Block
+		announce              bool
 		wantErr               error
 	}{
 		"handle getHeader error": {
@@ -122,7 +123,7 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 				chainProcessor.storageState = mockStorageState
 				mockBlockImportHandler := NewMockBlockImportHandler(ctrl)
 				mockBlockImportHandler.EXPECT().HandleBlockImport(mockBlock,
-					trieState).Return(mockError)
+					trieState, false).Return(mockError)
 				chainProcessor.blockImportHandler = mockBlockImportHandler
 				return
 			},
@@ -156,7 +157,47 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 				mockStorageState.EXPECT().TrieState(&trie.EmptyHash).Return(trieState, nil)
 				chainProcessor.storageState = mockStorageState
 				mockBlockImportHandler := NewMockBlockImportHandler(ctrl)
-				mockBlockImportHandler.EXPECT().HandleBlockImport(mockBlock, trieState).Return(nil)
+				mockBlockImportHandler.EXPECT().HandleBlockImport(mockBlock, trieState, false).Return(nil)
+				chainProcessor.blockImportHandler = mockBlockImportHandler
+				mockTelemetry := NewMockClient(ctrl)
+				mockTelemetry.EXPECT().SendMessage(gomock.Any())
+				chainProcessor.telemetry = mockTelemetry
+				return
+			},
+			block: &types.Block{
+				Header: types.Header{
+					Number: 0,
+				},
+				Body: types.Body{},
+			},
+		},
+		"import block and announce": {
+			announce: true,
+			chainProcessorBuilder: func(ctrl *gomock.Controller) (chainProcessor chainProcessor) {
+				mockBlock := &types.Block{
+					Body: types.Body{}, // empty slice of extrinsics
+				}
+				trieState := storage.NewTrieState(nil)
+				mockBlockState := NewMockBlockState(ctrl)
+				mockHeader := &types.Header{
+					Number:    0,
+					StateRoot: trie.EmptyHash,
+				}
+				mockHeaderHash := mockHeader.Hash()
+				mockBlockState.EXPECT().GetHeader(common.Hash{}).Return(mockHeader, nil)
+
+				mockInstance := NewMockRuntimeInstance(ctrl)
+				mockInstance.EXPECT().SetContextStorage(trieState)
+				mockInstance.EXPECT().ExecuteBlock(mockBlock).Return(nil, nil)
+				mockBlockState.EXPECT().GetRuntime(&mockHeaderHash).Return(mockInstance, nil)
+				chainProcessor.blockState = mockBlockState
+				mockStorageState := NewMockStorageState(ctrl)
+				mockStorageState.EXPECT().Lock()
+				mockStorageState.EXPECT().Unlock()
+				mockStorageState.EXPECT().TrieState(&trie.EmptyHash).Return(trieState, nil)
+				chainProcessor.storageState = mockStorageState
+				mockBlockImportHandler := NewMockBlockImportHandler(ctrl)
+				mockBlockImportHandler.EXPECT().HandleBlockImport(mockBlock, trieState, true).Return(nil)
 				chainProcessor.blockImportHandler = mockBlockImportHandler
 				mockTelemetry := NewMockClient(ctrl)
 				mockTelemetry.EXPECT().SendMessage(gomock.Any())
@@ -178,7 +219,7 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			s := tt.chainProcessorBuilder(ctrl)
 
-			err := s.handleBlock(tt.block)
+			err := s.handleBlock(tt.block, tt.announce)
 			assert.ErrorIs(t, err, tt.wantErr)
 		})
 	}
@@ -205,7 +246,7 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 		}
 		const expectedPanicValue = "parent state root does not match snapshot state root"
 		assert.PanicsWithValue(t, expectedPanicValue, func() {
-			_ = chainProcessor.handleBlock(bock)
+			_ = chainProcessor.handleBlock(bock, false)
 		})
 	})
 }
@@ -346,6 +387,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().HasHeader(common.Hash{}).Return(false, mockError)
+
 				return chainProcessor{
 					blockState: mockBlockState,
 				}
@@ -371,8 +413,12 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 				mockBlockState.EXPECT().HasHeader(common.Hash{}).Return(true, nil)
 				mockBlockState.EXPECT().HasBlockBody(common.Hash{}).Return(true, nil)
 				mockBlockState.EXPECT().GetBlockByHash(common.Hash{}).Return(nil, mockError)
+
+				mockChainSync := NewMockChainSync(ctrl)
+				mockChainSync.EXPECT().syncState().Return(bootstrap)
 				return chainProcessor{
 					blockState: mockBlockState,
+					chainSync:  mockChainSync,
 				}
 			},
 			blockData:     &types.BlockData{},
@@ -394,7 +440,11 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 				mockFinalityGadget := NewMockFinalityGadget(ctrl)
 				mockStorageState := NewMockStorageState(ctrl)
 				mockBlockImportHandler := NewMockBlockImportHandler(ctrl)
+
+				mockChainSync := NewMockChainSync(ctrl)
+				mockChainSync.EXPECT().syncState().Return(bootstrap)
 				return chainProcessor{
+					chainSync:          mockChainSync,
 					blockState:         mockBlockState,
 					finalityGadget:     mockFinalityGadget,
 					storageState:       mockStorageState,
@@ -427,7 +477,11 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 					VerifyBlockJustification(headerHash, []byte{1, 2, 3}).
 					Return(nil, mockError)
 
+				mockChainSync := NewMockChainSync(ctrl)
+				mockChainSync.EXPECT().syncState().Return(bootstrap)
+
 				return chainProcessor{
+					chainSync:      mockChainSync,
 					blockState:     blockState,
 					finalityGadget: finalityGadget,
 				}
@@ -438,7 +492,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 			},
 			expectedError: mockError,
 		},
-		"handle block data justification != nil": {
+		"handle block data justification successfully": {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
 				mockBlock := &types.Block{
 					Header: types.Header{
@@ -459,10 +513,19 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 					3}).Return([]byte{1, 2, 3}, nil)
 				mockStorageState := NewMockStorageState(ctrl)
 				mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(nil, nil)
+
+				// given our current chain sync state is `tip`
+				// the `HandleBlockImport` method should expect
+				// true as the announce parameter
+				mockChainSync := NewMockChainSync(ctrl)
+				mockChainSync.EXPECT().syncState().Return(tip)
+
 				mockBlockImportHandler := NewMockBlockImportHandler(ctrl)
 				mockBlockImportHandler.EXPECT().HandleBlockImport(mockBlock,
-					nil).Return(nil)
+					nil, true).Return(nil)
+
 				return chainProcessor{
+					chainSync:          mockChainSync,
 					blockState:         mockBlockState,
 					finalityGadget:     mockFinalityGadget,
 					storageState:       mockStorageState,
@@ -494,7 +557,11 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 					3}).Return([]byte{1, 2, 3}, nil)
 				mockStorageState := NewMockStorageState(ctrl)
 				mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(nil, mockError)
+
+				mockChainSync := NewMockChainSync(ctrl)
+				mockChainSync.EXPECT().syncState().Return(bootstrap)
 				return chainProcessor{
+					chainSync:      mockChainSync,
 					blockState:     mockBlockState,
 					finalityGadget: mockFinalityGadget,
 					storageState:   mockStorageState,
@@ -526,10 +593,18 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 					3}).Return([]byte{1, 2, 3}, nil)
 				mockStorageState := NewMockStorageState(ctrl)
 				mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(nil, nil)
+
+				// given our current chain sync state is `bootstrap`
+				// the `HandleBlockImport` method should expect
+				// false as the announce parameter
+				mockChainSync := NewMockChainSync(ctrl)
+				mockChainSync.EXPECT().syncState().Return(bootstrap)
+
 				mockBlockImportHandler := NewMockBlockImportHandler(ctrl)
 				mockBlockImportHandler.EXPECT().HandleBlockImport(mockBlock,
-					nil).Return(mockError)
+					nil, false).Return(mockError)
 				return chainProcessor{
+					chainSync:          mockChainSync,
 					blockState:         mockBlockState,
 					finalityGadget:     mockFinalityGadget,
 					storageState:       mockStorageState,
@@ -546,7 +621,12 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 				mockBlockState.EXPECT().HasHeader(common.Hash{}).Return(false, nil)
 				mockBlockState.EXPECT().HasBlockBody(common.Hash{}).Return(false, nil)
 				mockBlockState.EXPECT().CompareAndSetBlockData(&types.BlockData{}).Return(nil)
+
+				mockChainSync := NewMockChainSync(ctrl)
+				mockChainSync.EXPECT().syncState().Return(bootstrap)
+
 				return chainProcessor{
+					chainSync:  mockChainSync,
 					blockState: mockBlockState,
 				}
 			},
@@ -559,7 +639,12 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 				mockBlockState.EXPECT().HasBlockBody(common.Hash{}).Return(false, nil)
 				mockBabeVerifier := NewMockBabeVerifier(ctrl)
 				mockBabeVerifier.EXPECT().VerifyBlock(&types.Header{}).Return(mockError)
+
+				mockChainSync := NewMockChainSync(ctrl)
+				mockChainSync.EXPECT().syncState().Return(bootstrap)
+
 				return chainProcessor{
+					chainSync:    mockChainSync,
 					blockState:   mockBlockState,
 					babeVerifier: mockBabeVerifier,
 				}
@@ -578,7 +663,12 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 				mockBlockState.EXPECT().GetHeader(common.Hash{}).Return(nil, mockError)
 				mockBabeVerifier := NewMockBabeVerifier(ctrl)
 				mockBabeVerifier.EXPECT().VerifyBlock(&types.Header{}).Return(nil)
+
+				mockChainSync := NewMockChainSync(ctrl)
+				mockChainSync.EXPECT().syncState().Return(bootstrap)
+
 				return chainProcessor{
+					chainSync:    mockChainSync,
 					blockState:   mockBlockState,
 					babeVerifier: mockBabeVerifier,
 				}
@@ -601,7 +691,11 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 				}, nil)
 				mockBlockState.EXPECT().AddBlockToBlockTree(&types.Block{
 					Header: types.Header{Number: 1}}).Return(mockError)
+
+				mockChainSync := NewMockChainSync(ctrl)
+				mockChainSync.EXPECT().syncState().Return(bootstrap)
 				return chainProcessor{
+					chainSync:  mockChainSync,
 					blockState: mockBlockState,
 				}
 			},
@@ -624,9 +718,16 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 				mockBlockState.EXPECT().AddBlockToBlockTree(&types.Block{Header: types.Header{Number: 1}}).Return(nil)
 				mockStorageState := NewMockStorageState(ctrl)
 				mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(mockTrieState, nil)
+
+				mockChainSync := NewMockChainSync(ctrl)
+				mockChainSync.EXPECT().syncState().Return(bootstrap)
+
 				mockBlockImportHandler := NewMockBlockImportHandler(ctrl)
-				mockBlockImportHandler.EXPECT().HandleBlockImport(&types.Block{Header: types.Header{Number: 1}}, mockTrieState)
+				mockBlockImportHandler.EXPECT().HandleBlockImport(&types.Block{Header: types.Header{Number: 1}},
+					mockTrieState, false)
+
 				return chainProcessor{
+					chainSync:          mockChainSync,
 					blockState:         mockBlockState,
 					storageState:       mockStorageState,
 					blockImportHandler: mockBlockImportHandler,
@@ -649,7 +750,11 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 					VerifyBlockJustification(expectedBlockDataHeaderHash, []byte{1, 2, 3}).
 					Return(nil, mockError)
 
+				mockChainSync := NewMockChainSync(ctrl)
+				mockChainSync.EXPECT().syncState().Return(bootstrap)
+
 				return chainProcessor{
+					chainSync:      mockChainSync,
 					blockState:     blockState,
 					finalityGadget: finalityGadget,
 				}
@@ -667,7 +772,11 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 				mockBlockState.EXPECT().HasHeader(common.Hash{}).Return(false, nil)
 				mockBlockState.EXPECT().HasBlockBody(common.Hash{}).Return(false, nil)
 				mockBlockState.EXPECT().CompareAndSetBlockData(&types.BlockData{}).Return(mockError)
+
+				mockChainSync := NewMockChainSync(ctrl)
+				mockChainSync.EXPECT().syncState().Return(bootstrap)
 				return chainProcessor{
+					chainSync:  mockChainSync,
 					blockState: mockBlockState,
 				}
 			},
@@ -684,6 +793,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 				mockInstance := NewMockRuntimeInstance(ctrl)
 				mockInstance.EXPECT().SetContextStorage(mockTrieState)
 				mockInstance.EXPECT().ExecuteBlock(mockBlock).Return(nil, nil)
+
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().HasHeader(common.Hash{}).Return(false, nil)
 				mockBlockState.EXPECT().HasBlockBody(common.Hash{}).Return(false, nil)
@@ -693,17 +803,25 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 				}, nil)
 				mockBlockState.EXPECT().CompareAndSetBlockData(&types.BlockData{Header: &types.Header{}, Body: &types.Body{}})
 				mockBlockState.EXPECT().GetRuntime(&runtimeHash).Return(mockInstance, nil)
+
 				mockBabeVerifier := NewMockBabeVerifier(ctrl)
-				mockBabeVerifier.EXPECT().VerifyBlock(&types.Header{})
+				mockBabeVerifier.EXPECT().VerifyBlock(&types.Header{}).Return(nil)
+
 				mockStorageState := NewMockStorageState(ctrl)
 				mockStorageState.EXPECT().Lock()
 				mockStorageState.EXPECT().TrieState(&stateRootHash).Return(mockTrieState, nil)
 				mockStorageState.EXPECT().Unlock()
+
+				mockChainSync := NewMockChainSync(ctrl)
+				mockChainSync.EXPECT().syncState().Return(tip)
+
 				mockBlockImportHandler := NewMockBlockImportHandler(ctrl)
-				mockBlockImportHandler.EXPECT().HandleBlockImport(mockBlock, mockTrieState)
+				mockBlockImportHandler.EXPECT().HandleBlockImport(mockBlock, mockTrieState, true)
+
 				mockTelemetry := NewMockClient(ctrl)
 				mockTelemetry.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 				return chainProcessor{
+					chainSync:          mockChainSync,
 					blockState:         mockBlockState,
 					babeVerifier:       mockBabeVerifier,
 					storageState:       mockStorageState,
@@ -745,8 +863,13 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 				mockStorageState.EXPECT().Lock()
 				mockStorageState.EXPECT().TrieState(&stateRootHash).Return(mockTrieState, nil)
 				mockStorageState.EXPECT().Unlock()
+
+				mockChainSync := NewMockChainSync(ctrl)
+				mockChainSync.EXPECT().syncState().Return(bootstrap)
+
 				mockBlockImportHandler := NewMockBlockImportHandler(ctrl)
-				mockBlockImportHandler.EXPECT().HandleBlockImport(mockBlock, mockTrieState)
+				mockBlockImportHandler.EXPECT().HandleBlockImport(mockBlock, mockTrieState, false)
+
 				mockTelemetry := NewMockClient(ctrl)
 				mockTelemetry.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 				mockFinalityGadget := NewMockFinalityGadget(ctrl)
@@ -754,6 +877,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 					common.MustHexToHash("0xdcdd89927d8a348e00257e1ecc8617f45edb5118efff3ea2f9961b2ad9b7690a"),
 					justification).Return(justification, nil)
 				return chainProcessor{
+					chainSync:          mockChainSync,
 					blockState:         mockBlockState,
 					babeVerifier:       mockBabeVerifier,
 					storageState:       mockStorageState,
@@ -788,6 +912,7 @@ func Test_chainProcessor_processReadyBlocks(t *testing.T) {
 	t.Parallel()
 	mockError := errors.New("test mock error")
 	tests := map[string]struct {
+		chainSyncBuilder    func(ctrl *gomock.Controller) ChainSync
 		blockStateBuilder   func(ctrl *gomock.Controller, done chan struct{}) BlockState
 		blockData           *types.BlockData
 		babeVerifierBuilder func(ctrl *gomock.Controller) BabeVerifier
@@ -795,6 +920,11 @@ func Test_chainProcessor_processReadyBlocks(t *testing.T) {
 		storageStateBuilder func(ctrl *gomock.Controller, done chan struct{}) StorageState
 	}{
 		"base case": {
+			chainSyncBuilder: func(ctrl *gomock.Controller) ChainSync {
+				cs := NewMockChainSync(ctrl)
+				cs.EXPECT().syncState().Return(bootstrap)
+				return cs
+			},
 			blockStateBuilder: func(ctrl *gomock.Controller, done chan struct{}) BlockState {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().HasHeader(common.Hash{}).Return(false, nil)
@@ -820,6 +950,11 @@ func Test_chainProcessor_processReadyBlocks(t *testing.T) {
 			},
 		},
 		"add block": {
+			chainSyncBuilder: func(ctrl *gomock.Controller) ChainSync {
+				cs := NewMockChainSync(ctrl)
+				cs.EXPECT().syncState().Return(bootstrap)
+				return cs
+			},
 			blockStateBuilder: func(ctrl *gomock.Controller, done chan struct{}) BlockState {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().HasHeader(common.Hash{}).Return(false, nil)
@@ -853,6 +988,11 @@ func Test_chainProcessor_processReadyBlocks(t *testing.T) {
 			},
 		},
 		"error in process block": {
+			chainSyncBuilder: func(ctrl *gomock.Controller) ChainSync {
+				cs := NewMockChainSync(ctrl)
+				cs.EXPECT().syncState().Return(bootstrap)
+				return cs
+			},
 			blockStateBuilder: func(ctrl *gomock.Controller, done chan struct{}) BlockState {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().HasHeader(common.Hash{}).Return(false, nil)
@@ -886,6 +1026,11 @@ func Test_chainProcessor_processReadyBlocks(t *testing.T) {
 			},
 		},
 		"add block error": {
+			chainSyncBuilder: func(ctrl *gomock.Controller) ChainSync {
+				cs := NewMockChainSync(ctrl)
+				cs.EXPECT().syncState().Return(bootstrap)
+				return cs
+			},
 			blockStateBuilder: func(ctrl *gomock.Controller, done chan struct{}) BlockState {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().HasHeader(common.Hash{}).Return(false, nil)
@@ -932,6 +1077,7 @@ func Test_chainProcessor_processReadyBlocks(t *testing.T) {
 				ctx:           ctx,
 				cancel:        cancel,
 				readyBlocks:   readyBlock,
+				chainSync:     tt.chainSyncBuilder(ctrl),
 				blockState:    tt.blockStateBuilder(ctrl, done),
 				babeVerifier:  tt.babeVerifierBuilder(ctrl),
 				pendingBlocks: tt.pendingBlockBuilder(ctrl, done),
@@ -1002,9 +1148,18 @@ func Test_newChainProcessor(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got := newChainProcessor(tt.args.readyBlocks, tt.args.pendingBlocks, tt.args.blockState,
-				tt.args.storageState, tt.args.transactionState, tt.args.babeVerifier, tt.args.finalityGadget,
-				tt.args.blockImportHandler, nil)
+			cpCfg := chainProcessorConfig{
+				readyBlocks:        tt.args.readyBlocks,
+				pendingBlocks:      tt.args.pendingBlocks,
+				blockState:         tt.args.blockState,
+				storageState:       tt.args.storageState,
+				transactionState:   tt.args.transactionState,
+				babeVerifier:       tt.args.babeVerifier,
+				finalityGadget:     tt.args.finalityGadget,
+				blockImportHandler: tt.args.blockImportHandler,
+			}
+
+			got := newChainProcessor(cpCfg)
 			assert.NotNil(t, got.ctx)
 			got.ctx = nil
 			assert.NotNil(t, got.cancel)

@@ -12,7 +12,7 @@ require (
 	github.com/dgraph-io/ristretto v0.0.3-0.20200630154024-f66de99634de
 	github.com/disiqueira/gotree v1.0.0
 	github.com/docker/docker v20.10.21+incompatible
-	github.com/ethereum/go-ethereum v1.10.25
+	github.com/ethereum/go-ethereum v1.10.26
 	github.com/fatih/color v1.13.0
 	github.com/go-playground/validator/v10 v10.11.1
 	github.com/golang/mock v1.6.0
@@ -36,7 +36,7 @@ require (
 	github.com/multiformats/go-multiaddr v0.7.0
 	github.com/nanobox-io/golang-scribble v0.0.0-20190309225732-aa3e7c118975
 	github.com/naoina/toml v0.1.2-0.20170918210437-9fafd6967416
-	github.com/prometheus/client_golang v1.13.0
+	github.com/prometheus/client_golang v1.13.1
 	github.com/prometheus/client_model v0.3.0
 	github.com/qdm12/gotree v0.2.0
 	github.com/stretchr/testify v1.8.1
