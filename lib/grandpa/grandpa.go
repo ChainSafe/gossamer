@@ -175,10 +175,6 @@ func (s *Service) Start() error {
 	go func() {
 		err := s.initiate()
 		if err != nil {
-			errStop := s.Stop()
-			if errStop != nil {
-				logger.Criticalf("%s", errStop)
-			}
 			panic(fmt.Errorf("grandpa service: %s", err))
 		}
 	}()

@@ -438,7 +438,7 @@ func (f *finalizationEngine) defineRoundVotes() error {
 			}
 
 			if total <= f.grandpaService.state.threshold() {
-				determinePrecommitTimer.Reset(gossipInterval * 4)
+				determinePrecommitTimer.Reset(4 * gossipInterval)
 				continue
 			}
 
