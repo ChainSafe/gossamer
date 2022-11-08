@@ -111,7 +111,7 @@ func (t *Trie) loadNode(db Database, n *Node) error {
 
 		hash, err := childTrie.Hash()
 		if err != nil {
-			return fmt.Errorf("cannot hash chilld trie at key 0x%x: %w", key, err)
+			return fmt.Errorf("hashing child trie at key 0x%x: %w", key, err)
 		}
 		t.childTries[hash] = childTrie
 	}
@@ -260,9 +260,7 @@ func (t *Trie) writeDirtyNode(db chaindb.Batch, n *Node) (err error) {
 		encoding, merkleValue, err = n.EncodeAndHash()
 	}
 	if err != nil {
-		return fmt.Errorf(
-			"encoding and hashing node with Merkle value 0x%x: %w",
-			n.MerkleValue, err)
+		return fmt.Errorf("encoding and calculating Merkle value: %w", err)
 	}
 
 	err = db.Put(merkleValue, encoding)
