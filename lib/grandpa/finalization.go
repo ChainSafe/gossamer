@@ -380,8 +380,8 @@ func (f *finalizationEngine) Start() (err error) {
 
 func (f *finalizationEngine) defineRoundVotes() error {
 	gossipInterval := f.grandpaService.interval
-	determinePrevoteTimer := time.NewTimer(gossipInterval * 2)
-	determinePrecommitTimer := time.NewTimer(gossipInterval * 4)
+	determinePrevoteTimer := time.NewTimer(2 * gossipInterval)
+	determinePrecommitTimer := time.NewTimer(4 * gossipInterval)
 
 	var precommited bool = false
 
