@@ -161,7 +161,8 @@ func (fh *finalizationHandler) waitServices() error {
 		case err := <-votingRoundErr:
 			if err == nil {
 				votingRoundErr = nil
-				continue
+				// go out from the select case
+				break
 			}
 
 			stopErr := fh.stop()
@@ -173,7 +174,8 @@ func (fh *finalizationHandler) waitServices() error {
 		case err := <-finalizationEngineErr:
 			if err == nil {
 				finalizationEngineErr = nil
-				continue
+				// go out from the select case
+				break
 			}
 
 			stopErr := fh.stop()
@@ -181,12 +183,11 @@ func (fh *finalizationHandler) waitServices() error {
 				logger.Warnf("stopping finalisation handler: %s", stopErr)
 			}
 			return err
+		}
 
-		default:
-			finish := votingRoundErr == nil && finalizationEngineErr == nil
-			if finish {
-				return nil
-			}
+		finish := votingRoundErr == nil && finalizationEngineErr == nil
+		if finish {
+			return nil
 		}
 	}
 }
