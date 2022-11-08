@@ -22,12 +22,12 @@ type finalizationHandler struct {
 	finalizationEngine ephemeralService
 	votingRound        ephemeralService
 
-	newServices    func() (engine, voting ephemeralService)
-	timeoutStop    time.Duration
-	initiateRound  func() error
-	observableErrs chan error
-	stopCh         chan struct{}
-	handlerDone    chan struct{}
+	newServices   func() (engine, voting ephemeralService)
+	timeoutStop   time.Duration
+	initiateRound func() error
+
+	stopCh      chan struct{}
+	handlerDone chan struct{}
 }
 
 func newFinalizationHandler(service *Service) *finalizationHandler {
@@ -43,20 +43,21 @@ func newFinalizationHandler(service *Service) *finalizationHandler {
 	return &finalizationHandler{
 		newServices: builder,
 
-		timeoutStop:    5 * time.Second,
-		initiateRound:  service.initiateRound,
-		observableErrs: make(chan error),
-		stopCh:         make(chan struct{}),
-		handlerDone:    make(chan struct{}),
+		timeoutStop:   5 * time.Second,
+		initiateRound: service.initiateRound,
+		stopCh:        make(chan struct{}),
+		handlerDone:   make(chan struct{}),
 	}
 }
 
 func (fh *finalizationHandler) Start() (errsCh <-chan error, err error) {
-	go fh.start()
-	return fh.observableErrs, nil
+	observableErrs := make(chan error)
+	go fh.start(observableErrs)
+	return observableErrs, nil
 }
 
-func (fh *finalizationHandler) start() {
+func (fh *finalizationHandler) start(observableErrs chan error) {
+	defer close(observableErrs)
 	defer close(fh.handlerDone)
 
 	for {
@@ -68,13 +69,13 @@ func (fh *finalizationHandler) start() {
 
 		err := fh.initiateRound()
 		if err != nil {
-			fh.observableErrs <- fmt.Errorf("initiating round: %w", err)
+			observableErrs <- fmt.Errorf("initiating round: %w", err)
 			return
 		}
 
 		err = fh.waitServices()
 		if err != nil {
-			fh.observableErrs <- err
+			observableErrs <- fmt.Errorf("waiting for services: %w", err)
 			return
 		}
 	}
