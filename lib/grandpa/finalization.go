@@ -145,20 +145,12 @@ func (fh *finalizationHandler) waitServices() error {
 
 	finalizationEngineErr := make(chan error)
 	go func() {
-		defer close(finalizationEngineErr)
-		err := fh.finalizationEngine.Start()
-		if err != nil {
-			finalizationEngineErr <- err
-		}
+		finalizationEngineErr <- fh.finalizationEngine.Start()
 	}()
 
 	votingRoundErr := make(chan error)
 	go func() {
-		defer close(votingRoundErr)
-		err := fh.votingRound.Start()
-		if err != nil {
-			votingRoundErr <- err
-		}
+		votingRoundErr <- fh.votingRound.Start()
 	}()
 
 	for {
@@ -166,29 +158,28 @@ func (fh *finalizationHandler) waitServices() error {
 		case <-fh.stopCh:
 			return nil
 
-		case err, ok := <-votingRoundErr:
-			if !ok {
+		case err := <-votingRoundErr:
+			if err == nil {
 				votingRoundErr = nil
 				continue
 			}
 
 			stopErr := fh.stop()
 			if stopErr != nil {
-				logger.Infof("stopping finalisation handler: %s", stopErr)
+				logger.Warnf("stopping finalisation handler: %s", stopErr)
 			}
 			return err
 
-		case err, ok := <-finalizationEngineErr:
-			if !ok {
+		case err := <-finalizationEngineErr:
+			if err == nil {
 				finalizationEngineErr = nil
 				continue
 			}
 
 			stopErr := fh.stop()
 			if stopErr != nil {
-				logger.Infof("stopping finalisation handler: %s", stopErr)
+				logger.Warnf("stopping finalisation handler: %s", stopErr)
 			}
-
 			return err
 
 		default:
