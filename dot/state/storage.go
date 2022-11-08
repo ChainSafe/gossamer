@@ -125,10 +125,13 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 		if err != nil {
 			return nil, err
 		}
+	}
 
-		s.tries.softSet(*root, t)
-	} else if t.MustHash() != *root {
-		panic("trie does not have expected root")
+	// Note this check has a very little performance impact since the trie
+	// has its root hash already computed and cached in memory.
+	rootHash := t.MustHash()
+	if rootHash != *root {
+		panic(fmt.Sprintf("trie has root hash %s instead of expected root %s", rootHash, *root))
 	}
 
 	nextTrie := t.Snapshot()
