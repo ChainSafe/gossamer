@@ -155,14 +155,15 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 		}
 
 		// TODO: get justification if your round is lower, or just do catch-up? (#1815)
-		return nil, fmt.Errorf("%w: got %d, want %d", errRoundsMismatch, m.Round, s.state.round)
+		return nil, fmt.Errorf("%w: received round %d but state round is %d",
+			errRoundsMismatch, m.Round, s.state.round)
 	} else if m.Round > s.state.round {
-
 		// Message round is higher by 1 than the round of our state,
 		// we may be lagging behind, so store the message in the tracker
 		// for processing later in the coming few milliseconds.
 		s.tracker.addVote(from, m)
-		return nil, fmt.Errorf("%w: got %d, want %d", errRoundsMismatch, m.Round, s.state.round)
+		return nil, fmt.Errorf("%w: received round %d but state round is %d",
+			errRoundsMismatch, m.Round, s.state.round)
 	}
 
 	// check for equivocation ie. multiple votes within one subround

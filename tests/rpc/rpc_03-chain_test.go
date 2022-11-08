@@ -123,8 +123,7 @@ func TestChainRPC(t *testing.T) {
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, blockNumber, uint(1))
 
-	waitMoreBlocksTimer := time.NewTimer(3 * time.Second)
-	<-waitMoreBlocksTimer.C
+	time.Sleep(3 * time.Second)
 
 	var blockHash string
 	fetchWithTimeout(ctx, t, "chain_getBlockHash", "[]", &blockHash)
