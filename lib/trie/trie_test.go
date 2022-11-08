@@ -317,8 +317,8 @@ func Test_Trie_registerDeletedMerkleValue(t *testing.T) {
 			},
 			expectedTrie: Trie{
 				root: &Node{
-					PartialKey: []byte{1},
-					SubValue:   []byte{2},
+					PartialKey:   []byte{1},
+					StorageValue: []byte{2},
 					MerkleValue: []byte{
 						0x60, 0x51, 0x6d, 0x0b, 0xb6, 0xe1, 0xbb, 0xfb,
 						0x12, 0x93, 0xf1, 0xb2, 0x76, 0xea, 0x95, 0x05,
@@ -4066,23 +4066,44 @@ func Test_Trie_handleDeletion(t *testing.T) {
 	}
 }
 
-func Test_ensureMerkleValueIsCalculated(t *testing.T) {
+func Test_Trie_ensureMerkleValueIsCalculated(t *testing.T) {
 	t.Parallel()
 
+	node := &Node{
+		PartialKey:   []byte{1},
+		StorageValue: []byte{2},
+	}
+
+	nodeWithEncodingMerkleValue := &Node{
+		PartialKey:   []byte{1},
+		StorageValue: []byte{2},
+		MerkleValue:  []byte{3},
+	}
+
+	nodeWithHashMerkleValue := &Node{
+		PartialKey:   []byte{1},
+		StorageValue: []byte{2},
+		MerkleValue: []byte{
+			1, 2, 3, 4, 5, 6, 7, 8,
+			1, 2, 3, 4, 5, 6, 7, 8,
+			1, 2, 3, 4, 5, 6, 7, 8,
+			1, 2, 3, 4, 5, 6, 7, 8},
+	}
+
 	testCases := map[string]struct {
+		trie         Trie
 		parent       *Node
-		isRoot       bool
 		errSentinel  error
 		errMessage   string
 		expectedNode *Node
+		expectedTrie Trie
 	}{
 		"nil parent": {},
 		"root node without Merkle value": {
-			parent: &Node{
-				PartialKey:   []byte{1},
-				StorageValue: []byte{2},
+			trie: Trie{
+				root: node,
 			},
-			isRoot: true,
+			parent: node,
 			expectedNode: &Node{
 				PartialKey:   []byte{1},
 				StorageValue: []byte{2},
@@ -4091,15 +4112,16 @@ func Test_ensureMerkleValueIsCalculated(t *testing.T) {
 					0x12, 0x93, 0xf1, 0xb2, 0x76, 0xea, 0x95, 0x5,
 					0xe9, 0xf4, 0xa4, 0xe7, 0xd9, 0x8f, 0x62, 0xd,
 					0x5, 0x11, 0x5e, 0xb, 0x85, 0x27, 0x4a, 0xe1},
+			},
+			expectedTrie: Trie{
+				root: node,
 			},
 		},
 		"root node with inlined Merkle value": {
-			parent: &Node{
-				PartialKey:   []byte{1},
-				StorageValue: []byte{2},
-				MerkleValue:  []byte{3},
+			trie: Trie{
+				root: nodeWithEncodingMerkleValue,
 			},
-			isRoot: true,
+			parent: nodeWithEncodingMerkleValue,
 			expectedNode: &Node{
 				PartialKey:   []byte{1},
 				StorageValue: []byte{2},
@@ -4109,18 +4131,15 @@ func Test_ensureMerkleValueIsCalculated(t *testing.T) {
 					0xe9, 0xf4, 0xa4, 0xe7, 0xd9, 0x8f, 0x62, 0xd,
 					0x5, 0x11, 0x5e, 0xb, 0x85, 0x27, 0x4a, 0xe1},
 			},
+			expectedTrie: Trie{
+				root: nodeWithEncodingMerkleValue,
+			},
 		},
 		"root node with hash Merkle value": {
-			parent: &Node{
-				PartialKey:   []byte{1},
-				StorageValue: []byte{2},
-				MerkleValue: []byte{
-					1, 2, 3, 4, 5, 6, 7, 8,
-					1, 2, 3, 4, 5, 6, 7, 8,
-					1, 2, 3, 4, 5, 6, 7, 8,
-					1, 2, 3, 4, 5, 6, 7, 8},
+			trie: Trie{
+				root: nodeWithHashMerkleValue,
 			},
-			isRoot: true,
+			parent: nodeWithHashMerkleValue,
 			expectedNode: &Node{
 				PartialKey:   []byte{1},
 				StorageValue: []byte{2},
@@ -4129,6 +4148,9 @@ func Test_ensureMerkleValueIsCalculated(t *testing.T) {
 					1, 2, 3, 4, 5, 6, 7, 8,
 					1, 2, 3, 4, 5, 6, 7, 8,
 					1, 2, 3, 4, 5, 6, 7, 8},
+			},
+			expectedTrie: Trie{
+				root: nodeWithHashMerkleValue,
 			},
 		},
 		"non root node without Merkle value": {
@@ -4161,7 +4183,7 @@ func Test_ensureMerkleValueIsCalculated(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			err := ensureMerkleValueIsCalculated(testCase.parent, testCase.isRoot)
+			err := testCase.trie.ensureMerkleValueIsCalculated(testCase.parent)
 
 			checkMerkleValuesAreSet(t, testCase.parent)
 			assert.ErrorIs(t, err, testCase.errSentinel)
@@ -4169,6 +4191,7 @@ func Test_ensureMerkleValueIsCalculated(t *testing.T) {
 				assert.EqualError(t, err, testCase.errMessage)
 			}
 			assert.Equal(t, testCase.expectedNode, testCase.parent)
+			assert.Equal(t, testCase.expectedTrie, testCase.trie)
 		})
 	}
 }
