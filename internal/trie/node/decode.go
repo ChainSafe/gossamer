@@ -14,11 +14,6 @@ import (
 
 var (
 	ErrReadChildrenBitmap = errors.New("cannot read children bitmap")
-	// ErrDecodeChildHash is defined since no sentinel error is defined
-	// in the scale package.
-	// TODO remove once the following issue is done:
-	// https://github.com/ChainSafe/gossamer/issues/2631 .
-	ErrDecodeChildHash = errors.New("cannot decode child hash")
 )
 
 // Decode decodes a node from a reader.
@@ -92,8 +87,7 @@ func decodeBranch(reader io.Reader, variant byte, partialKeyLength uint16) (
 		var hash []byte
 		err := sd.Decode(&hash)
 		if err != nil {
-			return nil, fmt.Errorf("%w: at index %d: %s",
-				ErrDecodeChildHash, i, err)
+			return nil, fmt.Errorf("decoding child Merkle value for child at index %d: %w", i, err)
 		}
 
 		const hashLength = 32

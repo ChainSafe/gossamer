@@ -163,8 +163,8 @@ func Test_decodeBranch(t *testing.T) {
 			}),
 			variant:          branchVariant.bits,
 			partialKeyLength: 1,
-			errWrapped:       ErrDecodeChildHash,
-			errMessage:       "cannot decode child hash: at index 10: reading byte: EOF",
+			errWrapped:       io.EOF,
+			errMessage:       "decoding child Merkle value for child at index 10: reading byte: EOF",
 		},
 		"success for branch variant": {
 			reader: bytes.NewBuffer(
