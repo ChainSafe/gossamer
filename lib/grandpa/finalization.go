@@ -25,7 +25,7 @@ type finalizationHandler struct {
 	votingRound        ephemeralService
 
 	newServices   func() (engine, voting ephemeralService)
-	timeoutStop   time.Duration
+	timeout       time.Duration
 	initiateRound func() error
 
 	stopCh      chan struct{}
@@ -45,7 +45,7 @@ func newFinalizationHandler(service *Service) *finalizationHandler {
 	return &finalizationHandler{
 		newServices: builder,
 
-		timeoutStop:   5 * time.Second,
+		timeout:       5 * time.Second,
 		initiateRound: service.initiateRound,
 		stopCh:        make(chan struct{}),
 		handlerDone:   make(chan struct{}),
@@ -129,7 +129,7 @@ func (fh *finalizationHandler) Stop() (err error) {
 	err = fh.stop()
 	select {
 	case <-fh.handlerDone:
-	case <-time.After(fh.timeoutStop):
+	case <-time.After(fh.timeout):
 		return errTimeoutWhileStoping
 	}
 	return err
@@ -202,7 +202,7 @@ var errTimeoutWhileStoping = errors.New("timeout while stopping")
 
 type handleVotingRound struct {
 	grandpaService       *Service
-	timeoutStop          time.Duration
+	timeout              time.Duration
 	finalizationEngineCh <-chan engineAction
 	stopCh               chan struct{}
 	engineDone           chan struct{}
@@ -210,7 +210,7 @@ type handleVotingRound struct {
 
 func newHandleVotingRound(service *Service, finalizationEngineCh <-chan engineAction) *handleVotingRound {
 	return &handleVotingRound{
-		timeoutStop:          5 * time.Second,
+		timeout:              5 * time.Second,
 		grandpaService:       service,
 		stopCh:               make(chan struct{}),
 		engineDone:           make(chan struct{}),
@@ -226,7 +226,7 @@ func (h *handleVotingRound) Stop() (err error) {
 	close(h.stopCh)
 	select {
 	case <-h.engineDone:
-	case <-time.After(h.timeoutStop):
+	case <-time.After(h.timeout):
 		return errTimeoutWhileStoping
 	}
 
@@ -343,16 +343,16 @@ const (
 type finalizationEngine struct {
 	grandpaService *Service
 
-	timeoutStop time.Duration
-	stopCh      chan struct{}
-	engineDone  chan struct{}
-	actionCh    chan engineAction
+	timeout    time.Duration
+	stopCh     chan struct{}
+	engineDone chan struct{}
+	actionCh   chan engineAction
 }
 
 func newFinalizationEngine(service *Service) *finalizationEngine {
 	return &finalizationEngine{
 		grandpaService: service,
-		timeoutStop:    5 * time.Second,
+		timeout:        5 * time.Second,
 		actionCh:       make(chan engineAction),
 		stopCh:         make(chan struct{}),
 		engineDone:     make(chan struct{}),
@@ -367,7 +367,7 @@ func (f *finalizationEngine) Stop() (err error) {
 	close(f.stopCh)
 	select {
 	case <-f.engineDone:
-	case <-time.After(f.timeoutStop):
+	case <-time.After(f.timeout):
 		return errTimeoutWhileStoping
 	}
 

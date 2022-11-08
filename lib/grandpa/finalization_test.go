@@ -46,7 +46,7 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 
 				return &finalizationHandler{
 					newServices: builder,
-					timeoutStop: 2 * time.Second,
+					timeout:     2 * time.Second,
 					stopCh:      make(chan struct{}),
 					handlerDone: make(chan struct{}),
 				}
@@ -79,7 +79,7 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 
 				return &finalizationHandler{
 					newServices: builder,
-					timeoutStop: 2 * time.Second,
+					timeout:     2 * time.Second,
 					stopCh:      make(chan struct{}),
 					handlerDone: make(chan struct{}),
 				}
@@ -123,7 +123,7 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 
 				return &finalizationHandler{
 					newServices: builder,
-					timeoutStop: 2 * time.Second,
+					timeout:     2 * time.Second,
 					stopCh:      make(chan struct{}),
 					handlerDone: make(chan struct{}),
 				}
@@ -167,7 +167,7 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 
 				return &finalizationHandler{
 					newServices: builder,
-					timeoutStop: 2 * time.Second,
+					timeout:     2 * time.Second,
 					stopCh:      make(chan struct{}),
 					handlerDone: make(chan struct{}),
 				}
@@ -229,7 +229,7 @@ func Test_FinalizationHandler_Stop_ShouldHalt_Services(t *testing.T) {
 		newServices: builder,
 		// mocked initiate round function
 		initiateRound: func() error { return nil },
-		timeoutStop:   2 * time.Second,
+		timeout:       2 * time.Second,
 		stopCh:        make(chan struct{}),
 		handlerDone:   make(chan struct{}),
 	}
