@@ -87,7 +87,7 @@ func (fh *finalizationHandler) stop() (err error) {
 	fh.servicesLock.Lock()
 	defer fh.servicesLock.Unlock()
 
-	stopWg := new(sync.WaitGroup)
+	var stopWg sync.WaitGroup
 	stopWg.Add(2)
 
 	finalizationEngineErrCh := make(chan error)
@@ -132,7 +132,12 @@ func (fh *finalizationHandler) Stop() (err error) {
 	return err
 }
 
-// waitServices will start the services and wait until they complete or
+// waitServices will start the ephemeral services that handles the
+// votes for the current round and once those services finishes the
+// waitServices return without errors, if one ephemeral service face
+// a problem the waitServices will shut down all the running ephemeral
+// services and return an error, this function also returns if the
+// finalizationHandler.Stop() method is called
 func (fh *finalizationHandler) waitServices() error {
 	fh.servicesLock.Lock()
 	fh.finalizationEngine, fh.votingRound = fh.newServices()
