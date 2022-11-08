@@ -209,7 +209,7 @@ func newHandleVotingRound(service *Service, finalizationEngineCh <-chan engineAc
 }
 
 func (h *handleVotingRound) Stop() (err error) {
-	if h.stopCh == nil {
+	if h.engineDone == nil {
 		return nil
 	}
 
@@ -226,7 +226,11 @@ func (h *handleVotingRound) Stop() (err error) {
 // finalizationEngine might cause a write in a non-reading unbuff channel
 // blocking the finalizationEngine to stop and triggering the stop timeout timer
 func (h *handleVotingRound) Start() (err error) {
-	defer close(h.engineDone)
+	defer func() {
+		close(h.engineDone)
+		h.engineDone = nil
+	}()
+
 	start := time.Now()
 
 	logger.Debugf("starting round %d with set id %d",
@@ -343,7 +347,7 @@ func newFinalizationEngine(service *Service) *finalizationEngine {
 }
 
 func (f *finalizationEngine) Stop() (err error) {
-	if f.stopCh == nil {
+	if f.engineDone == nil {
 		return nil
 	}
 
@@ -356,7 +360,10 @@ func (f *finalizationEngine) Stop() (err error) {
 }
 
 func (f *finalizationEngine) Start() (err error) {
-	defer close(f.engineDone)
+	defer func() {
+		close(f.engineDone)
+		f.engineDone = nil
+	}()
 
 	err = f.defineRoundVotes()
 	if err != nil {
