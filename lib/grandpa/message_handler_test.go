@@ -325,10 +325,10 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_MinVoteError(t *testing.T
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
 	out, err := h.handleMessage("", fm)
 
-	expectedErrString := "handling commit message: "
-	expectedErrString += "verifying commit message justification: "
-	expectedErrString += "minimum number of votes not met in a Justification: "
-	expectedErrString += "for finalisation message; need 6 votes but received only 0 votes"
+	const expectedErrString = "handling commit message: " +
+		"verifying commit message justification: " +
+		"minimum number of votes not met in a Justification: " +
+		"for finalisation message; need 6 votes but received only 0 votes"
 
 	require.EqualError(t, err, expectedErrString)
 	require.ErrorIs(t, err, ErrMinVotesNotMet)
@@ -529,10 +529,10 @@ func TestVerifyJustification_InvalidAuthority(t *testing.T) {
 	encodedAuthorityID, err := just.AuthorityID.Encode()
 	require.NoError(t, err)
 
-	expectedErr := fmt.Errorf("%w: authority ID 0x%x", ErrVoterNotFound, encodedAuthorityID)
+	expectedErrMessage := fmt.Sprintf("%s: authority ID 0x%x", ErrVoterNotFound, encodedAuthorityID)
 	err = verifyJustification(just, 77, gs.state.setID, precommit, h.grandpa.authorities())
 	require.ErrorIs(t, err, ErrVoterNotFound)
-	require.EqualError(t, err, expectedErr.Error())
+	require.EqualError(t, err, expectedErrMessage)
 }
 
 func TestMessageHandler_VerifyPreVoteJustification(t *testing.T) {

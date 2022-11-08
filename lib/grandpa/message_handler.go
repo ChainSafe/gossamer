@@ -79,9 +79,9 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 
 func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourPacketV1) error {
 	if h.grandpa.authority {
-		// TODO: this is a simple hack to ensure that the neighbour messages
+		// TODO(#2931): this is a simple hack to ensure that the neighbour messages
 		// sent by gossamer are being received by substrate nodes
-		// not intended to be a production code
+		// not intended to be production code
 		h.grandpa.roundLock.Lock()
 		neighbourMessage := &NeighbourPacketV1{
 			Round:  h.grandpa.state.round,
