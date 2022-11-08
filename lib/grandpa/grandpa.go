@@ -900,8 +900,6 @@ func (s *Service) getPossibleSelectedBlocks(stage Subround, threshold uint64) (m
 			return nil, err
 		}
 
-		// TODO: if a block reaches enough threshold then should we
-		// return from here since the others didn't reach the same amount of votes
 		if total > threshold {
 			blocks[v.Hash] = v.Number
 		}
@@ -924,9 +922,6 @@ func (s *Service) getPossibleSelectedBlocks(stage Subround, threshold uint64) (m
 		}
 	}
 
-	// we should check if the blocks map contains only
-	// one element, meaning that one common ancestor
-	// was found otherwise return an error
 	return blocks, nil
 }
 
@@ -948,8 +943,6 @@ func (s *Service) getPossibleSelectedAncestors(votes []Vote, curr common.Hash,
 			return nil, err
 		}
 
-		// if the common ancestor is the same as
-		// the current  block, should we just continue?
 		if pred == curr {
 			return selected, nil
 		}
@@ -1279,9 +1272,9 @@ func verifyCommitMessageJustification(commitMessage *CommitMessage, setID uint64
 
 	eqvVoters := getEquivocatoryVoters(commitMessage.AuthData)
 	var totalValidPrecommits int
-	for i, pc := range commitMessage.Precommits {
+	for i, preCommit := range commitMessage.Precommits {
 		justification := &SignedVote{
-			Vote:        pc,
+			Vote:        preCommit,
 			Signature:   commitMessage.AuthData[i].Signature,
 			AuthorityID: commitMessage.AuthData[i].AuthorityID,
 		}
@@ -1298,14 +1291,17 @@ func verifyCommitMessageJustification(commitMessage *CommitMessage, setID uint64
 			continue
 		}
 
-		precommitedHeader, err := blockState.GetHeader(pc.Hash)
+		precommitedHeader, err := blockState.GetHeader(preCommit.Hash)
 		if err != nil {
 			return fmt.Errorf("getting header: %w", err)
 		}
 
-		if precommitedHeader.Number != uint(pc.Number) {
-			return fmt.Errorf("%w: expected block number %d, got block number %d",
-				ErrBlockNumberMismatch, precommitedHeader.Number, pc.Number)
+		if precommitedHeader.Number != uint(preCommit.Number) {
+			const errString = "%w: pre commit corresponding header has block number %d " +
+				"and pre commit has block number %d"
+
+			return fmt.Errorf(errString,
+				ErrBlockNumberMismatch, precommitedHeader.Number, preCommit.Number)
 		}
 
 		if _, ok := eqvVoters[commitMessage.AuthData[i].AuthorityID]; ok {
@@ -1328,44 +1324,44 @@ func verifyCommitMessageJustification(commitMessage *CommitMessage, setID uint64
 	return nil
 }
 
-func verifyJustification(just *SignedVote, round, setID uint64,
+func verifyJustification(justification *SignedVote, round, setID uint64,
 	stage Subround, authorities []*types.Authority) error {
 	fullVote := FullVote{
 		Stage: stage,
-		Vote:  just.Vote,
+		Vote:  justification.Vote,
 		Round: round,
 		SetID: setID,
 	}
 
-	msg, err := scale.Marshal(fullVote)
+	encodedFullVote, err := scale.Marshal(fullVote)
 	if err != nil {
 		return fmt.Errorf("scale encoding full vote: %w", err)
 	}
 
-	pk, err := ed25519.NewPublicKey(just.AuthorityID[:])
+	publicKey, err := ed25519.NewPublicKey(justification.AuthorityID[:])
 	if err != nil {
 		return fmt.Errorf("creating ed25519 public key: %w", err)
 	}
 
-	ok, err := pk.Verify(msg, just.Signature[:])
+	ok, err := publicKey.Verify(encodedFullVote, justification.Signature[:])
 	if err != nil {
 		return fmt.Errorf("verifying signature: %w", err)
 	}
 
 	if !ok {
-		return fmt.Errorf("%w: 0x%x for message {%v}", ErrInvalidSignature, just.Signature, fullVote)
+		return fmt.Errorf("%w: 0x%x for message {%v}", ErrInvalidSignature, justification.Signature, fullVote)
 	}
 
-	justKey, err := just.AuthorityID.Encode()
+	justificationKey, err := justification.AuthorityID.Encode()
 	if err != nil {
 		return fmt.Errorf("encoding authority key: %w", err)
 	}
 
 	for _, auth := range authorities {
-		if bytes.Equal(auth.Key.Encode(), justKey) {
+		if bytes.Equal(auth.Key.Encode(), justificationKey) {
 			return nil
 		}
 	}
 
-	return fmt.Errorf("%w: authority ID 0x%x", ErrVoterNotFound, justKey)
+	return fmt.Errorf("%w: authority ID 0x%x", ErrVoterNotFound, justificationKey)
 }

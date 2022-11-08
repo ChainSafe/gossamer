@@ -474,12 +474,12 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 			return nil, ErrPrecommitBlockMismatch
 		}
 
-		pk, err := ed25519.NewPublicKey(just.AuthorityID[:])
+		publicKey, err := ed25519.NewPublicKey(just.AuthorityID[:])
 		if err != nil {
 			return nil, err
 		}
 
-		if !isInAuthSet(pk, auths) {
+		if !isInAuthSet(publicKey, auths) {
 			return nil, ErrAuthorityNotInSet
 		}
 
@@ -494,7 +494,7 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 			return nil, err
 		}
 
-		ok, err := pk.Verify(msg, just.Signature[:])
+		ok, err := publicKey.Verify(msg, just.Signature[:])
 		if err != nil {
 			return nil, err
 		}

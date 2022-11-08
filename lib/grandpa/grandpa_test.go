@@ -86,7 +86,7 @@ func newTestVoters() []Voter {
 	return vs
 }
 
-func newTestService(t *testing.T, kp *ed25519.Keypair) (*Service, *state.Service) {
+func newTestService(t *testing.T, keypair *ed25519.Keypair) (*Service, *state.Service) {
 	st := newTestState(t)
 	net := newTestNetwork(t)
 
@@ -102,7 +102,7 @@ func newTestService(t *testing.T, kp *ed25519.Keypair) (*Service, *state.Service
 		Network:      net,
 		Interval:     time.Second,
 		Telemetry:    telemetryMock,
-		Keypair:      kp,
+		Keypair:      keypair,
 	}
 
 	gs, err := NewService(cfg)
