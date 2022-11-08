@@ -104,8 +104,7 @@ func (t *Trie) prepForMutation(currentNode *Node,
 
 func (t *Trie) registerDeletedMerkleValue(node *Node,
 	pendingDeletedMerkleValues map[string]struct{}) (err error) {
-	isRoot := node == t.root
-	err = ensureMerkleValueIsCalculated(node, isRoot)
+	err = t.ensureMerkleValueIsCalculated(node)
 	if err != nil {
 		return fmt.Errorf("ensuring Merkle value is calculated: %w", err)
 	}
@@ -1025,8 +1024,7 @@ func (t *Trie) ClearPrefix(prefixLE []byte) (err error) {
 	}()
 
 	if len(prefixLE) == 0 {
-		const isRoot = true
-		err = ensureMerkleValueIsCalculated(t.root, isRoot)
+		err = t.ensureMerkleValueIsCalculated(t.root)
 		if err != nil {
 			return fmt.Errorf("ensuring Merkle values are calculated: %w", err)
 		}
@@ -1057,8 +1055,7 @@ func (t *Trie) clearPrefixAtNode(parent *Node, prefix []byte,
 	}
 
 	if bytes.HasPrefix(parent.PartialKey, prefix) {
-		isRoot := parent == t.root
-		err = ensureMerkleValueIsCalculated(parent, isRoot)
+		err = t.ensureMerkleValueIsCalculated(parent)
 		if err != nil {
 			nodesRemoved = 0
 			return parent, nodesRemoved, fmt.Errorf("ensuring Merkle values are calculated: %w", err)
@@ -1375,12 +1372,12 @@ func (t *Trie) handleDeletion(branch *Node, key []byte,
 // to ensure the parent node and all its descendant nodes have their Merkle
 // value computed and ready to be used. This has a close to zero performance
 // impact if the parent node Merkle value is already computed.
-func ensureMerkleValueIsCalculated(parent *Node, isRoot bool) (err error) {
+func (t *Trie) ensureMerkleValueIsCalculated(parent *Node) (err error) {
 	if parent == nil {
 		return nil
 	}
 
-	if isRoot {
+	if parent == t.root {
 		_, err = parent.CalculateRootMerkleValue()
 		if err != nil {
 			return fmt.Errorf("calculating Merkle value of root node: %w", err)
