@@ -45,11 +45,10 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 				}
 
 				return &finalizationHandler{
-					newServices:    builder,
-					timeoutStop:    2 * time.Second,
-					observableErrs: make(chan error),
-					stopCh:         make(chan struct{}),
-					handlerDone:    make(chan struct{}),
+					newServices: builder,
+					timeoutStop: 2 * time.Second,
+					stopCh:      make(chan struct{}),
+					handlerDone: make(chan struct{}),
 				}
 			},
 		},
@@ -79,11 +78,10 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 				}
 
 				return &finalizationHandler{
-					newServices:    builder,
-					timeoutStop:    2 * time.Second,
-					observableErrs: make(chan error),
-					stopCh:         make(chan struct{}),
-					handlerDone:    make(chan struct{}),
+					newServices: builder,
+					timeoutStop: 2 * time.Second,
+					stopCh:      make(chan struct{}),
+					handlerDone: make(chan struct{}),
 				}
 			},
 		},
@@ -124,11 +122,10 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 				}
 
 				return &finalizationHandler{
-					newServices:    builder,
-					timeoutStop:    2 * time.Second,
-					observableErrs: make(chan error),
-					stopCh:         make(chan struct{}),
-					handlerDone:    make(chan struct{}),
+					newServices: builder,
+					timeoutStop: 2 * time.Second,
+					stopCh:      make(chan struct{}),
+					handlerDone: make(chan struct{}),
 				}
 			},
 		},
@@ -169,11 +166,10 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 				}
 
 				return &finalizationHandler{
-					newServices:    builder,
-					timeoutStop:    2 * time.Second,
-					observableErrs: make(chan error),
-					stopCh:         make(chan struct{}),
-					handlerDone:    make(chan struct{}),
+					newServices: builder,
+					timeoutStop: 2 * time.Second,
+					stopCh:      make(chan struct{}),
+					handlerDone: make(chan struct{}),
 				}
 			},
 		},
@@ -232,11 +228,10 @@ func Test_FinalizationHandler_Stop_ShouldHalt_Services(t *testing.T) {
 	handler := &finalizationHandler{
 		newServices: builder,
 		// mocked initiate round function
-		initiateRound:  func() error { return nil },
-		timeoutStop:    2 * time.Second,
-		observableErrs: make(chan error),
-		stopCh:         make(chan struct{}),
-		handlerDone:    make(chan struct{}),
+		initiateRound: func() error { return nil },
+		timeoutStop:   2 * time.Second,
+		stopCh:        make(chan struct{}),
+		handlerDone:   make(chan struct{}),
 	}
 
 	doneCh := make(chan struct{})

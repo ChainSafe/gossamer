@@ -12,6 +12,8 @@ import (
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 )
 
+var errServicesStopFailed = errors.New("services stop failed")
+
 type ephemeralService interface {
 	Start() error
 	Stop() error
@@ -88,28 +90,37 @@ func (fh *finalizationHandler) stop() (err error) {
 	stopWg := new(sync.WaitGroup)
 	stopWg.Add(2)
 
-	errs := [2]error{}
+	finalizationEngineErrCh := make(chan error)
 	go func() {
 		defer stopWg.Done()
-		errs[0] = fh.finalizationEngine.Stop()
+		finalizationEngineErrCh <- fh.finalizationEngine.Stop()
 	}()
 
+	votingRoundErrCh := make(chan error)
 	go func() {
 		defer stopWg.Done()
-		errs[1] = fh.votingRound.Stop()
+		votingRoundErrCh <- fh.votingRound.Stop()
 	}()
 
 	stopWg.Wait()
 
-	if errs[0] != nil {
-		return errs[0]
+	finalizationEngErr := <-finalizationEngineErrCh
+	votingRoundErr := <-votingRoundErrCh
+
+	if finalizationEngErr != nil && votingRoundErr != nil {
+		return fmt.Errorf("%w: %s; %s", errServicesStopFailed, finalizationEngErr, votingRoundErr)
 	}
 
-	if errs[1] != nil {
-		return errs[1]
+	if finalizationEngErr != nil {
+		return fmt.Errorf("%w: %s", errServicesStopFailed, finalizationEngErr)
+	}
+
+	if votingRoundErr != nil {
+		return fmt.Errorf("%w: %s", errServicesStopFailed, votingRoundErr)
 	}
 
 	return nil
+
 }
 
 func (fh *finalizationHandler) Stop() (err error) {
@@ -121,8 +132,6 @@ func (fh *finalizationHandler) Stop() (err error) {
 	case <-time.After(fh.timeoutStop):
 		return errTimeoutWhileStoping
 	}
-
-	close(fh.observableErrs)
 	return err
 }
 
@@ -158,6 +167,7 @@ func (fh *finalizationHandler) waitServices() error {
 		case err, ok := <-votingRoundErr:
 			if !ok {
 				votingRoundErr = nil
+				continue
 			}
 
 			stopErr := fh.stop()
@@ -169,6 +179,7 @@ func (fh *finalizationHandler) waitServices() error {
 		case err, ok := <-finalizationEngineErr:
 			if !ok {
 				finalizationEngineErr = nil
+				continue
 			}
 
 			stopErr := fh.stop()
