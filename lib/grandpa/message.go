@@ -60,7 +60,7 @@ func (v VoteMessage) String() string {
 	return fmt.Sprintf("round=%d, setID=%d, message={%s}", v.Round, v.SetID, v.Message)
 }
 
-// Index Returns VDT index
+// Index returns VDT index
 func (VoteMessage) Index() uint { return 0 }
 
 // ToConsensusMessage converts the VoteMessage into a network-level consensus message
