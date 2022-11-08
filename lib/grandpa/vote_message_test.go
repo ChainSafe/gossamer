@@ -193,7 +193,7 @@ func TestValidateMessage_InvalidSignature(t *testing.T) {
 
 	msg.Message.Signature[63] = 0
 
-	expectedErrString := "validating message signature: signature is not valid"
+	const expectedErrString = "validating message signature: signature is not valid"
 	_, err = gs.validateVoteMessage("", msg)
 	require.ErrorIs(t, err, ErrInvalidSignature)
 	require.EqualError(t, err, expectedErrString)
@@ -303,7 +303,7 @@ func TestValidateMessage_BlockDoesNotExist(t *testing.T) {
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
-	expectedErrString := "validating vote: block does not exist"
+	const expectedErrString = "validating vote: block does not exist"
 	_, err = gs.validateVoteMessage("", msg)
 	require.ErrorIs(t, err, ErrBlockDoesNotExist)
 	require.EqualError(t, err, expectedErrString)
@@ -343,7 +343,7 @@ func TestValidateMessage_IsNotDescendant(t *testing.T) {
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
-	expectedErrString := "validating vote: block in vote is not descendant of previously finalised block"
+	const expectedErrString = "validating vote: block in vote is not descendant of previously finalised block"
 	_, err = gs.validateVoteMessage("", msg)
 
 	require.ErrorIs(t, err, errVoteBlockMismatch)

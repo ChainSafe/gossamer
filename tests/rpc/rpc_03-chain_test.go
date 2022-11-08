@@ -36,7 +36,7 @@ func TestChainRPC(t *testing.T) {
 	tomlConfig.Init.Genesis = genesisPath
 	tomlConfig.Core.BABELead = true
 
-	b := bytes.NewBuffer([]byte{})
+	b := bytes.NewBuffer(nil)
 	node := node.New(t, tomlConfig, node.SetWriter(b))
 	ctx, cancel := context.WithCancel(context.Background())
 	node.InitAndStartTest(ctx, t, cancel)
@@ -55,8 +55,6 @@ func TestChainRPC(t *testing.T) {
 		if err != nil {
 			return false, fmt.Errorf("cannot convert header number to uint: %w", err)
 		}
-
-		fmt.Printf("%s -> %s\n", finalizedHead, finalizedBlock.Block.Header.Number)
 
 		switch finalizedNumber {
 		case 0, 1:
@@ -102,7 +100,7 @@ func TestChainRPC(t *testing.T) {
 	block.Block.Header.StateRoot = ""
 	assert.Regexp(t, regex32BytesHex, block.Block.Header.ExtrinsicsRoot)
 	block.Block.Header.ExtrinsicsRoot = ""
-	assert.Greater(t, len(block.Block.Header.Digest.Logs), 0)
+	assert.NotEmpty(t, block.Block.Header.Digest.Logs)
 	for _, digestLog := range block.Block.Header.Digest.Logs {
 		assert.Regexp(t, regexBytesHex, digestLog)
 	}
@@ -258,7 +256,7 @@ func TestChainSubscriptionRPC(t *testing.T) { //nolint:tparallel
 		for i, blockNumber := range blockNumbers {
 			if i == 0 {
 				// the first finalized block could be block 0 as well
-				assert.GreaterOrEqual(t, uint(0), blockNumber)
+				assert.GreaterOrEqual(t, blockNumber, uint(0))
 				continue
 			}
 			assert.GreaterOrEqual(t, blockNumber, blockNumbers[i-1])
