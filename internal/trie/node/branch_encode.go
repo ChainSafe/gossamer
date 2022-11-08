@@ -50,7 +50,12 @@ func encodeChildrenOpportunisticParallel(children []*Node, buffer io.Writer) (er
 	resultsCh := make(chan encodingAsyncResult, ChildrenCapacity)
 
 	for i, child := range children {
-		if child == nil || child.Kind() == Leaf {
+		if child == nil {
+			resultsCh <- encodingAsyncResult{index: i}
+			continue
+		}
+
+		if child.Kind() == Leaf {
 			runEncodeChild(child, i, resultsCh, nil)
 			continue
 		}
@@ -69,19 +74,30 @@ func encodeChildrenOpportunisticParallel(children []*Node, buffer io.Writer) (er
 	}
 
 	currentIndex := 0
-	resultBuffers := make([]*bytes.Buffer, ChildrenCapacity)
+	indexToBuffer := make(map[int]*bytes.Buffer, ChildrenCapacity)
 	for range children {
 		result := <-resultsCh
 		if result.err != nil && err == nil { // only set the first error we get
 			err = result.err
 		}
 
-		resultBuffers[result.index] = result.buffer
+		indexToBuffer[result.index] = result.buffer
 
 		// write as many completed buffers to the result buffer.
-		for currentIndex < ChildrenCapacity &&
-			resultBuffers[currentIndex] != nil {
-			bufferSlice := resultBuffers[currentIndex].Bytes()
+		for currentIndex < ChildrenCapacity {
+			resultBuffer, done := indexToBuffer[currentIndex]
+			if !done {
+				break
+			}
+
+			nilChildNode := resultBuffer == nil
+			if nilChildNode {
+				delete(indexToBuffer, currentIndex)
+				currentIndex++
+				continue
+			}
+
+			bufferSlice := resultBuffer.Bytes()
 			if err == nil && len(bufferSlice) > 0 {
 				// note buffer.Write copies the byte slice given as argument
 				_, writeErr := buffer.Write(bufferSlice)
@@ -92,8 +108,7 @@ func encodeChildrenOpportunisticParallel(children []*Node, buffer io.Writer) (er
 				}
 			}
 
-			resultBuffers[currentIndex] = nil
-
+			delete(indexToBuffer, currentIndex)
 			currentIndex++
 		}
 	}
@@ -103,6 +118,10 @@ func encodeChildrenOpportunisticParallel(children []*Node, buffer io.Writer) (er
 
 func encodeChildrenSequentially(children []*Node, buffer io.Writer) (err error) {
 	for i, child := range children {
+		if child == nil {
+			continue
+		}
+
 		err = encodeChild(child, buffer)
 		if err != nil {
 			return fmt.Errorf("encoding child at index %d: %w", i, err)
@@ -114,10 +133,6 @@ func encodeChildrenSequentially(children []*Node, buffer io.Writer) (err error) 
 // encodeChild computes the Merkle value of the node
 // and then SCALE encodes it to the given buffer.
 func encodeChild(child *Node, buffer io.Writer) (err error) {
-	if child == nil {
-		return nil
-	}
-
 	merkleValue, err := child.CalculateMerkleValue()
 	if err != nil {
 		return fmt.Errorf("computing %s Merkle value: %w", child.Kind(), err)
