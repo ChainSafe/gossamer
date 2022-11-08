@@ -13,11 +13,6 @@ import (
 )
 
 var (
-	// ErrDecodeStorageValue is defined since no sentinel error is defined
-	// in the scale package.
-	// TODO remove once the following issue is done:
-	// https://github.com/ChainSafe/gossamer/issues/2631 .
-	ErrDecodeStorageValue = errors.New("cannot decode storage value")
 	ErrReadChildrenBitmap = errors.New("cannot read children bitmap")
 	// ErrDecodeChildHash is defined since no sentinel error is defined
 	// in the scale package.
@@ -85,7 +80,7 @@ func decodeBranch(reader io.Reader, variant byte, partialKeyLength uint16) (
 	if variant == branchWithValueVariant.bits {
 		err := sd.Decode(&node.StorageValue)
 		if err != nil {
-			return nil, fmt.Errorf("%w: %s", ErrDecodeStorageValue, err)
+			return nil, fmt.Errorf("decoding storage value: %w", err)
 		}
 	}
 
@@ -134,7 +129,7 @@ func decodeLeaf(reader io.Reader, partialKeyLength uint16) (node *Node, err erro
 	sd := scale.NewDecoder(reader)
 	err = sd.Decode(&node.StorageValue)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %s", ErrDecodeStorageValue, err)
+		return nil, fmt.Errorf("decoding storage value: %w", err)
 	}
 
 	return node, nil

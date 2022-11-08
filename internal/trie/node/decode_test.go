@@ -198,8 +198,8 @@ func Test_decodeBranch(t *testing.T) {
 			),
 			variant:          branchWithValueVariant.bits,
 			partialKeyLength: 1,
-			errWrapped:       ErrDecodeStorageValue,
-			errMessage:       "cannot decode storage value: reading byte: EOF",
+			errWrapped:       io.EOF,
+			errMessage:       "decoding storage value: reading byte: EOF",
 		},
 		"success for branch with value": {
 			reader: bytes.NewBuffer(concatByteSlices([][]byte{
@@ -324,8 +324,8 @@ func Test_decodeLeaf(t *testing.T) {
 			}),
 			variant:          leafVariant.bits,
 			partialKeyLength: 1,
-			errWrapped:       ErrDecodeStorageValue,
-			errMessage:       "cannot decode storage value: unknown prefix for compact uint: 255",
+			errWrapped:       scale.ErrCompactUintPrefixUnknown,
+			errMessage:       "decoding storage value: unknown prefix for compact uint: 255",
 		},
 		"missing storage value data": {
 			reader: bytes.NewBuffer([]byte{
@@ -334,8 +334,8 @@ func Test_decodeLeaf(t *testing.T) {
 			}),
 			variant:          leafVariant.bits,
 			partialKeyLength: 1,
-			errWrapped:       ErrDecodeStorageValue,
-			errMessage:       "cannot decode storage value: reading byte: EOF",
+			errWrapped:       io.EOF,
+			errMessage:       "decoding storage value: reading byte: EOF",
 		},
 		"empty storage value data": {
 			reader: bytes.NewBuffer(concatByteSlices([][]byte{
