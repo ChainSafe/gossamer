@@ -406,6 +406,11 @@ func (f *finalizationEngine) defineRoundVotes() error {
 
 			if alreadyCompletable {
 				f.actionCh <- alreadyFinalized
+
+				if !determinePrecommitTimer.Stop() {
+					<-determinePrecommitTimer.C
+				}
+
 				return nil
 			}
 
