@@ -127,11 +127,8 @@ func (fh *finalizationHandler) Stop() (err error) {
 	close(fh.stopCh)
 
 	err = fh.stop()
-	select {
-	case <-fh.handlerDone:
-	case <-time.After(fh.timeout):
-		return errTimeoutWhileStoping
-	}
+	<-fh.handlerDone
+
 	return err
 }
 
@@ -198,11 +195,8 @@ func (fh *finalizationHandler) waitServices() error {
 	}
 }
 
-var errTimeoutWhileStoping = errors.New("timeout while stopping")
-
 type handleVotingRound struct {
 	grandpaService       *Service
-	timeout              time.Duration
 	finalizationEngineCh <-chan engineAction
 	stopCh               chan struct{}
 	engineDone           chan struct{}
@@ -210,7 +204,6 @@ type handleVotingRound struct {
 
 func newHandleVotingRound(service *Service, finalizationEngineCh <-chan engineAction) *handleVotingRound {
 	return &handleVotingRound{
-		timeout:              5 * time.Second,
 		grandpaService:       service,
 		stopCh:               make(chan struct{}),
 		engineDone:           make(chan struct{}),
@@ -224,11 +217,7 @@ func (h *handleVotingRound) Stop() (err error) {
 	}
 
 	close(h.stopCh)
-	select {
-	case <-h.engineDone:
-	case <-time.After(h.timeout):
-		return errTimeoutWhileStoping
-	}
+	<-h.engineDone
 
 	h.stopCh = nil
 	return nil
@@ -342,17 +331,14 @@ const (
 
 type finalizationEngine struct {
 	grandpaService *Service
-
-	timeout    time.Duration
-	stopCh     chan struct{}
-	engineDone chan struct{}
-	actionCh   chan engineAction
+	stopCh         chan struct{}
+	engineDone     chan struct{}
+	actionCh       chan engineAction
 }
 
 func newFinalizationEngine(service *Service) *finalizationEngine {
 	return &finalizationEngine{
 		grandpaService: service,
-		timeout:        5 * time.Second,
 		actionCh:       make(chan engineAction),
 		stopCh:         make(chan struct{}),
 		engineDone:     make(chan struct{}),
@@ -365,11 +351,7 @@ func (f *finalizationEngine) Stop() (err error) {
 	}
 
 	close(f.stopCh)
-	select {
-	case <-f.engineDone:
-	case <-time.After(f.timeout):
-		return errTimeoutWhileStoping
-	}
+	<-f.engineDone
 
 	f.stopCh = nil
 	close(f.actionCh)
