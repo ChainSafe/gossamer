@@ -235,8 +235,7 @@ func (s *chainProcessor) handleBlock(block *types.Block, announceImportedBlock b
 		panic("parent state root does not match snapshot state root")
 	}
 
-	hash := parent.Hash()
-	rt, err := s.blockState.GetRuntime(&hash)
+	rt, err := s.blockState.GetRuntime(parent.Hash())
 	if err != nil {
 		return err
 	}

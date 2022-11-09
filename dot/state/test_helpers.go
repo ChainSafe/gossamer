@@ -152,11 +152,11 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth uint,
 // AddBlocksToStateWithFixedBranches adds blocks to a BlockState up to depth, with fixed branches
 // branches are provided with a map of depth -> # of branches
 func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, depth uint, branches map[uint]int) {
-	previousHash := blockState.BestBlockHash()
+	bestBlockHash := blockState.BestBlockHash()
 	tb := []testBranch{}
 	arrivalTime := time.Now()
 
-	rt, err := blockState.GetRuntime(nil)
+	rt, err := blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
 	head, err := blockState.BestBlockHeader()
@@ -173,7 +173,7 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 
 		block := &types.Block{
 			Header: types.Header{
-				ParentHash: previousHash,
+				ParentHash: bestBlockHash,
 				Number:     i,
 				StateRoot:  trie.EmptyHash,
 				Digest:     digest,
@@ -187,7 +187,7 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 
 		blockState.StoreRuntime(hash, rt)
 
-		previousHash = hash
+		bestBlockHash = hash
 
 		isBranch := branches[i] > 0
 		if isBranch {
@@ -204,7 +204,7 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 
 	// create tree branches
 	for j, branch := range tb {
-		previousHash = branch.hash
+		bestBlockHash = branch.hash
 
 		for i := branch.depth; i < depth; i++ {
 			d, err := types.NewBabePrimaryPreDigest(0, uint64(i+uint(j)+99), [32]byte{}, [64]byte{}).ToPreRuntimeDigest()
@@ -215,7 +215,7 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 
 			block := &types.Block{
 				Header: types.Header{
-					ParentHash: previousHash,
+					ParentHash: bestBlockHash,
 					Number:     i + 1,
 					StateRoot:  trie.EmptyHash,
 					Digest:     digest,
@@ -229,7 +229,7 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 
 			blockState.StoreRuntime(hash, rt)
 
-			previousHash = hash
+			bestBlockHash = hash
 			arrivalTime = arrivalTime.Add(inc)
 		}
 	}

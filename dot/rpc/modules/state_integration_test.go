@@ -571,7 +571,7 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 	err = chain.Block.AddBlock(b)
 	require.NoError(t, err)
 
-	rt, err := chain.Block.GetRuntime(&b.Header.ParentHash)
+	rt, err := chain.Block.GetRuntime(b.Header.ParentHash)
 	require.NoError(t, err)
 
 	chain.Block.StoreRuntime(b.Header.Hash(), rt)

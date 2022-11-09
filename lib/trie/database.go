@@ -102,7 +102,6 @@ func (t *Trie) Load(db Database, rootHash common.Hash) error {
 	}
 
 	t.root = root
-	t.root.SetClean()
 	t.root.Encoding = encodedNode
 	t.root.MerkleValue = rootHashBytes
 
@@ -129,7 +128,6 @@ func (t *Trie) loadNode(db Database, n *Node) error {
 			if err != nil {
 				return fmt.Errorf("merkle value: %w", err)
 			}
-			child.SetClean()
 			continue
 		}
 
@@ -144,7 +142,6 @@ func (t *Trie) loadNode(db Database, n *Node) error {
 			return fmt.Errorf("decoding node with Merkle value 0x%x: %w", merkleValue, err)
 		}
 
-		decodedNode.SetClean()
 		decodedNode.Encoding = encodedNode
 		decodedNode.MerkleValue = merkleValue
 		branch.Children[i] = decodedNode
@@ -366,15 +363,22 @@ func (t *Trie) writeDirtyNode(db chaindb.Batch, n *Node) (err error) {
 	return nil
 }
 
-// GetInsertedMerkleValues returns the set of node Merkle values
-// for each node that was inserted in the state trie since the last snapshot.
-func (t *Trie) GetInsertedMerkleValues() (merkleValues map[string]struct{}, err error) {
-	merkleValues = make(map[string]struct{})
-	err = t.getInsertedNodeHashesAtNode(t.root, merkleValues)
+// GetChangedNodeHashes returns the two sets of hashes for all nodes
+// inserted and deleted in the state trie since the last snapshot.
+// Returned maps are safe for mutation.
+func (t *Trie) GetChangedNodeHashes() (inserted, deleted map[string]struct{}, err error) {
+	inserted = make(map[string]struct{})
+	err = t.getInsertedNodeHashesAtNode(t.root, inserted)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return merkleValues, nil
+
+	deleted = make(map[string]struct{}, len(t.deletedMerkleValues))
+	for k := range t.deletedMerkleValues {
+		deleted[k] = struct{}{}
+	}
+
+	return inserted, deleted, nil
 }
 
 func (t *Trie) getInsertedNodeHashesAtNode(n *Node, merkleValues map[string]struct{}) (err error) {
@@ -413,15 +417,4 @@ func (t *Trie) getInsertedNodeHashesAtNode(n *Node, merkleValues map[string]stru
 	}
 
 	return nil
-}
-
-// GetDeletedMerkleValues returns a set of all the node Merkle values for each
-// node that was deleted from the trie since the last snapshot was made.
-// The returned set is a copy of the internal set to prevent data corruption.
-func (t *Trie) GetDeletedMerkleValues() (merkleValues map[string]struct{}) {
-	merkleValues = make(map[string]struct{}, len(t.deletedMerkleValues))
-	for k := range t.deletedMerkleValues {
-		merkleValues[k] = struct{}{}
-	}
-	return merkleValues
 }

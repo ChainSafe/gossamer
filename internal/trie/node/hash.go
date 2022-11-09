@@ -145,21 +145,13 @@ func (n *Node) encodeIfNeeded() (encoding []byte, err error) {
 		return n.Encoding, nil // no need to copy
 	}
 
-	buffer := pools.EncodingBuffers.Get().(*bytes.Buffer)
-	buffer.Reset()
-	defer pools.EncodingBuffers.Put(buffer)
-
+	buffer := bytes.NewBuffer(nil)
 	err = n.Encode(buffer)
 	if err != nil {
 		return nil, fmt.Errorf("encoding: %w", err)
 	}
 
-	bufferBytes := buffer.Bytes()
-
-	// TODO remove this copying since it defeats the purpose of `buffer`
-	// and the sync.Pool.
-	n.Encoding = make([]byte, len(bufferBytes))
-	copy(n.Encoding, bufferBytes)
+	n.Encoding = buffer.Bytes()
 
 	return n.Encoding, nil // no need to copy
 }

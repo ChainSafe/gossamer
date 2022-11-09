@@ -64,7 +64,7 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 				mockBlockState.EXPECT().GetHeader(common.Hash{}).Return(&types.Header{
 					StateRoot: testHash,
 				}, nil)
-				mockBlockState.EXPECT().GetRuntime(&testParentHash).Return(nil, mockError)
+				mockBlockState.EXPECT().GetRuntime(testParentHash).Return(nil, mockError)
 				chainProcessor.blockState = mockBlockState
 				trieState := storage.NewTrieState(nil)
 				mockStorageState := NewMockStorageState(ctrl)
@@ -89,7 +89,7 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 				mockInstance := NewMockRuntimeInstance(ctrl)
 				mockInstance.EXPECT().SetContextStorage(trieState)
 				mockInstance.EXPECT().ExecuteBlock(&types.Block{Body: types.Body{}}).Return(nil, mockError)
-				mockBlockState.EXPECT().GetRuntime(&testParentHash).Return(mockInstance, nil)
+				mockBlockState.EXPECT().GetRuntime(testParentHash).Return(mockInstance, nil)
 				chainProcessor.blockState = mockBlockState
 				mockStorageState := NewMockStorageState(ctrl)
 				mockStorageState.EXPECT().Lock()
@@ -114,7 +114,7 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 				mockInstance := NewMockRuntimeInstance(ctrl)
 				mockInstance.EXPECT().SetContextStorage(trieState)
 				mockInstance.EXPECT().ExecuteBlock(mockBlock).Return(nil, nil)
-				mockBlockState.EXPECT().GetRuntime(&testParentHash).Return(mockInstance, nil)
+				mockBlockState.EXPECT().GetRuntime(testParentHash).Return(mockInstance, nil)
 				chainProcessor.blockState = mockBlockState
 				mockStorageState := NewMockStorageState(ctrl)
 				mockStorageState.EXPECT().Lock()
@@ -149,7 +149,7 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 				mockInstance := NewMockRuntimeInstance(ctrl)
 				mockInstance.EXPECT().SetContextStorage(trieState)
 				mockInstance.EXPECT().ExecuteBlock(mockBlock).Return(nil, nil)
-				mockBlockState.EXPECT().GetRuntime(&mockHeaderHash).Return(mockInstance, nil)
+				mockBlockState.EXPECT().GetRuntime(mockHeaderHash).Return(mockInstance, nil)
 				chainProcessor.blockState = mockBlockState
 				mockStorageState := NewMockStorageState(ctrl)
 				mockStorageState.EXPECT().Lock()
@@ -189,7 +189,7 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 				mockInstance := NewMockRuntimeInstance(ctrl)
 				mockInstance.EXPECT().SetContextStorage(trieState)
 				mockInstance.EXPECT().ExecuteBlock(mockBlock).Return(nil, nil)
-				mockBlockState.EXPECT().GetRuntime(&mockHeaderHash).Return(mockInstance, nil)
+				mockBlockState.EXPECT().GetRuntime(mockHeaderHash).Return(mockInstance, nil)
 				chainProcessor.blockState = mockBlockState
 				mockStorageState := NewMockStorageState(ctrl)
 				mockStorageState.EXPECT().Lock()
@@ -802,7 +802,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 					StateRoot: stateRootHash,
 				}, nil)
 				mockBlockState.EXPECT().CompareAndSetBlockData(&types.BlockData{Header: &types.Header{}, Body: &types.Body{}})
-				mockBlockState.EXPECT().GetRuntime(&runtimeHash).Return(mockInstance, nil)
+				mockBlockState.EXPECT().GetRuntime(runtimeHash).Return(mockInstance, nil)
 
 				mockBabeVerifier := NewMockBabeVerifier(ctrl)
 				mockBabeVerifier.EXPECT().VerifyBlock(&types.Header{}).Return(nil)
@@ -856,7 +856,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 				mockBlockState.EXPECT().SetJustification(
 					common.MustHexToHash("0xdcdd89927d8a348e00257e1ecc8617f45edb5118efff3ea2f9961b2ad9b7690a"), justification)
 				mockBlockState.EXPECT().CompareAndSetBlockData(gomock.AssignableToTypeOf(&types.BlockData{}))
-				mockBlockState.EXPECT().GetRuntime(&runtimeHash).Return(mockInstance, nil)
+				mockBlockState.EXPECT().GetRuntime(runtimeHash).Return(mockInstance, nil)
 				mockBabeVerifier := NewMockBabeVerifier(ctrl)
 				mockBabeVerifier.EXPECT().VerifyBlock(&types.Header{})
 				mockStorageState := NewMockStorageState(ctrl)
