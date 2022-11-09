@@ -551,12 +551,19 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 }
 
 // GetMetadata calls runtime Metadata_metadata function
-func (s *Service) GetMetadata(bhash *common.Hash) (metadata []byte, err error) {
-	rt, err := prepareRuntime(bhash, s.storageState, s.blockState)
-	if err != nil {
-		return nil, fmt.Errorf("setting up runtime: %w", err)
+func (s *Service) GetMetadata(blockHash *common.Hash) (metadata []byte, err error) {
+	var blockHashValue common.Hash
+	if blockHash != nil {
+		blockHashValue = *blockHash
+	} else {
+		blockHashValue = s.blockState.BestBlockHash()
 	}
-	return rt.Metadata()
+	runtime, err := s.blockState.GetRuntime(blockHashValue)
+	if err != nil {
+		return nil, fmt.Errorf("getting runtime: %w", err)
+	}
+
+	return runtime.Metadata()
 }
 
 // GetReadProofAt will return an array with the proofs for the keys passed as params
@@ -598,34 +605,4 @@ func (s *Service) buildExternalTransaction(rt runtime.Instance, ext types.Extrin
 		return nil, fmt.Errorf("%w: %d", errInvalidTransactionQueueVersion, txQueueVersion)
 	}
 	return types.Extrinsic(bytes.Join(extrinsicParts, nil)), nil
-}
-
-func prepareRuntime(blockHash *common.Hash, storageState StorageState,
-	blockState BlockState) (instance runtime.Instance, err error) {
-	var stateRootHash *common.Hash
-	if blockHash != nil {
-		stateRootHash, err = storageState.GetStateRootFromBlock(blockHash)
-		if err != nil {
-			return nil, fmt.Errorf("getting state root from block hash: %w", err)
-		}
-	}
-
-	trieState, err := storageState.TrieState(stateRootHash)
-	if err != nil {
-		return nil, fmt.Errorf("getting trie state: %w", err)
-	}
-
-	var blockHashValue common.Hash
-	if blockHash != nil {
-		blockHashValue = *blockHash
-	} else {
-		blockHashValue = blockState.BestBlockHash()
-	}
-	instance, err = blockState.GetRuntime(blockHashValue)
-	if err != nil {
-		return nil, fmt.Errorf("getting runtime: %w", err)
-	}
-
-	instance.SetContextStorage(trieState)
-	return instance, nil
 }

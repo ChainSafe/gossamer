@@ -280,7 +280,8 @@ func TestStateRPCAPI(t *testing.T) {
 			description: "Test invalid block hash state_getMetadata",
 			method:      "state_getMetadata",
 			params:      fmt.Sprintf(`["%s"]`, randomHash),
-			expected:    ErrKeyNotFound,
+			expected: "getting runtime: failed to get runtime instance: " +
+				"for block hash 0x580d77a9136035a0bc3c3cd86286172f7f81291164c5914266073a30466fba21",
 		},
 		{
 			description: "Test invalid block hash  state_getStorage",
