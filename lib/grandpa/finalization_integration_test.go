@@ -208,7 +208,7 @@ func Test_FinalizationHandler_Stop_ShouldHalt_Services(t *testing.T) {
 		newHandler  func(t *testing.T) *finalizationHandler
 	}{
 		"halt_ephemeral_services_after_calling_stop": {
-			// when we start the finalization handler we instantiate
+			// when we start the finalisation handler we instantiate
 			// and call the Run method from each ephemeral services
 			// (votingHandler, finalizationEngine) since they are mocked
 			// they will wait until the Stop method being called to release
@@ -254,7 +254,7 @@ func Test_FinalizationHandler_Stop_ShouldHalt_Services(t *testing.T) {
 		},
 		"halt_fails_to_stop_one_ephemeral_service": {
 			sentinelErr: errServicesStopFailed,
-			wantErr:     "services stop failed: cannot stop finalization engine test",
+			wantErr:     "services stop failed: cannot stop finalisation engine test",
 			newHandler: func(t *testing.T) *finalizationHandler {
 				ctrl := gomock.NewController(t)
 				builder := func() (engine ephemeralService, voting ephemeralService) {
@@ -267,7 +267,7 @@ func Test_FinalizationHandler_Stop_ShouldHalt_Services(t *testing.T) {
 					})
 					mockEngine.EXPECT().Stop().DoAndReturn(func() error {
 						close(engineStopCh)
-						return errors.New("cannot stop finalization engine test")
+						return errors.New("cannot stop finalisation engine test")
 					})
 
 					votingStopCh := make(chan struct{})
@@ -298,7 +298,7 @@ func Test_FinalizationHandler_Stop_ShouldHalt_Services(t *testing.T) {
 
 		"halt_fails_to_stop_both_ephemeral_service": {
 			sentinelErr: errServicesStopFailed,
-			wantErr: "services stop failed: cannot stop finalization engine test; " +
+			wantErr: "services stop failed: cannot stop finalisation engine test; " +
 				"cannot stop voting handler test",
 			newHandler: func(t *testing.T) *finalizationHandler {
 				ctrl := gomock.NewController(t)
@@ -313,7 +313,7 @@ func Test_FinalizationHandler_Stop_ShouldHalt_Services(t *testing.T) {
 					})
 					mockEngine.EXPECT().Stop().DoAndReturn(func() error {
 						close(engineStopCh)
-						return errors.New("cannot stop finalization engine test")
+						return errors.New("cannot stop finalisation engine test")
 					})
 
 					votingStopCh := make(chan struct{})
@@ -346,9 +346,11 @@ func Test_FinalizationHandler_Stop_ShouldHalt_Services(t *testing.T) {
 	for tname, tt := range testcases {
 		tt := tt
 		t.Run(tname, func(t *testing.T) {
+			t.Parallel()
 			handler := tt.newHandler(t)
 
 			errorCh, err := handler.Start()
+			require.NoError(t, err)
 
 			// wait enough time to start subservices
 			// and then call stop
@@ -359,7 +361,7 @@ func Test_FinalizationHandler_Stop_ShouldHalt_Services(t *testing.T) {
 				require.EqualError(t, err, tt.wantErr)
 			}
 
-			// since we are stopping the finalization handler we expect
+			// since we are stopping the finalisation handler we expect
 			// the errorCh to be closed without any error
 			err, ok := <-errorCh
 			require.False(t, ok,
