@@ -119,6 +119,11 @@ func (fh *finalizationHandler) stop() (err error) {
 }
 
 func (fh *finalizationHandler) Stop() (err error) {
+	// even though we close the `stopCh` we might
+	// we drain the `errorCh` since an ephemeral service
+	// could failed in the mean time the caller calls the
+	// Stop method hanging here as it will blocks to write
+	// into the channel since there is no channel reader
 	close(fh.stopCh)
 	<-fh.errorCh
 	<-fh.handlerDone
