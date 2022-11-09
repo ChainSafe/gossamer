@@ -335,12 +335,9 @@ func (s *Service) handleChainReorg(best, curr common.Hash) error {
 
 	// if the highest common ancestor of the previous chain head and current chain head is the previous chain head,
 	// then the current chain head is the descendant of the previous and thus are on the same chain
-	// TODO check this logic
 	if ancestor == best || ancestor == curr {
 		return nil
 	}
-
-	panic(" WE SHOULDNT BE HERE AHHHHHHHHH")
 
 	subchain, err := s.blockState.SubChain(ancestor, best)
 	if err != nil {

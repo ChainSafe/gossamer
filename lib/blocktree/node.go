@@ -122,40 +122,6 @@ func (n *node) isDescendantOf(parent *node) bool {
 	return false
 }
 
-//func (n *node) lowestCommonAncestor(other *node, a, b types.Header) *node {
-//	// Check if header a's parent == b
-//
-//	// Check if b's parent == a
-//
-//	// copy a and b to use
-//
-//	// while a's number > b's number
-//
-//	// while a's number < b's number
-//
-//	// Then we move the remaining path using parent links.
-//	// while a's hash != b's hash
-//
-//	// Update cached ancestor links.
-//	// dont think we need to do this
-//
-//	return common.Hash{}, nil
-//}
-
-func (n *node) highestCommonAncestor(other *node) *node {
-	for curr := n; curr != nil; curr = curr.parent {
-		if curr.hash == other.hash {
-			return curr
-		}
-
-		if other.isDescendantOf(curr) {
-			return curr
-		}
-	}
-
-	return nil
-}
-
 // getLeaves returns all nodes that are leaf nodes with the current node as its ancestor
 func (n *node) getLeaves(leaves []*node) []*node {
 	if n == nil {

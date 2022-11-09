@@ -446,7 +446,7 @@ func TestNodeLowestCommonAncestor(t *testing.T) {
 	require.Equal(t, root.hash, ancestor)
 }
 
-func TestBlockTree_HighestCommonAncestor(t *testing.T) {
+func TestBlockTree_LowestCommonAncestor(t *testing.T) {
 	var bt *BlockTree
 	var leaves []common.Hash
 	var branches []testBranch
@@ -469,7 +469,7 @@ func TestBlockTree_HighestCommonAncestor(t *testing.T) {
 	require.Equal(t, expected, p)
 }
 
-func TestBlockTree_HighestCommonAncestor_SameNode(t *testing.T) {
+func TestBlockTree_LowestCommonAncestor_SameNode(t *testing.T) {
 	bt, _ := createTestBlockTree(t, testHeader, 8)
 	leaves := bt.Leaves()
 
@@ -480,7 +480,7 @@ func TestBlockTree_HighestCommonAncestor_SameNode(t *testing.T) {
 	require.Equal(t, a, p)
 }
 
-func TestBlockTree_HighestCommonAncestor_SameChain(t *testing.T) {
+func TestBlockTree_LowestCommonAncestor_SameChain(t *testing.T) {
 	bt, _ := createTestBlockTree(t, testHeader, 8)
 	leaves := bt.Leaves()
 

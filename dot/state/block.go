@@ -561,12 +561,7 @@ func (bs *BlockState) IsDescendantOf(parent, child common.Hash) (bool, error) {
 	return bs.bt.IsDescendantOf(parent, child)
 }
 
-// HighestCommonAncestor returns the block with the highest number that is an ancestor of both a and b
-func (bs *BlockState) HighestCommonAncestor(a, b common.Hash) (common.Hash, error) {
-	return bs.bt.HighestCommonAncestor(a, b)
-}
-
-// LowestCommonAncestor returns the block with the highest number that is an ancestor of both a and b
+// LowestCommonAncestor returns the lowest common ancestor between two blocks in the tree.
 func (bs *BlockState) LowestCommonAncestor(a, b common.Hash) (common.Hash, error) {
 	return bs.bt.LowestCommonAncestor(a, b)
 }

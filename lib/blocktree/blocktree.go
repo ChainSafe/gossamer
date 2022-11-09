@@ -298,31 +298,7 @@ func (bt *BlockTree) Leaves() []Hash {
 	return la
 }
 
-// HighestCommonAncestor returns the highest block that is a Ancestor to both a and b
-func (bt *BlockTree) HighestCommonAncestor(a, b Hash) (Hash, error) {
-	bt.RLock()
-	defer bt.RUnlock()
-
-	an := bt.getNode(a)
-	if an == nil {
-		return common.Hash{}, ErrNodeNotFound
-	}
-
-	bn := bt.getNode(b)
-	if bn == nil {
-		return common.Hash{}, ErrNodeNotFound
-	}
-
-	ancestor := an.highestCommonAncestor(bn)
-	if ancestor == nil {
-		// this case shouldn't happen - any two nodes in the blocktree must
-		// have a common ancestor, the lowest of which is the root node
-		return common.Hash{}, fmt.Errorf("%w: %s and %s", ErrNoCommonAncestor, a, b)
-	}
-
-	return ancestor.hash, nil
-}
-
+// LowestCommonAncestor returns the lowest common ancestor between two blocks in the tree.
 func (bt *BlockTree) LowestCommonAncestor(a, b Hash) (Hash, error) {
 	// Get nodes to iterate through
 	aNode := bt.getNode(a)

@@ -66,7 +66,6 @@ type BlockState interface {
 	FreeImportedBlockNotifierChannel(ch chan *types.Block)
 	GetFinalisedNotifierChannel() chan *types.FinalisationInfo
 	FreeFinalisedNotifierChannel(ch chan *types.FinalisationInfo)
-	HighestCommonAncestor(a, b common.Hash) (common.Hash, error)
 	SubChain(start, end common.Hash) ([]common.Hash, error)
 	GetBlockBody(hash common.Hash) (*types.Body, error)
 	HandleRuntimeChanges(newState *rtstorage.TrieState, in runtime.Instance, bHash common.Hash) error

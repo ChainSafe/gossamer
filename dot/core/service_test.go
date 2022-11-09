@@ -725,7 +725,7 @@ func Test_Service_handleBlocksAsync(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{})
-		mockBlockState.EXPECT().HighestCommonAncestor(common.Hash{}, block.Header.Hash()).
+		mockBlockState.EXPECT().LowestCommonAncestor(common.Hash{}, block.Header.Hash()).
 			Return(common.Hash{}, errTestDummyError)
 
 		blockAddChan := make(chan *types.Block)
@@ -767,7 +767,7 @@ func TestService_handleChainReorg(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 		mockBlockState := NewMockBlockState(ctrl)
-		mockBlockState.EXPECT().HighestCommonAncestor(testPrevHash, testCurrentHash).
+		mockBlockState.EXPECT().LowestCommonAncestor(testPrevHash, testCurrentHash).
 			Return(common.Hash{}, errDummyErr)
 
 		service := &Service{
@@ -780,7 +780,7 @@ func TestService_handleChainReorg(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 		mockBlockState := NewMockBlockState(ctrl)
-		mockBlockState.EXPECT().HighestCommonAncestor(testPrevHash, testCurrentHash).
+		mockBlockState.EXPECT().LowestCommonAncestor(testPrevHash, testCurrentHash).
 			Return(common.Hash{}, errDummyErr)
 
 		service := &Service{
@@ -793,7 +793,7 @@ func TestService_handleChainReorg(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 		mockBlockState := NewMockBlockState(ctrl)
-		mockBlockState.EXPECT().HighestCommonAncestor(testPrevHash, testCurrentHash).
+		mockBlockState.EXPECT().LowestCommonAncestor(testPrevHash, testCurrentHash).
 			Return(testPrevHash, nil)
 
 		service := &Service{
@@ -806,7 +806,7 @@ func TestService_handleChainReorg(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 		mockBlockState := NewMockBlockState(ctrl)
-		mockBlockState.EXPECT().HighestCommonAncestor(testPrevHash, testCurrentHash).
+		mockBlockState.EXPECT().LowestCommonAncestor(testPrevHash, testCurrentHash).
 			Return(testAncestorHash, nil)
 		mockBlockState.EXPECT().SubChain(testAncestorHash, testPrevHash).Return([]common.Hash{}, errDummyErr)
 
@@ -820,7 +820,7 @@ func TestService_handleChainReorg(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 		mockBlockState := NewMockBlockState(ctrl)
-		mockBlockState.EXPECT().HighestCommonAncestor(testPrevHash, testCurrentHash).
+		mockBlockState.EXPECT().LowestCommonAncestor(testPrevHash, testCurrentHash).
 			Return(testAncestorHash, nil)
 		mockBlockState.EXPECT().SubChain(testAncestorHash, testPrevHash).Return([]common.Hash{}, nil)
 
@@ -834,7 +834,7 @@ func TestService_handleChainReorg(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 		mockBlockState := NewMockBlockState(ctrl)
-		mockBlockState.EXPECT().HighestCommonAncestor(testPrevHash, testCurrentHash).
+		mockBlockState.EXPECT().LowestCommonAncestor(testPrevHash, testCurrentHash).
 			Return(testAncestorHash, nil)
 		mockBlockState.EXPECT().SubChain(testAncestorHash, testPrevHash).Return(testSubChain, nil)
 		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{1})
@@ -867,7 +867,7 @@ func TestService_handleChainReorg(t *testing.T) {
 		})
 
 		mockBlockState := NewMockBlockState(ctrl)
-		mockBlockState.EXPECT().HighestCommonAncestor(testPrevHash, testCurrentHash).
+		mockBlockState.EXPECT().LowestCommonAncestor(testPrevHash, testCurrentHash).
 			Return(testAncestorHash, nil)
 		mockBlockState.EXPECT().SubChain(testAncestorHash, testPrevHash).Return(testSubChain, nil)
 		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{1})
@@ -906,7 +906,7 @@ func TestService_handleChainReorg(t *testing.T) {
 		})
 
 		mockBlockState := NewMockBlockState(ctrl)
-		mockBlockState.EXPECT().HighestCommonAncestor(testPrevHash, testCurrentHash).
+		mockBlockState.EXPECT().LowestCommonAncestor(testPrevHash, testCurrentHash).
 			Return(testAncestorHash, nil)
 		mockBlockState.EXPECT().SubChain(testAncestorHash, testPrevHash).Return(testSubChain, nil)
 		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{1})
