@@ -202,59 +202,168 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 func Test_FinalizationHandler_Stop_ShouldHalt_Services(t *testing.T) {
 	t.Parallel()
 
-	ctrl := gomock.NewController(t)
-	builder := func() (engine ephemeralService, voting ephemeralService) {
-		engineStopCh := make(chan struct{})
-		mockEngine := NewMockephemeralService(ctrl)
-		mockEngine.EXPECT().Start().DoAndReturn(func() error {
-			<-engineStopCh
-			return nil
-		})
-		mockEngine.EXPECT().Stop().DoAndReturn(func() error {
-			close(engineStopCh)
-			return nil
-		})
+	testcases := map[string]struct {
+		sentinelErr error
+		wantErr     string
+		newHandler  func(t *testing.T) *finalizationHandler
+	}{
+		"halt_ephemeral_services_after_calling_stop": {
+			// when we start the finalization handler we instantiate
+			// and call the Start method from each ephemeral services
+			// (votingHandler, finalizationEngine) since they are mocked
+			// they will wait until the Stop method being called to release
+			// the blocking channel and return from the function
+			newHandler: func(t *testing.T) *finalizationHandler {
+				ctrl := gomock.NewController(t)
+				builder := func() (engine ephemeralService, voting ephemeralService) {
+					engineStopCh := make(chan struct{})
+					mockEngine := NewMockephemeralService(ctrl)
 
-		votingStopCh := make(chan struct{})
-		mockVoting := NewMockephemeralService(ctrl)
-		mockVoting.EXPECT().Start().DoAndReturn(func() error {
-			<-votingStopCh
-			return nil
-		})
-		mockVoting.EXPECT().Stop().DoAndReturn(func() error {
-			close(votingStopCh)
-			return nil
-		})
+					mockEngine.EXPECT().Start().DoAndReturn(func() error {
+						<-engineStopCh
+						return nil
+					})
+					mockEngine.EXPECT().Stop().DoAndReturn(func() error {
+						close(engineStopCh)
+						return nil
+					})
 
-		return mockEngine, mockVoting
+					votingStopCh := make(chan struct{})
+					mockVoting := NewMockephemeralService(ctrl)
+					mockVoting.EXPECT().Start().DoAndReturn(func() error {
+						<-votingStopCh
+						return nil
+					})
+					mockVoting.EXPECT().Stop().DoAndReturn(func() error {
+						close(votingStopCh)
+						return nil
+					})
+					return mockEngine, mockVoting
+				}
+
+				return &finalizationHandler{
+					newServices: builder,
+					// mocked initiate round function
+					initiateRound: func() error { return nil },
+					timeout:       2 * time.Second,
+					stopCh:        make(chan struct{}),
+					handlerDone:   make(chan struct{}),
+					errorCh:       make(chan error),
+				}
+			},
+		},
+		"halt_fails_to_stop_one_ephemeral_service": {
+			sentinelErr: errServicesStopFailed,
+			wantErr:     "services stop failed: cannot stop finalization engine test",
+			newHandler: func(t *testing.T) *finalizationHandler {
+				ctrl := gomock.NewController(t)
+				builder := func() (engine ephemeralService, voting ephemeralService) {
+					engineStopCh := make(chan struct{})
+					mockEngine := NewMockephemeralService(ctrl)
+
+					mockEngine.EXPECT().Start().DoAndReturn(func() error {
+						<-engineStopCh
+						return nil
+					})
+					mockEngine.EXPECT().Stop().DoAndReturn(func() error {
+						close(engineStopCh)
+						return errors.New("cannot stop finalization engine test")
+					})
+
+					votingStopCh := make(chan struct{})
+					mockVoting := NewMockephemeralService(ctrl)
+					mockVoting.EXPECT().Start().DoAndReturn(func() error {
+						<-votingStopCh
+						return nil
+					})
+					mockVoting.EXPECT().Stop().DoAndReturn(func() error {
+						close(votingStopCh)
+						return nil
+					})
+
+					return mockEngine, mockVoting
+				}
+
+				return &finalizationHandler{
+					newServices: builder,
+					// mocked initiate round function
+					initiateRound: func() error { return nil },
+					timeout:       2 * time.Second,
+					stopCh:        make(chan struct{}),
+					handlerDone:   make(chan struct{}),
+					errorCh:       make(chan error),
+				}
+			},
+		},
+
+		"halt_fails_to_stop_both_ephemeral_service": {
+			sentinelErr: errServicesStopFailed,
+			wantErr: "services stop failed: cannot stop finalization engine test; " +
+				"cannot stop voting handler test",
+			newHandler: func(t *testing.T) *finalizationHandler {
+				ctrl := gomock.NewController(t)
+
+				builder := func() (engine ephemeralService, voting ephemeralService) {
+					engineStopCh := make(chan struct{})
+					mockEngine := NewMockephemeralService(ctrl)
+
+					mockEngine.EXPECT().Start().DoAndReturn(func() error {
+						<-engineStopCh
+						return nil
+					})
+					mockEngine.EXPECT().Stop().DoAndReturn(func() error {
+						close(engineStopCh)
+						return errors.New("cannot stop finalization engine test")
+					})
+
+					votingStopCh := make(chan struct{})
+					mockVoting := NewMockephemeralService(ctrl)
+					mockVoting.EXPECT().Start().DoAndReturn(func() error {
+						<-votingStopCh
+						return nil
+					})
+					mockVoting.EXPECT().Stop().DoAndReturn(func() error {
+						close(votingStopCh)
+						return errors.New("cannot stop voting handler test")
+					})
+
+					return mockEngine, mockVoting
+				}
+
+				return &finalizationHandler{
+					newServices: builder,
+					// mocked initiate round function
+					initiateRound: func() error { return nil },
+					timeout:       2 * time.Second,
+					stopCh:        make(chan struct{}),
+					handlerDone:   make(chan struct{}),
+					errorCh:       make(chan error),
+				}
+			},
+		},
 	}
 
-	handler := &finalizationHandler{
-		newServices: builder,
-		// mocked initiate round function
-		initiateRound: func() error { return nil },
-		timeout:       2 * time.Second,
-		stopCh:        make(chan struct{}),
-		handlerDone:   make(chan struct{}),
-		errorCh:       make(chan error),
+	for tname, tt := range testcases {
+		tt := tt
+		t.Run(tname, func(t *testing.T) {
+			handler := tt.newHandler(t)
+
+			errorCh, err := handler.Start()
+
+			// wait enough time to start subservices
+			// and then call stop
+			time.Sleep(2 * time.Second)
+			err = handler.Stop()
+			require.ErrorIs(t, err, tt.sentinelErr)
+			if tt.wantErr != "" {
+				require.EqualError(t, err, tt.wantErr)
+			}
+
+			// since we are stopping the finalization handler we expect
+			// the errorCh to be closed without any error
+			err, ok := <-errorCh
+			require.False(t, ok,
+				"expected channel to be closed, got an unexpected error: %s", err)
+		})
 	}
-
-	doneCh := make(chan struct{})
-	errorCh, err := handler.Start()
-	require.NoError(t, err)
-
-	go func() {
-		defer close(doneCh)
-		for err := range errorCh {
-			t.Errorf("expected no error, got %s", err)
-			return
-		}
-	}()
-
-	// wait enough time to start subservices
-	time.Sleep(5 * time.Second)
-	err = handler.Stop()
-	require.NoError(t, err)
-
-	<-doneCh
 }

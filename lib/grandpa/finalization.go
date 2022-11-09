@@ -90,25 +90,18 @@ func (fh *finalizationHandler) stop() (err error) {
 	fh.servicesLock.Lock()
 	defer fh.servicesLock.Unlock()
 
-	var stopWg sync.WaitGroup
-	stopWg.Add(2)
-
 	finalizationEngineErrCh := make(chan error)
 	go func() {
-		defer stopWg.Done()
 		finalizationEngineErrCh <- fh.finalizationEngine.Stop()
 	}()
 
 	votingRoundErrCh := make(chan error)
 	go func() {
-		defer stopWg.Done()
 		votingRoundErrCh <- fh.votingRound.Stop()
 	}()
 
 	finalizationEngErr := <-finalizationEngineErrCh
 	votingRoundErr := <-votingRoundErrCh
-
-	stopWg.Wait()
 
 	if finalizationEngErr != nil && votingRoundErr != nil {
 		return fmt.Errorf("%w: %s; %s", errServicesStopFailed, finalizationEngErr, votingRoundErr)
@@ -158,7 +151,6 @@ func (fh *finalizationHandler) waitServices() error {
 	for {
 		select {
 		case <-fh.stopCh:
-			fmt.Printf("waiting services should stop\n")
 			return nil
 
 		case err := <-votingRoundErr:
