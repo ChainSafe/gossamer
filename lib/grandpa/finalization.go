@@ -380,7 +380,7 @@ func (f *finalizationEngine) defineRoundVotes() error {
 	determinePrevoteTimer := time.NewTimer(2 * gossipInterval)
 	determinePrecommitTimer := time.NewTimer(4 * gossipInterval)
 
-	var precommited bool = false
+	precommited := false
 
 	for !precommited {
 		select {
