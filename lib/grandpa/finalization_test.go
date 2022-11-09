@@ -96,8 +96,7 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 
 					mockVoting := NewMockephemeralService(ctrl)
 					mockVoting.EXPECT().Start().DoAndReturn(func() error {
-						timeToFail := time.NewTimer(failTime)
-						<-timeToFail.C
+						time.Sleep(failTime)
 						return errors.New("mocked voting round fails")
 					})
 					mockVoting.EXPECT().Stop().Return(nil)
@@ -141,8 +140,7 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 
 					mockEngine := NewMockephemeralService(ctrl)
 					mockEngine.EXPECT().Start().DoAndReturn(func() error {
-						timeToFail := time.NewTimer(failTime)
-						<-timeToFail.C
+						time.Sleep(failTime)
 						return errors.New("mocked finalisation engine fails")
 					})
 					mockEngine.EXPECT().Stop().Return(nil)
