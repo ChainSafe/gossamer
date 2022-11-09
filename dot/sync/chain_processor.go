@@ -135,22 +135,25 @@ func (c *chainProcessor) processBlockData(blockData types.BlockData) error { //n
 		return nil
 	}
 
-	if blockData.Header != nil && blockData.Body != nil {
-		err = c.processBlockDataWithHeaderAndBody(blockData, announceImportedBlock)
-		if err != nil {
-			return fmt.Errorf("processing block data with header and body: %w", err)
+	if blockData.Header != nil {
+		if blockData.Body != nil {
+			err = c.processBlockDataWithHeaderAndBody(blockData, announceImportedBlock)
+			if err != nil {
+				return fmt.Errorf("processing block data with header and body: %w", err)
+			}
+			logger.Debugf("block with hash %s processed", blockData.Hash)
 		}
-		logger.Debugf("block with hash %s processed", blockData.Hash)
+
+		if blockData.Justification != nil && len(*blockData.Justification) > 0 {
+			err = c.handleJustification(blockData.Header, *blockData.Justification)
+			if err != nil {
+				return fmt.Errorf("handling justification: %w", err)
+			}
+		}
 	}
 
-	if blockData.Header != nil && blockData.Justification != nil && len(*blockData.Justification) > 0 {
-		err = c.handleJustification(blockData.Header, *blockData.Justification)
-		if err != nil {
-			return fmt.Errorf("handling justification: %w", err)
-		}
-	}
-
-	if err := c.blockState.CompareAndSetBlockData(&blockData); err != nil {
+	err = c.blockState.CompareAndSetBlockData(&blockData)
+	if err != nil {
 		return fmt.Errorf("comparing and setting block data: %w", err)
 	}
 
