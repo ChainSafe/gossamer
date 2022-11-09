@@ -378,7 +378,6 @@ func (bt *BlockTree) LowestCommonAncestor(a, b, highestFinalized types.Header) (
 
 	// Since highest finalized header is in map, should never reach this case as it should always be an ancestor
 	return common.Hash{}, fmt.Errorf("%w: %s and %s", ErrNoCommonAncestor, a.Hash(), b.Hash())
-
 }
 
 //// Eds code

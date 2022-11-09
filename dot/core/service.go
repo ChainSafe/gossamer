@@ -327,15 +327,15 @@ func (s *Service) handleBlocksAsync() {
 // handleChainReorg checks if there is a chain re-org (ie. new chain head is on a different chain than the
 // previous chain head). If there is a re-org, it moves the transactions that were included on the previous
 // chain back into the transaction pool.
-func (s *Service) handleChainReorg(prev, curr common.Hash) error {
-	//ancestor, err := s.blockState.HighestCommonAncestor(prev, curr)
+func (s *Service) handleChainReorg(best, curr common.Hash) error {
+	//ancestor, err := s.blockState.HighestCommonAncestor(best, curr)
 	//if err != nil {
 	//	return err
 	//}
 
 	highestFinalizedHeader, err := s.blockState.GetHighestFinalisedHeader()
 
-	prevHeader, err := s.blockState.GetHeader(prev)
+	prevHeader, err := s.blockState.GetHeader(best)
 	if err != nil {
 		return err
 	}
@@ -351,11 +351,14 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 
 	// if the highest common ancestor of the previous chain head and current chain head is the previous chain head,
 	// then the current chain head is the descendant of the previous and thus are on the same chain
-	if ancestor == prev {
+	// TODO check this logic
+	if ancestor == best || ancestor == curr {
 		return nil
 	}
 
-	subchain, err := s.blockState.SubChain(ancestor, prev)
+	panic(" WE SHOULDNT BE HERE AHHHHHHHHH")
+
+	subchain, err := s.blockState.SubChain(ancestor, best)
 	if err != nil {
 		return err
 	}

@@ -75,6 +75,7 @@ type BlockState interface {
 	GetHighestFinalisedHeader() (*types.Header, error)
 	LowestCommonAncestor(a, b, highestFinalized types.Header) (common.Hash, error)
 	GetHeader(hash common.Hash) (header *types.Header, err error)
+	IsDescendantOf(parent, child common.Hash) (bool, error)
 }
 
 // StorageState interface for storage state methods

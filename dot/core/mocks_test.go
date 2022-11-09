@@ -374,6 +374,21 @@ func (mr *MockBlockStateMockRecorder) HighestCommonAncestor(arg0, arg1 interface
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HighestCommonAncestor", reflect.TypeOf((*MockBlockState)(nil).HighestCommonAncestor), arg0, arg1)
 }
 
+// IsDescendantOf mocks base method.
+func (m *MockBlockState) IsDescendantOf(arg0, arg1 common.Hash) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsDescendantOf", arg0, arg1)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// IsDescendantOf indicates an expected call of IsDescendantOf.
+func (mr *MockBlockStateMockRecorder) IsDescendantOf(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsDescendantOf", reflect.TypeOf((*MockBlockState)(nil).IsDescendantOf), arg0, arg1)
+}
+
 // LowestCommonAncestor mocks base method.
 func (m *MockBlockState) LowestCommonAncestor(arg0, arg1, arg2 types.Header) (common.Hash, error) {
 	m.ctrl.T.Helper()
