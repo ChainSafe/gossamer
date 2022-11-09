@@ -15,7 +15,7 @@ import (
 var errServicesStopFailed = errors.New("services stop failed")
 
 type ephemeralService interface {
-	Start() error
+	Run() error
 	Stop() error
 }
 
@@ -140,12 +140,12 @@ func (fh *finalizationHandler) waitServices() error {
 
 	finalizationEngineErr := make(chan error)
 	go func() {
-		finalizationEngineErr <- fh.finalizationEngine.Start()
+		finalizationEngineErr <- fh.finalizationEngine.Run()
 	}()
 
 	votingRoundErr := make(chan error)
 	go func() {
-		votingRoundErr <- fh.votingRound.Start()
+		votingRoundErr <- fh.votingRound.Run()
 	}()
 
 	for {
@@ -188,6 +188,8 @@ func (fh *finalizationHandler) waitServices() error {
 	}
 }
 
+// handleVotingRound interacts with finalizationEngine service
+// executing the actions based on what it receives throuhg channel
 type handleVotingRound struct {
 	grandpaService       *Service
 	finalizationEngineCh <-chan engineAction
@@ -216,12 +218,7 @@ func (h *handleVotingRound) Stop() (err error) {
 	return nil
 }
 
-// playGrandpaRound executes a round of GRANDPA
-// at the end of this round, a block will be finalised.
-// TODO(test): stopping handleVotingRound first and then stopping
-// finalizationEngine might cause a write in a non-reading unbuff channel
-// blocking the finalizationEngine to stop and triggering the stop timeout timer
-func (h *handleVotingRound) Start() (err error) {
+func (h *handleVotingRound) Run() (err error) {
 	defer func() {
 		close(h.engineDone)
 		h.engineDone = nil
@@ -354,7 +351,7 @@ func (f *finalizationEngine) Stop() (err error) {
 	return nil
 }
 
-func (f *finalizationEngine) Start() (err error) {
+func (f *finalizationEngine) Run() (err error) {
 	defer func() {
 		close(f.engineDone)
 		f.engineDone = nil

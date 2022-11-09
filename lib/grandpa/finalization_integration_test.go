@@ -26,7 +26,7 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 			createFinalizationHandler: func(ctrl *gomock.Controller) *finalizationHandler {
 				builder := func() (engine ephemeralService, voting ephemeralService) {
 					mockVoting := NewMockephemeralService(ctrl)
-					mockVoting.EXPECT().Start().DoAndReturn(func() error {
+					mockVoting.EXPECT().Run().DoAndReturn(func() error {
 						<-time.NewTimer(3 * time.Second).C
 						return nil
 					})
@@ -34,7 +34,7 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 
 					engineStopCh := make(chan struct{})
 					mockEngine := NewMockephemeralService(ctrl)
-					mockEngine.EXPECT().Start().DoAndReturn(func() error {
+					mockEngine.EXPECT().Run().DoAndReturn(func() error {
 						<-engineStopCh
 						return nil
 					})
@@ -60,7 +60,7 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 			createFinalizationHandler: func(ctrl *gomock.Controller) *finalizationHandler {
 				builder := func() (engine ephemeralService, voting ephemeralService) {
 					mockEngine := NewMockephemeralService(ctrl)
-					mockEngine.EXPECT().Start().DoAndReturn(func() error {
+					mockEngine.EXPECT().Run().DoAndReturn(func() error {
 						<-time.NewTimer(3 * time.Second).C
 						return nil
 					})
@@ -68,7 +68,7 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 
 					votingStopCh := make(chan struct{})
 					mockVoting := NewMockephemeralService(ctrl)
-					mockVoting.EXPECT().Start().DoAndReturn(func() error {
+					mockVoting.EXPECT().Run().DoAndReturn(func() error {
 						<-votingStopCh
 						return nil
 					})
@@ -97,7 +97,7 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 					failTime := 2 * time.Second
 
 					mockVoting := NewMockephemeralService(ctrl)
-					mockVoting.EXPECT().Start().DoAndReturn(func() error {
+					mockVoting.EXPECT().Run().DoAndReturn(func() error {
 						time.Sleep(failTime)
 						return errors.New("mocked voting round fails")
 					})
@@ -108,7 +108,7 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 					// the engine which will release the start method from engine service
 					engineStopCh := make(chan struct{})
 					mockEngine := NewMockephemeralService(ctrl)
-					mockEngine.EXPECT().Start().DoAndReturn(func() error {
+					mockEngine.EXPECT().Run().DoAndReturn(func() error {
 						select {
 						case <-time.After(failTime + time.Second):
 							return errors.New("timeout waiting engineStopCh")
@@ -141,7 +141,7 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 					failTime := 2 * time.Second
 
 					mockEngine := NewMockephemeralService(ctrl)
-					mockEngine.EXPECT().Start().DoAndReturn(func() error {
+					mockEngine.EXPECT().Run().DoAndReturn(func() error {
 						time.Sleep(failTime)
 						return errors.New("mocked finalisation engine fails")
 					})
@@ -152,7 +152,7 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 					// voting round which will release the start method from voting round service
 					votingStopChannel := make(chan struct{})
 					mockVoting := NewMockephemeralService(ctrl)
-					mockVoting.EXPECT().Start().DoAndReturn(func() error {
+					mockVoting.EXPECT().Run().DoAndReturn(func() error {
 						select {
 						case <-time.After(failTime + time.Second):
 							return errors.New("timeout waiting votingStopChannel")
@@ -209,7 +209,7 @@ func Test_FinalizationHandler_Stop_ShouldHalt_Services(t *testing.T) {
 	}{
 		"halt_ephemeral_services_after_calling_stop": {
 			// when we start the finalization handler we instantiate
-			// and call the Start method from each ephemeral services
+			// and call the Run method from each ephemeral services
 			// (votingHandler, finalizationEngine) since they are mocked
 			// they will wait until the Stop method being called to release
 			// the blocking channel and return from the function
@@ -219,7 +219,7 @@ func Test_FinalizationHandler_Stop_ShouldHalt_Services(t *testing.T) {
 					engineStopCh := make(chan struct{})
 					mockEngine := NewMockephemeralService(ctrl)
 
-					mockEngine.EXPECT().Start().DoAndReturn(func() error {
+					mockEngine.EXPECT().Run().DoAndReturn(func() error {
 						<-engineStopCh
 						return nil
 					})
@@ -230,7 +230,7 @@ func Test_FinalizationHandler_Stop_ShouldHalt_Services(t *testing.T) {
 
 					votingStopCh := make(chan struct{})
 					mockVoting := NewMockephemeralService(ctrl)
-					mockVoting.EXPECT().Start().DoAndReturn(func() error {
+					mockVoting.EXPECT().Run().DoAndReturn(func() error {
 						<-votingStopCh
 						return nil
 					})
@@ -261,7 +261,7 @@ func Test_FinalizationHandler_Stop_ShouldHalt_Services(t *testing.T) {
 					engineStopCh := make(chan struct{})
 					mockEngine := NewMockephemeralService(ctrl)
 
-					mockEngine.EXPECT().Start().DoAndReturn(func() error {
+					mockEngine.EXPECT().Run().DoAndReturn(func() error {
 						<-engineStopCh
 						return nil
 					})
@@ -272,7 +272,7 @@ func Test_FinalizationHandler_Stop_ShouldHalt_Services(t *testing.T) {
 
 					votingStopCh := make(chan struct{})
 					mockVoting := NewMockephemeralService(ctrl)
-					mockVoting.EXPECT().Start().DoAndReturn(func() error {
+					mockVoting.EXPECT().Run().DoAndReturn(func() error {
 						<-votingStopCh
 						return nil
 					})
@@ -307,7 +307,7 @@ func Test_FinalizationHandler_Stop_ShouldHalt_Services(t *testing.T) {
 					engineStopCh := make(chan struct{})
 					mockEngine := NewMockephemeralService(ctrl)
 
-					mockEngine.EXPECT().Start().DoAndReturn(func() error {
+					mockEngine.EXPECT().Run().DoAndReturn(func() error {
 						<-engineStopCh
 						return nil
 					})
@@ -318,7 +318,7 @@ func Test_FinalizationHandler_Stop_ShouldHalt_Services(t *testing.T) {
 
 					votingStopCh := make(chan struct{})
 					mockVoting := NewMockephemeralService(ctrl)
-					mockVoting.EXPECT().Start().DoAndReturn(func() error {
+					mockVoting.EXPECT().Run().DoAndReturn(func() error {
 						<-votingStopCh
 						return nil
 					})

@@ -33,18 +33,18 @@ func (m *MockephemeralService) EXPECT() *MockephemeralServiceMockRecorder {
 	return m.recorder
 }
 
-// Start mocks base method.
-func (m *MockephemeralService) Start() error {
+// Run mocks base method.
+func (m *MockephemeralService) Run() error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Start")
+	ret := m.ctrl.Call(m, "Run")
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// Start indicates an expected call of Start.
-func (mr *MockephemeralServiceMockRecorder) Start() *gomock.Call {
+// Run indicates an expected call of Run.
+func (mr *MockephemeralServiceMockRecorder) Run() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Start", reflect.TypeOf((*MockephemeralService)(nil).Start))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Run", reflect.TypeOf((*MockephemeralService)(nil).Run))
 }
 
 // Stop mocks base method.
