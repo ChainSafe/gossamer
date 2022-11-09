@@ -340,24 +340,64 @@ func (bt *BlockTree) LowestCommonAncestor(a, b, highestFinalized types.Header) (
 
 	// Neither is a descendant of the other, so it's a fork
 
+	// Get nodes to iterate through
+	aNode := bt.getNode(a.Hash())
+	if aNode == nil {
+		return common.Hash{}, ErrNodeNotFound
+	}
+
+	bNode := bt.getNode(b.Hash())
+	if bNode == nil {
+		return common.Hash{}, ErrNodeNotFound
+	}
+
 	// This can be a bound on our search, as there should be no forks after finalized
 	finalizedBlockNumber := highestFinalized.Number
-	aParentMap := make(map[common.Hash]bool)
 
-	aNumber := a.Number
-	currentHash := a.Hash()
-	// Iterate through a till get to finalizedBlock Number, adding all hashes to a map
-	for aNumber < finalizedBlockNumber {
-		aParentMap[currentHash] = true
-		
-		aNumber++
+	// Iterate through a, adding all hashes till finalized to map
+	aParentMap := make(map[common.Hash]bool)
+	aNum := a.Number
+
+	currentNode := aNode
+	for aNum <= finalizedBlockNumber {
+		aParentMap[currentNode.hash] = true
+		currentNode = currentNode.parent
+		aNum++
 	}
 
 	// Iterate through b, checking if in a and if so return
+	bNum := b.Number
+	currentNode = bNode
+	for bNum <= finalizedBlockNumber {
+		if _, ok := aParentMap[currentNode.hash]; ok {
+			return currentNode.hash, nil
+		}
+		currentNode = currentNode.parent
+		bNum++
+	}
 
-	// else return finalized header
+	// Since highest finalized header is in map, should never reach this case as it should always be an ancestor
+	return common.Hash{}, fmt.Errorf("%w: %s and %s", ErrNoCommonAncestor, a.Hash(), b.Hash())
 
 }
+
+//// Eds code
+//func NodeHCA(a, b *node) *node {
+//	aMap := make(map[common.Hash]bool)
+//	for nA := a; nA != nil; nA = nA.parent {
+//		aMap[nA.hash] = true
+//		fmt.Printf("nA %v\n", nA.hash)
+//	}
+//
+//	for nB := b; nB != nil; nB = nB.parent {
+//		fmt.Printf("nB %v\n", nB.hash)
+//		if _, ok := aMap[nB.hash]; ok {
+//			fmt.Printf("found match %v\n", nB.hash)
+//			return nB
+//		}
+//	}
+//	return nil
+//}
 
 //func (bt *BlockTree) LowestCommonAncestor(a, b types.Header) (Hash, error) {
 //	// Check if header a's parent == b

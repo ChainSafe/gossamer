@@ -566,6 +566,11 @@ func (bs *BlockState) HighestCommonAncestor(a, b common.Hash) (common.Hash, erro
 	return bs.bt.HighestCommonAncestor(a, b)
 }
 
+// LowestCommonAncestor returns the block with the highest number that is an ancestor of both a and b
+func (bs *BlockState) LowestCommonAncestor(a, b, highestFinalized types.Header) (common.Hash, error) {
+	return bs.bt.LowestCommonAncestor(a, b, highestFinalized)
+}
+
 // Leaves returns the leaves of the blocktree as an array
 func (bs *BlockState) Leaves() []common.Hash {
 	return bs.bt.Leaves()
