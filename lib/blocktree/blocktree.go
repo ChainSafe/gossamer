@@ -322,6 +322,83 @@ func (bt *BlockTree) HighestCommonAncestor(a, b Hash) (Hash, error) {
 	return ancestor.hash, nil
 }
 
+func (bt *BlockTree) LowestCommonAncestor(a, b, highestFinalized types.Header) (Hash, error) {
+	// Check if they are direct descendants
+	isBChild, err := bt.IsDescendantOf(a.Hash(), b.Hash())
+	if err != nil {
+		return common.Hash{}, nil
+	} else if isBChild {
+		return a.Hash(), nil
+	}
+
+	isAChild, err := bt.IsDescendantOf(b.Hash(), a.Hash())
+	if err != nil {
+		return common.Hash{}, nil
+	} else if isAChild {
+		return b.Hash(), nil
+	}
+
+	// Neither is a descendant of the other, so it's a fork
+
+	// This can be a bound on our search, as there should be no forks after finalized
+	finalizedBlockNumber := highestFinalized.Number
+	aParentMap := make(map[common.Hash]bool)
+
+	aNumber := a.Number
+	currentHash := a.Hash()
+	// Iterate through a till get to finalizedBlock Number, adding all hashes to a map
+	for aNumber < finalizedBlockNumber {
+		aParentMap[currentHash] = true
+		
+		aNumber++
+	}
+
+	// Iterate through b, checking if in a and if so return
+
+	// else return finalized header
+
+}
+
+//func (bt *BlockTree) LowestCommonAncestor(a, b types.Header) (Hash, error) {
+//	// Check if header a's parent == b
+//	bHash := b.Hash()
+//	if a.ParentHash == bHash {
+//		return bHash, nil
+//	}
+//
+//	// Check if b's parent == a
+//	aHash := a.Hash()
+//	if b.ParentHash == aHash {
+//		return aHash, nil
+//	}
+//
+//	// copy a and b to use
+//	aCopy, err := a.DeepCopy()
+//	if err != nil {
+//		return common.Hash{}, err
+//	}
+//
+//	bCopy, err := b.DeepCopy()
+//	if err != nil {
+//		return common.Hash{}, err
+//	}
+//
+//	// while a's number > b's number
+//	for a.Number > b.Number {
+//		 parentA := a.ParentHash
+//	}
+//
+//	// while a's number < b's number
+//
+//	// Then we move the remaining path using parent links.
+//	// while a's hash != b's hash
+//
+//	// Update cached ancestor links.
+//	// dont think we need to do this
+//
+//	return common.Hash{}, nil
+//}
+
 // GetAllBlocks returns all the blocks in the tree
 func (bt *BlockTree) GetAllBlocks() []Hash {
 	bt.RLock()

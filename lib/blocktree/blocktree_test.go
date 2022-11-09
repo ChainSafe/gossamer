@@ -371,6 +371,66 @@ func TestBlockTree_IsDecendantOf(t *testing.T) {
 	require.False(t, isDescendant)
 }
 
+func TestNodeLowestCommonAncestor(t *testing.T) {
+	root := &node{
+		hash: common.Hash{0},
+	}
+
+	children := []*node{
+		{
+			hash:      common.Hash{1},
+			parent:    root,
+			isPrimary: true,
+		},
+		{
+			hash:      common.Hash{2},
+			parent:    root,
+			isPrimary: false,
+		},
+	}
+
+	childrenChildren := []*node{
+		{
+			hash:      common.Hash{3},
+			parent:    children[0],
+			isPrimary: true,
+		},
+		{
+			hash:      common.Hash{4},
+			parent:    children[1],
+			isPrimary: false,
+		},
+	}
+
+	ancestor := children[1].highestCommonAncestor(root)
+	require.NotNil(t, ancestor)
+	require.Equal(t, ancestor.hash, root.hash)
+
+	ancestor = children[0].highestCommonAncestor(root)
+	require.NotNil(t, ancestor)
+	require.Equal(t, ancestor.hash, root.hash)
+
+	ancestor = childrenChildren[0].highestCommonAncestor(root)
+	require.NotNil(t, ancestor)
+	require.Equal(t, ancestor.hash, root.hash)
+
+	ancestor = childrenChildren[1].highestCommonAncestor(root)
+	require.NotNil(t, ancestor)
+	require.Equal(t, ancestor.hash, root.hash)
+
+	// ancestor = root.highestCommonAncestor(children[0])
+	// require.NotNil(t, ancestor)
+	// require.Equal(t, ancestor.hash, root.hash)
+
+	// ancestor = root.highestCommonAncestor(children[1])
+	// require.NotNil(t, ancestor)
+	// require.Equal(t, ancestor.hash, root.hash)
+
+	ancestor = children[0].highestCommonAncestor(children[1])
+	require.NotNil(t, ancestor)
+	require.Equal(t, ancestor.hash, root.hash)
+}
+
 func TestBlockTree_HighestCommonAncestor(t *testing.T) {
 	var bt *BlockTree
 	var leaves []common.Hash

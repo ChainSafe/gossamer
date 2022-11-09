@@ -333,6 +333,8 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 		return err
 	}
 
+	//highestFinalizedHeader, err := s.blockState.GetHighestFinalisedHeader()
+
 	// if the highest common ancestor of the previous chain head and current chain head is the previous chain head,
 	// then the current chain head is the descendant of the previous and thus are on the same chain
 	if ancestor == prev {
