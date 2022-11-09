@@ -948,7 +948,7 @@ func TestGetBestFinalCandidate_PrecommitOnAnotherChain(t *testing.T) {
 		}
 	}
 
-	pred, err := st.Block.HighestCommonAncestor(voteA.Hash, voteB.Hash)
+	pred, err := st.Block.LowestCommonAncestor(voteA.Hash, voteB.Hash)
 	require.NoError(t, err)
 
 	bfc, err := gs.getBestFinalCandidate()
@@ -1037,7 +1037,7 @@ func TestGetGrandpaGHOST_CommonAncestor(t *testing.T) {
 		}
 	}
 
-	pred, err := gs.blockState.HighestCommonAncestor(voteA.Hash, voteB.Hash)
+	pred, err := gs.blockState.LowestCommonAncestor(voteA.Hash, voteB.Hash)
 	require.NoError(t, err)
 
 	block, err := gs.getGrandpaGHOST()

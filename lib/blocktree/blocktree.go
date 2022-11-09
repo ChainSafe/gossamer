@@ -4,6 +4,7 @@
 package blocktree
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -322,121 +323,51 @@ func (bt *BlockTree) HighestCommonAncestor(a, b Hash) (Hash, error) {
 	return ancestor.hash, nil
 }
 
-func (bt *BlockTree) LowestCommonAncestor(a, b, highestFinalized types.Header) (Hash, error) {
-	// Check if they are direct descendants
-	isBChild, err := bt.IsDescendantOf(a.Hash(), b.Hash())
-	if err != nil {
-		return common.Hash{}, nil
-	} else if isBChild {
-		return a.Hash(), nil
-	}
-
-	isAChild, err := bt.IsDescendantOf(b.Hash(), a.Hash())
-	if err != nil {
-		return common.Hash{}, nil
-	} else if isAChild {
-		return b.Hash(), nil
-	}
-
-	// Neither is a descendant of the other, so it's a fork
-
+func (bt *BlockTree) LowestCommonAncestor(a, b Hash) (Hash, error) {
 	// Get nodes to iterate through
-	aNode := bt.getNode(a.Hash())
+	aNode := bt.getNode(a)
 	if aNode == nil {
 		return common.Hash{}, ErrNodeNotFound
 	}
 
-	bNode := bt.getNode(b.Hash())
+	bNode := bt.getNode(b)
 	if bNode == nil {
 		return common.Hash{}, ErrNodeNotFound
 	}
-
-	// This can be a bound on our search, as there should be no forks after finalized
-	finalizedBlockNumber := highestFinalized.Number
-
-	// Iterate through a, adding all hashes till finalized to map
-	aParentMap := make(map[common.Hash]bool)
-	aNum := a.Number
-
-	currentNode := aNode
-	for aNum <= finalizedBlockNumber {
-		aParentMap[currentNode.hash] = true
-		currentNode = currentNode.parent
-		aNum++
-	}
-
-	// Iterate through b, checking if in a and if so return
-	bNum := b.Number
-	currentNode = bNode
-	for bNum <= finalizedBlockNumber {
-		if _, ok := aParentMap[currentNode.hash]; ok {
-			return currentNode.hash, nil
-		}
-		currentNode = currentNode.parent
-		bNum++
-	}
-
-	// Since highest finalized header is in map, should never reach this case as it should always be an ancestor
-	return common.Hash{}, fmt.Errorf("%w: %s and %s", ErrNoCommonAncestor, a.Hash(), b.Hash())
+	return lowestCommonAncestor(aNode, bNode)
 }
+func lowestCommonAncestor(aNode, bNode *node) (Hash, error) {
+	// balance out block height to compare
+	aNum := aNode.number
+	bNum := bNode.number
+	if aNum > bNum {
+		diff := aNum - bNum
+		if diff > aNum {
+			return common.Hash{}, errors.New("out of bounds ancestor check")
+		}
+		for diff > 0 {
+			aNode = aNode.parent
+			diff--
+		}
+	} else if bNum > aNum {
+		diff := bNum - aNum
+		if diff > bNum {
+			return common.Hash{}, errors.New("out of bounds ancestor check")
+		}
+		for diff > 0 {
+			bNode = bNode.parent
+			diff--
+		}
+	}
 
-//// Eds code
-//func NodeHCA(a, b *node) *node {
-//	aMap := make(map[common.Hash]bool)
-//	for nA := a; nA != nil; nA = nA.parent {
-//		aMap[nA.hash] = true
-//		fmt.Printf("nA %v\n", nA.hash)
-//	}
-//
-//	for nB := b; nB != nil; nB = nB.parent {
-//		fmt.Printf("nB %v\n", nB.hash)
-//		if _, ok := aMap[nB.hash]; ok {
-//			fmt.Printf("found match %v\n", nB.hash)
-//			return nB
-//		}
-//	}
-//	return nil
-//}
-
-//func (bt *BlockTree) LowestCommonAncestor(a, b types.Header) (Hash, error) {
-//	// Check if header a's parent == b
-//	bHash := b.Hash()
-//	if a.ParentHash == bHash {
-//		return bHash, nil
-//	}
-//
-//	// Check if b's parent == a
-//	aHash := a.Hash()
-//	if b.ParentHash == aHash {
-//		return aHash, nil
-//	}
-//
-//	// copy a and b to use
-//	aCopy, err := a.DeepCopy()
-//	if err != nil {
-//		return common.Hash{}, err
-//	}
-//
-//	bCopy, err := b.DeepCopy()
-//	if err != nil {
-//		return common.Hash{}, err
-//	}
-//
-//	// while a's number > b's number
-//	for a.Number > b.Number {
-//		 parentA := a.ParentHash
-//	}
-//
-//	// while a's number < b's number
-//
-//	// Then we move the remaining path using parent links.
-//	// while a's hash != b's hash
-//
-//	// Update cached ancestor links.
-//	// dont think we need to do this
-//
-//	return common.Hash{}, nil
-//}
+	for {
+		if aNode.hash == bNode.hash {
+			return aNode.hash, nil
+		}
+		aNode = aNode.parent
+		bNode = bNode.parent
+	}
+}
 
 // GetAllBlocks returns all the blocks in the tree
 func (bt *BlockTree) GetAllBlocks() []Hash {

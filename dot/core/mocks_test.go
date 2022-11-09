@@ -271,36 +271,6 @@ func (mr *MockBlockStateMockRecorder) GetFinalisedNotifierChannel() *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFinalisedNotifierChannel", reflect.TypeOf((*MockBlockState)(nil).GetFinalisedNotifierChannel))
 }
 
-// GetHeader mocks base method.
-func (m *MockBlockState) GetHeader(arg0 common.Hash) (*types.Header, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetHeader", arg0)
-	ret0, _ := ret[0].(*types.Header)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetHeader indicates an expected call of GetHeader.
-func (mr *MockBlockStateMockRecorder) GetHeader(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHeader", reflect.TypeOf((*MockBlockState)(nil).GetHeader), arg0)
-}
-
-// GetHighestFinalisedHeader mocks base method.
-func (m *MockBlockState) GetHighestFinalisedHeader() (*types.Header, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetHighestFinalisedHeader")
-	ret0, _ := ret[0].(*types.Header)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetHighestFinalisedHeader indicates an expected call of GetHighestFinalisedHeader.
-func (mr *MockBlockStateMockRecorder) GetHighestFinalisedHeader() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHighestFinalisedHeader", reflect.TypeOf((*MockBlockState)(nil).GetHighestFinalisedHeader))
-}
-
 // GetImportedBlockNotifierChannel mocks base method.
 func (m *MockBlockState) GetImportedBlockNotifierChannel() chan *types.Block {
 	m.ctrl.T.Helper()
@@ -374,34 +344,19 @@ func (mr *MockBlockStateMockRecorder) HighestCommonAncestor(arg0, arg1 interface
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HighestCommonAncestor", reflect.TypeOf((*MockBlockState)(nil).HighestCommonAncestor), arg0, arg1)
 }
 
-// IsDescendantOf mocks base method.
-func (m *MockBlockState) IsDescendantOf(arg0, arg1 common.Hash) (bool, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IsDescendantOf", arg0, arg1)
-	ret0, _ := ret[0].(bool)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// IsDescendantOf indicates an expected call of IsDescendantOf.
-func (mr *MockBlockStateMockRecorder) IsDescendantOf(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsDescendantOf", reflect.TypeOf((*MockBlockState)(nil).IsDescendantOf), arg0, arg1)
-}
-
 // LowestCommonAncestor mocks base method.
-func (m *MockBlockState) LowestCommonAncestor(arg0, arg1, arg2 types.Header) (common.Hash, error) {
+func (m *MockBlockState) LowestCommonAncestor(arg0, arg1 common.Hash) (common.Hash, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "LowestCommonAncestor", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "LowestCommonAncestor", arg0, arg1)
 	ret0, _ := ret[0].(common.Hash)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // LowestCommonAncestor indicates an expected call of LowestCommonAncestor.
-func (mr *MockBlockStateMockRecorder) LowestCommonAncestor(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockBlockStateMockRecorder) LowestCommonAncestor(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LowestCommonAncestor", reflect.TypeOf((*MockBlockState)(nil).LowestCommonAncestor), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LowestCommonAncestor", reflect.TypeOf((*MockBlockState)(nil).LowestCommonAncestor), arg0, arg1)
 }
 
 // StoreRuntime mocks base method.

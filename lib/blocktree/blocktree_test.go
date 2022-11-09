@@ -373,7 +373,8 @@ func TestBlockTree_IsDecendantOf(t *testing.T) {
 
 func TestNodeLowestCommonAncestor(t *testing.T) {
 	root := &node{
-		hash: common.Hash{0},
+		hash:   common.Hash{0},
+		number: 0,
 	}
 
 	children := []*node{
@@ -381,11 +382,13 @@ func TestNodeLowestCommonAncestor(t *testing.T) {
 			hash:      common.Hash{1},
 			parent:    root,
 			isPrimary: true,
+			number:    1,
 		},
 		{
 			hash:      common.Hash{2},
 			parent:    root,
 			isPrimary: false,
+			number:    1,
 		},
 	}
 
@@ -394,41 +397,53 @@ func TestNodeLowestCommonAncestor(t *testing.T) {
 			hash:      common.Hash{3},
 			parent:    children[0],
 			isPrimary: true,
+			number:    2,
 		},
 		{
 			hash:      common.Hash{4},
 			parent:    children[1],
 			isPrimary: false,
+			number:    2,
+		},
+	}
+	finalChild := []*node{
+		{
+			hash:      common.Hash{5},
+			parent:    childrenChildren[1],
+			isPrimary: true,
+			number:    3,
 		},
 	}
 
-	ancestor := children[1].highestCommonAncestor(root)
+	ancestor, err := lowestCommonAncestor(children[1], root)
+	require.NoError(t, err)
 	require.NotNil(t, ancestor)
-	require.Equal(t, ancestor.hash, root.hash)
+	require.Equal(t, root.hash, ancestor)
 
-	ancestor = children[0].highestCommonAncestor(root)
+	ancestor, err = lowestCommonAncestor(children[1], children[1])
+	require.NoError(t, err)
 	require.NotNil(t, ancestor)
-	require.Equal(t, ancestor.hash, root.hash)
+	require.Equal(t, children[1].hash, ancestor)
 
-	ancestor = childrenChildren[0].highestCommonAncestor(root)
+	ancestor, err = lowestCommonAncestor(children[0], children[1])
+	require.NoError(t, err)
 	require.NotNil(t, ancestor)
-	require.Equal(t, ancestor.hash, root.hash)
+	require.Equal(t, root.hash, ancestor)
 
-	ancestor = childrenChildren[1].highestCommonAncestor(root)
+	ancestor, err = lowestCommonAncestor(children[0], childrenChildren[0])
+	require.NoError(t, err)
 	require.NotNil(t, ancestor)
-	require.Equal(t, ancestor.hash, root.hash)
+	require.Equal(t, children[0].hash, ancestor)
 
-	// ancestor = root.highestCommonAncestor(children[0])
-	// require.NotNil(t, ancestor)
-	// require.Equal(t, ancestor.hash, root.hash)
-
-	// ancestor = root.highestCommonAncestor(children[1])
-	// require.NotNil(t, ancestor)
-	// require.Equal(t, ancestor.hash, root.hash)
-
-	ancestor = children[0].highestCommonAncestor(children[1])
+	ancestor, err = lowestCommonAncestor(root, childrenChildren[0])
+	require.NoError(t, err)
 	require.NotNil(t, ancestor)
-	require.Equal(t, ancestor.hash, root.hash)
+	require.Equal(t, root.hash, ancestor)
+
+	ancestor, err = lowestCommonAncestor(finalChild[0], childrenChildren[0])
+	require.NoError(t, err)
+	require.NotNil(t, ancestor)
+	require.Equal(t, root.hash, ancestor)
 }
 
 func TestBlockTree_HighestCommonAncestor(t *testing.T) {
@@ -449,7 +464,7 @@ func TestBlockTree_HighestCommonAncestor(t *testing.T) {
 	a := leaves[0]
 	b := leaves[1]
 
-	p, err := bt.HighestCommonAncestor(a, b)
+	p, err := bt.LowestCommonAncestor(a, b)
 	require.NoError(t, err)
 	require.Equal(t, expected, p)
 }
@@ -460,7 +475,7 @@ func TestBlockTree_HighestCommonAncestor_SameNode(t *testing.T) {
 
 	a := leaves[0]
 
-	p, err := bt.HighestCommonAncestor(a, a)
+	p, err := bt.LowestCommonAncestor(a, a)
 	require.NoError(t, err)
 	require.Equal(t, a, p)
 }
@@ -473,7 +488,7 @@ func TestBlockTree_HighestCommonAncestor_SameChain(t *testing.T) {
 	b := bt.getNode(a).parent.hash
 
 	// b is a's parent, so their highest common Ancestor is b.
-	p, err := bt.HighestCommonAncestor(a, b)
+	p, err := bt.LowestCommonAncestor(a, b)
 	require.NoError(t, err)
 	require.Equal(t, b, p)
 }

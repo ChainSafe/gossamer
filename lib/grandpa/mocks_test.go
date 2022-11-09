@@ -310,21 +310,6 @@ func (mr *MockBlockStateMockRecorder) HasJustification(arg0 interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasJustification", reflect.TypeOf((*MockBlockState)(nil).HasJustification), arg0)
 }
 
-// HighestCommonAncestor mocks base method.
-func (m *MockBlockState) HighestCommonAncestor(arg0, arg1 common.Hash) (common.Hash, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HighestCommonAncestor", arg0, arg1)
-	ret0, _ := ret[0].(common.Hash)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// HighestCommonAncestor indicates an expected call of HighestCommonAncestor.
-func (mr *MockBlockStateMockRecorder) HighestCommonAncestor(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HighestCommonAncestor", reflect.TypeOf((*MockBlockState)(nil).HighestCommonAncestor), arg0, arg1)
-}
-
 // IsDescendantOf mocks base method.
 func (m *MockBlockState) IsDescendantOf(arg0, arg1 common.Hash) (bool, error) {
 	m.ctrl.T.Helper()
@@ -352,6 +337,21 @@ func (m *MockBlockState) Leaves() []common.Hash {
 func (mr *MockBlockStateMockRecorder) Leaves() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Leaves", reflect.TypeOf((*MockBlockState)(nil).Leaves))
+}
+
+// LowestCommonAncestor mocks base method.
+func (m *MockBlockState) LowestCommonAncestor(arg0, arg1 common.Hash) (common.Hash, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "LowestCommonAncestor", arg0, arg1)
+	ret0, _ := ret[0].(common.Hash)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// LowestCommonAncestor indicates an expected call of LowestCommonAncestor.
+func (mr *MockBlockStateMockRecorder) LowestCommonAncestor(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LowestCommonAncestor", reflect.TypeOf((*MockBlockState)(nil).LowestCommonAncestor), arg0, arg1)
 }
 
 // SetFinalisedHash mocks base method.

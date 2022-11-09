@@ -72,10 +72,7 @@ type BlockState interface {
 	HandleRuntimeChanges(newState *rtstorage.TrieState, in runtime.Instance, bHash common.Hash) error
 	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
 	StoreRuntime(common.Hash, runtime.Instance)
-	GetHighestFinalisedHeader() (*types.Header, error)
-	LowestCommonAncestor(a, b, highestFinalized types.Header) (common.Hash, error)
-	GetHeader(hash common.Hash) (header *types.Header, err error)
-	IsDescendantOf(parent, child common.Hash) (bool, error)
+	LowestCommonAncestor(a, b common.Hash) (common.Hash, error)
 }
 
 // StorageState interface for storage state methods

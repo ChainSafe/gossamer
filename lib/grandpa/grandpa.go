@@ -893,7 +893,7 @@ func (s *Service) getBestFinalCandidate() (*Vote, error) {
 
 		if !isDescendant {
 			// find common ancestor, implicitly has >2/3 votes
-			pred, err := s.blockState.HighestCommonAncestor(h, prevoted.Hash)
+			pred, err := s.blockState.LowestCommonAncestor(h, prevoted.Hash)
 			if err != nil {
 				return nil, err
 			}
@@ -1061,7 +1061,7 @@ func (s *Service) getPossibleSelectedAncestors(votes []Vote, curr common.Hash,
 		}
 
 		// find common ancestor, check if votes for it is >threshold or not
-		pred, err := s.blockState.HighestCommonAncestor(v.Hash, curr)
+		pred, err := s.blockState.LowestCommonAncestor(v.Hash, curr)
 		if errors.Is(err, blocktree.ErrNodeNotFound) {
 			continue
 		} else if err != nil {

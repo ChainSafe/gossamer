@@ -567,8 +567,8 @@ func (bs *BlockState) HighestCommonAncestor(a, b common.Hash) (common.Hash, erro
 }
 
 // LowestCommonAncestor returns the block with the highest number that is an ancestor of both a and b
-func (bs *BlockState) LowestCommonAncestor(a, b, highestFinalized types.Header) (common.Hash, error) {
-	return bs.bt.LowestCommonAncestor(a, b, highestFinalized)
+func (bs *BlockState) LowestCommonAncestor(a, b common.Hash) (common.Hash, error) {
+	return bs.bt.LowestCommonAncestor(a, b)
 }
 
 // Leaves returns the leaves of the blocktree as an array
