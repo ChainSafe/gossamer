@@ -49,6 +49,7 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 					timeout:     2 * time.Second,
 					stopCh:      make(chan struct{}),
 					handlerDone: make(chan struct{}),
+					errorCh:     make(chan error),
 				}
 			},
 		},
@@ -82,6 +83,7 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 					timeout:     2 * time.Second,
 					stopCh:      make(chan struct{}),
 					handlerDone: make(chan struct{}),
+					errorCh:     make(chan error),
 				}
 			},
 		},
@@ -126,6 +128,7 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 					timeout:     2 * time.Second,
 					stopCh:      make(chan struct{}),
 					handlerDone: make(chan struct{}),
+					errorCh:     make(chan error),
 				}
 			},
 		},
@@ -170,6 +173,7 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 					timeout:     2 * time.Second,
 					stopCh:      make(chan struct{}),
 					handlerDone: make(chan struct{}),
+					errorCh:     make(chan error),
 				}
 			},
 		},
@@ -232,22 +236,23 @@ func Test_FinalizationHandler_Stop_ShouldHalt_Services(t *testing.T) {
 		timeout:       2 * time.Second,
 		stopCh:        make(chan struct{}),
 		handlerDone:   make(chan struct{}),
+		errorCh:       make(chan error),
 	}
 
 	doneCh := make(chan struct{})
-	errsCh, err := handler.Start()
+	errorCh, err := handler.Start()
 	require.NoError(t, err)
 
 	go func() {
 		defer close(doneCh)
-		for err := range errsCh {
+		for err := range errorCh {
 			t.Errorf("expected no error, got %s", err)
 			return
 		}
 	}()
 
 	// wait enough time to start subservices
-	<-time.After(5 * time.Second)
+	time.Sleep(5 * time.Second)
 	err = handler.Stop()
 	require.NoError(t, err)
 

@@ -330,7 +330,7 @@ func (s *Service) initiateRound() error {
 // initiate initates the grandpa service to begin voting in sequential rounds
 func (s *Service) initiate() error {
 	finalizationHandler := newFinalizationHandler(s)
-	errsCh, err := finalizationHandler.Start()
+	errorCh, err := finalizationHandler.Start()
 	if err != nil {
 		return fmt.Errorf("starting finalisation handler: %w", err)
 	}
@@ -339,7 +339,7 @@ func (s *Service) initiate() error {
 		select {
 		case <-s.ctx.Done():
 			return finalizationHandler.Stop()
-		case err := <-errsCh:
+		case err := <-errorCh:
 			return err
 		}
 	}

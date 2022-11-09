@@ -30,6 +30,7 @@ type finalizationHandler struct {
 
 	stopCh      chan struct{}
 	handlerDone chan struct{}
+	errorCh     chan error
 }
 
 func newFinalizationHandler(service *Service) *finalizationHandler {
@@ -49,18 +50,20 @@ func newFinalizationHandler(service *Service) *finalizationHandler {
 		initiateRound: service.initiateRound,
 		stopCh:        make(chan struct{}),
 		handlerDone:   make(chan struct{}),
+		errorCh:       make(chan error),
 	}
 }
 
-func (fh *finalizationHandler) Start() (errsCh <-chan error, err error) {
-	observableErrs := make(chan error)
-	go fh.start(observableErrs)
-	return observableErrs, nil
+func (fh *finalizationHandler) Start() (errorCh <-chan error, err error) {
+	go fh.start()
+	return fh.errorCh, nil
 }
 
-func (fh *finalizationHandler) start(observableErrs chan error) {
-	defer close(observableErrs)
-	defer close(fh.handlerDone)
+func (fh *finalizationHandler) start() {
+	defer func() {
+		close(fh.errorCh)
+		close(fh.handlerDone)
+	}()
 
 	for {
 		select {
@@ -71,13 +74,13 @@ func (fh *finalizationHandler) start(observableErrs chan error) {
 
 		err := fh.initiateRound()
 		if err != nil {
-			observableErrs <- fmt.Errorf("initiating round: %w", err)
+			fh.errorCh <- fmt.Errorf("initiating round: %w", err)
 			return
 		}
 
 		err = fh.waitServices()
 		if err != nil {
-			observableErrs <- fmt.Errorf("waiting for services: %w", err)
+			fh.errorCh <- fmt.Errorf("waiting for services: %w", err)
 			return
 		}
 	}
@@ -102,10 +105,10 @@ func (fh *finalizationHandler) stop() (err error) {
 		votingRoundErrCh <- fh.votingRound.Stop()
 	}()
 
-	stopWg.Wait()
-
 	finalizationEngErr := <-finalizationEngineErrCh
 	votingRoundErr := <-votingRoundErrCh
+
+	stopWg.Wait()
 
 	if finalizationEngErr != nil && votingRoundErr != nil {
 		return fmt.Errorf("%w: %s; %s", errServicesStopFailed, finalizationEngErr, votingRoundErr)
@@ -120,15 +123,14 @@ func (fh *finalizationHandler) stop() (err error) {
 	}
 
 	return nil
-
 }
 
 func (fh *finalizationHandler) Stop() (err error) {
 	close(fh.stopCh)
-
-	err = fh.stop()
+	<-fh.errorCh
 	<-fh.handlerDone
 
+	err = fh.stop()
 	return err
 }
 
@@ -156,9 +158,11 @@ func (fh *finalizationHandler) waitServices() error {
 	for {
 		select {
 		case <-fh.stopCh:
+			fmt.Printf("waiting services should stop\n")
 			return nil
 
 		case err := <-votingRoundErr:
+			fmt.Printf("waiting services got an err: %s\n", err)
 			if err == nil {
 				votingRoundErr = nil
 				// go out from the select case
