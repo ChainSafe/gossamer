@@ -9,7 +9,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/internal/trie/codec"
 	"github.com/ChainSafe/gossamer/internal/trie/node"
-	"github.com/ChainSafe/gossamer/internal/trie/pools"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
@@ -196,10 +195,7 @@ func (t *Trie) MustHash() common.Hash {
 
 // Hash returns the hashed root of the trie.
 func (t *Trie) Hash() (rootHash common.Hash, err error) {
-	buffer := pools.EncodingBuffers.Get().(*bytes.Buffer)
-	buffer.Reset()
-	defer pools.EncodingBuffers.Put(buffer)
-
+	buffer := bytes.NewBuffer(nil)
 	err = encodeRoot(t.root, buffer)
 	if err != nil {
 		return [32]byte{}, err
