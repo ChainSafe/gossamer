@@ -25,7 +25,6 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 			branchDecoded: &Node{
 				Key:      []byte{},
 				Children: make([]*Node, ChildrenCapacity),
-				Dirty:    true,
 			},
 		},
 		"branch with key 5": {
@@ -36,7 +35,6 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 			branchDecoded: &Node{
 				Key:      []byte{5},
 				Children: make([]*Node, ChildrenCapacity),
-				Dirty:    true,
 			},
 		},
 		"branch with two bytes key": {
@@ -47,7 +45,6 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 			branchDecoded: &Node{
 				Key:      []byte{0xf, 0xa},
 				Children: make([]*Node, ChildrenCapacity),
-				Dirty:    true,
 			},
 		},
 		"branch with child leaf inline": {
@@ -67,10 +64,8 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 					{
 						Key:      []byte{9},
 						SubValue: []byte{10},
-						Dirty:    true,
 					},
 				}),
-				Dirty: true,
 			},
 		},
 		"branch with child leaf hash": {
@@ -93,7 +88,6 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 							14, 15, 16, 17,
 							10, 11, 12, 13,
 						},
-						Dirty: true,
 					},
 				}),
 			},
@@ -110,10 +104,8 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 							21, 186, 226, 204, 145,
 							132, 5, 39, 204,
 						},
-						Dirty: true,
 					},
 				}),
-				Dirty:       true,
 				Descendants: 1,
 			},
 		},

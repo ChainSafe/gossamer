@@ -66,7 +66,6 @@ func Decode(reader io.Reader) (n *Node, err error) {
 func decodeBranch(reader io.Reader, variant byte, partialKeyLength uint16) (
 	node *Node, err error) {
 	node = &Node{
-		Dirty:    true,
 		Children: make([]*Node, ChildrenCapacity),
 	}
 
@@ -105,7 +104,6 @@ func decodeBranch(reader io.Reader, variant byte, partialKeyLength uint16) (
 		const hashLength = 32
 		childNode := &Node{
 			MerkleValue: hash,
-			Dirty:       true,
 		}
 		if len(hash) < hashLength {
 			// Handle inlined nodes
@@ -126,9 +124,7 @@ func decodeBranch(reader io.Reader, variant byte, partialKeyLength uint16) (
 
 // decodeLeaf reads from a reader and decodes to a leaf node.
 func decodeLeaf(reader io.Reader, partialKeyLength uint16) (node *Node, err error) {
-	node = &Node{
-		Dirty: true,
-	}
+	node = &Node{}
 
 	node.Key, err = decodeKey(reader, partialKeyLength)
 	if err != nil {

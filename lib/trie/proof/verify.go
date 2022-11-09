@@ -98,6 +98,10 @@ func buildTrie(encodedProofNodes [][]byte, rootHash []byte) (t *trie.Trie, err e
 		if err != nil {
 			return nil, fmt.Errorf("decoding root node: %w", err)
 		}
+		// The built proof trie is not used with a database, but just in case
+		// it becomes used with a database in the future, we set the dirty flag
+		// to true.
+		root.Dirty = true
 	}
 
 	if root == nil {
@@ -135,7 +139,12 @@ func loadProof(digestToEncoding map[string][]byte, n *node.Node) (err error) {
 		encoding, ok := digestToEncoding[string(merkleValue)]
 		if !ok {
 			inlinedChild := len(child.SubValue) > 0 || child.HasChild()
-			if !inlinedChild {
+			if inlinedChild {
+				// The built proof trie is not used with a database, but just in case
+				// it becomes used with a database in the future, we set the dirty flag
+				// to true.
+				child.Dirty = true
+			} else {
 				// hash not found and the child is not inlined,
 				// so clear the child from the branch.
 				branch.Descendants -= 1 + child.Descendants
@@ -153,6 +162,11 @@ func loadProof(digestToEncoding map[string][]byte, n *node.Node) (err error) {
 			return fmt.Errorf("decoding child node for hash digest 0x%x: %w",
 				merkleValue, err)
 		}
+
+		// The built proof trie is not used with a database, but just in case
+		// it becomes used with a database in the future, we set the dirty flag
+		// to true.
+		child.Dirty = true
 
 		branch.Children[i] = child
 		branch.Descendants += child.Descendants
