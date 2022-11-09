@@ -265,7 +265,7 @@ func (h *handleVotingRound) Start() (err error) {
 					h.grandpaService.prevotes.Store(h.grandpaService.publicKeyBytes(), signedpreVote)
 				}
 
-				logger.Warnf("sending pre-vote message: {%v}", prevoteMessage)
+				logger.Debugf("sending pre-vote message: {%v}", prevoteMessage)
 				h.grandpaService.sendPrevoteMessage(prevoteMessage)
 
 			case determinePrecommit:
@@ -280,7 +280,7 @@ func (h *handleVotingRound) Start() (err error) {
 					return fmt.Errorf("creating signed vote: %w", err)
 				}
 
-				logger.Warnf("sending pre-commit message: {%v}", precommitMessage)
+				logger.Debugf("sending pre-commit message: {%v}", precommitMessage)
 				h.grandpaService.precommits.Store(h.grandpaService.publicKeyBytes(), signedpreComit)
 				h.grandpaService.sendPrecommitMessage(precommitMessage)
 
@@ -297,7 +297,6 @@ func (h *handleVotingRound) Start() (err error) {
 				}
 
 				logger.Debugf("sending commit message: %v", commitMessage)
-
 				h.grandpaService.network.GossipMessage(commitConsensusMessage)
 				h.grandpaService.telemetry.SendMessage(telemetry.NewAfgFinalizedBlocksUpTo(
 					h.grandpaService.head.Hash(),
