@@ -149,9 +149,9 @@ func Test_FinalizationHandler_Stop_ShouldHalt_Services(t *testing.T) {
 	t.Parallel()
 
 	testcases := map[string]struct {
-		sentinelErr error
-		wantErr     string
-		newHandler  func(t *testing.T) *finalizationHandler
+		wantErr    error
+		errString  string
+		newHandler func(t *testing.T) *finalizationHandler
 	}{
 		"halt_ephemeral_services_after_calling_stop": {
 			// when we start the finalisation handler we instantiate
@@ -198,8 +198,8 @@ func Test_FinalizationHandler_Stop_ShouldHalt_Services(t *testing.T) {
 			},
 		},
 		"halt_fails_to_stop_one_ephemeral_service": {
-			sentinelErr: errServicesStopFailed,
-			wantErr:     "services stop failed: cannot stop finalisation engine test",
+			wantErr:   errServicesStopFailed,
+			errString: "services stop failed: cannot stop finalisation engine test",
 			newHandler: func(t *testing.T) *finalizationHandler {
 				ctrl := gomock.NewController(t)
 				builder := func() (engine ephemeralService, voting ephemeralService) {
@@ -241,8 +241,8 @@ func Test_FinalizationHandler_Stop_ShouldHalt_Services(t *testing.T) {
 		},
 
 		"halt_fails_to_stop_both_ephemeral_service": {
-			sentinelErr: errServicesStopFailed,
-			wantErr: "services stop failed: cannot stop finalisation engine test; " +
+			wantErr: errServicesStopFailed,
+			errString: "services stop failed: cannot stop finalisation engine test; " +
 				"cannot stop voting handler test",
 			newHandler: func(t *testing.T) *finalizationHandler {
 				ctrl := gomock.NewController(t)
@@ -299,9 +299,9 @@ func Test_FinalizationHandler_Stop_ShouldHalt_Services(t *testing.T) {
 			// and then call stop
 			time.Sleep(2 * time.Second)
 			err = handler.Stop()
-			require.ErrorIs(t, err, tt.sentinelErr)
-			if tt.wantErr != "" {
-				require.EqualError(t, err, tt.wantErr)
+			require.ErrorIs(t, err, tt.wantErr)
+			if tt.errString != "" {
+				require.EqualError(t, err, tt.errString)
 			}
 
 			// since we are stopping the finalisation handler we expect
