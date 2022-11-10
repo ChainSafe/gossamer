@@ -29,7 +29,6 @@ type finalizationHandler struct {
 
 	stopCh      chan struct{}
 	handlerDone chan struct{}
-	errorCh     chan error
 }
 
 func newFinalizationHandler(service *Service) *finalizationHandler {
@@ -47,18 +46,19 @@ func newFinalizationHandler(service *Service) *finalizationHandler {
 		initiateRound: service.initiateRound,
 		stopCh:        make(chan struct{}),
 		handlerDone:   make(chan struct{}),
-		errorCh:       make(chan error),
 	}
 }
 
-func (fh *finalizationHandler) Start() (errorCh <-chan error, err error) {
-	go fh.start()
-	return fh.errorCh, nil
+func (fh *finalizationHandler) Start() (<-chan error, error) {
+	errorCh := make(chan error)
+	go fh.run(errorCh)
+
+	return errorCh, nil
 }
 
-func (fh *finalizationHandler) start() {
+func (fh *finalizationHandler) run(errorCh chan<- error) {
 	defer func() {
-		close(fh.errorCh)
+		close(errorCh)
 		close(fh.handlerDone)
 	}()
 
@@ -71,13 +71,13 @@ func (fh *finalizationHandler) start() {
 
 		err := fh.initiateRound()
 		if err != nil {
-			fh.errorCh <- fmt.Errorf("initiating round: %w", err)
+			errorCh <- fmt.Errorf("initiating round: %w", err)
 			return
 		}
 
-		err = fh.waitServices()
+		err = fh.runEphemeralServices()
 		if err != nil {
-			fh.errorCh <- fmt.Errorf("waiting for services: %w", err)
+			errorCh <- fmt.Errorf("waiting for services: %w", err)
 			return
 		}
 	}
@@ -116,26 +116,19 @@ func (fh *finalizationHandler) stop() (err error) {
 }
 
 func (fh *finalizationHandler) Stop() (err error) {
-	// even though we close the `stopCh` we might
-	// we drain the `errorCh` since an ephemeral service
-	// could failed in the mean time the caller calls the
-	// Stop method hanging here as it will blocks to write
-	// into the channel since there is no channel reader
 	close(fh.stopCh)
-	<-fh.errorCh
 	<-fh.handlerDone
 
-	err = fh.stop()
-	return err
+	return fh.stop()
 }
 
-// waitServices will start the ephemeral services that handles the
-// votes for the current round and once those services finishes the
-// waitServices return without errors, if one ephemeral service face
-// a problem the waitServices will shut down all the running ephemeral
-// services and return an error, this function also returns if the
-// finalizationHandler.Stop() method is called
-func (fh *finalizationHandler) waitServices() error {
+// runEphemeralServices starts the two ephemeral services that handle the
+// votes for the current round, and returns with nil when the two
+// service runs succeed.
+// If any service run fails, the other service run is stopped and
+// an error is returned. The function returns nil is the finalisation
+// handler is stopped.
+func (fh *finalizationHandler) runEphemeralServices() error {
 	fh.servicesLock.Lock()
 	fh.finalizationEngine, fh.votingRound = fh.newServices()
 	fh.servicesLock.Unlock()
@@ -162,9 +155,9 @@ func (fh *finalizationHandler) waitServices() error {
 				break
 			}
 
-			stopErr := fh.stop()
+			stopErr := fh.finalizationEngine.Stop()
 			if stopErr != nil {
-				logger.Warnf("stopping finalisation handler: %s", stopErr)
+				logger.Warnf("stopping finalisation engine: %s", stopErr)
 			}
 			return err
 
@@ -175,9 +168,9 @@ func (fh *finalizationHandler) waitServices() error {
 				break
 			}
 
-			stopErr := fh.stop()
+			stopErr := fh.votingRound.Stop()
 			if stopErr != nil {
-				logger.Warnf("stopping finalisation handler: %s", stopErr)
+				logger.Warnf("stopping voting round: %s", stopErr)
 			}
 			return err
 		}

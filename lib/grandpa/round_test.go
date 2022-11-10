@@ -577,7 +577,7 @@ func runFinalizationServices(t *testing.T, grandpaServices []*Service) {
 	for _, handler := range finalizationHandlers {
 		go func(t *testing.T, handler *finalizationHandler) {
 			defer handlersWg.Done()
-			err := handler.waitServices()
+			err := handler.runEphemeralServices()
 			assert.NoError(t, err)
 		}(t, handler)
 	}
@@ -824,7 +824,7 @@ func TestSendingVotesInRightStage(t *testing.T) {
 		t.Helper()
 
 		finalizationHandler := newFinalizationHandler(grandpa)
-		err := finalizationHandler.waitServices()
+		err := finalizationHandler.runEphemeralServices()
 		require.NoError(t, err)
 	}()
 

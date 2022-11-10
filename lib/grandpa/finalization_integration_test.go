@@ -46,7 +46,6 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 					newServices: builder,
 					stopCh:      make(chan struct{}),
 					handlerDone: make(chan struct{}),
-					errorCh:     make(chan error),
 				}
 			},
 		},
@@ -85,7 +84,6 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 					newServices: builder,
 					stopCh:      make(chan struct{}),
 					handlerDone: make(chan struct{}),
-					errorCh:     make(chan error),
 				}
 			},
 		},
@@ -124,7 +122,6 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 					newServices: builder,
 					stopCh:      make(chan struct{}),
 					handlerDone: make(chan struct{}),
-					errorCh:     make(chan error),
 				}
 			},
 		},
@@ -139,7 +136,7 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			finalizationHandler := tt.createFinalizationHandler(ctrl)
 
-			err := finalizationHandler.waitServices()
+			err := finalizationHandler.runEphemeralServices()
 			require.ErrorIs(t, err, tt.wantErr)
 		})
 	}
@@ -193,7 +190,6 @@ func Test_FinalizationHandler_Stop_ShouldHalt_Services(t *testing.T) {
 					initiateRound: func() error { return nil },
 					stopCh:        make(chan struct{}),
 					handlerDone:   make(chan struct{}),
-					errorCh:       make(chan error),
 				}
 			},
 		},
@@ -235,7 +231,6 @@ func Test_FinalizationHandler_Stop_ShouldHalt_Services(t *testing.T) {
 					initiateRound: func() error { return nil },
 					stopCh:        make(chan struct{}),
 					handlerDone:   make(chan struct{}),
-					errorCh:       make(chan error),
 				}
 			},
 		},
@@ -280,7 +275,6 @@ func Test_FinalizationHandler_Stop_ShouldHalt_Services(t *testing.T) {
 					initiateRound: func() error { return nil },
 					stopCh:        make(chan struct{}),
 					handlerDone:   make(chan struct{}),
-					errorCh:       make(chan error),
 				}
 			},
 		},
@@ -307,7 +301,7 @@ func Test_FinalizationHandler_Stop_ShouldHalt_Services(t *testing.T) {
 			// since we are stopping the finalisation handler we expect
 			// the errorCh to be closed without any error
 			err, ok := <-errorCh
-			require.False(t, ok,
+			require.Falsef(t, ok,
 				"expected channel to be closed, got an unexpected error: %s", err)
 		})
 	}
