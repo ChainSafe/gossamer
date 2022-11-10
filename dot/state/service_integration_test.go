@@ -6,7 +6,6 @@
 package state
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -214,10 +213,10 @@ func TestService_StorageTriePruning(t *testing.T) {
 	for _, b := range blocks {
 		_, err := serv.Storage.LoadFromDB(b.Header.StateRoot)
 		if b.Header.Number >= totalBlock-retainBlocks-1 {
-			require.NoError(t, err, fmt.Sprintf("Got error for block %d", b.Header.Number))
+			require.NoErrorf(t, err, "for block %d", b.Header.Number)
 			continue
 		}
-		require.ErrorIs(t, err, chaindb.ErrKeyNotFound, fmt.Sprintf("Expected error for block %d", b.Header.Number))
+		require.ErrorIsf(t, err, chaindb.ErrKeyNotFound, "for block %d", b.Header.Number)
 	}
 }
 
