@@ -70,12 +70,8 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 					engineStopCh := make(chan struct{})
 					mockEngine := NewMockephemeralService(ctrl)
 					mockEngine.EXPECT().Run().DoAndReturn(func() error {
-						select {
-						case <-time.After(failTime + time.Second):
-							return errors.New("timeout waiting engineStopCh")
-						case <-engineStopCh:
-							return nil
-						}
+						<-engineStopCh
+						return nil
 					})
 					mockEngine.EXPECT().Stop().DoAndReturn(func() error {
 						close(engineStopCh)
@@ -113,12 +109,8 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 					votingStopChannel := make(chan struct{})
 					mockVoting := NewMockephemeralService(ctrl)
 					mockVoting.EXPECT().Run().DoAndReturn(func() error {
-						select {
-						case <-time.After(failTime + time.Second):
-							return errors.New("timeout waiting votingStopChannel")
-						case <-votingStopChannel:
-							return nil
-						}
+						<-votingStopChannel
+						return nil
 					})
 					mockVoting.EXPECT().Stop().DoAndReturn(func() error {
 						close(votingStopChannel)
