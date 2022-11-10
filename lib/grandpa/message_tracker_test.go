@@ -210,8 +210,6 @@ func TestMessageTracker_MapInsideMap(t *testing.T) {
 }
 
 func TestMessageTracker_handleTick(t *testing.T) {
-	// TODO: remove this skip once the PR https://github.com/ChainSafe/gossamer/pull/292 merges
-	t.Skip()
 	t.Parallel()
 
 	tests := map[string]struct {
