@@ -561,14 +561,6 @@ func TestPlayGrandpaRoundMultipleRounds(t *testing.T) {
 	}
 }
 
-func runFinalizationService(t *testing.T, grandpaService *Service) {
-	t.Helper()
-
-	finalizationHandler := newFinalizationHandler(grandpaService)
-	err := finalizationHandler.waitServices()
-	require.NoError(t, err)
-}
-
 // runFinalizationServices is designed to handle many grandpa services and starts, for each service,
 // the finalisation engine and the voting round engine which will take care of reach finalisation
 func runFinalizationServices(t *testing.T, grandpaServices []*Service) {
@@ -828,7 +820,12 @@ func TestSendingVotesInRightStage(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		runFinalizationService(t, grandpa)
+
+		t.Helper()
+
+		finalizationHandler := newFinalizationHandler(grandpa)
+		err := finalizationHandler.waitServices()
+		require.NoError(t, err)
 	}()
 
 	time.Sleep(grandpa.interval * 5)

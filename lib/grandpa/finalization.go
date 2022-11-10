@@ -25,7 +25,6 @@ type finalizationHandler struct {
 	votingRound        ephemeralService
 
 	newServices   func() (engine, voting ephemeralService)
-	timeout       time.Duration
 	initiateRound func() error
 
 	stopCh      chan struct{}
@@ -44,9 +43,7 @@ func newFinalizationHandler(service *Service) *finalizationHandler {
 	}
 
 	return &finalizationHandler{
-		newServices: builder,
-
-		timeout:       5 * time.Second,
+		newServices:   builder,
 		initiateRound: service.initiateRound,
 		stopCh:        make(chan struct{}),
 		handlerDone:   make(chan struct{}),
@@ -218,7 +215,6 @@ func (h *handleVotingRound) Stop() (err error) {
 	close(h.stopCh)
 	<-h.engineDone
 
-	h.stopCh = nil
 	return nil
 }
 
@@ -356,7 +352,6 @@ func (f *finalizationEngine) Stop() (err error) {
 	close(f.stopCh)
 	<-f.engineDone
 
-	f.stopCh = nil
 	close(f.actionCh)
 	return nil
 }
