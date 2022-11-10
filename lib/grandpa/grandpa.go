@@ -485,30 +485,30 @@ func (s *Service) attemptToFinalize() (isFinalizable bool, err error) {
 	return true, nil
 }
 
-func (s *Service) sendPrecommitMessage(vm *VoteMessage) {
+func (s *Service) sendPrecommitMessage(vm *VoteMessage) (err error) {
 	logger.Debugf("sending pre-commit message %s...", vm.Message)
 
 	consensusMessage, err := vm.ToConsensusMessage()
 	if err != nil {
-		logger.Errorf("transforming vote message into consensus message: %s", err)
-		return
+		return fmt.Errorf("transforming pre-commit into consensus message: %w", err)
 	}
 
 	s.network.GossipMessage(consensusMessage)
 	logger.Tracef("sent pre-commit message: %v", consensusMessage)
+	return nil
 }
 
-func (s *Service) sendPrevoteMessage(vm *VoteMessage) {
+func (s *Service) sendPrevoteMessage(vm *VoteMessage) (err error) {
 	logger.Debugf("sending pre-vote message %s...", vm)
 
 	consensusMessage, err := vm.ToConsensusMessage()
 	if err != nil {
-		logger.Errorf("transforming vote message into consensus message: %s", err)
-		return
+		return fmt.Errorf("transforming pre-vote into consensus message: %w", err)
 	}
 
 	s.network.GossipMessage(consensusMessage)
 	logger.Tracef("sent pre-vote message: %v", consensusMessage)
+	return nil
 }
 
 func (s *Service) loadVote(key ed25519.PublicKeyBytes, stage Subround) (*SignedVote, bool) {

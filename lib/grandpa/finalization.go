@@ -268,7 +268,10 @@ func (h *handleVotingRound) Run() (err error) {
 				}
 
 				logger.Debugf("sending pre-vote message: {%v}", prevoteMessage)
-				h.grandpaService.sendPrevoteMessage(prevoteMessage)
+				err = h.grandpaService.sendPrevoteMessage(prevoteMessage)
+				if err != nil {
+					logger.Errorf("sending pre-vote message: %s", err)
+				}
 
 			case determinePrecommit:
 				preComit, err := h.grandpaService.determinePreCommit()
@@ -282,9 +285,12 @@ func (h *handleVotingRound) Run() (err error) {
 					return fmt.Errorf("creating signed vote: %w", err)
 				}
 
-				logger.Debugf("sending pre-commit message: {%v}", precommitMessage)
 				h.grandpaService.precommits.Store(h.grandpaService.publicKeyBytes(), signedpreComit)
-				h.grandpaService.sendPrecommitMessage(precommitMessage)
+				logger.Debugf("sending pre-commit message: {%v}", precommitMessage)
+				err = h.grandpaService.sendPrecommitMessage(precommitMessage)
+				if err != nil {
+					logger.Errorf("sending pre-commit message: %s", err)
+				}
 
 			case finalize:
 				commitMessage, err := h.grandpaService.newCommitMessage(
