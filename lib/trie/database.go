@@ -102,7 +102,6 @@ func (t *Trie) Load(db Database, rootHash common.Hash) error {
 	}
 
 	t.root = root
-	t.root.Encoding = encodedNode
 	t.root.MerkleValue = rootHashBytes
 
 	return t.loadNode(db, t.root)
@@ -142,7 +141,6 @@ func (t *Trie) loadNode(db Database, n *Node) error {
 			return fmt.Errorf("decoding node with Merkle value 0x%x: %w", merkleValue, err)
 		}
 
-		decodedNode.Encoding = encodedNode
 		decodedNode.MerkleValue = merkleValue
 		branch.Children[i] = decodedNode
 
