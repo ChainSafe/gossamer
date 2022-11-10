@@ -17,11 +17,14 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
-var leavesGauge = promauto.NewGauge(prometheus.GaugeOpts{
-	Namespace: "gossamer_block",
-	Name:      "leaves_total",
-	Help:      "total number of blocktree leaves",
-})
+var (
+	leavesGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "gossamer_block",
+		Name:      "leaves_total",
+		Help:      "total number of blocktree leaves",
+	})
+	errorAncestorOutOfBoundsCheck = errors.New("out of bounds ancestor check")
+)
 
 // Hash common.Hash
 type Hash = common.Hash
@@ -300,7 +303,9 @@ func (bt *BlockTree) Leaves() []Hash {
 
 // LowestCommonAncestor returns the lowest common ancestor between two blocks in the tree.
 func (bt *BlockTree) LowestCommonAncestor(a, b Hash) (Hash, error) {
-	// Get nodes to iterate through
+	bt.RLock()
+	defer bt.RUnlock()
+
 	aNode := bt.getNode(a)
 	if aNode == nil {
 		return common.Hash{}, ErrNodeNotFound
@@ -313,35 +318,35 @@ func (bt *BlockTree) LowestCommonAncestor(a, b Hash) (Hash, error) {
 	return lowestCommonAncestor(aNode, bNode)
 }
 func lowestCommonAncestor(aNode, bNode *node) (Hash, error) {
-	// balance out block height to compare
-	aNum := aNode.number
-	bNum := bNode.number
-	if aNum > bNum {
-		diff := aNum - bNum
-		if diff > aNum {
-			return common.Hash{}, errors.New("out of bounds ancestor check")
+	var higherNode *node
+	var lowerNode *node
+	if aNode.number > bNode.number {
+		higherNode = aNode
+		lowerNode = bNode
+	} else {
+		higherNode = bNode
+		lowerNode = aNode
+	}
+
+	higherNum := higherNode.number
+	lowerNum := lowerNode.number
+	diff := higherNum - lowerNum
+	for diff > 0 {
+		if higherNode.parent == nil {
+			return common.Hash{}, fmt.Errorf("%w: for block number %v", errorAncestorOutOfBoundsCheck, higherNum)
 		}
-		for diff > 0 {
-			aNode = aNode.parent
-			diff--
-		}
-	} else if bNum > aNum {
-		diff := bNum - aNum
-		if diff > bNum {
-			return common.Hash{}, errors.New("out of bounds ancestor check")
-		}
-		for diff > 0 {
-			bNode = bNode.parent
-			diff--
-		}
+		higherNode = higherNode.parent
+		diff--
 	}
 
 	for {
-		if aNode.hash == bNode.hash {
-			return aNode.hash, nil
+		if higherNode.hash == lowerNode.hash {
+			return higherNode.hash, nil
+		} else if higherNode.parent == nil || lowerNode.parent == nil {
+			return common.Hash{}, fmt.Errorf("%w: for block number %v", errorAncestorOutOfBoundsCheck, higherNum)
 		}
-		aNode = aNode.parent
-		bNode = bNode.parent
+		higherNode = higherNode.parent
+		lowerNode = lowerNode.parent
 	}
 }
 
