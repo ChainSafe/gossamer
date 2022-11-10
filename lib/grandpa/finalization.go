@@ -15,7 +15,7 @@ import (
 var (
 	errServicesStopFailed       = errors.New("services stop failed")
 	errHandleVotingRoundFailed  = errors.New("voting round ephemeral failed")
-	errFinalizationEngineFailed = errors.New("finalization engine ephemeral failed")
+	errFinalizationEngineFailed = errors.New("finalisation engine ephemeral failed")
 )
 
 type ephemeralService interface {
