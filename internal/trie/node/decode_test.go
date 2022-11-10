@@ -327,11 +327,22 @@ func Test_decodeLeaf(t *testing.T) {
 			errWrapped:       ErrDecodeValue,
 			errMessage:       "cannot decode value: unknown prefix for compact uint: 255",
 		},
-		"zero value": {
+		"missing value data": {
 			reader: bytes.NewBuffer([]byte{
 				9, // key data
 				// missing value data
 			}),
+			variant:          leafVariant.bits,
+			partialKeyLength: 1,
+			leaf: &Node{
+				Key: []byte{9},
+			},
+		},
+		"empty value data": {
+			reader: bytes.NewBuffer(concatByteSlices([][]byte{
+				{9}, // key data
+				scaleEncodeByteSlice(t, nil),
+			})),
 			variant:          leafVariant.bits,
 			partialKeyLength: 1,
 			leaf: &Node{
