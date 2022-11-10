@@ -102,15 +102,12 @@ func (fh *finalizationHandler) stop() (err error) {
 	finalizationEngErr := <-finalizationEngineErrCh
 	votingRoundErr := <-votingRoundErrCh
 
-	if finalizationEngErr != nil && votingRoundErr != nil {
+	switch {
+	case finalizationEngErr != nil && votingRoundErr != nil:
 		return fmt.Errorf("%w: %s; %s", errServicesStopFailed, finalizationEngErr, votingRoundErr)
-	}
-
-	if finalizationEngErr != nil {
+	case finalizationEngErr != nil:
 		return fmt.Errorf("%w: %s", errServicesStopFailed, finalizationEngErr)
-	}
-
-	if votingRoundErr != nil {
+	case votingRoundErr != nil:
 		return fmt.Errorf("%w: %s", errServicesStopFailed, votingRoundErr)
 	}
 
