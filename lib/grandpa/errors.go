@@ -72,9 +72,6 @@ var (
 	// ErrCatchUpResponseNotCompletable is returned when the round represented by the catch up response is not completable
 	ErrCatchUpResponseNotCompletable = errors.New("catch up response is not completable")
 
-	// ErrServicePaused is returned if the service is paused and waiting for catch up messages
-	ErrServicePaused = errors.New("service is paused")
-
 	// ErrPrecommitSignatureMismatch is returned when the number of precommits
 	// and signatures in a CommitMessage do not match
 	ErrPrecommitSignatureMismatch = errors.New("number of precommits does not match number of signatures")

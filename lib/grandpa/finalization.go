@@ -12,7 +12,11 @@ import (
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 )
 
-var errServicesStopFailed = errors.New("services stop failed")
+var (
+	errServicesStopFailed       = errors.New("services stop failed")
+	errHandleVotingRoundFailed  = errors.New("voting round ephemeral failed")
+	errFinalizationEngineFailed = errors.New("finalization engine ephemeral failed")
+)
 
 type ephemeralService interface {
 	Run() error
@@ -24,6 +28,9 @@ type finalizationHandler struct {
 	finalizationEngine ephemeralService
 	votingRound        ephemeralService
 
+	// newServices is a constructor function which takes care to instantiate
+	// and return the services needed to finalize a round, those services
+	// are ephemeral services with a lifetime of a round
 	newServices   func() (engine, voting ephemeralService)
 	initiateRound func() error
 
@@ -32,17 +39,12 @@ type finalizationHandler struct {
 }
 
 func newFinalizationHandler(service *Service) *finalizationHandler {
-	// builder is a constructor function which takes care to instantiate
-	// and return the services needed to finalize a round, those services
-	// are ephemeral services with a lifetime of a round
-	builder := func() (engine, voting ephemeralService) {
-		finalizationEngine := newFinalizationEngine(service)
-		votingRound := newHandleVotingRound(service, finalizationEngine.actionCh)
-		return finalizationEngine, votingRound
-	}
-
 	return &finalizationHandler{
-		newServices:   builder,
+		newServices: func() (engine, voting ephemeralService) {
+			finalizationEngine := newFinalizationEngine(service)
+			votingRound := newHandleVotingRound(service, finalizationEngine.actionCh)
+			return finalizationEngine, votingRound
+		},
 		initiateRound: service.initiateRound,
 		stopCh:        make(chan struct{}),
 		handlerDone:   make(chan struct{}),
@@ -159,7 +161,7 @@ func (fh *finalizationHandler) runEphemeralServices() error {
 			if stopErr != nil {
 				logger.Warnf("stopping finalisation engine: %s", stopErr)
 			}
-			return err
+			return fmt.Errorf("%w: %s", errHandleVotingRoundFailed, err)
 
 		case err := <-finalizationEngineErr:
 			if err == nil {
@@ -172,7 +174,8 @@ func (fh *finalizationHandler) runEphemeralServices() error {
 			if stopErr != nil {
 				logger.Warnf("stopping voting round: %s", stopErr)
 			}
-			return err
+
+			return fmt.Errorf("%w: %s", errFinalizationEngineFailed, err)
 		}
 
 		finish := votingRoundErr == nil && finalizationEngineErr == nil
@@ -201,10 +204,6 @@ func newHandleVotingRound(service *Service, finalizationEngineCh <-chan engineAc
 }
 
 func (h *handleVotingRound) Stop() (err error) {
-	if h.engineDone == nil {
-		return nil
-	}
-
 	close(h.stopCh)
 	<-h.engineDone
 
@@ -227,11 +226,7 @@ func (h *handleVotingRound) Run() (err error) {
 		case <-h.stopCh:
 			return nil
 
-		case action, ok := <-h.finalizationEngineCh:
-			if !ok {
-				return nil
-			}
-
+		case action := <-h.finalizationEngineCh:
 			switch action {
 			case determinePrevote:
 				isPrimary, err := h.grandpaService.handleIsPrimary()
@@ -239,7 +234,6 @@ func (h *handleVotingRound) Run() (err error) {
 					return fmt.Errorf("handling primary: %w", err)
 				}
 
-				// broadcast pre-vote
 				preVote, err := h.grandpaService.determinePreVote()
 				if err != nil {
 					return fmt.Errorf("determining pre-vote: %w", err)
@@ -258,22 +252,22 @@ func (h *handleVotingRound) Run() (err error) {
 				logger.Debugf("sending pre-vote message: {%v}", prevoteMessage)
 				err = h.grandpaService.sendPrevoteMessage(prevoteMessage)
 				if err != nil {
-					logger.Errorf("sending pre-vote message: %s", err)
+					return fmt.Errorf("sending pre-vote message: %w", err)
 				}
 
 			case determinePrecommit:
-				preComit, err := h.grandpaService.determinePreCommit()
+				preCommit, err := h.grandpaService.determinePreCommit()
 				if err != nil {
 					return fmt.Errorf("determining pre-commit: %w", err)
 				}
 
-				signedpreComit, precommitMessage, err :=
-					h.grandpaService.createSignedVoteAndVoteMessage(preComit, precommit)
+				signedPreCommit, precommitMessage, err :=
+					h.grandpaService.createSignedVoteAndVoteMessage(preCommit, precommit)
 				if err != nil {
 					return fmt.Errorf("creating signed vote: %w", err)
 				}
 
-				h.grandpaService.precommits.Store(h.grandpaService.publicKeyBytes(), signedpreComit)
+				h.grandpaService.precommits.Store(h.grandpaService.publicKeyBytes(), signedPreCommit)
 				logger.Debugf("sending pre-commit message: {%v}", precommitMessage)
 				err = h.grandpaService.sendPrecommitMessage(precommitMessage)
 				if err != nil {
@@ -338,10 +332,6 @@ func newFinalizationEngine(service *Service) *finalizationEngine {
 }
 
 func (f *finalizationEngine) Stop() (err error) {
-	if f.engineDone == nil {
-		return nil
-	}
-
 	close(f.stopCh)
 	<-f.engineDone
 
