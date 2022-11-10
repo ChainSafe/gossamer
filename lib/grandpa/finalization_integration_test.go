@@ -49,39 +49,6 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 			},
 		},
 
-		"engine_finishes_successfully": {
-			createFinalizationHandler: func(ctrl *gomock.Controller) *finalizationHandler {
-				builder := func() (engine ephemeralService, voting ephemeralService) {
-					mockEngine := NewMockephemeralService(ctrl)
-					mockEngine.EXPECT().Run().DoAndReturn(func() error {
-						<-time.NewTimer(3 * time.Second).C
-						return nil
-					})
-					mockEngine.EXPECT().Stop().Return(nil)
-
-					votingStopCh := make(chan struct{})
-					mockVoting := NewMockephemeralService(ctrl)
-					mockVoting.EXPECT().Run().DoAndReturn(func() error {
-						<-votingStopCh
-						return nil
-					})
-					mockVoting.EXPECT().Stop().DoAndReturn(func() error {
-						close(votingStopCh)
-						return nil
-					})
-
-					return mockEngine, mockVoting
-				}
-
-				return &finalizationHandler{
-					newServices: builder,
-					stopCh:      make(chan struct{}),
-					handlerDone: make(chan struct{}),
-					errorCh:     make(chan error),
-				}
-			},
-		},
-
 		"voting_round_fails_should_stop_engine_service": {
 			wantErr: errors.New("mocked voting round fails"),
 			createFinalizationHandler: func(ctrl *gomock.Controller) *finalizationHandler {
