@@ -127,6 +127,25 @@ func Test_Node_Encode(t *testing.T) {
 			bufferBytesCall:  true,
 			expectedEncoding: []byte{1, 2, 3},
 		},
+		"leaf with empty value success": {
+			node: &Node{
+				Key: []byte{1, 2, 3},
+			},
+			writes: []writeCall{
+				{
+					written: []byte{leafVariant.bits | 3}, // partial key length 3
+				},
+				{
+					written: []byte{0x01, 0x23},
+				},
+				{
+					written: []byte{0},
+				},
+			},
+			bufferLenCall:    true,
+			bufferBytesCall:  true,
+			expectedEncoding: []byte{1, 2, 3},
+		},
 		"clean branch with encoding": {
 			node: &Node{
 				Children: make([]*Node, ChildrenCapacity),
@@ -288,6 +307,32 @@ func Test_Node_Encode(t *testing.T) {
 				},
 				{ // value
 					written: []byte{4, 100},
+				},
+				{ // first children
+					written: []byte{16, 65, 9, 4, 1},
+				},
+				{ // second children
+					written: []byte{16, 65, 11, 4, 1},
+				},
+			},
+		},
+		"branch without value and with children success": {
+			node: &Node{
+				Key: []byte{1, 2, 3},
+				Children: []*Node{
+					nil, nil, nil, {Key: []byte{9}, SubValue: []byte{1}},
+					nil, nil, nil, {Key: []byte{11}, SubValue: []byte{1}},
+				},
+			},
+			writes: []writeCall{
+				{ // header
+					written: []byte{branchVariant.bits | 3}, // partial key length 3
+				},
+				{ // key LE
+					written: []byte{0x01, 0x23},
+				},
+				{ // children bitmap
+					written: []byte{136, 0},
 				},
 				{ // first children
 					written: []byte{16, 65, 9, 4, 1},
