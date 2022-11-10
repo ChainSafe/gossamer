@@ -48,7 +48,10 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 
 	switch msg := m.(type) {
 	case *VoteMessage:
-		h.grandpa.handleVoteMessage(from, msg)
+		err := h.grandpa.handleVoteMessage(from, msg)
+		if err != nil {
+			return nil, fmt.Errorf("handling vote message: %w", err)
+		}
 		return nil, nil
 	case *CommitMessage:
 		err := h.grandpa.handleCommitMessage(msg)

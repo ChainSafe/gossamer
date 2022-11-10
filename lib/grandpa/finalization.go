@@ -159,7 +159,6 @@ func (fh *finalizationHandler) waitServices() error {
 			return nil
 
 		case err := <-votingRoundErr:
-			fmt.Printf("waiting services got an err: %s\n", err)
 			if err == nil {
 				votingRoundErr = nil
 				// go out from the select case

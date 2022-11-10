@@ -1157,22 +1157,22 @@ func (s *Service) lenVotes(stage Subround) int {
 	return count
 }
 
-func (s *Service) handleVoteMessage(from peer.ID, vote *VoteMessage) {
+func (s *Service) handleVoteMessage(from peer.ID, vote *VoteMessage) (err error) {
 	logger.Debugf("received vote message, (peer: %s, msg: %+v)", from, vote)
 	s.sendTelemetryVoteMessage(vote)
 
 	v, err := s.validateVoteMessage(from, vote)
 	if err != nil {
-		// TODO: log in the outer most layer and maybe split the erros from the return error string
-		logger.Debugf("failed to validate vote message {%v}: %s", vote, err)
-		return
+		return fmt.Errorf("validating vote message: %w", err)
 	}
 
+	threshold := s.state.threshold() + 1
 	logger.Debugf(
 		"validated vote message %v from %s, round %d, subround %d, "+
 			"prevote count %d, precommit count %d, votes needed %d",
 		v, vote.Message.AuthorityID, vote.Round, vote.Message.Stage,
-		s.lenVotes(prevote), s.lenVotes(precommit), s.state.threshold()+1)
+		s.lenVotes(prevote), s.lenVotes(precommit), threshold)
+	return nil
 }
 
 func (s *Service) handleCommitMessage(commitMessage *CommitMessage) error {
