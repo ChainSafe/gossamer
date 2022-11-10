@@ -17,6 +17,8 @@ import (
 func Test_FinalizationHandler_waitServices(t *testing.T) {
 	t.Parallel()
 
+	mockingErr := errors.New("mocked error")
+
 	tests := map[string]struct {
 		callHandlerStop           bool
 		createFinalizationHandler func(*gomock.Controller) *finalizationHandler
@@ -27,13 +29,13 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 				builder := func() (engine ephemeralService, voting ephemeralService) {
 					mockVoting := NewMockephemeralService(ctrl)
 					mockVoting.EXPECT().Run().DoAndReturn(func() error {
-						<-time.NewTimer(3 * time.Second).C
+						time.Sleep(3 * time.Second)
 						return nil
 					})
 
 					mockEngine := NewMockephemeralService(ctrl)
 					mockEngine.EXPECT().Run().DoAndReturn(func() error {
-						<-time.NewTimer(4 * time.Second).C
+						time.Sleep(4 * time.Second)
 						return nil
 					})
 
@@ -50,15 +52,15 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 		},
 
 		"voting_round_fails_should_stop_engine_service": {
-			wantErr: errors.New("mocked voting round fails"),
+			wantErr: mockingErr,
 			createFinalizationHandler: func(ctrl *gomock.Controller) *finalizationHandler {
 				builder := func() (engine ephemeralService, voting ephemeralService) {
-					failTime := 2 * time.Second
+					const failTime = 2 * time.Second
 
 					mockVoting := NewMockephemeralService(ctrl)
 					mockVoting.EXPECT().Run().DoAndReturn(func() error {
 						time.Sleep(failTime)
-						return errors.New("mocked voting round fails")
+						return mockingErr
 					})
 					mockVoting.EXPECT().Stop().Return(nil)
 
@@ -93,15 +95,15 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 		},
 
 		"engine_fails_should_stop_voting_round_service": {
-			wantErr: errors.New("mocked finalisation engine fails"),
+			wantErr: mockingErr,
 			createFinalizationHandler: func(ctrl *gomock.Controller) *finalizationHandler {
 				builder := func() (engine ephemeralService, voting ephemeralService) {
-					failTime := 2 * time.Second
+					const failTime = 2 * time.Second
 
 					mockEngine := NewMockephemeralService(ctrl)
 					mockEngine.EXPECT().Run().DoAndReturn(func() error {
 						time.Sleep(failTime)
-						return errors.New("mocked finalisation engine fails")
+						return mockingErr
 					})
 					mockEngine.EXPECT().Stop().Return(nil)
 
@@ -146,12 +148,7 @@ func Test_FinalizationHandler_waitServices(t *testing.T) {
 			finalizationHandler := tt.createFinalizationHandler(ctrl)
 
 			err := finalizationHandler.waitServices()
-			if tt.wantErr != nil {
-				require.Error(t, err)
-				require.EqualError(t, err, tt.wantErr.Error())
-			} else {
-				require.NoError(t, err)
-			}
+			require.ErrorIs(t, err, tt.wantErr)
 		})
 	}
 }
