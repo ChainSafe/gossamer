@@ -479,8 +479,7 @@ func Test_lowestCommonAncestor(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			ancestor, err := lowestCommonAncestor(tt.args.nodeA, tt.args.nodeB)
-			assert.ErrorIs(t, err, tt.expErr)
+			ancestor := lowestCommonAncestor(tt.args.nodeA, tt.args.nodeB)
 			require.Equal(t, tt.expRes, ancestor)
 		})
 	}
