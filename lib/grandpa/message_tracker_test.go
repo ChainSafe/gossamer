@@ -228,6 +228,14 @@ func TestMessageTracker_handleTick(t *testing.T) {
 		},
 	}
 	gs.tracker.addVote("", msg)
+	commitMessage := &CommitMessage{
+		Round: 100,
+		Vote: types.GrandpaVote{
+			Hash:   testHash,
+			Number: 0,
+		},
+	}
+	gs.tracker.addCommit(commitMessage)
 
 	gs.tracker.handleTick()
 
@@ -240,4 +248,5 @@ func TestMessageTracker_handleTick(t *testing.T) {
 
 	// should be deleted as round in message < grandpa round
 	require.Empty(t, gs.tracker.votes.messages(testHash))
+	require.Empty(t, gs.tracker.commits.message(testHash))
 }
