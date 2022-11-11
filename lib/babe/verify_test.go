@@ -803,7 +803,7 @@ func Test_verifier_verifyBlockEquivocation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			equivocated, err := tt.verifier.verifyBlockEquivocation(tt.header)
+			equivocated, _, err := tt.verifier.verifyBlockEquivocation(tt.header)
 			assert.Equal(t, equivocated, tt.equivocated)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())

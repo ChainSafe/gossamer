@@ -327,7 +327,7 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 		return ErrBadSignature
 	}
 
-	equivocated, err := b.verifyBlockEquivocation(header)
+	equivocated, _, err := b.verifyBlockEquivocation(header)
 	if err != nil {
 		return fmt.Errorf("could not verify block equivocation: %w", err)
 	}
@@ -338,23 +338,31 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	return nil
 }
 
+func submitAndReportEquivocation(equivocationProof types.EquivocationProof) {
+
+	// TODO: Check if it is initial sync
+	// don't report any equivocations during initial sync
+	// as they are most likely stale.
+
+}
+
 // verifyBlockEquivocation checks if the given block's author has occupied the corresponding slot more than once.
 // It returns true if the block was equivocated.
-func (b *verifier) verifyBlockEquivocation(header *types.Header) (bool, error) {
+func (b *verifier) verifyBlockEquivocation(header *types.Header) (bool, *types.EquivocationProof, error) {
 	author, err := getAuthorityIndex(header)
 	if err != nil {
-		return false, fmt.Errorf("failed to get authority index: %w", err)
+		return false, nil, fmt.Errorf("failed to get authority index: %w", err)
 	}
 
 	currentHash := header.Hash()
 	slot, err := types.GetSlotFromHeader(header)
 	if err != nil {
-		return false, fmt.Errorf("failed to get slot from header of block %s: %w", currentHash, err)
+		return false, nil, fmt.Errorf("failed to get slot from header of block %s: %w", currentHash, err)
 	}
 
 	blockHashesInSlot, err := b.blockState.GetBlockHashesBySlot(slot)
 	if err != nil {
-		return false, fmt.Errorf("failed to get blocks produced in slot: %w", err)
+		return false, nil, fmt.Errorf("failed to get blocks produced in slot: %w", err)
 	}
 
 	for _, blockHashInSlot := range blockHashesInSlot {
@@ -364,21 +372,26 @@ func (b *verifier) verifyBlockEquivocation(header *types.Header) (bool, error) {
 
 		existingHeader, err := b.blockState.GetHeader(blockHashInSlot)
 		if err != nil {
-			return false, fmt.Errorf("failed to get header for block: %w", err)
+			return false, nil, fmt.Errorf("failed to get header for block: %w", err)
 		}
 
 		authorOfExistingHeader, err := getAuthorityIndex(existingHeader)
 		if err != nil {
-			return false, fmt.Errorf("failed to get authority index for block %s: %w", blockHashInSlot, err)
+			return false, nil, fmt.Errorf("failed to get authority index for block %s: %w", blockHashInSlot, err)
 		}
 		if authorOfExistingHeader != author {
 			continue
 		}
 
-		return true, nil
+		return true, &types.EquivocationProof{
+			// Offender: authorOfExistingHeader,
+			Slot:         slot,
+			FirstHeader:  *existingHeader,
+			SecondHeader: *header,
+		}, nil
 	}
 
-	return false, nil
+	return false, nil, nil
 }
 
 func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (scale.VaryingDataTypeValue, error) {

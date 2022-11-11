@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -84,6 +85,71 @@ func (in *Instance) GrandpaAuthorities() ([]types.Authority, error) {
 	}
 
 	return types.GrandpaAuthoritiesRawToAuthorities(gar)
+}
+
+func (in *Instance) GrandpaGenerateKeyOwnershipProof(setID uint64, authorityID [32]byte) (
+	types.OpaqueKeyOwnershipProof, error) {
+
+	combinedArg := []byte{}
+	encodedSetID, err := scale.Marshal(setID)
+	if err != nil {
+		return nil, fmt.Errorf("encoding set id: %w", err)
+	}
+	combinedArg = append(combinedArg, encodedSetID...)
+
+	encodedAuthorityID, err := scale.Marshal(authorityID)
+	if err != nil {
+		return nil, fmt.Errorf("encoding authority id: %w", err)
+	}
+	combinedArg = append(combinedArg, encodedAuthorityID...)
+
+	ret, err := in.Exec(runtime.GrandpaApiGenerateKeyOwnershipProof, combinedArg)
+	if err != nil {
+		return nil, err
+	}
+
+	keyOwnershipProof := types.OpaqueKeyOwnershipProof{}
+	err = scale.Unmarshal(ret, keyOwnershipProof)
+	if err != nil {
+		return nil, err
+	}
+
+	return keyOwnershipProof, err
+}
+
+// self.client
+// .runtime_api()
+// .submit_report_equivocation_unsigned_extrinsic(
+// 	&BlockId::Hash(best_block_hash),
+// 	equivocation_proof,
+// 	key_owner_proof,
+// )
+// .map_err(Error::RuntimeApi)?;
+// equivocation_proof, key_owner_proof
+
+func (in *Instance) GrandpaSubmitReportEquivocationUnsignedExtrinsic(bestBlockHash common.Hash, equivocationProof types.EquivocationProof, keyOwnershipProof types.OpaqueKeyOwnershipProof) error {
+	combinedArg := []byte{}
+
+	encodedBestBlockHash, err := scale.Marshal(bestBlockHash)
+	if err != nil {
+		return fmt.Errorf("encoding best block hash: %w", err)
+	}
+	combinedArg = append(combinedArg, encodedBestBlockHash...)
+
+	encodedEquivocationProof, err := scale.Marshal(equivocationProof)
+	if err != nil {
+		return fmt.Errorf("encoding equivocation proof: %w", err)
+	}
+	combinedArg = append(combinedArg, encodedEquivocationProof...)
+
+	encodedKeyOwnershipProof, err := scale.Marshal(keyOwnershipProof)
+	if err != nil {
+		return fmt.Errorf("encoding key ownership proof: %w", err)
+	}
+	combinedArg = append(combinedArg, encodedKeyOwnershipProof...)
+
+	_, err = in.Exec(runtime.GrandpaApiSubmitReportEquivocationUnsignedExtrinsic, combinedArg)
+	return err
 }
 
 // InitializeBlock calls runtime API function Core_initialise_block
