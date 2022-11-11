@@ -162,9 +162,10 @@ To start the polkadot node:
 
 ## Donate
 
-Our work on Gossamer is funded by the community. If you'd like to donate, you can send DOT to
-[`14gaKBxYkbBh2SKGtRDdhuhtyGAs5XLh55bE5x4cDi5CmL75`](https://polkadot.subscan.io/account/14gaKBxYkbBh2SKGtRDdhuhtyGAs5XLh55bE5x4cDi5CmL75);
-ETH or DAI can be sent to `0x764001D60E69f0C3D0b41B0588866cFaE796972c`.
+Our work on Gossamer is funded by the community. If you'd like to support us with a donation:
+- DOT: [`14gaKBxYkbBh2SKGtRDdhuhtyGAs5XLh55bE5x4cDi5CmL75`](https://polkadot.subscan.io/account/14gaKBxYkbBh2SKGtRDdhuhtyGAs5XLh55bE5x4cDi5CmL75)
+- KSM: `FAjhFSFoM6X8CxeSp6JE2fPECauCA5NxyB1rAGNSkrVaMtf`
+- ETH/DAI: `0x764001D60E69f0C3D0b41B0588866cFaE796972c`
 
 ## ChainSafe Security Policy
 
