@@ -122,20 +122,6 @@ func (n *node) isDescendantOf(parent *node) bool {
 	return false
 }
 
-func (n *node) highestCommonAncestor(other *node) *node {
-	for curr := n; curr != nil; curr = curr.parent {
-		if curr.hash == other.hash {
-			return curr
-		}
-
-		if other.isDescendantOf(curr) {
-			return curr
-		}
-	}
-
-	return nil
-}
-
 // getLeaves returns all nodes that are leaf nodes with the current node as its ancestor
 func (n *node) getLeaves(leaves []*node) []*node {
 	if n == nil {
