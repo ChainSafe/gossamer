@@ -32,8 +32,6 @@ type Node struct {
 	Dirty bool
 	// MerkleValue is the cached Merkle value of the node.
 	MerkleValue []byte
-	// Encoding is the cached encoding of the node.
-	Encoding []byte
 
 	// Descendants is the number of descendant nodes for
 	// this particular node.
@@ -64,7 +62,6 @@ func (n Node) StringNode() (stringNode *gotree.Node) {
 	if n.Descendants > 0 { // must be a branch
 		stringNode.Appendf("Descendants: %d", n.Descendants)
 	}
-	stringNode.Appendf("Calculated encoding: " + bytesToString(n.Encoding))
 	stringNode.Appendf("Merkle value: " + bytesToString(n.MerkleValue))
 
 	for i, child := range n.Children {
