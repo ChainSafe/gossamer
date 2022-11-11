@@ -315,9 +315,9 @@ func (bt *BlockTree) LowestCommonAncestor(a, b Hash) (Hash, error) {
 	if bNode == nil {
 		return common.Hash{}, ErrNodeNotFound
 	}
-	return lowestCommonAncestor(aNode, bNode)
+	return lowestCommonAncestor(aNode, bNode), nil
 }
-func lowestCommonAncestor(aNode, bNode *node) (Hash, error) {
+func lowestCommonAncestor(aNode, bNode *node) Hash {
 	higherNode := bNode
 	lowerNode := aNode
 	if aNode.number > bNode.number {
@@ -338,7 +338,7 @@ func lowestCommonAncestor(aNode, bNode *node) (Hash, error) {
 
 	for {
 		if higherNode.hash == lowerNode.hash {
-			return higherNode.hash, nil
+			return higherNode.hash
 		} else if higherNode.parent == nil || lowerNode.parent == nil {
 			panic(fmt.Errorf("%w: for block number %v", errAncestorOutOfBoundsCheck, higherNum))
 		}
