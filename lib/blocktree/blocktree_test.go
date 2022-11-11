@@ -371,7 +371,7 @@ func Test_BlockTree_IsDecendantOf(t *testing.T) {
 	require.False(t, isDescendant)
 }
 
-func Test_Node_LowestCommonAncestorNew(t *testing.T) {
+func Test_lowestCommonAncestor(t *testing.T) {
 	t.Parallel()
 	root := &node{
 		hash:   common.Hash{0},
@@ -414,12 +414,6 @@ func Test_Node_LowestCommonAncestorNew(t *testing.T) {
 			isPrimary: true,
 			number:    3,
 		},
-		{
-			hash:      common.Hash{6},
-			parent:    childrenChildren[1],
-			isPrimary: true,
-			number:    21,
-		},
 	}
 
 	type args struct {
@@ -427,11 +421,10 @@ func Test_Node_LowestCommonAncestorNew(t *testing.T) {
 		nodeB *node
 	}
 	tests := []struct {
-		name      string
-		args      args
-		expErr    error
-		expErrMsg string
-		expRes    Hash
+		name   string
+		args   args
+		expErr error
+		expRes Hash
 	}{
 		{
 			name: "child and root",
@@ -481,15 +474,6 @@ func Test_Node_LowestCommonAncestorNew(t *testing.T) {
 			},
 			expRes: root.hash,
 		},
-		{
-			name: "out of bounds error",
-			args: args{
-				nodeA: finalChild[1],
-				nodeB: childrenChildren[0],
-			},
-			expErr:    errorAncestorOutOfBoundsCheck,
-			expErrMsg: "out of bounds ancestor check: for block number 21",
-		},
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -497,9 +481,6 @@ func Test_Node_LowestCommonAncestorNew(t *testing.T) {
 			t.Parallel()
 			ancestor, err := lowestCommonAncestor(tt.args.nodeA, tt.args.nodeB)
 			assert.ErrorIs(t, err, tt.expErr)
-			if tt.expErr != nil {
-				assert.EqualError(t, err, tt.expErrMsg)
-			}
 			require.Equal(t, tt.expRes, ancestor)
 		})
 	}

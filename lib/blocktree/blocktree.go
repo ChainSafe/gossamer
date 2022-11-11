@@ -23,7 +23,7 @@ var (
 		Name:      "leaves_total",
 		Help:      "total number of blocktree leaves",
 	})
-	errorAncestorOutOfBoundsCheck = errors.New("out of bounds ancestor check")
+	errAncestorOutOfBoundsCheck = errors.New("out of bounds ancestor check")
 )
 
 // Hash common.Hash
@@ -301,7 +301,7 @@ func (bt *BlockTree) Leaves() []Hash {
 	return la
 }
 
-// LowestCommonAncestor returns the lowest common ancestor between two blocks in the tree.
+// LowestCommonAncestor returns the lowest common ancestor block hash between two blocks in the tree.
 func (bt *BlockTree) LowestCommonAncestor(a, b Hash) (Hash, error) {
 	bt.RLock()
 	defer bt.RUnlock()
@@ -318,14 +318,11 @@ func (bt *BlockTree) LowestCommonAncestor(a, b Hash) (Hash, error) {
 	return lowestCommonAncestor(aNode, bNode)
 }
 func lowestCommonAncestor(aNode, bNode *node) (Hash, error) {
-	var higherNode *node
-	var lowerNode *node
+	higherNode := bNode
+	lowerNode := aNode
 	if aNode.number > bNode.number {
 		higherNode = aNode
 		lowerNode = bNode
-	} else {
-		higherNode = bNode
-		lowerNode = aNode
 	}
 
 	higherNum := higherNode.number
@@ -333,7 +330,7 @@ func lowestCommonAncestor(aNode, bNode *node) (Hash, error) {
 	diff := higherNum - lowerNum
 	for diff > 0 {
 		if higherNode.parent == nil {
-			return common.Hash{}, fmt.Errorf("%w: for block number %v", errorAncestorOutOfBoundsCheck, higherNum)
+			panic(fmt.Errorf("%w: for block number %v", errAncestorOutOfBoundsCheck, higherNum))
 		}
 		higherNode = higherNode.parent
 		diff--
@@ -343,7 +340,7 @@ func lowestCommonAncestor(aNode, bNode *node) (Hash, error) {
 		if higherNode.hash == lowerNode.hash {
 			return higherNode.hash, nil
 		} else if higherNode.parent == nil || lowerNode.parent == nil {
-			return common.Hash{}, fmt.Errorf("%w: for block number %v", errorAncestorOutOfBoundsCheck, higherNum)
+			panic(fmt.Errorf("%w: for block number %v", errAncestorOutOfBoundsCheck, higherNum))
 		}
 		higherNode = higherNode.parent
 		lowerNode = lowerNode.parent
