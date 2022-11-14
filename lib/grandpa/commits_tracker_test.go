@@ -8,8 +8,11 @@ import (
 	"container/list"
 	"crypto/rand"
 	"sort"
+	"sync"
 	"testing"
+	"time"
 
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -320,4 +323,57 @@ func Benchmark_ForEachVsSlice(b *testing.B) {
 			}
 		}
 	})
+}
+
+func Test_commitsTracker_threadSafety(t *testing.T) {
+	// This test is meant to be run with the `-race` flag
+	// to detect any data race.
+	t.Parallel()
+
+	const capacity = 2
+	commitsTracker := newCommitsTracker(capacity)
+
+	const parallelism = 10
+
+	var startWg, endWg sync.WaitGroup
+	startWg.Add(parallelism)
+	endWg.Add(parallelism)
+	defer endWg.Wait()
+
+	timedOut := make(chan struct{})
+	go func() {
+		startWg.Wait()
+		const duration = 50 * time.Millisecond
+		time.Sleep(duration)
+		close(timedOut)
+	}()
+
+	for i := 1; i < parallelism; i++ {
+		go func(i int) {
+			defer endWg.Done()
+			startWg.Done()
+
+			blockHash := common.Hash{byte(i)}
+
+			commitMessage := &CommitMessage{
+				Round: 1,
+				SetID: 1,
+				Vote: types.GrandpaVote{
+					Hash:   blockHash,
+					Number: uint32(i),
+				},
+			}
+			for {
+				select {
+				case <-timedOut:
+					return
+				default:
+				}
+
+				commitsTracker.add(commitMessage)
+				commitsTracker.delete(blockHash)
+				_ = commitsTracker.message(blockHash)
+			}
+		}(i)
+	}
 }
