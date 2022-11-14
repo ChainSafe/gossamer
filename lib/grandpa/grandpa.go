@@ -1301,7 +1301,7 @@ func verifyCommitMessageJustification(commitMessage *CommitMessage, setID uint64
 				"and pre commit has block number %d"
 
 			return fmt.Errorf(errString,
-				ErrBlockNumberMismatch, precommitedHeader.Number, preCommit.Number)
+				ErrBlockNumbersMismatch, precommitedHeader.Number, preCommit.Number)
 		}
 
 		if _, ok := eqvVoters[commitMessage.AuthData[i].AuthorityID]; ok {

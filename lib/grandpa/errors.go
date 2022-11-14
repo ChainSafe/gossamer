@@ -54,7 +54,7 @@ var (
 
 	ErrBlockHashMismatch = errors.New("block hash does not correspond to given block number")
 
-	ErrBlockNumberMismatch = errors.New("block number mismatch")
+	ErrBlockNumbersMismatch = errors.New("block numbers mismatch")
 
 	// ErrMinVotesNotMet is returned when the number of votes is less than the required minimum in a Justification
 	ErrMinVotesNotMet = errors.New("minimum number of votes not met in a Justification")
