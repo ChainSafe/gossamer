@@ -17,9 +17,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// getMessageFromVotesTracker returns the vote message
+// getMessageFromVotesMapping returns the vote message
 // from the votes tracker for the given block hash and authority ID.
-func getMessageFromVotesTracker(votesMapping map[common.Hash]map[ed25519.PublicKeyBytes]*list.Element,
+func getMessageFromVotesMapping(votesMapping map[common.Hash]map[ed25519.PublicKeyBytes]*list.Element,
 	blockHash common.Hash, authorityID ed25519.PublicKeyBytes) (
 	message *VoteMessage) {
 	authorityIDToElement, has := votesMapping[blockHash]
@@ -55,7 +55,7 @@ func TestMessageTracker_ValidateMessage(t *testing.T) {
 	_, err = gs.validateVoteMessage("", msg)
 	require.Equal(t, err, ErrBlockDoesNotExist)
 	authorityID := kr.Alice().Public().(*ed25519.PublicKey).AsBytes()
-	voteMessage := getMessageFromVotesTracker(gs.tracker.votes.mapping, fake.Hash(), authorityID)
+	voteMessage := getMessageFromVotesMapping(gs.tracker.votes.mapping, fake.Hash(), authorityID)
 	require.Equal(t, msg, voteMessage)
 }
 
@@ -92,7 +92,7 @@ func TestMessageTracker_SendMessage(t *testing.T) {
 	_, err = gs.validateVoteMessage("", msg)
 	require.Equal(t, err, ErrBlockDoesNotExist)
 	authorityID := kr.Alice().Public().(*ed25519.PublicKey).AsBytes()
-	voteMessage := getMessageFromVotesTracker(gs.tracker.votes.mapping, next.Hash(), authorityID)
+	voteMessage := getMessageFromVotesMapping(gs.tracker.votes.mapping, next.Hash(), authorityID)
 	require.Equal(t, msg, voteMessage)
 
 	err = gs.blockState.(*state.BlockState).AddBlock(&types.Block{
@@ -144,7 +144,7 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 	_, err = gs.validateVoteMessage("", msg)
 	require.Equal(t, ErrBlockDoesNotExist, err)
 	authorityID := kr.Alice().Public().(*ed25519.PublicKey).AsBytes()
-	voteMessage := getMessageFromVotesTracker(gs.tracker.votes.mapping, next.Hash(), authorityID)
+	voteMessage := getMessageFromVotesMapping(gs.tracker.votes.mapping, next.Hash(), authorityID)
 	require.Equal(t, msg, voteMessage)
 
 	err = gs.blockState.(*state.BlockState).AddBlock(&types.Block{
@@ -187,7 +187,7 @@ func TestMessageTracker_MapInsideMap(t *testing.T) {
 
 	gs.tracker.addVote("", msg)
 
-	voteMessage := getMessageFromVotesTracker(gs.tracker.votes.mapping, hash, authorityID)
+	voteMessage := getMessageFromVotesMapping(gs.tracker.votes.mapping, hash, authorityID)
 	require.NotEmpty(t, voteMessage)
 }
 
