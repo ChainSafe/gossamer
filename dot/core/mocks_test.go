@@ -286,7 +286,7 @@ func (mr *MockBlockStateMockRecorder) GetImportedBlockNotifierChannel() *gomock.
 }
 
 // GetRuntime mocks base method.
-func (m *MockBlockState) GetRuntime(arg0 *common.Hash) (runtime.Instance, error) {
+func (m *MockBlockState) GetRuntime(arg0 common.Hash) (runtime.Instance, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetRuntime", arg0)
 	ret0, _ := ret[0].(runtime.Instance)
@@ -329,19 +329,19 @@ func (mr *MockBlockStateMockRecorder) HandleRuntimeChanges(arg0, arg1, arg2 inte
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleRuntimeChanges", reflect.TypeOf((*MockBlockState)(nil).HandleRuntimeChanges), arg0, arg1, arg2)
 }
 
-// HighestCommonAncestor mocks base method.
-func (m *MockBlockState) HighestCommonAncestor(arg0, arg1 common.Hash) (common.Hash, error) {
+// LowestCommonAncestor mocks base method.
+func (m *MockBlockState) LowestCommonAncestor(arg0, arg1 common.Hash) (common.Hash, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HighestCommonAncestor", arg0, arg1)
+	ret := m.ctrl.Call(m, "LowestCommonAncestor", arg0, arg1)
 	ret0, _ := ret[0].(common.Hash)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// HighestCommonAncestor indicates an expected call of HighestCommonAncestor.
-func (mr *MockBlockStateMockRecorder) HighestCommonAncestor(arg0, arg1 interface{}) *gomock.Call {
+// LowestCommonAncestor indicates an expected call of LowestCommonAncestor.
+func (mr *MockBlockStateMockRecorder) LowestCommonAncestor(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HighestCommonAncestor", reflect.TypeOf((*MockBlockState)(nil).HighestCommonAncestor), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LowestCommonAncestor", reflect.TypeOf((*MockBlockState)(nil).LowestCommonAncestor), arg0, arg1)
 }
 
 // StoreRuntime mocks base method.

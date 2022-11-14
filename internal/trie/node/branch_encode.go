@@ -9,7 +9,6 @@ import (
 	"io"
 	"runtime"
 
-	"github.com/ChainSafe/gossamer/internal/trie/pools"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -21,11 +20,7 @@ type encodingAsyncResult struct {
 
 func runEncodeChild(child *Node, index int,
 	results chan<- encodingAsyncResult, rateLimit <-chan struct{}) {
-	buffer := pools.EncodingBuffers.Get().(*bytes.Buffer)
-	buffer.Reset()
-	// buffer is put back in the pool after processing its
-	// data in the select block below.
-
+	buffer := bytes.NewBuffer(nil)
 	err := encodeChild(child, buffer)
 
 	results <- encodingAsyncResult{
@@ -97,18 +92,10 @@ func encodeChildrenOpportunisticParallel(children []*Node, buffer io.Writer) (er
 				}
 			}
 
-			pools.EncodingBuffers.Put(resultBuffers[currentIndex])
 			resultBuffers[currentIndex] = nil
 
 			currentIndex++
 		}
-	}
-
-	for _, buffer := range resultBuffers {
-		if buffer == nil { // already emptied and put back in pool
-			continue
-		}
-		pools.EncodingBuffers.Put(buffer)
 	}
 
 	return err

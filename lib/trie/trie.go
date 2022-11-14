@@ -9,7 +9,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/internal/trie/codec"
 	"github.com/ChainSafe/gossamer/internal/trie/node"
-	"github.com/ChainSafe/gossamer/internal/trie/pools"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
@@ -196,10 +195,7 @@ func (t *Trie) MustHash() common.Hash {
 
 // Hash returns the hashed root of the trie.
 func (t *Trie) Hash() (rootHash common.Hash, err error) {
-	buffer := pools.EncodingBuffers.Get().(*bytes.Buffer)
-	buffer.Reset()
-	defer pools.EncodingBuffers.Put(buffer)
-
+	buffer := bytes.NewBuffer(nil)
 	err = encodeRoot(t.root, buffer)
 	if err != nil {
 		return [32]byte{}, err
@@ -346,6 +342,11 @@ func (t *Trie) Put(keyLE, value []byte) {
 
 func (t *Trie) insertKeyLE(keyLE, value []byte, deletedMerkleValues map[string]struct{}) {
 	nibblesKey := codec.KeyLEToNibbles(keyLE)
+	if len(value) == 0 {
+		// Force value to be inserted to nil since we don't
+		// differentiate between nil and empty values.
+		value = nil
+	}
 	t.root, _, _ = t.insert(t.root, nibblesKey, value, deletedMerkleValues)
 }
 
@@ -378,7 +379,7 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
 	newParent *Node, mutated bool, nodesCreated uint32) {
 	if bytes.Equal(parentLeaf.Key, key) {
 		nodesCreated = 0
-		if parentLeaf.SubValueEqual(value) {
+		if bytes.Equal(parentLeaf.SubValue, value) {
 			mutated = false
 			return parentLeaf, mutated, nodesCreated
 		}
@@ -459,7 +460,7 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte,
 	copySettings := node.DefaultCopySettings
 
 	if bytes.Equal(key, parentBranch.Key) {
-		if parentBranch.SubValueEqual(value) {
+		if bytes.Equal(parentBranch.SubValue, value) {
 			mutated = false
 			return parentBranch, mutated, 0
 		}
@@ -885,8 +886,6 @@ func (t *Trie) deleteNodesLimit(parent *Node, limit uint32,
 		valuesDeleted += newDeleted
 		nodesRemoved += newNodesRemoved
 		branch.Descendants -= newNodesRemoved
-
-		branch.SetDirty()
 
 		newParent, branchChildMerged = handleDeletion(branch, branch.Key)
 		if branchChildMerged {

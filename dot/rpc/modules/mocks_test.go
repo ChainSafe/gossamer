@@ -347,7 +347,7 @@ func (mr *MockBlockAPIMockRecorder) GetJustification(arg0 interface{}) *gomock.C
 }
 
 // GetRuntime mocks base method.
-func (m *MockBlockAPI) GetRuntime(arg0 *common.Hash) (runtime.Instance, error) {
+func (m *MockBlockAPI) GetRuntime(arg0 common.Hash) (runtime.Instance, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetRuntime", arg0)
 	ret0, _ := ret[0].(runtime.Instance)

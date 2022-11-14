@@ -48,7 +48,6 @@ func Test_Node_Copy(t *testing.T) {
 				}),
 				Dirty:       true,
 				MerkleValue: []byte{5},
-				Encoding:    []byte{6},
 			},
 			settings: DefaultCopySettings,
 			expectedNode: &Node{
@@ -96,7 +95,6 @@ func Test_Node_Copy(t *testing.T) {
 				}),
 				Dirty:       true,
 				MerkleValue: []byte{5},
-				Encoding:    []byte{6},
 			},
 			settings: DeepCopySettings,
 			expectedNode: &Node{
@@ -110,7 +108,6 @@ func Test_Node_Copy(t *testing.T) {
 				}),
 				Dirty:       true,
 				MerkleValue: []byte{5},
-				Encoding:    []byte{6},
 			},
 		},
 		"non empty leaf": {
@@ -119,7 +116,6 @@ func Test_Node_Copy(t *testing.T) {
 				SubValue:    []byte{3, 4},
 				Dirty:       true,
 				MerkleValue: []byte{5},
-				Encoding:    []byte{6},
 			},
 			settings: DefaultCopySettings,
 			expectedNode: &Node{
@@ -134,7 +130,6 @@ func Test_Node_Copy(t *testing.T) {
 				SubValue:    []byte{3, 4},
 				Dirty:       true,
 				MerkleValue: []byte{5},
-				Encoding:    []byte{6},
 			},
 			settings: DeepCopySettings,
 			expectedNode: &Node{
@@ -142,7 +137,6 @@ func Test_Node_Copy(t *testing.T) {
 				SubValue:    []byte{3, 4},
 				Dirty:       true,
 				MerkleValue: []byte{5},
-				Encoding:    []byte{6},
 			},
 		},
 	}
@@ -158,7 +152,6 @@ func Test_Node_Copy(t *testing.T) {
 			testForSliceModif(t, testCase.node.Key, nodeCopy.Key)
 			testForSliceModif(t, testCase.node.SubValue, nodeCopy.SubValue)
 			testForSliceModif(t, testCase.node.MerkleValue, nodeCopy.MerkleValue)
-			testForSliceModif(t, testCase.node.Encoding, nodeCopy.Encoding)
 
 			if testCase.node.Kind() == Branch {
 				testCase.node.Children[15] = &Node{Key: []byte("modified")}

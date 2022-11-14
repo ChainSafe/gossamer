@@ -19,7 +19,7 @@ type BlockState interface {
 	GetHeader(hash common.Hash) (*types.Header, error)
 	GetHeaderByNumber(num uint) (*types.Header, error)
 	IsDescendantOf(parent, child common.Hash) (bool, error)
-	HighestCommonAncestor(a, b common.Hash) (common.Hash, error)
+	LowestCommonAncestor(a, b common.Hash) (common.Hash, error)
 	HasFinalisedBlock(round, setID uint64) (bool, error)
 	GetFinalisedHeader(uint64, uint64) (*types.Header, error)
 	SetFinalisedHash(common.Hash, uint64, uint64) error

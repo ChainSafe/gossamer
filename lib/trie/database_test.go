@@ -158,7 +158,103 @@ func Test_Trie_WriteDirty_ClearPrefix(t *testing.T) {
 	assert.Equal(t, trie.String(), trieFromDB.String())
 }
 
-func Test_Trie_GetFromDB(t *testing.T) {
+func Test_PopulateNodeHashes(t *testing.T) {
+	t.Parallel()
+
+	const (
+		merkleValue32Zeroes = "00000000000000000000000000000000"
+		merkleValue32Ones   = "11111111111111111111111111111111"
+		merkleValue32Twos   = "22222222222222222222222222222222"
+		merkleValue32Threes = "33333333333333333333333333333333"
+	)
+
+	testCases := map[string]struct {
+		node       *Node
+		nodeHashes map[string]struct{}
+		panicValue interface{}
+	}{
+		"nil node": {
+			nodeHashes: map[string]struct{}{},
+		},
+		"inlined leaf node": {
+			node:       &Node{MerkleValue: []byte("a")},
+			nodeHashes: map[string]struct{}{},
+		},
+		"leaf node": {
+			node: &Node{MerkleValue: []byte(merkleValue32Zeroes)},
+			nodeHashes: map[string]struct{}{
+				merkleValue32Zeroes: {},
+			},
+		},
+		"leaf node without Merkle value": {
+			node:       &Node{Key: []byte{1}, SubValue: []byte{2}},
+			panicValue: "node with key 0x01 has no Merkle value computed",
+		},
+		"inlined branch node": {
+			node: &Node{
+				MerkleValue: []byte("a"),
+				Children: padRightChildren([]*Node{
+					{MerkleValue: []byte("b")},
+				}),
+			},
+			nodeHashes: map[string]struct{}{},
+		},
+		"branch node": {
+			node: &Node{
+				MerkleValue: []byte(merkleValue32Zeroes),
+				Children: padRightChildren([]*Node{
+					{MerkleValue: []byte(merkleValue32Ones)},
+				}),
+			},
+			nodeHashes: map[string]struct{}{
+				merkleValue32Zeroes: {},
+				merkleValue32Ones:   {},
+			},
+		},
+		"nested branch node": {
+			node: &Node{
+				MerkleValue: []byte(merkleValue32Zeroes),
+				Children: padRightChildren([]*Node{
+					{MerkleValue: []byte(merkleValue32Ones)},
+					{
+						MerkleValue: []byte(merkleValue32Twos),
+						Children: padRightChildren([]*Node{
+							{MerkleValue: []byte(merkleValue32Threes)},
+						}),
+					},
+				}),
+			},
+			nodeHashes: map[string]struct{}{
+				merkleValue32Zeroes: {},
+				merkleValue32Ones:   {},
+				merkleValue32Twos:   {},
+				merkleValue32Threes: {},
+			},
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			nodeHashes := make(map[string]struct{})
+
+			if testCase.panicValue != nil {
+				assert.PanicsWithValue(t, testCase.panicValue, func() {
+					PopulateNodeHashes(testCase.node, nodeHashes)
+				})
+				return
+			}
+
+			PopulateNodeHashes(testCase.node, nodeHashes)
+
+			assert.Equal(t, testCase.nodeHashes, nodeHashes)
+		})
+	}
+}
+
+func Test_GetFromDB(t *testing.T) {
 	t.Parallel()
 
 	const size = 1000

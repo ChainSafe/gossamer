@@ -42,7 +42,7 @@ func TestPaymentQueryInfo(t *testing.T) {
 		blockAPIMock := mocks.NewBlockAPI(t)
 		blockAPIMock.On("BestBlockHash").Return(bestBlockHash)
 
-		blockAPIMock.On("GetRuntime", mock.AnythingOfType("*common.Hash")).Return(runtimeMock, nil)
+		blockAPIMock.On("GetRuntime", bestBlockHash).Return(runtimeMock, nil)
 
 		mod := &PaymentModule{
 			blockAPI: blockAPIMock,
@@ -63,7 +63,7 @@ func TestPaymentQueryInfo(t *testing.T) {
 		blockAPIMock := mocks.NewBlockAPI(t)
 		blockAPIMock.On("BestBlockHash").Return(bestBlockHash)
 
-		blockAPIMock.On("GetRuntime", mock.AnythingOfType("*common.Hash")).
+		blockAPIMock.On("GetRuntime", bestBlockHash).
 			Return(nil, errors.New("mocked problems"))
 
 		mod := &PaymentModule{
@@ -86,7 +86,7 @@ func TestPaymentQueryInfo(t *testing.T) {
 		runtimeMock.On("PaymentQueryInfo", mock.AnythingOfType("[]uint8")).Return(nil, errors.New("mocked error"))
 
 		blockAPIMock := mocks.NewBlockAPI(t)
-		blockAPIMock.On("GetRuntime", mock.AnythingOfType("*common.Hash")).Return(runtimeMock, nil)
+		blockAPIMock.On("GetRuntime", common.Hash{1, 2}).Return(runtimeMock, nil)
 
 		mod := &PaymentModule{
 			blockAPI: blockAPIMock,
@@ -109,7 +109,7 @@ func TestPaymentQueryInfo(t *testing.T) {
 		runtimeMock.On("PaymentQueryInfo", mock.AnythingOfType("[]uint8")).Return(nil, nil)
 
 		blockAPIMock := mocks.NewBlockAPI(t)
-		blockAPIMock.On("GetRuntime", mock.AnythingOfType("*common.Hash")).Return(runtimeMock, nil)
+		blockAPIMock.On("GetRuntime", common.Hash{1, 2}).Return(runtimeMock, nil)
 
 		mod := &PaymentModule{
 			blockAPI: blockAPIMock,

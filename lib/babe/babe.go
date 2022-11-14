@@ -524,8 +524,7 @@ func (b *Service) handleSlot(epoch, slotNum uint64,
 		return err
 	}
 
-	hash := parent.Hash()
-	rt, err := b.blockState.GetRuntime(&hash)
+	rt, err := b.blockState.GetRuntime(parent.Hash())
 	if err != nil {
 		return err
 	}
