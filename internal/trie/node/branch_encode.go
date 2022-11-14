@@ -90,9 +90,10 @@ func encodeChildrenOpportunisticParallel(children []*Node, buffer io.Writer) (er
 				break
 			}
 
+			delete(indexToBuffer, currentIndex)
+
 			nilChildNode := resultBuffer == nil
 			if nilChildNode {
-				delete(indexToBuffer, currentIndex)
 				currentIndex++
 				continue
 			}
@@ -108,7 +109,6 @@ func encodeChildrenOpportunisticParallel(children []*Node, buffer io.Writer) (er
 				}
 			}
 
-			delete(indexToBuffer, currentIndex)
 			currentIndex++
 		}
 	}
