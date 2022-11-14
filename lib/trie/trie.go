@@ -342,6 +342,11 @@ func (t *Trie) Put(keyLE, value []byte) {
 
 func (t *Trie) insertKeyLE(keyLE, value []byte, deletedMerkleValues map[string]struct{}) {
 	nibblesKey := codec.KeyLEToNibbles(keyLE)
+	if len(value) == 0 {
+		// Force value to be inserted to nil since we don't
+		// differentiate between nil and empty values.
+		value = nil
+	}
 	t.root, _, _ = t.insert(t.root, nibblesKey, value, deletedMerkleValues)
 }
 
@@ -374,7 +379,7 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
 	newParent *Node, mutated bool, nodesCreated uint32) {
 	if bytes.Equal(parentLeaf.Key, key) {
 		nodesCreated = 0
-		if parentLeaf.SubValueEqual(value) {
+		if bytes.Equal(parentLeaf.SubValue, value) {
 			mutated = false
 			return parentLeaf, mutated, nodesCreated
 		}
@@ -455,7 +460,7 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte,
 	copySettings := node.DefaultCopySettings
 
 	if bytes.Equal(key, parentBranch.Key) {
-		if parentBranch.SubValueEqual(value) {
+		if bytes.Equal(parentBranch.SubValue, value) {
 			mutated = false
 			return parentBranch, mutated, 0
 		}
@@ -881,8 +886,6 @@ func (t *Trie) deleteNodesLimit(parent *Node, limit uint32,
 		valuesDeleted += newDeleted
 		nodesRemoved += newNodesRemoved
 		branch.Descendants -= newNodesRemoved
-
-		branch.SetDirty()
 
 		newParent, branchChildMerged = handleDeletion(branch, branch.Key)
 		if branchChildMerged {

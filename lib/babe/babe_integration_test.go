@@ -316,7 +316,8 @@ func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
 
 	// add a block
 	parentHash := babeService.blockState.GenesisHash()
-	rt, err := babeService.blockState.GetRuntime(nil)
+	bestBlockHash := babeService.blockState.BestBlockHash()
+	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
 	epochData, err := babeService.initiateEpoch(testEpochIndex)

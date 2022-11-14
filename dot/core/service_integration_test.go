@@ -209,7 +209,8 @@ func TestHandleChainReorg_WithReorg_Trans(t *testing.T) {
 	parent, err := bs.BestBlockHeader()
 	require.NoError(t, err)
 
-	rt, err := s.blockState.GetRuntime(nil)
+	bestBlockHash := s.blockState.BestBlockHash()
+	rt, err := s.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
 	block1 := sync.BuildBlock(t, rt, parent, nil)
@@ -299,8 +300,8 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	// we prefix with []byte{2} here since that's the enum index for the old IncludeDataExt extrinsic
 	tx := append([]byte{2}, enc...)
 
-	bhash := s.blockState.BestBlockHash()
-	rt, err := s.blockState.GetRuntime(&bhash)
+	bestBlockHash := s.blockState.BestBlockHash()
+	rt, err := s.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
 	validity, err := rt.ValidateTransaction(tx)
@@ -440,7 +441,8 @@ func TestMaintainTransactionPoolLatestTxnQueue_BlockWithExtrinsics(t *testing.T)
 
 func TestService_GetRuntimeVersion(t *testing.T) {
 	s := NewTestService(t, nil)
-	rt, err := s.blockState.GetRuntime(nil)
+	bestBlockHash := s.blockState.BestBlockHash()
+	rt, err := s.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
 	rtExpected := rt.Version()
@@ -461,7 +463,8 @@ func TestService_HandleSubmittedExtrinsic(t *testing.T) {
 	genHeader, err := s.blockState.BestBlockHeader()
 	require.NoError(t, err)
 
-	rt, err := s.blockState.GetRuntime(nil)
+	bestBlockHash := s.blockState.BestBlockHash()
+	rt, err := s.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
 	ts, err := s.storageState.TrieState(nil)
@@ -492,7 +495,8 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	)
 	s := NewTestService(t, nil)
 
-	rt, err := s.blockState.GetRuntime(nil)
+	bestBlockHash := s.blockState.BestBlockHash()
+	rt, err := s.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
 	v := rt.Version()
@@ -526,7 +530,7 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	ts, err := s.storageState.TrieState(nil) // Pass genesis root
 	require.NoError(t, err)
 
-	parentRt, err := s.blockState.GetRuntime(&hash)
+	parentRt, err := s.blockState.GetRuntime(hash)
 	require.NoError(t, err)
 
 	v = parentRt.Version()
@@ -547,13 +551,13 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	require.NoError(t, err)
 
 	// bhash1 runtime should not be updated
-	rt, err = s.blockState.GetRuntime(&bhash1)
+	rt, err = s.blockState.GetRuntime(bhash1)
 	require.NoError(t, err)
 
 	v = rt.Version()
 	require.Equal(t, v.SpecVersion, currSpecVersion)
 
-	rt, err = s.blockState.GetRuntime(&rtUpdateBhash)
+	rt, err = s.blockState.GetRuntime(rtUpdateBhash)
 	require.NoError(t, err)
 
 	v = rt.Version()
@@ -574,7 +578,8 @@ func TestService_HandleCodeSubstitutes(t *testing.T) {
 		blockHash: common.BytesToHex(testRuntime),
 	}
 
-	rt, err := s.blockState.GetRuntime(nil)
+	bestBlockHash := s.blockState.BestBlockHash()
+	rt, err := s.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
 	s.blockState.StoreRuntime(blockHash, rt)
@@ -589,7 +594,8 @@ func TestService_HandleCodeSubstitutes(t *testing.T) {
 func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 	s := NewTestService(t, nil)
 
-	parentRt, err := s.blockState.GetRuntime(nil)
+	bestBlockHash := s.blockState.BestBlockHash()
+	parentRt, err := s.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
 	codeHashBefore := parentRt.GetCodeHash()
@@ -626,7 +632,7 @@ func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 	err = s.blockState.HandleRuntimeChanges(ts, parentRt, rtUpdateBhash)
 	require.NoError(t, err)
 
-	rt, err := s.blockState.GetRuntime(&rtUpdateBhash)
+	rt, err := s.blockState.GetRuntime(rtUpdateBhash)
 	require.NoError(t, err)
 
 	// codeHash should change after runtime change

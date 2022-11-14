@@ -26,37 +26,10 @@ func Test_Node_Encode(t *testing.T) {
 	testCases := map[string]struct {
 		node             *Node
 		writes           []writeCall
-		bufferLenCall    bool
-		bufferBytesCall  bool
 		expectedEncoding []byte
 		wrappedErr       error
 		errMessage       string
 	}{
-		"clean leaf with encoding": {
-			node: &Node{
-				Encoding: []byte{1, 2, 3},
-			},
-			writes: []writeCall{
-				{
-					written: []byte{1, 2, 3},
-				},
-			},
-			expectedEncoding: []byte{1, 2, 3},
-		},
-		"write error for clean leaf with encoding": {
-			node: &Node{
-				Encoding: []byte{1, 2, 3},
-			},
-			writes: []writeCall{
-				{
-					written: []byte{1, 2, 3},
-					err:     errTest,
-				},
-			},
-			expectedEncoding: []byte{1, 2, 3},
-			wrappedErr:       errTest,
-			errMessage:       "cannot write stored encoding to buffer: test error",
-		},
 		"leaf header encoding error": {
 			node: &Node{
 				Key: make([]byte, 1),
@@ -123,34 +96,24 @@ func Test_Node_Encode(t *testing.T) {
 					written: []byte{12, 4, 5, 6},
 				},
 			},
-			bufferLenCall:    true,
-			bufferBytesCall:  true,
 			expectedEncoding: []byte{1, 2, 3},
 		},
-		"clean branch with encoding": {
+		"leaf with empty value success": {
 			node: &Node{
-				Children: make([]*Node, ChildrenCapacity),
-				Encoding: []byte{1, 2, 3},
+				Key: []byte{1, 2, 3},
 			},
 			writes: []writeCall{
-				{ // stored encoding
-					written: []byte{1, 2, 3},
+				{
+					written: []byte{leafVariant.bits | 3}, // partial key length 3
+				},
+				{
+					written: []byte{0x01, 0x23},
+				},
+				{
+					written: []byte{0},
 				},
 			},
-		},
-		"write error for clean branch with encoding": {
-			node: &Node{
-				Children: make([]*Node, ChildrenCapacity),
-				Encoding: []byte{1, 2, 3},
-			},
-			writes: []writeCall{
-				{ // stored encoding
-					written: []byte{1, 2, 3},
-					err:     errTest,
-				},
-			},
-			wrappedErr: errTest,
-			errMessage: "cannot write stored encoding to buffer: test error",
+			expectedEncoding: []byte{1, 2, 3},
 		},
 		"branch header encoding error": {
 			node: &Node{
@@ -297,6 +260,32 @@ func Test_Node_Encode(t *testing.T) {
 				},
 			},
 		},
+		"branch without value and with children success": {
+			node: &Node{
+				Key: []byte{1, 2, 3},
+				Children: []*Node{
+					nil, nil, nil, {Key: []byte{9}, SubValue: []byte{1}},
+					nil, nil, nil, {Key: []byte{11}, SubValue: []byte{1}},
+				},
+			},
+			writes: []writeCall{
+				{ // header
+					written: []byte{branchVariant.bits | 3}, // partial key length 3
+				},
+				{ // key LE
+					written: []byte{0x01, 0x23},
+				},
+				{ // children bitmap
+					written: []byte{136, 0},
+				},
+				{ // first children
+					written: []byte{16, 65, 9, 4, 1},
+				},
+				{ // second children
+					written: []byte{16, 65, 11, 4, 1},
+				},
+			},
+		},
 	}
 
 	for name, testCase := range testCases {
@@ -316,12 +305,6 @@ func Test_Node_Encode(t *testing.T) {
 					call.After(previousCall)
 				}
 				previousCall = call
-			}
-			if testCase.bufferLenCall {
-				buffer.EXPECT().Len().Return(len(testCase.expectedEncoding))
-			}
-			if testCase.bufferBytesCall {
-				buffer.EXPECT().Bytes().Return(testCase.expectedEncoding)
 			}
 
 			err := testCase.node.Encode(buffer)

@@ -34,13 +34,13 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 	blockErrorAPIMock2 := mocks.NewBlockAPI(t)
 
 	blockAPIMock.On("BestBlockHash").Return(testHash, nil)
-	blockAPIMock.On("GetRuntime", &testHash).Return(runtimeMock, nil)
+	blockAPIMock.On("GetRuntime", testHash).Return(runtimeMock, nil)
 
-	blockAPIMock2.On("GetRuntime", &testHash).Return(runtimeMock2, nil)
+	blockAPIMock2.On("GetRuntime", testHash).Return(runtimeMock2, nil)
 
-	blockErrorAPIMock1.On("GetRuntime", &testHash).Return(runtimeErrorMock, nil)
+	blockErrorAPIMock1.On("GetRuntime", testHash).Return(runtimeErrorMock, nil)
 
-	blockErrorAPIMock2.On("GetRuntime", &testHash).Return(nil, errors.New("GetRuntime error"))
+	blockErrorAPIMock2.On("GetRuntime", testHash).Return(nil, errors.New("GetRuntime error"))
 
 	runtimeMock.On("PaymentQueryInfo", common.MustHexToBytes("0x0000")).Return(nil, nil)
 	runtimeMock2.On("PaymentQueryInfo", common.MustHexToBytes("0x0000")).Return(&types.RuntimeDispatchInfo{

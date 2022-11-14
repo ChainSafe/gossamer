@@ -160,7 +160,8 @@ func TestVerificationManager_VerifyBlock_Ok(t *testing.T) {
 	}
 	babeService := createTestService(t, serviceConfig)
 
-	rt, err := babeService.blockState.GetRuntime(nil)
+	bestBlockHash := babeService.blockState.BestBlockHash()
+	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
 	cfg, err := rt.BabeConfiguration()
@@ -188,7 +189,8 @@ func TestVerificationManager_VerifyBlock_Secondary(t *testing.T) {
 	}
 	babeService := createTestService(t, serviceConfig)
 
-	rt, err := babeService.blockState.GetRuntime(nil)
+	bestBlockHash := babeService.blockState.BestBlockHash()
+	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
 	cfg, err := rt.BabeConfiguration()
@@ -254,7 +256,8 @@ func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 	}
 	babeService := createTestService(t, serviceConfig)
 
-	rt, err := babeService.blockState.GetRuntime(nil)
+	bestBlockHash := babeService.blockState.BestBlockHash()
+	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
 	cfg, err := rt.BabeConfiguration()
@@ -304,7 +307,8 @@ func TestVerificationManager_VerifyBlock_InvalidBlockOverThreshold(t *testing.T)
 	}
 	babeService := createTestService(t, serviceConfig)
 
-	rt, err := babeService.blockState.GetRuntime(nil)
+	bestBlockHash := babeService.blockState.BestBlockHash()
+	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
 	cfg, err := rt.BabeConfiguration()
@@ -333,7 +337,8 @@ func TestVerificationManager_VerifyBlock_InvalidBlockAuthority(t *testing.T) {
 	}
 	babeService := createTestService(t, serviceConfig)
 
-	rt, err := babeService.blockState.GetRuntime(nil)
+	bestBlockHash := babeService.blockState.BestBlockHash()
+	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
 	cfg, err := rt.BabeConfiguration()

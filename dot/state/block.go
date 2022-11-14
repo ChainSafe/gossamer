@@ -561,9 +561,9 @@ func (bs *BlockState) IsDescendantOf(parent, child common.Hash) (bool, error) {
 	return bs.bt.IsDescendantOf(parent, child)
 }
 
-// HighestCommonAncestor returns the block with the highest number that is an ancestor of both a and b
-func (bs *BlockState) HighestCommonAncestor(a, b common.Hash) (common.Hash, error) {
-	return bs.bt.HighestCommonAncestor(a, b)
+// LowestCommonAncestor returns the lowest common ancestor between two blocks in the tree.
+func (bs *BlockState) LowestCommonAncestor(a, b common.Hash) (common.Hash, error) {
+	return bs.bt.LowestCommonAncestor(a, b)
 }
 
 // Leaves returns the leaves of the blocktree as an array
@@ -669,17 +669,9 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 	return nil
 }
 
-// GetRuntime gets the runtime for the corresponding block hash.
-func (bs *BlockState) GetRuntime(hash *common.Hash) (runtime.Instance, error) {
-	if hash == nil {
-		rt, err := bs.bt.GetBlockRuntime(bs.BestBlockHash())
-		if err != nil {
-			return nil, err
-		}
-		return rt, nil
-	}
-
-	return bs.bt.GetBlockRuntime(*hash)
+// GetRuntime gets the runtime instance pointer for the block hash given.
+func (bs *BlockState) GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error) {
+	return bs.bt.GetBlockRuntime(blockHash)
 }
 
 // StoreRuntime stores the runtime for corresponding block hash.

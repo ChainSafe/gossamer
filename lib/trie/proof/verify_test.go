@@ -557,7 +557,6 @@ func Test_loadProof(t *testing.T) {
 						Children: padRightChildren([]*node.Node{
 							{
 								MerkleValue: blake2bNode(t, leafLarge),
-								Dirty:       true,
 							},
 						}),
 					},
