@@ -335,23 +335,13 @@ func Test_commitsTracker_threadSafety(t *testing.T) {
 
 	const parallelism = 10
 
-	var startWg, endWg sync.WaitGroup
-	startWg.Add(parallelism)
-	endWg.Add(parallelism)
+	var endWg sync.WaitGroup
 	defer endWg.Wait()
 
-	timedOut := make(chan struct{})
-	go func() {
-		startWg.Wait()
-		const duration = 50 * time.Millisecond
-		time.Sleep(duration)
-		close(timedOut)
-	}()
-
 	for i := 1; i < parallelism; i++ {
+		endWg.Add(1)
 		go func(i int) {
 			defer endWg.Done()
-			startWg.Done()
 
 			blockHash := common.Hash{byte(i)}
 
@@ -363,9 +353,11 @@ func Test_commitsTracker_threadSafety(t *testing.T) {
 					Number: uint32(i),
 				},
 			}
+
+			timer := time.NewTimer(50 * time.Millisecond)
 			for {
 				select {
-				case <-timedOut:
+				case <-timer.C:
 					return
 				default:
 				}
