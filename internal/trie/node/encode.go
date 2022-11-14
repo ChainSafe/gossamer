@@ -40,14 +40,10 @@ func (n *Node) Encode(buffer Buffer) (err error) {
 	// Only encode node value if the node is a leaf or
 	// the node is a branch with a non empty value.
 	if !nodeIsBranch || (nodeIsBranch && n.SubValue != nil) {
-		encodedValue, err := scale.Marshal(n.SubValue) // TODO scale encoder to write to buffer
+		encoder := scale.NewEncoder(buffer)
+		err = encoder.Encode(n.SubValue)
 		if err != nil {
-			return fmt.Errorf("cannot scale encode value: %w", err)
-		}
-
-		_, err = buffer.Write(encodedValue)
-		if err != nil {
-			return fmt.Errorf("cannot write scale encoded value to buffer: %w", err)
+			return fmt.Errorf("scale encoding value: %w", err)
 		}
 	}
 
