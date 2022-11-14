@@ -32,7 +32,6 @@ func Test_Trie_String(t *testing.T) {
 ├── Dirty: false
 ├── Key: 0x010203
 ├── Value: 0x030405
-├── Calculated encoding: nil
 └── Merkle value: nil`,
 		},
 		"branch root": {
@@ -62,7 +61,6 @@ func Test_Trie_String(t *testing.T) {
 ├── Key: nil
 ├── Value: 0x0102
 ├── Descendants: 2
-├── Calculated encoding: nil
 ├── Merkle value: nil
 ├── Child 0
 |   └── Leaf
@@ -70,7 +68,6 @@ func Test_Trie_String(t *testing.T) {
 |       ├── Dirty: false
 |       ├── Key: 0x010203
 |       ├── Value: 0x030405
-|       ├── Calculated encoding: nil
 |       └── Merkle value: nil
 └── Child 3
     └── Leaf
@@ -78,7 +75,6 @@ func Test_Trie_String(t *testing.T) {
         ├── Dirty: false
         ├── Key: 0x010203
         ├── Value: 0x030405
-        ├── Calculated encoding: nil
         └── Merkle value: nil`,
 		},
 	}

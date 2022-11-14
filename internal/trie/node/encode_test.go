@@ -26,37 +26,10 @@ func Test_Node_Encode(t *testing.T) {
 	testCases := map[string]struct {
 		node             *Node
 		writes           []writeCall
-		bufferLenCall    bool
-		bufferBytesCall  bool
 		expectedEncoding []byte
 		wrappedErr       error
 		errMessage       string
 	}{
-		"clean leaf with encoding": {
-			node: &Node{
-				Encoding: []byte{1, 2, 3},
-			},
-			writes: []writeCall{
-				{
-					written: []byte{1, 2, 3},
-				},
-			},
-			expectedEncoding: []byte{1, 2, 3},
-		},
-		"write error for clean leaf with encoding": {
-			node: &Node{
-				Encoding: []byte{1, 2, 3},
-			},
-			writes: []writeCall{
-				{
-					written: []byte{1, 2, 3},
-					err:     errTest,
-				},
-			},
-			expectedEncoding: []byte{1, 2, 3},
-			wrappedErr:       errTest,
-			errMessage:       "cannot write stored encoding to buffer: test error",
-		},
 		"leaf header encoding error": {
 			node: &Node{
 				Key: make([]byte, 1),
@@ -100,12 +73,12 @@ func Test_Node_Encode(t *testing.T) {
 					written: []byte{0x01, 0x23},
 				},
 				{
-					written: []byte{12, 4, 5, 6},
+					written: []byte{12},
 					err:     errTest,
 				},
 			},
 			wrappedErr: errTest,
-			errMessage: "cannot write scale encoded value to buffer: test error",
+			errMessage: "scale encoding value: test error",
 		},
 		"leaf success": {
 			node: &Node{
@@ -116,15 +89,10 @@ func Test_Node_Encode(t *testing.T) {
 				{
 					written: []byte{leafVariant.bits | 3}, // partial key length 3
 				},
-				{
-					written: []byte{0x01, 0x23},
-				},
-				{
-					written: []byte{12, 4, 5, 6},
-				},
+				{written: []byte{0x01, 0x23}},
+				{written: []byte{12}},
+				{written: []byte{4, 5, 6}},
 			},
-			bufferLenCall:    true,
-			bufferBytesCall:  true,
 			expectedEncoding: []byte{1, 2, 3},
 		},
 		"leaf with empty value success": {
@@ -132,44 +100,12 @@ func Test_Node_Encode(t *testing.T) {
 				Key: []byte{1, 2, 3},
 			},
 			writes: []writeCall{
-				{
-					written: []byte{leafVariant.bits | 3}, // partial key length 3
-				},
-				{
-					written: []byte{0x01, 0x23},
-				},
-				{
-					written: []byte{0},
-				},
+				{written: []byte{leafVariant.bits | 3}}, // partial key length 3
+				{written: []byte{0x01, 0x23}},           // partial key
+				{written: []byte{0}},                    // node value encoded length
+				{written: nil},                          // node value
 			},
-			bufferLenCall:    true,
-			bufferBytesCall:  true,
 			expectedEncoding: []byte{1, 2, 3},
-		},
-		"clean branch with encoding": {
-			node: &Node{
-				Children: make([]*Node, ChildrenCapacity),
-				Encoding: []byte{1, 2, 3},
-			},
-			writes: []writeCall{
-				{ // stored encoding
-					written: []byte{1, 2, 3},
-				},
-			},
-		},
-		"write error for clean branch with encoding": {
-			node: &Node{
-				Children: make([]*Node, ChildrenCapacity),
-				Encoding: []byte{1, 2, 3},
-			},
-			writes: []writeCall{
-				{ // stored encoding
-					written: []byte{1, 2, 3},
-					err:     errTest,
-				},
-			},
-			wrappedErr: errTest,
-			errMessage: "cannot write stored encoding to buffer: test error",
 		},
 		"branch header encoding error": {
 			node: &Node{
@@ -247,12 +183,12 @@ func Test_Node_Encode(t *testing.T) {
 					written: []byte{136, 0},
 				},
 				{ // value
-					written: []byte{4, 100},
+					written: []byte{4},
 					err:     errTest,
 				},
 			},
 			wrappedErr: errTest,
-			errMessage: "cannot write scale encoded value to buffer: test error",
+			errMessage: "scale encoding value: test error",
 		},
 		"buffer write error for children encoding": {
 			node: &Node{
@@ -273,9 +209,9 @@ func Test_Node_Encode(t *testing.T) {
 				{ // children bitmap
 					written: []byte{136, 0},
 				},
-				{ // value
-					written: []byte{4, 100},
-				},
+				// value
+				{written: []byte{4}},
+				{written: []byte{100}},
 				{ // children
 					written: []byte{16, 65, 9, 4, 1},
 					err:     errTest,
@@ -305,9 +241,9 @@ func Test_Node_Encode(t *testing.T) {
 				{ // children bitmap
 					written: []byte{136, 0},
 				},
-				{ // value
-					written: []byte{4, 100},
-				},
+				// value
+				{written: []byte{4}},
+				{written: []byte{100}},
 				{ // first children
 					written: []byte{16, 65, 9, 4, 1},
 				},
@@ -361,12 +297,6 @@ func Test_Node_Encode(t *testing.T) {
 					call.After(previousCall)
 				}
 				previousCall = call
-			}
-			if testCase.bufferLenCall {
-				buffer.EXPECT().Len().Return(len(testCase.expectedEncoding))
-			}
-			if testCase.bufferBytesCall {
-				buffer.EXPECT().Bytes().Return(testCase.expectedEncoding)
 			}
 
 			err := testCase.node.Encode(buffer)

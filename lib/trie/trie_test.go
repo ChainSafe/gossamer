@@ -295,35 +295,23 @@ func Test_Trie_RootNode(t *testing.T) {
 func Test_encodeRoot(t *testing.T) {
 	t.Parallel()
 
-	type bufferCalls struct {
-		writeCalls  []writeCall
-		lenCall     bool
-		lenReturn   int
-		bytesCall   bool
-		bytesReturn []byte
-	}
-
 	testCases := map[string]struct {
 		root         *Node
-		bufferCalls  bufferCalls
+		writeCalls   []writeCall
 		errWrapped   error
 		errMessage   string
 		expectedRoot *Node
 	}{
 		"nil root and no error": {
-			bufferCalls: bufferCalls{
-				writeCalls: []writeCall{
-					{written: []byte{0}},
-				},
+			writeCalls: []writeCall{
+				{written: []byte{0}},
 			},
 		},
 		"nil root and write error": {
-			bufferCalls: bufferCalls{
-				writeCalls: []writeCall{
-					{
-						written: []byte{0},
-						err:     errTest,
-					},
+			writeCalls: []writeCall{
+				{
+					written: []byte{0},
+					err:     errTest,
 				},
 			},
 			errWrapped: errTest,
@@ -334,12 +322,10 @@ func Test_encodeRoot(t *testing.T) {
 				Key:      []byte{1, 2},
 				SubValue: []byte{1},
 			},
-			bufferCalls: bufferCalls{
-				writeCalls: []writeCall{
-					{
-						written: []byte{66},
-						err:     errTest,
-					},
+			writeCalls: []writeCall{
+				{
+					written: []byte{66},
+					err:     errTest,
 				},
 			},
 			errWrapped: errTest,
@@ -354,21 +340,15 @@ func Test_encodeRoot(t *testing.T) {
 				Key:      []byte{1, 2},
 				SubValue: []byte{1},
 			},
-			bufferCalls: bufferCalls{
-				writeCalls: []writeCall{
-					{written: []byte{66}},
-					{written: []byte{18}},
-					{written: []byte{4, 1}},
-				},
-				lenCall:     true,
-				lenReturn:   3,
-				bytesCall:   true,
-				bytesReturn: []byte{66, 18, 4, 1},
+			writeCalls: []writeCall{
+				{written: []byte{66}},
+				{written: []byte{18}},
+				{written: []byte{4}},
+				{written: []byte{1}},
 			},
 			expectedRoot: &Node{
 				Key:      []byte{1, 2},
 				SubValue: []byte{1},
-				Encoding: []byte{66, 18, 4},
 			},
 		},
 	}
@@ -382,7 +362,7 @@ func Test_encodeRoot(t *testing.T) {
 			buffer := NewMockBuffer(ctrl)
 
 			var previousCall *gomock.Call
-			for _, write := range testCase.bufferCalls.writeCalls {
+			for _, write := range testCase.writeCalls {
 				call := buffer.EXPECT().
 					Write(write.written).
 					Return(write.n, write.err)
@@ -391,14 +371,6 @@ func Test_encodeRoot(t *testing.T) {
 					call.After(previousCall)
 				}
 				previousCall = call
-			}
-			if testCase.bufferCalls.lenCall {
-				buffer.EXPECT().Len().
-					Return(testCase.bufferCalls.lenReturn)
-			}
-			if testCase.bufferCalls.bytesCall {
-				buffer.EXPECT().Bytes().
-					Return(testCase.bufferCalls.bytesReturn)
 			}
 
 			err := encodeRoot(testCase.root, buffer)
@@ -464,7 +436,6 @@ func Test_Trie_Hash(t *testing.T) {
 				root: &Node{
 					Key:      []byte{1, 2, 3},
 					SubValue: []byte{1},
-					Encoding: []byte{0x43, 0x01, 0x23, 0x04, 0x01},
 				},
 			},
 		},
@@ -493,7 +464,6 @@ func Test_Trie_Hash(t *testing.T) {
 						{
 							Key:         []byte{9},
 							SubValue:    []byte{1},
-							Encoding:    []byte{0x41, 0x09, 0x04, 0x01},
 							MerkleValue: []byte{0x41, 0x09, 0x04, 0x01},
 						},
 					}),

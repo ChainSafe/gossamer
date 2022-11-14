@@ -99,11 +99,6 @@ func (n *Node) Copy(settings CopySettings) *Node {
 			cpy.MerkleValue = make([]byte, len(n.MerkleValue))
 			copy(cpy.MerkleValue, n.MerkleValue)
 		}
-
-		if n.Encoding != nil {
-			cpy.Encoding = make([]byte, len(n.Encoding))
-			copy(cpy.Encoding, n.Encoding)
-		}
 	}
 
 	return cpy
