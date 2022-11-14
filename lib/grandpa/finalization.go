@@ -208,10 +208,7 @@ func (h *handleVotingRound) Stop() (err error) {
 }
 
 func (h *handleVotingRound) Run() (err error) {
-	defer func() {
-		close(h.engineDone)
-		h.engineDone = nil
-	}()
+	defer close(h.engineDone)
 
 	start := time.Now()
 
@@ -337,10 +334,7 @@ func (f *finalizationEngine) Stop() (err error) {
 }
 
 func (f *finalizationEngine) Run() (err error) {
-	defer func() {
-		close(f.engineDone)
-		f.engineDone = nil
-	}()
+	defer close(f.engineDone)
 
 	err = f.defineRoundVotes()
 	if err != nil {
