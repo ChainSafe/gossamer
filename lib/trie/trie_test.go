@@ -343,7 +343,8 @@ func Test_encodeRoot(t *testing.T) {
 			writeCalls: []writeCall{
 				{written: []byte{66}},
 				{written: []byte{18}},
-				{written: []byte{4, 1}},
+				{written: []byte{4}},
+				{written: []byte{1}},
 			},
 			expectedRoot: &Node{
 				Key:      []byte{1, 2},
