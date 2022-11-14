@@ -230,9 +230,10 @@ func TestMessageTracker_handleTick(t *testing.T) {
 	gs.tracker.addVote("", msg)
 	commitMessage := &CommitMessage{
 		Round: 100,
+		SetID: 1,
 		Vote: types.GrandpaVote{
 			Hash:   testHash,
-			Number: 0,
+			Number: 1,
 		},
 	}
 	gs.tracker.addCommit(commitMessage)
