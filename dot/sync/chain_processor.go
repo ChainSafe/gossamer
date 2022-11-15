@@ -266,7 +266,7 @@ func (s *chainProcessor) handleBlock(block *types.Block, announceImportedBlock b
 	}
 
 	if err = s.blockImportHandler.HandleBlockImport(block, ts, announceImportedBlock); err != nil {
-		return err
+		return fmt.Errorf("handling block import: %w", err)
 	}
 
 	logger.Debugf("🔗 imported block number %d with hash %s", block.Header.Number, block.Header.Hash())

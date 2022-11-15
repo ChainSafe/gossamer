@@ -22,7 +22,7 @@ func (s *Service) validateTransaction(head *types.Header, rt RuntimeInstance,
 	ts, err := s.storageState.TrieState(&head.StateRoot)
 	s.storageState.Unlock()
 	if err != nil {
-		return nil, fmt.Errorf("cannot get trie state from storage for root %s: %w", head.StateRoot, err)
+		return nil, fmt.Errorf("getting trie state from storage: %w", err)
 	}
 
 	rt.SetContextStorage(ts)

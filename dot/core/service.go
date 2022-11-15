@@ -413,8 +413,7 @@ func (s *Service) maintainTransactionPool(block *types.Block, bestBlockHash comm
 
 	ts, err := s.storageState.TrieState(stateRoot)
 	if err != nil {
-		logger.Errorf(err.Error())
-		return err
+		return fmt.Errorf("getting trie state: %w", err)
 	}
 
 	// re-validate transactions in the pool and move them to the queue
