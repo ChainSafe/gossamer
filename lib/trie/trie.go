@@ -13,7 +13,7 @@ import (
 )
 
 // EmptyHash is the empty trie hash.
-var EmptyHash, _ = NewEmptyTrie().Hash()
+var EmptyHash = common.MustBlake2bHash([]byte{0})
 
 // Trie is a base 16 modified Merkle Patricia trie.
 type Trie struct {
@@ -170,18 +170,6 @@ func (t *Trie) RootNode() *Node {
 	return t.root.Copy(copySettings)
 }
 
-// encodeRoot writes the encoding of the root node to the buffer.
-func encodeRoot(root *Node, buffer node.Buffer) (err error) {
-	if root == nil {
-		_, err = buffer.Write([]byte{0})
-		if err != nil {
-			return fmt.Errorf("cannot write nil root node to buffer: %w", err)
-		}
-		return nil
-	}
-	return root.Encode(buffer)
-}
-
 // MustHash returns the hashed root of the trie.
 // It panics if it fails to hash the root node.
 func (t *Trie) MustHash() common.Hash {
@@ -195,13 +183,16 @@ func (t *Trie) MustHash() common.Hash {
 
 // Hash returns the hashed root of the trie.
 func (t *Trie) Hash() (rootHash common.Hash, err error) {
-	buffer := bytes.NewBuffer(nil)
-	err = encodeRoot(t.root, buffer)
-	if err != nil {
-		return [32]byte{}, err
+	if t.root == nil {
+		return EmptyHash, nil
 	}
 
-	return common.Blake2bHash(buffer.Bytes()) // TODO optimisation: use hashers sync pools
+	merkleValue, err := t.root.CalculateRootMerkleValue()
+	if err != nil {
+		return rootHash, err
+	}
+	copy(rootHash[:], merkleValue)
+	return rootHash, nil
 }
 
 // Entries returns all the key-value pairs in the trie as a map of keys to values
