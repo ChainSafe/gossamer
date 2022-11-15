@@ -74,8 +74,8 @@ func Test_Decode(t *testing.T) {
 				),
 			),
 			n: &Node{
-				Key:      []byte{9},
-				SubValue: []byte{1, 2, 3},
+				PartialKey: []byte{9},
+				SubValue:   []byte{1, 2, 3},
 			},
 		},
 		"branch decoding error": {
@@ -96,8 +96,8 @@ func Test_Decode(t *testing.T) {
 				},
 			),
 			n: &Node{
-				Key:      []byte{9},
-				Children: make([]*Node, ChildrenCapacity),
+				PartialKey: []byte{9},
+				Children:   make([]*Node, ChildrenCapacity),
 			},
 		},
 	}
@@ -177,7 +177,7 @@ func Test_decodeBranch(t *testing.T) {
 			variant:          branchVariant.bits,
 			partialKeyLength: 1,
 			branch: &Node{
-				Key: []byte{9},
+				PartialKey: []byte{9},
 				Children: padRightChildren([]*Node{
 					nil, nil, nil, nil, nil,
 					nil, nil, nil, nil, nil,
@@ -211,8 +211,8 @@ func Test_decodeBranch(t *testing.T) {
 			variant:          branchWithValueVariant.bits,
 			partialKeyLength: 1,
 			branch: &Node{
-				Key:      []byte{9},
-				SubValue: []byte{7, 8, 9},
+				PartialKey: []byte{9},
+				SubValue:   []byte{7, 8, 9},
 				Children: padRightChildren([]*Node{
 					nil, nil, nil, nil, nil,
 					nil, nil, nil, nil, nil,
@@ -263,16 +263,16 @@ func Test_decodeBranch(t *testing.T) {
 			variant:          branchVariant.bits,
 			partialKeyLength: 1,
 			branch: &Node{
-				Key:         []byte{1},
+				PartialKey:  []byte{1},
 				Descendants: 3,
 				Children: padRightChildren([]*Node{
-					{Key: []byte{2}, SubValue: []byte{2}},
+					{PartialKey: []byte{2}, SubValue: []byte{2}},
 					{
-						Key:         []byte{3},
+						PartialKey:  []byte{3},
 						SubValue:    []byte{3},
 						Descendants: 1,
 						Children: padRightChildren([]*Node{
-							{Key: []byte{4}, SubValue: []byte{4}},
+							{PartialKey: []byte{4}, SubValue: []byte{4}},
 						}),
 					},
 				}),
@@ -335,7 +335,7 @@ func Test_decodeLeaf(t *testing.T) {
 			variant:          leafVariant.bits,
 			partialKeyLength: 1,
 			leaf: &Node{
-				Key: []byte{9},
+				PartialKey: []byte{9},
 			},
 		},
 		"empty value data": {
@@ -346,7 +346,7 @@ func Test_decodeLeaf(t *testing.T) {
 			variant:          leafVariant.bits,
 			partialKeyLength: 1,
 			leaf: &Node{
-				Key: []byte{9},
+				PartialKey: []byte{9},
 			},
 		},
 		"success": {
@@ -359,8 +359,8 @@ func Test_decodeLeaf(t *testing.T) {
 			variant:          leafVariant.bits,
 			partialKeyLength: 1,
 			leaf: &Node{
-				Key:      []byte{9},
-				SubValue: []byte{1, 2, 3, 4, 5},
+				PartialKey: []byte{9},
+				SubValue:   []byte{1, 2, 3, 4, 5},
 			},
 		},
 	}

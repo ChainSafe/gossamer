@@ -18,9 +18,9 @@ func Test_Node_String(t *testing.T) {
 	}{
 		"leaf with value smaller than 1024": {
 			node: &Node{
-				Key:      []byte{1, 2},
-				SubValue: []byte{3, 4},
-				Dirty:    true,
+				PartialKey: []byte{1, 2},
+				SubValue:   []byte{3, 4},
+				Dirty:      true,
 			},
 			s: `Leaf
 ├── Generation: 0
@@ -31,9 +31,9 @@ func Test_Node_String(t *testing.T) {
 		},
 		"leaf with value higher than 1024": {
 			node: &Node{
-				Key:      []byte{1, 2},
-				SubValue: make([]byte, 1025),
-				Dirty:    true,
+				PartialKey: []byte{1, 2},
+				SubValue:   make([]byte, 1025),
+				Dirty:      true,
 			},
 			s: `Leaf
 ├── Generation: 0
@@ -44,7 +44,7 @@ func Test_Node_String(t *testing.T) {
 		},
 		"branch with value smaller than 1024": {
 			node: &Node{
-				Key:         []byte{1, 2},
+				PartialKey:  []byte{1, 2},
 				SubValue:    []byte{3, 4},
 				Dirty:       true,
 				Descendants: 3,
@@ -100,7 +100,7 @@ func Test_Node_String(t *testing.T) {
 		},
 		"branch with value higher than 1024": {
 			node: &Node{
-				Key:         []byte{1, 2},
+				PartialKey:  []byte{1, 2},
 				SubValue:    make([]byte, 1025),
 				Dirty:       true,
 				Descendants: 3,

@@ -69,7 +69,7 @@ func decodeBranch(reader io.Reader, variant byte, partialKeyLength uint16) (
 		Children: make([]*Node, ChildrenCapacity),
 	}
 
-	node.Key, err = decodeKey(reader, partialKeyLength)
+	node.PartialKey, err = decodeKey(reader, partialKeyLength)
 	if err != nil {
 		return nil, fmt.Errorf("cannot decode key: %w", err)
 	}
@@ -126,7 +126,7 @@ func decodeBranch(reader io.Reader, variant byte, partialKeyLength uint16) (
 func decodeLeaf(reader io.Reader, partialKeyLength uint16) (node *Node, err error) {
 	node = &Node{}
 
-	node.Key, err = decodeKey(reader, partialKeyLength)
+	node.PartialKey, err = decodeKey(reader, partialKeyLength)
 	if err != nil {
 		return nil, fmt.Errorf("cannot decode key: %w", err)
 	}
