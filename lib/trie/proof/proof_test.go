@@ -37,7 +37,7 @@ func Test_Generate_Verify(t *testing.T) {
 		InMemory: true,
 	})
 	require.NoError(t, err)
-	err = trie.Store(database)
+	err = trie.WriteDirty(database)
 	require.NoError(t, err)
 
 	for i, key := range keys {

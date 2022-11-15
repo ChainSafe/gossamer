@@ -304,7 +304,7 @@ func TestTrieDiff(t *testing.T) {
 	}
 
 	newTrie := trie.Snapshot()
-	err = trie.Store(storageDB)
+	err = trie.WriteDirty(storageDB)
 	require.NoError(t, err)
 
 	tests = []keyValues{

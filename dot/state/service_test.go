@@ -72,13 +72,24 @@ func TestService_Initialise(t *testing.T) {
 	state := newTestService(t)
 
 	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+
+	// Deep copy the trie because of the following:
+	// Initialise clears the database, writes only dirty nodes to disk
+	// and marks them as clean.
+	// Initialise is called twice.
+	// The first call writes all nodes to disk and marks them as clean in the
+	// in-memory trie representation.
+	// If the same trie is re-used for the second call, the database is cleared
+	// and nothing is written to disk since all nodes are marked as clean.
+	genTrieCopy := genTrie.DeepCopy()
+
 	err := state.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
 	genesisHeaderPtr := types.NewHeader(common.NewHash([]byte{77}),
 		genTrie.MustHash(), trie.EmptyHash, 0, types.NewDigest())
 
-	err = state.Initialise(&genData, genesisHeaderPtr, &genTrie)
+	err = state.Initialise(&genData, genesisHeaderPtr, genTrieCopy)
 	require.NoError(t, err)
 
 	err = state.SetupBase()
