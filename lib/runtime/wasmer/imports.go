@@ -420,13 +420,12 @@ func ext_crypto_secp256k1_ecdsa_recover_version_1(context unsafe.Pointer, sig, m
 	pub, err := secp256k1.RecoverPublicKey(message, signature)
 	if err != nil {
 		logger.Errorf("failed to recover public key: %s", err)
-		var ret int64
-		ret, err = toWasmMemoryResult(instanceContext, nil)
+		ret, err := toWasmMemoryResultEmpty(instanceContext)
 		if err != nil {
 			logger.Errorf("failed to allocate memory: %s", err)
 			return 0
 		}
-		return C.int64_t(ret)
+		return ret
 	}
 
 	logger.Debugf(
