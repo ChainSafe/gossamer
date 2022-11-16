@@ -102,7 +102,7 @@ func TestMessageTracker_SendMessage(t *testing.T) {
 	const expectedErr = "validating vote: block does not exist"
 	_, err = gs.validateVoteMessage("", aliceVoteMessage)
 	require.ErrorIs(t, err, ErrBlockDoesNotExist)
-	require.Equal(t, err, expectedErr)
+	require.EqualError(t, err, expectedErr)
 
 	authorityID := kr.Alice().Public().(*ed25519.PublicKey).AsBytes()
 	voteMessage := getMessageFromVotesMapping(gs.tracker.votes.mapping, next.Hash(), authorityID)
@@ -158,10 +158,10 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
-	const expectedErr = "block does not exist"
+	const expectedErr = "validating vote: block does not exist"
 	_, err = gs.validateVoteMessage("", msg)
 	require.ErrorIs(t, err, ErrBlockDoesNotExist)
-	require.Equal(t, err, expectedErr)
+	require.EqualError(t, err, expectedErr)
 
 	authorityID := kr.Alice().Public().(*ed25519.PublicKey).AsBytes()
 	voteMessage := getMessageFromVotesMapping(gs.tracker.votes.mapping, next.Hash(), authorityID)
