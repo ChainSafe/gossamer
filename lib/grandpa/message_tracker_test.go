@@ -236,12 +236,6 @@ func TestMessageTracker_handleTick_commitMessage(t *testing.T) {
 					GetHeader(testHash).
 					Return(nil, chaindb.ErrKeyNotFound)
 
-				// telemetryMock := NewMockClient(ctrl)
-
-				// commitMessageTelemetry := telemetry.NewAfgReceivedCommit(
-				// 	testHash, "1", []string{})
-				// telemetryMock.EXPECT().SendMessage(commitMessageTelemetry)
-
 				grandpaService := &Service{
 					telemetry: nil,
 					keypair:   kr.Bob().(*ed25519.Keypair),

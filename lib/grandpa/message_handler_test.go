@@ -351,7 +351,7 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_MinVoteError(t *testing.T
 	const expectedErrString = "handling commit message: " +
 		"verifying commit message justification: " +
 		"minimum number of votes not met in a Justification: " +
-		"for finalisation message; need 6 votes but received only 0 votes"
+		"for finalisation message; need 6 votes but received only 0 valid votes"
 
 	require.EqualError(t, err, expectedErrString)
 	require.ErrorIs(t, err, ErrMinVotesNotMet)
