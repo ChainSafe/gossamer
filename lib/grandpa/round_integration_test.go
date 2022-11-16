@@ -262,7 +262,7 @@ func TestPlayGrandpaRound(t *testing.T) {
 
 			ctrl := gomock.NewController(t)
 			grandpaServices := make([]*Service, len(tt.voters))
-			grandpaVoters := make([]types.GrandpaVoter, 0, len(tt.voters))
+			grandpaVoters := make([]types.GrandpaVoter, len(tt.voters))
 
 			for idx, kp := range tt.voters {
 				grandpaVoters[idx] = types.GrandpaVoter{
