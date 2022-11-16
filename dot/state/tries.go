@@ -82,7 +82,25 @@ func (t *Tries) softSet(root common.Hash, trie *trie.Trie) {
 func (t *Tries) delete(root common.Hash) {
 	t.mapMutex.Lock()
 	defer t.mapMutex.Unlock()
+
+	tr, ok := t.rootToTrie[root]
+	if ok {
+		tr.ClearPrefix(nil)
+	}
+
 	delete(t.rootToTrie, root)
+
+	if len(t.rootToTrie) == 1 {
+		var rootHash common.Hash
+		var tr *trie.Trie
+		for rootHash, tr = range t.rootToTrie {
+			break
+		}
+		t.rootToTrie = map[common.Hash]*trie.Trie{
+			rootHash: tr,
+		}
+	}
+
 	// Note we use .Set instead of .Dec in case nothing
 	// was deleted since nothing existed at the hash given.
 	t.triesGauge.Set(float64(len(t.rootToTrie)))
