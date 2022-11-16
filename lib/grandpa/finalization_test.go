@@ -8,17 +8,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_FinalizationHandler_runEphemeralServices(t *testing.T) {
+func Test_finalisationHandler_runEphemeralServices(t *testing.T) {
 	t.Parallel()
 
 	tests := map[string]struct {
 		callHandlerStop           bool
-		createFinalizationHandler func(*gomock.Controller) *finalizationHandler
+		createfinalisationHandler func(*gomock.Controller) *finalisationHandler
 		wantErr                   error
 		errString                 string
 	}{
 		"voting_round_finalisation_engine_finishes_successfully": {
-			createFinalizationHandler: func(ctrl *gomock.Controller) *finalizationHandler {
+			createfinalisationHandler: func(ctrl *gomock.Controller) *finalisationHandler {
 				builder := func() (engine ephemeralService, voting ephemeralService) {
 					mockVoting := NewMockephemeralService(ctrl)
 					mockVoting.EXPECT().Run().DoAndReturn(func() error {
@@ -33,7 +33,7 @@ func Test_FinalizationHandler_runEphemeralServices(t *testing.T) {
 					return mockEngine, mockVoting
 				}
 
-				return &finalizationHandler{
+				return &finalisationHandler{
 					newServices: builder,
 					stopCh:      make(chan struct{}),
 					handlerDone: make(chan struct{}),
@@ -44,7 +44,7 @@ func Test_FinalizationHandler_runEphemeralServices(t *testing.T) {
 		"voting_round_fails_should_stop_engine_service": {
 			errString: "voting round ephemeral failed: mocked voting round failed",
 			wantErr:   errHandleVotingRoundFailed,
-			createFinalizationHandler: func(ctrl *gomock.Controller) *finalizationHandler {
+			createfinalisationHandler: func(ctrl *gomock.Controller) *finalisationHandler {
 				builder := func() (engine ephemeralService, voting ephemeralService) {
 					mockVoting := NewMockephemeralService(ctrl)
 					mockVoting.EXPECT().Run().DoAndReturn(func() error {
@@ -68,7 +68,7 @@ func Test_FinalizationHandler_runEphemeralServices(t *testing.T) {
 					return mockEngine, mockVoting
 				}
 
-				return &finalizationHandler{
+				return &finalisationHandler{
 					newServices: builder,
 					stopCh:      make(chan struct{}),
 					handlerDone: make(chan struct{}),
@@ -79,7 +79,7 @@ func Test_FinalizationHandler_runEphemeralServices(t *testing.T) {
 		"engine_fails_should_stop_voting_round_service": {
 			errString: "finalisation engine ephemeral failed: mocked finalization engine failed",
 			wantErr:   errFinalizationEngineFailed,
-			createFinalizationHandler: func(ctrl *gomock.Controller) *finalizationHandler {
+			createfinalisationHandler: func(ctrl *gomock.Controller) *finalisationHandler {
 				builder := func() (engine ephemeralService, voting ephemeralService) {
 					mockEngine := NewMockephemeralService(ctrl)
 					mockEngine.EXPECT().Run().DoAndReturn(func() error {
@@ -103,7 +103,7 @@ func Test_FinalizationHandler_runEphemeralServices(t *testing.T) {
 					return mockEngine, mockVoting
 				}
 
-				return &finalizationHandler{
+				return &finalisationHandler{
 					newServices: builder,
 					stopCh:      make(chan struct{}),
 					handlerDone: make(chan struct{}),
@@ -119,9 +119,9 @@ func Test_FinalizationHandler_runEphemeralServices(t *testing.T) {
 			t.Parallel()
 
 			ctrl := gomock.NewController(t)
-			finalizationHandler := tt.createFinalizationHandler(ctrl)
+			finalisationHandler := tt.createfinalisationHandler(ctrl)
 
-			err := finalizationHandler.runEphemeralServices()
+			err := finalisationHandler.runEphemeralServices()
 
 			require.ErrorIs(t, err, tt.wantErr)
 			if tt.wantErr != nil {

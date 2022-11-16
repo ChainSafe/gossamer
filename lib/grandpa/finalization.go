@@ -23,7 +23,7 @@ type ephemeralService interface {
 	Stop() error
 }
 
-type finalizationHandler struct {
+type finalisationHandler struct {
 	servicesLock       sync.Mutex
 	finalizationEngine ephemeralService
 	votingRound        ephemeralService
@@ -38,8 +38,8 @@ type finalizationHandler struct {
 	handlerDone chan struct{}
 }
 
-func newFinalizationHandler(service *Service) *finalizationHandler {
-	return &finalizationHandler{
+func newFinalisationHandler(service *Service) *finalisationHandler {
+	return &finalisationHandler{
 		newServices: func() (engine, voting ephemeralService) {
 			finalizationEngine := newFinalizationEngine(service)
 			votingRound := newHandleVotingRound(service, finalizationEngine.actionCh)
@@ -51,14 +51,14 @@ func newFinalizationHandler(service *Service) *finalizationHandler {
 	}
 }
 
-func (fh *finalizationHandler) Start() (<-chan error, error) {
+func (fh *finalisationHandler) Start() (<-chan error, error) {
 	errorCh := make(chan error)
 	go fh.run(errorCh)
 
 	return errorCh, nil
 }
 
-func (fh *finalizationHandler) run(errorCh chan<- error) {
+func (fh *finalisationHandler) run(errorCh chan<- error) {
 	defer func() {
 		close(errorCh)
 		close(fh.handlerDone)
@@ -79,13 +79,13 @@ func (fh *finalizationHandler) run(errorCh chan<- error) {
 
 		err = fh.runEphemeralServices()
 		if err != nil {
-			errorCh <- fmt.Errorf("waiting for services: %w", err)
+			errorCh <- fmt.Errorf("running ephemeral services: %w", err)
 			return
 		}
 	}
 }
 
-func (fh *finalizationHandler) stop() (err error) {
+func (fh *finalisationHandler) stop() (err error) {
 	fh.servicesLock.Lock()
 	defer fh.servicesLock.Unlock()
 
@@ -114,7 +114,7 @@ func (fh *finalizationHandler) stop() (err error) {
 	return nil
 }
 
-func (fh *finalizationHandler) Stop() (err error) {
+func (fh *finalisationHandler) Stop() (err error) {
 	close(fh.stopCh)
 	<-fh.handlerDone
 
@@ -127,7 +127,7 @@ func (fh *finalizationHandler) Stop() (err error) {
 // If any service run fails, the other service run is stopped and
 // an error is returned. The function returns nil is the finalisation
 // handler is stopped.
-func (fh *finalizationHandler) runEphemeralServices() error {
+func (fh *finalisationHandler) runEphemeralServices() error {
 	fh.servicesLock.Lock()
 	fh.finalizationEngine, fh.votingRound = fh.newServices()
 	fh.servicesLock.Unlock()

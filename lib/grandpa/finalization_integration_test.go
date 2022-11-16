@@ -14,13 +14,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_FinalizationHandler_Stop_ShouldHalt_Services(t *testing.T) {
+func Test_finalisationHandler_Stop_ShouldHalt_Services(t *testing.T) {
 	t.Parallel()
 
 	testcases := map[string]struct {
 		wantErr    error
 		errString  string
-		newHandler func(t *testing.T) *finalizationHandler
+		newHandler func(*gomock.Controller) *finalisationHandler
 	}{
 		"halt_ephemeral_services_after_calling_stop": {
 			// when we start the finalisation handler we instantiate
@@ -28,8 +28,7 @@ func Test_FinalizationHandler_Stop_ShouldHalt_Services(t *testing.T) {
 			// (votingHandler, finalizationEngine) since they are mocked
 			// they will wait until the Stop method being called to release
 			// the blocking channel and return from the function
-			newHandler: func(t *testing.T) *finalizationHandler {
-				ctrl := gomock.NewController(t)
+			newHandler: func(ctrl *gomock.Controller) *finalisationHandler {
 				builder := func() (engine ephemeralService, voting ephemeralService) {
 					engineStopCh := make(chan struct{})
 					mockEngine := NewMockephemeralService(ctrl)
@@ -56,7 +55,7 @@ func Test_FinalizationHandler_Stop_ShouldHalt_Services(t *testing.T) {
 					return mockEngine, mockVoting
 				}
 
-				return &finalizationHandler{
+				return &finalisationHandler{
 					newServices: builder,
 					// mocked initiate round function
 					initiateRound: func() error { return nil },
@@ -68,8 +67,7 @@ func Test_FinalizationHandler_Stop_ShouldHalt_Services(t *testing.T) {
 		"halt_fails_to_stop_one_ephemeral_service": {
 			wantErr:   errServicesStopFailed,
 			errString: "services stop failed: cannot stop finalisation engine test",
-			newHandler: func(t *testing.T) *finalizationHandler {
-				ctrl := gomock.NewController(t)
+			newHandler: func(ctrl *gomock.Controller) *finalisationHandler {
 				builder := func() (engine ephemeralService, voting ephemeralService) {
 					engineStopCh := make(chan struct{})
 					mockEngine := NewMockephemeralService(ctrl)
@@ -97,7 +95,7 @@ func Test_FinalizationHandler_Stop_ShouldHalt_Services(t *testing.T) {
 					return mockEngine, mockVoting
 				}
 
-				return &finalizationHandler{
+				return &finalisationHandler{
 					newServices: builder,
 					// mocked initiate round function
 					initiateRound: func() error { return nil },
@@ -106,14 +104,11 @@ func Test_FinalizationHandler_Stop_ShouldHalt_Services(t *testing.T) {
 				}
 			},
 		},
-
 		"halt_fails_to_stop_both_ephemeral_service": {
 			wantErr: errServicesStopFailed,
 			errString: "services stop failed: cannot stop finalisation engine test; " +
 				"cannot stop voting handler test",
-			newHandler: func(t *testing.T) *finalizationHandler {
-				ctrl := gomock.NewController(t)
-
+			newHandler: func(ctrl *gomock.Controller) *finalisationHandler {
 				builder := func() (engine ephemeralService, voting ephemeralService) {
 					engineStopCh := make(chan struct{})
 					mockEngine := NewMockephemeralService(ctrl)
@@ -141,7 +136,7 @@ func Test_FinalizationHandler_Stop_ShouldHalt_Services(t *testing.T) {
 					return mockEngine, mockVoting
 				}
 
-				return &finalizationHandler{
+				return &finalisationHandler{
 					newServices: builder,
 					// mocked initiate round function
 					initiateRound: func() error { return nil },
@@ -156,7 +151,8 @@ func Test_FinalizationHandler_Stop_ShouldHalt_Services(t *testing.T) {
 		tt := tt
 		t.Run(tname, func(t *testing.T) {
 			t.Parallel()
-			handler := tt.newHandler(t)
+			ctrl := gomock.NewController(t)
+			handler := tt.newHandler(ctrl)
 
 			errorCh, err := handler.Start()
 			require.NoError(t, err)

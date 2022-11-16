@@ -566,16 +566,16 @@ func TestPlayGrandpaRoundMultipleRounds(t *testing.T) {
 func runFinalizationServices(t *testing.T, grandpaServices []*Service) {
 	t.Helper()
 
-	finalizationHandlers := make([]*finalizationHandler, len(grandpaServices))
+	finalisationHandlers := make([]*finalisationHandler, len(grandpaServices))
 	for idx, grandpaService := range grandpaServices {
-		finalizationHandlers[idx] = newFinalizationHandler(grandpaService)
+		finalisationHandlers[idx] = newFinalisationHandler(grandpaService)
 	}
 
 	handlersWg := new(sync.WaitGroup)
-	handlersWg.Add(len(finalizationHandlers))
+	handlersWg.Add(len(finalisationHandlers))
 
-	for _, handler := range finalizationHandlers {
-		go func(t *testing.T, handler *finalizationHandler) {
+	for _, handler := range finalisationHandlers {
+		go func(t *testing.T, handler *finalisationHandler) {
 			defer handlersWg.Done()
 			err := handler.runEphemeralServices()
 			assert.NoError(t, err)
@@ -823,8 +823,8 @@ func TestSendingVotesInRightStage(t *testing.T) {
 
 		t.Helper()
 
-		finalizationHandler := newFinalizationHandler(grandpa)
-		err := finalizationHandler.runEphemeralServices()
+		finalisationHandler := newFinalisationHandler(grandpa)
+		err := finalisationHandler.runEphemeralServices()
 		require.NoError(t, err)
 	}()
 

@@ -175,7 +175,7 @@ func (s *Service) Start() error {
 	go func() {
 		err := s.initiate()
 		if err != nil {
-			panic(fmt.Errorf("grandpa service: %s", err))
+			panic(fmt.Sprintf("running grandpa service: %s", err))
 		}
 	}()
 
@@ -329,8 +329,8 @@ func (s *Service) initiateRound() error {
 
 // initiate initates the grandpa service to begin voting in sequential rounds
 func (s *Service) initiate() error {
-	finalizationHandler := newFinalizationHandler(s)
-	errorCh, err := finalizationHandler.Start()
+	finalisationHandler := newFinalisationHandler(s)
+	errorCh, err := finalisationHandler.Start()
 	if err != nil {
 		return fmt.Errorf("starting finalisation handler: %w", err)
 	}
@@ -338,7 +338,7 @@ func (s *Service) initiate() error {
 	for {
 		select {
 		case <-s.ctx.Done():
-			return finalizationHandler.Stop()
+			return finalisationHandler.Stop()
 		case err := <-errorCh:
 			return err
 		}
