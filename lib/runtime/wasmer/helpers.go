@@ -123,6 +123,18 @@ func toWasmMemoryOptionalUint32(context wasmer.InstanceContext, data *uint32) (
 	return toWasmMemory(context, enc)
 }
 
+func mustToWasmMemoryNil(context wasmer.InstanceContext) (
+	cPointerSize C.int64_t) {
+	allocator := context.Data().(*runtime.Context).Allocator
+	ptr, err := allocator.Allocate(0)
+	if err != nil {
+		// we allocate 0 byte, this should never fail
+		panic(err)
+	}
+	pointerSize := toPointerSize(ptr, 0)
+	return C.int64_t(pointerSize)
+}
+
 // toKillStorageResultEnum encodes the `allRemoved` flag and
 // the `numRemoved` uint32 to a byte slice and returns it.
 // The format used is:

@@ -1883,8 +1883,7 @@ func ext_storage_clear_prefix_version_2(context unsafe.Pointer, prefixSpan, lim 
 	err := scale.Unmarshal(limitBytes, &limit)
 	if err != nil {
 		logger.Warnf("failed scale decoding limit: %s", err)
-		ret, _ := toWasmMemory(instanceContext, nil)
-		return C.int64_t(ret)
+		return mustToWasmMemoryNil(instanceContext)
 	}
 
 	if len(limit) == 0 {
@@ -1897,15 +1896,13 @@ func ext_storage_clear_prefix_version_2(context unsafe.Pointer, prefixSpan, lim 
 	encBytes, err := toKillStorageResultEnum(all, numRemoved)
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
-		ret, _ := toWasmMemory(instanceContext, nil)
-		return C.int64_t(ret)
+		return mustToWasmMemoryNil(instanceContext)
 	}
 
 	valueSpan, err := toWasmMemory(instanceContext, encBytes)
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
-		ptr, _ := toWasmMemory(instanceContext, nil)
-		return C.int64_t(ptr)
+		return mustToWasmMemoryNil(instanceContext)
 	}
 
 	return C.int64_t(valueSpan)
