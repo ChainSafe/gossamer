@@ -338,8 +338,7 @@ func ext_crypto_ed25519_sign_version_1(context unsafe.Pointer, keyTypeID, key C.
 	ks, err := runtimeCtx.Keystore.GetKeystore(id)
 	if err != nil {
 		logger.Warnf("error for id 0x%x: %s", id, err)
-		ret, _ := toWasmMemoryOptional(instanceContext, nil)
-		return C.int64_t(ret)
+		return C.int64_t(mustToWasmMemoryOptionalNil(instanceContext))
 	}
 
 	signingKey := ks.GetKeypair(pubKey)
@@ -648,40 +647,38 @@ func ext_crypto_sr25519_sign_version_1(context unsafe.Pointer, keyTypeID, key C.
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
 	memory := instanceContext.Memory().Data()
 
-	emptyRet, _ := toWasmMemoryOptional(instanceContext, nil)
-
 	id := memory[keyTypeID : keyTypeID+4]
 
 	ks, err := runtimeCtx.Keystore.GetKeystore(id)
 	if err != nil {
 		logger.Warnf("error for id 0x%x: %s", id, err)
-		return C.int64_t(emptyRet)
+		return mustToWasmMemoryOptionalNil(instanceContext)
 	}
 
 	var ret int64
 	pubKey, err := sr25519.NewPublicKey(memory[key : key+32])
 	if err != nil {
 		logger.Errorf("failed to get public key: %s", err)
-		return C.int64_t(emptyRet)
+		return mustToWasmMemoryOptionalNil(instanceContext)
 	}
 
 	signingKey := ks.GetKeypair(pubKey)
 	if signingKey == nil {
 		logger.Error("could not find public key " + pubKey.Hex() + " in keystore")
-		return C.int64_t(emptyRet)
+		return mustToWasmMemoryOptionalNil(instanceContext)
 	}
 
 	msgData := asMemorySlice(instanceContext, msg)
 	sig, err := signingKey.Sign(msgData)
 	if err != nil {
 		logger.Errorf("could not sign message: %s", err)
-		return C.int64_t(emptyRet)
+		return mustToWasmMemoryOptionalNil(instanceContext)
 	}
 
 	ret, err = toWasmMemoryFixedSizeOptional(instanceContext, sig)
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
-		return C.int64_t(emptyRet)
+		return mustToWasmMemoryOptionalNil(instanceContext)
 	}
 
 	return C.int64_t(ret)
@@ -963,8 +960,7 @@ func ext_misc_runtime_version_version_1(context unsafe.Pointer, dataSpan C.int64
 	version, err := GetRuntimeVersion(code)
 	if err != nil {
 		logger.Errorf("failed to get runtime version: %s", err)
-		out, _ := toWasmMemoryOptional(instanceContext, nil)
-		return C.int64_t(out)
+		return mustToWasmMemoryOptionalNil(instanceContext)
 	}
 
 	// Note the encoding contains all the latest Core_version fields as defined in
@@ -1940,8 +1936,7 @@ func ext_storage_get_version_1(context unsafe.Pointer, keySpan C.int64_t) C.int6
 	valueSpan, err := toWasmMemoryOptional(instanceContext, value)
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
-		ptr, _ := toWasmMemoryOptional(instanceContext, nil)
-		return C.int64_t(ptr)
+		return mustToWasmMemoryOptionalNil(instanceContext)
 	}
 
 	return C.int64_t(valueSpan)
@@ -1985,8 +1980,7 @@ func ext_storage_read_version_1(context unsafe.Pointer, keySpan, valueOut C.int6
 		key, value)
 
 	if value == nil {
-		ret, _ := toWasmMemoryOptional(instanceContext, nil)
-		return C.int64_t(ret)
+		return mustToWasmMemoryOptionalNil(instanceContext)
 	}
 
 	var size uint32
