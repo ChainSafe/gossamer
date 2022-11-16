@@ -6,6 +6,8 @@ package grandpa
 import (
 	"testing"
 
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/golang/mock/gomock"
 
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -32,6 +34,10 @@ func TestGrandpaHandshake_Encode(t *testing.T) {
 }
 
 func TestHandleNetworkMessage(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
 	gs, st := newTestService(t, aliceKeyPair)
 
 	just := []SignedVote{
@@ -41,7 +47,7 @@ func TestHandleNetworkMessage(t *testing.T) {
 			AuthorityID: gs.publicKeyBytes(),
 		},
 	}
-	err := st.Grandpa.SetPrecommits(77, gs.state.setID, just)
+	err = st.Grandpa.SetPrecommits(77, gs.state.setID, just)
 	require.NoError(t, err)
 
 	fm, err := gs.newCommitMessage(gs.head, 77, 0)

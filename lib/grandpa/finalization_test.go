@@ -77,13 +77,13 @@ func Test_finalisationHandler_runEphemeralServices(t *testing.T) {
 		},
 
 		"engine_fails_should_stop_voting_round_service": {
-			errString: "finalisation engine ephemeral failed: mocked finalization engine failed",
-			wantErr:   errFinalizationEngineFailed,
+			errString: "finalisation engine ephemeral failed: mocked finalisation engine failed",
+			wantErr:   errfinalisationEngineFailed,
 			createfinalisationHandler: func(ctrl *gomock.Controller) *finalisationHandler {
 				builder := func() (engine ephemeralService, voting ephemeralService) {
 					mockEngine := NewMockephemeralService(ctrl)
 					mockEngine.EXPECT().Run().DoAndReturn(func() error {
-						return errors.New("mocked finalization engine failed")
+						return errors.New("mocked finalisation engine failed")
 					})
 
 					// once the finalisation engine fails the finalisation handler

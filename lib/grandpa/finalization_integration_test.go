@@ -25,7 +25,7 @@ func Test_finalisationHandler_Stop_ShouldHalt_Services(t *testing.T) {
 		"halt_ephemeral_services_after_calling_stop": {
 			// when we start the finalisation handler we instantiate
 			// and call the Run method from each ephemeral services
-			// (votingHandler, finalizationEngine) since they are mocked
+			// (votingHandler, finalisationEngine) since they are mocked
 			// they will wait until the Stop method being called to release
 			// the blocking channel and return from the function
 			newHandler: func(ctrl *gomock.Controller) *finalisationHandler {

@@ -30,12 +30,6 @@ var testGenesisHeader = &types.Header{
 	Digest:    types.NewDigest(),
 }
 
-var (
-	kr, _        = keystore.NewEd25519Keyring()
-	aliceKeyPair = kr.Alice().(*ed25519.Keypair)
-	voters       = newTestVoters()
-)
-
 //go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
 
 func newTestState(t *testing.T) *state.Service {
@@ -64,7 +58,7 @@ func newTestState(t *testing.T) *state.Service {
 	require.NoError(t, err)
 	block.StoreRuntime(block.BestBlockHash(), rt)
 
-	grandpa, err := state.NewGrandpaStateFromGenesis(db, nil, voters)
+	grandpa, err := state.NewGrandpaStateFromGenesis(db, nil, newTestVoters(t))
 	require.NoError(t, err)
 
 	return &state.Service{
@@ -74,7 +68,12 @@ func newTestState(t *testing.T) *state.Service {
 	}
 }
 
-func newTestVoters() []Voter {
+func newTestVoters(t *testing.T) []Voter {
+	t.Helper()
+
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
 	vs := []Voter{}
 	for i, k := range kr.Keys {
 		vs = append(vs, Voter{
@@ -97,7 +96,7 @@ func newTestService(t *testing.T, keypair *ed25519.Keypair) (*Service, *state.Se
 	cfg := &Config{
 		BlockState:   st.Block,
 		GrandpaState: st.Grandpa,
-		Voters:       voters,
+		Voters:       newTestVoters(t),
 		Authority:    true,
 		Network:      net,
 		Interval:     time.Second,
@@ -111,8 +110,13 @@ func newTestService(t *testing.T, keypair *ed25519.Keypair) (*Service, *state.Se
 }
 
 func TestUpdateAuthorities(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
 	gs, _ := newTestService(t, aliceKeyPair)
-	err := gs.updateAuthorities()
+
+	err = gs.updateAuthorities()
 	require.NoError(t, err)
 	require.Equal(t, uint64(0), gs.state.setID)
 
@@ -134,6 +138,10 @@ func TestUpdateAuthorities(t *testing.T) {
 }
 
 func TestGetDirectVotes(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
 	gs, _ := newTestService(t, aliceKeyPair)
 
 	voteA := Vote{
@@ -167,6 +175,10 @@ func TestGetDirectVotes(t *testing.T) {
 }
 
 func TestGetVotesForBlock_NoDescendantVotes(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
 	gs, st := newTestService(t, aliceKeyPair)
 
 	branches := map[uint]int{6: 1}
@@ -203,6 +215,10 @@ func TestGetVotesForBlock_NoDescendantVotes(t *testing.T) {
 }
 
 func TestGetVotesForBlock_DescendantVotes(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
 	gs, st := newTestService(t, aliceKeyPair)
 
 	branches := map[uint]int{6: 1}
@@ -253,6 +269,10 @@ func TestGetVotesForBlock_DescendantVotes(t *testing.T) {
 }
 
 func TestGetPossibleSelectedAncestors_SameAncestor(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
 	gs, st := newTestService(t, aliceKeyPair)
 
 	// this creates a tree with 3 branches all starting at depth 6
@@ -307,6 +327,10 @@ func TestGetPossibleSelectedAncestors_SameAncestor(t *testing.T) {
 }
 
 func TestGetPossibleSelectedAncestors_VaryingAncestor(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
 	gs, st := newTestService(t, aliceKeyPair)
 
 	// this creates a tree with branches starting at depth 6 and another branch starting at depth 7
@@ -361,6 +385,10 @@ func TestGetPossibleSelectedAncestors_VaryingAncestor(t *testing.T) {
 }
 
 func TestGetPossibleSelectedAncestors_VaryingAncestor_MoreBranches(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
 	gs, st := newTestService(t, aliceKeyPair)
 
 	// this creates a tree with 2 branches starting at depth 6 and 1 branch starting at depth 7,
@@ -421,6 +449,10 @@ func TestGetPossibleSelectedAncestors_VaryingAncestor_MoreBranches(t *testing.T)
 }
 
 func TestGetPossibleSelectedBlocks_OneBlock(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
 	gs, st := newTestService(t, aliceKeyPair)
 
 	branches := map[uint]int{6: 1}
@@ -453,6 +485,10 @@ func TestGetPossibleSelectedBlocks_OneBlock(t *testing.T) {
 }
 
 func TestGetPossibleSelectedBlocks_EqualVotes_SameAncestor(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
 	gs, st := newTestService(t, aliceKeyPair)
 
 	// this creates a tree with 3 branches all starting at depth 6
@@ -500,6 +536,10 @@ func TestGetPossibleSelectedBlocks_EqualVotes_SameAncestor(t *testing.T) {
 }
 
 func TestGetPossibleSelectedBlocks_EqualVotes_VaryingAncestor(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
 	gs, st := newTestService(t, aliceKeyPair)
 
 	// this creates a tree with branches starting at depth 6 and another branch starting at depth 7
@@ -548,6 +588,10 @@ func TestGetPossibleSelectedBlocks_EqualVotes_VaryingAncestor(t *testing.T) {
 }
 
 func TestGetPossibleSelectedBlocks_OneThirdEquivocating(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
 	gs, st := newTestService(t, aliceKeyPair)
 
 	branches := map[uint]int{6: 1}
@@ -589,6 +633,10 @@ func TestGetPossibleSelectedBlocks_OneThirdEquivocating(t *testing.T) {
 }
 
 func TestGetPossibleSelectedBlocks_MoreThanOneThirdEquivocating(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
 	gs, st := newTestService(t, aliceKeyPair)
 
 	branches := map[uint]int{6: 1, 7: 1}
@@ -636,6 +684,10 @@ func TestGetPossibleSelectedBlocks_MoreThanOneThirdEquivocating(t *testing.T) {
 }
 
 func TestGetPreVotedBlock_OneBlock(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
 	gs, st := newTestService(t, aliceKeyPair)
 
 	branches := map[uint]int{6: 1}
@@ -667,6 +719,10 @@ func TestGetPreVotedBlock_OneBlock(t *testing.T) {
 }
 
 func TestGetPreVotedBlock_MultipleCandidates(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
 	gs, st := newTestService(t, aliceKeyPair)
 
 	// this creates a tree with branches starting at depth 6 and another branch starting at depth 7
@@ -713,6 +769,10 @@ func TestGetPreVotedBlock_MultipleCandidates(t *testing.T) {
 }
 
 func TestGetPreVotedBlock_EvenMoreCandidates(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
 	gs, st := newTestService(t, aliceKeyPair)
 
 	// this creates a tree with 6 total branches, one each from depth 3 to 7
@@ -781,6 +841,10 @@ func TestGetPreVotedBlock_EvenMoreCandidates(t *testing.T) {
 }
 
 func TestFindParentWithNumber(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
 	gs, st := newTestService(t, aliceKeyPair)
 
 	// no branches needed
@@ -800,6 +864,10 @@ func TestFindParentWithNumber(t *testing.T) {
 }
 
 func TestGetBestFinalCandidate_OneBlock(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
 	// this tests the case when the prevoted block and the precommited block are the same
 	gs, st := newTestService(t, aliceKeyPair)
 
@@ -838,6 +906,10 @@ func TestGetBestFinalCandidate_OneBlock(t *testing.T) {
 }
 
 func TestGetBestFinalCandidate_PrecommitAncestor(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
 	// this tests the case when the highest precommited block is an ancestor of the prevoted block
 	gs, st := newTestService(t, aliceKeyPair)
 
@@ -880,6 +952,10 @@ func TestGetBestFinalCandidate_PrecommitAncestor(t *testing.T) {
 }
 
 func TestGetBestFinalCandidate_NoPrecommit(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
 	// this tests the case when no blocks have >=2/3 precommit votes
 	// it should return the prevoted block
 	gs, st := newTestService(t, aliceKeyPair)
@@ -916,6 +992,10 @@ func TestGetBestFinalCandidate_NoPrecommit(t *testing.T) {
 }
 
 func TestGetBestFinalCandidate_PrecommitOnAnotherChain(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
 	// this tests the case when the precommited block is on another chain than the prevoted block
 	// this should return their highest common ancestor
 	gs, st := newTestService(t, aliceKeyPair)
@@ -958,6 +1038,10 @@ func TestGetBestFinalCandidate_PrecommitOnAnotherChain(t *testing.T) {
 }
 
 func TestDeterminePreVote_NoPrimaryPreVote(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
 	gs, st := newTestService(t, aliceKeyPair)
 
 	state.AddBlocksToState(t, st.Block, 3, false)
@@ -970,6 +1054,10 @@ func TestDeterminePreVote_NoPrimaryPreVote(t *testing.T) {
 }
 
 func TestDeterminePreVote_WithPrimaryPreVote(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
 	gs, st := newTestService(t, aliceKeyPair)
 
 	state.AddBlocksToState(t, st.Block, 3, false)
@@ -991,6 +1079,10 @@ func TestDeterminePreVote_WithPrimaryPreVote(t *testing.T) {
 }
 
 func TestDeterminePreVote_WithInvalidPrimaryPreVote(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
 	gs, st := newTestService(t, aliceKeyPair)
 
 	state.AddBlocksToState(t, st.Block, 3, false)
@@ -1013,6 +1105,10 @@ func TestDeterminePreVote_WithInvalidPrimaryPreVote(t *testing.T) {
 }
 
 func TestGetGrandpaGHOST_CommonAncestor(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
 	gs, st := newTestService(t, aliceKeyPair)
 
 	branches := map[uint]int{6: 1}
@@ -1047,6 +1143,10 @@ func TestGetGrandpaGHOST_CommonAncestor(t *testing.T) {
 }
 
 func TestGetGrandpaGHOST_MultipleCandidates(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
 	gs, st := newTestService(t, aliceKeyPair)
 
 	// this creates a tree with branches starting at depth 3 and another branch starting at depth 7
@@ -1096,6 +1196,10 @@ func TestGetGrandpaGHOST_MultipleCandidates(t *testing.T) {
 }
 
 func TestGrandpaServiceCreateJustification_ShouldCountEquivocatoryVotes(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
 	// setup granpda service
 	gs, st := newTestService(t, aliceKeyPair)
 	now := time.Unix(1000, 0)

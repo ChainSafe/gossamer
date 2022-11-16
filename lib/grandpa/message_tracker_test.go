@@ -214,6 +214,9 @@ func TestMessageTracker_MapInsideMap(t *testing.T) {
 func TestMessageTracker_handleTick_commitMessage(t *testing.T) {
 	t.Parallel()
 
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
 	testcases := map[string]struct {
 		expectedCommitMessage bool
 		newGrandpaService     func(ctrl *gomock.Controller) *Service
@@ -243,7 +246,7 @@ func TestMessageTracker_handleTick_commitMessage(t *testing.T) {
 					telemetry: nil,
 					keypair:   kr.Bob().(*ed25519.Keypair),
 					state: &State{
-						voters: newTestVoters(),
+						voters: newTestVoters(t),
 						setID:  0,
 						round:  1,
 					},
@@ -430,7 +433,7 @@ func TestMessageTracker_handleTick_voteMessage(t *testing.T) {
 				telemetry: telemetryMock,
 				keypair:   kr.Bob().(*ed25519.Keypair),
 				state: &State{
-					voters: newTestVoters(),
+					voters: newTestVoters(t),
 					setID:  0,
 					round:  tt.serviceRound,
 				},

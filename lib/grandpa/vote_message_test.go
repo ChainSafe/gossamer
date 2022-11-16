@@ -35,7 +35,7 @@ func TestCheckForEquivocation_NoEquivocation(t *testing.T) {
 	vote := NewVoteFromHeader(h)
 	require.NoError(t, err)
 
-	for _, v := range voters {
+	for _, v := range newTestVoters(t) {
 		equivocated := gs.checkForEquivocation(&v, &SignedVote{
 			Vote: *vote,
 		}, prevote)
@@ -64,6 +64,7 @@ func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
 	vote1, err := NewVoteFromHash(leaves[0], st.Block)
 	require.NoError(t, err)
 
+	voters := newTestVoters(t)
 	voter := voters[0]
 
 	gs.prevotes.Store(voter.Key.AsBytes(), &SignedVote{
@@ -104,6 +105,7 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 	vote1, err := NewVoteFromHash(leaves[1], gs.blockState)
 	require.NoError(t, err)
 
+	voters := newTestVoters(t)
 	voter := voters[0]
 
 	gs.prevotes.Store(voter.Key.AsBytes(), &SignedVote{
@@ -143,7 +145,7 @@ func TestValidateMessage_Valid(t *testing.T) {
 	cfg := &Config{
 		BlockState:   st.Block,
 		GrandpaState: st.Grandpa,
-		Voters:       voters,
+		Voters:       newTestVoters(t),
 		Network:      net,
 		Interval:     time.Second,
 	}
@@ -241,7 +243,7 @@ func TestValidateMessage_Equivocation(t *testing.T) {
 	cfg := &Config{
 		BlockState:   st.Block,
 		GrandpaState: st.Grandpa,
-		Voters:       voters,
+		Voters:       newTestVoters(t),
 		Network:      net,
 		Interval:     time.Second,
 	}
@@ -258,6 +260,7 @@ func TestValidateMessage_Equivocation(t *testing.T) {
 	voteB, err := NewVoteFromHash(leaves[1], st.Block)
 	require.NoError(t, err)
 
+	voters := newTestVoters(t)
 	voter := voters[0]
 
 	gs.prevotes.Store(voter.Key.AsBytes(), &SignedVote{
@@ -284,7 +287,7 @@ func TestValidateMessage_BlockDoesNotExist(t *testing.T) {
 	cfg := &Config{
 		BlockState:   st.Block,
 		GrandpaState: st.Grandpa,
-		Voters:       voters,
+		Voters:       newTestVoters(t),
 		Network:      net,
 		Interval:     time.Second,
 	}
@@ -319,7 +322,7 @@ func TestValidateMessage_IsNotDescendant(t *testing.T) {
 	cfg := &Config{
 		BlockState:   st.Block,
 		GrandpaState: st.Grandpa,
-		Voters:       voters,
+		Voters:       newTestVoters(t),
 		Network:      net,
 		Interval:     time.Second,
 	}

@@ -104,7 +104,7 @@ func setupGrandpa(t *testing.T, kp *ed25519.Keypair) *Service {
 	cfg := &Config{
 		BlockState:   st.Block,
 		GrandpaState: st.Grandpa,
-		Voters:       voters,
+		Voters:       newTestVoters(t),
 		Keypair:      kp,
 		LogLvl:       log.Info,
 		Authority:    true,
@@ -375,7 +375,7 @@ func TestPlayGrandpaRound(t *testing.T) {
 					AnyTimes()
 			}
 
-			runFinalizationServices(t, grandpaServices)
+			runfinalisationServices(t, grandpaServices)
 
 			var latestHash common.Hash = grandpaServices[0].head.Hash()
 			for _, grandpaService := range grandpaServices[1:] {
@@ -540,10 +540,10 @@ func TestPlayGrandpaRoundMultipleRounds(t *testing.T) {
 
 		// for each grandpa service we should start the finalisation and voting round
 		// engines and waits for them to reach finalisation
-		runFinalizationServices(t, grandpaServices)
+		runfinalisationServices(t, grandpaServices)
 
 		const setID uint64 = 0
-		assertSameFinalizationAndChainGrowth(t, grandpaServices,
+		assertSamefinalisationAndChainGrowth(t, grandpaServices,
 			uint64(currentRound), setID)
 
 		var latestCommit *CommitMessage = producedCommitMessages[0]
@@ -561,9 +561,9 @@ func TestPlayGrandpaRoundMultipleRounds(t *testing.T) {
 	}
 }
 
-// runFinalizationServices is designed to handle many grandpa services and starts, for each service,
+// runfinalisationServices is designed to handle many grandpa services and starts, for each service,
 // the finalisation engine and the voting round engine which will take care of reach finalisation
-func runFinalizationServices(t *testing.T, grandpaServices []*Service) {
+func runfinalisationServices(t *testing.T, grandpaServices []*Service) {
 	t.Helper()
 
 	finalisationHandlers := make([]*finalisationHandler, len(grandpaServices))
@@ -587,7 +587,7 @@ func runFinalizationServices(t *testing.T, grandpaServices []*Service) {
 
 // assertChainGrowth ensure that each service reach the same finalisation result
 // and that the result belongs to the same chain as the previously finalized block
-func assertSameFinalizationAndChainGrowth(t *testing.T, services []*Service, currentRount, setID uint64) {
+func assertSamefinalisationAndChainGrowth(t *testing.T, services []*Service, currentRount, setID uint64) {
 	finalizedHeaderCurrentRound := make([]*types.Header, len(services))
 	for idx, grandpaService := range services {
 		finalizedHeader, err := grandpaService.blockState.GetFinalisedHeader(
