@@ -7,6 +7,8 @@ RUN apt-get update && \
   apt-get install -y make htop
 RUN wget -qO- https://deb.nodesource.com/setup_14.x | bash - && \
   apt-get install -y nodejs
+RUN apt-get install -y procps cpulimit
+# Use with: cpulimit -l 10 -p "$(pidof gossamer)"
 
 # TODO: once Alpine is properly supported
 # ARG GLIBC_VERSION=2.34-r0
