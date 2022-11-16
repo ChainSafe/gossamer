@@ -4,7 +4,6 @@
 package metrics
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"time"
@@ -15,8 +14,7 @@ import (
 )
 
 const (
-	defaultInterval        = 10 * time.Second
-	defaultTimeoutInterval = 30 * time.Second
+	defaultInterval = 10 * time.Second
 )
 
 var (
@@ -41,58 +39,32 @@ func NewIntervalConfig(publish bool) IntervalConfig {
 
 // Server is a metrics http server
 type Server struct {
-	cancel context.CancelFunc
 	server *httpserver.Server
-	done   chan error
 }
 
 // NewServer is a constructor for metrics server
 func NewServer(address string) (s *Server) {
-	m := http.NewServeMux()
-	m.Handle("/metrics", promhttp.Handler())
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", promhttp.Handler())
+
 	return &Server{
-		server: httpserver.New("metrics", address, m, logger),
+		server: httpserver.New(
+			httpserver.Address(address),
+			httpserver.Handler(mux),
+			httpserver.Logger("metrics", logger),
+		),
 	}
 }
 
-// Start will start a dedicated metrics server at the given address.
-func (s *Server) Start(address string) (err error) {
-	logger.Infof("Starting metrics server to listen on %s", address)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	s.cancel = cancel
-	ready := make(chan struct{})
-	s.done = make(chan error)
-
-	go s.server.Run(ctx, ready, s.done)
-
-	select {
-	case <-ready:
-		return nil
-	case err := <-s.done:
-		close(s.done)
-		if err != nil {
-			return err
-		}
-		return ErrServerEndedUnexpectedly
-	}
+// Start starts the metrics server.
+// TODO return a runtimeError channel once services can read runtime
+// errors.
+func (s *Server) Start() (err error) {
+	_, err = s.server.Start()
+	return err
 }
 
-// Stop will stop the metrics server
+// Stop stops the metrics server.
 func (s *Server) Stop() (err error) {
-	s.cancel()
-	timeout := time.NewTimer(defaultTimeoutInterval)
-	select {
-	case err := <-s.done:
-		close(s.done)
-		if !timeout.Stop() {
-			<-timeout.C
-		}
-		if err != nil {
-			return err
-		}
-		return nil
-	case <-timeout.C:
-		return ErrServerStopTimeout
-	}
+	return s.server.Stop()
 }

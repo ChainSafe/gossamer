@@ -4,6 +4,7 @@
 package httpserver
 
 import (
+	"net/http"
 	"testing"
 	"time"
 
@@ -19,6 +20,8 @@ func Test_newOptionalSettings(t *testing.T) {
 	}{
 		"no option": {
 			settings: optionalSettings{
+				handler:           http.NewServeMux(),
+				logger:            &noopLogger{},
 				shutdownTimeout:   3 * time.Second,
 				readTimeout:       10 * time.Second,
 				readHeaderTimeout: time.Second,
@@ -26,11 +29,18 @@ func Test_newOptionalSettings(t *testing.T) {
 		},
 		"all options set": {
 			options: []Option{
+				Handler(http.NewServeMux()),
+				Address("test"),
+				Logger("testname", NewMockInfoer(nil)),
 				ShutdownTimeout(3 * time.Second),
 				ReadTimeout(time.Second),
 				ReadHeaderTimeout(2 * time.Second),
 			},
 			settings: optionalSettings{
+				handler:           http.NewServeMux(),
+				address:           "test",
+				serverName:        "testname",
+				logger:            NewMockInfoer(nil),
 				readTimeout:       time.Second,
 				readHeaderTimeout: 2 * time.Second,
 				shutdownTimeout:   3 * time.Second,

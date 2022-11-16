@@ -16,6 +16,14 @@ type Settings struct {
 	// See runtime.SetMutexProfileFraction
 	// Set to 0 to disable profiling.
 	MutexProfileRate int
+	// Logger is the logger to use.
+	// It defaults to a no-op logger.
+	Logger Infoer
+}
+
+// Infoer logs information messages at the info level.
+type Infoer interface {
+	Info(message string)
 }
 
 func (s *Settings) setDefaults() {

@@ -26,6 +26,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/metrics"
+	"github.com/ChainSafe/gossamer/internal/pprof"
 	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -254,7 +255,8 @@ func newNode(cfg *Config,
 	)
 
 	if cfg.Pprof.Enabled {
-		nodeSrvcs = append(nodeSrvcs, createPprofService(cfg.Pprof.Settings))
+		cfg.Pprof.Settings.Logger = log.NewFromGlobal(log.AddContext("pkg", "pprof"))
+		nodeSrvcs = append(nodeSrvcs, pprof.New(cfg.Pprof.Settings))
 	}
 
 	stateSrvc, err := builder.createStateService(cfg)
@@ -389,6 +391,15 @@ func newNode(cfg *Config,
 	// close state service last
 	nodeSrvcs = append(nodeSrvcs, stateSrvc)
 
+	if cfg.Global.PublishMetrics {
+		metricsServer := metrics.NewServer(cfg.Global.MetricsAddress)
+		err := metricsServer.Start()
+		if err != nil {
+			return nil, fmt.Errorf("starting metrics server: %w", err)
+		}
+		nodeSrvcs = append(nodeSrvcs, metricsServer)
+	}
+
 	node := &Node{
 		Name:            cfg.Global.Name,
 		ServiceRegistry: serviceRegistry,
@@ -397,14 +408,6 @@ func newNode(cfg *Config,
 
 	for _, srvc := range nodeSrvcs {
 		node.ServiceRegistry.RegisterService(srvc)
-	}
-
-	if cfg.Global.PublishMetrics {
-		node.metricsServer = metrics.NewServer(cfg.Global.MetricsAddress)
-		err := node.metricsServer.Start(cfg.Global.MetricsAddress)
-		if err != nil {
-			return nil, fmt.Errorf("cannot start metrics server: %w", err)
-		}
 	}
 
 	return node, nil
@@ -482,12 +485,6 @@ func (n *Node) Stop() {
 	// stop all node services
 	n.ServiceRegistry.StopAll()
 	n.wg.Done()
-	if n.metricsServer != nil {
-		err := n.metricsServer.Stop()
-		if err != nil {
-			log.Errorf("cannot stop metrics server: %s", err)
-		}
-	}
 }
 
 func (n *nodeBuilder) loadRuntime(cfg *Config, ns *runtime.NodeStorage,

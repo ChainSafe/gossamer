@@ -20,7 +20,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/metrics"
-	"github.com/ChainSafe/gossamer/internal/pprof"
 	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
@@ -460,9 +459,4 @@ func (nodeBuilder) newSyncService(cfg *Config, st *state.Service, fg BlockJustif
 
 func (nodeBuilder) createDigestHandler(lvl log.Level, st *state.Service) (*digest.Handler, error) {
 	return digest.NewHandler(lvl, st.Block, st.Epoch, st.Grandpa)
-}
-
-func createPprofService(settings pprof.Settings) (service *pprof.Service) {
-	pprofLogger := log.NewFromGlobal(log.AddContext("pkg", "pprof"))
-	return pprof.NewService(settings, pprofLogger)
 }

@@ -4,72 +4,43 @@
 package metrics
 
 import (
+	"context"
+	"io"
 	"net/http"
 	"reflect"
 	"testing"
+	"time"
 
-	"github.com/ChainSafe/gossamer/internal/httpserver"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestServer_Start(t *testing.T) {
-	type fields struct {
-		server *httpserver.Server
-	}
-	type args struct {
-		address string
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "happy path",
-			fields: fields{
-				server: httpserver.New("metrics", ":0", http.NewServeMux(), logger),
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &Server{
-				server: tt.fields.server,
-			}
-			if err := s.Start(tt.args.address); (err != nil) != tt.wantErr {
-				t.Errorf("Server.Start() error = %v, wantErr %v", err, tt.wantErr)
-			}
-			err := s.Stop()
-			if err != nil {
-				t.Errorf("unexpected error after stopping: %v", err)
-			}
-		})
-	}
-}
+func Test_Server(t *testing.T) {
+	t.Parallel()
 
-func TestNewServer(t *testing.T) {
-	type args struct {
-		address string
-	}
-	tests := []struct {
-		name  string
-		args  args
-		wantS *Server
-	}{
-		{
-			name: "happy path",
-			args: args{
-				address: "someAddress",
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := NewServer(tt.args.address)
-			assert.NotNil(t, s)
-		})
-	}
+	server := NewServer("127.0.0.1:0")
+
+	err := server.Start()
+
+	assert.NoError(t, err)
+
+	url := "http://" + server.server.GetAddress() + "/metrics"
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	require.NoError(t, err)
+	response, err := http.DefaultClient.Do(request)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, response.StatusCode)
+	data, err := io.ReadAll(response.Body)
+	require.NoError(t, err)
+	err = response.Body.Close()
+	require.NoError(t, err)
+	assert.Contains(t, string(data), "# HELP")
+
+	err = server.Stop()
+	require.NoError(t, err)
 }
 
 func TestNewIntervalConfig(t *testing.T) {

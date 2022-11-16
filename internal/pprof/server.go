@@ -4,25 +4,47 @@
 package pprof
 
 import (
-	"net/http"
-	"net/http/pprof"
+	"runtime"
 
 	"github.com/ChainSafe/gossamer/internal/httpserver"
 )
 
-// NewServer creates a new Pprof server which will listen at
-// the address specified.
-func NewServer(address string, logger Logger,
-	options ...httpserver.Option) *httpserver.Server {
-	handler := http.NewServeMux()
-	handler.HandleFunc("/debug/pprof/", pprof.Index)
-	handler.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
-	handler.HandleFunc("/debug/pprof/profile", pprof.Profile)
-	handler.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
-	handler.HandleFunc("/debug/pprof/trace", pprof.Trace)
-	handler.Handle("/debug/pprof/block", pprof.Handler("block"))
-	handler.Handle("/debug/pprof/goroutine", pprof.Handler("goroutine"))
-	handler.Handle("/debug/pprof/heap", pprof.Handler("heap"))
-	handler.Handle("/debug/pprof/threadcreate", pprof.Handler("threadcreate"))
-	return httpserver.New("pprof", address, handler, logger, options...)
+// Server is a pprof http server service compatible with the
+// dot/service.go interface.
+type Server struct {
+	settings Settings
+	server   *httpserver.Server
+}
+
+// New creates a pprof server.
+func New(settings Settings) *Server {
+	settings.setDefaults()
+	return &Server{
+		settings: settings,
+	}
+}
+
+// Start starts the pprof server.
+// TODO return a runtimeError channel once services can read runtime
+// errors.
+func (s *Server) Start() (err error) {
+	runtime.SetBlockProfileRate(s.settings.BlockProfileRate)
+	runtime.SetMutexProfileFraction(s.settings.MutexProfileRate)
+
+	handler := newHandler()
+	s.server = httpserver.New(
+		httpserver.Address(s.settings.ListeningAddress),
+		httpserver.Handler(handler),
+		httpserver.Logger("pprof", s.settings.Logger),
+	)
+
+	_, err = s.server.Start()
+	return err
+}
+
+// Stop stops the pprof server.
+func (s *Server) Stop() (err error) {
+	runtime.SetBlockProfileRate(0)
+	runtime.SetMutexProfileFraction(0)
+	return s.server.Stop()
 }

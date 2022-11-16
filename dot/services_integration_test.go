@@ -18,8 +18,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
-	"github.com/ChainSafe/gossamer/internal/pprof"
-	babe "github.com/ChainSafe/gossamer/lib/babe"
+	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -783,29 +782,6 @@ func TestNewWebSocketServer(t *testing.T) {
 		_, message, err := c.ReadMessage()
 		require.NoError(t, err)
 		require.Equal(t, item.expected, message)
-	}
-}
-
-func Test_createPprofService(t *testing.T) {
-	tests := []struct {
-		name     string
-		settings pprof.Settings
-		notNil   bool
-	}{
-		{
-			name:   "base case",
-			notNil: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := createPprofService(tt.settings)
-			if tt.notNil {
-				assert.NotNil(t, got)
-			} else {
-				assert.Nil(t, got)
-			}
-		})
 	}
 }
 
