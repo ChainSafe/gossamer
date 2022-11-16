@@ -260,6 +260,6 @@ func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 	}
 
 	logger.Debugf("resulting value: 0x%x", value)
-	storage.Set(key, value)
+	storage.Put(key, value)
 	return nil
 }

@@ -50,7 +50,7 @@ type Instance interface {
 
 // Storage interface
 type Storage interface {
-	Set(key []byte, value []byte)
+	Put(key []byte, value []byte)
 	Get(key []byte) []byte
 	Root() (common.Hash, error)
 	SetChild(keyToChild []byte, child *trie.Trie) error
