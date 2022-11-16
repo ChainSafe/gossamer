@@ -21,7 +21,7 @@ func (n *Node) Encode(buffer Buffer) (err error) {
 		return fmt.Errorf("cannot encode header: %w", err)
 	}
 
-	keyLE := codec.NibblesToKeyLE(n.Key)
+	keyLE := codec.NibblesToKeyLE(n.PartialKey)
 	_, err = buffer.Write(keyLE)
 	if err != nil {
 		return fmt.Errorf("cannot write LE key to buffer: %w", err)

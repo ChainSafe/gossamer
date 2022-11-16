@@ -20,67 +20,6 @@ type Database interface {
 	Get(key []byte) (value []byte, err error)
 }
 
-// Store stores each trie node in the database,
-// where the key is the hash of the encoded node
-// and the value is the encoded node.
-// Generally, this will only be used for the genesis trie.
-func (t *Trie) Store(db chaindb.Database) error {
-	for _, v := range t.childTries {
-		if err := v.Store(db); err != nil {
-			return fmt.Errorf("failed to store child trie with root hash=0x%x in the db: %w", v.root.MerkleValue, err)
-		}
-	}
-
-	batch := db.NewBatch()
-	err := t.storeNode(batch, t.root)
-	if err != nil {
-		batch.Reset()
-		return err
-	}
-
-	return batch.Flush()
-}
-
-func (t *Trie) storeNode(db chaindb.Batch, n *Node) (err error) {
-	if n == nil {
-		return nil
-	}
-
-	var encoding, hash []byte
-	if n == t.root {
-		encoding, hash, err = n.EncodeAndHashRoot()
-	} else {
-		encoding, hash, err = n.EncodeAndHash()
-	}
-	if err != nil {
-		return err
-	}
-
-	err = db.Put(hash, encoding)
-	if err != nil {
-		return err
-	}
-
-	if n.Kind() == node.Branch {
-		for _, child := range n.Children {
-			if child == nil {
-				continue
-			}
-
-			err = t.storeNode(db, child)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	if n.Dirty {
-		n.SetClean()
-	}
-
-	return nil
-}
-
 // Load reconstructs the trie from the database from the given root hash.
 // It is used when restarting the node to load the current state trie.
 func (t *Trie) Load(db Database, rootHash common.Hash) error {
@@ -193,7 +132,7 @@ func PopulateNodeHashes(n *Node, nodeHashes map[string]struct{}) {
 	case len(n.MerkleValue) == 0:
 		// TODO remove once lazy loading of nodes is implemented
 		// https://github.com/ChainSafe/gossamer/issues/2838
-		panic(fmt.Sprintf("node with key 0x%x has no Merkle value computed", n.Key))
+		panic(fmt.Sprintf("node with partial key 0x%x has no Merkle value computed", n.PartialKey))
 	case len(n.MerkleValue) < 32:
 		// Inlined node where its Merkle value is its
 		// encoding and not the encoding hash digest.
@@ -245,7 +184,7 @@ func GetFromDB(db chaindb.Database, rootHash common.Hash, key []byte) (
 func getFromDBAtNode(db chaindb.Database, n *Node, key []byte) (
 	value []byte, err error) {
 	if n.Kind() == node.Leaf {
-		if bytes.Equal(n.Key, key) {
+		if bytes.Equal(n.PartialKey, key) {
 			return n.SubValue, nil
 		}
 		return nil, nil
@@ -253,12 +192,12 @@ func getFromDBAtNode(db chaindb.Database, n *Node, key []byte) (
 
 	branch := n
 	// Key is equal to the key of this branch or is empty
-	if len(key) == 0 || bytes.Equal(branch.Key, key) {
+	if len(key) == 0 || bytes.Equal(branch.PartialKey, key) {
 		return branch.SubValue, nil
 	}
 
-	commonPrefixLength := lenCommonPrefix(branch.Key, key)
-	if len(key) < len(branch.Key) && bytes.Equal(branch.Key[:commonPrefixLength], key) {
+	commonPrefixLength := lenCommonPrefix(branch.PartialKey, key)
+	if len(key) < len(branch.PartialKey) && bytes.Equal(branch.PartialKey[:commonPrefixLength], key) {
 		// The key to search is a prefix of the node key and is smaller than the node key.
 		// Example: key to search: 0xabcd
 		//          branch key:    0xabcdef

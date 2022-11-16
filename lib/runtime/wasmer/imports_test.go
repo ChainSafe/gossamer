@@ -1789,7 +1789,7 @@ func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 	tr.Put([]byte("otherwise"), []byte("randomstuff"))
 	tr.Put([]byte("cat"), []byte("another animal"))
 
-	err = tr.Store(memdb)
+	err = tr.WriteDirty(memdb)
 	require.NoError(t, err)
 
 	hash, err := tr.Hash()

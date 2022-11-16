@@ -118,7 +118,7 @@ func encodeChild(child *Node, buffer io.Writer) (err error) {
 		return nil
 	}
 
-	_, merkleValue, err := child.EncodeAndHash()
+	merkleValue, err := child.CalculateMerkleValue()
 	if err != nil {
 		return fmt.Errorf("computing %s Merkle value: %w", child.Kind(), err)
 	}

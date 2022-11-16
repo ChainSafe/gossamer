@@ -29,7 +29,7 @@ func Test_Trie_Store_Load(t *testing.T) {
 	rootHash := trie.MustHash()
 
 	db := newTestDB(t)
-	err := trie.Store(db)
+	err := trie.WriteDirty(db)
 	require.NoError(t, err)
 
 	trieFromDB := NewEmptyTrie()
@@ -64,7 +64,7 @@ func Test_Trie_WriteDirty_Put(t *testing.T) {
 		assert.Equalf(t, value, valueFromDB, "for key=%x", key)
 	}
 
-	err := trie.Store(db)
+	err := trie.WriteDirty(db)
 	require.NoError(t, err)
 
 	// Pick an existing key and replace its value
@@ -100,7 +100,7 @@ func Test_Trie_WriteDirty_Delete(t *testing.T) {
 	keysToDelete := pickKeys(keyValues, generator, size/50)
 
 	db := newTestDB(t)
-	err := trie.Store(db)
+	err := trie.WriteDirty(db)
 	require.NoError(t, err)
 
 	deletedKeys := make(map[string]struct{}, len(keysToDelete))
@@ -141,7 +141,7 @@ func Test_Trie_WriteDirty_ClearPrefix(t *testing.T) {
 	keysToClearPrefix := pickKeys(keyValues, generator, size/50)
 
 	db := newTestDB(t)
-	err := trie.Store(db)
+	err := trie.WriteDirty(db)
 	require.NoError(t, err)
 
 	for _, keyToClearPrefix := range keysToClearPrefix {
@@ -187,8 +187,8 @@ func Test_PopulateNodeHashes(t *testing.T) {
 			},
 		},
 		"leaf node without Merkle value": {
-			node:       &Node{Key: []byte{1}, SubValue: []byte{2}},
-			panicValue: "node with key 0x01 has no Merkle value computed",
+			node:       &Node{PartialKey: []byte{1}, SubValue: []byte{2}},
+			panicValue: "node with partial key 0x01 has no Merkle value computed",
 		},
 		"inlined branch node": {
 			node: &Node{
@@ -261,7 +261,7 @@ func Test_GetFromDB(t *testing.T) {
 	trie, keyValues := makeSeededTrie(t, size)
 
 	db := newTestDB(t)
-	err := trie.Store(db)
+	err := trie.WriteDirty(db)
 	require.NoError(t, err)
 
 	root := trie.MustHash()
@@ -298,7 +298,7 @@ func Test_Trie_PutChild_Store_Load(t *testing.T) {
 		err := trie.PutChild(keyToChildTrie, childTrie)
 		require.NoError(t, err)
 
-		err = trie.Store(db)
+		err = trie.WriteDirty(db)
 		require.NoError(t, err)
 
 		trieFromDB := NewEmptyTrie()
