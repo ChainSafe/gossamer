@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_FinalizationHandler_waitServices(t *testing.T) {
+func Test_FinalizationHandler_runEphemeralServices(t *testing.T) {
 	t.Parallel()
 
 	mockingErr := errors.New("mocked error")
