@@ -338,7 +338,7 @@ func ext_crypto_ed25519_sign_version_1(context unsafe.Pointer, keyTypeID, key C.
 	ks, err := runtimeCtx.Keystore.GetKeystore(id)
 	if err != nil {
 		logger.Warnf("error for id 0x%x: %s", id, err)
-		return C.int64_t(mustToWasmMemoryOptionalNil(instanceContext))
+		return mustToWasmMemoryOptionalNil(instanceContext)
 	}
 
 	signingKey := ks.GetKeypair(pubKey)
@@ -1689,7 +1689,7 @@ func ext_offchain_submit_transaction_version_1(context unsafe.Pointer, data C.in
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
 	}
-	return C.int64_t(ptr)
+	return ptr
 }
 
 //export ext_offchain_timestamp_version_1
@@ -1830,7 +1830,7 @@ func ext_storage_changes_root_version_1(context unsafe.Pointer, parentHashSpan C
 		return 0
 	}
 
-	return C.int64_t(rootSpan)
+	return rootSpan
 }
 
 //export ext_storage_clear_version_1

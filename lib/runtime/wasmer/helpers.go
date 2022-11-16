@@ -147,11 +147,11 @@ func toWasmMemoryOptionalNil(context wasmer.InstanceContext) (
 
 func mustToWasmMemoryOptionalNil(context wasmer.InstanceContext) (
 	cPointerSize C.int64_t) {
-	pointerSize, err := toWasmMemoryOptionalNil(context)
+	cPointerSize, err := toWasmMemoryOptionalNil(context)
 	if err != nil {
 		panic(err)
 	}
-	return C.int64_t(pointerSize)
+	return cPointerSize
 }
 
 func toWasmMemoryResultEmpty(context wasmer.InstanceContext) (
@@ -165,11 +165,11 @@ func toWasmMemoryResultEmpty(context wasmer.InstanceContext) (
 
 func mustToWasmMemoryResultEmpty(context wasmer.InstanceContext) (
 	cPointerSize C.int64_t) {
-	pointerSize, err := toWasmMemoryResultEmpty(context)
+	cPointerSize, err := toWasmMemoryResultEmpty(context)
 	if err != nil {
 		panic(err)
 	}
-	return C.int64_t(pointerSize)
+	return cPointerSize
 }
 
 // toKillStorageResultEnum encodes the `allRemoved` flag and
