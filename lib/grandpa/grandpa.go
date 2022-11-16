@@ -407,7 +407,7 @@ func (s *Service) checkRoundCompletable() (bool, error) {
 	// check if the current round contains a finalized block
 	has, err := s.blockState.HasFinalisedBlock(s.state.round, s.state.setID)
 	if err != nil {
-		return false, fmt.Errorf("has finalized block: %w", err)
+		return false, fmt.Errorf("checking for finalised block in block state: %w", err)
 	}
 
 	if has {
@@ -485,10 +485,10 @@ func (s *Service) attemptToFinalize() (isFinalizable bool, err error) {
 	return true, nil
 }
 
-func (s *Service) sendPrecommitMessage(vm *VoteMessage) (err error) {
-	logger.Debugf("sending pre-commit message %s...", vm.Message)
+func (s *Service) sendPrecommitMessage(voteMessage *VoteMessage) (err error) {
+	logger.Debugf("sending pre-commit message %s...", voteMessage.Message)
 
-	consensusMessage, err := vm.ToConsensusMessage()
+	consensusMessage, err := voteMessage.ToConsensusMessage()
 	if err != nil {
 		return fmt.Errorf("transforming pre-commit into consensus message: %w", err)
 	}
@@ -1161,7 +1161,7 @@ func (s *Service) handleVoteMessage(from peer.ID, vote *VoteMessage) (err error)
 	logger.Debugf("received vote message, (peer: %s, msg: %+v)", from, vote)
 	s.sendTelemetryVoteMessage(vote)
 
-	v, err := s.validateVoteMessage(from, vote)
+	grandpaVote, err := s.validateVoteMessage(from, vote)
 	if err != nil {
 		return fmt.Errorf("validating vote message: %w", err)
 	}
@@ -1170,20 +1170,20 @@ func (s *Service) handleVoteMessage(from peer.ID, vote *VoteMessage) (err error)
 	logger.Debugf(
 		"validated vote message %v from %s, round %d, subround %d, "+
 			"prevote count %d, precommit count %d, votes needed %d",
-		v, vote.Message.AuthorityID, vote.Round, vote.Message.Stage,
+		grandpaVote, vote.Message.AuthorityID, vote.Round, vote.Message.Stage,
 		s.lenVotes(prevote), s.lenVotes(precommit), threshold)
 	return nil
 }
 
 func (s *Service) handleCommitMessage(commitMessage *CommitMessage) error {
-	logger.Debugf("received commit message, msg: %+v", commitMessage)
+	logger.Debugf("received commit message: %+v", commitMessage)
 
 	err := verifyBlockHashAgainstBlockNumber(s.blockState,
 		commitMessage.Vote.Hash, uint(commitMessage.Vote.Number))
 	if err != nil {
 		if errors.Is(err, chaindb.ErrKeyNotFound) {
 			s.tracker.addCommit(commitMessage)
-			logger.Infof("we might not have synced to the given block %s yet: %s",
+			logger.Debugf("we might not have synced to the given block %s yet: %s",
 				commitMessage.Vote.Hash, err)
 			return nil
 		}
@@ -1214,7 +1214,7 @@ func (s *Service) handleCommitMessage(commitMessage *CommitMessage) error {
 	}
 
 	// check justification here
-	err = verifyCommitMessageJustification(commitMessage, s.state.setID,
+	err = verifyCommitMessageJustification(*commitMessage, s.state.setID,
 		s.state.threshold(), s.authorities(), s.blockState)
 	if err != nil {
 		if errors.Is(err, blocktree.ErrStartNodeNotFound) {
@@ -1243,7 +1243,7 @@ func (s *Service) handleCommitMessage(commitMessage *CommitMessage) error {
 	return nil
 }
 
-func verifyCommitMessageJustification(commitMessage *CommitMessage, setID uint64, threshold uint64,
+func verifyCommitMessageJustification(commitMessage CommitMessage, setID uint64, threshold uint64,
 	authorities []*types.Authority, blockState BlockState) error {
 	if len(commitMessage.Precommits) != len(commitMessage.AuthData) {
 		return fmt.Errorf("%w: precommits len: %d, authorities len: %d",

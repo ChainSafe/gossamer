@@ -1116,7 +1116,7 @@ func Test_VerifyCommitMessageJustification_ShouldRemoveEquivocatoryVotes(t *test
 		AuthData:   authData,
 	}
 
-	err = verifyCommitMessageJustification(testCommitData, h.grandpa.state.setID,
+	err = verifyCommitMessageJustification(*testCommitData, h.grandpa.state.setID,
 		h.grandpa.state.threshold(), h.grandpa.authorities(), h.blockState)
 
 	require.NoError(t, err)
