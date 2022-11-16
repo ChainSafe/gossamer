@@ -441,8 +441,8 @@ func TestMessageTracker_handleTick_voteMessage(t *testing.T) {
 			}
 
 			messageHandler := NewMessageHandler(grandpaService, blockStateMock, telemetryMock)
-			grandpaService.messageHandler = messageHandler
 			grandpaService.tracker = newTracker(blockStateMock, messageHandler)
+			grandpaService.messageHandler = messageHandler
 
 			vote := &Vote{
 				Hash:   testGenesisHeader.Hash(),
@@ -455,7 +455,7 @@ func TestMessageTracker_handleTick_voteMessage(t *testing.T) {
 			grandpaService.tracker.addVote(fakePeerID, voteMessage)
 			grandpaService.tracker.handleTick()
 
-			var expectedLen int = 1
+			expectedLen := 1
 			if !tt.keepVoting {
 				expectedLen = 0
 			}
@@ -469,7 +469,7 @@ func createAndSignVoteMessage(t *testing.T, kp *ed25519.Keypair, round, setID ui
 	vote *Vote, stage Subround) (*SignedVote, *VoteMessage) {
 	t.Helper()
 
-	msg, err := scale.Marshal(FullVote{
+	fullVoteEncoded, err := scale.Marshal(FullVote{
 		Stage: stage,
 		Vote:  *vote,
 		Round: round,
@@ -477,29 +477,29 @@ func createAndSignVoteMessage(t *testing.T, kp *ed25519.Keypair, round, setID ui
 	})
 	require.NoError(t, err)
 
-	sig, err := kp.Sign(msg)
+	signature, err := kp.Sign(fullVoteEncoded)
 	require.NoError(t, err)
 
 	publicBytes := kp.Public().(*ed25519.PublicKey).AsBytes()
-	pc := &SignedVote{
+	singedVote := &SignedVote{
 		Vote:        *vote,
-		Signature:   ed25519.NewSignatureBytes(sig),
+		Signature:   ed25519.NewSignatureBytes(signature),
 		AuthorityID: publicBytes,
 	}
 
-	sm := &SignedMessage{
+	signedMessage := &SignedMessage{
 		Stage:       stage,
-		BlockHash:   pc.Vote.Hash,
-		Number:      pc.Vote.Number,
-		Signature:   ed25519.NewSignatureBytes(sig),
+		BlockHash:   singedVote.Vote.Hash,
+		Number:      singedVote.Vote.Number,
+		Signature:   ed25519.NewSignatureBytes(signature),
 		AuthorityID: publicBytes,
 	}
 
-	vm := &VoteMessage{
+	voteMessage := &VoteMessage{
 		Round:   round,
 		SetID:   setID,
-		Message: *sm,
+		Message: *signedMessage,
 	}
 
-	return pc, vm
+	return singedVote, voteMessage
 }

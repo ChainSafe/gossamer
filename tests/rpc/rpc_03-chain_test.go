@@ -4,7 +4,6 @@
 package rpc
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"math/rand"
@@ -36,8 +35,7 @@ func TestChainRPC(t *testing.T) {
 	tomlConfig.Init.Genesis = genesisPath
 	tomlConfig.Core.BABELead = true
 
-	b := bytes.NewBuffer(nil)
-	node := node.New(t, tomlConfig, node.SetWriter(b))
+	node := node.New(t, tomlConfig)
 	ctx, cancel := context.WithCancel(context.Background())
 	node.InitAndStartTest(ctx, t, cancel)
 
@@ -120,8 +118,6 @@ func TestChainRPC(t *testing.T) {
 	blockNumber, err = common.HexToUint(header.Number)
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, blockNumber, uint(1))
-
-	time.Sleep(3 * time.Second)
 
 	var blockHash string
 	fetchWithTimeout(ctx, t, "chain_getBlockHash", "[]", &blockHash)

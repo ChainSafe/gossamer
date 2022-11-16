@@ -147,7 +147,7 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 		// send finalised block from previous round to network
 		msg, err := cm.ToConsensusMessage()
 		if err != nil {
-			return nil, fmt.Errorf("transforming into consensus message: %w", err)
+			return nil, fmt.Errorf("converting commit message to consensus message: %w", err)
 		}
 
 		if err = s.network.SendMessage(from, msg); err != nil {
