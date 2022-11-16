@@ -415,18 +415,15 @@ func TestMessageTracker_handleTick_voteMessage(t *testing.T) {
 			if tt.voteRound < tt.serviceRound {
 				blockStateMock.EXPECT().
 					GetFinalisedHeader(tt.voteRound, setID).
-					Return(testGenesisHeader, nil).
-					Times(1)
+					Return(testGenesisHeader, nil)
 
 				grandpaStateMock.EXPECT().
 					GetPrecommits(tt.voteRound, setID).
-					Return([]types.GrandpaSignedVote{}, nil).
-					Times(1)
+					Return([]types.GrandpaSignedVote{}, nil)
 
 				var notificationMessage NotificationsMessage = &ConsensusMessage{}
 				networkMock.EXPECT().
-					SendMessage(fakePeerID, gomock.AssignableToTypeOf(notificationMessage)).
-					Times(1)
+					SendMessage(fakePeerID, gomock.AssignableToTypeOf(notificationMessage))
 			}
 
 			grandpaService := &Service{

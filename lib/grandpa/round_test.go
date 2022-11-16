@@ -655,20 +655,16 @@ func TestSendingVotesInRightStage(t *testing.T) {
 		AnyTimes()
 	mockedGrandpaState.EXPECT().
 		SetPrevotes(uint64(1), uint64(0), gomock.AssignableToTypeOf([]types.GrandpaSignedVote{})).
-		Return(nil).
-		Times(1)
+		Return(nil)
 	mockedGrandpaState.EXPECT().
 		SetPrecommits(uint64(1), uint64(0), gomock.AssignableToTypeOf([]types.GrandpaSignedVote{})).
-		Return(nil).
-		Times(1)
+		Return(nil)
 	mockedGrandpaState.EXPECT().
 		SetLatestRound(uint64(1)).
-		Return(nil).
-		Times(1)
+		Return(nil)
 	mockedGrandpaState.EXPECT().
 		GetPrecommits(uint64(1), uint64(0)).
-		Return([]types.GrandpaSignedVote{}, nil).
-		Times(1)
+		Return([]types.GrandpaSignedVote{}, nil)
 
 	mockedState := NewMockBlockState(ctrl)
 	mockedState.EXPECT().
@@ -702,16 +698,13 @@ func TestSendingVotesInRightStage(t *testing.T) {
 	// we cannot assert the bytes since some votes is defined while playing grandpa round
 	mockedState.EXPECT().
 		SetJustification(testGenesisHeader.Hash(), gomock.AssignableToTypeOf([]byte{})).
-		Return(nil).
-		Times(1)
+		Return(nil)
 	mockedState.EXPECT().
 		GetHeader(testGenesisHeader.Hash()).
-		Return(testGenesisHeader, nil).
-		Times(1)
+		Return(testGenesisHeader, nil)
 	mockedState.EXPECT().
 		SetFinalisedHash(testGenesisHeader.Hash(), uint64(1), uint64(0)).
-		Return(nil).
-		Times(1)
+		Return(nil)
 
 	expectedFinalizedTelemetryMessage := telemetry.NewAfgFinalizedBlocksUpTo(
 		testGenesisHeader.Hash(),
@@ -740,20 +733,15 @@ func TestSendingVotesInRightStage(t *testing.T) {
 
 	mockedTelemetry := NewMockClient(ctrl)
 	mockedTelemetry.EXPECT().
-		SendMessage(expectedAlicePrevoteTelemetryMessage).
-		Times(1)
+		SendMessage(expectedAlicePrevoteTelemetryMessage)
 	mockedTelemetry.EXPECT().
-		SendMessage(expectedCharliePrevoteTelemetryMessage).
-		Times(1)
+		SendMessage(expectedCharliePrevoteTelemetryMessage)
 	mockedTelemetry.EXPECT().
-		SendMessage(expectedAlicePrecommitTelemetryMessage).
-		Times(1)
+		SendMessage(expectedAlicePrecommitTelemetryMessage)
 	mockedTelemetry.EXPECT().
-		SendMessage(expectedCharliePrecommitTelemetryMessage).
-		Times(1)
+		SendMessage(expectedCharliePrecommitTelemetryMessage)
 	mockedTelemetry.EXPECT().
-		SendMessage(expectedFinalizedTelemetryMessage).
-		Times(1)
+		SendMessage(expectedFinalizedTelemetryMessage)
 
 	mockedNet := NewMockNetwork(ctrl)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -793,8 +781,7 @@ func TestSendingVotesInRightStage(t *testing.T) {
 	primaryProposal, err := expectedPrimaryProposal.ToConsensusMessage()
 	require.NoError(t, err)
 	mockedNet.EXPECT().
-		GossipMessage(primaryProposal).
-		Times(1)
+		GossipMessage(primaryProposal)
 
 	// first of all we should determine our precommit based on our chain view
 	_, expectedPrevoteMessage, err := grandpa.createSignedVoteAndVoteMessage(expectedVote, prevote)
@@ -858,8 +845,7 @@ func TestSendingVotesInRightStage(t *testing.T) {
 	expectedGossipCommitMessage, err := commitMessage.ToConsensusMessage()
 	require.NoError(t, err)
 	mockedNet.EXPECT().
-		GossipMessage(expectedGossipCommitMessage).
-		Times(1)
+		GossipMessage(expectedGossipCommitMessage)
 
 	wg.Wait()
 }
