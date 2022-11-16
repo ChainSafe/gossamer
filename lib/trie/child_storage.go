@@ -30,7 +30,7 @@ func (t *Trie) PutChild(keyToChild []byte, child *Trie) error {
 
 	err = t.Put(key, childHash.ToBytes())
 	if err != nil {
-		return fmt.Errorf("putting child trie root hash %s in main trie: %w", childHash, err)
+		return fmt.Errorf("putting child trie root hash %s in trie: %w", childHash, err)
 	}
 
 	t.childTries[childHash] = child
@@ -65,7 +65,7 @@ func (t *Trie) PutIntoChild(keyToChild, key, value []byte) error {
 
 	err = child.Put(key, value)
 	if err != nil {
-		return fmt.Errorf("putting into child trie at key 0x%x: %w", keyToChild, err)
+		return fmt.Errorf("putting into child trie located at key 0x%x: %w", keyToChild, err)
 	}
 
 	childHash, err := child.Hash()
@@ -103,7 +103,7 @@ func (t *Trie) DeleteChild(keyToChild []byte) (err error) {
 
 	err = t.Delete(key)
 	if err != nil {
-		return fmt.Errorf("deleting child trie at key 0x%x: %w", key, err)
+		return fmt.Errorf("deleting child trie located at key 0x%x: %w", keyToChild, err)
 	}
 	return nil
 }
@@ -120,7 +120,7 @@ func (t *Trie) ClearFromChild(keyToChild, key []byte) error {
 
 	err = child.Delete(key)
 	if err != nil {
-		return fmt.Errorf("deleting from child trie at key 0x%x: %w", keyToChild, err)
+		return fmt.Errorf("deleting from child trie located at key 0x%x: %w", keyToChild, err)
 	}
 
 	return nil

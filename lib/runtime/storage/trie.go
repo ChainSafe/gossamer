@@ -193,7 +193,7 @@ func (s *TrieState) DeleteChildLimit(key []byte, limit *[]byte) (
 	if limit == nil {
 		err = s.t.DeleteChild(key)
 		if err != nil {
-			return 0, false, err
+			return 0, false, fmt.Errorf("deleting child trie: %w", err)
 		}
 
 		return qtyEntries, true, nil
@@ -212,7 +212,7 @@ func (s *TrieState) DeleteChildLimit(key []byte, limit *[]byte) (
 		// values within the tries, which is used for online pruning.
 		err = tr.Delete([]byte(k))
 		if err != nil {
-			return deleted, allDeleted, fmt.Errorf("deleting from child trie at key 0x%x: %w", key, err)
+			return deleted, allDeleted, fmt.Errorf("deleting from child trie located at key 0x%x: %w", key, err)
 		}
 
 		deleted++
@@ -247,7 +247,7 @@ func (s *TrieState) ClearPrefixInChild(keyToChild, prefix []byte) error {
 
 	err = child.ClearPrefix(prefix)
 	if err != nil {
-		return fmt.Errorf("clearing prefix in child trie at key 0x%x: %w", keyToChild, err)
+		return fmt.Errorf("clearing prefix in child trie located at key 0x%x: %w", keyToChild, err)
 	}
 
 	return nil
