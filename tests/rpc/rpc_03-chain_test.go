@@ -234,7 +234,7 @@ func TestChainSubscriptionRPC(t *testing.T) { //nolint:tparallel
 			assertResult32BHex(t, result, "stateRoot")
 			assertResult32BHex(t, result, "extrinsicsRoot")
 
-			// genesis block does not contains any digest data
+			// genesis block does not contain any digest data
 			if number == uint(0) {
 				delete(result, "digest")
 			} else {

@@ -14,7 +14,7 @@ import (
 
 var (
 	errServicesStopFailed       = errors.New("services stop failed")
-	errHandleVotingRoundFailed  = errors.New("voting round ephemeral failed")
+	errvotingRoundHandlerFailed = errors.New("voting round ephemeral failed")
 	errFinalizationEngineFailed = errors.New("finalisation engine ephemeral failed")
 )
 
@@ -42,7 +42,7 @@ func newFinalisationHandler(service *Service) *finalisationHandler {
 	return &finalisationHandler{
 		newServices: func() (engine, voting ephemeralService) {
 			finalizationEngine := newFinalizationEngine(service)
-			votingRound := newHandleVotingRound(service, finalizationEngine.actionCh)
+			votingRound := newvotingRoundHandler(service, finalizationEngine.actionCh)
 			return finalizationEngine, votingRound
 		},
 		initiateRound: service.initiateRound,
@@ -158,7 +158,7 @@ func (fh *finalisationHandler) runEphemeralServices() error {
 			if stopErr != nil {
 				logger.Warnf("stopping finalisation engine: %s", stopErr)
 			}
-			return fmt.Errorf("%w: %s", errHandleVotingRoundFailed, err)
+			return fmt.Errorf("%w: %s", errvotingRoundHandlerFailed, err)
 
 		case err := <-finalizationEngineErr:
 			if err == nil {
@@ -182,17 +182,17 @@ func (fh *finalisationHandler) runEphemeralServices() error {
 	}
 }
 
-// handleVotingRound interacts with finalizationEngine service
+// votingRoundHandler interacts with finalizationEngine service
 // executing the actions based on what it receives throuhg channel
-type handleVotingRound struct {
+type votingRoundHandler struct {
 	grandpaService       *Service
 	finalizationEngineCh <-chan engineAction
 	stopCh               chan struct{}
 	engineDone           chan struct{}
 }
 
-func newHandleVotingRound(service *Service, finalizationEngineCh <-chan engineAction) *handleVotingRound {
-	return &handleVotingRound{
+func newvotingRoundHandler(service *Service, finalizationEngineCh <-chan engineAction) *votingRoundHandler {
+	return &votingRoundHandler{
 		grandpaService:       service,
 		stopCh:               make(chan struct{}),
 		engineDone:           make(chan struct{}),
@@ -200,14 +200,14 @@ func newHandleVotingRound(service *Service, finalizationEngineCh <-chan engineAc
 	}
 }
 
-func (h *handleVotingRound) Stop() (err error) {
+func (h *votingRoundHandler) Stop() (err error) {
 	close(h.stopCh)
 	<-h.engineDone
 
 	return nil
 }
 
-func (h *handleVotingRound) Run() (err error) {
+func (h *votingRoundHandler) Run() (err error) {
 	defer close(h.engineDone)
 
 	start := time.Now()

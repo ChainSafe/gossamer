@@ -195,8 +195,8 @@ func TestPlayGrandpaRound(t *testing.T) {
 			},
 			defineBlockTree: func(t *testing.T, blockState BlockState, _ []*Service) {
 				const withBranches = false
-				const baseLenght = 4
-				state.AddBlocksToState(t, blockState.(*state.BlockState), baseLenght, withBranches)
+				const baseLength = 4
+				state.AddBlocksToState(t, blockState.(*state.BlockState), baseLength, withBranches)
 			},
 		},
 
@@ -208,23 +208,23 @@ func TestPlayGrandpaRound(t *testing.T) {
 				ed25519Keyring.Ian().(*ed25519.Keypair),
 			},
 			defineBlockTree: func(t *testing.T, blockState BlockState, neighbourServices []*Service) {
-				const diff uint = 5
-				rand := uint(rand.Intn(int(diff)))
+				const diff = 5
+				rand := uint(rand.Intn(diff))
 
 				const withBranches = false
-				const baseLenght = 4
+				const baseLength = 4
 				headers, _ := state.AddBlocksToState(t, blockState.(*state.BlockState),
-					baseLenght+rand, withBranches)
+					baseLength+rand, withBranches)
 
 				// sync the created blocks with the neighbour services
 				// letting them know about those blocks
-				for _, ns := range neighbourServices {
+				for _, neighbourService := range neighbourServices {
 					for _, header := range headers {
 						block := &types.Block{
 							Header: *header,
 							Body:   types.Body{},
 						}
-						ns.blockState.(*state.BlockState).AddBlock(block)
+						neighbourService.blockState.(*state.BlockState).AddBlock(block)
 					}
 				}
 			},
@@ -247,8 +247,8 @@ func TestPlayGrandpaRound(t *testing.T) {
 			defineBlockTree: func(t *testing.T, blockState BlockState, _ []*Service) {
 				// this creates a tree with 2 branches starting at depth 2
 				branches := map[uint]int{2: 1}
-				const baseLenght = 4
-				state.AddBlocksToStateWithFixedBranches(t, blockState.(*state.BlockState), baseLenght, branches)
+				const baseLength = 4
+				state.AddBlocksToStateWithFixedBranches(t, blockState.(*state.BlockState), baseLength, branches)
 			},
 		},
 	}
@@ -262,14 +262,14 @@ func TestPlayGrandpaRound(t *testing.T) {
 			grandpaServices := make([]*Service, len(tt.voters))
 			grandpaVoters := make([]types.GrandpaVoter, 0, len(tt.voters))
 
-			for _, kp := range tt.voters {
-				grandpaVoters = append(grandpaVoters, types.GrandpaVoter{
+			for idx, kp := range tt.voters {
+				grandpaVoters[idx] = types.GrandpaVoter{
 					Key: *kp.Public().(*ed25519.PublicKey),
-				})
+				}
 			}
 
 			for idx := range tt.voters {
-				// gossamer gossip a prevote/precommit message and then waits `subroundInterval` * 4
+				// gossamer gossips a prevote/precommit message and then waits `subroundInterval` * 4
 				// to issue another prevote/precommit message
 				const subroundInterval = 100 * time.Millisecond
 				ctx, cancel := context.WithCancel(context.Background())
@@ -470,10 +470,10 @@ func TestPlayGrandpaRoundMultipleRounds(t *testing.T) {
 		grandpaServices[idx].paused.Store(false)
 
 		const withBranches = false
-		const baseLenght = 4
+		const baseLength = 4
 		state.AddBlocksToState(t,
 			grandpaServices[idx].blockState.(*state.BlockState),
-			baseLenght, withBranches)
+			baseLength, withBranches)
 	}
 
 	neighbourServices := make([][]*Service, len(grandpaServices))
@@ -747,7 +747,7 @@ func TestSendingVotesInRightStage(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// gossamer gossip a prevote/precommit message and then waits `subroundInterval` * 4
+	// gossamer gossips a prevote/precommit message and then waits `subroundInterval` * 4
 	// to issue another prevote/precommit message
 	const subroundInterval = time.Second
 	grandpa := &Service{

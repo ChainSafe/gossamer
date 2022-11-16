@@ -43,7 +43,7 @@ func Test_finalisationHandler_runEphemeralServices(t *testing.T) {
 
 		"voting_round_fails_should_stop_engine_service": {
 			errString: "voting round ephemeral failed: mocked voting round failed",
-			wantErr:   errHandleVotingRoundFailed,
+			wantErr:   errvotingRoundHandlerFailed,
 			createfinalisationHandler: func(ctrl *gomock.Controller) *finalisationHandler {
 				builder := func() (engine ephemeralService, voting ephemeralService) {
 					mockVoting := NewMockephemeralService(ctrl)
