@@ -135,6 +135,16 @@ func mustToWasmMemoryNil(context wasmer.InstanceContext) (
 	return C.int64_t(pointerSize)
 }
 
+func toWasmMemoryOptionalNil(context wasmer.InstanceContext) (
+	cPointerSize C.int64_t, err error) {
+	pointerSize, err := toWasmMemoryOptional(context, nil)
+	if err != nil {
+		return 0, err
+	}
+
+	return C.int64_t(pointerSize), nil
+}
+
 // toKillStorageResultEnum encodes the `allRemoved` flag and
 // the `numRemoved` uint32 to a byte slice and returns it.
 // The format used is:

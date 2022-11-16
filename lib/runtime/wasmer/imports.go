@@ -342,16 +342,15 @@ func ext_crypto_ed25519_sign_version_1(context unsafe.Pointer, keyTypeID, key C.
 		return C.int64_t(ret)
 	}
 
-	var ret int64
 	signingKey := ks.GetKeypair(pubKey)
 	if signingKey == nil {
 		logger.Error("could not find public key " + pubKey.Hex() + " in keystore")
-		ret, err = toWasmMemoryOptional(instanceContext, nil)
+		ret, err := toWasmMemoryOptionalNil(instanceContext)
 		if err != nil {
 			logger.Errorf("failed to allocate memory: %s", err)
 			return 0
 		}
-		return C.int64_t(ret)
+		return ret
 	}
 
 	sig, err := signingKey.Sign(asMemorySlice(instanceContext, msg))
@@ -359,7 +358,7 @@ func ext_crypto_ed25519_sign_version_1(context unsafe.Pointer, keyTypeID, key C.
 		logger.Error("could not sign message")
 	}
 
-	ret, err = toWasmMemoryFixedSizeOptional(instanceContext, sig)
+	ret, err := toWasmMemoryFixedSizeOptional(instanceContext, sig)
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
 		return 0
@@ -1692,7 +1691,7 @@ func ext_offchain_submit_transaction_version_1(context unsafe.Pointer, data C.in
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
 	runtimeCtx.Transaction.AddToPool(vtx)
 
-	ptr, err := toWasmMemoryOptional(instanceContext, nil)
+	ptr, err := toWasmMemoryOptionalNil(instanceContext)
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
 	}
@@ -1831,7 +1830,7 @@ func ext_storage_changes_root_version_1(context unsafe.Pointer, parentHashSpan C
 
 	instanceContext := wasm.IntoInstanceContext(context)
 
-	rootSpan, err := toWasmMemoryOptional(instanceContext, nil)
+	rootSpan, err := toWasmMemoryOptionalNil(instanceContext)
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
 		return 0
