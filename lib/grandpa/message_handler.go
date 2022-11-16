@@ -95,7 +95,7 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourPacketV1) error {
 
 		cm, err := neighbourMessage.ToConsensusMessage()
 		if err != nil {
-			return fmt.Errorf("failed to convert NeighbourMessage to network message: %w", err)
+			return fmt.Errorf("converting neighbour message to network message: %w", err)
 		}
 
 		logger.Debugf("sending neighbour message: %v", neighbourMessage)

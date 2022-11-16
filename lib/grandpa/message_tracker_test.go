@@ -10,7 +10,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -57,10 +59,10 @@ func TestMessageTracker_ValidateMessage(t *testing.T) {
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
-	expectedErr := fmt.Errorf("validating vote: %w", ErrBlockDoesNotExist)
+	const expectedErr = "validating vote: block does not exist"
 	_, err = gs.validateVoteMessage("", msg)
 	require.ErrorIs(t, err, ErrBlockDoesNotExist)
-	require.Equal(t, err, expectedErr)
+	require.EqualError(t, err, expectedErr)
 
 	authorityID := kr.Alice().Public().(*ed25519.PublicKey).AsBytes()
 	voteMessage := getMessageFromVotesMapping(gs.tracker.votes.mapping, fake.Hash(), authorityID)
@@ -97,7 +99,7 @@ func TestMessageTracker_SendMessage(t *testing.T) {
 	aliceSignedVote, aliceVoteMessage := createAndSignVoteMessage(t, aliceAuthority, gs.state.round,
 		gs.state.setID, NewVoteFromHeader(next), prevote)
 
-	expectedErr := fmt.Errorf("validating vote: %w", ErrBlockDoesNotExist)
+	const expectedErr = "validating vote: block does not exist"
 	_, err = gs.validateVoteMessage("", aliceVoteMessage)
 	require.ErrorIs(t, err, ErrBlockDoesNotExist)
 	require.Equal(t, err, expectedErr)
@@ -114,8 +116,7 @@ func TestMessageTracker_SendMessage(t *testing.T) {
 
 	// grandpa tracker check every second if the block
 	// was included in the block tree
-	waitTracker := time.NewTimer(2 * time.Second)
-	<-waitTracker.C
+	time.Sleep(2 * time.Second)
 
 	aliceAuthorityPublicBytes := aliceAuthority.Public().(*ed25519.PublicKey).AsBytes()
 	gotSignedVote, ok := gs.loadVote(aliceAuthorityPublicBytes, prevote)
@@ -157,7 +158,7 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
-	expectedErr := fmt.Errorf("validating vote: %w", ErrBlockDoesNotExist)
+	const expectedErr = "block does not exist"
 	_, err = gs.validateVoteMessage("", msg)
 	require.ErrorIs(t, err, ErrBlockDoesNotExist)
 	require.Equal(t, err, expectedErr)
@@ -210,23 +211,170 @@ func TestMessageTracker_MapInsideMap(t *testing.T) {
 	require.NotEmpty(t, voteMessage)
 }
 
-func TestMessageTracker_handleTick(t *testing.T) {
+func TestMessageTracker_handleTick_commitMessage(t *testing.T) {
+	t.Parallel()
+
+	testcases := map[string]struct {
+		expectedCommitMessage bool
+		newGrandpaService     func(ctrl *gomock.Controller) *Service
+	}{
+		"get_header_failed_should_keep_commit": {
+			expectedCommitMessage: true,
+			newGrandpaService: func(ctrl *gomock.Controller) *Service {
+				networkMock := NewMockNetwork(ctrl)
+				grandpaStateMock := NewMockGrandpaState(ctrl)
+
+				blockStateMock := NewMockBlockState(ctrl)
+				blockStateMock.EXPECT().
+					GetImportedBlockNotifierChannel().
+					Return(make(chan *types.Block))
+
+				blockStateMock.EXPECT().
+					GetHeader(testHash).
+					Return(nil, chaindb.ErrKeyNotFound)
+
+				// telemetryMock := NewMockClient(ctrl)
+
+				// commitMessageTelemetry := telemetry.NewAfgReceivedCommit(
+				// 	testHash, "1", []string{})
+				// telemetryMock.EXPECT().SendMessage(commitMessageTelemetry)
+
+				grandpaService := &Service{
+					telemetry: nil,
+					keypair:   kr.Bob().(*ed25519.Keypair),
+					state: &State{
+						voters: newTestVoters(),
+						setID:  0,
+						round:  1,
+					},
+					grandpaState: grandpaStateMock,
+					blockState:   blockStateMock,
+					network:      networkMock,
+					prevotes:     new(sync.Map),
+				}
+				messageHandler := NewMessageHandler(grandpaService, blockStateMock, nil)
+				grandpaService.messageHandler = messageHandler
+				grandpaService.tracker = newTracker(blockStateMock, messageHandler)
+
+				return grandpaService
+			},
+		},
+		"handel_commit_successfully": {
+			newGrandpaService: func(ctrl *gomock.Controller) *Service {
+				networkMock := NewMockNetwork(ctrl)
+
+				blockStateMock := NewMockBlockState(ctrl)
+				blockStateMock.EXPECT().
+					GetImportedBlockNotifierChannel().
+					Return(make(chan *types.Block))
+				blockStateMock.EXPECT().
+					GetHeader(testHash).
+					Return(&types.Header{
+						Number: 1,
+					}, nil)
+
+				highestFinalizedHeader := &types.Header{}
+				blockStateMock.EXPECT().
+					GetHighestFinalisedHeader().
+					Return(highestFinalizedHeader, nil)
+
+				blockStateMock.EXPECT().
+					IsDescendantOf(highestFinalizedHeader.Hash(), testHash).
+					Return(true, nil)
+
+				const commitMessageRound = uint64(100)
+				const serviceStateSetID = uint64(0)
+
+				blockStateMock.EXPECT().
+					HasFinalisedBlock(commitMessageRound, serviceStateSetID).
+					Return(false, nil)
+
+				blockStateMock.EXPECT().
+					SetFinalisedHash(testHash, commitMessageRound, serviceStateSetID).
+					Return(nil)
+
+				grandpaStateMock := NewMockGrandpaState(ctrl)
+				grandpaStateMock.EXPECT().
+					SetPrecommits(commitMessageRound, uint64(0), []types.GrandpaSignedVote{})
+
+				telemetryMock := NewMockClient(ctrl)
+
+				commitMessageTelemetry := telemetry.NewAfgReceivedCommit(
+					testHash, "1", []string{})
+				telemetryMock.EXPECT().SendMessage(commitMessageTelemetry)
+
+				grandpaService := &Service{
+					telemetry: telemetryMock,
+					keypair:   kr.Bob().(*ed25519.Keypair),
+					state: &State{
+						voters: []types.GrandpaVoter{},
+						setID:  0,
+						round:  1,
+					},
+					grandpaState: grandpaStateMock,
+					blockState:   blockStateMock,
+					network:      networkMock,
+					prevotes:     new(sync.Map),
+				}
+				messageHandler := NewMessageHandler(grandpaService, blockStateMock, nil)
+				grandpaService.messageHandler = messageHandler
+				grandpaService.tracker = newTracker(blockStateMock, messageHandler)
+
+				return grandpaService
+			},
+		},
+	}
+
+	for tname, tt := range testcases {
+		tt := tt
+
+		t.Run(tname, func(t *testing.T) {
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+			grandpaService := tt.newGrandpaService(ctrl)
+
+			commitMessage := &CommitMessage{
+				Round: 100,
+				SetID: 0,
+				Vote: types.GrandpaVote{
+					Hash:   testHash,
+					Number: 1,
+				},
+			}
+
+			grandpaService.tracker.addCommit(commitMessage)
+			grandpaService.tracker.handleTick()
+
+			trackedCommitMessage := grandpaService.tracker.commits.message(testHash)
+
+			if tt.expectedCommitMessage {
+				require.NotNil(t, trackedCommitMessage)
+			} else {
+				require.Nil(t, trackedCommitMessage)
+			}
+		})
+	}
+
+}
+
+func TestMessageTracker_handleTick_voteMessage(t *testing.T) {
 	t.Parallel()
 
 	tests := map[string]struct {
-		serviceRound       uint64
-		voteRound          uint64
-		trackerKeepMessage bool
+		serviceRound uint64
+		voteRound    uint64
+		keepVoting   bool
 	}{
 		"vote_round_greater_than_service_round": {
-			serviceRound:       1,
-			voteRound:          2,
-			trackerKeepMessage: true,
+			serviceRound: 1,
+			voteRound:    2,
+			keepVoting:   true,
 		},
 		"vote_round_less_than_service_round": {
-			serviceRound:       2,
-			voteRound:          1,
-			trackerKeepMessage: false,
+			serviceRound: 2,
+			voteRound:    1,
+			keepVoting:   false,
 		},
 	}
 
@@ -242,7 +390,16 @@ func TestMessageTracker_handleTick(t *testing.T) {
 			ctrl := gomock.NewController(t)
 
 			telemetryMock := NewMockClient(ctrl)
-			telemetryMock.EXPECT().SendMessage(gomock.Any()).Times(1)
+			authority := kr.Charlie().(*ed25519.Keypair)
+			publicBytes := authority.Public().(*ed25519.PublicKey).AsBytes()
+
+			prevoteTelemetryMessage := telemetry.NewAfgReceivedPrevote(
+				testGenesisHeader.Hash(),
+				fmt.Sprint(testGenesisHeader.Number),
+				publicBytes.String(),
+			)
+
+			telemetryMock.EXPECT().SendMessage(prevoteTelemetryMessage)
 
 			const setID uint64 = 0
 			grandpaStateMock := NewMockGrandpaState(ctrl)
@@ -250,8 +407,7 @@ func TestMessageTracker_handleTick(t *testing.T) {
 			blockStateMock := NewMockBlockState(ctrl)
 			blockStateMock.EXPECT().
 				GetImportedBlockNotifierChannel().
-				Return(make(chan *types.Block)).
-				Times(1)
+				Return(make(chan *types.Block))
 
 			fakePeerID := peer.ID("charlie-fake-peer-id")
 			networkMock := NewMockNetwork(ctrl)
@@ -296,30 +452,18 @@ func TestMessageTracker_handleTick(t *testing.T) {
 				Number: uint32(testGenesisHeader.Number),
 			}
 
-			authority := kr.Charlie().(*ed25519.Keypair)
 			_, voteMessage := createAndSignVoteMessage(t, authority,
 				tt.voteRound, setID, vote, prevote)
 
 			grandpaService.tracker.addVote(fakePeerID, voteMessage)
-
-			commitMessage := &CommitMessage{
-				Round: 100,
-				SetID: 1,
-				Vote: types.GrandpaVote{
-					Hash:   testHash,
-					Number: 1,
-				},
-			}
-			grandpaService.tracker.addCommit(commitMessage)
 			grandpaService.tracker.handleTick()
 
 			var expectedLen int = 1
-			if !tt.trackerKeepMessage {
+			if !tt.keepVoting {
 				expectedLen = 0
 			}
 
 			require.Len(t, grandpaService.tracker.votes.messages(vote.Hash), expectedLen)
-			require.Len(t, grandpaService.tracker.commits.message(vote.Hash), expectedLen)
 		})
 	}
 }

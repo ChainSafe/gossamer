@@ -1183,9 +1183,6 @@ func (s *Service) handleCommitMessage(commitMessage *CommitMessage) error {
 	if err != nil {
 		if errors.Is(err, chaindb.ErrKeyNotFound) {
 			s.tracker.addCommit(commitMessage)
-			logger.Debugf("we might not have synced to the given block %s yet: %s",
-				commitMessage.Vote.Hash, err)
-			return nil
 		}
 
 		return fmt.Errorf("verifying block hash against block number: %w", err)
@@ -1297,10 +1294,10 @@ func verifyCommitMessageJustification(commitMessage CommitMessage, setID uint64,
 		}
 
 		if precommitedHeader.Number != uint(preCommit.Number) {
-			const errString = "%w: pre commit corresponding header has block number %d " +
+			const errFormat = "%w: pre commit corresponding header has block number %d " +
 				"and pre commit has block number %d"
 
-			return fmt.Errorf(errString,
+			return fmt.Errorf(errFormat,
 				ErrBlockNumbersMismatch, precommitedHeader.Number, preCommit.Number)
 		}
 
@@ -1316,7 +1313,7 @@ func verifyCommitMessageJustification(commitMessage CommitMessage, setID uint64,
 	validAndEqv := uint64(totalValidPrecommits) + uint64(len(eqvVoters))
 	// confirm total # signatures >= grandpa threshold
 	if validAndEqv < threshold {
-		return fmt.Errorf("%w: for finalisation message; need %d votes but received only %d votes",
+		return fmt.Errorf("%w: for finalisation message; need %d votes but received only %d valid votes",
 			ErrMinVotesNotMet, threshold, validAndEqv)
 	}
 
