@@ -515,8 +515,7 @@ func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(context unsafe.Poin
 	cpub, err := secp256k1.RecoverPublicKeyCompressed(message, signature)
 	if err != nil {
 		logger.Errorf("failed to recover public key: %s", err)
-		ret, _ := toWasmMemoryResult(instanceContext, nil)
-		return C.int64_t(ret)
+		return mustToWasmMemoryResultEmpty(instanceContext)
 	}
 
 	logger.Debugf(
