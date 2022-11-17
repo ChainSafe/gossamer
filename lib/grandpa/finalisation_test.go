@@ -6,6 +6,7 @@ package grandpa
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
@@ -51,6 +52,7 @@ func Test_finalisationHandler_runEphemeralServices(t *testing.T) {
 				builder := func() (engine ephemeralService, voting ephemeralService) {
 					mockVoting := NewMockephemeralService(ctrl)
 					mockVoting.EXPECT().Run().DoAndReturn(func() error {
+						time.Sleep(time.Second)
 						return errors.New("mocked voting round failed")
 					})
 
@@ -86,6 +88,7 @@ func Test_finalisationHandler_runEphemeralServices(t *testing.T) {
 				builder := func() (engine ephemeralService, voting ephemeralService) {
 					mockEngine := NewMockephemeralService(ctrl)
 					mockEngine.EXPECT().Run().DoAndReturn(func() error {
+						time.Sleep(time.Second)
 						return errors.New("mocked finalisation engine failed")
 					})
 
