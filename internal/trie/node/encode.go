@@ -27,8 +27,7 @@ func (n *Node) Encode(buffer Buffer) (err error) {
 		return fmt.Errorf("cannot write LE key to buffer: %w", err)
 	}
 
-	kind := n.Kind()
-	nodeIsBranch := kind == Branch
+	nodeIsBranch := n.Kind() == Branch
 	if nodeIsBranch {
 		childrenBitmap := common.Uint16ToBytes(n.ChildrenBitmap())
 		_, err = buffer.Write(childrenBitmap)
@@ -37,14 +36,11 @@ func (n *Node) Encode(buffer Buffer) (err error) {
 		}
 	}
 
-	// Only encode node value if the node is a leaf or
-	// the node is a branch with a non empty value.
+	// Only encode node value if it's not empty.
 	// See https://spec.polkadot.network/#defn-node-subvalue
 	// See https://github.com/paritytech/substrate/blob/a7ba55d3c54b9957c242f659e02f5b5a0f47b3ff/primitives/trie/src/node_codec.rs#L123
-	if !nodeIsBranch || (nodeIsBranch && n.SubValue != nil) {
+	if n.SubValue != nil {
 		encoder := scale.NewEncoder(buffer)
-		// Note: scale encoding `[]byte(nil)` and `[]byte{}` result in the same `[]byte{0}`,
-		// that's why it's ok to encode a nil value for leaf nodes.
 		err = encoder.Encode(n.SubValue)
 		if err != nil {
 			return fmt.Errorf("scale encoding value: %w", err)

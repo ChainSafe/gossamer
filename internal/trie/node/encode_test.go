@@ -104,8 +104,6 @@ func Test_Node_Encode(t *testing.T) {
 			writes: []writeCall{
 				{written: []byte{leafVariant.bits | 3}}, // partial key length 3
 				{written: []byte{0x01, 0x23}},           // partial key
-				{written: []byte{0}},                    // node value encoded length
-				{written: nil},                          // node value
 			},
 			expectedEncoding: []byte{1, 2, 3},
 		},
