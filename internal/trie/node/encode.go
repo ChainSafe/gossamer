@@ -39,8 +39,12 @@ func (n *Node) Encode(buffer Buffer) (err error) {
 
 	// Only encode node value if the node is a leaf or
 	// the node is a branch with a non empty value.
+	// See https://spec.polkadot.network/#defn-node-subvalue
+	// See https://github.com/paritytech/substrate/blob/a7ba55d3c54b9957c242f659e02f5b5a0f47b3ff/primitives/trie/src/node_codec.rs#L123
 	if !nodeIsBranch || (nodeIsBranch && n.SubValue != nil) {
 		encoder := scale.NewEncoder(buffer)
+		// Note: scale encoding `[]byte(nil)` and `[]byte{}` result in the same `[]byte{0}`,
+		// that's why it's ok to encode a nil value for leaf nodes.
 		err = encoder.Encode(n.SubValue)
 		if err != nil {
 			return fmt.Errorf("scale encoding value: %w", err)

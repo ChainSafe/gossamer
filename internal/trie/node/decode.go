@@ -138,6 +138,10 @@ func decodeLeaf(reader io.Reader, partialKeyLength uint16) (node *Node, err erro
 		return nil, fmt.Errorf("%w: %s", ErrDecodeValue, err)
 	}
 
+	// The scale decoding above can encounter either io.EOF,
+	// leaving the value byte slice as `[]byte(nil)`, or
+	// `[]byte{0}` which decodes to `[]byte{}`.
+	// This implementation forces empty node values to `[]byte(nil)`.
 	if len(value) > 0 {
 		node.SubValue = value
 	}

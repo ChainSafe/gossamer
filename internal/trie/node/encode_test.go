@@ -4,9 +4,11 @@
 package node
 
 import (
+	"bytes"
 	"errors"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -309,4 +311,21 @@ func Test_Node_Encode(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_scaleEncodeEmptyByteSlices(t *testing.T) {
+	t.Parallel()
+
+	buffer := bytes.NewBuffer(nil)
+	encoder := scale.NewEncoder(buffer)
+	err := encoder.Encode([]byte(nil))
+	require.NoError(t, err)
+	assert.Equal(t, []byte{0}, buffer.Bytes())
+
+	buffer.Reset()
+
+	encoder = scale.NewEncoder(buffer)
+	err = encoder.Encode([]byte{})
+	require.NoError(t, err)
+	assert.Equal(t, []byte{0}, buffer.Bytes())
 }
