@@ -18,107 +18,14 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/golang/mock/gomock"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-type testJustificationRequest struct {
-	to  peer.ID
-	num uint32
-}
-
-type testNetwork struct {
-	t                    *testing.T
-	out                  chan GrandpaMessage
-	finalised            chan GrandpaMessage
-	justificationRequest *testJustificationRequest
-}
-
-func newTestNetwork(t *testing.T) *testNetwork {
-	return &testNetwork{
-		t:         t,
-		out:       make(chan GrandpaMessage, 128),
-		finalised: make(chan GrandpaMessage, 128),
-	}
-}
-
-func (n *testNetwork) GossipMessage(msg NotificationsMessage) {
-	cm, ok := msg.(*ConsensusMessage)
-	require.True(n.t, ok)
-
-	gmsg, err := decodeMessage(cm)
-	require.NoError(n.t, err)
-
-	switch gmsg.(type) {
-	case *CommitMessage:
-		n.finalised <- gmsg
-	default:
-		n.out <- gmsg
-	}
-}
-
-func (n *testNetwork) SendMessage(_ peer.ID, _ NotificationsMessage) error {
-	return nil
-}
-
-func (n *testNetwork) SendJustificationRequest(to peer.ID, num uint32) {
-	n.justificationRequest = &testJustificationRequest{
-		to:  to,
-		num: num,
-	}
-}
-
-func (*testNetwork) RegisterNotificationsProtocol(
-	_ protocol.ID,
-	_ byte,
-	_ network.HandshakeGetter,
-	_ network.HandshakeDecoder,
-	_ network.HandshakeValidator,
-	_ network.MessageDecoder,
-	_ network.NotificationsMessageHandler,
-	_ network.NotificationsMessageBatchHandler,
-	_ uint64,
-) error {
-	return nil
-}
-
-func (n *testNetwork) SendBlockReqestByHash(_ common.Hash) {}
-
-func setupGrandpa(t *testing.T, kp *ed25519.Keypair) *Service {
-	st := newTestState(t)
-	net := newTestNetwork(t)
-
-	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
-
-	telemetryMock.
-		EXPECT().
-		SendMessage(gomock.Any()).AnyTimes()
-
-	cfg := &Config{
-		BlockState:   st.Block,
-		GrandpaState: st.Grandpa,
-		Voters:       newTestVoters(t),
-		Keypair:      kp,
-		LogLvl:       log.Info,
-		Authority:    true,
-		Network:      net,
-		Interval:     time.Second,
-		Telemetry:    telemetryMock,
-	}
-
-	gs, err := NewService(cfg)
-	require.NoError(t, err)
-	return gs
-}
 
 func TestGrandpa_DifferentChains(t *testing.T) {
 	// this asserts that all validators finalise the same block if they all see the
