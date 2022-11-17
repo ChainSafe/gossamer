@@ -5,6 +5,7 @@ package peerset
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"strings"
@@ -641,13 +642,12 @@ func (ps *PeerSet) incoming(setID int, peers ...peer.ID) error {
 		} else {
 			err := state.tryAcceptIncoming(setID, pid)
 			if err != nil {
-				if err == ErrIncomingSlotsUnavailable {
-					logger.Infof("cannot accept incoming peer %s: %s", pid, err)
-					message.Status = Reject
+				if errors.Is(err, ErrIncomingSlotsUnavailable) {
+					logger.Debugf("cannot accept incoming peer %s: %s", pid, err)
 				} else {
 					logger.Errorf("cannot accept incoming peer %s: %s", pid, err)
-					message.Status = Reject
 				}
+				message.Status = Reject
 			} else {
 				logger.Debugf("incoming connection accepted from peer %s", pid)
 				message.Status = Accept
