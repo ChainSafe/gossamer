@@ -394,7 +394,7 @@ func Test_nodeBuilder_loadRuntime(t *testing.T) {
 			blocks := stateSrvc.Block.GetNonFinalisedBlocks()
 			for i := range blocks {
 				hash := &blocks[i]
-				code, err := stateSrvc.Storage.GetStorageByBlockHash(hash, []byte(":code"))
+				code, err := stateSrvc.Storage.LoadCode(hash)
 				require.NoError(t, err)
 				require.NotEmpty(t, code)
 			}
