@@ -16,7 +16,7 @@ func Test_Trie_MemoryUsage(t *testing.T) {
 	// Set skip to false to run the test.
 	// This test should be run on its own since it interacts
 	// with the Go garbage collector.
-	const skip = true
+	const skip = false
 	if skip {
 		t.SkipNow()
 	}
@@ -102,11 +102,15 @@ func mutateTrieLeavesAtPrefix(trie *Trie,
 	for keyString, value := range originalKV {
 		key := append(prefix, []byte(keyString)...) //skipcq: CRT-D0001
 
-		// Reverse value byte slice
-		newValue := make([]byte, len(value))
-		copy(newValue, value)
-		for i, j := 0, len(newValue)-1; i < j; i, j = i+1, j-1 {
-			newValue[i], newValue[j] = newValue[j], newValue[i]
+		var newValue []byte
+		if len(value) == 0 {
+			newValue = []byte{1}
+		} else {
+			newValue = make([]byte, len(value))
+			copy(newValue, value)
+			for i := range newValue {
+				newValue[i]++
+			}
 		}
 
 		trie.Put(key, newValue)
