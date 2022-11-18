@@ -109,6 +109,6 @@ func mutateTrieLeavesAtPrefix(trie *Trie,
 			newValue[i], newValue[j] = newValue[j], newValue[i]
 		}
 
-		trie.Put(key, value)
+		trie.Put(key, newValue)
 	}
 }
