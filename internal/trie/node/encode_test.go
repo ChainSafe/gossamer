@@ -60,7 +60,7 @@ func Test_Node_Encode(t *testing.T) {
 			wrappedErr: errTest,
 			errMessage: "cannot write LE key to buffer: test error",
 		},
-		"leaf buffer write error for encoded value": {
+		"leaf buffer write error for encoded storage value": {
 			node: &Node{
 				PartialKey:   []byte{1, 2, 3},
 				StorageValue: []byte{4, 5, 6},
@@ -78,7 +78,7 @@ func Test_Node_Encode(t *testing.T) {
 				},
 			},
 			wrappedErr: errTest,
-			errMessage: "scale encoding value: test error",
+			errMessage: "scale encoding storage value: test error",
 		},
 		"leaf success": {
 			node: &Node{
@@ -95,15 +95,15 @@ func Test_Node_Encode(t *testing.T) {
 			},
 			expectedEncoding: []byte{1, 2, 3},
 		},
-		"leaf with empty value success": {
+		"leaf with empty storage value success": {
 			node: &Node{
 				PartialKey: []byte{1, 2, 3},
 			},
 			writes: []writeCall{
 				{written: []byte{leafVariant.bits | 3}}, // partial key length 3
 				{written: []byte{0x01, 0x23}},           // partial key
-				{written: []byte{0}},                    // node value encoded length
-				{written: nil},                          // node value
+				{written: []byte{0}},                    // node storage value encoded length
+				{written: nil},                          // node storage value
 			},
 			expectedEncoding: []byte{1, 2, 3},
 		},
@@ -163,7 +163,7 @@ func Test_Node_Encode(t *testing.T) {
 			wrappedErr: errTest,
 			errMessage: "cannot write children bitmap to buffer: test error",
 		},
-		"buffer write error for value": {
+		"buffer write error for storage value": {
 			node: &Node{
 				PartialKey:   []byte{1, 2, 3},
 				StorageValue: []byte{100},
@@ -182,13 +182,13 @@ func Test_Node_Encode(t *testing.T) {
 				{ // children bitmap
 					written: []byte{136, 0},
 				},
-				{ // value
+				{ // storage value
 					written: []byte{4},
 					err:     errTest,
 				},
 			},
 			wrappedErr: errTest,
-			errMessage: "scale encoding value: test error",
+			errMessage: "scale encoding storage value: test error",
 		},
 		"buffer write error for children encoding": {
 			node: &Node{
@@ -209,7 +209,7 @@ func Test_Node_Encode(t *testing.T) {
 				{ // children bitmap
 					written: []byte{136, 0},
 				},
-				// value
+				// storage value
 				{written: []byte{4}},
 				{written: []byte{100}},
 				{ // children
@@ -241,7 +241,7 @@ func Test_Node_Encode(t *testing.T) {
 				{ // children bitmap
 					written: []byte{136, 0},
 				},
-				// value
+				// storage value
 				{written: []byte{4}},
 				{written: []byte{100}},
 				{ // first children

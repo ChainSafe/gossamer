@@ -37,13 +37,13 @@ func (n *Node) Encode(buffer Buffer) (err error) {
 		}
 	}
 
-	// Only encode node value if the node is a leaf or
-	// the node is a branch with a non empty value.
+	// Only encode node storage value if the node is a leaf or
+	// the node is a branch with a non empty storage value.
 	if !nodeIsBranch || (nodeIsBranch && n.StorageValue != nil) {
 		encoder := scale.NewEncoder(buffer)
 		err = encoder.Encode(n.StorageValue)
 		if err != nil {
-			return fmt.Errorf("scale encoding value: %w", err)
+			return fmt.Errorf("scale encoding storage value: %w", err)
 		}
 	}
 

@@ -9,7 +9,7 @@ var (
 	// - the HashDigest field is left empty on the copy
 	// - the Encoding field is left empty on the copy
 	// - the key field is deep copied
-	// - the value field is deep copied
+	// - the storage value field is deep copied
 	DefaultCopySettings = CopySettings{
 		CopyKey:          true,
 		CopyStorageValue: true,
@@ -20,7 +20,7 @@ var (
 	// - the HashDigest field is deep copied
 	// - the Encoding field is deep copied
 	// - the key field is deep copied
-	// - the value field is deep copied
+	// - the storage value field is deep copied
 	DeepCopySettings = CopySettings{
 		CopyChildren:     true,
 		CopyCached:       true,
@@ -46,8 +46,8 @@ type CopySettings struct {
 	// the node. This is useful when false if the key is about to
 	// be assigned after the Copy operation, to save a memory operation.
 	CopyKey bool
-	// CopyStorageValue can be set to true to deep copy the value field of
-	// the node. This is useful when false if the value is about to
+	// CopyStorageValue can be set to true to deep copy the storage value field of
+	// the node. This is useful when false if the storage value is about to
 	// be assigned after the Copy operation, to save a memory operation.
 	CopyStorageValue bool
 }
@@ -87,8 +87,8 @@ func (n *Node) Copy(settings CopySettings) *Node {
 		copy(cpy.PartialKey, n.PartialKey)
 	}
 
-	// nil and []byte{} values for branches result in a different node encoding,
-	// so we ensure to keep the `nil` value.
+	// nil and []byte{} storage values for branches result in a different node encoding,
+	// so we ensure to keep the `nil` storage value.
 	if settings.CopyStorageValue && n.StorageValue != nil {
 		cpy.StorageValue = make([]byte, len(n.StorageValue))
 		copy(cpy.StorageValue, n.StorageValue)

@@ -58,7 +58,7 @@ func (n Node) StringNode() (stringNode *gotree.Node) {
 	stringNode.Appendf("Generation: %d", n.Generation)
 	stringNode.Appendf("Dirty: %t", n.Dirty)
 	stringNode.Appendf("Key: " + bytesToString(n.PartialKey))
-	stringNode.Appendf("Value: " + bytesToString(n.StorageValue))
+	stringNode.Appendf("Storage value: " + bytesToString(n.StorageValue))
 	if n.Descendants > 0 { // must be a branch
 		stringNode.Appendf("Descendants: %d", n.Descendants)
 	}

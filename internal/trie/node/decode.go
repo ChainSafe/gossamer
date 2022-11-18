@@ -17,7 +17,7 @@ var (
 	// in the scale package.
 	// TODO remove once the following issue is done:
 	// https://github.com/ChainSafe/gossamer/issues/2631 .
-	ErrDecodeStorageValue = errors.New("cannot decode value")
+	ErrDecodeStorageValue = errors.New("cannot decode storage value")
 	ErrReadChildrenBitmap = errors.New("cannot read children bitmap")
 	// ErrDecodeChildHash is defined since no sentinel error is defined
 	// in the scale package.
@@ -62,7 +62,7 @@ func Decode(reader io.Reader) (n *Node, err error) {
 // Note that since the encoded branch stores the hash of the children nodes, we are not
 // reconstructing the child nodes from the encoding. This function instead stubs where the
 // children are known to be with an empty leaf. The children nodes hashes are then used to
-// find other values using the persistent database.
+// find other storage values using the persistent database.
 func decodeBranch(reader io.Reader, variant byte, partialKeyLength uint16) (
 	node *Node, err error) {
 	node = &Node{
@@ -132,14 +132,14 @@ func decodeLeaf(reader io.Reader, partialKeyLength uint16) (node *Node, err erro
 	}
 
 	sd := scale.NewDecoder(reader)
-	var value []byte
-	err = sd.Decode(&value)
+	var storageValue []byte
+	err = sd.Decode(&storageValue)
 	if err != nil && !errors.Is(err, io.EOF) {
 		return nil, fmt.Errorf("%w: %s", ErrDecodeStorageValue, err)
 	}
 
-	if len(value) > 0 {
-		node.StorageValue = value
+	if len(storageValue) > 0 {
+		node.StorageValue = storageValue
 	}
 
 	return node, nil
