@@ -198,7 +198,7 @@ func Test_decodeBranch(t *testing.T) {
 			),
 			variant:          branchWithValueVariant.bits,
 			partialKeyLength: 1,
-			errWrapped:       ErrDecodeValue,
+			errWrapped:       ErrDecodeStorageValue,
 			errMessage:       "cannot decode value: reading byte: EOF",
 		},
 		"success for branch with value": {
@@ -324,7 +324,7 @@ func Test_decodeLeaf(t *testing.T) {
 			}),
 			variant:          leafVariant.bits,
 			partialKeyLength: 1,
-			errWrapped:       ErrDecodeValue,
+			errWrapped:       ErrDecodeStorageValue,
 			errMessage:       "cannot decode value: unknown prefix for compact uint: 255",
 		},
 		"missing value data": {
