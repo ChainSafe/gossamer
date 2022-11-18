@@ -43,8 +43,8 @@ func Test_Trie_MemoryUsage(t *testing.T) {
 	// Check heap memory usage - it should be 2X
 	filledTrieHeap := getHeapUsage()
 	ratio := getApproximateRatio(halfFilledTrieHeap, filledTrieHeap)
-	assert.Greater(t, ratio, 1.5)
-	assert.Less(t, ratio, 2.1)
+	assert.Greater(t, ratio, 1.6)
+	assert.Less(t, ratio, 1.7)
 
 	// Snapshot the trie
 	triesMap["second"] = triesMap["first"].Snapshot()
@@ -55,8 +55,8 @@ func Test_Trie_MemoryUsage(t *testing.T) {
 	// Check heap memory usage - it should be 3X
 	halfMutatedTrieHeap := getHeapUsage()
 	ratio = getApproximateRatio(halfFilledTrieHeap, halfMutatedTrieHeap)
-	assert.Greater(t, ratio, 2.0)
-	assert.Less(t, ratio, 3.1)
+	assert.Greater(t, ratio, 2.2)
+	assert.Less(t, ratio, 2.4)
 
 	// Remove the older trie from our reference
 	delete(triesMap, "first")
@@ -64,8 +64,8 @@ func Test_Trie_MemoryUsage(t *testing.T) {
 	// Check heap memory usage - it should be 2X
 	prunedTrieHeap := getHeapUsage()
 	ratio = getApproximateRatio(halfFilledTrieHeap, prunedTrieHeap)
-	assert.Greater(t, ratio, 1.5)
-	assert.Less(t, ratio, 2.1)
+	assert.Greater(t, ratio, 1.6)
+	assert.Less(t, ratio, 1.7)
 
 	// Dummy calls - has to be after prunedTrieHeap for
 	// GC to keep them
