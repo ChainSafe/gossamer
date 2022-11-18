@@ -50,7 +50,7 @@ func NewTrie(root *Node) *Trie {
 func (t *Trie) Snapshot() (newTrie *Trie) {
 	childTries := make(map[common.Hash]*Trie, len(t.childTries))
 	rootCopySettings := node.DefaultCopySettings
-	rootCopySettings.CopyCached = true
+	rootCopySettings.CopyMerkleValue = true
 	for rootHash, childTrie := range t.childTries {
 		childTries[rootHash] = &Trie{
 			generation:          childTrie.generation + 1,
@@ -166,7 +166,7 @@ func (t *Trie) DeepCopy() (trieCopy *Trie) {
 // RootNode returns a copy of the root node of the trie.
 func (t *Trie) RootNode() *Node {
 	copySettings := node.DefaultCopySettings
-	copySettings.CopyCached = true
+	copySettings.CopyMerkleValue = true
 	return t.root.Copy(copySettings)
 }
 
