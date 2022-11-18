@@ -11,8 +11,8 @@ var (
 	// - the key field is deep copied
 	// - the value field is deep copied
 	DefaultCopySettings = CopySettings{
-		CopyKey:   true,
-		CopyValue: true,
+		CopyKey:          true,
+		CopyStorageValue: true,
 	}
 
 	// DeepCopySettings returns the following copy settings:
@@ -22,10 +22,10 @@ var (
 	// - the key field is deep copied
 	// - the value field is deep copied
 	DeepCopySettings = CopySettings{
-		CopyChildren: true,
-		CopyCached:   true,
-		CopyKey:      true,
-		CopyValue:    true,
+		CopyChildren:     true,
+		CopyCached:       true,
+		CopyKey:          true,
+		CopyStorageValue: true,
 	}
 )
 
@@ -46,10 +46,10 @@ type CopySettings struct {
 	// the node. This is useful when false if the key is about to
 	// be assigned after the Copy operation, to save a memory operation.
 	CopyKey bool
-	// CopyValue can be set to true to deep copy the value field of
+	// CopyStorageValue can be set to true to deep copy the value field of
 	// the node. This is useful when false if the value is about to
 	// be assigned after the Copy operation, to save a memory operation.
-	CopyValue bool
+	CopyStorageValue bool
 }
 
 // Copy deep copies the node.
@@ -67,7 +67,7 @@ func (n *Node) Copy(settings CopySettings) *Node {
 			// Copy all fields of children if we deep copy children
 			childSettings := settings
 			childSettings.CopyKey = true
-			childSettings.CopyValue = true
+			childSettings.CopyStorageValue = true
 			childSettings.CopyCached = true
 			cpy.Children = make([]*Node, ChildrenCapacity)
 			for i, child := range n.Children {
@@ -89,7 +89,7 @@ func (n *Node) Copy(settings CopySettings) *Node {
 
 	// nil and []byte{} values for branches result in a different node encoding,
 	// so we ensure to keep the `nil` value.
-	if settings.CopyValue && n.StorageValue != nil {
+	if settings.CopyStorageValue && n.StorageValue != nil {
 		cpy.StorageValue = make([]byte, len(n.StorageValue))
 		copy(cpy.StorageValue, n.StorageValue)
 	}

@@ -376,7 +376,7 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
 		}
 
 		copySettings := node.DefaultCopySettings
-		copySettings.CopyValue = false
+		copySettings.CopyStorageValue = false
 		parentLeaf = t.prepLeafForMutation(parentLeaf, copySettings, deletedMerkleValues)
 		parentLeaf.StorageValue = value
 		mutated = true
@@ -1037,7 +1037,7 @@ func (t *Trie) deleteBranch(branch *Node, key []byte,
 	newParent *Node, deleted bool, nodesRemoved uint32) {
 	if len(key) == 0 || bytes.Equal(branch.PartialKey, key) {
 		copySettings := node.DefaultCopySettings
-		copySettings.CopyValue = false
+		copySettings.CopyStorageValue = false
 		branch = t.prepBranchForMutation(branch, copySettings, deletedMerkleValues)
 		// we need to set to nil if the branch has the same generation
 		// as the current trie.
