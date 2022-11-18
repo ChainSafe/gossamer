@@ -35,8 +35,8 @@ func populateChildren(valueSize, depth int) (children []*Node) {
 	if depth == 0 {
 		for i := range children {
 			children[i] = &Node{
-				PartialKey: someValue,
-				SubValue:   someValue,
+				PartialKey:   someValue,
+				StorageValue: someValue,
 			}
 		}
 		return children
@@ -44,9 +44,9 @@ func populateChildren(valueSize, depth int) (children []*Node) {
 
 	for i := range children {
 		children[i] = &Node{
-			PartialKey: someValue,
-			SubValue:   someValue,
-			Children:   populateChildren(valueSize, depth-1),
+			PartialKey:   someValue,
+			StorageValue: someValue,
+			Children:     populateChildren(valueSize, depth-1),
 		}
 	}
 
@@ -65,7 +65,7 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 		"no children": {},
 		"first child not nil": {
 			children: []*Node{
-				{PartialKey: []byte{1}, SubValue: []byte{2}},
+				{PartialKey: []byte{1}, StorageValue: []byte{2}},
 			},
 			writes: []writeCall{
 				{
@@ -78,7 +78,7 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
-				{PartialKey: []byte{1}, SubValue: []byte{2}},
+				{PartialKey: []byte{1}, StorageValue: []byte{2}},
 			},
 			writes: []writeCall{
 				{
@@ -88,8 +88,8 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 		},
 		"first two children not nil": {
 			children: []*Node{
-				{PartialKey: []byte{1}, SubValue: []byte{2}},
-				{PartialKey: []byte{3}, SubValue: []byte{4}},
+				{PartialKey: []byte{1}, StorageValue: []byte{2}},
+				{PartialKey: []byte{3}, StorageValue: []byte{4}},
 			},
 			writes: []writeCall{
 				{
@@ -105,7 +105,7 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 				nil, nil, nil, nil,
 				nil, nil, nil, nil,
 				nil, nil, nil,
-				{PartialKey: []byte{1}, SubValue: []byte{2}},
+				{PartialKey: []byte{1}, StorageValue: []byte{2}},
 				nil, nil, nil, nil,
 			},
 			writes: []writeCall{
@@ -192,7 +192,7 @@ func Test_encodeChildrenSequentially(t *testing.T) {
 		"no children": {},
 		"first child not nil": {
 			children: []*Node{
-				{PartialKey: []byte{1}, SubValue: []byte{2}},
+				{PartialKey: []byte{1}, StorageValue: []byte{2}},
 			},
 			writes: []writeCall{
 				{written: []byte{16}},
@@ -204,7 +204,7 @@ func Test_encodeChildrenSequentially(t *testing.T) {
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
-				{PartialKey: []byte{1}, SubValue: []byte{2}},
+				{PartialKey: []byte{1}, StorageValue: []byte{2}},
 			},
 			writes: []writeCall{
 				{written: []byte{16}},
@@ -213,8 +213,8 @@ func Test_encodeChildrenSequentially(t *testing.T) {
 		},
 		"first two children not nil": {
 			children: []*Node{
-				{PartialKey: []byte{1}, SubValue: []byte{2}},
-				{PartialKey: []byte{3}, SubValue: []byte{4}},
+				{PartialKey: []byte{1}, StorageValue: []byte{2}},
+				{PartialKey: []byte{3}, StorageValue: []byte{4}},
 			},
 			writes: []writeCall{
 				{written: []byte{16}},
@@ -228,7 +228,7 @@ func Test_encodeChildrenSequentially(t *testing.T) {
 				nil, nil, nil, nil,
 				nil, nil, nil, nil,
 				nil, nil, nil,
-				{PartialKey: []byte{1}, SubValue: []byte{2}},
+				{PartialKey: []byte{1}, StorageValue: []byte{2}},
 				nil, nil, nil, nil,
 			},
 			writes: []writeCall{
@@ -306,8 +306,8 @@ func Test_encodeChild(t *testing.T) {
 		},
 		"leaf child": {
 			child: &Node{
-				PartialKey: []byte{1},
-				SubValue:   []byte{2},
+				PartialKey:   []byte{1},
+				StorageValue: []byte{2},
 			},
 			writes: []writeCall{
 				{written: []byte{16}},
@@ -316,11 +316,11 @@ func Test_encodeChild(t *testing.T) {
 		},
 		"branch child": {
 			child: &Node{
-				PartialKey: []byte{1},
-				SubValue:   []byte{2},
+				PartialKey:   []byte{1},
+				StorageValue: []byte{2},
 				Children: []*Node{
 					nil, nil, {PartialKey: []byte{5},
-						SubValue: []byte{6},
+						StorageValue: []byte{6},
 					},
 				},
 			},

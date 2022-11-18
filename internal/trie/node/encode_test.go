@@ -45,8 +45,8 @@ func Test_Node_Encode(t *testing.T) {
 		},
 		"leaf buffer write error for encoded key": {
 			node: &Node{
-				PartialKey: []byte{1, 2, 3},
-				SubValue:   []byte{1},
+				PartialKey:   []byte{1, 2, 3},
+				StorageValue: []byte{1},
 			},
 			writes: []writeCall{
 				{
@@ -62,8 +62,8 @@ func Test_Node_Encode(t *testing.T) {
 		},
 		"leaf buffer write error for encoded value": {
 			node: &Node{
-				PartialKey: []byte{1, 2, 3},
-				SubValue:   []byte{4, 5, 6},
+				PartialKey:   []byte{1, 2, 3},
+				StorageValue: []byte{4, 5, 6},
 			},
 			writes: []writeCall{
 				{
@@ -82,8 +82,8 @@ func Test_Node_Encode(t *testing.T) {
 		},
 		"leaf success": {
 			node: &Node{
-				PartialKey: []byte{1, 2, 3},
-				SubValue:   []byte{4, 5, 6},
+				PartialKey:   []byte{1, 2, 3},
+				StorageValue: []byte{4, 5, 6},
 			},
 			writes: []writeCall{
 				{
@@ -123,9 +123,9 @@ func Test_Node_Encode(t *testing.T) {
 		},
 		"buffer write error for encoded key": {
 			node: &Node{
-				Children:   make([]*Node, ChildrenCapacity),
-				PartialKey: []byte{1, 2, 3},
-				SubValue:   []byte{100},
+				Children:     make([]*Node, ChildrenCapacity),
+				PartialKey:   []byte{1, 2, 3},
+				StorageValue: []byte{100},
 			},
 			writes: []writeCall{
 				{ // header
@@ -141,11 +141,11 @@ func Test_Node_Encode(t *testing.T) {
 		},
 		"buffer write error for children bitmap": {
 			node: &Node{
-				PartialKey: []byte{1, 2, 3},
-				SubValue:   []byte{100},
+				PartialKey:   []byte{1, 2, 3},
+				StorageValue: []byte{100},
 				Children: []*Node{
-					nil, nil, nil, {PartialKey: []byte{9}, SubValue: []byte{1}},
-					nil, nil, nil, {PartialKey: []byte{11}, SubValue: []byte{1}},
+					nil, nil, nil, {PartialKey: []byte{9}, StorageValue: []byte{1}},
+					nil, nil, nil, {PartialKey: []byte{11}, StorageValue: []byte{1}},
 				},
 			},
 			writes: []writeCall{
@@ -165,11 +165,11 @@ func Test_Node_Encode(t *testing.T) {
 		},
 		"buffer write error for value": {
 			node: &Node{
-				PartialKey: []byte{1, 2, 3},
-				SubValue:   []byte{100},
+				PartialKey:   []byte{1, 2, 3},
+				StorageValue: []byte{100},
 				Children: []*Node{
-					nil, nil, nil, {PartialKey: []byte{9}, SubValue: []byte{1}},
-					nil, nil, nil, {PartialKey: []byte{11}, SubValue: []byte{1}},
+					nil, nil, nil, {PartialKey: []byte{9}, StorageValue: []byte{1}},
+					nil, nil, nil, {PartialKey: []byte{11}, StorageValue: []byte{1}},
 				},
 			},
 			writes: []writeCall{
@@ -192,11 +192,11 @@ func Test_Node_Encode(t *testing.T) {
 		},
 		"buffer write error for children encoding": {
 			node: &Node{
-				PartialKey: []byte{1, 2, 3},
-				SubValue:   []byte{100},
+				PartialKey:   []byte{1, 2, 3},
+				StorageValue: []byte{100},
 				Children: []*Node{
-					nil, nil, nil, {PartialKey: []byte{9}, SubValue: []byte{1}},
-					nil, nil, nil, {PartialKey: []byte{11}, SubValue: []byte{1}},
+					nil, nil, nil, {PartialKey: []byte{9}, StorageValue: []byte{1}},
+					nil, nil, nil, {PartialKey: []byte{11}, StorageValue: []byte{1}},
 				},
 			},
 			writes: []writeCall{
@@ -224,11 +224,11 @@ func Test_Node_Encode(t *testing.T) {
 		},
 		"success with children encoding": {
 			node: &Node{
-				PartialKey: []byte{1, 2, 3},
-				SubValue:   []byte{100},
+				PartialKey:   []byte{1, 2, 3},
+				StorageValue: []byte{100},
 				Children: []*Node{
-					nil, nil, nil, {PartialKey: []byte{9}, SubValue: []byte{1}},
-					nil, nil, nil, {PartialKey: []byte{11}, SubValue: []byte{1}},
+					nil, nil, nil, {PartialKey: []byte{9}, StorageValue: []byte{1}},
+					nil, nil, nil, {PartialKey: []byte{11}, StorageValue: []byte{1}},
 				},
 			},
 			writes: []writeCall{
@@ -256,8 +256,8 @@ func Test_Node_Encode(t *testing.T) {
 			node: &Node{
 				PartialKey: []byte{1, 2, 3},
 				Children: []*Node{
-					nil, nil, nil, {PartialKey: []byte{9}, SubValue: []byte{1}},
-					nil, nil, nil, {PartialKey: []byte{11}, SubValue: []byte{1}},
+					nil, nil, nil, {PartialKey: []byte{9}, StorageValue: []byte{1}},
+					nil, nil, nil, {PartialKey: []byte{11}, StorageValue: []byte{1}},
 				},
 			},
 			writes: []writeCall{

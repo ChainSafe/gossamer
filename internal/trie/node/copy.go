@@ -89,9 +89,9 @@ func (n *Node) Copy(settings CopySettings) *Node {
 
 	// nil and []byte{} values for branches result in a different node encoding,
 	// so we ensure to keep the `nil` value.
-	if settings.CopyValue && n.SubValue != nil {
-		cpy.SubValue = make([]byte, len(n.SubValue))
-		copy(cpy.SubValue, n.SubValue)
+	if settings.CopyValue && n.StorageValue != nil {
+		cpy.StorageValue = make([]byte, len(n.StorageValue))
+		copy(cpy.StorageValue, n.StorageValue)
 	}
 
 	if settings.CopyCached {

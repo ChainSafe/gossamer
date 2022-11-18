@@ -83,7 +83,7 @@ func decodeBranch(reader io.Reader, variant byte, partialKeyLength uint16) (
 	sd := scale.NewDecoder(reader)
 
 	if variant == branchWithValueVariant.bits {
-		err := sd.Decode(&node.SubValue)
+		err := sd.Decode(&node.StorageValue)
 		if err != nil {
 			return nil, fmt.Errorf("%w: %s", ErrDecodeValue, err)
 		}
@@ -139,7 +139,7 @@ func decodeLeaf(reader io.Reader, partialKeyLength uint16) (node *Node, err erro
 	}
 
 	if len(value) > 0 {
-		node.SubValue = value
+		node.StorageValue = value
 	}
 
 	return node, nil

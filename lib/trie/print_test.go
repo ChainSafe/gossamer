@@ -22,9 +22,9 @@ func Test_Trie_String(t *testing.T) {
 		"leaf root": {
 			trie: Trie{
 				root: &Node{
-					PartialKey: []byte{1, 2, 3},
-					SubValue:   []byte{3, 4, 5},
-					Generation: 1,
+					PartialKey:   []byte{1, 2, 3},
+					StorageValue: []byte{3, 4, 5},
+					Generation:   1,
 				},
 			},
 			s: `Leaf
@@ -37,20 +37,20 @@ func Test_Trie_String(t *testing.T) {
 		"branch root": {
 			trie: Trie{
 				root: &Node{
-					PartialKey:  nil,
-					SubValue:    []byte{1, 2},
-					Descendants: 2,
+					PartialKey:   nil,
+					StorageValue: []byte{1, 2},
+					Descendants:  2,
 					Children: []*Node{
 						{
-							PartialKey: []byte{1, 2, 3},
-							SubValue:   []byte{3, 4, 5},
-							Generation: 2,
+							PartialKey:   []byte{1, 2, 3},
+							StorageValue: []byte{3, 4, 5},
+							Generation:   2,
 						},
 						nil, nil,
 						{
-							PartialKey: []byte{1, 2, 3},
-							SubValue:   []byte{3, 4, 5},
-							Generation: 3,
+							PartialKey:   []byte{1, 2, 3},
+							StorageValue: []byte{3, 4, 5},
+							Generation:   3,
 						},
 					},
 				},

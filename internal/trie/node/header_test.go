@@ -34,8 +34,8 @@ func Test_encodeHeader(t *testing.T) {
 		},
 		"branch with value": {
 			node: &Node{
-				SubValue: []byte{},
-				Children: make([]*Node, ChildrenCapacity),
+				StorageValue: []byte{},
+				Children:     make([]*Node, ChildrenCapacity),
 			},
 			writes: []writeCall{
 				{written: []byte{branchWithValueVariant.bits}},
@@ -111,7 +111,7 @@ func Test_encodeHeader(t *testing.T) {
 			errMessage: "test error",
 		},
 		"leaf with no key": {
-			node: &Node{SubValue: []byte{1}},
+			node: &Node{StorageValue: []byte{1}},
 			writes: []writeCall{
 				{written: []byte{leafVariant.bits}},
 			},

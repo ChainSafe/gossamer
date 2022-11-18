@@ -201,15 +201,15 @@ func Test_Tries_get(t *testing.T) {
 			tries: &Tries{
 				rootToTrie: map[common.Hash]*trie.Trie{
 					{1, 2, 3}: trie.NewTrie(&node.Node{
-						PartialKey: []byte{1, 2, 3},
-						SubValue:   []byte{1},
+						PartialKey:   []byte{1, 2, 3},
+						StorageValue: []byte{1},
 					}),
 				},
 			},
 			root: common.Hash{1, 2, 3},
 			trie: trie.NewTrie(&node.Node{
-				PartialKey: []byte{1, 2, 3},
-				SubValue:   []byte{1},
+				PartialKey:   []byte{1, 2, 3},
+				StorageValue: []byte{1},
 			}),
 		},
 		"not found in map": {

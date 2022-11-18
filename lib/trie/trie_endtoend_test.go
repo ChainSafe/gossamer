@@ -517,10 +517,10 @@ func TestClearPrefix_Small(t *testing.T) {
 	ssTrie.ClearPrefix([]byte("noo"))
 
 	expectedRoot := &Node{
-		PartialKey: codec.KeyLEToNibbles([]byte("other")),
-		SubValue:   []byte("other"),
-		Generation: 1,
-		Dirty:      true,
+		PartialKey:   codec.KeyLEToNibbles([]byte("other")),
+		StorageValue: []byte("other"),
+		Generation:   1,
+		Dirty:        true,
 	}
 	require.Equal(t, expectedRoot, ssTrie.root)
 
