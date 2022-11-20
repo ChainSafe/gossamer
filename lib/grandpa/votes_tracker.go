@@ -17,7 +17,7 @@ import (
 // its maximum capacity is reached.
 // It is NOT THREAD SAFE to use.
 type votesTracker struct {
-	sync.Mutex
+	mutex *sync.Mutex
 	// map of vote block hash to authority ID (ed25519 public Key)
 	// to linked list element pointer
 	mapping map[common.Hash]map[ed25519.PublicKeyBytes]*list.Element
@@ -30,6 +30,7 @@ type votesTracker struct {
 // with the capacity specified.
 func newVotesTracker(capacity int) votesTracker {
 	return votesTracker{
+		mutex:      &sync.Mutex{},
 		mapping:    make(map[common.Hash]map[ed25519.PublicKeyBytes]*list.Element, capacity),
 		linkedList: list.New(),
 		capacity:   capacity,
@@ -40,8 +41,8 @@ func newVotesTracker(capacity int) votesTracker {
 // If the vote message tracker capacity is reached,
 // the oldest vote message is removed.
 func (vt *votesTracker) add(peerID peer.ID, voteMessage *VoteMessage) {
-	vt.Lock()
-	defer vt.Unlock()
+	vt.mutex.Lock()
+	defer vt.mutex.Unlock()
 
 	signedMessage := voteMessage.Message
 	blockHash := signedMessage.BlockHash
@@ -106,8 +107,8 @@ func (vt *votesTracker) cleanup() {
 // delete deletes all the vote messages for a particular
 // block hash from the vote messages tracker.
 func (vt *votesTracker) delete(blockHash common.Hash) {
-	vt.Lock()
-	defer vt.Unlock()
+	vt.mutex.Lock()
+	defer vt.mutex.Unlock()
 
 	authIDToElement, has := vt.mapping[blockHash]
 	if !has {
@@ -127,8 +128,8 @@ func (vt *votesTracker) delete(blockHash common.Hash) {
 // It returns nil if the block hash does not exist.
 func (vt *votesTracker) messages(blockHash common.Hash) (
 	messages []networkVoteMessage) {
-	vt.Lock()
-	defer vt.Unlock()
+	vt.mutex.Lock()
+	defer vt.mutex.Unlock()
 
 	authIDToElement, ok := vt.mapping[blockHash]
 	if !ok {
@@ -149,8 +150,8 @@ func (vt *votesTracker) messages(blockHash common.Hash) (
 // as a slice of networkVoteMessages.
 func (vt *votesTracker) networkVoteMessages() (
 	messages []networkVoteMessage) {
-	vt.Lock()
-	defer vt.Unlock()
+	vt.mutex.Lock()
+	defer vt.mutex.Unlock()
 
 	messages = make([]networkVoteMessage, 0, vt.linkedList.Len())
 	for _, authorityIDToElement := range vt.mapping {

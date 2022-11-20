@@ -15,7 +15,7 @@ import (
 // its maximum capacity is reached.
 // It is NOT THREAD SAFE to use.
 type commitsTracker struct {
-	sync.Mutex
+	mutex *sync.Mutex
 	// map of commit block hash to linked list commit message.
 	mapping map[common.Hash]*list.Element
 	// double linked list of commit messages
@@ -28,6 +28,7 @@ type commitsTracker struct {
 // with the capacity specified.
 func newCommitsTracker(capacity int) commitsTracker {
 	return commitsTracker{
+		mutex:      &sync.Mutex{},
 		mapping:    make(map[common.Hash]*list.Element, capacity),
 		linkedList: list.New(),
 		capacity:   capacity,
@@ -38,8 +39,8 @@ func newCommitsTracker(capacity int) commitsTracker {
 // If the commit message tracker capacity is reached,
 // the oldest commit message is removed.
 func (ct *commitsTracker) add(commitMessage *CommitMessage) {
-	ct.Lock()
-	defer ct.Unlock()
+	ct.mutex.Lock()
+	defer ct.mutex.Unlock()
 
 	blockHash := commitMessage.Vote.Hash
 
@@ -80,8 +81,8 @@ func (ct *commitsTracker) cleanup() {
 // delete deletes all the vote messages for a particular
 // block hash from the vote messages tracker.
 func (ct *commitsTracker) delete(blockHash common.Hash) {
-	ct.Lock()
-	defer ct.Unlock()
+	ct.mutex.Lock()
+	defer ct.mutex.Unlock()
 
 	listElement, has := ct.mapping[blockHash]
 	if !has {
@@ -98,8 +99,8 @@ func (ct *commitsTracker) delete(blockHash common.Hash) {
 // does not exist in the tracker
 func (ct *commitsTracker) message(blockHash common.Hash) (
 	message *CommitMessage) {
-	ct.Lock()
-	defer ct.Unlock()
+	ct.mutex.Lock()
+	defer ct.mutex.Unlock()
 
 	listElement, ok := ct.mapping[blockHash]
 	if !ok {
