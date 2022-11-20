@@ -5,10 +5,10 @@ package core
 
 import (
 	"bytes"
-	"context"
 	"encoding/hex"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	testdata "github.com/ChainSafe/gossamer/dot/rpc/modules/test_data"
@@ -341,6 +341,9 @@ func Test_Service_handleBlock(t *testing.T) {
 		assert.ErrorIs(t, err, expErr)
 		if expErr != nil {
 			assert.EqualError(t, err, expErr.Error())
+		} else {
+			receivedBlock := <-s.blockAddCh
+			assert.Equal(t, block, receivedBlock)
 		}
 	}
 
@@ -475,7 +478,7 @@ func Test_Service_handleBlock(t *testing.T) {
 		service := &Service{
 			storageState: mockStorageState,
 			blockState:   mockBlockState,
-			ctx:          context.Background(),
+			blockAddCh:   make(chan *types.Block, 1),
 		}
 		execTest(t, service, &block, trieState, nil)
 	})
@@ -483,17 +486,23 @@ func Test_Service_handleBlock(t *testing.T) {
 
 func Test_Service_HandleBlockProduced(t *testing.T) {
 	t.Parallel()
-	execTest := func(t *testing.T, s *Service, block *types.Block, trieState *rtstorage.TrieState, expErr error) {
+	execTest := func(t *testing.T, s *Service, block *types.Block, trieState *rtstorage.TrieState,
+		expErr error, expectBlockQueued bool) {
 		err := s.HandleBlockProduced(block, trieState)
 		require.ErrorIs(t, err, expErr)
 		if expErr != nil {
 			assert.EqualError(t, err, "handling block: "+expErr.Error())
 		}
+
+		if expectBlockQueued {
+			received := <-s.blockAddCh
+			assert.Equal(t, block, received)
+		}
 	}
 	t.Run("nil input", func(t *testing.T) {
 		t.Parallel()
 		service := &Service{}
-		execTest(t, service, nil, nil, ErrNilBlockHandlerParameter)
+		execTest(t, service, nil, nil, ErrNilBlockHandlerParameter, false)
 	})
 
 	t.Run("happy path", func(t *testing.T) {
@@ -536,9 +545,9 @@ func Test_Service_HandleBlockProduced(t *testing.T) {
 			storageState: mockStorageState,
 			blockState:   mockBlockState,
 			net:          mockNetwork,
-			ctx:          context.Background(),
+			blockAddCh:   make(chan *types.Block, 1),
 		}
-		execTest(t, service, &block, trieState, nil)
+		execTest(t, service, &block, trieState, nil, true)
 	})
 }
 
@@ -678,40 +687,30 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 
 func Test_Service_handleBlocksAsync(t *testing.T) {
 	t.Parallel()
-	t.Run("cancelled context", func(t *testing.T) {
+	t.Run("stop channel closed", func(t *testing.T) {
 		t.Parallel()
 		blockAddChan := make(chan *types.Block)
-		ctx, cancel := context.WithCancel(context.Background())
-		cancel()
+		closedCh := make(chan struct{})
+		close(closedCh)
 		service := &Service{
 			blockAddCh: blockAddChan,
-			ctx:        ctx,
-		}
-		service.handleBlocksAsync()
-	})
-
-	t.Run("channel not ok", func(t *testing.T) {
-		t.Parallel()
-		blockAddChan := make(chan *types.Block)
-		close(blockAddChan)
-		service := &Service{
-			blockAddCh: blockAddChan,
-			ctx:        context.Background(),
+			stopCh:     closedCh,
 		}
 		service.handleBlocksAsync()
 	})
 
 	t.Run("nil block", func(t *testing.T) {
 		t.Parallel()
-		blockAddChan := make(chan *types.Block)
-		go func() {
-			blockAddChan <- nil
-			close(blockAddChan)
-		}()
+		blockAddChan := make(chan *types.Block, 1)
+		blockAddChan <- nil
+		stopCh := make(chan struct{})
 		service := &Service{
 			blockAddCh: blockAddChan,
-			ctx:        context.Background(),
+			stopCh:     stopCh,
 		}
+		time.AfterFunc(10*time.Millisecond, func() {
+			close(stopCh)
+		})
 		service.handleBlocksAsync()
 	})
 
@@ -728,15 +727,11 @@ func Test_Service_handleBlocksAsync(t *testing.T) {
 		mockBlockState.EXPECT().LowestCommonAncestor(common.Hash{}, block.Header.Hash()).
 			Return(common.Hash{}, errTestDummyError)
 
-		blockAddChan := make(chan *types.Block)
-		go func() {
-			blockAddChan <- &block
-			close(blockAddChan)
-		}()
+		blockAddChan := make(chan *types.Block, 1)
+		blockAddChan <- &block
 		service := &Service{
 			blockState: mockBlockState,
 			blockAddCh: blockAddChan,
-			ctx:        context.Background(),
 		}
 
 		assert.PanicsWithError(t, "failed to re-add transactions to chain upon re-org: test dummy error",

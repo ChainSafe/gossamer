@@ -5,10 +5,8 @@ package core
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"fmt"
-	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -36,10 +34,8 @@ type QueryKeyValueChanges map[string]string
 // BABE session, and network service. It deals with the validation of transactions
 // and blocks by calling their respective validation functions in the runtime.
 type Service struct {
-	ctx        context.Context
-	cancel     context.CancelFunc
+	stopCh     chan struct{}
 	blockAddCh chan *types.Block // for asynchronous block handling
-	sync.Mutex                   // lock for channel
 
 	// Service interfaces
 	blockState       BlockState
@@ -77,10 +73,8 @@ func NewService(cfg *Config) (*Service, error) {
 
 	blockAddCh := make(chan *types.Block, 256)
 
-	ctx, cancel := context.WithCancel(context.Background())
 	srv := &Service{
-		ctx:                  ctx,
-		cancel:               cancel,
+		stopCh:               make(chan struct{}),
 		keys:                 cfg.Keystore,
 		blockState:           cfg.BlockState,
 		storageState:         cfg.StorageState,
@@ -102,11 +96,7 @@ func (s *Service) Start() error {
 
 // Stop stops the core service
 func (s *Service) Stop() error {
-	s.Lock()
-	defer s.Unlock()
-
-	s.cancel()
-	close(s.blockAddCh)
+	close(s.stopCh)
 	return nil
 }
 
@@ -230,15 +220,10 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 		return err
 	}
 
-	go func() {
-		s.Lock()
-		defer s.Unlock()
-		if s.ctx.Err() != nil {
-			return
-		}
-
-		s.blockAddCh <- block
-	}()
+	select {
+	case <-s.stopCh:
+	case s.blockAddCh <- block:
+	}
 
 	return nil
 }
@@ -293,11 +278,7 @@ func (s *Service) handleCodeSubstitution(hash common.Hash,
 func (s *Service) handleBlocksAsync() {
 	for {
 		select {
-		case block, ok := <-s.blockAddCh:
-			if !ok {
-				return
-			}
-
+		case block := <-s.blockAddCh:
 			if block == nil {
 				continue
 			}
@@ -312,7 +293,7 @@ func (s *Service) handleBlocksAsync() {
 				// TODO remove once gossamer is in stable state
 				panic(fmt.Errorf("failed to maintain txn pool after re-org: %s", err))
 			}
-		case <-s.ctx.Done():
+		case <-s.stopCh:
 			return
 		}
 	}
