@@ -132,14 +132,9 @@ func decodeLeaf(reader io.Reader, partialKeyLength uint16) (node *Node, err erro
 	}
 
 	sd := scale.NewDecoder(reader)
-	var storageValue []byte
-	err = sd.Decode(&storageValue)
-	if err != nil && !errors.Is(err, io.EOF) {
+	err = sd.Decode(&node.StorageValue)
+	if err != nil {
 		return nil, fmt.Errorf("%w: %s", ErrDecodeStorageValue, err)
-	}
-
-	if len(storageValue) > 0 {
-		node.StorageValue = storageValue
 	}
 
 	return node, nil

@@ -334,19 +334,19 @@ func Test_decodeLeaf(t *testing.T) {
 			}),
 			variant:          leafVariant.bits,
 			partialKeyLength: 1,
-			leaf: &Node{
-				PartialKey: []byte{9},
-			},
+			errWrapped:       ErrDecodeStorageValue,
+			errMessage:       "cannot decode storage value: reading byte: EOF",
 		},
 		"empty storage value data": {
 			reader: bytes.NewBuffer(concatByteSlices([][]byte{
-				{9}, // key data
-				scaleEncodeByteSlice(t, nil),
+				{9},                               // key data
+				scaleEncodeByteSlice(t, []byte{}), // results to []byte{0}
 			})),
 			variant:          leafVariant.bits,
 			partialKeyLength: 1,
 			leaf: &Node{
-				PartialKey: []byte{9},
+				PartialKey:   []byte{9},
+				StorageValue: []byte{},
 			},
 		},
 		"success": {
