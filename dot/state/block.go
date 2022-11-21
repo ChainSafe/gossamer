@@ -51,11 +51,11 @@ var (
 // BlockState contains the historical block data of the blockchain, including block headers and bodies.
 // It wraps the blocktree (which contains unfinalised blocks) and the database (which contains finalised blocks).
 type BlockState struct {
-	bt        *blocktree.BlockTree
-	baseState *BaseState
-	dbPath    string
-	db        BlockStateDatabase
-	sync.RWMutex
+	bt                *blocktree.BlockTree
+	baseState         *BaseState
+	dbPath            string
+	db                BlockStateDatabase
+	mutex             sync.RWMutex
 	genesisHash       common.Hash
 	lastFinalised     common.Hash
 	unfinalisedBlocks *hashToBlockMap
@@ -380,8 +380,8 @@ func (bs *BlockState) GetBlockByNumber(num uint) (*types.Block, error) {
 
 // GetBlockByHash returns a block for a given hash
 func (bs *BlockState) GetBlockByHash(hash common.Hash) (*types.Block, error) {
-	bs.RLock()
-	defer bs.RUnlock()
+	bs.mutex.RLock()
+	defer bs.mutex.RUnlock()
 
 	block := bs.unfinalisedBlocks.getBlock(hash)
 	if block != nil {
@@ -413,8 +413,8 @@ func (bs *BlockState) SetHeader(header *types.Header) error {
 
 // HasBlockBody returns true if the db contains the block body
 func (bs *BlockState) HasBlockBody(hash common.Hash) (bool, error) {
-	bs.RLock()
-	defer bs.RUnlock()
+	bs.mutex.RLock()
+	defer bs.mutex.RUnlock()
 
 	if bs.unfinalisedBlocks.getBlock(hash) != nil {
 		return true, nil
@@ -471,8 +471,8 @@ func (bs *BlockState) CompareAndSetBlockData(bd *types.BlockData) error {
 
 // AddBlock adds a block to the blocktree and the DB with arrival time as current unix time
 func (bs *BlockState) AddBlock(block *types.Block) error {
-	bs.Lock()
-	defer bs.Unlock()
+	bs.mutex.Lock()
+	defer bs.mutex.Unlock()
 	return bs.AddBlockWithArrivalTime(block, time.Now())
 }
 
@@ -495,8 +495,8 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ti
 // AddBlockToBlockTree adds the given block to the blocktree. It does not write it to the database.
 // TODO: remove this func and usage from sync (after sync refactor?)
 func (bs *BlockState) AddBlockToBlockTree(block *types.Block) error {
-	bs.Lock()
-	defer bs.Unlock()
+	bs.mutex.Lock()
+	defer bs.mutex.Unlock()
 
 	arrivalTime, err := bs.GetArrivalTime(block.Header.Hash())
 	if err != nil {
