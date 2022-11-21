@@ -13,8 +13,8 @@ import (
 
 // leafMap provides quick lookup for existing leaves
 type leafMap struct {
-	sync.RWMutex
-	smap *sync.Map // map[common.Hash]*node
+	mutex sync.RWMutex
+	smap  *sync.Map // map[common.Hash]*node
 }
 
 func newEmptyLeafMap() *leafMap {
@@ -49,8 +49,8 @@ func (lm *leafMap) load(key Hash) (*node, error) {
 
 // Replace deletes the old node from the map and inserts the new one
 func (lm *leafMap) replace(oldNode, newNode *node) {
-	lm.Lock()
-	defer lm.Unlock()
+	lm.mutex.Lock()
+	defer lm.mutex.Unlock()
 	lm.smap.Delete(oldNode.hash)
 	lm.store(newNode.hash, newNode)
 }
@@ -58,8 +58,8 @@ func (lm *leafMap) replace(oldNode, newNode *node) {
 // highestLeaf searches the stored leaves to the find the one with the greatest number.
 // If there are two leaves with the same number, choose the one with the earliest arrival time.
 func (lm *leafMap) highestLeaf() *node {
-	lm.RLock()
-	defer lm.RUnlock()
+	lm.mutex.RLock()
+	defer lm.mutex.RUnlock()
 
 	var max uint
 
@@ -92,8 +92,8 @@ func (lm *leafMap) highestLeaf() *node {
 }
 
 func (lm *leafMap) toMap() map[common.Hash]*node {
-	lm.RLock()
-	defer lm.RUnlock()
+	lm.mutex.RLock()
+	defer lm.mutex.RUnlock()
 
 	mmap := make(map[common.Hash]*node)
 
@@ -108,8 +108,8 @@ func (lm *leafMap) toMap() map[common.Hash]*node {
 }
 
 func (lm *leafMap) nodes() []*node {
-	lm.RLock()
-	defer lm.RUnlock()
+	lm.mutex.RLock()
+	defer lm.mutex.RUnlock()
 
 	var nodes []*node
 
@@ -123,8 +123,8 @@ func (lm *leafMap) nodes() []*node {
 }
 
 func (lm *leafMap) bestBlock() *node {
-	lm.RLock()
-	defer lm.RUnlock()
+	lm.mutex.RLock()
+	defer lm.mutex.RUnlock()
 
 	// map of primary ancestor count -> *node
 	counts := make(map[int][]*node)
