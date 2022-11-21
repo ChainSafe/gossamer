@@ -32,9 +32,9 @@ type Hash = common.Hash
 
 // BlockTree represents the current state with all possible blocks
 type BlockTree struct {
-	root   *node
-	leaves *leafMap
-	sync.RWMutex
+	root     *node
+	leaves   *leafMap
+	mutex    sync.RWMutex
 	runtimes *hashToRuntime
 }
 
@@ -68,8 +68,8 @@ func NewBlockTreeFromRoot(root *types.Header) *BlockTree {
 // AddBlock inserts the block as child of its parent node
 // Note: Assumes block has no children
 func (bt *BlockTree) AddBlock(header *types.Header, arrivalTime time.Time) (err error) {
-	bt.Lock()
-	defer bt.Unlock()
+	bt.mutex.Lock()
+	defer bt.mutex.Unlock()
 
 	parent := bt.getNode(header.ParentHash)
 	if parent == nil {
@@ -114,8 +114,8 @@ func (bt *BlockTree) AddBlock(header *types.Header, arrivalTime time.Time) (err 
 // GetAllBlocksAtNumber will return all blocks hashes with the number of the given hash plus one.
 // To find all blocks at a number matching a certain block, pass in that block's parent hash
 func (bt *BlockTree) GetAllBlocksAtNumber(hash common.Hash) (hashes []common.Hash) {
-	bt.RLock()
-	defer bt.RUnlock()
+	bt.mutex.RLock()
+	defer bt.mutex.RUnlock()
 
 	if bt.getNode(hash) == nil {
 		return hashes
@@ -139,8 +139,8 @@ var ErrNilBlockInRange = errors.New("nil block in range")
 // If the start hash does not exist in the blocktree then we will return all blocks
 // between the end and the blocktree root inclusive
 func (bt *BlockTree) Range(startHash common.Hash, endHash common.Hash) (hashes []common.Hash, err error) {
-	bt.Lock()
-	defer bt.Unlock()
+	bt.mutex.Lock()
+	defer bt.mutex.Unlock()
 
 	endNode := bt.getNode(endHash)
 	if endNode == nil {
@@ -168,8 +168,8 @@ func (bt *BlockTree) Range(startHash common.Hash, endHash common.Hash) (hashes [
 // If the end hash does not exist in the blocktree then an error is returned.
 // Different from blocktree.Range, if the start node is not found in the in memory blocktree
 func (bt *BlockTree) RangeInMemory(startHash common.Hash, endHash common.Hash) (hashes []common.Hash, err error) {
-	bt.Lock()
-	defer bt.Unlock()
+	bt.mutex.Lock()
+	defer bt.mutex.Unlock()
 
 	endNode := bt.getNode(endHash)
 	if endNode == nil {
@@ -248,8 +248,8 @@ func (bt *BlockTree) getNode(h Hash) (ret *node) {
 // removing all nodes that are not the new root node or its descendant
 // It returns an array of hashes that have been pruned
 func (bt *BlockTree) Prune(finalised Hash) (pruned []Hash) {
-	bt.Lock()
-	defer bt.Unlock()
+	bt.mutex.Lock()
+	defer bt.mutex.Unlock()
 
 	if finalised == bt.root.hash {
 		return pruned
@@ -280,8 +280,8 @@ func (bt *BlockTree) Prune(finalised Hash) (pruned []Hash) {
 
 // String utilises github.com/disiqueira/gotree to create a printable tree
 func (bt *BlockTree) String() string {
-	bt.RLock()
-	defer bt.RUnlock()
+	bt.mutex.RLock()
+	defer bt.mutex.RUnlock()
 
 	// Construct tree
 	tree := gotree.New(bt.root.string())
@@ -315,8 +315,8 @@ func (bt *BlockTree) best() *node {
 // If there are multiple chains with the same number of primaries and the same height,
 // it returns the one with the head block that arrived the earliest.
 func (bt *BlockTree) BestBlockHash() Hash {
-	bt.RLock()
-	defer bt.RUnlock()
+	bt.mutex.RLock()
+	defer bt.mutex.RUnlock()
 
 	if bt.leaves == nil {
 		// this shouldn't happen
@@ -338,8 +338,8 @@ func (bt *BlockTree) IsDescendantOf(parent, child Hash) (bool, error) {
 		return true, nil
 	}
 
-	bt.RLock()
-	defer bt.RUnlock()
+	bt.mutex.RLock()
+	defer bt.mutex.RUnlock()
 
 	pn := bt.getNode(parent)
 	if pn == nil {
@@ -354,8 +354,8 @@ func (bt *BlockTree) IsDescendantOf(parent, child Hash) (bool, error) {
 
 // Leaves returns the leaves of the blocktree as an array
 func (bt *BlockTree) Leaves() []Hash {
-	bt.RLock()
-	defer bt.RUnlock()
+	bt.mutex.RLock()
+	defer bt.mutex.RUnlock()
 
 	lm := bt.leaves.toMap()
 	return maps.Keys(lm)
@@ -363,8 +363,8 @@ func (bt *BlockTree) Leaves() []Hash {
 
 // LowestCommonAncestor returns the lowest common ancestor block hash between two blocks in the tree.
 func (bt *BlockTree) LowestCommonAncestor(a, b Hash) (Hash, error) {
-	bt.RLock()
-	defer bt.RUnlock()
+	bt.mutex.RLock()
+	defer bt.mutex.RUnlock()
 
 	aNode := bt.getNode(a)
 	if aNode == nil {
@@ -409,16 +409,16 @@ func lowestCommonAncestor(aNode, bNode *node) Hash {
 
 // GetAllBlocks returns all the blocks in the tree
 func (bt *BlockTree) GetAllBlocks() []Hash {
-	bt.RLock()
-	defer bt.RUnlock()
+	bt.mutex.RLock()
+	defer bt.mutex.RUnlock()
 
 	return bt.root.getAllDescendants(nil)
 }
 
 // GetAllDescendants returns all block hashes that are descendants of the given block hash (including itself).
 func (bt *BlockTree) GetAllDescendants(hash common.Hash) ([]Hash, error) {
-	bt.RLock()
-	defer bt.RUnlock()
+	bt.mutex.RLock()
+	defer bt.mutex.RUnlock()
 
 	node := bt.getNode(hash)
 	if node == nil {
@@ -431,8 +431,8 @@ func (bt *BlockTree) GetAllDescendants(hash common.Hash) ([]Hash, error) {
 // GetHashByNumber returns the block hash with the given number that is on the best chain.
 // If the number is lower or higher than the numbers in the blocktree, an error is returned.
 func (bt *BlockTree) GetHashByNumber(num uint) (common.Hash, error) {
-	bt.RLock()
-	defer bt.RUnlock()
+	bt.mutex.RLock()
+	defer bt.mutex.RUnlock()
 
 	best := bt.leaves.bestBlock()
 	if best.number < num {
@@ -467,8 +467,8 @@ func (bt *BlockTree) GetHashByNumber(num uint) (common.Hash, error) {
 
 // GetArrivalTime returns the arrival time of a block
 func (bt *BlockTree) GetArrivalTime(hash common.Hash) (time.Time, error) {
-	bt.RLock()
-	defer bt.RUnlock()
+	bt.mutex.RLock()
+	defer bt.mutex.RUnlock()
 
 	n := bt.getNode(hash)
 	if n == nil {
@@ -480,8 +480,8 @@ func (bt *BlockTree) GetArrivalTime(hash common.Hash) (time.Time, error) {
 
 // DeepCopy returns a copy of the BlockTree
 func (bt *BlockTree) DeepCopy() *BlockTree {
-	bt.RLock()
-	defer bt.RUnlock()
+	bt.mutex.RLock()
+	defer bt.mutex.RUnlock()
 
 	btCopy := &BlockTree{}
 
