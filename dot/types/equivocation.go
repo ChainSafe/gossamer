@@ -23,8 +23,8 @@ package types
 // produces more than one block on the same slot. The proof of equivocation
 // are the given distinct headers that were signed by the validator and which
 // include the slot number.
-type EquivocationProof struct {
-	// Returns the authority id of the equivocator.
+type BabeEquivocationProof struct {
+	// The public key of the equivocator.
 	Offender AuthorityId
 	// The slot at which the equivocation happened.
 	Slot uint64

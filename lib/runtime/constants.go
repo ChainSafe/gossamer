@@ -71,10 +71,10 @@ const (
 	TaggedTransactionQueueValidateTransaction = "TaggedTransactionQueue_validate_transaction"
 	// GrandpaAuthorities is the runtime API call GrandpaApi_grandpa_authorities
 	GrandpaAuthorities = "GrandpaApi_grandpa_authorities"
-	// GrandpaApiGenerateKeyOwnershipProof is the runtime API call GrandpaApi_generate_key_ownership_proof
-	GrandpaApiGenerateKeyOwnershipProof = "GrandpaApi_generate_key_ownership_proof"
-	// GrandpaApiSubmitReportEquivocationUnsignedExtrinsic is the runtime API call GrandpaApi_submit_report_equivocation_unsigned_extrinsic
-	GrandpaApiSubmitReportEquivocationUnsignedExtrinsic = "GrandpaApi_submit_report_equivocation_unsigned_extrinsic"
+	// BabeAPIGenerateKeyOwnershipProof is the runtime API call BabeApi_generate_key_ownership_proof
+	BabeAPIGenerateKeyOwnershipProof = "BabeApi_generate_key_ownership_proof"
+	// BabeApiSubmitReportEquivocationUnsignedExtrinsic is the runtime API call BabeApi_submit_report_equivocation_unsigned_extrinsic
+	BabeApiSubmitReportEquivocationUnsignedExtrinsic = "BabeApi_submit_report_equivocation_unsigned_extrinsic"
 	// BabeAPIConfiguration is the runtime API call BabeApi_configuration
 	BabeAPIConfiguration = "BabeApi_configuration"
 	// BlockBuilderInherentExtrinsics is the runtime API call BlockBuilder_inherent_extrinsics

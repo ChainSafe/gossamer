@@ -41,6 +41,12 @@ type Instance interface {
 	PaymentQueryInfo(ext []byte) (*types.RuntimeDispatchInfo, error)
 
 	CheckInherents() // TODO: use this in block verification process (#1873)
+	BabeGenerateKeyOwnershipProof(slot uint64, authorityID [32]byte) (
+		types.OpaqueKeyOwnershipProof, error)
+	BabeSubmitReportEquivocationUnsignedExtrinsic(
+		equivocationProof types.BabeEquivocationProof,
+		keyOwnershipProof types.OpaqueKeyOwnershipProof,
+	) error
 
 	// parameters and return values for these are undefined in the spec
 	RandomSeed()

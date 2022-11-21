@@ -14,7 +14,7 @@ func TestEquivocationProof(t *testing.T) {
 		246, 76, 38, 235, 204, 43, 31, 179, 28, 1, 0, 0,
 		0, 0, 0, 0, 0}
 
-	dec := EquivocationProof{}
+	dec := BabeEquivocationProof{}
 	err := scale.Unmarshal(exp, &dec)
 	require.NoError(t, err)
 

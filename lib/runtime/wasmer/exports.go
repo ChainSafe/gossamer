@@ -7,7 +7,6 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -87,11 +86,11 @@ func (in *Instance) GrandpaAuthorities() ([]types.Authority, error) {
 	return types.GrandpaAuthoritiesRawToAuthorities(gar)
 }
 
-func (in *Instance) GrandpaGenerateKeyOwnershipProof(setID uint64, authorityID [32]byte) (
+func (in *Instance) BabeGenerateKeyOwnershipProof(slot uint64, authorityID [32]byte) (
 	types.OpaqueKeyOwnershipProof, error) {
 
 	combinedArg := []byte{}
-	encodedSetID, err := scale.Marshal(setID)
+	encodedSetID, err := scale.Marshal(slot)
 	if err != nil {
 		return nil, fmt.Errorf("encoding set id: %w", err)
 	}
@@ -103,7 +102,7 @@ func (in *Instance) GrandpaGenerateKeyOwnershipProof(setID uint64, authorityID [
 	}
 	combinedArg = append(combinedArg, encodedAuthorityID...)
 
-	ret, err := in.Exec(runtime.GrandpaApiGenerateKeyOwnershipProof, combinedArg)
+	ret, err := in.Exec(runtime.BabeAPIGenerateKeyOwnershipProof, combinedArg)
 	if err != nil {
 		return nil, err
 	}
@@ -127,14 +126,8 @@ func (in *Instance) GrandpaGenerateKeyOwnershipProof(setID uint64, authorityID [
 // .map_err(Error::RuntimeApi)?;
 // equivocation_proof, key_owner_proof
 
-func (in *Instance) GrandpaSubmitReportEquivocationUnsignedExtrinsic(bestBlockHash common.Hash, equivocationProof types.EquivocationProof, keyOwnershipProof types.OpaqueKeyOwnershipProof) error {
+func (in *Instance) BabeSubmitReportEquivocationUnsignedExtrinsic(equivocationProof types.BabeEquivocationProof, keyOwnershipProof types.OpaqueKeyOwnershipProof) error {
 	combinedArg := []byte{}
-
-	encodedBestBlockHash, err := scale.Marshal(bestBlockHash)
-	if err != nil {
-		return fmt.Errorf("encoding best block hash: %w", err)
-	}
-	combinedArg = append(combinedArg, encodedBestBlockHash...)
 
 	encodedEquivocationProof, err := scale.Marshal(equivocationProof)
 	if err != nil {
@@ -148,7 +141,7 @@ func (in *Instance) GrandpaSubmitReportEquivocationUnsignedExtrinsic(bestBlockHa
 	}
 	combinedArg = append(combinedArg, encodedKeyOwnershipProof...)
 
-	_, err = in.Exec(runtime.GrandpaApiSubmitReportEquivocationUnsignedExtrinsic, combinedArg)
+	_, err = in.Exec(runtime.BabeApiSubmitReportEquivocationUnsignedExtrinsic, combinedArg)
 	return err
 }
 

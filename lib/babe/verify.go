@@ -327,10 +327,11 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 		return ErrBadSignature
 	}
 
-	equivocated, _, err := b.verifyBlockEquivocation(header)
+	equivocated, err := b.verifyBlockEquivocation(header)
 	if err != nil {
 		return fmt.Errorf("could not verify block equivocation: %w", err)
 	}
+
 	if equivocated {
 		return fmt.Errorf("%w for block header %s", ErrProducerEquivocated, header.Hash())
 	}
@@ -338,31 +339,53 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	return nil
 }
 
-func submitAndReportEquivocation(equivocationProof types.EquivocationProof) {
+func (b *verifier) submitAndReportEquivocation(slot uint64, authorityIndex uint32, firstHeader types.Header, secondHeader types.Header) error {
 
 	// TODO: Check if it is initial sync
 	// don't report any equivocations during initial sync
 	// as they are most likely stale.
 
+	bestBlockHash := b.blockState.BestBlockHash()
+	rt, err := b.blockState.GetRuntime(bestBlockHash)
+	if err != nil {
+		return err
+	}
+
+	offenderPublicKey := b.authorities[authorityIndex].ToRaw().Key
+
+	keyOwnershipProof, err := rt.BabeGenerateKeyOwnershipProof(slot, offenderPublicKey)
+	if err != nil {
+		return err
+	}
+
+	equivocationProof := &types.BabeEquivocationProof{
+		Offender:     types.AuthorityId(offenderPublicKey),
+		Slot:         slot,
+		FirstHeader:  firstHeader,
+		SecondHeader: secondHeader,
+	}
+
+	err = rt.BabeSubmitReportEquivocationUnsignedExtrinsic(*equivocationProof, keyOwnershipProof)
+	return err
 }
 
 // verifyBlockEquivocation checks if the given block's author has occupied the corresponding slot more than once.
 // It returns true if the block was equivocated.
-func (b *verifier) verifyBlockEquivocation(header *types.Header) (bool, *types.EquivocationProof, error) {
+func (b *verifier) verifyBlockEquivocation(header *types.Header) (bool, error) {
 	author, err := getAuthorityIndex(header)
 	if err != nil {
-		return false, nil, fmt.Errorf("failed to get authority index: %w", err)
+		return false, fmt.Errorf("failed to get authority index: %w", err)
 	}
 
 	currentHash := header.Hash()
 	slot, err := types.GetSlotFromHeader(header)
 	if err != nil {
-		return false, nil, fmt.Errorf("failed to get slot from header of block %s: %w", currentHash, err)
+		return false, fmt.Errorf("failed to get slot from header of block %s: %w", currentHash, err)
 	}
 
 	blockHashesInSlot, err := b.blockState.GetBlockHashesBySlot(slot)
 	if err != nil {
-		return false, nil, fmt.Errorf("failed to get blocks produced in slot: %w", err)
+		return false, fmt.Errorf("failed to get blocks produced in slot: %w", err)
 	}
 
 	for _, blockHashInSlot := range blockHashesInSlot {
@@ -372,26 +395,22 @@ func (b *verifier) verifyBlockEquivocation(header *types.Header) (bool, *types.E
 
 		existingHeader, err := b.blockState.GetHeader(blockHashInSlot)
 		if err != nil {
-			return false, nil, fmt.Errorf("failed to get header for block: %w", err)
+			return false, fmt.Errorf("failed to get header for block: %w", err)
 		}
 
 		authorOfExistingHeader, err := getAuthorityIndex(existingHeader)
 		if err != nil {
-			return false, nil, fmt.Errorf("failed to get authority index for block %s: %w", blockHashInSlot, err)
+			return false, fmt.Errorf("failed to get authority index for block %s: %w", blockHashInSlot, err)
 		}
 		if authorOfExistingHeader != author {
 			continue
 		}
 
-		return true, &types.EquivocationProof{
-			// Offender: authorOfExistingHeader,
-			Slot:         slot,
-			FirstHeader:  *existingHeader,
-			SecondHeader: *header,
-		}, nil
+		err = b.submitAndReportEquivocation(slot, authorOfExistingHeader, *existingHeader, *header)
+		return true, err
 	}
 
-	return false, nil, nil
+	return false, nil
 }
 
 func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (scale.VaryingDataTypeValue, error) {
