@@ -97,13 +97,14 @@ func Test_Node_Encode(t *testing.T) {
 		},
 		"leaf with empty storage value success": {
 			node: &Node{
-				PartialKey: []byte{1, 2, 3},
+				PartialKey:   []byte{1, 2, 3},
+				StorageValue: []byte{},
 			},
 			writes: []writeCall{
 				{written: []byte{leafVariant.bits | 3}}, // partial key length 3
 				{written: []byte{0x01, 0x23}},           // partial key
 				{written: []byte{0}},                    // node storage value encoded length
-				{written: nil},                          // node storage value
+				{written: []byte{}},                     // node storage value
 			},
 			expectedEncoding: []byte{1, 2, 3},
 		},

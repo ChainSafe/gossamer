@@ -592,9 +592,12 @@ func (ds *decodeState) decodeBytes(dstv reflect.Value) (err error) {
 	}
 
 	b := make([]byte, length)
-	_, err = ds.Read(b)
-	if err != nil {
-		return
+
+	if length > 0 {
+		_, err = ds.Read(b)
+		if err != nil {
+			return
+		}
 	}
 
 	in := dstv.Interface()

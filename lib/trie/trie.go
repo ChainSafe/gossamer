@@ -333,10 +333,10 @@ func (t *Trie) Put(keyLE, value []byte) {
 
 func (t *Trie) insertKeyLE(keyLE, value []byte, deletedMerkleValues map[string]struct{}) {
 	nibblesKey := codec.KeyLEToNibbles(keyLE)
-	if len(value) == 0 {
-		// Force value to be inserted to nil since we don't
-		// differentiate between nil and empty values.
-		value = nil
+	if value == nil {
+		// Force nil value to be inserted to []byte{} since `nil` means there
+		// is no value.
+		value = []byte{}
 	}
 	t.root, _, _ = t.insert(t.root, nibblesKey, value, deletedMerkleValues)
 }
