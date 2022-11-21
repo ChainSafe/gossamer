@@ -477,7 +477,9 @@ func runfinalisationServices(t *testing.T, grandpaServices []*Service) {
 
 	finalisationHandlers := make([]*finalisationHandler, len(grandpaServices))
 	for idx, grandpaService := range grandpaServices {
-		finalisationHandlers[idx] = newFinalisationHandler(grandpaService)
+		handler := newFinalisationHandler(grandpaService)
+		handler.firstRun = false
+		finalisationHandlers[idx] = handler
 	}
 
 	handlersWg := new(sync.WaitGroup)
@@ -486,7 +488,10 @@ func runfinalisationServices(t *testing.T, grandpaServices []*Service) {
 	for _, handler := range finalisationHandlers {
 		go func(t *testing.T, handler *finalisationHandler) {
 			defer handlersWg.Done()
-			err := handler.runEphemeralServices()
+
+			// passing the ready channel as nil since the first run is false
+			// and we ensure the method fh.newServices() is being called
+			err := handler.runEphemeralServices(nil)
 			assert.NoError(t, err)
 		}(t, handler)
 	}
@@ -714,13 +719,15 @@ func TestSendingVotesInRightStage(t *testing.T) {
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
+
 	go func() {
 		defer wg.Done()
-
-		t.Helper()
-
 		finalisationHandler := newFinalisationHandler(grandpa)
-		err := finalisationHandler.runEphemeralServices()
+		finalisationHandler.firstRun = false
+
+		// passing the ready channel as nil since the first run is false
+		// and we ensure the method fh.newServices() is being called
+		err := finalisationHandler.runEphemeralServices(nil)
 		require.NoError(t, err)
 	}()
 

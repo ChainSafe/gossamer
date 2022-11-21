@@ -43,6 +43,7 @@ func Test_finalisationHandler_runEphemeralServices(t *testing.T) {
 					newServices: builder,
 					stopCh:      make(chan struct{}),
 					handlerDone: make(chan struct{}),
+					firstRun:    false,
 				}
 			},
 		},
@@ -79,6 +80,7 @@ func Test_finalisationHandler_runEphemeralServices(t *testing.T) {
 					newServices: builder,
 					stopCh:      make(chan struct{}),
 					handlerDone: make(chan struct{}),
+					firstRun:    false,
 				}
 			},
 		},
@@ -115,6 +117,7 @@ func Test_finalisationHandler_runEphemeralServices(t *testing.T) {
 					newServices: builder,
 					stopCh:      make(chan struct{}),
 					handlerDone: make(chan struct{}),
+					firstRun:    false,
 				}
 			},
 		},
@@ -129,8 +132,9 @@ func Test_finalisationHandler_runEphemeralServices(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			finalisationHandler := tt.createfinalisationHandler(ctrl)
 
-			err := finalisationHandler.runEphemeralServices()
-
+			// passing the ready channel as nil since the first run is false
+			// and we ensure the method fh.newServices() is being called
+			err := finalisationHandler.runEphemeralServices(nil)
 			require.ErrorIs(t, err, tt.wantErr)
 			if tt.wantErr != nil {
 				require.EqualError(t, err, tt.errString)
@@ -186,6 +190,7 @@ func Test_finalisationHandler_Stop_ShouldHalt_Services(t *testing.T) {
 					initiateRound: func() error { return nil },
 					stopCh:        make(chan struct{}),
 					handlerDone:   make(chan struct{}),
+					firstRun:      true,
 				}
 			},
 		},
@@ -226,6 +231,7 @@ func Test_finalisationHandler_Stop_ShouldHalt_Services(t *testing.T) {
 					initiateRound: func() error { return nil },
 					stopCh:        make(chan struct{}),
 					handlerDone:   make(chan struct{}),
+					firstRun:      true,
 				}
 			},
 		},
@@ -267,6 +273,7 @@ func Test_finalisationHandler_Stop_ShouldHalt_Services(t *testing.T) {
 					initiateRound: func() error { return nil },
 					stopCh:        make(chan struct{}),
 					handlerDone:   make(chan struct{}),
+					firstRun:      true,
 				}
 			},
 		},
