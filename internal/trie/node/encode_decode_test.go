@@ -52,8 +52,8 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 				PartialKey: []byte{5},
 				Children: padRightChildren([]*Node{
 					{
-						PartialKey: []byte{9},
-						SubValue:   []byte{10},
+						PartialKey:   []byte{9},
+						StorageValue: []byte{10},
 					},
 				}),
 			},
@@ -62,8 +62,8 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
 					{
-						PartialKey: []byte{9},
-						SubValue:   []byte{10},
+						PartialKey:   []byte{9},
+						StorageValue: []byte{10},
 					},
 				}),
 			},
@@ -81,7 +81,7 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 							10, 11, 12, 13,
 							14, 15, 16, 17,
 						},
-						SubValue: []byte{
+						StorageValue: []byte{
 							10, 11, 12, 13,
 							14, 15, 16, 17,
 							10, 11, 12, 13,

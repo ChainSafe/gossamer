@@ -20,7 +20,7 @@ func encodeHeader(node *Node, writer io.Writer) (err error) {
 	var variant variant
 	if node.Kind() == Leaf {
 		variant = leafVariant
-	} else if node.SubValue == nil {
+	} else if node.StorageValue == nil {
 		variant = branchVariant
 	} else {
 		variant = branchWithValueVariant

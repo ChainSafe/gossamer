@@ -185,8 +185,8 @@ func Test_Node_CalculateMerkleValue(t *testing.T) {
 		},
 		"small encoding": {
 			node: Node{
-				PartialKey: []byte{1},
-				SubValue:   []byte{1},
+				PartialKey:   []byte{1},
+				StorageValue: []byte{1},
 			},
 			merkleValue: []byte{0x41, 0x1, 0x4, 0x1},
 		},
@@ -231,9 +231,9 @@ func Test_Node_CalculateRootMerkleValue(t *testing.T) {
 		},
 		"cached merkle value not 32 bytes": {
 			node: Node{
-				PartialKey:  []byte{1},
-				SubValue:    []byte{2},
-				MerkleValue: []byte{1},
+				PartialKey:   []byte{1},
+				StorageValue: []byte{2},
+				MerkleValue:  []byte{1},
 			},
 			merkleValue: []byte{
 				0x60, 0x51, 0x6d, 0xb, 0xb6, 0xe1, 0xbb, 0xfb,
@@ -243,8 +243,8 @@ func Test_Node_CalculateRootMerkleValue(t *testing.T) {
 		},
 		"root small encoding": {
 			node: Node{
-				PartialKey: []byte{1},
-				SubValue:   []byte{2},
+				PartialKey:   []byte{1},
+				StorageValue: []byte{2},
 			},
 			merkleValue: []byte{
 				0x60, 0x51, 0x6d, 0xb, 0xb6, 0xe1, 0xbb, 0xfb,
@@ -283,8 +283,8 @@ func Test_Node_EncodeAndHash(t *testing.T) {
 	}{
 		"small leaf encoding": {
 			node: Node{
-				PartialKey: []byte{1},
-				SubValue:   []byte{2},
+				PartialKey:   []byte{1},
+				StorageValue: []byte{2},
 			},
 			expectedNode: Node{
 				MerkleValue: []byte{0x41, 0x1, 0x4, 0x2},
@@ -294,8 +294,8 @@ func Test_Node_EncodeAndHash(t *testing.T) {
 		},
 		"large leaf encoding": {
 			node: Node{
-				PartialKey: repeatBytes(65, 7),
-				SubValue:   []byte{0x01},
+				PartialKey:   repeatBytes(65, 7),
+				StorageValue: []byte{0x01},
 			},
 			expectedNode: Node{
 				MerkleValue: []byte{0xd2, 0x1d, 0x43, 0x7, 0x18, 0x17, 0x1b, 0xf1, 0x45, 0x9c, 0xe5, 0x8f, 0xd7, 0x79, 0x82, 0xb, 0xc8, 0x5c, 0x8, 0x47, 0xfe, 0x6c, 0x99, 0xc5, 0xe9, 0x57, 0x87, 0x7, 0x1d, 0x2e, 0x24, 0x5d}, //nolint:lll
@@ -316,9 +316,9 @@ func Test_Node_EncodeAndHash(t *testing.T) {
 		},
 		"small branch encoding": {
 			node: Node{
-				Children:   make([]*Node, ChildrenCapacity),
-				PartialKey: []byte{1},
-				SubValue:   []byte{2},
+				Children:     make([]*Node, ChildrenCapacity),
+				PartialKey:   []byte{1},
+				StorageValue: []byte{2},
 			},
 			expectedNode: Node{
 				Children:    make([]*Node, ChildrenCapacity),
@@ -371,8 +371,8 @@ func Test_Node_EncodeAndHashRoot(t *testing.T) {
 	}{
 		"small leaf encoding": {
 			node: Node{
-				PartialKey: []byte{1},
-				SubValue:   []byte{2},
+				PartialKey:   []byte{1},
+				StorageValue: []byte{2},
 			},
 			expectedNode: Node{
 				MerkleValue: []byte{0x60, 0x51, 0x6d, 0xb, 0xb6, 0xe1, 0xbb, 0xfb, 0x12, 0x93, 0xf1, 0xb2, 0x76, 0xea, 0x95, 0x5, 0xe9, 0xf4, 0xa4, 0xe7, 0xd9, 0x8f, 0x62, 0xd, 0x5, 0x11, 0x5e, 0xb, 0x85, 0x27, 0x4a, 0xe1}, //nolint:lll
@@ -382,9 +382,9 @@ func Test_Node_EncodeAndHashRoot(t *testing.T) {
 		},
 		"small branch encoding": {
 			node: Node{
-				Children:   make([]*Node, ChildrenCapacity),
-				PartialKey: []byte{1},
-				SubValue:   []byte{2},
+				Children:     make([]*Node, ChildrenCapacity),
+				PartialKey:   []byte{1},
+				StorageValue: []byte{2},
 			},
 			expectedNode: Node{
 				Children:    make([]*Node, ChildrenCapacity),

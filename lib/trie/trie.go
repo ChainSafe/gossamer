@@ -210,15 +210,15 @@ func entries(parent *Node, prefix []byte, kv map[string][]byte) map[string][]byt
 		parentKey := parent.PartialKey
 		fullKeyNibbles := concatenateSlices(prefix, parentKey)
 		keyLE := string(codec.NibblesToKeyLE(fullKeyNibbles))
-		kv[keyLE] = parent.SubValue
+		kv[keyLE] = parent.StorageValue
 		return kv
 	}
 
 	branch := parent
-	if branch.SubValue != nil {
+	if branch.StorageValue != nil {
 		fullKeyNibbles := concatenateSlices(prefix, branch.PartialKey)
 		keyLE := string(codec.NibblesToKeyLE(fullKeyNibbles))
-		kv[keyLE] = branch.SubValue
+		kv[keyLE] = branch.StorageValue
 	}
 
 	for i, child := range branch.Children {
@@ -285,7 +285,7 @@ func findNextKeyBranch(parentBranch *Node, prefix, searchKey []byte) (nextKey []
 	}
 
 	// search key is smaller than full key
-	if parentBranch.SubValue != nil {
+	if parentBranch.StorageValue != nil {
 		return fullKey
 	}
 	const startChildIndex = 0
@@ -333,10 +333,10 @@ func (t *Trie) Put(keyLE, value []byte) {
 
 func (t *Trie) insertKeyLE(keyLE, value []byte, deletedMerkleValues map[string]struct{}) {
 	nibblesKey := codec.KeyLEToNibbles(keyLE)
-	if len(value) == 0 {
-		// Force value to be inserted to nil since we don't
-		// differentiate between nil and empty values.
-		value = nil
+	if value == nil {
+		// Force nil value to be inserted to []byte{} since `nil` means there
+		// is no value.
+		value = []byte{}
 	}
 	t.root, _, _ = t.insert(t.root, nibblesKey, value, deletedMerkleValues)
 }
@@ -350,10 +350,10 @@ func (t *Trie) insert(parent *Node, key, value []byte,
 		mutated = true
 		nodesCreated = 1
 		return &Node{
-			PartialKey: key,
-			SubValue:   value,
-			Generation: t.generation,
-			Dirty:      true,
+			PartialKey:   key,
+			StorageValue: value,
+			Generation:   t.generation,
+			Dirty:        true,
 		}, mutated, nodesCreated
 	}
 
@@ -370,15 +370,15 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
 	newParent *Node, mutated bool, nodesCreated uint32) {
 	if bytes.Equal(parentLeaf.PartialKey, key) {
 		nodesCreated = 0
-		if bytes.Equal(parentLeaf.SubValue, value) {
+		if bytes.Equal(parentLeaf.StorageValue, value) {
 			mutated = false
 			return parentLeaf, mutated, nodesCreated
 		}
 
 		copySettings := node.DefaultCopySettings
-		copySettings.CopyValue = false
+		copySettings.CopyStorageValue = false
 		parentLeaf = t.prepLeafForMutation(parentLeaf, copySettings, deletedMerkleValues)
-		parentLeaf.SubValue = value
+		parentLeaf.StorageValue = value
 		mutated = true
 		return parentLeaf, mutated, nodesCreated
 	}
@@ -397,7 +397,7 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
 
 	if len(key) == commonPrefixLength {
 		// key is included in parent leaf key
-		newBranchParent.SubValue = value
+		newBranchParent.StorageValue = value
 
 		if len(key) < len(parentLeafKey) {
 			// Move the current leaf parent as a child to the new branch.
@@ -418,7 +418,7 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
 
 	if len(parentLeaf.PartialKey) == commonPrefixLength {
 		// the key of the parent leaf is at this new branch
-		newBranchParent.SubValue = parentLeaf.SubValue
+		newBranchParent.StorageValue = parentLeaf.StorageValue
 	} else {
 		// make the leaf a child of the new branch
 		copySettings := node.DefaultCopySettings
@@ -434,10 +434,10 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
 	}
 	childIndex := key[commonPrefixLength]
 	newBranchParent.Children[childIndex] = &Node{
-		PartialKey: key[commonPrefixLength+1:],
-		SubValue:   value,
-		Generation: t.generation,
-		Dirty:      true,
+		PartialKey:   key[commonPrefixLength+1:],
+		StorageValue: value,
+		Generation:   t.generation,
+		Dirty:        true,
 	}
 	newBranchParent.Descendants++
 	nodesCreated++
@@ -451,12 +451,12 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte,
 	copySettings := node.DefaultCopySettings
 
 	if bytes.Equal(key, parentBranch.PartialKey) {
-		if bytes.Equal(parentBranch.SubValue, value) {
+		if bytes.Equal(parentBranch.StorageValue, value) {
 			mutated = false
 			return parentBranch, mutated, 0
 		}
 		parentBranch = t.prepBranchForMutation(parentBranch, copySettings, deletedMerkleValues)
-		parentBranch.SubValue = value
+		parentBranch.StorageValue = value
 		mutated = true
 		return parentBranch, mutated, 0
 	}
@@ -470,10 +470,10 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte,
 
 		if child == nil {
 			child = &Node{
-				PartialKey: remainingKey,
-				SubValue:   value,
-				Generation: t.generation,
-				Dirty:      true,
+				PartialKey:   remainingKey,
+				StorageValue: value,
+				Generation:   t.generation,
+				Dirty:        true,
 			}
 			nodesCreated = 1
 			parentBranch = t.prepBranchForMutation(parentBranch, copySettings, deletedMerkleValues)
@@ -516,7 +516,7 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte,
 	newParentBranch.Descendants += 1 + parentBranch.Descendants
 
 	if len(key) <= commonPrefixLength {
-		newParentBranch.SubValue = value
+		newParentBranch.StorageValue = value
 	} else {
 		childIndex := key[commonPrefixLength]
 		remainingKey := key[commonPrefixLength+1:]
@@ -635,7 +635,7 @@ func addAllKeys(parent *Node, prefix []byte, keysLE [][]byte) (newKeysLE [][]byt
 		return keysLE
 	}
 
-	if parent.SubValue != nil {
+	if parent.StorageValue != nil {
 		keyLE := makeFullKeyLE(prefix, parent.PartialKey)
 		keysLE = append(keysLE, keyLE)
 	}
@@ -681,14 +681,14 @@ func retrieve(parent *Node, key []byte) (value []byte) {
 
 func retrieveFromLeaf(leaf *Node, key []byte) (value []byte) {
 	if bytes.Equal(leaf.PartialKey, key) {
-		return leaf.SubValue
+		return leaf.StorageValue
 	}
 	return nil
 }
 
 func retrieveFromBranch(branch *Node, key []byte) (value []byte) {
 	if len(key) == 0 || bytes.Equal(branch.PartialKey, key) {
-		return branch.SubValue
+		return branch.StorageValue
 	}
 
 	if len(branch.PartialKey) > len(key) && bytes.HasPrefix(branch.PartialKey, key) {
@@ -884,7 +884,7 @@ func (t *Trie) deleteNodesLimit(parent *Node, limit uint32,
 		}
 
 		if nilChildren == node.ChildrenCapacity &&
-			branch.SubValue == nil {
+			branch.StorageValue == nil {
 			return nil, valuesDeleted, nodesRemoved
 		}
 
@@ -894,7 +894,7 @@ func (t *Trie) deleteNodesLimit(parent *Node, limit uint32,
 	}
 
 	nodesRemoved++
-	if branch.SubValue != nil {
+	if branch.StorageValue != nil {
 		valuesDeleted++
 	}
 
@@ -1037,11 +1037,11 @@ func (t *Trie) deleteBranch(branch *Node, key []byte,
 	newParent *Node, deleted bool, nodesRemoved uint32) {
 	if len(key) == 0 || bytes.Equal(branch.PartialKey, key) {
 		copySettings := node.DefaultCopySettings
-		copySettings.CopyValue = false
+		copySettings.CopyStorageValue = false
 		branch = t.prepBranchForMutation(branch, copySettings, deletedMerkleValues)
 		// we need to set to nil if the branch has the same generation
 		// as the current trie.
-		branch.SubValue = nil
+		branch.StorageValue = nil
 		deleted = true
 		var branchChildMerged bool
 		newParent, branchChildMerged = handleDeletion(branch, key)
@@ -1102,16 +1102,16 @@ func handleDeletion(branch *Node, key []byte) (newNode *Node, branchChildMerged 
 	default:
 		const branchChildMerged = false
 		return branch, branchChildMerged
-	case childrenCount == 0 && branch.SubValue != nil:
+	case childrenCount == 0 && branch.StorageValue != nil:
 		const branchChildMerged = false
 		commonPrefixLength := lenCommonPrefix(branch.PartialKey, key)
 		return &Node{
-			PartialKey: key[:commonPrefixLength],
-			SubValue:   branch.SubValue,
-			Dirty:      true,
-			Generation: branch.Generation,
+			PartialKey:   key[:commonPrefixLength],
+			StorageValue: branch.StorageValue,
+			Dirty:        true,
+			Generation:   branch.Generation,
 		}, branchChildMerged
-	case childrenCount == 1 && branch.SubValue == nil:
+	case childrenCount == 1 && branch.StorageValue == nil:
 		const branchChildMerged = true
 		childIndex := firstChildIndex
 		child := branch.Children[firstChildIndex]
@@ -1119,21 +1119,21 @@ func handleDeletion(branch *Node, key []byte) (newNode *Node, branchChildMerged 
 		if child.Kind() == node.Leaf {
 			newLeafKey := concatenateSlices(branch.PartialKey, intToByteSlice(childIndex), child.PartialKey)
 			return &Node{
-				PartialKey: newLeafKey,
-				SubValue:   child.SubValue,
-				Dirty:      true,
-				Generation: branch.Generation,
+				PartialKey:   newLeafKey,
+				StorageValue: child.StorageValue,
+				Dirty:        true,
+				Generation:   branch.Generation,
 			}, branchChildMerged
 		}
 
 		childBranch := child
 		newBranchKey := concatenateSlices(branch.PartialKey, intToByteSlice(childIndex), childBranch.PartialKey)
 		newBranch := &Node{
-			PartialKey: newBranchKey,
-			SubValue:   childBranch.SubValue,
-			Generation: branch.Generation,
-			Children:   make([]*node.Node, node.ChildrenCapacity),
-			Dirty:      true,
+			PartialKey:   newBranchKey,
+			StorageValue: childBranch.StorageValue,
+			Generation:   branch.Generation,
+			Children:     make([]*node.Node, node.ChildrenCapacity),
+			Dirty:        true,
 			// this is the descendants of the original branch minus one
 			Descendants: childBranch.Descendants,
 		}

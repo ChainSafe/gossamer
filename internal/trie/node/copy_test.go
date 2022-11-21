@@ -38,12 +38,12 @@ func Test_Node_Copy(t *testing.T) {
 		},
 		"non empty branch": {
 			node: &Node{
-				PartialKey: []byte{1, 2},
-				SubValue:   []byte{3, 4},
+				PartialKey:   []byte{1, 2},
+				StorageValue: []byte{3, 4},
 				Children: padRightChildren([]*Node{
 					nil, nil, {
-						PartialKey: []byte{9},
-						SubValue:   []byte{1},
+						PartialKey:   []byte{9},
+						StorageValue: []byte{1},
 					},
 				}),
 				Dirty:       true,
@@ -51,12 +51,12 @@ func Test_Node_Copy(t *testing.T) {
 			},
 			settings: DefaultCopySettings,
 			expectedNode: &Node{
-				PartialKey: []byte{1, 2},
-				SubValue:   []byte{3, 4},
+				PartialKey:   []byte{1, 2},
+				StorageValue: []byte{3, 4},
 				Children: padRightChildren([]*Node{
 					nil, nil, {
-						PartialKey: []byte{9},
-						SubValue:   []byte{1},
+						PartialKey:   []byte{9},
+						StorageValue: []byte{1},
 					},
 				}),
 				Dirty: true,
@@ -66,8 +66,8 @@ func Test_Node_Copy(t *testing.T) {
 			node: &Node{
 				Children: padRightChildren([]*Node{
 					nil, nil, {
-						PartialKey: []byte{9},
-						SubValue:   []byte{1},
+						PartialKey:   []byte{9},
+						StorageValue: []byte{1},
 					},
 				}),
 			},
@@ -77,20 +77,20 @@ func Test_Node_Copy(t *testing.T) {
 			expectedNode: &Node{
 				Children: padRightChildren([]*Node{
 					nil, nil, {
-						PartialKey: []byte{9},
-						SubValue:   []byte{1},
+						PartialKey:   []byte{9},
+						StorageValue: []byte{1},
 					},
 				}),
 			},
 		},
 		"deep copy branch": {
 			node: &Node{
-				PartialKey: []byte{1, 2},
-				SubValue:   []byte{3, 4},
+				PartialKey:   []byte{1, 2},
+				StorageValue: []byte{3, 4},
 				Children: padRightChildren([]*Node{
 					nil, nil, {
-						PartialKey: []byte{9},
-						SubValue:   []byte{1},
+						PartialKey:   []byte{9},
+						StorageValue: []byte{1},
 					},
 				}),
 				Dirty:       true,
@@ -98,12 +98,12 @@ func Test_Node_Copy(t *testing.T) {
 			},
 			settings: DeepCopySettings,
 			expectedNode: &Node{
-				PartialKey: []byte{1, 2},
-				SubValue:   []byte{3, 4},
+				PartialKey:   []byte{1, 2},
+				StorageValue: []byte{3, 4},
 				Children: padRightChildren([]*Node{
 					nil, nil, {
-						PartialKey: []byte{9},
-						SubValue:   []byte{1},
+						PartialKey:   []byte{9},
+						StorageValue: []byte{1},
 					},
 				}),
 				Dirty:       true,
@@ -112,31 +112,31 @@ func Test_Node_Copy(t *testing.T) {
 		},
 		"non empty leaf": {
 			node: &Node{
-				PartialKey:  []byte{1, 2},
-				SubValue:    []byte{3, 4},
-				Dirty:       true,
-				MerkleValue: []byte{5},
+				PartialKey:   []byte{1, 2},
+				StorageValue: []byte{3, 4},
+				Dirty:        true,
+				MerkleValue:  []byte{5},
 			},
 			settings: DefaultCopySettings,
 			expectedNode: &Node{
-				PartialKey: []byte{1, 2},
-				SubValue:   []byte{3, 4},
-				Dirty:      true,
+				PartialKey:   []byte{1, 2},
+				StorageValue: []byte{3, 4},
+				Dirty:        true,
 			},
 		},
 		"deep copy leaf": {
 			node: &Node{
-				PartialKey:  []byte{1, 2},
-				SubValue:    []byte{3, 4},
-				Dirty:       true,
-				MerkleValue: []byte{5},
+				PartialKey:   []byte{1, 2},
+				StorageValue: []byte{3, 4},
+				Dirty:        true,
+				MerkleValue:  []byte{5},
 			},
 			settings: DeepCopySettings,
 			expectedNode: &Node{
-				PartialKey:  []byte{1, 2},
-				SubValue:    []byte{3, 4},
-				Dirty:       true,
-				MerkleValue: []byte{5},
+				PartialKey:   []byte{1, 2},
+				StorageValue: []byte{3, 4},
+				Dirty:        true,
+				MerkleValue:  []byte{5},
 			},
 		},
 	}
@@ -150,7 +150,7 @@ func Test_Node_Copy(t *testing.T) {
 
 			assert.Equal(t, testCase.expectedNode, nodeCopy)
 			testForSliceModif(t, testCase.node.PartialKey, nodeCopy.PartialKey)
-			testForSliceModif(t, testCase.node.SubValue, nodeCopy.SubValue)
+			testForSliceModif(t, testCase.node.StorageValue, nodeCopy.StorageValue)
 			testForSliceModif(t, testCase.node.MerkleValue, nodeCopy.MerkleValue)
 
 			if testCase.node.Kind() == Branch {
