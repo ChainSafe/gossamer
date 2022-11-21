@@ -33,8 +33,8 @@ type StorageState struct {
 	blockState *BlockState
 	tries      *Tries
 
-	db GetNewBatcher
-	sync.RWMutex
+	db    GetNewBatcher
+	mutex sync.RWMutex
 
 	// change notifiers
 	observerListMutex sync.RWMutex
@@ -56,6 +56,12 @@ func NewStorageState(db *chaindb.BadgerDB, blockState *BlockState,
 		pruner:       &pruner.ArchiveNode{},
 	}, nil
 }
+
+// Lock locks the storage state for thread safe access.
+func (s *StorageState) Lock() { s.mutex.Lock() }
+
+// Unlock unlocks the storage state for thread safe access.
+func (s *StorageState) Unlock() { s.mutex.Unlock() }
 
 // StoreTrie stores the given trie in the StorageState and writes it to the database
 func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) error {
