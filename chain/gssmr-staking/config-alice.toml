@@ -1,5 +1,5 @@
 [global]
-basepath = "~/.gossamer/dev"
+basepath = "~/.gossamer/gssmr-staking-alice"
 log = "info"
 metrics-address = ":9876"
 
@@ -15,7 +15,7 @@ sync = ""
 digest = ""
 
 [init]
-genesis = "./chain/dev/genesis.json"
+genesis = "./chain/gssmr-staking/gssmr-staking-spec-raw.json"
 
 [account]
 key = "alice"
@@ -52,6 +52,7 @@ modules = [
 ws-port = 8546
 
 [pprof]
+enabled = false
 listening-address = "localhost:6060"
 block-rate = 0
 mutex-rate = 0
