@@ -619,12 +619,12 @@ func (ps *PeerSet) incoming(setID int, peers ...peer.ID) error {
 
 		var nodeReputation Reputation
 
-		state.RLock()
+		state.mutex.RLock()
 		node, has := state.nodes[pid]
 		if has {
 			nodeReputation = node.reputation
 		}
-		state.RUnlock()
+		state.mutex.RUnlock()
 
 		message := Message{
 			setID:  uint64(setID),

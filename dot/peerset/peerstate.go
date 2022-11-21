@@ -103,12 +103,12 @@ type PeersState struct {
 	// since, single Info can also manage the flow.
 	sets []Info
 
-	sync.RWMutex
+	mutex sync.RWMutex
 }
 
 func (ps *PeersState) getNode(p peer.ID) (*node, error) {
-	ps.RLock()
-	defer ps.RUnlock()
+	ps.mutex.RLock()
+	defer ps.mutex.RUnlock()
 	if n, ok := ps.nodes[p]; ok {
 		return n, nil
 	}
@@ -150,8 +150,8 @@ func (ps *PeersState) getSetLength() int {
 // peerStatus returns the status of peer based on its connection state
 // i.e. connectedPeer, notConnectedPeer or unknownPeer.
 func (ps *PeersState) peerStatus(set int, peerID peer.ID) string {
-	ps.RLock()
-	defer ps.RUnlock()
+	ps.mutex.RLock()
+	defer ps.mutex.RUnlock()
 
 	node, has := ps.nodes[peerID]
 	if !has {
@@ -170,15 +170,15 @@ func (ps *PeersState) peerStatus(set int, peerID peer.ID) string {
 
 // peers return the list of all the peers we know of.
 func (ps *PeersState) peers() []peer.ID {
-	ps.RLock()
-	defer ps.RUnlock()
+	ps.mutex.RLock()
+	defer ps.mutex.RUnlock()
 	return maps.Keys(ps.nodes)
 }
 
 // sortedPeers returns the list of peers we are connected to of a specific set.
 func (ps *PeersState) sortedPeers(idx int) peer.IDSlice {
-	ps.RLock()
-	defer ps.RUnlock()
+	ps.mutex.RLock()
+	defer ps.mutex.RUnlock()
 
 	if len(ps.sets) == 0 || len(ps.sets) < idx {
 		logger.Debug("peer state doesn't have info for the provided index")
@@ -216,8 +216,8 @@ func (ps *PeersState) sortedPeers(idx int) peer.IDSlice {
 }
 
 func (ps *PeersState) updateReputationByTick(peerID peer.ID) (newReputation Reputation, err error) {
-	ps.Lock()
-	defer ps.Unlock()
+	ps.mutex.Lock()
+	defer ps.mutex.Unlock()
 
 	node, has := ps.nodes[peerID]
 	if !has {
@@ -235,8 +235,8 @@ func (ps *PeersState) updateReputationByTick(peerID peer.ID) (newReputation Repu
 func (ps *PeersState) addReputation(peerID peer.ID, change ReputationChange) (
 	newReputation Reputation, err error) {
 
-	ps.Lock()
-	defer ps.Unlock()
+	ps.mutex.Lock()
+	defer ps.mutex.Unlock()
 
 	node, has := ps.nodes[peerID]
 	if !has {
@@ -251,8 +251,8 @@ func (ps *PeersState) addReputation(peerID peer.ID, change ReputationChange) (
 
 // highestNotConnectedPeer returns the peer with the highest Reputation and that we are not connected to.
 func (ps *PeersState) highestNotConnectedPeer(set int) (highestPeerID peer.ID) {
-	ps.RLock()
-	defer ps.RUnlock()
+	ps.mutex.RLock()
+	defer ps.mutex.RUnlock()
 
 	maxRep := math.MinInt32
 	for peerID, node := range ps.nodes {
@@ -283,8 +283,8 @@ func (ps *PeersState) hasFreeIncomingSlot(set int) bool {
 // addNoSlotNode adds a node to the list of nodes that don't occupy slots.
 // has no effect if the node was already in the group.
 func (ps *PeersState) addNoSlotNode(idx int, peerID peer.ID) error {
-	ps.Lock()
-	defer ps.Unlock()
+	ps.mutex.Lock()
+	defer ps.mutex.Unlock()
 
 	if _, ok := ps.sets[idx].noSlotNodes[peerID]; ok {
 		logger.Debugf("peer %s already exists in no slot node", peerID)
@@ -310,8 +310,8 @@ func (ps *PeersState) addNoSlotNode(idx int, peerID peer.ID) error {
 }
 
 func (ps *PeersState) removeNoSlotNode(idx int, peerID peer.ID) error {
-	ps.Lock()
-	defer ps.Unlock()
+	ps.mutex.Lock()
+	defer ps.mutex.Unlock()
 
 	if _, ok := ps.sets[idx].noSlotNodes[peerID]; !ok {
 		logger.Debugf("peer %s is not in no-slot node map", peerID)
@@ -338,8 +338,8 @@ func (ps *PeersState) removeNoSlotNode(idx int, peerID peer.ID) error {
 // disconnect updates the node status to the notConnected state.
 // It should be called only when the node is in connected state.
 func (ps *PeersState) disconnect(idx int, peerID peer.ID) error {
-	ps.Lock()
-	defer ps.Unlock()
+	ps.mutex.Lock()
+	defer ps.mutex.Unlock()
 
 	info := ps.sets[idx]
 	node, has := ps.nodes[peerID]
@@ -370,8 +370,8 @@ func (ps *PeersState) disconnect(idx int, peerID peer.ID) error {
 // discover takes input for set id and create a node and insert in the list.
 // the initial Reputation of the peer will be 0 and ingoing notMember state.
 func (ps *PeersState) discover(set int, peerID peer.ID) {
-	ps.Lock()
-	defer ps.Unlock()
+	ps.mutex.Lock()
+	defer ps.mutex.Unlock()
 
 	numSet := len(ps.sets)
 
@@ -384,8 +384,8 @@ func (ps *PeersState) discover(set int, peerID peer.ID) {
 }
 
 func (ps *PeersState) lastConnectedAndDiscovered(set int, peerID peer.ID) (time.Time, error) {
-	ps.RLock()
-	defer ps.RUnlock()
+	ps.mutex.RLock()
+	defer ps.mutex.RUnlock()
 
 	node, has := ps.nodes[peerID]
 	if !has {
@@ -401,8 +401,8 @@ func (ps *PeersState) lastConnectedAndDiscovered(set int, peerID peer.ID) (time.
 
 // forgetPeer removes the peer with reputation 0 from the peerSet.
 func (ps *PeersState) forgetPeer(set int, peerID peer.ID) error {
-	ps.Lock()
-	defer ps.Unlock()
+	ps.mutex.Lock()
+	defer ps.mutex.Unlock()
 
 	node, has := ps.nodes[peerID]
 	if !has {
@@ -438,8 +438,8 @@ func (ps *PeersState) forgetPeer(set int, peerID peer.ID) error {
 // If the slots are full, the node stays "not connected" and we return the error ErrOutgoingSlotsUnavailable.
 // non slot occupying nodes don't count towards the number of slots.
 func (ps *PeersState) tryOutgoing(setID int, peerID peer.ID) error {
-	ps.Lock()
-	defer ps.Unlock()
+	ps.mutex.Lock()
+	defer ps.mutex.Unlock()
 
 	_, isNoSlotNode := ps.sets[setID].noSlotNodes[peerID]
 
@@ -466,8 +466,8 @@ func (ps *PeersState) tryOutgoing(setID int, peerID peer.ID) error {
 // If the slots are full, the node stays "not connected" and we return Err.
 // non slot occupying nodes don't count towards the number of slots.
 func (ps *PeersState) tryAcceptIncoming(setID int, peerID peer.ID) error {
-	ps.Lock()
-	defer ps.Unlock()
+	ps.mutex.Lock()
+	defer ps.mutex.Unlock()
 
 	_, isNoSlotOccupied := ps.sets[setID].noSlotNodes[peerID]
 

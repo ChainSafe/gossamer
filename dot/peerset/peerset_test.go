@@ -315,8 +315,8 @@ func TestSetReservePeer(t *testing.T) {
 }
 
 func getNodePeer(ps *PeersState, pid peer.ID) (node, bool) {
-	ps.RLock()
-	defer ps.RUnlock()
+	ps.mutex.RLock()
+	defer ps.mutex.RUnlock()
 
 	n, exists := ps.nodes[pid]
 	if !exists {
@@ -330,8 +330,8 @@ func checkNodePeerMembershipState(t *testing.T, ps *PeersState, pid peer.ID,
 	setID int, ms MembershipState) {
 	t.Helper()
 
-	ps.RLock()
-	defer ps.RUnlock()
+	ps.mutex.RLock()
+	defer ps.mutex.RUnlock()
 
 	node, exists := ps.nodes[pid]
 
@@ -342,8 +342,8 @@ func checkNodePeerMembershipState(t *testing.T, ps *PeersState, pid peer.ID,
 func checkNodePeerExists(t *testing.T, ps *PeersState, pid peer.ID) {
 	t.Helper()
 
-	ps.RLock()
-	defer ps.RUnlock()
+	ps.mutex.RLock()
+	defer ps.mutex.RUnlock()
 
 	_, exists := ps.nodes[pid]
 	require.True(t, exists)
@@ -362,8 +362,8 @@ func checkReservedNodePeerExists(t *testing.T, ps *PeerSet, pid peer.ID) {
 func checkPeerIsInNoSlotsNode(t *testing.T, ps *PeersState, pid peer.ID, setID int) {
 	t.Helper()
 
-	ps.RLock()
-	defer ps.RUnlock()
+	ps.mutex.RLock()
+	defer ps.mutex.RUnlock()
 
 	_, exists := ps.sets[setID].noSlotNodes[pid]
 	require.True(t, exists)
@@ -372,8 +372,8 @@ func checkPeerIsInNoSlotsNode(t *testing.T, ps *PeersState, pid peer.ID, setID i
 func checkPeerStateSetNumOut(t *testing.T, ps *PeersState, setID int, expectedNumOut uint32) { //nolint:unparam
 	t.Helper()
 
-	ps.RLock()
-	defer ps.RUnlock()
+	ps.mutex.RLock()
+	defer ps.mutex.RUnlock()
 
 	gotNumOut := ps.sets[setID].numOut
 	require.Equal(t, expectedNumOut, gotNumOut)
@@ -382,8 +382,8 @@ func checkPeerStateSetNumOut(t *testing.T, ps *PeersState, setID int, expectedNu
 func checkPeerStateSetNumIn(t *testing.T, ps *PeersState, setID int, expectedNumIn uint32) { //nolint:unparam
 	t.Helper()
 
-	ps.RLock()
-	defer ps.RUnlock()
+	ps.mutex.RLock()
+	defer ps.mutex.RUnlock()
 
 	gotNumIn := ps.sets[setID].numIn
 	require.Equal(t, expectedNumIn, gotNumIn)
@@ -392,8 +392,8 @@ func checkPeerStateSetNumIn(t *testing.T, ps *PeersState, setID int, expectedNum
 func checkPeerStateNodeCount(t *testing.T, ps *PeersState, expectedCount int) {
 	t.Helper()
 
-	ps.RLock()
-	defer ps.RUnlock()
+	ps.mutex.RLock()
+	defer ps.mutex.RUnlock()
 
 	require.Equal(t, expectedCount, len(ps.nodes))
 }
