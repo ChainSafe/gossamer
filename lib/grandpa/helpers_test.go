@@ -19,7 +19,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/libp2p/go-libp2p-core/peer"
 	protocol "github.com/libp2p/go-libp2p-core/protocol"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 type testJustificationRequest struct {
@@ -44,17 +44,17 @@ func newTestNetwork(t *testing.T) *testNetwork {
 
 func (n *testNetwork) GossipMessage(msg NotificationsMessage) {
 	cm, ok := msg.(*ConsensusMessage)
-	require.True(n.t, ok)
+	assert.True(n.t, ok)
 
 	gmsg, err := decodeMessage(cm)
-	require.NoError(n.t, err)
+	assert.NoError(n.t, err)
 
-	switch gmsg.(type) {
-	case *CommitMessage:
+	_, ok = gmsg.(*CommitMessage)
+	if ok {
 		n.finalised <- gmsg
-	default:
-		n.out <- gmsg
+		return
 	}
+	n.out <- gmsg
 }
 
 func (n *testNetwork) SendMessage(_ peer.ID, _ NotificationsMessage) error {
@@ -109,7 +109,7 @@ func setupGrandpa(t *testing.T, kp *ed25519.Keypair) *Service {
 	}
 
 	gs, err := NewService(cfg)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	return gs
 }
 
@@ -119,11 +119,11 @@ func newTestGenesisWithTrieAndHeader(t *testing.T) (
 
 	genesisPath := utils.GetGssmrV3SubstrateGenesisRawPathTest(t)
 	genesisPtr, err := genesis.NewGenesisFromJSONRaw(genesisPath)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	gen = *genesisPtr
 
 	genesisTrie, err = wasmer.NewTrieFromGenesis(gen)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	parentHash := common.NewHash([]byte{0})
 	stateRoot := genesisTrie.MustHash()

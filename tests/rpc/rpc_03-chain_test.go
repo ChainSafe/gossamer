@@ -251,8 +251,6 @@ func TestChainSubscriptionRPC(t *testing.T) { //nolint:tparallel
 		// Check block numbers grow by zero or one in order of responses.
 		for i, blockNumber := range blockNumbers {
 			if i == 0 {
-				// the first finalized block could be block 0 as well
-				assert.GreaterOrEqual(t, blockNumber, uint(0))
 				continue
 			}
 			assert.GreaterOrEqual(t, blockNumber, blockNumbers[i-1])
