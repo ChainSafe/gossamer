@@ -82,7 +82,7 @@ type PriorityQueue struct {
 	currOrder    uint64
 	txs          map[common.Hash]*Item
 	pollInterval time.Duration
-	sync.Mutex
+	mutex        sync.Mutex
 }
 
 // NewPriorityQueue creates new instance of PriorityQueue
@@ -98,8 +98,8 @@ func NewPriorityQueue() *PriorityQueue {
 
 // RemoveExtrinsic removes an extrinsic from the queue
 func (spq *PriorityQueue) RemoveExtrinsic(ext types.Extrinsic) {
-	spq.Lock()
-	defer spq.Unlock()
+	spq.mutex.Lock()
+	defer spq.mutex.Unlock()
 
 	hash := ext.Hash()
 	item, ok := spq.txs[hash]
@@ -119,8 +119,8 @@ func (spq *PriorityQueue) Exists(extHash common.Hash) bool {
 
 // Push inserts a valid transaction with priority p into the queue
 func (spq *PriorityQueue) Push(txn *ValidTransaction) (common.Hash, error) {
-	spq.Lock()
-	defer spq.Unlock()
+	spq.mutex.Lock()
+	defer spq.mutex.Unlock()
 
 	hash := txn.Extrinsic.Hash()
 	if spq.txs[hash] != nil {
@@ -178,8 +178,8 @@ func (spq *PriorityQueue) PopWithTimer(timerCh <-chan time.Time) (transaction *V
 // Pop removes the transaction with has the highest priority value from the queue and returns it.
 // If there are multiple transaction with same priority value then it return them in FIFO order.
 func (spq *PriorityQueue) Pop() *ValidTransaction {
-	spq.Lock()
-	defer spq.Unlock()
+	spq.mutex.Lock()
+	defer spq.mutex.Unlock()
 	if spq.pq.Len() == 0 {
 		return nil
 	}
@@ -193,8 +193,8 @@ func (spq *PriorityQueue) Pop() *ValidTransaction {
 
 // Peek returns the next item without removing it from the queue
 func (spq *PriorityQueue) Peek() *ValidTransaction {
-	spq.Lock()
-	defer spq.Unlock()
+	spq.mutex.Lock()
+	defer spq.mutex.Unlock()
 	if spq.pq.Len() == 0 {
 		return nil
 	}
@@ -203,8 +203,8 @@ func (spq *PriorityQueue) Peek() *ValidTransaction {
 
 // Pending returns all the transactions currently in the queue
 func (spq *PriorityQueue) Pending() []*ValidTransaction {
-	spq.Lock()
-	defer spq.Unlock()
+	spq.mutex.Lock()
+	defer spq.mutex.Unlock()
 
 	var txns []*ValidTransaction
 	for idx := 0; idx < spq.pq.Len(); idx++ {
@@ -215,8 +215,8 @@ func (spq *PriorityQueue) Pending() []*ValidTransaction {
 
 // Len return the current length of the queue
 func (spq *PriorityQueue) Len() int {
-	spq.Lock()
-	defer spq.Unlock()
+	spq.mutex.Lock()
+	defer spq.mutex.Unlock()
 
 	return spq.pq.Len()
 }
