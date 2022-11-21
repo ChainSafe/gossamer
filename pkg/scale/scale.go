@@ -26,7 +26,7 @@ type fieldScaleIndices []fieldScaleIndex
 // fieldScaleIndicesCache stores the order of the fields per struct
 type fieldScaleIndicesCache struct {
 	cache map[string]fieldScaleIndices
-	sync.RWMutex
+	mutex sync.RWMutex
 }
 
 func (fsic *fieldScaleIndicesCache) fieldScaleIndices(in interface{}) (
@@ -36,9 +36,9 @@ func (fsic *fieldScaleIndicesCache) fieldScaleIndices(in interface{}) (
 	key := fmt.Sprintf("%s.%s", t.PkgPath(), t.Name())
 	if key != "." {
 		var ok bool
-		fsic.RLock()
+		fsic.mutex.RLock()
 		indices, ok = fsic.cache[key]
-		fsic.RUnlock()
+		fsic.mutex.RUnlock()
 		if ok {
 			return
 		}
@@ -83,9 +83,9 @@ func (fsic *fieldScaleIndicesCache) fieldScaleIndices(in interface{}) (
 	})
 
 	if key != "." {
-		fsic.Lock()
+		fsic.mutex.Lock()
 		fsic.cache[key] = indices
-		fsic.Unlock()
+		fsic.mutex.Unlock()
 	}
 	return
 }

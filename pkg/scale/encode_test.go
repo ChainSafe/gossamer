@@ -17,8 +17,8 @@ import (
 func Test_NewEncoder(t *testing.T) {
 	t.Parallel()
 
-	cache.Lock()
-	defer cache.Unlock()
+	cache.mutex.Lock()
+	defer cache.mutex.Unlock()
 
 	writer := bytes.NewBuffer(nil)
 	encoder := NewEncoder(writer)
