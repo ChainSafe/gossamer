@@ -19,7 +19,7 @@ var ErrTimoutMessageSending = errors.New("timeout sending telemetry message")
 type telemetryConnection struct {
 	wsconn    *websocket.Conn
 	verbosity int
-	sync.Mutex
+	mutex     sync.Mutex
 }
 
 // Mailer can send messages to the telemetry servers.
@@ -90,8 +90,8 @@ func (m *Mailer) shipTelemetryMessage(msg json.Marshaler) {
 	}
 
 	for _, conn := range m.connections {
-		conn.Lock()
-		defer conn.Unlock()
+		conn.mutex.Lock()
+		defer conn.mutex.Unlock()
 
 		err = conn.wsconn.WriteMessage(websocket.TextMessage, msgBytes)
 		if err != nil {
