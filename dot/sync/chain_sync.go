@@ -122,9 +122,9 @@ type chainSync struct {
 
 	// tracks the latest state we know of from our peers,
 	// ie. their best block hash and number
-	sync.RWMutex
-	peerState   map[peer.ID]*peerState
-	ignorePeers map[peer.ID]struct{}
+	peerStateMutex sync.RWMutex
+	peerState      map[peer.ID]*peerState
+	ignorePeers    map[peer.ID]struct{}
 
 	// current workers that are attempting to obtain blocks
 	workerState *workerState
@@ -210,9 +210,9 @@ func newChainSync(cfg chainSyncConfig) *chainSync {
 func (cs *chainSync) start() {
 	// wait until we have received at least `minPeers` peer heads
 	for {
-		cs.RLock()
+		cs.peerStateMutex.RLock()
 		n := len(cs.peerState)
-		cs.RUnlock()
+		cs.peerStateMutex.RUnlock()
 		if n >= cs.minPeers {
 			break
 		}
@@ -273,9 +273,9 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number uint) error
 		hash:   hash,
 		number: number,
 	}
-	cs.Lock()
+	cs.peerStateMutex.Lock()
 	cs.peerState[p] = ps
-	cs.Unlock()
+	cs.peerStateMutex.Unlock()
 
 	// if the peer reports a lower or equal best block number than us,
 	// check if they are on a fork or not
@@ -405,9 +405,9 @@ func (cs *chainSync) ignorePeer(who peer.ID) {
 		return
 	}
 
-	cs.Lock()
+	cs.peerStateMutex.Lock()
 	cs.ignorePeers[who] = struct{}{}
-	cs.Unlock()
+	cs.peerStateMutex.Unlock()
 }
 
 func (cs *chainSync) sync() {
@@ -571,8 +571,8 @@ func (cs *chainSync) setMode(mode chainSyncState) {
 // head block number, it would leave us in bootstrap mode forever
 // it would be better to have some sort of standard deviation calculation and discard any outliers (#1861)
 func (cs *chainSync) getTarget() uint {
-	cs.RLock()
-	defer cs.RUnlock()
+	cs.peerStateMutex.RLock()
+	defer cs.peerStateMutex.RUnlock()
 
 	// in practice, this shouldn't happen, as we only start the module once we have some peer states
 	if len(cs.peerState) == 0 {
@@ -787,18 +787,14 @@ func (cs *chainSync) determineSyncPeers(req *network.BlockRequestMessage, peersT
 		start = req.StartingBlock.Uint32()
 	}
 
-	cs.RLock()
-	defer cs.RUnlock()
+	cs.peerStateMutex.Lock()
+	defer cs.peerStateMutex.Unlock()
 
 	// if we're currently ignoring all our peers, clear out the list.
 	if len(cs.peerState) == len(cs.ignorePeers) {
-		cs.RUnlock()
-		cs.Lock()
 		for p := range cs.ignorePeers {
 			delete(cs.ignorePeers, p)
 		}
-		cs.Unlock()
-		cs.RLock()
 	}
 
 	peers := make([]peer.ID, 0, len(cs.peerState))
@@ -964,8 +960,8 @@ func (cs *chainSync) validateJustification(bd *types.BlockData) error {
 }
 
 func (cs *chainSync) getHighestBlock() (highestBlock uint, err error) {
-	cs.RLock()
-	defer cs.RUnlock()
+	cs.peerStateMutex.RLock()
+	defer cs.peerStateMutex.RUnlock()
 
 	if len(cs.peerState) == 0 {
 		return 0, errNoPeers
