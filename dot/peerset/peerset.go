@@ -170,7 +170,7 @@ func newReputationChange(value Reputation, reason string) ReputationChange {
 
 // PeerSet is a container for all the components of a peerSet.
 type PeerSet struct {
-	sync.Mutex
+	mutex     sync.Mutex
 	peerState *PeersState
 
 	reservedLock sync.RWMutex
@@ -270,8 +270,8 @@ func reputationTick(reput Reputation) Reputation {
 // updateTime updates the value of latestTimeUpdate and performs all the updates that
 // happen over time, such as Reputation increases for staying connected.
 func (ps *PeerSet) updateTime() error {
-	ps.Lock()
-	defer ps.Unlock()
+	ps.mutex.Lock()
+	defer ps.mutex.Unlock()
 
 	currTime := time.Now()
 	// identify the time difference between current time and last update time for peer reputation in seconds.

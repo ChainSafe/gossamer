@@ -352,8 +352,8 @@ func checkNodePeerExists(t *testing.T, ps *PeersState, pid peer.ID) {
 func checkReservedNodePeerExists(t *testing.T, ps *PeerSet, pid peer.ID) {
 	t.Helper()
 
-	ps.Lock()
-	defer ps.Unlock()
+	ps.mutex.Lock()
+	defer ps.mutex.Unlock()
 
 	_, exists := ps.reservedNode[pid]
 	require.True(t, exists)
