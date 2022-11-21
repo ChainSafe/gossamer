@@ -57,7 +57,7 @@ func TestChainProcessor_HandleBlockResponse_ValidChain(t *testing.T) {
 
 	// process response
 	for _, bd := range resp.BlockData {
-		err = syncer.chainProcessor.(*chainProcessor).processBlockData(bd)
+		err = syncer.chainProcessor.(*chainProcessor).processBlockData(*bd)
 		require.NoError(t, err)
 	}
 
@@ -77,7 +77,7 @@ func TestChainProcessor_HandleBlockResponse_ValidChain(t *testing.T) {
 
 	// process response
 	for _, bd := range resp.BlockData {
-		err = syncer.chainProcessor.(*chainProcessor).processBlockData(bd)
+		err = syncer.chainProcessor.(*chainProcessor).processBlockData(*bd)
 		require.NoError(t, err)
 	}
 }
@@ -130,7 +130,7 @@ func TestChainProcessor_HandleBlockResponse_MissingBlocks(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, bd := range resp.BlockData {
-		err = syncer.chainProcessor.(*chainProcessor).processBlockData(bd)
+		err = syncer.chainProcessor.(*chainProcessor).processBlockData(*bd)
 		require.True(t, errors.Is(err, errFailedToGetParent))
 	}
 }
@@ -152,12 +152,6 @@ func TestChainProcessor_handleBody_ShouldRemoveIncludedExtrinsics(t *testing.T) 
 
 	inQueue := syncer.chainProcessor.(*chainProcessor).transactionState.(*state.TransactionState).Pop()
 	require.Nil(t, inQueue, "queue should be empty")
-}
-
-func TestChainProcessor_HandleBlockResponse_NoBlockData(t *testing.T) {
-	syncer := newTestSyncer(t)
-	err := syncer.chainProcessor.(*chainProcessor).processBlockData(nil)
-	require.Equal(t, ErrNilBlockData, err)
 }
 
 // TODO: add test against latest gssmr runtime
@@ -186,7 +180,7 @@ func TestChainProcessor_HandleBlockResponse_BlockData(t *testing.T) {
 	}
 
 	for _, bd := range msg.BlockData {
-		err = syncer.chainProcessor.(*chainProcessor).processBlockData(bd)
+		err = syncer.chainProcessor.(*chainProcessor).processBlockData(*bd)
 		require.NoError(t, err)
 	}
 }

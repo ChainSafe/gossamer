@@ -449,8 +449,6 @@ func TestAuthorModule_HasKey_Integration(t *testing.T) {
 
 func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 	t.Parallel()
-	integrationTestController := setupStateAndRuntime(t, t.TempDir(), useInstanceFromGenesis)
-	auth := newAuthorModule(t, integrationTestController)
 
 	const granSeed = "0xf25586ceb64a043d887631fa08c2ed790ef7ae3c7f28de5172005f8b9469e529"
 	const granPubK = "0x6b802349d948444d41397da09ec597fbd8ae8fdd3dfa153b2bb2bddcf020457c"
@@ -472,17 +470,6 @@ func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 			seed:  sr25519Seed,
 			pubk:  sr25519Pubk,
 		},
-	}
-
-	for _, toInsert := range insertSessionKeys {
-		for _, keytype := range toInsert.ktype {
-			err := auth.InsertKey(nil, &KeyInsertRequest{
-				Type:      keytype,
-				Seed:      toInsert.seed,
-				PublicKey: toInsert.pubk,
-			}, nil)
-			require.NoError(t, err)
-		}
 	}
 
 	testcases := map[string]struct {
@@ -527,6 +514,20 @@ func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 		tt := tt
 		t.Run(tname, func(t *testing.T) {
 			t.Parallel()
+
+			integrationTestController := setupStateAndRuntime(t, t.TempDir(), useInstanceFromGenesis)
+			auth := newAuthorModule(t, integrationTestController)
+			for _, toInsert := range insertSessionKeys {
+				for _, keytype := range toInsert.ktype {
+					err := auth.InsertKey(nil, &KeyInsertRequest{
+						Type:      keytype,
+						Seed:      toInsert.seed,
+						PublicKey: toInsert.pubk,
+					}, nil)
+					require.NoError(t, err)
+				}
+			}
+
 			req := HasSessionKeyRequest{
 				PublicKeys: tt.pubSessionKeys,
 			}

@@ -248,8 +248,9 @@ func TestTipSyncer_handleTick_case3(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []*worker(nil), w)
 	require.False(t, s.pendingBlocks.hasBlock(header.Hash()))
-	readyBlockData := s.readyBlocks.pop(context.Background())
+	readyBlockData, err := s.readyBlocks.pop(context.Background())
 	require.Equal(t, block.ToBlockData(), readyBlockData)
+	require.NoError(t, err)
 
 	// add pending block w/ full block, but block is not ready as parent is unknown
 	ctrl := gomock.NewController(t)
@@ -300,8 +301,9 @@ func TestTipSyncer_handleTick_case3(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []*worker(nil), w)
 	require.False(t, s.pendingBlocks.hasBlock(header.Hash()))
-	_ = s.readyBlocks.pop(context.Background()) // first pop will remove parent
-	readyBlockData = s.readyBlocks.pop(context.Background())
+	_, _ = s.readyBlocks.pop(context.Background()) // first pop will remove parent
+	readyBlockData, err = s.readyBlocks.pop(context.Background())
+	require.NoError(t, err)
 	require.Equal(t, block.ToBlockData(), readyBlockData)
 }
 

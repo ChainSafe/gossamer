@@ -16,20 +16,20 @@ func Test_Verify(t *testing.T) {
 	t.Parallel()
 
 	leafA := node.Node{
-		Key:      []byte{1},
-		SubValue: []byte{1},
+		PartialKey: []byte{1},
+		SubValue:   []byte{1},
 	}
 
 	// leafB is a leaf encoding to more than 32 bytes
 	leafB := node.Node{
-		Key:      []byte{2},
-		SubValue: generateBytes(t, 40),
+		PartialKey: []byte{2},
+		SubValue:   generateBytes(t, 40),
 	}
 	assertLongEncoding(t, leafB)
 
 	branch := node.Node{
-		Key:      []byte{3, 4},
-		SubValue: []byte{1},
+		PartialKey: []byte{3, 4},
+		SubValue:   []byte{1},
 		Children: padRightChildren([]*node.Node{
 			&leafB,
 			nil,
@@ -119,20 +119,20 @@ func Test_buildTrie(t *testing.T) {
 	t.Parallel()
 
 	leafAShort := node.Node{
-		Key:      []byte{1},
-		SubValue: []byte{2},
+		PartialKey: []byte{1},
+		SubValue:   []byte{2},
 	}
 	assertShortEncoding(t, leafAShort)
 
 	leafBLarge := node.Node{
-		Key:      []byte{2},
-		SubValue: generateBytes(t, 40),
+		PartialKey: []byte{2},
+		SubValue:   generateBytes(t, 40),
 	}
 	assertLongEncoding(t, leafBLarge)
 
 	leafCLarge := node.Node{
-		Key:      []byte{3},
-		SubValue: generateBytes(t, 40),
+		PartialKey: []byte{3},
+		SubValue:   generateBytes(t, 40),
 	}
 	assertLongEncoding(t, leafCLarge)
 
@@ -164,9 +164,9 @@ func Test_buildTrie(t *testing.T) {
 			},
 			rootHash: blake2bNode(t, leafAShort),
 			expectedTrie: trie.NewTrie(&node.Node{
-				Key:      leafAShort.Key,
-				SubValue: leafAShort.SubValue,
-				Dirty:    true,
+				PartialKey: leafAShort.PartialKey,
+				SubValue:   leafAShort.SubValue,
+				Dirty:      true,
 			}),
 		},
 		"root proof encoding larger than 32 bytes": {
@@ -175,9 +175,9 @@ func Test_buildTrie(t *testing.T) {
 			},
 			rootHash: blake2bNode(t, leafBLarge),
 			expectedTrie: trie.NewTrie(&node.Node{
-				Key:      leafBLarge.Key,
-				SubValue: leafBLarge.SubValue,
-				Dirty:    true,
+				PartialKey: leafBLarge.PartialKey,
+				SubValue:   leafBLarge.SubValue,
+				Dirty:      true,
 			}),
 		},
 		"discard unused node": {
@@ -187,16 +187,16 @@ func Test_buildTrie(t *testing.T) {
 			},
 			rootHash: blake2bNode(t, leafAShort),
 			expectedTrie: trie.NewTrie(&node.Node{
-				Key:      leafAShort.Key,
-				SubValue: leafAShort.SubValue,
-				Dirty:    true,
+				PartialKey: leafAShort.PartialKey,
+				SubValue:   leafAShort.SubValue,
+				Dirty:      true,
 			}),
 		},
 		"multiple unordered nodes": {
 			encodedProofNodes: [][]byte{
 				encodeNode(t, leafBLarge), // chilren 1 and 3
 				encodeNode(t, node.Node{ // root
-					Key: []byte{1},
+					PartialKey: []byte{1},
 					Children: padRightChildren([]*node.Node{
 						&leafAShort, // inlined
 						&leafBLarge, // referenced by Merkle value hash
@@ -207,7 +207,7 @@ func Test_buildTrie(t *testing.T) {
 				encodeNode(t, leafCLarge), // children 2
 			},
 			rootHash: blake2bNode(t, node.Node{
-				Key: []byte{1},
+				PartialKey: []byte{1},
 				Children: padRightChildren([]*node.Node{
 					&leafAShort,
 					&leafBLarge,
@@ -216,29 +216,29 @@ func Test_buildTrie(t *testing.T) {
 				}),
 			}),
 			expectedTrie: trie.NewTrie(&node.Node{
-				Key:         []byte{1},
+				PartialKey:  []byte{1},
 				Descendants: 4,
 				Dirty:       true,
 				Children: padRightChildren([]*node.Node{
 					{
-						Key:      leafAShort.Key,
-						SubValue: leafAShort.SubValue,
-						Dirty:    true,
+						PartialKey: leafAShort.PartialKey,
+						SubValue:   leafAShort.SubValue,
+						Dirty:      true,
 					},
 					{
-						Key:      leafBLarge.Key,
-						SubValue: leafBLarge.SubValue,
-						Dirty:    true,
+						PartialKey: leafBLarge.PartialKey,
+						SubValue:   leafBLarge.SubValue,
+						Dirty:      true,
 					},
 					{
-						Key:      leafCLarge.Key,
-						SubValue: leafCLarge.SubValue,
-						Dirty:    true,
+						PartialKey: leafCLarge.PartialKey,
+						SubValue:   leafCLarge.SubValue,
+						Dirty:      true,
 					},
 					{
-						Key:      leafBLarge.Key,
-						SubValue: leafBLarge.SubValue,
-						Dirty:    true,
+						PartialKey: leafBLarge.PartialKey,
+						SubValue:   leafBLarge.SubValue,
+						Dirty:      true,
 					},
 				}),
 			}),
@@ -269,8 +269,8 @@ func Test_buildTrie(t *testing.T) {
 		"root not found": {
 			encodedProofNodes: [][]byte{
 				encodeNode(t, node.Node{
-					Key:      []byte{1},
-					SubValue: []byte{2},
+					PartialKey: []byte{1},
+					SubValue:   []byte{2},
 				}),
 			},
 			rootHash:   []byte{3},
@@ -308,8 +308,8 @@ func Test_loadProof(t *testing.T) {
 	largeValue := generateBytes(t, 40)
 
 	leafLarge := node.Node{
-		Key:      []byte{3},
-		SubValue: largeValue,
+		PartialKey: []byte{3},
+		SubValue:   largeValue,
 	}
 	assertLongEncoding(t, leafLarge)
 
@@ -322,17 +322,17 @@ func Test_loadProof(t *testing.T) {
 	}{
 		"leaf node": {
 			node: &node.Node{
-				Key:      []byte{1},
-				SubValue: []byte{2},
+				PartialKey: []byte{1},
+				SubValue:   []byte{2},
 			},
 			expectedNode: &node.Node{
-				Key:      []byte{1},
-				SubValue: []byte{2},
+				PartialKey: []byte{1},
+				SubValue:   []byte{2},
 			},
 		},
 		"branch node with child hash not found": {
 			node: &node.Node{
-				Key:         []byte{1},
+				PartialKey:  []byte{1},
 				SubValue:    []byte{2},
 				Descendants: 1,
 				Dirty:       true,
@@ -342,14 +342,14 @@ func Test_loadProof(t *testing.T) {
 			},
 			merkleValueToEncoding: map[string][]byte{},
 			expectedNode: &node.Node{
-				Key:      []byte{1},
-				SubValue: []byte{2},
-				Dirty:    true,
+				PartialKey: []byte{1},
+				SubValue:   []byte{2},
+				Dirty:      true,
 			},
 		},
 		"branch node with child hash found": {
 			node: &node.Node{
-				Key:         []byte{1},
+				PartialKey:  []byte{1},
 				SubValue:    []byte{2},
 				Descendants: 1,
 				Dirty:       true,
@@ -359,27 +359,27 @@ func Test_loadProof(t *testing.T) {
 			},
 			merkleValueToEncoding: map[string][]byte{
 				string([]byte{2}): encodeNode(t, node.Node{
-					Key:      []byte{3},
-					SubValue: []byte{1},
+					PartialKey: []byte{3},
+					SubValue:   []byte{1},
 				}),
 			},
 			expectedNode: &node.Node{
-				Key:         []byte{1},
+				PartialKey:  []byte{1},
 				SubValue:    []byte{2},
 				Descendants: 1,
 				Dirty:       true,
 				Children: padRightChildren([]*node.Node{
 					{
-						Key:      []byte{3},
-						SubValue: []byte{1},
-						Dirty:    true,
+						PartialKey: []byte{3},
+						SubValue:   []byte{1},
+						Dirty:      true,
 					},
 				}),
 			},
 		},
 		"branch node with one child hash found and one not found": {
 			node: &node.Node{
-				Key:         []byte{1},
+				PartialKey:  []byte{1},
 				SubValue:    []byte{2},
 				Descendants: 2,
 				Dirty:       true,
@@ -390,27 +390,27 @@ func Test_loadProof(t *testing.T) {
 			},
 			merkleValueToEncoding: map[string][]byte{
 				string([]byte{2}): encodeNode(t, node.Node{
-					Key:      []byte{3},
-					SubValue: []byte{1},
+					PartialKey: []byte{3},
+					SubValue:   []byte{1},
 				}),
 			},
 			expectedNode: &node.Node{
-				Key:         []byte{1},
+				PartialKey:  []byte{1},
 				SubValue:    []byte{2},
 				Descendants: 1,
 				Dirty:       true,
 				Children: padRightChildren([]*node.Node{
 					{
-						Key:      []byte{3},
-						SubValue: []byte{1},
-						Dirty:    true,
+						PartialKey: []byte{3},
+						SubValue:   []byte{1},
+						Dirty:      true,
 					},
 				}),
 			},
 		},
 		"branch node with branch child hash": {
 			node: &node.Node{
-				Key:         []byte{1},
+				PartialKey:  []byte{1},
 				SubValue:    []byte{2},
 				Descendants: 2,
 				Dirty:       true,
@@ -420,29 +420,29 @@ func Test_loadProof(t *testing.T) {
 			},
 			merkleValueToEncoding: map[string][]byte{
 				string([]byte{2}): encodeNode(t, node.Node{
-					Key:      []byte{3},
-					SubValue: []byte{1},
+					PartialKey: []byte{3},
+					SubValue:   []byte{1},
 					Children: padRightChildren([]*node.Node{
-						{Key: []byte{4}, SubValue: []byte{2}},
+						{PartialKey: []byte{4}, SubValue: []byte{2}},
 					}),
 				}),
 			},
 			expectedNode: &node.Node{
-				Key:         []byte{1},
+				PartialKey:  []byte{1},
 				SubValue:    []byte{2},
 				Descendants: 3,
 				Dirty:       true,
 				Children: padRightChildren([]*node.Node{
 					{
-						Key:         []byte{3},
+						PartialKey:  []byte{3},
 						SubValue:    []byte{1},
 						Dirty:       true,
 						Descendants: 1,
 						Children: padRightChildren([]*node.Node{
 							{
-								Key:      []byte{4},
-								SubValue: []byte{2},
-								Dirty:    true,
+								PartialKey: []byte{4},
+								SubValue:   []byte{2},
+								Dirty:      true,
 							},
 						}),
 					},
@@ -451,7 +451,7 @@ func Test_loadProof(t *testing.T) {
 		},
 		"child decoding error": {
 			node: &node.Node{
-				Key:         []byte{1},
+				PartialKey:  []byte{1},
 				SubValue:    []byte{2},
 				Descendants: 1,
 				Dirty:       true,
@@ -463,7 +463,7 @@ func Test_loadProof(t *testing.T) {
 				string([]byte{2}): getBadNodeEncoding(),
 			},
 			expectedNode: &node.Node{
-				Key:         []byte{1},
+				PartialKey:  []byte{1},
 				SubValue:    []byte{2},
 				Descendants: 1,
 				Dirty:       true,
@@ -478,7 +478,7 @@ func Test_loadProof(t *testing.T) {
 		},
 		"grand child": {
 			node: &node.Node{
-				Key:         []byte{1},
+				PartialKey:  []byte{1},
 				SubValue:    []byte{1},
 				Descendants: 1,
 				Dirty:       true,
@@ -488,7 +488,7 @@ func Test_loadProof(t *testing.T) {
 			},
 			merkleValueToEncoding: map[string][]byte{
 				string([]byte{2}): encodeNode(t, node.Node{
-					Key:         []byte{2},
+					PartialKey:  []byte{2},
 					SubValue:    []byte{2},
 					Descendants: 1,
 					Dirty:       true,
@@ -499,21 +499,21 @@ func Test_loadProof(t *testing.T) {
 				string(blake2bNode(t, leafLarge)): encodeNode(t, leafLarge),
 			},
 			expectedNode: &node.Node{
-				Key:         []byte{1},
+				PartialKey:  []byte{1},
 				SubValue:    []byte{1},
 				Descendants: 2,
 				Dirty:       true,
 				Children: padRightChildren([]*node.Node{
 					{
-						Key:         []byte{2},
+						PartialKey:  []byte{2},
 						SubValue:    []byte{2},
 						Descendants: 1,
 						Dirty:       true,
 						Children: padRightChildren([]*node.Node{
 							{
-								Key:      leafLarge.Key,
-								SubValue: leafLarge.SubValue,
-								Dirty:    true,
+								PartialKey: leafLarge.PartialKey,
+								SubValue:   leafLarge.SubValue,
+								Dirty:      true,
 							},
 						}),
 					},
@@ -523,7 +523,7 @@ func Test_loadProof(t *testing.T) {
 
 		"grand child load proof error": {
 			node: &node.Node{
-				Key:         []byte{1},
+				PartialKey:  []byte{1},
 				SubValue:    []byte{1},
 				Descendants: 1,
 				Dirty:       true,
@@ -533,7 +533,7 @@ func Test_loadProof(t *testing.T) {
 			},
 			merkleValueToEncoding: map[string][]byte{
 				string([]byte{2}): encodeNode(t, node.Node{
-					Key:         []byte{2},
+					PartialKey:  []byte{2},
 					SubValue:    []byte{2},
 					Descendants: 1,
 					Dirty:       true,
@@ -544,13 +544,13 @@ func Test_loadProof(t *testing.T) {
 				string(blake2bNode(t, leafLarge)): getBadNodeEncoding(),
 			},
 			expectedNode: &node.Node{
-				Key:         []byte{1},
+				PartialKey:  []byte{1},
 				SubValue:    []byte{1},
 				Descendants: 2,
 				Dirty:       true,
 				Children: padRightChildren([]*node.Node{
 					{
-						Key:         []byte{2},
+						PartialKey:  []byte{2},
 						SubValue:    []byte{2},
 						Descendants: 1,
 						Dirty:       true,

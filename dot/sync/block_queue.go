@@ -34,17 +34,19 @@ func (bq *blockQueue) push(blockData *types.BlockData) {
 	bq.queue <- blockData
 }
 
-// pop pops an item from the queue. It blocks if the queue is empty.
-func (bq *blockQueue) pop(ctx context.Context) (blockData *types.BlockData) {
+// pop pops the next item from the queue. It blocks if the queue is empty
+// until the context is cancelled. If the context is canceled, it returns
+// the error from the context.
+func (bq *blockQueue) pop(ctx context.Context) (blockData *types.BlockData, err error) {
 	select {
 	case <-ctx.Done():
-		return nil
+		return blockData, ctx.Err()
 	case blockData = <-bq.queue:
 	}
 	bq.hashesSetMutex.Lock()
 	delete(bq.hashesSet, blockData.Hash)
 	bq.hashesSetMutex.Unlock()
-	return blockData
+	return blockData, nil
 }
 
 func (bq *blockQueue) has(blockHash common.Hash) (has bool) {

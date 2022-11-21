@@ -42,7 +42,7 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 		return fmt.Errorf("failed to clear database: %s", err)
 	}
 
-	if err = t.Store(chaindb.NewTable(db, storagePrefix)); err != nil {
+	if err = t.WriteDirty(chaindb.NewTable(db, storagePrefix)); err != nil {
 		return fmt.Errorf("failed to write genesis trie to database: %w", err)
 	}
 
@@ -137,7 +137,7 @@ func loadGrandpaAuthorities(t *trie.Trie) ([]types.GrandpaVoter, error) {
 // storeInitialValues writes initial genesis values to the state database
 func (s *Service) storeInitialValues(data *genesis.Data, t *trie.Trie) error {
 	// write genesis trie to database
-	if err := t.Store(chaindb.NewTable(s.db, storagePrefix)); err != nil {
+	if err := t.WriteDirty(chaindb.NewTable(s.db, storagePrefix)); err != nil {
 		return fmt.Errorf("failed to write trie to database: %s", err)
 	}
 

@@ -32,7 +32,7 @@ func Test_Node_Encode(t *testing.T) {
 	}{
 		"leaf header encoding error": {
 			node: &Node{
-				Key: make([]byte, 1),
+				PartialKey: make([]byte, 1),
 			},
 			writes: []writeCall{
 				{
@@ -45,8 +45,8 @@ func Test_Node_Encode(t *testing.T) {
 		},
 		"leaf buffer write error for encoded key": {
 			node: &Node{
-				Key:      []byte{1, 2, 3},
-				SubValue: []byte{1},
+				PartialKey: []byte{1, 2, 3},
+				SubValue:   []byte{1},
 			},
 			writes: []writeCall{
 				{
@@ -62,8 +62,8 @@ func Test_Node_Encode(t *testing.T) {
 		},
 		"leaf buffer write error for encoded value": {
 			node: &Node{
-				Key:      []byte{1, 2, 3},
-				SubValue: []byte{4, 5, 6},
+				PartialKey: []byte{1, 2, 3},
+				SubValue:   []byte{4, 5, 6},
 			},
 			writes: []writeCall{
 				{
@@ -73,52 +73,44 @@ func Test_Node_Encode(t *testing.T) {
 					written: []byte{0x01, 0x23},
 				},
 				{
-					written: []byte{12, 4, 5, 6},
+					written: []byte{12},
 					err:     errTest,
 				},
 			},
 			wrappedErr: errTest,
-			errMessage: "cannot write scale encoded value to buffer: test error",
+			errMessage: "scale encoding value: test error",
 		},
 		"leaf success": {
 			node: &Node{
-				Key:      []byte{1, 2, 3},
-				SubValue: []byte{4, 5, 6},
+				PartialKey: []byte{1, 2, 3},
+				SubValue:   []byte{4, 5, 6},
 			},
 			writes: []writeCall{
 				{
 					written: []byte{leafVariant.bits | 3}, // partial key length 3
 				},
-				{
-					written: []byte{0x01, 0x23},
-				},
-				{
-					written: []byte{12, 4, 5, 6},
-				},
+				{written: []byte{0x01, 0x23}},
+				{written: []byte{12}},
+				{written: []byte{4, 5, 6}},
 			},
 			expectedEncoding: []byte{1, 2, 3},
 		},
 		"leaf with empty value success": {
 			node: &Node{
-				Key: []byte{1, 2, 3},
+				PartialKey: []byte{1, 2, 3},
 			},
 			writes: []writeCall{
-				{
-					written: []byte{leafVariant.bits | 3}, // partial key length 3
-				},
-				{
-					written: []byte{0x01, 0x23},
-				},
-				{
-					written: []byte{0},
-				},
+				{written: []byte{leafVariant.bits | 3}}, // partial key length 3
+				{written: []byte{0x01, 0x23}},           // partial key
+				{written: []byte{0}},                    // node value encoded length
+				{written: nil},                          // node value
 			},
 			expectedEncoding: []byte{1, 2, 3},
 		},
 		"branch header encoding error": {
 			node: &Node{
-				Children: make([]*Node, ChildrenCapacity),
-				Key:      make([]byte, 1),
+				Children:   make([]*Node, ChildrenCapacity),
+				PartialKey: make([]byte, 1),
 			},
 			writes: []writeCall{
 				{ // header
@@ -131,9 +123,9 @@ func Test_Node_Encode(t *testing.T) {
 		},
 		"buffer write error for encoded key": {
 			node: &Node{
-				Children: make([]*Node, ChildrenCapacity),
-				Key:      []byte{1, 2, 3},
-				SubValue: []byte{100},
+				Children:   make([]*Node, ChildrenCapacity),
+				PartialKey: []byte{1, 2, 3},
+				SubValue:   []byte{100},
 			},
 			writes: []writeCall{
 				{ // header
@@ -149,11 +141,11 @@ func Test_Node_Encode(t *testing.T) {
 		},
 		"buffer write error for children bitmap": {
 			node: &Node{
-				Key:      []byte{1, 2, 3},
-				SubValue: []byte{100},
+				PartialKey: []byte{1, 2, 3},
+				SubValue:   []byte{100},
 				Children: []*Node{
-					nil, nil, nil, {Key: []byte{9}, SubValue: []byte{1}},
-					nil, nil, nil, {Key: []byte{11}, SubValue: []byte{1}},
+					nil, nil, nil, {PartialKey: []byte{9}, SubValue: []byte{1}},
+					nil, nil, nil, {PartialKey: []byte{11}, SubValue: []byte{1}},
 				},
 			},
 			writes: []writeCall{
@@ -173,11 +165,11 @@ func Test_Node_Encode(t *testing.T) {
 		},
 		"buffer write error for value": {
 			node: &Node{
-				Key:      []byte{1, 2, 3},
-				SubValue: []byte{100},
+				PartialKey: []byte{1, 2, 3},
+				SubValue:   []byte{100},
 				Children: []*Node{
-					nil, nil, nil, {Key: []byte{9}, SubValue: []byte{1}},
-					nil, nil, nil, {Key: []byte{11}, SubValue: []byte{1}},
+					nil, nil, nil, {PartialKey: []byte{9}, SubValue: []byte{1}},
+					nil, nil, nil, {PartialKey: []byte{11}, SubValue: []byte{1}},
 				},
 			},
 			writes: []writeCall{
@@ -191,20 +183,20 @@ func Test_Node_Encode(t *testing.T) {
 					written: []byte{136, 0},
 				},
 				{ // value
-					written: []byte{4, 100},
+					written: []byte{4},
 					err:     errTest,
 				},
 			},
 			wrappedErr: errTest,
-			errMessage: "cannot write scale encoded value to buffer: test error",
+			errMessage: "scale encoding value: test error",
 		},
 		"buffer write error for children encoding": {
 			node: &Node{
-				Key:      []byte{1, 2, 3},
-				SubValue: []byte{100},
+				PartialKey: []byte{1, 2, 3},
+				SubValue:   []byte{100},
 				Children: []*Node{
-					nil, nil, nil, {Key: []byte{9}, SubValue: []byte{1}},
-					nil, nil, nil, {Key: []byte{11}, SubValue: []byte{1}},
+					nil, nil, nil, {PartialKey: []byte{9}, SubValue: []byte{1}},
+					nil, nil, nil, {PartialKey: []byte{11}, SubValue: []byte{1}},
 				},
 			},
 			writes: []writeCall{
@@ -217,9 +209,9 @@ func Test_Node_Encode(t *testing.T) {
 				{ // children bitmap
 					written: []byte{136, 0},
 				},
-				{ // value
-					written: []byte{4, 100},
-				},
+				// value
+				{written: []byte{4}},
+				{written: []byte{100}},
 				{ // children
 					written: []byte{16, 65, 9, 4, 1},
 					err:     errTest,
@@ -232,11 +224,11 @@ func Test_Node_Encode(t *testing.T) {
 		},
 		"success with children encoding": {
 			node: &Node{
-				Key:      []byte{1, 2, 3},
-				SubValue: []byte{100},
+				PartialKey: []byte{1, 2, 3},
+				SubValue:   []byte{100},
 				Children: []*Node{
-					nil, nil, nil, {Key: []byte{9}, SubValue: []byte{1}},
-					nil, nil, nil, {Key: []byte{11}, SubValue: []byte{1}},
+					nil, nil, nil, {PartialKey: []byte{9}, SubValue: []byte{1}},
+					nil, nil, nil, {PartialKey: []byte{11}, SubValue: []byte{1}},
 				},
 			},
 			writes: []writeCall{
@@ -249,9 +241,9 @@ func Test_Node_Encode(t *testing.T) {
 				{ // children bitmap
 					written: []byte{136, 0},
 				},
-				{ // value
-					written: []byte{4, 100},
-				},
+				// value
+				{written: []byte{4}},
+				{written: []byte{100}},
 				{ // first children
 					written: []byte{16, 65, 9, 4, 1},
 				},
@@ -262,10 +254,10 @@ func Test_Node_Encode(t *testing.T) {
 		},
 		"branch without value and with children success": {
 			node: &Node{
-				Key: []byte{1, 2, 3},
+				PartialKey: []byte{1, 2, 3},
 				Children: []*Node{
-					nil, nil, nil, {Key: []byte{9}, SubValue: []byte{1}},
-					nil, nil, nil, {Key: []byte{11}, SubValue: []byte{1}},
+					nil, nil, nil, {PartialKey: []byte{9}, SubValue: []byte{1}},
+					nil, nil, nil, {PartialKey: []byte{11}, SubValue: []byte{1}},
 				},
 			},
 			writes: []writeCall{

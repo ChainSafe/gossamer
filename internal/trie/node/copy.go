@@ -82,9 +82,9 @@ func (n *Node) Copy(settings CopySettings) *Node {
 		}
 	}
 
-	if settings.CopyKey && n.Key != nil {
-		cpy.Key = make([]byte, len(n.Key))
-		copy(cpy.Key, n.Key)
+	if settings.CopyKey && n.PartialKey != nil {
+		cpy.PartialKey = make([]byte, len(n.PartialKey))
+		copy(cpy.PartialKey, n.PartialKey)
 	}
 
 	// nil and []byte{} values for branches result in a different node encoding,

@@ -72,8 +72,9 @@ func Test_blockQueue_pop(t *testing.T) {
 		const capacity = 1
 		bq := newBlockQueue(capacity)
 
-		blockData := bq.pop(ctx)
+		blockData, err := bq.pop(ctx)
 		assert.Nil(t, blockData)
+		assert.ErrorIs(t, err, context.Canceled)
 	})
 
 	t.Run("get block data after waiting", func(t *testing.T) {
@@ -92,12 +93,13 @@ func Test_blockQueue_pop(t *testing.T) {
 			bq.push(blockData)
 		})
 
-		blockData := bq.pop(ctx)
+		blockData, err := bq.pop(ctx)
 
 		expectedBlockData := &types.BlockData{
 			Hash: common.Hash{1},
 		}
 		assert.Equal(t, expectedBlockData, blockData)
+		assert.NoError(t, err)
 
 		assert.Len(t, bq.queue, 0)
 		bq.queue = nil
@@ -158,8 +160,9 @@ func Test_lockQueue_endToEnd(t *testing.T) {
 	blockQueue.push(newBlockData(2))
 	blockQueue.push(newBlockData(3))
 
-	blockData := blockQueue.pop(context.Background())
+	blockData, err := blockQueue.pop(context.Background())
 	assert.Equal(t, newBlockData(1), blockData)
+	assert.NoError(t, err)
 
 	has := blockQueue.has(newBlockData(2).Hash)
 	assert.True(t, has)
@@ -171,8 +174,9 @@ func Test_lockQueue_endToEnd(t *testing.T) {
 	has = blockQueue.has(newBlockData(4).Hash)
 	assert.True(t, has)
 
-	blockData = blockQueue.pop(context.Background())
+	blockData, err = blockQueue.pop(context.Background())
 	assert.Equal(t, newBlockData(2), blockData)
+	assert.NoError(t, err)
 
 	// drain queue
 	for len(blockQueue.queue) > 0 {
@@ -236,7 +240,7 @@ func Test_lockQueue_threadSafety(t *testing.T) {
 		})
 
 		go runInLoop(func() {
-			_ = blockQueue.pop(ctx)
+			_, _ = blockQueue.pop(ctx)
 		})
 
 		go runInLoop(func() {
