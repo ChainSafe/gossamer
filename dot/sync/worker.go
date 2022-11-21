@@ -19,7 +19,7 @@ type workerState struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	sync.Mutex
+	mutex      sync.Mutex
 	nextWorker uint64
 	workers    map[uint64]*worker
 }
@@ -34,8 +34,8 @@ func newWorkerState() *workerState {
 }
 
 func (s *workerState) add(w *worker) {
-	s.Lock()
-	defer s.Unlock()
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
 
 	w.id = s.nextWorker
 	w.ctx = s.ctx
@@ -44,8 +44,8 @@ func (s *workerState) add(w *worker) {
 }
 
 func (s *workerState) delete(id uint64) {
-	s.Lock()
-	defer s.Unlock()
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
 	delete(s.workers, id)
 }
 
@@ -53,8 +53,8 @@ func (s *workerState) reset() {
 	s.cancel()
 	s.ctx, s.cancel = context.WithCancel(context.Background())
 
-	s.Lock()
-	defer s.Unlock()
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
 
 	for id := range s.workers {
 		delete(s.workers, id)
