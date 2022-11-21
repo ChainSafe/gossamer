@@ -16,38 +16,38 @@ func Test_Node_String(t *testing.T) {
 		node *Node
 		s    string
 	}{
-		"leaf with value smaller than 1024": {
+		"leaf with storage value smaller than 1024": {
 			node: &Node{
-				PartialKey: []byte{1, 2},
-				SubValue:   []byte{3, 4},
-				Dirty:      true,
+				PartialKey:   []byte{1, 2},
+				StorageValue: []byte{3, 4},
+				Dirty:        true,
 			},
 			s: `Leaf
 ├── Generation: 0
 ├── Dirty: true
 ├── Key: 0x0102
-├── Value: 0x0304
+├── Storage value: 0x0304
 └── Merkle value: nil`,
 		},
-		"leaf with value higher than 1024": {
+		"leaf with storage value higher than 1024": {
 			node: &Node{
-				PartialKey: []byte{1, 2},
-				SubValue:   make([]byte, 1025),
-				Dirty:      true,
+				PartialKey:   []byte{1, 2},
+				StorageValue: make([]byte, 1025),
+				Dirty:        true,
 			},
 			s: `Leaf
 ├── Generation: 0
 ├── Dirty: true
 ├── Key: 0x0102
-├── Value: 0x0000000000000000...0000000000000000
+├── Storage value: 0x0000000000000000...0000000000000000
 └── Merkle value: nil`,
 		},
-		"branch with value smaller than 1024": {
+		"branch with storage value smaller than 1024": {
 			node: &Node{
-				PartialKey:  []byte{1, 2},
-				SubValue:    []byte{3, 4},
-				Dirty:       true,
-				Descendants: 3,
+				PartialKey:   []byte{1, 2},
+				StorageValue: []byte{3, 4},
+				Dirty:        true,
+				Descendants:  3,
 				Children: []*Node{
 					nil, nil, nil,
 					{},
@@ -65,7 +65,7 @@ func Test_Node_String(t *testing.T) {
 ├── Generation: 0
 ├── Dirty: true
 ├── Key: 0x0102
-├── Value: 0x0304
+├── Storage value: 0x0304
 ├── Descendants: 3
 ├── Merkle value: nil
 ├── Child 3
@@ -73,14 +73,14 @@ func Test_Node_String(t *testing.T) {
 |       ├── Generation: 0
 |       ├── Dirty: false
 |       ├── Key: nil
-|       ├── Value: nil
+|       ├── Storage value: nil
 |       └── Merkle value: nil
 ├── Child 7
 |   └── Branch
 |       ├── Generation: 0
 |       ├── Dirty: false
 |       ├── Key: nil
-|       ├── Value: nil
+|       ├── Storage value: nil
 |       ├── Descendants: 1
 |       ├── Merkle value: nil
 |       └── Child 0
@@ -88,22 +88,22 @@ func Test_Node_String(t *testing.T) {
 |               ├── Generation: 0
 |               ├── Dirty: false
 |               ├── Key: nil
-|               ├── Value: nil
+|               ├── Storage value: nil
 |               └── Merkle value: nil
 └── Child 11
     └── Leaf
         ├── Generation: 0
         ├── Dirty: false
         ├── Key: nil
-        ├── Value: nil
+        ├── Storage value: nil
         └── Merkle value: nil`,
 		},
-		"branch with value higher than 1024": {
+		"branch with storage value higher than 1024": {
 			node: &Node{
-				PartialKey:  []byte{1, 2},
-				SubValue:    make([]byte, 1025),
-				Dirty:       true,
-				Descendants: 3,
+				PartialKey:   []byte{1, 2},
+				StorageValue: make([]byte, 1025),
+				Dirty:        true,
+				Descendants:  3,
 				Children: []*Node{
 					nil, nil, nil,
 					{},
@@ -121,7 +121,7 @@ func Test_Node_String(t *testing.T) {
 ├── Generation: 0
 ├── Dirty: true
 ├── Key: 0x0102
-├── Value: 0x0000000000000000...0000000000000000
+├── Storage value: 0x0000000000000000...0000000000000000
 ├── Descendants: 3
 ├── Merkle value: nil
 ├── Child 3
@@ -129,14 +129,14 @@ func Test_Node_String(t *testing.T) {
 |       ├── Generation: 0
 |       ├── Dirty: false
 |       ├── Key: nil
-|       ├── Value: nil
+|       ├── Storage value: nil
 |       └── Merkle value: nil
 ├── Child 7
 |   └── Branch
 |       ├── Generation: 0
 |       ├── Dirty: false
 |       ├── Key: nil
-|       ├── Value: nil
+|       ├── Storage value: nil
 |       ├── Descendants: 1
 |       ├── Merkle value: nil
 |       └── Child 0
@@ -144,14 +144,14 @@ func Test_Node_String(t *testing.T) {
 |               ├── Generation: 0
 |               ├── Dirty: false
 |               ├── Key: nil
-|               ├── Value: nil
+|               ├── Storage value: nil
 |               └── Merkle value: nil
 └── Child 11
     └── Leaf
         ├── Generation: 0
         ├── Dirty: false
         ├── Key: nil
-        ├── Value: nil
+        ├── Storage value: nil
         └── Merkle value: nil`,
 		},
 	}

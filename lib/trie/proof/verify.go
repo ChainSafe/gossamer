@@ -138,7 +138,7 @@ func loadProof(digestToEncoding map[string][]byte, n *node.Node) (err error) {
 		merkleValue := child.MerkleValue
 		encoding, ok := digestToEncoding[string(merkleValue)]
 		if !ok {
-			inlinedChild := len(child.SubValue) > 0 || child.HasChild()
+			inlinedChild := len(child.StorageValue) > 0 || child.HasChild()
 			if inlinedChild {
 				// The built proof trie is not used with a database, but just in case
 				// it becomes used with a database in the future, we set the dirty flag

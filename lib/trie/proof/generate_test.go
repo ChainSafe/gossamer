@@ -26,7 +26,7 @@ func Test_Generate(t *testing.T) {
 	}
 
 	largeValue := generateBytes(t, 50)
-	assertLongEncoding(t, node.Node{SubValue: largeValue})
+	assertLongEncoding(t, node.Node{StorageValue: largeValue})
 
 	testCases := map[string]struct {
 		rootHash          []byte
@@ -56,8 +56,8 @@ func Test_Generate(t *testing.T) {
 			databaseBuilder: func(ctrl *gomock.Controller) Database {
 				mockDatabase := NewMockDatabase(ctrl)
 				encodedRoot := encodeNode(t, node.Node{
-					PartialKey: []byte{1},
-					SubValue:   []byte{2},
+					PartialKey:   []byte{1},
+					StorageValue: []byte{2},
 				})
 				mockDatabase.EXPECT().Get(someHash).
 					Return(encodedRoot, nil)
@@ -72,8 +72,8 @@ func Test_Generate(t *testing.T) {
 			databaseBuilder: func(ctrl *gomock.Controller) Database {
 				mockDatabase := NewMockDatabase(ctrl)
 				encodedRoot := encodeNode(t, node.Node{
-					PartialKey: []byte{1},
-					SubValue:   []byte{2},
+					PartialKey:   []byte{1},
+					StorageValue: []byte{2},
 				})
 				mockDatabase.EXPECT().Get(someHash).
 					Return(encodedRoot, nil)
@@ -81,8 +81,8 @@ func Test_Generate(t *testing.T) {
 			},
 			encodedProofNodes: [][]byte{
 				encodeNode(t, node.Node{
-					PartialKey: []byte{1},
-					SubValue:   []byte{2},
+					PartialKey:   []byte{1},
+					StorageValue: []byte{2},
 				}),
 			},
 		},
@@ -92,13 +92,13 @@ func Test_Generate(t *testing.T) {
 			databaseBuilder: func(ctrl *gomock.Controller) Database {
 				mockDatabase := NewMockDatabase(ctrl)
 				encodedRoot := encodeNode(t, node.Node{
-					PartialKey: []byte{1},
-					SubValue:   []byte{2},
+					PartialKey:   []byte{1},
+					StorageValue: []byte{2},
 					Children: padRightChildren([]*node.Node{
 						nil, nil,
 						{
-							PartialKey: []byte{3},
-							SubValue:   []byte{4},
+							PartialKey:   []byte{3},
+							StorageValue: []byte{4},
 						},
 					}),
 				})
@@ -108,13 +108,13 @@ func Test_Generate(t *testing.T) {
 			},
 			encodedProofNodes: [][]byte{
 				encodeNode(t, node.Node{
-					PartialKey: []byte{1},
-					SubValue:   []byte{2},
+					PartialKey:   []byte{1},
+					StorageValue: []byte{2},
 					Children: padRightChildren([]*node.Node{
 						nil, nil,
 						{
-							PartialKey: []byte{3},
-							SubValue:   []byte{4},
+							PartialKey:   []byte{3},
+							StorageValue: []byte{4},
 						},
 					}),
 				}),
@@ -129,13 +129,13 @@ func Test_Generate(t *testing.T) {
 				mockDatabase := NewMockDatabase(ctrl)
 
 				rootNode := node.Node{
-					PartialKey: []byte{1, 2},
-					SubValue:   []byte{2},
+					PartialKey:   []byte{1, 2},
+					StorageValue: []byte{2},
 					Children: padRightChildren([]*node.Node{
 						nil, nil, nil,
 						{ // full key 1, 2, 3, 4
-							PartialKey: []byte{4},
-							SubValue:   largeValue,
+							PartialKey:   []byte{4},
+							StorageValue: largeValue,
 						},
 					}),
 				}
@@ -151,19 +151,19 @@ func Test_Generate(t *testing.T) {
 			},
 			encodedProofNodes: [][]byte{
 				encodeNode(t, node.Node{
-					PartialKey: []byte{1, 2},
-					SubValue:   []byte{2},
+					PartialKey:   []byte{1, 2},
+					StorageValue: []byte{2},
 					Children: padRightChildren([]*node.Node{
 						nil, nil, nil,
 						{
-							PartialKey: []byte{4},
-							SubValue:   largeValue,
+							PartialKey:   []byte{4},
+							StorageValue: largeValue,
 						},
 					}),
 				}),
 				encodeNode(t, node.Node{
-					PartialKey: []byte{4},
-					SubValue:   largeValue,
+					PartialKey:   []byte{4},
+					StorageValue: largeValue,
 				}),
 			},
 		},
@@ -178,21 +178,21 @@ func Test_Generate(t *testing.T) {
 				mockDatabase := NewMockDatabase(ctrl)
 
 				rootNode := node.Node{
-					PartialKey: []byte{1, 2},
-					SubValue:   []byte{2},
+					PartialKey:   []byte{1, 2},
+					StorageValue: []byte{2},
 					Children: padRightChildren([]*node.Node{
 						nil, nil, nil,
 						{ // full key 1, 2, 3, 4
-							PartialKey: []byte{4},
-							SubValue:   largeValue,
+							PartialKey:   []byte{4},
+							StorageValue: largeValue,
 						},
 						{ // full key 1, 2, 4, 4
-							PartialKey: []byte{4},
-							SubValue:   largeValue,
+							PartialKey:   []byte{4},
+							StorageValue: largeValue,
 						},
 						{ // full key 1, 2, 5, 5
-							PartialKey: []byte{5},
-							SubValue:   largeValue,
+							PartialKey:   []byte{5},
+							StorageValue: largeValue,
 						},
 					}),
 				}
@@ -212,31 +212,31 @@ func Test_Generate(t *testing.T) {
 			},
 			encodedProofNodes: [][]byte{
 				encodeNode(t, node.Node{
-					PartialKey: []byte{1, 2},
-					SubValue:   []byte{2},
+					PartialKey:   []byte{1, 2},
+					StorageValue: []byte{2},
 					Children: padRightChildren([]*node.Node{
 						nil, nil, nil,
 						{ // full key 1, 2, 3, 4
-							PartialKey: []byte{4},
-							SubValue:   largeValue,
+							PartialKey:   []byte{4},
+							StorageValue: largeValue,
 						},
 						{ // full key 1, 2, 4, 4
-							PartialKey: []byte{4},
-							SubValue:   largeValue,
+							PartialKey:   []byte{4},
+							StorageValue: largeValue,
 						},
 						{ // full key 1, 2, 5, 5
-							PartialKey: []byte{5},
-							SubValue:   largeValue,
+							PartialKey:   []byte{5},
+							StorageValue: largeValue,
 						},
 					}),
 				}),
 				encodeNode(t, node.Node{
-					PartialKey: []byte{4},
-					SubValue:   largeValue,
+					PartialKey:   []byte{4},
+					StorageValue: largeValue,
 				}),
 				encodeNode(t, node.Node{
-					PartialKey: []byte{5},
-					SubValue:   largeValue,
+					PartialKey:   []byte{5},
+					StorageValue: largeValue,
 				}),
 			},
 		},
@@ -270,7 +270,7 @@ func Test_walkRoot(t *testing.T) {
 	t.Parallel()
 
 	largeValue := generateBytes(t, 40)
-	assertLongEncoding(t, node.Node{SubValue: largeValue})
+	assertLongEncoding(t, node.Node{StorageValue: largeValue})
 
 	testCases := map[string]struct {
 		parent            *node.Node
@@ -289,18 +289,18 @@ func Test_walkRoot(t *testing.T) {
 		// since it can only be caused by a buffer.Write error.
 		"parent leaf and empty full key": {
 			parent: &node.Node{
-				PartialKey: []byte{1, 2},
-				SubValue:   []byte{1},
+				PartialKey:   []byte{1, 2},
+				StorageValue: []byte{1},
 			},
 			encodedProofNodes: [][]byte{encodeNode(t, node.Node{
-				PartialKey: []byte{1, 2},
-				SubValue:   []byte{1},
+				PartialKey:   []byte{1, 2},
+				StorageValue: []byte{1},
 			})},
 		},
 		"parent leaf and shorter full key": {
 			parent: &node.Node{
-				PartialKey: []byte{1, 2},
-				SubValue:   []byte{1},
+				PartialKey:   []byte{1, 2},
+				StorageValue: []byte{1},
 			},
 			fullKey:    []byte{1},
 			errWrapped: ErrKeyNotFound,
@@ -308,8 +308,8 @@ func Test_walkRoot(t *testing.T) {
 		},
 		"parent leaf and mismatching full key": {
 			parent: &node.Node{
-				PartialKey: []byte{1, 2},
-				SubValue:   []byte{1},
+				PartialKey:   []byte{1, 2},
+				StorageValue: []byte{1},
 			},
 			fullKey:    []byte{1, 3},
 			errWrapped: ErrKeyNotFound,
@@ -317,8 +317,8 @@ func Test_walkRoot(t *testing.T) {
 		},
 		"parent leaf and longer full key": {
 			parent: &node.Node{
-				PartialKey: []byte{1, 2},
-				SubValue:   []byte{1},
+				PartialKey:   []byte{1, 2},
+				StorageValue: []byte{1},
 			},
 			fullKey:    []byte{1, 2, 3},
 			errWrapped: ErrKeyNotFound,
@@ -326,23 +326,23 @@ func Test_walkRoot(t *testing.T) {
 		},
 		"branch and empty search key": {
 			parent: &node.Node{
-				PartialKey: []byte{1, 2},
-				SubValue:   []byte{3},
+				PartialKey:   []byte{1, 2},
+				StorageValue: []byte{3},
 				Children: padRightChildren([]*node.Node{
 					{
-						PartialKey: []byte{4},
-						SubValue:   []byte{5},
+						PartialKey:   []byte{4},
+						StorageValue: []byte{5},
 					},
 				}),
 			},
 			encodedProofNodes: [][]byte{
 				encodeNode(t, node.Node{
-					PartialKey: []byte{1, 2},
-					SubValue:   []byte{3},
+					PartialKey:   []byte{1, 2},
+					StorageValue: []byte{3},
 					Children: padRightChildren([]*node.Node{
 						{
-							PartialKey: []byte{4},
-							SubValue:   []byte{5},
+							PartialKey:   []byte{4},
+							StorageValue: []byte{5},
 						},
 					}),
 				}),
@@ -350,12 +350,12 @@ func Test_walkRoot(t *testing.T) {
 		},
 		"branch and shorter full key": {
 			parent: &node.Node{
-				PartialKey: []byte{1, 2},
-				SubValue:   []byte{3},
+				PartialKey:   []byte{1, 2},
+				StorageValue: []byte{3},
 				Children: padRightChildren([]*node.Node{
 					{
-						PartialKey: []byte{4},
-						SubValue:   []byte{5},
+						PartialKey:   []byte{4},
+						StorageValue: []byte{5},
 					},
 				}),
 			},
@@ -365,12 +365,12 @@ func Test_walkRoot(t *testing.T) {
 		},
 		"branch and mismatching full key": {
 			parent: &node.Node{
-				PartialKey: []byte{1, 2},
-				SubValue:   []byte{3},
+				PartialKey:   []byte{1, 2},
+				StorageValue: []byte{3},
 				Children: padRightChildren([]*node.Node{
 					{
-						PartialKey: []byte{4},
-						SubValue:   []byte{5},
+						PartialKey:   []byte{4},
+						StorageValue: []byte{5},
 					},
 				}),
 			},
@@ -380,24 +380,24 @@ func Test_walkRoot(t *testing.T) {
 		},
 		"branch and matching search key": {
 			parent: &node.Node{
-				PartialKey: []byte{1, 2},
-				SubValue:   []byte{3},
+				PartialKey:   []byte{1, 2},
+				StorageValue: []byte{3},
 				Children: padRightChildren([]*node.Node{
 					{
-						PartialKey: []byte{4},
-						SubValue:   []byte{5},
+						PartialKey:   []byte{4},
+						StorageValue: []byte{5},
 					},
 				}),
 			},
 			fullKey: []byte{1, 2},
 			encodedProofNodes: [][]byte{
 				encodeNode(t, node.Node{
-					PartialKey: []byte{1, 2},
-					SubValue:   []byte{3},
+					PartialKey:   []byte{1, 2},
+					StorageValue: []byte{3},
 					Children: padRightChildren([]*node.Node{
 						{
-							PartialKey: []byte{4},
-							SubValue:   []byte{5},
+							PartialKey:   []byte{4},
+							StorageValue: []byte{5},
 						},
 					}),
 				}),
@@ -405,24 +405,24 @@ func Test_walkRoot(t *testing.T) {
 		},
 		"branch and matching search key for small leaf encoding": {
 			parent: &node.Node{
-				PartialKey: []byte{1, 2},
-				SubValue:   []byte{3},
+				PartialKey:   []byte{1, 2},
+				StorageValue: []byte{3},
 				Children: padRightChildren([]*node.Node{
 					{ // full key 1, 2, 0, 1, 2
-						PartialKey: []byte{1, 2},
-						SubValue:   []byte{3},
+						PartialKey:   []byte{1, 2},
+						StorageValue: []byte{3},
 					},
 				}),
 			},
 			fullKey: []byte{1, 2, 0, 1, 2},
 			encodedProofNodes: [][]byte{
 				encodeNode(t, node.Node{
-					PartialKey: []byte{1, 2},
-					SubValue:   []byte{3},
+					PartialKey:   []byte{1, 2},
+					StorageValue: []byte{3},
 					Children: padRightChildren([]*node.Node{
 						{ // full key 1, 2, 0, 1, 2
-							PartialKey: []byte{1, 2},
-							SubValue:   []byte{3},
+							PartialKey:   []byte{1, 2},
+							StorageValue: []byte{3},
 						},
 					}),
 				}),
@@ -432,41 +432,41 @@ func Test_walkRoot(t *testing.T) {
 		},
 		"branch and matching search key for large leaf encoding": {
 			parent: &node.Node{
-				PartialKey: []byte{1, 2},
-				SubValue:   []byte{3},
+				PartialKey:   []byte{1, 2},
+				StorageValue: []byte{3},
 				Children: padRightChildren([]*node.Node{
 					{ // full key 1, 2, 0, 1, 2
-						PartialKey: []byte{1, 2},
-						SubValue:   largeValue,
+						PartialKey:   []byte{1, 2},
+						StorageValue: largeValue,
 					},
 				}),
 			},
 			fullKey: []byte{1, 2, 0, 1, 2},
 			encodedProofNodes: [][]byte{
 				encodeNode(t, node.Node{
-					PartialKey: []byte{1, 2},
-					SubValue:   []byte{3},
+					PartialKey:   []byte{1, 2},
+					StorageValue: []byte{3},
 					Children: padRightChildren([]*node.Node{
 						{ // full key 1, 2, 0, 1, 2
-							PartialKey: []byte{1, 2},
-							SubValue:   largeValue,
+							PartialKey:   []byte{1, 2},
+							StorageValue: largeValue,
 						},
 					}),
 				}),
 				encodeNode(t, node.Node{
-					PartialKey: []byte{1, 2},
-					SubValue:   largeValue,
+					PartialKey:   []byte{1, 2},
+					StorageValue: largeValue,
 				}),
 			},
 		},
 		"key not found at deeper level": {
 			parent: &node.Node{
-				PartialKey: []byte{1, 2},
-				SubValue:   []byte{3},
+				PartialKey:   []byte{1, 2},
+				StorageValue: []byte{3},
 				Children: padRightChildren([]*node.Node{
 					{
-						PartialKey: []byte{4, 5},
-						SubValue:   []byte{5},
+						PartialKey:   []byte{4, 5},
+						StorageValue: []byte{5},
 					},
 				}),
 			},
@@ -476,24 +476,24 @@ func Test_walkRoot(t *testing.T) {
 		},
 		"found leaf at deeper level": {
 			parent: &node.Node{
-				PartialKey: []byte{1, 2},
-				SubValue:   []byte{3},
+				PartialKey:   []byte{1, 2},
+				StorageValue: []byte{3},
 				Children: padRightChildren([]*node.Node{
 					{
-						PartialKey: []byte{4},
-						SubValue:   []byte{5},
+						PartialKey:   []byte{4},
+						StorageValue: []byte{5},
 					},
 				}),
 			},
 			fullKey: []byte{1, 2, 0x04},
 			encodedProofNodes: [][]byte{
 				encodeNode(t, node.Node{
-					PartialKey: []byte{1, 2},
-					SubValue:   []byte{3},
+					PartialKey:   []byte{1, 2},
+					StorageValue: []byte{3},
 					Children: padRightChildren([]*node.Node{
 						{
-							PartialKey: []byte{4},
-							SubValue:   []byte{5},
+							PartialKey:   []byte{4},
+							StorageValue: []byte{5},
 						},
 					}),
 				}),
@@ -521,7 +521,7 @@ func Test_walk(t *testing.T) {
 	t.Parallel()
 
 	largeValue := generateBytes(t, 40)
-	assertLongEncoding(t, node.Node{SubValue: largeValue})
+	assertLongEncoding(t, node.Node{StorageValue: largeValue})
 
 	testCases := map[string]struct {
 		parent            *node.Node
@@ -540,18 +540,18 @@ func Test_walk(t *testing.T) {
 		// since it can only be caused by a buffer.Write error.
 		"parent leaf and empty full key": {
 			parent: &node.Node{
-				PartialKey: []byte{1, 2},
-				SubValue:   largeValue,
+				PartialKey:   []byte{1, 2},
+				StorageValue: largeValue,
 			},
 			encodedProofNodes: [][]byte{encodeNode(t, node.Node{
-				PartialKey: []byte{1, 2},
-				SubValue:   largeValue,
+				PartialKey:   []byte{1, 2},
+				StorageValue: largeValue,
 			})},
 		},
 		"parent leaf and shorter full key": {
 			parent: &node.Node{
-				PartialKey: []byte{1, 2},
-				SubValue:   []byte{1},
+				PartialKey:   []byte{1, 2},
+				StorageValue: []byte{1},
 			},
 			fullKey:    []byte{1},
 			errWrapped: ErrKeyNotFound,
@@ -559,8 +559,8 @@ func Test_walk(t *testing.T) {
 		},
 		"parent leaf and mismatching full key": {
 			parent: &node.Node{
-				PartialKey: []byte{1, 2},
-				SubValue:   []byte{1},
+				PartialKey:   []byte{1, 2},
+				StorageValue: []byte{1},
 			},
 			fullKey:    []byte{1, 3},
 			errWrapped: ErrKeyNotFound,
@@ -568,8 +568,8 @@ func Test_walk(t *testing.T) {
 		},
 		"parent leaf and longer full key": {
 			parent: &node.Node{
-				PartialKey: []byte{1, 2},
-				SubValue:   []byte{1},
+				PartialKey:   []byte{1, 2},
+				StorageValue: []byte{1},
 			},
 			fullKey:    []byte{1, 2, 3},
 			errWrapped: ErrKeyNotFound,
@@ -577,23 +577,23 @@ func Test_walk(t *testing.T) {
 		},
 		"branch and empty search key": {
 			parent: &node.Node{
-				PartialKey: []byte{1, 2},
-				SubValue:   largeValue,
+				PartialKey:   []byte{1, 2},
+				StorageValue: largeValue,
 				Children: padRightChildren([]*node.Node{
 					{
-						PartialKey: []byte{4},
-						SubValue:   []byte{5},
+						PartialKey:   []byte{4},
+						StorageValue: []byte{5},
 					},
 				}),
 			},
 			encodedProofNodes: [][]byte{
 				encodeNode(t, node.Node{
-					PartialKey: []byte{1, 2},
-					SubValue:   largeValue,
+					PartialKey:   []byte{1, 2},
+					StorageValue: largeValue,
 					Children: padRightChildren([]*node.Node{
 						{
-							PartialKey: []byte{4},
-							SubValue:   []byte{5},
+							PartialKey:   []byte{4},
+							StorageValue: []byte{5},
 						},
 					}),
 				}),
@@ -601,12 +601,12 @@ func Test_walk(t *testing.T) {
 		},
 		"branch and shorter full key": {
 			parent: &node.Node{
-				PartialKey: []byte{1, 2},
-				SubValue:   []byte{3},
+				PartialKey:   []byte{1, 2},
+				StorageValue: []byte{3},
 				Children: padRightChildren([]*node.Node{
 					{
-						PartialKey: []byte{4},
-						SubValue:   []byte{5},
+						PartialKey:   []byte{4},
+						StorageValue: []byte{5},
 					},
 				}),
 			},
@@ -616,12 +616,12 @@ func Test_walk(t *testing.T) {
 		},
 		"branch and mismatching full key": {
 			parent: &node.Node{
-				PartialKey: []byte{1, 2},
-				SubValue:   []byte{3},
+				PartialKey:   []byte{1, 2},
+				StorageValue: []byte{3},
 				Children: padRightChildren([]*node.Node{
 					{
-						PartialKey: []byte{4},
-						SubValue:   []byte{5},
+						PartialKey:   []byte{4},
+						StorageValue: []byte{5},
 					},
 				}),
 			},
@@ -631,24 +631,24 @@ func Test_walk(t *testing.T) {
 		},
 		"branch and matching search key": {
 			parent: &node.Node{
-				PartialKey: []byte{1, 2},
-				SubValue:   []byte{3},
+				PartialKey:   []byte{1, 2},
+				StorageValue: []byte{3},
 				Children: padRightChildren([]*node.Node{
 					{
-						PartialKey: []byte{4},
-						SubValue:   largeValue,
+						PartialKey:   []byte{4},
+						StorageValue: largeValue,
 					},
 				}),
 			},
 			fullKey: []byte{1, 2},
 			encodedProofNodes: [][]byte{
 				encodeNode(t, node.Node{
-					PartialKey: []byte{1, 2},
-					SubValue:   []byte{3},
+					PartialKey:   []byte{1, 2},
+					StorageValue: []byte{3},
 					Children: padRightChildren([]*node.Node{
 						{
-							PartialKey: []byte{4},
-							SubValue:   largeValue,
+							PartialKey:   []byte{4},
+							StorageValue: largeValue,
 						},
 					}),
 				}),
@@ -656,24 +656,24 @@ func Test_walk(t *testing.T) {
 		},
 		"branch and matching search key for small leaf encoding": {
 			parent: &node.Node{
-				PartialKey: []byte{1, 2},
-				SubValue:   largeValue,
+				PartialKey:   []byte{1, 2},
+				StorageValue: largeValue,
 				Children: padRightChildren([]*node.Node{
 					{ // full key 1, 2, 0, 1, 2
-						PartialKey: []byte{1, 2},
-						SubValue:   []byte{3},
+						PartialKey:   []byte{1, 2},
+						StorageValue: []byte{3},
 					},
 				}),
 			},
 			fullKey: []byte{1, 2, 0, 1, 2},
 			encodedProofNodes: [][]byte{
 				encodeNode(t, node.Node{
-					PartialKey: []byte{1, 2},
-					SubValue:   largeValue,
+					PartialKey:   []byte{1, 2},
+					StorageValue: largeValue,
 					Children: padRightChildren([]*node.Node{
 						{ // full key 1, 2, 0, 1, 2
-							PartialKey: []byte{1, 2},
-							SubValue:   []byte{3},
+							PartialKey:   []byte{1, 2},
+							StorageValue: []byte{3},
 						},
 					}),
 				}),
@@ -683,41 +683,41 @@ func Test_walk(t *testing.T) {
 		},
 		"branch and matching search key for large leaf encoding": {
 			parent: &node.Node{
-				PartialKey: []byte{1, 2},
-				SubValue:   []byte{3},
+				PartialKey:   []byte{1, 2},
+				StorageValue: []byte{3},
 				Children: padRightChildren([]*node.Node{
 					{ // full key 1, 2, 0, 1, 2
-						PartialKey: []byte{1, 2},
-						SubValue:   largeValue,
+						PartialKey:   []byte{1, 2},
+						StorageValue: largeValue,
 					},
 				}),
 			},
 			fullKey: []byte{1, 2, 0, 1, 2},
 			encodedProofNodes: [][]byte{
 				encodeNode(t, node.Node{
-					PartialKey: []byte{1, 2},
-					SubValue:   []byte{3},
+					PartialKey:   []byte{1, 2},
+					StorageValue: []byte{3},
 					Children: padRightChildren([]*node.Node{
 						{ // full key 1, 2, 0, 1, 2
-							PartialKey: []byte{1, 2},
-							SubValue:   largeValue,
+							PartialKey:   []byte{1, 2},
+							StorageValue: largeValue,
 						},
 					}),
 				}),
 				encodeNode(t, node.Node{
-					PartialKey: []byte{1, 2},
-					SubValue:   largeValue,
+					PartialKey:   []byte{1, 2},
+					StorageValue: largeValue,
 				}),
 			},
 		},
 		"key not found at deeper level": {
 			parent: &node.Node{
-				PartialKey: []byte{1, 2},
-				SubValue:   []byte{3},
+				PartialKey:   []byte{1, 2},
+				StorageValue: []byte{3},
 				Children: padRightChildren([]*node.Node{
 					{
-						PartialKey: []byte{4, 5},
-						SubValue:   []byte{5},
+						PartialKey:   []byte{4, 5},
+						StorageValue: []byte{5},
 					},
 				}),
 			},
@@ -727,24 +727,24 @@ func Test_walk(t *testing.T) {
 		},
 		"found leaf at deeper level": {
 			parent: &node.Node{
-				PartialKey: []byte{1, 2},
-				SubValue:   []byte{3},
+				PartialKey:   []byte{1, 2},
+				StorageValue: []byte{3},
 				Children: padRightChildren([]*node.Node{
 					{
-						PartialKey: []byte{4},
-						SubValue:   largeValue,
+						PartialKey:   []byte{4},
+						StorageValue: largeValue,
 					},
 				}),
 			},
 			fullKey: []byte{1, 2, 0x04},
 			encodedProofNodes: [][]byte{
 				encodeNode(t, node.Node{
-					PartialKey: []byte{1, 2},
-					SubValue:   []byte{3},
+					PartialKey:   []byte{1, 2},
+					StorageValue: []byte{3},
 					Children: padRightChildren([]*node.Node{
 						{
-							PartialKey: []byte{4},
-							SubValue:   largeValue,
+							PartialKey:   []byte{4},
+							StorageValue: largeValue,
 						},
 					}),
 				}),
