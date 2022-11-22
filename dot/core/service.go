@@ -426,13 +426,13 @@ func (s *Service) maintainTransactionPool(block *types.Block, bestBlockHash comm
 			return fmt.Errorf("failed to get runtime to re-validate transactions in pool: %s", err)
 		}
 
-		// ValidateTransaction modifies the trie state so we use the temporary state.
-		rt.SetContextStorage(temporaryState)
 		externalExt, err := s.buildExternalTransaction(rt, tx.Extrinsic)
 		if err != nil {
 			return fmt.Errorf("building external transaction: %s", err)
 		}
 
+		// ValidateTransaction modifies the trie state so we use the temporary state.
+		rt.SetContextStorage(temporaryState)
 		txnValidity, err := rt.ValidateTransaction(externalExt)
 		if err != nil {
 			logger.Debugf("failed to validate transaction for extrinsic %s: %s", tx.Extrinsic, err)
@@ -529,16 +529,15 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 		return err
 	}
 
-	// ValidateTransaction modifies the trie state so we want to snapshot it
-	// so that the original trie state remains unaffected.
-	temporaryState := ts.Snapshot()
-	rt.SetContextStorage(temporaryState)
-
 	externalExt, err := s.buildExternalTransaction(rt, ext)
 	if err != nil {
 		return fmt.Errorf("building external transaction: %w", err)
 	}
 
+	// ValidateTransaction modifies the trie state so we want to snapshot it
+	// so that the original trie state remains unaffected.
+	temporaryState := ts.Snapshot()
+	rt.SetContextStorage(temporaryState)
 	transactionValidity, err := rt.ValidateTransaction(externalExt)
 	if err != nil {
 		return err

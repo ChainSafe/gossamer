@@ -31,14 +31,13 @@ func (s *Service) validateTransaction(head *types.Header, rt RuntimeInstance,
 
 	s.storageState.Unlock()
 
-	rt.SetContextStorage(temporaryState)
-
 	// validate each transaction
 	externalExt, err := s.buildExternalTransaction(rt, tx)
 	if err != nil {
 		return nil, fmt.Errorf("building external transaction: %w", err)
 	}
 
+	rt.SetContextStorage(temporaryState)
 	validity, err = rt.ValidateTransaction(externalExt)
 	if err != nil {
 		logger.Debugf("failed to validate transaction: %s", err)

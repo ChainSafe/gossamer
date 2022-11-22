@@ -252,10 +252,8 @@ func (s *chainProcessor) handleBlock(block *types.Block, announceImportedBlock b
 	if err != nil {
 		return err
 	}
-	// TODO put below
-	nextStorageState := ts.Snapshot()
 
-	root := nextStorageState.MustRoot()
+	root := ts.MustRoot()
 	if !bytes.Equal(parent.StateRoot[:], root[:]) {
 		panic("parent state root does not match snapshot state root")
 	}
@@ -265,6 +263,7 @@ func (s *chainProcessor) handleBlock(block *types.Block, announceImportedBlock b
 		return err
 	}
 
+	nextStorageState := ts.Snapshot()
 	rt.SetContextStorage(nextStorageState)
 
 	_, err = rt.ExecuteBlock(block)
