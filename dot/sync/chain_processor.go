@@ -274,7 +274,8 @@ func (s *chainProcessor) handleBlock(block *types.Block, announceImportedBlock b
 
 	rt.SetContextStorage(nil)
 
-	if err = s.blockImportHandler.HandleBlockImport(block, nextStorageState, announceImportedBlock); err != nil {
+	err = s.blockImportHandler.HandleBlockImport(block, nextStorageState, announceImportedBlock)
+	if err != nil {
 		return fmt.Errorf("handling block import: %w", err)
 	}
 
