@@ -268,8 +268,11 @@ func (s *chainProcessor) handleBlock(block *types.Block, announceImportedBlock b
 
 	_, err = rt.ExecuteBlock(block)
 	if err != nil {
+		rt.SetContextStorage(nil)
 		return fmt.Errorf("failed to execute block %d: %w", block.Header.Number, err)
 	}
+
+	rt.SetContextStorage(nil)
 
 	if err = s.blockImportHandler.HandleBlockImport(block, nextStorageState, announceImportedBlock); err != nil {
 		return fmt.Errorf("handling block import: %w", err)

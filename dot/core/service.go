@@ -434,6 +434,7 @@ func (s *Service) maintainTransactionPool(block *types.Block, bestBlockHash comm
 		temporaryState := ts.Snapshot()
 		rt.SetContextStorage(temporaryState)
 		txnValidity, err := rt.ValidateTransaction(externalExt)
+		rt.SetContextStorage(nil)
 		if err != nil {
 			logger.Debugf("failed to validate transaction for extrinsic %s: %s", tx.Extrinsic, err)
 			s.transactionState.RemoveExtrinsic(tx.Extrinsic)
@@ -542,6 +543,8 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 	if err != nil {
 		return err
 	}
+	// TODO adding this fails polkadotjs tests
+	// rt.SetContextStorage(nil)
 
 	// add transaction to pool
 	vtx := transaction.NewValidTransaction(ext, transactionValidity)

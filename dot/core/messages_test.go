@@ -179,6 +179,7 @@ func Test_Service_HandleTransactionMessage(t *testing.T) {
 				}
 				runtimeInstance.EXPECT().Version().Return(version)
 				runtimeInstance.EXPECT().SetContextStorage(trieState.Snapshot())
+				runtimeInstance.EXPECT().SetContextStorage(nil)
 				validity := &transaction.Validity{Propagate: true}
 				externalExtrinsic := []byte{2, 1, 2, 3}
 				runtimeInstance.EXPECT().ValidateTransaction(externalExtrinsic).
@@ -240,6 +241,7 @@ func Test_Service_HandleTransactionMessage(t *testing.T) {
 				}
 				runtimeInstance.EXPECT().Version().Return(version)
 				runtimeInstance.EXPECT().SetContextStorage(trieState.Snapshot())
+				runtimeInstance.EXPECT().SetContextStorage(nil)
 				validity := &transaction.Validity{}
 				externalExtrinsic := []byte{2, 1, 2, 3}
 				runtimeInstance.EXPECT().ValidateTransaction(externalExtrinsic).

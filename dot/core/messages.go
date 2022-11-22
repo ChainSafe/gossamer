@@ -43,6 +43,7 @@ func (s *Service) validateTransaction(head *types.Header, rt RuntimeInstance,
 		logger.Debugf("failed to validate transaction: %s", err)
 		return nil, err
 	}
+	rt.SetContextStorage(nil)
 
 	vtx := transaction.NewValidTransaction(tx, validity)
 

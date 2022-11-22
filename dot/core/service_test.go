@@ -589,6 +589,7 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 		originalTrieState := rtstorage.NewTrieState(originalTrie)
 		snapshotTrieStateOnce := originalTrieState.Snapshot()
 		runtimeMock.EXPECT().SetContextStorage(snapshotTrieStateOnce)
+		runtimeMock.EXPECT().SetContextStorage(nil)
 
 		mockTxnState := NewMockTransactionState(ctrl)
 		mockTxnState.EXPECT().RemoveExtrinsic(types.Extrinsic{21}).Times(2)
@@ -658,6 +659,7 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 		originalTrieState := rtstorage.NewTrieState(originalTrie)
 		snapshotTrieStateOnce := originalTrieState.Snapshot()
 		runtimeMock.EXPECT().SetContextStorage(snapshotTrieStateOnce)
+		runtimeMock.EXPECT().SetContextStorage(nil)
 
 		mockTxnState := NewMockTransactionState(ctrl)
 		mockTxnState.EXPECT().RemoveExtrinsic(types.Extrinsic{21})
