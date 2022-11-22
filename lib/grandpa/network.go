@@ -6,7 +6,6 @@ package grandpa
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -16,11 +15,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/protocol"
 )
 
-const (
-	grandpaID1 = "grandpa/1"
-
-	neighbourMessageInterval = 5 * time.Minute
-)
+const grandpaID1 = "grandpa/1"
 
 // Handshake is an alias for network.Handshake
 type Handshake = network.Handshake
@@ -154,59 +149,6 @@ func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) (
 	}
 
 	return true, nil
-}
-
-// sendMessage sends a vote message to be gossiped to the network
-func (s *Service) sendMessage(msg GrandpaMessage) error {
-	cm, err := msg.ToConsensusMessage()
-	if err != nil {
-		return err
-	}
-
-	s.network.GossipMessage(cm)
-	logger.Tracef("sent message: %v", msg)
-	return nil
-}
-
-func (s *Service) sendNeighbourMessage(interval time.Duration) {
-	t := time.NewTicker(interval)
-	defer t.Stop()
-
-	var neighbourMessage *NeighbourPacketV1
-	for {
-		select {
-		case <-s.ctx.Done():
-			return
-
-		case <-t.C:
-			s.roundLock.Lock()
-			neighbourMessage = &NeighbourPacketV1{
-				Round:  s.state.round,
-				SetID:  s.state.setID,
-				Number: uint32(s.head.Number),
-			}
-			s.roundLock.Unlock()
-
-		case info, ok := <-s.finalisedCh:
-			if !ok {
-				return
-			}
-
-			neighbourMessage = &NeighbourPacketV1{
-				Round:  info.Round,
-				SetID:  info.SetID,
-				Number: uint32(info.Header.Number),
-			}
-		}
-
-		cm, err := neighbourMessage.ToConsensusMessage()
-		if err != nil {
-			logger.Warnf("failed to convert NeighbourMessage to network message: %s", err)
-			continue
-		}
-
-		s.network.GossipMessage(cm)
-	}
 }
 
 // decodeMessage decodes a network-level consensus message into a GRANDPA VoteMessage or CommitMessage

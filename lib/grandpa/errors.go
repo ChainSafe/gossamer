@@ -5,15 +5,9 @@ package grandpa
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 )
-
-// errRoundMismatch is returned when trying to validate a vote message that isn't for the current round
-func errRoundMismatch(got, want uint64) error {
-	return fmt.Errorf("rounds do not match: got %d, want %d", got, want)
-}
 
 var (
 	// ErrBlockDoesNotExist is returned when trying to validate a vote for a block that doesn't exist
@@ -60,6 +54,8 @@ var (
 
 	ErrBlockHashMismatch = errors.New("block hash does not correspond to given block number")
 
+	ErrBlockNumbersMismatch = errors.New("block numbers mismatch")
+
 	// ErrMinVotesNotMet is returned when the number of votes is less than the required minimum in a Justification
 	ErrMinVotesNotMet = errors.New("minimum number of votes not met in a Justification")
 
@@ -76,9 +72,6 @@ var (
 	// ErrCatchUpResponseNotCompletable is returned when the round represented by the catch up response is not completable
 	ErrCatchUpResponseNotCompletable = errors.New("catch up response is not completable")
 
-	// ErrServicePaused is returned if the service is paused and waiting for catch up messages
-	ErrServicePaused = errors.New("service is paused")
-
 	// ErrPrecommitSignatureMismatch is returned when the number of precommits
 	// and signatures in a CommitMessage do not match
 	ErrPrecommitSignatureMismatch = errors.New("number of precommits does not match number of signatures")
@@ -93,4 +86,6 @@ var (
 	errVoteToSignatureMismatch = errors.New("votes and authority count mismatch")
 	errVoteBlockMismatch       = errors.New("block in vote is not descendant of previously finalised block")
 	errVoteFromSelf            = errors.New("got vote from ourselves")
+	errRoundOutOfBounds        = errors.New("round out of bounds")
+	errRoundsMismatch          = errors.New("rounds mismatch")
 )

@@ -18,6 +18,8 @@ func TestPubkeyToVoter(t *testing.T) {
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
+	voters := newTestVoters(t)
+
 	state := NewState(voters, 0, 0)
 	voter, err := state.pubkeyToVoter(kr.Alice().Public().(*ed25519.PublicKey))
 	require.NoError(t, err)

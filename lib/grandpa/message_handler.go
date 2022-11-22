@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"reflect"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -49,15 +48,18 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 
 	switch msg := m.(type) {
 	case *VoteMessage:
-		// send vote message to grandpa service
-		h.grandpa.in <- &networkVoteMessage{
-			from: from,
-			msg:  msg,
+		err := h.grandpa.handleVoteMessage(from, msg)
+		if err != nil {
+			return nil, fmt.Errorf("handling vote message: %w", err)
+		}
+		return nil, nil
+	case *CommitMessage:
+		err := h.grandpa.handleCommitMessage(msg)
+		if err != nil {
+			return nil, fmt.Errorf("handling commit message: %w", err)
 		}
 
 		return nil, nil
-	case *CommitMessage:
-		return nil, h.handleCommitMessage(msg)
 	case *NeighbourPacketV1:
 		// we can afford to not retry handling neighbour message, if it errors.
 		return nil, h.handleNeighbourMessage(msg)
@@ -79,6 +81,27 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 }
 
 func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourPacketV1) error {
+	if h.grandpa.authority {
+		// TODO(#2931): this is a simple hack to ensure that the neighbour messages
+		// sent by gossamer are being received by substrate nodes
+		// not intended to be production code
+		h.grandpa.roundLock.Lock()
+		neighbourMessage := &NeighbourPacketV1{
+			Round:  h.grandpa.state.round,
+			SetID:  h.grandpa.state.setID,
+			Number: uint32(h.grandpa.head.Number),
+		}
+		h.grandpa.roundLock.Unlock()
+
+		cm, err := neighbourMessage.ToConsensusMessage()
+		if err != nil {
+			return fmt.Errorf("converting neighbour message to network message: %w", err)
+		}
+
+		logger.Debugf("sending neighbour message: %v", neighbourMessage)
+		h.grandpa.network.GossipMessage(cm)
+	}
+
 	currFinalized, err := h.blockState.GetFinalisedHeader(0, 0)
 	if err != nil {
 		return err
@@ -103,63 +126,6 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourPacketV1) error {
 
 	logger.Debugf("got neighbour message with number %d, set id %d and round %d", msg.Number, msg.SetID, msg.Round)
 	// TODO: should we send a justification request here? potentially re-connect this to sync package? (#1815)
-	return nil
-}
-
-func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) error {
-	logger.Debugf("received commit message, msg: %+v", msg)
-
-	err := verifyBlockHashAgainstBlockNumber(h.blockState, msg.Vote.Hash, uint(msg.Vote.Number))
-	if err != nil {
-		if errors.Is(err, chaindb.ErrKeyNotFound) {
-			h.grandpa.tracker.addCommit(msg)
-			logger.Infof("we might not have synced to the given block %s yet: %s", msg.Vote.Hash, err)
-			return nil
-		}
-		return err
-	}
-
-	containsPrecommitsSignedBy := make([]string, len(msg.AuthData))
-	for i, authData := range msg.AuthData {
-		containsPrecommitsSignedBy[i] = authData.AuthorityID.String()
-	}
-
-	h.telemetry.SendMessage(
-		telemetry.NewAfgReceivedCommit(
-			msg.Vote.Hash,
-			fmt.Sprint(msg.Vote.Number),
-			containsPrecommitsSignedBy,
-		),
-	)
-
-	if has, _ := h.blockState.HasFinalisedBlock(msg.Round, h.grandpa.state.setID); has {
-		return nil
-	}
-
-	// check justification here
-	if err := h.verifyCommitMessageJustification(msg); err != nil {
-		if errors.Is(err, blocktree.ErrStartNodeNotFound) {
-			// we haven't synced the committed block yet, add this to the tracker for later processing
-			h.grandpa.tracker.addCommit(msg)
-		}
-		return err
-	}
-
-	// set finalised head for round in db
-	if err := h.blockState.SetFinalisedHash(msg.Vote.Hash, msg.Round, h.grandpa.state.setID); err != nil {
-		return err
-	}
-
-	pcs, err := compactToJustification(msg.Precommits, msg.AuthData)
-	if err != nil {
-		return err
-	}
-
-	if err = h.grandpa.grandpaState.SetPrecommits(msg.Round, msg.SetID, pcs); err != nil {
-		return err
-	}
-
-	// TODO: re-add catch-up logic (#1531)
 	return nil
 }
 
@@ -313,73 +279,6 @@ func isDescendantOfHighestFinalisedBlock(blockState BlockState, hash common.Hash
 	return blockState.IsDescendantOf(highestHeader.Hash(), hash)
 }
 
-func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) error {
-	if len(fm.Precommits) != len(fm.AuthData) {
-		return ErrPrecommitSignatureMismatch
-	}
-
-	if fm.SetID != h.grandpa.state.setID {
-		return fmt.Errorf("%w: grandpa state set id %d, set id in the commit message %d",
-			ErrSetIDMismatch, h.grandpa.state.setID, fm.SetID)
-	}
-
-	isDescendant, err := isDescendantOfHighestFinalisedBlock(h.blockState, fm.Vote.Hash)
-	if err != nil {
-		return fmt.Errorf("cannot verify ancestry of highest finalised block: %w", err)
-	}
-	if !isDescendant {
-		return errVoteBlockMismatch
-	}
-
-	eqvVoters := getEquivocatoryVoters(fm.AuthData)
-
-	var count int
-	for i, pc := range fm.Precommits {
-		just := &SignedVote{
-			Vote:        pc,
-			Signature:   fm.AuthData[i].Signature,
-			AuthorityID: fm.AuthData[i].AuthorityID,
-		}
-
-		err := h.verifyJustification(just, fm.Round, h.grandpa.state.setID, precommit)
-		if err != nil {
-			logger.Errorf("failed to verify justification for vote from authority id %s, for block hash %s: %s",
-				just.AuthorityID.String(), just.Vote.Hash, err)
-			continue
-		}
-
-		isDescendant, err := h.blockState.IsDescendantOf(fm.Vote.Hash, just.Vote.Hash)
-		if err != nil {
-			logger.Warnf("could not check for descendant: %s", err)
-			continue
-		}
-
-		err = verifyBlockHashAgainstBlockNumber(h.blockState, pc.Hash, uint(pc.Number))
-		if err != nil {
-			return err
-		}
-
-		if _, ok := eqvVoters[fm.AuthData[i].AuthorityID]; ok {
-			continue
-		}
-
-		if isDescendant {
-			count++
-		}
-	}
-
-	// confirm total # signatures >= grandpa threshold
-	if uint64(count)+uint64(len(eqvVoters)) < h.grandpa.state.threshold() {
-		logger.Debugf(
-			"minimum votes not met for finalisation message. Need %d votes and received %d votes.",
-			h.grandpa.state.threshold(), count)
-		return ErrMinVotesNotMet
-	}
-
-	logger.Debugf("validated commit message: %v", fm)
-	return nil
-}
-
 func (h *MessageHandler) verifyPreVoteJustification(msg *CatchUpResponse) (common.Hash, error) {
 	voters := make(map[ed25519.PublicKeyBytes]map[common.Hash]int, len(msg.PreVoteJustification))
 	eqVotesByHash := make(map[common.Hash]map[ed25519.PublicKeyBytes]struct{})
@@ -426,7 +325,7 @@ func (h *MessageHandler) verifyPreVoteJustification(msg *CatchUpResponse) (commo
 			continue
 		}
 
-		err := h.verifyJustification(just, msg.Round, msg.SetID, prevote)
+		err := verifyJustification(just, msg.Round, msg.SetID, prevote, h.grandpa.authorities())
 		if err != nil {
 			continue
 		}
@@ -481,7 +380,7 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) erro
 			return err
 		}
 
-		err := h.verifyJustification(just, msg.Round, msg.SetID, precommit)
+		err := verifyJustification(just, msg.Round, msg.SetID, precommit, h.grandpa.authorities())
 		if err != nil {
 			logger.Errorf("could not verify precommit justification for block %s from authority %s: %s",
 				just.Vote.Hash.String(), just.AuthorityID.String(), err)
@@ -501,51 +400,6 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) erro
 		return ErrMinVotesNotMet
 	}
 
-	return nil
-}
-
-func (h *MessageHandler) verifyJustification(just *SignedVote, round, setID uint64, stage Subround) error {
-	// verify signature
-	msg, err := scale.Marshal(FullVote{
-		Stage: stage,
-		Vote:  just.Vote,
-		Round: round,
-		SetID: setID,
-	})
-	if err != nil {
-		return err
-	}
-
-	pk, err := ed25519.NewPublicKey(just.AuthorityID[:])
-	if err != nil {
-		return err
-	}
-
-	ok, err := pk.Verify(msg, just.Signature[:])
-	if err != nil {
-		return err
-	}
-
-	if !ok {
-		return ErrInvalidSignature
-	}
-
-	// verify authority in justification set
-	authFound := false
-
-	for _, auth := range h.grandpa.authorities() {
-		justKey, err := just.AuthorityID.Encode()
-		if err != nil {
-			return err
-		}
-		if reflect.DeepEqual(auth.Key.Encode(), justKey) {
-			authFound = true
-			break
-		}
-	}
-	if !authFound {
-		return ErrVoterNotFound
-	}
 	return nil
 }
 
@@ -623,12 +477,12 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 			return nil, ErrPrecommitBlockMismatch
 		}
 
-		pk, err := ed25519.NewPublicKey(just.AuthorityID[:])
+		publicKey, err := ed25519.NewPublicKey(just.AuthorityID[:])
 		if err != nil {
 			return nil, err
 		}
 
-		if !isInAuthSet(pk, auths) {
+		if !isInAuthSet(publicKey, auths) {
 			return nil, ErrAuthorityNotInSet
 		}
 
@@ -643,7 +497,7 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 			return nil, err
 		}
 
-		ok, err := pk.Verify(msg, just.Signature[:])
+		ok, err := publicKey.Verify(msg, just.Signature[:])
 		if err != nil {
 			return nil, err
 		}

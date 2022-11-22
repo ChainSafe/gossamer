@@ -5,6 +5,7 @@ package grandpa
 
 import (
 	"bytes"
+	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -59,24 +60,13 @@ func NewState(voters []Voter, setID, round uint64) *State {
 
 // pubkeyToVoter returns a Voter given a public key
 func (s *State) pubkeyToVoter(pk *ed25519.PublicKey) (*Voter, error) {
-	max := uint64(2^64) - 1
-	id := max
-
-	for i, v := range s.voters {
+	for _, v := range s.voters {
 		if bytes.Equal(pk.Encode(), v.Key.Encode()) {
-			id = uint64(i)
-			break
+			return &v, nil
 		}
 	}
 
-	if id == max {
-		return nil, ErrVoterNotFound
-	}
-
-	return &Voter{
-		Key: *pk,
-		ID:  id,
-	}, nil
+	return nil, fmt.Errorf("%w", ErrVoterNotFound)
 }
 
 // threshold returns the 2/3 |voters| threshold value

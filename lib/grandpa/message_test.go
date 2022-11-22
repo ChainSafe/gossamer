@@ -10,6 +10,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/stretchr/testify/require"
@@ -29,8 +30,13 @@ var testSignature = [64]byte{1, 2, 3, 4}
 var testAuthorityID = [32]byte{5, 6, 7, 8}
 
 func TestCommitMessageEncode(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
 	exp := common.MustHexToBytes("0x4d0000000000000000000000000000007db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a00000000040a0b0c0d00000000000000000000000000000000000000000000000000000000e7030000040102030400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000088dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee") //nolint:lll
-	gs, st := newTestService(t)
+
+	gs, st := newTestService(t, aliceKeyPair)
 	just := []SignedVote{
 		{
 			Vote:        *testVote,
@@ -38,10 +44,11 @@ func TestCommitMessageEncode(t *testing.T) {
 			AuthorityID: gs.publicKeyBytes(),
 		},
 	}
-	err := st.Grandpa.SetPrecommits(77, gs.state.setID, just)
+
+	err = st.Grandpa.SetPrecommits(77, gs.state.setID, just)
 	require.NoError(t, err)
 
-	fm, err := gs.newCommitMessage(gs.head, 77)
+	fm, err := gs.newCommitMessage(gs.head, 77, 0)
 	require.NoError(t, err)
 	precommits, authData := justificationToCompact(just)
 
@@ -63,7 +70,11 @@ func TestCommitMessageEncode(t *testing.T) {
 }
 
 func TestVoteMessageToConsensusMessage(t *testing.T) {
-	gs, st := newTestService(t)
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
+	gs, st := newTestService(t, aliceKeyPair)
 
 	v, err := NewVoteFromHash(st.Block.BestBlockHash(), st.Block)
 	require.NoError(t, err)
@@ -110,7 +121,12 @@ func TestVoteMessageToConsensusMessage(t *testing.T) {
 }
 
 func TestCommitMessageToConsensusMessage(t *testing.T) {
-	gs, st := newTestService(t)
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
+	gs, st := newTestService(t, aliceKeyPair)
+
 	just := []SignedVote{
 		{
 			Vote:        *testVote,
@@ -118,10 +134,10 @@ func TestCommitMessageToConsensusMessage(t *testing.T) {
 			AuthorityID: gs.publicKeyBytes(),
 		},
 	}
-	err := st.Grandpa.SetPrecommits(77, gs.state.setID, just)
+	err = st.Grandpa.SetPrecommits(77, gs.state.setID, just)
 	require.NoError(t, err)
 
-	fm, err := gs.newCommitMessage(gs.head, 77)
+	fm, err := gs.newCommitMessage(gs.head, 77, 0)
 	require.NoError(t, err)
 	precommits, authData := justificationToCompact(just)
 
@@ -136,7 +152,11 @@ func TestCommitMessageToConsensusMessage(t *testing.T) {
 }
 
 func TestNewCatchUpResponse(t *testing.T) {
-	gs, st := newTestService(t)
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
+	gs, st := newTestService(t, aliceKeyPair)
 
 	round := uint64(1)
 	setID := uint64(1)

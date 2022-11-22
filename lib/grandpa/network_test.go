@@ -5,9 +5,9 @@ package grandpa
 
 import (
 	"testing"
-	"time"
 
-	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/golang/mock/gomock"
 
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -34,7 +34,11 @@ func TestGrandpaHandshake_Encode(t *testing.T) {
 }
 
 func TestHandleNetworkMessage(t *testing.T) {
-	gs, st := newTestService(t)
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
+	gs, st := newTestService(t, aliceKeyPair)
 
 	just := []SignedVote{
 		{
@@ -43,10 +47,10 @@ func TestHandleNetworkMessage(t *testing.T) {
 			AuthorityID: gs.publicKeyBytes(),
 		},
 	}
-	err := st.Grandpa.SetPrecommits(77, gs.state.setID, just)
+	err = st.Grandpa.SetPrecommits(77, gs.state.setID, just)
 	require.NoError(t, err)
 
-	fm, err := gs.newCommitMessage(gs.head, 77)
+	fm, err := gs.newCommitMessage(gs.head, 77, 0)
 	require.NoError(t, err)
 
 	cm, err := fm.ToConsensusMessage()
@@ -76,67 +80,4 @@ func TestHandleNetworkMessage(t *testing.T) {
 	propagate, err = gs.handleNetworkMessage(peer.ID(""), cm)
 	require.NoError(t, err)
 	require.False(t, propagate)
-}
-
-func TestSendNeighbourMessage(t *testing.T) {
-	gs, st := newTestService(t)
-	go gs.sendNeighbourMessage(time.Second)
-
-	digest := types.NewDigest()
-	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
-	require.NoError(t, err)
-	err = digest.Add(*prd)
-	require.NoError(t, err)
-	block := &types.Block{
-		Header: types.Header{
-			ParentHash: st.Block.GenesisHash(),
-			Number:     1,
-			Digest:     digest,
-		},
-		Body: types.Body{},
-	}
-
-	err = st.Block.AddBlock(block)
-	require.NoError(t, err)
-
-	hash := block.Header.Hash()
-	round := uint64(7)
-	setID := uint64(33)
-
-	// waits 1.5 seconds and then finalize the block
-	// we will first send a neighbour message with the initial values
-	// and send another neighbour message with the finalized block values
-	time.Sleep(1500 * time.Millisecond)
-	err = st.Block.SetFinalisedHash(hash, round, setID)
-	require.NoError(t, err)
-
-	select {
-	case <-time.After(time.Second):
-		t.Fatal("did not send message")
-	case msg := <-gs.network.(*testNetwork).out:
-		expected := &NeighbourPacketV1{
-			SetID:  0,
-			Round:  0,
-			Number: 0,
-		}
-
-		nm, ok := msg.(*NeighbourPacketV1)
-		require.True(t, ok)
-		require.Equal(t, expected, nm)
-	}
-
-	select {
-	case <-time.After(time.Second):
-		t.Fatal("did not send message")
-	case msg := <-gs.network.(*testNetwork).out:
-		expected := &NeighbourPacketV1{
-			SetID:  setID,
-			Round:  round,
-			Number: 1,
-		}
-
-		nm, ok := msg.(*NeighbourPacketV1)
-		require.True(t, ok)
-		require.Equal(t, expected, nm)
-	}
 }

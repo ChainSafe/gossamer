@@ -99,6 +99,9 @@ func TestDecodeMessage_VoteMessage(t *testing.T) {
 }
 
 func TestDecodeMessage_CommitMessage(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
 	expected := &CommitMessage{
 		Round: 77,
 		SetID: 1,
@@ -157,16 +160,25 @@ func TestDecodeMessage_CatchUpRequest(t *testing.T) {
 }
 
 func TestMessageHandler_VoteMessage(t *testing.T) {
-	gs, st := newTestService(t)
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
+	gs, st := newTestService(t, aliceKeyPair)
 
 	v, err := NewVoteFromHash(st.Block.BestBlockHash(), st.Block)
 	require.NoError(t, err)
-
-	gs.state.setID = 99
-	gs.state.round = 77
 	v.Number = 0x7777
-	_, vm, err := gs.createSignedVoteAndVoteMessage(v, precommit)
-	require.NoError(t, err)
+
+	charlieAuthority := kr.Charlie().(*ed25519.Keypair)
+
+	const round = 99
+	const setID = 77
+
+	gs.state.round = round
+	gs.state.setID = setID
+
+	createdSigned, vm := createAndSignVoteMessage(t, charlieAuthority, round, setID, v, precommit)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
@@ -177,16 +189,18 @@ func TestMessageHandler_VoteMessage(t *testing.T) {
 	require.NoError(t, err)
 	require.Nil(t, out)
 
-	select {
-	case vote := <-gs.in:
-		require.Equal(t, vm, vote.msg)
-	case <-time.After(time.Second):
-		t.Fatal("did not receive VoteMessage")
-	}
+	charlieAuthorityPublicKeyBytes := charlieAuthority.Public().(*ed25519.PublicKey).AsBytes()
+	gotSignedVote, ok := gs.loadVote(charlieAuthorityPublicKeyBytes, precommit)
+	require.True(t, ok)
+	require.Equal(t, createdSigned, gotSignedVote)
 }
 
 func TestMessageHandler_NeighbourMessage(t *testing.T) {
-	gs, st := newTestService(t)
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
+	gs, st := newTestService(t, aliceKeyPair)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
@@ -200,7 +214,7 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 		Number: 1,
 	}
 
-	_, err := h.handleMessage("", NeighbourPacketV1)
+	_, err = h.handleMessage("", NeighbourPacketV1)
 	require.NoError(t, err)
 
 	digest := types.NewDigest()
@@ -230,7 +244,11 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 }
 
 func TestMessageHandler_VerifyJustification_InvalidSig(t *testing.T) {
-	gs, st := newTestService(t)
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
+	gs, st := newTestService(t, aliceKeyPair)
 	gs.state.round = 77
 
 	just := &SignedVote{
@@ -243,21 +261,36 @@ func TestMessageHandler_VerifyJustification_InvalidSig(t *testing.T) {
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
+	// scale encode the message to assert the wrapped error message
+	expectedFullVote := FullVote{
+		Stage: precommit,
+		Vote:  just.Vote,
+		Round: gs.state.round,
+		SetID: gs.state.setID,
+	}
+	expectedErr := fmt.Errorf("%w: 0x%x for message {%v}", ErrInvalidSignature, just.Signature, expectedFullVote)
+
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
-	err := h.verifyJustification(just, gs.state.round, gs.state.setID, precommit)
-	require.Equal(t, err, ErrInvalidSignature)
+	err = verifyJustification(just, gs.state.round, gs.state.setID, precommit, h.grandpa.authorities())
+
+	require.ErrorIs(t, err, ErrInvalidSignature)
+	require.EqualError(t, expectedErr, err.Error())
 }
 
 func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
-	gs, st := newTestService(t)
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
+	gs, st := newTestService(t, aliceKeyPair)
 
 	round := uint64(1)
 	gs.state.round = round
 	just := buildTestJustification(t, int(gs.state.threshold()), round, gs.state.setID, kr, precommit)
-	err := st.Grandpa.SetPrecommits(round, gs.state.setID, just)
+	err = st.Grandpa.SetPrecommits(round, gs.state.setID, just)
 	require.NoError(t, err)
 
-	fm, err := gs.newCommitMessage(gs.head, round)
+	fm, err := gs.newCommitMessage(gs.head, round, gs.state.setID)
 	require.NoError(t, err)
 	fm.Vote = *NewVote(testHash, uint32(round))
 
@@ -282,8 +315,7 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
-	h := NewMessageHandler(gs, st.Block, telemetryMock)
-	out, err := h.handleMessage("", fm)
+	out, err := gs.messageHandler.handleMessage("", fm)
 	require.NoError(t, err)
 	require.Nil(t, out)
 
@@ -293,16 +325,20 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
 }
 
 func TestMessageHandler_CommitMessage_NoCatchUpRequest_MinVoteError(t *testing.T) {
-	gs, st := newTestService(t)
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
+	gs, st := newTestService(t, aliceKeyPair)
 
 	round := uint64(77)
 	gs.state.round = round
 
 	just := buildTestJustification(t, int(gs.state.threshold()), round, gs.state.setID, kr, precommit)
-	err := st.Grandpa.SetPrecommits(round, gs.state.setID, just)
+	err = st.Grandpa.SetPrecommits(round, gs.state.setID, just)
 	require.NoError(t, err)
 
-	fm, err := gs.newCommitMessage(testGenesisHeader, round)
+	fm, err := gs.newCommitMessage(testGenesisHeader, round, gs.state.setID)
 	require.NoError(t, err)
 
 	ctrl := gomock.NewController(t)
@@ -311,12 +347,23 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_MinVoteError(t *testing.T
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
 	out, err := h.handleMessage("", fm)
-	require.EqualError(t, err, ErrMinVotesNotMet.Error())
+
+	const expectedErrString = "handling commit message: " +
+		"verifying commit message justification: " +
+		"minimum number of votes not met in a Justification: " +
+		"for finalisation message; need 6 votes but received only 0 valid votes"
+
+	require.EqualError(t, err, expectedErrString)
+	require.ErrorIs(t, err, ErrMinVotesNotMet)
 	require.Nil(t, out)
 }
 
 func TestMessageHandler_CommitMessage_WithCatchUpRequest(t *testing.T) {
-	gs, st := newTestService(t)
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
+	gs, st := newTestService(t, aliceKeyPair)
 
 	just := []SignedVote{
 		{
@@ -325,10 +372,10 @@ func TestMessageHandler_CommitMessage_WithCatchUpRequest(t *testing.T) {
 			AuthorityID: gs.publicKeyBytes(),
 		},
 	}
-	err := st.Grandpa.SetPrecommits(77, gs.state.setID, just)
+	err = st.Grandpa.SetPrecommits(77, gs.state.setID, just)
 	require.NoError(t, err)
 
-	fm, err := gs.newCommitMessage(gs.head, 77)
+	fm, err := gs.newCommitMessage(gs.head, 77, gs.state.setID)
 	require.NoError(t, err)
 
 	gs.state.voters = gs.state.voters[:1]
@@ -343,7 +390,11 @@ func TestMessageHandler_CommitMessage_WithCatchUpRequest(t *testing.T) {
 }
 
 func TestMessageHandler_CatchUpRequest_InvalidRound(t *testing.T) {
-	gs, st := newTestService(t)
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
+	gs, st := newTestService(t, aliceKeyPair)
 	req := newCatchUpRequest(77, 0)
 
 	ctrl := gomock.NewController(t)
@@ -351,12 +402,16 @@ func TestMessageHandler_CatchUpRequest_InvalidRound(t *testing.T) {
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
-	_, err := h.handleMessage("", req)
+	_, err = h.handleMessage("", req)
 	require.Equal(t, ErrInvalidCatchUpRound, err)
 }
 
 func TestMessageHandler_CatchUpRequest_InvalidSetID(t *testing.T) {
-	gs, st := newTestService(t)
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
+	gs, st := newTestService(t, aliceKeyPair)
 	req := newCatchUpRequest(1, 77)
 
 	ctrl := gomock.NewController(t)
@@ -364,12 +419,16 @@ func TestMessageHandler_CatchUpRequest_InvalidSetID(t *testing.T) {
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
-	_, err := h.handleMessage("", req)
+	_, err = h.handleMessage("", req)
 	require.Equal(t, ErrSetIDMismatch, err)
 }
 
 func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
-	gs, st := newTestService(t)
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
+	gs, st := newTestService(t, aliceKeyPair)
 
 	// set up needed info for response
 	round := uint64(1)
@@ -439,11 +498,15 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 }
 
 func TestVerifyJustification(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
-	gs, st := newTestService(t)
+	gs, st := newTestService(t, aliceKeyPair)
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
 
 	vote := NewVote(testHash, 123)
@@ -453,36 +516,54 @@ func TestVerifyJustification(t *testing.T) {
 		AuthorityID: kr.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 	}
 
-	err := h.verifyJustification(just, 77, gs.state.setID, precommit)
+	err = verifyJustification(just, 77, gs.state.setID, precommit, h.grandpa.authorities())
 	require.NoError(t, err)
 }
 
 func TestVerifyJustification_InvalidSignature(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
-	gs, st := newTestService(t)
+	gs, st := newTestService(t, aliceKeyPair)
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
 
+	const round = 77
 	vote := NewVote(testHash, 123)
 	just := &SignedVote{
 		Vote: *vote,
 		// create signed vote with mismatched vote number
-		Signature:   createSignedVoteMsg(t, vote.Number+1, 77, gs.state.setID, kr.Alice().(*ed25519.Keypair), precommit),
+		Signature:   createSignedVoteMsg(t, vote.Number+1, round, gs.state.setID, kr.Alice().(*ed25519.Keypair), precommit),
 		AuthorityID: kr.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 	}
 
-	err := h.verifyJustification(just, 77, gs.state.setID, precommit)
-	require.EqualError(t, err, ErrInvalidSignature.Error())
+	expectedFullVote := FullVote{
+		Stage: precommit,
+		Vote:  just.Vote,
+		Round: round,
+		SetID: gs.state.setID,
+	}
+
+	expectedErr := fmt.Errorf("%w: 0x%x for message {%v}", ErrInvalidSignature, just.Signature, expectedFullVote)
+	err = verifyJustification(just, round, gs.state.setID, precommit, h.grandpa.authorities())
+	require.ErrorIs(t, err, ErrInvalidSignature)
+	require.EqualError(t, err, expectedErr.Error())
 }
 
 func TestVerifyJustification_InvalidAuthority(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
-	gs, st := newTestService(t)
+	gs, st := newTestService(t, aliceKeyPair)
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
 	// sign vote with key not in authority set
 	fakeKey, err := ed25519.NewKeypairFromPrivateKeyString(
@@ -496,16 +577,25 @@ func TestVerifyJustification_InvalidAuthority(t *testing.T) {
 		AuthorityID: fakeKey.Public().(*ed25519.PublicKey).AsBytes(),
 	}
 
-	err = h.verifyJustification(just, 77, gs.state.setID, precommit)
-	require.EqualError(t, err, ErrVoterNotFound.Error())
+	encodedAuthorityID, err := just.AuthorityID.Encode()
+	require.NoError(t, err)
+
+	expectedErrMessage := fmt.Sprintf("%s: authority ID 0x%x", ErrVoterNotFound, encodedAuthorityID)
+	err = verifyJustification(just, 77, gs.state.setID, precommit, h.grandpa.authorities())
+	require.ErrorIs(t, err, ErrVoterNotFound)
+	require.EqualError(t, err, expectedErrMessage)
 }
 
 func TestMessageHandler_VerifyPreVoteJustification(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
-	gs, st := newTestService(t)
+	gs, st := newTestService(t, aliceKeyPair)
 
 	body, err := types.NewBodyFromBytes([]byte{0})
 	require.NoError(t, err)
@@ -533,11 +623,15 @@ func TestMessageHandler_VerifyPreVoteJustification(t *testing.T) {
 }
 
 func TestMessageHandler_VerifyPreCommitJustification(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
-	gs, st := newTestService(t)
+	gs, st := newTestService(t, aliceKeyPair)
 
 	body, err := types.NewBodyFromBytes([]byte{0})
 	require.NoError(t, err)
@@ -567,9 +661,13 @@ func TestMessageHandler_VerifyPreCommitJustification(t *testing.T) {
 }
 
 func TestMessageHandler_HandleCatchUpResponse(t *testing.T) {
-	gs, st := newTestService(t)
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
 
-	err := st.Block.SetHeader(testHeader)
+	gs, st := newTestService(t, aliceKeyPair)
+
+	err = st.Block.SetHeader(testHeader)
 	require.NoError(t, err)
 
 	ctrl := gomock.NewController(t)
@@ -599,6 +697,10 @@ func TestMessageHandler_HandleCatchUpResponse(t *testing.T) {
 }
 
 func TestMessageHandler_VerifyBlockJustification_WithEquivocatoryVotes(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
 	auths := []types.GrandpaVoter{
 		{
 			Key: *kr.Alice().Public().(*ed25519.PublicKey),
@@ -629,8 +731,8 @@ func TestMessageHandler_VerifyBlockJustification_WithEquivocatoryVotes(t *testin
 		},
 	}
 
-	gs, st := newTestService(t)
-	err := st.Grandpa.SetNextChange(auths, 0)
+	gs, st := newTestService(t, aliceKeyPair)
+	err = st.Grandpa.SetNextChange(auths, 0)
 	require.NoError(t, err)
 
 	body, err := types.NewBodyFromBytes([]byte{0})
@@ -660,6 +762,10 @@ func TestMessageHandler_VerifyBlockJustification_WithEquivocatoryVotes(t *testin
 }
 
 func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
 	auths := []types.GrandpaVoter{
 		{
 			Key: *kr.Alice().Public().(*ed25519.PublicKey),
@@ -672,8 +778,8 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 		},
 	}
 
-	gs, st := newTestService(t)
-	err := st.Grandpa.SetNextChange(auths, 0)
+	gs, st := newTestService(t, aliceKeyPair)
+	err = st.Grandpa.SetNextChange(auths, 0)
 	require.NoError(t, err)
 
 	body, err := types.NewBodyFromBytes([]byte{0})
@@ -716,6 +822,10 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 }
 
 func TestMessageHandler_VerifyBlockJustification_invalid(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
 	auths := []types.GrandpaVoter{
 		{
 			Key: *kr.Alice().Public().(*ed25519.PublicKey),
@@ -728,8 +838,8 @@ func TestMessageHandler_VerifyBlockJustification_invalid(t *testing.T) {
 		},
 	}
 
-	gs, st := newTestService(t)
-	err := st.Grandpa.SetNextChange(auths, 1)
+	gs, st := newTestService(t, aliceKeyPair)
+	err = st.Grandpa.SetNextChange(auths, 1)
 	require.NoError(t, err)
 
 	body, err := types.NewBodyFromBytes([]byte{0})
@@ -1019,9 +1129,13 @@ func Test_getEquivocatoryVoters(t *testing.T) {
 }
 
 func Test_VerifyCommitMessageJustification_ShouldRemoveEquivocatoryVotes(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
 	const fakeRound = 2
 
-	gs, st := newTestService(t)
+	gs, st := newTestService(t, aliceKeyPair)
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
@@ -1081,16 +1195,22 @@ func Test_VerifyCommitMessageJustification_ShouldRemoveEquivocatoryVotes(t *test
 		AuthData:   authData,
 	}
 
-	err = h.verifyCommitMessageJustification(testCommitData)
+	err = verifyCommitMessageJustification(*testCommitData, h.grandpa.state.setID,
+		h.grandpa.state.threshold(), h.grandpa.authorities(), h.blockState)
+
 	require.NoError(t, err)
 }
 
 func Test_VerifyPrevoteJustification_CountEquivocatoryVoters(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
-	gs, st := newTestService(t)
+	gs, st := newTestService(t, aliceKeyPair)
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
 
 	const previousBlocksToAdd = 9
@@ -1160,6 +1280,10 @@ func Test_VerifyPrevoteJustification_CountEquivocatoryVoters(t *testing.T) {
 }
 
 func Test_VerifyPreCommitJustification(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
@@ -1169,7 +1293,7 @@ func Test_VerifyPreCommitJustification(t *testing.T) {
 		SendMessage(gomock.Any()).
 		AnyTimes()
 
-	gs, st := newTestService(t)
+	gs, st := newTestService(t, aliceKeyPair)
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
 
 	const previousBlocksToAdd = 7
@@ -1252,6 +1376,9 @@ func signFakeFullVote(
 
 func TestService_VerifyBlockJustification(t *testing.T) {
 	t.Parallel()
+
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
 
 	precommits := buildTestJustification(t, 2, 1, 0, kr, precommit)
 	justification := newJustification(1, testHash, 1, precommits)

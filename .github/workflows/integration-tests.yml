@@ -28,6 +28,7 @@ jobs:
             github.com/ChainSafe/gossamer/dot/rpc/modules,
             github.com/ChainSafe/gossamer/lib/babe,
             github.com/ChainSafe/gossamer/dot/sync,
+            github.com/ChainSafe/gossamer/lib/grandpa,
           ]
     runs-on: ubuntu-latest
     steps:

@@ -35,7 +35,7 @@ func TestCheckForEquivocation_NoEquivocation(t *testing.T) {
 	vote := NewVoteFromHeader(h)
 	require.NoError(t, err)
 
-	for _, v := range voters {
+	for _, v := range newTestVoters(t) {
 		equivocated := gs.checkForEquivocation(&v, &SignedVote{
 			Vote: *vote,
 		}, prevote)
@@ -64,6 +64,7 @@ func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
 	vote1, err := NewVoteFromHash(leaves[0], st.Block)
 	require.NoError(t, err)
 
+	voters := newTestVoters(t)
 	voter := voters[0]
 
 	gs.prevotes.Store(voter.Key.AsBytes(), &SignedVote{
@@ -104,6 +105,7 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 	vote1, err := NewVoteFromHash(leaves[1], gs.blockState)
 	require.NoError(t, err)
 
+	voters := newTestVoters(t)
 	voter := voters[0]
 
 	gs.prevotes.Store(voter.Key.AsBytes(), &SignedVote{
@@ -143,7 +145,7 @@ func TestValidateMessage_Valid(t *testing.T) {
 	cfg := &Config{
 		BlockState:   st.Block,
 		GrandpaState: st.Grandpa,
-		Voters:       voters,
+		Voters:       newTestVoters(t),
 		Network:      net,
 		Interval:     time.Second,
 	}
@@ -193,8 +195,10 @@ func TestValidateMessage_InvalidSignature(t *testing.T) {
 
 	msg.Message.Signature[63] = 0
 
+	const expectedErrString = "validating message signature: signature is not valid"
 	_, err = gs.validateVoteMessage("", msg)
-	require.Equal(t, err, ErrInvalidSignature)
+	require.ErrorIs(t, err, ErrInvalidSignature)
+	require.EqualError(t, err, expectedErrString)
 }
 
 func TestValidateMessage_SetIDMismatch(t *testing.T) {
@@ -239,7 +243,7 @@ func TestValidateMessage_Equivocation(t *testing.T) {
 	cfg := &Config{
 		BlockState:   st.Block,
 		GrandpaState: st.Grandpa,
-		Voters:       voters,
+		Voters:       newTestVoters(t),
 		Network:      net,
 		Interval:     time.Second,
 	}
@@ -256,6 +260,7 @@ func TestValidateMessage_Equivocation(t *testing.T) {
 	voteB, err := NewVoteFromHash(leaves[1], st.Block)
 	require.NoError(t, err)
 
+	voters := newTestVoters(t)
 	voter := voters[0]
 
 	gs.prevotes.Store(voter.Key.AsBytes(), &SignedVote{
@@ -268,7 +273,8 @@ func TestValidateMessage_Equivocation(t *testing.T) {
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
 	_, err = gs.validateVoteMessage("", msg)
-	require.Equal(t, ErrEquivocation, err, gs.prevotes)
+	require.ErrorIs(t, err, ErrEquivocation)
+	require.EqualError(t, err, ErrEquivocation.Error())
 }
 
 func TestValidateMessage_BlockDoesNotExist(t *testing.T) {
@@ -281,7 +287,7 @@ func TestValidateMessage_BlockDoesNotExist(t *testing.T) {
 	cfg := &Config{
 		BlockState:   st.Block,
 		GrandpaState: st.Grandpa,
-		Voters:       voters,
+		Voters:       newTestVoters(t),
 		Network:      net,
 		Interval:     time.Second,
 	}
@@ -300,8 +306,10 @@ func TestValidateMessage_BlockDoesNotExist(t *testing.T) {
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
+	const expectedErrString = "validating vote: block does not exist"
 	_, err = gs.validateVoteMessage("", msg)
-	require.Equal(t, err, ErrBlockDoesNotExist)
+	require.ErrorIs(t, err, ErrBlockDoesNotExist)
+	require.EqualError(t, err, expectedErrString)
 }
 
 func TestValidateMessage_IsNotDescendant(t *testing.T) {
@@ -314,7 +322,7 @@ func TestValidateMessage_IsNotDescendant(t *testing.T) {
 	cfg := &Config{
 		BlockState:   st.Block,
 		GrandpaState: st.Grandpa,
-		Voters:       voters,
+		Voters:       newTestVoters(t),
 		Network:      net,
 		Interval:     time.Second,
 	}
@@ -338,6 +346,9 @@ func TestValidateMessage_IsNotDescendant(t *testing.T) {
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
+	const expectedErrString = "validating vote: block in vote is not descendant of previously finalised block"
 	_, err = gs.validateVoteMessage("", msg)
-	require.Equal(t, errVoteBlockMismatch, err, gs.prevotes)
+
+	require.ErrorIs(t, err, errVoteBlockMismatch)
+	require.EqualError(t, err, expectedErrString)
 }
