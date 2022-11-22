@@ -82,13 +82,14 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 		},
 		"handle_runtime_ExecuteBlock_error": {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) (chainProcessor chainProcessor) {
-				trieState := storage.NewTrieState(nil)
+				trieState := storage.NewTrieState(trie.NewEmptyTrie())
+				snapshottedTrie := trieState.Snapshot()
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().GetHeader(common.Hash{}).Return(&types.Header{
 					StateRoot: testHash,
 				}, nil)
 				mockInstance := NewMockInstance(ctrl)
-				mockInstance.EXPECT().SetContextStorage(trieState)
+				mockInstance.EXPECT().SetContextStorage(snapshottedTrie)
 				mockInstance.EXPECT().ExecuteBlock(&types.Block{Body: types.Body{}}).Return(nil, mockError)
 				mockBlockState.EXPECT().GetRuntime(testParentHash).Return(mockInstance, nil)
 				chainProcessor.blockState = mockBlockState
@@ -106,14 +107,15 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 		},
 		"handle_block_import_error": {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) (chainProcessor chainProcessor) {
-				trieState := storage.NewTrieState(nil)
+				trieState := storage.NewTrieState(trie.NewEmptyTrie())
+				snapshottedTrie := trieState.Snapshot()
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().GetHeader(common.Hash{}).Return(&types.Header{
 					StateRoot: testHash,
 				}, nil)
 				mockBlock := &types.Block{Body: types.Body{}}
 				mockInstance := NewMockInstance(ctrl)
-				mockInstance.EXPECT().SetContextStorage(trieState)
+				mockInstance.EXPECT().SetContextStorage(snapshottedTrie)
 				mockInstance.EXPECT().ExecuteBlock(mockBlock).Return(nil, nil)
 				mockBlockState.EXPECT().GetRuntime(testParentHash).Return(mockInstance, nil)
 				chainProcessor.blockState = mockBlockState
@@ -123,8 +125,8 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 				mockStorageState.EXPECT().Unlock()
 				chainProcessor.storageState = mockStorageState
 				mockBlockImportHandler := NewMockBlockImportHandler(ctrl)
-				mockBlockImportHandler.EXPECT().HandleBlockImport(mockBlock,
-					trieState, false).Return(mockError)
+				mockBlockImportHandler.EXPECT().HandleBlockImport(mockBlock, snapshottedTrie, false).
+					Return(mockError)
 				chainProcessor.blockImportHandler = mockBlockImportHandler
 				return
 			},
@@ -138,7 +140,8 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 				mockBlock := &types.Block{
 					Body: types.Body{}, // empty slice of extrinsics
 				}
-				trieState := storage.NewTrieState(nil)
+				trieState := storage.NewTrieState(trie.NewEmptyTrie())
+				snapshottedTrie := trieState.Snapshot()
 				mockBlockState := NewMockBlockState(ctrl)
 				mockHeader := &types.Header{
 					Number:    0,
@@ -148,7 +151,7 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 				mockBlockState.EXPECT().GetHeader(common.Hash{}).Return(mockHeader, nil)
 
 				mockInstance := NewMockInstance(ctrl)
-				mockInstance.EXPECT().SetContextStorage(trieState)
+				mockInstance.EXPECT().SetContextStorage(snapshottedTrie)
 				mockInstance.EXPECT().ExecuteBlock(mockBlock).Return(nil, nil)
 				mockBlockState.EXPECT().GetRuntime(mockHeaderHash).Return(mockInstance, nil)
 				chainProcessor.blockState = mockBlockState
@@ -158,7 +161,8 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 				mockStorageState.EXPECT().TrieState(&trie.EmptyHash).Return(trieState, nil)
 				chainProcessor.storageState = mockStorageState
 				mockBlockImportHandler := NewMockBlockImportHandler(ctrl)
-				mockBlockImportHandler.EXPECT().HandleBlockImport(mockBlock, trieState, false).Return(nil)
+				mockBlockImportHandler.EXPECT().HandleBlockImport(mockBlock, snapshottedTrie, false).
+					Return(nil)
 				chainProcessor.blockImportHandler = mockBlockImportHandler
 				mockTelemetry := NewMockTelemetry(ctrl)
 				mockTelemetry.EXPECT().SendMessage(gomock.Any())
@@ -179,6 +183,8 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 					Body: types.Body{}, // empty slice of extrinsics
 				}
 				trieState := storage.NewTrieState(nil)
+				snapshottedTrie := trieState.Snapshot()
+
 				mockBlockState := NewMockBlockState(ctrl)
 				mockHeader := &types.Header{
 					Number:    0,
@@ -188,7 +194,7 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 				mockBlockState.EXPECT().GetHeader(common.Hash{}).Return(mockHeader, nil)
 
 				mockInstance := NewMockInstance(ctrl)
-				mockInstance.EXPECT().SetContextStorage(trieState)
+				mockInstance.EXPECT().SetContextStorage(snapshottedTrie)
 				mockInstance.EXPECT().ExecuteBlock(mockBlock).Return(nil, nil)
 				mockBlockState.EXPECT().GetRuntime(mockHeaderHash).Return(mockInstance, nil)
 				chainProcessor.blockState = mockBlockState
@@ -198,7 +204,8 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 				mockStorageState.EXPECT().TrieState(&trie.EmptyHash).Return(trieState, nil)
 				chainProcessor.storageState = mockStorageState
 				mockBlockImportHandler := NewMockBlockImportHandler(ctrl)
-				mockBlockImportHandler.EXPECT().HandleBlockImport(mockBlock, trieState, true).Return(nil)
+				mockBlockImportHandler.EXPECT().HandleBlockImport(mockBlock, snapshottedTrie, true).
+					Return(nil)
 				chainProcessor.blockImportHandler = mockBlockImportHandler
 				mockTelemetry := NewMockTelemetry(ctrl)
 				mockTelemetry.EXPECT().SendMessage(gomock.Any())
@@ -432,7 +439,8 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 					"0x6443a0b46e0412e626363028115a9f2cf963eeed526b8b33e5316f08b50d0dc3"), []byte{1, 2,
 					3}).Return([]byte{1, 2, 3}, nil)
 				mockStorageState := NewMockStorageState(ctrl)
-				mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(nil, nil)
+				trieState := storage.NewTrieState(trie.NewEmptyTrie())
+				mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(trieState, nil)
 
 				// given our current chain sync state is `tip`
 				// the `HandleBlockImport` method should expect
@@ -441,8 +449,10 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 				mockChainSync.EXPECT().syncState().Return(tip)
 
 				mockBlockImportHandler := NewMockBlockImportHandler(ctrl)
-				mockBlockImportHandler.EXPECT().HandleBlockImport(mockBlock,
-					nil, true).Return(nil)
+				snapshottedTrieState := trieState.Snapshot()
+				mockBlockImportHandler.EXPECT().
+					HandleBlockImport(mockBlock, snapshottedTrieState, true).
+					Return(nil)
 
 				return chainProcessor{
 					chainSync:          mockChainSync,
@@ -529,11 +539,11 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
 				stateRootHash := common.MustHexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
 				runtimeHash := common.MustHexToHash("0x7db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a")
-				mockTrieState := storage.NewTrieState(nil)
+				mockTrieState := storage.NewTrieState(trie.NewEmptyTrie())
 				mockBlock := &types.Block{Header: types.Header{}, Body: types.Body{}}
 
 				mockInstance := NewMockInstance(ctrl)
-				mockInstance.EXPECT().SetContextStorage(mockTrieState)
+				mockInstance.EXPECT().SetContextStorage(mockTrieState.Snapshot())
 				mockInstance.EXPECT().ExecuteBlock(mockBlock).Return(nil, nil)
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().HasHeader(common.Hash{}).Return(false, nil)
@@ -557,7 +567,8 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 				mockChainSync.EXPECT().syncState().Return(bootstrap)
 
 				mockBlockImportHandler := NewMockBlockImportHandler(ctrl)
-				mockBlockImportHandler.EXPECT().HandleBlockImport(mockBlock, mockTrieState, false)
+				snapshottedTrieState := mockTrieState.Snapshot()
+				mockBlockImportHandler.EXPECT().HandleBlockImport(mockBlock, snapshottedTrieState, false)
 
 				mockTelemetry := NewMockTelemetry(ctrl)
 				mockTelemetry.EXPECT().SendMessage(gomock.Any()).AnyTimes()
@@ -706,13 +717,14 @@ func Test_chainProcessor_processBlockDataWithStateHeaderAndBody(t *testing.T) {
 				blockState.EXPECT().AddBlockToBlockTree(block).Return(nil)
 
 				storageState := NewMockStorageState(ctrl)
-				trieState := storage.NewTrieState(nil)
+				trieState := storage.NewTrieState(trie.NewEmptyTrie())
 				storageState.EXPECT().TrieState(&common.Hash{2}).
 					Return(trieState, nil)
 
 				blockImportHandler := NewMockBlockImportHandler(ctrl)
+				snapshottedTrieState := trieState.Snapshot()
 				const announceImportedBlock = true
-				blockImportHandler.EXPECT().HandleBlockImport(block, trieState, announceImportedBlock).
+				blockImportHandler.EXPECT().HandleBlockImport(block, snapshottedTrieState, announceImportedBlock).
 					Return(errTest)
 
 				return chainProcessor{
@@ -742,8 +754,9 @@ func Test_chainProcessor_processBlockDataWithStateHeaderAndBody(t *testing.T) {
 					Return(trieState, nil)
 
 				blockImportHandler := NewMockBlockImportHandler(ctrl)
+				snapshottedTrieState := trieState.Snapshot()
 				const announceImportedBlock = true
-				blockImportHandler.EXPECT().HandleBlockImport(block, trieState, announceImportedBlock).
+				blockImportHandler.EXPECT().HandleBlockImport(block, snapshottedTrieState, announceImportedBlock).
 					Return(nil)
 
 				return chainProcessor{
@@ -863,7 +876,8 @@ func Test_chainProcessor_processBlockDataWithHeaderAndBody(t *testing.T) {
 				blockState.EXPECT().GetRuntime(parentHeaderHash).
 					Return(instance, nil)
 
-				instance.EXPECT().SetContextStorage(trieState)
+				snapshottedTrie := trieState.Snapshot()
+				instance.EXPECT().SetContextStorage(snapshottedTrie)
 				block := &types.Block{
 					Header: *expectedHeader,
 					Body:   types.Body{{2}},
@@ -872,7 +886,7 @@ func Test_chainProcessor_processBlockDataWithHeaderAndBody(t *testing.T) {
 
 				blockImportHandler := NewMockBlockImportHandler(ctrl)
 				const announceImportedBlock = true
-				blockImportHandler.EXPECT().HandleBlockImport(block, trieState, announceImportedBlock).
+				blockImportHandler.EXPECT().HandleBlockImport(block, snapshottedTrie, announceImportedBlock).
 					Return(nil)
 
 				telemetryClient := NewMockTelemetry(ctrl)

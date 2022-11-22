@@ -240,6 +240,8 @@ func generateBlockWithRandomTrie(t *testing.T, serv *Service,
 	trieState, err := serv.Storage.TrieState(nil)
 	require.NoError(t, err)
 
+	trieState = trieState.Snapshot()
+
 	// Generate random data for trie state.
 	rand := time.Now().UnixNano()
 	key := []byte("testKey" + fmt.Sprint(rand))

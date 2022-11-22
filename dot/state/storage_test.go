@@ -43,7 +43,7 @@ func TestStorage_StoreAndLoadTrie(t *testing.T) {
 
 	trie, err := storage.LoadFromDB(root)
 	require.NoError(t, err)
-	require.Equal(t, ts.Trie(), trie.Snapshot())
+	require.Equal(t, ts.Trie(), trie)
 }
 
 func TestStorage_GetStorageByBlockHash(t *testing.T) {

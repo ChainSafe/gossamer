@@ -508,7 +508,8 @@ func (b *Service) handleSlot(epoch, slotNum uint64,
 		return err
 	}
 
-	rt.SetContextStorage(ts)
+	nextStorageState := ts.Snapshot()
+	rt.SetContextStorage(nextStorageState)
 
 	block, err := b.buildBlock(parent, currentSlot, rt, authorityIndex, preRuntimeDigest)
 	if err != nil {
@@ -529,7 +530,8 @@ func (b *Service) handleSlot(epoch, slotNum uint64,
 		),
 	)
 
-	if err := b.blockImportHandler.HandleBlockProduced(block, ts); err != nil {
+	err = b.blockImportHandler.HandleBlockProduced(block, nextStorageState)
+	if err != nil {
 		logger.Warnf("failed to import built block: %s", err)
 		return err
 	}

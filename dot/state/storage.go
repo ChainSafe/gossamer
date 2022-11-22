@@ -119,7 +119,7 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 		panic("trie does not have expected root")
 	}
 
-	return rtstorage.NewTrieState(t).Snapshot(), nil
+	return rtstorage.NewTrieState(t), nil
 }
 
 // LoadFromDB loads an encoded trie from the DB where the key is `root`

@@ -196,6 +196,11 @@ func (c *chainProcessor) processBlockDataWithStateHeaderAndBody(blockData types.
 		return fmt.Errorf("loading trie state: %w", err)
 	}
 
+	// Note we don't want to snapshot the state since we want to modify the underlying trie
+	// for the block header state root.
+	// TODO remove this:
+	state = state.Snapshot()
+
 	err = c.blockImportHandler.HandleBlockImport(block, state, announceImportedBlock)
 	if err != nil {
 		return fmt.Errorf("handling block import: %w", err)
@@ -247,8 +252,10 @@ func (s *chainProcessor) handleBlock(block *types.Block, announceImportedBlock b
 	if err != nil {
 		return err
 	}
+	// TODO put below
+	nextStorageState := ts.Snapshot()
 
-	root := ts.MustRoot()
+	root := nextStorageState.MustRoot()
 	if !bytes.Equal(parent.StateRoot[:], root[:]) {
 		panic("parent state root does not match snapshot state root")
 	}
@@ -258,14 +265,14 @@ func (s *chainProcessor) handleBlock(block *types.Block, announceImportedBlock b
 		return err
 	}
 
-	rt.SetContextStorage(ts)
+	rt.SetContextStorage(nextStorageState)
 
 	_, err = rt.ExecuteBlock(block)
 	if err != nil {
 		return fmt.Errorf("failed to execute block %d: %w", block.Header.Number, err)
 	}
 
-	if err = s.blockImportHandler.HandleBlockImport(block, ts, announceImportedBlock); err != nil {
+	if err = s.blockImportHandler.HandleBlockImport(block, nextStorageState, announceImportedBlock); err != nil {
 		return fmt.Errorf("handling block import: %w", err)
 	}
 

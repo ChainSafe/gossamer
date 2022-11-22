@@ -20,12 +20,18 @@ func (s *Service) validateTransaction(head *types.Header, rt RuntimeInstance,
 	s.storageState.Lock()
 
 	ts, err := s.storageState.TrieState(&head.StateRoot)
-	s.storageState.Unlock()
 	if err != nil {
+		s.storageState.Unlock()
 		return nil, fmt.Errorf("getting trie state from storage: %w", err)
 	}
 
-	rt.SetContextStorage(ts)
+	// ValidateTransaction modifies the trie state so we want to snapshot it
+	// so that the original trie state remains unaffected.
+	temporaryState := ts.Snapshot()
+
+	s.storageState.Unlock()
+
+	rt.SetContextStorage(temporaryState)
 
 	// validate each transaction
 	externalExt, err := s.buildExternalTransaction(rt, tx)
@@ -50,8 +56,8 @@ func (s *Service) validateTransaction(head *types.Header, rt RuntimeInstance,
 
 // HandleTransactionMessage validates each transaction in the message and
 // adds valid transactions to the transaction queue of the BABE session
-// returns boolean for transaction propagation, true - transactions should be propagated
-func (s *Service) HandleTransactionMessage(peerID peer.ID, msg *network.TransactionMessage) (bool, error) {
+func (s *Service) HandleTransactionMessage(peerID peer.ID, msg *network.TransactionMessage) (
+	propagateTransactions bool, err error) {
 	logger.Debug("received TransactionMessage")
 
 	if !s.net.IsSynced() {
@@ -65,13 +71,13 @@ func (s *Service) HandleTransactionMessage(peerID peer.ID, msg *network.Transact
 
 	head, err := s.blockState.BestBlockHeader()
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("getting best block header: %w", err)
 	}
 
 	bestBlockHash := head.Hash()
 	rt, err := s.blockState.GetRuntime(bestBlockHash)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("getting runtime from block state: %w", err)
 	}
 
 	allTxnsAreValid := true

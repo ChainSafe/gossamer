@@ -22,6 +22,7 @@ import (
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	cscale "github.com/centrifuge/go-substrate-rpc-client/v4/scale"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
@@ -583,7 +584,11 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 			TransactionVersion: transactionVersion,
 			StateVersion:       stateVersion,
 		})
-		runtimeMock.EXPECT().SetContextStorage(&rtstorage.TrieState{})
+
+		originalTrie := trie.NewEmptyTrie()
+		originalTrieState := rtstorage.NewTrieState(originalTrie)
+		snapshotTrieStateOnce := originalTrieState.Snapshot()
+		runtimeMock.EXPECT().SetContextStorage(snapshotTrieStateOnce)
 
 		mockTxnState := NewMockTransactionState(ctrl)
 		mockTxnState.EXPECT().RemoveExtrinsic(types.Extrinsic{21}).Times(2)
@@ -596,7 +601,7 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 			Return(common.Hash{}).After(runtimeBlockHashCall)
 
 		mockStorageState := NewMockStorageState(ctrl)
-		mockStorageState.EXPECT().TrieState(&common.Hash{1}).Return(&rtstorage.TrieState{}, nil)
+		mockStorageState.EXPECT().TrieState(&common.Hash{1}).Return(originalTrieState, nil)
 		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{1}).Return(&common.Hash{1}, nil)
 		service := &Service{
 			transactionState: mockTxnState,
@@ -648,7 +653,12 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 			TransactionVersion: transactionVersion,
 			StateVersion:       stateVersion,
 		})
-		runtimeMock.EXPECT().SetContextStorage(&rtstorage.TrieState{})
+
+		originalTrie := trie.NewEmptyTrie()
+		originalTrieState := rtstorage.NewTrieState(originalTrie)
+		snapshotTrieStateOnce := originalTrieState.Snapshot()
+		runtimeMock.EXPECT().SetContextStorage(snapshotTrieStateOnce)
+
 		mockTxnState := NewMockTransactionState(ctrl)
 		mockTxnState.EXPECT().RemoveExtrinsic(types.Extrinsic{21})
 		mockTxnState.EXPECT().PendingInPool().Return([]*transaction.ValidTransaction{vt})
@@ -663,7 +673,7 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 			Return(common.Hash{}).After(runtimeBlockHashCall)
 
 		mockStorageState := NewMockStorageState(ctrl)
-		mockStorageState.EXPECT().TrieState(&common.Hash{1}).Return(&rtstorage.TrieState{}, nil)
+		mockStorageState.EXPECT().TrieState(&common.Hash{1}).Return(originalTrieState, nil)
 		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{1}).Return(&common.Hash{1}, nil)
 		service := &Service{
 			transactionState: mockTxnState,
@@ -1206,7 +1216,8 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{})
 
 		mockStorageState := NewMockStorageState(ctrl)
-		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(&rtstorage.TrieState{}, nil)
+		trieState := rtstorage.NewTrieState(trie.NewEmptyTrie())
+		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(trieState, nil)
 		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(&common.Hash{}, nil)
 
 		mockTxnState := NewMockTransactionState(ctrl)
@@ -1226,7 +1237,7 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 			TransactionVersion: transactionVersion,
 			StateVersion:       stateVersion,
 		})
-		runtimeMockErr.EXPECT().SetContextStorage(&rtstorage.TrieState{})
+		runtimeMockErr.EXPECT().SetContextStorage(trieState.Snapshot())
 		service := &Service{
 			storageState:     mockStorageState,
 			transactionState: mockTxnState,
@@ -1260,10 +1271,11 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 			TransactionVersion: transactionVersion,
 			StateVersion:       stateVersion,
 		})
-		runtimeMock.EXPECT().SetContextStorage(&rtstorage.TrieState{})
 
 		mockStorageState := NewMockStorageState(ctrl)
-		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(&rtstorage.TrieState{}, nil)
+		trieState := rtstorage.NewTrieState(trie.NewEmptyTrie())
+		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(trieState, nil)
+		runtimeMock.EXPECT().SetContextStorage(trieState.Snapshot())
 		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(&common.Hash{}, nil)
 
 		mockTxnState := NewMockTransactionState(ctrl)
