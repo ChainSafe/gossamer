@@ -415,7 +415,6 @@ func (s *Service) maintainTransactionPool(block *types.Block, bestBlockHash comm
 	if err != nil {
 		return fmt.Errorf("getting trie state: %w", err)
 	}
-	temporaryState := ts.Snapshot()
 
 	// re-validate transactions in the pool and move them to the queue
 	txs := s.transactionState.PendingInPool()
@@ -432,6 +431,7 @@ func (s *Service) maintainTransactionPool(block *types.Block, bestBlockHash comm
 		}
 
 		// ValidateTransaction modifies the trie state so we use the temporary state.
+		temporaryState := ts.Snapshot()
 		rt.SetContextStorage(temporaryState)
 		txnValidity, err := rt.ValidateTransaction(externalExt)
 		if err != nil {
