@@ -453,9 +453,8 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 				mockChainSync.EXPECT().syncState().Return(tip)
 
 				mockBlockImportHandler := NewMockBlockImportHandler(ctrl)
-				snapshottedTrieState := trieState.Snapshot()
 				mockBlockImportHandler.EXPECT().
-					HandleBlockImport(mockBlock, snapshottedTrieState, true).
+					HandleBlockImport(mockBlock, trieState, true).
 					Return(nil)
 
 				return chainProcessor{
@@ -727,9 +726,8 @@ func Test_chainProcessor_processBlockDataWithStateHeaderAndBody(t *testing.T) {
 					Return(trieState, nil)
 
 				blockImportHandler := NewMockBlockImportHandler(ctrl)
-				snapshottedTrieState := trieState.Snapshot()
 				const announceImportedBlock = true
-				blockImportHandler.EXPECT().HandleBlockImport(block, snapshottedTrieState, announceImportedBlock).
+				blockImportHandler.EXPECT().HandleBlockImport(block, trieState, announceImportedBlock).
 					Return(errTest)
 
 				return chainProcessor{
@@ -759,9 +757,8 @@ func Test_chainProcessor_processBlockDataWithStateHeaderAndBody(t *testing.T) {
 					Return(trieState, nil)
 
 				blockImportHandler := NewMockBlockImportHandler(ctrl)
-				snapshottedTrieState := trieState.Snapshot()
 				const announceImportedBlock = true
-				blockImportHandler.EXPECT().HandleBlockImport(block, snapshottedTrieState, announceImportedBlock).
+				blockImportHandler.EXPECT().HandleBlockImport(block, trieState, announceImportedBlock).
 					Return(nil)
 
 				return chainProcessor{

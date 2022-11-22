@@ -198,8 +198,6 @@ func (c *chainProcessor) processBlockDataWithStateHeaderAndBody(blockData types.
 
 	// Note we don't want to snapshot the state since we want to modify the underlying trie
 	// for the block header state root.
-	// TODO remove this:
-	state = state.Snapshot()
 
 	err = c.blockImportHandler.HandleBlockImport(block, state, announceImportedBlock)
 	if err != nil {
