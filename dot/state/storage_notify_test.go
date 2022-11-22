@@ -24,7 +24,7 @@ func TestStorageState_RegisterStorageObserver(t *testing.T) {
 
 	ts, err := ss.TrieState(nil)
 	require.NoError(t, err)
-	ts = ts.Snapshot() // TODO remove?
+	ts = ts.Snapshot()
 
 	mockfilter := map[string][]byte{}
 	mockobs := NewMockObserver(ctrl)
@@ -65,7 +65,7 @@ func TestStorageState_RegisterStorageObserver_Multi(t *testing.T) {
 	ss := newTestStorageState(t)
 	ts, err := ss.TrieState(nil)
 	require.NoError(t, err)
-	ts = ts.Snapshot() // TODO remove?
+	ts = ts.Snapshot()
 
 	num := 5
 
@@ -106,7 +106,7 @@ func TestStorageState_RegisterStorageObserver_Multi_Filter(t *testing.T) {
 	ss := newTestStorageState(t)
 	ts, err := ss.TrieState(nil)
 	require.NoError(t, err)
-	ts = ts.Snapshot() // TODO remove?
+	ts = ts.Snapshot()
 
 	key1 := []byte("key1")
 	value1 := []byte("value1")
