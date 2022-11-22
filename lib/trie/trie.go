@@ -370,7 +370,7 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
 	newParent *Node, mutated bool, nodesCreated uint32) {
 	if bytes.Equal(parentLeaf.PartialKey, key) {
 		nodesCreated = 0
-		if bytes.Equal(parentLeaf.StorageValue, value) {
+		if parentLeaf.StorageValueEqual(value) {
 			mutated = false
 			return parentLeaf, mutated, nodesCreated
 		}
@@ -451,7 +451,7 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte,
 	copySettings := node.DefaultCopySettings
 
 	if bytes.Equal(key, parentBranch.PartialKey) {
-		if bytes.Equal(parentBranch.StorageValue, value) {
+		if parentBranch.StorageValueEqual(value) {
 			mutated = false
 			return parentBranch, mutated, 0
 		}
