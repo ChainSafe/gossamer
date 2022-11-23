@@ -132,7 +132,7 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 	}
 
 	nextTrie := t.Snapshot()
-	next := rtstorage.NewTrieState(nextTrie)
+	next := rtstorage.NewTrieState(nextTrie, s.db)
 
 	logger.Tracef("returning trie with root %s to be modified", root)
 	return next, nil
@@ -140,8 +140,8 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 
 // LoadFromDB loads an encoded trie from the DB where the key is `root`
 func (s *StorageState) LoadFromDB(root common.Hash) (*trie.Trie, error) {
-	t := trie.NewEmptyTrie()
-	err := t.Load(s.db, root)
+	t := trie.NewEmptyTrie(s.db)
+	err := t.Load(root)
 	if err != nil {
 		return nil, err
 	}
@@ -192,7 +192,11 @@ func (s *StorageState) GetStorage(root *common.Hash, key []byte) ([]byte, error)
 
 	t := s.tries.get(*root)
 	if t != nil {
-		val := t.Get(key)
+		val, err := t.Get(key)
+		if err != nil {
+			return nil, fmt.Errorf("getting value from trie: %w", err)
+		}
+
 		return val, nil
 	}
 
@@ -244,13 +248,18 @@ func (s *StorageState) StorageRoot() (common.Hash, error) {
 }
 
 // Entries returns Entries from the trie with the given state root
-func (s *StorageState) Entries(root *common.Hash) (map[string][]byte, error) {
+func (s *StorageState) Entries(root *common.Hash) (keyValueMap map[string][]byte, err error) {
 	tr, err := s.loadTrie(root)
 	if err != nil {
 		return nil, err
 	}
 
-	return tr.Entries(), nil
+	keyValueMap, err = tr.Entries()
+	if err != nil {
+		return nil, fmt.Errorf("listing entries from trie: %w", err)
+	}
+
+	return keyValueMap, nil
 }
 
 // GetKeysWithPrefix returns all that match the given prefix for the given hash

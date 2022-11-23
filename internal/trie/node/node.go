@@ -16,8 +16,9 @@ import (
 // Node is a node in the trie and can be a leaf or a branch.
 type Node struct {
 	// PartialKey is the partial key bytes in nibbles (0 to f in hexadecimal)
-	PartialKey   []byte
-	StorageValue []byte
+	PartialKey          []byte
+	StorageValue        []byte
+	StorageValueInlined bool
 	// Generation is incremented on every trie Snapshot() call.
 	// Each node also contain a certain Generation number,
 	// which is updated to match the trie Generation once they are
@@ -47,18 +48,28 @@ func (n *Node) Kind() Kind {
 	return Leaf
 }
 
-func (n *Node) String() string {
-	return n.StringNode().String()
+func (n *Node) String(database Getter) string {
+	return n.StringNode(database).String()
 }
 
 // StringNode returns a gotree compatible node for String methods.
-func (n Node) StringNode() (stringNode *gotree.Node) {
+func (n Node) StringNode(database Getter) (stringNode *gotree.Node) {
 	caser := cases.Title(language.BritishEnglish)
 	stringNode = gotree.New(caser.String(n.Kind().String()))
 	stringNode.Appendf("Generation: %d", n.Generation)
 	stringNode.Appendf("Dirty: %t", n.Dirty)
-	stringNode.Appendf("Key: " + bytesToString(n.PartialKey))
-	stringNode.Appendf("Storage value: " + bytesToString(n.StorageValue))
+	stringNode.Appendf("Partial key: " + bytesToString(n.PartialKey))
+
+	subValue, err := n.GetStorageValue(database)
+	if err != nil {
+		panic(err)
+	}
+	subValueOrigin := "loaded from database"
+	if n.StorageValueInlined {
+		subValueOrigin = "inlined"
+	}
+	stringNode.Appendf("Storage value: " + bytesToString(subValue) + " (" + subValueOrigin + ")")
+
 	if n.Descendants > 0 { // must be a branch
 		stringNode.Appendf("Descendants: %d", n.Descendants)
 	}
@@ -69,7 +80,7 @@ func (n Node) StringNode() (stringNode *gotree.Node) {
 			continue
 		}
 		childNode := stringNode.Appendf("Child %d", i)
-		childNode.AppendNode(child.StringNode())
+		childNode.AppendNode(child.StringNode(database))
 	}
 
 	return stringNode

@@ -25,17 +25,17 @@ func MerkleValue(encoding []byte, writer io.Writer) (err error) {
 		return nil
 	}
 
-	return hashEncoding(encoding, writer)
+	return hashByteSlice(encoding, writer)
 }
 
 // MerkleValueRoot writes the Merkle value for the root of the trie
 // to the writer given as argument.
 // The Merkle value is the Blake2b hash of the encoding of the root node.
 func MerkleValueRoot(rootEncoding []byte, writer io.Writer) (err error) {
-	return hashEncoding(rootEncoding, writer)
+	return hashByteSlice(rootEncoding, writer)
 }
 
-func hashEncoding(encoding []byte, writer io.Writer) (err error) {
+func hashByteSlice(encoding []byte, writer io.Writer) (err error) {
 	hasher := pools.Hashers.Get().(hash.Hash)
 	hasher.Reset()
 	defer pools.Hashers.Put(hasher)
@@ -55,12 +55,12 @@ func hashEncoding(encoding []byte, writer io.Writer) (err error) {
 }
 
 // CalculateMerkleValue returns the Merkle value of the non-root node.
-func (n *Node) CalculateMerkleValue() (merkleValue []byte, err error) {
+func (n *Node) CalculateMerkleValue(database Getter) (merkleValue []byte, err error) {
 	if !n.Dirty && n.MerkleValue != nil {
 		return n.MerkleValue, nil
 	}
 
-	_, merkleValue, err = n.EncodeAndHash()
+	_, merkleValue, err = n.EncodeAndHash(database)
 	if err != nil {
 		return nil, fmt.Errorf("encoding and hashing node: %w", err)
 	}
@@ -69,13 +69,13 @@ func (n *Node) CalculateMerkleValue() (merkleValue []byte, err error) {
 }
 
 // CalculateRootMerkleValue returns the Merkle value of the root node.
-func (n *Node) CalculateRootMerkleValue() (merkleValue []byte, err error) {
+func (n *Node) CalculateRootMerkleValue(database Getter) (merkleValue []byte, err error) {
 	const rootMerkleValueLength = 32
 	if !n.Dirty && len(n.MerkleValue) == rootMerkleValueLength {
 		return n.MerkleValue, nil
 	}
 
-	_, merkleValue, err = n.EncodeAndHashRoot()
+	_, merkleValue, err = n.EncodeAndHashRoot(database)
 	if err != nil {
 		return nil, fmt.Errorf("encoding and hashing root node: %w", err)
 	}
@@ -89,9 +89,9 @@ func (n *Node) CalculateRootMerkleValue() (merkleValue []byte, err error) {
 // TODO change this function to write to an encoding writer
 // and a merkle value writer, such that buffer sync pools can be used
 // by the caller.
-func (n *Node) EncodeAndHash() (encoding, merkleValue []byte, err error) {
+func (n *Node) EncodeAndHash(database Getter) (encoding, merkleValue []byte, err error) {
 	encodingBuffer := bytes.NewBuffer(nil)
-	err = n.Encode(encodingBuffer)
+	err = n.Encode(encodingBuffer, database)
 	if err != nil {
 		return nil, nil, fmt.Errorf("encoding node: %w", err)
 	}
@@ -115,9 +115,9 @@ func (n *Node) EncodeAndHash() (encoding, merkleValue []byte, err error) {
 // TODO change this function to write to an encoding writer
 // and a merkle value writer, such that buffer sync pools can be used
 // by the caller.
-func (n *Node) EncodeAndHashRoot() (encoding, merkleValue []byte, err error) {
+func (n *Node) EncodeAndHashRoot(database Getter) (encoding, merkleValue []byte, err error) {
 	encodingBuffer := bytes.NewBuffer(nil)
-	err = n.Encode(encodingBuffer)
+	err = n.Encode(encodingBuffer, database)
 	if err != nil {
 		return nil, nil, fmt.Errorf("encoding node: %w", err)
 	}

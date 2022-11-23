@@ -614,8 +614,10 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 
 	logger.Infof("🔄 detected runtime code change, upgrading with block %s from previous code hash %s to new code hash %s...", //nolint:lll
 		bHash, codeHash, currCodeHash)
-	code := newState.LoadCode()
-	if len(code) == 0 {
+	code, err := newState.LoadCode()
+	if err != nil {
+		return fmt.Errorf("loading code from state: %w", err)
+	} else if len(code) == 0 {
 		return errors.New("new :code is empty")
 	}
 

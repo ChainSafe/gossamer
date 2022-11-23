@@ -51,7 +51,7 @@ type Instance interface {
 // Storage interface
 type Storage interface {
 	Set(key []byte, value []byte) (err error)
-	Get(key []byte) []byte
+	Get(key []byte) (value []byte, err error)
 	Root() (common.Hash, error)
 	SetChild(keyToChild []byte, child *trie.Trie) error
 	SetChildStorage(keyToChild, key, value []byte) error
@@ -71,7 +71,7 @@ type Storage interface {
 	BeginStorageTransaction()
 	CommitStorageTransaction()
 	RollbackStorageTransaction()
-	LoadCode() []byte
+	LoadCode() (code []byte, err error)
 }
 
 // BasicNetwork interface for functions used by runtime network state function

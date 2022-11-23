@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/ChainSafe/gossamer/internal/trie/tracking"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -32,7 +33,7 @@ var (
 // https://spec.polkadot.network/#sect-state-storage
 // For branch decoding, see the comments on decodeBranch.
 // For leaf decoding, see the comments on decodeLeaf.
-func Decode(reader io.Reader) (n *Node, err error) {
+func Decode(reader io.Reader, database Putter) (n *Node, err error) {
 	variant, partialKeyLength, err := decodeHeader(reader)
 	if err != nil {
 		return nil, fmt.Errorf("decoding header: %w", err)
@@ -40,13 +41,13 @@ func Decode(reader io.Reader) (n *Node, err error) {
 
 	switch variant {
 	case leafVariant.bits:
-		n, err = decodeLeaf(reader, partialKeyLength)
+		n, err = decodeLeaf(reader, partialKeyLength, database)
 		if err != nil {
 			return nil, fmt.Errorf("cannot decode leaf: %w", err)
 		}
 		return n, nil
 	case branchVariant.bits, branchWithValueVariant.bits:
-		n, err = decodeBranch(reader, variant, partialKeyLength)
+		n, err = decodeBranch(reader, variant, partialKeyLength, database)
 		if err != nil {
 			return nil, fmt.Errorf("cannot decode branch: %w", err)
 		}
@@ -58,13 +59,15 @@ func Decode(reader io.Reader) (n *Node, err error) {
 	}
 }
 
+var noopDeltaTracker = tracking.NewNoop()
+
 // decodeBranch reads from a reader and decodes to a node branch.
 // Note that since the encoded branch stores the hash of the children nodes, we are not
 // reconstructing the child nodes from the encoding. This function instead stubs where the
 // children are known to be with an empty leaf. The children nodes hashes are then used to
 // find other storage values using the persistent database.
-func decodeBranch(reader io.Reader, variant byte, partialKeyLength uint16) (
-	node *Node, err error) {
+func decodeBranch(reader io.Reader, variant byte, partialKeyLength uint16,
+	database Putter) (node *Node, err error) {
 	node = &Node{
 		Children: make([]*Node, ChildrenCapacity),
 	}
@@ -83,9 +86,16 @@ func decodeBranch(reader io.Reader, variant byte, partialKeyLength uint16) (
 	sd := scale.NewDecoder(reader)
 
 	if variant == branchWithValueVariant.bits {
-		err := sd.Decode(&node.StorageValue)
+		var storageValue []byte
+		err := sd.Decode(&storageValue)
 		if err != nil {
 			return nil, fmt.Errorf("%w: %s", ErrDecodeStorageValue, err)
+		}
+
+		// node storage value is nil so there is no need to track deltas.
+		err = node.SetStorageValue(storageValue, database, noopDeltaTracker)
+		if err != nil {
+			return nil, fmt.Errorf("setting storage value: %w", err)
 		}
 	}
 
@@ -108,7 +118,7 @@ func decodeBranch(reader io.Reader, variant byte, partialKeyLength uint16) (
 		if len(hash) < hashLength {
 			// Handle inlined nodes
 			reader = bytes.NewReader(hash)
-			childNode, err = Decode(reader)
+			childNode, err = Decode(reader, database)
 			if err != nil {
 				return nil, fmt.Errorf("decoding inlined child at index %d: %w", i, err)
 			}
@@ -123,7 +133,8 @@ func decodeBranch(reader io.Reader, variant byte, partialKeyLength uint16) (
 }
 
 // decodeLeaf reads from a reader and decodes to a leaf node.
-func decodeLeaf(reader io.Reader, partialKeyLength uint16) (node *Node, err error) {
+func decodeLeaf(reader io.Reader, partialKeyLength uint16, database Putter) (
+	node *Node, err error) {
 	node = &Node{}
 
 	node.PartialKey, err = decodeKey(reader, partialKeyLength)
@@ -132,9 +143,15 @@ func decodeLeaf(reader io.Reader, partialKeyLength uint16) (node *Node, err erro
 	}
 
 	sd := scale.NewDecoder(reader)
-	err = sd.Decode(&node.StorageValue)
+	var storageValue []byte
+	err = sd.Decode(&storageValue)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", ErrDecodeStorageValue, err)
+	}
+
+	err = node.SetStorageValue(storageValue, database, noopDeltaTracker)
+	if err != nil {
+		return nil, fmt.Errorf("setting node storage value: %w", err)
 	}
 
 	return node, nil

@@ -15,7 +15,7 @@ import (
 // The encoding format is documented in the README.md
 // of this package, and specified in the Polkadot spec at
 // https://spec.polkadot.network/#sect-state-storage
-func (n *Node) Encode(buffer Buffer) (err error) {
+func (n *Node) Encode(buffer Buffer, database Getter) (err error) {
 	err = encodeHeader(n, buffer)
 	if err != nil {
 		return fmt.Errorf("cannot encode header: %w", err)
@@ -42,7 +42,12 @@ func (n *Node) Encode(buffer Buffer) (err error) {
 	// Note leaves and branches with value cannot have a `nil` storage value.
 	if n.StorageValue != nil {
 		encoder := scale.NewEncoder(buffer)
-		err = encoder.Encode(n.StorageValue)
+
+		storageValue, err := n.GetStorageValue(database)
+		if err != nil {
+			return fmt.Errorf("getting storage value from database: %w", err)
+		}
+		err = encoder.Encode(storageValue)
 		if err != nil {
 			return fmt.Errorf("scale encoding storage value: %w", err)
 		}

@@ -22,20 +22,20 @@ type Database interface {
 
 // Load reconstructs the trie from the database from the given root hash.
 // It is used when restarting the node to load the current state trie.
-func (t *Trie) Load(db Database, rootHash common.Hash) error {
+func (t *Trie) Load(rootHash common.Hash) error {
 	if rootHash == EmptyHash {
 		t.root = nil
 		return nil
 	}
 	rootHashBytes := rootHash.ToBytes()
 
-	encodedNode, err := db.Get(rootHashBytes)
+	encodedNode, err := t.database.Get(rootHashBytes)
 	if err != nil {
 		return fmt.Errorf("failed to find root key %s: %w", rootHash, err)
 	}
 
 	reader := bytes.NewReader(encodedNode)
-	root, err := node.Decode(reader)
+	root, err := node.Decode(reader, t.database)
 	if err != nil {
 		return fmt.Errorf("cannot decode root node: %w", err)
 	}
@@ -43,7 +43,7 @@ func (t *Trie) Load(db Database, rootHash common.Hash) error {
 	t.root = root
 	t.root.MerkleValue = rootHashBytes
 
-	return t.loadNode(db, t.root)
+	return t.loadNode(t.database, t.root)
 }
 
 func (t *Trie) loadNode(db Database, n *Node) error {
@@ -76,7 +76,7 @@ func (t *Trie) loadNode(db Database, n *Node) error {
 		}
 
 		reader := bytes.NewReader(encodedNode)
-		decodedNode, err := node.Decode(reader)
+		decodedNode, err := node.Decode(reader, db)
 		if err != nil {
 			return fmt.Errorf("decoding node with hash 0x%x: %w", nodeHash, err)
 		}
@@ -102,10 +102,14 @@ func (t *Trie) loadNode(db Database, n *Node) error {
 	}
 
 	for _, key := range t.GetKeysWithPrefix(ChildStorageKeyPrefix) {
-		childTrie := NewEmptyTrie()
-		value := t.Get(key)
+		childTrie := NewEmptyTrie(db)
+		value, err := t.Get(key)
+		if err != nil {
+			return fmt.Errorf("failed to get child trie root hash from trie: %w", err)
+		}
+
 		rootHash := common.BytesToHash(value)
-		err := childTrie.Load(db, rootHash)
+		err = childTrie.Load(rootHash)
 		if err != nil {
 			return fmt.Errorf("failed to load child trie with root hash=%s: %w", rootHash, err)
 		}
@@ -188,7 +192,7 @@ func recordAllDeleted(n *Node, recorder DeltaRecorder) {
 // It recursively descends into the trie using the database starting
 // from the root node until it reaches the node with the given key.
 // It then reads the value from the database.
-func GetFromDB(db chaindb.Database, rootHash common.Hash, key []byte) (
+func GetFromDB(db Database, rootHash common.Hash, key []byte) (
 	value []byte, err error) {
 	if rootHash == EmptyHash {
 		return nil, nil
@@ -202,7 +206,7 @@ func GetFromDB(db chaindb.Database, rootHash common.Hash, key []byte) (
 	}
 
 	reader := bytes.NewReader(encodedRootNode)
-	rootNode, err := node.Decode(reader)
+	rootNode, err := node.Decode(reader, db)
 	if err != nil {
 		return nil, fmt.Errorf("cannot decode root node: %w", err)
 	}
@@ -214,11 +218,15 @@ func GetFromDB(db chaindb.Database, rootHash common.Hash, key []byte) (
 // for the value corresponding to a key.
 // Note it does not copy the value so modifying the value bytes
 // slice will modify the value of the node in the trie.
-func getFromDBAtNode(db chaindb.Database, n *Node, key []byte) (
+func getFromDBAtNode(db Database, n *Node, key []byte) (
 	value []byte, err error) {
 	if n.Kind() == node.Leaf {
 		if bytes.Equal(n.PartialKey, key) {
-			return n.StorageValue, nil
+			value, err = n.GetStorageValue(db)
+			if err != nil {
+				return nil, fmt.Errorf("getting node storage value: %w", err)
+			}
+			return value, nil
 		}
 		return nil, nil
 	}
@@ -226,7 +234,11 @@ func getFromDBAtNode(db chaindb.Database, n *Node, key []byte) (
 	branch := n
 	// Key is equal to the key of this branch or is empty
 	if len(key) == 0 || bytes.Equal(branch.PartialKey, key) {
-		return branch.StorageValue, nil
+		value, err = branch.GetStorageValue(db)
+		if err != nil {
+			return nil, fmt.Errorf("getting node storage value: %w", err)
+		}
+		return value, nil
 	}
 
 	commonPrefixLength := lenCommonPrefix(branch.PartialKey, key)
@@ -258,7 +270,7 @@ func getFromDBAtNode(db chaindb.Database, n *Node, key []byte) (
 	}
 
 	reader := bytes.NewReader(encodedChild)
-	decodedChild, err := node.Decode(reader)
+	decodedChild, err := node.Decode(reader, db)
 	if err != nil {
 		return nil, fmt.Errorf(
 			"decoding child node with hash 0x%x: %w",

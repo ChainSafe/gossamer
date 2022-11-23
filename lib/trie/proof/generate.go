@@ -31,8 +31,11 @@ type Database interface {
 // is used to load the trie using the root hash given.
 func Generate(rootHash []byte, fullKeys [][]byte, database Database) (
 	encodedProofNodes [][]byte, err error) {
-	trie := trie.NewEmptyTrie()
-	if err := trie.Load(database, common.BytesToHash(rootHash)); err != nil {
+	// hybridDatabase writes and reads subvalues to memory, but still reads
+	// node encodings using the database given.
+	hybridDatabase := newHybridDatabase(database)
+	trie := trie.NewEmptyTrie(hybridDatabase)
+	if err := trie.Load(common.BytesToHash(rootHash)); err != nil {
 		return nil, fmt.Errorf("loading trie: %w", err)
 	}
 	rootNode := trie.RootNode()
@@ -43,7 +46,7 @@ func Generate(rootHash []byte, fullKeys [][]byte, database Database) (
 	nodeHashesSeen := make(map[common.Hash]struct{})
 	for _, fullKey := range fullKeys {
 		fullKeyNibbles := codec.KeyLEToNibbles(fullKey)
-		newEncodedProofNodes, err := walkRoot(rootNode, fullKeyNibbles)
+		newEncodedProofNodes, err := walkRoot(rootNode, fullKeyNibbles, database)
 		if err != nil {
 			// Note we wrap the full key context here since walk is recursive and
 			// may not be aware of the initial full key.
@@ -74,7 +77,7 @@ func Generate(rootHash []byte, fullKeys [][]byte, database Database) (
 	return encodedProofNodes, nil
 }
 
-func walkRoot(root *node.Node, fullKey []byte) (
+func walkRoot(root *node.Node, fullKey []byte, database Database) (
 	encodedProofNodes [][]byte, err error) {
 	if root == nil {
 		if len(fullKey) == 0 {
@@ -86,7 +89,7 @@ func walkRoot(root *node.Node, fullKey []byte) (
 	// Note we do not use sync.Pool buffers since we would have
 	// to copy it so it persists in encodedProofNodes.
 	encodingBuffer := bytes.NewBuffer(nil)
-	err = root.Encode(encodingBuffer)
+	err = root.Encode(encodingBuffer, database)
 	if err != nil {
 		return nil, fmt.Errorf("encode node: %w", err)
 	}
@@ -110,7 +113,7 @@ func walkRoot(root *node.Node, fullKey []byte) (
 	childIndex := fullKey[commonLength]
 	nextChild := root.Children[childIndex]
 	nextFullKey := fullKey[commonLength+1:]
-	deeperEncodedProofNodes, err := walk(nextChild, nextFullKey)
+	deeperEncodedProofNodes, err := walk(nextChild, nextFullKey, database)
 	if err != nil {
 		return nil, err // note: do not wrap since this is recursive
 	}
@@ -119,7 +122,7 @@ func walkRoot(root *node.Node, fullKey []byte) (
 	return encodedProofNodes, nil
 }
 
-func walk(parent *node.Node, fullKey []byte) (
+func walk(parent *node.Node, fullKey []byte, database Database) (
 	encodedProofNodes [][]byte, err error) {
 	if parent == nil {
 		if len(fullKey) == 0 {
@@ -131,7 +134,7 @@ func walk(parent *node.Node, fullKey []byte) (
 	// Note we do not use sync.Pool buffers since we would have
 	// to copy it so it persists in encodedProofNodes.
 	encodingBuffer := bytes.NewBuffer(nil)
-	err = parent.Encode(encodingBuffer)
+	err = parent.Encode(encodingBuffer, database)
 	if err != nil {
 		return nil, fmt.Errorf("encode node: %w", err)
 	}
@@ -162,7 +165,7 @@ func walk(parent *node.Node, fullKey []byte) (
 	childIndex := fullKey[commonLength]
 	nextChild := parent.Children[childIndex]
 	nextFullKey := fullKey[commonLength+1:]
-	deeperEncodedProofNodes, err := walk(nextChild, nextFullKey)
+	deeperEncodedProofNodes, err := walk(nextChild, nextFullKey, database)
 	if err != nil {
 		return nil, err // note: do not wrap since this is recursive
 	}

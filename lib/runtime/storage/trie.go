@@ -22,9 +22,9 @@ type TrieState struct {
 }
 
 // NewTrieState returns a new TrieState with the given trie
-func NewTrieState(t *trie.Trie) *TrieState {
+func NewTrieState(t *trie.Trie, database Database) *TrieState {
 	if t == nil {
-		t = trie.NewEmptyTrie()
+		t = trie.NewEmptyTrie(database)
 	}
 
 	return &TrieState{
@@ -76,7 +76,7 @@ func (s *TrieState) Set(key, value []byte) (err error) {
 }
 
 // Get gets a value from the trie
-func (s *TrieState) Get(key []byte) []byte {
+func (s *TrieState) Get(key []byte) (value []byte, err error) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 	return s.t.Get(key)
@@ -93,17 +93,17 @@ func (s *TrieState) Root() (common.Hash, error) {
 }
 
 // Has returns whether or not a key exists
-func (s *TrieState) Has(key []byte) bool {
-	return s.Get(key) != nil
+func (s *TrieState) Has(key []byte) (has bool, err error) {
+	value, err := s.Get(key)
+	if err != nil {
+		return false, err
+	}
+	has = value != nil
+	return has, nil
 }
 
 // Delete deletes a key from the trie
 func (s *TrieState) Delete(key []byte) (err error) {
-	val := s.t.Get(key)
-	if val == nil {
-		return nil
-	}
-
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	err = s.t.Delete(key)
@@ -138,7 +138,7 @@ func (s *TrieState) ClearPrefixLimit(prefix []byte, limit uint32) (
 }
 
 // TrieEntries returns every key-value pair in the trie
-func (s *TrieState) TrieEntries() map[string][]byte {
+func (s *TrieState) TrieEntries() (keyValueMap map[string][]byte, err error) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 	return s.t.Entries()
@@ -189,7 +189,11 @@ func (s *TrieState) DeleteChildLimit(key []byte, limit *[]byte) (
 		return 0, false, err
 	}
 
-	childTrieEntries := tr.Entries()
+	childTrieEntries, err := tr.Entries()
+	if err != nil {
+		return 0, false, fmt.Errorf("listing child trie entries: %w", err)
+	}
+
 	qtyEntries := uint32(len(childTrieEntries))
 	if limit == nil {
 		err = s.t.DeleteChild(key)
@@ -281,13 +285,17 @@ func (s *TrieState) GetKeysWithPrefixFromChild(keyToChild, prefix []byte) ([][]b
 }
 
 // LoadCode returns the runtime code (located at :code)
-func (s *TrieState) LoadCode() []byte {
+func (s *TrieState) LoadCode() (code []byte, err error) {
 	return s.Get(common.CodeKey)
 }
 
 // LoadCodeHash returns the hash of the runtime code (located at :code)
 func (s *TrieState) LoadCodeHash() (common.Hash, error) {
-	code := s.LoadCode()
+	code, err := s.LoadCode()
+	if err != nil {
+		return common.Hash{}, fmt.Errorf("loading code: %w", err)
+	}
+
 	return common.Blake2bHash(code)
 }
 

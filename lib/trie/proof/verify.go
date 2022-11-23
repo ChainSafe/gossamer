@@ -26,12 +26,17 @@ var (
 // Note this is exported because it is imported and used by:
 // https://github.com/ComposableFi/ibc-go/blob/6d62edaa1a3cb0768c430dab81bb195e0b0c72db/modules/light-clients/11-beefy/types/client_state.go#L78
 func Verify(encodedProofNodes [][]byte, rootHash, key, value []byte) (err error) {
-	proofTrie, err := buildTrie(encodedProofNodes, rootHash)
+	inMemoryDatabase := newStorageValueDatabase()
+	proofTrie, err := buildTrie(encodedProofNodes, rootHash, inMemoryDatabase)
 	if err != nil {
 		return fmt.Errorf("building trie from proof encoded nodes: %w", err)
 	}
 
-	proofTrieValue := proofTrie.Get(key)
+	proofTrieValue, err := proofTrie.Get(key)
+	if err != nil {
+		return fmt.Errorf("getting from proof trie: %w", err)
+	}
+
 	if proofTrieValue == nil {
 		return fmt.Errorf("%w: %s in proof trie for root hash 0x%x",
 			ErrKeyNotFoundInProofTrie, bytesToString(key), rootHash)
@@ -52,7 +57,8 @@ var (
 )
 
 // buildTrie sets a partial trie based on the proof slice of encoded nodes.
-func buildTrie(encodedProofNodes [][]byte, rootHash []byte) (t *trie.Trie, err error) {
+func buildTrie(encodedProofNodes [][]byte, rootHash []byte,
+	database *storageValueDatabase) (t *trie.Trie, err error) {
 	if len(encodedProofNodes) == 0 {
 		return nil, fmt.Errorf("%w: for Merkle root hash 0x%x",
 			ErrEmptyProof, rootHash)
@@ -94,7 +100,7 @@ func buildTrie(encodedProofNodes [][]byte, rootHash []byte) (t *trie.Trie, err e
 			// Note: no need to add the root node to the map of hash to encoding
 		}
 
-		root, err = node.Decode(bytes.NewReader(encodedProofNode))
+		root, err = node.Decode(bytes.NewReader(encodedProofNode), database)
 		if err != nil {
 			return nil, fmt.Errorf("decoding root node: %w", err)
 		}
@@ -114,17 +120,18 @@ func buildTrie(encodedProofNodes [][]byte, rootHash []byte) (t *trie.Trie, err e
 			ErrRootNodeNotFound, rootHash, strings.Join(proofHashDigests, ", "))
 	}
 
-	err = loadProof(digestToEncoding, root)
+	err = loadProof(digestToEncoding, root, database)
 	if err != nil {
 		return nil, fmt.Errorf("loading proof: %w", err)
 	}
 
-	return trie.NewTrie(root), nil
+	return trie.NewTrie(root, database), nil
 }
 
 // loadProof is a recursive function that will create all the trie paths based
 // on the map from node hash digest to node encoding, starting from the node `n`.
-func loadProof(digestToEncoding map[string][]byte, n *node.Node) (err error) {
+func loadProof(digestToEncoding map[string][]byte, n *node.Node,
+	database *storageValueDatabase) (err error) {
 	if n.Kind() != node.Branch {
 		return nil
 	}
@@ -157,7 +164,7 @@ func loadProof(digestToEncoding map[string][]byte, n *node.Node) (err error) {
 			continue
 		}
 
-		child, err := node.Decode(bytes.NewReader(encoding))
+		child, err := node.Decode(bytes.NewReader(encoding), database)
 		if err != nil {
 			return fmt.Errorf("decoding child node for hash digest 0x%x: %w",
 				merkleValue, err)
@@ -170,7 +177,7 @@ func loadProof(digestToEncoding map[string][]byte, n *node.Node) (err error) {
 
 		branch.Children[i] = child
 		branch.Descendants += child.Descendants
-		err = loadProof(digestToEncoding, child)
+		err = loadProof(digestToEncoding, child, database)
 		if err != nil {
 			return err // do not wrap error since this is recursive
 		}

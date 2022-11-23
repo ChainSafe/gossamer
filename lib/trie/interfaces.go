@@ -8,6 +8,24 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
+// Database is an interface to interact with a key value database.
+type Database interface {
+	Getter
+	Putter
+}
+
+// Getter is an interface to get values from a
+// key value database.
+type Getter interface {
+	Get(key []byte) (value []byte, err error)
+}
+
+// Putter is an interface to put key value pairs in a
+// key value database.
+type Putter interface {
+	Put(key, value []byte) (err error)
+}
+
 // Deltas is the interface for the trie local deltas since
 // the last snapshot.
 type Deltas interface {
@@ -28,5 +46,6 @@ type DeltaDeletedGetter interface {
 
 // DeltaRecorder records deltas done in a ongoing trie operation.
 type DeltaRecorder interface {
-	RecordDeleted(nodeHash common.Hash)
+	// RecordDeleted records a node hash or storage value hash as deleted.
+	RecordDeleted(hash common.Hash)
 }

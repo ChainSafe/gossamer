@@ -42,7 +42,7 @@ func NewOfflinePruner(inputDBPath, prunedDBPath string, bloomSize uint64,
 	}
 
 	tries := NewTries()
-	tries.SetEmptyTrie()
+	tries.SetEmptyTrie(db)
 
 	// create blockState state
 	// NewBlockState on pruner execution does not use telemetry

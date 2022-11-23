@@ -4,10 +4,10 @@
 package trie
 
 // String returns the trie stringified through pre-order traversal
-func (t *Trie) String() string {
+func (t *Trie) String(database Getter) string {
 	if t.root == nil {
 		return "empty"
 	}
 
-	return t.root.String()
+	return t.root.String(database)
 }

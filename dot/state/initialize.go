@@ -126,7 +126,11 @@ func (s *Service) loadBabeConfigurationFromRuntime(r runtime.Instance) (*types.B
 
 func loadGrandpaAuthorities(t *trie.Trie) ([]types.GrandpaVoter, error) {
 	key := common.MustHexToBytes(genesis.GrandpaAuthoritiesKeyHex)
-	authsRaw := t.Get(key)
+	authsRaw, err := t.Get(key)
+	if err != nil {
+		return nil, fmt.Errorf("getting grandpa authorities from trie: %w", err)
+	}
+
 	if authsRaw == nil {
 		return []types.GrandpaVoter{}, nil
 	}
@@ -156,7 +160,7 @@ func (s *Service) storeInitialValues(data *genesis.Data, t *trie.Trie) error {
 // CreateGenesisRuntime creates runtime instance form genesis
 func (s *Service) CreateGenesisRuntime(t *trie.Trie, gen *genesis.Genesis) (runtime.Instance, error) {
 	// load genesis state into database
-	genTrie := rtstorage.NewTrieState(t)
+	genTrie := rtstorage.NewTrieState(t, s.db)
 
 	// create genesis runtime
 	rtCfg := wasmer.Config{

@@ -27,20 +27,24 @@ type Trie struct {
 	// pruner to detect with database keys (trie node hashes) can
 	// be deleted.
 	deltas Deltas
+	// database is used to store and retrieve trie node storage values
+	// larger than 32 bytes.
+	database Database
 }
 
 // NewEmptyTrie creates a trie with a nil root
-func NewEmptyTrie() *Trie {
-	return NewTrie(nil)
+func NewEmptyTrie(database Database) *Trie {
+	return NewTrie(nil, database)
 }
 
 // NewTrie creates a trie with an existing root node
-func NewTrie(root *Node) *Trie {
+func NewTrie(root *Node, database Database) *Trie {
 	return &Trie{
 		root:       root,
 		childTries: make(map[common.Hash]*Trie),
 		generation: 0, // Initially zero but increases after every snapshot.
 		deltas:     tracking.New(),
+		database:   database,
 	}
 }
 
@@ -66,6 +70,7 @@ func (t *Trie) Snapshot() (newTrie *Trie) {
 		root:       t.root,
 		childTries: childTries,
 		deltas:     tracking.New(),
+		database:   t.database,
 	}
 }
 
@@ -137,6 +142,7 @@ func (t *Trie) DeepCopy() (trieCopy *Trie) {
 
 	trieCopy = &Trie{
 		generation: t.generation,
+		database:   t.database,
 	}
 
 	if t.deltas != nil {
@@ -184,7 +190,7 @@ func (t *Trie) Hash() (rootHash common.Hash, err error) {
 		return EmptyHash, nil
 	}
 
-	merkleValue, err := t.root.CalculateRootMerkleValue()
+	merkleValue, err := t.root.CalculateRootMerkleValue(t.database)
 	if err != nil {
 		return rootHash, err
 	}
@@ -194,36 +200,53 @@ func (t *Trie) Hash() (rootHash common.Hash, err error) {
 
 // Entries returns all the key-value pairs in the trie as a map of keys to values
 // where the keys are encoded in Little Endian.
-func (t *Trie) Entries() (keyValueMap map[string][]byte) {
+func (t *Trie) Entries() (keyValueMap map[string][]byte, err error) {
 	keyValueMap = make(map[string][]byte)
-	entries(t.root, nil, keyValueMap)
-	return keyValueMap
+	err = entries(t.root, nil, keyValueMap, t.database)
+	if err != nil {
+		return nil, fmt.Errorf("listing entries: %w", err)
+	}
+	return keyValueMap, nil
 }
 
-func entries(parent *Node, prefix []byte, kv map[string][]byte) {
+func entries(parent *Node, prefix []byte, kv map[string][]byte,
+	database Getter) (err error) {
 	if parent == nil {
-		return
+		return nil
 	}
 
 	if parent.Kind() == node.Leaf {
 		parentKey := parent.PartialKey
 		fullKeyNibbles := concatenateSlices(prefix, parentKey)
 		keyLE := string(codec.NibblesToKeyLE(fullKeyNibbles))
-		kv[keyLE] = parent.StorageValue
-		return
+		storageValue, err := parent.GetStorageValue(database)
+		if err != nil {
+			return fmt.Errorf("getting storage value: %w", err)
+		}
+		kv[keyLE] = storageValue
+		return nil
 	}
 
 	branch := parent
 	if branch.StorageValue != nil {
 		fullKeyNibbles := concatenateSlices(prefix, branch.PartialKey)
 		keyLE := string(codec.NibblesToKeyLE(fullKeyNibbles))
-		kv[keyLE] = branch.StorageValue
+		storageValue, err := branch.GetStorageValue(database)
+		if err != nil {
+			return fmt.Errorf("getting storage value: %w", err)
+		}
+		kv[keyLE] = storageValue
 	}
 
 	for i, child := range branch.Children {
 		childPrefix := concatenateSlices(prefix, branch.PartialKey, intToByteSlice(i))
-		entries(child, childPrefix, kv)
+		err = entries(child, childPrefix, kv, database)
+		if err != nil {
+			return err // do not wrap error, this is recursive.
+		}
 	}
+
+	return nil
 }
 
 // NextKey returns the next key in the trie in lexicographic order.
@@ -325,18 +348,18 @@ func (t *Trie) Put(keyLE, value []byte) (err error) {
 		const success = true
 		t.handleTrackedDeltas(success, pendingDeltas)
 	}()
-	return t.insertKeyLE(keyLE, value, pendingDeltas)
+	return t.insertKeyLE(keyLE, value, pendingDeltas, batch)
 }
 
 func (t *Trie) insertKeyLE(keyLE, value []byte,
-	pendingDeltas DeltaRecorder) (err error) {
+	pendingDeltas DeltaRecorder, batch Putter) (err error) {
 	nibblesKey := codec.KeyLEToNibbles(keyLE)
 	if value == nil {
 		// Force nil value to be inserted to []byte{} since `nil` means there
 		// is no value.
 		value = []byte{}
 	}
-	root, _, _, err := t.insert(t.root, nibblesKey, value, pendingDeltas)
+	root, _, _, err := t.insert(t.root, nibblesKey, value, pendingDeltas, batch)
 	if err != nil {
 		return err
 	}
@@ -347,7 +370,7 @@ func (t *Trie) insertKeyLE(keyLE, value []byte,
 // insert inserts a value in the trie at the key specified.
 // It may create one or more new nodes or update an existing node.
 func (t *Trie) insert(parent *Node, key, value []byte,
-	pendingDeltas DeltaRecorder) (newParent *Node,
+	pendingDeltas DeltaRecorder, batch Putter) (newParent *Node,
 	mutated bool, nodesCreated uint32, err error) {
 	if parent == nil {
 		mutated = true
@@ -364,7 +387,7 @@ func (t *Trie) insert(parent *Node, key, value []byte,
 
 	if parent.Kind() == node.Branch {
 		newParent, mutated, nodesCreated, err = t.insertInBranch(
-			parent, key, value, pendingDeltas)
+			parent, key, value, pendingDeltas, batch)
 		if err != nil {
 			// `insertInBranch` may call `insert` so do not wrap the
 			// error since this may be a deep recursive call.
@@ -374,7 +397,7 @@ func (t *Trie) insert(parent *Node, key, value []byte,
 	}
 
 	newParent, mutated, nodesCreated, err = t.insertInLeaf(
-		parent, key, value, pendingDeltas)
+		parent, key, value, pendingDeltas, batch)
 	if err != nil {
 		return nil, false, 0, fmt.Errorf("inserting in leaf: %w", err)
 	}
@@ -383,11 +406,15 @@ func (t *Trie) insert(parent *Node, key, value []byte,
 }
 
 func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
-	pendingDeltas DeltaRecorder) (
+	pendingDeltas DeltaRecorder, batch Putter) (
 	newParent *Node, mutated bool, nodesCreated uint32, err error) {
 	if bytes.Equal(parentLeaf.PartialKey, key) {
 		nodesCreated = 0
-		if bytes.Equal(parentLeaf.StorageValue, value) {
+
+		equal, err := parentLeaf.StorageValueEqual(value, t.database)
+		if err != nil {
+			return nil, false, 0, fmt.Errorf("checking storage value equality: %w", err)
+		} else if equal {
 			mutated = false
 			return parentLeaf, mutated, nodesCreated, nil
 		}
@@ -399,7 +426,11 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
 			return nil, false, 0, fmt.Errorf("preparing leaf for mutation: %w", err)
 		}
 
-		parentLeaf.StorageValue = value
+		err = parentLeaf.SetStorageValue(value, batch, pendingDeltas)
+		if err != nil {
+			return nil, false, 0, fmt.Errorf("setting storage value: %w", err)
+		}
+
 		mutated = true
 		return parentLeaf, mutated, nodesCreated, nil
 	}
@@ -418,7 +449,10 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
 
 	if len(key) == commonPrefixLength {
 		// key is included in parent leaf key
-		newBranchParent.StorageValue = value
+		err = newBranchParent.SetStorageValue(value, batch, pendingDeltas)
+		if err != nil {
+			return nil, false, 0, fmt.Errorf("setting storage value: %w", err)
+		}
 
 		if len(key) < len(parentLeafKey) {
 			// Move the current leaf parent as a child to the new branch.
@@ -442,7 +476,15 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
 
 	if len(parentLeaf.PartialKey) == commonPrefixLength {
 		// the key of the parent leaf is at this new branch
-		newBranchParent.StorageValue = parentLeaf.StorageValue
+		parentLeafStorageValue, err := parentLeaf.GetStorageValue(t.database)
+		if err != nil {
+			return nil, false, 0, fmt.Errorf("getting parent leaf storage value: %w", err)
+		}
+
+		err = newBranchParent.SetStorageValue(parentLeafStorageValue, batch, pendingDeltas)
+		if err != nil {
+			return nil, false, 0, fmt.Errorf("setting new branch parent storage value: %w", err)
+		}
 	} else {
 		// make the leaf a child of the new branch
 		copySettings := node.DefaultCopySettings
@@ -473,20 +515,29 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
 }
 
 func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte,
-	pendingDeltas DeltaRecorder) (
+	pendingDeltas DeltaRecorder, batch Putter) (
 	newParent *Node, mutated bool, nodesCreated uint32, err error) {
 	copySettings := node.DefaultCopySettings
 
 	if bytes.Equal(key, parentBranch.PartialKey) {
-		if bytes.Equal(parentBranch.StorageValue, value) {
+		equal, err := parentBranch.StorageValueEqual(value, t.database)
+		if err != nil {
+			return nil, false, 0, fmt.Errorf("checking storage value equality: %w", err)
+		} else if equal {
 			mutated = false
 			return parentBranch, mutated, 0, nil
 		}
+
 		parentBranch, err = t.prepForMutation(parentBranch, copySettings, pendingDeltas)
 		if err != nil {
 			return nil, false, 0, fmt.Errorf("preparing branch for mutation: %w", err)
 		}
-		parentBranch.StorageValue = value
+
+		err = parentBranch.SetStorageValue(value, batch, pendingDeltas)
+		if err != nil {
+			return nil, false, 0, fmt.Errorf("setting storage value: %w", err)
+		}
+
 		mutated = true
 		return parentBranch, mutated, 0, nil
 	}
@@ -516,7 +567,8 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte,
 			return parentBranch, mutated, nodesCreated, nil
 		}
 
-		child, mutated, nodesCreated, err = t.insert(child, remainingKey, value, pendingDeltas)
+		child, mutated, nodesCreated, err = t.insert(child,
+			remainingKey, value, pendingDeltas, batch)
 		if err != nil {
 			// do not wrap error since `insert` may call `insertInBranch` recursively
 			return nil, false, 0, err
@@ -560,13 +612,16 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte,
 	newParentBranch.Descendants += 1 + parentBranch.Descendants
 
 	if len(key) <= commonPrefixLength {
-		newParentBranch.StorageValue = value
+		err = newParentBranch.SetStorageValue(value, batch, pendingDeltas)
+		if err != nil {
+			return nil, false, 0, fmt.Errorf("setting new parent branch storage value: %w", err)
+		}
 	} else {
 		childIndex := key[commonPrefixLength]
 		remainingKey := key[commonPrefixLength+1:]
 		var additionalNodesCreated uint32
 		newParentBranch.Children[childIndex], _, additionalNodesCreated, err = t.insert(
-			nil, remainingKey, value, pendingDeltas)
+			nil, remainingKey, value, pendingDeltas, batch)
 		if err != nil {
 			// do not wrap error since `insert` may call `insertInBranch` recursively
 			return nil, false, 0, err
@@ -582,8 +637,8 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte,
 // LoadFromMap loads the given data mapping of key to value into a new empty trie.
 // The keys are in hexadecimal little Endian encoding and the values
 // are hexadecimal encoded.
-func LoadFromMap(data map[string]string) (trie Trie, err error) {
-	trie = *NewEmptyTrie()
+func LoadFromMap(data map[string]string, database Getter, batch Putter) (trie Trie, err error) {
+	trie = *NewEmptyTrie(database)
 
 	pendingDeltas := tracking.New()
 	defer func() {
@@ -601,7 +656,7 @@ func LoadFromMap(data map[string]string) (trie Trie, err error) {
 			return Trie{}, fmt.Errorf("cannot convert value hex to bytes: %w", err)
 		}
 
-		err = trie.insertKeyLE(keyLEBytes, valueBytes, pendingDeltas)
+		err = trie.insertKeyLE(keyLEBytes, valueBytes, pendingDeltas, batch)
 		if err != nil {
 			return Trie{}, fmt.Errorf("inserting key value pair in trie: %w", err)
 		}
@@ -715,43 +770,71 @@ func makeChildPrefix(branchPrefix, branchKey []byte,
 // Get returns the value in the node of the trie
 // which matches its key with the key given.
 // Note the key argument is given in little Endian format.
-func (t *Trie) Get(keyLE []byte) (value []byte) {
+func (t *Trie) Get(keyLE []byte) (value []byte, err error) {
 	keyNibbles := codec.KeyLEToNibbles(keyLE)
-	return retrieve(t.root, keyNibbles)
+	value, err = retrieve(t.root, keyNibbles, t.database)
+	if err != nil {
+		return nil, fmt.Errorf("retrieving: %w", err)
+	}
+	return value, nil
 }
 
-func retrieve(parent *Node, key []byte) (value []byte) {
+func retrieve(parent *Node, key []byte, database Getter) (
+	value []byte, err error) {
 	if parent == nil {
-		return nil
+		return nil, nil
 	}
 
 	if parent.Kind() == node.Leaf {
-		return retrieveFromLeaf(parent, key)
+		value, err = retrieveFromLeaf(parent, key, database)
+	} else {
+		value, err = retrieveFromBranch(parent, key, database)
 	}
-	return retrieveFromBranch(parent, key)
+
+	if err != nil {
+		return nil, err // do not wrap error, this is recursive.
+	}
+	return value, nil
 }
 
-func retrieveFromLeaf(leaf *Node, key []byte) (value []byte) {
-	if bytes.Equal(leaf.PartialKey, key) {
-		return leaf.StorageValue
+func retrieveFromLeaf(leaf *Node, key []byte, database Getter) (
+	value []byte, err error) {
+	if !bytes.Equal(leaf.PartialKey, key) {
+		return nil, nil
 	}
-	return nil
+
+	value, err = leaf.GetStorageValue(database)
+	if err != nil {
+		return nil, fmt.Errorf("getting storage value: %w", err)
+	}
+	return value, nil
 }
 
-func retrieveFromBranch(branch *Node, key []byte) (value []byte) {
+func retrieveFromBranch(branch *Node, key []byte, database Getter) (
+	value []byte, err error) {
 	if len(key) == 0 || bytes.Equal(branch.PartialKey, key) {
-		return branch.StorageValue
+		value, err = branch.GetStorageValue(database)
+		if err != nil {
+			return nil, fmt.Errorf("getting storage value: %w", err)
+		}
+		return value, nil
 	}
 
 	if len(branch.PartialKey) > len(key) && bytes.HasPrefix(branch.PartialKey, key) {
-		return nil
+		return nil, nil
 	}
 
 	commonPrefixLength := lenCommonPrefix(branch.PartialKey, key)
 	childIndex := key[commonPrefixLength]
 	childKey := key[commonPrefixLength+1:]
 	child := branch.Children[childIndex]
-	return retrieve(child, childKey)
+
+	value, err = retrieve(child, childKey, database)
+	if err != nil {
+		return nil, err // do not wrap error, this is recursive.
+	}
+
+	return value, nil
 }
 
 // ClearPrefixLimit deletes the keys having the prefix given in little
@@ -864,7 +947,7 @@ func (t *Trie) clearPrefixLimitBranch(branch *Node, prefix []byte, limit uint32,
 
 	branch.Children[childIndex] = child
 	branch.Descendants -= nodesRemoved
-	newParent, branchChildMerged, err := t.handleDeletion(branch, prefix, pendingDeltas)
+	newParent, branchChildMerged, err := t.handleDeletion(branch, prefix, pendingDeltas, batch)
 	if err != nil {
 		return nil, 0, 0, false, fmt.Errorf("handling deletion: %w", err)
 	}
@@ -912,7 +995,7 @@ func (t *Trie) clearPrefixLimitChild(branch *Node, prefix []byte, limit uint32,
 	branch.Children[childIndex] = child
 	branch.Descendants -= nodesRemoved
 
-	newParent, branchChildMerged, err := t.handleDeletion(branch, prefix, pendingDeltas)
+	newParent, branchChildMerged, err := t.handleDeletion(branch, prefix, pendingDeltas, batch)
 	if err != nil {
 		return nil, 0, 0, false, fmt.Errorf("handling deletion: %w", err)
 	}
@@ -984,7 +1067,7 @@ func (t *Trie) deleteNodesLimit(parent *Node, limit uint32,
 		nodesRemoved += newNodesRemoved
 		branch.Descendants -= newNodesRemoved
 
-		newParent, branchChildMerged, err = t.handleDeletion(branch, branch.PartialKey, pendingDeltas)
+		newParent, branchChildMerged, err = t.handleDeletion(branch, branch.PartialKey, pendingDeltas, batch)
 		if err != nil {
 			return nil, 0, 0, fmt.Errorf("handling deletion: %w", err)
 		}
@@ -1095,7 +1178,8 @@ func (t *Trie) clearPrefixAtNode(parent *Node, prefix []byte,
 		branch.Children[childIndex] = nil
 		branch.Descendants -= nodesRemoved
 		var branchChildMerged bool
-		newParent, branchChildMerged, err = t.handleDeletion(branch, prefix, pendingDeltas)
+		newParent, branchChildMerged, err = t.handleDeletion(branch,
+			prefix, pendingDeltas, batch)
 		if err != nil {
 			return nil, 0, fmt.Errorf("handling deletion: %w", err)
 		}
@@ -1134,7 +1218,8 @@ func (t *Trie) clearPrefixAtNode(parent *Node, prefix []byte,
 
 	branch.Descendants -= nodesRemoved
 	branch.Children[childIndex] = child
-	newParent, branchChildMerged, err := t.handleDeletion(branch, prefix, pendingDeltas)
+	newParent, branchChildMerged, err := t.handleDeletion(branch,
+		prefix, pendingDeltas, batch)
 	if err != nil {
 		return nil, 0, fmt.Errorf("handling deletion: %w", err)
 	}
@@ -1157,7 +1242,7 @@ func (t *Trie) Delete(keyLE []byte) (err error) {
 	}()
 
 	key := codec.KeyLEToNibbles(keyLE)
-	root, _, _, err := t.deleteAtNode(t.root, key, pendingDeltas)
+	root, _, _, err := t.deleteAtNode(t.root, key, pendingDeltas, batch)
 	if err != nil {
 		return fmt.Errorf("deleting key %x: %w", keyLE, err)
 	}
@@ -1166,7 +1251,7 @@ func (t *Trie) Delete(keyLE []byte) (err error) {
 }
 
 func (t *Trie) deleteAtNode(parent *Node, key []byte,
-	pendingDeltas DeltaRecorder) (
+	pendingDeltas DeltaRecorder, batch Putter) (
 	newParent *Node, deleted bool, nodesRemoved uint32, err error) {
 	if parent == nil {
 		const nodesRemoved = 0
@@ -1187,7 +1272,7 @@ func (t *Trie) deleteAtNode(parent *Node, key []byte,
 		return parent, false, nodesRemoved, nil
 	}
 
-	newParent, deleted, nodesRemoved, err = t.deleteBranch(parent, key, pendingDeltas)
+	newParent, deleted, nodesRemoved, err = t.deleteBranch(parent, key, pendingDeltas, batch)
 	if err != nil {
 		return nil, false, 0, fmt.Errorf("deleting branch: %w", err)
 	}
@@ -1213,7 +1298,7 @@ func (t *Trie) deleteLeaf(parent *Node, key []byte,
 }
 
 func (t *Trie) deleteBranch(branch *Node, key []byte,
-	pendingDeltas DeltaRecorder) (
+	pendingDeltas DeltaRecorder, batch Putter) (
 	newParent *Node, deleted bool, nodesRemoved uint32, err error) {
 	if len(key) == 0 || bytes.Equal(branch.PartialKey, key) {
 		copySettings := node.DefaultCopySettings
@@ -1225,10 +1310,14 @@ func (t *Trie) deleteBranch(branch *Node, key []byte,
 
 		// we need to set to nil if the branch has the same generation
 		// as the current trie.
-		branch.StorageValue = nil
+		err = branch.SetStorageValue(nil, batch, pendingDeltas)
+		if err != nil {
+			return nil, false, 0, fmt.Errorf("setting storage value: %w", err)
+		}
+
 		deleted = true
 		var branchChildMerged bool
-		newParent, branchChildMerged, err = t.handleDeletion(branch, key, pendingDeltas)
+		newParent, branchChildMerged, err = t.handleDeletion(branch, key, pendingDeltas, batch)
 		if err != nil {
 			return nil, false, 0, fmt.Errorf("handling deletion: %w", err)
 		}
@@ -1269,7 +1358,7 @@ func (t *Trie) deleteBranch(branch *Node, key []byte,
 	branch.Descendants -= nodesRemoved
 	branch.Children[childIndex] = newChild
 
-	newParent, branchChildMerged, err := t.handleDeletion(branch, key, pendingDeltas)
+	newParent, branchChildMerged, err := t.handleDeletion(branch, key, pendingDeltas, batch)
 	if err != nil {
 		return nil, false, 0, fmt.Errorf("handling deletion: %w", err)
 	}
@@ -1288,7 +1377,7 @@ func (t *Trie) deleteBranch(branch *Node, key []byte,
 // of one node in callers.
 // If the branch has a value and no child, it will be changed into a leaf.
 func (t *Trie) handleDeletion(branch *Node, key []byte,
-	pendingDeltas DeltaRecorder) (
+	pendingDeltas DeltaRecorder, batch Putter) (
 	newNode *Node, branchChildMerged bool, err error) {
 	childrenCount := 0
 	firstChildIndex := -1
@@ -1312,12 +1401,20 @@ func (t *Trie) handleDeletion(branch *Node, key []byte,
 		// pending deltas.
 		const branchChildMerged = false
 		commonPrefixLength := lenCommonPrefix(branch.PartialKey, key)
-		return &Node{
-			PartialKey:   key[:commonPrefixLength],
-			StorageValue: branch.StorageValue,
-			Dirty:        true,
-			Generation:   branch.Generation,
-		}, branchChildMerged, nil
+		storageValue, err := branch.GetStorageValue(t.database)
+		if err != nil {
+			return nil, false, fmt.Errorf("getting branch storage value: %w", err)
+		}
+		newNode = &Node{
+			PartialKey: key[:commonPrefixLength],
+			Dirty:      true,
+			Generation: branch.Generation,
+		}
+		err = newNode.SetStorageValue(storageValue, batch, pendingDeltas)
+		if err != nil {
+			return nil, false, fmt.Errorf("setting new node storage value: %w", err)
+		}
+		return newNode, branchChildMerged, nil
 	case childrenCount == 1 && branch.StorageValue == nil:
 		// The branch passed to handleDeletion is always a modified branch
 		// so the original branch node hash is already tracked in the
@@ -1330,26 +1427,38 @@ func (t *Trie) handleDeletion(branch *Node, key []byte,
 			return nil, false, fmt.Errorf("registering deleted node hash: %w", err)
 		}
 
+		childStorageValue, err := child.GetStorageValue(t.database)
+		if err != nil {
+			return nil, false, fmt.Errorf("getting child storage value: %w", err)
+		}
+
 		if child.Kind() == node.Leaf {
 			newLeafKey := concatenateSlices(branch.PartialKey, intToByteSlice(childIndex), child.PartialKey)
-			return &Node{
-				PartialKey:   newLeafKey,
-				StorageValue: child.StorageValue,
-				Dirty:        true,
-				Generation:   branch.Generation,
-			}, branchChildMerged, nil
+			newNode = &Node{
+				PartialKey: newLeafKey,
+				Dirty:      true,
+				Generation: branch.Generation,
+			}
+			err = newNode.SetStorageValue(childStorageValue, batch, pendingDeltas)
+			if err != nil {
+				return nil, false, fmt.Errorf("setting new node storage value: %w", err)
+			}
+			return newNode, branchChildMerged, nil
 		}
 
 		childBranch := child
 		newBranchKey := concatenateSlices(branch.PartialKey, intToByteSlice(childIndex), childBranch.PartialKey)
 		newBranch := &Node{
-			PartialKey:   newBranchKey,
-			StorageValue: childBranch.StorageValue,
-			Generation:   branch.Generation,
-			Children:     make([]*node.Node, node.ChildrenCapacity),
-			Dirty:        true,
+			PartialKey: newBranchKey,
+			Generation: branch.Generation,
+			Children:   make([]*node.Node, node.ChildrenCapacity),
+			Dirty:      true,
 			// this is the descendants of the original branch minus one
 			Descendants: childBranch.Descendants,
+		}
+		err = newBranch.SetStorageValue(childStorageValue, batch, pendingDeltas)
+		if err != nil {
+			return nil, false, fmt.Errorf("setting new branch storage value: %w", err)
 		}
 
 		// Adopt the grand-children
@@ -1375,12 +1484,12 @@ func (t *Trie) ensureMerkleValueIsCalculated(parent *Node) (err error) {
 	}
 
 	if parent == t.root {
-		_, err = parent.CalculateRootMerkleValue()
+		_, err = parent.CalculateRootMerkleValue(t.database)
 		if err != nil {
 			return fmt.Errorf("calculating Merkle value of root node: %w", err)
 		}
 	} else {
-		_, err = parent.CalculateMerkleValue()
+		_, err = parent.CalculateMerkleValue(t.database)
 		if err != nil {
 			return fmt.Errorf("calculating Merkle value of node: %w", err)
 		}
