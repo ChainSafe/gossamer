@@ -17,6 +17,10 @@ type GrandpaAuthoritiesRaw struct {
 	ID  uint64
 }
 
+func (g GrandpaAuthoritiesRaw) String() string {
+	return fmt.Sprintf("GrandpaAuthoritiesRaw{Key=0x%x, ID=%d}", g.Key, g.ID)
+}
+
 // FromRawEd25519 sets the Authority given GrandpaAuthoritiesRaw. It converts the byte representations of
 // the authority public keys into a ed25519.PublicKey.
 func (a *Authority) FromRawEd25519(raw GrandpaAuthoritiesRaw) error {
@@ -189,7 +193,6 @@ type GrandpaVote struct {
 	Number uint32
 }
 
-// String returns the Vote as a string
-func (v *GrandpaVote) String() string {
+func (v GrandpaVote) String() string {
 	return fmt.Sprintf("hash=%s number=%d", v.Hash, v.Number)
 }
