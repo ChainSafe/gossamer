@@ -1,3 +1,5 @@
+//go:build integration
+
 // Copyright 2022 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
@@ -8,11 +10,13 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
@@ -20,6 +24,14 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	protocol "github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+var (
+	testVote2 = &Vote{
+		Hash:   common.Hash{0xa, 0xb, 0xc, 0xd},
+		Number: 333,
+	}
 )
 
 type testJustificationRequest struct {
@@ -111,6 +123,66 @@ func setupGrandpa(t *testing.T, kp *ed25519.Keypair) *Service {
 	gs, err := NewService(cfg)
 	assert.NoError(t, err)
 	return gs
+}
+
+func newTestState(t *testing.T) *state.Service {
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+	testDatadirPath := t.TempDir()
+
+	db, err := utils.SetupDatabase(testDatadirPath, true)
+	require.NoError(t, err)
+
+	t.Cleanup(func() { db.Close() })
+
+	_, genTrie, _ := newTestGenesisWithTrieAndHeader(t)
+	tries := state.NewTries()
+	tries.SetTrie(&genTrie)
+	block, err := state.NewBlockStateFromGenesis(db, tries, testGenesisHeader, telemetryMock)
+	require.NoError(t, err)
+
+	var rtCfg wasmer.Config
+
+	rtCfg.Storage = storage.NewTrieState(&genTrie)
+
+	rt, err := wasmer.NewRuntimeFromGenesis(rtCfg)
+	require.NoError(t, err)
+	block.StoreRuntime(block.BestBlockHash(), rt)
+
+	grandpa, err := state.NewGrandpaStateFromGenesis(db, nil, newTestVoters(t))
+	require.NoError(t, err)
+
+	return &state.Service{
+		Block:     block,
+		Grandpa:   grandpa,
+		Telemetry: telemetryMock,
+	}
+}
+
+func newTestService(t *testing.T, keypair *ed25519.Keypair) (*Service, *state.Service) {
+	st := newTestState(t)
+	net := newTestNetwork(t)
+
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockClient(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+	cfg := &Config{
+		BlockState:   st.Block,
+		GrandpaState: st.Grandpa,
+		Voters:       newTestVoters(t),
+		Authority:    true,
+		Network:      net,
+		Interval:     time.Second,
+		Telemetry:    telemetryMock,
+		Keypair:      keypair,
+	}
+
+	gs, err := NewService(cfg)
+	require.NoError(t, err)
+	return gs, st
 }
 
 func newTestGenesisWithTrieAndHeader(t *testing.T) (

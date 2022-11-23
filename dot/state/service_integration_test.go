@@ -1,3 +1,5 @@
+//go:build integration
+
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
@@ -116,8 +118,6 @@ func TestMemDB_Start(t *testing.T) {
 	err = state.Stop()
 	require.NoError(t, err)
 }
-
-//go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
 
 func TestService_BlockTree(t *testing.T) {
 	ctrl := gomock.NewController(t)

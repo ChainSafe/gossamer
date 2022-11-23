@@ -1,3 +1,5 @@
+//go:build integration
+
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
@@ -67,10 +69,6 @@ func connectNoSync(ctx context.Context, t *testing.T, a, b *discovery) {
 
 // Set `NoMDNS` to true and test routing via kademlia DHT service.
 func TestKadDHT(t *testing.T) {
-	if testing.Short() {
-		return
-	}
-
 	t.Parallel()
 
 	// setup 3 nodes

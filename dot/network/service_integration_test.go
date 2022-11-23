@@ -1,3 +1,5 @@
+//go:build integration
+
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
@@ -5,25 +7,14 @@ package network
 
 import (
 	"context"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
-	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/internal/log"
-	"github.com/ChainSafe/gossamer/lib/common"
 )
-
-// failedToDial returns true if "failed to dial" error, otherwise false
-func failedToDial(err error) bool {
-	return err != nil && strings.Contains(err.Error(), "failed to dial")
-}
-
-//go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
 
 func createServiceHelper(t *testing.T, num int) []*Service {
 	t.Helper()
@@ -45,134 +36,6 @@ func createServiceHelper(t *testing.T, num int) []*Service {
 		srvcs = append(srvcs, srvc)
 	}
 	return srvcs
-}
-
-func newTestBlockResponseMessage(t *testing.T) *BlockResponseMessage {
-	t.Helper()
-
-	const blockRequestSize = 128
-	msg := &BlockResponseMessage{
-		BlockData: make([]*types.BlockData, blockRequestSize),
-	}
-
-	for i := uint(0); i < blockRequestSize; i++ {
-		testHeader := &types.Header{
-			Number: 77 + i,
-			Digest: types.NewDigest(),
-		}
-
-		body := types.NewBody([]types.Extrinsic{[]byte{4, 4, 2}})
-
-		msg.BlockData[i] = &types.BlockData{
-			Hash:   testHeader.Hash(),
-			Header: testHeader,
-			Body:   body,
-		}
-	}
-
-	return msg
-}
-
-//go:generate mockgen -destination=mock_syncer_test.go -package $GOPACKAGE . Syncer
-//go:generate mockgen -destination=mock_block_state_test.go -package $GOPACKAGE . BlockState
-
-// helper method to create and start a new network service
-func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
-	t.Helper()
-	ctrl := gomock.NewController(t)
-
-	if cfg == nil {
-		cfg = &Config{
-			BasePath:     t.TempDir(),
-			Port:         availablePort(t),
-			NoBootstrap:  true,
-			NoMDNS:       true,
-			LogLvl:       log.Warn,
-			SlotDuration: time.Second,
-		}
-	}
-
-	if cfg.BlockState == nil {
-		header := &types.Header{
-			ParentHash:     common.Hash{},
-			Number:         1,
-			StateRoot:      common.Hash{},
-			ExtrinsicsRoot: common.Hash{},
-			Digest:         types.NewDigest(),
-		}
-
-		blockstate := NewMockBlockState(ctrl)
-
-		blockstate.EXPECT().BestBlockHeader().Return(header, nil).AnyTimes()
-		blockstate.EXPECT().GetHighestFinalisedHeader().Return(header, nil).AnyTimes()
-		blockstate.EXPECT().GenesisHash().Return(common.NewHash([]byte{})).AnyTimes()
-		blockstate.EXPECT().BestBlockNumber().Return(uint(1), nil).AnyTimes()
-
-		blockstate.EXPECT().HasBlockBody(
-			gomock.AssignableToTypeOf(common.Hash([32]byte{}))).Return(false, nil).AnyTimes()
-		blockstate.EXPECT().GetHashByNumber(gomock.Any()).Return(common.Hash{}, nil).AnyTimes()
-
-		cfg.BlockState = blockstate
-	}
-
-	if cfg.TransactionHandler == nil {
-		th := NewMockTransactionHandler(ctrl)
-		th.EXPECT().
-			HandleTransactionMessage(
-				gomock.AssignableToTypeOf(peer.ID("")),
-				gomock.Any()).
-			Return(true, nil).AnyTimes()
-
-		th.EXPECT().TransactionsCount().Return(0).AnyTimes()
-		cfg.TransactionHandler = th
-	}
-
-	cfg.SlotDuration = time.Second
-	cfg.ProtocolID = TestProtocolID // default "/gossamer/gssmr/0"
-
-	if cfg.LogLvl == 0 {
-		cfg.LogLvl = 4
-	}
-
-	if cfg.Syncer == nil {
-		syncer := NewMockSyncer(ctrl)
-		syncer.EXPECT().
-			HandleBlockAnnounceHandshake(
-				gomock.AssignableToTypeOf(peer.ID("")), gomock.Any()).
-			Return(nil).AnyTimes()
-
-		syncer.EXPECT().
-			HandleBlockAnnounce(
-				gomock.AssignableToTypeOf(peer.ID("")), gomock.Any()).
-			Return(nil).AnyTimes()
-
-		syncer.EXPECT().
-			CreateBlockResponse(gomock.Any()).
-			Return(newTestBlockResponseMessage(t), nil).AnyTimes()
-
-		syncer.EXPECT().IsSynced().Return(false).AnyTimes()
-		cfg.Syncer = syncer
-	}
-
-	if cfg.Telemetry == nil {
-		telemetryMock := NewMockClient(ctrl)
-		telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
-		cfg.Telemetry = telemetryMock
-	}
-
-	srvc, err := NewService(cfg)
-	require.NoError(t, err)
-
-	srvc.noDiscover = true
-
-	err = srvc.Start()
-	require.NoError(t, err)
-
-	t.Cleanup(func() {
-		err := srvc.Stop()
-		require.NoError(t, err)
-	})
-	return srvc
 }
 
 // test network service starts

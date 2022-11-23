@@ -6,6 +6,7 @@
 package dot
 
 import (
+	"errors"
 	"os"
 	"testing"
 
@@ -14,16 +15,48 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewTrieFromPairs(t *testing.T) {
-	fp := setupStateFile(t)
-	trie, err := newTrieFromPairs(fp)
-	require.NoError(t, err)
+func Test_newTrieFromPairs(t *testing.T) {
+	t.Parallel()
 
-	expectedRoot := common.MustHexToHash("0x09f9ca28df0560c2291aa16b56e15e07d1e1927088f51356d522722aa90ca7cb")
-	require.Equal(t, expectedRoot, trie.MustHash())
+	tests := []struct {
+		name     string
+		filename string
+		want     common.Hash
+		err      error
+	}{
+		{
+			name: "no arguments",
+			err:  errors.New("read .: is a directory"),
+			want: common.Hash{},
+		},
+		{
+			name:     "working example",
+			filename: setupStateFile(t),
+			want:     common.MustHexToHash("0x09f9ca28df0560c2291aa16b56e15e07d1e1927088f51356d522722aa90ca7cb"),
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := newTrieFromPairs(tt.filename)
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+			if tt.want.IsEmpty() {
+				assert.Nil(t, got)
+			} else {
+				assert.Equal(t, tt.want, got.MustHash())
+			}
+		})
+	}
 }
 
 func TestNewHeaderFromFile(t *testing.T) {
@@ -80,4 +113,61 @@ func TestImportState_Integration(t *testing.T) {
 	data, err := srv.DB().Get(lookupKey)
 	require.NoError(t, err)
 	require.NotNil(t, data)
+}
+
+func TestImportState(t *testing.T) {
+	t.Parallel()
+
+	basepath := t.TempDir()
+
+	cfg := NewTestConfig(t)
+
+	cfg.Init.Genesis = NewTestGenesisRawFile(t, cfg)
+
+	cfg.Global.BasePath = basepath
+	nodeInstance := nodeBuilder{}
+	err := nodeInstance.initNode(cfg)
+	require.NoError(t, err)
+
+	stateFP := setupStateFile(t)
+	headerFP := setupHeaderFile(t)
+
+	type args struct {
+		basepath  string
+		stateFP   string
+		headerFP  string
+		firstSlot uint64
+	}
+	tests := []struct {
+		name string
+		args args
+		err  error
+	}{
+		{
+			name: "no arguments",
+			err:  errors.New("read .: is a directory"),
+		},
+		{
+			name: "working example",
+			args: args{
+				basepath:  basepath,
+				stateFP:   stateFP,
+				headerFP:  headerFP,
+				firstSlot: 262493679,
+			},
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := ImportState(tt.args.basepath, tt.args.stateFP, tt.args.headerFP, tt.args.firstSlot)
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
 }
