@@ -43,7 +43,7 @@ func (bm *BlockAnnounceMessage) String() string {
 		bm.Number,
 		bm.StateRoot,
 		bm.ExtrinsicsRoot,
-		types.DigestToString(bm.Digest))
+		bm.Digest)
 }
 
 // Encode a BlockAnnounce Msg Type containing the BlockAnnounceMessage using scale.Encode

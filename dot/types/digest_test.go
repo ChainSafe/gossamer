@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_DigestToString(t *testing.T) {
+func Test_Digest_String(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
@@ -23,6 +23,7 @@ func Test_DigestToString(t *testing.T) {
 			digestBuilder: func() scale.VaryingDataTypeSlice {
 				return scale.VaryingDataTypeSlice{}
 			},
+			s: "[]",
 		},
 		"all digests": {
 			digestBuilder: func() scale.VaryingDataTypeSlice {
@@ -44,11 +45,12 @@ func Test_DigestToString(t *testing.T) {
 				})
 				return digest
 			},
-			s: "" +
+			s: "[" +
 				"ChangesTrieRootDigest Hash=0x0100000000000000000000000000000000000000000000000000000000000000, " +
 				"PreRuntimeDigest ConsensusEngineID=abcd Data=0x01020304, " +
 				"ConsensusDigest ConsensusEngineID=ffgg Data=0x0506, " +
-				"SealDigest ConsensusEngineID=xywz Data=0x0708",
+				"SealDigest ConsensusEngineID=xywz Data=0x0708" +
+				"]",
 		},
 	}
 
@@ -58,7 +60,7 @@ func Test_DigestToString(t *testing.T) {
 			t.Parallel()
 
 			digest := testCase.digestBuilder()
-			s := DigestToString(digest)
+			s := digest.String()
 			require.Equal(t, testCase.s, s)
 		})
 	}

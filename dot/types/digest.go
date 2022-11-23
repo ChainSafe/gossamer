@@ -5,7 +5,6 @@ package types
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -19,15 +18,6 @@ func NewDigestItem() scale.VaryingDataType {
 // NewDigest returns a new Digest as a varying data type slice.
 func NewDigest() scale.VaryingDataTypeSlice {
 	return scale.NewVaryingDataTypeSlice(NewDigestItem())
-}
-
-// DigestToString renders a digest varying data type slice as a string.
-func DigestToString(digest scale.VaryingDataTypeSlice) (s string) {
-	elements := make([]string, len(digest.Types))
-	for i := range digest.Types {
-		elements[i] = digest.Types[i].String()
-	}
-	return strings.Join(elements, ", ")
 }
 
 // ConsensusEngineID is a 4-character identifier of the consensus engine that produced the digest.
