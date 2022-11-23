@@ -31,151 +31,184 @@
 </div>
 <br />
 
-## A Go Implementation of the Polkadot Host
-
 > **Warning**
-> 2022-11-01: Gossamer is pre-production software
+>
+> The Gossamer Polkadot Host is pre-production software [2022-12-01]
 
-Gossamer is an implementation of the [Polkadot Host](https://wiki.polkadot.network/docs/learn-polkadot-host): an execution environment for the Polkadot runtime, which is materialized as a Web Assembly (Wasm) blob.  In addition to running an embedded Wasm executor, a Polkadot Host must orchestrate a number of interrelated services, such as [networking](dot/network/README.md), block production, block finalization, a JSON-RPC server, [and more](cmd/gossamer/README.md).
+Gossamer is a [Golang](https://go.dev/) implementation of the
+[Polkadot Host](https://wiki.polkadot.network/docs/learn-polkadot-host): an
+execution environment for the Polkadot runtime, which is materialized as a Web
+Assembly (Wasm) blob. In addition to running an embedded Wasm executor, a
+Polkadot Host must orchestrate a number of interrelated services, such as
+[networking](dot/network/README.md), block production, block finalization, a
+JSON-RPC server, [and more](cmd/gossamer/README.md#client-components).
 
-For more information about Gossamer, check out the [Gossamer Docs](https://ChainSafe.github.io/gossamer).
+## Getting Started
 
-## Get Started
+To get started with Gossamer, follow the steps below to build the source code
+and start a development network.
 
 ### Prerequisites
 
-Install Go version [`>=1.18`](https://go.dev/dl/#go1.18)
+[Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) is required
+to acquire the Gossamer source code, and
+[Make](https://tilburgsciencehub.com/building-blocks/configure-your-computer/automation-and-workflows/make/)
+is used to build it. Building Gossamer requires version 1.18 of
+[Golang](https://go.dev/dl/).
+
+> **Warning**
+>
+> Gossamer will NOT work with version 1.19 of Golang.
 
 ### Installation
 
-get the [ChainSafe/gossamer](https://github.com/ChainSafe/gossamer) repository:
+Clone the [Gossamer](https://github.com/ChainSafe/gossamer) repository and
+checkout the `development` branch:
 
-```
+```sh
 git clone git@github.com:ChainSafe/gossamer
 cd gossamer
+git checkout development
 ```
 
-build gossamer command:
+Build Gossamer:
 
-```
+```sh
 make gossamer
 ```
 
-### Troubleshooting for Apple Silicon users
+Or build Gossamer _and_ move the resulting executable to `$GOPATH/bin`:
 
-If you are facing the following problem with the `wasmer`:
-
+```sh
+make install
 ```
+
+To install Gossamer
+
+#### Troubleshooting for Apple Silicon users
+
+Apple Silicon users may encounter these errors:
+
+```sh
 undefined: cWasmerImportObjectT
 undefined: cWasmerImportFuncT
 undefined: cWasmerValueTag
 ```
 
-Make sure you have the following Golang enviroment variables:
+If so, set the following
+[Golang environment variables](https://pkg.go.dev/cmd/go#hdr-Environment_variables):
 
-- GOARCH="amd64"
-- CGO_ENABLED="1"
-
-> use _go env_ to see all the Golang enviroment variables
-
-> use _go env -w **ENV_NAME**=**ENV_VALUE**_ to set the new value
-
-### Run Development Node
-
-To initialise a development node:
-
-```
-./bin/gossamer --chain dev init
+```sh
+GOARCH="amd64"
 ```
 
-To start the development node:
+## Use Gossamer
 
-```
-./bin/gossamer --chain dev
-```
+A comprehensive guide to
+[Gossamer's end-user capabilities](cmd/gossamer/README.md) is located in the
+`cmd/gossamer` directory. What follows is a guide to Gossamer's capabilities as
+a Polkadot Host.
 
-The development node is configured to produce a block every slot and to finalise a block every round (as there is only one authority, `alice`.)
+### Chain Specifications
 
-### Run Gossamer Node
+A chain specification is a JSON document that defines the
+[genesis](https://wiki.polkadot.network/docs/glossary#genesis) block of a
+blockchain network, as well as network parameters and metadata (e.g. network
+name, bootnodes,
+[telemetry endpoints](https://wiki.polkadot.network/docs/build-node-management#monitoring-and-telemetry),
+etc). It is necessary to provide Gossamer with a chain specification in order to
+use it as a Polkadot Host. The Gossamer repository includes a number of chain
+specifications, some of which will be used in this guide.
 
-The gossamer node runs by default as an authority with 9 authorites set at genesis. The built-in keys, corresponding to the authorities, that are available for the node are `alice`, `bob`, `charlie`, `dave`, `eve`, `ferdie`, `george`, and `ian`.
+### Configuration Files
 
-To initialise a gossamer node:
+Gossamer exposes a number of configuration parameters, such as the location of a
+chain specification file. Although it's possible to use command-line parameters,
+this guide will focus on the usage of Gossamer TOML configuration files, which
+define a set of configuration values in a declarative, portable, reusable
+format. The chain specifications that are used in this guide are each
+accompanied by one or more configuration files.
 
-```
-./bin/gossamer --chain gssmr init
-```
+### Single-Node Development Network
 
-To start the gossamer node:
+The name of the Polkadot test network is "Westend", and the Gossamer repository
+includes a chain specification and configuration file for a single-node, local
+Westend test network.
 
-```
-./bin/gossamer --chain gssmr --key alice
-```
+First, initialize the directory that will be used by the Gossamer node to manage
+its state:
 
-Note: If you only run one gossamer node, the node will not build blocks every slot or finalize blocks; it will appear that the node is doing nothing, but it is actually waiting for a slot to build a block. This is because there are 9 authorities set, so at least 6 of the authorities should be run for a functional network. If you wish to reduce the number of authorities, you can modify the genesis file in `chain/gssmr/genesis-spec.json`.
-
-### Run Kusama Node
-
-Kusama is currently supported as a **full node**, ie. it can sync the chain but not act as an authority.
-
-To initialise a kusama node:
-
-```
-./bin/gossamer --chain kusama init
-```
-
-To start the kusama node:
-
-```
-./bin/gossamer --chain kusama
+```sh
+./bin/gossamer init --force --config ./chain/westend-dev/config.toml
 ```
 
-The node may not appear to do anything for the first minute or so (it's bootstrapping to the network.) If you wish to see what is it doing in this time, you can turn on debug logs in `chain/gssmr/config.toml`:
+Now, start Gossamer as a host for the local Westend development chain:
 
-```
-[log]
-network = "debug"
-```
-
-After it's finished bootstrapping, the node should begin to sync.
-
-### Run Polkadot Node
-
-Polkadot is currently supported as a **full node**, ie. it can sync the chain but not act as an authority.
-
-To initialise a polkadot node:
-
-```
-./bin/gossamer --chain polkadot init
+```sh
+./bin/gossamer --config ./chain/westend-dev/config.toml
 ```
 
-To start the polkadot node:
+### Multi-Node Development Network
 
+The multi-node development network includes three participants: the Alice, Bob,
+and Charlie test accounts. In three separate terminals, initialize the data
+directories for the three Gossamer instances:
+
+```sh
+./bin/gossamer init --force --config ./chain/westend-local/config-alice.toml
 ```
-./bin/gossamer --chain polkadot
+
+```sh
+./bin/gossamer init --force --config ./chain/westend-local/config-bob.toml
+```
+
+```sh
+./bin/gossamer init --force --config ./chain/westend-local/config-charlie.toml
+```
+
+Then start the three hosts:
+
+```sh
+./bin/gossamer --config ./chain/westend-local/config-alice.toml
+```
+
+```sh
+./bin/gossamer --config ./chain/westend-local/config-bob.toml
+```
+
+```sh
+./bin/gossamer --config ./chain/westend-local/config-charlie.toml
 ```
 
 ## Contribute
 
-- Check out [Contributing Guidelines](.github/CONTRIBUTING.md) and our [code style](.github/CODE_STYLE.md) document
-- Have questions? Say hi on [Discord](https://discord.gg/Xdc5xjE)!
+- Check out the [Contributing Guidelines](.github/CONTRIBUTING.md) and our
+  [style guide](.github/CODE_STYLE.md).
+- Have questions or just want to say hi? Join us on
+  [Discord](https://discord.gg/Xdc5xjE)!
 
 ## Donate
 
-Our work on Gossamer is funded by the community. If you'd like to support us with a donation:
-- DOT: [`14gaKBxYkbBh2SKGtRDdhuhtyGAs5XLh55bE5x4cDi5CmL75`](https://polkadot.subscan.io/account/14gaKBxYkbBh2SKGtRDdhuhtyGAs5XLh55bE5x4cDi5CmL75)
-- KSM: [`FAjhFSFoM6X8CxeSp6JE2fPECauCA5NxyB1rAGNSkrVaMtf`](https://kusama.subscan.io/account/FAjhFSFoM6X8CxeSp6JE2fPECauCA5NxyB1rAGNSkrVaMtf)
+Our work on Gossamer is funded by the community. If you'd like to support us
+with a donation:
+
+- DOT:
+  [`14gaKBxYkbBh2SKGtRDdhuhtyGAs5XLh55bE5x4cDi5CmL75`](https://polkadot.subscan.io/account/14gaKBxYkbBh2SKGtRDdhuhtyGAs5XLh55bE5x4cDi5CmL75)
+- KSM:
+  [`FAjhFSFoM6X8CxeSp6JE2fPECauCA5NxyB1rAGNSkrVaMtf`](https://kusama.subscan.io/account/FAjhFSFoM6X8CxeSp6JE2fPECauCA5NxyB1rAGNSkrVaMtf)
 - ETH/DAI: `0x764001D60E69f0C3D0b41B0588866cFaE796972c`
 
 ## ChainSafe Security Policy
 
+We take all security issues seriously, if you believe you have found a security
+issue within a ChainSafe project please notify us immediately. If an issue is
+confirmed, we will take all necessary precautions to ensure a statement and
+patch release is made in a timely manner.
+
 ### Reporting a Security Bug
 
-We take all security issues seriously, if you believe you have found a security issue within a ChainSafe
-project please notify us immediately. If an issue is confirmed, we will take all necessary precautions
-to ensure a statement and patch release is made in a timely manner.
-
-Please email us a description of the flaw and any related information (e.g. reproduction steps, version) to
+Please email us a description of the flaw and any related information (e.g.
+reproduction steps, version) to
 [security at chainsafe dot io](mailto:security@chainsafe.io).
 
 ## License
