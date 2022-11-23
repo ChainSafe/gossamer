@@ -75,6 +75,13 @@ func (vdt *VaryingDataType) Value() (VaryingDataTypeValue, error) {
 	return vdt.value, nil
 }
 
+func (vdt VaryingDataType) String() string {
+	if vdt.value == nil {
+		return "VaryingDataType(nil)"
+	}
+	return vdt.value.String()
+}
+
 // NewVaryingDataType is constructor for VaryingDataType
 func NewVaryingDataType(values ...VaryingDataTypeValue) (vdt VaryingDataType, err error) {
 	if len(values) == 0 {
