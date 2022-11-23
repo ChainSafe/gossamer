@@ -105,7 +105,7 @@ func trimGenesisAuthority(g *Genesis, authCount int) {
 			continue
 		}
 
-		authorities = runtimeRefObjVal.Field(i).FieldByName("Authorities").Interface().([]types.AuthorityAsAddress)
+		authorities = reflect.Indirect(runtimeRefObjVal.Field(i)).FieldByName("Authorities").Interface().([]types.AuthorityAsAddress)
 
 		for _, authority := range authorities {
 			if len(newAuthorities) >= authCount {
@@ -243,13 +243,18 @@ func buildRawMap(m Runtime) (map[string]string, error) {
 	res := make(map[string]string)
 	mRefObjVal := reflect.ValueOf(m)
 
+	fmt.Printf("\n mRefObjVal = %+v\n\n\n\n", mRefObjVal)
 	for i := 0; i < mRefObjVal.NumField(); i++ {
+		v := mRefObjVal.Field(i)
+		if v.IsNil() {
+			continue
+		}
+
 		k := mRefObjVal.Type().Field(i).Name
-		v := mRefObjVal.Field(i).Interface()
 		kv := new(keyValue)
 		kv.key = append(kv.key, k)
 
-		ok, err := generatePalletKeyValue(k, v, res)
+		ok, err := generatePalletKeyValue(k, v.Interface(), res)
 		if err != nil {
 			return nil, err
 		}
@@ -258,12 +263,7 @@ func buildRawMap(m Runtime) (map[string]string, error) {
 			continue
 		}
 
-		// if v != nil {
-		// 	if err = buildRawMapInterface(v, kv); err != nil {
-		// 		return nil, err
-		// 	}
-		// }
-		if err = buildRawMapInterface(v, kv); err != nil {
+		if err = buildRawMapInterface(v.Interface(), kv); err != nil {
 			return nil, err
 		}
 
@@ -280,18 +280,17 @@ func buildRawMap(m Runtime) (map[string]string, error) {
 			return nil, err
 		}
 
-		if k == "Babe" {
-			kv.valueLen = big.NewInt(int64(len(m.Babe.Authorities)))
-		} else if k == "Grandpa" {
-			kv.valueLen = big.NewInt(int64(len(m.Grandpa.Authorities)))
-		}
-
 		// fmt.Printf("%+v ==>\n", kv)
 		value, err := formatValue(kv)
 		if err != nil {
 			return nil, err
 		}
 		res[key] = value
+		// if k == "Grandpa" {
+		// 	fmt.Println("=============>  value = ", value)
+		// 	fmt.Println("=============>  kv.valueLen = ", kv.valueLen)
+
+		// }
 	}
 
 	res[common.BytesToHex(common.UpgradedToDualRefKey)] = "0x01"
@@ -307,16 +306,16 @@ func buildRawMapInterface(m interface{}, kv *keyValue) error {
 		k := mRefObjVal.Type().Field(i).Name
 		kv.key = append(kv.key, k)
 		v := mRefObjVal.Field(i)
-		fmt.Println("\n kv.key = ", kv.key)
+		// fmt.Println("\n kv.key = ", kv.key)
 		// fmt.Printf("\n(buildRawMapInterface) k = %s | V = %+v\n", k, v)
 
 		switch v2 := v.Interface().(type) {
 		case string:
 			kv.value = v2
-			fmt.Println("kv.value = ", kv.value)
+			//fmt.Println("kv.value = ", kv.value)
 		case uint64, int64, int:
 			kv.value = fmt.Sprint(v2)
-			fmt.Println("kv.value = ", kv.value)
+			//fmt.Println("kv.value = ", kv.value)
 		default:
 			switch v.Kind() {
 			case reflect.Slice:
@@ -330,7 +329,7 @@ func buildRawMapInterface(m interface{}, kv *keyValue) error {
 				if err := buildRawArrayInterface(listOfStruct, kv); err != nil {
 					return err
 				}
-				fmt.Println("kv.value = ", kv.value)
+				// fmt.Println("kv.value = ", kv.value)
 			case reflect.Struct:
 				kv.valueLen = big.NewInt(int64(v.NumField()))
 				if err := buildRawStructInterface(v2, kv); err != nil {
@@ -342,7 +341,6 @@ func buildRawMapInterface(m interface{}, kv *keyValue) error {
 				// 	fmt.Println("*#* (buildRawMapInterface) unknown type ? = ", reflect.TypeOf(v2))
 			}
 		}
-
 	}
 	return nil
 }
@@ -365,7 +363,7 @@ func buildRawStructInterface(m interface{}, kv *keyValue) error {
 			}
 		case string:
 			// TODO: check to confirm it's an address (#1865)
-			fmt.Println("v2 at line-462 = ", v2)
+			// fmt.Println("v2 at line-462 = ", v2)
 			// var tba []byte
 			// if v2 != "" {
 			// 	tba = crypto.PublicAddressToByteArray(common.Address(v2))

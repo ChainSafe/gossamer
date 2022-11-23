@@ -86,13 +86,13 @@ func TestNewGenesisFromJSON(t *testing.T) {
 	hrData.System = &System{Code: "0xfoo"} // system code entry
 	BabeAuth1 := types.AuthorityAsAddress{Address: "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", Weight: 1}
 	BabeAuth2 := types.AuthorityAsAddress{Address: "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", Weight: 1}
-	hrData.Babe.Authorities = []types.AuthorityAsAddress{BabeAuth1, BabeAuth2} // babe authority data
+	hrData.Babe = &Babe{Authorities: []types.AuthorityAsAddress{BabeAuth1, BabeAuth2}} // babe authority data
 	GrandpaAuth1 := types.AuthorityAsAddress{Address: "5DFNv4Txc4b88qHqQ6GG4D646QcT4fN3jjS2G3r1PyZkfDut", Weight: 0}
-	hrData.Grandpa.Authorities = []types.AuthorityAsAddress{GrandpaAuth1} // grandpa authority data
+	hrData.Grandpa = &Grandpa{Authorities: []types.AuthorityAsAddress{GrandpaAuth1}} // grandpa authority data
 	balConf1 := BalancesFields{"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", *big.NewInt(1234234234)}
-	hrData.Balances.Balances = append(hrData.Balances.Balances, balConf1) // balances
+	hrData.Balances = &Balances{Balances: []BalancesFields{balConf1}} // balances
 	// Add test cases for new fields...
-	hrData.Society = Society{
+	hrData.Society = &Society{
 		Pot:        0,
 		MaxMembers: 999,
 		Members: []string{
@@ -100,7 +100,7 @@ func TestNewGenesisFromJSON(t *testing.T) {
 			"5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
 		}}
 
-	hrData.Staking = Staking{
+	hrData.Staking = &Staking{
 		HistoryDepth:          84,
 		ValidatorCount:        2,
 		MinimumValidatorCount: 1,
@@ -112,7 +112,7 @@ func TestNewGenesisFromJSON(t *testing.T) {
 		CanceledSlashPayout: 0,
 	}
 
-	hrData.Session = Session{
+	hrData.Session = &Session{
 		NextKeys: []NextKeys{
 			{
 				"5GNJqTPyNqANBkUVMN1LPPrxXnFouWXoe2wNSmmEoLctxiZY",
@@ -127,11 +127,11 @@ func TestNewGenesisFromJSON(t *testing.T) {
 		},
 	}
 
-	hrData.Instance1Collective = Instance1Collective{
+	hrData.Instance1Collective = &Instance1Collective{
 		Phantom: nil,
 		Members: []string{},
 	}
-	hrData.Instance2Collective = Instance2Collective{
+	hrData.Instance2Collective = &Instance2Collective{
 		Phantom: nil,
 		Members: []string{
 			"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
@@ -139,13 +139,13 @@ func TestNewGenesisFromJSON(t *testing.T) {
 		},
 	}
 
-	hrData.Instance1Membership = Instance1Membership{
+	hrData.Instance1Membership = &Instance1Membership{
 		Members: []string{},
 		Phantom: nil,
 	}
 
 	// hrData["Contracts"] = make(map[string]interface{})
-	hrData.Contracts = Contracts{
+	hrData.Contracts = &Contracts{
 		CurrentSchedule: CurrentSchedule{
 			Version:       0,
 			EnablePrintln: true,
@@ -280,7 +280,7 @@ func TestNewGenesisFromJSON(t *testing.T) {
 	// create genesis based on file just created, this will fill Raw field of genesis
 	testGenesisProcessed, err := NewGenesisFromJSON(filename, 2)
 
-	fmt.Printf("\n!@#$********* |||  => testGenesisProcessed = %+v \n err = %+v", testGenesisProcessed, err)
+	// fmt.Printf("\n!@#$********* |||  => testGenesisProcessed = %+v \n err = %+v", testGenesisProcessed, err)
 	require.NoError(t, err)
 
 	require.Equal(t, expectedGenesis.Genesis.Raw, testGenesisProcessed.Genesis.Raw)

@@ -57,30 +57,30 @@ type Fields struct {
 
 // Runtime is ...
 type Runtime struct {
-	System   *System  `json:"system"`
-	Babe     Babe     `json:"babe"`
-	Grandpa  Grandpa  `json:"grandpa"`
-	Balances Balances `json:"balances"`
+	System   *System   `json:"system"`
+	Babe     *Babe     `json:"babe"`
+	Grandpa  *Grandpa  `json:"grandpa"`
+	Balances *Balances `json:"balances"`
 	//TransactionPayment  interface{}         `json:"transactionPayment"`
-	Sudo                Sudo                `json:"sudo"`
-	Session             Session             `json:"session"`
-	Staking             Staking             `json:"staking"`
-	Instance1Collective Instance1Collective `json:"Instance1Collective"`
-	Instance2Collective Instance2Collective `json:"Instance2Collective"`
-	PhragmenElection    PhragmenElection    `json:"PhragmenElection"`
-	Instance1Membership Instance1Membership `json:"Instance1Membership"`
-	Contracts           Contracts           `json:"Contracts"`
-	Society             Society             `json:"Society"`
-	Indices             Indices             `json:"indices"`
-	ImOnline            ImOnline            `json:"imOnline"`
-	AuthorityDiscovery  AuthorityDiscovery  `json:"authorityDiscovery"`
-	Vesting             Vesting             `json:"vesting"`
-	NominationPools     NominationPools     `json:"nominationPools"`
-	Configuration       Configuration       `json:"configuration"`
-	Paras               Paras               `json:"paras"`
-	Hrmp                Hrmp                `json:"hrmp"`
-	Registrar           Registrar           `json:"registrar"`
-	XcmPallet           XcmPallet           `json:"xcmPallet"`
+	Sudo                *Sudo                `json:"sudo"`
+	Session             *Session             `json:"session"`
+	Staking             *Staking             `json:"staking"`
+	Instance1Collective *Instance1Collective `json:"Instance1Collective"`
+	Instance2Collective *Instance2Collective `json:"Instance2Collective"`
+	PhragmenElection    *PhragmenElection    `json:"PhragmenElection"`
+	Instance1Membership *Instance1Membership `json:"Instance1Membership"`
+	Contracts           *Contracts           `json:"Contracts"`
+	Society             *Society             `json:"Society"`
+	Indices             *Indices             `json:"indices"`
+	ImOnline            *ImOnline            `json:"imOnline"`
+	AuthorityDiscovery  *AuthorityDiscovery  `json:"authorityDiscovery"`
+	Vesting             *Vesting             `json:"vesting"`
+	NominationPools     *NominationPools     `json:"nominationPools"`
+	Configuration       *Configuration       `json:"configuration"`
+	Paras               *Paras               `json:"paras"`
+	Hrmp                *Hrmp                `json:"hrmp"`
+	Registrar           *Registrar           `json:"registrar"`
+	XcmPallet           *XcmPallet           `json:"xcmPallet"`
 }
 
 // System is ...
