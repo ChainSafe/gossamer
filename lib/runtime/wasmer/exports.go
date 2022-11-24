@@ -86,8 +86,7 @@ func (in *Instance) GrandpaAuthorities() ([]types.Authority, error) {
 	return types.GrandpaAuthoritiesRawToAuthorities(gar)
 }
 
-func (in *Instance) BabeGenerateKeyOwnershipProof(slot uint64, authorityID [32]byte) (
-	types.OpaqueKeyOwnershipProof, error) {
+func (in *Instance) BabeGenerateKeyOwnershipProof(slot uint64, authorityID [32]byte) (types.OpaqueKeyOwnershipProof, error) {
 
 	combinedArg := []byte{}
 	encodedSetID, err := scale.Marshal(slot)
@@ -115,16 +114,6 @@ func (in *Instance) BabeGenerateKeyOwnershipProof(slot uint64, authorityID [32]b
 
 	return keyOwnershipProof, err
 }
-
-// self.client
-// .runtime_api()
-// .submit_report_equivocation_unsigned_extrinsic(
-// 	&BlockId::Hash(best_block_hash),
-// 	equivocation_proof,
-// 	key_owner_proof,
-// )
-// .map_err(Error::RuntimeApi)?;
-// equivocation_proof, key_owner_proof
 
 func (in *Instance) BabeSubmitReportEquivocationUnsignedExtrinsic(equivocationProof types.BabeEquivocationProof, keyOwnershipProof types.OpaqueKeyOwnershipProof) error {
 	combinedArg := []byte{}
