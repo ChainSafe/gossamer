@@ -86,7 +86,8 @@ func (in *Instance) GrandpaAuthorities() ([]types.Authority, error) {
 	return types.GrandpaAuthoritiesRawToAuthorities(gar)
 }
 
-func (in *Instance) BabeGenerateKeyOwnershipProof(slot uint64, authorityID [32]byte) (types.OpaqueKeyOwnershipProof, error) {
+func (in *Instance) BabeGenerateKeyOwnershipProof(slot uint64, authorityID [32]byte) (
+	types.OpaqueKeyOwnershipProof, error) {
 
 	combinedArg := []byte{}
 	encodedSetID, err := scale.Marshal(slot)
