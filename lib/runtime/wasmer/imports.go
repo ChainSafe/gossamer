@@ -1910,8 +1910,8 @@ func ext_storage_exists_version_1(context unsafe.Pointer, keySpan C.int64_t) C.i
 	key := asMemorySlice(instanceContext, keySpan)
 	logger.Debugf("key: 0x%x", key)
 
-	val := storage.Get(key)
-	if len(val) > 0 {
+	value := storage.Get(key)
+	if value != nil {
 		return 1
 	}
 
