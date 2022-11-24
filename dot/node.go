@@ -103,7 +103,7 @@ func (*nodeBuilder) isNodeInitialised(basepath string) error {
 
 	defer func() {
 		closeErr := db.Close()
-		if err != nil {
+		if closeErr != nil {
 			logger.Errorf("failed to close database: %s", closeErr)
 		}
 	}()
@@ -437,9 +437,9 @@ func storeGlobalNodeName(name, basepath string) (err error) {
 	}
 
 	defer func() {
-		err = db.Close()
-		if err != nil {
-			logger.Errorf("failed to close database: %s", err)
+		closeErr := db.Close()
+		if closeErr != nil {
+			logger.Errorf("failed to close database: %s", closeErr)
 			return
 		}
 	}()

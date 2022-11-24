@@ -185,7 +185,7 @@ func getFromDBAtNode(db chaindb.Database, n *Node, key []byte) (
 	value []byte, err error) {
 	if n.Kind() == node.Leaf {
 		if bytes.Equal(n.PartialKey, key) {
-			return n.SubValue, nil
+			return n.StorageValue, nil
 		}
 		return nil, nil
 	}
@@ -193,7 +193,7 @@ func getFromDBAtNode(db chaindb.Database, n *Node, key []byte) (
 	branch := n
 	// Key is equal to the key of this branch or is empty
 	if len(key) == 0 || bytes.Equal(branch.PartialKey, key) {
-		return branch.SubValue, nil
+		return branch.StorageValue, nil
 	}
 
 	commonPrefixLength := lenCommonPrefix(branch.PartialKey, key)

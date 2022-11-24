@@ -37,8 +37,8 @@ func Test_Trie_GenesisBlock(t *testing.T) {
 		"non empty trie": {
 			trie: Trie{
 				root: &node.Node{
-					PartialKey: []byte{1, 2, 3},
-					SubValue:   []byte{4, 5, 6},
+					PartialKey:   []byte{1, 2, 3},
+					StorageValue: []byte{4, 5, 6},
 				},
 			},
 			genesisHeader: withHash(types.Header{

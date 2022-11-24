@@ -113,7 +113,8 @@ func TestStorage_LoadFromDB(t *testing.T) {
 	trieKV := []struct {
 		key   []byte
 		value []byte
-	}{{},
+	}{
+		{value: []byte{}},
 		{[]byte("key1"), []byte("value1")},
 		{[]byte("key2"), []byte("value2")},
 		{[]byte("xyzKey1"), []byte("xyzValue1")},
@@ -147,7 +148,7 @@ func TestStorage_LoadFromDB(t *testing.T) {
 
 	entries, err := storage.Entries(&root)
 	require.NoError(t, err)
-	require.Equal(t, 3, len(entries))
+	require.Equal(t, 4, len(entries))
 }
 
 func TestStorage_StoreTrie_NotSyncing(t *testing.T) {
@@ -180,9 +181,9 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	))
 
 	trieRoot := &node.Node{
-		PartialKey: []byte{1, 2},
-		SubValue:   []byte{3, 4},
-		Dirty:      true,
+		PartialKey:   []byte{1, 2},
+		StorageValue: []byte{3, 4},
+		Dirty:        true,
 	}
 	testChildTrie := trie.NewTrie(trieRoot)
 

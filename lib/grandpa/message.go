@@ -56,6 +56,10 @@ type VoteMessage struct {
 	Message SignedMessage
 }
 
+func (v VoteMessage) String() string {
+	return fmt.Sprintf("round=%d, setID=%d, message={%s}", v.Round, v.SetID, v.Message)
+}
+
 // Index returns VDT index
 func (VoteMessage) Index() uint { return 0 }
 
@@ -157,8 +161,8 @@ type CommitMessage struct {
 	AuthData   []AuthData
 }
 
-func (s *Service) newCommitMessage(header *types.Header, round uint64) (*CommitMessage, error) {
-	pcs, err := s.grandpaState.GetPrecommits(round, s.state.setID)
+func (s *Service) newCommitMessage(header *types.Header, round, setID uint64) (*CommitMessage, error) {
+	pcs, err := s.grandpaState.GetPrecommits(round, setID)
 	if err != nil {
 		return nil, err
 	}

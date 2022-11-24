@@ -106,11 +106,7 @@ func Fuzz_Trie_PutAndGet_Single(f *testing.F) {
 		trie := NewEmptyTrie()
 		trie.Put(key, value)
 		retrievedValue := trie.Get(key)
-		if retrievedValue == nil {
-			assert.Empty(t, value)
-		} else {
-			assert.Equal(t, value, retrievedValue)
-		}
+		assert.Equal(t, value, retrievedValue)
 	})
 }
 
@@ -517,10 +513,10 @@ func TestClearPrefix_Small(t *testing.T) {
 	ssTrie.ClearPrefix([]byte("noo"))
 
 	expectedRoot := &Node{
-		PartialKey: codec.KeyLEToNibbles([]byte("other")),
-		SubValue:   []byte("other"),
-		Generation: 1,
-		Dirty:      true,
+		PartialKey:   codec.KeyLEToNibbles([]byte("other")),
+		StorageValue: []byte("other"),
+		Generation:   1,
+		Dirty:        true,
 	}
 	require.Equal(t, expectedRoot, ssTrie.root)
 

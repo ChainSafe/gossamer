@@ -18,7 +18,7 @@ digest = ""
 genesis = "./chain/dev/genesis.json"
 
 [account]
-key = ""
+key = "alice"
 unlock = ""
 
 [core]

@@ -43,10 +43,6 @@ var (
 	testPeers []common.PeerInfo
 )
 
-//go:generate mockgen -destination=mock_block_state_test.go -package modules github.com/ChainSafe/gossamer/dot/network BlockState
-//go:generate mockgen -destination=mock_syncer_test.go -package modules github.com/ChainSafe/gossamer/dot/network Syncer
-//go:generate mockgen -destination=mock_transaction_handler_test.go -package modules github.com/ChainSafe/gossamer/dot/network TransactionHandler
-
 func newNetworkService(t *testing.T) *network.Service {
 	ctrl := gomock.NewController(t)
 
@@ -343,8 +339,6 @@ func setupSystemModule(t *testing.T) *SystemModule {
 	txQueue := state.NewTransactionState(telemetryMock)
 	return NewSystemModule(net, nil, core, chain.Storage, txQueue, nil, nil)
 }
-
-//go:generate mockgen -destination=mock_network_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/core Network
 
 func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 	// setup service
