@@ -1,17 +1,15 @@
-[global]
-basepath = "./tmp/westend-local-bob"
-log = "info"
+
 metrics-address = ":9877"
 
 [log]
 core = ""
-network = "trace"
+network = ""
 rpc = ""
 state = ""
 runtime = ""
 babe = ""
 grandpa = ""
-sync = "trace"
+sync = ""
 digest = ""
 
 [init]
@@ -25,7 +23,6 @@ unlock = ""
 roles = 4
 babe-authority = true
 grandpa-authority = true
-babe-lead = true
 
 [network]
 port = 7002
