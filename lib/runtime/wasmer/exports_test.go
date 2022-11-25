@@ -408,6 +408,32 @@ func TestInstance_GrandpaAuthorities_PolkadotRuntime(t *testing.T) {
 	require.Equal(t, expected, auths)
 }
 
+func TestInstance_BabeGenerateKeyOwnershipProof_NodeRuntime(t *testing.T) {
+	tt := trie.NewEmptyTrie()
+	rt := NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt)
+	authorityID := types.AuthorityID{}
+	slot := uint64(1)
+	_, err := rt.BabeGenerateKeyOwnershipProof(slot, authorityID)
+	require.NoError(t, err)
+}
+
+func TestInstance_BabeSubmitReportEquivocationUnsignedExtrinsic_NodeRuntime_(t *testing.T) {
+	tt := trie.NewEmptyTrie()
+	rt := NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt)
+	authorityID := types.AuthorityID{}
+	slot := uint64(1)
+	keyOwnershipProof, err := rt.BabeGenerateKeyOwnershipProof(slot, authorityID)
+	require.NoError(t, err)
+
+	equivocationProof := types.BabeEquivocationProof{
+		Offender: authorityID,
+		Slot:     slot,
+	}
+
+	err = rt.BabeSubmitReportEquivocationUnsignedExtrinsic(equivocationProof, keyOwnershipProof)
+	require.NoError(t, err)
+}
+
 func TestInstance_BabeConfiguration_NodeRuntime_NoAuthorities(t *testing.T) {
 	rt := NewTestInstance(t, runtime.NODE_RUNTIME)
 	cfg, err := rt.BabeConfiguration()

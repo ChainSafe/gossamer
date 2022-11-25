@@ -10,6 +10,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/babe/mocks"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -812,6 +813,75 @@ func Test_verifier_verifyBlockEquivocation(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_verifier_submitAndReportEquivocation(t *testing.T) {
+	t.Parallel()
+
+	// Generate keys
+	kp, err := sr25519.GenerateKeypair()
+	assert.NoError(t, err)
+
+	auth := types.NewAuthority(kp.Public(), uint64(1))
+	vi := &verifierInfo{
+		authorities: []types.Authority{*auth, *auth},
+		threshold:   scale.MaxUint128,
+	}
+
+	ctrl := gomock.NewController(t)
+	mockBlockState := NewMockBlockState(ctrl)
+	verifier := newVerifier(mockBlockState, 1, vi)
+
+	slot := uint64(1)
+	authorityIndex := uint32(1)
+	output, proof, err := kp.VrfSign(makeTranscript(Randomness{}, slot, 2))
+	assert.NoError(t, err)
+
+	testDigest := types.BabePrimaryPreDigest{
+		AuthorityIndex: authorityIndex,
+		SlotNumber:     slot,
+		VRFOutput:      output,
+		VRFProof:       proof,
+	}
+	prd, err := testDigest.ToPreRuntimeDigest()
+	assert.NoError(t, err)
+
+	firstHeader := newTestHeader(t, *prd)
+	firstHash := encodeAndHashHeader(t, firstHeader)
+	signAndAddSeal(t, kp, firstHeader, firstHash[:])
+
+	output2, proof2, err := kp.VrfSign(makeTranscript(Randomness{}, slot, 2))
+	assert.NoError(t, err)
+
+	testDigest2 := types.BabePrimaryPreDigest{
+		AuthorityIndex: authorityIndex,
+		SlotNumber:     slot,
+		VRFOutput:      output2,
+		VRFProof:       proof2,
+	}
+	prd2, err := testDigest2.ToPreRuntimeDigest()
+	assert.NoError(t, err)
+
+	secondHeader := newTestHeader(t, *prd2)
+
+	offenderPublicKey := verifier.authorities[authorityIndex].ToRaw().Key
+	keyOwnershipProof := types.OpaqueKeyOwnershipProof([]byte{64, 138, 252, 29, 127, 102, 189, 129, 207, 47, 157, 60, 17, 138, 194, 121, 139, 92, 176, 175, 224, 16, 185, 93, 175, 251, 224, 81, 209, 61, 0, 71}) //nolint:lll
+	mockRuntime := mocks.NewMockRuntimeInstance(ctrl)
+
+	equivocationProof := types.BabeEquivocationProof{
+		Offender:     offenderPublicKey,
+		Slot:         slot,
+		FirstHeader:  *firstHeader,
+		SecondHeader: *secondHeader,
+	}
+	mockRuntime.EXPECT().BabeGenerateKeyOwnershipProof(slot, offenderPublicKey).Return(keyOwnershipProof, nil).AnyTimes()
+	mockRuntime.EXPECT().BabeSubmitReportEquivocationUnsignedExtrinsic(equivocationProof, keyOwnershipProof).Return(nil)
+
+	mockBlockState.EXPECT().BestBlockHash().Return(firstHash)
+	mockBlockState.EXPECT().GetRuntime(firstHash).Return(mockRuntime, nil)
+
+	err = verifier.submitAndReportEquivocation(slot, authorityIndex, *firstHeader, *secondHeader)
+	assert.NoError(t, err)
 }
 
 func Test_verifier_verifyAuthorshipRightEquivocatory(t *testing.T) {

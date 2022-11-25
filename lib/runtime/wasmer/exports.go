@@ -109,9 +109,9 @@ func (in *Instance) BabeGenerateKeyOwnershipProof(slot uint64, authorityID [32]b
 	}
 
 	keyOwnershipProof := types.OpaqueKeyOwnershipProof{}
-	err = scale.Unmarshal(ret, keyOwnershipProof)
+	err = scale.Unmarshal(ret, &keyOwnershipProof)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unmarshalling: %w", err)
 	}
 
 	return keyOwnershipProof, err
