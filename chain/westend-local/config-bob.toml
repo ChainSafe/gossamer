@@ -1,4 +1,6 @@
-
+[global]
+basepath = "~/.gossamer/westend-local-bob"
+log = "info"
 metrics-address = ":9877"
 
 [log]
