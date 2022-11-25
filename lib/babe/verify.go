@@ -349,14 +349,14 @@ func (b *verifier) submitAndReportEquivocation(slot uint64, authorityIndex uint3
 	bestBlockHash := b.blockState.BestBlockHash()
 	rt, err := b.blockState.GetRuntime(bestBlockHash)
 	if err != nil {
-		return err
+		return fmt.Errorf("getting runtime: %w", err)
 	}
 
 	offenderPublicKey := b.authorities[authorityIndex].ToRaw().Key
 
 	keyOwnershipProof, err := rt.BabeGenerateKeyOwnershipProof(slot, offenderPublicKey)
 	if err != nil {
-		return err
+		return fmt.Errorf("getting key ownership proof from runtime: %w", err)
 	}
 
 	equivocationProof := &types.BabeEquivocationProof{
@@ -367,7 +367,11 @@ func (b *verifier) submitAndReportEquivocation(slot uint64, authorityIndex uint3
 	}
 
 	err = rt.BabeSubmitReportEquivocationUnsignedExtrinsic(*equivocationProof, keyOwnershipProof)
-	return err
+	if err != nil {
+		return fmt.Errorf("submitting equivocation report to runtime: %w", err)
+	}
+
+	return nil
 }
 
 // verifyBlockEquivocation checks if the given block's author has occupied the corresponding slot more than once.
@@ -408,7 +412,12 @@ func (b *verifier) verifyBlockEquivocation(header *types.Header) (bool, error) {
 		}
 
 		err = b.submitAndReportEquivocation(slot, authorOfExistingHeader, *existingHeader, *header)
-		return true, err
+		if err != nil {
+			return true, fmt.Errorf("submitting and reporting equivocation: %w", err)
+		}
+
+		return true, nil
+
 	}
 
 	return false, nil

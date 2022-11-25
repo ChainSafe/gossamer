@@ -3,23 +3,28 @@
 
 package types
 
-// Represents an equivocation proof. An equivocation happens when a validator
-// produces more than one block on the same slot. The proof of equivocation
-// are the given distinct headers that were signed by the validator and which
-// include the slot number.
+// BabeEquivocationProof represents a babe equivocation proof.
+// An equivocation happens when a validator produces more than one block on the same slot.
+// The proof of equivocation are the given distinct headers that were signed by the validator
+// and which include the slot number.
 type BabeEquivocationProof struct {
-	// The public key of the equivocator.
+	// Offender is the public key of the equivocator.
 	Offender AuthorityId
-	// The slot at which the equivocation happened.
+	// Slot at which the equivocation happened.
 	Slot uint64
-	// The first header involved in the equivocation.
+	// FirstHeader is the first header involved in the equivocation.
 	FirstHeader Header
-	// The second header involved in the equivocation.
+	// SecondHeader is the second header involved in the equivocation.
 	SecondHeader Header
 }
 
-// A Babe authority identifier. Necessarily equivalent to the schnorrkel public key used in
-// the main Babe module. If that ever changes, then this must, too.
+// AuthorityId represents a babe authority identifier.
 type AuthorityId [32]byte
 
+// OpaqueKeyOwnershipProof is an opaque type used to represent the key ownership proof at the
+// runtime API boundary. The inner value is an encoded representation of the actual key
+// ownership proof which will be parameterized when defining the runtime. At
+// the runtime API boundary this type is unknown and as such we keep this
+// opaque representation, implementors of the runtime API will have to make
+// sure that all usages of `OpaqueKeyOwnershipProof` refer to the same type.
 type OpaqueKeyOwnershipProof []byte
