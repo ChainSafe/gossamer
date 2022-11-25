@@ -1,3 +1,5 @@
+//go:build integration
+
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
@@ -14,9 +16,7 @@ import (
 
 // test gossip messages to connected peers
 func TestGossip(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping TestGossip; currently, nothing is gossiped")
-	}
+	t.Skip("skipping TestGossip; currently, nothing is gossiped")
 
 	t.Parallel()
 

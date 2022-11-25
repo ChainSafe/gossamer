@@ -1,3 +1,5 @@
+//go:build integration
+
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
@@ -7,11 +9,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/golang/mock/gomock"
 	"github.com/libp2p/go-libp2p-core/peer"
-
-	"github.com/ChainSafe/gossamer/dot/types"
-
 	"github.com/stretchr/testify/require"
 )
 

@@ -34,12 +34,12 @@ proto:
 test:
 	@echo "  >  \033[32mRunning tests...\033[0m "
 	git lfs pull
-	go test -short -coverprofile c.out ./... -timeout=30m
+	go test -coverprofile c.out ./... -timeout=30m
 
 ## it-stress: Runs Integration Tests stress mode
 it-stress: build
 	@echo "  >  \033[32mRunning stress tests...\033[0m "
-	MODE=stress go test ./tests/stress/... -timeout=15m -v -short -run TestSync_
+	MODE=stress go test ./tests/stress/... -timeout=15m -v -run TestSync_
 
 it-grandpa: build
 	@echo "  >  \033[32mRunning GRANDPA stress tests...\033[0m "
@@ -60,7 +60,7 @@ it-polkadotjs: build
 ## test: Runs `go test -race` on project test files.
 test-state-race:
 	@echo "  >  \033[32mRunning race tests...\033[0m "
-	go test ./dot/state/... -short -race -timeout=5m
+	go test ./dot/state/... -race -timeout=5m
 
 ## deps: Install missing dependencies. Runs `go mod download` internally.
 deps:

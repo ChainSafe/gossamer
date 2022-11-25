@@ -1,3 +1,5 @@
+//go:build integration
+
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
@@ -14,100 +16,10 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/lib/utils"
-	"github.com/golang/mock/gomock"
 
 	"github.com/stretchr/testify/require"
 )
-
-// testGenesisHeader is a test block header
-var testGenesisHeader = &types.Header{
-	Number:    0,
-	StateRoot: trie.EmptyHash,
-	Digest:    types.NewDigest(),
-}
-
-//go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
-
-func newTestState(t *testing.T) *state.Service {
-	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
-
-	testDatadirPath := t.TempDir()
-
-	db, err := utils.SetupDatabase(testDatadirPath, true)
-	require.NoError(t, err)
-
-	t.Cleanup(func() { db.Close() })
-
-	_, genTrie, _ := newTestGenesisWithTrieAndHeader(t)
-	tries := state.NewTries()
-	tries.SetTrie(&genTrie)
-	block, err := state.NewBlockStateFromGenesis(db, tries, testGenesisHeader, telemetryMock)
-	require.NoError(t, err)
-
-	var rtCfg wasmer.Config
-
-	rtCfg.Storage = rtstorage.NewTrieState(&genTrie)
-
-	rt, err := wasmer.NewRuntimeFromGenesis(rtCfg)
-	require.NoError(t, err)
-	block.StoreRuntime(block.BestBlockHash(), rt)
-
-	grandpa, err := state.NewGrandpaStateFromGenesis(db, nil, newTestVoters(t))
-	require.NoError(t, err)
-
-	return &state.Service{
-		Block:     block,
-		Grandpa:   grandpa,
-		Telemetry: telemetryMock,
-	}
-}
-
-func newTestVoters(t *testing.T) []Voter {
-	t.Helper()
-
-	kr, err := keystore.NewEd25519Keyring()
-	require.NoError(t, err)
-
-	vs := []Voter{}
-	for i, k := range kr.Keys {
-		vs = append(vs, Voter{
-			Key: *k.Public().(*ed25519.PublicKey),
-			ID:  uint64(i),
-		})
-	}
-
-	return vs
-}
-
-func newTestService(t *testing.T, keypair *ed25519.Keypair) (*Service, *state.Service) {
-	st := newTestState(t)
-	net := newTestNetwork(t)
-
-	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
-
-	cfg := &Config{
-		BlockState:   st.Block,
-		GrandpaState: st.Grandpa,
-		Voters:       newTestVoters(t),
-		Authority:    true,
-		Network:      net,
-		Interval:     time.Second,
-		Telemetry:    telemetryMock,
-		Keypair:      keypair,
-	}
-
-	gs, err := NewService(cfg)
-	require.NoError(t, err)
-	return gs, st
-}
 
 func TestUpdateAuthorities(t *testing.T) {
 	kr, err := keystore.NewEd25519Keyring()
