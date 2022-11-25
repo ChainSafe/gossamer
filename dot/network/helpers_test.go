@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
@@ -127,7 +126,6 @@ func newTestBlockRequestMessage(t *testing.T) *BlockRequestMessage {
 	return &BlockRequestMessage{
 		RequestedData: RequestedDataHeader + RequestedDataBody + RequestedDataJustification,
 		StartingBlock: *starting,
-		EndBlockHash:  &common.Hash{},
 		Direction:     1,
 		Max:           &one,
 	}

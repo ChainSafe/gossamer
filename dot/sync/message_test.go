@@ -82,7 +82,6 @@ func TestService_CreateBlockResponse(t *testing.T) {
 			},
 			args: args{req: &network.BlockRequestMessage{
 				StartingBlock: *variadic.MustNewUint32OrHash(0),
-				EndBlockHash:  &common.Hash{1, 2, 3},
 				Direction:     network.Ascending,
 			}},
 			want: &network.BlockResponseMessage{BlockData: []*types.BlockData{{
@@ -131,7 +130,6 @@ func TestService_CreateBlockResponse(t *testing.T) {
 			},
 			args: args{req: &network.BlockRequestMessage{
 				StartingBlock: *variadic.MustNewUint32OrHash(0),
-				EndBlockHash:  &common.Hash{1, 2, 3},
 				Direction:     network.Descending,
 			}},
 			want: &network.BlockResponseMessage{BlockData: []*types.BlockData{{
