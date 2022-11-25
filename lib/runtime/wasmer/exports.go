@@ -86,6 +86,7 @@ func (in *Instance) GrandpaAuthorities() ([]types.Authority, error) {
 	return types.GrandpaAuthoritiesRawToAuthorities(gar)
 }
 
+// BabeGenerateKeyOwnershipProof returns babe key ownership proof from runtime.
 func (in *Instance) BabeGenerateKeyOwnershipProof(slot uint64, authorityID [32]byte) (
 	types.OpaqueKeyOwnershipProof, error) {
 
@@ -116,7 +117,11 @@ func (in *Instance) BabeGenerateKeyOwnershipProof(slot uint64, authorityID [32]b
 	return keyOwnershipProof, err
 }
 
-func (in *Instance) BabeSubmitReportEquivocationUnsignedExtrinsic(equivocationProof types.BabeEquivocationProof, keyOwnershipProof types.OpaqueKeyOwnershipProof) error {
+// BabeSubmitReportEquivocationUnsignedExtrinsic reports equivocation report to the runtime.
+func (in *Instance) BabeSubmitReportEquivocationUnsignedExtrinsic(
+	equivocationProof types.BabeEquivocationProof, keyOwnershipProof types.OpaqueKeyOwnershipProof,
+) error {
+
 	combinedArg := []byte{}
 
 	encodedEquivocationProof, err := scale.Marshal(equivocationProof)
@@ -131,7 +136,7 @@ func (in *Instance) BabeSubmitReportEquivocationUnsignedExtrinsic(equivocationPr
 	}
 	combinedArg = append(combinedArg, encodedKeyOwnershipProof...)
 
-	_, err = in.Exec(runtime.BabeApiSubmitReportEquivocationUnsignedExtrinsic, combinedArg)
+	_, err = in.Exec(runtime.BabeAPISubmitReportEquivocationUnsignedExtrinsic, combinedArg)
 	return err
 }
 

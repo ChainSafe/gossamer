@@ -340,7 +340,8 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	return nil
 }
 
-func (b *verifier) submitAndReportEquivocation(slot uint64, authorityIndex uint32, firstHeader types.Header, secondHeader types.Header) error {
+func (b *verifier) submitAndReportEquivocation(
+	slot uint64, authorityIndex uint32, firstHeader, secondHeader types.Header) error {
 
 	// TODO: Check if it is initial sync
 	// don't report any equivocations during initial sync
@@ -360,7 +361,7 @@ func (b *verifier) submitAndReportEquivocation(slot uint64, authorityIndex uint3
 	}
 
 	equivocationProof := &types.BabeEquivocationProof{
-		Offender:     types.AuthorityId(offenderPublicKey),
+		Offender:     types.AuthorityID(offenderPublicKey),
 		Slot:         slot,
 		FirstHeader:  firstHeader,
 		SecondHeader: secondHeader,

@@ -73,8 +73,9 @@ const (
 	GrandpaAuthorities = "GrandpaApi_grandpa_authorities"
 	// BabeAPIGenerateKeyOwnershipProof is the runtime API call BabeApi_generate_key_ownership_proof
 	BabeAPIGenerateKeyOwnershipProof = "BabeApi_generate_key_ownership_proof"
-	// BabeApiSubmitReportEquivocationUnsignedExtrinsic is the runtime API call BabeApi_submit_report_equivocation_unsigned_extrinsic
-	BabeApiSubmitReportEquivocationUnsignedExtrinsic = "BabeApi_submit_report_equivocation_unsigned_extrinsic"
+	// BabeAPISubmitReportEquivocationUnsignedExtrinsic is the runtime API call
+	// BabeApi_submit_report_equivocation_unsigned_extrinsic
+	BabeAPISubmitReportEquivocationUnsignedExtrinsic = "BabeApi_submit_report_equivocation_unsigned_extrinsic"
 	// BabeAPIConfiguration is the runtime API call BabeApi_configuration
 	BabeAPIConfiguration = "BabeApi_configuration"
 	// BlockBuilderInherentExtrinsics is the runtime API call BlockBuilder_inherent_extrinsics

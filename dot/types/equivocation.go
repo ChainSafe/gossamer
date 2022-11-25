@@ -9,7 +9,7 @@ package types
 // and which include the slot number.
 type BabeEquivocationProof struct {
 	// Offender is the public key of the equivocator.
-	Offender AuthorityId
+	Offender AuthorityID
 	// Slot at which the equivocation happened.
 	Slot uint64
 	// FirstHeader is the first header involved in the equivocation.
@@ -18,8 +18,8 @@ type BabeEquivocationProof struct {
 	SecondHeader Header
 }
 
-// AuthorityId represents a babe authority identifier.
-type AuthorityId [32]byte
+// AuthorityID represents a babe authority identifier.
+type AuthorityID [32]byte
 
 // OpaqueKeyOwnershipProof is an opaque type used to represent the key ownership proof at the
 // runtime API boundary. The inner value is an encoded representation of the actual key
