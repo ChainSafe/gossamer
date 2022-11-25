@@ -109,8 +109,6 @@ func TestTransactionState_NotifierChannels(t *testing.T) {
 		ts.Push(dummyTransactions[i])
 	}
 
-	// it takes time for the status updates to happen
-	time.Sleep(1 * time.Second)
 	close(notifierChannel)
 
 	for status := range notifierChannel {

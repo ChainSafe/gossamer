@@ -738,8 +738,6 @@ func setupStateAndPopulateTrieState(t *testing.T, basepath string,
 	return integrationTestController
 }
 
-//go:generate mockgen -destination=mock_code_substituted_state_test.go -package modules github.com/ChainSafe/gossamer/dot/core CodeSubstitutedState
-
 func newAuthorModule(t *testing.T, integrationTestController *integrationTestController) *AuthorModule {
 	t.Helper()
 

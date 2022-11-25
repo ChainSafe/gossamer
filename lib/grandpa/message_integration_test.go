@@ -1,4 +1,6 @@
-// Copyright 2021 ChainSafe Systems (ON)
+//go:build integration
+
+// Copyright 2022 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
 package grandpa
@@ -15,19 +17,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 )
-
-var testVote = &Vote{
-	Hash:   common.Hash{0xa, 0xb, 0xc, 0xd},
-	Number: 999,
-}
-
-var testVote2 = &Vote{
-	Hash:   common.Hash{0xa, 0xb, 0xc, 0xd},
-	Number: 333,
-}
-
-var testSignature = [64]byte{1, 2, 3, 4}
-var testAuthorityID = [32]byte{5, 6, 7, 8}
 
 func TestCommitMessageEncode(t *testing.T) {
 	kr, err := keystore.NewEd25519Keyring()
