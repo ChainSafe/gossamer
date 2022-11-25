@@ -64,63 +64,6 @@ func setupHeaderFile(t *testing.T) string {
 	return fp
 }
 
-func TestImportState(t *testing.T) {
-	t.Parallel()
-
-	basepath := t.TempDir()
-
-	cfg := NewTestConfig(t)
-
-	cfg.Init.Genesis = NewTestGenesisRawFile(t, cfg)
-
-	cfg.Global.BasePath = basepath
-	nodeInstance := nodeBuilder{}
-	err := nodeInstance.initNode(cfg)
-	require.NoError(t, err)
-
-	stateFP := setupStateFile(t)
-	headerFP := setupHeaderFile(t)
-
-	type args struct {
-		basepath  string
-		stateFP   string
-		headerFP  string
-		firstSlot uint64
-	}
-	tests := []struct {
-		name string
-		args args
-		err  error
-	}{
-		{
-			name: "no arguments",
-			err:  errors.New("read .: is a directory"),
-		},
-		{
-			name: "working example",
-			args: args{
-				basepath:  basepath,
-				stateFP:   stateFP,
-				headerFP:  headerFP,
-				firstSlot: 262493679,
-			},
-		},
-	}
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			err := ImportState(tt.args.basepath, tt.args.stateFP, tt.args.headerFP, tt.args.firstSlot)
-			if tt.err != nil {
-				assert.EqualError(t, err, tt.err.Error())
-			} else {
-				assert.NoError(t, err)
-			}
-		})
-	}
-}
-
 func Test_newHeaderFromFile(t *testing.T) {
 	t.Parallel()
 
@@ -193,46 +136,6 @@ func Test_newHeaderFromFile(t *testing.T) {
 				assert.NoError(t, err)
 			}
 			assert.Equal(t, tt.want, got)
-		})
-	}
-}
-
-func Test_newTrieFromPairs(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name     string
-		filename string
-		want     common.Hash
-		err      error
-	}{
-		{
-			name: "no arguments",
-			err:  errors.New("read .: is a directory"),
-			want: common.Hash{},
-		},
-		{
-			name:     "working example",
-			filename: setupStateFile(t),
-			want:     common.MustHexToHash("0x09f9ca28df0560c2291aa16b56e15e07d1e1927088f51356d522722aa90ca7cb"),
-		},
-	}
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			got, err := newTrieFromPairs(tt.filename)
-			if tt.err != nil {
-				assert.EqualError(t, err, tt.err.Error())
-			} else {
-				assert.NoError(t, err)
-			}
-			if tt.want.IsEmpty() {
-				assert.Nil(t, got)
-			} else {
-				assert.Equal(t, tt.want, got.MustHash())
-			}
 		})
 	}
 }
