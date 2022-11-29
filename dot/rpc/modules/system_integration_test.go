@@ -304,7 +304,7 @@ func setupSystemModule(t *testing.T) *SystemModule {
 
 	aliceAcctEncoded, err := scale.Marshal(aliceAcctInfo)
 	require.NoError(t, err)
-	ts.Set(aliceAcctStoKey, aliceAcctEncoded)
+	ts.Put(aliceAcctStoKey, aliceAcctEncoded)
 
 	err = chain.Storage.StoreTrie(ts, nil)
 	require.NoError(t, err)

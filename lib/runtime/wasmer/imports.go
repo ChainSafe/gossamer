@@ -2044,7 +2044,7 @@ func ext_storage_set_version_1(context unsafe.Pointer, keySpan, valueSpan C.int6
 	logger.Debugf(
 		"key 0x%x has value 0x%x",
 		key, value)
-	storage.Set(key, cp)
+	storage.Put(key, cp)
 }
 
 //export ext_storage_start_transaction_version_1
