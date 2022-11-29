@@ -14,7 +14,7 @@ func TestPutAndGetChild(t *testing.T) {
 	childTrie := buildSmallTrie()
 	parentTrie := NewEmptyTrie()
 
-	err := parentTrie.PutChild(childKey, childTrie)
+	err := parentTrie.SetChild(childKey, childTrie)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -34,7 +34,7 @@ func TestPutAndGetFromChild(t *testing.T) {
 	childTrie := buildSmallTrie()
 	parentTrie := NewEmptyTrie()
 
-	err := parentTrie.PutChild(childKey, childTrie)
+	err := parentTrie.SetChild(childKey, childTrie)
 	if err != nil {
 		t.Fatal(err)
 	}
