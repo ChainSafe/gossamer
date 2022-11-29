@@ -107,6 +107,8 @@ func (*Service) decodeMessage(in []byte) (NotificationsMessage, error) {
 	return msg, err
 }
 
+// handleNetworkMessage processes notification messages and return true if we should
+// propagate this message, false if otherwise.
 func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) (bool, error) {
 	if msg == nil {
 		return false, nil
@@ -126,29 +128,20 @@ func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) (
 		return false, err
 	}
 
-	resp, err := s.messageHandler.handleMessage(from, m)
+	err = s.messageHandler.handleMessage(from, m)
 	if err != nil {
 		return false, err
 	}
 
-	switch r := resp.(type) {
-	case *ConsensusMessage:
-		if r != nil {
-			s.network.GossipMessage(resp)
-		}
-	case nil:
-	default:
-		logger.Warnf(
-			"unexpected type %T returned from message handler: %v",
-			resp, resp)
-	}
-
-	switch m.(type) {
-	case *NeighbourPacketV1, *CatchUpResponse:
+	switch m.Type() {
+	case VoteMessageType, CommitMessageType:
+		s.network.GossipMessage(msg)
+		return true, nil
+	case NeighborMessageType, CatchUpRequestMessageType, CatchUpResponseMessageType:
 		return false, nil
 	}
 
-	return true, nil
+	return false, nil
 }
 
 // decodeMessage decodes a network-level consensus message into a GRANDPA VoteMessage or CommitMessage

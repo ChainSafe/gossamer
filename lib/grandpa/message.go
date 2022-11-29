@@ -13,9 +13,26 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
+// MessageType represents type of grandpa gossip message.
+type MessageType uint8
+
+const (
+	// VoteMessageType represents grandpa vote message.
+	VoteMessageType MessageType = iota
+	// CommitMessageType represents grandpa commit message.
+	CommitMessageType
+	// NeighborMessageType represents grandpa neighbour message.
+	NeighborMessageType
+	// CatchUpRequestMessageType represents grandpa catch up request message.
+	CatchUpRequestMessageType
+	// CatchUpResponseMessageType represents grandpa catch up response message.
+	CatchUpResponseMessageType
+)
+
 // GrandpaMessage is implemented by all GRANDPA network messages
 type GrandpaMessage interface { //nolint:revive
 	ToConsensusMessage() (*network.ConsensusMessage, error)
+	Type() MessageType
 }
 
 // NewGrandpaMessage returns a new VaryingDataType to represent a GrandpaMessage
@@ -62,6 +79,9 @@ func (v VoteMessage) String() string {
 
 // Index returns VDT index
 func (VoteMessage) Index() uint { return 0 }
+
+// Type returns type of given grandpa message.
+func (VoteMessage) Type() MessageType { return VoteMessageType }
 
 // ToConsensusMessage converts the VoteMessage into a network-level consensus message
 func (v *VoteMessage) ToConsensusMessage() (*ConsensusMessage, error) {
@@ -122,6 +142,9 @@ type NeighbourPacketV1 struct {
 // Index returns VDT index
 func (NeighbourPacketV1) Index() uint { return 1 }
 
+// Type returns type of given grandpa message.
+func (NeighbourPacketV1) Type() MessageType { return NeighborMessageType }
+
 // ToConsensusMessage converts the NeighbourMessage into a network-level consensus message
 func (m *NeighbourPacketV1) ToConsensusMessage() (*network.ConsensusMessage, error) {
 	versionedNeighbourPacket := newVersionedNeighbourPacket()
@@ -179,6 +202,9 @@ func (s *Service) newCommitMessage(header *types.Header, round, setID uint64) (*
 // Index returns VDT index
 func (CommitMessage) Index() uint { return 1 }
 
+// Type returns type of given grandpa message.
+func (CommitMessage) Type() MessageType { return CommitMessageType }
+
 // ToConsensusMessage converts the CommitMessage into a network-level consensus message
 func (f *CommitMessage) ToConsensusMessage() (*ConsensusMessage, error) {
 	msg := newGrandpaMessage()
@@ -231,7 +257,9 @@ func compactToJustification(vs []Vote, auths []AuthData) ([]SignedVote, error) {
 
 // CatchUpRequest struct to represent a CatchUpRequest message
 type CatchUpRequest struct {
+	// Round that we want to catch up to
 	Round uint64
+	// The voter set ID this message is from.
 	SetID uint64
 }
 
@@ -244,6 +272,9 @@ func newCatchUpRequest(round, setID uint64) *CatchUpRequest {
 
 // Index returns VDT index
 func (CatchUpRequest) Index() uint { return 3 }
+
+// Type returns type of given grandpa message.
+func (CatchUpRequest) Type() MessageType { return CatchUpRequestMessageType }
 
 // ToConsensusMessage converts the catchUpRequest into a network-level consensus message
 func (r *CatchUpRequest) ToConsensusMessage() (*ConsensusMessage, error) {
@@ -301,6 +332,9 @@ func (s *Service) newCatchUpResponse(round, setID uint64) (*CatchUpResponse, err
 
 // Index returns VDT index
 func (CatchUpResponse) Index() uint { return 4 }
+
+// Type returns type of given grandpa message.
+func (r CatchUpResponse) Type() MessageType { return CatchUpResponseMessageType }
 
 // ToConsensusMessage converts the catchUpResponse into a network-level consensus message
 func (r *CatchUpResponse) ToConsensusMessage() (*ConsensusMessage, error) {

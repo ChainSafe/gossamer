@@ -187,9 +187,8 @@ func TestMessageHandler_VoteMessage(t *testing.T) {
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
-	out, err := h.handleMessage("", vm)
+	err = h.handleMessage("", vm)
 	require.NoError(t, err)
-	require.Nil(t, out)
 
 	charlieAuthorityPublicKeyBytes := charlieAuthority.Public().(*ed25519.PublicKey).AsBytes()
 	gotSignedVote, ok := gs.loadVote(charlieAuthorityPublicKeyBytes, precommit)
@@ -216,7 +215,7 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 		Number: 1,
 	}
 
-	_, err = h.handleMessage("", NeighbourPacketV1)
+	err = h.handleMessage("", NeighbourPacketV1)
 	require.NoError(t, err)
 
 	digest := types.NewDigest()
@@ -240,9 +239,8 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 	err = st.Block.AddBlock(block)
 	require.NoError(t, err)
 
-	out, err := h.handleMessage("", NeighbourPacketV1)
+	err = h.handleMessage("", NeighbourPacketV1)
 	require.NoError(t, err)
-	require.Nil(t, out)
 }
 
 func TestMessageHandler_VerifyJustification_InvalidSig(t *testing.T) {
@@ -317,9 +315,8 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
-	out, err := gs.messageHandler.handleMessage("", fm)
+	err = gs.messageHandler.handleMessage("", fm)
 	require.NoError(t, err)
-	require.Nil(t, out)
 
 	hash, err := st.Block.GetFinalisedHash(fm.Round, gs.state.setID)
 	require.NoError(t, err)
@@ -348,7 +345,7 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_MinVoteError(t *testing.T
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
-	out, err := h.handleMessage("", fm)
+	err = h.handleMessage("", fm)
 
 	const expectedErrString = "handling commit message: " +
 		"verifying commit message justification: " +
@@ -357,7 +354,6 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_MinVoteError(t *testing.T
 
 	require.EqualError(t, err, expectedErrString)
 	require.ErrorIs(t, err, ErrMinVotesNotMet)
-	require.Nil(t, out)
 }
 
 func TestMessageHandler_CommitMessage_WithCatchUpRequest(t *testing.T) {
@@ -387,7 +383,7 @@ func TestMessageHandler_CommitMessage_WithCatchUpRequest(t *testing.T) {
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
-	_, err = h.handleMessage("", fm)
+	err = h.handleMessage("", fm)
 	require.NoError(t, err)
 }
 
@@ -404,7 +400,7 @@ func TestMessageHandler_CatchUpRequest_InvalidRound(t *testing.T) {
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
-	_, err = h.handleMessage("", req)
+	err = h.handleMessage("", req)
 	require.Equal(t, ErrInvalidCatchUpRound, err)
 }
 
@@ -421,7 +417,7 @@ func TestMessageHandler_CatchUpRequest_InvalidSetID(t *testing.T) {
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
-	_, err = h.handleMessage("", req)
+	err = h.handleMessage("", req)
 	require.Equal(t, ErrSetIDMismatch, err)
 }
 
@@ -483,7 +479,7 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 	resp, err := gs.newCatchUpResponse(round, setID)
 	require.NoError(t, err)
 
-	expected, err := resp.ToConsensusMessage()
+	_, err = resp.ToConsensusMessage()
 	require.NoError(t, err)
 
 	// create and handle request
@@ -494,9 +490,8 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
-	out, err := h.handleMessage("", req)
+	err = h.handleMessage("", req)
 	require.NoError(t, err)
-	require.Equal(t, expected, out)
 }
 
 func TestVerifyJustification(t *testing.T) {
@@ -619,7 +614,7 @@ func TestMessageHandler_VerifyPreVoteJustification(t *testing.T) {
 		PreVoteJustification: just,
 	}
 
-	prevote, err := h.verifyPreVoteJustification(msg)
+	prevote, err := h.catchUp.verifyPreVoteJustification(msg)
 	require.NoError(t, err)
 	require.Equal(t, testHash, prevote)
 }
@@ -658,7 +653,7 @@ func TestMessageHandler_VerifyPreCommitJustification(t *testing.T) {
 		Number:                 uint32(round),
 	}
 
-	err = h.verifyPreCommitJustification(msg)
+	err = h.catchUp.verifyPreCommitJustification(msg)
 	require.NoError(t, err)
 }
 
@@ -692,9 +687,8 @@ func TestMessageHandler_HandleCatchUpResponse(t *testing.T) {
 		Number:                 uint32(round),
 	}
 
-	out, err := h.handleMessage("", msg)
+	err = h.handleMessage("", msg)
 	require.NoError(t, err)
-	require.Nil(t, out)
 	require.Equal(t, round+1, gs.state.round)
 }
 
@@ -1276,7 +1270,7 @@ func Test_VerifyPrevoteJustification_CountEquivocatoryVoters(t *testing.T) {
 		Number:               uint32(bfcNumber),
 	}
 
-	hash, err := h.verifyPreVoteJustification(testCatchUpResponse)
+	hash, err := h.catchUp.verifyPreVoteJustification(testCatchUpResponse)
 	require.NoError(t, err)
 	require.Equal(t, hash, bfcHash)
 }
@@ -1351,7 +1345,7 @@ func Test_VerifyPreCommitJustification(t *testing.T) {
 		Number:                 uint32(bfcNumber),
 	}
 
-	err = h.verifyPreCommitJustification(testCatchUpResponse)
+	err = h.catchUp.verifyPreCommitJustification(testCatchUpResponse)
 	require.NoError(t, err)
 }
 

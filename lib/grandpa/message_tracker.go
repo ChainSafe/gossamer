@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
@@ -23,8 +24,11 @@ type tracker struct {
 	stopped    chan struct{}
 
 	catchUpResponseMessageMutex sync.Mutex
-	// round(uint64) is used as key and *CatchUpResponse as value
-	catchUpResponseMessages map[uint64]*CatchUpResponse
+	// // round(uint64) is used as key and *CatchUpResponse as value
+	// catchUpResponseMessages map[uint64]*CatchUpResponse
+
+	// block hash is used as key and *CatchUpResponse as value
+	catchUpResponseMessages map[common.Hash]*networkCatchUpResponseMessage
 }
 
 func newTracker(bs BlockState, handler *MessageHandler) *tracker {
@@ -39,7 +43,7 @@ func newTracker(bs BlockState, handler *MessageHandler) *tracker {
 		commits:                 newCommitsTracker(commitsCapacity),
 		in:                      bs.GetImportedBlockNotifierChannel(),
 		stopped:                 make(chan struct{}),
-		catchUpResponseMessages: make(map[uint64]*CatchUpResponse),
+		catchUpResponseMessages: make(map[common.Hash]*networkCatchUpResponseMessage),
 	}
 }
 
@@ -64,11 +68,11 @@ func (t *tracker) addCommit(cm *CommitMessage) {
 	t.commits.add(cm)
 }
 
-func (t *tracker) addCatchUpResponse(_ *CatchUpResponse) {
+func (t *tracker) addCatchUpResponse(cr *networkCatchUpResponseMessage) {
 	t.catchUpResponseMessageMutex.Lock()
 	defer t.catchUpResponseMessageMutex.Unlock()
-	// uncomment when usage is setup properly, see #1531
-	// t.catchUpResponseMessages[cr.Round] = cr
+
+	t.catchUpResponseMessages[cr.msg.Hash] = cr
 }
 
 func (t *tracker) handleBlocks() {
@@ -97,31 +101,43 @@ func (t *tracker) handleBlock(b *types.Block) {
 	vms := t.votes.messages(h)
 	for _, v := range vms {
 		// handleMessage would never error for vote message
-		_, err := t.handler.handleMessage(v.from, v.msg)
+		err := t.handler.handleMessage(v.from, v.msg)
 		if err != nil {
 			logger.Warnf("failed to handle vote message %v: %s", v, err)
 		}
 	}
 
 	// delete block hash that may or may not be in the tracker.
+	// TODO: Check if we should delete all vote messages for h,
+	// if fail to process a few of the vote messages.
 	t.votes.delete(h)
 
 	cm := t.commits.message(h)
 	if cm != nil {
-		_, err := t.handler.handleMessage("", cm)
+		err := t.handler.handleMessage("", cm)
 		if err != nil {
 			logger.Warnf("failed to handle commit message %v: %s", cm, err)
+		} else {
+			t.commits.delete(h)
 		}
-
-		t.commits.delete(h)
 	}
+
+	if cr, has := t.catchUpResponseMessages[h]; has {
+		err := t.handler.handleMessage(cr.from, cr.msg)
+		if err != nil {
+			logger.Warnf("failed to handle catch up response message %v: %s", cr, err)
+		} else {
+			delete(t.catchUpResponseMessages, h)
+		}
+	}
+
 }
 
 func (t *tracker) handleTick() {
 	for _, networkVoteMessage := range t.votes.networkVoteMessages() {
 		peerID := networkVoteMessage.from
 		message := networkVoteMessage.msg
-		_, err := t.handler.handleMessage(peerID, message)
+		err := t.handler.handleMessage(peerID, message)
 		if err != nil {
 			// handleMessage would never error for vote message
 			logger.Debugf("failed to handle vote message %v from peer id %s: %s", message, peerID, err)
@@ -133,7 +149,7 @@ func (t *tracker) handleTick() {
 	}
 
 	t.commits.forEach(func(cm *CommitMessage) {
-		_, err := t.handler.handleMessage("", cm)
+		err := t.handler.handleMessage("", cm)
 		if err != nil {
 			logger.Debugf("failed to handle commit message %v: %s", cm, err)
 			return
@@ -144,4 +160,9 @@ func (t *tracker) handleTick() {
 		// just handled above.
 		t.commits.delete(cm.Vote.Hash)
 	})
+}
+
+type networkCatchUpResponseMessage struct {
+	from peer.ID
+	msg  *CatchUpResponse
 }
