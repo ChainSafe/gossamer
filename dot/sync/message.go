@@ -231,8 +231,8 @@ func (s *Service) checkOrGetDescendantHash(ancestor common.Hash,
 		// if descendant number is lower than ancestor number, this is an error
 		if header.Number > descendantNumber {
 			return common.Hash{},
-				fmt.Errorf("invalid request, descendant number %d is higher than ancestor %d",
-					header.Number, descendantNumber)
+				fmt.Errorf("invalid request, descendant number %d is lower than ancestor %d",
+					descendantNumber, header.Number)
 		}
 
 		// check if provided start hash is descendant of provided descendant hash
