@@ -14,15 +14,24 @@ import (
 	"github.com/ChainSafe/chaindb"
 )
 
-// Database is an interface to get values from a
-// key value database.
-type Database interface {
+// Getter gets a value corresponding to the given key.
+type Getter interface {
 	Get(key []byte) (value []byte, err error)
+}
+
+// Putter puts a value at the given key and returns an error.
+type Putter interface {
+	Put(key []byte, value []byte) error
+}
+
+// NewBatcher creates a new database batch.
+type NewBatcher interface {
+	NewBatch() chaindb.Batch
 }
 
 // Load reconstructs the trie from the database from the given root hash.
 // It is used when restarting the node to load the current state trie.
-func (t *Trie) Load(db Database, rootHash common.Hash) error {
+func (t *Trie) Load(db Getter, rootHash common.Hash) error {
 	if rootHash == EmptyHash {
 		t.root = nil
 		return nil
@@ -46,7 +55,7 @@ func (t *Trie) Load(db Database, rootHash common.Hash) error {
 	return t.loadNode(db, t.root)
 }
 
-func (t *Trie) loadNode(db Database, n *Node) error {
+func (t *Trie) loadNode(db Getter, n *Node) error {
 	if n.Kind() != node.Branch {
 		return nil
 	}
@@ -155,7 +164,7 @@ func PopulateNodeHashes(n *Node, nodeHashes map[string]struct{}) {
 // It recursively descends into the trie using the database starting
 // from the root node until it reaches the node with the given key.
 // It then reads the value from the database.
-func GetFromDB(db chaindb.Database, rootHash common.Hash, key []byte) (
+func GetFromDB(db Getter, rootHash common.Hash, key []byte) (
 	value []byte, err error) {
 	if rootHash == EmptyHash {
 		return nil, nil
@@ -181,7 +190,7 @@ func GetFromDB(db chaindb.Database, rootHash common.Hash, key []byte) (
 // for the value corresponding to a key.
 // Note it does not copy the value so modifying the value bytes
 // slice will modify the value of the node in the trie.
-func getFromDBAtNode(db chaindb.Database, n *Node, key []byte) (
+func getFromDBAtNode(db Getter, n *Node, key []byte) (
 	value []byte, err error) {
 	if n.Kind() == node.Leaf {
 		if bytes.Equal(n.PartialKey, key) {
@@ -237,7 +246,7 @@ func getFromDBAtNode(db chaindb.Database, n *Node, key []byte) (
 }
 
 // WriteDirty writes all dirty nodes to the database and sets them to clean
-func (t *Trie) WriteDirty(db chaindb.Database) error {
+func (t *Trie) WriteDirty(db NewBatcher) error {
 	batch := db.NewBatch()
 	err := t.writeDirtyNode(batch, t.root)
 	if err != nil {
@@ -248,7 +257,7 @@ func (t *Trie) WriteDirty(db chaindb.Database) error {
 	return batch.Flush()
 }
 
-func (t *Trie) writeDirtyNode(db chaindb.Batch, n *Node) (err error) {
+func (t *Trie) writeDirtyNode(db Putter, n *Node) (err error) {
 	if n == nil || !n.Dirty {
 		return nil
 	}

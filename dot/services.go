@@ -53,7 +53,7 @@ type rpcServiceSettings struct {
 	syncer        *sync.Service
 }
 
-func newInMemoryDB() (chaindb.Database, error) {
+func newInMemoryDB() (*chaindb.BadgerDB, error) {
 	return utils.SetupDatabase("", true)
 }
 

@@ -33,7 +33,7 @@ import (
 )
 
 // NewInMemoryDB creates a new in-memory database
-func NewInMemoryDB(t *testing.T) chaindb.Database {
+func NewInMemoryDB(t *testing.T) *chaindb.BadgerDB {
 	testDatadirPath := t.TempDir()
 
 	db, err := chaindb.NewBadgerDB(&chaindb.Config{

@@ -22,7 +22,7 @@ func TestConcurrencySetHeader(t *testing.T) {
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	threads := runtime.NumCPU()
-	dbs := make([]chaindb.Database, threads)
+	dbs := make([]*chaindb.BadgerDB, threads)
 	for i := 0; i < threads; i++ {
 		dbs[i] = NewInMemoryDB(t)
 	}

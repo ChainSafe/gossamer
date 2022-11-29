@@ -3,4 +3,4 @@
 
 package state
 
-//go:generate mockgen -destination=mocks_test.go -package $GOPACKAGE . Telemetry,Database
+//go:generate mockgen -destination=mocks_test.go -package $GOPACKAGE . Telemetry,BlockStateDatabase

@@ -26,7 +26,7 @@ var logger = log.NewFromGlobal(
 type Service struct {
 	dbPath      string
 	logLvl      log.Level
-	db          chaindb.Database
+	db          *chaindb.BadgerDB
 	isMemDB     bool // set to true if using an in-memory database; only used for testing.
 	Base        *BaseState
 	Storage     *StorageState
@@ -78,7 +78,7 @@ func (s *Service) UseMemDB() {
 }
 
 // DB returns the Service's database
-func (s *Service) DB() chaindb.Database {
+func (s *Service) DB() *chaindb.BadgerDB {
 	return s.db
 }
 

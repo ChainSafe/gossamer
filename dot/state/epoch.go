@@ -52,7 +52,7 @@ func configDataKey(epoch uint64) []byte {
 
 // EpochState tracks information related to each epoch
 type EpochState struct {
-	db          chaindb.Database
+	db          GetPutter
 	baseState   *BaseState
 	blockState  *BlockState
 	epochLength uint64 // measured in slots
@@ -68,7 +68,7 @@ type EpochState struct {
 }
 
 // NewEpochStateFromGenesis returns a new EpochState given information for the first epoch, fetched from the runtime
-func NewEpochStateFromGenesis(db chaindb.Database, blockState *BlockState,
+func NewEpochStateFromGenesis(db *chaindb.BadgerDB, blockState *BlockState,
 	genesisConfig *types.BabeConfiguration) (*EpochState, error) {
 	baseState := NewBaseState(db)
 
@@ -134,7 +134,7 @@ func NewEpochStateFromGenesis(db chaindb.Database, blockState *BlockState,
 }
 
 // NewEpochState returns a new EpochState
-func NewEpochState(db chaindb.Database, blockState *BlockState) (*EpochState, error) {
+func NewEpochState(db *chaindb.BadgerDB, blockState *BlockState) (*EpochState, error) {
 	baseState := NewBaseState(db)
 
 	epochLength, err := baseState.loadEpochLength()
