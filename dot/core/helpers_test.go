@@ -107,9 +107,9 @@ func createTestService(t *testing.T, genesisFilePath string,
 	cfgRuntime, err := wasmer.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
 
-	cfgRuntime.(*wasmer.Instance).GetContext().Storage.Set(aliceBalanceKey, encodedAccountInfo)
+	cfgRuntime.(*wasmer.Instance).GetContext().Storage.Put(aliceBalanceKey, encodedAccountInfo)
 	// this key is System.UpgradedToDualRefCount -> set to true since all accounts have been upgraded to v0.9 format
-	cfgRuntime.(*wasmer.Instance).GetContext().Storage.Set(common.UpgradedToDualRefKey, []byte{1})
+	cfgRuntime.(*wasmer.Instance).GetContext().Storage.Put(common.UpgradedToDualRefKey, []byte{1})
 
 	cfgBlockState.StoreRuntime(cfgBlockState.BestBlockHash(), cfgRuntime)
 
