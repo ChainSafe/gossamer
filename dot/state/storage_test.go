@@ -57,7 +57,7 @@ func TestStorage_GetStorageByBlockHash(t *testing.T) {
 
 	key := []byte("testkey")
 	value := []byte("testvalue")
-	ts.Set(key, value)
+	ts.Put(key, value)
 
 	root, err := ts.Root()
 	require.NoError(t, err)
@@ -89,7 +89,7 @@ func TestStorage_TrieState(t *testing.T) {
 	storage := newTestStorageState(t)
 	ts, err := storage.TrieState(&trie.EmptyHash)
 	require.NoError(t, err)
-	ts.Set([]byte("noot"), []byte("washere"))
+	ts.Put([]byte("noot"), []byte("washere"))
 
 	root, err := ts.Root()
 	require.NoError(t, err)
@@ -121,7 +121,7 @@ func TestStorage_LoadFromDB(t *testing.T) {
 	}
 
 	for _, kv := range trieKV {
-		ts.Set(kv.key, kv.value)
+		ts.Put(kv.key, kv.value)
 	}
 
 	root, err := ts.Root()
@@ -158,7 +158,7 @@ func TestStorage_StoreTrie_NotSyncing(t *testing.T) {
 
 	key := []byte("testkey")
 	value := []byte("testvalue")
-	ts.Set(key, value)
+	ts.Put(key, value)
 
 	err = storage.StoreTrie(ts, nil)
 	require.NoError(t, err)
@@ -189,7 +189,7 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 
 	testChildTrie.Put([]byte("keyInsidechild"), []byte("voila"))
 
-	err = genTrie.PutChild([]byte("keyToChild"), testChildTrie)
+	err = genTrie.SetChild([]byte("keyToChild"), testChildTrie)
 	require.NoError(t, err)
 
 	tries := newTriesEmpty()
