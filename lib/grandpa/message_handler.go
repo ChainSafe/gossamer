@@ -412,7 +412,7 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 		return nil, err
 	}
 
-	if !hash.Equal(fj.Commit.Hash) {
+	if hash != fj.Commit.Hash {
 		return nil, fmt.Errorf("%w: justification %s and block hash %s",
 			ErrJustificationMismatch, fj.Commit.Hash.Short(), hash.Short())
 	}
