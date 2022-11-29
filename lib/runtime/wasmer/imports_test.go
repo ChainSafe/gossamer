@@ -509,26 +509,51 @@ func Test_ext_storage_get_version_1(t *testing.T) {
 
 func Test_ext_storage_exists_version_1(t *testing.T) {
 	t.Parallel()
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-	testkey := []byte("noot")
-	testvalue := []byte{1, 2}
-	inst.ctx.Storage.Set(testkey, testvalue)
+	testCases := map[string]struct {
+		key    []byte
+		value  []byte // leave to nil to not insert pair
+		result byte
+	}{
+		"value does not exist": {
+			key:    []byte{1},
+			result: 0,
+		},
+		"empty value exists": {
+			key:    []byte{1},
+			value:  []byte{},
+			result: 1,
+		},
+		"value exist": {
+			key:    []byte{1},
+			value:  []byte{2},
+			result: 1,
+		},
+	}
 
-	enc, err := scale.Marshal(testkey)
-	require.NoError(t, err)
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			instance := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-	ret, err := inst.Exec("rtm_ext_storage_exists_version_1", enc)
-	require.NoError(t, err)
-	require.Equal(t, byte(1), ret[0])
+			if testCase.value != nil {
+				instance.ctx.Storage.Set(testCase.key, testCase.value)
+			}
 
-	nonexistent := []byte("none")
-	enc, err = scale.Marshal(nonexistent)
-	require.NoError(t, err)
+			encodedKey, err := scale.Marshal(testCase.key)
+			require.NoError(t, err)
 
-	ret, err = inst.Exec("rtm_ext_storage_exists_version_1", enc)
-	require.NoError(t, err)
-	require.Equal(t, byte(0), ret[0])
+			encodedResult, err := instance.Exec("rtm_ext_storage_exists_version_1", encodedKey)
+			require.NoError(t, err)
+
+			var result byte
+			err = scale.Unmarshal(encodedResult, &result)
+			require.NoError(t, err)
+
+			assert.Equal(t, testCase.result, result)
+		})
+	}
 }
 
 func Test_ext_storage_next_key_version_1(t *testing.T) {
