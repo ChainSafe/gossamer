@@ -140,7 +140,7 @@ func (fh *finalisationHandler) runEphemeralServices(ready chan<- struct{}) error
 
 	if fh.firstRun {
 		fh.firstRun = false
-		ready <- struct{}{}
+		close(ready)
 	}
 
 	finalisationEngineErr := make(chan error)
