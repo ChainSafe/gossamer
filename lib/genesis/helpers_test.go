@@ -15,6 +15,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 )
 
@@ -50,14 +51,14 @@ func TestNewGenesisFromJSON(t *testing.T) {
 
 	expRaw := make(map[string]map[string]string)
 	expRaw["top"] = make(map[string]string)
-	expRaw["top"]["0x3a636f6465"] = "0xfoo"
+	expRaw["top"]["0x3a636f6465"] = "0xfoo"                                                                                                                                                                                                                                                                                                            // raw system code
 	expRaw["top"]["0x3a6772616e6470615f617574686f726974696573"] = "0x010834602b88f60513f1c805d87ef52896934baf6a662bc37414dbdbf69356b1a6910000000000000000"                                                                                                                                                                                             // raw grandpa authorities
 	expRaw["top"]["0x1cb6f36e027abb2091cfb5110ab5087f5e0621c4869aa60c02be9adcc98a0d1d"] = "0x08d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0100000000000000"                                                                                                                                                                       // raw babe authorities
-	expRaw["top"]["0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9de1e86a9a8c739864cf3cc5ec2bea59fd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"] = "0x0000000000000000000000007aeb9049000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000" // raw system account
+	expRaw["top"]["0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9de1e86a9a8c739864cf3cc5ec2bea59fd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"] = "0x0000000000000000000000007aeb9049000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000" // Balances
 	expRaw["top"][common.BytesToHex(common.UpgradedToDualRefKey)] = "0x01"
 	expRaw["top"]["0x426e15054d267946093858132eb537f1a47a9ff5cd5bf4d848a80a0b1a947dc3"] = "0x00000000000000000000000000000000"                                                                                                                 // Society
 	expRaw["top"]["0x426e15054d267946093858132eb537f1ba7fb8745735dc3be2a2c61a72c39e78"] = "0x0101d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48"             // Society
-	expRaw["top"]["0x426e15054d267946093858132eb537f1d0b4a3f7631f0c0e761898fe198211de"] = "0xe7030000"                                                                                                                                         // Society                                                                                                                                       // Staking
+	expRaw["top"]["0x426e15054d267946093858132eb537f1d0b4a3f7631f0c0e761898fe198211de"] = "0xe7030000"                                                                                                                                         // Society
 	expRaw["top"]["0x5f3e4907f716ac89b6347d15ececedca138e71612491192d68deab7e6f563fe1"] = "0x02000000"                                                                                                                                         // Staking
 	expRaw["top"]["0x5f3e4907f716ac89b6347d15ececedca5579297f4dfb9609e7e4c2ebab9ce40a"] = "0x80be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f"                                                                               // Staking
 	expRaw["top"]["0x5f3e4907f716ac89b6347d15ececedcaac0a2cbf8e355f5ea6cb2de8727bfb0c"] = "0x54000000"                                                                                                                                         // Staking
@@ -85,15 +86,20 @@ func TestNewGenesisFromJSON(t *testing.T) {
 	hrData := new(Runtime)
 	hrData.System = &System{Code: "0xfoo"} // system code entry
 	BabeAuth1 := types.AuthorityAsAddress{Address: "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", Weight: 1}
-	BabeAuth2 := types.AuthorityAsAddress{Address: "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", Weight: 1}
-	hrData.Babe = &Babe{Authorities: []types.AuthorityAsAddress{BabeAuth1, BabeAuth2}} // babe authority data
+	hrData.Babe = &Babe{Authorities: []types.AuthorityAsAddress{BabeAuth1}} // babe authority data
 	GrandpaAuth1 := types.AuthorityAsAddress{Address: "5DFNv4Txc4b88qHqQ6GG4D646QcT4fN3jjS2G3r1PyZkfDut", Weight: 0}
 	hrData.Grandpa = &Grandpa{Authorities: []types.AuthorityAsAddress{GrandpaAuth1}} // grandpa authority data
-	balConf1 := BalancesFields{"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", *big.NewInt(1234234234)}
+	balConf1 := BalancesFields{"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", 1234234234}
 	hrData.Balances = &Balances{Balances: []BalancesFields{balConf1}} // balances
 	// Add test cases for new fields...
+
+	zeroOfUint128, err := scale.NewUint128(new(big.Int).SetUint64(0))
+	if err != nil {
+		t.Fatalf("Cound not create variable of type uint128 : %v", err)
+	}
+
 	hrData.Society = &Society{
-		Pot:        0,
+		Pot:        zeroOfUint128,
 		MaxMembers: 999,
 		Members: []string{
 			"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
@@ -109,7 +115,7 @@ func TestNewGenesisFromJSON(t *testing.T) {
 		Invulnerables: []string{
 			"5GNJqTPyNqANBkUVMN1LPPrxXnFouWXoe2wNSmmEoLctxiZY",
 		},
-		CanceledSlashPayout: 0,
+		CanceledSlashPayout: zeroOfUint128,
 	}
 
 	hrData.Session = &Session{
@@ -133,7 +139,7 @@ func TestNewGenesisFromJSON(t *testing.T) {
 	}
 	hrData.Instance2Collective = &Instance2Collective{
 		Phantom: nil,
-		Members: []string{
+		Members: []interface{}{
 			"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
 			"5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
 		},

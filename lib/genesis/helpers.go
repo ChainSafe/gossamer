@@ -178,6 +178,9 @@ type keyValue struct {
 
 func generatePalletKeyValue(k string, v interface{}, res map[string]string) (bool, error) {
 	jsonBody, err := json.Marshal(v)
+	// fmt.Println("K = ", k)
+	// fmt.Println("type of v = ", reflect.TypeOf(v))
+	// fmt.Println("v = ", v)
 	if err != nil {
 		fmt.Println("ERROR IN json.Marshal(v)")
 		return false, err
@@ -243,9 +246,9 @@ func buildRawMap(m Runtime) (map[string]string, error) {
 	res := make(map[string]string)
 	mRefObjVal := reflect.ValueOf(m)
 
-	fmt.Printf("\n mRefObjVal = %+v\n\n\n\n", mRefObjVal)
 	for i := 0; i < mRefObjVal.NumField(); i++ {
 		v := mRefObjVal.Field(i)
+		vInterface := v.Interface()
 		if v.IsNil() {
 			continue
 		}
@@ -254,7 +257,7 @@ func buildRawMap(m Runtime) (map[string]string, error) {
 		kv := new(keyValue)
 		kv.key = append(kv.key, k)
 
-		ok, err := generatePalletKeyValue(k, v.Interface(), res)
+		ok, err := generatePalletKeyValue(k, vInterface, res)
 		if err != nil {
 			return nil, err
 		}
@@ -263,11 +266,11 @@ func buildRawMap(m Runtime) (map[string]string, error) {
 			continue
 		}
 
-		if err = buildRawMapInterface(v.Interface(), kv); err != nil {
+		if err = buildRawMapInterface(vInterface, kv); err != nil {
 			return nil, err
 		}
 
-		if reflect.DeepEqual([]string{"Balances", "balances"}, kv.key) {
+		if reflect.DeepEqual([]string{"Balances", "Balances"}, kv.key) {
 			err = buildBalances(kv, res)
 			if err != nil {
 				return nil, err
@@ -280,17 +283,11 @@ func buildRawMap(m Runtime) (map[string]string, error) {
 			return nil, err
 		}
 
-		// fmt.Printf("%+v ==>\n", kv)
 		value, err := formatValue(kv)
 		if err != nil {
 			return nil, err
 		}
 		res[key] = value
-		// if k == "Grandpa" {
-		// 	fmt.Println("=============>  value = ", value)
-		// 	fmt.Println("=============>  kv.valueLen = ", kv.valueLen)
-
-		// }
 	}
 
 	res[common.BytesToHex(common.UpgradedToDualRefKey)] = "0x01"
@@ -298,16 +295,16 @@ func buildRawMap(m Runtime) (map[string]string, error) {
 }
 
 func buildRawMapInterface(m interface{}, kv *keyValue) error {
-
 	mRefObjVal := reflect.Indirect(reflect.ValueOf(m))
 
-	// fmt.Printf("\n\n(buildRawMapInterface)  ===> m = %+v\n\n", mRefObjVal)
 	for i := 0; i < mRefObjVal.NumField(); i++ {
 		k := mRefObjVal.Type().Field(i).Name
 		kv.key = append(kv.key, k)
 		v := mRefObjVal.Field(i)
-		// fmt.Println("\n kv.key = ", kv.key)
-		// fmt.Printf("\n(buildRawMapInterface) k = %s | V = %+v\n", k, v)
+
+		if v.Kind() == reflect.Struct && v.IsNil() {
+			continue
+		}
 
 		switch v2 := v.Interface().(type) {
 		case string:
@@ -317,28 +314,32 @@ func buildRawMapInterface(m interface{}, kv *keyValue) error {
 			kv.value = fmt.Sprint(v2)
 			//fmt.Println("kv.value = ", kv.value)
 		default:
+
 			switch v.Kind() {
 			case reflect.Slice:
-				listOfStruct := []interface{}{}
-				for i := 0; i < v.Len(); i++ {
-					listOfStruct = append(listOfStruct, v.Index(i).Interface())
+
+				vLen := v.Len()
+				listOfInterface := []interface{}{}
+				for i := 0; i < vLen; i++ {
+					listOfInterface = append(listOfInterface, v.Index(i).Interface())
 					// fmt.Printf("(buildRawMapInterface) listOfStruct[%v] =>  %+v \n", i, listOfStruct[i])
 				}
 				// fmt.Println("(buildRawMapInterface) listOfStruct => ", listOfStruct)
-				kv.valueLen = big.NewInt(int64(v.Len()))
-				if err := buildRawArrayInterface(listOfStruct, kv); err != nil {
+
+				if vLen > 0 && v.Index(0).Kind() == reflect.Struct {
+					kv.valueLen = big.NewInt(int64(v.Index(0).NumField()))
+				} else {
+					kv.valueLen = big.NewInt(int64(vLen))
+
+				}
+				if err := buildRawArrayInterface(listOfInterface, kv); err != nil {
 					return err
 				}
-				// fmt.Println("kv.value = ", kv.value)
 			case reflect.Struct:
 				kv.valueLen = big.NewInt(int64(v.NumField()))
 				if err := buildRawStructInterface(v2, kv); err != nil {
 					return err
 				}
-				fmt.Println("kv.value = ", kv.value)
-				// for Debug...
-				// default:
-				// 	fmt.Println("*#* (buildRawMapInterface) unknown type ? = ", reflect.TypeOf(v2))
 			}
 		}
 	}
@@ -347,10 +348,9 @@ func buildRawMapInterface(m interface{}, kv *keyValue) error {
 
 func buildRawStructInterface(m interface{}, kv *keyValue) error {
 	mRefObjVal := reflect.Indirect(reflect.ValueOf(m))
-
 	// fmt.Printf("\n\n(buildRawStructInterface)  ===> m = %+v\n\n", mRefObjVal)
 	for i := 0; i < mRefObjVal.NumField(); i++ {
-		//k := mRefObjVal.Type().Field(i).Name
+		// k := mRefObjVal.Type().Field(i).Name
 		v := mRefObjVal.Field(i)
 		// fmt.Println("\n kv.key = ", kv.key)
 		// fmt.Printf("\n(buildRawMapInterface) k = %s | V = %+v\n", k, v)
@@ -406,6 +406,13 @@ func buildRawStructInterface(m interface{}, kv *keyValue) error {
 			kv.value = kv.value + fmt.Sprintf("%x", encVal)
 			kv.iVal = append(kv.iVal, big.NewInt(int64(v2)))
 		case uint64:
+			encVal, err := scale.Marshal(uint64(v2))
+			if err != nil {
+				return err
+			}
+			kv.value = kv.value + fmt.Sprintf("%x", encVal)
+			kv.iVal = append(kv.iVal, big.NewInt(int64(v2)))
+		case float64:
 			encVal, err := scale.Marshal(uint64(v2))
 			if err != nil {
 				return err
@@ -495,7 +502,6 @@ func generateStorageKey(modulePrefix, storageKey string) (string, error) {
 }
 
 func generateStorageValue(i interface{}, idx int) ([]byte, error) {
-	//fmt.Printf("Value of i in generateStorageValue = %+v \n", i)
 	val := reflect.ValueOf(i)
 	var (
 		encode []byte
@@ -590,6 +596,7 @@ func generateStorageValue(i interface{}, idx int) ([]byte, error) {
 		}
 		//fmt.Printf("\n missing Type in generateStorageValue = %+v | t = %+v\n", reflect.TypeOf(t), t)
 	}
+	// fmt.Println("encode :", encode)
 	return encode, nil
 }
 
@@ -635,12 +642,17 @@ func generateKeyValue(s interface{}, prefixKey string, res map[string]string) er
 		}
 
 		value, err := generateStorageValue(s, i)
+		// fmt.Printf("key = %v  | Value = %v \n", storageKey, common.BytesToHex(value))
 		if err != nil {
 			fmt.Println("\nERROR IN generateStorageValue")
 			return err
 		}
 
 		res[key] = common.BytesToHex(value)
+
+		// fmt.Printf("k ==> : [%+v, %+v] \n", prefixKey, storageKey)
+		// fmt.Printf("key : %v \nres ==> : %+v \n", key, res[key])
+
 	}
 	return nil
 }
@@ -650,7 +662,7 @@ func formatKey(kv *keyValue) (string, error) {
 	case reflect.DeepEqual([]string{"Grandpa", "Authorities"}, kv.key):
 		kb := []byte(`:grandpa_authorities`)
 		return common.BytesToHex(kb), nil
-	case reflect.DeepEqual([]string{"System", "code"}, kv.key):
+	case reflect.DeepEqual([]string{"System", "Code"}, kv.key):
 		kb := []byte(`:code`)
 		return common.BytesToHex(kb), nil
 	default:
@@ -697,6 +709,7 @@ func generateSessionKeyValue(s *Session, prefixKey string, res map[string]string
 				prefix := bytes.Join([][]byte{moduleName, nextKeyHash}, nil)
 				suffix := bytes.Join([][]byte{accIDHash, validatorAccID}, nil)
 				res[common.BytesToHex(append(prefix, suffix...))] = common.BytesToHex(validatorAccID)
+
 			case KeyOwner:
 				var storagePrefixKey []byte
 				storagePrefixKey, err = common.Twox128Hash([]byte("KeyOwner"))
@@ -738,6 +751,7 @@ func generateSessionKeyValue(s *Session, prefixKey string, res map[string]string
 					}
 
 					res[common.BytesToHex(append(storagePrefixKey, addressKey...))] = common.BytesToHex(validatorAccID)
+
 				}
 			}
 		}
@@ -787,6 +801,7 @@ func formatValue(kv *keyValue) (string, error) {
 }
 
 func buildBalances(kv *keyValue, res map[string]string) error {
+
 	for i := range kv.iVal {
 		if i%2 == 0 {
 			// build key
@@ -804,6 +819,7 @@ func buildBalances(kv *keyValue, res map[string]string) error {
 				Nonce: 0,
 				//RefCount: 0,
 				Data: types.AccountData{
+					// Free:       scale.MustNewUint128(kv.iVal[i+1].(*big.Int)),
 					Free:       scale.MustNewUint128(kv.iVal[i+1].(*big.Int)),
 					Reserved:   scale.MustNewUint128(big.NewInt(0)),
 					MiscFrozen: scale.MustNewUint128(big.NewInt(0)),
