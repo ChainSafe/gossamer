@@ -22,7 +22,7 @@ const (
 // Hash used to store a blake2b hash
 type Hash [32]byte
 
-//EmptyHash returns Hash which is an array of 32bytes with
+// EmptyHash returns Hash which is an array of 32bytes with
 // every byte set to zero.
 func EmptyHash() Hash {
 	res := Hash{}
