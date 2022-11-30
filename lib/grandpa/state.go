@@ -4,6 +4,7 @@
 package grandpa
 
 import (
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
 
@@ -22,6 +23,7 @@ type BlockState interface {
 	LowestCommonAncestor(a, b common.Hash) (common.Hash, error)
 	HasFinalisedBlock(round, setID uint64) (bool, error)
 	GetFinalisedHeader(uint64, uint64) (*types.Header, error)
+	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
 	SetFinalisedHash(common.Hash, uint64, uint64) error
 	BestBlockHeader() (*types.Header, error)
 	GetHighestFinalisedHeader() (*types.Header, error)

@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
@@ -250,7 +251,7 @@ func (s *Service) checkForEquivocation(voter *Voter, vote *SignedVote, stage Sub
 		s.deleteVote(v, stage)
 
 		// TODO I think add reporting here
-		err := s.reportEquivocation()
+		err := s.reportEquivocation(stage, existingVote, vote)
 		if err != nil {
 			// // TODO do something
 		}
@@ -262,24 +263,53 @@ func (s *Service) checkForEquivocation(voter *Voter, vote *SignedVote, stage Sub
 
 /*
 	Need to pass in:
-		- idv is authority set
-		- e is stage
-		- r is round number
-		- pub key of equivocator
-		- block hash of first vote
-		- block number of first vote
-		- signature of first vote
-		- block hash of second vote
-		- block number of second vote
-		- signature of second vote
+		- idv is authority set - done
+		- e is stage - done
+		- r is round number - done
+		- pub key of equivocator - done
+		- block hash of first vote - done
+		- block number of first vote - done
+		- signature of first vote - done
+		- block hash of second vote - done
+		- block number of second vote - done
+		- signature of second vote - done
 		- proof of key signature in opaque form
 */
-func (s *Service) reportEquivocation() error {
+func (s *Service) reportEquivocation(stage Subround, existingVote *SignedVote, currentVote *SignedVote) error {
 	setId, err := s.grandpaState.GetCurrentSetID()
 	if err != nil {
 		return fmt.Errorf("getting authority set id: %w", err)
 	}
 	fmt.Println(setId)
+
+	round, err := s.grandpaState.GetLatestRound()
+	if err != nil {
+		return fmt.Errorf("getting latest round: %w", err)
+	}
+	fmt.Println(round)
+
+	pubKey := existingVote.AuthorityID
+	fmt.Println(pubKey)
+
+	// Getting runtime like this now, could improve this possibly
+	bestBlockHash := s.blockState.BestBlockHash()
+	rt, err := s.blockState.GetRuntime(bestBlockHash)
+	if err != nil {
+		logger.Critical("failed to get runtime")
+		return err
+	}
+	fmt.Println(rt)
+
+	proof, err := s.generateKeyOwnershipProof(rt, setId, pubKey)
+	if err != nil {
+		return fmt.Errorf("getting latest round: %w", err)
+	}
+	fmt.Println(proof)
+
+}
+
+func (s *Service) generateKeyOwnershipProof(rt runtime.Instance, authSetId uint64, pubKey ed25519.PublicKeyBytes) (proof []byte, err error) {
+	// TODO fill in
 }
 
 // validateVote checks if the block that is being voted for exists, and that it is a descendant of a
