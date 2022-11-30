@@ -248,6 +248,8 @@ func (s *Service) checkForEquivocation(voter *Voter, vote *SignedVote, stage Sub
 		// the voter has already voted, all their votes are now equivocatory
 		eq[v] = []*SignedVote{existingVote, vote}
 		s.deleteVote(v, stage)
+
+		// TODO I think add reporting here
 		return true
 	}
 
