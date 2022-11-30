@@ -135,6 +135,9 @@ func NewGenesisFromJSON(file string, authCount int) (*Genesis, error) {
 	}
 
 	grt := g.Genesis.Runtime
+	if grt == nil {
+		return g, nil
+	}
 	res, err := buildRawMap(*grt)
 	if err != nil {
 		return nil, err
