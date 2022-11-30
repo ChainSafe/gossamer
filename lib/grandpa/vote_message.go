@@ -250,10 +250,32 @@ func (s *Service) checkForEquivocation(voter *Voter, vote *SignedVote, stage Sub
 		s.deleteVote(v, stage)
 
 		// TODO I think add reporting here
+		err := s.reportEquivocation()
+		if err != nil {
+			// // TODO do something
+		}
 		return true
 	}
 
 	return false
+}
+
+/*
+	Need to pass in:
+		- idv is authority set
+		- e is stage
+		- r is round number
+		- pub key of equivocator
+		- block hash of first vote
+		- block number of first vote
+		- signature of first vote
+		- block hash of second vote
+		- block number of second vote
+		- signature of second vote
+		- proof of key signature in opaque form
+*/
+func (s *Service) reportEquivocation() error {
+	s.grandpaState.
 }
 
 // validateVote checks if the block that is being voted for exists, and that it is a descendant of a
