@@ -275,7 +275,11 @@ func (s *Service) checkForEquivocation(voter *Voter, vote *SignedVote, stage Sub
 		- proof of key signature in opaque form
 */
 func (s *Service) reportEquivocation() error {
-	s.grandpaState.
+	setId, err := s.grandpaState.GetCurrentSetID()
+	if err != nil {
+		return fmt.Errorf("getting authority set id: %w", err)
+	}
+	fmt.Println(setId)
 }
 
 // validateVote checks if the block that is being voted for exists, and that it is a descendant of a
