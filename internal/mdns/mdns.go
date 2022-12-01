@@ -96,31 +96,72 @@ func (s *Service) run() {
 	ticker := time.NewTicker(pollPeriod)
 	defer ticker.Stop()
 
-	for {
-		entriesCh := make(chan *mdns.ServiceEntry, 16)
-		go func() {
-			for entry := range entriesCh {
-				s.handleEntry(entry)
-			}
-		}()
+	entriesListeningLoopStop := make(chan struct{})
+	entriesListeningLoopDone := make(chan struct{})
+	entriesCh := make(chan *mdns.ServiceEntry, 16)
+	entriesStartListening := make(chan struct{})
+	entriesStopListening := make(chan struct{})
 
-		const queryTimeout = 5 * time.Second
-		params := &mdns.QueryParam{
-			Domain:  "local",
-			Entries: entriesCh,
-			Service: s.serviceTag,
-			Timeout: queryTimeout,
-		}
+	go s.handleEntries(entriesListeningLoopStop, entriesListeningLoopDone,
+		entriesStartListening, entriesStopListening, entriesCh)
+
+	const queryTimeout = 5 * time.Second
+	params := &mdns.QueryParam{
+		Domain:  "local",
+		Entries: entriesCh,
+		Service: s.serviceTag,
+		Timeout: queryTimeout,
+	}
+
+	for {
+		entriesStartListening <- struct{}{}
 		err := mdns.Query(params)
 		if err != nil {
 			s.logger.Warnf("mdns query failed: %s", err)
 		}
-		close(entriesCh)
+		entriesStopListening <- struct{}{}
+
+		// Drain the entries channel, we no longer care about entries.
+		for len(entriesCh) > 0 {
+			<-entriesCh
+		}
 
 		select {
 		case <-ticker.C:
 		case <-s.stop:
+			close(entriesListeningLoopStop)
+			<-entriesListeningLoopDone
+			close(entriesCh)
+			close(entriesStartListening)
+			close(entriesStopListening)
 			return
+		}
+	}
+}
+
+func (s *Service) handleEntries(stop <-chan struct{}, done chan<- struct{},
+	startListening, stopListening <-chan struct{}, entries <-chan *mdns.ServiceEntry) {
+	defer close(done)
+
+	for {
+		// Wait for the start signal to start listening for entries
+		select {
+		case <-startListening:
+		case <-stop:
+			return
+		}
+
+		continueListening := true
+		for continueListening {
+			// Listen for entries until we receive a stop listening signal.
+			select {
+			case entry := <-entries:
+				s.handleEntry(entry)
+			case <-stopListening:
+				continueListening = false
+			case <-stop:
+				return
+			}
 		}
 	}
 }
