@@ -69,8 +69,12 @@ func (s *Service) Start() (err error) {
 	s.started = true
 	s.stop = make(chan struct{})
 	s.done = make(chan struct{})
+	ready := make(chan struct{})
 
-	go s.run()
+	go s.run(ready)
+	// It takes a few milliseconds to launch a goroutine
+	// so we wait for the run goroutine to be ready.
+	<-ready
 
 	return nil
 }
@@ -89,21 +93,23 @@ func (s *Service) Stop() (err error) {
 	return s.server.Shutdown()
 }
 
-func (s *Service) run() {
+func (s *Service) run(ready chan<- struct{}) {
 	defer close(s.done)
 
 	const pollPeriod = time.Minute
 	ticker := time.NewTicker(pollPeriod)
 	defer ticker.Stop()
 
+	handleEntriesReady := make(chan struct{})
 	entriesListeningLoopStop := make(chan struct{})
 	entriesListeningLoopDone := make(chan struct{})
 	entriesCh := make(chan *mdns.ServiceEntry, 16)
 	entriesStartListening := make(chan struct{})
 	entriesStopListening := make(chan struct{})
 
-	go s.handleEntries(entriesListeningLoopStop, entriesListeningLoopDone,
+	go s.handleEntries(handleEntriesReady, entriesListeningLoopStop, entriesListeningLoopDone,
 		entriesStartListening, entriesStopListening, entriesCh)
+	<-handleEntriesReady
 
 	const queryTimeout = 5 * time.Second
 	params := &mdns.QueryParam{
@@ -112,6 +118,8 @@ func (s *Service) run() {
 		Service: s.serviceTag,
 		Timeout: queryTimeout,
 	}
+
+	close(ready)
 
 	for {
 		entriesStartListening <- struct{}{}
@@ -139,9 +147,10 @@ func (s *Service) run() {
 	}
 }
 
-func (s *Service) handleEntries(stop <-chan struct{}, done chan<- struct{},
+func (s *Service) handleEntries(ready chan<- struct{}, stop <-chan struct{}, done chan<- struct{},
 	startListening, stopListening <-chan struct{}, entries <-chan *mdns.ServiceEntry) {
 	defer close(done)
+	close(ready)
 
 	for {
 		// Wait for the start signal to start listening for entries
