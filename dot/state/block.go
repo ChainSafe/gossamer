@@ -621,7 +621,7 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 
 	codeSubBlockHash := bs.baseState.LoadCodeSubstitutedBlockHash()
 
-	if codeSubBlockHash != common.EmptyHash() {
+	if codeSubBlockHash != (common.Hash{}) {
 		newVersion, err := wasmer.GetRuntimeVersion(code)
 		if err != nil {
 			return err
