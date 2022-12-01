@@ -101,80 +101,42 @@ func (s *Service) run(ready chan<- struct{}) {
 	ticker := time.NewTicker(pollPeriod)
 	defer ticker.Stop()
 
-	handleEntriesReady := make(chan struct{})
-	entriesListeningLoopStop := make(chan struct{})
-	entriesListeningLoopDone := make(chan struct{})
-	entriesCh := make(chan *mdns.ServiceEntry, 16)
-	entriesStartListening := make(chan struct{})
-	entriesStopListening := make(chan struct{})
-
-	go s.handleEntries(handleEntriesReady, entriesListeningLoopStop, entriesListeningLoopDone,
-		entriesStartListening, entriesStopListening, entriesCh)
-	<-handleEntriesReady
-
+	close(ready)
 	const queryTimeout = 5 * time.Second
 	params := &mdns.QueryParam{
 		Domain:  "local",
-		Entries: entriesCh,
 		Service: s.serviceTag,
 		Timeout: queryTimeout,
 	}
 
-	close(ready)
-
 	for {
-		entriesStartListening <- struct{}{}
-		err := mdns.Query(params)
-		if err != nil {
-			s.logger.Warnf("mdns query failed: %s", err)
-		}
-		entriesStopListening <- struct{}{}
+		entries := make(chan *mdns.ServiceEntry)
+		params.Entries = entries
 
-		// Drain the entries channel, we no longer care about entries.
-		for len(entriesCh) > 0 {
-			<-entriesCh
-		}
-
-		select {
-		case <-ticker.C:
-		case <-s.stop:
-			close(entriesListeningLoopStop)
-			<-entriesListeningLoopDone
-			close(entriesCh)
-			close(entriesStartListening)
-			close(entriesStopListening)
-			return
-		}
-	}
-}
-
-func (s *Service) handleEntries(ready chan<- struct{}, stop <-chan struct{}, done chan<- struct{},
-	startListening, stopListening <-chan struct{}, entries <-chan *mdns.ServiceEntry) {
-	defer close(done)
-	close(ready)
-
-	for {
-		// Wait for the start signal to start listening for entries
-		select {
-		case <-startListening:
-		case <-stop:
-			return
-		}
-
-		continueListening := true
-		for continueListening {
-			// Listen for entries until we receive a stop listening signal.
-			select {
-			case entry := <-entries:
+		done := make(chan interface{})
+		go func() {
+			defer close(done)
+			for entry := range entries {
 				err := s.handleEntry(entry)
 				if err != nil {
 					s.logger.Warnf("handling mDNS entry: %s", err)
 				}
-			case <-stopListening:
-				continueListening = false
-			case <-stop:
-				return
 			}
+		}()
+
+		err := mdns.Query(params)
+		if err != nil {
+			s.logger.Warnf("mdns query failed: %s", err)
+		}
+		// mdns.Query won't return until all entries are processed
+		// so we can safe close this channel
+		close(entries)
+		<-done
+
+		select {
+		case <-ticker.C:
+		case <-s.stop:
+			return
 		}
 	}
 }
