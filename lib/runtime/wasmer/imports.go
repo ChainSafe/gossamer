@@ -25,6 +25,7 @@ package wasmer
 // extern int64_t ext_crypto_secp256k1_ecdsa_recover_version_2(void *context, int32_t a, int32_t b);
 // extern int64_t ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(void *context, int32_t a, int32_t b);
 // extern int64_t ext_crypto_secp256k1_ecdsa_recover_compressed_version_2(void *context, int32_t a, int32_t b);
+// extern int32_t ext_crypto_ecdsa_generate_version_1(void *context, int32_t a, int64_t b);
 // extern int32_t ext_crypto_ecdsa_verify_version_2(void *context, int32_t a, int64_t b, int32_t c);
 // extern int32_t ext_crypto_sr25519_generate_version_1(void *context, int32_t a, int64_t b);
 // extern int64_t ext_crypto_sr25519_public_keys_version_1(void *context, int32_t a);
@@ -445,6 +446,59 @@ func ext_crypto_secp256k1_ecdsa_recover_version_1(context unsafe.Pointer, sig, m
 func ext_crypto_secp256k1_ecdsa_recover_version_2(context unsafe.Pointer, sig, msg C.int32_t) C.int64_t {
 	logger.Trace("executing...")
 	return ext_crypto_secp256k1_ecdsa_recover_version_1(context, sig, msg)
+}
+
+//export ext_crypto_ecdsa_generate_version_1
+func ext_crypto_ecdsa_generate_version_1(context unsafe.Pointer, keyTypeID C.int32_t, seedSpan C.int64_t) C.int32_t {
+	logger.Trace("executing...")
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	runtimeCtx := instanceContext.Data().(*runtime.Context)
+	memory := instanceContext.Memory().Data()
+
+	id := memory[keyTypeID : keyTypeID+4]
+	seedBytes := asMemorySlice(instanceContext, seedSpan)
+
+	var seed *[]byte
+	err := scale.Unmarshal(seedBytes, &seed)
+	if err != nil {
+		logger.Warnf("cannot generate key: %s", err)
+		return 0
+	}
+
+	var kp crypto.Keypair
+
+	if seed != nil {
+		kp, err = secp256k1.NewKeypairFromMnenomic(string(*seed), "")
+	} else {
+		kp, err = secp256k1.GenerateKeypair()
+	}
+
+	if err != nil {
+		logger.Warnf("cannot generate key: %s", err)
+		return 0
+	}
+
+	ks, err := runtimeCtx.Keystore.GetKeystore(id)
+	if err != nil {
+		logger.Warnf("error for id 0x%x: %s", id, err)
+		return 0
+	}
+
+	err = ks.Insert(kp)
+	if err != nil {
+		logger.Warnf("failed to insert key: %s", err)
+		return 0
+	}
+
+	ret, err := toWasmMemorySized(instanceContext, kp.Public().Encode())
+	if err != nil {
+		logger.Warnf("failed to allocate memory: %s", err)
+		return 0
+	}
+
+	logger.Debug("generated secp256k1 keypair with public key: " + kp.Public().Hex())
+	return C.int32_t(ret)
 }
 
 //export ext_crypto_ecdsa_verify_version_2
@@ -2080,6 +2134,7 @@ func importsNodeRuntime() (imports *wasm.Imports, err error) {
 	}{
 		{"ext_allocator_free_version_1", ext_allocator_free_version_1, C.ext_allocator_free_version_1},
 		{"ext_allocator_malloc_version_1", ext_allocator_malloc_version_1, C.ext_allocator_malloc_version_1},
+		{"ext_crypto_ecdsa_generate_version_1", ext_crypto_ecdsa_generate_version_1, C.ext_crypto_ecdsa_generate_version_1},
 		{"ext_crypto_ecdsa_verify_version_2", ext_crypto_ecdsa_verify_version_2, C.ext_crypto_ecdsa_verify_version_2},
 		{"ext_crypto_ed25519_generate_version_1", ext_crypto_ed25519_generate_version_1, C.ext_crypto_ed25519_generate_version_1},
 		{"ext_crypto_ed25519_public_keys_version_1", ext_crypto_ed25519_public_keys_version_1, C.ext_crypto_ed25519_public_keys_version_1},

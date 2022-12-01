@@ -9,22 +9,31 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/ChainSafe/go-schnorrkel"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	secp256k1 "github.com/ethereum/go-ethereum/crypto"
 )
 
-// PrivateKeyLength is the fixed Private Key Length
-const PrivateKeyLength = 32
+const (
+	// PublicKeyLength is the expected public key length for secp256k1.
+	PublicKeyLength = 33
 
-// SignatureLength is the fixed Signature Length
-const SignatureLength = 64
+	// PrivateKeyLength is the fixed Private Key Length
+	PrivateKeyLength = 32
 
-// SignatureLengthRecovery is the length of a secp256k1 signature with recovery byte (used for ecrecover)
-const SignatureLengthRecovery = 65
+	// SeedLength is the fixed Seed Length
+	SeedLength int = 32
 
-// MessageLength is the fixed Message Length
-const MessageLength = 32
+	// SignatureLength is the fixed Signature Length
+	SignatureLength = 64
+
+	// SignatureLengthRecovery is the length of a secp256k1 signature with recovery byte (used for ecrecover)
+	SignatureLengthRecovery = 65
+
+	// MessageLength is the fixed Message Length
+	MessageLength = 32
+)
 
 // Keypair holds the pub,pk keys
 type Keypair struct {
@@ -102,6 +111,27 @@ func NewKeypairFromPrivate(priv *PrivateKey) (*Keypair, error) {
 	}, nil
 }
 
+// NewKeypairFromSeed generates a new secp256k1 keypair from a 32 byte seed
+func NewKeypairFromSeed(seed []byte) (*Keypair, error) {
+	if len(seed) != SeedLength {
+		return nil, fmt.Errorf("cannot generate key from seed: seed is not 32 bytes long")
+	}
+	edpriv, err := secp256k1.ToECDSA(seed)
+	if err != nil {
+		return nil, err
+	}
+	return NewKeypair(*edpriv), nil
+}
+
+// NewKeypairFromMnenomic returns a new Keypair using the given mnemonic and password.
+func NewKeypairFromMnenomic(mnemonic, password string) (*Keypair, error) {
+	seed, err := schnorrkel.SeedFromMnemonic(mnemonic, password)
+	if err != nil {
+		return nil, err
+	}
+	return NewKeypairFromSeed(seed[:32])
+}
+
 // NewPrivateKey will return a PrivateKey for a []byte
 func NewPrivateKey(in []byte) (*PrivateKey, error) {
 	if len(in) != PrivateKeyLength {
@@ -135,6 +165,23 @@ func GenerateKeypair() (*Keypair, error) {
 	}
 
 	return NewKeypair(*priv), nil
+}
+
+// NewPublicKey returns a secp256k1 public key from 33 byte input
+func NewPublicKey(in []byte) (*PublicKey, error) {
+	if len(in) != PublicKeyLength {
+		return nil, errors.New("cannot create public key: input is not 33 bytes")
+	}
+
+	buf := [PublicKeyLength]byte{}
+	copy(buf[:], in)
+
+	pubK := &PublicKey{}
+	err := pubK.Decode(in)
+	if err != nil {
+		return nil, fmt.Errorf("creating secp256k1 public key: %w", err)
+	}
+	return pubK, nil
 }
 
 // Type returns Secp256k1Type

@@ -881,6 +881,39 @@ func Test_ext_crypto_ed25519_verify_version_1(t *testing.T) {
 	require.NotNil(t, read)
 }
 
+func Test_ext_crypto_ecdsa_generate_version_1(t *testing.T) {
+	t.Parallel()
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	idData := []byte(keystore.AccoName)
+	ks, _ := inst.ctx.Keystore.GetKeystore(idData)
+	require.Equal(t, 0, ks.Size())
+
+	mnemonic, err := crypto.NewBIP39Mnemonic()
+	require.NoError(t, err)
+
+	mnemonicBytes := []byte(mnemonic)
+	var data = &mnemonicBytes
+	seedData, err := scale.Marshal(data)
+	require.NoError(t, err)
+
+	params := append(idData, seedData...)
+
+	ret, err := inst.Exec("rtm_ext_crypto_ecdsa_generate_version_1", params)
+	require.NoError(t, err)
+
+	var out []byte
+	err = scale.Unmarshal(ret, &out)
+	require.NoError(t, err)
+
+	pubKey, err := secp256k1.NewPublicKey(out)
+	require.NoError(t, err)
+	require.Equal(t, 1, ks.Size())
+
+	kp := ks.GetKeypair(pubKey)
+	require.NotNil(t, kp)
+}
+
 func Test_ext_crypto_ecdsa_verify_version_2(t *testing.T) {
 	t.Parallel()
 
