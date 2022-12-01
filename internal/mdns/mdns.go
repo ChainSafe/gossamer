@@ -4,6 +4,7 @@
 package mdns
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"time"
@@ -165,7 +166,10 @@ func (s *Service) handleEntries(ready chan<- struct{}, stop <-chan struct{}, don
 			// Listen for entries until we receive a stop listening signal.
 			select {
 			case entry := <-entries:
-				s.handleEntry(entry)
+				err := s.handleEntry(entry)
+				if err != nil {
+					s.logger.Warnf("handling mDNS entry: %s", err)
+				}
 			case <-stopListening:
 				continueListening = false
 			case <-stop:
@@ -175,15 +179,18 @@ func (s *Service) handleEntries(ready chan<- struct{}, stop <-chan struct{}, don
 	}
 }
 
-func (s *Service) handleEntry(entry *mdns.ServiceEntry) {
+var (
+	errEntryHasNoIP = errors.New("MDNS entry has no IP address")
+)
+
+func (s *Service) handleEntry(entry *mdns.ServiceEntry) (err error) {
 	receivedPeerID, err := peer.Decode(entry.Info)
 	if err != nil {
-		s.logger.Warnf("error parsing peer ID from mdns entry: %s", err)
-		return
+		return fmt.Errorf("parsing peer ID from mdns entry: %w", err)
 	}
 
 	if receivedPeerID == s.p2pHost.ID() {
-		return
+		return nil
 	}
 
 	var ip net.IP
@@ -193,8 +200,7 @@ func (s *Service) handleEntry(entry *mdns.ServiceEntry) {
 	case entry.AddrV6 != nil:
 		ip = entry.AddrV6
 	default:
-		s.logger.Warnf("mdns entry from peer id %s has no IP address", receivedPeerID)
-		return
+		return fmt.Errorf("%w: from peer id %s", errEntryHasNoIP, receivedPeerID)
 	}
 
 	tcpAddress := &net.TCPAddr{
@@ -204,9 +210,8 @@ func (s *Service) handleEntry(entry *mdns.ServiceEntry) {
 
 	multiAddress, err := manet.FromNetAddr(tcpAddress)
 	if err != nil {
-		s.logger.Warnf("failed converting tcp address from peer id %s to multiaddress: %s",
+		return fmt.Errorf("converting tcp address from peer id %s to multiaddress: %w",
 			receivedPeerID, err)
-		return
 	}
 
 	addressInfo := peer.AddrInfo{
@@ -216,4 +221,5 @@ func (s *Service) handleEntry(entry *mdns.ServiceEntry) {
 
 	s.logger.Debugf("Peer %s has addresses %s", receivedPeerID, addressInfo.Addrs)
 	go s.notifee.HandlePeerFound(addressInfo)
+	return nil
 }
