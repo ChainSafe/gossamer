@@ -200,15 +200,15 @@ func (s *Service) Stop() error {
 }
 
 // authorities returns the current grandpa authorities
-func (s *Service) authorityKeySet() (authorityKeys map[string]*types.Authority) {
-	authorityKeys = make(map[string]*types.Authority, len(s.state.voters))
+func (s *Service) authorityKeySet() (authorityKeys map[string]struct{}) {
+	authorityKeys = make(map[string]struct{}, len(s.state.voters))
 	for _, voter := range s.state.voters {
 		authority := &types.Authority{
 			Key:    &voter.Key,
 			Weight: voter.ID,
 		}
 		encodedKey := authority.Key.Encode()
-		authorityKeys[string(encodedKey)] = authority
+		authorityKeys[string(encodedKey)] = struct{}{}
 	}
 
 	return authorityKeys
@@ -1244,7 +1244,7 @@ func (s *Service) handleCommitMessage(commitMessage *CommitMessage) error {
 }
 
 func verifyCommitMessageJustification(commitMessage CommitMessage, setID uint64, threshold uint64,
-	authorityKeySet map[string]*types.Authority, blockState BlockState) error {
+	authorityKeySet map[string]struct{}, blockState BlockState) error {
 	if len(commitMessage.Precommits) != len(commitMessage.AuthData) {
 		return fmt.Errorf("%w: precommits len: %d, authorities len: %d",
 			ErrPrecommitSignatureMismatch, len(commitMessage.Precommits), len(commitMessage.AuthData))
@@ -1325,7 +1325,7 @@ func verifyCommitMessageJustification(commitMessage CommitMessage, setID uint64,
 }
 
 func verifyJustification(justification *SignedVote, round, setID uint64,
-	stage Subround, authorityKeys map[string]*types.Authority) error {
+	stage Subround, authorityKeys map[string]struct{}) error {
 	fullVote := FullVote{
 		Stage: stage,
 		Vote:  justification.Vote,
@@ -1357,8 +1357,8 @@ func verifyJustification(justification *SignedVote, round, setID uint64,
 		return fmt.Errorf("encoding authority key: %w", err)
 	}
 
-	_, not := authorityKeys[string(justificationKey)]
-	if not {
+	_, has := authorityKeys[string(justificationKey)]
+	if has {
 		return nil
 	}
 
