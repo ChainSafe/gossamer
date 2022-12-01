@@ -135,6 +135,37 @@ type NextKeys struct {
 	KeyOwner   KeyOwner
 }
 
+//Custom Unmarshal method for NextKeys.
+func (b *NextKeys) UnmarshalJSON(buf []byte) error {
+	fmt.Println("buf ===> ", string(buf))
+
+	tmp := []interface{}{&b.AccountId1, &b.AccountId2, &b.KeyOwner}
+	wantLen := len(tmp)
+	if err := json.Unmarshal(buf, &tmp); err != nil {
+		return fmt.Errorf("error in NextKeys unmarshal: %w", err)
+	}
+	fmt.Println("NextKeys ===> ", b)
+	if newLen := len(tmp); newLen != wantLen {
+		return fmt.Errorf("wrong number of fields in NextKeys: %d != %d", newLen, wantLen)
+	}
+	return nil
+}
+
+// Custom marshal method for NextKeys.
+func (b NextKeys) MarshalJSON() ([]byte, error) {
+	tmp := []interface{}{&b.AccountId1, &b.AccountId2, &b.KeyOwner}
+	wantLen := len(tmp)
+
+	buf, err := json.Marshal(tmp)
+	if err != nil {
+		return nil, fmt.Errorf("error in NextKeys marshal: %w", err)
+	}
+	if newLen := len(tmp); newLen != wantLen {
+		return nil, fmt.Errorf("wrong number of fields in NextKeys: %d != %d", newLen, wantLen)
+	}
+	return buf, nil
+}
+
 // KeyOwner is ...
 type KeyOwner struct {
 	Grandpa            string `json:"grandpa"`
@@ -178,6 +209,35 @@ type PhragmenElection struct {
 type MembersFields struct {
 	AccountID string
 	Balance   big.Int
+}
+
+//Custom Unmarshal method for MembersFields.
+func (b *MembersFields) UnmarshalJSON(buf []byte) error {
+	tmp := []interface{}{&b.AccountID, &b.Balance}
+	wantLen := len(tmp)
+	if err := json.Unmarshal(buf, &tmp); err != nil {
+		return fmt.Errorf("error in MembersFields unmarshal: %w", err)
+	}
+	fmt.Println("MembersFields ===> ", b)
+	if newLen := len(tmp); newLen != wantLen {
+		return fmt.Errorf("wrong number of fields in MembersFields: %d != %d", newLen, wantLen)
+	}
+	return nil
+}
+
+// Custom marshal method for MembersFields.
+func (b MembersFields) MarshalJSON() ([]byte, error) {
+	tmp := []interface{}{&b.AccountID, &b.Balance}
+	wantLen := len(tmp)
+
+	buf, err := json.Marshal(tmp)
+	if err != nil {
+		return nil, fmt.Errorf("error in MembersFields marshal: %w", err)
+	}
+	if newLen := len(tmp); newLen != wantLen {
+		return nil, fmt.Errorf("wrong number of fields in MembersFields: %d != %d", newLen, wantLen)
+	}
+	return buf, nil
 }
 
 // Instance1Membership is ...
@@ -513,7 +573,7 @@ func (b *BalancesFields) UnmarshalJSON(buf []byte) error {
 	tmp := []interface{}{&b.AccountID, &b.Balance}
 	wantLen := len(tmp)
 	if err := json.Unmarshal(buf, &tmp); err != nil {
-		return fmt.Errorf("error in balance marshal: %w", err)
+		return fmt.Errorf("error in BalancesFields unmarshal: %w", err)
 	}
 	if newLen := len(tmp); newLen != wantLen {
 		return fmt.Errorf("wrong number of fields in BalancesFields: %d != %d", newLen, wantLen)
@@ -528,7 +588,7 @@ func (b BalancesFields) MarshalJSON() ([]byte, error) {
 
 	buf, err := json.Marshal(tmp)
 	if err != nil {
-		return nil, fmt.Errorf("error in balance marshal: %w", err)
+		return nil, fmt.Errorf("error in BalancesFields marshal: %w", err)
 	}
 	if newLen := len(tmp); newLen != wantLen {
 		return nil, fmt.Errorf("wrong number of fields in BalancesFields: %d != %d", newLen, wantLen)

@@ -232,14 +232,15 @@ func generatePalletKeyValue(k string, v interface{}, res map[string]string) (boo
 	default:
 		return false, nil
 	}
+	fmt.Println("jsonBody ==> ", string(jsonBody))
 	if err = json.Unmarshal(jsonBody, s); err != nil {
-		fmt.Println("ERROR IN line-230, helpers.go")
+		fmt.Println("ERROR IN line-236, helpers.go")
 		return false, err
 	}
 	err = generateKeyValue(s, k, res)
 
 	if err != nil {
-		fmt.Println("ERROR IN line-230, helpers.go")
+		fmt.Println("ERROR IN line-242, helpers.go")
 		return false, err
 	}
 	return true, nil
@@ -878,7 +879,9 @@ func addRawValue(key string, value []byte, gen *Genesis) {
 }
 
 func addCodeValue(value []byte, gen *Genesis) {
-	gen.Genesis.Runtime.System.Code = common.BytesToHex(value)
+	if gen.Genesis.Runtime.System != nil {
+		gen.Genesis.Runtime.System.Code = common.BytesToHex(value)
+	}
 }
 
 func addAuthoritiesValues(k1 string, kt crypto.KeyType, value []byte, gen *Genesis) error {
