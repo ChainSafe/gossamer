@@ -28,6 +28,7 @@ type Service struct {
 	serviceTag string
 	notifee    Notifee
 	logger     Logger
+	pollPeriod time.Duration
 	started    bool
 	stop       chan struct{}
 	done       chan struct{}
@@ -45,6 +46,7 @@ func NewService(p2pHost IDNetworker, serviceTag string,
 		serviceTag: serviceTag,
 		notifee:    notifee,
 		logger:     logger,
+		pollPeriod: time.Minute,
 	}
 }
 
@@ -102,8 +104,7 @@ func (s *Service) Stop() (err error) {
 func (s *Service) run(ready chan<- struct{}) {
 	defer close(s.done)
 
-	const pollPeriod = time.Minute
-	ticker := time.NewTicker(pollPeriod)
+	ticker := time.NewTicker(s.pollPeriod)
 	defer ticker.Stop()
 
 	const queryTimeout = 5 * time.Second
