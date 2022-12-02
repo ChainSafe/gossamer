@@ -14,8 +14,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 )
 
-//go:generate mockgen -destination=mock_chain_processor_test.go -package=$GOPACKAGE . ChainProcessor
-
 // ChainProcessor processes ready blocks.
 // it is implemented by *chainProcessor
 type ChainProcessor interface {
@@ -26,6 +24,8 @@ type ChainProcessor interface {
 type chainProcessor struct {
 	ctx    context.Context
 	cancel context.CancelFunc
+
+	chainSync ChainSync
 
 	// blocks that are ready for processing. ie. their parent is known, or their parent is ahead
 	// of them within this channel and thus will be processed first
@@ -44,24 +44,35 @@ type chainProcessor struct {
 	telemetry          telemetry.Client
 }
 
-func newChainProcessor(readyBlocks *blockQueue, pendingBlocks DisjointBlockSet,
-	blockState BlockState, storageState StorageState,
-	transactionState TransactionState, babeVerifier BabeVerifier,
-	finalityGadget FinalityGadget, blockImportHandler BlockImportHandler, telemetry telemetry.Client) *chainProcessor {
+type chainProcessorConfig struct {
+	readyBlocks        *blockQueue
+	pendingBlocks      DisjointBlockSet
+	syncer             ChainSync
+	blockState         BlockState
+	storageState       StorageState
+	transactionState   TransactionState
+	babeVerifier       BabeVerifier
+	finalityGadget     FinalityGadget
+	blockImportHandler BlockImportHandler
+	telemetry          telemetry.Client
+}
+
+func newChainProcessor(cfg chainProcessorConfig) *chainProcessor {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &chainProcessor{
 		ctx:                ctx,
 		cancel:             cancel,
-		readyBlocks:        readyBlocks,
-		pendingBlocks:      pendingBlocks,
-		blockState:         blockState,
-		storageState:       storageState,
-		transactionState:   transactionState,
-		babeVerifier:       babeVerifier,
-		finalityGadget:     finalityGadget,
-		blockImportHandler: blockImportHandler,
-		telemetry:          telemetry,
+		readyBlocks:        cfg.readyBlocks,
+		pendingBlocks:      cfg.pendingBlocks,
+		chainSync:          cfg.syncer,
+		blockState:         cfg.blockState,
+		storageState:       cfg.storageState,
+		transactionState:   cfg.transactionState,
+		babeVerifier:       cfg.babeVerifier,
+		finalityGadget:     cfg.finalityGadget,
+		blockImportHandler: cfg.blockImportHandler,
+		telemetry:          cfg.telemetry,
 	}
 }
 
@@ -71,12 +82,15 @@ func (s *chainProcessor) stop() {
 
 func (s *chainProcessor) processReadyBlocks() {
 	for {
-		bd := s.readyBlocks.pop(s.ctx)
-		if s.ctx.Err() != nil {
-			return
+		bd, err := s.readyBlocks.pop(s.ctx)
+		if err != nil {
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				return
+			}
+			panic(fmt.Sprintf("unhandled error: %s", err))
 		}
 
-		if err := s.processBlockData(bd); err != nil {
+		if err := s.processBlockData(*bd); err != nil {
 			// depending on the error, we might want to save this block for later
 			if !errors.Is(err, errFailedToGetParent) {
 				logger.Errorf("block data processing for block with hash %s failed: %s", bd.Hash, err)
@@ -97,93 +111,116 @@ func (s *chainProcessor) processReadyBlocks() {
 // processBlockData processes the BlockData from a BlockResponse and
 // returns the index of the last BlockData it handled on success,
 // or the index of the block data that errored on failure.
-func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
-	if bd == nil {
-		return ErrNilBlockData
-	}
+func (c *chainProcessor) processBlockData(blockData types.BlockData) error { //nolint:revive
+	logger.Debugf("processing block data with hash %s", blockData.Hash)
 
-	hasHeader, err := s.blockState.HasHeader(bd.Hash)
+	headerInState, err := c.blockState.HasHeader(blockData.Hash)
 	if err != nil {
-		return fmt.Errorf("failed to check if block state has header for hash %s: %w", bd.Hash, err)
+		return fmt.Errorf("checking if block state has header: %w", err)
 	}
-	hasBody, err := s.blockState.HasBlockBody(bd.Hash)
+
+	bodyInState, err := c.blockState.HasBlockBody(blockData.Hash)
 	if err != nil {
-		return fmt.Errorf("failed to check block state has body for hash %s: %w", bd.Hash, err)
+		return fmt.Errorf("checking if block state has body: %w", err)
 	}
 
-	if hasHeader && hasBody {
-		// TODO: fix this; sometimes when the node shuts down the "best block" isn't stored properly,
-		// so when the node restarts it has blocks higher than what it thinks is the best, causing it not to sync
-		// if we update the node to only store finalised blocks in the database, this should be fixed and the entire
-		// code block can be removed (#1784)
-		block, err := s.blockState.GetBlockByHash(bd.Hash)
+	// while in bootstrap mode we don't need to broadcast block announcements
+	announceImportedBlock := c.chainSync.syncState() == tip
+	if headerInState && bodyInState {
+		err = c.processBlockDataWithStateHeaderAndBody(blockData, announceImportedBlock)
 		if err != nil {
-			logger.Debugf("failed to get block header for hash %s: %s", bd.Hash, err)
-			return err
+			return fmt.Errorf("processing block data with header and "+
+				"body in block state: %w", err)
 		}
-
-		logger.Debugf(
-			"skipping block number %d with hash %s, already have",
-			block.Header.Number, bd.Hash) // TODO is this valid?
-
-		err = s.blockState.AddBlockToBlockTree(block)
-		if errors.Is(err, blocktree.ErrBlockExists) {
-			return nil
-		} else if err != nil {
-			logger.Warnf("failed to add block with hash %s to blocktree: %s", bd.Hash, err)
-			return err
-		}
-
-		if bd.Justification != nil {
-			logger.Debugf("handling Justification for block number %d with hash %s...", block.Header.Number, bd.Hash)
-			s.handleJustification(&block.Header, *bd.Justification)
-		}
-
-		// TODO: this is probably unnecessary, since the state is already in the database
-		// however, this case shouldn't be hit often, since it's only hit if the node state
-		// is rewinded or if the node shuts down unexpectedly (#1784)
-		state, err := s.storageState.TrieState(&block.Header.StateRoot)
-		if err != nil {
-			logger.Warnf("failed to load state for block with hash %s: %s", block.Header.Hash(), err)
-			return err
-		}
-
-		if err := s.blockImportHandler.HandleBlockImport(block, state); err != nil {
-			logger.Warnf("failed to handle block import: %s", err)
-		}
-
 		return nil
 	}
 
-	logger.Debugf("processing block data with hash %s", bd.Hash)
-
-	if bd.Header != nil && bd.Body != nil {
-		if err := s.babeVerifier.VerifyBlock(bd.Header); err != nil {
-			return err
+	if blockData.Header != nil {
+		if blockData.Body != nil {
+			err = c.processBlockDataWithHeaderAndBody(blockData, announceImportedBlock)
+			if err != nil {
+				return fmt.Errorf("processing block data with header and body: %w", err)
+			}
+			logger.Debugf("block with hash %s processed", blockData.Hash)
 		}
 
-		s.handleBody(bd.Body)
-
-		block := &types.Block{
-			Header: *bd.Header,
-			Body:   *bd.Body,
+		if blockData.Justification != nil && len(*blockData.Justification) > 0 {
+			err = c.handleJustification(blockData.Header, *blockData.Justification)
+			if err != nil {
+				return fmt.Errorf("handling justification: %w", err)
+			}
 		}
-
-		if err := s.handleBlock(block); err != nil {
-			logger.Debugf("failed to handle block number %d: %s", block.Header.Number, err)
-			return err
-		}
-
-		logger.Debugf("block with hash %s processed", bd.Hash)
 	}
 
-	if bd.Justification != nil && bd.Header != nil {
-		logger.Debugf("handling Justification for block number %d with hash %s...", bd.Number(), bd.Hash)
-		s.handleJustification(bd.Header, *bd.Justification)
+	err = c.blockState.CompareAndSetBlockData(&blockData)
+	if err != nil {
+		return fmt.Errorf("comparing and setting block data: %w", err)
 	}
 
-	if err := s.blockState.CompareAndSetBlockData(bd); err != nil {
-		return fmt.Errorf("failed to compare and set data: %w", err)
+	return nil
+}
+
+func (c *chainProcessor) processBlockDataWithStateHeaderAndBody(blockData types.BlockData, //nolint:revive
+	announceImportedBlock bool) (err error) {
+	// TODO: fix this; sometimes when the node shuts down the "best block" isn't stored properly,
+	// so when the node restarts it has blocks higher than what it thinks is the best, causing it not to sync
+	// if we update the node to only store finalised blocks in the database, this should be fixed and the entire
+	// code block can be removed (#1784)
+	block, err := c.blockState.GetBlockByHash(blockData.Hash)
+	if err != nil {
+		return fmt.Errorf("getting block by hash: %w", err)
+	}
+
+	err = c.blockState.AddBlockToBlockTree(block)
+	if errors.Is(err, blocktree.ErrBlockExists) {
+		logger.Debugf(
+			"block number %d with hash %s already exists in block tree, skipping it.",
+			block.Header.Number, blockData.Hash)
+		return nil
+	} else if err != nil {
+		return fmt.Errorf("adding block to blocktree: %w", err)
+	}
+
+	if blockData.Justification != nil && len(*blockData.Justification) > 0 {
+		err = c.handleJustification(&block.Header, *blockData.Justification)
+		if err != nil {
+			return fmt.Errorf("handling justification: %w", err)
+		}
+	}
+
+	// TODO: this is probably unnecessary, since the state is already in the database
+	// however, this case shouldn't be hit often, since it's only hit if the node state
+	// is rewinded or if the node shuts down unexpectedly (#1784)
+	state, err := c.storageState.TrieState(&block.Header.StateRoot)
+	if err != nil {
+		return fmt.Errorf("loading trie state: %w", err)
+	}
+
+	err = c.blockImportHandler.HandleBlockImport(block, state, announceImportedBlock)
+	if err != nil {
+		return fmt.Errorf("handling block import: %w", err)
+	}
+
+	return nil
+}
+
+func (c *chainProcessor) processBlockDataWithHeaderAndBody(blockData types.BlockData, //nolint:revive
+	announceImportedBlock bool) (err error) {
+	err = c.babeVerifier.VerifyBlock(blockData.Header)
+	if err != nil {
+		return fmt.Errorf("babe verifying block: %w", err)
+	}
+
+	c.handleBody(blockData.Body)
+
+	block := &types.Block{
+		Header: *blockData.Header,
+		Body:   *blockData.Body,
+	}
+
+	err = c.handleBlock(block, announceImportedBlock)
+	if err != nil {
+		return fmt.Errorf("handling block: %w", err)
 	}
 
 	return nil
@@ -197,7 +234,7 @@ func (s *chainProcessor) handleBody(body *types.Body) {
 }
 
 // handleHeader handles blocks (header+body) included in BlockResponses
-func (s *chainProcessor) handleBlock(block *types.Block) error {
+func (s *chainProcessor) handleBlock(block *types.Block, announceImportedBlock bool) error {
 	parent, err := s.blockState.GetHeader(block.Header.ParentHash)
 	if err != nil {
 		return fmt.Errorf("%w: %s", errFailedToGetParent, err)
@@ -216,8 +253,7 @@ func (s *chainProcessor) handleBlock(block *types.Block) error {
 		panic("parent state root does not match snapshot state root")
 	}
 
-	hash := parent.Hash()
-	rt, err := s.blockState.GetRuntime(&hash)
+	rt, err := s.blockState.GetRuntime(parent.Hash())
 	if err != nil {
 		return err
 	}
@@ -229,7 +265,7 @@ func (s *chainProcessor) handleBlock(block *types.Block) error {
 		return fmt.Errorf("failed to execute block %d: %w", block.Header.Number, err)
 	}
 
-	if err = s.blockImportHandler.HandleBlockImport(block, ts); err != nil {
+	if err = s.blockImportHandler.HandleBlockImport(block, ts, announceImportedBlock); err != nil {
 		return err
 	}
 
@@ -244,22 +280,20 @@ func (s *chainProcessor) handleBlock(block *types.Block) error {
 	return nil
 }
 
-func (s *chainProcessor) handleJustification(header *types.Header, justification []byte) {
-	if len(justification) == 0 || header == nil {
-		return
-	}
+func (s *chainProcessor) handleJustification(header *types.Header, justification []byte) (err error) {
+	logger.Debugf("handling justification for block %d...", header.Number)
 
-	returnedJustification, err := s.finalityGadget.VerifyBlockJustification(header.Hash(), justification)
+	headerHash := header.Hash()
+	returnedJustification, err := s.finalityGadget.VerifyBlockJustification(headerHash, justification)
 	if err != nil {
-		logger.Warnf("failed to verify block number %d and hash %s justification: %s", header.Number, header.Hash(), err)
-		return
+		return fmt.Errorf("verifying block number %d justification: %w", header.Number, err)
 	}
 
-	err = s.blockState.SetJustification(header.Hash(), returnedJustification)
+	err = s.blockState.SetJustification(headerHash, returnedJustification)
 	if err != nil {
-		logger.Errorf("failed tostore justification: %s", err)
-		return
+		return fmt.Errorf("setting justification for block number %d: %w", header.Number, err)
 	}
 
-	logger.Infof("🔨 finalised block number %d with hash %s", header.Number, header.Hash())
+	logger.Infof("🔨 finalised block number %d with hash %s", header.Number, headerHash)
+	return nil
 }

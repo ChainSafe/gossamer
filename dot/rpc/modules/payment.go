@@ -45,7 +45,7 @@ func (p *PaymentModule) QueryInfo(_ *http.Request, req *PaymentQueryInfoRequest,
 		hash = *req.Hash
 	}
 
-	r, err := p.blockAPI.GetRuntime(&hash)
+	r, err := p.blockAPI.GetRuntime(hash)
 	if err != nil {
 		return err
 	}

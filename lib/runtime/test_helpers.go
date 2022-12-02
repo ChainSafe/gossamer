@@ -25,6 +25,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	ctypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/require"
 )
@@ -71,6 +72,9 @@ func GetRuntime(ctx context.Context, runtime string) (
 	case NODE_RUNTIME_v098:
 		runtimeFilename = NODE_RUNTIME_FP_v098
 		url = NODE_RUNTIME_URL_v098
+	case POLKADOT_RUNTIME_v0925:
+		runtimeFilename = POLKADOT_RUNTIME_FP_v0925
+		url = POLKADOT_RUNTIME_URL_v0925
 	case POLKADOT_RUNTIME_v0917:
 		runtimeFilename = POLKADOT_RUNTIME_FP_v0917
 		url = POLKADOT_RUNTIME_URL_v0917
@@ -86,6 +90,12 @@ func GetRuntime(ctx context.Context, runtime string) (
 	case DEV_RUNTIME:
 		runtimeFilename = DEV_RUNTIME_FP
 		url = DEV_RUNTIME_URL
+	case POLKADOT_RUNTIME_v0929:
+		runtimeFilename = POLKADOT_RUNTIME_V0929_FP
+		url = POLKADOT_RUNTIME_V0929_URL
+	case WESTEND_RUNTIME_v0929:
+		runtimeFilename = WESTEND_RUNTIME_V0929_FP
+		url = WESTEND_RUNTIME_V0929_URL
 	default:
 		return "", fmt.Errorf("%w: %s", ErrRuntimeUnknown, runtime)
 	}
@@ -208,7 +218,7 @@ func NewTestExtrinsic(t *testing.T, rt Instance, genHash, blockHash common.Hash,
 	require.NoError(t, err)
 
 	meta := &ctypes.Metadata{}
-	err = ctypes.Decode(decoded, meta)
+	err = codec.Decode(decoded, meta)
 	require.NoError(t, err)
 
 	rv := rt.Version()
@@ -232,7 +242,7 @@ func NewTestExtrinsic(t *testing.T, rt Instance, genHash, blockHash common.Hash,
 	err = ext.Sign(signature.TestKeyringPairAlice, o)
 	require.NoError(t, err)
 
-	extEnc, err := ctypes.EncodeToHex(ext)
+	extEnc, err := codec.EncodeToHex(ext)
 	require.NoError(t, err)
 
 	return extEnc
@@ -251,11 +261,11 @@ func InitializeRuntimeToTest(t *testing.T, instance Instance, parentHash common.
 	err := instance.InitializeBlock(header)
 	require.NoError(t, err)
 
-	idata := types.NewInherentsData()
-	err = idata.SetInt64Inherent(types.Timstap0, 1)
+	idata := types.NewInherentData()
+	err = idata.SetInherent(types.Timstap0, uint64(1))
 	require.NoError(t, err)
 
-	err = idata.SetInt64Inherent(types.Babeslot, 1)
+	err = idata.SetInherent(types.Babeslot, uint64(1))
 	require.NoError(t, err)
 
 	ienc, err := idata.Encode()

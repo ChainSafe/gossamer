@@ -98,11 +98,10 @@ package wasmer
 //
 // extern void ext_transaction_index_index_version_1(void *context, int32_t a, int32_t b, int32_t c);
 // extern void ext_transaction_index_renew_version_1(void *context, int32_t a, int32_t b);
-import "C"
+import "C" //skipcq: SCC-compile
 
 import (
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"math/big"
 	"math/rand"
@@ -111,7 +110,6 @@ import (
 	"unsafe"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	rtype "github.com/ChainSafe/gossamer/lib/common/types"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/secp256k1"
@@ -261,7 +259,7 @@ func ext_crypto_ed25519_generate_version_1(context unsafe.Pointer, keyTypeID C.i
 		return 0
 	}
 
-	ret, err := toWasmMemorySized(instanceContext, kp.Public().Encode(), 32)
+	ret, err := toWasmMemorySized(instanceContext, kp.Public().Encode())
 	if err != nil {
 		logger.Warnf("failed to allocate memory: %s", err)
 		return 0
@@ -340,20 +338,18 @@ func ext_crypto_ed25519_sign_version_1(context unsafe.Pointer, keyTypeID, key C.
 	ks, err := runtimeCtx.Keystore.GetKeystore(id)
 	if err != nil {
 		logger.Warnf("error for id 0x%x: %s", id, err)
-		ret, _ := toWasmMemoryOptional(instanceContext, nil)
-		return C.int64_t(ret)
+		return mustToWasmMemoryOptionalNil(instanceContext)
 	}
 
-	var ret int64
 	signingKey := ks.GetKeypair(pubKey)
 	if signingKey == nil {
 		logger.Error("could not find public key " + pubKey.Hex() + " in keystore")
-		ret, err = toWasmMemoryOptional(instanceContext, nil)
+		ret, err := toWasmMemoryOptionalNil(instanceContext)
 		if err != nil {
 			logger.Errorf("failed to allocate memory: %s", err)
 			return 0
 		}
-		return C.int64_t(ret)
+		return ret
 	}
 
 	sig, err := signingKey.Sign(asMemorySlice(instanceContext, msg))
@@ -361,7 +357,7 @@ func ext_crypto_ed25519_sign_version_1(context unsafe.Pointer, keyTypeID, key C.
 		logger.Error("could not sign message")
 	}
 
-	ret, err = toWasmMemoryFixedSizeOptional(instanceContext, sig)
+	ret, err := toWasmMemoryFixedSizeOptional(instanceContext, sig)
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
 		return 0
@@ -424,13 +420,12 @@ func ext_crypto_secp256k1_ecdsa_recover_version_1(context unsafe.Pointer, sig, m
 	pub, err := secp256k1.RecoverPublicKey(message, signature)
 	if err != nil {
 		logger.Errorf("failed to recover public key: %s", err)
-		var ret int64
-		ret, err = toWasmMemoryResult(instanceContext, nil)
+		ret, err := toWasmMemoryResultEmpty(instanceContext)
 		if err != nil {
 			logger.Errorf("failed to allocate memory: %s", err)
 			return 0
 		}
-		return C.int64_t(ret)
+		return ret
 	}
 
 	logger.Debugf(
@@ -520,8 +515,7 @@ func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(context unsafe.Poin
 	cpub, err := secp256k1.RecoverPublicKeyCompressed(message, signature)
 	if err != nil {
 		logger.Errorf("failed to recover public key: %s", err)
-		ret, _ := toWasmMemoryResult(instanceContext, nil)
-		return C.int64_t(ret)
+		return mustToWasmMemoryResultEmpty(instanceContext)
 	}
 
 	logger.Debugf(
@@ -585,7 +579,7 @@ func ext_crypto_sr25519_generate_version_1(context unsafe.Pointer, keyTypeID C.i
 		return 0
 	}
 
-	ret, err := toWasmMemorySized(instanceContext, kp.Public().Encode(), 32)
+	ret, err := toWasmMemorySized(instanceContext, kp.Public().Encode())
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
 		return 0
@@ -651,40 +645,38 @@ func ext_crypto_sr25519_sign_version_1(context unsafe.Pointer, keyTypeID, key C.
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
 	memory := instanceContext.Memory().Data()
 
-	emptyRet, _ := toWasmMemoryOptional(instanceContext, nil)
-
 	id := memory[keyTypeID : keyTypeID+4]
 
 	ks, err := runtimeCtx.Keystore.GetKeystore(id)
 	if err != nil {
 		logger.Warnf("error for id 0x%x: %s", id, err)
-		return C.int64_t(emptyRet)
+		return mustToWasmMemoryOptionalNil(instanceContext)
 	}
 
 	var ret int64
 	pubKey, err := sr25519.NewPublicKey(memory[key : key+32])
 	if err != nil {
 		logger.Errorf("failed to get public key: %s", err)
-		return C.int64_t(emptyRet)
+		return mustToWasmMemoryOptionalNil(instanceContext)
 	}
 
 	signingKey := ks.GetKeypair(pubKey)
 	if signingKey == nil {
 		logger.Error("could not find public key " + pubKey.Hex() + " in keystore")
-		return C.int64_t(emptyRet)
+		return mustToWasmMemoryOptionalNil(instanceContext)
 	}
 
 	msgData := asMemorySlice(instanceContext, msg)
 	sig, err := signingKey.Sign(msgData)
 	if err != nil {
 		logger.Errorf("could not sign message: %s", err)
-		return C.int64_t(emptyRet)
+		return mustToWasmMemoryOptionalNil(instanceContext)
 	}
 
 	ret, err = toWasmMemoryFixedSizeOptional(instanceContext, sig)
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
-		return C.int64_t(emptyRet)
+		return mustToWasmMemoryOptionalNil(instanceContext)
 	}
 
 	return C.int64_t(ret)
@@ -863,7 +855,7 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 		return 0
 	}
 
-	for i, val := range values {
+	for i, value := range values {
 		key, err := scale.Marshal(big.NewInt(int64(i)))
 		if err != nil {
 			logger.Errorf("failed scale encoding value index %d: %s", i, err)
@@ -871,9 +863,9 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 		}
 		logger.Tracef(
 			"put key=0x%x and value=0x%x",
-			key, val)
+			key, value)
 
-		t.Put(key, val)
+		t.Put(key, value)
 	}
 
 	// allocate memory for value and copy value to memory
@@ -966,8 +958,7 @@ func ext_misc_runtime_version_version_1(context unsafe.Pointer, dataSpan C.int64
 	version, err := GetRuntimeVersion(code)
 	if err != nil {
 		logger.Errorf("failed to get runtime version: %s", err)
-		out, _ := toWasmMemoryOptional(instanceContext, nil)
-		return C.int64_t(out)
+		return mustToWasmMemoryOptionalNil(instanceContext)
 	}
 
 	// Note the encoding contains all the latest Core_version fields as defined in
@@ -1009,7 +1000,7 @@ func ext_default_child_storage_read_version_1(context unsafe.Pointer,
 		return 0
 	}
 
-	valueBuf, valueLen := runtime.Int64ToPointerAndSize(int64(valueOut))
+	valueBuf, valueLen := splitPointerSize(int64(valueOut))
 	copy(memory[valueBuf:valueBuf+valueLen], value[offset:])
 
 	size := uint32(len(value[offset:]))
@@ -1333,7 +1324,7 @@ func ext_hashing_blake2_128_version_1(context unsafe.Pointer, dataSpan C.int64_t
 		"data 0x%x has hash 0x%x",
 		data, hash)
 
-	out, err := toWasmMemorySized(instanceContext, hash, 16)
+	out, err := toWasmMemorySized(instanceContext, hash)
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
 		return 0
@@ -1357,7 +1348,7 @@ func ext_hashing_blake2_256_version_1(context unsafe.Pointer, dataSpan C.int64_t
 
 	logger.Debugf("data 0x%x has hash %s", data, hash)
 
-	out, err := toWasmMemorySized(instanceContext, hash[:], 32)
+	out, err := toWasmMemorySized(instanceContext, hash[:])
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
 		return 0
@@ -1381,7 +1372,7 @@ func ext_hashing_keccak_256_version_1(context unsafe.Pointer, dataSpan C.int64_t
 
 	logger.Debugf("data 0x%x has hash %s", data, hash)
 
-	out, err := toWasmMemorySized(instanceContext, hash[:], 32)
+	out, err := toWasmMemorySized(instanceContext, hash[:])
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
 		return 0
@@ -1400,7 +1391,7 @@ func ext_hashing_sha2_256_version_1(context unsafe.Pointer, dataSpan C.int64_t) 
 
 	logger.Debugf("data 0x%x has hash %s", data, hash)
 
-	out, err := toWasmMemorySized(instanceContext, hash[:], 32)
+	out, err := toWasmMemorySized(instanceContext, hash[:])
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
 		return 0
@@ -1424,7 +1415,7 @@ func ext_hashing_twox_256_version_1(context unsafe.Pointer, dataSpan C.int64_t) 
 
 	logger.Debugf("data 0x%x has hash %s", data, hash)
 
-	out, err := toWasmMemorySized(instanceContext, hash[:], 32)
+	out, err := toWasmMemorySized(instanceContext, hash[:])
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
 		return 0
@@ -1449,7 +1440,7 @@ func ext_hashing_twox_128_version_1(context unsafe.Pointer, dataSpan C.int64_t) 
 		"data 0x%x hash hash 0x%x",
 		data, hash)
 
-	out, err := toWasmMemorySized(instanceContext, hash, 16)
+	out, err := toWasmMemorySized(instanceContext, hash)
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
 		return 0
@@ -1475,7 +1466,7 @@ func ext_hashing_twox_64_version_1(context unsafe.Pointer, dataSpan C.int64_t) C
 		"data 0x%x has hash 0x%x",
 		data, hash)
 
-	out, err := toWasmMemorySized(instanceContext, hash, 8)
+	out, err := toWasmMemorySized(instanceContext, hash)
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
 		return 0
@@ -1647,13 +1638,8 @@ func ext_offchain_network_state_version_1(context unsafe.Pointer) C.int64_t {
 		return 0
 	}
 
-	// copy network state length to memory writtenOut location
-	nsEncLen := uint32(len(nsEnc))
-	buf := make([]byte, 4)
-	binary.LittleEndian.PutUint32(buf, nsEncLen)
-
 	// allocate memory for value and copy value to memory
-	ptr, err := toWasmMemorySized(instanceContext, nsEnc, nsEncLen)
+	ptr, err := toWasmMemorySized(instanceContext, nsEnc)
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
 		return 0
@@ -1672,7 +1658,7 @@ func ext_offchain_random_seed_version_1(context unsafe.Pointer) C.int32_t {
 	if err != nil {
 		logger.Errorf("failed to generate random seed: %s", err)
 	}
-	ptr, err := toWasmMemorySized(instanceContext, seed, 32)
+	ptr, err := toWasmMemorySized(instanceContext, seed)
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
 	}
@@ -1699,11 +1685,11 @@ func ext_offchain_submit_transaction_version_1(context unsafe.Pointer, data C.in
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
 	runtimeCtx.Transaction.AddToPool(vtx)
 
-	ptr, err := toWasmMemoryOptional(instanceContext, nil)
+	ptr, err := toWasmMemoryOptionalNil(instanceContext)
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
 	}
-	return C.int64_t(ptr)
+	return ptr
 }
 
 //export ext_offchain_timestamp_version_1
@@ -1809,51 +1795,6 @@ func ext_offchain_http_request_add_header_version_1(context unsafe.Pointer,
 	return C.int64_t(ptr)
 }
 
-func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
-	nextLength := big.NewInt(1)
-	var valueRes []byte
-
-	// this function assumes the item in storage is a SCALE encoded array of items
-	// the valueToAppend is a new item, so it appends the item and increases the length prefix by 1
-	valueCurr := storage.Get(key)
-
-	if len(valueCurr) == 0 {
-		valueRes = valueToAppend
-	} else {
-		var currLength *big.Int
-		err := scale.Unmarshal(valueCurr, &currLength)
-		if err != nil {
-			logger.Tracef(
-				"item in storage is not SCALE encoded, overwriting at key 0x%x", key)
-			storage.Set(key, append([]byte{4}, valueToAppend...))
-			return nil //nolint:nilerr
-		}
-
-		lengthBytes, err := scale.Marshal(currLength)
-		if err != nil {
-			return err
-		}
-		// append new item, pop off number of bytes required for length encoding,
-		// since we're not using old scale.Decoder
-		valueRes = append(valueCurr[len(lengthBytes):], valueToAppend...)
-
-		// increase length by 1
-		nextLength = big.NewInt(0).Add(currLength, big.NewInt(1))
-	}
-
-	lengthEnc, err := scale.Marshal(nextLength)
-	if err != nil {
-		logger.Tracef("failed to encode new length: %s", err)
-		return err
-	}
-
-	// append new length prefix to start of items array
-	lengthEnc = append(lengthEnc, valueRes...)
-	logger.Debugf("resulting value: 0x%x", lengthEnc)
-	storage.Set(key, lengthEnc)
-	return nil
-}
-
 //export ext_storage_append_version_1
 func ext_storage_append_version_1(context unsafe.Pointer, keySpan, valueSpan C.int64_t) {
 	logger.Trace("executing...")
@@ -1883,13 +1824,13 @@ func ext_storage_changes_root_version_1(context unsafe.Pointer, parentHashSpan C
 
 	instanceContext := wasm.IntoInstanceContext(context)
 
-	rootSpan, err := toWasmMemoryOptional(instanceContext, nil)
+	rootSpan, err := toWasmMemoryOptionalNil(instanceContext)
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
 		return 0
 	}
 
-	return C.int64_t(rootSpan)
+	return rootSpan
 }
 
 //export ext_storage_clear_version_1
@@ -1935,8 +1876,7 @@ func ext_storage_clear_prefix_version_2(context unsafe.Pointer, prefixSpan, lim 
 	err := scale.Unmarshal(limitBytes, &limit)
 	if err != nil {
 		logger.Warnf("failed scale decoding limit: %s", err)
-		ret, _ := toWasmMemory(instanceContext, nil)
-		return C.int64_t(ret)
+		return mustToWasmMemoryNil(instanceContext)
 	}
 
 	if len(limit) == 0 {
@@ -1949,15 +1889,13 @@ func ext_storage_clear_prefix_version_2(context unsafe.Pointer, prefixSpan, lim 
 	encBytes, err := toKillStorageResultEnum(all, numRemoved)
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
-		ret, _ := toWasmMemory(instanceContext, nil)
-		return C.int64_t(ret)
+		return mustToWasmMemoryNil(instanceContext)
 	}
 
 	valueSpan, err := toWasmMemory(instanceContext, encBytes)
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
-		ptr, _ := toWasmMemory(instanceContext, nil)
-		return C.int64_t(ptr)
+		return mustToWasmMemoryNil(instanceContext)
 	}
 
 	return C.int64_t(valueSpan)
@@ -1972,8 +1910,8 @@ func ext_storage_exists_version_1(context unsafe.Pointer, keySpan C.int64_t) C.i
 	key := asMemorySlice(instanceContext, keySpan)
 	logger.Debugf("key: 0x%x", key)
 
-	val := storage.Get(key)
-	if len(val) > 0 {
+	value := storage.Get(key)
+	if value != nil {
 		return 1
 	}
 
@@ -1996,8 +1934,7 @@ func ext_storage_get_version_1(context unsafe.Pointer, keySpan C.int64_t) C.int6
 	valueSpan, err := toWasmMemoryOptional(instanceContext, value)
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
-		ptr, _ := toWasmMemoryOptional(instanceContext, nil)
-		return C.int64_t(ptr)
+		return mustToWasmMemoryOptionalNil(instanceContext)
 	}
 
 	return C.int64_t(valueSpan)
@@ -2041,17 +1978,13 @@ func ext_storage_read_version_1(context unsafe.Pointer, keySpan, valueOut C.int6
 		key, value)
 
 	if value == nil {
-		ret, _ := toWasmMemoryOptional(instanceContext, nil)
-		return C.int64_t(ret)
+		return mustToWasmMemoryOptionalNil(instanceContext)
 	}
 
 	var size uint32
-
-	if int(offset) > len(value) {
-		size = uint32(0)
-	} else {
+	if uint32(offset) <= uint32(len(value)) {
 		size = uint32(len(value[offset:]))
-		valueBuf, valueLen := runtime.Int64ToPointerAndSize(int64(valueOut))
+		valueBuf, valueLen := splitPointerSize(int64(valueOut))
 		copy(memory[valueBuf:valueBuf+valueLen], value[offset:])
 	}
 
@@ -2111,7 +2044,7 @@ func ext_storage_set_version_1(context unsafe.Pointer, keySpan, valueSpan C.int6
 	logger.Debugf(
 		"key 0x%x has value 0x%x",
 		key, value)
-	storage.Set(key, cp)
+	storage.Put(key, cp)
 }
 
 //export ext_storage_start_transaction_version_1
@@ -2133,132 +2066,6 @@ func ext_storage_commit_transaction_version_1(context unsafe.Pointer) {
 	logger.Debug("executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	instanceContext.Data().(*runtime.Context).Storage.CommitStorageTransaction()
-}
-
-// Convert 64bit wasm span descriptor to Go memory slice
-func asMemorySlice(context wasm.InstanceContext, span C.int64_t) []byte {
-	memory := context.Memory().Data()
-	ptr, size := runtime.Int64ToPointerAndSize(int64(span))
-	return memory[ptr : ptr+size]
-}
-
-// Copy a byte slice to wasm memory and return the resulting 64bit span descriptor
-func toWasmMemory(context wasm.InstanceContext, data []byte) (int64, error) {
-	allocator := context.Data().(*runtime.Context).Allocator
-	size := uint32(len(data))
-
-	out, err := allocator.Allocate(size)
-	if err != nil {
-		return 0, err
-	}
-
-	memory := context.Memory().Data()
-
-	if uint32(len(memory)) < out+size {
-		panic(fmt.Sprintf("length of memory is less than expected, want %d have %d", out+size, len(memory)))
-	}
-
-	copy(memory[out:out+size], data)
-	return runtime.PointerAndSizeToInt64(int32(out), int32(size)), nil
-}
-
-// Copy a byte slice of a fixed size to wasm memory and return resulting pointer
-func toWasmMemorySized(context wasm.InstanceContext, data []byte, size uint32) (uint32, error) {
-	if int(size) != len(data) {
-		return 0, errors.New("internal byte array size missmatch")
-	}
-
-	allocator := context.Data().(*runtime.Context).Allocator
-
-	out, err := allocator.Allocate(size)
-	if err != nil {
-		return 0, err
-	}
-
-	memory := context.Memory().Data()
-	copy(memory[out:out+size], data)
-
-	return out, nil
-}
-
-// Wraps slice in optional.Bytes and copies result to wasm memory. Returns resulting 64bit span descriptor
-func toWasmMemoryOptional(context wasm.InstanceContext, data []byte) (int64, error) {
-	var opt *[]byte
-	if data != nil {
-		temp := data
-		opt = &temp
-	}
-
-	enc, err := scale.Marshal(opt)
-	if err != nil {
-		return 0, err
-	}
-
-	return toWasmMemory(context, enc)
-}
-
-// Wraps slice in Result type and copies result to wasm memory. Returns resulting 64bit span descriptor
-func toWasmMemoryResult(context wasm.InstanceContext, data []byte) (int64, error) {
-	var res *rtype.Result
-	if len(data) == 0 {
-		res = rtype.NewResult(byte(1), nil)
-	} else {
-		res = rtype.NewResult(byte(0), data)
-	}
-
-	enc, err := res.Encode()
-	if err != nil {
-		return 0, err
-	}
-
-	return toWasmMemory(context, enc)
-}
-
-// Wraps slice in optional and copies result to wasm memory. Returns resulting 64bit span descriptor
-func toWasmMemoryOptionalUint32(context wasm.InstanceContext, data *uint32) (int64, error) {
-	var opt *uint32
-	if data != nil {
-		temp := *data
-		opt = &temp
-	}
-
-	enc, err := scale.Marshal(opt)
-	if err != nil {
-		return int64(0), err
-	}
-	return toWasmMemory(context, enc)
-}
-
-// toKillStorageResult returns enum encoded value
-func toKillStorageResultEnum(allRemoved bool, numRemoved uint32) ([]byte, error) {
-	var b, sbytes []byte
-	sbytes, err := scale.Marshal(numRemoved)
-	if err != nil {
-		return nil, err
-	}
-
-	if allRemoved {
-		// No key remains in the child trie.
-		b = append(b, byte(0))
-	} else {
-		// At least one key still resides in the child trie due to the supplied limit.
-		b = append(b, byte(1))
-	}
-
-	b = append(b, sbytes...)
-
-	return b, err
-}
-
-// Wraps slice in optional.FixedSizeBytes and copies result to wasm memory. Returns resulting 64bit span descriptor
-func toWasmMemoryFixedSizeOptional(context wasm.InstanceContext, data []byte) (int64, error) {
-	var opt [64]byte
-	copy(opt[:], data)
-	enc, err := scale.Marshal(&opt)
-	if err != nil {
-		return 0, err
-	}
-	return toWasmMemory(context, enc)
 }
 
 // importsNodeRuntime returns the WASM imports for the node runtime.

@@ -38,7 +38,7 @@ type Instance interface {
 	FinalizeBlock() (*types.Header, error)
 	ExecuteBlock(block *types.Block) ([]byte, error)
 	DecodeSessionKeys(enc []byte) ([]byte, error)
-	PaymentQueryInfo(ext []byte) (*types.TransactionPaymentQueryInfo, error)
+	PaymentQueryInfo(ext []byte) (*types.RuntimeDispatchInfo, error)
 
 	CheckInherents() // TODO: use this in block verification process (#1873)
 
@@ -50,7 +50,7 @@ type Instance interface {
 
 // Storage interface
 type Storage interface {
-	Set(key []byte, value []byte)
+	Put(key []byte, value []byte)
 	Get(key []byte) []byte
 	Root() (common.Hash, error)
 	SetChild(keyToChild []byte, child *trie.Trie) error

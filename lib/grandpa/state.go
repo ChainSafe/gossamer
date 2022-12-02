@@ -19,7 +19,7 @@ type BlockState interface {
 	GetHeader(hash common.Hash) (*types.Header, error)
 	GetHeaderByNumber(num uint) (*types.Header, error)
 	IsDescendantOf(parent, child common.Hash) (bool, error)
-	HighestCommonAncestor(a, b common.Hash) (common.Hash, error)
+	LowestCommonAncestor(a, b common.Hash) (common.Hash, error)
 	HasFinalisedBlock(round, setID uint64) (bool, error)
 	GetFinalisedHeader(uint64, uint64) (*types.Header, error)
 	SetFinalisedHash(common.Hash, uint64, uint64) error
@@ -53,8 +53,6 @@ type GrandpaState interface { //nolint:revive
 	GetPrecommits(round, setID uint64) ([]SignedVote, error)
 	NextGrandpaAuthorityChange(bestBlockHash common.Hash, bestBlockNumber uint) (blockHeight uint, err error)
 }
-
-//go:generate mockery --name Network --structname Network --case underscore --keeptree
 
 // Network is the interface required by GRANDPA for the network
 type Network interface {

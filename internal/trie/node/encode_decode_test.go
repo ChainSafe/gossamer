@@ -23,62 +23,57 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 				Children: make([]*Node, ChildrenCapacity),
 			},
 			branchDecoded: &Node{
-				Key:      []byte{},
-				Children: make([]*Node, ChildrenCapacity),
-				Dirty:    true,
+				PartialKey: []byte{},
+				Children:   make([]*Node, ChildrenCapacity),
 			},
 		},
 		"branch with key 5": {
 			branchToEncode: &Node{
-				Children: make([]*Node, ChildrenCapacity),
-				Key:      []byte{5},
+				Children:   make([]*Node, ChildrenCapacity),
+				PartialKey: []byte{5},
 			},
 			branchDecoded: &Node{
-				Key:      []byte{5},
-				Children: make([]*Node, ChildrenCapacity),
-				Dirty:    true,
+				PartialKey: []byte{5},
+				Children:   make([]*Node, ChildrenCapacity),
 			},
 		},
 		"branch with two bytes key": {
 			branchToEncode: &Node{
-				Key:      []byte{0xf, 0xa}, // note: each byte cannot be larger than 0xf
-				Children: make([]*Node, ChildrenCapacity),
+				PartialKey: []byte{0xf, 0xa}, // note: each byte cannot be larger than 0xf
+				Children:   make([]*Node, ChildrenCapacity),
 			},
 			branchDecoded: &Node{
-				Key:      []byte{0xf, 0xa},
-				Children: make([]*Node, ChildrenCapacity),
-				Dirty:    true,
+				PartialKey: []byte{0xf, 0xa},
+				Children:   make([]*Node, ChildrenCapacity),
 			},
 		},
 		"branch with child leaf inline": {
 			branchToEncode: &Node{
-				Key: []byte{5},
+				PartialKey: []byte{5},
 				Children: padRightChildren([]*Node{
 					{
-						Key:      []byte{9},
-						SubValue: []byte{10},
+						PartialKey:   []byte{9},
+						StorageValue: []byte{10},
 					},
 				}),
 			},
 			branchDecoded: &Node{
-				Key:         []byte{5},
+				PartialKey:  []byte{5},
 				Descendants: 1,
 				Children: padRightChildren([]*Node{
 					{
-						Key:      []byte{9},
-						SubValue: []byte{10},
-						Dirty:    true,
+						PartialKey:   []byte{9},
+						StorageValue: []byte{10},
 					},
 				}),
-				Dirty: true,
 			},
 		},
 		"branch with child leaf hash": {
 			branchToEncode: &Node{
-				Key: []byte{5},
+				PartialKey: []byte{5},
 				Children: padRightChildren([]*Node{
 					{
-						Key: []byte{
+						PartialKey: []byte{
 							10, 11, 12, 13,
 							14, 15, 16, 17,
 							18, 19, 20, 21,
@@ -86,19 +81,18 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 							10, 11, 12, 13,
 							14, 15, 16, 17,
 						},
-						SubValue: []byte{
+						StorageValue: []byte{
 							10, 11, 12, 13,
 							14, 15, 16, 17,
 							10, 11, 12, 13,
 							14, 15, 16, 17,
 							10, 11, 12, 13,
 						},
-						Dirty: true,
 					},
 				}),
 			},
 			branchDecoded: &Node{
-				Key: []byte{5},
+				PartialKey: []byte{5},
 				Children: padRightChildren([]*Node{
 					{
 						MerkleValue: []byte{
@@ -110,10 +104,8 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 							21, 186, 226, 204, 145,
 							132, 5, 39, 204,
 						},
-						Dirty: true,
 					},
 				}),
-				Dirty:       true,
 				Descendants: 1,
 			},
 		},

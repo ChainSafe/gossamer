@@ -202,7 +202,11 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 	}
 
 	for _, d := range header.Digest.Types {
-		predigest, ok := d.Value().(types.PreRuntimeDigest)
+		digestValue, err := d.Value()
+		if err != nil {
+			continue
+		}
+		predigest, ok := digestValue.(types.PreRuntimeDigest)
 		if !ok {
 			continue
 		}

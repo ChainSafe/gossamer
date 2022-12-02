@@ -10,23 +10,401 @@ import (
 	"testing"
 	"time"
 
+	core "github.com/ChainSafe/gossamer/dot/core"
+	digest "github.com/ChainSafe/gossamer/dot/digest"
 	"github.com/ChainSafe/gossamer/dot/network"
+	rpc "github.com/ChainSafe/gossamer/dot/rpc"
 	"github.com/ChainSafe/gossamer/dot/state"
+	sync "github.com/ChainSafe/gossamer/dot/sync"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/pprof"
+	babe "github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	gomock "github.com/golang/mock/gomock"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func Test_nodeBuilder_createBABEService(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	mockBabeIFace := NewMockServiceIFace(ctrl)
+
+	cfg := NewTestConfig(t)
+
+	ks := keystore.NewGlobalKeystore()
+	ks2 := keystore.NewGlobalKeystore()
+	kr, err := keystore.NewSr25519Keyring()
+	require.NoError(t, err)
+	ks2.Babe.Insert(kr.Alice())
+
+	type args struct {
+		cfg              *Config
+		initStateService bool
+		ks               keystore.Keystore
+		cs               *core.Service
+		telemetryMailer  telemetry.Client
+	}
+	tests := []struct {
+		name     string
+		args     args
+		expected babe.ServiceIFace
+		err      error
+	}{
+		{
+			name: "invalid keystore",
+			args: args{
+				cfg:              cfg,
+				initStateService: true,
+				ks:               ks.Gran,
+			},
+			expected: nil,
+			err:      ErrInvalidKeystoreType,
+		},
+		{
+			name: "empty keystore",
+			args: args{
+				cfg:              cfg,
+				initStateService: true,
+				ks:               ks.Babe,
+			},
+			expected: nil,
+			err:      ErrNoKeysProvided,
+		},
+		{
+			name: "base case",
+			args: args{
+				cfg:              cfg,
+				initStateService: true,
+				ks:               ks2.Babe,
+			},
+			expected: mockBabeIFace,
+			err:      nil,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			stateSrvc := newStateService(t, ctrl)
+			mockBabeBuilder := NewMockServiceBuilder(ctrl)
+			mockBabeBuilder.EXPECT().NewServiceIFace(
+				gomock.AssignableToTypeOf(&babe.ServiceConfig{})).DoAndReturn(func(cfg *babe.ServiceConfig) (babe.
+				ServiceIFace, error) {
+				return mockBabeIFace, nil
+			}).AnyTimes()
+			builder := nodeBuilder{}
+			var got babe.ServiceIFace
+			if tt.args.initStateService {
+				got, err = builder.createBABEServiceWithBuilder(tt.args.cfg, stateSrvc, tt.args.ks, tt.args.cs,
+					tt.args.telemetryMailer, mockBabeBuilder)
+			} else {
+				got, err = builder.createBABEServiceWithBuilder(tt.args.cfg, &state.Service{}, tt.args.ks, tt.args.cs,
+					tt.args.telemetryMailer, mockBabeBuilder)
+			}
+
+			assert.Equal(t, tt.expected, got)
+			assert.ErrorIs(t, err, tt.err)
+		})
+	}
+}
+
+func Test_nodeBuilder_createCoreService(t *testing.T) {
+	t.Parallel()
+
+	ks := keystore.NewGlobalKeystore()
+	kr, err := keystore.NewSr25519Keyring()
+	require.NoError(t, err)
+	ks.Babe.Insert(kr.Alice())
+
+	networkService := &network.Service{}
+
+	type args struct {
+		ks  *keystore.GlobalKeystore
+		net *network.Service
+		dh  *digest.Handler
+	}
+	tests := []struct {
+		name      string
+		args      args
+		expectNil bool
+		err       error
+	}{
+		{
+			name: "base case",
+			args: args{
+				ks:  ks,
+				net: networkService,
+			},
+			expectNil: false,
+			err:       nil,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			cfg := NewTestConfig(t)
+			ctrl := gomock.NewController(t)
+			stateSrvc := newStateService(t, ctrl)
+
+			builder := nodeBuilder{}
+			got, err := builder.createCoreService(cfg, tt.args.ks, stateSrvc, tt.args.net, tt.args.dh)
+
+			assert.ErrorIs(t, err, tt.err)
+
+			// TODO: create interface for core.NewService sa that we can assert.Equal the results
+			if tt.expectNil {
+				assert.Nil(t, got)
+			} else {
+				assert.NotNil(t, got)
+				assert.IsType(t, &core.Service{}, got)
+			}
+		})
+	}
+}
+
+func Test_nodeBuilder_createNetworkService(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		cfg       *Config
+		expectNil bool
+		err       error
+	}{
+		{
+			name:      "base case",
+			expectNil: false,
+			err:       nil,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			ctrl := gomock.NewController(t)
+
+			cfg := NewTestConfig(t)
+			stateSrvc := newStateService(t, ctrl)
+			no := nodeBuilder{}
+			got, err := no.createNetworkService(cfg, stateSrvc, nil)
+			assert.ErrorIs(t, err, tt.err)
+			// TODO: create interface for network.NewService to handle assert.Equal test
+			if tt.expectNil {
+				assert.Nil(t, got)
+			} else {
+				assert.NotNil(t, got)
+				assert.IsType(t, &network.Service{}, got)
+			}
+		})
+	}
+}
+
+func Test_nodeBuilder_createRPCService(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		expectNil bool
+		err       error
+	}{
+		{
+			name:      "base state",
+			expectNil: false,
+			err:       nil,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			cfg := NewTestConfig(t)
+			ctrl := gomock.NewController(t)
+			stateSrvc := newStateService(t, ctrl)
+			no := nodeBuilder{}
+			rpcParams := rpcServiceSettings{
+				config: cfg,
+				state:  stateSrvc,
+			}
+			got, err := no.createRPCService(rpcParams)
+			assert.ErrorIs(t, err, tt.err)
+
+			// TODO: create interface for rpc.HTTPServer to handle assert.Equal test
+			if tt.expectNil {
+				assert.Nil(t, got)
+			} else {
+				assert.NotNil(t, got)
+				assert.IsType(t, &rpc.HTTPServer{}, got)
+			}
+		})
+	}
+}
+
+func Test_nodeBuilder_createGRANDPAService(t *testing.T) {
+	t.Parallel()
+	ks := keystore.NewGlobalKeystore()
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	ks.Gran.Insert(kr.Alice())
+
+	require.NoError(t, err)
+	tests := []struct {
+		name      string
+		ks        keystore.Keystore
+		expectNil bool
+		err       error
+	}{
+		{
+			name:      "wrong key type",
+			ks:        ks.Babe,
+			expectNil: true,
+			err:       ErrInvalidKeystoreType,
+		},
+		{
+			name:      "base case",
+			ks:        ks.Gran,
+			expectNil: false,
+			err:       nil,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			cfg := NewTestConfig(t)
+			ctrl := gomock.NewController(t)
+			stateSrvc := newStateService(t, ctrl)
+			networkConfig := &network.Config{
+				BasePath:   t.TempDir(),
+				BlockState: stateSrvc.Block,
+				RandSeed:   2,
+			}
+			networkSrvc, err := network.NewService(networkConfig)
+			require.NoError(t, err)
+			builder := nodeBuilder{}
+			got, err := builder.createGRANDPAService(cfg, stateSrvc, tt.ks, networkSrvc,
+				nil)
+			assert.ErrorIs(t, err, tt.err)
+			// TODO: create interface for grandpa.NewService to enable testing with assert.Equal
+			if tt.expectNil {
+				assert.Nil(t, got)
+			} else {
+				assert.NotNil(t, got)
+				assert.IsType(t, &grandpa.Service{}, got)
+			}
+		})
+	}
+}
+
+func Test_createRuntime(t *testing.T) {
+	t.Parallel()
+	cfg := NewTestConfig(t)
+
+	type args struct {
+		cfg *Config
+		ns  runtime.NodeStorage
+	}
+	tests := []struct {
+		name         string
+		args         args
+		expectedType interface{}
+		err          error
+	}{
+		{
+			name: "wasmer runtime",
+			args: args{
+				cfg: cfg,
+				ns:  runtime.NodeStorage{},
+			},
+			expectedType: &wasmer.Instance{},
+			err:          nil,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+			stateSrvc := newStateService(t, ctrl)
+			code, err := stateSrvc.Storage.LoadCode(nil)
+			require.NoError(t, err)
+
+			got, err := createRuntime(tt.args.cfg, tt.args.ns, stateSrvc, nil, nil, code)
+			assert.ErrorIs(t, err, tt.err)
+			if tt.expectedType == nil {
+				assert.Nil(t, got)
+			} else {
+				assert.NotNil(t, got)
+				assert.IsType(t, tt.expectedType, got)
+			}
+		})
+	}
+}
+
+func Test_nodeBuilder_newSyncService(t *testing.T) {
+	t.Parallel()
+	finalityGadget := &grandpa.Service{}
+	type args struct {
+		fg              sync.FinalityGadget
+		verifier        *babe.VerificationManager
+		cs              *core.Service
+		net             *network.Service
+		telemetryMailer telemetry.Client
+	}
+	tests := []struct {
+		name      string
+		args      args
+		expectNil bool
+		err       error
+	}{
+		{
+			name: "base case",
+			args: args{
+				fg:              finalityGadget,
+				verifier:        nil,
+				cs:              nil,
+				net:             nil,
+				telemetryMailer: nil,
+			},
+			expectNil: false,
+			err:       nil,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			cfg := NewTestConfig(t)
+			ctrl := gomock.NewController(t)
+			stateSrvc := newStateService(t, ctrl)
+			no := nodeBuilder{}
+			got, err := no.newSyncService(cfg, stateSrvc, tt.args.fg, tt.args.verifier, tt.args.cs,
+				tt.args.net, tt.args.telemetryMailer)
+			assert.ErrorIs(t, err, tt.err)
+			if tt.expectNil {
+				assert.Nil(t, got)
+			} else {
+				assert.NotNil(t, got)
+			}
+		})
+	}
+}
 
 func TestCreateStateService(t *testing.T) {
 	cfg := NewTestConfig(t)
@@ -54,8 +432,8 @@ func newStateServiceWithoutMock(t *testing.T) *state.Service {
 	}
 	stateSrvc := state.NewService(stateConfig)
 	stateSrvc.UseMemDB()
-	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
-	err := stateSrvc.Initialise(genData, genesisHeader, genTrie)
+	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	err := stateSrvc.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
 	err = stateSrvc.SetupBase()
@@ -77,7 +455,7 @@ func newStateServiceWithoutMock(t *testing.T) *state.Service {
 
 	var rtCfg wasmer.Config
 
-	rtCfg.Storage = rtstorage.NewTrieState(genTrie)
+	rtCfg.Storage = rtstorage.NewTrieState(&genTrie)
 
 	rtCfg.CodeHash, err = stateSrvc.Storage.LoadCodeHash(nil)
 	require.NoError(t, err)
@@ -138,8 +516,7 @@ func TestCreateBlockVerifier(t *testing.T) {
 	require.NoError(t, err)
 	stateSrvc.Epoch = &state.EpochState{}
 
-	_, err = builder.createBlockVerifier(stateSrvc)
-	require.NoError(t, err)
+	_ = builder.createBlockVerifier(stateSrvc)
 }
 
 func TestCreateSyncService(t *testing.T) {
@@ -158,8 +535,7 @@ func TestCreateSyncService(t *testing.T) {
 	ks := keystore.NewGlobalKeystore()
 	require.NotNil(t, ks)
 
-	ver, err := builder.createBlockVerifier(stateSrvc)
-	require.NoError(t, err)
+	ver := builder.createBlockVerifier(stateSrvc)
 
 	dh, err := builder.createDigestHandler(cfg.Log.DigestLvl, stateSrvc)
 	require.NoError(t, err)

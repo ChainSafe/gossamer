@@ -316,7 +316,7 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 	logger.Info("importing storage trie from base path " +
 		s.dbPath + " with root " + root.String() + "...")
 
-	if err := t.Store(storage.db); err != nil {
+	if err := t.WriteDirty(storage.db); err != nil {
 		return err
 	}
 

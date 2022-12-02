@@ -20,67 +20,6 @@ type Database interface {
 	Get(key []byte) (value []byte, err error)
 }
 
-// Store stores each trie node in the database,
-// where the key is the hash of the encoded node
-// and the value is the encoded node.
-// Generally, this will only be used for the genesis trie.
-func (t *Trie) Store(db chaindb.Database) error {
-	for _, v := range t.childTries {
-		if err := v.Store(db); err != nil {
-			return fmt.Errorf("failed to store child trie with root hash=0x%x in the db: %w", v.root.MerkleValue, err)
-		}
-	}
-
-	batch := db.NewBatch()
-	err := t.storeNode(batch, t.root)
-	if err != nil {
-		batch.Reset()
-		return err
-	}
-
-	return batch.Flush()
-}
-
-func (t *Trie) storeNode(db chaindb.Batch, n *Node) (err error) {
-	if n == nil {
-		return nil
-	}
-
-	var encoding, hash []byte
-	if n == t.root {
-		encoding, hash, err = n.EncodeAndHashRoot()
-	} else {
-		encoding, hash, err = n.EncodeAndHash()
-	}
-	if err != nil {
-		return err
-	}
-
-	err = db.Put(hash, encoding)
-	if err != nil {
-		return err
-	}
-
-	if n.Kind() == node.Branch {
-		for _, child := range n.Children {
-			if child == nil {
-				continue
-			}
-
-			err = t.storeNode(db, child)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	if n.Dirty {
-		n.SetClean()
-	}
-
-	return nil
-}
-
 // Load reconstructs the trie from the database from the given root hash.
 // It is used when restarting the node to load the current state trie.
 func (t *Trie) Load(db Database, rootHash common.Hash) error {
@@ -102,8 +41,6 @@ func (t *Trie) Load(db Database, rootHash common.Hash) error {
 	}
 
 	t.root = root
-	t.root.SetClean()
-	t.root.Encoding = encodedNode
 	t.root.MerkleValue = rootHashBytes
 
 	return t.loadNode(db, t.root)
@@ -129,7 +66,6 @@ func (t *Trie) loadNode(db Database, n *Node) error {
 			if err != nil {
 				return fmt.Errorf("merkle value: %w", err)
 			}
-			child.SetClean()
 			continue
 		}
 
@@ -144,8 +80,6 @@ func (t *Trie) loadNode(db Database, n *Node) error {
 			return fmt.Errorf("decoding node with Merkle value 0x%x: %w", merkleValue, err)
 		}
 
-		decodedNode.SetClean()
-		decodedNode.Encoding = encodedNode
 		decodedNode.MerkleValue = merkleValue
 		branch.Children[i] = decodedNode
 
@@ -185,49 +119,36 @@ func (t *Trie) loadNode(db Database, n *Node) error {
 	return nil
 }
 
-// PopulateNodeHashes writes hashes of each children of the node given
-// as keys to the map hashesSet.
-func (t *Trie) PopulateNodeHashes(n *Node, hashesSet map[common.Hash]struct{}) {
-	if n.Kind() != node.Branch {
+// PopulateNodeHashes writes the node hash values of the node given and of
+// all its descendant nodes as keys to the nodeHashes map.
+// It is assumed the node and its descendant nodes have their Merkle value already
+// computed.
+func PopulateNodeHashes(n *Node, nodeHashes map[string]struct{}) {
+	if n == nil {
+		return
+	}
+
+	switch {
+	case len(n.MerkleValue) == 0:
+		// TODO remove once lazy loading of nodes is implemented
+		// https://github.com/ChainSafe/gossamer/issues/2838
+		panic(fmt.Sprintf("node with partial key 0x%x has no Merkle value computed", n.PartialKey))
+	case len(n.MerkleValue) < 32:
+		// Inlined node where its Merkle value is its
+		// encoding and not the encoding hash digest.
+		return
+	}
+
+	nodeHashes[string(n.MerkleValue)] = struct{}{}
+
+	if n.Kind() == node.Leaf {
 		return
 	}
 
 	branch := n
 	for _, child := range branch.Children {
-		if child == nil {
-			continue
-		}
-
-		hash := common.BytesToHash(child.MerkleValue)
-		hashesSet[hash] = struct{}{}
-
-		t.PopulateNodeHashes(child, hashesSet)
+		PopulateNodeHashes(child, nodeHashes)
 	}
-}
-
-// PutInDB inserts a value in the trie at the key given.
-// It writes the updated nodes from the changed node up to the root node
-// to the database in a batch operation.
-func (t *Trie) PutInDB(db chaindb.Database, key, value []byte) error {
-	t.Put(key, value)
-	return t.WriteDirty(db)
-}
-
-// DeleteFromDB deletes a value from the trie at the key given.
-// It writes the updated nodes from the changed node up to the root node
-// to the database in a batch operation.
-func (t *Trie) DeleteFromDB(db chaindb.Database, key []byte) error {
-	t.Delete(key)
-	return t.WriteDirty(db)
-}
-
-// ClearPrefixFromDB deletes all nodes with keys starting the given prefix
-// from the trie. It writes the updated nodes from the changed node up to
-// the root node to the database in a batch operation.
-// in a batch operation.
-func (t *Trie) ClearPrefixFromDB(db chaindb.Database, prefix []byte) error {
-	t.ClearPrefix(prefix)
-	return t.WriteDirty(db)
 }
 
 // GetFromDB retrieves a value at the given key from the trie using the database.
@@ -263,20 +184,20 @@ func GetFromDB(db chaindb.Database, rootHash common.Hash, key []byte) (
 func getFromDBAtNode(db chaindb.Database, n *Node, key []byte) (
 	value []byte, err error) {
 	if n.Kind() == node.Leaf {
-		if bytes.Equal(n.Key, key) {
-			return n.SubValue, nil
+		if bytes.Equal(n.PartialKey, key) {
+			return n.StorageValue, nil
 		}
 		return nil, nil
 	}
 
 	branch := n
 	// Key is equal to the key of this branch or is empty
-	if len(key) == 0 || bytes.Equal(branch.Key, key) {
-		return branch.SubValue, nil
+	if len(key) == 0 || bytes.Equal(branch.PartialKey, key) {
+		return branch.StorageValue, nil
 	}
 
-	commonPrefixLength := lenCommonPrefix(branch.Key, key)
-	if len(key) < len(branch.Key) && bytes.Equal(branch.Key[:commonPrefixLength], key) {
+	commonPrefixLength := lenCommonPrefix(branch.PartialKey, key)
+	if len(key) < len(branch.PartialKey) && bytes.Equal(branch.PartialKey[:commonPrefixLength], key) {
 		// The key to search is a prefix of the node key and is smaller than the node key.
 		// Example: key to search: 0xabcd
 		//          branch key:    0xabcdef
@@ -379,20 +300,25 @@ func (t *Trie) writeDirtyNode(db chaindb.Batch, n *Node) (err error) {
 	return nil
 }
 
-// GetInsertedNodeHashes returns a set of hashes with all
-// the hashes of all nodes that were inserted in the state trie
-// since the last snapshot.
-// We need to compute the hash values of each newly inserted node.
-func (t *Trie) GetInsertedNodeHashes() (hashesSet map[common.Hash]struct{}, err error) {
-	hashesSet = make(map[common.Hash]struct{})
-	err = t.getInsertedNodeHashesAtNode(t.root, hashesSet)
+// GetChangedNodeHashes returns the two sets of hashes for all nodes
+// inserted and deleted in the state trie since the last snapshot.
+// Returned maps are safe for mutation.
+func (t *Trie) GetChangedNodeHashes() (inserted, deleted map[string]struct{}, err error) {
+	inserted = make(map[string]struct{})
+	err = t.getInsertedNodeHashesAtNode(t.root, inserted)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return hashesSet, nil
+
+	deleted = make(map[string]struct{}, len(t.deletedMerkleValues))
+	for k := range t.deletedMerkleValues {
+		deleted[k] = struct{}{}
+	}
+
+	return inserted, deleted, nil
 }
 
-func (t *Trie) getInsertedNodeHashesAtNode(n *Node, hashes map[common.Hash]struct{}) (err error) {
+func (t *Trie) getInsertedNodeHashesAtNode(n *Node, merkleValues map[string]struct{}) (err error) {
 	if n == nil || !n.Dirty {
 		return nil
 	}
@@ -409,7 +335,7 @@ func (t *Trie) getInsertedNodeHashesAtNode(n *Node, hashes map[common.Hash]struc
 			n.MerkleValue, err)
 	}
 
-	hashes[common.BytesToHash(merkleValue)] = struct{}{}
+	merkleValues[string(merkleValue)] = struct{}{}
 
 	if n.Kind() != node.Branch {
 		return nil
@@ -420,7 +346,7 @@ func (t *Trie) getInsertedNodeHashesAtNode(n *Node, hashes map[common.Hash]struc
 			continue
 		}
 
-		err := t.getInsertedNodeHashesAtNode(child, hashes)
+		err := t.getInsertedNodeHashesAtNode(child, merkleValues)
 		if err != nil {
 			// Note: do not wrap error since this is called recursively.
 			return err
@@ -428,15 +354,4 @@ func (t *Trie) getInsertedNodeHashesAtNode(n *Node, hashes map[common.Hash]struc
 	}
 
 	return nil
-}
-
-// GetDeletedNodeHashes returns a set of all the hashes of nodes that were
-// deleted from the trie since the last snapshot was made.
-// The returned set is a copy of the internal set to prevent data races.
-func (t *Trie) GetDeletedNodeHashes() (hashesSet map[common.Hash]struct{}) {
-	hashesSet = make(map[common.Hash]struct{}, len(t.deletedKeys))
-	for k := range t.deletedKeys {
-		hashesSet[k] = struct{}{}
-	}
-	return hashesSet
 }

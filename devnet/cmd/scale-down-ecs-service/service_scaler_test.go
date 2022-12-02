@@ -20,7 +20,7 @@ import (
 //go:generate mockery --srcpkg=github.com/aws/aws-sdk-go/service/ecs/ecsiface --name ECSAPI --case underscore
 
 func Test_serviceScaler_findServiceArns(t *testing.T) {
-	mockECS := mocks.ECSAPI{}
+	mockECS := mocks.NewECSAPI(t)
 	mockECS.
 		On("ListServicesWithContext", mock.Anything, &ecs.ListServicesInput{
 			Cluster: aws.String("someCluster"),
@@ -66,7 +66,7 @@ func Test_serviceScaler_findServiceArns(t *testing.T) {
 			name: "with next token",
 			fields: fields{
 				cluster: "someCluster",
-				ecs:     &mockECS,
+				ecs:     mockECS,
 			},
 			args: args{
 				ctx:          context.Background(),
@@ -83,7 +83,7 @@ func Test_serviceScaler_findServiceArns(t *testing.T) {
 			name: "ListServicesWithContext err",
 			fields: fields{
 				cluster: "someErrCluster",
-				ecs:     &mockECS,
+				ecs:     mockECS,
 			},
 			args: args{
 				ctx:          context.Background(),
@@ -95,7 +95,7 @@ func Test_serviceScaler_findServiceArns(t *testing.T) {
 			name: "no services err",
 			fields: fields{
 				cluster: "someEmptyCluster",
-				ecs:     &mockECS,
+				ecs:     mockECS,
 			},
 			args: args{
 				ctx:          context.Background(),
@@ -106,7 +106,7 @@ func Test_serviceScaler_findServiceArns(t *testing.T) {
 		{
 			name: "regex err",
 			fields: fields{
-				ecs: &mockECS,
+				ecs: mockECS,
 			},
 			args: args{
 				ctx:          context.Background(),
@@ -135,7 +135,7 @@ func Test_serviceScaler_findServiceArns(t *testing.T) {
 }
 
 func Test_serviceScaler_drainServices(t *testing.T) {
-	mockECS := mocks.ECSAPI{}
+	mockECS := mocks.NewECSAPI(t)
 	mockECS.
 		On("UpdateServiceWithContext", mock.Anything, &ecs.UpdateServiceInput{
 			Cluster:      aws.String("someCluster"),
@@ -172,7 +172,7 @@ func Test_serviceScaler_drainServices(t *testing.T) {
 			name: "happy path",
 			fields: fields{
 				cluster: "someCluster",
-				ecs:     &mockECS,
+				ecs:     mockECS,
 			},
 			args: args{
 				ctx: context.Background(),
@@ -186,7 +186,7 @@ func Test_serviceScaler_drainServices(t *testing.T) {
 			name: "UpdateServiceWithContext err",
 			fields: fields{
 				cluster: "someErrCluster",
-				ecs:     &mockECS,
+				ecs:     mockECS,
 			},
 			args: args{
 				ctx: context.Background(),
@@ -213,7 +213,7 @@ func Test_serviceScaler_drainServices(t *testing.T) {
 }
 
 func Test_serviceScaler_waitForRunningCount(t *testing.T) {
-	mockECS := mocks.ECSAPI{}
+	mockECS := mocks.NewECSAPI(t)
 	mockECS.
 		On("DescribeServicesWithContext", mock.Anything, &ecs.DescribeServicesInput{
 			Cluster: aws.String("someCluster"),
@@ -241,7 +241,7 @@ func Test_serviceScaler_waitForRunningCount(t *testing.T) {
 		}).Return(nil, fmt.Errorf("someError")).Once()
 
 	ctx, cancel := context.WithCancel(context.Background())
-	mockECSCancel := mocks.ECSAPI{}
+	mockECSCancel := mocks.NewECSAPI(t)
 	mockECSCancel.
 		On("DescribeServicesWithContext", mock.Anything, &ecs.DescribeServicesInput{
 			Cluster: aws.String("someCluster"),
@@ -288,7 +288,7 @@ func Test_serviceScaler_waitForRunningCount(t *testing.T) {
 			fields: fields{
 				tickerDuration: time.Nanosecond,
 				cluster:        "someCluster",
-				ecs:            &mockECS,
+				ecs:            mockECS,
 			},
 			args: args{
 				ctx: context.Background(),
@@ -303,7 +303,7 @@ func Test_serviceScaler_waitForRunningCount(t *testing.T) {
 			fields: fields{
 				tickerDuration: time.Nanosecond,
 				cluster:        "someErrorCluster",
-				ecs:            &mockECS,
+				ecs:            mockECS,
 			},
 			args: args{
 				ctx: context.Background(),
@@ -319,7 +319,7 @@ func Test_serviceScaler_waitForRunningCount(t *testing.T) {
 			fields: fields{
 				tickerDuration: 10 * time.Millisecond,
 				cluster:        "someCluster",
-				ecs:            &mockECSCancel,
+				ecs:            mockECSCancel,
 			},
 			args: args{
 				ctx: ctx,
@@ -371,7 +371,7 @@ func Test_newServiceScaler(t *testing.T) {
 }
 
 func Test_serviceScaler_scaleServices(t *testing.T) {
-	mockECS := mocks.ECSAPI{}
+	mockECS := mocks.NewECSAPI(t)
 	mockECS.
 		On("ListServicesWithContext", mock.Anything, &ecs.ListServicesInput{
 			Cluster: aws.String("someCluster"),
@@ -408,13 +408,13 @@ func Test_serviceScaler_scaleServices(t *testing.T) {
 			},
 		}}, nil).Once()
 
-	findServiceArnsErrECS := mocks.ECSAPI{}
+	findServiceArnsErrECS := mocks.NewECSAPI(t)
 	findServiceArnsErrECS.
 		On("ListServicesWithContext", mock.Anything, &ecs.ListServicesInput{
 			Cluster: aws.String("someCluster"),
 		}).Return(nil, fmt.Errorf("someError")).Once()
 
-	updateServicesErrECS := mocks.ECSAPI{}
+	updateServicesErrECS := mocks.NewECSAPI(t)
 	updateServicesErrECS.
 		On("ListServicesWithContext", mock.Anything, &ecs.ListServicesInput{
 			Cluster: aws.String("someCluster"),
@@ -449,7 +449,7 @@ func Test_serviceScaler_scaleServices(t *testing.T) {
 			fields: fields{
 				tickerDuration: 10 * time.Millisecond,
 				cluster:        "someCluster",
-				ecs:            &mockECS,
+				ecs:            mockECS,
 			},
 			args: args{
 				ctx:           context.Background(),
@@ -461,7 +461,7 @@ func Test_serviceScaler_scaleServices(t *testing.T) {
 			fields: fields{
 				tickerDuration: 10 * time.Millisecond,
 				cluster:        "someCluster",
-				ecs:            &findServiceArnsErrECS,
+				ecs:            findServiceArnsErrECS,
 			},
 			args: args{
 				ctx:           context.Background(),
@@ -474,7 +474,7 @@ func Test_serviceScaler_scaleServices(t *testing.T) {
 			fields: fields{
 				tickerDuration: 10 * time.Millisecond,
 				cluster:        "someCluster",
-				ecs:            &updateServicesErrECS,
+				ecs:            updateServicesErrECS,
 			},
 			args: args{
 				ctx:           context.Background(),

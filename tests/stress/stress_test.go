@@ -17,6 +17,7 @@ import (
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v4"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -511,7 +512,7 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 	err = ext.Sign(signature.TestKeyringPairAlice, o)
 	require.NoError(t, err)
 
-	extEnc, err := types.EncodeToHex(ext)
+	extEnc, err := codec.EncodeToHex(ext)
 	require.NoError(t, err)
 
 	// get starting header so that we can lookup blocks by number later
@@ -674,7 +675,7 @@ func Test_SubmitAndWatchExtrinsic(t *testing.T) {
 	err = ext.Sign(signature.TestKeyringPairAlice, o)
 	require.NoError(t, err)
 
-	extEnc, err := types.EncodeToHex(ext)
+	extEnc, err := codec.EncodeToHex(ext)
 	require.NoError(t, err)
 
 	conn, _, err := websocket.DefaultDialer.Dial("ws://localhost:8546", nil)
@@ -829,8 +830,9 @@ func TestStress_SecondarySlotProduction(t *testing.T) {
 				header := block.Header
 
 				preDigestItem := header.Digest.Types[0]
-
-				preDigest, ok := preDigestItem.Value().(gosstypes.PreRuntimeDigest)
+				preDigestItemValue, err := preDigestItem.Value()
+				require.NoError(t, err)
+				preDigest, ok := preDigestItemValue.(gosstypes.PreRuntimeDigest)
 				require.True(t, ok)
 
 				babePreDigest, err := gosstypes.DecodeBabePreDigest(preDigest.Data)

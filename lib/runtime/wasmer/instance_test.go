@@ -27,15 +27,6 @@ func TestConcurrentRuntimeCalls(t *testing.T) {
 	}()
 }
 
-func TestPointerSize(t *testing.T) {
-	in := int64(8) + int64(32)<<32
-	ptr, length := runtime.Int64ToPointerAndSize(in)
-	require.Equal(t, int32(8), ptr)
-	require.Equal(t, int32(32), length)
-	res := runtime.PointerAndSizeToInt64(ptr, length)
-	require.Equal(t, in, res)
-}
-
 func Test_GetRuntimeVersion(t *testing.T) {
 	polkadotRuntimeFilepath, err := runtime.GetRuntime(
 		context.Background(), runtime.POLKADOT_RUNTIME)

@@ -25,8 +25,6 @@ func Test_newHashToRuntime(t *testing.T) {
 	assert.Equal(t, expected, hti)
 }
 
-//go:generate mockgen -destination=mock_instance_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/lib/runtime Instance
-
 func Test_hashToRuntime_get(t *testing.T) {
 	t.Parallel()
 

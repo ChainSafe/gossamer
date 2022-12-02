@@ -321,7 +321,7 @@ func (in *Instance) Exec(function string, data []byte) (result []byte, err error
 		return nil, fmt.Errorf("running runtime function: %w", err)
 	}
 
-	outputPtr, outputLength := runtime.Int64ToPointerAndSize(wasmValue.ToI64())
+	outputPtr, outputLength := splitPointerSize(wasmValue.ToI64())
 	memory = in.vm.Memory.Data() // call Data() again to get larger slice
 	return memory[outputPtr : outputPtr+outputLength], nil
 }

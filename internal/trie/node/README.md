@@ -21,10 +21,10 @@ The header is then concatenated with the partial key of the node, encoded as Lit
 
 The remaining bytes appended depend on the node variant.
 
-- For leaves, the SCALE-encoded leaf value is appended.
+- For leaves, the SCALE-encoded leaf storage value is appended.
 - For branches, the following elements are concatenated in this order and appended to the previous header+partial key:
   - Children bitmap (2 bytes)
-  - SCALE-encoded node value
+  - SCALE-encoded node storage value
   - Hash(Encoding(Child[0]))
   - Hash(Encoding(Child[1]))
   - ...

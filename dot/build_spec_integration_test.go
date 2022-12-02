@@ -24,9 +24,9 @@ func TestBuildFromGenesis_Integration(t *testing.T) {
 
 	genesisFields := genesis.Fields{
 		Raw: map[string]map[string]string{},
-		Runtime: &genesis.Runtime{
-			System: &genesis.System{
-				Code: "mocktestcode",
+		Runtime: map[string]map[string]interface{}{
+			"System": {
+				"code": "mocktestcode",
 			},
 		},
 	}

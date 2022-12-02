@@ -5,7 +5,6 @@ package rpc
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"math/rand"
 	"testing"
@@ -35,38 +34,44 @@ func TestChainRPC(t *testing.T) {
 	tomlConfig := config.Default()
 	tomlConfig.Init.Genesis = genesisPath
 	tomlConfig.Core.BABELead = true
+
 	node := node.New(t, tomlConfig)
 	ctx, cancel := context.WithCancel(context.Background())
 	node.InitAndStartTest(ctx, t, cancel)
 
-	// Wait for Gossamer to produce block 2
-	errBlockNumberTooHigh := errors.New("block number is too high")
+	// Wait for Gossamer to produce block 2 or higher and finalize it
 	const retryWaitDuration = 200 * time.Millisecond
 	err := retry.UntilOK(ctx, retryWaitDuration, func() (ok bool, err error) {
-		var header modules.ChainBlockHeaderResponse
-		fetchWithTimeout(ctx, t, "chain_getHeader", "[]", &header)
-		number, err := common.HexToUint(header.Number)
+		// fetch the latest finalized header hash
+		var finalizedHead string
+		fetchWithTimeout(ctx, t, "chain_getFinalizedHead", "[]", &finalizedHead)
+		assert.Regexp(t, regex32BytesHex, finalizedHead)
+
+		var finalizedBlock modules.ChainBlockResponse
+		fetchWithTimeout(ctx, t, "chain_getBlock", fmt.Sprintf(`["`+finalizedHead+`"]`), &finalizedBlock)
+		finalizedNumber, err := common.HexToUint(finalizedBlock.Block.Header.Number)
 		if err != nil {
 			return false, fmt.Errorf("cannot convert header number to uint: %w", err)
 		}
 
-		switch number {
+		switch finalizedNumber {
 		case 0, 1:
 			return false, nil
-		case 2:
-			return true, nil
 		default:
-			return false, fmt.Errorf("%w: %d", errBlockNumberTooHigh, number)
+			return true, nil
 		}
 	})
 	require.NoError(t, err)
 
+	// fetch the latest finalized header hash
 	var finalizedHead string
 	fetchWithTimeout(ctx, t, "chain_getFinalizedHead", "[]", &finalizedHead)
 	assert.Regexp(t, regex32BytesHex, finalizedHead)
 
-	var header modules.ChainBlockHeaderResponse
-	fetchWithTimeout(ctx, t, "chain_getHeader", "[]", &header)
+	var finalizedBlock modules.ChainBlockResponse
+	fetchWithTimeout(ctx, t, "chain_getBlock", fmt.Sprintf(`["`+finalizedHead+`"]`), &finalizedBlock)
+
+	header := finalizedBlock.Block.Header
 
 	// Check and clear unpredictable fields
 	assert.Regexp(t, regex32BytesHex, header.StateRoot)
@@ -79,12 +84,9 @@ func TestChainRPC(t *testing.T) {
 	}
 	header.Digest.Logs = nil
 
-	// Assert remaining struct with predictable fields
-	expectedHeader := modules.ChainBlockHeaderResponse{
-		ParentHash: finalizedHead,
-		Number:     "0x02",
-	}
-	assert.Equal(t, expectedHeader, header)
+	blockNumber, err := common.HexToUint(header.Number)
+	require.NoError(t, err)
+	assert.GreaterOrEqual(t, blockNumber, uint(2))
 
 	var block modules.ChainBlockResponse
 	fetchWithTimeout(ctx, t, "chain_getBlock", fmt.Sprintf(`["`+header.ParentHash+`"]`), &block)
@@ -96,25 +98,26 @@ func TestChainRPC(t *testing.T) {
 	block.Block.Header.StateRoot = ""
 	assert.Regexp(t, regex32BytesHex, block.Block.Header.ExtrinsicsRoot)
 	block.Block.Header.ExtrinsicsRoot = ""
-	assert.Len(t, block.Block.Header.Digest.Logs, 3)
+	assert.NotEmpty(t, block.Block.Header.Digest.Logs)
 	for _, digestLog := range block.Block.Header.Digest.Logs {
 		assert.Regexp(t, regexBytesHex, digestLog)
 	}
 	block.Block.Header.Digest.Logs = nil
 	assert.Len(t, block.Block.Body, 1)
-	const bodyRegex = `^0x280403000b[0-9a-z]{8}8201$`
+	const bodyRegex = "^0x" +
+		"28" + // base 10
+		"04" + // not signed extrinsic of the 4th extrinsic version
+		"03" + // pallet index enum
+		"00" + // call index enum
+		// Extrinsic argument
+		"0b" + // 0b0000_1011 big int
+		"[0-9a-z]{12}$"
 	assert.Regexp(t, bodyRegex, block.Block.Body[0])
 	block.Block.Body = nil
 
-	// Assert remaining struct with predictable fields
-	expectedBlock := modules.ChainBlockResponse{
-		Block: modules.ChainBlock{
-			Header: modules.ChainBlockHeaderResponse{
-				Number: "0x01",
-			},
-		},
-	}
-	assert.Equal(t, expectedBlock, block)
+	blockNumber, err = common.HexToUint(header.Number)
+	require.NoError(t, err)
+	assert.GreaterOrEqual(t, blockNumber, uint(1))
 
 	var blockHash string
 	fetchWithTimeout(ctx, t, "chain_getBlockHash", "[]", &blockHash)
@@ -230,7 +233,13 @@ func TestChainSubscriptionRPC(t *testing.T) { //nolint:tparallel
 			assertResult32BHex(t, result, "parentHash")
 			assertResult32BHex(t, result, "stateRoot")
 			assertResult32BHex(t, result, "extrinsicsRoot")
-			assertResultDigest(t, result)
+
+			// genesis block does not contain any digest data
+			if number == uint(0) {
+				delete(result, "digest")
+			} else {
+				assertResultDigest(t, result)
+			}
 
 			remainingExpected := subscription.Params{
 				Result:         map[string]interface{}{},
@@ -242,7 +251,6 @@ func TestChainSubscriptionRPC(t *testing.T) { //nolint:tparallel
 		// Check block numbers grow by zero or one in order of responses.
 		for i, blockNumber := range blockNumbers {
 			if i == 0 {
-				assert.Equal(t, uint(1), blockNumber)
 				continue
 			}
 			assert.GreaterOrEqual(t, blockNumber, blockNumbers[i-1])

@@ -197,6 +197,21 @@ func (mr *MockBlockStateMockRecorder) GetBlockByNumber(arg0 interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockByNumber", reflect.TypeOf((*MockBlockState)(nil).GetBlockByNumber), arg0)
 }
 
+// GetBlockHashesBySlot mocks base method.
+func (m *MockBlockState) GetBlockHashesBySlot(arg0 uint64) ([]common.Hash, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetBlockHashesBySlot", arg0)
+	ret0, _ := ret[0].([]common.Hash)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetBlockHashesBySlot indicates an expected call of GetBlockHashesBySlot.
+func (mr *MockBlockStateMockRecorder) GetBlockHashesBySlot(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockHashesBySlot", reflect.TypeOf((*MockBlockState)(nil).GetBlockHashesBySlot), arg0)
+}
+
 // GetFinalisedHeader mocks base method.
 func (m *MockBlockState) GetFinalisedHeader(arg0, arg1 uint64) (*types.Header, error) {
 	m.ctrl.T.Helper()
@@ -242,7 +257,7 @@ func (mr *MockBlockStateMockRecorder) GetImportedBlockNotifierChannel() *gomock.
 }
 
 // GetRuntime mocks base method.
-func (m *MockBlockState) GetRuntime(arg0 *common.Hash) (runtime.Instance, error) {
+func (m *MockBlockState) GetRuntime(arg0 common.Hash) (runtime.Instance, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetRuntime", arg0)
 	ret0, _ := ret[0].(runtime.Instance)
@@ -488,6 +503,20 @@ func (m *MockTransactionState) Pop() *transaction.ValidTransaction {
 func (mr *MockTransactionStateMockRecorder) Pop() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Pop", reflect.TypeOf((*MockTransactionState)(nil).Pop))
+}
+
+// PopWithTimer mocks base method.
+func (m *MockTransactionState) PopWithTimer(arg0 <-chan time.Time) *transaction.ValidTransaction {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PopWithTimer", arg0)
+	ret0, _ := ret[0].(*transaction.ValidTransaction)
+	return ret0
+}
+
+// PopWithTimer indicates an expected call of PopWithTimer.
+func (mr *MockTransactionStateMockRecorder) PopWithTimer(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PopWithTimer", reflect.TypeOf((*MockTransactionState)(nil).PopWithTimer), arg0)
 }
 
 // Push mocks base method.

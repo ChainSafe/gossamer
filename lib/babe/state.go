@@ -28,13 +28,14 @@ type BlockState interface {
 	GetHeader(common.Hash) (*types.Header, error)
 	GetBlockByNumber(blockNumber uint) (*types.Block, error)
 	GetBlockByHash(common.Hash) (*types.Block, error)
+	GetBlockHashesBySlot(slot uint64) (blockHashes []common.Hash, err error)
 	GetArrivalTime(common.Hash) (time.Time, error)
 	GenesisHash() common.Hash
 	GetSlotForBlock(common.Hash) (uint64, error)
 	GetFinalisedHeader(uint64, uint64) (*types.Header, error)
 	IsDescendantOf(parent, child common.Hash) (bool, error)
 	NumberIsFinalised(blockNumber uint) (bool, error)
-	GetRuntime(*common.Hash) (runtime.Instance, error)
+	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
 	StoreRuntime(common.Hash, runtime.Instance)
 	ImportedBlockNotifierManager
 }
@@ -56,6 +57,7 @@ type TransactionState interface {
 	Push(vt *transaction.ValidTransaction) (common.Hash, error)
 	Pop() *transaction.ValidTransaction
 	Peek() *transaction.ValidTransaction
+	PopWithTimer(timerCh <-chan time.Time) (tx *transaction.ValidTransaction)
 }
 
 // EpochState is the interface for epoch methods

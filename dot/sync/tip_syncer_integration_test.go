@@ -1,5 +1,4 @@
 //go:build integration
-// +build integration
 
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
@@ -22,9 +21,8 @@ import (
 )
 
 func newTestTipSyncer(t *testing.T) *tipSyncer {
-	finHeader, err := types.NewHeader(common.NewHash([]byte{0}),
+	finHeader := types.NewHeader(common.NewHash([]byte{0}),
 		trie.EmptyHash, trie.EmptyHash, 200, types.NewDigest())
-	require.NoError(t, err)
 
 	ctrl := gomock.NewController(t)
 	bs := NewMockBlockState(ctrl)
@@ -249,8 +247,9 @@ func TestTipSyncer_handleTick_case3(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []*worker(nil), w)
 	require.False(t, s.pendingBlocks.hasBlock(header.Hash()))
-	readyBlockData := s.readyBlocks.pop(context.Background())
+	readyBlockData, err := s.readyBlocks.pop(context.Background())
 	require.Equal(t, block.ToBlockData(), readyBlockData)
+	require.NoError(t, err)
 
 	// add pending block w/ full block, but block is not ready as parent is unknown
 	ctrl := gomock.NewController(t)
@@ -301,8 +300,9 @@ func TestTipSyncer_handleTick_case3(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []*worker(nil), w)
 	require.False(t, s.pendingBlocks.hasBlock(header.Hash()))
-	_ = s.readyBlocks.pop(context.Background()) // first pop will remove parent
-	readyBlockData = s.readyBlocks.pop(context.Background())
+	_, _ = s.readyBlocks.pop(context.Background()) // first pop will remove parent
+	readyBlockData, err = s.readyBlocks.pop(context.Background())
+	require.NoError(t, err)
 	require.Equal(t, block.ToBlockData(), readyBlockData)
 }
 

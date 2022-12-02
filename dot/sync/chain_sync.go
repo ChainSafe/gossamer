@@ -21,6 +21,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 )
@@ -87,8 +88,6 @@ type workHandler interface {
 	// handleTick handles a timer tick
 	handleTick() ([]*worker, error)
 }
-
-//go:generate mockgen -destination=mock_chain_sync_test.go -package $GOPACKAGE -source chain_sync.go . ChainSync,workHandler
 
 // ChainSync contains the methods used by the high-level service into the `chainSync` module
 type ChainSync interface {
@@ -177,7 +176,7 @@ type chainSyncConfig struct {
 	slotDuration       time.Duration
 }
 
-func newChainSync(cfg *chainSyncConfig) *chainSync {
+func newChainSync(cfg chainSyncConfig) *chainSync {
 	ctx, cancel := context.WithCancel(context.Background())
 	const syncSamplesToKeep = 30
 	const logSyncPeriod = 5 * time.Second
@@ -253,7 +252,7 @@ func (cs *chainSync) setBlockAnnounce(from peer.ID, header *types.Header) error 
 	}
 
 	if has {
-		return nil
+		return blocktree.ErrBlockExists
 	}
 
 	if err = cs.pendingBlocks.addHeader(header); err != nil {
@@ -629,18 +628,18 @@ func (cs *chainSync) tryDispatchWorker(w *worker) {
 // if it fails due to any reason, it sets the worker `err` and returns
 // this function always places the worker into the `resultCh` for result handling upon return
 func (cs *chainSync) dispatchWorker(w *worker) {
+	if w.targetNumber == nil || w.startNumber == nil {
+		return
+	}
+
 	logger.Debugf("dispatching sync worker id %d, "+
 		"start number %d, target number %d, "+
 		"start hash %s, target hash %s, "+
 		"request data %d, direction %s",
 		w.id,
-		w.startNumber, w.targetNumber,
+		*w.startNumber, *w.targetNumber,
 		w.startHash, w.targetHash,
 		w.requestData, w.direction)
-
-	if w.targetNumber == nil || w.startNumber == nil {
-		return
-	}
 
 	start := time.Now()
 	defer func() {

@@ -167,15 +167,18 @@ func TestBuildFromDB(t *testing.T) {
 }
 
 func TestBuildFromGenesis(t *testing.T) {
-	genesisFields := genesis.Fields{
-		Raw: map[string]map[string]string{},
-		Runtime: &genesis.Runtime{
-			System: &genesis.System{
-				Code: "mocktestcode",
+	rawGenesis := genesis.Genesis{
+		Name: "test",
+		Genesis: genesis.Fields{
+			Raw: map[string]map[string]string{},
+			Runtime: &genesis.Runtime{
+				System: &genesis.System{
+					Code: "mocktestcode",
+				},
 			},
 		},
 	}
-	testGenesisPath := genesis.CreateTestGenesisJSONFile(t, genesisFields)
+	testGenesisPath := writeGenesisToTestJSON(t, rawGenesis)
 
 	type args struct {
 		path      string

@@ -43,10 +43,6 @@ var (
 	testPeers []common.PeerInfo
 )
 
-//go:generate mockgen -destination=mock_block_state_test.go -package modules github.com/ChainSafe/gossamer/dot/network BlockState
-//go:generate mockgen -destination=mock_syncer_test.go -package modules github.com/ChainSafe/gossamer/dot/network Syncer
-//go:generate mockgen -destination=mock_transaction_handler_test.go -package modules github.com/ChainSafe/gossamer/dot/network TransactionHandler
-
 func newNetworkService(t *testing.T) *network.Service {
 	ctrl := gomock.NewController(t)
 
@@ -96,7 +92,7 @@ func newNetworkService(t *testing.T) *network.Service {
 
 // Test RPC's System.Health() response
 func TestSystemModule_Health(t *testing.T) {
-	networkMock := new(mocks.NetworkAPI)
+	networkMock := mocks.NewNetworkAPI(t)
 	networkMock.On("Health").Return(testHealth)
 
 	sys := NewSystemModule(networkMock, nil, nil, nil, nil, nil, nil)
@@ -160,19 +156,10 @@ var testGenesisData = &genesis.Data{
 	ChainType: "Local",
 }
 
-func newMockSystemAPI() *mocks.SystemAPI {
-	sysapimock := new(mocks.SystemAPI)
-	sysapimock.On("SystemName").Return(testSystemInfo.SystemName)
-	sysapimock.On("SystemVersion").Return(testSystemInfo.SystemVersion)
-	sysapimock.On("ChainName").Return(testGenesisData.Name)
-	sysapimock.On("Properties").Return(nil)
-	sysapimock.On("ChainType").Return(testGenesisData.ChainType)
-
-	return sysapimock
-}
-
 func TestSystemModule_Chain(t *testing.T) {
-	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil, nil, nil, nil)
+	api := mocks.NewSystemAPI(t)
+	api.On("ChainName").Return(testGenesisData.Name)
+	sys := NewSystemModule(nil, api, nil, nil, nil, nil, nil)
 
 	res := new(string)
 	err := sys.Chain(nil, nil, res)
@@ -181,7 +168,8 @@ func TestSystemModule_Chain(t *testing.T) {
 }
 
 func TestSystemModule_ChainType(t *testing.T) {
-	api := newMockSystemAPI()
+	api := mocks.NewSystemAPI(t)
+	api.On("ChainType").Return(testGenesisData.ChainType)
 
 	sys := NewSystemModule(nil, api, nil, nil, nil, nil, nil)
 
@@ -190,7 +178,9 @@ func TestSystemModule_ChainType(t *testing.T) {
 	require.Equal(t, testGenesisData.ChainType, *res)
 }
 func TestSystemModule_Name(t *testing.T) {
-	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil, nil, nil, nil)
+	api := mocks.NewSystemAPI(t)
+	api.On("SystemName").Return(testSystemInfo.SystemName)
+	sys := NewSystemModule(nil, api, nil, nil, nil, nil, nil)
 
 	res := new(string)
 	err := sys.Name(nil, nil, res)
@@ -199,7 +189,10 @@ func TestSystemModule_Name(t *testing.T) {
 }
 
 func TestSystemModule_Version(t *testing.T) {
-	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil, nil, nil, nil)
+	api := mocks.NewSystemAPI(t)
+	api.On("SystemVersion").Return(testSystemInfo.SystemVersion)
+
+	sys := NewSystemModule(nil, api, nil, nil, nil, nil, nil)
 
 	res := new(string)
 	err := sys.Version(nil, nil, res)
@@ -208,7 +201,10 @@ func TestSystemModule_Version(t *testing.T) {
 }
 
 func TestSystemModule_Properties(t *testing.T) {
-	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil, nil, nil, nil)
+	api := mocks.NewSystemAPI(t)
+	api.On("Properties").Return(nil)
+
+	sys := NewSystemModule(nil, api, nil, nil, nil, nil, nil)
 
 	expected := map[string]interface{}(nil)
 
@@ -239,7 +235,7 @@ func TestSystemModule_AccountNextIndex_StoragePending(t *testing.T) {
 		Validity:  new(transaction.Validity),
 	}
 	expectedPending := U64Response(uint64(4))
-	sys.txStateAPI.AddToPool(vtx)
+	sys.txStateAPI.(*state.TransactionState).AddToPool(vtx)
 
 	err = sys.AccountNextIndex(nil, &req, res)
 	require.NoError(t, err)
@@ -276,7 +272,7 @@ func TestSystemModule_AccountNextIndex_Pending(t *testing.T) {
 		Validity:  new(transaction.Validity),
 	}
 	expectedPending := U64Response(uint64(4))
-	sys.txStateAPI.AddToPool(vtx)
+	sys.txStateAPI.(*state.TransactionState).AddToPool(vtx)
 
 	err := sys.AccountNextIndex(nil, &req, res)
 	require.NoError(t, err)
@@ -308,7 +304,7 @@ func setupSystemModule(t *testing.T) *SystemModule {
 
 	aliceAcctEncoded, err := scale.Marshal(aliceAcctInfo)
 	require.NoError(t, err)
-	ts.Set(aliceAcctStoKey, aliceAcctEncoded)
+	ts.Put(aliceAcctStoKey, aliceAcctEncoded)
 
 	err = chain.Storage.StoreTrie(ts, nil)
 	require.NoError(t, err)
@@ -343,8 +339,6 @@ func setupSystemModule(t *testing.T) *SystemModule {
 	txQueue := state.NewTransactionState(telemetryMock)
 	return NewSystemModule(net, nil, core, chain.Storage, txQueue, nil, nil)
 }
-
-//go:generate mockgen -destination=mock_network_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/core Network
 
 func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 	// setup service
@@ -398,11 +392,11 @@ func TestSyncState(t *testing.T) {
 		Number: 49,
 	}
 
-	blockapiMock := new(mocks.BlockAPI)
+	blockapiMock := mocks.NewBlockAPI(t)
 	blockapiMock.On("BestBlockHash").Return(fakeCommonHash)
 	blockapiMock.On("GetHeader", fakeCommonHash).Return(fakeHeader, nil).Once()
 
-	netapiMock := new(mocks.NetworkAPI)
+	netapiMock := mocks.NewNetworkAPI(t)
 	netapiMock.On("StartingBlock").Return(int64(10))
 
 	syncapiCtrl := gomock.NewController(t)
@@ -440,7 +434,7 @@ func TestLocalListenAddresses(t *testing.T) {
 		Multiaddrs: []multiaddr.Multiaddr{ma},
 	}
 
-	mockNetAPI := new(mocks.NetworkAPI)
+	mockNetAPI := mocks.NewNetworkAPI(t)
 	mockNetAPI.On("NetworkState").Return(mockedNetState).Once()
 
 	res := make([]string, 0)
@@ -467,7 +461,7 @@ func TestLocalPeerId(t *testing.T) {
 		PeerID: peerID,
 	}
 
-	mocknetAPI := new(mocks.NetworkAPI)
+	mocknetAPI := mocks.NewNetworkAPI(t)
 	mocknetAPI.On("NetworkState").Return(state).Once()
 
 	sysmodules := new(SystemModule)
@@ -487,7 +481,7 @@ func TestLocalPeerId(t *testing.T) {
 
 func TestAddReservedPeer(t *testing.T) {
 	t.Run("Test Add and Remove reserved peers with success", func(t *testing.T) {
-		networkMock := new(mocks.NetworkAPI)
+		networkMock := mocks.NewNetworkAPI(t)
 		networkMock.On("AddReservedPeers", mock.AnythingOfType("string")).Return(nil).Once()
 		networkMock.On("RemoveReservedPeers", mock.AnythingOfType("string")).Return(nil).Once()
 
@@ -508,7 +502,7 @@ func TestAddReservedPeer(t *testing.T) {
 	})
 
 	t.Run("Test Add and Remove reserved peers without success", func(t *testing.T) {
-		networkMock := new(mocks.NetworkAPI)
+		networkMock := mocks.NewNetworkAPI(t)
 		networkMock.On("AddReservedPeers", mock.AnythingOfType("string")).Return(errors.New("some problems")).Once()
 		networkMock.On("RemoveReservedPeers", mock.AnythingOfType("string")).Return(errors.New("other problems")).Once()
 

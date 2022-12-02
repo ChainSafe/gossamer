@@ -11,6 +11,7 @@ import (
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	ctypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
@@ -37,7 +38,7 @@ func createExtrinsic(t *testing.T, rt RuntimeInstance, genHash common.Hash, nonc
 	require.NoError(t, err)
 
 	meta := &ctypes.Metadata{}
-	err = ctypes.Decode(decoded, meta)
+	err = codec.Decode(decoded, meta)
 	require.NoError(t, err)
 
 	rv := rt.Version()
@@ -60,7 +61,7 @@ func createExtrinsic(t *testing.T, rt RuntimeInstance, genHash common.Hash, nonc
 	err = ext.Sign(signature.TestKeyringPairAlice, options)
 	require.NoError(t, err)
 
-	extEnc, err := ctypes.EncodeToHex(ext)
+	extEnc, err := codec.EncodeToHex(ext)
 	require.NoError(t, err)
 
 	extBytes := types.Extrinsic(common.MustHexToBytes(extEnc))
@@ -87,11 +88,17 @@ func TestService_HandleBlockProduced(t *testing.T) {
 	err = digest.Add(*prd)
 	require.NoError(t, err)
 
+	// Used to define the state root of new block for testing
+	parentHash := s.blockState.GenesisHash()
+	genesisBlock, err := s.blockState.GetBlockByHash(parentHash)
+	require.NoError(t, err)
+
 	newBlock := types.Block{
 		Header: types.Header{
 			Number:     1,
-			ParentHash: s.blockState.BestBlockHash(),
+			ParentHash: parentHash,
 			Digest:     digest,
+			StateRoot:  genesisBlock.Header.StateRoot,
 		},
 		Body: *types.NewBody([]types.Extrinsic{}),
 	}
@@ -150,7 +157,8 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 	genHeader, err := s.blockState.BestBlockHeader()
 	require.NoError(t, err)
 
-	rt, err := s.blockState.GetRuntime(nil)
+	bestBlockHash := s.blockState.BestBlockHash()
+	rt, err := s.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
 	ts, err := s.storageState.TrieState(nil)
@@ -172,9 +180,9 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 	require.NotEmpty(t, pending)
 	require.Equal(t, extBytes, pending[0].Extrinsic)
 
-	extBytes = []byte(`bogus extrinsic`)
-	msg = &network.TransactionMessage{Extrinsics: []types.Extrinsic{extBytes}}
+	invalidExtBytes := types.Extrinsic{byte(1)}
+	msg = &network.TransactionMessage{Extrinsics: []types.Extrinsic{invalidExtBytes}}
 	shouldPropagate, err = s.HandleTransactionMessage(peer1, msg)
-	require.NoError(t, err)
+	require.Error(t, err)
 	require.False(t, shouldPropagate)
 }

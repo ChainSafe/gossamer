@@ -70,7 +70,9 @@ func Test_newVotesTracker(t *testing.T) {
 	}
 	vt := newVotesTracker(capacity)
 
-	assert.Equal(t, expected, vt)
+	assert.Equal(t, expected.mapping, vt.mapping)
+	assert.Equal(t, expected.linkedList, vt.linkedList)
+	assert.Equal(t, expected.capacity, vt.capacity)
 }
 
 // We cannot really unit test each method independently

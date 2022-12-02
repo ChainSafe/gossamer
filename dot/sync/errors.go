@@ -5,21 +5,9 @@ package sync
 
 import (
 	"errors"
-	"fmt"
 )
 
 var (
-	errNilBlockState         = errors.New("cannot have nil BlockState")
-	errNilStorageState       = errors.New("cannot have nil StorageState")
-	errNilVerifier           = errors.New("cannot have nil Verifier")
-	errNilBlockImportHandler = errors.New("cannot have nil BlockImportHandler")
-	errNilNetwork            = errors.New("cannot have nil Network")
-	errNilFinalityGadget     = errors.New("cannot have nil FinalityGadget")
-	errNilTransactionState   = errors.New("cannot have nil TransactionState")
-
-	// ErrNilBlockData is returned when trying to process a BlockResponseMessage with nil BlockData
-	ErrNilBlockData = errors.New("got nil BlockData")
-
 	// ErrServiceStopped is returned when the service has been stopped
 	ErrServiceStopped = errors.New("service has been stopped")
 
@@ -48,8 +36,3 @@ var (
 	errStartAndEndMismatch          = errors.New("request start and end hash are not on the same chain")
 	errFailedToGetDescendant        = errors.New("failed to find descendant block")
 )
-
-// ErrNilChannel is returned if a channel is nil
-func ErrNilChannel(s string) error {
-	return fmt.Errorf("cannot have nil channel %s", s)
-}

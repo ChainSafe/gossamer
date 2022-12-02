@@ -24,26 +24,26 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 	u, err := scale.NewUint128(new(big.Int).SetBytes([]byte{1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6}))
 	require.NoError(t, err)
 
-	runtimeMock := new(mocksruntime.Instance)
-	runtimeMock2 := new(mocksruntime.Instance)
-	runtimeErrorMock := new(mocksruntime.Instance)
+	runtimeMock := mocksruntime.NewInstance(t)
+	runtimeMock2 := mocksruntime.NewInstance(t)
+	runtimeErrorMock := mocksruntime.NewInstance(t)
 
-	blockAPIMock := new(mocks.BlockAPI)
-	blockAPIMock2 := new(mocks.BlockAPI)
-	blockErrorAPIMock1 := new(mocks.BlockAPI)
-	blockErrorAPIMock2 := new(mocks.BlockAPI)
+	blockAPIMock := mocks.NewBlockAPI(t)
+	blockAPIMock2 := mocks.NewBlockAPI(t)
+	blockErrorAPIMock1 := mocks.NewBlockAPI(t)
+	blockErrorAPIMock2 := mocks.NewBlockAPI(t)
 
 	blockAPIMock.On("BestBlockHash").Return(testHash, nil)
-	blockAPIMock.On("GetRuntime", &testHash).Return(runtimeMock, nil)
+	blockAPIMock.On("GetRuntime", testHash).Return(runtimeMock, nil)
 
-	blockAPIMock2.On("GetRuntime", &testHash).Return(runtimeMock2, nil)
+	blockAPIMock2.On("GetRuntime", testHash).Return(runtimeMock2, nil)
 
-	blockErrorAPIMock1.On("GetRuntime", &testHash).Return(runtimeErrorMock, nil)
+	blockErrorAPIMock1.On("GetRuntime", testHash).Return(runtimeErrorMock, nil)
 
-	blockErrorAPIMock2.On("GetRuntime", &testHash).Return(nil, errors.New("GetRuntime error"))
+	blockErrorAPIMock2.On("GetRuntime", testHash).Return(nil, errors.New("GetRuntime error"))
 
 	runtimeMock.On("PaymentQueryInfo", common.MustHexToBytes("0x0000")).Return(nil, nil)
-	runtimeMock2.On("PaymentQueryInfo", common.MustHexToBytes("0x0000")).Return(&types.TransactionPaymentQueryInfo{
+	runtimeMock2.On("PaymentQueryInfo", common.MustHexToBytes("0x0000")).Return(&types.RuntimeDispatchInfo{
 		Weight:     uint64(21),
 		Class:      21,
 		PartialFee: u,

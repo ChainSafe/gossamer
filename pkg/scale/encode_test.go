@@ -177,6 +177,11 @@ var (
 			want: []byte{0x04},
 		},
 		{
+			name: "int(42)",
+			in:   int(42),
+			want: []byte{0xa8},
+		},
+		{
 			name: "int(16383)",
 			in:   int(16383),
 			want: []byte{0xfd, 0xff},
@@ -460,7 +465,8 @@ var (
 		"We love you! We believe in open source as wonderful form of giving.", // n = 67
 		strings.Repeat("We need a longer string to test with. "+
 			"Let's multiple this several times.", 230), // n = 72 * 230 = 16560
-		"Let's test some special ASCII characters: ~  · © ÿ", // n = 55 (UTF-8 encoding versus n = 51 with ASCII encoding)
+		"Let's test some special ASCII characters: ~ \u0080 · © ÿ",
+		// n = 55 (UTF-8 encoding versus n = 51 with ASCII encoding)
 	}
 	stringTests = tests{
 		{
@@ -820,9 +826,11 @@ var (
 			want: []byte{0x10, 0x03, 0x00, 0x00, 0x00, 0x40, 0x08, 0x0c, 0x10},
 		},
 		{
-			name: "[]int{1 << 32, 2, 3, 1 << 32}",
-			in:   []int{1 << 32, 2, 3, 1 << 32},
-			want: []byte{0x10, 0x07, 0x00, 0x00, 0x00, 0x00, 0x01, 0x08, 0x0c, 0x07, 0x00, 0x00, 0x00, 0x00, 0x01},
+			name: "[]int64{1 << 32, 2, 3, 1 << 32}",
+			in:   []int64{1 << 32, 2, 3, 1 << 32},
+			want: []byte{0x10, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00,
+				0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
+				0x00},
 		},
 		{
 			name: "[]bool{true, false, true}",
@@ -863,9 +871,11 @@ var (
 			want: []byte{0x03, 0x00, 0x00, 0x00, 0x40, 0x08, 0x0c, 0x10},
 		},
 		{
-			name: "[4]int{1 << 32, 2, 3, 1 << 32}",
-			in:   [4]int{1 << 32, 2, 3, 1 << 32},
-			want: []byte{0x07, 0x00, 0x00, 0x00, 0x00, 0x01, 0x08, 0x0c, 0x07, 0x00, 0x00, 0x00, 0x00, 0x01},
+			name: "[4]int64{1 << 32, 2, 3, 1 << 32}",
+			in:   [4]int64{1 << 32, 2, 3, 1 << 32},
+			want: []byte{0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00,
+				0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
+				0x00},
 		},
 		{
 			name: "[3]bool{true, false, true}",
@@ -1082,6 +1092,49 @@ func Test_encodeState_encodeArray(t *testing.T) {
 			if !reflect.DeepEqual(buffer.Bytes(), tt.want) {
 				t.Errorf("encodeState.encodeArray() = %v, want %v", buffer.Bytes(), tt.want)
 			}
+		})
+	}
+}
+
+func Test_encodeState_encodeMap(t *testing.T) {
+	mapTests := []struct {
+		name      string
+		in        interface{}
+		wantErr   bool
+		wantOneOf [][]byte
+	}{
+		{
+			name:      "testMap1",
+			in:        map[int8][]byte{2: []byte("some string")},
+			wantOneOf: [][]byte{{4, 2, 44, 115, 111, 109, 101, 32, 115, 116, 114, 105, 110, 103}},
+		},
+		{
+			name: "testMap2",
+			in: map[int8][]byte{
+				2:  []byte("some string"),
+				16: []byte("lorem ipsum"),
+			},
+			wantOneOf: [][]byte{
+				{8, 2, 44, 115, 111, 109, 101, 32, 115, 116, 114, 105, 110, 103, 16, 44, 108, 111, 114, 101, 109, 32,
+					105, 112, 115, 117, 109},
+				{8, 16, 44, 108, 111, 114, 101, 109, 32, 105, 112, 115, 117, 109, 2, 44, 115, 111, 109, 101, 32, 115,
+					116, 114, 105, 110, 103},
+			},
+		},
+	}
+
+	for _, tt := range mapTests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			buffer := bytes.NewBuffer(nil)
+			es := &encodeState{
+				Writer:                 buffer,
+				fieldScaleIndicesCache: cache,
+			}
+			if err := es.marshal(tt.in); (err != nil) != tt.wantErr {
+				t.Errorf("encodeState.encodeMap() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			assert.Contains(t, tt.wantOneOf, buffer.Bytes())
 		})
 	}
 }

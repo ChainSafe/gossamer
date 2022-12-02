@@ -91,7 +91,7 @@ func getHeapUsage() (heapAlloc uint64) {
 func populateTrieAtPrefix(trie *Trie,
 	prefix []byte, kv map[string][]byte) {
 	for keyString, value := range kv {
-		key := append(prefix, []byte(keyString)...)
+		key := append(prefix, []byte(keyString)...) //skipcq: CRT-D0001
 
 		trie.Put(key, value)
 	}
@@ -100,7 +100,7 @@ func populateTrieAtPrefix(trie *Trie,
 func mutateTrieLeavesAtPrefix(trie *Trie,
 	prefix []byte, originalKV map[string][]byte) {
 	for keyString, value := range originalKV {
-		key := append(prefix, []byte(keyString)...)
+		key := append(prefix, []byte(keyString)...) //skipcq: CRT-D0001
 
 		// Reverse value byte slice
 		newValue := make([]byte, len(value))
