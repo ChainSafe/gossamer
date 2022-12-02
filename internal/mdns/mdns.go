@@ -56,7 +56,7 @@ func (s *Service) Start() (err error) {
 		return nil
 	}
 
-	ips, port := getMDNSIPsAndPort(s.p2pHost)
+	ips, port := getMDNSIPsAndPort(s.p2pHost.Network())
 
 	hostID := s.p2pHost.ID()
 
