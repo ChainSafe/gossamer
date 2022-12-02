@@ -67,7 +67,6 @@ func (s *Service) Start() (err error) {
 	}
 	s.server = server
 
-	s.started = true
 	s.stop = make(chan struct{})
 	s.done = make(chan struct{})
 	ready := make(chan struct{})
@@ -76,6 +75,8 @@ func (s *Service) Start() (err error) {
 	// It takes a few milliseconds to launch a goroutine
 	// so we wait for the run goroutine to be ready.
 	<-ready
+
+	s.started = true
 
 	return nil
 }
