@@ -71,6 +71,7 @@ func trimGenesisAuthority(g *Genesis, authCount int) {
 			continue
 		}
 
+		//nolint:lll
 		authorities = reflect.Indirect(runtimeRefObjVal.Field(i)).FieldByName("Authorities").Interface().([]types.AuthorityAsAddress)
 
 		for _, authority := range authorities {
@@ -367,7 +368,7 @@ func buildRawStructInterface(m interface{}, kv *keyValue) error {
 				return err
 			}
 			kv.value = kv.value + fmt.Sprintf("%x", encVal)
-			kv.iVal = append(kv.iVal, big.NewInt(int64(v2)))
+			kv.iVal = append(kv.iVal, big.NewInt(v2))
 		case int:
 			encVal, err := scale.Marshal(uint64(v2))
 			if err != nil {
@@ -376,7 +377,7 @@ func buildRawStructInterface(m interface{}, kv *keyValue) error {
 			kv.value = kv.value + fmt.Sprintf("%x", encVal)
 			kv.iVal = append(kv.iVal, big.NewInt(int64(v2)))
 		case uint64:
-			encVal, err := scale.Marshal(uint64(v2))
+			encVal, err := scale.Marshal(v2)
 			if err != nil {
 				return err
 			}
