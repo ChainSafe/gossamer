@@ -846,9 +846,10 @@ func addRawValue(key string, value []byte, gen *Genesis) {
 }
 
 func addCodeValue(value []byte, gen *Genesis) {
-	if gen.Genesis.Runtime.System != nil {
-		gen.Genesis.Runtime.System.Code = common.BytesToHex(value)
+	if gen.Genesis.Runtime.System == nil {
+		gen.Genesis.Runtime.System = new(System)
 	}
+	gen.Genesis.Runtime.System.Code = common.BytesToHex(value)
 }
 
 func addAuthoritiesValues(k1 string, kt crypto.KeyType, value []byte, gen *Genesis) error {
