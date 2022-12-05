@@ -187,7 +187,7 @@ func Test_ext_storage_clear_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("noot")
-	inst.ctx.Storage.Set(testkey, []byte{1})
+	inst.ctx.Storage.Put(testkey, []byte{1})
 
 	enc, err := scale.Marshal(testkey)
 	require.NoError(t, err)
@@ -372,10 +372,10 @@ func Test_ext_storage_clear_prefix_version_1_hostAPI(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("static")
-	inst.ctx.Storage.Set(testkey, []byte("Inverse"))
+	inst.ctx.Storage.Put(testkey, []byte("Inverse"))
 
 	testkey2 := []byte("even-keeled")
-	inst.ctx.Storage.Set(testkey2, []byte("Future-proofed"))
+	inst.ctx.Storage.Put(testkey2, []byte("Future-proofed"))
 
 	enc, err := scale.Marshal(testkey[:3])
 	require.NoError(t, err)
@@ -395,10 +395,10 @@ func Test_ext_storage_clear_prefix_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("noot")
-	inst.ctx.Storage.Set(testkey, []byte{1})
+	inst.ctx.Storage.Put(testkey, []byte{1})
 
 	testkey2 := []byte("spaghet")
-	inst.ctx.Storage.Set(testkey2, []byte{2})
+	inst.ctx.Storage.Put(testkey2, []byte{2})
 
 	enc, err := scale.Marshal(testkey[:3])
 	require.NoError(t, err)
@@ -418,20 +418,20 @@ func Test_ext_storage_clear_prefix_version_2(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("noot")
-	inst.ctx.Storage.Set(testkey, []byte{1})
+	inst.ctx.Storage.Put(testkey, []byte{1})
 
 	testkey2 := []byte("noot1")
-	inst.ctx.Storage.Set(testkey2, []byte{1})
+	inst.ctx.Storage.Put(testkey2, []byte{1})
 
 	testkey3 := []byte("noot2")
-	inst.ctx.Storage.Set(testkey3, []byte{1})
+	inst.ctx.Storage.Put(testkey3, []byte{1})
 
 	testkey4 := []byte("noot3")
-	inst.ctx.Storage.Set(testkey4, []byte{1})
+	inst.ctx.Storage.Put(testkey4, []byte{1})
 
 	testkey5 := []byte("spaghet")
 	testValue5 := []byte{2}
-	inst.ctx.Storage.Set(testkey5, testValue5)
+	inst.ctx.Storage.Put(testkey5, testValue5)
 
 	enc, err := scale.Marshal(testkey[:3])
 	require.NoError(t, err)
@@ -492,7 +492,7 @@ func Test_ext_storage_get_version_1(t *testing.T) {
 
 	testkey := []byte("noot")
 	testvalue := []byte{1, 2}
-	inst.ctx.Storage.Set(testkey, testvalue)
+	inst.ctx.Storage.Put(testkey, testvalue)
 
 	enc, err := scale.Marshal(testkey)
 	require.NoError(t, err)
@@ -509,26 +509,51 @@ func Test_ext_storage_get_version_1(t *testing.T) {
 
 func Test_ext_storage_exists_version_1(t *testing.T) {
 	t.Parallel()
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-	testkey := []byte("noot")
-	testvalue := []byte{1, 2}
-	inst.ctx.Storage.Set(testkey, testvalue)
+	testCases := map[string]struct {
+		key    []byte
+		value  []byte // leave to nil to not insert pair
+		result byte
+	}{
+		"value does not exist": {
+			key:    []byte{1},
+			result: 0,
+		},
+		"empty value exists": {
+			key:    []byte{1},
+			value:  []byte{},
+			result: 1,
+		},
+		"value exist": {
+			key:    []byte{1},
+			value:  []byte{2},
+			result: 1,
+		},
+	}
 
-	enc, err := scale.Marshal(testkey)
-	require.NoError(t, err)
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			instance := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-	ret, err := inst.Exec("rtm_ext_storage_exists_version_1", enc)
-	require.NoError(t, err)
-	require.Equal(t, byte(1), ret[0])
+			if testCase.value != nil {
+				instance.ctx.Storage.Put(testCase.key, testCase.value)
+			}
 
-	nonexistent := []byte("none")
-	enc, err = scale.Marshal(nonexistent)
-	require.NoError(t, err)
+			encodedKey, err := scale.Marshal(testCase.key)
+			require.NoError(t, err)
 
-	ret, err = inst.Exec("rtm_ext_storage_exists_version_1", enc)
-	require.NoError(t, err)
-	require.Equal(t, byte(0), ret[0])
+			encodedResult, err := instance.Exec("rtm_ext_storage_exists_version_1", encodedKey)
+			require.NoError(t, err)
+
+			var result byte
+			err = scale.Unmarshal(encodedResult, &result)
+			require.NoError(t, err)
+
+			assert.Equal(t, testCase.result, result)
+		})
+	}
 }
 
 func Test_ext_storage_next_key_version_1(t *testing.T) {
@@ -536,10 +561,10 @@ func Test_ext_storage_next_key_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("noot")
-	inst.ctx.Storage.Set(testkey, []byte{1})
+	inst.ctx.Storage.Put(testkey, []byte{1})
 
 	nextkey := []byte("oot")
-	inst.ctx.Storage.Set(nextkey, []byte{1})
+	inst.ctx.Storage.Put(nextkey, []byte{1})
 
 	enc, err := scale.Marshal(testkey)
 	require.NoError(t, err)
@@ -560,7 +585,7 @@ func Test_ext_storage_read_version_1(t *testing.T) {
 
 	testkey := []byte("noot")
 	testvalue := []byte("washere")
-	inst.ctx.Storage.Set(testkey, testvalue)
+	inst.ctx.Storage.Put(testkey, testvalue)
 
 	testoffset := uint32(2)
 	testBufferSize := uint32(100)
@@ -589,7 +614,7 @@ func Test_ext_storage_read_version_1_again(t *testing.T) {
 
 	testkey := []byte("noot")
 	testvalue := []byte("_was_here_")
-	inst.ctx.Storage.Set(testkey, testvalue)
+	inst.ctx.Storage.Put(testkey, testvalue)
 
 	testoffset := uint32(8)
 	testBufferSize := uint32(5)
@@ -619,7 +644,7 @@ func Test_ext_storage_read_version_1_OffsetLargerThanValue(t *testing.T) {
 
 	testkey := []byte("noot")
 	testvalue := []byte("washere")
-	inst.ctx.Storage.Set(testkey, testvalue)
+	inst.ctx.Storage.Put(testkey, testvalue)
 
 	testoffset := uint32(len(testvalue))
 	testBufferSize := uint32(8)
