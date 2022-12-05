@@ -85,7 +85,8 @@ func (t *Trie) loadNode(db Database, n *Node) error {
 
 		err = t.loadNode(db, decodedNode)
 		if err != nil {
-			return fmt.Errorf("loading child at index %d with Merkle value 0x%x: %w", i, merkleValue, err)
+			// Note: this function is recursive, do not wrap the error.
+			return err
 		}
 
 		if decodedNode.Kind() == node.Branch {
