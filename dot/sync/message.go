@@ -172,7 +172,8 @@ func (s *Service) handleDescendingRequest(req *network.BlockRequestMessage) (*ne
 		return s.handleDescendingByNumber(startNumber, endNumber, req.RequestedData)
 	}
 
-	logger.Debugf("handling block request message with direction %s from start block with hash %s to end block with hash %s",
+	logger.Debugf("handling block request message with direction %s"+
+		"from start block with hash %s to end block with hash %s",
 		req.Direction, *startHash, *endHash)
 	return s.handleChainByHash(*endHash, *startHash, max, req.RequestedData, req.Direction)
 }
@@ -298,7 +299,7 @@ func (s *Service) handleChainByHash(ancestor, descendant common.Hash,
 	*network.BlockResponseMessage, error) {
 	subchain, err := s.blockState.SubChain(ancestor, descendant)
 	if err != nil {
-		return nil, fmt.Errorf("retriving subchain: %w", err)
+		return nil, fmt.Errorf("retrieving subchain: %w", err)
 	}
 
 	// If the direction is descending, prune from the start.
