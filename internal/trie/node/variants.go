@@ -36,7 +36,7 @@ var (
 		mask: 0b1111_1111,
 	}
 	compactEncodingVariant = variant{ // compact encoding 0001 0000
-		bits: 0b0001_0000,
+		bits: 0b0000_0001,
 		mask: 0b1111_1111,
 	}
 )
