@@ -18,7 +18,8 @@ import (
 func TestEncodeBlockRequestMessage(t *testing.T) {
 	t.Parallel()
 
-	expected := common.MustHexToBytes("0x08808080082220fd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1280130011220dcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b") //nolint:lll
+	expected := common.MustHexToBytes("0x0880808008280130011220dcd1346701ca8396496e52" +
+		"aa2785b1748deb6db09551b72159dcb3e08991025b")
 	genesisHash := common.MustHexToBytes("0xdcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b")
 
 	var one uint32 = 1
@@ -32,7 +33,7 @@ func TestEncodeBlockRequestMessage(t *testing.T) {
 	encMsg, err := bm.Encode()
 	require.NoError(t, err)
 
-	require.Equal(t, expected, encMsg) // Pass!
+	require.Equal(t, expected, encMsg)
 
 	res := new(BlockRequestMessage)
 	err = res.Decode(encMsg)
