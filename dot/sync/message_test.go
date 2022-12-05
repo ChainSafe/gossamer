@@ -29,15 +29,17 @@ func TestService_CreateBlockResponse(t *testing.T) {
 	}{
 		"invalid block request": {
 			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
-				return nil
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().BestBlockNumber().Return(uint(1), nil)
+				return mockBlockState
 			},
 			args: args{req: &network.BlockRequestMessage{}},
 			err:  ErrInvalidBlockRequest,
 		},
-		"ascending request nil startHash nil endHash": {
+		"ascending request nil startHash": {
 			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 				mockBlockState := NewMockBlockState(ctrl)
-				mockBlockState.EXPECT().BestBlockNumber().Return(uint(1), nil).Times(2)
+				mockBlockState.EXPECT().BestBlockNumber().Return(uint(1), nil)
 				mockBlockState.EXPECT().GetHashByNumber(uint(1)).Return(common.Hash{1, 2}, nil)
 				return mockBlockState
 			},
@@ -63,32 +65,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 			err:  errRequestStartTooHigh,
 			want: nil,
 		},
-		"ascending request endHash not nil": {
-			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
-				mockBlockState := NewMockBlockState(ctrl)
-				mockBlockState.EXPECT().BestBlockNumber().Return(uint(1), nil)
-				mockBlockState.EXPECT().GetHashByNumber(uint(1)).Return(common.Hash{1, 2}, nil)
-				mockBlockState.EXPECT().IsDescendantOf(common.Hash{1, 2}, common.Hash{1, 2, 3}).Return(true,
-					nil).Times(2)
-				mockBlockState.EXPECT().GetHeader(common.Hash{1, 2}).Return(&types.Header{
-					Number: 1,
-				}, nil)
-				mockBlockState.EXPECT().GetHeader(common.Hash{1, 2, 3}).Return(&types.Header{
-					Number: 2,
-				}, nil)
-				mockBlockState.EXPECT().SubChain(common.Hash{1, 2}, common.Hash{1, 2, 3}).Return([]common.Hash{{1, 2}},
-					nil)
-				return mockBlockState
-			},
-			args: args{req: &network.BlockRequestMessage{
-				StartingBlock: *variadic.MustNewUint32OrHash(0),
-				Direction:     network.Ascending,
-			}},
-			want: &network.BlockResponseMessage{BlockData: []*types.BlockData{{
-				Hash: common.Hash{1, 2},
-			}}},
-		},
-		"descending request nil startHash nil endHash": {
+		"descending request nil startHash": {
 			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().BestBlockNumber().Return(uint(1), nil)
@@ -116,27 +93,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				Hash: common.Hash{1, 2},
 			}}},
 		},
-		"descending request endHash not nil": {
-			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
-				mockBlockState := NewMockBlockState(ctrl)
-				mockBlockState.EXPECT().BestBlockNumber().Return(uint(1), nil)
-				mockBlockState.EXPECT().GetHashByNumber(uint(0)).Return(common.Hash{1, 2}, nil)
-				mockBlockState.EXPECT().IsDescendantOf(common.Hash{1, 2, 3}, common.Hash{1, 2}).Return(true,
-					nil)
-				mockBlockState.EXPECT().SubChain(common.Hash{1, 2, 3}, common.Hash{1, 2}).Return([]common.Hash{{1,
-					2}},
-					nil)
-				return mockBlockState
-			},
-			args: args{req: &network.BlockRequestMessage{
-				StartingBlock: *variadic.MustNewUint32OrHash(0),
-				Direction:     network.Descending,
-			}},
-			want: &network.BlockResponseMessage{BlockData: []*types.BlockData{{
-				Hash: common.Hash{1, 2},
-			}}},
-		},
-		"ascending request startHash nil endHash": {
+		"ascending request startHash": {
 			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().GetHeader(common.Hash{}).Return(&types.Header{
@@ -159,7 +116,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				Hash: common.Hash{1, 2},
 			}}},
 		},
-		"descending request startHash nil endHash": {
+		"descending request startHash": {
 			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().GetHeader(common.Hash{}).Return(&types.Header{
@@ -185,9 +142,10 @@ func TestService_CreateBlockResponse(t *testing.T) {
 			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 				return nil
 			},
-			args: args{req: &network.BlockRequestMessage{
-				Direction: network.SyncDirection(3),
-			}},
+			args: args{
+				req: &network.BlockRequestMessage{
+					Direction: network.SyncDirection(3),
+				}},
 			err: errInvalidRequestDirection,
 		},
 	}

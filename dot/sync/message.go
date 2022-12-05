@@ -30,25 +30,25 @@ func (s *Service) CreateBlockResponse(req *network.BlockRequestMessage) (*networ
 
 func (s *Service) handleAscendingRequest(req *network.BlockRequestMessage) (*network.BlockResponseMessage, error) {
 	var (
-		startHash                   *common.Hash
-		startNumber, endNumber, max uint
+		max         uint = maxResponseSize
+		startHash   *common.Hash
+		startNumber uint
 	)
-	max = maxResponseSize
 
 	// determine maximum response size
 	if req.Max != nil && *req.Max < maxResponseSize {
 		max = uint(*req.Max)
 	}
 
+	bestBlockNumber, err := s.blockState.BestBlockNumber()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get best block %d for request: %w", bestBlockNumber, err)
+	}
+
 	switch startBlock := req.StartingBlock.Value().(type) {
 	case uint32:
 		if startBlock == 0 {
 			startBlock = 1
-		}
-
-		bestBlockNumber, err := s.blockState.BestBlockNumber()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get best block %d for request: %w", bestBlockNumber, err)
 		}
 
 		// if request start is higher than our best block, return error
@@ -71,12 +71,7 @@ func (s *Service) handleAscendingRequest(req *network.BlockRequestMessage) (*net
 		return nil, ErrInvalidBlockRequest
 	}
 
-	endNumber = startNumber + max - 1
-	bestBlockNumber, err := s.blockState.BestBlockNumber()
-	if err != nil {
-		return nil, fmt.Errorf("getting best block number for request: %w", err)
-	}
-
+	endNumber := startNumber + max - 1
 	if endNumber > bestBlockNumber {
 		endNumber = bestBlockNumber
 	}
