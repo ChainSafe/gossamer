@@ -307,17 +307,17 @@ type CatchUpResponse struct {
 func (s *Service) newCatchUpResponse(round, setID uint64) (*CatchUpResponse, error) {
 	header, err := s.blockState.GetFinalisedHeader(round, setID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("getting finalised header: %w", err)
 	}
 
 	pvs, err := s.grandpaState.GetPrevotes(round, setID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("getting prevotes: %w", err)
 	}
 
 	pcs, err := s.grandpaState.GetPrecommits(round, setID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("getting precommits: %w", err)
 	}
 
 	return &CatchUpResponse{

@@ -211,7 +211,7 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 
 	NeighbourPacketV1 := &NeighbourPacketV1{
 		Round:  2,
-		SetID:  3,
+		SetID:  0,
 		Number: 1,
 	}
 
@@ -401,7 +401,7 @@ func TestMessageHandler_CatchUpRequest_InvalidRound(t *testing.T) {
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
 	err = h.handleMessage("", req)
-	require.Equal(t, ErrInvalidCatchUpRound, err)
+	require.ErrorIs(t, err, ErrInvalidCatchUpRound)
 }
 
 func TestMessageHandler_CatchUpRequest_InvalidSetID(t *testing.T) {
@@ -450,8 +450,11 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 	err = st.Block.AddBlock(block)
 	require.NoError(t, err)
 
-	err = gs.blockState.SetFinalisedHash(testGenesisHeader.Hash(), round, setID)
-	require.NoError(t, err)
+	for _, v := range []uint64{round, round + 1} {
+		err = gs.blockState.SetFinalisedHash(testGenesisHeader.Hash(), v, setID)
+		require.NoError(t, err)
+	}
+
 	err = gs.blockState.(*state.BlockState).SetHeader(&block.Header)
 	require.NoError(t, err)
 
@@ -471,10 +474,12 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 		},
 	}
 
-	err = gs.grandpaState.SetPrevotes(round, setID, pvj)
-	require.NoError(t, err)
-	err = gs.grandpaState.SetPrecommits(round, setID, pcj)
-	require.NoError(t, err)
+	for _, v := range []uint64{round, round + 1} {
+		err = gs.grandpaState.SetPrevotes(v, setID, pvj)
+		require.NoError(t, err)
+		err = gs.grandpaState.SetPrecommits(v, setID, pcj)
+		require.NoError(t, err)
+	}
 
 	resp, err := gs.newCatchUpResponse(round, setID)
 	require.NoError(t, err)

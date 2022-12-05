@@ -64,9 +64,19 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) error {
 		return nil
 	case *NeighbourPacketV1:
 		// we can afford to not retry handling neighbour message, if it errors.
-		return h.handleNeighbourMessage(msg, from)
+		err := h.handleNeighbourMessage(msg, from)
+		if err != nil {
+			return fmt.Errorf("handling neighbour message: %w", err)
+		}
+
+		return nil
 	case *CatchUpRequest:
-		return h.handleCatchUpRequest(msg, from)
+		err := h.handleCatchUpRequest(msg, from)
+		if err != nil {
+			return fmt.Errorf("handling catch up request message: %w", err)
+		}
+
+		return nil
 	case *CatchUpResponse:
 		err := h.catchUp.handleCatchUpResponse(msg)
 		if errors.Is(err, blocktree.ErrNodeNotFound) || errors.Is(err, chaindb.ErrKeyNotFound) {
@@ -79,7 +89,7 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) error {
 			logger.Debugf("could not catchup: %s", err)
 		}
 
-		return err
+		return nil
 	default:
 		return ErrInvalidMessageType
 	}
@@ -140,6 +150,7 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourPacketV1, from pee
 	}
 
 	if msg.SetID != setID {
+		fmt.Println("here")
 		return fmt.Errorf("%w: received %d and expected %d", ErrSetIDMismatch, msg.SetID, setID)
 	}
 
@@ -175,17 +186,17 @@ func (h *MessageHandler) handleCatchUpRequest(msg *CatchUpRequest, from peer.ID)
 	// with our latest round.
 	resp, err := h.grandpa.newCatchUpResponse(h.grandpa.state.round, h.grandpa.state.setID)
 	if err != nil {
-		return err
+		return fmt.Errorf("creating catch up response: %w", err)
 	}
 
 	cm, err := resp.ToConsensusMessage()
 	if err != nil {
-		return err
+		return fmt.Errorf("converting to consensus message: %w", err)
 	}
 
 	err = h.grandpa.network.SendMessage(from, cm)
 	if err != nil {
-		return err
+		return fmt.Errorf("sending message: %w", err)
 	}
 
 	logger.Debugf(
