@@ -13,13 +13,11 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
-
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	gomock "github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/require"
-
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/stretchr/testify/require"
 )
 
 const (
