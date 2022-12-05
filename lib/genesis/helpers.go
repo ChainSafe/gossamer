@@ -402,6 +402,8 @@ func buildRawArrayInterface(a []interface{}, kv *keyValue) error {
 				if err := buildRawStructInterface(v2, kv); err != nil {
 					return err
 				}
+			default:
+				return fmt.Errorf("invalid value type %T", v2)
 			}
 		}
 	}
