@@ -295,7 +295,7 @@ func Test_Trie_PutChild_Store_Load(t *testing.T) {
 	}
 
 	for _, keyToChildTrie := range keysToChildTries {
-		err := trie.PutChild(keyToChildTrie, childTrie)
+		err := trie.SetChild(keyToChildTrie, childTrie)
 		require.NoError(t, err)
 
 		err = trie.WriteDirty(db)

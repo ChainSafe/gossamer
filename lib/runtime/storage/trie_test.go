@@ -27,7 +27,7 @@ var testCases = []string{
 func TestTrieState_SetGet(t *testing.T) {
 	testFunc := func(ts *TrieState) {
 		for _, tc := range testCases {
-			ts.Set([]byte(tc), []byte(tc))
+			ts.Put([]byte(tc), []byte(tc))
 		}
 
 		for _, tc := range testCases {
@@ -43,7 +43,7 @@ func TestTrieState_SetGet(t *testing.T) {
 func TestTrieState_Delete(t *testing.T) {
 	testFunc := func(ts *TrieState) {
 		for _, tc := range testCases {
-			ts.Set([]byte(tc), []byte(tc))
+			ts.Put([]byte(tc), []byte(tc))
 		}
 
 		ts.Delete([]byte(testCases[0]))
@@ -58,7 +58,7 @@ func TestTrieState_Delete(t *testing.T) {
 func TestTrieState_Root(t *testing.T) {
 	testFunc := func(ts *TrieState) {
 		for _, tc := range testCases {
-			ts.Set([]byte(tc), []byte(tc))
+			ts.Put([]byte(tc), []byte(tc))
 		}
 
 		expected := ts.MustRoot()
@@ -79,7 +79,7 @@ func TestTrieState_ClearPrefix(t *testing.T) {
 	}
 
 	for i, key := range keys {
-		ts.Set([]byte(key), []byte{byte(i)})
+		ts.Put([]byte(key), []byte{byte(i)})
 	}
 
 	ts.ClearPrefix([]byte("noo"))
@@ -131,7 +131,7 @@ func TestTrieState_NextKey(t *testing.T) {
 	ts := &TrieState{t: trie.NewEmptyTrie()}
 
 	for _, tc := range testCases {
-		ts.Set([]byte(tc), []byte(tc))
+		ts.Put([]byte(tc), []byte(tc))
 	}
 
 	sort.Slice(testCases, func(i, j int) bool {
@@ -152,12 +152,12 @@ func TestTrieState_CommitStorageTransaction(t *testing.T) {
 	ts := &TrieState{t: trie.NewEmptyTrie()}
 
 	for _, tc := range testCases {
-		ts.Set([]byte(tc), []byte(tc))
+		ts.Put([]byte(tc), []byte(tc))
 	}
 
 	ts.BeginStorageTransaction()
 	testValue := []byte("noot")
-	ts.Set([]byte(testCases[0]), testValue)
+	ts.Put([]byte(testCases[0]), testValue)
 	ts.CommitStorageTransaction()
 
 	val := ts.Get([]byte(testCases[0]))
@@ -168,12 +168,12 @@ func TestTrieState_RollbackStorageTransaction(t *testing.T) {
 	ts := &TrieState{t: trie.NewEmptyTrie()}
 
 	for _, tc := range testCases {
-		ts.Set([]byte(tc), []byte(tc))
+		ts.Put([]byte(tc), []byte(tc))
 	}
 
 	ts.BeginStorageTransaction()
 	testValue := []byte("noot")
-	ts.Set([]byte(testCases[0]), testValue)
+	ts.Put([]byte(testCases[0]), testValue)
 	ts.RollbackStorageTransaction()
 
 	val := ts.Get([]byte(testCases[0]))

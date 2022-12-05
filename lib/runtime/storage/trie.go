@@ -67,8 +67,8 @@ func (s *TrieState) RollbackStorageTransaction() {
 	s.oldTrie = nil
 }
 
-// Set sets a key-value pair in the trie
-func (s *TrieState) Set(key, value []byte) {
+// Put puts thread safely a value at the specified key in the trie.
+func (s *TrieState) Put(key, value []byte) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	s.t.Put(key, value)
@@ -142,7 +142,7 @@ func (s *TrieState) TrieEntries() map[string][]byte {
 func (s *TrieState) SetChild(keyToChild []byte, child *trie.Trie) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	return s.t.PutChild(keyToChild, child)
+	return s.t.SetChild(keyToChild, child)
 }
 
 // SetChildStorage sets a key-value pair in a child trie

@@ -543,7 +543,7 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	testRuntime, err := os.ReadFile(updateNodeRuntimeWasmPath)
 	require.NoError(t, err)
 
-	ts.Set(common.CodeKey, testRuntime)
+	ts.Put(common.CodeKey, testRuntime)
 	rtUpdateBhash := newBlockRTUpdate.Header.Hash()
 
 	// update runtime for new block
@@ -625,7 +625,7 @@ func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 	ts, err = s.storageState.TrieState(nil)
 	require.NoError(t, err)
 
-	ts.Set(common.CodeKey, testRuntime)
+	ts.Put(common.CodeKey, testRuntime)
 	rtUpdateBhash := newBlock.Header.Hash()
 
 	// update runtime for new block

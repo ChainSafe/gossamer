@@ -254,7 +254,7 @@ func TestService_checkOrGetDescendantHash(t *testing.T) {
 			},
 			args:          args{ancestor: common.Hash{2}, descendant: &common.Hash{1, 2}, descendantNumber: 1},
 			want:          common.Hash{},
-			expectedError: errors.New("invalid request, descendant number 2 is higher than ancestor 1"),
+			expectedError: errors.New("invalid request, descendant number 1 is lower than ancestor 2"),
 		},
 	}
 	for _, tt := range tests {
