@@ -579,7 +579,7 @@ func (bs *BlockState) Range(startHash, endHash common.Hash) (hashes []common.Has
 		// block that could be in memory and in the disk as well
 		return bs.retrieveRange(startHash, endHash)
 	} else if err != nil {
-		return nil, fmt.Errorf("getting range end hash: %w", err)
+		return nil, fmt.Errorf("retrieving end hash from disk: %w", err)
 	}
 
 	// end hash was found in the disk, that means all the blocks
