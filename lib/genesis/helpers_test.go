@@ -100,11 +100,11 @@ func TestNewGenesisFromJSON(t *testing.T) {
 	hrData := new(Runtime)
 	hrData.System = &System{Code: "0xfoo"} // system code entry
 	BabeAuth1 := types.AuthorityAsAddress{Address: "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", Weight: 1}
-	hrData.Babe = &Babe{Authorities: []types.AuthorityAsAddress{BabeAuth1}} // babe authority data
+	hrData.Babe = &babe{Authorities: []types.AuthorityAsAddress{BabeAuth1}} // babe authority data
 	GrandpaAuth1 := types.AuthorityAsAddress{Address: "5DFNv4Txc4b88qHqQ6GG4D646QcT4fN3jjS2G3r1PyZkfDut", Weight: 0}
-	hrData.Grandpa = &Grandpa{Authorities: []types.AuthorityAsAddress{GrandpaAuth1}} // grandpa authority data
-	balConf1 := BalancesFields{"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", 1234234234}
-	hrData.Balances = &Balances{Balances: []BalancesFields{balConf1}} // balances
+	hrData.Grandpa = &grandpa{Authorities: []types.AuthorityAsAddress{GrandpaAuth1}} // grandpa authority data
+	balConf1 := balancesFields{"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", 1234234234}
+	hrData.Balances = &balances{Balances: []balancesFields{balConf1}} // balances
 	// Add test cases for new fields...
 
 	zeroOfUint128, err := scale.NewUint128(new(big.Int).SetUint64(0))
@@ -112,7 +112,7 @@ func TestNewGenesisFromJSON(t *testing.T) {
 		t.Fatalf("Cound not create variable of type uint128 : %v", err)
 	}
 
-	hrData.Society = &Society{
+	hrData.Society = &society{
 		Pot:        zeroOfUint128,
 		MaxMembers: 999,
 		Members: []string{
@@ -120,7 +120,7 @@ func TestNewGenesisFromJSON(t *testing.T) {
 			"5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
 		}}
 
-	hrData.Staking = &Staking{
+	hrData.Staking = &staking{
 		HistoryDepth:          84,
 		ValidatorCount:        2,
 		MinimumValidatorCount: 1,
@@ -132,12 +132,12 @@ func TestNewGenesisFromJSON(t *testing.T) {
 		CanceledSlashPayout: zeroOfUint128,
 	}
 
-	hrData.Session = &Session{
-		NextKeys: []NextKeys{
+	hrData.Session = &session{
+		NextKeys: []nextKey{
 			{
 				"5GNJqTPyNqANBkUVMN1LPPrxXnFouWXoe2wNSmmEoLctxiZY",
 				"5GNJqTPyNqANBkUVMN1LPPrxXnFouWXoe2wNSmmEoLctxiZY",
-				KeyOwner{
+				keyOwner{
 					Grandpa:            "5FA9nQDVg267DEd8m1ZypXLBnvN7SFxYwV7ndqSYGiN9TTpu",
 					Babe:               "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
 					ImOnline:           "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
@@ -147,11 +147,11 @@ func TestNewGenesisFromJSON(t *testing.T) {
 		},
 	}
 
-	hrData.Instance1Collective = &Instance1Collective{
+	hrData.Instance1Collective = &instance1Collective{
 		Phantom: nil,
-		Members: []string{},
+		Members: []interface{}{},
 	}
-	hrData.Instance2Collective = &Instance2Collective{
+	hrData.Instance2Collective = &instance2Collective{
 		Phantom: nil,
 		Members: []interface{}{
 			"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
@@ -159,17 +159,16 @@ func TestNewGenesisFromJSON(t *testing.T) {
 		},
 	}
 
-	hrData.Instance1Membership = &Instance1Membership{
-		Members: []string{},
+	hrData.Instance1Membership = &instance1Membership{
 		Phantom: nil,
+		Members: []interface{}{},
 	}
 
-	// hrData["Contracts"] = make(map[string]interface{})
-	hrData.Contracts = &Contracts{
-		CurrentSchedule: CurrentSchedule{
+	hrData.Contracts = &contracts{
+		CurrentSchedule: currentSchedule{
 			Version:       0,
 			EnablePrintln: true,
-			Limits: Limits{
+			Limits: limits{
 				EventTopics: 4,
 				StackHeight: 512,
 				Globals:     256,
@@ -180,7 +179,7 @@ func TestNewGenesisFromJSON(t *testing.T) {
 				SubjectLen:  32,
 				CodeSize:    524288,
 			},
-			InstructionWeights: InstructionWeights{
+			InstructionWeights: instructionWeights{
 				I64Const:             1557,
 				I64Load:              158540,
 				I64Store:             229708,
@@ -233,7 +232,7 @@ func TestNewGenesisFromJSON(t *testing.T) {
 				I64Rotl:              2598,
 				I64Rotr:              2628,
 			},
-			HostFnWeights: HostFnWeights{
+			HostFnWeights: hostFnWeights{
 				Caller:                   2759380,
 				Address:                  2738080,
 				GasLeft:                  2691730,
@@ -299,8 +298,6 @@ func TestNewGenesisFromJSON(t *testing.T) {
 
 	// create genesis based on file just created, this will fill Raw field of genesis
 	testGenesisProcessed, err := NewGenesisFromJSON(filename, 2)
-
-	// fmt.Printf("\n!@#$********* |||  => testGenesisProcessed = %+v \n err = %+v", testGenesisProcessed, err)
 	require.NoError(t, err)
 
 	require.Equal(t, expectedGenesis.Genesis.Raw, testGenesisProcessed.Genesis.Raw)
