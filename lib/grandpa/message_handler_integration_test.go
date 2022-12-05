@@ -418,7 +418,7 @@ func TestMessageHandler_CatchUpRequest_InvalidSetID(t *testing.T) {
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
 	err = h.handleMessage("", req)
-	require.Equal(t, ErrSetIDMismatch, err)
+	require.ErrorAs(t, ErrSetIDMismatch, &err)
 }
 
 func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
