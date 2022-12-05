@@ -620,8 +620,8 @@ func getKeysWithPrefixFromBranch(parent *Node, prefix, key []byte,
 	return getKeysWithPrefix(child, childPrefix, childKey, keysLE)
 }
 
-// addAllKeys appends all keys of descendant nodes of the parent node
-// to the slice of keys given and returns this slice.
+// addAllKeys appends all keys of descendant nodes with a storage value
+// of the parent node to the slice of keys given and returns this slice.
 // It uses the prefix in nibbles format to determine the full key.
 // The slice of keys has its keys formatted in little Endian.
 func addAllKeys(parent *Node, prefix []byte, keysLE [][]byte) (newKeysLE [][]byte) {
