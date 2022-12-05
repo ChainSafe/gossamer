@@ -260,6 +260,7 @@ func (c *catchUp) verifyPreVoteJustification(msg *CatchUpResponse) (common.Hash,
 
 		err := verifyJustification(just, msg.Round, msg.SetID, prevote, c.grandpa.authorities())
 		if err != nil {
+			logger.Errorf("verifying justification: %s", err)
 			continue
 		}
 

@@ -36,7 +36,12 @@ type MessageHandler struct {
 // NewMessageHandler returns a new MessageHandler
 func NewMessageHandler(grandpa *Service, blockState BlockState, telemetryMailer telemetry.Client) *MessageHandler {
 	return &MessageHandler{
-		grandpa:    grandpa,
+		grandpa: grandpa,
+		catchUp: &catchUp{
+			requestsSent:      map[peer.ID]CatchUpRequest{},
+			catchUpResponseCh: make(chan *CatchUpResponse),
+			grandpa:           grandpa,
+		},
 		blockState: blockState,
 		telemetry:  telemetryMailer,
 	}
