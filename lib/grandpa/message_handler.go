@@ -150,7 +150,6 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourPacketV1, from pee
 	}
 
 	if msg.SetID != setID {
-		fmt.Println("here")
 		return fmt.Errorf("%w: received %d and expected %d", ErrSetIDMismatch, msg.SetID, setID)
 	}
 
