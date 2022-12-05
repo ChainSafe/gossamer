@@ -123,13 +123,12 @@ func Test_Instance_Version(t *testing.T) {
 		"kusama": {
 			instanceBuilder: func(t *testing.T) InstanceVersion {
 				genesisPath := utils.GetKusamaGenesisPath(t)
-				kusamaGenesis, err := genesis.NewGenesisFromJSONRaw(genesisPath)
-				require.NoError(t, err)
-				genesisTrie, err := genesis.NewTrieFromGenesis(kusamaGenesis)
+				kusamaGenesis := genesisFromRawJSON(t, genesisPath)
+				genesisTrie, err := NewTrieFromGenesis(kusamaGenesis)
 				require.NoError(t, err)
 
 				cfg := Config{
-					Storage: storage.NewTrieState(genesisTrie),
+					Storage: storage.NewTrieState(&genesisTrie),
 					LogLvl:  log.Critical,
 				}
 
@@ -298,14 +297,12 @@ func balanceKey(t *testing.T, pub []byte) []byte {
 
 func TestNodeRuntime_ValidateTransaction(t *testing.T) {
 	genesisPath := utils.GetGssmrV3SubstrateGenesisRawPathTest(t)
-	gen, err := genesis.NewGenesisFromJSONRaw(genesisPath)
-	require.NoError(t, err)
-
-	genTrie, err := genesis.NewTrieFromGenesis(gen)
+	gen := genesisFromRawJSON(t, genesisPath)
+	genTrie, err := NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
 	// set state to genesis state
-	genState := storage.NewTrieState(genTrie)
+	genState := storage.NewTrieState(&genTrie)
 
 	cfg := Config{
 		Storage: genState,
@@ -335,9 +332,9 @@ func TestNodeRuntime_ValidateTransaction(t *testing.T) {
 	encBal, err := scale.Marshal(accInfo)
 	require.NoError(t, err)
 
-	rt.(*Instance).ctx.Storage.Set(aliceBalanceKey, encBal)
+	rt.(*Instance).ctx.Storage.Put(aliceBalanceKey, encBal)
 	// this key is System.UpgradedToDualRefCount -> set to true since all accounts have been upgraded to v0.9 format
-	rt.(*Instance).ctx.Storage.Set(common.UpgradedToDualRefKey, []byte{1})
+	rt.(*Instance).ctx.Storage.Put(common.UpgradedToDualRefKey, []byte{1})
 
 	genesisHeader := &types.Header{
 		Number:    0,
@@ -361,7 +358,8 @@ func TestInstance_GrandpaAuthorities_NodeRuntime(t *testing.T) {
 	value, err := common.HexToBytes("0x0108eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640100000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000") //nolint:lll
 	require.NoError(t, err)
 
-	tt.Put(runtime.GrandpaAuthoritiesKey, value)
+	key := common.MustHexToBytes(genesis.GrandpaAuthoritiesKeyHex)
+	tt.Put(key, value)
 
 	rt := NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt)
 
@@ -388,7 +386,8 @@ func TestInstance_GrandpaAuthorities_PolkadotRuntime(t *testing.T) {
 	value, err := common.HexToBytes("0x0108eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640100000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000") //nolint:lll
 	require.NoError(t, err)
 
-	tt.Put(runtime.GrandpaAuthoritiesKey, value)
+	key := common.MustHexToBytes(genesis.GrandpaAuthoritiesKeyHex)
+	tt.Put(key, value)
 
 	rt := NewTestInstanceWithTrie(t, runtime.POLKADOT_RUNTIME, tt)
 
@@ -450,12 +449,14 @@ func TestInstance_BabeConfiguration_NodeRuntime_WithAuthorities(t *testing.T) {
 
 	rvalue, err := common.HexToHash("0x01")
 	require.NoError(t, err)
-	tt.Put(runtime.BABERandomnessKey(), rvalue[:])
+	key := common.MustHexToBytes(genesis.BABERandomnessKeyHex)
+	tt.Put(key, rvalue[:])
 
 	avalue, err := common.HexToBytes("0x08eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640100000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000") //nolint:lll
 	require.NoError(t, err)
 
-	tt.Put(runtime.BABEAuthoritiesKey(), avalue)
+	key = common.MustHexToBytes(genesis.BABEAuthoritiesKeyHex)
+	tt.Put(key, avalue)
 
 	rt := NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt)
 
@@ -528,14 +529,12 @@ func TestInstance_ExecuteBlock_NodeRuntime(t *testing.T) {
 func TestInstance_ExecuteBlock_GossamerRuntime(t *testing.T) {
 	t.Skip() // TODO: this fails with "syscall frame is no longer valid" (#1026)
 	genesisPath := utils.GetGssmrGenesisRawPathTest(t)
-	gen, err := genesis.NewGenesisFromJSONRaw(genesisPath)
-	require.NoError(t, err)
-
-	genTrie, err := genesis.NewTrieFromGenesis(gen)
+	gen := genesisFromRawJSON(t, genesisPath)
+	genTrie, err := NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
 	// set state to genesis state
-	genState := storage.NewTrieState(genTrie)
+	genState := storage.NewTrieState(&genTrie)
 
 	cfg := Config{
 		Storage: genState,
@@ -548,7 +547,7 @@ func TestInstance_ExecuteBlock_GossamerRuntime(t *testing.T) {
 	block := runtime.InitializeRuntimeToTest(t, instance, common.Hash{})
 
 	// reset state back to parent state before executing
-	parentState := storage.NewTrieState(genTrie)
+	parentState := storage.NewTrieState(&genTrie)
 	instance.SetContextStorage(parentState)
 
 	_, err = instance.ExecuteBlock(block)
@@ -558,14 +557,12 @@ func TestInstance_ExecuteBlock_GossamerRuntime(t *testing.T) {
 func TestInstance_ApplyExtrinsic_GossamerRuntime(t *testing.T) {
 	t.Skip() // TODO: this fails with "syscall frame is no longer valid" (#1026)
 	genesisPath := utils.GetGssmrGenesisRawPathTest(t)
-	gen, err := genesis.NewGenesisFromJSONRaw(genesisPath)
-	require.NoError(t, err)
-
-	genTrie, err := genesis.NewTrieFromGenesis(gen)
+	gen := genesisFromRawJSON(t, genesisPath)
+	genTrie, err := NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
 	// set state to genesis state
-	genState := storage.NewTrieState(genTrie)
+	genState := storage.NewTrieState(&genTrie)
 
 	cfg := Config{
 		Storage: genState,
@@ -576,12 +573,11 @@ func TestInstance_ApplyExtrinsic_GossamerRuntime(t *testing.T) {
 	require.NoError(t, err)
 
 	// reset state back to parent state before executing
-	parentState := storage.NewTrieState(genTrie)
+	parentState := storage.NewTrieState(&genTrie)
 	instance.SetContextStorage(parentState)
 
 	parentHash := common.Hash{}
-	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, 1, types.NewDigest())
-	require.NoError(t, err)
+	header := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, 1, types.NewDigest())
 	err = instance.InitializeBlock(header)
 	require.NoError(t, err)
 
@@ -615,17 +611,15 @@ func TestInstance_ExecuteBlock_PolkadotRuntime(t *testing.T) {
 
 func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 	genesisPath := utils.GetPolkadotGenesisPath(t)
-	gen, err := genesis.NewGenesisFromJSONRaw(genesisPath)
-	require.NoError(t, err)
-
-	genTrie, err := genesis.NewTrieFromGenesis(gen)
+	gen := genesisFromRawJSON(t, genesisPath)
+	genTrie, err := NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
 	expectedGenesisRoot := common.MustHexToHash("0x29d0d972cd27cbc511e9589fcb7a4506d5eb6a9e8df205f00472e5ab354a4e17")
 	require.Equal(t, expectedGenesisRoot, genTrie.MustHash())
 
 	// set state to genesis state
-	genState := storage.NewTrieState(genTrie)
+	genState := storage.NewTrieState(&genTrie)
 
 	cfg := Config{
 		Storage: genState,
@@ -667,17 +661,15 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 	genesisPath := utils.GetKusamaGenesisPath(t)
-	gen, err := genesis.NewGenesisFromJSONRaw(genesisPath)
-	require.NoError(t, err)
-
-	genTrie, err := genesis.NewTrieFromGenesis(gen)
+	gen := genesisFromRawJSON(t, genesisPath)
+	genTrie, err := NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
 	expectedGenesisRoot := common.MustHexToHash("0xb0006203c3a6e6bd2c6a17b1d4ae8ca49a31da0f4579da950b127774b44aef6b")
 	require.Equal(t, expectedGenesisRoot, genTrie.MustHash())
 
 	// set state to genesis state
-	genState := storage.NewTrieState(genTrie)
+	genState := storage.NewTrieState(&genTrie)
 
 	cfg := Config{
 		Storage: genState,
@@ -1019,12 +1011,12 @@ func TestInstance_PaymentQueryInfo(t *testing.T) {
 		extB       []byte
 		ext        string
 		errMessage string
-		expect     *types.TransactionPaymentQueryInfo
+		expect     *types.RuntimeDispatchInfo
 	}{
 		{
 			// Was made with @polkadot/api on https://github.com/danforbes/polkadot-js-scripts/tree/create-signed-tx
 			ext: "0xd1018400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01bc2b6e35929aabd5b8bc4e5b0168c9bee59e2bb9d6098769f6683ecf73e44c776652d947a270d59f3d37eb9f9c8c17ec1b4cc473f2f9928ffdeef0f3abd43e85d502000000012844616e20466f72626573", //nolint:lll
-			expect: &types.TransactionPaymentQueryInfo{
+			expect: &types.RuntimeDispatchInfo{
 				Weight: 1973000,
 				Class:  0,
 				PartialFee: &scale.Uint128{
@@ -1091,8 +1083,130 @@ func newTrieFromPairs(t *testing.T, filename string) *trie.Trie {
 		entries[pairArr[0].(string)] = pairArr[1].(string)
 	}
 
-	tr := trie.NewEmptyTrie()
-	err = tr.LoadFromMap(entries)
+	tr, err := trie.LoadFromMap(entries)
 	require.NoError(t, err)
-	return tr
+	return &tr
+}
+
+func TestInstance_TransactionPaymentCallApi_QueryCallInfo(t *testing.T) {
+	t.Parallel()
+	ins := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
+	tests := []struct {
+		callHex    string
+		errMessage string
+		expect     *types.RuntimeDispatchInfo
+	}{
+		{
+			// call generated by using palkadot.js/api v9.5.1: api.tx.system.remark("Ed")
+			// and removing first byte (encoding) and second byte (unknown)
+			callHex: "0x0001084564",
+			expect: &types.RuntimeDispatchInfo{
+				Weight: 0,
+				Class:  0,
+				PartialFee: &scale.Uint128{
+					Upper: 0,
+					Lower: uint64(1500000000),
+				},
+			},
+		},
+		{
+			// call removing encoding (first byte), polkadot.js/api v9.5.1: api.tx.system.remark("Ed")
+			// polkadot.js/api returns error:  RPC-CORE: call(method: Text, data: Bytes, at?: BlockHash):
+			// Bytes:: -32000: Client error: Execution failed: Execution aborted due to trap: wasm trap: wasm
+			//`unreachable` instruction executed
+			callHex: "0x040001084564",
+			errMessage: "running runtime function: " +
+				"Failed to call the `TransactionPaymentCallApi_query_call_info` exported function.",
+		},
+		{
+			// call without removing any bytes, polkadot.js/api v9.5.1: api.tx.system.remark("Ed test")
+			// polkadot.js/api returns error: Error: createType(Call):: findMetaCall: Unable to find Call with index
+			// [44, 4]/[44,4]
+			callHex: "0x2c0400011c45642074657374",
+			errMessage: "running runtime function: " +
+				"Failed to call the `TransactionPaymentCallApi_query_call_info` exported function.",
+		},
+	}
+
+	for _, test := range tests {
+		var err error
+		var callBytes []byte
+
+		callBytes, err = common.HexToBytes(test.callHex)
+		require.NoError(t, err)
+
+		info, err := ins.QueryCallInfo(callBytes)
+
+		if test.errMessage != "" {
+			assert.EqualError(t, err, test.errMessage)
+			continue
+		}
+
+		require.NoError(t, err)
+		require.NotNil(t, info)
+		require.Equal(t, test.expect, info)
+	}
+}
+
+func TestInstance_TransactionPaymentCallApi_QueryCallFeeDetails(t *testing.T) {
+	t.Parallel()
+	ins := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
+	tests := []struct {
+		callHex    string
+		errMessage string
+		expect     *types.FeeDetails
+	}{
+		{
+			// call generated by using palkadot.js/api v9.5.1: api.tx.system.remark("Ed")
+			// and removing first byte (encoding) and second byte (unknown)
+			callHex: "0x0001084564",
+			expect: &types.FeeDetails{
+				InclusionFee: types.InclusionFee{
+					BaseFee: &scale.Uint128{
+						Upper: 0,
+						Lower: uint64(256000000001),
+					},
+					LenFee: &scale.Uint128{
+						Upper: 0,
+						Lower: uint64(128000000000),
+					},
+					AdjustedWeightFee: &scale.Uint128{},
+				},
+				Tip: &scale.Uint128{},
+			},
+		},
+		{
+			// call removing encoding (first byte), polkadot.js/api v9.5.1: api.tx.system.remark("Ed")
+			// when calling polkadot node (v0.9.29) with polkadot.js/api the node returns error:  RPC-CORE: call(
+			// method: Text, data: Bytes, at?: BlockHash): Bytes:: -32000: Client error: Execution failed:
+			// Execution aborted due to trap: wasm trap: wasm `unreachable` instruction executed
+			callHex: "0x040001084564",
+			errMessage: "running runtime function: " +
+				"Failed to call the `TransactionPaymentCallApi_query_call_fee_details` exported function.",
+		},
+		{
+			// call without removing any bytes, polkadot.js/api v9.5.1: api.tx.system.remark("Ed test")
+			// when calling polkadot (v0.9.29) with polkadot.js/api the node returns error: Error: createType(
+			//Call):: findMetaCall: Unable to find Call with index [44, 4]/[44,4]
+			callHex: "0x18040001084564",
+			errMessage: "running runtime function: " +
+				"Failed to call the `TransactionPaymentCallApi_query_call_fee_details` exported function.",
+		},
+	}
+
+	for _, test := range tests {
+		extBytes, err := common.HexToBytes(test.callHex)
+		require.NoError(t, err)
+
+		details, err := ins.QueryCallFeeDetails(extBytes)
+
+		if test.errMessage != "" {
+			assert.EqualError(t, err, test.errMessage)
+			continue
+		}
+
+		require.NoError(t, err)
+		require.NotNil(t, details)
+		require.Equal(t, test.expect, details)
+	}
 }

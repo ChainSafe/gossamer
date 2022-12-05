@@ -4,7 +4,6 @@
 package trie
 
 import (
-	"errors"
 	"math/rand"
 	"testing"
 	"time"
@@ -12,14 +11,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/stretchr/testify/require"
 )
-
-type writeCall struct {
-	written []byte
-	n       int
-	err     error
-}
-
-var errTest = errors.New("test error")
 
 type keyValues struct {
 	key   []byte
@@ -64,7 +55,7 @@ func populateKeyValueMap(tb testing.TB, kv map[string][]byte,
 			continue
 		}
 
-		const minValueSize = 2
+		const minValueSize = 1 // not 0 otherwise it mixes empty and nil byte slices
 		value := generateRandBytesMinMax(tb, minValueSize, maxValueSize, generator)
 
 		kv[keyString] = value

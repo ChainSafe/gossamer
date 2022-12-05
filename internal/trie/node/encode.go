@@ -16,26 +16,20 @@ import (
 // of this package, and specified in the Polkadot spec at
 // https://spec.polkadot.network/#sect-state-storage
 func (n *Node) Encode(buffer Buffer) (err error) {
-	if !n.Dirty && n.Encoding != nil {
-		_, err = buffer.Write(n.Encoding)
-		if err != nil {
-			return fmt.Errorf("cannot write stored encoding to buffer: %w", err)
-		}
-		return nil
-	}
-
 	err = encodeHeader(n, buffer)
 	if err != nil {
 		return fmt.Errorf("cannot encode header: %w", err)
 	}
 
-	keyLE := codec.NibblesToKeyLE(n.Key)
+	keyLE := codec.NibblesToKeyLE(n.PartialKey)
 	_, err = buffer.Write(keyLE)
 	if err != nil {
 		return fmt.Errorf("cannot write LE key to buffer: %w", err)
 	}
 
-	if n.Kind() == Branch {
+	kind := n.Kind()
+	nodeIsBranch := kind == Branch
+	if nodeIsBranch {
 		childrenBitmap := common.Uint16ToBytes(n.ChildrenBitmap())
 		_, err = buffer.Write(childrenBitmap)
 		if err != nil {
@@ -43,33 +37,22 @@ func (n *Node) Encode(buffer Buffer) (err error) {
 		}
 	}
 
-	// check value is not nil for branch nodes, even though
-	// leaf nodes always have a non-nil value.
-	if n.SubValue != nil {
-		encodedValue, err := scale.Marshal(n.SubValue) // TODO scale encoder to write to buffer
+	// Only encode node storage value if the node has a storage value,
+	// even if it is empty. Do not encode if the branch is without value.
+	// Note leaves and branches with value cannot have a `nil` storage value.
+	if n.StorageValue != nil {
+		encoder := scale.NewEncoder(buffer)
+		err = encoder.Encode(n.StorageValue)
 		if err != nil {
-			return fmt.Errorf("cannot scale encode value: %w", err)
-		}
-
-		_, err = buffer.Write(encodedValue)
-		if err != nil {
-			return fmt.Errorf("cannot write scale encoded value to buffer: %w", err)
+			return fmt.Errorf("scale encoding storage value: %w", err)
 		}
 	}
 
-	if n.Kind() == Branch {
+	if nodeIsBranch {
 		err = encodeChildrenOpportunisticParallel(n.Children, buffer)
 		if err != nil {
 			return fmt.Errorf("cannot encode children of branch: %w", err)
 		}
-	}
-
-	if n.Kind() == Leaf {
-		// TODO cache this for branches too and update test cases.
-		// TODO remove this copying since it defeats the purpose of `buffer`
-		// and the sync.Pool.
-		n.Encoding = make([]byte, buffer.Len())
-		copy(n.Encoding, buffer.Bytes())
 	}
 
 	return nil

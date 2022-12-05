@@ -24,15 +24,13 @@ var testGenesisHeader = &types.Header{
 	Digest:    types.NewDigest(),
 }
 
-func newTestBlockState(t *testing.T, header *types.Header, tries *Tries) *BlockState {
+func newTestBlockState(t *testing.T, tries *Tries) *BlockState {
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	db := NewInMemoryDB(t)
-	if header == nil {
-		header = testGenesisHeader
-	}
+	header := testGenesisHeader
 
 	bs, err := NewBlockStateFromGenesis(db, tries, header, telemetryMock)
 	require.NoError(t, err)
@@ -48,7 +46,7 @@ func newTestBlockState(t *testing.T, header *types.Header, tries *Tries) *BlockS
 }
 
 func TestSetAndGetHeader(t *testing.T) {
-	bs := newTestBlockState(t, nil, newTriesEmpty())
+	bs := newTestBlockState(t, newTriesEmpty())
 
 	header := &types.Header{
 		Number:    0,
@@ -65,7 +63,7 @@ func TestSetAndGetHeader(t *testing.T) {
 }
 
 func TestHasHeader(t *testing.T) {
-	bs := newTestBlockState(t, nil, newTriesEmpty())
+	bs := newTestBlockState(t, newTriesEmpty())
 
 	header := &types.Header{
 		Number:    0,
@@ -82,7 +80,7 @@ func TestHasHeader(t *testing.T) {
 }
 
 func TestGetBlockByNumber(t *testing.T) {
-	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
+	bs := newTestBlockState(t, newTriesEmpty())
 
 	blockHeader := &types.Header{
 		ParentHash: testGenesisHeader.Hash(),
@@ -104,7 +102,7 @@ func TestGetBlockByNumber(t *testing.T) {
 }
 
 func TestAddBlock(t *testing.T) {
-	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
+	bs := newTestBlockState(t, newTriesEmpty())
 
 	// Create header
 	header0 := &types.Header{
@@ -167,7 +165,7 @@ func TestAddBlock(t *testing.T) {
 }
 
 func TestGetSlotForBlock(t *testing.T) {
-	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
+	bs := newTestBlockState(t, newTriesEmpty())
 	expectedSlot := uint64(77)
 
 	babeHeader := types.NewBabeDigest()
@@ -197,8 +195,64 @@ func TestGetSlotForBlock(t *testing.T) {
 	require.Equal(t, expectedSlot, res)
 }
 
+func TestGetBlockHashesBySlot(t *testing.T) {
+	t.Parallel()
+
+	// create two block in the same slot and test if GetBlockHashesBySlot gets us
+	// both the blocks
+	bs := newTestBlockState(t, newTriesEmpty())
+	slot := uint64(77)
+
+	babeHeader := types.NewBabeDigest()
+	err := babeHeader.Set(*types.NewBabePrimaryPreDigest(0, slot, [32]byte{}, [64]byte{}))
+	require.NoError(t, err)
+	data, err := scale.Marshal(babeHeader)
+	require.NoError(t, err)
+	preDigest := types.NewBABEPreRuntimeDigest(data)
+
+	digest := types.NewDigest()
+	err = digest.Add(*preDigest)
+	require.NoError(t, err)
+	block := &types.Block{
+		Header: types.Header{
+			ParentHash: testGenesisHeader.Hash(),
+			Number:     1,
+			Digest:     digest,
+		},
+		Body: types.Body{},
+	}
+
+	err = bs.AddBlock(block)
+	require.NoError(t, err)
+
+	babeHeader2 := types.NewBabeDigest()
+	err = babeHeader2.Set(*types.NewBabePrimaryPreDigest(1, slot, [32]byte{}, [64]byte{}))
+	require.NoError(t, err)
+	data2, err := scale.Marshal(babeHeader2)
+	require.NoError(t, err)
+	preDigest2 := types.NewBABEPreRuntimeDigest(data2)
+
+	digest2 := types.NewDigest()
+	err = digest2.Add(*preDigest2)
+	require.NoError(t, err)
+	block2 := &types.Block{
+		Header: types.Header{
+			ParentHash: testGenesisHeader.Hash(),
+			Number:     1,
+			Digest:     digest2,
+		},
+		Body: types.Body{},
+	}
+	err = bs.AddBlock(block2)
+	require.NoError(t, err)
+
+	blocks, err := bs.GetBlockHashesBySlot(slot)
+	require.NoError(t, err)
+	require.ElementsMatch(t, blocks, []common.Hash{block.Header.Hash(), block2.Header.Hash()})
+}
+
 func TestIsBlockOnCurrentChain(t *testing.T) {
-	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
+	bs := newTestBlockState(t, newTriesEmpty())
 	currChain, branchChains := AddBlocksToState(t, bs, 3, false)
 
 	for _, header := range currChain {
@@ -221,7 +275,7 @@ func TestIsBlockOnCurrentChain(t *testing.T) {
 }
 
 func TestAddBlock_BlockNumberToHash(t *testing.T) {
-	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
+	bs := newTestBlockState(t, newTriesEmpty())
 	currChain, branchChains := AddBlocksToState(t, bs, 8, false)
 
 	bestHash := bs.BestBlockHash()
@@ -269,7 +323,7 @@ func TestAddBlock_BlockNumberToHash(t *testing.T) {
 }
 
 func TestFinalization_DeleteBlock(t *testing.T) {
-	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
+	bs := newTestBlockState(t, newTriesEmpty())
 	AddBlocksToState(t, bs, 5, false)
 
 	btBefore := bs.bt.DeepCopy()
@@ -324,7 +378,7 @@ func TestFinalization_DeleteBlock(t *testing.T) {
 }
 
 func TestGetHashByNumber(t *testing.T) {
-	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
+	bs := newTestBlockState(t, newTriesEmpty())
 
 	res, err := bs.GetHashByNumber(0)
 	require.NoError(t, err)
@@ -351,7 +405,7 @@ func TestGetHashByNumber(t *testing.T) {
 
 func TestAddBlock_WithReOrg(t *testing.T) {
 	t.Skip() // TODO: this should be fixed after state refactor PR
-	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
+	bs := newTestBlockState(t, newTriesEmpty())
 
 	header1a := &types.Header{
 		Number:     1,
@@ -460,7 +514,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 }
 
 func TestAddBlockToBlockTree(t *testing.T) {
-	bs := newTestBlockState(t, testGenesisHeader, newTriesEmpty())
+	bs := newTestBlockState(t, newTriesEmpty())
 
 	header := &types.Header{
 		Number:     1,
@@ -482,7 +536,7 @@ func TestAddBlockToBlockTree(t *testing.T) {
 func TestNumberIsFinalised(t *testing.T) {
 	tries := newTriesEmpty()
 
-	bs := newTestBlockState(t, testGenesisHeader, tries)
+	bs := newTestBlockState(t, tries)
 	fin, err := bs.NumberIsFinalised(0)
 	require.NoError(t, err)
 	require.True(t, fin)

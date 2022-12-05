@@ -22,12 +22,9 @@ import (
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/state"
-	"github.com/ChainSafe/gossamer/dot/system"
-	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
@@ -56,70 +53,6 @@ func TestRegisterModules(t *testing.T) {
 	}
 
 	NewHTTPServer(cfg)
-}
-
-func TestNewHTTPServer(t *testing.T) {
-	coreAPI := newCoreServiceTest(t)
-	si := &types.SystemInfo{
-		SystemName: "gossamer",
-	}
-	sysAPI := system.NewService(si, nil)
-	cfg := &HTTPServerConfig{
-		Modules:   []string{"system"},
-		RPCPort:   8545,
-		RPCAPI:    NewService(),
-		CoreAPI:   coreAPI,
-		SystemAPI: sysAPI,
-	}
-
-	s := NewHTTPServer(cfg)
-	err := s.Start()
-	require.NoError(t, err)
-
-	time.Sleep(time.Second) // give server a second to start
-	defer s.Stop()
-
-	// Valid request
-	client := &http.Client{}
-	data := []byte(`{"jsonrpc":"2.0","method":"system_name","params":[],"id":1}`)
-
-	buf := &bytes.Buffer{}
-	_, err = buf.Write(data)
-	require.NoError(t, err)
-	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("http://localhost:%v/", cfg.RPCPort), buf)
-	require.NoError(t, err)
-
-	req.Header.Set("Content-Type", "application/json")
-
-	res, err := client.Do(req)
-	require.NoError(t, err)
-	defer res.Body.Close()
-
-	require.Equal(t, "200 OK", res.Status)
-
-	// nil POST
-	req, err = http.NewRequest(http.MethodPost, fmt.Sprintf("http://localhost:%v/", cfg.RPCPort), nil)
-	require.NoError(t, err)
-
-	req.Header.Set("Content-Type", "application/json;")
-
-	res, err = client.Do(req)
-	require.NoError(t, err)
-	defer res.Body.Close()
-
-	require.Equal(t, "200 OK", res.Status)
-
-	// GET
-	req, err = http.NewRequest(http.MethodGet, fmt.Sprintf("http://localhost:%v/", cfg.RPCPort), nil)
-	require.NoError(t, err)
-
-	req.Header.Set("Content-Type", "application/json;")
-
-	res, err = client.Do(req)
-	require.NoError(t, err)
-	defer res.Body.Close()
-
-	require.Equal(t, "405 Method Not Allowed", res.Status)
 }
 
 func TestUnsafeRPCProtection(t *testing.T) {
@@ -365,7 +298,7 @@ func newCoreServiceTest(t *testing.T) *core.Service {
 
 	testDatadirPath := t.TempDir()
 
-	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	gen, genesisTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
@@ -380,7 +313,7 @@ func newCoreServiceTest(t *testing.T) *core.Service {
 	stateSrvc := state.NewService(config)
 	stateSrvc.UseMemDB()
 
-	err := stateSrvc.Initialise(gen, genHeader, genTrie)
+	err := stateSrvc.Initialise(&gen, &genesisHeader, &genesisTrie)
 	require.NoError(t, err)
 
 	err = stateSrvc.SetupBase()
@@ -407,7 +340,7 @@ func newCoreServiceTest(t *testing.T) *core.Service {
 
 	var rtCfg wasmer.Config
 
-	rtCfg.Storage = rtstorage.NewTrieState(genTrie)
+	rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
 
 	rtCfg.CodeHash, err = cfg.StorageState.LoadCodeHash(nil)
 	require.NoError(t, err)

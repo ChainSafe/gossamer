@@ -48,10 +48,18 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 
 	switch msg := m.(type) {
 	case *VoteMessage:
-		h.grandpa.handleVoteMessage(from, msg)
+		err := h.grandpa.handleVoteMessage(from, msg)
+		if err != nil {
+			return nil, fmt.Errorf("handling vote message: %w", err)
+		}
 		return nil, nil
 	case *CommitMessage:
-		return nil, h.grandpa.handleCommitMessage(msg)
+		err := h.grandpa.handleCommitMessage(msg)
+		if err != nil {
+			return nil, fmt.Errorf("handling commit message: %w", err)
+		}
+
+		return nil, nil
 	case *NeighbourPacketV1:
 		// we can afford to not retry handling neighbour message, if it errors.
 		return nil, h.handleNeighbourMessage(msg)
@@ -73,6 +81,27 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 }
 
 func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourPacketV1) error {
+	if h.grandpa.authority {
+		// TODO(#2931): this is a simple hack to ensure that the neighbour messages
+		// sent by gossamer are being received by substrate nodes
+		// not intended to be production code
+		h.grandpa.roundLock.Lock()
+		neighbourMessage := &NeighbourPacketV1{
+			Round:  h.grandpa.state.round,
+			SetID:  h.grandpa.state.setID,
+			Number: uint32(h.grandpa.head.Number),
+		}
+		h.grandpa.roundLock.Unlock()
+
+		cm, err := neighbourMessage.ToConsensusMessage()
+		if err != nil {
+			return fmt.Errorf("converting neighbour message to network message: %w", err)
+		}
+
+		logger.Debugf("sending neighbour message: %v", neighbourMessage)
+		h.grandpa.network.GossipMessage(cm)
+	}
+
 	currFinalized, err := h.blockState.GetFinalisedHeader(0, 0)
 	if err != nil {
 		return err
@@ -448,12 +477,12 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 			return nil, ErrPrecommitBlockMismatch
 		}
 
-		pk, err := ed25519.NewPublicKey(just.AuthorityID[:])
+		publicKey, err := ed25519.NewPublicKey(just.AuthorityID[:])
 		if err != nil {
 			return nil, err
 		}
 
-		if !isInAuthSet(pk, auths) {
+		if !isInAuthSet(publicKey, auths) {
 			return nil, ErrAuthorityNotInSet
 		}
 
@@ -468,7 +497,7 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 			return nil, err
 		}
 
-		ok, err := pk.Verify(msg, just.Signature[:])
+		ok, err := publicKey.Verify(msg, just.Signature[:])
 		if err != nil {
 			return nil, err
 		}

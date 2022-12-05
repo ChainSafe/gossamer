@@ -4,7 +4,6 @@
 package core
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -16,31 +15,28 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-func (s *Service) validateTransaction(peerID peer.ID, head *types.Header, rt RuntimeInstance,
-	tx types.Extrinsic) (validity *transaction.Validity, valid bool, err error) {
+func (s *Service) validateTransaction(head *types.Header, rt RuntimeInstance,
+	tx types.Extrinsic) (validity *transaction.Validity, err error) {
 	s.storageState.Lock()
 
 	ts, err := s.storageState.TrieState(&head.StateRoot)
 	s.storageState.Unlock()
 	if err != nil {
-		return nil, false, fmt.Errorf("cannot get trie state from storage for root %s: %w", head.StateRoot, err)
+		return nil, fmt.Errorf("cannot get trie state from storage for root %s: %w", head.StateRoot, err)
 	}
 
 	rt.SetContextStorage(ts)
 
 	// validate each transaction
-	externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, tx...))
+	externalExt, err := s.buildExternalTransaction(rt, tx)
+	if err != nil {
+		return nil, fmt.Errorf("building external transaction: %w", err)
+	}
+
 	validity, err = rt.ValidateTransaction(externalExt)
 	if err != nil {
-		if errors.Is(err, runtime.ErrInvalidTransaction) {
-			s.net.ReportPeer(peerset.ReputationChange{
-				Value:  peerset.BadTransactionValue,
-				Reason: peerset.BadTransactionReason,
-			}, peerID)
-		}
-
 		logger.Debugf("failed to validate transaction: %s", err)
-		return nil, false, nil
+		return nil, err
 	}
 
 	vtx := transaction.NewValidTransaction(tx, validity)
@@ -49,7 +45,7 @@ func (s *Service) validateTransaction(peerID peer.ID, head *types.Header, rt Run
 	hash := s.transactionState.AddToPool(vtx)
 	logger.Tracef("added transaction with hash %s to pool", hash)
 
-	return validity, true, nil
+	return validity, nil
 }
 
 // HandleTransactionMessage validates each transaction in the message and
@@ -72,28 +68,37 @@ func (s *Service) HandleTransactionMessage(peerID peer.ID, msg *network.Transact
 		return false, err
 	}
 
-	hash := head.Hash()
-	rt, err := s.blockState.GetRuntime(&hash)
+	bestBlockHash := head.Hash()
+	rt, err := s.blockState.GetRuntime(bestBlockHash)
 	if err != nil {
 		return false, err
 	}
 
-	allTxsAreValid := true
+	allTxnsAreValid := true
 	for _, tx := range txs {
-		validity, isValidTxn, err := s.validateTransaction(peerID, head, rt, tx)
+		validity, err := s.validateTransaction(head, rt, tx)
 		if err != nil {
-			return false, fmt.Errorf("failed validating transaction for peerID %s: %w", peerID, err)
+			allTxnsAreValid = false
+			switch err.(type) {
+			case runtime.InvalidTransaction:
+				s.net.ReportPeer(peerset.ReputationChange{
+					Value:  peerset.BadTransactionValue,
+					Reason: peerset.BadTransactionReason,
+				}, peerID)
+			case runtime.UnknownTransaction:
+			default:
+				return false, fmt.Errorf("validating transaction from peerID %s: %w", peerID, err)
+			}
+			continue
 		}
 
-		if !isValidTxn {
-			allTxsAreValid = false
-		} else if validity.Propagate {
+		if validity.Propagate {
 			// find tx(s) that should propagate
 			toPropagate = append(toPropagate, tx)
 		}
 	}
 
-	if allTxsAreValid {
+	if allTxnsAreValid {
 		s.net.ReportPeer(peerset.ReputationChange{
 			Value:  peerset.GoodTransactionValue,
 			Reason: peerset.GoodTransactionReason,

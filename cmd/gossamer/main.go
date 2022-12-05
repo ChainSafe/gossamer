@@ -425,7 +425,15 @@ func pruneState(ctx *cli.Context) error {
 	}
 
 	bloomSize := ctx.GlobalUint64(BloomFilterSizeFlag.Name)
-	retainBlocks := ctx.GlobalInt64(RetainBlockNumberFlag.Name)
+
+	const uint32Max = ^uint32(0)
+	flagValue := ctx.GlobalUint64(RetainBlockNumberFlag.Name)
+
+	if uint64(uint32Max) < flagValue {
+		return fmt.Errorf("retain blocks value overflows uint32 boundaries, must be less than or equal to: %d", uint32Max)
+	}
+
+	retainBlocks := uint32(flagValue)
 
 	pruner, err := state.NewOfflinePruner(inputDBPath, prunedDBPath, bloomSize, retainBlocks)
 	if err != nil {

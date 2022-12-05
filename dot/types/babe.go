@@ -28,6 +28,7 @@ const (
 
 var (
 	ErrChainHeadMissingDigest = errors.New("chain head missing digest")
+	ErrGenesisHeader          = errors.New("genesis header doesn't have a slot")
 )
 
 // BabeConfiguration contains the genesis data for BABE
@@ -108,13 +109,21 @@ type ConfigData struct {
 
 // GetSlotFromHeader returns the BABE slot from the given header
 func GetSlotFromHeader(header *Header) (uint64, error) {
+	if header.Number == 0 {
+		return 0, ErrGenesisHeader
+	}
+
 	if len(header.Digest.Types) == 0 {
 		return 0, ErrChainHeadMissingDigest
 	}
 
-	preDigest, ok := header.Digest.Types[0].Value().(PreRuntimeDigest)
+	digestValue, err := header.Digest.Types[0].Value()
+	if err != nil {
+		return 0, fmt.Errorf("getting first digest type value: %w", err)
+	}
+	preDigest, ok := digestValue.(PreRuntimeDigest)
 	if !ok {
-		return 0, fmt.Errorf("%w: got %T", ErrNoFirstPreDigest, header.Digest.Types[0].Value())
+		return 0, fmt.Errorf("%w: got %T", ErrNoFirstPreDigest, digestValue)
 	}
 
 	digest, err := DecodeBabePreDigest(preDigest.Data)
@@ -145,9 +154,13 @@ func IsPrimary(header *Header) (bool, error) {
 		return false, ErrChainHeadMissingDigest
 	}
 
-	preDigest, ok := header.Digest.Types[0].Value().(PreRuntimeDigest)
+	digestValue, err := header.Digest.Types[0].Value()
+	if err != nil {
+		return false, fmt.Errorf("getting first digest type value: %w", err)
+	}
+	preDigest, ok := digestValue.(PreRuntimeDigest)
 	if !ok {
-		return false, fmt.Errorf("%w: got %T", ErrNoFirstPreDigest, header.Digest.Types[0].Value())
+		return false, fmt.Errorf("%w: got %T", ErrNoFirstPreDigest, digestValue)
 	}
 
 	digest, err := DecodeBabePreDigest(preDigest.Data)

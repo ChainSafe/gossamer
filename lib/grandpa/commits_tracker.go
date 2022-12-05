@@ -5,6 +5,7 @@ package grandpa
 
 import (
 	"container/list"
+	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 )
@@ -14,6 +15,7 @@ import (
 // its maximum capacity is reached.
 // It is NOT THREAD SAFE to use.
 type commitsTracker struct {
+	sync.Mutex
 	// map of commit block hash to linked list commit message.
 	mapping map[common.Hash]*list.Element
 	// double linked list of commit messages
@@ -36,6 +38,9 @@ func newCommitsTracker(capacity int) commitsTracker {
 // If the commit message tracker capacity is reached,
 // the oldest commit message is removed.
 func (ct *commitsTracker) add(commitMessage *CommitMessage) {
+	ct.Lock()
+	defer ct.Unlock()
+
 	blockHash := commitMessage.Vote.Hash
 
 	listElement, has := ct.mapping[blockHash]
@@ -75,6 +80,9 @@ func (ct *commitsTracker) cleanup() {
 // delete deletes all the vote messages for a particular
 // block hash from the vote messages tracker.
 func (ct *commitsTracker) delete(blockHash common.Hash) {
+	ct.Lock()
+	defer ct.Unlock()
+
 	listElement, has := ct.mapping[blockHash]
 	if !has {
 		return
@@ -90,6 +98,9 @@ func (ct *commitsTracker) delete(blockHash common.Hash) {
 // does not exist in the tracker
 func (ct *commitsTracker) message(blockHash common.Hash) (
 	message *CommitMessage) {
+	ct.Lock()
+	defer ct.Unlock()
+
 	listElement, ok := ct.mapping[blockHash]
 	if !ok {
 		return nil

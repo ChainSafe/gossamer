@@ -26,7 +26,7 @@ func TestTrie_StoreAndLoadFromDB(t *testing.T) {
 		tt.Put(key, value)
 	}
 
-	err := tt.Store(db)
+	err := tt.WriteDirty(db)
 	require.NoError(t, err)
 
 	encroot, err := tt.Hash()

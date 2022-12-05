@@ -175,6 +175,7 @@ func (nb nodeBuilder) createBABEService(cfg *Config, st *state.Service, ks keyst
 	cs *core.Service, telemetryMailer telemetry.Client) (babe.ServiceIFace, error) {
 	return nb.createBABEServiceWithBuilder(cfg, st, ks, cs, telemetryMailer, babe.Builder{})
 }
+
 func (nodeBuilder) createBABEServiceWithBuilder(cfg *Config, st *state.Service, ks keystore.Keystore,
 	cs *core.Service, telemetryMailer telemetry.Client, newBabeService ServiceBuilder) (babe.
 	ServiceIFace, error) {
@@ -375,7 +376,8 @@ func (nodeBuilder) createSystemService(cfg *types.SystemInfo, stateSrvc *state.S
 // createGRANDPAService creates a new GRANDPA service
 func (nodeBuilder) createGRANDPAService(cfg *Config, st *state.Service, ks keystore.Keystore,
 	net *network.Service, telemetryMailer telemetry.Client) (*grandpa.Service, error) {
-	rt, err := st.Block.GetRuntime(nil)
+	bestBlockHash := st.Block.BestBlockHash()
+	rt, err := st.Block.GetRuntime(bestBlockHash)
 	if err != nil {
 		return nil, err
 	}

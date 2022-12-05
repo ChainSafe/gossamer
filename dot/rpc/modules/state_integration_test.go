@@ -543,8 +543,8 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 	ts, err := chain.Storage.TrieState(nil)
 	require.NoError(t, err)
 
-	ts.Set([]byte(`:key2`), []byte(`value2`))
-	ts.Set([]byte(`:key1`), []byte(`value1`))
+	ts.Put([]byte(`:key2`), []byte(`value2`))
+	ts.Put([]byte(`:key1`), []byte(`value1`))
 	ts.SetChildStorage([]byte(`:child1`), []byte(`:key1`), []byte(`:childValue1`))
 
 	sr1, err := ts.Root()
@@ -571,7 +571,7 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 	err = chain.Block.AddBlock(b)
 	require.NoError(t, err)
 
-	rt, err := chain.Block.GetRuntime(&b.Header.ParentHash)
+	rt, err := chain.Block.GetRuntime(b.Header.ParentHash)
 	require.NoError(t, err)
 
 	chain.Block.StoreRuntime(b.Header.Hash(), rt)

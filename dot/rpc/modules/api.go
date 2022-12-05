@@ -50,7 +50,7 @@ type BlockAPI interface {
 	SubChain(start, end common.Hash) ([]common.Hash, error)
 	RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (uint32, error)
 	UnregisterRuntimeUpdatedChannel(id uint32) bool
-	GetRuntime(hash *common.Hash) (runtime.Instance, error)
+	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
 }
 
 //go:generate mockery --name NetworkAPI --structname NetworkAPI --case underscore --keeptree
@@ -83,9 +83,6 @@ type BlockProducerAPI interface {
 
 // TransactionStateAPI ...
 type TransactionStateAPI interface {
-	AddToPool(*transaction.ValidTransaction) common.Hash
-	Pop() *transaction.ValidTransaction
-	Peek() *transaction.ValidTransaction
 	Pending() []*transaction.ValidTransaction
 	GetStatusNotifierChannel(ext types.Extrinsic) chan transaction.Status
 	FreeStatusNotifierChannel(ch chan transaction.Status)

@@ -22,36 +22,35 @@ func Test_Trie_String(t *testing.T) {
 		"leaf root": {
 			trie: Trie{
 				root: &Node{
-					Key:        []byte{1, 2, 3},
-					SubValue:   []byte{3, 4, 5},
-					Generation: 1,
+					PartialKey:   []byte{1, 2, 3},
+					StorageValue: []byte{3, 4, 5},
+					Generation:   1,
 				},
 			},
 			s: `Leaf
 ├── Generation: 1
 ├── Dirty: false
 ├── Key: 0x010203
-├── Value: 0x030405
-├── Calculated encoding: nil
+├── Storage value: 0x030405
 └── Merkle value: nil`,
 		},
 		"branch root": {
 			trie: Trie{
 				root: &Node{
-					Key:         nil,
-					SubValue:    []byte{1, 2},
-					Descendants: 2,
+					PartialKey:   nil,
+					StorageValue: []byte{1, 2},
+					Descendants:  2,
 					Children: []*Node{
 						{
-							Key:        []byte{1, 2, 3},
-							SubValue:   []byte{3, 4, 5},
-							Generation: 2,
+							PartialKey:   []byte{1, 2, 3},
+							StorageValue: []byte{3, 4, 5},
+							Generation:   2,
 						},
 						nil, nil,
 						{
-							Key:        []byte{1, 2, 3},
-							SubValue:   []byte{3, 4, 5},
-							Generation: 3,
+							PartialKey:   []byte{1, 2, 3},
+							StorageValue: []byte{3, 4, 5},
+							Generation:   3,
 						},
 					},
 				},
@@ -60,25 +59,22 @@ func Test_Trie_String(t *testing.T) {
 ├── Generation: 0
 ├── Dirty: false
 ├── Key: nil
-├── Value: 0x0102
+├── Storage value: 0x0102
 ├── Descendants: 2
-├── Calculated encoding: nil
 ├── Merkle value: nil
 ├── Child 0
 |   └── Leaf
 |       ├── Generation: 2
 |       ├── Dirty: false
 |       ├── Key: 0x010203
-|       ├── Value: 0x030405
-|       ├── Calculated encoding: nil
+|       ├── Storage value: 0x030405
 |       └── Merkle value: nil
 └── Child 3
     └── Leaf
         ├── Generation: 3
         ├── Dirty: false
         ├── Key: 0x010203
-        ├── Value: 0x030405
-        ├── Calculated encoding: nil
+        ├── Storage value: 0x030405
         └── Merkle value: nil`,
 		},
 	}

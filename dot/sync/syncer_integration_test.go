@@ -1,5 +1,4 @@
 //go:build integration
-// +build integration
 
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
@@ -25,7 +24,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-//go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
 func newTestSyncer(t *testing.T) *Service {
 	ctrl := gomock.NewController(t)
 
@@ -46,7 +44,7 @@ func newTestSyncer(t *testing.T) *Service {
 	stateSrvc.UseMemDB()
 
 	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
-	err := stateSrvc.Initialise(gen, genHeader, genTrie)
+	err := stateSrvc.Initialise(&gen, &genHeader, &genTrie)
 	require.NoError(t, err)
 
 	err = stateSrvc.Start()
@@ -61,7 +59,7 @@ func newTestSyncer(t *testing.T) *Service {
 	}
 
 	// initialise runtime
-	genState := rtstorage.NewTrieState(genTrie)
+	genState := rtstorage.NewTrieState(&genTrie)
 
 	rtCfg := wasmer.Config{
 		Storage: genState,
@@ -84,8 +82,8 @@ func newTestSyncer(t *testing.T) *Service {
 	cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), instance)
 	blockImportHandler := NewMockBlockImportHandler(ctrl)
 	blockImportHandler.EXPECT().HandleBlockImport(gomock.AssignableToTypeOf(&types.Block{}),
-		gomock.AssignableToTypeOf(&rtstorage.TrieState{})).DoAndReturn(
-		func(block *types.Block, ts *rtstorage.TrieState) error {
+		gomock.AssignableToTypeOf(&rtstorage.TrieState{}), false).DoAndReturn(
+		func(block *types.Block, ts *rtstorage.TrieState, _ bool) error {
 			// store updates state trie nodes in database
 			if err = stateSrvc.Storage.StoreTrie(ts, &block.Header); err != nil {
 				logger.Warnf("failed to store state trie for imported block %s: %s", block.Header.Hash(), err)
@@ -122,18 +120,28 @@ func newTestSyncer(t *testing.T) *Service {
 	return syncer
 }
 
-func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie, *types.Header) {
-	fp := utils.GetGssmrV3SubstrateGenesisRawPathTest(t)
-	gen, err := genesis.NewGenesisFromJSONRaw(fp)
+func newTestGenesisWithTrieAndHeader(t *testing.T) (
+	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
+	t.Helper()
+
+	genesisPath := utils.GetGssmrV3SubstrateGenesisRawPathTest(t)
+	genesisPtr, err := genesis.NewGenesisFromJSONRaw(genesisPath)
+	require.NoError(t, err)
+	gen = *genesisPtr
+
+	genesisTrie, err = wasmer.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
-	genTrie, err := genesis.NewTrieFromGenesis(gen)
-	require.NoError(t, err)
+	parentHash := common.NewHash([]byte{0})
+	stateRoot := genesisTrie.MustHash()
+	extrinsicRoot := trie.EmptyHash
+	const number = 0
+	digest := types.NewDigest()
+	genesisHeaderPtr := types.NewHeader(parentHash,
+		stateRoot, extrinsicRoot, number, digest)
+	genesisHeader = *genesisHeaderPtr
 
-	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}),
-		genTrie.MustHash(), trie.EmptyHash, 0, types.NewDigest())
-	require.NoError(t, err)
-	return gen, genTrie, genesisHeader
+	return gen, genesisTrie, genesisHeader
 }
 
 func TestHighestBlock(t *testing.T) {

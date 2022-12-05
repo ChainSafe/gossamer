@@ -76,7 +76,6 @@ type Service struct {
 	bestFinalCandidate map[uint64]*Vote // map of round number -> best final candidate
 
 	// channels for communication with other services
-	//in             chan *networkVoteMessage // only used to receive *VoteMessage
 	finalisedCh chan *types.FinalisationInfo
 	//receivedCommit chan *CommitMessage
 
@@ -175,17 +174,11 @@ func (s *Service) Start() error {
 	s.tracker.start()
 
 	go func() {
-		for {
-			// TODO: sometimes grandpa fails to initiate due to a "Key not found"
-			// error, this shouldn't happen.
-			if err := s.initiate(); err != nil {
-				logger.Criticalf("failed to initiate: %s", err)
-			}
-			time.Sleep(s.interval)
+		err := s.initiate()
+		if err != nil {
+			panic(fmt.Sprintf("running grandpa service: %s", err))
 		}
 	}()
-
-	go s.sendNeighbourMessage(neighbourMessageInterval)
 
 	return nil
 }
@@ -305,7 +298,7 @@ func (s *Service) initiateRound() error {
 		s.state.round = round
 	}
 
-	s.head, err = s.blockState.GetFinalisedHeader(s.state.round, s.state.setID)
+	s.head, err = s.blockState.GetFinalisedHeader(round, setID)
 	if err != nil {
 		logger.Criticalf("failed to get finalised header for round %d: %s", round, err)
 		return err
@@ -337,28 +330,18 @@ func (s *Service) initiateRound() error {
 
 // initiate initates the grandpa service to begin voting in sequential rounds
 func (s *Service) initiate() error {
+	finalisationHandler := newFinalisationHandler(s)
+	errorCh, err := finalisationHandler.Start()
+	if err != nil {
+		return fmt.Errorf("starting finalisation handler: %w", err)
+	}
+
 	for {
-		err := s.initiateRound()
-		if err != nil {
-			logger.Warnf("failed to initiate round for round %d: %s", s.state.round, err)
+		select {
+		case <-s.ctx.Done():
+			return finalisationHandler.Stop()
+		case err := <-errorCh:
 			return err
-		}
-
-		err = s.playGrandpaRound()
-		if errors.Is(err, ErrServicePaused) {
-			logger.Info("service paused")
-			// wait for service to un-pause
-			<-s.resumed
-			err = s.initiate()
-		}
-
-		if err != nil {
-			logger.Warnf("failed to play grandpa round: %s", err)
-			continue
-		}
-
-		if s.ctx.Err() != nil {
-			return errors.New("context cancelled")
 		}
 	}
 }
@@ -421,193 +404,11 @@ func (s *Service) primaryBroadcastCommitMessage() {
 	s.network.GossipMessage(msg)
 }
 
-// playGrandpaRound executes a round of GRANDPA
-// at the end of this round, a block will be finalised.
-func (s *Service) playGrandpaRound() error {
-	currentRound := s.state.round
-	currentSetID := s.state.setID
-
-	start := time.Now()
-
-	logger.Debugf("starting round %d with set id %d",
-		currentRound, currentSetID)
-
-	cancel := make(chan struct{})
-	defer close(cancel)
-
-	roundActions := s.finalizationEngine(cancel)
-
-	for { //nolint:gosimple
-		select {
-		case action, ok := <-roundActions:
-			if !ok {
-				return nil
-			}
-
-			switch action {
-			case determinePrevote:
-				isPrimary, err := s.handleIsPrimary()
-				if err != nil {
-					return err
-				}
-
-				// broadcast pre-vote
-				preVote, err := s.determinePreVote()
-				if err != nil {
-					return err
-				}
-
-				signedpreVote, prevoteMessage, err :=
-					s.createSignedVoteAndVoteMessage(preVote, prevote)
-				if err != nil {
-					return err
-				}
-
-				if !isPrimary {
-					s.prevotes.Store(s.publicKeyBytes(), signedpreVote)
-				}
-
-				s.sendPrevoteMessage(prevoteMessage)
-
-			case determinePrecommit:
-				preComit, err := s.determinePreCommit()
-				if err != nil {
-					return fmt.Errorf("determining precommit: %w", err)
-				}
-
-				signedpreComit, precommitMessage, err :=
-					s.createSignedVoteAndVoteMessage(preComit, precommit)
-				if err != nil {
-					return fmt.Errorf("creating signed vote: %w", err)
-				}
-
-				s.precommits.Store(s.publicKeyBytes(), signedpreComit)
-
-				s.sendPrecommitMessage(precommitMessage)
-
-			case finalize:
-				commitMessage, err := s.newCommitMessage(s.head, s.state.round, s.state.setID)
-				if err != nil {
-					return fmt.Errorf("generating commit message: %w", err)
-				}
-
-				commitConsensusMessage, err := commitMessage.ToConsensusMessage()
-				if err != nil {
-					return fmt.Errorf("transforming commit into consensus message: %w", err)
-				}
-
-				logger.Debugf("sending CommitMessage: %v", commitMessage)
-
-				s.network.GossipMessage(commitConsensusMessage)
-				s.telemetry.SendMessage(telemetry.NewAfgFinalizedBlocksUpTo(
-					s.head.Hash(),
-					fmt.Sprint(s.head.Number),
-				))
-
-				logger.Debugf("round completed in %s", time.Since(start))
-				return nil
-			}
-		}
-	}
-}
-
-// actions that should take place accordingly to votes the
-// finalisation engine knows about
-type action byte
-
-const (
-	determinePrevote action = iota
-	determinePrecommit
-	finalize
-)
-
-func (s *Service) finalizationEngine(cancel <-chan struct{}) <-chan action {
-	performAction := make(chan action)
-
-	go func() {
-		defer close(performAction)
-
-		determinePrevoteTimer := time.NewTimer(s.interval * 2)
-		determinePrecommitTimer := time.NewTimer(s.interval * 4)
-
-		var precommited bool = false
-
-		for !precommited {
-			select {
-			case <-cancel:
-				if !determinePrevoteTimer.Stop() {
-					<-determinePrevoteTimer.C
-				}
-
-				if !determinePrecommitTimer.Stop() {
-					<-determinePrecommitTimer.C
-				}
-
-				return
-
-			case <-determinePrevoteTimer.C:
-				performAction <- determinePrevote
-
-			case <-determinePrecommitTimer.C:
-				prevoteGrandpaGhost, err := s.getPreVotedBlock()
-
-				if errors.Is(err, ErrNoGHOST) {
-					determinePrecommitTimer.Reset(s.interval * 4)
-					break
-				} else if err != nil {
-					logger.Criticalf("getting grandpa ghost: %s", err)
-					return
-				}
-
-				latestFinalizedHash := s.head.Hash()
-				isDescendant, err := s.blockState.IsDescendantOf(latestFinalizedHash, prevoteGrandpaGhost.Hash)
-				if err != nil {
-					logger.Criticalf("checking grandpa ghost ancestry: %s", err)
-					return
-				}
-
-				if !isDescendant {
-					determinePrecommitTimer.Reset(s.interval * 4)
-					break
-				}
-
-				performAction <- determinePrecommit
-				precommited = true
-			}
-		}
-
-		attemptFinalizationTicker := time.NewTicker(s.interval / 2)
-		defer attemptFinalizationTicker.Stop()
-
-		for {
-			select {
-			case <-cancel:
-				return
-			case <-attemptFinalizationTicker.C:
-				finalizable, err := s.attemptToFinalize()
-				if err != nil {
-					logger.Errorf("attempting to finalize: %s", err)
-					continue
-				}
-
-				if !finalizable {
-					continue
-				}
-
-				performAction <- finalize
-				return
-			}
-		}
-	}()
-
-	return performAction
-}
-
-func (s *Service) checkRoundAlreadyCompletable() (bool, error) {
+func (s *Service) checkRoundCompletable() (bool, error) {
 	// check if the current round contains a finalized block
 	has, err := s.blockState.HasFinalisedBlock(s.state.round, s.state.setID)
 	if err != nil {
-		return false, fmt.Errorf("has finalized block: %w", err)
+		return false, fmt.Errorf("checking for finalised block in block state: %w", err)
 	}
 
 	if has {
@@ -661,15 +462,6 @@ func (s *Service) retrieveBestFinalCandidate() (bestFinalCandidate *types.Grandp
 
 // attemptToFinalize check if we should finalize the current round
 func (s *Service) attemptToFinalize() (isFinalizable bool, err error) {
-	alreadyCompletable, err := s.checkRoundAlreadyCompletable()
-	if err != nil {
-		return false, fmt.Errorf("checking round is completable: %w", err)
-	}
-
-	if alreadyCompletable {
-		return true, err
-	}
-
 	bestFinalCandidate, precommitCount, err := s.retrieveBestFinalCandidate()
 	if err != nil {
 		return false, fmt.Errorf("getting best final candidate: %w", err)
@@ -694,30 +486,30 @@ func (s *Service) attemptToFinalize() (isFinalizable bool, err error) {
 	return true, nil
 }
 
-func (s *Service) sendPrecommitMessage(vm *VoteMessage) {
-	logger.Debugf("sending pre-commit message %s...", vm.Message)
+func (s *Service) sendPrecommitMessage(voteMessage *VoteMessage) (err error) {
+	logger.Debugf("sending pre-commit message %s...", voteMessage.Message)
 
-	consensusMessage, err := vm.ToConsensusMessage()
+	consensusMessage, err := voteMessage.ToConsensusMessage()
 	if err != nil {
-		logger.Errorf("transforming vote message into consensus message: %s", err)
-		return
+		return fmt.Errorf("transforming pre-commit into consensus message: %w", err)
 	}
 
 	s.network.GossipMessage(consensusMessage)
 	logger.Tracef("sent pre-commit message: %v", consensusMessage)
+	return nil
 }
 
-func (s *Service) sendPrevoteMessage(vm *VoteMessage) {
+func (s *Service) sendPrevoteMessage(vm *VoteMessage) (err error) {
 	logger.Debugf("sending pre-vote message %s...", vm)
 
 	consensusMessage, err := vm.ToConsensusMessage()
 	if err != nil {
-		logger.Errorf("transforming vote message into consensus message: %s", err)
-		return
+		return fmt.Errorf("transforming pre-vote into consensus message: %w", err)
 	}
 
 	s.network.GossipMessage(consensusMessage)
 	logger.Tracef("sent pre-vote message: %v", consensusMessage)
+	return nil
 }
 
 func (s *Service) loadVote(key ed25519.PublicKeyBytes, stage Subround) (*SignedVote, bool) {
@@ -975,7 +767,7 @@ func (s *Service) getBestFinalCandidate() (*Vote, error) {
 
 		if !isDescendant {
 			// find common ancestor, implicitly has >2/3 votes
-			pred, err := s.blockState.HighestCommonAncestor(h, prevoted.Hash)
+			pred, err := s.blockState.LowestCommonAncestor(h, prevoted.Hash)
 			if err != nil {
 				return nil, err
 			}
@@ -1150,7 +942,7 @@ func (s *Service) getPossibleSelectedAncestors(votes []Vote, curr common.Hash,
 		}
 
 		// find common ancestor, check if votes for it is >threshold or not
-		pred, err := s.blockState.HighestCommonAncestor(v.Hash, curr)
+		pred, err := s.blockState.LowestCommonAncestor(v.Hash, curr)
 		if errors.Is(err, blocktree.ErrNodeNotFound) {
 			continue
 		} else if err != nil {
@@ -1373,34 +1165,32 @@ func (s *Service) lenVotes(stage Subround) int {
 	return count
 }
 
-func (s *Service) handleVoteMessage(from peer.ID, vote *VoteMessage) {
+func (s *Service) handleVoteMessage(from peer.ID, vote *VoteMessage) (err error) {
 	logger.Debugf("received vote message, (peer: %s, msg: %+v)", from, vote)
 	s.sendTelemetryVoteMessage(vote)
 
-	v, err := s.validateVoteMessage(from, vote)
+	grandpaVote, err := s.validateVoteMessage(from, vote)
 	if err != nil {
-		logger.Debugf("failed to validate vote message {%v}: %s", vote, err)
-		return
+		return fmt.Errorf("validating vote message: %w", err)
 	}
 
+	threshold := s.state.threshold() + 1
 	logger.Debugf(
 		"validated vote message %v from %s, round %d, subround %d, "+
 			"prevote count %d, precommit count %d, votes needed %d",
-		v, vote.Message.AuthorityID, vote.Round, vote.Message.Stage,
-		s.lenVotes(prevote), s.lenVotes(precommit), s.state.threshold()+1)
+		grandpaVote, vote.Message.AuthorityID, vote.Round, vote.Message.Stage,
+		s.lenVotes(prevote), s.lenVotes(precommit), threshold)
+	return nil
 }
 
 func (s *Service) handleCommitMessage(commitMessage *CommitMessage) error {
-	logger.Debugf("received commit message, msg: %+v", commitMessage)
+	logger.Debugf("received commit message: %+v", commitMessage)
 
 	err := verifyBlockHashAgainstBlockNumber(s.blockState,
 		commitMessage.Vote.Hash, uint(commitMessage.Vote.Number))
 	if err != nil {
 		if errors.Is(err, chaindb.ErrKeyNotFound) {
 			s.tracker.addCommit(commitMessage)
-			logger.Infof("we might not have synced to the given block %s yet: %s",
-				commitMessage.Vote.Hash, err)
-			return nil
 		}
 
 		return fmt.Errorf("verifying block hash against block number: %w", err)
@@ -1421,7 +1211,7 @@ func (s *Service) handleCommitMessage(commitMessage *CommitMessage) error {
 
 	has, err := s.blockState.HasFinalisedBlock(commitMessage.Round, s.state.setID)
 	if err != nil {
-		return fmt.Errorf("checking if there is finalized block: %w", err)
+		return fmt.Errorf("checking for a finalized block in the block state: %w", err)
 	}
 
 	if has {
@@ -1429,7 +1219,7 @@ func (s *Service) handleCommitMessage(commitMessage *CommitMessage) error {
 	}
 
 	// check justification here
-	err = verifyCommitMessageJustification(commitMessage, s.state.setID,
+	err = verifyCommitMessageJustification(*commitMessage, s.state.setID,
 		s.state.threshold(), s.authorities(), s.blockState)
 	if err != nil {
 		if errors.Is(err, blocktree.ErrStartNodeNotFound) {
@@ -1458,10 +1248,11 @@ func (s *Service) handleCommitMessage(commitMessage *CommitMessage) error {
 	return nil
 }
 
-func verifyCommitMessageJustification(commitMessage *CommitMessage, setID uint64, threshold uint64,
+func verifyCommitMessageJustification(commitMessage CommitMessage, setID uint64, threshold uint64,
 	authorities []*types.Authority, blockState BlockState) error {
 	if len(commitMessage.Precommits) != len(commitMessage.AuthData) {
-		return fmt.Errorf("%w", ErrPrecommitSignatureMismatch)
+		return fmt.Errorf("%w: precommits len: %d, authorities len: %d",
+			ErrPrecommitSignatureMismatch, len(commitMessage.Precommits), len(commitMessage.AuthData))
 	}
 
 	if commitMessage.SetID != setID {
@@ -1486,9 +1277,9 @@ func verifyCommitMessageJustification(commitMessage *CommitMessage, setID uint64
 
 	eqvVoters := getEquivocatoryVoters(commitMessage.AuthData)
 	var totalValidPrecommits int
-	for i, pc := range commitMessage.Precommits {
+	for i, preCommit := range commitMessage.Precommits {
 		justification := &SignedVote{
-			Vote:        pc,
+			Vote:        preCommit,
 			Signature:   commitMessage.AuthData[i].Signature,
 			AuthorityID: commitMessage.AuthData[i].AuthorityID,
 		}
@@ -1505,14 +1296,17 @@ func verifyCommitMessageJustification(commitMessage *CommitMessage, setID uint64
 			continue
 		}
 
-		precommitedHeader, err := blockState.GetHeader(pc.Hash)
+		precommitedHeader, err := blockState.GetHeader(preCommit.Hash)
 		if err != nil {
 			return fmt.Errorf("getting header: %w", err)
 		}
 
-		if precommitedHeader.Number != uint(pc.Number) {
-			return fmt.Errorf("%w: expected block number %d, got block number %d",
-				ErrBlockNumberMismatch, precommitedHeader.Number, pc.Number)
+		if precommitedHeader.Number != uint(preCommit.Number) {
+			const errFormat = "%w: pre commit corresponding header has block number %d " +
+				"and pre commit has block number %d"
+
+			return fmt.Errorf(errFormat,
+				ErrBlockNumbersMismatch, precommitedHeader.Number, preCommit.Number)
 		}
 
 		if _, ok := eqvVoters[commitMessage.AuthData[i].AuthorityID]; ok {
@@ -1527,7 +1321,7 @@ func verifyCommitMessageJustification(commitMessage *CommitMessage, setID uint64
 	validAndEqv := uint64(totalValidPrecommits) + uint64(len(eqvVoters))
 	// confirm total # signatures >= grandpa threshold
 	if validAndEqv < threshold {
-		return fmt.Errorf("%w: for finalisation message; need %d votes but received only %d votes",
+		return fmt.Errorf("%w: for finalisation message; need %d votes but received only %d valid votes",
 			ErrMinVotesNotMet, threshold, validAndEqv)
 	}
 
@@ -1535,45 +1329,44 @@ func verifyCommitMessageJustification(commitMessage *CommitMessage, setID uint64
 	return nil
 }
 
-func verifyJustification(just *SignedVote, round, setID uint64,
+func verifyJustification(justification *SignedVote, round, setID uint64,
 	stage Subround, authorities []*types.Authority) error {
-	// verify signature
 	fullVote := FullVote{
 		Stage: stage,
-		Vote:  just.Vote,
+		Vote:  justification.Vote,
 		Round: round,
 		SetID: setID,
 	}
 
-	msg, err := scale.Marshal(fullVote)
+	encodedFullVote, err := scale.Marshal(fullVote)
 	if err != nil {
 		return fmt.Errorf("scale encoding full vote: %w", err)
 	}
 
-	pk, err := ed25519.NewPublicKey(just.AuthorityID[:])
+	publicKey, err := ed25519.NewPublicKey(justification.AuthorityID[:])
 	if err != nil {
 		return fmt.Errorf("creating ed25519 public key: %w", err)
 	}
 
-	ok, err := pk.Verify(msg, just.Signature[:])
+	ok, err := publicKey.Verify(encodedFullVote, justification.Signature[:])
 	if err != nil {
 		return fmt.Errorf("verifying signature: %w", err)
 	}
 
 	if !ok {
-		return fmt.Errorf("%w: 0x%x for message {%v}", ErrInvalidSignature, just.Signature, fullVote)
+		return fmt.Errorf("%w: 0x%x for message {%v}", ErrInvalidSignature, justification.Signature, fullVote)
 	}
 
-	justKey, err := just.AuthorityID.Encode()
+	justificationKey, err := justification.AuthorityID.Encode()
 	if err != nil {
 		return fmt.Errorf("encoding authority key: %w", err)
 	}
 
 	for _, auth := range authorities {
-		if bytes.Equal(auth.Key.Encode(), justKey) {
+		if bytes.Equal(auth.Key.Encode(), justificationKey) {
 			return nil
 		}
 	}
 
-	return fmt.Errorf("%w: authority ID 0x%x", ErrVoterNotFound, justKey)
+	return fmt.Errorf("%w: authority ID 0x%x", ErrVoterNotFound, justificationKey)
 }

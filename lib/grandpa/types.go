@@ -5,6 +5,7 @@ package grandpa
 
 import (
 	"bytes"
+	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -65,7 +66,7 @@ func (s *State) pubkeyToVoter(pk *ed25519.PublicKey) (*Voter, error) {
 		}
 	}
 
-	return nil, ErrVoterNotFound
+	return nil, fmt.Errorf("%w", ErrVoterNotFound)
 }
 
 // threshold returns the 2/3 |voters| threshold value

@@ -15,9 +15,9 @@ import (
 
 // Node is a node in the trie and can be a leaf or a branch.
 type Node struct {
-	// Key is the partial key bytes in nibbles (0 to f in hexadecimal)
-	Key      []byte
-	SubValue []byte
+	// PartialKey is the partial key bytes in nibbles (0 to f in hexadecimal)
+	PartialKey   []byte
+	StorageValue []byte
 	// Generation is incremented on every trie Snapshot() call.
 	// Each node also contain a certain Generation number,
 	// which is updated to match the trie Generation once they are
@@ -32,8 +32,6 @@ type Node struct {
 	Dirty bool
 	// MerkleValue is the cached Merkle value of the node.
 	MerkleValue []byte
-	// Encoding is the cached encoding of the node.
-	Encoding []byte
 
 	// Descendants is the number of descendant nodes for
 	// this particular node.
@@ -59,12 +57,11 @@ func (n Node) StringNode() (stringNode *gotree.Node) {
 	stringNode = gotree.New(caser.String(n.Kind().String()))
 	stringNode.Appendf("Generation: %d", n.Generation)
 	stringNode.Appendf("Dirty: %t", n.Dirty)
-	stringNode.Appendf("Key: " + bytesToString(n.Key))
-	stringNode.Appendf("Value: " + bytesToString(n.SubValue))
+	stringNode.Appendf("Key: " + bytesToString(n.PartialKey))
+	stringNode.Appendf("Storage value: " + bytesToString(n.StorageValue))
 	if n.Descendants > 0 { // must be a branch
 		stringNode.Appendf("Descendants: %d", n.Descendants)
 	}
-	stringNode.Appendf("Calculated encoding: " + bytesToString(n.Encoding))
 	stringNode.Appendf("Merkle value: " + bytesToString(n.MerkleValue))
 
 	for i, child := range n.Children {

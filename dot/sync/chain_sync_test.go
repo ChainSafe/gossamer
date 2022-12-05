@@ -12,6 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -388,9 +389,8 @@ func TestChainSync_sync_bootstrap_withWorkerError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	cs := newTestChainSync(ctrl)
 	mockBlockState := NewMockBlockState(ctrl)
-	mockHeader, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, 0,
+	mockHeader := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, 0,
 		types.NewDigest())
-	require.NoError(t, err)
 	mockBlockState.EXPECT().BestBlockHeader().Return(mockHeader, nil).Times(2)
 	cs.blockState = mockBlockState
 	cs.handler = newBootstrapSyncer(mockBlockState)
@@ -438,9 +438,8 @@ func TestChainSync_sync_tip(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	cs := newTestChainSync(ctrl)
-	header, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, 1000,
+	header := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, 1000,
 		types.NewDigest())
-	require.NoError(t, err)
 
 	bs := NewMockBlockState(ctrl)
 	bs.EXPECT().BestBlockHeader().Return(header, nil)
@@ -866,7 +865,7 @@ func TestChainSync_validateResponse(t *testing.T) {
 			t.Parallel()
 			ctrl := gomock.NewController(t)
 
-			cfg := &chainSyncConfig{
+			cfg := chainSyncConfig{
 				bs:            tt.blockStateBuilder(ctrl),
 				pendingBlocks: newDisjointBlockSet(pendingBlocksLimit),
 				readyBlocks:   newBlockQueue(maxResponseSize),
@@ -952,8 +951,9 @@ func TestChainSync_doSync(t *testing.T) {
 
 	workerErr = cs.doSync(req, make(map[peer.ID]struct{}))
 	require.Nil(t, workerErr)
-	bd := readyBlocks.pop(context.Background())
+	bd, err := readyBlocks.pop(context.Background())
 	require.NotNil(t, bd)
+	require.NoError(t, err)
 	require.Equal(t, resp.BlockData[0], bd)
 
 	parent := (&types.Header{
@@ -993,13 +993,15 @@ func TestChainSync_doSync(t *testing.T) {
 	workerErr = cs.doSync(req, make(map[peer.ID]struct{}))
 	require.Nil(t, workerErr)
 
-	bd = readyBlocks.pop(context.Background())
+	bd, err = readyBlocks.pop(context.Background())
 	require.NotNil(t, bd)
 	require.Equal(t, resp.BlockData[0], bd)
+	require.NoError(t, err)
 
-	bd = readyBlocks.pop(context.Background())
+	bd, err = readyBlocks.pop(context.Background())
 	require.NotNil(t, bd)
 	require.Equal(t, resp.BlockData[1], bd)
+	require.NoError(t, err)
 }
 
 func TestHandleReadyBlock(t *testing.T) {
@@ -1055,9 +1057,17 @@ func TestHandleReadyBlock(t *testing.T) {
 	require.False(t, cs.pendingBlocks.hasBlock(header3.Hash()))
 	require.True(t, cs.pendingBlocks.hasBlock(header2NotDescendant.Hash()))
 
-	require.Equal(t, block1.ToBlockData(), readyBlocks.pop(context.Background()))
-	require.Equal(t, block2.ToBlockData(), readyBlocks.pop(context.Background()))
-	require.Equal(t, block3.ToBlockData(), readyBlocks.pop(context.Background()))
+	blockData1, err := readyBlocks.pop(context.Background())
+	require.NoError(t, err)
+	require.Equal(t, block1.ToBlockData(), blockData1)
+
+	blockData2, err := readyBlocks.pop(context.Background())
+	require.NoError(t, err)
+	require.Equal(t, block2.ToBlockData(), blockData2)
+
+	blockData3, err := readyBlocks.pop(context.Background())
+	require.NoError(t, err)
+	require.Equal(t, block3.ToBlockData(), blockData3)
 }
 
 func TestChainSync_determineSyncPeers(t *testing.T) {
@@ -1249,20 +1259,23 @@ func Test_chainSync_start(t *testing.T) {
 }
 
 func Test_chainSync_setBlockAnnounce(t *testing.T) {
+	t.Parallel()
+
 	type args struct {
 		from   peer.ID
 		header *types.Header
 	}
 	tests := map[string]struct {
-		chainSyncBuilder func(ctrl *gomock.Controller) chainSync
+		chainSyncBuilder func(*types.Header, *gomock.Controller) chainSync
 		args             args
 		wantErr          error
 	}{
 		"base case": {
+			wantErr: blocktree.ErrBlockExists,
 			args: args{
 				header: &types.Header{Number: 2},
 			},
-			chainSyncBuilder: func(ctrl *gomock.Controller) chainSync {
+			chainSyncBuilder: func(_ *types.Header, ctrl *gomock.Controller) chainSync {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().HasHeader(common.MustHexToHash(
 					"0x05bdcc454f60a08d427d05e7f19f240fdc391f570ab76fcb96ecca0b5823d3bf")).Return(true, nil)
@@ -1273,13 +1286,79 @@ func Test_chainSync_setBlockAnnounce(t *testing.T) {
 				}
 			},
 		},
+		"err_when_calling_has_header": {
+			wantErr: errors.New("checking header exists"),
+			args: args{
+				header: &types.Header{Number: 2},
+			},
+			chainSyncBuilder: func(_ *types.Header, ctrl *gomock.Controller) chainSync {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().
+					HasHeader(common.MustHexToHash(
+						"0x05bdcc454f60a08d427d05e7f19f240fdc391f570ab76fcb96ecca0b5823d3bf")).
+					Return(false, errors.New("checking header exists"))
+				mockDisjointBlockSet := NewMockDisjointBlockSet(ctrl)
+				return chainSync{
+					blockState:    mockBlockState,
+					pendingBlocks: mockDisjointBlockSet,
+				}
+			},
+		},
+		"adding_block_header_to_pending_blocks": {
+			args: args{
+				header: &types.Header{Number: 2},
+			},
+			chainSyncBuilder: func(expectedHeader *types.Header, ctrl *gomock.Controller) chainSync {
+				argumentHeaderHash := common.MustHexToHash(
+					"0x05bdcc454f60a08d427d05e7f19f240fdc391f570ab76fcb96ecca0b5823d3bf")
+
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().
+					HasHeader(argumentHeaderHash).
+					Return(false, nil)
+
+				mockBlockState.EXPECT().
+					BestBlockHeader().
+					Return(&types.Header{Number: 1}, nil)
+
+				mockDisjointBlockSet := NewMockDisjointBlockSet(ctrl)
+				mockDisjointBlockSet.EXPECT().
+					addHeader(expectedHeader).
+					Return(nil)
+
+				mockDisjointBlockSet.EXPECT().
+					addHashAndNumber(argumentHeaderHash, uint(2)).
+					Return(nil)
+
+				return chainSync{
+					blockState:    mockBlockState,
+					pendingBlocks: mockDisjointBlockSet,
+					peerState:     make(map[peer.ID]*peerState),
+					// creating an buffered channel for this specific test
+					// since it will put a work on the queue and an unbufered channel
+					// will hang until we read on this channel and the goal is to
+					// put the work on the channel and don't block
+					workQueue: make(chan *peerState, 1),
+				}
+			},
+		},
 	}
 	for name, tt := range tests {
+		tt := tt
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 			ctrl := gomock.NewController(t)
-			sync := tt.chainSyncBuilder(ctrl)
+			sync := tt.chainSyncBuilder(tt.args.header, ctrl)
 			err := sync.setBlockAnnounce(tt.args.from, tt.args.header)
-			assert.ErrorIs(t, err, tt.wantErr)
+			if tt.wantErr != nil {
+				assert.EqualError(t, err, tt.wantErr.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+
+			if sync.workQueue != nil {
+				assert.Equal(t, len(sync.workQueue), 1)
+			}
 		})
 	}
 }
@@ -1533,7 +1612,7 @@ func newTestChainSyncWithReadyBlocks(ctrl *gomock.Controller, readyBlocks *block
 	mockBlockState := NewMockBlockState(ctrl)
 	mockBlockState.EXPECT().GetFinalisedNotifierChannel().Return(make(chan *types.FinalisationInfo))
 
-	cfg := &chainSyncConfig{
+	cfg := chainSyncConfig{
 		bs:            mockBlockState,
 		readyBlocks:   readyBlocks,
 		pendingBlocks: newDisjointBlockSet(pendingBlocksLimit),

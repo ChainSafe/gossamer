@@ -4,7 +4,6 @@
 package rpc
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"math/rand"
@@ -36,8 +35,7 @@ func TestChainRPC(t *testing.T) {
 	tomlConfig.Init.Genesis = genesisPath
 	tomlConfig.Core.BABELead = true
 
-	b := bytes.NewBuffer([]byte{})
-	node := node.New(t, tomlConfig, node.SetWriter(b))
+	node := node.New(t, tomlConfig)
 	ctx, cancel := context.WithCancel(context.Background())
 	node.InitAndStartTest(ctx, t, cancel)
 
@@ -55,8 +53,6 @@ func TestChainRPC(t *testing.T) {
 		if err != nil {
 			return false, fmt.Errorf("cannot convert header number to uint: %w", err)
 		}
-
-		fmt.Printf("%s -> %s\n", finalizedHead, finalizedBlock.Block.Header.Number)
 
 		switch finalizedNumber {
 		case 0, 1:
@@ -102,7 +98,7 @@ func TestChainRPC(t *testing.T) {
 	block.Block.Header.StateRoot = ""
 	assert.Regexp(t, regex32BytesHex, block.Block.Header.ExtrinsicsRoot)
 	block.Block.Header.ExtrinsicsRoot = ""
-	assert.Greater(t, len(block.Block.Header.Digest.Logs), 0)
+	assert.NotEmpty(t, block.Block.Header.Digest.Logs)
 	for _, digestLog := range block.Block.Header.Digest.Logs {
 		assert.Regexp(t, regexBytesHex, digestLog)
 	}
@@ -122,9 +118,6 @@ func TestChainRPC(t *testing.T) {
 	blockNumber, err = common.HexToUint(header.Number)
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, blockNumber, uint(1))
-
-	waitMoreBlocksTimer := time.NewTimer(3 * time.Second)
-	<-waitMoreBlocksTimer.C
 
 	var blockHash string
 	fetchWithTimeout(ctx, t, "chain_getBlockHash", "[]", &blockHash)
@@ -241,7 +234,7 @@ func TestChainSubscriptionRPC(t *testing.T) { //nolint:tparallel
 			assertResult32BHex(t, result, "stateRoot")
 			assertResult32BHex(t, result, "extrinsicsRoot")
 
-			// genesis block does not contains any digest data
+			// genesis block does not contain any digest data
 			if number == uint(0) {
 				delete(result, "digest")
 			} else {
@@ -258,8 +251,6 @@ func TestChainSubscriptionRPC(t *testing.T) { //nolint:tparallel
 		// Check block numbers grow by zero or one in order of responses.
 		for i, blockNumber := range blockNumbers {
 			if i == 0 {
-				// the first finalized block could be block 0 as well
-				assert.GreaterOrEqual(t, uint(0), blockNumber)
 				continue
 			}
 			assert.GreaterOrEqual(t, blockNumber, blockNumbers[i-1])

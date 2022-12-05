@@ -10,18 +10,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	"github.com/golang/mock/gomock"
 
 	cscale "github.com/centrifuge/go-substrate-rpc-client/v4/scale"
-	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
+	signaturev4 "github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	ctypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/stretchr/testify/require"
 )
@@ -37,8 +36,7 @@ func TestSeal(t *testing.T) {
 	zeroHash, err := common.HexToHash("0x00")
 	require.NoError(t, err)
 
-	header, err := types.NewHeader(zeroHash, zeroHash, zeroHash, 0, types.NewDigest())
-	require.NoError(t, err)
+	header := types.NewHeader(zeroHash, zeroHash, zeroHash, 0, types.NewDigest())
 
 	encHeader, err := scale.Marshal(*header)
 	require.NoError(t, err)
@@ -59,7 +57,8 @@ func createTestBlock(t *testing.T, babeService *Service, parent *types.Header,
 	exts [][]byte, slotNumber, epoch uint64, epochData *epochData) *types.Block {
 	for _, ext := range exts {
 		vtx := transaction.NewValidTransaction(ext, &transaction.Validity{})
-		_, _ = babeService.transactionState.Push(vtx)
+		_, err := babeService.transactionState.Push(vtx)
+		require.NoError(t, err)
 	}
 
 	duration, err := time.ParseDuration("1s")
@@ -71,7 +70,8 @@ func createTestBlock(t *testing.T, babeService *Service, parent *types.Header,
 		number:   slotNumber,
 	}
 
-	rt, err := babeService.blockState.GetRuntime(nil)
+	bestBlockHash := babeService.blockState.BestBlockHash()
+	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
 	preRuntimeDigest, err := claimSlot(epoch, slotNumber, epochData, babeService.keypair)
@@ -87,18 +87,11 @@ func createTestBlock(t *testing.T, babeService *Service, parent *types.Header,
 // TODO: add test against latest dev runtime
 // See https://github.com/ChainSafe/gossamer/issues/2704
 func TestBuildBlock_ok(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
-
-	cfg := ServiceConfig{
-		TransactionState: state.NewTransactionState(telemetryMock),
-	}
-
-	babeService := createTestService(t, cfg)
+	babeService := createTestService(t, ServiceConfig{})
 
 	parentHash := babeService.blockState.GenesisHash()
-	rt, err := babeService.blockState.GetRuntime(nil)
+	bestBlockHash := babeService.blockState.BestBlockHash()
+	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
@@ -127,15 +120,7 @@ func TestBuildBlock_ok(t *testing.T) {
 // TODO: add test against latest dev runtime
 // See https://github.com/ChainSafe/gossamer/issues/2704
 func TestApplyExtrinsic(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
-
-	cfg := ServiceConfig{
-		TransactionState: state.NewTransactionState(telemetryMock),
-	}
-
-	babeService := createTestService(t, cfg)
+	babeService := createTestService(t, ServiceConfig{})
 	const authorityIndex = 0
 
 	duration, err := time.ParseDuration("1s")
@@ -163,8 +148,11 @@ func TestApplyExtrinsic(t *testing.T) {
 	require.NoError(t, err)
 
 	parentHash := babeService.blockState.GenesisHash()
+	parentHeader, err := babeService.blockState.GetHeader(parentHash)
+	require.NoError(t, err)
 
-	rt, err := babeService.blockState.GetRuntime(nil)
+	bestBlockHash := babeService.blockState.BestBlockHash()
+	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
 	ts, err := babeService.storageState.TrieState(nil)
@@ -182,14 +170,13 @@ func TestApplyExtrinsic(t *testing.T) {
 	err = digest.Add(*preDigest)
 	require.NoError(t, err)
 
-	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, 1, digest)
-	require.NoError(t, err)
+	header := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, 1, digest)
 
 	//initialise block header
 	err = rt.InitializeBlock(header)
 	require.NoError(t, err)
 
-	_, err = buildBlockInherents(slot, rt)
+	_, err = buildBlockInherents(slot, rt, parentHeader)
 	require.NoError(t, err)
 
 	header1, err := rt.FinalizeBlock()
@@ -203,12 +190,11 @@ func TestApplyExtrinsic(t *testing.T) {
 	digest2 := types.NewDigest()
 	err = digest2.Add(*preDigest2)
 	require.NoError(t, err)
-	header2, err := types.NewHeader(header1.Hash(), common.Hash{}, common.Hash{}, 2, digest2)
-	require.NoError(t, err)
+	header2 := types.NewHeader(header1.Hash(), common.Hash{}, common.Hash{}, 2, digest2)
 	err = rt.InitializeBlock(header2)
 	require.NoError(t, err)
 
-	_, err = buildBlockInherents(slot, rt)
+	_, err = buildBlockInherents(slot, rt, parentHeader)
 	require.NoError(t, err)
 
 	res, err := rt.ApplyExtrinsic(extBytes)
@@ -222,21 +208,13 @@ func TestApplyExtrinsic(t *testing.T) {
 // TODO: add test against latest dev runtime
 // See https://github.com/ChainSafe/gossamer/issues/2704
 func TestBuildAndApplyExtrinsic(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
-
-	cfg := ServiceConfig{
-		TransactionState: state.NewTransactionState(telemetryMock),
-	}
-
-	babeService := createTestService(t, cfg)
+	babeService := createTestService(t, ServiceConfig{})
 
 	parentHash := common.MustHexToHash("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
-	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, 1, types.NewDigest())
-	require.NoError(t, err)
+	header := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, 1, types.NewDigest())
 
-	rt, err := babeService.blockState.GetRuntime(nil)
+	bestBlockHash := babeService.blockState.BestBlockHash()
+	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
 	//initialise block header
@@ -251,7 +229,7 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	require.NoError(t, err)
 
 	meta := &ctypes.Metadata{}
-	err = ctypes.Decode(decoded, meta)
+	err = codec.Decode(decoded, meta)
 	require.NoError(t, err)
 
 	rv := rt.Version()
@@ -279,7 +257,7 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	}
 
 	// Sign the transaction using Alice's default account
-	err = ext.Sign(signature.TestKeyringPairAlice, o)
+	err = ext.Sign(signaturev4.TestKeyringPairAlice, o)
 	require.NoError(t, err)
 
 	extEnc := bytes.Buffer{}
@@ -302,15 +280,7 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 func TestBuildBlock_failing(t *testing.T) {
 	t.Skip()
 
-	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
-
-	cfg := ServiceConfig{
-		TransactionState: state.NewTransactionState(telemetryMock),
-	}
-
-	babeService := createTestService(t, cfg)
+	babeService := createTestService(t, ServiceConfig{})
 
 	// see https://github.com/noot/substrate/blob/add-blob/core/test-runtime/src/system.rs#L468
 	// add a valid transaction
@@ -361,7 +331,8 @@ func TestBuildBlock_failing(t *testing.T) {
 		number:   1000,
 	}
 
-	rt, err := babeService.blockState.GetRuntime(nil)
+	bestBlockHash := babeService.blockState.BestBlockHash()
+	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
 	const authorityIndex uint32 = 0

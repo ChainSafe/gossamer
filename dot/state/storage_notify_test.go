@@ -18,7 +18,7 @@ import (
 )
 
 func TestStorageState_RegisterStorageObserver(t *testing.T) {
-	ss := newTestStorageState(t, newTriesEmpty())
+	ss := newTestStorageState(t)
 
 	ts, err := ss.TrieState(nil)
 	require.NoError(t, err)
@@ -46,7 +46,7 @@ func TestStorageState_RegisterStorageObserver(t *testing.T) {
 	ss.RegisterStorageObserver(mockobs)
 	defer ss.UnregisterStorageObserver(mockobs)
 
-	ts.Set([]byte("mackcom"), []byte("wuz here"))
+	ts.Put([]byte("mackcom"), []byte("wuz here"))
 	err = ss.StoreTrie(ts, nil)
 	require.NoError(t, err)
 
@@ -57,7 +57,7 @@ func TestStorageState_RegisterStorageObserver(t *testing.T) {
 }
 
 func TestStorageState_RegisterStorageObserver_Multi(t *testing.T) {
-	ss := newTestStorageState(t, newTriesEmpty())
+	ss := newTestStorageState(t)
 	ts, err := ss.TrieState(nil)
 	require.NoError(t, err)
 
@@ -81,7 +81,7 @@ func TestStorageState_RegisterStorageObserver_Multi(t *testing.T) {
 	key1 := []byte("key1")
 	value1 := []byte("value1")
 
-	ts.Set(key1, value1)
+	ts.Put(key1, value1)
 
 	err = ss.StoreTrie(ts, nil)
 	require.NoError(t, err)
@@ -95,7 +95,7 @@ func TestStorageState_RegisterStorageObserver_Multi(t *testing.T) {
 
 func TestStorageState_RegisterStorageObserver_Multi_Filter(t *testing.T) {
 	t.Skip() // this seems to fail often on CI
-	ss := newTestStorageState(t, newTriesEmpty())
+	ss := newTestStorageState(t)
 	ts, err := ss.TrieState(nil)
 	require.NoError(t, err)
 
@@ -118,7 +118,7 @@ func TestStorageState_RegisterStorageObserver_Multi_Filter(t *testing.T) {
 		ss.RegisterStorageObserver(mockobs)
 	}
 
-	ts.Set(key1, value1)
+	ts.Put(key1, value1)
 	err = ss.StoreTrie(ts, nil)
 	require.NoError(t, err)
 
@@ -130,10 +130,6 @@ func TestStorageState_RegisterStorageObserver_Multi_Filter(t *testing.T) {
 }
 
 func Test_Example(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping subscription example")
-	}
-
 	// this is a working example of how to use db.Subscribe taken from
 	// https://github.com/dgraph-io/badger/blob/f50343ff404d8198df6dc83755ec2eab863d5ff2/db_test.go#L1939-L1948
 	prefix := []byte{'a'}
@@ -179,7 +175,6 @@ func Test_Example(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	time.Sleep(time.Second)
 	log.Printf("stopping subscription")
 	cancel()
 	log.Printf("waiting for subscription to close")

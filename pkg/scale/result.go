@@ -4,12 +4,9 @@
 package scale
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 )
-
-var ErrResultAlreadySet = errors.New("result already has an assigned value")
 
 // ResultMode is the mode the Result is set to
 type ResultMode int

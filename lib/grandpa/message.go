@@ -60,7 +60,7 @@ func (v VoteMessage) String() string {
 	return fmt.Sprintf("round=%d, setID=%d, message={%s}", v.Round, v.SetID, v.Message)
 }
 
-// Index Returns VDT index
+// Index returns VDT index
 func (VoteMessage) Index() uint { return 0 }
 
 // ToConsensusMessage converts the VoteMessage into a network-level consensus message
@@ -84,7 +84,7 @@ func (v *VoteMessage) ToConsensusMessage() (*ConsensusMessage, error) {
 // VersionedNeighbourPacket represents the enum of neighbour messages
 type VersionedNeighbourPacket scale.VaryingDataType
 
-// Index Returns VDT index
+// Index returns VDT index
 func (VersionedNeighbourPacket) Index() uint { return 2 }
 
 func newVersionedNeighbourPacket() VersionedNeighbourPacket {
@@ -105,7 +105,7 @@ func (vnp *VersionedNeighbourPacket) Set(val scale.VaryingDataTypeValue) (err er
 }
 
 // Value returns the current VDT value
-func (vnp *VersionedNeighbourPacket) Value() (val scale.VaryingDataTypeValue) {
+func (vnp *VersionedNeighbourPacket) Value() (val scale.VaryingDataTypeValue, err error) {
 	vdt := scale.VaryingDataType(*vnp)
 	return vdt.Value()
 }
@@ -119,7 +119,7 @@ type NeighbourPacketV1 struct {
 	Number uint32
 }
 
-// Index Returns VDT index
+// Index returns VDT index
 func (NeighbourPacketV1) Index() uint { return 1 }
 
 // ToConsensusMessage converts the NeighbourMessage into a network-level consensus message
@@ -176,7 +176,7 @@ func (s *Service) newCommitMessage(header *types.Header, round, setID uint64) (*
 	}, nil
 }
 
-// Index Returns VDT index
+// Index returns VDT index
 func (CommitMessage) Index() uint { return 1 }
 
 // ToConsensusMessage converts the CommitMessage into a network-level consensus message
@@ -242,7 +242,7 @@ func newCatchUpRequest(round, setID uint64) *CatchUpRequest {
 	}
 }
 
-// Index Returns VDT index
+// Index returns VDT index
 func (CatchUpRequest) Index() uint { return 3 }
 
 // ToConsensusMessage converts the catchUpRequest into a network-level consensus message
@@ -299,7 +299,7 @@ func (s *Service) newCatchUpResponse(round, setID uint64) (*CatchUpResponse, err
 	}, nil
 }
 
-// Index Returns VDT index
+// Index returns VDT index
 func (CatchUpResponse) Index() uint { return 4 }
 
 // ToConsensusMessage converts the catchUpResponse into a network-level consensus message

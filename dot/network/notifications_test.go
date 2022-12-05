@@ -5,6 +5,7 @@ package network
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -196,6 +197,11 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 
 	err = handler(stream, testHandshake)
 	require.ErrorIs(t, err, errCannotValidateHandshake)
+
+	expectedErrorMessage := fmt.Sprintf("handling handshake: %s from peer %s using protocol %s: genesis hash mismatch",
+		errCannotValidateHandshake, testPeerID, info.protocolID)
+	require.EqualError(t, err, expectedErrorMessage)
+
 	data := info.peersData.getInboundHandshakeData(testPeerID)
 	require.NotNil(t, data)
 	require.True(t, data.received)

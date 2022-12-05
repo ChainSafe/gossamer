@@ -138,7 +138,7 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 		if !block1IsFinal {
 			firstSlot, err := types.GetSlotFromHeader(header)
 			if err != nil {
-				return fmt.Errorf("failed to get slot from block 1: %w", err)
+				return fmt.Errorf("failed to get slot from header of block 1: %w", err)
 			}
 
 			logger.Debugf("syncing block 1, setting first slot as %d", firstSlot)
@@ -231,6 +231,7 @@ func newVerifier(blockState BlockState, epoch uint64, info *verifierInfo) *verif
 	}
 }
 
+//gocyclo:ignore
 // verifyAuthorshipRight verifies that the authority that produced a block was authorized to produce it.
 func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	// header should have 2 digest items (possibly more in the future)
@@ -245,14 +246,22 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	preDigestItem := header.Digest.Types[0]
 	sealItem := header.Digest.Types[len(header.Digest.Types)-1]
 
-	preDigest, ok := preDigestItem.Value().(types.PreRuntimeDigest)
+	preDigestItemValue, err := preDigestItem.Value()
+	if err != nil {
+		return fmt.Errorf("getting pre digest item value: %w", err)
+	}
+	preDigest, ok := preDigestItemValue.(types.PreRuntimeDigest)
 	if !ok {
-		return fmt.Errorf("%w: got %T", types.ErrNoFirstPreDigest, preDigestItem.Value())
+		return fmt.Errorf("%w: got %T", types.ErrNoFirstPreDigest, preDigestItemValue)
 	}
 
-	seal, ok := sealItem.Value().(types.SealDigest)
+	sealItemValue, err := sealItem.Value()
+	if err != nil {
+		return fmt.Errorf("getting seal item value: %w", err)
+	}
+	seal, ok := sealItemValue.(types.SealDigest)
 	if !ok {
-		return fmt.Errorf("%w: got %T", errLastDigestItemNotSeal, sealItem.Value())
+		return fmt.Errorf("%w: got %T", errLastDigestItemNotSeal, sealItemValue)
 	}
 
 	babePreDigest, err := b.verifyPreRuntimeDigest(&preDigest)
@@ -277,7 +286,11 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	// remove seal before verifying signature
 	h := types.NewDigest()
 	for _, val := range header.Digest.Types[:len(header.Digest.Types)-1] {
-		err = h.Add(val.Value())
+		digestValue, err := val.Value()
+		if err != nil {
+			return fmt.Errorf("getting digest type value: %w", err)
+		}
+		err = h.Add(digestValue)
 		if err != nil {
 			return err
 		}
@@ -285,7 +298,11 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 
 	header.Digest = h
 	defer func() {
-		if err = header.Digest.Add(sealItem.Value()); err != nil {
+		sealItemVal, err := sealItem.Value()
+		if err != nil {
+			logger.Errorf("getting seal item value: %s", err)
+		}
+		if err = header.Digest.Add(sealItemVal); err != nil {
 			logger.Errorf("failed to re-add seal to digest: %s", err)
 		}
 	}()
@@ -310,59 +327,58 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 		return ErrBadSignature
 	}
 
-	// check if the producer has equivocated, ie. have they produced a conflicting block?
-	// hashes is hashes of all blocks with same block number as header.Number
-	hashes := b.blockState.GetAllBlocksAtDepth(header.ParentHash)
-
-	for _, currentHash := range hashes {
-		currentHeader, err := b.blockState.GetHeader(currentHash)
-		if err != nil {
-			return fmt.Errorf("failed get header %s", err)
-		}
-
-		currentBlockProducerIndex, err := getAuthorityIndex(currentHeader)
-		if err != nil {
-			return fmt.Errorf("failed to get authority index %s", err)
-		}
-
-		if len(currentHeader.Digest.Types) == 0 {
-			return fmt.Errorf("current header missing digest")
-		}
-
-		currentPreDigestItem := currentHeader.Digest.Types[0]
-		currentPreDigest, ok := currentPreDigestItem.Value().(types.PreRuntimeDigest)
-		if !ok {
-			return fmt.Errorf("%w: got %T", types.ErrNoFirstPreDigest, currentPreDigestItem.Value())
-		}
-
-		currentBabePreDigest, err := b.verifyPreRuntimeDigest(&currentPreDigest)
-		if err != nil {
-			return fmt.Errorf("failed to verify pre-runtime digest: %w", err)
-		}
-
-		_, isCurrentBlockProducerPrimary := currentBabePreDigest.(types.BabePrimaryPreDigest)
-
-		var isExistingBlockProducerPrimary bool
-		var existingBlockProducerIndex uint32
-		switch d := babePreDigest.(type) {
-		case types.BabePrimaryPreDigest:
-			existingBlockProducerIndex = d.AuthorityIndex
-			isExistingBlockProducerPrimary = true
-		case types.BabeSecondaryVRFPreDigest:
-			existingBlockProducerIndex = d.AuthorityIndex
-		case types.BabeSecondaryPlainPreDigest:
-			existingBlockProducerIndex = d.AuthorityIndex
-		}
-
-		// same authority won't produce two different blocks at the same block number as primary block producer
-		if currentBlockProducerIndex == existingBlockProducerIndex &&
-			!currentHash.Equal(header.Hash()) &&
-			isCurrentBlockProducerPrimary == isExistingBlockProducerPrimary {
-			return ErrProducerEquivocated
-		}
+	equivocated, err := b.verifyBlockEquivocation(header)
+	if err != nil {
+		return fmt.Errorf("could not verify block equivocation: %w", err)
+	}
+	if equivocated {
+		return fmt.Errorf("%w for block header %s", ErrProducerEquivocated, header.Hash())
 	}
 
 	return nil
+}
+
+// verifyBlockEquivocation checks if the given block's author has occupied the corresponding slot more than once.
+// It returns true if the block was equivocated.
+func (b *verifier) verifyBlockEquivocation(header *types.Header) (bool, error) {
+	author, err := getAuthorityIndex(header)
+	if err != nil {
+		return false, fmt.Errorf("failed to get authority index: %w", err)
+	}
+
+	currentHash := header.Hash()
+	slot, err := types.GetSlotFromHeader(header)
+	if err != nil {
+		return false, fmt.Errorf("failed to get slot from header of block %s: %w", currentHash, err)
+	}
+
+	blockHashesInSlot, err := b.blockState.GetBlockHashesBySlot(slot)
+	if err != nil {
+		return false, fmt.Errorf("failed to get blocks produced in slot: %w", err)
+	}
+
+	for _, blockHashInSlot := range blockHashesInSlot {
+		if blockHashInSlot.Equal(currentHash) {
+			continue
+		}
+
+		existingHeader, err := b.blockState.GetHeader(blockHashInSlot)
+		if err != nil {
+			return false, fmt.Errorf("failed to get header for block: %w", err)
+		}
+
+		authorOfExistingHeader, err := getAuthorityIndex(existingHeader)
+		if err != nil {
+			return false, fmt.Errorf("failed to get authority index for block %s: %w", blockHashInSlot, err)
+		}
+		if authorOfExistingHeader != author {
+			continue
+		}
+
+		return true, nil
+	}
+
+	return false, nil
 }
 
 func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (scale.VaryingDataTypeValue, error) {
@@ -473,10 +489,14 @@ func (b *verifier) verifyPrimarySlotWinner(authorityIndex uint32,
 
 func getAuthorityIndex(header *types.Header) (uint32, error) {
 	if len(header.Digest.Types) == 0 {
-		return 0, fmt.Errorf("no digest provided")
+		return 0, fmt.Errorf("for block hash %s: %w", header.Hash(), errNoDigest)
 	}
 
-	preDigest, ok := header.Digest.Types[0].Value().(types.PreRuntimeDigest)
+	digestValue, err := header.Digest.Types[0].Value()
+	if err != nil {
+		return 0, fmt.Errorf("getting first digest type value: %w", err)
+	}
+	preDigest, ok := digestValue.(types.PreRuntimeDigest)
 	if !ok {
 		return 0, fmt.Errorf("first digest item is not pre-runtime digest")
 	}

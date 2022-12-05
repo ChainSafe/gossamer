@@ -46,7 +46,7 @@ func NewService(cfg *Config) (*Service, error) {
 	readyBlocks := newBlockQueue(maxResponseSize * 30)
 	pendingBlocks := newDisjointBlockSet(pendingBlocksLimit)
 
-	csCfg := &chainSyncConfig{
+	csCfg := chainSyncConfig{
 		bs:            cfg.BlockState,
 		net:           cfg.Network,
 		readyBlocks:   readyBlocks,
@@ -55,11 +55,21 @@ func NewService(cfg *Config) (*Service, error) {
 		maxPeers:      cfg.MaxPeers,
 		slotDuration:  cfg.SlotDuration,
 	}
-
 	chainSync := newChainSync(csCfg)
-	chainProcessor := newChainProcessor(readyBlocks, pendingBlocks,
-		cfg.BlockState, cfg.StorageState, cfg.TransactionState,
-		cfg.BabeVerifier, cfg.FinalityGadget, cfg.BlockImportHandler, cfg.Telemetry)
+
+	cpCfg := chainProcessorConfig{
+		readyBlocks:        readyBlocks,
+		pendingBlocks:      pendingBlocks,
+		syncer:             chainSync,
+		blockState:         cfg.BlockState,
+		storageState:       cfg.StorageState,
+		transactionState:   cfg.TransactionState,
+		babeVerifier:       cfg.BabeVerifier,
+		finalityGadget:     cfg.FinalityGadget,
+		blockImportHandler: cfg.BlockImportHandler,
+		telemetry:          cfg.Telemetry,
+	}
+	chainProcessor := newChainProcessor(cpCfg)
 
 	return &Service{
 		blockState:     cfg.BlockState,
@@ -92,13 +102,7 @@ func (s *Service) HandleBlockAnnounceHandshake(from peer.ID, msg *network.BlockA
 // HandleBlockAnnounce notifies the `chainSync` module that we have received a block announcement from the given peer.
 func (s *Service) HandleBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMessage) error {
 	logger.Debug("received BlockAnnounceMessage")
-
-	// create header from message
-	header, err := types.NewHeader(msg.ParentHash, msg.StateRoot, msg.ExtrinsicsRoot, msg.Number, msg.Digest)
-	if err != nil {
-		return err
-	}
-
+	header := types.NewHeader(msg.ParentHash, msg.StateRoot, msg.ExtrinsicsRoot, msg.Number, msg.Digest)
 	return s.chainSync.setBlockAnnounce(from, header)
 }
 

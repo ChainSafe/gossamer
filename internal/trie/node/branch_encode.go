@@ -9,7 +9,6 @@ import (
 	"io"
 	"runtime"
 
-	"github.com/ChainSafe/gossamer/internal/trie/pools"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -21,11 +20,7 @@ type encodingAsyncResult struct {
 
 func runEncodeChild(child *Node, index int,
 	results chan<- encodingAsyncResult, rateLimit <-chan struct{}) {
-	buffer := pools.EncodingBuffers.Get().(*bytes.Buffer)
-	buffer.Reset()
-	// buffer is put back in the pool after processing its
-	// data in the select block below.
-
+	buffer := bytes.NewBuffer(nil)
 	err := encodeChild(child, buffer)
 
 	results <- encodingAsyncResult{
@@ -97,18 +92,10 @@ func encodeChildrenOpportunisticParallel(children []*Node, buffer io.Writer) (er
 				}
 			}
 
-			pools.EncodingBuffers.Put(resultBuffers[currentIndex])
 			resultBuffers[currentIndex] = nil
 
 			currentIndex++
 		}
-	}
-
-	for _, buffer := range resultBuffers {
-		if buffer == nil { // already emptied and put back in pool
-			continue
-		}
-		pools.EncodingBuffers.Put(buffer)
 	}
 
 	return err
@@ -118,43 +105,29 @@ func encodeChildrenSequentially(children []*Node, buffer io.Writer) (err error) 
 	for i, child := range children {
 		err = encodeChild(child, buffer)
 		if err != nil {
-			return fmt.Errorf("cannot encode child at index %d: %w", i, err)
+			return fmt.Errorf("encoding child at index %d: %w", i, err)
 		}
 	}
 	return nil
 }
 
+// encodeChild computes the Merkle value of the node
+// and then SCALE encodes it to the given buffer.
 func encodeChild(child *Node, buffer io.Writer) (err error) {
 	if child == nil {
 		return nil
 	}
 
-	scaleEncodedChildHash, err := scaleEncodeHash(child)
+	merkleValue, err := child.CalculateMerkleValue()
 	if err != nil {
-		return fmt.Errorf("failed to hash and scale encode child: %w", err)
+		return fmt.Errorf("computing %s Merkle value: %w", child.Kind(), err)
 	}
 
-	_, err = buffer.Write(scaleEncodedChildHash)
+	encoder := scale.NewEncoder(buffer)
+	err = encoder.Encode(merkleValue)
 	if err != nil {
-		return fmt.Errorf("failed to write child to buffer: %w", err)
+		return fmt.Errorf("scale encoding Merkle value: %w", err)
 	}
 
 	return nil
-}
-
-// scaleEncodeHash hashes the node (blake2b sum on encoded value)
-// and then SCALE encodes it. This is used to encode children
-// nodes of branches.
-func scaleEncodeHash(node *Node) (encoding []byte, err error) {
-	_, merkleValue, err := node.EncodeAndHash()
-	if err != nil {
-		return nil, fmt.Errorf("encoding and hashing %s: %w", node.Kind(), err)
-	}
-
-	encoding, err = scale.Marshal(merkleValue)
-	if err != nil {
-		return nil, fmt.Errorf("cannot scale encode hashed %s: %w", node.Kind(), err)
-	}
-
-	return encoding, nil
 }

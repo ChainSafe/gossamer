@@ -10,12 +10,41 @@ import (
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-//go:generate mockgen -destination=mock_interface_test.go -package=$GOPACKAGE . BlockState,StorageState,CodeSubstitutedState,TransactionState,BabeVerifier,FinalityGadget,BlockImportHandler,Network
+// RuntimeInstance is the interface for runtime Instance
+type RuntimeInstance interface {
+	UpdateRuntimeCode([]byte) error
+	Stop()
+	NodeStorage() runtime.NodeStorage
+	NetworkService() runtime.BasicNetwork
+	Keystore() *keystore.GlobalKeystore
+	Validator() bool
+	Exec(function string, data []byte) ([]byte, error)
+	SetContextStorage(s runtime.Storage)
+	GetCodeHash() common.Hash
+	Version() runtime.Version
+	Metadata() ([]byte, error)
+	BabeConfiguration() (*types.BabeConfiguration, error)
+	GrandpaAuthorities() ([]types.Authority, error)
+	ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error)
+	InitializeBlock(header *types.Header) error
+	InherentExtrinsics(data []byte) ([]byte, error)
+	ApplyExtrinsic(data types.Extrinsic) ([]byte, error)
+	FinalizeBlock() (*types.Header, error)
+	ExecuteBlock(block *types.Block) ([]byte, error)
+	DecodeSessionKeys(enc []byte) ([]byte, error)
+	PaymentQueryInfo(ext []byte) (*types.RuntimeDispatchInfo, error)
+	CheckInherents()
+	RandomSeed()
+	OffchainWorker()
+	GenerateSessionKeys()
+}
 
 // BlockState is the interface for the block state
 type BlockState interface {
@@ -39,7 +68,7 @@ type BlockState interface {
 	AddBlockToBlockTree(block *types.Block) error
 	GetHashByNumber(blockNumber uint) (common.Hash, error)
 	GetBlockByHash(common.Hash) (*types.Block, error)
-	GetRuntime(*common.Hash) (runtime.Instance, error)
+	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
 	StoreRuntime(common.Hash, runtime.Instance)
 	GetHighestFinalisedHeader() (*types.Header, error)
 	GetFinalisedNotifierChannel() chan *types.FinalisationInfo
@@ -78,7 +107,7 @@ type FinalityGadget interface {
 
 // BlockImportHandler is the interface for the handler of newly imported blocks
 type BlockImportHandler interface {
-	HandleBlockImport(block *types.Block, state *rtstorage.TrieState) error
+	HandleBlockImport(block *types.Block, state *rtstorage.TrieState, announce bool) error
 }
 
 // Network is the interface for the network

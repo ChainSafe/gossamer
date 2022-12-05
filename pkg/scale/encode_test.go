@@ -1096,6 +1096,49 @@ func Test_encodeState_encodeArray(t *testing.T) {
 	}
 }
 
+func Test_encodeState_encodeMap(t *testing.T) {
+	mapTests := []struct {
+		name      string
+		in        interface{}
+		wantErr   bool
+		wantOneOf [][]byte
+	}{
+		{
+			name:      "testMap1",
+			in:        map[int8][]byte{2: []byte("some string")},
+			wantOneOf: [][]byte{{4, 2, 44, 115, 111, 109, 101, 32, 115, 116, 114, 105, 110, 103}},
+		},
+		{
+			name: "testMap2",
+			in: map[int8][]byte{
+				2:  []byte("some string"),
+				16: []byte("lorem ipsum"),
+			},
+			wantOneOf: [][]byte{
+				{8, 2, 44, 115, 111, 109, 101, 32, 115, 116, 114, 105, 110, 103, 16, 44, 108, 111, 114, 101, 109, 32,
+					105, 112, 115, 117, 109},
+				{8, 16, 44, 108, 111, 114, 101, 109, 32, 105, 112, 115, 117, 109, 2, 44, 115, 111, 109, 101, 32, 115,
+					116, 114, 105, 110, 103},
+			},
+		},
+	}
+
+	for _, tt := range mapTests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			buffer := bytes.NewBuffer(nil)
+			es := &encodeState{
+				Writer:                 buffer,
+				fieldScaleIndicesCache: cache,
+			}
+			if err := es.marshal(tt.in); (err != nil) != tt.wantErr {
+				t.Errorf("encodeState.encodeMap() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			assert.Contains(t, tt.wantOneOf, buffer.Bytes())
+		})
+	}
+}
+
 func Test_marshal_optionality(t *testing.T) {
 	var ptrTests tests
 	for i := range allTests {

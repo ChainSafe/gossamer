@@ -8,9 +8,6 @@ import (
 )
 
 var (
-	// ErrNilBlockData is returned when trying to process a BlockResponseMessage with nil BlockData
-	ErrNilBlockData = errors.New("got nil BlockData")
-
 	// ErrServiceStopped is returned when the service has been stopped
 	ErrServiceStopped = errors.New("service has been stopped")
 

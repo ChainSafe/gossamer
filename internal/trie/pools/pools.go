@@ -19,15 +19,6 @@ var DigestBuffers = &sync.Pool{
 	},
 }
 
-// EncodingBuffers is a sync pool of buffers of capacity 1.9MB.
-var EncodingBuffers = &sync.Pool{
-	New: func() interface{} {
-		const initialBufferCapacity = 1900000 // 1.9MB, from checking capacities at runtime
-		b := make([]byte, 0, initialBufferCapacity)
-		return bytes.NewBuffer(b)
-	},
-}
-
 // Hashers is a sync pool of blake2b 256 hashers.
 var Hashers = &sync.Pool{
 	New: func() interface{} {

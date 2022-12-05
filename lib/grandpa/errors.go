@@ -54,7 +54,7 @@ var (
 
 	ErrBlockHashMismatch = errors.New("block hash does not correspond to given block number")
 
-	ErrBlockNumberMismatch = errors.New("block number mismatch")
+	ErrBlockNumbersMismatch = errors.New("block numbers mismatch")
 
 	// ErrMinVotesNotMet is returned when the number of votes is less than the required minimum in a Justification
 	ErrMinVotesNotMet = errors.New("minimum number of votes not met in a Justification")
@@ -71,9 +71,6 @@ var (
 
 	// ErrCatchUpResponseNotCompletable is returned when the round represented by the catch up response is not completable
 	ErrCatchUpResponseNotCompletable = errors.New("catch up response is not completable")
-
-	// ErrServicePaused is returned if the service is paused and waiting for catch up messages
-	ErrServicePaused = errors.New("service is paused")
 
 	// ErrPrecommitSignatureMismatch is returned when the number of precommits
 	// and signatures in a CommitMessage do not match

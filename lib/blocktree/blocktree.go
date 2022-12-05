@@ -4,6 +4,7 @@
 package blocktree
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -16,11 +17,14 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
-var leavesGauge = promauto.NewGauge(prometheus.GaugeOpts{
-	Namespace: "gossamer_block",
-	Name:      "leaves_total",
-	Help:      "total number of blocktree leaves",
-})
+var (
+	leavesGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "gossamer_block",
+		Name:      "leaves_total",
+		Help:      "total number of blocktree leaves",
+	})
+	errAncestorOutOfBoundsCheck = errors.New("out of bounds ancestor check")
+)
 
 // Hash common.Hash
 type Hash = common.Hash
@@ -297,29 +301,50 @@ func (bt *BlockTree) Leaves() []Hash {
 	return la
 }
 
-// HighestCommonAncestor returns the highest block that is a Ancestor to both a and b
-func (bt *BlockTree) HighestCommonAncestor(a, b Hash) (Hash, error) {
+// LowestCommonAncestor returns the lowest common ancestor block hash between two blocks in the tree.
+func (bt *BlockTree) LowestCommonAncestor(a, b Hash) (Hash, error) {
 	bt.RLock()
 	defer bt.RUnlock()
 
-	an := bt.getNode(a)
-	if an == nil {
+	aNode := bt.getNode(a)
+	if aNode == nil {
 		return common.Hash{}, ErrNodeNotFound
 	}
 
-	bn := bt.getNode(b)
-	if bn == nil {
+	bNode := bt.getNode(b)
+	if bNode == nil {
 		return common.Hash{}, ErrNodeNotFound
 	}
-
-	ancestor := an.highestCommonAncestor(bn)
-	if ancestor == nil {
-		// this case shouldn't happen - any two nodes in the blocktree must
-		// have a common ancestor, the lowest of which is the root node
-		return common.Hash{}, fmt.Errorf("%w: %s and %s", ErrNoCommonAncestor, a, b)
+	return lowestCommonAncestor(aNode, bNode), nil
+}
+func lowestCommonAncestor(aNode, bNode *node) Hash {
+	higherNode := bNode
+	lowerNode := aNode
+	if aNode.number > bNode.number {
+		higherNode = aNode
+		lowerNode = bNode
 	}
 
-	return ancestor.hash, nil
+	higherNum := higherNode.number
+	lowerNum := lowerNode.number
+	diff := higherNum - lowerNum
+	for diff > 0 {
+		if higherNode.parent == nil {
+			panic(fmt.Errorf("%w: for block number %v", errAncestorOutOfBoundsCheck, higherNum))
+		}
+		higherNode = higherNode.parent
+		diff--
+	}
+
+	for {
+		if higherNode.hash == lowerNode.hash {
+			return higherNode.hash
+		} else if higherNode.parent == nil || lowerNode.parent == nil {
+			panic(fmt.Errorf("%w: for block number %v", errAncestorOutOfBoundsCheck, higherNum))
+		}
+		higherNode = higherNode.parent
+		lowerNode = lowerNode.parent
+	}
 }
 
 // GetAllBlocks returns all the blocks in the tree
@@ -328,6 +353,19 @@ func (bt *BlockTree) GetAllBlocks() []Hash {
 	defer bt.RUnlock()
 
 	return bt.root.getAllDescendants(nil)
+}
+
+// GetAllDescendants returns all block hashes that are descendants of the given block hash.
+func (bt *BlockTree) GetAllDescendants(hash common.Hash) ([]Hash, error) {
+	bt.RLock()
+	defer bt.RUnlock()
+
+	node := bt.getNode(hash)
+	if node == nil {
+		return nil, fmt.Errorf("%w: for block hash %s", ErrNodeNotFound, hash)
+	}
+
+	return node.getAllDescendants(nil), nil
 }
 
 // GetHashByNumber returns the block hash with the given number that is on the best chain.

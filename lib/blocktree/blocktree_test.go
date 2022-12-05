@@ -145,7 +145,7 @@ func createFlatTree(t *testing.T, number uint) (*BlockTree, []common.Hash) {
 	return bt, hashes
 }
 
-func TestNewBlockTreeFromNode(t *testing.T) {
+func Test_NewBlockTreeFromNode(t *testing.T) {
 	var bt *BlockTree
 	var branches []testBranch
 
@@ -163,7 +163,7 @@ func TestNewBlockTreeFromNode(t *testing.T) {
 	require.ElementsMatch(t, leaves, newBt.leaves.nodes())
 }
 
-func TestBlockTree_GetBlock(t *testing.T) {
+func Test_BlockTree_GetBlock(t *testing.T) {
 	bt, hashes := createFlatTree(t, 2)
 
 	n := bt.getNode(hashes[2])
@@ -177,7 +177,7 @@ func TestBlockTree_GetBlock(t *testing.T) {
 
 }
 
-func TestBlockTree_AddBlock(t *testing.T) {
+func Test_BlockTree_AddBlock(t *testing.T) {
 	bt, hashes := createFlatTree(t, 1)
 
 	header := &types.Header{
@@ -203,7 +203,7 @@ func TestBlockTree_AddBlock(t *testing.T) {
 	}
 }
 
-func TestNode_isDecendantOf(t *testing.T) {
+func Test_Node_isDecendantOf(t *testing.T) {
 	// Create tree with number 4 (with 4 nodes)
 	bt, hashes := createFlatTree(t, 4)
 
@@ -219,7 +219,7 @@ func TestNode_isDecendantOf(t *testing.T) {
 	}
 }
 
-func TestBlockTree_Subchain(t *testing.T) {
+func Test_BlockTree_Subchain(t *testing.T) {
 	bt, hashes := createFlatTree(t, 4)
 	expectedPath := hashes[1:]
 
@@ -246,7 +246,7 @@ func TestBlockTree_Subchain(t *testing.T) {
 	}
 }
 
-func TestBlockTree_Best_AllPrimary(t *testing.T) {
+func Test_BlockTree_Best_AllPrimary(t *testing.T) {
 	arrivalTime := int64(256)
 	var expected Hash
 
@@ -268,7 +268,7 @@ func TestBlockTree_Best_AllPrimary(t *testing.T) {
 	require.Equal(t, expected, bt.best().hash)
 }
 
-func TestBlockTree_GetNode(t *testing.T) {
+func Test_BlockTree_GetNode(t *testing.T) {
 	bt, branches := createTestBlockTree(t, testHeader, 16)
 
 	for _, branch := range branches {
@@ -287,7 +287,7 @@ func TestBlockTree_GetNode(t *testing.T) {
 	require.NotNil(t, block)
 }
 
-func TestBlockTree_GetAllBlocksAtNumber(t *testing.T) {
+func Test_BlockTree_GetAllBlocksAtNumber(t *testing.T) {
 	bt, _ := createTestBlockTree(t, testHeader, 8)
 	hashes := bt.root.getNodesWithNumber(10, []common.Hash{})
 
@@ -347,7 +347,18 @@ func TestBlockTree_GetAllBlocksAtNumber(t *testing.T) {
 	require.Equal(t, expected, hashes)
 }
 
-func TestBlockTree_IsDecendantOf(t *testing.T) {
+func Test_BlockTree_GetAllDescendants(t *testing.T) {
+	t.Parallel()
+
+	// Create tree with number 4 (with 4 nodes)
+	bt, hashes := createFlatTree(t, 4)
+
+	descendants, err := bt.GetAllDescendants(bt.root.hash)
+	require.NoError(t, err)
+	require.Equal(t, hashes, descendants)
+}
+
+func Test_BlockTree_IsDecendantOf(t *testing.T) {
 	// Create tree with number 4 (with 4 nodes)
 	bt, hashes := createFlatTree(t, 4)
 
@@ -360,7 +371,121 @@ func TestBlockTree_IsDecendantOf(t *testing.T) {
 	require.False(t, isDescendant)
 }
 
-func TestBlockTree_HighestCommonAncestor(t *testing.T) {
+func Test_lowestCommonAncestor(t *testing.T) {
+	t.Parallel()
+	root := &node{
+		hash:   common.Hash{0},
+		number: 0,
+	}
+
+	children := []*node{
+		{
+			hash:      common.Hash{1},
+			parent:    root,
+			isPrimary: true,
+			number:    1,
+		},
+		{
+			hash:      common.Hash{2},
+			parent:    root,
+			isPrimary: false,
+			number:    1,
+		},
+	}
+
+	childrenChildren := []*node{
+		{
+			hash:      common.Hash{3},
+			parent:    children[0],
+			isPrimary: true,
+			number:    2,
+		},
+		{
+			hash:      common.Hash{4},
+			parent:    children[1],
+			isPrimary: false,
+			number:    2,
+		},
+	}
+	finalChild := []*node{
+		{
+			hash:      common.Hash{5},
+			parent:    childrenChildren[1],
+			isPrimary: true,
+			number:    3,
+		},
+	}
+
+	type args struct {
+		nodeA *node
+		nodeB *node
+	}
+	tests := []struct {
+		name   string
+		args   args
+		expErr error
+		expRes Hash
+	}{
+		{
+			name: "child and root",
+			args: args{
+				nodeA: children[1],
+				nodeB: root,
+			},
+			expRes: root.hash,
+		},
+		{
+			name: "same node",
+			args: args{
+				nodeA: children[1],
+				nodeB: children[1],
+			},
+			expRes: children[1].hash,
+		},
+		{
+			name: "siblings",
+			args: args{
+				nodeA: children[0],
+				nodeB: children[1],
+			},
+			expRes: root.hash,
+		},
+		{
+			name: "child and its child",
+			args: args{
+				nodeA: children[0],
+				nodeB: childrenChildren[0],
+			},
+			expRes: children[0].hash,
+		},
+		{
+			name: "root and grandchild",
+			args: args{
+				nodeA: root,
+				nodeB: childrenChildren[0],
+			},
+			expRes: root.hash,
+		},
+		{
+			name: "grandchild and its siblings child",
+			args: args{
+				nodeA: finalChild[0],
+				nodeB: childrenChildren[0],
+			},
+			expRes: root.hash,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			ancestor := lowestCommonAncestor(tt.args.nodeA, tt.args.nodeB)
+			require.Equal(t, tt.expRes, ancestor)
+		})
+	}
+}
+
+func Test_BlockTree_LowestCommonAncestor(t *testing.T) {
 	var bt *BlockTree
 	var leaves []common.Hash
 	var branches []testBranch
@@ -378,23 +503,23 @@ func TestBlockTree_HighestCommonAncestor(t *testing.T) {
 	a := leaves[0]
 	b := leaves[1]
 
-	p, err := bt.HighestCommonAncestor(a, b)
+	p, err := bt.LowestCommonAncestor(a, b)
 	require.NoError(t, err)
 	require.Equal(t, expected, p)
 }
 
-func TestBlockTree_HighestCommonAncestor_SameNode(t *testing.T) {
+func Test_BlockTree_LowestCommonAncestor_SameNode(t *testing.T) {
 	bt, _ := createTestBlockTree(t, testHeader, 8)
 	leaves := bt.Leaves()
 
 	a := leaves[0]
 
-	p, err := bt.HighestCommonAncestor(a, a)
+	p, err := bt.LowestCommonAncestor(a, a)
 	require.NoError(t, err)
 	require.Equal(t, a, p)
 }
 
-func TestBlockTree_HighestCommonAncestor_SameChain(t *testing.T) {
+func Test_BlockTree_LowestCommonAncestor_SameChain(t *testing.T) {
 	bt, _ := createTestBlockTree(t, testHeader, 8)
 	leaves := bt.Leaves()
 
@@ -402,12 +527,12 @@ func TestBlockTree_HighestCommonAncestor_SameChain(t *testing.T) {
 	b := bt.getNode(a).parent.hash
 
 	// b is a's parent, so their highest common Ancestor is b.
-	p, err := bt.HighestCommonAncestor(a, b)
+	p, err := bt.LowestCommonAncestor(a, b)
 	require.NoError(t, err)
 	require.Equal(t, b, p)
 }
 
-func TestBlockTree_Prune(t *testing.T) {
+func Test_BlockTree_Prune(t *testing.T) {
 	var bt *BlockTree
 	var branches []testBranch
 
@@ -442,7 +567,7 @@ func TestBlockTree_Prune(t *testing.T) {
 	}
 }
 
-func TestBlockTree_GetHashByNumber(t *testing.T) {
+func Test_BlockTree_GetHashByNumber(t *testing.T) {
 	bt, _ := createTestBlockTree(t, testHeader, 8)
 	best := bt.BestBlockHash()
 	bn := bt.getNode(best)
@@ -460,7 +585,7 @@ func TestBlockTree_GetHashByNumber(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestBlockTree_BestBlockHash_AllChainsEqual(t *testing.T) {
+func Test_BlockTree_BestBlockHash_AllChainsEqual(t *testing.T) {
 	bt := NewBlockTreeFromRoot(testHeader)
 	previousHash := testHeader.Hash()
 
@@ -566,7 +691,7 @@ func TestBlockTree_BestBlockHash_AllChainsEqual(t *testing.T) {
 	require.Equal(t, hash, bt.best().hash)
 }
 
-func TestBlockTree_DeepCopy(t *testing.T) {
+func Test_BlockTree_DeepCopy(t *testing.T) {
 	bt, _ := createFlatTree(t, 8)
 
 	btCopy := bt.DeepCopy()
@@ -603,7 +728,7 @@ func equalLeaves(t *testing.T, lm *leafMap, lmCopy *leafMap) {
 	}
 }
 
-func TestBlockTree_best(t *testing.T) {
+func Test_BlockTree_best(t *testing.T) {
 	// test basic case where two chains have different amount of primaries
 	bt := NewEmptyBlockTree()
 	bt.root = &node{

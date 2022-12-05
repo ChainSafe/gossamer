@@ -1,0 +1,240 @@
+//go:build integration
+
+// Copyright 2022 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
+package grandpa
+
+import (
+	"testing"
+
+	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/pkg/scale"
+
+	"github.com/stretchr/testify/require"
+)
+
+func TestCommitMessageEncode(t *testing.T) {
+	t.Parallel()
+
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
+	exp := common.MustHexToBytes("0x4d0000000000000000000000000000007db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a00000000040a0b0c0d00000000000000000000000000000000000000000000000000000000e7030000040102030400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000088dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee") //nolint:lll
+
+	gs, st := newTestService(t, aliceKeyPair)
+	just := []SignedVote{
+		{
+			Vote:        *testVote,
+			Signature:   testSignature,
+			AuthorityID: gs.publicKeyBytes(),
+		},
+	}
+	err = st.Grandpa.SetPrecommits(77, gs.state.setID, just)
+	require.NoError(t, err)
+
+	fm, err := gs.newCommitMessage(gs.head, 77, 0)
+	require.NoError(t, err)
+	precommits, authData := justificationToCompact(just)
+
+	expected := CommitMessage{
+		Round:      77,
+		Vote:       *NewVoteFromHeader(gs.head),
+		Precommits: precommits,
+		AuthData:   authData,
+	}
+
+	enc, err := scale.Marshal(*fm)
+	require.NoError(t, err)
+	require.Equal(t, exp, enc)
+
+	msg := CommitMessage{}
+	err = scale.Unmarshal(enc, &msg)
+	require.NoError(t, err)
+	require.Equal(t, expected, msg)
+}
+
+func TestVoteMessageToConsensusMessage(t *testing.T) {
+	t.Parallel()
+
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
+	gs, st := newTestService(t, aliceKeyPair)
+
+	v, err := NewVoteFromHash(st.Block.BestBlockHash(), st.Block)
+	require.NoError(t, err)
+
+	gs.state.setID = 99
+	gs.state.round = 77
+	v.Number = 0x7777
+
+	// test precommit
+	_, vm, err := gs.createSignedVoteAndVoteMessage(v, precommit)
+	require.NoError(t, err)
+	vm.Message.Signature = [64]byte{}
+
+	expected := &VoteMessage{
+		Round: gs.state.round,
+		SetID: gs.state.setID,
+		Message: SignedMessage{
+			Stage:       precommit,
+			BlockHash:   v.Hash,
+			Number:      v.Number,
+			AuthorityID: gs.keypair.Public().(*ed25519.PublicKey).AsBytes(),
+		},
+	}
+
+	require.Equal(t, expected, vm)
+
+	// test prevote
+	_, vm, err = gs.createSignedVoteAndVoteMessage(v, prevote)
+	require.NoError(t, err)
+	vm.Message.Signature = [64]byte{}
+
+	expected = &VoteMessage{
+		Round: gs.state.round,
+		SetID: gs.state.setID,
+		Message: SignedMessage{
+			Stage:       prevote,
+			BlockHash:   v.Hash,
+			Number:      v.Number,
+			AuthorityID: gs.keypair.Public().(*ed25519.PublicKey).AsBytes(),
+		},
+	}
+
+	require.Equal(t, expected, vm)
+}
+
+func TestCommitMessageToConsensusMessage(t *testing.T) {
+	t.Parallel()
+
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
+	gs, st := newTestService(t, aliceKeyPair)
+
+	just := []SignedVote{
+		{
+			Vote:        *testVote,
+			Signature:   testSignature,
+			AuthorityID: gs.publicKeyBytes(),
+		},
+	}
+	err = st.Grandpa.SetPrecommits(77, gs.state.setID, just)
+	require.NoError(t, err)
+
+	fm, err := gs.newCommitMessage(gs.head, 77, 0)
+	require.NoError(t, err)
+	precommits, authData := justificationToCompact(just)
+
+	expected := &CommitMessage{
+		Round:      77,
+		Vote:       *NewVoteFromHeader(gs.head),
+		Precommits: precommits,
+		AuthData:   authData,
+	}
+
+	require.Equal(t, expected, fm)
+}
+
+func TestNewCatchUpResponse(t *testing.T) {
+	t.Parallel()
+
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
+	gs, st := newTestService(t, aliceKeyPair)
+
+	round := uint64(1)
+	setID := uint64(1)
+
+	digest := types.NewDigest()
+	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest.Add(*prd)
+	require.NoError(t, err)
+	block := &types.Block{
+		Header: types.Header{
+			ParentHash: testGenesisHeader.Hash(),
+			Number:     1,
+			Digest:     digest,
+		},
+		Body: types.Body{},
+	}
+
+	hash := block.Header.Hash()
+	v := &Vote{
+		Hash:   hash,
+		Number: 1,
+	}
+
+	err = st.Block.AddBlock(block)
+	require.NoError(t, err)
+
+	err = gs.blockState.SetFinalisedHash(hash, round, setID)
+	require.NoError(t, err)
+	err = gs.blockState.(*state.BlockState).SetHeader(testHeader)
+	require.NoError(t, err)
+
+	pvj := []SignedVote{
+		{
+			Vote:        *testVote,
+			Signature:   testSignature,
+			AuthorityID: testAuthorityID,
+		},
+	}
+
+	pcj := []SignedVote{
+		{
+			Vote:        *testVote2,
+			Signature:   testSignature,
+			AuthorityID: testAuthorityID,
+		},
+	}
+
+	err = gs.grandpaState.SetPrevotes(round, setID, pvj)
+	require.NoError(t, err)
+	err = gs.grandpaState.SetPrecommits(round, setID, pcj)
+	require.NoError(t, err)
+
+	resp, err := gs.newCatchUpResponse(round, setID)
+	require.NoError(t, err)
+
+	expected := &CatchUpResponse{
+		Round:                  round,
+		SetID:                  setID,
+		PreVoteJustification:   pvj,
+		PreCommitJustification: pcj,
+		Hash:                   v.Hash,
+		Number:                 v.Number,
+	}
+
+	require.Equal(t, expected, resp)
+}
+
+func TestNeighbourMessageToConsensusMessage(t *testing.T) {
+	t.Parallel()
+	msg := &NeighbourPacketV1{
+		Round:  2,
+		SetID:  3,
+		Number: 255,
+	}
+
+	cm, err := msg.ToConsensusMessage()
+	require.NoError(t, err)
+
+	expected := &ConsensusMessage{
+		Data: common.MustHexToBytes("0x020102000000000000000300000000000000ff000000"),
+	}
+
+	require.Equal(t, expected, cm)
+}

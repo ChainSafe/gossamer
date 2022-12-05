@@ -323,7 +323,17 @@ func Test_decodeState_decodeVaryingDataType(t *testing.T) {
 				return
 			}
 			vdt := tt.in.(VaryingDataType)
-			diff := cmp.Diff(dst.Value(), vdt.Value(), cmpopts.IgnoreUnexported(big.Int{}, VDTValue2{}, MyStructWithIgnore{}))
+			dstVal, err := dst.Value()
+			if err != nil {
+				t.Errorf("%v", err)
+				return
+			}
+			vdtVal, err := vdt.Value()
+			if err != nil {
+				t.Errorf("%v", err)
+				return
+			}
+			diff := cmp.Diff(dstVal, vdtVal, cmpopts.IgnoreUnexported(big.Int{}, VDTValue2{}, MyStructWithIgnore{}))
 			if diff != "" {
 				t.Errorf("decodeState.unmarshal() = %s", diff)
 			}
@@ -366,7 +376,17 @@ func Test_decodeState_decodeCustomVaryingDataType(t *testing.T) {
 
 			dstVDT := reflect.ValueOf(tt.in).Convert(reflect.TypeOf(VaryingDataType{})).Interface().(VaryingDataType)
 			inVDT := reflect.ValueOf(tt.in).Convert(reflect.TypeOf(VaryingDataType{})).Interface().(VaryingDataType)
-			diff := cmp.Diff(dstVDT.Value(), inVDT.Value(),
+			dstVDTVal, err := dstVDT.Value()
+			if err != nil {
+				t.Errorf("%v", err)
+				return
+			}
+			inVDTVal, err := inVDT.Value()
+			if err != nil {
+				t.Errorf("%v", err)
+				return
+			}
+			diff := cmp.Diff(dstVDTVal, inVDTVal,
 				cmpopts.IgnoreUnexported(big.Int{}, VDTValue2{}, MyStructWithIgnore{}))
 			if diff != "" {
 				t.Errorf("decodeState.unmarshal() = %s", diff)

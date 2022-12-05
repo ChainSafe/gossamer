@@ -42,7 +42,7 @@ func (s *Service) sendTelemetryVoteMessage(vm *VoteMessage) {
 			),
 		)
 	default:
-		logger.Warnf("unsupported stage %s", vm.Message.Stage.String())
+		logger.Warnf("unsupported stage %s", vm.Message.Stage)
 	}
 }
 
@@ -62,11 +62,11 @@ func (s *Service) createSignedVoteAndVoteMessage(vote *Vote, stage Subround) (*S
 		return nil, nil, err
 	}
 
-	publicBytes := s.keypair.Public().(*ed25519.PublicKey).AsBytes()
+	publicKeyBytes := s.keypair.Public().(*ed25519.PublicKey).AsBytes()
 	pc := &SignedVote{
 		Vote:        *vote,
 		Signature:   ed25519.NewSignatureBytes(sig),
-		AuthorityID: publicBytes,
+		AuthorityID: publicKeyBytes,
 	}
 
 	sm := &SignedMessage{
@@ -74,7 +74,7 @@ func (s *Service) createSignedVoteAndVoteMessage(vote *Vote, stage Subround) (*S
 		BlockHash:   pc.Vote.Hash,
 		Number:      pc.Vote.Number,
 		Signature:   ed25519.NewSignatureBytes(sig),
-		AuthorityID: publicBytes,
+		AuthorityID: publicKeyBytes,
 	}
 
 	vm := &VoteMessage{
@@ -147,7 +147,7 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 		// send finalised block from previous round to network
 		msg, err := cm.ToConsensusMessage()
 		if err != nil {
-			return nil, fmt.Errorf("transforming into consensus message: %w", err)
+			return nil, fmt.Errorf("converting commit message to consensus message: %w", err)
 		}
 
 		if err = s.network.SendMessage(from, msg); err != nil {
@@ -155,14 +155,16 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 		}
 
 		// TODO: get justification if your round is lower, or just do catch-up? (#1815)
-		return nil, fmt.Errorf("%w: got %d, want %d", errRoundsMismatch, m.Round, s.state.round)
+		return nil, fmt.Errorf("%w: received round %d but state round is %d",
+			errRoundsMismatch, m.Round, s.state.round)
 	} else if m.Round > s.state.round {
 
 		// Message round is higher by 1 than the round of our state,
 		// we may be lagging behind, so store the message in the tracker
 		// for processing later in the coming few milliseconds.
 		s.tracker.addVote(from, m)
-		return nil, fmt.Errorf("%w: got %d, want %d", errRoundsMismatch, m.Round, s.state.round)
+		return nil, fmt.Errorf("%w: received round %d but state round is %d",
+			errRoundsMismatch, m.Round, s.state.round)
 	}
 
 	// check for equivocation ie. multiple votes within one subround

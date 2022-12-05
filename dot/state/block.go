@@ -250,6 +250,37 @@ func (bs *BlockState) GetHashByNumber(num uint) (common.Hash, error) {
 	return common.NewHash(bh), nil
 }
 
+// GetBlockHashesBySlot gets all block hashes that were produced in the given slot.
+func (bs *BlockState) GetBlockHashesBySlot(slotNum uint64) ([]common.Hash, error) {
+	highestFinalisedHash, err := bs.GetHighestFinalisedHash()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get highest finalised hash: %w", err)
+	}
+
+	descendants, err := bs.bt.GetAllDescendants(highestFinalisedHash)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get descendants: %w", err)
+	}
+
+	blocksWithGivenSlot := []common.Hash{}
+
+	for _, desc := range descendants {
+		descSlot, err := bs.GetSlotForBlock(desc)
+		if errors.Is(err, types.ErrGenesisHeader) {
+			continue
+		}
+		if err != nil {
+			return nil, fmt.Errorf("could not get slot for block: %w", err)
+		}
+
+		if descSlot == slotNum {
+			blocksWithGivenSlot = append(blocksWithGivenSlot, desc)
+		}
+	}
+
+	return blocksWithGivenSlot, nil
+}
+
 // GetHeaderByNumber returns the block header on our best chain with the given number
 func (bs *BlockState) GetHeaderByNumber(num uint) (*types.Header, error) {
 	hash, err := bs.GetHashByNumber(num)
@@ -505,7 +536,7 @@ func (bs *BlockState) BestBlock() (*types.Block, error) {
 func (bs *BlockState) GetSlotForBlock(hash common.Hash) (uint64, error) {
 	header, err := bs.GetHeader(hash)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("getting header for hash %s: %w", hash, err)
 	}
 
 	return types.GetSlotFromHeader(header)
@@ -530,9 +561,9 @@ func (bs *BlockState) IsDescendantOf(parent, child common.Hash) (bool, error) {
 	return bs.bt.IsDescendantOf(parent, child)
 }
 
-// HighestCommonAncestor returns the block with the highest number that is an ancestor of both a and b
-func (bs *BlockState) HighestCommonAncestor(a, b common.Hash) (common.Hash, error) {
-	return bs.bt.HighestCommonAncestor(a, b)
+// LowestCommonAncestor returns the lowest common ancestor between two blocks in the tree.
+func (bs *BlockState) LowestCommonAncestor(a, b common.Hash) (common.Hash, error) {
+	return bs.bt.LowestCommonAncestor(a, b)
 }
 
 // Leaves returns the leaves of the blocktree as an array
@@ -638,17 +669,9 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 	return nil
 }
 
-// GetRuntime gets the runtime for the corresponding block hash.
-func (bs *BlockState) GetRuntime(hash *common.Hash) (runtime.Instance, error) {
-	if hash == nil {
-		rt, err := bs.bt.GetBlockRuntime(bs.BestBlockHash())
-		if err != nil {
-			return nil, err
-		}
-		return rt, nil
-	}
-
-	return bs.bt.GetBlockRuntime(*hash)
+// GetRuntime gets the runtime instance pointer for the block hash given.
+func (bs *BlockState) GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error) {
+	return bs.bt.GetBlockRuntime(blockHash)
 }
 
 // StoreRuntime stores the runtime for corresponding block hash.

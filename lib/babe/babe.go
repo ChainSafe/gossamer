@@ -454,32 +454,65 @@ func (b *Service) handleEpoch(epoch uint64) (next uint64, err error) {
 	return next, nil
 }
 
-func (b *Service) handleSlot(epoch, slotNum uint64,
-	authorityIndex uint32,
-	preRuntimeDigest *types.PreRuntimeDigest,
-) error {
+func (b *Service) getParentForBlockAuthoring(slotNum uint64) (*types.Header, error) {
 	parentHeader, err := b.blockState.BestBlockHeader()
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("could not get best block header: %w", err)
 	}
 
 	if parentHeader == nil {
-		return errNilParentHeader
+		return nil, errNilParentHeader
+	}
+
+	atGenesisBlock := b.blockState.GenesisHash().Equal(parentHeader.Hash())
+	if !atGenesisBlock {
+		bestBlockSlotNum, err := b.blockState.GetSlotForBlock(parentHeader.Hash())
+		if err != nil {
+			return nil, fmt.Errorf("could not get slot for block: %w", err)
+		}
+
+		if bestBlockSlotNum > slotNum {
+			return nil, fmt.Errorf("%w: best block slot number is %d and got slot number %d",
+				errLaggingSlot, bestBlockSlotNum, slotNum)
+		}
+
+		if bestBlockSlotNum == slotNum {
+			// pick parent of best block instead to handle slot
+			newParentHeader, err := b.blockState.GetHeader(parentHeader.ParentHash)
+			if err != nil {
+				return nil, fmt.Errorf("could not get header: %w", err)
+			}
+			if newParentHeader == nil {
+				return nil, fmt.Errorf("%w: for block hash %s", errNilParentHeader, parentHeader.ParentHash)
+			}
+			parentHeader = newParentHeader
+		}
 	}
 
 	// there is a chance that the best block header may change in the course of building the block,
 	// so let's copy it first.
 	parent, err := parentHeader.DeepCopy()
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("could not create deep copy of parent header: %w", err)
 	}
 
+	return parent, nil
+}
+
+func (b *Service) handleSlot(epoch, slotNum uint64,
+	authorityIndex uint32,
+	preRuntimeDigest *types.PreRuntimeDigest,
+) error {
 	currentSlot := Slot{
 		start:    time.Now(),
 		duration: b.constants.slotDuration,
 		number:   slotNum,
 	}
 
+	parent, err := b.getParentForBlockAuthoring(slotNum)
+	if err != nil {
+		return fmt.Errorf("could not get parent for claiming slot %d: %w", slotNum, err)
+	}
 	b.storageState.Lock()
 	defer b.storageState.Unlock()
 
@@ -491,8 +524,7 @@ func (b *Service) handleSlot(epoch, slotNum uint64,
 		return err
 	}
 
-	hash := parent.Hash()
-	rt, err := b.blockState.GetRuntime(&hash)
+	rt, err := b.blockState.GetRuntime(parent.Hash())
 	if err != nil {
 		return err
 	}

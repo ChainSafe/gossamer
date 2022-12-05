@@ -22,17 +22,16 @@ type Header struct {
 
 // NewHeader creates a new block header and sets its hash field
 func NewHeader(parentHash, stateRoot, extrinsicsRoot common.Hash,
-	number uint, digest scale.VaryingDataTypeSlice) (*Header, error) {
-	bh := &Header{
+	number uint, digest scale.VaryingDataTypeSlice) (blockHeader *Header) {
+	blockHeader = &Header{
 		ParentHash:     parentHash,
 		Number:         number,
 		StateRoot:      stateRoot,
 		ExtrinsicsRoot: extrinsicsRoot,
 		Digest:         digest,
 	}
-
-	bh.Hash()
-	return bh, nil
+	blockHeader.Hash()
+	return blockHeader
 }
 
 // NewEmptyHeader returns a new header with all zero values
@@ -68,7 +67,11 @@ func (bh *Header) DeepCopy() (*Header, error) {
 	if len(bh.Digest.Types) > 0 {
 		cp.Digest = NewDigest()
 		for _, d := range bh.Digest.Types {
-			err := cp.Digest.Add(d.Value())
+			digestValue, err := d.Value()
+			if err != nil {
+				return nil, fmt.Errorf("getting digest type value: %w", err)
+			}
+			err = cp.Digest.Add(digestValue)
 			if err != nil {
 				return nil, err
 			}

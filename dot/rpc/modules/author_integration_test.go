@@ -6,6 +6,7 @@
 package modules
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -29,6 +30,12 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/pkg/scale"
+	cscale "github.com/centrifuge/go-substrate-rpc-client/v4/scale"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
+	ctypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
+
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -59,7 +66,7 @@ func useInstanceFromRuntimeV0910(t *testing.T, rtStorage *storage.TrieState) (in
 	bytes, err := os.ReadFile(testRuntimeFilePath)
 	require.NoError(t, err)
 
-	rtStorage.Set(common.CodeKey, bytes)
+	rtStorage.Put(common.CodeKey, bytes)
 
 	cfg := wasmer.Config{
 		Role:     0,
@@ -77,6 +84,48 @@ func useInstanceFromRuntimeV0910(t *testing.T, rtStorage *storage.TrieState) (in
 	require.NoError(t, err)
 
 	return runtimeInstance
+}
+
+func createExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, nonce uint64) types.Extrinsic {
+	t.Helper()
+	rawMeta, err := rt.Metadata()
+	require.NoError(t, err)
+
+	var decoded []byte
+	err = scale.Unmarshal(rawMeta, &decoded)
+	require.NoError(t, err)
+
+	meta := &ctypes.Metadata{}
+
+	err = codec.Decode(decoded, meta)
+	require.NoError(t, err)
+
+	runtimeVersion := rt.Version()
+
+	metaCall, err := ctypes.NewCall(meta, "System.remark", []byte{0xab, 0xcd})
+	require.NoError(t, err)
+
+	extrinsic := ctypes.NewExtrinsic(metaCall)
+	options := ctypes.SignatureOptions{
+		BlockHash:          ctypes.Hash(genHash),
+		Era:                ctypes.ExtrinsicEra{IsImmortalEra: false},
+		GenesisHash:        ctypes.Hash(genHash),
+		Nonce:              ctypes.NewUCompactFromUInt(nonce),
+		SpecVersion:        ctypes.U32(runtimeVersion.SpecVersion),
+		Tip:                ctypes.NewUCompactFromUInt(0),
+		TransactionVersion: ctypes.U32(runtimeVersion.TransactionVersion),
+	}
+
+	// Sign the transaction using Alice's key
+	err = extrinsic.Sign(signature.TestKeyringPairAlice, options)
+	require.NoError(t, err)
+
+	extEnc := bytes.NewBuffer(nil)
+	encoder := cscale.NewEncoder(extEnc)
+	err = extrinsic.Encode(*encoder)
+	require.NoError(t, err)
+
+	return extEnc.Bytes()
 }
 
 func TestAuthorModule_Pending_Integration(t *testing.T) {
@@ -181,7 +230,7 @@ func TestAuthorModule_SubmitExtrinsic_invalid(t *testing.T) {
 
 	res := new(ExtrinsicHashResponse)
 	err := auth.SubmitExtrinsic(nil, &Extrinsic{extHex}, res)
-	require.EqualError(t, err, runtime.ErrInvalidTransaction.Message)
+	require.EqualError(t, err, "ancient birth block")
 
 	txOnPool := integrationTestController.stateSrv.Transaction.PendingInPool()
 	require.Len(t, txOnPool, 0)
@@ -400,8 +449,6 @@ func TestAuthorModule_HasKey_Integration(t *testing.T) {
 
 func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 	t.Parallel()
-	integrationTestController := setupStateAndRuntime(t, t.TempDir(), useInstanceFromGenesis)
-	auth := newAuthorModule(t, integrationTestController)
 
 	const granSeed = "0xf25586ceb64a043d887631fa08c2ed790ef7ae3c7f28de5172005f8b9469e529"
 	const granPubK = "0x6b802349d948444d41397da09ec597fbd8ae8fdd3dfa153b2bb2bddcf020457c"
@@ -423,17 +470,6 @@ func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 			seed:  sr25519Seed,
 			pubk:  sr25519Pubk,
 		},
-	}
-
-	for _, toInsert := range insertSessionKeys {
-		for _, keytype := range toInsert.ktype {
-			err := auth.InsertKey(nil, &KeyInsertRequest{
-				Type:      keytype,
-				Seed:      toInsert.seed,
-				PublicKey: toInsert.pubk,
-			}, nil)
-			require.NoError(t, err)
-		}
 	}
 
 	testcases := map[string]struct {
@@ -478,6 +514,20 @@ func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 		tt := tt
 		t.Run(tname, func(t *testing.T) {
 			t.Parallel()
+
+			integrationTestController := setupStateAndRuntime(t, t.TempDir(), useInstanceFromGenesis)
+			auth := newAuthorModule(t, integrationTestController)
+			for _, toInsert := range insertSessionKeys {
+				for _, keytype := range toInsert.ktype {
+					err := auth.InsertKey(nil, &KeyInsertRequest{
+						Type:      keytype,
+						Seed:      toInsert.seed,
+						PublicKey: toInsert.pubk,
+					}, nil)
+					require.NoError(t, err)
+				}
+			}
+
 			req := HasSessionKeyRequest{
 				PublicKeys: tt.pubSessionKeys,
 			}
@@ -510,19 +560,11 @@ func TestAuthorModule_SubmitExtrinsic_WithVersion_V0910(t *testing.T) {
 	integrationTestController.stateSrv.Transaction = state.NewTransactionState(telemetryMock)
 
 	genesisHash := integrationTestController.genesisHeader.Hash()
-
-	extHex := runtime.NewTestExtrinsic(t,
-		integrationTestController.runtime, genesisHash, genesisHash, 1, "System.remark", []byte{0xab, 0xcd})
-
-	// to extrinsic works with a runtime version 0910 we need to
-	// append the block hash bytes at the end of the extrinsics
-	hashBytes := genesisHash.ToBytes()
-	extBytes := append(common.MustHexToBytes(extHex), hashBytes...)
-
-	extHex = common.BytesToHex(extBytes)
+	extrinsic := createExtrinsic(t, integrationTestController.runtime, genesisHash, 0)
+	extHex := common.BytesToHex(extrinsic)
 
 	net2test := NewMockNetwork(ctrl)
-	net2test.EXPECT().GossipMessage(&network.TransactionMessage{Extrinsics: []types.Extrinsic{extBytes}})
+	net2test.EXPECT().GossipMessage(&network.TransactionMessage{Extrinsics: []types.Extrinsic{extrinsic}})
 	integrationTestController.network = net2test
 
 	// setup auth module
@@ -532,16 +574,13 @@ func TestAuthorModule_SubmitExtrinsic_WithVersion_V0910(t *testing.T) {
 	err := auth.SubmitExtrinsic(nil, &Extrinsic{extHex}, res)
 	require.NoError(t, err)
 
-	expectedExtrinsic := types.NewExtrinsic(extBytes)
+	expectedExtrinsic := types.NewExtrinsic(extrinsic)
 	expected := &transaction.ValidTransaction{
 		Extrinsic: expectedExtrinsic,
 		Validity: &transaction.Validity{
 			Priority: 4295664014726,
-			Requires: [][]byte{
-				common.MustHexToBytes("0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d00000000"),
-			},
 			Provides: [][]byte{
-				common.MustHexToBytes("0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01000000"),
+				common.MustHexToBytes("0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d00000000"),
 			},
 			Longevity: 18446744073709551613,
 			Propagate: true,
@@ -571,7 +610,7 @@ type integrationTestController struct {
 func setupStateAndRuntime(t *testing.T, basepath string, useInstance useRuntimeInstace) *integrationTestController {
 	t.Helper()
 
-	gen, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	gen, genesisTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
@@ -591,7 +630,7 @@ func setupStateAndRuntime(t *testing.T, basepath string, useInstance useRuntimeI
 	state2test.UseMemDB()
 
 	state2test.Transaction = state.NewTransactionState(telemetryMock)
-	err := state2test.Initialise(gen, genesisHeader, genTrie)
+	err := state2test.Initialise(&gen, &genesisHeader, &genesisTrie)
 	require.NoError(t, err)
 
 	err = state2test.Start()
@@ -604,9 +643,9 @@ func setupStateAndRuntime(t *testing.T, basepath string, useInstance useRuntimeI
 	ks := keystore.NewGlobalKeystore()
 	net2test := NewMockNetwork(nil)
 	integrationTestController := &integrationTestController{
-		genesis:       gen,
-		genesisTrie:   genTrie,
-		genesisHeader: genesisHeader,
+		genesis:       &gen,
+		genesisTrie:   &genesisTrie,
+		genesisHeader: &genesisHeader,
 		stateSrv:      state2test,
 		storageState:  state2test.Storage,
 		keystore:      ks,
@@ -631,7 +670,7 @@ func setupStateAndPopulateTrieState(t *testing.T, basepath string,
 	useInstance useRuntimeInstace) *integrationTestController {
 	t.Helper()
 
-	gen, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	gen, genesisTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockClient(ctrl)
@@ -652,7 +691,7 @@ func setupStateAndPopulateTrieState(t *testing.T, basepath string,
 
 	state2test.Transaction = state.NewTransactionState(telemetryMock)
 
-	err := state2test.Initialise(gen, genesisHeader, genTrie)
+	err := state2test.Initialise(&gen, &genesisHeader, &genesisTrie)
 	require.NoError(t, err)
 
 	err = state2test.Start()
@@ -665,9 +704,9 @@ func setupStateAndPopulateTrieState(t *testing.T, basepath string,
 	net2test := NewMockNetwork(nil)
 	ks := keystore.NewGlobalKeystore()
 	integrationTestController := &integrationTestController{
-		genesis:       gen,
-		genesisTrie:   genTrie,
-		genesisHeader: genesisHeader,
+		genesis:       &gen,
+		genesisTrie:   &genesisTrie,
+		genesisHeader: &genesisHeader,
 		stateSrv:      state2test,
 		storageState:  state2test.Storage,
 		keystore:      ks,
@@ -698,8 +737,6 @@ func setupStateAndPopulateTrieState(t *testing.T, basepath string,
 
 	return integrationTestController
 }
-
-//go:generate mockgen -destination=mock_code_substituted_state_test.go -package modules github.com/ChainSafe/gossamer/dot/core CodeSubstitutedState
 
 func newAuthorModule(t *testing.T, integrationTestController *integrationTestController) *AuthorModule {
 	t.Helper()
