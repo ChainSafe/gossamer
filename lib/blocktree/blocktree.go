@@ -130,6 +130,56 @@ func (bt *BlockTree) GetAllBlocksAtNumber(hash common.Hash) (hashes []common.Has
 	return bt.root.getNodesWithNumber(number, hashes)
 }
 
+var ErrNilBlockInRange = errors.New("nil block in range")
+
+func (bt *BlockTree) RetrieveRange(startHash common.Hash, endHash common.Hash) (hashes []common.Hash, err error) {
+	endNode := bt.getNode(endHash)
+	if endNode == nil {
+		return nil, fmt.Errorf("%w: %s", ErrNodeNotFound, endHash)
+	}
+
+	// if we don't find the start hash in the blocktree
+	// that means it should be in the disk, so we retrieve
+	// as many nodes as we can, in other words we get all the
+	// block from the end hash till the bt.root inclusive
+	startNode := bt.getNode(startHash)
+	if startNode == nil {
+		startNode = bt.root
+	}
+
+	blocksInRange := endNode.number - startNode.number
+	hashes, err = accumulateHashesInDescedingOrder(blocksInRange, endNode, startNode.hash)
+	if err != nil {
+		return nil, fmt.Errorf("getting blocks in range: %w", err)
+	}
+
+	return hashes, nil
+}
+
+func accumulateHashesInDescedingOrder(blocksInRange uint, startPoint *node,
+	startHash common.Hash) (hashes []common.Hash, err error) {
+	hashes = make([]common.Hash, blocksInRange)
+	hashes[0] = startHash
+
+	for position := blocksInRange - 1; position >= 0; position-- {
+		respectiveHash := startPoint.hash
+
+		// we ensure we complete the range hitting the start hash
+		if position == 0 && respectiveHash == startHash {
+			break
+		}
+
+		hashes[position] = respectiveHash
+		startPoint = startPoint.parent
+
+		if startPoint == nil {
+			return nil, ErrNilBlockInRange
+		}
+	}
+
+	return hashes, nil
+}
+
 // getNode finds and returns a node based on its Hash. Returns nil if not found.
 func (bt *BlockTree) getNode(h Hash) (ret *node) {
 	if bt.root.hash == h {
@@ -237,7 +287,6 @@ func (bt *BlockTree) SubBlockchain(start, end Hash) ([]Hash, error) {
 		bc = append(bc, node.hash)
 	}
 	return bc, nil
-
 }
 
 // best returns the best node in the block tree using the fork choice rule.

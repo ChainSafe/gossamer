@@ -38,6 +38,7 @@ var (
 	messageQueuePrefix  = []byte("mqp") // messageQueuePrefix + hash -> message queue
 	justificationPrefix = []byte("jcp") // justificationPrefix + hash -> justification
 
+	errNilBlockTree = errors.New("blocktree is nil")
 	errNilBlockBody = errors.New("block body is nil")
 
 	syncedBlocksGauge = promauto.NewGauge(prometheus.GaugeOpts{
@@ -542,10 +543,126 @@ func (bs *BlockState) GetSlotForBlock(hash common.Hash) (uint64, error) {
 	return types.GetSlotFromHeader(header)
 }
 
+var (
+	errNotInDatabase    = errors.New("not in database")
+	errStartHashIsEmpty = errors.New("start hash is empty")
+	errEndHashIsEmpty   = errors.New("end hash is empty")
+)
+
+func (bs *BlockState) loadHeaderFromDisk(hash common.Hash) (header *types.Header, err error) {
+	startHeaderData, err := bs.db.Get(headerKey(hash))
+	if err != nil {
+		return nil, fmt.Errorf("querying database: %w", err)
+	}
+
+	header = types.NewEmptyHeader()
+	err = scale.Unmarshal(startHeaderData, header)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshaling start header: %w", err)
+	}
+
+	if header.Empty() {
+		return nil, fmt.Errorf("%w: %s", chaindb.ErrKeyNotFound, hash)
+	}
+
+	return header, nil
+}
+
+func (bs *BlockState) Range(startHash, endHash common.Hash) (hashes []common.Hash, err error) {
+	if bs.bt == nil {
+		return nil, errNilBlockTree
+	}
+
+	endHeader, err := bs.loadHeaderFromDisk(endHash)
+	if errors.Is(err, chaindb.ErrKeyNotFound) {
+		// end hash is not in the disk so we should lookup
+		// block that could be in memory and in the disk as well
+		return bs.retrieveRange(startHash, endHash)
+	} else if err != nil {
+		return nil, fmt.Errorf("getting range end hash: %w", err)
+	}
+
+	// end hash was found in the disk, that means all the blocks
+	// between start and end can be found in the disk
+	return bs.retrieveRangeFromDisk(startHash, endHeader)
+}
+
+func (bs *BlockState) retrieveRange(startHash, endHash common.Hash) (hashes []common.Hash, err error) {
+	inMemoryHashes, err := bs.bt.RetrieveRange(startHash, endHash)
+	if err != nil {
+		return nil, fmt.Errorf("retrieving range from in-memory blocktree: %w", err)
+	}
+
+	// if the first item is equal to the startHash that means we got the range
+	// from the in-memory blocktree
+	if inMemoryHashes[0] == startHash {
+		return inMemoryHashes, nil
+	}
+
+	// since we got as many blocks as we could from
+	// the block tree but still missing blocks to
+	// fullfill the range that means we should lookup in the
+	// disk we should lookup in the disk for the remaining ones
+	// the first item in the hashes array is the block tree root
+	// that is also persisted in the disk so we will start from
+	// its parent since it is already in the array
+	blockTreeRootHeader, err := bs.loadHeaderFromDisk(inMemoryHashes[0])
+	if err != nil {
+		return nil, fmt.Errorf("loading block tree root from disk: %w", err)
+	}
+
+	startingAtParentHeader, err := bs.loadHeaderFromDisk(blockTreeRootHeader.ParentHash)
+	if err != nil {
+		return nil, fmt.Errorf("range end should be in database: %w", err)
+	}
+
+	inDiskHashes, err := bs.retrieveRangeFromDisk(startHash, startingAtParentHeader)
+	if err != nil {
+		return nil, fmt.Errorf("retrieving range from disk: %w", err)
+	}
+
+	hashes = make([]common.Hash, 0, len(inMemoryHashes)+len(inDiskHashes))
+	hashes = append(inDiskHashes, inMemoryHashes...)
+
+	return hashes, nil
+}
+
+func (bs *BlockState) retrieveRangeFromDisk(startHash common.Hash, endHeader *types.Header) (hashes []common.Hash, err error) {
+	startHeader, err := bs.loadHeaderFromDisk(startHash)
+	if err != nil {
+		return nil, fmt.Errorf("range start should be in database: %w", err)
+	}
+
+	blocksInRange := endHeader.Number - startHeader.Number
+	hashes = make([]common.Hash, blocksInRange)
+
+	lastPosition := blocksInRange - 1
+	hashes[0] = startHash
+	hashes[lastPosition] = endHeader.Hash()
+
+	return retrieveHashAt(bs.loadHeaderFromDisk, hashes, endHeader.ParentHash, lastPosition-1)
+}
+
+func retrieveHashAt[
+	T func(common.Hash) (*types.Header, error)](
+	loader T, hashes []common.Hash, hashToLookup common.Hash, pos uint) ([]common.Hash, error) {
+	if pos == 0 {
+		return hashes, nil
+	}
+
+	respectiveHeader, err := loader(hashToLookup)
+	if err != nil {
+		return nil, fmt.Errorf("expected to be in disk: %w", err)
+	}
+
+	hashes[pos] = hashToLookup
+	return retrieveHashAt(loader, hashes, respectiveHeader.ParentHash, pos-1)
+}
+
 // SubChain returns the sub-blockchain between the starting hash and the ending hash using the block tree
 func (bs *BlockState) SubChain(start, end common.Hash) ([]common.Hash, error) {
 	if bs.bt == nil {
-		return nil, fmt.Errorf("blocktree is nil")
+		return nil, errNilBlockTree
 	}
 
 	return bs.bt.SubBlockchain(start, end)
@@ -555,7 +672,7 @@ func (bs *BlockState) SubChain(start, end common.Hash) ([]common.Hash, error) {
 // it returns an error if parent or child are not in the blocktree.
 func (bs *BlockState) IsDescendantOf(parent, child common.Hash) (bool, error) {
 	if bs.bt == nil {
-		return false, fmt.Errorf("blocktree is nil")
+		return false, errNilBlockTree
 	}
 
 	return bs.bt.IsDescendantOf(parent, child)
