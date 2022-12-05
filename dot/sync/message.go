@@ -74,7 +74,7 @@ func (s *Service) handleAscendingRequest(req *network.BlockRequestMessage) (*net
 	endNumber = startNumber + max - 1
 	bestBlockNumber, err := s.blockState.BestBlockNumber()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get best block %d for request: %w", bestBlockNumber, err)
+		return nil, fmt.Errorf("getting best block number for request: %w", err)
 	}
 
 	if endNumber > bestBlockNumber {
@@ -158,7 +158,7 @@ func (s *Service) handleDescendingRequest(req *network.BlockRequestMessage) (*ne
 		// need to get blocks by subchain if start hash is provided, get end hash
 		endHeader, err := s.blockState.GetHeaderByNumber(endNumber)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get end block %d for request: %w", endNumber, err)
+			return nil, fmt.Errorf("getting end block %d for request: %w", endNumber, err)
 		}
 
 		hash := endHeader.Hash()

@@ -1,4 +1,4 @@
-// Copyright 2021 ChainSafe Systems (ON)
+// Copyright 2022 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
 // Schema definition for block request/response messages.
@@ -90,8 +90,7 @@ type BlockRequest struct {
 	FromBlock isBlockRequest_FromBlock `protobuf_oneof:"from_block"`
 	// Sequence direction.
 	Direction Direction `protobuf:"varint,5,opt,name=direction,proto3,enum=api.v1.Direction" json:"direction,omitempty"`
-	// Maximum number of blocks to return. An implementation defined maximum is
-	// used when unspecified.
+	// Maximum number of blocks to return. An implementation defined maximum is used when unspecified.
 	MaxBlocks uint32 `protobuf:"varint,6,opt,name=max_blocks,json=maxBlocks,proto3" json:"max_blocks,omitempty"` // optional
 }
 
@@ -255,9 +254,9 @@ type BlockData struct {
 	// Justification if requested.
 	Justification []byte `protobuf:"bytes,6,opt,name=justification,proto3" json:"justification,omitempty"` // optional
 	// True if justification should be treated as present but empty.
-	// This hack is unfortunately necessary because shortcomings in the protobuf
-	// format otherwise doesn't make in possible to differentiate between a lack
-	// of justification and an empty justification.
+	// This hack is unfortunately necessary because shortcomings in the protobuf format otherwise
+	// doesn't make in possible to differentiate between a lack of justification and an empty
+	// justification.
 	IsEmptyJustification bool `protobuf:"varint,7,opt,name=is_empty_justification,json=isEmptyJustification,proto3" json:"is_empty_justification,omitempty"` // optional, false if absent
 }
 
