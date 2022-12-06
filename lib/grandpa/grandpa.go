@@ -901,8 +901,6 @@ func (s *Service) getPossibleSelectedBlocks(stage Subround, threshold uint64) (m
 			return nil, err
 		}
 
-		// TODO: if a block reaches enough threshold then should we
-		// return from here since the others didn't reach the same amount of votes
 		if total > threshold {
 			blocks[v.Hash] = v.Number
 		}
@@ -925,9 +923,6 @@ func (s *Service) getPossibleSelectedBlocks(stage Subround, threshold uint64) (m
 		}
 	}
 
-	// we should check if the blocks map contains only
-	// one element, meaning that one common ancestor
-	// was found otherwise return an error
 	return blocks, nil
 }
 
@@ -949,8 +944,6 @@ func (s *Service) getPossibleSelectedAncestors(votes []Vote, curr common.Hash,
 			return nil, err
 		}
 
-		// if the common ancestor is the same as
-		// the current  block, should we just continue?
 		if pred == curr {
 			return selected, nil
 		}
