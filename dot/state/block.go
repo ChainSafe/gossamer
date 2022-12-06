@@ -53,7 +53,6 @@ var (
 type BlockState struct {
 	bt        *blocktree.BlockTree
 	baseState *BaseState
-	dbPath    string
 	db        BlockStateDatabase
 	sync.RWMutex
 	genesisHash       common.Hash
@@ -73,11 +72,11 @@ type BlockState struct {
 }
 
 // NewBlockState will create a new BlockState backed by the database located at basePath
-func NewBlockState(db *chaindb.BadgerDB, trs *Tries, telemetry Telemetry) (*BlockState, error) {
-	bs := &BlockState{
-		dbPath:                     db.Path(),
-		baseState:                  NewBaseState(db),
-		db:                         chaindb.NewTable(db, blockPrefix),
+func NewBlockState(db BlockStateDatabase, baseState *BaseState,
+	trs *Tries, telemetry Telemetry) (bs *BlockState, err error) {
+	bs = &BlockState{
+		baseState:                  baseState,
+		db:                         db,
 		unfinalisedBlocks:          newHashToBlockMap(),
 		tries:                      trs,
 		imported:                   make(map[chan *types.Block]struct{}),

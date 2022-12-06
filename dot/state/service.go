@@ -115,8 +115,9 @@ func (s *Service) Start() (err error) {
 	tries := NewTries()
 	tries.SetEmptyTrie()
 
-	// create block state
-	s.Block, err = NewBlockState(s.db, tries, s.Telemetry)
+	blockStateDB := chaindb.NewTable(s.db, blockPrefix)
+	baseState := NewBaseState(s.db)
+	s.Block, err = NewBlockState(blockStateDB, baseState, tries, s.Telemetry)
 	if err != nil {
 		return fmt.Errorf("failed to create block state: %w", err)
 	}
