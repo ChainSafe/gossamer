@@ -44,7 +44,7 @@ require (
 	github.com/wasmerio/go-ext-wasm v0.3.2-0.20200326095750-0a32be6068ec
 	golang.org/x/crypto v0.0.0-20220518034528-6f7dac969898
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
-	golang.org/x/text v0.4.0
+	golang.org/x/text v0.5.0
 	google.golang.org/protobuf v1.28.1
 )
 
