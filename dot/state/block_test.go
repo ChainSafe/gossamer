@@ -752,7 +752,9 @@ func TestRange(t *testing.T) {
 
 				db := NewInMemoryDB(t)
 
-				blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+				baseState := NewBaseState(db)
+				blockState, err := NewBlockStateFromGenesis(db, baseState,
+					newTriesEmpty(), genesisHeader, telemetryMock)
 				require.NoError(t, err)
 
 				return blockState
@@ -782,7 +784,9 @@ func TestRange(t *testing.T) {
 
 				db := NewInMemoryDB(t)
 
-				blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+				baseState := NewBaseState(db)
+				blockState, err := NewBlockStateFromGenesis(db, baseState,
+					newTriesEmpty(), genesisHeader, telemetryMock)
 				require.NoError(t, err)
 
 				return blockState
@@ -811,8 +815,9 @@ func TestRange(t *testing.T) {
 				telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 				db := NewInMemoryDB(t)
-
-				blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+				baseState := NewBaseState(db)
+				blockState, err := NewBlockStateFromGenesis(db, baseState,
+					newTriesEmpty(), genesisHeader, telemetryMock)
 				require.NoError(t, err)
 
 				return blockState
@@ -843,7 +848,9 @@ func TestRange(t *testing.T) {
 				telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 				db := NewInMemoryDB(t)
-				blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+				baseState := NewBaseState(db)
+				blockState, err := NewBlockStateFromGenesis(db, baseState,
+					newTriesEmpty(), genesisHeader, telemetryMock)
 
 				mockedDb := NewMockBlockStateDatabase(ctrl)
 				// cannot assert the exact hash type since the block header
@@ -878,8 +885,9 @@ func TestRange(t *testing.T) {
 				telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 				db := NewInMemoryDB(t)
-
-				blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+				baseState := NewBaseState(db)
+				blockState, err := NewBlockStateFromGenesis(db, baseState,
+					newTriesEmpty(), genesisHeader, telemetryMock)
 				require.NoError(t, err)
 
 				return blockState
@@ -910,8 +918,9 @@ func TestRange(t *testing.T) {
 				telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 				db := NewInMemoryDB(t)
-
-				blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+				baseState := NewBaseState(db)
+				blockState, err := NewBlockStateFromGenesis(db, baseState,
+					newTriesEmpty(), genesisHeader, telemetryMock)
 				require.NoError(t, err)
 
 				return blockState
@@ -943,8 +952,9 @@ func TestRange(t *testing.T) {
 				telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 				db := NewInMemoryDB(t)
-
-				blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+				baseState := NewBaseState(db)
+				blockState, err := NewBlockStateFromGenesis(db, baseState,
+					newTriesEmpty(), genesisHeader, telemetryMock)
 				require.NoError(t, err)
 
 				return blockState
@@ -976,8 +986,9 @@ func TestRange(t *testing.T) {
 				telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 				db := NewInMemoryDB(t)
-
-				blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+				baseState := NewBaseState(db)
+				blockState, err := NewBlockStateFromGenesis(db, baseState,
+					newTriesEmpty(), genesisHeader, telemetryMock)
 				require.NoError(t, err)
 
 				return blockState
@@ -1074,8 +1085,9 @@ func Test_loadHeaderFromDisk_WithGenesisBlock(t *testing.T) {
 		StateRoot: trie.EmptyHash,
 		Digest:    types.NewDigest(),
 	}
-
-	blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+	baseState := NewBaseState(db)
+	blockState, err := NewBlockStateFromGenesis(db, baseState,
+		newTriesEmpty(), genesisHeader, telemetryMock)
 	require.NoError(t, err)
 
 	header, err := blockState.loadHeaderFromDatabase(genesisHeader.Hash())

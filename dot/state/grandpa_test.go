@@ -28,8 +28,13 @@ var (
 	}
 )
 
-func TestNewGrandpaStateFromGenesis(t *testing.T) {
+func newInMemoryGrandpaDatabase(t *testing.T) chaindb.Database {
 	db := NewInMemoryDB(t)
+	return chaindb.NewTable(db, grandpaPrefix)
+}
+
+func TestNewGrandpaStateFromGenesis(t *testing.T) {
+	db := newInMemoryGrandpaDatabase(t)
 	gs, err := NewGrandpaStateFromGenesis(db, nil, testAuths)
 	require.NoError(t, err)
 
@@ -47,7 +52,7 @@ func TestNewGrandpaStateFromGenesis(t *testing.T) {
 }
 
 func TestGrandpaState_SetNextChange(t *testing.T) {
-	db := NewInMemoryDB(t)
+	db := newInMemoryGrandpaDatabase(t)
 	gs, err := NewGrandpaStateFromGenesis(db, nil, testAuths)
 	require.NoError(t, err)
 
@@ -64,7 +69,7 @@ func TestGrandpaState_SetNextChange(t *testing.T) {
 }
 
 func TestGrandpaState_IncrementSetID(t *testing.T) {
-	db := NewInMemoryDB(t)
+	db := newInMemoryGrandpaDatabase(t)
 	gs, err := NewGrandpaStateFromGenesis(db, nil, testAuths)
 	require.NoError(t, err)
 
@@ -74,7 +79,7 @@ func TestGrandpaState_IncrementSetID(t *testing.T) {
 }
 
 func TestGrandpaState_GetSetIDByBlockNumber(t *testing.T) {
-	db := NewInMemoryDB(t)
+	db := newInMemoryGrandpaDatabase(t)
 	gs, err := NewGrandpaStateFromGenesis(db, nil, testAuths)
 	require.NoError(t, err)
 
@@ -107,8 +112,8 @@ func TestGrandpaState_GetSetIDByBlockNumber(t *testing.T) {
 }
 
 func TestGrandpaState_LatestRound(t *testing.T) {
-	db := NewInMemoryDB(t)
-	gs, err := NewGrandpaStateFromGenesis(db, nil, testAuths)
+	grandpaDatabase := newInMemoryGrandpaDatabase(t)
+	gs, err := NewGrandpaStateFromGenesis(grandpaDatabase, nil, testAuths)
 	require.NoError(t, err)
 
 	r, err := gs.GetLatestRound()
@@ -154,7 +159,8 @@ func TestAddScheduledChangesKeepTheRightForkTree(t *testing.T) { //nolint:tparal
 	db := NewInMemoryDB(t)
 	blockState := testBlockState(t, db)
 
-	gs, err := NewGrandpaStateFromGenesis(db, blockState, nil)
+	grandpaDatabase := chaindb.NewTable(db, grandpaPrefix)
+	gs, err := NewGrandpaStateFromGenesis(grandpaDatabase, blockState, nil)
 	require.NoError(t, err)
 
 	/*
@@ -290,7 +296,8 @@ func TestForcedScheduledChangesOrder(t *testing.T) {
 	db := NewInMemoryDB(t)
 	blockState := testBlockState(t, db)
 
-	gs, err := NewGrandpaStateFromGenesis(db, blockState, nil)
+	grandpaDatabase := chaindb.NewTable(db, grandpaPrefix)
+	gs, err := NewGrandpaStateFromGenesis(grandpaDatabase, blockState, nil)
 	require.NoError(t, err)
 
 	aliceHeaders := issueBlocksWithBABEPrimary(t, keyring.KeyAlice, gs.blockState,
@@ -356,7 +363,8 @@ func TestShouldNotAddMoreThanOneForcedChangeInTheSameFork(t *testing.T) {
 	db := NewInMemoryDB(t)
 	blockState := testBlockState(t, db)
 
-	gs, err := NewGrandpaStateFromGenesis(db, blockState, nil)
+	grandpaDatabase := chaindb.NewTable(db, grandpaPrefix)
+	gs, err := NewGrandpaStateFromGenesis(grandpaDatabase, blockState, nil)
 	require.NoError(t, err)
 
 	aliceHeaders := issueBlocksWithBABEPrimary(t, keyring.KeyAlice, gs.blockState,
@@ -534,7 +542,8 @@ func TestNextGrandpaAuthorityChange(t *testing.T) {
 			db := NewInMemoryDB(t)
 			blockState := testBlockState(t, db)
 
-			gs, err := NewGrandpaStateFromGenesis(db, blockState, nil)
+			grandpaDatabase := chaindb.NewTable(db, grandpaPrefix)
+			gs, err := NewGrandpaStateFromGenesis(grandpaDatabase, blockState, nil)
 			require.NoError(t, err)
 
 			const sizeOfChain = 10
@@ -736,7 +745,8 @@ func TestApplyForcedChanges(t *testing.T) {
 			blockState := testBlockState(t, db)
 
 			voters := types.NewGrandpaVotersFromAuthorities(genesisAuths)
-			gs, err := NewGrandpaStateFromGenesis(db, blockState, voters)
+			grandpaDatabase := chaindb.NewTable(db, grandpaPrefix)
+			gs, err := NewGrandpaStateFromGenesis(grandpaDatabase, blockState, voters)
 			require.NoError(t, err)
 
 			forks := tt.generateForks(t, blockState)
@@ -858,7 +868,8 @@ func TestApplyScheduledChangesKeepDescendantForcedChanges(t *testing.T) {
 			blockState := testBlockState(t, db)
 
 			voters := types.NewGrandpaVotersFromAuthorities(genesisAuths)
-			gs, err := NewGrandpaStateFromGenesis(db, blockState, voters)
+			grandpaDatabase := chaindb.NewTable(db, grandpaPrefix)
+			gs, err := NewGrandpaStateFromGenesis(grandpaDatabase, blockState, voters)
 			require.NoError(t, err)
 
 			forks := tt.generateForks(t, gs.blockState)
@@ -1087,7 +1098,8 @@ func TestApplyScheduledChangeGetApplicableChange(t *testing.T) {
 			blockState := testBlockState(t, db)
 
 			voters := types.NewGrandpaVotersFromAuthorities(genesisAuths)
-			gs, err := NewGrandpaStateFromGenesis(db, blockState, voters)
+			grandpaDatabase := chaindb.NewTable(db, grandpaPrefix)
+			gs, err := NewGrandpaStateFromGenesis(grandpaDatabase, blockState, voters)
 			require.NoError(t, err)
 
 			forks := tt.generateForks(t, gs.blockState)
@@ -1317,7 +1329,8 @@ func TestApplyScheduledChange(t *testing.T) {
 			require.NoError(t, err)
 
 			voters := types.NewGrandpaVotersFromAuthorities(genesisAuths)
-			gs, err := NewGrandpaStateFromGenesis(db, blockState, voters)
+			grandpaDatabase := chaindb.NewTable(db, grandpaPrefix)
+			gs, err := NewGrandpaStateFromGenesis(grandpaDatabase, blockState, voters)
 			require.NoError(t, err)
 
 			forks := tt.generateForks(t, gs.blockState)

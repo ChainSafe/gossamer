@@ -43,11 +43,10 @@ type GrandpaState struct {
 }
 
 // NewGrandpaStateFromGenesis returns a new GrandpaState given the grandpa genesis authorities
-func NewGrandpaStateFromGenesis(db *chaindb.BadgerDB, bs *BlockState,
+func NewGrandpaStateFromGenesis(db GetPutDeleter, bs *BlockState,
 	genesisAuthorities []types.GrandpaVoter) (*GrandpaState, error) {
-	grandpaDB := chaindb.NewTable(db, grandpaPrefix)
 	s := &GrandpaState{
-		db:                   grandpaDB,
+		db:                   db,
 		blockState:           bs,
 		scheduledChangeRoots: new(changeTree),
 		forcedChanges:        new(orderedPendingChanges),

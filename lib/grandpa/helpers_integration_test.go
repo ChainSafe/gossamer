@@ -156,7 +156,9 @@ func newTestState(t *testing.T) *state.Service {
 	require.NoError(t, err)
 	block.StoreRuntime(block.BestBlockHash(), rt)
 
-	grandpa, err := state.NewGrandpaStateFromGenesis(db, nil, newTestVoters(t))
+	const grandpaDBPrefix = "grandpa"
+	grandpaDatabase := chaindb.NewTable(db, grandpaDBPrefix)
+	grandpa, err := state.NewGrandpaStateFromGenesis(grandpaDatabase, nil, newTestVoters(t))
 	require.NoError(t, err)
 
 	return &state.Service{
