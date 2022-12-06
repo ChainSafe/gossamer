@@ -168,20 +168,6 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 	require.Equal(t, uint(1), resp.BlockData[0].Number())
 	require.Equal(t, uint(128), resp.BlockData[127].Number())
 
-	// test ascending with non-nil endBlockHash
-	req = &network.BlockRequestMessage{
-		RequestedData: 3,
-		StartingBlock: *start,
-		Direction:     network.Ascending,
-		Max:           nil,
-	}
-
-	resp, err = s.CreateBlockResponse(req)
-	require.NoError(t, err)
-	require.Equal(t, int(16), len(resp.BlockData))
-	require.Equal(t, uint(1), resp.BlockData[0].Number())
-	require.Equal(t, uint(16), resp.BlockData[15].Number())
-
 	// test descending with nil endBlockHash
 	startHash, err = s.blockState.GetHashByNumber(16)
 	require.NoError(t, err)
