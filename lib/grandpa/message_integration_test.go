@@ -19,6 +19,8 @@ import (
 )
 
 func TestCommitMessageEncode(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -33,7 +35,6 @@ func TestCommitMessageEncode(t *testing.T) {
 			AuthorityID: gs.publicKeyBytes(),
 		},
 	}
-
 	err = st.Grandpa.SetPrecommits(77, gs.state.setID, just)
 	require.NoError(t, err)
 
@@ -59,6 +60,8 @@ func TestCommitMessageEncode(t *testing.T) {
 }
 
 func TestVoteMessageToConsensusMessage(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -110,6 +113,8 @@ func TestVoteMessageToConsensusMessage(t *testing.T) {
 }
 
 func TestCommitMessageToConsensusMessage(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -141,6 +146,8 @@ func TestCommitMessageToConsensusMessage(t *testing.T) {
 }
 
 func TestNewCatchUpResponse(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -215,6 +222,7 @@ func TestNewCatchUpResponse(t *testing.T) {
 }
 
 func TestNeighbourMessageToConsensusMessage(t *testing.T) {
+	t.Parallel()
 	msg := &NeighbourPacketV1{
 		Round:  2,
 		SetID:  3,

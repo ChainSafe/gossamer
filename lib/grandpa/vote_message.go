@@ -158,6 +158,7 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 		return nil, fmt.Errorf("%w: received round %d but state round is %d",
 			errRoundsMismatch, m.Round, s.state.round)
 	} else if m.Round > s.state.round {
+
 		// Message round is higher by 1 than the round of our state,
 		// we may be lagging behind, so store the message in the tracker
 		// for processing later in the coming few milliseconds.
@@ -177,7 +178,7 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 	// if the vote is from ourselves, return an error
 	kb := [32]byte(s.publicKeyBytes())
 	if bytes.Equal(m.Message.AuthorityID[:], kb[:]) {
-		return nil, errVoteFromSelf
+		return nil, fmt.Errorf("%w", errVoteFromSelf)
 	}
 
 	err = s.validateVote(vote)
@@ -199,7 +200,7 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 
 	equivocated := s.checkForEquivocation(voter, just, m.Message.Stage)
 	if equivocated {
-		return nil, ErrEquivocation
+		return nil, fmt.Errorf("%w", ErrEquivocation)
 	}
 
 	switch m.Message.Stage {

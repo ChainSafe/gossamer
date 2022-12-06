@@ -77,6 +77,7 @@ type Service struct {
 
 	// channels for communication with other services
 	finalisedCh chan *types.FinalisationInfo
+	//receivedCommit chan *CommitMessage
 
 	telemetry telemetry.Client
 }

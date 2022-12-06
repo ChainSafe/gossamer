@@ -22,6 +22,8 @@ import (
 )
 
 func TestUpdateAuthorities(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -50,6 +52,8 @@ func TestUpdateAuthorities(t *testing.T) {
 }
 
 func TestGetDirectVotes(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -87,6 +91,8 @@ func TestGetDirectVotes(t *testing.T) {
 }
 
 func TestGetVotesForBlock_NoDescendantVotes(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -127,6 +133,8 @@ func TestGetVotesForBlock_NoDescendantVotes(t *testing.T) {
 }
 
 func TestGetVotesForBlock_DescendantVotes(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -181,6 +189,8 @@ func TestGetVotesForBlock_DescendantVotes(t *testing.T) {
 }
 
 func TestGetPossibleSelectedAncestors_SameAncestor(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -239,6 +249,8 @@ func TestGetPossibleSelectedAncestors_SameAncestor(t *testing.T) {
 }
 
 func TestGetPossibleSelectedAncestors_VaryingAncestor(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -297,6 +309,8 @@ func TestGetPossibleSelectedAncestors_VaryingAncestor(t *testing.T) {
 }
 
 func TestGetPossibleSelectedAncestors_VaryingAncestor_MoreBranches(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -361,6 +375,8 @@ func TestGetPossibleSelectedAncestors_VaryingAncestor_MoreBranches(t *testing.T)
 }
 
 func TestGetPossibleSelectedBlocks_OneBlock(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -397,6 +413,8 @@ func TestGetPossibleSelectedBlocks_OneBlock(t *testing.T) {
 }
 
 func TestGetPossibleSelectedBlocks_EqualVotes_SameAncestor(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -448,6 +466,8 @@ func TestGetPossibleSelectedBlocks_EqualVotes_SameAncestor(t *testing.T) {
 }
 
 func TestGetPossibleSelectedBlocks_EqualVotes_VaryingAncestor(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -500,6 +520,8 @@ func TestGetPossibleSelectedBlocks_EqualVotes_VaryingAncestor(t *testing.T) {
 }
 
 func TestGetPossibleSelectedBlocks_OneThirdEquivocating(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -545,6 +567,8 @@ func TestGetPossibleSelectedBlocks_OneThirdEquivocating(t *testing.T) {
 }
 
 func TestGetPossibleSelectedBlocks_MoreThanOneThirdEquivocating(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -596,6 +620,8 @@ func TestGetPossibleSelectedBlocks_MoreThanOneThirdEquivocating(t *testing.T) {
 }
 
 func TestGetPreVotedBlock_OneBlock(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -631,6 +657,8 @@ func TestGetPreVotedBlock_OneBlock(t *testing.T) {
 }
 
 func TestGetPreVotedBlock_MultipleCandidates(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -681,6 +709,8 @@ func TestGetPreVotedBlock_MultipleCandidates(t *testing.T) {
 }
 
 func TestGetPreVotedBlock_EvenMoreCandidates(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -753,6 +783,8 @@ func TestGetPreVotedBlock_EvenMoreCandidates(t *testing.T) {
 }
 
 func TestFindParentWithNumber(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -818,6 +850,8 @@ func TestGetBestFinalCandidate_OneBlock(t *testing.T) {
 }
 
 func TestGetBestFinalCandidate_PrecommitAncestor(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -864,6 +898,8 @@ func TestGetBestFinalCandidate_PrecommitAncestor(t *testing.T) {
 }
 
 func TestGetBestFinalCandidate_NoPrecommit(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -904,6 +940,8 @@ func TestGetBestFinalCandidate_NoPrecommit(t *testing.T) {
 }
 
 func TestGetBestFinalCandidate_PrecommitOnAnotherChain(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -950,6 +988,8 @@ func TestGetBestFinalCandidate_PrecommitOnAnotherChain(t *testing.T) {
 }
 
 func TestDeterminePreVote_NoPrimaryPreVote(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -966,6 +1006,8 @@ func TestDeterminePreVote_NoPrimaryPreVote(t *testing.T) {
 }
 
 func TestDeterminePreVote_WithPrimaryPreVote(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -991,6 +1033,8 @@ func TestDeterminePreVote_WithPrimaryPreVote(t *testing.T) {
 }
 
 func TestDeterminePreVote_WithInvalidPrimaryPreVote(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -1017,6 +1061,8 @@ func TestDeterminePreVote_WithInvalidPrimaryPreVote(t *testing.T) {
 }
 
 func TestGetGrandpaGHOST_CommonAncestor(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -1055,6 +1101,8 @@ func TestGetGrandpaGHOST_CommonAncestor(t *testing.T) {
 }
 
 func TestGetGrandpaGHOST_MultipleCandidates(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -1108,6 +1156,8 @@ func TestGetGrandpaGHOST_MultipleCandidates(t *testing.T) {
 }
 
 func TestGrandpaServiceCreateJustification_ShouldCountEquivocatoryVotes(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
