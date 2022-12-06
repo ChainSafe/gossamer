@@ -129,7 +129,10 @@ func testBlockState(t *testing.T, db *chaindb.BadgerDB) *BlockState {
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 	header := testGenesisHeader
 
-	bs, err := NewBlockStateFromGenesis(db, newTriesEmpty(), header, telemetryMock)
+	baseState := NewBaseState(db)
+	blockStateDatabase := chaindb.NewTable(db, blockPrefix)
+	bs, err := NewBlockStateFromGenesis(blockStateDatabase,
+		baseState, newTriesEmpty(), header, telemetryMock)
 	require.NoError(t, err)
 
 	// loads in-memory tries with genesis state root, should be deleted

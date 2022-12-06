@@ -35,7 +35,10 @@ func newTestBlockState(t *testing.T, tries *Tries) *BlockState {
 	db := NewInMemoryDB(t)
 	header := testGenesisHeader
 
-	bs, err := NewBlockStateFromGenesis(db, tries, header, telemetryMock)
+	baseState := NewBaseState(db)
+	blockStateDatabase := chaindb.NewTable(db, blockPrefix)
+	bs, err := NewBlockStateFromGenesis(blockStateDatabase,
+		baseState, tries, header, telemetryMock)
 	require.NoError(t, err)
 
 	// loads in-memory tries with genesis state root, should be deleted

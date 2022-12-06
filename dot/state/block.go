@@ -26,6 +26,8 @@ import (
 )
 
 const (
+	// blockPrefix is the prefix to use for the block state
+	// key value database.
 	blockPrefix = "block"
 )
 
@@ -103,13 +105,13 @@ func NewBlockState(db BlockStateDatabase, baseState *BaseState,
 }
 
 // NewBlockStateFromGenesis initialises a BlockState from a genesis header,
-// saving it to the database located at basePath
-func NewBlockStateFromGenesis(db *chaindb.BadgerDB, trs *Tries, header *types.Header,
-	telemetryMailer Telemetry) (*BlockState, error) {
+// saving it to the database.
+func NewBlockStateFromGenesis(db BlockStateDatabase, baseState *BaseState,
+	trs *Tries, header *types.Header, telemetryMailer Telemetry) (*BlockState, error) {
 	bs := &BlockState{
 		bt:                         blocktree.NewBlockTreeFromRoot(header),
-		baseState:                  NewBaseState(db),
-		db:                         chaindb.NewTable(db, blockPrefix),
+		baseState:                  baseState,
+		db:                         db,
 		unfinalisedBlocks:          newHashToBlockMap(),
 		tries:                      trs,
 		imported:                   make(map[chan *types.Block]struct{}),

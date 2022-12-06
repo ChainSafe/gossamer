@@ -65,8 +65,10 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 	tries := NewTries()
 	tries.SetTrie(t)
 
-	// create block state from genesis block
-	blockState, err := NewBlockStateFromGenesis(db, tries, header, s.Telemetry)
+	baseState := NewBaseState(db)
+	blockStateDatabase := chaindb.NewTable(db, blockPrefix)
+	blockState, err := NewBlockStateFromGenesis(blockStateDatabase,
+		baseState, tries, header, s.Telemetry)
 	if err != nil {
 		return fmt.Errorf("failed to create block state from genesis: %s", err)
 	}

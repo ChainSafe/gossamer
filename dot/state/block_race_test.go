@@ -35,7 +35,11 @@ func TestConcurrencySetHeader(t *testing.T) {
 		go func(index int) {
 			defer pend.Done()
 
-			bs, err := NewBlockStateFromGenesis(dbs[index], tries, testGenesisHeader, telemetryMock)
+			db := dbs[index]
+			baseState := NewBaseState(db)
+			blockStateDatabase := chaindb.NewTable(db, blockPrefix)
+			bs, err := NewBlockStateFromGenesis(blockStateDatabase,
+				baseState, tries, testGenesisHeader, telemetryMock)
 			require.NoError(t, err)
 
 			header := &types.Header{

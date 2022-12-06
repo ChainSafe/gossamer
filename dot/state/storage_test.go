@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/trie/node"
@@ -193,7 +194,10 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 
 	tries := newTriesEmpty()
 
-	blockState, err := NewBlockStateFromGenesis(db, tries, &genHeader, telemetryMock)
+	baseState := NewBaseState(db)
+	blockStateDatabase := chaindb.NewTable(db, blockPrefix)
+	blockState, err := NewBlockStateFromGenesis(blockStateDatabase,
+		baseState, tries, &genHeader, telemetryMock)
 	require.NoError(t, err)
 
 	storage, err := NewStorageState(db, blockState, tries)

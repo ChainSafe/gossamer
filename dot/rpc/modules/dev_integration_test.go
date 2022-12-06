@@ -9,6 +9,7 @@ import (
 	"encoding/binary"
 	"testing"
 
+	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/babe"
@@ -42,7 +43,12 @@ func newState(t *testing.T) (*state.BlockState, *state.EpochState) {
 	_, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
 	tries := state.NewTries()
 	tries.SetTrie(&genesisTrie)
-	bs, err := state.NewBlockStateFromGenesis(db, tries, &genesisHeader, telemetryMock)
+
+	baseState := state.NewBaseState(db)
+	const blockPrefix = "block"
+	blockStateDatabase := chaindb.NewTable(db, blockPrefix)
+	bs, err := state.NewBlockStateFromGenesis(blockStateDatabase,
+		baseState, tries, &genesisHeader, telemetryMock)
 	require.NoError(t, err)
 	es, err := state.NewEpochStateFromGenesis(db, bs, genesisBABEConfig)
 	require.NoError(t, err)

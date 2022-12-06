@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -140,7 +141,11 @@ func newTestState(t *testing.T) *state.Service {
 	_, genTrie, _ := newWestendDevGenesisWithTrieAndHeader(t)
 	tries := state.NewTries()
 	tries.SetTrie(&genTrie)
-	block, err := state.NewBlockStateFromGenesis(db, tries, testGenesisHeader, telemetryMock)
+	baseState := state.NewBaseState(db)
+	const blockPrefix = "block"
+	blockStateDatabase := chaindb.NewTable(db, blockPrefix)
+	block, err := state.NewBlockStateFromGenesis(blockStateDatabase,
+		baseState, tries, testGenesisHeader, telemetryMock)
 	require.NoError(t, err)
 
 	var rtCfg wasmer.Config
