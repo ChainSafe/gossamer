@@ -146,8 +146,8 @@ func (s *Service) Start() (err error) {
 	// create transaction queue
 	s.Transaction = NewTransactionState(s.Telemetry)
 
-	// create epoch state
-	s.Epoch, err = NewEpochState(s.db, s.Block)
+	epochStateDatabase := chaindb.NewTable(s.db, epochPrefix)
+	s.Epoch, err = NewEpochState(baseState, epochStateDatabase, s.Block)
 	if err != nil {
 		return fmt.Errorf("failed to create epoch state: %w", err)
 	}
@@ -276,7 +276,9 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 		db: chaindb.NewTable(s.db, storagePrefix),
 	}
 
-	epoch, err := NewEpochState(s.db, block)
+	baseState := NewBaseState(s.db)
+	epochStateDatabase := chaindb.NewTable(s.db, epochPrefix)
+	epoch, err := NewEpochState(baseState, epochStateDatabase, block)
 	if err != nil {
 		return err
 	}

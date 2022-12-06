@@ -133,9 +133,7 @@ func NewEpochStateFromGenesis(db *chaindb.BadgerDB, blockState *BlockState,
 }
 
 // NewEpochState returns a new EpochState
-func NewEpochState(db *chaindb.BadgerDB, blockState *BlockState) (*EpochState, error) {
-	baseState := NewBaseState(db)
-
+func NewEpochState(baseState *BaseState, db GetPutter, blockState *BlockState) (*EpochState, error) {
 	epochLength, err := baseState.loadEpochLength()
 	if err != nil {
 		return nil, err
@@ -149,7 +147,7 @@ func NewEpochState(db *chaindb.BadgerDB, blockState *BlockState) (*EpochState, e
 	return &EpochState{
 		baseState:      baseState,
 		blockState:     blockState,
-		db:             chaindb.NewTable(db, epochPrefix),
+		db:             db,
 		epochLength:    epochLength,
 		skipToEpoch:    skipToEpoch,
 		nextEpochData:  make(nextEpochMap[types.NextEpochData]),
