@@ -193,3 +193,20 @@ type GrandpaVote struct {
 func (v *GrandpaVote) String() string {
 	return fmt.Sprintf("hash=%s number=%d", v.Hash, v.Number)
 }
+
+// NewGrandpaEquivocation returns a new VaryingDataType to represent a grandpa Equivocation
+func NewGrandpaEquivocation() scale.VaryingDataType {
+	return scale.MustNewVaryingDataType(PreVoteEquivocation{}, PreCommitEquivocation{})
+}
+
+// PreVoteEquivocation equivocation type for a prevote
+type PreVoteEquivocation GrandpaSignedVote
+
+// Index returns VDT index
+func (PreVoteEquivocation) Index() uint { return 0 }
+
+// PreCommitEquivocation equivocation type for a precommit
+type PreCommitEquivocation GrandpaSignedVote
+
+// Index returns VDT index
+func (PreCommitEquivocation) Index() uint { return 1 }

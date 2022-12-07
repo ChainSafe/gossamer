@@ -12,6 +12,35 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestEncodeAndDecodeEquivocationPreVote(t *testing.T) {
+	exp := common.MustHexToBytes("0x000a0b0c0d00000000000000000000000000000000000000000000000000000000e7030000010203040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000506070800000000000000000000000000000000000000000000000000000000") //nolint:lll
+	var testVote = GrandpaVote{
+		Hash:   common.Hash{0xa, 0xb, 0xc, 0xd},
+		Number: 999,
+	}
+	var testSignature = [64]byte{1, 2, 3, 4}
+	var testAuthorityID = [32]byte{5, 6, 7, 8}
+
+	sv := GrandpaSignedVote{
+		Vote:        testVote,
+		Signature:   testSignature,
+		AuthorityID: testAuthorityID,
+	}
+
+	equivPreVote := PreVoteEquivocation(sv)
+	equivVote := NewGrandpaEquivocation()
+	err := equivVote.Set(equivPreVote)
+	require.NoError(t, err)
+	enc, err := scale.Marshal(equivVote)
+	require.NoError(t, err)
+	require.Equal(t, exp, enc)
+
+	res := NewGrandpaEquivocation()
+	err = scale.Unmarshal(enc, &res)
+	require.NoError(t, err)
+	require.Equal(t, equivVote, res)
+}
+
 func TestEncodeGrandpaVote(t *testing.T) {
 	exp := common.MustHexToBytes("0x0a0b0c0d00000000000000000000000000000000000000000000000000000000e7030000")
 	var testVote = GrandpaVote{
