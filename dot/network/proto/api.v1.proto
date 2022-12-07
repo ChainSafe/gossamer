@@ -20,7 +20,6 @@ enum Direction {
 
 // Request block data from a peer.
 message BlockRequest {
-	reserved 4;
 	// Bits of block data to request.
 	uint32 fields = 1;
 	// Start from this block.
