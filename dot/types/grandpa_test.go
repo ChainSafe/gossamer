@@ -31,12 +31,12 @@ func TestEncodeAndDecodeEquivocationPreVote(t *testing.T) {
 	equivVote := NewGrandpaEquivocation()
 	err := equivVote.Set(equivPreVote)
 	require.NoError(t, err)
-	enc, err := scale.Marshal(equivVote)
+	enc, err := scale.Marshal(*equivVote)
 	require.NoError(t, err)
 	require.Equal(t, exp, enc)
 
 	res := NewGrandpaEquivocation()
-	err = scale.Unmarshal(enc, &res)
+	err = scale.Unmarshal(enc, res)
 	require.NoError(t, err)
 	require.Equal(t, equivVote, res)
 }
