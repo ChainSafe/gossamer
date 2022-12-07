@@ -104,10 +104,4 @@ func Benchmark_IsEmpty(b *testing.B) {
 			_ = h == empty
 		}
 	})
-
-	b.Run("using bytes.Equal", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
-			_ = h.Equal(Hash{})
-		}
-	})
 }
