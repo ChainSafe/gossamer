@@ -4,10 +4,51 @@
 package runtime
 
 import (
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
+
+//go:generate mockery --name Instance --structname Instance --case underscore --keeptree
+
+// Instance is the interface a v0.8 runtime instance must implement
+type Instance interface {
+	UpdateRuntimeCode([]byte) error
+	Stop()
+	NodeStorage() NodeStorage
+	NetworkService() BasicNetwork
+	Keystore() *keystore.GlobalKeystore
+	Validator() bool
+	Exec(function string, data []byte) ([]byte, error)
+	SetContextStorage(s Storage) // used to set the TrieState before a runtime call
+
+	GetCodeHash() common.Hash
+	// Version returns the version from the runtime.
+	// This should return the cached version and be cheap to execute.
+	Version() (version Version)
+	Metadata() ([]byte, error)
+	BabeConfiguration() (*types.BabeConfiguration, error)
+	GrandpaAuthorities() ([]types.Authority, error)
+	ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error)
+	InitializeBlock(header *types.Header) error
+	InherentExtrinsics(data []byte) ([]byte, error)
+	ApplyExtrinsic(data types.Extrinsic) ([]byte, error)
+	FinalizeBlock() (*types.Header, error)
+	ExecuteBlock(block *types.Block) ([]byte, error)
+	DecodeSessionKeys(enc []byte) ([]byte, error)
+	PaymentQueryInfo(ext []byte) (*types.RuntimeDispatchInfo, error)
+	GrandpaGenerateKeyOwnershipProof(authSetId uint64, pubKey ed25519.PublicKeyBytes) (proof []byte, err error)
+
+	CheckInherents() // TODO: use this in block verification process (#1873)
+
+	// parameters and return values for these are undefined in the spec
+	RandomSeed()
+	OffchainWorker()
+	GenerateSessionKeys()
+}
 
 // Storage runtime interface.
 type Storage interface {

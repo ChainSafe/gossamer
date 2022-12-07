@@ -7,8 +7,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/ChainSafe/gossamer/lib/runtime"
-
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -300,16 +298,13 @@ func (s *Service) reportEquivocation(stage Subround, existingVote *SignedVote, c
 	}
 	fmt.Println(rt)
 
-	proof, err := s.generateKeyOwnershipProof(rt, setId, pubKey)
+	proof, err := rt.GrandpaGenerateKeyOwnershipProof(setId, pubKey)
 	if err != nil {
 		return fmt.Errorf("getting latest round: %w", err)
 	}
 	fmt.Println(proof)
 
-}
-
-func (s *Service) generateKeyOwnershipProof(rt runtime.Instance, authSetId uint64, pubKey ed25519.PublicKeyBytes) (proof []byte, err error) {
-	// TODO fill in
+	return nil
 }
 
 // validateVote checks if the block that is being voted for exists, and that it is a descendant of a

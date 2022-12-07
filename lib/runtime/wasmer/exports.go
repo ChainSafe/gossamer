@@ -6,12 +6,21 @@ package wasmer
 import (
 	"bytes"
 	"fmt"
+	"github.com/ChainSafe/gossamer/lib/grandpa"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
+
+// TODO replace once kishans PR is merged
+type OpaqueKeyOwnershipProof []byte
+
+type GrandpaEquivocationProof struct {
+	setId        uint64
+	equivocation grandpa.Vote //Check this is correct
+}
 
 // ValidateTransaction runs the extrinsic through the runtime function
 // TaggedTransactionQueue_validate_transaction and returns *transaction.Validity. The error can
@@ -281,17 +290,37 @@ func (in *Instance) CheckInherents() {}
 GenerateKeyOwnershipProof args
 - auth set id
 - pub key of authority
+=======
+// GrandpaGenerateKeyOwnershipProof returns grandpa key ownership proof from runtime.
+func (in *Instance) GrandpaGenerateKeyOwnershipProof(authSetId uint64, authorityID ed25519.PublicKeyBytes) (
+	OpaqueKeyOwnershipProof, error) {
+>>>>>>> af69ad7b (wip)
 
-Return
-- A SCALE encoded Option as defined in Definition 194 containing the proof in an opaque form
-*/
-func (in *Instance) GenerateKeyOwnershipProof() error {
-	_, err := in.Exec(runtime.GrandpaGenerateKeyOwnershipProof, []byte{})
+	combinedArg := []byte{}
+	encodedSetID, err := scale.Marshal(authSetId)
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("encoding set id: %w", err)
 	}
-	// not sure if I need to unmarshall or not
-	return nil
+	combinedArg = append(combinedArg, encodedSetID...)
+
+	encodedAuthorityID, err := scale.Marshal(authorityID)
+	if err != nil {
+		return nil, fmt.Errorf("encoding authority id: %w", err)
+	}
+	combinedArg = append(combinedArg, encodedAuthorityID...)
+
+	ret, err := in.Exec(runtime.GrandpaGenerateKeyOwnershipProof, combinedArg)
+	if err != nil {
+		return nil, err
+	}
+
+	keyOwnershipProof := OpaqueKeyOwnershipProof{}
+	err = scale.Unmarshal(ret, &keyOwnershipProof)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshalling: %w", err)
+	}
+
+	return keyOwnershipProof, err
 }
 
 /*
@@ -319,6 +348,31 @@ func (in *Instance) SubmitReportEquivocation() error {
 		return err
 	}
 	return nil
+}
+
+// TODO think I need to implement https://crates.parity.io/sp_finality_grandpa/enum.Equivocation.html
+
+// BabeSubmitReportEquivocationUnsignedExtrinsic reports equivocation report to the runtime.
+func (in *Instance) GrandpaSubmitReportEquivocationUnsignedExtrinsic(
+	equivocationProof types.BabeEquivocationProof, keyOwnershipProof OpaqueKeyOwnershipProof,
+) error {
+
+	combinedArg := []byte{}
+
+	encodedEquivocationProof, err := scale.Marshal(equivocationProof)
+	if err != nil {
+		return fmt.Errorf("encoding equivocation proof: %w", err)
+	}
+	combinedArg = append(combinedArg, encodedEquivocationProof...)
+
+	encodedKeyOwnershipProof, err := scale.Marshal(keyOwnershipProof)
+	if err != nil {
+		return fmt.Errorf("encoding key ownership proof: %w", err)
+	}
+	combinedArg = append(combinedArg, encodedKeyOwnershipProof...)
+
+	_, err = in.Exec(runtime.BabeAPISubmitReportEquivocationUnsignedExtrinsic, combinedArg)
+	return err
 }
 
 func (in *Instance) RandomSeed()          {} //nolint:revive
