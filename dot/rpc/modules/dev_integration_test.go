@@ -50,7 +50,11 @@ func newState(t *testing.T) (*state.BlockState, *state.EpochState) {
 	bs, err := state.NewBlockStateFromGenesis(blockStateDatabase,
 		baseState, tries, &genesisHeader, telemetryMock)
 	require.NoError(t, err)
-	es, err := state.NewEpochStateFromGenesis(db, bs, genesisBABEConfig)
+
+	const epochPrefix = "epoch"
+	epochStateDatabase := chaindb.NewTable(db, epochPrefix)
+	es, err := state.NewEpochStateFromGenesis(epochStateDatabase,
+		baseState, bs, genesisBABEConfig)
 	require.NoError(t, err)
 	return bs, es
 }

@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -30,13 +31,12 @@ var genesisBABEConfig = &types.BabeConfiguration{
 func newEpochStateFromGenesis(t *testing.T) *EpochState {
 	db := NewInMemoryDB(t)
 	blockState := newTestBlockState(t, newTriesEmpty())
-	s, err := NewEpochStateFromGenesis(db, blockState, genesisBABEConfig)
+	baseState := NewBaseState(db)
+	epochStateDatabase := chaindb.NewTable(db, epochPrefix)
+	s, err := NewEpochStateFromGenesis(epochStateDatabase,
+		baseState, blockState, genesisBABEConfig)
 	require.NoError(t, err)
 	return s
-}
-
-func TestNewEpochStateFromGenesis(t *testing.T) {
-	_ = newEpochStateFromGenesis(t)
 }
 
 func TestEpochState_CurrentEpoch(t *testing.T) {

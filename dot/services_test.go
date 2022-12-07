@@ -6,6 +6,7 @@ package dot
 import (
 	"testing"
 
+	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -142,6 +143,8 @@ func newStateService(t *testing.T, ctrl *gomock.Controller) *state.Service {
 	err = stateSrvc.SetupBase()
 	require.NoError(t, err)
 
+	const epochPrefix = "epoch"
+	epochStateDatabase := chaindb.NewTable(stateSrvc.DB(), epochPrefix)
 	genesisBABEConfig := &types.BabeConfiguration{
 		SlotDuration:       1000,
 		EpochLength:        200,
@@ -151,7 +154,8 @@ func newStateService(t *testing.T, ctrl *gomock.Controller) *state.Service {
 		Randomness:         [32]byte{},
 		SecondarySlots:     0,
 	}
-	epochState, err := state.NewEpochStateFromGenesis(stateSrvc.DB(), stateSrvc.Block, genesisBABEConfig)
+	epochState, err := state.NewEpochStateFromGenesis(epochStateDatabase,
+		stateSrvc.Base, stateSrvc.Block, genesisBABEConfig)
 	require.NoError(t, err)
 
 	stateSrvc.Epoch = epochState

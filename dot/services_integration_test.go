@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/chaindb"
 	core "github.com/ChainSafe/gossamer/dot/core"
 	digest "github.com/ChainSafe/gossamer/dot/digest"
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -438,6 +439,8 @@ func newStateServiceWithoutMock(t *testing.T) *state.Service {
 	err = stateSrvc.SetupBase()
 	require.NoError(t, err)
 
+	const epochPrefix = "epoch"
+	epochStateDatabase := chaindb.NewTable(stateSrvc.DB(), epochPrefix)
 	genesisBABEConfig := &types.BabeConfiguration{
 		SlotDuration:       1000,
 		EpochLength:        200,
@@ -447,7 +450,8 @@ func newStateServiceWithoutMock(t *testing.T) *state.Service {
 		Randomness:         [32]byte{},
 		SecondarySlots:     0,
 	}
-	epochState, err := state.NewEpochStateFromGenesis(stateSrvc.DB(), stateSrvc.Block, genesisBABEConfig)
+	epochState, err := state.NewEpochStateFromGenesis(epochStateDatabase,
+		stateSrvc.Base, stateSrvc.Block, genesisBABEConfig)
 	require.NoError(t, err)
 
 	stateSrvc.Epoch = epochState
