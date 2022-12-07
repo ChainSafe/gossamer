@@ -166,7 +166,7 @@ func (s *Service) handleDescendingRequest(req *network.BlockRequestMessage) (*ne
 		return s.handleDescendingByNumber(startNumber, endNumber, req.RequestedData)
 	}
 
-	logger.Debugf("handling block request message with direction %s"+
+	logger.Debugf("handling block request message with direction %s "+
 		"from start block with hash %s to end block with hash %s",
 		req.Direction, *startHash, *endHash)
 	return s.handleChainByHash(*endHash, *startHash, max, req.RequestedData, req.Direction)
