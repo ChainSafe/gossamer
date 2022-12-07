@@ -264,11 +264,11 @@ func (bt *BlockTree) String() string {
 func (bt *BlockTree) subChain(start, end Hash) ([]*node, error) {
 	sn := bt.getNode(start)
 	if sn == nil {
-		return nil, ErrStartNodeNotFound
+		return nil, fmt.Errorf("%w: %s", ErrStartNodeNotFound, start)
 	}
 	en := bt.getNode(end)
 	if en == nil {
-		return nil, ErrEndNodeNotFound
+		return nil, fmt.Errorf("%w: %s", ErrEndNodeNotFound, end)
 	}
 	return sn.subChain(en)
 }

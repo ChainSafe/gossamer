@@ -325,7 +325,7 @@ func (h *MessageHandler) verifyPreVoteJustification(msg *CatchUpResponse) (commo
 			continue
 		}
 
-		err := verifyJustification(just, msg.Round, msg.SetID, prevote, h.grandpa.authorities())
+		err := verifyJustification(just, msg.Round, msg.SetID, prevote, h.grandpa.authorityKeySet())
 		if err != nil {
 			continue
 		}
@@ -380,7 +380,7 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) erro
 			return err
 		}
 
-		err := verifyJustification(just, msg.Round, msg.SetID, precommit, h.grandpa.authorities())
+		err := verifyJustification(just, msg.Round, msg.SetID, precommit, h.grandpa.authorityKeySet())
 		if err != nil {
 			logger.Errorf("could not verify precommit justification for block %s from authority %s: %s",
 				just.Vote.Hash.String(), just.AuthorityID.String(), err)

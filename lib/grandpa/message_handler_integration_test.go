@@ -286,7 +286,7 @@ func TestMessageHandler_VerifyJustification_InvalidSig(t *testing.T) {
 	expectedErr := fmt.Errorf("%w: 0x%x for message {%v}", ErrInvalidSignature, just.Signature, expectedFullVote)
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
-	err = verifyJustification(just, gs.state.round, gs.state.setID, precommit, h.grandpa.authorities())
+	err = verifyJustification(just, gs.state.round, gs.state.setID, precommit, h.grandpa.authorityKeySet())
 
 	require.ErrorIs(t, err, ErrInvalidSignature)
 	require.EqualError(t, expectedErr, err.Error())
@@ -545,7 +545,7 @@ func TestVerifyJustification(t *testing.T) {
 		AuthorityID: kr.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 	}
 
-	err = verifyJustification(just, 77, gs.state.setID, precommit, h.grandpa.authorities())
+	err = verifyJustification(just, 77, gs.state.setID, precommit, h.grandpa.authorityKeySet())
 	require.NoError(t, err)
 }
 
@@ -580,7 +580,7 @@ func TestVerifyJustification_InvalidSignature(t *testing.T) {
 	}
 
 	expectedErr := fmt.Errorf("%w: 0x%x for message {%v}", ErrInvalidSignature, just.Signature, expectedFullVote)
-	err = verifyJustification(just, round, gs.state.setID, precommit, h.grandpa.authorities())
+	err = verifyJustification(just, round, gs.state.setID, precommit, h.grandpa.authorityKeySet())
 	require.ErrorIs(t, err, ErrInvalidSignature)
 	require.EqualError(t, err, expectedErr.Error())
 }
@@ -614,7 +614,7 @@ func TestVerifyJustification_InvalidAuthority(t *testing.T) {
 	require.NoError(t, err)
 
 	expectedErrMessage := fmt.Sprintf("%s: authority ID 0x%x", ErrVoterNotFound, encodedAuthorityID)
-	err = verifyJustification(just, 77, gs.state.setID, precommit, h.grandpa.authorities())
+	err = verifyJustification(just, 77, gs.state.setID, precommit, h.grandpa.authorityKeySet())
 	require.ErrorIs(t, err, ErrVoterNotFound)
 	require.EqualError(t, err, expectedErrMessage)
 }
@@ -1243,7 +1243,7 @@ func Test_VerifyCommitMessageJustification_ShouldRemoveEquivocatoryVotes(t *test
 	}
 
 	err = verifyCommitMessageJustification(*testCommitData, h.grandpa.state.setID,
-		h.grandpa.state.threshold(), h.grandpa.authorities(), h.blockState)
+		h.grandpa.state.threshold(), h.grandpa.authorityKeySet(), h.blockState)
 
 	require.NoError(t, err)
 }
