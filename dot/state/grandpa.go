@@ -72,9 +72,9 @@ func NewGrandpaStateFromGenesis(db GetPutDeleter, bs *BlockState,
 }
 
 // NewGrandpaState returns a new GrandpaState
-func NewGrandpaState(db *chaindb.BadgerDB, bs *BlockState) *GrandpaState {
+func NewGrandpaState(db GetPutDeleter, bs *BlockState) *GrandpaState {
 	return &GrandpaState{
-		db:                   chaindb.NewTable(db, grandpaPrefix),
+		db:                   db,
 		blockState:           bs,
 		scheduledChangeRoots: new(changeTree),
 		forcedChanges:        new(orderedPendingChanges),
