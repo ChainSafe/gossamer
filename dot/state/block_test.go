@@ -599,3 +599,97 @@ func TestNumberIsFinalised(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, fin)
 }
+
+func TestRange(t *testing.T) {
+	t.Parallel()
+
+	testcases := map[string]struct {
+		blocksToCreate        int
+		blocksToPersistAtDisk int
+
+		wantErr error
+	}{
+		"all_blocks_stored_in_disk": {
+			blocksToCreate:        128,
+			blocksToPersistAtDisk: 128,
+		},
+
+		"all_blocks_persisted_in_blocktree": {
+			blocksToCreate:        128,
+			blocksToPersistAtDisk: 0,
+		},
+
+		"half_blocks_placed_in_blocktree_half_stored_in_disk": {
+			blocksToCreate:        128,
+			blocksToPersistAtDisk: 64,
+		},
+	}
+
+	for tname, tt := range testcases {
+		tt := tt
+
+		t.Run(tname, func(t *testing.T) {
+			t.Parallel()
+
+			if tt.blocksToCreate < tt.blocksToPersistAtDisk {
+				require.Fail(t, "blocksToPersistAtDisk should be lower or equal blocksToCreate")
+			}
+
+			ctrl := gomock.NewController(t)
+			telemetryMock := NewMockClient(ctrl)
+			telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+			db := NewInMemoryDB(t)
+
+			genesisHeader := &types.Header{
+				Number:    0,
+				StateRoot: trie.EmptyHash,
+				Digest:    types.NewDigest(),
+			}
+
+			blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+			require.NoError(t, err)
+
+			testBlockBody := *types.NewBody(
+				[]types.Extrinsic{[]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}})
+			hashes := make([]common.Hash, 0, tt.blocksToCreate)
+
+			previousHeaderHash := genesisHeader.Hash()
+			for blockNumber := 1; blockNumber <= tt.blocksToCreate; blockNumber++ {
+				currentHeader := &types.Header{
+					Number:     uint(blockNumber),
+					Digest:     createPrimaryBABEDigest(t),
+					ParentHash: previousHeaderHash,
+				}
+
+				block := &types.Block{
+					Header: *currentHeader,
+					Body:   testBlockBody,
+				}
+
+				err := blockState.AddBlock(block)
+				require.NoError(t, err)
+
+				hashes = append(hashes, currentHeader.Hash())
+				previousHeaderHash = currentHeader.Hash()
+			}
+
+			if tt.blocksToPersistAtDisk > 0 {
+				hashIndexToSetAsFinalized := tt.blocksToPersistAtDisk - 1
+				selectedHash := hashes[hashIndexToSetAsFinalized]
+
+				err := blockState.SetFinalisedHash(selectedHash, 0, 0)
+				require.NoError(t, err)
+			}
+
+			// execute the Range call. All the values returned must
+			// match the hashes we previsouly created
+			startHash := hashes[0]
+			endHash := hashes[len(hashes)-1]
+
+			hashesInRange, err := blockState.Range(startHash, endHash)
+			require.ErrorIs(t, err, tt.wantErr)
+			require.Equal(t, hashes, hashesInRange)
+		})
+	}
+}

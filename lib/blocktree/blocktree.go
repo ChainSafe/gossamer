@@ -132,6 +132,13 @@ func (bt *BlockTree) GetAllBlocksAtNumber(hash common.Hash) (hashes []common.Has
 
 var ErrNilBlockInRange = errors.New("nil block in range")
 
+// RetrieveRange will return all the blocks between the start and
+// end hash inclusive.
+// If the end hash does not exist in the blocktree than an error
+// will be returned.
+// If the start hash does not exists in the blocktree
+// then we will return all blocks between the end and the blocktree
+// root inclusive
 func (bt *BlockTree) RetrieveRange(startHash common.Hash, endHash common.Hash) (hashes []common.Hash, err error) {
 	endNode := bt.getNode(endHash)
 	if endNode == nil {
@@ -147,8 +154,7 @@ func (bt *BlockTree) RetrieveRange(startHash common.Hash, endHash common.Hash) (
 		startNode = bt.root
 	}
 
-	blocksInRange := endNode.number - startNode.number
-	hashes, err = accumulateHashesInDescedingOrder(blocksInRange, endNode, startNode.hash)
+	hashes, err = accumulateHashesInDescedingOrder(endNode, startNode)
 	if err != nil {
 		return nil, fmt.Errorf("getting blocks in range: %w", err)
 	}
@@ -156,24 +162,26 @@ func (bt *BlockTree) RetrieveRange(startHash common.Hash, endHash common.Hash) (
 	return hashes, nil
 }
 
-func accumulateHashesInDescedingOrder(blocksInRange uint, startPoint *node,
-	startHash common.Hash) (hashes []common.Hash, err error) {
+func accumulateHashesInDescedingOrder(endNode, startNode *node) (
+	hashes []common.Hash, err error) {
+
+	// blocksInRange is the difference between the end number to start number
+	// but the difference don't includes the start item that is why we add 1
+	blocksInRange := (endNode.number - startNode.number) + 1
 	hashes = make([]common.Hash, blocksInRange)
-	hashes[0] = startHash
 
-	for position := blocksInRange - 1; position >= 0; position-- {
-		respectiveHash := startPoint.hash
+	lastPosition := blocksInRange - 1
+	hashes[0] = startNode.hash
 
-		// we ensure we complete the range hitting the start hash
-		if position == 0 && respectiveHash == startHash {
-			break
-		}
+	for position := lastPosition; position > 0; position-- {
+		currentNodeHash := endNode.hash
+		hashes[position] = currentNodeHash
 
-		hashes[position] = respectiveHash
-		startPoint = startPoint.parent
+		endNode = endNode.parent
 
-		if startPoint == nil {
-			return nil, ErrNilBlockInRange
+		if endNode == nil {
+			return nil, fmt.Errorf("%w: missing parent of %s",
+				ErrNilBlockInRange, currentNodeHash)
 		}
 	}
 

@@ -543,12 +543,6 @@ func (bs *BlockState) GetSlotForBlock(hash common.Hash) (uint64, error) {
 	return types.GetSlotFromHeader(header)
 }
 
-var (
-	errNotInDatabase    = errors.New("not in database")
-	errStartHashIsEmpty = errors.New("start hash is empty")
-	errEndHashIsEmpty   = errors.New("end hash is empty")
-)
-
 func (bs *BlockState) loadHeaderFromDisk(hash common.Hash) (header *types.Header, err error) {
 	startHeaderData, err := bs.db.Get(headerKey(hash))
 	if err != nil {
@@ -568,6 +562,8 @@ func (bs *BlockState) loadHeaderFromDisk(hash common.Hash) (header *types.Header
 	return header, nil
 }
 
+// Range returns the sub-blockchain between the starting hash and the
+// ending hash using both block tree and disk
 func (bs *BlockState) Range(startHash, endHash common.Hash) (hashes []common.Hash, err error) {
 	if bs.bt == nil {
 		return nil, errNilBlockTree
@@ -593,20 +589,21 @@ func (bs *BlockState) retrieveRange(startHash, endHash common.Hash) (hashes []co
 		return nil, fmt.Errorf("retrieving range from in-memory blocktree: %w", err)
 	}
 
+	firstItem := inMemoryHashes[0]
+
 	// if the first item is equal to the startHash that means we got the range
 	// from the in-memory blocktree
-	if inMemoryHashes[0] == startHash {
+	if firstItem == startHash {
 		return inMemoryHashes, nil
 	}
 
 	// since we got as many blocks as we could from
 	// the block tree but still missing blocks to
-	// fullfill the range that means we should lookup in the
-	// disk we should lookup in the disk for the remaining ones
-	// the first item in the hashes array is the block tree root
-	// that is also persisted in the disk so we will start from
-	// its parent since it is already in the array
-	blockTreeRootHeader, err := bs.loadHeaderFromDisk(inMemoryHashes[0])
+	// fulfil the range we should lookup in the
+	// disk for the remaining ones, the first item in the hashes array
+	// must be the block tree root that is also placed in the disk
+	//  so we will start from its parent since it is already in the array
+	blockTreeRootHeader, err := bs.loadHeaderFromDisk(firstItem)
 	if err != nil {
 		return nil, fmt.Errorf("loading block tree root from disk: %w", err)
 	}
@@ -627,26 +624,47 @@ func (bs *BlockState) retrieveRange(startHash, endHash common.Hash) (hashes []co
 	return hashes, nil
 }
 
-func (bs *BlockState) retrieveRangeFromDisk(startHash common.Hash, endHeader *types.Header) (hashes []common.Hash, err error) {
+// retrieveRangeFromDisk takes the start and the end and will retrieve all block in between
+// where all blocks (start and end inclusive) are supposed to be placed at disk
+func (bs *BlockState) retrieveRangeFromDisk(startHash common.Hash,
+	endHeader *types.Header) (hashes []common.Hash, err error) {
 	startHeader, err := bs.loadHeaderFromDisk(startHash)
 	if err != nil {
 		return nil, fmt.Errorf("range start should be in database: %w", err)
 	}
 
-	blocksInRange := endHeader.Number - startHeader.Number
+	// blocksInRange is the difference between the end number to start number
+	// but the difference don't includes the start item that is why we add 1
+	blocksInRange := (endHeader.Number - startHeader.Number) + 1
+
 	hashes = make([]common.Hash, blocksInRange)
 
 	lastPosition := blocksInRange - 1
 	hashes[0] = startHash
 	hashes[lastPosition] = endHeader.Hash()
 
-	return retrieveHashAt(bs.loadHeaderFromDisk, hashes, endHeader.ParentHash, lastPosition-1)
+	return recursiveRetrieveFromDisk(bs.loadHeaderFromDisk, endHeader.ParentHash, hashes, lastPosition-1)
 }
 
-func retrieveHashAt[
-	T func(common.Hash) (*types.Header, error)](
-	loader T, hashes []common.Hash, hashToLookup common.Hash, pos uint) ([]common.Hash, error) {
-	if pos == 0 {
+var ErrStartHashMismatch = errors.New("start hash mismatch")
+
+type loadHeaderFromDiskFunc func(common.Hash) (*types.Header, error)
+
+// recursiveRetrieveFromDisk takes the function that loads a respective hash from disk
+// retrieve from disk and stores it in the hashes at position given by currentPosition argument
+// and recursivelly calls it self giving the parent hash and decreasing the current position by 1
+// once it achieves the position 0 it returns the slice with hashes to the caller
+func recursiveRetrieveFromDisk(loader loadHeaderFromDiskFunc, hashToLookup common.Hash,
+	hashes []common.Hash, currentPosition uint) ([]common.Hash, error) {
+	if currentPosition == 0 {
+		// at position 0 we must ensure that all the recursive calls ended
+		// up in the same start hash as the one the caller is searching for
+		alreadyStoredStartHash := hashes[0]
+		if hashToLookup != alreadyStoredStartHash {
+			return nil, fmt.Errorf("%w: expected %s, got %s",
+				ErrStartHashMismatch, alreadyStoredStartHash, hashToLookup)
+		}
+
 		return hashes, nil
 	}
 
@@ -655,8 +673,8 @@ func retrieveHashAt[
 		return nil, fmt.Errorf("expected to be in disk: %w", err)
 	}
 
-	hashes[pos] = hashToLookup
-	return retrieveHashAt(loader, hashes, respectiveHeader.ParentHash, pos-1)
+	hashes[currentPosition] = hashToLookup
+	return recursiveRetrieveFromDisk(loader, respectiveHeader.ParentHash, hashes, currentPosition-1)
 }
 
 // SubChain returns the sub-blockchain between the starting hash and the ending hash using the block tree
