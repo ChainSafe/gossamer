@@ -57,7 +57,6 @@ func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 	req := &network.BlockRequestMessage{
 		RequestedData: 3,
 		StartingBlock: *start,
-		EndBlockHash:  nil,
 		Direction:     network.Ascending,
 		Max:           nil,
 	}
@@ -72,7 +71,6 @@ func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 	req = &network.BlockRequestMessage{
 		RequestedData: 3,
 		StartingBlock: *start,
-		EndBlockHash:  nil,
 		Direction:     network.Ascending,
 		Max:           &max,
 	}
@@ -87,7 +85,6 @@ func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 	req = &network.BlockRequestMessage{
 		RequestedData: 3,
 		StartingBlock: *start,
-		EndBlockHash:  nil,
 		Direction:     network.Ascending,
 		Max:           &max,
 	}
@@ -105,7 +102,6 @@ func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 	req = &network.BlockRequestMessage{
 		RequestedData: 3,
 		StartingBlock: *start,
-		EndBlockHash:  nil,
 		Direction:     network.Descending,
 		Max:           nil,
 	}
@@ -123,7 +119,6 @@ func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 	req = &network.BlockRequestMessage{
 		RequestedData: 3,
 		StartingBlock: *start,
-		EndBlockHash:  nil,
 		Direction:     network.Descending,
 		Max:           &max,
 	}
@@ -138,7 +133,6 @@ func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 	req = &network.BlockRequestMessage{
 		RequestedData: 3,
 		StartingBlock: *start,
-		EndBlockHash:  nil,
 		Direction:     network.Descending,
 		Max:           &max,
 	}
@@ -164,7 +158,6 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 	req := &network.BlockRequestMessage{
 		RequestedData: 3,
 		StartingBlock: *start,
-		EndBlockHash:  nil,
 		Direction:     network.Ascending,
 		Max:           nil,
 	}
@@ -174,24 +167,6 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 	require.Equal(t, int(maxResponseSize), len(resp.BlockData))
 	require.Equal(t, uint(1), resp.BlockData[0].Number())
 	require.Equal(t, uint(128), resp.BlockData[127].Number())
-
-	endHash, err := s.blockState.GetHashByNumber(16)
-	require.NoError(t, err)
-
-	// test ascending with non-nil endBlockHash
-	req = &network.BlockRequestMessage{
-		RequestedData: 3,
-		StartingBlock: *start,
-		EndBlockHash:  &endHash,
-		Direction:     network.Ascending,
-		Max:           nil,
-	}
-
-	resp, err = s.CreateBlockResponse(req)
-	require.NoError(t, err)
-	require.Equal(t, int(16), len(resp.BlockData))
-	require.Equal(t, uint(1), resp.BlockData[0].Number())
-	require.Equal(t, uint(16), resp.BlockData[15].Number())
 
 	// test descending with nil endBlockHash
 	startHash, err = s.blockState.GetHashByNumber(16)
@@ -203,7 +178,6 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 	req = &network.BlockRequestMessage{
 		RequestedData: 3,
 		StartingBlock: *start,
-		EndBlockHash:  nil,
 		Direction:     network.Descending,
 		Max:           nil,
 	}
@@ -214,14 +188,9 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 	require.Equal(t, uint(16), resp.BlockData[0].Number())
 	require.Equal(t, uint(1), resp.BlockData[15].Number())
 
-	// test descending with non-nil endBlockHash
-	endHash, err = s.blockState.GetHashByNumber(1)
-	require.NoError(t, err)
-
 	req = &network.BlockRequestMessage{
 		RequestedData: 3,
 		StartingBlock: *start,
-		EndBlockHash:  &endHash,
 		Direction:     network.Descending,
 		Max:           nil,
 	}
@@ -242,7 +211,6 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 	req = &network.BlockRequestMessage{
 		RequestedData: 3,
 		StartingBlock: *start,
-		EndBlockHash:  nil,
 		Direction:     network.Descending,
 		Max:           nil,
 	}
@@ -262,7 +230,6 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 	req = &network.BlockRequestMessage{
 		RequestedData: 3,
 		StartingBlock: *start,
-		EndBlockHash:  nil,
 		Direction:     network.Descending,
 		Max:           nil,
 	}
@@ -270,95 +237,6 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 	resp, err = s.CreateBlockResponse(req)
 	require.NoError(t, err)
 	require.Equal(t, maxResponseSize, len(resp.BlockData))
-	require.Equal(t, uint(128), resp.BlockData[0].Number())
-	require.Equal(t, uint(1), resp.BlockData[127].Number())
-}
-
-func TestService_CreateBlockResponse_Ascending_EndHash(t *testing.T) {
-	t.Parallel()
-	s := newTestSyncer(t)
-	addTestBlocksToState(t, uint(maxResponseSize+1), s.blockState)
-
-	// should error if end < start
-	start, err := variadic.NewUint32OrHash(uint32(128))
-	require.NoError(t, err)
-
-	end, err := s.blockState.GetHashByNumber(1)
-	require.NoError(t, err)
-
-	req := &network.BlockRequestMessage{
-		RequestedData: 3,
-		StartingBlock: *start,
-		EndBlockHash:  &end,
-		Direction:     network.Ascending,
-		Max:           nil,
-	}
-
-	_, err = s.CreateBlockResponse(req)
-	require.Error(t, err)
-
-	// base case
-	start, err = variadic.NewUint32OrHash(uint32(1))
-	require.NoError(t, err)
-
-	end, err = s.blockState.GetHashByNumber(128)
-	require.NoError(t, err)
-
-	req = &network.BlockRequestMessage{
-		RequestedData: 3,
-		StartingBlock: *start,
-		EndBlockHash:  &end,
-		Direction:     network.Ascending,
-		Max:           nil,
-	}
-
-	resp, err := s.CreateBlockResponse(req)
-	require.NoError(t, err)
-	require.Equal(t, int(maxResponseSize), len(resp.BlockData))
-	require.Equal(t, uint(1), resp.BlockData[0].Number())
-	require.Equal(t, uint(128), resp.BlockData[127].Number())
-}
-
-func TestService_CreateBlockResponse_Descending_EndHash(t *testing.T) {
-	s := newTestSyncer(t)
-	addTestBlocksToState(t, uint(maxResponseSize+1), s.blockState)
-
-	// should error if start < end
-	start, err := variadic.NewUint32OrHash(uint32(1))
-	require.NoError(t, err)
-
-	end, err := s.blockState.GetHashByNumber(128)
-	require.NoError(t, err)
-
-	req := &network.BlockRequestMessage{
-		RequestedData: 3,
-		StartingBlock: *start,
-		EndBlockHash:  &end,
-		Direction:     network.Descending,
-		Max:           nil,
-	}
-
-	_, err = s.CreateBlockResponse(req)
-	require.Error(t, err)
-
-	// base case
-	start, err = variadic.NewUint32OrHash(uint32(128))
-	require.NoError(t, err)
-
-	end, err = s.blockState.GetHashByNumber(1)
-	require.NoError(t, err)
-
-	req = &network.BlockRequestMessage{
-		RequestedData: 3,
-		StartingBlock: *start,
-		EndBlockHash:  &end,
-		Direction:     network.Descending,
-		Max:           nil,
-	}
-
-	resp, err := s.CreateBlockResponse(req)
-	require.NoError(t, err)
-	require.Equal(t, int(maxResponseSize), len(resp.BlockData))
 	require.Equal(t, uint(128), resp.BlockData[0].Number())
 	require.Equal(t, uint(1), resp.BlockData[127].Number())
 }
@@ -477,7 +355,6 @@ func TestService_CreateBlockResponse_Fields(t *testing.T) {
 		Justification: &c,
 	}
 
-	endHash := s.blockState.BestBlockHash()
 	start, err := variadic.NewUint32OrHash(uint32(1))
 	require.NoError(t, err)
 
@@ -494,7 +371,6 @@ func TestService_CreateBlockResponse_Fields(t *testing.T) {
 			value: &network.BlockRequestMessage{
 				RequestedData: 3,
 				StartingBlock: *start,
-				EndBlockHash:  &endHash,
 				Direction:     network.Ascending,
 				Max:           nil,
 			},
@@ -513,7 +389,6 @@ func TestService_CreateBlockResponse_Fields(t *testing.T) {
 			value: &network.BlockRequestMessage{
 				RequestedData: 1,
 				StartingBlock: *start,
-				EndBlockHash:  &endHash,
 				Direction:     network.Ascending,
 				Max:           nil,
 			},
@@ -532,7 +407,6 @@ func TestService_CreateBlockResponse_Fields(t *testing.T) {
 			value: &network.BlockRequestMessage{
 				RequestedData: 4,
 				StartingBlock: *start,
-				EndBlockHash:  &endHash,
 				Direction:     network.Ascending,
 				Max:           nil,
 			},
@@ -552,7 +426,6 @@ func TestService_CreateBlockResponse_Fields(t *testing.T) {
 			value: &network.BlockRequestMessage{
 				RequestedData: 8,
 				StartingBlock: *start,
-				EndBlockHash:  &endHash,
 				Direction:     network.Ascending,
 				Max:           nil,
 			},

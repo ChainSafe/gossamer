@@ -15,10 +15,9 @@ var (
 	ErrInvalidBlock = errors.New("could not verify block")
 
 	// ErrInvalidBlockRequest is returned when an invalid block request is received
-	ErrInvalidBlockRequest        = errors.New("invalid block request")
-	errInvalidRequestDirection    = errors.New("invalid request direction")
-	errRequestStartTooHigh        = errors.New("request start number is higher than our best block")
-	errFailedToGetEndHashAncestor = errors.New("failed to get ancestor of end block")
+	ErrInvalidBlockRequest     = errors.New("invalid block request")
+	errInvalidRequestDirection = errors.New("invalid request direction")
+	errRequestStartTooHigh     = errors.New("request start number is higher than our best block")
 
 	// chainSync errors
 	errEmptyBlockData               = errors.New("empty block data")
