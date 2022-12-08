@@ -103,13 +103,13 @@ func (in *Instance) BabeGenerateKeyOwnershipProof(slot uint64, authorityID [32]b
 	}
 	combinedArg = append(combinedArg, encodedAuthorityID...)
 
-	ret, err := in.Exec(runtime.BabeAPIGenerateKeyOwnershipProof, combinedArg)
+	encodedKeyOwnershipProof, err := in.Exec(runtime.BabeAPIGenerateKeyOwnershipProof, combinedArg)
 	if err != nil {
 		return nil, fmt.Errorf("executing %s: %w", runtime.BabeAPIGenerateKeyOwnershipProof, err)
 	}
 
 	keyOwnershipProof := types.OpaqueKeyOwnershipProof{}
-	err = scale.Unmarshal(ret, &keyOwnershipProof)
+	err = scale.Unmarshal(encodedKeyOwnershipProof, &keyOwnershipProof)
 	if err != nil {
 		return nil, fmt.Errorf("scale decoding key ownership proof: %w", err)
 	}

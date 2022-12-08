@@ -817,10 +817,10 @@ func Test_verifier_verifyBlockEquivocation(t *testing.T) {
 func Test_verifier_submitAndReportEquivocation(t *testing.T) {
 	t.Parallel()
 
-	kp, err := sr25519.GenerateKeypair()
+	keyPair, err := sr25519.GenerateKeypair()
 	require.NoError(t, err)
 
-	auth := types.NewAuthority(kp.Public(), uint64(1))
+	auth := types.NewAuthority(keyPair.Public(), uint64(1))
 	vi := &verifierInfo{
 		authorities: []types.Authority{*auth, *auth},
 		threshold:   scale.MaxUint128,
@@ -833,7 +833,7 @@ func Test_verifier_submitAndReportEquivocation(t *testing.T) {
 	const slot = uint64(1)
 	const authorityIndex = uint32(1)
 	const epochNumber = uint64(2)
-	output, proof, err := kp.VrfSign(makeTranscript(Randomness{}, slot, epochNumber))
+	output, proof, err := keyPair.VrfSign(makeTranscript(Randomness{}, slot, epochNumber))
 	assert.NoError(t, err)
 
 	testDigest := types.BabePrimaryPreDigest{
@@ -847,9 +847,9 @@ func Test_verifier_submitAndReportEquivocation(t *testing.T) {
 
 	firstHeader := newTestHeader(t, *preRuntimeDigest)
 	firstHash := encodeAndHashHeader(t, firstHeader)
-	signAndAddSeal(t, kp, firstHeader, firstHash[:])
+	signAndAddSeal(t, keyPair, firstHeader, firstHash[:])
 
-	output2, proof2, err := kp.VrfSign(makeTranscript(Randomness{}, slot, epochNumber))
+	output2, proof2, err := keyPair.VrfSign(makeTranscript(Randomness{}, slot, epochNumber))
 	require.NoError(t, err)
 
 	testDigest2 := types.BabePrimaryPreDigest{

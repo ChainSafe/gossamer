@@ -3,6 +3,8 @@
 
 package types
 
+import "github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+
 // BabeEquivocationProof represents a babe equivocation proof.
 // An equivocation happens when a validator produces more than one block on the same slot.
 // The proof of equivocation are the given distinct headers that were signed by the validator
@@ -19,7 +21,7 @@ type BabeEquivocationProof struct {
 }
 
 // AuthorityID represents a babe authority identifier.
-type AuthorityID [32]byte
+type AuthorityID [sr25519.PublicKeyLength]byte
 
 // OpaqueKeyOwnershipProof is an opaque type used to represent the key ownership proof at the
 // runtime API boundary. The inner value is an encoded representation of the actual key
