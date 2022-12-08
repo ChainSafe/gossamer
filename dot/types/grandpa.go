@@ -198,9 +198,9 @@ func (v *GrandpaVote) String() string {
 type GrandpaEquivocation scale.VaryingDataType
 
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (ge *GrandpaEquivocation) Set(val scale.VaryingDataTypeValue) (err error) {
+func (ge *GrandpaEquivocation) Set(value scale.VaryingDataTypeValue) (err error) {
 	vdt := scale.VaryingDataType(*ge)
-	err = vdt.Set(val)
+	err = vdt.Set(value)
 	if err != nil {
 		return err
 	}
@@ -209,17 +209,14 @@ func (ge *GrandpaEquivocation) Set(val scale.VaryingDataTypeValue) (err error) {
 }
 
 // Value will return the value from the underlying VaryingDataType
-func (ge *GrandpaEquivocation) Value() (val scale.VaryingDataTypeValue, err error) {
+func (ge *GrandpaEquivocation) Value() (value scale.VaryingDataTypeValue, err error) {
 	vdt := scale.VaryingDataType(*ge)
 	return vdt.Value()
 }
 
 // NewGrandpaEquivocation returns a new VaryingDataType to represent a grandpa Equivocation
 func NewGrandpaEquivocation() *GrandpaEquivocation {
-	vdt, err := scale.NewVaryingDataType(PreVoteEquivocation{}, PreCommitEquivocation{})
-	if err != nil {
-		panic(err)
-	}
+	vdt := scale.MustNewVaryingDataType(PreVoteEquivocation{}, PreCommitEquivocation{})
 	ge := GrandpaEquivocation(vdt)
 	return &ge
 }
