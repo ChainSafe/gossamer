@@ -7,33 +7,43 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/stretchr/testify/require"
 )
 
 func TestEncodeAndDecodeEquivocationPreVote(t *testing.T) {
-	expectedEncoding := common.MustHexToBytes("0x000a0b0c0d00000000000000000000000000000000000000000000000000000000e7030000010203040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000506070800000000000000000000000000000000000000000000000000000000") //nolint:lll
-	testVote := GrandpaVote{
+	testFirstVote := GrandpaVote{
 		Hash:   common.Hash{0xa, 0xb, 0xc, 0xd},
 		Number: 999,
 	}
+	testSecondVote := GrandpaVote{
+		Hash:   common.Hash{0xd, 0xc, 0xb, 0xa},
+		Number: 999,
+	}
 	testSignature := [64]byte{1, 2, 3, 4}
-	testAuthorityID := [32]byte{5, 6, 7, 8}
+	keypair, err := ed25519.GenerateKeypair()
+	require.NoError(t, err)
 
-	signedVote := GrandpaSignedVote{
-		Vote:        testVote,
-		Signature:   testSignature,
-		AuthorityID: testAuthorityID,
+	testAuthorityID := keypair.Public().Encode()
+	require.NoError(t, err)
+
+	equivocation := GrandpaEquivocation{
+		RoundNumber:     0,
+		ID:              testAuthorityID,
+		FirstVote:       testFirstVote,
+		FirstSignature:  testSignature,
+		SecondVote:      testSecondVote,
+		SecondSignature: testSignature,
 	}
 
-	equivPreVote := PreVoteEquivocation(signedVote)
+	equivPreVote := PreVoteEquivocation(equivocation)
 	equivVote := NewGrandpaEquivocation()
-	err := equivVote.Set(equivPreVote)
+	err = equivVote.Set(equivPreVote)
 	require.NoError(t, err)
 	encoding, err := scale.Marshal(*equivVote)
 	require.NoError(t, err)
-	require.Equal(t, expectedEncoding, encoding)
 
 	grandpaEquivocation := NewGrandpaEquivocation()
 	err = scale.Unmarshal(encoding, grandpaEquivocation)
