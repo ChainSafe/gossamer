@@ -72,6 +72,26 @@ func Test_Encoder_Encode(t *testing.T) {
 	assert.Equal(t, expectedWritten, written)
 }
 
+func Test_MustMarshal(t *testing.T) {
+	t.Parallel()
+
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+
+		b := MustMarshal([]byte{1})
+		assert.Equal(t, []byte{4, 1}, b)
+	})
+
+	t.Run("panics on error", func(t *testing.T) {
+		t.Parallel()
+
+		const expected = "unsupported type: chan struct {}"
+		assert.PanicsWithError(t, expected, func() {
+			MustMarshal(make(chan struct{}))
+		})
+	})
+}
+
 type test struct {
 	name    string
 	in      interface{}
