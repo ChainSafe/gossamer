@@ -412,16 +412,16 @@ func TestInstance_BabeGenerateKeyOwnershipProof_NodeRuntime(t *testing.T) {
 	tt := trie.NewEmptyTrie()
 	rt := NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt)
 	authorityID := types.AuthorityID{}
-	slot := uint64(1)
+	const slot = uint64(1)
 	_, err := rt.BabeGenerateKeyOwnershipProof(slot, authorityID)
 	require.NoError(t, err)
 }
 
-func TestInstance_BabeSubmitReportEquivocationUnsignedExtrinsic_NodeRuntime_(t *testing.T) {
+func TestInstance_BabeSubmitReportEquivocationUnsignedExtrinsic_NodeRuntime(t *testing.T) {
 	tt := trie.NewEmptyTrie()
 	rt := NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt)
 	authorityID := types.AuthorityID{}
-	slot := uint64(1)
+	const slot = uint64(1)
 	keyOwnershipProof, err := rt.BabeGenerateKeyOwnershipProof(slot, authorityID)
 	require.NoError(t, err)
 

@@ -86,16 +86,16 @@ func (in *Instance) GrandpaAuthorities() ([]types.Authority, error) {
 	return types.GrandpaAuthoritiesRawToAuthorities(gar)
 }
 
-// BabeGenerateKeyOwnershipProof returns babe key ownership proof from runtime.
+// BabeGenerateKeyOwnershipProof returns the babe key ownership proof from the runtime.
 func (in *Instance) BabeGenerateKeyOwnershipProof(slot uint64, authorityID [32]byte) (
 	types.OpaqueKeyOwnershipProof, error) {
 
 	combinedArg := []byte{}
-	encodedSetID, err := scale.Marshal(slot)
+	encodedSlot, err := scale.Marshal(slot)
 	if err != nil {
-		return nil, fmt.Errorf("encoding set id: %w", err)
+		return nil, fmt.Errorf("encoding slot: %w", err)
 	}
-	combinedArg = append(combinedArg, encodedSetID...)
+	combinedArg = append(combinedArg, encodedSlot...)
 
 	encodedAuthorityID, err := scale.Marshal(authorityID)
 	if err != nil {
@@ -105,16 +105,16 @@ func (in *Instance) BabeGenerateKeyOwnershipProof(slot uint64, authorityID [32]b
 
 	ret, err := in.Exec(runtime.BabeAPIGenerateKeyOwnershipProof, combinedArg)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("executing %s: %w", runtime.BabeAPIGenerateKeyOwnershipProof, err)
 	}
 
 	keyOwnershipProof := types.OpaqueKeyOwnershipProof{}
 	err = scale.Unmarshal(ret, &keyOwnershipProof)
 	if err != nil {
-		return nil, fmt.Errorf("unmarshalling: %w", err)
+		return nil, fmt.Errorf("scale decoding key ownership proof: %w", err)
 	}
 
-	return keyOwnershipProof, err
+	return keyOwnershipProof, nil
 }
 
 // BabeSubmitReportEquivocationUnsignedExtrinsic reports equivocation report to the runtime.

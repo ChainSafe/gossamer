@@ -232,8 +232,6 @@ func newVerifier(blockState BlockState, epoch uint64, info *verifierInfo) *verif
 }
 
 // verifyAuthorshipRight verifies that the authority that produced a block was authorized to produce it.
-//
-//gocyclo:ignore
 func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	// header should have 2 digest items (possibly more in the future)
 	// first item should be pre-digest, second should be seal
@@ -348,14 +346,14 @@ func (b *verifier) submitAndReportEquivocation(
 	// as they are most likely stale.
 
 	bestBlockHash := b.blockState.BestBlockHash()
-	rt, err := b.blockState.GetRuntime(bestBlockHash)
+	runtimeInstance, err := b.blockState.GetRuntime(bestBlockHash)
 	if err != nil {
 		return fmt.Errorf("getting runtime: %w", err)
 	}
 
 	offenderPublicKey := b.authorities[authorityIndex].ToRaw().Key
 
-	keyOwnershipProof, err := rt.BabeGenerateKeyOwnershipProof(slot, offenderPublicKey)
+	keyOwnershipProof, err := runtimeInstance.BabeGenerateKeyOwnershipProof(slot, offenderPublicKey)
 	if err != nil {
 		return fmt.Errorf("getting key ownership proof from runtime: %w", err)
 	}
@@ -367,7 +365,7 @@ func (b *verifier) submitAndReportEquivocation(
 		SecondHeader: secondHeader,
 	}
 
-	err = rt.BabeSubmitReportEquivocationUnsignedExtrinsic(*equivocationProof, keyOwnershipProof)
+	err = runtimeInstance.BabeSubmitReportEquivocationUnsignedExtrinsic(*equivocationProof, keyOwnershipProof)
 	if err != nil {
 		return fmt.Errorf("submitting equivocation report to runtime: %w", err)
 	}
@@ -418,7 +416,6 @@ func (b *verifier) verifyBlockEquivocation(header *types.Header) (bool, error) {
 		}
 
 		return true, nil
-
 	}
 
 	return false, nil

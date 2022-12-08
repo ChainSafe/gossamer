@@ -677,7 +677,6 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 func Test_verifier_verifyBlockEquivocation(t *testing.T) {
 	t.Parallel()
 
-	// Generate keys
 	kp, err := sr25519.GenerateKeypair()
 	assert.NoError(t, err)
 
@@ -818,9 +817,8 @@ func Test_verifier_verifyBlockEquivocation(t *testing.T) {
 func Test_verifier_submitAndReportEquivocation(t *testing.T) {
 	t.Parallel()
 
-	// Generate keys
 	kp, err := sr25519.GenerateKeypair()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	auth := types.NewAuthority(kp.Public(), uint64(1))
 	vi := &verifierInfo{
@@ -832,9 +830,10 @@ func Test_verifier_submitAndReportEquivocation(t *testing.T) {
 	mockBlockState := NewMockBlockState(ctrl)
 	verifier := newVerifier(mockBlockState, 1, vi)
 
-	slot := uint64(1)
-	authorityIndex := uint32(1)
-	output, proof, err := kp.VrfSign(makeTranscript(Randomness{}, slot, 2))
+	const slot = uint64(1)
+	const authorityIndex = uint32(1)
+	const epochNumber = uint64(2)
+	output, proof, err := kp.VrfSign(makeTranscript(Randomness{}, slot, epochNumber))
 	assert.NoError(t, err)
 
 	testDigest := types.BabePrimaryPreDigest{
@@ -843,15 +842,15 @@ func Test_verifier_submitAndReportEquivocation(t *testing.T) {
 		VRFOutput:      output,
 		VRFProof:       proof,
 	}
-	prd, err := testDigest.ToPreRuntimeDigest()
-	assert.NoError(t, err)
+	preRuntimeDigest, err := testDigest.ToPreRuntimeDigest()
+	require.NoError(t, err)
 
-	firstHeader := newTestHeader(t, *prd)
+	firstHeader := newTestHeader(t, *preRuntimeDigest)
 	firstHash := encodeAndHashHeader(t, firstHeader)
 	signAndAddSeal(t, kp, firstHeader, firstHash[:])
 
-	output2, proof2, err := kp.VrfSign(makeTranscript(Randomness{}, slot, 2))
-	assert.NoError(t, err)
+	output2, proof2, err := kp.VrfSign(makeTranscript(Randomness{}, slot, epochNumber))
+	require.NoError(t, err)
 
 	testDigest2 := types.BabePrimaryPreDigest{
 		AuthorityIndex: authorityIndex,
@@ -859,10 +858,10 @@ func Test_verifier_submitAndReportEquivocation(t *testing.T) {
 		VRFOutput:      output2,
 		VRFProof:       proof2,
 	}
-	prd2, err := testDigest2.ToPreRuntimeDigest()
-	assert.NoError(t, err)
+	preRuntimeDigest2, err := testDigest2.ToPreRuntimeDigest()
+	require.NoError(t, err)
 
-	secondHeader := newTestHeader(t, *prd2)
+	secondHeader := newTestHeader(t, *preRuntimeDigest2)
 
 	offenderPublicKey := verifier.authorities[authorityIndex].ToRaw().Key
 	keyOwnershipProof := types.OpaqueKeyOwnershipProof([]byte{64, 138, 252, 29, 127, 102, 189, 129, 207, 47, 157, 60, 17, 138, 194, 121, 139, 92, 176, 175, 224, 16, 185, 93, 175, 251, 224, 81, 209, 61, 0, 71}) //nolint:lll
