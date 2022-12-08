@@ -618,9 +618,7 @@ func (bs *BlockState) retrieveRange(startHash, endHash common.Hash) (hashes []co
 		return nil, fmt.Errorf("retrieving range from disk: %w", err)
 	}
 
-	hashes = make([]common.Hash, 0, len(inMemoryHashes)+len(inDiskHashes))
 	hashes = append(inDiskHashes, inMemoryHashes...)
-
 	return hashes, nil
 }
 
