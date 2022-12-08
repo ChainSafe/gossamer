@@ -17,7 +17,7 @@ type OpaqueKeyOwnershipProof []byte
 
 type GrandpaEquivocationProof struct {
 	setId        uint64
-	equivocation types.Equivocation //Check this is correct
+	equivocation types.GrandpaEquivocation
 }
 
 // ValidateTransaction runs the extrinsic through the runtime function
@@ -340,19 +340,17 @@ Return
 - A SCALE encoded Option as defined in Definition 194 containing an empty value on success.
 
 */
-func (in *Instance) SubmitReportEquivocation() error {
-	_, err := in.Exec(runtime.GrandpaSubmitReportEquivocation, []byte{})
-	if err != nil {
-		return err
-	}
-	return nil
-}
+//func (in *Instance) SubmitReportEquivocation() error {
+//	_, err := in.Exec(runtime.GrandpaSubmitReportEquivocation, []byte{})
+//	if err != nil {
+//		return err
+//	}
+//	return nil
+//}
 
-// TODO think I need to implement https://crates.parity.io/sp_finality_grandpa/enum.Equivocation.html
-
-// BabeSubmitReportEquivocationUnsignedExtrinsic reports equivocation report to the runtime.
+// GrandpaSubmitReportEquivocationUnsignedExtrinsic reports equivocation report to the runtime.
 func (in *Instance) GrandpaSubmitReportEquivocationUnsignedExtrinsic(
-	equivocationProof types.BabeEquivocationProof, keyOwnershipProof OpaqueKeyOwnershipProof,
+	equivocationProof GrandpaEquivocationProof, keyOwnershipProof OpaqueKeyOwnershipProof,
 ) error {
 
 	combinedArg := []byte{}
@@ -369,7 +367,7 @@ func (in *Instance) GrandpaSubmitReportEquivocationUnsignedExtrinsic(
 	}
 	combinedArg = append(combinedArg, encodedKeyOwnershipProof...)
 
-	_, err = in.Exec(runtime.BabeAPISubmitReportEquivocationUnsignedExtrinsic, combinedArg)
+	_, err = in.Exec(runtime.GrandpaSubmitReportEquivocation, combinedArg)
 	return err
 }
 

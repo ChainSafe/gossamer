@@ -1288,3 +1288,13 @@ func TestInstance_GenerateKeyOwnershipProof(t *testing.T) {
 	_, err := rt.GrandpaGenerateKeyOwnershipProof(0, authA.AsBytes())
 	require.NoError(t, err)
 }
+
+func TestInstance_GrandpaSubmitReportEquivocationUnsignedExtrinsic(t *testing.T) {
+	authABytes, _ := common.HexToBytes("0xeea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d71410364")
+	authA, _ := ed25519.NewPublicKey(authABytes)
+
+	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
+
+	proof, err := rt.GrandpaGenerateKeyOwnershipProof(0, authA.AsBytes())
+	require.NoError(t, err)
+}

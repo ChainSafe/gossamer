@@ -196,3 +196,42 @@ type GrandpaVote struct {
 func (v GrandpaVote) String() string {
 	return fmt.Sprintf("hash=%s number=%d", v.Hash, v.Number)
 }
+
+// GrandpaEquivocation is a custom vdt type for a grandpa equivocation
+type GrandpaEquivocation scale.VaryingDataType
+
+// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
+func (ge *GrandpaEquivocation) Set(value scale.VaryingDataTypeValue) (err error) {
+	vdt := scale.VaryingDataType(*ge)
+	err = vdt.Set(value)
+	if err != nil {
+		return err
+	}
+	*ge = GrandpaEquivocation(vdt)
+	return nil
+}
+
+// Value will return the value from the underlying VaryingDataType
+func (ge *GrandpaEquivocation) Value() (value scale.VaryingDataTypeValue, err error) {
+	vdt := scale.VaryingDataType(*ge)
+	return vdt.Value()
+}
+
+// NewGrandpaEquivocation returns a new VaryingDataType to represent a grandpa Equivocation
+func NewGrandpaEquivocation() *GrandpaEquivocation {
+	vdt := scale.MustNewVaryingDataType(PreVoteEquivocation{}, PreCommitEquivocation{})
+	ge := GrandpaEquivocation(vdt)
+	return &ge
+}
+
+// PreVoteEquivocation equivocation type for a prevote
+type PreVoteEquivocation GrandpaSignedVote
+
+// Index returns VDT index
+func (PreVoteEquivocation) Index() uint { return 0 }
+
+// PreCommitEquivocation equivocation type for a precommit
+type PreCommitEquivocation GrandpaSignedVote
+
+// Index returns VDT index
+func (PreCommitEquivocation) Index() uint { return 1 }
