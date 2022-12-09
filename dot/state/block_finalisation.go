@@ -156,7 +156,7 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 
 	// if nothing was previously finalised, set the first slot of the network to the
 	// slot number of block 1, which is now being set as final
-	if bs.lastFinalised.Equal(bs.genesisHash) && !hash.Equal(bs.genesisHash) {
+	if bs.lastFinalised == bs.genesisHash && hash != bs.genesisHash {
 		if err := bs.setFirstSlotOnFinalisation(); err != nil {
 			return fmt.Errorf("failed to set first slot on finalisation: %w", err)
 		}
@@ -174,7 +174,7 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 		),
 	)
 
-	if !bs.lastFinalised.Equal(hash) {
+	if bs.lastFinalised != hash {
 		defer func(lastFinalised common.Hash) {
 			err := bs.deleteFromTries(lastFinalised)
 			if err != nil {
@@ -202,7 +202,7 @@ func (bs *BlockState) deleteFromTries(lastFinalised common.Hash) error {
 }
 
 func (bs *BlockState) handleFinalisedBlock(curr common.Hash) error {
-	if curr.Equal(bs.lastFinalised) {
+	if curr == bs.lastFinalised {
 		return nil
 	}
 
@@ -211,7 +211,7 @@ func (bs *BlockState) handleFinalisedBlock(curr common.Hash) error {
 		return fmt.Errorf("failed to get highest finalised hash: %w", err)
 	}
 
-	if prev.Equal(curr) {
+	if prev == curr {
 		return nil
 	}
 
@@ -224,7 +224,7 @@ func (bs *BlockState) handleFinalisedBlock(curr common.Hash) error {
 
 	// root of subchain is previously finalised block, which has already been stored in the db
 	for _, hash := range subchain[1:] {
-		if hash.Equal(bs.genesisHash) {
+		if hash == bs.genesisHash {
 			continue
 		}
 

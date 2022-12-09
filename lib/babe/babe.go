@@ -464,7 +464,7 @@ func (b *Service) getParentForBlockAuthoring(slotNum uint64) (*types.Header, err
 		return nil, errNilParentHeader
 	}
 
-	atGenesisBlock := b.blockState.GenesisHash().Equal(parentHeader.Hash())
+	atGenesisBlock := b.blockState.GenesisHash() == parentHeader.Hash()
 	if !atGenesisBlock {
 		bestBlockSlotNum, err := b.blockState.GetSlotForBlock(parentHeader.Hash())
 		if err != nil {
