@@ -883,35 +883,34 @@ func Test_ext_crypto_ed25519_verify_version_1(t *testing.T) {
 
 func Test_ext_crypto_ecdsa_generate_version_1(t *testing.T) {
 	t.Parallel()
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	instance := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	idData := []byte(keystore.AccoName)
-	ks, _ := inst.ctx.Keystore.GetKeystore(idData)
-	require.Equal(t, 0, ks.Size())
+	keyStore, _ := instance.ctx.Keystore.GetKeystore(idData)
+	require.Zero(t, keyStore.Size())
 
 	mnemonic, err := crypto.NewBIP39Mnemonic()
 	require.NoError(t, err)
 
 	mnemonicBytes := []byte(mnemonic)
-	var data = &mnemonicBytes
-	seedData, err := scale.Marshal(data)
+	seedData, err := scale.Marshal(&mnemonicBytes)
 	require.NoError(t, err)
 
 	params := append(idData, seedData...)
 
-	ret, err := inst.Exec("rtm_ext_crypto_ecdsa_generate_version_1", params)
+	encodedKeyPair, err := instance.Exec("rtm_ext_crypto_ecdsa_generate_version_1", params)
 	require.NoError(t, err)
 
 	var out []byte
-	err = scale.Unmarshal(ret, &out)
+	err = scale.Unmarshal(encodedKeyPair, &out)
 	require.NoError(t, err)
 
 	pubKey, err := secp256k1.NewPublicKey(out)
 	require.NoError(t, err)
-	require.Equal(t, 1, ks.Size())
+	require.Equal(t, 1, keyStore.Size())
 
-	kp := ks.GetKeypair(pubKey)
-	require.NotNil(t, kp)
+	keyPair := keyStore.GetKeypair(pubKey)
+	require.NotNil(t, keyPair)
 }
 
 func Test_ext_crypto_ecdsa_verify_version_2(t *testing.T) {

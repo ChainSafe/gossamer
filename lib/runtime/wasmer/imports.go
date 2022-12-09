@@ -462,16 +462,24 @@ func ext_crypto_ecdsa_generate_version_1(context unsafe.Pointer, keyTypeID C.int
 	var seed *[]byte
 	err := scale.Unmarshal(seedBytes, &seed)
 	if err != nil {
-		logger.Warnf("cannot generate key: %s", err)
+		logger.Warnf("cannot decode seed: %s", err)
 		return 0
 	}
 
-	var kp crypto.Keypair
+	var keyPair crypto.Keypair
 
 	if seed != nil {
-		kp, err = secp256k1.NewKeypairFromMnenomic(string(*seed), "")
+		keyPair, err = secp256k1.NewKeypairFromMnenomic(string(*seed), "")
+		if err != nil {
+			logger.Warnf("cannot create keypair from mnemonic: %s", err)
+			return 0
+		}
 	} else {
-		kp, err = secp256k1.GenerateKeypair()
+		keyPair, err = secp256k1.GenerateKeypair()
+		if err != nil {
+			logger.Warnf("cannot generate keypair: %s", err)
+			return 0
+		}
 	}
 
 	if err != nil {
@@ -479,26 +487,26 @@ func ext_crypto_ecdsa_generate_version_1(context unsafe.Pointer, keyTypeID C.int
 		return 0
 	}
 
-	ks, err := runtimeCtx.Keystore.GetKeystore(id)
+	keyStore, err := runtimeCtx.Keystore.GetKeystore(id)
 	if err != nil {
-		logger.Warnf("error for id 0x%x: %s", id, err)
+		logger.Warnf("cannot get keystore: %s", err)
 		return 0
 	}
 
-	err = ks.Insert(kp)
+	err = keyStore.Insert(keyPair)
 	if err != nil {
-		logger.Warnf("failed to insert key: %s", err)
+		logger.Warnf("failed to insert key pair in key store: %s", err)
 		return 0
 	}
 
-	ret, err := toWasmMemorySized(instanceContext, kp.Public().Encode())
+	encodedKeyPairPointer, err := toWasmMemorySized(instanceContext, keyPair.Public().Encode())
 	if err != nil {
 		logger.Warnf("failed to allocate memory: %s", err)
 		return 0
 	}
 
-	logger.Debug("generated secp256k1 keypair with public key: " + kp.Public().Hex())
-	return C.int32_t(ret)
+	logger.Debug("generated secp256k1 keypair with public key: " + keyPair.Public().Hex())
+	return C.int32_t(encodedKeyPairPointer)
 }
 
 //export ext_crypto_ecdsa_verify_version_2

@@ -35,6 +35,12 @@ const (
 	MessageLength = 32
 )
 
+// ErrSeedLengthNotValid is thrown when seed lengh is not correct
+var ErrSeedLengthNotValid = errors.New("seed length is not valid")
+
+// ErrPubKeyLengthNotValid is thrown when public key length is not correct
+var ErrPubKeyLengthNotValid = errors.New("public key length is not valid")
+
 // Keypair holds the pub,pk keys
 type Keypair struct {
 	public  *PublicKey
@@ -112,13 +118,13 @@ func NewKeypairFromPrivate(priv *PrivateKey) (*Keypair, error) {
 }
 
 // NewKeypairFromSeed generates a new secp256k1 keypair from a 32 byte seed
-func NewKeypairFromSeed(seed []byte) (*Keypair, error) {
+func newKeypairFromSeed(seed []byte) (*Keypair, error) {
 	if len(seed) != SeedLength {
-		return nil, fmt.Errorf("cannot generate key from seed: seed is not 32 bytes long")
+		return nil, fmt.Errorf("%w: got %d bytes but expected %d bytes", ErrSeedLengthNotValid, len(seed), SeedLength)
 	}
 	edpriv, err := secp256k1.ToECDSA(seed)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("converting seed to ECDSA: %w", err)
 	}
 	return NewKeypair(*edpriv), nil
 }
@@ -127,9 +133,13 @@ func NewKeypairFromSeed(seed []byte) (*Keypair, error) {
 func NewKeypairFromMnenomic(mnemonic, password string) (*Keypair, error) {
 	seed, err := schnorrkel.SeedFromMnemonic(mnemonic, password)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("creating seed from mnemonic: %w", err)
 	}
-	return NewKeypairFromSeed(seed[:32])
+	keyPair, err := newKeypairFromSeed(seed[:32])
+	if err != nil {
+		return nil, fmt.Errorf("creating keypair from seed: %w", err)
+	}
+	return keyPair, nil
 }
 
 // NewPrivateKey will return a PrivateKey for a []byte
@@ -170,16 +180,13 @@ func GenerateKeypair() (*Keypair, error) {
 // NewPublicKey returns a secp256k1 public key from 33 byte input
 func NewPublicKey(in []byte) (*PublicKey, error) {
 	if len(in) != PublicKeyLength {
-		return nil, errors.New("cannot create public key: input is not 33 bytes")
+		return nil, fmt.Errorf("%w: got %d bytes but expected %d bytes", ErrPubKeyLengthNotValid, len(in), PublicKeyLength)
 	}
-
-	buf := [PublicKeyLength]byte{}
-	copy(buf[:], in)
 
 	pubK := &PublicKey{}
 	err := pubK.Decode(in)
 	if err != nil {
-		return nil, fmt.Errorf("creating secp256k1 public key: %w", err)
+		return nil, fmt.Errorf("decoding public key input data: %w", err)
 	}
 	return pubK, nil
 }
