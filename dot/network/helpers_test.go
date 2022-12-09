@@ -15,10 +15,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	gomock "github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/require"
-
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -131,7 +130,6 @@ func newTestBlockRequestMessage(t *testing.T) *BlockRequestMessage {
 	return &BlockRequestMessage{
 		RequestedData: RequestedDataHeader + RequestedDataBody + RequestedDataJustification,
 		StartingBlock: *starting,
-		EndBlockHash:  &common.Hash{},
 		Direction:     1,
 		Max:           &one,
 	}

@@ -401,7 +401,6 @@ func TestChainSync_sync_bootstrap_withWorkerError(t *testing.T) {
 	mockNetwork.EXPECT().DoBlockRequest(peer.ID("noot"), &network.BlockRequestMessage{
 		RequestedData: 19,
 		StartingBlock: *startingBlock,
-		EndBlockHash:  nil,
 		Direction:     0,
 		Max:           &max,
 	})
@@ -538,7 +537,6 @@ func TestWorkerToRequests(t *testing.T) {
 				{
 					RequestedData: bootstrapRequestData,
 					StartingBlock: *variadic.MustNewUint32OrHash(1),
-					EndBlockHash:  nil,
 					Direction:     network.Ascending,
 					Max:           &max128,
 				},
@@ -555,14 +553,12 @@ func TestWorkerToRequests(t *testing.T) {
 				{
 					RequestedData: bootstrapRequestData,
 					StartingBlock: *variadic.MustNewUint32OrHash(1),
-					EndBlockHash:  nil,
 					Direction:     network.Ascending,
 					Max:           &max128,
 				},
 				{
 					RequestedData: network.RequestedDataHeader + network.RequestedDataBody + network.RequestedDataJustification,
 					StartingBlock: *variadic.MustNewUint32OrHash(1 + maxResponseSize),
-					EndBlockHash:  nil,
 					Direction:     network.Ascending,
 					Max:           &max128,
 				},
@@ -579,7 +575,6 @@ func TestWorkerToRequests(t *testing.T) {
 				{
 					RequestedData: bootstrapRequestData,
 					StartingBlock: *variadic.MustNewUint32OrHash(1),
-					EndBlockHash:  nil,
 					Direction:     network.Ascending,
 					Max:           &max128,
 				},
@@ -596,7 +591,6 @@ func TestWorkerToRequests(t *testing.T) {
 				{
 					RequestedData: bootstrapRequestData,
 					StartingBlock: *variadic.MustNewUint32OrHash(10),
-					EndBlockHash:  nil,
 					Direction:     network.Descending,
 					Max:           &max9,
 				},
@@ -613,14 +607,12 @@ func TestWorkerToRequests(t *testing.T) {
 				{
 					RequestedData: bootstrapRequestData,
 					StartingBlock: *variadic.MustNewUint32OrHash(1),
-					EndBlockHash:  nil,
 					Direction:     network.Ascending,
 					Max:           &max128,
 				},
 				{
 					RequestedData: network.RequestedDataHeader + network.RequestedDataBody + network.RequestedDataJustification,
 					StartingBlock: *variadic.MustNewUint32OrHash(1 + maxResponseSize),
-					EndBlockHash:  nil,
 					Direction:     network.Ascending,
 					Max:           &max128,
 				},
@@ -638,7 +630,6 @@ func TestWorkerToRequests(t *testing.T) {
 				{
 					RequestedData: bootstrapRequestData,
 					StartingBlock: *variadic.MustNewUint32OrHash(1),
-					EndBlockHash:  &(common.Hash{0xa}),
 					Direction:     network.Ascending,
 					Max:           &max128,
 				},
@@ -657,7 +648,6 @@ func TestWorkerToRequests(t *testing.T) {
 				{
 					RequestedData: bootstrapRequestData,
 					StartingBlock: *variadic.MustNewUint32OrHash(common.Hash{0xb}),
-					EndBlockHash:  &(common.Hash{0xc}),
 					Direction:     network.Ascending,
 					Max:           &max128,
 				},
@@ -690,14 +680,12 @@ func TestWorkerToRequests(t *testing.T) {
 				{
 					RequestedData: network.RequestedDataHeader + network.RequestedDataBody + network.RequestedDataJustification,
 					StartingBlock: *variadic.MustNewUint32OrHash(1 + (maxResponseSize / 2)),
-					EndBlockHash:  nil,
 					Direction:     network.Descending,
 					Max:           &max64,
 				},
 				{
 					RequestedData: bootstrapRequestData,
 					StartingBlock: *variadic.MustNewUint32OrHash(1 + maxResponseSize + (maxResponseSize / 2)),
-					EndBlockHash:  nil,
 					Direction:     network.Descending,
 					Max:           &max128,
 				},
@@ -894,7 +882,6 @@ func TestChainSync_doSync(t *testing.T) {
 	req := &network.BlockRequestMessage{
 		RequestedData: bootstrapRequestData,
 		StartingBlock: *variadic.MustNewUint32OrHash(1),
-		EndBlockHash:  nil,
 		Direction:     network.Ascending,
 		Max:           &max,
 	}
@@ -917,7 +904,6 @@ func TestChainSync_doSync(t *testing.T) {
 	mockNetwork.EXPECT().DoBlockRequest(peer.ID("noot"), &network.BlockRequestMessage{
 		RequestedData: 19,
 		StartingBlock: *startingBlock,
-		EndBlockHash:  nil,
 		Direction:     0,
 		Max:           &max1,
 	})
@@ -943,7 +929,6 @@ func TestChainSync_doSync(t *testing.T) {
 	mockNetwork.EXPECT().DoBlockRequest(peer.ID("noot"), &network.BlockRequestMessage{
 		RequestedData: 19,
 		StartingBlock: *startingBlock,
-		EndBlockHash:  nil,
 		Direction:     0,
 		Max:           &max1,
 	}).Return(resp, nil)
@@ -985,7 +970,6 @@ func TestChainSync_doSync(t *testing.T) {
 	mockNetwork.EXPECT().DoBlockRequest(peer.ID("noot"), &network.BlockRequestMessage{
 		RequestedData: 19,
 		StartingBlock: *startingBlock,
-		EndBlockHash:  nil,
 		Direction:     1,
 		Max:           &max1,
 	}).Return(resp, nil)

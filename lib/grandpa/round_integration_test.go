@@ -289,7 +289,7 @@ func TestPlayGrandpaRound(t *testing.T) {
 			var latestHash common.Hash = grandpaServices[0].head.Hash()
 			for _, grandpaService := range grandpaServices[1:] {
 				serviceFinalizedHash := grandpaService.head.Hash()
-				eql := serviceFinalizedHash.Equal(latestHash)
+				eql := serviceFinalizedHash == latestHash
 				if !eql {
 					t.Errorf("miss match service finalized hash\n\texpecting %s\n\tgot%s\n",
 						latestHash, serviceFinalizedHash)
@@ -513,7 +513,7 @@ func assertSamefinalisationAndChainGrowth(t *testing.T, services []*Service, cur
 
 	var latestFinalized common.Hash = finalizedHeaderCurrentRound[0].Hash()
 	for _, finalizedHead := range finalizedHeaderCurrentRound[1:] {
-		eq := finalizedHead.Hash().Equal(latestFinalized)
+		eq := finalizedHead.Hash() == latestFinalized
 		if !eq {
 			t.Errorf("miss match finalized hash\n\texpected %s\n\tgot%s\n",
 				latestFinalized, finalizedHead)
