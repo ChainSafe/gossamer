@@ -898,11 +898,11 @@ func Test_ext_crypto_ecdsa_generate_version_1(t *testing.T) {
 
 	params := append(idData, seedData...)
 
-	encodedKeyPair, err := instance.Exec("rtm_ext_crypto_ecdsa_generate_version_1", params)
+	encodedPublicKey, err := instance.Exec("rtm_ext_crypto_ecdsa_generate_version_1", params)
 	require.NoError(t, err)
 
 	var out []byte
-	err = scale.Unmarshal(encodedKeyPair, &out)
+	err = scale.Unmarshal(encodedPublicKey, &out)
 	require.NoError(t, err)
 
 	pubKey, err := secp256k1.NewPublicKey(out)

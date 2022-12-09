@@ -499,14 +499,14 @@ func ext_crypto_ecdsa_generate_version_1(context unsafe.Pointer, keyTypeID C.int
 		return 0
 	}
 
-	encodedKeyPairPointer, err := toWasmMemorySized(instanceContext, keyPair.Public().Encode())
+	encodedPublicKeyPointer, err := toWasmMemorySized(instanceContext, keyPair.Public().Encode())
 	if err != nil {
 		logger.Warnf("failed to allocate memory: %s", err)
 		return 0
 	}
 
 	logger.Debug("generated secp256k1 keypair with public key: " + keyPair.Public().Hex())
-	return C.int32_t(encodedKeyPairPointer)
+	return C.int32_t(encodedPublicKeyPointer)
 }
 
 //export ext_crypto_ecdsa_verify_version_2
