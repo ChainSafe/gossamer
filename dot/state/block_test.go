@@ -4,6 +4,7 @@
 package state
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -603,25 +604,92 @@ func TestNumberIsFinalised(t *testing.T) {
 func TestRange(t *testing.T) {
 	t.Parallel()
 
+	loadHeaderFromDiskErr := errors.New("[mocked] cannot read, database closed ex.")
 	testcases := map[string]struct {
 		blocksToCreate        int
 		blocksToPersistAtDisk int
 
-		wantErr error
+		newBlockState func(t *testing.T, ctrl *gomock.Controller,
+			genesisHeader *types.Header) *BlockState
+		wantErr   error
+		stringErr string
 	}{
 		"all_blocks_stored_in_disk": {
 			blocksToCreate:        128,
 			blocksToPersistAtDisk: 128,
+			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
+				genesisHeader *types.Header) *BlockState {
+				telemetryMock := NewMockClient(ctrl)
+				telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+				db := NewInMemoryDB(t)
+
+				blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+				require.NoError(t, err)
+
+				return blockState
+			},
 		},
 
 		"all_blocks_persisted_in_blocktree": {
 			blocksToCreate:        128,
 			blocksToPersistAtDisk: 0,
+			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
+				genesisHeader *types.Header) *BlockState {
+				telemetryMock := NewMockClient(ctrl)
+				telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+				db := NewInMemoryDB(t)
+
+				blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+				require.NoError(t, err)
+
+				return blockState
+			},
 		},
 
 		"half_blocks_placed_in_blocktree_half_stored_in_disk": {
 			blocksToCreate:        128,
 			blocksToPersistAtDisk: 64,
+			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
+				genesisHeader *types.Header) *BlockState {
+				telemetryMock := NewMockClient(ctrl)
+				telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+				db := NewInMemoryDB(t)
+
+				blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+				require.NoError(t, err)
+
+				return blockState
+			},
+		},
+
+		"error_while_loading_header_from_disk": {
+			blocksToCreate:        1,
+			blocksToPersistAtDisk: 0,
+			wantErr:               loadHeaderFromDiskErr,
+			stringErr: "retrieving end hash from disk: " +
+				"querying database: [mocked] cannot read, database closed ex.",
+			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
+				genesisHeader *types.Header) *BlockState {
+				telemetryMock := NewMockClient(ctrl)
+				telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+				db := NewInMemoryDB(t)
+				blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+
+				mockedDb := NewMockDatabase(ctrl)
+				// cannot assert the exact hash type since the block header
+				// hash is generate by the running test case
+				mockedDb.EXPECT().Get(gomock.AssignableToTypeOf([]byte{})).
+					Return(nil, loadHeaderFromDiskErr)
+
+				blockState.db = mockedDb
+
+				require.NoError(t, err)
+				return blockState
+			},
 		},
 	}
 
@@ -636,24 +704,16 @@ func TestRange(t *testing.T) {
 			}
 
 			ctrl := gomock.NewController(t)
-			telemetryMock := NewMockClient(ctrl)
-			telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
-
-			db := NewInMemoryDB(t)
-
 			genesisHeader := &types.Header{
 				Number:    0,
 				StateRoot: trie.EmptyHash,
 				Digest:    types.NewDigest(),
 			}
 
-			blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
-			require.NoError(t, err)
+			blockState := tt.newBlockState(t, ctrl, genesisHeader)
 
-			testBlockBody := *types.NewBody(
-				[]types.Extrinsic{[]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}})
+			testBlockBody := *types.NewBody([]types.Extrinsic{[]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}})
 			hashes := make([]common.Hash, 0, tt.blocksToCreate)
-
 			previousHeaderHash := genesisHeader.Hash()
 			for blockNumber := 1; blockNumber <= tt.blocksToCreate; blockNumber++ {
 				currentHeader := &types.Header{
@@ -689,6 +749,12 @@ func TestRange(t *testing.T) {
 
 			hashesInRange, err := blockState.Range(startHash, endHash)
 			require.ErrorIs(t, err, tt.wantErr)
+			if tt.stringErr != "" {
+				require.EqualError(t, err, tt.stringErr)
+				require.Empty(t, hashesInRange)
+				return
+			}
+
 			require.Equal(t, hashes, hashesInRange)
 		})
 	}
