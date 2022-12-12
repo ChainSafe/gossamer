@@ -604,7 +604,7 @@ func TestNumberIsFinalised(t *testing.T) {
 func TestRange(t *testing.T) {
 	t.Parallel()
 
-	loadHeaderFromDiskErr := errors.New("[mocked] cannot read, database closed ex.")
+	loadHeaderFromDiskErr := errors.New("[mocked] cannot read, database closed ex")
 	testcases := map[string]struct {
 		blocksToCreate        int
 		blocksToPersistAtDisk int
