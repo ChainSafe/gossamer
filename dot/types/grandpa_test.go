@@ -14,6 +14,7 @@ import (
 )
 
 func TestEncodeAndDecodeEquivocationPreVote(t *testing.T) {
+	t.Parallel()
 	// TODO refactor this test to use encoded bytes from substrate
 	testFirstVote := GrandpaVote{
 		Hash:   common.Hash{0xa, 0xb, 0xc, 0xd},
@@ -53,6 +54,7 @@ func TestEncodeAndDecodeEquivocationPreVote(t *testing.T) {
 }
 
 func TestEncodeGrandpaVote(t *testing.T) {
+	t.Parallel()
 	expectedEncoding := common.MustHexToBytes("0x0a0b0c0d00000000000000000000000000000000000000000000000000000000e7030000")
 	testVote := GrandpaVote{
 		Hash:   common.Hash{0xa, 0xb, 0xc, 0xd},
@@ -71,6 +73,7 @@ func TestEncodeGrandpaVote(t *testing.T) {
 }
 
 func TestEncodeSignedVote(t *testing.T) {
+	t.Parallel()
 	expectedEncoding := common.MustHexToBytes("0x0a0b0c0d00000000000000000000000000000000000000000000000000000000e7030000010203040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000506070800000000000000000000000000000000000000000000000000000000") //nolint:lll
 	testVote := GrandpaVote{
 		Hash:   common.Hash{0xa, 0xb, 0xc, 0xd},
@@ -95,6 +98,7 @@ func TestEncodeSignedVote(t *testing.T) {
 }
 
 func TestGrandpaAuthoritiesRawToAuthorities(t *testing.T) {
+	t.Parallel()
 	expectedEncoding := common.MustHexToBytes("0x08eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640000000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000") //nolint:lll
 	authA, _ := common.HexToHash("0xeea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d71410364")
 	authB, _ := common.HexToHash("0xb64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d717")

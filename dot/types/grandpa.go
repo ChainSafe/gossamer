@@ -207,7 +207,7 @@ type GrandpaEquivocation struct {
 // GrandpaEquivocationVote is a custom vdt type for a grandpa equivocation
 type GrandpaEquivocationVote scale.VaryingDataType
 
-// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
+// Set sets a VaryingDataTypeValue using the underlying VaryingDataType
 func (ge *GrandpaEquivocationVote) Set(value scale.VaryingDataTypeValue) (err error) {
 	vdt := scale.VaryingDataType(*ge)
 	err = vdt.Set(value)
