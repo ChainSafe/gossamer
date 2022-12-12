@@ -132,14 +132,14 @@ func (bt *BlockTree) GetAllBlocksAtNumber(hash common.Hash) (hashes []common.Has
 
 var ErrNilBlockInRange = errors.New("nil block in range")
 
-// RetrieveRange will return all the blocks between the start and
+// SubBlockchain will return all the blocks between the start and
 // end hash inclusive.
 // If the end hash does not exist in the blocktree than an error
 // will be returned.
 // If the start hash does not exists in the blocktree
 // then we will return all blocks between the end and the blocktree
 // root inclusive
-func (bt *BlockTree) RetrieveRange(startHash common.Hash, endHash common.Hash) (hashes []common.Hash, err error) {
+func (bt *BlockTree) SubBlockchain(startHash common.Hash, endHash common.Hash) (hashes []common.Hash, err error) {
 	endNode := bt.getNode(endHash)
 	if endNode == nil {
 		return nil, fmt.Errorf("%w: %s", ErrNodeNotFound, endHash)
@@ -266,35 +266,6 @@ func (bt *BlockTree) String() string {
 	metadata := fmt.Sprintf("Leaves:\n %s", leaves)
 
 	return fmt.Sprintf("%s\n%s\n", metadata, tree.Print())
-}
-
-// subChain returns the path from the node with Hash start to the node with Hash end
-func (bt *BlockTree) subChain(start, end Hash) ([]*node, error) {
-	sn := bt.getNode(start)
-	if sn == nil {
-		return nil, fmt.Errorf("%w: %s", ErrStartNodeNotFound, start)
-	}
-	en := bt.getNode(end)
-	if en == nil {
-		return nil, fmt.Errorf("%w: %s", ErrEndNodeNotFound, end)
-	}
-	return sn.subChain(en)
-}
-
-// SubBlockchain returns the path from the node with Hash start to the node with Hash end
-func (bt *BlockTree) SubBlockchain(start, end Hash) ([]Hash, error) {
-	bt.RLock()
-	defer bt.RUnlock()
-
-	sc, err := bt.subChain(start, end)
-	if err != nil {
-		return nil, err
-	}
-	var bc []Hash
-	for _, node := range sc {
-		bc = append(bc, node.hash)
-	}
-	return bc, nil
 }
 
 // best returns the best node in the block tree using the fork choice rule.

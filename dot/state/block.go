@@ -584,7 +584,7 @@ func (bs *BlockState) Range(startHash, endHash common.Hash) (hashes []common.Has
 }
 
 func (bs *BlockState) retrieveRange(startHash, endHash common.Hash) (hashes []common.Hash, err error) {
-	inMemoryHashes, err := bs.bt.RetrieveRange(startHash, endHash)
+	inMemoryHashes, err := bs.bt.SubBlockchain(startHash, endHash)
 	if err != nil {
 		return nil, fmt.Errorf("retrieving range from in-memory blocktree: %w", err)
 	}
