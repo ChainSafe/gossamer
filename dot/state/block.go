@@ -622,6 +622,8 @@ func (bs *BlockState) retrieveRange(startHash, endHash common.Hash) (hashes []co
 	return hashes, nil
 }
 
+var ErrStartHashMismatch = errors.New("start hash mismatch")
+
 // retrieveRangeFromDisk takes the start and the end and will retrieve all block in between
 // where all blocks (start and end inclusive) are supposed to be placed at disk
 func (bs *BlockState) retrieveRangeFromDisk(startHash common.Hash,
@@ -638,41 +640,29 @@ func (bs *BlockState) retrieveRangeFromDisk(startHash common.Hash,
 	hashes = make([]common.Hash, blocksInRange)
 
 	lastPosition := blocksInRange - 1
+
 	hashes[0] = startHash
 	hashes[lastPosition] = endHeader.Hash()
 
-	return recursiveRetrieveFromDisk(bs.loadHeaderFromDisk, endHeader.ParentHash, hashes, lastPosition-1)
-}
+	inLoopHash := endHeader.ParentHash
+	for currentPosition := lastPosition - 1; currentPosition > 0; currentPosition-- {
+		hashes[currentPosition] = inLoopHash
 
-var ErrStartHashMismatch = errors.New("start hash mismatch")
-
-type loadHeaderFromDiskFunc func(common.Hash) (*types.Header, error)
-
-// recursiveRetrieveFromDisk takes the function that loads a respective hash from disk
-// retrieve from disk and stores it in the hashes at position given by currentPosition argument
-// and recursivelly calls it self giving the parent hash and decreasing the current position by 1
-// once it achieves the position 0 it returns the slice with hashes to the caller
-func recursiveRetrieveFromDisk(loader loadHeaderFromDiskFunc, hashToLookup common.Hash,
-	hashes []common.Hash, currentPosition uint) ([]common.Hash, error) {
-	if currentPosition == 0 {
-		// at position 0 we must ensure that all the recursive calls ended
-		// up in the same start hash as the one the caller is searching for
-		alreadyStoredStartHash := hashes[0]
-		if hashToLookup != alreadyStoredStartHash {
-			return nil, fmt.Errorf("%w: expected %s, got %s",
-				ErrStartHashMismatch, alreadyStoredStartHash, hashToLookup)
+		inLoopHeader, err := bs.loadHeaderFromDisk(inLoopHash)
+		if err != nil {
+			return nil, fmt.Errorf("retrieving hash %s from disk: %w", inLoopHash.Short(), err)
 		}
 
-		return hashes, nil
+		inLoopHash = inLoopHeader.ParentHash
 	}
 
-	respectiveHeader, err := loader(hashToLookup)
-	if err != nil {
-		return nil, fmt.Errorf("expected to be in disk: %w", err)
+	// here we ensure that we finished up the loop
+	// with the same hash as the startHash
+	if inLoopHash != startHash {
+		return nil, fmt.Errorf("%w: expecting %s, found: %s", ErrStartHashMismatch, startHash.Short(), inLoopHash.Short())
 	}
 
-	hashes[currentPosition] = hashToLookup
-	return recursiveRetrieveFromDisk(loader, respectiveHeader.ParentHash, hashes, currentPosition-1)
+	return hashes, err
 }
 
 // SubChain returns the sub-blockchain between the starting hash and the ending hash using the block tree

@@ -670,7 +670,7 @@ func TestRange(t *testing.T) {
 			blocksToPersistAtDisk: 0,
 			wantErr:               loadHeaderFromDiskErr,
 			stringErr: "retrieving end hash from disk: " +
-				"querying database: [mocked] cannot read, database closed ex.",
+				"querying database: [mocked] cannot read, database closed ex",
 			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
 				genesisHeader *types.Header) *BlockState {
 				telemetryMock := NewMockClient(ctrl)
