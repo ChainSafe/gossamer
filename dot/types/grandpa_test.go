@@ -14,6 +14,7 @@ import (
 )
 
 func TestEncodeAndDecodeEquivocationPreVote(t *testing.T) {
+	// TODO refactor this test to use encoded bytes from substrate
 	testFirstVote := GrandpaVote{
 		Hash:   common.Hash{0xa, 0xb, 0xc, 0xd},
 		Number: 999,
