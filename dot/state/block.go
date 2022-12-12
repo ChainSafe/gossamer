@@ -566,7 +566,7 @@ func (bs *BlockState) loadHeaderFromDisk(hash common.Hash) (header *types.Header
 // ending hash using both block tree and disk
 func (bs *BlockState) Range(startHash, endHash common.Hash) (hashes []common.Hash, err error) {
 	if bs.bt == nil {
-		return nil, errNilBlockTree
+		return nil, fmt.Errorf("%w", errNilBlockTree)
 	}
 
 	if startHash == endHash {
@@ -678,7 +678,7 @@ func (bs *BlockState) retrieveRangeFromDisk(startHash common.Hash,
 // SubChain returns the sub-blockchain between the starting hash and the ending hash using the block tree
 func (bs *BlockState) SubChain(start, end common.Hash) ([]common.Hash, error) {
 	if bs.bt == nil {
-		return nil, errNilBlockTree
+		return nil, fmt.Errorf("%w", errNilBlockTree)
 	}
 
 	return bs.bt.SubBlockchain(start, end)
@@ -688,7 +688,7 @@ func (bs *BlockState) SubChain(start, end common.Hash) ([]common.Hash, error) {
 // it returns an error if parent or child are not in the blocktree.
 func (bs *BlockState) IsDescendantOf(parent, child common.Hash) (bool, error) {
 	if bs.bt == nil {
-		return false, errNilBlockTree
+		return false, fmt.Errorf("%w", errNilBlockTree)
 	}
 
 	return bs.bt.IsDescendantOf(parent, child)
