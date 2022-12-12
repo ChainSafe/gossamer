@@ -128,7 +128,7 @@ func (*tipSyncer) hasCurrentWorker(w *worker, workers map[uint64]*worker) bool {
 
 		// worker (start, end) is within curr (start, end), if hashes are equal then the request is either
 		// for the same data or some subset of data that is covered by curr
-		if w.startHash.Equal(curr.startHash) || w.targetHash.Equal(curr.targetHash) {
+		if w.startHash == curr.startHash || w.targetHash == curr.targetHash {
 			return true
 		}
 	}

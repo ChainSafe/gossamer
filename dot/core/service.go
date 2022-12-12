@@ -138,7 +138,7 @@ func (s *Service) HandleBlockImport(block *types.Block, state *rtstorage.TrieSta
 	}
 
 	bestBlockHash := s.blockState.BestBlockHash()
-	isBestBlock := bestBlockHash.Equal(block.Header.Hash())
+	isBestBlock := bestBlockHash == block.Header.Hash()
 
 	blockAnnounce, err := createBlockAnnounce(block, isBestBlock)
 	if err != nil {

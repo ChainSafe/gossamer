@@ -270,7 +270,7 @@ func TestService_checkOrGetDescendantHash_integration(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, leaf := range leaves {
-		if !leaf.Equal(descendant) {
+		if leaf != descendant {
 			descendant = leaf
 			break
 		}
@@ -304,7 +304,7 @@ func TestService_checkOrGetDescendantHash_integration(t *testing.T) {
 
 	// set ancestor to non-canonical block 9
 	for _, block := range block9s {
-		if !canonical.Equal(block) {
+		if canonical != block {
 			ancestor = block
 			break
 		}

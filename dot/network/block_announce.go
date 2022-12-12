@@ -164,7 +164,7 @@ func (s *Service) validateBlockAnnounceHandshake(from peer.ID, hs Handshake) err
 		return fmt.Errorf("%w: %d", errInvalidRole, bhs.Roles)
 	}
 
-	if !bhs.GenesisHash.Equal(s.blockState.GenesisHash()) {
+	if bhs.GenesisHash != s.blockState.GenesisHash() {
 		s.host.cm.peerSetHandler.ReportPeer(peerset.ReputationChange{
 			Value:  peerset.GenesisMismatch,
 			Reason: peerset.GenesisMismatchReason,
