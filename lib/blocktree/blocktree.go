@@ -130,19 +130,20 @@ func (bt *BlockTree) GetAllBlocksAtNumber(hash common.Hash) (hashes []common.Has
 	return bt.root.getNodesWithNumber(number, hashes)
 }
 
+var ErrStartGreaterThanEnd = errors.New("start greater than end")
 var ErrNilBlockInRange = errors.New("nil block in range")
 
-// SubBlockchain will return all the blocks between the start and
+// Range will return all the blocks between the start and
 // end hash inclusive.
 // If the end hash does not exist in the blocktree than an error
 // will be returned.
 // If the start hash does not exists in the blocktree
 // then we will return all blocks between the end and the blocktree
 // root inclusive
-func (bt *BlockTree) SubBlockchain(startHash common.Hash, endHash common.Hash) (hashes []common.Hash, err error) {
+func (bt *BlockTree) Range(startHash common.Hash, endHash common.Hash) (hashes []common.Hash, err error) {
 	endNode := bt.getNode(endHash)
 	if endNode == nil {
-		return nil, fmt.Errorf("%w: %s", ErrNodeNotFound, endHash)
+		return nil, fmt.Errorf("%w: %s", ErrEndNodeNotFound, endHash)
 	}
 
 	// if we don't find the start hash in the blocktree
@@ -162,8 +163,39 @@ func (bt *BlockTree) SubBlockchain(startHash common.Hash, endHash common.Hash) (
 	return hashes, nil
 }
 
+func (bt *BlockTree) SubBlockchain(startHash common.Hash, endHash common.Hash) (hashes []common.Hash, err error) {
+	endNode := bt.getNode(endHash)
+	if endNode == nil {
+		return nil, fmt.Errorf("%w: %s", ErrEndNodeNotFound, endHash)
+	}
+
+	// if we don't find the start hash in the blocktree
+	// that means it should be in the disk, so we retrieve
+	// as many nodes as we can, in other words we get all the
+	// block from the end hash till the bt.root inclusive
+	startNode := bt.getNode(startHash)
+	if startNode == nil {
+		return nil, fmt.Errorf("%w: %s", ErrStartNodeNotFound, endHash)
+	}
+
+	if startNode.number > endNode.number {
+		return nil, fmt.Errorf("%w", ErrStartGreaterThanEnd)
+	}
+
+	hashes, err = accumulateHashesInDescedingOrder(endNode, startNode)
+	if err != nil {
+		return nil, fmt.Errorf("getting blocks in range: %w", err)
+	}
+
+	return hashes, nil
+}
+
 func accumulateHashesInDescedingOrder(endNode, startNode *node) (
 	hashes []common.Hash, err error) {
+
+	if startNode.number > endNode.number {
+		return nil, fmt.Errorf("%w", ErrStartGreaterThanEnd)
+	}
 
 	// blocksInRange is the difference between the end number to start number
 	// but the difference don't includes the start item that is why we add 1

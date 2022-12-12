@@ -569,6 +569,11 @@ func (bs *BlockState) Range(startHash, endHash common.Hash) (hashes []common.Has
 		return nil, errNilBlockTree
 	}
 
+	if startHash == endHash {
+		hashes = []common.Hash{startHash}
+		return hashes, nil
+	}
+
 	endHeader, err := bs.loadHeaderFromDisk(endHash)
 	if errors.Is(err, chaindb.ErrKeyNotFound) {
 		// end hash is not in the disk so we should lookup
@@ -584,7 +589,7 @@ func (bs *BlockState) Range(startHash, endHash common.Hash) (hashes []common.Has
 }
 
 func (bs *BlockState) retrieveRange(startHash, endHash common.Hash) (hashes []common.Hash, err error) {
-	inMemoryHashes, err := bs.bt.SubBlockchain(startHash, endHash)
+	inMemoryHashes, err := bs.bt.Range(startHash, endHash)
 	if err != nil {
 		return nil, fmt.Errorf("retrieving range from in-memory blocktree: %w", err)
 	}
@@ -623,6 +628,7 @@ func (bs *BlockState) retrieveRange(startHash, endHash common.Hash) (hashes []co
 }
 
 var ErrStartHashMismatch = errors.New("start hash mismatch")
+var ErrStartGreaterThanEnd = errors.New("start greater than end")
 
 // retrieveRangeFromDisk takes the start and the end and will retrieve all block in between
 // where all blocks (start and end inclusive) are supposed to be placed at disk
@@ -631,6 +637,10 @@ func (bs *BlockState) retrieveRangeFromDisk(startHash common.Hash,
 	startHeader, err := bs.loadHeaderFromDisk(startHash)
 	if err != nil {
 		return nil, fmt.Errorf("range start should be in database: %w", err)
+	}
+
+	if startHeader.Number > endHeader.Number {
+		return nil, fmt.Errorf("%w", ErrStartGreaterThanEnd)
 	}
 
 	// blocksInRange is the difference between the end number to start number
