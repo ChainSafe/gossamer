@@ -618,12 +618,12 @@ func (bs *BlockState) retrieveRange(startHash, endHash common.Hash) (hashes []co
 		return nil, fmt.Errorf("range end should be in database: %w", err)
 	}
 
-	inDiskHashes, err := bs.retrieveRangeFromDisk(startHash, startingAtParentHeader)
+	inDatabaseHashes, err := bs.retrieveRangeFromDisk(startHash, startingAtParentHeader)
 	if err != nil {
 		return nil, fmt.Errorf("retrieving range from disk: %w", err)
 	}
 
-	hashes = append(inDiskHashes, inMemoryHashes...)
+	hashes = append(inDatabaseHashes, inMemoryHashes...)
 	return hashes, nil
 }
 
