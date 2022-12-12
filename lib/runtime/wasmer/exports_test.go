@@ -1295,6 +1295,35 @@ func TestInstance_GrandpaSubmitReportEquivocationUnsignedExtrinsic(t *testing.T)
 
 	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
 
-	proof, err := rt.GrandpaGenerateKeyOwnershipProof(0, authA.AsBytes())
+	keyOwnershipProof, err := rt.GrandpaGenerateKeyOwnershipProof(0, authA.AsBytes())
+	require.NoError(t, err)
+
+	testFirstVote := types.GrandpaVote{
+		Hash:   common.Hash{0xa, 0xb, 0xc, 0xd},
+		Number: 999,
+	}
+	testSecondVote := types.GrandpaVote{
+		Hash:   common.Hash{0xd, 0xc, 0xb, 0xa},
+		Number: 999,
+	}
+	testSignature := [64]byte{1, 2, 3, 4}
+	prevoteEquivocation := types.PreVoteEquivocation{
+		RoundNumber:     0,
+		ID:              *authA,
+		FirstVote:       testFirstVote,
+		FirstSignature:  testSignature,
+		SecondVote:      testSecondVote,
+		SecondSignature: testSignature,
+	}
+	equivocationVote := types.NewGrandpaEquivocation()
+	err = equivocationVote.Set(prevoteEquivocation)
+	require.NoError(t, err)
+
+	equivocationProof := types.GrandpaEquivocationProof{
+		SetId:        0,
+		Equivocation: *equivocationVote,
+	}
+
+	err = rt.GrandpaSubmitReportEquivocationUnsignedExtrinsic(equivocationProof, keyOwnershipProof)
 	require.NoError(t, err)
 }

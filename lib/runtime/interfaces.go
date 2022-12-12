@@ -40,7 +40,11 @@ type Instance interface {
 	ExecuteBlock(block *types.Block) ([]byte, error)
 	DecodeSessionKeys(enc []byte) ([]byte, error)
 	PaymentQueryInfo(ext []byte) (*types.RuntimeDispatchInfo, error)
-	GrandpaGenerateKeyOwnershipProof(authSetId uint64, pubKey ed25519.PublicKeyBytes) (proof []byte, err error)
+	GrandpaGenerateKeyOwnershipProof(authSetId uint64, authorityID ed25519.PublicKeyBytes) (
+		types.OpaqueKeyOwnershipProof, error)
+	GrandpaSubmitReportEquivocationUnsignedExtrinsic(
+		equivocationProof types.GrandpaEquivocationProof, keyOwnershipProof types.OpaqueKeyOwnershipProof,
+	) error
 
 	CheckInherents() // TODO: use this in block verification process (#1873)
 

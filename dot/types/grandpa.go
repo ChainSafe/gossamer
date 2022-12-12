@@ -197,41 +197,59 @@ func (v GrandpaVote) String() string {
 	return fmt.Sprintf("hash=%s number=%d", v.Hash, v.Number)
 }
 
-// GrandpaEquivocation is a custom vdt type for a grandpa equivocation
-type GrandpaEquivocation scale.VaryingDataType
+// GrandpaEquivocation is used to create a proof of equivocation
+type GrandpaEquivocation struct {
+	RoundNumber     uint64
+	ID              ed25519.PublicKey
+	FirstVote       GrandpaVote
+	FirstSignature  [64]byte
+	SecondVote      GrandpaVote
+	SecondSignature [64]byte
+}
 
-// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (ge *GrandpaEquivocation) Set(value scale.VaryingDataTypeValue) (err error) {
+// GrandpaEquivocationVote is a custom vdt type for a grandpa equivocation
+type GrandpaEquivocationVote scale.VaryingDataType
+
+// Set sets a VaryingDataTypeValue using the underlying VaryingDataType
+func (ge *GrandpaEquivocationVote) Set(value scale.VaryingDataTypeValue) (err error) {
 	vdt := scale.VaryingDataType(*ge)
 	err = vdt.Set(value)
 	if err != nil {
 		return err
 	}
-	*ge = GrandpaEquivocation(vdt)
+	*ge = GrandpaEquivocationVote(vdt)
 	return nil
 }
 
 // Value will return the value from the underlying VaryingDataType
-func (ge *GrandpaEquivocation) Value() (value scale.VaryingDataTypeValue, err error) {
+func (ge *GrandpaEquivocationVote) Value() (value scale.VaryingDataTypeValue, err error) {
 	vdt := scale.VaryingDataType(*ge)
 	return vdt.Value()
 }
 
 // NewGrandpaEquivocation returns a new VaryingDataType to represent a grandpa Equivocation
-func NewGrandpaEquivocation() *GrandpaEquivocation {
+func NewGrandpaEquivocation() *GrandpaEquivocationVote {
 	vdt := scale.MustNewVaryingDataType(PreVoteEquivocation{}, PreCommitEquivocation{})
-	ge := GrandpaEquivocation(vdt)
+	ge := GrandpaEquivocationVote(vdt)
 	return &ge
 }
 
 // PreVoteEquivocation equivocation type for a prevote
-type PreVoteEquivocation GrandpaSignedVote
+type PreVoteEquivocation GrandpaEquivocation
 
 // Index returns VDT index
 func (PreVoteEquivocation) Index() uint { return 0 }
 
 // PreCommitEquivocation equivocation type for a precommit
-type PreCommitEquivocation GrandpaSignedVote
+type PreCommitEquivocation GrandpaEquivocation
 
 // Index returns VDT index
 func (PreCommitEquivocation) Index() uint { return 1 }
+
+// TODO replace once kishans PR is merged
+type OpaqueKeyOwnershipProof []byte
+
+type GrandpaEquivocationProof struct {
+	SetId        uint64
+	Equivocation GrandpaEquivocationVote
+}
