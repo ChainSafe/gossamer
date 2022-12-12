@@ -135,9 +135,9 @@ var ErrNilBlockInRange = errors.New("nil block in range")
 
 // Range will return all the blocks between the start and
 // end hash inclusive.
-// If the end hash does not exist in the blocktree than an error
-// will be returned.
-// If the start hash does not exists in the blocktree
+// If the end hash does not exist in the blocktree then an error
+// is be returned.
+// If the start hash does not exist in the blocktree
 // then we will return all blocks between the end and the blocktree
 // root inclusive
 func (bt *BlockTree) Range(startHash common.Hash, endHash common.Hash) (hashes []common.Hash, err error) {
