@@ -199,7 +199,7 @@ func accumulateHashesInDescedingOrder(endNode, startNode *node) (
 
 	// blocksInRange is the difference between the end number to start number
 	// but the difference don't includes the start item that is why we add 1
-	blocksInRange := (endNode.number - startNode.number) + 1
+	blocksInRange := endNode.number - startNode.number + 1
 	hashes = make([]common.Hash, blocksInRange)
 
 	lastPosition := blocksInRange - 1

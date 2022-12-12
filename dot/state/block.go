@@ -615,7 +615,7 @@ func (bs *BlockState) retrieveRange(startHash, endHash common.Hash) (hashes []co
 
 	startingAtParentHeader, err := bs.loadHeaderFromDisk(blockTreeRootHeader.ParentHash)
 	if err != nil {
-		return nil, fmt.Errorf("range end should be in database: %w", err)
+		return nil, fmt.Errorf("loading header of parent of the root from database: %w", err)
 	}
 
 	inDatabaseHashes, err := bs.retrieveRangeFromDisk(startHash, startingAtParentHeader)
@@ -645,7 +645,7 @@ func (bs *BlockState) retrieveRangeFromDisk(startHash common.Hash,
 
 	// blocksInRange is the difference between the end number to start number
 	// but the difference don't includes the start item that is why we add 1
-	blocksInRange := (endHeader.Number - startHeader.Number) + 1
+	blocksInRange := endHeader.Number - startHeader.Number + 1
 
 	hashes = make([]common.Hash, blocksInRange)
 
@@ -672,7 +672,7 @@ func (bs *BlockState) retrieveRangeFromDisk(startHash common.Hash,
 		return nil, fmt.Errorf("%w: expecting %s, found: %s", ErrStartHashMismatch, startHash.Short(), inLoopHash.Short())
 	}
 
-	return hashes, err
+	return hashes, nil
 }
 
 // SubChain returns the sub-blockchain between the starting hash and the ending hash using the block tree
