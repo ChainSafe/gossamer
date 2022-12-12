@@ -155,9 +155,7 @@ func (d *discovery) advertise() {
 
 		select {
 		case <-d.ctx.Done():
-			if !timer.Stop() {
-				<-timer.C
-			}
+			timer.Stop()
 			return
 		case <-timer.C:
 			logger.Debug("advertising ourselves in the DHT...")

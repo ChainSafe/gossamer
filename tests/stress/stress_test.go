@@ -553,9 +553,7 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 		select {
 		case <-timer.C:
 		case <-waitNoExtCtx.Done():
-			if !timer.Stop() {
-				<-timer.C
-			}
+			timer.Stop()
 			require.NoError(t, waitNoExtCtx.Err())
 		}
 	}
