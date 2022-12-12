@@ -349,11 +349,12 @@ func (in *Instance) GrandpaSubmitReportEquivocationUnsignedExtrinsic(
 	}
 	combinedArg = append(combinedArg, encodedEquivocationProof...)
 
-	encodedKeyOwnershipProof, err := scale.Marshal(keyOwnershipProof)
-	if err != nil {
-		return fmt.Errorf("encoding key ownership proof: %w", err)
-	}
-	combinedArg = append(combinedArg, encodedKeyOwnershipProof...)
+	// TODO this passes when commented out making me think its already encoded, which makes sense but check w/Kishan
+	//encodedKeyOwnershipProof, err := scale.Marshal(keyOwnershipProof)
+	//if err != nil {
+	//	return fmt.Errorf("encoding key ownership proof: %w", err)
+	//}
+	combinedArg = append(combinedArg, keyOwnershipProof...)
 
 	_, err = in.Exec(runtime.GrandpaSubmitReportEquivocation, combinedArg)
 	return err
