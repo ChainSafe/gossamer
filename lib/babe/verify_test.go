@@ -749,8 +749,28 @@ func Test_verifier_verifyBlockEquivocation(t *testing.T) {
 		[]common.Hash{existingHeader.Hash()}, nil)
 	mockBlockState5.EXPECT().GetHeader(existingHeader.Hash()).Return(
 		existingHeader, nil)
+	mockBlockState5.EXPECT().BestBlockHash().Return(existingHeader.Hash())
 
 	verifier5 := newVerifier(mockBlockState5, 1, vi)
+
+	const slot = uint64(1)
+	const authorityIndex = uint32(1)
+	offenderPublicKey := verifier5.authorities[authorityIndex].ToRaw().Key
+	keyOwnershipProof := types.OpaqueKeyOwnershipProof([]byte{64, 138, 252, 29, 127, 102, 189, 129, 207, 47, 157, 60, 17, 138, 194, 121, 139, 92, 176, 175, 224, 16, 185, 93, 175, 251, 224, 81, 209, 61, 0, 71}) //nolint:lll
+	mockRuntime := mocks.NewMockRuntimeInstance(gomock.NewController(t))
+	testHeader5.Hash()
+
+	equivocationProof := types.BabeEquivocationProof{
+		Offender:     offenderPublicKey,
+		Slot:         slot,
+		FirstHeader:  *existingHeader,
+		SecondHeader: *testHeader5,
+	}
+
+	mockRuntime.EXPECT().BabeGenerateKeyOwnershipProof(slot, offenderPublicKey).Return(keyOwnershipProof, nil).AnyTimes()
+	mockRuntime.EXPECT().BabeSubmitReportEquivocationUnsignedExtrinsic(equivocationProof, keyOwnershipProof).Return(nil)
+
+	mockBlockState5.EXPECT().GetRuntime(existingHeader.Hash()).Return(mockRuntime, nil)
 
 	tests := []struct {
 		name        string
@@ -909,6 +929,7 @@ func Test_verifier_verifyAuthorshipRightEquivocatory(t *testing.T) {
 	assert.NoError(t, err)
 
 	headerExisting := newTestHeader(t, *prdExisting)
+	headerExisting.Hash()
 	hashExisting := encodeAndHashHeader(t, headerExisting)
 	signAndAddSeal(t, kp, headerExisting, hashExisting[:])
 
@@ -944,10 +965,32 @@ func Test_verifier_verifyAuthorshipRightEquivocatory(t *testing.T) {
 	headerEquivocatoryPrimary := newTestHeader(t, *prd1)
 	hashEquivocatoryPrimary := encodeAndHashHeader(t, headerEquivocatoryPrimary)
 	signAndAddSeal(t, kp, headerEquivocatoryPrimary, hashEquivocatoryPrimary[:])
+	headerEquivocatoryPrimary.Hash()
 
 	mockBlockStateEquiv1.EXPECT().GetHeader(hashEquivocatoryPrimary).Return(headerEquivocatoryPrimary, nil)
 	mockBlockStateEquiv1.EXPECT().GetBlockHashesBySlot(uint64(1)).Return(
 		[]common.Hash{hashEquivocatoryPrimary, hashExisting}, nil)
+	mockBlockStateEquiv1.EXPECT().BestBlockHash().Return(hashExisting)
+
+	// verifier5 := newVerifier(mockBlockState5, 1, vi)
+
+	const slot = uint64(1)
+	const authorityIndex = uint32(1)
+	offenderPublicKey := verifierEquivocatoryPrimary.authorities[authorityIndex].ToRaw().Key
+	keyOwnershipProof := types.OpaqueKeyOwnershipProof([]byte{64, 138, 252, 29, 127, 102, 189, 129, 207, 47, 157, 60, 17, 138, 194, 121, 139, 92, 176, 175, 224, 16, 185, 93, 175, 251, 224, 81, 209, 61, 0, 71}) //nolint:lll
+	mockRuntime := mocks.NewMockRuntimeInstance(gomock.NewController(t))
+
+	equivocationProof := types.BabeEquivocationProof{
+		Offender:     offenderPublicKey,
+		Slot:         slot,
+		FirstHeader:  *headerExisting,
+		SecondHeader: *headerEquivocatoryPrimary,
+	}
+
+	mockRuntime.EXPECT().BabeGenerateKeyOwnershipProof(slot, offenderPublicKey).Return(keyOwnershipProof, nil).AnyTimes()
+	mockRuntime.EXPECT().BabeSubmitReportEquivocationUnsignedExtrinsic(equivocationProof, keyOwnershipProof).Return(nil)
+
+	mockBlockStateEquiv1.EXPECT().GetRuntime(hashExisting).Return(mockRuntime, nil)
 
 	// Secondary Plain Test Header
 	testParentPrd, err := testBabeSecondaryPlainPreDigest.ToPreRuntimeDigest()

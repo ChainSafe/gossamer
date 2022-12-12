@@ -103,6 +103,7 @@ func (in *Instance) BabeGenerateKeyOwnershipProof(slot uint64, authorityID [32]b
 	}
 	combinedArg = append(combinedArg, encodedAuthorityID...)
 
+	combinedArg = append(combinedArg, []byte("random")...)
 	encodedKeyOwnershipProof, err := in.Exec(runtime.BabeAPIGenerateKeyOwnershipProof, combinedArg)
 	if err != nil {
 		return nil, fmt.Errorf("executing %s: %w", runtime.BabeAPIGenerateKeyOwnershipProof, err)
