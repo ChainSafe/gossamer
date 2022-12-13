@@ -545,7 +545,7 @@ func (bs *BlockState) GetSlotForBlock(hash common.Hash) (uint64, error) {
 
 var ErrEmptyHeader = errors.New("empty header")
 
-func (bs *BlockState) loadHeaderFromDisk(hash common.Hash) (header *types.Header, err error) {
+func (bs *BlockState) loadHeaderFromDatabase(hash common.Hash) (header *types.Header, err error) {
 	startHeaderData, err := bs.db.Get(headerKey(hash))
 	if err != nil {
 		return nil, fmt.Errorf("querying database: %w", err)
@@ -565,26 +565,26 @@ func (bs *BlockState) loadHeaderFromDisk(hash common.Hash) (header *types.Header
 }
 
 // Range returns the sub-blockchain between the starting hash and the
-// ending hash using both block tree and disk
+// ending hash using both block tree and database
 func (bs *BlockState) Range(startHash, endHash common.Hash) (hashes []common.Hash, err error) {
 	if startHash == endHash {
 		hashes = []common.Hash{startHash}
 		return hashes, nil
 	}
 
-	endHeader, err := bs.loadHeaderFromDisk(endHash)
+	endHeader, err := bs.loadHeaderFromDatabase(endHash)
 	if errors.Is(err, chaindb.ErrKeyNotFound) ||
 		errors.Is(err, ErrEmptyHeader) {
-		// end hash is not in the disk so we should lookup the
-		// block that could be in memory and in the disk as well
+		// end hash is not in the database so we should lookup the
+		// block that could be in memory and in the database as well
 		return bs.retrieveRange(startHash, endHash)
 	} else if err != nil {
-		return nil, fmt.Errorf("retrieving end hash from disk: %w", err)
+		return nil, fmt.Errorf("retrieving end hash from database: %w", err)
 	}
 
-	// end hash was found in the disk, that means all the blocks
-	// between start and end can be found in the disk
-	return bs.retrieveRangeFromDisk(startHash, endHeader)
+	// end hash was found in the database, that means all the blocks
+	// between start and end can be found in the database
+	return bs.retrieveRangeFromDatabase(startHash, endHeader)
 }
 
 func (bs *BlockState) retrieveRange(startHash, endHash common.Hash) (hashes []common.Hash, err error) {
@@ -604,22 +604,22 @@ func (bs *BlockState) retrieveRange(startHash, endHash common.Hash) (hashes []co
 	// since we got as many blocks as we could from
 	// the block tree but still missing blocks to
 	// fulfil the range we should lookup in the
-	// disk for the remaining ones, the first item in the hashes array
-	// must be the block tree root that is also placed in the disk
+	// database for the remaining ones, the first item in the hashes array
+	// must be the block tree root that is also placed in the database
 	//  so we will start from its parent since it is already in the array
-	blockTreeRootHeader, err := bs.loadHeaderFromDisk(firstItem)
+	blockTreeRootHeader, err := bs.loadHeaderFromDatabase(firstItem)
 	if err != nil {
-		return nil, fmt.Errorf("loading block tree root from disk: %w", err)
+		return nil, fmt.Errorf("loading block tree root from database: %w", err)
 	}
 
-	startingAtParentHeader, err := bs.loadHeaderFromDisk(blockTreeRootHeader.ParentHash)
+	startingAtParentHeader, err := bs.loadHeaderFromDatabase(blockTreeRootHeader.ParentHash)
 	if err != nil {
 		return nil, fmt.Errorf("loading header of parent of the root from database: %w", err)
 	}
 
-	inDatabaseHashes, err := bs.retrieveRangeFromDisk(startHash, startingAtParentHeader)
+	inDatabaseHashes, err := bs.retrieveRangeFromDatabase(startHash, startingAtParentHeader)
 	if err != nil {
-		return nil, fmt.Errorf("retrieving range from disk: %w", err)
+		return nil, fmt.Errorf("retrieving range from database: %w", err)
 	}
 
 	hashes = append(inDatabaseHashes, inMemoryHashes...)
@@ -629,11 +629,11 @@ func (bs *BlockState) retrieveRange(startHash, endHash common.Hash) (hashes []co
 var ErrStartHashMismatch = errors.New("start hash mismatch")
 var ErrStartGreaterThanEnd = errors.New("start greater than end")
 
-// retrieveRangeFromDisk takes the start and the end and will retrieve all block in between
-// where all blocks (start and end inclusive) are supposed to be placed at disk
-func (bs *BlockState) retrieveRangeFromDisk(startHash common.Hash,
+// retrieveRangeFromDatabase takes the start and the end and will retrieve all block in between
+// where all blocks (start and end inclusive) are supposed to be placed at database
+func (bs *BlockState) retrieveRangeFromDatabase(startHash common.Hash,
 	endHeader *types.Header) (hashes []common.Hash, err error) {
-	startHeader, err := bs.loadHeaderFromDisk(startHash)
+	startHeader, err := bs.loadHeaderFromDatabase(startHash)
 	if err != nil {
 		return nil, fmt.Errorf("range start should be in database: %w", err)
 	}
@@ -657,9 +657,9 @@ func (bs *BlockState) retrieveRangeFromDisk(startHash common.Hash,
 	for currentPosition := lastPosition - 1; currentPosition > 0; currentPosition-- {
 		hashes[currentPosition] = inLoopHash
 
-		inLoopHeader, err := bs.loadHeaderFromDisk(inLoopHash)
+		inLoopHeader, err := bs.loadHeaderFromDatabase(inLoopHash)
 		if err != nil {
-			return nil, fmt.Errorf("retrieving hash %s from disk: %w", inLoopHash.Short(), err)
+			return nil, fmt.Errorf("retrieving hash %s from database: %w", inLoopHash.Short(), err)
 		}
 
 		inLoopHash = inLoopHeader.ParentHash
