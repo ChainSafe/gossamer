@@ -17,5 +17,4 @@ type Table interface {
 	Set(key, value []byte) error
 	Delete(key []byte) error
 	NewWriteBatch() (writeBatch WriteBatch)
-	DropAll() error
 }

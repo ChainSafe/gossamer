@@ -1,8 +1,6 @@
 package memory
 
 import (
-	"strings"
-
 	"github.com/ChainSafe/gossamer/internal/database"
 )
 
@@ -45,17 +43,4 @@ func (t *table) Delete(key []byte) (err error) {
 // using the table prefix to prefix all keys.
 func (t *table) NewWriteBatch() (writeBatch database.WriteBatch) {
 	return newWriteBatch(t.prefix, t.database)
-}
-
-// DropAll drops all data from the table.
-func (t *table) DropAll() (err error) {
-	t.database.mutex.Lock()
-	defer t.database.mutex.Unlock()
-
-	for key := range t.database.keyValues {
-		if strings.HasPrefix(key, t.prefix) {
-			delete(t.database.keyValues, key)
-		}
-	}
-	return nil
 }

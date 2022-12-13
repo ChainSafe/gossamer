@@ -45,8 +45,3 @@ func (t *table) NewWriteBatch() (writeBatch database.WriteBatch) {
 	badgerWriteBatch := t.database.badgerDatabase.NewWriteBatch()
 	return newWriteBatch(t.prefix, badgerWriteBatch)
 }
-
-// DropAll drops all data from the table.
-func (t *table) DropAll() (err error) {
-	return t.database.badgerDatabase.DropPrefix(t.prefix)
-}
