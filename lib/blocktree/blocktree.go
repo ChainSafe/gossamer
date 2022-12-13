@@ -152,7 +152,7 @@ func (bt *BlockTree) Range(startHash common.Hash, endHash common.Hash) (hashes [
 	// if we don't find the start hash in the blocktree
 	// that means it should be in the database, so we retrieve
 	// as many nodes as we can, in other words we get all the
-	// block from the end hash till the bt.root inclusive
+	// blocks from the end hash till the bt.root inclusive
 	startNode := bt.getNode(startHash)
 	if startNode == nil {
 		startNode = bt.root
@@ -178,7 +178,7 @@ func (bt *BlockTree) SubBlockchain(startHash common.Hash, endHash common.Hash) (
 	// if we don't find the start hash in the blocktree
 	// that means it should be in the database, so we retrieve
 	// as many nodes as we can, in other words we get all the
-	// block from the end hash till the bt.root inclusive
+	// blocks from the end hash till the bt.root inclusive
 	startNode := bt.getNode(startHash)
 	if startNode == nil {
 		return nil, fmt.Errorf("%w: %s", ErrStartNodeNotFound, endHash)

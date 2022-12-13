@@ -643,7 +643,7 @@ func (bs *BlockState) retrieveRangeFromDatabase(startHash common.Hash,
 	}
 
 	// blocksInRange is the difference between the end number to start number
-	// but the difference don't includes the start item that is why we add 1
+	// but the difference doesn't include the start item so we add 1
 	blocksInRange := endHeader.Number - startHeader.Number + 1
 
 	hashes = make([]common.Hash, blocksInRange)

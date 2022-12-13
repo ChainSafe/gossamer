@@ -807,8 +807,6 @@ func BenchmarkBlockTreeSubBlockchain(b *testing.B) {
 	}
 
 	for _, tt := range testInputs {
-		tt := tt
-
 		bt, expectedHashes := createFlatTree(b, uint(tt.input))
 
 		firstHash := expectedHashes[0]
@@ -816,9 +814,7 @@ func BenchmarkBlockTreeSubBlockchain(b *testing.B) {
 
 		b.Run(fmt.Sprintf("input_len_%d", tt.input), func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				retrieved, err := bt.SubBlockchain(firstHash, endHash)
-				require.NoError(b, err)
-				require.Equal(b, expectedHashes, retrieved)
+				bt.SubBlockchain(firstHash, endHash)
 			}
 		})
 	}
