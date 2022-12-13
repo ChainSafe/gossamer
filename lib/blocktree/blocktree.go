@@ -141,6 +141,9 @@ var ErrNilBlockInRange = errors.New("nil block in range")
 // then we will return all blocks between the end and the blocktree
 // root inclusive
 func (bt *BlockTree) Range(startHash common.Hash, endHash common.Hash) (hashes []common.Hash, err error) {
+	bt.Lock()
+	defer bt.Unlock()
+
 	endNode := bt.getNode(endHash)
 	if endNode == nil {
 		return nil, fmt.Errorf("%w: %s", ErrEndNodeNotFound, endHash)
@@ -164,6 +167,9 @@ func (bt *BlockTree) Range(startHash common.Hash, endHash common.Hash) (hashes [
 }
 
 func (bt *BlockTree) SubBlockchain(startHash common.Hash, endHash common.Hash) (hashes []common.Hash, err error) {
+	bt.Lock()
+	defer bt.Unlock()
+
 	endNode := bt.getNode(endHash)
 	if endNode == nil {
 		return nil, fmt.Errorf("%w: %s", ErrEndNodeNotFound, endHash)

@@ -543,6 +543,8 @@ func (bs *BlockState) GetSlotForBlock(hash common.Hash) (uint64, error) {
 	return types.GetSlotFromHeader(header)
 }
 
+var ErrEmptyHeader = errors.New("empty header")
+
 func (bs *BlockState) loadHeaderFromDisk(hash common.Hash) (header *types.Header, err error) {
 	startHeaderData, err := bs.db.Get(headerKey(hash))
 	if err != nil {
@@ -556,7 +558,7 @@ func (bs *BlockState) loadHeaderFromDisk(hash common.Hash) (header *types.Header
 	}
 
 	if header.Empty() {
-		return nil, fmt.Errorf("%w: %s", chaindb.ErrKeyNotFound, hash)
+		return nil, fmt.Errorf("%w: %s", ErrEmptyHeader, hash)
 	}
 
 	return header, nil
@@ -565,18 +567,15 @@ func (bs *BlockState) loadHeaderFromDisk(hash common.Hash) (header *types.Header
 // Range returns the sub-blockchain between the starting hash and the
 // ending hash using both block tree and disk
 func (bs *BlockState) Range(startHash, endHash common.Hash) (hashes []common.Hash, err error) {
-	if bs.bt == nil {
-		return nil, fmt.Errorf("%w", errNilBlockTree)
-	}
-
 	if startHash == endHash {
 		hashes = []common.Hash{startHash}
 		return hashes, nil
 	}
 
 	endHeader, err := bs.loadHeaderFromDisk(endHash)
-	if errors.Is(err, chaindb.ErrKeyNotFound) {
-		// end hash is not in the disk so we should lookup
+	if errors.Is(err, chaindb.ErrKeyNotFound) ||
+		errors.Is(err, ErrEmptyHeader) {
+		// end hash is not in the disk so we should lookup the
 		// block that could be in memory and in the disk as well
 		return bs.retrieveRange(startHash, endHash)
 	} else if err != nil {
