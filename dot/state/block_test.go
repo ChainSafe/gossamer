@@ -713,7 +713,7 @@ func TestRange(t *testing.T) {
 			blocksToCreate:        2,
 			blocksToPersistAtDisk: 0,
 			wantErr:               loadHeaderFromDiskErr,
-			stringErr: "retrieving end hash from disk: " +
+			stringErr: "retrieving end hash from database: " +
 				"querying database: [mocked] cannot read, database closed ex",
 			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
 				genesisHeader *types.Header) *BlockState {
