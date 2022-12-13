@@ -954,6 +954,8 @@ func Test_loadHeaderFromDisk_WithGenesisBlock(t *testing.T) {
 	}
 
 	blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+	require.NoError(t, err)
+
 	header, err := blockState.loadHeaderFromDatabase(genesisHeader.Hash())
 	require.NoError(t, err)
 	require.Equal(t, genesisHeader.Hash(), header.Hash())
