@@ -1,3 +1,6 @@
+// Copyright 2022 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 // Package badger provides a database implementation using badger v3.
 package badger
 
