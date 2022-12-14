@@ -410,10 +410,29 @@ func TestInstance_GrandpaAuthorities_PolkadotRuntime(t *testing.T) {
 
 func TestInstance_BabeGenerateKeyOwnershipProof_NodeRuntime(t *testing.T) {
 	tt := trie.NewEmptyTrie()
+
+	rvalue, err := common.HexToHash("0x01")
+	require.NoError(t, err)
+	key := common.MustHexToBytes(genesis.BABERandomnessKeyHex)
+	tt.Put(key, rvalue[:])
+
+	avalue, err := common.HexToBytes("0x08eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640100000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000") //nolint:lll
+	require.NoError(t, err)
+
+	key = common.MustHexToBytes(genesis.BABEAuthoritiesKeyHex)
+	tt.Put(key, avalue)
+
 	rt := NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt)
-	authorityID := types.AuthorityID(common.NewHash([]byte("random1")))
-	const slot = uint64(1)
-	_, err := rt.BabeGenerateKeyOwnershipProof(slot, authorityID)
+
+	babeConfig, err := rt.BabeConfiguration()
+	require.NoError(t, err)
+
+	require.NotEmpty(t, babeConfig.GenesisAuthorities)
+
+	authorityID := babeConfig.GenesisAuthorities[0].Key
+
+	const slot = uint64(10)
+	_, err = rt.BabeGenerateKeyOwnershipProof(slot, authorityID)
 	require.NoError(t, err)
 }
 
@@ -450,15 +469,15 @@ func TestInstance_BabeSubmitReportEquivocationUnsignedExtrinsic_NodeRuntime(t *t
 	rt := NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt)
 	authorityID := types.AuthorityID{1}
 	const slot = uint64(1)
-	keyOwnershipProof, err := rt.BabeGenerateKeyOwnershipProof(slot, authorityID)
-	require.NoError(t, err)
+
+	keyOwnershipProof := types.OpaqueKeyOwnershipProof([]byte{64, 138, 252, 29, 127, 102, 189, 129, 207, 47, 157, 60, 17, 138, 194, 121, 139, 92, 176, 175, 224, 16, 185, 93, 175, 251, 224, 81, 209, 61, 0, 71}) //nolint:lll
 
 	equivocationProof := types.BabeEquivocationProof{
 		Offender: authorityID,
 		Slot:     slot,
 	}
 
-	err = rt.BabeSubmitReportEquivocationUnsignedExtrinsic(equivocationProof, keyOwnershipProof)
+	err := rt.BabeSubmitReportEquivocationUnsignedExtrinsic(equivocationProof, keyOwnershipProof)
 	require.NoError(t, err)
 }
 
@@ -467,15 +486,15 @@ func TestInstance_BabeSubmitReportEquivocationUnsignedExtrinsic_PolkadotRuntime(
 	rt := NewTestInstanceWithTrie(t, runtime.POLKADOT_RUNTIME, tt)
 	authorityID := types.AuthorityID{1}
 	const slot = uint64(1)
-	keyOwnershipProof, err := rt.BabeGenerateKeyOwnershipProof(slot, authorityID)
-	require.NoError(t, err)
+
+	keyOwnershipProof := types.OpaqueKeyOwnershipProof([]byte{64, 138, 252, 29, 127, 102, 189, 129, 207, 47, 157, 60, 17, 138, 194, 121, 139, 92, 176, 175, 224, 16, 185, 93, 175, 251, 224, 81, 209, 61, 0, 71}) //nolint:lll
 
 	equivocationProof := types.BabeEquivocationProof{
 		Offender: authorityID,
 		Slot:     slot,
 	}
 
-	err = rt.BabeSubmitReportEquivocationUnsignedExtrinsic(equivocationProof, keyOwnershipProof)
+	err := rt.BabeSubmitReportEquivocationUnsignedExtrinsic(equivocationProof, keyOwnershipProof)
 	require.NoError(t, err)
 }
 

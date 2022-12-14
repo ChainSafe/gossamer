@@ -377,10 +377,10 @@ func (b *verifier) submitAndReportEquivocation(
 // verifyBlockEquivocation checks if the given block's author has occupied the corresponding slot more than once.
 // It returns true if the block was equivocated.
 func (b *verifier) verifyBlockEquivocation(header *types.Header) (bool, error) {
-	// author, err := getAuthorityIndex(header)
-	// if err != nil {
-	// 	return false, fmt.Errorf("failed to get authority index: %w", err)
-	// }
+	author, err := getAuthorityIndex(header)
+	if err != nil {
+		return false, fmt.Errorf("failed to get authority index: %w", err)
+	}
 
 	currentHash := header.Hash()
 	slot, err := types.GetSlotFromHeader(header)
@@ -407,10 +407,9 @@ func (b *verifier) verifyBlockEquivocation(header *types.Header) (bool, error) {
 		if err != nil {
 			return false, fmt.Errorf("failed to get authority index for block %s: %w", blockHashInSlot, err)
 		}
-		// Only for the time being, reverse later
-		// if authorOfExistingHeader != author {
-		// 	continue
-		// }
+		if authorOfExistingHeader != author {
+			continue
+		}
 
 		err = b.submitAndReportEquivocation(slot, authorOfExistingHeader, *existingHeader, *header)
 		if err != nil {
