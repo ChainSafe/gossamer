@@ -36,7 +36,7 @@ func NewInMemoryDB(t *testing.T) chaindb.Database {
 	return db
 }
 
-func createPrimaryBABEDigest(t *testing.T) scale.VaryingDataTypeSlice {
+func createPrimaryBABEDigest(t testing.TB) scale.VaryingDataTypeSlice {
 	babeDigest := types.NewBabeDigest()
 	err := babeDigest.Set(types.BabePrimaryPreDigest{AuthorityIndex: 0})
 	require.NoError(t, err)

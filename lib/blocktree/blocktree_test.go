@@ -37,7 +37,7 @@ func newBlockTreeFromNode(root *node) *BlockTree {
 	}
 }
 
-func createPrimaryBABEDigest(t *testing.T) scale.VaryingDataTypeSlice {
+func createPrimaryBABEDigest(t testing.TB) scale.VaryingDataTypeSlice {
 	babeDigest := types.NewBabeDigest()
 	err := babeDigest.Set(types.BabePrimaryPreDigest{AuthorityIndex: 0})
 	require.NoError(t, err)
@@ -116,7 +116,7 @@ func createTestBlockTree(t *testing.T, header *types.Header, number uint) (*Bloc
 	return bt, branches
 }
 
-func createFlatTree(t *testing.T, number uint) (*BlockTree, []common.Hash) {
+func createFlatTree(t testing.TB, number uint) (*BlockTree, []common.Hash) {
 	rootHeader := &types.Header{
 		ParentHash: zeroHash,
 		Digest:     createPrimaryBABEDigest(t),
@@ -216,33 +216,6 @@ func Test_Node_isDecendantOf(t *testing.T) {
 	// Verify the inverse relationship does not hold
 	if bt.root.isDescendantOf(leaf) {
 		t.Error("root should not be descendant of anything")
-	}
-}
-
-func Test_BlockTree_Subchain(t *testing.T) {
-	bt, hashes := createFlatTree(t, 4)
-	expectedPath := hashes[1:]
-
-	// Insert a block to create a competing path
-	extraBlock := &types.Header{
-		ParentHash: hashes[0],
-		Number:     1,
-		Digest:     createPrimaryBABEDigest(t),
-	}
-
-	extraBlock.Hash()
-	err := bt.AddBlock(extraBlock, time.Unix(0, 0))
-	require.NotNil(t, err)
-
-	subChain, err := bt.subChain(hashes[1], hashes[3])
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	for i, n := range subChain {
-		if n.hash != expectedPath[i] {
-			t.Errorf("expected Hash: 0x%X got: 0x%X\n", expectedPath[i], n.hash)
-		}
 	}
 }
 
@@ -822,4 +795,28 @@ func Test_BlockTree_best(t *testing.T) {
 	bt.leaves.store(bt.root.children[1].hash, bt.root.children[1])
 	bt.leaves.store(bt.root.children[2].hash, bt.root.children[2])
 	require.Equal(t, bt.root.children[2].hash, bt.BestBlockHash())
+}
+
+func BenchmarkBlockTreeSubBlockchain(b *testing.B) {
+	testInputs := []struct {
+		input int
+	}{
+		{input: 100},
+		{input: 1000},
+		{input: 10000},
+	}
+
+	for _, tt := range testInputs {
+		bt, expectedHashes := createFlatTree(b, uint(tt.input))
+
+		firstHash := expectedHashes[0]
+		endHash := expectedHashes[len(expectedHashes)-1]
+
+		b.Run(fmt.Sprintf("input_len_%d", tt.input), func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				bt.SubBlockchain(firstHash, endHash)
+			}
+		})
+	}
+
 }
