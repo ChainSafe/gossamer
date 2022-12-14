@@ -394,7 +394,7 @@ func (b *verifier) verifyBlockEquivocation(header *types.Header) (bool, error) {
 	}
 
 	for _, blockHashInSlot := range blockHashesInSlot {
-		if blockHashInSlot.Equal(currentHash) {
+		if blockHashInSlot == currentHash {
 			continue
 		}
 

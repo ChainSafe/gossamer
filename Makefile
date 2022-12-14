@@ -28,7 +28,8 @@ clean:
 
 proto:
 	go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28
-	protoc -I=./dot/network/proto --go_out=./dot/network/proto dot/network/proto/api.v1.proto
+	@echo "Protoc is required for this target, download it from https://github.com/protocolbuffers/protobuf/releases"
+	go generate -run protoc ./...
 
 ## test: Runs `go test` on project test files.
 test:

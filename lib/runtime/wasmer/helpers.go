@@ -123,6 +123,55 @@ func toWasmMemoryOptionalUint32(context wasmer.InstanceContext, data *uint32) (
 	return toWasmMemory(context, enc)
 }
 
+func mustToWasmMemoryNil(context wasmer.InstanceContext) (
+	cPointerSize C.int64_t) {
+	allocator := context.Data().(*runtime.Context).Allocator
+	ptr, err := allocator.Allocate(0)
+	if err != nil {
+		// we allocate 0 byte, this should never fail
+		panic(err)
+	}
+	pointerSize := toPointerSize(ptr, 0)
+	return C.int64_t(pointerSize)
+}
+
+func toWasmMemoryOptionalNil(context wasmer.InstanceContext) (
+	cPointerSize C.int64_t, err error) {
+	pointerSize, err := toWasmMemoryOptional(context, nil)
+	if err != nil {
+		return 0, err
+	}
+
+	return C.int64_t(pointerSize), nil
+}
+
+func mustToWasmMemoryOptionalNil(context wasmer.InstanceContext) (
+	cPointerSize C.int64_t) {
+	cPointerSize, err := toWasmMemoryOptionalNil(context)
+	if err != nil {
+		panic(err)
+	}
+	return cPointerSize
+}
+
+func toWasmMemoryResultEmpty(context wasmer.InstanceContext) (
+	cPointerSize C.int64_t, err error) {
+	pointerSize, err := toWasmMemoryResult(context, nil)
+	if err != nil {
+		return 0, err
+	}
+	return C.int64_t(pointerSize), nil
+}
+
+func mustToWasmMemoryResultEmpty(context wasmer.InstanceContext) (
+	cPointerSize C.int64_t) {
+	cPointerSize, err := toWasmMemoryResultEmpty(context)
+	if err != nil {
+		panic(err)
+	}
+	return cPointerSize
+}
+
 // toKillStorageResultEnum encodes the `allRemoved` flag and
 // the `numRemoved` uint32 to a byte slice and returns it.
 // The format used is:
@@ -211,6 +260,6 @@ func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 	}
 
 	logger.Debugf("resulting value: 0x%x", value)
-	storage.Set(key, value)
+	storage.Put(key, value)
 	return nil
 }

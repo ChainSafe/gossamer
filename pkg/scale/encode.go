@@ -47,6 +47,15 @@ func Marshal(v interface{}) (b []byte, err error) {
 	return
 }
 
+// MustMarshal runs Marshal and panics on error.
+func MustMarshal(v interface{}) (b []byte) {
+	b, err := Marshal(v)
+	if err != nil {
+		panic(err)
+	}
+	return b
+}
+
 type encodeState struct {
 	io.Writer
 	*fieldScaleIndicesCache
@@ -213,7 +222,8 @@ func (es *encodeState) encodeSlice(in interface{}) (err error) {
 }
 
 // encodeArray encodes an interface where the underlying type is an array
-// it writes the encoded length of the Array to the Encoder, then encodes and writes each value in the Array
+// it encodes and writes each value in the Array. Arrays of known size do not
+// have the length prepended since you know the length when decoding
 func (es *encodeState) encodeArray(in interface{}) (err error) {
 	v := reflect.ValueOf(in)
 	for i := 0; i < v.Len(); i++ {

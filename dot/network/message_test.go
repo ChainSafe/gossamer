@@ -18,15 +18,14 @@ import (
 func TestEncodeBlockRequestMessage(t *testing.T) {
 	t.Parallel()
 
-	expected := common.MustHexToBytes("0x08808080082220fd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1280130011220dcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b") //nolint:lll
+	expected := common.MustHexToBytes("0x0880808008280130011220dcd1346701ca8396496e52" +
+		"aa2785b1748deb6db09551b72159dcb3e08991025b")
 	genesisHash := common.MustHexToBytes("0xdcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b")
-	endBlock := common.MustHexToHash("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
 
 	var one uint32 = 1
 	bm := &BlockRequestMessage{
 		RequestedData: 1,
 		StartingBlock: *variadic.NewUint32OrHashFromBytes(append([]byte{0}, genesisHash...)),
-		EndBlockHash:  &endBlock,
 		Direction:     1,
 		Max:           &one,
 	}
@@ -34,7 +33,7 @@ func TestEncodeBlockRequestMessage(t *testing.T) {
 	encMsg, err := bm.Encode()
 	require.NoError(t, err)
 
-	require.Equal(t, expected, encMsg) // Pass!
+	require.Equal(t, expected, encMsg)
 
 	res := new(BlockRequestMessage)
 	err = res.Decode(encMsg)
@@ -46,13 +45,11 @@ func TestEncodeBlockRequestMessage_BlockHash(t *testing.T) {
 	t.Parallel()
 
 	genesisHash := common.MustHexToBytes("0xdcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b")
-	endBlock := common.MustHexToHash("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
 
 	var one uint32 = 1
 	bm := &BlockRequestMessage{
 		RequestedData: 1,
 		StartingBlock: *variadic.NewUint32OrHashFromBytes(append([]byte{0}, genesisHash...)),
-		EndBlockHash:  &endBlock,
 		Direction:     1,
 		Max:           &one,
 	}
@@ -69,13 +66,10 @@ func TestEncodeBlockRequestMessage_BlockHash(t *testing.T) {
 func TestEncodeBlockRequestMessage_BlockNumber(t *testing.T) {
 	t.Parallel()
 
-	endBlock := common.MustHexToHash("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
-
 	var one uint32 = 1
 	bm := &BlockRequestMessage{
 		RequestedData: 1,
 		StartingBlock: *variadic.NewUint32OrHashFromBytes([]byte{1, 1}),
-		EndBlockHash:  &endBlock,
 		Direction:     1,
 		Max:           &one,
 	}
@@ -97,13 +91,12 @@ func TestBlockRequestString(t *testing.T) {
 	bm := &BlockRequestMessage{
 		RequestedData: 1,
 		StartingBlock: *variadic.NewUint32OrHashFromBytes(append([]byte{0}, genesisHash...)),
-		EndBlockHash:  nil,
 		Direction:     1,
 		Max:           nil,
 	}
 
 	var blockRequestStringRegex = regexp.MustCompile(
-		`^\ABlockRequestMessage RequestedData=[0-9]* StartingBlock={[\[0-9(\s?)]+\]} EndBlockHash=0x[0-9]+ Direction=[0-9]* Max=[0-9]*\z$`) //nolint:lll
+		`^\ABlockRequestMessage RequestedData=[0-9]* StartingBlock={[\[0-9(\s?)]+\]} Direction=[0-9]* Max=[0-9]*\z$`) //nolint:lll
 
 	match := blockRequestStringRegex.MatchString(bm.String())
 	require.True(t, match)
@@ -117,7 +110,6 @@ func TestEncodeBlockRequestMessage_NoOptionals(t *testing.T) {
 	bm := &BlockRequestMessage{
 		RequestedData: 1,
 		StartingBlock: *variadic.NewUint32OrHashFromBytes(append([]byte{0}, genesisHash...)),
-		EndBlockHash:  nil,
 		Direction:     1,
 		Max:           nil,
 	}

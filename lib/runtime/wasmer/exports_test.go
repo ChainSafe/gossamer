@@ -332,9 +332,9 @@ func TestNodeRuntime_ValidateTransaction(t *testing.T) {
 	encBal, err := scale.Marshal(accInfo)
 	require.NoError(t, err)
 
-	rt.(*Instance).ctx.Storage.Set(aliceBalanceKey, encBal)
+	rt.(*Instance).ctx.Storage.Put(aliceBalanceKey, encBal)
 	// this key is System.UpgradedToDualRefCount -> set to true since all accounts have been upgraded to v0.9 format
-	rt.(*Instance).ctx.Storage.Set(common.UpgradedToDualRefKey, []byte{1})
+	rt.(*Instance).ctx.Storage.Put(common.UpgradedToDualRefKey, []byte{1})
 
 	genesisHeader := &types.Header{
 		Number:    0,

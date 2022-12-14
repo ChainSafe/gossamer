@@ -4,7 +4,6 @@
 package common
 
 import (
-	"bytes"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -41,17 +40,12 @@ func HashValidator(field reflect.Value) interface{} {
 	// Try to convert to hash type.
 	if valuer, ok := field.Interface().(Hash); ok {
 		// Check if the hash is empty.
-		if valuer.Equal(Hash{}) {
+		if valuer == (Hash{}) {
 			return ""
 		}
 		return valuer.ToBytes()
 	}
 	return ""
-}
-
-// Equal compares two hashes
-func (h Hash) Equal(g Hash) bool {
-	return bytes.Equal(h[:], g[:])
 }
 
 // IsEmpty returns true if the hash is empty, false otherwise.
