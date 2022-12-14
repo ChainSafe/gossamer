@@ -23,15 +23,22 @@ type Notifee interface {
 
 // Service implements a mDNS service.
 type Service struct {
-	server     *mdns.Server
+	// Dependencies and configuration injected
 	p2pHost    IDNetworker
 	serviceTag string
-	notifee    Notifee
 	logger     Logger
+	notifee    Notifee
+
+	// Constant fields
 	pollPeriod time.Duration
-	started    bool
-	stop       chan struct{}
-	done       chan struct{}
+
+	// Fields set by the Start method.
+	server *mdns.Server
+
+	// Internal service management fields.
+	started bool
+	stop    chan struct{}
+	done    chan struct{}
 }
 
 // NewService creates and returns a new mDNS service.
