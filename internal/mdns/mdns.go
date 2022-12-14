@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"sync"
 	"time"
 
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -36,9 +37,11 @@ type Service struct {
 	server *mdns.Server
 
 	// Internal service management fields.
-	started bool
-	stop    chan struct{}
-	done    chan struct{}
+	// startStopMutex is to prevent concurrent calls to Start and Stop.
+	startStopMutex sync.Mutex
+	started        bool
+	stop           chan struct{}
+	done           chan struct{}
 }
 
 // NewService creates and returns a new mDNS service.
@@ -59,6 +62,9 @@ func NewService(p2pHost IDNetworker, serviceTag string,
 
 // Start starts the mDNS service.
 func (s *Service) Start() (err error) {
+	s.startStopMutex.Lock()
+	defer s.startStopMutex.Unlock()
+
 	if s.started {
 		return nil
 	}
@@ -96,6 +102,9 @@ func (s *Service) Start() (err error) {
 
 // Stop stops the mDNS service and server.
 func (s *Service) Stop() (err error) {
+	s.startStopMutex.Lock()
+	defer s.startStopMutex.Unlock()
+
 	if !s.started {
 		return nil
 	}
