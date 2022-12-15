@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"math/rand"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -188,7 +187,6 @@ func TestPlayGrandpaRound(t *testing.T) {
 				grandpaServices[idx] = &Service{
 					ctx:          ctx,
 					cancel:       cancel,
-					paused:       atomic.Value{},
 					blockState:   st.Block,
 					grandpaState: st.Grandpa,
 					interval:     subroundInterval,
@@ -207,7 +205,6 @@ func TestPlayGrandpaRound(t *testing.T) {
 					pvEquivocations:    make(map[ed25519.PublicKeyBytes][]*SignedVote),
 					pcEquivocations:    make(map[ed25519.PublicKeyBytes][]*SignedVote),
 				}
-				grandpaServices[idx].paused.Store(false)
 			}
 
 			neighbourServices := make([][]*Service, len(grandpaServices))
@@ -361,7 +358,6 @@ func TestPlayGrandpaRoundMultipleRounds(t *testing.T) {
 		grandpaServices[idx] = &Service{
 			ctx:          ctx,
 			cancel:       cancel,
-			paused:       atomic.Value{},
 			blockState:   st.Block,
 			grandpaState: st.Grandpa,
 			interval:     subroundInterval,
@@ -376,7 +372,6 @@ func TestPlayGrandpaRoundMultipleRounds(t *testing.T) {
 			preVotedBlock:      make(map[uint64]*Vote),
 			bestFinalCandidate: make(map[uint64]*Vote),
 		}
-		grandpaServices[idx].paused.Store(false)
 
 		const withBranches = false
 		const baseLength = 4
@@ -667,7 +662,6 @@ func TestSendingVotesInRightStage(t *testing.T) {
 	grandpa := &Service{
 		ctx:          ctx,
 		cancel:       cancel,
-		paused:       atomic.Value{},
 		network:      mockedNet,
 		blockState:   mockedState,
 		grandpaState: mockedGrandpaState,
@@ -686,7 +680,6 @@ func TestSendingVotesInRightStage(t *testing.T) {
 		bestFinalCandidate: make(map[uint64]*Vote),
 		telemetry:          mockedTelemetry,
 	}
-	grandpa.paused.Store(false)
 
 	expectedVote := NewVote(testGenesisHeader.Hash(), uint32(testGenesisHeader.Number))
 	_, expectedPrimaryProposal, err := grandpa.createSignedVoteAndVoteMessage(expectedVote, primaryProposal)

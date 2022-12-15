@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/ChainSafe/chaindb"
@@ -45,16 +44,16 @@ var (
 // Service represents the current state of the grandpa protocol
 type Service struct {
 	// preliminaries
-	ctx            context.Context
-	cancel         context.CancelFunc
-	blockState     BlockState
-	grandpaState   GrandpaState
-	keypair        *ed25519.Keypair // TODO: change to grandpa keystore (#1870)
-	mapLock        sync.Mutex
-	chanLock       sync.Mutex
-	roundLock      sync.Mutex
-	authority      bool          // run the service as an authority (ie participate in voting)
-	paused         atomic.Value  // the service will be paused if it is waiting for catch up responses
+	ctx          context.Context
+	cancel       context.CancelFunc
+	blockState   BlockState
+	grandpaState GrandpaState
+	keypair      *ed25519.Keypair // TODO: change to grandpa keystore (#1870)
+	mapLock      sync.Mutex
+	chanLock     sync.Mutex
+	roundLock    sync.Mutex
+	authority    bool // run the service as an authority (ie participate in voting)
+	// paused         atomic.Value  // the service will be paused if it is waiting for catch up responses
 	resumed        chan struct{} // this channel will be closed when the service resumes
 	messageHandler *MessageHandler
 	network        Network
@@ -159,7 +158,7 @@ func NewService(cfg *Config) (*Service, error) {
 
 	s.messageHandler = NewMessageHandler(s, s.blockState, cfg.Telemetry)
 	s.tracker = newTracker(s.blockState, s.messageHandler)
-	s.paused.Store(false)
+
 	return s, nil
 }
 

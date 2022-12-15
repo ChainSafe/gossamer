@@ -40,7 +40,7 @@ func (c *catchUp) do(to peer.ID, round uint64, setID uint64) error {
 	logger.Debugf("successfully sent a catch up request to node %s, for round number %d and set ID %d",
 		to, round, setID)
 
-	c.grandpa.paused.Store(true)
+	c.waitingOnResponse.Store(true)
 
 	timer := time.NewTimer(catchUpResponseTimeout)
 	defer timer.Stop()
@@ -83,7 +83,6 @@ func (c *catchUp) sendCatchUpRequest(to peer.ID, req *CatchUpRequest) error {
 	c.lock.Lock()
 	c.requestsSent[to] = *req
 	c.lock.Unlock()
-	c.grandpa.paused.Store(true)
 
 	return nil
 }
@@ -98,8 +97,8 @@ func (c *catchUp) handleCatchUpResponse(msg *CatchUpResponse) error {
 		msg.Hash, msg.Round, msg.SetID)
 
 	// if we aren't currently expecting a catch up response, return
-	if !c.grandpa.paused.Load().(bool) {
-		logger.Debug("not currently paused, ignoring catch up response")
+	if !c.waitingOnResponse.Load().(bool) {
+		logger.Debug("not currently waiting for a catch up response, ignoring catch up response received")
 		return nil
 	}
 
@@ -158,7 +157,7 @@ func (c *catchUp) handleCatchUpResponse(msg *CatchUpResponse) error {
 		c.catchUpResponseCh <- msg
 	}
 
-	c.grandpa.paused.Store(false)
+	c.waitingOnResponse.Store(false)
 
 	// resetting both response and requests
 	c.bestResponse.Store(nil)
