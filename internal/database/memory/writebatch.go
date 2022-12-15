@@ -3,6 +3,15 @@
 
 package memory
 
+import (
+	"errors"
+	"fmt"
+)
+
+var (
+	ErrWriteBatchDiscarded = errors.New("write batch has been discarded")
+)
+
 type operationKind uint8
 
 const (
@@ -21,6 +30,7 @@ type operation struct {
 // It is NOT thread safe, but its Flush operation is thread safe for
 // the database injected.
 type writeBatch struct {
+	discarded  bool
 	prefix     string
 	database   *Database
 	operations []operation
@@ -35,6 +45,10 @@ func newWriteBatch(prefix string, database *Database) *writeBatch {
 
 // Set sets a value at the given key prefixed with the given prefix.
 func (wb *writeBatch) Set(key, value []byte) (err error) {
+	if wb.discarded {
+		return fmt.Errorf("%w", ErrWriteBatchDiscarded)
+	}
+
 	op := operation{
 		kind:  operationSet,
 		key:   wb.prefix + string(key),
@@ -47,6 +61,10 @@ func (wb *writeBatch) Set(key, value []byte) (err error) {
 // Delete deletes the given key prefixed with the table prefix
 // from the database.
 func (wb *writeBatch) Delete(key []byte) (err error) {
+	if wb.discarded {
+		return fmt.Errorf("%w", ErrWriteBatchDiscarded)
+	}
+
 	op := operation{
 		kind: operationDelete,
 		key:  wb.prefix + string(key),
@@ -57,6 +75,10 @@ func (wb *writeBatch) Delete(key []byte) (err error) {
 
 // Flush flushes the write batch to the database.
 func (wb *writeBatch) Flush() (err error) {
+	if wb.discarded {
+		return fmt.Errorf("%w", ErrWriteBatchDiscarded)
+	}
+
 	wb.database.mutex.Lock()
 	defer wb.database.mutex.Unlock()
 	defer wb.Cancel()
@@ -75,5 +97,6 @@ func (wb *writeBatch) Flush() (err error) {
 
 // Cancel cancels the write batch.
 func (wb *writeBatch) Cancel() {
+	wb.discarded = true
 	wb.operations = nil
 }

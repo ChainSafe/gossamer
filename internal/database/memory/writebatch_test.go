@@ -34,6 +34,7 @@ func Test_writeBatch(t *testing.T) {
 	}
 	assert.Equal(t, expectedDB, db)
 
+	writeBatch = db.NewWriteBatch()
 	err = writeBatch.Set([]byte{1}, []byte{2})
 	require.NoError(t, err)
 	err = writeBatch.Delete([]byte{3})
@@ -120,6 +121,7 @@ func Test_writeBatch_Flush(t *testing.T) {
 	require.NoError(t, err)
 
 	expectedWb := &writeBatch{
+		discarded: true,
 		database: &Database{
 			keyValues: map[string][]byte{
 				"\x02": {3},
@@ -142,6 +144,8 @@ func Test_writeBatch_Cancel(t *testing.T) {
 
 	wb.Cancel()
 
-	expectedWb := &writeBatch{}
+	expectedWb := &writeBatch{
+		discarded: true,
+	}
 	assert.Equal(t, expectedWb, wb)
 }
