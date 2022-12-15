@@ -68,8 +68,7 @@ func (db *Database) Get(key []byte) (value []byte, err error) {
 // Set sets a value at the given key in the database.
 func (db *Database) Set(key, value []byte) (err error) {
 	return db.badgerDatabase.Update(func(txn *badger.Txn) error {
-		err = txn.Set(key, value)
-		return err
+		return txn.Set(key, value)
 	})
 }
 
