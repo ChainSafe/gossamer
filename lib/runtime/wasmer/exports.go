@@ -4,6 +4,7 @@
 package wasmer
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -90,15 +91,20 @@ func (in *Instance) GrandpaAuthorities() ([]types.Authority, error) {
 func (in *Instance) BabeGenerateKeyOwnershipProof(slot uint64, authorityID [32]byte) (
 	types.OpaqueKeyOwnershipProof, error) {
 
-	combinedArg, err := scale.Marshal(struct {
-		slot        uint64
-		authorityID [32]byte
-	}{slot: slot, authorityID: authorityID})
+	// scale encoded slot uint64 + scale encoded array of 32 bytes
+	const maxBufferLength = 8 + 33
+	buffer := bytes.NewBuffer(make([]byte, 0, maxBufferLength))
+	encoder := scale.NewEncoder(buffer)
+	err := encoder.Encode(slot)
 	if err != nil {
-		return nil, fmt.Errorf("encoding arguments: %w", err)
+		return nil, fmt.Errorf("encoding slot: %w", err)
+	}
+	err = encoder.Encode(authorityID)
+	if err != nil {
+		return nil, fmt.Errorf("encoding authority id: %w", err)
 	}
 
-	encodedKeyOwnershipProof, err := in.Exec(runtime.BabeAPIGenerateKeyOwnershipProof, combinedArg)
+	encodedKeyOwnershipProof, err := in.Exec(runtime.BabeAPIGenerateKeyOwnershipProof, buffer.Bytes())
 	if err != nil {
 		return nil, fmt.Errorf("executing %s: %w", runtime.BabeAPIGenerateKeyOwnershipProof, err)
 	}
@@ -116,17 +122,17 @@ func (in *Instance) BabeGenerateKeyOwnershipProof(slot uint64, authorityID [32]b
 func (in *Instance) BabeSubmitReportEquivocationUnsignedExtrinsic(
 	equivocationProof types.BabeEquivocationProof, keyOwnershipProof types.OpaqueKeyOwnershipProof,
 ) error {
-	combinedArg, err := scale.Marshal(
-		struct {
-			equivocationProof types.BabeEquivocationProof
-			keyOwnershipProof types.OpaqueKeyOwnershipProof
-		}{equivocationProof: equivocationProof, keyOwnershipProof: keyOwnershipProof},
-	)
+	buffer := bytes.NewBuffer(make([]byte, 0))
+	encoder := scale.NewEncoder(buffer)
+	err := encoder.Encode(equivocationProof)
 	if err != nil {
-		return fmt.Errorf("encoding arguments: %w", err)
+		return fmt.Errorf("encoding equivocation proof: %w", err)
 	}
-
-	_, err = in.Exec(runtime.BabeAPISubmitReportEquivocationUnsignedExtrinsic, combinedArg)
+	err = encoder.Encode(keyOwnershipProof)
+	if err != nil {
+		return fmt.Errorf("encoding key ownership proof: %w", err)
+	}
+	_, err = in.Exec(runtime.BabeAPISubmitReportEquivocationUnsignedExtrinsic, buffer.Bytes())
 	return err
 }
 
