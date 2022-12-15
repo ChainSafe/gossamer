@@ -972,23 +972,15 @@ func Test_verifier_verifyAuthorshipRightEquivocatory(t *testing.T) {
 		[]common.Hash{hashEquivocatoryPrimary, hashExisting}, nil)
 	mockBlockStateEquiv1.EXPECT().BestBlockHash().Return(hashExisting)
 
-	// verifier5 := newVerifier(mockBlockState5, 1, vi)
-
 	const slot = uint64(1)
 	const authorityIndex = uint32(1)
-	offenderPublicKey := verifierEquivocatoryPrimary.authorities[authorityIndex].ToRaw().Key
+	offenderPublicKey := types.AuthorityID(verifierEquivocatoryPrimary.authorities[authorityIndex].ToRaw().Key)
 	keyOwnershipProof := types.OpaqueKeyOwnershipProof([]byte{64, 138, 252, 29, 127, 102, 189, 129, 207, 47, 157, 60, 17, 138, 194, 121, 139, 92, 176, 175, 224, 16, 185, 93, 175, 251, 224, 81, 209, 61, 0, 71}) //nolint:lll
 	mockRuntime := mocks.NewMockRuntimeInstance(gomock.NewController(t))
 
-	equivocationProof := types.BabeEquivocationProof{
-		Offender:     offenderPublicKey,
-		Slot:         slot,
-		FirstHeader:  *headerExisting,
-		SecondHeader: *headerEquivocatoryPrimary,
-	}
-
 	mockRuntime.EXPECT().BabeGenerateKeyOwnershipProof(slot, offenderPublicKey).Return(keyOwnershipProof, nil).AnyTimes()
-	mockRuntime.EXPECT().BabeSubmitReportEquivocationUnsignedExtrinsic(equivocationProof, keyOwnershipProof).Return(nil)
+	// equivocationProof changes inside verifyAuthorshipRight, so we can't keep the current value.
+	mockRuntime.EXPECT().BabeSubmitReportEquivocationUnsignedExtrinsic(gomock.AssignableToTypeOf(types.BabeEquivocationProof{}), keyOwnershipProof).Return(nil).Times(3)
 
 	mockBlockStateEquiv1.EXPECT().GetRuntime(hashExisting).Return(mockRuntime, nil)
 
@@ -1014,6 +1006,8 @@ func Test_verifier_verifyAuthorshipRightEquivocatory(t *testing.T) {
 	mockBlockStateEquiv2.EXPECT().GetHeader(hashEquivocatorySecondaryPlain).Return(headerEquivocatorySecondaryPlain, nil)
 	mockBlockStateEquiv2.EXPECT().GetBlockHashesBySlot(uint64(1)).Return(
 		[]common.Hash{hashEquivocatorySecondaryPlain, hashExisting}, nil)
+	mockBlockStateEquiv2.EXPECT().BestBlockHash().Return(hashExisting)
+	mockBlockStateEquiv2.EXPECT().GetRuntime(hashExisting).Return(mockRuntime, nil)
 
 	// Secondary Vrf Test Header
 	encParentVrfDigest := newEncodedBabeDigest(t, testBabeSecondaryVRFPreDigest)
@@ -1033,6 +1027,8 @@ func Test_verifier_verifyAuthorshipRightEquivocatory(t *testing.T) {
 	mockBlockStateEquiv3.EXPECT().GetHeader(hashEquivocatorySecondaryVRF).Return(headerEquivocatorySecondaryVRF, nil)
 	mockBlockStateEquiv3.EXPECT().GetBlockHashesBySlot(uint64(1)).Return(
 		[]common.Hash{hashEquivocatorySecondaryVRF, hashExisting}, nil)
+	mockBlockStateEquiv3.EXPECT().BestBlockHash().Return(hashExisting)
+	mockBlockStateEquiv3.EXPECT().GetRuntime(hashExisting).Return(mockRuntime, nil)
 
 	tests := []struct {
 		name     string

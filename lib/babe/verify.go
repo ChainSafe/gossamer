@@ -358,7 +358,6 @@ func (b *verifier) submitAndReportEquivocation(
 		return fmt.Errorf("getting key ownership proof from runtime: %w", err)
 	}
 
-	fmt.Printf("keyOwnershipProof 0x%x\n", keyOwnershipProof)
 	equivocationProof := &types.BabeEquivocationProof{
 		Offender:     types.AuthorityID(offenderPublicKey),
 		Slot:         slot,
