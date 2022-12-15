@@ -25,7 +25,7 @@ func New(settings Settings) (database *Database, err error) {
 		return nil, fmt.Errorf("validating settings: %w", err)
 	}
 
-	badgerOptions := badger.DefaultOptions(*settings.Path)
+	badgerOptions := badger.DefaultOptions(settings.Path)
 	badgerOptions = badgerOptions.WithLogger(nil)
 	// TODO enable once we share the same instance
 	// See https://github.com/ChainSafe/gossamer/issues/2981
@@ -75,13 +75,9 @@ func (db *Database) Set(key, value []byte) (err error) {
 // Delete deletes the given key from the database.
 // If the key is not found, no error is returned.
 func (db *Database) Delete(key []byte) (err error) {
-	err = db.badgerDatabase.Update(func(txn *badger.Txn) error {
+	return db.badgerDatabase.Update(func(txn *badger.Txn) error {
 		return txn.Delete(key)
 	})
-	if errors.Is(err, badger.ErrKeyNotFound) {
-		return nil
-	}
-	return err
 }
 
 // NewWriteBatch returns a new write batch for the database.
@@ -93,8 +89,11 @@ func (db *Database) NewWriteBatch() (writeBatch database.WriteBatch) {
 
 // NewTable returns a new table using the database.
 // All keys on the table will be prefixed with the given prefix.
-func (db *Database) NewTable(prefix string) (table database.Table) {
-	return newTable([]byte(prefix), db)
+func (db *Database) NewTable(prefix string) (dbTable database.Table) {
+	return &table{
+		prefix:   []byte(prefix),
+		database: db,
+	}
 }
 
 // Close closes the database.

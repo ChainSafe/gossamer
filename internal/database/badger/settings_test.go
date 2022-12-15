@@ -9,8 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func ptrTo[T any](x T) *T { return &x }
-
 func Test_Settings_SetDefaults(t *testing.T) {
 	t.Parallel()
 
@@ -20,15 +18,15 @@ func Test_Settings_SetDefaults(t *testing.T) {
 	}{
 		"empty settings": {
 			expectedSettings: Settings{
-				Path: new(string),
+				Path: ".",
 			},
 		},
 		"non-empty settings": {
 			originalSettings: Settings{
-				Path: ptrTo("x"),
+				Path: "x",
 			},
 			expectedSettings: Settings{
-				Path: ptrTo("x"),
+				Path: "x",
 			},
 		},
 	}
@@ -56,7 +54,7 @@ func Test_Settings_Validate(t *testing.T) {
 		// need os.Getcwd() to fail.
 		"valid settings": {
 			settings: Settings{
-				Path: ptrTo("."),
+				Path: ".",
 			},
 		},
 	}
