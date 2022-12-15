@@ -980,7 +980,9 @@ func Test_verifier_verifyAuthorshipRightEquivocatory(t *testing.T) {
 
 	mockRuntime.EXPECT().BabeGenerateKeyOwnershipProof(slot, offenderPublicKey).Return(keyOwnershipProof, nil).AnyTimes()
 	// equivocationProof changes inside verifyAuthorshipRight, so we can't keep the current value.
-	mockRuntime.EXPECT().BabeSubmitReportEquivocationUnsignedExtrinsic(gomock.AssignableToTypeOf(types.BabeEquivocationProof{}), keyOwnershipProof).Return(nil).Times(3)
+	mockRuntime.EXPECT().BabeSubmitReportEquivocationUnsignedExtrinsic(
+		gomock.AssignableToTypeOf(types.BabeEquivocationProof{}), keyOwnershipProof,
+	).Return(nil).Times(3)
 
 	mockBlockStateEquiv1.EXPECT().GetRuntime(hashExisting).Return(mockRuntime, nil)
 

@@ -41,6 +41,12 @@ type RuntimeInstance interface {
 	DecodeSessionKeys(enc []byte) ([]byte, error)
 	PaymentQueryInfo(ext []byte) (*types.RuntimeDispatchInfo, error)
 	CheckInherents()
+	BabeGenerateKeyOwnershipProof(slot uint64, authorityID [32]byte) (
+		types.OpaqueKeyOwnershipProof, error)
+	BabeSubmitReportEquivocationUnsignedExtrinsic(
+		equivocationProof types.BabeEquivocationProof,
+		keyOwnershipProof types.OpaqueKeyOwnershipProof,
+	) error
 	RandomSeed()
 	OffchainWorker()
 	GenerateSessionKeys()
