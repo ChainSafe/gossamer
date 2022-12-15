@@ -291,9 +291,9 @@ func (s *Service) handleDescendingByNumber(start, end uint,
 func (s *Service) handleChainByHash(ancestor, descendant common.Hash,
 	max uint, requestedData byte, direction network.SyncDirection) (
 	*network.BlockResponseMessage, error) {
-	subchain, err := s.blockState.SubChain(ancestor, descendant)
+	subchain, err := s.blockState.Range(ancestor, descendant)
 	if err != nil {
-		return nil, fmt.Errorf("retrieving subchain: %w", err)
+		return nil, fmt.Errorf("retrieving range: %w", err)
 	}
 
 	// If the direction is descending, prune from the start.

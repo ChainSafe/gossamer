@@ -59,6 +59,7 @@ type BlockState interface {
 	SetHeader(*types.Header) error
 	GetHeader(common.Hash) (*types.Header, error)
 	HasHeader(hash common.Hash) (bool, error)
+	Range(startHash, endHash common.Hash) (hashes []common.Hash, err error)
 	SubChain(start, end common.Hash) ([]common.Hash, error)
 	GetReceipt(common.Hash) ([]byte, error)
 	GetMessageQueue(common.Hash) ([]byte, error)
