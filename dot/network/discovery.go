@@ -177,14 +177,14 @@ func (d *discovery) advertise() {
 }
 
 func (d *discovery) checkPeerCount() {
-	timer := time.NewTicker(connectToPeersTimeout)
-	defer timer.Stop()
+	ticker := time.NewTicker(connectToPeersTimeout)
+	defer ticker.Stop()
 
 	for {
 		select {
 		case <-d.ctx.Done():
 			return
-		case <-timer.C:
+		case <-ticker.C:
 			if len(d.h.Network().Peers()) > d.minPeers {
 				continue
 			}
@@ -217,10 +217,6 @@ func (d *discovery) findPeers() {
 			logger.Tracef("found new peer %s via DHT", peer.ID)
 			d.h.Peerstore().AddAddrs(peer.ID, peer.Addrs, peerstore.PermanentAddrTTL)
 			d.handler.AddPeer(0, peer.ID)
-
-			if !timer.Stop() {
-				<-timer.C
-			}
 		}
 	}
 }

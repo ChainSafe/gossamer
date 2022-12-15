@@ -206,7 +206,7 @@ func (c *catchUp) verifyPreCommitJustification(msg *CatchUpResponse) error {
 			continue
 		}
 
-		err := verifyJustification(just, msg.Round, msg.SetID, precommit, c.grandpa.authorities())
+		err := verifyJustification(just, msg.Round, msg.SetID, precommit, c.grandpa.authorityKeySet())
 		if err != nil {
 			continue
 		}
@@ -258,7 +258,7 @@ func (c *catchUp) verifyPreVoteJustification(msg *CatchUpResponse) (common.Hash,
 			continue
 		}
 
-		err := verifyJustification(just, msg.Round, msg.SetID, prevote, c.grandpa.authorities())
+		err := verifyJustification(just, msg.Round, msg.SetID, prevote, c.grandpa.authorityKeySet())
 		if err != nil {
 			logger.Errorf("verifying justification: %s", err)
 			continue

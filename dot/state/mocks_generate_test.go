@@ -4,3 +4,4 @@
 package state
 
 //go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
+//go:generate mockgen -destination=mocks_chaindb_test.go -package $GOPACKAGE github.com/ChainSafe/chaindb Database

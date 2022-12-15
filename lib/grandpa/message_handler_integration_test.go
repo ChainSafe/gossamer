@@ -40,6 +40,7 @@ func newTestDigest() scale.VaryingDataTypeSlice {
 
 func buildTestJustification(t *testing.T, qty int, round, setID uint64,
 	kr *keystore.Ed25519Keyring, subround Subround) []SignedVote {
+	t.Helper()
 	var just []SignedVote
 	for i := 0; i < qty; i++ {
 		j := SignedVote{
@@ -55,6 +56,7 @@ func buildTestJustification(t *testing.T, qty int, round, setID uint64,
 
 func createSignedVoteMsg(t *testing.T, number uint32,
 	round, setID uint64, pk *ed25519.Keypair, subround Subround) [64]byte {
+	t.Helper()
 	// create vote message
 	msg, err := scale.Marshal(FullVote{
 		Stage: subround,
@@ -72,6 +74,7 @@ func createSignedVoteMsg(t *testing.T, number uint32,
 }
 
 func TestDecodeMessage_VoteMessage(t *testing.T) {
+	t.Parallel()
 	cm := &ConsensusMessage{
 		Data: common.MustHexToBytes("0x004d000000000000006300000000000000017db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a7777000036e6eca85489bebbb0f687ca5404748d5aa2ffabee34e3ed272cc7b2f6d0a82c65b99bc7cd90dbc21bb528289ebf96705dbd7d96918d34d815509b4e0e2a030f34602b88f60513f1c805d87ef52896934baf6a662bc37414dbdbf69356b1a691"), //nolint:lll
 	}
@@ -101,6 +104,8 @@ func TestDecodeMessage_VoteMessage(t *testing.T) {
 }
 
 func TestDecodeMessage_CommitMessage(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
@@ -130,6 +135,7 @@ func TestDecodeMessage_CommitMessage(t *testing.T) {
 }
 
 func TestDecodeMessage_NeighbourMessage(t *testing.T) {
+	t.Parallel()
 	cm := &ConsensusMessage{
 		Data: common.MustHexToBytes("0x020102000000000000000300000000000000ff000000"),
 	}
@@ -146,6 +152,7 @@ func TestDecodeMessage_NeighbourMessage(t *testing.T) {
 }
 
 func TestDecodeMessage_CatchUpRequest(t *testing.T) {
+	t.Parallel()
 	cm := &ConsensusMessage{
 		Data: common.MustHexToBytes("0x0311000000000000002200000000000000"),
 	}
@@ -162,6 +169,8 @@ func TestDecodeMessage_CatchUpRequest(t *testing.T) {
 }
 
 func TestMessageHandler_VoteMessage(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -197,6 +206,8 @@ func TestMessageHandler_VoteMessage(t *testing.T) {
 }
 
 func TestMessageHandler_NeighbourMessage(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -244,6 +255,8 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 }
 
 func TestMessageHandler_VerifyJustification_InvalidSig(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -271,13 +284,15 @@ func TestMessageHandler_VerifyJustification_InvalidSig(t *testing.T) {
 	expectedErr := fmt.Errorf("%w: 0x%x for message {%v}", ErrInvalidSignature, just.Signature, expectedFullVote)
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
-	err = verifyJustification(just, gs.state.round, gs.state.setID, precommit, h.grandpa.authorities())
+	err = verifyJustification(just, gs.state.round, gs.state.setID, precommit, h.grandpa.authorityKeySet())
 
 	require.ErrorIs(t, err, ErrInvalidSignature)
 	require.EqualError(t, expectedErr, err.Error())
 }
 
 func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -324,6 +339,8 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
 }
 
 func TestMessageHandler_CommitMessage_NoCatchUpRequest_MinVoteError(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -357,6 +374,8 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_MinVoteError(t *testing.T
 }
 
 func TestMessageHandler_CommitMessage_WithCatchUpRequest(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -388,6 +407,8 @@ func TestMessageHandler_CommitMessage_WithCatchUpRequest(t *testing.T) {
 }
 
 func TestMessageHandler_CatchUpRequest_InvalidRound(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -405,6 +426,8 @@ func TestMessageHandler_CatchUpRequest_InvalidRound(t *testing.T) {
 }
 
 func TestMessageHandler_CatchUpRequest_InvalidSetID(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -422,6 +445,8 @@ func TestMessageHandler_CatchUpRequest_InvalidSetID(t *testing.T) {
 }
 
 func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -500,6 +525,8 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 }
 
 func TestVerifyJustification(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -518,11 +545,13 @@ func TestVerifyJustification(t *testing.T) {
 		AuthorityID: kr.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 	}
 
-	err = verifyJustification(just, 77, gs.state.setID, precommit, h.grandpa.authorities())
+	err = verifyJustification(just, 77, gs.state.setID, precommit, h.grandpa.authorityKeySet())
 	require.NoError(t, err)
 }
 
 func TestVerifyJustification_InvalidSignature(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -551,12 +580,14 @@ func TestVerifyJustification_InvalidSignature(t *testing.T) {
 	}
 
 	expectedErr := fmt.Errorf("%w: 0x%x for message {%v}", ErrInvalidSignature, just.Signature, expectedFullVote)
-	err = verifyJustification(just, round, gs.state.setID, precommit, h.grandpa.authorities())
+	err = verifyJustification(just, round, gs.state.setID, precommit, h.grandpa.authorityKeySet())
 	require.ErrorIs(t, err, ErrInvalidSignature)
 	require.EqualError(t, err, expectedErr.Error())
 }
 
 func TestVerifyJustification_InvalidAuthority(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -583,12 +614,14 @@ func TestVerifyJustification_InvalidAuthority(t *testing.T) {
 	require.NoError(t, err)
 
 	expectedErrMessage := fmt.Sprintf("%s: authority ID 0x%x", ErrVoterNotFound, encodedAuthorityID)
-	err = verifyJustification(just, 77, gs.state.setID, precommit, h.grandpa.authorities())
+	err = verifyJustification(just, 77, gs.state.setID, precommit, h.grandpa.authorityKeySet())
 	require.ErrorIs(t, err, ErrVoterNotFound)
 	require.EqualError(t, err, expectedErrMessage)
 }
 
 func TestMessageHandler_VerifyPreVoteJustification(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -625,6 +658,8 @@ func TestMessageHandler_VerifyPreVoteJustification(t *testing.T) {
 }
 
 func TestMessageHandler_VerifyPreCommitJustification(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -663,6 +698,8 @@ func TestMessageHandler_VerifyPreCommitJustification(t *testing.T) {
 }
 
 func TestMessageHandler_HandleCatchUpResponse(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -698,6 +735,8 @@ func TestMessageHandler_HandleCatchUpResponse(t *testing.T) {
 }
 
 func TestMessageHandler_VerifyBlockJustification_WithEquivocatoryVotes(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -763,6 +802,8 @@ func TestMessageHandler_VerifyBlockJustification_WithEquivocatoryVotes(t *testin
 }
 
 func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -823,6 +864,8 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 }
 
 func TestMessageHandler_VerifyBlockJustification_invalid(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -1130,6 +1173,8 @@ func Test_getEquivocatoryVoters(t *testing.T) {
 }
 
 func Test_VerifyCommitMessageJustification_ShouldRemoveEquivocatoryVotes(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -1197,12 +1242,14 @@ func Test_VerifyCommitMessageJustification_ShouldRemoveEquivocatoryVotes(t *test
 	}
 
 	err = verifyCommitMessageJustification(*testCommitData, h.grandpa.state.setID,
-		h.grandpa.state.threshold(), h.grandpa.authorities(), h.blockState)
+		h.grandpa.state.threshold(), h.grandpa.authorityKeySet(), h.blockState)
 
 	require.NoError(t, err)
 }
 
 func Test_VerifyPrevoteJustification_CountEquivocatoryVoters(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -1281,6 +1328,8 @@ func Test_VerifyPrevoteJustification_CountEquivocatoryVoters(t *testing.T) {
 }
 
 func Test_VerifyPreCommitJustification(t *testing.T) {
+	t.Parallel()
+
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -1358,6 +1407,7 @@ func signFakeFullVote(
 	t *testing.T, auth *ed25519.Keypair,
 	stage Subround, v types.GrandpaVote,
 	round, setID uint64) [64]byte {
+	t.Helper()
 	msg, err := scale.Marshal(FullVote{
 		Stage: stage,
 		Vote:  v,
