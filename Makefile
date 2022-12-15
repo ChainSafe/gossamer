@@ -62,6 +62,12 @@ it-polkadotjs: build
 test-state-race:
 	@echo "  >  \033[32mRunning race tests...\033[0m "
 	go test ./dot/state/... -race -timeout=5m
+	go test -run ^Test_hashToBlockMap_threadSafety$ -race -timeout=30s ./dot/state
+	go test -run ^Test_lockQueue_threadSafety$ -race -timeout=30s ./dot/sync
+	go test -run ^Test_Database_threadSafety$ -race -timeout=30s ./internal/database/badger
+	go test -run ^Test_Database_threadSafety$ -race -timeout=30s ./internal/database/memory
+	go test -run ^Test_hashToRuntime_threadSafety$ -race -timeout=30s ./lib/blocktree
+	go test -run ^Test_commitsTracker_threadSafety$ -race -timeout=30s ./lib/grandpa
 
 ## deps: Install missing dependencies. Runs `go mod download` internally.
 deps:
