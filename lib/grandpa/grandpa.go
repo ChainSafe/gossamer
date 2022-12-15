@@ -44,17 +44,15 @@ var (
 // Service represents the current state of the grandpa protocol
 type Service struct {
 	// preliminaries
-	ctx          context.Context
-	cancel       context.CancelFunc
-	blockState   BlockState
-	grandpaState GrandpaState
-	keypair      *ed25519.Keypair // TODO: change to grandpa keystore (#1870)
-	mapLock      sync.Mutex
-	chanLock     sync.Mutex
-	roundLock    sync.Mutex
-	authority    bool // run the service as an authority (ie participate in voting)
-	// paused         atomic.Value  // the service will be paused if it is waiting for catch up responses
-	resumed        chan struct{} // this channel will be closed when the service resumes
+	ctx            context.Context
+	cancel         context.CancelFunc
+	blockState     BlockState
+	grandpaState   GrandpaState
+	keypair        *ed25519.Keypair // TODO: change to grandpa keystore (#1870)
+	mapLock        sync.Mutex
+	chanLock       sync.Mutex
+	roundLock      sync.Mutex
+	authority      bool // run the service as an authority (ie participate in voting)
 	messageHandler *MessageHandler
 	network        Network
 	interval       time.Duration
@@ -145,7 +143,6 @@ func NewService(cfg *Config) (*Service, error) {
 		preVotedBlock:      make(map[uint64]*Vote),
 		bestFinalCandidate: make(map[uint64]*Vote),
 		head:               head,
-		resumed:            make(chan struct{}),
 		network:            cfg.Network,
 		finalisedCh:        finalisedCh,
 		interval:           cfg.Interval,

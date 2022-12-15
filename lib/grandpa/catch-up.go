@@ -151,8 +151,6 @@ func (c *catchUp) handleCatchUpResponse(msg *CatchUpResponse) error {
 
 	c.grandpa.head = head
 	c.grandpa.state.round = msg.Round
-	close(c.grandpa.resumed)
-	c.grandpa.resumed = make(chan struct{})
 	if c.waitingOnResponse.Load().(bool) {
 		c.catchUpResponseCh <- msg
 	}
