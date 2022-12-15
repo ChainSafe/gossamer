@@ -317,44 +317,22 @@ func (in *Instance) GrandpaGenerateKeyOwnershipProof(authSetId uint64, authority
 	return keyOwnershipProof, err
 }
 
-/*
-
-GrandpaSubmitReportEquivocationUnsignedExtrinsic Args
-- idv is authority set
-- e is stage
-- r is round number
-- pub key of equivocator
-- block hash of first vote
-- block number of first vote
-- signature of first vote
-- block hash of second vote
-- block number of second vote
-- signature of second vote
-- proof of key signature in opaque form
-
-Return
-- A SCALE encoded Option as defined in Definition 194 containing an empty value on success.
-
-*/
 // GrandpaSubmitReportEquivocationUnsignedExtrinsic reports equivocation report to the runtime.
 func (in *Instance) GrandpaSubmitReportEquivocationUnsignedExtrinsic(
 	equivocationProof types.GrandpaEquivocationProof, keyOwnershipProof types.OpaqueKeyOwnershipProof,
 ) error {
-
 	combinedArg := []byte{}
-
 	encodedEquivocationProof, err := scale.Marshal(equivocationProof)
 	if err != nil {
 		return fmt.Errorf("encoding equivocation proof: %w", err)
 	}
 	combinedArg = append(combinedArg, encodedEquivocationProof...)
 
-	// TODO this passes when commented out making me think its already encoded, which makes sense but check w/Kishan
-	//encodedKeyOwnershipProof, err := scale.Marshal(keyOwnershipProof)
-	//if err != nil {
-	//	return fmt.Errorf("encoding key ownership proof: %w", err)
-	//}
-	combinedArg = append(combinedArg, keyOwnershipProof...)
+	encodedKeyOwnershipProof, err := scale.Marshal(keyOwnershipProof)
+	if err != nil {
+		return fmt.Errorf("encoding key ownership proof: %w", err)
+	}
+	combinedArg = append(combinedArg, encodedKeyOwnershipProof...)
 
 	_, err = in.Exec(runtime.GrandpaSubmitReportEquivocation, combinedArg)
 	return err

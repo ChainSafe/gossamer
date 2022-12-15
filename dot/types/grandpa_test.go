@@ -28,12 +28,12 @@ func TestEncodeAndDecodeEquivocationPreVote(t *testing.T) {
 	keypair, err := ed25519.GenerateKeypair()
 	require.NoError(t, err)
 
-	testAuthorityID := keypair.Public().Encode()
-	require.NoError(t, err)
+	var authorityId [32]byte
+	copy(authorityId[:], keypair.Public().Encode())
 
 	equivocation := GrandpaEquivocation{
 		RoundNumber:     0,
-		ID:              testAuthorityID,
+		ID:              authorityId,
 		FirstVote:       testFirstVote,
 		FirstSignature:  testSignature,
 		SecondVote:      testSecondVote,

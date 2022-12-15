@@ -1280,41 +1280,73 @@ func TestInstance_TransactionPaymentCallApi_QueryCallFeeDetails(t *testing.T) {
 }
 
 func TestInstance_GenerateKeyOwnershipProof(t *testing.T) {
-	authABytes, _ := common.HexToBytes("0xeea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d71410364")
-	authA, _ := ed25519.NewPublicKey(authABytes)
+	// I think this will be removed and only test encoding and will and proper tests later (prob not in this package)
+	tt := trie.NewEmptyTrie()
 
-	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
-
-	_, err := rt.GrandpaGenerateKeyOwnershipProof(0, authA.AsBytes())
+	value, err := common.HexToBytes("0x0108eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640100000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000") //nolint:lll
 	require.NoError(t, err)
+
+	key := common.MustHexToBytes(genesis.GrandpaAuthoritiesKeyHex)
+	tt.Put(key, value)
+
+	rt := NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v0929, tt)
+
+	auths, err := rt.GrandpaAuthorities()
+	require.NoError(t, err)
+
+	authABytes, _ := common.HexToBytes("0xeea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d71410364")
+	require.NoError(t, err)
+	authA, _ := ed25519.NewPublicKey(authABytes)
+	require.NoError(t, err)
+
+	require.Equal(t, authA, auths[0].Key)
+
+	keyOwnershipProof, err := rt.GrandpaGenerateKeyOwnershipProof(1, authA.AsBytes())
+	require.NoError(t, err)
+	require.True(t, len(keyOwnershipProof) != 0)
 }
 
 func TestInstance_GrandpaSubmitReportEquivocationUnsignedExtrinsic(t *testing.T) {
-	authABytes, _ := common.HexToBytes("0xeea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d71410364")
-	authA, _ := ed25519.NewPublicKey(authABytes)
+	// TODO get this to return an actual key ownership proof
+	identity, _ := common.HexToBytes("0x88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee")
+	identityPubKey, _ := ed25519.NewPublicKey(identity)
 
 	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
 
-	keyOwnershipProof, err := rt.GrandpaGenerateKeyOwnershipProof(0, authA.AsBytes())
+	keyOwnershipProof, err := rt.GrandpaGenerateKeyOwnershipProof(1, identityPubKey.AsBytes())
 	require.NoError(t, err)
+	require.True(t, len(keyOwnershipProof) != 0)
+
+	var opaqueKeyOwnershipProof types.OpaqueKeyOwnershipProof
+	err = scale.Unmarshal(keyOwnershipProof, &opaqueKeyOwnershipProof)
 
 	testFirstVote := types.GrandpaVote{
-		Hash:   common.Hash{0xa, 0xb, 0xc, 0xd},
-		Number: 999,
+		Hash:   common.MustHexToHash("0x4801b8e62d31167d30c893cc1970f6a0e289420282a4b245b75f2c46fb308af1"),
+		Number: 10,
 	}
 	testSecondVote := types.GrandpaVote{
-		Hash:   common.Hash{0xd, 0xc, 0xb, 0xa},
-		Number: 999,
+		Hash:   common.MustHexToHash("0xc314327941fdd924bc67fd72651c40aececd485ca3e878c21e02abb40feae5bd"),
+		Number: 10,
 	}
-	testSignature := [64]byte{1, 2, 3, 4}
+
+	firstSignature, _ := common.HexToBytes("0xd7292caacc62504365f179892a7399f233944bf261f8a3f66260f70e0016f2db63922726b015c82dc7131f4730fbec61f71672a571453e51029bfb469070900f")
+	var firstSignatureArray [64]byte
+	copy(firstSignatureArray[:], firstSignature)
+
+	secondSignature, _ := common.HexToBytes("0xb3c408b74905dfedfffa66f99f16fe8b938fd8df76a92225228a1ca075230b99a2d9e173c561952e1e378b701915ca188d2c832ef92a3fab8e455f32570c0807")
+	var secondSignatureArray [64]byte
+	copy(secondSignatureArray[:], secondSignature)
+
+	var authorityId [32]byte
+	copy(authorityId[:], identityPubKey.Encode())
 
 	grandpaEquivocation := types.GrandpaEquivocation{
-		RoundNumber:     0,
-		ID:              *authA,
+		RoundNumber:     1,
+		ID:              authorityId,
 		FirstVote:       testFirstVote,
-		FirstSignature:  testSignature,
+		FirstSignature:  firstSignatureArray,
 		SecondVote:      testSecondVote,
-		SecondSignature: testSignature,
+		SecondSignature: secondSignatureArray,
 	}
 	preVoteEquivocation := types.PreVoteEquivocation(grandpaEquivocation)
 	equivocationVote := types.NewGrandpaEquivocation()
@@ -1322,10 +1354,67 @@ func TestInstance_GrandpaSubmitReportEquivocationUnsignedExtrinsic(t *testing.T)
 	require.NoError(t, err)
 
 	equivocationProof := types.GrandpaEquivocationProof{
-		SetId:        0,
+		SetId:        1,
 		Equivocation: *equivocationVote,
 	}
 
-	err = rt.GrandpaSubmitReportEquivocationUnsignedExtrinsic(equivocationProof, keyOwnershipProof)
+	err = rt.GrandpaSubmitReportEquivocationUnsignedExtrinsic(equivocationProof, opaqueKeyOwnershipProof)
 	require.NoError(t, err)
+}
+
+func TestInstance_GrandpaSubmitReportEquivocationUnsignedExtrinsicNew(t *testing.T) {
+	expectedEncoding := []byte{1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 136, 220, 52, 23, 213, 5, 142, 196, 180,
+		80, 62, 12, 18, 234, 26, 10, 137, 190, 32, 15, 233, 137, 34, 66, 61, 67, 52, 1, 79, 166, 176, 238, 72, 1,
+		184, 230, 45, 49, 22, 125, 48, 200, 147, 204, 25, 112, 246, 160, 226, 137, 66, 2, 130, 164, 178, 69, 183,
+		95, 44, 70, 251, 48, 138, 241, 10, 0, 0, 0, 0, 0, 0, 0, 215, 41, 44, 170, 204, 98, 80, 67, 101, 241, 121,
+		137, 42, 115, 153, 242, 51, 148, 75, 242, 97, 248, 163, 246, 98, 96, 247, 14, 0, 22, 242, 219, 99, 146, 39,
+		38, 176, 21, 200, 45, 199, 19, 31, 71, 48, 251, 236, 97, 247, 22, 114, 165, 113, 69, 62, 81, 2, 155, 251,
+		70, 144, 112, 144, 15, 195, 20, 50, 121, 65, 253, 217, 36, 188, 103, 253, 114, 101, 28, 64, 174, 206, 205,
+		72, 92, 163, 232, 120, 194, 30, 2, 171, 180, 15, 234, 229, 189, 10, 0, 0, 0, 0, 0, 0, 0, 179, 196, 8, 183,
+		73, 5, 223, 237, 255, 250, 102, 249, 159, 22, 254, 139, 147, 143, 216, 223, 118, 169, 34, 37, 34, 138, 28,
+		160, 117, 35, 11, 153, 162, 217, 225, 115, 197, 97, 149, 46, 30, 55, 139, 112, 25, 21, 202, 24, 141, 44,
+		131, 46, 249, 42, 63, 171, 142, 69, 95, 50, 87, 12, 8, 7}
+	identity, _ := common.HexToBytes("0x88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee")
+	identityPubKey, _ := ed25519.NewPublicKey(identity)
+	testFirstVote := types.GrandpaVote{
+		Hash:   common.MustHexToHash("0x4801b8e62d31167d30c893cc1970f6a0e289420282a4b245b75f2c46fb308af1"),
+		Number: 10,
+	}
+	testSecondVote := types.GrandpaVote{
+		Hash:   common.MustHexToHash("0xc314327941fdd924bc67fd72651c40aececd485ca3e878c21e02abb40feae5bd"),
+		Number: 10,
+	}
+
+	firstSignature, _ := common.HexToBytes("0xd7292caacc62504365f179892a7399f233944bf261f8a3f66260f70e0016f2db63922726b015c82dc7131f4730fbec61f71672a571453e51029bfb469070900f")
+	var firstSignatureArray [64]byte
+	copy(firstSignatureArray[:], firstSignature)
+
+	secondSignature, _ := common.HexToBytes("0xb3c408b74905dfedfffa66f99f16fe8b938fd8df76a92225228a1ca075230b99a2d9e173c561952e1e378b701915ca188d2c832ef92a3fab8e455f32570c0807")
+	var secondSignatureArray [64]byte
+	copy(secondSignatureArray[:], secondSignature)
+
+	var authorityId [32]byte
+	copy(authorityId[:], identityPubKey.Encode())
+
+	grandpaEquivocation := types.GrandpaEquivocation{
+		RoundNumber:     1,
+		ID:              authorityId,
+		FirstVote:       testFirstVote,
+		FirstSignature:  firstSignatureArray,
+		SecondVote:      testSecondVote,
+		SecondSignature: secondSignatureArray,
+	}
+	preVoteEquivocation := types.PreVoteEquivocation(grandpaEquivocation)
+	equivocationVote := types.NewGrandpaEquivocation()
+	err := equivocationVote.Set(preVoteEquivocation)
+	require.NoError(t, err)
+
+	equivocationProof := types.GrandpaEquivocationProof{
+		SetId:        1,
+		Equivocation: *equivocationVote,
+	}
+
+	actualEncoding, err := scale.Marshal(equivocationProof)
+	require.NoError(t, err)
+	require.Equal(t, expectedEncoding, actualEncoding)
 }
