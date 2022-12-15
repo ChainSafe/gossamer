@@ -90,18 +90,13 @@ func (in *Instance) GrandpaAuthorities() ([]types.Authority, error) {
 func (in *Instance) BabeGenerateKeyOwnershipProof(slot uint64, authorityID [32]byte) (
 	types.OpaqueKeyOwnershipProof, error) {
 
-	combinedArg := []byte{}
-	encodedSlot, err := scale.Marshal(slot)
+	combinedArg, err := scale.Marshal(struct {
+		slot        uint64
+		authorityID [32]byte
+	}{slot: slot, authorityID: authorityID})
 	if err != nil {
-		return nil, fmt.Errorf("encoding slot: %w", err)
+		return nil, fmt.Errorf("encoding arguments: %w", err)
 	}
-	combinedArg = append(combinedArg, encodedSlot...)
-
-	encodedAuthorityID, err := scale.Marshal(authorityID)
-	if err != nil {
-		return nil, fmt.Errorf("encoding authority id: %w", err)
-	}
-	combinedArg = append(combinedArg, encodedAuthorityID...)
 
 	encodedKeyOwnershipProof, err := in.Exec(runtime.BabeAPIGenerateKeyOwnershipProof, combinedArg)
 	if err != nil {
@@ -121,20 +116,15 @@ func (in *Instance) BabeGenerateKeyOwnershipProof(slot uint64, authorityID [32]b
 func (in *Instance) BabeSubmitReportEquivocationUnsignedExtrinsic(
 	equivocationProof types.BabeEquivocationProof, keyOwnershipProof types.OpaqueKeyOwnershipProof,
 ) error {
-
-	combinedArg := []byte{}
-
-	encodedEquivocationProof, err := scale.Marshal(equivocationProof)
+	combinedArg, err := scale.Marshal(
+		struct {
+			equivocationProof types.BabeEquivocationProof
+			keyOwnershipProof types.OpaqueKeyOwnershipProof
+		}{equivocationProof: equivocationProof, keyOwnershipProof: keyOwnershipProof},
+	)
 	if err != nil {
-		return fmt.Errorf("encoding equivocation proof: %w", err)
+		return fmt.Errorf("encoding arguments: %w", err)
 	}
-	combinedArg = append(combinedArg, encodedEquivocationProof...)
-
-	encodedKeyOwnershipProof, err := scale.Marshal(keyOwnershipProof)
-	if err != nil {
-		return fmt.Errorf("encoding key ownership proof: %w", err)
-	}
-	combinedArg = append(combinedArg, encodedKeyOwnershipProof...)
 
 	_, err = in.Exec(runtime.BabeAPISubmitReportEquivocationUnsignedExtrinsic, combinedArg)
 	return err
