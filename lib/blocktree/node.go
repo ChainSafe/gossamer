@@ -78,29 +78,6 @@ func (n *node) getNodesWithNumber(number uint, hashes []common.Hash) []common.Ha
 	return hashes
 }
 
-// subChain searches for a chain with head n and descendant going from child -> parent
-func (n *node) subChain(descendant *node) ([]*node, error) {
-	if descendant == nil {
-		return nil, ErrNilDescendant
-	}
-
-	var path []*node
-
-	if n.hash == descendant.hash {
-		path = append(path, n)
-		return path, nil
-	}
-
-	for curr := descendant; curr != nil; curr = curr.parent {
-		path = append([]*node{curr}, path...)
-		if curr.hash == n.hash {
-			return path, nil
-		}
-	}
-
-	return nil, ErrDescendantNotFound
-}
-
 // isDescendantOf traverses the tree following all possible paths until it determines if n is a descendant of parent
 func (n *node) isDescendantOf(parent *node) bool {
 	if parent == nil || n == nil {

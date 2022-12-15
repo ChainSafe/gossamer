@@ -38,6 +38,7 @@ var (
 	messageQueuePrefix  = []byte("mqp") // messageQueuePrefix + hash -> message queue
 	justificationPrefix = []byte("jcp") // justificationPrefix + hash -> justification
 
+	errNilBlockTree = errors.New("blocktree is nil")
 	errNilBlockBody = errors.New("block body is nil")
 
 	syncedBlocksGauge = promauto.NewGauge(prometheus.GaugeOpts{
@@ -542,10 +543,141 @@ func (bs *BlockState) GetSlotForBlock(hash common.Hash) (uint64, error) {
 	return types.GetSlotFromHeader(header)
 }
 
+var ErrEmptyHeader = errors.New("empty header")
+
+func (bs *BlockState) loadHeaderFromDatabase(hash common.Hash) (header *types.Header, err error) {
+	startHeaderData, err := bs.db.Get(headerKey(hash))
+	if err != nil {
+		return nil, fmt.Errorf("querying database: %w", err)
+	}
+
+	header = types.NewEmptyHeader()
+	err = scale.Unmarshal(startHeaderData, header)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshaling start header: %w", err)
+	}
+
+	if header.Empty() {
+		return nil, fmt.Errorf("%w: %s", ErrEmptyHeader, hash)
+	}
+
+	return header, nil
+}
+
+// Range returns the sub-blockchain between the starting hash and the
+// ending hash using both block tree and database
+func (bs *BlockState) Range(startHash, endHash common.Hash) (hashes []common.Hash, err error) {
+	if startHash == endHash {
+		hashes = []common.Hash{startHash}
+		return hashes, nil
+	}
+
+	endHeader, err := bs.loadHeaderFromDatabase(endHash)
+	if errors.Is(err, chaindb.ErrKeyNotFound) ||
+		errors.Is(err, ErrEmptyHeader) {
+		// end hash is not in the database so we should lookup the
+		// block that could be in memory and in the database as well
+		return bs.retrieveRange(startHash, endHash)
+	} else if err != nil {
+		return nil, fmt.Errorf("retrieving end hash from database: %w", err)
+	}
+
+	// end hash was found in the database, that means all the blocks
+	// between start and end can be found in the database
+	return bs.retrieveRangeFromDatabase(startHash, endHeader)
+}
+
+func (bs *BlockState) retrieveRange(startHash, endHash common.Hash) (hashes []common.Hash, err error) {
+	inMemoryHashes, err := bs.bt.Range(startHash, endHash)
+	if err != nil {
+		return nil, fmt.Errorf("retrieving range from in-memory blocktree: %w", err)
+	}
+
+	firstItem := inMemoryHashes[0]
+
+	// if the first item is equal to the startHash that means we got the range
+	// from the in-memory blocktree
+	if firstItem == startHash {
+		return inMemoryHashes, nil
+	}
+
+	// since we got as many blocks as we could from
+	// the block tree but still missing blocks to
+	// fulfil the range we should lookup in the
+	// database for the remaining ones, the first item in the hashes array
+	// must be the block tree root that is also placed in the database
+	//  so we will start from its parent since it is already in the array
+	blockTreeRootHeader, err := bs.loadHeaderFromDatabase(firstItem)
+	if err != nil {
+		return nil, fmt.Errorf("loading block tree root from database: %w", err)
+	}
+
+	startingAtParentHeader, err := bs.loadHeaderFromDatabase(blockTreeRootHeader.ParentHash)
+	if err != nil {
+		return nil, fmt.Errorf("loading header of parent of the root from database: %w", err)
+	}
+
+	inDatabaseHashes, err := bs.retrieveRangeFromDatabase(startHash, startingAtParentHeader)
+	if err != nil {
+		return nil, fmt.Errorf("retrieving range from database: %w", err)
+	}
+
+	hashes = append(inDatabaseHashes, inMemoryHashes...)
+	return hashes, nil
+}
+
+var ErrStartHashMismatch = errors.New("start hash mismatch")
+var ErrStartGreaterThanEnd = errors.New("start greater than end")
+
+// retrieveRangeFromDatabase takes the start and the end and will retrieve all block in between
+// where all blocks (start and end inclusive) are supposed to be placed at database
+func (bs *BlockState) retrieveRangeFromDatabase(startHash common.Hash,
+	endHeader *types.Header) (hashes []common.Hash, err error) {
+	startHeader, err := bs.loadHeaderFromDatabase(startHash)
+	if err != nil {
+		return nil, fmt.Errorf("range start should be in database: %w", err)
+	}
+
+	if startHeader.Number > endHeader.Number {
+		return nil, fmt.Errorf("%w", ErrStartGreaterThanEnd)
+	}
+
+	// blocksInRange is the difference between the end number to start number
+	// but the difference doesn't include the start item so we add 1
+	blocksInRange := endHeader.Number - startHeader.Number + 1
+
+	hashes = make([]common.Hash, blocksInRange)
+
+	lastPosition := blocksInRange - 1
+
+	hashes[0] = startHash
+	hashes[lastPosition] = endHeader.Hash()
+
+	inLoopHash := endHeader.ParentHash
+	for currentPosition := lastPosition - 1; currentPosition > 0; currentPosition-- {
+		hashes[currentPosition] = inLoopHash
+
+		inLoopHeader, err := bs.loadHeaderFromDatabase(inLoopHash)
+		if err != nil {
+			return nil, fmt.Errorf("retrieving hash %s from database: %w", inLoopHash.Short(), err)
+		}
+
+		inLoopHash = inLoopHeader.ParentHash
+	}
+
+	// here we ensure that we finished up the loop
+	// with the same hash as the startHash
+	if inLoopHash != startHash {
+		return nil, fmt.Errorf("%w: expecting %s, found: %s", ErrStartHashMismatch, startHash.Short(), inLoopHash.Short())
+	}
+
+	return hashes, nil
+}
+
 // SubChain returns the sub-blockchain between the starting hash and the ending hash using the block tree
 func (bs *BlockState) SubChain(start, end common.Hash) ([]common.Hash, error) {
 	if bs.bt == nil {
-		return nil, fmt.Errorf("blocktree is nil")
+		return nil, fmt.Errorf("%w", errNilBlockTree)
 	}
 
 	return bs.bt.SubBlockchain(start, end)
@@ -555,7 +687,7 @@ func (bs *BlockState) SubChain(start, end common.Hash) ([]common.Hash, error) {
 // it returns an error if parent or child are not in the blocktree.
 func (bs *BlockState) IsDescendantOf(parent, child common.Hash) (bool, error) {
 	if bs.bt == nil {
-		return false, fmt.Errorf("blocktree is nil")
+		return false, fmt.Errorf("%w", errNilBlockTree)
 	}
 
 	return bs.bt.IsDescendantOf(parent, child)
