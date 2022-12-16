@@ -27,6 +27,7 @@ func New(settings Settings) (database *Database, err error) {
 
 	badgerOptions := badger.DefaultOptions(settings.Path)
 	badgerOptions = badgerOptions.WithLogger(nil)
+	badgerOptions = badgerOptions.WithInMemory(*settings.InMemory)
 	// TODO enable once we share the same instance
 	// See https://github.com/ChainSafe/gossamer/issues/2981
 	// badgerOptions = badgerOptions.WithBypassLockGuard(true)

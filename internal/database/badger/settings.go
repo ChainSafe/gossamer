@@ -13,12 +13,18 @@ type Settings struct {
 	// Path is the database directory path to use.
 	// It defaults to the current directory if left unset.
 	Path string
+	// InMemory is whether to use an in-memory database.
+	InMemory *bool
 }
 
 // SetDefaults sets the default values on the settings.
 func (s *Settings) SetDefaults() {
 	if s.Path == "" {
 		s.Path = "."
+	}
+
+	if s.InMemory == nil {
+		s.InMemory = new(bool)
 	}
 }
 

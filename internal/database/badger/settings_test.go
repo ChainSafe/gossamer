@@ -18,15 +18,18 @@ func Test_Settings_SetDefaults(t *testing.T) {
 	}{
 		"empty settings": {
 			expectedSettings: Settings{
-				Path: ".",
+				Path:     ".",
+				InMemory: ptrTo(false),
 			},
 		},
 		"non-empty settings": {
 			originalSettings: Settings{
-				Path: "x",
+				Path:     "x",
+				InMemory: ptrTo(true),
 			},
 			expectedSettings: Settings{
-				Path: "x",
+				Path:     "x",
+				InMemory: ptrTo(true),
 			},
 		},
 	}
