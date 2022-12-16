@@ -5,7 +5,6 @@ package genesis
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -275,30 +274,19 @@ func interfaceToTelemetryEndpoint(endpoints []interface{}) []*TelemetryEndpoint 
 	return res
 }
 
-// UnmarshalJSON converts data to Go struct of type BalancesFields.
 func (b *balancesFields) UnmarshalJSON(buf []byte) error {
 	tmp := []interface{}{&b.AccountID, &b.Balance}
-	wantLen := len(tmp)
 	if err := json.Unmarshal(buf, &tmp); err != nil {
-		return fmt.Errorf("error in BalancesFields unmarshal: %w", err)
-	}
-	if newLen := len(tmp); newLen != wantLen {
-		return fmt.Errorf("wrong number of fields in BalancesFields: %d != %d", newLen, wantLen)
+		return err
 	}
 	return nil
 }
 
-// MarshalJSON converts Go struct of type BalancesFields to []byte.
 func (b balancesFields) MarshalJSON() ([]byte, error) {
 	tmp := []interface{}{&b.AccountID, &b.Balance}
-	wantLen := len(tmp)
-
 	buf, err := json.Marshal(tmp)
 	if err != nil {
-		return nil, fmt.Errorf("error in BalancesFields marshal: %w", err)
-	}
-	if newLen := len(tmp); newLen != wantLen {
-		return nil, fmt.Errorf("wrong number of fields in BalancesFields: %d != %d", newLen, wantLen)
+		return nil, err
 	}
 	return buf, nil
 }

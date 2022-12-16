@@ -129,30 +129,19 @@ type AuthorityAsAddress struct {
 	Weight  uint64
 }
 
-// UnmarshalJSON converts data to Go struct of type AuthorityAsAddress.
 func (a *AuthorityAsAddress) UnmarshalJSON(buf []byte) error {
 	tmp := []interface{}{&a.Address, &a.Weight}
-	wantLen := len(tmp)
 	if err := json.Unmarshal(buf, &tmp); err != nil {
-		return fmt.Errorf("error in AuthorityAsAddress Unmarshal: %w", err)
-	}
-	if newLen := len(tmp); newLen != wantLen {
-		return fmt.Errorf("wrong number of fields in AuthorityAsAddress: %d != %d", newLen, wantLen)
+		return err
 	}
 	return nil
 }
 
-// MarshalJSON converts Go struct of type AuthorityAsAddress to []byte.
 func (a AuthorityAsAddress) MarshalJSON() ([]byte, error) {
 	tmp := []interface{}{&a.Address, &a.Weight}
-	wantLen := len(tmp)
-
 	buf, err := json.Marshal(tmp)
 	if err != nil {
-		return nil, fmt.Errorf("error in AuthorityAsAddress marshal: %w", err)
-	}
-	if newLen := len(tmp); newLen != wantLen {
-		return nil, fmt.Errorf("wrong number of fields in AuthorityAsAddress: %d != %d", newLen, wantLen)
+		return nil, err
 	}
 	return buf, nil
 }

@@ -5,7 +5,6 @@ package genesis
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
@@ -197,58 +196,36 @@ type membersFields struct {
 	Balance   float64
 }
 
-// UnmarshalJSON converts data to Go struct of type NextKey.
 func (b *nextKey) UnmarshalJSON(buf []byte) error {
 	tmp := []interface{}{&b.AccountID1, &b.AccountID2, &b.KeyOwner}
-	wantLen := len(tmp)
 	if err := json.Unmarshal(buf, &tmp); err != nil {
-		return fmt.Errorf("error in NextKey unmarshal: %w", err)
-	}
-	if newLen := len(tmp); newLen != wantLen {
-		return fmt.Errorf("wrong number of fields in NextKey: %d != %d", newLen, wantLen)
+		return err
 	}
 	return nil
 }
 
-// MarshalJSON converts Go struct of type NextKey to []byte.
 func (b nextKey) MarshalJSON() ([]byte, error) {
 	tmp := []interface{}{&b.AccountID1, &b.AccountID2, &b.KeyOwner}
-	wantLen := len(tmp)
-
 	buf, err := json.Marshal(tmp)
 	if err != nil {
-		return nil, fmt.Errorf("error in NextKey marshal: %w", err)
-	}
-	if newLen := len(tmp); newLen != wantLen {
-		return nil, fmt.Errorf("wrong number of fields in NextKey: %d != %d", newLen, wantLen)
+		return nil, err
 	}
 	return buf, nil
 }
 
-// UnmarshalJSON converts data to Go struct of type MembersFields.
 func (b *membersFields) UnmarshalJSON(buf []byte) error {
 	tmp := []interface{}{&b.AccountID, &b.Balance}
-	wantLen := len(tmp)
 	if err := json.Unmarshal(buf, &tmp); err != nil {
-		return fmt.Errorf("error in MembersFields unmarshal: %w", err)
-	}
-	if newLen := len(tmp); newLen != wantLen {
-		return fmt.Errorf("wrong number of fields in MembersFields: %d != %d", newLen, wantLen)
+		return err
 	}
 	return nil
 }
 
-// MarshalJSON converts Go struct of type MembersFields to []byte.
 func (b membersFields) MarshalJSON() ([]byte, error) {
 	tmp := []interface{}{&b.AccountID, &b.Balance}
-	wantLen := len(tmp)
-
 	buf, err := json.Marshal(tmp)
 	if err != nil {
-		return nil, fmt.Errorf("error in MembersFields marshal: %w", err)
-	}
-	if newLen := len(tmp); newLen != wantLen {
-		return nil, fmt.Errorf("wrong number of fields in MembersFields: %d != %d", newLen, wantLen)
+		return nil, err
 	}
 	return buf, nil
 }

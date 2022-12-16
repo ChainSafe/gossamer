@@ -4,6 +4,7 @@
 package genesis
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -59,6 +60,51 @@ func Test_interfaceToTelemetryEndpoint(t *testing.T) {
 
 			telemetryEndpoints := interfaceToTelemetryEndpoint(testCase.endpoints)
 			require.Equal(t, testCase.expected, telemetryEndpoints)
+		})
+	}
+}
+
+var tcBalancesFields = []struct {
+	name      string
+	jsonValue []byte
+	goValue   balancesFields
+}{
+	{
+		name: "test1",
+		jsonValue: []byte{
+			91, 34, 53, 71, 114, 119, 118, 97, 69, 70, 53, 122, 88, 98, 50, 54, 70, 122, 57, 114, 99,
+			81, 112, 68, 87, 83, 53, 55, 67, 116, 69, 82, 72, 112, 78, 101, 104, 88, 67, 80, 99, 78,
+			111, 72, 71, 75, 117, 116, 81, 89, 34, 44, 49, 50, 51, 52, 50, 51, 52, 50, 51, 52, 93,
+		},
+		goValue: balancesFields{"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", 1234234234},
+	},
+}
+
+func TestBalancesFieldsMarshal(t *testing.T) {
+	for _, tt := range tcBalancesFields {
+		t.Run(tt.name, func(t *testing.T) {
+			marshalledValue, err := tt.goValue.MarshalJSON()
+			if err != nil {
+				t.Fatalf("Couldn't marshal BalancesFields: %v", err)
+			}
+			if !reflect.DeepEqual(marshalledValue, tt.jsonValue) {
+				t.Errorf("Unexpected marshal value : \nactual: %v \nExpected: %v", marshalledValue, tt.jsonValue)
+			}
+		})
+	}
+}
+
+func TestBalancesFieldsUnmarshal(t *testing.T) {
+	for _, tt := range tcBalancesFields {
+		t.Run(tt.name, func(t *testing.T) {
+			var bfs balancesFields
+			err := bfs.UnmarshalJSON(tt.jsonValue)
+			if err != nil {
+				t.Fatalf("Couldn't unmarshal BalancesFields: %v", err)
+			}
+			if !reflect.DeepEqual(bfs, tt.goValue) {
+				t.Errorf("Unexpected unmarshal value : \nactual: %v \nExpected: %v", bfs, tt.goValue)
+			}
 		})
 	}
 }
