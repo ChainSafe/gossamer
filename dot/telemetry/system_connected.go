@@ -12,7 +12,7 @@ import (
 
 type systemConnectedTM SystemConnected
 
-var _ Message = (*SystemConnected)(nil)
+var _ json.Marshaler = (*SystemConnected)(nil)
 
 // SystemConnected struct to hold system connected telemetry messages
 type SystemConnected struct {

@@ -87,7 +87,7 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 				mockBlockState.EXPECT().GetHeader(common.Hash{}).Return(&types.Header{
 					StateRoot: testHash,
 				}, nil)
-				mockInstance := NewMockRuntimeInstance(ctrl)
+				mockInstance := NewMockInstance(ctrl)
 				mockInstance.EXPECT().SetContextStorage(trieState)
 				mockInstance.EXPECT().ExecuteBlock(&types.Block{Body: types.Body{}}).Return(nil, mockError)
 				mockBlockState.EXPECT().GetRuntime(testParentHash).Return(mockInstance, nil)
@@ -112,7 +112,7 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 					StateRoot: testHash,
 				}, nil)
 				mockBlock := &types.Block{Body: types.Body{}}
-				mockInstance := NewMockRuntimeInstance(ctrl)
+				mockInstance := NewMockInstance(ctrl)
 				mockInstance.EXPECT().SetContextStorage(trieState)
 				mockInstance.EXPECT().ExecuteBlock(mockBlock).Return(nil, nil)
 				mockBlockState.EXPECT().GetRuntime(testParentHash).Return(mockInstance, nil)
@@ -147,7 +147,7 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 				mockHeaderHash := mockHeader.Hash()
 				mockBlockState.EXPECT().GetHeader(common.Hash{}).Return(mockHeader, nil)
 
-				mockInstance := NewMockRuntimeInstance(ctrl)
+				mockInstance := NewMockInstance(ctrl)
 				mockInstance.EXPECT().SetContextStorage(trieState)
 				mockInstance.EXPECT().ExecuteBlock(mockBlock).Return(nil, nil)
 				mockBlockState.EXPECT().GetRuntime(mockHeaderHash).Return(mockInstance, nil)
@@ -160,7 +160,7 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 				mockBlockImportHandler := NewMockBlockImportHandler(ctrl)
 				mockBlockImportHandler.EXPECT().HandleBlockImport(mockBlock, trieState, false).Return(nil)
 				chainProcessor.blockImportHandler = mockBlockImportHandler
-				mockTelemetry := NewMockClient(ctrl)
+				mockTelemetry := NewMockTelemetry(ctrl)
 				mockTelemetry.EXPECT().SendMessage(gomock.Any())
 				chainProcessor.telemetry = mockTelemetry
 				return
@@ -187,7 +187,7 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 				mockHeaderHash := mockHeader.Hash()
 				mockBlockState.EXPECT().GetHeader(common.Hash{}).Return(mockHeader, nil)
 
-				mockInstance := NewMockRuntimeInstance(ctrl)
+				mockInstance := NewMockInstance(ctrl)
 				mockInstance.EXPECT().SetContextStorage(trieState)
 				mockInstance.EXPECT().ExecuteBlock(mockBlock).Return(nil, nil)
 				mockBlockState.EXPECT().GetRuntime(mockHeaderHash).Return(mockInstance, nil)
@@ -200,7 +200,7 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 				mockBlockImportHandler := NewMockBlockImportHandler(ctrl)
 				mockBlockImportHandler.EXPECT().HandleBlockImport(mockBlock, trieState, true).Return(nil)
 				chainProcessor.blockImportHandler = mockBlockImportHandler
-				mockTelemetry := NewMockClient(ctrl)
+				mockTelemetry := NewMockTelemetry(ctrl)
 				mockTelemetry.EXPECT().SendMessage(gomock.Any())
 				chainProcessor.telemetry = mockTelemetry
 				return
@@ -532,7 +532,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 				mockTrieState := storage.NewTrieState(nil)
 				mockBlock := &types.Block{Header: types.Header{}, Body: types.Body{}}
 
-				mockInstance := NewMockRuntimeInstance(ctrl)
+				mockInstance := NewMockInstance(ctrl)
 				mockInstance.EXPECT().SetContextStorage(mockTrieState)
 				mockInstance.EXPECT().ExecuteBlock(mockBlock).Return(nil, nil)
 				mockBlockState := NewMockBlockState(ctrl)
@@ -559,7 +559,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 				mockBlockImportHandler := NewMockBlockImportHandler(ctrl)
 				mockBlockImportHandler.EXPECT().HandleBlockImport(mockBlock, mockTrieState, false)
 
-				mockTelemetry := NewMockClient(ctrl)
+				mockTelemetry := NewMockTelemetry(ctrl)
 				mockTelemetry.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 				mockFinalityGadget := NewMockFinalityGadget(ctrl)
 				mockFinalityGadget.EXPECT().VerifyBlockJustification(
@@ -859,7 +859,7 @@ func Test_chainProcessor_processBlockDataWithHeaderAndBody(t *testing.T) {
 					Return(trieState, nil)
 
 				parentHeaderHash := parentHeader.Hash()
-				instance := NewMockRuntimeInstance(ctrl)
+				instance := NewMockInstance(ctrl)
 				blockState.EXPECT().GetRuntime(parentHeaderHash).
 					Return(instance, nil)
 
@@ -875,7 +875,7 @@ func Test_chainProcessor_processBlockDataWithHeaderAndBody(t *testing.T) {
 				blockImportHandler.EXPECT().HandleBlockImport(block, trieState, announceImportedBlock).
 					Return(nil)
 
-				telemetryClient := NewMockClient(ctrl)
+				telemetryClient := NewMockTelemetry(ctrl)
 				headerHash := common.MustHexToHash("0x18d21d2901e4a4ac6a8c6431da2dfee1b8701f31a9e49283a082e6c744d4117c")
 				message := telemetry.NewBlockImport(&headerHash, expectedHeader.Number, "NetworkInitialSync")
 				telemetryClient.EXPECT().SendMessage(message)

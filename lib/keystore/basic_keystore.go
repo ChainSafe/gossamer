@@ -21,7 +21,7 @@ var (
 type BasicKeystore struct {
 	name Name
 	typ  crypto.KeyType
-	keys map[common.Address]crypto.Keypair // map of public key encodings to keypairs
+	keys map[common.Address]KeyPair // map of public key encodings to keypairs
 	lock sync.RWMutex
 }
 
@@ -30,7 +30,7 @@ func NewBasicKeystore(name Name, typ crypto.KeyType) *BasicKeystore {
 	return &BasicKeystore{
 		name: name,
 		typ:  typ,
-		keys: make(map[common.Address]crypto.Keypair),
+		keys: make(map[common.Address]KeyPair),
 	}
 }
 
@@ -50,7 +50,7 @@ func (ks *BasicKeystore) Size() int {
 }
 
 // Insert adds a keypair to the keystore
-func (ks *BasicKeystore) Insert(kp crypto.Keypair) error {
+func (ks *BasicKeystore) Insert(kp KeyPair) error {
 	ks.lock.Lock()
 	defer ks.lock.Unlock()
 
@@ -65,7 +65,7 @@ func (ks *BasicKeystore) Insert(kp crypto.Keypair) error {
 }
 
 // GetKeypair returns a keypair corresponding to the given public key, or nil if it doesn't exist
-func (ks *BasicKeystore) GetKeypair(pub crypto.PublicKey) crypto.Keypair {
+func (ks *BasicKeystore) GetKeypair(pub crypto.PublicKey) KeyPair {
 	for _, key := range ks.keys {
 		if bytes.Equal(key.Public().Encode(), pub.Encode()) {
 			return key
@@ -75,7 +75,7 @@ func (ks *BasicKeystore) GetKeypair(pub crypto.PublicKey) crypto.Keypair {
 }
 
 // GetKeypairFromAddress returns a keypair corresponding to the given address, or nil if it doesn't exist
-func (ks *BasicKeystore) GetKeypairFromAddress(pub common.Address) crypto.Keypair {
+func (ks *BasicKeystore) GetKeypairFromAddress(pub common.Address) KeyPair {
 	ks.lock.RLock()
 	defer ks.lock.RUnlock()
 	return ks.keys[pub]
@@ -96,8 +96,7 @@ func (ks *BasicKeystore) PublicKeys() []crypto.PublicKey {
 }
 
 // Keypairs returns all keypairs in the keystore
-func (ks *BasicKeystore) Keypairs() []crypto.Keypair {
-	srkeys := []crypto.Keypair{}
+func (ks *BasicKeystore) Keypairs() (srkeys []KeyPair) {
 	if ks.keys == nil {
 		return srkeys
 	}

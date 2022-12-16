@@ -59,7 +59,7 @@ func newNetworkService(t *testing.T) *network.Service {
 	transactionHandlerMock := NewMockTransactionHandler(ctrl)
 	transactionHandlerMock.EXPECT().TransactionsCount().Return(0).AnyTimes()
 
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	cfg := &network.Config{
@@ -329,7 +329,7 @@ func setupSystemModule(t *testing.T) *SystemModule {
 	core := newCoreService(t, chain)
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 
 	telemetryMock.
 		EXPECT().
@@ -375,7 +375,6 @@ func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 		TransactionState:     srvc.Transaction,
 		BlockState:           srvc.Block,
 		StorageState:         srvc.Storage,
-		EpochState:           srvc.Epoch,
 		Network:              mocknet,
 		CodeSubstitutedState: srvc.Base,
 	}

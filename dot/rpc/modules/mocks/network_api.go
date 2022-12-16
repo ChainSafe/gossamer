@@ -46,20 +46,6 @@ func (_m *NetworkAPI) Health() common.Health {
 	return r0
 }
 
-// IsStopped provides a mock function with given fields:
-func (_m *NetworkAPI) IsStopped() bool {
-	ret := _m.Called()
-
-	var r0 bool
-	if rf, ok := ret.Get(0).(func() bool); ok {
-		r0 = rf()
-	} else {
-		r0 = ret.Get(0).(bool)
-	}
-
-	return r0
-}
-
 // NetworkState provides a mock function with given fields:
 func (_m *NetworkAPI) NetworkState() common.NetworkState {
 	ret := _m.Called()

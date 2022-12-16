@@ -18,7 +18,7 @@ import (
 )
 
 func addTestBlocksToState(t *testing.T, depth uint, blockState BlockState) {
-	previousHash := blockState.BestBlockHash()
+	previousHash := blockState.(*state.BlockState).BestBlockHash()
 	previousNum, err := blockState.BestBlockNumber()
 	require.NoError(t, err)
 
@@ -41,7 +41,7 @@ func addTestBlocksToState(t *testing.T, depth uint, blockState BlockState) {
 
 		previousHash = block.Header.Hash()
 
-		err := blockState.AddBlock(block)
+		err := blockState.(*state.BlockState).AddBlock(block)
 		require.NoError(t, err)
 	}
 }
@@ -329,8 +329,8 @@ func TestService_CreateBlockResponse_Fields(t *testing.T) {
 	s := newTestSyncer(t)
 	addTestBlocksToState(t, 2, s.blockState)
 
-	bestHash := s.blockState.BestBlockHash()
-	bestBlock, err := s.blockState.GetBlockByNumber(1)
+	bestHash := s.blockState.(*state.BlockState).BestBlockHash()
+	bestBlock, err := s.blockState.(*state.BlockState).GetBlockByNumber(1)
 	require.NoError(t, err)
 
 	// set some nils and check no error is thrown

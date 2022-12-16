@@ -41,7 +41,7 @@ type chainProcessor struct {
 	babeVerifier       BabeVerifier
 	finalityGadget     FinalityGadget
 	blockImportHandler BlockImportHandler
-	telemetry          telemetry.Client
+	telemetry          Telemetry
 }
 
 type chainProcessorConfig struct {
@@ -54,7 +54,7 @@ type chainProcessorConfig struct {
 	babeVerifier       BabeVerifier
 	finalityGadget     FinalityGadget
 	blockImportHandler BlockImportHandler
-	telemetry          telemetry.Client
+	telemetry          Telemetry
 }
 
 func newChainProcessor(cfg chainProcessorConfig) *chainProcessor {

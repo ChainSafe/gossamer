@@ -15,7 +15,6 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -48,10 +47,10 @@ type WSConn struct {
 	mu            sync.Mutex
 	qtyListeners  uint32
 	Subscriptions map[uint32]Listener
-	StorageAPI    modules.StorageAPI
-	BlockAPI      modules.BlockAPI
-	CoreAPI       modules.CoreAPI
-	TxStateAPI    modules.TransactionStateAPI
+	StorageAPI    StorageAPI
+	BlockAPI      BlockAPI
+	CoreAPI       CoreAPI
+	TxStateAPI    TransactionStateAPI
 	RPCHost       string
 	HTTP          httpclient
 }

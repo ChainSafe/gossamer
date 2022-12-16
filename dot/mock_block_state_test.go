@@ -50,21 +50,6 @@ func (mr *MockBlockStateMockRecorder) BestBlockHeader() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BestBlockHeader", reflect.TypeOf((*MockBlockState)(nil).BestBlockHeader))
 }
 
-// BestBlockNumber mocks base method.
-func (m *MockBlockState) BestBlockNumber() (uint, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "BestBlockNumber")
-	ret0, _ := ret[0].(uint)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// BestBlockNumber indicates an expected call of BestBlockNumber.
-func (mr *MockBlockStateMockRecorder) BestBlockNumber() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BestBlockNumber", reflect.TypeOf((*MockBlockState)(nil).BestBlockNumber))
-}
-
 // GenesisHash mocks base method.
 func (m *MockBlockState) GenesisHash() common.Hash {
 	m.ctrl.T.Helper()
@@ -77,21 +62,6 @@ func (m *MockBlockState) GenesisHash() common.Hash {
 func (mr *MockBlockStateMockRecorder) GenesisHash() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenesisHash", reflect.TypeOf((*MockBlockState)(nil).GenesisHash))
-}
-
-// GetHashByNumber mocks base method.
-func (m *MockBlockState) GetHashByNumber(arg0 uint) (common.Hash, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetHashByNumber", arg0)
-	ret0, _ := ret[0].(common.Hash)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetHashByNumber indicates an expected call of GetHashByNumber.
-func (mr *MockBlockStateMockRecorder) GetHashByNumber(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHashByNumber", reflect.TypeOf((*MockBlockState)(nil).GetHashByNumber), arg0)
 }
 
 // GetHighestFinalisedHeader mocks base method.
@@ -107,19 +77,4 @@ func (m *MockBlockState) GetHighestFinalisedHeader() (*types.Header, error) {
 func (mr *MockBlockStateMockRecorder) GetHighestFinalisedHeader() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHighestFinalisedHeader", reflect.TypeOf((*MockBlockState)(nil).GetHighestFinalisedHeader))
-}
-
-// HasBlockBody mocks base method.
-func (m *MockBlockState) HasBlockBody(arg0 common.Hash) (bool, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HasBlockBody", arg0)
-	ret0, _ := ret[0].(bool)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// HasBlockBody indicates an expected call of HasBlockBody.
-func (mr *MockBlockStateMockRecorder) HasBlockBody(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasBlockBody", reflect.TypeOf((*MockBlockState)(nil).HasBlockBody), arg0)
 }

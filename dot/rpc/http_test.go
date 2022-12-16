@@ -35,7 +35,8 @@ import (
 )
 
 func TestRegisterModules(t *testing.T) {
-	rpcapiMocks := mocks.NewRPCAPI(t)
+	ctrl := gomock.NewController(t)
+	rpcapiMocks := NewMockAPI(ctrl)
 
 	mods := []string{
 		"system", "author", "chain",
@@ -44,7 +45,7 @@ func TestRegisterModules(t *testing.T) {
 	}
 
 	for _, modName := range mods {
-		rpcapiMocks.On("BuildMethodNames", mock.Anything, modName).Once()
+		rpcapiMocks.EXPECT().BuildMethodNames(gomock.Any(), modName)
 	}
 
 	cfg := &HTTPServerConfig{
@@ -290,7 +291,7 @@ func externalIP() (string, error) {
 	return "", errors.New("are you connected to the network?")
 }
 
-//go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
+//go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE . Telemetry
 //go:generate mockgen -destination=mock_network_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/core Network
 
 func newCoreServiceTest(t *testing.T) *core.Service {
@@ -301,7 +302,7 @@ func newCoreServiceTest(t *testing.T) *core.Service {
 	gen, genesisTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	config := state.Config{
@@ -324,7 +325,6 @@ func newCoreServiceTest(t *testing.T) *core.Service {
 
 	cfg := &core.Config{
 		LogLvl:               log.Warn,
-		EpochState:           stateSrvc.Epoch,
 		BlockState:           stateSrvc.Block,
 		StorageState:         stateSrvc.Storage,
 		TransactionState:     stateSrvc.Transaction,
@@ -342,7 +342,7 @@ func newCoreServiceTest(t *testing.T) *core.Service {
 
 	rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
 
-	rtCfg.CodeHash, err = cfg.StorageState.LoadCodeHash(nil)
+	rtCfg.CodeHash, err = cfg.StorageState.(*state.StorageState).LoadCodeHash(nil)
 	require.NoError(t, err)
 
 	nodeStorage := runtime.NodeStorage{

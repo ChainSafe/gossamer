@@ -3,8 +3,8 @@
 package mocks
 
 import (
+	core "github.com/ChainSafe/gossamer/dot/core"
 	common "github.com/ChainSafe/gossamer/lib/common"
-	crypto "github.com/ChainSafe/gossamer/lib/crypto"
 
 	mock "github.com/stretchr/testify/mock"
 
@@ -153,11 +153,11 @@ func (_m *CoreAPI) HasKey(pubKeyStr string, keyType string) (bool, error) {
 }
 
 // InsertKey provides a mock function with given fields: kp, keystoreType
-func (_m *CoreAPI) InsertKey(kp crypto.Keypair, keystoreType string) error {
+func (_m *CoreAPI) InsertKey(kp core.KeyPair, keystoreType string) error {
 	ret := _m.Called(kp, keystoreType)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(crypto.Keypair, string) error); ok {
+	if rf, ok := ret.Get(0).(func(core.KeyPair, string) error); ok {
 		r0 = rf(kp, keystoreType)
 	} else {
 		r0 = ret.Error(0)

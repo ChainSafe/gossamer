@@ -26,11 +26,7 @@ import (
 // Name represents the name of the interpreter
 const Name = "wasmer"
 
-// Check that runtime interfaces are satisfied
 var (
-	_ runtime.Instance = (*Instance)(nil)
-	_ runtime.Memory   = (*wasm.Memory)(nil)
-
 	logger = log.NewFromGlobal(
 		log.AddContext("pkg", "runtime"),
 		log.AddContext("module", "go-wasmer"),
@@ -47,7 +43,7 @@ type Instance struct {
 }
 
 // NewRuntimeFromGenesis creates a runtime instance from the genesis data
-func NewRuntimeFromGenesis(cfg Config) (instance runtime.Instance, err error) {
+func NewRuntimeFromGenesis(cfg Config) (instance *Instance, err error) {
 	if cfg.Storage == nil {
 		return nil, errors.New("storage is nil")
 	}
@@ -256,7 +252,7 @@ func setupVM(code []byte) (instance wasm.Instance,
 	return instance, allocator, nil
 }
 
-// SetContextStorage sets the runtime's storage. It should be set before calls to the below functions.
+// SetContextStorage sets the runtime's storage.
 func (in *Instance) SetContextStorage(s runtime.Storage) {
 	in.mutex.Lock()
 	defer in.mutex.Unlock()

@@ -35,10 +35,10 @@ func (m *MockServiceBuilder) EXPECT() *MockServiceBuilderMockRecorder {
 }
 
 // NewServiceIFace mocks base method.
-func (m *MockServiceBuilder) NewServiceIFace(arg0 *babe.ServiceConfig) (babe.ServiceIFace, error) {
+func (m *MockServiceBuilder) NewServiceIFace(arg0 *babe.ServiceConfig) (*babe.Service, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "NewServiceIFace", arg0)
-	ret0, _ := ret[0].(babe.ServiceIFace)
+	ret0, _ := ret[0].(*babe.Service)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

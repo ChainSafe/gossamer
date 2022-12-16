@@ -25,7 +25,7 @@ import (
 // helper method to create and start test state service
 func newTestService(t *testing.T) (state *Service) {
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	config := Config{
@@ -39,7 +39,7 @@ func newTestService(t *testing.T) (state *Service) {
 
 func newTestMemDBService(t *testing.T) *Service {
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	testDatadirPath := t.TempDir()
@@ -121,7 +121,7 @@ func TestMemDB_Start(t *testing.T) {
 
 func TestService_BlockTree(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().
 		SendMessage(gomock.AssignableToTypeOf(&telemetry.NotifyFinalized{})).
 		MaxTimes(2)
@@ -169,7 +169,7 @@ func TestService_BlockTree(t *testing.T) {
 
 func TestService_StorageTriePruning(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	const retainBlocks uint = 2
@@ -223,7 +223,7 @@ func TestService_StorageTriePruning(t *testing.T) {
 
 func TestService_PruneStorage(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	config := Config{
@@ -304,7 +304,7 @@ func TestService_PruneStorage(t *testing.T) {
 
 func TestService_Rewind(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	config := Config{
@@ -362,7 +362,7 @@ func TestService_Rewind(t *testing.T) {
 
 func TestService_Import(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	config := Config{

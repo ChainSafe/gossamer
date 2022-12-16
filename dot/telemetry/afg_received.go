@@ -13,9 +13,9 @@ import (
 // AfG ("Al's Finality Gadget") is synonymous with GRANDPA.
 
 var (
-	_ Message = (*AfgReceivedPrecommit)(nil)
-	_ Message = (*AfgReceivedPrevote)(nil)
-	_ Message = (*AfgReceivedCommit)(nil)
+	_ json.Marshaler = (*AfgReceivedPrecommit)(nil)
+	_ json.Marshaler = (*AfgReceivedPrevote)(nil)
+	_ json.Marshaler = (*AfgReceivedCommit)(nil)
 )
 
 type afgReceived struct {

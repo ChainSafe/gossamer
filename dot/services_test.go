@@ -122,13 +122,12 @@ func Test_newInMemoryDB(t *testing.T) {
 	}
 }
 
-//go:generate mockgen -destination=mock_babe_builder_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/lib/babe ServiceIFace
 //go:generate mockgen -destination=mock_service_builder_test.go -package $GOPACKAGE . ServiceBuilder
 
 func newStateService(t *testing.T, ctrl *gomock.Controller) *state.Service {
 	t.Helper()
 
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	stateConfig := state.Config{

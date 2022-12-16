@@ -24,7 +24,7 @@ import (
 var inc, _ = time.ParseDuration("1s")
 
 // NewInMemoryDB creates a new in-memory database
-func NewInMemoryDB(t *testing.T) chaindb.Database {
+func NewInMemoryDB(t *testing.T) *chaindb.BadgerDB {
 	testDatadirPath := t.TempDir()
 
 	db, err := utils.SetupDatabase(testDatadirPath, true)

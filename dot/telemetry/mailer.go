@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/gorilla/websocket"
 )
@@ -27,13 +26,13 @@ type telemetryConnection struct {
 type Mailer struct {
 	mutex *sync.Mutex
 
-	logger log.LeveledLogger
+	logger Logger
 
 	connections []*telemetryConnection
 }
 
 // BootstrapMailer setup the mailer, the connections and start the async message shipment
-func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint, logger log.LeveledLogger) (
+func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint, logger Logger) (
 	mailer *Mailer, err error) {
 	mailer = &Mailer{
 		mutex:  new(sync.Mutex),
@@ -76,14 +75,14 @@ func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint, lo
 }
 
 // SendMessage sends Message to connected telemetry listeners through messageReceiver
-func (m *Mailer) SendMessage(msg Message) {
+func (m *Mailer) SendMessage(msg json.Marshaler) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
 	go m.shipTelemetryMessage(msg)
 }
 
-func (m *Mailer) shipTelemetryMessage(msg Message) {
+func (m *Mailer) shipTelemetryMessage(msg json.Marshaler) {
 	msgBytes, err := json.Marshal(msg)
 	if err != nil {
 		m.logger.Debugf("issue encoding %T telemetry message: %s", msg, err)

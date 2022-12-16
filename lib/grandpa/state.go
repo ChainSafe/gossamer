@@ -24,18 +24,12 @@ type BlockState interface {
 	GetFinalisedHeader(uint64, uint64) (*types.Header, error)
 	SetFinalisedHash(common.Hash, uint64, uint64) error
 	BestBlockHeader() (*types.Header, error)
-	BestBlockHash() common.Hash
-	Leaves() []common.Hash
 	GetHighestFinalisedHeader() (*types.Header, error)
-	BlocktreeAsString() string
 	GetImportedBlockNotifierChannel() chan *types.Block
 	FreeImportedBlockNotifierChannel(ch chan *types.Block)
 	GetFinalisedNotifierChannel() chan *types.FinalisationInfo
 	FreeFinalisedNotifierChannel(ch chan *types.FinalisationInfo)
 	SetJustification(hash common.Hash, data []byte) error
-	HasJustification(hash common.Hash) (bool, error)
-	GetJustification(hash common.Hash) ([]byte, error)
-	GetHashByNumber(num uint) (common.Hash, error)
 	BestBlockNumber() (blockNumber uint, err error)
 	GetHighestRoundAndSetID() (uint64, uint64, error)
 }
