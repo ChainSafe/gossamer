@@ -13,7 +13,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
@@ -341,7 +340,7 @@ func newTestStateService(t *testing.T) *state.Service {
 	testDatadirPath := t.TempDir()
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	config := state.Config{
@@ -382,7 +381,7 @@ func newTestStateService(t *testing.T) *state.Service {
 	return stateSrvc
 }
 
-func loadTestBlocks(t *testing.T, gh common.Hash, bs *state.BlockState, rt runtime.Instance) {
+func loadTestBlocks(t *testing.T, gh common.Hash, bs *state.BlockState, rt Runtime) {
 	digest := types.NewDigest()
 	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
 	require.NoError(t, err)

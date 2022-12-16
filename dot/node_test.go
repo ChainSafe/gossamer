@@ -95,7 +95,7 @@ func TestLoadGlobalNodeName(t *testing.T) {
 	}
 }
 
-//go:generate mockgen -destination=mock_service_registry_test.go -package=$GOPACKAGE github.com/ChainSafe/gossamer/lib/services Service,ServiceRegisterer
+//go:generate mockgen -destination=mocks_test.go -package=$GOPACKAGE . ServiceRegisterer
 
 //go:generate mockgen -destination=mock_block_state_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/network BlockState
 
@@ -121,7 +121,7 @@ func setConfigTestDefaults(t *testing.T, cfg *network.Config) {
 	cfg.SlotDuration = time.Second
 
 	if cfg.Telemetry == nil {
-		telemetryMock := NewMockClient(ctrl)
+		telemetryMock := NewMockTelemetry(ctrl)
 		telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 		cfg.Telemetry = telemetryMock
 	}

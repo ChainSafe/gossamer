@@ -33,7 +33,7 @@ type StorageState struct {
 	blockState *BlockState
 	tries      *Tries
 
-	db chaindb.Database
+	db GetNewBatcher
 	sync.RWMutex
 
 	// change notifiers
@@ -44,12 +44,8 @@ type StorageState struct {
 
 // NewStorageState creates a new StorageState backed by the given block state
 // and database located at basePath.
-func NewStorageState(db chaindb.Database, blockState *BlockState,
+func NewStorageState(db *chaindb.BadgerDB, blockState *BlockState,
 	tries *Tries, onlinePruner pruner.Config) (*StorageState, error) {
-	if db == nil {
-		return nil, fmt.Errorf("cannot have nil database")
-	}
-
 	storageTable := chaindb.NewTable(db, storagePrefix)
 
 	var p pruner.Pruner

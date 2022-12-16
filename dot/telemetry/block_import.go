@@ -12,7 +12,7 @@ import (
 
 type blockImportTM BlockImport
 
-var _ Message = (*BlockImport)(nil)
+var _ json.Marshaler = (*BlockImport)(nil)
 
 // BlockImport struct to hold block import telemetry messages
 type BlockImport struct {

@@ -101,7 +101,7 @@ func setupGrandpa(t *testing.T, kp *ed25519.Keypair) *Service {
 	net := newTestNetwork(t)
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	telemetryMock.
@@ -127,7 +127,7 @@ func setupGrandpa(t *testing.T, kp *ed25519.Keypair) *Service {
 
 func newTestState(t *testing.T) *state.Service {
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	testDatadirPath := t.TempDir()
@@ -166,7 +166,7 @@ func newTestService(t *testing.T, keypair *ed25519.Keypair) (*Service, *state.Se
 	net := newTestNetwork(t)
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	cfg := &Config{

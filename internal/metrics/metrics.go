@@ -20,9 +20,9 @@ const (
 )
 
 var (
-	logger                     log.LeveledLogger = log.NewFromGlobal(log.AddContext("pkg", "metrics"))
-	ErrServerEndedUnexpectedly                   = fmt.Errorf("metrics server exited unexpectedly")
-	ErrServerStopTimeout                         = fmt.Errorf("metrics server exit timeout")
+	logger                     Logger = log.NewFromGlobal(log.AddContext("pkg", "metrics"))
+	ErrServerEndedUnexpectedly        = fmt.Errorf("metrics server exited unexpectedly")
+	ErrServerStopTimeout              = fmt.Errorf("metrics server exit timeout")
 )
 
 // IntervalConfig for interval collection

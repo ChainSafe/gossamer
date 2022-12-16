@@ -10,7 +10,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -54,19 +53,10 @@ func NewMockeryBlockAPI(t *testing.T) *modulesmocks.BlockAPI {
 	return m
 }
 
-// NewMockTransactionStateAPI creates and return an rpc TransactionStateAPI interface mock
-func NewMockTransactionStateAPI(t *testing.T) *modulesmocks.TransactionStateAPI {
-	m := modulesmocks.NewTransactionStateAPI(t)
-	m.On("FreeStatusNotifierChannel", mock.AnythingOfType("chan transaction.Status")).Maybe()
-	m.On("GetStatusNotifierChannel", mock.AnythingOfType("types.Extrinsic")).Return(make(chan transaction.Status)).Maybe()
-	m.On("AddToPool", mock.AnythingOfType("transaction.ValidTransaction")).Return(common.Hash{}).Maybe()
-	return m
-}
-
 // NewMockCoreAPI creates and return an rpc CoreAPI interface mock
 func NewMockCoreAPI(t *testing.T) *modulesmocks.CoreAPI {
 	m := modulesmocks.NewCoreAPI(t)
-	m.On("InsertKey", mock.AnythingOfType("crypto.Keypair"), mock.AnythingOfType("string")).Return(nil).Maybe()
+	m.On("InsertKey", mock.AnythingOfType("core.Keypair"), mock.AnythingOfType("string")).Return(nil).Maybe()
 	m.On("HasKey", mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(false, nil).Maybe()
 	m.On("GetRuntimeVersion", mock.AnythingOfType("*common.Hash")).
 		Return(runtime.Version{SpecName: []byte(`mock-spec`)}, nil).Maybe()

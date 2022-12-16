@@ -89,8 +89,8 @@ func TestService_HandleBlockProduced(t *testing.T) {
 	require.NoError(t, err)
 
 	// Used to define the state root of new block for testing
-	parentHash := s.blockState.GenesisHash()
-	genesisBlock, err := s.blockState.GetBlockByHash(parentHash)
+	parentHash := s.blockState.(*state.BlockState).GenesisHash()
+	genesisBlock, err := s.blockState.(*state.BlockState).GetBlockByHash(parentHash)
 	require.NoError(t, err)
 
 	newBlock := types.Block{
@@ -135,7 +135,7 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 	ks.Acco.Insert(kp)
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	net := NewMockNetwork(ctrl)
@@ -153,7 +153,7 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 	}
 
 	s := NewTestService(t, cfg)
-	genHash := s.blockState.GenesisHash()
+	genHash := s.blockState.(*state.BlockState).GenesisHash()
 	genHeader, err := s.blockState.BestBlockHeader()
 	require.NoError(t, err)
 

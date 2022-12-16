@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -80,7 +81,7 @@ func createTestBlock(t *testing.T, babeService *Service, parent *types.Header,
 	block, err := babeService.buildBlock(parent, slot, rt, epochData.authorityIndex, preRuntimeDigest)
 	require.NoError(t, err)
 
-	babeService.blockState.StoreRuntime(block.Header.Hash(), rt)
+	babeService.blockState.(*state.BlockState).StoreRuntime(block.Header.Hash(), rt)
 	return block
 }
 
@@ -341,7 +342,7 @@ func TestBuildBlock_failing(t *testing.T) {
 	require.Equal(t, "cannot build extrinsics: error applying extrinsic: Apply error, type: Payment",
 		err.Error(), "Did not receive expected error text")
 
-	txc := babeService.transactionState.Peek()
+	txc := babeService.transactionState.(*state.TransactionState).Peek()
 	if !bytes.Equal(txc.Extrinsic, txa) {
 		t.Fatal("did not readd valid transaction to queue")
 	}

@@ -27,7 +27,7 @@ import (
 func newTestSyncer(t *testing.T) *Service {
 	ctrl := gomock.NewController(t)
 
-	mockTelemetryClient := NewMockClient(ctrl)
+	mockTelemetryClient := NewMockTelemetry(ctrl)
 	mockTelemetryClient.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	wasmer.DefaultTestLogLvl = log.Warn
@@ -73,13 +73,14 @@ func newTestSyncer(t *testing.T) *Service {
 		require.NoError(t, err)
 	}
 
-	rtCfg.CodeHash, err = cfg.StorageState.LoadCodeHash(nil)
+	rtCfg.CodeHash, err = cfg.StorageState.(*state.StorageState).LoadCodeHash(nil)
 	require.NoError(t, err)
 
 	instance, err := wasmer.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
 
-	cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), instance)
+	bestBlockHash := cfg.BlockState.(*state.BlockState).BestBlockHash()
+	cfg.BlockState.(*state.BlockState).StoreRuntime(bestBlockHash, instance)
 	blockImportHandler := NewMockBlockImportHandler(ctrl)
 	blockImportHandler.EXPECT().HandleBlockImport(gomock.AssignableToTypeOf(&types.Block{}),
 		gomock.AssignableToTypeOf(&rtstorage.TrieState{}), false).DoAndReturn(

@@ -80,7 +80,7 @@ func TestChainSync_validateResponse_firstBlock_Integration(t *testing.T) {
 
 	err := cs.validateResponse(req, resp, "")
 	require.True(t, errors.Is(err, errUnknownParent))
-	require.True(t, cs.pendingBlocks.hasBlock(header.Hash()))
+	require.True(t, cs.pendingBlocks.(*disjointBlockSet).hasBlock(header.Hash()))
 	bd := cs.pendingBlocks.getBlock(header.Hash())
 	require.NotNil(t, bd.header)
 	require.NotNil(t, bd.body)

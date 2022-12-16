@@ -223,7 +223,10 @@ func (in *Instance) QueryCallFeeDetails(ext []byte) (*types.FeeDetails, error) {
 	return dispatchInfo, nil
 }
 
-func (in *Instance) CheckInherents()      {} //nolint:revive
+// CheckInherents checks inherents in the block verification process.
+// TODO: use this in block verification process (#1873)
+func (in *Instance) CheckInherents() {}
+
 func (in *Instance) RandomSeed()          {} //nolint:revive
 func (in *Instance) OffchainWorker()      {} //nolint:revive
 func (in *Instance) GenerateSessionKeys() {} //nolint:revive

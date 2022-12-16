@@ -4,10 +4,10 @@
 package modules
 
 import (
+	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
@@ -50,7 +50,7 @@ type BlockAPI interface {
 	SubChain(start, end common.Hash) ([]common.Hash, error)
 	RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (uint32, error)
 	UnregisterRuntimeUpdatedChannel(id uint32) bool
-	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
+	GetRuntime(blockHash common.Hash) (instance state.Runtime, err error)
 }
 
 //go:generate mockery --name NetworkAPI --structname NetworkAPI --case underscore --keeptree
@@ -63,7 +63,6 @@ type NetworkAPI interface {
 	NodeRoles() common.Roles
 	Stop() error
 	Start() error
-	IsStopped() bool
 	StartingBlock() int64
 	AddReservedPeers(addrs ...string) error
 	RemoveReservedPeers(addrs ...string) error
@@ -84,15 +83,13 @@ type BlockProducerAPI interface {
 // TransactionStateAPI ...
 type TransactionStateAPI interface {
 	Pending() []*transaction.ValidTransaction
-	GetStatusNotifierChannel(ext types.Extrinsic) chan transaction.Status
-	FreeStatusNotifierChannel(ch chan transaction.Status)
 }
 
 //go:generate mockery --name CoreAPI --structname CoreAPI --case underscore --keeptree
 
 // CoreAPI is the interface for the core methods
 type CoreAPI interface {
-	InsertKey(kp crypto.Keypair, keystoreType string) error
+	InsertKey(kp core.KeyPair, keystoreType string) error
 	HasKey(pubKeyStr string, keyType string) (bool, error)
 	GetRuntimeVersion(bhash *common.Hash) (runtime.Version, error)
 	HandleSubmittedExtrinsic(types.Extrinsic) error
@@ -101,12 +98,9 @@ type CoreAPI interface {
 	GetReadProofAt(block common.Hash, keys [][]byte) (common.Hash, [][]byte, error)
 }
 
-//go:generate mockery --name RPCAPI --structname RPCAPI --case underscore --keeptree
-
 // RPCAPI is the interface for methods related to RPC service
 type RPCAPI interface {
 	Methods() []string
-	BuildMethodNames(rcvr interface{}, name string)
 }
 
 //go:generate mockery --name SystemAPI --structname SystemAPI --case underscore --keeptree

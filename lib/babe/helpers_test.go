@@ -51,9 +51,8 @@ func NewTestService(t *testing.T, cfg *core.Config) *core.Service {
 	gen, genesisTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
 
 	if cfg.BlockState == nil || cfg.StorageState == nil ||
-		cfg.TransactionState == nil || cfg.EpochState == nil ||
-		cfg.CodeSubstitutedState == nil {
-		telemetryMock := NewMockClient(ctrl)
+		cfg.TransactionState == nil || cfg.CodeSubstitutedState == nil {
+		telemetryMock := NewMockTelemetry(ctrl)
 		telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 		config := state.Config{
@@ -84,10 +83,6 @@ func NewTestService(t *testing.T, cfg *core.Config) *core.Service {
 		cfg.TransactionState = stateSrvc.Transaction
 	}
 
-	if cfg.EpochState == nil {
-		cfg.EpochState = stateSrvc.Epoch
-	}
-
 	if cfg.CodeSubstitutedState == nil {
 		cfg.CodeSubstitutedState = stateSrvc.Base
 	}
@@ -98,7 +93,7 @@ func NewTestService(t *testing.T, cfg *core.Config) *core.Service {
 		rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
 
 		var err error
-		rtCfg.CodeHash, err = cfg.StorageState.LoadCodeHash(nil)
+		rtCfg.CodeHash, err = cfg.StorageState.(*state.StorageState).LoadCodeHash(nil)
 		require.NoError(t, err)
 
 		nodeStorage := runtime.NodeStorage{}

@@ -23,6 +23,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	gomock "github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -182,7 +183,10 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 
 	wsconn.BlockAPI = BlockAPI
 
-	TxStateAPI := modules.NewMockTransactionStateAPI(t)
+	ctrl := gomock.NewController(t)
+	TxStateAPI := NewMockTransactionStateAPI(ctrl)
+	TxStateAPI.EXPECT().FreeStatusNotifierChannel(gomock.Any()).AnyTimes()
+	TxStateAPI.EXPECT().GetStatusNotifierChannel(gomock.Any()).Return(make(chan transaction.Status)).AnyTimes()
 	wsconn.TxStateAPI = TxStateAPI
 
 	esl := ExtrinsicSubmitListener{

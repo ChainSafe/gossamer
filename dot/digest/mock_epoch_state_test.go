@@ -78,34 +78,6 @@ func (mr *MockEpochStateMockRecorder) GetEpochForBlock(arg0 interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEpochForBlock", reflect.TypeOf((*MockEpochState)(nil).GetEpochForBlock), arg0)
 }
 
-// SetConfigData mocks base method.
-func (m *MockEpochState) SetConfigData(arg0 uint64, arg1 *types.ConfigData) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetConfigData", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// SetConfigData indicates an expected call of SetConfigData.
-func (mr *MockEpochStateMockRecorder) SetConfigData(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetConfigData", reflect.TypeOf((*MockEpochState)(nil).SetConfigData), arg0, arg1)
-}
-
-// SetEpochData mocks base method.
-func (m *MockEpochState) SetEpochData(arg0 uint64, arg1 *types.EpochData) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetEpochData", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// SetEpochData indicates an expected call of SetEpochData.
-func (mr *MockEpochStateMockRecorder) SetEpochData(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetEpochData", reflect.TypeOf((*MockEpochState)(nil).SetEpochData), arg0, arg1)
-}
-
 // StoreBABENextConfigData mocks base method.
 func (m *MockEpochState) StoreBABENextConfigData(arg0 uint64, arg1 common.Hash, arg2 types.NextConfigData) {
 	m.ctrl.T.Helper()

@@ -16,7 +16,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/metrics"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/services"
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
@@ -38,9 +37,8 @@ const (
 )
 
 var (
-	_        services.Service = &Service{}
-	logger                    = log.NewFromGlobal(log.AddContext("pkg", "network"))
-	maxReads                  = 256
+	logger   = log.NewFromGlobal(log.AddContext("pkg", "network"))
+	maxReads = 256
 
 	peerCountGauge = promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: "gossamer_network_node",
@@ -135,7 +133,7 @@ type Service struct {
 
 	blockResponseBuf   []byte
 	blockResponseBufMu sync.Mutex
-	telemetry          telemetry.Client
+	telemetry          Telemetry
 }
 
 // NewService creates a new network service from the configuration and message channels

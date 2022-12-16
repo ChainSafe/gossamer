@@ -16,7 +16,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/golang/mock/gomock"
 
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/mock"
@@ -211,7 +213,13 @@ func TestWSConn_HandleConn(t *testing.T) {
 	// test initExtrinsicWatch
 	wsconn.CoreAPI = modules.NewMockCoreAPI(t)
 	wsconn.BlockAPI = nil
-	wsconn.TxStateAPI = modules.NewMockTransactionStateAPI(t)
+
+	ctrl := gomock.NewController(t)
+	transactionStateAPI := NewMockTransactionStateAPI(ctrl)
+	transactionStateAPI.EXPECT().FreeStatusNotifierChannel(gomock.Any()).AnyTimes()
+	transactionStateAPI.EXPECT().GetStatusNotifierChannel(gomock.Any()).Return(make(chan transaction.Status)).AnyTimes()
+	wsconn.TxStateAPI = transactionStateAPI
+
 	listner, err := wsconn.initExtrinsicWatch(0, []string{"NotHex"})
 	require.EqualError(t, err, "could not byteify non 0x prefixed string: NotHex")
 	require.Nil(t, listner)

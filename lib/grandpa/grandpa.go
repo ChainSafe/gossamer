@@ -79,7 +79,7 @@ type Service struct {
 	finalisedCh chan *types.FinalisationInfo
 	//receivedCommit chan *CommitMessage
 
-	telemetry telemetry.Client
+	telemetry Telemetry
 }
 
 // Config represents a GRANDPA service configuration
@@ -92,7 +92,7 @@ type Config struct {
 	Keypair      *ed25519.Keypair
 	Authority    bool
 	Interval     time.Duration
-	Telemetry    telemetry.Client
+	Telemetry    Telemetry
 }
 
 // NewService returns a new GRANDPA Service instance.
