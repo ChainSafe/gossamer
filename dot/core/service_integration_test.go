@@ -30,8 +30,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-//go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE . Telemetry
-
 func TestStartService(t *testing.T) {
 	s := NewTestService(t, nil)
 
