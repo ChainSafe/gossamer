@@ -322,6 +322,21 @@ func (mr *MockBlockStateMockRecorder) IsDescendantOf(arg0, arg1 interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsDescendantOf", reflect.TypeOf((*MockBlockState)(nil).IsDescendantOf), arg0, arg1)
 }
 
+// Range mocks base method.
+func (m *MockBlockState) Range(arg0, arg1 common.Hash) ([]common.Hash, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Range", arg0, arg1)
+	ret0, _ := ret[0].([]common.Hash)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Range indicates an expected call of Range.
+func (mr *MockBlockStateMockRecorder) Range(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Range", reflect.TypeOf((*MockBlockState)(nil).Range), arg0, arg1)
+}
+
 // SetJustification mocks base method.
 func (m *MockBlockState) SetJustification(arg0 common.Hash, arg1 []byte) error {
 	m.ctrl.T.Helper()
