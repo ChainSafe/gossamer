@@ -56,35 +56,21 @@ func NewGenesisFromJSONRaw(file string) (*Genesis, error) {
 
 // trimGenesisAuthority iterates over authorities in genesis and keeps only `authCount` number of authorities.
 func trimGenesisAuthority(g *Genesis, authCount int) {
-	const (
-		babeConst    = "Babe"
-		grandpaConst = "Grandpa"
-	)
-	runtimeRefObjVal := reflect.Indirect(reflect.ValueOf(g.Genesis.Runtime))
+	if g.Genesis.Runtime == nil {
+		return
+	}
 
-	for i := 0; i < runtimeRefObjVal.NumField(); i++ {
-		k := runtimeRefObjVal.Type().Field(i).Name
-		var authorities []types.AuthorityAsAddress
-		var newAuthorities []types.AuthorityAsAddress
-
-		if k != babeConst && k != grandpaConst {
-			continue
+	babe := g.Genesis.Runtime.Babe
+	if babe != nil {
+		if len(babe.Authorities) > authCount {
+			babe.Authorities = babe.Authorities[:authCount]
 		}
+	}
 
-		//nolint:lll
-		authorities = reflect.Indirect(runtimeRefObjVal.Field(i)).FieldByName("Authorities").Interface().([]types.AuthorityAsAddress)
-
-		for _, authority := range authorities {
-			if len(newAuthorities) >= authCount {
-				break
-			}
-			newAuthorities = append(newAuthorities, authority)
-		}
-
-		if k == babeConst {
-			g.Genesis.Runtime.Babe.Authorities = newAuthorities
-		} else if k == grandpaConst {
-			g.Genesis.Runtime.Grandpa.Authorities = newAuthorities
+	grandpa := g.Genesis.Runtime.Grandpa
+	if grandpa != nil {
+		if len(grandpa.Authorities) > authCount {
+			grandpa.Authorities = grandpa.Authorities[:authCount]
 		}
 	}
 }
@@ -101,18 +87,18 @@ func NewGenesisFromJSON(file string, authCount int) (*Genesis, error) {
 		trimGenesisAuthority(g, authCount)
 	}
 
+	g.Genesis.Raw = make(map[string]map[string]string)
 	grt := g.Genesis.Runtime
 	if grt == nil {
 		return g, nil
 	}
+
 	res, err := buildRawMap(*grt)
 	if err != nil {
 		return nil, err
 	}
 
-	g.Genesis.Raw = make(map[string]map[string]string)
 	g.Genesis.Raw["top"] = res
-
 	return g, err
 }
 
@@ -662,7 +648,6 @@ func generateSessionKeyValue(s *session, prefixKey string, res map[string]string
 					}
 
 					res[common.BytesToHex(append(storagePrefixKey, addressKey...))] = common.BytesToHex(validatorAccID)
-
 				}
 			}
 		}
@@ -711,7 +696,6 @@ func formatValue(kv *keyValue) (string, error) {
 }
 
 func buildBalances(kv *keyValue, res map[string]string) error {
-
 	for i := range kv.iVal {
 		if i%2 == 0 {
 			// build key
@@ -802,9 +786,10 @@ func addAuthoritiesValues(k1 string, kt crypto.KeyType, value []byte, gen *Genes
 		return err
 	}
 
-	if k1 == "Babe" {
+	switch k1 {
+	case "babe":
 		gen.Genesis.Runtime.Babe.Authorities = authAddrs
-	} else if k1 == "Grandpa" {
+	case "grandpa":
 		gen.Genesis.Runtime.Grandpa.Authorities = authAddrs
 	}
 	return nil

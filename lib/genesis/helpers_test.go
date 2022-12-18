@@ -107,10 +107,7 @@ func TestNewGenesisFromJSON(t *testing.T) {
 	hrData.Balances = &balances{Balances: []balancesFields{balConf1}} // balances
 	// Add test cases for new fields...
 
-	zeroOfUint128, err := scale.NewUint128(new(big.Int).SetUint64(0))
-	if err != nil {
-		t.Fatalf("Cound not create variable of type uint128 : %v", err)
-	}
+	zeroOfUint128 := scale.MustNewUint128(new(big.Int).SetUint64(0))
 
 	hrData.Society = &society{
 		Pot:        zeroOfUint128,

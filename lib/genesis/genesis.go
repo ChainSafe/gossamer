@@ -53,54 +53,54 @@ type Fields struct {
 	Runtime *Runtime                     `json:"runtime,omitempty"`
 }
 
-// Runtime is ...
+// Runtime is the structure of the genesis runtime field.
 type Runtime struct {
-	System              *System              `json:"System"`
-	Babe                *babe                `json:"babe"`
-	Grandpa             *grandpa             `json:"grandpa"`
-	Balances            *balances            `json:"Balances"`
-	Sudo                *sudo                `json:"sudo"`
-	Session             *session             `json:"session"`
-	Staking             *staking             `json:"staking"`
-	Instance1Collective *instance1Collective `json:"Instance1Collective"`
-	Instance2Collective *instance2Collective `json:"Instance2Collective"`
-	PhragmenElection    *phragmenElection    `json:"PhragmenElection"`
-	Instance1Membership *instance1Membership `json:"Instance1Membership"`
-	Contracts           *contracts           `json:"Contracts"`
-	Society             *society             `json:"Society"`
-	Indices             *indices             `json:"indices"`
-	ImOnline            *imOnline            `json:"imOnline"`
-	AuthorityDiscovery  *authorityDiscovery  `json:"authorityDiscovery"`
-	Vesting             *vesting             `json:"vesting"`
-	NominationPools     *nominationPools     `json:"nominationPools"`
-	Configuration       *configuration       `json:"configuration"`
-	Paras               *paras               `json:"paras"`
-	Hrmp                *hrmp                `json:"hrmp"`
-	Registrar           *registrar           `json:"registrar"`
-	XcmPallet           *xcmPallet           `json:"xcmPallet"`
+	System              *System              `json:"System,omitempty"`
+	Babe                *babe                `json:"babe,omitempty"`
+	Grandpa             *grandpa             `json:"grandpa,omitempty"`
+	Balances            *balances            `json:"Balances,omitempty"`
+	Sudo                *sudo                `json:"sudo,omitempty"`
+	Session             *session             `json:"session,omitempty"`
+	Staking             *staking             `json:"staking,omitempty"`
+	Instance1Collective *instance1Collective `json:"Instance1Collective,omitempty"`
+	Instance2Collective *instance2Collective `json:"Instance2Collective,omitempty"`
+	PhragmenElection    *phragmenElection    `json:"PhragmenElection,omitempty"`
+	Instance1Membership *instance1Membership `json:"Instance1Membership,omitempty"`
+	Contracts           *contracts           `json:"Contracts,omitempty"`
+	Society             *society             `json:"Society,omitempty"`
+	Indices             *indices             `json:"indices,omitempty"`
+	ImOnline            *imOnline            `json:"imOnline,omitempty"`
+	AuthorityDiscovery  *authorityDiscovery  `json:"authorityDiscovery,omitempty"`
+	Vesting             *vesting             `json:"vesting,omitempty"`
+	NominationPools     *nominationPools     `json:"nominationPools,omitempty"`
+	Configuration       *configuration       `json:"configuration,omitempty"`
+	Paras               *paras               `json:"paras,omitempty"`
+	Hrmp                *hrmp                `json:"hrmp,omitempty"`
+	Registrar           *registrar           `json:"registrar,omitempty"`
+	XcmPallet           *xcmPallet           `json:"xcmPallet,omitempty"`
 }
 
-// System is ...
+// System is the system structure inside the runtime field for the genesis.
 type System struct {
-	Code string `json:"code"`
+	Code string `json:"code,omitempty"`
 }
 
 type babe struct {
-	Authorities []types.AuthorityAsAddress `json:"authorities"`
-	EpochConfig *epochConfig               `json:"epochConfig"`
+	Authorities []types.AuthorityAsAddress `json:"authorities,omitempty"`
+	EpochConfig *epochConfig               `json:"epochConfig,omitempty"`
 }
 
 type epochConfig struct {
-	C            []int  `json:"c"`
-	AllowedSlots string `json:"allowed_slots"`
+	C            []int  `json:"c,omitempty"`
+	AllowedSlots string `json:"allowed_slots,omitempty"`
 }
 
 type grandpa struct {
-	Authorities []types.AuthorityAsAddress `json:"authorities"`
+	Authorities []types.AuthorityAsAddress `json:"authorities,omitempty"`
 }
 
 type balances struct {
-	Balances []balancesFields `json:"balances"`
+	Balances []balancesFields `json:"balances,omitempty"`
 }
 
 type balancesFields struct {
@@ -109,97 +109,103 @@ type balancesFields struct {
 }
 
 type sudo struct {
-	Key string `json:"key"`
+	Key string `json:"key,omitempty"`
 }
 
 type indices struct {
-	Indices []interface{} `json:"indices"`
+	Indices []interface{} `json:"indices,omitempty"`
 }
 
 type imOnline struct {
-	Keys []interface{} `json:"keys"`
+	Keys []interface{} `json:"keys,omitempty"`
 }
 
 type authorityDiscovery struct {
-	Keys []interface{} `json:"keys"`
+	Keys []interface{} `json:"keys,omitempty"`
 }
 
 type vesting struct {
-	Vesting []interface{} `json:"vesting"`
+	Vesting []interface{} `json:"vesting,omitempty"`
 }
 
 type nominationPools struct {
-	MinJoinBond       int64 `json:"minJoinBond"`
-	MinCreateBond     int64 `json:"minCreateBond"`
-	MaxPools          int   `json:"maxPools"`
-	MaxMembersPerPool int   `json:"maxMembersPerPool"`
-	MaxMembers        int   `json:"maxMembers"`
+	MinJoinBond       int64 `json:"minJoinBond,omitempty"`
+	MinCreateBond     int64 `json:"minCreateBond,omitempty"`
+	MaxPools          int   `json:"maxPools,omitempty"`
+	MaxMembersPerPool int   `json:"maxMembersPerPool,omitempty"`
+	MaxMembers        int   `json:"maxMembers,omitempty"`
 }
 
 type configuration struct {
-	Config config `json:"config"`
+	Config config `json:"config,omitempty"`
 }
 
 type config struct {
-	MaxCodeSize                           int         `json:"max_code_size"`
-	MaxHeadDataSize                       int         `json:"max_head_data_size"`
-	MaxUpwardQueueCount                   int         `json:"max_upward_queue_count"`
-	MaxUpwardQueueSize                    int         `json:"max_upward_queue_size"`
-	MaxUpwardMessageSize                  int         `json:"max_upward_message_size"`
-	MaxUpwardMessageNumPerCandidate       int         `json:"max_upward_message_num_per_candidate"`
-	HrmpMaxMessageNumPerCandidate         int         `json:"hrmp_max_message_num_per_candidate"`
-	ValidationUpgradeCooldown             int         `json:"validation_upgrade_cooldown"`
-	ValidationUpgradeDelay                int         `json:"validation_upgrade_delay"`
-	MaxPovSize                            int         `json:"max_pov_size"`
-	MaxDownwardMessageSize                int         `json:"max_downward_message_size"`
-	UmpServiceTotalWeight                 int64       `json:"ump_service_total_weight"`
-	HrmpMaxParachainOutboundChannels      int         `json:"hrmp_max_parachain_outbound_channels"`
-	HrmpMaxParathreadOutboundChannels     int         `json:"hrmp_max_parathread_outbound_channels"`
-	HrmpSenderDeposit                     int         `json:"hrmp_sender_deposit"`
-	HrmpRecipientDeposit                  int         `json:"hrmp_recipient_deposit"`
-	HrmpChannelMaxCapacity                int         `json:"hrmp_channel_max_capacity"`
-	HrmpChannelMaxTotalSize               int         `json:"hrmp_channel_max_total_size"`
-	HrmpMaxParachainInboundChannels       int         `json:"hrmp_max_parachain_inbound_channels"`
-	HrmpMaxParathreadInboundChannels      int         `json:"hrmp_max_parathread_inbound_channels"`
-	HrmpChannelMaxMessageSize             int         `json:"hrmp_channel_max_message_size"`
-	CodeRetentionPeriod                   int         `json:"code_retention_period"`
-	ParathreadCores                       int         `json:"parathread_cores"`
-	ParathreadRetries                     int         `json:"parathread_retries"`
-	GroupRotationFrequency                int         `json:"group_rotation_frequency"`
-	ChainAvailabilityPeriod               int         `json:"chain_availability_period"`
-	ThreadAvailabilityPeriod              int         `json:"thread_availability_period"`
-	SchedulingLookahead                   int         `json:"scheduling_lookahead"`
-	MaxValidatorsPerCore                  interface{} `json:"max_validators_per_core"`
-	MaxValidators                         interface{} `json:"max_validators"`
-	DisputePeriod                         int         `json:"dispute_period"`
-	DisputePostConclusionAcceptancePeriod int         `json:"dispute_post_conclusion_acceptance_period"`
-	DisputeMaxSpamSlots                   int         `json:"dispute_max_spam_slots"`
-	DisputeConclusionByTimeOutPeriod      int         `json:"dispute_conclusion_by_time_out_period"`
-	NoShowSlots                           int         `json:"no_show_slots"`
-	NDelayTranches                        int         `json:"n_delay_tranches"`
-	ZerothDelayTrancheWidth               int         `json:"zeroth_delay_tranche_width"`
-	NeededApprovals                       int         `json:"needed_approvals"`
-	RelayVrfModuloSamples                 int         `json:"relay_vrf_modulo_samples"`
-	UmpMaxIndividualWeight                int64       `json:"ump_max_individual_weight"`
-	PvfCheckingEnabled                    bool        `json:"pvf_checking_enabled"`
-	PvfVotingTTL                          int         `json:"pvf_voting_ttl"`
-	MinimumValidationUpgradeDelay         int         `json:"minimum_validation_upgrade_delay"`
+	ChainAvailabilityPeriod               uint `json:"chain_availability_period,omitempty"`
+	CodeRetentionPeriod                   uint `json:"code_retention_period,omitempty"`
+	DisputeConclusionByTimeOutPeriod      uint `json:"dispute_conclusion_by_time_out_period,omitempty"`
+	DisputeMaxSpamSlots                   uint `json:"dispute_max_spam_slots,omitempty"`
+	DisputePeriod                         uint `json:"dispute_period,omitempty"`
+	DisputePostConclusionAcceptancePeriod uint `json:"dispute_post_conclusion_acceptance_period,omitempty"`
+	GroupRotationFrequency                uint `json:"group_rotation_frequency,omitempty"`
+	HrmpChannelMaxCapacity                uint `json:"hrmp_channel_max_capacity,omitempty"`
+	HrmpChannelMaxMessageSize             uint `json:"hrmp_channel_max_message_size,omitempty"`
+	HrmpChannelMaxTotalSize               uint `json:"hrmp_channel_max_total_size,omitempty"`
+	HrmpMaxMessageNumPerCandidate         uint `json:"hrmp_max_message_num_per_candidate,omitempty"`
+	HrmpMaxParachainInboundChannels       uint `json:"hrmp_max_parachain_inbound_channels,omitempty"`
+	HrmpMaxParachainOutboundChannels      uint `json:"hrmp_max_parachain_outbound_channels,omitempty"`
+	HrmpMaxParathreadInboundChannels      uint `json:"hrmp_max_parathread_inbound_channels,omitempty"`
+	HrmpMaxParathreadOutboundChannels     uint `json:"hrmp_max_parathread_outbound_channels,omitempty"`
+	HrmpRecipientDeposit                  uint `json:"hrmp_recipient_deposit,omitempty"`
+	HrmpSenderDeposit                     uint `json:"hrmp_sender_deposit,omitempty"`
+	MaxCodeSize                           uint `json:"max_code_size,omitempty"`
+	MaxDownwardMessageSize                uint `json:"max_downward_message_size,omitempty"`
+	MaxHeadDataSize                       uint `json:"max_head_data_size,omitempty"`
+	MaxPovSize                            uint `json:"max_pov_size,omitempty"`
+	MaxUpwardMessageNumPerCandidate       uint `json:"max_upward_message_num_per_candidate,omitempty"`
+	MaxUpwardMessageSize                  uint `json:"max_upward_message_size,omitempty"`
+	MaxUpwardQueueCount                   uint `json:"max_upward_queue_count,omitempty"`
+	MaxUpwardQueueSize                    uint `json:"max_upward_queue_size,omitempty"`
+	MaxValidators                         uint `json:"max_validators,omitempty"`
+	MaxValidatorsPerCore                  uint `json:"max_validators_per_core,omitempty"`
+	MinimumValidationUpgradeDelay         uint `json:"minimum_validation_upgrade_delay,omitempty"`
+	NDelayTranches                        uint `json:"n_delay_tranches,omitempty"`
+	NeededApprovals                       uint `json:"needed_approvals,omitempty"`
+	NoShowSlots                           uint `json:"no_show_slots,omitempty"`
+	ParathreadCores                       uint `json:"parathread_cores,omitempty"`
+	ParathreadRetries                     uint `json:"parathread_retries,omitempty"`
+	PvfCheckingEnabled                    bool `json:"pvf_checking_enabled,omitempty"`
+	PvfVotingTTL                          uint `json:"pvf_voting_ttl,omitempty"`
+	RelayVrfModuloSamples                 uint `json:"relay_vrf_modulo_samples,omitempty"`
+	SchedulingLookahead                   uint `json:"scheduling_lookahead,omitempty"`
+	ThreadAvailabilityPeriod              uint `json:"thread_availability_period,omitempty"`
+	UmpMaxIndividualWeight                struct {
+		ProofSize uint `json:"proof_size,omitempty"`
+		RefTime   uint `json:"ref_time,omitempty"`
+	} `json:"ump_max_individual_weight,omitempty"`
+	UmpServiceTotalWeight struct {
+		ProofSize uint `json:"proof_size,omitempty"`
+		RefTime   uint `json:"ref_time,omitempty"`
+	} `json:"ump_service_total_weight,omitempty"`
+	ValidationUpgradeCooldown uint `json:"validation_upgrade_cooldown,omitempty"`
+	ValidationUpgradeDelay    uint `json:"validation_upgrade_delay,omitempty"`
+	ZerothDelayTrancheWidth   uint `json:"zeroth_delay_tranche_width,omitempty"`
 }
 
 type paras struct {
-	Paras []interface{} `json:"paras"`
+	Paras []interface{} `json:"paras,omitempty"`
 }
 
 type hrmp struct {
-	PreopenHrmpChannels []interface{} `json:"preopenHrmpChannels"`
+	PreopenHrmpChannels []interface{} `json:"preopenHrmpChannels,omitempty"`
 }
 
 type registrar struct {
-	NextFreeParaID int `json:"nextFreeParaId"`
+	NextFreeParaID int `json:"nextFreeParaId,omitempty"`
 }
 
 type xcmPallet struct {
-	SafeXcmVersion int `json:"safeXcmVersion"`
+	SafeXcmVersion int `json:"safeXcmVersion,omitempty"`
 }
 
 // GenesisData formats genesis for trie storage
