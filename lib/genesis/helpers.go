@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -23,9 +24,9 @@ type accountAddr [32]byte
 
 const (
 	societyConst             = "Society"
-	stakingConst             = "Staking"
+	stakingConst             = "staking"
 	contractsConst           = "Contracts"
-	sessionConst             = "Session"
+	sessionConst             = "session"
 	instance1CollectiveConst = "Instance1Collective"
 	instance2CollectiveConst = "Instance2Collective"
 	instance1MembershipConst = "Instance1Membership"
@@ -199,7 +200,8 @@ func buildRawMap(m Runtime) (map[string]string, error) {
 			continue
 		}
 
-		k := mRefObjVal.Type().Field(i).Name
+		jsonTag := mRefObjVal.Type().Field(i).Tag.Get("json")
+		k := strings.Split(jsonTag, ",")[0]
 		kv := new(keyValue)
 		kv.key = append(kv.key, k)
 
@@ -556,7 +558,7 @@ func generateKeyValue(s interface{}, prefixKey string, res map[string]string) er
 
 func formatKey(kv *keyValue) (string, error) {
 	switch {
-	case reflect.DeepEqual([]string{"Grandpa", "Authorities"}, kv.key):
+	case reflect.DeepEqual([]string{"grandpa", "Authorities"}, kv.key):
 		kb := []byte(`:grandpa_authorities`)
 		return common.BytesToHex(kb), nil
 	case reflect.DeepEqual([]string{"System", "Code"}, kv.key):
@@ -669,7 +671,7 @@ func generateAddressHash(accAddr, key string) ([]byte, error) {
 }
 func formatValue(kv *keyValue) (string, error) {
 	switch {
-	case reflect.DeepEqual([]string{"Grandpa", "Authorities"}, kv.key):
+	case reflect.DeepEqual([]string{"grandpa", "Authorities"}, kv.key):
 		if kv.valueLen != nil {
 			lenEnc, err := scale.Marshal(kv.valueLen)
 			if err != nil {
@@ -788,8 +790,14 @@ func addAuthoritiesValues(k1 string, kt crypto.KeyType, value []byte, gen *Genes
 
 	switch k1 {
 	case "babe":
+		if gen.Genesis.Runtime.Babe == nil {
+			gen.Genesis.Runtime.Babe = new(babe)
+		}
 		gen.Genesis.Runtime.Babe.Authorities = authAddrs
 	case "grandpa":
+		if gen.Genesis.Runtime.Grandpa == nil {
+			gen.Genesis.Runtime.Grandpa = new(grandpa)
+		}
 		gen.Genesis.Runtime.Grandpa.Authorities = authAddrs
 	}
 	return nil
