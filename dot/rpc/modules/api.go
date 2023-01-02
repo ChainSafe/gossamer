@@ -47,7 +47,7 @@ type BlockAPI interface {
 	FreeImportedBlockNotifierChannel(ch chan *types.Block)
 	GetFinalisedNotifierChannel() chan *types.FinalisationInfo
 	FreeFinalisedNotifierChannel(ch chan *types.FinalisationInfo)
-	SubChain(start, end common.Hash) ([]common.Hash, error)
+	RangeInMemory(start, end common.Hash) ([]common.Hash, error)
 	RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (uint32, error)
 	UnregisterRuntimeUpdatedChannel(id uint32) bool
 	GetRuntime(blockHash common.Hash) (instance state.Runtime, err error)

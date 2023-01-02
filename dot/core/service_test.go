@@ -808,7 +808,7 @@ func TestService_handleChainReorg(t *testing.T) {
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().LowestCommonAncestor(testPrevHash, testCurrentHash).
 			Return(testAncestorHash, nil)
-		mockBlockState.EXPECT().SubChain(testAncestorHash, testPrevHash).Return([]common.Hash{}, errDummyErr)
+		mockBlockState.EXPECT().RangeInMemory(testAncestorHash, testPrevHash).Return([]common.Hash{}, errDummyErr)
 
 		service := &Service{
 			blockState: mockBlockState,
@@ -822,7 +822,7 @@ func TestService_handleChainReorg(t *testing.T) {
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().LowestCommonAncestor(testPrevHash, testCurrentHash).
 			Return(testAncestorHash, nil)
-		mockBlockState.EXPECT().SubChain(testAncestorHash, testPrevHash).Return([]common.Hash{}, nil)
+		mockBlockState.EXPECT().RangeInMemory(testAncestorHash, testPrevHash).Return([]common.Hash{}, nil)
 
 		service := &Service{
 			blockState: mockBlockState,
@@ -836,7 +836,7 @@ func TestService_handleChainReorg(t *testing.T) {
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().LowestCommonAncestor(testPrevHash, testCurrentHash).
 			Return(testAncestorHash, nil)
-		mockBlockState.EXPECT().SubChain(testAncestorHash, testPrevHash).Return(testSubChain, nil)
+		mockBlockState.EXPECT().RangeInMemory(testAncestorHash, testPrevHash).Return(testSubChain, nil)
 		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{1})
 		mockBlockState.EXPECT().GetRuntime(common.Hash{1}).Return(nil, errDummyErr)
 
@@ -869,7 +869,7 @@ func TestService_handleChainReorg(t *testing.T) {
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().LowestCommonAncestor(testPrevHash, testCurrentHash).
 			Return(testAncestorHash, nil)
-		mockBlockState.EXPECT().SubChain(testAncestorHash, testPrevHash).Return(testSubChain, nil)
+		mockBlockState.EXPECT().RangeInMemory(testAncestorHash, testPrevHash).Return(testSubChain, nil)
 		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{1})
 		mockBlockState.EXPECT().GetRuntime(common.Hash{1}).Return(runtimeMockErr, nil)
 		mockBlockState.EXPECT().GetBlockBody(testCurrentHash).Return(nil, errDummyErr)
@@ -908,7 +908,7 @@ func TestService_handleChainReorg(t *testing.T) {
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().LowestCommonAncestor(testPrevHash, testCurrentHash).
 			Return(testAncestorHash, nil)
-		mockBlockState.EXPECT().SubChain(testAncestorHash, testPrevHash).Return(testSubChain, nil)
+		mockBlockState.EXPECT().RangeInMemory(testAncestorHash, testPrevHash).Return(testSubChain, nil)
 		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{1})
 		mockBlockState.EXPECT().GetRuntime(common.Hash{1}).Return(runtimeMockOk, nil)
 		mockBlockState.EXPECT().GetBlockBody(testCurrentHash).Return(nil, errDummyErr)
