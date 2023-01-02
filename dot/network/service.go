@@ -6,6 +6,7 @@ package network
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/big"
 	"strings"
 	"sync"
@@ -14,6 +15,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/internal/mdns"
 	"github.com/ChainSafe/gossamer/internal/metrics"
 	"github.com/ChainSafe/gossamer/lib/common"
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
@@ -103,7 +105,7 @@ type Service struct {
 
 	cfg           *Config
 	host          *host
-	mdns          *mdns
+	mdns          MDNS
 	gossip        *gossip
 	bufPool       *sync.Pool
 	streamManager *streamManager
@@ -186,12 +188,20 @@ func NewService(cfg *Config) (*Service, error) {
 		},
 	}
 
+	serviceTag := string(host.protocolID)
+	notifee := mdns.NewNotifeeTracker(host.p2pHost.Peerstore(), host.cm.peerSetHandler)
+	mdnsLogger := log.NewFromGlobal(log.AddContext("module", "mdns"))
+	mdnsLogger.Debugf(
+		"Creating mDNS discovery service with host %s and protocol %s...",
+		host.id(), host.protocolID)
+	mdnsService := mdns.NewService(host.p2pHost, serviceTag, mdnsLogger, notifee)
+
 	network := &Service{
 		ctx:                    ctx,
 		cancel:                 cancel,
 		cfg:                    cfg,
 		host:                   host,
-		mdns:                   newMDNS(host),
+		mdns:                   mdnsService,
 		gossip:                 newGossip(),
 		blockState:             cfg.BlockState,
 		transactionHandler:     cfg.TransactionHandler,
@@ -303,7 +313,10 @@ func (s *Service) Start() error {
 	s.startPeerSetHandler()
 
 	if !s.noMDNS {
-		s.mdns.start()
+		err = s.mdns.Start()
+		if err != nil {
+			return fmt.Errorf("starting mDNS service: %w", err)
+		}
 	}
 
 	if !s.noDiscover {
@@ -443,7 +456,7 @@ func (s *Service) Stop() error {
 	s.cancel()
 
 	// close mDNS discovery service
-	err := s.mdns.close()
+	err := s.mdns.Stop()
 	if err != nil {
 		logger.Errorf("Failed to close mDNS discovery service: %s", err)
 	}
