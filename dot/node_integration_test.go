@@ -117,7 +117,7 @@ func TestNewNode(t *testing.T) {
 		return stateSrvc, nil
 	})
 
-	m.EXPECT().createRuntimeStorage(gomock.AssignableToTypeOf(&state.Service{})).Return(&runtime.
+	m.EXPECT().createRuntimeStorage(gomock.AssignableToTypeOf(&state.BaseState{}), gomock.Any()).Return(&runtime.
 		NodeStorage{}, nil)
 	m.EXPECT().loadRuntime(dotConfig, &runtime.NodeStorage{}, gomock.AssignableToTypeOf(&state.Service{}),
 		ks, gomock.AssignableToTypeOf(&network.Service{})).Return(nil)

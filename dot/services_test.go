@@ -44,7 +44,8 @@ func Test_createRuntimeStorage(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := builder.createRuntimeStorage(tt.service)
+			persistentStorage := chaindb.NewTable(tt.service.DB(), "offlinestorage")
+			got, err := builder.createRuntimeStorage(stateSrvc.Base, persistentStorage)
 			assert.ErrorIs(t, err, tt.err)
 			assert.Equal(t, tt.expectedBaseDB, got.BaseDB)
 			assert.NotNil(t, got.LocalStorage)

@@ -151,18 +151,18 @@ func (mr *MocknodeBuilderIfaceMockRecorder) createRPCService(params interface{})
 }
 
 // createRuntimeStorage mocks base method.
-func (m *MocknodeBuilderIface) createRuntimeStorage(st *state.Service) (*runtime.NodeStorage, error) {
+func (m *MocknodeBuilderIface) createRuntimeStorage(base, persistent basicStorage) (*runtime.NodeStorage, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "createRuntimeStorage", st)
+	ret := m.ctrl.Call(m, "createRuntimeStorage", base, persistent)
 	ret0, _ := ret[0].(*runtime.NodeStorage)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // createRuntimeStorage indicates an expected call of createRuntimeStorage.
-func (mr *MocknodeBuilderIfaceMockRecorder) createRuntimeStorage(st interface{}) *gomock.Call {
+func (mr *MocknodeBuilderIfaceMockRecorder) createRuntimeStorage(base, persistent interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "createRuntimeStorage", reflect.TypeOf((*MocknodeBuilderIface)(nil).createRuntimeStorage), st)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "createRuntimeStorage", reflect.TypeOf((*MocknodeBuilderIface)(nil).createRuntimeStorage), base, persistent)
 }
 
 // createStateService mocks base method.

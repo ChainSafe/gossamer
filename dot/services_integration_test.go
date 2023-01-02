@@ -590,7 +590,8 @@ func TestCreateRPCService(t *testing.T) {
 	ed25519Keyring, _ := keystore.NewEd25519Keyring()
 	ks.Gran.Insert(ed25519Keyring.Alice())
 
-	ns, err := builder.createRuntimeStorage(stateSrvc)
+	persistentStorage := chaindb.NewTable(stateSrvc.DB(), "offlinestorage")
+	ns, err := builder.createRuntimeStorage(stateSrvc.Base, persistentStorage)
 	require.NoError(t, err)
 	err = builder.loadRuntime(cfg, ns, stateSrvc, ks, networkSrvc)
 	require.NoError(t, err)
@@ -636,7 +637,8 @@ func TestCreateBABEService_Integration(t *testing.T) {
 	require.NoError(t, err)
 	ks.Babe.Insert(kr.Alice())
 
-	ns, err := builder.createRuntimeStorage(stateSrvc)
+	persistentStorage := chaindb.NewTable(stateSrvc.DB(), "offlinestorage")
+	ns, err := builder.createRuntimeStorage(stateSrvc.Base, persistentStorage)
 	require.NoError(t, err)
 	err = builder.loadRuntime(cfg, ns, stateSrvc, ks, &network.Service{})
 	require.NoError(t, err)
@@ -671,7 +673,8 @@ func TestCreateGrandpaService(t *testing.T) {
 	require.NoError(t, err)
 	ks.Gran.Insert(kr.Alice())
 
-	ns, err := builder.createRuntimeStorage(stateSrvc)
+	persistentStorage := chaindb.NewTable(stateSrvc.DB(), "offlinestorage")
+	ns, err := builder.createRuntimeStorage(stateSrvc.Base, persistentStorage)
 	require.NoError(t, err)
 
 	err = builder.loadRuntime(cfg, ns, stateSrvc, ks, &network.Service{})
@@ -747,7 +750,8 @@ func TestNewWebSocketServer(t *testing.T) {
 	ed25519Keyring, _ := keystore.NewEd25519Keyring()
 	ks.Gran.Insert(ed25519Keyring.Alice())
 
-	ns, err := builder.createRuntimeStorage(stateSrvc)
+	persistentStorage := chaindb.NewTable(stateSrvc.DB(), "offlinestorage")
+	ns, err := builder.createRuntimeStorage(stateSrvc.Base, persistentStorage)
 	require.NoError(t, err)
 	err = builder.loadRuntime(cfg, ns, stateSrvc, ks, networkSrvc)
 	require.NoError(t, err)

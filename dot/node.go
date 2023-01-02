@@ -14,6 +14,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/digest"
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -54,7 +55,7 @@ type nodeBuilderIface interface {
 	createStateService(config *Config) (*state.Service, error)
 	createNetworkService(cfg *Config, stateSrvc *state.Service, telemetryMailer Telemetry) (*network.Service,
 		error)
-	createRuntimeStorage(st *state.Service) (*runtime.NodeStorage, error)
+	createRuntimeStorage(base, persistent basicStorage) (*runtime.NodeStorage, error)
 	loadRuntime(cfg *Config, ns *runtime.NodeStorage, stateSrvc *state.Service, ks *keystore.GlobalKeystore,
 		net *network.Service) error
 	createBlockVerifier(st *state.Service) *babe.VerificationManager
@@ -314,7 +315,8 @@ func newNode(cfg *Config,
 	}
 
 	// create runtime
-	ns, err := builder.createRuntimeStorage(stateSrvc)
+	persistentStorage := chaindb.NewTable(stateSrvc.DB(), "offlinestorage")
+	ns, err := builder.createRuntimeStorage(stateSrvc.Base, persistentStorage)
 	if err != nil {
 		return nil, err
 	}

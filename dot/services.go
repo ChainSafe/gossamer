@@ -96,7 +96,8 @@ func startStateService(cfg *Config, stateSrvc *state.Service) error {
 	return nil
 }
 
-func (nodeBuilder) createRuntimeStorage(st *state.Service) (*runtime.NodeStorage, error) {
+func (nodeBuilder) createRuntimeStorage(base, persistentStorage basicStorage) (
+	*runtime.NodeStorage, error) {
 	localStorage, err := newInMemoryDB()
 	if err != nil {
 		return nil, err
@@ -104,8 +105,8 @@ func (nodeBuilder) createRuntimeStorage(st *state.Service) (*runtime.NodeStorage
 
 	return &runtime.NodeStorage{
 		LocalStorage:      localStorage,
-		PersistentStorage: chaindb.NewTable(st.DB(), "offlinestorage"),
-		BaseDB:            st.Base,
+		PersistentStorage: persistentStorage,
+		BaseDB:            base,
 	}, nil
 }
 
