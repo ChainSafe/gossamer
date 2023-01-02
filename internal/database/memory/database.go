@@ -83,6 +83,9 @@ func (db *Database) NewTable(prefix string) (writeBatch database.Table) {
 
 // Close closes the database.
 func (db *Database) Close() (err error) {
+	db.mutex.Lock()
+	defer db.mutex.Unlock()
+
 	db.closed = true
 	db.keyValues = nil
 	return nil
