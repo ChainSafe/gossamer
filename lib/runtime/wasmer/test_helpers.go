@@ -5,6 +5,8 @@ package wasmer
 
 import (
 	"context"
+	"errors"
+	"os"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -31,11 +33,16 @@ func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie) 
 	t.Helper()
 
 	cfg := setupConfig(t, tt, DefaultTestLogLvl, common.NoNetworkRole, targetRuntime)
-	runtimeFilepath, err := runtime.GetRuntime(context.Background(), targetRuntime)
+
+	_, err := os.Stat(targetRuntime)
+	if errors.Is(err, os.ErrNotExist) {
+		targetRuntime, err = runtime.GetRuntime(context.Background(), targetRuntime)
+		require.NoError(t, err)
+	}
+
+	r, err := NewInstanceFromFile(targetRuntime, cfg)
 	require.NoError(t, err)
 
-	r, err := NewInstanceFromFile(runtimeFilepath, cfg)
-	require.NoError(t, err)
 	return r
 }
 
