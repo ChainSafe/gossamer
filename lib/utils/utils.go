@@ -122,7 +122,7 @@ func KeystoreFiles(basepath string) ([]string, error) {
 		return nil, fmt.Errorf("failed to read keystore directory: %s", err)
 	}
 
-	keys := []string{}
+	var keys []string
 
 	for _, f := range files {
 		ext := filepath.Ext(f.Name())
