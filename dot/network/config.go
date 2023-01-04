@@ -4,6 +4,7 @@
 package network
 
 import (
+	"crypto/ed25519"
 	"errors"
 	"path"
 	"time"
@@ -94,6 +95,9 @@ type Config struct {
 	// privateKey the private key for the network p2p identity
 	privateKey crypto.PrivKey
 
+	// private hex encoded Ed125519 key to build p2p identity
+	NodeKey string
+
 	// telemetryInterval how often to send telemetry metrics
 	telemetryInterval time.Duration
 
@@ -161,6 +165,19 @@ func (c *Config) checkState() (err error) {
 // service, if a key does not exist or cannot be loaded, it creates a new key
 // using the random seed (if random seed is not set, creates new random key)
 func (c *Config) buildIdentity() error {
+	if c.NodeKey != "" {
+		pkBytes, err := common.HexToBytes("0x" + c.NodeKey)
+		if err != nil {
+			return err
+		}
+		key := ed25519.NewKeyFromSeed(pkBytes)
+		pk, err := crypto.UnmarshalEd25519PrivateKey(key)
+		if err != nil {
+			return err
+		}
+		c.privateKey = pk
+		return nil
+	}
 	if c.RandSeed == 0 {
 
 		// attempt to load existing key
