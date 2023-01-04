@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/btcsuite/btcutil/base58"
+	"github.com/btcsuite/btcd/btcutil/base58"
 	"github.com/golang/mock/gomock"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/mock"

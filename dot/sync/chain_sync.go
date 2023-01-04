@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/chaindb"
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 

@@ -9,7 +9,7 @@ import (
 
 	network "github.com/ChainSafe/gossamer/dot/network"
 	gomock "github.com/golang/mock/gomock"
-	peer "github.com/libp2p/go-libp2p-core/peer"
+	peer "github.com/libp2p/go-libp2p/core/peer"
 )
 
 // MockSyncer is a mock of Syncer interface.
