@@ -158,8 +158,8 @@ func GetGssmrGenesisPath() (path string, err error) {
 	return filepath.Join(rootPath, "./chain/gssmr/genesis-spec.json"), nil
 }
 
-// GetWestendDevGensisPath gets the westend-dev genesis raw path
-func GetWestendDevGensisPath(t *testing.T) string {
+// GetWestendDevGenesisPath gets the westend-dev genesis raw path
+func GetWestendDevGenesisPath(t *testing.T) string {
 	return filepath.Join(GetProjectRootPathTest(t), "./chain/westend-dev/westend-dev-spec-raw.json")
 }
 

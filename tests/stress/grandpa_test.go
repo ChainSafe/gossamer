@@ -18,7 +18,7 @@ import (
 
 // TODO: add test against latest dev runtime
 func TestStress_Grandpa_OneAuthority(t *testing.T) {
-	genesisPath := libutils.GetWestendDevGensisPath(t)
+	genesisPath := libutils.GetWestendDevGenesisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.Core.BABELead = true
 	tomlConfig.Init.Genesis = genesisPath
@@ -97,7 +97,7 @@ func TestStress_Grandpa_NineAuthorities(t *testing.T) {
 	}
 
 	const numNodes = 9
-	genesisPath := libutils.GetWestendDevGensisPath(t)
+	genesisPath := libutils.GetWestendDevGenesisPath(t)
 
 	tomlConfig := config.LogGrandpa()
 	tomlConfig.Init.Genesis = genesisPath

@@ -15,7 +15,7 @@ import (
 func TestBabeRPC(t *testing.T) { //nolint:tparallel
 	t.SkipNow() // TODO
 
-	genesisPath := libutils.GetWestendDevGensisPath(t)
+	genesisPath := libutils.GetWestendDevGenesisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.Init.Genesis = genesisPath
 	tomlConfig.Core.BABELead = true

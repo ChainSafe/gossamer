@@ -15,7 +15,7 @@ import (
 func TestOffchainRPC(t *testing.T) { //nolint:tparallel
 	t.SkipNow() // TODO
 
-	genesisPath := libutils.GetWestendDevGensisPath(t)
+	genesisPath := libutils.GetWestendDevGenesisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.Core.BABELead = true
 	tomlConfig.Init.Genesis = genesisPath

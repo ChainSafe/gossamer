@@ -296,7 +296,7 @@ func balanceKey(t *testing.T, pub []byte) []byte {
 }
 
 func TestNodeRuntime_ValidateTransaction(t *testing.T) {
-	genesisPath := utils.GetWestendDevGensisPath(t)
+	genesisPath := utils.GetWestendDevGenesisPath(t)
 	gen := genesisFromRawJSON(t, genesisPath)
 	genTrie, err := NewTrieFromGenesis(gen)
 	require.NoError(t, err)
@@ -528,7 +528,7 @@ func TestInstance_ExecuteBlock_NodeRuntime(t *testing.T) {
 
 func TestInstance_ExecuteBlock_GossamerRuntime(t *testing.T) {
 	t.Skip() // TODO: this fails with "syscall frame is no longer valid" (#1026)
-	genesisPath := utils.GetWestendDevGensisPath(t)
+	genesisPath := utils.GetWestendDevGenesisPath(t)
 	gen := genesisFromRawJSON(t, genesisPath)
 	genTrie, err := NewTrieFromGenesis(gen)
 	require.NoError(t, err)
@@ -556,7 +556,7 @@ func TestInstance_ExecuteBlock_GossamerRuntime(t *testing.T) {
 
 func TestInstance_ApplyExtrinsic_GossamerRuntime(t *testing.T) {
 	t.Skip() // TODO: this fails with "syscall frame is no longer valid" (#1026)
-	genesisPath := utils.GetWestendDevGensisPath(t)
+	genesisPath := utils.GetWestendDevGenesisPath(t)
 	gen := genesisFromRawJSON(t, genesisPath)
 	genTrie, err := NewTrieFromGenesis(gen)
 	require.NoError(t, err)

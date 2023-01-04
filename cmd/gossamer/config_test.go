@@ -948,7 +948,7 @@ func TestGlobalNodeName_WhenNodeAlreadyHasStoredName(t *testing.T) {
 	runtimeData, err := os.ReadFile(runtimeFilePath)
 	require.NoError(t, err)
 
-	fp := utils.GetWestendDevGensisPath(t)
+	fp := utils.GetWestendDevGenesisPath(t)
 
 	gssmrGen, err := genesis.NewGenesisFromJSONRaw(fp)
 	require.NoError(t, err)

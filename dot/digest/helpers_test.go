@@ -19,7 +19,7 @@ func newTestGenesisWithTrieAndHeader(t *testing.T) (
 	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
 	t.Helper()
 
-	genesisPath := utils.GetWestendDevGensisPath(t)
+	genesisPath := utils.GetWestendDevGenesisPath(t)
 	genesisPtr, err := genesis.NewGenesisFromJSONRaw(genesisPath)
 	require.NoError(t, err)
 	gen = *genesisPtr

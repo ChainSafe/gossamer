@@ -25,7 +25,7 @@ import (
 // TODO: add test against latest dev runtime
 // See https://github.com/ChainSafe/gossamer/issues/2705
 func TestAuthorSubmitExtrinsic(t *testing.T) {
-	genesisPath := libutils.GetWestendDevGensisPath(t)
+	genesisPath := libutils.GetWestendDevGenesisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.Init.Genesis = genesisPath
 	tomlConfig.Core.BABELead = true
@@ -96,7 +96,7 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 }
 
 func TestAuthorRPC(t *testing.T) { //nolint:tparallel
-	genesisPath := libutils.GetWestendDevGensisPath(t)
+	genesisPath := libutils.GetWestendDevGenesisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.Init.Genesis = genesisPath
 	tomlConfig.Core.BABELead = true
