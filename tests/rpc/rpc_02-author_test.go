@@ -27,6 +27,7 @@ import (
 func TestAuthorSubmitExtrinsic(t *testing.T) {
 	genesisPath := libutils.GetWestendDevGenesisPath(t)
 	tomlConfig := config.Default()
+	tomlConfig.Account.Key = "alice"
 	tomlConfig.Init.Genesis = genesisPath
 	tomlConfig.Core.BABELead = true
 
