@@ -264,15 +264,14 @@ func Test_BlockTree_GetAllBlocksAtNumber(t *testing.T) {
 	bt, _ := createTestBlockTree(t, testHeader, 8)
 	hashes := bt.root.getNodesWithNumber(10, []common.Hash{})
 
-	var expected []common.Hash
-	require.Equal(t, expected, hashes)
+	require.Empty(t, hashes)
 
 	// create one-path tree
 	const btNumber uint = 8
 	const desiredNumber uint = 6
 	bt, btHashes := createFlatTree(t, btNumber)
 
-	expected = []common.Hash{btHashes[desiredNumber]}
+	expected := []common.Hash{btHashes[desiredNumber]}
 
 	// add branch
 	previousHash := btHashes[4]
