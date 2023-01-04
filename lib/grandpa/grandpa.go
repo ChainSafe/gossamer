@@ -369,7 +369,7 @@ func (s *Service) handleIsPrimary() (bool, error) {
 
 	pv := &Vote{
 		Hash:   best.Hash(),
-		Number: uint32(best.Number),
+		Number: uint64(best.Number),
 	}
 
 	// send primary prevote message to network
@@ -448,7 +448,7 @@ func (s *Service) retrieveBestFinalCandidate() (bestFinalCandidate *types.Grandp
 		return nil, 0, fmt.Errorf("getting best final candidate: %w", err)
 	}
 
-	if bestFinalCandidate.Number < uint32(s.head.Number) {
+	if bestFinalCandidate.Number < uint64(s.head.Number) {
 		return nil, 0, fmt.Errorf("%w: candidate number %d, latest finalized block number %d",
 			errBeforeFinalizedBlock, bestFinalCandidate.Number, s.head.Number)
 	}
@@ -470,7 +470,7 @@ func (s *Service) attemptToFinalize() (isFinalizable bool, err error) {
 	}
 
 	// once we reach the threshold we should stop sending precommit messages to other peers
-	if bestFinalCandidate.Number < uint32(s.head.Number) || precommitCount <= s.state.threshold() {
+	if bestFinalCandidate.Number < uint64(s.head.Number) || precommitCount <= s.state.threshold() {
 		return false, nil
 	}
 
@@ -558,7 +558,7 @@ func (s *Service) determinePreVote() (*Vote, error) {
 	// otherwise, we simply choose the head of our chain.
 	primary := s.derivePrimary()
 	prm, has := s.loadVote(primary.PublicKeyBytes(), prevote)
-	if has && prm.Vote.Number >= uint32(s.head.Number) {
+	if has && prm.Vote.Number >= uint64(s.head.Number) {
 		vote = &prm.Vote
 	} else {
 		vote = NewVoteFromHeader(bestBlockHeader)
@@ -822,7 +822,7 @@ func (s *Service) getPreVotedBlock() (Vote, error) {
 	// if there are multiple, find the one with the highest number and return it
 	highest := Vote{
 		Hash:   s.head.Hash(),
-		Number: uint32(s.head.Number),
+		Number: uint64(s.head.Number),
 	}
 
 	for h, n := range blocks {
@@ -843,7 +843,7 @@ func (s *Service) getGrandpaGHOST() (Vote, error) {
 	threshold := s.state.threshold()
 
 	var (
-		blocks map[common.Hash]uint32
+		blocks map[common.Hash]uint64
 		err    error
 	)
 
@@ -867,7 +867,7 @@ func (s *Service) getGrandpaGHOST() (Vote, error) {
 	// if there are multiple, find the one with the highest number and return it
 	highest := Vote{
 		Hash:   s.head.Hash(),
-		Number: uint32(s.head.Number),
+		Number: uint64(s.head.Number),
 	}
 
 	for h, n := range blocks {
@@ -891,10 +891,10 @@ func (s *Service) getGrandpaGHOST() (Vote, error) {
 // but the sum of votes for blocks A and B is >threshold, then this function returns
 // the first common ancestor of A and B.
 // in general, this function will return the highest block on each chain with >threshold votes.
-func (s *Service) getPossibleSelectedBlocks(stage Subround, threshold uint64) (map[common.Hash]uint32, error) {
+func (s *Service) getPossibleSelectedBlocks(stage Subround, threshold uint64) (map[common.Hash]uint64, error) {
 	// get blocks that were directly voted for
 	votes := s.getDirectVotes(stage)
-	blocks := make(map[common.Hash]uint32)
+	blocks := make(map[common.Hash]uint64)
 
 	// check if any of them have >threshold votes
 	for v := range votes {
@@ -931,8 +931,8 @@ func (s *Service) getPossibleSelectedBlocks(stage Subround, threshold uint64) (m
 // getPossibleSelectedAncestors recursively searches for ancestors with >2/3 votes
 // it returns a map of block hash -> number, such that the blocks in the map have >2/3 votes
 func (s *Service) getPossibleSelectedAncestors(votes []Vote, curr common.Hash,
-	selected map[common.Hash]uint32, stage Subround,
-	threshold uint64) (map[common.Hash]uint32, error) {
+	selected map[common.Hash]uint64, stage Subround,
+	threshold uint64) (map[common.Hash]uint64, error) {
 	for _, v := range votes {
 		if v.Hash == curr {
 			continue
@@ -962,7 +962,7 @@ func (s *Service) getPossibleSelectedAncestors(votes []Vote, curr common.Hash,
 				return nil, err
 			}
 
-			selected[pred] = uint32(h.Number)
+			selected[pred] = uint64(h.Number)
 		} else {
 			selected, err = s.getPossibleSelectedAncestors(votes, pred, selected, stage, threshold)
 			if err != nil {
@@ -1057,7 +1057,7 @@ func (s *Service) getVotes(stage Subround) []Vote {
 }
 
 // findParentWithNumber returns a Vote for an ancestor with number n given an existing Vote
-func (s *Service) findParentWithNumber(v *Vote, n uint32) (*Vote, error) {
+func (s *Service) findParentWithNumber(v *Vote, n uint64) (*Vote, error) {
 	if v.Number <= n {
 		return v, nil
 	}

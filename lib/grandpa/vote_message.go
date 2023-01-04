@@ -249,10 +249,10 @@ func (s *Service) checkForEquivocation(voter *Voter, vote *SignedVote, stage Sub
 		s.deleteVote(v, stage)
 
 		// TODO I think add reporting here
-		err := s.reportEquivocation(stage, existingVote, vote)
-		if err != nil {
-			// // TODO do something
-		}
+		//err := s.reportEquivocation(stage, existingVote, vote)
+		//if err != nil {
+		//	// // TODO do something
+		//}
 		return true
 	}
 
@@ -273,39 +273,39 @@ func (s *Service) checkForEquivocation(voter *Voter, vote *SignedVote, stage Sub
 		- signature of second vote - done
 		- proof of key signature in opaque form
 */
-func (s *Service) reportEquivocation(stage Subround, existingVote *SignedVote, currentVote *SignedVote) error {
-	setId, err := s.grandpaState.GetCurrentSetID()
-	if err != nil {
-		return fmt.Errorf("getting authority set id: %w", err)
-	}
-	fmt.Println(setId)
-
-	round, err := s.grandpaState.GetLatestRound()
-	if err != nil {
-		return fmt.Errorf("getting latest round: %w", err)
-	}
-	fmt.Println(round)
-
-	pubKey := existingVote.AuthorityID
-	fmt.Println(pubKey)
-
-	// Getting runtime like this now, could improve this possibly
-	bestBlockHash := s.blockState.BestBlockHash()
-	rt, err := s.blockState.GetRuntime(bestBlockHash)
-	if err != nil {
-		logger.Critical("failed to get runtime")
-		return err
-	}
-	fmt.Println(rt)
-
-	proof, err := rt.GrandpaGenerateKeyOwnershipProof(setId, pubKey)
-	if err != nil {
-		return fmt.Errorf("getting latest round: %w", err)
-	}
-	fmt.Println(proof)
-
-	return nil
-}
+//func (s *Service) reportEquivocation(stage Subround, existingVote *SignedVote, currentVote *SignedVote) error {
+//	setId, err := s.grandpaState.GetCurrentSetID()
+//	if err != nil {
+//		return fmt.Errorf("getting authority set id: %w", err)
+//	}
+//	fmt.Println(setId)
+//
+//	round, err := s.grandpaState.GetLatestRound()
+//	if err != nil {
+//		return fmt.Errorf("getting latest round: %w", err)
+//	}
+//	fmt.Println(round)
+//
+//	pubKey := existingVote.AuthorityID
+//	fmt.Println(pubKey)
+//
+//	// Getting runtime like this now, could improve this possibly
+//	bestBlockHash := s.blockState.BestBlockHash()
+//	rt, err := s.blockState.GetRuntime(bestBlockHash)
+//	if err != nil {
+//		logger.Critical("failed to get runtime")
+//		return err
+//	}
+//	fmt.Println(rt)
+//
+//	proof, err := rt.GrandpaGenerateKeyOwnershipProof(setId, pubKey)
+//	if err != nil {
+//		return fmt.Errorf("getting latest round: %w", err)
+//	}
+//	fmt.Println(proof)
+//
+//	return nil
+//}
 
 // validateVote checks if the block that is being voted for exists, and that it is a descendant of a
 // previously finalised block.

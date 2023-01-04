@@ -5,6 +5,7 @@ package core
 
 import (
 	"encoding/json"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"sync"
 
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -54,6 +55,11 @@ type RuntimeInstance interface {
 	RandomSeed()
 	OffchainWorker()
 	GenerateSessionKeys()
+	GrandpaGenerateKeyOwnershipProof(authSetId uint64, authorityID ed25519.PublicKeyBytes) (
+		types.OpaqueKeyOwnershipProof, error)
+	GrandpaSubmitReportEquivocationUnsignedExtrinsic(
+		equivocationProof types.GrandpaEquivocationProof, keyOwnershipProof types.OpaqueKeyOwnershipProof,
+	) error
 }
 
 // BlockState interface for block state methods

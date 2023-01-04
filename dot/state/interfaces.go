@@ -5,6 +5,7 @@ package state
 
 import (
 	"encoding/json"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -94,6 +95,11 @@ type Runtime interface {
 	RandomSeed()
 	OffchainWorker()
 	GenerateSessionKeys()
+	GrandpaGenerateKeyOwnershipProof(authSetId uint64, authorityID ed25519.PublicKeyBytes) (
+		types.OpaqueKeyOwnershipProof, error)
+	GrandpaSubmitReportEquivocationUnsignedExtrinsic(
+		equivocationProof types.GrandpaEquivocationProof, keyOwnershipProof types.OpaqueKeyOwnershipProof,
+	) error
 }
 
 // BabeConfigurer returns the babe configuration of the runtime.

@@ -38,7 +38,7 @@ type FullVote struct {
 type SignedMessage struct {
 	Stage       Subround // 0 for pre-vote, 1 for pre-commit, 2 for primary proposal
 	BlockHash   common.Hash
-	Number      uint32
+	Number      uint64
 	Signature   [64]byte // ed25519.SignatureLength
 	AuthorityID ed25519.PublicKeyBytes
 }
