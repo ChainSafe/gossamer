@@ -15,7 +15,7 @@ import (
 func TestContractsRPC(t *testing.T) { //nolint:tparallel
 	t.SkipNow() // TODO
 
-	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
+	genesisPath := libutils.GetWestendDevGensisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.Init.Genesis = genesisPath
 	tomlConfig.Core.BABELead = true

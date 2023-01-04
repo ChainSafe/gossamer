@@ -70,7 +70,7 @@ func (n *Node) setDefaults(t *testing.T) {
 	}
 
 	if n.tomlConfig.Init.Genesis == "" {
-		n.tomlConfig.Init.Genesis = utils.GetGssmrGenesisRawPathTest(t)
+		n.tomlConfig.Init.Genesis = utils.GetWestendDevGensisPath(t)
 	}
 
 	if n.tomlConfig.Account.Key == "" {

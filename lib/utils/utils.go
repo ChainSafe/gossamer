@@ -148,77 +148,6 @@ func KeystoreFilepaths(basepath string) ([]string, error) {
 	return keys, nil
 }
 
-// GetGssmrGenesisRawPathTest gets the gssmr raw genesis path
-// and fails the test if it cannot find it.
-func GetGssmrGenesisRawPathTest(t *testing.T) string {
-	t.Helper()
-	path, err := GetGssmrGenesisRawPath()
-	require.NoError(t, err)
-	return path
-}
-
-// GetGssmrGenesisRawPath gets the gssmr raw genesis path
-// and returns an error if it cannot find it.
-func GetGssmrGenesisRawPath() (path string, err error) {
-	rootPath, err := GetProjectRootPath()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(rootPath, "./chain/gssmr/genesis.json"), nil
-}
-
-// GetGssmrGenesisPathTest gets the gssmr genesis path
-// and fails the test if it cannot find it.
-func GetGssmrGenesisPathTest(t *testing.T) string {
-	t.Helper()
-	path, err := GetGssmrGenesisPath()
-	require.NoError(t, err)
-	return path
-}
-
-// GetGssmrV3SubstrateGenesisPathTest gets the v3 substrate gssmr genesis path
-// and fails the test if it cannot find it.
-func GetGssmrV3SubstrateGenesisPathTest(t *testing.T) string {
-	t.Helper()
-	path, err := GetGssmrV3SubstrateGenesisPath()
-	require.NoError(t, err)
-	return path
-}
-
-// GetGssmrV3SubstrateGenesisRawPathTest gets the v3 substrate gssmr raw genesis path
-// and fails the test if it cannot find it.
-func GetGssmrV3SubstrateGenesisRawPathTest(t *testing.T) string {
-	t.Helper()
-	path, err := GetGssmrV3SubstrateGenesisRawPath()
-	require.NoError(t, err)
-	return path
-}
-
-// GetGssmrV3SubstrateGenesisRawPath gets the v3 substrate gssmr raw genesis path
-// and returns an error if it cannot find it.
-func GetGssmrV3SubstrateGenesisRawPath() (path string, err error) {
-	rootPath, err := GetProjectRootPath()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(rootPath, "./chain/gssmr-v3substrate/genesis.json"), nil
-}
-
-// GetDevGenesisPath gets the dev genesis path
-func GetDevGenesisPath(t *testing.T) string {
-	return filepath.Join(GetProjectRootPathTest(t), "./chain/dev/genesis.json")
-}
-
-// GetDevV3SubstrateGenesisPath gets the v3 substrate dev genesis path
-func GetDevV3SubstrateGenesisPath(t *testing.T) string {
-	return filepath.Join(GetProjectRootPathTest(t), "./chain/dev-v3substrate/genesis.json")
-}
-
-// GetDevGenesisSpecPathTest gets the dev genesis spec path
-func GetDevGenesisSpecPathTest(t *testing.T) string {
-	return filepath.Join(GetProjectRootPathTest(t), "./chain/dev/genesis-spec.json")
-}
-
 // GetGssmrGenesisPath gets the gssmr genesis path
 // and returns an error if it cannot find it.
 func GetGssmrGenesisPath() (path string, err error) {
@@ -229,14 +158,9 @@ func GetGssmrGenesisPath() (path string, err error) {
 	return filepath.Join(rootPath, "./chain/gssmr/genesis-spec.json"), nil
 }
 
-// GetGssmrV3SubstrateGenesisPath gets the v3 substrate gssmr genesis path
-// and returns an error if it cannot find it.
-func GetGssmrV3SubstrateGenesisPath() (path string, err error) {
-	rootPath, err := GetProjectRootPath()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(rootPath, "./chain/gssmr-v3substrate/genesis-spec.json"), nil
+// GetWestendDevGensisPath gets the westend-dev genesis raw path
+func GetWestendDevGensisPath(t *testing.T) string {
+	return filepath.Join(GetProjectRootPathTest(t), "./chain/westend-dev/westend-dev-spec-raw.json")
 }
 
 // GetKusamaGenesisPath gets the Kusama genesis path

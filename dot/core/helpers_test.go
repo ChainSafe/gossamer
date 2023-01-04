@@ -260,7 +260,7 @@ func newTestGenesisWithTrieAndHeader(t *testing.T) (
 	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
 	t.Helper()
 
-	genesisPath := utils.GetGssmrV3SubstrateGenesisRawPathTest(t)
+	genesisPath := utils.GetWestendDevGensisPath(t)
 	genPtr, err := genesis.NewGenesisFromJSONRaw(genesisPath)
 	require.NoError(t, err)
 	gen = *genPtr
@@ -282,9 +282,7 @@ func newTestGenesisWithTrieAndHeader(t *testing.T) (
 func getGssmrRuntimeCode(t *testing.T) (code []byte) {
 	t.Helper()
 
-	path, err := utils.GetGssmrGenesisRawPath()
-	require.NoError(t, err)
-
+	path := utils.GetWestendDevGensisPath(t)
 	gssmrGenesis, err := genesis.NewGenesisFromJSONRaw(path)
 	require.NoError(t, err)
 

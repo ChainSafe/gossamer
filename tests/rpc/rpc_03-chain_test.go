@@ -30,7 +30,7 @@ const (
 )
 
 func TestChainRPC(t *testing.T) {
-	genesisPath := libutils.GetDevV3SubstrateGenesisPath(t)
+	genesisPath := libutils.GetWestendDevGensisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.Init.Genesis = genesisPath
 	tomlConfig.Core.BABELead = true
@@ -126,7 +126,7 @@ func TestChainRPC(t *testing.T) {
 }
 
 func TestChainSubscriptionRPC(t *testing.T) { //nolint:tparallel
-	genesisPath := libutils.GetDevV3SubstrateGenesisPath(t)
+	genesisPath := libutils.GetWestendDevGensisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.Init.Genesis = genesisPath
 	tomlConfig.Core.BABELead = true

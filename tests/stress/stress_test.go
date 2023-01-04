@@ -102,7 +102,7 @@ func stopNodes(cancel context.CancelFunc, runtimeErrors []<-chan error) {
 // See https://github.com/ChainSafe/gossamer/issues/2705
 func TestSync_SingleBlockProducer(t *testing.T) {
 	const numNodes = 4
-	genesisPath := libutils.GetDevV3SubstrateGenesisPath(t)
+	genesisPath := libutils.GetWestendDevGensisPath(t)
 
 	configNoGrandpa := config.NoGrandpa()
 	configNoGrandpa.Init.Genesis = genesisPath
@@ -133,7 +133,7 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 }
 
 func TestSync_Basic(t *testing.T) {
-	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
+	genesisPath := libutils.GetWestendDevGensisPath(t)
 
 	config := config.Default()
 	config.Init.Genesis = genesisPath
@@ -153,7 +153,7 @@ func TestSync_Basic(t *testing.T) {
 
 func TestSync_MultipleEpoch(t *testing.T) {
 	t.Skip("skipping TestSync_MultipleEpoch")
-	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
+	genesisPath := libutils.GetWestendDevGensisPath(t)
 	numNodes := 3
 	utils.Logger.Patch(log.SetLevel(log.Info))
 
@@ -208,7 +208,7 @@ func TestSync_SingleSyncingNode(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// start block producing node
-	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
+	genesisPath := libutils.GetWestendDevGensisPath(t)
 	blockProducingConfig := config.Default()
 	blockProducingConfig.Init.Genesis = genesisPath
 	blockProducingConfig.Core.BABELead = true
@@ -248,7 +248,7 @@ func TestSync_Bench(t *testing.T) {
 	const numBlocks uint = 64
 
 	// start block producing node
-	genesisPath := libutils.GetDevV3SubstrateGenesisPath(t)
+	genesisPath := libutils.GetWestendDevGensisPath(t)
 	configNoGrandpa := config.NoGrandpa()
 	configNoGrandpa.Init.Genesis = genesisPath
 	configNoGrandpa.Core.BABELead = true
@@ -358,7 +358,7 @@ func TestSync_Restart(t *testing.T) {
 	// the test.
 
 	// start block producing node first
-	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
+	genesisPath := libutils.GetWestendDevGensisPath(t)
 	blockProducingConfig := config.Default()
 	blockProducingConfig.Init.Genesis = genesisPath
 	blockProducingConfig.Core.BABELead = true
@@ -452,7 +452,7 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 	idx := 0 // TODO: randomise this
 
 	// start block producing node first
-	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
+	genesisPath := libutils.GetWestendDevGensisPath(t)
 	configNoGrandpa := config.NoGrandpa()
 	configNoGrandpa.Init.Genesis = genesisPath
 	configNoGrandpa.Core.BABELead = true
@@ -625,7 +625,7 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 
 func Test_SubmitAndWatchExtrinsic(t *testing.T) {
 	// start block producing node first
-	genesisPath := libutils.GetDevGenesisSpecPathTest(t)
+	genesisPath := libutils.GetWestendDevGensisPath(t)
 	tomlConfig := config.NoGrandpa()
 	tomlConfig.Init.Genesis = genesisPath
 	tomlConfig.RPC.WS = true

@@ -34,7 +34,7 @@ func TestLoadConfigGssmr(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	cfg.Global.BasePath = t.TempDir()
-	cfg.Init.Genesis = utils.GetGssmrGenesisRawPathTest(t)
+	cfg.Init.Genesis = utils.GetWestendDevGensisPath(t)
 
 	err := dot.InitNode(cfg)
 	require.NoError(t, err)

@@ -21,7 +21,7 @@ const codeHex = "0x3a636f6465"
 
 func TestWriteGenesisSpecFile_Integration(t *testing.T) {
 	cfg := NewTestConfig(t)
-	cfg.Init.Genesis = utils.GetGssmrGenesisRawPathTest(t)
+	cfg.Init.Genesis = utils.GetWestendDevGensisPath(t)
 
 	expected, err := genesis.NewGenesisFromJSONRaw(cfg.Init.Genesis)
 	require.NoError(t, err)
@@ -60,7 +60,7 @@ func TestWriteGenesisSpecFile_Integration(t *testing.T) {
 func TestBuildFromDB_Integration(t *testing.T) {
 	// setup expected
 	cfg := NewTestConfig(t)
-	cfg.Init.Genesis = utils.GetGssmrGenesisRawPathTest(t)
+	cfg.Init.Genesis = utils.GetWestendDevGensisPath(t)
 	expected, err := genesis.NewGenesisFromJSONRaw(cfg.Init.Genesis)
 	require.NoError(t, err)
 	// initialise node (initialise state database and load genesis data)
