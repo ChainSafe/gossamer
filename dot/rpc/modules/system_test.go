@@ -237,7 +237,7 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 	mockStorageAPI := mocks.NewStorageAPI(t)
 	mockStorageAPI.On("GetStorage", (*common.Hash)(nil), storageKeyHex).
 		Return(common.MustHexToBytes("0x0300000000000000000000000000000000000000000000000000000000000000000000"+
-			"0000000000000000000000000000000000000000000000000000000000000000000000000000000000"), nil)
+			"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"), nil)
 
 	mockStorageAPIErr := mocks.NewStorageAPI(t)
 	mockStorageAPIErr.On("GetStorage", (*common.Hash)(nil), storageKeyHex).Return(nil, errors.New("getStorage error"))
@@ -260,7 +260,7 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 			expErr:    errors.New("account address must be valid"),
 		},
 		{
-			name:      "Found",
+			name:      "found_in_pending_transactions",
 			sysModule: NewSystemModule(nil, nil, mockCoreAPI, mockStorageAPI, mockTxStateAPI, nil, nil),
 			args: args{
 				req: &StringRequest{String: "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
@@ -268,7 +268,7 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 			exp: U64Response(4),
 		},
 		{
-			name:      "Not found",
+			name:      "not_found_in_pending_transactions",
 			sysModule: NewSystemModule(nil, nil, mockCoreAPI, mockStorageAPI, mockTxStateAPI, nil, nil),
 			args: args{
 				req: &StringRequest{String: "5FrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},

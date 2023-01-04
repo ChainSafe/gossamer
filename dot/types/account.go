@@ -10,9 +10,10 @@ import (
 // AccountInfo Information of an account.
 type AccountInfo struct {
 	// The number of transactions this account has sent.
-	Nonce     uint32
-	Consumers uint32
-	Producers uint32
+	Nonce       uint32
+	Consumers   uint32
+	Producers   uint32
+	Sufficients uint32
 	// The additional data that belongs to this account. Used to store the balance(s) in a lot of chains.
 	Data AccountData
 }
