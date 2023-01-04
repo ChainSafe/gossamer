@@ -39,7 +39,7 @@ import (
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 
 	"github.com/golang/mock/gomock"
-	peer "github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
 )
 
