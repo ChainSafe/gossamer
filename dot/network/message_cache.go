@@ -9,7 +9,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/dgraph-io/ristretto"
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 // msgCacheTTL is default duration a key-value will be stored in messageCache.
