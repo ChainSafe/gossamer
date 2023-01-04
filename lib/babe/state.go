@@ -7,36 +7,30 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
 
-//go:generate mockgen -destination=./mock_state_test.go -package $GOPACKAGE . BlockState,ImportedBlockNotifierManager,StorageState,TransactionState,EpochState,DigestHandler,BlockImportHandler
+//go:generate mockgen -destination=mock_state_test.go -package $GOPACKAGE . BlockState,ImportedBlockNotifierManager,StorageState,TransactionState,EpochState,BlockImportHandler
 
 // BlockState interface for block state methods
 type BlockState interface {
 	BestBlockHash() common.Hash
 	BestBlockHeader() (*types.Header, error)
-	BestBlockNumber() (blockNumber uint, err error)
-	BestBlock() (*types.Block, error)
-	SubChain(start, end common.Hash) ([]common.Hash, error)
 	AddBlock(*types.Block) error
 	GetAllBlocksAtDepth(hash common.Hash) []common.Hash
 	GetHeader(common.Hash) (*types.Header, error)
 	GetBlockByNumber(blockNumber uint) (*types.Block, error)
-	GetBlockByHash(common.Hash) (*types.Block, error)
 	GetBlockHashesBySlot(slot uint64) (blockHashes []common.Hash, err error)
-	GetArrivalTime(common.Hash) (time.Time, error)
 	GenesisHash() common.Hash
 	GetSlotForBlock(common.Hash) (uint64, error)
-	GetFinalisedHeader(uint64, uint64) (*types.Header, error)
 	IsDescendantOf(parent, child common.Hash) (bool, error)
 	NumberIsFinalised(blockNumber uint) (bool, error)
-	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
-	StoreRuntime(common.Hash, runtime.Instance)
+	GetRuntime(blockHash common.Hash) (runtime state.Runtime, err error)
+	StoreRuntime(common.Hash, state.Runtime)
 	ImportedBlockNotifierManager
 }
 
@@ -55,8 +49,6 @@ type StorageState interface {
 // TransactionState is the interface for transaction queue methods
 type TransactionState interface {
 	Push(vt *transaction.ValidTransaction) (common.Hash, error)
-	Pop() *transaction.ValidTransaction
-	Peek() *transaction.ValidTransaction
 	PopWithTimer(timerCh <-chan time.Time) (tx *transaction.ValidTransaction)
 }
 
@@ -66,7 +58,6 @@ type EpochState interface {
 	GetSlotDuration() (time.Duration, error)
 	SetCurrentEpoch(epoch uint64) error
 	GetCurrentEpoch() (uint64, error)
-	SetEpochData(uint64, *types.EpochData) error
 
 	GetEpochData(epoch uint64, header *types.Header) (*types.EpochData, error)
 	GetConfigData(epoch uint64, header *types.Header) (*types.ConfigData, error)
@@ -77,12 +68,6 @@ type EpochState interface {
 	SetFirstSlot(slot uint64) error
 	GetLatestEpochData() (*types.EpochData, error)
 	SkipVerify(*types.Header) (bool, error)
-	GetEpochFromTime(time.Time) (uint64, error)
-}
-
-// DigestHandler is the interface for the consensus digest handler
-type DigestHandler interface {
-	HandleDigests(*types.Header)
 }
 
 //go:generate mockery --name BlockImportHandler --structname BlockImportHandler --case underscore --keeptree

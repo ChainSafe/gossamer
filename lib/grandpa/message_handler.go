@@ -9,7 +9,6 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/chaindb"
-	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -30,11 +29,11 @@ type MessageHandler struct {
 	grandpa    *Service
 	catchUp    *catchUp
 	blockState BlockState
-	telemetry  telemetry.Client
+	telemetry  Telemetry
 }
 
 // NewMessageHandler returns a new MessageHandler
-func NewMessageHandler(grandpa *Service, blockState BlockState, telemetryMailer telemetry.Client) *MessageHandler {
+func NewMessageHandler(grandpa *Service, blockState BlockState, telemetryMailer Telemetry) *MessageHandler {
 	return &MessageHandler{
 		grandpa: grandpa,
 		catchUp: &catchUp{

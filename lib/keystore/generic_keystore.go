@@ -17,7 +17,7 @@ import (
 // GenericKeystore holds keys of any type
 type GenericKeystore struct {
 	name Name
-	keys map[common.Address]crypto.Keypair // map of public key encodings to keypairs
+	keys map[common.Address]KeyPair // map of public key encodings to keypairs
 	lock sync.RWMutex
 }
 
@@ -25,7 +25,7 @@ type GenericKeystore struct {
 func NewGenericKeystore(name Name) *GenericKeystore {
 	return &GenericKeystore{
 		name: name,
-		keys: make(map[common.Address]crypto.Keypair),
+		keys: make(map[common.Address]KeyPair),
 	}
 }
 
@@ -45,7 +45,7 @@ func (ks *GenericKeystore) Size() int {
 }
 
 // Insert adds a keypair to the keystore
-func (ks *GenericKeystore) Insert(kp crypto.Keypair) error {
+func (ks *GenericKeystore) Insert(kp KeyPair) error {
 	ks.lock.Lock()
 	defer ks.lock.Unlock()
 
@@ -56,7 +56,7 @@ func (ks *GenericKeystore) Insert(kp crypto.Keypair) error {
 }
 
 // GetKeypair returns a keypair corresponding to the given public key, or nil if it doesn't exist
-func (ks *GenericKeystore) GetKeypair(pub crypto.PublicKey) crypto.Keypair {
+func (ks *GenericKeystore) GetKeypair(pub crypto.PublicKey) KeyPair {
 	for _, key := range ks.keys {
 		if bytes.Equal(key.Public().Encode(), pub.Encode()) {
 			return key
@@ -66,7 +66,7 @@ func (ks *GenericKeystore) GetKeypair(pub crypto.PublicKey) crypto.Keypair {
 }
 
 // GetKeypairFromAddress returns a keypair corresponding to the given address, or nil if it doesn't exist
-func (ks *GenericKeystore) GetKeypairFromAddress(pub common.Address) crypto.Keypair {
+func (ks *GenericKeystore) GetKeypairFromAddress(pub common.Address) KeyPair {
 	ks.lock.RLock()
 	defer ks.lock.RUnlock()
 	return ks.keys[pub]
@@ -87,8 +87,7 @@ func (ks *GenericKeystore) PublicKeys() []crypto.PublicKey {
 }
 
 // Keypairs returns all keypairs in the keystore
-func (ks *GenericKeystore) Keypairs() []crypto.Keypair {
-	srkeys := []crypto.Keypair{}
+func (ks *GenericKeystore) Keypairs() (srkeys []KeyPair) {
 	if ks.keys == nil {
 		return srkeys
 	}
@@ -125,8 +124,7 @@ func (ks *GenericKeystore) Ed25519PublicKeys() []crypto.PublicKey {
 }
 
 // Ed25519Keypairs Keypair
-func (ks *GenericKeystore) Ed25519Keypairs() []crypto.Keypair {
-	edkeys := []crypto.Keypair{}
+func (ks *GenericKeystore) Ed25519Keypairs() (edkeys []KeyPair) {
 	if ks.keys == nil {
 		return edkeys
 	}
@@ -155,8 +153,7 @@ func (ks *GenericKeystore) Sr25519PublicKeys() []crypto.PublicKey {
 }
 
 // Sr25519Keypairs Keypair
-func (ks *GenericKeystore) Sr25519Keypairs() []crypto.Keypair {
-	srkeys := []crypto.Keypair{}
+func (ks *GenericKeystore) Sr25519Keypairs() (srkeys []KeyPair) {
 	if ks.keys == nil {
 		return srkeys
 	}
@@ -185,8 +182,7 @@ func (ks *GenericKeystore) Secp256k1PublicKeys() []crypto.PublicKey {
 }
 
 // Secp256k1Keypairs Keypair
-func (ks *GenericKeystore) Secp256k1Keypairs() []crypto.Keypair {
-	sckeys := []crypto.Keypair{}
+func (ks *GenericKeystore) Secp256k1Keypairs() (sckeys []KeyPair) {
 	if ks.keys == nil {
 		return sckeys
 	}

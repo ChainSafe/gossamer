@@ -5,9 +5,9 @@
 package dot
 
 import (
+	"encoding/json"
 	reflect "reflect"
 
-	telemetry "github.com/ChainSafe/gossamer/dot/telemetry"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -22,8 +22,8 @@ type MockClientMockRecorder struct {
 	mock *MockClient
 }
 
-// NewMockClient creates a new mock instance.
-func NewMockClient(ctrl *gomock.Controller) *MockClient {
+// NewMockTelemetry creates a new mock instance.
+func NewMockTelemetry(ctrl *gomock.Controller) *MockClient {
 	mock := &MockClient{ctrl: ctrl}
 	mock.recorder = &MockClientMockRecorder{mock}
 	return mock
@@ -35,7 +35,7 @@ func (m *MockClient) EXPECT() *MockClientMockRecorder {
 }
 
 // SendMessage mocks base method.
-func (m *MockClient) SendMessage(arg0 telemetry.Message) {
+func (m *MockClient) SendMessage(arg0 json.Marshaler) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "SendMessage", arg0)
 }

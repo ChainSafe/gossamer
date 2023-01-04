@@ -13,7 +13,7 @@ import (
 
 // gossip submodule
 type gossip struct {
-	logger    log.LeveledLogger
+	logger    Logger
 	seenMap   map[common.Hash]struct{}
 	seenMutex sync.RWMutex
 }

@@ -27,8 +27,6 @@ const (
 // Message must be implemented by all network messages
 type Message interface {
 	Encode() ([]byte, error)
-	Decode([]byte) error
-	String() string
 }
 
 // NotificationsMessage must be implemented by all messages sent over a notifications protocol

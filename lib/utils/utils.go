@@ -23,7 +23,7 @@ import (
 const DefaultDatabaseDir = "db"
 
 // SetupDatabase will return an instance of database based on basepath
-func SetupDatabase(basepath string, inMemory bool) (chaindb.Database, error) {
+func SetupDatabase(basepath string, inMemory bool) (*chaindb.BadgerDB, error) {
 	return chaindb.NewBadgerDB(&chaindb.Config{
 		DataDir:  filepath.Join(basepath, DefaultDatabaseDir),
 		InMemory: inMemory,

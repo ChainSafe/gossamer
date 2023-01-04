@@ -10,12 +10,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
-	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-)
-
-var (
-	_ services.Service = &Handler{}
 )
 
 var (
@@ -36,7 +31,7 @@ type Handler struct {
 	imported  chan *types.Block
 	finalised chan *types.FinalisationInfo
 
-	logger log.LeveledLogger
+	logger Logger
 }
 
 // NewHandler returns a new Handler

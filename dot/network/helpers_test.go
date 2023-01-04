@@ -216,11 +216,6 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 		blockstate.EXPECT().BestBlockHeader().Return(header, nil).AnyTimes()
 		blockstate.EXPECT().GetHighestFinalisedHeader().Return(header, nil).AnyTimes()
 		blockstate.EXPECT().GenesisHash().Return(common.NewHash([]byte{})).AnyTimes()
-		blockstate.EXPECT().BestBlockNumber().Return(uint(1), nil).AnyTimes()
-
-		blockstate.EXPECT().HasBlockBody(
-			gomock.AssignableToTypeOf(common.Hash([32]byte{}))).Return(false, nil).AnyTimes()
-		blockstate.EXPECT().GetHashByNumber(gomock.Any()).Return(common.Hash{}, nil).AnyTimes()
 
 		cfg.BlockState = blockstate
 	}
@@ -265,7 +260,7 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	}
 
 	if cfg.Telemetry == nil {
-		telemetryMock := NewMockClient(ctrl)
+		telemetryMock := NewMockTelemetry(ctrl)
 		telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 		cfg.Telemetry = telemetryMock
 	}

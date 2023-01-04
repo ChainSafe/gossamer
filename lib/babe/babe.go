@@ -49,7 +49,7 @@ type Service struct {
 	sync.RWMutex
 	pause chan struct{}
 
-	telemetry telemetry.Client
+	telemetry Telemetry
 }
 
 // ServiceConfig represents a BABE configuration
@@ -65,7 +65,7 @@ type ServiceConfig struct {
 	IsDev              bool
 	Authority          bool
 	Lead               bool
-	Telemetry          telemetry.Client
+	Telemetry          Telemetry
 }
 
 // Validate returns error if config does not contain required attributes
@@ -77,22 +77,11 @@ func (sc *ServiceConfig) Validate() error {
 	return nil
 }
 
-// ServiceIFace interface that defines methods available to BabeService
-type ServiceIFace interface {
-	Start() error
-	Stop() error
-	EpochLength() uint64
-	Pause() error
-	IsPaused() bool
-	Resume() error
-	SlotDuration() uint64
-}
-
 // Builder struct to hold babe builder functions
 type Builder struct{}
 
 // NewServiceIFace returns a new Babe Service using the provided VRF keys and runtime
-func (Builder) NewServiceIFace(cfg *ServiceConfig) (ServiceIFace, error) {
+func (Builder) NewServiceIFace(cfg *ServiceConfig) (service *Service, err error) {
 	if err := cfg.Validate(); err != nil {
 		return nil, fmt.Errorf("could not verify service config: %w", err)
 	}

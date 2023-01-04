@@ -15,6 +15,9 @@ import (
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/golang/mock/gomock"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -70,7 +73,11 @@ func TestHTTPServer_ServeHTTP(t *testing.T) {
 	bAPI := modules.NewMockeryBlockAPI(t)
 	sAPI := modules.NewMockeryStorageAPI(t)
 
-	TxStateAPI := modules.NewMockTransactionStateAPI(t)
+	ctrl := gomock.NewController(t)
+	TxStateAPI := NewMockTransactionStateAPI(ctrl)
+	TxStateAPI.EXPECT().FreeStatusNotifierChannel(gomock.Any()).AnyTimes()
+	TxStateAPI.EXPECT().GetStatusNotifierChannel(gomock.Any()).Return(make(chan transaction.Status)).AnyTimes()
+	TxStateAPI.EXPECT().AddToPool(gomock.Any()).Return(common.Hash{}).AnyTimes()
 
 	cfg := &HTTPServerConfig{
 		Modules:             []string{"system", "chain"},

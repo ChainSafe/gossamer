@@ -31,17 +31,17 @@ type HTTPServer struct {
 // HTTPServerConfig configures the HTTPServer
 type HTTPServerConfig struct {
 	LogLvl              log.Level
-	BlockAPI            modules.BlockAPI
-	StorageAPI          modules.StorageAPI
-	NetworkAPI          modules.NetworkAPI
-	CoreAPI             modules.CoreAPI
-	BlockProducerAPI    modules.BlockProducerAPI
-	BlockFinalityAPI    modules.BlockFinalityAPI
-	TransactionQueueAPI modules.TransactionStateAPI
-	RPCAPI              modules.RPCAPI
-	SystemAPI           modules.SystemAPI
-	SyncStateAPI        modules.SyncStateAPI
-	SyncAPI             modules.SyncAPI
+	BlockAPI            BlockAPI
+	StorageAPI          StorageAPI
+	NetworkAPI          NetworkAPI
+	CoreAPI             CoreAPI
+	BlockProducerAPI    BlockProducerAPI
+	BlockFinalityAPI    BlockFinalityAPI
+	TransactionQueueAPI TransactionStateAPI
+	RPCAPI              API
+	SystemAPI           SystemAPI
+	SyncStateAPI        SyncStateAPI
+	SyncAPI             SyncAPI
 	NodeStorage         *runtime.NodeStorage
 	RPC                 bool
 	RPCExternal         bool

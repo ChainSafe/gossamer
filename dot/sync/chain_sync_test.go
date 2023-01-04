@@ -1036,10 +1036,10 @@ func TestHandleReadyBlock(t *testing.T) {
 
 	cs.handleReadyBlock(block1.ToBlockData())
 
-	require.False(t, cs.pendingBlocks.hasBlock(header1.Hash()))
-	require.False(t, cs.pendingBlocks.hasBlock(header2.Hash()))
-	require.False(t, cs.pendingBlocks.hasBlock(header3.Hash()))
-	require.True(t, cs.pendingBlocks.hasBlock(header2NotDescendant.Hash()))
+	require.False(t, cs.pendingBlocks.(*disjointBlockSet).hasBlock(header1.Hash()))
+	require.False(t, cs.pendingBlocks.(*disjointBlockSet).hasBlock(header2.Hash()))
+	require.False(t, cs.pendingBlocks.(*disjointBlockSet).hasBlock(header3.Hash()))
+	require.True(t, cs.pendingBlocks.(*disjointBlockSet).hasBlock(header2NotDescendant.Hash()))
 
 	blockData1, err := readyBlocks.pop(context.Background())
 	require.NoError(t, err)

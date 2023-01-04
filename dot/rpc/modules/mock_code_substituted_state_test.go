@@ -34,20 +34,6 @@ func (m *MockCodeSubstitutedState) EXPECT() *MockCodeSubstitutedStateMockRecorde
 	return m.recorder
 }
 
-// LoadCodeSubstitutedBlockHash mocks base method.
-func (m *MockCodeSubstitutedState) LoadCodeSubstitutedBlockHash() common.Hash {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "LoadCodeSubstitutedBlockHash")
-	ret0, _ := ret[0].(common.Hash)
-	return ret0
-}
-
-// LoadCodeSubstitutedBlockHash indicates an expected call of LoadCodeSubstitutedBlockHash.
-func (mr *MockCodeSubstitutedStateMockRecorder) LoadCodeSubstitutedBlockHash() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LoadCodeSubstitutedBlockHash", reflect.TypeOf((*MockCodeSubstitutedState)(nil).LoadCodeSubstitutedBlockHash))
-}
-
 // StoreCodeSubstitutedBlockHash mocks base method.
 func (m *MockCodeSubstitutedState) StoreCodeSubstitutedBlockHash(arg0 common.Hash) error {
 	m.ctrl.T.Helper()

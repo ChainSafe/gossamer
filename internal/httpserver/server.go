@@ -5,27 +5,8 @@
 package httpserver
 
 import (
-	"context"
 	"net/http"
 )
-
-var _ Interface = (*Server)(nil)
-
-// Interface is the HTTP server interface
-type Interface interface {
-	Runner
-	AddressGetter
-}
-
-// Runner is the interface for an HTTP server with a Run method.
-type Runner interface {
-	Run(ctx context.Context, ready chan<- struct{}, done chan<- error)
-}
-
-// AddressGetter obtains the address the HTTP server is listening on.
-type AddressGetter interface {
-	GetAddress() (address string)
-}
 
 // Server is an HTTP server implementation, which uses
 // the HTTP handler provided.

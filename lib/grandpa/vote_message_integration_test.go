@@ -63,7 +63,7 @@ func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
 
 	branches := map[uint]int{6: 1}
 	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches)
-	leaves := gs.blockState.Leaves()
+	leaves := gs.blockState.(*state.BlockState).Leaves()
 
 	vote1, err := NewVoteFromHash(leaves[0], st.Block)
 	require.NoError(t, err)
@@ -105,7 +105,7 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 
 	branches := map[uint]int{6: 1}
 	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches)
-	leaves := gs.blockState.Leaves()
+	leaves := gs.blockState.(*state.BlockState).Leaves()
 
 	vote1, err := NewVoteFromHash(leaves[1], gs.blockState)
 	require.NoError(t, err)
@@ -262,7 +262,7 @@ func TestValidateMessage_Equivocation(t *testing.T) {
 
 	branches := map[uint]int{6: 1}
 	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches)
-	leaves := gs.blockState.Leaves()
+	leaves := gs.blockState.(*state.BlockState).Leaves()
 
 	voteA, err := NewVoteFromHash(leaves[0], st.Block)
 	require.NoError(t, err)
@@ -344,7 +344,7 @@ func TestValidateMessage_IsNotDescendant(t *testing.T) {
 
 	branches := map[uint]int{6: 1}
 	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches)
-	leaves := gs.blockState.Leaves()
+	leaves := gs.blockState.(*state.BlockState).Leaves()
 
 	gs.head, err = gs.blockState.GetHeader(leaves[0])
 	require.NoError(t, err)

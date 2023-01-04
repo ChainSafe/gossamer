@@ -690,7 +690,7 @@ func TestPeerReputation(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	rep, err := nodeA.host.cm.peerSetHandler.PeerReputation(addrInfoB.ID)
+	rep, err := nodeA.host.cm.peerSetHandler.(*peerset.Handler).PeerReputation(addrInfoB.ID)
 	require.NoError(t, err)
 	require.Greater(t, rep, int32(0))
 }

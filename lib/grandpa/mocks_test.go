@@ -38,20 +38,6 @@ func (m *MockBlockState) EXPECT() *MockBlockStateMockRecorder {
 	return m.recorder
 }
 
-// BestBlockHash mocks base method.
-func (m *MockBlockState) BestBlockHash() common.Hash {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "BestBlockHash")
-	ret0, _ := ret[0].(common.Hash)
-	return ret0
-}
-
-// BestBlockHash indicates an expected call of BestBlockHash.
-func (mr *MockBlockStateMockRecorder) BestBlockHash() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BestBlockHash", reflect.TypeOf((*MockBlockState)(nil).BestBlockHash))
-}
-
 // BestBlockHeader mocks base method.
 func (m *MockBlockState) BestBlockHeader() (*types.Header, error) {
 	m.ctrl.T.Helper()
@@ -80,20 +66,6 @@ func (m *MockBlockState) BestBlockNumber() (uint, error) {
 func (mr *MockBlockStateMockRecorder) BestBlockNumber() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BestBlockNumber", reflect.TypeOf((*MockBlockState)(nil).BestBlockNumber))
-}
-
-// BlocktreeAsString mocks base method.
-func (m *MockBlockState) BlocktreeAsString() string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "BlocktreeAsString")
-	ret0, _ := ret[0].(string)
-	return ret0
-}
-
-// BlocktreeAsString indicates an expected call of BlocktreeAsString.
-func (mr *MockBlockStateMockRecorder) BlocktreeAsString() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BlocktreeAsString", reflect.TypeOf((*MockBlockState)(nil).BlocktreeAsString))
 }
 
 // FreeFinalisedNotifierChannel mocks base method.
@@ -161,21 +133,6 @@ func (m *MockBlockState) GetFinalisedNotifierChannel() chan *types.FinalisationI
 func (mr *MockBlockStateMockRecorder) GetFinalisedNotifierChannel() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFinalisedNotifierChannel", reflect.TypeOf((*MockBlockState)(nil).GetFinalisedNotifierChannel))
-}
-
-// GetHashByNumber mocks base method.
-func (m *MockBlockState) GetHashByNumber(arg0 uint) (common.Hash, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetHashByNumber", arg0)
-	ret0, _ := ret[0].(common.Hash)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetHashByNumber indicates an expected call of GetHashByNumber.
-func (mr *MockBlockStateMockRecorder) GetHashByNumber(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHashByNumber", reflect.TypeOf((*MockBlockState)(nil).GetHashByNumber), arg0)
 }
 
 // GetHeader mocks base method.
@@ -253,21 +210,6 @@ func (mr *MockBlockStateMockRecorder) GetImportedBlockNotifierChannel() *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetImportedBlockNotifierChannel", reflect.TypeOf((*MockBlockState)(nil).GetImportedBlockNotifierChannel))
 }
 
-// GetJustification mocks base method.
-func (m *MockBlockState) GetJustification(arg0 common.Hash) ([]byte, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetJustification", arg0)
-	ret0, _ := ret[0].([]byte)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetJustification indicates an expected call of GetJustification.
-func (mr *MockBlockStateMockRecorder) GetJustification(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetJustification", reflect.TypeOf((*MockBlockState)(nil).GetJustification), arg0)
-}
-
 // HasFinalisedBlock mocks base method.
 func (m *MockBlockState) HasFinalisedBlock(arg0, arg1 uint64) (bool, error) {
 	m.ctrl.T.Helper()
@@ -298,21 +240,6 @@ func (mr *MockBlockStateMockRecorder) HasHeader(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasHeader", reflect.TypeOf((*MockBlockState)(nil).HasHeader), arg0)
 }
 
-// HasJustification mocks base method.
-func (m *MockBlockState) HasJustification(arg0 common.Hash) (bool, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HasJustification", arg0)
-	ret0, _ := ret[0].(bool)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// HasJustification indicates an expected call of HasJustification.
-func (mr *MockBlockStateMockRecorder) HasJustification(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasJustification", reflect.TypeOf((*MockBlockState)(nil).HasJustification), arg0)
-}
-
 // IsDescendantOf mocks base method.
 func (m *MockBlockState) IsDescendantOf(arg0, arg1 common.Hash) (bool, error) {
 	m.ctrl.T.Helper()
@@ -326,20 +253,6 @@ func (m *MockBlockState) IsDescendantOf(arg0, arg1 common.Hash) (bool, error) {
 func (mr *MockBlockStateMockRecorder) IsDescendantOf(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsDescendantOf", reflect.TypeOf((*MockBlockState)(nil).IsDescendantOf), arg0, arg1)
-}
-
-// Leaves mocks base method.
-func (m *MockBlockState) Leaves() []common.Hash {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Leaves")
-	ret0, _ := ret[0].([]common.Hash)
-	return ret0
-}
-
-// Leaves indicates an expected call of Leaves.
-func (mr *MockBlockStateMockRecorder) Leaves() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Leaves", reflect.TypeOf((*MockBlockState)(nil).Leaves))
 }
 
 // LowestCommonAncestor mocks base method.

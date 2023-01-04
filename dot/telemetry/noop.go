@@ -3,6 +3,8 @@
 
 package telemetry
 
+import "encoding/json"
+
 // Noop is a no-op telemetry client implementation.
 type Noop struct{}
 
@@ -12,4 +14,4 @@ func NewNoopMailer() *Noop {
 }
 
 // SendMessage does nothing.
-func (*Noop) SendMessage(_ Message) {}
+func (*Noop) SendMessage(_ json.Marshaler) {}
