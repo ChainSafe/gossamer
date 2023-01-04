@@ -377,6 +377,21 @@ func (mr *MockBlockAPIMockRecorder) HasJustification(arg0 interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasJustification", reflect.TypeOf((*MockBlockAPI)(nil).HasJustification), arg0)
 }
 
+// RangeInMemory mocks base method.
+func (m *MockBlockAPI) RangeInMemory(arg0, arg1 common.Hash) ([]common.Hash, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RangeInMemory", arg0, arg1)
+	ret0, _ := ret[0].([]common.Hash)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RangeInMemory indicates an expected call of RangeInMemory.
+func (mr *MockBlockAPIMockRecorder) RangeInMemory(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RangeInMemory", reflect.TypeOf((*MockBlockAPI)(nil).RangeInMemory), arg0, arg1)
+}
+
 // RegisterRuntimeUpdatedChannel mocks base method.
 func (m *MockBlockAPI) RegisterRuntimeUpdatedChannel(arg0 chan<- runtime.Version) (uint32, error) {
 	m.ctrl.T.Helper()
@@ -390,21 +405,6 @@ func (m *MockBlockAPI) RegisterRuntimeUpdatedChannel(arg0 chan<- runtime.Version
 func (mr *MockBlockAPIMockRecorder) RegisterRuntimeUpdatedChannel(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterRuntimeUpdatedChannel", reflect.TypeOf((*MockBlockAPI)(nil).RegisterRuntimeUpdatedChannel), arg0)
-}
-
-// SubChain mocks base method.
-func (m *MockBlockAPI) SubChain(arg0, arg1 common.Hash) ([]common.Hash, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SubChain", arg0, arg1)
-	ret0, _ := ret[0].([]common.Hash)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// SubChain indicates an expected call of SubChain.
-func (mr *MockBlockAPIMockRecorder) SubChain(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SubChain", reflect.TypeOf((*MockBlockAPI)(nil).SubChain), arg0, arg1)
 }
 
 // UnregisterRuntimeUpdatedChannel mocks base method.

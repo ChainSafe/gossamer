@@ -14,7 +14,7 @@ import (
 	common "github.com/ChainSafe/gossamer/lib/common"
 	storage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	gomock "github.com/golang/mock/gomock"
-	peer "github.com/libp2p/go-libp2p-core/peer"
+	peer "github.com/libp2p/go-libp2p/core/peer"
 )
 
 // MockBlockState is a mock of BlockState interface.
@@ -337,6 +337,21 @@ func (mr *MockBlockStateMockRecorder) Range(arg0, arg1 interface{}) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Range", reflect.TypeOf((*MockBlockState)(nil).Range), arg0, arg1)
 }
 
+// RangeInMemory mocks base method.
+func (m *MockBlockState) RangeInMemory(arg0, arg1 common.Hash) ([]common.Hash, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RangeInMemory", arg0, arg1)
+	ret0, _ := ret[0].([]common.Hash)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RangeInMemory indicates an expected call of RangeInMemory.
+func (mr *MockBlockStateMockRecorder) RangeInMemory(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RangeInMemory", reflect.TypeOf((*MockBlockState)(nil).RangeInMemory), arg0, arg1)
+}
+
 // SetJustification mocks base method.
 func (m *MockBlockState) SetJustification(arg0 common.Hash, arg1 []byte) error {
 	m.ctrl.T.Helper()
@@ -361,21 +376,6 @@ func (m *MockBlockState) StoreRuntime(arg0 common.Hash, arg1 state.Runtime) {
 func (mr *MockBlockStateMockRecorder) StoreRuntime(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StoreRuntime", reflect.TypeOf((*MockBlockState)(nil).StoreRuntime), arg0, arg1)
-}
-
-// SubChain mocks base method.
-func (m *MockBlockState) SubChain(arg0, arg1 common.Hash) ([]common.Hash, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SubChain", arg0, arg1)
-	ret0, _ := ret[0].([]common.Hash)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// SubChain indicates an expected call of SubChain.
-func (mr *MockBlockStateMockRecorder) SubChain(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SubChain", reflect.TypeOf((*MockBlockState)(nil).SubChain), arg0, arg1)
 }
 
 // MockStorageState is a mock of StorageState interface.

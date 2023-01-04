@@ -122,7 +122,7 @@ func KeystoreFiles(basepath string) ([]string, error) {
 		return nil, fmt.Errorf("failed to read keystore directory: %s", err)
 	}
 
-	keys := []string{}
+	var keys []string
 
 	for _, f := range files {
 		ext := filepath.Ext(f.Name())
@@ -237,6 +237,11 @@ func GetGssmrV3SubstrateGenesisPath() (path string, err error) {
 		return "", err
 	}
 	return filepath.Join(rootPath, "./chain/gssmr-v3substrate/genesis-spec.json"), nil
+}
+
+// GetWestendDevGenesisPath gets the westend-dev genesis path
+func GetWestendDevGenesisPath(t *testing.T) string {
+	return filepath.Join(GetProjectRootPathTest(t), "./chain/westend-dev/westend-dev-spec-raw.json")
 }
 
 // GetKusamaGenesisPath gets the Kusama genesis path

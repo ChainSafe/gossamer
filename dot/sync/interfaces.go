@@ -13,7 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 // BlockState is the interface for the block state
@@ -26,7 +26,7 @@ type BlockState interface {
 	GetHeader(common.Hash) (*types.Header, error)
 	HasHeader(hash common.Hash) (bool, error)
 	Range(startHash, endHash common.Hash) (hashes []common.Hash, err error)
-	SubChain(start, end common.Hash) ([]common.Hash, error)
+	RangeInMemory(start, end common.Hash) ([]common.Hash, error)
 	GetReceipt(common.Hash) ([]byte, error)
 	GetMessageQueue(common.Hash) ([]byte, error)
 	GetJustification(common.Hash) ([]byte, error)
