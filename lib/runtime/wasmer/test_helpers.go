@@ -5,8 +5,6 @@ package wasmer
 
 import (
 	"context"
-	"errors"
-	"os"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -28,17 +26,14 @@ func NewTestInstance(t *testing.T, targetRuntime string) *Instance {
 	return NewTestInstanceWithTrie(t, targetRuntime, nil)
 }
 
-// NewTestInstanceWithTrie will create a new runtime (polkadot/test) with the supplied trie as the storage
+// NewTestInstanceWithTrie will return a wasmer.Instance given the targetRuntime, using the provided trie as the storage
+// the targetRuntime can be a file path to a local .wasm file or a already defined constant in runtime/constants.go
 func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie) *Instance {
 	t.Helper()
 
 	cfg := setupConfig(t, tt, DefaultTestLogLvl, common.NoNetworkRole, targetRuntime)
-
-	_, err := os.Stat(targetRuntime)
-	if errors.Is(err, os.ErrNotExist) {
-		targetRuntime, err = runtime.GetRuntime(context.Background(), targetRuntime)
-		require.NoError(t, err)
-	}
+	targetRuntime, err := runtime.GetRuntime(context.Background(), targetRuntime)
+	require.NoError(t, err)
 
 	r, err := NewInstanceFromFile(targetRuntime, cfg)
 	require.NoError(t, err)

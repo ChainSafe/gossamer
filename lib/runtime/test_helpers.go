@@ -99,6 +99,9 @@ func GetRuntime(ctx context.Context, runtime string) (
 		runtimeFilename = WESTEND_RUNTIME_V0929_FP
 		url = WESTEND_RUNTIME_V0929_URL
 	default:
+		if utils.PathExists(runtime) {
+			return runtime, nil
+		}
 		return "", fmt.Errorf("%w: %s", ErrRuntimeUnknown, runtime)
 	}
 
