@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -276,19 +277,9 @@ func (in *Instance) QueryCallFeeDetails(ext []byte) (*types.FeeDetails, error) {
 // TODO: use this in block verification process (#1873)
 func (in *Instance) CheckInherents() {}
 
-/*
-GenerateKeyOwnershipProof args
-- auth set id
-- pub key of authority
-=======
 // GrandpaGenerateKeyOwnershipProof returns grandpa key ownership proof from runtime.
 func (in *Instance) GrandpaGenerateKeyOwnershipProof(authSetId uint64, authorityID ed25519.PublicKeyBytes) (
-<<<<<<< HEAD
-	OpaqueKeyOwnershipProof, error) {
->>>>>>> af69ad7b (wip)
-=======
 	types.OpaqueKeyOwnershipProof, error) {
->>>>>>> 671e7b98 (wip/testReportEquivocation)
 
 	combinedArg := []byte{}
 	encodedSetID, err := scale.Marshal(authSetId)
