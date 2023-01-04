@@ -30,7 +30,7 @@ func Test_NewService(t *testing.T) {
 	assert.NotNil(t, service.done)
 }
 
-//go:generate mockgen -destination=runner_mock_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/internal/httpserver Runner
+//go:generate mockgen -destination=runner_mock_test.go -package $GOPACKAGE . Runner
 
 func Test_Service_StartStop_success(t *testing.T) {
 	t.Parallel()

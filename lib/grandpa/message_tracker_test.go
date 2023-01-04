@@ -125,7 +125,7 @@ func TestMessageTracker_handleTick_commitMessage(t *testing.T) {
 				grandpaStateMock.EXPECT().
 					SetPrecommits(commitMessageRound, uint64(0), []types.GrandpaSignedVote{})
 
-				telemetryMock := NewMockClient(ctrl)
+				telemetryMock := NewMockTelemetry(ctrl)
 
 				commitMessageTelemetry := telemetry.NewAfgReceivedCommit(
 					testHash, "1", []string{})
@@ -217,7 +217,7 @@ func TestMessageTracker_handleTick_voteMessage(t *testing.T) {
 
 			ctrl := gomock.NewController(t)
 
-			telemetryMock := NewMockClient(ctrl)
+			telemetryMock := NewMockTelemetry(ctrl)
 			authority := kr.Charlie().(*ed25519.Keypair)
 			publicBytes := authority.Public().(*ed25519.PublicKey).AsBytes()
 

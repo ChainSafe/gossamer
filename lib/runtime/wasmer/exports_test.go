@@ -29,16 +29,16 @@ import (
 func Test_Instance_Version(t *testing.T) {
 	t.Parallel()
 
-	type InstanceVersion interface {
+	type instanceVersioner interface {
 		Version() (version runtime.Version)
 	}
 
 	testCases := map[string]struct {
-		instanceBuilder func(t *testing.T) InstanceVersion
+		instanceBuilder func(t *testing.T) instanceVersioner
 		expectedVersion runtime.Version
 	}{
 		"dev": {
-			instanceBuilder: func(t *testing.T) InstanceVersion {
+			instanceBuilder: func(t *testing.T) instanceVersioner {
 				return NewTestInstance(t, runtime.DEV_RUNTIME)
 			},
 			expectedVersion: runtime.Version{
@@ -65,7 +65,7 @@ func Test_Instance_Version(t *testing.T) {
 			},
 		},
 		"node v098": {
-			instanceBuilder: func(t *testing.T) InstanceVersion {
+			instanceBuilder: func(t *testing.T) instanceVersioner {
 				return NewTestInstance(t, runtime.NODE_RUNTIME_v098)
 			},
 			expectedVersion: runtime.Version{
@@ -93,7 +93,7 @@ func Test_Instance_Version(t *testing.T) {
 			},
 		},
 		"node": {
-			instanceBuilder: func(t *testing.T) InstanceVersion {
+			instanceBuilder: func(t *testing.T) instanceVersioner {
 				return NewTestInstance(t, runtime.NODE_RUNTIME)
 			},
 			expectedVersion: runtime.Version{
@@ -121,7 +121,7 @@ func Test_Instance_Version(t *testing.T) {
 			},
 		},
 		"kusama": {
-			instanceBuilder: func(t *testing.T) InstanceVersion {
+			instanceBuilder: func(t *testing.T) instanceVersioner {
 				genesisPath := utils.GetKusamaGenesisPath(t)
 				kusamaGenesis := genesisFromRawJSON(t, genesisPath)
 				genesisTrie, err := NewTrieFromGenesis(kusamaGenesis)
@@ -159,7 +159,7 @@ func Test_Instance_Version(t *testing.T) {
 			},
 		},
 		"polkadot v0825": {
-			instanceBuilder: func(t *testing.T) InstanceVersion {
+			instanceBuilder: func(t *testing.T) instanceVersioner {
 				return NewTestInstance(t, runtime.POLKADOT_RUNTIME)
 			},
 			expectedVersion: runtime.Version{
@@ -186,7 +186,7 @@ func Test_Instance_Version(t *testing.T) {
 			},
 		},
 		"polkadot v0910": {
-			instanceBuilder: func(t *testing.T) InstanceVersion {
+			instanceBuilder: func(t *testing.T) instanceVersioner {
 				return NewTestInstance(t, runtime.POLKADOT_RUNTIME_v0910)
 			},
 			expectedVersion: runtime.Version{
@@ -215,7 +215,7 @@ func Test_Instance_Version(t *testing.T) {
 			},
 		},
 		"runtime v0980": {
-			instanceBuilder: func(t *testing.T) InstanceVersion {
+			instanceBuilder: func(t *testing.T) instanceVersioner {
 				return NewTestInstance(t, runtime.NODE_RUNTIME_v098)
 			},
 			expectedVersion: runtime.Version{
@@ -243,7 +243,7 @@ func Test_Instance_Version(t *testing.T) {
 			},
 		},
 		"polkadot v0917": {
-			instanceBuilder: func(t *testing.T) InstanceVersion {
+			instanceBuilder: func(t *testing.T) instanceVersioner {
 				return NewTestInstance(t, runtime.POLKADOT_RUNTIME_v0917)
 			},
 			expectedVersion: runtime.Version{
@@ -332,9 +332,9 @@ func TestNodeRuntime_ValidateTransaction(t *testing.T) {
 	encBal, err := scale.Marshal(accInfo)
 	require.NoError(t, err)
 
-	rt.(*Instance).ctx.Storage.Put(aliceBalanceKey, encBal)
+	rt.ctx.Storage.Put(aliceBalanceKey, encBal)
 	// this key is System.UpgradedToDualRefCount -> set to true since all accounts have been upgraded to v0.9 format
-	rt.(*Instance).ctx.Storage.Put(common.UpgradedToDualRefKey, []byte{1})
+	rt.ctx.Storage.Put(common.UpgradedToDualRefKey, []byte{1})
 
 	genesisHeader := &types.Header{
 		Number:    0,

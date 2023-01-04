@@ -3,6 +3,8 @@
 
 package telemetry
 
+import "encoding/json"
+
 // telemetry message types
 const (
 	afgAuthoritySetMsg        = "afg.authority_set"
@@ -25,16 +27,11 @@ const (
 
 // Client is the interface to send messages to telemetry servers
 type Client interface {
-	SendMessage(msg Message)
-}
-
-// Message interface for Message functions
-type Message interface {
-	MarshalJSON() ([]byte, error)
+	SendMessage(msg json.Marshaler)
 }
 
 // NoopClient used for minimal implementation of the Client interface
 type NoopClient struct{}
 
 // SendMessage is an empty implementation used for testing
-func (NoopClient) SendMessage(_ Message) {}
+func (NoopClient) SendMessage(_ json.Marshaler) {}

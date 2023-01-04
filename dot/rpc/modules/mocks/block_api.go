@@ -8,6 +8,8 @@ import (
 
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
 
+	state "github.com/ChainSafe/gossamer/dot/state"
+
 	types "github.com/ChainSafe/gossamer/dot/types"
 )
 
@@ -213,15 +215,15 @@ func (_m *BlockAPI) GetJustification(hash common.Hash) ([]byte, error) {
 }
 
 // GetRuntime provides a mock function with given fields: blockHash
-func (_m *BlockAPI) GetRuntime(blockHash common.Hash) (runtime.Instance, error) {
+func (_m *BlockAPI) GetRuntime(blockHash common.Hash) (state.Runtime, error) {
 	ret := _m.Called(blockHash)
 
-	var r0 runtime.Instance
-	if rf, ok := ret.Get(0).(func(common.Hash) runtime.Instance); ok {
+	var r0 state.Runtime
+	if rf, ok := ret.Get(0).(func(common.Hash) state.Runtime); ok {
 		r0 = rf(blockHash)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(runtime.Instance)
+			r0 = ret.Get(0).(state.Runtime)
 		}
 	}
 

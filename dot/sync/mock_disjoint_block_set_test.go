@@ -119,20 +119,6 @@ func (mr *MockDisjointBlockSetMockRecorder) getBlocks() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "getBlocks", reflect.TypeOf((*MockDisjointBlockSet)(nil).getBlocks))
 }
 
-// getChildren mocks base method.
-func (m *MockDisjointBlockSet) getChildren(arg0 common.Hash) map[common.Hash]struct{} {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "getChildren", arg0)
-	ret0, _ := ret[0].(map[common.Hash]struct{})
-	return ret0
-}
-
-// getChildren indicates an expected call of getChildren.
-func (mr *MockDisjointBlockSetMockRecorder) getChildren(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "getChildren", reflect.TypeOf((*MockDisjointBlockSet)(nil).getChildren), arg0)
-}
-
 // getReadyDescendants mocks base method.
 func (m *MockDisjointBlockSet) getReadyDescendants(arg0 common.Hash, arg1 []*types.BlockData) []*types.BlockData {
 	m.ctrl.T.Helper()
@@ -145,20 +131,6 @@ func (m *MockDisjointBlockSet) getReadyDescendants(arg0 common.Hash, arg1 []*typ
 func (mr *MockDisjointBlockSetMockRecorder) getReadyDescendants(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "getReadyDescendants", reflect.TypeOf((*MockDisjointBlockSet)(nil).getReadyDescendants), arg0, arg1)
-}
-
-// hasBlock mocks base method.
-func (m *MockDisjointBlockSet) hasBlock(arg0 common.Hash) bool {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "hasBlock", arg0)
-	ret0, _ := ret[0].(bool)
-	return ret0
-}
-
-// hasBlock indicates an expected call of hasBlock.
-func (mr *MockDisjointBlockSetMockRecorder) hasBlock(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "hasBlock", reflect.TypeOf((*MockDisjointBlockSet)(nil).hasBlock), arg0)
 }
 
 // removeBlock mocks base method.

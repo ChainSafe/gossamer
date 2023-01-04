@@ -12,7 +12,7 @@ import (
 
 type notifyFinalizedTM NotifyFinalized
 
-var _ Message = (*NotifyFinalized)(nil)
+var _ json.Marshaler = (*NotifyFinalized)(nil)
 
 // NotifyFinalized holds `notify.finalized` telemetry message, which is
 // supposed to be send when a new block gets finalised.

@@ -29,13 +29,13 @@ func TestChainProcessor_HandleBlockResponse_ValidChain(t *testing.T) {
 	parent, err := responder.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
 
-	bestBlockHash := responder.blockState.BestBlockHash()
+	bestBlockHash := responder.blockState.(*state.BlockState).BestBlockHash()
 	rt, err := responder.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
 	for i := 0; i < maxResponseSize*2; i++ {
 		block := BuildBlock(t, rt, parent, nil)
-		err = responder.blockState.AddBlock(block)
+		err = responder.blockState.(*state.BlockState).AddBlock(block)
 		require.NoError(t, err)
 		parent = &block.Header
 	}
@@ -89,13 +89,13 @@ func TestChainProcessor_HandleBlockResponse_MissingBlocks(t *testing.T) {
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
 
-	bestBlockHash := syncer.blockState.BestBlockHash()
+	bestBlockHash := syncer.blockState.(*state.BlockState).BestBlockHash()
 	rt, err := syncer.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
 	for i := 0; i < 4; i++ {
 		block := BuildBlock(t, rt, parent, nil)
-		err = syncer.blockState.AddBlock(block)
+		err = syncer.blockState.(*state.BlockState).AddBlock(block)
 		require.NoError(t, err)
 		parent = &block.Header
 	}
@@ -110,7 +110,7 @@ func TestChainProcessor_HandleBlockResponse_MissingBlocks(t *testing.T) {
 
 	for i := 0; i < 16; i++ {
 		block := BuildBlock(t, rt, parent, nil)
-		err = responder.blockState.AddBlock(block)
+		err = responder.blockState.(*state.BlockState).AddBlock(block)
 		require.NoError(t, err)
 		parent = &block.Header
 	}
@@ -192,7 +192,7 @@ func TestChainProcessor_ExecuteBlock(t *testing.T) {
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
 
-	bestBlockHash := syncer.blockState.BestBlockHash()
+	bestBlockHash := syncer.blockState.(*state.BlockState).BestBlockHash()
 	rt, err := syncer.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
@@ -224,7 +224,7 @@ func TestChainProcessor_HandleJustification(t *testing.T) {
 
 	just := []byte("testjustification")
 
-	err = syncer.blockState.AddBlock(&types.Block{
+	err = syncer.blockState.(*state.BlockState).AddBlock(&types.Block{
 		Header: *header,
 		Body:   types.Body{},
 	})
@@ -254,5 +254,5 @@ func TestChainProcessor_processReadyBlocks_errFailedToGetParent(t *testing.T) {
 	})
 
 	time.Sleep(time.Millisecond * 100)
-	require.True(t, processor.pendingBlocks.hasBlock(header.Hash()))
+	require.True(t, processor.pendingBlocks.(*disjointBlockSet).hasBlock(header.Hash()))
 }

@@ -29,7 +29,7 @@ func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *
 	testDatadirPath := t.TempDir()
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	config := state.Config{
@@ -507,7 +507,7 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 	genesis, trie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(
 		telemetry.NewNotifyFinalized(
 			genesisHeader.Hash(),

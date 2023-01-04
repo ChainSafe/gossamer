@@ -174,7 +174,7 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	_, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(telemetry.NewNotifyFinalized(
 		genHeader.Hash(),
 		"0",

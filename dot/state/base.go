@@ -8,19 +8,18 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 )
 
-// BaseState is a wrapper for the chaindb.Database, without any prefixes
+// BaseState is a wrapper for a database, without any prefixes
 type BaseState struct {
-	db chaindb.Database
+	db GetPutDeleter
 }
 
 // NewBaseState returns a new BaseState
-func NewBaseState(db chaindb.Database) *BaseState {
+func NewBaseState(db GetPutDeleter) *BaseState {
 	return &BaseState{
 		db: db,
 	}

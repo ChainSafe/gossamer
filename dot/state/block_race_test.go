@@ -18,11 +18,11 @@ import (
 
 func TestConcurrencySetHeader(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	threads := runtime.NumCPU()
-	dbs := make([]chaindb.Database, threads)
+	dbs := make([]*chaindb.BadgerDB, threads)
 	for i := 0; i < threads; i++ {
 		dbs[i] = NewInMemoryDB(t)
 	}

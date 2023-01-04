@@ -19,7 +19,7 @@ var ErrProvidedKeyDoesNotMatch = errors.New("generated public key does not equal
 
 // AuthorModule holds a pointer to the API
 type AuthorModule struct {
-	logger     log.LeveledLogger
+	logger     Infoer
 	coreAPI    CoreAPI
 	txStateAPI TransactionStateAPI
 }

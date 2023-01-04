@@ -7,22 +7,20 @@ import (
 	"context"
 	"errors"
 	"runtime"
-
-	"github.com/ChainSafe/gossamer/internal/httpserver"
 )
 
 // Service is a pprof http server service compatible with the
 // dot/service.go interface.
 type Service struct {
 	settings Settings
-	server   httpserver.Runner
+	server   Runner
 	cancel   context.CancelFunc
 	done     chan error
 }
 
 // NewService creates a pprof server service compatible with the
 // dot/service.go interface.
-func NewService(settings Settings, logger httpserver.Logger) *Service {
+func NewService(settings Settings, logger Logger) *Service {
 	settings.setDefaults()
 
 	return &Service{

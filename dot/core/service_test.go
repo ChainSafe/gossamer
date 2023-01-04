@@ -934,7 +934,7 @@ func TestServiceInsertKey(t *testing.T) {
 	keyring, _ := keystore.NewSr25519Keyring()
 	aliceKeypair := keyring.Alice().(*sr25519.Keypair)
 	type args struct {
-		kp           crypto.Keypair
+		kp           KeyPair
 		keystoreType string
 	}
 	tests := []struct {

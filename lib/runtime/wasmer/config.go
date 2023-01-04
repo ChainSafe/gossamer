@@ -15,13 +15,13 @@ import (
 // Config is the configuration used to create a
 // Wasmer runtime instance.
 type Config struct {
-	Storage     runtime.Storage
+	Storage     Storage
 	Keystore    *keystore.GlobalKeystore
 	LogLvl      log.Level
 	Role        common.Roles
 	NodeStorage runtime.NodeStorage
-	Network     runtime.BasicNetwork
-	Transaction runtime.TransactionState
+	Network     BasicNetwork
+	Transaction TransactionState
 	CodeHash    common.Hash
 	testVersion *runtime.Version
 }

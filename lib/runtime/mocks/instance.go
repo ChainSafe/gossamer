@@ -66,43 +66,6 @@ func (_m *Instance) BabeConfiguration() (*types.BabeConfiguration, error) {
 	return r0, r1
 }
 
-// BabeGenerateKeyOwnershipProof provides a mock function with given fields: slot, authorityID
-func (_m *Instance) BabeGenerateKeyOwnershipProof(slot uint64, authorityID [32]byte) (types.OpaqueKeyOwnershipProof, error) {
-	ret := _m.Called(slot, authorityID)
-
-	var r0 types.OpaqueKeyOwnershipProof
-	if rf, ok := ret.Get(0).(func(uint64, [32]byte) types.OpaqueKeyOwnershipProof); ok {
-		r0 = rf(slot, authorityID)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(types.OpaqueKeyOwnershipProof)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(uint64, [32]byte) error); ok {
-		r1 = rf(slot, authorityID)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// BabeSubmitReportEquivocationUnsignedExtrinsic provides a mock function with given fields: equivocationProof, keyOwnershipProof
-func (_m *Instance) BabeSubmitReportEquivocationUnsignedExtrinsic(equivocationProof types.BabeEquivocationProof, keyOwnershipProof types.OpaqueKeyOwnershipProof) error {
-	ret := _m.Called(equivocationProof, keyOwnershipProof)
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(types.BabeEquivocationProof, types.OpaqueKeyOwnershipProof) error); ok {
-		r0 = rf(equivocationProof, keyOwnershipProof)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
 // CheckInherents provides a mock function with given fields:
 func (_m *Instance) CheckInherents() {
 	_m.Called()

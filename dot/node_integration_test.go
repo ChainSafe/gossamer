@@ -41,7 +41,7 @@ import (
 func TestNewNode(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
-	mockTelemetryClient := NewMockClient(ctrl)
+	mockTelemetryClient := NewMockTelemetry(ctrl)
 	mockTelemetryClient.EXPECT().SendMessage(gomock.Any())
 
 	initConfig := NewTestConfig(t)

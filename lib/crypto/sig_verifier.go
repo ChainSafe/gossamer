@@ -7,8 +7,6 @@ import (
 	"errors"
 	"sync"
 	"time"
-
-	"github.com/ChainSafe/gossamer/internal/log"
 )
 
 var ErrSignatureVerificationFailed = errors.New("failed to verify signature")
@@ -29,7 +27,7 @@ type SignatureVerifier struct {
 	batch   []*SignatureInfo
 	init    bool // Indicates whether the batch processing is started.
 	invalid bool // Set to true if any signature verification fails.
-	logger  log.LeveledLogger
+	logger  Erroer
 	closeCh chan struct{}
 	sync.RWMutex
 	sync.Once
@@ -40,7 +38,7 @@ type SignatureVerifier struct {
 // Start() is called to start the verification process.
 // Finish() is called to stop the verification process.
 // Signatures can be added to the batch using Add().
-func NewSignatureVerifier(logger log.LeveledLogger) *SignatureVerifier {
+func NewSignatureVerifier(logger Erroer) *SignatureVerifier {
 	return &SignatureVerifier{
 		batch:   make([]*SignatureInfo, 0),
 		init:    false,

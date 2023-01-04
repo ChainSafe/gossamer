@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
-	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -36,7 +35,7 @@ type Config struct {
 	BabeVerifier       BabeVerifier
 	MinPeers, MaxPeers int
 	SlotDuration       time.Duration
-	Telemetry          telemetry.Client
+	Telemetry          Telemetry
 }
 
 // NewService returns a new *sync.Service

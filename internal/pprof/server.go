@@ -12,7 +12,7 @@ import (
 
 // NewServer creates a new Pprof server which will listen at
 // the address specified.
-func NewServer(address string, logger httpserver.Logger,
+func NewServer(address string, logger Logger,
 	options ...httpserver.Option) *httpserver.Server {
 	handler := http.NewServeMux()
 	handler.HandleFunc("/debug/pprof/", pprof.Index)

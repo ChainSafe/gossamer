@@ -10,7 +10,6 @@ import (
 
 	"github.com/libp2p/go-libp2p-core/crypto"
 
-	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/metrics"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -53,7 +52,7 @@ var DefaultBootnodes = []string(nil)
 // Config is used to configure a network service
 type Config struct {
 	LogLvl  log.Level
-	logger  log.LeveledLogger
+	logger  Logger
 	ErrChan chan<- error
 
 	// BasePath the data directory for the node
@@ -103,7 +102,7 @@ type Config struct {
 	// SlotDuration is the slot duration to produce a block
 	SlotDuration time.Duration
 
-	Telemetry telemetry.Client
+	Telemetry Telemetry
 	Metrics   metrics.IntervalConfig
 }
 

@@ -156,7 +156,7 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 	mockCoreAPI.On("HandleSubmittedExtrinsic",
 		types.Extrinsic(common.MustHexToBytes(fmt.Sprintf("0x%x", testExt)))).Return(nil)
 	type fields struct {
-		logger     log.LeveledLogger
+		logger     Infoer
 		coreAPI    CoreAPI
 		txStateAPI TransactionStateAPI
 	}
@@ -237,7 +237,7 @@ func TestAuthorModule_PendingExtrinsics(t *testing.T) {
 	})
 
 	type fields struct {
-		logger     log.LeveledLogger
+		logger     Infoer
 		coreAPI    CoreAPI
 		txStateAPI TransactionStateAPI
 	}
@@ -315,7 +315,7 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 	mockCoreAPIHappyGran.On("InsertKey", kp2, "gran").Return(nil)
 
 	type fields struct {
-		logger     log.LeveledLogger
+		logger     Infoer
 		coreAPI    CoreAPI
 		txStateAPI TransactionStateAPI
 	}
@@ -417,7 +417,7 @@ func TestAuthorModule_HasKey(t *testing.T) {
 	mockCoreAPIErr.On("HasKey", kr.Alice().Public().Hex(), "babe").Return(false, fmt.Errorf("some error"))
 
 	type fields struct {
-		logger     log.LeveledLogger
+		logger     Infoer
 		coreAPI    CoreAPI
 		txStateAPI TransactionStateAPI
 	}
