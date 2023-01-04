@@ -215,7 +215,7 @@ func (bs *BlockState) handleFinalisedBlock(curr common.Hash) error {
 		return nil
 	}
 
-	subchain, err := bs.SubChain(prev, curr)
+	subchain, err := bs.RangeInMemory(prev, curr)
 	if err != nil {
 		return err
 	}

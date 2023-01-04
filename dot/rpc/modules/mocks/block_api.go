@@ -258,29 +258,8 @@ func (_m *BlockAPI) HasJustification(hash common.Hash) (bool, error) {
 	return r0, r1
 }
 
-// RegisterRuntimeUpdatedChannel provides a mock function with given fields: ch
-func (_m *BlockAPI) RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (uint32, error) {
-	ret := _m.Called(ch)
-
-	var r0 uint32
-	if rf, ok := ret.Get(0).(func(chan<- runtime.Version) uint32); ok {
-		r0 = rf(ch)
-	} else {
-		r0 = ret.Get(0).(uint32)
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(chan<- runtime.Version) error); ok {
-		r1 = rf(ch)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// SubChain provides a mock function with given fields: start, end
-func (_m *BlockAPI) SubChain(start common.Hash, end common.Hash) ([]common.Hash, error) {
+// RangeInMemory provides a mock function with given fields: start, end
+func (_m *BlockAPI) RangeInMemory(start common.Hash, end common.Hash) ([]common.Hash, error) {
 	ret := _m.Called(start, end)
 
 	var r0 []common.Hash
@@ -295,6 +274,27 @@ func (_m *BlockAPI) SubChain(start common.Hash, end common.Hash) ([]common.Hash,
 	var r1 error
 	if rf, ok := ret.Get(1).(func(common.Hash, common.Hash) error); ok {
 		r1 = rf(start, end)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// RegisterRuntimeUpdatedChannel provides a mock function with given fields: ch
+func (_m *BlockAPI) RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (uint32, error) {
+	ret := _m.Called(ch)
+
+	var r0 uint32
+	if rf, ok := ret.Get(0).(func(chan<- runtime.Version) uint32); ok {
+		r0 = rf(ch)
+	} else {
+		r0 = ret.Get(0).(uint32)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(chan<- runtime.Version) error); ok {
+		r1 = rf(ch)
 	} else {
 		r1 = ret.Error(1)
 	}

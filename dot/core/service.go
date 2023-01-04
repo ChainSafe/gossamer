@@ -333,7 +333,7 @@ func (s *Service) handleChainReorg(best, curr common.Hash) error {
 		return nil
 	}
 
-	subchain, err := s.blockState.SubChain(ancestor, best)
+	subchain, err := s.blockState.RangeInMemory(ancestor, best)
 	if err != nil {
 		return err
 	}

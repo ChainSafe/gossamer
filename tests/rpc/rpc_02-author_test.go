@@ -25,8 +25,9 @@ import (
 // TODO: add test against latest dev runtime
 // See https://github.com/ChainSafe/gossamer/issues/2705
 func TestAuthorSubmitExtrinsic(t *testing.T) {
-	genesisPath := libutils.GetDevV3SubstrateGenesisPath(t)
+	genesisPath := libutils.GetWestendDevGenesisPath(t)
 	tomlConfig := config.Default()
+	tomlConfig.Account.Key = "alice"
 	tomlConfig.Init.Genesis = genesisPath
 	tomlConfig.Core.BABELead = true
 

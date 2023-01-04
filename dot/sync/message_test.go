@@ -103,7 +103,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				mockBlockState.EXPECT().GetHashByNumber(uint(2)).Return(common.Hash{1, 2, 3}, nil)
 				mockBlockState.EXPECT().IsDescendantOf(common.Hash{}, common.Hash{1, 2, 3}).Return(true,
 					nil)
-				mockBlockState.EXPECT().SubChain(common.Hash{}, common.Hash{1, 2, 3}).Return([]common.Hash{{1,
+				mockBlockState.EXPECT().RangeInMemory(common.Hash{}, common.Hash{1, 2, 3}).Return([]common.Hash{{1,
 					2}},
 					nil)
 				return mockBlockState
@@ -125,7 +125,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				mockBlockState.EXPECT().GetHeaderByNumber(uint(1)).Return(&types.Header{
 					Number: 1,
 				}, nil)
-				mockBlockState.EXPECT().SubChain(common.MustHexToHash(
+				mockBlockState.EXPECT().RangeInMemory(common.MustHexToHash(
 					"0x6443a0b46e0412e626363028115a9f2cf963eeed526b8b33e5316f08b50d0dc3"),
 					common.Hash{}).Return([]common.Hash{{1, 2}}, nil)
 				return mockBlockState
