@@ -59,7 +59,7 @@ func createTestBlockTree(t *testing.T, header *types.Header, number uint) (*Bloc
 	previousHash := header.Hash()
 
 	// branch tree randomly
-	branches := []testBranch{}
+	var branches []testBranch
 	r := rand.New(rand.NewSource(time.Now().UnixNano())) //skipcq: GSC-G404
 
 	at := int64(0)
@@ -264,15 +264,14 @@ func Test_BlockTree_GetAllBlocksAtNumber(t *testing.T) {
 	bt, _ := createTestBlockTree(t, testHeader, 8)
 	hashes := bt.root.getNodesWithNumber(10, []common.Hash{})
 
-	expected := []common.Hash{}
-	require.Equal(t, expected, hashes)
+	require.Empty(t, hashes)
 
 	// create one-path tree
 	const btNumber uint = 8
 	const desiredNumber uint = 6
 	bt, btHashes := createFlatTree(t, btNumber)
 
-	expected = []common.Hash{btHashes[desiredNumber]}
+	expected := []common.Hash{btHashes[desiredNumber]}
 
 	// add branch
 	previousHash := btHashes[4]
@@ -562,7 +561,7 @@ func Test_BlockTree_BestBlockHash_AllChainsEqual(t *testing.T) {
 	bt := NewBlockTreeFromRoot(testHeader)
 	previousHash := testHeader.Hash()
 
-	branches := []testBranch{}
+	var branches []testBranch
 
 	const fixedArrivalTime = 99
 	const depth uint = 4
@@ -814,7 +813,7 @@ func BenchmarkBlockTreeSubBlockchain(b *testing.B) {
 
 		b.Run(fmt.Sprintf("input_len_%d", tt.input), func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				bt.SubBlockchain(firstHash, endHash)
+				bt.RangeInMemory(firstHash, endHash)
 			}
 		})
 	}

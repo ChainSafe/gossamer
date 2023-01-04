@@ -673,13 +673,13 @@ func (bs *BlockState) retrieveRangeFromDatabase(startHash common.Hash,
 	return hashes, nil
 }
 
-// SubChain returns the sub-blockchain between the starting hash and the ending hash using the block tree
-func (bs *BlockState) SubChain(start, end common.Hash) ([]common.Hash, error) {
+// RangeInMemory returns the sub-blockchain between the starting hash and the ending hash using the block tree
+func (bs *BlockState) RangeInMemory(start, end common.Hash) ([]common.Hash, error) {
 	if bs.bt == nil {
 		return nil, fmt.Errorf("%w", errNilBlockTree)
 	}
 
-	return bs.bt.SubBlockchain(start, end)
+	return bs.bt.RangeInMemory(start, end)
 }
 
 // IsDescendantOf returns true if child is a descendant of parent, false otherwise.

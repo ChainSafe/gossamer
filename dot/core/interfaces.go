@@ -56,7 +56,7 @@ type BlockState interface {
 	BestBlockHeader() (*types.Header, error)
 	AddBlock(*types.Block) error
 	GetBlockStateRoot(bhash common.Hash) (common.Hash, error)
-	SubChain(start, end common.Hash) ([]common.Hash, error)
+	RangeInMemory(start, end common.Hash) ([]common.Hash, error)
 	GetBlockBody(hash common.Hash) (*types.Body, error)
 	HandleRuntimeChanges(newState *rtstorage.TrieState, in state.Runtime, bHash common.Hash) error
 	GetRuntime(blockHash common.Hash) (instance state.Runtime, err error)
