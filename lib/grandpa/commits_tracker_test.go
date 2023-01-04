@@ -350,7 +350,7 @@ func Test_commitsTracker_threadSafety(t *testing.T) {
 				SetID: 1,
 				Vote: types.GrandpaVote{
 					Hash:   blockHash,
-					Number: uint32(i),
+					Number: uint64(i),
 				},
 			}
 
