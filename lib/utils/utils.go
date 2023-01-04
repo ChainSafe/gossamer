@@ -163,11 +163,6 @@ func GetWestendDevGenesisPath(t *testing.T) string {
 	return filepath.Join(GetProjectRootPathTest(t), "./chain/westend-dev/westend-dev-spec-raw.json")
 }
 
-// GetWestendDevGenesisPath gets the westend-dev genesis path
-func GetWestendDevGenesisPath(t *testing.T) string {
-	return filepath.Join(GetProjectRootPathTest(t), "./chain/westend-dev/westend-dev-spec-raw.json")
-}
-
 // GetKusamaGenesisPath gets the Kusama genesis path
 func GetKusamaGenesisPath(t *testing.T) string {
 	return filepath.Join(GetProjectRootPathTest(t), "./chain/kusama/genesis.json")
