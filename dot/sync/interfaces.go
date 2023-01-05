@@ -25,6 +25,7 @@ type BlockState interface {
 	GetBlockBody(common.Hash) (*types.Body, error)
 	GetHeader(common.Hash) (*types.Header, error)
 	HasHeader(hash common.Hash) (bool, error)
+	Range(startHash, endHash common.Hash) (hashes []common.Hash, err error)
 	RangeInMemory(start, end common.Hash) ([]common.Hash, error)
 	GetReceipt(common.Hash) ([]byte, error)
 	GetMessageQueue(common.Hash) ([]byte, error)
