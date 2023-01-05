@@ -13,6 +13,8 @@ import (
 
 // Database is an in-memory database implementation.
 type Database struct {
+	// TODO use atomic for panic boolean when using Go 1.19
+	// instead of mutex.
 	closed    bool
 	keyValues map[string][]byte
 	mutex     sync.RWMutex
@@ -69,7 +71,10 @@ func (db *Database) Delete(key []byte) (err error) {
 // It is not thread-safe to write to the batch, but flushing it is
 // thread-safe for the database.
 func (db *Database) NewWriteBatch() (writeBatch database.WriteBatch) {
+	db.mutex.Lock()
 	db.panicOnClosed()
+	db.mutex.Unlock()
+
 	const prefix = ""
 	return newWriteBatch(prefix, db)
 }
@@ -77,7 +82,10 @@ func (db *Database) NewWriteBatch() (writeBatch database.WriteBatch) {
 // NewTable returns a new table using the database.
 // All keys on the table will be prefixed with the given prefix.
 func (db *Database) NewTable(prefix string) (writeBatch database.Table) {
+	db.mutex.Lock()
 	db.panicOnClosed()
+	db.mutex.Unlock()
+
 	return newTable(prefix, db)
 }
 
