@@ -190,7 +190,7 @@ func (s *GrandpaSignedVote) String() string {
 // GrandpaVote represents a vote for a block with the given hash and number
 type GrandpaVote struct {
 	Hash   common.Hash
-	Number uint64
+	Number uint32
 }
 
 func (v GrandpaVote) String() string {

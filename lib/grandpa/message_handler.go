@@ -390,7 +390,7 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) erro
 			continue
 		}
 
-		if just.Vote.Hash == msg.Hash && just.Vote.Number == uint64(msg.Number) {
+		if just.Vote.Hash == msg.Hash && just.Vote.Number == msg.Number {
 			count++
 		}
 	}

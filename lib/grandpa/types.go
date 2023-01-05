@@ -76,7 +76,7 @@ func (s *State) threshold() uint64 {
 }
 
 // NewVote returns a new Vote given a block hash and number
-func NewVote(hash common.Hash, number uint64) *Vote {
+func NewVote(hash common.Hash, number uint32) *Vote {
 	return &Vote{
 		Hash:   hash,
 		Number: number,
@@ -87,7 +87,7 @@ func NewVote(hash common.Hash, number uint64) *Vote {
 func NewVoteFromHeader(h *types.Header) *Vote {
 	return &Vote{
 		Hash:   h.Hash(),
-		Number: uint64(h.Number),
+		Number: uint32(h.Number),
 	}
 }
 
@@ -113,7 +113,7 @@ func NewVoteFromHash(hash common.Hash, blockState BlockState) (*Vote, error) {
 // Commit contains all the signed precommits for a given block
 type Commit struct {
 	Hash       common.Hash
-	Number     uint64
+	Number     uint32
 	Precommits []SignedVote
 }
 
@@ -123,7 +123,7 @@ type Justification struct {
 	Commit Commit
 }
 
-func newJustification(round uint64, hash common.Hash, number uint64, j []SignedVote) *Justification {
+func newJustification(round uint64, hash common.Hash, number uint32, j []SignedVote) *Justification {
 	return &Justification{
 		Round: round,
 		Commit: Commit{
