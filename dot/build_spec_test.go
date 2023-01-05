@@ -136,10 +136,10 @@ func TestBuildFromDB(t *testing.T) {
 	}{
 		{name: "normal conditions", path: cfg.Global.BasePath,
 			want: &BuildSpec{genesis: &genesis.Genesis{
-				Name:       "Gossamer Testnet",
-				ID:         "gssmr_test",
+				Name:       "Development",
+				ID:         "westend_dev",
 				Bootnodes:  []string{},
-				ProtocolID: "gssmr_test",
+				ProtocolID: "dot",
 				Genesis: genesis.Fields{
 					Raw:     map[string]map[string]string{},
 					Runtime: map[string]map[string]interface{}{},
