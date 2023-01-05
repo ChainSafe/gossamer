@@ -158,18 +158,40 @@ func GetGssmrGenesisPath() (path string, err error) {
 	return filepath.Join(rootPath, "./chain/gssmr/genesis-spec.json"), nil
 }
 
+// GetGssmrV3SubstrateGenesisRawPathTest gets the v3 substrate gssmr raw genesis path
+// and fails the test if it cannot find it.
+func GetGssmrV3SubstrateGenesisRawPathTest(t *testing.T) string {
+	t.Helper()
+	path, err := GetGssmrV3SubstrateGenesisRawPath()
+	require.NoError(t, err)
+	return path
+}
+
+// GetGssmrV3SubstrateGenesisRawPath gets the v3 substrate gssmr raw genesis path
+// and returns an error if it cannot find it.
+func GetGssmrV3SubstrateGenesisRawPath() (path string, err error) {
+	rootPath, err := GetProjectRootPath()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(rootPath, "./chain/gssmr-v3substrate/genesis.json"), nil
+}
+
 // GetWestendDevGenesisPath gets the westend-dev genesis raw path
 func GetWestendDevGenesisPath(t *testing.T) string {
+	t.Helper()
 	return filepath.Join(GetProjectRootPathTest(t), "./chain/westend-dev/westend-dev-spec-raw.json")
 }
 
 // GetKusamaGenesisPath gets the Kusama genesis path
 func GetKusamaGenesisPath(t *testing.T) string {
+	t.Helper()
 	return filepath.Join(GetProjectRootPathTest(t), "./chain/kusama/genesis.json")
 }
 
 // GetPolkadotGenesisPath gets the Polkadot genesis path
 func GetPolkadotGenesisPath(t *testing.T) string {
+	t.Helper()
 	return filepath.Join(GetProjectRootPathTest(t), "./chain/polkadot/genesis.json")
 }
 
