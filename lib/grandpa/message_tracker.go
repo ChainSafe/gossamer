@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 // tracker keeps track of messages that have been received, but have failed to

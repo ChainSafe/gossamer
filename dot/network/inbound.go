@@ -4,7 +4,7 @@
 package network
 
 import (
-	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
+	libp2pnetwork "github.com/libp2p/go-libp2p/core/network"
 )
 
 func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder, handler messageHandler,

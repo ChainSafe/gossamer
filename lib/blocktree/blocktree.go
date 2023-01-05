@@ -165,8 +165,8 @@ func (bt *BlockTree) Range(startHash common.Hash, endHash common.Hash) (hashes [
 	return hashes, nil
 }
 
-// SubBlockchain returns the path from the node with Hash start to the node with Hash end
-func (bt *BlockTree) SubBlockchain(startHash common.Hash, endHash common.Hash) (hashes []common.Hash, err error) {
+// RangeInMemory returns the path from the node with Hash start to the node with Hash end
+func (bt *BlockTree) RangeInMemory(startHash common.Hash, endHash common.Hash) (hashes []common.Hash, err error) {
 	bt.Lock()
 	defer bt.Unlock()
 
