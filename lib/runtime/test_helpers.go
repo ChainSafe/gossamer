@@ -57,6 +57,8 @@ var (
 // GetRuntime returns the runtime file path located in the
 // /tmp/gossamer/runtimes directory (depending on OS and environment).
 // If the file did not exist, the runtime WASM blob is downloaded to that file.
+// If the runtime argument is not defined in the constants.go and is a valid
+// file path this function will return the runtime argument
 func GetRuntime(ctx context.Context, runtime string) (
 	runtimePath string, err error) {
 	basePath := filepath.Join(os.TempDir(), "/gossamer/runtimes/")
