@@ -66,6 +66,43 @@ func (_m *Instance) BabeConfiguration() (*types.BabeConfiguration, error) {
 	return r0, r1
 }
 
+// BabeGenerateKeyOwnershipProof provides a mock function with given fields: slot, offenderPublicKey
+func (_m *Instance) BabeGenerateKeyOwnershipProof(slot uint64, offenderPublicKey [32]byte) (types.OpaqueKeyOwnershipProof, error) {
+	ret := _m.Called(slot, offenderPublicKey)
+
+	var r0 types.OpaqueKeyOwnershipProof
+	if rf, ok := ret.Get(0).(func(uint64, [32]byte) types.OpaqueKeyOwnershipProof); ok {
+		r0 = rf(slot, offenderPublicKey)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(types.OpaqueKeyOwnershipProof)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(uint64, [32]byte) error); ok {
+		r1 = rf(slot, offenderPublicKey)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// BabeSubmitReportEquivocationUnsignedExtrinsic provides a mock function with given fields: _a0, _a1
+func (_m *Instance) BabeSubmitReportEquivocationUnsignedExtrinsic(_a0 types.BabeEquivocationProof, _a1 types.OpaqueKeyOwnershipProof) error {
+	ret := _m.Called(_a0, _a1)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(types.BabeEquivocationProof, types.OpaqueKeyOwnershipProof) error); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // CheckInherents provides a mock function with given fields:
 func (_m *Instance) CheckInherents() {
 	_m.Called()
