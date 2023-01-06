@@ -180,7 +180,7 @@ func TestService_getLatestEpochData_epochData(t *testing.T) {
 	require.NoError(t, err)
 
 	data := &types.EpochData{
-		Authorities: auths[:3],
+		Authorities: auths,
 		Randomness:  [types.RandomnessLength]byte{99, 88, 77},
 	}
 	err = epochState.SetEpochData(1, data)

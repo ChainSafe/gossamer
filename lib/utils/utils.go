@@ -177,6 +177,11 @@ func GetGssmrV3SubstrateGenesisRawPath() (path string, err error) {
 	return filepath.Join(rootPath, "./chain/gssmr-v3substrate/genesis.json"), nil
 }
 
+// GetDevV3SubstrateGenesisPath gets the v3 substrate dev genesis path
+func GetDevV3SubstrateGenesisPath(t *testing.T) string {
+	return filepath.Join(GetProjectRootPathTest(t), "./chain/dev-v3substrate/genesis.json")
+}
+
 // GetWestendDevGenesisPath gets the westend-dev genesis raw path
 func GetWestendDevGenesisPath(t *testing.T) string {
 	t.Helper()

@@ -137,7 +137,7 @@ func NewTestService(t *testing.T, cfg *core.Config) *core.Service {
 func newDevGenesisWithTrieAndHeader(t *testing.T) (
 	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
 	t.Helper()
-	genesisPath := utils.GetWestendDevGenesisPath(t)
+	genesisPath := utils.GetDevV3SubstrateGenesisPath(t)
 
 	genesisPtr, err := genesis.NewGenesisFromJSONRaw(genesisPath)
 	require.NoError(t, err)
