@@ -1290,26 +1290,16 @@ func TestInstance_GrandpaGenerateKeyOwnershipProofEncoding(t *testing.T) {
 }
 
 func TestInstance_GrandpaSubmitReportEquivocationUnsignedExtrinsicEncoding(t *testing.T) {
-	expectedEncoding := []byte{1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 136, 220, 52, 23, 213, 5, 142, 196, 180,
-		80, 62, 12, 18, 234, 26, 10, 137, 190, 32, 15, 233, 137, 34, 66, 61, 67, 52, 1, 79, 166, 176, 238, 72, 1,
-		184, 230, 45, 49, 22, 125, 48, 200, 147, 204, 25, 112, 246, 160, 226, 137, 66, 2, 130, 164, 178, 69, 183,
-		95, 44, 70, 251, 48, 138, 241, 10, 0, 0, 0, 0, 0, 0, 0, 215, 41, 44, 170, 204, 98, 80, 67, 101, 241, 121,
-		137, 42, 115, 153, 242, 51, 148, 75, 242, 97, 248, 163, 246, 98, 96, 247, 14, 0, 22, 242, 219, 99, 146, 39,
-		38, 176, 21, 200, 45, 199, 19, 31, 71, 48, 251, 236, 97, 247, 22, 114, 165, 113, 69, 62, 81, 2, 155, 251,
-		70, 144, 112, 144, 15, 195, 20, 50, 121, 65, 253, 217, 36, 188, 103, 253, 114, 101, 28, 64, 174, 206, 205,
-		72, 92, 163, 232, 120, 194, 30, 2, 171, 180, 15, 234, 229, 189, 10, 0, 0, 0, 0, 0, 0, 0, 179, 196, 8, 183,
-		73, 5, 223, 237, 255, 250, 102, 249, 159, 22, 254, 139, 147, 143, 216, 223, 118, 169, 34, 37, 34, 138, 28,
-		160, 117, 35, 11, 153, 162, 217, 225, 115, 197, 97, 149, 46, 30, 55, 139, 112, 25, 21, 202, 24, 141, 44,
-		131, 46, 249, 42, 63, 171, 142, 69, 95, 50, 87, 12, 8, 7}
+	expectedEncoding := common.MustHexToBytes("0x010000000000000000010000000000000088dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee4801b8e62d31167d30c893cc1970f6a0e289420282a4b245b75f2c46fb308af10a000000d7292caacc62504365f179892a7399f233944bf261f8a3f66260f70e0016f2db63922726b015c82dc7131f4730fbec61f71672a571453e51029bfb469070900fc314327941fdd924bc67fd72651c40aececd485ca3e878c21e02abb40feae5bd0a000000b3c408b74905dfedfffa66f99f16fe8b938fd8df76a92225228a1ca075230b99a2d9e173c561952e1e378b701915ca188d2c832ef92a3fab8e455f32570c0807")
 	identity, _ := common.HexToBytes("0x88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee")
 	identityPubKey, _ := ed25519.NewPublicKey(identity)
 	testFirstVote := types.GrandpaVote{
 		Hash:   common.MustHexToHash("0x4801b8e62d31167d30c893cc1970f6a0e289420282a4b245b75f2c46fb308af1"),
-		Number: 10,
+		Number: uint32(10),
 	}
 	testSecondVote := types.GrandpaVote{
 		Hash:   common.MustHexToHash("0xc314327941fdd924bc67fd72651c40aececd485ca3e878c21e02abb40feae5bd"),
-		Number: 10,
+		Number: uint32(10),
 	}
 
 	firstSignature, _ := common.HexToBytes("0xd7292caacc62504365f179892a7399f233944bf261f8a3f66260f70e0016f2db63922726b015c82dc7131f4730fbec61f71672a571453e51029bfb469070900f")
@@ -1347,15 +1337,13 @@ func TestInstance_GrandpaSubmitReportEquivocationUnsignedExtrinsicEncoding(t *te
 }
 
 func TestInstance_GrandpaSubmitReportEquivocationUnsignedExtrinsic(t *testing.T) {
-	// TODO fix this tests
 	identity, _ := common.HexToBytes("0x88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee")
 	identityPubKey, _ := ed25519.NewPublicKey(identity)
-
 	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
 
-	keyOwnershipProof, err := rt.GrandpaGenerateKeyOwnershipProof(1, identityPubKey.AsBytes())
+	keyOwnershipProofRaw := types.OpaqueKeyOwnershipProof([]byte{64, 138, 252, 29, 127, 102, 189, 129, 207, 47, 157, 60, 17, 138, 194, 121, 139, 92, 176, 175, 224, 16, 185, 93, 175, 251, 224, 81, 209, 61, 0, 71}) //nolint:lll
+	keyOwnershipProof, err := scale.Marshal(keyOwnershipProofRaw)
 	require.NoError(t, err)
-	require.True(t, len(keyOwnershipProof) != 0)
 
 	var opaqueKeyOwnershipProof types.OpaqueKeyOwnershipProof
 	err = scale.Unmarshal(keyOwnershipProof, &opaqueKeyOwnershipProof)
