@@ -26,8 +26,9 @@ func NewTestInstance(t *testing.T, targetRuntime string) *Instance {
 	return NewTestInstanceWithTrie(t, targetRuntime, nil)
 }
 
-// NewTestInstanceWithTrie will return a wasmer.Instance given the targetRuntime, using the provided trie as the storage
-// the targetRuntime can be a file path to a local .wasm file or a already defined constant in runtime/constants.go
+// NewTestInstanceWithTrie returns an instance based on the target runtime string specified,
+// which can be a file path or a constant from the constants defined in `lib/runtime/constants.go`.
+// The instance uses the trie given as argument for its storage.
 func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie) *Instance {
 	t.Helper()
 

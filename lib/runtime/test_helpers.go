@@ -58,9 +58,13 @@ var (
 // /tmp/gossamer/runtimes directory (depending on OS and environment).
 // If the file did not exist, the runtime WASM blob is downloaded to that file.
 // If the runtime argument is not defined in the constants.go and is a valid
-// file path this function will return the runtime argument
+// file path, the runtime argument is returned.
 func GetRuntime(ctx context.Context, runtime string) (
 	runtimePath string, err error) {
+	if utils.PathExists(runtime) {
+		return runtime, nil
+	}
+
 	basePath := filepath.Join(os.TempDir(), "/gossamer/runtimes/")
 	const perm = os.FileMode(0777)
 	err = os.MkdirAll(basePath, perm)
@@ -101,9 +105,6 @@ func GetRuntime(ctx context.Context, runtime string) (
 		runtimeFilename = WESTEND_RUNTIME_V0929_FP
 		url = WESTEND_RUNTIME_V0929_URL
 	default:
-		if utils.PathExists(runtime) {
-			return runtime, nil
-		}
 		return "", fmt.Errorf("%w: %s", ErrRuntimeUnknown, runtime)
 	}
 
