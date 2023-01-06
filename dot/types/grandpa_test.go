@@ -15,7 +15,6 @@ import (
 
 func TestEncodeAndDecodeEquivocationPreVote(t *testing.T) {
 	t.Parallel()
-	// TODO refactor this test to use encoded bytes from substrate
 	testFirstVote := GrandpaVote{
 		Hash:   common.Hash{0xa, 0xb, 0xc, 0xd},
 		Number: 999,
@@ -28,12 +27,12 @@ func TestEncodeAndDecodeEquivocationPreVote(t *testing.T) {
 	keypair, err := ed25519.GenerateKeypair()
 	require.NoError(t, err)
 
-	var authorityId [32]byte
-	copy(authorityId[:], keypair.Public().Encode())
+	var authorityID [32]byte
+	copy(authorityID[:], keypair.Public().Encode())
 
 	equivocation := GrandpaEquivocation{
 		RoundNumber:     0,
-		ID:              authorityId,
+		ID:              authorityID,
 		FirstVote:       testFirstVote,
 		FirstSignature:  testSignature,
 		SecondVote:      testSecondVote,

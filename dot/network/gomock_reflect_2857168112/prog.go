@@ -11,7 +11,7 @@ import (
 
 	"github.com/golang/mock/mockgen/model"
 
-	pkg_ "github.com/ChainSafe/gossamer/dot/core"
+	pkg_ "github.com/ChainSafe/gossamer/dot/network"
 )
 
 var output = flag.String("output", "", "The output file name, or empty to use stdout.")
@@ -24,18 +24,6 @@ func main() {
 		typ reflect.Type
 	}{
 		
-		{ "BlockState", reflect.TypeOf((*pkg_.BlockState)(nil)).Elem()},
-		
-		{ "StorageState", reflect.TypeOf((*pkg_.StorageState)(nil)).Elem()},
-		
-		{ "TransactionState", reflect.TypeOf((*pkg_.TransactionState)(nil)).Elem()},
-		
-		{ "Network", reflect.TypeOf((*pkg_.Network)(nil)).Elem()},
-		
-		{ "CodeSubstitutedState", reflect.TypeOf((*pkg_.CodeSubstitutedState)(nil)).Elem()},
-		
-		{ "RuntimeInstance", reflect.TypeOf((*pkg_.RuntimeInstance)(nil)).Elem()},
-		
 		{ "Telemetry", reflect.TypeOf((*pkg_.Telemetry)(nil)).Elem()},
 		
 	}
@@ -43,7 +31,7 @@ func main() {
 		// NOTE: This behaves contrary to documented behaviour if the
 		// package name is not the final component of the import path.
 		// The reflect package doesn't expose the package name, though.
-		Name: path.Base("github.com/ChainSafe/gossamer/dot/core"),
+		Name: path.Base("github.com/ChainSafe/gossamer/dot/network"),
 	}
 
 	for _, it := range its {

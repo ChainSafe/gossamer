@@ -247,10 +247,12 @@ type PreCommitEquivocation GrandpaEquivocation
 // Index returns VDT index
 func (PreCommitEquivocation) Index() uint { return 1 }
 
+// OpaqueKeyOwnershipProof contains a key ownership proof for reporting equivocations
 // TODO replace once kishans PR is merged
 type OpaqueKeyOwnershipProof []byte
 
+// GrandpaEquivocationProof is used to report grandpa equivocations
 type GrandpaEquivocationProof struct {
-	SetId        uint64
+	SetID        uint64
 	Equivocation GrandpaEquivocationVote
 }

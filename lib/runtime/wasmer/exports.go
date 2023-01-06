@@ -6,6 +6,7 @@ package wasmer
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -278,11 +279,11 @@ func (in *Instance) QueryCallFeeDetails(ext []byte) (*types.FeeDetails, error) {
 func (in *Instance) CheckInherents() {}
 
 // GrandpaGenerateKeyOwnershipProof returns grandpa key ownership proof from runtime.
-func (in *Instance) GrandpaGenerateKeyOwnershipProof(authSetId uint64, authorityID ed25519.PublicKeyBytes) (
+func (in *Instance) GrandpaGenerateKeyOwnershipProof(authSetID uint64, authorityID ed25519.PublicKeyBytes) (
 	types.OpaqueKeyOwnershipProof, error) {
 
 	combinedArg := []byte{}
-	encodedSetID, err := scale.Marshal(authSetId)
+	encodedSetID, err := scale.Marshal(authSetID)
 	if err != nil {
 		return nil, fmt.Errorf("encoding set id: %w", err)
 	}

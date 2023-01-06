@@ -5,7 +5,6 @@ package core
 
 import (
 	"encoding/json"
-	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"sync"
 
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -16,6 +15,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
