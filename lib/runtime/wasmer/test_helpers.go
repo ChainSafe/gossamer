@@ -26,16 +26,19 @@ func NewTestInstance(t *testing.T, targetRuntime string) *Instance {
 	return NewTestInstanceWithTrie(t, targetRuntime, nil)
 }
 
-// NewTestInstanceWithTrie will create a new runtime (polkadot/test) with the supplied trie as the storage
+// NewTestInstanceWithTrie returns an instance based on the target runtime string specified,
+// which can be a file path or a constant from the constants defined in `lib/runtime/constants.go`.
+// The instance uses the trie given as argument for its storage.
 func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie) *Instance {
 	t.Helper()
 
 	cfg := setupConfig(t, tt, DefaultTestLogLvl, common.NoNetworkRole, targetRuntime)
-	runtimeFilepath, err := runtime.GetRuntime(context.Background(), targetRuntime)
+	targetRuntime, err := runtime.GetRuntime(context.Background(), targetRuntime)
 	require.NoError(t, err)
 
-	r, err := NewInstanceFromFile(runtimeFilepath, cfg)
+	r, err := NewInstanceFromFile(targetRuntime, cfg)
 	require.NoError(t, err)
+
 	return r
 }
 
