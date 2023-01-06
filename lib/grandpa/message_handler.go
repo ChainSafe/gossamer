@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"sync/atomic"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -34,12 +35,16 @@ type MessageHandler struct {
 
 // NewMessageHandler returns a new MessageHandler
 func NewMessageHandler(grandpa *Service, blockState BlockState, telemetryMailer Telemetry) *MessageHandler {
+	var waitingOnResponse atomic.Value
+	waitingOnResponse.Store(false)
+
 	return &MessageHandler{
 		grandpa: grandpa,
 		catchUp: &catchUp{
 			requestsSent:      map[peer.ID]CatchUpRequest{},
 			catchUpResponseCh: make(chan *CatchUpResponse),
 			grandpa:           grandpa,
+			waitingOnResponse: &waitingOnResponse,
 		},
 		blockState: blockState,
 		telemetry:  telemetryMailer,
