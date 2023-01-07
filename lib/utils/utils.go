@@ -182,8 +182,8 @@ func GetDevV3SubstrateGenesisPath(t *testing.T) string {
 	return filepath.Join(GetProjectRootPathTest(t), "./chain/dev-v3substrate/genesis.json")
 }
 
-// GetWestendDevGenesisPath gets the westend-dev genesis raw path
-func GetWestendDevGenesisPath(t *testing.T) string {
+// GetWestendDevRawGenesisPath gets the westend-dev genesis raw path
+func GetWestendDevRawGenesisPath(t *testing.T) string {
 	t.Helper()
 	return filepath.Join(GetProjectRootPathTest(t), "./chain/westend-dev/westend-dev-spec-raw.json")
 }

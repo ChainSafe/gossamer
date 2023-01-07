@@ -18,7 +18,7 @@ import (
 func NewTestGenesisRawFile(t *testing.T, cfg *Config) (filename string) {
 	filename = filepath.Join(t.TempDir(), "genesis.json")
 
-	fp := utils.GetWestendDevGenesisPath(t)
+	fp := utils.GetWestendDevRawGenesisPath(t)
 
 	gssmrGen, err := genesis.NewGenesisFromJSONRaw(fp)
 	require.NoError(t, err)

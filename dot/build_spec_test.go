@@ -123,7 +123,7 @@ func TestBuildSpec_ToJSON(t *testing.T) {
 func TestBuildFromDB(t *testing.T) {
 	// initialise node (initialise state database and load genesis data)
 	cfg := NewTestConfig(t)
-	cfg.Init.Genesis = utils.GetWestendDevGenesisPath(t)
+	cfg.Init.Genesis = utils.GetWestendDevRawGenesisPath(t)
 	builder := nodeBuilder{}
 	err := builder.initNode(cfg)
 	require.NoError(t, err)

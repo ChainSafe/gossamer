@@ -360,7 +360,7 @@ func TestMaintainTransactionPoolLatestTxnQueue_EmptyBlock(t *testing.T) {
 	keyring, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 	alicePub := common.MustHexToBytes(keyring.Alice().Public().Hex())
-	genesisFilePath := utils.GetWestendDevGenesisPath(t)
+	genesisFilePath := utils.GetWestendDevRawGenesisPath(t)
 
 	ctrl := gomock.NewController(t)
 	service, encExt := createTestService(t, genesisFilePath, alicePub, accountInfo, ctrl)
@@ -410,7 +410,7 @@ func TestMaintainTransactionPoolLatestTxnQueue_BlockWithExtrinsics(t *testing.T)
 	keyring, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 	alicePub := common.MustHexToBytes(keyring.Alice().Public().Hex())
-	genesisFilePath := utils.GetWestendDevGenesisPath(t)
+	genesisFilePath := utils.GetWestendDevRawGenesisPath(t)
 
 	ctrl := gomock.NewController(t)
 	service, encodedExtrinsic := createTestService(t, genesisFilePath, alicePub, accountInfo, ctrl)

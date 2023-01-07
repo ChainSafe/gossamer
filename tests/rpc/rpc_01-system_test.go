@@ -26,7 +26,7 @@ func TestSystemRPC(t *testing.T) { //nolint:tparallel
 
 	const numberOfNodes = 3
 
-	genesisPath := libutils.GetWestendDevGenesisPath(t)
+	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.Init.Genesis = genesisPath
 	nodes := node.MakeNodes(t, numberOfNodes, tomlConfig)

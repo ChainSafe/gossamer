@@ -21,7 +21,7 @@ var Logger = log.NewFromGlobal(log.AddContext("pkg", "test/utils"))
 // and returns the file path to the genesis file. The genesis file is
 // automatically removed when the test ends.
 func GenerateGenesisAuths(t *testing.T, numAuths int) (genesisPath string) {
-	gssmrGenesisPath := utils.GetWestendDevGenesisPath(t)
+	gssmrGenesisPath := utils.GetWestendDevRawGenesisPath(t)
 
 	buildSpec, err := dot.BuildFromGenesis(gssmrGenesisPath, numAuths)
 	require.NoError(t, err)
