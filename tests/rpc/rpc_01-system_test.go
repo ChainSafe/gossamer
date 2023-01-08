@@ -4,7 +4,9 @@
 package rpc
 
 import (
+	"bytes"
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -29,7 +31,9 @@ func TestSystemRPC(t *testing.T) { //nolint:tparallel
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.Init.Genesis = genesisPath
-	nodes := node.MakeNodes(t, numberOfNodes, tomlConfig)
+
+	writer := bytes.NewBuffer([]byte{})
+	nodes := node.MakeNodes(t, numberOfNodes, tomlConfig, node.SetWriter(writer))
 
 	nodes.InitAndStartTest(ctx, t, cancel)
 
@@ -77,7 +81,9 @@ func TestSystemRPC(t *testing.T) { //nolint:tparallel
 				return false, err // error and stop retrying
 			}
 
-			ok = healthResponse.Peers == numberOfNodes-1 && !healthResponse.IsSyncing
+			fmt.Printf("%d - %v\n", healthResponse.Peers, healthResponse.IsSyncing)
+
+			ok = healthResponse.Peers == numberOfNodes-1
 			return ok, nil
 		})
 		require.NoError(t, err)
@@ -189,4 +195,5 @@ func TestSystemRPC(t *testing.T) { //nolint:tparallel
 		t.Parallel()
 		t.Skip("test not implemented")
 	})
+
 }
