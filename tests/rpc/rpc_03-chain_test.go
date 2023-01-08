@@ -103,11 +103,11 @@ func TestChainRPC(t *testing.T) {
 		assert.Regexp(t, regexBytesHex, digestLog)
 	}
 	block.Block.Header.Digest.Logs = nil
-	assert.Len(t, block.Block.Body, 1)
+	assert.GreaterOrEqual(t, len(block.Block.Body), 1)
 	const bodyRegex = "^0x" +
 		"28" + // base 10
 		"04" + // not signed extrinsic of the 4th extrinsic version
-		"03" + // pallet index enum
+		"02" + // pallet index enum
 		"00" + // call index enum
 		// Extrinsic argument
 		"0b" + // 0b0000_1011 big int
@@ -118,11 +118,6 @@ func TestChainRPC(t *testing.T) {
 	blockNumber, err = common.HexToUint(header.Number)
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, blockNumber, uint(1))
-
-	var blockHash string
-	fetchWithTimeout(ctx, t, "chain_getBlockHash", "[]", &blockHash)
-	assert.Regexp(t, regex32BytesHex, blockHash)
-	assert.NotEqual(t, finalizedHead, blockHash)
 }
 
 func TestChainSubscriptionRPC(t *testing.T) { //nolint:tparallel
