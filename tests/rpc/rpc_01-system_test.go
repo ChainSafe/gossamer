@@ -6,7 +6,6 @@ package rpc
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -80,8 +79,6 @@ func TestSystemRPC(t *testing.T) { //nolint:tparallel
 			if err != nil {
 				return false, err // error and stop retrying
 			}
-
-			fmt.Printf("%d - %v\n", healthResponse.Peers, healthResponse.IsSyncing)
 
 			ok = healthResponse.Peers == numberOfNodes-1
 			return ok, nil
