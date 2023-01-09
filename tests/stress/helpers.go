@@ -62,9 +62,7 @@ func compareChainHeadsWithRetry(ctx context.Context, nodes node.Nodes,
 		select {
 		case <-timer.C:
 		case <-ctx.Done():
-			if !timer.Stop() {
-				<-timer.C
-			}
+			timer.Stop()
 			return fmt.Errorf("%w: hashes=%v", err, hashes) // last error
 		}
 	}

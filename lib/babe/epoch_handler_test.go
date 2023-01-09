@@ -92,9 +92,7 @@ func TestEpochHandler_run(t *testing.T) {
 	case <-timer.C:
 		require.Equal(t, epochLength-(firstExecutedSlot-startSlot), callsToHandleSlot)
 	case err := <-errCh:
-		if !timer.Stop() {
-			<-timer.C
-		}
+		timer.Stop()
 		require.NoError(t, err)
 	}
 }

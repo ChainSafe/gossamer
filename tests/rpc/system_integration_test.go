@@ -50,9 +50,7 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 		select {
 		case <-timer.C:
 		case <-ctx.Done():
-			if !timer.Stop() {
-				<-timer.C
-			}
+			timer.Stop()
 			return
 		}
 	}

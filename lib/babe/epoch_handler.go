@@ -103,15 +103,6 @@ func (h *epochHandler) run(ctx context.Context, errCh chan<- error) {
 		logger.Debugf("start time of slot %d: %v", authoringSlot, startTime)
 	}
 
-	defer func() {
-		// cleanup timers if ctx was cancelled
-		for _, swt := range slotTimeTimers {
-			if !swt.timer.Stop() {
-				<-swt.timer.C
-			}
-		}
-	}()
-
 	logger.Debugf("authoring in %d slots in epoch %d", len(slotTimeTimers), h.epochNumber)
 
 	for _, swt := range slotTimeTimers {
@@ -119,6 +110,9 @@ func (h *epochHandler) run(ctx context.Context, errCh chan<- error) {
 
 		select {
 		case <-ctx.Done():
+			for _, swt := range slotTimeTimers {
+				swt.timer.Stop()
+			}
 			return
 		case <-swt.timer.C:
 			// we must do a time correction as the slot timer sometimes is triggered
