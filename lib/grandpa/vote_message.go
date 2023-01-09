@@ -274,7 +274,6 @@ func (s *Service) reportEquivocation(stage Subround, existingVote *SignedVote, c
 
 	pubKey := existingVote.AuthorityID
 
-	// Getting runtime like this now, could improve this possibly
 	bestBlockHash := s.blockState.BestBlockHash()
 	rt, err := s.blockState.GetRuntime(bestBlockHash)
 	if err != nil {
