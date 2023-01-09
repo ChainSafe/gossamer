@@ -1901,8 +1901,7 @@ func ext_storage_clear_prefix_version_2(context unsafe.Pointer, prefixSpan, lim 
 	numRemoved, all, err := storage.ClearPrefixLimit(prefix, limitUint)
 	if err != nil {
 		logger.Errorf("failed to clear prefix limit: %s", err)
-		ret, _ := toWasmMemory(instanceContext, nil)
-		return C.int64_t(ret)
+		return mustToWasmMemoryNil(instanceContext)
 	}
 
 	encBytes, err := toKillStorageResultEnum(all, numRemoved)
