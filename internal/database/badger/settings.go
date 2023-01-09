@@ -29,7 +29,7 @@ func (s *Settings) SetDefaults() {
 }
 
 // Validate validates the settings.
-func (s Settings) Validate() (err error) {
+func (s Settings) Validate() (err error) { //skipcq: GO-W1029
 	_, err = filepath.Abs(s.Path)
 	if err != nil {
 		return fmt.Errorf("changing path to absolute path: %w", err)
