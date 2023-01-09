@@ -15,7 +15,6 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/chaindb"
-	"github.com/dgraph-io/badger/v2"
 	"github.com/stretchr/testify/require"
 )
 
@@ -252,16 +251,4 @@ func GetProjectRootPath() (rootPath string, err error) {
 	}
 
 	return rootPath, nil
-}
-
-// LoadBadgerDB load the db at the given path.
-func LoadBadgerDB(basePath string) (*badger.DB, error) {
-	opts := badger.DefaultOptions(basePath)
-	// Open already existing DB
-	db, err := badger.Open(opts)
-	if err != nil {
-		return nil, err
-	}
-
-	return db, nil
 }

@@ -11,7 +11,6 @@ import (
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/dgraph-io/badger/v2"
 	"github.com/dgraph-io/badger/v2/pb"
 )
@@ -160,9 +159,10 @@ func (p *OfflinePruner) SetBloomFilter() (err error) {
 
 // Prune starts streaming the data from input db to the pruned db.
 func (p *OfflinePruner) Prune() error {
-	inputDB, err := utils.LoadBadgerDB(p.inputDBPath)
+	opts := badger.DefaultOptions(p.inputDBPath)
+	inputDB, err := badger.Open(opts)
 	if err != nil {
-		return fmt.Errorf("failed to load DB %w", err)
+		return fmt.Errorf("opening input database: %w", err)
 	}
 	defer func() {
 		closeErr := inputDB.Close()
