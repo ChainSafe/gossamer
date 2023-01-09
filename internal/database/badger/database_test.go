@@ -263,12 +263,6 @@ func Test_Database_NewTable(t *testing.T) {
 	prefixBytes := []byte(prefix)
 	table := db.NewTable(prefix)
 
-	// err = table.Set([]byte{1}, []byte{1})
-	// require.NoError(t, err)
-	// assertDBValue(t, db, append(prefixBytes, []byte{1}...), []byte{1})
-	// err = table.Delete([]byte{1})
-	// require.NoError(t, err)
-
 	writeBatch := table.NewWriteBatch()
 	err = writeBatch.Set([]byte{1}, []byte{1})
 	require.NoError(t, err)
@@ -281,7 +275,5 @@ func Test_Database_NewTable(t *testing.T) {
 	err = writeBatch.Flush()
 	require.NoError(t, err)
 
-	// assertDBValue(t, db, append(prefixBytes, []byte{1}...), []byte{1})
-	// assertDBKeyNotFound(t, db, append(prefixBytes, []byte{2}...))
 	assertDBValue(t, db, append(prefixBytes, []byte{3}...), []byte{3})
 }
