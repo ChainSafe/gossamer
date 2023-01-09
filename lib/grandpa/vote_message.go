@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/telemetry"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -252,7 +253,7 @@ func (s *Service) checkForEquivocation(voter *Voter, vote *SignedVote, stage Sub
 		err := s.reportEquivocation(stage, existingVote, vote)
 		if err != nil {
 			// TODO get feedback on if this is appropriate way to handle error
-			logger.Error("failed to report equivocation")
+			logger.Errorf("%s: %s", errReportingEquivocation, err)
 		}
 		return true
 	}
@@ -261,9 +262,6 @@ func (s *Service) checkForEquivocation(voter *Voter, vote *SignedVote, stage Sub
 }
 
 func (s *Service) reportEquivocation(stage Subround, existingVote *SignedVote, currentVote *SignedVote) error {
-	fmt.Println(stage)
-	fmt.Println(currentVote)
-	//TODO finish filling out this function
 	setID, err := s.grandpaState.GetCurrentSetID()
 	if err != nil {
 		return fmt.Errorf("getting authority set id: %w", err)
@@ -273,23 +271,60 @@ func (s *Service) reportEquivocation(stage Subround, existingVote *SignedVote, c
 	if err != nil {
 		return fmt.Errorf("getting latest round: %w", err)
 	}
-	fmt.Println(round)
 
 	pubKey := existingVote.AuthorityID
-	fmt.Println(pubKey)
 
 	// Getting runtime like this now, could improve this possibly
 	bestBlockHash := s.blockState.BestBlockHash()
 	rt, err := s.blockState.GetRuntime(bestBlockHash)
 	if err != nil {
-		logger.Critical("failed to get runtime")
-		return err
+		return fmt.Errorf("getting runtime: %w", err)
 	}
-	fmt.Println(rt)
 
-	_, err = rt.GrandpaGenerateKeyOwnershipProof(setID, pubKey)
+	keyOwnershipProof, err := rt.GrandpaGenerateKeyOwnershipProof(setID, pubKey)
 	if err != nil {
-		return fmt.Errorf("getting latest round: %w", err)
+		return fmt.Errorf("getting key ownership proof: %w", err)
+	}
+
+	var opaqueKeyOwnershipProof types.OpaqueKeyOwnershipProof
+	err = scale.Unmarshal(keyOwnershipProof, &opaqueKeyOwnershipProof)
+	if err != nil {
+		return fmt.Errorf("unmarshalling key ownership proof: %w", err)
+	}
+
+	grandpaEquivocation := types.GrandpaEquivocation{
+		RoundNumber:     round,
+		ID:              pubKey,
+		FirstVote:       existingVote.Vote,
+		FirstSignature:  existingVote.Signature,
+		SecondVote:      currentVote.Vote,
+		SecondSignature: currentVote.Signature,
+	}
+
+	equivocationVote := types.NewGrandpaEquivocation()
+	switch stage {
+	case prevote:
+		err = equivocationVote.Set(types.PreVoteEquivocation(grandpaEquivocation))
+		if err != nil {
+			return fmt.Errorf("setting grandpa equivocation VDT: %w", err)
+		}
+	case precommit:
+		err = equivocationVote.Set(types.PreCommitEquivocation(grandpaEquivocation))
+		if err != nil {
+			return fmt.Errorf("setting grandpa equivocation VDT: %w", err)
+		}
+	default:
+		return fmt.Errorf("invalid stage for equivocating: %w", err)
+	}
+
+	equivocationProof := types.GrandpaEquivocationProof{
+		SetID:        setID,
+		Equivocation: *equivocationVote,
+	}
+
+	err = rt.GrandpaSubmitReportEquivocationUnsignedExtrinsic(equivocationProof, opaqueKeyOwnershipProof)
+	if err != nil {
+		return fmt.Errorf("reporting equivocation: %w", err)
 	}
 
 	return nil

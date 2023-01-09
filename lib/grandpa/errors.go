@@ -88,4 +88,5 @@ var (
 	errVoteFromSelf            = errors.New("got vote from ourselves")
 	errRoundOutOfBounds        = errors.New("round out of bounds")
 	errRoundsMismatch          = errors.New("rounds mismatch")
+	errReportingEquivocation   = errors.New("reporting equivocation")
 )
