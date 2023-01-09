@@ -29,7 +29,7 @@ var (
 )
 
 func newInMemoryGrandpaDatabase(t *testing.T) chaindb.Database {
-	db := NewInMemoryDB(t)
+	db := newInMemoryDB(t)
 	return chaindb.NewTable(db, grandpaPrefix)
 }
 
@@ -156,7 +156,7 @@ func TestAddScheduledChangesKeepTheRightForkTree(t *testing.T) { //nolint:tparal
 	keyring, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 
-	db := NewInMemoryDB(t)
+	db := newInMemoryDB(t)
 	blockState := testBlockState(t, db)
 
 	grandpaDatabase := chaindb.NewTable(db, grandpaPrefix)
@@ -293,7 +293,7 @@ func TestForcedScheduledChangesOrder(t *testing.T) {
 	keyring, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 
-	db := NewInMemoryDB(t)
+	db := newInMemoryDB(t)
 	blockState := testBlockState(t, db)
 
 	grandpaDatabase := chaindb.NewTable(db, grandpaPrefix)
@@ -360,7 +360,7 @@ func TestShouldNotAddMoreThanOneForcedChangeInTheSameFork(t *testing.T) {
 	keyring, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 
-	db := NewInMemoryDB(t)
+	db := newInMemoryDB(t)
 	blockState := testBlockState(t, db)
 
 	grandpaDatabase := chaindb.NewTable(db, grandpaPrefix)
@@ -539,7 +539,7 @@ func TestNextGrandpaAuthorityChange(t *testing.T) {
 		t.Run(tname, func(t *testing.T) {
 			t.Parallel()
 
-			db := NewInMemoryDB(t)
+			db := newInMemoryDB(t)
 			blockState := testBlockState(t, db)
 
 			grandpaDatabase := chaindb.NewTable(db, grandpaPrefix)
@@ -741,7 +741,7 @@ func TestApplyForcedChanges(t *testing.T) {
 		t.Run(tname, func(t *testing.T) {
 			t.Parallel()
 
-			db := NewInMemoryDB(t)
+			db := newInMemoryDB(t)
 			blockState := testBlockState(t, db)
 
 			voters := types.NewGrandpaVotersFromAuthorities(genesisAuths)
@@ -864,7 +864,7 @@ func TestApplyScheduledChangesKeepDescendantForcedChanges(t *testing.T) {
 		t.Run(tname, func(t *testing.T) {
 			t.Parallel()
 
-			db := NewInMemoryDB(t)
+			db := newInMemoryDB(t)
 			blockState := testBlockState(t, db)
 
 			voters := types.NewGrandpaVotersFromAuthorities(genesisAuths)
@@ -1094,7 +1094,7 @@ func TestApplyScheduledChangeGetApplicableChange(t *testing.T) {
 		t.Run(tname, func(t *testing.T) {
 			t.Parallel()
 
-			db := NewInMemoryDB(t)
+			db := newInMemoryDB(t)
 			blockState := testBlockState(t, db)
 
 			voters := types.NewGrandpaVotersFromAuthorities(genesisAuths)
@@ -1322,7 +1322,7 @@ func TestApplyScheduledChange(t *testing.T) {
 		t.Run(tname, func(t *testing.T) {
 			t.Parallel()
 
-			db := NewInMemoryDB(t)
+			db := newInMemoryDB(t)
 			blockState := testBlockState(t, db)
 
 			genesisAuths, err := types.GrandpaAuthoritiesRawToAuthorities(genesisGrandpaVoters)

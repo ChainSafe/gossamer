@@ -21,7 +21,7 @@ import (
 )
 
 func newTestStorageState(t *testing.T) *StorageState {
-	db := NewInMemoryDB(t)
+	db := newInMemoryDB(t)
 
 	tries := newTriesEmpty()
 	bs := newTestBlockState(t, tries)

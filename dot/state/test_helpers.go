@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
@@ -21,19 +20,6 @@ import (
 )
 
 var inc, _ = time.ParseDuration("1s")
-
-// NewInMemoryDB creates a new in-memory database
-func NewInMemoryDB(t *testing.T) *chaindb.BadgerDB {
-	db, err := chaindb.NewBadgerDB(&chaindb.Config{
-		InMemory: true,
-	})
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		_ = db.Close()
-	})
-
-	return db
-}
 
 func createPrimaryBABEDigest(t testing.TB) scale.VaryingDataTypeSlice {
 	babeDigest := types.NewBabeDigest()

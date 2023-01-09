@@ -29,7 +29,7 @@ var genesisBABEConfig = &types.BabeConfiguration{
 }
 
 func newEpochStateFromGenesis(t *testing.T) *EpochState {
-	db := NewInMemoryDB(t)
+	db := newInMemoryDB(t)
 	blockState := newTestBlockState(t, newTriesEmpty())
 	baseState := NewBaseState(db)
 	epochStateDatabase := chaindb.NewTable(db, epochPrefix)
