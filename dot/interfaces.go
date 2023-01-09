@@ -5,10 +5,10 @@ package dot
 
 import (
 	"encoding/json"
-	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/services"
@@ -70,7 +70,7 @@ type runtimeInterface interface {
 	RandomSeed()
 	OffchainWorker()
 	GenerateSessionKeys()
-	GrandpaGenerateKeyOwnershipProof(authSetId uint64, authorityID ed25519.PublicKeyBytes) (
+	GrandpaGenerateKeyOwnershipProof(authSetID uint64, authorityID ed25519.PublicKeyBytes) (
 		types.OpaqueKeyOwnershipProof, error)
 	GrandpaSubmitReportEquivocationUnsignedExtrinsic(
 		equivocationProof types.GrandpaEquivocationProof, keyOwnershipProof types.OpaqueKeyOwnershipProof,

@@ -1356,6 +1356,7 @@ func TestInstance_GrandpaSubmitReportEquivocationUnsignedExtrinsic(t *testing.T)
 
 	var opaqueKeyOwnershipProof types.OpaqueKeyOwnershipProof
 	err = scale.Unmarshal(keyOwnershipProof, &opaqueKeyOwnershipProof)
+	require.NoError(t, err)
 
 	testFirstVote := types.GrandpaVote{
 		Hash:   common.MustHexToHash("0x4801b8e62d31167d30c893cc1970f6a0e289420282a4b245b75f2c46fb308af1"),

@@ -209,13 +209,13 @@ func (_m *Instance) GrandpaAuthorities() ([]types.Authority, error) {
 	return r0, r1
 }
 
-// GrandpaGenerateKeyOwnershipProof provides a mock function with given fields: authSetId, authorityID
-func (_m *Instance) GrandpaGenerateKeyOwnershipProof(authSetId uint64, authorityID ed25519.PublicKeyBytes) (types.OpaqueKeyOwnershipProof, error) {
-	ret := _m.Called(authSetId, authorityID)
+// GrandpaGenerateKeyOwnershipProof provides a mock function with given fields: authSetID, authorityID
+func (_m *Instance) GrandpaGenerateKeyOwnershipProof(authSetID uint64, authorityID ed25519.PublicKeyBytes) (types.OpaqueKeyOwnershipProof, error) {
+	ret := _m.Called(authSetID, authorityID)
 
 	var r0 types.OpaqueKeyOwnershipProof
 	if rf, ok := ret.Get(0).(func(uint64, ed25519.PublicKeyBytes) types.OpaqueKeyOwnershipProof); ok {
-		r0 = rf(authSetId, authorityID)
+		r0 = rf(authSetID, authorityID)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(types.OpaqueKeyOwnershipProof)
@@ -224,7 +224,7 @@ func (_m *Instance) GrandpaGenerateKeyOwnershipProof(authSetId uint64, authority
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(uint64, ed25519.PublicKeyBytes) error); ok {
-		r1 = rf(authSetId, authorityID)
+		r1 = rf(authSetID, authorityID)
 	} else {
 		r1 = ret.Error(1)
 	}

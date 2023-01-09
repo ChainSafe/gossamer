@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -260,12 +261,13 @@ func (s *Service) checkForEquivocation(voter *Voter, vote *SignedVote, stage Sub
 }
 
 func (s *Service) reportEquivocation(stage Subround, existingVote *SignedVote, currentVote *SignedVote) error {
+	fmt.Println(stage)
+	fmt.Println(currentVote)
 	//TODO finish filling out this function
-	setId, err := s.grandpaState.GetCurrentSetID()
+	setID, err := s.grandpaState.GetCurrentSetID()
 	if err != nil {
 		return fmt.Errorf("getting authority set id: %w", err)
 	}
-	fmt.Println(setId)
 
 	round, err := s.grandpaState.GetLatestRound()
 	if err != nil {
@@ -285,7 +287,7 @@ func (s *Service) reportEquivocation(stage Subround, existingVote *SignedVote, c
 	}
 	fmt.Println(rt)
 
-	_, err = rt.GrandpaGenerateKeyOwnershipProof(setId, pubKey)
+	_, err = rt.GrandpaGenerateKeyOwnershipProof(setID, pubKey)
 	if err != nil {
 		return fmt.Errorf("getting latest round: %w", err)
 	}

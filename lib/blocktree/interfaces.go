@@ -41,7 +41,7 @@ type Runtime interface {
 	RandomSeed()
 	OffchainWorker()
 	GenerateSessionKeys()
-	GrandpaGenerateKeyOwnershipProof(authSetId uint64, authorityID ed25519.PublicKeyBytes) (
+	GrandpaGenerateKeyOwnershipProof(authSetID uint64, authorityID ed25519.PublicKeyBytes) (
 		types.OpaqueKeyOwnershipProof, error)
 	GrandpaSubmitReportEquivocationUnsignedExtrinsic(
 		equivocationProof types.GrandpaEquivocationProof, keyOwnershipProof types.OpaqueKeyOwnershipProof,
