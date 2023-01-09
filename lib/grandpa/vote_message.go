@@ -256,7 +256,7 @@ func (s *Service) checkForEquivocation(voter *Voter, vote *SignedVote, stage Sub
 			// TODO get feedback on if this is a appropriate way to handle error
 			logger.Errorf("%s: %s", errReportingEquivocation, err)
 		}
-	
+
 		return true
 	}
 
