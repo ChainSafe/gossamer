@@ -11,47 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_Database(t *testing.T) {
-	t.Parallel()
-
-	db := New()
-
-	err := db.Set([]byte{1}, []byte{2})
-	require.NoError(t, err)
-
-	value, err := db.Get([]byte{1})
-	require.NoError(t, err)
-	assert.Equal(t, []byte{2}, value)
-
-	err = db.Delete([]byte{2})
-	require.NoError(t, err)
-
-	err = db.Delete([]byte{1})
-	require.NoError(t, err)
-
-	_, err = db.Get([]byte{1})
-	require.ErrorIs(t, err, database.ErrKeyNotFound)
-
-	err = db.Set([]byte{1}, []byte{2})
-	require.NoError(t, err)
-
-	value, err = db.Get([]byte{1})
-	require.NoError(t, err)
-	assert.Equal(t, []byte{2}, value)
-
-	err = db.DropAll()
-	require.NoError(t, err)
-
-	_, err = db.Get([]byte{1})
-	require.ErrorIs(t, err, database.ErrKeyNotFound)
-
-	err = db.Close()
-	require.NoError(t, err)
-
-	err = db.Set([]byte{1}, []byte{2})
-	assert.ErrorIs(t, err, database.ErrClosed)
-}
-
 func Test_Database_Get(t *testing.T) {
 	t.Parallel()
 
