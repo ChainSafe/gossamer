@@ -107,6 +107,7 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 	configNoGrandpa := config.NoGrandpa()
 	configNoGrandpa.Init.Genesis = genesisPath
 	configNoGrandpa.Core.BABELead = true
+	configNoGrandpa.Account.Key = "alice"
 	babeLeadNode := node.New(t, configNoGrandpa, node.SetIndex(numNodes-1))
 
 	configNoAuthority := config.NotAuthority()
