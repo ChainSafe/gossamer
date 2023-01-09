@@ -28,13 +28,8 @@ var (
 	}
 )
 
-func newInMemoryGrandpaDatabase(t *testing.T) chaindb.Database {
-	db := newInMemoryDB(t)
-	return chaindb.NewTable(db, grandpaPrefix)
-}
-
 func TestNewGrandpaStateFromGenesis(t *testing.T) {
-	db := newInMemoryGrandpaDatabase(t)
+	db := newInMemoryDB(t)
 	gs, err := NewGrandpaStateFromGenesis(db, nil, testAuths)
 	require.NoError(t, err)
 
@@ -52,7 +47,7 @@ func TestNewGrandpaStateFromGenesis(t *testing.T) {
 }
 
 func TestGrandpaState_SetNextChange(t *testing.T) {
-	db := newInMemoryGrandpaDatabase(t)
+	db := newInMemoryDB(t)
 	gs, err := NewGrandpaStateFromGenesis(db, nil, testAuths)
 	require.NoError(t, err)
 
@@ -69,7 +64,7 @@ func TestGrandpaState_SetNextChange(t *testing.T) {
 }
 
 func TestGrandpaState_IncrementSetID(t *testing.T) {
-	db := newInMemoryGrandpaDatabase(t)
+	db := newInMemoryDB(t)
 	gs, err := NewGrandpaStateFromGenesis(db, nil, testAuths)
 	require.NoError(t, err)
 
@@ -79,7 +74,7 @@ func TestGrandpaState_IncrementSetID(t *testing.T) {
 }
 
 func TestGrandpaState_GetSetIDByBlockNumber(t *testing.T) {
-	db := newInMemoryGrandpaDatabase(t)
+	db := newInMemoryDB(t)
 	gs, err := NewGrandpaStateFromGenesis(db, nil, testAuths)
 	require.NoError(t, err)
 
@@ -112,7 +107,7 @@ func TestGrandpaState_GetSetIDByBlockNumber(t *testing.T) {
 }
 
 func TestGrandpaState_LatestRound(t *testing.T) {
-	grandpaDatabase := newInMemoryGrandpaDatabase(t)
+	grandpaDatabase := newInMemoryDB(t)
 	gs, err := NewGrandpaStateFromGenesis(grandpaDatabase, nil, testAuths)
 	require.NoError(t, err)
 
