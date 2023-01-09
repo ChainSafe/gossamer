@@ -11,7 +11,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -267,13 +266,11 @@ func TestDeleteOddKeyLengths(t *testing.T) {
 }
 
 func TestTrieDiff(t *testing.T) {
-	db := newTestDB(t)
+	storageDB := newTestDB(t)
 	t.Cleanup(func() {
-		err := db.Close()
+		err := storageDB.Close()
 		require.NoError(t, err)
 	})
-
-	storageDB := chaindb.NewTable(db, "storage")
 
 	trie := NewEmptyTrie()
 
