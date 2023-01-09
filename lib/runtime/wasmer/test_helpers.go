@@ -86,7 +86,6 @@ func setupConfig(t *testing.T, ctrl *gomock.Controller, tt *trie.Trie, lvl log.L
 
 func newDatabase(t *testing.T) chaindb.Database {
 	db, err := chaindb.NewBadgerDB(&chaindb.Config{
-		DataDir:  t.TempDir(),
 		InMemory: true,
 	})
 	require.NoError(t, err)

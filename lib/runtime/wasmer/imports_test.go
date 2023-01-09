@@ -1793,11 +1793,8 @@ func Test_ext_trie_blake2_256_root_version_1(t *testing.T) {
 func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 	t.Parallel()
 
-	tmp := t.TempDir()
-
 	memdb, err := chaindb.NewBadgerDB(&chaindb.Config{
 		InMemory: true,
-		DataDir:  tmp,
 	})
 	require.NoError(t, err)
 
