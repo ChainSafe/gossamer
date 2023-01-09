@@ -37,6 +37,11 @@ func Test_Generate_Verify(t *testing.T) {
 		InMemory: true,
 	})
 	require.NoError(t, err)
+	t.Cleanup(func() {
+		err := database.Close()
+		require.NoError(t, err)
+	})
+
 	err = trie.WriteDirty(database)
 	require.NoError(t, err)
 

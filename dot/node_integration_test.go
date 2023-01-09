@@ -216,6 +216,8 @@ func TestInitNode_Integration(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.NotNil(t, db)
+	err = db.Close()
+	require.NoError(t, err)
 }
 
 func TestInitNode_GenesisSpec(t *testing.T) {
@@ -233,6 +235,8 @@ func TestInitNode_GenesisSpec(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.NotNil(t, db)
+	err = db.Close()
+	require.NoError(t, err)
 }
 
 func TestNodeInitializedIntegration(t *testing.T) {

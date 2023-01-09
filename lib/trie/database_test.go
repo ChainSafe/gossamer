@@ -18,6 +18,10 @@ func newTestDB(t *testing.T) chaindb.Database {
 	}
 	database, err := chaindb.NewBadgerDB(chainDBConfig)
 	require.NoError(t, err)
+	t.Cleanup(func() {
+		err := database.Close()
+		require.NoError(t, err)
+	})
 	return chaindb.NewTable(database, "trie")
 }
 
