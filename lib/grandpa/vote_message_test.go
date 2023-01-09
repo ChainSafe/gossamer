@@ -9,8 +9,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/pkg/scale"
-
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -23,9 +21,6 @@ var (
 
 func TestService_reportEquivocation(t *testing.T) {
 	keyOwnershipProof := types.OpaqueKeyOwnershipProof{1}
-	keyOwnershipProofEncoded, err := scale.Marshal(keyOwnershipProof)
-	require.NoError(t, err)
-
 	testSignedVote := &types.GrandpaSignedVote{
 		Vote:        *testVote,
 		Signature:   testSignature,
@@ -48,7 +43,7 @@ func TestService_reportEquivocation(t *testing.T) {
 	}
 
 	equivocationVote := types.NewGrandpaEquivocation()
-	err = equivocationVote.Set(types.PreVoteEquivocation(grandpaEquivocation))
+	err := equivocationVote.Set(types.PreVoteEquivocation(grandpaEquivocation))
 	require.NoError(t, err)
 
 	equivocationProof := types.GrandpaEquivocationProof{
@@ -74,14 +69,14 @@ func TestService_reportEquivocation(t *testing.T) {
 
 	mockRuntimeInstanceReportEquivocationErr := NewMockRuntimeInstance(ctrl)
 	mockRuntimeInstanceReportEquivocationErr.EXPECT().GrandpaGenerateKeyOwnershipProof(uint64(1), testAuthorityID).
-		Return(keyOwnershipProofEncoded, nil)
+		Return(keyOwnershipProof, nil)
 	mockRuntimeInstanceReportEquivocationErr.EXPECT().
 		GrandpaSubmitReportEquivocationUnsignedExtrinsic(equivocationProof, keyOwnershipProof).
 		Return(errTestError)
 
 	mockRuntimeInstanceOk := NewMockRuntimeInstance(ctrl)
 	mockRuntimeInstanceOk.EXPECT().GrandpaGenerateKeyOwnershipProof(uint64(1), testAuthorityID).
-		Return(keyOwnershipProofEncoded, nil)
+		Return(keyOwnershipProof, nil)
 	mockRuntimeInstanceOk.EXPECT().
 		GrandpaSubmitReportEquivocationUnsignedExtrinsic(equivocationProof, keyOwnershipProof).
 		Return(nil)

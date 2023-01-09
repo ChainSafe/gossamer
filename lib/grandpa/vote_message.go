@@ -235,6 +235,7 @@ func (s *Service) checkForEquivocation(voter *Voter, vote *SignedVote, stage Sub
 
 	_, has := eq[v]
 	if has {
+		// TODO check with team that I don't have to do anything here
 		// if the voter has already equivocated, every vote in that round is an equivocatory vote
 		eq[v] = append(eq[v], vote)
 		return true
@@ -252,9 +253,10 @@ func (s *Service) checkForEquivocation(voter *Voter, vote *SignedVote, stage Sub
 
 		err := s.reportEquivocation(stage, existingVote, vote)
 		if err != nil {
-			// TODO get feedback on if this is appropriate way to handle error
+			// TODO get feedback on if this is a appropriate way to handle error
 			logger.Errorf("%s: %s", errReportingEquivocation, err)
 		}
+	
 		return true
 	}
 
@@ -280,15 +282,9 @@ func (s *Service) reportEquivocation(stage Subround, existingVote *SignedVote, c
 		return fmt.Errorf("getting runtime: %w", err)
 	}
 
-	keyOwnershipProof, err := rt.GrandpaGenerateKeyOwnershipProof(setID, pubKey)
+	opaqueKeyOwnershipProof, err := rt.GrandpaGenerateKeyOwnershipProof(setID, pubKey)
 	if err != nil {
 		return fmt.Errorf("getting key ownership proof: %w", err)
-	}
-
-	var opaqueKeyOwnershipProof types.OpaqueKeyOwnershipProof
-	err = scale.Unmarshal(keyOwnershipProof, &opaqueKeyOwnershipProof)
-	if err != nil {
-		return fmt.Errorf("unmarshalling key ownership proof: %w", err)
 	}
 
 	grandpaEquivocation := types.GrandpaEquivocation{
