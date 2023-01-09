@@ -34,9 +34,12 @@ type OfflinePruner struct {
 // NewOfflinePruner creates an instance of OfflinePruner.
 func NewOfflinePruner(inputDBPath string,
 	retainBlockNum uint32) (pruner *OfflinePruner, err error) {
-	db, err := utils.LoadChainDB(inputDBPath)
+	cfg := &chaindb.Config{
+		DataDir: inputDBPath,
+	}
+	db, err := chaindb.NewBadgerDB(cfg)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load DB %w", err)
+		return nil, fmt.Errorf("creating badger database: %w", err)
 	}
 
 	tries := NewTries()

@@ -254,21 +254,6 @@ func GetProjectRootPath() (rootPath string, err error) {
 	return rootPath, nil
 }
 
-// LoadChainDB load the db at the given path.
-func LoadChainDB(basePath string) (*chaindb.BadgerDB, error) {
-	cfg := &chaindb.Config{
-		DataDir: basePath,
-	}
-
-	// Open already existing DB
-	db, err := chaindb.NewBadgerDB(cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	return db, nil
-}
-
 // LoadBadgerDB load the db at the given path.
 func LoadBadgerDB(basePath string) (*badger.DB, error) {
 	opts := badger.DefaultOptions(basePath)
