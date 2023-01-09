@@ -15,7 +15,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/babe/inherents"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -31,22 +30,6 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/require"
 )
-
-// NewInMemoryDB creates a new in-memory database
-func NewInMemoryDB(t *testing.T) *chaindb.BadgerDB {
-	testDatadirPath := t.TempDir()
-
-	db, err := chaindb.NewBadgerDB(&chaindb.Config{
-		DataDir:  testDatadirPath,
-		InMemory: true,
-	})
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		_ = db.Close()
-	})
-
-	return db
-}
 
 var (
 	ErrRuntimeUnknown  = errors.New("runtime is not known")

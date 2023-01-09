@@ -235,7 +235,7 @@ func TestNodeRuntime_ValidateTransaction(t *testing.T) {
 	}
 
 	nodeStorage := runtime.NodeStorage{}
-	nodeStorage.BaseDB = runtime.NewInMemoryDB(t)
+	nodeStorage.BaseDB = newDatabase(t)
 	cfg.NodeStorage = nodeStorage
 
 	rt, err := NewRuntimeFromGenesis(cfg)

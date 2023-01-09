@@ -53,7 +53,7 @@ func useInstanceFromGenesis(t *testing.T, rtStorage *storage.TrieState) (instanc
 		Storage: rtStorage,
 		LogLvl:  log.Warn,
 		NodeStorage: runtime.NodeStorage{
-			BaseDB: runtime.NewInMemoryDB(t),
+			BaseDB: newDatabase(t),
 		},
 	}
 
@@ -77,9 +77,9 @@ func useInstanceFromRuntimeV0929(t *testing.T, rtStorage *storage.TrieState) (in
 		Storage:  rtStorage,
 		Keystore: keystore.NewGlobalKeystore(),
 		NodeStorage: runtime.NodeStorage{
-			LocalStorage:      runtime.NewInMemoryDB(t),
-			PersistentStorage: runtime.NewInMemoryDB(t),
-			BaseDB:            runtime.NewInMemoryDB(t),
+			LocalStorage:      newDatabase(t),
+			PersistentStorage: newDatabase(t),
+			BaseDB:            newDatabase(t),
 		},
 	}
 

@@ -38,7 +38,7 @@ func newState(t *testing.T) (*state.BlockState, *state.EpochState) {
 	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
-	db := state.NewInMemoryDB(t)
+	db := newDatabase(t)
 
 	_, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
 	tries := state.NewTries()

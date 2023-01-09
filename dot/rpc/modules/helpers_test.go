@@ -5,6 +5,7 @@ package modules
 import (
 	"testing"
 
+	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -13,6 +14,17 @@ import (
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/require"
 )
+
+func newDatabase(t *testing.T) chaindb.Database {
+	db, err := chaindb.NewBadgerDB(&chaindb.Config{
+		InMemory: true,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_ = db.Close()
+	})
+	return db
+}
 
 func stringToHex(s string) (hex string) {
 	return common.BytesToHex([]byte(s))

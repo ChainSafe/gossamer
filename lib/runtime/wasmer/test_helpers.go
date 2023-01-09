@@ -7,6 +7,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -58,9 +59,9 @@ func setupConfig(t *testing.T, ctrl *gomock.Controller, tt *trie.Trie, lvl log.L
 	s := storage.NewTrieState(tt)
 
 	ns := runtime.NodeStorage{
-		LocalStorage:      runtime.NewInMemoryDB(t),
-		PersistentStorage: runtime.NewInMemoryDB(t), // we're using a local storage here since this is a test runtime
-		BaseDB:            runtime.NewInMemoryDB(t), // we're using a local storage here since this is a test runtime
+		LocalStorage:      newDatabase(t),
+		PersistentStorage: newDatabase(t), // we're using a local storage here since this is a test runtime
+		BaseDB:            newDatabase(t), // we're using a local storage here since this is a test runtime
 	}
 
 	version := (*runtime.Version)(nil)
@@ -81,4 +82,16 @@ func setupConfig(t *testing.T, ctrl *gomock.Controller, tt *trie.Trie, lvl log.L
 		Role:        role,
 		testVersion: version,
 	}
+}
+
+func newDatabase(t *testing.T) chaindb.Database {
+	db, err := chaindb.NewBadgerDB(&chaindb.Config{
+		DataDir:  t.TempDir(),
+		InMemory: true,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_ = db.Close()
+	})
+	return db
 }
