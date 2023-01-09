@@ -4,7 +4,6 @@
 package state
 
 import (
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -166,10 +165,8 @@ func TestStorage_StoreTrie_NotSyncing(t *testing.T) {
 }
 
 func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
-	// initialise database using data directory
-	basepath := t.TempDir()
 	db, err := chaindb.NewBadgerDB(&chaindb.Config{
-		DataDir: filepath.Join(basepath, "db"),
+		DataDir: t.TempDir(),
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() {

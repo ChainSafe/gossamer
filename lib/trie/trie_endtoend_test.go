@@ -267,23 +267,13 @@ func TestDeleteOddKeyLengths(t *testing.T) {
 }
 
 func TestTrieDiff(t *testing.T) {
-	cfg := &chaindb.Config{
-		DataDir: t.TempDir(),
-	}
-
-	db, err := chaindb.NewBadgerDB(cfg)
-	require.NoError(t, err)
-
+	db := newTestDB(t)
 	t.Cleanup(func() {
-		err = db.Close()
+		err := db.Close()
 		require.NoError(t, err)
 	})
 
 	storageDB := chaindb.NewTable(db, "storage")
-	t.Cleanup(func() {
-		err := storageDB.Close()
-		require.NoError(t, err)
-	})
 
 	trie := NewEmptyTrie()
 
@@ -300,7 +290,7 @@ func TestTrieDiff(t *testing.T) {
 	}
 
 	newTrie := trie.Snapshot()
-	err = trie.WriteDirty(storageDB)
+	err := trie.WriteDirty(storageDB)
 	require.NoError(t, err)
 
 	tests = []keyValues{

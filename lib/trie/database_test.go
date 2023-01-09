@@ -22,7 +22,7 @@ func newTestDB(t *testing.T) chaindb.Database {
 		err := database.Close()
 		require.NoError(t, err)
 	})
-	return chaindb.NewTable(database, "trie")
+	return database
 }
 
 func Test_Trie_Store_Load(t *testing.T) {
