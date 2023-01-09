@@ -281,7 +281,7 @@ func TestTrieDiff(t *testing.T) {
 
 	storageDB := chaindb.NewTable(db, "storage")
 	t.Cleanup(func() {
-		err = storageDB.Close()
+		err := storageDB.Close()
 		require.NoError(t, err)
 	})
 

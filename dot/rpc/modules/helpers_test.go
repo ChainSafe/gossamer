@@ -21,7 +21,8 @@ func newDatabase(t *testing.T) chaindb.Database {
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() {
-		_ = db.Close()
+		err := db.Close()
+		require.NoError(t, err)
 	})
 	return db
 }
