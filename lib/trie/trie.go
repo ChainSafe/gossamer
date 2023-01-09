@@ -568,7 +568,7 @@ func (t *Trie) GetKeysWithPrefix(prefixLE []byte) (keysLE [][]byte) {
 		prefixNibbles = bytes.TrimSuffix(prefixNibbles, []byte{0})
 	}
 
-	prefix := []byte{}
+	prefix := []byte(nil)
 	key := prefixNibbles
 	return getKeysWithPrefix(t.root, prefix, key, keysLE)
 }
