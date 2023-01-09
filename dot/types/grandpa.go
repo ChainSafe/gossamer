@@ -199,8 +199,7 @@ func (v GrandpaVote) String() string {
 
 // GrandpaEquivocation is used to create a proof of equivocation
 type GrandpaEquivocation struct {
-	RoundNumber uint64
-	//ID              ed25519.PublicKey
+	RoundNumber     uint64
 	ID              [32]byte
 	FirstVote       GrandpaVote
 	FirstSignature  [64]byte

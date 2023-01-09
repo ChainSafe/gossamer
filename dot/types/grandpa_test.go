@@ -111,7 +111,7 @@ func TestGrandpaAuthoritiesRawToAuthorities(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, expectedEncoding, encoding)
 
-	grandpaAuthoritiesRaw := []GrandpaAuthoritiesRaw{}
+	var grandpaAuthoritiesRaw []GrandpaAuthoritiesRaw
 	err = scale.Unmarshal(encoding, &grandpaAuthoritiesRaw)
 	require.NoError(t, err)
 	require.Equal(t, auths, grandpaAuthoritiesRaw)
