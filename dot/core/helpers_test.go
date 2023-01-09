@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -225,7 +226,9 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		if stateSrvc != nil {
 			nodeStorage.BaseDB = stateSrvc.Base
 		} else {
-			nodeStorage.BaseDB, err = utils.SetupDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
+			nodeStorage.BaseDB, err = chaindb.NewBadgerDB(&chaindb.Config{
+				DataDir: filepath.Join(testDatadirPath, "offline_storage", "db"),
+			})
 			require.NoError(t, err)
 		}
 

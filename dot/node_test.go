@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -53,7 +54,9 @@ func TestLoadGlobalNodeName(t *testing.T) {
 	t.Parallel()
 
 	basePath := t.TempDir()
-	db, err := utils.SetupDatabase(basePath, false)
+	db, err := chaindb.NewBadgerDB(&chaindb.Config{
+		DataDir: filepath.Join(basePath, "db"),
+	})
 	require.NoError(t, err)
 
 	basestate := state.NewBaseState(db)

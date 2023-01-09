@@ -14,7 +14,6 @@ import (
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/lib/utils"
 )
 
 // Initialise initialises the genesis state of the DB using the given storage trie.
@@ -28,8 +27,10 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 		return fmt.Errorf("failed to read basepath: %s", err)
 	}
 
-	// initialise database using data directory
-	db, err := utils.SetupDatabase(basepath, s.isMemDB)
+	db, err := chaindb.NewBadgerDB(&chaindb.Config{
+		DataDir:  filepath.Join(basepath, "db"),
+		InMemory: s.isMemDB,
+	})
 	if err != nil {
 		return fmt.Errorf("failed to create database: %s", err)
 	}

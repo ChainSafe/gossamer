@@ -6,6 +6,7 @@
 package grandpa
 
 import (
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -133,7 +134,9 @@ func newTestState(t *testing.T) *state.Service {
 
 	testDatadirPath := t.TempDir()
 
-	db, err := utils.SetupDatabase(testDatadirPath, true)
+	db, err := chaindb.NewBadgerDB(&chaindb.Config{
+		DataDir: filepath.Join(testDatadirPath, "db"),
+	})
 	require.NoError(t, err)
 
 	t.Cleanup(func() { db.Close() })

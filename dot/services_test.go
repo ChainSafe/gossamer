@@ -99,31 +99,6 @@ func Test_createSystemService(t *testing.T) {
 	}
 }
 
-func Test_newInMemoryDB(t *testing.T) {
-	tests := []struct {
-		name      string
-		expectNil bool
-		err       error
-	}{
-		{
-			name:      "working example",
-			expectNil: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := newInMemoryDB()
-			assert.ErrorIs(t, err, tt.err)
-
-			if tt.expectNil {
-				assert.Nil(t, got)
-			} else {
-				assert.NotNil(t, got)
-			}
-		})
-	}
-}
-
 func newStateService(t *testing.T, ctrl *gomock.Controller) *state.Service {
 	t.Helper()
 

@@ -30,7 +30,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
-	"github.com/ChainSafe/gossamer/lib/utils"
 )
 
 // BlockProducer to produce blocks
@@ -51,10 +50,6 @@ type rpcServiceSettings struct {
 	system        *system.Service
 	blockFinality *grandpa.Service
 	syncer        *sync.Service
-}
-
-func newInMemoryDB() (*chaindb.BadgerDB, error) {
-	return utils.SetupDatabase("", true)
 }
 
 // createStateService creates the state service and initialise state database
@@ -98,7 +93,7 @@ func startStateService(cfg *Config, stateSrvc *state.Service) error {
 
 func (nodeBuilder) createRuntimeStorage(base, persistentStorage basicStorage) (
 	*runtime.NodeStorage, error) {
-	localStorage, err := newInMemoryDB()
+	localStorage, err := chaindb.NewBadgerDB(&chaindb.Config{InMemory: true})
 	if err != nil {
 		return nil, err
 	}

@@ -96,7 +96,9 @@ func (*nodeBuilder) isNodeInitialised(basepath string) error {
 		return fmt.Errorf("cannot find key registry in database directory: %w", err)
 	}
 
-	db, err := utils.SetupDatabase(basepath, false)
+	db, err := chaindb.NewBadgerDB(&chaindb.Config{
+		DataDir: filepath.Join(basepath, "db"),
+	})
 	if err != nil {
 		return fmt.Errorf("cannot setup database: %w", err)
 	}
@@ -195,8 +197,9 @@ func (*nodeBuilder) initNode(cfg *Config) error {
 
 // LoadGlobalNodeName returns the stored global node name from database
 func LoadGlobalNodeName(basepath string) (nodename string, err error) {
-	// initialise database using data directory
-	db, err := utils.SetupDatabase(basepath, false)
+	db, err := chaindb.NewBadgerDB(&chaindb.Config{
+		DataDir: filepath.Join(basepath, "db"),
+	})
 	if err != nil {
 		return "", err
 	}
@@ -432,7 +435,9 @@ func setupTelemetry(cfg *Config, genesisData *genesis.Data) (mailer Telemetry, e
 
 // stores the global node name to reuse
 func storeGlobalNodeName(name, basepath string) (err error) {
-	db, err := utils.SetupDatabase(basepath, false)
+	db, err := chaindb.NewBadgerDB(&chaindb.Config{
+		DataDir: filepath.Join(basepath, "db"),
+	})
 	if err != nil {
 		return err
 	}

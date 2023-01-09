@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/chain/kusama"
 	"github.com/ChainSafe/gossamer/chain/polkadot"
 	"github.com/ChainSafe/gossamer/dot"
@@ -820,7 +821,9 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 
 	cfg.Init.Genesis = genFile
 
-	db, err := utils.SetupDatabase(cfg.Global.BasePath, false)
+	db, err := chaindb.NewBadgerDB(&chaindb.Config{
+		DataDir: filepath.Join(cfg.Global.BasePath, "db"),
+	})
 	require.NoError(t, err)
 
 	gen, err := genesis.NewGenesisFromJSONRaw(genFile)

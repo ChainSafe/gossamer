@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/core"
 	digest "github.com/ChainSafe/gossamer/dot/digest"
 	network "github.com/ChainSafe/gossamer/dot/network"
@@ -32,7 +33,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/lib/utils"
 	gomock "github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -211,7 +211,9 @@ func TestInitNode_Integration(t *testing.T) {
 	require.NoError(t, err)
 
 	// confirm database was setup
-	db, err := utils.SetupDatabase(cfg.Global.BasePath, false)
+	db, err := chaindb.NewBadgerDB(&chaindb.Config{
+		DataDir: filepath.Join(cfg.Global.BasePath, "db"),
+	})
 	require.NoError(t, err)
 	require.NotNil(t, db)
 }
@@ -226,7 +228,9 @@ func TestInitNode_GenesisSpec(t *testing.T) {
 	err := InitNode(cfg)
 	require.NoError(t, err)
 	// confirm database was setup
-	db, err := utils.SetupDatabase(cfg.Global.BasePath, false)
+	db, err := chaindb.NewBadgerDB(&chaindb.Config{
+		DataDir: filepath.Join(cfg.Global.BasePath, "db"),
+	})
 	require.NoError(t, err)
 	require.NotNil(t, db)
 }
