@@ -78,7 +78,7 @@ func Test_Database(t *testing.T) {
 	require.NoError(t, err)
 
 	err = db.Set([]byte{1}, []byte{2})
-	assert.ErrorIs(t, err, badger.ErrDBClosed)
+	assert.ErrorIs(t, err, database.ErrClosed)
 }
 
 func Test_New(t *testing.T) {

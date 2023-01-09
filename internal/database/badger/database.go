@@ -63,22 +63,24 @@ func (db *Database) Get(key []byte) (value []byte, err error) {
 		return nil, fmt.Errorf("%w: 0x%x", database.ErrKeyNotFound, key)
 	}
 
-	return value, err
+	return value, transformError(err)
 }
 
 // Set sets a value at the given key in the database.
 func (db *Database) Set(key, value []byte) (err error) {
-	return db.badgerDatabase.Update(func(txn *badger.Txn) error {
+	err = db.badgerDatabase.Update(func(txn *badger.Txn) error {
 		return txn.Set(key, value)
 	})
+	return transformError(err)
 }
 
 // Delete deletes the given key from the database.
 // If the key is not found, no error is returned.
 func (db *Database) Delete(key []byte) (err error) {
-	return db.badgerDatabase.Update(func(txn *badger.Txn) error {
+	err = db.badgerDatabase.Update(func(txn *badger.Txn) error {
 		return txn.Delete(key)
 	})
+	return transformError(err)
 }
 
 // NewWriteBatch returns a new write batch for the database.
@@ -99,10 +101,12 @@ func (db *Database) NewTable(prefix string) (dbTable database.Table) {
 
 // Close closes the database.
 func (db *Database) Close() (err error) {
-	return db.badgerDatabase.Close()
+	err = db.badgerDatabase.Close()
+	return transformError(err)
 }
 
 // DropAll drops all data from the database.
 func (db *Database) DropAll() (err error) {
-	return db.badgerDatabase.DropAll()
+	err = db.badgerDatabase.DropAll()
+	return transformError(err)
 }

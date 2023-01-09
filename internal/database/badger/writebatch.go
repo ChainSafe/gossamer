@@ -22,19 +22,22 @@ func newWriteBatch(prefix []byte, badgerWriteBatch *badger.WriteBatch) *writeBat
 // Set sets a value at the given key prefixed with the given prefix.
 func (wb *writeBatch) Set(key, value []byte) (err error) {
 	key = makePrefixedKey(wb.prefix, key)
-	return wb.badgerWriteBatch.Set(key, value)
+	err = wb.badgerWriteBatch.Set(key, value)
+	return transformError(err)
 }
 
 // Delete deletes the given key prefixed with the table prefix
 // from the database.
 func (wb *writeBatch) Delete(key []byte) (err error) {
 	key = makePrefixedKey(wb.prefix, key)
-	return wb.badgerWriteBatch.Delete(key)
+	err = wb.badgerWriteBatch.Delete(key)
+	return transformError(err)
 }
 
 // Flush flushes the write batch to the database.
 func (wb *writeBatch) Flush() (err error) {
-	return wb.badgerWriteBatch.Flush()
+	err = wb.badgerWriteBatch.Flush()
+	return transformError(err)
 }
 
 // Cancel cancels the write batch.
