@@ -12,13 +12,6 @@ type table struct {
 	database *Database
 }
 
-func newTable(prefix string, database *Database) *table {
-	return &table{
-		prefix:   prefix,
-		database: database,
-	}
-}
-
 // Get retrieves a value from the database using the given key
 // prefixed with the table prefix.
 // It returns the wrapped error `database.ErrKeyNotFound` if the

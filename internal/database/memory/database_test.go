@@ -48,10 +48,8 @@ func Test_Database(t *testing.T) {
 	err = db.Close()
 	require.NoError(t, err)
 
-	const panicValue = "database is closed"
-	assert.PanicsWithValue(t, panicValue, func() {
-		_ = db.Set([]byte{1}, []byte{2})
-	})
+	err = db.Set([]byte{1}, []byte{2})
+	assert.ErrorIs(t, err, database.ErrClosed)
 }
 
 func Test_Database_Get(t *testing.T) {
@@ -64,6 +62,13 @@ func Test_Database_Get(t *testing.T) {
 		errWrapped error
 		errMessage string
 	}{
+		"database closed": {
+			db: &Database{
+				closed: true,
+			},
+			errWrapped: database.ErrClosed,
+			errMessage: "database closed",
+		},
 		"key not found": {
 			db: &Database{
 				keyValues: map[string][]byte{},
@@ -106,8 +111,20 @@ func Test_Database_Set(t *testing.T) {
 		db         *Database
 		key        []byte
 		value      []byte
+		errWrapped error
+		errMessage string
 		expectedDB *Database
 	}{
+		"database is closed": {
+			db: &Database{
+				closed: true,
+			},
+			errWrapped: database.ErrClosed,
+			errMessage: "database closed",
+			expectedDB: &Database{
+				closed: true,
+			},
+		},
 		"set at new key": {
 			db: &Database{
 				keyValues: map[string][]byte{},
@@ -142,7 +159,10 @@ func Test_Database_Set(t *testing.T) {
 
 			err := testCase.db.Set(testCase.key, testCase.value)
 
-			require.NoError(t, err)
+			require.ErrorIs(t, err, testCase.errWrapped)
+			if testCase.errWrapped != nil {
+				assert.EqualError(t, err, testCase.errMessage)
+			}
 			assert.Equal(t, testCase.expectedDB, testCase.db)
 		})
 	}
@@ -172,8 +192,18 @@ func Test_Database_Delete(t *testing.T) {
 	testCases := map[string]struct {
 		db         *Database
 		key        []byte
+		errWrapped error
 		expectedDB *Database
 	}{
+		"database closed": {
+			db: &Database{
+				closed: true,
+			},
+			errWrapped: database.ErrClosed,
+			expectedDB: &Database{
+				closed: true,
+			},
+		},
 		"key not found": {
 			db: &Database{
 				keyValues: map[string][]byte{},
@@ -202,7 +232,7 @@ func Test_Database_Delete(t *testing.T) {
 
 			err := testCase.db.Delete(testCase.key)
 
-			require.NoError(t, err)
+			require.ErrorIs(t, err, testCase.errWrapped)
 			assert.Equal(t, testCase.expectedDB, testCase.db)
 		})
 	}
@@ -233,37 +263,62 @@ func Test_Database_NewWriteBatch(t *testing.T) {
 func Test_Database_Close(t *testing.T) {
 	t.Parallel()
 
-	database := &Database{
-		keyValues: map[string][]byte{},
-	}
+	t.Run("already closed", func(t *testing.T) {
+		t.Parallel()
 
-	err := database.Close()
-	require.NoError(t, err)
+		db := &Database{
+			closed: true,
+		}
+		err := db.Close()
+		assert.ErrorIs(t, err, database.ErrClosed)
+	})
 
-	expectedDB := &Database{
-		closed: true,
-	}
-	assert.Equal(t, expectedDB, database)
+	t.Run("closing", func(t *testing.T) {
+		db := &Database{
+			keyValues: map[string][]byte{},
+		}
 
-	assert.PanicsWithValue(t, "database is closed", func() {
-		_, _ = database.Get([]byte{1})
+		err := db.Close()
+		require.NoError(t, err)
+
+		expectedDB := &Database{
+			closed: true,
+		}
+		assert.Equal(t, expectedDB, db)
+
+		_, err = db.Get([]byte{1})
+		assert.ErrorIs(t, err, database.ErrClosed)
 	})
 }
 
 func Test_Database_DropAll(t *testing.T) {
 	t.Parallel()
 
-	database := &Database{
-		keyValues: map[string][]byte{
-			"\x01": {1},
-		},
-	}
+	t.Run("database is closed", func(t *testing.T) {
+		t.Parallel()
 
-	err := database.DropAll()
-	require.NoError(t, err)
+		db := &Database{
+			closed: true,
+		}
+		err := db.DropAll()
+		assert.ErrorIs(t, err, database.ErrClosed)
+	})
 
-	expectedDB := &Database{
-		keyValues: map[string][]byte{},
-	}
-	assert.Equal(t, expectedDB, database)
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+
+		database := &Database{
+			keyValues: map[string][]byte{
+				"\x01": {1},
+			},
+		}
+
+		err := database.DropAll()
+		require.NoError(t, err)
+
+		expectedDB := &Database{
+			keyValues: map[string][]byte{},
+		}
+		assert.Equal(t, expectedDB, database)
+	})
 }

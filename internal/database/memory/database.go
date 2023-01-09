@@ -32,7 +32,9 @@ func New() *Database {
 func (db *Database) Get(key []byte) (value []byte, err error) {
 	db.mutex.RLock()
 	defer db.mutex.RUnlock()
-	db.panicOnClosed()
+	if db.closed {
+		return nil, fmt.Errorf("%w", database.ErrClosed)
+	}
 
 	value, ok := db.keyValues[string(key)]
 	if !ok {
@@ -48,7 +50,9 @@ func (db *Database) Get(key []byte) (value []byte, err error) {
 func (db *Database) Set(key, value []byte) (err error) {
 	db.mutex.Lock()
 	defer db.mutex.Unlock()
-	db.panicOnClosed()
+	if db.closed {
+		return fmt.Errorf("%w", database.ErrClosed)
+	}
 
 	db.keyValues[string(key)] = copyBytes(value)
 
@@ -60,7 +64,9 @@ func (db *Database) Set(key, value []byte) (err error) {
 func (db *Database) Delete(key []byte) (err error) {
 	db.mutex.Lock()
 	defer db.mutex.Unlock()
-	db.panicOnClosed()
+	if db.closed {
+		return fmt.Errorf("%w", database.ErrClosed)
+	}
 
 	delete(db.keyValues, string(key))
 
@@ -71,10 +77,6 @@ func (db *Database) Delete(key []byte) (err error) {
 // It is not thread-safe to write to the batch, but flushing it is
 // thread-safe for the database.
 func (db *Database) NewWriteBatch() (writeBatch database.WriteBatch) {
-	db.mutex.Lock()
-	db.panicOnClosed()
-	db.mutex.Unlock()
-
 	const prefix = ""
 	return newWriteBatch(prefix, db)
 }
@@ -82,17 +84,19 @@ func (db *Database) NewWriteBatch() (writeBatch database.WriteBatch) {
 // NewTable returns a new table using the database.
 // All keys on the table will be prefixed with the given prefix.
 func (db *Database) NewTable(prefix string) (writeBatch database.Table) {
-	db.mutex.Lock()
-	db.panicOnClosed()
-	db.mutex.Unlock()
-
-	return newTable(prefix, db)
+	return &table{
+		prefix:   prefix,
+		database: db,
+	}
 }
 
 // Close closes the database.
 func (db *Database) Close() (err error) {
 	db.mutex.Lock()
 	defer db.mutex.Unlock()
+	if db.closed {
+		return fmt.Errorf("%w", database.ErrClosed)
+	}
 
 	db.closed = true
 	db.keyValues = nil
@@ -103,7 +107,9 @@ func (db *Database) Close() (err error) {
 func (db *Database) DropAll() (err error) {
 	db.mutex.Lock()
 	defer db.mutex.Unlock()
-	db.panicOnClosed()
+	if db.closed {
+		return fmt.Errorf("%w", database.ErrClosed)
+	}
 
 	db.keyValues = make(map[string][]byte)
 	return nil

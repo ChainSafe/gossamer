@@ -8,9 +8,3 @@ func copyBytes(b []byte) (bCopy []byte) {
 	copy(bCopy, b)
 	return bCopy
 }
-
-func (db *Database) panicOnClosed() {
-	if db.closed {
-		panic("database is closed")
-	}
-}
