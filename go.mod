@@ -42,7 +42,7 @@ require (
 	github.com/whyrusleeping/mdns v0.0.0-20190826153040-b9b60ed33aa9
 	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
-	golang.org/x/text v0.5.0
+	golang.org/x/text v0.6.0
 	google.golang.org/protobuf v1.28.1
 )
 
