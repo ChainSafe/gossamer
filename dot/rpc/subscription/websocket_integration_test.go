@@ -391,7 +391,6 @@ func TestSubscribeAllHeads(t *testing.T) {
 	mockBlockAPI.EXPECT().FreeFinalisedNotifierChannel(gomock.Any())
 
 	require.NoError(t, l.Stop())
-	mockBlockAPI.EXPECT().FreeImportedBlockNotifierChannel(gomock.Any())
 }
 
 func TestWSConn_CheckWebsocketInvalidData(t *testing.T) {
