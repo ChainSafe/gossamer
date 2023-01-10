@@ -1044,12 +1044,10 @@ func Test_chainProcessor_processReadyBlocks(t *testing.T) {
 			storageStateBuilder: func(ctrl *gomock.Controller, done chan struct{}) StorageState {
 				mockStorageState := NewMockStorageState(ctrl)
 				mockStorageState.EXPECT().Lock()
-				mockStorageState.EXPECT().Unlock()
-				mockStorageState.EXPECT().TrieState(&common.Hash{}).DoAndReturn(func(hash *common.Hash) (*storage.
-					TrieState, error) {
+				mockStorageState.EXPECT().Unlock().DoAndReturn(func() {
 					close(done)
-					return nil, mockError
 				})
+				mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(nil, mockError)
 				return mockStorageState
 			},
 		},
