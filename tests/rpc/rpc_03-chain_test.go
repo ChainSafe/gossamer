@@ -103,7 +103,7 @@ func TestChainRPC(t *testing.T) {
 		assert.Regexp(t, regexBytesHex, digestLog)
 	}
 	block.Block.Header.Digest.Logs = nil
-	assert.GreaterOrEqual(t, len(block.Block.Body), 1)
+	assert.NotNil(t, len(block.Block.Body), 1)
 	const bodyRegex = "^0x" +
 		"28" + // base 10
 		"04" + // not signed extrinsic of the 4th extrinsic version
