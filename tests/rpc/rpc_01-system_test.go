@@ -4,7 +4,6 @@
 package rpc
 
 import (
-	"bytes"
 	"context"
 	"testing"
 	"time"
@@ -30,9 +29,7 @@ func TestSystemRPC(t *testing.T) { //nolint:tparallel
 	genesisPath := libutils.GetWestendLocalRawGenesisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.Init.Genesis = genesisPath
-
-	writer := bytes.NewBuffer([]byte{})
-	nodes := node.MakeNodes(t, numberOfNodes, tomlConfig, node.SetWriter(writer))
+	nodes := node.MakeNodes(t, numberOfNodes, tomlConfig)
 
 	nodes.InitAndStartTest(ctx, t, cancel)
 

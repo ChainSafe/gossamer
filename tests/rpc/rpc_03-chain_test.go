@@ -118,6 +118,11 @@ func TestChainRPC(t *testing.T) {
 	blockNumber, err = common.HexToUint(header.Number)
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, blockNumber, uint(1))
+
+	var blockHash string
+	fetchWithTimeout(ctx, t, "chain_getBlockHash", "[]", &blockHash)
+	assert.Regexp(t, regex32BytesHex, blockHash)
+	assert.NotEqual(t, finalizedHead, blockHash)
 }
 
 func TestChainSubscriptionRPC(t *testing.T) { //nolint:tparallel
