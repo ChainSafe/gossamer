@@ -283,7 +283,6 @@ func Test_encodeChild(t *testing.T) {
 		wrappedErr error
 		errMessage string
 	}{
-		"nil node": {},
 		"empty branch child": {
 			child: &Node{
 				Children: make([]*Node, ChildrenCapacity),
