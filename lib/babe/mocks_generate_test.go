@@ -3,5 +3,4 @@
 
 package babe
 
-//go:generate mockgen -destination=mocks/network.go -package=mocks github.com/ChainSafe/gossamer/dot/core Network
 //go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE . Telemetry

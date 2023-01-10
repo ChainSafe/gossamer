@@ -24,7 +24,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	gomock "github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -78,11 +77,13 @@ func TestStorageObserver_Update(t *testing.T) {
 }
 
 func TestBlockListener_Listen(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
 	wsconn, ws, cancel := setupWSConn(t)
 	defer cancel()
 
-	BlockAPI := mocks.NewBlockAPI(t)
-	BlockAPI.On("FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block"))
+	BlockAPI := mocks.NewMockBlockAPI(ctrl)
+	BlockAPI.EXPECT().FreeImportedBlockNotifierChannel(gomock.Any())
 
 	wsconn.BlockAPI = BlockAPI
 
@@ -124,11 +125,13 @@ func TestBlockListener_Listen(t *testing.T) {
 }
 
 func TestBlockFinalizedListener_Listen(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
 	wsconn, ws, cancel := setupWSConn(t)
 	defer cancel()
 
-	BlockAPI := mocks.NewBlockAPI(t)
-	BlockAPI.On("FreeFinalisedNotifierChannel", mock.AnythingOfType("chan *types.FinalisationInfo"))
+	BlockAPI := mocks.NewMockBlockAPI(ctrl)
+	BlockAPI.EXPECT().FreeFinalisedNotifierChannel(gomock.Any())
 
 	wsconn.BlockAPI = BlockAPI
 
@@ -170,6 +173,8 @@ func TestBlockFinalizedListener_Listen(t *testing.T) {
 	require.Equal(t, string(expectedResponseBytes)+"\n", string(msg))
 }
 func TestExtrinsicSubmitListener_Listen(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
 	wsconn, ws, cancel := setupWSConn(t)
 	defer cancel()
 
@@ -177,13 +182,12 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 	notifyFinalizedChan := make(chan *types.FinalisationInfo, 100)
 	txStatusChan := make(chan transaction.Status)
 
-	BlockAPI := mocks.NewBlockAPI(t)
-	BlockAPI.On("FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block"))
-	BlockAPI.On("FreeFinalisedNotifierChannel", mock.AnythingOfType("chan *types.FinalisationInfo"))
+	BlockAPI := mocks.NewMockBlockAPI(ctrl)
+	BlockAPI.EXPECT().FreeImportedBlockNotifierChannel(gomock.Any())
+	BlockAPI.EXPECT().FreeFinalisedNotifierChannel(gomock.Any())
 
 	wsconn.BlockAPI = BlockAPI
 
-	ctrl := gomock.NewController(t)
 	TxStateAPI := NewMockTransactionStateAPI(ctrl)
 	TxStateAPI.EXPECT().FreeStatusNotifierChannel(gomock.Any()).AnyTimes()
 	TxStateAPI.EXPECT().GetStatusNotifierChannel(gomock.Any()).Return(make(chan transaction.Status)).AnyTimes()
@@ -241,6 +245,8 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 
 func TestGrandpaJustification_Listen(t *testing.T) {
 	t.Run("When justification doesnt returns error", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+
 		wsconn, ws, cancel := setupWSConn(t)
 		defer cancel()
 
@@ -255,9 +261,9 @@ func TestGrandpaJustification_Listen(t *testing.T) {
 		mockedJustBytes, err := scale.Marshal(mockedJust)
 		require.NoError(t, err)
 
-		blockStateMock := mocks.NewBlockAPI(t)
-		blockStateMock.On("GetJustification", mock.AnythingOfType("common.Hash")).Return(mockedJustBytes, nil)
-		blockStateMock.On("FreeFinalisedNotifierChannel", mock.AnythingOfType("chan *types.FinalisationInfo"))
+		blockStateMock := mocks.NewMockBlockAPI(ctrl)
+		blockStateMock.EXPECT().GetJustification(gomock.Any()).Return(mockedJustBytes, nil)
+		blockStateMock.EXPECT().FreeFinalisedNotifierChannel(gomock.Any())
 		wsconn.BlockAPI = blockStateMock
 
 		finchannel := make(chan *types.FinalisationInfo)
@@ -290,13 +296,15 @@ func TestGrandpaJustification_Listen(t *testing.T) {
 }
 
 func TestRuntimeChannelListener_Listen(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
 	notifyChan := make(chan runtime.Version)
 	mockConnection := &mockWSConnAPI{}
 	rvl := RuntimeVersionListener{
 		wsconn:        mockConnection,
 		subID:         0,
 		runtimeUpdate: notifyChan,
-		coreAPI:       modules.NewMockCoreAPI(t),
+		coreAPI:       modules.NewMockAnyAPI(ctrl),
 	}
 
 	expectedInitialVersion := modules.StateRuntimeVersionResponse{

@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/stretchr/testify/mock"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -257,16 +257,17 @@ var allTests = []testHolder{
 // iterates allTests and runs tests on them based on data contained in
 //  test holder
 func TestAllocator(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
 	for _, test := range allTests {
-		memmock := newMockMemory(t)
+		memmock := NewMockMemory(ctrl)
 		const size = 1 << 16
 		testobj := make([]byte, size)
 
-		memmock.On("Data").Return(testobj)
-		lengthcall := memmock.On("Length")
-		lengthcall.RunFn = func(args mock.Arguments) {
-			lengthcall.ReturnArguments = mock.Arguments{uint32(len(testobj))}
-		}
+		memmock.EXPECT().Data().Return(testobj).AnyTimes()
+		memmock.EXPECT().Length().DoAndReturn(func() uint32 {
+			return uint32(len(testobj))
+		}).Times(2)
 
 		allocator := NewAllocator(memmock, test.offset)
 
@@ -313,20 +314,19 @@ func compareState(allocator FreeingBumpHeapAllocator, state allocatorState,
 
 // test that allocator should grow memory if the allocation request is larger than current size
 func TestShouldGrowMemory(t *testing.T) {
-	mem := newMockMemory(t)
+	ctrl := gomock.NewController(t)
+
+	mem := NewMockMemory(ctrl)
 	const size = 1 << 16
 	testobj := make([]byte, size)
-	mem.On("Data").Return(testobj)
-	lengthcall := mem.On("Length")
-	lengthcall.RunFn = func(args mock.Arguments) {
-		lengthcall.ReturnArguments = mock.Arguments{uint32(len(testobj))}
-	}
-	growcall := mem.On("Grow", mock.Anything)
-	growcall.RunFn = func(args mock.Arguments) {
-		arg := args[0].(uint32)
+	mem.EXPECT().Data().Return(testobj).Times(9)
+	mem.EXPECT().Length().DoAndReturn(func() uint32 {
+		return uint32(len(testobj))
+	}).Times(5)
+	mem.EXPECT().Grow(gomock.Any()).DoAndReturn(func(arg uint32) error {
 		testobj = append(testobj, make([]byte, PageSize*arg)...)
-		growcall.ReturnArguments = mock.Arguments{nil}
-	}
+		return nil
+	})
 
 	currentSize := mem.Length()
 
@@ -340,20 +340,19 @@ func TestShouldGrowMemory(t *testing.T) {
 
 // test that the allocator should grow memory if it's already full
 func TestShouldGrowMemoryIfFull(t *testing.T) {
-	mem := newMockMemory(t)
+	ctrl := gomock.NewController(t)
+
+	mem := NewMockMemory(ctrl)
 	const size = 1 << 16
 	testobj := make([]byte, size)
-	mem.On("Data").Return(testobj)
-	lengthcall := mem.On("Length").Return(uint32(size))
-	lengthcall.RunFn = func(args mock.Arguments) {
-		lengthcall.ReturnArguments = mock.Arguments{uint32(len(testobj))}
-	}
-	growcall := mem.On("Grow", mock.Anything)
-	growcall.RunFn = func(args mock.Arguments) {
-		arg := args[0].(uint32)
+	mem.EXPECT().Data().Return(testobj).Times(18)
+	mem.EXPECT().Length().DoAndReturn(func() uint32 {
+		return uint32(len(testobj))
+	}).Times(5)
+	mem.EXPECT().Grow(gomock.Any()).DoAndReturn(func(arg uint32) error {
 		testobj = append(testobj, make([]byte, PageSize*arg)...)
-		growcall.ReturnArguments = mock.Arguments{nil}
-	}
+		return nil
+	})
 
 	currentSize := mem.Length()
 	fbha := NewAllocator(mem, 0)
@@ -373,14 +372,16 @@ func TestShouldGrowMemoryIfFull(t *testing.T) {
 
 // test to confirm that allocator can allocate the MaxPossibleAllocation
 func TestShouldAllocateMaxPossibleAllocationSize(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
 	// given, grow heap memory so that we have at least MaxPossibleAllocation available
 	const initialSize = 1 << 16
 	const pagesNeeded = (MaxPossibleAllocation / PageSize) - (initialSize / PageSize) + 1
-	mem := newMockMemory(t)
+	mem := NewMockMemory(ctrl)
 	const size = initialSize + pagesNeeded*65*1024
 	testobj := make([]byte, size)
-	mem.On("Data").Return(testobj)
-	mem.On("Length").Return(uint32(size))
+	mem.EXPECT().Data().Return(testobj).Times(9)
+	mem.EXPECT().Length().Return(uint32(size)).Times(2)
 
 	fbha := NewAllocator(mem, 0)
 
@@ -396,8 +397,10 @@ func TestShouldAllocateMaxPossibleAllocationSize(t *testing.T) {
 
 // test that allocator should not allocate memory if request is too large
 func TestShouldNotAllocateIfRequestSizeTooLarge(t *testing.T) {
-	memory := newMockMemory(t)
-	memory.On("Length").Return(uint32(1 << 16))
+	ctrl := gomock.NewController(t)
+
+	memory := NewMockMemory(ctrl)
+	memory.EXPECT().Length().Return(uint32(1 << 16)).Times(2)
 
 	fbha := NewAllocator(memory, 0)
 

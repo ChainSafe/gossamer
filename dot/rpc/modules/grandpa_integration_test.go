@@ -13,6 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -51,6 +52,8 @@ func TestGrandpaProveFinality(t *testing.T) {
 }
 
 func TestRoundState(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
 	var voters grandpa.Voters
 
 	for _, k := range kr.Keys {
@@ -60,19 +63,19 @@ func TestRoundState(t *testing.T) {
 		})
 	}
 
-	grandpamock := rpcmocks.NewBlockFinalityAPI(t)
-	grandpamock.On("GetVoters").Return(voters)
-	grandpamock.On("GetSetID").Return(uint64(0))
-	grandpamock.On("GetRound").Return(uint64(2))
+	grandpamock := rpcmocks.NewMockBlockFinalityAPI(ctrl)
+	grandpamock.EXPECT().GetVoters().Return(voters)
+	grandpamock.EXPECT().GetSetID().Return(uint64(0))
+	grandpamock.EXPECT().GetRound().Return(uint64(2))
 
-	grandpamock.On("PreVotes").Return([]ed25519.PublicKeyBytes{
+	grandpamock.EXPECT().PreVotes().Return([]ed25519.PublicKeyBytes{
 		kr.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 		kr.Bob().Public().(*ed25519.PublicKey).AsBytes(),
 		kr.Charlie().Public().(*ed25519.PublicKey).AsBytes(),
 		kr.Dave().Public().(*ed25519.PublicKey).AsBytes(),
 	})
 
-	grandpamock.On("PreCommits").Return([]ed25519.PublicKeyBytes{
+	grandpamock.EXPECT().PreCommits().Return([]ed25519.PublicKeyBytes{
 		kr.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 		kr.Bob().Public().(*ed25519.PublicKey).AsBytes(),
 	})
