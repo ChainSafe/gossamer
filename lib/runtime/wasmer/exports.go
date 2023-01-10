@@ -282,20 +282,18 @@ func (in *Instance) CheckInherents() {}
 func (in *Instance) GrandpaGenerateKeyOwnershipProof(authSetID uint64, authorityID ed25519.PublicKeyBytes) (
 	types.OpaqueKeyOwnershipProof, error) {
 
-	combinedArg := []byte{}
-	encodedSetID, err := scale.Marshal(authSetID)
+	const bufferSize = 8 + 32 // authSetID uint64 + ed25519.PublicKeyBytes
+	buffer := bytes.NewBuffer(make([]byte, 0, bufferSize))
+	encoder := scale.NewEncoder(buffer)
+	err := encoder.Encode(authSetID)
 	if err != nil {
-		return nil, fmt.Errorf("encoding set id: %w", err)
+		return nil, fmt.Errorf("encoding auth set id: %w", err)
 	}
-	combinedArg = append(combinedArg, encodedSetID...)
-
-	encodedAuthorityID, err := scale.Marshal(authorityID)
+	err = encoder.Encode(authorityID)
 	if err != nil {
 		return nil, fmt.Errorf("encoding authority id: %w", err)
 	}
-	combinedArg = append(combinedArg, encodedAuthorityID...)
-
-	ret, err := in.Exec(runtime.GrandpaGenerateKeyOwnershipProof, combinedArg)
+	ret, err := in.Exec(runtime.GrandpaGenerateKeyOwnershipProof, buffer.Bytes())
 	if err != nil {
 		return nil, err
 	}
@@ -303,30 +301,27 @@ func (in *Instance) GrandpaGenerateKeyOwnershipProof(authSetID uint64, authority
 	keyOwnershipProof := types.OpaqueKeyOwnershipProof{}
 	err = scale.Unmarshal(ret, &keyOwnershipProof)
 	if err != nil {
-		return nil, fmt.Errorf("unmarshalling: %w", err)
+		return nil, fmt.Errorf("scale decoding: %w", err)
 	}
 
-	return keyOwnershipProof, err
+	return keyOwnershipProof, nil
 }
 
 // GrandpaSubmitReportEquivocationUnsignedExtrinsic reports equivocation report to the runtime.
 func (in *Instance) GrandpaSubmitReportEquivocationUnsignedExtrinsic(
 	equivocationProof types.GrandpaEquivocationProof, keyOwnershipProof types.OpaqueKeyOwnershipProof,
 ) error {
-	combinedArg := []byte{}
-	encodedEquivocationProof, err := scale.Marshal(equivocationProof)
+	buffer := bytes.NewBuffer(nil)
+	encoder := scale.NewEncoder(buffer)
+	err := encoder.Encode(equivocationProof)
 	if err != nil {
 		return fmt.Errorf("encoding equivocation proof: %w", err)
 	}
-	combinedArg = append(combinedArg, encodedEquivocationProof...)
-
-	encodedKeyOwnershipProof, err := scale.Marshal(keyOwnershipProof)
+	err = encoder.Encode(keyOwnershipProof)
 	if err != nil {
 		return fmt.Errorf("encoding key ownership proof: %w", err)
 	}
-	combinedArg = append(combinedArg, encodedKeyOwnershipProof...)
-
-	_, err = in.Exec(runtime.GrandpaSubmitReportEquivocation, combinedArg)
+	_, err = in.Exec(runtime.GrandpaSubmitReportEquivocation, buffer.Bytes())
 	return err
 }
 
