@@ -405,7 +405,7 @@ func TestSyncState(t *testing.T) {
 	}
 
 	blockapiMock := mocks.NewMockBlockAPI(ctrl)
-	blockapiMock.EXPECT().BestBlockHash().Return(fakeCommonHash)
+	blockapiMock.EXPECT().BestBlockHash().Return(fakeCommonHash).Times(2)
 	blockapiMock.EXPECT().GetHeader(fakeCommonHash).Return(fakeHeader, nil)
 
 	netapiMock := mocks.NewMockNetworkAPI(ctrl)

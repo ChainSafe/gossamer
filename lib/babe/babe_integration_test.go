@@ -205,7 +205,7 @@ func TestService_ProducesBlocks(t *testing.T) {
 
 	blockImportHandler := NewMockBlockImportHandler(ctrl)
 	blockImportHandler.EXPECT().HandleBlockProduced(gomock.Any(), gomock.Any()).
-		Return(nil)
+		Return(nil).MinTimes(2)
 	cfg := ServiceConfig{
 		Authority:          true,
 		Lead:               true,
@@ -215,11 +215,9 @@ func TestService_ProducesBlocks(t *testing.T) {
 
 	err := babeService.Start()
 	require.NoError(t, err)
-	defer func() {
-		_ = babeService.Stop()
-	}()
-
 	time.Sleep(babeService.constants.slotDuration * 2)
+	err = babeService.Stop()
+	require.NoError(t, err)
 }
 
 func TestService_GetAuthorityIndex(t *testing.T) {
