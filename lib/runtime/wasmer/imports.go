@@ -817,7 +817,12 @@ func ext_trie_blake2_256_root_version_1(context unsafe.Pointer, dataSpan C.int64
 	}
 
 	for _, kv := range kvs {
-		t.Put(kv.Key, kv.Value)
+		err := t.Put(kv.Key, kv.Value)
+		if err != nil {
+			logger.Errorf("failed putting key 0x%x and value 0x%x into trie: %s",
+				kv.Key, kv.Value, err)
+			return 0
+		}
 	}
 
 	// allocate memory for value and copy value to memory
@@ -865,7 +870,12 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 			"put key=0x%x and value=0x%x",
 			key, value)
 
-		t.Put(key, value)
+		err = t.Put(key, value)
+		if err != nil {
+			logger.Errorf("failed putting key 0x%x and value 0x%x into trie: %s",
+				key, value, err)
+			return 0
+		}
 	}
 
 	// allocate memory for value and copy value to memory
@@ -1180,7 +1190,8 @@ func ext_default_child_storage_storage_kill_version_1(context unsafe.Pointer, ch
 	storage := ctx.Storage
 
 	childStorageKey := asMemorySlice(instanceContext, childStorageKeySpan)
-	storage.DeleteChild(childStorageKey)
+	err := storage.DeleteChild(childStorageKey)
+	panicOnError(err)
 }
 
 //export ext_default_child_storage_storage_kill_version_2
@@ -1843,7 +1854,8 @@ func ext_storage_clear_version_1(context unsafe.Pointer, keySpan C.int64_t) {
 	key := asMemorySlice(instanceContext, keySpan)
 
 	logger.Debugf("key: 0x%x", key)
-	storage.Delete(key)
+	err := storage.Delete(key)
+	panicOnError(err)
 }
 
 //export ext_storage_clear_prefix_version_1
@@ -1856,7 +1868,8 @@ func ext_storage_clear_prefix_version_1(context unsafe.Pointer, prefixSpan C.int
 	prefix := asMemorySlice(instanceContext, prefixSpan)
 	logger.Debugf("prefix: 0x%x", prefix)
 
-	storage.ClearPrefix(prefix)
+	err := storage.ClearPrefix(prefix)
+	panicOnError(err)
 }
 
 //export ext_storage_clear_prefix_version_2
@@ -1885,7 +1898,12 @@ func ext_storage_clear_prefix_version_2(context unsafe.Pointer, prefixSpan, lim 
 	}
 
 	limitUint := binary.LittleEndian.Uint32(limit)
-	numRemoved, all := storage.ClearPrefixLimit(prefix, limitUint)
+	numRemoved, all, err := storage.ClearPrefixLimit(prefix, limitUint)
+	if err != nil {
+		logger.Errorf("failed to clear prefix limit: %s", err)
+		return mustToWasmMemoryNil(instanceContext)
+	}
+
 	encBytes, err := toKillStorageResultEnum(all, numRemoved)
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
@@ -2044,7 +2062,8 @@ func ext_storage_set_version_1(context unsafe.Pointer, keySpan, valueSpan C.int6
 	logger.Debugf(
 		"key 0x%x has value 0x%x",
 		key, value)
-	storage.Put(key, cp)
+	err := storage.Put(key, cp)
+	panicOnError(err)
 }
 
 //export ext_storage_start_transaction_version_1

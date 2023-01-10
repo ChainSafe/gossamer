@@ -5,6 +5,7 @@ package storage
 
 import (
 	"encoding/binary"
+	"fmt"
 	"sort"
 	"sync"
 
@@ -67,11 +68,11 @@ func (s *TrieState) RollbackStorageTransaction() {
 	s.oldTrie = nil
 }
 
-// Put puts thread safely a value at the specified key in the trie.
-func (s *TrieState) Put(key, value []byte) {
+// Put puts a key-value pair in the trie
+func (s *TrieState) Put(key, value []byte) (err error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	s.t.Put(key, value)
+	return s.t.Put(key, value)
 }
 
 // Get gets a value from the trie
@@ -97,15 +98,20 @@ func (s *TrieState) Has(key []byte) bool {
 }
 
 // Delete deletes a key from the trie
-func (s *TrieState) Delete(key []byte) {
+func (s *TrieState) Delete(key []byte) (err error) {
 	val := s.t.Get(key)
 	if val == nil {
-		return
+		return nil
 	}
 
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	s.t.Delete(key)
+	err = s.t.Delete(key)
+	if err != nil {
+		return fmt.Errorf("deleting from trie: %w", err)
+	}
+
+	return nil
 }
 
 // NextKey returns the next key in the trie in lexicographical order. If it does not exist, it returns nil.
@@ -116,19 +122,19 @@ func (s *TrieState) NextKey(key []byte) []byte {
 }
 
 // ClearPrefix deletes all key-value pairs from the trie where the key starts with the given prefix
-func (s *TrieState) ClearPrefix(prefix []byte) {
+func (s *TrieState) ClearPrefix(prefix []byte) (err error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	s.t.ClearPrefix(prefix)
+	return s.t.ClearPrefix(prefix)
 }
 
 // ClearPrefixLimit deletes key-value pairs from the trie where the key starts with the given prefix till limit reached
-func (s *TrieState) ClearPrefixLimit(prefix []byte, limit uint32) (uint32, bool) {
+func (s *TrieState) ClearPrefixLimit(prefix []byte, limit uint32) (
+	deleted uint32, allDeleted bool, err error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	num, del := s.t.ClearPrefixLimit(prefix, limit)
-	return num, del
+	return s.t.ClearPrefixLimit(prefix, limit)
 }
 
 // TrieEntries returns every key-value pair in the trie
@@ -167,24 +173,29 @@ func (s *TrieState) GetChildStorage(keyToChild, key []byte) ([]byte, error) {
 }
 
 // DeleteChild deletes a child trie from the main trie
-func (s *TrieState) DeleteChild(key []byte) {
+func (s *TrieState) DeleteChild(key []byte) (err error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	s.t.DeleteChild(key)
+	return s.t.DeleteChild(key)
 }
 
-// DeleteChildLimit deletes up to limit of database entries by lexicographic order, return number
-//  deleted, true if all delete otherwise false
-func (s *TrieState) DeleteChildLimit(key []byte, limit *[]byte) (uint32, bool, error) {
+// DeleteChildLimit deletes up to limit of database entries by lexicographic order.
+func (s *TrieState) DeleteChildLimit(key []byte, limit *[]byte) (
+	deleted uint32, allDeleted bool, err error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	tr, err := s.t.GetChild(key)
 	if err != nil {
 		return 0, false, err
 	}
+
 	qtyEntries := uint32(len(tr.Entries()))
 	if limit == nil {
-		s.t.DeleteChild(key)
+		err = s.t.DeleteChild(key)
+		if err != nil {
+			return 0, false, fmt.Errorf("deleting child trie: %w", err)
+		}
+
 		return qtyEntries, true, nil
 	}
 	limitUint := binary.LittleEndian.Uint32(*limit)
@@ -194,20 +205,25 @@ func (s *TrieState) DeleteChildLimit(key []byte, limit *[]byte) (uint32, bool, e
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
-	deleted := uint32(0)
 	for _, k := range keys {
-		tr.Delete([]byte(k))
+		// TODO have a transactional/atomic way to delete multiple keys in trie.
+		// If one deletion fails, the child trie and its parent trie are then in
+		// a bad intermediary state. Take also care of the caching of deleted Merkle
+		// values within the tries, which is used for online pruning.
+		// See https://github.com/ChainSafe/gossamer/issues/3032
+		err = tr.Delete([]byte(k))
+		if err != nil {
+			return deleted, allDeleted, fmt.Errorf("deleting from child trie located at key 0x%x: %w", key, err)
+		}
+
 		deleted++
 		if deleted == limitUint {
 			break
 		}
 	}
 
-	if deleted == qtyEntries {
-		return deleted, true, nil
-	}
-
-	return deleted, false, nil
+	allDeleted = deleted == qtyEntries
+	return deleted, allDeleted, nil
 }
 
 // ClearChildStorage removes the child storage entry from the trie
@@ -230,7 +246,11 @@ func (s *TrieState) ClearPrefixInChild(keyToChild, prefix []byte) error {
 		return nil
 	}
 
-	child.ClearPrefix(prefix)
+	err = child.ClearPrefix(prefix)
+	if err != nil {
+		return fmt.Errorf("clearing prefix in child trie located at key 0x%x: %w", keyToChild, err)
+	}
+
 	return nil
 }
 
