@@ -27,7 +27,7 @@ func TestSystemRPC(t *testing.T) { //nolint:tparallel
 
 	const numberOfNodes = 3
 
-	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
+	genesisPath := libutils.GetWestendLocalRawGenesisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.Init.Genesis = genesisPath
 
@@ -80,7 +80,7 @@ func TestSystemRPC(t *testing.T) { //nolint:tparallel
 				return false, err // error and stop retrying
 			}
 
-			ok = healthResponse.Peers == numberOfNodes-1
+			ok = healthResponse.Peers == numberOfNodes-1 && !healthResponse.IsSyncing
 			return ok, nil
 		})
 		require.NoError(t, err)
