@@ -361,8 +361,6 @@ func (t *Trie) insert(parent *Node, key, value []byte,
 		}, mutated, nodesCreated, nil
 	}
 
-	// TODO ensure all values have dirty set to true
-
 	if parent.Kind() == node.Branch {
 		newParent, mutated, nodesCreated, err = t.insertInBranch(
 			parent, key, value, deletedMerkleValues)
@@ -888,6 +886,7 @@ func (t *Trie) clearPrefixLimitChild(branch *Node, prefix []byte, limit uint32,
 	if child == nil {
 		const valuesDeleted, nodesRemoved = 0, 0
 		// TODO ensure this is the same behaviour as in substrate
+		// See https://github.com/ChainSafe/gossamer/issues/3033
 		allDeleted = true
 		return newParent, valuesDeleted, nodesRemoved, allDeleted, nil
 	}
