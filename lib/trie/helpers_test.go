@@ -118,3 +118,20 @@ func padRightChildren(slice []*Node) (paddedSlice []*Node) {
 	copy(paddedSlice, slice)
 	return paddedSlice
 }
+
+func checkMerkleValuesAreSet(t *testing.T, n *Node) {
+	t.Helper()
+
+	if n == nil {
+		return
+	}
+
+	require.NotEmpty(t, n.MerkleValue)
+	if n.Kind() == node.Leaf {
+		return
+	}
+
+	for _, child := range n.Children {
+		checkMerkleValuesAreSet(t, child)
+	}
+}
