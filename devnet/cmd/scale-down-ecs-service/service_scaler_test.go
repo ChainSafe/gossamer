@@ -10,14 +10,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/devnet/cmd/scale-down-ecs-service/internal"
 	"github.com/aws/aws-sdk-go/aws"
 	request "github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/ecs"
-	"github.com/aws/aws-sdk-go/service/ecs/ecsiface"
 	"github.com/golang/mock/gomock"
 )
 
-//go:generate mockgen -destination=mocks_test.go -package=$GOPACKAGE github.com/aws/aws-sdk-go/service/ecs/ecsiface ECSAPI
+//go:generate mockgen -destination=mocks_test.go -package=$GOPACKAGE github.com/ChainSafe/gossamer/devnet/cmd/scale-down-ecs-service/internal ECSAPI
 
 func Test_serviceScaler_findServiceArns(t *testing.T) {
 	ctrl := gomock.NewController(t)
@@ -53,7 +53,7 @@ func Test_serviceScaler_findServiceArns(t *testing.T) {
 	type fields struct {
 		tickerDuration time.Duration
 		cluster        string
-		ecs            ecsiface.ECSAPI
+		ecs            internal.ECSAPI
 	}
 
 	type args struct {
@@ -165,7 +165,7 @@ func Test_serviceScaler_drainServices(t *testing.T) {
 	type fields struct {
 		tickerDuration time.Duration
 		cluster        string
-		ecs            ecsiface.ECSAPI
+		ecs            internal.ECSAPI
 	}
 	type args struct {
 		ctx         context.Context
@@ -285,7 +285,7 @@ func Test_serviceScaler_waitForRunningCount(t *testing.T) {
 	type fields struct {
 		tickerDuration time.Duration
 		cluster        string
-		ecs            ecsiface.ECSAPI
+		ecs            internal.ECSAPI
 	}
 	type args struct {
 		ctx         context.Context
@@ -363,7 +363,7 @@ func Test_newServiceScaler(t *testing.T) {
 	type args struct {
 		tickerDuration time.Duration
 		cluster        string
-		ecs            ecsiface.ECSAPI
+		ecs            internal.ECSAPI
 	}
 	tests := []struct {
 		name string
@@ -452,7 +452,7 @@ func Test_serviceScaler_scaleServices(t *testing.T) {
 	type fields struct {
 		tickerDuration time.Duration
 		cluster        string
-		ecs            ecsiface.ECSAPI
+		ecs            internal.ECSAPI
 	}
 	type args struct {
 		ctx           context.Context
