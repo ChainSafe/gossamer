@@ -11,6 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/golang/mock/gomock"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -21,17 +22,19 @@ func TestChainModule_GetBlock(t *testing.T) {
 	inputHash := common.MustHexToHash("0x0102000000000000000000000000000000000000000000000000000000000000")
 	emptyBlock := types.NewEmptyBlock()
 
-	mockBlockAPI := mocks.NewBlockAPI(t)
-	mockBlockAPI.On("GetBlockByHash", inputHash).Return(&emptyBlock, nil)
-	mockBlockAPI.On("BestBlockHash").Return(testHash, nil)
+	ctrl := gomock.NewController(t)
 
-	mockBlockAPIGetHashErr := mocks.NewBlockAPI(t)
-	mockBlockAPIGetHashErr.On("GetBlockByHash", inputHash).Return(nil, errors.New("GetJustification error"))
+	mockBlockAPI := mocks.NewMockBlockAPI(ctrl)
+	mockBlockAPI.EXPECT().GetBlockByHash(inputHash).Return(&emptyBlock, nil)
+	mockBlockAPI.EXPECT().BestBlockHash().Return(testHash)
+
+	mockBlockAPIGetHashErr := mocks.NewMockBlockAPI(ctrl)
+	mockBlockAPIGetHashErr.EXPECT().GetBlockByHash(inputHash).Return(nil, errors.New("GetJustification error"))
 
 	bodyBlock := types.NewEmptyBlock()
 	bodyBlock.Body = types.BytesArrayToExtrinsics([][]byte{{1}})
-	mockBlockAPIWithBody := mocks.NewBlockAPI(t)
-	mockBlockAPIWithBody.On("GetBlockByHash", inputHash).Return(&bodyBlock, nil)
+	mockBlockAPIWithBody := mocks.NewMockBlockAPI(ctrl)
+	mockBlockAPIWithBody.EXPECT().GetBlockByHash(inputHash).Return(&bodyBlock, nil)
 
 	chainModule := NewChainModule(mockBlockAPI)
 	type fields struct {
@@ -115,15 +118,19 @@ func TestChainModule_GetBlock(t *testing.T) {
 }
 
 func TestChainModule_GetBlockHash(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
 	testHash := common.NewHash([]byte{0x01, 0x02})
 	i := []interface{}{"a"}
 
-	mockBlockAPI := mocks.NewBlockAPI(t)
-	mockBlockAPI.On("BestBlockHash").Return(testHash, nil)
-	mockBlockAPI.On("GetHashByNumber", uint(21)).Return(testHash, nil)
+	mockBlockAPI := mocks.NewMockBlockAPI(ctrl)
+	mockBlockAPI.EXPECT().BestBlockHash().Return(testHash)
+	mockBlockAPI.EXPECT().GetHashByNumber(uint(21)).
+		Return(testHash, nil).AnyTimes()
 
-	mockBlockAPIErr := mocks.NewBlockAPI(t)
-	mockBlockAPIErr.On("GetHashByNumber", uint(21)).Return(nil, errors.New("GetBlockHash Error"))
+	mockBlockAPIErr := mocks.NewMockBlockAPI(ctrl)
+	mockBlockAPIErr.EXPECT().GetHashByNumber(uint(21)).
+		Return(common.Hash{}, errors.New("GetBlockHash Error"))
 
 	expRes := ChainHashResponse(testHash.String())
 	type fields struct {
@@ -222,12 +229,15 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 }
 
 func TestChainModule_GetFinalizedHead(t *testing.T) {
-	testHash := common.NewHash([]byte{0x01, 0x02})
-	mockBlockAPI := mocks.NewBlockAPI(t)
-	mockBlockAPI.On("GetHighestFinalisedHash").Return(testHash, nil)
+	ctrl := gomock.NewController(t)
 
-	mockBlockAPIErr := mocks.NewBlockAPI(t)
-	mockBlockAPIErr.On("GetHighestFinalisedHash").Return(nil, errors.New("GetHighestFinalisedHash Error"))
+	testHash := common.NewHash([]byte{0x01, 0x02})
+	mockBlockAPI := mocks.NewMockBlockAPI(ctrl)
+	mockBlockAPI.EXPECT().GetHighestFinalisedHash().Return(testHash, nil)
+
+	mockBlockAPIErr := mocks.NewMockBlockAPI(ctrl)
+	mockBlockAPIErr.EXPECT().GetHighestFinalisedHash().
+		Return(common.Hash{}, errors.New("GetHighestFinalisedHash Error"))
 
 	expRes := ChainHashResponse(common.BytesToHex(testHash[:]))
 	type fields struct {
@@ -283,12 +293,15 @@ func TestChainModule_GetFinalizedHead(t *testing.T) {
 }
 
 func TestChainModule_GetFinalizedHeadByRound(t *testing.T) {
-	testHash := common.NewHash([]byte{0x01, 0x02})
-	mockBlockAPI := mocks.NewBlockAPI(t)
-	mockBlockAPI.On("GetFinalisedHash", uint64(21), uint64(21)).Return(testHash, nil)
+	ctrl := gomock.NewController(t)
 
-	mockBlockAPIErr := mocks.NewBlockAPI(t)
-	mockBlockAPIErr.On("GetFinalisedHash", uint64(21), uint64(21)).Return(nil, errors.New("GetFinalisedHash Error"))
+	testHash := common.NewHash([]byte{0x01, 0x02})
+	mockBlockAPI := mocks.NewMockBlockAPI(ctrl)
+	mockBlockAPI.EXPECT().GetFinalisedHash(uint64(21), uint64(21)).Return(testHash, nil)
+
+	mockBlockAPIErr := mocks.NewMockBlockAPI(ctrl)
+	mockBlockAPIErr.EXPECT().GetFinalisedHash(uint64(21), uint64(21)).
+		Return(common.Hash{}, errors.New("GetFinalisedHash Error"))
 
 	expRes := ChainHashResponse(common.BytesToHex(testHash[:]))
 	type fields struct {
@@ -350,16 +363,18 @@ func TestChainModule_GetFinalizedHeadByRound(t *testing.T) {
 }
 
 func TestChainModule_GetHeader(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
 	emptyHeader := types.NewEmptyHeader()
 	testHash := common.NewHash([]byte{0x01, 0x02})
 	inputHash, err := common.HexToHash("0x0102000000000000000000000000000000000000000000000000000000000000")
 	require.NoError(t, err)
 
-	mockBlockAPI := mocks.NewBlockAPI(t)
-	mockBlockAPI.On("GetHeader", inputHash).Return(emptyHeader, nil)
+	mockBlockAPI := mocks.NewMockBlockAPI(ctrl)
+	mockBlockAPI.EXPECT().GetHeader(inputHash).Return(emptyHeader, nil)
 
-	mockBlockAPIErr := mocks.NewBlockAPI(t)
-	mockBlockAPIErr.On("GetHeader", inputHash).Return(nil, errors.New("GetFinalisedHash Error"))
+	mockBlockAPIErr := mocks.NewMockBlockAPI(ctrl)
+	mockBlockAPIErr.EXPECT().GetHeader(inputHash).Return(nil, errors.New("GetFinalisedHash Error"))
 
 	expRes, err := HeaderToJSON(*emptyHeader)
 	require.NoError(t, err)
@@ -417,9 +432,11 @@ func TestChainModule_GetHeader(t *testing.T) {
 }
 
 func TestChainModule_ErrSubscriptionTransport(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
 	req := &EmptyRequest{}
 	res := &ChainBlockHeaderResponse{}
-	cm := NewChainModule(mocks.NewBlockAPI(t))
+	cm := NewChainModule(mocks.NewMockBlockAPI(ctrl))
 
 	err := cm.SubscribeFinalizedHeads(nil, req, res)
 	require.ErrorIs(t, err, ErrSubscriptionTransport)

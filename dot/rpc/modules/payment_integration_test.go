@@ -12,7 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	"github.com/stretchr/testify/mock"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -24,6 +24,8 @@ func TestPaymentQueryInfo(t *testing.T) {
 	bestBlockHash := state.Block.BestBlockHash()
 
 	t.Run("When there is no errors", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+
 		mockedQueryInfo := &types.RuntimeDispatchInfo{
 			Weight:     0,
 			Class:      0,
@@ -36,13 +38,13 @@ func TestPaymentQueryInfo(t *testing.T) {
 			PartialFee: scale.MaxUint128.String(),
 		}
 
-		runtimeMock := mocksruntime.NewInstance(t)
-		runtimeMock.On("PaymentQueryInfo", mock.AnythingOfType("[]uint8")).Return(mockedQueryInfo, nil)
+		runtimeMock := mocksruntime.NewMockInstance(ctrl)
+		runtimeMock.EXPECT().PaymentQueryInfo(gomock.Any()).Return(mockedQueryInfo, nil)
 
-		blockAPIMock := mocks.NewBlockAPI(t)
-		blockAPIMock.On("BestBlockHash").Return(bestBlockHash)
+		blockAPIMock := mocks.NewMockBlockAPI(ctrl)
+		blockAPIMock.EXPECT().BestBlockHash().Return(bestBlockHash)
 
-		blockAPIMock.On("GetRuntime", bestBlockHash).Return(runtimeMock, nil)
+		blockAPIMock.EXPECT().GetRuntime(bestBlockHash).Return(runtimeMock, nil)
 
 		mod := &PaymentModule{
 			blockAPI: blockAPIMock,
@@ -60,10 +62,12 @@ func TestPaymentQueryInfo(t *testing.T) {
 	})
 
 	t.Run("When could not get runtime", func(t *testing.T) {
-		blockAPIMock := mocks.NewBlockAPI(t)
-		blockAPIMock.On("BestBlockHash").Return(bestBlockHash)
+		ctrl := gomock.NewController(t)
 
-		blockAPIMock.On("GetRuntime", bestBlockHash).
+		blockAPIMock := mocks.NewMockBlockAPI(ctrl)
+		blockAPIMock.EXPECT().BestBlockHash().Return(bestBlockHash)
+
+		blockAPIMock.EXPECT().GetRuntime(bestBlockHash).
 			Return(nil, errors.New("mocked problems"))
 
 		mod := &PaymentModule{
@@ -82,11 +86,13 @@ func TestPaymentQueryInfo(t *testing.T) {
 	})
 
 	t.Run("When PaymentQueryInfo returns error", func(t *testing.T) {
-		runtimeMock := mocksruntime.NewInstance(t)
-		runtimeMock.On("PaymentQueryInfo", mock.AnythingOfType("[]uint8")).Return(nil, errors.New("mocked error"))
+		ctrl := gomock.NewController(t)
 
-		blockAPIMock := mocks.NewBlockAPI(t)
-		blockAPIMock.On("GetRuntime", common.Hash{1, 2}).Return(runtimeMock, nil)
+		runtimeMock := mocksruntime.NewMockInstance(ctrl)
+		runtimeMock.EXPECT().PaymentQueryInfo(gomock.Any()).Return(nil, errors.New("mocked error"))
+
+		blockAPIMock := mocks.NewMockBlockAPI(ctrl)
+		blockAPIMock.EXPECT().GetRuntime(common.Hash{1, 2}).Return(runtimeMock, nil)
 
 		mod := &PaymentModule{
 			blockAPI: blockAPIMock,
@@ -105,11 +111,13 @@ func TestPaymentQueryInfo(t *testing.T) {
 	})
 
 	t.Run("When PaymentQueryInfo returns a nil info", func(t *testing.T) {
-		runtimeMock := mocksruntime.NewInstance(t)
-		runtimeMock.On("PaymentQueryInfo", mock.AnythingOfType("[]uint8")).Return(nil, nil)
+		ctrl := gomock.NewController(t)
 
-		blockAPIMock := mocks.NewBlockAPI(t)
-		blockAPIMock.On("GetRuntime", common.Hash{1, 2}).Return(runtimeMock, nil)
+		runtimeMock := mocksruntime.NewMockInstance(ctrl)
+		runtimeMock.EXPECT().PaymentQueryInfo(gomock.Any()).Return(nil, nil)
+
+		blockAPIMock := mocks.NewMockBlockAPI(ctrl)
+		blockAPIMock.EXPECT().GetRuntime(common.Hash{1, 2}).Return(runtimeMock, nil)
 
 		mod := &PaymentModule{
 			blockAPI: blockAPIMock,

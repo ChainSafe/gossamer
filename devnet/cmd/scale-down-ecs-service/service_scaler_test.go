@@ -22,28 +22,28 @@ import (
 func Test_serviceScaler_findServiceArns(t *testing.T) {
 	mockECS := mocks.NewECSAPI(t)
 	mockECS.
-		On("ListServicesWithContext", mock.Anything, &ecs.ListServicesInput{
+		On("ListServicesWithContext", gomock.Any(), &ecs.ListServicesInput{
 			Cluster: aws.String("someCluster"),
 		}).Return(&ecs.ListServicesOutput{
 		ServiceArns: []*string{
 			aws.String("someArn0"),
 			aws.String("someArn1"),
 		},
-		NextToken: aws.String("someNextToken")}, nil).Once().
-		On("ListServicesWithContext", mock.Anything, &ecs.ListServicesInput{
+		NextToken: aws.String("someNextToken")}, nil).
+		On("ListServicesWithContext", gomock.Any(), &ecs.ListServicesInput{
 			Cluster:   aws.String("someCluster"),
 			NextToken: aws.String("someNextToken"),
 		}).Return(&ecs.ListServicesOutput{
 		ServiceArns: []*string{
 			aws.String("someArn2"),
 			aws.String("someArn3"),
-		}}, nil).Once().
-		On("ListServicesWithContext", mock.Anything, &ecs.ListServicesInput{
+		}}, nil).
+		On("ListServicesWithContext", gomock.Any(), &ecs.ListServicesInput{
 			Cluster: aws.String("someErrCluster"),
-		}).Return(nil, fmt.Errorf("someErr")).Once().
-		On("ListServicesWithContext", mock.Anything, &ecs.ListServicesInput{
+		}).Return(nil, fmt.Errorf("someErr")).
+		On("ListServicesWithContext", gomock.Any(), &ecs.ListServicesInput{
 			Cluster: aws.String("someEmptyCluster"),
-		}).Return(&ecs.ListServicesOutput{}, nil).Once()
+		}).Return(&ecs.ListServicesOutput{}, nil)
 
 	type fields struct {
 		tickerDuration time.Duration
@@ -137,21 +137,21 @@ func Test_serviceScaler_findServiceArns(t *testing.T) {
 func Test_serviceScaler_drainServices(t *testing.T) {
 	mockECS := mocks.NewECSAPI(t)
 	mockECS.
-		On("UpdateServiceWithContext", mock.Anything, &ecs.UpdateServiceInput{
+		On("UpdateServiceWithContext", gomock.Any(), &ecs.UpdateServiceInput{
 			Cluster:      aws.String("someCluster"),
 			Service:      aws.String("someArn0"),
 			DesiredCount: aws.Int64(0),
-		}).Return(&ecs.UpdateServiceOutput{}, nil).Once().
-		On("UpdateServiceWithContext", mock.Anything, &ecs.UpdateServiceInput{
+		}).Return(&ecs.UpdateServiceOutput{}, nil).
+		On("UpdateServiceWithContext", gomock.Any(), &ecs.UpdateServiceInput{
 			Cluster:      aws.String("someCluster"),
 			Service:      aws.String("someArn1"),
 			DesiredCount: aws.Int64(0),
-		}).Return(&ecs.UpdateServiceOutput{}, nil).Once().
-		On("UpdateServiceWithContext", mock.Anything, &ecs.UpdateServiceInput{
+		}).Return(&ecs.UpdateServiceOutput{}, nil).
+		On("UpdateServiceWithContext", gomock.Any(), &ecs.UpdateServiceInput{
 			Cluster:      aws.String("someErrCluster"),
 			Service:      aws.String("someArn0"),
 			DesiredCount: aws.Int64(0),
-		}).Return(nil, fmt.Errorf("some Error")).Once()
+		}).Return(nil, fmt.Errorf("some Error"))
 
 	type fields struct {
 		tickerDuration time.Duration
@@ -215,7 +215,7 @@ func Test_serviceScaler_drainServices(t *testing.T) {
 func Test_serviceScaler_waitForRunningCount(t *testing.T) {
 	mockECS := mocks.NewECSAPI(t)
 	mockECS.
-		On("DescribeServicesWithContext", mock.Anything, &ecs.DescribeServicesInput{
+		On("DescribeServicesWithContext", gomock.Any(), &ecs.DescribeServicesInput{
 			Cluster: aws.String("someCluster"),
 			Services: []*string{
 				aws.String("someArn0"),
@@ -231,19 +231,19 @@ func Test_serviceScaler_waitForRunningCount(t *testing.T) {
 				RunningCount: aws.Int64(0),
 				ServiceArn:   aws.String("someArn1"),
 			},
-		}}, nil).Once().
-		On("DescribeServicesWithContext", mock.Anything, &ecs.DescribeServicesInput{
+		}}, nil).
+		On("DescribeServicesWithContext", gomock.Any(), &ecs.DescribeServicesInput{
 			Cluster: aws.String("someErrorCluster"),
 			Services: []*string{
 				aws.String("someArn0"),
 				aws.String("someArn1"),
 			},
-		}).Return(nil, fmt.Errorf("someError")).Once()
+		}).Return(nil, fmt.Errorf("someError"))
 
 	ctx, cancel := context.WithCancel(context.Background())
 	mockECSCancel := mocks.NewECSAPI(t)
 	mockECSCancel.
-		On("DescribeServicesWithContext", mock.Anything, &ecs.DescribeServicesInput{
+		On("DescribeServicesWithContext", gomock.Any(), &ecs.DescribeServicesInput{
 			Cluster: aws.String("someCluster"),
 			Services: []*string{
 				aws.String("someArn0"),
@@ -266,7 +266,7 @@ func Test_serviceScaler_waitForRunningCount(t *testing.T) {
 				<-time.After(2 * time.Millisecond)
 				cancel()
 			}()
-		}).Once()
+		})
 
 	type fields struct {
 		tickerDuration time.Duration
@@ -373,24 +373,24 @@ func Test_newServiceScaler(t *testing.T) {
 func Test_serviceScaler_scaleServices(t *testing.T) {
 	mockECS := mocks.NewECSAPI(t)
 	mockECS.
-		On("ListServicesWithContext", mock.Anything, &ecs.ListServicesInput{
+		On("ListServicesWithContext", gomock.Any(), &ecs.ListServicesInput{
 			Cluster: aws.String("someCluster"),
 		}).Return(&ecs.ListServicesOutput{
 		ServiceArns: []*string{
 			aws.String("someArn0"),
 			aws.String("someArn1"),
-		}}, nil).Once().
-		On("UpdateServiceWithContext", mock.Anything, &ecs.UpdateServiceInput{
+		}}, nil).
+		On("UpdateServiceWithContext", gomock.Any(), &ecs.UpdateServiceInput{
 			Cluster:      aws.String("someCluster"),
 			Service:      aws.String("someArn0"),
 			DesiredCount: aws.Int64(0),
-		}).Return(&ecs.UpdateServiceOutput{}, nil).Once().
-		On("UpdateServiceWithContext", mock.Anything, &ecs.UpdateServiceInput{
+		}).Return(&ecs.UpdateServiceOutput{}, nil).
+		On("UpdateServiceWithContext", gomock.Any(), &ecs.UpdateServiceInput{
 			Cluster:      aws.String("someCluster"),
 			Service:      aws.String("someArn1"),
 			DesiredCount: aws.Int64(0),
-		}).Return(&ecs.UpdateServiceOutput{}, nil).Once().
-		On("DescribeServicesWithContext", mock.Anything, &ecs.DescribeServicesInput{
+		}).Return(&ecs.UpdateServiceOutput{}, nil).
+		On("DescribeServicesWithContext", gomock.Any(), &ecs.DescribeServicesInput{
 			Cluster: aws.String("someCluster"),
 			Services: []*string{
 				aws.String("someArn0"),
@@ -406,28 +406,28 @@ func Test_serviceScaler_scaleServices(t *testing.T) {
 				RunningCount: aws.Int64(0),
 				ServiceArn:   aws.String("someArn1"),
 			},
-		}}, nil).Once()
+		}}, nil)
 
 	findServiceArnsErrECS := mocks.NewECSAPI(t)
 	findServiceArnsErrECS.
-		On("ListServicesWithContext", mock.Anything, &ecs.ListServicesInput{
+		On("ListServicesWithContext", gomock.Any(), &ecs.ListServicesInput{
 			Cluster: aws.String("someCluster"),
-		}).Return(nil, fmt.Errorf("someError")).Once()
+		}).Return(nil, fmt.Errorf("someError"))
 
 	updateServicesErrECS := mocks.NewECSAPI(t)
 	updateServicesErrECS.
-		On("ListServicesWithContext", mock.Anything, &ecs.ListServicesInput{
+		On("ListServicesWithContext", gomock.Any(), &ecs.ListServicesInput{
 			Cluster: aws.String("someCluster"),
 		}).Return(&ecs.ListServicesOutput{
 		ServiceArns: []*string{
 			aws.String("someArn0"),
 			aws.String("someArn1"),
-		}}, nil).Once().
-		On("UpdateServiceWithContext", mock.Anything, &ecs.UpdateServiceInput{
+		}}, nil).
+		On("UpdateServiceWithContext", gomock.Any(), &ecs.UpdateServiceInput{
 			Cluster:      aws.String("someCluster"),
 			Service:      aws.String("someArn0"),
 			DesiredCount: aws.Int64(0),
-		}).Return(nil, fmt.Errorf("someError")).Once()
+		}).Return(nil, fmt.Errorf("someError"))
 
 	type fields struct {
 		tickerDuration time.Duration

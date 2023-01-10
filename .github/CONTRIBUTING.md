@@ -76,8 +76,6 @@ For coding style, you may refer to the [code style](CODE_STYLE.md) document whic
 
     Generate the mock code with `go generate -run "mockgen" ./...` from your working directory. This will also update existing mocks. You can update all mocks by running `go generate -run "mockgen" ./...` from the repository root. Note this does not log anything out.
 
-    ⚠️ We are still using `mockery` instead of `gomock` for older mocks, so you need to run `go generate -run "mockery|mockgen" ./...` to update all the existing mocks. We are slowly migrating our mocks and test code to use `gomock`.
-
     > To execute `//go:generate` commands that are placed at files with `//go:build integration` remember to add `-tags integration` in the `go generate` command eg. `go generate -tags integration ...`
 
 9. **Lint your changes.**

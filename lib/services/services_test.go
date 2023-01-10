@@ -8,25 +8,25 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/log"
-	"github.com/ChainSafe/gossamer/lib/services/mocks"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
 
 func TestServiceRegistry_RegisterService(t *testing.T) {
 	r := NewServiceRegistry(log.New(log.SetWriter(io.Discard)))
 
-	r.RegisterService(&mocks.Service{})
-	r.RegisterService(&mocks.Service{})
+	r.RegisterService(&MockService{})
+	r.RegisterService(&MockService{})
 
 	require.Len(t, r.services, 1)
 }
 
 func TestServiceRegistry_StartStopAll(t *testing.T) {
 	r := NewServiceRegistry(log.New(log.SetWriter(io.Discard)))
-
-	m := mocks.NewService(t)
-	m.On("Start").Return(nil)
-	m.On("Stop").Return(nil)
+	ctrl := gomock.NewController(t)
+	m := NewMockService(ctrl)
+	m.EXPECT().Start().Return(nil)
+	m.EXPECT().Stop().Return(nil)
 
 	r.RegisterService(m)
 
@@ -37,7 +37,7 @@ func TestServiceRegistry_StartStopAll(t *testing.T) {
 func TestServiceRegistry_Get_Err(t *testing.T) {
 	r := NewServiceRegistry(log.New(log.SetWriter(io.Discard)))
 
-	a := mocks.NewService(t)
+	a := NewMockService(nil)
 
 	r.RegisterService(a)
 	require.NotNil(t, r.Get(a))
