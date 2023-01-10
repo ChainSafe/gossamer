@@ -199,9 +199,9 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 		AuthorityID: pk.AsBytes(),
 	}
 
-	equivocated := s.checkForEquivocation(voter, just, m.Message.Stage)
-	if equivocated {
-		return nil, fmt.Errorf("%w", ErrEquivocation)
+	err = s.checkForEquivocation(voter, just, m.Message.Stage)
+	if err != nil {
+		return nil, err
 	}
 
 	switch m.Message.Stage {
@@ -217,7 +217,7 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 // checkForEquivocation checks if the vote is an equivocatory vote.
 // it returns true if so, false otherwise.
 // additionally, if the vote is equivocatory, it updates the service's votes and equivocations.
-func (s *Service) checkForEquivocation(voter *Voter, vote *SignedVote, stage Subround) bool {
+func (s *Service) checkForEquivocation(voter *Voter, vote *SignedVote, stage Subround) error {
 	v := voter.Key.AsBytes()
 
 	// save justification, since equivocatory vote may still be used in justification
@@ -238,12 +238,12 @@ func (s *Service) checkForEquivocation(voter *Voter, vote *SignedVote, stage Sub
 		// TODO check with team that I don't have to do anything here
 		// if the voter has already equivocated, every vote in that round is an equivocatory vote
 		eq[v] = append(eq[v], vote)
-		return true
+		return fmt.Errorf("%w: voter already equivocated", ErrEquivocation)
 	}
 
 	existingVote, has := s.loadVote(v, stage)
 	if !has {
-		return false
+		return nil
 	}
 
 	if has && existingVote.Vote.Hash != vote.Vote.Hash {
@@ -255,12 +255,12 @@ func (s *Service) checkForEquivocation(voter *Voter, vote *SignedVote, stage Sub
 		if err != nil {
 			// TODO get feedback on if this is a appropriate way to handle error
 			logger.Errorf("%s: %s", errReportingEquivocation, err)
+			return fmt.Errorf("%w: %s", ErrEquivocation, err)
 		}
-
-		return true
+		return fmt.Errorf("%w", ErrEquivocation)
 	}
 
-	return false
+	return nil
 }
 
 func (s *Service) reportEquivocation(stage Subround, existingVote *SignedVote, currentVote *SignedVote) error {
@@ -301,12 +301,12 @@ func (s *Service) reportEquivocation(stage Subround, existingVote *SignedVote, c
 	case prevote:
 		err = equivocationVote.Set(types.PreVoteEquivocation(grandpaEquivocation))
 		if err != nil {
-			return fmt.Errorf("setting grandpa equivocation VDT: %w", err)
+			return fmt.Errorf("setting grandpa equivocation VDT as prevote equivocation: %w", err)
 		}
 	case precommit:
 		err = equivocationVote.Set(types.PreCommitEquivocation(grandpaEquivocation))
 		if err != nil {
-			return fmt.Errorf("setting grandpa equivocation VDT: %w", err)
+			return fmt.Errorf("setting grandpa equivocation VDT as precommit equivocation: %w", err)
 		}
 	default:
 		return fmt.Errorf("invalid stage for equivocating: %w", err)
@@ -319,7 +319,7 @@ func (s *Service) reportEquivocation(stage Subround, existingVote *SignedVote, c
 
 	err = rt.GrandpaSubmitReportEquivocationUnsignedExtrinsic(equivocationProof, opaqueKeyOwnershipProof)
 	if err != nil {
-		return fmt.Errorf("reporting equivocation: %w", err)
+		return fmt.Errorf("submitting grandpa equivocation report to runtime: %w", err)
 	}
 
 	return nil

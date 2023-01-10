@@ -15,15 +15,15 @@ import (
 
 func TestEncodeAndDecodeEquivocationPreVote(t *testing.T) {
 	t.Parallel()
-	testFirstVote := GrandpaVote{
+	firstVote := GrandpaVote{
 		Hash:   common.Hash{0xa, 0xb, 0xc, 0xd},
 		Number: 999,
 	}
-	testSecondVote := GrandpaVote{
+	secondVote := GrandpaVote{
 		Hash:   common.Hash{0xd, 0xc, 0xb, 0xa},
 		Number: 999,
 	}
-	testSignature := [64]byte{1, 2, 3, 4}
+	signature := [64]byte{1, 2, 3, 4}
 	keypair, err := ed25519.GenerateKeypair()
 	require.NoError(t, err)
 
@@ -33,18 +33,17 @@ func TestEncodeAndDecodeEquivocationPreVote(t *testing.T) {
 	equivocation := GrandpaEquivocation{
 		RoundNumber:     0,
 		ID:              authorityID,
-		FirstVote:       testFirstVote,
-		FirstSignature:  testSignature,
-		SecondVote:      testSecondVote,
-		SecondSignature: testSignature,
+		FirstVote:       firstVote,
+		FirstSignature:  signature,
+		SecondVote:      secondVote,
+		SecondSignature: signature,
 	}
 
 	equivPreVote := PreVoteEquivocation(equivocation)
 	equivVote := NewGrandpaEquivocation()
 	err = equivVote.Set(equivPreVote)
 	require.NoError(t, err)
-	encoding, err := scale.Marshal(*equivVote)
-	require.NoError(t, err)
+	encoding := scale.MustMarshal(*equivVote)
 
 	grandpaEquivocation := NewGrandpaEquivocation()
 	err = scale.Unmarshal(encoding, grandpaEquivocation)
@@ -55,43 +54,41 @@ func TestEncodeAndDecodeEquivocationPreVote(t *testing.T) {
 func TestEncodeGrandpaVote(t *testing.T) {
 	t.Parallel()
 	expectedEncoding := common.MustHexToBytes("0x0a0b0c0d00000000000000000000000000000000000000000000000000000000e7030000")
-	testVote := GrandpaVote{
+	vote := GrandpaVote{
 		Hash:   common.Hash{0xa, 0xb, 0xc, 0xd},
 		Number: 999,
 	}
 
-	encoding, err := scale.Marshal(testVote)
-	require.NoError(t, err)
+	encoding := scale.MustMarshal(vote)
 	require.Equal(t, expectedEncoding, encoding)
 
 	grandpaVote := GrandpaVote{}
-	err = scale.Unmarshal(encoding, &grandpaVote)
+	err := scale.Unmarshal(encoding, &grandpaVote)
 	require.NoError(t, err)
-	require.Equal(t, testVote, grandpaVote)
+	require.Equal(t, vote, grandpaVote)
 
 }
 
 func TestEncodeSignedVote(t *testing.T) {
 	t.Parallel()
 	expectedEncoding := common.MustHexToBytes("0x0a0b0c0d00000000000000000000000000000000000000000000000000000000e7030000010203040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000506070800000000000000000000000000000000000000000000000000000000") //nolint:lll
-	testVote := GrandpaVote{
+	vote := GrandpaVote{
 		Hash:   common.Hash{0xa, 0xb, 0xc, 0xd},
 		Number: 999,
 	}
-	testSignature := [64]byte{1, 2, 3, 4}
-	testAuthorityID := [32]byte{5, 6, 7, 8}
+	signature := [64]byte{1, 2, 3, 4}
+	authorityID := [32]byte{5, 6, 7, 8}
 
 	signedVote := GrandpaSignedVote{
-		Vote:        testVote,
-		Signature:   testSignature,
-		AuthorityID: testAuthorityID,
+		Vote:        vote,
+		Signature:   signature,
+		AuthorityID: authorityID,
 	}
-	encoding, err := scale.Marshal(signedVote)
-	require.NoError(t, err)
+	encoding := scale.MustMarshal(signedVote)
 	require.Equal(t, expectedEncoding, encoding)
 
 	grandpaSignedVote := GrandpaSignedVote{}
-	err = scale.Unmarshal(encoding, &grandpaSignedVote)
+	err := scale.Unmarshal(encoding, &grandpaSignedVote)
 	require.NoError(t, err)
 	require.Equal(t, signedVote, grandpaSignedVote)
 }
@@ -107,12 +104,11 @@ func TestGrandpaAuthoritiesRawToAuthorities(t *testing.T) {
 		{Key: authB, ID: 1},
 	}
 
-	encoding, err := scale.Marshal(auths)
-	require.NoError(t, err)
+	encoding := scale.MustMarshal(auths)
 	require.Equal(t, expectedEncoding, encoding)
 
 	var grandpaAuthoritiesRaw []GrandpaAuthoritiesRaw
-	err = scale.Unmarshal(encoding, &grandpaAuthoritiesRaw)
+	err := scale.Unmarshal(encoding, &grandpaAuthoritiesRaw)
 	require.NoError(t, err)
 	require.Equal(t, auths, grandpaAuthoritiesRaw)
 
