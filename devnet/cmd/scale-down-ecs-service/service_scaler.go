@@ -102,7 +102,6 @@ func (ss serviceScaler) waitForRunningCount(ctx context.Context, serviceArns []*
 			return err
 		}
 	}
-	return
 }
 
 func (ss serviceScaler) scaleServices(ctx context.Context, servicesRegex string) (err error) {
