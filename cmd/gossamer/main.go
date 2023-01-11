@@ -32,7 +32,7 @@ const (
 
 // app is the cli application
 var app = cli.NewApp()
-var logger Logger = log.NewFromGlobal(log.AddContext("pkg", "cmd"))
+var logger levelLogger = log.NewFromGlobal(log.AddContext("pkg", "cmd"))
 
 var (
 	// exportCommand defines the "export" subcommand (ie, `gossamer export`)

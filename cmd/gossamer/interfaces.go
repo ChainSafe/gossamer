@@ -3,8 +3,8 @@
 
 package main
 
-// Logger is the logger to log messages.
-type Logger interface {
+// levelLogger is the logger to log messages.
+type levelLogger interface {
 	Trace(s string)
 	Debug(s string)
 	Info(s string)

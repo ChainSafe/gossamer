@@ -102,15 +102,15 @@ func getKeystorePassword(ctx *cli.Context) []byte {
 	return password
 }
 
-// KeypairInserter inserts a keypair.
-type KeypairInserter interface {
+// keypairInserter inserts a keypair.
+type keypairInserter interface {
 	Insert(kp keystore.KeyPair) error
 }
 
 // unlockKeystore compares the length of passwords to the length of accounts,
 // prompts the user for a password if no password is provided, and then unlocks
 // the accounts within the provided keystore
-func unlockKeystore(ks KeypairInserter, basepath, unlock, password string) error {
+func unlockKeystore(ks keypairInserter, basepath, unlock, password string) error {
 	var passwords []string
 
 	if password != "" {
