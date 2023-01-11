@@ -302,7 +302,7 @@ func newCoreServiceTest(t *testing.T) *core.Service {
 	gen, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockTelemetry(ctrl)
+	telemetryMock := NewMocktelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	config := state.Config{

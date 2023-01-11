@@ -4,8 +4,6 @@
 package rpc
 
 import (
-	"encoding/json"
-
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -123,9 +121,4 @@ type SyncStateAPI interface {
 // SyncAPI is the interface to interact with the sync service
 type SyncAPI interface {
 	HighestBlock() uint
-}
-
-// Telemetry is the telemetry client to send telemetry messages.
-type Telemetry interface {
-	SendMessage(msg json.Marshaler)
 }
