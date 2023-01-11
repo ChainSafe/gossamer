@@ -4,7 +4,6 @@
 package core
 
 import (
-	"encoding/json"
 	"sync"
 
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -105,11 +104,6 @@ type Network interface {
 // CodeSubstitutedState interface to handle storage of code substitute state
 type CodeSubstitutedState interface {
 	StoreCodeSubstitutedBlockHash(hash common.Hash) error
-}
-
-// Telemetry is the telemetry client to send telemetry messages.
-type Telemetry interface {
-	SendMessage(msg json.Marshaler)
 }
 
 // KeyPair is a key pair to sign messages and from which

@@ -3,4 +3,5 @@
 
 package core
 
-//go:generate mockgen -destination=mocks_test.go -package $GOPACKAGE . BlockState,StorageState,TransactionState,Network,CodeSubstitutedState,RuntimeInstance,Telemetry
+//go:generate mockgen -destination=mocks_test.go -package $GOPACKAGE . BlockState,StorageState,TransactionState,Network,CodeSubstitutedState,RuntimeInstance
+//go:generate mockgen -source=interfaces_mock_source.go -destination=mocks_local_test.go -package $GOPACKAGE

@@ -134,7 +134,7 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 	ks.Acco.Insert(kp)
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockTelemetry(ctrl)
+	telemetryMock := NewMocktelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	net := NewMockNetwork(ctrl)

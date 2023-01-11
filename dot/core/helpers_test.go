@@ -71,7 +71,7 @@ func createTestService(t *testing.T, genesisFilePath string,
 	testDatadirPath := t.TempDir()
 
 	// Set up block and storage state
-	telemetryMock := NewMockTelemetry(ctrl)
+	telemetryMock := NewMocktelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	stateConfig := state.Config{
@@ -176,7 +176,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 
 	if cfg.BlockState == nil || cfg.StorageState == nil ||
 		cfg.TransactionState == nil || cfg.CodeSubstitutedState == nil {
-		telemetryMock := NewMockTelemetry(ctrl)
+		telemetryMock := NewMocktelemetry(ctrl)
 		telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 		config := state.Config{
