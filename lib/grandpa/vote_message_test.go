@@ -126,6 +126,32 @@ func TestService_reportEquivocation(t *testing.T) {
 			expErrMsg: "getting key ownership proof: test dummy error",
 		},
 		{
+			name: "invalid stage",
+			serviceBuilder: func(ctrl *gomock.Controller) *Service {
+				mockRuntimeInstanceReportEquivocationErr := NewMockInstance(ctrl)
+				mockRuntimeInstanceReportEquivocationErr.EXPECT().GrandpaGenerateKeyOwnershipProof(uint64(1), testAuthorityID).
+					Return(keyOwnershipProof, nil)
+				mockGrandpaStateOk := NewMockGrandpaState(ctrl)
+				mockGrandpaStateOk.EXPECT().GetCurrentSetID().Return(uint64(1), nil)
+				mockGrandpaStateOk.EXPECT().GetLatestRound().Return(uint64(1), nil)
+				mockBlockStateReportEquivocationErr := NewMockBlockState(ctrl)
+				mockBlockStateReportEquivocationErr.EXPECT().BestBlockHash().Return(testDummyHash)
+				mockBlockStateReportEquivocationErr.EXPECT().GetRuntime(testDummyHash).
+					Return(mockRuntimeInstanceReportEquivocationErr, nil)
+				return &Service{
+					grandpaState: mockGrandpaStateOk,
+					blockState:   mockBlockStateReportEquivocationErr,
+				}
+			},
+			args: args{
+				stage:        primaryProposal,
+				existingVote: signedVote,
+				currentVote:  signedVote2,
+			},
+			expErr:    errInvalidEquivocationStage,
+			expErrMsg: errInvalidEquivocationStage.Error(),
+		},
+		{
 			name: "submit equivocation proof error",
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
 				mockRuntimeInstanceReportEquivocationErr := NewMockInstance(ctrl)

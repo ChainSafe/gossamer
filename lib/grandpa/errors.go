@@ -83,10 +83,11 @@ var (
 	// ErrAuthorityNotInSet is returned when a precommit within a justification is signed by a key not in the authority set
 	ErrAuthorityNotInSet = errors.New("authority is not in set")
 
-	errVoteToSignatureMismatch = errors.New("votes and authority count mismatch")
-	errVoteBlockMismatch       = errors.New("block in vote is not descendant of previously finalised block")
-	errVoteFromSelf            = errors.New("got vote from ourselves")
-	errRoundOutOfBounds        = errors.New("round out of bounds")
-	errRoundsMismatch          = errors.New("rounds mismatch")
-	errReportingEquivocation   = errors.New("reporting equivocation")
+	errVoteToSignatureMismatch  = errors.New("votes and authority count mismatch")
+	errVoteBlockMismatch        = errors.New("block in vote is not descendant of previously finalised block")
+	errVoteFromSelf             = errors.New("got vote from ourselves")
+	errRoundOutOfBounds         = errors.New("round out of bounds")
+	errRoundsMismatch           = errors.New("rounds mismatch")
+	errReportingEquivocation    = errors.New("reporting equivocation")
+	errInvalidEquivocationStage = errors.New("invalid stage for equivocating")
 )

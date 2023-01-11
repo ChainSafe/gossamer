@@ -215,8 +215,9 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 }
 
 // checkForEquivocation checks if the vote is an equivocatory vote.
-// it returns true if so, false otherwise.
-// additionally, if the vote is equivocatory, it updates the service's votes and equivocations.
+// It returns an error if so, else returns nil.
+// Additionally, if the vote is equivocatory, it updates the service's votes and equivocations
+// and reports the equivocation to the runtime.
 func (s *Service) checkForEquivocation(voter *Voter, vote *SignedVote, stage Subround) error {
 	v := voter.Key.AsBytes()
 
@@ -308,8 +309,10 @@ func (s *Service) reportEquivocation(stage Subround, existingVote *SignedVote, c
 		if err != nil {
 			return fmt.Errorf("setting grandpa equivocation VDT as precommit equivocation: %w", err)
 		}
+	case primaryProposal:
+		return fmt.Errorf("%w", errInvalidEquivocationStage)
 	default:
-		return fmt.Errorf("invalid stage for equivocating: %w", err)
+		panic(fmt.Errorf("building equivocation proof: %s", errInvalidEquivocationStage))
 	}
 
 	equivocationProof := types.GrandpaEquivocationProof{
