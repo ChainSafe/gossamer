@@ -4,8 +4,6 @@
 package digest
 
 import (
-	"encoding/json"
-
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -35,13 +33,8 @@ type GrandpaState interface {
 	ApplyForcedChanges(importedHeader *types.Header) error
 }
 
-// Telemetry is the telemetry client to send telemetry messages.
-type Telemetry interface {
-	SendMessage(msg json.Marshaler)
-}
-
-// Logger logs messages at the debug or error level.
-type Logger interface {
+// logger logs messages at the debug or error level.
+type logger interface {
 	Error(s string)
 	Debugf(format string, args ...interface{})
 	Errorf(format string, args ...interface{})

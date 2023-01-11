@@ -31,7 +31,7 @@ type Handler struct {
 	imported  chan *types.Block
 	finalised chan *types.FinalisationInfo
 
-	logger Logger
+	logger logger
 }
 
 // NewHandler returns a new Handler
