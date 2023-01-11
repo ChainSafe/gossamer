@@ -189,5 +189,4 @@ func TestSystemRPC(t *testing.T) { //nolint:tparallel
 		t.Parallel()
 		t.Skip("test not implemented")
 	})
-
 }
