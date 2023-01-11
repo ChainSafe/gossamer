@@ -124,7 +124,7 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 	err = gs.checkForEquivocation(&voter, &SignedVote{
 		Vote: *vote2,
 	}, prevote)
-	require.True(t, errors.Is(err, ErrEquivocation))
+	require.ErrorIs(t, err, ErrEquivocation)
 
 	require.Equal(t, 0, gs.lenVotes(prevote))
 	require.Equal(t, 1, len(gs.pvEquivocations))
