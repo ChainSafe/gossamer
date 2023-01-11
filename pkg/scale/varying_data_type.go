@@ -11,7 +11,6 @@ import (
 // VaryingDataTypeValue is used to represent scale encodable types of an associated VaryingDataType
 type VaryingDataTypeValue interface {
 	Index() uint
-	String() string
 }
 
 // VaryingDataTypeSlice is used to represent []VaryingDataType. SCALE requires knowledge
@@ -88,7 +87,11 @@ func (vdt VaryingDataType) String() string {
 	if vdt.value == nil {
 		return "VaryingDataType(nil)"
 	}
-	return vdt.value.String()
+	stringer, ok := vdt.value.(fmt.Stringer)
+	if !ok {
+		return fmt.Sprintf("VaryingDataType(%v)", vdt.value)
+	}
+	return stringer.String()
 }
 
 // NewVaryingDataType is constructor for VaryingDataType
