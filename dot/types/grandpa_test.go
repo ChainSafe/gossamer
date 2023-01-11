@@ -13,6 +13,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestInstance_GrandpaGenerateKeyOwnershipProofEncoding(t *testing.T) {
+	t.Parallel()
+	keyOwnershipProof := OpaqueKeyOwnershipProof([]byte{64, 138, 252, 29, 127, 102, 189, 129, 207, 47, 157,
+		60, 17, 138, 194, 121, 139, 92, 176, 175, 224, 16, 185, 93, 175, 251, 224, 81, 209, 61, 0, 71})
+	encoded := scale.MustMarshal(keyOwnershipProof)
+	var proof OpaqueKeyOwnershipProof
+	err := scale.Unmarshal(encoded, &proof)
+	require.NoError(t, err)
+	require.Equal(t, keyOwnershipProof, proof)
+}
+
 func TestEncodeAndDecodeEquivocationPreVote(t *testing.T) {
 	t.Parallel()
 	firstVote := GrandpaVote{

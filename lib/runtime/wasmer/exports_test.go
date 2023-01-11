@@ -32,6 +32,13 @@ import (
 // https://github.com/paritytech/substrate/blob/ded44948e2d5a398abcb4e342b0513cb690961bb/frame/grandpa/src/benchmarking.rs#L85
 var testKeyOwnershipProof types.OpaqueKeyOwnershipProof = types.OpaqueKeyOwnershipProof([]byte{64, 138, 252, 29, 127, 102, 189, 129, 207, 47, 157, 60, 17, 138, 194, 121, 139, 92, 176, 175, 224, 16, 185, 93, 175, 251, 224, 81, 209, 61, 0, 71}) //nolint:lll
 
+func mustHexTo64BArray(t *testing.T, inputHex string) [64]byte {
+	t.Helper()
+	var outputArray [64]byte
+	copy(outputArray[:], common.MustHexToBytes(inputHex))
+	return outputArray
+}
+
 func Test_Instance_Version(t *testing.T) {
 	t.Parallel()
 
@@ -1279,27 +1286,18 @@ func TestInstance_TransactionPaymentCallApi_QueryCallFeeDetails(t *testing.T) {
 	}
 }
 
-func TestInstance_GrandpaGenerateKeyOwnershipProofEncoding(t *testing.T) {
-	t.Parallel()
-	keyOwnershipProof := types.OpaqueKeyOwnershipProof([]byte{64, 138, 252, 29, 127, 102, 189, 129, 207, 47, 157,
-		60, 17, 138, 194, 121, 139, 92, 176, 175, 224, 16, 185, 93, 175, 251, 224, 81, 209, 61, 0, 71})
-	encoded := scale.MustMarshal(keyOwnershipProof)
-	var proof types.OpaqueKeyOwnershipProof
-	err := scale.Unmarshal(encoded, &proof)
-	require.NoError(t, err)
-	require.Equal(t, keyOwnershipProof, proof)
-}
-
 func TestInstance_GrandpaGenerateKeyOwnershipProof(t *testing.T) {
 	t.Parallel()
-	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
+	runtime := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
 	identity := common.MustHexToBytes("0x88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee")
 	identityPubKey, _ := ed25519.NewPublicKey(identity)
 	var authorityID [32]byte
 	copy(authorityID[:], identityPubKey.Encode())
 
-	_, err := rt.GrandpaGenerateKeyOwnershipProof(uint64(0), authorityID)
+	encodedOpaqueKeyOwnershipProof, err := runtime.GrandpaGenerateKeyOwnershipProof(uint64(0), authorityID)
 	require.NoError(t, err)
+	// Since the input is not valid with respect to the runtime and empty proof is returned
+	require.Empty(t, encodedOpaqueKeyOwnershipProof)
 }
 
 func TestInstance_GrandpaSubmitReportEquivocationUnsignedExtrinsicEncoding(t *testing.T) {
@@ -1321,15 +1319,11 @@ func TestInstance_GrandpaSubmitReportEquivocationUnsignedExtrinsicEncoding(t *te
 		Number: uint32(10),
 	}
 
-	firstSignature := common.MustHexToBytes("0xd7292caacc62504365f179892a7399f233944bf261f8a3f66260f70e0016f2d" +
+	firstSignatureArray := mustHexTo64BArray(t, "0xd7292caacc62504365f179892a7399f233944bf261f8a3f66260f70e0016f2d"+
 		"b63922726b015c82dc7131f4730fbec61f71672a571453e51029bfb469070900f")
-	var firstSignatureArray [64]byte
-	copy(firstSignatureArray[:], firstSignature)
 
-	secondSignature := common.MustHexToBytes("0xb3c408b74905dfedfffa66f99f16fe8b938fd8df76a92225228a1ca07523" +
+	secondSignatureArray := mustHexTo64BArray(t, "0xb3c408b74905dfedfffa66f99f16fe8b938fd8df76a92225228a1ca07523"+
 		"0b99a2d9e173c561952e1e378b701915ca188d2c832ef92a3fab8e455f32570c0807")
-	var secondSignatureArray [64]byte
-	copy(secondSignatureArray[:], secondSignature)
 
 	var authorityID [32]byte
 	copy(authorityID[:], identityPubKey.Encode())
@@ -1360,7 +1354,7 @@ func TestInstance_GrandpaSubmitReportEquivocationUnsignedExtrinsic(t *testing.T)
 	t.Parallel()
 	identity := common.MustHexToBytes("0x88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee")
 	identityPubKey, _ := ed25519.NewPublicKey(identity)
-	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
+	runtime := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
 
 	keyOwnershipProofRaw := types.OpaqueKeyOwnershipProof([]byte{64, 138, 252, 29, 127, 102, 189, 129, 207, 47,
 		157, 60, 17, 138, 194, 121, 139, 92, 176, 175, 224, 16, 185, 93, 175, 251, 224, 81, 209, 61, 0, 71})
@@ -1379,15 +1373,11 @@ func TestInstance_GrandpaSubmitReportEquivocationUnsignedExtrinsic(t *testing.T)
 		Number: 10,
 	}
 
-	firstSignature := common.MustHexToBytes("0xd7292caacc62504365f179892a7399f233944bf261f8a3f66260f70e0016f2" +
-		"db63922726b015c82dc7131f4730fbec61f71672a571453e51029bfb469070900f")
-	var firstSignatureArray [64]byte
-	copy(firstSignatureArray[:], firstSignature)
+	firstSignatureArray := mustHexTo64BArray(t, "0xd7292caacc62504365f179892a7399f233944bf261f8a3f66260f70e0016f2d"+
+		"b63922726b015c82dc7131f4730fbec61f71672a571453e51029bfb469070900f")
 
-	secondSignature := common.MustHexToBytes("0xb3c408b74905dfedfffa66f99f16fe8b938fd8df76a92225228a1ca075230b99" +
-		"a2d9e173c561952e1e378b701915ca188d2c832ef92a3fab8e455f32570c0807")
-	var secondSignatureArray [64]byte
-	copy(secondSignatureArray[:], secondSignature)
+	secondSignatureArray := mustHexTo64BArray(t, "0xb3c408b74905dfedfffa66f99f16fe8b938fd8df76a92225228a1ca07523"+
+		"0b99a2d9e173c561952e1e378b701915ca188d2c832ef92a3fab8e455f32570c0807")
 
 	var authorityID [32]byte
 	copy(authorityID[:], identityPubKey.Encode())
@@ -1409,7 +1399,6 @@ func TestInstance_GrandpaSubmitReportEquivocationUnsignedExtrinsic(t *testing.T)
 		SetID:        1,
 		Equivocation: *equivocationVote,
 	}
-
-	err = rt.GrandpaSubmitReportEquivocationUnsignedExtrinsic(equivocationProof, opaqueKeyOwnershipProof)
+	err = runtime.GrandpaSubmitReportEquivocationUnsignedExtrinsic(equivocationProof, opaqueKeyOwnershipProof)
 	require.NoError(t, err)
 }

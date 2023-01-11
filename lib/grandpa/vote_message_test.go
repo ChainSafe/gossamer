@@ -15,8 +15,8 @@ import (
 )
 
 var (
-	errTestError  = errors.New("test dummy error")
-	testDummyHash = common.NewHash([]byte{1})
+	errTestError = errors.New("test dummy error")
+	dummyHash    = common.NewHash([]byte{1})
 )
 
 func TestService_reportEquivocation(t *testing.T) {
@@ -92,8 +92,8 @@ func TestService_reportEquivocation(t *testing.T) {
 				mockGrandpaStateOk.EXPECT().GetCurrentSetID().Return(uint64(1), nil)
 				mockGrandpaStateOk.EXPECT().GetLatestRound().Return(uint64(1), nil)
 				mockBlockStateGetRuntimeErr := NewMockBlockState(ctrl)
-				mockBlockStateGetRuntimeErr.EXPECT().BestBlockHash().Return(testDummyHash)
-				mockBlockStateGetRuntimeErr.EXPECT().GetRuntime(testDummyHash).Return(nil, errTestError)
+				mockBlockStateGetRuntimeErr.EXPECT().BestBlockHash().Return(dummyHash)
+				mockBlockStateGetRuntimeErr.EXPECT().GetRuntime(dummyHash).Return(nil, errTestError)
 				return &Service{
 					grandpaState: mockGrandpaStateOk,
 					blockState:   mockBlockStateGetRuntimeErr,
@@ -113,8 +113,8 @@ func TestService_reportEquivocation(t *testing.T) {
 				mockGrandpaStateOk.EXPECT().GetCurrentSetID().Return(uint64(1), nil)
 				mockGrandpaStateOk.EXPECT().GetLatestRound().Return(uint64(1), nil)
 				mockBlockStateGenerateProofErr := NewMockBlockState(ctrl)
-				mockBlockStateGenerateProofErr.EXPECT().BestBlockHash().Return(testDummyHash)
-				mockBlockStateGenerateProofErr.EXPECT().GetRuntime(testDummyHash).
+				mockBlockStateGenerateProofErr.EXPECT().BestBlockHash().Return(dummyHash)
+				mockBlockStateGenerateProofErr.EXPECT().GetRuntime(dummyHash).
 					Return(mockRuntimeInstanceGenerateProofErr, nil)
 				return &Service{
 					grandpaState: mockGrandpaStateOk,
@@ -135,8 +135,8 @@ func TestService_reportEquivocation(t *testing.T) {
 				mockGrandpaStateOk.EXPECT().GetCurrentSetID().Return(uint64(1), nil)
 				mockGrandpaStateOk.EXPECT().GetLatestRound().Return(uint64(1), nil)
 				mockBlockStateReportEquivocationErr := NewMockBlockState(ctrl)
-				mockBlockStateReportEquivocationErr.EXPECT().BestBlockHash().Return(testDummyHash)
-				mockBlockStateReportEquivocationErr.EXPECT().GetRuntime(testDummyHash).
+				mockBlockStateReportEquivocationErr.EXPECT().BestBlockHash().Return(dummyHash)
+				mockBlockStateReportEquivocationErr.EXPECT().GetRuntime(dummyHash).
 					Return(mockRuntimeInstanceReportEquivocationErr, nil)
 				return &Service{
 					grandpaState: mockGrandpaStateOk,
@@ -164,8 +164,8 @@ func TestService_reportEquivocation(t *testing.T) {
 				mockGrandpaStateOk.EXPECT().GetCurrentSetID().Return(uint64(1), nil)
 				mockGrandpaStateOk.EXPECT().GetLatestRound().Return(uint64(1), nil)
 				mockBlockStateReportEquivocationErr := NewMockBlockState(ctrl)
-				mockBlockStateReportEquivocationErr.EXPECT().BestBlockHash().Return(testDummyHash)
-				mockBlockStateReportEquivocationErr.EXPECT().GetRuntime(testDummyHash).
+				mockBlockStateReportEquivocationErr.EXPECT().BestBlockHash().Return(dummyHash)
+				mockBlockStateReportEquivocationErr.EXPECT().GetRuntime(dummyHash).
 					Return(mockRuntimeInstanceReportEquivocationErr, nil)
 				return &Service{
 					grandpaState: mockGrandpaStateOk,
@@ -193,8 +193,8 @@ func TestService_reportEquivocation(t *testing.T) {
 				mockGrandpaStateOk.EXPECT().GetCurrentSetID().Return(uint64(1), nil)
 				mockGrandpaStateOk.EXPECT().GetLatestRound().Return(uint64(1), nil)
 				mockBlockStateOk := NewMockBlockState(ctrl)
-				mockBlockStateOk.EXPECT().BestBlockHash().Return(testDummyHash)
-				mockBlockStateOk.EXPECT().GetRuntime(testDummyHash).Return(mockRuntimeInstanceOk, nil)
+				mockBlockStateOk.EXPECT().BestBlockHash().Return(dummyHash)
+				mockBlockStateOk.EXPECT().GetRuntime(dummyHash).Return(mockRuntimeInstanceOk, nil)
 				return &Service{
 					grandpaState: mockGrandpaStateOk,
 					blockState:   mockBlockStateOk,

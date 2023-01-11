@@ -293,13 +293,13 @@ func (in *Instance) GrandpaGenerateKeyOwnershipProof(authSetID uint64, authority
 	if err != nil {
 		return nil, fmt.Errorf("encoding authority id: %w", err)
 	}
-	ret, err := in.Exec(runtime.GrandpaGenerateKeyOwnershipProof, buffer.Bytes())
+	encodedOpaqueKeyOwnershipProof, err := in.Exec(runtime.GrandpaGenerateKeyOwnershipProof, buffer.Bytes())
 	if err != nil {
 		return nil, err
 	}
 
 	keyOwnershipProof := types.OpaqueKeyOwnershipProof{}
-	err = scale.Unmarshal(ret, &keyOwnershipProof)
+	err = scale.Unmarshal(encodedOpaqueKeyOwnershipProof, &keyOwnershipProof)
 	if err != nil {
 		return nil, fmt.Errorf("scale decoding: %w", err)
 	}
@@ -322,7 +322,10 @@ func (in *Instance) GrandpaSubmitReportEquivocationUnsignedExtrinsic(
 		return fmt.Errorf("encoding key ownership proof: %w", err)
 	}
 	_, err = in.Exec(runtime.GrandpaSubmitReportEquivocation, buffer.Bytes())
-	return err
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (in *Instance) RandomSeed()          {} //nolint:revive
