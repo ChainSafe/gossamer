@@ -148,7 +148,7 @@ func KeystoreFilepaths(basepath string) ([]string, error) {
 	return keys, nil
 }
 
-// GetGssmrGenesisRawPath gets the gssmr genesis path
+// GetGssmrGenesisRawPath gets the gssmr raw genesis path
 // and returns an error if it cannot find it.
 func GetGssmrGenesisRawPath() (path string, err error) {
 	rootPath, err := GetProjectRootPath()
