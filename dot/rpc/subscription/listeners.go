@@ -41,8 +41,8 @@ type Listener interface {
 	Stop() error
 }
 
-// WSConnAPI interface defining methors a WSConn should have
-type WSConnAPI interface {
+// wsConnAPI interface defining methors a WSConn should have
+type wsConnAPI interface {
 	safeSend(interface{})
 }
 
@@ -390,7 +390,7 @@ func (l *ExtrinsicSubmitListener) Stop() error {
 
 // RuntimeVersionListener to handle listening for Runtime Version
 type RuntimeVersionListener struct {
-	wsconn        WSConnAPI
+	wsconn        wsConnAPI
 	subID         uint32
 	runtimeUpdate chan runtime.Version
 	channelID     uint32
