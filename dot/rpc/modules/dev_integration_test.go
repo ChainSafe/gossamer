@@ -34,7 +34,7 @@ var genesisBABEConfig = &types.BabeConfiguration{
 
 func newState(t *testing.T) (*state.BlockState, *state.EpochState) {
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockTelemetry(ctrl)
+	telemetryMock := NewMocktelemetryClient(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	db := state.NewInMemoryDB(t)

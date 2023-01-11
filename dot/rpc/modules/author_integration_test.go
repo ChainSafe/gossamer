@@ -162,7 +162,7 @@ func TestAuthorModule_SubmitExtrinsic_Integration(t *testing.T) {
 	integrationTestController := setupStateAndPopulateTrieState(t, t.TempDir(), useInstanceFromGenesis)
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockTelemetry(ctrl)
+	telemetryMock := NewMocktelemetryClient(ctrl)
 	telemetryMock.EXPECT().
 		SendMessage(
 			telemetry.NewTxpoolImport(0, 1),
@@ -268,7 +268,7 @@ func TestAuthorModule_SubmitExtrinsic_AlreadyInPool(t *testing.T) {
 	integrationTestController := setupStateAndRuntime(t, t.TempDir(), useInstanceFromGenesis)
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockTelemetry(ctrl)
+	telemetryMock := NewMocktelemetryClient(ctrl)
 	telemetryMock.EXPECT().
 		SendMessage(
 			telemetry.NewTxpoolImport(0, 1),
@@ -575,7 +575,7 @@ func TestAuthorModule_SubmitExtrinsic_WithVersion_V0929(t *testing.T) {
 	integrationTestController := setupStateAndPopulateTrieState(t, t.TempDir(), useInstanceFromRuntimeV0929)
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockTelemetry(ctrl)
+	telemetryMock := NewMocktelemetryClient(ctrl)
 	telemetryMock.EXPECT().
 		SendMessage(
 			telemetry.NewTxpoolImport(0, 1),
@@ -651,7 +651,7 @@ func setupStateAndRuntime(t *testing.T, basepath string, useInstance useRuntimeI
 	gen, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockTelemetry(ctrl)
+	telemetryMock := NewMocktelemetryClient(ctrl)
 	telemetryMock.EXPECT().
 		SendMessage(
 			telemetry.NewNotifyFinalized(
@@ -711,7 +711,7 @@ func setupStateAndPopulateTrieState(t *testing.T, basepath string,
 	gen, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockTelemetry(ctrl)
+	telemetryMock := NewMocktelemetryClient(ctrl)
 	telemetryMock.EXPECT().
 		SendMessage(
 			telemetry.NewNotifyFinalized(

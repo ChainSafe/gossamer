@@ -3,13 +3,6 @@
 
 package modules
 
-import "encoding/json"
-
-// Telemetry is the telemetry client to send telemetry messages.
-type Telemetry interface {
-	SendMessage(msg json.Marshaler)
-}
-
 // Infoer logs strings at the info level.
 type Infoer interface {
 	Info(s string)
