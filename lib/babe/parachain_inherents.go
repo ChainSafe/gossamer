@@ -283,9 +283,9 @@ type committedCandidateReceipt struct {
 	Commitments candidateCommitments `scale:"2"`
 }
 
-// uncheckedSignedAvailabilityBitfield is a set of unchecked signed availability bitfields.
+// UncheckedSignedAvailabilityBitfield is a set of unchecked signed availability bitfields.
 // Should be sorted by validator index, ascending.
-type uncheckedSignedAvailabilityBitfield struct {
+type UncheckedSignedAvailabilityBitfield struct {
 	// The payload is part of the signed data. The rest is the signing context,
 	// which is known both at signing and at validation.
 	Payload []byte `scale:"1"`
@@ -335,7 +335,7 @@ type disputeStatementSet struct {
 // ParachainInherentData is parachains inherent-data passed into the runtime by a block author.
 type ParachainInherentData struct {
 	// Signed bitfields by validators about availability.
-	Bitfields []uncheckedSignedAvailabilityBitfield `scale:"1"`
+	Bitfields []UncheckedSignedAvailabilityBitfield `scale:"1"`
 	// Backed candidates for inclusion in the block.
 	BackedCandidates []backedCandidate `scale:"2"`
 	// Sets of dispute votes for inclusion,
