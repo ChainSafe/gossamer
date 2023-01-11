@@ -105,7 +105,7 @@ type Service struct {
 
 	cfg           *Config
 	host          *host
-	mdns          MDNS
+	mdns          mdnsService
 	gossip        *gossip
 	bufPool       *sync.Pool
 	streamManager *streamManager

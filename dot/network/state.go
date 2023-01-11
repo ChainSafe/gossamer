@@ -41,29 +41,24 @@ type TransactionHandler interface {
 	TransactionsCount() int
 }
 
-// PeerSetHandler is the interface used by the connection manager to handle peerset.
-type PeerSetHandler interface {
+// peerSetHandler is the interface used by the connection manager to handle peerset.
+type peerSetHandler interface {
 	Start(context.Context)
 	ReportPeer(peerset.ReputationChange, ...peer.ID)
-	PeerAdd
-	PeerRemove
-	Peer
+	peerAdd
+	peerRemove
+	SortedPeers(idx int) chan peer.IDSlice
+	Messages() chan peerset.Message
 }
 
-// PeerAdd is the interface used by the PeerSetHandler to add peers in peerSet.
-type PeerAdd interface {
+// peerAdd is the interface used by the peerSetHandler to add peers in peerSet.
+type peerAdd interface {
 	Incoming(int, ...peer.ID)
 	AddReservedPeer(int, ...peer.ID)
 	AddPeer(int, ...peer.ID)
 }
 
-// PeerRemove is the interface used by the PeerSetHandler to remove peers from peerSet.
-type PeerRemove interface {
+// peerRemove is the interface used by the peerSetHandler to remove peers from peerSet.
+type peerRemove interface {
 	RemoveReservedPeer(int, ...peer.ID)
-}
-
-// Peer is the interface used by the PeerSetHandler to get the peer data from peerSet.
-type Peer interface {
-	SortedPeers(idx int) chan peer.IDSlice
-	Messages() chan peerset.Message
 }

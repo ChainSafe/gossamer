@@ -19,8 +19,8 @@ type Logger interface {
 	Errorf(format string, args ...interface{})
 }
 
-// MDNS is the mDNS service interface.
-type MDNS interface {
+// mdnsService is the mDNS service interface.
+type mdnsService interface {
 	Start() error
 	Stop() error
 }

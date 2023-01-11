@@ -42,12 +42,12 @@ type discovery struct {
 	ds                 *badger.Datastore
 	pid                protocol.ID
 	minPeers, maxPeers int
-	handler            PeerSetHandler
+	handler            peerSetHandler
 }
 
 func newDiscovery(ctx context.Context, h libp2phost.Host,
 	bootnodes []peer.AddrInfo, ds *badger.Datastore,
-	pid protocol.ID, min, max int, handler PeerSetHandler) *discovery {
+	pid protocol.ID, min, max int, handler peerSetHandler) *discovery {
 	return &discovery{
 		ctx:       ctx,
 		h:         h,

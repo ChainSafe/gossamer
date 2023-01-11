@@ -30,7 +30,7 @@ type ConnManager struct {
 	// persistentPeers contains peers we should remain connected to.
 	persistentPeers *sync.Map // map[peer.ID]struct{}
 
-	peerSetHandler PeerSetHandler
+	peerSetHandler peerSetHandler
 }
 
 func newConnManager(min, max int, peerSetCfg *peerset.ConfigSet) (*ConnManager, error) {
