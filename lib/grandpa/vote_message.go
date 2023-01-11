@@ -201,7 +201,7 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 
 	err = s.checkForEquivocation(voter, just, m.Message.Stage)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("checking for equivocation: %w", err)
 	}
 
 	switch m.Message.Stage {
@@ -236,10 +236,10 @@ func (s *Service) checkForEquivocation(voter *Voter, vote *SignedVote, stage Sub
 
 	_, has := eq[v]
 	if has {
-		// TODO check with team that I don't have to do anything here
 		// if the voter has already equivocated, every vote in that round is an equivocatory vote
 		eq[v] = append(eq[v], vote)
-		return fmt.Errorf("%w: voter already equivocated", ErrEquivocation)
+		return fmt.Errorf("%w: voter %s",
+			ErrEquivocation, v)
 	}
 
 	existingVote, has := s.loadVote(v, stage)
@@ -254,11 +254,10 @@ func (s *Service) checkForEquivocation(voter *Voter, vote *SignedVote, stage Sub
 
 		err := s.reportEquivocation(stage, existingVote, vote)
 		if err != nil {
-			// TODO get feedback on if this is a appropriate way to handle error
-			logger.Errorf("%s: %s", errReportingEquivocation, err)
-			return fmt.Errorf("%w: %s", ErrEquivocation, err)
+			logger.Errorf("failed reporting equivocation: %s", err)
 		}
-		return fmt.Errorf("%w", ErrEquivocation)
+		return fmt.Errorf("%w: voter %s has existing vote %s and new vote %s",
+			ErrEquivocation, v, existingVote.Vote.Hash, vote.Vote.Hash)
 	}
 
 	return nil
@@ -278,12 +277,12 @@ func (s *Service) reportEquivocation(stage Subround, existingVote *SignedVote, c
 	pubKey := existingVote.AuthorityID
 
 	bestBlockHash := s.blockState.BestBlockHash()
-	rt, err := s.blockState.GetRuntime(bestBlockHash)
+	runtime, err := s.blockState.GetRuntime(bestBlockHash)
 	if err != nil {
 		return fmt.Errorf("getting runtime: %w", err)
 	}
 
-	opaqueKeyOwnershipProof, err := rt.GrandpaGenerateKeyOwnershipProof(setID, pubKey)
+	opaqueKeyOwnershipProof, err := runtime.GrandpaGenerateKeyOwnershipProof(setID, pubKey)
 	if err != nil {
 		return fmt.Errorf("getting key ownership proof: %w", err)
 	}
@@ -320,7 +319,7 @@ func (s *Service) reportEquivocation(stage Subround, existingVote *SignedVote, c
 		Equivocation: *equivocationVote,
 	}
 
-	err = rt.GrandpaSubmitReportEquivocationUnsignedExtrinsic(equivocationProof, opaqueKeyOwnershipProof)
+	err = runtime.GrandpaSubmitReportEquivocationUnsignedExtrinsic(equivocationProof, opaqueKeyOwnershipProof)
 	if err != nil {
 		return fmt.Errorf("submitting grandpa equivocation report to runtime: %w", err)
 	}

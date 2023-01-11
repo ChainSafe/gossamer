@@ -5,14 +5,7 @@ package grandpa
 
 import (
 	"encoding/json"
-
-	"github.com/ChainSafe/gossamer/dot/types"
 )
-
-// BabeConfigurer returns the babe configuration of the runtime.
-type BabeConfigurer interface {
-	BabeConfiguration() (*types.BabeConfiguration, error)
-}
 
 // Telemetry is the telemetry client to send telemetry messages.
 type Telemetry interface {
