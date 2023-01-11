@@ -17,16 +17,17 @@ type Storage interface {
 	SetChild(keyToChild []byte, child *trie.Trie) error
 	SetChildStorage(keyToChild, key, value []byte) error
 	GetChildStorage(keyToChild, key []byte) ([]byte, error)
-	Delete(key []byte)
-	DeleteChild(keyToChild []byte)
+	Delete(key []byte) (err error)
+	DeleteChild(keyToChild []byte) (err error)
 	DeleteChildLimit(keyToChild []byte, limit *[]byte) (uint32, bool, error)
 	ClearChildStorage(keyToChild, key []byte) error
 	NextKey([]byte) []byte
 	ClearPrefixInChild(keyToChild, prefix []byte) error
 	GetChildNextKey(keyToChild, key []byte) ([]byte, error)
 	GetChild(keyToChild []byte) (*trie.Trie, error)
-	ClearPrefix(prefix []byte)
-	ClearPrefixLimit(prefix []byte, limit uint32) (uint32, bool)
+	ClearPrefix(prefix []byte) (err error)
+	ClearPrefixLimit(prefix []byte, limit uint32) (
+		deleted uint32, allDeleted bool, err error)
 	BeginStorageTransaction()
 	CommitStorageTransaction()
 	RollbackStorageTransaction()
@@ -46,7 +47,7 @@ type Getter interface {
 
 // Putter puts a value for a key.
 type Putter interface {
-	Put(key []byte, value []byte)
+	Put(key []byte, value []byte) (err error)
 }
 
 // BasicNetwork interface for functions used by runtime network state function

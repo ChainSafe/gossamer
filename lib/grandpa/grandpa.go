@@ -1281,7 +1281,7 @@ func verifyCommitMessageJustification(commitMessage CommitMessage, setID uint64,
 
 		err := verifyJustification(justification, commitMessage.Round, setID, precommit, authorityKeySet)
 		if err != nil {
-			logger.Errorf("verifying justification: %", err)
+			logger.Errorf("verifying justification: %s", err)
 			continue
 		}
 
