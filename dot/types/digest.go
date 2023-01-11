@@ -48,7 +48,7 @@ type ChangesTrieRootDigest struct {
 func (ChangesTrieRootDigest) Index() uint { return 2 }
 
 // String returns the digest as a string
-func (d *ChangesTrieRootDigest) String() string {
+func (d ChangesTrieRootDigest) String() string {
 	return fmt.Sprintf("ChangesTrieRootDigest Hash=%s", d.Hash)
 }
 
@@ -70,7 +70,7 @@ func NewBABEPreRuntimeDigest(data []byte) *PreRuntimeDigest {
 }
 
 // String returns the digest as a string
-func (d *PreRuntimeDigest) String() string {
+func (d PreRuntimeDigest) String() string {
 	return fmt.Sprintf("PreRuntimeDigest ConsensusEngineID=%s Data=0x%x", d.ConsensusEngineID.ToBytes(), d.Data)
 }
 
@@ -98,6 +98,6 @@ type SealDigest struct {
 func (SealDigest) Index() uint { return 5 }
 
 // String returns the digest as a string
-func (d *SealDigest) String() string {
+func (d SealDigest) String() string {
 	return fmt.Sprintf("SealDigest ConsensusEngineID=%s Data=0x%x", d.ConsensusEngineID.ToBytes(), d.Data)
 }

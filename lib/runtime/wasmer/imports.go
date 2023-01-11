@@ -1226,14 +1226,14 @@ func ext_default_child_storage_storage_kill_version_2(context unsafe.Pointer,
 }
 
 type noneRemain uint32
+
+func (noneRemain) Index() uint       { return 0 }
+func (nr noneRemain) String() string { return fmt.Sprintf("noneRemain(%d)", nr) }
+
 type someRemain uint32
 
-func (noneRemain) Index() uint {
-	return 0
-}
-func (someRemain) Index() uint {
-	return 1
-}
+func (someRemain) Index() uint       { return 1 }
+func (sr someRemain) String() string { return fmt.Sprintf("someRemain(%d)", sr) }
 
 //export ext_default_child_storage_storage_kill_version_3
 func ext_default_child_storage_storage_kill_version_3(context unsafe.Pointer,
