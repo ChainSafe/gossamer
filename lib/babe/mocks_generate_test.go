@@ -4,3 +4,4 @@
 package babe
 
 //go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE . Telemetry
+//go:generate mockgen -destination=mock_state_test.go -package $GOPACKAGE . BlockState,ImportedBlockNotifierManager,StorageState,TransactionState,EpochState,BlockImportHandler

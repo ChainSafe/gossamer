@@ -28,7 +28,6 @@ func TestDecodeTransactionHandshake(t *testing.T) {
 	require.Equal(t, testHandshake, msg)
 }
 
-//go:generate mockgen -destination=mock_transaction_handler_test.go -package $GOPACKAGE . TransactionHandler
 func TestHandleTransactionMessage(t *testing.T) {
 	t.Parallel()
 

@@ -48,8 +48,6 @@ type Node struct {
 	metricsServer   *metrics.Server
 }
 
-//go:generate mockgen -source=node.go -destination=mock_node_builder_test.go -package=$GOPACKAGE
-
 type nodeBuilderIface interface {
 	isNodeInitialised(basepath string) error
 	initNode(config *Config) error

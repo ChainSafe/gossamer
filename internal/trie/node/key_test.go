@@ -19,8 +19,6 @@ func repeatBytes(n int, b byte) (slice []byte) {
 	return slice
 }
 
-//go:generate mockgen -destination=reader_mock_test.go -package $GOPACKAGE io Reader
-
 type readCall struct {
 	buffArgCap int
 	read       []byte

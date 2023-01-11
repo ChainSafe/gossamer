@@ -17,8 +17,6 @@ import (
 	"github.com/golang/mock/gomock"
 )
 
-//go:generate mockgen -destination=mocks_test.go -package=$GOPACKAGE github.com/ChainSafe/gossamer/devnet/cmd/scale-down-ecs-service/internal ECSAPI
-
 func Test_serviceScaler_findServiceArns(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
