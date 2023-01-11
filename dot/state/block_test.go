@@ -842,7 +842,7 @@ func TestRange(t *testing.T) {
 				db := NewInMemoryDB(t)
 				blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
 
-				mockedDb := NewMockBlockStateDatabase(ctrl)
+				mockedDb := NewMockblockStateDatabase(ctrl)
 				// cannot assert the exact hash type since the block header
 				// hash is generate by the running test case
 				mockedDb.EXPECT().Get(gomock.AssignableToTypeOf([]byte{})).

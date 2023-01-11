@@ -21,24 +21,17 @@ type GetPutDeleter interface {
 	Deleter
 }
 
-// BlockStateDatabase is the database interface for the block state.
-type BlockStateDatabase interface {
-	GetPutDeleter
-	Haser
-	NewBatcher
-}
-
 // GetPutter has methods to get and put key values.
 type GetPutter interface {
 	Getter
 	Putter
 }
 
-// GetNewBatcher has methods to get values and create a
+// getNewBatcher has methods to get values and create a
 // new batch.
-type GetNewBatcher interface {
+type getNewBatcher interface {
 	Getter
-	NewBatcher
+	newBatcher
 }
 
 // Getter gets a value corresponding to the given key.
@@ -56,13 +49,8 @@ type Deleter interface {
 	Del(key []byte) error
 }
 
-// Haser checks if a value exists at the given key and returns an error.
-type Haser interface {
-	Has(key []byte) (has bool, err error)
-}
-
-// NewBatcher creates a new database batch.
-type NewBatcher interface {
+// newBatcher creates a new database batch.
+type newBatcher interface {
 	NewBatch() chaindb.Batch
 }
 

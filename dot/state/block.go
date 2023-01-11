@@ -54,7 +54,7 @@ type BlockState struct {
 	bt        *blocktree.BlockTree
 	baseState *BaseState
 	dbPath    string
-	db        BlockStateDatabase
+	db        blockStateDatabase
 	sync.RWMutex
 	genesisHash       common.Hash
 	lastFinalised     common.Hash
