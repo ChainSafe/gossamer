@@ -23,12 +23,12 @@ func TestApplyExtrinsicErrors(t *testing.T) {
 		{
 			name:     "Dispatch custom module error empty",
 			test:     []byte{0, 1, 3, 4, 5, 1, 0},
-			expected: "dispatch outcome error: custom module error: index: 4 code: 5 message: ",
+			expected: "dispatch outcome error: custom module error: Module{Idx=4, Err=5 Message=",
 		},
 		{
 			name:     "Dispatch custom module error",
 			test:     []byte{0, 1, 3, 4, 5, 1, 0x04, 0x65},
-			expected: "dispatch outcome error: custom module error: index: 4 code: 5 message: 65",
+			expected: "dispatch outcome error: custom module error: Module{Idx=4, Err=5 Message=e",
 		},
 		{
 			name:     "Dispatch unknown error",

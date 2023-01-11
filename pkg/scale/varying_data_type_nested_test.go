@@ -4,6 +4,7 @@
 package scale
 
 import (
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -37,6 +38,13 @@ func (childVDT) Index() uint {
 	return 1
 }
 
+func (c childVDT) String() string {
+	if c.value == nil {
+		return "childVDT(nil)"
+	}
+	return fmt.Sprintf("childVDT(%s)", c.value)
+}
+
 func mustNewChildVDT() childVDT {
 	vdt, err := NewVaryingDataType(VDTValue{}, VDTValue1{}, VDTValue2{}, VDTValue3(0))
 	if err != nil {
@@ -61,6 +69,13 @@ type childVDT1 VaryingDataType
 
 func (childVDT1) Index() uint {
 	return 2
+}
+
+func (c childVDT1) String() string {
+	if c.value == nil {
+		return "childVDT1(nil)"
+	}
+	return fmt.Sprintf("childVDT1(%s)", c.value)
 }
 
 func mustNewChildVDT1() childVDT1 {

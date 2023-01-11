@@ -17,6 +17,8 @@ func (UnknownTransaction) Index() uint {
 	return 1
 }
 
+func (u UnknownTransaction) String() string { return u.Error() }
+
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
 func (u *UnknownTransaction) Set(val scale.VaryingDataTypeValue) (err error) {
 	vdt := scale.VaryingDataType(*u)
@@ -61,6 +63,8 @@ type ValidityCannotLookup struct{}
 // Index returns the VDT index
 func (ValidityCannotLookup) Index() uint { return 0 }
 
+func (v ValidityCannotLookup) String() string { return v.Error() }
+
 // Error returns the error message associated with the ValidityCannotLookup
 func (ValidityCannotLookup) Error() string {
 	return "lookup failed"
@@ -72,6 +76,8 @@ type NoUnsignedValidator struct{}
 // Index returns the VDT index
 func (NoUnsignedValidator) Index() uint { return 1 }
 
+func (n NoUnsignedValidator) String() string { return n.Error() }
+
 // Error returns the error message associated with the NoUnsignedValidator
 func (NoUnsignedValidator) Error() string {
 	return "validator not found"
@@ -82,6 +88,8 @@ type UnknownCustom uint8
 
 // Index returns the VDT index
 func (UnknownCustom) Index() uint { return 2 }
+
+func (m UnknownCustom) String() string { return m.Error() }
 
 // Error returns the error message associated with the UnknownCustom
 func (m UnknownCustom) Error() string {

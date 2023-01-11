@@ -21,6 +21,10 @@ func (MyStruct) Index() uint {
 	return 1
 }
 
+func (m MyStruct) String() string {
+	return fmt.Sprintf("MyStruct{Baz: %t, Bar: %d, Foo: %x}", m.Baz, m.Bar, m.Foo)
+}
+
 type MyOtherStruct struct {
 	Foo string
 	Bar uint64
@@ -31,11 +35,17 @@ func (MyOtherStruct) Index() uint {
 	return 2
 }
 
+func (m MyOtherStruct) String() string {
+	return fmt.Sprintf("MyOtherStruct{Foo: %s, Bar: %d, Baz: %d}", m.Foo, m.Bar, m.Baz)
+}
+
 type MyInt16 int16
 
 func (MyInt16) Index() uint {
 	return 3
 }
+
+func (m MyInt16) String() string { return fmt.Sprintf("MyInt16(%d)", m) }
 
 func ExampleVaryingDataType() {
 	vdt, err := scale.NewVaryingDataType(MyStruct{}, MyOtherStruct{}, MyInt16(0))

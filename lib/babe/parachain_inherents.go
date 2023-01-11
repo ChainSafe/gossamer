@@ -14,6 +14,8 @@ import (
 // signature could be one of Ed25519 signature, Sr25519 signature or ECDSA/SECP256k1 signature.
 type signature [64]byte
 
+func (s signature) String() string { return fmt.Sprintf("0x%x", s[:]) }
+
 // validityAttestation is an implicit or explicit attestation to the validity of a parachain
 // candidate.
 type validityAttestation scale.VaryingDataType
@@ -45,12 +47,20 @@ func (implicit) Index() uint { //skipcq
 	return 1
 }
 
+func (i implicit) String() string { //skipcq:SCC-U1000
+	return fmt.Sprintf("implicit(%s)", validatorSignature(i))
+}
+
 // explicit is for explicit attestation.
 type explicit validatorSignature //skipcq
 
 // Index returns VDT index
 func (explicit) Index() uint { //skipcq
 	return 2
+}
+
+func (e explicit) String() string { //skipcq:SCC-U1000
+	return fmt.Sprintf("explicit(%s)", validatorSignature(e))
 }
 
 // newValidityAttestation creates a ValidityAttestation varying data type.
@@ -95,6 +105,10 @@ func (validDisputeStatementKind) Index() uint { //skipcq
 	return 0
 }
 
+func (validDisputeStatementKind) String() string { //skipcq:SCC-U1000
+	return "valid dispute statement kind"
+}
+
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
 func (v *validDisputeStatementKind) Set(val scale.VaryingDataTypeValue) (err error) { //skipcq
 	// cast to VaryingDataType to use VaryingDataType.Set method
@@ -122,12 +136,20 @@ func (explicitValidDisputeStatementKind) Index() uint { //skipcq
 	return 0
 }
 
+func (explicitValidDisputeStatementKind) String() string { //skipcq:SCC-U1000
+	return "explicit valid dispute statement kind"
+}
+
 // backingSeconded is a seconded statement on a candidate from the backing phase.
 type backingSeconded common.Hash //skipcq
 
 // Index returns VDT index
 func (backingSeconded) Index() uint { //skipcq
 	return 1
+}
+
+func (b backingSeconded) String() string { //skipcq:SCC-U1000
+	return fmt.Sprintf("backingSeconded(%s)", common.Hash(b))
 }
 
 // backingValid is a valid statement on a candidate from the backing phase.
@@ -138,6 +160,10 @@ func (backingValid) Index() uint { //skipcq
 	return 2
 }
 
+func (b backingValid) String() string { //skipcq:SCC-U1000
+	return fmt.Sprintf("backingValid(%s)", common.Hash(b))
+}
+
 // approvalChecking is an approval vote from the approval checking phase.
 type approvalChecking struct{} //skipcq
 
@@ -146,12 +172,18 @@ func (approvalChecking) Index() uint { //skipcq
 	return 3
 }
 
+func (a approvalChecking) String() string { return "approval checking" } //skipcq:SCC-U1000
+
 // invalidDisputeStatementKind is a kind of statements of invalidity on a candidate.
 type invalidDisputeStatementKind scale.VaryingDataType //skipcq
 
 // Index returns VDT index
 func (invalidDisputeStatementKind) Index() uint { //skipcq
 	return 1
+}
+
+func (invalidDisputeStatementKind) String() string { //skipcq:SCC-U1000
+	return "invalid dispute statement kind"
 }
 
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
@@ -179,6 +211,10 @@ type explicitInvalidDisputeStatementKind struct{} //skipcq
 // Index returns VDT index
 func (explicitInvalidDisputeStatementKind) Index() uint { //skipcq
 	return 0
+}
+
+func (explicitInvalidDisputeStatementKind) String() string { //skipcq:SCC-U1000
+	return "explicit invalid dispute statement kind"
 }
 
 // newDisputeStatement create a new DisputeStatement varying data type.
@@ -313,6 +349,8 @@ type validatorIndex uint32
 
 // validatorSignature is the signature with which parachain validators sign blocks.
 type validatorSignature signature
+
+func (v validatorSignature) String() string { return signature(v).String() }
 
 // statement about the candidate.
 // Used as translation of `Vec<(DisputeStatement, ValidatorIndex, ValidatorSignature)>` from rust to go
