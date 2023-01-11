@@ -48,9 +48,9 @@ func Test_nodeBuilder_createBABEService(t *testing.T) {
 	type args struct {
 		cfg              *Config
 		initStateService bool
-		ks               KeyStore
+		ks               keyStore
 		cs               *core.Service
-		telemetryMailer  Telemetry
+		telemetryMailer  telemetryClient
 	}
 	tests := []struct {
 		name     string
@@ -95,7 +95,7 @@ func Test_nodeBuilder_createBABEService(t *testing.T) {
 			t.Parallel()
 
 			stateSrvc := newStateService(t, ctrl)
-			mockBabeBuilder := NewMockServiceBuilder(ctrl)
+			mockBabeBuilder := NewMockbabeServiceBuilder(ctrl)
 			mockBabeBuilder.EXPECT().NewServiceIFace(
 				gomock.AssignableToTypeOf(&babe.ServiceConfig{})).
 				DoAndReturn(
@@ -262,7 +262,7 @@ func Test_nodeBuilder_createGRANDPAService(t *testing.T) {
 	require.NoError(t, err)
 	tests := []struct {
 		name      string
-		ks        KeyStore
+		ks        keyStore
 		expectNil bool
 		err       error
 	}{
@@ -359,11 +359,11 @@ func Test_nodeBuilder_newSyncService(t *testing.T) {
 	t.Parallel()
 	finalityGadget := &grandpa.Service{}
 	type args struct {
-		fg              BlockJustificationVerifier
+		fg              blockJustificationVerifier
 		verifier        *babe.VerificationManager
 		cs              *core.Service
 		net             *network.Service
-		telemetryMailer Telemetry
+		telemetryMailer telemetryClient
 	}
 	tests := []struct {
 		name      string

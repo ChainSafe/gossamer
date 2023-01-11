@@ -14,22 +14,15 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/core"
-	"github.com/ChainSafe/gossamer/dot/digest"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/rpc"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
-	dotsync "github.com/ChainSafe/gossamer/dot/sync"
-	"github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
-	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/metrics"
-	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
@@ -46,30 +39,6 @@ type Node struct {
 	wg              sync.WaitGroup
 	started         chan struct{}
 	metricsServer   *metrics.Server
-}
-
-type nodeBuilderIface interface {
-	isNodeInitialised(basepath string) error
-	initNode(config *Config) error
-	createStateService(config *Config) (*state.Service, error)
-	createNetworkService(cfg *Config, stateSrvc *state.Service, telemetryMailer Telemetry) (*network.Service,
-		error)
-	createRuntimeStorage(st *state.Service) (*runtime.NodeStorage, error)
-	loadRuntime(cfg *Config, ns *runtime.NodeStorage, stateSrvc *state.Service, ks *keystore.GlobalKeystore,
-		net *network.Service) error
-	createBlockVerifier(st *state.Service) *babe.VerificationManager
-	createDigestHandler(lvl log.Level, st *state.Service) (*digest.Handler, error)
-	createCoreService(cfg *Config, ks *keystore.GlobalKeystore, st *state.Service, net *network.Service,
-		dh *digest.Handler) (*core.Service, error)
-	createGRANDPAService(cfg *Config, st *state.Service, ks KeyStore,
-		net *network.Service, telemetryMailer Telemetry) (*grandpa.Service, error)
-	newSyncService(cfg *Config, st *state.Service, finalityGadget BlockJustificationVerifier,
-		verifier *babe.VerificationManager, cs *core.Service, net *network.Service,
-		telemetryMailer Telemetry) (*dotsync.Service, error)
-	createBABEService(cfg *Config, st *state.Service, ks KeyStore, cs *core.Service,
-		telemetryMailer Telemetry) (service *babe.Service, err error)
-	createSystemService(cfg *types.SystemInfo, stateSrvc *state.Service) (*system.Service, error)
-	createRPCService(params rpcServiceSettings) (*rpc.HTTPServer, error)
 }
 
 var _ nodeBuilderIface = (*nodeBuilder)(nil)
@@ -408,7 +377,7 @@ func newNode(cfg *Config,
 	return node, nil
 }
 
-func setupTelemetry(cfg *Config, genesisData *genesis.Data) (mailer Telemetry, err error) {
+func setupTelemetry(cfg *Config, genesisData *genesis.Data) (mailer telemetryClient, err error) {
 	if cfg.Global.NoTelemetry {
 		return telemetry.NewNoopMailer(), nil
 	}

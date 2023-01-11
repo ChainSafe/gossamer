@@ -33,8 +33,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/utils"
 )
 
-// BlockProducer to produce blocks
-type BlockProducer interface {
+// blockProducer to produce blocks
+type blockProducer interface {
 	Pause() error
 	Resume() error
 	EpochLength() uint64
@@ -47,7 +47,7 @@ type rpcServiceSettings struct {
 	state         *state.Service
 	core          *core.Service
 	network       *network.Service
-	blockProducer BlockProducer
+	blockProducer blockProducer
 	system        *system.Service
 	blockFinality *grandpa.Service
 	syncer        *sync.Service
@@ -170,27 +170,15 @@ func asAuthority(authority bool) string {
 	return ""
 }
 
-// ServiceBuilder interface to define the building of babe service
-type ServiceBuilder interface {
-	NewServiceIFace(cfg *babe.ServiceConfig) (service *babe.Service, err error)
-}
+var _ babeServiceBuilder = (*babe.Builder)(nil)
 
-var _ ServiceBuilder = (*babe.Builder)(nil)
-
-func (nb nodeBuilder) createBABEService(cfg *Config, st *state.Service, ks KeyStore,
-	cs *core.Service, telemetryMailer Telemetry) (service *babe.Service, err error) {
+func (nb nodeBuilder) createBABEService(cfg *Config, st *state.Service, ks keyStore,
+	cs *core.Service, telemetryMailer telemetryClient) (service *babe.Service, err error) {
 	return nb.createBABEServiceWithBuilder(cfg, st, ks, cs, telemetryMailer, babe.Builder{})
 }
 
-// KeyStore is the keystore interface for the BABE service.
-type KeyStore interface {
-	Name() keystore.Name
-	Type() string
-	Keypairs() []keystore.KeyPair
-}
-
-func (nodeBuilder) createBABEServiceWithBuilder(cfg *Config, st *state.Service, ks KeyStore,
-	cs *core.Service, telemetryMailer Telemetry, newBabeService ServiceBuilder) (
+func (nodeBuilder) createBABEServiceWithBuilder(cfg *Config, st *state.Service, ks keyStore,
+	cs *core.Service, telemetryMailer telemetryClient, newBabeService babeServiceBuilder) (
 	service *babe.Service, err error) {
 	logger.Info("creating BABE service" +
 		asAuthority(cfg.Core.BabeAuthority) + "...")
@@ -276,7 +264,7 @@ func (nodeBuilder) createCoreService(cfg *Config, ks *keystore.GlobalKeystore,
 
 // createNetworkService creates a network service from the command configuration and genesis data
 func (nodeBuilder) createNetworkService(cfg *Config, stateSrvc *state.Service,
-	telemetryMailer Telemetry) (*network.Service, error) {
+	telemetryMailer telemetryClient) (*network.Service, error) {
 	logger.Debugf(
 		"creating network service with roles %d, port %d, bootnodes %s, protocol ID %s, nobootstrap=%t and noMDNS=%t...",
 		cfg.Core.Roles, cfg.Network.Port, strings.Join(cfg.Network.Bootnodes, ","), cfg.Network.ProtocolID,
@@ -388,8 +376,8 @@ func (nodeBuilder) createSystemService(cfg *types.SystemInfo, stateSrvc *state.S
 }
 
 // createGRANDPAService creates a new GRANDPA service
-func (nodeBuilder) createGRANDPAService(cfg *Config, st *state.Service, ks KeyStore,
-	net *network.Service, telemetryMailer Telemetry) (*grandpa.Service, error) {
+func (nodeBuilder) createGRANDPAService(cfg *Config, st *state.Service, ks keyStore,
+	net *network.Service, telemetryMailer telemetryClient) (*grandpa.Service, error) {
 	bestBlockHash := st.Block.BestBlockHash()
 	rt, err := st.Block.GetRuntime(bestBlockHash)
 	if err != nil {
@@ -434,8 +422,8 @@ func (nodeBuilder) createBlockVerifier(st *state.Service) *babe.VerificationMana
 	return babe.NewVerificationManager(st.Block, st.Epoch)
 }
 
-func (nodeBuilder) newSyncService(cfg *Config, st *state.Service, fg BlockJustificationVerifier,
-	verifier *babe.VerificationManager, cs *core.Service, net *network.Service, telemetryMailer Telemetry) (
+func (nodeBuilder) newSyncService(cfg *Config, st *state.Service, fg blockJustificationVerifier,
+	verifier *babe.VerificationManager, cs *core.Service, net *network.Service, telemetryMailer telemetryClient) (
 	*sync.Service, error) {
 	slotDuration, err := st.Epoch.GetSlotDuration()
 	if err != nil {
