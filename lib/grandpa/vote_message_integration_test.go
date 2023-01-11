@@ -6,7 +6,6 @@
 package grandpa
 
 import (
-	"errors"
 	"testing"
 	"time"
 
@@ -284,7 +283,10 @@ func TestValidateMessage_Equivocation(t *testing.T) {
 
 	_, err = gs.validateVoteMessage("", msg)
 	require.ErrorIs(t, err, ErrEquivocation)
-	require.EqualError(t, err, ErrEquivocation.Error())
+	require.EqualError(t, err, "checking for equivocation: vote is equivocatory: "+
+		"voter 0x88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee has "+
+		"existing vote 0xfa6648885514eb4e8e5cbcbd18bdcf18a903f71b44769131604304099384e930 "+
+		"and new vote 0x3d5687d4ca7f086a0e18c4730cac0e1bcfa0e1ae592b5966dcc1a5330a58d10b")
 }
 
 func TestValidateMessage_BlockDoesNotExist(t *testing.T) {
