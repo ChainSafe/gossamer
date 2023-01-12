@@ -64,7 +64,7 @@ func Test_Service_StartStop_success(t *testing.T) {
 			t.Parallel()
 			ctrl := gomock.NewController(t)
 
-			server := NewMockRunner(ctrl)
+			server := NewMockrunner(ctrl)
 			ctxType, cancelType := context.WithCancel(context.Background())
 			defer cancelType()
 			server.EXPECT().Run(

@@ -4,4 +4,4 @@
 package pprof
 
 //go:generate mockgen -destination=logger_mock_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/internal/httpserver Logger
-//go:generate mockgen -destination=runner_mock_test.go -package $GOPACKAGE . Runner
+//go:generate mockgen -source=interfaces_mock_source.go -destination=mocks_local_test.go -package $GOPACKAGE

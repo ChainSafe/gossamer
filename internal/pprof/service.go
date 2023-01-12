@@ -13,7 +13,7 @@ import (
 // dot/service.go interface.
 type Service struct {
 	settings Settings
-	server   Runner
+	server   runner
 	cancel   context.CancelFunc
 	done     chan error
 }

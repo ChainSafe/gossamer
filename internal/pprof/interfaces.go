@@ -3,16 +3,9 @@
 
 package pprof
 
-import "context"
-
 // Logger for the pprof http server.
 type Logger interface {
 	Info(msg string)
 	Warn(msg string)
 	Error(msg string)
-}
-
-// Runner runs in a blocking manner.
-type Runner interface {
-	Run(ctx context.Context, ready chan<- struct{}, done chan<- error)
 }
