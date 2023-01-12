@@ -306,7 +306,7 @@ func (in *Instance) GrandpaGenerateKeyOwnershipProof(authSetID uint64, authority
 	return keyOwnershipProof, nil
 }
 
-// GrandpaSubmitReportEquivocationUnsignedExtrinsic reports equivocation report to the runtime.
+// GrandpaSubmitReportEquivocationUnsignedExtrinsic reports an equivocation report to the runtime.
 func (in *Instance) GrandpaSubmitReportEquivocationUnsignedExtrinsic(
 	equivocationProof types.GrandpaEquivocationProof, keyOwnershipProof types.OpaqueKeyOwnershipProof,
 ) error {
