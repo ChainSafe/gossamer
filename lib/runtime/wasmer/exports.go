@@ -281,7 +281,6 @@ func (in *Instance) CheckInherents() {}
 // GrandpaGenerateKeyOwnershipProof returns grandpa key ownership proof from the runtime.
 func (in *Instance) GrandpaGenerateKeyOwnershipProof(authSetID uint64, authorityID ed25519.PublicKeyBytes) (
 	types.OpaqueKeyOwnershipProof, error) {
-
 	const bufferSize = 8 + 32 // authSetID uint64 + ed25519.PublicKeyBytes
 	buffer := bytes.NewBuffer(make([]byte, 0, bufferSize))
 	encoder := scale.NewEncoder(buffer)
