@@ -59,12 +59,7 @@ func BuildBlock(t *testing.T, instance BuildBlockRuntime, parent *types.Header, 
 	require.NoError(t, err)
 
 	parachainInherent := babe.ParachainInherentData{
-		ParentHeader: types.Header{
-			ParentHash:     parent.Hash(),
-			Number:         parent.Number,
-			StateRoot:      parent.StateRoot,
-			ExtrinsicsRoot: parent.ExtrinsicsRoot,
-		},
+		ParentHeader: *parent,
 	}
 
 	err = idata.SetInherent(types.Parachn0, parachainInherent)
