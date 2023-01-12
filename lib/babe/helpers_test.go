@@ -133,6 +133,25 @@ func NewTestService(t *testing.T, cfg *core.Config) *core.Service {
 	return s
 }
 
+// newWestendGenesisWithTrieAndHeader generates westend genesis, genesis trie and genesis header
+func newWestendGenesisWithTrieAndHeader(t *testing.T) (
+	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
+	t.Helper()
+	genesisPath := utils.GetWestendDevGenesisPath(t)
+
+	genesisPtr, err := genesis.NewGenesisFromJSONRaw(genesisPath)
+	require.NoError(t, err)
+	gen = *genesisPtr
+
+	genesisTrie, err = wasmer.NewTrieFromGenesis(gen)
+	require.NoError(t, err)
+
+	genesisHeader = *types.NewHeader(common.NewHash([]byte{0}),
+		genesisTrie.MustHash(), trie.EmptyHash, 0, types.NewDigest())
+
+	return gen, genesisTrie, genesisHeader
+}
+
 // newDevGenesisWithTrieAndHeader generates test dev genesis, genesis trie and genesis header
 func newDevGenesisWithTrieAndHeader(t *testing.T) (
 	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {

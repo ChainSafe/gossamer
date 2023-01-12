@@ -88,7 +88,7 @@ func createTestBlock(t *testing.T, babeService *Service, parent *types.Header,
 // TODO: add test against latest dev runtime
 // See https://github.com/ChainSafe/gossamer/issues/2704
 func TestBuildBlock_ok(t *testing.T) {
-	babeService := createTestService(t, ServiceConfig{})
+	babeService := createTestService(t, ServiceConfig{}, false)
 
 	parentHash := babeService.blockState.GenesisHash()
 	bestBlockHash := babeService.blockState.BestBlockHash()
@@ -122,7 +122,7 @@ func TestBuildBlock_ok(t *testing.T) {
 // TODO: add test against latest dev runtime
 // See https://github.com/ChainSafe/gossamer/issues/2704
 func TestApplyExtrinsic(t *testing.T) {
-	babeService := createTestService(t, ServiceConfig{})
+	babeService := createTestService(t, ServiceConfig{}, false)
 	const authorityIndex = 0
 
 	duration, err := time.ParseDuration("1s")
@@ -208,10 +208,23 @@ func TestApplyExtrinsic(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// TODO: add test against latest dev runtime
-// See https://github.com/ChainSafe/gossamer/issues/2704
+func buildLocalTransaction(t *testing.T, rt runtime.Instance, ext types.Extrinsic,
+	bestBlockHash common.Hash) types.Extrinsic {
+	runtimeVersion := rt.Version()
+	txQueueVersion, err := runtimeVersion.TaggedTransactionQueueVersion()
+	require.NoError(t, err)
+	var extrinsicParts [][]byte
+	switch txQueueVersion {
+	case 3:
+		extrinsicParts = [][]byte{{byte(types.TxnLocal)}, ext, bestBlockHash.ToBytes()}
+	case 2:
+		extrinsicParts = [][]byte{{byte(types.TxnLocal)}, ext}
+	}
+	return types.Extrinsic(bytes.Join(extrinsicParts, nil))
+}
+
 func TestBuildAndApplyExtrinsic(t *testing.T) {
-	babeService := createTestService(t, ServiceConfig{})
+	babeService := createTestService(t, ServiceConfig{}, true)
 
 	parentHash := common.MustHexToHash("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
 	header := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, 1, types.NewDigest())
@@ -267,7 +280,9 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	encoder := cscale.NewEncoder(&extEnc)
 	ext.Encode(*encoder)
 
-	txVal, err := rt.ValidateTransaction(append([]byte{byte(types.TxnLocal)}, extEnc.Bytes()...))
+	externalExtrinsic := buildLocalTransaction(t, rt, extEnc.Bytes(), bestBlockHash)
+
+	txVal, err := rt.ValidateTransaction(externalExtrinsic)
 	require.NoError(t, err)
 
 	vtx := transaction.NewValidTransaction(extEnc.Bytes(), txVal)
@@ -283,7 +298,7 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 func TestBuildBlock_failing(t *testing.T) {
 	t.Skip()
 
-	babeService := createTestService(t, ServiceConfig{})
+	babeService := createTestService(t, ServiceConfig{}, true)
 
 	// see https://github.com/noot/substrate/blob/add-blob/core/test-runtime/src/system.rs#L468
 	// add a valid transaction
@@ -376,7 +391,7 @@ func TestBuildBlockTimeMonitor(t *testing.T) {
 		Authority: true,
 	}
 
-	babeService := createTestService(t, cfg)
+	babeService := createTestService(t, cfg, false)
 
 	parent, err := babeService.blockState.BestBlockHeader()
 	require.NoError(t, err)
