@@ -119,7 +119,7 @@ func TestChainProcessor_HandleBlockResponse_ValidChain(t *testing.T) {
 		// calcule the exact slot for each produced block
 		currentSlot := timestamp / slotDuration
 
-		block := buildBlockWithSlotAndTimestamp(t, rt, parent, timestamp, currentSlot)
+		block := buildBlockWithSlotAndTimestamp(t, rt, parent, currentSlot, timestamp)
 		err = responder.blockState.(*state.BlockState).AddBlock(block)
 		require.NoError(t, err)
 		parent = &block.Header
@@ -182,11 +182,24 @@ func TestChainProcessor_HandleBlockResponse_MissingBlocks(t *testing.T) {
 	rt, err := syncer.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
+	babeCfg, err := rt.BabeConfiguration()
+	require.NoError(t, err)
+
+	timestamp := uint64(time.Now().Unix())
+	slotDuration := babeCfg.SlotDuration
+
 	for i := 0; i < 4; i++ {
-		block := BuildBlock(t, rt, parent, nil)
+		// calcule the exact slot for each produced block
+		currentSlot := timestamp / slotDuration
+
+		block := buildBlockWithSlotAndTimestamp(t, rt, parent, currentSlot, timestamp)
 		err = syncer.blockState.(*state.BlockState).AddBlock(block)
 		require.NoError(t, err)
 		parent = &block.Header
+
+		// increase the timestamp by the slot duration
+		// so we will get a different slot for the next block
+		timestamp += slotDuration
 	}
 
 	responder := newTestSyncer(t)
@@ -194,14 +207,27 @@ func TestChainProcessor_HandleBlockResponse_MissingBlocks(t *testing.T) {
 	parent, err = responder.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
 
-	rt, err = syncer.blockState.GetRuntime(bestBlockHash)
+	rt, err = responder.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
+	babeCfg, err = rt.BabeConfiguration()
+	require.NoError(t, err)
+
+	timestamp = uint64(time.Now().Unix())
+	slotDuration = babeCfg.SlotDuration
+
 	for i := 0; i < 16; i++ {
-		block := BuildBlock(t, rt, parent, nil)
+		// calcule the exact slot for each produced block
+		currentSlot := timestamp / slotDuration
+
+		block := buildBlockWithSlotAndTimestamp(t, rt, parent, currentSlot, timestamp)
 		err = responder.blockState.(*state.BlockState).AddBlock(block)
 		require.NoError(t, err)
 		parent = &block.Header
+
+		// increase the timestamp by the slot duration
+		// so we will get a different slot for the next block
+		timestamp += slotDuration
 	}
 
 	startNum := 15
