@@ -124,11 +124,7 @@ func TestChainRPC(t *testing.T) {
 	err = retry.UntilOK(ctx, retryWaitDuration, func() (ok bool, err error) {
 		var blockHash string
 		fetchWithTimeout(ctx, t, "chain_getBlockHash", "[]", &blockHash)
-
-		if finalizedHash == blockHash {
-			return false, nil
-		}
-		return true, nil
+		return finalizedHash != blockHash, nil
 	})
 	require.NoError(t, err)
 
