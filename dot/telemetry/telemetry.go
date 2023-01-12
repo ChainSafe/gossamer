@@ -25,11 +25,6 @@ const (
 	txPoolImportMsg = "txpool.import"
 )
 
-// Client is the interface to send messages to telemetry servers
-type Client interface {
-	SendMessage(msg json.Marshaler)
-}
-
 // NoopClient used for minimal implementation of the Client interface
 type NoopClient struct{}
 
