@@ -13,11 +13,87 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/babe"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/stretchr/testify/require"
 )
+
+func buildBlockWithSlotAndTimestamp(t *testing.T, instance state.Runtime,
+	parent *types.Header, currentSlot, timestamp uint64) *types.Block {
+	t.Helper()
+
+	digest := types.NewDigest()
+	prd, err := types.NewBabeSecondaryPlainPreDigest(0, currentSlot).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest.Add(*prd)
+	require.NoError(t, err)
+	header := &types.Header{
+		ParentHash:     parent.Hash(),
+		StateRoot:      common.Hash{},
+		ExtrinsicsRoot: common.Hash{},
+		Number:         parent.Number + 1,
+		Digest:         digest,
+	}
+
+	err = instance.InitializeBlock(header)
+	require.NoError(t, err)
+
+	idata := types.NewInherentData()
+	err = idata.SetInherent(types.Timstap0, timestamp)
+	require.NoError(t, err)
+
+	err = idata.SetInherent(types.Babeslot, currentSlot)
+	require.NoError(t, err)
+
+	parachainInherent := babe.ParachainInherentData{
+		ParentHeader: *parent,
+	}
+
+	err = idata.SetInherent(types.Parachn0, parachainInherent)
+	require.NoError(t, err)
+
+	err = idata.SetInherent(types.Newheads, []byte{0})
+	require.NoError(t, err)
+
+	ienc, err := idata.Encode()
+	require.NoError(t, err)
+
+	// Call BlockBuilder_inherent_extrinsics which returns the inherents as encoded extrinsics
+	inherentExts, err := instance.InherentExtrinsics(ienc)
+	require.NoError(t, err)
+
+	// decode inherent extrinsics
+	var inExts [][]byte
+	err = scale.Unmarshal(inherentExts, &inExts)
+	require.NoError(t, err)
+
+	// apply each inherent extrinsic
+	for _, inherent := range inExts {
+		in, err := scale.Marshal(inherent)
+		require.NoError(t, err)
+
+		ret, err := instance.ApplyExtrinsic(in)
+		require.NoError(t, err)
+		require.Equal(t, ret, []byte{0, 0})
+	}
+
+	res, err := instance.FinalizeBlock()
+	require.NoError(t, err)
+
+	body := types.Body(types.BytesArrayToExtrinsics(inExts))
+
+	res.Number = header.Number
+	res.Hash()
+
+	return &types.Block{
+		Header: *res,
+		Body:   body,
+	}
+}
 
 // TODO: add test against latest gssmr runtime
 // See https://github.com/ChainSafe/gossamer/issues/2703
@@ -33,11 +109,24 @@ func TestChainProcessor_HandleBlockResponse_ValidChain(t *testing.T) {
 	rt, err := responder.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
+	babeCfg, err := rt.BabeConfiguration()
+	require.NoError(t, err)
+
+	timestamp := uint64(time.Now().Unix())
+	slotDuration := babeCfg.SlotDuration
+
 	for i := 0; i < maxResponseSize*2; i++ {
-		block := BuildBlock(t, rt, parent, nil)
+		// calcule the exact slot for each produced block
+		currentSlot := timestamp / slotDuration
+
+		block := buildBlockWithSlotAndTimestamp(t, rt, parent, timestamp, currentSlot)
 		err = responder.blockState.(*state.BlockState).AddBlock(block)
 		require.NoError(t, err)
 		parent = &block.Header
+
+		// increase the timestamp by the slot duration
+		// so we will get a different slot for the next block
+		timestamp += slotDuration
 	}
 
 	// syncer makes request for chain
