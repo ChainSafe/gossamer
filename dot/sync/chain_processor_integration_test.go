@@ -42,83 +42,77 @@ func buildBlockWithSlotAndTimestamp(t *testing.T, instance state.Runtime,
 	err = instance.InitializeBlock(header)
 	require.NoError(t, err)
 
-	idata := types.NewInherentData()
-	err = idata.SetInherent(types.Timstap0, timestamp)
+	inherentData := types.NewInherentData()
+	err = inherentData.SetInherent(types.Timstap0, timestamp)
 	require.NoError(t, err)
 
-	err = idata.SetInherent(types.Babeslot, currentSlot)
+	err = inherentData.SetInherent(types.Babeslot, currentSlot)
 	require.NoError(t, err)
 
 	parachainInherent := babe.ParachainInherentData{
 		ParentHeader: *parent,
 	}
 
-	err = idata.SetInherent(types.Parachn0, parachainInherent)
+	err = inherentData.SetInherent(types.Parachn0, parachainInherent)
 	require.NoError(t, err)
 
-	err = idata.SetInherent(types.Newheads, []byte{0})
+	err = inherentData.SetInherent(types.Newheads, []byte{0})
 	require.NoError(t, err)
 
-	ienc, err := idata.Encode()
+	ienc, err := inherentData.Encode()
 	require.NoError(t, err)
 
 	// Call BlockBuilder_inherent_extrinsics which returns the inherents as encoded extrinsics
-	inherentExts, err := instance.InherentExtrinsics(ienc)
+	encodedInherentExtrinsics, err := instance.InherentExtrinsics(ienc)
 	require.NoError(t, err)
 
 	// decode inherent extrinsics
-	var inExts [][]byte
-	err = scale.Unmarshal(inherentExts, &inExts)
+	var inherentExtrinsics [][]byte
+	err = scale.Unmarshal(encodedInherentExtrinsics, &inherentExtrinsics)
 	require.NoError(t, err)
 
 	// apply each inherent extrinsic
-	for _, inherent := range inExts {
-		in, err := scale.Marshal(inherent)
+	for _, inherent := range inherentExtrinsics {
+		encodedInherent, err := scale.Marshal(inherent)
 		require.NoError(t, err)
 
-		ret, err := instance.ApplyExtrinsic(in)
+		applyExtrinsicResult, err := instance.ApplyExtrinsic(encodedInherent)
 		require.NoError(t, err)
-		require.Equal(t, ret, []byte{0, 0})
+		require.Equal(t, applyExtrinsicResult, []byte{0, 0})
 	}
 
-	res, err := instance.FinalizeBlock()
+	finalisedHeader, err := instance.FinalizeBlock()
 	require.NoError(t, err)
 
-	body := types.Body(types.BytesArrayToExtrinsics(inExts))
+	body := types.Body(types.BytesArrayToExtrinsics(inherentExtrinsics))
 
-	res.Number = header.Number
-	res.Hash()
+	finalisedHeader.Number = header.Number
+	finalisedHeader.Hash()
 
 	return &types.Block{
-		Header: *res,
+		Header: *finalisedHeader,
 		Body:   body,
 	}
 }
 
-func TestChainProcessor_HandleBlockResponse_ValidChain(t *testing.T) {
-	syncer := newTestSyncer(t)
-	responder := newTestSyncer(t)
+func buildAndAddBlocksToState(t *testing.T, runtime state.Runtime, blockState *state.BlockState, amount int) {
+	t.Helper()
 
-	// get responder to build valid chain
-	parent, err := responder.blockState.(*state.BlockState).BestBlockHeader()
+	parent, err := blockState.BestBlockHeader()
 	require.NoError(t, err)
 
-	bestBlockHash := responder.blockState.(*state.BlockState).BestBlockHash()
-	rt, err := responder.blockState.GetRuntime(bestBlockHash)
-	require.NoError(t, err)
-
-	babeCfg, err := rt.BabeConfiguration()
+	babeConfig, err := runtime.BabeConfiguration()
 	require.NoError(t, err)
 
 	timestamp := uint64(time.Now().Unix())
-	slotDuration := babeCfg.SlotDuration
+	slotDuration := babeConfig.SlotDuration
 
-	for i := 0; i < maxResponseSize*2; i++ {
-		// calcule the exact slot for each produced block
+	for i := 0; i < amount; i++ {
+		// calculate the exact slot for each produced block
 		currentSlot := timestamp / slotDuration
 
-		block := buildBlockWithSlotAndTimestamp(t, rt, parent, currentSlot, timestamp)
-		err = responder.blockState.(*state.BlockState).AddBlock(block)
+		block := buildBlockWithSlotAndTimestamp(t, runtime, parent, currentSlot, timestamp)
+		err = blockState.AddBlock(block)
 		require.NoError(t, err)
 		parent = &block.Header
 
@@ -126,6 +120,19 @@ func TestChainProcessor_HandleBlockResponse_ValidChain(t *testing.T) {
 		// so we will get a different slot for the next block
 		timestamp += slotDuration
 	}
+
+}
+
+func TestChainProcessor_HandleBlockResponse_ValidChain(t *testing.T) {
+	syncer := newTestSyncer(t)
+	responder := newTestSyncer(t)
+
+	bestBlockHash := responder.blockState.(*state.BlockState).BestBlockHash()
+	rt, err := responder.blockState.GetRuntime(bestBlockHash)
+	require.NoError(t, err)
+
+	buildAndAddBlocksToState(t, rt,
+		responder.blockState.(*state.BlockState), maxResponseSize*2)
 
 	// syncer makes request for chain
 	startNum := 1
@@ -171,60 +178,19 @@ func TestChainProcessor_HandleBlockResponse_ValidChain(t *testing.T) {
 func TestChainProcessor_HandleBlockResponse_MissingBlocks(t *testing.T) {
 	syncer := newTestSyncer(t)
 
-	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
-	require.NoError(t, err)
-
 	bestBlockHash := syncer.blockState.(*state.BlockState).BestBlockHash()
-	rt, err := syncer.blockState.GetRuntime(bestBlockHash)
+	syncerRuntime, err := syncer.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	babeCfg, err := rt.BabeConfiguration()
-	require.NoError(t, err)
-
-	timestamp := uint64(time.Now().Unix())
-	slotDuration := babeCfg.SlotDuration
-
-	for i := 0; i < 4; i++ {
-		// calcule the exact slot for each produced block
-		currentSlot := timestamp / slotDuration
-
-		block := buildBlockWithSlotAndTimestamp(t, rt, parent, currentSlot, timestamp)
-		err = syncer.blockState.(*state.BlockState).AddBlock(block)
-		require.NoError(t, err)
-		parent = &block.Header
-
-		// increase the timestamp by the slot duration
-		// so we will get a different slot for the next block
-		timestamp += slotDuration
-	}
+	const syncerAmoutOfBlocks = 4
+	buildAndAddBlocksToState(t, syncerRuntime, syncer.blockState.(*state.BlockState), syncerAmoutOfBlocks)
 
 	responder := newTestSyncer(t)
-
-	parent, err = responder.blockState.(*state.BlockState).BestBlockHeader()
+	responderRuntime, err := responder.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	rt, err = responder.blockState.GetRuntime(bestBlockHash)
-	require.NoError(t, err)
-
-	babeCfg, err = rt.BabeConfiguration()
-	require.NoError(t, err)
-
-	timestamp = uint64(time.Now().Unix())
-	slotDuration = babeCfg.SlotDuration
-
-	for i := 0; i < 16; i++ {
-		// calcule the exact slot for each produced block
-		currentSlot := timestamp / slotDuration
-
-		block := buildBlockWithSlotAndTimestamp(t, rt, parent, currentSlot, timestamp)
-		err = responder.blockState.(*state.BlockState).AddBlock(block)
-		require.NoError(t, err)
-		parent = &block.Header
-
-		// increase the timestamp by the slot duration
-		// so we will get a different slot for the next block
-		timestamp += slotDuration
-	}
+	const responderAmoutOfBlocks = 16
+	buildAndAddBlocksToState(t, responderRuntime, responder.blockState.(*state.BlockState), responderAmoutOfBlocks)
 
 	startNum := 15
 	start, err := variadic.NewUint32OrHash(startNum)
@@ -273,13 +239,13 @@ func TestChainProcessor_HandleBlockResponse_BlockData(t *testing.T) {
 	rt, err := syncer.blockState.GetRuntime(parent.Hash())
 	require.NoError(t, err)
 
-	babeCfg, err := rt.BabeConfiguration()
+	babeConfig, err := rt.BabeConfiguration()
 	require.NoError(t, err)
 
 	timestamp := uint64(time.Now().Unix())
-	slotDuration := babeCfg.SlotDuration
+	slotDuration := babeConfig.SlotDuration
 
-	// calcule the exact slot for each produced block
+	// calculate the exact slot for each produced block
 	currentSlot := timestamp / slotDuration
 	block := buildBlockWithSlotAndTimestamp(t, rt, parent, currentSlot, timestamp)
 
@@ -311,13 +277,13 @@ func TestChainProcessor_ExecuteBlock(t *testing.T) {
 	rt, err := syncer.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	babeCfg, err := rt.BabeConfiguration()
+	babeConfig, err := rt.BabeConfiguration()
 	require.NoError(t, err)
 
 	timestamp := uint64(time.Now().Unix())
-	slotDuration := babeCfg.SlotDuration
+	slotDuration := babeConfig.SlotDuration
 
-	// calcule the exact slot for each produced block
+	// calculate the exact slot for each produced block
 	currentSlot := timestamp / slotDuration
 	block := buildBlockWithSlotAndTimestamp(t, rt, parent, currentSlot, timestamp)
 
