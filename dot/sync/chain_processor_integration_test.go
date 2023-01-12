@@ -279,7 +279,15 @@ func TestChainProcessor_HandleBlockResponse_BlockData(t *testing.T) {
 	rt, err := syncer.blockState.GetRuntime(parent.Hash())
 	require.NoError(t, err)
 
-	block := BuildBlock(t, rt, parent, nil)
+	babeCfg, err := rt.BabeConfiguration()
+	require.NoError(t, err)
+
+	timestamp := uint64(time.Now().Unix())
+	slotDuration := babeCfg.SlotDuration
+
+	// calcule the exact slot for each produced block
+	currentSlot := timestamp / slotDuration
+	block := buildBlockWithSlotAndTimestamp(t, rt, parent, currentSlot, timestamp)
 
 	bd := []*types.BlockData{{
 		Hash:          block.Header.Hash(),
