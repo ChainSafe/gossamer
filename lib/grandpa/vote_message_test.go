@@ -149,7 +149,7 @@ func TestService_reportEquivocation(t *testing.T) {
 				currentVote:  signedVote2,
 			},
 			expErr:    errInvalidEquivocationStage,
-			expErrMsg: errInvalidEquivocationStage.Error(),
+			expErrMsg: "invalid stage for equivocating: primaryProposal (2)",
 		},
 		{
 			name: "submit equivocation proof error",

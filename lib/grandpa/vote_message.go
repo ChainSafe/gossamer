@@ -310,7 +310,7 @@ func (s *Service) reportEquivocation(stage Subround, existingVote *SignedVote, c
 			return fmt.Errorf("setting grandpa equivocation VDT as precommit equivocation: %w", err)
 		}
 	case primaryProposal:
-		return fmt.Errorf("%w", errInvalidEquivocationStage)
+		return fmt.Errorf("%w: %s (%d)", errInvalidEquivocationStage, stage, stage)
 	default:
 		panic(fmt.Errorf("building equivocation proof: %s", errInvalidEquivocationStage))
 	}
