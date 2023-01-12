@@ -16,6 +16,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/babe/mocks"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
@@ -50,10 +51,17 @@ var (
 	}
 )
 
-func createTestService(t *testing.T, cfg ServiceConfig) *Service {
+func createTestService(t *testing.T, cfg ServiceConfig, useWestend bool) *Service {
 	wasmer.DefaultTestLogLvl = 1
 
-	gen, genTrie, genHeader := newDevGenesisWithTrieAndHeader(t)
+	var gen genesis.Genesis
+	var genTrie trie.Trie
+	var genHeader types.Header
+	if useWestend {
+		gen, genTrie, genHeader = newWestendGenesisWithTrieAndHeader(t)
+	} else {
+		gen, genTrie, genHeader = newDevGenesisWithTrieAndHeader(t)
+	}
 	genesisHeader = &genHeader
 
 	var err error
@@ -212,7 +220,7 @@ func TestService_ProducesBlocks(t *testing.T) {
 		Lead:               true,
 		BlockImportHandler: blockImportHandler,
 	}
-	babeService := createTestService(t, cfg)
+	babeService := createTestService(t, cfg, true)
 
 	err := babeService.Start()
 	require.NoError(t, err)
@@ -256,7 +264,7 @@ func TestService_GetAuthorityIndex(t *testing.T) {
 }
 
 func TestStartAndStop(t *testing.T) {
-	bs := createTestService(t, ServiceConfig{})
+	bs := createTestService(t, ServiceConfig{}, true)
 	err := bs.Start()
 	require.NoError(t, err)
 	err = bs.Stop()
@@ -264,7 +272,7 @@ func TestStartAndStop(t *testing.T) {
 }
 
 func TestService_PauseAndResume(t *testing.T) {
-	bs := createTestService(t, ServiceConfig{})
+	bs := createTestService(t, ServiceConfig{}, true)
 	err := bs.Start()
 	require.NoError(t, err)
 	time.Sleep(time.Second)
@@ -296,7 +304,7 @@ func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
 		Authority: true,
 		Lead:      true,
 	}
-	babeService := createTestService(t, cfg)
+	babeService := createTestService(t, cfg, false)
 
 	err := babeService.Start()
 	require.NoError(t, err)
@@ -389,7 +397,7 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 		},
 	}
 
-	babeServiceBob := createTestService(t, cfgBob)
+	babeServiceBob := createTestService(t, cfgBob, false)
 
 	err := babeServiceBob.Start()
 	require.NoError(t, err)
@@ -409,7 +417,7 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 
 	time.Sleep(babeServiceBob.constants.slotDuration)
 
-	babeServiceAlice := createTestService(t, cfgAlice)
+	babeServiceAlice := createTestService(t, cfgAlice, false)
 
 	// Add block created by Bob to Alice
 	err = babeServiceAlice.blockState.AddBlock(block)
@@ -446,5 +454,4 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 		0,
 		preRuntimeDigest)
 	require.NoError(t, err)
-
 }

@@ -19,7 +19,7 @@ func TestInitiateEpoch_Epoch0(t *testing.T) {
 	cfg := ServiceConfig{
 		Authority: true,
 	}
-	bs := createTestService(t, cfg)
+	bs := createTestService(t, cfg, true)
 	bs.constants.epochLength = 20
 	startSlot := uint64(1000)
 
@@ -37,7 +37,7 @@ func TestInitiateEpoch_Epoch1(t *testing.T) {
 	cfg := ServiceConfig{
 		Authority: true,
 	}
-	bs := createTestService(t, cfg)
+	bs := createTestService(t, cfg, true)
 	bs.constants.epochLength = 10
 
 	state.AddBlocksToState(t, bs.blockState.(*state.BlockState), 1, false)
@@ -140,7 +140,7 @@ func TestIncrementEpoch(t *testing.T) {
 	cfg := ServiceConfig{
 		Authority: true,
 	}
-	bs := createTestService(t, cfg)
+	bs := createTestService(t, cfg, true)
 
 	next, err := bs.incrementEpoch()
 	require.NoError(t, err)
