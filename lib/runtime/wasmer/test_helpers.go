@@ -5,6 +5,7 @@ package wasmer
 
 import (
 	"context"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -43,6 +44,17 @@ func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie) 
 	require.NoError(t, err)
 
 	return r
+}
+
+func mustHexTo64BArray(t *testing.T, inputHex string) (outputArray [64]byte) {
+	t.Helper()
+	copy(outputArray[:], common.MustHexToBytes(inputHex))
+	return outputArray
+}
+
+func ed25519PubKeyTo32BArray(pubKey ed25519.PublicKey) (array [32]byte) {
+	copy(array[:], pubKey.Encode())
+	return array
 }
 
 func setupConfig(t *testing.T, ctrl *gomock.Controller, tt *trie.Trie, lvl log.Level,

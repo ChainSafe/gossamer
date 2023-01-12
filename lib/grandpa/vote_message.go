@@ -312,7 +312,8 @@ func (s *Service) reportEquivocation(stage Subround, existingVote *SignedVote, c
 	case primaryProposal:
 		return fmt.Errorf("%w: %s (%d)", errInvalidEquivocationStage, stage, stage)
 	default:
-		panic(fmt.Errorf("building equivocation proof: %s", errInvalidEquivocationStage))
+		panic(fmt.Sprintf("equivocation stage not implemented: %s (%d)", stage, stage))
+
 	}
 
 	equivocationProof := types.GrandpaEquivocationProof{

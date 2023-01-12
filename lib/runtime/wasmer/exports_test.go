@@ -32,13 +32,6 @@ import (
 // https://github.com/paritytech/substrate/blob/ded44948e2d5a398abcb4e342b0513cb690961bb/frame/grandpa/src/benchmarking.rs#L85
 var testKeyOwnershipProof types.OpaqueKeyOwnershipProof = types.OpaqueKeyOwnershipProof([]byte{64, 138, 252, 29, 127, 102, 189, 129, 207, 47, 157, 60, 17, 138, 194, 121, 139, 92, 176, 175, 224, 16, 185, 93, 175, 251, 224, 81, 209, 61, 0, 71}) //nolint:lll
 
-func mustHexTo64BArray(t *testing.T, inputHex string) [64]byte {
-	t.Helper()
-	var outputArray [64]byte
-	copy(outputArray[:], common.MustHexToBytes(inputHex))
-	return outputArray
-}
-
 func Test_Instance_Version(t *testing.T) {
 	t.Parallel()
 
@@ -1291,63 +1284,12 @@ func TestInstance_GrandpaGenerateKeyOwnershipProof(t *testing.T) {
 	runtime := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
 	identity := common.MustHexToBytes("0x88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee")
 	identityPubKey, _ := ed25519.NewPublicKey(identity)
-	var authorityID [32]byte
-	copy(authorityID[:], identityPubKey.Encode())
+	authorityID := ed25519PubKeyTo32BArray(*identityPubKey)
 
 	encodedOpaqueKeyOwnershipProof, err := runtime.GrandpaGenerateKeyOwnershipProof(uint64(0), authorityID)
 	require.NoError(t, err)
 	// Since the input is not valid with respect to the runtime, an empty proof is returned
 	require.Empty(t, encodedOpaqueKeyOwnershipProof)
-}
-
-func TestInstance_GrandpaSubmitReportEquivocationUnsignedExtrinsicEncoding(t *testing.T) {
-	t.Parallel()
-	expectedEncoding := common.MustHexToBytes("0x010000000000000000010000000000000088dc3417d5058ec4b4503e0c12ea" +
-		"1a0a89be200fe98922423d4334014fa6b0ee4801b8e62d31167d30c893cc1970f6a0e289420282a4b245b75f2c46fb308af10a0000" +
-		"00d7292caacc62504365f179892a7399f233944bf261f8a3f66260f70e0016f2db63922726b015c82dc7131f4730fbec61f71672a5" +
-		"71453e51029bfb469070900fc314327941fdd924bc67fd72651c40aececd485ca3e878c21e02abb40feae5bd0a000000b3c408b749" +
-		"05dfedfffa66f99f16fe8b938fd8df76a92225228a1ca075230b99a2d9e173c561952e1e378b701915ca188d2c832ef92a3fab8e455" +
-		"f32570c0807")
-	identity := common.MustHexToBytes("0x88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee")
-	identityPubKey, _ := ed25519.NewPublicKey(identity)
-	firstVote := types.GrandpaVote{
-		Hash:   common.MustHexToHash("0x4801b8e62d31167d30c893cc1970f6a0e289420282a4b245b75f2c46fb308af1"),
-		Number: uint32(10),
-	}
-	secondVote := types.GrandpaVote{
-		Hash:   common.MustHexToHash("0xc314327941fdd924bc67fd72651c40aececd485ca3e878c21e02abb40feae5bd"),
-		Number: uint32(10),
-	}
-
-	firstSignatureArray := mustHexTo64BArray(t, "0xd7292caacc62504365f179892a7399f233944bf261f8a3f66260f70e0016f2d"+
-		"b63922726b015c82dc7131f4730fbec61f71672a571453e51029bfb469070900f")
-
-	secondSignatureArray := mustHexTo64BArray(t, "0xb3c408b74905dfedfffa66f99f16fe8b938fd8df76a92225228a1ca07523"+
-		"0b99a2d9e173c561952e1e378b701915ca188d2c832ef92a3fab8e455f32570c0807")
-
-	var authorityID [32]byte
-	copy(authorityID[:], identityPubKey.Encode())
-
-	grandpaEquivocation := types.GrandpaEquivocation{
-		RoundNumber:     1,
-		ID:              authorityID,
-		FirstVote:       firstVote,
-		FirstSignature:  firstSignatureArray,
-		SecondVote:      secondVote,
-		SecondSignature: secondSignatureArray,
-	}
-	preVoteEquivocation := types.PreVoteEquivocation(grandpaEquivocation)
-	equivocationVote := types.NewGrandpaEquivocation()
-	err := equivocationVote.Set(preVoteEquivocation)
-	require.NoError(t, err)
-
-	equivocationProof := types.GrandpaEquivocationProof{
-		SetID:        1,
-		Equivocation: *equivocationVote,
-	}
-
-	actualEncoding := scale.MustMarshal(equivocationProof)
-	require.Equal(t, expectedEncoding, actualEncoding)
 }
 
 func TestInstance_GrandpaSubmitReportEquivocationUnsignedExtrinsic(t *testing.T) {
@@ -1379,9 +1321,7 @@ func TestInstance_GrandpaSubmitReportEquivocationUnsignedExtrinsic(t *testing.T)
 	secondSignatureArray := mustHexTo64BArray(t, "0xb3c408b74905dfedfffa66f99f16fe8b938fd8df76a92225228a1ca07523"+
 		"0b99a2d9e173c561952e1e378b701915ca188d2c832ef92a3fab8e455f32570c0807")
 
-	var authorityID [32]byte
-	copy(authorityID[:], identityPubKey.Encode())
-
+	authorityID := ed25519PubKeyTo32BArray(*identityPubKey)
 	grandpaEquivocation := types.GrandpaEquivocation{
 		RoundNumber:     1,
 		ID:              authorityID,

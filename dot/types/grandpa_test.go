@@ -13,6 +13,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func mustHexTo64BArray(t *testing.T, inputHex string) (outputArray [64]byte) {
+	t.Helper()
+	copy(outputArray[:], common.MustHexToBytes(inputHex))
+	return outputArray
+}
+
 func Test_OpaqueKeyOwnershipProof_ScaleCodec(t *testing.T) {
 	t.Parallel()
 	keyOwnershipProof := OpaqueKeyOwnershipProof([]byte{64, 138, 252, 29, 127, 102, 189, 129, 207, 47, 157,
@@ -22,6 +28,56 @@ func Test_OpaqueKeyOwnershipProof_ScaleCodec(t *testing.T) {
 	err := scale.Unmarshal(encoded, &proof)
 	require.NoError(t, err)
 	require.Equal(t, keyOwnershipProof, proof)
+}
+
+func TestInstance_GrandpaSubmitReportEquivocationUnsignedExtrinsicEncoding(t *testing.T) {
+	t.Parallel()
+	expectedEncoding := common.MustHexToBytes("0x010000000000000000010000000000000088dc3417d5058ec4b4503e0c12ea" +
+		"1a0a89be200fe98922423d4334014fa6b0ee4801b8e62d31167d30c893cc1970f6a0e289420282a4b245b75f2c46fb308af10a0000" +
+		"00d7292caacc62504365f179892a7399f233944bf261f8a3f66260f70e0016f2db63922726b015c82dc7131f4730fbec61f71672a5" +
+		"71453e51029bfb469070900fc314327941fdd924bc67fd72651c40aececd485ca3e878c21e02abb40feae5bd0a000000b3c408b749" +
+		"05dfedfffa66f99f16fe8b938fd8df76a92225228a1ca075230b99a2d9e173c561952e1e378b701915ca188d2c832ef92a3fab8e455" +
+		"f32570c0807")
+	identity := common.MustHexToBytes("0x88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee")
+	identityPubKey, _ := ed25519.NewPublicKey(identity)
+	firstVote := GrandpaVote{
+		Hash:   common.MustHexToHash("0x4801b8e62d31167d30c893cc1970f6a0e289420282a4b245b75f2c46fb308af1"),
+		Number: uint32(10),
+	}
+	secondVote := GrandpaVote{
+		Hash:   common.MustHexToHash("0xc314327941fdd924bc67fd72651c40aececd485ca3e878c21e02abb40feae5bd"),
+		Number: uint32(10),
+	}
+
+	firstSignatureArray := mustHexTo64BArray(t, "0xd7292caacc62504365f179892a7399f233944bf261f8a3f66260f70e0016f2d"+
+		"b63922726b015c82dc7131f4730fbec61f71672a571453e51029bfb469070900f")
+
+	secondSignatureArray := mustHexTo64BArray(t, "0xb3c408b74905dfedfffa66f99f16fe8b938fd8df76a92225228a1ca07523"+
+		"0b99a2d9e173c561952e1e378b701915ca188d2c832ef92a3fab8e455f32570c0807")
+
+	var authorityID [32]byte
+	copy(authorityID[:], identityPubKey.Encode())
+
+	grandpaEquivocation := GrandpaEquivocation{
+		RoundNumber:     1,
+		ID:              authorityID,
+		FirstVote:       firstVote,
+		FirstSignature:  firstSignatureArray,
+		SecondVote:      secondVote,
+		SecondSignature: secondSignatureArray,
+	}
+	preVoteEquivocation := PreVoteEquivocation(grandpaEquivocation)
+	equivocationVote := NewGrandpaEquivocation()
+	err := equivocationVote.Set(preVoteEquivocation)
+	require.NoError(t, err)
+
+	equivocationProof := GrandpaEquivocationProof{
+		SetID:        1,
+		Equivocation: *equivocationVote,
+	}
+
+	actualEncoding := scale.MustMarshal(equivocationProof)
+	require.Equal(t, expectedEncoding, actualEncoding)
 }
 
 func Test_PreVoteEquivocation_ScaleCodec(t *testing.T) {
@@ -62,7 +118,7 @@ func Test_PreVoteEquivocation_ScaleCodec(t *testing.T) {
 	require.Equal(t, equivVote, grandpaEquivocation)
 }
 
-func Test_GrandpaVote(_Codect *testing.T) {
+func Test_GrandpaVote(t *testing.T) {
 	t.Parallel()
 	expectedEncoding := common.MustHexToBytes("0x0a0b0c0d00000000000000000000000000000000000000000000000000000000e7030000")
 	vote := GrandpaVote{
