@@ -24,8 +24,6 @@ type tracker struct {
 	stopped    chan struct{}
 
 	catchUpResponseMessageMutex sync.Mutex
-	// // round(uint64) is used as key and *CatchUpResponse as value
-	// catchUpResponseMessages map[uint64]*CatchUpResponse
 
 	// block hash is used as key and *CatchUpResponse as value
 	catchUpResponseMessages map[common.Hash]*networkCatchUpResponseMessage

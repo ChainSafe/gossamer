@@ -93,7 +93,6 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) error {
 				from: from,
 				msg:  msg,
 			})
-			h.catchUp.bestResponse.Store(msg)
 		} else if err != nil {
 			logger.Debugf("could not catchup: %s", err)
 		}

@@ -21,7 +21,6 @@ type catchUp struct {
 	lock sync.Mutex // applied on requestsSent
 
 	requestsSent map[peer.ID]CatchUpRequest
-	bestResponse *atomic.Value // *CatchUpResponse
 
 	catchUpResponseCh chan *CatchUpResponse
 	waitingOnResponse *atomic.Value
@@ -40,8 +39,6 @@ func (c *catchUp) do(to peer.ID, round uint64, setID uint64) error {
 	logger.Debugf("successfully sent a catch up request to node %s, for round number %d and set ID %d",
 		to, round, setID)
 
-	c.waitingOnResponse.Store(true)
-
 	timer := time.NewTimer(catchUpResponseTimeout)
 	defer timer.Stop()
 
@@ -54,11 +51,6 @@ func (c *catchUp) do(to peer.ID, round uint64, setID uint64) error {
 }
 
 func (c *catchUp) sendCatchUpRequest(to peer.ID, req *CatchUpRequest) error {
-	if c.bestResponse.Load() != nil {
-		logger.Debug("ignoring neighbour message since we are already processing a catch-up response")
-		return nil
-	}
-
 	// TODO: Clean up all request sent before 5 min / (neighbour message interval)
 	c.lock.Lock()
 	_, ok := c.requestsSent[to]
@@ -67,8 +59,6 @@ func (c *catchUp) sendCatchUpRequest(to peer.ID, req *CatchUpRequest) error {
 		logger.Debugf("ignoring neighbour message since we already sent a catch-up request to this peer: %s", to)
 		return nil
 	}
-
-	c.waitingOnResponse.Store(true)
 
 	cm, err := req.ToConsensusMessage()
 	if err != nil {
@@ -83,6 +73,8 @@ func (c *catchUp) sendCatchUpRequest(to peer.ID, req *CatchUpRequest) error {
 	c.lock.Lock()
 	c.requestsSent[to] = *req
 	c.lock.Unlock()
+
+	c.waitingOnResponse.Store(true)
 
 	return nil
 }
@@ -110,10 +102,6 @@ func (c *catchUp) handleCatchUpResponse(msg *CatchUpResponse) error {
 	if msg.Round <= c.grandpa.state.round {
 		return fmt.Errorf("%w: received round %d but grandpa round in state is %d",
 			ErrInvalidCatchUpResponseRound, msg.Round, c.grandpa.state.round)
-	}
-
-	if c.bestResponse.Load().(*CatchUpResponse).Round >= msg.Round {
-		logger.Debug("ignoring catch up response, since we are already processing one with a higher round")
 	}
 
 	prevote, err := c.verifyPreVoteJustification(msg)
@@ -158,7 +146,6 @@ func (c *catchUp) handleCatchUpResponse(msg *CatchUpResponse) error {
 	c.waitingOnResponse.Store(false)
 
 	// resetting both response and requests
-	c.bestResponse.Store(nil)
 	c.lock.Lock()
 	c.requestsSent = make(map[peer.ID]CatchUpRequest)
 	c.lock.Unlock()
