@@ -4,7 +4,6 @@
 package network
 
 import (
-	"fmt"
 	"io"
 	"testing"
 
@@ -26,7 +25,6 @@ func TestBuildIdentity(t *testing.T) {
 
 	err := configA.buildIdentity()
 	require.NoError(t, err)
-	fmt.Printf("pri key %#v\n", configA.privateKey)
 	configB := &Config{
 		logger:   log.New(log.SetWriter(io.Discard)),
 		BasePath: testDir,
@@ -84,19 +82,4 @@ func TestBuild(t *testing.T) {
 	require.Equal(t, DefaultProtocolID, cfg.ProtocolID)
 	require.Equal(t, false, cfg.NoBootstrap)
 	require.Equal(t, false, cfg.NoMDNS)
-}
-
-func TestBuildKeyFromFile(t *testing.T) {
-	testDir := t.TempDir()
-
-	configA := &Config{
-		logger:   log.New(log.SetWriter(io.Discard)),
-		BasePath: testDir,
-		nodeKey:  "0x01020304",
-	}
-
-	err := configA.buildIdentity()
-	require.NoError(t, err)
-	pk1, err := configA.privateKey.Raw()
-	fmt.Printf("pri key %v, len %v\n", pk1, len(pk1))
 }
