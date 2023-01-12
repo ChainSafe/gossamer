@@ -16,7 +16,7 @@ func Test_Trie_MemoryUsage(t *testing.T) {
 	// Set skip to false to run the test.
 	// This test should be run on its own since it interacts
 	// with the Go garbage collector.
-	const skip = false
+	const skip = true
 	if skip {
 		t.SkipNow()
 	}
