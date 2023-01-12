@@ -77,7 +77,6 @@ func Test_GrandpaVote(_Codect *testing.T) {
 	err := scale.Unmarshal(encoding, &grandpaVote)
 	require.NoError(t, err)
 	require.Equal(t, vote, grandpaVote)
-
 }
 
 func TestEncodeSignedVote(t *testing.T) {
