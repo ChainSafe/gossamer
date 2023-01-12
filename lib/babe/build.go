@@ -24,7 +24,7 @@ const (
 )
 
 // construct a block for this slot with the given parent
-func (b *Service) buildBlock(parent *types.Header, slot Slot, rt Runtime,
+func (b *Service) buildBlock(parent *types.Header, slot Slot, rt runtimeInterface,
 	authorityIndex uint32, preRuntimeDigest *types.PreRuntimeDigest) (*types.Block, error) {
 	builder := NewBlockBuilder(
 		b.keypair,
@@ -76,7 +76,7 @@ func NewBlockBuilder(
 	}
 }
 
-func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot, rt Runtime) (*types.Block, error) {
+func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot, rt runtimeInterface) (*types.Block, error) {
 	logger.Tracef("build block with parent %s and slot: %s", parent, slot)
 
 	// create new block header
@@ -171,7 +171,7 @@ func (b *BlockBuilder) buildBlockSeal(header *types.Header) (*types.SealDigest, 
 // buildBlockExtrinsics applies extrinsics to the block. it returns an array of included extrinsics.
 // for each extrinsic in queue, add it to the block, until the slot ends or the block is full.
 // if any extrinsic fails, it returns an empty array and an error.
-func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt ExtrinsicHandler) []*transaction.ValidTransaction {
+func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt extrinsicHandler) []*transaction.ValidTransaction {
 	var included []*transaction.ValidTransaction
 
 	slotEnd := slot.start.Add(slot.duration * 2 / 3) // reserve last 1/3 of slot for block finalisation
@@ -226,7 +226,7 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt ExtrinsicHandler) []*t
 	return included
 }
 
-func buildBlockInherents(slot Slot, rt ExtrinsicHandler, parent *types.Header) ([][]byte, error) {
+func buildBlockInherents(slot Slot, rt extrinsicHandler, parent *types.Header) ([][]byte, error) {
 	// Setup inherents: add timstap0
 	idata := types.NewInherentData()
 	err := idata.SetInherent(types.Timstap0, uint64(slot.start.UnixMilli()))

@@ -9,20 +9,20 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 )
 
-// Runtime is the runtime interface for the babe package.
-type Runtime interface {
-	BlockHandler
-	ExtrinsicHandler
+// runtimeInterface is the runtime interface for the babe package.
+type runtimeInterface interface {
+	blockHandler
+	extrinsicHandler
 }
 
-// BlockHandler handles block initialisation and finalisation.
-type BlockHandler interface {
+// blockHandler handles block initialisation and finalisation.
+type blockHandler interface {
 	InitializeBlock(header *types.Header) error
 	FinalizeBlock() (*types.Header, error)
 }
 
-// ExtrinsicHandler deals with extrinsics.
-type ExtrinsicHandler interface {
+// extrinsicHandler deals with extrinsics.
+type extrinsicHandler interface {
 	InherentExtrinsics(data []byte) ([]byte, error)
 	ApplyExtrinsic(data types.Extrinsic) ([]byte, error)
 }
