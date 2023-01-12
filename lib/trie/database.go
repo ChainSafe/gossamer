@@ -19,8 +19,8 @@ type Getter interface {
 	Get(key []byte) (value []byte, err error)
 }
 
-// Putter puts a value at the given key and returns an error.
-type Putter interface {
+// putter puts a value at the given key and returns an error.
+type putter interface {
 	Put(key []byte, value []byte) error
 }
 
@@ -290,7 +290,7 @@ func (t *Trie) WriteDirty(db NewBatcher) error {
 	return batch.Flush()
 }
 
-func (t *Trie) writeDirtyNode(db Putter, n *Node) (err error) {
+func (t *Trie) writeDirtyNode(db putter, n *Node) (err error) {
 	if n == nil || !n.Dirty {
 		return nil
 	}
