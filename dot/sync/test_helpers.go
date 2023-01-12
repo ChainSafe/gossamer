@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
@@ -45,16 +44,6 @@ func BuildBlock(t *testing.T, instance BuildBlockRuntime, parent *types.Header, 
 	require.NoError(t, err)
 
 	err = idata.SetInherent(types.Babeslot, uint64(1))
-	require.NoError(t, err)
-
-	parachainInherent := babe.ParachainInherentData{
-		ParentHeader: *parent,
-	}
-
-	err = idata.SetInherent(types.Parachn0, parachainInherent)
-	require.NoError(t, err)
-
-	err = idata.SetInherent(types.Newheads, []byte{0})
 	require.NoError(t, err)
 
 	ienc, err := idata.Encode()
@@ -100,7 +89,6 @@ func BuildBlock(t *testing.T, instance BuildBlockRuntime, parent *types.Header, 
 
 	res, err := instance.FinalizeBlock()
 	require.NoError(t, err)
-
 	res.Number = header.Number
 	res.Hash()
 
