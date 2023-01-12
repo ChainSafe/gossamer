@@ -78,7 +78,7 @@ func Test_Service_HandleTransactionMessage(t *testing.T) {
 		errMessage            string
 		expectedMessage       *network.TransactionMessage
 	}{
-		"not synced": {
+		"not_synced": {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
 				network := NewMockNetwork(ctrl)
 				network.EXPECT().IsSynced().Return(false)
@@ -87,7 +87,7 @@ func Test_Service_HandleTransactionMessage(t *testing.T) {
 				}
 			},
 		},
-		"best block header error": {
+		"best_block_header_error": {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
 				network := NewMockNetwork(ctrl)
 				network.EXPECT().IsSynced().Return(true)
@@ -106,7 +106,7 @@ func Test_Service_HandleTransactionMessage(t *testing.T) {
 			errMessage:      "getting best block header: test error",
 			expectedMessage: &network.TransactionMessage{},
 		},
-		"get runtime error": {
+		"get_runtime_error": {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
 				network := NewMockNetwork(ctrl)
 				network.EXPECT().IsSynced().Return(true)
@@ -127,7 +127,7 @@ func Test_Service_HandleTransactionMessage(t *testing.T) {
 			errMessage:      "getting runtime from block state: test error",
 			expectedMessage: &network.TransactionMessage{},
 		},
-		"zero transaction": {
+		"zero_transaction": {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
 				network := NewMockNetwork(ctrl)
 				network.EXPECT().IsSynced().Return(true)
@@ -152,7 +152,7 @@ func Test_Service_HandleTransactionMessage(t *testing.T) {
 			message:         &network.TransactionMessage{},
 			expectedMessage: &network.TransactionMessage{},
 		},
-		"valid transaction to propagate": {
+		"valid_transaction_to_propagate": {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
 				network := NewMockNetwork(ctrl)
 				network.EXPECT().IsSynced().Return(true)
@@ -214,7 +214,7 @@ func Test_Service_HandleTransactionMessage(t *testing.T) {
 				Extrinsics: []types.Extrinsic{{1, 2, 3}},
 			},
 		},
-		"valid transaction to not propagate": {
+		"valid_transaction_to_not_propagate": {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
 				network := NewMockNetwork(ctrl)
 				network.EXPECT().IsSynced().Return(true)
@@ -273,7 +273,7 @@ func Test_Service_HandleTransactionMessage(t *testing.T) {
 			},
 			expectedMessage: &network.TransactionMessage{},
 		},
-		"invalid transaction": {
+		"invalid_transaction": {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
 				network := NewMockNetwork(ctrl)
 				network.EXPECT().IsSynced().Return(true)
@@ -321,7 +321,7 @@ func Test_Service_HandleTransactionMessage(t *testing.T) {
 			},
 			expectedMessage: &network.TransactionMessage{},
 		},
-		"unknown transaction": {
+		"unknown_transaction": {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
 				network := NewMockNetwork(ctrl)
 				network.EXPECT().IsSynced().Return(true)
@@ -364,7 +364,7 @@ func Test_Service_HandleTransactionMessage(t *testing.T) {
 			},
 			expectedMessage: &network.TransactionMessage{},
 		},
-		"validate transaction other error": {
+		"validate_transaction_other_error": {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
 				network := NewMockNetwork(ctrl)
 				network.EXPECT().IsSynced().Return(true)
