@@ -278,7 +278,7 @@ func (in *Instance) QueryCallFeeDetails(ext []byte) (*types.FeeDetails, error) {
 // TODO: use this in block verification process (#1873)
 func (in *Instance) CheckInherents() {}
 
-// GrandpaGenerateKeyOwnershipProof returns grandpa key ownership proof from runtime.
+// GrandpaGenerateKeyOwnershipProof returns grandpa key ownership proof from the runtime.
 func (in *Instance) GrandpaGenerateKeyOwnershipProof(authSetID uint64, authorityID ed25519.PublicKeyBytes) (
 	types.OpaqueKeyOwnershipProof, error) {
 
