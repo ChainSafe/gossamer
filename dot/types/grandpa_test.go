@@ -24,7 +24,7 @@ func Test_OpaqueKeyOwnershipProof_ScaleCodec(t *testing.T) {
 	require.Equal(t, keyOwnershipProof, proof)
 }
 
-func TestEncodeAndDecodeEquivocationPreVote(t *testing.T) {
+func Test_PreVoteEquivocation_ScaleCodec(t *testing.T) {
 	t.Parallel()
 	firstVote := GrandpaVote{
 		Hash:   common.Hash{0xa, 0xb, 0xc, 0xd},
