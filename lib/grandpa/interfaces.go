@@ -3,9 +3,7 @@
 
 package grandpa
 
-import (
-	"encoding/json"
-)
+import "encoding/json"
 
 // Telemetry is the telemetry client to send telemetry messages.
 type Telemetry interface {
