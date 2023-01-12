@@ -146,7 +146,7 @@ func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) (
 }
 
 // decodeMessage decodes a network-level consensus message into a GRANDPA VoteMessage or CommitMessage
-func decodeMessage(cm *network.ConsensusMessage) (m GrandpaMessage, err error) {
+func decodeMessage(cm *network.ConsensusMessage) (m grandpaMessage, err error) {
 	msg := newGrandpaMessage()
 	err = scale.Unmarshal(cm.Data, &msg)
 	if err != nil {

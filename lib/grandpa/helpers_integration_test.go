@@ -41,16 +41,16 @@ type testJustificationRequest struct {
 
 type testNetwork struct {
 	t                    *testing.T
-	out                  chan GrandpaMessage
-	finalised            chan GrandpaMessage
+	out                  chan grandpaMessage
+	finalised            chan grandpaMessage
 	justificationRequest *testJustificationRequest
 }
 
 func newTestNetwork(t *testing.T) *testNetwork {
 	return &testNetwork{
 		t:         t,
-		out:       make(chan GrandpaMessage, 128),
-		finalised: make(chan GrandpaMessage, 128),
+		out:       make(chan grandpaMessage, 128),
+		finalised: make(chan grandpaMessage, 128),
 	}
 }
 

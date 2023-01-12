@@ -18,11 +18,6 @@ var (
 	errfinalisationEngineFailed = errors.New("finalisation engine ephemeral failed")
 )
 
-type ephemeralService interface {
-	Run() error
-	Stop() error
-}
-
 type finalisationHandler struct {
 	servicesLock       sync.Mutex
 	finalisationEngine ephemeralService

@@ -13,8 +13,8 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-// GrandpaMessage is implemented by all GRANDPA network messages
-type GrandpaMessage interface { //nolint:revive
+// grandpaMessage is implemented by all GRANDPA network messages
+type grandpaMessage interface {
 	ToConsensusMessage() (*network.ConsensusMessage, error)
 }
 
