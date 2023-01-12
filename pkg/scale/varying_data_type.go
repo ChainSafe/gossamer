@@ -11,7 +11,6 @@ import (
 // VaryingDataTypeValue is used to represent scale encodable types of an associated VaryingDataType
 type VaryingDataTypeValue interface {
 	Index() uint
-	String() string
 }
 
 // VaryingDataTypeSlice is used to represent []VaryingDataType. SCALE requires knowledge

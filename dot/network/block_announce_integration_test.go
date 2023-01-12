@@ -224,7 +224,7 @@ func Test_BlockAnnounceMessage_String(t *testing.T) {
 				"Number=0 " +
 				"StateRoot=0x0000000000000000000000000000000000000000000000000000000000000000 " +
 				"ExtrinsicsRoot=0x0000000000000000000000000000000000000000000000000000000000000000 " +
-				"Digest=",
+				"Digest=[]",
 		},
 		"filled": {
 			messageBuilder: func() BlockAnnounceMessage {
@@ -248,7 +248,7 @@ func Test_BlockAnnounceMessage_String(t *testing.T) {
 				"Number=2 " +
 				"StateRoot=0x0300000000000000000000000000000000000000000000000000000000000000 " +
 				"ExtrinsicsRoot=0x0400000000000000000000000000000000000000000000000000000000000000 " +
-				"Digest=PreRuntimeDigest ConsensusEngineID=abcd Data=0x01020304",
+				"Digest=[PreRuntimeDigest ConsensusEngineID=abcd Data=0x01020304]",
 		},
 	}
 
