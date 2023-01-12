@@ -215,7 +215,8 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 }
 
 // checkForEquivocation checks if the vote is an equivocatory vote.
-// It returns an error if so, else returns nil.
+// If it is an equivocatory vote, the wrapped error `ErrEquivocation` is returned,
+// which can be checked with `error.Is(err, ErrEquivocation)`.
 // Additionally, if the vote is equivocatory, it updates the service's votes and equivocations
 // and reports the equivocation to the runtime.
 func (s *Service) checkForEquivocation(voter *Voter, vote *SignedVote, stage Subround) error {
