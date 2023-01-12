@@ -18,8 +18,8 @@ var logger = log.NewFromGlobal(log.AddContext("pkg", "sync"))
 // Service deals with chain syncing by sending block request messages and watching for responses.
 type Service struct {
 	blockState     BlockState
-	chainSync      ChainSync
-	chainProcessor ChainProcessor
+	chainSync      chainSyncer
+	chainProcessor readyBlocksProcessor
 	network        Network
 }
 

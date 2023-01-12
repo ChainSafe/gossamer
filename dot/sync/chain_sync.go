@@ -31,7 +31,7 @@ const (
 	maxWorkers = 12
 )
 
-var _ ChainSync = &chainSync{}
+var _ chainSyncer = &chainSync{}
 
 type chainSyncState byte
 
@@ -65,46 +65,6 @@ type peerState struct {
 	who    peer.ID
 	hash   common.Hash
 	number uint
-}
-
-// workHandler handles new potential work (ie. reported peer state, block announces), results from dispatched workers,
-// and stored pending work (ie. pending blocks set)
-// workHandler should be implemented by `bootstrapSync` and `tipSync`
-type workHandler interface {
-	// handleNewPeerState returns a new worker based on a peerState.
-	// The worker may be nil in which case we do nothing.
-	handleNewPeerState(*peerState) (*worker, error)
-
-	// handleWorkerResult handles the result of a worker, which may be
-	// nil or error. It optionally returns a new worker to be dispatched.
-	handleWorkerResult(w *worker) (workerToRetry *worker, err error)
-
-	// hasCurrentWorker is called before a worker is to be dispatched to
-	// check whether it is a duplicate. this function returns whether there is
-	// a worker that covers the scope of the proposed worker; if true,
-	// ignore the proposed worker
-	hasCurrentWorker(*worker, map[uint64]*worker) bool
-
-	// handleTick handles a timer tick
-	handleTick() ([]*worker, error)
-}
-
-// ChainSync contains the methods used by the high-level service into the `chainSync` module
-type ChainSync interface {
-	start()
-	stop()
-
-	// called upon receiving a BlockAnnounce
-	setBlockAnnounce(from peer.ID, header *types.Header) error
-
-	// called upon receiving a BlockAnnounceHandshake
-	setPeerHead(p peer.ID, hash common.Hash, number uint) error
-
-	// syncState returns the current syncing state
-	syncState() chainSyncState
-
-	// getHighestBlock returns the highest block or an error
-	getHighestBlock() (highestBlock uint, err error)
 }
 
 type chainSync struct {
@@ -143,7 +103,7 @@ type chainSync struct {
 	// disjoint set of blocks which are known but not ready to be processed
 	// ie. we only know the hash, number, or the parent block is unknown, or the body is unknown
 	// note: the block may have empty fields, as some data about it may be unknown
-	pendingBlocks      DisjointBlockSet
+	pendingBlocks      disjointBlockSetInterface
 	pendingBlockDoneCh chan<- struct{}
 
 	// bootstrap or tip (near-head)
@@ -171,7 +131,7 @@ type chainSyncConfig struct {
 	bs                 BlockState
 	net                Network
 	readyBlocks        *blockQueue
-	pendingBlocks      DisjointBlockSet
+	pendingBlocks      disjointBlockSetInterface
 	minPeers, maxPeers int
 	slotDuration       time.Duration
 }

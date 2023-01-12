@@ -66,7 +66,7 @@ func TestService_HandleBlockAnnounce(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	type fields struct {
-		chainSync ChainSync
+		chainSync chainSyncer
 	}
 	type args struct {
 		from peer.ID
@@ -111,8 +111,8 @@ func TestService_HandleBlockAnnounce(t *testing.T) {
 	}
 }
 
-func newMockChainSync(ctrl *gomock.Controller) ChainSync {
-	mock := NewMockChainSync(ctrl)
+func newMockChainSync(ctrl *gomock.Controller) chainSyncer {
+	mock := NewMockchainSyncer(ctrl)
 	header := types.NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, 1,
 		scale.VaryingDataTypeSlice{})
 
@@ -140,7 +140,7 @@ func Test_Service_HandleBlockAnnounceHandshake(t *testing.T) {
 	}{
 		"success": {
 			serviceBuilder: func(ctrl *gomock.Controller) Service {
-				chainSync := NewMockChainSync(ctrl)
+				chainSync := NewMockchainSyncer(ctrl)
 				chainSync.EXPECT().setPeerHead(peer.ID("abc"), common.Hash{1}, uint(2)).
 					Return(nil)
 				return Service{
@@ -155,7 +155,7 @@ func Test_Service_HandleBlockAnnounceHandshake(t *testing.T) {
 		},
 		"failure": {
 			serviceBuilder: func(ctrl *gomock.Controller) Service {
-				chainSync := NewMockChainSync(ctrl)
+				chainSync := NewMockchainSyncer(ctrl)
 				chainSync.EXPECT().setPeerHead(peer.ID("abc"), common.Hash{1}, uint(2)).
 					Return(errTest)
 				return Service{
@@ -199,7 +199,7 @@ func TestService_IsSynced(t *testing.T) {
 	}{
 		"tip": {
 			serviceBuilder: func(ctrl *gomock.Controller) Service {
-				chainSync := NewMockChainSync(ctrl)
+				chainSync := NewMockchainSyncer(ctrl)
 				chainSync.EXPECT().syncState().Return(tip)
 				return Service{
 					chainSync: chainSync,
@@ -209,7 +209,7 @@ func TestService_IsSynced(t *testing.T) {
 		},
 		"not_tip": {
 			serviceBuilder: func(ctrl *gomock.Controller) Service {
-				chainSync := NewMockChainSync(ctrl)
+				chainSync := NewMockchainSyncer(ctrl)
 				chainSync.EXPECT().syncState().Return(bootstrap)
 				return Service{
 					chainSync: chainSync,
@@ -239,13 +239,13 @@ func TestService_Start(t *testing.T) {
 
 	var allCalled sync.WaitGroup
 
-	chainSync := NewMockChainSync(ctrl)
+	chainSync := NewMockchainSyncer(ctrl)
 	allCalled.Add(1)
 	chainSync.EXPECT().start().DoAndReturn(func() {
 		allCalled.Done()
 	})
 
-	chainProcessor := NewMockChainProcessor(ctrl)
+	chainProcessor := NewMockreadyBlocksProcessor(ctrl)
 	allCalled.Add(1)
 	chainProcessor.EXPECT().processReadyBlocks().DoAndReturn(func() {
 		allCalled.Done()
@@ -265,9 +265,9 @@ func TestService_Stop(t *testing.T) {
 	t.Parallel()
 	ctrl := gomock.NewController(t)
 
-	chainSync := NewMockChainSync(ctrl)
+	chainSync := NewMockchainSyncer(ctrl)
 	chainSync.EXPECT().stop()
-	chainProcessor := NewMockChainProcessor(ctrl)
+	chainProcessor := NewMockreadyBlocksProcessor(ctrl)
 	chainProcessor.EXPECT().stop()
 
 	service := &Service{
@@ -321,7 +321,7 @@ func TestService_HighestBlock(t *testing.T) {
 	t.Parallel()
 	ctrl := gomock.NewController(t)
 
-	chainSync := NewMockChainSync(ctrl)
+	chainSync := NewMockchainSyncer(ctrl)
 	chainSync.EXPECT().getHighestBlock().Return(uint(2), nil)
 
 	service := &Service{

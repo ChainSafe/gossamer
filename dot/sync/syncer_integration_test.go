@@ -195,7 +195,7 @@ func TestHighestBlock(t *testing.T) {
 			s := newTestSyncer(t)
 
 			ctrl := gomock.NewController(t)
-			chainSync := NewMockChainSync(ctrl)
+			chainSync := NewMockchainSyncer(ctrl)
 			chainSync.EXPECT().getHighestBlock().Return(ts.in.highestBlock, ts.in.err)
 
 			s.chainSync = chainSync

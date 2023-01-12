@@ -299,7 +299,7 @@ func Test_chainSync_setPeerHead(t *testing.T) {
 				blockState := NewMockBlockState(ctrl)
 				bestBlockHeader := &types.Header{Number: 1}
 				blockState.EXPECT().BestBlockHeader().Return(bestBlockHeader, nil)
-				pendingBlocks := NewMockDisjointBlockSet(ctrl)
+				pendingBlocks := NewMockdisjointBlockSetInterface(ctrl)
 				pendingBlocks.EXPECT().addHashAndNumber(someHash, uint(2)).
 					Return(errTest)
 				return &chainSync{
@@ -326,7 +326,7 @@ func Test_chainSync_setPeerHead(t *testing.T) {
 				blockState := NewMockBlockState(ctrl)
 				bestBlockHeader := &types.Header{Number: 1}
 				blockState.EXPECT().BestBlockHeader().Return(bestBlockHeader, nil)
-				pendingBlocks := NewMockDisjointBlockSet(ctrl)
+				pendingBlocks := NewMockdisjointBlockSetInterface(ctrl)
 				pendingBlocks.EXPECT().addHashAndNumber(someHash, uint(2)).
 					Return(nil)
 				return &chainSync{
@@ -1191,7 +1191,7 @@ func Test_chainSync_start(t *testing.T) {
 
 	type fields struct {
 		blockStateBuilder       func(ctrl *gomock.Controller) BlockState
-		disjointBlockSetBuilder func(ctrl *gomock.Controller, called chan<- struct{}) DisjointBlockSet
+		disjointBlockSetBuilder func(ctrl *gomock.Controller, called chan<- struct{}) disjointBlockSetInterface
 		benchmarker             *syncBenchmarker
 	}
 	tests := []struct {
@@ -1206,8 +1206,8 @@ func Test_chainSync_start(t *testing.T) {
 					mockBlockState.EXPECT().BestBlockHeader().Return(&types.Header{}, nil)
 					return mockBlockState
 				},
-				disjointBlockSetBuilder: func(ctrl *gomock.Controller, called chan<- struct{}) DisjointBlockSet {
-					mockDisjointBlockSet := NewMockDisjointBlockSet(ctrl)
+				disjointBlockSetBuilder: func(ctrl *gomock.Controller, called chan<- struct{}) disjointBlockSetInterface {
+					mockDisjointBlockSet := NewMockdisjointBlockSetInterface(ctrl)
 					mockDisjointBlockSet.EXPECT().run(gomock.AssignableToTypeOf(make(<-chan struct{}))).
 						DoAndReturn(func(stop <-chan struct{}) {
 							close(called) // test glue, ideally we would use a ready chan struct passed to run().
@@ -1263,7 +1263,7 @@ func Test_chainSync_setBlockAnnounce(t *testing.T) {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().HasHeader(common.MustHexToHash(
 					"0x05bdcc454f60a08d427d05e7f19f240fdc391f570ab76fcb96ecca0b5823d3bf")).Return(true, nil)
-				mockDisjointBlockSet := NewMockDisjointBlockSet(ctrl)
+				mockDisjointBlockSet := NewMockdisjointBlockSetInterface(ctrl)
 				return chainSync{
 					blockState:    mockBlockState,
 					pendingBlocks: mockDisjointBlockSet,
@@ -1281,7 +1281,7 @@ func Test_chainSync_setBlockAnnounce(t *testing.T) {
 					HasHeader(common.MustHexToHash(
 						"0x05bdcc454f60a08d427d05e7f19f240fdc391f570ab76fcb96ecca0b5823d3bf")).
 					Return(false, errors.New("checking header exists"))
-				mockDisjointBlockSet := NewMockDisjointBlockSet(ctrl)
+				mockDisjointBlockSet := NewMockdisjointBlockSetInterface(ctrl)
 				return chainSync{
 					blockState:    mockBlockState,
 					pendingBlocks: mockDisjointBlockSet,
@@ -1305,7 +1305,7 @@ func Test_chainSync_setBlockAnnounce(t *testing.T) {
 					BestBlockHeader().
 					Return(&types.Header{Number: 1}, nil)
 
-				mockDisjointBlockSet := NewMockDisjointBlockSet(ctrl)
+				mockDisjointBlockSet := NewMockdisjointBlockSetInterface(ctrl)
 				mockDisjointBlockSet.EXPECT().
 					addHeader(expectedHeader).
 					Return(nil)
@@ -1531,7 +1531,7 @@ func Test_chainSync_handleResult(t *testing.T) {
 			chainSyncBuilder: func(ctrl *gomock.Controller, result *worker) chainSync {
 				mockWorkHandler := NewMockworkHandler(ctrl)
 				mockWorkHandler.EXPECT().handleWorkerResult(result).Return(result, nil)
-				mockDisjointBlockSet := NewMockDisjointBlockSet(ctrl)
+				mockDisjointBlockSet := NewMockdisjointBlockSetInterface(ctrl)
 				mockDisjointBlockSet.EXPECT().removeBlock(common.Hash{})
 				return chainSync{
 					workerState:   newWorkerState(),

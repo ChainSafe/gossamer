@@ -23,22 +23,6 @@ var (
 	errSetAtLimit   = errors.New("cannot add block; set is at capacity")
 )
 
-// DisjointBlockSet represents a set of incomplete blocks, or blocks
-// with an unknown parent. it is implemented by *disjointBlockSet
-type DisjointBlockSet interface {
-	run(done <-chan struct{})
-	addHashAndNumber(hash common.Hash, number uint) error
-	addHeader(*types.Header) error
-	addBlock(*types.Block) error
-	addJustification(common.Hash, []byte) error
-	removeBlock(common.Hash)
-	removeLowerBlocks(num uint)
-	getBlock(common.Hash) *pendingBlock
-	getBlocks() []*pendingBlock
-	getReadyDescendants(curr common.Hash, ready []*types.BlockData) []*types.BlockData
-	size() int
-}
-
 // pendingBlock stores a block that we know of but it not yet ready to be processed
 // this is a different type than *types.Block because we may wish to set the block
 // hash and number without knowing the entire header yet

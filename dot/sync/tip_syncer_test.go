@@ -18,7 +18,7 @@ func Test_tipSyncer_handleNewPeerState(t *testing.T) {
 
 	type fields struct {
 		blockStateBuilder func(ctrl *gomock.Controller) BlockState
-		pendingBlocks     DisjointBlockSet
+		pendingBlocks     disjointBlockSetInterface
 		readyBlocks       *blockQueue
 	}
 	tests := map[string]struct {
@@ -84,7 +84,7 @@ func Test_tipSyncer_handleTick(t *testing.T) {
 
 	type fields struct {
 		blockStateBuilder    func(ctrl *gomock.Controller) BlockState
-		pendingBlocksBuilder func(ctrl *gomock.Controller) DisjointBlockSet
+		pendingBlocksBuilder func(ctrl *gomock.Controller) disjointBlockSetInterface
 		readyBlocks          *blockQueue
 	}
 	tests := map[string]struct {
@@ -94,8 +94,8 @@ func Test_tipSyncer_handleTick(t *testing.T) {
 	}{
 		"base_case": {
 			fields: fields{
-				pendingBlocksBuilder: func(ctrl *gomock.Controller) DisjointBlockSet {
-					mockDisjointBlockSet := NewMockDisjointBlockSet(ctrl)
+				pendingBlocksBuilder: func(ctrl *gomock.Controller) disjointBlockSetInterface {
+					mockDisjointBlockSet := NewMockdisjointBlockSetInterface(ctrl)
 					mockDisjointBlockSet.EXPECT().size().Return(1).Times(2)
 					mockDisjointBlockSet.EXPECT().getBlocks().Return([]*pendingBlock{
 						{number: 2},

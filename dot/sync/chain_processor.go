@@ -14,18 +14,11 @@ import (
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 )
 
-// ChainProcessor processes ready blocks.
-// it is implemented by *chainProcessor
-type ChainProcessor interface {
-	processReadyBlocks()
-	stop()
-}
-
 type chainProcessor struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	chainSync ChainSync
+	chainSync chainSyncer
 
 	// blocks that are ready for processing. ie. their parent is known, or their parent is ahead
 	// of them within this channel and thus will be processed first
@@ -33,7 +26,7 @@ type chainProcessor struct {
 
 	// set of block not yet ready to be processed.
 	// blocks are placed here if they fail to be processed due to missing parent block
-	pendingBlocks DisjointBlockSet
+	pendingBlocks disjointBlockSetInterface
 
 	blockState         BlockState
 	storageState       StorageState
@@ -46,8 +39,8 @@ type chainProcessor struct {
 
 type chainProcessorConfig struct {
 	readyBlocks        *blockQueue
-	pendingBlocks      DisjointBlockSet
-	syncer             ChainSync
+	pendingBlocks      disjointBlockSetInterface
+	syncer             chainSyncer
 	blockState         BlockState
 	storageState       StorageState
 	transactionState   TransactionState

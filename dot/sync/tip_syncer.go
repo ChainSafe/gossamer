@@ -18,12 +18,12 @@ type handleReadyBlockFunc func(*types.BlockData)
 // tipSyncer handles workers when syncing at the tip of the chain
 type tipSyncer struct {
 	blockState       BlockState
-	pendingBlocks    DisjointBlockSet
+	pendingBlocks    disjointBlockSetInterface
 	readyBlocks      *blockQueue
 	handleReadyBlock handleReadyBlockFunc
 }
 
-func newTipSyncer(blockState BlockState, pendingBlocks DisjointBlockSet, readyBlocks *blockQueue,
+func newTipSyncer(blockState BlockState, pendingBlocks disjointBlockSetInterface, readyBlocks *blockQueue,
 	handleReadyBlock handleReadyBlockFunc) *tipSyncer {
 	return &tipSyncer{
 		blockState:       blockState,
