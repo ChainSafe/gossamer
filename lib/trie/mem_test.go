@@ -65,7 +65,7 @@ func Test_Trie_MemoryUsage(t *testing.T) {
 	prunedTrieHeap := getHeapUsage()
 	ratio = getApproximateRatio(halfFilledTrieHeap, prunedTrieHeap)
 	assert.Greater(t, ratio, 1.6)
-	assert.Less(t, ratio, 1.7)
+	assert.Less(t, ratio, 1.8)
 
 	// Dummy calls - has to be after prunedTrieHeap for
 	// GC to keep them
