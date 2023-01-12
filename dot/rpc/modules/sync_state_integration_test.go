@@ -17,7 +17,7 @@ import (
 )
 
 func TestSyncStateModule(t *testing.T) {
-	fp := utils.GetGssmrGenesisRawPathTest(t)
+	fp := utils.GetWestendDevRawGenesisPath(t)
 
 	data, err := ioutil.ReadFile(filepath.Clean(fp))
 	require.NoError(t, err)

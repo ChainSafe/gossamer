@@ -20,7 +20,7 @@ import (
 
 func TestNetwork_MaxPeers(t *testing.T) {
 	numNodes := 9 // 9 block producers
-	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
+	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	utils.Logger.Patch(log.SetLevel(log.Info))
 	tomlConfig := config.Default()
 	tomlConfig.Init.Genesis = genesisPath

@@ -282,9 +282,7 @@ func newTestGenesisWithTrieAndHeader(t *testing.T) (
 func getGssmrRuntimeCode(t *testing.T) (code []byte) {
 	t.Helper()
 
-	path, err := utils.GetGssmrGenesisRawPath()
-	require.NoError(t, err)
-
+	path := utils.GetWestendDevRawGenesisPath(t)
 	gssmrGenesis, err := genesis.NewGenesisFromJSONRaw(path)
 	require.NoError(t, err)
 

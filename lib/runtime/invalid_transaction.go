@@ -17,6 +17,8 @@ func (InvalidTransaction) Index() uint {
 	return 0
 }
 
+func (i InvalidTransaction) String() string { return i.Error() }
+
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
 func (i *InvalidTransaction) Set(val scale.VaryingDataTypeValue) (err error) {
 	vdt := scale.VaryingDataType(*i)
@@ -63,6 +65,8 @@ type Call struct{}
 // Index returns the VDT index
 func (Call) Index() uint { return 0 }
 
+func (c Call) String() string { return c.Error() }
+
 // Error returns the error message associated with the Call
 func (Call) Error() string {
 	return "call of the transaction is not expected"
@@ -73,6 +77,8 @@ type Payment struct{}
 
 // Index returns the VDT index
 func (Payment) Index() uint { return 1 }
+
+func (p Payment) String() string { return p.Error() }
 
 // Error returns the error message associated with the Payment
 func (Payment) Error() string {
@@ -85,6 +91,8 @@ type Future struct{}
 // Index returns the VDT index
 func (Future) Index() uint { return 2 }
 
+func (f Future) String() string { return f.Error() }
+
 // Error returns the error message associated with the Future
 func (Future) Error() string {
 	return "invalid transaction"
@@ -95,6 +103,8 @@ type Stale struct{}
 
 // Index returns the VDT index
 func (Stale) Index() uint { return 3 }
+
+func (s Stale) String() string { return s.Error() }
 
 // Error returns the error message associated with the Stale
 func (Stale) Error() string {
@@ -107,6 +117,8 @@ type BadProof struct{}
 // Index returns the VDT index
 func (BadProof) Index() uint { return 4 }
 
+func (b BadProof) String() string { return b.Error() }
+
 // Error returns the error message associated with the BadProof
 func (BadProof) Error() string {
 	return "bad proof"
@@ -117,6 +129,8 @@ type AncientBirthBlock struct{}
 
 // Index returns the VDT index
 func (AncientBirthBlock) Index() uint { return 5 }
+
+func (a AncientBirthBlock) String() string { return a.Error() }
 
 // Error returns the error message associated with the AncientBirthBlock
 func (AncientBirthBlock) Error() string {
@@ -129,6 +143,8 @@ type ExhaustsResources struct{}
 // Index returns the VDT index
 func (ExhaustsResources) Index() uint { return 6 }
 
+func (e ExhaustsResources) String() string { return e.Error() }
+
 // Error returns the error message associated with the ExhaustsResources
 func (ExhaustsResources) Error() string {
 	return "exhausts resources"
@@ -139,6 +155,8 @@ type InvalidCustom uint8
 
 // Index returns the VDT index
 func (InvalidCustom) Index() uint { return 7 }
+
+func (i InvalidCustom) String() string { return i.Error() }
 
 // Error returns the error message associated with the InvalidCustom
 func (i InvalidCustom) Error() string {
@@ -151,6 +169,8 @@ type BadMandatory struct{}
 // Index returns the VDT index
 func (BadMandatory) Index() uint { return 8 }
 
+func (b BadMandatory) String() string { return b.Error() }
+
 // Error returns the error message associated with the BadMandatory
 func (BadMandatory) Error() string {
 	return "mandatory dispatch error"
@@ -161,6 +181,8 @@ type MandatoryDispatch struct{}
 
 // Index returns the VDT index
 func (MandatoryDispatch) Index() uint { return 9 }
+
+func (m MandatoryDispatch) String() string { return m.Error() }
 
 // Error returns the error message associated with the MandatoryDispatch
 func (MandatoryDispatch) Error() string {
