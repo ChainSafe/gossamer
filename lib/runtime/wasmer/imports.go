@@ -234,8 +234,7 @@ func ext_crypto_ed25519_generate_version_1(context unsafe.Pointer, keyTypeID C.i
 		return 0
 	}
 
-	var kp KeyPair
-
+	var kp keyPair
 	if seed != nil {
 		kp, err = ed25519.NewKeypairFromMnenomic(string(*seed), "")
 	} else {
@@ -555,7 +554,7 @@ func ext_crypto_sr25519_generate_version_1(context unsafe.Pointer, keyTypeID C.i
 		return 0
 	}
 
-	var kp KeyPair
+	var kp keyPair
 	if seed != nil {
 		kp, err = sr25519.NewKeypairFromMnenomic(string(*seed), "")
 	} else {

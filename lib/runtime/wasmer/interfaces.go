@@ -60,9 +60,9 @@ type TransactionState interface {
 	AddToPool(vt *transaction.ValidTransaction) common.Hash
 }
 
-// KeyPair is a key pair to sign messages and from which
+// keyPair is a key pair to sign messages and from which
 // the public key can be obtained.
-type KeyPair interface {
+type keyPair interface {
 	Sign(msg []byte) ([]byte, error)
 	Public() crypto.PublicKey
 	Type() crypto.KeyType
