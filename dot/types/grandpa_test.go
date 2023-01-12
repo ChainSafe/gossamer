@@ -62,7 +62,7 @@ func Test_PreVoteEquivocation_ScaleCodec(t *testing.T) {
 	require.Equal(t, equivVote, grandpaEquivocation)
 }
 
-func TestEncodeGrandpaVote(t *testing.T) {
+func Test_GrandpaVote(_Codect *testing.T) {
 	t.Parallel()
 	expectedEncoding := common.MustHexToBytes("0x0a0b0c0d00000000000000000000000000000000000000000000000000000000e7030000")
 	vote := GrandpaVote{
