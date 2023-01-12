@@ -1296,7 +1296,7 @@ func TestInstance_GrandpaGenerateKeyOwnershipProof(t *testing.T) {
 
 	encodedOpaqueKeyOwnershipProof, err := runtime.GrandpaGenerateKeyOwnershipProof(uint64(0), authorityID)
 	require.NoError(t, err)
-	// Since the input is not valid with respect to the runtime and empty proof is returned
+	// Since the input is not valid with respect to the runtime, an empty proof is returned
 	require.Empty(t, encodedOpaqueKeyOwnershipProof)
 }
 
