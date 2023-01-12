@@ -95,8 +95,6 @@ func buildBlockWithSlotAndTimestamp(t *testing.T, instance state.Runtime,
 	}
 }
 
-// TODO: add test against latest gssmr runtime
-// See https://github.com/ChainSafe/gossamer/issues/2703
 func TestChainProcessor_HandleBlockResponse_ValidChain(t *testing.T) {
 	syncer := newTestSyncer(t)
 	responder := newTestSyncer(t)
@@ -170,8 +168,6 @@ func TestChainProcessor_HandleBlockResponse_ValidChain(t *testing.T) {
 	}
 }
 
-// TODO: add test against latest gssmr runtime
-// See https://github.com/ChainSafe/gossamer/issues/2703
 func TestChainProcessor_HandleBlockResponse_MissingBlocks(t *testing.T) {
 	syncer := newTestSyncer(t)
 
@@ -268,8 +264,6 @@ func TestChainProcessor_handleBody_ShouldRemoveIncludedExtrinsics(t *testing.T) 
 	require.Nil(t, inQueue, "queue should be empty")
 }
 
-// TODO: add test against latest gssmr runtime
-// See https://github.com/ChainSafe/gossamer/issues/2703
 func TestChainProcessor_HandleBlockResponse_BlockData(t *testing.T) {
 	syncer := newTestSyncer(t)
 
@@ -307,8 +301,6 @@ func TestChainProcessor_HandleBlockResponse_BlockData(t *testing.T) {
 	}
 }
 
-// TODO: add test against latest gssmr runtime
-// See https://github.com/ChainSafe/gossamer/issues/2703
 func TestChainProcessor_ExecuteBlock(t *testing.T) {
 	syncer := newTestSyncer(t)
 
@@ -319,7 +311,15 @@ func TestChainProcessor_ExecuteBlock(t *testing.T) {
 	rt, err := syncer.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	block := BuildBlock(t, rt, parent, nil)
+	babeCfg, err := rt.BabeConfiguration()
+	require.NoError(t, err)
+
+	timestamp := uint64(time.Now().Unix())
+	slotDuration := babeCfg.SlotDuration
+
+	// calcule the exact slot for each produced block
+	currentSlot := timestamp / slotDuration
+	block := buildBlockWithSlotAndTimestamp(t, rt, parent, currentSlot, timestamp)
 
 	// reset parentState
 	parentState, err := syncer.chainProcessor.(*chainProcessor).storageState.TrieState(&parent.StateRoot)
