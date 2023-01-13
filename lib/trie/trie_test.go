@@ -6,7 +6,7 @@ package trie
 import (
 	"bytes"
 	"encoding/hex"
-	reflect "reflect"
+	"reflect"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/trie/node"

@@ -29,7 +29,7 @@ func Test_Deltas_RecordDeleted(t *testing.T) {
 		nodeHash       common.Hash
 		expectedDeltas Deltas
 	}{
-		"set in empty deltas": {
+		"set_in_empty_deltas": {
 			deltas: Deltas{
 				deletedNodeHashes: map[common.Hash]struct{}{},
 			},
@@ -38,7 +38,7 @@ func Test_Deltas_RecordDeleted(t *testing.T) {
 				deletedNodeHashes: map[common.Hash]struct{}{{1}: {}},
 			},
 		},
-		"set in non empty deltas": {
+		"set_in_non_empty_deltas": {
 			deltas: Deltas{
 				deletedNodeHashes: map[common.Hash]struct{}{{1}: {}},
 			},
@@ -49,7 +49,7 @@ func Test_Deltas_RecordDeleted(t *testing.T) {
 				},
 			},
 		},
-		"override in deltas": {
+		"override_in_deltas": {
 			deltas: Deltas{
 				deletedNodeHashes: map[common.Hash]struct{}{{1}: {}},
 			},
@@ -78,8 +78,8 @@ func Test_Deltas_Deleted(t *testing.T) {
 		deltas     Deltas
 		nodeHashes map[common.Hash]struct{}
 	}{
-		"empty deltas": {},
-		"non empty deltas": {
+		"empty_deltas": {},
+		"non_empty_deltas": {
 			deltas: Deltas{
 				deletedNodeHashes: map[common.Hash]struct{}{{1}: {}},
 			},
@@ -106,7 +106,7 @@ func Test_Deltas_MergeWith(t *testing.T) {
 		deltasArg      DeletedGetter
 		expectedDeltas Deltas
 	}{
-		"merge empty deltas": {
+		"merge_empty_deltas": {
 			deltas: Deltas{
 				deletedNodeHashes: map[common.Hash]struct{}{{1}: {}},
 			},
@@ -115,7 +115,7 @@ func Test_Deltas_MergeWith(t *testing.T) {
 				deletedNodeHashes: map[common.Hash]struct{}{{1}: {}},
 			},
 		},
-		"merge deltas": {
+		"merge_deltas": {
 			deltas: Deltas{
 				deletedNodeHashes: map[common.Hash]struct{}{{1}: {}},
 			},
@@ -150,12 +150,12 @@ func Test_Deltas_DeepCopy(t *testing.T) {
 		deltasOriginal *Deltas
 		deltasCopy     *Deltas
 	}{
-		"nil deltas": {},
-		"empty deltas": {
+		"nil_deltas": {},
+		"empty_deltas": {
 			deltasOriginal: &Deltas{},
 			deltasCopy:     &Deltas{},
 		},
-		"filled deltas": {
+		"filled_deltas": {
 			deltasOriginal: &Deltas{
 				deletedNodeHashes: map[common.Hash]struct{}{{1}: {}},
 			},
