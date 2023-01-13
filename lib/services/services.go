@@ -7,7 +7,7 @@ import (
 	"reflect"
 )
 
-//go:generate mockery --name Service --structname Service --case underscore --keeptree
+//go:generate mockgen -destination=mocks_test.go -package $GOPACKAGE . Service
 
 // Service must be implemented by all services
 type Service interface {

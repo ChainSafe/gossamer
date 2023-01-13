@@ -11,42 +11,76 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/stretchr/testify/mock"
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestOffchainStorageGet(t *testing.T) {
-	testFuncs := map[string]string{
-		offchainLocal:      "GetLocal",
-		offchainPersistent: "GetPersistent",
-	}
+func Test_OffchainModule_LocalStorageGet(t *testing.T) {
+	t.Run("get local error", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
 
-	for kind, test := range testFuncs {
-		expectedValue := common.BytesToHex([]byte("some-value"))
-		st := mocks.NewRuntimeStorageAPI(t)
-		st.On(test, mock.AnythingOfType("[]uint8")).Return([]byte("some-value"), nil).Once()
-
-		m := new(OffchainModule)
-		m.nodeStorage = st
-
-		req := &OffchainLocalStorageGet{
-			Kind: kind,
-			Key:  "0x11111111111111",
+		runtimeStorage := mocks.NewMockRuntimeStorageAPI(ctrl)
+		offchainModule := &OffchainModule{
+			nodeStorage: runtimeStorage,
 		}
 
-		var res StringResponse
-		err := m.LocalStorageGet(nil, req, &res)
+		const keyHex = "0x11111111111111"
+		request := &OffchainLocalStorageGet{
+			Kind: offchainLocal,
+			Key:  keyHex,
+		}
+		errTest := errors.New("test error")
+		runtimeStorage.EXPECT().GetLocal(common.MustHexToBytes(keyHex)).
+			Return(nil, errTest)
+
+		err := offchainModule.LocalStorageGet(nil, request, nil)
+		assert.ErrorIs(t, err, errTest)
+	})
+
+	t.Run("local kind", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+
+		runtimeStorage := mocks.NewMockRuntimeStorageAPI(ctrl)
+		offchainModule := &OffchainModule{
+			nodeStorage: runtimeStorage,
+		}
+
+		const keyHex = "0x11111111111111"
+		request := &OffchainLocalStorageGet{
+			Kind: offchainLocal,
+			Key:  keyHex,
+		}
+		runtimeStorage.EXPECT().GetLocal(common.MustHexToBytes(keyHex)).
+			Return([]byte("some-value"), nil)
+		var response StringResponse
+		err := offchainModule.LocalStorageGet(nil, request, &response)
 		require.NoError(t, err)
-		require.Equal(t, res, StringResponse(expectedValue))
+		expectedResponse := StringResponse(common.BytesToHex([]byte("some-value")))
+		assert.Equal(t, response, expectedResponse)
+	})
 
-		st.
-			On(test, mock.AnythingOfType("[]uint8")).
-			Return(nil, errors.New("problem to retrieve")).
-			Once()
+	t.Run("persistent kind", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
 
-		err = m.LocalStorageGet(nil, req, nil)
-		require.Error(t, err, "problem to retrieve")
-	}
+		runtimeStorage := mocks.NewMockRuntimeStorageAPI(ctrl)
+		offchainModule := &OffchainModule{
+			nodeStorage: runtimeStorage,
+		}
+
+		const keyHex = "0x11111111111111"
+		request := &OffchainLocalStorageGet{
+			Kind: offchainPersistent,
+			Key:  keyHex,
+		}
+		runtimeStorage.EXPECT().GetPersistent(common.MustHexToBytes(keyHex)).
+			Return([]byte("some-value"), nil)
+		var response StringResponse
+		err := offchainModule.LocalStorageGet(nil, request, &response)
+		require.NoError(t, err)
+		expectedResponse := StringResponse(common.BytesToHex([]byte("some-value")))
+		assert.Equal(t, response, expectedResponse)
+	})
 }
 
 func TestOffchainStorage_OtherKind(t *testing.T) {
@@ -67,37 +101,72 @@ func TestOffchainStorage_OtherKind(t *testing.T) {
 	require.Error(t, err, "storage kind not found: another kind")
 }
 
-func TestOffchainStorageSet(t *testing.T) {
-	testFuncs := map[string]string{
-		offchainLocal:      "SetLocal",
-		offchainPersistent: "SetPersistent",
-	}
+func Test_OffchainModule_LocalStorageSet(t *testing.T) {
+	const keyHex, valueHex = "0x11111111111111", "0x22222222222222"
 
-	for kind, test := range testFuncs {
-		st := mocks.NewRuntimeStorageAPI(t)
-		st.On(test, mock.AnythingOfType("[]uint8"), mock.AnythingOfType("[]uint8")).Return(nil).Once()
+	t.Run("set local error", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
 
-		m := new(OffchainModule)
-		m.nodeStorage = st
-
-		req := &OffchainLocalStorageSet{
-			Kind:  kind,
-			Key:   "0x11111111111111",
-			Value: "0x22222222222222",
+		runtimeStorage := mocks.NewMockRuntimeStorageAPI(ctrl)
+		offchainModule := &OffchainModule{
+			nodeStorage: runtimeStorage,
 		}
 
-		var res StringResponse
-		err := m.LocalStorageSet(nil, req, &res)
+		request := &OffchainLocalStorageSet{
+			Kind:  offchainLocal,
+			Key:   keyHex,
+			Value: valueHex,
+		}
+		errTest := errors.New("test error")
+		runtimeStorage.EXPECT().SetLocal(
+			common.MustHexToBytes(keyHex), common.MustHexToBytes(valueHex)).
+			Return(errTest)
+
+		err := offchainModule.LocalStorageSet(nil, request, nil)
+		assert.ErrorIs(t, err, errTest)
+	})
+
+	t.Run("local kind", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+
+		runtimeStorage := mocks.NewMockRuntimeStorageAPI(ctrl)
+		offchainModule := &OffchainModule{
+			nodeStorage: runtimeStorage,
+		}
+
+		request := &OffchainLocalStorageSet{
+			Kind:  offchainLocal,
+			Key:   keyHex,
+			Value: valueHex,
+		}
+		runtimeStorage.EXPECT().SetLocal(
+			common.MustHexToBytes(keyHex), common.MustHexToBytes(valueHex)).
+			Return(nil)
+		var response StringResponse
+		err := offchainModule.LocalStorageSet(nil, request, &response)
 		require.NoError(t, err)
-		require.Empty(t, res)
+		assert.Empty(t, response)
+	})
 
-		st.
-			On(test, mock.AnythingOfType("[]uint8"), mock.AnythingOfType("[]uint8")).
-			Return(errors.New("problem to store")).
-			Once()
+	t.Run("persistent kind", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
 
-		err = m.LocalStorageSet(nil, req, &res)
-		require.Error(t, err, "problem to store")
-		require.Empty(t, res)
-	}
+		runtimeStorage := mocks.NewMockRuntimeStorageAPI(ctrl)
+		offchainModule := &OffchainModule{
+			nodeStorage: runtimeStorage,
+		}
+
+		request := &OffchainLocalStorageSet{
+			Kind:  offchainPersistent,
+			Key:   keyHex,
+			Value: valueHex,
+		}
+		runtimeStorage.EXPECT().SetPersistent(
+			common.MustHexToBytes(keyHex), common.MustHexToBytes(valueHex)).
+			Return(nil)
+		var response StringResponse
+		err := offchainModule.LocalStorageSet(nil, request, &response)
+		require.NoError(t, err)
+		assert.Empty(t, response)
+	})
 }

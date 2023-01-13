@@ -21,15 +21,12 @@ jobs:
           stable: true
           check-latest: true
 
-      - run: go install github.com/vektra/mockery/v2@v2.14
-
       - run: go install github.com/golang/mock/mockgen@v1.6
 
       - name: Check devnet module
         run: |
           cd devnet && \
           go mod download && \
-          go generate -run "mockery" -tags integration ./... && \
           go generate -run "mockgen" -tags integration ./... && \
           git diff --exit-code && \
           cd ..
@@ -37,6 +34,5 @@ jobs:
       - name: Check Gossamer module
         run: |
           go mod download && \
-          go generate -run "mockery" -tags integration ./... && \
           go generate -run "mockgen" -tags integration ./... && \
           git diff --exit-code
