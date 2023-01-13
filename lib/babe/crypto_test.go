@@ -26,7 +26,7 @@ func TestCalculateThreshold(t *testing.T) {
 		expErr error
 	}{
 		{
-			name: "happy path",
+			name: "happy_path",
 			args: args{
 				C1:       1,
 				C2:       2,
@@ -35,7 +35,7 @@ func TestCalculateThreshold(t *testing.T) {
 			exp: &scale.Uint128{Upper: 0x34d00ad6148e1800, Lower: 0x0},
 		},
 		{
-			name: "0 value input",
+			name: "0_value_input",
 			args: args{
 				C1:       0,
 				C2:       0,
@@ -44,7 +44,7 @@ func TestCalculateThreshold(t *testing.T) {
 			expErr: ErrThresholdOneIsZero,
 		},
 		{
-			name: "C1 > C2",
+			name: "C1_>_C2",
 			args: args{
 				C1:       5,
 				C2:       2,
@@ -53,7 +53,7 @@ func TestCalculateThreshold(t *testing.T) {
 			expErr: errors.New("invalid C1/C2: greater than 1"),
 		},
 		{
-			name: "max threshold",
+			name: "max_threshold",
 			args: args{
 				C1:       1,
 				C2:       1,
@@ -91,7 +91,7 @@ func Test_checkPrimaryThreshold(t *testing.T) {
 		exp  bool
 	}{
 		{
-			name: "happy path true",
+			name: "happy_path_true",
 			args: args{
 				threshold: scale.MaxUint128,
 				pub:       aliceKeypair.Public().(*sr25519.PublicKey),
@@ -99,7 +99,7 @@ func Test_checkPrimaryThreshold(t *testing.T) {
 			exp: true,
 		},
 		{
-			name: "happy path false",
+			name: "happy_path_false",
 			args: args{
 				threshold: &scale.Uint128{},
 				pub:       aliceKeypair.Public().(*sr25519.PublicKey),
@@ -131,7 +131,7 @@ func Test_claimPrimarySlot(t *testing.T) {
 		expErr error
 	}{
 		{
-			name: "authority not authorized",
+			name: "authority_not_authorized",
 			args: args{
 				slot:      1,
 				epoch:     2,
@@ -141,7 +141,7 @@ func Test_claimPrimarySlot(t *testing.T) {
 			expErr: errors.New("cannot claim slot, over primary threshold: for slot 1, epoch 2 and threshold 0"),
 		},
 		{
-			name: "authority authorized",
+			name: "authority_authorized",
 			args: args{
 				slot:      1,
 				epoch:     2,

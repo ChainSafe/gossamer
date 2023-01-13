@@ -75,7 +75,7 @@ func Test_createSystemService(t *testing.T) {
 		err       error
 	}{
 		{
-			name: "working example",
+			name: "working_example",
 			args: args{
 				service: stateSrvc,
 			},

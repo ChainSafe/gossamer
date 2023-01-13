@@ -969,11 +969,11 @@ func Test_getEquivocatoryVoters(t *testing.T) {
 		votes []AuthData
 		want  map[ed25519.PublicKeyBytes]struct{}
 	}{
-		"no votes": {
+		"no_votes": {
 			votes: []AuthData{},
 			want:  map[ed25519.PublicKeyBytes]struct{}{},
 		},
-		"one vote": {
+		"one_vote": {
 			votes: []AuthData{
 				{
 					AuthorityID: ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(),
@@ -982,7 +982,7 @@ func Test_getEquivocatoryVoters(t *testing.T) {
 			},
 			want: map[ed25519.PublicKeyBytes]struct{}{},
 		},
-		"two votes different authorities": {
+		"two_votes_different_authorities": {
 			votes: []AuthData{
 				{
 					AuthorityID: ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(),
@@ -995,7 +995,7 @@ func Test_getEquivocatoryVoters(t *testing.T) {
 			},
 			want: map[ed25519.PublicKeyBytes]struct{}{},
 		},
-		"duplicate votes": {
+		"duplicate_votes": {
 			votes: []AuthData{
 				{
 					AuthorityID: ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(),
@@ -1008,7 +1008,7 @@ func Test_getEquivocatoryVoters(t *testing.T) {
 			},
 			want: map[ed25519.PublicKeyBytes]struct{}{},
 		},
-		"equivocatory vote": {
+		"equivocatory_vote": {
 			votes: []AuthData{
 				{
 					AuthorityID: ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(),
@@ -1023,7 +1023,7 @@ func Test_getEquivocatoryVoters(t *testing.T) {
 				ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(): {},
 			},
 		},
-		"equivocatory vote with duplicate": {
+		"equivocatory_vote_with_duplicate": {
 			votes: []AuthData{
 				{
 					AuthorityID: ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(),
@@ -1042,7 +1042,7 @@ func Test_getEquivocatoryVoters(t *testing.T) {
 				ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(): {},
 			},
 		},
-		"three voters one equivocatory": {
+		"three_voters_one_equivocatory": {
 			votes: []AuthData{
 				{
 					AuthorityID: ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(),
@@ -1065,7 +1065,7 @@ func Test_getEquivocatoryVoters(t *testing.T) {
 				ed25519Keyring.Bob().Public().(*ed25519.PublicKey).AsBytes(): {},
 			},
 		},
-		"three voters one equivocatory one duplicate": {
+		"three_voters_one_equivocatory_one_duplicate": {
 			votes: []AuthData{
 				{
 					AuthorityID: ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(),
@@ -1092,7 +1092,7 @@ func Test_getEquivocatoryVoters(t *testing.T) {
 				ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(): {},
 			},
 		},
-		"three voters two equivocatory": {
+		"three_voters_two_equivocatory": {
 			votes: []AuthData{
 				{
 					AuthorityID: ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(),
@@ -1120,7 +1120,7 @@ func Test_getEquivocatoryVoters(t *testing.T) {
 				ed25519Keyring.Bob().Public().(*ed25519.PublicKey).AsBytes():   {},
 			},
 		},
-		"three voters two duplicate": {
+		"three_voters_two_duplicate": {
 			votes: []AuthData{
 				{
 					AuthorityID: ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(),
@@ -1145,7 +1145,7 @@ func Test_getEquivocatoryVoters(t *testing.T) {
 			},
 			want: map[ed25519.PublicKeyBytes]struct{}{},
 		},
-		"three voters": {
+		"three_voters": {
 			votes: []AuthData{
 				{
 					AuthorityID: ed25519Keyring.Alice().Public().(*ed25519.PublicKey).AsBytes(),
@@ -1451,7 +1451,7 @@ func TestService_VerifyBlockJustification(t *testing.T) {
 		want    []byte
 		wantErr error
 	}{
-		"invalid justification": {
+		"invalid_justification": {
 			fields: fields{
 				blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 					return nil
@@ -1468,7 +1468,7 @@ func TestService_VerifyBlockJustification(t *testing.T) {
 			wantErr: errors.New("decoding struct: unmarshalling field at index 1: decoding struct: unmarshalling" +
 				" field at index 0: EOF"),
 		},
-		"valid justification": {
+		"valid_justification": {
 			fields: fields{
 				blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 					mockBlockState := NewMockBlockState(ctrl)
@@ -1498,7 +1498,7 @@ func TestService_VerifyBlockJustification(t *testing.T) {
 			},
 			want: justificationBytes,
 		},
-		"valid justification extra bytes": {
+		"valid_justification_extra_bytes": {
 			fields: fields{
 				blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 					mockBlockState := NewMockBlockState(ctrl)

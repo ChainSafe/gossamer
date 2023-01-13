@@ -16,10 +16,10 @@ func Test_Trie_String(t *testing.T) {
 		trie Trie
 		s    string
 	}{
-		"empty trie": {
+		"empty_trie": {
 			s: "empty",
 		},
-		"leaf root": {
+		"leaf_root": {
 			trie: Trie{
 				root: &Node{
 					PartialKey:   []byte{1, 2, 3},
@@ -34,7 +34,7 @@ func Test_Trie_String(t *testing.T) {
 ├── Storage value: 0x030405
 └── Merkle value: nil`,
 		},
-		"branch root": {
+		"branch_root": {
 			trie: Trie{
 				root: &Node{
 					PartialKey:   nil,

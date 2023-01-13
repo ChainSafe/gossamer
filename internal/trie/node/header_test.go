@@ -24,7 +24,7 @@ func Test_encodeHeader(t *testing.T) {
 		errWrapped error
 		errMessage string
 	}{
-		"branch with no key": {
+		"branch_with_no_key": {
 			node: &Node{
 				Children: make([]*Node, ChildrenCapacity),
 			},
@@ -32,7 +32,7 @@ func Test_encodeHeader(t *testing.T) {
 				{written: []byte{branchVariant.bits}},
 			},
 		},
-		"branch with value": {
+		"branch_with_value": {
 			node: &Node{
 				StorageValue: []byte{},
 				Children:     make([]*Node, ChildrenCapacity),
@@ -41,7 +41,7 @@ func Test_encodeHeader(t *testing.T) {
 				{written: []byte{branchWithValueVariant.bits}},
 			},
 		},
-		"branch with key of length 30": {
+		"branch_with_key_of_length_30": {
 			node: &Node{
 				PartialKey: make([]byte, 30),
 				Children:   make([]*Node, ChildrenCapacity),
@@ -50,7 +50,7 @@ func Test_encodeHeader(t *testing.T) {
 				{written: []byte{branchVariant.bits | 30}},
 			},
 		},
-		"branch with key of length 62": {
+		"branch_with_key_of_length_62": {
 			node: &Node{
 				PartialKey: make([]byte, 62),
 				Children:   make([]*Node, ChildrenCapacity),
@@ -59,7 +59,7 @@ func Test_encodeHeader(t *testing.T) {
 				{written: []byte{branchVariant.bits | 62}},
 			},
 		},
-		"branch with key of length 63": {
+		"branch_with_key_of_length_63": {
 			node: &Node{
 				PartialKey: make([]byte, 63),
 				Children:   make([]*Node, ChildrenCapacity),
@@ -70,7 +70,7 @@ func Test_encodeHeader(t *testing.T) {
 				// key length is done here.
 			},
 		},
-		"branch with key of length 64": {
+		"branch_with_key_of_length_64": {
 			node: &Node{
 				PartialKey: make([]byte, 64),
 				Children:   make([]*Node, ChildrenCapacity),
@@ -80,7 +80,7 @@ func Test_encodeHeader(t *testing.T) {
 				{written: []byte{0x01}},
 			},
 		},
-		"branch with small key length write error": {
+		"branch_with_small_key_length_write_error": {
 			node: &Node{
 				Children: make([]*Node, ChildrenCapacity),
 			},
@@ -93,7 +93,7 @@ func Test_encodeHeader(t *testing.T) {
 			errWrapped: errTest,
 			errMessage: "test error",
 		},
-		"branch with long key length write error": {
+		"branch_with_long_key_length_write_error": {
 			node: &Node{
 				PartialKey: make([]byte, int(^branchVariant.mask)+1),
 				Children:   make([]*Node, ChildrenCapacity),
@@ -110,13 +110,13 @@ func Test_encodeHeader(t *testing.T) {
 			errWrapped: errTest,
 			errMessage: "test error",
 		},
-		"leaf with no key": {
+		"leaf_with_no_key": {
 			node: &Node{StorageValue: []byte{1}},
 			writes: []writeCall{
 				{written: []byte{leafVariant.bits}},
 			},
 		},
-		"leaf with key of length 30": {
+		"leaf_with_key_of_length_30": {
 			node: &Node{
 				PartialKey: make([]byte, 30),
 			},
@@ -124,7 +124,7 @@ func Test_encodeHeader(t *testing.T) {
 				{written: []byte{leafVariant.bits | 30}},
 			},
 		},
-		"leaf with short key write error": {
+		"leaf_with_short_key_write_error": {
 			node: &Node{
 				PartialKey: make([]byte, 30),
 			},
@@ -137,7 +137,7 @@ func Test_encodeHeader(t *testing.T) {
 			errWrapped: errTest,
 			errMessage: "test error",
 		},
-		"leaf with key of length 62": {
+		"leaf_with_key_of_length_62": {
 			node: &Node{
 				PartialKey: make([]byte, 62),
 			},
@@ -145,7 +145,7 @@ func Test_encodeHeader(t *testing.T) {
 				{written: []byte{leafVariant.bits | 62}},
 			},
 		},
-		"leaf with key of length 63": {
+		"leaf_with_key_of_length_63": {
 			node: &Node{
 				PartialKey: make([]byte, 63),
 			},
@@ -154,7 +154,7 @@ func Test_encodeHeader(t *testing.T) {
 				{written: []byte{0x0}},
 			},
 		},
-		"leaf with key of length 64": {
+		"leaf_with_key_of_length_64": {
 			node: &Node{
 				PartialKey: make([]byte, 64),
 			},
@@ -163,7 +163,7 @@ func Test_encodeHeader(t *testing.T) {
 				{written: []byte{0x1}},
 			},
 		},
-		"leaf with long key first byte write error": {
+		"leaf_with_long_key_first_byte_write_error": {
 			node: &Node{
 				PartialKey: make([]byte, 63),
 			},
@@ -176,7 +176,7 @@ func Test_encodeHeader(t *testing.T) {
 			errWrapped: errTest,
 			errMessage: "test error",
 		},
-		"leaf with key length over 3 bytes": {
+		"leaf_with_key_length_over_3_bytes": {
 			node: &Node{
 				PartialKey: make([]byte, int(^leafVariant.mask)+0b1111_1111+0b0000_0001),
 			},
@@ -186,7 +186,7 @@ func Test_encodeHeader(t *testing.T) {
 				{written: []byte{0b0000_0001}},
 			},
 		},
-		"leaf with key length over 3 bytes and last byte zero": {
+		"leaf_with_key_length_over_3_bytes_and_last_byte_zero": {
 			node: &Node{
 				PartialKey: make([]byte, int(^leafVariant.mask)+0b1111_1111),
 			},
@@ -286,28 +286,28 @@ func Test_decodeHeader(t *testing.T) {
 		errWrapped       error
 		errMessage       string
 	}{
-		"first byte read error": {
+		"first_byte_read_error": {
 			reads: []readCall{
 				{buffArgCap: 1, err: errTest},
 			},
 			errWrapped: errTest,
 			errMessage: "reading header byte: test error",
 		},
-		"header byte decoding error": {
+		"header_byte_decoding_error": {
 			reads: []readCall{
 				{buffArgCap: 1, read: []byte{0b0011_1110}},
 			},
 			errWrapped: ErrVariantUnknown,
 			errMessage: "decoding header byte: node variant is unknown: for header byte 00111110",
 		},
-		"partial key length contained in first byte": {
+		"partial_key_length_contained_in_first_byte": {
 			reads: []readCall{
 				{buffArgCap: 1, read: []byte{leafVariant.bits | 0b0011_1110}},
 			},
 			variant:          leafVariant.bits,
 			partialKeyLength: uint16(0b0011_1110),
 		},
-		"long partial key length and second byte read error": {
+		"long_partial_key_length_and_second_byte_read_error": {
 			reads: []readCall{
 				{buffArgCap: 1, read: []byte{leafVariant.bits | 0b0011_1111}},
 				{buffArgCap: 1, err: errTest},
@@ -315,7 +315,7 @@ func Test_decodeHeader(t *testing.T) {
 			errWrapped: errTest,
 			errMessage: "reading key length: test error",
 		},
-		"partial key length spread on multiple bytes": {
+		"partial_key_length_spread_on_multiple_bytes": {
 			reads: []readCall{
 				{buffArgCap: 1, read: []byte{leafVariant.bits | 0b0011_1111}},
 				{buffArgCap: 1, read: []byte{0b1111_1111}},
@@ -324,7 +324,7 @@ func Test_decodeHeader(t *testing.T) {
 			variant:          leafVariant.bits,
 			partialKeyLength: uint16(0b0011_1111 + 0b1111_1111 + 0b1111_0000),
 		},
-		"partial key length too long": {
+		"partial_key_length_too_long": {
 			reads: repeatReadCall(readCall{
 				buffArgCap: 1,
 				read:       []byte{0b1111_1111},
@@ -380,25 +380,25 @@ func Test_decodeHeaderByte(t *testing.T) {
 		errWrapped                 error
 		errMessage                 string
 	}{
-		"branch with value header": {
+		"branch_with_value_header": {
 			header:                     0b1110_1001,
 			variantBits:                0b1100_0000,
 			partialKeyLengthHeader:     0b0010_1001,
 			partialKeyLengthHeaderMask: 0b0011_1111,
 		},
-		"branch header": {
+		"branch_header": {
 			header:                     0b1010_1001,
 			variantBits:                0b1000_0000,
 			partialKeyLengthHeader:     0b0010_1001,
 			partialKeyLengthHeaderMask: 0b0011_1111,
 		},
-		"leaf header": {
+		"leaf_header": {
 			header:                     0b0110_1001,
 			variantBits:                0b0100_0000,
 			partialKeyLengthHeader:     0b0010_1001,
 			partialKeyLengthHeaderMask: 0b0011_1111,
 		},
-		"unknown variant header": {
+		"unknown_variant_header": {
 			header:     0b0000_0000,
 			errWrapped: ErrVariantUnknown,
 			errMessage: "node variant is unknown: for header byte 00000000",

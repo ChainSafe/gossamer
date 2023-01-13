@@ -52,7 +52,7 @@ func TestChainModule_GetBlock(t *testing.T) {
 		expErr error
 	}{
 		{
-			name: "GetBlock OK",
+			name: "GetBlock_OK",
 			fields: fields{
 				chainModule.blockAPI,
 			},
@@ -71,7 +71,7 @@ func TestChainModule_GetBlock(t *testing.T) {
 			}},
 		},
 		{
-			name: "GetBlockByHash Err",
+			name: "GetBlockByHash_Err",
 			fields: fields{
 				mockBlockAPIGetHashErr,
 			},
@@ -81,7 +81,7 @@ func TestChainModule_GetBlock(t *testing.T) {
 			expErr: errors.New("GetJustification error"),
 		},
 		{
-			name: "GetBlock with body OK",
+			name: "GetBlock_with_body_OK",
 			fields: fields{
 				mockBlockAPIWithBody,
 			},
@@ -148,7 +148,7 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 		exp    ChainHashResponse
 	}{
 		{
-			name: "GetBlockHash nil req OK",
+			name: "GetBlockHash_nil_req_OK",
 			fields: fields{
 				mockBlockAPI,
 			},
@@ -158,7 +158,7 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 			exp: expRes,
 		},
 		{
-			name: "GetBlockHash string req OK",
+			name: "GetBlockHash_string_req_OK",
 			fields: fields{
 				mockBlockAPI,
 			},
@@ -168,7 +168,7 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 			exp: expRes,
 		},
 		{
-			name: "GetBlockHash float req OK",
+			name: "GetBlockHash_float_req_OK",
 			fields: fields{
 				mockBlockAPI,
 			},
@@ -178,7 +178,7 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 			exp: expRes,
 		},
 		{
-			name: "GetBlockHash unknown request number",
+			name: "GetBlockHash_unknown_request_number",
 			fields: fields{
 				mockBlockAPI,
 			},
@@ -189,7 +189,7 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 			expErr: errors.New("unknown request number type: uintptr"),
 		},
 		{
-			name: "GetBlockHash string slice req err",
+			name: "GetBlockHash_string_slice_req_err",
 			fields: fields{
 				mockBlockAPI,
 			},
@@ -200,7 +200,7 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 			expErr: errors.New(`strconv.ParseUint: parsing "a": invalid syntax`),
 		},
 		{
-			name: "GetBlockHash string req Err",
+			name: "GetBlockHash_string_req_Err",
 			fields: fields{
 				mockBlockAPIErr,
 			},
@@ -255,7 +255,7 @@ func TestChainModule_GetFinalizedHead(t *testing.T) {
 		exp    ChainHashResponse
 	}{
 		{
-			name: "happy path",
+			name: "happy_path",
 			fields: fields{
 				mockBlockAPI,
 			},
@@ -265,7 +265,7 @@ func TestChainModule_GetFinalizedHead(t *testing.T) {
 			exp: expRes,
 		},
 		{
-			name: "error case",
+			name: "error_case",
 			fields: fields{
 				mockBlockAPIErr,
 			},
@@ -319,7 +319,7 @@ func TestChainModule_GetFinalizedHeadByRound(t *testing.T) {
 		exp    ChainHashResponse
 	}{
 		{
-			name: "GetFinalisedHash OK",
+			name: "GetFinalisedHash_OK",
 			fields: fields{
 				mockBlockAPI,
 			},
@@ -332,7 +332,7 @@ func TestChainModule_GetFinalizedHeadByRound(t *testing.T) {
 			exp: expRes,
 		},
 		{
-			name: "GetFinalisedHash ERR",
+			name: "GetFinalisedHash_ERR",
 			fields: fields{
 				mockBlockAPIErr,
 			},
@@ -394,7 +394,7 @@ func TestChainModule_GetHeader(t *testing.T) {
 		exp    ChainBlockHeaderResponse
 	}{
 		{
-			name: "GetHeader OK",
+			name: "GetHeader_OK",
 			fields: fields{
 				mockBlockAPI,
 			},
@@ -404,7 +404,7 @@ func TestChainModule_GetHeader(t *testing.T) {
 			exp: expRes,
 		},
 		{
-			name: "GetHeader ERR",
+			name: "GetHeader_ERR",
 			fields: fields{
 				mockBlockAPIErr,
 			},
@@ -494,7 +494,7 @@ func TestHeaderToJSON(t *testing.T) {
 			exp: expResEmpty,
 		},
 		{
-			name: "not empty",
+			name: "not_empty",
 			args: args{
 				header: *header,
 			},

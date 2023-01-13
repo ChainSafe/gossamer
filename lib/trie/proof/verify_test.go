@@ -47,13 +47,13 @@ func Test_Verify(t *testing.T) {
 		errWrapped        error
 		errMessage        string
 	}{
-		"failed building proof trie": {
+		"failed_building_proof_trie": {
 			rootHash:   []byte{1, 2, 3},
 			errWrapped: ErrEmptyProof,
 			errMessage: "building trie from proof encoded nodes: " +
 				"proof slice empty: for Merkle root hash 0x010203",
 		},
-		"value not found": {
+		"value_not_found": {
 			encodedProofNodes: [][]byte{
 				encodeNode(t, branch),
 				encodeNode(t, leafB),
@@ -66,7 +66,7 @@ func Test_Verify(t *testing.T) {
 				"0x0101 in proof trie for root hash " +
 				"0xec4bb0acfcf778ae8746d3ac3325fc73c3d9b376eb5f8d638dbf5eb462f5e703",
 		},
-		"key found with nil search value": {
+		"key_found_with_nil_search_value": {
 			encodedProofNodes: [][]byte{
 				encodeNode(t, branch),
 				encodeNode(t, leafB),
@@ -75,7 +75,7 @@ func Test_Verify(t *testing.T) {
 			rootHash: blake2bNode(t, branch),
 			keyLE:    []byte{0x34, 0x21}, // inlined short leaf of branch
 		},
-		"key found with mismatching value": {
+		"key_found_with_mismatching_value": {
 			encodedProofNodes: [][]byte{
 				encodeNode(t, branch),
 				encodeNode(t, leafB),
@@ -88,7 +88,7 @@ func Test_Verify(t *testing.T) {
 			errMessage: "value found in proof trie does not match: " +
 				"expected value 0x02 but got value 0x01 from proof trie",
 		},
-		"key found with matching value": {
+		"key_found_with_matching_value": {
 			encodedProofNodes: [][]byte{
 				encodeNode(t, branch),
 				encodeNode(t, leafB),
@@ -143,12 +143,12 @@ func Test_buildTrie(t *testing.T) {
 		errWrapped        error
 		errMessage        string
 	}{
-		"no proof node": {
+		"no_proof_node": {
 			errWrapped: ErrEmptyProof,
 			rootHash:   []byte{1},
 			errMessage: "proof slice empty: for Merkle root hash 0x01",
 		},
-		"root node decoding error": {
+		"root_node_decoding_error": {
 			encodedProofNodes: [][]byte{
 				getBadNodeEncoding(),
 			},
@@ -158,7 +158,7 @@ func Test_buildTrie(t *testing.T) {
 				"decoding header byte: node variant is unknown: " +
 				"for header byte 00000001",
 		},
-		"root proof encoding smaller than 32 bytes": {
+		"root_proof_encoding_smaller_than_32_bytes": {
 			encodedProofNodes: [][]byte{
 				encodeNode(t, leafAShort),
 			},
@@ -169,7 +169,7 @@ func Test_buildTrie(t *testing.T) {
 				Dirty:        true,
 			}),
 		},
-		"root proof encoding larger than 32 bytes": {
+		"root_proof_encoding_larger_than_32_bytes": {
 			encodedProofNodes: [][]byte{
 				encodeNode(t, leafBLarge),
 			},
@@ -180,7 +180,7 @@ func Test_buildTrie(t *testing.T) {
 				Dirty:        true,
 			}),
 		},
-		"discard unused node": {
+		"discard_unused_node": {
 			encodedProofNodes: [][]byte{
 				encodeNode(t, leafAShort),
 				encodeNode(t, leafBLarge),
@@ -192,7 +192,7 @@ func Test_buildTrie(t *testing.T) {
 				Dirty:        true,
 			}),
 		},
-		"multiple unordered nodes": {
+		"multiple_unordered_nodes": {
 			encodedProofNodes: [][]byte{
 				encodeNode(t, leafBLarge), // chilren 1 and 3
 				encodeNode(t, node.Node{ // root
@@ -243,7 +243,7 @@ func Test_buildTrie(t *testing.T) {
 				}),
 			}),
 		},
-		"load proof decoding error": {
+		"load_proof_decoding_error": {
 			encodedProofNodes: [][]byte{
 				getBadNodeEncoding(),
 				// root with one child pointing to hash of bad encoding above.
@@ -266,7 +266,7 @@ func Test_buildTrie(t *testing.T) {
 				"decoding header: decoding header byte: " +
 				"node variant is unknown: for header byte 00000001",
 		},
-		"root not found": {
+		"root_not_found": {
 			encodedProofNodes: [][]byte{
 				encodeNode(t, node.Node{
 					PartialKey:   []byte{1},
@@ -320,7 +320,7 @@ func Test_loadProof(t *testing.T) {
 		errWrapped            error
 		errMessage            string
 	}{
-		"leaf node": {
+		"leaf_node": {
 			node: &node.Node{
 				PartialKey:   []byte{1},
 				StorageValue: []byte{2},
@@ -330,7 +330,7 @@ func Test_loadProof(t *testing.T) {
 				StorageValue: []byte{2},
 			},
 		},
-		"branch node with child hash not found": {
+		"branch_node_with_child_hash_not_found": {
 			node: &node.Node{
 				PartialKey:   []byte{1},
 				StorageValue: []byte{2},
@@ -347,7 +347,7 @@ func Test_loadProof(t *testing.T) {
 				Dirty:        true,
 			},
 		},
-		"branch node with child hash found": {
+		"branch_node_with_child_hash_found": {
 			node: &node.Node{
 				PartialKey:   []byte{1},
 				StorageValue: []byte{2},
@@ -377,7 +377,7 @@ func Test_loadProof(t *testing.T) {
 				}),
 			},
 		},
-		"branch node with one child hash found and one not found": {
+		"branch_node_with_one_child_hash_found_and_one_not_found": {
 			node: &node.Node{
 				PartialKey:   []byte{1},
 				StorageValue: []byte{2},
@@ -408,7 +408,7 @@ func Test_loadProof(t *testing.T) {
 				}),
 			},
 		},
-		"branch node with branch child hash": {
+		"branch_node_with_branch_child_hash": {
 			node: &node.Node{
 				PartialKey:   []byte{1},
 				StorageValue: []byte{2},
@@ -449,7 +449,7 @@ func Test_loadProof(t *testing.T) {
 				}),
 			},
 		},
-		"child decoding error": {
+		"child_decoding_error": {
 			node: &node.Node{
 				PartialKey:   []byte{1},
 				StorageValue: []byte{2},
@@ -476,7 +476,7 @@ func Test_loadProof(t *testing.T) {
 				"decoding header: decoding header byte: node variant is unknown: " +
 				"for header byte 00000001",
 		},
-		"grand child": {
+		"grand_child": {
 			node: &node.Node{
 				PartialKey:   []byte{1},
 				StorageValue: []byte{1},
@@ -521,7 +521,7 @@ func Test_loadProof(t *testing.T) {
 			},
 		},
 
-		"grand child load proof error": {
+		"grand_child_load_proof_error": {
 			node: &node.Node{
 				PartialKey:   []byte{1},
 				StorageValue: []byte{1},
@@ -594,18 +594,18 @@ func Test_bytesToString(t *testing.T) {
 		b []byte
 		s string
 	}{
-		"nil slice": {
+		"nil_slice": {
 			s: "nil",
 		},
-		"empty slice": {
+		"empty_slice": {
 			b: []byte{},
 			s: "0x",
 		},
-		"small slice": {
+		"small_slice": {
 			b: []byte{1, 2, 3},
 			s: "0x010203",
 		},
-		"big slice": {
+		"big_slice": {
 			b: []byte{
 				0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
 				0, 1, 2, 3, 4, 5, 6, 7, 8, 9,

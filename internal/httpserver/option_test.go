@@ -17,14 +17,14 @@ func Test_newOptionalSettings(t *testing.T) {
 		options  []Option
 		settings optionalSettings
 	}{
-		"no option": {
+		"no_option": {
 			settings: optionalSettings{
 				shutdownTimeout:   3 * time.Second,
 				readTimeout:       10 * time.Second,
 				readHeaderTimeout: time.Second,
 			},
 		},
-		"all options set": {
+		"all_options_set": {
 			options: []Option{
 				ShutdownTimeout(3 * time.Second),
 				ReadTimeout(time.Second),

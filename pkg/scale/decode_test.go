@@ -180,7 +180,7 @@ func Test_decodeState_decodeMap(t *testing.T) {
 			expectedOutput: map[int8][]byte{2: []byte("some string")},
 		},
 		{
-			name: "testing a map of int8 to a byte array 2",
+			name: "testing_a_map_of_int8_to_a_byte_array_2",
 			input: []byte{
 				8, 2, 44, 115, 111, 109, 101, 32, 115, 116, 114, 105, 110, 103, 16, 44, 108, 111, 114, 101, 109, 32,
 				105, 112, 115, 117, 109,
@@ -390,7 +390,7 @@ func Test_Decoder_Decode_MultipleCalls(t *testing.T) {
 		wantErr []bool
 	}{
 		{
-			name: "int64 and []byte",
+			name: "int64_and_[]byte",
 			ins:  []interface{}{int64(9223372036854775807), []byte{0x01}},
 			want: append([]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f}, []byte{0x04, 0x01}...),
 		},
@@ -430,27 +430,27 @@ func Test_decodeState_decodeUint(t *testing.T) {
 	t.Parallel()
 	decodeUint32Tests := tests{
 		{
-			name: "int(1) mode 0",
+			name: "int(1)_mode_0",
 			in:   uint32(1),
 			want: []byte{0x04},
 		},
 		{
-			name: "int(16383) mode 1",
+			name: "int(16383)_mode_1",
 			in:   int(16383),
 			want: []byte{0xfd, 0xff},
 		},
 		{
-			name: "int(1073741823) mode 2",
+			name: "int(1073741823)_mode_2",
 			in:   int(1073741823),
 			want: []byte{0xfe, 0xff, 0xff, 0xff},
 		},
 		{
-			name: "int(4294967295) mode 3",
+			name: "int(4294967295)_mode_3",
 			in:   int(4294967295),
 			want: []byte{0x3, 0xff, 0xff, 0xff, 0xff},
 		},
 		{
-			name: "myCustomInt(9223372036854775807) mode 3, 64bit",
+			name: "myCustomInt(9223372036854775807)_mode_3,_64bit",
 			in:   myCustomInt(9223372036854775807),
 			want: []byte{19, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f},
 		},
@@ -461,7 +461,7 @@ func Test_decodeState_decodeUint(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "uint(16384) mode 2",
+			name: "uint(16384)_mode_2",
 			in:   int(16384),
 			want: []byte{0x02, 0x00, 0x01, 0x0},
 		},
@@ -490,7 +490,7 @@ func Test_decodeState_decodeUint(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "[]int{1 << 32, 2, 3, 1 << 32}",
+			name: "[]int{1_<<_32,_2,_3,_1_<<_32}",
 			in:   uint(4),
 			want: []byte{0x10, 0x07, 0x00, 0x00, 0x00, 0x00, 0x01, 0x08, 0x0c, 0x07, 0x00, 0x00, 0x00, 0x00, 0x01},
 		},

@@ -24,6 +24,11 @@ jobs:
           stable: true
           check-latest: true
 
+      - name: Snake case test cases
+        run: |
+          go run ./cmd/testcases/main.go && \
+          git diff --exit-code
+
       - name: Lint
         run: make lint
 
