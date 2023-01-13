@@ -31,7 +31,8 @@ RUN wget -qO protoc.zip "https://github.com/protocolbuffers/protobuf/releases/do
 RUN echo "deb https://deb.debian.org/debian bookworm main" >> /etc/apt/sources.list && \
   apt-get update && \
   apt-get install -y -t bookworm git && \
-  go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.50
+  go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.50 && \
+  go install golang.org/x/tools/gopls@latest
 RUN rm ~/.windows.sh && \
   wget -qO ~/.windows.sh https://raw.githubusercontent.com/qdm12/basedevcontainer/master/.ssh.sh  && \
   chmod +x ~/.windows.sh
