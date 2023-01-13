@@ -7,6 +7,7 @@ package babe
 
 import (
 	"bytes"
+	"fmt"
 	"testing"
 	"time"
 
@@ -54,6 +55,43 @@ func TestSeal(t *testing.T) {
 	require.True(t, ok, "could not verify seal")
 }
 
+func getSlot(t *testing.T, rt runtime.Instance, timestamp time.Time) Slot {
+	t.Helper()
+	babeConfig, err := rt.BabeConfiguration()
+	require.NoError(t, err)
+
+	fmt.Println(babeConfig.SlotDuration)
+
+	currentSlot := uint64(timestamp.UnixMilli()) / babeConfig.SlotDuration
+	return Slot{
+		start:    timestamp,
+		duration: time.Duration(babeConfig.SlotDuration) * time.Millisecond,
+		number:   currentSlot,
+	}
+}
+
+func createTestBlockWithSlot(t *testing.T, babeService *Service, parent *types.Header,
+	exts [][]byte, epoch uint64, epochData *epochData, slot Slot) *types.Block {
+	for _, ext := range exts {
+		vtx := transaction.NewValidTransaction(ext, &transaction.Validity{})
+		_, err := babeService.transactionState.Push(vtx)
+		require.NoError(t, err)
+	}
+
+	bestBlockHash := babeService.blockState.BestBlockHash()
+	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
+	require.NoError(t, err)
+
+	preRuntimeDigest, err := claimSlot(epoch, slot.number, epochData, babeService.keypair)
+	require.NoError(t, err)
+
+	block, err := babeService.buildBlock(parent, slot, rt, epochData.authorityIndex, preRuntimeDigest)
+	require.NoError(t, err)
+
+	babeService.blockState.(*state.BlockState).StoreRuntime(block.Header.Hash(), rt)
+	return block
+}
+
 func createTestBlock(t *testing.T, babeService *Service, parent *types.Header,
 	exts [][]byte, slotNumber, epoch uint64, epochData *epochData) *types.Block {
 	for _, ext := range exts {
@@ -88,7 +126,7 @@ func createTestBlock(t *testing.T, babeService *Service, parent *types.Header,
 // TODO: add test against latest dev runtime
 // See https://github.com/ChainSafe/gossamer/issues/2704
 func TestBuildBlock_ok(t *testing.T) {
-	babeService := createTestService(t, ServiceConfig{}, false)
+	babeService := createTestService(t, ServiceConfig{})
 
 	parentHash := babeService.blockState.GenesisHash()
 	bestBlockHash := babeService.blockState.BestBlockHash()
@@ -122,7 +160,7 @@ func TestBuildBlock_ok(t *testing.T) {
 // TODO: add test against latest dev runtime
 // See https://github.com/ChainSafe/gossamer/issues/2704
 func TestApplyExtrinsic(t *testing.T) {
-	babeService := createTestService(t, ServiceConfig{}, false)
+	babeService := createTestService(t, ServiceConfig{})
 	const authorityIndex = 0
 
 	duration, err := time.ParseDuration("1s")
@@ -224,7 +262,7 @@ func buildLocalTransaction(t *testing.T, rt runtime.Instance, ext types.Extrinsi
 }
 
 func TestBuildAndApplyExtrinsic(t *testing.T) {
-	babeService := createTestService(t, ServiceConfig{}, true)
+	babeService := createTestService(t, ServiceConfig{})
 
 	parentHash := common.MustHexToHash("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
 	header := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, 1, types.NewDigest())
@@ -298,7 +336,7 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 func TestBuildBlock_failing(t *testing.T) {
 	t.Skip()
 
-	babeService := createTestService(t, ServiceConfig{}, true)
+	babeService := createTestService(t, ServiceConfig{})
 
 	// see https://github.com/noot/substrate/blob/add-blob/core/test-runtime/src/system.rs#L468
 	// add a valid transaction
@@ -391,7 +429,7 @@ func TestBuildBlockTimeMonitor(t *testing.T) {
 		Authority: true,
 	}
 
-	babeService := createTestService(t, cfg, false)
+	babeService := createTestService(t, cfg)
 
 	parent, err := babeService.blockState.BestBlockHeader()
 	require.NoError(t, err)

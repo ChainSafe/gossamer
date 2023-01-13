@@ -6,6 +6,7 @@
 package babe
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -51,17 +52,17 @@ var (
 	}
 )
 
-func createTestService(t *testing.T, cfg ServiceConfig, useWestend bool) *Service {
+func createTestService(t *testing.T, cfg ServiceConfig) *Service {
 	wasmer.DefaultTestLogLvl = 1
 
 	var gen genesis.Genesis
 	var genTrie trie.Trie
 	var genHeader types.Header
-	if useWestend {
-		gen, genTrie, genHeader = newWestendGenesisWithTrieAndHeader(t)
-	} else {
-		gen, genTrie, genHeader = newDevGenesisWithTrieAndHeader(t)
-	}
+
+	gen, genTrie, genHeader = newWestendGenesisWithTrieAndHeader(t)
+
+	//gen, genTrie, genHeader = newDevGenesisWithTrieAndHeader(t)
+
 	genesisHeader = &genHeader
 
 	var err error
@@ -220,7 +221,7 @@ func TestService_ProducesBlocks(t *testing.T) {
 		Lead:               true,
 		BlockImportHandler: blockImportHandler,
 	}
-	babeService := createTestService(t, cfg, true)
+	babeService := createTestService(t, cfg)
 
 	err := babeService.Start()
 	require.NoError(t, err)
@@ -264,7 +265,7 @@ func TestService_GetAuthorityIndex(t *testing.T) {
 }
 
 func TestStartAndStop(t *testing.T) {
-	bs := createTestService(t, ServiceConfig{}, true)
+	bs := createTestService(t, ServiceConfig{})
 	err := bs.Start()
 	require.NoError(t, err)
 	err = bs.Stop()
@@ -272,7 +273,7 @@ func TestStartAndStop(t *testing.T) {
 }
 
 func TestService_PauseAndResume(t *testing.T) {
-	bs := createTestService(t, ServiceConfig{}, true)
+	bs := createTestService(t, ServiceConfig{})
 	err := bs.Start()
 	require.NoError(t, err)
 	time.Sleep(time.Second)
@@ -299,12 +300,12 @@ func TestService_PauseAndResume(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
+func TestService_HandleSlotWithLaggingSlotNew(t *testing.T) {
 	cfg := ServiceConfig{
 		Authority: true,
 		Lead:      true,
 	}
-	babeService := createTestService(t, cfg, false)
+	babeService := createTestService(t, cfg)
 
 	err := babeService.Start()
 	require.NoError(t, err)
@@ -322,8 +323,82 @@ func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
-	ext := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0,
-		signature.TestKeyringPairAlice, "System.remark", []byte{0xab, 0xcd})
+	slot := getSlot(t, rt, time.Now())
+	fmt.Println(slot.duration)
+
+	ext := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0, signature.TestKeyringPairAlice, "System.remark", []byte{0xab, 0xcd})
+	block := createTestBlockWithSlot(t, babeService, emptyHeader, [][]byte{common.MustHexToBytes(ext)}, testEpochIndex, epochData, slot)
+
+	babeService.blockState.AddBlock(block)
+	time.Sleep(babeService.constants.slotDuration)
+
+	header, err := babeService.blockState.BestBlockHeader()
+	require.NoError(t, err)
+
+	bestBlockSlotNum, err := babeService.blockState.GetSlotForBlock(header.Hash())
+	require.NoError(t, err)
+
+	slotnum := uint64(1)
+	slot = Slot{
+		start:    time.Now(),
+		duration: time.Second,
+		number:   slotnum,
+	}
+	preRuntimeDigest, err := types.NewBabePrimaryPreDigest(
+		0, slot.number,
+		[sr25519.VRFOutputLength]byte{},
+		[sr25519.VRFProofLength]byte{},
+	).ToPreRuntimeDigest()
+
+	require.NoError(t, err)
+
+	err = babeService.handleSlot(
+		babeService.epochHandler.epochNumber,
+		bestBlockSlotNum-1,
+		babeService.epochHandler.epochData.authorityIndex,
+		preRuntimeDigest)
+
+	require.ErrorIs(t, err, errLaggingSlot)
+}
+
+func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
+	cfg := ServiceConfig{
+		Authority: true,
+		Lead:      true,
+	}
+	babeService := createTestService(t, cfg)
+
+	err := babeService.Start()
+	require.NoError(t, err)
+	defer func() {
+		err = babeService.Stop()
+		require.NoError(t, err)
+	}()
+
+	// add a block
+	parentHash := babeService.blockState.GenesisHash()
+	bestBlockHash := babeService.blockState.BestBlockHash()
+	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
+	require.NoError(t, err)
+
+	epochData, err := babeService.initiateEpoch(testEpochIndex)
+	require.NoError(t, err)
+
+	//babeConfig, err := rt.BabeConfiguration()
+	//require.NoError(t, err)
+
+	//babeConfig.SlotDuration
+	//
+	//duration, err := time.ParseDuration("1s")
+	//require.NoError(t, err)
+	//
+	//slot := Slot{
+	//	start:    time.Now(),
+	//	duration: time.Duration(babeConfig.SlotDuration),
+	//	number:   slotNumber,
+	//}
+
+	ext := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0, "System.remark", []byte{0xab, 0xcd})
 	block := createTestBlock(t, babeService, emptyHeader, [][]byte{common.MustHexToBytes(ext)},
 		1, testEpochIndex, epochData)
 
@@ -397,7 +472,7 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 		},
 	}
 
-	babeServiceBob := createTestService(t, cfgBob, false)
+	babeServiceBob := createTestService(t, cfgBob)
 
 	err := babeServiceBob.Start()
 	require.NoError(t, err)
@@ -417,7 +492,7 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 
 	time.Sleep(babeServiceBob.constants.slotDuration)
 
-	babeServiceAlice := createTestService(t, cfgAlice, false)
+	babeServiceAlice := createTestService(t, cfgAlice)
 
 	// Add block created by Bob to Alice
 	err = babeServiceAlice.blockState.AddBlock(block)
