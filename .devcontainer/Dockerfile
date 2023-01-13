@@ -19,6 +19,14 @@ RUN apt-get install -y procps cpulimit
 
 RUN go install github.com/google/addlicense@v1.0.0
 
+ARG PROTOC_VERSION=21.10
+RUN wget -qO protoc.zip "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-x86_64.zip" && \
+  apt-get install -y unzip && \
+  unzip protoc.zip -d /usr/local && \
+  apt-get remove -y unzip && \
+  rm protoc.zip && \
+  go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28
+
 # TODO remove these once we can get the latest debian image
 RUN echo "deb https://deb.debian.org/debian bookworm main" >> /etc/apt/sources.list && \
   apt-get update && \
