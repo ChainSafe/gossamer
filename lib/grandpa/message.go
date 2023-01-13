@@ -151,14 +151,12 @@ type NeighbourPacketV1 struct {
 // Index returns VDT index
 func (NeighbourPacketV1) Index() uint { return 1 }
 
-<<<<<<< HEAD
 // Type returns type of given grandpa message.
 func (NeighbourPacketV1) Type() MessageType { return NeighborMessageType }
-=======
+
 func (m NeighbourPacketV1) String() string {
 	return fmt.Sprintf("NeighbourPacketV1{Round=%d, SetID=%d, Number=%d}", m.Round, m.SetID, m.Number)
 }
->>>>>>> development
 
 // ToConsensusMessage converts the NeighbourMessage into a network-level consensus message
 func (m *NeighbourPacketV1) ToConsensusMessage() (*network.ConsensusMessage, error) {
@@ -221,15 +219,13 @@ func (s *Service) newCommitMessage(header *types.Header, round, setID uint64) (*
 // Index returns VDT index
 func (CommitMessage) Index() uint { return 1 }
 
-<<<<<<< HEAD
 // Type returns type of given grandpa message.
 func (CommitMessage) Type() MessageType { return CommitMessageType }
-=======
+
 func (m CommitMessage) String() string {
 	return fmt.Sprintf("CommitMessage{Round=%d, SetID=%d, Vote={%s}, Precommits=%v, AuthData=%v}",
 		m.Round, m.SetID, m.Vote, m.Precommits, m.AuthData)
 }
->>>>>>> development
 
 // ToConsensusMessage converts the CommitMessage into a network-level consensus message
 func (m *CommitMessage) ToConsensusMessage() (*ConsensusMessage, error) {
@@ -363,16 +359,14 @@ func (s *Service) newCatchUpResponse(round, setID uint64) (*CatchUpResponse, err
 // Index returns VDT index
 func (CatchUpResponse) Index() uint { return 4 }
 
-<<<<<<< HEAD
 // Type returns type of given grandpa message.
 func (r CatchUpResponse) Type() MessageType { return CatchUpResponseMessageType }
-=======
+
 func (r CatchUpResponse) String() string {
 	return fmt.Sprintf("CatchUpResponse{SetID=%d, Round=%d, PreVoteJustification=%v, "+
 		"PreCommitJustification=%v, Hash=%s, Number=%d}",
 		r.SetID, r.Round, r.PreVoteJustification, r.PreCommitJustification, r.Hash, r.Number)
 }
->>>>>>> development
 
 // ToConsensusMessage converts the catchUpResponse into a network-level consensus message
 func (r *CatchUpResponse) ToConsensusMessage() (*ConsensusMessage, error) {
