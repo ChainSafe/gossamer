@@ -19,7 +19,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -491,9 +490,10 @@ func TestStateModule_GetKeysPaged(t *testing.T) {
 }
 
 func TestGetReadProof_WhenCoreAPIReturnsError(t *testing.T) {
-	coreAPIMock := mocks.NewCoreAPI(t)
-	coreAPIMock.
-		On("GetReadProofAt", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("[][]uint8")).
+	ctrl := gomock.NewController(t)
+
+	coreAPIMock := mocks.NewMockCoreAPI(ctrl)
+	coreAPIMock.EXPECT().GetReadProofAt(gomock.Any(), gomock.Any()).
 		Return(common.Hash{}, nil, errors.New("mocked error"))
 
 	sm := new(StateModule)
@@ -507,12 +507,14 @@ func TestGetReadProof_WhenCoreAPIReturnsError(t *testing.T) {
 }
 
 func TestGetReadProof_WhenReturnsProof(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
 	expectedBlock := common.BytesToHash([]byte("random hash"))
 	mockedProof := [][]byte{[]byte("proof-1"), []byte("proof-2")}
 
-	coreAPIMock := mocks.NewCoreAPI(t)
+	coreAPIMock := mocks.NewMockCoreAPI(ctrl)
 	coreAPIMock.
-		On("GetReadProofAt", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("[][]uint8")).
+		EXPECT().GetReadProofAt(gomock.Any(), gomock.Any()).
 		Return(expectedBlock, mockedProof, nil)
 
 	sm := new(StateModule)

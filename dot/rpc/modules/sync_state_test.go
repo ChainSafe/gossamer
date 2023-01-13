@@ -11,17 +11,20 @@ import (
 	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/golang/mock/gomock"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSyncStateModule_GenSyncSpec(t *testing.T) {
-	g := new(genesis.Genesis)
-	mockSyncStateAPI := mocks.NewSyncStateAPI(t)
-	mockSyncStateAPI.On("GenSyncSpec", true).Return(g, nil)
+	ctrl := gomock.NewController(t)
 
-	mockSyncStateAPIErr := mocks.NewSyncStateAPI(t)
-	mockSyncStateAPIErr.On("GenSyncSpec", true).Return(nil, errors.New("GenSyncSpec error"))
+	g := new(genesis.Genesis)
+	mockSyncStateAPI := mocks.NewMockSyncStateAPI(ctrl)
+	mockSyncStateAPI.EXPECT().GenSyncSpec(true).Return(g, nil)
+
+	mockSyncStateAPIErr := mocks.NewMockSyncStateAPI(ctrl)
+	mockSyncStateAPIErr.EXPECT().GenSyncSpec(true).Return(nil, errors.New("GenSyncSpec error"))
 
 	syncStateModule := NewSyncStateModule(mockSyncStateAPI)
 	type fields struct {
@@ -81,14 +84,16 @@ func TestSyncStateModule_GenSyncSpec(t *testing.T) {
 }
 
 func TestNewStateSync(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
 	g1 := &genesis.Genesis{}
 	g2 := &genesis.Genesis{}
 	raw := make(map[string][]byte)
-	mockStorageAPI := mocks.NewStorageAPI(t)
-	mockStorageAPI.On("Entries", (*common.Hash)(nil)).Return(raw, nil)
+	mockStorageAPI := mocks.NewMockStorageAPI(ctrl)
+	mockStorageAPI.EXPECT().Entries((*common.Hash)(nil)).Return(raw, nil)
 
-	mockStorageAPIErr := mocks.NewStorageAPI(t)
-	mockStorageAPIErr.On("Entries", (*common.Hash)(nil)).Return(nil, errors.New("entries error"))
+	mockStorageAPIErr := mocks.NewMockStorageAPI(ctrl)
+	mockStorageAPIErr.EXPECT().Entries((*common.Hash)(nil)).Return(nil, errors.New("entries error"))
 
 	type args struct {
 		gData      *genesis.Data

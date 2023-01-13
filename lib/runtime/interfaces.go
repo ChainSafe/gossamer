@@ -46,8 +46,6 @@ type BasicStorage interface {
 	Del(key []byte) error
 }
 
-//go:generate mockery --name TransactionState --structname TransactionState --case underscore --keeptree
-
 // TransactionState interface for adding transactions to pool
 type TransactionState interface {
 	AddToPool(vt *transaction.ValidTransaction) common.Hash
