@@ -55,7 +55,7 @@ func NewMessageHandler(grandpa *Service, blockState BlockState, telemetryMailer 
 // if it is a CommitMessage, it updates the BlockState
 // if it is a VoteMessage, it sends it to the GRANDPA service
 func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) error {
-	logger.Tracef("handling grandpa message: %v", m)
+	logger.Tracef("handling grandpa message: %+v", m)
 
 	switch msg := m.(type) {
 	case *VoteMessage:
@@ -164,7 +164,7 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourPacketV1, from pee
 	// catch up only if we are behind by more than catchup threshold
 	if int(msg.Round-highestRound) > catchupThreshold {
 		logger.Debugf("lagging behind by %d rounds", msg.Round-highestRound)
-		return h.catchUp.do(from, msg.Round, msg.SetID)
+		return h.catchUp.do(from, msg.Round-1, msg.SetID)
 	}
 
 	return nil
