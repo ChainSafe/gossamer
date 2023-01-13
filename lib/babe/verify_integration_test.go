@@ -68,7 +68,7 @@ func TestVerificationManager_OnDisabled_InvalidIndex(t *testing.T) {
 	cfg := ServiceConfig{
 		Authority: true,
 	}
-	babeService := createTestService(t, cfg, false)
+	babeService := createTestService(t, cfg)
 
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
@@ -87,7 +87,7 @@ func TestVerificationManager_OnDisabled_NewDigest(t *testing.T) {
 	cfg := ServiceConfig{
 		Keypair: kp,
 	}
-	babeService := createTestService(t, cfg, false)
+	babeService := createTestService(t, cfg)
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
@@ -125,7 +125,7 @@ func TestVerificationManager_OnDisabled_DuplicateDigest(t *testing.T) {
 	cfg := ServiceConfig{
 		Keypair: kp,
 	}
-	babeService := createTestService(t, cfg, false)
+	babeService := createTestService(t, cfg)
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
@@ -158,7 +158,7 @@ func TestVerificationManager_VerifyBlock_Ok(t *testing.T) {
 	serviceConfig := ServiceConfig{
 		Authority: true,
 	}
-	babeService := createTestService(t, serviceConfig, false)
+	babeService := createTestService(t, serviceConfig)
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
 	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
@@ -187,7 +187,7 @@ func TestVerificationManager_VerifyBlock_Secondary(t *testing.T) {
 	serviceConfig := ServiceConfig{
 		Authority: true,
 	}
-	babeService := createTestService(t, serviceConfig, false)
+	babeService := createTestService(t, serviceConfig)
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
 	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
@@ -254,7 +254,7 @@ func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 	serviceConfig := ServiceConfig{
 		Authority: true,
 	}
-	babeService := createTestService(t, serviceConfig, false)
+	babeService := createTestService(t, serviceConfig)
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
 	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
@@ -305,7 +305,7 @@ func TestVerificationManager_VerifyBlock_InvalidBlockOverThreshold(t *testing.T)
 	serviceConfig := ServiceConfig{
 		Authority: true,
 	}
-	babeService := createTestService(t, serviceConfig, false)
+	babeService := createTestService(t, serviceConfig)
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
 	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
@@ -335,7 +335,7 @@ func TestVerificationManager_VerifyBlock_InvalidBlockAuthority(t *testing.T) {
 	serviceConfig := ServiceConfig{
 		Authority: true,
 	}
-	babeService := createTestService(t, serviceConfig, false)
+	babeService := createTestService(t, serviceConfig)
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
 	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
@@ -366,7 +366,7 @@ func TestVerifyPimarySlotWinner(t *testing.T) {
 	cfg := ServiceConfig{
 		Keypair: kp,
 	}
-	babeService := createTestService(t, cfg, true)
+	babeService := createTestService(t, cfg)
 	epochData, err := babeService.initiateEpoch(0)
 	require.NoError(t, err)
 
@@ -408,7 +408,7 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 	serviceConfig := ServiceConfig{
 		Authority: true,
 	}
-	babeService := createTestService(t, serviceConfig, false)
+	babeService := createTestService(t, serviceConfig)
 
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
@@ -436,7 +436,7 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 		Keypair: kp,
 	}
 
-	babeService := createTestService(t, cfg, false)
+	babeService := createTestService(t, cfg)
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
