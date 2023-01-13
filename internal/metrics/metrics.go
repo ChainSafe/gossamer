@@ -85,9 +85,7 @@ func (s *Server) Stop() (err error) {
 	select {
 	case err := <-s.done:
 		close(s.done)
-		if !timeout.Stop() {
-			<-timeout.C
-		}
+		timeout.Stop()
 		if err != nil {
 			return err
 		}

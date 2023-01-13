@@ -24,8 +24,8 @@ import (
 func newTestGenesisFile(t *testing.T, cfg *Config) (filename string) {
 	t.Helper()
 
-	fp := utils.GetGssmrV3SubstrateGenesisPathTest(t)
-	gssmrGen, err := genesis.NewGenesisFromJSON(fp, 0)
+	fp := utils.GetWestendDevRawGenesisPath(t)
+	gssmrGen, err := genesis.NewGenesisFromJSONRaw(fp)
 	require.NoError(t, err)
 
 	gen := &genesis.Genesis{
@@ -62,7 +62,7 @@ func TestCreateJSONRawFile(t *testing.T) {
 				bs: &BuildSpec{genesis: NewTestGenesis(t)},
 				fp: filepath.Join(t.TempDir(), "/test.json"),
 			},
-			expectedHash: "9e61b166bdee6ae5da7f7fe65eb7e3888f715c34cb817575d1fbd268bc3f0d66",
+			expectedHash: "f7f1b82c0ba16b20e36bfb462d7899af2c76728918f639f5c5ef0e91ff3e7077",
 		},
 	}
 	for _, tt := range tests {
@@ -235,8 +235,7 @@ func NewTestConfig(t *testing.T) *Config {
 
 // NewTestGenesis returns a test genesis instance using "gssmr" raw data
 func NewTestGenesis(t *testing.T) *genesis.Genesis {
-	fp, err := utils.GetGssmrGenesisRawPath()
-	require.NoError(t, err)
+	fp := utils.GetWestendDevRawGenesisPath(t)
 
 	gssmrGen, err := genesis.NewGenesisFromJSONRaw(fp)
 	require.NoError(t, err)

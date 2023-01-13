@@ -107,6 +107,15 @@ type VersionedNeighbourPacket scale.VaryingDataType
 // Index returns VDT index
 func (VersionedNeighbourPacket) Index() uint { return 2 }
 
+func (vnp VersionedNeighbourPacket) String() string {
+	val, err := vnp.Value()
+	if err != nil {
+		return "VersionedNeighbourPacket()"
+	}
+
+	return fmt.Sprintf("VersionedNeighbourPacket(%s)", val)
+}
+
 func newVersionedNeighbourPacket() VersionedNeighbourPacket {
 	vdt := scale.MustNewVaryingDataType(NeighbourPacketV1{})
 
@@ -142,8 +151,14 @@ type NeighbourPacketV1 struct {
 // Index returns VDT index
 func (NeighbourPacketV1) Index() uint { return 1 }
 
+<<<<<<< HEAD
 // Type returns type of given grandpa message.
 func (NeighbourPacketV1) Type() MessageType { return NeighborMessageType }
+=======
+func (m NeighbourPacketV1) String() string {
+	return fmt.Sprintf("NeighbourPacketV1{Round=%d, SetID=%d, Number=%d}", m.Round, m.SetID, m.Number)
+}
+>>>>>>> development
 
 // ToConsensusMessage converts the NeighbourMessage into a network-level consensus message
 func (m *NeighbourPacketV1) ToConsensusMessage() (*network.ConsensusMessage, error) {
@@ -175,6 +190,10 @@ type AuthData struct {
 	AuthorityID ed25519.PublicKeyBytes
 }
 
+func (a *AuthData) String() string {
+	return fmt.Sprintf("AuthData{Signature=0x%x, AuthorityID=%s}", a.Signature, a.AuthorityID)
+}
+
 // CommitMessage represents a network finalisation message
 type CommitMessage struct {
 	Round      uint64
@@ -202,13 +221,20 @@ func (s *Service) newCommitMessage(header *types.Header, round, setID uint64) (*
 // Index returns VDT index
 func (CommitMessage) Index() uint { return 1 }
 
+<<<<<<< HEAD
 // Type returns type of given grandpa message.
 func (CommitMessage) Type() MessageType { return CommitMessageType }
+=======
+func (m CommitMessage) String() string {
+	return fmt.Sprintf("CommitMessage{Round=%d, SetID=%d, Vote={%s}, Precommits=%v, AuthData=%v}",
+		m.Round, m.SetID, m.Vote, m.Precommits, m.AuthData)
+}
+>>>>>>> development
 
 // ToConsensusMessage converts the CommitMessage into a network-level consensus message
-func (f *CommitMessage) ToConsensusMessage() (*ConsensusMessage, error) {
+func (m *CommitMessage) ToConsensusMessage() (*ConsensusMessage, error) {
 	msg := newGrandpaMessage()
-	err := msg.Set(*f)
+	err := msg.Set(*m)
 	if err != nil {
 		return nil, err
 	}
@@ -276,6 +302,10 @@ func (CatchUpRequest) Index() uint { return 3 }
 // Type returns type of given grandpa message.
 func (CatchUpRequest) Type() MessageType { return CatchUpRequestMessageType }
 
+func (r CatchUpRequest) String() string {
+	return fmt.Sprintf("CatchUpRequest{Round=%d, SetID=%d}", r.Round, r.SetID)
+}
+
 // ToConsensusMessage converts the catchUpRequest into a network-level consensus message
 func (r *CatchUpRequest) ToConsensusMessage() (*ConsensusMessage, error) {
 	msg := newGrandpaMessage()
@@ -333,8 +363,16 @@ func (s *Service) newCatchUpResponse(round, setID uint64) (*CatchUpResponse, err
 // Index returns VDT index
 func (CatchUpResponse) Index() uint { return 4 }
 
+<<<<<<< HEAD
 // Type returns type of given grandpa message.
 func (r CatchUpResponse) Type() MessageType { return CatchUpResponseMessageType }
+=======
+func (r CatchUpResponse) String() string {
+	return fmt.Sprintf("CatchUpResponse{SetID=%d, Round=%d, PreVoteJustification=%v, "+
+		"PreCommitJustification=%v, Hash=%s, Number=%d}",
+		r.SetID, r.Round, r.PreVoteJustification, r.PreCommitJustification, r.Hash, r.Number)
+}
+>>>>>>> development
 
 // ToConsensusMessage converts the catchUpResponse into a network-level consensus message
 func (r *CatchUpResponse) ToConsensusMessage() (*ConsensusMessage, error) {

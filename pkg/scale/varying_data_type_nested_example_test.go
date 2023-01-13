@@ -52,6 +52,14 @@ func (ChildVDT) Index() uint {
 	return 1
 }
 
+func (cvdt ChildVDT) String() string {
+	value, err := cvdt.Value()
+	if err != nil {
+		return "ChildVDT()"
+	}
+	return fmt.Sprintf("ChildVDT(%s)", value)
+}
+
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
 func (cvdt *ChildVDT) Set(val scale.VaryingDataTypeValue) (err error) {
 	// cast to VaryingDataType to use VaryingDataType.Set method
@@ -91,6 +99,16 @@ func (OtherChildVDT) Index() uint {
 	return 2
 }
 
+func (cvdt OtherChildVDT) String() string {
+	vdt := scale.VaryingDataType(cvdt)
+	vdtPtr := &vdt
+	value, err := vdtPtr.Value()
+	if err != nil {
+		return "OtherChildVDT()"
+	}
+	return fmt.Sprintf("OtherChildVDT(%s)", value)
+}
+
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
 func (cvdt *OtherChildVDT) Set(val scale.VaryingDataTypeValue) (err error) {
 	// cast to VaryingDataType to use VaryingDataType.Set method
@@ -125,6 +143,8 @@ func (ChildInt16) Index() uint {
 	return 1
 }
 
+func (c ChildInt16) String() string { return fmt.Sprintf("ChildInt16(%d)", c) }
+
 // ChildStruct is used as a VaryingDataTypeValue for ChildVDT and OtherChildVDT
 type ChildStruct struct {
 	A string
@@ -136,6 +156,10 @@ func (ChildStruct) Index() uint {
 	return 2
 }
 
+func (c ChildStruct) String() string {
+	return fmt.Sprintf("ChildStruct{A=%s, B=%t}", c.A, c.B)
+}
+
 // ChildString is used as a VaryingDataTypeValue for ChildVDT and OtherChildVDT
 type ChildString string
 
@@ -143,6 +167,8 @@ type ChildString string
 func (ChildString) Index() uint {
 	return 3
 }
+
+func (c ChildString) String() string { return fmt.Sprintf("ChildString(%s)", string(c)) }
 
 func Example() {
 	parent := NewParentVDT()
@@ -187,8 +213,8 @@ func Example() {
 	fmt.Println(reflect.DeepEqual(parent, dstParent))
 
 	// Output:
-	// parent.Value(): {value:888 cache:map[1:0 2:{A: B:false} 3:]}
-	// child.Value(): 888
+	// parent.Value(): ChildVDT(ChildInt16(888))
+	// child.Value(): ChildInt16(888)
 	// bytes: 01 01 78 03
 	// true
 }

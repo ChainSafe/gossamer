@@ -4,64 +4,58 @@
 package modules
 
 import (
-	"testing"
-
 	modulesmocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/stretchr/testify/mock"
+	"github.com/golang/mock/gomock"
 )
 
-// NewMockeryStorageAPI creates and return an rpc StorageAPI interface mock
-func NewMockeryStorageAPI(t *testing.T) *modulesmocks.StorageAPI {
-	m := modulesmocks.NewStorageAPI(t)
-	m.On("GetStorage", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]uint8")).Return(nil, nil).Maybe()
-	m.On("GetStorageFromChild", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]uint8"),
-		mock.AnythingOfType("[]uint8")).Return(nil, nil).Maybe()
-	m.On("Entries", mock.AnythingOfType("*common.Hash")).Return(nil, nil).Maybe()
-	m.On("GetStorageByBlockHash", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("[]uint8")).
-		Return(nil, nil).Maybe()
-	m.On("RegisterStorageObserver", mock.Anything).Maybe()
-	m.On("UnregisterStorageObserver", mock.Anything).Maybe()
-	m.On("GetStateRootFromBlock", mock.AnythingOfType("*common.Hash")).Return(nil, nil).Maybe()
-	m.On("GetKeysWithPrefix", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]uint8")).Return(nil, nil).Maybe()
+// NewMockAnyStorageAPI creates and return an rpc StorageAPI interface mock
+func NewMockAnyStorageAPI(ctrl *gomock.Controller) *modulesmocks.MockStorageAPI {
+	m := modulesmocks.NewMockStorageAPI(ctrl)
+	m.EXPECT().GetStorage(gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+	m.EXPECT().GetStorageFromChild(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(nil, nil).AnyTimes()
+	m.EXPECT().Entries(gomock.Any()).Return(nil, nil).AnyTimes()
+	m.EXPECT().GetStorageByBlockHash(gomock.Any(), gomock.Any()).
+		Return(nil, nil).AnyTimes()
+	m.EXPECT().RegisterStorageObserver(gomock.Any()).AnyTimes()
+	m.EXPECT().UnregisterStorageObserver(gomock.Any()).AnyTimes()
+	m.EXPECT().GetStateRootFromBlock(gomock.Any()).Return(nil, nil).AnyTimes()
+	m.EXPECT().GetKeysWithPrefix(gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
 	return m
 }
 
-// NewMockeryBlockAPI creates and return an rpc BlockAPI interface mock
-func NewMockeryBlockAPI(t *testing.T) *modulesmocks.BlockAPI {
-	m := modulesmocks.NewBlockAPI(t)
-	m.On("GetHeader", mock.AnythingOfType("common.Hash")).Return(nil, nil).Maybe()
-	m.On("BestBlockHash").Return(common.Hash{}).Maybe()
-	m.On("GetBlockByHash", mock.AnythingOfType("common.Hash")).Return(nil, nil).Maybe()
-	m.On("GetHashByNumber", mock.AnythingOfType("uint")).Return(nil, nil).Maybe()
-	m.On("GetFinalisedHash", mock.AnythingOfType("uint64"), mock.AnythingOfType("uint64")).
-		Return(common.Hash{}, nil).Maybe()
-	m.On("GetHighestFinalisedHash").Return(common.Hash{}, nil).Maybe()
-	m.On("GetImportedBlockNotifierChannel").Return(make(chan *types.Block, 5)).Maybe()
-	m.On("FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block")).Maybe()
-	m.On("GetFinalisedNotifierChannel").Return(make(chan *types.FinalisationInfo, 5)).Maybe()
-	m.On("FreeFinalisedNotifierChannel", mock.AnythingOfType("chan *types.FinalisationInfo")).Maybe()
-	m.On("GetJustification", mock.AnythingOfType("common.Hash")).Return(make([]byte, 10), nil).Maybe()
-	m.On("HasJustification", mock.AnythingOfType("common.Hash")).Return(true, nil).Maybe()
-	m.On("SubChain", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash")).
-		Return(make([]common.Hash, 0), nil).Maybe()
-	m.On("RegisterRuntimeUpdatedChannel", mock.AnythingOfType("chan<- runtime.Version")).
-		Return(uint32(0), nil).Maybe()
-
+// NewMockAnyBlockAPI creates and return an rpc BlockAPI interface mock
+func NewMockAnyBlockAPI(ctrl *gomock.Controller) *modulesmocks.MockBlockAPI {
+	m := modulesmocks.NewMockBlockAPI(ctrl)
+	m.EXPECT().GetHeader(gomock.Any()).Return(nil, nil).AnyTimes()
+	m.EXPECT().BestBlockHash().Return(common.Hash{}).AnyTimes()
+	m.EXPECT().GetBlockByHash(gomock.Any()).Return(nil, nil).AnyTimes()
+	m.EXPECT().GetHashByNumber(gomock.Any()).Return(common.Hash{}, nil).AnyTimes()
+	m.EXPECT().GetFinalisedHash(gomock.Any(), gomock.Any()).
+		Return(common.Hash{}, nil).AnyTimes()
+	m.EXPECT().GetHighestFinalisedHash().Return(common.Hash{}, nil).AnyTimes()
+	m.EXPECT().GetImportedBlockNotifierChannel().Return(make(chan *types.Block, 5)).AnyTimes()
+	m.EXPECT().FreeImportedBlockNotifierChannel(gomock.Any()).AnyTimes()
+	m.EXPECT().GetFinalisedNotifierChannel().Return(make(chan *types.FinalisationInfo, 5)).AnyTimes()
+	m.EXPECT().FreeFinalisedNotifierChannel(gomock.Any()).AnyTimes()
+	m.EXPECT().GetJustification(gomock.Any()).Return(make([]byte, 10), nil).AnyTimes()
+	m.EXPECT().HasJustification(gomock.Any()).Return(true, nil).AnyTimes()
+	m.EXPECT().RegisterRuntimeUpdatedChannel(gomock.Any()).
+		Return(uint32(0), nil).AnyTimes()
 	return m
 }
 
-// NewMockCoreAPI creates and return an rpc CoreAPI interface mock
-func NewMockCoreAPI(t *testing.T) *modulesmocks.CoreAPI {
-	m := modulesmocks.NewCoreAPI(t)
-	m.On("InsertKey", mock.AnythingOfType("core.Keypair"), mock.AnythingOfType("string")).Return(nil).Maybe()
-	m.On("HasKey", mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(false, nil).Maybe()
-	m.On("GetRuntimeVersion", mock.AnythingOfType("*common.Hash")).
-		Return(runtime.Version{SpecName: []byte(`mock-spec`)}, nil).Maybe()
-	m.On("IsBlockProducer").Return(false).Maybe()
-	m.On("HandleSubmittedExtrinsic", mock.AnythingOfType("types.Extrinsic")).Return(nil).Maybe()
-	m.On("GetMetadata", mock.AnythingOfType("*common.Hash")).Return(nil, nil).Maybe()
+// NewMockAnyAPI creates and return an rpc CoreAPI interface mock
+func NewMockAnyAPI(ctrl *gomock.Controller) *modulesmocks.MockCoreAPI {
+	m := modulesmocks.NewMockCoreAPI(ctrl)
+	m.EXPECT().InsertKey(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	m.EXPECT().HasKey(gomock.Any(), gomock.Any()).Return(false, nil).AnyTimes()
+	m.EXPECT().GetRuntimeVersion(gomock.Any()).
+		Return(runtime.Version{SpecName: []byte(`mock-spec`)}, nil).AnyTimes()
+	m.EXPECT().HandleSubmittedExtrinsic(gomock.Any()).Return(nil).AnyTimes()
+	m.EXPECT().GetMetadata(gomock.Any()).Return(nil, nil).AnyTimes()
 	return m
 }

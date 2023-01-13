@@ -225,7 +225,7 @@ func TestInvalidCommand(t *testing.T) {
 }
 
 func TestInitCommand_RenameNodeWhenCalled(t *testing.T) {
-	genesisPath := utils.GetGssmrGenesisRawPathTest(t)
+	genesisPath := utils.GetWestendDevRawGenesisPath(t)
 
 	tempDir := t.TempDir()
 
@@ -268,7 +268,7 @@ func TestBuildSpecCommandWithOutput(t *testing.T) {
 	buildSpecCommand := runTestGossamer(t,
 		"build-spec",
 		"--raw",
-		"--genesis-spec", utils.GetGssmrGenesisRawPathTest(t),
+		"--genesis-spec", utils.GetWestendDevRawGenesisPath(t),
 		"--output", tmpOutputfile)
 
 	time.Sleep(5 * time.Second)

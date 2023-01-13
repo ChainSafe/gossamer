@@ -5,6 +5,7 @@ package wasmer
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -65,4 +66,14 @@ func Test_pointerSize(t *testing.T) {
 			assert.Equal(t, testCase.size, size)
 		})
 	}
+}
+
+func Test_panicOnError(t *testing.T) {
+	t.Parallel()
+
+	err := (error)(nil)
+	assert.NotPanics(t, func() { panicOnError(err) })
+
+	err = errors.New("test error")
+	assert.PanicsWithValue(t, err, func() { panicOnError(err) })
 }

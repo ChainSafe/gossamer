@@ -23,7 +23,6 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/golang/mock/gomock"
 
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -202,11 +201,11 @@ func TestService_SlotDuration(t *testing.T) {
 }
 
 func TestService_ProducesBlocks(t *testing.T) {
-	blockImportHandler := mocks.NewBlockImportHandler(t)
-	blockImportHandler.
-		On("HandleBlockProduced",
-			mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState")).
-		Return(nil)
+	ctrl := gomock.NewController(t)
+
+	blockImportHandler := NewMockBlockImportHandler(ctrl)
+	blockImportHandler.EXPECT().HandleBlockProduced(gomock.Any(), gomock.Any()).
+		Return(nil).MinTimes(2)
 	cfg := ServiceConfig{
 		Authority:          true,
 		Lead:               true,
@@ -216,15 +215,9 @@ func TestService_ProducesBlocks(t *testing.T) {
 
 	err := babeService.Start()
 	require.NoError(t, err)
-	defer func() {
-		_ = babeService.Stop()
-	}()
-
 	time.Sleep(babeService.constants.slotDuration * 2)
-	babeService.blockImportHandler.(*mocks.BlockImportHandler).
-		AssertCalled(t, "HandleBlockProduced",
-			mock.AnythingOfType("*types.Block"),
-			mock.AnythingOfType("*storage.TrieState"))
+	err = babeService.Stop()
+	require.NoError(t, err)
 }
 
 func TestService_GetAuthorityIndex(t *testing.T) {

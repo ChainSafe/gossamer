@@ -5,6 +5,7 @@ package scale
 
 import (
 	"fmt"
+	"strings"
 )
 
 // VaryingDataTypeValue is used to represent scale encodable types of an associated VaryingDataType
@@ -31,6 +32,14 @@ func (vdts *VaryingDataTypeSlice) Add(values ...VaryingDataTypeValue) (err error
 		vdts.Types = append(vdts.Types, copied)
 	}
 	return
+}
+
+func (vdts VaryingDataTypeSlice) String() string {
+	stringTypes := make([]string, len(vdts.Types))
+	for i, vdt := range vdts.Types {
+		stringTypes[i] = vdt.String()
+	}
+	return "[" + strings.Join(stringTypes, ", ") + "]"
 }
 
 // NewVaryingDataTypeSlice is constructor for VaryingDataTypeSlice
@@ -72,6 +81,17 @@ func (vdt *VaryingDataType) Value() (VaryingDataTypeValue, error) {
 		return nil, ErrVaryingDataTypeNotSet
 	}
 	return vdt.value, nil
+}
+
+func (vdt VaryingDataType) String() string {
+	if vdt.value == nil {
+		return "VaryingDataType(nil)"
+	}
+	stringer, ok := vdt.value.(fmt.Stringer)
+	if !ok {
+		return fmt.Sprintf("VaryingDataType(%v)", vdt.value)
+	}
+	return stringer.String()
 }
 
 // NewVaryingDataType is constructor for VaryingDataType

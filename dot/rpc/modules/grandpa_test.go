@@ -112,6 +112,8 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 }
 
 func TestGrandpaModule_RoundState(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
 	var kr, _ = keystore.NewEd25519Keyring()
 	var voters grandpa.Voters
 
@@ -122,18 +124,18 @@ func TestGrandpaModule_RoundState(t *testing.T) {
 		})
 	}
 
-	mockBlockAPI := mocks.NewBlockAPI(t)
-	mockBlockFinalityAPI := mocks.NewBlockFinalityAPI(t)
-	mockBlockFinalityAPI.On("GetVoters").Return(voters)
-	mockBlockFinalityAPI.On("GetSetID").Return(uint64(0))
-	mockBlockFinalityAPI.On("GetRound").Return(uint64(2))
-	mockBlockFinalityAPI.On("PreVotes").Return([]ed25519.PublicKeyBytes{
+	mockBlockAPI := mocks.NewMockBlockAPI(ctrl)
+	mockBlockFinalityAPI := mocks.NewMockBlockFinalityAPI(ctrl)
+	mockBlockFinalityAPI.EXPECT().GetVoters().Return(voters)
+	mockBlockFinalityAPI.EXPECT().GetSetID().Return(uint64(0))
+	mockBlockFinalityAPI.EXPECT().GetRound().Return(uint64(2))
+	mockBlockFinalityAPI.EXPECT().PreVotes().Return([]ed25519.PublicKeyBytes{
 		kr.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 		kr.Bob().Public().(*ed25519.PublicKey).AsBytes(),
 		kr.Charlie().Public().(*ed25519.PublicKey).AsBytes(),
 		kr.Dave().Public().(*ed25519.PublicKey).AsBytes(),
 	})
-	mockBlockFinalityAPI.On("PreCommits").Return([]ed25519.PublicKeyBytes{
+	mockBlockFinalityAPI.EXPECT().PreCommits().Return([]ed25519.PublicKeyBytes{
 		kr.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 		kr.Bob().Public().(*ed25519.PublicKey).AsBytes(),
 	})

@@ -53,6 +53,8 @@ func (VDTValue) Index() uint {
 	return 1
 }
 
+func (VDTValue) String() string { return "" }
+
 type VDTValue1 struct {
 	O  **big.Int
 	P  *int
@@ -73,6 +75,8 @@ type VDTValue1 struct {
 func (VDTValue1) Index() uint {
 	return 2
 }
+
+func (VDTValue1) String() string { return "" }
 
 type VDTValue2 struct {
 	A MyStruct
@@ -99,11 +103,15 @@ func (VDTValue2) Index() uint {
 	return 3
 }
 
+func (VDTValue2) String() string { return "" }
+
 type VDTValue3 int16
 
 func (VDTValue3) Index() uint {
 	return 4
 }
+
+func (VDTValue3) String() string { return "" }
 
 var varyingDataTypeTests = tests{
 	{
