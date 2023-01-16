@@ -21,7 +21,7 @@ type VaryingDataTypeSlice struct {
 }
 
 // Add takes variadic parameter values to add VaryingDataTypeValue(s)
-func (vdts *VaryingDataTypeSlice) Add(values ...VaryingDataTypeValue) (err error) {
+func (vdts *VaryingDataTypeSlice) Add(values ...VaryingDataTypeValue) (err error) { //skipcq: GO-W1029
 	for _, val := range values {
 		copied := vdts.VaryingDataType
 		err = copied.Set(val)
@@ -34,7 +34,7 @@ func (vdts *VaryingDataTypeSlice) Add(values ...VaryingDataTypeValue) (err error
 	return
 }
 
-func (vdts VaryingDataTypeSlice) String() string {
+func (vdts VaryingDataTypeSlice) String() string { //skipcq: GO-W1029
 	stringTypes := make([]string, len(vdts.Types))
 	for i, vdt := range vdts.Types {
 		stringTypes[i] = vdt.String()
@@ -65,7 +65,7 @@ type VaryingDataType struct {
 }
 
 // Set will set the VaryingDataType value
-func (vdt *VaryingDataType) Set(value VaryingDataTypeValue) (err error) {
+func (vdt *VaryingDataType) Set(value VaryingDataTypeValue) (err error) { //skipcq: GO-W1029
 	_, ok := vdt.cache[value.Index()]
 	if !ok {
 		err = fmt.Errorf("%w: %v (%T)", ErrUnsupportedVaryingDataTypeValue, value, value)
@@ -76,14 +76,14 @@ func (vdt *VaryingDataType) Set(value VaryingDataTypeValue) (err error) {
 }
 
 // Value returns value stored in vdt
-func (vdt *VaryingDataType) Value() (VaryingDataTypeValue, error) {
+func (vdt *VaryingDataType) Value() (VaryingDataTypeValue, error) { //skipcq: GO-W1029
 	if vdt.value == nil {
 		return nil, ErrVaryingDataTypeNotSet
 	}
 	return vdt.value, nil
 }
 
-func (vdt VaryingDataType) String() string {
+func (vdt VaryingDataType) String() string { //skipcq: GO-W1029
 	if vdt.value == nil {
 		return "VaryingDataType(nil)"
 	}

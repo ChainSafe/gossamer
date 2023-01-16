@@ -52,7 +52,7 @@ func (n *Node) String() string {
 }
 
 // StringNode returns a gotree compatible node for String methods.
-func (n Node) StringNode() (stringNode *gotree.Node) {
+func (n *Node) StringNode() (stringNode *gotree.Node) {
 	caser := cases.Title(language.BritishEnglish)
 	stringNode = gotree.New(caser.String(n.Kind().String()))
 	stringNode.Appendf("Generation: %d", n.Generation)

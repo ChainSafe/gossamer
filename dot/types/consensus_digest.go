@@ -95,14 +95,14 @@ type NextEpochData struct {
 }
 
 // Index returns VDT index
-func (NextEpochData) Index() uint { return 1 }
+func (NextEpochData) Index() uint { return 1 } //skipcq: GO-W1029
 
-func (d NextEpochData) String() string {
+func (d NextEpochData) String() string { //skipcq: GO-W1029
 	return fmt.Sprintf("NextEpochData Authorities=%v Randomness=%v", d.Authorities, d.Randomness)
 }
 
 // ToEpochData returns the NextEpochData as EpochData
-func (d *NextEpochData) ToEpochData() (*EpochData, error) {
+func (d *NextEpochData) ToEpochData() (*EpochData, error) { //skipcq: GO-W1029
 	auths, err := BABEAuthorityRawToAuthority(d.Authorities)
 	if err != nil {
 		return nil, err
@@ -135,15 +135,15 @@ type NextConfigData struct {
 }
 
 // Index returns VDT index
-func (NextConfigData) Index() uint { return 3 }
+func (NextConfigData) Index() uint { return 3 } //skipcq: GO-W1029
 
-func (d NextConfigData) String() string {
+func (d NextConfigData) String() string { //skipcq: GO-W1029
 	return fmt.Sprintf("NextConfigData{C1=%d, C2=%d, SecondarySlots=%d}",
 		d.C1, d.C2, d.SecondarySlots)
 }
 
 // ToConfigData returns the NextConfigData as ConfigData
-func (d *NextConfigData) ToConfigData() *ConfigData {
+func (d *NextConfigData) ToConfigData() *ConfigData { //skipcq: GO-W1029
 	return &ConfigData{
 		C1:             d.C1,
 		C2:             d.C2,
