@@ -240,7 +240,7 @@ func buildBlockInherents(slot Slot, rt ExtrinsicHandler, parent *types.Header) (
 		return nil, err
 	}
 
-	parachainInherent := ParachainInherentData{
+	parachainInherent := types.ParachainInherentData{
 		ParentHeader: *parent,
 	}
 

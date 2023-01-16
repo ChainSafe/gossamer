@@ -1,12 +1,11 @@
 // Copyright 2022 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package babe
+package types
 
 import (
 	"testing"
 
-	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/assert"
@@ -276,9 +275,8 @@ func TestParachainInherents(t *testing.T) {
 	// let mut inherents: sp_inherents::InherentData = sp_inherents::InherentData::new();
 	// inherents.put_data(*b"parachn0", &para_int).unwrap();
 	// println!("{:?}", inherents.encode());
-
 	parachainInherent := ParachainInherentData{
-		ParentHeader: types.Header{
+		ParentHeader: Header{
 			ParentHash:     common.MustBlake2bHash([]byte("1000")),
 			Number:         uint(2000),
 			StateRoot:      common.MustBlake2bHash([]byte("3000")),
@@ -291,8 +289,8 @@ func TestParachainInherents(t *testing.T) {
 
 	assert.Equal(t, expectedParaInherentsbytes, actualParaInherentBytes)
 
-	idata := types.NewInherentData()
-	err = idata.SetInherent(types.Parachn0, parachainInherent)
+	idata := NewInherentData()
+	err = idata.SetInherent(Parachn0, parachainInherent)
 	require.NoError(t, err)
 
 	actualInherentsBytes, err := idata.Encode()

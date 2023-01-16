@@ -1,12 +1,11 @@
 // Copyright 2022 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package babe
+package types
 
 import (
 	"fmt"
 
-	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
@@ -379,5 +378,5 @@ type ParachainInherentData struct {
 	// Sets of dispute votes for inclusion,
 	Disputes multiDisputeStatementSet `scale:"3"`
 	// The parent block header. Used for checking state proofs.
-	ParentHeader types.Header `scale:"4"`
+	ParentHeader Header `scale:"4"`
 }
