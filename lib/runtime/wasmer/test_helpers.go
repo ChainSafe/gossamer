@@ -14,6 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/mocks"
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -32,7 +33,9 @@ func NewTestInstance(t *testing.T, targetRuntime string) *Instance {
 func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie) *Instance {
 	t.Helper()
 
-	cfg := setupConfig(t, tt, DefaultTestLogLvl, common.NoNetworkRole, targetRuntime)
+	ctrl := gomock.NewController(t)
+
+	cfg := setupConfig(t, ctrl, tt, DefaultTestLogLvl, common.NoNetworkRole, targetRuntime)
 	targetRuntime, err := runtime.GetRuntime(context.Background(), targetRuntime)
 	require.NoError(t, err)
 
@@ -42,7 +45,7 @@ func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie) 
 	return r
 }
 
-func setupConfig(t *testing.T, tt *trie.Trie, lvl log.Level,
+func setupConfig(t *testing.T, ctrl *gomock.Controller, tt *trie.Trie, lvl log.Level,
 	role common.Roles, targetRuntime string) Config {
 	t.Helper()
 
@@ -68,7 +71,7 @@ func setupConfig(t *testing.T, tt *trie.Trie, lvl log.Level,
 		LogLvl:      lvl,
 		NodeStorage: ns,
 		Network:     new(runtime.TestRuntimeNetwork),
-		Transaction: mocks.NewTransactionState(t),
+		Transaction: mocks.NewMockTransactionState(ctrl),
 		Role:        role,
 		testVersion: version,
 	}

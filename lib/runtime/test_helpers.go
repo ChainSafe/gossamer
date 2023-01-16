@@ -263,8 +263,6 @@ func NewTestExtrinsic(t *testing.T, rt MetadataVersioner, genHash, blockHash com
 	return extEnc
 }
 
-//go:generate mockery --name Instance --structname Instance --case underscore --keeptree
-
 // Instance is the interface to interact with the runtime.
 type Instance interface {
 	UpdateRuntimeCode([]byte) error

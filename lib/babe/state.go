@@ -70,8 +70,6 @@ type EpochState interface {
 	SkipVerify(*types.Header) (bool, error)
 }
 
-//go:generate mockery --name BlockImportHandler --structname BlockImportHandler --case underscore --keeptree
-
 // BlockImportHandler is the interface for the handler of new blocks
 type BlockImportHandler interface {
 	HandleBlockProduced(block *types.Block, state *rtstorage.TrieState) error

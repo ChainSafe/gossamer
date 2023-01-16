@@ -14,41 +14,44 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	mocksruntime "github.com/ChainSafe/gossamer/lib/runtime/mocks"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/golang/mock/gomock"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestPaymentModule_QueryInfo(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
 	testHash := common.NewHash([]byte{0x01, 0x02})
 	u, err := scale.NewUint128(new(big.Int).SetBytes([]byte{1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6}))
 	require.NoError(t, err)
 
-	runtimeMock := mocksruntime.NewInstance(t)
-	runtimeMock2 := mocksruntime.NewInstance(t)
-	runtimeErrorMock := mocksruntime.NewInstance(t)
+	runtimeMock := mocksruntime.NewMockInstance(ctrl)
+	runtimeMock2 := mocksruntime.NewMockInstance(ctrl)
+	runtimeErrorMock := mocksruntime.NewMockInstance(ctrl)
 
-	blockAPIMock := mocks.NewBlockAPI(t)
-	blockAPIMock2 := mocks.NewBlockAPI(t)
-	blockErrorAPIMock1 := mocks.NewBlockAPI(t)
-	blockErrorAPIMock2 := mocks.NewBlockAPI(t)
+	blockAPIMock := mocks.NewMockBlockAPI(ctrl)
+	blockAPIMock2 := mocks.NewMockBlockAPI(ctrl)
+	blockErrorAPIMock1 := mocks.NewMockBlockAPI(ctrl)
+	blockErrorAPIMock2 := mocks.NewMockBlockAPI(ctrl)
 
-	blockAPIMock.On("BestBlockHash").Return(testHash, nil)
-	blockAPIMock.On("GetRuntime", testHash).Return(runtimeMock, nil)
+	blockAPIMock.EXPECT().BestBlockHash().Return(testHash).AnyTimes()
+	blockAPIMock.EXPECT().GetRuntime(testHash).Return(runtimeMock, nil).AnyTimes()
 
-	blockAPIMock2.On("GetRuntime", testHash).Return(runtimeMock2, nil)
+	blockAPIMock2.EXPECT().GetRuntime(testHash).Return(runtimeMock2, nil)
 
-	blockErrorAPIMock1.On("GetRuntime", testHash).Return(runtimeErrorMock, nil)
+	blockErrorAPIMock1.EXPECT().GetRuntime(testHash).Return(runtimeErrorMock, nil)
 
-	blockErrorAPIMock2.On("GetRuntime", testHash).Return(nil, errors.New("GetRuntime error"))
+	blockErrorAPIMock2.EXPECT().GetRuntime(testHash).Return(nil, errors.New("GetRuntime error"))
 
-	runtimeMock.On("PaymentQueryInfo", common.MustHexToBytes("0x0000")).Return(nil, nil)
-	runtimeMock2.On("PaymentQueryInfo", common.MustHexToBytes("0x0000")).Return(&types.RuntimeDispatchInfo{
+	runtimeMock.EXPECT().PaymentQueryInfo(common.MustHexToBytes("0x0000")).Return(nil, nil).AnyTimes()
+	runtimeMock2.EXPECT().PaymentQueryInfo(common.MustHexToBytes("0x0000")).Return(&types.RuntimeDispatchInfo{
 		Weight:     uint64(21),
 		Class:      21,
 		PartialFee: u,
 	}, nil)
-	runtimeErrorMock.On("PaymentQueryInfo", common.MustHexToBytes("0x0000")).
+	runtimeErrorMock.EXPECT().PaymentQueryInfo(common.MustHexToBytes("0x0000")).
 		Return(nil, errors.New("PaymentQueryInfo error"))
 
 	paymentModule := NewPaymentModule(blockAPIMock)

@@ -21,8 +21,10 @@ import (
 )
 
 func TestSystemModule_ChainTest(t *testing.T) {
-	mockSystemAPI := mocks.NewSystemAPI(t)
-	mockSystemAPI.On("ChainName").Return("polkadot", nil)
+	ctrl := gomock.NewController(t)
+
+	mockSystemAPI := mocks.NewMockSystemAPI(ctrl)
+	mockSystemAPI.EXPECT().ChainName().Return("polkadot")
 	sm := &SystemModule{
 		systemAPI: mockSystemAPI,
 	}
@@ -36,8 +38,10 @@ func TestSystemModule_ChainTest(t *testing.T) {
 }
 
 func TestSystemModule_NameTest(t *testing.T) {
-	mockSystemAPI := mocks.NewSystemAPI(t)
-	mockSystemAPI.On("SystemName").Return("kusama", nil)
+	ctrl := gomock.NewController(t)
+
+	mockSystemAPI := mocks.NewMockSystemAPI(ctrl)
+	mockSystemAPI.EXPECT().SystemName().Return("kusama")
 	sm := &SystemModule{
 		systemAPI: mockSystemAPI,
 	}
@@ -51,8 +55,10 @@ func TestSystemModule_NameTest(t *testing.T) {
 }
 
 func TestSystemModule_ChainTypeTest(t *testing.T) {
-	mockSystemAPI := mocks.NewSystemAPI(t)
-	mockSystemAPI.On("ChainType").Return("testChainType", nil)
+	ctrl := gomock.NewController(t)
+
+	mockSystemAPI := mocks.NewMockSystemAPI(ctrl)
+	mockSystemAPI.EXPECT().ChainType().Return("testChainType")
 	sm := &SystemModule{
 		systemAPI: mockSystemAPI,
 	}
@@ -66,9 +72,11 @@ func TestSystemModule_ChainTypeTest(t *testing.T) {
 }
 
 func TestSystemModule_PropertiesTest(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
 	var emptyMap map[string]interface{}
-	mockSystemAPI := mocks.NewSystemAPI(t)
-	mockSystemAPI.On("Properties").Return(emptyMap)
+	mockSystemAPI := mocks.NewMockSystemAPI(ctrl)
+	mockSystemAPI.EXPECT().Properties().Return(emptyMap)
 	sm := &SystemModule{
 		systemAPI: mockSystemAPI,
 	}
@@ -81,8 +89,10 @@ func TestSystemModule_PropertiesTest(t *testing.T) {
 }
 
 func TestSystemModule_SystemVersionTest(t *testing.T) {
-	mockSystemAPI := mocks.NewSystemAPI(t)
-	mockSystemAPI.On("SystemVersion").Return("1.2.1", nil)
+	ctrl := gomock.NewController(t)
+
+	mockSystemAPI := mocks.NewMockSystemAPI(ctrl)
+	mockSystemAPI.EXPECT().SystemVersion().Return("1.2.1")
 	sm := &SystemModule{
 		systemAPI: mockSystemAPI,
 	}
@@ -96,8 +106,10 @@ func TestSystemModule_SystemVersionTest(t *testing.T) {
 }
 
 func TestSystemModule_HealthTest(t *testing.T) {
-	mockNetworkAPI := mocks.NewNetworkAPI(t)
-	mockNetworkAPI.On("Health").Return(common.Health{}, nil)
+	ctrl := gomock.NewController(t)
+
+	mockNetworkAPI := mocks.NewMockNetworkAPI(ctrl)
+	mockNetworkAPI.EXPECT().Health().Return(common.Health{})
 	sm := &SystemModule{
 		networkAPI: mockNetworkAPI,
 	}
@@ -110,8 +122,10 @@ func TestSystemModule_HealthTest(t *testing.T) {
 }
 
 func TestSystemModule_NetworkStateTest(t *testing.T) {
-	mockNetworkAPI := mocks.NewNetworkAPI(t)
-	mockNetworkAPI.On("NetworkState").Return(common.NetworkState{}, nil)
+	ctrl := gomock.NewController(t)
+
+	mockNetworkAPI := mocks.NewMockNetworkAPI(ctrl)
+	mockNetworkAPI.EXPECT().NetworkState().Return(common.NetworkState{})
 	sm := &SystemModule{
 		networkAPI: mockNetworkAPI,
 	}
@@ -124,8 +138,10 @@ func TestSystemModule_NetworkStateTest(t *testing.T) {
 }
 
 func TestSystemModule_PeersTest(t *testing.T) {
-	mockNetworkAPI := mocks.NewNetworkAPI(t)
-	mockNetworkAPI.On("Peers").Return([]common.PeerInfo{}, nil)
+	ctrl := gomock.NewController(t)
+
+	mockNetworkAPI := mocks.NewMockNetworkAPI(ctrl)
+	mockNetworkAPI.EXPECT().Peers().Return([]common.PeerInfo{})
 	sm := &SystemModule{
 		networkAPI: mockNetworkAPI,
 	}
@@ -138,17 +154,19 @@ func TestSystemModule_PeersTest(t *testing.T) {
 }
 
 func TestSystemModule_NodeRolesTest(t *testing.T) {
-	mockNetworkAPI1 := mocks.NewNetworkAPI(t)
-	mockNetworkAPI1.On("NodeRoles").Return(common.FullNodeRole, nil)
+	ctrl := gomock.NewController(t)
 
-	mockNetworkAPI2 := mocks.NewNetworkAPI(t)
-	mockNetworkAPI2.On("NodeRoles").Return(common.LightClientRole, nil)
+	mockNetworkAPI1 := mocks.NewMockNetworkAPI(ctrl)
+	mockNetworkAPI1.EXPECT().NodeRoles().Return(common.FullNodeRole)
 
-	mockNetworkAPI3 := mocks.NewNetworkAPI(t)
-	mockNetworkAPI3.On("NodeRoles").Return(common.AuthorityRole, nil)
+	mockNetworkAPI2 := mocks.NewMockNetworkAPI(ctrl)
+	mockNetworkAPI2.EXPECT().NodeRoles().Return(common.LightClientRole)
 
-	mockNetworkAPI4 := mocks.NewNetworkAPI(t)
-	mockNetworkAPI4.On("NodeRoles").Return(common.Roles(21), nil)
+	mockNetworkAPI3 := mocks.NewMockNetworkAPI(ctrl)
+	mockNetworkAPI3.EXPECT().NodeRoles().Return(common.AuthorityRole)
+
+	mockNetworkAPI4 := mocks.NewMockNetworkAPI(ctrl)
+	mockNetworkAPI4.EXPECT().NodeRoles().Return(common.Roles(21))
 
 	type args struct {
 		r   *http.Request
@@ -210,6 +228,8 @@ func TestSystemModule_NodeRolesTest(t *testing.T) {
 }
 
 func TestSystemModule_AccountNextIndex(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
 	storageKeyHex := common.MustHexToBytes("0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886" +
 		"371da93116aec311d8421cece41129ffaac05aa7f9580382edb384b1b43cbcf3d1b1e7f1a1d232cf4139bd48eaafb9656da27d")
 	signedExt := common.MustHexToBytes("0xad018400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e" +
@@ -221,26 +241,28 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 		Validity:  new(transaction.Validity),
 	}
 
-	mockTxStateAPI := mocks.NewTransactionStateAPI(t)
-	mockTxStateAPI.On("Pending").Return(v, nil)
+	mockTxStateAPI := mocks.NewMockTransactionStateAPI(ctrl)
+	mockTxStateAPI.EXPECT().Pending().Return(v).AnyTimes()
 
-	mockCoreAPI := mocks.NewCoreAPI(t)
-	mockCoreAPI.On("GetMetadata", (*common.Hash)(nil)).Return(common.MustHexToBytes(testdata.NewTestMetadata()), nil)
+	mockCoreAPI := mocks.NewMockCoreAPI(ctrl)
+	mockCoreAPI.EXPECT().GetMetadata((*common.Hash)(nil)).
+		Return(common.MustHexToBytes(testdata.NewTestMetadata()), nil).AnyTimes()
 
-	mockCoreAPIErr := mocks.NewCoreAPI(t)
-	mockCoreAPIErr.On("GetMetadata", (*common.Hash)(nil)).Return(nil, errors.New("getMetadata error"))
+	mockCoreAPIErr := mocks.NewMockCoreAPI(ctrl)
+	mockCoreAPIErr.EXPECT().GetMetadata((*common.Hash)(nil)).
+		Return(nil, errors.New("getMetadata error"))
 
 	// Magic number mismatch
-	mockCoreAPIMagicNumMismatch := mocks.NewCoreAPI(t)
-	mockCoreAPIMagicNumMismatch.On("GetMetadata", (*common.Hash)(nil)).Return(storageKeyHex, nil)
+	mockCoreAPIMagicNumMismatch := mocks.NewMockCoreAPI(ctrl)
+	mockCoreAPIMagicNumMismatch.EXPECT().GetMetadata((*common.Hash)(nil)).Return(storageKeyHex, nil)
 
-	mockStorageAPI := mocks.NewStorageAPI(t)
-	mockStorageAPI.On("GetStorage", (*common.Hash)(nil), storageKeyHex).
+	mockStorageAPI := mocks.NewMockStorageAPI(ctrl)
+	mockStorageAPI.EXPECT().GetStorage((*common.Hash)(nil), storageKeyHex).
 		Return(common.MustHexToBytes("0x0300000000000000000000000000000000000000000000000000000000000000000000"+
 			"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"), nil)
 
-	mockStorageAPIErr := mocks.NewStorageAPI(t)
-	mockStorageAPIErr.On("GetStorage", (*common.Hash)(nil), storageKeyHex).Return(nil, errors.New("getStorage error"))
+	mockStorageAPIErr := mocks.NewMockStorageAPI(ctrl)
+	mockStorageAPIErr.EXPECT().GetStorage((*common.Hash)(nil), storageKeyHex).Return(nil, errors.New("getStorage error"))
 
 	type args struct {
 		r   *http.Request
@@ -316,17 +338,19 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 }
 
 func TestSystemModule_SyncState(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
 	hash := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
-	mockBlockAPI := mocks.NewBlockAPI(t)
-	mockBlockAPI.On("BestBlockHash").Return(hash)
-	mockBlockAPI.On("GetHeader", hash).Return(types.NewEmptyHeader(), nil)
+	mockBlockAPI := mocks.NewMockBlockAPI(ctrl)
+	mockBlockAPI.EXPECT().BestBlockHash().Return(hash)
+	mockBlockAPI.EXPECT().GetHeader(hash).Return(types.NewEmptyHeader(), nil)
 
-	mockBlockAPIErr := mocks.NewBlockAPI(t)
-	mockBlockAPIErr.On("BestBlockHash").Return(hash)
-	mockBlockAPIErr.On("GetHeader", hash).Return(nil, errors.New("GetHeader Err"))
+	mockBlockAPIErr := mocks.NewMockBlockAPI(ctrl)
+	mockBlockAPIErr.EXPECT().BestBlockHash().Return(hash)
+	mockBlockAPIErr.EXPECT().GetHeader(hash).Return(nil, errors.New("GetHeader Err"))
 
-	mockNetworkAPI := mocks.NewNetworkAPI(t)
-	mockNetworkAPI.On("StartingBlock").Return(int64(23))
+	mockNetworkAPI := mocks.NewMockNetworkAPI(ctrl)
+	mockNetworkAPI.EXPECT().StartingBlock().Return(int64(23))
 
 	ctrlSyncAPI := gomock.NewController(t)
 	mockSyncAPI := NewMockSyncAPI(ctrlSyncAPI)
@@ -380,8 +404,10 @@ func TestSystemModule_SyncState(t *testing.T) {
 }
 
 func TestSystemModule_LocalListenAddresses(t *testing.T) {
-	mockNetworkAPIEmpty := mocks.NewNetworkAPI(t)
-	mockNetworkAPIEmpty.On("NetworkState").Return(common.NetworkState{})
+	ctrl := gomock.NewController(t)
+
+	mockNetworkAPIEmpty := mocks.NewMockNetworkAPI(ctrl)
+	mockNetworkAPIEmpty.EXPECT().NetworkState().Return(common.NetworkState{})
 
 	addr, err := multiaddr.NewMultiaddr("/ip4/1.2.3.4/tcp/80")
 	require.NoError(t, err)
@@ -392,8 +418,8 @@ func TestSystemModule_LocalListenAddresses(t *testing.T) {
 		Multiaddrs: multiAddy,
 	}
 
-	mockNetworkAPI := mocks.NewNetworkAPI(t)
-	mockNetworkAPI.On("NetworkState").Return(ns, nil)
+	mockNetworkAPI := mocks.NewMockNetworkAPI(ctrl)
+	mockNetworkAPI.EXPECT().NetworkState().Return(ns)
 
 	type args struct {
 		r   *http.Request
@@ -440,8 +466,10 @@ func TestSystemModule_LocalListenAddresses(t *testing.T) {
 }
 
 func TestSystemModule_LocalPeerId(t *testing.T) {
-	mockNetworkAPIEmpty := mocks.NewNetworkAPI(t)
-	mockNetworkAPIEmpty.On("NetworkState").Return(common.NetworkState{})
+	ctrl := gomock.NewController(t)
+
+	mockNetworkAPIEmpty := mocks.NewMockNetworkAPI(ctrl)
+	mockNetworkAPIEmpty.EXPECT().NetworkState().Return(common.NetworkState{})
 
 	addr, err := multiaddr.NewMultiaddr("/ip4/1.2.3.4/tcp/80")
 	require.NoError(t, err)
@@ -452,8 +480,8 @@ func TestSystemModule_LocalPeerId(t *testing.T) {
 		Multiaddrs: multiAddy,
 	}
 
-	mockNetworkAPI := mocks.NewNetworkAPI(t)
-	mockNetworkAPI.On("NetworkState").Return(ns, nil)
+	mockNetworkAPI := mocks.NewMockNetworkAPI(ctrl)
+	mockNetworkAPI.EXPECT().NetworkState().Return(ns)
 
 	type args struct {
 		r   *http.Request
@@ -499,11 +527,13 @@ func TestSystemModule_LocalPeerId(t *testing.T) {
 }
 
 func TestSystemModule_AddReservedPeer(t *testing.T) {
-	mockNetworkAPI := mocks.NewNetworkAPI(t)
-	mockNetworkAPI.On("AddReservedPeers", "jimbo").Return(nil)
+	ctrl := gomock.NewController(t)
 
-	mockNetworkAPIErr := mocks.NewNetworkAPI(t)
-	mockNetworkAPIErr.On("AddReservedPeers", "jimbo").Return(errors.New("addReservedPeer error"))
+	mockNetworkAPI := mocks.NewMockNetworkAPI(ctrl)
+	mockNetworkAPI.EXPECT().AddReservedPeers("jimbo").Return(nil)
+
+	mockNetworkAPIErr := mocks.NewMockNetworkAPI(ctrl)
+	mockNetworkAPIErr.EXPECT().AddReservedPeers("jimbo").Return(errors.New("addReservedPeer error"))
 
 	type args struct {
 		r   *http.Request
@@ -557,11 +587,13 @@ func TestSystemModule_AddReservedPeer(t *testing.T) {
 }
 
 func TestSystemModule_RemoveReservedPeer(t *testing.T) {
-	mockNetworkAPI := mocks.NewNetworkAPI(t)
-	mockNetworkAPI.On("RemoveReservedPeers", "jimbo").Return(nil)
+	ctrl := gomock.NewController(t)
 
-	mockNetworkAPIErr := mocks.NewNetworkAPI(t)
-	mockNetworkAPIErr.On("RemoveReservedPeers", "jimbo").Return(errors.New("removeReservedPeer error"))
+	mockNetworkAPI := mocks.NewMockNetworkAPI(ctrl)
+	mockNetworkAPI.EXPECT().RemoveReservedPeers("jimbo").Return(nil)
+
+	mockNetworkAPIErr := mocks.NewMockNetworkAPI(ctrl)
+	mockNetworkAPIErr.EXPECT().RemoveReservedPeers("jimbo").Return(errors.New("removeReservedPeer error"))
 
 	type args struct {
 		r   *http.Request
