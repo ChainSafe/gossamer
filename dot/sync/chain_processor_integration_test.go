@@ -59,11 +59,11 @@ func buildBlockWithSlotAndTimestamp(t *testing.T, instance state.Runtime,
 	err = inherentData.SetInherent(types.Newheads, []byte{0})
 	require.NoError(t, err)
 
-	ienc, err := inherentData.Encode()
+	encodedInherentData, err := inherentData.Encode()
 	require.NoError(t, err)
 
 	// Call BlockBuilder_inherent_extrinsics which returns the inherents as encoded extrinsics
-	encodedInherentExtrinsics, err := instance.InherentExtrinsics(ienc)
+	encodedInherentExtrinsics, err := instance.InherentExtrinsics(encodedInherentData)
 	require.NoError(t, err)
 
 	// decode inherent extrinsics
@@ -95,7 +95,7 @@ func buildBlockWithSlotAndTimestamp(t *testing.T, instance state.Runtime,
 	}
 }
 
-func buildAndAddBlocksToState(t *testing.T, runtime state.Runtime, blockState *state.BlockState, amount int) {
+func buildAndAddBlocksToState(t *testing.T, runtime state.Runtime, blockState *state.BlockState, amount uint) {
 	t.Helper()
 
 	parent, err := blockState.BestBlockHeader()
@@ -107,7 +107,7 @@ func buildAndAddBlocksToState(t *testing.T, runtime state.Runtime, blockState *s
 	timestamp := uint64(time.Now().Unix())
 	slotDuration := babeConfig.SlotDuration
 
-	for i := 0; i < amount; i++ {
+	for i := uint(0); i < amount; i++ {
 		// calculate the exact slot for each produced block
 		currentSlot := timestamp / slotDuration
 
@@ -128,10 +128,10 @@ func TestChainProcessor_HandleBlockResponse_ValidChain(t *testing.T) {
 	responder := newTestSyncer(t)
 
 	bestBlockHash := responder.blockState.(*state.BlockState).BestBlockHash()
-	rt, err := responder.blockState.GetRuntime(bestBlockHash)
+	runtimeInstance, err := responder.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	buildAndAddBlocksToState(t, rt,
+	buildAndAddBlocksToState(t, runtimeInstance,
 		responder.blockState.(*state.BlockState), maxResponseSize*2)
 
 	// syncer makes request for chain
@@ -182,15 +182,15 @@ func TestChainProcessor_HandleBlockResponse_MissingBlocks(t *testing.T) {
 	syncerRuntime, err := syncer.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	const syncerAmoutOfBlocks = 4
-	buildAndAddBlocksToState(t, syncerRuntime, syncer.blockState.(*state.BlockState), syncerAmoutOfBlocks)
+	const syncerAmountOfBlocks = 4
+	buildAndAddBlocksToState(t, syncerRuntime, syncer.blockState.(*state.BlockState), syncerAmountOfBlocks)
 
 	responder := newTestSyncer(t)
 	responderRuntime, err := responder.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	const responderAmoutOfBlocks = 16
-	buildAndAddBlocksToState(t, responderRuntime, responder.blockState.(*state.BlockState), responderAmoutOfBlocks)
+	const responderAmountOfBlocks = 16
+	buildAndAddBlocksToState(t, responderRuntime, responder.blockState.(*state.BlockState), responderAmountOfBlocks)
 
 	startNum := 15
 	start, err := variadic.NewUint32OrHash(startNum)
@@ -236,10 +236,10 @@ func TestChainProcessor_HandleBlockResponse_BlockData(t *testing.T) {
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
 
-	rt, err := syncer.blockState.GetRuntime(parent.Hash())
+	runtimeInstance, err := syncer.blockState.GetRuntime(parent.Hash())
 	require.NoError(t, err)
 
-	babeConfig, err := rt.BabeConfiguration()
+	babeConfig, err := runtimeInstance.BabeConfiguration()
 	require.NoError(t, err)
 
 	timestamp := uint64(time.Now().Unix())
@@ -247,7 +247,7 @@ func TestChainProcessor_HandleBlockResponse_BlockData(t *testing.T) {
 
 	// calculate the exact slot for each produced block
 	currentSlot := timestamp / slotDuration
-	block := buildBlockWithSlotAndTimestamp(t, rt, parent, currentSlot, timestamp)
+	block := buildBlockWithSlotAndTimestamp(t, runtimeInstance, parent, currentSlot, timestamp)
 
 	bd := []*types.BlockData{{
 		Hash:          block.Header.Hash(),
@@ -274,10 +274,10 @@ func TestChainProcessor_ExecuteBlock(t *testing.T) {
 	require.NoError(t, err)
 
 	bestBlockHash := syncer.blockState.(*state.BlockState).BestBlockHash()
-	rt, err := syncer.blockState.GetRuntime(bestBlockHash)
+	runtimeInstance, err := syncer.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	babeConfig, err := rt.BabeConfiguration()
+	babeConfig, err := runtimeInstance.BabeConfiguration()
 	require.NoError(t, err)
 
 	timestamp := uint64(time.Now().Unix())
@@ -285,14 +285,14 @@ func TestChainProcessor_ExecuteBlock(t *testing.T) {
 
 	// calculate the exact slot for each produced block
 	currentSlot := timestamp / slotDuration
-	block := buildBlockWithSlotAndTimestamp(t, rt, parent, currentSlot, timestamp)
+	block := buildBlockWithSlotAndTimestamp(t, runtimeInstance, parent, currentSlot, timestamp)
 
 	// reset parentState
 	parentState, err := syncer.chainProcessor.(*chainProcessor).storageState.TrieState(&parent.StateRoot)
 	require.NoError(t, err)
-	rt.SetContextStorage(parentState)
+	runtimeInstance.SetContextStorage(parentState)
 
-	_, err = rt.ExecuteBlock(block)
+	_, err = runtimeInstance.ExecuteBlock(block)
 	require.NoError(t, err)
 }
 
