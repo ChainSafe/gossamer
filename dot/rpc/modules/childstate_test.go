@@ -124,7 +124,6 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 					Hash: &common.Hash{},
 				},
 			},
-			exp:    []string{},
 			expErr: errors.New("GetStorageChild error"),
 		},
 		{
@@ -138,7 +137,6 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 					Key: []byte(":child_storage_key"),
 				},
 			},
-			exp:    []string{},
 			expErr: errors.New("GetStateRootFromBlock error"),
 		},
 	}
@@ -148,7 +146,7 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 				storageAPI: tt.fields.storageAPI,
 				blockAPI:   tt.fields.blockAPI,
 			}
-			res := []string{}
+			var res []string
 			err := cs.GetKeys(tt.args.in0, tt.args.req, &res)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())

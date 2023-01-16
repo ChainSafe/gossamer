@@ -73,8 +73,7 @@ func (ks *GenericKeystore) GetKeypairFromAddress(pub common.Address) KeyPair {
 }
 
 // PublicKeys returns all public keys in the keystore
-func (ks *GenericKeystore) PublicKeys() []crypto.PublicKey {
-	srkeys := []crypto.PublicKey{}
+func (ks *GenericKeystore) PublicKeys() (srkeys []crypto.PublicKey) {
 	if ks.keys == nil {
 		return srkeys
 	}
@@ -109,8 +108,7 @@ func (ks *GenericKeystore) NumEd25519Keys() int {
 }
 
 // Ed25519PublicKeys keys
-func (ks *GenericKeystore) Ed25519PublicKeys() []crypto.PublicKey {
-	edkeys := []crypto.PublicKey{}
+func (ks *GenericKeystore) Ed25519PublicKeys() (edkeys []crypto.PublicKey) {
 	if ks.keys == nil {
 		return edkeys
 	}
@@ -138,8 +136,7 @@ func (ks *GenericKeystore) Ed25519Keypairs() (edkeys []KeyPair) {
 }
 
 // Sr25519PublicKeys PublicKey
-func (ks *GenericKeystore) Sr25519PublicKeys() []crypto.PublicKey {
-	srkeys := []crypto.PublicKey{}
+func (ks *GenericKeystore) Sr25519PublicKeys() (srkeys []crypto.PublicKey) {
 	if ks.keys == nil {
 		return srkeys
 	}
@@ -167,8 +164,7 @@ func (ks *GenericKeystore) Sr25519Keypairs() (srkeys []KeyPair) {
 }
 
 // Secp256k1PublicKeys PublicKey
-func (ks *GenericKeystore) Secp256k1PublicKeys() []crypto.PublicKey {
-	sckeys := []crypto.PublicKey{}
+func (ks *GenericKeystore) Secp256k1PublicKeys() (sckeys []crypto.PublicKey) {
 	if ks.keys == nil {
 		return sckeys
 	}

@@ -1865,8 +1865,7 @@ func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 			hashEnc, err := scale.Marshal(testcase.root)
 			require.NoError(t, err)
 
-			args := []byte{}
-			args = append(args, hashEnc...)
+			args := hashEnc
 
 			encProof, err := scale.Marshal(testcase.proof)
 			require.NoError(t, err)
