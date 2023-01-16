@@ -4,6 +4,7 @@
 package wasmer
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"math/big"
@@ -296,7 +297,7 @@ func balanceKey(t *testing.T, pub []byte) []byte {
 }
 
 func TestNodeRuntime_ValidateTransaction(t *testing.T) {
-	genesisPath := utils.GetGssmrV3SubstrateGenesisRawPathTest(t)
+	genesisPath := utils.GetWestendDevRawGenesisPath(t)
 	gen := genesisFromRawJSON(t, genesisPath)
 	genTrie, err := NewTrieFromGenesis(gen)
 	require.NoError(t, err)
@@ -344,11 +345,17 @@ func TestNodeRuntime_ValidateTransaction(t *testing.T) {
 	extHex := runtime.NewTestExtrinsic(t, rt, genesisHeader.Hash(), genesisHeader.Hash(),
 		0, "System.remark", []byte{0xab, 0xcd})
 
-	extBytes := common.MustHexToBytes(extHex)
-	extBytes = append([]byte{byte(types.TxnExternal)}, extBytes...)
+	genesisHashBytes := genesisHeader.Hash().ToBytes()
 
-	runtime.InitializeRuntimeToTest(t, rt, genesisHeader.Hash())
-	_, err = rt.ValidateTransaction(extBytes)
+	validateTransactionArguments := [][]byte{
+		{byte(types.TxnExternal)},
+		common.MustHexToBytes(extHex),
+		genesisHashBytes}
+
+	extrinsicsBytes := bytes.Join(validateTransactionArguments, nil)
+
+	runtime.InitializeRuntimeToTest(t, rt, genesisHeader)
+	_, err = rt.ValidateTransaction(extrinsicsBytes)
 	require.NoError(t, err)
 }
 
@@ -510,12 +517,12 @@ func TestInstance_InitializeBlock_PolkadotRuntime(t *testing.T) {
 
 func TestInstance_FinalizeBlock_NodeRuntime(t *testing.T) {
 	instance := NewTestInstance(t, runtime.NODE_RUNTIME)
-	runtime.InitializeRuntimeToTest(t, instance, common.Hash{})
+	runtime.InitializeRuntimeToTest(t, instance, &types.Header{})
 }
 
 func TestInstance_ExecuteBlock_NodeRuntime(t *testing.T) {
 	instance := NewTestInstance(t, runtime.NODE_RUNTIME)
-	block := runtime.InitializeRuntimeToTest(t, instance, common.Hash{})
+	block := runtime.InitializeRuntimeToTest(t, instance, &types.Header{})
 
 	// reset state back to parent state before executing
 	parentState := storage.NewTrieState(nil)
@@ -544,7 +551,7 @@ func TestInstance_ExecuteBlock_GossamerRuntime(t *testing.T) {
 	instance, err := NewRuntimeFromGenesis(cfg)
 	require.NoError(t, err)
 
-	block := runtime.InitializeRuntimeToTest(t, instance, common.Hash{})
+	block := runtime.InitializeRuntimeToTest(t, instance, &types.Header{})
 
 	// reset state back to parent state before executing
 	parentState := storage.NewTrieState(&genTrie)
@@ -598,7 +605,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime(t *testing.T) {
 
 	instance := NewTestInstance(t, runtime.POLKADOT_RUNTIME)
 
-	block := runtime.InitializeRuntimeToTest(t, instance, common.Hash{})
+	block := runtime.InitializeRuntimeToTest(t, instance, &types.Header{})
 
 	// reset state back to parent state before executing
 	parentState := storage.NewTrieState(nil)

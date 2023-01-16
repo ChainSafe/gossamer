@@ -306,26 +306,50 @@ type Metadataer interface {
 }
 
 // InitializeRuntimeToTest sets a new block using the runtime functions to set initial data into the host
-func InitializeRuntimeToTest(t *testing.T, instance Instance, parentHash common.Hash) *types.Block {
+func InitializeRuntimeToTest(t *testing.T, instance Instance, parentHeader *types.Header) *types.Block {
 	t.Helper()
 
+	babeConfig, err := instance.BabeConfiguration()
+	require.NoError(t, err)
+
+	slotDuration := babeConfig.SlotDuration
+	timestamp := uint64(time.Now().UnixMilli())
+	currentSlot := timestamp / slotDuration
+
+	digest := types.NewDigest()
+	prd, err := types.NewBabeSecondaryPlainPreDigest(0, currentSlot).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest.Add(*prd)
+
 	header := &types.Header{
-		ParentHash: parentHash,
-		Number:     1,
-		Digest:     types.NewDigest(),
+		ParentHash: parentHeader.Hash(),
+		Number:     parentHeader.Number + 1,
+		Digest:     digest,
 	}
 
-	err := instance.InitializeBlock(header)
+	err = instance.InitializeBlock(header)
 	require.NoError(t, err)
 
-	idata := types.NewInherentData()
-	err = idata.SetInherent(types.Timstap0, uint64(1))
+	inherentData := types.NewInherentData()
+	err = inherentData.SetInherent(types.Timstap0, timestamp)
 	require.NoError(t, err)
 
-	err = idata.SetInherent(types.Babeslot, uint64(1))
+	err = inherentData.SetInherent(types.Babeslot, currentSlot)
 	require.NoError(t, err)
 
-	ienc, err := idata.Encode()
+	parachainInherent := struct {
+		ParentHeader types.Header `scale:"4"`
+	}{
+		ParentHeader: *parentHeader,
+	}
+
+	err = inherentData.SetInherent(types.Parachn0, parachainInherent)
+	require.NoError(t, err)
+
+	err = inherentData.SetInherent(types.Newheads, []byte{0})
+	require.NoError(t, err)
+
+	ienc, err := inherentData.Encode()
 	require.NoError(t, err)
 
 	// Call BlockBuilder_inherent_extrinsics which returns the inherents as extrinsics
@@ -333,17 +357,17 @@ func InitializeRuntimeToTest(t *testing.T, instance Instance, parentHash common.
 	require.NoError(t, err)
 
 	// decode inherent extrinsics
-	var exts [][]byte
-	err = scale.Unmarshal(inherentExts, &exts)
+	var extrinsics [][]byte
+	err = scale.Unmarshal(inherentExts, &extrinsics)
 	require.NoError(t, err)
 
 	// apply each inherent extrinsic
-	for _, ext := range exts {
-		in, err := scale.Marshal(ext)
+	for _, ext := range extrinsics {
+		encodedExtrinsic, err := scale.Marshal(ext)
 		require.NoError(t, err)
 
-		ret, err := instance.ApplyExtrinsic(append([]byte{1}, in...))
-		require.NoError(t, err, in)
+		ret, err := instance.ApplyExtrinsic(encodedExtrinsic)
+		require.NoError(t, err, encodedExtrinsic)
 		require.Equal(t, ret, []byte{0, 0})
 	}
 
@@ -359,7 +383,7 @@ func InitializeRuntimeToTest(t *testing.T, instance Instance, parentHash common.
 	require.NoError(t, err)
 	preDigest := *types.NewBABEPreRuntimeDigest(data)
 
-	digest := types.NewDigest()
+	digest = types.NewDigest()
 	err = digest.Add(preDigest)
 	require.NoError(t, err)
 	res.Digest = digest
@@ -379,6 +403,6 @@ func InitializeRuntimeToTest(t *testing.T, instance Instance, parentHash common.
 
 	return &types.Block{
 		Header: *res,
-		Body:   *types.NewBody(types.BytesArrayToExtrinsics(exts)),
+		Body:   *types.NewBody(types.BytesArrayToExtrinsics(extrinsics)),
 	}
 }
