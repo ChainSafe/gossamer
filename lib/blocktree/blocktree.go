@@ -257,19 +257,19 @@ func (bt *BlockTree) Prune(finalised Hash) (forkOriginToChain map[Hash][]Hash) {
 		return nil
 	}
 
-	n := bt.getNode(finalised)
-	if n == nil {
+	finalisedNode := bt.getNode(finalised)
+	if finalisedNode == nil {
 		return nil
 	}
 
 	forkOriginToChain = make(map[Hash][]Hash)
 	lastForkBlockHashToForkOrigin := make(map[Hash]Hash)
-	bt.root.prune(n, forkOriginToChain, lastForkBlockHashToForkOrigin)
+	bt.root.prune(finalisedNode, forkOriginToChain, lastForkBlockHashToForkOrigin)
 
-	bt.root = n
-	bt.root.parent = nil
+	finalisedNode.parent = nil
+	bt.root = finalisedNode
 
-	leaves := n.getLeaves(nil)
+	leaves := finalisedNode.getLeaves(nil)
 	bt.leaves = newEmptyLeafMap()
 	for _, leaf := range leaves {
 		bt.leaves.store(leaf.hash, leaf)
