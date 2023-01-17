@@ -233,24 +233,16 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt ExtrinsicHandler) []*t
 func buildBlockInherents(slot Slot, rt ExtrinsicHandler, parent *types.Header) ([][]byte, error) {
 	// Setup inherents: add timstap0
 	idata := types.NewInherentData()
-	//err := idata.SetInherent(types.Timstap0, uint64(slot.start.UnixMilli()))
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	// add babeslot
-	fmt.Println("babe slot")
-	err := idata.SetInherent(types.Babeslot, slot.number)
+	err := idata.SetInherent(types.Timstap0, uint64(slot.start.UnixMilli()))
 	if err != nil {
 		return nil, err
 	}
 
-	ienc, err := idata.Encode()
+	// add babeslot
+	err = idata.SetInherent(types.Babeslot, slot.number)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(ienc)
-	fmt.Println(len(ienc))
 
 	parachainInherent := inherents.ParachainInherentData{
 		ParentHeader: *parent,
@@ -268,16 +260,12 @@ func buildBlockInherents(slot Slot, rt ExtrinsicHandler, parent *types.Header) (
 		return nil, fmt.Errorf("setting inherent %q: %w", types.Newheads, err)
 	}
 
-	ienc, err = idata.Encode()
+	ienc, err := idata.Encode()
 	if err != nil {
 		return nil, err
 	}
 
-	// slot
-	// Here: [4 98 97 98 101 115 108 111 116 32 92 45 161 16 0 0 0 0] len=18
-
-	// Here: [16 98 97 98 101 115 108 111 116 32 212 44 161 16 0 0 0 0 110 101 119 104 101 97 100 115 8 4 0 112 97 114 97 99 104 110 48 149 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 116 105 109 115 116 97 112 48 32 255 190 138 193 133 1 0 0]
-	// Dev:  [16 98 97 98 101 115 108 111 116 32 1 0 0 0 0 0 0 0 110 101 119 104 101 97 100 115 8 4 0 112 97 114 97 99 104 110 48 149 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 116 105 109 115 116 97 112 48 32 222 87 140 193 133 1 0 0]
+	// ienc is same length
 
 	// Call BlockBuilder_inherent_extrinsics which returns the inherents as extrinsics
 	inherentExts, err := rt.InherentExtrinsics(ienc)
@@ -288,6 +276,7 @@ func buildBlockInherents(slot Slot, rt ExtrinsicHandler, parent *types.Header) (
 	// decode inherent extrinsics
 	var exts [][]byte
 	err = scale.Unmarshal(inherentExts, &exts)
+	fmt.Println(len(exts))
 	if err != nil {
 		return nil, err
 	}
