@@ -127,8 +127,6 @@ func TestService_PauseAndResume(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// Since multiple validator, sometimes not our turn to propose
-// TODO, use westend dev
 func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
 	cfg := ServiceConfig{
 		Authority: true,
