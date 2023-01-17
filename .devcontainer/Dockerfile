@@ -1,7 +1,7 @@
 # Copyright 2021 ChainSafe Systems (ON)
 # SPDX-License-Identifier: LGPL-3.0-only
 
-FROM qmcgaw/godevcontainer:v0.12.0-debian
+FROM qmcgaw/godevcontainer:debian
 ENV CGO_ENABLED=1
 RUN apt-get update && \
   apt-get install -y make htop
@@ -26,13 +26,3 @@ RUN wget -qO protoc.zip "https://github.com/protocolbuffers/protobuf/releases/do
   apt-get remove -y unzip && \
   rm protoc.zip && \
   go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28
-
-# TODO remove these once we can get the latest debian image
-RUN echo "deb https://deb.debian.org/debian bookworm main" >> /etc/apt/sources.list && \
-  apt-get update && \
-  apt-get install -y -t bookworm git && \
-  go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.50 && \
-  go install golang.org/x/tools/gopls@latest
-RUN rm ~/.windows.sh && \
-  wget -qO ~/.windows.sh https://raw.githubusercontent.com/qdm12/basedevcontainer/master/.ssh.sh  && \
-  chmod +x ~/.windows.sh
