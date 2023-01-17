@@ -242,8 +242,9 @@ func (bt *BlockTree) getNode(h Hash) (ret *node) {
 	return nil
 }
 
-// Prune sets the given hash as the new blocktree root,
-// removing all nodes that are not the new root node or its descendant
+// Prune sets the node corresponding to the given `finalised` hash
+// as the new blocktree root and removes all nodes that are not the
+// new root node or its descendants.
 // It returns a mapping of fork block hash origin to a slice of block hashes
 // forming the corresponding forked chain.
 func (bt *BlockTree) Prune(finalised Hash) (forkOriginToChain map[Hash][]Hash) {
