@@ -160,22 +160,37 @@ func (n *node) deepCopy(parent *node) *node {
 func (n *node) prune(finalised *node, pruned []Hash) (updatedPruned []Hash) {
 	updatedPruned = pruned
 
-	// if this is a descedent of the finalised block, keep it
-	// all descendents of this block will also be descendents of the finalised block,
-	// so don't need to check any of those
+	// if the node is a descendant of the finalised node, keep it and its
+	// descendants.
+	// ... -> FINALISED -> ... -> N -> ...
 	if n.isDescendantOf(finalised) {
 		return updatedPruned
 	}
 
-	// if it's not an ancestor the finalised block, prune it
-	if !finalised.isDescendantOf(n) {
-		updatedPruned = append(updatedPruned, n.hash)
-		n.parent.deleteChild(n)
+	// The node is not a descendant of the finalised node.
+	// ... -> N -> ... -> FINALISED -> ...
+	// ... -> N -> ...
+
+	if finalised.isDescendantOf(n) {
+		// The node is an ancestor of the finalised node.
+		// ... -> N -> ... -> FINALISED -> ...
+		// Check its children which may not be on the canonical chain
+		// between the node and the finalised node.
+		for _, child := range n.children {
+			updatedPruned = child.prune(finalised, updatedPruned)
+		}
+		return
 	}
 
-	// if this is an ancestor of the finalised block, keep it,
-	// and check its children
+	// The node is not an ancestor of the finalised node
+	// so it belongs to a fork we want to prune.
+	// o -> ... -> FINALISED -> ...
+	// |--> ... -> N -> ...
+	updatedPruned = append(updatedPruned, n.hash)
+	n.parent.deleteChild(n)
 	for _, child := range n.children {
+		// Prune all the children for the node since they all do
+		// not belong to the canonical chain.
 		updatedPruned = child.prune(finalised, updatedPruned)
 	}
 
