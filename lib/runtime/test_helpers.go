@@ -319,6 +319,7 @@ func InitializeRuntimeToTest(t *testing.T, instance Instance, parentHeader *type
 	prd, err := types.NewBabeSecondaryPlainPreDigest(0, currentSlot).ToPreRuntimeDigest()
 	require.NoError(t, err)
 	err = digest.Add(*prd)
+	require.NoError(t, err)
 
 	header := &types.Header{
 		ParentHash: parentHeader.Hash(),
