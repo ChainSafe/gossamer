@@ -158,10 +158,6 @@ func (n *node) deepCopy(parent *node) *node {
 }
 
 func (n *node) prune(finalised *node, pruned []Hash) []Hash {
-	if pruned == nil {
-		pruned = []Hash{}
-	}
-
 	// if this is a descedent of the finalised block, keep it
 	// all descendents of this block will also be descendents of the finalised block,
 	// so don't need to check any of those
