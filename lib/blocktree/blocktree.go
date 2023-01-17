@@ -244,8 +244,9 @@ func (bt *BlockTree) getNode(h Hash) (ret *node) {
 
 // Prune sets the given hash as the new blocktree root,
 // removing all nodes that are not the new root node or its descendant
-// It returns an array of hashes that have been pruned
-func (bt *BlockTree) Prune(finalised Hash) (pruned []Hash) {
+// It returns a mapping of fork block hash origin to a slice of block hashes
+// forming the corresponding forked chain.
+func (bt *BlockTree) Prune(finalised Hash) (forkOriginToChain map[Hash][]Hash) {
 	bt.Lock()
 	defer bt.Unlock()
 
@@ -258,7 +259,10 @@ func (bt *BlockTree) Prune(finalised Hash) (pruned []Hash) {
 		return nil
 	}
 
-	pruned = bt.root.prune(n, nil)
+	forkOriginToChain = make(map[Hash][]Hash)
+	lastForkBlockHashToForkOrigin := make(map[Hash]Hash)
+	bt.root.prune(n, forkOriginToChain, lastForkBlockHashToForkOrigin)
+
 	bt.root = n
 	bt.root.parent = nil
 
@@ -268,12 +272,14 @@ func (bt *BlockTree) Prune(finalised Hash) (pruned []Hash) {
 		bt.leaves.store(leaf.hash, leaf)
 	}
 
-	for _, hash := range pruned {
-		bt.runtimes.delete(hash)
+	for _, chain := range forkOriginToChain {
+		for _, blockHash := range chain {
+			bt.runtimes.delete(blockHash)
+		}
 	}
 
 	leavesGauge.Set(float64(len(bt.leaves.nodes())))
-	return pruned
+	return forkOriginToChain
 }
 
 // String utilises github.com/disiqueira/gotree to create a printable tree

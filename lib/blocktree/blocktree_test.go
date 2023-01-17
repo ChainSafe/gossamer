@@ -519,16 +519,18 @@ func Test_BlockTree_Prune(t *testing.T) {
 
 	// pick some block to finalise
 	finalised := bt.root.children[0].children[0].children[0]
-	pruned := bt.Prune(finalised.hash)
+	forkOriginToChain := bt.Prune(finalised.hash)
 
-	for _, prunedHash := range pruned {
-		prunedNode := blockTreeCopy.getNode(prunedHash)
-		if prunedNode.isDescendantOf(finalised) {
-			t.Fatal("pruned node that's descendant of finalised node!!")
-		}
+	for _, forkedChain := range forkOriginToChain {
+		for _, prunedHash := range forkedChain {
+			prunedNode := blockTreeCopy.getNode(prunedHash)
+			if prunedNode.isDescendantOf(finalised) {
+				t.Fatal("pruned node that's descendant of finalised node!!")
+			}
 
-		if finalised.isDescendantOf(prunedNode) {
-			t.Fatal("pruned an ancestor of the finalised node!!")
+			if finalised.isDescendantOf(prunedNode) {
+				t.Fatal("pruned an ancestor of the finalised node!!")
+			}
 		}
 	}
 

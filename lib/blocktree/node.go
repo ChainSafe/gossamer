@@ -157,14 +157,15 @@ func (n *node) deepCopy(parent *node) *node {
 	return nCopy
 }
 
-func (n *node) prune(finalised *node, pruned []Hash) (updatedPruned []Hash) {
-	updatedPruned = pruned
-
+// Note `lastForkBlockHashToForkOrigin` is used only as a cache to quickly
+// find the forked chain for a given node, if it exists.
+func (n *node) prune(finalised *node, forkOriginToChain map[Hash][]Hash,
+	lastForkBlockHashToForkOrigin map[Hash]Hash) {
 	// if the node is a descendant of the finalised node, keep it and its
 	// descendants.
 	// ... -> FINALISED -> ... -> N -> ...
 	if n.isDescendantOf(finalised) {
-		return updatedPruned
+		return
 	}
 
 	// The node is not a descendant of the finalised node.
@@ -177,7 +178,8 @@ func (n *node) prune(finalised *node, pruned []Hash) (updatedPruned []Hash) {
 		// Check its children which may not be on the canonical chain
 		// between the node and the finalised node.
 		for _, child := range n.children {
-			updatedPruned = child.prune(finalised, updatedPruned)
+			child.prune(finalised, forkOriginToChain,
+				lastForkBlockHashToForkOrigin)
 		}
 		return
 	}
@@ -186,15 +188,29 @@ func (n *node) prune(finalised *node, pruned []Hash) (updatedPruned []Hash) {
 	// so it belongs to a fork we want to prune.
 	// o -> ... -> FINALISED -> ...
 	// |--> ... -> N -> ...
-	updatedPruned = append(updatedPruned, n.hash)
+
+	// Since we are pruning in depth first search, the node parent
+	// should had been recorded as the last element of one of the forked
+	// chains, or this node is the first node of the forked chain.
+	forkOrigin, forkedChainFound := lastForkBlockHashToForkOrigin[n.parent.hash]
+	if forkedChainFound {
+		delete(lastForkBlockHashToForkOrigin, n.parent.hash)
+		lastForkBlockHashToForkOrigin[n.hash] = forkOrigin
+		forkedChain := forkOriginToChain[forkOrigin]
+		forkOriginToChain[forkOrigin] = append(forkedChain, n.hash)
+	} else {
+		forkOrigin := n.parent.hash
+		lastForkBlockHashToForkOrigin[n.hash] = forkOrigin
+		forkOriginToChain[forkOrigin] = []Hash{n.hash}
+	}
+
 	n.parent.deleteChild(n)
 	for _, child := range n.children {
 		// Prune all the children for the node since they all do
 		// not belong to the canonical chain.
-		updatedPruned = child.prune(finalised, updatedPruned)
+		child.prune(finalised, forkOriginToChain,
+			lastForkBlockHashToForkOrigin)
 	}
-
-	return updatedPruned
 }
 
 func (n *node) deleteChild(toDelete *node) {
