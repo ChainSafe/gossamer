@@ -854,7 +854,7 @@ func Test_verifier_submitAndReportEquivocation(t *testing.T) {
 	const authorityIndex = uint32(1)
 	const epochNumber = uint64(2)
 	output, proof, err := keyPair.VrfSign(makeTranscript(Randomness{}, slot, epochNumber))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	testDigest := types.BabePrimaryPreDigest{
 		AuthorityIndex: authorityIndex,
