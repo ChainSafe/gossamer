@@ -4,7 +4,7 @@
 FROM qmcgaw/godevcontainer:debian
 ENV CGO_ENABLED=1
 RUN apt-get update && \
-  apt-get install -y make htop procps cpulimit
+  apt-get install -y make procps cpulimit
 # Limit the Gossamer CPU usage with:
 # cpulimit -l 10 -p "$(pidof gossamer)"
 RUN wget -qO- https://deb.nodesource.com/setup_14.x | bash - && \
