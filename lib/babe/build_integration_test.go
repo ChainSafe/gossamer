@@ -112,7 +112,6 @@ func TestApplyExtrinsic(t *testing.T) {
 		preRuntimeDigest,
 	)
 
-	// create new block header
 	parentHeader := emptyHeader
 	number := parentHeader.Number + 1
 	digest := types.NewDigest()
@@ -120,22 +119,19 @@ func TestApplyExtrinsic(t *testing.T) {
 	require.NoError(t, err)
 	header := types.NewHeader(parentHeader.Hash(), common.Hash{}, common.Hash{}, number, digest)
 
-	// initialise block header
 	err = rt.InitializeBlock(header)
 	require.NoError(t, err)
 
-	// add block inherents
 	_, err = buildBlockInherents(slot, rt, parentHeader)
 	require.NoError(t, err)
 
 	ext := runtime.NewTestExtrinsic(t, rt, emptyHash, parentHeader.Hash(), 0, signature.TestKeyringPairAlice, "System.remark", []byte{0xab, 0xcd})
-	_, err = rt.ApplyExtrinsic([]byte(common.MustHexToBytes(ext)))
+	_, err = rt.ApplyExtrinsic(common.MustHexToBytes(ext))
 	require.NoError(t, err)
 
 	header1, err := rt.FinalizeBlock()
 	require.NoError(t, err)
 
-	// New block
 	ext2 := runtime.NewTestExtrinsic(t, rt, parentHeader.Hash(), parentHeader.Hash(), 0, signature.TestKeyringPairAlice, "System.remark", []byte{0xab, 0xcd})
 
 	validExt := []byte{byte(types.TxnExternal)}
@@ -334,10 +330,13 @@ func TestBuildBlockTimeMonitor(t *testing.T) {
 		Authority: true,
 	}
 
-	gen, genTrie, genHeader := newWestendLocalGenesisWithTrieAndHeader(t)
+	gen, genTrie, genHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, cfg, gen, genTrie, genHeader)
 
 	parent, err := babeService.blockState.BestBlockHeader()
+	require.NoError(t, err)
+
+	rt, err := babeService.blockState.GetRuntime(parent.Hash())
 	require.NoError(t, err)
 
 	timerMetrics := metrics.GetOrRegisterTimer(buildBlockTimer, nil)
@@ -346,7 +345,8 @@ func TestBuildBlockTimeMonitor(t *testing.T) {
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
-	createTestBlock(t, babeService, parent, [][]byte{}, 1, testEpochIndex, epochData)
+	slot := getSlot(t, rt, time.Now())
+	createTestBlockWithSlot(t, babeService, parent, [][]byte{}, testEpochIndex, epochData, slot)
 	require.Equal(t, int64(1), timerMetrics.Count())
 
 	// TODO: there isn't an easy way to trigger an error in buildBlock from here
