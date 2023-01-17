@@ -276,7 +276,6 @@ func buildBlockInherents(slot Slot, rt ExtrinsicHandler, parent *types.Header) (
 	// decode inherent extrinsics
 	var exts [][]byte
 	err = scale.Unmarshal(inherentExts, &exts)
-	fmt.Println(len(exts))
 	if err != nil {
 		return nil, err
 	}
