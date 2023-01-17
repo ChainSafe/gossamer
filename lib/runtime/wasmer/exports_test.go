@@ -348,7 +348,7 @@ func TestNodeRuntime_ValidateTransaction(t *testing.T) {
 	extBytes := common.MustHexToBytes(extHex)
 	extBytes = append([]byte{byte(types.TxnExternal)}, extBytes...)
 
-	runtime.InitializeRuntimeToTest(t, rt, genesisHeader.Hash())
+	runtime.InitializeRuntimeToTest(t, rt, genesisHeader)
 	_, err = rt.ValidateTransaction(extBytes)
 	require.NoError(t, err)
 }
@@ -511,12 +511,12 @@ func TestInstance_InitializeBlock_PolkadotRuntime(t *testing.T) {
 
 func TestInstance_FinalizeBlock_NodeRuntime(t *testing.T) {
 	instance := NewTestInstance(t, runtime.NODE_RUNTIME)
-	runtime.InitializeRuntimeToTest(t, instance, common.Hash{})
+	runtime.InitializeRuntimeToTest(t, instance, &types.Header{})
 }
 
 func TestInstance_ExecuteBlock_NodeRuntime(t *testing.T) {
 	instance := NewTestInstance(t, runtime.NODE_RUNTIME)
-	block := runtime.InitializeRuntimeToTest(t, instance, common.Hash{})
+	block := runtime.InitializeRuntimeToTest(t, instance, &types.Header{})
 
 	// reset state back to parent state before executing
 	parentState := storage.NewTrieState(nil)
@@ -545,7 +545,7 @@ func TestInstance_ExecuteBlock_GossamerRuntime(t *testing.T) {
 	instance, err := NewRuntimeFromGenesis(cfg)
 	require.NoError(t, err)
 
-	block := runtime.InitializeRuntimeToTest(t, instance, common.Hash{})
+	block := runtime.InitializeRuntimeToTest(t, instance, &types.Header{})
 
 	// reset state back to parent state before executing
 	parentState := storage.NewTrieState(&genTrie)
@@ -599,7 +599,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime(t *testing.T) {
 
 	instance := NewTestInstance(t, runtime.POLKADOT_RUNTIME)
 
-	block := runtime.InitializeRuntimeToTest(t, instance, common.Hash{})
+	block := runtime.InitializeRuntimeToTest(t, instance, &types.Header{})
 
 	// reset state back to parent state before executing
 	parentState := storage.NewTrieState(nil)
