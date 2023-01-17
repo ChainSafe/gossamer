@@ -18,9 +18,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/golang/mock/gomock"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -36,21 +36,24 @@ func TestAuthorModule_HasSessionKeys(t *testing.T) {
 		"9a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc38520426026696d6f6e8034309a9d2a24213896ff06895" +
 		"db16aade8b6502f3a71cf56374cc3852042602661756469")
 
-	coreMockAPIUnmarshalErr := mocks.NewCoreAPI(t)
-	coreMockAPIUnmarshalErr.On("DecodeSessionKeys", []byte{0x4, 0x1}).Return([]byte{0x4, 0x1}, nil)
+	ctrl := gomock.NewController(t)
 
-	coreMockAPIOk := mocks.NewCoreAPI(t)
-	coreMockAPIOk.On("DecodeSessionKeys", pkeys).Return(data, nil)
-	coreMockAPIOk.On("HasKey", mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(true, nil)
+	coreMockAPIUnmarshalErr := mocks.NewMockCoreAPI(ctrl)
+	coreMockAPIUnmarshalErr.EXPECT().DecodeSessionKeys([]byte{0x4, 0x1}).Return([]byte{0x4, 0x1}, nil)
 
-	coreMockAPIErr := mocks.NewCoreAPI(t)
-	coreMockAPIErr.On("DecodeSessionKeys", pkeys).Return(data, nil)
-	coreMockAPIErr.On("HasKey", mock.AnythingOfType("string"),
-		mock.AnythingOfType("string")).
+	coreMockAPIOk := mocks.NewMockCoreAPI(ctrl)
+	coreMockAPIOk.EXPECT().DecodeSessionKeys(pkeys).Return(data, nil)
+	coreMockAPIOk.EXPECT().HasKey(gomock.Any(), gomock.Any()).
+		Return(true, nil).AnyTimes()
+
+	coreMockAPIErr := mocks.NewMockCoreAPI(ctrl)
+	coreMockAPIErr.EXPECT().DecodeSessionKeys(pkeys).Return(data, nil)
+	coreMockAPIErr.EXPECT().HasKey(gomock.Any(),
+		gomock.Any()).
 		Return(false, errors.New("HasKey err"))
 
-	coreMockAPIInvalidDec := mocks.NewCoreAPI(t)
-	coreMockAPIInvalidDec.On("DecodeSessionKeys", pkeys).Return([]byte{0x0}, nil)
+	coreMockAPIInvalidDec := mocks.NewMockCoreAPI(ctrl)
+	coreMockAPIInvalidDec.EXPECT().DecodeSessionKeys(pkeys).Return([]byte{0x0}, nil)
 
 	type fields struct {
 		authorModule *AuthorModule
@@ -148,12 +151,15 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 		201, 74, 231, 222, 101, 85, 108, 102, 39, 31, 190, 210, 14, 215, 124, 19, 160, 180, 203, 54, 110, 167, 163,
 		149, 45, 12, 108, 80, 221, 65, 238, 57, 237, 199, 16, 10, 33, 185, 8, 244, 184, 243, 139, 5, 87, 252, 245,
 		24, 225, 37, 154, 163, 143}
-	errMockCoreAPI := mocks.NewCoreAPI(t)
-	errMockCoreAPI.On("HandleSubmittedExtrinsic",
+
+	ctrl := gomock.NewController(t)
+
+	errMockCoreAPI := mocks.NewMockCoreAPI(ctrl)
+	errMockCoreAPI.EXPECT().HandleSubmittedExtrinsic(
 		types.Extrinsic(common.MustHexToBytes(fmt.Sprintf("0x%x", testInvalidExt)))).Return(fmt.Errorf("some error"))
 
-	mockCoreAPI := mocks.NewCoreAPI(t)
-	mockCoreAPI.On("HandleSubmittedExtrinsic",
+	mockCoreAPI := mocks.NewMockCoreAPI(ctrl)
+	mockCoreAPI.EXPECT().HandleSubmittedExtrinsic(
 		types.Extrinsic(common.MustHexToBytes(fmt.Sprintf("0x%x", testExt)))).Return(nil)
 	type fields struct {
 		logger     Infoer
@@ -223,11 +229,13 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 }
 
 func TestAuthorModule_PendingExtrinsics(t *testing.T) {
-	emptyMockTransactionStateAPI := mocks.NewTransactionStateAPI(t)
-	emptyMockTransactionStateAPI.On("Pending").Return([]*transaction.ValidTransaction{})
+	ctrl := gomock.NewController(t)
 
-	mockTransactionStateAPI := mocks.NewTransactionStateAPI(t)
-	mockTransactionStateAPI.On("Pending").Return([]*transaction.ValidTransaction{
+	emptyMockTransactionStateAPI := mocks.NewMockTransactionStateAPI(ctrl)
+	emptyMockTransactionStateAPI.EXPECT().Pending().Return([]*transaction.ValidTransaction{})
+
+	mockTransactionStateAPI := mocks.NewMockTransactionStateAPI(ctrl)
+	mockTransactionStateAPI.EXPECT().Pending().Return([]*transaction.ValidTransaction{
 		{
 			Extrinsic: types.NewExtrinsic([]byte("someExtrinsic")),
 		},
@@ -308,11 +316,13 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 	require.NoError(t, err)
 	_ = kp3.Public().Hex()
 
-	mockCoreAPIHappyBabe := mocks.NewCoreAPI(t)
-	mockCoreAPIHappyBabe.On("InsertKey", kp1, "babe").Return(nil)
+	ctrl := gomock.NewController(t)
 
-	mockCoreAPIHappyGran := mocks.NewCoreAPI(t)
-	mockCoreAPIHappyGran.On("InsertKey", kp2, "gran").Return(nil)
+	mockCoreAPIHappyBabe := mocks.NewMockCoreAPI(ctrl)
+	mockCoreAPIHappyBabe.EXPECT().InsertKey(kp1, "babe").Return(nil)
+
+	mockCoreAPIHappyGran := mocks.NewMockCoreAPI(ctrl)
+	mockCoreAPIHappyGran.EXPECT().InsertKey(kp2, "gran").Return(nil)
 
 	type fields struct {
 		logger     Infoer
@@ -407,14 +417,16 @@ func TestAuthorModule_HasKey(t *testing.T) {
 	kr, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 
-	mockCoreAPITrue := mocks.NewCoreAPI(t)
-	mockCoreAPITrue.On("HasKey", kr.Alice().Public().Hex(), "babe").Return(true, nil)
+	ctrl := gomock.NewController(t)
 
-	mockCoreAPIFalse := mocks.NewCoreAPI(t)
-	mockCoreAPIFalse.On("HasKey", kr.Alice().Public().Hex(), "babe").Return(false, nil)
+	mockCoreAPITrue := mocks.NewMockCoreAPI(ctrl)
+	mockCoreAPITrue.EXPECT().HasKey(kr.Alice().Public().Hex(), "babe").Return(true, nil)
 
-	mockCoreAPIErr := mocks.NewCoreAPI(t)
-	mockCoreAPIErr.On("HasKey", kr.Alice().Public().Hex(), "babe").Return(false, fmt.Errorf("some error"))
+	mockCoreAPIFalse := mocks.NewMockCoreAPI(ctrl)
+	mockCoreAPIFalse.EXPECT().HasKey(kr.Alice().Public().Hex(), "babe").Return(false, nil)
+
+	mockCoreAPIErr := mocks.NewMockCoreAPI(ctrl)
+	mockCoreAPIErr.EXPECT().HasKey(kr.Alice().Public().Hex(), "babe").Return(false, fmt.Errorf("some error"))
 
 	type fields struct {
 		logger     Infoer

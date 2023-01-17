@@ -12,7 +12,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/babe"
-	babemocks "github.com/ChainSafe/gossamer/lib/babe/mocks"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -51,6 +50,8 @@ func newState(t *testing.T) (*state.BlockState, *state.EpochState) {
 }
 
 func newBABEService(t *testing.T) *babe.Service {
+	ctrl := gomock.NewController(t)
+
 	kr, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 
@@ -74,7 +75,7 @@ func newBABEService(t *testing.T) *babe.Service {
 		EpochState:         es,
 		Keypair:            kr.Alice().(*sr25519.Keypair),
 		IsDev:              true,
-		BlockImportHandler: babemocks.NewBlockImportHandler(t),
+		BlockImportHandler: NewMockBlockImportHandler(ctrl),
 	}
 
 	babe, err := babe.NewService(cfg)

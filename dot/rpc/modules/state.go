@@ -395,7 +395,7 @@ func (sm *StateModule) GetStorageHash(
 }
 
 // GetStorageSize returns the size of a storage entry at a block's state.
-//  If no block hash is provided, the latest value is used.
+// If no block hash is provided, the latest value is used.
 func (sm *StateModule) GetStorageSize(
 	_ *http.Request, req *StateStorageSizeRequest, res *StateStorageSizeResponse) error {
 	var (
@@ -418,7 +418,7 @@ func (sm *StateModule) GetStorageSize(
 	}
 
 	if len(item) > 0 {
-		*res = StateStorageSizeResponse((uint64)(len(item)))
+		*res = StateStorageSizeResponse(uint64(len(item)))
 	}
 
 	return nil

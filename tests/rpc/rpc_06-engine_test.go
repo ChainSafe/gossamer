@@ -15,7 +15,7 @@ import (
 func TestEngineRPC(t *testing.T) { //nolint:tparallel
 	t.SkipNow()
 
-	genesisPath := libutils.GetGssmrGenesisRawPathTest(t)
+	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.Init.Genesis = genesisPath
 	tomlConfig.Core.BABELead = true

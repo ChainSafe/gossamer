@@ -9,18 +9,18 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/ChainSafe/gossamer/devnet/cmd/scale-down-ecs-service/internal"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ecs"
-	"github.com/aws/aws-sdk-go/service/ecs/ecsiface"
 )
 
 type serviceScaler struct {
 	tickerDuration time.Duration
 	cluster        string
-	ecs            ecsiface.ECSAPI
+	ecs            internal.ECSAPI
 }
 
-func newServiceScaler(tickerDuration time.Duration, cluster string, ecs ecsiface.ECSAPI) *serviceScaler {
+func newServiceScaler(tickerDuration time.Duration, cluster string, ecs internal.ECSAPI) *serviceScaler {
 	return &serviceScaler{
 		tickerDuration: tickerDuration,
 		cluster:        cluster,
@@ -102,7 +102,6 @@ func (ss serviceScaler) waitForRunningCount(ctx context.Context, serviceArns []*
 			return err
 		}
 	}
-	return
 }
 
 func (ss serviceScaler) scaleServices(ctx context.Context, servicesRegex string) (err error) {

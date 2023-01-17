@@ -370,14 +370,8 @@ func (f *finalisationEngine) defineRoundVotes() error {
 	for !precommited {
 		select {
 		case <-f.stopCh:
-			if !determinePrevoteTimer.Stop() {
-				<-determinePrevoteTimer.C
-			}
-
-			if !determinePrecommitTimer.Stop() {
-				<-determinePrecommitTimer.C
-			}
-
+			determinePrevoteTimer.Stop()
+			determinePrecommitTimer.Stop()
 			return nil
 
 		case <-determinePrevoteTimer.C:
@@ -389,10 +383,7 @@ func (f *finalisationEngine) defineRoundVotes() error {
 			if alreadyCompletable {
 				f.actionCh <- alreadyFinalized
 
-				if !determinePrecommitTimer.Stop() {
-					<-determinePrecommitTimer.C
-				}
-
+				determinePrecommitTimer.Stop()
 				return nil
 			}
 

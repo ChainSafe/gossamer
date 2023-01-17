@@ -19,7 +19,7 @@ func createGenesisWithRuntime(fp string) (string, error) {
 		return "", err
 	}
 
-	genesisPath, err := utils.GetGssmrGenesisPath()
+	genesisPath, err := utils.GetGssmrGenesisRawPath()
 	if err != nil {
 		return "", fmt.Errorf("cannot find gssmr genesis path: %w", err)
 	}

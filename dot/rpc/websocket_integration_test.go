@@ -65,15 +65,16 @@ var testCalls = []struct {
 }
 
 func TestHTTPServer_ServeHTTP(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
 	coreAPI := newCoreServiceTest(t)
 	si := &types.SystemInfo{
 		SystemName: "gossamer",
 	}
 	sysAPI := system.NewService(si, nil)
-	bAPI := modules.NewMockeryBlockAPI(t)
-	sAPI := modules.NewMockeryStorageAPI(t)
+	bAPI := modules.NewMockAnyBlockAPI(ctrl)
+	sAPI := modules.NewMockAnyStorageAPI(ctrl)
 
-	ctrl := gomock.NewController(t)
 	TxStateAPI := NewMockTransactionStateAPI(ctrl)
 	TxStateAPI.EXPECT().FreeStatusNotifierChannel(gomock.Any()).AnyTimes()
 	TxStateAPI.EXPECT().GetStatusNotifierChannel(gomock.Any()).Return(make(chan transaction.Status)).AnyTimes()

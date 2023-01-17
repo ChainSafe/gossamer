@@ -216,29 +216,24 @@ func (b *Service) waitForFirstBlock() error {
 
 	const firstBlockTimeout = time.Minute * 5
 	timer := time.NewTimer(firstBlockTimeout)
-	cleanup := func() {
-		if !timer.Stop() {
-			<-timer.C
-		}
-	}
 
 	// loop until block 1
 	for {
 		select {
 		case block, ok := <-ch:
 			if !ok {
-				cleanup()
+				timer.Stop()
 				return errChannelClosed
 			}
 
 			if ok && block.Header.Number > 0 {
-				cleanup()
+				timer.Stop()
 				return nil
 			}
 		case <-timer.C:
 			return errFirstBlockTimeout
 		case <-b.ctx.Done():
-			cleanup()
+			timer.Stop()
 			return b.ctx.Err()
 		}
 	}
@@ -408,28 +403,23 @@ func (b *Service) handleEpoch(epoch uint64) (next uint64, err error) {
 
 	nextEpochStartTime := getSlotStartTime(nextEpochStart, b.constants.slotDuration)
 	epochTimer := time.NewTimer(time.Until(nextEpochStartTime))
-	cleanup := func() {
-		if !epochTimer.Stop() {
-			<-epochTimer.C
-		}
-	}
 
 	errCh := make(chan error)
 	go b.epochHandler.run(ctx, errCh)
 
 	select {
 	case <-b.ctx.Done():
-		cleanup()
+		epochTimer.Stop()
 		return 0, b.ctx.Err()
 	case <-b.pause:
-		cleanup()
+		epochTimer.Stop()
 		return 0, errServicePaused
 	case <-epochTimer.C:
 		// stop current epoch handler
 		cancel()
 	case err := <-errCh:
 		// TODO: errEpochPast is sent on this channel, but it doesnot get logged here
-		cleanup()
+		epochTimer.Stop()
 		logger.Errorf("error from epochHandler: %s", err)
 	}
 

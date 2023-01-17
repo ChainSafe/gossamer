@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
+	"github.com/golang/mock/gomock"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -53,8 +54,10 @@ func Test_uint64ToHex(t *testing.T) {
 }
 
 func TestDevModule_EpochLength(t *testing.T) {
-	mockBlockProducerAPI := mocks.NewBlockProducerAPI(t)
-	mockBlockProducerAPI.On("EpochLength").Return(uint64(23))
+	ctrl := gomock.NewController(t)
+
+	mockBlockProducerAPI := mocks.NewMockBlockProducerAPI(ctrl)
+	mockBlockProducerAPI.EXPECT().EpochLength().Return(uint64(23))
 	devModule := NewDevModule(mockBlockProducerAPI, nil)
 
 	type fields struct {
@@ -103,8 +106,10 @@ func TestDevModule_EpochLength(t *testing.T) {
 }
 
 func TestDevModule_SlotDuration(t *testing.T) {
-	mockBlockProducerAPI := mocks.NewBlockProducerAPI(t)
-	mockBlockProducerAPI.On("SlotDuration").Return(uint64(23))
+	ctrl := gomock.NewController(t)
+
+	mockBlockProducerAPI := mocks.NewMockBlockProducerAPI(ctrl)
+	mockBlockProducerAPI.EXPECT().SlotDuration().Return(uint64(23))
 
 	type fields struct {
 		networkAPI       NetworkAPI
@@ -152,22 +157,24 @@ func TestDevModule_SlotDuration(t *testing.T) {
 }
 
 func TestDevModule_Control(t *testing.T) {
-	mockBlockProducerAPI := mocks.NewBlockProducerAPI(t)
-	mockErrorBlockProducerAPI := mocks.NewBlockProducerAPI(t)
-	mockNetworkAPI := mocks.NewNetworkAPI(t)
-	mockErrorNetworkAPI := mocks.NewNetworkAPI(t)
+	ctrl := gomock.NewController(t)
 
-	mockErrorBlockProducerAPI.On("Pause").Return(errors.New("babe pause error"))
-	mockBlockProducerAPI.On("Pause").Return(nil)
+	mockBlockProducerAPI := mocks.NewMockBlockProducerAPI(ctrl)
+	mockErrorBlockProducerAPI := mocks.NewMockBlockProducerAPI(ctrl)
+	mockNetworkAPI := mocks.NewMockNetworkAPI(ctrl)
+	mockErrorNetworkAPI := mocks.NewMockNetworkAPI(ctrl)
 
-	mockErrorBlockProducerAPI.On("Resume").Return(errors.New("babe resume error"))
-	mockBlockProducerAPI.On("Resume").Return(nil)
+	mockErrorBlockProducerAPI.EXPECT().Pause().Return(errors.New("babe pause error"))
+	mockBlockProducerAPI.EXPECT().Pause().Return(nil)
 
-	mockErrorNetworkAPI.On("Stop").Return(errors.New("network stop error"))
-	mockNetworkAPI.On("Stop").Return(nil)
+	mockErrorBlockProducerAPI.EXPECT().Resume().Return(errors.New("babe resume error"))
+	mockBlockProducerAPI.EXPECT().Resume().Return(nil)
 
-	mockErrorNetworkAPI.On("Start").Return(errors.New("network start error"))
-	mockNetworkAPI.On("Start").Return(nil)
+	mockErrorNetworkAPI.EXPECT().Stop().Return(errors.New("network stop error"))
+	mockNetworkAPI.EXPECT().Stop().Return(nil)
+
+	mockErrorNetworkAPI.EXPECT().Start().Return(errors.New("network start error"))
+	mockNetworkAPI.EXPECT().Start().Return(nil)
 
 	type fields struct {
 		networkAPI       NetworkAPI

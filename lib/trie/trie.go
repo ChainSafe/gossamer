@@ -50,7 +50,7 @@ func NewTrie(root *Node) *Trie {
 func (t *Trie) Snapshot() (newTrie *Trie) {
 	childTries := make(map[common.Hash]*Trie, len(t.childTries))
 	rootCopySettings := node.DefaultCopySettings
-	rootCopySettings.CopyCached = true
+	rootCopySettings.CopyMerkleValue = true
 	for rootHash, childTrie := range t.childTries {
 		childTries[rootHash] = &Trie{
 			generation:          childTrie.generation + 1,
@@ -70,7 +70,9 @@ func (t *Trie) Snapshot() (newTrie *Trie) {
 // handleTrackedDeltas sets the pending deleted Merkle values in
 // the trie deleted merkle values set if and only if success is true.
 func (t *Trie) handleTrackedDeltas(success bool, pendingDeletedMerkleValues map[string]struct{}) {
-	if !success {
+	if !success || t.generation == 0 {
+		// Do not persist tracked deleted node hashes if the operation failed or
+		// if the trie generation is zero (first block, no trie snapshot done yet).
 		return
 	}
 
@@ -79,52 +81,48 @@ func (t *Trie) handleTrackedDeltas(success bool, pendingDeletedMerkleValues map[
 	}
 }
 
-func (t *Trie) prepLeafForMutation(currentLeaf *Node,
+func (t *Trie) prepForMutation(currentNode *Node,
 	copySettings node.CopySettings,
-	pendingDeletedMerkleValues map[string]struct{}) (newLeaf *Node) {
-	if currentLeaf.Generation == t.generation {
-		// no need to deep copy and update generation
-		// of current leaf.
-		newLeaf = currentLeaf
+	pendingDeletedMerkleValues map[string]struct{}) (
+	newNode *Node, err error) {
+	if currentNode.Generation == t.generation {
+		// no need to track deleted node, deep copy the node and
+		// update the node generation.
+		newNode = currentNode
 	} else {
-		newLeaf = updateGeneration(currentLeaf, t.generation, pendingDeletedMerkleValues, copySettings)
+		err = t.registerDeletedMerkleValue(currentNode,
+			pendingDeletedMerkleValues)
+		if err != nil {
+			return nil, fmt.Errorf("registering deleted node: %w", err)
+		}
+		newNode = currentNode.Copy(copySettings)
+		newNode.Generation = t.generation
 	}
-	newLeaf.SetDirty()
-	return newLeaf
+	newNode.SetDirty()
+	return newNode, nil
 }
 
-func (t *Trie) prepBranchForMutation(currentBranch *Node,
-	copySettings node.CopySettings,
-	pendingDeletedMerkleValues map[string]struct{}) (newBranch *Node) {
-	if currentBranch.Generation == t.generation {
-		// no need to deep copy and update generation
-		// of current branch.
-		newBranch = currentBranch
-	} else {
-		newBranch = updateGeneration(currentBranch, t.generation, pendingDeletedMerkleValues, copySettings)
-	}
-	newBranch.SetDirty()
-	return newBranch
-}
-
-// updateGeneration is called when the currentNode is from
-// an older trie generation (snapshot) so we deep copy the
-// node and update the generation on the newer copy.
-func updateGeneration(currentNode *Node, trieGeneration uint64,
-	deletedMerkleValues map[string]struct{}, copySettings node.CopySettings) (
-	newNode *Node) {
-	newNode = currentNode.Copy(copySettings)
-	newNode.Generation = trieGeneration
-
-	// The hash of the node from a previous snapshotted trie
-	// is usually already computed.
-	deletedMerkleValue := currentNode.MerkleValue
-	if len(deletedMerkleValue) > 0 {
-		deletedMerkleValueString := string(deletedMerkleValue)
-		deletedMerkleValues[deletedMerkleValueString] = struct{}{}
+func (t *Trie) registerDeletedMerkleValue(node *Node,
+	pendingDeletedMerkleValues map[string]struct{}) (err error) {
+	err = t.ensureMerkleValueIsCalculated(node)
+	if err != nil {
+		return fmt.Errorf("ensuring Merkle value is calculated: %w", err)
 	}
 
-	return newNode
+	if len(node.MerkleValue) < 32 {
+		// Merkle values which are less than 32 bytes are inlined
+		// in the parent branch and are not stored on disk, so there
+		// is no need to track their deletion for the online pruning.
+		return nil
+	}
+
+	if !node.Dirty {
+		// Only register deleted nodes that were not previously modified
+		// since the last trie snapshot.
+		pendingDeletedMerkleValues[string(node.MerkleValue)] = struct{}{}
+	}
+
+	return nil
 }
 
 // DeepCopy deep copies the trie and returns
@@ -166,7 +164,7 @@ func (t *Trie) DeepCopy() (trieCopy *Trie) {
 // RootNode returns a copy of the root node of the trie.
 func (t *Trie) RootNode() *Node {
 	copySettings := node.DefaultCopySettings
-	copySettings.CopyCached = true
+	copySettings.CopyMerkleValue = true
 	return t.root.Copy(copySettings)
 }
 
@@ -322,30 +320,36 @@ func findNextKeyChild(children []*Node, startIndex byte,
 
 // Put inserts a value into the trie at the
 // key specified in little Endian format.
-func (t *Trie) Put(keyLE, value []byte) {
+func (t *Trie) Put(keyLE, value []byte) (err error) {
 	pendingDeletedMerkleValues := make(map[string]struct{})
 	defer func() {
 		const success = true
 		t.handleTrackedDeltas(success, pendingDeletedMerkleValues)
 	}()
-	t.insertKeyLE(keyLE, value, pendingDeletedMerkleValues)
+	return t.insertKeyLE(keyLE, value, pendingDeletedMerkleValues)
 }
 
-func (t *Trie) insertKeyLE(keyLE, value []byte, deletedMerkleValues map[string]struct{}) {
+func (t *Trie) insertKeyLE(keyLE, value []byte,
+	deletedMerkleValues map[string]struct{}) (err error) {
 	nibblesKey := codec.KeyLEToNibbles(keyLE)
 	if value == nil {
 		// Force nil value to be inserted to []byte{} since `nil` means there
 		// is no value.
 		value = []byte{}
 	}
-	t.root, _, _ = t.insert(t.root, nibblesKey, value, deletedMerkleValues)
+	root, _, _, err := t.insert(t.root, nibblesKey, value, deletedMerkleValues)
+	if err != nil {
+		return err
+	}
+	t.root = root
+	return nil
 }
 
 // insert inserts a value in the trie at the key specified.
 // It may create one or more new nodes or update an existing node.
 func (t *Trie) insert(parent *Node, key, value []byte,
 	deletedMerkleValues map[string]struct{}) (newParent *Node,
-	mutated bool, nodesCreated uint32) {
+	mutated bool, nodesCreated uint32, err error) {
 	if parent == nil {
 		mutated = true
 		nodesCreated = 1
@@ -354,33 +358,49 @@ func (t *Trie) insert(parent *Node, key, value []byte,
 			StorageValue: value,
 			Generation:   t.generation,
 			Dirty:        true,
-		}, mutated, nodesCreated
+		}, mutated, nodesCreated, nil
 	}
-
-	// TODO ensure all values have dirty set to true
 
 	if parent.Kind() == node.Branch {
-		return t.insertInBranch(parent, key, value, deletedMerkleValues)
+		newParent, mutated, nodesCreated, err = t.insertInBranch(
+			parent, key, value, deletedMerkleValues)
+		if err != nil {
+			// `insertInBranch` may call `insert` so do not wrap the
+			// error since this may be a deep recursive call.
+			return nil, false, 0, err
+		}
+		return newParent, mutated, nodesCreated, nil
 	}
-	return t.insertInLeaf(parent, key, value, deletedMerkleValues)
+
+	newParent, mutated, nodesCreated, err = t.insertInLeaf(
+		parent, key, value, deletedMerkleValues)
+	if err != nil {
+		return nil, false, 0, fmt.Errorf("inserting in leaf: %w", err)
+	}
+
+	return newParent, mutated, nodesCreated, nil
 }
 
 func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
 	deletedMerkleValues map[string]struct{}) (
-	newParent *Node, mutated bool, nodesCreated uint32) {
+	newParent *Node, mutated bool, nodesCreated uint32, err error) {
 	if bytes.Equal(parentLeaf.PartialKey, key) {
 		nodesCreated = 0
 		if parentLeaf.StorageValueEqual(value) {
 			mutated = false
-			return parentLeaf, mutated, nodesCreated
+			return parentLeaf, mutated, nodesCreated, nil
 		}
 
 		copySettings := node.DefaultCopySettings
 		copySettings.CopyStorageValue = false
-		parentLeaf = t.prepLeafForMutation(parentLeaf, copySettings, deletedMerkleValues)
+		parentLeaf, err = t.prepForMutation(parentLeaf, copySettings, deletedMerkleValues)
+		if err != nil {
+			return nil, false, 0, fmt.Errorf("preparing leaf for mutation: %w", err)
+		}
+
 		parentLeaf.StorageValue = value
 		mutated = true
-		return parentLeaf, mutated, nodesCreated
+		return parentLeaf, mutated, nodesCreated, nil
 	}
 
 	commonPrefixLength := lenCommonPrefix(key, parentLeaf.PartialKey)
@@ -405,7 +425,10 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
 			childIndex := parentLeafKey[commonPrefixLength]
 			newParentLeafKey := parentLeaf.PartialKey[commonPrefixLength+1:]
 			if !bytes.Equal(parentLeaf.PartialKey, newParentLeafKey) {
-				parentLeaf = t.prepLeafForMutation(parentLeaf, copySettings, deletedMerkleValues)
+				parentLeaf, err = t.prepForMutation(parentLeaf, copySettings, deletedMerkleValues)
+				if err != nil {
+					return nil, false, 0, fmt.Errorf("preparing leaf for mutation: %w", err)
+				}
 				parentLeaf.PartialKey = newParentLeafKey
 			}
 			newBranchParent.Children[childIndex] = parentLeaf
@@ -413,7 +436,7 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
 			nodesCreated++
 		}
 
-		return newBranchParent, mutated, nodesCreated
+		return newBranchParent, mutated, nodesCreated, nil
 	}
 
 	if len(parentLeaf.PartialKey) == commonPrefixLength {
@@ -425,7 +448,10 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
 		childIndex := parentLeafKey[commonPrefixLength]
 		newParentLeafKey := parentLeaf.PartialKey[commonPrefixLength+1:]
 		if !bytes.Equal(parentLeaf.PartialKey, newParentLeafKey) {
-			parentLeaf = t.prepLeafForMutation(parentLeaf, copySettings, deletedMerkleValues)
+			parentLeaf, err = t.prepForMutation(parentLeaf, copySettings, deletedMerkleValues)
+			if err != nil {
+				return nil, false, 0, fmt.Errorf("preparing leaf for mutation: %w", err)
+			}
 			parentLeaf.PartialKey = newParentLeafKey
 		}
 		newBranchParent.Children[childIndex] = parentLeaf
@@ -442,23 +468,26 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
 	newBranchParent.Descendants++
 	nodesCreated++
 
-	return newBranchParent, mutated, nodesCreated
+	return newBranchParent, mutated, nodesCreated, nil
 }
 
 func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte,
 	deletedMerkleValues map[string]struct{}) (
-	newParent *Node, mutated bool, nodesCreated uint32) {
+	newParent *Node, mutated bool, nodesCreated uint32, err error) {
 	copySettings := node.DefaultCopySettings
 
 	if bytes.Equal(key, parentBranch.PartialKey) {
 		if parentBranch.StorageValueEqual(value) {
 			mutated = false
-			return parentBranch, mutated, 0
+			return parentBranch, mutated, 0, nil
 		}
-		parentBranch = t.prepBranchForMutation(parentBranch, copySettings, deletedMerkleValues)
+		parentBranch, err = t.prepForMutation(parentBranch, copySettings, deletedMerkleValues)
+		if err != nil {
+			return nil, false, 0, fmt.Errorf("preparing branch for mutation: %w", err)
+		}
 		parentBranch.StorageValue = value
 		mutated = true
-		return parentBranch, mutated, 0
+		return parentBranch, mutated, 0, nil
 	}
 
 	if bytes.HasPrefix(key, parentBranch.PartialKey) {
@@ -476,22 +505,32 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte,
 				Dirty:        true,
 			}
 			nodesCreated = 1
-			parentBranch = t.prepBranchForMutation(parentBranch, copySettings, deletedMerkleValues)
+			parentBranch, err = t.prepForMutation(parentBranch, copySettings, deletedMerkleValues)
+			if err != nil {
+				return nil, false, 0, fmt.Errorf("preparing branch for mutation: %w", err)
+			}
 			parentBranch.Children[childIndex] = child
 			parentBranch.Descendants += nodesCreated
 			mutated = true
-			return parentBranch, mutated, nodesCreated
+			return parentBranch, mutated, nodesCreated, nil
 		}
 
-		child, mutated, nodesCreated = t.insert(child, remainingKey, value, deletedMerkleValues)
-		if !mutated {
-			return parentBranch, mutated, 0
+		child, mutated, nodesCreated, err = t.insert(child, remainingKey, value, deletedMerkleValues)
+		if err != nil {
+			// do not wrap error since `insert` may call `insertInBranch` recursively
+			return nil, false, 0, err
+		} else if !mutated {
+			return parentBranch, mutated, 0, nil
 		}
 
-		parentBranch = t.prepBranchForMutation(parentBranch, copySettings, deletedMerkleValues)
+		parentBranch, err = t.prepForMutation(parentBranch, copySettings, deletedMerkleValues)
+		if err != nil {
+			return nil, false, 0, fmt.Errorf("preparing branch for mutation: %w", err)
+		}
+
 		parentBranch.Children[childIndex] = child
 		parentBranch.Descendants += nodesCreated
-		return parentBranch, mutated, nodesCreated
+		return parentBranch, mutated, nodesCreated, nil
 	}
 
 	// we need to branch out at the point where the keys diverge
@@ -509,8 +548,12 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte,
 	oldParentIndex := parentBranch.PartialKey[commonPrefixLength]
 	remainingOldParentKey := parentBranch.PartialKey[commonPrefixLength+1:]
 
-	// Note: parentBranch.Key != remainingOldParentKey
-	parentBranch = t.prepBranchForMutation(parentBranch, copySettings, deletedMerkleValues)
+	// Note: parentBranch.PartialKey != remainingOldParentKey
+	parentBranch, err = t.prepForMutation(parentBranch, copySettings, deletedMerkleValues)
+	if err != nil {
+		return nil, false, 0, fmt.Errorf("preparing branch for mutation: %w", err)
+	}
+
 	parentBranch.PartialKey = remainingOldParentKey
 	newParentBranch.Children[oldParentIndex] = parentBranch
 	newParentBranch.Descendants += 1 + parentBranch.Descendants
@@ -521,13 +564,18 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte,
 		childIndex := key[commonPrefixLength]
 		remainingKey := key[commonPrefixLength+1:]
 		var additionalNodesCreated uint32
-		newParentBranch.Children[childIndex], _, additionalNodesCreated = t.insert(
+		newParentBranch.Children[childIndex], _, additionalNodesCreated, err = t.insert(
 			nil, remainingKey, value, deletedMerkleValues)
+		if err != nil {
+			// do not wrap error since `insert` may call `insertInBranch` recursively
+			return nil, false, 0, err
+		}
+
 		nodesCreated += additionalNodesCreated
 		newParentBranch.Descendants += additionalNodesCreated
 	}
 
-	return newParentBranch, mutated, nodesCreated
+	return newParentBranch, mutated, nodesCreated, nil
 }
 
 // LoadFromMap loads the given data mapping of key to value into a new empty trie.
@@ -552,7 +600,10 @@ func LoadFromMap(data map[string]string) (trie Trie, err error) {
 			return Trie{}, fmt.Errorf("cannot convert value hex to bytes: %w", err)
 		}
 
-		trie.insertKeyLE(keyLEBytes, valueBytes, pendingDeletedMerkleValues)
+		err = trie.insertKeyLE(keyLEBytes, valueBytes, pendingDeletedMerkleValues)
+		if err != nil {
+			return Trie{}, fmt.Errorf("inserting key value pair in trie: %w", err)
+		}
 	}
 
 	return trie, nil
@@ -568,7 +619,7 @@ func (t *Trie) GetKeysWithPrefix(prefixLE []byte) (keysLE [][]byte) {
 		prefixNibbles = bytes.TrimSuffix(prefixNibbles, []byte{0})
 	}
 
-	prefix := []byte{}
+	prefix := []byte(nil)
 	key := prefixNibbles
 	return getKeysWithPrefix(t.root, prefix, key, keysLE)
 }
@@ -706,7 +757,8 @@ func retrieveFromBranch(branch *Node, key []byte) (value []byte) {
 // Endian format for up to `limit` keys. It returns the number of deleted
 // keys and a boolean indicating if all keys with the prefix were deleted
 // within the limit.
-func (t *Trie) ClearPrefixLimit(prefixLE []byte, limit uint32) (deleted uint32, allDeleted bool) {
+func (t *Trie) ClearPrefixLimit(prefixLE []byte, limit uint32) (
+	deleted uint32, allDeleted bool, err error) {
 	pendingDeletedMerkleValues := make(map[string]struct{})
 	defer func() {
 		const success = true
@@ -714,15 +766,20 @@ func (t *Trie) ClearPrefixLimit(prefixLE []byte, limit uint32) (deleted uint32, 
 	}()
 
 	if limit == 0 {
-		return 0, false
+		return 0, false, nil
 	}
 
 	prefix := codec.KeyLEToNibbles(prefixLE)
 	prefix = bytes.TrimSuffix(prefix, []byte{0})
 
-	t.root, deleted, _, allDeleted = t.clearPrefixLimitAtNode(
+	root, deleted, _, allDeleted, err := t.clearPrefixLimitAtNode(
 		t.root, prefix, limit, pendingDeletedMerkleValues)
-	return deleted, allDeleted
+	if err != nil {
+		return 0, false, err
+	}
+	t.root = root
+
+	return deleted, allDeleted, nil
 }
 
 // clearPrefixLimitAtNode deletes the keys having the prefix until the value deletion limit is reached.
@@ -730,9 +787,9 @@ func (t *Trie) ClearPrefixLimit(prefixLE []byte, limit uint32) (deleted uint32, 
 // allDeleted boolean indicating if there is no key left with the prefix.
 func (t *Trie) clearPrefixLimitAtNode(parent *Node, prefix []byte,
 	limit uint32, deletedMerkleValues map[string]struct{}) (
-	newParent *Node, valuesDeleted, nodesRemoved uint32, allDeleted bool) {
+	newParent *Node, valuesDeleted, nodesRemoved uint32, allDeleted bool, err error) {
 	if parent == nil {
-		return nil, 0, 0, true
+		return nil, 0, 0, true, nil
 	}
 
 	if parent.Kind() == node.Leaf {
@@ -740,25 +797,36 @@ func (t *Trie) clearPrefixLimitAtNode(parent *Node, prefix []byte,
 		// TODO check this is the same behaviour as in substrate
 		const allDeleted = true
 		if bytes.HasPrefix(parent.PartialKey, prefix) {
+			err = t.registerDeletedMerkleValue(parent, deletedMerkleValues)
+			if err != nil {
+				return nil, 0, 0, false,
+					fmt.Errorf("registering deleted Merkle value: %w", err)
+			}
+
 			valuesDeleted, nodesRemoved = 1, 1
-			return nil, valuesDeleted, nodesRemoved, allDeleted
+			return nil, valuesDeleted, nodesRemoved, allDeleted, nil
 		}
-		return parent, 0, 0, allDeleted
+		return parent, 0, 0, allDeleted, nil
 	}
 
+	// Note: `clearPrefixLimitBranch` may call `clearPrefixLimitAtNode` so do not wrap
+	// the error since that could be a deep recursive call.
 	return t.clearPrefixLimitBranch(parent, prefix, limit, deletedMerkleValues)
 }
 
 func (t *Trie) clearPrefixLimitBranch(branch *Node, prefix []byte, limit uint32,
 	deletedMerkleValues map[string]struct{}) (
-	newParent *Node, valuesDeleted, nodesRemoved uint32, allDeleted bool) {
+	newParent *Node, valuesDeleted, nodesRemoved uint32, allDeleted bool, err error) {
 	newParent = branch
 
 	if bytes.HasPrefix(branch.PartialKey, prefix) {
-		newParent, valuesDeleted, nodesRemoved = t.deleteNodesLimit(
+		newParent, valuesDeleted, nodesRemoved, err = t.deleteNodesLimit(
 			branch, limit, deletedMerkleValues)
+		if err != nil {
+			return nil, 0, 0, false, fmt.Errorf("deleting nodes: %w", err)
+		}
 		allDeleted = newParent == nil
-		return newParent, valuesDeleted, nodesRemoved, allDeleted
+		return newParent, valuesDeleted, nodesRemoved, allDeleted, nil
 	}
 
 	if len(prefix) == len(branch.PartialKey)+1 &&
@@ -772,34 +840,44 @@ func (t *Trie) clearPrefixLimitBranch(branch *Node, prefix []byte, limit uint32,
 	if noPrefixForNode {
 		valuesDeleted, nodesRemoved = 0, 0
 		allDeleted = true
-		return newParent, valuesDeleted, nodesRemoved, allDeleted
+		return newParent, valuesDeleted, nodesRemoved, allDeleted, nil
 	}
 
 	childIndex := prefix[len(branch.PartialKey)]
 	childPrefix := prefix[len(branch.PartialKey)+1:]
 	child := branch.Children[childIndex]
 
-	child, valuesDeleted, nodesRemoved, allDeleted = t.clearPrefixLimitAtNode(
+	child, valuesDeleted, nodesRemoved, allDeleted, err = t.clearPrefixLimitAtNode(
 		child, childPrefix, limit, deletedMerkleValues)
-	if valuesDeleted == 0 {
-		return branch, valuesDeleted, nodesRemoved, allDeleted
+	if err != nil {
+		return nil, 0, 0, false, fmt.Errorf("clearing prefix limit at node: %w", err)
+	} else if valuesDeleted == 0 {
+		return branch, valuesDeleted, nodesRemoved, allDeleted, nil
 	}
 
 	copySettings := node.DefaultCopySettings
-	branch = t.prepBranchForMutation(branch, copySettings, deletedMerkleValues)
+	branch, err = t.prepForMutation(branch, copySettings, deletedMerkleValues)
+	if err != nil {
+		return nil, 0, 0, false, fmt.Errorf("preparing branch for mutation: %w", err)
+	}
+
 	branch.Children[childIndex] = child
 	branch.Descendants -= nodesRemoved
-	newParent, branchChildMerged := handleDeletion(branch, prefix)
+	newParent, branchChildMerged, err := t.handleDeletion(branch, prefix, deletedMerkleValues)
+	if err != nil {
+		return nil, 0, 0, false, fmt.Errorf("handling deletion: %w", err)
+	}
+
 	if branchChildMerged {
 		nodesRemoved++
 	}
 
-	return newParent, valuesDeleted, nodesRemoved, allDeleted
+	return newParent, valuesDeleted, nodesRemoved, allDeleted, nil
 }
 
 func (t *Trie) clearPrefixLimitChild(branch *Node, prefix []byte, limit uint32,
 	deletedMerkleValues map[string]struct{}) (
-	newParent *Node, valuesDeleted, nodesRemoved uint32, allDeleted bool) {
+	newParent *Node, valuesDeleted, nodesRemoved uint32, allDeleted bool, err error) {
 	newParent = branch
 
 	childIndex := prefix[len(branch.PartialKey)]
@@ -808,52 +886,81 @@ func (t *Trie) clearPrefixLimitChild(branch *Node, prefix []byte, limit uint32,
 	if child == nil {
 		const valuesDeleted, nodesRemoved = 0, 0
 		// TODO ensure this is the same behaviour as in substrate
+		// See https://github.com/ChainSafe/gossamer/issues/3033
 		allDeleted = true
-		return newParent, valuesDeleted, nodesRemoved, allDeleted
+		return newParent, valuesDeleted, nodesRemoved, allDeleted, nil
 	}
 
-	child, valuesDeleted, nodesRemoved = t.deleteNodesLimit(
+	child, valuesDeleted, nodesRemoved, err = t.deleteNodesLimit(
 		child, limit, deletedMerkleValues)
+	if err != nil {
+		// Note: do not wrap error since this is recursive.
+		return nil, 0, 0, false, err
+	}
+
 	if valuesDeleted == 0 {
 		allDeleted = branch.Children[childIndex] == nil
-		return branch, valuesDeleted, nodesRemoved, allDeleted
+		return branch, valuesDeleted, nodesRemoved, allDeleted, nil
 	}
 
 	copySettings := node.DefaultCopySettings
-	branch = t.prepBranchForMutation(branch, copySettings, deletedMerkleValues)
+	branch, err = t.prepForMutation(branch, copySettings, deletedMerkleValues)
+	if err != nil {
+		return nil, 0, 0, false, fmt.Errorf("preparing branch for mutation: %w", err)
+	}
+
 	branch.Children[childIndex] = child
 	branch.Descendants -= nodesRemoved
 
-	newParent, branchChildMerged := handleDeletion(branch, prefix)
+	newParent, branchChildMerged, err := t.handleDeletion(branch, prefix, deletedMerkleValues)
+	if err != nil {
+		return nil, 0, 0, false, fmt.Errorf("handling deletion: %w", err)
+	}
+
 	if branchChildMerged {
 		nodesRemoved++
 	}
 
 	allDeleted = branch.Children[childIndex] == nil
-	return newParent, valuesDeleted, nodesRemoved, allDeleted
+	return newParent, valuesDeleted, nodesRemoved, allDeleted, nil
 }
 
 func (t *Trie) deleteNodesLimit(parent *Node, limit uint32,
 	deletedMerkleValues map[string]struct{}) (
-	newParent *Node, valuesDeleted, nodesRemoved uint32) {
+	newParent *Node, valuesDeleted, nodesRemoved uint32, err error) {
 	if limit == 0 {
 		valuesDeleted, nodesRemoved = 0, 0
-		return parent, valuesDeleted, nodesRemoved
+		return parent, valuesDeleted, nodesRemoved, nil
 	}
 
 	if parent == nil {
 		valuesDeleted, nodesRemoved = 0, 0
-		return nil, valuesDeleted, nodesRemoved
+		return nil, valuesDeleted, nodesRemoved, nil
 	}
 
 	if parent.Kind() == node.Leaf {
+		err = t.registerDeletedMerkleValue(parent, deletedMerkleValues)
+		if err != nil {
+			return nil, 0, 0, fmt.Errorf("registering deleted merkle value: %w", err)
+		}
 		valuesDeleted, nodesRemoved = 1, 1
-		return nil, valuesDeleted, nodesRemoved
+		return nil, valuesDeleted, nodesRemoved, nil
 	}
 
 	branch := parent
 
 	nilChildren := node.ChildrenCapacity - branch.NumChildren()
+	if nilChildren == node.ChildrenCapacity {
+		panic("got branch with all nil children")
+	}
+
+	// Note: there is at least one non-nil child and the limit isn't zero,
+	// therefore it is safe to prepare the branch for mutation.
+	copySettings := node.DefaultCopySettings
+	branch, err = t.prepForMutation(branch, copySettings, deletedMerkleValues)
+	if err != nil {
+		return nil, 0, 0, fmt.Errorf("preparing branch for mutation: %w", err)
+	}
 
 	var newDeleted, newNodesRemoved uint32
 	var branchChildMerged bool
@@ -862,14 +969,13 @@ func (t *Trie) deleteNodesLimit(parent *Node, limit uint32,
 			continue
 		}
 
-		copySettings := node.DefaultCopySettings
-		branch = t.prepBranchForMutation(branch, copySettings, deletedMerkleValues)
-
-		branch.Children[i], newDeleted, newNodesRemoved = t.deleteNodesLimit(
+		branch.Children[i], newDeleted, newNodesRemoved, err = t.deleteNodesLimit(
 			child, limit, deletedMerkleValues)
-		// Note: newDeleted can never be zero here since the limit isn't zero
-		// and the child is not nil. Therefore it is safe to prepare the branch
-		// for mutation right before this call.
+		if err != nil {
+			// `deleteNodesLimit` is recursive, so do not wrap error.
+			return nil, 0, 0, err
+		}
+
 		if branch.Children[i] == nil {
 			nilChildren++
 		}
@@ -878,18 +984,22 @@ func (t *Trie) deleteNodesLimit(parent *Node, limit uint32,
 		nodesRemoved += newNodesRemoved
 		branch.Descendants -= newNodesRemoved
 
-		newParent, branchChildMerged = handleDeletion(branch, branch.PartialKey)
+		newParent, branchChildMerged, err = t.handleDeletion(branch, branch.PartialKey, deletedMerkleValues)
+		if err != nil {
+			return nil, 0, 0, fmt.Errorf("handling deletion: %w", err)
+		}
+
 		if branchChildMerged {
 			nodesRemoved++
 		}
 
 		if nilChildren == node.ChildrenCapacity &&
 			branch.StorageValue == nil {
-			return nil, valuesDeleted, nodesRemoved
+			return nil, valuesDeleted, nodesRemoved, nil
 		}
 
 		if limit == 0 {
-			return newParent, valuesDeleted, nodesRemoved
+			return newParent, valuesDeleted, nodesRemoved, nil
 		}
 	}
 
@@ -898,12 +1008,12 @@ func (t *Trie) deleteNodesLimit(parent *Node, limit uint32,
 		valuesDeleted++
 	}
 
-	return nil, valuesDeleted, nodesRemoved
+	return nil, valuesDeleted, nodesRemoved, nil
 }
 
 // ClearPrefix deletes all nodes in the trie for which the key contains the
 // prefix given in little Endian format.
-func (t *Trie) ClearPrefix(prefixLE []byte) {
+func (t *Trie) ClearPrefix(prefixLE []byte) (err error) {
 	pendingDeletedMerkleValues := make(map[string]struct{})
 	defer func() {
 		const success = true
@@ -911,32 +1021,51 @@ func (t *Trie) ClearPrefix(prefixLE []byte) {
 	}()
 
 	if len(prefixLE) == 0 {
+		err = t.ensureMerkleValueIsCalculated(t.root)
+		if err != nil {
+			return fmt.Errorf("ensuring Merkle values are calculated: %w", err)
+		}
+
+		PopulateNodeHashes(t.root, pendingDeletedMerkleValues)
 		t.root = nil
-		return
+		return nil
 	}
 
 	prefix := codec.KeyLEToNibbles(prefixLE)
 	prefix = bytes.TrimSuffix(prefix, []byte{0})
 
-	t.root, _ = t.clearPrefixAtNode(t.root, prefix, pendingDeletedMerkleValues)
+	root, _, err := t.clearPrefixAtNode(t.root, prefix, pendingDeletedMerkleValues)
+	if err != nil {
+		return fmt.Errorf("clearing prefix at root node: %w", err)
+	}
+	t.root = root
+
+	return nil
 }
 
 func (t *Trie) clearPrefixAtNode(parent *Node, prefix []byte,
 	deletedMerkleValues map[string]struct{}) (
-	newParent *Node, nodesRemoved uint32) {
+	newParent *Node, nodesRemoved uint32, err error) {
 	if parent == nil {
 		const nodesRemoved = 0
-		return nil, nodesRemoved
+		return nil, nodesRemoved, nil
 	}
 
 	if bytes.HasPrefix(parent.PartialKey, prefix) {
+		err = t.ensureMerkleValueIsCalculated(parent)
+		if err != nil {
+			nodesRemoved = 0
+			return parent, nodesRemoved, fmt.Errorf("ensuring Merkle values are calculated: %w", err)
+		}
+
+		PopulateNodeHashes(parent, deletedMerkleValues)
 		nodesRemoved = 1 + parent.Descendants
-		return nil, nodesRemoved
+		return nil, nodesRemoved, nil
 	}
 
 	if parent.Kind() == node.Leaf {
 		const nodesRemoved = 0
-		return parent, nodesRemoved
+		return parent, nodesRemoved, nil
 	}
 
 	branch := parent
@@ -948,54 +1077,79 @@ func (t *Trie) clearPrefixAtNode(parent *Node, prefix []byte,
 
 		if child == nil {
 			const nodesRemoved = 0
-			return parent, nodesRemoved
+			return parent, nodesRemoved, nil
 		}
 
 		nodesRemoved = 1 + child.Descendants
 		copySettings := node.DefaultCopySettings
-		branch = t.prepBranchForMutation(branch, copySettings, deletedMerkleValues)
+		branch, err = t.prepForMutation(branch, copySettings, deletedMerkleValues)
+		if err != nil {
+			return nil, 0, fmt.Errorf("preparing branch for mutation: %w", err)
+		}
+
+		err = t.registerDeletedMerkleValue(child, deletedMerkleValues)
+		if err != nil {
+			return nil, 0, fmt.Errorf("registering deleted merkle value for child: %w", err)
+		}
+
 		branch.Children[childIndex] = nil
 		branch.Descendants -= nodesRemoved
 		var branchChildMerged bool
-		newParent, branchChildMerged = handleDeletion(branch, prefix)
+		newParent, branchChildMerged, err = t.handleDeletion(branch, prefix, deletedMerkleValues)
+		if err != nil {
+			return nil, 0, fmt.Errorf("handling deletion: %w", err)
+		}
+
 		if branchChildMerged {
 			nodesRemoved++
 		}
-		return newParent, nodesRemoved
+		return newParent, nodesRemoved, nil
 	}
 
 	noPrefixForNode := len(prefix) <= len(branch.PartialKey) ||
 		lenCommonPrefix(branch.PartialKey, prefix) < len(branch.PartialKey)
 	if noPrefixForNode {
 		const nodesRemoved = 0
-		return parent, nodesRemoved
+		return parent, nodesRemoved, nil
 	}
 
 	childIndex := prefix[len(branch.PartialKey)]
 	childPrefix := prefix[len(branch.PartialKey)+1:]
 	child := branch.Children[childIndex]
 
-	child, nodesRemoved = t.clearPrefixAtNode(child, childPrefix, deletedMerkleValues)
-	if nodesRemoved == 0 {
-		return parent, nodesRemoved
+	child, nodesRemoved, err = t.clearPrefixAtNode(child, childPrefix, deletedMerkleValues)
+	if err != nil {
+		nodesRemoved = 0
+		// Note: do not wrap error since this is recursive
+		return parent, nodesRemoved, err
+	} else if nodesRemoved == 0 {
+		return parent, nodesRemoved, nil
 	}
 
 	copySettings := node.DefaultCopySettings
-	branch = t.prepBranchForMutation(branch, copySettings, deletedMerkleValues)
+	branch, err = t.prepForMutation(branch, copySettings, deletedMerkleValues)
+	if err != nil {
+		return nil, 0, fmt.Errorf("preparing branch for mutation: %w", err)
+	}
+
 	branch.Descendants -= nodesRemoved
 	branch.Children[childIndex] = child
-	newParent, branchChildMerged := handleDeletion(branch, prefix)
+	newParent, branchChildMerged, err := t.handleDeletion(branch, prefix, deletedMerkleValues)
+	if err != nil {
+		return nil, 0, fmt.Errorf("handling deletion: %w", err)
+	}
+
 	if branchChildMerged {
 		nodesRemoved++
 	}
 
-	return newParent, nodesRemoved
+	return newParent, nodesRemoved, nil
 }
 
 // Delete removes the node of the trie with the key
 // matching the key given in little Endian format.
 // If no node is found at this key, nothing is deleted.
-func (t *Trie) Delete(keyLE []byte) {
+func (t *Trie) Delete(keyLE []byte) (err error) {
 	pendingDeletedMerkleValues := make(map[string]struct{})
 	defer func() {
 		const success = true
@@ -1003,80 +1157,128 @@ func (t *Trie) Delete(keyLE []byte) {
 	}()
 
 	key := codec.KeyLEToNibbles(keyLE)
-	t.root, _, _ = t.deleteAtNode(t.root, key, pendingDeletedMerkleValues)
+	root, _, _, err := t.deleteAtNode(t.root, key, pendingDeletedMerkleValues)
+	if err != nil {
+		return fmt.Errorf("deleting key %x: %w", keyLE, err)
+	}
+	t.root = root
+	return nil
 }
 
 func (t *Trie) deleteAtNode(parent *Node, key []byte,
 	deletedMerkleValues map[string]struct{}) (
-	newParent *Node, deleted bool, nodesRemoved uint32) {
+	newParent *Node, deleted bool, nodesRemoved uint32, err error) {
 	if parent == nil {
 		const nodesRemoved = 0
-		return nil, false, nodesRemoved
+		return nil, false, nodesRemoved, nil
 	}
 
 	if parent.Kind() == node.Leaf {
-		if deleteLeaf(parent, key) == nil {
+		newParent, err = t.deleteLeaf(parent, key, deletedMerkleValues)
+		if err != nil {
+			return nil, false, 0, fmt.Errorf("deleting leaf: %w", err)
+		}
+
+		if newParent == nil {
 			const nodesRemoved = 1
-			return nil, true, nodesRemoved
+			return nil, true, nodesRemoved, nil
 		}
 		const nodesRemoved = 0
-		return parent, false, nodesRemoved
+		return parent, false, nodesRemoved, nil
 	}
-	return t.deleteBranch(parent, key, deletedMerkleValues)
+
+	newParent, deleted, nodesRemoved, err = t.deleteBranch(parent, key, deletedMerkleValues)
+	if err != nil {
+		return nil, false, 0, fmt.Errorf("deleting branch: %w", err)
+	}
+
+	return newParent, deleted, nodesRemoved, nil
 }
 
-func deleteLeaf(parent *Node, key []byte) (newParent *Node) {
-	if len(key) == 0 || bytes.Equal(key, parent.PartialKey) {
-		return nil
+func (t *Trie) deleteLeaf(parent *Node, key []byte,
+	deletedMerkleValues map[string]struct{}) (
+	newParent *Node, err error) {
+	if len(key) > 0 && !bytes.Equal(key, parent.PartialKey) {
+		return parent, nil
 	}
-	return parent
+
+	newParent = nil
+
+	err = t.registerDeletedMerkleValue(parent, deletedMerkleValues)
+	if err != nil {
+		return nil, fmt.Errorf("registering deleted merkle value: %w", err)
+	}
+
+	return newParent, nil
 }
 
 func (t *Trie) deleteBranch(branch *Node, key []byte,
 	deletedMerkleValues map[string]struct{}) (
-	newParent *Node, deleted bool, nodesRemoved uint32) {
+	newParent *Node, deleted bool, nodesRemoved uint32, err error) {
 	if len(key) == 0 || bytes.Equal(branch.PartialKey, key) {
 		copySettings := node.DefaultCopySettings
 		copySettings.CopyStorageValue = false
-		branch = t.prepBranchForMutation(branch, copySettings, deletedMerkleValues)
+		branch, err = t.prepForMutation(branch, copySettings, deletedMerkleValues)
+		if err != nil {
+			return nil, false, 0, fmt.Errorf("preparing branch for mutation: %w", err)
+		}
+
 		// we need to set to nil if the branch has the same generation
 		// as the current trie.
 		branch.StorageValue = nil
 		deleted = true
 		var branchChildMerged bool
-		newParent, branchChildMerged = handleDeletion(branch, key)
+		newParent, branchChildMerged, err = t.handleDeletion(branch, key, deletedMerkleValues)
+		if err != nil {
+			return nil, false, 0, fmt.Errorf("handling deletion: %w", err)
+		}
+
 		if branchChildMerged {
 			nodesRemoved = 1
 		}
-		return newParent, deleted, nodesRemoved
+		return newParent, deleted, nodesRemoved, nil
 	}
 
 	commonPrefixLength := lenCommonPrefix(branch.PartialKey, key)
 	keyDoesNotExist := commonPrefixLength == len(key)
 	if keyDoesNotExist {
-		return branch, false, 0
+		return branch, false, 0, nil
 	}
 	childIndex := key[commonPrefixLength]
 	childKey := key[commonPrefixLength+1:]
 	child := branch.Children[childIndex]
 
-	newChild, deleted, nodesRemoved := t.deleteAtNode(child, childKey, deletedMerkleValues)
+	newChild, deleted, nodesRemoved, err := t.deleteAtNode(child, childKey, deletedMerkleValues)
+	if err != nil {
+		// deleteAtNode may call deleteBranch so don't wrap the error
+		// since this may be a recursive call.
+		return nil, false, 0, err
+	}
+
 	if !deleted {
 		const nodesRemoved = 0
-		return branch, false, nodesRemoved
+		return branch, false, nodesRemoved, nil
 	}
 
 	copySettings := node.DefaultCopySettings
-	branch = t.prepBranchForMutation(branch, copySettings, deletedMerkleValues)
+	branch, err = t.prepForMutation(branch, copySettings, deletedMerkleValues)
+	if err != nil {
+		return nil, false, 0, fmt.Errorf("preparing branch for mutation: %w", err)
+	}
+
 	branch.Descendants -= nodesRemoved
 	branch.Children[childIndex] = newChild
 
-	newParent, branchChildMerged := handleDeletion(branch, key)
+	newParent, branchChildMerged, err := t.handleDeletion(branch, key, deletedMerkleValues)
+	if err != nil {
+		return nil, false, 0, fmt.Errorf("handling deletion: %w", err)
+	}
+
 	if branchChildMerged {
 		nodesRemoved++
 	}
 
-	return newParent, true, nodesRemoved
+	return newParent, true, nodesRemoved, nil
 }
 
 // handleDeletion is called when a value is deleted from a branch to handle
@@ -1085,7 +1287,9 @@ func (t *Trie) deleteBranch(branch *Node, key []byte,
 // In this first case, branchChildMerged is returned as true to keep track of the removal
 // of one node in callers.
 // If the branch has a value and no child, it will be changed into a leaf.
-func handleDeletion(branch *Node, key []byte) (newNode *Node, branchChildMerged bool) {
+func (t *Trie) handleDeletion(branch *Node, key []byte,
+	deletedMerkleValues map[string]struct{}) (
+	newNode *Node, branchChildMerged bool, err error) {
 	childrenCount := 0
 	firstChildIndex := -1
 	for i, child := range branch.Children {
@@ -1101,8 +1305,11 @@ func handleDeletion(branch *Node, key []byte) (newNode *Node, branchChildMerged 
 	switch {
 	default:
 		const branchChildMerged = false
-		return branch, branchChildMerged
+		return branch, branchChildMerged, nil
 	case childrenCount == 0 && branch.StorageValue != nil:
+		// The branch passed to handleDeletion is always a modified branch
+		// so the original branch node hash is already tracked in the
+		// pending deltas.
 		const branchChildMerged = false
 		commonPrefixLength := lenCommonPrefix(branch.PartialKey, key)
 		return &Node{
@@ -1110,11 +1317,18 @@ func handleDeletion(branch *Node, key []byte) (newNode *Node, branchChildMerged 
 			StorageValue: branch.StorageValue,
 			Dirty:        true,
 			Generation:   branch.Generation,
-		}, branchChildMerged
+		}, branchChildMerged, nil
 	case childrenCount == 1 && branch.StorageValue == nil:
+		// The branch passed to handleDeletion is always a modified branch
+		// so the original branch node hash is already tracked in the
+		// pending deltas.
 		const branchChildMerged = true
 		childIndex := firstChildIndex
 		child := branch.Children[firstChildIndex]
+		err = t.registerDeletedMerkleValue(child, deletedMerkleValues)
+		if err != nil {
+			return nil, false, fmt.Errorf("registering deleted merkle value: %w", err)
+		}
 
 		if child.Kind() == node.Leaf {
 			newLeafKey := concatenateSlices(branch.PartialKey, intToByteSlice(childIndex), child.PartialKey)
@@ -1123,7 +1337,7 @@ func handleDeletion(branch *Node, key []byte) (newNode *Node, branchChildMerged 
 				StorageValue: child.StorageValue,
 				Dirty:        true,
 				Generation:   branch.Generation,
-			}, branchChildMerged
+			}, branchChildMerged, nil
 		}
 
 		childBranch := child
@@ -1147,8 +1361,32 @@ func handleDeletion(branch *Node, key []byte) (newNode *Node, branchChildMerged 
 			}
 		}
 
-		return newBranch, branchChildMerged
+		return newBranch, branchChildMerged, nil
 	}
+}
+
+// ensureMerkleValueIsCalculated is used before calling PopulateMerkleValues
+// to ensure the parent node and all its descendant nodes have their Merkle
+// value computed and ready to be used. This has a close to zero performance
+// impact if the parent node Merkle value is already computed.
+func (t *Trie) ensureMerkleValueIsCalculated(parent *Node) (err error) {
+	if parent == nil {
+		return nil
+	}
+
+	if parent == t.root {
+		_, err = parent.CalculateRootMerkleValue()
+		if err != nil {
+			return fmt.Errorf("calculating Merkle value of root node: %w", err)
+		}
+	} else {
+		_, err = parent.CalculateMerkleValue()
+		if err != nil {
+			return fmt.Errorf("calculating Merkle value of node: %w", err)
+		}
+	}
+
+	return nil
 }
 
 // lenCommonPrefix returns the length of the

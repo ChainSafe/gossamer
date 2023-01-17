@@ -11,22 +11,24 @@ import (
 
 // Storage runtime interface.
 type Storage interface {
-	Put(key []byte, value []byte)
+	Put(key []byte, value []byte) (err error)
 	Get(key []byte) []byte
 	Root() (common.Hash, error)
 	SetChild(keyToChild []byte, child *trie.Trie) error
 	SetChildStorage(keyToChild, key, value []byte) error
 	GetChildStorage(keyToChild, key []byte) ([]byte, error)
-	Delete(key []byte)
-	DeleteChild(keyToChild []byte)
-	DeleteChildLimit(keyToChild []byte, limit *[]byte) (uint32, bool, error)
+	Delete(key []byte) (err error)
+	DeleteChild(keyToChild []byte) (err error)
+	DeleteChildLimit(keyToChild []byte, limit *[]byte) (
+		deleted uint32, allDeleted bool, err error)
 	ClearChildStorage(keyToChild, key []byte) error
 	NextKey([]byte) []byte
 	ClearPrefixInChild(keyToChild, prefix []byte) error
 	GetChildNextKey(keyToChild, key []byte) ([]byte, error)
 	GetChild(keyToChild []byte) (*trie.Trie, error)
-	ClearPrefix(prefix []byte)
-	ClearPrefixLimit(prefix []byte, limit uint32) (uint32, bool)
+	ClearPrefix(prefix []byte) (err error)
+	ClearPrefixLimit(prefix []byte, limit uint32) (
+		deleted uint32, allDeleted bool, err error)
 	BeginStorageTransaction()
 	CommitStorageTransaction()
 	RollbackStorageTransaction()
@@ -43,8 +45,6 @@ type BasicStorage interface {
 	Get(key []byte) ([]byte, error)
 	Del(key []byte) error
 }
-
-//go:generate mockery --name TransactionState --structname TransactionState --case underscore --keeptree
 
 // TransactionState interface for adding transactions to pool
 type TransactionState interface {

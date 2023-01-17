@@ -30,7 +30,7 @@ const (
 )
 
 func TestChainRPC(t *testing.T) {
-	genesisPath := libutils.GetDevV3SubstrateGenesisPath(t)
+	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.Init.Genesis = genesisPath
 	tomlConfig.Core.BABELead = true
@@ -64,69 +64,78 @@ func TestChainRPC(t *testing.T) {
 	require.NoError(t, err)
 
 	// fetch the latest finalized header hash
-	var finalizedHead string
-	fetchWithTimeout(ctx, t, "chain_getFinalizedHead", "[]", &finalizedHead)
-	assert.Regexp(t, regex32BytesHex, finalizedHead)
+	var finalizedHash string
+	fetchWithTimeout(ctx, t, "chain_getFinalizedHead", "[]", &finalizedHash)
+	assert.Regexp(t, regex32BytesHex, finalizedHash)
 
 	var finalizedBlock modules.ChainBlockResponse
-	fetchWithTimeout(ctx, t, "chain_getBlock", fmt.Sprintf(`["`+finalizedHead+`"]`), &finalizedBlock)
+	fetchWithTimeout(ctx, t, "chain_getBlock", fmt.Sprintf(`["`+finalizedHash+`"]`), &finalizedBlock)
 
-	header := finalizedBlock.Block.Header
+	finalizedHeader := finalizedBlock.Block.Header
 
 	// Check and clear unpredictable fields
-	assert.Regexp(t, regex32BytesHex, header.StateRoot)
-	header.StateRoot = ""
-	assert.Regexp(t, regex32BytesHex, header.ExtrinsicsRoot)
-	header.ExtrinsicsRoot = ""
-	assert.Len(t, header.Digest.Logs, 2)
-	for _, digestLog := range header.Digest.Logs {
+	assert.Regexp(t, regex32BytesHex, finalizedHeader.StateRoot)
+	finalizedHeader.StateRoot = ""
+	assert.Regexp(t, regex32BytesHex, finalizedHeader.ExtrinsicsRoot)
+	finalizedHeader.ExtrinsicsRoot = ""
+	assert.Len(t, finalizedHeader.Digest.Logs, 2)
+	for _, digestLog := range finalizedHeader.Digest.Logs {
 		assert.Regexp(t, regexBytesHex, digestLog)
 	}
-	header.Digest.Logs = nil
+	finalizedHeader.Digest.Logs = nil
 
-	blockNumber, err := common.HexToUint(header.Number)
+	blockNumber, err := common.HexToUint(finalizedHeader.Number)
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, blockNumber, uint(2))
 
-	var block modules.ChainBlockResponse
-	fetchWithTimeout(ctx, t, "chain_getBlock", fmt.Sprintf(`["`+header.ParentHash+`"]`), &block)
+	var parentBlock modules.ChainBlockResponse
+	fetchWithTimeout(ctx, t, "chain_getBlock",
+		fmt.Sprintf(`["`+finalizedHeader.ParentHash+`"]`), &parentBlock)
 
 	// Check and clear unpredictable fields
-	assert.Regexp(t, regex32BytesHex, block.Block.Header.ParentHash)
-	block.Block.Header.ParentHash = ""
-	assert.Regexp(t, regex32BytesHex, block.Block.Header.StateRoot)
-	block.Block.Header.StateRoot = ""
-	assert.Regexp(t, regex32BytesHex, block.Block.Header.ExtrinsicsRoot)
-	block.Block.Header.ExtrinsicsRoot = ""
-	assert.NotEmpty(t, block.Block.Header.Digest.Logs)
-	for _, digestLog := range block.Block.Header.Digest.Logs {
+	assert.Regexp(t, regex32BytesHex, parentBlock.Block.Header.ParentHash)
+	parentBlock.Block.Header.ParentHash = ""
+	assert.Regexp(t, regex32BytesHex, parentBlock.Block.Header.StateRoot)
+	parentBlock.Block.Header.StateRoot = ""
+	assert.Regexp(t, regex32BytesHex, parentBlock.Block.Header.ExtrinsicsRoot)
+	parentBlock.Block.Header.ExtrinsicsRoot = ""
+	assert.NotEmpty(t, parentBlock.Block.Header.Digest.Logs)
+	for _, digestLog := range parentBlock.Block.Header.Digest.Logs {
 		assert.Regexp(t, regexBytesHex, digestLog)
 	}
-	block.Block.Header.Digest.Logs = nil
-	assert.Len(t, block.Block.Body, 1)
+	parentBlock.Block.Header.Digest.Logs = nil
+	assert.NotEmpty(t, parentBlock.Block.Body)
 	const bodyRegex = "^0x" +
 		"28" + // base 10
 		"04" + // not signed extrinsic of the 4th extrinsic version
-		"03" + // pallet index enum
+		"02" + // pallet index enum
 		"00" + // call index enum
 		// Extrinsic argument
 		"0b" + // 0b0000_1011 big int
 		"[0-9a-z]{12}$"
-	assert.Regexp(t, bodyRegex, block.Block.Body[0])
-	block.Block.Body = nil
+	assert.Regexp(t, bodyRegex, parentBlock.Block.Body[0])
+	parentBlock.Block.Body = nil
 
-	blockNumber, err = common.HexToUint(header.Number)
+	blockNumber, err = common.HexToUint(finalizedHeader.Number)
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, blockNumber, uint(1))
+
+	// Wait for Gossamer to produce a new block ahead of the finalized one
+	err = retry.UntilOK(ctx, retryWaitDuration, func() (ok bool, err error) {
+		var blockHash string
+		fetchWithTimeout(ctx, t, "chain_getBlockHash", "[]", &blockHash)
+		return finalizedHash != blockHash, nil
+	})
+	require.NoError(t, err)
 
 	var blockHash string
 	fetchWithTimeout(ctx, t, "chain_getBlockHash", "[]", &blockHash)
 	assert.Regexp(t, regex32BytesHex, blockHash)
-	assert.NotEqual(t, finalizedHead, blockHash)
+	assert.NotEqual(t, finalizedHash, blockHash)
 }
 
 func TestChainSubscriptionRPC(t *testing.T) { //nolint:tparallel
-	genesisPath := libutils.GetDevV3SubstrateGenesisPath(t)
+	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.Init.Genesis = genesisPath
 	tomlConfig.Core.BABELead = true
