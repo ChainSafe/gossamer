@@ -172,7 +172,7 @@ func (approvalChecking) Index() uint { //skipcq
 	return 3
 }
 
-func (a approvalChecking) String() string { return "approval checking" } //skipcq:SCC-U1000
+func (approvalChecking) String() string { return "approval checking" }
 
 // invalidDisputeStatementKind is a kind of statements of invalidity on a candidate.
 type invalidDisputeStatementKind scale.VaryingDataType //skipcq
