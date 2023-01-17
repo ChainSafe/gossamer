@@ -161,10 +161,8 @@ func TestStateRPCResponseValidation(t *testing.T) { //nolint:tparallel
 	})
 }
 
-// TODO: add test against latest gssmr runtime
-// See https://github.com/ChainSafe/gossamer/issues/2705
 func TestStateRPCAPI(t *testing.T) {
-	genesisPath := libutils.GetGssmrV3SubstrateGenesisRawPathTest(t)
+	genesisPath := libutils.GetWestendLocalRawGenesisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.Init.Genesis = genesisPath
 	tomlConfig.Core.BABELead = true
@@ -184,9 +182,11 @@ func TestStateRPCAPI(t *testing.T) {
 		ErrKeyNotFound    = "Key not found"
 		InvalidHashFormat = "invalid hash format"
 		// `:grandpa_authorities` key
-		GrandpaAuthorityKey            = "0x3a6772616e6470615f617574686f726974696573"
-		GrandpaAuthorityValue          = "0x012488dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee0100000000000000d17c2d7823ebf260fd138f2d7e27d114c0145d968b5ff5006125f2414fadae690100000000000000439660b36c6c03afafca027b910b4fecf99801834c62a5e6006f27d978de234f01000000000000005e639b43e0052c47447dac87d6fd2b6ec50bdd4d0f614e4299c665249bbd09d901000000000000001dfe3e22cc0d45c70779c1095f7489a8ef3cf52d62fbd8c2fa38c9f1723502b50100000000000000568cb4a574c6d178feb39c27dfc8b3f789e5f5423e19c71633c748b9acf086b5010000000000000008ee9f4a5246647ebb938ece750d3d3be5e5f31978460258a1ab850c5d2b698201000000000000005c2c289b817ff4f843447a3346c0f63876acca1b0b93ff65736b4d4f26b8323101000000000000001da77f955bcd0745d2bc7a7e6544a661f4536deabf57fe79737b3e9157e39e420100000000000000" //nolint:lll
-		StorageSizeGrandpaAuthorityKey = "362"
+		GrandpaAuthorityKey   = "0x3a6772616e6470615f617574686f726974696573"
+		GrandpaAuthorityValue = "0x010c439660b36c6c03afafca027b910b4fecf99801834c62a5e6006f27d978de2" +
+			"34f010000000000000088dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee0100000" +
+			"000000000d17c2d7823ebf260fd138f2d7e27d114c0145d968b5ff5006125f2414fadae690100000000000000"
+		StorageSizeGrandpaAuthorityKey = "122"
 	)
 	hash := common.MustBlake2bHash(common.MustHexToBytes(GrandpaAuthorityValue))
 	storageHashGrandpaAuthorityKey := common.BytesToHex(hash[:])
