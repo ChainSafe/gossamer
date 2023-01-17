@@ -7,6 +7,7 @@ package babe
 
 import (
 	"bytes"
+	"fmt"
 	"testing"
 	"time"
 
@@ -55,7 +56,7 @@ func TestSeal(t *testing.T) {
 }
 
 func TestBuildBlock_ok(t *testing.T) {
-	gen, genTrie, genHeader := newWestendLocalGenesisWithTrieAndHeader(t)
+	gen, genTrie, genHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, ServiceConfig{}, gen, genTrie, genHeader)
 
 	parentHash := babeService.blockState.GenesisHash()
@@ -66,10 +67,9 @@ func TestBuildBlock_ok(t *testing.T) {
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
-	ext := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0,
-		signature.TestKeyringPairAlice, "System.remark", []byte{0xab, 0xcd})
-	block := createTestBlock(t, babeService, emptyHeader, [][]byte{common.MustHexToBytes(ext)},
-		1, testEpochIndex, epochData)
+	slot := getSlot(t, rt, time.Now())
+	ext := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0, signature.TestKeyringPairAlice, "System.remark", []byte{0xab, 0xcd})
+	block := createTestBlockWithSlot(t, babeService, emptyHeader, [][]byte{common.MustHexToBytes(ext)}, testEpochIndex, epochData, slot)
 
 	expectedBlockHeader := &types.Header{
 		ParentHash: emptyHeader.Hash(),
@@ -84,6 +84,7 @@ func TestBuildBlock_ok(t *testing.T) {
 
 	// confirm block body is correct
 	extsBytes := types.ExtrinsicsArrayToBytesArray(block.Body)
+	fmt.Println(extsBytes)
 	require.Equal(t, 1, len(extsBytes))
 }
 
