@@ -34,7 +34,7 @@ const (
 )
 
 // RuntimeDispatchInfo represents information related to a dispatchable's class, weight, and fee that can be queried
-//  from the runtime
+// from the runtime
 type RuntimeDispatchInfo struct {
 	Weight uint64
 	// Class could be Normal (0), Operational (1), Mandatory (2)

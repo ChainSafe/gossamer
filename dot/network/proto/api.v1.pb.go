@@ -85,6 +85,7 @@ type BlockRequest struct {
 	// Start from this block.
 	//
 	// Types that are assignable to FromBlock:
+	//
 	//	*BlockRequest_Hash
 	//	*BlockRequest_Number
 	FromBlock isBlockRequest_FromBlock `protobuf_oneof:"from_block"`
