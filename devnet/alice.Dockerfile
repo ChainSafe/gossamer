@@ -1,7 +1,7 @@
 # Copyright 2021 ChainSafe Systems (ON)
 # SPDX-License-Identifier: LGPL-3.0-only
 
-FROM golang:1.18
+FROM golang:1.19
 
 ARG POLKADOT_VERSION=v0.9.10
 
