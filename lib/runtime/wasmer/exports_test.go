@@ -10,9 +10,11 @@ import (
 	"math/big"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/lib/babe/inherents"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -429,7 +431,6 @@ func TestInstance_BabeConfiguration_NodeRuntime_NoAuthorities(t *testing.T) {
 		Randomness:         [32]byte{},
 		SecondarySlots:     1,
 	}
-
 	require.Equal(t, expected, cfg)
 }
 
@@ -527,8 +528,51 @@ func TestInstance_ExecuteBlock_WestendRuntime(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestInstance_ApplyExtrinsic_GossamerRuntime(t *testing.T) {
-	t.Skip() // TODO: this fails with "syscall frame is no longer valid" (#1026)
+func buildBlocksInherents(t *testing.T, timestamp, currentSlot uint64,
+	runtimeInstance *Instance, parent *types.Header) {
+	t.Helper()
+
+	inherentData := types.NewInherentData()
+	err := inherentData.SetInherent(types.Timstap0, timestamp)
+	require.NoError(t, err)
+
+	err = inherentData.SetInherent(types.Babeslot, currentSlot)
+	require.NoError(t, err)
+
+	parachainInherent := inherents.ParachainInherentData{
+		ParentHeader: *parent,
+	}
+	err = inherentData.SetInherent(types.Parachn0, parachainInherent)
+	require.NoError(t, err)
+
+	err = inherentData.SetInherent(types.Newheads, []byte{0})
+	require.NoError(t, err)
+
+	encodedInherents, err := inherentData.Encode()
+	require.NoError(t, err)
+
+	// Call BlockBuilder_inherent_extrinsics which returns the inherents as extrinsics
+	inherentExts, err := runtimeInstance.InherentExtrinsics(encodedInherents)
+	require.NoError(t, err)
+
+	// decode inherent extrinsics
+	var inherentExtrinsics [][]byte
+	err = scale.Unmarshal(inherentExts, &inherentExtrinsics)
+	require.NoError(t, err)
+
+	// apply each inherent extrinsic
+	for _, ext := range inherentExtrinsics {
+		in, err := scale.Marshal(ext)
+		require.NoError(t, err)
+
+		ret, err := runtimeInstance.ApplyExtrinsic(in)
+		require.NoError(t, err)
+
+		require.Equal(t, ret, []byte{0, 0})
+	}
+}
+
+func TestInstance_ApplyExtrinsic_WestendRuntime(t *testing.T) {
 	genesisPath := utils.GetWestendDevRawGenesisPath(t)
 	gen := genesisFromRawJSON(t, genesisPath)
 	genTrie, err := NewTrieFromGenesis(gen)
@@ -549,19 +593,54 @@ func TestInstance_ApplyExtrinsic_GossamerRuntime(t *testing.T) {
 	parentState := storage.NewTrieState(&genTrie)
 	instance.SetContextStorage(parentState)
 
-	parentHash := common.Hash{}
-	header := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, 1, types.NewDigest())
+	genesisHeader := &types.Header{
+		Number:    0,
+		StateRoot: genTrie.MustHash(),
+	}
+
+	genesisHashBytes := genesisHeader.Hash().ToBytes()
+
+	babeConfig, err := instance.BabeConfiguration()
+	require.NoError(t, err)
+
+	slotDuration := babeConfig.SlotDuration
+	timestamp := uint64(time.Now().UnixMilli())
+	currentSlot := timestamp / slotDuration
+
+	babeDigest := types.NewBabeDigest()
+	err = babeDigest.Set(*types.NewBabePrimaryPreDigest(0, currentSlot, [32]byte{}, [64]byte{}))
+	require.NoError(t, err)
+
+	encodedBabeDigest, err := scale.Marshal(babeDigest)
+	require.NoError(t, err)
+	preDigest := *types.NewBABEPreRuntimeDigest(encodedBabeDigest)
+
+	digest := types.NewDigest()
+	require.NoError(t, err)
+	err = digest.Add(preDigest)
+	require.NoError(t, err)
+
+	header := &types.Header{
+		ParentHash: genesisHeader.Hash(),
+		Number:     1,
+		Digest:     digest,
+	}
+
 	err = instance.InitializeBlock(header)
 	require.NoError(t, err)
 
-	extHex := runtime.NewTestExtrinsic(t, instance, parentHash, parentHash,
+	buildBlocksInherents(t, timestamp, currentSlot, instance, genesisHeader)
+
+	extHex := runtime.NewTestExtrinsic(t, instance, genesisHeader.Hash(), genesisHeader.Hash(),
 		0, "System.remark", []byte{0xab, 0xcd})
 
-	extBytes := common.MustHexToBytes(extHex)
-	enc, err := scale.Marshal(extBytes)
-	require.NoError(t, err)
+	extrinsicArguments := [][]byte{
+		{byte(types.TxnExternal)},
+		common.MustHexToBytes(extHex),
+		genesisHashBytes}
 
-	res, err := instance.ApplyExtrinsic(enc)
+	extrinsic := bytes.Join(extrinsicArguments, nil)
+	res, err := instance.ApplyExtrinsic(extrinsic)
 	require.NoError(t, err)
 	require.Equal(t, []byte{0, 0}, res)
 }
