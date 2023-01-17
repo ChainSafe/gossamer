@@ -7,7 +7,6 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -69,7 +68,7 @@ func TestCreateJSONRawFile(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			CreateJSONRawFile(tt.args.bs, tt.args.fp)
 
-			b, err := ioutil.ReadFile(tt.args.fp)
+			b, err := os.ReadFile(tt.args.fp)
 			require.NoError(t, err)
 			digest := sha256.Sum256(b)
 			hexDigest := fmt.Sprintf("%x", digest)
