@@ -304,11 +304,11 @@ type Metadataer interface {
 }
 
 // InitializeRuntimeToTest sets a new block using the runtime functions to set initial data into the host
-func InitializeRuntimeToTest(t *testing.T, instance Instance, parentHash common.Hash) *types.Block {
+func InitializeRuntimeToTest(t *testing.T, instance Instance, parentHeader *types.Header) *types.Block {
 	t.Helper()
 
 	header := &types.Header{
-		ParentHash: parentHash,
+		ParentHash: parentHeader.Hash(),
 		Number:     1,
 		Digest:     types.NewDigest(),
 	}
@@ -316,18 +316,28 @@ func InitializeRuntimeToTest(t *testing.T, instance Instance, parentHash common.
 	err := instance.InitializeBlock(header)
 	require.NoError(t, err)
 
-	idata := types.NewInherentData()
-	err = idata.SetInherent(types.Timstap0, uint64(1))
+	inherentData := types.NewInherentData()
+	err = inherentData.SetInherent(types.Timstap0, uint64(1))
 	require.NoError(t, err)
 
-	err = idata.SetInherent(types.Babeslot, uint64(1))
+	err = inherentData.SetInherent(types.Babeslot, uint64(1))
 	require.NoError(t, err)
 
-	ienc, err := idata.Encode()
+	parachainInherent := struct{ ParentHeader types.Header }{
+		ParentHeader: *parentHeader,
+	}
+
+	err = inherentData.SetInherent(types.Parachn0, parachainInherent)
+	require.NoError(t, err)
+
+	err = inherentData.SetInherent(types.Newheads, []byte{0})
+	require.NoError(t, err)
+
+	ecodedInherent, err := inherentData.Encode()
 	require.NoError(t, err)
 
 	// Call BlockBuilder_inherent_extrinsics which returns the inherents as extrinsics
-	inherentExts, err := instance.InherentExtrinsics(ienc)
+	inherentExts, err := instance.InherentExtrinsics(ecodedInherent)
 	require.NoError(t, err)
 
 	// decode inherent extrinsics
@@ -337,11 +347,11 @@ func InitializeRuntimeToTest(t *testing.T, instance Instance, parentHash common.
 
 	// apply each inherent extrinsic
 	for _, ext := range exts {
-		in, err := scale.Marshal(ext)
+		encodedInherent, err := scale.Marshal(ext)
 		require.NoError(t, err)
 
-		ret, err := instance.ApplyExtrinsic(append([]byte{1}, in...))
-		require.NoError(t, err, in)
+		ret, err := instance.ApplyExtrinsic(encodedInherent)
+		require.NoError(t, err, encodedInherent)
 		require.Equal(t, ret, []byte{0, 0})
 	}
 
