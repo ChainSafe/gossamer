@@ -296,6 +296,17 @@ func newTestServiceSetupParameters(t *testing.T, genesis genesis.Genesis,
 	return s, dbSrv.Epoch, genCfg
 }
 
+func createSecondaryVRFPreDigest(t *testing.T,
+	keypair *sr25519.Keypair, index uint32,
+	slot, epoch uint64, randomness Randomness,
+) *types.BabeSecondaryVRFPreDigest {
+	transcript := makeTranscript(randomness, slot, epoch)
+	out, proof, err := keypair.VrfSign(transcript)
+	require.NoError(t, err)
+
+	return types.NewBabeSecondaryVRFPreDigest(index, slot, out, proof)
+}
+
 func buildLocalTransaction(t *testing.T, rt runtime.Instance, ext types.Extrinsic,
 	bestBlockHash common.Hash) types.Extrinsic {
 	runtimeVersion := rt.Version()
@@ -401,7 +412,6 @@ func newWestendDevGenesisWithTrieAndHeader(t *testing.T) (
 	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
 	t.Helper()
 
-	//genesisPath := utils.GetWestendLocalRawGenesisPath(t)
 	genesisPath := utils.GetWestendDevRawGenesisPath(t)
 	genesisPtr, err := genesis.NewGenesisFromJSONRaw(genesisPath)
 	require.NoError(t, err)
