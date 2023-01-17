@@ -60,15 +60,14 @@ func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *
 	return NewVerificationManager(dbSrv.Block, dbSrv.Epoch)
 }
 
-// TODO: add test against latest dev runtime
-// See https://github.com/ChainSafe/gossamer/issues/2704
 func TestVerificationManager_OnDisabled_InvalidIndex(t *testing.T) {
 	vm := newTestVerificationManager(t, nil)
 
 	cfg := ServiceConfig{
 		Authority: true,
 	}
-	babeService := createTestService(t, cfg)
+	gen, genTrie, genHeader := newWestendLocalGenesisWithTrieAndHeader(t)
+	babeService := createTestService(t, cfg, gen, genTrie, genHeader)
 
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
@@ -78,8 +77,6 @@ func TestVerificationManager_OnDisabled_InvalidIndex(t *testing.T) {
 	require.Equal(t, err, ErrInvalidBlockProducerIndex)
 }
 
-// TODO: add test against latest dev runtime
-// See https://github.com/ChainSafe/gossamer/issues/2704
 func TestVerificationManager_OnDisabled_NewDigest(t *testing.T) {
 	kp, err := sr25519.GenerateKeypair()
 	require.NoError(t, err)
@@ -87,7 +84,8 @@ func TestVerificationManager_OnDisabled_NewDigest(t *testing.T) {
 	cfg := ServiceConfig{
 		Keypair: kp,
 	}
-	babeService := createTestService(t, cfg)
+	gen, genTrie, genHeader := newWestendLocalGenesisWithTrieAndHeader(t)
+	babeService := createTestService(t, cfg, gen, genTrie, genHeader)
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
@@ -116,8 +114,6 @@ func TestVerificationManager_OnDisabled_NewDigest(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// TODO: add test against latest dev runtime
-// See https://github.com/ChainSafe/gossamer/issues/2704
 func TestVerificationManager_OnDisabled_DuplicateDigest(t *testing.T) {
 	kp, err := sr25519.GenerateKeypair()
 	require.NoError(t, err)
@@ -125,7 +121,8 @@ func TestVerificationManager_OnDisabled_DuplicateDigest(t *testing.T) {
 	cfg := ServiceConfig{
 		Keypair: kp,
 	}
-	babeService := createTestService(t, cfg)
+	gen, genTrie, genHeader := newWestendLocalGenesisWithTrieAndHeader(t)
+	babeService := createTestService(t, cfg, gen, genTrie, genHeader)
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
@@ -152,13 +149,12 @@ func TestVerificationManager_OnDisabled_DuplicateDigest(t *testing.T) {
 	require.Equal(t, ErrAuthorityAlreadyDisabled, err)
 }
 
-// TODO: add test against latest dev runtime
-// See https://github.com/ChainSafe/gossamer/issues/2704
 func TestVerificationManager_VerifyBlock_Ok(t *testing.T) {
 	serviceConfig := ServiceConfig{
 		Authority: true,
 	}
-	babeService := createTestService(t, serviceConfig)
+	gen, genTrie, genHeader := newWestendLocalGenesisWithTrieAndHeader(t)
+	babeService := createTestService(t, serviceConfig, gen, genTrie, genHeader)
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
 	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
@@ -181,13 +177,12 @@ func TestVerificationManager_VerifyBlock_Ok(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// TODO: add test against latest dev runtime
-// See https://github.com/ChainSafe/gossamer/issues/2704
 func TestVerificationManager_VerifyBlock_Secondary(t *testing.T) {
 	serviceConfig := ServiceConfig{
 		Authority: true,
 	}
-	babeService := createTestService(t, serviceConfig)
+	gen, genTrie, genHeader := newWestendLocalGenesisWithTrieAndHeader(t)
+	babeService := createTestService(t, serviceConfig, gen, genTrie, genHeader)
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
 	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
@@ -250,11 +245,12 @@ func TestVerificationManager_VerifyBlock_Secondary(t *testing.T) {
 }
 
 func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
-	t.Skip() // TODO: no idea why it's complaining it can't find the epoch data. fix later
+	//t.Skip() // TODO: no idea why it's complaining it can't find the epoch data. fix later
 	serviceConfig := ServiceConfig{
 		Authority: true,
 	}
-	babeService := createTestService(t, serviceConfig)
+	gen, genTrie, genHeader := newWestendLocalGenesisWithTrieAndHeader(t)
+	babeService := createTestService(t, serviceConfig, gen, genTrie, genHeader)
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
 	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
@@ -299,13 +295,12 @@ func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// TODO: add test against latest dev runtime
-// See https://github.com/ChainSafe/gossamer/issues/2704
 func TestVerificationManager_VerifyBlock_InvalidBlockOverThreshold(t *testing.T) {
 	serviceConfig := ServiceConfig{
 		Authority: true,
 	}
-	babeService := createTestService(t, serviceConfig)
+	gen, genTrie, genHeader := newWestendLocalGenesisWithTrieAndHeader(t)
+	babeService := createTestService(t, serviceConfig, gen, genTrie, genHeader)
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
 	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
@@ -329,13 +324,12 @@ func TestVerificationManager_VerifyBlock_InvalidBlockOverThreshold(t *testing.T)
 	require.Equal(t, ErrVRFOutputOverThreshold, errors.Unwrap(err))
 }
 
-// TODO: add test against latest dev runtime
-// See https://github.com/ChainSafe/gossamer/issues/2704
 func TestVerificationManager_VerifyBlock_InvalidBlockAuthority(t *testing.T) {
 	serviceConfig := ServiceConfig{
 		Authority: true,
 	}
-	babeService := createTestService(t, serviceConfig)
+	gen, genTrie, genHeader := newWestendLocalGenesisWithTrieAndHeader(t)
+	babeService := createTestService(t, serviceConfig, gen, genTrie, genHeader)
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
 	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
@@ -366,7 +360,8 @@ func TestVerifyPimarySlotWinner(t *testing.T) {
 	cfg := ServiceConfig{
 		Keypair: kp,
 	}
-	babeService := createTestService(t, cfg)
+	gen, genTrie, genHeader := newWestendLocalGenesisWithTrieAndHeader(t)
+	babeService := createTestService(t, cfg, gen, genTrie, genHeader)
 	epochData, err := babeService.initiateEpoch(0)
 	require.NoError(t, err)
 
@@ -402,13 +397,12 @@ func TestVerifyPimarySlotWinner(t *testing.T) {
 	require.True(t, ok)
 }
 
-// TODO: add test against latest dev runtime
-// See https://github.com/ChainSafe/gossamer/issues/2704
 func TestVerifyAuthorshipRight(t *testing.T) {
 	serviceConfig := ServiceConfig{
 		Authority: true,
 	}
-	babeService := createTestService(t, serviceConfig)
+	gen, genTrie, genHeader := newWestendLocalGenesisWithTrieAndHeader(t)
+	babeService := createTestService(t, serviceConfig, gen, genTrie, genHeader)
 
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
@@ -426,8 +420,6 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// TODO: add test against latest dev runtime
-// See https://github.com/ChainSafe/gossamer/issues/2704
 func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	kp, err := sr25519.GenerateKeypair()
 	require.NoError(t, err)
@@ -436,7 +428,8 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 		Keypair: kp,
 	}
 
-	babeService := createTestService(t, cfg)
+	gen, genTrie, genHeader := newWestendLocalGenesisWithTrieAndHeader(t)
+	babeService := createTestService(t, cfg, gen, genTrie, genHeader)
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 

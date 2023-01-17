@@ -19,7 +19,8 @@ func TestInitiateEpoch_Epoch0(t *testing.T) {
 	cfg := ServiceConfig{
 		Authority: true,
 	}
-	bs := createTestService(t, cfg)
+	gen, genTrie, genHeader := newWestendLocalGenesisWithTrieAndHeader(t)
+	bs := createTestService(t, cfg, gen, genTrie, genHeader)
 	bs.constants.epochLength = 20
 	startSlot := uint64(1000)
 
@@ -37,7 +38,8 @@ func TestInitiateEpoch_Epoch1(t *testing.T) {
 	cfg := ServiceConfig{
 		Authority: true,
 	}
-	bs := createTestService(t, cfg)
+	gen, genTrie, genHeader := newWestendLocalGenesisWithTrieAndHeader(t)
+	bs := createTestService(t, cfg, gen, genTrie, genHeader)
 	bs.constants.epochLength = 10
 
 	state.AddBlocksToState(t, bs.blockState.(*state.BlockState), 1, false)
@@ -140,7 +142,8 @@ func TestIncrementEpoch(t *testing.T) {
 	cfg := ServiceConfig{
 		Authority: true,
 	}
-	bs := createTestService(t, cfg)
+	gen, genTrie, genHeader := newWestendLocalGenesisWithTrieAndHeader(t)
+	bs := createTestService(t, cfg, gen, genTrie, genHeader)
 
 	next, err := bs.incrementEpoch()
 	require.NoError(t, err)
@@ -156,7 +159,8 @@ func TestIncrementEpoch(t *testing.T) {
 }
 
 func TestService_getLatestEpochData_genesis(t *testing.T) {
-	s, _, genCfg := newTestServiceSetupParameters(t)
+	gen, genTrie, genHeader := newWestendLocalGenesisWithTrieAndHeader(t)
+	s, _, genCfg := newTestServiceSetupParameters(t, gen, genTrie, genHeader)
 
 	ed, err := s.getLatestEpochData()
 	require.NoError(t, err)
@@ -171,7 +175,8 @@ func TestService_getLatestEpochData_genesis(t *testing.T) {
 }
 
 func TestService_getLatestEpochData_epochData(t *testing.T) {
-	s, epochState, genCfg := newTestServiceSetupParameters(t)
+	gen, genTrie, genHeader := newWestendLocalGenesisWithTrieAndHeader(t)
+	s, epochState, genCfg := newTestServiceSetupParameters(t, gen, genTrie, genHeader)
 
 	err := epochState.SetCurrentEpoch(1)
 	require.NoError(t, err)
@@ -196,7 +201,8 @@ func TestService_getLatestEpochData_epochData(t *testing.T) {
 }
 
 func TestService_getLatestEpochData_configData(t *testing.T) {
-	s, epochState, genCfg := newTestServiceSetupParameters(t)
+	gen, genTrie, genHeader := newWestendLocalGenesisWithTrieAndHeader(t)
+	s, epochState, genCfg := newTestServiceSetupParameters(t, gen, genTrie, genHeader)
 
 	err := epochState.SetCurrentEpoch(7)
 	require.NoError(t, err)
