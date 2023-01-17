@@ -231,7 +231,6 @@ func newVerifier(blockState BlockState, epoch uint64, info *verifierInfo) *verif
 	}
 }
 
-//gocyclo:ignore
 // verifyAuthorshipRight verifies that the authority that produced a block was authorized to produce it.
 func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	// header should have 2 digest items (possibly more in the future)

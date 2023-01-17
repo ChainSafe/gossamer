@@ -403,7 +403,7 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) erro
 }
 
 // VerifyBlockJustification verifies the finality justification for a block, returns scale encoded justification with
-//  any extra bytes removed.
+// any extra bytes removed.
 func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byte) ([]byte, error) {
 	fj := Justification{}
 	err := scale.Unmarshal(justification, &fj)

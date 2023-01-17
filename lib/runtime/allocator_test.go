@@ -38,7 +38,7 @@ type allocatorState struct {
 }
 
 // struct to hold set of test (allocateTest or freeTest), expected output (return result of test (if any))
-//  state, expected state of the allocator after given test is run
+// state, expected state of the allocator after given test is run
 type testSet struct {
 	test   interface{}
 	output interface{}
@@ -255,7 +255,7 @@ var allTests = []testHolder{
 }
 
 // iterates allTests and runs tests on them based on data contained in
-//  test holder
+// test holder
 func TestAllocator(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
@@ -451,7 +451,7 @@ func TestShouldGetItemFromIndex(t *testing.T) {
 }
 
 // that that getItemSizeFromIndex method gets expected item size from index
-//  max index position
+// max index position
 func TestShouldGetMaxFromIndex(t *testing.T) {
 	index := uint(21)
 	itemSize := getItemSizeFromIndex(index)

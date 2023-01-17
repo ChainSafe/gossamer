@@ -245,7 +245,7 @@ type collatorID []byte
 // collatorSignature is the signature on a candidate's block data signed by a collator.
 type collatorSignature signature
 
-//  validationCodeHash is the blake2-256 hash of the validation code bytes.
+// validationCodeHash is the blake2-256 hash of the validation code bytes.
 type validationCodeHash common.Hash
 
 // candidateDescriptor is a unique descriptor of the candidate receipt.
