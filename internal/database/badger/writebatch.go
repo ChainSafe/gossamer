@@ -3,7 +3,9 @@
 
 package badger
 
-import "github.com/dgraph-io/badger/v3"
+import (
+	badger "github.com/dgraph-io/badger/v3"
+)
 
 // writeBatch uses the badger write batch and prefixes
 // all keys with a certain given prefix.

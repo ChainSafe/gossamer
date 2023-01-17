@@ -8,7 +8,7 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/internal/database"
-	"github.com/dgraph-io/badger/v3"
+	badger "github.com/dgraph-io/badger/v3"
 )
 
 func makePrefixedKey(prefix, key []byte) (prefixedKey []byte) {

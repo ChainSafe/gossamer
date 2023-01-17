@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/database"
-	"github.com/dgraph-io/badger/v3"
+	badger "github.com/dgraph-io/badger/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

@@ -9,7 +9,7 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/internal/database"
-	"github.com/dgraph-io/badger/v3"
+	badger "github.com/dgraph-io/badger/v3"
 )
 
 // Database is database implementation using a badger/v3 database.
