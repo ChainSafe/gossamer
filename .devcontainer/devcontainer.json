@@ -38,13 +38,11 @@
         "remote.extensionKind": {
             "ms-azuretools.vscode-docker": "workspace"
         },
-        "editor.codeActionsOnSaveTimeout": 3000,
         "go.useLanguageServer": true,
         "[go]": {
             "editor.codeActionsOnSave": {
                 "source.organizeImports": true
             },
-            // "editor.snippetSuggestions": "none"
         },
         "[go.mod]": {
             "editor.codeActionsOnSave": {
@@ -58,13 +56,12 @@
             ],
             "usePlaceholders": false,
             "staticcheck": true,
-            "formatting.gofumpt": false,
         },
         "go.lintTool": "golangci-lint",
         "go.lintOnSave": "package",
         "editor.formatOnSave": true,
         "go.toolsEnvVars": {
-            "CGO_ENABLED": 1
+            "CGO_ENABLED": "1"
         },
         "go.testEnvVars": {
             "HOSTNAME": "0.0.0.0",
