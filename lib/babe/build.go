@@ -101,6 +101,10 @@ func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot, rt Runtime) (
 	if err != nil {
 		return nil, fmt.Errorf("cannot build inherents: %s", err)
 	}
+	fmt.Println(inherents)
+
+	// Dev is [[4 3 0 11 97 156 132 193 133 1]]
+	// Here is [[4 2 0 11 26 180 133 193 133 1] [4 45 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]]
 
 	logger.Tracef("built block encoded inherents: %v", inherents)
 
@@ -261,6 +265,9 @@ func buildBlockInherents(slot Slot, rt ExtrinsicHandler, parent *types.Header) (
 	if err != nil {
 		return nil, err
 	}
+
+	fmt.Println(ienc)
+	// Here: [16 98 97 98 101 115 108 111 116 32 212 44 161 16 0 0 0 0 110 101 119 104 101 97 100 115 8 4 0 112 97 114 97 99 104 110 48 149 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 116 105 109 115 116 97 112 48 32 255 190 138 193 133 1 0 0]
 
 	// Call BlockBuilder_inherent_extrinsics which returns the inherents as extrinsics
 	inherentExts, err := rt.InherentExtrinsics(ienc)
