@@ -98,7 +98,8 @@ func TestBuildBlock_ok(t *testing.T) {
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
-	ext := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0, "System.remark", []byte{0xab, 0xcd})
+	ext := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0,
+		signaturev4.TestKeyringPairAlice, "System.remark", []byte{0xab, 0xcd})
 	block := createTestBlock(t, babeService, emptyHeader, [][]byte{common.MustHexToBytes(ext)},
 		1, testEpochIndex, epochData)
 
@@ -183,7 +184,8 @@ func TestApplyExtrinsic(t *testing.T) {
 	header1, err := rt.FinalizeBlock()
 	require.NoError(t, err)
 
-	extHex := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0, "System.remark", []byte{0xab, 0xcd})
+	extHex := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0,
+		signaturev4.TestKeyringPairAlice, "System.remark", []byte{0xab, 0xcd})
 	extBytes := common.MustHexToBytes(extHex)
 	_, err = rt.ValidateTransaction(append([]byte{byte(types.TxnExternal)}, extBytes...))
 	require.NoError(t, err)
