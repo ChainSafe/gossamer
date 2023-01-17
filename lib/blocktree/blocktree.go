@@ -252,12 +252,12 @@ func (bt *BlockTree) Prune(finalised Hash) (pruned []Hash) {
 	defer bt.Unlock()
 
 	if finalised == bt.root.hash {
-		return pruned
+		return nil
 	}
 
 	n := bt.getNode(finalised)
 	if n == nil {
-		return pruned
+		return nil
 	}
 
 	pruned = bt.root.prune(n, nil)
