@@ -11,7 +11,7 @@ import (
 	badger "github.com/dgraph-io/badger/v3"
 )
 
-func makePrefixedKey(prefix, key []byte) (prefixedKey []byte) {
+func newPrefixedKey(prefix, key []byte) (prefixedKey []byte) {
 	// WARNING: Do not use:
 	// return append(prefix, key...)
 	// since the prefix might have a capacity larger than its length,

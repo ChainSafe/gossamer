@@ -17,21 +17,21 @@ type table struct {
 // It returns the wrapped error `database.ErrKeyNotFound` if the
 // prefixed key is not found.
 func (t *table) Get(key []byte) (value []byte, err error) {
-	key = makePrefixedKey(t.prefix, key)
+	key = newPrefixedKey(t.prefix, key)
 	return t.database.Get(key)
 }
 
 // Set sets a value at the given key prefixed with the table prefix
 // in the database.
 func (t *table) Set(key, value []byte) (err error) {
-	key = makePrefixedKey(t.prefix, key)
+	key = newPrefixedKey(t.prefix, key)
 	return t.database.Set(key, value)
 }
 
 // Delete deletes the given key prefixed with the table prefix
 // from the database. If the key is not found, no error is returned.
 func (t *table) Delete(key []byte) (err error) {
-	key = makePrefixedKey(t.prefix, key)
+	key = newPrefixedKey(t.prefix, key)
 	return t.database.Delete(key)
 }
 

@@ -34,7 +34,7 @@ func Test_table(t *testing.T) {
 
 	err = dbTable.Set([]byte{1}, []byte{1})
 	require.NoError(t, err)
-	assertDBValue(t, db, makePrefixedKey(prefix, []byte{1}), []byte{1})
+	assertDBValue(t, db, newPrefixedKey(prefix, []byte{1}), []byte{1})
 
 	err = dbTable.Delete([]byte{1})
 	require.NoError(t, err)
@@ -70,7 +70,7 @@ func Test_table(t *testing.T) {
 	err = writeBatch.Flush()
 	require.NoError(t, err)
 
-	assertDBKeyNotFound(t, db, makePrefixedKey(prefix, []byte{1}))
-	assertDBValue(t, db, makePrefixedKey(prefix, []byte{2}), []byte{2})
+	assertDBKeyNotFound(t, db, newPrefixedKey(prefix, []byte{1}))
+	assertDBValue(t, db, newPrefixedKey(prefix, []byte{2}), []byte{2})
 
 }
