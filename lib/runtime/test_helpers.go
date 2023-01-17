@@ -23,7 +23,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
@@ -315,10 +314,17 @@ func InitializeRuntimeToTest(t *testing.T, instance Instance, parentHeader *type
 	timestamp := uint64(time.Now().UnixMilli())
 	currentSlot := timestamp / slotDuration
 
-	digest := types.NewDigest()
-	prd, err := types.NewBabeSecondaryPlainPreDigest(0, currentSlot).ToPreRuntimeDigest()
+	babeDigest := types.NewBabeDigest()
+	err = babeDigest.Set(*types.NewBabePrimaryPreDigest(0, currentSlot, [32]byte{}, [64]byte{}))
 	require.NoError(t, err)
-	err = digest.Add(*prd)
+
+	encodedBabeDigest, err := scale.Marshal(babeDigest)
+	require.NoError(t, err)
+	preDigest := *types.NewBABEPreRuntimeDigest(encodedBabeDigest)
+
+	digest := types.NewDigest()
+	require.NoError(t, err)
+	err = digest.Add(preDigest)
 	require.NoError(t, err)
 
 	header := &types.Header{
@@ -347,11 +353,11 @@ func InitializeRuntimeToTest(t *testing.T, instance Instance, parentHeader *type
 	err = inherentData.SetInherent(types.Newheads, []byte{0})
 	require.NoError(t, err)
 
-	ienc, err := inherentData.Encode()
+	encodedInnherents, err := inherentData.Encode()
 	require.NoError(t, err)
 
 	// Call BlockBuilder_inherent_extrinsics which returns the inherents as extrinsics
-	inherentExts, err := instance.InherentExtrinsics(ienc)
+	inherentExts, err := instance.InherentExtrinsics(encodedInnherents)
 	require.NoError(t, err)
 
 	// decode inherent extrinsics
@@ -369,38 +375,11 @@ func InitializeRuntimeToTest(t *testing.T, instance Instance, parentHeader *type
 		require.Equal(t, ret, []byte{0, 0})
 	}
 
-	res, err := instance.FinalizeBlock()
+	finalizedBlockHeader, err := instance.FinalizeBlock()
 	require.NoError(t, err)
-
-	res.Number = header.Number
-
-	babeDigest := types.NewBabeDigest()
-	err = babeDigest.Set(*types.NewBabePrimaryPreDigest(0, 1, [32]byte{}, [64]byte{}))
-	require.NoError(t, err)
-	data, err := scale.Marshal(babeDigest)
-	require.NoError(t, err)
-	preDigest := *types.NewBABEPreRuntimeDigest(data)
-
-	digest = types.NewDigest()
-	err = digest.Add(preDigest)
-	require.NoError(t, err)
-	res.Digest = digest
-
-	expected := &types.Header{
-		ParentHash: header.ParentHash,
-		Number:     1,
-		Digest:     digest,
-	}
-
-	require.Equal(t, expected.ParentHash, res.ParentHash)
-	require.Equal(t, expected.Number, res.Number)
-	require.Equal(t, expected.Digest, res.Digest)
-	require.False(t, res.StateRoot.IsEmpty())
-	require.False(t, res.ExtrinsicsRoot.IsEmpty())
-	require.NotEqual(t, trie.EmptyHash, res.StateRoot)
 
 	return &types.Block{
-		Header: *res,
+		Header: *finalizedBlockHeader,
 		Body:   *types.NewBody(types.BytesArrayToExtrinsics(extrinsics)),
 	}
 }

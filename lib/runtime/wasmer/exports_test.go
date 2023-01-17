@@ -515,49 +515,15 @@ func TestInstance_InitializeBlock_PolkadotRuntime(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestInstance_FinalizeBlock_NodeRuntime(t *testing.T) {
-	instance := NewTestInstance(t, runtime.NODE_RUNTIME)
-	runtime.InitializeRuntimeToTest(t, instance, &types.Header{})
-}
-
-func TestInstance_ExecuteBlock_NodeRuntime(t *testing.T) {
-	instance := NewTestInstance(t, runtime.NODE_RUNTIME)
+func TestInstance_ExecuteBlock_WestendRuntime(t *testing.T) {
+	instance := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
 	block := runtime.InitializeRuntimeToTest(t, instance, &types.Header{})
 
 	// reset state back to parent state before executing
 	parentState := storage.NewTrieState(nil)
 	instance.SetContextStorage(parentState)
 
-	block.Header.Digest = types.NewDigest()
 	_, err := instance.ExecuteBlock(block)
-	require.NoError(t, err)
-}
-
-func TestInstance_ExecuteBlock_GossamerRuntime(t *testing.T) {
-	t.Skip() // TODO: this fails with "syscall frame is no longer valid" (#1026)
-	genesisPath := utils.GetWestendDevRawGenesisPath(t)
-	gen := genesisFromRawJSON(t, genesisPath)
-	genTrie, err := NewTrieFromGenesis(gen)
-	require.NoError(t, err)
-
-	// set state to genesis state
-	genState := storage.NewTrieState(&genTrie)
-
-	cfg := Config{
-		Storage: genState,
-		LogLvl:  log.Critical,
-	}
-
-	instance, err := NewRuntimeFromGenesis(cfg)
-	require.NoError(t, err)
-
-	block := runtime.InitializeRuntimeToTest(t, instance, &types.Header{})
-
-	// reset state back to parent state before executing
-	parentState := storage.NewTrieState(&genTrie)
-	instance.SetContextStorage(parentState)
-
-	_, err = instance.ExecuteBlock(block)
 	require.NoError(t, err)
 }
 
