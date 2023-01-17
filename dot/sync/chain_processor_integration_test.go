@@ -66,7 +66,6 @@ func buildBlockWithSlotAndTimestamp(t *testing.T, instance state.Runtime,
 	encodedInherentExtrinsics, err := instance.InherentExtrinsics(encodedInherentData)
 	require.NoError(t, err)
 
-	// decode inherent extrinsics
 	var inherentExtrinsics [][]byte
 	err = scale.Unmarshal(encodedInherentExtrinsics, &inherentExtrinsics)
 	require.NoError(t, err)
