@@ -872,13 +872,13 @@ func Test_verifier_submitAndReportEquivocation(t *testing.T) {
 	output2, proof2, err := keyPair.VrfSign(makeTranscript(Randomness{}, slot, epochNumber))
 	require.NoError(t, err)
 
-	testDigest2 := types.BabePrimaryPreDigest{
+	digest2 := types.BabePrimaryPreDigest{
 		AuthorityIndex: authorityIndex,
 		SlotNumber:     slot,
 		VRFOutput:      output2,
 		VRFProof:       proof2,
 	}
-	preRuntimeDigest2, err := testDigest2.ToPreRuntimeDigest()
+	preRuntimeDigest2, err := digest2.ToPreRuntimeDigest()
 	require.NoError(t, err)
 
 	secondHeader := newTestHeader(t, *preRuntimeDigest2)
