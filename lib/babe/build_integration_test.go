@@ -89,106 +89,81 @@ func TestBuildBlock_ok(t *testing.T) {
 }
 
 func TestApplyExtrinsic(t *testing.T) {
-	gen, genTrie, genHeader := newWestendLocalGenesisWithTrieAndHeader(t)
+	gen, genTrie, genHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, ServiceConfig{}, gen, genTrie, genHeader)
 	const authorityIndex = 0
-
-	duration, err := time.ParseDuration("1s")
-	require.NoError(t, err)
-
-	slotnum := uint64(1)
-	slot := Slot{
-		start:    time.Now(),
-		duration: duration,
-		number:   slotnum,
-	}
-
-	slot2 := Slot{
-		start:    time.Now(),
-		duration: duration,
-		number:   2,
-	}
-	testVRFOutputAndProof := &VrfOutputAndProof{}
-
-	preDigest2, err := types.NewBabePrimaryPreDigest(
-		authorityIndex, slot2.number,
-		testVRFOutputAndProof.output,
-		testVRFOutputAndProof.proof,
-	).ToPreRuntimeDigest()
-	require.NoError(t, err)
-
-	parentHash := babeService.blockState.GenesisHash()
-	parentHeader, err := babeService.blockState.GetHeader(parentHash)
-	require.NoError(t, err)
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
 	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	ts, err := babeService.storageState.TrieState(nil)
-	require.NoError(t, err)
-	rt.SetContextStorage(ts)
-
-	preDigest, err := types.NewBabePrimaryPreDigest(
-		authorityIndex, slot.number,
-		testVRFOutputAndProof.output,
-		testVRFOutputAndProof.proof,
-	).ToPreRuntimeDigest()
+	slot := getSlot(t, rt, time.Now())
+	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
+	preRuntimeDigest, err := claimSlot(testEpochIndex, slot.number, epochData, babeService.keypair)
+	require.NoError(t, err)
+
+	builder := NewBlockBuilder(
+		babeService.keypair,
+		babeService.transactionState,
+		babeService.blockState,
+		authorityIndex,
+		preRuntimeDigest,
+	)
+
+	// create new block header
+	parentHeader := emptyHeader
+	number := parentHeader.Number + 1
 	digest := types.NewDigest()
-	err = digest.Add(*preDigest)
+	err = digest.Add(*builder.preRuntimeDigest)
 	require.NoError(t, err)
+	header := types.NewHeader(parentHeader.Hash(), common.Hash{}, common.Hash{}, number, digest)
 
-	header := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, 1, digest)
-
-	//initialise block header
+	// initialise block header
 	err = rt.InitializeBlock(header)
 	require.NoError(t, err)
 
+	// add block inherents
 	_, err = buildBlockInherents(slot, rt, parentHeader)
+	require.NoError(t, err)
+
+	ext := runtime.NewTestExtrinsic(t, rt, emptyHash, parentHeader.Hash(), 0, signature.TestKeyringPairAlice, "System.remark", []byte{0xab, 0xcd})
+	_, err = rt.ApplyExtrinsic([]byte(common.MustHexToBytes(ext)))
 	require.NoError(t, err)
 
 	header1, err := rt.FinalizeBlock()
 	require.NoError(t, err)
 
-	extHex := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0,
-		signature.TestKeyringPairAlice, "System.remark", []byte{0xab, 0xcd})
-	extBytes := common.MustHexToBytes(extHex)
-	_, err = rt.ValidateTransaction(append([]byte{byte(types.TxnExternal)}, extBytes...))
+	// New block
+	ext2 := runtime.NewTestExtrinsic(t, rt, parentHeader.Hash(), parentHeader.Hash(), 0, signature.TestKeyringPairAlice, "System.remark", []byte{0xab, 0xcd})
+
+	validExt := []byte{byte(types.TxnExternal)}
+	validExt = append(validExt, common.MustHexToBytes(ext2)...)
+	validExt = append(validExt, babeService.blockState.BestBlockHash().ToBytes()...)
+	_, err = rt.ValidateTransaction(validExt)
+	require.NoError(t, err)
+
+	slot2 := getSlot(t, rt, time.Now())
+	preRuntimeDigest2, err := claimSlot(testEpochIndex, slot2.number, epochData, babeService.keypair)
 	require.NoError(t, err)
 
 	digest2 := types.NewDigest()
-	err = digest2.Add(*preDigest2)
+	err = digest2.Add(*preRuntimeDigest2)
 	require.NoError(t, err)
 	header2 := types.NewHeader(header1.Hash(), common.Hash{}, common.Hash{}, 2, digest2)
 	err = rt.InitializeBlock(header2)
 	require.NoError(t, err)
 
-	_, err = buildBlockInherents(slot, rt, parentHeader)
+	_, err = buildBlockInherents(slot2, rt, header1)
 	require.NoError(t, err)
 
-	res, err := rt.ApplyExtrinsic(extBytes)
+	res, err := rt.ApplyExtrinsic(common.MustHexToBytes(ext2))
 	require.NoError(t, err)
 	require.Equal(t, []byte{0, 0}, res)
 
 	_, err = rt.FinalizeBlock()
 	require.NoError(t, err)
-}
-
-func buildLocalTransaction(t *testing.T, rt runtime.Instance, ext types.Extrinsic,
-	bestBlockHash common.Hash) types.Extrinsic {
-	runtimeVersion := rt.Version()
-	txQueueVersion, err := runtimeVersion.TaggedTransactionQueueVersion()
-	require.NoError(t, err)
-	var extrinsicParts [][]byte
-	switch txQueueVersion {
-	case 3:
-		extrinsicParts = [][]byte{{byte(types.TxnLocal)}, ext, bestBlockHash.ToBytes()}
-	case 2:
-		extrinsicParts = [][]byte{{byte(types.TxnLocal)}, ext}
-	}
-	return types.Extrinsic(bytes.Join(extrinsicParts, nil))
 }
 
 func TestBuildAndApplyExtrinsic(t *testing.T) {
