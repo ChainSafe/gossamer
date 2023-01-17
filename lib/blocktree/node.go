@@ -175,6 +175,8 @@ func (n *node) prune(finalised *node, forkOriginToChain map[Hash][]Hash,
 	if finalised.isDescendantOf(n) {
 		// The node is an ancestor of the finalised node.
 		// ... -> N -> ... -> FINALISED -> ...
+		// Ancestor nodes are all replaced when the root node is replaced
+		// by the finalised node in the `Prune` method.
 		// Check its children which may not be on the canonical chain
 		// between the node and the finalised node.
 		for _, child := range n.children {
