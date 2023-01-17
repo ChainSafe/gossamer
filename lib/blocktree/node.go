@@ -158,10 +158,6 @@ func (n *node) deepCopy(parent *node) *node {
 }
 
 func (n *node) prune(finalised *node, pruned []Hash) []Hash {
-	if finalised == nil {
-		return pruned
-	}
-
 	if pruned == nil {
 		pruned = []Hash{}
 	}
