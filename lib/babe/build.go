@@ -101,10 +101,6 @@ func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot, rt Runtime) (
 	if err != nil {
 		return nil, fmt.Errorf("cannot build inherents: %s", err)
 	}
-	fmt.Println(inherents)
-
-	// Dev is [[4 3 0 11 97 156 132 193 133 1]]
-	// Here is [[4 2 0 11 26 180 133 193 133 1] [4 45 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]]
 
 	logger.Tracef("built block encoded inherents: %v", inherents)
 
@@ -200,7 +196,7 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt ExtrinsicHandler) []*t
 
 		err = determineErr(ret)
 		if err != nil {
-			logger.Warnf("failed to apply extrinsic %s: %s", extrinsic, err)
+			logger.Warnf("error when applying extrinsic %s: %s", extrinsic, err)
 
 			// Failure of the module call dispatching doesn't invalidate the extrinsic.
 			// It is included in the block.

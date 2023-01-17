@@ -4,6 +4,7 @@
 package babe
 
 import (
+	"bytes"
 	"github.com/ChainSafe/gossamer/lib/babe/mocks"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -293,6 +294,21 @@ func newTestServiceSetupParameters(t *testing.T, genesis genesis.Genesis,
 	}
 
 	return s, dbSrv.Epoch, genCfg
+}
+
+func buildLocalTransaction(t *testing.T, rt runtime.Instance, ext types.Extrinsic,
+	bestBlockHash common.Hash) types.Extrinsic {
+	runtimeVersion := rt.Version()
+	txQueueVersion, err := runtimeVersion.TaggedTransactionQueueVersion()
+	require.NoError(t, err)
+	var extrinsicParts [][]byte
+	switch txQueueVersion {
+	case 3:
+		extrinsicParts = [][]byte{{byte(types.TxnLocal)}, ext, bestBlockHash.ToBytes()}
+	case 2:
+		extrinsicParts = [][]byte{{byte(types.TxnLocal)}, ext}
+	}
+	return types.Extrinsic(bytes.Join(extrinsicParts, nil))
 }
 
 func getSlot(t *testing.T, rt runtime.Instance, timestamp time.Time) Slot {
