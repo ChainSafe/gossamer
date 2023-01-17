@@ -70,7 +70,6 @@ func buildBlockWithSlotAndTimestamp(t *testing.T, instance state.Runtime,
 	err = scale.Unmarshal(encodedInherentExtrinsics, &inherentExtrinsics)
 	require.NoError(t, err)
 
-	// apply each inherent extrinsic
 	for _, inherent := range inherentExtrinsics {
 		encodedInherent, err := scale.Marshal(inherent)
 		require.NoError(t, err)
