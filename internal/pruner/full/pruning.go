@@ -10,6 +10,28 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
+// It prunes all block numbers falling off the window of block numbers to keep,
+// before inserting the new record. It is thread safe to call.
+func (p *Pruner) Prune(finalisedBlockHash common.Hash,
+	prunedBlockHashes []common.Hash) (err error) {
+	// Do not prune any key inserted by a pruned block from an abandoned fork
+	// if it is still needed on the canonical chain.
+	keysInserted
+
+	// Prune all journal records for the pruned blocks from an abandoned fork.
+
+	// Prune deleted trie nodes outside the window of block numbers to keep,
+	// and no longer needed in the blocks currently in this window.
+	// Records in the journal database are also pruned at the same time.
+	journalBatch := p.journalDatabase.NewBatch()
+	err = p.pruneAll(journalBatch)
+	if err != nil {
+		return fmt.Errorf("pruning storage database: %w", err)
+	}
+
+	return nil
+}
+
 func (p *Pruner) pruneAll(journalDBBatch PutDeleter) (err error) {
 	if p.highestBlockNumber-p.nextBlockNumberToPrune < p.retainBlocks {
 		return nil

@@ -19,70 +19,48 @@ type journalKey struct {
 	BlockHash   common.Hash
 }
 
-func storeDeletedNodeHashes(journalDatabase Getter, batch Putter,
+type journalRecord struct {
+	deletedNodeHashes  []common.Hash
+	insertedNodeHashes []common.Hash
+}
+
+func storeNodeHashesDeltas(journalDatabase Getter, batch Putter,
 	blockNumber uint32, blockHash common.Hash,
-	deletedNodeHashes map[common.Hash]struct{}) (err error) {
+	deletedNodeHashes, insertedNodeHashes map[common.Hash]struct{}) (err error) {
 	key := journalKey{
 		BlockNumber: blockNumber,
 		BlockHash:   blockHash,
 	}
-
-	deletedNodeHashesSlice := make([]common.Hash, 0, len(deletedNodeHashes))
-	for deletedNodeHash := range deletedNodeHashes {
-		deletedNodeHashesSlice = append(deletedNodeHashesSlice, deletedNodeHash)
-
-		// We store each block hash + block number for each deleted node hash
-		// so a node hash can quickly be checked for from the journal database
-		// when running `handleInsertedKey`.
-		databaseKey := makeDeletedKey(deletedNodeHash)
-
-		encodedJournalKeys, err := journalDatabase.Get(databaseKey)
-		if err != nil && !errors.Is(err, chaindb.ErrKeyNotFound) {
-			return fmt.Errorf("getting journal keys for deleted node hash "+
-				"from journal database: %w", err)
-		}
-
-		var keys []journalKey
-		if len(encodedJournalKeys) > 0 {
-			// one or more other blocks deleted the same node hash the current
-			// block deleted as well.
-			err = scale.Unmarshal(encodedJournalKeys, &keys)
-			if err != nil {
-				return fmt.Errorf("scale decoding journal keys for deleted node hash "+
-					"from journal database: %w", err)
-			}
-		}
-		keys = append(keys, key)
-
-		encodedKeys, err := scale.Marshal(keys)
-		if err != nil {
-			return fmt.Errorf("scale encoding journal keys: %w", err)
-		}
-
-		err = batch.Put(databaseKey, encodedKeys)
-		if err != nil {
-			return fmt.Errorf("putting journal keys in database batch: %w", err)
-		}
-	}
-
-	// Sort the deleted node hashes to have a deterministic encoding for tests
-	sort.Slice(deletedNodeHashesSlice, func(i, j int) bool {
-		return bytes.Compare(deletedNodeHashesSlice[i][:], deletedNodeHashesSlice[j][:]) < 0
-	})
-	encodedDeletedNodeHashes, err := scale.Marshal(deletedNodeHashesSlice)
-	if err != nil {
-		return fmt.Errorf("scale encoding deleted node hashes: %w", err)
-	}
-
-	// We store the deleted node hashes in the journal database
-	// at the key (block hash + block number)
 	encodedKey, err := scale.Marshal(key)
 	if err != nil {
 		return fmt.Errorf("scale encoding journal key: %w", err)
 	}
-	err = batch.Put(encodedKey, encodedDeletedNodeHashes)
+
+	record := journalRecord{
+		deletedNodeHashes:  make([]common.Hash, 0, len(deletedNodeHashes)),
+		insertedNodeHashes: make([]common.Hash, 0, len(insertedNodeHashes)),
+	}
+	for deletedNodeHash := range deletedNodeHashes {
+		record.deletedNodeHashes = append(record.deletedNodeHashes, deletedNodeHash)
+	}
+	for insertedNodeHash := range insertedNodeHashes {
+		record.insertedNodeHashes = append(record.insertedNodeHashes, insertedNodeHash)
+	}
+	// Sort the node hashes to have a deterministic encoding for tests
+	sort.Slice(record.deletedNodeHashes, func(i, j int) bool {
+		return bytes.Compare(record.deletedNodeHashes[i][:], record.deletedNodeHashes[j][:]) < 0
+	})
+	sort.Slice(record.insertedNodeHashes, func(i, j int) bool {
+		return bytes.Compare(record.insertedNodeHashes[i][:], record.insertedNodeHashes[j][:]) < 0
+	})
+	encodedRecord, err := scale.Marshal(record)
 	if err != nil {
-		return fmt.Errorf("putting deleted node hashes in database batch: %w", err)
+		return fmt.Errorf("scale encoding journal record: %w", err)
+	}
+
+	err = batch.Put(encodedKey, encodedRecord)
+	if err != nil {
+		return fmt.Errorf("putting journal record in database batch: %w", err)
 	}
 
 	return nil

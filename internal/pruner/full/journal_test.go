@@ -143,7 +143,7 @@ func Test_storeDeletedNodeHashes(t *testing.T) {
 
 			database := testCase.databaseBuilder(ctrl)
 			batch := testCase.batchBuilder(ctrl)
-			err := storeDeletedNodeHashes(database, batch, testCase.blockNumber,
+			err := storeNodeHashesDeltas(database, batch, testCase.blockNumber,
 				testCase.blockHash, testCase.deletedNodeHashes)
 
 			assert.ErrorIs(t, err, testCase.errWrapped)

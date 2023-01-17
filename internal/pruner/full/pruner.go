@@ -87,10 +87,9 @@ func New(journalDB JournalDatabase, storageDB ChainDBNewBatcher, retainBlocks ui
 	return pruner, nil
 }
 
-// RecordAndPrune stores the trie deltas impacting the storage database for a particular
-// block hash. It prunes all block numbers falling off the window of block numbers to keep,
-// before inserting the new record. It is thread safe to call.
-func (p *Pruner) RecordAndPrune(deletedNodeHashes, insertedNodeHashes map[common.Hash]struct{},
+// Record stores the trie deltas impacting the storage database for a particular
+// block hash and block number to the journal database.
+func (p *Pruner) Record(deletedNodeHashes, insertedNodeHashes map[common.Hash]struct{},
 	blockHash common.Hash, blockNumber uint32) (err error) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
@@ -103,30 +102,10 @@ func (p *Pruner) RecordAndPrune(deletedNodeHashes, insertedNodeHashes map[common
 
 	if blockNumber == 0 {
 		// The genesis block has no node hash deletion, and no re-inserted node hashes.
-		// There is no node hashes to be pruned either.
 		return nil
 	}
 
-	// Delist re-inserted keys from being pruned.
-	// WARNING: this must be before the pruning to avoid
-	// pruning still needed database keys.
 	journalDBBatch := p.journalDatabase.NewBatch()
-	err = p.handleInsertedKeys(insertedNodeHashes, blockNumber,
-		blockHash, journalDBBatch)
-	if err != nil {
-		journalDBBatch.Reset()
-		return fmt.Errorf("handling inserted keys: %w", err)
-	}
-
-	err = journalDBBatch.Flush()
-	if err != nil {
-		return fmt.Errorf("flushing re-inserted keys updates to journal database: %w", err)
-	}
-
-	journalDBBatch = p.journalDatabase.NewBatch()
-
-	// Update highest block number in memory and on disk so `pruneAll` can use it,
-	// prune and flush the deletions in the journal and storage databases.
 	if blockNumber > p.highestBlockNumber {
 		p.highestBlockNumber = blockNumber
 		err = storeBlockNumberAtKey(journalDBBatch, []byte(highestBlockNumberKey), blockNumber)
@@ -134,13 +113,6 @@ func (p *Pruner) RecordAndPrune(deletedNodeHashes, insertedNodeHashes map[common
 			journalDBBatch.Reset()
 			return fmt.Errorf("storing highest block number in journal database: %w", err)
 		}
-	}
-
-	// Prune before inserting new journal data
-	err = p.pruneAll(journalDBBatch)
-	if err != nil {
-		journalDBBatch.Reset()
-		return fmt.Errorf("pruning database: %w", err)
 	}
 
 	// Note we store block number <-> block hashes in the database
@@ -153,8 +125,8 @@ func (p *Pruner) RecordAndPrune(deletedNodeHashes, insertedNodeHashes map[common
 		return fmt.Errorf("recording block hash in journal database: %w", err)
 	}
 
-	err = storeDeletedNodeHashes(p.journalDatabase, journalDBBatch, blockNumber,
-		blockHash, deletedNodeHashes)
+	err = storeNodeHashesDeltas(p.journalDatabase, journalDBBatch, blockNumber,
+		blockHash, deletedNodeHashes, insertedNodeHashes)
 	if err != nil {
 		journalDBBatch.Reset()
 		return fmt.Errorf("storing deleted node hashes for block number %d: %w", blockNumber, err)

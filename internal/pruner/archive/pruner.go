@@ -13,7 +13,12 @@ func New() *Pruner {
 	return &Pruner{}
 }
 
-// RecordAndPrune for archive node doesn't do anything.
-func (*Pruner) RecordAndPrune(_, _ map[common.Hash]struct{}, _ common.Hash, _ uint32) (_ error) {
+// Record is a no-op implementation.
+func (*Pruner) Record(_, _ map[common.Hash]struct{}, _ common.Hash, _ uint32) (_ error) {
+	return nil
+}
+
+// Prune is a no-op implementation.
+func (*Pruner) Prune(prunedBlockHashes []common.Hash) (_ error) {
 	return nil
 }
