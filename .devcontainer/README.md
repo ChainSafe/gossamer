@@ -1,8 +1,14 @@
 # Development container
 
-Development container that can be used with VSCode.
+Development container tailored for Gossamer that can be used with VSCode on Linux, Windows and OSX.
 
-It works on Linux, Windows and OSX.
+It is based on [`qmcgaw/godevcontainer`](https://github.com/qdm12/godevcontainer) and notably has:
+
+- `CGO_ENABLED=1` set to work with the wasmer C bindings
+- `procps` and `cpulimit` installed to limit the CPU usage of a Gossamer node
+- NodeJS 14 installed to run polkadotjs end to end tests
+- [github.com/google/addlicense](https://github.com/google/addlicense) installed to add and maintain copyright notices to source files
+- Protoc and [protoc-gen-go](google.golang.org/protobuf/cmd/protoc-gen-go) to generate Go source files from proto files
 
 ## Requirements
 
