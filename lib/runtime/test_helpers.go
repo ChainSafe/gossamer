@@ -225,8 +225,10 @@ func NewTestExtrinsic(t *testing.T, rt MetadataVersioner, genHash, blockHash com
 	nonce uint64, keyRingPair signature.KeyringPair, call string, args ...interface{}) string {
 	t.Helper()
 
+	fmt.Println("a")
 	rawMeta, err := rt.Metadata()
 	require.NoError(t, err)
+	fmt.Println("b")
 
 	var decoded []byte
 	err = scale.Unmarshal(rawMeta, &decoded)
@@ -235,12 +237,15 @@ func NewTestExtrinsic(t *testing.T, rt MetadataVersioner, genHash, blockHash com
 	meta := &ctypes.Metadata{}
 	err = codec.Decode(decoded, meta)
 	require.NoError(t, err)
+	fmt.Println("c")
 
 	rv := rt.Version()
 	require.NoError(t, err)
 
 	c, err := ctypes.NewCall(meta, call, args...)
 	require.NoError(t, err)
+
+	fmt.Println("d")
 
 	ext := ctypes.NewExtrinsic(c)
 	o := ctypes.SignatureOptions{
@@ -259,7 +264,7 @@ func NewTestExtrinsic(t *testing.T, rt MetadataVersioner, genHash, blockHash com
 
 	extEnc, err := codec.EncodeToHex(ext)
 	require.NoError(t, err)
-
+	fmt.Println("e")
 	return extEnc
 }
 

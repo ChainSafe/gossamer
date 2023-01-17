@@ -41,7 +41,8 @@ func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *
 	dbSrv := state.NewService(config)
 	dbSrv.UseMemDB()
 
-	gen, genesisTrie, genesisHeader := newDevGenesisWithTrieAndHeader(t)
+	//gen, genesisTrie, genesisHeader := newDevGenesisWithTrieAndHeader(t)
+	gen, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	err := dbSrv.Initialise(&gen, &genesisHeader, &genesisTrie)
 	require.NoError(t, err)
 
@@ -61,35 +62,39 @@ func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *
 }
 
 func TestVerificationManager_OnDisabled_InvalidIndex(t *testing.T) {
-	vm := newTestVerificationManager(t, nil)
-
 	cfg := ServiceConfig{
 		Authority: true,
 	}
-	gen, genTrie, genHeader := newWestendLocalGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, cfg, gen, genTrie, genHeader)
+	gen, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
+	babeService := createTestService(t, cfg, gen, genesisTrie, genesisHeader)
+	vm := NewVerificationManager(babeService.blockState, babeService.epochState)
+
+	bestBlockHash := babeService.blockState.BestBlockHash()
+	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
+	require.NoError(t, err)
 
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
-	block := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1, testEpochIndex, epochData)
+	slot := getSlot(t, rt, time.Now())
+	block := createTestBlockWithSlot(t, babeService, emptyHeader, [][]byte{}, testEpochIndex, epochData, slot)
+
 	err = vm.SetOnDisabled(1, &block.Header)
-	require.Equal(t, err, ErrInvalidBlockProducerIndex)
+	require.Equal(t, ErrInvalidBlockProducerIndex, err)
 }
 
 func TestVerificationManager_OnDisabled_NewDigest(t *testing.T) {
-	kp, err := sr25519.GenerateKeypair()
+	gen, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
+	babeService := createTestService(t, ServiceConfig{}, gen, genesisTrie, genesisHeader)
+	vm := NewVerificationManager(babeService.blockState, babeService.epochState)
+
+	bestBlockHash := babeService.blockState.BestBlockHash()
+	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	cfg := ServiceConfig{
-		Keypair: kp,
-	}
-	gen, genTrie, genHeader := newWestendLocalGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, cfg, gen, genTrie, genHeader)
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
-	vm := newTestVerificationManager(t, nil)
 	vm.epochInfo[testEpochIndex] = &verifierInfo{
 		authorities: epochData.authorities,
 		threshold:   epochData.threshold,
@@ -98,7 +103,8 @@ func TestVerificationManager_OnDisabled_NewDigest(t *testing.T) {
 
 	parent, _ := babeService.blockState.BestBlockHeader()
 
-	block := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1, testEpochIndex, epochData)
+	slot := getSlot(t, rt, time.Now())
+	block := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, testEpochIndex, epochData, slot)
 	err = vm.blockState.AddBlock(block)
 	require.NoError(t, err)
 
@@ -106,7 +112,8 @@ func TestVerificationManager_OnDisabled_NewDigest(t *testing.T) {
 	require.NoError(t, err)
 
 	// create an OnDisabled change on a different branch
-	block = createTestBlock(t, babeService, parent, [][]byte{}, 2, testEpochIndex, epochData)
+	slot2 := getSlot(t, rt, time.Now())
+	block = createTestBlockWithSlot(t, babeService, parent, [][]byte{}, testEpochIndex, epochData, slot2)
 	err = vm.blockState.AddBlock(block)
 	require.NoError(t, err)
 
@@ -121,7 +128,7 @@ func TestVerificationManager_OnDisabled_DuplicateDigest(t *testing.T) {
 	cfg := ServiceConfig{
 		Keypair: kp,
 	}
-	gen, genTrie, genHeader := newWestendLocalGenesisWithTrieAndHeader(t)
+	gen, genTrie, genHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, cfg, gen, genTrie, genHeader)
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)

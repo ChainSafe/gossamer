@@ -8,7 +8,6 @@ package babe
 import (
 	"testing"
 
-	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 
 	"github.com/stretchr/testify/require"
@@ -31,17 +30,6 @@ func TestVerifySecondarySlotPlain(t *testing.T) {
 	}
 
 	require.Equal(t, 1, numAuthorized, "only one block producer should be authorized per secondary slot")
-}
-
-func createSecondaryVRFPreDigest(t *testing.T,
-	keypair *sr25519.Keypair, index uint32,
-	slot, epoch uint64, randomness Randomness,
-) *types.BabeSecondaryVRFPreDigest {
-	transcript := makeTranscript(randomness, slot, epoch)
-	out, proof, err := keypair.VrfSign(transcript)
-	require.NoError(t, err)
-
-	return types.NewBabeSecondaryVRFPreDigest(index, slot, out, proof)
 }
 
 func TestVerifySecondarySlotVRF(t *testing.T) {
