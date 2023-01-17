@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/babe/inherents"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/transaction"
@@ -240,7 +241,7 @@ func buildBlockInherents(slot Slot, rt ExtrinsicHandler, parent *types.Header) (
 		return nil, err
 	}
 
-	parachainInherent := ParachainInherentData{
+	parachainInherent := inherents.ParachainInherentData{
 		ParentHeader: *parent,
 	}
 

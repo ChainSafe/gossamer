@@ -17,6 +17,7 @@ import (
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/babe/inherents"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -335,9 +336,7 @@ func InitializeRuntimeToTest(t *testing.T, instance Instance, parentHeader *type
 	err = inherentData.SetInherent(types.Babeslot, currentSlot)
 	require.NoError(t, err)
 
-	parachainInherent := struct {
-		ParentHeader types.Header `scale:"4"`
-	}{
+	parachainInherent := inherents.ParachainInherentData{
 		ParentHeader: *parentHeader,
 	}
 
