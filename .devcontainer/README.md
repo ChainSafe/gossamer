@@ -28,7 +28,6 @@ It is based on [`qmcgaw/godevcontainer`](https://github.com/qdm12/godevcontainer
     Note that the development container will create the empty directories `~/.docker`, `~/.ssh` and `~/.kube` if you don't have them.
 
 1. **For Docker on OSX or Windows without WSL**: ensure your home directory `~` is accessible by Docker.
-1. **For Docker on Windows without WSL:** if you want to use SSH keys, bind mount your host `~/.ssh` to `/tmp/.ssh` instead of `~/.ssh` by changing the `volumes` section in the [docker-compose.yml](docker-compose.yml).
 1. Open the command palette in Visual Studio Code (CTRL+SHIFT+P).
 1. Select `Remote-Containers: Open Folder in Container...` and choose the project directory.
 
@@ -38,15 +37,18 @@ It is based on [`qmcgaw/godevcontainer`](https://github.com/qdm12/godevcontainer
 
 You can make changes to the [Dockerfile](Dockerfile) and then rebuild the image.
 
-To rebuild the image, open the VSCode command palette (`CTRL`+`SHIFT`+`P`), select `Remote-Containers: Rebuild and reopen in container`
+To rebuild the image, either:
+
+- With VSCode through the command palette, select `Remote-Containers: Rebuild and reopen in container`
+- With a terminal, go to this directory and `docker-compose build`
 
 ### Customize VS code settings
 
-You can customize **settings** and **extensions** in the [devcontainer.json](devcontainer.json) definition file. You will have to re-build the container for them to take effect. Alternatively you can still use the `.vscode` directory in the repository for user settings that take precedence.
+You can customize **settings** and **extensions** in the [devcontainer.json](devcontainer.json) definition file.
 
 ### Entrypoint script
 
-You can bind mount a shell script to `/home/vscode/.welcome.sh` to replace the current welcome script.
+You can bind mount a shell script to `/root/.welcome.sh` to replace the [current welcome script](shell/.welcome.sh).
 
 ### Publish a port
 
