@@ -13,7 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/babe"
+	"github.com/ChainSafe/gossamer/lib/babe/inherents"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/transaction"
@@ -49,7 +49,7 @@ func buildBlockWithSlotAndTimestamp(t *testing.T, instance state.Runtime,
 	err = inherentData.SetInherent(types.Babeslot, currentSlot)
 	require.NoError(t, err)
 
-	parachainInherent := babe.ParachainInherentData{
+	parachainInherent := inherents.ParachainInherentData{
 		ParentHeader: *parent,
 	}
 
