@@ -142,16 +142,20 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 		bs.notifyFinalized(hash, round, setID)
 	}
 
-	pruned := bs.bt.Prune(hash)
-	for _, hash := range pruned {
-		blockHeader := bs.unfinalisedBlocks.delete(hash)
-		if blockHeader == nil {
-			continue
+	forkOriginToChain := bs.bt.Prune(hash)
+	for forkOriginBlockHash, forkedChain := range forkOriginToChain {
+		for _, blockHash := range forkedChain {
+			blockHeader := bs.unfinalisedBlocks.delete(blockHash)
+			if blockHeader == nil {
+				continue
+			}
+
+			bs.tries.delete(blockHeader.StateRoot)
 		}
 
-		bs.tries.delete(blockHeader.StateRoot)
-
-		logger.Tracef("pruned block number %d with hash %s", blockHeader.Number, hash)
+		logger.Tracef("pruned %d blocks from forked chain "+
+			"originating from canonical chain block with hash %s",
+			len(forkedChain), forkOriginBlockHash)
 	}
 
 	// if nothing was previously finalised, set the first slot of the network to the
