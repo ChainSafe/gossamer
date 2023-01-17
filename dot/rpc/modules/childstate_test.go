@@ -21,7 +21,7 @@ import (
 func createTestTrieState(t *testing.T) (*trie.Trie, common.Hash) {
 	t.Helper()
 
-	_, genesisTrie, _ := newTestGenesisWithTrieAndHeader(t)
+	_, genesisTrie, _ := newWestendLocalGenesisWithTrieAndHeader(t)
 	tr := rtstorage.NewTrieState(&genesisTrie)
 
 	tr.Put([]byte(":first_key"), []byte(":value1"))

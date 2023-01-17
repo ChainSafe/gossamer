@@ -288,7 +288,7 @@ func TestChainGetBlockHash_Array(t *testing.T) {
 func TestChainGetFinalizedHead(t *testing.T) {
 	state := newTestStateService(t)
 	svc := NewChainModule(state.Block)
-	_, _, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	_, _, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
 	var res ChainHashResponse
 	err := svc.GetFinalizedHead(nil, &EmptyRequest{}, &res)
 	require.NoError(t, err)
@@ -306,7 +306,7 @@ func TestChainGetFinalizedHeadByRound(t *testing.T) {
 	err := svc.GetFinalizedHeadByRound(nil, &req, &res)
 	require.NoError(t, err)
 
-	_, _, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	_, _, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
 	expected := genesisHeader.Hash()
 	require.Equal(t, common.BytesToHex(expected[:]), res)
 
@@ -351,7 +351,7 @@ func newTestStateService(t *testing.T) *state.Service {
 	stateSrvc := state.NewService(config)
 	stateSrvc.UseMemDB()
 
-	gen, genesisTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	gen, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
 
 	err := stateSrvc.Initialise(&gen, &genesisHeader, &genesisTrie)
 	require.NoError(t, err)

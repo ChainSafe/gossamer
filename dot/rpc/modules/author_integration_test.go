@@ -174,7 +174,8 @@ func TestAuthorModule_SubmitExtrinsic_Integration(t *testing.T) {
 
 	// creating an extrisinc to the System.remark call using a sample argument
 	extHex := runtime.NewTestExtrinsic(t,
-		integrationTestController.runtime, genesisHash, genesisHash, 0, "System.remark", []byte{0xab, 0xcd})
+		integrationTestController.runtime, genesisHash, genesisHash, 0,
+		signature.TestKeyringPairAlice, "System.remark", []byte{0xab, 0xcd})
 
 	extBytes := common.MustHexToBytes(extHex)
 
@@ -212,7 +213,7 @@ func TestAuthorModule_SubmitExtrinsic_Integration(t *testing.T) {
 	require.Equal(t, expectedHash, *res)
 }
 
-func TestAuthorModule_SubmitExtrinsic_invalid(t *testing.T) {
+func TestAuthorModule_SubmitExtrinsic_bad_proof(t *testing.T) {
 	t.Parallel()
 	integrationTestController := setupStateAndRuntime(t, t.TempDir(), useInstanceFromGenesis)
 
@@ -220,7 +221,8 @@ func TestAuthorModule_SubmitExtrinsic_invalid(t *testing.T) {
 
 	// creating an extrisinc to the System.remark call using a sample argument
 	extHex := runtime.NewTestExtrinsic(t,
-		integrationTestController.runtime, genesisHash, genesisHash, 0, "System.remark", []byte{})
+		integrationTestController.runtime, genesisHash, genesisHash, 0,
+		signature.TestInvalidKeyringPairAlice, "System.remark", []byte{0xab, 0xcd})
 
 	ctrl := gomock.NewController(t)
 	net2test := NewMockNetwork(ctrl)
@@ -233,7 +235,7 @@ func TestAuthorModule_SubmitExtrinsic_invalid(t *testing.T) {
 
 	res := new(ExtrinsicHashResponse)
 	err := auth.SubmitExtrinsic(nil, &Extrinsic{extHex}, res)
-	require.EqualError(t, err, "ancient birth block")
+	require.EqualError(t, err, "bad proof")
 
 	txOnPool := integrationTestController.stateSrv.Transaction.PendingInPool()
 	require.Len(t, txOnPool, 0)
@@ -269,7 +271,8 @@ func TestAuthorModule_SubmitExtrinsic_AlreadyInPool(t *testing.T) {
 
 	// creating an extrisinc to the System.remark call using a sample argument
 	extHex := runtime.NewTestExtrinsic(t,
-		integrationTestController.runtime, genesisHash, genesisHash, 0, "System.remark", []byte{})
+		integrationTestController.runtime, genesisHash, genesisHash, 0,
+		signature.TestKeyringPairAlice, "System.remark", []byte{})
 	extBytes := common.MustHexToBytes(extHex)
 
 	integrationTestController.network = NewMockNetwork(nil)
@@ -630,7 +633,7 @@ type integrationTestController struct {
 func setupStateAndRuntime(t *testing.T, basepath string, useInstance useRuntimeInstance) *integrationTestController {
 	t.Helper()
 
-	gen, genesisTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	gen, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockTelemetry(ctrl)
@@ -690,7 +693,7 @@ func setupStateAndPopulateTrieState(t *testing.T, basepath string,
 	useInstance useRuntimeInstance) *integrationTestController {
 	t.Helper()
 
-	gen, genesisTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	gen, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockTelemetry(ctrl)

@@ -222,7 +222,7 @@ type MetadataVersioner interface {
 
 // NewTestExtrinsic builds a new extrinsic using centrifuge pkg
 func NewTestExtrinsic(t *testing.T, rt MetadataVersioner, genHash, blockHash common.Hash,
-	nonce uint64, call string, args ...interface{}) string {
+	nonce uint64, keypair signature.KeyringPair, call string, args ...interface{}) string {
 	t.Helper()
 
 	rawMeta, err := rt.Metadata()
@@ -254,7 +254,7 @@ func NewTestExtrinsic(t *testing.T, rt MetadataVersioner, genHash, blockHash com
 	}
 
 	// Sign the transaction using Alice's key
-	err = ext.Sign(signature.TestKeyringPairAlice, o)
+	err = ext.Sign(keypair, o)
 	require.NoError(t, err)
 
 	extEnc, err := codec.EncodeToHex(ext)
