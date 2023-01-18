@@ -368,9 +368,9 @@ func InitializeRuntimeToTest(t *testing.T, instance Instance, parentHeader *type
 		encodedExtrinsic, err := scale.Marshal(ext)
 		require.NoError(t, err)
 
-		ret, err := instance.ApplyExtrinsic(encodedExtrinsic)
+		wasmResult, err := instance.ApplyExtrinsic(encodedExtrinsic)
 		require.NoError(t, err, encodedExtrinsic)
-		require.Equal(t, ret, []byte{0, 0})
+		require.Equal(t, wasmResult, []byte{0, 0})
 	}
 
 	finalizedBlockHeader, err := instance.FinalizeBlock()
