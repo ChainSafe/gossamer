@@ -105,7 +105,7 @@ func (validDisputeStatementKind) Index() uint { //skipcq
 	return 0
 }
 
-func (validDisputeStatementKind) String() string { //skipcq:SCC-U1000
+func (validDisputeStatementKind) String() string { //skipcq
 	return "valid dispute statement kind"
 }
 
@@ -182,7 +182,7 @@ func (invalidDisputeStatementKind) Index() uint { //skipcq
 	return 1
 }
 
-func (invalidDisputeStatementKind) String() string { //skipcq:SCC-U1000
+func (invalidDisputeStatementKind) String() string { //skipcq
 	return "invalid dispute statement kind"
 }
 
