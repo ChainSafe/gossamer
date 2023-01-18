@@ -360,7 +360,6 @@ func InitializeRuntimeToTest(t *testing.T, instance Instance, parentHeader *type
 	inherentExts, err := instance.InherentExtrinsics(encodedInnherents)
 	require.NoError(t, err)
 
-	// decode inherent extrinsics
 	var extrinsics [][]byte
 	err = scale.Unmarshal(inherentExts, &extrinsics)
 	require.NoError(t, err)
