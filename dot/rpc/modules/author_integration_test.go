@@ -744,7 +744,7 @@ func setupStateAndPopulateTrieState(t *testing.T, basepath string,
 		genesisHash := genesisHeader.Hash()
 		state2test.Block.StoreRuntime(genesisHash, rt)
 
-		b := runtime.InitializeRuntimeToTest(t, rt, genesisHash)
+		b := runtime.InitializeRuntimeToTest(t, rt, &genesisHeader)
 
 		err = state2test.Block.AddBlock(b)
 		require.NoError(t, err)

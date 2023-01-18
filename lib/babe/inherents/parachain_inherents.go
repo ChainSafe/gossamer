@@ -1,7 +1,7 @@
 // Copyright 2022 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package babe
+package inherents
 
 import (
 	"fmt"
@@ -105,7 +105,7 @@ func (validDisputeStatementKind) Index() uint { //skipcq
 	return 0
 }
 
-func (validDisputeStatementKind) String() string { //skipcq:SCC-U1000
+func (validDisputeStatementKind) String() string { //skipcq
 	return "valid dispute statement kind"
 }
 
@@ -172,7 +172,7 @@ func (approvalChecking) Index() uint { //skipcq
 	return 3
 }
 
-func (a approvalChecking) String() string { return "approval checking" } //skipcq:SCC-U1000
+func (approvalChecking) String() string { return "approval checking" }
 
 // invalidDisputeStatementKind is a kind of statements of invalidity on a candidate.
 type invalidDisputeStatementKind scale.VaryingDataType //skipcq
@@ -182,7 +182,7 @@ func (invalidDisputeStatementKind) Index() uint { //skipcq
 	return 1
 }
 
-func (invalidDisputeStatementKind) String() string { //skipcq:SCC-U1000
+func (invalidDisputeStatementKind) String() string { //skipcq
 	return "invalid dispute statement kind"
 }
 
