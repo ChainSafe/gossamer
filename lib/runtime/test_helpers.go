@@ -364,7 +364,6 @@ func InitializeRuntimeToTest(t *testing.T, instance Instance, parentHeader *type
 	err = scale.Unmarshal(inherentExts, &extrinsics)
 	require.NoError(t, err)
 
-	// apply each inherent extrinsic
 	for _, ext := range extrinsics {
 		encodedExtrinsic, err := scale.Marshal(ext)
 		require.NoError(t, err)
