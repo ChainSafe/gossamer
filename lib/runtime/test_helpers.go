@@ -17,12 +17,12 @@ import (
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/babe/inherents"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
@@ -307,23 +307,43 @@ type Metadataer interface {
 func InitializeRuntimeToTest(t *testing.T, instance Instance, parentHeader *types.Header) *types.Block {
 	t.Helper()
 
+	babeConfig, err := instance.BabeConfiguration()
+	require.NoError(t, err)
+
+	slotDuration := babeConfig.SlotDuration
+	timestamp := uint64(time.Now().UnixMilli())
+	currentSlot := timestamp / slotDuration
+
+	babeDigest := types.NewBabeDigest()
+	err = babeDigest.Set(*types.NewBabePrimaryPreDigest(0, currentSlot, [32]byte{}, [64]byte{}))
+	require.NoError(t, err)
+
+	encodedBabeDigest, err := scale.Marshal(babeDigest)
+	require.NoError(t, err)
+	preDigest := *types.NewBABEPreRuntimeDigest(encodedBabeDigest)
+
+	digest := types.NewDigest()
+	require.NoError(t, err)
+	err = digest.Add(preDigest)
+	require.NoError(t, err)
+
 	header := &types.Header{
 		ParentHash: parentHeader.Hash(),
-		Number:     1,
-		Digest:     types.NewDigest(),
+		Number:     parentHeader.Number + 1,
+		Digest:     digest,
 	}
 
-	err := instance.InitializeBlock(header)
+	err = instance.InitializeBlock(header)
 	require.NoError(t, err)
 
 	inherentData := types.NewInherentData()
-	err = inherentData.SetInherent(types.Timstap0, uint64(1))
+	err = inherentData.SetInherent(types.Timstap0, timestamp)
 	require.NoError(t, err)
 
-	err = inherentData.SetInherent(types.Babeslot, uint64(1))
+	err = inherentData.SetInherent(types.Babeslot, currentSlot)
 	require.NoError(t, err)
 
-	parachainInherent := struct{ ParentHeader types.Header }{
+	parachainInherent := inherents.ParachainInherentData{
 		ParentHeader: *parentHeader,
 	}
 
@@ -333,60 +353,31 @@ func InitializeRuntimeToTest(t *testing.T, instance Instance, parentHeader *type
 	err = inherentData.SetInherent(types.Newheads, []byte{0})
 	require.NoError(t, err)
 
-	ecodedInherent, err := inherentData.Encode()
+	encodedInnherents, err := inherentData.Encode()
 	require.NoError(t, err)
 
 	// Call BlockBuilder_inherent_extrinsics which returns the inherents as extrinsics
-	inherentExts, err := instance.InherentExtrinsics(ecodedInherent)
+	inherentExts, err := instance.InherentExtrinsics(encodedInnherents)
 	require.NoError(t, err)
 
-	// decode inherent extrinsics
-	var exts [][]byte
-	err = scale.Unmarshal(inherentExts, &exts)
+	var extrinsics [][]byte
+	err = scale.Unmarshal(inherentExts, &extrinsics)
 	require.NoError(t, err)
 
-	// apply each inherent extrinsic
-	for _, ext := range exts {
-		encodedInherent, err := scale.Marshal(ext)
+	for _, ext := range extrinsics {
+		encodedExtrinsic, err := scale.Marshal(ext)
 		require.NoError(t, err)
 
-		ret, err := instance.ApplyExtrinsic(encodedInherent)
-		require.NoError(t, err, encodedInherent)
-		require.Equal(t, ret, []byte{0, 0})
+		wasmResult, err := instance.ApplyExtrinsic(encodedExtrinsic)
+		require.NoError(t, err, encodedExtrinsic)
+		require.Equal(t, wasmResult, []byte{0, 0})
 	}
 
-	res, err := instance.FinalizeBlock()
+	finalizedBlockHeader, err := instance.FinalizeBlock()
 	require.NoError(t, err)
-
-	res.Number = header.Number
-
-	babeDigest := types.NewBabeDigest()
-	err = babeDigest.Set(*types.NewBabePrimaryPreDigest(0, 1, [32]byte{}, [64]byte{}))
-	require.NoError(t, err)
-	data, err := scale.Marshal(babeDigest)
-	require.NoError(t, err)
-	preDigest := *types.NewBABEPreRuntimeDigest(data)
-
-	digest := types.NewDigest()
-	err = digest.Add(preDigest)
-	require.NoError(t, err)
-	res.Digest = digest
-
-	expected := &types.Header{
-		ParentHash: header.ParentHash,
-		Number:     1,
-		Digest:     digest,
-	}
-
-	require.Equal(t, expected.ParentHash, res.ParentHash)
-	require.Equal(t, expected.Number, res.Number)
-	require.Equal(t, expected.Digest, res.Digest)
-	require.False(t, res.StateRoot.IsEmpty())
-	require.False(t, res.ExtrinsicsRoot.IsEmpty())
-	require.NotEqual(t, trie.EmptyHash, res.StateRoot)
 
 	return &types.Block{
-		Header: *res,
-		Body:   *types.NewBody(types.BytesArrayToExtrinsics(exts)),
+		Header: *finalizedBlockHeader,
+		Body:   *types.NewBody(types.BytesArrayToExtrinsics(extrinsics)),
 	}
 }
