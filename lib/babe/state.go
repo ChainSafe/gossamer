@@ -57,6 +57,9 @@ type EpochState interface {
 	SetCurrentEpoch(epoch uint64) error
 	GetCurrentEpoch() (uint64, error)
 
+	SetEpochData(epoch uint64, info *types.EpochData) error
+	SetConfigData(epoch uint64, info *types.ConfigData) error
+
 	GetEpochData(epoch uint64, header *types.Header) (*types.EpochData, error)
 	GetConfigData(epoch uint64, header *types.Header) (*types.ConfigData, error)
 

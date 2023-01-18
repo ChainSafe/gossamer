@@ -85,6 +85,7 @@ func TestBuildBlock_ok(t *testing.T) {
 	extsBytes := types.ExtrinsicsArrayToBytesArray(block.Body)
 	// TODO Appears that returned data from calling rt.InherentExtrinsics(ienc) has changed with this rt upgrade.
 	// Input data to function is same format, but returned is different. Check with team to make sure
+	// See if there is a better way to test block body
 	require.Equal(t, 2, len(extsBytes))
 }
 
