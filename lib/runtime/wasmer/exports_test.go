@@ -389,7 +389,7 @@ func TestInstance_GrandpaAuthorities_PolkadotRuntime(t *testing.T) {
 	key := common.MustHexToBytes(genesis.GrandpaAuthoritiesKeyHex)
 	tt.Put(key, value)
 
-	rt := NewTestInstanceWithTrie(t, runtime.POLKADOT_RUNTIME, tt)
+	rt := NewTestInstanceWithTrie(t, runtime.POLKADOT_RUNTIME_v0929, tt)
 
 	auths, err := rt.GrandpaAuthorities()
 	require.NoError(t, err)
@@ -408,21 +408,21 @@ func TestInstance_GrandpaAuthorities_PolkadotRuntime(t *testing.T) {
 	require.Equal(t, expected, auths)
 }
 
-func TestInstance_BabeGenerateKeyOwnershipProof_NodeRuntime(t *testing.T) {
+func TestInstance_BabeGenerateKeyOwnershipProof_WestendRuntime(t *testing.T) {
 	tt := trie.NewEmptyTrie()
 
-	rvalue, err := common.HexToHash("0x01")
+	randomnessValue, err := common.HexToHash("0x01")
 	require.NoError(t, err)
 	key := common.MustHexToBytes(genesis.BABERandomnessKeyHex)
-	tt.Put(key, rvalue[:])
+	tt.Put(key, randomnessValue[:])
 
-	avalue, err := common.HexToBytes("0x08eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640100000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000") //nolint:lll
+	authorityValue, err := common.HexToBytes("0x08eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640100000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000") //nolint:lll
 	require.NoError(t, err)
 
 	key = common.MustHexToBytes(genesis.BABEAuthoritiesKeyHex)
-	tt.Put(key, avalue)
+	tt.Put(key, authorityValue)
 
-	rt := NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt)
+	rt := NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v0929, tt)
 
 	babeConfig, err := rt.BabeConfiguration()
 	require.NoError(t, err)
@@ -439,16 +439,16 @@ func TestInstance_BabeGenerateKeyOwnershipProof_NodeRuntime(t *testing.T) {
 func TestInstance_BabeGenerateKeyOwnershipProof_PolkadotRuntime(t *testing.T) {
 	tt := trie.NewEmptyTrie()
 
-	rvalue, err := common.HexToHash("0x01")
+	randomnessValue, err := common.HexToHash("0x01")
 	require.NoError(t, err)
 	key := common.MustHexToBytes(genesis.BABERandomnessKeyHex)
-	tt.Put(key, rvalue[:])
+	tt.Put(key, randomnessValue[:])
 
-	avalue, err := common.HexToBytes("0x08eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640100000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000") //nolint:lll
+	authorityValue, err := common.HexToBytes("0x08eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640100000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000") //nolint:lll
 	require.NoError(t, err)
 
 	key = common.MustHexToBytes(genesis.BABEAuthoritiesKeyHex)
-	tt.Put(key, avalue)
+	tt.Put(key, authorityValue)
 
 	rt := NewTestInstanceWithTrie(t, runtime.POLKADOT_RUNTIME, tt)
 
@@ -483,7 +483,7 @@ func TestInstance_BabeSubmitReportEquivocationUnsignedExtrinsic_NodeRuntime(t *t
 
 func TestInstance_BabeSubmitReportEquivocationUnsignedExtrinsic_PolkadotRuntime(t *testing.T) {
 	tt := trie.NewEmptyTrie()
-	rt := NewTestInstanceWithTrie(t, runtime.POLKADOT_RUNTIME, tt)
+	rt := NewTestInstanceWithTrie(t, runtime.POLKADOT_RUNTIME_v0929, tt)
 	authorityID := types.AuthorityID{1}
 	const slot = uint64(1)
 
@@ -537,16 +537,16 @@ func TestInstance_BabeConfiguration_DevRuntime_NoAuthorities(t *testing.T) {
 func TestInstance_BabeConfiguration_NodeRuntime_WithAuthorities(t *testing.T) {
 	tt := trie.NewEmptyTrie()
 
-	rvalue, err := common.HexToHash("0x01")
+	randomnessValue, err := common.HexToHash("0x01")
 	require.NoError(t, err)
 	key := common.MustHexToBytes(genesis.BABERandomnessKeyHex)
-	tt.Put(key, rvalue[:])
+	tt.Put(key, randomnessValue[:])
 
-	avalue, err := common.HexToBytes("0x08eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640100000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000") //nolint:lll
+	authorityValue, err := common.HexToBytes("0x08eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640100000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000") //nolint:lll
 	require.NoError(t, err)
 
 	key = common.MustHexToBytes(genesis.BABEAuthoritiesKeyHex)
-	tt.Put(key, avalue)
+	tt.Put(key, authorityValue)
 
 	rt := NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt)
 
