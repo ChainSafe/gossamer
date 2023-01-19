@@ -56,7 +56,8 @@ describe('Testing polkadot.js/api calls:', function () {
         it('call api.runtimeVersion', async function () {
             const runtimeVersion = await api.runtimeVersion;
             expect(runtimeVersion).to.be.not.null;
-            expect(runtimeVersion).to.have.property('specName').contains('westend')
+            expect(runtimeVersion).to.have.property('specName')
+                .contains('westend', `runtimeVersion.specName expected to contains: westend, got ${runtimeVersion.specName}`)
             expect(runtimeVersion).to.have.property('apis').lengthOf.above(10)
         });
 
@@ -116,7 +117,8 @@ describe('Testing polkadot.js/api calls:', function () {
     describe('api system', () => {
         it('call api.rpc.system.chain()', async function () {
             const chain = await api.rpc.system.chain();
-            expect(chain).to.contain('Gossamer');
+            expect(chain).to
+                .contain('Westend', `api.rpc.system.chain() expected to contains: Westend, got ${chain}`);
         });
 
         it('call api.rpc.system.properties()', async function () {
