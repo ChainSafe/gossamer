@@ -102,10 +102,10 @@ func TestApplyExtrinsic(t *testing.T) {
 	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	slot := getSlot(t, rt, time.Now())
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
+	slot := getSlot(t, rt, time.Now())
 	preRuntimeDigest, err := claimSlot(testEpochIndex, slot.number, epochData, babeService.keypair)
 	require.NoError(t, err)
 
@@ -146,7 +146,7 @@ func TestApplyExtrinsic(t *testing.T) {
 	_, err = rt.ValidateTransaction(validExt)
 	require.NoError(t, err)
 
-	slot2 := getSlot(t, rt, time.Now())
+	slot2 := getSlot(t, rt, time.Now().Add(7*time.Second))
 	preRuntimeDigest2, err := claimSlot(testEpochIndex, slot2.number, epochData, babeService.keypair)
 	require.NoError(t, err)
 
