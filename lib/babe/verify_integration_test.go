@@ -41,9 +41,8 @@ func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *
 	dbSrv := state.NewService(config)
 	dbSrv.UseMemDB()
 
-	//gen, genesisTrie, genesisHeader := newDevGenesisWithTrieAndHeader(t)
-	gen, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	err := dbSrv.Initialise(&gen, &genesisHeader, &genesisTrie)
+	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
+	err := dbSrv.Initialise(&genesis, &genesisHeader, &genesisTrie)
 	require.NoError(t, err)
 
 	err = dbSrv.Start()
@@ -62,8 +61,8 @@ func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *
 }
 
 func TestVerificationManager_OnDisabled_InvalidIndex(t *testing.T) {
-	gen, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, ServiceConfig{}, gen, genesisTrie, genesisHeader)
+	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader)
 	vm := NewVerificationManager(babeService.blockState, babeService.epochState)
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
@@ -81,8 +80,8 @@ func TestVerificationManager_OnDisabled_InvalidIndex(t *testing.T) {
 }
 
 func TestVerificationManager_OnDisabled_NewDigest(t *testing.T) {
-	gen, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, ServiceConfig{}, gen, genesisTrie, genesisHeader)
+	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader)
 	vm := NewVerificationManager(babeService.blockState, babeService.epochState)
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
@@ -119,8 +118,8 @@ func TestVerificationManager_OnDisabled_NewDigest(t *testing.T) {
 }
 
 func TestVerificationManager_OnDisabled_DuplicateDigest(t *testing.T) {
-	gen, genTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, ServiceConfig{}, gen, genTrie, genesisHeader)
+	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader)
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
 	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
@@ -155,8 +154,8 @@ func TestVerificationManager_OnDisabled_DuplicateDigest(t *testing.T) {
 }
 
 func TestVerificationManager_VerifyBlock_Ok(t *testing.T) {
-	gen, genTrie, genHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, ServiceConfig{}, gen, genTrie, genHeader)
+	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader)
 	vm := NewVerificationManager(babeService.blockState, babeService.epochState)
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
@@ -174,7 +173,7 @@ func TestVerificationManager_VerifyBlock_Ok(t *testing.T) {
 	cfg.C2 = 1
 
 	slot := getSlot(t, rt, time.Now())
-	block := createTestBlockWithSlot(t, babeService, &genHeader, [][]byte{}, testEpochIndex, epochData, slot)
+	block := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, testEpochIndex, epochData, slot)
 	err = vm.VerifyBlock(&block.Header)
 	require.NoError(t, err)
 }
@@ -185,18 +184,19 @@ func TestVerificationManager_VerifyBlock_Secondary(t *testing.T) {
 	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader)
 	vm := NewVerificationManager(babeService.blockState, babeService.epochState)
 
-	dig := createSecondaryVRFPreDigest(t, keyring.Alice().(*sr25519.Keypair), 0, uint64(0), uint64(0), Randomness{})
-	bd := types.NewBabeDigest()
-	err := bd.Set(dig)
+	secondaryDigest := createSecondaryVRFPreDigest(t, keyring.Alice().(*sr25519.Keypair),
+		0, uint64(0), uint64(0), Randomness{})
+	babeDigest := types.NewBabeDigest()
+	err := babeDigest.Set(secondaryDigest)
 	require.NoError(t, err)
 
-	bdEnc, err := scale.Marshal(bd)
+	encodedBabeDigest, err := scale.Marshal(babeDigest)
 	require.NoError(t, err)
 
 	// create pre-digest
 	preDigest := &types.PreRuntimeDigest{
 		ConsensusEngineID: types.BabeEngineID,
-		Data:              bdEnc,
+		Data:              encodedBabeDigest,
 	}
 
 	// create new block header
@@ -238,8 +238,8 @@ func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	babeCfg, err := rt.BabeConfiguration()
-	require.NoError(t, err)
+	//babeCfg, err := rt.BabeConfiguration()
+	//require.NoError(t, err)
 
 	epochData, err := babeService.initiateEpoch(0)
 	require.NoError(t, err)
@@ -268,7 +268,9 @@ func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 	require.NoError(t, err)
 
 	// create block in epoch 1
-	block := createTestBlock(t, babeService, &genesisHeader, [][]byte{}, babeCfg.EpochLength-10, testEpochIndex, epochData)
+	slot := getSlot(t, rt, time.Now())
+	//slot1.number = babeCfg.EpochLength-10
+	block := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, futureEpoch, futureEpochData, slot)
 
 	err = vm.VerifyBlock(&block.Header)
 	require.NoError(t, err)
@@ -316,8 +318,8 @@ func TestVerificationManager_VerifyBlock_InvalidBlockAuthority(t *testing.T) {
 	serviceConfig := ServiceConfig{
 		Authority: true,
 	}
-	gen, genTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, serviceConfig, gen, genTrie, genesisHeader)
+	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
+	babeService := createTestService(t, serviceConfig, genesis, genesisTrie, genesisHeader)
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
 	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
@@ -349,8 +351,8 @@ func TestVerifyPimarySlotWinner(t *testing.T) {
 	cfg := ServiceConfig{
 		Keypair: kp,
 	}
-	gen, genTrie, genHeader := newWestendLocalGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, cfg, gen, genTrie, genHeader)
+	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
+	babeService := createTestService(t, cfg, genesis, genesisTrie, genesisHeader)
 	epochData, err := babeService.initiateEpoch(0)
 	require.NoError(t, err)
 
@@ -366,7 +368,7 @@ func TestVerifyPimarySlotWinner(t *testing.T) {
 	babePreDigest, err := types.DecodeBabePreDigest(preRuntimeDigest.Data)
 	require.NoError(t, err)
 
-	d, ok := babePreDigest.(types.BabePrimaryPreDigest)
+	digest, ok := babePreDigest.(types.BabePrimaryPreDigest)
 	require.True(t, ok)
 
 	Authorities := make([]types.Authority, 1)
@@ -381,7 +383,7 @@ func TestVerifyPimarySlotWinner(t *testing.T) {
 		randomness:  epochData.randomness,
 	})
 
-	ok, err = verifier.verifyPrimarySlotWinner(d.AuthorityIndex, slotNumber, d.VRFOutput, d.VRFProof)
+	ok, err = verifier.verifyPrimarySlotWinner(digest.AuthorityIndex, slotNumber, digest.VRFOutput, digest.VRFProof)
 	require.NoError(t, err)
 	require.True(t, ok)
 }
@@ -390,8 +392,8 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 	serviceConfig := ServiceConfig{
 		Authority: true,
 	}
-	gen, genTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, serviceConfig, gen, genTrie, genesisHeader)
+	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
+	babeService := createTestService(t, serviceConfig, genesis, genesisTrie, genesisHeader)
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
 	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
@@ -422,8 +424,8 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 		Keypair: kp,
 	}
 
-	gen, genTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, cfg, gen, genTrie, genesisHeader)
+	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
+	babeService := createTestService(t, cfg, genesis, genesisTrie, genesisHeader)
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
@@ -496,7 +498,7 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 		SecondarySlots:     0,
 	}
 
-	genesis, trie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	genesis, trie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockTelemetry(ctrl)
