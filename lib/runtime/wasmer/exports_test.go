@@ -469,7 +469,7 @@ func TestInstance_BabeGenerateKeyOwnershipProof(t *testing.T) {
 	}
 }
 
-func TestInstance_BabeSubmitReportEquivocationUnsignedExtrinsic_NodeRuntime(t *testing.T) {
+func TestInstance_BabeSubmitReportEquivocationUnsignedExtrinsic(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
@@ -488,6 +488,8 @@ func TestInstance_BabeSubmitReportEquivocationUnsignedExtrinsic_NodeRuntime(t *t
 	for _, testCase := range testCases {
 		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
 			tt := trie.NewEmptyTrie()
 			rt := NewTestInstanceWithTrie(t, testCase.targetRuntime, tt)
 			authorityID := types.AuthorityID{1}
