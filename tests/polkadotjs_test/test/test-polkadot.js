@@ -56,7 +56,7 @@ describe('Testing polkadot.js/api calls:', function () {
         it('call api.runtimeVersion', async function () {
             const runtimeVersion = await api.runtimeVersion;
             expect(runtimeVersion).to.be.not.null;
-            expect(runtimeVersion).to.have.property('specName').contains('node')
+            expect(runtimeVersion).to.have.property('specName').contains('westend')
             expect(runtimeVersion).to.have.property('apis').lengthOf.above(10)
         });
 
