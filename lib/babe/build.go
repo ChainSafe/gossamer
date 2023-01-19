@@ -261,8 +261,6 @@ func buildBlockInherents(slot Slot, rt ExtrinsicHandler, parent *types.Header) (
 		return nil, err
 	}
 
-	// ienc is same length
-
 	// Call BlockBuilder_inherent_extrinsics which returns the inherents as extrinsics
 	inherentExts, err := rt.InherentExtrinsics(ienc)
 	if err != nil {
