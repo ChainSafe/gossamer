@@ -4,6 +4,7 @@
 package wasmer
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"math/big"
@@ -300,7 +301,7 @@ func balanceKey(t *testing.T, pub []byte) []byte {
 }
 
 func TestNodeRuntime_ValidateTransaction(t *testing.T) {
-	genesisPath := utils.GetGssmrV3SubstrateGenesisRawPathTest(t)
+	genesisPath := utils.GetWestendDevRawGenesisPath(t)
 	gen := genesisFromRawJSON(t, genesisPath)
 	genTrie, err := NewTrieFromGenesis(gen)
 	require.NoError(t, err)
@@ -348,11 +349,17 @@ func TestNodeRuntime_ValidateTransaction(t *testing.T) {
 	extHex := runtime.NewTestExtrinsic(t, rt, genesisHeader.Hash(), genesisHeader.Hash(),
 		0, "System.remark", []byte{0xab, 0xcd})
 
-	extBytes := common.MustHexToBytes(extHex)
-	extBytes = append([]byte{byte(types.TxnExternal)}, extBytes...)
+	genesisHashBytes := genesisHeader.Hash().ToBytes()
 
-	runtime.InitializeRuntimeToTest(t, rt, genesisHeader.Hash())
-	_, err = rt.ValidateTransaction(extBytes)
+	validateTransactionArguments := [][]byte{
+		{byte(types.TxnExternal)},
+		common.MustHexToBytes(extHex),
+		genesisHashBytes}
+
+	extrinsicsBytes := bytes.Join(validateTransactionArguments, nil)
+
+	runtime.InitializeRuntimeToTest(t, rt, genesisHeader)
+	_, err = rt.ValidateTransaction(extrinsicsBytes)
 	require.NoError(t, err)
 }
 
@@ -513,7 +520,6 @@ func TestInstance_BabeConfiguration_NodeRuntime_NoAuthorities(t *testing.T) {
 		Randomness:         [32]byte{},
 		SecondarySlots:     1,
 	}
-
 	require.Equal(t, expected, cfg)
 }
 
@@ -599,54 +605,19 @@ func TestInstance_InitializeBlock_PolkadotRuntime(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestInstance_FinalizeBlock_NodeRuntime(t *testing.T) {
-	instance := NewTestInstance(t, runtime.NODE_RUNTIME)
-	runtime.InitializeRuntimeToTest(t, instance, common.Hash{})
-}
-
-func TestInstance_ExecuteBlock_NodeRuntime(t *testing.T) {
-	instance := NewTestInstance(t, runtime.NODE_RUNTIME)
-	block := runtime.InitializeRuntimeToTest(t, instance, common.Hash{})
+func TestInstance_ExecuteBlock_WestendRuntime(t *testing.T) {
+	instance := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
+	block := runtime.InitializeRuntimeToTest(t, instance, &types.Header{})
 
 	// reset state back to parent state before executing
 	parentState := storage.NewTrieState(nil)
 	instance.SetContextStorage(parentState)
 
-	block.Header.Digest = types.NewDigest()
 	_, err := instance.ExecuteBlock(block)
 	require.NoError(t, err)
 }
 
-func TestInstance_ExecuteBlock_GossamerRuntime(t *testing.T) {
-	t.Skip() // TODO: this fails with "syscall frame is no longer valid" (#1026)
-	genesisPath := utils.GetWestendDevRawGenesisPath(t)
-	gen := genesisFromRawJSON(t, genesisPath)
-	genTrie, err := NewTrieFromGenesis(gen)
-	require.NoError(t, err)
-
-	// set state to genesis state
-	genState := storage.NewTrieState(&genTrie)
-
-	cfg := Config{
-		Storage: genState,
-		LogLvl:  log.Critical,
-	}
-
-	instance, err := NewRuntimeFromGenesis(cfg)
-	require.NoError(t, err)
-
-	block := runtime.InitializeRuntimeToTest(t, instance, common.Hash{})
-
-	// reset state back to parent state before executing
-	parentState := storage.NewTrieState(&genTrie)
-	instance.SetContextStorage(parentState)
-
-	_, err = instance.ExecuteBlock(block)
-	require.NoError(t, err)
-}
-
-func TestInstance_ApplyExtrinsic_GossamerRuntime(t *testing.T) {
-	t.Skip() // TODO: this fails with "syscall frame is no longer valid" (#1026)
+func TestInstance_ApplyExtrinsic_WestendRuntime(t *testing.T) {
 	genesisPath := utils.GetWestendDevRawGenesisPath(t)
 	gen := genesisFromRawJSON(t, genesisPath)
 	genTrie, err := NewTrieFromGenesis(gen)
@@ -667,19 +638,23 @@ func TestInstance_ApplyExtrinsic_GossamerRuntime(t *testing.T) {
 	parentState := storage.NewTrieState(&genTrie)
 	instance.SetContextStorage(parentState)
 
-	parentHash := common.Hash{}
-	header := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, 1, types.NewDigest())
+	genesisHeader := &types.Header{
+		Number:    0,
+		StateRoot: genTrie.MustHash(),
+	}
+	header := &types.Header{
+		ParentHash: genesisHeader.Hash(),
+		Number:     1,
+		Digest:     types.NewDigest(),
+	}
+
 	err = instance.InitializeBlock(header)
 	require.NoError(t, err)
 
-	extHex := runtime.NewTestExtrinsic(t, instance, parentHash, parentHash,
+	extHex := runtime.NewTestExtrinsic(t, instance, genesisHeader.Hash(), genesisHeader.Hash(),
 		0, "System.remark", []byte{0xab, 0xcd})
 
-	extBytes := common.MustHexToBytes(extHex)
-	enc, err := scale.Marshal(extBytes)
-	require.NoError(t, err)
-
-	res, err := instance.ApplyExtrinsic(enc)
+	res, err := instance.ApplyExtrinsic(common.MustHexToBytes(extHex))
 	require.NoError(t, err)
 	require.Equal(t, []byte{0, 0}, res)
 }
@@ -689,13 +664,12 @@ func TestInstance_ExecuteBlock_PolkadotRuntime(t *testing.T) {
 
 	instance := NewTestInstance(t, runtime.POLKADOT_RUNTIME)
 
-	block := runtime.InitializeRuntimeToTest(t, instance, common.Hash{})
+	block := runtime.InitializeRuntimeToTest(t, instance, &types.Header{})
 
 	// reset state back to parent state before executing
 	parentState := storage.NewTrieState(nil)
 	instance.SetContextStorage(parentState)
 
-	block.Header.Digest = types.NewDigest()
 	_, err := instance.ExecuteBlock(block)
 	require.NoError(t, err)
 }

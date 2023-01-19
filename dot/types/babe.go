@@ -32,8 +32,7 @@ var (
 )
 
 // BabeConfiguration contains the genesis data for BABE
-//nolint:lll
-// see: https://github.com/paritytech/substrate/blob/426c26b8bddfcdbaf8d29f45b128e0864b57de1c/core/consensus/babe/primitives/src/lib.rs#L132
+// See https://github.com/paritytech/substrate/blob/426c26b8bddfcdbaf8d29f45b128e0864b57de1c/core/consensus/babe/primitives/src/lib.rs#L132
 type BabeConfiguration struct {
 	SlotDuration       uint64 // milliseconds
 	EpochLength        uint64 // duration of epoch in slots

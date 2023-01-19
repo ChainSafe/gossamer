@@ -296,7 +296,7 @@ func UnlockKeys(ks Inserter, dir, unlock, password string) error {
 }
 
 // DetermineKeyType takes string as defined in https://github.com/w3f/PSPs/blob/psp-rpc-api/psp-002.md#Key-types
-//  and returns the crypto.KeyType
+// and returns the crypto.KeyType
 func DetermineKeyType(t string) crypto.KeyType {
 	switch t {
 	case "babe":

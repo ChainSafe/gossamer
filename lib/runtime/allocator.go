@@ -40,14 +40,14 @@ type FreeingBumpHeapAllocator struct {
 //
 // # Arguments
 //
-// * `mem` - A runtime.Memory to the available memory which is
-//   used as the heap.
+//   - `mem` - A runtime.Memory to the available memory which is
+//     used as the heap.
 //
-// * `ptrOffset` - The pointers returned by `Allocate()` start from this
-//   offset on. The pointer offset needs to be aligned to a multiple of 8,
-//   hence a padding might be added to align `ptrOffset` properly.
+//   - `ptrOffset` - The pointers returned by `Allocate()` start from this
+//     offset on. The pointer offset needs to be aligned to a multiple of 8,
+//     hence a padding might be added to align `ptrOffset` properly.
 //
-// * returns a pointer to an initilized FreeingBumpHeapAllocator
+//   - returns a pointer to an initilized FreeingBumpHeapAllocator
 func NewAllocator(mem Memory, ptrOffset uint32) *FreeingBumpHeapAllocator {
 	fbha := new(FreeingBumpHeapAllocator)
 
@@ -83,8 +83,8 @@ func (fbha *FreeingBumpHeapAllocator) growHeap(numPages uint32) error {
 }
 
 // Allocate determines if there is space available in WASM heap to grow the heap by 'size'.  If there is space
-//   available it grows the heap to fit give 'size'.  The heap grows is chunks of Powers of 2, so the growth becomes
-//   the next highest power of 2 of the requested size.
+// available it grows the heap to fit give 'size'.  The heap grows is chunks of Powers of 2, so the growth becomes
+// the next highest power of 2 of the requested size.
 func (fbha *FreeingBumpHeapAllocator) Allocate(size uint32) (uint32, error) {
 	// test for space allocation
 	if size > MaxPossibleAllocation {
