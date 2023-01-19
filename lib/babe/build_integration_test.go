@@ -54,9 +54,10 @@ func TestSeal(t *testing.T) {
 	require.True(t, ok, "could not verify seal")
 }
 
+// TODO see if there can be better assertions on block body
 func TestBuildBlock_ok(t *testing.T) {
-	gen, genTrie, genHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, ServiceConfig{}, gen, genTrie, genHeader)
+	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader)
 
 	parentHash := babeService.blockState.GenesisHash()
 	bestBlockHash := babeService.blockState.BestBlockHash()
@@ -67,8 +68,14 @@ func TestBuildBlock_ok(t *testing.T) {
 	require.NoError(t, err)
 
 	slot := getSlot(t, rt, time.Now())
+<<<<<<< HEAD
 	ext := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0, signature.TestKeyringPairAlice, "System.remark", []byte{0xab, 0xcd})
 	block := createTestBlockWithSlot(t, babeService, emptyHeader, [][]byte{common.MustHexToBytes(ext)}, testEpochIndex, epochData, slot)
+=======
+	ext := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0, "System.remark", []byte{0xab, 0xcd})
+	block := createTestBlockWithSlot(t, babeService, emptyHeader, [][]byte{common.MustHexToBytes(ext)},
+		testEpochIndex, epochData, slot)
+>>>>>>> 52ca1db3e (cleanup)
 
 	expectedBlockHeader := &types.Header{
 		ParentHash: emptyHeader.Hash(),
@@ -83,15 +90,12 @@ func TestBuildBlock_ok(t *testing.T) {
 
 	// confirm block body is correct
 	extsBytes := types.ExtrinsicsArrayToBytesArray(block.Body)
-	// TODO Appears that returned data from calling rt.InherentExtrinsics(ienc) has changed with this rt upgrade.
-	// Input data to function is same format, but returned is different. Check with team to make sure
-	// See if there is a better way to test block body
 	require.Equal(t, 2, len(extsBytes))
 }
 
 func TestApplyExtrinsic(t *testing.T) {
-	gen, genTrie, genHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, ServiceConfig{}, gen, genTrie, genHeader)
+	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader)
 	const authorityIndex = 0
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
@@ -133,7 +137,8 @@ func TestApplyExtrinsic(t *testing.T) {
 	header1, err := rt.FinalizeBlock()
 	require.NoError(t, err)
 
-	ext2 := runtime.NewTestExtrinsic(t, rt, parentHeader.Hash(), parentHeader.Hash(), 0, signature.TestKeyringPairAlice, "System.remark", []byte{0xab, 0xcd})
+	ext2 := runtime.NewTestExtrinsic(t, rt, parentHeader.Hash(), parentHeader.Hash(), 0,signature.TestKeyringPairAlice, "System.remark",
+		[]byte{0xab, 0xcd})
 
 	validExt := []byte{byte(types.TxnExternal)}
 	validExt = append(validExt, common.MustHexToBytes(ext2)...)
@@ -164,8 +169,8 @@ func TestApplyExtrinsic(t *testing.T) {
 }
 
 func TestBuildAndApplyExtrinsic(t *testing.T) {
-	gen, genTrie, genHeader := newWestendLocalGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, ServiceConfig{}, gen, genTrie, genHeader)
+	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader)
 
 	parentHash := common.MustHexToHash("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
 	header := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, 1, types.NewDigest())
@@ -236,6 +241,7 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	require.Equal(t, []byte{0, 0}, res)
 }
 
+// TODO investigate if this is a needed test
 func TestBuildBlock_failing(t *testing.T) {
 	t.Skip()
 
@@ -331,8 +337,8 @@ func TestBuildBlockTimeMonitor(t *testing.T) {
 		Authority: true,
 	}
 
-	gen, genTrie, genHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, cfg, gen, genTrie, genHeader)
+	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
+	babeService := createTestService(t, cfg, genesis, genesisTrie, genesisHeader)
 
 	parent, err := babeService.blockState.BestBlockHeader()
 	require.NoError(t, err)

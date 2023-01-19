@@ -84,16 +84,13 @@ func (h *epochHandler) run(ctx context.Context, errCh chan<- error) {
 	}
 
 	slotTimeTimers := make([]*slotWithTimer, 0, len(authoringSlots))
-	for i, authoringSlot := range authoringSlots {
+	for _, authoringSlot := range authoringSlots {
 		if authoringSlot < currSlot {
 			// ignore slots already passed
 			continue
 		}
 
 		startTime := getSlotStartTime(authoringSlot, h.constants.slotDuration)
-		if i == 0 {
-			fmt.Printf("supposed startTime: %v\n", startTime.UnixMilli())
-		}
 		waitTime := time.Until(startTime)
 		timer := time.NewTimer(waitTime)
 
@@ -126,7 +123,6 @@ func (h *epochHandler) run(ctx context.Context, errCh chan<- error) {
 			if diff < 0 {
 				time.Sleep(-diff)
 			}
-			fmt.Printf("real startTime: %v\n", time.Now().UnixMilli())
 
 			if _, has := h.slotToPreRuntimeDigest[swt.slotNum]; !has {
 				// this should never happen

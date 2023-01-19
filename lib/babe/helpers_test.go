@@ -5,9 +5,6 @@ package babe
 
 import (
 	"bytes"
-	"github.com/ChainSafe/gossamer/lib/babe/mocks"
-	"github.com/ChainSafe/gossamer/lib/transaction"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 	"path/filepath"
 	"testing"
 	"time"
@@ -16,6 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/lib/babe/mocks"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -23,8 +21,10 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -35,8 +35,7 @@ var (
 	testEpochIndex    = uint64(0)
 	maxThreshold      = scale.MaxUint128
 
-	genesisHeader *types.Header
-	emptyHeader   = &types.Header{
+	emptyHeader = &types.Header{
 		Number: 0,
 		Digest: types.NewDigest(),
 	}
@@ -357,37 +356,6 @@ func createTestBlockWithSlot(t *testing.T, babeService *Service, parent *types.H
 	return block
 }
 
-func createTestBlock(t *testing.T, babeService *Service, parent *types.Header,
-	exts [][]byte, slotNumber, epoch uint64, epochData *epochData) *types.Block {
-	for _, ext := range exts {
-		vtx := transaction.NewValidTransaction(ext, &transaction.Validity{})
-		_, err := babeService.transactionState.Push(vtx)
-		require.NoError(t, err)
-	}
-
-	duration, err := time.ParseDuration("1s")
-	require.NoError(t, err)
-
-	slot := Slot{
-		start:    time.Now(),
-		duration: duration,
-		number:   slotNumber,
-	}
-
-	bestBlockHash := babeService.blockState.BestBlockHash()
-	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
-	require.NoError(t, err)
-
-	preRuntimeDigest, err := claimSlot(epoch, slotNumber, epochData, babeService.keypair)
-	require.NoError(t, err)
-
-	block, err := babeService.buildBlock(parent, slot, rt, epochData.authorityIndex, preRuntimeDigest)
-	require.NoError(t, err)
-
-	babeService.blockState.(*state.BlockState).StoreRuntime(block.Header.Hash(), rt)
-	return block
-}
-
 // newWestendLocalGenesisWithTrieAndHeader generates westend genesis, genesis trie and genesis header
 func newWestendLocalGenesisWithTrieAndHeader(t *testing.T) (
 	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
@@ -422,48 +390,6 @@ func newWestendDevGenesisWithTrieAndHeader(t *testing.T) (
 
 	genesisHeader = *types.NewHeader(common.NewHash([]byte{0}),
 		genesisTrie.MustHash(), trie.EmptyHash, 0, types.NewDigest())
-
-	return gen, genesisTrie, genesisHeader
-}
-
-// newDevGenesisWithTrieAndHeader generates test dev genesis, genesis trie and genesis header
-func newDevGenesisWithTrieAndHeader(t *testing.T) (
-	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
-	t.Helper()
-	genesisPath := utils.GetDevV3SubstrateGenesisPath(t)
-
-	genesisPtr, err := genesis.NewGenesisFromJSONRaw(genesisPath)
-	require.NoError(t, err)
-	gen = *genesisPtr
-
-	genesisTrie, err = wasmer.NewTrieFromGenesis(gen)
-	require.NoError(t, err)
-
-	genesisHeader = *types.NewHeader(common.NewHash([]byte{0}),
-		genesisTrie.MustHash(), trie.EmptyHash, 0, types.NewDigest())
-
-	return gen, genesisTrie, genesisHeader
-}
-
-func newTestGenesisWithTrieAndHeader(t *testing.T) (
-	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
-	t.Helper()
-
-	genesisPath := utils.GetWestendDevRawGenesisPath(t)
-	genesisPtr, err := genesis.NewGenesisFromJSONRaw(genesisPath)
-	require.NoError(t, err)
-	gen = *genesisPtr
-
-	genesisTrie, err = wasmer.NewTrieFromGenesis(gen)
-	require.NoError(t, err)
-
-	parentHash := common.NewHash([]byte{0})
-	stateRoot := genesisTrie.MustHash()
-	extrinsicRoot := trie.EmptyHash
-	const number = 0
-	digest := types.NewDigest()
-	genesisHeader = *types.NewHeader(parentHash,
-		stateRoot, extrinsicRoot, number, digest)
 
 	return gen, genesisTrie, genesisHeader
 }

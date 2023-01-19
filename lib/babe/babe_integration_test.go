@@ -99,31 +99,31 @@ func TestStartAndStop(t *testing.T) {
 }
 
 func TestService_PauseAndResume(t *testing.T) {
-	gen, genTrie, genHeader := newWestendLocalGenesisWithTrieAndHeader(t)
-	bs := createTestService(t, ServiceConfig{}, gen, genTrie, genHeader)
-	err := bs.Start()
+	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader)
+	err := babeService.Start()
 	require.NoError(t, err)
 	time.Sleep(time.Second)
 
 	go func() {
-		_ = bs.Pause()
+		_ = babeService.Pause()
 	}()
 
 	go func() {
-		_ = bs.Pause()
+		_ = babeService.Pause()
 	}()
 
 	go func() {
-		err := bs.Resume()
+		err := babeService.Resume()
 		require.NoError(t, err)
 	}()
 
 	go func() {
-		err := bs.Resume()
+		err := babeService.Resume()
 		require.NoError(t, err)
 	}()
 
-	err = bs.Stop()
+	err = babeService.Stop()
 	require.NoError(t, err)
 }
 
@@ -133,8 +133,8 @@ func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
 		Lead:      true,
 	}
 
-	gen, genTrie, genHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, cfg, gen, genTrie, genHeader)
+	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
+	babeService := createTestService(t, cfg, genesis, genesisTrie, genesisHeader)
 
 	err := babeService.Start()
 	require.NoError(t, err)
@@ -153,7 +153,8 @@ func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
 
 	slot := getSlot(t, rt, time.Now())
 	ext := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0, signature.TestKeyringPairAlice, "System.remark", []byte{0xab, 0xcd})
-	block := createTestBlockWithSlot(t, babeService, emptyHeader, [][]byte{common.MustHexToBytes(ext)}, testEpochIndex, epochData, slot)
+	block := createTestBlockWithSlot(t, babeService, emptyHeader, [][]byte{common.MustHexToBytes(ext)},
+		testEpochIndex, epochData, slot)
 
 	babeService.blockState.AddBlock(block)
 	time.Sleep(babeService.constants.slotDuration)
@@ -167,7 +168,7 @@ func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
 	slotnum := uint64(1)
 	slot = Slot{
 		start:    time.Now(),
-		duration: time.Duration(babeService.constants.slotDuration) * time.Millisecond,
+		duration: babeService.constants.slotDuration * time.Millisecond,
 		number:   slotnum,
 	}
 	preRuntimeDigest, err := types.NewBabePrimaryPreDigest(
@@ -187,8 +188,7 @@ func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
 	require.ErrorIs(t, err, errLaggingSlot)
 }
 
-// TODO this test is really flaky with westend so probably should be rewritten.
-// Built for 2 nodes and with westend its either 1 or 3. Consult team
+// TODO Rewrite this test to utilise westend. Since its built for 2 nodes, doesnt work with existing setup
 func TestService_HandleSlotWithSameSlot(t *testing.T) {
 	t.Skip()
 	alice := keyring.Alice().(*sr25519.Keypair)
