@@ -412,102 +412,91 @@ func TestInstance_GrandpaAuthorities_PolkadotRuntime(t *testing.T) {
 	require.Equal(t, expected, auths)
 }
 
-func TestInstance_BabeGenerateKeyOwnershipProof_WestendRuntime(t *testing.T) {
+func TestInstance_BabeGenerateKeyOwnershipProof(t *testing.T) {
 	t.Parallel()
 
-	tt := trie.NewEmptyTrie()
+	testCases := []struct {
+		name          string
+		targetRuntime string
+	}{
+		{
+			name:          "with_polkadot_runtime",
+			targetRuntime: runtime.POLKADOT_RUNTIME,
+		},
+		{
+			name:          "with_westend_runtime",
+			targetRuntime: runtime.WESTEND_RUNTIME_v0929,
+		},
+	}
+	for _, testCase := range testCases {
+		testCase := testCase
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
 
-	randomnessValue, err := common.HexToHash("0x01")
-	require.NoError(t, err)
-	key := common.MustHexToBytes(genesis.BABERandomnessKeyHex)
-	tt.Put(key, randomnessValue[:])
+			tt := trie.NewEmptyTrie()
 
-	authorityValue, err := common.HexToBytes("0x08eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640100000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000") //nolint:lll
-	require.NoError(t, err)
+			randomnessValue, err := common.HexToHash("0x01")
+			require.NoError(t, err)
+			key := common.MustHexToBytes(genesis.BABERandomnessKeyHex)
+			tt.Put(key, randomnessValue[:])
 
-	key = common.MustHexToBytes(genesis.BABEAuthoritiesKeyHex)
-	tt.Put(key, authorityValue)
+			authorityValue, err := common.HexToBytes("0x08eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640100000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000") //nolint:lll
+			require.NoError(t, err)
 
-	rt := NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v0929, tt)
+			key = common.MustHexToBytes(genesis.BABEAuthoritiesKeyHex)
+			tt.Put(key, authorityValue)
 
-	babeConfig, err := rt.BabeConfiguration()
-	require.NoError(t, err)
+			rt := NewTestInstanceWithTrie(t, testCase.targetRuntime, tt)
 
-	require.NotEmpty(t, babeConfig.GenesisAuthorities)
+			babeConfig, err := rt.BabeConfiguration()
+			require.NoError(t, err)
 
-	authorityID := babeConfig.GenesisAuthorities[0].Key
+			require.NotEmpty(t, babeConfig.GenesisAuthorities)
 
-	const slot = uint64(10)
-	_, err = rt.BabeGenerateKeyOwnershipProof(slot, authorityID)
-	require.NoError(t, err)
-}
+			authorityID := babeConfig.GenesisAuthorities[0].Key
 
-func TestInstance_BabeGenerateKeyOwnershipProof_PolkadotRuntime(t *testing.T) {
-	t.Parallel()
-
-	tt := trie.NewEmptyTrie()
-
-	randomnessValue, err := common.HexToHash("0x01")
-	require.NoError(t, err)
-	key := common.MustHexToBytes(genesis.BABERandomnessKeyHex)
-	tt.Put(key, randomnessValue[:])
-
-	authorityValue, err := common.HexToBytes("0x08eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640100000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000") //nolint:lll
-	require.NoError(t, err)
-
-	key = common.MustHexToBytes(genesis.BABEAuthoritiesKeyHex)
-	tt.Put(key, authorityValue)
-
-	rt := NewTestInstanceWithTrie(t, runtime.POLKADOT_RUNTIME, tt)
-
-	babeConfig, err := rt.BabeConfiguration()
-	require.NoError(t, err)
-
-	require.NotEmpty(t, babeConfig.GenesisAuthorities)
-
-	authorityID := babeConfig.GenesisAuthorities[0].Key
-
-	const slot = uint64(10)
-	_, err = rt.BabeGenerateKeyOwnershipProof(slot, authorityID)
-	require.NoError(t, err)
+			const slot = uint64(10)
+			_, err = rt.BabeGenerateKeyOwnershipProof(slot, authorityID)
+			require.NoError(t, err)
+		})
+	}
 }
 
 func TestInstance_BabeSubmitReportEquivocationUnsignedExtrinsic_NodeRuntime(t *testing.T) {
 	t.Parallel()
 
-	tt := trie.NewEmptyTrie()
-	rt := NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt)
-	authorityID := types.AuthorityID{1}
-	const slot = uint64(1)
-
-	keyOwnershipProof := testKeyOwnershipProof
-
-	equivocationProof := types.BabeEquivocationProof{
-		Offender: authorityID,
-		Slot:     slot,
+	testCases := []struct {
+		name          string
+		targetRuntime string
+	}{
+		{
+			name:          "with_polkadot_runtime",
+			targetRuntime: runtime.POLKADOT_RUNTIME,
+		},
+		{
+			name:          "with_westend_runtime",
+			targetRuntime: runtime.WESTEND_RUNTIME_v0929,
+		},
 	}
+	for _, testCase := range testCases {
+		testCase := testCase
+		t.Run(testCase.name, func(t *testing.T) {
+			tt := trie.NewEmptyTrie()
+			rt := NewTestInstanceWithTrie(t, testCase.targetRuntime, tt)
+			authorityID := types.AuthorityID{1}
+			const slot = uint64(1)
 
-	err := rt.BabeSubmitReportEquivocationUnsignedExtrinsic(equivocationProof, keyOwnershipProof)
-	require.NoError(t, err)
-}
+			keyOwnershipProof := testKeyOwnershipProof
 
-func TestInstance_BabeSubmitReportEquivocationUnsignedExtrinsic_PolkadotRuntime(t *testing.T) {
-	t.Parallel()
+			equivocationProof := types.BabeEquivocationProof{
+				Offender: authorityID,
+				Slot:     slot,
+			}
 
-	tt := trie.NewEmptyTrie()
-	rt := NewTestInstanceWithTrie(t, runtime.POLKADOT_RUNTIME_v0929, tt)
-	authorityID := types.AuthorityID{1}
-	const slot = uint64(1)
-
-	keyOwnershipProof := testKeyOwnershipProof
-
-	equivocationProof := types.BabeEquivocationProof{
-		Offender: authorityID,
-		Slot:     slot,
+			err := rt.BabeSubmitReportEquivocationUnsignedExtrinsic(equivocationProof, keyOwnershipProof)
+			require.NoError(t, err)
+		})
 	}
-
-	err := rt.BabeSubmitReportEquivocationUnsignedExtrinsic(equivocationProof, keyOwnershipProof)
-	require.NoError(t, err)
 }
 
 func TestInstance_BabeConfiguration_NodeRuntime_NoAuthorities(t *testing.T) {
