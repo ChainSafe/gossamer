@@ -19,7 +19,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	cscale "github.com/centrifuge/go-substrate-rpc-client/v4/scale"
-	signaturev4 "github.com/centrifuge/go-substrate-rpc-client/v4/signature"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	ctypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	"github.com/ethereum/go-ethereum/metrics"
@@ -99,7 +99,7 @@ func TestBuildBlock_ok(t *testing.T) {
 	require.NoError(t, err)
 
 	ext := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0,
-		signaturev4.TestKeyringPairAlice, "System.remark", []byte{0xab, 0xcd})
+		signature.TestKeyringPairAlice, "System.remark", []byte{0xab, 0xcd})
 	block := createTestBlock(t, babeService, emptyHeader, [][]byte{common.MustHexToBytes(ext)},
 		1, testEpochIndex, epochData)
 
@@ -185,7 +185,7 @@ func TestApplyExtrinsic(t *testing.T) {
 	require.NoError(t, err)
 
 	extHex := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0,
-		signaturev4.TestKeyringPairAlice, "System.remark", []byte{0xab, 0xcd})
+		signature.TestKeyringPairAlice, "System.remark", []byte{0xab, 0xcd})
 	extBytes := common.MustHexToBytes(extHex)
 	_, err = rt.ValidateTransaction(append([]byte{byte(types.TxnExternal)}, extBytes...))
 	require.NoError(t, err)
@@ -260,7 +260,7 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	}
 
 	// Sign the transaction using Alice's default account
-	err = ext.Sign(signaturev4.TestKeyringPairAlice, o)
+	err = ext.Sign(signature.TestKeyringPairAlice, o)
 	require.NoError(t, err)
 
 	extEnc := bytes.Buffer{}

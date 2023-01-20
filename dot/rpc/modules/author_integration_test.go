@@ -468,8 +468,8 @@ func TestAuthorModule_HasKey_Integration(t *testing.T) {
 func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 	t.Parallel()
 
-	const granSeed = "0xf25586ceb64a043d887631fa08c2ed790ef7ae3c7f28de5172005f8b9469e529"
-	const granPubK = "0x6b802349d948444d41397da09ec597fbd8ae8fdd3dfa153b2bb2bddcf020457c"
+	const granSeed = "0xabf8e5bdbe30c65656c0a3cbd181ff8a56294a69dfedd27982aace4a76909115"
+	const granPubK = "0x88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee"
 
 	const sr25519Seed = "0xe5be9a5092b81bca64be81d212e7f2f9eba183bb7a90954f7b76361f6edb5c0a"
 	const sr25519Pubk = "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
@@ -484,7 +484,7 @@ func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 			pubk:  granPubK,
 		},
 		{
-			ktype: []string{"babe", "imon", "audi"},
+			ktype: []string{"babe", "imon", "para", "asgn", "audi"},
 			seed:  sr25519Seed,
 			pubk:  sr25519Pubk,
 		},
@@ -496,9 +496,11 @@ func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 		waitErr        error
 	}{
 		"public keys are in the right order, should return true": {
-			pubSessionKeys: "0x6b802349d948444d41397da09ec597fbd8ae8fdd3dfa153b2bb2bddcf020457c" + // gran
+			pubSessionKeys: "0x88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee" + // gran
 				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d" + // babe
 				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d" + // imon
+				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d" + // para
+				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d" + // asgn
 				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d", // audi
 			expect: true,
 		},
@@ -506,14 +508,18 @@ func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 			pubSessionKeys: "0x740550da19ef14023ea3e903545a6700160a55be2e4b733b577c91b053e38b8d" + // gran
 				"de6fa0da51c52cc117d77aeb329595b15070db444e7ed4c4adec714b291c1845" + // babe
 				"de6fa0da51c52cc117d77aeb329595b15070db444e7ed4c4adec714b291c1845" + // imon
+				"de6fa0da51c52cc117d77aeb329595b15070db444e7ed4c4adec714b291c1845" + // para
+				"de6fa0da51c52cc117d77aeb329595b15070db444e7ed4c4adec714b291c1845" + // asgn
 				"de6fa0da51c52cc117d77aeb329595b15070db444e7ed4c4adec714b291c1845", // audi
 			expect: false,
 		},
 		"public keys are not in the right order, should return false": {
-			pubSessionKeys: "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d" + // gran
-				"6b802349d948444d41397da09ec597fbd8ae8fdd3dfa153b2bb2bddcf020457c" + // babe
+			pubSessionKeys: "0x6b802349d948444d41397da09ec597fbd8ae8fdd3dfa153b2bb2bddcf020457c" + // babe
+				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d" + // gran
 				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d" + // imon
-				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d", // audi
+				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d" + // audi
+				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d" + // para
+				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d", // asgn
 			expect: false,
 		},
 		"incomplete keys": {
