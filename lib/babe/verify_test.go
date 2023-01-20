@@ -776,6 +776,19 @@ func Test_verifier_verifyBlockEquivocation(t *testing.T) {
 
 	mockBlockState5.EXPECT().GetRuntime(existingHeader.Hash()).Return(mockRuntime, nil)
 
+	mockBlockState6 := NewMockBlockState(gomock.NewController(t))
+	mockBlockState6.EXPECT().GetBlockHashesBySlot(uint64(1)).Return(
+		[]common.Hash{existingHeader.Hash()}, nil)
+	mockBlockState6.EXPECT().GetHeader(existingHeader.Hash()).Return(
+		existingHeader, nil)
+	mockBlockState6.EXPECT().BestBlockHash().Return(existingHeader.Hash())
+	mockBlockState6.EXPECT().GetRuntime(existingHeader.Hash()).Return(nil, errors.New("test error"))
+
+	verifier6 := newVerifier(mockBlockState6, 1, vi)
+
+	testHeader6 := newTestHeader(t, *prd)
+	testHeader6.Number = 1
+
 	tests := []struct {
 		name        string
 		verifier    verifier
@@ -818,6 +831,13 @@ func Test_verifier_verifyBlockEquivocation(t *testing.T) {
 			header:      testHeader5,
 			equivocated: true,
 			expErr:      nil,
+		},
+		{
+			name:        "submitting equivocation fails",
+			verifier:    *verifier6,
+			header:      testHeader6,
+			equivocated: true,
+			expErr:      errors.New("submitting and reporting equivocation: getting runtime: test error"),
 		},
 	}
 
@@ -900,11 +920,18 @@ func Test_verifier_submitAndReportEquivocation(t *testing.T) {
 	mockRuntime.EXPECT().BabeGenerateKeyOwnershipProof(slot, offenderPublicKey).Return(keyOwnershipProof, nil).Times(1)
 	mockRuntime.EXPECT().BabeSubmitReportEquivocationUnsignedExtrinsic(equivocationProof, keyOwnershipProof).Return(nil)
 
-	mockBlockState.EXPECT().BestBlockHash().Return(firstHash)
+	mockBlockState.EXPECT().BestBlockHash().Return(firstHash).Times(2)
 	mockBlockState.EXPECT().GetRuntime(firstHash).Return(mockRuntime, nil)
 
 	err = verifier.submitAndReportEquivocation(slot, authorityIndex, *firstHeader, *secondHeader)
 	assert.NoError(t, err)
+
+	// fails on not being able to get a runtime
+	mockBlockState.EXPECT().GetRuntime(firstHash).Return(nil, errors.New("test error"))
+
+	err = verifier.submitAndReportEquivocation(slot, authorityIndex, *firstHeader, *secondHeader)
+	assert.EqualError(t, err, "getting runtime: test error")
+
 }
 
 func Test_verifier_verifyAuthorshipRightEquivocatory(t *testing.T) {
