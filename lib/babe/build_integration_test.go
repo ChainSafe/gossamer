@@ -68,14 +68,9 @@ func TestBuildBlock_ok(t *testing.T) {
 	require.NoError(t, err)
 
 	slot := getSlot(t, rt, time.Now())
-<<<<<<< HEAD
 	ext := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0, signature.TestKeyringPairAlice, "System.remark", []byte{0xab, 0xcd})
-	block := createTestBlockWithSlot(t, babeService, emptyHeader, [][]byte{common.MustHexToBytes(ext)}, testEpochIndex, epochData, slot)
-=======
-	ext := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0, "System.remark", []byte{0xab, 0xcd})
 	block := createTestBlockWithSlot(t, babeService, emptyHeader, [][]byte{common.MustHexToBytes(ext)},
 		testEpochIndex, epochData, slot)
->>>>>>> 52ca1db3e (cleanup)
 
 	expectedBlockHeader := &types.Header{
 		ParentHash: emptyHeader.Hash(),
@@ -137,7 +132,7 @@ func TestApplyExtrinsic(t *testing.T) {
 	header1, err := rt.FinalizeBlock()
 	require.NoError(t, err)
 
-	ext2 := runtime.NewTestExtrinsic(t, rt, parentHeader.Hash(), parentHeader.Hash(), 0,signature.TestKeyringPairAlice, "System.remark",
+	ext2 := runtime.NewTestExtrinsic(t, rt, parentHeader.Hash(), parentHeader.Hash(), 0, signature.TestKeyringPairAlice, "System.remark",
 		[]byte{0xab, 0xcd})
 
 	validExt := []byte{byte(types.TxnExternal)}
