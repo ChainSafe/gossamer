@@ -1281,14 +1281,14 @@ func TestInstance_TransactionPaymentCallApi_QueryCallFeeDetails(t *testing.T) {
 
 func TestInstance_GrandpaGenerateKeyOwnershipProof(t *testing.T) {
 	t.Parallel()
-	runtime := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
+	instance := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
 	identity := common.MustHexToBytes("0x88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee")
 	identityPubKey, _ := ed25519.NewPublicKey(identity)
 	authorityID := ed25519PubKeyTo32BArray(*identityPubKey)
 
-	encodedOpaqueKeyOwnershipProof, err := runtime.GrandpaGenerateKeyOwnershipProof(uint64(0), authorityID)
+	encodedOpaqueKeyOwnershipProof, err := instance.GrandpaGenerateKeyOwnershipProof(uint64(0), authorityID)
 	require.NoError(t, err)
-	// Since the input is not valid with respect to the runtime, an empty proof is returned
+	// Since the input is not valid with respect to the instance, an empty proof is returned
 	require.Empty(t, encodedOpaqueKeyOwnershipProof)
 }
 
