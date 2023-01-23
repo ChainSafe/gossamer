@@ -679,7 +679,7 @@ func (bs *BlockState) RangeInMemory(start, end common.Hash) ([]common.Hash, erro
 		return nil, fmt.Errorf("%w", errNilBlockTree)
 	}
 
-	return bs.bt.RangeInMemory(start, end)
+	return bs.bt.Range(start, end)
 }
 
 // IsDescendantOf returns true if child is a descendant of parent, false otherwise.

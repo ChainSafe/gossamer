@@ -813,7 +813,7 @@ func BenchmarkBlockTreeSubBlockchain(b *testing.B) {
 
 		b.Run(fmt.Sprintf("input_len_%d", tt.input), func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				bt.RangeInMemory(firstHash, endHash)
+				bt.Range(firstHash, endHash)
 			}
 		})
 	}

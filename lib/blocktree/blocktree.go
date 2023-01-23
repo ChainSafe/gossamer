@@ -154,33 +154,6 @@ func (bt *BlockTree) Range(startHash common.Hash, endHash common.Hash) (hashes [
 	// blocks from the end hash till the bt.root inclusive
 	startNode := bt.getNode(startHash)
 	if startNode == nil {
-		startNode = bt.root
-	}
-
-	hashes, err = accumulateHashesInDescedingOrder(endNode, startNode)
-	if err != nil {
-		return nil, fmt.Errorf("getting blocks in range: %w", err)
-	}
-
-	return hashes, nil
-}
-
-// RangeInMemory returns the path from the node with Hash start to the node with Hash end
-func (bt *BlockTree) RangeInMemory(startHash common.Hash, endHash common.Hash) (hashes []common.Hash, err error) {
-	bt.Lock()
-	defer bt.Unlock()
-
-	endNode := bt.getNode(endHash)
-	if endNode == nil {
-		return nil, fmt.Errorf("%w: %s", ErrEndNodeNotFound, endHash)
-	}
-
-	// if we don't find the start hash in the blocktree
-	// that means it should be in the database, so we retrieve
-	// as many nodes as we can, in other words we get all the
-	// blocks from the end hash till the bt.root inclusive
-	startNode := bt.getNode(startHash)
-	if startNode == nil {
 		return nil, fmt.Errorf("%w: %s", ErrStartNodeNotFound, endHash)
 	}
 
