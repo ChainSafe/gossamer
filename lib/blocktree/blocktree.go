@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/disiqueira/gotree"
 	"github.com/prometheus/client_golang/prometheus"
@@ -111,15 +112,15 @@ func (bt *BlockTree) AddBlock(header *types.Header, arrivalTime time.Time) (err 
 
 // GetAllBlocksAtNumber will return all blocks hashes with the number of the given hash plus one.
 // To find all blocks at a number matching a certain block, pass in that block's parent hash
-func (bt *BlockTree) GetAllBlocksAtNumber(hash common.Hash) (hashes []common.Hash) {
+func (bt *BlockTree) GetAllBlocksAtNumber(parent common.Hash) (hashes []common.Hash) {
 	bt.RLock()
 	defer bt.RUnlock()
 
-	if bt.getNode(hash) == nil {
+	if bt.getNode(parent) == nil {
 		return hashes
 	}
 
-	number := bt.getNode(hash).number + 1
+	number := bt.getNode(parent).number + 1
 
 	if bt.root.number == number {
 		hashes = append(hashes, bt.root.hash)

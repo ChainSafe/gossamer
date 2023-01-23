@@ -250,6 +250,28 @@ func (bs *BlockState) GetHashByNumber(num uint) (common.Hash, error) {
 	return common.NewHash(bh), nil
 }
 
+func (bs *BlockState) GetAllDescendants(hash common.Hash) ([]common.Hash, error) {
+	allDescendants := []common.Hash{}
+	for _, h := range bs.bt.GetAllBlocksAtNumber(hash) {
+		ifDescendant, err := bs.bt.IsDescendantOf(hash, h)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check if block %s is descendant of block %s: %w", h, hash, err)
+		}
+		if !ifDescendant {
+			continue
+		}
+
+		descendants, err := bs.bt.GetAllDescendants(h)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get descendants: %w", err)
+		}
+
+		allDescendants = append(allDescendants, descendants...)
+	}
+
+	return allDescendants, nil
+}
+
 // GetBlockHashesBySlot gets all block hashes that were produced in the given slot.
 func (bs *BlockState) GetBlockHashesBySlot(slotNum uint64) ([]common.Hash, error) {
 	highestFinalisedHash, err := bs.GetHighestFinalisedHash()
@@ -258,7 +280,13 @@ func (bs *BlockState) GetBlockHashesBySlot(slotNum uint64) ([]common.Hash, error
 	}
 
 	descendants, err := bs.bt.GetAllDescendants(highestFinalisedHash)
-	if err != nil {
+	if errors.Is(err, blocktree.ErrNodeNotFound) {
+		var err2 error
+		descendants, err2 = bs.GetAllDescendants(highestFinalisedHash)
+		if err2 != nil {
+			return nil, fmt.Errorf("failed to get descendants: %w", err)
+		}
+	} else if err != nil {
 		return nil, fmt.Errorf("failed to get descendants: %w", err)
 	}
 
