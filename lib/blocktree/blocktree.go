@@ -260,6 +260,24 @@ func (bt *BlockTree) Prune(finalised Hash) (pruned []Hash) {
 		return pruned
 	}
 
+	// Cleanup in-memory runtimes from the canonical chain.
+	// The runtime used in the newly finalised block is kept
+	// instantiated in memory, and other runtimes from the
+	// previous finalised block to the newly finalised block
+	// included are stopped and removed from memory. Note
+	// these are still accessible through the storage as WASM blob.
+	finalisedBlockRuntime := bt.runtimes.get(finalised)
+	canonicalChainBlock := n
+	previousFinalisedBlock := bt.root
+	for canonicalChainBlock != previousFinalisedBlock.parent {
+		runtime := bt.runtimes.get(canonicalChainBlock.hash)
+		if runtime != finalisedBlockRuntime {
+			runtime.Stop()
+			bt.runtimes.delete(canonicalChainBlock.hash)
+		}
+		canonicalChainBlock = canonicalChainBlock.parent
+	}
+
 	pruned = bt.root.prune(n, nil)
 	bt.root = n
 	bt.root.parent = nil
