@@ -22,11 +22,11 @@ func makeChange(keyHex, valueHex string) [2]*string {
 	return [2]*string{&keyHex, &valueHex}
 }
 
-func newTestGenesisWithTrieAndHeader(t *testing.T) (
+func newWestendLocalGenesisWithTrieAndHeader(t *testing.T) (
 	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
 	t.Helper()
 
-	genesisPath := utils.GetGssmrV3SubstrateGenesisRawPathTest(t)
+	genesisPath := utils.GetWestendLocalRawGenesisPath(t)
 	genesisPtr, err := genesis.NewGenesisFromJSONRaw(genesisPath)
 	require.NoError(t, err)
 	gen = *genesisPtr

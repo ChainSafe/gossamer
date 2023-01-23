@@ -22,6 +22,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -116,7 +117,7 @@ func createTestService(t *testing.T, genesisFilePath string,
 	// Hash of encrypted centrifuge extrinsic
 	testCallArguments := []byte{0xab, 0xcd}
 	extHex := runtime.NewTestExtrinsic(t, cfgRuntime, genesisHeader.Hash(), cfgBlockState.BestBlockHash(),
-		0, "System.remark", testCallArguments)
+		0, signature.TestKeyringPairAlice, "System.remark", testCallArguments)
 	encodedExtrinsic = common.MustHexToBytes(extHex)
 
 	cfgCodeSubstitutes := make(map[common.Hash]string)
