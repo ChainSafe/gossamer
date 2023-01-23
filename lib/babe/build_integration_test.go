@@ -54,7 +54,7 @@ func TestSeal(t *testing.T) {
 	require.True(t, ok, "could not verify seal")
 }
 
-// TODO see if there can be better assertions on block body
+// TODO see if there can be better assertions on block body #3060
 func TestBuildBlock_ok(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader)
@@ -236,7 +236,7 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	require.Equal(t, []byte{0, 0}, res)
 }
 
-// TODO investigate if this is a needed test
+// TODO investigate if this is a needed test #3060
 func TestBuildBlock_failing(t *testing.T) {
 	t.Skip()
 
