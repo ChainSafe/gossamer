@@ -55,6 +55,8 @@ func TestSeal(t *testing.T) {
 }
 
 // TODO see if there can be better assertions on block body #3060
+// Are extrinsics correct, what are the extrinsics now that there are 2 instead of 1, is one the same?
+// Does ordr matter?
 func TestBuildBlock_ok(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader)
@@ -88,7 +90,7 @@ func TestBuildBlock_ok(t *testing.T) {
 	require.Equal(t, 2, len(extsBytes))
 }
 
-func TestApplyExtrinsic(t *testing.T) {
+func TestApplyExtrinsicAfterFirstBlockFinalized(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader)
 	const authorityIndex = 0
@@ -237,6 +239,7 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 }
 
 // TODO investigate if this is a needed test #3060
+// Good to test build block error case, but this test can be improved
 func TestBuildBlock_failing(t *testing.T) {
 	t.Skip()
 
@@ -328,12 +331,8 @@ func TestBuildBlockTimeMonitor(t *testing.T) {
 	metrics.Enabled = true
 	metrics.Unregister(buildBlockTimer)
 
-	cfg := ServiceConfig{
-		Authority: true,
-	}
-
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, cfg, genesis, genesisTrie, genesisHeader)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader)
 
 	parent, err := babeService.blockState.BestBlockHeader()
 	require.NoError(t, err)
