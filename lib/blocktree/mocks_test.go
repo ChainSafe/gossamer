@@ -212,10 +212,10 @@ func (mr *MockRuntimeMockRecorder) GrandpaAuthorities() *gomock.Call {
 }
 
 // GrandpaGenerateKeyOwnershipProof mocks base method.
-func (m *MockInstance) GrandpaGenerateKeyOwnershipProof(arg0 uint64, arg1 ed25519.PublicKeyBytes) (types.OpaqueKeyOwnershipProof, error) {
+func (m *MockInstance) GrandpaGenerateKeyOwnershipProof(arg0 uint64, arg1 ed25519.PublicKeyBytes) (types.GrandpaOpaqueKeyOwnershipProof, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GrandpaGenerateKeyOwnershipProof", arg0, arg1)
-	ret0, _ := ret[0].(types.OpaqueKeyOwnershipProof)
+	ret0, _ := ret[0].(types.GrandpaOpaqueKeyOwnershipProof)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -227,7 +227,7 @@ func (mr *MockInstanceMockRecorder) GrandpaGenerateKeyOwnershipProof(arg0, arg1 
 }
 
 // GrandpaSubmitReportEquivocationUnsignedExtrinsic mocks base method.
-func (m *MockInstance) GrandpaSubmitReportEquivocationUnsignedExtrinsic(arg0 types.GrandpaEquivocationProof, arg1 types.OpaqueKeyOwnershipProof) error {
+func (m *MockInstance) GrandpaSubmitReportEquivocationUnsignedExtrinsic(arg0 types.GrandpaEquivocationProof, arg1 types.GrandpaOpaqueKeyOwnershipProof) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GrandpaSubmitReportEquivocationUnsignedExtrinsic", arg0, arg1)
 	ret0, _ := ret[0].(error)

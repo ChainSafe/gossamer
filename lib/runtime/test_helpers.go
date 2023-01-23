@@ -290,9 +290,9 @@ type Instance interface {
 	BabeSubmitReportEquivocationUnsignedExtrinsic(types.BabeEquivocationProof, types.OpaqueKeyOwnershipProof) error
 	CheckInherents()
 	GrandpaGenerateKeyOwnershipProof(authSetID uint64, authorityID ed25519.PublicKeyBytes) (
-		types.OpaqueKeyOwnershipProof, error)
+		types.GrandpaOpaqueKeyOwnershipProof, error)
 	GrandpaSubmitReportEquivocationUnsignedExtrinsic(
-		equivocationProof types.GrandpaEquivocationProof, keyOwnershipProof types.OpaqueKeyOwnershipProof,
+		equivocationProof types.GrandpaEquivocationProof, keyOwnershipProof types.GrandpaOpaqueKeyOwnershipProof,
 	) error
 	RandomSeed()
 	OffchainWorker()

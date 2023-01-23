@@ -21,7 +21,7 @@ var (
 
 func TestService_reportEquivocation(t *testing.T) {
 	t.Parallel()
-	keyOwnershipProof := types.OpaqueKeyOwnershipProof{1}
+	keyOwnershipProof := types.GrandpaOpaqueKeyOwnershipProof{1}
 	signedVote := &types.GrandpaSignedVote{
 		Vote:        *testVote,
 		Signature:   testSignature,
@@ -108,7 +108,7 @@ func TestService_reportEquivocation(t *testing.T) {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
 				mockRuntimeInstanceGenerateProofErr := NewMockInstance(ctrl)
 				mockRuntimeInstanceGenerateProofErr.EXPECT().GrandpaGenerateKeyOwnershipProof(uint64(1), testAuthorityID).
-					Return(types.OpaqueKeyOwnershipProof{}, errTestError)
+					Return(types.GrandpaOpaqueKeyOwnershipProof{}, errTestError)
 				mockGrandpaStateOk := NewMockGrandpaState(ctrl)
 				mockGrandpaStateOk.EXPECT().GetCurrentSetID().Return(uint64(1), nil)
 				mockGrandpaStateOk.EXPECT().GetLatestRound().Return(uint64(1), nil)

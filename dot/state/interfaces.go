@@ -96,9 +96,9 @@ type Runtime interface {
 	OffchainWorker()
 	GenerateSessionKeys()
 	GrandpaGenerateKeyOwnershipProof(authSetID uint64, authorityID ed25519.PublicKeyBytes) (
-		types.OpaqueKeyOwnershipProof, error)
+		types.GrandpaOpaqueKeyOwnershipProof, error)
 	GrandpaSubmitReportEquivocationUnsignedExtrinsic(
-		equivocationProof types.GrandpaEquivocationProof, keyOwnershipProof types.OpaqueKeyOwnershipProof,
+		equivocationProof types.GrandpaEquivocationProof, keyOwnershipProof types.GrandpaOpaqueKeyOwnershipProof,
 	) error
 }
 

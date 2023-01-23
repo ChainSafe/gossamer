@@ -280,7 +280,7 @@ func (in *Instance) CheckInherents() {}
 
 // GrandpaGenerateKeyOwnershipProof returns grandpa key ownership proof from the runtime.
 func (in *Instance) GrandpaGenerateKeyOwnershipProof(authSetID uint64, authorityID ed25519.PublicKeyBytes) (
-	types.OpaqueKeyOwnershipProof, error) {
+	types.GrandpaOpaqueKeyOwnershipProof, error) {
 	const bufferSize = 8 + 32 // authSetID uint64 + ed25519.PublicKeyBytes
 	buffer := bytes.NewBuffer(make([]byte, 0, bufferSize))
 	encoder := scale.NewEncoder(buffer)
@@ -297,7 +297,7 @@ func (in *Instance) GrandpaGenerateKeyOwnershipProof(authSetID uint64, authority
 		return nil, err
 	}
 
-	keyOwnershipProof := types.OpaqueKeyOwnershipProof{}
+	keyOwnershipProof := types.GrandpaOpaqueKeyOwnershipProof{}
 	err = scale.Unmarshal(encodedOpaqueKeyOwnershipProof, &keyOwnershipProof)
 	if err != nil {
 		return nil, fmt.Errorf("scale decoding: %w", err)
@@ -308,7 +308,7 @@ func (in *Instance) GrandpaGenerateKeyOwnershipProof(authSetID uint64, authority
 
 // GrandpaSubmitReportEquivocationUnsignedExtrinsic reports an equivocation report to the runtime.
 func (in *Instance) GrandpaSubmitReportEquivocationUnsignedExtrinsic(
-	equivocationProof types.GrandpaEquivocationProof, keyOwnershipProof types.OpaqueKeyOwnershipProof,
+	equivocationProof types.GrandpaEquivocationProof, keyOwnershipProof types.GrandpaOpaqueKeyOwnershipProof,
 ) error {
 	buffer := bytes.NewBuffer(nil)
 	encoder := scale.NewEncoder(buffer)

@@ -210,15 +210,15 @@ func (_m *Instance) GrandpaAuthorities() ([]types.Authority, error) {
 }
 
 // GrandpaGenerateKeyOwnershipProof provides a mock function with given fields: authSetID, authorityID
-func (_m *Instance) GrandpaGenerateKeyOwnershipProof(authSetID uint64, authorityID ed25519.PublicKeyBytes) (types.OpaqueKeyOwnershipProof, error) {
+func (_m *Instance) GrandpaGenerateKeyOwnershipProof(authSetID uint64, authorityID ed25519.PublicKeyBytes) (types.GrandpaOpaqueKeyOwnershipProof, error) {
 	ret := _m.Called(authSetID, authorityID)
 
-	var r0 types.OpaqueKeyOwnershipProof
-	if rf, ok := ret.Get(0).(func(uint64, ed25519.PublicKeyBytes) types.OpaqueKeyOwnershipProof); ok {
+	var r0 types.GrandpaOpaqueKeyOwnershipProof
+	if rf, ok := ret.Get(0).(func(uint64, ed25519.PublicKeyBytes) types.GrandpaOpaqueKeyOwnershipProof); ok {
 		r0 = rf(authSetID, authorityID)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(types.OpaqueKeyOwnershipProof)
+			r0 = ret.Get(0).(types.GrandpaOpaqueKeyOwnershipProof)
 		}
 	}
 
@@ -233,11 +233,11 @@ func (_m *Instance) GrandpaGenerateKeyOwnershipProof(authSetID uint64, authority
 }
 
 // GrandpaSubmitReportEquivocationUnsignedExtrinsic provides a mock function with given fields: equivocationProof, keyOwnershipProof
-func (_m *Instance) GrandpaSubmitReportEquivocationUnsignedExtrinsic(equivocationProof types.GrandpaEquivocationProof, keyOwnershipProof types.OpaqueKeyOwnershipProof) error {
+func (_m *Instance) GrandpaSubmitReportEquivocationUnsignedExtrinsic(equivocationProof types.GrandpaEquivocationProof, keyOwnershipProof types.GrandpaOpaqueKeyOwnershipProof) error {
 	ret := _m.Called(equivocationProof, keyOwnershipProof)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(types.GrandpaEquivocationProof, types.OpaqueKeyOwnershipProof) error); ok {
+	if rf, ok := ret.Get(0).(func(types.GrandpaEquivocationProof, types.GrandpaOpaqueKeyOwnershipProof) error); ok {
 		r0 = rf(equivocationProof, keyOwnershipProof)
 	} else {
 		r0 = ret.Error(0)
