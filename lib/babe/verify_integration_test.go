@@ -178,7 +178,7 @@ func TestVerificationManager_VerifyBlock_Ok(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// TODO Rather than test error, test happy path
+// TODO Rather than test error, test happy path #3060
 func TestVerificationManager_VerifyBlock_Secondary(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader)
@@ -224,7 +224,7 @@ func TestVerificationManager_VerifyBlock_Secondary(t *testing.T) {
 	require.EqualError(t, err, "failed to verify pre-runtime digest: block producer is not in authority set")
 }
 
-// TODO this test should also be part of babe testing cleanup
+// TODO this test should also be part of babe testing cleanup #3060
 func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 	t.Skip()
 	serviceConfig := ServiceConfig{
@@ -276,7 +276,7 @@ func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// TODO this test should also be part of babe testing cleanup
+// TODO this test should also be part of babe testing cleanup #3060
 // Need to fix flakyness and verify config data is being set correctly
 func TestVerificationManager_VerifyBlock_InvalidBlockOverThreshold(t *testing.T) {
 	t.Skip()
@@ -441,26 +441,26 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 		},
 	}
 
-	// create and add first block
-	slot := getSlot(t, rt, time.Now())
-	block := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, testEpochIndex, epochData, slot)
-	block.Header.Hash()
-
-	err = babeService.blockState.AddBlock(block)
-	require.NoError(t, err)
-
 	verifier := newVerifier(babeService.blockState, testEpochIndex, &verifierInfo{
 		authorities: epochData.authorities,
 		threshold:   epochData.threshold,
 		randomness:  epochData.randomness,
 	})
 
-	err = verifier.verifyAuthorshipRight(&block.Header)
-	require.NoError(t, err)
+	// create and add first block
+	slot := getSlot(t, rt, time.Now())
+	block := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, testEpochIndex, epochData, slot)
+	block.Header.Hash()
 
 	// create new block for same slot
 	block2 := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, testEpochIndex, epochData, slot)
 	block2.Header.Hash()
+
+	err = babeService.blockState.AddBlock(block)
+	require.NoError(t, err)
+
+	err = verifier.verifyAuthorshipRight(&block.Header)
+	require.NoError(t, err)
 
 	err = babeService.blockState.AddBlock(block2)
 	require.NoError(t, err)

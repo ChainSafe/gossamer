@@ -156,7 +156,8 @@ func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
 	block := createTestBlockWithSlot(t, babeService, emptyHeader, [][]byte{common.MustHexToBytes(ext)},
 		testEpochIndex, epochData, slot)
 
-	babeService.blockState.AddBlock(block)
+	err = babeService.blockState.AddBlock(block)
+	require.NoError(t, err)
 	time.Sleep(babeService.constants.slotDuration)
 
 	header, err := babeService.blockState.BestBlockHeader()
@@ -188,7 +189,7 @@ func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
 	require.ErrorIs(t, err, errLaggingSlot)
 }
 
-// TODO Rewrite this test to utilise westend. Since its built for 2 nodes, doesnt work with existing setup
+// TODO Rewrite this test to utilise westend. Since its built for 2 nodes, doesnt work with existing setup #3060
 func TestService_HandleSlotWithSameSlot(t *testing.T) {
 	t.Skip()
 	alice := keyring.Alice().(*sr25519.Keypair)
