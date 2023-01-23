@@ -15,7 +15,7 @@ func NewDigestItem() scale.VaryingDataType {
 	return scale.MustNewVaryingDataType(ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
 }
 
-// NewDigest returns a new Digest from the given DigestItems
+// NewDigest returns a new Digest as a varying data type slice.
 func NewDigest() scale.VaryingDataTypeSlice {
 	return scale.NewVaryingDataTypeSlice(NewDigestItem())
 }
