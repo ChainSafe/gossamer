@@ -21,6 +21,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	"github.com/golang/mock/gomock"
 
 	"github.com/stretchr/testify/require"
@@ -313,7 +314,8 @@ func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
-	ext := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0, "System.remark", []byte{0xab, 0xcd})
+	ext := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0,
+		signature.TestKeyringPairAlice, "System.remark", []byte{0xab, 0xcd})
 	block := createTestBlock(t, babeService, emptyHeader, [][]byte{common.MustHexToBytes(ext)},
 		1, testEpochIndex, epochData)
 
