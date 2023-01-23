@@ -250,9 +250,11 @@ func (bs *BlockState) GetHashByNumber(num uint) (common.Hash, error) {
 	return common.NewHash(bh), nil
 }
 
+// GetAllDescendants gets all the descendants even if hash is not stored in memory.
 func (bs *BlockState) GetAllDescendants(hash common.Hash) ([]common.Hash, error) {
 	allDescendants := []common.Hash{}
 	for _, h := range bs.bt.GetAllBlocksAtNumber(hash) {
+		allDescendants = append(allDescendants, h)
 		ifDescendant, err := bs.bt.IsDescendantOf(hash, h)
 		if err != nil {
 			return nil, fmt.Errorf("failed to check if block %s is descendant of block %s: %w", h, hash, err)
