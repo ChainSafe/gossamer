@@ -168,6 +168,8 @@ func TestService_BlockTree(t *testing.T) {
 }
 
 func TestService_StorageTriePruning(t *testing.T) {
+	t.Skip() // Unskip once https://github.com/ChainSafe/gossamer/pull/2831 is done
+
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
@@ -177,7 +179,7 @@ func TestService_StorageTriePruning(t *testing.T) {
 		Path:     t.TempDir(),
 		LogLevel: log.Info,
 		PrunerCfg: pruner.Config{
-			Mode:           pruner.Full,
+			// Mode:           pruner.Full,
 			RetainedBlocks: uint32(retainBlocks),
 		},
 		Telemetry: telemetryMock,
