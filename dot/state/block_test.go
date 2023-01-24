@@ -813,7 +813,8 @@ func TestRange(t *testing.T) {
 			blocksToCreate:        128,
 			blocksToPersistAtDisk: 0,
 			wantErr:               blocktree.ErrStartGreaterThanEnd,
-			stringErr:             "retrieving range from in-memory blocktree: start greater than end",
+			stringErr: "retrieving range from in-memory blocktree: " +
+				"getting blocks in range: start greater than end",
 			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
 				genesisHeader *types.Header) *BlockState {
 				telemetryMock := NewMockTelemetry(ctrl)
