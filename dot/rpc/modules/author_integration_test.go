@@ -174,7 +174,8 @@ func TestAuthorModule_SubmitExtrinsic_Integration(t *testing.T) {
 
 	// creating an extrisinc to the System.remark call using a sample argument
 	extHex := runtime.NewTestExtrinsic(t,
-		integrationTestController.runtime, genesisHash, genesisHash, 0, "System.remark", []byte{0xab, 0xcd})
+		integrationTestController.runtime, genesisHash, genesisHash, 0,
+		signature.TestKeyringPairAlice, "System.remark", []byte{0xab, 0xcd})
 
 	extBytes := common.MustHexToBytes(extHex)
 
@@ -193,12 +194,12 @@ func TestAuthorModule_SubmitExtrinsic_Integration(t *testing.T) {
 	expected := &transaction.ValidTransaction{
 		Extrinsic: expectedExtrinsic,
 		Validity: &transaction.Validity{
-			Priority: 39325240425794630,
+			Priority: 36074,
 			Requires: nil,
 			Provides: [][]byte{
 				common.MustHexToBytes("0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d00000000"),
 			},
-			Longevity: 18446744073709551614,
+			Longevity: 18446744073709551613,
 			Propagate: true,
 		},
 	}
@@ -212,15 +213,25 @@ func TestAuthorModule_SubmitExtrinsic_Integration(t *testing.T) {
 	require.Equal(t, expectedHash, *res)
 }
 
-func TestAuthorModule_SubmitExtrinsic_invalid(t *testing.T) {
+func TestAuthorModule_SubmitExtrinsic_bad_proof(t *testing.T) {
 	t.Parallel()
+	testInvalidKeyringPairAlice := signature.KeyringPair{
+		URI: "//Alice",
+		PublicKey: []byte{0xd5, 0x36, 0x13, 0xc7, 0x15, 0xfd, 0xd3,
+			0x1c, 0x61, 0x14, 0x1a, 0xb4, 0x4, 0xa9, 0x9f, 0xd6, 0x82,
+			0x2c, 0x85, 0x58, 0x85, 0x2c, 0xcd, 0xe3, 0x9a, 0x56, 0x84,
+			0xe7, 0xa5, 0x6d, 0x12, 0x7d},
+		Address: "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+	}
+
 	integrationTestController := setupStateAndRuntime(t, t.TempDir(), useInstanceFromGenesis)
 
 	genesisHash := integrationTestController.genesisHeader.Hash()
 
 	// creating an extrisinc to the System.remark call using a sample argument
 	extHex := runtime.NewTestExtrinsic(t,
-		integrationTestController.runtime, genesisHash, genesisHash, 0, "System.remark", []byte{})
+		integrationTestController.runtime, genesisHash, genesisHash, 0,
+		testInvalidKeyringPairAlice, "System.remark", []byte{0xab, 0xcd})
 
 	ctrl := gomock.NewController(t)
 	net2test := NewMockNetwork(ctrl)
@@ -233,7 +244,7 @@ func TestAuthorModule_SubmitExtrinsic_invalid(t *testing.T) {
 
 	res := new(ExtrinsicHashResponse)
 	err := auth.SubmitExtrinsic(nil, &Extrinsic{extHex}, res)
-	require.EqualError(t, err, "ancient birth block")
+	require.EqualError(t, err, "bad proof")
 
 	txOnPool := integrationTestController.stateSrv.Transaction.PendingInPool()
 	require.Len(t, txOnPool, 0)
@@ -269,7 +280,8 @@ func TestAuthorModule_SubmitExtrinsic_AlreadyInPool(t *testing.T) {
 
 	// creating an extrisinc to the System.remark call using a sample argument
 	extHex := runtime.NewTestExtrinsic(t,
-		integrationTestController.runtime, genesisHash, genesisHash, 0, "System.remark", []byte{})
+		integrationTestController.runtime, genesisHash, genesisHash, 0,
+		signature.TestKeyringPairAlice, "System.remark", []byte{})
 	extBytes := common.MustHexToBytes(extHex)
 
 	integrationTestController.network = NewMockNetwork(nil)
@@ -456,8 +468,8 @@ func TestAuthorModule_HasKey_Integration(t *testing.T) {
 func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 	t.Parallel()
 
-	const granSeed = "0xf25586ceb64a043d887631fa08c2ed790ef7ae3c7f28de5172005f8b9469e529"
-	const granPubK = "0x6b802349d948444d41397da09ec597fbd8ae8fdd3dfa153b2bb2bddcf020457c"
+	const granSeed = "0xabf8e5bdbe30c65656c0a3cbd181ff8a56294a69dfedd27982aace4a76909115"
+	const granPubK = "0x88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee"
 
 	const sr25519Seed = "0xe5be9a5092b81bca64be81d212e7f2f9eba183bb7a90954f7b76361f6edb5c0a"
 	const sr25519Pubk = "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
@@ -472,7 +484,7 @@ func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 			pubk:  granPubK,
 		},
 		{
-			ktype: []string{"babe", "imon", "audi"},
+			ktype: []string{"babe", "imon", "para", "asgn", "audi"},
 			seed:  sr25519Seed,
 			pubk:  sr25519Pubk,
 		},
@@ -484,9 +496,11 @@ func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 		waitErr        error
 	}{
 		"public keys are in the right order, should return true": {
-			pubSessionKeys: "0x6b802349d948444d41397da09ec597fbd8ae8fdd3dfa153b2bb2bddcf020457c" + // gran
+			pubSessionKeys: "0x88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee" + // gran
 				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d" + // babe
 				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d" + // imon
+				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d" + // para
+				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d" + // asgn
 				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d", // audi
 			expect: true,
 		},
@@ -494,14 +508,18 @@ func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 			pubSessionKeys: "0x740550da19ef14023ea3e903545a6700160a55be2e4b733b577c91b053e38b8d" + // gran
 				"de6fa0da51c52cc117d77aeb329595b15070db444e7ed4c4adec714b291c1845" + // babe
 				"de6fa0da51c52cc117d77aeb329595b15070db444e7ed4c4adec714b291c1845" + // imon
+				"de6fa0da51c52cc117d77aeb329595b15070db444e7ed4c4adec714b291c1845" + // para
+				"de6fa0da51c52cc117d77aeb329595b15070db444e7ed4c4adec714b291c1845" + // asgn
 				"de6fa0da51c52cc117d77aeb329595b15070db444e7ed4c4adec714b291c1845", // audi
 			expect: false,
 		},
 		"public keys are not in the right order, should return false": {
-			pubSessionKeys: "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d" + // gran
-				"6b802349d948444d41397da09ec597fbd8ae8fdd3dfa153b2bb2bddcf020457c" + // babe
+			pubSessionKeys: "0x6b802349d948444d41397da09ec597fbd8ae8fdd3dfa153b2bb2bddcf020457c" + // babe
+				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d" + // gran
 				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d" + // imon
-				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d", // audi
+				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d" + // audi
+				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d" + // para
+				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d", // asgn
 			expect: false,
 		},
 		"incomplete keys": {
@@ -630,7 +648,7 @@ type integrationTestController struct {
 func setupStateAndRuntime(t *testing.T, basepath string, useInstance useRuntimeInstance) *integrationTestController {
 	t.Helper()
 
-	gen, genesisTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	gen, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockTelemetry(ctrl)
@@ -690,7 +708,7 @@ func setupStateAndPopulateTrieState(t *testing.T, basepath string,
 	useInstance useRuntimeInstance) *integrationTestController {
 	t.Helper()
 
-	gen, genesisTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	gen, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockTelemetry(ctrl)

@@ -42,9 +42,9 @@ type Item struct {
 // A PriorityQueue implements heap.Interface and holds Items.
 type priorityQueue []*Item
 
-func (pq priorityQueue) Len() int { return len(pq) }
+func (pq priorityQueue) Len() int { return len(pq) } //skipcq: GO-W1029
 
-func (pq priorityQueue) Less(i, j int) bool {
+func (pq priorityQueue) Less(i, j int) bool { //skipcq: GO-W1029
 	// For Item having same priority value we compare them based on their insertion order(FIFO).
 	if pq[i].priority == pq[j].priority {
 		return pq[i].order < pq[j].order
@@ -53,20 +53,20 @@ func (pq priorityQueue) Less(i, j int) bool {
 	return pq[i].priority > pq[j].priority
 }
 
-func (pq priorityQueue) Swap(i, j int) {
+func (pq priorityQueue) Swap(i, j int) { //skipcq: GO-W1029
 	pq[i], pq[j] = pq[j], pq[i]
 	pq[i].index = i
 	pq[j].index = j
 }
 
-func (pq *priorityQueue) Push(x interface{}) {
+func (pq *priorityQueue) Push(x interface{}) { //skipcq: GO-W1029
 	n := len(*pq)
 	item := x.(*Item)
 	item.index = n
 	*pq = append(*pq, item)
 }
 
-func (pq *priorityQueue) Pop() interface{} {
+func (pq *priorityQueue) Pop() interface{} { //skipcq: GO-W1029
 	old := *pq
 	n := len(old)
 	item := old[n-1]

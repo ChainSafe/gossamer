@@ -17,9 +17,8 @@ import (
 var ErrNoPrefix = errors.New("could not byteify non 0x prefixed string")
 
 // StringToInts turns a string consisting of ints separated by commas into an int array
-func StringToInts(in string) ([]int, error) {
+func StringToInts(in string) (res []int, err error) {
 	intstrs := strings.Split(in, ",")
-	res := []int{}
 	for _, intstr := range intstrs {
 		i, err := strconv.Atoi(intstr)
 		if err != nil {
@@ -32,18 +31,18 @@ func StringToInts(in string) ([]int, error) {
 
 // StringArrayToBytes turns an array of strings into an array of byte arrays
 func StringArrayToBytes(in []string) [][]byte {
-	b := [][]byte{}
-	for _, str := range in {
-		b = append(b, []byte(str))
+	b := make([][]byte, len(in))
+	for i := range in {
+		b[i] = []byte(in[i])
 	}
 	return b
 }
 
 // BytesToStringArray turns an array of byte arrays into an array strings
 func BytesToStringArray(in [][]byte) []string {
-	strs := []string{}
-	for _, b := range in {
-		strs = append(strs, string(b))
+	strs := make([]string, len(in))
+	for i := range in {
+		strs[i] = string(in[i])
 	}
 	return strs
 }

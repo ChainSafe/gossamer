@@ -219,7 +219,7 @@ func (c *CodecRequest) WriteError(w http.ResponseWriter, _ int, err error) {
 	c.writeServerResponse(w, res)
 }
 
-func (c CodecRequest) tryToMapIfNotAnErrorAlready(err error) error {
+func (c *CodecRequest) tryToMapIfNotAnErrorAlready(err error) error {
 	if _, ok := err.(*json2.Error); ok || c.errorMapper == nil {
 		return err
 	}

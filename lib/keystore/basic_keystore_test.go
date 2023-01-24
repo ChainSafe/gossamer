@@ -35,7 +35,7 @@ func TestBasicKeystore(t *testing.T) {
 func TestBasicKeystore_PublicKeys(t *testing.T) {
 	ks := NewBasicKeystore("test", crypto.Sr25519Type)
 
-	expectedPubkeys := []crypto.PublicKey{}
+	var expectedPubkeys []crypto.PublicKey
 	numKps := 12
 
 	for i := 0; i < numKps; i++ {

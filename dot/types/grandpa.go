@@ -149,7 +149,7 @@ func EncodeGrandpaVoters(voters GrandpaVoters) ([]byte, error) {
 
 // DecodeGrandpaVoters returns a decoded GrandpaVoters
 func DecodeGrandpaVoters(in []byte) (GrandpaVoters, error) {
-	dec := []voter{}
+	var dec []voter
 	err := scale.Unmarshal(in, &dec)
 	if err != nil {
 		return nil, err
