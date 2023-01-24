@@ -56,7 +56,7 @@ func TestSeal(t *testing.T) {
 
 // TODO see if there can be better assertions on block body #3060
 // Are extrinsics correct, what are the extrinsics now that there are 2 instead of 1, is one the same?
-// Does ordr matter?
+// Does order matter?
 func TestBuildBlock_ok(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader)
@@ -70,7 +70,8 @@ func TestBuildBlock_ok(t *testing.T) {
 	require.NoError(t, err)
 
 	slot := getSlot(t, rt, time.Now())
-	ext := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0, signature.TestKeyringPairAlice, "System.remark", []byte{0xab, 0xcd})
+	ext := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0, signature.TestKeyringPairAlice,
+		"System.remark", []byte{0xab, 0xcd})
 	block := createTestBlockWithSlot(t, babeService, emptyHeader, [][]byte{common.MustHexToBytes(ext)},
 		testEpochIndex, epochData, slot)
 
@@ -127,14 +128,16 @@ func TestApplyExtrinsicAfterFirstBlockFinalized(t *testing.T) {
 	_, err = buildBlockInherents(slot, rt, parentHeader)
 	require.NoError(t, err)
 
-	ext := runtime.NewTestExtrinsic(t, rt, emptyHash, parentHeader.Hash(), 0, signature.TestKeyringPairAlice, "System.remark", []byte{0xab, 0xcd})
+	ext := runtime.NewTestExtrinsic(t, rt, emptyHash, parentHeader.Hash(), 0, signature.TestKeyringPairAlice,
+		"System.remark", []byte{0xab, 0xcd})
 	_, err = rt.ApplyExtrinsic(common.MustHexToBytes(ext))
 	require.NoError(t, err)
 
 	header1, err := rt.FinalizeBlock()
 	require.NoError(t, err)
 
-	ext2 := runtime.NewTestExtrinsic(t, rt, parentHeader.Hash(), parentHeader.Hash(), 0, signature.TestKeyringPairAlice, "System.remark",
+	ext2 := runtime.NewTestExtrinsic(t, rt, parentHeader.Hash(), parentHeader.Hash(), 0,
+		signature.TestKeyringPairAlice, "System.remark",
 		[]byte{0xab, 0xcd})
 
 	validExt := []byte{byte(types.TxnExternal)}
@@ -143,9 +146,8 @@ func TestApplyExtrinsicAfterFirstBlockFinalized(t *testing.T) {
 	_, err = rt.ValidateTransaction(validExt)
 	require.NoError(t, err)
 
-	// Wait for next slot, Westend has 6 second slot times
-	time.Sleep(7 * time.Second)
-	slot2 := getSlot(t, rt, time.Now())
+	// Add 7 seconds to allow slot to be claimed at appropriate time, Westend has 6 second slot times
+	slot2 := getSlot(t, rt, time.Now().Add(7*time.Second))
 	preRuntimeDigest2, err := claimSlot(testEpochIndex, slot2.number, epochData, babeService.keypair)
 	require.NoError(t, err)
 
