@@ -186,11 +186,13 @@ func importStateAction(ctx *cli.Context) error {
 func importRuntimeAction(ctx *cli.Context) error {
 	arguments := ctx.Args()
 	if len(arguments) == 0 {
-		return fmt.Errorf("no args provided, please provide wasm file")
+		return fmt.Errorf("no args provided, please provide wasm file and the genesis spec file")
 	}
 
 	fp := arguments[0]
-	out, err := createGenesisWithRuntime(fp)
+	genesisChainSpec := arguments[1]
+
+	out, err := createGenesisWithRuntime(fp, genesisChainSpec)
 	if err != nil {
 		return err
 	}

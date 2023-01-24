@@ -11,6 +11,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/stretchr/testify/require"
 )
@@ -23,7 +24,8 @@ func TestCreateGenesisWithRuntime(t *testing.T) {
 	err := os.WriteFile(filename, testCode, os.ModePerm)
 	require.NoError(t, err)
 
-	out, err := createGenesisWithRuntime(filename)
+	westendGenesisFile := utils.GetWestendDevRawGenesisPath(t)
+	out, err := createGenesisWithRuntime(filename, westendGenesisFile)
 	require.NoError(t, err)
 
 	g := new(genesis.Genesis)

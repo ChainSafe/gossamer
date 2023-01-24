@@ -148,16 +148,6 @@ func KeystoreFilepaths(basepath string) ([]string, error) {
 	return keys, nil
 }
 
-// GetGssmrGenesisRawPath gets the gssmr raw genesis path
-// and returns an error if it cannot find it.
-func GetGssmrGenesisRawPath() (path string, err error) {
-	rootPath, err := GetProjectRootPath()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(rootPath, "./chain/gssmr/genesis-spec.json"), nil
-}
-
 // GetGssmrV3SubstrateGenesisRawPathTest gets the v3 substrate gssmr raw genesis path
 // and fails the test if it cannot find it.
 func GetGssmrV3SubstrateGenesisRawPathTest(t *testing.T) string {
