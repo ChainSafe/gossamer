@@ -24,7 +24,7 @@ func TestCreateGenesisWithRuntime(t *testing.T) {
 	err := os.WriteFile(filename, testCode, os.ModePerm)
 	require.NoError(t, err)
 
-	westendGenesisFile := utils.GetWestendDevRawGenesisPath(t)
+	westendGenesisFile := utils.GetWestendDevHumanReadableGenesisPath(t)
 	out, err := createGenesisWithRuntime(filename, westendGenesisFile)
 	require.NoError(t, err)
 
