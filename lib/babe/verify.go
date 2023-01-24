@@ -352,6 +352,10 @@ func (b *verifier) submitAndReportEquivocation(
 		return fmt.Errorf("getting runtime: %w", err)
 	}
 
+	if len(b.authorities) >= int(authorityIndex) {
+		return ErrAuthIndexOutOfBound
+	}
+
 	offenderPublicKey := b.authorities[authorityIndex].ToRaw().Key
 
 	keyOwnershipProof, err := runtimeInstance.BabeGenerateKeyOwnershipProof(slot, offenderPublicKey)
