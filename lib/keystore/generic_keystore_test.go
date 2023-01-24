@@ -18,7 +18,7 @@ import (
 func TestGetSr25519PublicKeys(t *testing.T) {
 	ks := NewGenericKeystore("test")
 
-	expectedPubkeys := []crypto.PublicKey{}
+	var expectedPubkeys []crypto.PublicKey
 	numKps := 12
 
 	for i := 0; i < numKps; i++ {
@@ -54,7 +54,7 @@ func TestGetSr25519PublicKeys(t *testing.T) {
 func TestGetEd25519PublicKeys(t *testing.T) {
 	ks := NewGenericKeystore("test")
 
-	expectedPubkeys := []crypto.PublicKey{}
+	var expectedPubkeys []crypto.PublicKey
 	numKps := 10
 
 	for i := 0; i < numKps; i++ {
@@ -90,7 +90,7 @@ func TestGetEd25519PublicKeys(t *testing.T) {
 func TestGetSecp256k1PublicKeys(t *testing.T) {
 	ks := NewGenericKeystore("test")
 
-	expectedPubkeys := []crypto.PublicKey{}
+	var expectedPubkeys []crypto.PublicKey
 	numKps := 10
 
 	for i := 0; i < numKps; i++ {

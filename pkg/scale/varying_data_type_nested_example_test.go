@@ -48,11 +48,11 @@ func NewParentVDT() ParentVDT {
 type ChildVDT scale.VaryingDataType
 
 // Index fulfils the VaryingDataTypeValue interface.  T
-func (ChildVDT) Index() uint {
+func (ChildVDT) Index() uint { //skipcq: GO-W1029
 	return 1
 }
 
-func (cvdt ChildVDT) String() string {
+func (cvdt ChildVDT) String() string { //skipcq: GO-W1029
 	value, err := cvdt.Value()
 	if err != nil {
 		return "ChildVDT()"
@@ -61,7 +61,7 @@ func (cvdt ChildVDT) String() string {
 }
 
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (cvdt *ChildVDT) Set(val scale.VaryingDataTypeValue) (err error) {
+func (cvdt *ChildVDT) Set(val scale.VaryingDataTypeValue) (err error) { //skipcq: GO-W1029
 	// cast to VaryingDataType to use VaryingDataType.Set method
 	vdt := scale.VaryingDataType(*cvdt)
 	err = vdt.Set(val)
@@ -74,7 +74,7 @@ func (cvdt *ChildVDT) Set(val scale.VaryingDataTypeValue) (err error) {
 }
 
 // Value will return value from underying VaryingDataType
-func (cvdt *ChildVDT) Value() (val scale.VaryingDataTypeValue, err error) {
+func (cvdt *ChildVDT) Value() (val scale.VaryingDataTypeValue, err error) { //skipcq: GO-W1029
 	vdt := scale.VaryingDataType(*cvdt)
 	return vdt.Value()
 }
@@ -95,11 +95,11 @@ func NewChildVDT() ChildVDT {
 type OtherChildVDT scale.VaryingDataType
 
 // Index fulfils the VaryingDataTypeValue interface.
-func (OtherChildVDT) Index() uint {
+func (OtherChildVDT) Index() uint { //skipcq: GO-W1029
 	return 2
 }
 
-func (cvdt OtherChildVDT) String() string {
+func (cvdt OtherChildVDT) String() string { //skipcq: GO-W1029
 	vdt := scale.VaryingDataType(cvdt)
 	vdtPtr := &vdt
 	value, err := vdtPtr.Value()
@@ -110,7 +110,7 @@ func (cvdt OtherChildVDT) String() string {
 }
 
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (cvdt *OtherChildVDT) Set(val scale.VaryingDataTypeValue) (err error) {
+func (cvdt *OtherChildVDT) Set(val scale.VaryingDataTypeValue) (err error) { //skipcq: GO-W1029
 	// cast to VaryingDataType to use VaryingDataType.Set method
 	vdt := scale.VaryingDataType(*cvdt)
 	err = vdt.Set(val)

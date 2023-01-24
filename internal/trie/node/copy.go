@@ -53,7 +53,7 @@ type CopySettings struct {
 // Copy deep copies the node.
 // Setting copyChildren to true will deep copy
 // children as well.
-func (n *Node) Copy(settings CopySettings) *Node { //skipcq: GO-W1029
+func (n *Node) Copy(settings CopySettings) *Node {
 	cpy := &Node{
 		Dirty:       n.Dirty,
 		Generation:  n.Generation,

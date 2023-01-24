@@ -82,8 +82,7 @@ func (ks *BasicKeystore) GetKeypairFromAddress(pub common.Address) KeyPair {
 }
 
 // PublicKeys returns all public keys in the keystore
-func (ks *BasicKeystore) PublicKeys() []crypto.PublicKey {
-	srkeys := []crypto.PublicKey{}
+func (ks *BasicKeystore) PublicKeys() (srkeys []crypto.PublicKey) {
 	if ks.keys == nil {
 		return srkeys
 	}

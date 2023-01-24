@@ -14,7 +14,7 @@ import (
 func TestBlake2b218_EmptyHash(t *testing.T) {
 	// test case from https://github.com/noot/blake2b_test which uses the blake2-rfp rust crate
 	// also see https://github.com/paritytech/substrate/blob/master/core/primitives/src/hashing.rs
-	in := []byte{}
+	var in []byte
 	h, err := common.Blake2b128(in)
 	require.NoError(t, err)
 
@@ -42,7 +42,7 @@ func Test_MustBlake2b8(t *testing.T) {
 func TestBlake2bHash_EmptyHash(t *testing.T) {
 	// test case from https://github.com/noot/blake2b_test which uses the blake2-rfp rust crate
 	// also see https://github.com/paritytech/substrate/blob/master/core/primitives/src/hashing.rs
-	in := []byte{}
+	var in []byte
 	h, err := common.Blake2bHash(in)
 	require.NoError(t, err)
 
@@ -53,7 +53,7 @@ func TestBlake2bHash_EmptyHash(t *testing.T) {
 
 func TestKeccak256_EmptyHash(t *testing.T) {
 	// test case from https://github.com/debris/tiny-keccak/blob/master/tests/keccak.rs#L4
-	in := []byte{}
+	var in []byte
 	h, err := common.Keccak256(in)
 	require.NoError(t, err)
 
