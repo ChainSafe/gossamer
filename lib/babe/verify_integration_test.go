@@ -447,8 +447,12 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 		randomness:  epochData.randomness,
 	})
 
-	// create and add first block
-	slot := getSlot(t, rt, time.Now())
+	// slots are 6 seconds on westend and using time.Now() allows us to create a block at any point in the slot.
+	// So we need to manually set time to produce consistent results. See here:
+	// https://github.com/paritytech/substrate/blob/09de7b41599add51cf27eca8f1bc4c50ed8e9453/frame/timestamp/src/lib.rs#L229
+	// https://github.com/paritytech/substrate/blob/09de7b41599add51cf27eca8f1bc4c50ed8e9453/frame/timestamp/src/lib.rs#L206
+	timstamp := time.Unix(6, 0)
+	slot := getSlot(t, rt, timstamp)
 	block := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, testEpochIndex, epochData, slot)
 	block.Header.Hash()
 

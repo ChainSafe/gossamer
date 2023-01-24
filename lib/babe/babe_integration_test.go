@@ -6,7 +6,6 @@
 package babe
 
 import (
-	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	"testing"
 	"time"
 
@@ -14,6 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	"github.com/golang/mock/gomock"
 
 	"github.com/stretchr/testify/require"
@@ -152,7 +152,8 @@ func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
 	require.NoError(t, err)
 
 	slot := getSlot(t, rt, time.Now())
-	ext := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0, signature.TestKeyringPairAlice, "System.remark", []byte{0xab, 0xcd})
+	ext := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0, signature.TestKeyringPairAlice,
+		"System.remark", []byte{0xab, 0xcd})
 	block := createTestBlockWithSlot(t, babeService, emptyHeader, [][]byte{common.MustHexToBytes(ext)},
 		testEpochIndex, epochData, slot)
 
