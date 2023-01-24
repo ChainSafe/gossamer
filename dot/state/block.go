@@ -252,24 +252,26 @@ func (bs *BlockState) GetHashByNumber(num uint) (common.Hash, error) {
 
 // GetAllDescendants gets all the descendants even if hash is not stored in memory.
 func (bs *BlockState) GetAllDescendants(hash common.Hash) ([]common.Hash, error) {
-	allDescendants := []common.Hash{}
-	for _, h := range bs.bt.GetAllBlocksAtNumber(hash) {
-		allDescendants = append(allDescendants, h)
-		ifDescendant, err := bs.bt.IsDescendantOf(hash, h)
-		if err != nil {
-			return nil, fmt.Errorf("failed to check if block %s is descendant of block %s: %w", h, hash, err)
-		}
-		if !ifDescendant {
-			continue
-		}
-
-		descendants, err := bs.bt.GetAllDescendants(h)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get descendants: %w", err)
-		}
-
-		allDescendants = append(allDescendants, descendants...)
+	header, err := bs.GetHeader(hash)
+	if err != nil {
+		return nil, fmt.Errorf("getting header from hash %s: %w", hash, err)
 	}
+	// TODO: Use GetBlocksByNumber after https://github.com/ChainSafe/gossamer/issues/2748 is done
+	nextBlock, err := bs.GetBlockByNumber(header.Number + 1)
+	if err != nil {
+		return nil, fmt.Errorf("getting block by number %d: %w", header.Number+1, err)
+	}
+
+	ifDescendant, err := bs.bt.IsDescendantOf(hash, nextBlock.Header.Hash())
+	if err != nil {
+		return nil, fmt.Errorf("failed to check if block %s is descendant of block %s: %w", nextBlock.Header.Hash(), hash, err)
+	}
+	if !ifDescendant {
+		return nil, nil
+	}
+
+	allDescendants := []common.Hash{nextBlock.Header.Hash()}
+	allDescendants = append(allDescendants, bs.bt.GetAllBlocksAtNumber(nextBlock.Header.Hash())...)
 
 	return allDescendants, nil
 }
@@ -286,7 +288,7 @@ func (bs *BlockState) GetBlockHashesBySlot(slotNum uint64) ([]common.Hash, error
 		var err2 error
 		descendants, err2 = bs.GetAllDescendants(highestFinalisedHash)
 		if err2 != nil {
-			return nil, fmt.Errorf("failed to get descendants: %w", err)
+			return nil, fmt.Errorf("failed to get descendants: %w", err2)
 		}
 	} else if err != nil {
 		return nil, fmt.Errorf("failed to get descendants: %w", err)
