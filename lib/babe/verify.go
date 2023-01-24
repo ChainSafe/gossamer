@@ -344,7 +344,7 @@ func (b *verifier) submitAndReportEquivocation(
 	// TODO: Check if it is initial sync
 	// don't report any equivocations during initial sync
 	// as they are most likely stale.
-	// Issue #3004
+	// https://github.com/ChainSafe/gossamer/issues/3004
 
 	bestBlockHash := b.blockState.BestBlockHash()
 	runtimeInstance, err := b.blockState.GetRuntime(bestBlockHash)
