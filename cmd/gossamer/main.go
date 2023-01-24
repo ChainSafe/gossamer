@@ -92,12 +92,12 @@ var (
 	importRuntimeCommand = cli.Command{
 		Action:    FixFlagOrder(importRuntimeAction),
 		Name:      importRuntimeCommandName,
-		Usage:     "Generates a genesis file given a .wasm runtime binary",
+		Usage:     "Appends the given .wasm runtime binary to a genesis file",
 		ArgsUsage: "",
 		Flags:     RootFlags,
 		Category:  "IMPORT-RUNTIME",
-		Description: "The import-runtime command generates a genesis file given a .wasm runtime binary.\n" +
-			"\tUsage: gossamer import-runtime runtime.wasm > genesis.json\n",
+		Description: "The import-runtime command appends the given .wasm runtime binary to a genesis file.\n" +
+			"\tUsage: gossamer import-runtime runtime.wasm genesis.json > updated_genesis.json\n",
 	}
 
 	importStateCommand = cli.Command{
