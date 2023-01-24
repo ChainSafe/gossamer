@@ -83,7 +83,7 @@ func (vdt *VaryingDataType) Value() (VaryingDataTypeValue, error) { //skipcq: GO
 	return vdt.value, nil
 }
 
-func (vdt VaryingDataType) String() string { //skipcq: GO-W1029
+func (vdt *VaryingDataType) String() string { //skipcq: GO-W1029
 	if vdt.value == nil {
 		return "VaryingDataType(nil)"
 	}
