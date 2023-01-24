@@ -24,6 +24,8 @@ var (
 	AccoName Name = "acco"
 	AuraName Name = "aura"
 	ImonName Name = "imon"
+	ParaName Name = "para"
+	AsgnName Name = "asgn"
 	AudiName Name = "audi"
 	DumyName Name = "dumy"
 )
@@ -62,6 +64,8 @@ type GlobalKeystore struct {
 	Gran Keystore
 	Acco Keystore
 	Aura Keystore
+	Para Keystore
+	Asgn Keystore
 	Imon Keystore
 	Audi Keystore
 	Dumy Keystore
@@ -74,6 +78,8 @@ func NewGlobalKeystore() *GlobalKeystore {
 		Gran: NewBasicKeystore(GranName, crypto.Ed25519Type),
 		Acco: NewGenericKeystore(AccoName), // TODO: which type is used? can an account be either type? (#1872)
 		Aura: NewBasicKeystore(AuraName, crypto.Sr25519Type),
+		Para: NewBasicKeystore(ParaName, crypto.Sr25519Type),
+		Asgn: NewBasicKeystore(AsgnName, crypto.Sr25519Type),
 		Imon: NewBasicKeystore(ImonName, crypto.Sr25519Type),
 		Audi: NewBasicKeystore(AudiName, crypto.Sr25519Type),
 		Dumy: NewGenericKeystore(DumyName),
@@ -94,6 +100,10 @@ func (k *GlobalKeystore) GetKeystore(name []byte) (Keystore, error) {
 		return k.Aura, nil
 	case ImonName:
 		return k.Imon, nil
+	case ParaName:
+		return k.Para, nil
+	case AsgnName:
+		return k.Asgn, nil
 	case AudiName:
 		return k.Audi, nil
 	case DumyName:

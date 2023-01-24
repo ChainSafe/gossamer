@@ -446,14 +446,13 @@ func TestSystemModule_LocalListenAddresses(t *testing.T) {
 			args: args{
 				req: &EmptyRequest{},
 			},
-			exp:    []string{},
 			expErr: errors.New("multiaddress list is empty"),
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			sm := tt.sysModule
-			res := []string{}
+			var res []string
 			err := sm.LocalListenAddresses(tt.args.r, tt.args.req, &res)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())

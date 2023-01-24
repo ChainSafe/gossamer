@@ -217,7 +217,7 @@ func TestImportKey(t *testing.T) {
 func TestListKeys(t *testing.T) {
 	testdir := t.TempDir()
 
-	expected := []string{}
+	var expected []string
 
 	for i := 0; i < 5; i++ {
 		var err error
