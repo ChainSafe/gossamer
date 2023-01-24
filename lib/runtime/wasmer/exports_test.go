@@ -22,6 +22,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -347,7 +348,7 @@ func TestNodeRuntime_ValidateTransaction(t *testing.T) {
 	}
 
 	extHex := runtime.NewTestExtrinsic(t, rt, genesisHeader.Hash(), genesisHeader.Hash(),
-		0, "System.remark", []byte{0xab, 0xcd})
+		0, signature.TestKeyringPairAlice, "System.remark", []byte{0xab, 0xcd})
 
 	genesisHashBytes := genesisHeader.Hash().ToBytes()
 
@@ -654,7 +655,7 @@ func TestInstance_ApplyExtrinsic_WestendRuntime(t *testing.T) {
 	require.NoError(t, err)
 
 	extHex := runtime.NewTestExtrinsic(t, instance, genesisHeader.Hash(), genesisHeader.Hash(),
-		0, "System.remark", []byte{0xab, 0xcd})
+		0, signature.TestKeyringPairAlice, "System.remark", []byte{0xab, 0xcd})
 
 	res, err := instance.ApplyExtrinsic(common.MustHexToBytes(extHex))
 	require.NoError(t, err)

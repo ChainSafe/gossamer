@@ -108,12 +108,12 @@ func (am *AuthorModule) HasSessionKeys(r *http.Request, req *HasSessionKeyReques
 		return err
 	}
 
-	pkeys, err := scale.Marshal(pubKeysBytes)
+	encodedKeys, err := scale.Marshal(pubKeysBytes)
 	if err != nil {
 		return err
 	}
 
-	data, err := am.coreAPI.DecodeSessionKeys(pkeys)
+	data, err := am.coreAPI.DecodeSessionKeys(encodedKeys)
 	if err != nil {
 		*res = false
 		return err
@@ -133,7 +133,6 @@ func (am *AuthorModule) HasSessionKeys(r *http.Request, req *HasSessionKeyReques
 	for _, key := range *decodedKeys {
 		encType := keystore.Name(key.Type[:])
 		ok, err := am.coreAPI.HasKey(common.BytesToHex(key.Data), string(encType))
-
 		if err != nil || !ok {
 			*res = false
 			return err

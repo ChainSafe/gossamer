@@ -68,7 +68,7 @@ func TestGrandpaAuthoritiesRawToAuthorities(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, exp, enc)
 
-	dec := []GrandpaAuthoritiesRaw{}
+	var dec []GrandpaAuthoritiesRaw
 	err = scale.Unmarshal(enc, &dec)
 	require.NoError(t, err)
 	require.Equal(t, auths, dec)

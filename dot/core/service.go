@@ -472,14 +472,14 @@ func (s *Service) HasKey(pubKeyStr, keystoreType string) (bool, error) {
 }
 
 // DecodeSessionKeys executes the runtime DecodeSessionKeys and return the scale encoded keys
-func (s *Service) DecodeSessionKeys(enc []byte) ([]byte, error) {
+func (s *Service) DecodeSessionKeys(encodedSessionKeys []byte) ([]byte, error) {
 	bestBlockHash := s.blockState.BestBlockHash()
 	rt, err := s.blockState.GetRuntime(bestBlockHash)
 	if err != nil {
 		return nil, err
 	}
 
-	return rt.DecodeSessionKeys(enc)
+	return rt.DecodeSessionKeys(encodedSessionKeys)
 }
 
 // GetRuntimeVersion gets the current RuntimeVersion
