@@ -73,7 +73,7 @@ func Test_Hash_IsEmpty(t *testing.T) {
 		"empty": {
 			empty: true,
 		},
-		"not empty": {
+		"not_empty": {
 			hash: Hash{1},
 		},
 	}

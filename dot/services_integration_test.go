@@ -59,7 +59,7 @@ func Test_nodeBuilder_createBABEService(t *testing.T) {
 		err      error
 	}{
 		{
-			name: "invalid keystore",
+			name: "invalid_keystore",
 			args: args{
 				cfg:              cfg,
 				initStateService: true,
@@ -69,7 +69,7 @@ func Test_nodeBuilder_createBABEService(t *testing.T) {
 			err:      ErrInvalidKeystoreType,
 		},
 		{
-			name: "empty keystore",
+			name: "empty_keystore",
 			args: args{
 				cfg:              cfg,
 				initStateService: true,
@@ -79,7 +79,7 @@ func Test_nodeBuilder_createBABEService(t *testing.T) {
 			err:      ErrNoKeysProvided,
 		},
 		{
-			name: "base case",
+			name: "base_case",
 			args: args{
 				cfg:              cfg,
 				initStateService: true,
@@ -140,7 +140,7 @@ func Test_nodeBuilder_createCoreService(t *testing.T) {
 		err       error
 	}{
 		{
-			name: "base case",
+			name: "base_case",
 			args: args{
 				ks:  ks,
 				net: networkService,
@@ -324,7 +324,7 @@ func Test_createRuntime(t *testing.T) {
 		err          error
 	}{
 		{
-			name: "wasmer runtime",
+			name: "wasmer_runtime",
 			args: args{
 				cfg: cfg,
 				ns:  runtime.NodeStorage{},
@@ -372,7 +372,7 @@ func Test_nodeBuilder_newSyncService(t *testing.T) {
 		err       error
 	}{
 		{
-			name: "base case",
+			name: "base_case",
 			args: args{
 				fg:              finalityGadget,
 				verifier:        nil,

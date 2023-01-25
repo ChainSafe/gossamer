@@ -95,10 +95,6 @@ func TestLoadGlobalNodeName(t *testing.T) {
 	}
 }
 
-//go:generate mockgen -destination=mocks_test.go -package=$GOPACKAGE . ServiceRegisterer
-
-//go:generate mockgen -destination=mock_block_state_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/network BlockState
-
 func setConfigTestDefaults(t *testing.T, cfg *network.Config) {
 	t.Helper()
 	ctrl := gomock.NewController(t)
@@ -196,7 +192,7 @@ func TestNode_StartStop(t *testing.T) {
 		err    error
 	}{
 		{
-			name: "base case",
+			name: "base_case",
 			fields: fields{
 				Name:     "Node",
 				Services: services.NewServiceRegistry(serviceRegistryLogger),

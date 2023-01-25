@@ -33,7 +33,7 @@ func Test_DecodeVersion(t *testing.T) {
 		errWrapped error
 		errMessage string
 	}{
-		"required field decode error": {
+		"required_field_decode_error": {
 			encoded: concatBytes([][]byte{
 				scaleEncode(t, []byte{1, 2}),
 				{255, 255}, // error
@@ -74,7 +74,7 @@ func Test_DecodeVersion(t *testing.T) {
 		// 	errWrapped: ErrDecoding,
 		// 	errMessage: "decoding state version: could not decode invalid integer",
 		// },
-		"no optional field set": {
+		"no_optional_field_set": {
 			encoded: []byte{
 				0x4, 0x1, 0x4, 0x2, 0x3, 0x0, 0x0, 0x0, 0x4, 0x0, 0x0, 0x0,
 				0x5, 0x0, 0x0, 0x0, 0x4, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7,
@@ -91,7 +91,7 @@ func Test_DecodeVersion(t *testing.T) {
 				}},
 			},
 		},
-		"transaction version set": {
+		"transaction_version_set": {
 			encoded: []byte{
 				0x4, 0x1, 0x4, 0x2, 0x3, 0x0, 0x0, 0x0, 0x4, 0x0, 0x0, 0x0,
 				0x5, 0x0, 0x0, 0x0, 0x4, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7,
@@ -109,7 +109,7 @@ func Test_DecodeVersion(t *testing.T) {
 				TransactionVersion: 7,
 			},
 		},
-		"transaction and state versions set": {
+		"transaction_and_state_versions_set": {
 			encoded: []byte{
 				0x4, 0x1, 0x4, 0x2, 0x3, 0x0, 0x0, 0x0, 0x4, 0x0, 0x0, 0x0,
 				0x5, 0x0, 0x0, 0x0, 0x4, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7,
@@ -154,7 +154,7 @@ func Test_Version_Scale(t *testing.T) {
 		encoding []byte
 		decoded  Version
 	}{
-		"all fields set": {
+		"all_fields_set": {
 			version: Version{
 				SpecName:         []byte{1},
 				ImplName:         []byte{2},

@@ -70,7 +70,7 @@ func TestAuthorModule_HasSessionKeys(t *testing.T) {
 		exp    HasSessionKeyResponse
 	}{
 		{
-			name: "Empty Request",
+			name: "Empty_Request",
 			fields: fields{
 				authorModule: NewAuthorModule(log.New(log.SetWriter(io.Discard)), nil, nil),
 			},
@@ -81,7 +81,7 @@ func TestAuthorModule_HasSessionKeys(t *testing.T) {
 			expErr: errors.New("could not byteify non 0x prefixed string: "),
 		},
 		{
-			name: "decodeSessionKeys err",
+			name: "decodeSessionKeys_err",
 			fields: fields{
 				authorModule: NewAuthorModule(log.New(log.SetWriter(io.Discard)), coreMockAPIUnmarshalErr, nil),
 			},
@@ -92,7 +92,7 @@ func TestAuthorModule_HasSessionKeys(t *testing.T) {
 			expErr: errors.New("unsupported option: value: 4, bytes: [1]"),
 		},
 		{
-			name: "happy path",
+			name: "happy_path",
 			fields: fields{
 				authorModule: NewAuthorModule(log.New(log.SetWriter(io.Discard)), coreMockAPIOk, nil),
 			},
@@ -102,7 +102,7 @@ func TestAuthorModule_HasSessionKeys(t *testing.T) {
 			exp: true,
 		},
 		{
-			name: "doesnt have key",
+			name: "doesnt_have_key",
 			fields: fields{
 				authorModule: NewAuthorModule(log.New(log.SetWriter(io.Discard)), coreMockAPIErr, nil),
 			},
@@ -113,7 +113,7 @@ func TestAuthorModule_HasSessionKeys(t *testing.T) {
 			expErr: errors.New("HasKey err"),
 		},
 		{
-			name: "Empty decodedKeys",
+			name: "Empty_decodedKeys",
 			fields: fields{
 				authorModule: NewAuthorModule(log.New(log.SetWriter(io.Discard)), coreMockAPIInvalidDec, nil),
 			},
@@ -178,7 +178,7 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 		wantRes ExtrinsicHashResponse
 	}{
 		{
-			name: "HexToBytes error",
+			name: "HexToBytes_error",
 			args: args{
 				req: &Extrinsic{fmt.Sprintf("%x", "1")},
 			},
@@ -186,7 +186,7 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 			wantRes: ExtrinsicHashResponse(""),
 		},
 		{
-			name: "HandleSubmittedExtrinsic error",
+			name: "HandleSubmittedExtrinsic_error",
 			fields: fields{
 				logger:  log.New(log.SetWriter(io.Discard)),
 				coreAPI: errMockCoreAPI,
@@ -198,7 +198,7 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 			wantRes: ExtrinsicHashResponse(types.Extrinsic(testInvalidExt).Hash().String()),
 		},
 		{
-			name: "happy path",
+			name: "happy_path",
 			fields: fields{
 				logger:  log.New(log.SetWriter(io.Discard)),
 				coreAPI: mockCoreAPI,
@@ -261,7 +261,7 @@ func TestAuthorModule_PendingExtrinsics(t *testing.T) {
 		wantRes PendingExtrinsicsResponse
 	}{
 		{
-			name: "no pending",
+			name: "no_pending",
 			fields: fields{
 				logger:     log.New(log.SetWriter(io.Discard)),
 				txStateAPI: emptyMockTransactionStateAPI,
@@ -269,7 +269,7 @@ func TestAuthorModule_PendingExtrinsics(t *testing.T) {
 			wantRes: PendingExtrinsicsResponse{},
 		},
 		{
-			name: "two pending",
+			name: "two_pending",
 			fields: fields{
 				logger:     log.New(log.SetWriter(io.Discard)),
 				txStateAPI: mockTransactionStateAPI,
@@ -340,7 +340,7 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 		expErr error
 	}{
 		{
-			name: "happy path",
+			name: "happy_path",
 			fields: fields{
 				logger:  log.New(log.SetWriter(io.Discard)),
 				coreAPI: mockCoreAPIHappyBabe,
@@ -354,7 +354,7 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 			},
 		},
 		{
-			name: "happy path, gran keytype",
+			name: "happy_path,_gran_keytype",
 			fields: fields{
 				logger:  log.New(log.SetWriter(io.Discard)),
 				coreAPI: mockCoreAPIHappyGran,
@@ -368,7 +368,7 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 			},
 		},
 		{
-			name: "invalid key",
+			name: "invalid_key",
 			fields: fields{
 				logger: log.New(log.SetWriter(io.Discard)),
 			},
@@ -381,7 +381,7 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 			expErr: ErrProvidedKeyDoesNotMatch,
 		},
 		{
-			name: "unknown key",
+			name: "unknown_key",
 			fields: fields{
 				logger: log.New(log.SetWriter(io.Discard)),
 			},
@@ -445,7 +445,7 @@ func TestAuthorModule_HasKey(t *testing.T) {
 		wantRes bool
 	}{
 		{
-			name: "HasKey true",
+			name: "HasKey_true",
 			fields: fields{
 				coreAPI: mockCoreAPITrue,
 			},
@@ -455,7 +455,7 @@ func TestAuthorModule_HasKey(t *testing.T) {
 			wantRes: true,
 		},
 		{
-			name: "HasKey false",
+			name: "HasKey_false",
 			fields: fields{
 				coreAPI: mockCoreAPIFalse,
 			},
@@ -465,7 +465,7 @@ func TestAuthorModule_HasKey(t *testing.T) {
 			wantRes: false,
 		},
 		{
-			name: "HasKey error",
+			name: "HasKey_error",
 			fields: fields{
 				coreAPI: mockCoreAPIErr,
 			},

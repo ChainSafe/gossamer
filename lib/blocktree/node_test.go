@@ -23,7 +23,7 @@ func TestNode_GetLeaves(t *testing.T) {
 	testNode := bt.getNode(branches[0].hash).children[0]
 	leaves := testNode.getLeaves(nil)
 
-	expected := []*node{}
+	var expected []*node
 	for _, lf := range bt.leaves.toMap() {
 		if lf.isDescendantOf(testNode) {
 			expected = append(expected, lf)

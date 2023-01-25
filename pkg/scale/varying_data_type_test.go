@@ -526,7 +526,7 @@ func TestVaryingDataTypeSlice_Add(t *testing.T) {
 		wantValues []VaryingDataType
 	}{
 		{
-			name: "happy path",
+			name: "happy_path",
 			vdts: NewVaryingDataTypeSlice(MustNewVaryingDataType(VDTValue{}, VDTValue1{}, VDTValue2{}, VDTValue3(0))),
 			args: args{
 				values: []VaryingDataTypeValue{
@@ -545,7 +545,7 @@ func TestVaryingDataTypeSlice_Add(t *testing.T) {
 			},
 		},
 		{
-			name: "invalid value error case",
+			name: "invalid_value_error_case",
 			vdts: NewVaryingDataTypeSlice(MustNewVaryingDataType(VDTValue{}, VDTValue1{}, VDTValue2{})),
 			args: args{
 				values: []VaryingDataTypeValue{

@@ -30,7 +30,7 @@ func Test_Node_Encode(t *testing.T) {
 		wrappedErr       error
 		errMessage       string
 	}{
-		"leaf header encoding error": {
+		"leaf_header_encoding_error": {
 			node: &Node{
 				PartialKey: make([]byte, 1),
 			},
@@ -43,7 +43,7 @@ func Test_Node_Encode(t *testing.T) {
 			wrappedErr: errTest,
 			errMessage: "cannot encode header: test error",
 		},
-		"leaf buffer write error for encoded key": {
+		"leaf_buffer_write_error_for_encoded_key": {
 			node: &Node{
 				PartialKey:   []byte{1, 2, 3},
 				StorageValue: []byte{1},
@@ -60,7 +60,7 @@ func Test_Node_Encode(t *testing.T) {
 			wrappedErr: errTest,
 			errMessage: "cannot write LE key to buffer: test error",
 		},
-		"leaf buffer write error for encoded storage value": {
+		"leaf_buffer_write_error_for_encoded_storage_value": {
 			node: &Node{
 				PartialKey:   []byte{1, 2, 3},
 				StorageValue: []byte{4, 5, 6},
@@ -80,7 +80,7 @@ func Test_Node_Encode(t *testing.T) {
 			wrappedErr: errTest,
 			errMessage: "scale encoding storage value: test error",
 		},
-		"leaf success": {
+		"leaf_success": {
 			node: &Node{
 				PartialKey:   []byte{1, 2, 3},
 				StorageValue: []byte{4, 5, 6},
@@ -95,7 +95,7 @@ func Test_Node_Encode(t *testing.T) {
 			},
 			expectedEncoding: []byte{1, 2, 3},
 		},
-		"leaf with empty storage value success": {
+		"leaf_with_empty_storage_value_success": {
 			node: &Node{
 				PartialKey:   []byte{1, 2, 3},
 				StorageValue: []byte{},
@@ -108,7 +108,7 @@ func Test_Node_Encode(t *testing.T) {
 			},
 			expectedEncoding: []byte{1, 2, 3},
 		},
-		"branch header encoding error": {
+		"branch_header_encoding_error": {
 			node: &Node{
 				Children:   make([]*Node, ChildrenCapacity),
 				PartialKey: make([]byte, 1),
@@ -122,7 +122,7 @@ func Test_Node_Encode(t *testing.T) {
 			wrappedErr: errTest,
 			errMessage: "cannot encode header: test error",
 		},
-		"buffer write error for encoded key": {
+		"buffer_write_error_for_encoded_key": {
 			node: &Node{
 				Children:     make([]*Node, ChildrenCapacity),
 				PartialKey:   []byte{1, 2, 3},
@@ -140,7 +140,7 @@ func Test_Node_Encode(t *testing.T) {
 			wrappedErr: errTest,
 			errMessage: "cannot write LE key to buffer: test error",
 		},
-		"buffer write error for children bitmap": {
+		"buffer_write_error_for_children_bitmap": {
 			node: &Node{
 				PartialKey:   []byte{1, 2, 3},
 				StorageValue: []byte{100},
@@ -164,7 +164,7 @@ func Test_Node_Encode(t *testing.T) {
 			wrappedErr: errTest,
 			errMessage: "cannot write children bitmap to buffer: test error",
 		},
-		"buffer write error for storage value": {
+		"buffer_write_error_for_storage_value": {
 			node: &Node{
 				PartialKey:   []byte{1, 2, 3},
 				StorageValue: []byte{100},
@@ -191,7 +191,7 @@ func Test_Node_Encode(t *testing.T) {
 			wrappedErr: errTest,
 			errMessage: "scale encoding storage value: test error",
 		},
-		"buffer write error for children encoding": {
+		"buffer_write_error_for_children_encoding": {
 			node: &Node{
 				PartialKey:   []byte{1, 2, 3},
 				StorageValue: []byte{100},
@@ -223,7 +223,7 @@ func Test_Node_Encode(t *testing.T) {
 				"cannot write encoding of child at index 3: " +
 				"test error",
 		},
-		"success with children encoding": {
+		"success_with_children_encoding": {
 			node: &Node{
 				PartialKey:   []byte{1, 2, 3},
 				StorageValue: []byte{100},
@@ -253,7 +253,7 @@ func Test_Node_Encode(t *testing.T) {
 				},
 			},
 		},
-		"branch without value and with children success": {
+		"branch_without_value_and_with_children_success": {
 			node: &Node{
 				PartialKey: []byte{1, 2, 3},
 				Children: []*Node{

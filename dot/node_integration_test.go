@@ -172,7 +172,7 @@ func Test_nodeBuilder_loadRuntime(t *testing.T) {
 		err  error
 	}{
 		{
-			name: "base case",
+			name: "base_case",
 			args: args{
 				cfg: cfg,
 				ns:  &runtime.NodeStorage{},

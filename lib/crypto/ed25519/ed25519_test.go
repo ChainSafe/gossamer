@@ -123,19 +123,19 @@ func TestVerifySignature(t *testing.T) {
 			signature: signature,
 			message:   message,
 		},
-		"bad public key input": {
+		"bad_public_key_input": {
 			publicKey: []byte{},
 			signature: signature,
 			message:   message,
 			err:       fmt.Errorf("ed25519: cannot create public key: input is not 32 bytes"),
 		},
-		"invalid signature length": {
+		"invalid_signature_length": {
 			publicKey: publicKey,
 			signature: []byte{},
 			message:   message,
 			err:       fmt.Errorf("ed25519: invalid signature length"),
 		},
-		"verification failed": {
+		"verification_failed": {
 			publicKey: publicKey,
 			signature: signature,
 			message:   []byte("a225e8c75da7da319af6335e7642d473"),

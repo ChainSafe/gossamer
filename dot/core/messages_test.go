@@ -144,13 +144,13 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 		mockRuntime      *mockRuntime
 	}{
 		{
-			name: "not synced",
+			name: "not_synced",
 			mockNetwork: &mockNetwork{
 				IsSynced: false,
 			},
 		},
 		{
-			name: "best block header error",
+			name: "best_block_header_error",
 			mockNetwork: &mockNetwork{
 				IsSynced: true,
 			},
@@ -166,7 +166,7 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 			expErrMsg: errDummyErr.Error(),
 		},
 		{
-			name: "get runtime error",
+			name: "get_runtime_error",
 			mockNetwork: &mockNetwork{
 				IsSynced: true,
 			},
@@ -185,7 +185,7 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 			expErrMsg: errDummyErr.Error(),
 		},
 		{
-			name: "happy path no loop",
+			name: "happy_path_no_loop",
 			mockNetwork: &mockNetwork{
 				IsSynced: true,
 				ReportPeer: &mockReportPeer{
@@ -209,7 +209,7 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 			},
 		},
 		{
-			name: "trie state error",
+			name: "trie_state_error",
 			mockNetwork: &mockNetwork{
 				IsSynced: true,
 			},

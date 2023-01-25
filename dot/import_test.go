@@ -115,7 +115,7 @@ func Test_newHeaderFromFile(t *testing.T) {
 		err      error
 	}{
 		{
-			name: "no arguments",
+			name: "no_arguments",
 			err:  errors.New("read .: is a directory"),
 		},
 		{

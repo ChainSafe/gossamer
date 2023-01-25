@@ -62,8 +62,8 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 		wrappedErr error
 		errMessage string
 	}{
-		"no children": {},
-		"first child not nil": {
+		"no_children": {},
+		"first_child_not_nil": {
 			children: []*Node{
 				{PartialKey: []byte{1}, StorageValue: []byte{2}},
 			},
@@ -73,7 +73,7 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 				},
 			},
 		},
-		"last child not nil": {
+		"last_child_not_nil": {
 			children: []*Node{
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
@@ -86,7 +86,7 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 				},
 			},
 		},
-		"first two children not nil": {
+		"first_two_children_not_nil": {
 			children: []*Node{
 				{PartialKey: []byte{1}, StorageValue: []byte{2}},
 				{PartialKey: []byte{3}, StorageValue: []byte{4}},
@@ -100,7 +100,7 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 				},
 			},
 		},
-		"leaf encoding error": {
+		"leaf_encoding_error": {
 			children: []*Node{
 				nil, nil, nil, nil,
 				nil, nil, nil, nil,
@@ -189,8 +189,8 @@ func Test_encodeChildrenSequentially(t *testing.T) {
 		wrappedErr error
 		errMessage string
 	}{
-		"no children": {},
-		"first child not nil": {
+		"no_children": {},
+		"first_child_not_nil": {
 			children: []*Node{
 				{PartialKey: []byte{1}, StorageValue: []byte{2}},
 			},
@@ -199,7 +199,7 @@ func Test_encodeChildrenSequentially(t *testing.T) {
 				{written: []byte{65, 1, 4, 2}},
 			},
 		},
-		"last child not nil": {
+		"last_child_not_nil": {
 			children: []*Node{
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
@@ -211,7 +211,7 @@ func Test_encodeChildrenSequentially(t *testing.T) {
 				{written: []byte{65, 1, 4, 2}},
 			},
 		},
-		"first two children not nil": {
+		"first_two_children_not_nil": {
 			children: []*Node{
 				{PartialKey: []byte{1}, StorageValue: []byte{2}},
 				{PartialKey: []byte{3}, StorageValue: []byte{4}},
@@ -223,7 +223,7 @@ func Test_encodeChildrenSequentially(t *testing.T) {
 				{written: []byte{65, 3, 4, 4}},
 			},
 		},
-		"encoding error": {
+		"encoding_error": {
 			children: []*Node{
 				nil, nil, nil, nil,
 				nil, nil, nil, nil,
@@ -283,7 +283,7 @@ func Test_encodeChild(t *testing.T) {
 		wrappedErr error
 		errMessage string
 	}{
-		"empty branch child": {
+		"empty_branch_child": {
 			child: &Node{
 				Children: make([]*Node, ChildrenCapacity),
 			},
@@ -292,7 +292,7 @@ func Test_encodeChild(t *testing.T) {
 				{written: []byte{128, 0, 0}},
 			},
 		},
-		"scale encoding error": {
+		"scale_encoding_error": {
 			child: &Node{
 				Children: make([]*Node, ChildrenCapacity),
 			},
@@ -303,7 +303,7 @@ func Test_encodeChild(t *testing.T) {
 			wrappedErr: errTest,
 			errMessage: "scale encoding Merkle value: test error",
 		},
-		"leaf child": {
+		"leaf_child": {
 			child: &Node{
 				PartialKey:   []byte{1},
 				StorageValue: []byte{2},
@@ -313,7 +313,7 @@ func Test_encodeChild(t *testing.T) {
 				{written: []byte{65, 1, 4, 2}},
 			},
 		},
-		"branch child": {
+		"branch_child": {
 			child: &Node{
 				PartialKey:   []byte{1},
 				StorageValue: []byte{2},

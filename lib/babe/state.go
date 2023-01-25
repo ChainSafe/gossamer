@@ -14,8 +14,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
 
-//go:generate mockgen -destination=mock_state_test.go -package $GOPACKAGE . BlockState,ImportedBlockNotifierManager,StorageState,TransactionState,EpochState,BlockImportHandler
-
 // BlockState interface for block state methods
 type BlockState interface {
 	BestBlockHash() common.Hash

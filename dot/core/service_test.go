@@ -189,7 +189,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 		errWrapped     error
 		errMessage     string
 	}{
-		"non existent block hash substitute": {
+		"non_existent_block_hash_substitute": {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
 				return &Service{
 					codeSubstitute: map[common.Hash]string{
@@ -199,7 +199,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 			},
 			blockHash: common.Hash{0x01},
 		},
-		"empty runtime code error": {
+		"empty_runtime_code_error": {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
 				return &Service{
 					codeSubstitute: map[common.Hash]string{
@@ -212,7 +212,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 			errMessage: "new :code is empty: for hash " +
 				"0x0100000000000000000000000000000000000000000000000000000000000000",
 		},
-		"block state get runtime error": {
+		"block_state_get_runtime_error": {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
 				blockState := NewMockBlockState(ctrl)
 				blockState.EXPECT().GetRuntime(common.Hash{0x01}).
@@ -228,7 +228,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 			errWrapped: errTest,
 			errMessage: "getting runtime from block state: test error",
 		},
-		"instance creation error": {
+		"instance_creation_error": {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
 				storedRuntime := NewMockRuntimeInstance(ctrl)
 				storedRuntime.EXPECT().Keystore().Return(nil)
@@ -255,7 +255,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 			errMessage: "creating new runtime instance: setting up VM: " +
 				"wasm decompression failed: unexpected EOF",
 		},
-		"store code substitution block hash error": {
+		"store_code_substitution_block_hash_error": {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
 				storedRuntime := NewMockRuntimeInstance(ctrl)
 				storedRuntime.EXPECT().Keystore().Return(nil)
@@ -945,7 +945,7 @@ func TestServiceInsertKey(t *testing.T) {
 		expErrMsg string
 	}{
 		{
-			name: "ok case",
+			name: "ok_case",
 			service: &Service{
 				keys: &keyStore,
 			},
@@ -955,7 +955,7 @@ func TestServiceInsertKey(t *testing.T) {
 			},
 		},
 		{
-			name: "err case",
+			name: "err_case",
 			service: &Service{
 				keys: &keyStore,
 			},
@@ -1002,7 +1002,7 @@ func TestServiceHasKey(t *testing.T) {
 		expErrMsg string
 	}{
 		{
-			name: "ok case",
+			name: "ok_case",
 			service: &Service{
 				keys: &keyStore,
 			},
@@ -1012,7 +1012,7 @@ func TestServiceHasKey(t *testing.T) {
 			},
 		},
 		{
-			name: "err case",
+			name: "err_case",
 			service: &Service{
 				keys: &keyStore,
 			},

@@ -17,8 +17,6 @@ import (
 	"github.com/golang/mock/gomock"
 )
 
-//go:generate mockgen -destination=mocks_test.go -package=$GOPACKAGE github.com/ChainSafe/gossamer/devnet/cmd/scale-down-ecs-service/internal ECSAPI
-
 func Test_serviceScaler_findServiceArns(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
@@ -68,7 +66,7 @@ func Test_serviceScaler_findServiceArns(t *testing.T) {
 		wantErr         bool
 	}{
 		{
-			name: "with next token",
+			name: "with_next_token",
 			fields: fields{
 				cluster: "someCluster",
 				ecs:     mockECS,
@@ -85,7 +83,7 @@ func Test_serviceScaler_findServiceArns(t *testing.T) {
 			},
 		},
 		{
-			name: "ListServicesWithContext err",
+			name: "ListServicesWithContext_err",
 			fields: fields{
 				cluster: "someErrCluster",
 				ecs:     mockECS,
@@ -97,7 +95,7 @@ func Test_serviceScaler_findServiceArns(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "no services err",
+			name: "no_services_err",
 			fields: fields{
 				cluster: "someEmptyCluster",
 				ecs:     mockECS,
@@ -109,7 +107,7 @@ func Test_serviceScaler_findServiceArns(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "regex err",
+			name: "regex_err",
 			fields: fields{
 				ecs: mockECS,
 			},
@@ -178,7 +176,7 @@ func Test_serviceScaler_drainServices(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "happy path",
+			name: "happy_path",
 			fields: fields{
 				cluster: "someCluster",
 				ecs:     mockECS,
@@ -192,7 +190,7 @@ func Test_serviceScaler_drainServices(t *testing.T) {
 			},
 		},
 		{
-			name: "UpdateServiceWithContext err",
+			name: "UpdateServiceWithContext_err",
 			fields: fields{
 				cluster: "someErrCluster",
 				ecs:     mockECS,
@@ -298,7 +296,7 @@ func Test_serviceScaler_waitForRunningCount(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "already 0 zero running count",
+			name: "already_0_zero_running_count",
 			fields: fields{
 				tickerDuration: time.Nanosecond,
 				cluster:        "someCluster",
@@ -313,7 +311,7 @@ func Test_serviceScaler_waitForRunningCount(t *testing.T) {
 			},
 		},
 		{
-			name: "DescribeServicesWithContext error",
+			name: "DescribeServicesWithContext_error",
 			fields: fields{
 				tickerDuration: time.Nanosecond,
 				cluster:        "someErrorCluster",
@@ -329,7 +327,7 @@ func Test_serviceScaler_waitForRunningCount(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "context cancel err",
+			name: "context_cancel_err",
 			fields: fields{
 				tickerDuration: 10 * time.Millisecond,
 				cluster:        "someCluster",
@@ -371,7 +369,7 @@ func Test_newServiceScaler(t *testing.T) {
 		want *serviceScaler
 	}{
 		{
-			name: "already 0 zero running count",
+			name: "already_0_zero_running_count",
 			want: &serviceScaler{},
 		},
 	}
@@ -465,7 +463,7 @@ func Test_serviceScaler_scaleServices(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "happy path",
+			name: "happy_path",
 			fields: fields{
 				tickerDuration: 10 * time.Millisecond,
 				cluster:        "someCluster",
@@ -477,7 +475,7 @@ func Test_serviceScaler_scaleServices(t *testing.T) {
 			},
 		},
 		{
-			name: "findServiceArns error",
+			name: "findServiceArns_error",
 			fields: fields{
 				tickerDuration: 10 * time.Millisecond,
 				cluster:        "someCluster",
@@ -490,7 +488,7 @@ func Test_serviceScaler_scaleServices(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "updateServices error",
+			name: "updateServices_error",
 			fields: fields{
 				tickerDuration: 10 * time.Millisecond,
 				cluster:        "someCluster",

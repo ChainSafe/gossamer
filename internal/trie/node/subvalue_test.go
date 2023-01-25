@@ -17,26 +17,26 @@ func Test_Node_StorageValueEqual(t *testing.T) {
 		subValue []byte
 		equal    bool
 	}{
-		"nil node subvalue and nil subvalue": {
+		"nil_node_subvalue_and_nil_subvalue": {
 			equal: true,
 		},
-		"empty node subvalue and empty subvalue": {
+		"empty_node_subvalue_and_empty_subvalue": {
 			node:     Node{StorageValue: []byte{}},
 			subValue: []byte{},
 			equal:    true,
 		},
-		"nil node subvalue and empty subvalue": {
+		"nil_node_subvalue_and_empty_subvalue": {
 			subValue: []byte{},
 		},
-		"empty node subvalue and nil subvalue": {
+		"empty_node_subvalue_and_nil_subvalue": {
 			node: Node{StorageValue: []byte{}},
 		},
-		"equal non empty values": {
+		"equal_non_empty_values": {
 			node:     Node{StorageValue: []byte{1, 2}},
 			subValue: []byte{1, 2},
 			equal:    true,
 		},
-		"not equal non empty values": {
+		"not_equal_non_empty_values": {
 			node:     Node{StorageValue: []byte{1, 2}},
 			subValue: []byte{1, 3},
 		},

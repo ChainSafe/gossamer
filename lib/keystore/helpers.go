@@ -299,19 +299,10 @@ func UnlockKeys(ks Inserter, dir, unlock, password string) error {
 // and returns the crypto.KeyType
 func DetermineKeyType(t string) crypto.KeyType {
 	switch t {
-	case "babe":
-		return crypto.Sr25519Type
 	case "gran":
 		return crypto.Ed25519Type
-	case "acco":
-		return crypto.Sr25519Type
-	case "aura":
-		return crypto.Sr25519Type
-	case "imon":
-		return crypto.Sr25519Type
-	case "audi":
-		return crypto.Sr25519Type
-	case "dumy":
+	case "acco", "babe", "para", "asgn",
+		"aura", "imon", "audi", "dumy":
 		return crypto.Sr25519Type
 	}
 	return crypto.UnknownType

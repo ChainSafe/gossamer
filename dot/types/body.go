@@ -24,12 +24,11 @@ func NewBody(e []Extrinsic) *Body {
 
 // NewBodyFromBytes returns a Body from a SCALE encoded byte array.
 func NewBodyFromBytes(b []byte) (*Body, error) {
-	exts := [][]byte{}
-
 	if len(b) == 0 {
 		return NewBody([]Extrinsic{}), nil
 	}
 
+	var exts [][]byte
 	err := scale.Unmarshal(b, &exts)
 	if err != nil {
 		return nil, err
@@ -59,16 +58,15 @@ func NewBodyFromEncodedBytes(exts [][]byte) (*Body, error) {
 
 // NewBodyFromExtrinsicStrings creates a block body given an array of hex-encoded
 // 0x-prefixed strings.
-func NewBodyFromExtrinsicStrings(ss []string) (*Body, error) {
-	exts := []Extrinsic{}
-	for _, s := range ss {
-		b, err := common.HexToBytes(s)
+func NewBodyFromExtrinsicStrings(ss []string) (body *Body, err error) {
+	exts := make([]Extrinsic, len(ss))
+	for i, s := range ss {
+		exts[i], err = common.HexToBytes(s)
 		if errors.Is(err, common.ErrNoPrefix) {
-			b = []byte(s)
+			exts[i] = []byte(s)
 		} else if err != nil {
 			return nil, err
 		}
-		exts = append(exts, b)
 	}
 
 	return NewBody(exts), nil

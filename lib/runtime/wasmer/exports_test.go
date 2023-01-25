@@ -22,6 +22,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -65,7 +66,7 @@ func Test_Instance_Version(t *testing.T) {
 				TransactionVersion: 1,
 			},
 		},
-		"node v098": {
+		"node_v098": {
 			instanceBuilder: func(t *testing.T) instanceVersioner {
 				return NewTestInstance(t, runtime.NODE_RUNTIME_v098)
 			},
@@ -159,7 +160,7 @@ func Test_Instance_Version(t *testing.T) {
 				},
 			},
 		},
-		"polkadot v0825": {
+		"polkadot_v0825": {
 			instanceBuilder: func(t *testing.T) instanceVersioner {
 				return NewTestInstance(t, runtime.POLKADOT_RUNTIME)
 			},
@@ -186,7 +187,7 @@ func Test_Instance_Version(t *testing.T) {
 				TransactionVersion: 5,
 			},
 		},
-		"polkadot v0910": {
+		"polkadot_v0910": {
 			instanceBuilder: func(t *testing.T) instanceVersioner {
 				return NewTestInstance(t, runtime.POLKADOT_RUNTIME_v0910)
 			},
@@ -215,7 +216,7 @@ func Test_Instance_Version(t *testing.T) {
 				TransactionVersion: 8,
 			},
 		},
-		"runtime v0980": {
+		"runtime_v0980": {
 			instanceBuilder: func(t *testing.T) instanceVersioner {
 				return NewTestInstance(t, runtime.NODE_RUNTIME_v098)
 			},
@@ -243,7 +244,7 @@ func Test_Instance_Version(t *testing.T) {
 				TransactionVersion: 2,
 			},
 		},
-		"polkadot v0917": {
+		"polkadot_v0917": {
 			instanceBuilder: func(t *testing.T) instanceVersioner {
 				return NewTestInstance(t, runtime.POLKADOT_RUNTIME_v0917)
 			},
@@ -343,7 +344,7 @@ func TestNodeRuntime_ValidateTransaction(t *testing.T) {
 	}
 
 	extHex := runtime.NewTestExtrinsic(t, rt, genesisHeader.Hash(), genesisHeader.Hash(),
-		0, "System.remark", []byte{0xab, 0xcd})
+		0, signature.TestKeyringPairAlice, "System.remark", []byte{0xab, 0xcd})
 
 	genesisHashBytes := genesisHeader.Hash().ToBytes()
 
@@ -561,7 +562,7 @@ func TestInstance_ApplyExtrinsic_WestendRuntime(t *testing.T) {
 	require.NoError(t, err)
 
 	extHex := runtime.NewTestExtrinsic(t, instance, genesisHeader.Hash(), genesisHeader.Hash(),
-		0, "System.remark", []byte{0xab, 0xcd})
+		0, signature.TestKeyringPairAlice, "System.remark", []byte{0xab, 0xcd})
 
 	res, err := instance.ApplyExtrinsic(common.MustHexToBytes(extHex))
 	require.NoError(t, err)

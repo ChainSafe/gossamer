@@ -464,7 +464,7 @@ var (
 			want: []byte{3, 0, 0, 0, 64},
 		},
 		{
-			name: "big.NewInt(1<<32 - 1)",
+			name: "big.NewInt(1<<32_-_1)",
 			in:   big.NewInt(1<<32 - 1),
 			want: []byte{0x03, 0xff, 0xff, 0xff, 0xff},
 		},
@@ -502,7 +502,7 @@ var (
 			want: []byte{0x04, 0xff},
 		},
 		{
-			name: "[]byte{0x01, 0x01}",
+			name: "[]byte{0x01,_0x01}",
 			in:   []byte{0x01, 0x01},
 
 			want: []byte{0x08, 0x01, 0x01},
@@ -544,13 +544,13 @@ var (
 			want: append([]byte{0x0D, 0x01}, testStrings[0]...),
 		},
 		{
-			name: "testString[1], long string",
+			name: "testString[1],_long_string",
 			in:   testStrings[1],
 
 			want: append([]byte{0xC2, 0x02, 0x01, 0x00}, testStrings[1]...),
 		},
 		{
-			name: "testString[2], special chars",
+			name: "testString[2],_special_chars",
 			in:   testStrings[2],
 
 			want: append([]byte{0xDC}, testStrings[2]...),
@@ -589,7 +589,7 @@ var (
 
 	structTests = tests{
 		{
-			name: "struct {[]byte, int32}",
+			name: "struct_{[]byte,_int32}",
 			in: MyStruct{
 				Foo: []byte{0x01},
 				Bar: 2,
@@ -598,7 +598,7 @@ var (
 			want: []byte{0x04, 0x01, 0x02, 0, 0, 0, 0x01},
 		},
 		{
-			name: "struct {[]byte, int32, bool}",
+			name: "struct_{[]byte,_int32,_bool}",
 			in: struct {
 				Baz bool   `scale:"3,enum"`
 				Bar int32  `scale:"2"`
@@ -611,7 +611,7 @@ var (
 			want: []byte{0x04, 0x01, 0x02, 0, 0, 0, 0x01},
 		},
 		{
-			name: "struct {[]byte, int32, bool} with untagged attributes",
+			name: "struct_{[]byte,_int32,_bool}_with_untagged_attributes",
 			in: struct {
 				Baz  bool   `scale:"3"`
 				Bar  int32  `scale:"2"`
@@ -638,7 +638,7 @@ var (
 			},
 		},
 		{
-			name: "struct {[]byte, int32, bool} with untagged attributes",
+			name: "struct_{[]byte,_int32,_bool}_with_untagged_attributes",
 			in: struct {
 				End1 bool
 				Baz  bool `scale:"3"`
@@ -667,7 +667,7 @@ var (
 			},
 		},
 		{
-			name: "struct {[]byte, int32, bool} with private attributes",
+			name: "struct_{[]byte,_int32,_bool}_with_private_attributes",
 			in: MyStructWithPrivate{
 				priv0: "stuff",
 				Foo:   []byte{0x01},
@@ -678,7 +678,7 @@ var (
 			want: []byte{0x04, 0x01, 0x02, 0, 0, 0, 0x01},
 		},
 		{
-			name: "struct {[]byte, int32, bool} with ignored attributes",
+			name: "struct_{[]byte,_int32,_bool}_with_ignored_attributes",
 			in: MyStructWithIgnore{
 				Foo:    []byte{0x01},
 				Bar:    2,
@@ -831,44 +831,44 @@ var (
 
 	sliceTests = tests{
 		{
-			name: "[]int{1, 2, 3, 4}",
+			name: "[]int{1,_2,_3,_4}",
 			in:   []int{1, 2, 3, 4},
 			want: []byte{0x10, 0x04, 0x08, 0x0c, 0x10},
 		},
 		{
-			name: "[]int{16384, 2, 3, 4}",
+			name: "[]int{16384,_2,_3,_4}",
 			in:   []int{16384, 2, 3, 4},
 			want: []byte{0x10, 0x02, 0x00, 0x01, 0x00, 0x08, 0x0c, 0x10},
 		},
 		{
-			name: "[]int{1073741824, 2, 3, 4}",
+			name: "[]int{1073741824,_2,_3,_4}",
 			in:   []int{1073741824, 2, 3, 4},
 			want: []byte{0x10, 0x03, 0x00, 0x00, 0x00, 0x40, 0x08, 0x0c, 0x10},
 		},
 		{
-			name: "[]int64{1 << 32, 2, 3, 1 << 32}",
+			name: "[]int64{1_<<_32,_2,_3,_1_<<_32}",
 			in:   []int64{1 << 32, 2, 3, 1 << 32},
 			want: []byte{0x10, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00,
 				0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
 				0x00},
 		},
 		{
-			name: "[]bool{true, false, true}",
+			name: "[]bool{true,_false,_true}",
 			in:   []bool{true, false, true},
 			want: []byte{0x0c, 0x01, 0x00, 0x01},
 		},
 		{
-			name: "[][]int{{0, 1}, {1, 0}}",
+			name: "[][]int{{0,_1},_{1,_0}}",
 			in:   [][]int{{0, 1}, {1, 0}},
 			want: []byte{0x08, 0x08, 0x00, 0x04, 0x08, 0x04, 0x00},
 		},
 		{
-			name: "[]*big.Int{big.NewInt(0), big.NewInt(1)}",
+			name: "[]*big.Int{big.NewInt(0),_big.NewInt(1)}",
 			in:   []*big.Int{big.NewInt(0), big.NewInt(1)},
 			want: []byte{0x08, 0x00, 0x04},
 		},
 		{
-			name: "[][]byte{{0x00, 0x01}, {0x01, 0x00}}",
+			name: "[][]byte{{0x00,_0x01},_{0x01,_0x00}}",
 			in:   [][]byte{{0x00, 0x01}, {0x01, 0x00}},
 			want: []byte{0x08, 0x08, 0x00, 0x01, 0x08, 0x01, 0x00},
 		},
@@ -876,54 +876,54 @@ var (
 
 	arrayTests = tests{
 		{
-			name: "[4]int{1, 2, 3, 4}",
+			name: "[4]int{1,_2,_3,_4}",
 			in:   [4]int{1, 2, 3, 4},
 			want: []byte{0x04, 0x08, 0x0c, 0x10},
 		},
 		{
-			name: "[4]int{16384, 2, 3, 4}",
+			name: "[4]int{16384,_2,_3,_4}",
 			in:   [4]int{16384, 2, 3, 4},
 			want: []byte{0x02, 0x00, 0x01, 0x00, 0x08, 0x0c, 0x10},
 		},
 		{
-			name: "[4]int{1073741824, 2, 3, 4}",
+			name: "[4]int{1073741824,_2,_3,_4}",
 			in:   [4]int{1073741824, 2, 3, 4},
 			want: []byte{0x03, 0x00, 0x00, 0x00, 0x40, 0x08, 0x0c, 0x10},
 		},
 		{
-			name: "[4]int64{1 << 32, 2, 3, 1 << 32}",
+			name: "[4]int64{1_<<_32,_2,_3,_1_<<_32}",
 			in:   [4]int64{1 << 32, 2, 3, 1 << 32},
 			want: []byte{0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00,
 				0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
 				0x00},
 		},
 		{
-			name: "[3]bool{true, false, true}",
+			name: "[3]bool{true,_false,_true}",
 			in:   [3]bool{true, false, true},
 			want: []byte{0x01, 0x00, 0x01},
 		},
 		{
-			name: "[2][]int{{0, 1}, {1, 0}}",
+			name: "[2][]int{{0,_1},_{1,_0}}",
 			in:   [2][]int{{0, 1}, {1, 0}},
 			want: []byte{0x08, 0x00, 0x04, 0x08, 0x04, 0x00},
 		},
 		{
-			name: "[2][2]int{{0, 1}, {1, 0}}",
+			name: "[2][2]int{{0,_1},_{1,_0}}",
 			in:   [2][2]int{{0, 1}, {1, 0}},
 			want: []byte{0x00, 0x04, 0x04, 0x00},
 		},
 		{
-			name: "[2]*big.Int{big.NewInt(0), big.NewInt(1)}",
+			name: "[2]*big.Int{big.NewInt(0),_big.NewInt(1)}",
 			in:   [2]*big.Int{big.NewInt(0), big.NewInt(1)},
 			want: []byte{0x00, 0x04},
 		},
 		{
-			name: "[2][]byte{{0x00, 0x01}, {0x01, 0x00}}",
+			name: "[2][]byte{{0x00,_0x01},_{0x01,_0x00}}",
 			in:   [2][]byte{{0x00, 0x01}, {0x01, 0x00}},
 			want: []byte{0x08, 0x00, 0x01, 0x08, 0x01, 0x00},
 		},
 		{
-			name: "[2][2]byte{{0x00, 0x01}, {0x01, 0x00}}",
+			name: "[2][2]byte{{0x00,_0x01},_{0x01,_0x00}}",
 			in:   [2][2]byte{{0x00, 0x01}, {0x01, 0x00}},
 			want: []byte{0x00, 0x01, 0x01, 0x00},
 		},

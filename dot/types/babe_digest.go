@@ -57,8 +57,8 @@ func NewBabePrimaryPreDigest(authorityIndex uint32,
 }
 
 // ToPreRuntimeDigest returns the BabePrimaryPreDigest as a PreRuntimeDigest
-func (d *BabePrimaryPreDigest) ToPreRuntimeDigest() (*PreRuntimeDigest, error) {
-	return toPreRuntimeDigest(*d)
+func (d BabePrimaryPreDigest) ToPreRuntimeDigest() (*PreRuntimeDigest, error) {
+	return toPreRuntimeDigest(d)
 }
 
 // Index returns VDT index
@@ -85,8 +85,8 @@ func NewBabeSecondaryPlainPreDigest(authorityIndex uint32, slotNumber uint64) *B
 }
 
 // ToPreRuntimeDigest returns the BabeSecondaryPlainPreDigest as a PreRuntimeDigest
-func (d *BabeSecondaryPlainPreDigest) ToPreRuntimeDigest() (*PreRuntimeDigest, error) {
-	return toPreRuntimeDigest(*d)
+func (d BabeSecondaryPlainPreDigest) ToPreRuntimeDigest() (*PreRuntimeDigest, error) {
+	return toPreRuntimeDigest(d)
 }
 
 // Index returns VDT index
@@ -118,8 +118,8 @@ func NewBabeSecondaryVRFPreDigest(authorityIndex uint32,
 }
 
 // ToPreRuntimeDigest returns the BabeSecondaryVRFPreDigest as a PreRuntimeDigest
-func (d *BabeSecondaryVRFPreDigest) ToPreRuntimeDigest() (*PreRuntimeDigest, error) {
-	return toPreRuntimeDigest(*d)
+func (d BabeSecondaryVRFPreDigest) ToPreRuntimeDigest() (*PreRuntimeDigest, error) {
+	return toPreRuntimeDigest(d)
 }
 
 // Index returns VDT index

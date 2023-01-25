@@ -111,7 +111,7 @@ func (lm *leafMap) nodes() []*node {
 	lm.RLock()
 	defer lm.RUnlock()
 
-	nodes := []*node{}
+	var nodes []*node
 
 	lm.smap.Range(func(h, n interface{}) bool {
 		node := n.(*node)

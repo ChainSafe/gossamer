@@ -19,8 +19,6 @@ type BlockState interface {
 	FreeFinalisedNotifierChannel(ch chan *types.FinalisationInfo)
 }
 
-//go:generate mockgen -destination=mock_epoch_state_test.go -package $GOPACKAGE . EpochState
-
 // EpochState is the interface for state.EpochState
 type EpochState interface {
 	GetEpochForBlock(header *types.Header) (uint64, error)

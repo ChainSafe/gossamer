@@ -7,8 +7,6 @@ import (
 	"reflect"
 )
 
-//go:generate mockgen -destination=mocks_test.go -package $GOPACKAGE . Service
-
 // Service must be implemented by all services
 type Service interface {
 	Start() error
