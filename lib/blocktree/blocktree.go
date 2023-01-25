@@ -132,13 +132,10 @@ func (bt *BlockTree) GetAllBlocksAtNumber(hash common.Hash) (hashes []common.Has
 var ErrStartGreaterThanEnd = errors.New("start greater than end")
 var ErrNilBlockInRange = errors.New("nil block in range")
 
-// Range will return all the blocks between the start and
-// end hash inclusive.
-// If the end hash does not exist in the blocktree then an error
-// is be returned.
-// If the start hash does not exist in the blocktree
-// then we will return all blocks between the end and the blocktree
-// root inclusive
+// Range will return all the blocks between the start and end hash inclusive.
+// If the end hash does not exist in the blocktree then an error is returned.
+// If the start hash does not exist in the blocktree then we will return all blocks
+// between the end and the blocktree root inclusive
 func (bt *BlockTree) Range(startHash common.Hash, endHash common.Hash) (hashes []common.Hash, err error) {
 	bt.Lock()
 	defer bt.Unlock()
@@ -165,7 +162,9 @@ func (bt *BlockTree) Range(startHash common.Hash, endHash common.Hash) (hashes [
 	return hashes, nil
 }
 
-// RangeInMemory returns the path from the node with Hash start to the node with Hash end
+// RangeInMemory returns the path from the node with Hash start to the node with Hash end.
+// If the end hash does not exist in the blocktree then an error is returned.
+// Different from blocktree.Range, if the start node is not found in the in memory blocktree
 func (bt *BlockTree) RangeInMemory(startHash common.Hash, endHash common.Hash) (hashes []common.Hash, err error) {
 	bt.Lock()
 	defer bt.Unlock()
@@ -175,8 +174,6 @@ func (bt *BlockTree) RangeInMemory(startHash common.Hash, endHash common.Hash) (
 		return nil, fmt.Errorf("%w: %s", ErrEndNodeNotFound, endHash)
 	}
 
-	// different from blocktree.Range this function fails if the start node
-	// is not found in the in memory blocktree
 	startNode := bt.getNode(startHash)
 	if startNode == nil {
 		return nil, fmt.Errorf("%w: %s", ErrStartNodeNotFound, endHash)
@@ -190,6 +187,7 @@ func (bt *BlockTree) RangeInMemory(startHash common.Hash, endHash common.Hash) (
 	if err != nil {
 		return nil, fmt.Errorf("getting blocks in range: %w", err)
 	}
+
 	return hashes, nil
 }
 
