@@ -352,7 +352,7 @@ func (b *verifier) submitAndReportEquivocation(
 		return fmt.Errorf("getting runtime: %w", err)
 	}
 
-	if len(b.authorities) >= int(authorityIndex) {
+	if len(b.authorities) <= int(authorityIndex) {
 		return ErrAuthIndexOutOfBound
 	}
 
