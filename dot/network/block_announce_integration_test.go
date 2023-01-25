@@ -134,7 +134,7 @@ func TestHandleBlockAnnounceMessage(t *testing.T) {
 		propagate  bool
 		mockSyncer func(*testing.T, peer.ID, *BlockAnnounceMessage) Syncer
 	}{
-		"block already exists": {
+		"block_already_exists": {
 			mockSyncer: func(t *testing.T, peer peer.ID, blockAnnounceMessage *BlockAnnounceMessage) Syncer {
 				ctrl := gomock.NewController(t)
 				syncer := NewMockSyncer(ctrl)
@@ -145,7 +145,7 @@ func TestHandleBlockAnnounceMessage(t *testing.T) {
 			},
 			propagate: true,
 		},
-		"block does not exists": {
+		"block_does_not_exists": {
 			propagate: false,
 		},
 	}

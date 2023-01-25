@@ -16,10 +16,10 @@ func Test_Node_ChildrenBitmap(t *testing.T) {
 		node   Node
 		bitmap uint16
 	}{
-		"no children": {
+		"no_children": {
 			node: Node{},
 		},
-		"index 0": {
+		"index_0": {
 			node: Node{
 				Children: []*Node{
 					{},
@@ -27,7 +27,7 @@ func Test_Node_ChildrenBitmap(t *testing.T) {
 			},
 			bitmap: 1,
 		},
-		"index 0 and 4": {
+		"index_0_and_4": {
 			node: Node{
 				Children: []*Node{
 					{},
@@ -37,7 +37,7 @@ func Test_Node_ChildrenBitmap(t *testing.T) {
 			},
 			bitmap: 1<<4 + 1,
 		},
-		"index 0, 4 and 15": {
+		"index_0,_4_and_15": {
 			node: Node{
 				Children: []*Node{
 					{},
@@ -126,8 +126,8 @@ func Test_Node_HasChild(t *testing.T) {
 		node Node
 		has  bool
 	}{
-		"no child": {},
-		"one child at index 0": {
+		"no_child": {},
+		"one_child_at_index_0": {
 			node: Node{
 				Children: []*Node{
 					{},
@@ -135,7 +135,7 @@ func Test_Node_HasChild(t *testing.T) {
 			},
 			has: true,
 		},
-		"one child at index 1": {
+		"one_child_at_index_1": {
 			node: Node{
 				Children: []*Node{
 					nil,

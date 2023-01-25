@@ -24,21 +24,21 @@ func Test_uint64ToHex(t *testing.T) {
 		want string
 	}{
 		{
-			name: "uint64ToHex one",
+			name: "uint64ToHex_one",
 			args: args{
 				input: uint64(1),
 			},
 			want: "0x0100000000000000",
 		},
 		{
-			name: "uint64ToHex zero",
+			name: "uint64ToHex_zero",
 			args: args{
 				input: uint64(0),
 			},
 			want: "0x0000000000000000",
 		},
 		{
-			name: "uint64ToHex max",
+			name: "uint64ToHex_max",
 			args: args{
 				input: uint64(18446744073709551615),
 			},
@@ -76,7 +76,7 @@ func TestDevModule_EpochLength(t *testing.T) {
 		exp    string
 	}{
 		{
-			name: "EpochLength OK",
+			name: "EpochLength_OK",
 			fields: fields{
 				devModule.networkAPI,
 				devModule.blockProducerAPI,
@@ -127,7 +127,7 @@ func TestDevModule_SlotDuration(t *testing.T) {
 		exp    string
 	}{
 		{
-			name: "SlotDuration OK",
+			name: "SlotDuration_OK",
 			fields: fields{
 				nil,
 				mockBlockProducerAPI,
@@ -192,7 +192,7 @@ func TestDevModule_Control(t *testing.T) {
 		exp    string
 	}{
 		{
-			name: "Not a BlockProducer",
+			name: "Not_a_BlockProducer",
 			fields: fields{
 				nil,
 				nil,
@@ -203,7 +203,7 @@ func TestDevModule_Control(t *testing.T) {
 			expErr: errors.New("not a block producer"),
 		},
 		{
-			name: "Babe Stop Error",
+			name: "Babe_Stop_Error",
 			fields: fields{
 				mockNetworkAPI,
 				mockErrorBlockProducerAPI,
@@ -215,7 +215,7 @@ func TestDevModule_Control(t *testing.T) {
 			expErr: errors.New("babe pause error"),
 		},
 		{
-			name: "Babe Stop OK",
+			name: "Babe_Stop_OK",
 			fields: fields{
 				mockNetworkAPI,
 				mockBlockProducerAPI,
@@ -226,7 +226,7 @@ func TestDevModule_Control(t *testing.T) {
 			exp: "babe service stopped",
 		},
 		{
-			name: "Babe Start Error",
+			name: "Babe_Start_Error",
 			fields: fields{
 				mockNetworkAPI,
 				mockErrorBlockProducerAPI,
@@ -238,7 +238,7 @@ func TestDevModule_Control(t *testing.T) {
 			expErr: errors.New("babe resume error"),
 		},
 		{
-			name: "Babe Start OK",
+			name: "Babe_Start_OK",
 			fields: fields{
 				mockNetworkAPI,
 				mockBlockProducerAPI,
@@ -249,7 +249,7 @@ func TestDevModule_Control(t *testing.T) {
 			exp: "babe service started",
 		},
 		{
-			name: "Network Stop Error",
+			name: "Network_Stop_Error",
 			fields: fields{
 				mockErrorNetworkAPI,
 				mockBlockProducerAPI,
@@ -261,7 +261,7 @@ func TestDevModule_Control(t *testing.T) {
 			expErr: errors.New("network stop error"),
 		},
 		{
-			name: "Network Stop OK",
+			name: "Network_Stop_OK",
 			fields: fields{
 				mockNetworkAPI,
 				mockBlockProducerAPI,
@@ -272,7 +272,7 @@ func TestDevModule_Control(t *testing.T) {
 			exp: "network service stopped",
 		},
 		{
-			name: "Network Start Error",
+			name: "Network_Start_Error",
 			fields: fields{
 				mockErrorNetworkAPI,
 				mockBlockProducerAPI,
@@ -284,7 +284,7 @@ func TestDevModule_Control(t *testing.T) {
 			expErr: errors.New("network start error"),
 		},
 		{
-			name: "Network Start OK",
+			name: "Network_Start_OK",
 			fields: fields{
 				mockNetworkAPI,
 				mockBlockProducerAPI,

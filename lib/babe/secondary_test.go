@@ -24,7 +24,7 @@ func Test_getSecondarySlotAuthor(t *testing.T) {
 		exp  uint32
 	}{
 		{
-			name: "happy path",
+			name: "happy_path",
 			args: args{
 				slot:     21,
 				numAuths: 21,
@@ -54,7 +54,7 @@ func Test_verifySecondarySlotPlain(t *testing.T) {
 		expErr error
 	}{
 		{
-			name: "happy path",
+			name: "happy_path",
 			args: args{
 				authorityIndex: 14,
 				slot:           21,
@@ -62,7 +62,7 @@ func Test_verifySecondarySlotPlain(t *testing.T) {
 			},
 		},
 		{
-			name: "err path",
+			name: "err_path",
 			args: args{
 				authorityIndex: 13,
 				slot:           21,
@@ -105,7 +105,7 @@ func Test_verifySecondarySlotVRF(t *testing.T) {
 		expErr error
 	}{
 		{
-			name: "happy path",
+			name: "happy_path",
 			args: args{
 				digest:   types.NewBabeSecondaryVRFPreDigest(0, 77, out, proof),
 				pk:       kp.Public().(*sr25519.PublicKey),
@@ -114,7 +114,7 @@ func Test_verifySecondarySlotVRF(t *testing.T) {
 			exp: true,
 		},
 		{
-			name: "err ErrBadSecondarySlotClaim",
+			name: "err_ErrBadSecondarySlotClaim",
 			args: args{
 				digest:   types.NewBabeSecondaryVRFPreDigest(3, 77, out, proof),
 				pk:       kp.Public().(*sr25519.PublicKey),
@@ -124,7 +124,7 @@ func Test_verifySecondarySlotVRF(t *testing.T) {
 			expErr: ErrBadSecondarySlotClaim,
 		},
 		{
-			name: "false path",
+			name: "false_path",
 			args: args{
 				digest:   types.NewBabeSecondaryVRFPreDigest(0, 77, out, proof),
 				pk:       kp.Public().(*sr25519.PublicKey),

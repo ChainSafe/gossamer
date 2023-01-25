@@ -26,7 +26,7 @@ func Test_Trie_GenesisBlock(t *testing.T) {
 		errSentinel   error
 		errMessage    string
 	}{
-		"empty trie": {
+		"empty_trie": {
 			genesisHeader: withHash(types.Header{
 				ParentHash:     common.Hash{0},
 				StateRoot:      EmptyHash,
@@ -34,7 +34,7 @@ func Test_Trie_GenesisBlock(t *testing.T) {
 				Digest:         types.NewDigest(),
 			}),
 		},
-		"non empty trie": {
+		"non_empty_trie": {
 			trie: Trie{
 				root: &node.Node{
 					PartialKey:   []byte{1, 2, 3},

@@ -108,7 +108,7 @@ func TestDisputeStatement(t *testing.T) {
 		encodingValue []byte
 	}{
 		{
-			name: "Valid Explicit",
+			name: "Valid_Explicit",
 			vdtBuilder: func(t *testing.T) disputeStatement {
 				vdsKind, err := scale.NewVaryingDataType(
 					explicitValidDisputeStatementKind{}, backingSeconded{}, backingValid{}, approvalChecking{})
@@ -127,7 +127,7 @@ func TestDisputeStatement(t *testing.T) {
 			encodingValue: []byte{0x0, 0x0},
 		},
 		{
-			name: "Valid ApprovalChecking",
+			name: "Valid_ApprovalChecking",
 			vdtBuilder: func(t *testing.T) disputeStatement {
 				vdsKind, err := scale.NewVaryingDataType(
 					explicitValidDisputeStatementKind{}, backingSeconded{}, backingValid{}, approvalChecking{},
@@ -146,7 +146,7 @@ func TestDisputeStatement(t *testing.T) {
 			encodingValue: []byte{0x0, 0x3},
 		},
 		{
-			name: "Valid BackingSeconded",
+			name: "Valid_BackingSeconded",
 			vdtBuilder: func(t *testing.T) disputeStatement {
 				vdsKind, err := scale.NewVaryingDataType(
 					explicitValidDisputeStatementKind{}, backingSeconded{}, backingValid{}, approvalChecking{},
@@ -166,7 +166,7 @@ func TestDisputeStatement(t *testing.T) {
 
 		},
 		{
-			name: "Invalid Explicit",
+			name: "Invalid_Explicit",
 			vdtBuilder: func(t *testing.T) disputeStatement {
 				idsKind, err := scale.NewVaryingDataType(
 					explicitInvalidDisputeStatementKind{},

@@ -399,7 +399,7 @@ func Test_lowestCommonAncestor(t *testing.T) {
 		expRes Hash
 	}{
 		{
-			name: "child and root",
+			name: "child_and_root",
 			args: args{
 				nodeA: children[1],
 				nodeB: root,
@@ -407,7 +407,7 @@ func Test_lowestCommonAncestor(t *testing.T) {
 			expRes: root.hash,
 		},
 		{
-			name: "same node",
+			name: "same_node",
 			args: args{
 				nodeA: children[1],
 				nodeB: children[1],
@@ -423,7 +423,7 @@ func Test_lowestCommonAncestor(t *testing.T) {
 			expRes: root.hash,
 		},
 		{
-			name: "child and its child",
+			name: "child_and_its_child",
 			args: args{
 				nodeA: children[0],
 				nodeB: childrenChildren[0],
@@ -431,7 +431,7 @@ func Test_lowestCommonAncestor(t *testing.T) {
 			expRes: children[0].hash,
 		},
 		{
-			name: "root and grandchild",
+			name: "root_and_grandchild",
 			args: args{
 				nodeA: root,
 				nodeB: childrenChildren[0],
@@ -439,7 +439,7 @@ func Test_lowestCommonAncestor(t *testing.T) {
 			expRes: root.hash,
 		},
 		{
-			name: "grandchild and its siblings child",
+			name: "grandchild_and_its_siblings_child",
 			args: args{
 				nodeA: finalChild[0],
 				nodeB: childrenChildren[0],
