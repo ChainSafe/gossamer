@@ -107,7 +107,7 @@ func TestBabeService_getEpochDataAndStartSlot(t *testing.T) {
 		expectedStartSlot uint64
 	}{
 		{
-			name: "should get epoch data for epoch 0",
+			name: "should_get_epoch_data_for_epoch_0",
 			service: func(ctrl *gomock.Controller) *Service {
 				mockEpochState := NewMockEpochState(ctrl)
 
@@ -130,7 +130,7 @@ func TestBabeService_getEpochDataAndStartSlot(t *testing.T) {
 			expectedStartSlot: 1,
 		},
 		{
-			name: "should get epoch data for epoch 1 with config data from epoch 1",
+			name: "should_get_epoch_data_for_epoch_1_with_config_data_from_epoch_1",
 			service: func(ctrl *gomock.Controller) *Service {
 				mockEpochState := NewMockEpochState(ctrl)
 
@@ -153,7 +153,7 @@ func TestBabeService_getEpochDataAndStartSlot(t *testing.T) {
 			expectedStartSlot: 201,
 		},
 		{
-			name: "should get epoch data for epoch 1 and config data for epoch 0",
+			name: "should_get_epoch_data_for_epoch_1_and_config_data_for_epoch_0",
 			service: func(ctrl *gomock.Controller) *Service {
 				mockEpochState := NewMockEpochState(ctrl)
 

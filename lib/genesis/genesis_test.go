@@ -16,27 +16,27 @@ func Test_interfaceToTelemetryEndpoint(t *testing.T) {
 		endpoints []interface{}
 		expected  []*TelemetryEndpoint
 	}{
-		"sub element not a slice": {
+		"sub_element_not_a_slice": {
 			endpoints: []interface{}{
 				struct{}{},
 			},
 		},
-		"wrong interface type": {
+		"wrong_interface_type": {
 			endpoints: []interface{}{
 				[]interface{}{"string"},
 			},
 		},
-		"wrong interface field length": {
+		"wrong_interface_field_length": {
 			endpoints: []interface{}{
 				[]interface{}{"wss://telemetry.polkadot.io/submit/"},
 			},
 		},
-		"wrong interface field position": {
+		"wrong_interface_field_position": {
 			endpoints: []interface{}{
 				[]interface{}{float64(0), "wss://telemetry.polkadot.io/submit/"},
 			},
 		},
-		"interface field 1 wrong type": {
+		"interface_field_1_wrong_type": {
 			endpoints: []interface{}{
 				[]interface{}{"wss://telemetry.polkadot.io/submit/", "1"},
 			},

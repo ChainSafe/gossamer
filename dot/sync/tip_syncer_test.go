@@ -27,7 +27,7 @@ func Test_tipSyncer_handleNewPeerState(t *testing.T) {
 		want      *worker
 		err       error
 	}{
-		"peer state number < final block number": {
+		"peer_state_number_<_final_block_number": {
 			fields: fields{
 				blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 					mockBlockState := NewMockBlockState(ctrl)
@@ -40,7 +40,7 @@ func Test_tipSyncer_handleNewPeerState(t *testing.T) {
 			peerState: &peerState{number: 1},
 			want:      nil,
 		},
-		"base state": {
+		"base_state": {
 			fields: fields{
 				blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 					mockBlockState := NewMockBlockState(ctrl)
@@ -92,7 +92,7 @@ func Test_tipSyncer_handleTick(t *testing.T) {
 		want   []*worker
 		err    error
 	}{
-		"base case": {
+		"base_case": {
 			fields: fields{
 				pendingBlocksBuilder: func(ctrl *gomock.Controller) DisjointBlockSet {
 					mockDisjointBlockSet := NewMockDisjointBlockSet(ctrl)
@@ -193,7 +193,7 @@ func Test_tipSyncer_handleWorkerResult(t *testing.T) {
 		want              *worker
 		err               error
 	}{
-		"worker error is nil": {
+		"worker_error_is_nil": {
 			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 				return NewMockBlockState(ctrl)
 			},
@@ -201,7 +201,7 @@ func Test_tipSyncer_handleWorkerResult(t *testing.T) {
 			want: nil,
 			err:  nil,
 		},
-		"worker error is error unknown parent": {
+		"worker_error_is_error_unknown_parent": {
 			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 				return NewMockBlockState(ctrl)
 			},
@@ -213,7 +213,7 @@ func Test_tipSyncer_handleWorkerResult(t *testing.T) {
 			want: nil,
 			err:  nil,
 		},
-		"ascending, target number < finalised number": {
+		"ascending,_target_number_<_finalised_number": {
 			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(&types.Header{
@@ -229,7 +229,7 @@ func Test_tipSyncer_handleWorkerResult(t *testing.T) {
 			want: nil,
 			err:  nil,
 		},
-		"ascending, start number < finalised number": {
+		"ascending,_start_number_<_finalised_number": {
 			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(&types.Header{
@@ -249,7 +249,7 @@ func Test_tipSyncer_handleWorkerResult(t *testing.T) {
 			},
 			err: nil,
 		},
-		"descending, start number < finalised number": {
+		"descending,_start_number_<_finalised_number": {
 			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(&types.Header{
@@ -265,7 +265,7 @@ func Test_tipSyncer_handleWorkerResult(t *testing.T) {
 			want: nil,
 			err:  nil,
 		},
-		"descending, target number < finalised number": {
+		"descending,_target_number_<_finalised_number": {
 			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(&types.Header{
@@ -317,10 +317,10 @@ func Test_tipSyncer_hasCurrentWorker(t *testing.T) {
 		args args
 		want bool
 	}{
-		"worker nil": {
+		"worker_nil": {
 			want: true,
 		},
-		"ascending, false": {
+		"ascending,_false": {
 			args: args{
 				w: &worker{
 					direction:    network.Ascending,
@@ -337,7 +337,7 @@ func Test_tipSyncer_hasCurrentWorker(t *testing.T) {
 			},
 			want: false,
 		},
-		"ascending, true": {
+		"ascending,_true": {
 			args: args{
 				w: &worker{
 					direction:    network.Ascending,
@@ -354,7 +354,7 @@ func Test_tipSyncer_hasCurrentWorker(t *testing.T) {
 			},
 			want: true,
 		},
-		"descending, false": {
+		"descending,_false": {
 			args: args{
 				w: &worker{
 					direction:    network.Descending,
@@ -371,7 +371,7 @@ func Test_tipSyncer_hasCurrentWorker(t *testing.T) {
 			},
 			want: false,
 		},
-		"descending, true": {
+		"descending,_true": {
 			args: args{
 				w: &worker{
 					direction:    network.Descending,

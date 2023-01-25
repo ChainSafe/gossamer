@@ -25,7 +25,7 @@ func Test_Digest_String(t *testing.T) {
 			},
 			s: "[]",
 		},
-		"all digests": {
+		"all_digests": {
 			digestBuilder: func() scale.VaryingDataTypeSlice {
 				digest := NewDigest()
 				digest.Add(ChangesTrieRootDigest{

@@ -1122,42 +1122,42 @@ func Test_getLogLevel(t *testing.T) {
 		level        log.Level
 		err          error
 	}{
-		"no value with default": {
+		"no_value_with_default": {
 			flagsKVStore: newMockGetStringer(map[string]string{}),
 			defaultLevel: log.Error,
 			level:        log.Error,
 		},
-		"flag integer value": {
+		"flag_integer_value": {
 			flagsKVStore: newMockGetStringer(map[string]string{"x": "1"}),
 			flagName:     "x",
 			level:        log.Error,
 		},
-		"flag string value": {
+		"flag_string_value": {
 			flagsKVStore: newMockGetStringer(map[string]string{"x": "error"}),
 			flagName:     "x",
 			level:        log.Error,
 		},
-		"flag bad string value": {
+		"flag_bad_string_value": {
 			flagsKVStore: newMockGetStringer(map[string]string{"x": "garbage"}),
 			flagName:     "x",
 			err:          errors.New("cannot parse log level string: level is not recognised: garbage"),
 		},
-		"toml integer value": {
+		"toml_integer_value": {
 			flagsKVStore: newMockGetStringer(map[string]string{}),
 			tomlValue:    "1",
 			level:        log.Error,
 		},
-		"toml string value": {
+		"toml_string_value": {
 			flagsKVStore: newMockGetStringer(map[string]string{}),
 			tomlValue:    "error",
 			level:        log.Error,
 		},
-		"toml bad string value": {
+		"toml_bad_string_value": {
 			flagsKVStore: newMockGetStringer(map[string]string{}),
 			tomlValue:    "garbage",
 			err:          errors.New("cannot parse log level string: level is not recognised: garbage"),
 		},
-		"flag takes precedence": {
+		"flag_takes_precedence": {
 			flagsKVStore: newMockGetStringer(map[string]string{"x": "error"}),
 			flagName:     "x",
 			tomlValue:    "warn",
@@ -1191,22 +1191,22 @@ func Test_parseLogLevelString(t *testing.T) {
 		logLevel       log.Level
 		err            error
 	}{
-		"empty string": {
+		"empty_string": {
 			err: errors.New("cannot parse log level string: level is not recognised: "),
 		},
-		"valid integer": {
+		"valid_integer": {
 			logLevelString: "1",
 			logLevel:       log.Error,
 		},
-		"minus one": {
+		"minus_one": {
 			logLevelString: "-1",
 			err:            errors.New("log level integer can only be between 0 and 5 included: log level given: -1"),
 		},
-		"over 5": {
+		"over_5": {
 			logLevelString: "6",
 			err:            errors.New("log level integer can only be between 0 and 5 included: log level given: 6"),
 		},
-		"valid string": {
+		"valid_string": {
 			logLevelString: "error",
 			logLevel:       log.Error,
 		},
@@ -1242,7 +1242,7 @@ func Test_setLogConfig(t *testing.T) {
 		expectedLogCfg    dot.LogConfig
 		err               error
 	}{
-		"no value": {
+		"no_value": {
 			ctx: newMockGetStringer(map[string]string{}),
 			expectedCfg: ctoml.Config{
 				Global: ctoml.GlobalConfig{
@@ -1264,7 +1264,7 @@ func Test_setLogConfig(t *testing.T) {
 				FinalityGadgetLvl: log.Info,
 			},
 		},
-		"some values": {
+		"some_values": {
 			ctx: newMockGetStringer(map[string]string{}),
 			initialCfg: ctoml.Config{
 				Log: ctoml.LogConfig{

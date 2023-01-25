@@ -329,26 +329,26 @@ func TestAuthorModule_InsertKey_Integration(t *testing.T) {
 		kp           interface{}
 		waitErr      error
 	}{
-		"insert a valid babe key type": {
+		"insert_a_valid_babe_key_type": {
 			ksType: "babe",
 			seed:   seed,
 			kp:     babeKp,
 		},
 
-		"insert a valid gran key type": {
+		"insert_a_valid_gran_key_type": {
 			ksType: "gran",
 			seed:   seed,
 			kp:     grandKp,
 		},
 
-		"invalid babe key type": {
+		"invalid_babe_key_type": {
 			ksType:  "babe",
 			seed:    seed,
 			kp:      "0x0000000000000000000000000000000000000000000000000000000000000000",
 			waitErr: ErrProvidedKeyDoesNotMatch,
 		},
 
-		"unknown key type": {
+		"unknown_key_type": {
 			ksType:  "someothertype",
 			seed:    seed,
 			kp:      grandKp,
@@ -417,25 +417,25 @@ func TestAuthorModule_HasKey_Integration(t *testing.T) {
 		hasKey       bool
 		waitErr      error
 	}{
-		"key exists and should return true": {
+		"key_exists_and_should_return_true": {
 			pub:     kr.Alice().Public().Hex(),
 			keytype: "babe",
 			hasKey:  true,
 		},
 
-		"key does not exists and should return false": {
+		"key_does_not_exists_and_should_return_false": {
 			pub:     kr.Bob().Public().Hex(),
 			keytype: "babe",
 			hasKey:  false,
 		},
 
-		"invalid key should return error": {
+		"invalid_key_should_return_error": {
 			pub:     "0xaa11",
 			keytype: "babe",
 			hasKey:  false,
 			waitErr: errors.New("cannot create public key: input is not 32 bytes"),
 		},
-		"invalid key type should return error": {
+		"invalid_key_type_should_return_error": {
 			pub:     kr.Alice().Public().Hex(),
 			keytype: "xxxx",
 			hasKey:  false,
@@ -495,7 +495,7 @@ func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 		expect         bool
 		waitErr        error
 	}{
-		"public keys are in the right order, should return true": {
+		"public_keys_are_in_the_right_order,_should_return_true": {
 			pubSessionKeys: "0x88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee" + // gran
 				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d" + // babe
 				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d" + // imon
@@ -504,7 +504,7 @@ func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d", // audi
 			expect: true,
 		},
-		"unknown public keys in the right order, should return false": {
+		"unknown_public_keys_in_the_right_order,_should_return_false": {
 			pubSessionKeys: "0x740550da19ef14023ea3e903545a6700160a55be2e4b733b577c91b053e38b8d" + // gran
 				"de6fa0da51c52cc117d77aeb329595b15070db444e7ed4c4adec714b291c1845" + // babe
 				"de6fa0da51c52cc117d77aeb329595b15070db444e7ed4c4adec714b291c1845" + // imon
@@ -513,7 +513,7 @@ func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 				"de6fa0da51c52cc117d77aeb329595b15070db444e7ed4c4adec714b291c1845", // audi
 			expect: false,
 		},
-		"public keys are not in the right order, should return false": {
+		"public_keys_are_not_in_the_right_order,_should_return_false": {
 			pubSessionKeys: "0x6b802349d948444d41397da09ec597fbd8ae8fdd3dfa153b2bb2bddcf020457c" + // babe
 				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d" + // gran
 				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d" + // imon
@@ -522,12 +522,12 @@ func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d", // asgn
 			expect: false,
 		},
-		"incomplete keys": {
+		"incomplete_keys": {
 			pubSessionKeys: "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d" + // gran
 				"6b802349d948444d41397da09ec597fbd8ae8fdd3dfa153b2bb2bddcf020457c", // babe
 			expect: false,
 		},
-		"empty public keys": {
+		"empty_public_keys": {
 			pubSessionKeys: "", // babe
 			expect:         false,
 			waitErr:        errors.New("could not byteify non 0x prefixed string: "),

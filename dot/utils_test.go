@@ -56,7 +56,7 @@ func TestCreateJSONRawFile(t *testing.T) {
 		expectedHash string
 	}{
 		{
-			name: "working example",
+			name: "working_example",
 			args: args{
 				bs: &BuildSpec{genesis: NewTestGenesis(t)},
 				fp: filepath.Join(t.TempDir(), "/test.json"),
@@ -89,7 +89,7 @@ func TestNewTestConfig(t *testing.T) {
 		want *Config
 	}{
 		{
-			name: "working example",
+			name: "working_example",
 			args: args{t: t},
 			want: &Config{
 				Global: GlobalConfig{
@@ -174,7 +174,7 @@ func TestNewTestGenesisFile(t *testing.T) {
 		want *os.File
 	}{
 		{
-			name: "working example",
+			name: "working_example",
 			args: args{
 				t:   t,
 				cfg: &Config{},
@@ -198,7 +198,7 @@ func TestRandomNodeName(t *testing.T) {
 		want string
 	}{
 		{
-			name: "working example",
+			name: "working_example",
 		},
 	}
 	for _, tt := range tests {

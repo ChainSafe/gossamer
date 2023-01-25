@@ -107,7 +107,7 @@ type constructorTest struct {
 
 var nestedVaryingDataTypeTests = []constructorTest{
 	{
-		name: "ParentVDT with ChildVDT",
+		name: "ParentVDT_with_ChildVDT",
 		newIn: func(t *testing.T) interface{} {
 			pvdt := mustNewParentVDT()
 			err := pvdt.Set(mustNewChildVDTAndSet(VDTValue3(16383)))
@@ -126,7 +126,7 @@ var nestedVaryingDataTypeTests = []constructorTest{
 		),
 	},
 	{
-		name: "ParentVDT with ChildVDT1",
+		name: "ParentVDT_with_ChildVDT1",
 		newIn: func(t *testing.T) interface{} {
 			pvdt := mustNewParentVDT()
 			err := pvdt.Set(mustNewChildVDT1AndSet(

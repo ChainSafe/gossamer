@@ -838,7 +838,7 @@ func TestStateModuleQueryStorage(t *testing.T) {
 		errRegexp string
 		exp       []StorageChangeSetResponse
 	}{
-		"missing start block error": {
+		"missing_start_block_error": {
 			fields: fields{
 				storageAPIBuilder: func(ctrl *gomock.Controller) StorageAPI {
 					return NewMockStorageAPI(ctrl)
@@ -854,7 +854,7 @@ func TestStateModuleQueryStorage(t *testing.T) {
 			exp:       []StorageChangeSetResponse{},
 			errRegexp: "the start block hash cannot be an empty value",
 		},
-		"missing start block not found error": {
+		"missing_start_block_not_found_error": {
 			fields: fields{
 				storageAPIBuilder: func(ctrl *gomock.Controller) StorageAPI {
 					return NewMockStorageAPI(ctrl)
@@ -873,7 +873,7 @@ func TestStateModuleQueryStorage(t *testing.T) {
 			exp:       []StorageChangeSetResponse{},
 			errRegexp: "test error",
 		},
-		"start block/no end block/multi keys/key 0 changes, key 1 unchanged": {
+		"start_block/no_end_block/multi_keys/key_0_changes,_key_1_unchanged": {
 			fields: fields{
 				storageAPIBuilder: func(ctrl *gomock.Controller) StorageAPI {
 					mockStorageAPI := NewMockStorageAPI(ctrl)
@@ -931,7 +931,7 @@ func TestStateModuleQueryStorage(t *testing.T) {
 				},
 			},
 		},
-		"start block/no end block/value changes": {
+		"start_block/no_end_block/value_changes": {
 			fields: fields{
 				storageAPIBuilder: func(ctrl *gomock.Controller) StorageAPI {
 					mockStorageAPI := NewMockStorageAPI(ctrl)
@@ -991,7 +991,7 @@ func TestStateModuleQueryStorage(t *testing.T) {
 				},
 			},
 		},
-		"start block, end block, ok": {
+		"start_block,_end_block,_ok": {
 			fields: fields{
 				storageAPIBuilder: func(ctrl *gomock.Controller) StorageAPI {
 					mockStorageAPI := NewMockStorageAPI(ctrl)
@@ -1031,7 +1031,7 @@ func TestStateModuleQueryStorage(t *testing.T) {
 				},
 			},
 		},
-		"start block/end block/error end hash": {
+		"start_block/end_block/error_end_hash": {
 			fields: fields{
 				storageAPIBuilder: func(ctrl *gomock.Controller) StorageAPI {
 					mockStorageAPI := NewMockStorageAPI(ctrl)
@@ -1054,7 +1054,7 @@ func TestStateModuleQueryStorage(t *testing.T) {
 			exp:       []StorageChangeSetResponse{},
 			errRegexp: "getting block by hash: test error",
 		},
-		"start block/end block/error get hash by number": {
+		"start_block/end_block/error_get_hash_by_number": {
 			fields: fields{
 				storageAPIBuilder: func(ctrl *gomock.Controller) StorageAPI {
 					mockStorageAPI := NewMockStorageAPI(ctrl)
@@ -1079,7 +1079,7 @@ func TestStateModuleQueryStorage(t *testing.T) {
 			exp:       []StorageChangeSetResponse{},
 			errRegexp: "cannot get hash by number: cannot find node with number lower than root node",
 		},
-		"start block/end block/error get storage by block hash": {
+		"start_block/end_block/error_get_storage_by_block_hash": {
 			fields: fields{func(ctrl *gomock.Controller) StorageAPI {
 				mockStorageAPI := NewMockStorageAPI(ctrl)
 				mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{2}, []byte{1, 2, 4}).Return(nil, errTest)

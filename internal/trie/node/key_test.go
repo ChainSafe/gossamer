@@ -70,18 +70,18 @@ func Test_decodeKey(t *testing.T) {
 		errWrapped       error
 		errMessage       string
 	}{
-		"zero key length": {
+		"zero_key_length": {
 			partialKeyLength: 0,
 			b:                []byte{},
 		},
-		"short key length": {
+		"short_key_length": {
 			reads: []readCall{
 				{buffArgCap: 3, read: []byte{1, 2, 3}, n: 3},
 			},
 			partialKeyLength: 5,
 			b:                []byte{0x1, 0x0, 0x2, 0x0, 0x3},
 		},
-		"key read error": {
+		"key_read_error": {
 			reads: []readCall{
 				{buffArgCap: 3, err: errTest},
 			},
@@ -90,7 +90,7 @@ func Test_decodeKey(t *testing.T) {
 			errMessage:       "reading from reader: test error",
 		},
 
-		"key read bytes count mismatch": {
+		"key_read_bytes_count_mismatch": {
 			reads: []readCall{
 				{buffArgCap: 3, n: 2},
 			},
@@ -98,7 +98,7 @@ func Test_decodeKey(t *testing.T) {
 			errWrapped:       ErrReaderMismatchCount,
 			errMessage:       "read unexpected number of bytes from reader: read 2 bytes instead of expected 3 bytes",
 		},
-		"long key length": {
+		"long_key_length": {
 			reads: []readCall{
 				{buffArgCap: 35, read: repeatBytes(35, 7), n: 35}, // key data
 			},

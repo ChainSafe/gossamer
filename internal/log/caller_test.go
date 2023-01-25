@@ -18,14 +18,14 @@ func Test_getCallerString(t *testing.T) {
 		settings callerSettings
 		s        string
 	}{
-		"no show": {
+		"no_show": {
 			settings: callerSettings{
 				file: boolPtr(false),
 				line: boolPtr(false),
 				funC: boolPtr(false),
 			},
 		},
-		"show file line": {
+		"show_file_line": {
 			settings: callerSettings{
 				file: boolPtr(true),
 				line: boolPtr(true),
@@ -33,7 +33,7 @@ func Test_getCallerString(t *testing.T) {
 			},
 			s: "caller_test.go:L58",
 		},
-		"show all": {
+		"show_all": {
 			settings: callerSettings{
 				file: boolPtr(true),
 				line: boolPtr(true),

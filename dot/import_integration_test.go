@@ -29,7 +29,7 @@ func Test_newTrieFromPairs(t *testing.T) {
 		err      error
 	}{
 		{
-			name: "no arguments",
+			name: "no_arguments",
 			err:  errors.New("read .: is a directory"),
 			want: common.Hash{},
 		},
@@ -144,11 +144,11 @@ func TestImportState(t *testing.T) {
 		err  error
 	}{
 		{
-			name: "no arguments",
+			name: "no_arguments",
 			err:  errors.New("read .: is a directory"),
 		},
 		{
-			name: "working example",
+			name: "working_example",
 			args: args{
 				basepath:  basepath,
 				stateFP:   stateFP,

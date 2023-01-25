@@ -105,20 +105,20 @@ func Test_syncBenchmarker_average(t *testing.T) {
 		average float64
 	}{
 		// zero size ring is not possible due to constructor check
-		"empty ring": {
+		"empty_ring": {
 			ringCap: 1,
 		},
-		"single element in one-size ring": {
+		"single_element_in_one-size_ring": {
 			values:  []float64{1.1},
 			ringCap: 1,
 			average: 1.1,
 		},
-		"single element in two-size ring": {
+		"single_element_in_two-size_ring": {
 			values:  []float64{1.1},
 			ringCap: 2,
 			average: 1.1,
 		},
-		"two elements in two-size ring": {
+		"two_elements_in_two-size_ring": {
 			values:  []float64{1.0, 2.0},
 			ringCap: 2,
 			average: 1.5,
@@ -157,25 +157,25 @@ func Test_syncBenchmarker_mostRecentAverage(t *testing.T) {
 		average float64
 	}{
 		// zero size ring is not possible due to constructor check
-		"empty ring": {
+		"empty_ring": {
 			ringCap: 1,
 		},
-		"single element in one-size ring": {
+		"single_element_in_one-size_ring": {
 			values:  []float64{1.1},
 			ringCap: 1,
 			average: 1.1,
 		},
-		"single element in two-size ring": {
+		"single_element_in_two-size_ring": {
 			values:  []float64{1.1},
 			ringCap: 2,
 			average: 1.1,
 		},
-		"two elements in two-size ring": {
+		"two_elements_in_two-size_ring": {
 			values:  []float64{1.0, 2.0},
 			ringCap: 2,
 			average: 2.0,
 		},
-		"three elements in two-size ring": {
+		"three_elements_in_two-size_ring": {
 			values:  []float64{1.0, 2.0, 3.0},
 			ringCap: 2,
 			average: 3.0,
