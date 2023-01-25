@@ -543,8 +543,7 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 	if err != nil {
 		return err
 	}
-	// TODO adding this fails polkadotjs tests
-	// rt.SetContextStorage(nil)
+	rt.SetContextStorage(nil)
 
 	// add transaction to pool
 	vtx := transaction.NewValidTransaction(ext, transactionValidity)

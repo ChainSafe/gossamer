@@ -1277,7 +1277,8 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 		mockStorageState := NewMockStorageState(ctrl)
 		trieState := rtstorage.NewTrieState(trie.NewEmptyTrie())
 		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(trieState, nil)
-		runtimeMock.EXPECT().SetContextStorage(trieState.Snapshot())
+		setCtxStorageCall := runtimeMock.EXPECT().SetContextStorage(trieState.Snapshot())
+		runtimeMock.EXPECT().SetContextStorage(nil).After(setCtxStorageCall)
 		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(&common.Hash{}, nil)
 
 		mockTxnState := NewMockTransactionState(ctrl)
