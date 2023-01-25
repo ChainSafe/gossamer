@@ -21,12 +21,12 @@ func Test_NewTrieFromGenesis(t *testing.T) {
 		errSentinel error
 		errMessage  string
 	}{
-		"genesis top not found": {
+		"genesis_top_not_found": {
 			genesis:     genesis.Genesis{Name: "genesis_name"},
 			errSentinel: ErrGenesisTopNotFound,
 			errMessage:  "genesis top not found: in genesis genesis_name",
 		},
-		"bad hex trie key": {
+		"bad_hex_trie_key": {
 			genesis: genesis.Genesis{
 				Name: "genesis_name",
 				Genesis: genesis.Fields{

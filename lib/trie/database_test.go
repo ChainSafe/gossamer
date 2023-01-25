@@ -173,24 +173,24 @@ func Test_PopulateNodeHashes(t *testing.T) {
 		nodeHashes map[string]struct{}
 		panicValue interface{}
 	}{
-		"nil node": {
+		"nil_node": {
 			nodeHashes: map[string]struct{}{},
 		},
-		"inlined leaf node": {
+		"inlined_leaf_node": {
 			node:       &Node{MerkleValue: []byte("a")},
 			nodeHashes: map[string]struct{}{},
 		},
-		"leaf node": {
+		"leaf_node": {
 			node: &Node{MerkleValue: []byte(merkleValue32Zeroes)},
 			nodeHashes: map[string]struct{}{
 				merkleValue32Zeroes: {},
 			},
 		},
-		"leaf node without Merkle value": {
+		"leaf_node_without_Merkle_value": {
 			node:       &Node{PartialKey: []byte{1}, StorageValue: []byte{2}},
 			panicValue: "node with partial key 0x01 has no Merkle value computed",
 		},
-		"inlined branch node": {
+		"inlined_branch_node": {
 			node: &Node{
 				MerkleValue: []byte("a"),
 				Children: padRightChildren([]*Node{
@@ -199,7 +199,7 @@ func Test_PopulateNodeHashes(t *testing.T) {
 			},
 			nodeHashes: map[string]struct{}{},
 		},
-		"branch node": {
+		"branch_node": {
 			node: &Node{
 				MerkleValue: []byte(merkleValue32Zeroes),
 				Children: padRightChildren([]*Node{
@@ -211,7 +211,7 @@ func Test_PopulateNodeHashes(t *testing.T) {
 				merkleValue32Ones:   {},
 			},
 		},
-		"nested branch node": {
+		"nested_branch_node": {
 			node: &Node{
 				MerkleValue: []byte(merkleValue32Zeroes),
 				Children: padRightChildren([]*Node{

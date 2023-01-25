@@ -24,7 +24,7 @@ func TestBuildSpec_ToJSON(t *testing.T) {
 		err       error
 	}{
 		{
-			name: "name test",
+			name: "name_test",
 			buildSpec: &BuildSpec{
 				genesis: &genesis.Genesis{Name: "test"},
 			},
@@ -45,7 +45,7 @@ func TestBuildSpec_ToJSON(t *testing.T) {
 }`,
 		},
 		{
-			name: "additional parameters test",
+			name: "additional_parameters_test",
 			buildSpec: &BuildSpec{
 				genesis: &genesis.Genesis{
 					Name:            "test",
@@ -72,7 +72,7 @@ func TestBuildSpec_ToJSON(t *testing.T) {
 }`,
 		},
 		{
-			name: "normal conditions",
+			name: "normal_conditions",
 			buildSpec: &BuildSpec{
 				genesis: &genesis.Genesis{
 					Name:               "test",
@@ -134,7 +134,7 @@ func TestBuildFromDB(t *testing.T) {
 		want *BuildSpec
 		err  error
 	}{
-		{name: "normal conditions", path: cfg.Global.BasePath,
+		{name: "normal_conditions", path: cfg.Global.BasePath,
 			want: &BuildSpec{genesis: &genesis.Genesis{
 				Name:       "Development",
 				ID:         "westend_dev",
@@ -145,7 +145,7 @@ func TestBuildFromDB(t *testing.T) {
 					Runtime: map[string]map[string]interface{}{},
 				},
 			}}},
-		{name: "invalid db path", path: t.TempDir(),
+		{name: "invalid_db_path", path: t.TempDir(),
 			err: errors.New("cannot start state service: failed to create block state: cannot get block 0: Key not found")},
 	}
 	for _, tt := range tests {
@@ -190,14 +190,14 @@ func TestBuildFromGenesis(t *testing.T) {
 		err  error
 	}{
 		{
-			name: "invalid file path",
+			name: "invalid_file_path",
 			args: args{
 				path: "/invalid/path",
 			},
 			err: errors.New("open /invalid/path: no such file or directory"),
 		},
 		{
-			name: "normal conditions",
+			name: "normal_conditions",
 			args: args{
 				path: testGenesisPath,
 			},
@@ -274,14 +274,14 @@ func TestWriteGenesisSpecFile(t *testing.T) {
 		touchFile bool
 	}{
 		{
-			name: "normal conditions",
+			name: "normal_conditions",
 			args: args{
 				data: []byte{1},
 				fp:   filepath.Join(t.TempDir(), "test.file"),
 			},
 		},
 		{
-			name: "existing file",
+			name: "existing_file",
 			args: args{
 				data: []byte{1},
 			},

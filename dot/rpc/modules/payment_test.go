@@ -70,7 +70,7 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 		exp    PaymentQueryInfoResponse
 	}{
 		{
-			name: "Nil Query Info",
+			name: "Nil_Query_Info",
 			fields: fields{
 				paymentModule.blockAPI,
 			},
@@ -83,7 +83,7 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 			exp: PaymentQueryInfoResponse{},
 		},
 		{
-			name: "Not Nil Query Info",
+			name: "Not_Nil_Query_Info",
 			fields: fields{
 				blockAPIMock2,
 			},
@@ -102,7 +102,7 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 			},
 		},
 		{
-			name: "Nil Hash",
+			name: "Nil_Hash",
 			fields: fields{
 				paymentModule.blockAPI,
 			},
@@ -114,7 +114,7 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 			expErr: errors.New("encoding/hex: odd length hex string: 0x0"),
 		},
 		{
-			name: "Invalid Ext",
+			name: "Invalid_Ext",
 			fields: fields{
 				paymentModule.blockAPI,
 			},
@@ -126,7 +126,7 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 			exp: PaymentQueryInfoResponse{},
 		},
 		{
-			name: "PaymentQueryInfo error",
+			name: "PaymentQueryInfo_error",
 			fields: fields{
 				blockErrorAPIMock1,
 			},
@@ -139,7 +139,7 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 			expErr: errors.New("PaymentQueryInfo error"),
 		},
 		{
-			name: "GetRuntime error",
+			name: "GetRuntime_error",
 			fields: fields{
 				blockErrorAPIMock2,
 			},

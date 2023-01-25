@@ -44,16 +44,16 @@ func Test_Service_StartStop_success(t *testing.T) {
 		stopDoneErr  error
 		stopErr      error
 	}{
-		"start nil error": {
+		"start_nil_error": {
 			startDone: true,
 			startErr:  ErrServerDoneBeforeReady,
 		},
-		"start error": {
+		"start_error": {
 			startDone:    true,
 			startDoneErr: errDummy,
 			startErr:     errDummy,
 		},
-		"stop error": {
+		"stop_error": {
 			stopDoneErr: errDummy,
 			stopErr:     errDummy,
 		},

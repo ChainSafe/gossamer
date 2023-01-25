@@ -200,7 +200,7 @@ func Test_commitsTracker_message(t *testing.T) {
 		blockHash      common.Hash
 		message        *CommitMessage
 	}{
-		"non existing block hash": {
+		"non_existing_block_hash": {
 			commitsTracker: &commitsTracker{
 				mapping: map[common.Hash]*list.Element{
 					{1}: {},
@@ -208,7 +208,7 @@ func Test_commitsTracker_message(t *testing.T) {
 			},
 			blockHash: common.Hash{2},
 		},
-		"existing block hash": {
+		"existing_block_hash": {
 			commitsTracker: &commitsTracker{
 				mapping: map[common.Hash]*list.Element{
 					{1}: {

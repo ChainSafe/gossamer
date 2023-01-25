@@ -278,7 +278,7 @@ func Test_votesTracker_messages(t *testing.T) {
 		blockHash    common.Hash
 		messages     []networkVoteMessage
 	}{
-		"non existing block hash": {
+		"non_existing_block_hash": {
 			votesTracker: &votesTracker{
 				mapping: map[common.Hash]map[ed25519.PublicKeyBytes]*list.Element{
 					{1}: {},
@@ -287,7 +287,7 @@ func Test_votesTracker_messages(t *testing.T) {
 			},
 			blockHash: common.Hash{2},
 		},
-		"existing block hash": {
+		"existing_block_hash": {
 			votesTracker: &votesTracker{
 				mapping: map[common.Hash]map[ed25519.PublicKeyBytes]*list.Element{
 					{1}: {

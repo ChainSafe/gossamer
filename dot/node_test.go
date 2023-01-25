@@ -196,7 +196,7 @@ func TestNode_StartStop(t *testing.T) {
 		err    error
 	}{
 		{
-			name: "base case",
+			name: "base_case",
 			fields: fields{
 				Name:     "Node",
 				Services: services.NewServiceRegistry(serviceRegistryLogger),

@@ -44,17 +44,17 @@ func Test_Decode(t *testing.T) {
 		errWrapped error
 		errMessage string
 	}{
-		"no data": {
+		"no_data": {
 			reader:     bytes.NewReader(nil),
 			errWrapped: io.EOF,
 			errMessage: "decoding header: reading header byte: EOF",
 		},
-		"unknown node variant": {
+		"unknown_node_variant": {
 			reader:     bytes.NewReader([]byte{0}),
 			errWrapped: ErrVariantUnknown,
 			errMessage: "decoding header: decoding header byte: node variant is unknown: for header byte 00000000",
 		},
-		"leaf decoding error": {
+		"leaf_decoding_error": {
 			reader: bytes.NewReader([]byte{
 				leafVariant.bits | 1, // key length 1
 				// missing key data byte
@@ -63,7 +63,7 @@ func Test_Decode(t *testing.T) {
 			errMessage: "cannot decode leaf: cannot decode key: " +
 				"reading from reader: EOF",
 		},
-		"leaf success": {
+		"leaf_success": {
 			reader: bytes.NewReader(
 				append(
 					[]byte{
@@ -78,7 +78,7 @@ func Test_Decode(t *testing.T) {
 				StorageValue: []byte{1, 2, 3},
 			},
 		},
-		"branch decoding error": {
+		"branch_decoding_error": {
 			reader: bytes.NewReader([]byte{
 				branchVariant.bits | 1, // key length 1
 				// missing key data byte
@@ -87,7 +87,7 @@ func Test_Decode(t *testing.T) {
 			errMessage: "cannot decode branch: cannot decode key: " +
 				"reading from reader: EOF",
 		},
-		"branch success": {
+		"branch_success": {
 			reader: bytes.NewReader(
 				[]byte{
 					branchVariant.bits | 1, // key length 1
@@ -136,7 +136,7 @@ func Test_decodeBranch(t *testing.T) {
 		errWrapped       error
 		errMessage       string
 	}{
-		"key decoding error": {
+		"key_decoding_error": {
 			reader: bytes.NewBuffer([]byte{
 				// missing key data byte
 			}),
@@ -145,7 +145,7 @@ func Test_decodeBranch(t *testing.T) {
 			errWrapped:       io.EOF,
 			errMessage:       "cannot decode key: reading from reader: EOF",
 		},
-		"children bitmap read error": {
+		"children_bitmap_read_error": {
 			reader: bytes.NewBuffer([]byte{
 				9, // key data
 				// missing children bitmap 2 bytes
@@ -155,7 +155,7 @@ func Test_decodeBranch(t *testing.T) {
 			errWrapped:       ErrReadChildrenBitmap,
 			errMessage:       "cannot read children bitmap: EOF",
 		},
-		"children decoding error": {
+		"children_decoding_error": {
 			reader: bytes.NewBuffer([]byte{
 				9,    // key data
 				0, 4, // children bitmap
@@ -166,7 +166,7 @@ func Test_decodeBranch(t *testing.T) {
 			errWrapped:       ErrDecodeChildHash,
 			errMessage:       "cannot decode child hash: at index 10: reading byte: EOF",
 		},
-		"success for branch variant": {
+		"success_for_branch_variant": {
 			reader: bytes.NewBuffer(
 				concatByteSlices([][]byte{
 					{9},    // key data
@@ -188,7 +188,7 @@ func Test_decodeBranch(t *testing.T) {
 				Descendants: 1,
 			},
 		},
-		"value decoding error for branch with value variant": {
+		"value_decoding_error_for_branch_with_value_variant": {
 			reader: bytes.NewBuffer(
 				concatByteSlices([][]byte{
 					{9},    // key data
@@ -201,7 +201,7 @@ func Test_decodeBranch(t *testing.T) {
 			errWrapped:       ErrDecodeStorageValue,
 			errMessage:       "cannot decode storage value: reading byte: EOF",
 		},
-		"success for branch with value": {
+		"success_for_branch_with_value": {
 			reader: bytes.NewBuffer(concatByteSlices([][]byte{
 				{9},                          // key data
 				{0, 4},                       // children bitmap
@@ -223,7 +223,7 @@ func Test_decodeBranch(t *testing.T) {
 				Descendants: 1,
 			},
 		},
-		"branch with inlined node decoding error": {
+		"branch_with_inlined_node_decoding_error": {
 			reader: bytes.NewBuffer(concatByteSlices([][]byte{
 				{1},                        // key data
 				{0b0000_0001, 0b0000_0000}, // children bitmap
@@ -236,7 +236,7 @@ func Test_decodeBranch(t *testing.T) {
 			errMessage: "decoding inlined child at index 0: " +
 				"decoding header: reading header byte: EOF",
 		},
-		"branch with inlined branch and leaf": {
+		"branch_with_inlined_branch_and_leaf": {
 			reader: bytes.NewBuffer(concatByteSlices([][]byte{
 				{1},                        // key data
 				{0b0000_0011, 0b0000_0000}, // children bitmap
@@ -308,7 +308,7 @@ func Test_decodeLeaf(t *testing.T) {
 		errWrapped       error
 		errMessage       string
 	}{
-		"key decoding error": {
+		"key_decoding_error": {
 			reader: bytes.NewBuffer([]byte{
 				// missing key data byte
 			}),
@@ -317,7 +317,7 @@ func Test_decodeLeaf(t *testing.T) {
 			errWrapped:       io.EOF,
 			errMessage:       "cannot decode key: reading from reader: EOF",
 		},
-		"value decoding error": {
+		"value_decoding_error": {
 			reader: bytes.NewBuffer([]byte{
 				9,        // key data
 				255, 255, // bad storage value data
@@ -327,7 +327,7 @@ func Test_decodeLeaf(t *testing.T) {
 			errWrapped:       ErrDecodeStorageValue,
 			errMessage:       "cannot decode storage value: unknown prefix for compact uint: 255",
 		},
-		"missing storage value data": {
+		"missing_storage_value_data": {
 			reader: bytes.NewBuffer([]byte{
 				9, // key data
 				// missing storage value data
@@ -337,7 +337,7 @@ func Test_decodeLeaf(t *testing.T) {
 			errWrapped:       ErrDecodeStorageValue,
 			errMessage:       "cannot decode storage value: reading byte: EOF",
 		},
-		"empty storage value data": {
+		"empty_storage_value_data": {
 			reader: bytes.NewBuffer(concatByteSlices([][]byte{
 				{9},                               // key data
 				scaleEncodeByteSlice(t, []byte{}), // results to []byte{0}

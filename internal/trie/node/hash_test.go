@@ -20,7 +20,7 @@ func Test_MerkleValue(t *testing.T) {
 		errWrapped    error
 		errMessage    string
 	}{
-		"small encoding": {
+		"small_encoding": {
 			encoding: []byte{1},
 			writerBuilder: func(ctrl *gomock.Controller) io.Writer {
 				writer := NewMockWriter(ctrl)
@@ -28,7 +28,7 @@ func Test_MerkleValue(t *testing.T) {
 				return writer
 			},
 		},
-		"encoding write error": {
+		"encoding_write_error": {
 			encoding: []byte{1},
 			writerBuilder: func(ctrl *gomock.Controller) io.Writer {
 				writer := NewMockWriter(ctrl)
@@ -38,7 +38,7 @@ func Test_MerkleValue(t *testing.T) {
 			errWrapped: errTest,
 			errMessage: "writing encoding: test error",
 		},
-		"long encoding": {
+		"long_encoding": {
 			encoding: []byte{
 				1, 2, 3, 4, 5, 6, 7, 8,
 				9, 10, 11, 12, 13, 14, 15, 16,
@@ -55,7 +55,7 @@ func Test_MerkleValue(t *testing.T) {
 				return writer
 			},
 		},
-		"digest write error": {
+		"digest_write_error": {
 			encoding: []byte{
 				1, 2, 3, 4, 5, 6, 7, 8,
 				9, 10, 11, 12, 13, 14, 15, 16,
@@ -103,7 +103,7 @@ func Test_MerkleValueRoot(t *testing.T) {
 		errWrapped    error
 		errMessage    string
 	}{
-		"digest write error": {
+		"digest_write_error": {
 			encoding: []byte{1},
 			writerBuilder: func(ctrl *gomock.Controller) io.Writer {
 				writer := NewMockWriter(ctrl)
@@ -118,7 +118,7 @@ func Test_MerkleValueRoot(t *testing.T) {
 			errWrapped: errTest,
 			errMessage: "writing digest: test error",
 		},
-		"small encoding": {
+		"small_encoding": {
 			encoding: []byte{1},
 			writerBuilder: func(ctrl *gomock.Controller) io.Writer {
 				writer := NewMockWriter(ctrl)
@@ -131,7 +131,7 @@ func Test_MerkleValueRoot(t *testing.T) {
 				return writer
 			},
 		},
-		"long encoding": {
+		"long_encoding": {
 			encoding: []byte{
 				1, 2, 3, 4, 5, 6, 7, 8,
 				9, 10, 11, 12, 13, 14, 15, 16,
@@ -177,13 +177,13 @@ func Test_Node_CalculateMerkleValue(t *testing.T) {
 		errWrapped  error
 		errMessage  string
 	}{
-		"cached merkle value": {
+		"cached_merkle_value": {
 			node: Node{
 				MerkleValue: []byte{1},
 			},
 			merkleValue: []byte{1},
 		},
-		"small encoding": {
+		"small_encoding": {
 			node: Node{
 				PartialKey:   []byte{1},
 				StorageValue: []byte{1},
@@ -223,13 +223,13 @@ func Test_Node_CalculateRootMerkleValue(t *testing.T) {
 		errWrapped  error
 		errMessage  string
 	}{
-		"cached merkle value 32 bytes": {
+		"cached_merkle_value_32_bytes": {
 			node: Node{
 				MerkleValue: some32BHashDigest,
 			},
 			merkleValue: some32BHashDigest,
 		},
-		"cached merkle value not 32 bytes": {
+		"cached_merkle_value_not_32_bytes": {
 			node: Node{
 				PartialKey:   []byte{1},
 				StorageValue: []byte{2},
@@ -241,7 +241,7 @@ func Test_Node_CalculateRootMerkleValue(t *testing.T) {
 				0xe9, 0xf4, 0xa4, 0xe7, 0xd9, 0x8f, 0x62, 0xd,
 				0x5, 0x11, 0x5e, 0xb, 0x85, 0x27, 0x4a, 0xe1},
 		},
-		"root small encoding": {
+		"root_small_encoding": {
 			node: Node{
 				PartialKey:   []byte{1},
 				StorageValue: []byte{2},
@@ -281,7 +281,7 @@ func Test_Node_EncodeAndHash(t *testing.T) {
 		errWrapped   error
 		errMessage   string
 	}{
-		"small leaf encoding": {
+		"small_leaf_encoding": {
 			node: Node{
 				PartialKey:   []byte{1},
 				StorageValue: []byte{2},
@@ -292,7 +292,7 @@ func Test_Node_EncodeAndHash(t *testing.T) {
 			encoding: []byte{0x41, 0x1, 0x4, 0x2},
 			hash:     []byte{0x41, 0x1, 0x4, 0x2},
 		},
-		"large leaf encoding": {
+		"large_leaf_encoding": {
 			node: Node{
 				PartialKey:   repeatBytes(65, 7),
 				StorageValue: []byte{0x01},
@@ -303,7 +303,7 @@ func Test_Node_EncodeAndHash(t *testing.T) {
 			encoding: []byte{0x7f, 0x2, 0x7, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x4, 0x1}, //nolint:lll
 			hash:     []byte{0xd2, 0x1d, 0x43, 0x7, 0x18, 0x17, 0x1b, 0xf1, 0x45, 0x9c, 0xe5, 0x8f, 0xd7, 0x79, 0x82, 0xb, 0xc8, 0x5c, 0x8, 0x47, 0xfe, 0x6c, 0x99, 0xc5, 0xe9, 0x57, 0x87, 0x7, 0x1d, 0x2e, 0x24, 0x5d},                               //nolint:lll
 		},
-		"empty branch": {
+		"empty_branch": {
 			node: Node{
 				Children: make([]*Node, ChildrenCapacity),
 			},
@@ -314,7 +314,7 @@ func Test_Node_EncodeAndHash(t *testing.T) {
 			encoding: []byte{0x80, 0x0, 0x0},
 			hash:     []byte{0x80, 0x0, 0x0},
 		},
-		"small branch encoding": {
+		"small_branch_encoding": {
 			node: Node{
 				Children:     make([]*Node, ChildrenCapacity),
 				PartialKey:   []byte{1},
@@ -327,7 +327,7 @@ func Test_Node_EncodeAndHash(t *testing.T) {
 			encoding: []byte{0xc1, 0x1, 0x0, 0x0, 0x4, 0x2},
 			hash:     []byte{0xc1, 0x1, 0x0, 0x0, 0x4, 0x2},
 		},
-		"large branch encoding": {
+		"large_branch_encoding": {
 			node: Node{
 				Children:   make([]*Node, ChildrenCapacity),
 				PartialKey: repeatBytes(65, 7),
@@ -369,7 +369,7 @@ func Test_Node_EncodeAndHashRoot(t *testing.T) {
 		errWrapped   error
 		errMessage   string
 	}{
-		"small leaf encoding": {
+		"small_leaf_encoding": {
 			node: Node{
 				PartialKey:   []byte{1},
 				StorageValue: []byte{2},
@@ -380,7 +380,7 @@ func Test_Node_EncodeAndHashRoot(t *testing.T) {
 			encoding: []byte{0x41, 0x1, 0x4, 0x2},
 			hash:     []byte{0x60, 0x51, 0x6d, 0xb, 0xb6, 0xe1, 0xbb, 0xfb, 0x12, 0x93, 0xf1, 0xb2, 0x76, 0xea, 0x95, 0x5, 0xe9, 0xf4, 0xa4, 0xe7, 0xd9, 0x8f, 0x62, 0xd, 0x5, 0x11, 0x5e, 0xb, 0x85, 0x27, 0x4a, 0xe1}, //nolint:lll
 		},
-		"small branch encoding": {
+		"small_branch_encoding": {
 			node: Node{
 				Children:     make([]*Node, ChildrenCapacity),
 				PartialKey:   []byte{1},
