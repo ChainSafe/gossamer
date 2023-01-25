@@ -7,7 +7,7 @@ require (
 	github.com/breml/rootcerts v0.2.9
 	github.com/btcsuite/btcd/btcutil v1.1.3
 	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce
-	github.com/centrifuge/go-substrate-rpc-client/v4 v4.0.10
+	github.com/centrifuge/go-substrate-rpc-client/v4 v4.0.12
 	github.com/chyeh/pubip v0.0.0-20170203095919-b7e679cf541c
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/dgraph-io/badger/v2 v2.2007.4
@@ -15,7 +15,7 @@ require (
 	github.com/disiqueira/gotree v1.0.0
 	github.com/docker/docker v20.10.22+incompatible
 	github.com/ethereum/go-ethereum v1.10.26
-	github.com/fatih/color v1.13.0
+	github.com/fatih/color v1.14.0
 	github.com/go-playground/validator/v10 v10.11.1
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.5.9
@@ -27,7 +27,7 @@ require (
 	github.com/holiman/bloomfilter/v2 v2.0.3
 	github.com/ipfs/go-ds-badger2 v0.1.3
 	github.com/jpillora/ipfilter v1.2.8
-	github.com/klauspost/compress v1.15.14
+	github.com/klauspost/compress v1.15.15
 	github.com/libp2p/go-libp2p v0.22.0
 	github.com/libp2p/go-libp2p-kad-dht v0.18.0
 	github.com/multiformats/go-multiaddr v0.8.0
@@ -121,8 +121,8 @@ require (
 	github.com/marten-seemann/qtls-go1-18 v0.1.2 // indirect
 	github.com/marten-seemann/qtls-go1-19 v0.1.0 // indirect
 	github.com/marten-seemann/tcp v0.0.0-20210406111302-dfbc87cc63fd // indirect
-	github.com/mattn/go-colorable v0.1.9 // indirect
-	github.com/mattn/go-isatty v0.0.16 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-isatty v0.0.17 // indirect
 	github.com/mattn/go-pointer v0.0.1 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
 	github.com/miekg/dns v1.1.50 // indirect
@@ -171,7 +171,7 @@ require (
 	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
 	golang.org/x/net v0.0.0-20220812174116-3211cb980234 // indirect
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4 // indirect
-	golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab // indirect
+	golang.org/x/sys v0.3.0 // indirect
 	golang.org/x/tools v0.1.12 // indirect
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
