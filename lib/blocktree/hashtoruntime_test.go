@@ -32,7 +32,7 @@ func Test_hashToRuntime_get(t *testing.T) {
 		hash     Hash
 		instance Runtime
 	}{
-		"hash does not exist": {
+		"hash_does_not_exist": {
 			htr: &hashToRuntime{
 				mapping: map[Hash]Runtime{
 					{4, 5, 6}: NewMockRuntime(nil),
@@ -40,7 +40,7 @@ func Test_hashToRuntime_get(t *testing.T) {
 			},
 			hash: common.Hash{1, 2, 3},
 		},
-		"hash exists": {
+		"hash_exists": {
 			htr: &hashToRuntime{
 				mapping: map[Hash]Runtime{
 					{1, 2, 3}: NewMockRuntime(nil),
@@ -72,7 +72,7 @@ func Test_hashToRuntime_set(t *testing.T) {
 		instance    Runtime
 		expectedHtr *hashToRuntime
 	}{
-		"set new instance": {
+		"set_new_instance": {
 			initialHtr: &hashToRuntime{
 				mapping: map[Hash]Runtime{},
 			},
@@ -84,7 +84,7 @@ func Test_hashToRuntime_set(t *testing.T) {
 				},
 			},
 		},
-		"override instance": {
+		"override_instance": {
 			initialHtr: &hashToRuntime{
 				mapping: map[Hash]Runtime{
 					{1, 2, 3}: NewMockRuntime(nil),
@@ -122,7 +122,7 @@ func Test_hashToRuntime_delete(t *testing.T) {
 		hash        common.Hash
 		expectedHtr *hashToRuntime
 	}{
-		"hash does not exist": {
+		"hash_does_not_exist": {
 			initialHtr: &hashToRuntime{
 				mapping: map[Hash]Runtime{},
 			},
@@ -131,7 +131,7 @@ func Test_hashToRuntime_delete(t *testing.T) {
 				mapping: map[Hash]Runtime{},
 			},
 		},
-		"hash deleted": {
+		"hash_deleted": {
 			initialHtr: &hashToRuntime{
 				mapping: map[Hash]Runtime{
 					{1, 2, 3}: NewMockRuntime(nil),

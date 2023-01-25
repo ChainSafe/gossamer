@@ -149,15 +149,15 @@ func Test_UintToBytes(t *testing.T) {
 			n: 256,
 			b: []byte{1, 0},
 		},
-		"max uint32": {
+		"max_uint32": {
 			n: 1<<32 - 1,
 			b: []byte{255, 255, 255, 255},
 		},
-		"one plus max uint32": {
+		"one_plus_max_uint32": {
 			n: 1 + (1<<32 - 1),
 			b: []byte{1, 0, 0, 0, 0},
 		},
-		"max int64": {
+		"max_int64": {
 			n: 1<<63 - 1,
 			b: []byte{0x7f, 255, 255, 255, 255, 255, 255, 255},
 		},
@@ -197,15 +197,15 @@ func Test_BytesToUint(t *testing.T) {
 			b: []byte{1, 0},
 			n: 256,
 		},
-		"max uint32": {
+		"max_uint32": {
 			b: []byte{255, 255, 255, 255},
 			n: 1<<32 - 1,
 		},
-		"one plus max uint32": {
+		"one_plus_max_uint32": {
 			b: []byte{1, 0, 0, 0, 0},
 			n: 1 + (1<<32 - 1),
 		},
-		"max int64": {
+		"max_int64": {
 			b: []byte{0x7f, 255, 255, 255, 255, 255, 255, 255},
 			n: 1<<63 - 1,
 		},

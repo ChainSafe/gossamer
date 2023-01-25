@@ -20,7 +20,7 @@ func Test_Logger_Patch(t *testing.T) {
 		options        []Option
 		expectedLogger *Logger
 	}{
-		"without child": {
+		"without_child": {
 			initialLogger: &Logger{
 				settings: settings{
 					writer: os.Stdout,
@@ -41,7 +41,7 @@ func Test_Logger_Patch(t *testing.T) {
 				mutex: new(sync.Mutex),
 			},
 		},
-		"with child": {
+		"with_child": {
 			initialLogger: &Logger{
 				settings: settings{
 					writer: os.Stdout,
@@ -68,7 +68,7 @@ func Test_Logger_Patch(t *testing.T) {
 				mutex: new(sync.Mutex),
 			},
 		},
-		"with options": {
+		"with_options": {
 			initialLogger: &Logger{
 				settings: settings{
 					writer: io.Discard,
@@ -116,7 +116,7 @@ func Test_Logger_patchWithoutLocking(t *testing.T) {
 		options        []Option
 		expectedLogger *Logger
 	}{
-		"no option": {
+		"no_option": {
 			initialLogger: &Logger{
 				settings: settings{
 					writer: os.Stdout,
@@ -136,7 +136,7 @@ func Test_Logger_patchWithoutLocking(t *testing.T) {
 				mutex: new(sync.Mutex),
 			},
 		},
-		"with options": {
+		"with_options": {
 			initialLogger: &Logger{
 				settings: settings{
 					writer: io.Discard,

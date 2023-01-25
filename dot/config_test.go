@@ -22,7 +22,7 @@ func TestConfig(t *testing.T) {
 		configMaker func() *Config
 	}{
 		{
-			name: "dev default",
+			name: "dev_default",
 			want: &Config{
 				Global: GlobalConfig{
 					Name:           "Gossamer",
@@ -82,7 +82,7 @@ func TestConfig(t *testing.T) {
 			configMaker: DevConfig,
 		},
 		{
-			name: "gossamer default",
+			name: "gossamer_default",
 			want: &Config{
 				Global: GlobalConfig{
 					Name:           "Gossamer",
@@ -142,7 +142,7 @@ func TestConfig(t *testing.T) {
 			configMaker: GssmrConfig,
 		},
 		{
-			name: "kusama default",
+			name: "kusama_default",
 			want: &Config{
 				Global: GlobalConfig{
 					Name:           "Kusama",
@@ -202,7 +202,7 @@ func TestConfig(t *testing.T) {
 			configMaker: KusamaConfig,
 		},
 		{
-			name: "polkadot default",
+			name: "polkadot_default",
 			want: &Config{
 				Global: GlobalConfig{
 					Name:           "Polkadot",
@@ -368,7 +368,7 @@ func Test_networkServiceEnabled(t *testing.T) {
 			want:   false,
 		},
 		{
-			name: "core roles 0",
+			name: "core_roles_0",
 			config: &Config{
 				Core: CoreConfig{
 					Roles: 0,
@@ -377,7 +377,7 @@ func Test_networkServiceEnabled(t *testing.T) {
 			want: false,
 		},
 		{
-			name: "core roles 1",
+			name: "core_roles_1",
 			config: &Config{
 				Core: CoreConfig{
 					Roles: 1,
@@ -409,7 +409,7 @@ func TestRPCConfig_String(t *testing.T) {
 				"=false wsexternal=false wsunsafe=false wsunsafeexternal=false",
 		},
 		{
-			name: "fields changed",
+			name: "fields_changed",
 			rpcConfig: RPCConfig{
 				Enabled:          true,
 				External:         true,
@@ -448,7 +448,7 @@ func TestLogConfig_String(t *testing.T) {
 				"state: CRITICAL, runtime: CRITICAL, block producer: CRITICAL, finality gadget: CRITICAL",
 		},
 		{
-			name: "change fields case",
+			name: "change_fields_case",
 			logConfig: LogConfig{
 				CoreLvl:           log.Debug,
 				DigestLvl:         log.Info,

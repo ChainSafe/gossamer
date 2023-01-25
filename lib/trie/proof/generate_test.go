@@ -36,7 +36,7 @@ func Test_Generate(t *testing.T) {
 		errWrapped        error
 		errMessage        string
 	}{
-		"failed loading trie": {
+		"failed_loading_trie": {
 			rootHash: someHash,
 			databaseBuilder: func(ctrl *gomock.Controller) Database {
 				mockDatabase := NewMockDatabase(ctrl)
@@ -50,7 +50,7 @@ func Test_Generate(t *testing.T) {
 				"0x000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f: " +
 				"test error",
 		},
-		"walk error": {
+		"walk_error": {
 			rootHash:        someHash,
 			fullKeysNibbles: [][]byte{{1}},
 			databaseBuilder: func(ctrl *gomock.Controller) Database {
@@ -66,7 +66,7 @@ func Test_Generate(t *testing.T) {
 			errWrapped: ErrKeyNotFound,
 			errMessage: "walking to node at key 0x01: key not found",
 		},
-		"leaf root": {
+		"leaf_root": {
 			rootHash:        someHash,
 			fullKeysNibbles: [][]byte{{}},
 			databaseBuilder: func(ctrl *gomock.Controller) Database {
@@ -86,7 +86,7 @@ func Test_Generate(t *testing.T) {
 				}),
 			},
 		},
-		"branch root": {
+		"branch_root": {
 			rootHash:        someHash,
 			fullKeysNibbles: [][]byte{{}},
 			databaseBuilder: func(ctrl *gomock.Controller) Database {
@@ -120,7 +120,7 @@ func Test_Generate(t *testing.T) {
 				}),
 			},
 		},
-		"target leaf of branch": {
+		"target_leaf_of_branch": {
 			rootHash: someHash,
 			fullKeysNibbles: [][]byte{
 				{1, 2, 3, 4},
@@ -167,7 +167,7 @@ func Test_Generate(t *testing.T) {
 				}),
 			},
 		},
-		"deduplicate proof nodes": {
+		"deduplicate_proof_nodes": {
 			rootHash: someHash,
 			fullKeysNibbles: [][]byte{
 				{1, 2, 3, 4},
@@ -279,15 +279,15 @@ func Test_walkRoot(t *testing.T) {
 		errWrapped        error
 		errMessage        string
 	}{
-		"nil parent and empty full key": {},
-		"nil parent and non empty full key": {
+		"nil_parent_and_empty_full_key": {},
+		"nil_parent_and_non_empty_full_key": {
 			fullKey:    []byte{1},
 			errWrapped: ErrKeyNotFound,
 			errMessage: "key not found",
 		},
 		// The parent encode error cannot be triggered here
 		// since it can only be caused by a buffer.Write error.
-		"parent leaf and empty full key": {
+		"parent_leaf_and_empty_full_key": {
 			parent: &node.Node{
 				PartialKey:   []byte{1, 2},
 				StorageValue: []byte{1},
@@ -297,7 +297,7 @@ func Test_walkRoot(t *testing.T) {
 				StorageValue: []byte{1},
 			})},
 		},
-		"parent leaf and shorter full key": {
+		"parent_leaf_and_shorter_full_key": {
 			parent: &node.Node{
 				PartialKey:   []byte{1, 2},
 				StorageValue: []byte{1},
@@ -306,7 +306,7 @@ func Test_walkRoot(t *testing.T) {
 			errWrapped: ErrKeyNotFound,
 			errMessage: "key not found",
 		},
-		"parent leaf and mismatching full key": {
+		"parent_leaf_and_mismatching_full_key": {
 			parent: &node.Node{
 				PartialKey:   []byte{1, 2},
 				StorageValue: []byte{1},
@@ -315,7 +315,7 @@ func Test_walkRoot(t *testing.T) {
 			errWrapped: ErrKeyNotFound,
 			errMessage: "key not found",
 		},
-		"parent leaf and longer full key": {
+		"parent_leaf_and_longer_full_key": {
 			parent: &node.Node{
 				PartialKey:   []byte{1, 2},
 				StorageValue: []byte{1},
@@ -324,7 +324,7 @@ func Test_walkRoot(t *testing.T) {
 			errWrapped: ErrKeyNotFound,
 			errMessage: "key not found",
 		},
-		"branch and empty search key": {
+		"branch_and_empty_search_key": {
 			parent: &node.Node{
 				PartialKey:   []byte{1, 2},
 				StorageValue: []byte{3},
@@ -348,7 +348,7 @@ func Test_walkRoot(t *testing.T) {
 				}),
 			},
 		},
-		"branch and shorter full key": {
+		"branch_and_shorter_full_key": {
 			parent: &node.Node{
 				PartialKey:   []byte{1, 2},
 				StorageValue: []byte{3},
@@ -363,7 +363,7 @@ func Test_walkRoot(t *testing.T) {
 			errWrapped: ErrKeyNotFound,
 			errMessage: "key not found",
 		},
-		"branch and mismatching full key": {
+		"branch_and_mismatching_full_key": {
 			parent: &node.Node{
 				PartialKey:   []byte{1, 2},
 				StorageValue: []byte{3},
@@ -378,7 +378,7 @@ func Test_walkRoot(t *testing.T) {
 			errWrapped: ErrKeyNotFound,
 			errMessage: "key not found",
 		},
-		"branch and matching search key": {
+		"branch_and_matching_search_key": {
 			parent: &node.Node{
 				PartialKey:   []byte{1, 2},
 				StorageValue: []byte{3},
@@ -403,7 +403,7 @@ func Test_walkRoot(t *testing.T) {
 				}),
 			},
 		},
-		"branch and matching search key for small leaf encoding": {
+		"branch_and_matching_search_key_for_small_leaf_encoding": {
 			parent: &node.Node{
 				PartialKey:   []byte{1, 2},
 				StorageValue: []byte{3},
@@ -430,7 +430,7 @@ func Test_walkRoot(t *testing.T) {
 				// is less than 32 bytes.
 			},
 		},
-		"branch and matching search key for large leaf encoding": {
+		"branch_and_matching_search_key_for_large_leaf_encoding": {
 			parent: &node.Node{
 				PartialKey:   []byte{1, 2},
 				StorageValue: []byte{3},
@@ -459,7 +459,7 @@ func Test_walkRoot(t *testing.T) {
 				}),
 			},
 		},
-		"key not found at deeper level": {
+		"key_not_found_at_deeper_level": {
 			parent: &node.Node{
 				PartialKey:   []byte{1, 2},
 				StorageValue: []byte{3},
@@ -474,7 +474,7 @@ func Test_walkRoot(t *testing.T) {
 			errWrapped: ErrKeyNotFound,
 			errMessage: "key not found",
 		},
-		"found leaf at deeper level": {
+		"found_leaf_at_deeper_level": {
 			parent: &node.Node{
 				PartialKey:   []byte{1, 2},
 				StorageValue: []byte{3},
@@ -530,15 +530,15 @@ func Test_walk(t *testing.T) {
 		errWrapped        error
 		errMessage        string
 	}{
-		"nil parent and empty full key": {},
-		"nil parent and non empty full key": {
+		"nil_parent_and_empty_full_key": {},
+		"nil_parent_and_non_empty_full_key": {
 			fullKey:    []byte{1},
 			errWrapped: ErrKeyNotFound,
 			errMessage: "key not found",
 		},
 		// The parent encode error cannot be triggered here
 		// since it can only be caused by a buffer.Write error.
-		"parent leaf and empty full key": {
+		"parent_leaf_and_empty_full_key": {
 			parent: &node.Node{
 				PartialKey:   []byte{1, 2},
 				StorageValue: largeValue,
@@ -548,7 +548,7 @@ func Test_walk(t *testing.T) {
 				StorageValue: largeValue,
 			})},
 		},
-		"parent leaf and shorter full key": {
+		"parent_leaf_and_shorter_full_key": {
 			parent: &node.Node{
 				PartialKey:   []byte{1, 2},
 				StorageValue: []byte{1},
@@ -557,7 +557,7 @@ func Test_walk(t *testing.T) {
 			errWrapped: ErrKeyNotFound,
 			errMessage: "key not found",
 		},
-		"parent leaf and mismatching full key": {
+		"parent_leaf_and_mismatching_full_key": {
 			parent: &node.Node{
 				PartialKey:   []byte{1, 2},
 				StorageValue: []byte{1},
@@ -566,7 +566,7 @@ func Test_walk(t *testing.T) {
 			errWrapped: ErrKeyNotFound,
 			errMessage: "key not found",
 		},
-		"parent leaf and longer full key": {
+		"parent_leaf_and_longer_full_key": {
 			parent: &node.Node{
 				PartialKey:   []byte{1, 2},
 				StorageValue: []byte{1},
@@ -575,7 +575,7 @@ func Test_walk(t *testing.T) {
 			errWrapped: ErrKeyNotFound,
 			errMessage: "key not found",
 		},
-		"branch and empty search key": {
+		"branch_and_empty_search_key": {
 			parent: &node.Node{
 				PartialKey:   []byte{1, 2},
 				StorageValue: largeValue,
@@ -599,7 +599,7 @@ func Test_walk(t *testing.T) {
 				}),
 			},
 		},
-		"branch and shorter full key": {
+		"branch_and_shorter_full_key": {
 			parent: &node.Node{
 				PartialKey:   []byte{1, 2},
 				StorageValue: []byte{3},
@@ -614,7 +614,7 @@ func Test_walk(t *testing.T) {
 			errWrapped: ErrKeyNotFound,
 			errMessage: "key not found",
 		},
-		"branch and mismatching full key": {
+		"branch_and_mismatching_full_key": {
 			parent: &node.Node{
 				PartialKey:   []byte{1, 2},
 				StorageValue: []byte{3},
@@ -629,7 +629,7 @@ func Test_walk(t *testing.T) {
 			errWrapped: ErrKeyNotFound,
 			errMessage: "key not found",
 		},
-		"branch and matching search key": {
+		"branch_and_matching_search_key": {
 			parent: &node.Node{
 				PartialKey:   []byte{1, 2},
 				StorageValue: []byte{3},
@@ -654,7 +654,7 @@ func Test_walk(t *testing.T) {
 				}),
 			},
 		},
-		"branch and matching search key for small leaf encoding": {
+		"branch_and_matching_search_key_for_small_leaf_encoding": {
 			parent: &node.Node{
 				PartialKey:   []byte{1, 2},
 				StorageValue: largeValue,
@@ -681,7 +681,7 @@ func Test_walk(t *testing.T) {
 				// is less than 32 bytes.
 			},
 		},
-		"branch and matching search key for large leaf encoding": {
+		"branch_and_matching_search_key_for_large_leaf_encoding": {
 			parent: &node.Node{
 				PartialKey:   []byte{1, 2},
 				StorageValue: []byte{3},
@@ -710,7 +710,7 @@ func Test_walk(t *testing.T) {
 				}),
 			},
 		},
-		"key not found at deeper level": {
+		"key_not_found_at_deeper_level": {
 			parent: &node.Node{
 				PartialKey:   []byte{1, 2},
 				StorageValue: []byte{3},
@@ -725,7 +725,7 @@ func Test_walk(t *testing.T) {
 			errWrapped: ErrKeyNotFound,
 			errMessage: "key not found",
 		},
-		"found leaf at deeper level": {
+		"found_leaf_at_deeper_level": {
 			parent: &node.Node{
 				PartialKey:   []byte{1, 2},
 				StorageValue: []byte{3},
@@ -776,31 +776,31 @@ func Test_lenCommonPrefix(t *testing.T) {
 		b      []byte
 		length int
 	}{
-		"nil slices": {},
-		"empty slices": {
+		"nil_slices": {},
+		"empty_slices": {
 			a: []byte{},
 			b: []byte{},
 		},
-		"fully different": {
+		"fully_different": {
 			a: []byte{1, 2, 3},
 			b: []byte{4, 5, 6},
 		},
-		"fully same": {
+		"fully_same": {
 			a:      []byte{1, 2, 3},
 			b:      []byte{1, 2, 3},
 			length: 3,
 		},
-		"different and common prefix": {
+		"different_and_common_prefix": {
 			a:      []byte{1, 2, 3, 4},
 			b:      []byte{1, 2, 4, 4},
 			length: 2,
 		},
-		"first bigger than second": {
+		"first_bigger_than_second": {
 			a:      []byte{1, 2, 3},
 			b:      []byte{1, 2},
 			length: 2,
 		},
-		"first smaller than second": {
+		"first_smaller_than_second": {
 			a:      []byte{1, 2},
 			b:      []byte{1, 2, 3},
 			length: 2,

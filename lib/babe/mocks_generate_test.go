@@ -6,3 +6,4 @@ package babe
 //go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE . Telemetry
 //go:generate mockgen -destination=mocks/runtime.go -package mocks github.com/ChainSafe/gossamer/dot/core RuntimeInstance
 //go:generate mockgen -destination=mocks/network.go -package mocks github.com/ChainSafe/gossamer/dot/core Network
+//go:generate mockgen -destination=mock_state_test.go -package $GOPACKAGE . BlockState,ImportedBlockNotifierManager,StorageState,TransactionState,EpochState,BlockImportHandler

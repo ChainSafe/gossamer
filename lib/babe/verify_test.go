@@ -169,23 +169,23 @@ func Test_getAuthorityIndex(t *testing.T) {
 			expErr: errors.New("first digest item is not pre-runtime digest"),
 		},
 		{
-			name: "Invalid Preruntime Digest Type",
+			name: "Invalid_Preruntime_Digest_Type",
 			args: args{headerInvalidPre},
 			expErr: errors.New("cannot decode babe header from pre-digest: decoding struct: unmarshalling field at" +
 				" index 0: EOF"),
 		},
 		{
-			name: "BabePrimaryPreDigest Type",
+			name: "BabePrimaryPreDigest_Type",
 			args: args{headerPrimary},
 			exp:  21,
 		},
 		{
-			name: "BabeSecondaryVRFPreDigest Type",
+			name: "BabeSecondaryVRFPreDigest_Type",
 			args: args{headerSecondary},
 			exp:  21,
 		},
 		{
-			name: "BabeSecondaryPlainPreDigest Type",
+			name: "BabeSecondaryPlainPreDigest_Type",
 			args: args{headerSecondaryPlain},
 			exp:  21,
 		},
@@ -1158,7 +1158,7 @@ func TestVerificationManager_getVerifierInfo(t *testing.T) {
 			expErr: errors.New("failed to calculate threshold: invalid C1/C2: greater than 1"),
 		},
 		{
-			name: "happy path",
+			name: "happy_path",
 			vm:   vm3,
 			exp: &verifierInfo{
 				threshold: scale.MaxUint128,
@@ -1425,7 +1425,7 @@ func TestVerificationManager_SetOnDisabled(t *testing.T) {
 		expErr error
 	}{
 		{
-			name: "get epoch err",
+			name: "get_epoch_err",
 			vm:   vm0,
 			args: args{
 				header: types.NewEmptyHeader(),
@@ -1433,7 +1433,7 @@ func TestVerificationManager_SetOnDisabled(t *testing.T) {
 			expErr: errTestGetEpoch,
 		},
 		{
-			name: "get epoch data err",
+			name: "get_epoch_data_err",
 			vm:   vm1,
 			args: args{
 				header: types.NewEmptyHeader(),
@@ -1441,7 +1441,7 @@ func TestVerificationManager_SetOnDisabled(t *testing.T) {
 			expErr: fmt.Errorf("failed to get epoch data for epoch %d: %w", 0, errTestGetEpochData),
 		},
 		{
-			name: "index length error",
+			name: "index_length_error",
 			vm:   vm2,
 			args: args{
 				index:  10000,
@@ -1450,14 +1450,14 @@ func TestVerificationManager_SetOnDisabled(t *testing.T) {
 			expErr: ErrInvalidBlockProducerIndex,
 		},
 		{
-			name: "set disabled producers",
+			name: "set_disabled_producers",
 			vm:   vm3,
 			args: args{
 				header: types.NewEmptyHeader(),
 			},
 		},
 		{
-			name: "is Descendant of err",
+			name: "is_Descendant_of_err",
 			vm:   vm4,
 			args: args{
 				header: types.NewEmptyHeader(),
@@ -1465,7 +1465,7 @@ func TestVerificationManager_SetOnDisabled(t *testing.T) {
 			expErr: errTestDescendant,
 		},
 		{
-			name: "authority already disabled",
+			name: "authority_already_disabled",
 			vm:   vm5,
 			args: args{
 				header: testHeader,
@@ -1473,7 +1473,7 @@ func TestVerificationManager_SetOnDisabled(t *testing.T) {
 			expErr: ErrAuthorityAlreadyDisabled,
 		},
 		{
-			name: "happy path",
+			name: "happy_path",
 			vm:   vm6,
 			args: args{
 				header: testHeader,

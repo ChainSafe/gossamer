@@ -22,13 +22,13 @@ func Test_bootstrapSyncer_handleWorkerResult(t *testing.T) {
 		wantWorkerToRetry *worker
 		err               error
 	}{
-		"nil worker.err returns nil": {
+		"nil_worker.err_returns_nil": {
 			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 				return NewMockBlockState(ctrl)
 			},
 			worker: &worker{},
 		},
-		"best block header error": {
+		"best_block_header_error": {
 			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().BestBlockHeader().Return(nil,
@@ -41,7 +41,7 @@ func Test_bootstrapSyncer_handleWorkerResult(t *testing.T) {
 			},
 			err: mockError,
 		},
-		"targetNumber < bestBlockHeader number returns nil": {
+		"targetNumber_<_bestBlockHeader_number_returns_nil": {
 			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().BestBlockHeader().Return(&types.Header{Number: 2}, nil)
@@ -52,7 +52,7 @@ func Test_bootstrapSyncer_handleWorkerResult(t *testing.T) {
 				targetNumber: uintPtr(0),
 			},
 		},
-		"targetNumber > bestBlockHeader number worker errUnknownParent, error GetHighestFinalisedHeader": {
+		"targetNumber_>_bestBlockHeader_number_worker_errUnknownParent,_error_GetHighestFinalisedHeader": {
 			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().BestBlockHeader().Return(&types.Header{Number: 2}, nil)
@@ -65,7 +65,7 @@ func Test_bootstrapSyncer_handleWorkerResult(t *testing.T) {
 			},
 			err: mockError,
 		},
-		"targetNumber > bestBlockHeader number worker errUnknownParent returns worker": {
+		"targetNumber_>_bestBlockHeader_number_worker_errUnknownParent_returns_worker": {
 			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().BestBlockHeader().Return(&types.Header{Number: 2}, nil)
@@ -81,7 +81,7 @@ func Test_bootstrapSyncer_handleWorkerResult(t *testing.T) {
 				targetNumber: uintPtr(3),
 			},
 		},
-		"targetNumber > bestBlockHeader number returns worker": {
+		"targetNumber_>_bestBlockHeader_number_returns_worker": {
 			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().BestBlockHeader().Return(&types.Header{Number: 2}, nil)

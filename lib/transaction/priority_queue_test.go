@@ -282,12 +282,12 @@ func Test_PriorityQueue_PopWithTimer(t *testing.T) {
 		timer         *time.Timer
 		transaction   *ValidTransaction
 	}{
-		"empty queue polled once": {
+		"empty_queue_polled_once": {
 			// test should last 1ns
 			queueBuilder: NewPriorityQueue,
 			timer:        time.NewTimer(time.Nanosecond),
 		},
-		"empty queue polled multiple times": {
+		"empty_queue_polled_multiple_times": {
 			// test should last 1ms
 			queueBuilder: func() *PriorityQueue {
 				queue := NewPriorityQueue()
@@ -296,7 +296,7 @@ func Test_PriorityQueue_PopWithTimer(t *testing.T) {
 			},
 			timer: time.NewTimer(time.Millisecond),
 		},
-		"queue with one element polled once": {
+		"queue_with_one_element_polled_once": {
 			// test should be instantaneous
 			queueBuilder: func() *PriorityQueue {
 				queue := NewPriorityQueue()
@@ -306,7 +306,7 @@ func Test_PriorityQueue_PopWithTimer(t *testing.T) {
 			timer:       time.NewTimer(time.Nanosecond),
 			transaction: &ValidTransaction{Validity: &Validity{Priority: 1}},
 		},
-		"queue polled multiple times until new element": {
+		"queue_polled_multiple_times_until_new_element": {
 			// test should last 1ms
 			queueBuilder: func() *PriorityQueue {
 				queue := NewPriorityQueue()

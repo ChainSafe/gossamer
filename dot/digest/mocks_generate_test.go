@@ -5,3 +5,4 @@ package digest
 
 //go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE . Telemetry
 //go:generate mockgen -destination=mock_grandpa_test.go -package $GOPACKAGE . GrandpaState
+//go:generate mockgen -destination=mock_epoch_state_test.go -package $GOPACKAGE . EpochState

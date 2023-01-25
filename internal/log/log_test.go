@@ -24,7 +24,7 @@ func Test_Logger_log(t *testing.T) {
 		args        []interface{}
 		outputRegex string
 	}{
-		"log at trace": {
+		"log_at_trace": {
 			logger: &Logger{
 				settings: settings{
 					level:  levelPtr(Trace),
@@ -36,7 +36,7 @@ func Test_Logger_log(t *testing.T) {
 			s:           "some words",
 			outputRegex: timePrefixRegex + "TRACE    some words\n$",
 		},
-		"do not log at trace": {
+		"do_not_log_at_trace": {
 			logger: &Logger{
 				settings: settings{
 					level:  levelPtr(Debug),
@@ -48,7 +48,7 @@ func Test_Logger_log(t *testing.T) {
 			s:           "some words",
 			outputRegex: "^$",
 		},
-		"log at debug with trace set": {
+		"log_at_debug_with_trace_set": {
 			logger: &Logger{
 				settings: settings{
 					level:  levelPtr(Trace),
@@ -60,7 +60,7 @@ func Test_Logger_log(t *testing.T) {
 			s:           "some words",
 			outputRegex: timePrefixRegex + "DEBUG    some words\n$",
 		},
-		"format string": {
+		"format_string": {
 			logger: &Logger{
 				settings: settings{
 					level:  levelPtr(Trace),
@@ -73,7 +73,7 @@ func Test_Logger_log(t *testing.T) {
 			args:        []interface{}{"words"},
 			outputRegex: timePrefixRegex + "TRACE    some words\n$",
 		},
-		"show caller": {
+		"show_caller": {
 			logger: &Logger{
 				settings: settings{
 					level:  levelPtr(Trace),

@@ -63,16 +63,16 @@ func TestOffchainRequest_AddHeader(t *testing.T) {
 		err              error
 		headerK, headerV string
 	}{
-		"should return invalid request": {
+		"should_return_invalid_request": {
 			offReq: Request{invalidReq},
 			err:    errRequestInvalid,
 		},
-		"should add header": {
+		"should_add_header": {
 			offReq:  Request{Request: &http.Request{Header: make(http.Header)}},
 			headerK: "key",
 			headerV: "value",
 		},
-		"should return invalid empty header": {
+		"should_return_invalid_empty_header": {
 			offReq:  Request{Request: &http.Request{Header: make(http.Header)}},
 			headerK: "",
 			headerV: "value",

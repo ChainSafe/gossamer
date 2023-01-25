@@ -39,12 +39,12 @@ func Test_pointerSize(t *testing.T) {
 		pointerSize int64
 	}{
 		"0": {},
-		"ptr 8 size 32": {
+		"ptr_8_size_32": {
 			ptr:         8,
 			size:        32,
 			pointerSize: int64(8) | (int64(32) << 32),
 		},
-		"ptr max uint32 and size max uint32": {
+		"ptr_max_uint32_and_size_max_uint32": {
 			ptr:         ^uint32(0),
 			size:        ^uint32(0),
 			pointerSize: ^int64(0),

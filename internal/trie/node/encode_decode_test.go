@@ -18,7 +18,7 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 		branchToEncode *Node
 		branchDecoded  *Node
 	}{
-		"empty branch": {
+		"empty_branch": {
 			branchToEncode: &Node{
 				Children: make([]*Node, ChildrenCapacity),
 			},
@@ -27,7 +27,7 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 				Children:   make([]*Node, ChildrenCapacity),
 			},
 		},
-		"branch with key 5": {
+		"branch_with_key_5": {
 			branchToEncode: &Node{
 				Children:   make([]*Node, ChildrenCapacity),
 				PartialKey: []byte{5},
@@ -37,7 +37,7 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 				Children:   make([]*Node, ChildrenCapacity),
 			},
 		},
-		"branch with two bytes key": {
+		"branch_with_two_bytes_key": {
 			branchToEncode: &Node{
 				PartialKey: []byte{0xf, 0xa}, // note: each byte cannot be larger than 0xf
 				Children:   make([]*Node, ChildrenCapacity),
@@ -47,7 +47,7 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 				Children:   make([]*Node, ChildrenCapacity),
 			},
 		},
-		"branch with child leaf inline": {
+		"branch_with_child_leaf_inline": {
 			branchToEncode: &Node{
 				PartialKey: []byte{5},
 				Children: padRightChildren([]*Node{
@@ -68,7 +68,7 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 				}),
 			},
 		},
-		"branch with child leaf hash": {
+		"branch_with_child_leaf_hash": {
 			branchToEncode: &Node{
 				PartialKey: []byte{5},
 				Children: padRightChildren([]*Node{

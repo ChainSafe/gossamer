@@ -87,7 +87,7 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 		exp    []string
 	}{
 		{
-			name: "Get Keys Nil Hash",
+			name: "Get_Keys_Nil_Hash",
 			fields: fields{
 				childStateModule.storageAPI,
 				childStateModule.blockAPI,
@@ -100,7 +100,7 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 			exp: expHexKeys,
 		},
 		{
-			name: "Get Keys with Hash",
+			name: "Get_Keys_with_Hash",
 			fields: fields{
 				childStateModule.storageAPI,
 				childStateModule.blockAPI,
@@ -114,7 +114,7 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 			exp: expHexKeys,
 		},
 		{
-			name: "GetStorageChild error",
+			name: "GetStorageChild_error",
 			fields: fields{
 				mockErrorStorageAPI1,
 				mockBlockAPI,
@@ -127,7 +127,7 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 			expErr: errors.New("GetStorageChild error"),
 		},
 		{
-			name: "GetStateRootFromBlock error",
+			name: "GetStateRootFromBlock_error",
 			fields: fields{
 				mockErrorStorageAPI2,
 				mockBlockAPI,
@@ -198,7 +198,7 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 		exp    uint64
 	}{
 		{
-			name: "Get Keys Nil Hash",
+			name: "Get_Keys_Nil_Hash",
 			fields: fields{
 				childStateModule.storageAPI,
 				childStateModule.blockAPI,
@@ -212,7 +212,7 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 			exp: uint64(0),
 		},
 		{
-			name: "Get Keys with Hash",
+			name: "Get_Keys_with_Hash",
 			fields: fields{
 				childStateModule.storageAPI,
 				childStateModule.blockAPI,
@@ -227,7 +227,7 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 			exp: uint64(0),
 		},
 		{
-			name: "GetStorageChild error",
+			name: "GetStorageChild_error",
 			fields: fields{
 				mockErrorStorageAPI1,
 				mockBlockAPI,
@@ -240,7 +240,7 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 			expErr: errors.New("GetStorageChild error"),
 		},
 		{
-			name: "GetStateRootFromBlock error",
+			name: "GetStateRootFromBlock_error",
 			fields: fields{
 				mockErrorStorageAPI2,
 				mockBlockAPI,
@@ -311,7 +311,7 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 		exp    string
 	}{
 		{
-			name: "Get Keys Nil Hash",
+			name: "Get_Keys_Nil_Hash",
 			fields: fields{
 				childStateModule.storageAPI,
 				childStateModule.blockAPI,
@@ -325,7 +325,7 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 			exp: "0x0000000000000000000000000000000000000000000000000000000000000000",
 		},
 		{
-			name: "Get Keys with Hash",
+			name: "Get_Keys_with_Hash",
 			fields: fields{
 				childStateModule.storageAPI,
 				childStateModule.blockAPI,
@@ -340,7 +340,7 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 			exp: "0x0000000000000000000000000000000000000000000000000000000000000000",
 		},
 		{
-			name: "GetStorageChild error",
+			name: "GetStorageChild_error",
 			fields: fields{
 				mockErrorStorageAPI1,
 				mockBlockAPI,
@@ -353,7 +353,7 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 			expErr: errors.New("GetStorageChild error"),
 		},
 		{
-			name: "GetStateRootFromBlock error",
+			name: "GetStateRootFromBlock_error",
 			fields: fields{
 				mockErrorStorageAPI2,
 				mockBlockAPI,
@@ -424,7 +424,7 @@ func TestChildStateModule_GetStorage(t *testing.T) {
 		exp    StateStorageResponse
 	}{
 		{
-			name: "Get Keys Nil Hash",
+			name: "Get_Keys_Nil_Hash",
 			fields: fields{
 				childStateModule.storageAPI,
 				childStateModule.blockAPI,
@@ -438,7 +438,7 @@ func TestChildStateModule_GetStorage(t *testing.T) {
 			exp: StateStorageResponse("0x74657374"),
 		},
 		{
-			name: "Get Keys with Hash",
+			name: "Get_Keys_with_Hash",
 			fields: fields{
 				childStateModule.storageAPI,
 				childStateModule.blockAPI,
@@ -453,7 +453,7 @@ func TestChildStateModule_GetStorage(t *testing.T) {
 			exp: StateStorageResponse("0x74657374"),
 		},
 		{
-			name: "GetStorageChild error",
+			name: "GetStorageChild_error",
 			fields: fields{
 				mockErrorStorageAPI1,
 				mockBlockAPI,
@@ -466,7 +466,7 @@ func TestChildStateModule_GetStorage(t *testing.T) {
 			expErr: errors.New("GetStorageChild error"),
 		},
 		{
-			name: "GetStateRootFromBlock error",
+			name: "GetStateRootFromBlock_error",
 			fields: fields{
 				mockErrorStorageAPI2,
 				mockBlockAPI,
