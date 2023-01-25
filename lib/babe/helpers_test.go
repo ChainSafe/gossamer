@@ -29,11 +29,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var (
+const (
 	defaultTestLogLvl = log.Info
-	emptyHash         = trie.EmptyHash
 	testEpochIndex    = uint64(0)
-	maxThreshold      = scale.MaxUint128
+)
+
+var (
+	emptyHash    = trie.EmptyHash
+	maxThreshold = scale.MaxUint128
 
 	emptyHeader = &types.Header{
 		Number: 0,
@@ -161,9 +164,7 @@ func NewTestService(t *testing.T, cfg *core.Config, genesis genesis.Genesis,
 
 func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 	genesisTrie trie.Trie, genesisHeader types.Header) *Service {
-	wasmer.DefaultTestLogLvl = 1
-
-	var err error
+	wasmer.DefaultTestLogLvl = log.Error
 
 	if cfg.Keypair == nil {
 		cfg.Keypair = keyring.Alice().(*sr25519.Keypair)
@@ -184,18 +185,16 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 	cfg.Telemetry = telemetryMock
 
 	testDatadirPath := t.TempDir()
-	require.NoError(t, err)
 
-	var dbSrv *state.Service
 	config := state.Config{
 		Path:      testDatadirPath,
 		LogLevel:  log.Info,
 		Telemetry: telemetryMock,
 	}
-	dbSrv = state.NewService(config)
+	dbSrv := state.NewService(config)
 	dbSrv.UseMemDB()
 
-	err = dbSrv.Initialise(&genesis, &genesisHeader, &genesisTrie)
+	err := dbSrv.Initialise(&genesis, &genesisHeader, &genesisTrie)
 	require.NoError(t, err)
 
 	err = dbSrv.Start()
@@ -221,9 +220,9 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 	nodeStorage.BaseDB = dbSrv.Base
 
 	rtCfg.NodeStorage = nodeStorage
-	rt, err := wasmer.NewRuntimeFromGenesis(rtCfg)
+	runtime, err := wasmer.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
-	cfg.BlockState.(*state.BlockState).StoreRuntime(cfg.BlockState.BestBlockHash(), rt)
+	cfg.BlockState.(*state.BlockState).StoreRuntime(cfg.BlockState.BestBlockHash(), runtime)
 
 	cfg.IsDev = true
 	cfg.LogLvl = defaultTestLogLvl
@@ -238,7 +237,7 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 			BlockState:           dbSrv.Block,
 			StorageState:         storageState,
 			TransactionState:     dbSrv.Transaction,
-			Runtime:              rt,
+			Runtime:              runtime,
 			Keystore:             rtCfg.Keystore,
 			Network:              mockNetwork,
 			CodeSubstitutedState: dbSrv.Base,
@@ -337,8 +336,8 @@ func getSlot(t *testing.T, rt runtime.Instance, timestamp time.Time) Slot {
 func createTestBlockWithSlot(t *testing.T, babeService *Service, parent *types.Header,
 	exts [][]byte, epoch uint64, epochData *epochData, slot Slot) *types.Block {
 	for _, ext := range exts {
-		vtx := transaction.NewValidTransaction(ext, &transaction.Validity{})
-		_, err := babeService.transactionState.Push(vtx)
+		validTransaction := transaction.NewValidTransaction(ext, &transaction.Validity{})
+		_, err := babeService.transactionState.Push(validTransaction)
 		require.NoError(t, err)
 	}
 
@@ -356,7 +355,7 @@ func createTestBlockWithSlot(t *testing.T, babeService *Service, parent *types.H
 	return block
 }
 
-// newWestendLocalGenesisWithTrieAndHeader generates westend genesis, genesis trie and genesis header
+// newWestendLocalGenesisWithTrieAndHeader returns the westend genesis, genesis trie and genesis header
 func newWestendLocalGenesisWithTrieAndHeader(t *testing.T) (
 	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
 	t.Helper()
