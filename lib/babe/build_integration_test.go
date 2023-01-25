@@ -177,15 +177,15 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	header := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, 1, types.NewDigest())
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
-	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
+	runtime, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
 	//initialise block header
-	err = rt.InitializeBlock(header)
+	err = runtime.InitializeBlock(header)
 	require.NoError(t, err)
 
 	// build extrinsic
-	rawMeta, err := rt.Metadata()
+	rawMeta, err := runtime.Metadata()
 	require.NoError(t, err)
 	var decoded []byte
 	err = scale.Unmarshal(rawMeta, &decoded)
@@ -195,7 +195,7 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	err = codec.Decode(decoded, meta)
 	require.NoError(t, err)
 
-	rv := rt.Version()
+	rv := runtime.Version()
 
 	bob, err := ctypes.NewMultiAddressFromHexAccountID(
 		"0x90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22")
@@ -227,16 +227,16 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	encoder := cscale.NewEncoder(&extEnc)
 	ext.Encode(*encoder)
 
-	externalExtrinsic := buildLocalTransaction(t, rt, extEnc.Bytes(), bestBlockHash)
+	externalExtrinsic := buildLocalTransaction(t, runtime, extEnc.Bytes(), bestBlockHash)
 
-	txVal, err := rt.ValidateTransaction(externalExtrinsic)
+	txVal, err := runtime.ValidateTransaction(externalExtrinsic)
 	require.NoError(t, err)
 
 	vtx := transaction.NewValidTransaction(extEnc.Bytes(), txVal)
 	babeService.transactionState.Push(vtx)
 
 	// apply extrinsic
-	res, err := rt.ApplyExtrinsic(extEnc.Bytes())
+	res, err := runtime.ApplyExtrinsic(extEnc.Bytes())
 	require.NoError(t, err)
 	// Expected result for valid ApplyExtrinsic is 0, 0
 	require.Equal(t, []byte{0, 0}, res)
@@ -341,7 +341,7 @@ func TestBuildBlockTimeMonitor(t *testing.T) {
 	parent, err := babeService.blockState.BestBlockHeader()
 	require.NoError(t, err)
 
-	rt, err := babeService.blockState.GetRuntime(parent.Hash())
+	runtime, err := babeService.blockState.GetRuntime(parent.Hash())
 	require.NoError(t, err)
 
 	timerMetrics := metrics.GetOrRegisterTimer(buildBlockTimer, nil)
@@ -350,7 +350,7 @@ func TestBuildBlockTimeMonitor(t *testing.T) {
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
-	slot := getSlot(t, rt, time.Now())
+	slot := getSlot(t, runtime, time.Now())
 	createTestBlockWithSlot(t, babeService, parent, [][]byte{}, testEpochIndex, epochData, slot)
 	require.Equal(t, int64(1), timerMetrics.Count())
 

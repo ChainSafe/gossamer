@@ -259,6 +259,7 @@ func NewTestExtrinsic(t *testing.T, rt MetadataVersioner, genHash, blockHash com
 
 	extEnc, err := codec.EncodeToHex(ext)
 	require.NoError(t, err)
+
 	return extEnc
 }
 
