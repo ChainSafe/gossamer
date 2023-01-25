@@ -16,8 +16,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-//go:generate mockgen -destination=logger_mock_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/internal/httpserver Logger
-
 func Test_Server(t *testing.T) {
 	t.Parallel()
 	ctrl := gomock.NewController(t)
