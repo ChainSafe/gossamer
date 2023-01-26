@@ -366,11 +366,9 @@ var (
 	}
 
 	// PruningFlag triggers the online pruning of historical state tries.
-	// It's either full or archive.
-	// To enable pruning the value should be set to `full`.
 	PruningFlag = cli.StringFlag{
 		Name:  "pruning",
-		Usage: `State trie online pruning ("full", "archive")`,
+		Usage: `State trie online pruning ("archive")`,
 		Value: dev.DefaultPruningMode,
 	}
 )
