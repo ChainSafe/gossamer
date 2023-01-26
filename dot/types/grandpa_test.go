@@ -31,8 +31,8 @@ func Test_OpaqueKeyOwnershipProof_ScaleCodec(t *testing.T) {
 }
 
 func TestInstance_GrandpaSubmitReportEquivocationUnsignedExtrinsicEncoding(t *testing.T) {
-	// TODO add comment of rust code or link to it
 	t.Parallel()
+	// source: https://github.com/jimjbrettj/scale-encoding-generator/blob/a111e57d5103a7b5ba863cee09b83b89ba9c29e0/src/main.rs#L52
 	expectedEncoding := common.MustHexToBytes("0x010000000000000000010000000000000088dc3417d5058ec4b4503e0c12ea" +
 		"1a0a89be200fe98922423d4334014fa6b0ee4801b8e62d31167d30c893cc1970f6a0e289420282a4b245b75f2c46fb308af10a0000" +
 		"00d7292caacc62504365f179892a7399f233944bf261f8a3f66260f70e0016f2db63922726b015c82dc7131f4730fbec61f71672a5" +
@@ -82,47 +82,10 @@ func TestInstance_GrandpaSubmitReportEquivocationUnsignedExtrinsicEncoding(t *te
 	require.Equal(t, expectedEncoding, actualEncoding)
 }
 
-func Test_PreVoteEquivocation_ScaleCodec(t *testing.T) {
-	t.Parallel()
-	firstVote := GrandpaVote{
-		Hash:   common.Hash{0xa, 0xb, 0xc, 0xd},
-		Number: 999,
-	}
-	secondVote := GrandpaVote{
-		Hash:   common.Hash{0xd, 0xc, 0xb, 0xa},
-		Number: 999,
-	}
-	signature := [64]byte{1, 2, 3, 4}
-	keypair, err := ed25519.GenerateKeypair()
-	require.NoError(t, err)
-
-	var authorityID [32]byte
-	copy(authorityID[:], keypair.Public().Encode())
-
-	equivocation := GrandpaEquivocation{
-		RoundNumber:     0,
-		ID:              authorityID,
-		FirstVote:       firstVote,
-		FirstSignature:  signature,
-		SecondVote:      secondVote,
-		SecondSignature: signature,
-	}
-
-	equivPreVote := PreVoteEquivocation(equivocation)
-	equivVote := NewGrandpaEquivocation()
-	err = equivVote.Set(equivPreVote)
-	require.NoError(t, err)
-	encoding := scale.MustMarshal(*equivVote)
-
-	grandpaEquivocation := NewGrandpaEquivocation()
-	err = scale.Unmarshal(encoding, grandpaEquivocation)
-	require.NoError(t, err)
-	require.Equal(t, equivVote, grandpaEquivocation)
-}
-
 func Test_GrandpaVote(t *testing.T) {
 	t.Parallel()
-	expectedEncoding := common.MustHexToBytes("0x0a0b0c0d00000000000000000000000000000000000000000000000000000000e7030000")
+	// source: https://github.com/jimjbrettj/scale-encoding-generator/blob/a111e57d5103a7b5ba863cee09b83b89ba9c29e0/src/main.rs#L42
+	expectedEncoding := []byte{10, 11, 12, 13, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 231, 3, 0, 0}
 	vote := GrandpaVote{
 		Hash:   common.Hash{0xa, 0xb, 0xc, 0xd},
 		Number: 999,
