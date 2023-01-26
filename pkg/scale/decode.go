@@ -447,7 +447,7 @@ func (ds *decodeState) decodeMap(dstv reflect.Value) (err error) {
 	return nil
 }
 
-// decodeStruct decodes a byte array representing a SCALE tuple.  The order of data is
+// decodeStruct decodes a byte array representing a SCALE tuple. The order of data is
 // determined by the source tuple in rust, or the struct field order in a go struct
 func (ds *decodeState) decodeStruct(dstv reflect.Value) (err error) {
 	in := dstv.Interface()
