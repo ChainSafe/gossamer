@@ -374,7 +374,7 @@ func newWestendLocalGenesisWithTrieAndHeader(t *testing.T) (
 	return gen, genesisTrie, genesisHeader
 }
 
-// newWestendDevGenesisWithTrieAndHeader generates westend genesis, genesis trie and genesis header
+// newWestendDevGenesisWithTrieAndHeader returns the westend genesis, genesis trie and genesis header
 func newWestendDevGenesisWithTrieAndHeader(t *testing.T) (
 	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
 	t.Helper()
