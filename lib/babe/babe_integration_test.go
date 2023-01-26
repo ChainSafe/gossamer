@@ -181,9 +181,14 @@ func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
 
 	require.NoError(t, err)
 
+	slot = Slot{
+		start:    time.Now(),
+		duration: babeService.constants.slotDuration * time.Millisecond,
+		number:   bestBlockSlotNum - 1,
+	}
 	err = babeService.handleSlot(
 		babeService.epochHandler.epochNumber,
-		bestBlockSlotNum-1,
+		slot,
 		babeService.epochHandler.epochData.authorityIndex,
 		preRuntimeDigest)
 
@@ -285,7 +290,7 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 	// authored by someone else
 	err = babeServiceAlice.handleSlot(
 		testEpochIndex,
-		bestBlockSlotNum,
+		slot,
 		0,
 		preRuntimeDigest)
 	require.NoError(t, err)
