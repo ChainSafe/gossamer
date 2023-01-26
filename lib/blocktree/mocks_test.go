@@ -212,7 +212,7 @@ func (mr *MockRuntimeMockRecorder) GrandpaAuthorities() *gomock.Call {
 }
 
 // GrandpaGenerateKeyOwnershipProof mocks base method.
-func (m *MockInstance) GrandpaGenerateKeyOwnershipProof(arg0 uint64, arg1 ed25519.PublicKeyBytes) (types.GrandpaOpaqueKeyOwnershipProof, error) {
+func (m *MockRuntime) GrandpaGenerateKeyOwnershipProof(arg0 uint64, arg1 ed25519.PublicKeyBytes) (types.GrandpaOpaqueKeyOwnershipProof, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GrandpaGenerateKeyOwnershipProof", arg0, arg1)
 	ret0, _ := ret[0].(types.GrandpaOpaqueKeyOwnershipProof)
@@ -221,13 +221,13 @@ func (m *MockInstance) GrandpaGenerateKeyOwnershipProof(arg0 uint64, arg1 ed2551
 }
 
 // GrandpaGenerateKeyOwnershipProof indicates an expected call of GrandpaGenerateKeyOwnershipProof.
-func (mr *MockInstanceMockRecorder) GrandpaGenerateKeyOwnershipProof(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockRuntimeMockRecorder) GrandpaGenerateKeyOwnershipProof(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GrandpaGenerateKeyOwnershipProof", reflect.TypeOf((*MockInstance)(nil).GrandpaGenerateKeyOwnershipProof), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GrandpaGenerateKeyOwnershipProof", reflect.TypeOf((*MockRuntime)(nil).GrandpaGenerateKeyOwnershipProof), arg0, arg1)
 }
 
 // GrandpaSubmitReportEquivocationUnsignedExtrinsic mocks base method.
-func (m *MockInstance) GrandpaSubmitReportEquivocationUnsignedExtrinsic(arg0 types.GrandpaEquivocationProof, arg1 types.GrandpaOpaqueKeyOwnershipProof) error {
+func (m *MockRuntime) GrandpaSubmitReportEquivocationUnsignedExtrinsic(arg0 types.GrandpaEquivocationProof, arg1 types.GrandpaOpaqueKeyOwnershipProof) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GrandpaSubmitReportEquivocationUnsignedExtrinsic", arg0, arg1)
 	ret0, _ := ret[0].(error)
@@ -235,9 +235,9 @@ func (m *MockInstance) GrandpaSubmitReportEquivocationUnsignedExtrinsic(arg0 typ
 }
 
 // GrandpaSubmitReportEquivocationUnsignedExtrinsic indicates an expected call of GrandpaSubmitReportEquivocationUnsignedExtrinsic.
-func (mr *MockInstanceMockRecorder) GrandpaSubmitReportEquivocationUnsignedExtrinsic(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockRuntimeMockRecorder) GrandpaSubmitReportEquivocationUnsignedExtrinsic(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GrandpaSubmitReportEquivocationUnsignedExtrinsic", reflect.TypeOf((*MockInstance)(nil).GrandpaSubmitReportEquivocationUnsignedExtrinsic), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GrandpaSubmitReportEquivocationUnsignedExtrinsic", reflect.TypeOf((*MockRuntime)(nil).GrandpaSubmitReportEquivocationUnsignedExtrinsic), arg0, arg1)
 }
 
 // InherentExtrinsics mocks base method.
