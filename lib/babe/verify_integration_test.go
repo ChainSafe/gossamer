@@ -448,8 +448,8 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	// So we need to manually set time to produce consistent results. See here:
 	// https://github.com/paritytech/substrate/blob/09de7b41599add51cf27eca8f1bc4c50ed8e9453/frame/timestamp/src/lib.rs#L229
 	// https://github.com/paritytech/substrate/blob/09de7b41599add51cf27eca8f1bc4c50ed8e9453/frame/timestamp/src/lib.rs#L206
-	timstamp := time.Unix(6, 0)
-	slot := getSlot(t, runtime, timstamp)
+	timestamp := time.Unix(6, 0)
+	slot := getSlot(t, runtime, timestamp)
 	block := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, testEpochIndex, epochData, slot)
 	block.Header.Hash()
 

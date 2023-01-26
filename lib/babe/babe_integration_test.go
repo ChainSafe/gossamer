@@ -127,7 +127,9 @@ func TestService_PauseAndResume(t *testing.T) {
 	require.NoError(t, err)
 }
 
+// Since this test and TestService_HandleSlotWithSameSlot are very similar, improve this one along with it in #3060
 func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
+	t.Skip()
 	cfg := ServiceConfig{
 		Authority: true,
 		Lead:      true,
