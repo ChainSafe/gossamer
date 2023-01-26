@@ -190,13 +190,13 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt ExtrinsicHandler) []*t
 
 		ret, err := rt.ApplyExtrinsic(extrinsic)
 		if err != nil {
-			logger.Warnf("failed to apply extrinsic %s: %s", extrinsic, err)
+			logger.Warnf("determining apply extrinsic call error: %s", err)
 			continue
 		}
 
 		err = determineErr(ret)
 		if err != nil {
-			logger.Warnf("failed to apply extrinsic %s: %s", extrinsic, err)
+			logger.Warnf("error when applying extrinsic %s: %s", extrinsic, err)
 
 			// Failure of the module call dispatching doesn't invalidate the extrinsic.
 			// It is included in the block.
@@ -229,8 +229,7 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt ExtrinsicHandler) []*t
 func buildBlockInherents(slot Slot, rt ExtrinsicHandler, parent *types.Header) ([][]byte, error) {
 	// Setup inherents: add timstap0
 	idata := types.NewInherentData()
-	timestamp := uint64(time.Now().UnixMilli())
-	err := idata.SetInherent(types.Timstap0, timestamp)
+	err := idata.SetInherent(types.Timstap0, uint64(slot.start.UnixMilli()))
 	if err != nil {
 		return nil, err
 	}
