@@ -32,7 +32,8 @@ func Test_OpaqueKeyOwnershipProof_ScaleCodec(t *testing.T) {
 
 func TestInstance_GrandpaSubmitReportEquivocationUnsignedExtrinsicEncoding(t *testing.T) {
 	t.Parallel()
-	// source: https://github.com/jimjbrettj/scale-encoding-generator/blob/a111e57d5103a7b5ba863cee09b83b89ba9c29e0/src/main.rs#L52
+	// source:
+	// https://github.com/jimjbrettj/scale-encoding-generator/blob/a111e57d5103a7b5ba863cee09b83b89ba9c29e0/src/main.rs#L52
 	expectedEncoding := common.MustHexToBytes("0x010000000000000000010000000000000088dc3417d5058ec4b4503e0c12ea" +
 		"1a0a89be200fe98922423d4334014fa6b0ee4801b8e62d31167d30c893cc1970f6a0e289420282a4b245b75f2c46fb308af10a0000" +
 		"00d7292caacc62504365f179892a7399f233944bf261f8a3f66260f70e0016f2db63922726b015c82dc7131f4730fbec61f71672a5" +
@@ -69,13 +70,13 @@ func TestInstance_GrandpaSubmitReportEquivocationUnsignedExtrinsicEncoding(t *te
 	}
 
 	preVoteEquivocation := PreVoteEquivocation(grandpaEquivocation)
-	equivocationVote := NewGrandpaEquivocation()
-	err := equivocationVote.Set(preVoteEquivocation)
+	equivocationEnum := NewGrandpaEquivocation()
+	err := equivocationEnum.Set(preVoteEquivocation)
 	require.NoError(t, err)
 
 	equivocationProof := GrandpaEquivocationProof{
 		SetID:        1,
-		Equivocation: *equivocationVote,
+		Equivocation: *equivocationEnum,
 	}
 
 	actualEncoding := scale.MustMarshal(equivocationProof)
@@ -84,8 +85,10 @@ func TestInstance_GrandpaSubmitReportEquivocationUnsignedExtrinsicEncoding(t *te
 
 func Test_GrandpaVote(t *testing.T) {
 	t.Parallel()
-	// source: https://github.com/jimjbrettj/scale-encoding-generator/blob/a111e57d5103a7b5ba863cee09b83b89ba9c29e0/src/main.rs#L42
-	expectedEncoding := []byte{10, 11, 12, 13, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 231, 3, 0, 0}
+	// source:
+	// https://github.com/jimjbrettj/scale-encoding-generator/blob/a111e57d5103a7b5ba863cee09b83b89ba9c29e0/src/main.rs#L42
+	expectedEncoding := []byte{10, 11, 12, 13, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 231, 3, 0, 0}
 	vote := GrandpaVote{
 		Hash:   common.Hash{0xa, 0xb, 0xc, 0xd},
 		Number: 999,
