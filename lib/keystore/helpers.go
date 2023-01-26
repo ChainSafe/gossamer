@@ -111,62 +111,46 @@ func GenerateKeypair(keytype string, kp PublicPrivater, basepath string, passwor
 	return fp, nil
 }
 
+// KeyRing is the key ring with multiple named keypairs.
+type KeyRing interface {
+	Alice() KeyPair
+	Bob() KeyPair
+	Charlie() KeyPair
+	Dave() KeyPair
+	Eve() KeyPair
+	Ferdie() KeyPair
+	George() KeyPair
+	Heather() KeyPair
+	Ian() KeyPair
+}
+
 // LoadKeystore loads a new keystore and inserts the test key into the keystore
-func LoadKeystore(key string, ks TyperInserter) (err error) {
-	if key != "" {
-		var kr interface {
-			Alice() KeyPair
-			Bob() KeyPair
-			Charlie() KeyPair
-			Dave() KeyPair
-			Eve() KeyPair
-			Ferdie() KeyPair
-			George() KeyPair
-			Heather() KeyPair
-			Ian() KeyPair
-		}
-
-		switch ks.Type() {
-		case crypto.Ed25519Type:
-			kr, err = NewEd25519Keyring()
-			if err != nil {
-				return fmt.Errorf("failed to create keyring: %s", err)
-			}
-		default:
-			kr, err = NewSr25519Keyring()
-			if err != nil {
-				return fmt.Errorf("failed to create keyring: %s", err)
-			}
-		}
-
-		switch strings.ToLower(key) {
-		// Insert can error only if kestore type do not match with key
-		// type do not match. Since we have created keyring based on ks.Type(),
-		// Insert would never error here. Thus, ignoring those errors.
-		case "alice":
-			_ = ks.Insert(kr.Alice())
-		case "bob":
-			_ = ks.Insert(kr.Bob())
-		case "charlie":
-			_ = ks.Insert(kr.Charlie())
-		case "dave":
-			_ = ks.Insert(kr.Dave())
-		case "eve":
-			_ = ks.Insert(kr.Eve())
-		case "ferdie":
-			_ = ks.Insert(kr.Ferdie())
-		case "george":
-			_ = ks.Insert(kr.George())
-		case "heather":
-			_ = ks.Insert(kr.Heather())
-		case "ian":
-			_ = ks.Insert(kr.Ian())
-		default:
-			return fmt.Errorf("invalid test key provided")
-		}
+func LoadKeystore(key string, keyStore TyperInserter, keyRing KeyRing) (err error) {
+	switch strings.ToLower(key) {
+	// Insert can error only if kestore type do not match with key
+	// type do not match. Since we have created keyring based on ks.Type(),
+	// Insert would never error here. Thus, ignoring those errors.
+	case "alice":
+		return keyStore.Insert(keyRing.Alice())
+	case "bob":
+		return keyStore.Insert(keyRing.Bob())
+	case "charlie":
+		return keyStore.Insert(keyRing.Charlie())
+	case "dave":
+		return keyStore.Insert(keyRing.Dave())
+	case "eve":
+		return keyStore.Insert(keyRing.Eve())
+	case "ferdie":
+		return keyStore.Insert(keyRing.Ferdie())
+	case "george":
+		return keyStore.Insert(keyRing.George())
+	case "heather":
+		return keyStore.Insert(keyRing.Heather())
+	case "ian":
+		return keyStore.Insert(keyRing.Ian())
+	default:
+		return fmt.Errorf("invalid test key provided")
 	}
-
-	return nil
 }
 
 // ImportKeypair imports a key specified by its filename into a subdirectory

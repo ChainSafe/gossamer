@@ -259,9 +259,13 @@ func TestNewNodeIntegration(t *testing.T) {
 	require.NoError(t, err)
 
 	ks := keystore.NewGlobalKeystore()
-	err = keystore.LoadKeystore("alice", ks.Gran)
+	ed25519keyRing, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
-	err = keystore.LoadKeystore("alice", ks.Babe)
+	err = keystore.LoadKeystore("alice", ks.Gran, ed25519keyRing)
+	require.NoError(t, err)
+	sr25519keyRing, err := keystore.NewSr25519Keyring()
+	require.NoError(t, err)
+	err = keystore.LoadKeystore("alice", ks.Babe, sr25519keyRing)
 	require.NoError(t, err)
 
 	cfg.Core.Roles = common.FullNodeRole
@@ -286,10 +290,15 @@ func TestNewNode_Authority(t *testing.T) {
 	require.NoError(t, err)
 
 	ks := keystore.NewGlobalKeystore()
-	err = keystore.LoadKeystore("alice", ks.Gran)
+	ed25519keyRing, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	err = keystore.LoadKeystore("alice", ks.Gran, ed25519keyRing)
 	require.NoError(t, err)
 	require.Equal(t, 1, ks.Gran.Size())
-	err = keystore.LoadKeystore("alice", ks.Babe)
+
+	sr25519keyRing, err := keystore.NewSr25519Keyring()
+	require.NoError(t, err)
+	err = keystore.LoadKeystore("alice", ks.Babe, sr25519keyRing)
 	require.NoError(t, err)
 	require.Equal(t, 1, ks.Babe.Size())
 
@@ -317,9 +326,15 @@ func TestStartStopNode(t *testing.T) {
 	require.NoError(t, err)
 
 	ks := keystore.NewGlobalKeystore()
-	err = keystore.LoadKeystore("alice", ks.Gran)
+
+	ed25519keyRing, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
-	err = keystore.LoadKeystore("alice", ks.Babe)
+	err = keystore.LoadKeystore("alice", ks.Gran, ed25519keyRing)
+	require.NoError(t, err)
+
+	sr25519keyRing, err := keystore.NewSr25519Keyring()
+	require.NoError(t, err)
+	err = keystore.LoadKeystore("alice", ks.Babe, sr25519keyRing)
 	require.NoError(t, err)
 
 	cfg.Core.Roles = common.FullNodeRole
