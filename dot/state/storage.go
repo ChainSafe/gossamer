@@ -48,23 +48,12 @@ func NewStorageState(db *chaindb.BadgerDB, blockState *BlockState,
 	tries *Tries, onlinePruner pruner.Config) (*StorageState, error) {
 	storageTable := chaindb.NewTable(db, storagePrefix)
 
-	var p pruner.Pruner
-	if onlinePruner.Mode == pruner.Full {
-		var err error
-		p, err = pruner.NewFullNode(db, storageTable, onlinePruner.RetainedBlocks, logger)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		p = &pruner.ArchiveNode{}
-	}
-
 	return &StorageState{
 		blockState:   blockState,
 		tries:        tries,
 		db:           storageTable,
 		observerList: []Observer{},
-		pruner:       p,
+		pruner:       &pruner.ArchiveNode{},
 	}, nil
 }
 
@@ -73,12 +62,6 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) 
 	root := ts.MustRoot()
 
 	s.tries.softSet(root, ts.Trie())
-
-	if header == nil {
-		if _, ok := s.pruner.(*pruner.FullNode); ok {
-			panic("block header cannot be empty for Full node pruner")
-		}
-	}
 
 	if header != nil {
 		insertedMerkleValues, deletedMerkleValues, err := ts.GetChangedNodeHashes()
