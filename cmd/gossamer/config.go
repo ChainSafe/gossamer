@@ -158,7 +158,7 @@ func createInitConfig(ctx *cli.Context) (*dot.Config, error) {
 	}
 
 	if !cfg.Global.Pruning.IsValid() {
-		return nil, fmt.Errorf("--%s must be either %s or %s", PruningFlag.Name, pruner.Full, pruner.Archive)
+		return nil, fmt.Errorf("--%s must be %s", PruningFlag.Name, pruner.Archive)
 	}
 
 	if cfg.Global.RetainBlocks < dev.DefaultRetainBlocks {
