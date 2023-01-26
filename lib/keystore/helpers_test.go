@@ -23,12 +23,19 @@ import (
 
 func TestLoadKeystore(t *testing.T) {
 	ks := NewBasicKeystore("test", crypto.Sr25519Type)
-	err := LoadKeystore("alice", ks)
+
+	sr25519KeyRing, err := NewSr25519Keyring()
+	require.NoError(t, err)
+
+	err = LoadKeystore("alice", ks, sr25519KeyRing)
 	require.NoError(t, err)
 	require.Equal(t, 1, ks.Size())
 
+	ed25519KeyRing, err := NewEd25519Keyring()
+	require.NoError(t, err)
+
 	ks = NewBasicKeystore("test", crypto.Ed25519Type)
-	err = LoadKeystore("bob", ks)
+	err = LoadKeystore("bob", ks, ed25519KeyRing)
 	require.NoError(t, err)
 	require.Equal(t, 1, ks.Size())
 }
