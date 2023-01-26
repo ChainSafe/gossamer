@@ -315,20 +315,23 @@ func TestTrieDiff(t *testing.T) {
 		newTrie.Put(test.key, test.value)
 	}
 
-	deletedMerkleValues := newTrie.deletedMerkleValues
-	expectedDeletedMerkleValues := map[string]struct{}{
+	deletedMerkleValues := newTrie.deltas.Deleted()
+	expectedDeletdMerkleValues := map[common.Hash]struct{}{
 		// root branch Merkle value which was modified (by its descendants).
 		// Other nodes result in an encoding of less than 32B so they are not
 		// tracked since they are inlined in the branch.
-		"\xa9v\xfaUme$<\x03\x80\x89\xd4\x15\r\xb1\x9a䶊`\xe5M\xeah\x9c\xab\xbf\xbb\xc0\xfcrH": {},
+		{0xa9, 0x76, 0xfa, 0x55, 0x6d, 0x65, 0x24, 0x3c,
+			0x3, 0x80, 0x89, 0xd4, 0x15, 0xd, 0xb1, 0x9a,
+			0xe4, 0xb6, 0x8a, 0x60, 0xe5, 0x4d, 0xea, 0x68,
+			0x9c, 0xab, 0xbf, 0xbb, 0xc0, 0xfc, 0x72, 0x48}: {},
 	}
-	assert.Equal(t, expectedDeletedMerkleValues, deletedMerkleValues)
+	assert.Equal(t, expectedDeletdMerkleValues, deletedMerkleValues)
 
 	err = newTrie.WriteDirty(storageDB)
 	require.NoError(t, err)
 
 	for deletedMerkleValue := range deletedMerkleValues {
-		err = storageDB.Del([]byte(deletedMerkleValue))
+		err = storageDB.Del(deletedMerkleValue[:])
 		require.NoError(t, err)
 	}
 
