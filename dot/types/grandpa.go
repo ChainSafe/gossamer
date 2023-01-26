@@ -207,30 +207,31 @@ type GrandpaEquivocation struct {
 	SecondSignature [64]byte
 }
 
-// GrandpaEquivocationVote is a custom vdt type for a grandpa equivocation
-type GrandpaEquivocationVote scale.VaryingDataType
+// GrandpaEquivocationEnum is a wrapper object for GRANDPA equivocation proofs, useful for unifying prevote
+// / and precommit equivocations under a common type.
+type GrandpaEquivocationEnum scale.VaryingDataType
 
 // Set sets a VaryingDataTypeValue using the underlying VaryingDataType
-func (ge *GrandpaEquivocationVote) Set(value scale.VaryingDataTypeValue) (err error) {
+func (ge *GrandpaEquivocationEnum) Set(value scale.VaryingDataTypeValue) (err error) {
 	vdt := scale.VaryingDataType(*ge)
 	err = vdt.Set(value)
 	if err != nil {
 		return err
 	}
-	*ge = GrandpaEquivocationVote(vdt)
+	*ge = GrandpaEquivocationEnum(vdt)
 	return nil
 }
 
 // Value will return the value from the underlying VaryingDataType
-func (ge *GrandpaEquivocationVote) Value() (value scale.VaryingDataTypeValue, err error) {
+func (ge *GrandpaEquivocationEnum) Value() (value scale.VaryingDataTypeValue, err error) {
 	vdt := scale.VaryingDataType(*ge)
 	return vdt.Value()
 }
 
 // NewGrandpaEquivocation returns a new VaryingDataType to represent a grandpa Equivocation
-func NewGrandpaEquivocation() *GrandpaEquivocationVote {
+func NewGrandpaEquivocation() *GrandpaEquivocationEnum {
 	vdt := scale.MustNewVaryingDataType(PreVoteEquivocation{}, PreCommitEquivocation{})
-	ge := GrandpaEquivocationVote(vdt)
+	ge := GrandpaEquivocationEnum(vdt)
 	return &ge
 }
 
@@ -252,5 +253,5 @@ type GrandpaOpaqueKeyOwnershipProof []byte
 // GrandpaEquivocationProof is used to report grandpa equivocations
 type GrandpaEquivocationProof struct {
 	SetID        uint64
-	Equivocation GrandpaEquivocationVote
+	Equivocation GrandpaEquivocationEnum
 }

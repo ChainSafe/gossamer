@@ -31,6 +31,7 @@ func Test_OpaqueKeyOwnershipProof_ScaleCodec(t *testing.T) {
 }
 
 func TestInstance_GrandpaSubmitReportEquivocationUnsignedExtrinsicEncoding(t *testing.T) {
+	// TODO add comment of rust code or link to it
 	t.Parallel()
 	expectedEncoding := common.MustHexToBytes("0x010000000000000000010000000000000088dc3417d5058ec4b4503e0c12ea" +
 		"1a0a89be200fe98922423d4334014fa6b0ee4801b8e62d31167d30c893cc1970f6a0e289420282a4b245b75f2c46fb308af10a0000" +
@@ -66,6 +67,7 @@ func TestInstance_GrandpaSubmitReportEquivocationUnsignedExtrinsicEncoding(t *te
 		SecondVote:      secondVote,
 		SecondSignature: secondSignatureArray,
 	}
+
 	preVoteEquivocation := PreVoteEquivocation(grandpaEquivocation)
 	equivocationVote := NewGrandpaEquivocation()
 	err := equivocationVote.Set(preVoteEquivocation)
