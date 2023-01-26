@@ -43,8 +43,8 @@ func Test_Trie_MemoryUsage(t *testing.T) {
 	// Check heap memory usage - it should be 2X
 	filledTrieHeap := getHeapUsage()
 	ratio := getApproximateRatio(halfFilledTrieHeap, filledTrieHeap)
-	assert.Greater(t, ratio, 1.5)
-	assert.Less(t, ratio, 2.1)
+	assert.Greater(t, ratio, 1.6)
+	assert.Less(t, ratio, 1.7)
 
 	// Snapshot the trie
 	triesMap["second"] = triesMap["first"].Snapshot()
@@ -55,8 +55,8 @@ func Test_Trie_MemoryUsage(t *testing.T) {
 	// Check heap memory usage - it should be 3X
 	halfMutatedTrieHeap := getHeapUsage()
 	ratio = getApproximateRatio(halfFilledTrieHeap, halfMutatedTrieHeap)
-	assert.Greater(t, ratio, 2.0)
-	assert.Less(t, ratio, 3.1)
+	assert.Greater(t, ratio, 2.2)
+	assert.Less(t, ratio, 2.4)
 
 	// Remove the older trie from our reference
 	delete(triesMap, "first")
@@ -64,8 +64,8 @@ func Test_Trie_MemoryUsage(t *testing.T) {
 	// Check heap memory usage - it should be 2X
 	prunedTrieHeap := getHeapUsage()
 	ratio = getApproximateRatio(halfFilledTrieHeap, prunedTrieHeap)
-	assert.Greater(t, ratio, 1.5)
-	assert.Less(t, ratio, 2.1)
+	assert.Greater(t, ratio, 1.6)
+	assert.Less(t, ratio, 1.8)
 
 	// Dummy calls - has to be after prunedTrieHeap for
 	// GC to keep them
@@ -102,13 +102,17 @@ func mutateTrieLeavesAtPrefix(trie *Trie,
 	for keyString, value := range originalKV {
 		key := append(prefix, []byte(keyString)...) //skipcq: CRT-D0001
 
-		// Reverse value byte slice
-		newValue := make([]byte, len(value))
-		copy(newValue, value)
-		for i, j := 0, len(newValue)-1; i < j; i, j = i+1, j-1 {
-			newValue[i], newValue[j] = newValue[j], newValue[i]
+		var newValue []byte
+		if len(value) == 0 {
+			newValue = []byte{1}
+		} else {
+			newValue = make([]byte, len(value))
+			copy(newValue, value)
+			for i := range newValue {
+				newValue[i]++
+			}
 		}
 
-		trie.Put(key, value)
+		trie.Put(key, newValue)
 	}
 }
