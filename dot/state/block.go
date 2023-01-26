@@ -305,14 +305,8 @@ func (bs *BlockState) GetBlockHashesBySlot(slotNum uint64) ([]common.Hash, error
 		return nil, fmt.Errorf("failed to get highest finalised hash: %w", err)
 	}
 
-	descendants, err := bs.bt.GetAllDescendants(highestFinalisedHash)
-	if errors.Is(err, blocktree.ErrNodeNotFound) {
-		var err2 error
-		descendants, err2 = bs.GetAllDescendants(highestFinalisedHash)
-		if err2 != nil {
-			return nil, fmt.Errorf("failed to get descendants: %w", err2)
-		}
-	} else if err != nil {
+	descendants, err := bs.GetAllDescendants(highestFinalisedHash)
+	if err != nil {
 		return nil, fmt.Errorf("failed to get descendants: %w", err)
 	}
 
