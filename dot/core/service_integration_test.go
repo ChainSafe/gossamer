@@ -451,70 +451,6 @@ func TestService_GetRuntimeVersion(t *testing.T) {
 	require.Equal(t, rtExpected, rtv)
 }
 
-func buildTestBlockWithoutExtrinsics(t *testing.T, instance state.Runtime,
-	parentHeader *types.Header, slotNumber, timestamp uint64) *types.Block {
-	digest := types.NewDigest()
-	prd, err := types.NewBabeSecondaryPlainPreDigest(0, slotNumber).ToPreRuntimeDigest()
-	require.NoError(t, err)
-
-	err = digest.Add(*prd)
-	require.NoError(t, err)
-	header := &types.Header{
-		ParentHash: parentHeader.Hash(),
-		Number:     parentHeader.Number + 1,
-		Digest:     digest,
-	}
-
-	err = instance.InitializeBlock(header)
-	require.NoError(t, err)
-
-	inherentData := types.NewInherentData()
-	err = inherentData.SetInherent(types.Timstap0, timestamp)
-	require.NoError(t, err)
-
-	err = inherentData.SetInherent(types.Babeslot, uint64(1))
-	require.NoError(t, err)
-
-	parachainInherent := inherents.ParachainInherentData{
-		ParentHeader: *parentHeader,
-	}
-
-	err = inherentData.SetInherent(types.Parachn0, parachainInherent)
-	require.NoError(t, err)
-
-	err = inherentData.SetInherent(types.Newheads, []byte{0})
-	require.NoError(t, err)
-
-	encodedInherents, err := inherentData.Encode()
-	require.NoError(t, err)
-
-	inherentExts, err := instance.InherentExtrinsics(encodedInherents)
-	require.NoError(t, err)
-
-	var decodedInherents [][]byte
-	err = scale.Unmarshal(inherentExts, &decodedInherents)
-	require.NoError(t, err)
-
-	for _, inherent := range decodedInherents {
-		encoded, err := scale.Marshal(inherent)
-		require.NoError(t, err)
-
-		ret, err := instance.ApplyExtrinsic(encoded)
-		require.NoError(t, err)
-		require.Equal(t, ret, []byte{0, 0})
-	}
-
-	res, err := instance.FinalizeBlock()
-	require.NoError(t, err)
-
-	res.Number = header.Number
-	res.Hash()
-	return &types.Block{
-		Header: *res,
-		Body:   types.Body(types.BytesArrayToExtrinsics(decodedInherents)),
-	}
-}
-
 func TestService_HandleSubmittedExtrinsic(t *testing.T) {
 	cfg := &Config{}
 	ctrl := gomock.NewController(t)
@@ -710,4 +646,68 @@ func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 		codeHashBefore,
 		rt.GetCodeHash(),
 		"expected different code hash after runtime update")
+}
+
+func buildTestBlockWithoutExtrinsics(t *testing.T, instance state.Runtime,
+	parentHeader *types.Header, slotNumber, timestamp uint64) *types.Block {
+	digest := types.NewDigest()
+	prd, err := types.NewBabeSecondaryPlainPreDigest(0, slotNumber).ToPreRuntimeDigest()
+	require.NoError(t, err)
+
+	err = digest.Add(*prd)
+	require.NoError(t, err)
+	header := &types.Header{
+		ParentHash: parentHeader.Hash(),
+		Number:     parentHeader.Number + 1,
+		Digest:     digest,
+	}
+
+	err = instance.InitializeBlock(header)
+	require.NoError(t, err)
+
+	inherentData := types.NewInherentData()
+	err = inherentData.SetInherent(types.Timstap0, timestamp)
+	require.NoError(t, err)
+
+	err = inherentData.SetInherent(types.Babeslot, uint64(1))
+	require.NoError(t, err)
+
+	parachainInherent := inherents.ParachainInherentData{
+		ParentHeader: *parentHeader,
+	}
+
+	err = inherentData.SetInherent(types.Parachn0, parachainInherent)
+	require.NoError(t, err)
+
+	err = inherentData.SetInherent(types.Newheads, []byte{0})
+	require.NoError(t, err)
+
+	encodedInherents, err := inherentData.Encode()
+	require.NoError(t, err)
+
+	inherentExts, err := instance.InherentExtrinsics(encodedInherents)
+	require.NoError(t, err)
+
+	var decodedInherents [][]byte
+	err = scale.Unmarshal(inherentExts, &decodedInherents)
+	require.NoError(t, err)
+
+	for _, inherent := range decodedInherents {
+		encoded, err := scale.Marshal(inherent)
+		require.NoError(t, err)
+
+		ret, err := instance.ApplyExtrinsic(encoded)
+		require.NoError(t, err)
+		require.Equal(t, ret, []byte{0, 0})
+	}
+
+	res, err := instance.FinalizeBlock()
+	require.NoError(t, err)
+
+	res.Number = header.Number
+	res.Hash()
+	return &types.Block{
+		Header: *res,
+		Body:   types.Body(types.BytesArrayToExtrinsics(decodedInherents)),
+	}
 }
