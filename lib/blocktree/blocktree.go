@@ -15,6 +15,7 @@ import (
 	"github.com/disiqueira/gotree"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"golang.org/x/exp/maps"
 )
 
 var (
@@ -357,15 +358,7 @@ func (bt *BlockTree) Leaves() []Hash {
 	defer bt.RUnlock()
 
 	lm := bt.leaves.toMap()
-	la := make([]common.Hash, len(lm))
-	i := 0
-
-	for k := range lm {
-		la[i] = k
-		i++
-	}
-
-	return la
+	return maps.Keys(lm)
 }
 
 // LowestCommonAncestor returns the lowest common ancestor block hash between two blocks in the tree.
