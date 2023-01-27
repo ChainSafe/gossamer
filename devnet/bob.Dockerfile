@@ -3,15 +3,15 @@
 
 FROM golang:1.19
 
-ARG POLKADOT_VERSION=v0.9.10
+#ARG POLKADOT_VERSION=v0.9.10
 
 # Using a genesis file with 3 authority nodes (alice, bob, charlie) generated using polkadot $POLKADOT_VERSION
-ARG CHAIN=3-auth-node-${POLKADOT_VERSION}
-ARG DD_API_KEY=somekey
+#ARG CHAIN=3-auth-node-${POLKADOT_VERSION}
+#ARG DD_API_KEY=somekey
 
-ENV DD_API_KEY=${DD_API_KEY}
+#ENV DD_API_KEY=${DD_API_KEY}
 
-RUN DD_AGENT_MAJOR_VERSION=7 DD_INSTALL_ONLY=true DD_SITE="datadoghq.com" bash -c "$(curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script.sh)"
+#RUN DD_AGENT_MAJOR_VERSION=7 DD_INSTALL_ONLY=true DD_SITE="datadoghq.com" bash -c "$(curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script.sh)"
 
 WORKDIR /gossamer
 
@@ -23,7 +23,8 @@ COPY . .
 RUN go install -trimpath github.com/ChainSafe/gossamer/cmd/gossamer
 
 # use modified genesis-spec.json with only 3 authority nodes
-RUN cp -f devnet/chain/$CHAIN/genesis-raw.json chain/gssmr/genesis-spec.json
+#RUN cp -f devnet/chain/$CHAIN/genesis-raw.json chain/gssmr/genesis-spec.json
+RUN cp -f chain/westend-local/westend-local-spec-raw.json chain/westend-local/westend-local-spec.json
 
 ARG key
 RUN test -n "$key"
@@ -35,11 +36,11 @@ ARG METRICS_NAMESPACE=gossamer.local.devnet
 
 WORKDIR /gossamer/devnet
 
-RUN go run cmd/update-dd-agent-confd/main.go -n=${METRICS_NAMESPACE} -t=key:${key} > /etc/datadog-agent/conf.d/openmetrics.d/conf.yaml
+#RUN go run cmd/update-dd-agent-confd/main.go -n=${METRICS_NAMESPACE} -t=key:${key} > /etc/datadog-agent/conf.d/openmetrics.d/conf.yaml
 
 WORKDIR /gossamer
 
-ENTRYPOINT service datadog-agent start && gossamer --key=${key} \
+ENTRYPOINT gossamer --key=${key} \
     --bootnodes=/dns/alice/tcp/7001/p2p/12D3KooWMER5iow67nScpWeVqEiRRx59PJ3xMMAYPTACYPRQbbWU \
     --publish-metrics \
     --metrics-address=":9876" \
