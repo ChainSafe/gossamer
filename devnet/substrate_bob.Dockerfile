@@ -17,10 +17,7 @@ COPY ./devnet .
 
 FROM parity/polkadot:${POLKADOT_VERSION}
 
-#ARG POLKADOT_VERSION
-# Using a genesis file with 3 authority nodes (alice, bob, charlie) generated using polkadot $POLKADOT_VERSION
-#ARG CHAIN=3-auth-node-${POLKADOT_VERSION}
-#ARG DD_API_KEY=somekey
+ARG DD_API_KEY=somekey
 ARG key
 
 ENV DD_API_KEY=${DD_API_KEY}
@@ -35,11 +32,11 @@ RUN apt update && apt install -y curl && rm -r /var/cache/* /var/lib/apt/lists/*
 
 WORKDIR /cross-client
 
-#RUN curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script.sh --output install_script.sh && \
-#    chmod +x ./install_script.sh
+RUN curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script.sh --output install_script.sh && \
+    chmod +x ./install_script.sh
 
-#RUN DD_AGENT_MAJOR_VERSION=7 DD_INSTALL_ONLY=true DD_SITE="datadoghq.com" ./install_script.sh
-#COPY --from=openmetrics /devnet/conf.yaml /etc/datadog-agent/conf.d/openmetrics.d/
+RUN DD_AGENT_MAJOR_VERSION=7 DD_INSTALL_ONLY=true DD_SITE="datadoghq.com" ./install_script.sh
+COPY --from=openmetrics /devnet/conf.yaml /etc/datadog-agent/conf.d/openmetrics.d/
 
 USER polkadot
 
