@@ -199,7 +199,7 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 		AuthorityID: pk.AsBytes(),
 	}
 
-	err = s.checkForEquivocation(voter, just, m.Message.Stage)
+	err = s.checkAndReportEquivocation(voter, just, m.Message.Stage)
 	if err != nil {
 		return nil, fmt.Errorf("checking for equivocation: %w", err)
 	}
@@ -214,10 +214,10 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 	return vote, nil
 }
 
-// checkForEquivocation checks if the vote is an equivocatory vote.
+// checkAndReportEquivocation checks if the vote is an equivocatory vote.
 // If it is an equivocatory vote, the error `ErrEquivocation` is returned, the service's votes and
 // equivocations are updated and the equivocation is reported to the runtime.
-func (s *Service) checkForEquivocation(voter *Voter, vote *SignedVote, stage Subround) error {
+func (s *Service) checkAndReportEquivocation(voter *Voter, vote *SignedVote, stage Subround) error {
 	v := voter.Key.AsBytes()
 
 	// save justification, since equivocatory vote may still be used in justification

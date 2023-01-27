@@ -39,7 +39,7 @@ func TestCheckForEquivocation_NoEquivocation(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, v := range newTestVoters(t) {
-		err = gs.checkForEquivocation(&v, &SignedVote{
+		err = gs.checkAndReportEquivocation(&v, &SignedVote{
 			Vote: *vote,
 		}, prevote)
 		require.NoError(t, err)
@@ -78,7 +78,7 @@ func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
 	vote2, err := NewVoteFromHash(leaves[1], st.Block)
 	require.NoError(t, err)
 
-	err = gs.checkForEquivocation(&voter, &SignedVote{
+	err = gs.checkAndReportEquivocation(&voter, &SignedVote{
 		Vote: *vote2,
 	}, prevote)
 	require.ErrorIs(t, err, ErrEquivocation)
@@ -120,7 +120,7 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 	vote2, err := NewVoteFromHash(leaves[0], gs.blockState)
 	require.NoError(t, err)
 
-	err = gs.checkForEquivocation(&voter, &SignedVote{
+	err = gs.checkAndReportEquivocation(&voter, &SignedVote{
 		Vote: *vote2,
 	}, prevote)
 	require.ErrorIs(t, err, ErrEquivocation)
@@ -130,7 +130,7 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 
 	vote3 := vote1
 
-	err = gs.checkForEquivocation(&voter, &SignedVote{
+	err = gs.checkAndReportEquivocation(&voter, &SignedVote{
 		Vote: *vote3,
 	}, prevote)
 	require.ErrorIs(t, err, ErrEquivocation)
