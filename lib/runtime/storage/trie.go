@@ -11,6 +11,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"golang.org/x/exp/maps"
 )
 
 // TrieState is a wrapper around a transient trie that is used during the course of executing some runtime call.
@@ -201,10 +202,7 @@ func (s *TrieState) DeleteChildLimit(key []byte, limit *[]byte) (
 	}
 	limitUint := binary.LittleEndian.Uint32(*limit)
 
-	keys := make([]string, 0, qtyEntries)
-	for k := range childTrieEntries {
-		keys = append(keys, k)
-	}
+	keys := maps.Keys(childTrieEntries)
 	sort.Strings(keys)
 	for _, k := range keys {
 		// TODO have a transactional/atomic way to delete multiple keys in trie.
