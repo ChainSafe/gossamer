@@ -194,13 +194,15 @@ func (t *Trie) Hash() (rootHash common.Hash, err error) {
 
 // Entries returns all the key-value pairs in the trie as a map of keys to values
 // where the keys are encoded in Little Endian.
-func (t *Trie) Entries() map[string][]byte {
-	return entries(t.root, nil, make(map[string][]byte))
+func (t *Trie) Entries() (keyValueMap map[string][]byte) {
+	keyValueMap = make(map[string][]byte)
+	entries(t.root, nil, keyValueMap)
+	return keyValueMap
 }
 
-func entries(parent *Node, prefix []byte, kv map[string][]byte) map[string][]byte {
+func entries(parent *Node, prefix []byte, kv map[string][]byte) {
 	if parent == nil {
-		return kv
+		return
 	}
 
 	if parent.Kind() == node.Leaf {
@@ -208,7 +210,7 @@ func entries(parent *Node, prefix []byte, kv map[string][]byte) map[string][]byt
 		fullKeyNibbles := concatenateSlices(prefix, parentKey)
 		keyLE := string(codec.NibblesToKeyLE(fullKeyNibbles))
 		kv[keyLE] = parent.StorageValue
-		return kv
+		return
 	}
 
 	branch := parent
@@ -222,8 +224,6 @@ func entries(parent *Node, prefix []byte, kv map[string][]byte) map[string][]byt
 		childPrefix := concatenateSlices(prefix, branch.PartialKey, intToByteSlice(i))
 		entries(child, childPrefix, kv)
 	}
-
-	return kv
 }
 
 // NextKey returns the next key in the trie in lexicographic order.
