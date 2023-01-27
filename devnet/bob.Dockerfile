@@ -3,10 +3,6 @@
 
 FROM golang:1.19
 
-#ARG POLKADOT_VERSION=v0.9.10
-
-# Using a genesis file with 3 authority nodes (alice, bob, charlie) generated using polkadot $POLKADOT_VERSION
-#ARG CHAIN=3-auth-node-${POLKADOT_VERSION}
 #ARG DD_API_KEY=somekey
 
 #ENV DD_API_KEY=${DD_API_KEY}
