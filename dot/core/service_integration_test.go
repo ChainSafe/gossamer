@@ -17,6 +17,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/sync"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/babe/inherents"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -450,6 +451,70 @@ func TestService_GetRuntimeVersion(t *testing.T) {
 	require.Equal(t, rtExpected, rtv)
 }
 
+func buildTestBlockWithoutExtrinsics(t *testing.T, instance state.Runtime,
+	parentHeader *types.Header, slotNumber, timestamp uint64) *types.Block {
+	digest := types.NewDigest()
+	prd, err := types.NewBabeSecondaryPlainPreDigest(0, slotNumber).ToPreRuntimeDigest()
+	require.NoError(t, err)
+
+	err = digest.Add(*prd)
+	require.NoError(t, err)
+	header := &types.Header{
+		ParentHash: parentHeader.Hash(),
+		Number:     parentHeader.Number + 1,
+		Digest:     digest,
+	}
+
+	err = instance.InitializeBlock(header)
+	require.NoError(t, err)
+
+	inherentData := types.NewInherentData()
+	err = inherentData.SetInherent(types.Timstap0, timestamp)
+	require.NoError(t, err)
+
+	err = inherentData.SetInherent(types.Babeslot, uint64(1))
+	require.NoError(t, err)
+
+	parachainInherent := inherents.ParachainInherentData{
+		ParentHeader: *parentHeader,
+	}
+
+	err = inherentData.SetInherent(types.Parachn0, parachainInherent)
+	require.NoError(t, err)
+
+	err = inherentData.SetInherent(types.Newheads, []byte{0})
+	require.NoError(t, err)
+
+	encodedInherents, err := inherentData.Encode()
+	require.NoError(t, err)
+
+	inherentExts, err := instance.InherentExtrinsics(encodedInherents)
+	require.NoError(t, err)
+
+	var decodedInherents [][]byte
+	err = scale.Unmarshal(inherentExts, &decodedInherents)
+	require.NoError(t, err)
+
+	for _, inherent := range decodedInherents {
+		encoded, err := scale.Marshal(inherent)
+		require.NoError(t, err)
+
+		ret, err := instance.ApplyExtrinsic(encoded)
+		require.NoError(t, err)
+		require.Equal(t, ret, []byte{0, 0})
+	}
+
+	res, err := instance.FinalizeBlock()
+	require.NoError(t, err)
+
+	res.Number = header.Number
+	res.Hash()
+	return &types.Block{
+		Header: *res,
+		Body:   types.Body(types.BytesArrayToExtrinsics(decodedInherents)),
+	}
+}
+
 func TestService_HandleSubmittedExtrinsic(t *testing.T) {
 	cfg := &Config{}
 	ctrl := gomock.NewController(t)
@@ -470,7 +535,13 @@ func TestService_HandleSubmittedExtrinsic(t *testing.T) {
 	require.NoError(t, err)
 	rt.SetContextStorage(ts)
 
-	block := sync.BuildBlock(t, rt, genHeader, nil)
+	babeConfig, err := rt.BabeConfiguration()
+	require.NoError(t, err)
+
+	currentTimestamp := uint64(time.Now().UnixMilli())
+	currentSlotNumber := uint64(currentTimestamp) / babeConfig.SlotDuration
+
+	block := buildTestBlockWithoutExtrinsics(t, rt, genHeader, currentSlotNumber, currentTimestamp)
 
 	err = s.handleBlock(block, ts)
 	require.NoError(t, err)
