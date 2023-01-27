@@ -475,7 +475,7 @@ func TestService_HandleSubmittedExtrinsic(t *testing.T) {
 	require.NoError(t, err)
 
 	currentTimestamp := uint64(time.Now().UnixMilli())
-	currentSlotNumber := uint64(currentTimestamp) / babeConfig.SlotDuration
+	currentSlotNumber := currentTimestamp / babeConfig.SlotDuration
 
 	block := buildTestBlockWithoutExtrinsics(t, rt, genHeader, currentSlotNumber, currentTimestamp)
 
