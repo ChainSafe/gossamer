@@ -1,6 +1,7 @@
 # Copyright 2022 ChainSafe Systems (ON)
 # SPDX-License-Identifier: LGPL-3.0-only
-ARG POLKADOT_VERSION=v0.9.10
+
+ARG POLKADOT_VERSION=v0.9.37
 
 FROM golang:1.19 as openmetrics
 
@@ -12,14 +13,14 @@ COPY ./devnet/go.mod ./devnet/go.sum ./
 RUN go mod download
 
 COPY ./devnet .
-RUN go run cmd/update-dd-agent-confd/main.go -n=${METRICS_NAMESPACE} -t=key:alice > conf.yaml
+#RUN go run cmd/update-dd-agent-confd/main.go -n=${METRICS_NAMESPACE} -t=key:alice > conf.yaml
 
 FROM parity/polkadot:${POLKADOT_VERSION}
 
-ARG POLKADOT_VERSION
+#ARG POLKADOT_VERSION
 # Using a genesis file with 3 authority nodes (alice, bob, charlie) generated using polkadot $POLKADOT_VERSION
-ARG CHAIN=3-auth-node-${POLKADOT_VERSION}
-ARG DD_API_KEY=somekey
+#ARG CHAIN=3-auth-node-${POLKADOT_VERSION}
+#ARG DD_API_KEY=somekey
 ARG key
 
 ENV DD_API_KEY=${DD_API_KEY}
@@ -34,19 +35,19 @@ RUN apt update && apt install -y curl && rm -r /var/cache/* /var/lib/apt/lists/*
 
 WORKDIR /cross-client
 
-RUN curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script.sh --output install_script.sh && \
-    chmod +x ./install_script.sh
+#RUN curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script.sh --output install_script.sh && \
+#    chmod +x ./install_script.sh
 
-RUN DD_AGENT_MAJOR_VERSION=7 DD_INSTALL_ONLY=true DD_SITE="datadoghq.com" ./install_script.sh
-COPY --from=openmetrics /devnet/conf.yaml /etc/datadog-agent/conf.d/openmetrics.d/
+#RUN DD_AGENT_MAJOR_VERSION=7 DD_INSTALL_ONLY=true DD_SITE="datadoghq.com" ./install_script.sh
+#COPY --from=openmetrics /devnet/conf.yaml /etc/datadog-agent/conf.d/openmetrics.d/
 
 USER polkadot
 
-COPY ./devnet/chain ./chain/
+COPY ./chain/ ./chain/
 
-ENTRYPOINT service datadog-agent start && /usr/bin/polkadot \
+ENTRYPOINT  /usr/bin/polkadot \
     --bootnodes /dns/alice/tcp/7001/p2p/12D3KooWMER5iow67nScpWeVqEiRRx59PJ3xMMAYPTACYPRQbbWU \
-    --chain chain/$CHAIN/genesis-raw.json \
+    --chain chain/westend-local/westend-local-spec-raw.json \
     --port 7001 \
     --rpc-port 8545 \
     --ws-port 8546 \
