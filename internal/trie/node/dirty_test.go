@@ -16,13 +16,13 @@ func Test_Node_SetDirty(t *testing.T) {
 		node     Node
 		expected Node
 	}{
-		"not dirty to dirty": {
+		"not_dirty_to_dirty": {
 			node: Node{
 				MerkleValue: []byte{1},
 			},
 			expected: Node{Dirty: true},
 		},
-		"dirty to dirty": {
+		"dirty_to_dirty": {
 			node: Node{
 				MerkleValue: []byte{1},
 				Dirty:       true,
@@ -50,7 +50,7 @@ func Test_Node_SetClean(t *testing.T) {
 		node     Node
 		expected Node
 	}{
-		"not dirty to not dirty": {
+		"not_dirty_to_not_dirty": {
 			node: Node{
 				MerkleValue: []byte{1},
 			},
@@ -58,7 +58,7 @@ func Test_Node_SetClean(t *testing.T) {
 				MerkleValue: []byte{1},
 			},
 		},
-		"dirty to not dirty": {
+		"dirty_to_not_dirty": {
 			node: Node{
 				MerkleValue: []byte{1},
 				Dirty:       true,

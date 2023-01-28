@@ -40,7 +40,7 @@ func TestOffchainModule_LocalStorageGet(t *testing.T) {
 		exp    StringResponse
 	}{
 		{
-			name: "GetPersistent error",
+			name: "GetPersistent_error",
 			fields: fields{
 				offChainModule.nodeStorage,
 			},
@@ -53,7 +53,7 @@ func TestOffchainModule_LocalStorageGet(t *testing.T) {
 			expErr: errors.New("GetPersistent error"),
 		},
 		{
-			name: "Invalid Storage Kind",
+			name: "Invalid_Storage_Kind",
 			fields: fields{
 				offChainModule.nodeStorage,
 			},
@@ -66,7 +66,7 @@ func TestOffchainModule_LocalStorageGet(t *testing.T) {
 			expErr: fmt.Errorf("storage kind not found: invalid kind"),
 		},
 		{
-			name: "GetLocal OK",
+			name: "GetLocal_OK",
 			fields: fields{
 				offChainModule.nodeStorage,
 			},
@@ -79,7 +79,7 @@ func TestOffchainModule_LocalStorageGet(t *testing.T) {
 			exp: StringResponse("0x736f6d652d76616c7565"),
 		},
 		{
-			name: "Invalid key",
+			name: "Invalid_key",
 			fields: fields{
 				offChainModule.nodeStorage,
 			},
@@ -134,7 +134,7 @@ func TestOffchainModule_LocalStorageSet(t *testing.T) {
 		expErr error
 	}{
 		{
-			name: "setLocal OK",
+			name: "setLocal_OK",
 			fields: fields{
 				mockRuntimeStorageAPI,
 			},
@@ -147,7 +147,7 @@ func TestOffchainModule_LocalStorageSet(t *testing.T) {
 			},
 		},
 		{
-			name: "Invalid Key",
+			name: "Invalid_Key",
 			fields: fields{
 				mockRuntimeStorageAPI,
 			},
@@ -161,7 +161,7 @@ func TestOffchainModule_LocalStorageSet(t *testing.T) {
 			expErr: errors.New("encoding/hex: odd length hex string: 0x1"),
 		},
 		{
-			name: "Invalid Value",
+			name: "Invalid_Value",
 			fields: fields{
 				mockRuntimeStorageAPI,
 			},
@@ -189,7 +189,7 @@ func TestOffchainModule_LocalStorageSet(t *testing.T) {
 			expErr: errors.New("SetPersistent error"),
 		},
 		{
-			name: "Invalid Kind",
+			name: "Invalid_Kind",
 			fields: fields{
 				mockRuntimeStorageAPI,
 			},

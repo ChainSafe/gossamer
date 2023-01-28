@@ -176,7 +176,7 @@ func TestVerifySignature(t *testing.T) {
 			signature: signature[:64],
 			message:   message,
 		},
-		"verification failed": {
+		"verification_failed": {
 			publicKey: keypair.public.Encode(),
 			signature: []byte{},
 			message:   message,

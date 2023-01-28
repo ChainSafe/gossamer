@@ -29,7 +29,7 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 		expErr          error
 		exp             ProveFinalityResponse
 	}{
-		"error during get hash by number": {
+		"error_during_get_hash_by_number": {
 			blockAPIBuilder: func(ctrl *gomock.Controller) BlockAPI {
 				mockBlockAPI := NewMockBlockAPI(ctrl)
 				mockBlockAPI.EXPECT().GetHashByNumber(uint(1)).Return(common.Hash{}, mockError)
@@ -40,7 +40,7 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 			},
 			expErr: mockError,
 		},
-		"error during has justification": {
+		"error_during_has_justification": {
 			blockAPIBuilder: func(ctrl *gomock.Controller) BlockAPI {
 				mockBlockAPI := NewMockBlockAPI(ctrl)
 				mockBlockAPI.EXPECT().GetHashByNumber(uint(2)).Return(common.Hash{2}, nil)
@@ -52,7 +52,7 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 			},
 			expErr: mockError,
 		},
-		"has justification is false": {
+		"has_justification_is_false": {
 			blockAPIBuilder: func(ctrl *gomock.Controller) BlockAPI {
 				mockBlockAPI := NewMockBlockAPI(ctrl)
 				mockBlockAPI.EXPECT().GetHashByNumber(uint(2)).Return(common.Hash{2}, nil)
@@ -64,7 +64,7 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 			},
 			exp: ProveFinalityResponse{"GRANDPA prove finality rpc failed: Block not covered by authority set changes"},
 		},
-		"error during getJustification": {
+		"error_during_getJustification": {
 			blockAPIBuilder: func(ctrl *gomock.Controller) BlockAPI {
 				mockBlockAPI := NewMockBlockAPI(ctrl)
 				mockBlockAPI.EXPECT().GetHashByNumber(uint(3)).Return(common.Hash{3}, nil)
@@ -77,7 +77,7 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 			},
 			expErr: mockError,
 		},
-		"happy path": {
+		"happy_path": {
 			blockAPIBuilder: func(ctrl *gomock.Controller) BlockAPI {
 				mockBlockAPI := NewMockBlockAPI(ctrl)
 				mockBlockAPI.EXPECT().GetHashByNumber(uint(4)).Return(common.Hash{4}, nil)
@@ -156,7 +156,7 @@ func TestGrandpaModule_RoundState(t *testing.T) {
 		exp    RoundStateResponse
 	}{
 		{
-			name: "GetJustification Error",
+			name: "GetJustification_Error",
 			fields: fields{
 				mockBlockAPI,
 				mockBlockFinalityAPI,

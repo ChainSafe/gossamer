@@ -19,7 +19,7 @@ func Test_New(t *testing.T) {
 		options        []Option
 		expectedLogger *Logger
 	}{
-		"no option": {
+		"no_option": {
 			expectedLogger: &Logger{
 				settings: settings{
 					writer: os.Stdout,
@@ -30,7 +30,7 @@ func Test_New(t *testing.T) {
 				mutex: new(sync.Mutex),
 			},
 		},
-		"all options": {
+		"all_options": {
 			options: []Option{
 				SetLevel(Trace),
 				SetCallerFile(true),
@@ -76,7 +76,7 @@ func Test_Logger_New(t *testing.T) {
 		options        []Option
 		expectedLogger *Logger
 	}{
-		"no option": {
+		"no_option": {
 			initialLogger: &Logger{
 				settings: settings{
 					writer: os.Stdout,
@@ -96,7 +96,7 @@ func Test_Logger_New(t *testing.T) {
 				mutex: new(sync.Mutex),
 			},
 		},
-		"some options": {
+		"some_options": {
 			initialLogger: &Logger{
 				settings: settings{
 					writer: os.Stdout,

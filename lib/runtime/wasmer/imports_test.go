@@ -311,13 +311,13 @@ func Test_ext_offchain_http_request_add_header(t *testing.T) {
 		key, value  string
 		expectedErr bool
 	}{
-		"should add headers without problems": {
+		"should_add_headers_without_problems": {
 			key:         "SOME_HEADER_KEY",
 			value:       "SOME_HEADER_VALUE",
 			expectedErr: false,
 		},
 
-		"should return a result error": {
+		"should_return_a_result_error": {
 			key:         "",
 			value:       "",
 			expectedErr: true,
@@ -515,16 +515,16 @@ func Test_ext_storage_exists_version_1(t *testing.T) {
 		value  []byte // leave to nil to not insert pair
 		result byte
 	}{
-		"value does not exist": {
+		"value_does_not_exist": {
 			key:    []byte{1},
 			result: 0,
 		},
-		"empty value exists": {
+		"empty_value_exists": {
 			key:    []byte{1},
 			value:  []byte{},
 			result: 1,
 		},
-		"value exist": {
+		"value_exist": {
 			key:    []byte{1},
 			value:  []byte{2},
 			result: 1,
@@ -925,25 +925,25 @@ func Test_ext_crypto_ecdsa_verify_version_2_Table(t *testing.T) {
 		expected []byte
 		err      error
 	}{
-		"valid signature": {
+		"valid_signature": {
 			sig:      []byte{5, 1, 187, 179, 88, 183, 46, 115, 242, 32, 9, 54, 141, 207, 44, 15, 238, 42, 217, 196, 111, 173, 239, 204, 128, 93, 49, 179, 137, 150, 162, 125, 226, 225, 28, 145, 122, 127, 15, 154, 185, 11, 3, 66, 27, 187, 204, 242, 107, 68, 26, 111, 245, 30, 115, 141, 85, 74, 158, 211, 161, 217, 43, 151, 120, 125, 1}, //nolint:lll
 			msg:      []byte{48, 72, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 33},
 			key:      []byte{132, 2, 39, 206, 55, 134, 131, 142, 43, 100, 63, 134, 96, 14, 253, 15, 222, 119, 154, 110, 188, 20, 159, 62, 125, 42, 59, 127, 19, 16, 0, 161, 236, 109}, //nolint:lll
 			expected: []byte{1, 0, 0, 0},
 		},
-		"invalid signature": {
+		"invalid_signature": {
 			sig:      []byte{5, 1, 187, 0, 0, 183, 46, 115, 242, 32, 9, 54, 141, 207, 44, 15, 238, 42, 217, 196, 111, 173, 239, 204, 128, 93, 49, 179, 137, 150, 162, 125, 226, 225, 28, 145, 122, 127, 15, 154, 185, 11, 3, 66, 27, 187, 204, 242, 107, 68, 26, 111, 245, 30, 115, 141, 85, 74, 158, 211, 161, 217, 43, 151, 120, 125, 1}, //nolint:lll
 			msg:      []byte{48, 72, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 33},
 			key:      []byte{132, 2, 39, 206, 55, 134, 131, 142, 43, 100, 63, 134, 96, 14, 253, 15, 222, 119, 154, 110, 188, 20, 159, 62, 125, 42, 59, 127, 19, 16, 0, 161, 236, 109}, //nolint:lll
 			expected: []byte{0, 0, 0, 0},
 		},
-		"wrong key": {
+		"wrong_key": {
 			sig:      []byte{5, 1, 187, 0, 0, 183, 46, 115, 242, 32, 9, 54, 141, 207, 44, 15, 238, 42, 217, 196, 111, 173, 239, 204, 128, 93, 49, 179, 137, 150, 162, 125, 226, 225, 28, 145, 122, 127, 15, 154, 185, 11, 3, 66, 27, 187, 204, 242, 107, 68, 26, 111, 245, 30, 115, 141, 85, 74, 158, 211, 161, 217, 43, 151, 120, 125, 1}, //nolint:lll
 			msg:      []byte{48, 72, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 33},
 			key:      []byte{132, 2, 39, 0, 55, 134, 131, 142, 43, 100, 63, 134, 96, 14, 253, 15, 222, 119, 154, 110, 188, 20, 159, 62, 125, 42, 59, 127, 19, 16, 0, 161, 236, 109}, //nolint:lll
 			expected: []byte{0, 0, 0, 0},
 		},
-		"invalid key": {
+		"invalid_key": {
 			sig: []byte{5, 1, 187, 0, 0, 183, 46, 115, 242, 32, 9, 54, 141, 207, 44, 15, 238, 42, 217, 196, 111, 173, 239, 204, 128, 93, 49, 179, 137, 150, 162, 125, 226, 225, 28, 145, 122, 127, 15, 154, 185, 11, 3, 66, 27, 187, 204, 242, 107, 68, 26, 111, 245, 30, 115, 141, 85, 74, 158, 211, 161, 217, 43, 151, 120, 125, 1}, //nolint:lll
 			msg: []byte{48, 72, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 33},
 			key: []byte{132, 2, 39, 55, 134, 131, 142, 43, 100, 63, 134, 96, 14, 253, 15, 222, 119, 154, 110, 188, 20, 159, 62, 125, 42, 59, 127, 19, 16, 0, 161, 236, 109}, //nolint:lll
@@ -951,7 +951,7 @@ func Test_ext_crypto_ecdsa_verify_version_2_Table(t *testing.T) {
 				"rtm_ext_crypto_ecdsa_verify_version_2",
 				"running runtime function: Failed to call the `%s` exported function."),
 		},
-		"invalid message": {
+		"invalid_message": {
 			sig: []byte{5, 1, 187, 179, 88, 183, 46, 115, 242, 32, 9, 54, 141, 207, 44, 15, 238, 42, 217, 196, 111, 173, 239, 204, 128, 93, 49, 179, 137, 150, 162, 125, 226, 225, 28, 145, 122, 127, 15, 154, 185, 11, 3, 66, 27, 187, 204, 242, 107, 68, 26, 111, 245, 30, 115, 141, 85, 74, 158, 211, 161, 217, 43, 151, 120, 125, 1}, //nolint:lll
 			msg: []byte{48, 72, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100},
 			key: []byte{132, 2, 39, 206, 55, 134, 131, 142, 43, 100, 63, 134, 96, 14, 253, 15, 222, 119, 154, 110, 188, 20, 159, 62, 125, 42, 59, 127, 19, 16, 0, 161, 236, 109}, //nolint:lll
@@ -1527,7 +1527,7 @@ func Test_ext_default_child_storage_storage_kill_version_2_limit_all(t *testing.
 
 	child, err = inst.ctx.Storage.GetChild(testChildKey)
 	require.NoError(t, err)
-	require.Equal(t, 0, len(child.Entries()))
+	require.Empty(t, child.Entries())
 }
 
 func Test_ext_default_child_storage_storage_kill_version_2_limit_1(t *testing.T) {
@@ -1839,19 +1839,19 @@ func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 		proof            [][]byte
 		expect           bool
 	}{
-		"Proof should be true": {
+		"Proof_should_be_true": {
 			root: root, key: []byte("do"), proof: allProofs, value: []byte("verb"), expect: true},
-		"Root empty, proof should be false": {
+		"Root_empty,_proof_should_be_false": {
 			root: []byte{}, key: []byte("do"), proof: allProofs, value: []byte("verb"), expect: false},
-		"Other root, proof should be false": {
+		"Other_root,_proof_should_be_false": {
 			root: otherRoot, key: []byte("do"), proof: allProofs, value: []byte("verb"), expect: false},
-		"Value empty, proof should be true": {
+		"Value_empty,_proof_should_be_true": {
 			root: root, key: []byte("do"), proof: allProofs, value: nil, expect: true},
-		"Unknow key, proof should be false": {
+		"Unknow_key,_proof_should_be_false": {
 			root: root, key: []byte("unknow"), proof: allProofs, value: nil, expect: false},
-		"Key and value unknow, proof should be false": {
+		"Key_and_value_unknow,_proof_should_be_false": {
 			root: root, key: []byte("unknow"), proof: allProofs, value: []byte("unknow"), expect: false},
-		"Empty proof, should be false": {
+		"Empty_proof,_should_be_false": {
 			root: root, key: []byte("do"), proof: [][]byte{}, value: nil, expect: false},
 	}
 

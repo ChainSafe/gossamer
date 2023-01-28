@@ -24,6 +24,9 @@ import (
 )
 
 var (
+	// ErrAuthIndexOutOfBound is returned when a authority index doesn't exist
+	ErrAuthIndexOutOfBound = errors.New("authority index doesn't exist")
+
 	// ErrBadSlotClaim is returned when a slot claim is invalid
 	ErrBadSlotClaim = errors.New("could not verify slot claim VRF proof")
 

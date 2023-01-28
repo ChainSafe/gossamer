@@ -30,7 +30,7 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 		announce              bool
 		wantErr               error
 	}{
-		"handle getHeader error": {
+		"handle_getHeader_error": {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) (chainProcessor chainProcessor) {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().GetHeader(common.Hash{}).Return(nil, mockError)
@@ -42,7 +42,7 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 			},
 			wantErr: errFailedToGetParent,
 		},
-		"handle trieState error": {
+		"handle_trieState_error": {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) (chainProcessor chainProcessor) {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().GetHeader(common.Hash{}).Return(&types.Header{}, nil)
@@ -59,7 +59,7 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 			},
 			wantErr: mockError,
 		},
-		"handle getRuntime error": {
+		"handle_getRuntime_error": {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) (chainProcessor chainProcessor) {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().GetHeader(common.Hash{}).Return(&types.Header{
@@ -80,7 +80,7 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 			},
 			wantErr: mockError,
 		},
-		"handle runtime ExecuteBlock error": {
+		"handle_runtime_ExecuteBlock_error": {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) (chainProcessor chainProcessor) {
 				trieState := storage.NewTrieState(nil)
 				mockBlockState := NewMockBlockState(ctrl)
@@ -104,7 +104,7 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 			},
 			wantErr: mockError,
 		},
-		"handle block import error": {
+		"handle_block_import_error": {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) (chainProcessor chainProcessor) {
 				trieState := storage.NewTrieState(nil)
 				mockBlockState := NewMockBlockState(ctrl)
@@ -133,7 +133,7 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 			},
 			wantErr: mockError,
 		},
-		"base case": {
+		"base_case": {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) (chainProcessor chainProcessor) {
 				mockBlock := &types.Block{
 					Body: types.Body{}, // empty slice of extrinsics
@@ -172,7 +172,7 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 				Body: types.Body{},
 			},
 		},
-		"import block and announce": {
+		"import_block_and_announce": {
 			announce: true,
 			chainProcessorBuilder: func(ctrl *gomock.Controller) (chainProcessor chainProcessor) {
 				mockBlock := &types.Block{
@@ -292,7 +292,7 @@ func Test_chainProcessor_handleJustification(t *testing.T) {
 		sentinelError         error
 		errorMessage          string
 	}{
-		"invalid justification": {
+		"invalid_justification": {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
 				mockFinalityGadget := NewMockFinalityGadget(ctrl)
 				mockFinalityGadget.EXPECT().VerifyBlockJustification(headerHash,
@@ -308,7 +308,7 @@ func Test_chainProcessor_handleJustification(t *testing.T) {
 			sentinelError: errTest,
 			errorMessage:  "verifying block number 2 justification: test error",
 		},
-		"set justification error": {
+		"set_justification_error": {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().SetJustification(headerHash, []byte(`xx`)).Return(errTest)
@@ -326,7 +326,7 @@ func Test_chainProcessor_handleJustification(t *testing.T) {
 			sentinelError: errTest,
 			errorMessage:  "setting justification for block number 2: test error",
 		},
-		"base case set": {
+		"base_case_set": {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().SetJustification(headerHash, []byte(`1234`)).Return(nil)
@@ -371,7 +371,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 		blockData             types.BlockData
 		expectedError         error
 	}{
-		"handle has header error": {
+		"handle_has_header_error": {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().HasHeader(common.Hash{}).Return(false, mockError)
@@ -383,7 +383,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 			blockData:     types.BlockData{},
 			expectedError: mockError,
 		},
-		"handle has block body error": {
+		"handle_has_block_body_error": {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().HasHeader(common.Hash{}).Return(false, nil)
@@ -395,7 +395,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 			blockData:     types.BlockData{},
 			expectedError: mockError,
 		},
-		"handle getBlockByHash error": {
+		"handle_getBlockByHash_error": {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().HasHeader(common.Hash{}).Return(true, nil)
@@ -412,7 +412,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 			blockData:     types.BlockData{},
 			expectedError: mockError,
 		},
-		"handle block data justification != nil": {
+		"handle_block_data_justification_!=_nil": {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
 				mockBlock := &types.Block{
 					Header: types.Header{
@@ -456,7 +456,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 				Justification: &[]byte{1, 2, 3},
 			},
 		},
-		"handle babe verify block error": {
+		"handle_babe_verify_block_error": {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().HasHeader(common.Hash{}).Return(false, nil)
@@ -479,7 +479,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 			},
 			expectedError: mockError,
 		},
-		"no header and body - fail to handle justification": {
+		"no_header_and_body_-_fail_to_handle_justification": {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
 				blockState := NewMockBlockState(ctrl)
 				blockState.EXPECT().HasHeader(common.Hash{1}).Return(false, nil)
@@ -508,7 +508,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 			},
 			expectedError: mockError,
 		},
-		"handle compareAndSetBlockData error": {
+		"handle_compareAndSetBlockData_error": {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().HasHeader(common.Hash{}).Return(false, nil)
@@ -525,7 +525,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 			blockData:     types.BlockData{},
 			expectedError: mockError,
 		},
-		"success with justification": {
+		"success_with_justification": {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
 				stateRootHash := common.MustHexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
 				runtimeHash := common.MustHexToHash("0x7db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a")
@@ -609,7 +609,7 @@ func Test_chainProcessor_processBlockDataWithStateHeaderAndBody(t *testing.T) {
 		sentinelError         error
 		errorMessage          string
 	}{
-		"get block by hash error": {
+		"get_block_by_hash_error": {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
 				blockState := NewMockBlockState(ctrl)
 				blockState.EXPECT().GetBlockByHash(common.Hash{1}).
@@ -622,7 +622,7 @@ func Test_chainProcessor_processBlockDataWithStateHeaderAndBody(t *testing.T) {
 			sentinelError: errTest,
 			errorMessage:  "getting block by hash: test error",
 		},
-		"block already exists in blocktree": {
+		"block_already_exists_in_blocktree": {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
 				blockState := NewMockBlockState(ctrl)
 				block := &types.Block{Header: types.Header{Number: 2}}
@@ -634,7 +634,7 @@ func Test_chainProcessor_processBlockDataWithStateHeaderAndBody(t *testing.T) {
 			},
 			blockData: types.BlockData{Hash: common.Hash{1}},
 		},
-		"add block to blocktree error": {
+		"add_block_to_blocktree_error": {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
 				blockState := NewMockBlockState(ctrl)
 				block := &types.Block{Header: types.Header{Number: 2}}
@@ -648,7 +648,7 @@ func Test_chainProcessor_processBlockDataWithStateHeaderAndBody(t *testing.T) {
 			sentinelError: errTest,
 			errorMessage:  "adding block to blocktree: test error",
 		},
-		"handle justification error": {
+		"handle_justification_error": {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
 				blockState := NewMockBlockState(ctrl)
 				blockHeader := types.Header{Number: 2}
@@ -674,7 +674,7 @@ func Test_chainProcessor_processBlockDataWithStateHeaderAndBody(t *testing.T) {
 			sentinelError: errTest,
 			errorMessage:  "handling justification: verifying block number 2 justification: test error",
 		},
-		"trie state error": {
+		"trie_state_error": {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
 				blockState := NewMockBlockState(ctrl)
 				blockHeader := types.Header{StateRoot: common.Hash{2}}
@@ -697,7 +697,7 @@ func Test_chainProcessor_processBlockDataWithStateHeaderAndBody(t *testing.T) {
 			sentinelError: errTest,
 			errorMessage:  "loading trie state: test error",
 		},
-		"handle block import error": {
+		"handle_block_import_error": {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
 				blockState := NewMockBlockState(ctrl)
 				blockHeader := types.Header{StateRoot: common.Hash{2}}
@@ -790,7 +790,7 @@ func Test_chainProcessor_processBlockDataWithHeaderAndBody(t *testing.T) {
 		sentinelError         error
 		errorMessage          string
 	}{
-		"verify block error": {
+		"verify_block_error": {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
 				babeVerifier := NewMockBabeVerifier(ctrl)
 				babeVerifier.EXPECT().VerifyBlock(&types.Header{Number: 1}).
@@ -806,7 +806,7 @@ func Test_chainProcessor_processBlockDataWithHeaderAndBody(t *testing.T) {
 			sentinelError: errTest,
 			errorMessage:  "babe verifying block: test error",
 		},
-		"handle block error": {
+		"handle_block_error": {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
 				babeVerifier := NewMockBabeVerifier(ctrl)
 				expectedHeader := &types.Header{ParentHash: common.Hash{1}}
@@ -930,7 +930,7 @@ func Test_chainProcessor_processReadyBlocks(t *testing.T) {
 		pendingBlockBuilder func(ctrl *gomock.Controller, done chan struct{}) DisjointBlockSet
 		storageStateBuilder func(ctrl *gomock.Controller, done chan struct{}) StorageState
 	}{
-		"base case": {
+		"base_case": {
 			chainSyncBuilder: func(ctrl *gomock.Controller) ChainSync {
 				cs := NewMockChainSync(ctrl)
 				cs.EXPECT().syncState().Return(bootstrap)
@@ -960,7 +960,7 @@ func Test_chainProcessor_processReadyBlocks(t *testing.T) {
 				return nil
 			},
 		},
-		"add block": {
+		"add_block": {
 			chainSyncBuilder: func(ctrl *gomock.Controller) ChainSync {
 				cs := NewMockChainSync(ctrl)
 				cs.EXPECT().syncState().Return(bootstrap)
@@ -998,7 +998,7 @@ func Test_chainProcessor_processReadyBlocks(t *testing.T) {
 				return nil
 			},
 		},
-		"error in process block": {
+		"error_in_process_block": {
 			chainSyncBuilder: func(ctrl *gomock.Controller) ChainSync {
 				cs := NewMockChainSync(ctrl)
 				cs.EXPECT().syncState().Return(bootstrap)
@@ -1036,7 +1036,7 @@ func Test_chainProcessor_processReadyBlocks(t *testing.T) {
 				return mockStorageState
 			},
 		},
-		"add block error": {
+		"add_block_error": {
 			chainSyncBuilder: func(ctrl *gomock.Controller) ChainSync {
 				cs := NewMockChainSync(ctrl)
 				cs.EXPECT().syncState().Return(bootstrap)
@@ -1132,7 +1132,7 @@ func Test_newChainProcessor(t *testing.T) {
 		want *chainProcessor
 	}{
 		{
-			name: "with args",
+			name: "with_args",
 			args: args{
 				readyBlocks:        mockReadyBlock,
 				pendingBlocks:      mockDisjointBlockSet,
