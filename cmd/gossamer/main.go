@@ -185,8 +185,8 @@ func importStateAction(ctx *cli.Context) error {
 // importRuntimeAction generates a genesis file given a .wasm runtime binary.
 func importRuntimeAction(ctx *cli.Context) error {
 	arguments := ctx.Args()
-	if len(arguments) == 0 {
-		return fmt.Errorf("no args provided, please provide wasm file and the genesis spec file")
+	if len(arguments) != 2 {
+		return fmt.Errorf("please provide a wasm file and the genesis spec file")
 	}
 
 	fp := arguments[0]
