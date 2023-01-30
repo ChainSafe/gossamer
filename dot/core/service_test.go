@@ -180,7 +180,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 	t.Parallel()
 
 	errTest := errors.New("test error")
-	validRuntimeCode := getGssmrRuntimeCode(t)
+	validRuntimeCode := getWestendDevRuntimeCode(t)
 
 	testCases := map[string]struct {
 		serviceBuilder func(ctrl *gomock.Controller) *Service
