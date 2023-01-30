@@ -4,7 +4,6 @@
 package state
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -29,12 +28,11 @@ type OfflinePruner struct {
 	bestBlockHash  common.Hash
 	retainBlockNum uint32
 
-	inputDBPath  string
-	prunedDBPath string
+	inputDBPath string
 }
 
 // NewOfflinePruner creates an instance of OfflinePruner.
-func NewOfflinePruner(inputDBPath, prunedDBPath string,
+func NewOfflinePruner(inputDBPath string,
 	retainBlockNum uint32) (pruner *OfflinePruner, err error) {
 	db, err := utils.LoadChainDB(inputDBPath)
 	if err != nil {
@@ -89,7 +87,6 @@ func NewOfflinePruner(inputDBPath, prunedDBPath string,
 		filterDatabase: filterDatabase,
 		bestBlockHash:  bestHash,
 		retainBlockNum: retainBlockNum,
-		prunedDBPath:   prunedDBPath,
 		inputDBPath:    inputDBPath,
 	}, nil
 }
@@ -174,54 +171,35 @@ func (p *OfflinePruner) Prune() error {
 		}
 	}()
 
-	prunedDB, err := utils.LoadBadgerDB(p.prunedDBPath)
-	if err != nil {
-		return fmt.Errorf("failed to load DB %w", err)
-	}
-	defer func() {
-		closeErr := prunedDB.Close()
-		switch {
-		case closeErr == nil:
-			return
-		case err == nil:
-			err = fmt.Errorf("cannot close pruned database: %w", closeErr)
-		default:
-			logger.Errorf("cannot close pruned database: %s", err)
-		}
-	}()
-
-	writer := prunedDB.NewStreamWriter()
-	if err = writer.Prepare(); err != nil {
-		return fmt.Errorf("cannot create stream writer in out DB at %s error %w", p.prunedDBPath, err)
-	}
-
-	// Stream contents of DB to the output DB.
 	stream := inputDB.NewStream()
-	stream.LogPrefix = fmt.Sprintf("Streaming DB to new DB at %s ", p.prunedDBPath)
-
 	stream.ChooseKey = func(item *badger.Item) bool {
 		key := string(item.Key())
-		// All the non storage keys will be streamed to new db.
 		if !strings.HasPrefix(key, storagePrefix) {
-			return true
+			// Ignore non-storage keys
+			return false
 		}
 
-		// Only keys present in filter database will be streamed to new db
-		key = strings.TrimPrefix(key, storagePrefix)
-		_, err := p.filterDatabase.Get([]byte(key))
+		// Storage keys not found in filter database are deleted.
+		nodeHash := strings.TrimPrefix(key, storagePrefix)
+		_, err := p.filterDatabase.Get([]byte(nodeHash))
 		return err == nil
 	}
 
+	writeBatch := inputDB.NewWriteBatch()
 	stream.Send = func(l *pb.KVList) error {
-		return writer.Write(l)
+		keyValues := l.GetKv()
+		for _, keyValue := range keyValues {
+			err = writeBatch.Delete(keyValue.Key)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
 	}
 
-	if err = stream.Orchestrate(context.Background()); err != nil {
-		return fmt.Errorf("cannot stream DB to out DB at %s error %w", p.prunedDBPath, err)
-	}
-
-	if err = writer.Flush(); err != nil {
-		return fmt.Errorf("cannot flush writer, error %w", err)
+	err = writeBatch.Flush()
+	if err != nil {
+		return fmt.Errorf("flushing write batch: %w", err)
 	}
 
 	return nil
