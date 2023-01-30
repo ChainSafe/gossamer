@@ -494,7 +494,6 @@ func (n *nodeBuilder) loadRuntime(cfg *Config, ns *runtime.NodeStorage,
 	blocks := stateSrvc.Block.GetNonFinalisedBlocks()
 	runtimeCode := make(map[string]runtimeInterface)
 	for i := range blocks {
-		// the failing hash doesn't even show up here
 		hash := &blocks[i]
 		code, err := stateSrvc.Storage.GetStorageByBlockHash(hash, []byte(":code"))
 		if err != nil {
