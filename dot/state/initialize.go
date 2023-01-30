@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 
 	"github.com/ChainSafe/chaindb"
-	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -73,7 +72,7 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 	}
 
 	// create storage state from genesis trie
-	storageState, err := NewStorageState(db, blockState, tries, pruner.Config{})
+	storageState, err := NewStorageState(db, blockState, tries)
 	if err != nil {
 		return fmt.Errorf("failed to create storage state from trie: %s", err)
 	}
