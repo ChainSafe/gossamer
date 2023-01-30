@@ -272,7 +272,7 @@ func (bs *BlockState) GetAllDescendants(hash common.Hash) ([]common.Hash, error)
 		return nil, fmt.Errorf("getting block by number: %w", err)
 	}
 
-	// next block number is not descendant of hash
+	// next block is not a descendant of the block for the given hash
 	if nextBlock.Header.ParentHash != hash {
 		return nil, nil
 	}
