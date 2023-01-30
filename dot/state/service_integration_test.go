@@ -56,7 +56,7 @@ func newTestMemDBService(t *testing.T) *Service {
 func TestService_Start(t *testing.T) {
 	state := newTestService(t)
 
-	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	err := state.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
@@ -73,7 +73,7 @@ func TestService_Start(t *testing.T) {
 func TestService_Initialise(t *testing.T) {
 	state := newTestService(t)
 
-	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 
 	// Deep copy the trie because of the following:
 	// Initialise clears the database, writes only dirty nodes to disk
@@ -108,7 +108,7 @@ func TestService_Initialise(t *testing.T) {
 func TestMemDB_Start(t *testing.T) {
 	state := newTestMemDBService(t)
 
-	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	err := state.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
@@ -134,7 +134,7 @@ func TestService_BlockTree(t *testing.T) {
 
 	stateA := NewService(config)
 
-	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	err := stateA.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
@@ -187,7 +187,7 @@ func TestService_StorageTriePruning(t *testing.T) {
 	serv := NewService(config)
 	serv.UseMemDB()
 
-	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	err := serv.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
@@ -236,7 +236,7 @@ func TestService_PruneStorage(t *testing.T) {
 	serv := NewService(config)
 	serv.UseMemDB()
 
-	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	err := serv.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
@@ -317,7 +317,7 @@ func TestService_Rewind(t *testing.T) {
 	serv := NewService(config)
 	serv.UseMemDB()
 
-	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	err := serv.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
@@ -375,7 +375,7 @@ func TestService_Import(t *testing.T) {
 	serv := NewService(config)
 	serv.UseMemDB()
 
-	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	err := serv.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 

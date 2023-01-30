@@ -43,7 +43,7 @@ func newTestSyncer(t *testing.T) *Service {
 	stateSrvc := state.NewService(scfg)
 	stateSrvc.UseMemDB()
 
-	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
+	gen, genTrie, genHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	err := stateSrvc.Initialise(&gen, &genHeader, &genTrie)
 	require.NoError(t, err)
 
@@ -121,7 +121,7 @@ func newTestSyncer(t *testing.T) *Service {
 	return syncer
 }
 
-func newTestGenesisWithTrieAndHeader(t *testing.T) (
+func newWestendDevGenesisWithTrieAndHeader(t *testing.T) (
 	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
 	t.Helper()
 
