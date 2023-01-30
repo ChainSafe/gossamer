@@ -21,7 +21,7 @@ type BlockState interface {
 	IsDescendantOf(parent, child common.Hash) (bool, error)
 	LowestCommonAncestor(a, b common.Hash) (common.Hash, error)
 	HasFinalisedBlock(round, setID uint64) (bool, error)
-	GetFinalisedHeader(uint64, uint64) (*types.Header, error)
+	GetFinalisedHeader(round, setID uint64) (*types.Header, error)
 	SetFinalisedHash(common.Hash, uint64, uint64) error
 	BestBlockHeader() (*types.Header, error)
 	GetHighestFinalisedHeader() (*types.Header, error)
