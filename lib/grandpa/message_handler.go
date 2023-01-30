@@ -421,14 +421,14 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 		return nil, fmt.Errorf("cannot get set ID from block number: %w", err)
 	}
 
-	has, err := s.blockState.HasFinalisedBlock(fj.Round, setID)
-	if err != nil {
-		return nil, err
-	}
+	// has, err := s.blockState.HasFinalisedBlock(fj.Round, setID)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	if has {
-		return nil, fmt.Errorf("already have finalised block with setID=%d and round=%d", setID, fj.Round)
-	}
+	// if has {
+	// 	return nil, fmt.Errorf("already have finalised block with setID=%d and round=%d", setID, fj.Round)
+	// }
 
 	isDescendant, err := isDescendantOfHighestFinalisedBlock(s.blockState, fj.Commit.Hash)
 	if err != nil {

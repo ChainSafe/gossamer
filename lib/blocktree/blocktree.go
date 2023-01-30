@@ -513,7 +513,7 @@ func (bt *BlockTree) StoreRuntime(hash common.Hash, in Runtime) {
 func (bt *BlockTree) GetBlockRuntime(hash common.Hash) (Runtime, error) {
 	ins := bt.runtimes.get(hash)
 	if ins == nil {
-		return nil, ErrFailedToGetRuntime
+		return nil, fmt.Errorf("%w for hash %s", ErrFailedToGetRuntime, hash)
 	}
 	return ins, nil
 }

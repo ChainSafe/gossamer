@@ -93,7 +93,8 @@ func (s *chainProcessor) processReadyBlocks() {
 		if err := s.processBlockData(*bd); err != nil {
 			// depending on the error, we might want to save this block for later
 			if !errors.Is(err, errFailedToGetParent) {
-				logger.Errorf("block data processing for block with hash %s failed: %s", bd.Hash, err)
+				// it happens here
+				logger.Errorf("block data processing for block with hash %s, block number %d, failed: %s", bd.Hash, bd.Number(), err)
 				continue
 			}
 
@@ -253,6 +254,7 @@ func (s *chainProcessor) handleBlock(block *types.Block, announceImportedBlock b
 		panic("parent state root does not match snapshot state root")
 	}
 
+	// here
 	rt, err := s.blockState.GetRuntime(parent.Hash())
 	if err != nil {
 		return err

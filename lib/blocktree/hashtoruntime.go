@@ -21,6 +21,7 @@ func newHashToRuntime() *hashToRuntime {
 func (h *hashToRuntime) get(hash Hash) (instance Runtime) {
 	h.mutex.RLock()
 	defer h.mutex.RUnlock()
+	// this should have runtime
 	return h.mapping[hash]
 }
 
