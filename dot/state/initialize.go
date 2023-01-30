@@ -144,10 +144,6 @@ func (s *Service) storeInitialValues(data *genesis.Data, t *trie.Trie) error {
 		return fmt.Errorf("failed to write genesis data to database: %s", err)
 	}
 
-	if err := s.Base.storePruningData(s.PrunerCfg); err != nil {
-		return fmt.Errorf("failed to write pruning data to database: %s", err)
-	}
-
 	return nil
 }
 
