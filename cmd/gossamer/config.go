@@ -24,12 +24,14 @@ import (
 
 var (
 	// DefaultCfg is the default configuration for the node.
-	DefaultCfg                = dot.WestendDevConfig
-	defaultGssmrConfigPath    = "./chain/gssmr/config.toml"
-	defaultKusamaConfigPath   = "./chain/kusama/config.toml"
-	defaultPolkadotConfigPath = "./chain/polkadot/config.toml"
-	defaultDevConfigPath      = "./chain/dev/config.toml"
-	defaultWestendConfigPath  = "./chain/westend/config.toml"
+	DefaultCfg                  = dot.WestendDevConfig
+	defaultKusamaConfigPath     = "./chain/kusama/config.toml"
+	defaultPolkadotConfigPath   = "./chain/polkadot/config.toml"
+	defaultWestendDevConfigPath = "./chain/westen_dev/config.toml"
+
+	kusamaName     = "kusama"
+	polkadotName   = "polkadot"
+	westendDevName = "westend-dev"
 )
 
 // loadConfigFile loads a default config file if --chain is specified, a specific
@@ -37,7 +39,7 @@ var (
 func loadConfigFile(ctx *cli.Context, cfg *ctoml.Config) (err error) {
 	cfgPath := ctx.GlobalString(ConfigFlag.Name)
 	if cfgPath == "" {
-		return loadConfig(cfg, defaultGssmrConfigPath)
+		return loadConfig(cfg, defaultPolkadotConfigPath)
 	}
 
 	logger.Info("loading toml configuration from " + cfgPath + "...")
@@ -64,11 +66,7 @@ func setupConfigFromChain(ctx *cli.Context) (*ctoml.Config, *dot.Config, error) 
 	// check --chain flag and load configuration from defaults.go
 	if id := ctx.GlobalString(ChainFlag.Name); id != "" {
 		switch id {
-		case "gssmr":
-			logger.Info("loading toml configuration from " + defaultGssmrConfigPath + "...")
-			tomlCfg = &ctoml.Config{}
-			err = loadConfig(tomlCfg, defaultGssmrConfigPath)
-		case "kusama":
+		case kusamaName:
 			logger.Info("loading toml configuration from " + defaultKusamaConfigPath + "...")
 			tomlCfg = &ctoml.Config{}
 			cfg = dot.KusamaConfig()
@@ -78,16 +76,11 @@ func setupConfigFromChain(ctx *cli.Context) (*ctoml.Config, *dot.Config, error) 
 			tomlCfg = &ctoml.Config{}
 			cfg = dot.PolkadotConfig()
 			err = loadConfig(tomlCfg, defaultPolkadotConfigPath)
-		case "dev":
-			logger.Info("loading toml configuration from " + defaultDevConfigPath + "...")
+		case westendDevName:
+			logger.Info("loading toml configuration from " + defaultWestendDevConfigPath + "...")
 			tomlCfg = &ctoml.Config{}
 			cfg = dot.WestendDevConfig()
-			err = loadConfig(tomlCfg, defaultDevConfigPath)
-		case "westend":
-			logger.Info("loading toml configuration from " + defaultWestendConfigPath + "...")
-			tomlCfg = &ctoml.Config{}
-			cfg = dot.WestendConfig()
-			err = loadConfig(tomlCfg, defaultWestendConfigPath)
+			err = loadConfig(tomlCfg, defaultWestendDevConfigPath)
 		default:
 			return nil, nil, fmt.Errorf("unknown chain id provided: %s", id)
 		}

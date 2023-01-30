@@ -202,10 +202,9 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 
-	defaultGssmrConfigPath = filepath.Join(rootPath, "./chain/gssmr/config.toml")
 	defaultKusamaConfigPath = filepath.Join(rootPath, "./chain/kusama/config.toml")
 	defaultPolkadotConfigPath = filepath.Join(rootPath, "./chain/polkadot/config.toml")
-	defaultDevConfigPath = filepath.Join(rootPath, "./chain/dev/config.toml")
+	defaultWestendDevConfigPath = filepath.Join(rootPath, "./chain/westend_dev/config.toml")
 
 	os.Exit(m.Run())
 }
@@ -235,7 +234,7 @@ func TestInitCommand_RenameNodeWhenCalled(t *testing.T) {
 		"--basepath", tempDir,
 		"--genesis", genesisPath,
 		"--name", nodeName,
-		"--config", defaultGssmrConfigPath,
+		"--config", defaultWestendDevConfigPath,
 		"--force",
 	)
 
@@ -250,7 +249,7 @@ func TestInitCommand_RenameNodeWhenCalled(t *testing.T) {
 		"init",
 		"--basepath", tempDir,
 		"--genesis", genesisPath,
-		"--config", defaultGssmrConfigPath,
+		"--config", defaultWestendDevConfigPath,
 		"--force",
 	)
 

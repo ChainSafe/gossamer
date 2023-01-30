@@ -28,8 +28,8 @@ func TestLoadConfig(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// TestLoadConfigGssmr tests loading the toml configuration file for gssmr
-func TestLoadConfigGssmr(t *testing.T) {
+// TestLoadConfigWestendDev tests loading the toml configuration file for westend_dev
+func TestLoadConfigWestendDev(t *testing.T) {
 	cfg := dot.WestendDevConfig()
 	require.NotNil(t, cfg)
 
@@ -40,9 +40,9 @@ func TestLoadConfigGssmr(t *testing.T) {
 	require.NoError(t, err)
 
 	projectRootPath := utils.GetProjectRootPathTest(t)
-	gssmrConfigPath := filepath.Join(projectRootPath, "./chain/gssmr/config.toml")
+	configPath := filepath.Join(projectRootPath, "./chain/westend_dev/config.toml")
 
-	err = loadConfig(dotConfigToToml(cfg), gssmrConfigPath)
+	err = loadConfig(dotConfigToToml(cfg), configPath)
 	require.NoError(t, err)
 }
 

@@ -284,10 +284,10 @@ func getWestendDevRuntimeCode(t *testing.T) (code []byte) {
 	t.Helper()
 
 	path := utils.GetWestendDevRawGenesisPath(t)
-	gssmrGenesis, err := genesis.NewGenesisFromJSONRaw(path)
+	westendDevGenesis, err := genesis.NewGenesisFromJSONRaw(path)
 	require.NoError(t, err)
 
-	genesisTrie, err := wasmer.NewTrieFromGenesis(*gssmrGenesis)
+	genesisTrie, err := wasmer.NewTrieFromGenesis(*westendDevGenesis)
 	require.NoError(t, err)
 
 	trieState := rtstorage.NewTrieState(&genesisTrie)

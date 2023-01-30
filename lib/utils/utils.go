@@ -198,7 +198,7 @@ func GetProjectRootPath() (rootPath string, err error) {
 	rootPath = path.Dir(fullpath)
 
 	const directoryToFind = "chain"
-	const subPathsToFind = "dev,gssmr,kusama,polkadot"
+	const subPathsToFind = "westend_dev,westend_local,kusama,polkadot"
 
 	subPaths := strings.Split(subPathsToFind, ",")
 

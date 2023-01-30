@@ -946,7 +946,7 @@ func TestGlobalNodeName_WhenNodeAlreadyHasStoredName(t *testing.T) {
 
 	fp := utils.GetWestendDevRawGenesisPath(t)
 
-	gssmrGen, err := genesis.NewGenesisFromJSONRaw(fp)
+	westendDevGenesis, err := genesis.NewGenesisFromJSONRaw(fp)
 	require.NoError(t, err)
 
 	gen := &genesis.Genesis{
@@ -954,7 +954,7 @@ func TestGlobalNodeName_WhenNodeAlreadyHasStoredName(t *testing.T) {
 		ID:         "test",
 		Bootnodes:  []string(nil),
 		ProtocolID: "/gossamer/test/0",
-		Genesis:    gssmrGen.GenesisFields(),
+		Genesis:    westendDevGenesis.GenesisFields(),
 	}
 
 	gen.Genesis.Raw = map[string]map[string]string{

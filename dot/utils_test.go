@@ -19,12 +19,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// newTestGenesisFile returns a human-readable test genesis file using "gssmr" human readable data
+// newTestGenesisFile returns a human-readable test genesis file using "westend_dev" human readable data
 func newTestGenesisFile(t *testing.T, cfg *Config) (filename string) {
 	t.Helper()
 
 	fp := utils.GetWestendDevRawGenesisPath(t)
-	gssmrGen, err := genesis.NewGenesisFromJSONRaw(fp)
+	westendDevGenesis, err := genesis.NewGenesisFromJSONRaw(fp)
 	require.NoError(t, err)
 
 	gen := &genesis.Genesis{
@@ -32,7 +32,7 @@ func newTestGenesisFile(t *testing.T, cfg *Config) (filename string) {
 		ID:         cfg.Global.ID,
 		Bootnodes:  cfg.Network.Bootnodes,
 		ProtocolID: cfg.Network.ProtocolID,
-		Genesis:    gssmrGen.GenesisFields(),
+		Genesis:    westendDevGenesis.GenesisFields(),
 	}
 
 	b, err := json.Marshal(gen)
@@ -93,8 +93,8 @@ func TestNewTestConfig(t *testing.T) {
 			args: args{t: t},
 			want: &Config{
 				Global: GlobalConfig{
-					Name:           "Gossamer",
-					ID:             "gssmr",
+					Name:           "Westend",
+					ID:             "westend_dev",
 					BasePath:       incBasePath,
 					LogLvl:         3,
 					PublishMetrics: false,
@@ -115,7 +115,7 @@ func TestNewTestConfig(t *testing.T) {
 					BlockProducerLvl:  3,
 					FinalityGadgetLvl: 3,
 				},
-				Init: InitConfig{Genesis: "./chain/gssmr/genesis.json"},
+				Init: InitConfig{Genesis: "./chain/westend_dev/westend-dev-spec-raw.json"},
 				Core: CoreConfig{
 					Roles:            4,
 					BabeAuthority:    true,
@@ -232,11 +232,11 @@ func NewWestendDevConfig(t *testing.T) *Config {
 	return cfg
 }
 
-// NewTestGenesis returns a test genesis instance using "gssmr" raw data
+// NewTestGenesis returns a test genesis instance using "westend_dev" raw data
 func NewTestGenesis(t *testing.T) *genesis.Genesis {
 	fp := utils.GetWestendDevRawGenesisPath(t)
 
-	gssmrGen, err := genesis.NewGenesisFromJSONRaw(fp)
+	westendDevGenesis, err := genesis.NewGenesisFromJSONRaw(fp)
 	require.NoError(t, err)
 
 	return &genesis.Genesis{
@@ -244,6 +244,6 @@ func NewTestGenesis(t *testing.T) *genesis.Genesis {
 		ID:         "test",
 		Bootnodes:  []string(nil),
 		ProtocolID: "/gossamer/test/0",
-		Genesis:    gssmrGen.GenesisFields(),
+		Genesis:    westendDevGenesis.GenesisFields(),
 	}
 }
