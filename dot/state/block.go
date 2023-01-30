@@ -269,7 +269,7 @@ func (bs *BlockState) GetAllDescendants(hash common.Hash) ([]common.Hash, error)
 	// TODO: Use GetBlocksByNumber after https://github.com/ChainSafe/gossamer/issues/2748 is done
 	nextBlock, err := bs.GetBlockByNumber(header.Number + 1)
 	if err != nil {
-		return nil, fmt.Errorf("getting block by number %d: %w", header.Number+1, err)
+		return nil, fmt.Errorf("getting block by number: %w", err)
 	}
 
 	// next block number is not descendant of hash
