@@ -438,7 +438,7 @@ func pruneState(ctx *cli.Context) error {
 		return err
 	}
 
-	inputDBPath := tomlCfg.Global.BasePath
+	inputDBPath := filepath.Join(tomlCfg.Global.BasePath, "db")
 	prunedDBPath := ctx.GlobalString(DBPathFlag.Name)
 	if prunedDBPath == "" {
 		return fmt.Errorf("path not specified for badger db")
