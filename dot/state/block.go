@@ -250,7 +250,8 @@ func (bs *BlockState) GetHashByNumber(num uint) (common.Hash, error) {
 	return common.NewHash(bh), nil
 }
 
-// GetAllDescendants gets all the descendants even if hash is not stored in memory.
+// GetAllDescendants gets all the descendants for a given block hash, by first checking in memory
+// and, if not found, reading from the block state database.
 func (bs *BlockState) GetAllDescendants(hash common.Hash) ([]common.Hash, error) {
 	allDescendants, err := bs.bt.GetAllDescendants(hash)
 	if err != nil && !errors.Is(err, blocktree.ErrNodeNotFound) {
