@@ -137,7 +137,7 @@ func newTestState(t *testing.T) *state.Service {
 
 	t.Cleanup(func() { db.Close() })
 
-	_, genTrie, _ := newTestGenesisWithTrieAndHeader(t)
+	_, genTrie, _ := newWestendDevGenesisWithTrieAndHeader(t)
 	tries := state.NewTries()
 	tries.SetTrie(&genTrie)
 	block, err := state.NewBlockStateFromGenesis(db, tries, testGenesisHeader, telemetryMock)
@@ -185,7 +185,7 @@ func newTestService(t *testing.T, keypair *ed25519.Keypair) (*Service, *state.Se
 	return gs, st
 }
 
-func newTestGenesisWithTrieAndHeader(t *testing.T) (
+func newWestendDevGenesisWithTrieAndHeader(t *testing.T) (
 	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
 	t.Helper()
 
