@@ -12,7 +12,7 @@ import (
 
 // NewDigestItem returns a new VaryingDataType to represent a DigestItem
 func NewDigestItem() scale.VaryingDataType {
-	return scale.MustNewVaryingDataType(PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
+	return scale.MustNewVaryingDataType(ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
 }
 
 // NewDigest returns a new Digest as a varying data type slice.
@@ -33,6 +33,12 @@ func (h ConsensusEngineID) String() string {
 	return fmt.Sprintf("0x%x", h.ToBytes())
 }
 
+// BabeEngineID is the hard-coded babe ID
+var BabeEngineID = ConsensusEngineID{'B', 'A', 'B', 'E'}
+
+// GrandpaEngineID is the hard-coded grandpa ID
+var GrandpaEngineID = ConsensusEngineID{'F', 'R', 'N', 'K'}
+
 // ChangesTrieRootDigest contains the root of the changes trie at a given block, if the runtime supports it.
 type ChangesTrieRootDigest struct {
 	Hash common.Hash
@@ -45,12 +51,6 @@ func (ChangesTrieRootDigest) Index() uint { return 2 }
 func (d ChangesTrieRootDigest) String() string {
 	return fmt.Sprintf("ChangesTrieRootDigest Hash=%s", d.Hash)
 }
-
-// BabeEngineID is the hard-coded babe ID
-var BabeEngineID = ConsensusEngineID{'B', 'A', 'B', 'E'}
-
-// GrandpaEngineID is the hard-coded grandpa ID
-var GrandpaEngineID = ConsensusEngineID{'F', 'R', 'N', 'K'}
 
 // PreRuntimeDigest contains messages from the consensus engine to the runtime.
 type PreRuntimeDigest struct {

@@ -144,6 +144,7 @@ func createFlatTree(t testing.TB, number uint) (*BlockTree, []common.Hash) {
 
 	return bt, hashes
 }
+
 func Test_NewBlockTreeFromNode(t *testing.T) {
 	var bt *BlockTree
 	var branches []testBranch
