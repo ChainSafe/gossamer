@@ -4,6 +4,7 @@
 FROM golang:1.19
 
 ARG DD_API_KEY=somekey
+ARG CHAIN=westend-local
 
 ENV DD_API_KEY=${DD_API_KEY}
 
@@ -19,7 +20,7 @@ COPY . .
 RUN go install -trimpath github.com/ChainSafe/gossamer/cmd/gossamer
 
 # use the 3 node westend local network
-RUN cp -f chain/westend-local/westend-local-spec-raw.json chain/westend-local/westend-local-spec.json
+RUN cp -f chain/$CHAIN/$CHAIN-spec-raw.json chain/$CHAIN/$CHAIN-spec.json
 
 RUN gossamer --key=alice init
 

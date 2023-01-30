@@ -13,7 +13,7 @@ COPY ./devnet/go.mod ./devnet/go.sum ./
 RUN go mod download
 
 COPY ./devnet .
-#RUN go run cmd/update-dd-agent-confd/main.go -n=${METRICS_NAMESPACE} -t=key:alice > conf.yaml
+RUN go run cmd/update-dd-agent-confd/main.go -n=${METRICS_NAMESPACE} -t=key:alice > conf.yaml
 
 FROM parity/polkadot:${POLKADOT_VERSION}
 
@@ -42,7 +42,7 @@ USER polkadot
 
 COPY ./chain/ ./chain/
 
-ENTRYPOINT  /usr/bin/polkadot \
+ENTRYPOINT  service datadog-agent start && /usr/bin/polkadot \
     --bootnodes /dns/alice/tcp/7001/p2p/12D3KooWMER5iow67nScpWeVqEiRRx59PJ3xMMAYPTACYPRQbbWU \
     --chain chain/westend-local/westend-local-spec-raw.json \
     --port 7001 \
