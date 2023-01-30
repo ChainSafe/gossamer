@@ -6,17 +6,13 @@ package types
 import (
 	"fmt"
 
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-type HeaderDigest struct {
-	ConsensusEngineID ConsensusEngineID
-	Data              []byte
-}
-
 // NewDigestItem returns a new VaryingDataType to represent a DigestItem
 func NewDigestItem() scale.VaryingDataType {
-	return scale.MustNewVaryingDataType(RuntimeEnvironmentUpdatedDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
+	return scale.MustNewVaryingDataType(PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
 }
 
 // NewDigest returns a new Digest as a varying data type slice.
@@ -37,6 +33,19 @@ func (h ConsensusEngineID) String() string {
 	return fmt.Sprintf("0x%x", h.ToBytes())
 }
 
+// ChangesTrieRootDigest contains the root of the changes trie at a given block, if the runtime supports it.
+type ChangesTrieRootDigest struct {
+	Hash common.Hash
+}
+
+// Index returns VDT index
+func (ChangesTrieRootDigest) Index() uint { return 2 }
+
+// String returns the digest as a string
+func (d ChangesTrieRootDigest) String() string {
+	return fmt.Sprintf("ChangesTrieRootDigest Hash=%s", d.Hash)
+}
+
 // BabeEngineID is the hard-coded babe ID
 var BabeEngineID = ConsensusEngineID{'B', 'A', 'B', 'E'}
 
@@ -44,7 +53,10 @@ var BabeEngineID = ConsensusEngineID{'B', 'A', 'B', 'E'}
 var GrandpaEngineID = ConsensusEngineID{'F', 'R', 'N', 'K'}
 
 // PreRuntimeDigest contains messages from the consensus engine to the runtime.
-type PreRuntimeDigest HeaderDigest
+type PreRuntimeDigest struct {
+	ConsensusEngineID ConsensusEngineID
+	Data              []byte
+}
 
 // Index returns VDT index
 func (PreRuntimeDigest) Index() uint { return 6 }
@@ -63,7 +75,10 @@ func (d PreRuntimeDigest) String() string {
 }
 
 // ConsensusDigest contains messages from the runtime to the consensus engine.
-type ConsensusDigest HeaderDigest
+type ConsensusDigest struct {
+	ConsensusEngineID ConsensusEngineID
+	Data              []byte
+}
 
 // Index returns VDT index
 func (ConsensusDigest) Index() uint { return 4 }
@@ -74,7 +89,10 @@ func (d ConsensusDigest) String() string {
 }
 
 // SealDigest contains the seal or signature. This is only used by native code.
-type SealDigest HeaderDigest
+type SealDigest struct {
+	ConsensusEngineID ConsensusEngineID
+	Data              []byte
+}
 
 // Index returns VDT index
 func (SealDigest) Index() uint { return 5 }
@@ -82,14 +100,4 @@ func (SealDigest) Index() uint { return 5 }
 // String returns the digest as a string
 func (d SealDigest) String() string {
 	return fmt.Sprintf("SealDigest ConsensusEngineID=%s Data=0x%x", d.ConsensusEngineID.ToBytes(), d.Data)
-}
-
-type RuntimeEnvironmentUpdatedDigest HeaderDigest
-
-// Index returns VDT index
-func (RuntimeEnvironmentUpdatedDigest) Index() uint { return 8 }
-
-// String returns the digest as a string
-func (d RuntimeEnvironmentUpdatedDigest) String() string {
-	return fmt.Sprintf("RuntimeEnvironmentUpdatedDigest ConsensusEngineID=%s Data=0x%x", d.ConsensusEngineID.ToBytes(), d.Data)
 }
