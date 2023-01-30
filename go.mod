@@ -15,7 +15,7 @@ require (
 	github.com/disiqueira/gotree v1.0.0
 	github.com/docker/docker v20.10.23+incompatible
 	github.com/ethereum/go-ethereum v1.10.26
-	github.com/fatih/color v1.14.0
+	github.com/fatih/color v1.14.1
 	github.com/go-playground/validator/v10 v10.11.1
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.5.9
