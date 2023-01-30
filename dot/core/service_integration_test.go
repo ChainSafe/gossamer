@@ -701,13 +701,13 @@ func buildTestBlockWithoutExtrinsics(t *testing.T, instance state.Runtime,
 		require.Equal(t, ret, []byte{0, 0})
 	}
 
-	res, err := instance.FinalizeBlock()
+	finalisedHeader, err := instance.FinalizeBlock()
 	require.NoError(t, err)
 
-	res.Number = header.Number
-	res.Hash()
+	finalisedHeader.Number = header.Number
+	finalisedHeader.Hash()
 	return &types.Block{
-		Header: *res,
+		Header: *finalisedHeader,
 		Body:   types.Body(types.BytesArrayToExtrinsics(decodedInherents)),
 	}
 }
