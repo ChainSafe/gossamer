@@ -344,13 +344,6 @@ var (
 
 // State Prune flags
 var (
-	// BloomFilterSizeFlag size for bloom filter, valid for the use with prune-state subcommand
-	BloomFilterSizeFlag = cli.IntFlag{
-		Name:  "bloom-size",
-		Usage: "Megabytes of memory allocated to bloom-filter for pruning",
-		Value: 2048,
-	}
-
 	// DBPathFlag data directory for pruned DB, valid for the use with prune-state subcommand
 	DBPathFlag = cli.StringFlag{
 		Name:  "pruned-db-path",
@@ -405,7 +398,6 @@ var (
 		PprofMutexRateFlag,
 		RewindFlag,
 		DBPathFlag,
-		BloomFilterSizeFlag,
 	}
 
 	// StartupFlags are flags that are valid for use with the root command and the export subcommand
@@ -501,7 +493,6 @@ var (
 		ChainFlag,
 		ConfigFlag,
 		DBPathFlag,
-		BloomFilterSizeFlag,
 		RetainBlockNumberFlag,
 	}
 )

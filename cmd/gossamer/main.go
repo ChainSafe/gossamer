@@ -444,8 +444,6 @@ func pruneState(ctx *cli.Context) error {
 		return fmt.Errorf("path not specified for badger db")
 	}
 
-	bloomSize := ctx.GlobalUint64(BloomFilterSizeFlag.Name)
-
 	const uint32Max = ^uint32(0)
 	flagValue := ctx.GlobalUint64(RetainBlockNumberFlag.Name)
 
@@ -455,7 +453,7 @@ func pruneState(ctx *cli.Context) error {
 
 	retainBlocks := uint32(flagValue)
 
-	pruner, err := state.NewOfflinePruner(inputDBPath, prunedDBPath, bloomSize, retainBlocks)
+	pruner, err := state.NewOfflinePruner(inputDBPath, prunedDBPath, retainBlocks)
 	if err != nil {
 		return err
 	}

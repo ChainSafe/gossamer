@@ -6,6 +6,7 @@ package state
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/ChainSafe/chaindb"
@@ -24,7 +25,7 @@ type OfflinePruner struct {
 	inputDB        *chaindb.BadgerDB
 	storageState   *StorageState
 	blockState     *BlockState
-	bloom          *bloomState
+	filterDatabase *chaindb.BadgerDB
 	bestBlockHash  common.Hash
 	retainBlockNum uint32
 
@@ -33,8 +34,8 @@ type OfflinePruner struct {
 }
 
 // NewOfflinePruner creates an instance of OfflinePruner.
-func NewOfflinePruner(inputDBPath, prunedDBPath string, bloomSize uint64,
-	retainBlockNum uint32) (*OfflinePruner, error) {
+func NewOfflinePruner(inputDBPath, prunedDBPath string,
+	retainBlockNum uint32) (pruner *OfflinePruner, err error) {
 	db, err := utils.LoadChainDB(inputDBPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load DB %w", err)
@@ -55,10 +56,24 @@ func NewOfflinePruner(inputDBPath, prunedDBPath string, bloomSize uint64,
 		return nil, fmt.Errorf("failed to get best finalised hash: %w", err)
 	}
 
-	// create bloom filter
-	bloom, err := newBloomState(bloomSize)
+	// Create temporary filter database to store database keys only
+	filterDatabaseDir, err := os.MkdirTemp("", "")
 	if err != nil {
-		return nil, fmt.Errorf("failed to create new bloom filter of size %d %w", bloomSize, err)
+		return nil, fmt.Errorf("creating filter database temp directory: %w", err)
+	}
+	defer func() {
+		removeErr := os.RemoveAll(filterDatabaseDir)
+		if err == nil {
+			err = removeErr
+		}
+	}()
+
+	filterDatabaseOptions := &chaindb.Config{
+		DataDir: filterDatabaseDir,
+	}
+	filterDatabase, err := chaindb.NewBadgerDB(filterDatabaseOptions)
+	if err != nil {
+		return nil, fmt.Errorf("creating badger filter database: %w", err)
 	}
 
 	// load storage state
@@ -71,7 +86,7 @@ func NewOfflinePruner(inputDBPath, prunedDBPath string, bloomSize uint64,
 		inputDB:        db,
 		storageState:   storageState,
 		blockState:     blockState,
-		bloom:          bloom,
+		filterDatabase: filterDatabase,
 		bestBlockHash:  bestHash,
 		retainBlockNum: retainBlockNum,
 		prunedDBPath:   prunedDBPath,
@@ -131,7 +146,7 @@ func (p *OfflinePruner) SetBloomFilter() (err error) {
 	}
 
 	for key := range merkleValues {
-		err = p.bloom.put([]byte(key))
+		err = p.filterDatabase.Put([]byte(key), nil)
 		if err != nil {
 			return err
 		}
@@ -191,10 +206,10 @@ func (p *OfflinePruner) Prune() error {
 			return true
 		}
 
-		// Only keys present in bloom filter will be streamed to new db
+		// Only keys present in filter database will be streamed to new db
 		key = strings.TrimPrefix(key, storagePrefix)
-		exist := p.bloom.contain([]byte(key))
-		return exist
+		_, err := p.filterDatabase.Get([]byte(key))
+		return err == nil
 	}
 
 	stream.Send = func(l *pb.KVList) error {
