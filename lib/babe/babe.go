@@ -478,19 +478,13 @@ func (b *Service) getParentForBlockAuthoring(slotNum uint64) (*types.Header, err
 	return parent, nil
 }
 
-func (b *Service) handleSlot(epoch, slotNum uint64,
+func (b *Service) handleSlot(epoch uint64, slot Slot,
 	authorityIndex uint32,
 	preRuntimeDigest *types.PreRuntimeDigest,
 ) error {
-	currentSlot := Slot{
-		start:    time.Now(),
-		duration: b.constants.slotDuration,
-		number:   slotNum,
-	}
-
-	parent, err := b.getParentForBlockAuthoring(slotNum)
+	parent, err := b.getParentForBlockAuthoring(slot.number)
 	if err != nil {
-		return fmt.Errorf("could not get parent for claiming slot %d: %w", slotNum, err)
+		return fmt.Errorf("could not get parent for claiming slot %d: %w", slot.number, err)
 	}
 	b.storageState.Lock()
 	defer b.storageState.Unlock()
@@ -510,14 +504,14 @@ func (b *Service) handleSlot(epoch, slotNum uint64,
 
 	rt.SetContextStorage(ts)
 
-	block, err := b.buildBlock(parent, currentSlot, rt, authorityIndex, preRuntimeDigest)
+	block, err := b.buildBlock(parent, slot, rt, authorityIndex, preRuntimeDigest)
 	if err != nil {
 		return err
 	}
 
 	logger.Infof(
 		"built block %d with hash %s, state root %s, epoch %d and slot %d",
-		block.Header.Number, block.Header.Hash(), block.Header.StateRoot, epoch, slotNum)
+		block.Header.Number, block.Header.Hash(), block.Header.StateRoot, epoch, slot.number)
 	logger.Tracef(
 		"built block with parent hash %s, header %s and body %s",
 		parent.Hash(), block.Header.String(), block.Body)
