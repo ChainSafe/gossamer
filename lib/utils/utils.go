@@ -148,16 +148,6 @@ func KeystoreFilepaths(basepath string) ([]string, error) {
 	return keys, nil
 }
 
-// GetGssmrGenesisRawPath gets the gssmr raw genesis path
-// and returns an error if it cannot find it.
-func GetGssmrGenesisRawPath() (path string, err error) {
-	rootPath, err := GetProjectRootPath()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(rootPath, "./chain/gssmr/genesis-spec.json"), nil
-}
-
 // GetGssmrV3SubstrateGenesisRawPathTest gets the v3 substrate gssmr raw genesis path
 // and fails the test if it cannot find it.
 func GetGssmrV3SubstrateGenesisRawPathTest(t *testing.T) string {
@@ -180,6 +170,12 @@ func GetGssmrV3SubstrateGenesisRawPath() (path string, err error) {
 // GetDevV3SubstrateGenesisPath gets the v3 substrate dev genesis path
 func GetDevV3SubstrateGenesisPath(t *testing.T) string {
 	return filepath.Join(GetProjectRootPathTest(t), "./chain/dev-v3substrate/genesis.json")
+}
+
+// GetWestendDevHumanReadableGenesisPath gets the westend-dev human readable spec filepath
+func GetWestendDevHumanReadableGenesisPath(t *testing.T) string {
+	t.Helper()
+	return filepath.Join(GetProjectRootPathTest(t), "./chain/westend-dev/westend-dev-spec.json")
 }
 
 // GetWestendDevRawGenesisPath gets the westend-dev genesis raw path

@@ -92,12 +92,12 @@ var (
 	importRuntimeCommand = cli.Command{
 		Action:    FixFlagOrder(importRuntimeAction),
 		Name:      importRuntimeCommandName,
-		Usage:     "Generates a genesis file given a .wasm runtime binary",
+		Usage:     "Appends the given .wasm runtime binary to a genesis file",
 		ArgsUsage: "",
 		Flags:     RootFlags,
 		Category:  "IMPORT-RUNTIME",
-		Description: "The import-runtime command generates a genesis file given a .wasm runtime binary.\n" +
-			"\tUsage: gossamer import-runtime runtime.wasm > genesis.json\n",
+		Description: "The import-runtime command appends the given .wasm runtime binary to a genesis file.\n" +
+			"\tUsage: gossamer import-runtime runtime.wasm genesis.json > updated_genesis.json\n",
 	}
 
 	importStateCommand = cli.Command{
@@ -185,12 +185,14 @@ func importStateAction(ctx *cli.Context) error {
 // importRuntimeAction generates a genesis file given a .wasm runtime binary.
 func importRuntimeAction(ctx *cli.Context) error {
 	arguments := ctx.Args()
-	if len(arguments) == 0 {
-		return fmt.Errorf("no args provided, please provide wasm file")
+	if len(arguments) != 2 {
+		return fmt.Errorf("please provide a wasm file and the genesis spec file")
 	}
 
 	fp := arguments[0]
-	out, err := createGenesisWithRuntime(fp)
+	genesisChainSpec := arguments[1]
+
+	out, err := createGenesisWithRuntime(fp, genesisChainSpec)
 	if err != nil {
 		return err
 	}
