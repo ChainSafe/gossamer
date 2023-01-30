@@ -65,7 +65,7 @@ func TestService_reportEquivocation(t *testing.T) {
 		expErrMsg      string
 	}{
 		{
-			name: "get setID error",
+			name: "get_setID_error",
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
 				mockGrandpaStateSetIDErr := NewMockGrandpaState(ctrl)
 				mockGrandpaStateSetIDErr.EXPECT().GetCurrentSetID().Return(uint64(0), errTestError)
@@ -75,7 +75,7 @@ func TestService_reportEquivocation(t *testing.T) {
 			expErrMsg: "getting authority set id: test dummy error",
 		},
 		{
-			name: "get latest round error",
+			name: "get_latest_round_error",
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
 				mockGrandpaStateRoundErr := NewMockGrandpaState(ctrl)
 				mockGrandpaStateRoundErr.EXPECT().GetCurrentSetID().Return(uint64(1), nil)
@@ -86,7 +86,7 @@ func TestService_reportEquivocation(t *testing.T) {
 			expErrMsg: "getting latest round: test dummy error",
 		},
 		{
-			name: "get runtime error",
+			name: "get_runtime_error",
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
 				mockGrandpaStateOk := NewMockGrandpaState(ctrl)
 				mockGrandpaStateOk.EXPECT().GetCurrentSetID().Return(uint64(1), nil)
@@ -104,7 +104,7 @@ func TestService_reportEquivocation(t *testing.T) {
 			expErrMsg: "getting runtime: test dummy error",
 		},
 		{
-			name: "get key ownership proof error",
+			name: "get_key_ownership_proof_error",
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
 				mockRuntimeInstanceGenerateProofErr := NewMockInstance(ctrl)
 				mockRuntimeInstanceGenerateProofErr.EXPECT().GrandpaGenerateKeyOwnershipProof(uint64(1), testAuthorityID).
@@ -126,7 +126,7 @@ func TestService_reportEquivocation(t *testing.T) {
 			expErrMsg: "getting key ownership proof: test dummy error",
 		},
 		{
-			name: "invalid stage",
+			name: "invalid_stage",
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
 				mockRuntimeInstanceReportEquivocationErr := NewMockInstance(ctrl)
 				mockRuntimeInstanceReportEquivocationErr.EXPECT().GrandpaGenerateKeyOwnershipProof(uint64(1), testAuthorityID).
@@ -152,7 +152,7 @@ func TestService_reportEquivocation(t *testing.T) {
 			expErrMsg: "invalid stage for equivocating: primaryProposal (2)",
 		},
 		{
-			name: "submit equivocation proof error",
+			name: "submit_equivocation_proof_error",
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
 				mockRuntimeInstanceReportEquivocationErr := NewMockInstance(ctrl)
 				mockRuntimeInstanceReportEquivocationErr.EXPECT().GrandpaGenerateKeyOwnershipProof(uint64(1), testAuthorityID).
@@ -181,7 +181,7 @@ func TestService_reportEquivocation(t *testing.T) {
 			expErrMsg: "submitting grandpa equivocation report to runtime: test dummy error",
 		},
 		{
-			name: "valid path",
+			name: "valid_path",
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
 				mockRuntimeInstanceOk := NewMockInstance(ctrl)
 				mockRuntimeInstanceOk.EXPECT().GrandpaGenerateKeyOwnershipProof(uint64(1), testAuthorityID).
