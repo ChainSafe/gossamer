@@ -9,7 +9,6 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -85,40 +84,26 @@ func TestNewNode(t *testing.T) {
 	mockServiceRegistry := NewMockServiceRegisterer(ctrl)
 	mockServiceRegistry.EXPECT().RegisterService(gomock.Any()).Times(8)
 
+	stateSrvc := state.NewService(config)
+	gen, err := genesis.NewGenesisFromJSONRaw(dotConfig.Init.Genesis)
+	require.NoError(t, err)
+	trie, err := wasmer.NewTrieFromGenesis(*gen)
+	require.NoError(t, err)
+	header, err := trie.GenesisBlock()
+	require.NoError(t, err)
+	stateSrvc.Telemetry = mockTelemetryClient
+	err = stateSrvc.Initialise(gen, &header, &trie)
+	require.NoError(t, err)
+	err = stateSrvc.SetupBase()
+	require.NoError(t, err)
+
 	m := NewMocknodeBuilderIface(ctrl)
 	m.EXPECT().isNodeInitialised(dotConfig.Global.BasePath).Return(nil)
-	m.EXPECT().createStateService(dotConfig).DoAndReturn(func(cfg *Config) (*state.Service, error) {
-		stateSrvc := state.NewService(config)
-		// create genesis from configuration file
-		gen, err := genesis.NewGenesisFromJSONRaw(cfg.Init.Genesis)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load genesis from file: %w", err)
-		}
-		// create trie from genesis
-		trie, err := wasmer.NewTrieFromGenesis(*gen)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create trie from genesis: %w", err)
-		}
-		// create genesis block from trie
-		header, err := trie.GenesisBlock()
-		if err != nil {
-			return nil, fmt.Errorf("failed to create genesis block from trie: %w", err)
-		}
-		stateSrvc.Telemetry = mockTelemetryClient
-		err = stateSrvc.Initialise(gen, &header, &trie)
-		if err != nil {
-			return nil, fmt.Errorf("failed to initialise state service: %s", err)
-		}
+	m.EXPECT().createStateService(dotConfig).Return(stateSrvc, nil)
 
-		err = stateSrvc.SetupBase()
-		if err != nil {
-			return nil, fmt.Errorf("cannot setup base: %w", err)
-		}
-		return stateSrvc, nil
-	})
-
-	m.EXPECT().createRuntimeStorage(gomock.AssignableToTypeOf(&state.BaseState{}), gomock.Any()).Return(&runtime.
-		NodeStorage{}, nil)
+	offlineStorageTable := chaindb.NewTable(stateSrvc.DB(), "offlinestorage")
+	m.EXPECT().createRuntimeStorage(gomock.AssignableToTypeOf(&state.BaseState{}), offlineStorageTable).
+		Return(&runtime.NodeStorage{}, nil)
 	m.EXPECT().loadRuntime(dotConfig, &runtime.NodeStorage{}, gomock.AssignableToTypeOf(&state.Service{}),
 		ks, gomock.AssignableToTypeOf(&network.Service{})).Return(nil)
 	m.EXPECT().createBlockVerifier(gomock.AssignableToTypeOf(&state.Service{})).
