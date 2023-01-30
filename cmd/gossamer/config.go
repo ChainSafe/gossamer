@@ -10,8 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ChainSafe/gossamer/chain/dev"
-	"github.com/ChainSafe/gossamer/chain/gssmr"
 	"github.com/ChainSafe/gossamer/dot"
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -26,7 +24,7 @@ import (
 
 var (
 	// DefaultCfg is the default configuration for the node.
-	DefaultCfg                = dot.GssmrConfig
+	DefaultCfg                = dot.WestendDevConfig
 	defaultGssmrConfigPath    = "./chain/gssmr/config.toml"
 	defaultKusamaConfigPath   = "./chain/kusama/config.toml"
 	defaultPolkadotConfigPath = "./chain/polkadot/config.toml"
@@ -83,7 +81,7 @@ func setupConfigFromChain(ctx *cli.Context) (*ctoml.Config, *dot.Config, error) 
 		case "dev":
 			logger.Info("loading toml configuration from " + defaultDevConfigPath + "...")
 			tomlCfg = &ctoml.Config{}
-			cfg = dot.DevConfig()
+			cfg = dot.WestendDevConfig()
 			err = loadConfig(tomlCfg, defaultDevConfigPath)
 		case "westend":
 			logger.Info("loading toml configuration from " + defaultWestendConfigPath + "...")
@@ -162,8 +160,10 @@ func createInitConfig(ctx *cli.Context) (*dot.Config, error) {
 		return nil, fmt.Errorf("--%s must be %s", PruningFlag.Name, pruner.Archive)
 	}
 
-	if cfg.Global.RetainBlocks < dev.DefaultRetainBlocks {
-		return nil, fmt.Errorf("--%s cannot be less than %d", RetainBlockNumberFlag.Name, dev.DefaultRetainBlocks)
+	const defaultRetainBlocks = uint32(512)
+
+	if cfg.Global.RetainBlocks < defaultRetainBlocks {
+		return nil, fmt.Errorf("--%s cannot be less than %d", RetainBlockNumberFlag.Name, defaultRetainBlocks)
 	}
 
 	// set log config
@@ -317,7 +317,7 @@ func setLogConfig(flagsKVStore stringKVStore, tomlConfig *ctoml.Config,
 		tomlConfig = new(ctoml.Config)
 	}
 
-	globalCfg.LogLvl, err = getLogLevel(flagsKVStore, LogFlag.Name, tomlConfig.Global.LogLvl, gssmr.DefaultLvl)
+	globalCfg.LogLvl, err = getLogLevel(flagsKVStore, LogFlag.Name, tomlConfig.Global.LogLvl, log.Info)
 	if err != nil {
 		return fmt.Errorf("cannot get global log level: %w", err)
 	}
@@ -467,7 +467,7 @@ func setDotGlobalConfigFromFlags(ctx *cli.Context, cfg *dot.GlobalConfig) error 
 
 	// check if cfg.BasePath his been set, if not set to default
 	if cfg.BasePath == "" {
-		cfg.BasePath = dot.GssmrConfig().Global.BasePath
+		cfg.BasePath = dot.WestendDevConfig().Global.BasePath
 	}
 
 	// check --log flag
@@ -626,10 +626,10 @@ func setDotCoreConfig(ctx *cli.Context, tomlCfg ctoml.CoreConfig, cfg *dot.CoreC
 	case wasmer.Name:
 		cfg.WasmInterpreter = wasmer.Name
 	case "":
-		cfg.WasmInterpreter = gssmr.DefaultWasmInterpreter
+		cfg.WasmInterpreter = wasmer.Name
 	default:
-		cfg.WasmInterpreter = gssmr.DefaultWasmInterpreter
-		logger.Warn("invalid wasm interpreter set in config, defaulting to " + gssmr.DefaultWasmInterpreter)
+		cfg.WasmInterpreter = wasmer.Name
+		logger.Warn("invalid wasm interpreter set in config, defaulting to " + wasmer.Name)
 	}
 
 	logger.Debugf(

@@ -135,13 +135,13 @@ First, initialize the directory that will be used by the Gossamer node to manage
 its state:
 
 ```sh
-./bin/gossamer init --force --config ./chain/westend-dev/config.toml
+./bin/gossamer init --force --config ./chain/westend_dev/config.toml
 ```
 
 Now, start Gossamer as a host for the local Westend development chain:
 
 ```sh
-./bin/gossamer --config ./chain/westend-dev/config.toml
+./bin/gossamer --config ./chain/westend_dev/config.toml
 ```
 
 ### Multi-Node Development Network
@@ -151,29 +151,29 @@ and Charlie test accounts. In three separate terminals, initialize the data
 directories for the three Gossamer instances:
 
 ```sh
-./bin/gossamer init --force --config ./chain/westend-local/config-alice.toml
+./bin/gossamer init --force --config ./chain/westend_local/config-alice.toml
 ```
 
 ```sh
-./bin/gossamer init --force --config ./chain/westend-local/config-bob.toml
+./bin/gossamer init --force --config ./chain/westend_local/config-bob.toml
 ```
 
 ```sh
-./bin/gossamer init --force --config ./chain/westend-local/config-charlie.toml
+./bin/gossamer init --force --config ./chain/westend_local/config-charlie.toml
 ```
 
 Then start the three hosts:
 
 ```sh
-./bin/gossamer --config ./chain/westend-local/config-alice.toml
+./bin/gossamer --config ./chain/westend_local/config-alice.toml
 ```
 
 ```sh
-./bin/gossamer --config ./chain/westend-local/config-bob.toml
+./bin/gossamer --config ./chain/westend_local/config-bob.toml
 ```
 
 ```sh
-./bin/gossamer --config ./chain/westend-local/config-charlie.toml
+./bin/gossamer --config ./chain/westend_local/config-charlie.toml
 ```
 
 ## Contribute

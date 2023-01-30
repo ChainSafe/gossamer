@@ -30,7 +30,7 @@ func TestLoadConfig(t *testing.T) {
 
 // TestLoadConfigGssmr tests loading the toml configuration file for gssmr
 func TestLoadConfigGssmr(t *testing.T) {
-	cfg := dot.GssmrConfig()
+	cfg := dot.WestendDevConfig()
 	require.NotNil(t, cfg)
 
 	cfg.Global.BasePath = t.TempDir()

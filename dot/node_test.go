@@ -25,7 +25,7 @@ import (
 )
 
 func TestInitNode(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 	cfg.Init.Genesis = NewTestGenesisRawFile(t, cfg)
 	tests := []struct {
 		name   string
@@ -125,7 +125,7 @@ func setConfigTestDefaults(t *testing.T, cfg *network.Config) {
 }
 
 func TestNodeInitialized(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 

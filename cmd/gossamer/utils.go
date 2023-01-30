@@ -72,15 +72,15 @@ func newTestConfig(t *testing.T) *dot.Config {
 
 	cfg := &dot.Config{
 		Global: dot.GlobalConfig{
-			Name:           dot.GssmrConfig().Global.Name,
-			ID:             dot.GssmrConfig().Global.ID,
+			Name:           dot.WestendDevConfig().Global.Name,
+			ID:             dot.WestendDevConfig().Global.ID,
 			BasePath:       dir,
 			LogLvl:         log.Info,
-			PublishMetrics: dot.GssmrConfig().Global.PublishMetrics,
-			MetricsAddress: dot.GssmrConfig().Global.MetricsAddress,
-			RetainBlocks:   dot.GssmrConfig().Global.RetainBlocks,
-			Pruning:        dot.GssmrConfig().Global.Pruning,
-			TelemetryURLs:  dot.GssmrConfig().Global.TelemetryURLs,
+			PublishMetrics: dot.WestendDevConfig().Global.PublishMetrics,
+			MetricsAddress: dot.WestendDevConfig().Global.MetricsAddress,
+			RetainBlocks:   dot.WestendDevConfig().Global.RetainBlocks,
+			Pruning:        dot.WestendDevConfig().Global.Pruning,
+			TelemetryURLs:  dot.WestendDevConfig().Global.TelemetryURLs,
 		},
 		Log: dot.LogConfig{
 			CoreLvl:           log.Info,
@@ -93,13 +93,13 @@ func newTestConfig(t *testing.T) *dot.Config {
 			BlockProducerLvl:  log.Info,
 			FinalityGadgetLvl: log.Info,
 		},
-		Init:    dot.GssmrConfig().Init,
-		Account: dot.GssmrConfig().Account,
-		Core:    dot.GssmrConfig().Core,
-		Network: dot.GssmrConfig().Network,
-		RPC:     dot.GssmrConfig().RPC,
-		System:  dot.GssmrConfig().System,
-		Pprof:   dot.GssmrConfig().Pprof,
+		Init:    dot.WestendDevConfig().Init,
+		Account: dot.WestendDevConfig().Account,
+		Core:    dot.WestendDevConfig().Core,
+		Network: dot.WestendDevConfig().Network,
+		RPC:     dot.WestendDevConfig().RPC,
+		System:  dot.WestendDevConfig().System,
+		Pprof:   dot.WestendDevConfig().Pprof,
 	}
 
 	return cfg

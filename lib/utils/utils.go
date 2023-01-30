@@ -151,19 +151,19 @@ func KeystoreFilepaths(basepath string) ([]string, error) {
 // GetWestendDevHumanReadableGenesisPath gets the westend-dev human readable spec filepath
 func GetWestendDevHumanReadableGenesisPath(t *testing.T) string {
 	t.Helper()
-	return filepath.Join(GetProjectRootPathTest(t), "./chain/westend-dev/westend-dev-spec.json")
+	return filepath.Join(GetProjectRootPathTest(t), "./chain/westend_dev/westend-dev-spec.json")
 }
 
 // GetWestendDevRawGenesisPath gets the westend-dev genesis raw path
 func GetWestendDevRawGenesisPath(t *testing.T) string {
 	t.Helper()
-	return filepath.Join(GetProjectRootPathTest(t), "./chain/westend-dev/westend-dev-spec-raw.json")
+	return filepath.Join(GetProjectRootPathTest(t), "./chain/westend_dev/westend-dev-spec-raw.json")
 }
 
 // GetWestendLocalRawGenesisPath gets the westend-local genesis raw path
 func GetWestendLocalRawGenesisPath(t *testing.T) string {
 	t.Helper()
-	return filepath.Join(GetProjectRootPathTest(t), "./chain/westend-local/westend-local-spec-raw.json")
+	return filepath.Join(GetProjectRootPathTest(t), "./chain/westend_local/westend-local-spec-raw.json")
 }
 
 // GetKusamaGenesisPath gets the Kusama genesis path

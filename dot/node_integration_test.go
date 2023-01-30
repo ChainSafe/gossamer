@@ -44,7 +44,7 @@ func TestNewNode(t *testing.T) {
 	mockTelemetryClient := NewMockTelemetry(ctrl)
 	mockTelemetryClient.EXPECT().SendMessage(gomock.Any())
 
-	initConfig := NewTestConfig(t)
+	initConfig := NewWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, initConfig)
 
@@ -159,7 +159,7 @@ func TestNewNode(t *testing.T) {
 }
 
 func Test_nodeBuilder_loadRuntime(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 	type args struct {
 		cfg *Config
 		ns  *runtime.NodeStorage
@@ -201,7 +201,7 @@ func Test_nodeBuilder_loadRuntime(t *testing.T) {
 }
 
 func TestInitNode_Integration(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
@@ -217,7 +217,7 @@ func TestInitNode_Integration(t *testing.T) {
 }
 
 func TestInitNode_GenesisSpec(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	genFile := newTestGenesisFile(t, cfg)
 
@@ -232,7 +232,7 @@ func TestInitNode_GenesisSpec(t *testing.T) {
 }
 
 func TestNodeInitializedIntegration(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
@@ -249,7 +249,7 @@ func TestNodeInitializedIntegration(t *testing.T) {
 }
 
 func TestNewNodeIntegration(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
@@ -280,7 +280,7 @@ func TestNewNodeIntegration(t *testing.T) {
 }
 
 func TestNewNode_Authority(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
@@ -314,7 +314,7 @@ func TestNewNode_Authority(t *testing.T) {
 }
 
 func TestStartStopNode(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
@@ -351,7 +351,7 @@ func TestStartStopNode(t *testing.T) {
 }
 
 func TestInitNode_LoadStorageRoot(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	genPath := newTestGenesisAndRuntime(t)
 
@@ -399,7 +399,7 @@ func balanceKey(t *testing.T, publicKey [32]byte) (storageTrieKey []byte) {
 }
 
 func TestInitNode_LoadBalances(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	genPath := newTestGenesisAndRuntime(t)
 
@@ -439,7 +439,7 @@ func TestInitNode_LoadBalances(t *testing.T) {
 func TestNode_PersistGlobalName_WhenInitialize(t *testing.T) {
 	globalName := RandomNodeName()
 
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 	cfg.Global.Name = globalName
 
 	cfg.Core.Roles = common.FullNodeRole

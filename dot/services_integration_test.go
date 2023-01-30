@@ -37,7 +37,7 @@ func Test_nodeBuilder_createBABEService(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	ks := keystore.NewGlobalKeystore()
 	ks2 := keystore.NewGlobalKeystore()
@@ -154,7 +154,7 @@ func Test_nodeBuilder_createCoreService(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			cfg := NewTestConfig(t)
+			cfg := NewWestendDevConfig(t)
 			ctrl := gomock.NewController(t)
 			stateSrvc := newStateService(t, ctrl)
 
@@ -195,7 +195,7 @@ func Test_nodeBuilder_createNetworkService(t *testing.T) {
 			t.Parallel()
 			ctrl := gomock.NewController(t)
 
-			cfg := NewTestConfig(t)
+			cfg := NewWestendDevConfig(t)
 			stateSrvc := newStateService(t, ctrl)
 			no := nodeBuilder{}
 			got, err := no.createNetworkService(cfg, stateSrvc, nil)
@@ -230,7 +230,7 @@ func Test_nodeBuilder_createRPCService(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			cfg := NewTestConfig(t)
+			cfg := NewWestendDevConfig(t)
 			ctrl := gomock.NewController(t)
 			stateSrvc := newStateService(t, ctrl)
 			no := nodeBuilder{}
@@ -284,7 +284,7 @@ func Test_nodeBuilder_createGRANDPAService(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			cfg := NewTestConfig(t)
+			cfg := NewWestendDevConfig(t)
 			ctrl := gomock.NewController(t)
 			stateSrvc := newStateService(t, ctrl)
 			networkConfig := &network.Config{
@@ -311,7 +311,7 @@ func Test_nodeBuilder_createGRANDPAService(t *testing.T) {
 
 func Test_createRuntime(t *testing.T) {
 	t.Parallel()
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	type args struct {
 		cfg *Config
@@ -389,7 +389,7 @@ func Test_nodeBuilder_newSyncService(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			cfg := NewTestConfig(t)
+			cfg := NewWestendDevConfig(t)
 			ctrl := gomock.NewController(t)
 			stateSrvc := newStateService(t, ctrl)
 			no := nodeBuilder{}
@@ -406,7 +406,7 @@ func Test_nodeBuilder_newSyncService(t *testing.T) {
 }
 
 func TestCreateStateService(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
@@ -470,7 +470,7 @@ func newStateServiceWithoutMock(t *testing.T) *state.Service {
 }
 
 func TestCreateCoreService(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
@@ -501,7 +501,7 @@ func TestCreateCoreService(t *testing.T) {
 }
 
 func TestCreateBlockVerifier(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	genFile := newTestGenesisFile(t, cfg)
 
@@ -519,7 +519,7 @@ func TestCreateBlockVerifier(t *testing.T) {
 }
 
 func TestCreateSyncService(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	genFile := newTestGenesisFile(t, cfg)
 
@@ -547,7 +547,7 @@ func TestCreateSyncService(t *testing.T) {
 }
 
 func TestCreateNetworkService(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
@@ -565,7 +565,7 @@ func TestCreateNetworkService(t *testing.T) {
 }
 
 func TestCreateRPCService(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
@@ -614,7 +614,7 @@ func TestCreateRPCService(t *testing.T) {
 }
 
 func TestCreateBABEService_Integration(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
@@ -649,7 +649,7 @@ func TestCreateBABEService_Integration(t *testing.T) {
 }
 
 func TestCreateGrandpaService(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
@@ -716,7 +716,7 @@ func TestNewWebSocketServer(t *testing.T) {
 			expected: []byte(`{"jsonrpc":"2.0","result":2,"id":4}` + "\n")},
 	}
 
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
@@ -810,7 +810,7 @@ func Test_createPprofService(t *testing.T) {
 }
 
 func Test_createDigestHandler(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 

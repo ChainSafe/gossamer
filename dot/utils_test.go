@@ -157,7 +157,7 @@ func TestNewTestConfig(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := NewTestConfig(tt.args.t)
+			got := NewWestendDevConfig(tt.args.t)
 			assert.Equal(t, tt.want, got)
 		})
 	}
@@ -209,24 +209,24 @@ func TestRandomNodeName(t *testing.T) {
 	}
 }
 
-// NewTestConfig returns a new test configuration using the provided basepath
-func NewTestConfig(t *testing.T) *Config {
+// NewWestendDevConfig returns a new test configuration
+func NewWestendDevConfig(t *testing.T) *Config {
 	dir := t.TempDir()
 
 	cfg := &Config{
 		Global: GlobalConfig{
-			Name:        GssmrConfig().Global.Name,
-			ID:          GssmrConfig().Global.ID,
+			Name:        WestendDevConfig().Global.Name,
+			ID:          WestendDevConfig().Global.ID,
 			BasePath:    dir,
 			LogLvl:      log.Info,
 			NoTelemetry: true,
 		},
-		Log:     GssmrConfig().Log,
-		Init:    GssmrConfig().Init,
-		Account: GssmrConfig().Account,
-		Core:    GssmrConfig().Core,
-		Network: GssmrConfig().Network,
-		RPC:     GssmrConfig().RPC,
+		Log:     WestendDevConfig().Log,
+		Init:    WestendDevConfig().Init,
+		Account: WestendDevConfig().Account,
+		Core:    WestendDevConfig().Core,
+		Network: WestendDevConfig().Network,
+		RPC:     WestendDevConfig().RPC,
 	}
 
 	return cfg
