@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/disiqueira/gotree"
 	"github.com/prometheus/client_golang/prometheus"
