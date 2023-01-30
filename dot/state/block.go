@@ -281,7 +281,7 @@ func (bs *BlockState) GetAllDescendants(hash common.Hash) ([]common.Hash, error)
 
 	nextDescendants, err := bs.bt.GetAllDescendants(nextBlock.Header.Hash())
 	if err != nil && !errors.Is(err, blocktree.ErrNodeNotFound) {
-		return nil, fmt.Errorf("failed to get descendants: %w", err)
+		return nil, fmt.Errorf("getting all descendants: %w", err)
 	}
 	if err == nil {
 		allDescendants = append(allDescendants, nextDescendants...)
