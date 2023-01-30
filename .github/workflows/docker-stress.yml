@@ -18,7 +18,7 @@ name: docker-stress
 
 jobs:
   docker-stress-tests:
-    runs-on: ubuntu-latest
+    runs-on: buildjet-4vcpu-ubuntu-2204
     env:
       DOCKER_BUILDKIT: "1"
     steps:
