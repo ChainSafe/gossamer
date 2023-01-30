@@ -16,6 +16,7 @@ RUN go run cmd/update-dd-agent-confd/main.go -n=${METRICS_NAMESPACE} -t=key:alic
 
 FROM parity/polkadot:${POLKADOT_VERSION}
 
+ARG CHAIN=westend-local
 ARG DD_API_KEY=somekey
 
 ENV DD_API_KEY=${DD_API_KEY}
@@ -43,7 +44,7 @@ COPY ./chain/ ./chain/
 # Then to keep both substrate and gossamer alice nodes with the same libp2p node keys we just need to use
 # the first 32 bytes from `alice.node.key` which means the 32 bytes long sr25519 secret key used here.
 ENTRYPOINT service datadog-agent start && /usr/bin/polkadot \
-    --chain chain/westend-local/westend-local-spec-raw.json \
+    --chain chain/$CHAIN/$CHAIN-spec-raw.json \
     --alice \
     --port 7001 \
     --rpc-port 8545 \

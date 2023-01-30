@@ -17,6 +17,7 @@ RUN go run cmd/update-dd-agent-confd/main.go -n=${METRICS_NAMESPACE} -t=key:alic
 
 FROM parity/polkadot:${POLKADOT_VERSION}
 
+ARG CHAIN=westend-local
 ARG DD_API_KEY=somekey
 ARG key
 
@@ -44,7 +45,7 @@ COPY ./chain/ ./chain/
 
 ENTRYPOINT  service datadog-agent start && /usr/bin/polkadot \
     --bootnodes /dns/alice/tcp/7001/p2p/12D3KooWMER5iow67nScpWeVqEiRRx59PJ3xMMAYPTACYPRQbbWU \
-    --chain chain/westend-local/westend-local-spec-raw.json \
+    --chain chain/$CHAIN/$CHAIN-spec-raw.json \
     --port 7001 \
     --rpc-port 8545 \
     --ws-port 8546 \
