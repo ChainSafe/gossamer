@@ -263,7 +263,7 @@ func (bs *BlockState) GetAllDescendants(hash common.Hash) ([]common.Hash, error)
 
 	header, err := bs.GetHeader(hash)
 	if err != nil {
-		return nil, fmt.Errorf("getting header from hash %s: %w", hash, err)
+		return nil, fmt.Errorf("getting header: %w", err)
 	}
 
 	// TODO: Use GetBlocksByNumber after https://github.com/ChainSafe/gossamer/issues/2748 is done
