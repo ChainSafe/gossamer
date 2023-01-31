@@ -4,9 +4,9 @@
 package state
 
 import (
+	"bytes"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -171,17 +171,18 @@ func (p *OfflinePruner) Prune() error {
 		}
 	}()
 
+	storagePrefixBytes := []byte(storagePrefix)
 	stream := inputDB.NewStream()
 	stream.ChooseKey = func(item *badger.Item) bool {
-		key := string(item.Key())
-		if !strings.HasPrefix(key, storagePrefix) {
+		key := item.Key()
+		if !bytes.HasPrefix(key, storagePrefixBytes) {
 			// Ignore non-storage keys
 			return false
 		}
 
 		// Storage keys not found in filter database are deleted.
-		nodeHash := strings.TrimPrefix(key, storagePrefix)
-		_, err := p.filterDatabase.Get([]byte(nodeHash))
+		nodeHash := bytes.TrimPrefix(key, storagePrefixBytes)
+		_, err := p.filterDatabase.Get(nodeHash)
 		return err == nil
 	}
 
