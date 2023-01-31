@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -242,77 +241,66 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	require.Equal(t, []byte{0, 0}, res)
 }
 
-// TODO investigate if this is a needed test #3060
-// Good to test build block error case, but this test can be improved
-func TestBuildBlock_failing(t *testing.T) {
-	t.Skip()
+func TestBuildAndApplyExtrinsic_InvalidPayment(t *testing.T) {
+	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader)
 
-	gen, genTrie, genHeader := newWestendLocalGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, ServiceConfig{}, gen, genTrie, genHeader)
-
-	// see https://github.com/noot/substrate/blob/add-blob/core/test-runtime/src/system.rs#L468
-	// add a valid transaction
-	txa := []byte{
-		3, 16, 110, 111, 111, 116,
-		1, 64, 103, 111, 115, 115,
-		97, 109, 101, 114, 95, 105,
-		115, 95, 99, 111, 111, 108}
-	vtx := transaction.NewValidTransaction(types.Extrinsic(txa), &transaction.Validity{})
-	babeService.transactionState.Push(vtx)
-
-	// add a transaction that can't be included (transfer from account with no balance)
-	// See https://github.com/paritytech/substrate/blob/5420de3face1349a97eb954ae71c5b0b940c31de/core/transaction-pool/src/tests.rs#L95
-	txb := []byte{
-		1, 212, 53, 147, 199, 21, 253, 211,
-		28, 97, 20, 26, 189, 4, 169, 159,
-		214, 130, 44, 133, 88, 133, 76, 205,
-		227, 154, 86, 132, 231, 165, 109, 162,
-		125, 142, 175, 4, 21, 22, 135, 115, 99,
-		38, 201, 254, 161, 126, 37, 252, 82,
-		135, 97, 54, 147, 201, 18, 144, 156,
-		178, 38, 170, 71, 148, 242, 106, 72,
-		69, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 216, 5, 113, 87, 87, 40,
-		221, 120, 247, 252, 137, 201, 74, 231,
-		222, 101, 85, 108, 102, 39, 31, 190, 210,
-		14, 215, 124, 19, 160, 180, 203, 54,
-		110, 167, 163, 149, 45, 12, 108, 80,
-		221, 65, 238, 57, 237, 199, 16, 10,
-		33, 185, 8, 244, 184, 243, 139, 5,
-		87, 252, 245, 24, 225, 37, 154, 163, 142}
-	vtx = transaction.NewValidTransaction(types.Extrinsic(txb), &transaction.Validity{})
-	babeService.transactionState.Push(vtx)
-
-	zeroHash, err := common.HexToHash("0x00")
-	require.NoError(t, err)
-
-	parentHeader := &types.Header{
-		ParentHash: zeroHash,
-	}
-
-	duration, err := time.ParseDuration("1s")
-	require.NoError(t, err)
-
-	slot := Slot{
-		start:    time.Now(),
-		duration: duration,
-		number:   1000,
-	}
+	parentHash := common.MustHexToHash("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
+	header := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, 1, types.NewDigest())
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
 	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	const authorityIndex uint32 = 0
-	_, err = babeService.buildBlock(parentHeader, slot, rt, authorityIndex, &types.PreRuntimeDigest{})
-	require.NotNil(t, err)
-	require.Equal(t, "cannot build extrinsics: error applying extrinsic: Apply error, type: Payment",
-		err.Error(), "Did not receive expected error text")
+	err = rt.InitializeBlock(header)
+	require.NoError(t, err)
 
-	txc := babeService.transactionState.(*state.TransactionState).Peek()
-	if !bytes.Equal(txc.Extrinsic, txa) {
-		t.Fatal("did not readd valid transaction to queue")
+	rawMeta, err := rt.Metadata()
+	require.NoError(t, err)
+	var decoded []byte
+	err = scale.Unmarshal(rawMeta, &decoded)
+	require.NoError(t, err)
+
+	meta := &ctypes.Metadata{}
+	err = codec.Decode(decoded, meta)
+	require.NoError(t, err)
+
+	rv := rt.Version()
+	bob, err := ctypes.NewMultiAddressFromHexAccountID(
+		"0x90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22")
+	require.NoError(t, err)
+
+	call, err := ctypes.NewCall(meta, "Balances.transfer", bob, ctypes.NewUCompactFromUInt(^uint64(0)))
+	require.NoError(t, err)
+
+	ext := ctypes.NewExtrinsic(call)
+	genHash, err := ctypes.NewHashFromHexString("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
+	require.NoError(t, err)
+
+	o := ctypes.SignatureOptions{
+		BlockHash:          genHash,
+		Era:                ctypes.ExtrinsicEra{IsImmortalEra: true},
+		GenesisHash:        genHash,
+		Nonce:              ctypes.NewUCompactFromUInt(uint64(0)),
+		SpecVersion:        ctypes.U32(rv.SpecVersion),
+		Tip:                ctypes.NewUCompactFromUInt(^uint64(0)),
+		TransactionVersion: ctypes.U32(rv.TransactionVersion),
 	}
+
+	err = ext.Sign(signature.TestKeyringPairAlice, o)
+	require.NoError(t, err)
+
+	extEnc := bytes.Buffer{}
+	encoder := cscale.NewEncoder(&extEnc)
+	ext.Encode(*encoder)
+
+	res, err := rt.ApplyExtrinsic(extEnc.Bytes())
+	require.NoError(t, err)
+
+	err = determineErr(res)
+	_, ok := err.(*TransactionValidityError)
+	require.True(t, ok)
+	require.Equal(t, err.Error(), "transaction validity error: invalid payment")
 }
 
 func TestDecodeExtrinsicBody(t *testing.T) {
