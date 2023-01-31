@@ -231,6 +231,11 @@ var (
 		Name:  "pubdns",
 		Usage: "Overrides public DNS used for peer to peer networking",
 	}
+	// NodeKeyFlag uses the supplied hex-encoded Ed25519 secret key seed for libp2p networking
+	NodeKeyFlag = cli.StringFlag{
+		Name:  "node-key",
+		Usage: "Overrides the secret Ed25519 key to use for libp2p",
+	}
 )
 
 // RPC service configuration flags
@@ -407,6 +412,7 @@ var (
 		NoMDNSFlag,
 		PublicIPFlag,
 		PublicDNSFlag,
+		NodeKeyFlag,
 
 		// rpc flags
 		RPCEnabledFlag,

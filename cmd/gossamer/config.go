@@ -682,6 +682,11 @@ func setDotNetworkConfig(ctx *cli.Context, tomlCfg ctoml.NetworkConfig, cfg *dot
 		cfg.PublicDNS = pubdns
 	}
 
+	// check --node-key flag and update node configuration
+	if nodekey := ctx.GlobalString(NodeKeyFlag.Name); nodekey != "" {
+		cfg.NodeKey = nodekey
+	}
+
 	if len(cfg.PersistentPeers) == 0 {
 		cfg.PersistentPeers = []string(nil)
 	}
