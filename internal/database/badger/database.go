@@ -5,11 +5,13 @@
 package badger
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/internal/database"
 	badger "github.com/dgraph-io/badger/v3"
+	"github.com/dgraph-io/ristretto/z"
 )
 
 // Database is database implementation using a badger/v3 database.
@@ -97,6 +99,46 @@ func (db *Database) NewTable(prefix string) (dbTable database.Table) {
 		prefix:   []byte(prefix),
 		database: db,
 	}
+}
+
+// Stream streams data from the database to the `handle`
+// function given. The `prefix` is used to filter the keys
+// as well as the `chooseKey` function. Note the `prefix`
+// argument is more performant than checking the prefix within
+// the `chooseKey` function.
+func (db *Database) Stream(ctx context.Context,
+	prefix []byte,
+	chooseKey func(key []byte) bool,
+	handle func(key, value []byte) error,
+) error {
+	stream := db.badgerDatabase.NewStream()
+
+	if prefix != nil {
+		stream.Prefix = make([]byte, len(prefix))
+		copy(stream.Prefix, prefix)
+	}
+
+	stream.ChooseKey = func(item *badger.Item) bool {
+		key := item.Key()
+		return chooseKey(key)
+	}
+
+	stream.Send = func(buf *z.Buffer) (err error) {
+		kvList, err := badger.BufferToKVList(buf)
+		if err != nil {
+			return fmt.Errorf("decoding badger proto key value: %w", err)
+		}
+
+		for _, keyValue := range kvList.Kv {
+			err = handle(keyValue.Key, keyValue.Value)
+			if err != nil {
+				return fmt.Errorf("handling key value: %w", err)
+			}
+		}
+		return nil
+	}
+
+	return stream.Orchestrate(ctx)
 }
 
 // Close closes the database.

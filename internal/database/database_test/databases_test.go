@@ -4,6 +4,8 @@
 package test
 
 import (
+	"bytes"
+	"context"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/database"
@@ -19,6 +21,8 @@ type Database interface {
 	Delete(key []byte) error
 	NewWriteBatch() database.WriteBatch
 	NewTable(prefix string) database.Table
+	Stream(ctx context.Context, prefix []byte, chooseKey func(key []byte) bool,
+		handle func(key []byte, value []byte) error) error
 	DropAll() error
 	Close() error
 }
@@ -94,10 +98,52 @@ func Test_Databases(t *testing.T) {
 		_, err = db.Get([]byte{1})
 		require.ErrorIs(t, err, database.ErrKeyNotFound)
 
+		streamTest(t, db)
+
 		err = db.Close()
 		require.NoError(t, err)
 
 		err = db.Set([]byte{1}, []byte{2})
 		assert.ErrorIs(t, err, database.ErrClosed)
 	}
+}
+
+func streamTest(t *testing.T, db Database) {
+	err := db.DropAll()
+	require.NoError(t, err)
+
+	keyValues := map[string][]byte{
+		"prefix_1":  {1},
+		"prefix_12": {1, 2},
+		"prefix_3":  {3},
+		"4":         {4},
+	}
+	for keyString, value := range keyValues {
+		err := db.Set([]byte(keyString), value)
+		require.NoError(t, err)
+	}
+
+	ctx := context.Background()
+	prefix := []byte("prefix")
+	chooseKey := func(key []byte) bool {
+		keyWithoutPrefix := bytes.TrimPrefix(key, prefix)
+		return keyWithoutPrefix[1] == '1'
+	}
+	expected := map[string][]byte{
+		"prefix_1":  {1},
+		"prefix_12": {1, 2},
+	}
+	handle := func(key []byte, value []byte) error {
+		keyString := string(key)
+		expectedValue, ok := expected[keyString]
+		require.True(t, ok)
+		assert.Equal(t, expectedValue, value)
+		delete(expected, keyString)
+		return nil
+	}
+
+	err = db.Stream(ctx, prefix, chooseKey, handle)
+	require.NoError(t, err)
+
+	assert.Empty(t, expected)
 }

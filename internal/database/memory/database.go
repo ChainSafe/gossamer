@@ -5,6 +5,8 @@
 package memory
 
 import (
+	"bytes"
+	"context"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -90,6 +92,34 @@ func (db *Database) NewTable(prefix string) (writeBatch database.Table) {
 		prefix:   prefix,
 		database: db,
 	}
+}
+
+// Stream streams data from the database to the `handle`
+// function given. The `prefix` is used to filter the keys
+// as well as the `chooseKey` function. Note the whole stream
+// operation locks the database for reading.
+func (db *Database) Stream(_ context.Context, prefix []byte,
+	chooseKey func(key []byte) bool,
+	handle func(key, value []byte) error) (err error) {
+	if db.closed.Load() {
+		return fmt.Errorf("%w", database.ErrClosed)
+	}
+
+	db.mutex.RLock()
+	defer db.mutex.RUnlock()
+
+	for keyString, value := range db.keyValues {
+		key := []byte(keyString)
+		if !bytes.HasPrefix(key, prefix) || !chooseKey(key) {
+			continue
+		}
+
+		if err := handle(key, value); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // Close closes the database.
