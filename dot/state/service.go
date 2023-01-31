@@ -9,12 +9,11 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database/badger"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/metrics"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/trie"
-
-	"github.com/ChainSafe/chaindb"
 )
 
 var logger = log.NewFromGlobal(
@@ -25,7 +24,7 @@ var logger = log.NewFromGlobal(
 type Service struct {
 	dbPath      string
 	logLvl      log.Level
-	db          *chaindb.BadgerDB
+	db          *badger.Database
 	isMemDB     bool // set to true if using an in-memory database; only used for testing.
 	Base        *BaseState
 	Storage     *StorageState
@@ -77,7 +76,7 @@ func (s *Service) UseMemDB() {
 }
 
 // DB returns the Service's database
-func (s *Service) DB() *chaindb.BadgerDB {
+func (s *Service) DB() *badger.Database {
 	return s.db
 }
 
@@ -93,9 +92,7 @@ func (s *Service) SetupBase() error {
 		return err
 	}
 
-	db, err := chaindb.NewBadgerDB(&chaindb.Config{
-		DataDir: filepath.Join(basepath, "db"),
-	})
+	db, err := badger.New(badger.Settings{}.WithPath(filepath.Join(basepath, "db")))
 	if err != nil {
 		return err
 	}
@@ -115,7 +112,7 @@ func (s *Service) Start() (err error) {
 	tries := NewTries()
 	tries.SetEmptyTrie()
 
-	blockStateDB := chaindb.NewTable(s.db, blockPrefix)
+	blockStateDB := s.db.NewTable(blockPrefix)
 	baseState := NewBaseState(s.db)
 	s.Block, err = NewBlockState(blockStateDB, baseState, tries, s.Telemetry)
 	if err != nil {
@@ -146,13 +143,13 @@ func (s *Service) Start() (err error) {
 	// create transaction queue
 	s.Transaction = NewTransactionState(s.Telemetry)
 
-	epochStateDatabase := chaindb.NewTable(s.db, epochPrefix)
+	epochStateDatabase := s.db.NewTable(epochPrefix)
 	s.Epoch, err = NewEpochState(baseState, epochStateDatabase, s.Block)
 	if err != nil {
 		return fmt.Errorf("failed to create epoch state: %w", err)
 	}
 
-	grandpaDatabase := chaindb.NewTable(s.db, grandpaPrefix)
+	grandpaDatabase := s.db.NewTable(grandpaPrefix)
 	s.Grandpa = NewGrandpaState(grandpaDatabase, s.Block)
 	num, _ := s.Block.BestBlockNumber()
 	logger.Infof(
@@ -229,7 +226,7 @@ func (s *Service) Rewind(toBlock uint) error {
 
 	// remove previously set grandpa changes, need to go up to prevSetID+1 in case of a scheduled change
 	for i := newSetID + 1; i <= prevSetID+1; i++ {
-		err = s.Grandpa.db.Del(setIDChangeKey(i))
+		err = s.Grandpa.db.Delete(setIDChangeKey(i))
 		if err != nil {
 			return err
 		}
@@ -250,10 +247,6 @@ func (s *Service) Stop() error {
 
 	logger.Debugf("stop with best finalised hash %s", hash)
 
-	if err = s.db.Flush(); err != nil {
-		return err
-	}
-
 	return s.db.Close()
 }
 
@@ -261,24 +254,22 @@ func (s *Service) Stop() error {
 // to it. Additionally, it uses the first slot to correctly set the epoch number of the block.
 func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) (err error) {
 	if !s.isMemDB {
-		s.db, err = chaindb.NewBadgerDB(&chaindb.Config{
-			DataDir: filepath.Join(s.dbPath, "db"),
-		})
+		s.db, err = badger.New(badger.Settings{}.WithPath(filepath.Join(s.dbPath, "db")))
 		if err != nil {
 			return fmt.Errorf("failed to create database: %w", err)
 		}
 	}
 
 	block := &BlockState{
-		db: chaindb.NewTable(s.db, blockPrefix),
+		db: s.db.NewTable(blockPrefix),
 	}
 
 	storage := &StorageState{
-		db: chaindb.NewTable(s.db, storagePrefix),
+		db: s.db.NewTable(storagePrefix),
 	}
 
 	baseState := NewBaseState(s.db)
-	epochStateDatabase := chaindb.NewTable(s.db, epochPrefix)
+	epochStateDatabase := s.db.NewTable(epochPrefix)
 	epoch, err := NewEpochState(baseState, epochStateDatabase, block)
 	if err != nil {
 		return err
@@ -324,7 +315,7 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) (
 	}
 
 	// TODO: this is broken, need to know round and setID for the header as well
-	if err := block.db.Put(finalisedHashKey(0, 0), hash[:]); err != nil {
+	if err := block.db.Set(finalisedHashKey(0, 0), hash[:]); err != nil {
 		return err
 	}
 	if err := block.setHighestRoundAndSetID(0, 0); err != nil {
@@ -334,9 +325,6 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) (
 	logger.Debugf(
 		"Import best block hash %s with latest state root %s",
 		hash, root)
-	if err := s.db.Flush(); err != nil {
-		return err
-	}
 
 	logger.Info("finished state import")
 	if s.isMemDB {

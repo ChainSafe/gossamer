@@ -13,13 +13,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/chain/kusama"
 	"github.com/ChainSafe/gossamer/chain/polkadot"
 	"github.com/ChainSafe/gossamer/dot"
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database/badger"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -821,9 +821,8 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 
 	cfg.Init.Genesis = genFile
 
-	db, err := chaindb.NewBadgerDB(&chaindb.Config{
-		DataDir: filepath.Join(cfg.Global.BasePath, "db"),
-	})
+	db, err := badger.New(badger.Settings{}.
+		WithPath(filepath.Join(cfg.Global.BasePath, "db")))
 	require.NoError(t, err)
 
 	gen, err := genesis.NewGenesisFromJSONRaw(genFile)

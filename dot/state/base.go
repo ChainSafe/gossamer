@@ -14,11 +14,11 @@ import (
 
 // BaseState is a wrapper for a database, without any prefixes
 type BaseState struct {
-	db GetPutDeleter
+	db GetSetDeleter
 }
 
 // NewBaseState returns a new BaseState
-func NewBaseState(db GetPutDeleter) *BaseState {
+func NewBaseState(db GetSetDeleter) *BaseState {
 	return &BaseState{
 		db: db,
 	}
@@ -26,7 +26,7 @@ func NewBaseState(db GetPutDeleter) *BaseState {
 
 // StoreNodeGlobalName stores the current node name to avoid create new ones after each initialization
 func (s *BaseState) StoreNodeGlobalName(nodeName string) error {
-	return s.db.Put(common.NodeNameKey, []byte(nodeName))
+	return s.db.Set(common.NodeNameKey, []byte(nodeName))
 }
 
 // LoadNodeGlobalName loads the latest stored node global name
@@ -46,7 +46,7 @@ func (s *BaseState) StoreGenesisData(gen *genesis.Data) error {
 		return fmt.Errorf("cannot scale encode genesis data: %s", err)
 	}
 
-	return s.db.Put(common.GenesisDataKey, enc)
+	return s.db.Set(common.GenesisDataKey, enc)
 }
 
 // LoadGenesisData retrieves the genesis data stored at the known GenesisDataKey.
@@ -67,7 +67,7 @@ func (s *BaseState) LoadGenesisData() (*genesis.Data, error) {
 
 // StoreCodeSubstitutedBlockHash stores the hash at the CodeSubstitutedBlock key
 func (s *BaseState) StoreCodeSubstitutedBlockHash(hash common.Hash) error {
-	return s.db.Put(common.CodeSubstitutedBlock, hash[:])
+	return s.db.Set(common.CodeSubstitutedBlock, hash[:])
 }
 
 // LoadCodeSubstitutedBlockHash loads the hash stored at CodeSubstitutedBlock key
@@ -80,9 +80,9 @@ func (s *BaseState) LoadCodeSubstitutedBlockHash() common.Hash {
 	return common.NewHash(hash)
 }
 
-// Put stores key/value pair in database
-func (s *BaseState) Put(key, value []byte) error {
-	return s.db.Put(key, value)
+// Set sets a value at the given key in the database.
+func (s *BaseState) Set(key, value []byte) error {
+	return s.db.Set(key, value)
 }
 
 // Get retrieves value by key from database
@@ -90,15 +90,15 @@ func (s *BaseState) Get(key []byte) ([]byte, error) {
 	return s.db.Get(key)
 }
 
-// Del deletes key from database
-func (s *BaseState) Del(key []byte) error {
-	return s.db.Del(key)
+// Delete deletes the given key from the database.
+func (s *BaseState) Delete(key []byte) error {
+	return s.db.Delete(key)
 }
 
 func (s *BaseState) storeSkipToEpoch(epoch uint64) error {
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, epoch)
-	return s.db.Put(skipToKey, buf)
+	return s.db.Set(skipToKey, buf)
 }
 
 func (s *BaseState) loadSkipToEpoch() (uint64, error) {
@@ -113,7 +113,7 @@ func (s *BaseState) loadSkipToEpoch() (uint64, error) {
 func (s *BaseState) storeFirstSlot(slot uint64) error {
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, slot)
-	return s.db.Put(firstSlotKey, buf)
+	return s.db.Set(firstSlotKey, buf)
 }
 
 func (s *BaseState) loadFirstSlot() (uint64, error) {
@@ -128,7 +128,7 @@ func (s *BaseState) loadFirstSlot() (uint64, error) {
 func (s *BaseState) storeEpochLength(l uint64) error {
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, l)
-	return s.db.Put(epochLengthKey, buf)
+	return s.db.Set(epochLengthKey, buf)
 }
 
 func (s *BaseState) loadEpochLength() (uint64, error) {
@@ -143,7 +143,7 @@ func (s *BaseState) loadEpochLength() (uint64, error) {
 func (s *BaseState) storeSlotDuration(duration uint64) error {
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, duration)
-	return s.db.Put(slotDurationKey, buf)
+	return s.db.Set(slotDurationKey, buf)
 }
 
 func (s *BaseState) loadSlotDuration() (uint64, error) {

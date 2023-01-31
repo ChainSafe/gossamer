@@ -8,8 +8,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
@@ -35,7 +35,7 @@ var (
 
 // GrandpaState tracks information related to grandpa
 type GrandpaState struct {
-	db         GetPutDeleter
+	db         GetSetDeleter
 	blockState *BlockState
 
 	forcedChanges        *orderedPendingChanges
@@ -43,7 +43,7 @@ type GrandpaState struct {
 }
 
 // NewGrandpaStateFromGenesis returns a new GrandpaState given the grandpa genesis authorities
-func NewGrandpaStateFromGenesis(db GetPutDeleter, bs *BlockState,
+func NewGrandpaStateFromGenesis(db GetSetDeleter, bs *BlockState,
 	genesisAuthorities []types.GrandpaVoter) (*GrandpaState, error) {
 	s := &GrandpaState{
 		db:                   db,
@@ -72,7 +72,7 @@ func NewGrandpaStateFromGenesis(db GetPutDeleter, bs *BlockState,
 }
 
 // NewGrandpaState returns a new GrandpaState
-func NewGrandpaState(db GetPutDeleter, bs *BlockState) *GrandpaState {
+func NewGrandpaState(db GetSetDeleter, bs *BlockState) *GrandpaState {
 	return &GrandpaState{
 		db:                   db,
 		blockState:           bs,
@@ -327,7 +327,7 @@ func (s *GrandpaState) setAuthorities(setID uint64, authorities []types.GrandpaV
 		return err
 	}
 
-	return s.db.Put(authoritiesKey(setID), enc)
+	return s.db.Set(authoritiesKey(setID), enc)
 }
 
 // GetAuthorities returns the authorities for the given setID
@@ -349,7 +349,7 @@ func (s *GrandpaState) GetAuthorities(setID uint64) ([]types.GrandpaVoter, error
 func (s *GrandpaState) setCurrentSetID(setID uint64) error {
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, setID)
-	return s.db.Put(currentSetIDKey, buf)
+	return s.db.Set(currentSetIDKey, buf)
 }
 
 // GetCurrentSetID retrieves the current set ID
@@ -370,7 +370,7 @@ func (s *GrandpaState) GetCurrentSetID() (uint64, error) {
 func (s *GrandpaState) SetLatestRound(round uint64) error {
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, round)
-	return s.db.Put(common.LatestFinalizedRoundKey, buf)
+	return s.db.Set(common.LatestFinalizedRoundKey, buf)
 }
 
 // GetLatestRound gets the latest finalised GRANDPA roundfrom the db
@@ -424,7 +424,7 @@ func (s *GrandpaState) IncrementSetID() (newSetID uint64, err error) {
 
 // setSetIDChangeAtBlock sets a set ID change at a certain block
 func (s *GrandpaState) setChangeSetIDAtBlock(setID uint64, number uint) error {
-	return s.db.Put(setIDChangeKey(setID), common.UintToBytes(number))
+	return s.db.Set(setIDChangeKey(setID), common.UintToBytes(number))
 }
 
 // GetSetIDChange returns the block number where the set ID was updated
@@ -446,7 +446,7 @@ func (s *GrandpaState) GetSetIDByBlockNumber(blockNumber uint) (uint64, error) {
 
 	for {
 		changeUpper, err := s.GetSetIDChange(curr + 1)
-		if errors.Is(err, chaindb.ErrKeyNotFound) {
+		if errors.Is(err, database.ErrKeyNotFound) {
 			if curr == 0 {
 				return 0, nil
 			}
@@ -485,11 +485,11 @@ func (s *GrandpaState) GetSetIDByBlockNumber(blockNumber uint) (uint64, error) {
 // SetNextPause sets the next grandpa pause at the given block number
 func (s *GrandpaState) SetNextPause(number uint) error {
 	value := common.UintToBytes(number)
-	return s.db.Put(pauseKey, value)
+	return s.db.Set(pauseKey, value)
 }
 
 // GetNextPause returns the block number of the next grandpa pause.
-// If the key is not found in the database, the error chaindb.ErrKeyNotFound
+// If the key is not found in the database, the error database.ErrKeyNotFound
 // is returned.
 func (s *GrandpaState) GetNextPause() (blockNumber uint, err error) {
 	value, err := s.db.Get(pauseKey)
@@ -503,11 +503,11 @@ func (s *GrandpaState) GetNextPause() (blockNumber uint, err error) {
 // SetNextResume sets the next grandpa resume at the given block number
 func (s *GrandpaState) SetNextResume(number uint) error {
 	value := common.UintToBytes(number)
-	return s.db.Put(resumeKey, value)
+	return s.db.Set(resumeKey, value)
 }
 
 // GetNextResume returns the block number of the next grandpa resume.
-// If the key is not found in the database, the error chaindb.ErrKeyNotFound
+// If the key is not found in the database, the error database.ErrKeyNotFound
 // is returned.
 func (s *GrandpaState) GetNextResume() (blockNumber uint, err error) {
 	value, err := s.db.Get(resumeKey)
@@ -545,7 +545,7 @@ func (s *GrandpaState) SetPrevotes(round, setID uint64, pvs []types.GrandpaSigne
 		return err
 	}
 
-	return s.db.Put(prevotesKey(round, setID), data)
+	return s.db.Set(prevotesKey(round, setID), data)
 }
 
 // GetPrevotes retrieves the prevotes for a specific round and set ID from the database
@@ -571,7 +571,7 @@ func (s *GrandpaState) SetPrecommits(round, setID uint64, pcs []types.GrandpaSig
 		return err
 	}
 
-	return s.db.Put(precommitsKey(round, setID), data)
+	return s.db.Set(precommitsKey(round, setID), data)
 }
 
 // GetPrecommits retrieves the precommits for a specific round and set ID from the database

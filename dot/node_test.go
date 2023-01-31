@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/internal/database/badger"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/metrics"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -54,13 +54,12 @@ func TestLoadGlobalNodeName(t *testing.T) {
 	t.Parallel()
 
 	basePath := t.TempDir()
-	db, err := chaindb.NewBadgerDB(&chaindb.Config{
-		DataDir: filepath.Join(basePath, "db"),
-	})
+	db, err := badger.New(badger.Settings{}.
+		WithPath(filepath.Join(basePath, "db")))
 	require.NoError(t, err)
 
 	basestate := state.NewBaseState(db)
-	basestate.Put(common.NodeNameKey, []byte(`nodeName`))
+	basestate.Set(common.NodeNameKey, []byte(`nodeName`))
 
 	err = db.Close()
 	require.NoError(t, err)
@@ -79,7 +78,7 @@ func TestLoadGlobalNodeName(t *testing.T) {
 		{
 			name:     "wrong basepath test",
 			basepath: t.TempDir(),
-			err:      errors.New("Key not found"),
+			err:      errors.New("key not found: 0x6e6f64655f6e616d65"),
 		},
 	}
 	for _, tt := range tests {

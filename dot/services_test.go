@@ -6,7 +6,6 @@ package dot
 import (
 	"testing"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -44,7 +43,7 @@ func Test_createRuntimeStorage(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			persistentStorage := chaindb.NewTable(tt.service.DB(), "offlinestorage")
+			persistentStorage := tt.service.DB().NewTable("offlinestorage")
 			got, err := builder.createRuntimeStorage(stateSrvc.Base, persistentStorage)
 			assert.ErrorIs(t, err, tt.err)
 			assert.Equal(t, tt.expectedBaseDB, got.BaseDB)
@@ -120,7 +119,7 @@ func newStateService(t *testing.T, ctrl *gomock.Controller) *state.Service {
 	require.NoError(t, err)
 
 	const epochPrefix = "epoch"
-	epochStateDatabase := chaindb.NewTable(stateSrvc.DB(), epochPrefix)
+	epochStateDatabase := stateSrvc.DB().NewTable(epochPrefix)
 	genesisBABEConfig := &types.BabeConfiguration{
 		SlotDuration:       1000,
 		EpochLength:        200,

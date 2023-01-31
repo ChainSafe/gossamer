@@ -27,7 +27,7 @@ type NodeStorage struct {
 
 // SetLocal persists a key and value into LOCAL node storage
 func (n *NodeStorage) SetLocal(k, v []byte) error {
-	return n.LocalStorage.Put(k, v)
+	return n.LocalStorage.Set(k, v)
 }
 
 // GetLocal retrieve a key and value from LOCAL node storage
@@ -37,7 +37,7 @@ func (n *NodeStorage) GetLocal(k []byte) ([]byte, error) {
 
 // SetPersistent persists a key and value into PERSISTENT node storage
 func (n *NodeStorage) SetPersistent(k, v []byte) error {
-	return n.PersistentStorage.Put(k, v)
+	return n.PersistentStorage.Set(k, v)
 }
 
 // GetPersistent retrieve a key and value from PERSISTENT node storage

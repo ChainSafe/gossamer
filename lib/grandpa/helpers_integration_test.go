@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database/badger"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -134,9 +134,8 @@ func newTestState(t *testing.T) *state.Service {
 
 	testDatadirPath := t.TempDir()
 
-	db, err := chaindb.NewBadgerDB(&chaindb.Config{
-		DataDir: filepath.Join(testDatadirPath, "db"),
-	})
+	db, err := badger.New(badger.Settings{}.
+		WithPath(filepath.Join(testDatadirPath, "db")))
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
@@ -149,7 +148,7 @@ func newTestState(t *testing.T) *state.Service {
 	tries.SetTrie(&genTrie)
 	baseState := state.NewBaseState(db)
 	const blockPrefix = "block"
-	blockStateDatabase := chaindb.NewTable(db, blockPrefix)
+	blockStateDatabase := db.NewTable(blockPrefix)
 	block, err := state.NewBlockStateFromGenesis(blockStateDatabase,
 		baseState, tries, testGenesisHeader, telemetryMock)
 	require.NoError(t, err)
@@ -163,7 +162,7 @@ func newTestState(t *testing.T) *state.Service {
 	block.StoreRuntime(block.BestBlockHash(), rt)
 
 	const grandpaDBPrefix = "grandpa"
-	grandpaDatabase := chaindb.NewTable(db, grandpaDBPrefix)
+	grandpaDatabase := db.NewTable(grandpaDBPrefix)
 	grandpa, err := state.NewGrandpaStateFromGenesis(grandpaDatabase, nil, newTestVoters(t))
 	require.NoError(t, err)
 

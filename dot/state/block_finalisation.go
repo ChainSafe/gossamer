@@ -23,7 +23,7 @@ func finalisedHashKey(round, setID uint64) []byte {
 
 // HasFinalisedBlock returns true if there is a finalised block for a given round and setID, false otherwise
 func (bs *BlockState) HasFinalisedBlock(round, setID uint64) (bool, error) {
-	return bs.db.Has(finalisedHashKey(round, setID))
+	return databaseHas(bs.db, finalisedHashKey(round, setID))
 }
 
 // NumberIsFinalised checks if a block number is finalised or not
@@ -74,7 +74,7 @@ func (bs *BlockState) setHighestRoundAndSetID(round, setID uint64) error {
 		return fmt.Errorf("%w: %d should be greater or equal %d", errSetIDLowerThanHighest, setID, highestSetID)
 	}
 
-	return bs.db.Put(highestRoundAndSetIDKey, roundAndSetIDToBytes(round, setID))
+	return bs.db.Set(highestRoundAndSetIDKey, roundAndSetIDToBytes(round, setID))
 }
 
 // GetHighestRoundAndSetID gets the highest round and setID that have been finalised
@@ -131,7 +131,7 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 		return fmt.Errorf("failed to set finalised subchain in db on finalisation: %w", err)
 	}
 
-	if err := bs.db.Put(finalisedHashKey(round, setID), hash[:]); err != nil {
+	if err := bs.db.Set(finalisedHashKey(round, setID), hash[:]); err != nil {
 		return fmt.Errorf("failed to set finalised hash key: %w", err)
 	}
 
@@ -212,7 +212,7 @@ func (bs *BlockState) handleFinalisedBlock(curr common.Hash) error {
 		return err
 	}
 
-	batch := bs.db.NewBatch()
+	batch := bs.db.NewWriteBatch()
 
 	// root of subchain is previously finalised block, which has already been stored in the db
 	for _, hash := range subchain[1:] {
@@ -242,7 +242,7 @@ func (bs *BlockState) handleFinalisedBlock(curr common.Hash) error {
 			return err
 		}
 
-		if err = batch.Put(headerHashKey(uint64(block.Header.Number)), hash.ToBytes()); err != nil {
+		if err = batch.Set(headerHashKey(uint64(block.Header.Number)), hash.ToBytes()); err != nil {
 			return err
 		}
 

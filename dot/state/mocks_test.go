@@ -8,7 +8,7 @@ import (
 	json "encoding/json"
 	reflect "reflect"
 
-	chaindb "github.com/ChainSafe/chaindb"
+	database "github.com/ChainSafe/gossamer/internal/database"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -70,18 +70,18 @@ func (m *MockBlockStateDatabase) EXPECT() *MockBlockStateDatabaseMockRecorder {
 	return m.recorder
 }
 
-// Del mocks base method.
-func (m *MockBlockStateDatabase) Del(arg0 []byte) error {
+// Delete mocks base method.
+func (m *MockBlockStateDatabase) Delete(arg0 []byte) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Del", arg0)
+	ret := m.ctrl.Call(m, "Delete", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// Del indicates an expected call of Del.
-func (mr *MockBlockStateDatabaseMockRecorder) Del(arg0 interface{}) *gomock.Call {
+// Delete indicates an expected call of Delete.
+func (mr *MockBlockStateDatabaseMockRecorder) Delete(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Del", reflect.TypeOf((*MockBlockStateDatabase)(nil).Del), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockBlockStateDatabase)(nil).Delete), arg0)
 }
 
 // Get mocks base method.
@@ -99,47 +99,32 @@ func (mr *MockBlockStateDatabaseMockRecorder) Get(arg0 interface{}) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockBlockStateDatabase)(nil).Get), arg0)
 }
 
-// Has mocks base method.
-func (m *MockBlockStateDatabase) Has(arg0 []byte) (bool, error) {
+// NewWriteBatch mocks base method.
+func (m *MockBlockStateDatabase) NewWriteBatch() database.WriteBatch {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Has", arg0)
-	ret0, _ := ret[0].(bool)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// Has indicates an expected call of Has.
-func (mr *MockBlockStateDatabaseMockRecorder) Has(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Has", reflect.TypeOf((*MockBlockStateDatabase)(nil).Has), arg0)
-}
-
-// NewBatch mocks base method.
-func (m *MockBlockStateDatabase) NewBatch() chaindb.Batch {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NewBatch")
-	ret0, _ := ret[0].(chaindb.Batch)
+	ret := m.ctrl.Call(m, "NewWriteBatch")
+	ret0, _ := ret[0].(database.WriteBatch)
 	return ret0
 }
 
-// NewBatch indicates an expected call of NewBatch.
-func (mr *MockBlockStateDatabaseMockRecorder) NewBatch() *gomock.Call {
+// NewWriteBatch indicates an expected call of NewWriteBatch.
+func (mr *MockBlockStateDatabaseMockRecorder) NewWriteBatch() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewBatch", reflect.TypeOf((*MockBlockStateDatabase)(nil).NewBatch))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewWriteBatch", reflect.TypeOf((*MockBlockStateDatabase)(nil).NewWriteBatch))
 }
 
-// Put mocks base method.
-func (m *MockBlockStateDatabase) Put(arg0, arg1 []byte) error {
+// Set mocks base method.
+func (m *MockBlockStateDatabase) Set(arg0, arg1 []byte) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Put", arg0, arg1)
+	ret := m.ctrl.Call(m, "Set", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// Put indicates an expected call of Put.
-func (mr *MockBlockStateDatabaseMockRecorder) Put(arg0, arg1 interface{}) *gomock.Call {
+// Set indicates an expected call of Set.
+func (mr *MockBlockStateDatabaseMockRecorder) Set(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Put", reflect.TypeOf((*MockBlockStateDatabase)(nil).Put), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Set", reflect.TypeOf((*MockBlockStateDatabase)(nil).Set), arg0, arg1)
 }
 
 // MockObserver is a mock of Observer interface.

@@ -13,7 +13,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/core"
 	digest "github.com/ChainSafe/gossamer/dot/digest"
 	network "github.com/ChainSafe/gossamer/dot/network"
@@ -22,6 +21,7 @@ import (
 	system "github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database/badger"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -101,7 +101,7 @@ func TestNewNode(t *testing.T) {
 	m.EXPECT().isNodeInitialised(dotConfig.Global.BasePath).Return(nil)
 	m.EXPECT().createStateService(dotConfig).Return(stateSrvc, nil)
 
-	offlineStorageTable := chaindb.NewTable(stateSrvc.DB(), "offlinestorage")
+	offlineStorageTable := stateSrvc.DB().NewTable("offlinestorage")
 	m.EXPECT().createRuntimeStorage(gomock.AssignableToTypeOf(&state.BaseState{}), offlineStorageTable).
 		Return(&runtime.NodeStorage{}, nil)
 	m.EXPECT().loadRuntime(dotConfig, &runtime.NodeStorage{}, gomock.AssignableToTypeOf(&state.Service{}),
@@ -196,9 +196,8 @@ func TestInitNode_Integration(t *testing.T) {
 	require.NoError(t, err)
 
 	// confirm database was setup
-	db, err := chaindb.NewBadgerDB(&chaindb.Config{
-		DataDir: filepath.Join(cfg.Global.BasePath, "db"),
-	})
+	db, err := badger.New(badger.Settings{}.
+		WithPath(filepath.Join(cfg.Global.BasePath, "db")))
 	require.NoError(t, err)
 	require.NotNil(t, db)
 	err = db.Close()
@@ -215,9 +214,8 @@ func TestInitNode_GenesisSpec(t *testing.T) {
 	err := InitNode(cfg)
 	require.NoError(t, err)
 	// confirm database was setup
-	db, err := chaindb.NewBadgerDB(&chaindb.Config{
-		DataDir: filepath.Join(cfg.Global.BasePath, "db"),
-	})
+	db, err := badger.New(badger.Settings{}.
+		WithPath(filepath.Join(cfg.Global.BasePath, "db")))
 	require.NoError(t, err)
 	require.NotNil(t, db)
 	err = db.Close()

@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/digest"
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -18,6 +17,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/sync"
 	"github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database/badger"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/metrics"
 	"github.com/ChainSafe/gossamer/internal/pprof"
@@ -93,7 +93,7 @@ func startStateService(cfg *Config, stateSrvc *state.Service) error {
 
 func (nodeBuilder) createRuntimeStorage(base, persistentStorage basicStorage) (
 	*runtime.NodeStorage, error) {
-	localStorage, err := chaindb.NewBadgerDB(&chaindb.Config{InMemory: true})
+	localStorage, err := badger.New(badger.Settings{}.WithInMemory(true))
 	if err != nil {
 		return nil, err
 	}

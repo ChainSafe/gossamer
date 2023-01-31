@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database/badger"
 	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/lib/common"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
@@ -165,9 +165,7 @@ func TestStorage_StoreTrie_NotSyncing(t *testing.T) {
 }
 
 func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
-	db, err := chaindb.NewBadgerDB(&chaindb.Config{
-		DataDir: t.TempDir(),
-	})
+	db, err := badger.New(badger.Settings{}.WithPath(t.TempDir()))
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		err = db.Close()
@@ -198,7 +196,7 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	tries := newTriesEmpty()
 
 	baseState := NewBaseState(db)
-	blockStateDatabase := chaindb.NewTable(db, blockPrefix)
+	blockStateDatabase := db.NewTable(blockPrefix)
 	blockState, err := NewBlockStateFromGenesis(blockStateDatabase,
 		baseState, tries, &genHeader, telemetryMock)
 	require.NoError(t, err)

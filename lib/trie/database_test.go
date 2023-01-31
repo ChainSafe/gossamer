@@ -6,17 +6,14 @@ package trie
 import (
 	"testing"
 
-	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/internal/database/badger"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func newTestDB(t *testing.T) chaindb.Database {
-	chainDBConfig := &chaindb.Config{
-		InMemory: true,
-	}
-	database, err := chaindb.NewBadgerDB(chainDBConfig)
+func newTestDB(t *testing.T) *badger.Database {
+	database, err := badger.New(badger.Settings{}.WithInMemory(true))
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		err := database.Close()

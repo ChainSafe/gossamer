@@ -318,7 +318,7 @@ func TestTrieDiff(t *testing.T) {
 	require.NoError(t, err)
 
 	for deletedNodeHash := range deletedNodeHashes {
-		err = storageDB.Del(deletedNodeHash[:])
+		err = storageDB.Delete(deletedNodeHash[:])
 		require.NoError(t, err)
 	}
 

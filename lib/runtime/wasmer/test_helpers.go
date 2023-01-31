@@ -7,7 +7,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/internal/database/badger"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -84,10 +84,8 @@ func setupConfig(t *testing.T, ctrl *gomock.Controller, tt *trie.Trie, lvl log.L
 	}
 }
 
-func newDatabase(t *testing.T) chaindb.Database {
-	db, err := chaindb.NewBadgerDB(&chaindb.Config{
-		InMemory: true,
-	})
+func newDatabase(t *testing.T) *badger.Database {
+	db, err := badger.New(badger.Settings{}.WithInMemory(true))
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		err = db.Close()

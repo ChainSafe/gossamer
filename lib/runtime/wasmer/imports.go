@@ -1497,7 +1497,7 @@ func ext_offchain_index_set_version_1(context unsafe.Pointer, keySpan, valueSpan
 	cp := make([]byte, len(newValue))
 	copy(cp, newValue)
 
-	err := runtimeCtx.NodeStorage.BaseDB.Put(storageKey, cp)
+	err := runtimeCtx.NodeStorage.BaseDB.Set(storageKey, cp)
 	if err != nil {
 		logger.Errorf("failed to set value in raw storage: %s", err)
 	}
@@ -1518,9 +1518,9 @@ func ext_offchain_local_storage_clear_version_1(context unsafe.Pointer, kind C.i
 
 	switch runtime.NodeStorageType(kindInt) {
 	case runtime.NodeStorageTypePersistent:
-		err = runtimeCtx.NodeStorage.PersistentStorage.Del(storageKey)
+		err = runtimeCtx.NodeStorage.PersistentStorage.Delete(storageKey)
 	case runtime.NodeStorageTypeLocal:
-		err = runtimeCtx.NodeStorage.LocalStorage.Del(storageKey)
+		err = runtimeCtx.NodeStorage.LocalStorage.Delete(storageKey)
 	}
 
 	if err != nil {
@@ -1570,7 +1570,7 @@ func ext_offchain_local_storage_compare_and_set_version_1(context unsafe.Pointer
 	if reflect.DeepEqual(storedValue, oldVal) {
 		cp := make([]byte, len(newVal))
 		copy(cp, newVal)
-		err = runtimeCtx.NodeStorage.LocalStorage.Put(storageKey, cp)
+		err = runtimeCtx.NodeStorage.LocalStorage.Set(storageKey, cp)
 		if err != nil {
 			logger.Errorf("failed to set value in storage: %s", err)
 			return 0
@@ -1624,9 +1624,9 @@ func ext_offchain_local_storage_set_version_1(context unsafe.Pointer, kind C.int
 	var err error
 	switch runtime.NodeStorageType(kind) {
 	case runtime.NodeStorageTypePersistent:
-		err = runtimeCtx.NodeStorage.PersistentStorage.Put(storageKey, cp)
+		err = runtimeCtx.NodeStorage.PersistentStorage.Set(storageKey, cp)
 	case runtime.NodeStorageTypeLocal:
-		err = runtimeCtx.NodeStorage.LocalStorage.Put(storageKey, cp)
+		err = runtimeCtx.NodeStorage.LocalStorage.Set(storageKey, cp)
 	}
 
 	if err != nil {

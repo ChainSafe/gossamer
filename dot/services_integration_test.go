@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/chaindb"
 	core "github.com/ChainSafe/gossamer/dot/core"
 	digest "github.com/ChainSafe/gossamer/dot/digest"
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -440,7 +439,7 @@ func newStateServiceWithoutMock(t *testing.T) *state.Service {
 	require.NoError(t, err)
 
 	const epochPrefix = "epoch"
-	epochStateDatabase := chaindb.NewTable(stateSrvc.DB(), epochPrefix)
+	epochStateDatabase := stateSrvc.DB().NewTable(epochPrefix)
 	genesisBABEConfig := &types.BabeConfiguration{
 		SlotDuration:       1000,
 		EpochLength:        200,
@@ -590,7 +589,7 @@ func TestCreateRPCService(t *testing.T) {
 	ed25519Keyring, _ := keystore.NewEd25519Keyring()
 	ks.Gran.Insert(ed25519Keyring.Alice())
 
-	persistentStorage := chaindb.NewTable(stateSrvc.DB(), "offlinestorage")
+	persistentStorage := stateSrvc.DB().NewTable("offlinestorage")
 	ns, err := builder.createRuntimeStorage(stateSrvc.Base, persistentStorage)
 	require.NoError(t, err)
 	err = builder.loadRuntime(cfg, ns, stateSrvc, ks, networkSrvc)
@@ -637,7 +636,7 @@ func TestCreateBABEService_Integration(t *testing.T) {
 	require.NoError(t, err)
 	ks.Babe.Insert(kr.Alice())
 
-	persistentStorage := chaindb.NewTable(stateSrvc.DB(), "offlinestorage")
+	persistentStorage := stateSrvc.DB().NewTable("offlinestorage")
 	ns, err := builder.createRuntimeStorage(stateSrvc.Base, persistentStorage)
 	require.NoError(t, err)
 	err = builder.loadRuntime(cfg, ns, stateSrvc, ks, &network.Service{})
@@ -673,7 +672,7 @@ func TestCreateGrandpaService(t *testing.T) {
 	require.NoError(t, err)
 	ks.Gran.Insert(kr.Alice())
 
-	persistentStorage := chaindb.NewTable(stateSrvc.DB(), "offlinestorage")
+	persistentStorage := stateSrvc.DB().NewTable("offlinestorage")
 	ns, err := builder.createRuntimeStorage(stateSrvc.Base, persistentStorage)
 	require.NoError(t, err)
 
@@ -750,7 +749,7 @@ func TestNewWebSocketServer(t *testing.T) {
 	ed25519Keyring, _ := keystore.NewEd25519Keyring()
 	ks.Gran.Insert(ed25519Keyring.Alice())
 
-	persistentStorage := chaindb.NewTable(stateSrvc.DB(), "offlinestorage")
+	persistentStorage := stateSrvc.DB().NewTable("offlinestorage")
 	ns, err := builder.createRuntimeStorage(stateSrvc.Base, persistentStorage)
 	require.NoError(t, err)
 	err = builder.loadRuntime(cfg, ns, stateSrvc, ks, networkSrvc)

@@ -11,6 +11,8 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
+	"github.com/ChainSafe/gossamer/internal/database/badger"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
@@ -18,7 +20,6 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/golang/mock/gomock"
 
-	database "github.com/ChainSafe/chaindb"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/stretchr/testify/require"
 )
@@ -365,9 +366,8 @@ func newTestStateService(t *testing.T) *state.Service {
 	if stateSrvc != nil {
 		rtCfg.NodeStorage.BaseDB = stateSrvc.Base
 	} else {
-		rtCfg.NodeStorage.BaseDB, err = database.NewBadgerDB(&database.Config{
-			DataDir: filepath.Join(testDatadirPath, "offline_storage", "db"),
-		})
+		rtCfg.NodeStorage.BaseDB, err = badger.New(badger.Settings{}.
+			WithPath(filepath.Join(testDatadirPath, "offline_storage", "db")))
 		require.NoError(t, err)
 	}
 

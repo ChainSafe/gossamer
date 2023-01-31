@@ -78,7 +78,7 @@ type runtimeInterface interface {
 }
 
 type basicStorage interface {
-	Put(key []byte, value []byte) error
+	Set(key []byte, value []byte) error
 	Get(key []byte) ([]byte, error)
-	Del(key []byte) error
+	Delete(key []byte) error
 }

@@ -13,7 +13,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -21,6 +20,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
@@ -744,7 +744,7 @@ func (cs *chainSync) handleReadyBlock(bd *types.BlockData) {
 			// block wasn't in the pending set!
 			// let's check the db as maybe we already processed it
 			has, err := cs.blockState.HasHeader(bd.Hash)
-			if err != nil && !errors.Is(err, chaindb.ErrKeyNotFound) {
+			if err != nil && !errors.Is(err, database.ErrKeyNotFound) {
 				logger.Debugf("failed to check if header is known for hash %s: %s", bd.Hash, err)
 				return
 			}

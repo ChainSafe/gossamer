@@ -203,7 +203,7 @@ func Test_ext_offchain_local_storage_clear_version_1_Persistent(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("key1")
-	err := inst.NodeStorage().PersistentStorage.Put(testkey, []byte{1})
+	err := inst.NodeStorage().PersistentStorage.Set(testkey, []byte{1})
 	require.NoError(t, err)
 
 	kind := int32(1)
@@ -217,7 +217,7 @@ func Test_ext_offchain_local_storage_clear_version_1_Persistent(t *testing.T) {
 	require.NoError(t, err)
 
 	val, err := inst.NodeStorage().PersistentStorage.Get(testkey)
-	require.EqualError(t, err, "Key not found")
+	require.EqualError(t, err, "key not found: 0x6b657931")
 	require.Nil(t, val)
 }
 
@@ -226,7 +226,7 @@ func Test_ext_offchain_local_storage_clear_version_1_Local(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("key1")
-	err := inst.NodeStorage().LocalStorage.Put(testkey, []byte{1})
+	err := inst.NodeStorage().LocalStorage.Set(testkey, []byte{1})
 	require.NoError(t, err)
 
 	kind := int32(2)
@@ -240,7 +240,7 @@ func Test_ext_offchain_local_storage_clear_version_1_Local(t *testing.T) {
 	require.NoError(t, err)
 
 	val, err := inst.NodeStorage().LocalStorage.Get(testkey)
-	require.EqualError(t, err, "Key not found")
+	require.EqualError(t, err, "key not found: 0x6b657931")
 	require.Nil(t, val)
 }
 

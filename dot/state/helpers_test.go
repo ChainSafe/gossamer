@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database/badger"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
@@ -18,10 +18,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newInMemoryDB(t *testing.T) *chaindb.BadgerDB {
-	db, err := chaindb.NewBadgerDB(&chaindb.Config{
-		InMemory: true,
-	})
+func newInMemoryDB(t *testing.T) *badger.Database {
+	db, err := badger.New(badger.Settings{}.WithInMemory(true))
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		err := db.Close()

@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database/badger"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
@@ -27,21 +27,23 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 		return fmt.Errorf("failed to read basepath: %s", err)
 	}
 
-	db, err := chaindb.NewBadgerDB(&chaindb.Config{
-		DataDir:  filepath.Join(basepath, "db"),
-		InMemory: s.isMemDB,
-	})
+	var databaseSettings badger.Settings
+	databaseSettings = databaseSettings.WithInMemory(s.isMemDB)
+	if !*databaseSettings.InMemory {
+		databaseSettings = databaseSettings.WithPath(filepath.Join(basepath, "db"))
+	}
+	db, err := badger.New(databaseSettings)
 	if err != nil {
 		return fmt.Errorf("failed to create database: %s", err)
 	}
 
 	s.db = db
 
-	if err = db.ClearAll(); err != nil {
+	if err = db.DropAll(); err != nil {
 		return fmt.Errorf("failed to clear database: %s", err)
 	}
 
-	storageDatabase := chaindb.NewTable(db, storagePrefix)
+	storageDatabase := db.NewTable(storagePrefix)
 	err = t.WriteDirty(storageDatabase)
 	if err != nil {
 		return fmt.Errorf("failed to write genesis trie to database: %w", err)
@@ -70,7 +72,7 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 	tries.SetTrie(t)
 
 	baseState := NewBaseState(db)
-	blockStateDatabase := chaindb.NewTable(db, blockPrefix)
+	blockStateDatabase := db.NewTable(blockPrefix)
 	blockState, err := NewBlockStateFromGenesis(blockStateDatabase,
 		baseState, tries, header, s.Telemetry)
 	if err != nil {
@@ -83,7 +85,7 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 		return fmt.Errorf("failed to create storage state from trie: %s", err)
 	}
 
-	epochStateDatabase := chaindb.NewTable(db, epochPrefix)
+	epochStateDatabase := db.NewTable(epochPrefix)
 	epochState, err := NewEpochStateFromGenesis(epochStateDatabase,
 		baseState, blockState, babeCfg)
 	if err != nil {
@@ -95,7 +97,7 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 		return fmt.Errorf("failed to load grandpa authorities: %w", err)
 	}
 
-	grandpaDatabase := chaindb.NewTable(db, grandpaPrefix)
+	grandpaDatabase := db.NewTable(grandpaPrefix)
 	grandpaState, err := NewGrandpaStateFromGenesis(grandpaDatabase, blockState, grandpaAuths)
 	if err != nil {
 		return fmt.Errorf("failed to create grandpa state: %s", err)
@@ -142,7 +144,7 @@ func loadGrandpaAuthorities(t *trie.Trie) ([]types.GrandpaVoter, error) {
 }
 
 // storeInitialValues writes initial genesis values to the state database
-func (s *Service) storeInitialValues(storageDatabase NewBatcher,
+func (s *Service) storeInitialValues(storageDatabase NewWriteBatcher,
 	data *genesis.Data, t *trie.Trie) error {
 	// write genesis trie to database
 	if err := t.WriteDirty(storageDatabase); err != nil {

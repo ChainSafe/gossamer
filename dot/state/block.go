@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -130,7 +130,7 @@ func NewBlockStateFromGenesis(db BlockStateDatabase, baseState *BaseState,
 		return nil, err
 	}
 
-	if err := bs.db.Put(headerHashKey(uint64(header.Number)), header.Hash().ToBytes()); err != nil {
+	if err := bs.db.Set(headerHashKey(uint64(header.Number)), header.Hash().ToBytes()); err != nil {
 		return nil, err
 	}
 
@@ -141,7 +141,7 @@ func NewBlockStateFromGenesis(db BlockStateDatabase, baseState *BaseState,
 	bs.genesisHash = header.Hash()
 	bs.lastFinalised = header.Hash()
 
-	if err := bs.db.Put(highestRoundAndSetIDKey, roundAndSetIDToBytes(0, 0)); err != nil {
+	if err := bs.db.Set(highestRoundAndSetIDKey, roundAndSetIDToBytes(0, 0)); err != nil {
 		return nil, err
 	}
 
@@ -185,6 +185,17 @@ func (bs *BlockState) GenesisHash() common.Hash {
 	return bs.genesisHash
 }
 
+func databaseHas(db Getter, key []byte) (has bool, err error) {
+	_, err = db.Get(key)
+	if err != nil {
+		if errors.Is(err, database.ErrKeyNotFound) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
 // HasHeader returns true if the hash is part of the unfinalised blocks in-memory or
 // persisted in the database.
 func (bs *BlockState) HasHeader(hash common.Hash) (bool, error) {
@@ -192,12 +203,12 @@ func (bs *BlockState) HasHeader(hash common.Hash) (bool, error) {
 		return true, nil
 	}
 
-	return bs.db.Has(headerKey(hash))
+	return bs.HasHeaderInDatabase(hash)
 }
 
 // HasHeaderInDatabase returns true if the database contains a header with the given hash
 func (bs *BlockState) HasHeaderInDatabase(hash common.Hash) (bool, error) {
-	return bs.db.Has(headerKey(hash))
+	return databaseHas(bs.db, headerKey(hash))
 }
 
 // GetHeader returns a BlockHeader for a given hash
@@ -212,7 +223,7 @@ func (bs *BlockState) GetHeader(hash common.Hash) (header *types.Header, err err
 	}
 
 	if has, _ := bs.HasHeader(hash); !has {
-		return nil, chaindb.ErrKeyNotFound
+		return nil, database.ErrKeyNotFound
 	}
 
 	data, err := bs.db.Get(headerKey(hash))
@@ -227,7 +238,7 @@ func (bs *BlockState) GetHeader(hash common.Hash) (header *types.Header, err err
 	}
 
 	if result.Empty() {
-		return nil, chaindb.ErrKeyNotFound
+		return nil, database.ErrKeyNotFound
 	}
 
 	result.Hash()
@@ -409,7 +420,7 @@ func (bs *BlockState) SetHeader(header *types.Header) error {
 		return err
 	}
 
-	return bs.db.Put(headerKey(header.Hash()), bh)
+	return bs.db.Set(headerKey(header.Hash()), bh)
 }
 
 // HasBlockBody returns true if the db contains the block body
@@ -421,7 +432,7 @@ func (bs *BlockState) HasBlockBody(hash common.Hash) (bool, error) {
 		return true, nil
 	}
 
-	return bs.db.Has(blockBodyKey(hash))
+	return databaseHas(bs.db, blockBodyKey(hash))
 }
 
 // GetBlockBody will return Body for a given hash
@@ -446,7 +457,7 @@ func (bs *BlockState) SetBlockBody(hash common.Hash, body *types.Body) error {
 		return err
 	}
 
-	return bs.db.Put(blockBodyKey(hash), encodedBody)
+	return bs.db.Set(blockBodyKey(hash), encodedBody)
 }
 
 // CompareAndSetBlockData will compare empty fields and set all elements in a block data to db
@@ -645,7 +656,7 @@ func (bs *BlockState) Range(startHash, endHash common.Hash) (hashes []common.Has
 	}
 
 	endHeader, err := bs.loadHeaderFromDatabase(endHash)
-	if errors.Is(err, chaindb.ErrKeyNotFound) ||
+	if errors.Is(err, database.ErrKeyNotFound) ||
 		errors.Is(err, ErrEmptyHeader) {
 		// end hash is not in the database so we should lookup the
 		// block that could be in memory and in the database as well
@@ -824,7 +835,7 @@ func (bs *BlockState) GetArrivalTime(hash common.Hash) (time.Time, error) {
 func (bs *BlockState) setArrivalTime(hash common.Hash, arrivalTime time.Time) error {
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, uint64(arrivalTime.UnixNano()))
-	return bs.db.Put(arrivalTimeKey(hash), buf)
+	return bs.db.Set(arrivalTimeKey(hash), buf)
 }
 
 // HandleRuntimeChanges handles the update in runtime.

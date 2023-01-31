@@ -11,11 +11,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/digest"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database/badger"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -542,9 +542,7 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 	err := stateService.Initialise(&genesis, &genesisHeader, &trie)
 	require.NoError(t, err)
 
-	inMemoryDB, err := chaindb.NewBadgerDB(&chaindb.Config{
-		InMemory: true,
-	})
+	inMemoryDB, err := badger.New(badger.Settings{}.WithInMemory(true))
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		err := inMemoryDB.Close()
@@ -552,7 +550,7 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 	})
 
 	const epochPrefix = "epoch"
-	epochStateDatabase := chaindb.NewTable(inMemoryDB, epochPrefix)
+	epochStateDatabase := inMemoryDB.NewTable(epochPrefix)
 	epochState, err := state.NewEpochStateFromGenesis(epochStateDatabase,
 		stateService.Base, stateService.Block, epochBABEConfig)
 	require.NoError(t, err)

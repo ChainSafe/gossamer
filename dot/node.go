@@ -14,7 +14,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/digest"
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -25,6 +24,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database/badger"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/metrics"
 	"github.com/ChainSafe/gossamer/lib/babe"
@@ -96,9 +96,8 @@ func (*nodeBuilder) isNodeInitialised(basepath string) error {
 		return fmt.Errorf("cannot find key registry in database directory: %w", err)
 	}
 
-	db, err := chaindb.NewBadgerDB(&chaindb.Config{
-		DataDir: filepath.Join(basepath, "db"),
-	})
+	db, err := badger.New(badger.Settings{}.
+		WithPath(filepath.Join(basepath, "db")))
 	if err != nil {
 		return fmt.Errorf("cannot setup database: %w", err)
 	}
@@ -197,9 +196,8 @@ func (*nodeBuilder) initNode(cfg *Config) error {
 
 // LoadGlobalNodeName returns the stored global node name from database
 func LoadGlobalNodeName(basepath string) (nodename string, err error) {
-	db, err := chaindb.NewBadgerDB(&chaindb.Config{
-		DataDir: filepath.Join(basepath, "db"),
-	})
+	db, err := badger.New(badger.Settings{}.
+		WithPath(filepath.Join(basepath, "db")))
 	if err != nil {
 		return "", err
 	}
@@ -318,7 +316,7 @@ func newNode(cfg *Config,
 	}
 
 	// create runtime
-	persistentStorage := chaindb.NewTable(stateSrvc.DB(), "offlinestorage")
+	persistentStorage := stateSrvc.DB().NewTable("offlinestorage")
 	ns, err := builder.createRuntimeStorage(stateSrvc.Base, persistentStorage)
 	if err != nil {
 		return nil, err
@@ -435,9 +433,8 @@ func setupTelemetry(cfg *Config, genesisData *genesis.Data) (mailer Telemetry, e
 
 // stores the global node name to reuse
 func storeGlobalNodeName(name, basepath string) (err error) {
-	db, err := chaindb.NewBadgerDB(&chaindb.Config{
-		DataDir: filepath.Join(basepath, "db"),
-	})
+	db, err := badger.New(badger.Settings{}.
+		WithPath(filepath.Join(basepath, "db")))
 	if err != nil {
 		return err
 	}

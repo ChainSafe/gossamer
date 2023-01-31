@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -32,7 +31,7 @@ func newEpochStateFromGenesis(t *testing.T) *EpochState {
 	db := newInMemoryDB(t)
 	blockState := newTestBlockState(t, newTriesEmpty())
 	baseState := NewBaseState(db)
-	epochStateDatabase := chaindb.NewTable(db, epochPrefix)
+	epochStateDatabase := db.NewTable(epochPrefix)
 	s, err := NewEpochStateFromGenesis(epochStateDatabase,
 		baseState, blockState, genesisBABEConfig)
 	require.NoError(t, err)
@@ -396,7 +395,7 @@ func TestStoreAndFinalizeBabeNextEpochData(t *testing.T) {
 
 			expectedNextEpochData := epochState.nextEpochData[tt.finalizeEpoch][tt.finalizedHeader.Hash()]
 
-			err := epochState.blockState.db.Put(headerKey(tt.finalizedHeader.Hash()), []byte{})
+			err := epochState.blockState.db.Set(headerKey(tt.finalizedHeader.Hash()), []byte{})
 			require.NoError(t, err)
 
 			err = epochState.FinalizeBABENextEpochData(tt.finalizedHeader)
@@ -584,7 +583,7 @@ func TestStoreAndFinalizeBabeNextConfigData(t *testing.T) {
 
 			expectedConfigData := epochState.nextConfigData[tt.finalizedEpoch][tt.finalizedHeader.Hash()]
 
-			err := epochState.blockState.db.Put(headerKey(tt.finalizedHeader.Hash()), []byte{})
+			err := epochState.blockState.db.Set(headerKey(tt.finalizedHeader.Hash()), []byte{})
 			require.NoError(t, err)
 
 			err = epochState.FinalizeBABENextConfigData(tt.finalizedHeader)

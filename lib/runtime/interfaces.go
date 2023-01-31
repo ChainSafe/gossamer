@@ -41,9 +41,9 @@ type BasicNetwork interface {
 
 // BasicStorage interface for functions used by runtime offchain workers
 type BasicStorage interface {
-	Put(key []byte, value []byte) error
+	Set(key []byte, value []byte) error
 	Get(key []byte) ([]byte, error)
-	Del(key []byte) error
+	Delete(key []byte) error
 }
 
 // TransactionState interface for adding transactions to pool

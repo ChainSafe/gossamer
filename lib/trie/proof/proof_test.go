@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/internal/database/badger"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/stretchr/testify/require"
 )
@@ -33,9 +33,7 @@ func Test_Generate_Verify(t *testing.T) {
 	rootHash, err := trie.Hash()
 	require.NoError(t, err)
 
-	database, err := chaindb.NewBadgerDB(&chaindb.Config{
-		InMemory: true,
-	})
+	database, err := badger.New(badger.Settings{}.WithInMemory(true))
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		err := database.Close()

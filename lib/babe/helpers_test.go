@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database/badger"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/babe/mocks"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -121,9 +121,8 @@ func newTestCoreService(t *testing.T, cfg *core.Config, genesis genesis.Genesis,
 		if stateSrvc != nil {
 			nodeStorage.BaseDB = stateSrvc.Base
 		} else {
-			nodeStorage.BaseDB, err = chaindb.NewBadgerDB(&chaindb.Config{
-				DataDir: filepath.Join(testDatadirPath, "offline_storage", "db"),
-			})
+			nodeStorage.BaseDB, err = badger.New(badger.Settings{}.
+				WithPath(filepath.Join(testDatadirPath, "offline_storage", "db")))
 			require.NoError(t, err)
 		}
 

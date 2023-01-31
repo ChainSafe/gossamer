@@ -12,7 +12,7 @@ import (
 
 // Storage runtime interface.
 type Storage interface {
-	GetSetter
+	GetPutter
 	Root() (common.Hash, error)
 	SetChild(keyToChild []byte, child *trie.Trie) error
 	SetChildStorage(keyToChild, key, value []byte) error
@@ -34,8 +34,8 @@ type Storage interface {
 	LoadCode() []byte
 }
 
-// GetSetter gets and sets key values.
-type GetSetter interface {
+// GetPutter gets and puts key values.
+type GetPutter interface {
 	Getter
 	Putter
 }
@@ -45,7 +45,7 @@ type Getter interface {
 	Get(key []byte) []byte
 }
 
-// Putter puts a value for a key.
+// Putter sets a value for a key.
 type Putter interface {
 	Put(key []byte, value []byte) (err error)
 }

@@ -8,10 +8,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database/badger"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -226,9 +226,8 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		if stateSrvc != nil {
 			nodeStorage.BaseDB = stateSrvc.Base
 		} else {
-			nodeStorage.BaseDB, err = chaindb.NewBadgerDB(&chaindb.Config{
-				DataDir: filepath.Join(testDatadirPath, "offline_storage", "db"),
-			})
+			nodeStorage.BaseDB, err = badger.New(badger.Settings{}.
+				WithPath(filepath.Join(testDatadirPath, "offline_storage", "db")))
 			require.NoError(t, err)
 		}
 

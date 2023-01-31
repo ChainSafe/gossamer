@@ -347,7 +347,7 @@ func TestHandler_HandleNextEpochData(t *testing.T) {
 
 	blockHeaderKey := append([]byte("hdr"), header.Hash().ToBytes()...)
 	blockHeaderKey = append([]byte("block"), blockHeaderKey...)
-	err = stateSrv.DB().Put(blockHeaderKey, []byte{})
+	err = stateSrv.DB().Set(blockHeaderKey, []byte{})
 	require.NoError(t, err)
 
 	handler.finalised = make(chan *types.FinalisationInfo, 1)
@@ -409,7 +409,7 @@ func TestHandler_HandleNextConfigData(t *testing.T) {
 
 	blockHeaderKey := append([]byte("hdr"), header.Hash().ToBytes()...)
 	blockHeaderKey = append([]byte("block"), blockHeaderKey...)
-	err = stateSrv.DB().Put(blockHeaderKey, []byte{})
+	err = stateSrv.DB().Set(blockHeaderKey, []byte{})
 	require.NoError(t, err)
 
 	handler.finalised = make(chan *types.FinalisationInfo, 1)

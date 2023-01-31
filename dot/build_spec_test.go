@@ -146,7 +146,8 @@ func TestBuildFromDB(t *testing.T) {
 				},
 			}}},
 		{name: "invalid_db_path", path: t.TempDir(),
-			err: errors.New("cannot start state service: failed to create block state: cannot get block 0: Key not found")},
+			err: errors.New("cannot start state service: failed to create block state: " +
+				"cannot get block 0: key not found: 0x626c6f636b6873680000000000000000")},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

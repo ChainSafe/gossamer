@@ -6,8 +6,8 @@ package state
 import (
 	"encoding/json"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -15,30 +15,29 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
 
-// GetPutDeleter has methods to get, put and delete key values.
-type GetPutDeleter interface {
+// GetSetDeleter has methods to get, set and delete key values.
+type GetSetDeleter interface {
 	GetPutter
 	Deleter
 }
 
 // BlockStateDatabase is the database interface for the block state.
 type BlockStateDatabase interface {
-	GetPutDeleter
-	Haser
-	NewBatcher
+	GetSetDeleter
+	NewWriteBatcher
 }
 
 // GetPutter has methods to get and put key values.
 type GetPutter interface {
 	Getter
-	Putter
+	Setter
 }
 
-// GetNewBatcher has methods to get values and create a
+// GetNewWriteBatcher has methods to get values and create a
 // new batch.
-type GetNewBatcher interface {
+type GetNewWriteBatcher interface {
 	Getter
-	NewBatcher
+	NewWriteBatcher
 }
 
 // Getter gets a value corresponding to the given key.
@@ -46,24 +45,19 @@ type Getter interface {
 	Get(key []byte) (value []byte, err error)
 }
 
-// Putter puts a value at the given key and returns an error.
-type Putter interface {
-	Put(key []byte, value []byte) error
+// Setter puts a value at the given key and returns an error.
+type Setter interface {
+	Set(key []byte, value []byte) error
 }
 
 // Deleter deletes a value at the given key and returns an error.
 type Deleter interface {
-	Del(key []byte) error
+	Delete(key []byte) error
 }
 
-// Haser checks if a value exists at the given key and returns an error.
-type Haser interface {
-	Has(key []byte) (has bool, err error)
-}
-
-// NewBatcher creates a new database batch.
-type NewBatcher interface {
-	NewBatch() chaindb.Batch
+// NewWriteBatcher creates a new database batch.
+type NewWriteBatcher interface {
+	NewWriteBatch() database.WriteBatch
 }
 
 // Runtime interface.

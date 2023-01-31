@@ -5,14 +5,13 @@ package state
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 
-	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/internal/database/badger"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/dgraph-io/badger/v2"
-	"github.com/dgraph-io/badger/v2/pb"
 )
 
 // OfflinePruner is a tool to prune the stale state with the help of
@@ -20,10 +19,10 @@ import (
 // - iterate the storage state, reconstruct the relevant state tries
 // - iterate the database, stream all the targeted keys to new DB
 type OfflinePruner struct {
-	inputDB        *chaindb.BadgerDB
+	inputDB        *badger.Database
 	storageState   *StorageState
 	blockState     *BlockState
-	filterDatabase *chaindb.BadgerDB
+	filterDatabase *badger.Database
 	bestBlockHash  common.Hash
 	retainBlockNum uint32
 
@@ -33,10 +32,7 @@ type OfflinePruner struct {
 // NewOfflinePruner creates an instance of OfflinePruner.
 func NewOfflinePruner(inputDBPath string,
 	retainBlockNum uint32) (pruner *OfflinePruner, err error) {
-	cfg := &chaindb.Config{
-		DataDir: inputDBPath,
-	}
-	db, err := chaindb.NewBadgerDB(cfg)
+	db, err := badger.New(badger.Settings{}.WithPath(inputDBPath))
 	if err != nil {
 		return nil, fmt.Errorf("creating badger database: %w", err)
 	}
@@ -46,7 +42,7 @@ func NewOfflinePruner(inputDBPath string,
 
 	// create blockState state
 	// NewBlockState on pruner execution does not use telemetry
-	blockStateDB := chaindb.NewTable(db, blockPrefix)
+	blockStateDB := db.NewTable(blockPrefix)
 	baseState := NewBaseState(db)
 	blockState, err := NewBlockState(blockStateDB, baseState, tries, nil)
 	if err != nil {
@@ -70,10 +66,8 @@ func NewOfflinePruner(inputDBPath string,
 		}
 	}()
 
-	filterDatabaseOptions := &chaindb.Config{
-		DataDir: filterDatabaseDir,
-	}
-	filterDatabase, err := chaindb.NewBadgerDB(filterDatabaseOptions)
+	filterDatabaseSettings := badger.Settings{}.WithPath(filterDatabaseDir)
+	filterDatabase, err := badger.New(filterDatabaseSettings)
 	if err != nil {
 		return nil, fmt.Errorf("creating badger filter database: %w", err)
 	}
@@ -147,7 +141,7 @@ func (p *OfflinePruner) SetBloomFilter() (err error) {
 	}
 
 	for key := range nodeHashes {
-		err = p.filterDatabase.Put(key.ToBytes(), nil)
+		err = p.filterDatabase.Set(key.ToBytes(), nil)
 		if err != nil {
 			return err
 		}
@@ -159,8 +153,7 @@ func (p *OfflinePruner) SetBloomFilter() (err error) {
 
 // Prune starts streaming the data from input db to the pruned db.
 func (p *OfflinePruner) Prune() error {
-	opts := badger.DefaultOptions(p.inputDBPath)
-	inputDB, err := badger.Open(opts)
+	inputDB, err := badger.New(badger.Settings{}.WithPath(p.inputDBPath))
 	if err != nil {
 		return fmt.Errorf("opening input database: %w", err)
 	}
@@ -176,31 +169,21 @@ func (p *OfflinePruner) Prune() error {
 		}
 	}()
 
-	storagePrefixBytes := []byte(storagePrefix)
-	stream := inputDB.NewStream()
-	stream.ChooseKey = func(item *badger.Item) bool {
-		key := item.Key()
-		if !bytes.HasPrefix(key, storagePrefixBytes) {
-			// Ignore non-storage keys
-			return false
-		}
-
-		// Storage keys not found in filter database are deleted.
-		nodeHash := bytes.TrimPrefix(key, storagePrefixBytes)
-		_, err := p.filterDatabase.Get(nodeHash)
-		return err == nil
-	}
-
 	writeBatch := inputDB.NewWriteBatch()
-	stream.Send = func(l *pb.KVList) error {
-		keyValues := l.GetKv()
-		for _, keyValue := range keyValues {
-			err = writeBatch.Delete(keyValue.Key)
-			if err != nil {
-				return err
-			}
-		}
-		return nil
+	storagePrefixBytes := []byte(storagePrefix)
+	err = inputDB.Stream(context.TODO(), storagePrefixBytes,
+		func(key []byte) bool {
+			// Storage keys not found in filter database are deleted.
+			nodeHash := bytes.TrimPrefix(key, storagePrefixBytes)
+			_, err := p.filterDatabase.Get(nodeHash)
+			return err == nil
+		},
+		func(key, _ []byte) error {
+			return writeBatch.Delete(key)
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("streaming database: %w", err)
 	}
 
 	err = writeBatch.Flush()

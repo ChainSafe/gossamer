@@ -7,11 +7,10 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/trie/codec"
 	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/lib/common"
-
-	"github.com/ChainSafe/chaindb"
 )
 
 // Getter gets a value corresponding to the given key.
@@ -19,14 +18,14 @@ type Getter interface {
 	Get(key []byte) (value []byte, err error)
 }
 
-// Putter puts a value at the given key and returns an error.
-type Putter interface {
-	Put(key []byte, value []byte) error
+// Setter puts a value at the given key and returns an error.
+type Setter interface {
+	Set(key []byte, value []byte) error
 }
 
-// NewBatcher creates a new database batch.
-type NewBatcher interface {
-	NewBatch() chaindb.Batch
+// NewWriteBatcher creates a new database write batch.
+type NewWriteBatcher interface {
+	NewWriteBatch() database.WriteBatch
 }
 
 // Load reconstructs the trie from the database from the given root hash.
@@ -279,18 +278,18 @@ func getFromDBAtNode(db Getter, n *Node, key []byte) (
 }
 
 // WriteDirty writes all dirty nodes to the database and sets them to clean
-func (t *Trie) WriteDirty(db NewBatcher) error {
-	batch := db.NewBatch()
+func (t *Trie) WriteDirty(db NewWriteBatcher) error {
+	batch := db.NewWriteBatch()
 	err := t.writeDirtyNode(batch, t.root)
 	if err != nil {
-		batch.Reset()
+		batch.Cancel()
 		return err
 	}
 
 	return batch.Flush()
 }
 
-func (t *Trie) writeDirtyNode(db Putter, n *Node) (err error) {
+func (t *Trie) writeDirtyNode(db Setter, n *Node) (err error) {
 	if n == nil || !n.Dirty {
 		return nil
 	}
@@ -317,7 +316,7 @@ func (t *Trie) writeDirtyNode(db Putter, n *Node) (err error) {
 
 	nodeHash := merkleValue
 
-	err = db.Put(nodeHash, encoding)
+	err = db.Set(nodeHash, encoding)
 	if err != nil {
 		return fmt.Errorf(
 			"putting encoding of node with node hash 0x%x in database: %w",

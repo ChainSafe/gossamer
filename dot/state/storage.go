@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database/badger"
 	"github.com/ChainSafe/gossamer/lib/common"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -33,7 +33,7 @@ type StorageState struct {
 	blockState *BlockState
 	tries      *Tries
 
-	db GetNewBatcher
+	db GetNewWriteBatcher
 	sync.RWMutex
 
 	// change notifiers
@@ -44,9 +44,9 @@ type StorageState struct {
 
 // NewStorageState creates a new StorageState backed by the given block state
 // and database located at basePath.
-func NewStorageState(db *chaindb.BadgerDB, blockState *BlockState,
+func NewStorageState(db *badger.Database, blockState *BlockState,
 	tries *Tries) (*StorageState, error) {
-	storageTable := chaindb.NewTable(db, storagePrefix)
+	storageTable := db.NewTable(storagePrefix)
 
 	return &StorageState{
 		blockState:   blockState,
