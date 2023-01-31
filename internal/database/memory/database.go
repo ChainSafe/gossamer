@@ -7,15 +7,14 @@ package memory
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
 
 	"github.com/ChainSafe/gossamer/internal/database"
 )
 
 // Database is an in-memory database implementation.
 type Database struct {
-	// TODO use atomic for panic boolean when using Go 1.19
-	// instead of mutex.
-	closed    bool
+	closed    *atomic.Bool
 	keyValues map[string][]byte
 	mutex     sync.RWMutex
 }
@@ -23,6 +22,7 @@ type Database struct {
 // New returns a new in-memory database.
 func New() *Database {
 	return &Database{
+		closed:    new(atomic.Bool),
 		keyValues: make(map[string][]byte),
 	}
 }
@@ -30,12 +30,12 @@ func New() *Database {
 // Get retrieves a value from the database using the given key.
 // It returns `ErrKeyNotFound` if the key is not found.
 func (db *Database) Get(key []byte) (value []byte, err error) {
-	db.mutex.RLock()
-	defer db.mutex.RUnlock()
-	if db.closed {
+	if db.closed.Load() {
 		return nil, fmt.Errorf("%w", database.ErrClosed)
 	}
 
+	db.mutex.RLock()
+	defer db.mutex.RUnlock()
 	value, ok := db.keyValues[string(key)]
 	if !ok {
 		return nil, fmt.Errorf("%w: 0x%x", database.ErrKeyNotFound, key)
@@ -48,11 +48,12 @@ func (db *Database) Get(key []byte) (value []byte, err error) {
 // The value byte slice is deep copied to avoid any mutation surprises.
 // The error returned is always nil.
 func (db *Database) Set(key, value []byte) (err error) {
-	db.mutex.Lock()
-	defer db.mutex.Unlock()
-	if db.closed {
+	if db.closed.Load() {
 		return fmt.Errorf("%w", database.ErrClosed)
 	}
+
+	db.mutex.Lock()
+	defer db.mutex.Unlock()
 
 	db.keyValues[string(key)] = copyBytes(value)
 
@@ -62,11 +63,12 @@ func (db *Database) Set(key, value []byte) (err error) {
 // Delete deletes a the given key in the database.
 // If the key is not found, no error is returned.
 func (db *Database) Delete(key []byte) (err error) {
-	db.mutex.Lock()
-	defer db.mutex.Unlock()
-	if db.closed {
+	if db.closed.Load() {
 		return fmt.Errorf("%w", database.ErrClosed)
 	}
+
+	db.mutex.Lock()
+	defer db.mutex.Unlock()
 
 	delete(db.keyValues, string(key))
 
@@ -92,22 +94,18 @@ func (db *Database) NewTable(prefix string) (writeBatch database.Table) {
 
 // Close closes the database.
 func (db *Database) Close() (err error) {
-	db.mutex.Lock()
-	defer db.mutex.Unlock()
-	if db.closed {
+	closed := db.closed.Swap(true)
+	if closed {
 		return fmt.Errorf("%w", database.ErrClosed)
 	}
 
-	db.closed = true
 	db.keyValues = nil
 	return nil
 }
 
 // DropAll drops all data from the database.
 func (db *Database) DropAll() (err error) {
-	db.mutex.Lock()
-	defer db.mutex.Unlock()
-	if db.closed {
+	if db.closed.Load() {
 		return fmt.Errorf("%w", database.ErrClosed)
 	}
 

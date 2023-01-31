@@ -4,12 +4,19 @@
 package memory
 
 import (
+	"sync/atomic"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func atomicTrue() *atomic.Bool {
+	b := new(atomic.Bool)
+	b.Store(true)
+	return b
+}
 
 func Test_Database_Get(t *testing.T) {
 	t.Parallel()
@@ -23,13 +30,14 @@ func Test_Database_Get(t *testing.T) {
 	}{
 		"database closed": {
 			db: &Database{
-				closed: true,
+				closed: atomicTrue(),
 			},
 			errWrapped: database.ErrClosed,
 			errMessage: "database closed",
 		},
 		"key not found": {
 			db: &Database{
+				closed:    new(atomic.Bool),
 				keyValues: map[string][]byte{},
 			},
 			key:        []byte{1},
@@ -38,6 +46,7 @@ func Test_Database_Get(t *testing.T) {
 		},
 		"key found": {
 			db: &Database{
+				closed: new(atomic.Bool),
 				keyValues: map[string][]byte{
 					"\x01": {2},
 				},
@@ -76,21 +85,23 @@ func Test_Database_Set(t *testing.T) {
 	}{
 		"database is closed": {
 			db: &Database{
-				closed: true,
+				closed: atomicTrue(),
 			},
 			errWrapped: database.ErrClosed,
 			errMessage: "database closed",
 			expectedDB: &Database{
-				closed: true,
+				closed: atomicTrue(),
 			},
 		},
 		"set at new key": {
 			db: &Database{
+				closed:    new(atomic.Bool),
 				keyValues: map[string][]byte{},
 			},
 			key:   []byte{1},
 			value: []byte{2},
 			expectedDB: &Database{
+				closed: new(atomic.Bool),
 				keyValues: map[string][]byte{
 					"\x01": {2},
 				},
@@ -98,12 +109,14 @@ func Test_Database_Set(t *testing.T) {
 		},
 		"override value at key": {
 			db: &Database{
+				closed: new(atomic.Bool),
 				keyValues: map[string][]byte{
 					"\x01": {1}},
 			},
 			key:   []byte{1},
 			value: []byte{2},
 			expectedDB: &Database{
+				closed: new(atomic.Bool),
 				keyValues: map[string][]byte{
 					"\x01": {2},
 				},
@@ -130,6 +143,7 @@ func Test_Database_Set(t *testing.T) {
 		t.Parallel()
 
 		database := &Database{
+			closed:    new(atomic.Bool),
 			keyValues: map[string][]byte{},
 		}
 
@@ -156,29 +170,33 @@ func Test_Database_Delete(t *testing.T) {
 	}{
 		"database closed": {
 			db: &Database{
-				closed: true,
+				closed: atomicTrue(),
 			},
 			errWrapped: database.ErrClosed,
 			expectedDB: &Database{
-				closed: true,
+				closed: atomicTrue(),
 			},
 		},
 		"key not found": {
 			db: &Database{
+				closed:    new(atomic.Bool),
 				keyValues: map[string][]byte{},
 			},
 			key: []byte{1},
 			expectedDB: &Database{
+				closed:    new(atomic.Bool),
 				keyValues: map[string][]byte{},
 			},
 		},
 		"key deleted": {
 			db: &Database{
+				closed: new(atomic.Bool),
 				keyValues: map[string][]byte{
 					"\x01": {1}},
 			},
 			key: []byte{1},
 			expectedDB: &Database{
+				closed:    new(atomic.Bool),
 				keyValues: map[string][]byte{},
 			},
 		},
@@ -226,7 +244,7 @@ func Test_Database_Close(t *testing.T) {
 		t.Parallel()
 
 		db := &Database{
-			closed: true,
+			closed: atomicTrue(),
 		}
 		err := db.Close()
 		assert.ErrorIs(t, err, database.ErrClosed)
@@ -234,6 +252,7 @@ func Test_Database_Close(t *testing.T) {
 
 	t.Run("closing", func(t *testing.T) {
 		db := &Database{
+			closed:    new(atomic.Bool),
 			keyValues: map[string][]byte{},
 		}
 
@@ -241,7 +260,7 @@ func Test_Database_Close(t *testing.T) {
 		require.NoError(t, err)
 
 		expectedDB := &Database{
-			closed: true,
+			closed: atomicTrue(),
 		}
 		assert.Equal(t, expectedDB, db)
 
@@ -257,7 +276,7 @@ func Test_Database_DropAll(t *testing.T) {
 		t.Parallel()
 
 		db := &Database{
-			closed: true,
+			closed: atomicTrue(),
 		}
 		err := db.DropAll()
 		assert.ErrorIs(t, err, database.ErrClosed)
@@ -267,6 +286,7 @@ func Test_Database_DropAll(t *testing.T) {
 		t.Parallel()
 
 		database := &Database{
+			closed: new(atomic.Bool),
 			keyValues: map[string][]byte{
 				"\x01": {1},
 			},
@@ -276,6 +296,7 @@ func Test_Database_DropAll(t *testing.T) {
 		require.NoError(t, err)
 
 		expectedDB := &Database{
+			closed:    new(atomic.Bool),
 			keyValues: map[string][]byte{},
 		}
 		assert.Equal(t, expectedDB, database)
