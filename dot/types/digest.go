@@ -9,7 +9,8 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-type HeaderDigest struct {
+// DigestItem is a varying date type that holds type identifier and a scaled encoded message payload.
+type DigestItem struct {
 	ConsensusEngineID ConsensusEngineID
 	Data              []byte
 }
@@ -44,7 +45,7 @@ var BabeEngineID = ConsensusEngineID{'B', 'A', 'B', 'E'}
 var GrandpaEngineID = ConsensusEngineID{'F', 'R', 'N', 'K'}
 
 // PreRuntimeDigest contains messages from the consensus engine to the runtime.
-type PreRuntimeDigest HeaderDigest
+type PreRuntimeDigest DigestItem
 
 // Index returns VDT index
 func (PreRuntimeDigest) Index() uint { return 6 }
@@ -63,7 +64,7 @@ func (d PreRuntimeDigest) String() string {
 }
 
 // ConsensusDigest contains messages from the runtime to the consensus engine.
-type ConsensusDigest HeaderDigest
+type ConsensusDigest DigestItem
 
 // Index returns VDT index
 func (ConsensusDigest) Index() uint { return 4 }
@@ -74,7 +75,7 @@ func (d ConsensusDigest) String() string {
 }
 
 // SealDigest contains the seal or signature. This is only used by native code.
-type SealDigest HeaderDigest
+type SealDigest DigestItem
 
 // Index returns VDT index
 func (SealDigest) Index() uint { return 5 }
