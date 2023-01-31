@@ -100,7 +100,7 @@ var (
 	}
 	// BasePathFlag data directory for node
 	BasePathFlag = cli.StringFlag{
-		Name:  "basepath",
+		Name:  "base-path", // base-path is argument used by polkadot node
 		Usage: "Data directory for the node",
 	}
 	PprofServerFlag = cli.BoolFlag{
@@ -268,7 +268,7 @@ var (
 	}
 	// RPCPortFlag HTTP-RPC server listening port
 	RPCPortFlag = cli.IntFlag{
-		Name:  "rpcport",
+		Name:  "rpcport", // rpc-port is argument used by polkadot node
 		Usage: "HTTP-RPC server listening port",
 	}
 	// RPCModulesFlag API modules to enable via HTTP-RPC
@@ -278,7 +278,7 @@ var (
 	}
 	// WSPortFlag WebSocket server listening port
 	WSPortFlag = cli.IntFlag{
-		Name:  "wsport",
+		Name:  "wsport", // ws-port is argument used by polkadot node
 		Usage: "Websockets server listening port",
 	}
 	// WSFlag Enable the websockets server
