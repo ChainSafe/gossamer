@@ -218,7 +218,7 @@ var (
 	}
 	// NoMDNSFlag Disables network mDNS
 	NoMDNSFlag = cli.BoolFlag{
-		Name:  "nomdns",
+		Name:  "nomdns,no-mdns",
 		Usage: "Disables network mDNS discovery",
 	}
 	// PublicIPFlag uses the supplied IP for broadcasting
