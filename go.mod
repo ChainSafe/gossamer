@@ -4,7 +4,7 @@ require (
 	github.com/ChainSafe/chaindb v0.1.5-0.20220708005902-df45dbc8e840
 	github.com/ChainSafe/go-schnorrkel v1.0.1-0.20220711122024-027d287d27bf
 	github.com/OneOfOne/xxhash v1.2.8
-	github.com/breml/rootcerts v0.2.9
+	github.com/breml/rootcerts v0.2.10
 	github.com/btcsuite/btcd/btcutil v1.1.3
 	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce
 	github.com/centrifuge/go-substrate-rpc-client/v4 v4.0.12
@@ -15,7 +15,7 @@ require (
 	github.com/disiqueira/gotree v1.0.0
 	github.com/docker/docker v20.10.23+incompatible
 	github.com/ethereum/go-ethereum v1.10.26
-	github.com/fatih/color v1.14.0
+	github.com/fatih/color v1.14.1
 	github.com/go-playground/validator/v10 v10.11.1
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.5.9
@@ -42,7 +42,7 @@ require (
 	github.com/whyrusleeping/mdns v0.0.0-20190826153040-b9b60ed33aa9
 	golang.org/x/crypto v0.1.0
 	golang.org/x/exp v0.0.0-20230127140709-cafedaf64729
-	golang.org/x/term v0.1.0
+	golang.org/x/term v0.4.0
 	golang.org/x/text v0.6.0
 	google.golang.org/protobuf v1.28.1
 )
@@ -172,7 +172,7 @@ require (
 	golang.org/x/mod v0.6.0 // indirect
 	golang.org/x/net v0.1.0 // indirect
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4 // indirect
-	golang.org/x/sys v0.3.0 // indirect
+	golang.org/x/sys v0.4.0 // indirect
 	golang.org/x/tools v0.2.0 // indirect
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect

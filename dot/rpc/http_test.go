@@ -299,7 +299,7 @@ func newCoreServiceTest(t *testing.T) *core.Service {
 
 	testDatadirPath := t.TempDir()
 
-	gen, genesisTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	gen, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockTelemetry(ctrl)
