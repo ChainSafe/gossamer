@@ -1330,7 +1330,7 @@ func TestInstance_GrandpaSubmitReportEquivocationUnsignedExtrinsic(t *testing.T)
 		SecondVote:      secondVote,
 		SecondSignature: secondSignatureArray,
 	}
-	preVoteEquivocation := types.PreVoteEquivocation(grandpaEquivocation)
+	preVoteEquivocation := types.PreVote(grandpaEquivocation)
 	equivocationVote := types.NewGrandpaEquivocation()
 	err = equivocationVote.Set(preVoteEquivocation)
 	require.NoError(t, err)

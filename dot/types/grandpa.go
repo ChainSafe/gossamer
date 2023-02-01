@@ -230,22 +230,22 @@ func (ge *GrandpaEquivocationEnum) Value() (value scale.VaryingDataTypeValue, er
 
 // NewGrandpaEquivocation returns a new VaryingDataType to represent a grandpa Equivocation
 func NewGrandpaEquivocation() *GrandpaEquivocationEnum {
-	vdt := scale.MustNewVaryingDataType(PreVoteEquivocation{}, PreCommitEquivocation{})
+	vdt := scale.MustNewVaryingDataType(PreVote{}, PreCommit{})
 	ge := GrandpaEquivocationEnum(vdt)
 	return &ge
 }
 
-// PreVoteEquivocation equivocation type for a prevote
-type PreVoteEquivocation GrandpaEquivocation
+// PreVote equivocation type for a prevote
+type PreVote GrandpaEquivocation
 
 // Index returns VDT index
-func (PreVoteEquivocation) Index() uint { return 0 }
+func (PreVote) Index() uint { return 0 }
 
-// PreCommitEquivocation equivocation type for a precommit
-type PreCommitEquivocation GrandpaEquivocation
+// PreCommit equivocation type for a precommit
+type PreCommit GrandpaEquivocation
 
 // Index returns VDT index
-func (PreCommitEquivocation) Index() uint { return 1 }
+func (PreCommit) Index() uint { return 1 }
 
 // GrandpaOpaqueKeyOwnershipProof contains a key ownership proof for reporting equivocations
 type GrandpaOpaqueKeyOwnershipProof []byte

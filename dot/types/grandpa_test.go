@@ -69,7 +69,7 @@ func TestInstance_GrandpaSubmitReportEquivocationUnsignedExtrinsicEncoding(t *te
 		SecondSignature: secondSignatureArray,
 	}
 
-	preVoteEquivocation := PreVoteEquivocation(grandpaEquivocation)
+	preVoteEquivocation := PreVote(grandpaEquivocation)
 	equivocationEnum := NewGrandpaEquivocation()
 	err := equivocationEnum.Set(preVoteEquivocation)
 	require.NoError(t, err)
