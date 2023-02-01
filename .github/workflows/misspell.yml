@@ -1,0 +1,22 @@
+name: Misspelling check
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/misspell.yml"
+      - "**/*.adoc"
+      - "**/*.md"
+
+jobs:
+  misspell:
+    name: Misspelling check
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3.2.0
+      - uses: reviewdog/action-misspell@v1
+        with:
+          github_token: ${{ secrets.github_token }}
+          locale: "US"
+          pattern: |
+            *.adoc
+            *.md
+          filter_mode: nofilter
