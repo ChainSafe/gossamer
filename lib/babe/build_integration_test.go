@@ -54,41 +54,12 @@ func TestSeal(t *testing.T) {
 	require.True(t, ok, "could not verify seal")
 }
 
-func createTestBlock(t *testing.T, babeService *Service, parent *types.Header,
-	exts [][]byte, slotNumber, epoch uint64, epochData *epochData) *types.Block {
-	for _, ext := range exts {
-		vtx := transaction.NewValidTransaction(ext, &transaction.Validity{})
-		_, err := babeService.transactionState.Push(vtx)
-		require.NoError(t, err)
-	}
-
-	duration, err := time.ParseDuration("1s")
-	require.NoError(t, err)
-
-	slot := Slot{
-		start:    time.Now(),
-		duration: duration,
-		number:   slotNumber,
-	}
-
-	bestBlockHash := babeService.blockState.BestBlockHash()
-	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
-	require.NoError(t, err)
-
-	preRuntimeDigest, err := claimSlot(epoch, slotNumber, epochData, babeService.keypair)
-	require.NoError(t, err)
-
-	block, err := babeService.buildBlock(parent, slot, rt, epochData.authorityIndex, preRuntimeDigest)
-	require.NoError(t, err)
-
-	babeService.blockState.(*state.BlockState).StoreRuntime(block.Header.Hash(), rt)
-	return block
-}
-
-// TODO: add test against latest dev runtime
-// See https://github.com/ChainSafe/gossamer/issues/2704
+// TODO see if there can be better assertions on block body #3060
+// Are extrinsics correct, what are the extrinsics now that there are 2 instead of 1, is one the same?
+// Does order matter?
 func TestBuildBlock_ok(t *testing.T) {
-	babeService := createTestService(t, ServiceConfig{})
+	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader)
 
 	parentHash := babeService.blockState.GenesisHash()
 	bestBlockHash := babeService.blockState.BestBlockHash()
@@ -98,10 +69,11 @@ func TestBuildBlock_ok(t *testing.T) {
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
-	ext := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0,
-		signature.TestKeyringPairAlice, "System.remark", []byte{0xab, 0xcd})
-	block := createTestBlock(t, babeService, emptyHeader, [][]byte{common.MustHexToBytes(ext)},
-		1, testEpochIndex, epochData)
+	slot := getSlot(t, rt, time.Now())
+	ext := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0, signature.TestKeyringPairAlice,
+		"System.remark", []byte{0xab, 0xcd})
+	block := createTestBlockWithSlot(t, babeService, emptyHeader, [][]byte{common.MustHexToBytes(ext)},
+		testEpochIndex, epochData, slot)
 
 	expectedBlockHeader := &types.Header{
 		ParentHash: emptyHeader.Hash(),
@@ -116,91 +88,80 @@ func TestBuildBlock_ok(t *testing.T) {
 
 	// confirm block body is correct
 	extsBytes := types.ExtrinsicsArrayToBytesArray(block.Body)
-	require.Equal(t, 1, len(extsBytes))
+	require.Equal(t, 2, len(extsBytes))
 }
 
-// TODO: add test against latest dev runtime
-// See https://github.com/ChainSafe/gossamer/issues/2704
-func TestApplyExtrinsic(t *testing.T) {
-	babeService := createTestService(t, ServiceConfig{})
+func TestApplyExtrinsicAfterFirstBlockFinalized(t *testing.T) {
+	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader)
 	const authorityIndex = 0
-
-	duration, err := time.ParseDuration("1s")
-	require.NoError(t, err)
-
-	slotnum := uint64(1)
-	slot := Slot{
-		start:    time.Now(),
-		duration: duration,
-		number:   slotnum,
-	}
-
-	slot2 := Slot{
-		start:    time.Now(),
-		duration: duration,
-		number:   2,
-	}
-	testVRFOutputAndProof := &VrfOutputAndProof{}
-
-	preDigest2, err := types.NewBabePrimaryPreDigest(
-		authorityIndex, slot2.number,
-		testVRFOutputAndProof.output,
-		testVRFOutputAndProof.proof,
-	).ToPreRuntimeDigest()
-	require.NoError(t, err)
-
-	parentHash := babeService.blockState.GenesisHash()
-	parentHeader, err := babeService.blockState.GetHeader(parentHash)
-	require.NoError(t, err)
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
 	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	ts, err := babeService.storageState.TrieState(nil)
-	require.NoError(t, err)
-	rt.SetContextStorage(ts)
-
-	preDigest, err := types.NewBabePrimaryPreDigest(
-		authorityIndex, slot.number,
-		testVRFOutputAndProof.output,
-		testVRFOutputAndProof.proof,
-	).ToPreRuntimeDigest()
+	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
+	slot := getSlot(t, rt, time.Now())
+	preRuntimeDigest, err := claimSlot(testEpochIndex, slot.number, epochData, babeService.keypair)
+	require.NoError(t, err)
+
+	builder := NewBlockBuilder(
+		babeService.keypair,
+		babeService.transactionState,
+		babeService.blockState,
+		authorityIndex,
+		preRuntimeDigest,
+	)
+
+	parentHeader := emptyHeader
+	number := parentHeader.Number + 1
 	digest := types.NewDigest()
-	err = digest.Add(*preDigest)
+	err = digest.Add(*builder.preRuntimeDigest)
 	require.NoError(t, err)
+	header := types.NewHeader(parentHeader.Hash(), common.Hash{}, common.Hash{}, number, digest)
 
-	header := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, 1, digest)
-
-	//initialise block header
 	err = rt.InitializeBlock(header)
 	require.NoError(t, err)
 
 	_, err = buildBlockInherents(slot, rt, parentHeader)
 	require.NoError(t, err)
 
+	ext := runtime.NewTestExtrinsic(t, rt, emptyHash, parentHeader.Hash(), 0, signature.TestKeyringPairAlice,
+		"System.remark", []byte{0xab, 0xcd})
+	_, err = rt.ApplyExtrinsic(common.MustHexToBytes(ext))
+	require.NoError(t, err)
+
 	header1, err := rt.FinalizeBlock()
 	require.NoError(t, err)
 
-	extHex := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0,
-		signature.TestKeyringPairAlice, "System.remark", []byte{0xab, 0xcd})
-	extBytes := common.MustHexToBytes(extHex)
-	_, err = rt.ValidateTransaction(append([]byte{byte(types.TxnExternal)}, extBytes...))
+	ext2 := runtime.NewTestExtrinsic(t, rt, parentHeader.Hash(), parentHeader.Hash(), 0,
+		signature.TestKeyringPairAlice, "System.remark",
+		[]byte{0xab, 0xcd})
+
+	validExt := []byte{byte(types.TxnExternal)}
+	validExt = append(validExt, common.MustHexToBytes(ext2)...)
+	validExt = append(validExt, babeService.blockState.BestBlockHash().ToBytes()...)
+	_, err = rt.ValidateTransaction(validExt)
+	require.NoError(t, err)
+
+	// Add 7 seconds to allow slot to be claimed at appropriate time, Westend has 6 second slot times
+	slot2 := getSlot(t, rt, time.Now().Add(7*time.Second))
+	preRuntimeDigest2, err := claimSlot(testEpochIndex, slot2.number, epochData, babeService.keypair)
 	require.NoError(t, err)
 
 	digest2 := types.NewDigest()
-	err = digest2.Add(*preDigest2)
+	err = digest2.Add(*preRuntimeDigest2)
 	require.NoError(t, err)
 	header2 := types.NewHeader(header1.Hash(), common.Hash{}, common.Hash{}, 2, digest2)
 	err = rt.InitializeBlock(header2)
 	require.NoError(t, err)
 
-	_, err = buildBlockInherents(slot, rt, parentHeader)
+	_, err = buildBlockInherents(slot2, rt, header1)
 	require.NoError(t, err)
 
-	res, err := rt.ApplyExtrinsic(extBytes)
+	res, err := rt.ApplyExtrinsic(common.MustHexToBytes(ext2))
 	require.NoError(t, err)
 	require.Equal(t, []byte{0, 0}, res)
 
@@ -208,24 +169,23 @@ func TestApplyExtrinsic(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// TODO: add test against latest dev runtime
-// See https://github.com/ChainSafe/gossamer/issues/2704
 func TestBuildAndApplyExtrinsic(t *testing.T) {
-	babeService := createTestService(t, ServiceConfig{})
+	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader)
 
 	parentHash := common.MustHexToHash("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
 	header := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, 1, types.NewDigest())
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
-	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
+	runtime, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
 	//initialise block header
-	err = rt.InitializeBlock(header)
+	err = runtime.InitializeBlock(header)
 	require.NoError(t, err)
 
 	// build extrinsic
-	rawMeta, err := rt.Metadata()
+	rawMeta, err := runtime.Metadata()
 	require.NoError(t, err)
 	var decoded []byte
 	err = scale.Unmarshal(rawMeta, &decoded)
@@ -235,7 +195,7 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	err = codec.Decode(decoded, meta)
 	require.NoError(t, err)
 
-	rv := rt.Version()
+	rv := runtime.Version()
 
 	bob, err := ctypes.NewMultiAddressFromHexAccountID(
 		"0x90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22")
@@ -267,23 +227,28 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	encoder := cscale.NewEncoder(&extEnc)
 	ext.Encode(*encoder)
 
-	txVal, err := rt.ValidateTransaction(append([]byte{byte(types.TxnLocal)}, extEnc.Bytes()...))
+	externalExtrinsic := buildLocalTransaction(t, runtime, extEnc.Bytes(), bestBlockHash)
+
+	txVal, err := runtime.ValidateTransaction(externalExtrinsic)
 	require.NoError(t, err)
 
 	vtx := transaction.NewValidTransaction(extEnc.Bytes(), txVal)
 	babeService.transactionState.Push(vtx)
 
 	// apply extrinsic
-	res, err := rt.ApplyExtrinsic(extEnc.Bytes())
+	res, err := runtime.ApplyExtrinsic(extEnc.Bytes())
 	require.NoError(t, err)
 	// Expected result for valid ApplyExtrinsic is 0, 0
 	require.Equal(t, []byte{0, 0}, res)
 }
 
+// TODO investigate if this is a needed test #3060
+// Good to test build block error case, but this test can be improved
 func TestBuildBlock_failing(t *testing.T) {
 	t.Skip()
 
-	babeService := createTestService(t, ServiceConfig{})
+	gen, genTrie, genHeader := newWestendLocalGenesisWithTrieAndHeader(t)
+	babeService := createTestService(t, ServiceConfig{}, gen, genTrie, genHeader)
 
 	// see https://github.com/noot/substrate/blob/add-blob/core/test-runtime/src/system.rs#L468
 	// add a valid transaction
@@ -366,19 +331,17 @@ func TestDecodeExtrinsicBody(t *testing.T) {
 	require.True(t, contains)
 }
 
-// TODO: add test against latest dev runtime
-// See https://github.com/ChainSafe/gossamer/issues/2704
 func TestBuildBlockTimeMonitor(t *testing.T) {
 	metrics.Enabled = true
 	metrics.Unregister(buildBlockTimer)
 
-	cfg := ServiceConfig{
-		Authority: true,
-	}
-
-	babeService := createTestService(t, cfg)
+	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader)
 
 	parent, err := babeService.blockState.BestBlockHeader()
+	require.NoError(t, err)
+
+	runtime, err := babeService.blockState.GetRuntime(parent.Hash())
 	require.NoError(t, err)
 
 	timerMetrics := metrics.GetOrRegisterTimer(buildBlockTimer, nil)
@@ -387,7 +350,8 @@ func TestBuildBlockTimeMonitor(t *testing.T) {
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
-	createTestBlock(t, babeService, parent, [][]byte{}, 1, testEpochIndex, epochData)
+	slot := getSlot(t, runtime, time.Now())
+	createTestBlockWithSlot(t, babeService, parent, [][]byte{}, testEpochIndex, epochData, slot)
 	require.Equal(t, int64(1), timerMetrics.Count())
 
 	// TODO: there isn't an easy way to trigger an error in buildBlock from here

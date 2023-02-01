@@ -549,6 +549,35 @@ func (mr *MockRuntimeInstanceMockRecorder) BabeConfiguration() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BabeConfiguration", reflect.TypeOf((*MockRuntimeInstance)(nil).BabeConfiguration))
 }
 
+// BabeGenerateKeyOwnershipProof mocks base method.
+func (m *MockRuntimeInstance) BabeGenerateKeyOwnershipProof(arg0 uint64, arg1 [32]byte) (types.OpaqueKeyOwnershipProof, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BabeGenerateKeyOwnershipProof", arg0, arg1)
+	ret0, _ := ret[0].(types.OpaqueKeyOwnershipProof)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// BabeGenerateKeyOwnershipProof indicates an expected call of BabeGenerateKeyOwnershipProof.
+func (mr *MockRuntimeInstanceMockRecorder) BabeGenerateKeyOwnershipProof(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BabeGenerateKeyOwnershipProof", reflect.TypeOf((*MockRuntimeInstance)(nil).BabeGenerateKeyOwnershipProof), arg0, arg1)
+}
+
+// BabeSubmitReportEquivocationUnsignedExtrinsic mocks base method.
+func (m *MockRuntimeInstance) BabeSubmitReportEquivocationUnsignedExtrinsic(arg0 types.BabeEquivocationProof, arg1 types.OpaqueKeyOwnershipProof) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BabeSubmitReportEquivocationUnsignedExtrinsic", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// BabeSubmitReportEquivocationUnsignedExtrinsic indicates an expected call of BabeSubmitReportEquivocationUnsignedExtrinsic.
+func (mr *MockRuntimeInstanceMockRecorder) BabeSubmitReportEquivocationUnsignedExtrinsic(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BabeSubmitReportEquivocationUnsignedExtrinsic", reflect.TypeOf((*MockRuntimeInstance)(nil).BabeSubmitReportEquivocationUnsignedExtrinsic), arg0, arg1)
+}
+
 // CheckInherents mocks base method.
 func (m *MockRuntimeInstance) CheckInherents() {
 	m.ctrl.T.Helper()

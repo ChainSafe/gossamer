@@ -330,8 +330,49 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	if err != nil {
 		return fmt.Errorf("could not verify block equivocation: %w", err)
 	}
+
 	if equivocated {
 		return fmt.Errorf("%w for block header %s", ErrProducerEquivocated, header.Hash())
+	}
+
+	return nil
+}
+
+func (b *verifier) submitAndReportEquivocation(
+	slot uint64, authorityIndex uint32, firstHeader, secondHeader types.Header) error {
+
+	// TODO: Check if it is initial sync
+	// don't report any equivocations during initial sync
+	// as they are most likely stale.
+	// https://github.com/ChainSafe/gossamer/issues/3004
+
+	bestBlockHash := b.blockState.BestBlockHash()
+	runtimeInstance, err := b.blockState.GetRuntime(bestBlockHash)
+	if err != nil {
+		return fmt.Errorf("getting runtime: %w", err)
+	}
+
+	if len(b.authorities) <= int(authorityIndex) {
+		return ErrAuthIndexOutOfBound
+	}
+
+	offenderPublicKey := b.authorities[authorityIndex].ToRaw().Key
+
+	keyOwnershipProof, err := runtimeInstance.BabeGenerateKeyOwnershipProof(slot, offenderPublicKey)
+	if err != nil {
+		return fmt.Errorf("getting key ownership proof from runtime: %w", err)
+	}
+
+	equivocationProof := &types.BabeEquivocationProof{
+		Offender:     types.AuthorityID(offenderPublicKey),
+		Slot:         slot,
+		FirstHeader:  firstHeader,
+		SecondHeader: secondHeader,
+	}
+
+	err = runtimeInstance.BabeSubmitReportEquivocationUnsignedExtrinsic(*equivocationProof, keyOwnershipProof)
+	if err != nil {
+		return fmt.Errorf("submitting equivocation report to runtime: %w", err)
 	}
 
 	return nil
@@ -372,6 +413,11 @@ func (b *verifier) verifyBlockEquivocation(header *types.Header) (bool, error) {
 		}
 		if authorOfExistingHeader != author {
 			continue
+		}
+
+		err = b.submitAndReportEquivocation(slot, authorOfExistingHeader, *existingHeader, *header)
+		if err != nil {
+			return true, fmt.Errorf("submitting and reporting equivocation: %w", err)
 		}
 
 		return true, nil

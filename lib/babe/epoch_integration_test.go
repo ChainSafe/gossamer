@@ -16,19 +16,17 @@ import (
 )
 
 func TestInitiateEpoch_Epoch0(t *testing.T) {
-	cfg := ServiceConfig{
-		Authority: true,
-	}
-	bs := createTestService(t, cfg)
-	bs.constants.epochLength = 20
+	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader)
+	babeService.constants.epochLength = 20
 	startSlot := uint64(1000)
 
-	err := bs.epochState.SetFirstSlot(startSlot)
+	err := babeService.epochState.SetFirstSlot(startSlot)
 	require.NoError(t, err)
-	_, err = bs.initiateEpoch(0)
+	_, err = babeService.initiateEpoch(0)
 	require.NoError(t, err)
 
-	startSlot, err = bs.epochState.GetStartSlotForEpoch(0)
+	startSlot, err = babeService.epochState.GetStartSlotForEpoch(0)
 	require.NoError(t, err)
 	require.Greater(t, startSlot, uint64(1))
 }
@@ -37,24 +35,25 @@ func TestInitiateEpoch_Epoch1(t *testing.T) {
 	cfg := ServiceConfig{
 		Authority: true,
 	}
-	bs := createTestService(t, cfg)
-	bs.constants.epochLength = 10
+	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
+	babeService := createTestService(t, cfg, genesis, genesisTrie, genesisHeader)
+	babeService.constants.epochLength = 10
 
-	state.AddBlocksToState(t, bs.blockState.(*state.BlockState), 1, false)
+	state.AddBlocksToState(t, babeService.blockState.(*state.BlockState), 1, false)
 
 	// epoch 1, check that genesis EpochData and ConfigData was properly set
 	auth := types.Authority{
-		Key:    bs.keypair.Public().(*sr25519.PublicKey),
+		Key:    babeService.keypair.Public().(*sr25519.PublicKey),
 		Weight: 1,
 	}
 
-	data, err := bs.epochState.GetEpochData(0, nil)
+	data, err := babeService.epochState.GetEpochData(0, nil)
 	require.NoError(t, err)
 	data.Authorities = []types.Authority{auth}
-	err = bs.epochState.(*state.EpochState).SetEpochData(1, data)
+	err = babeService.epochState.(*state.EpochState).SetEpochData(1, data)
 	require.NoError(t, err)
 
-	ed, err := bs.initiateEpoch(1)
+	ed, err := babeService.initiateEpoch(1)
 	require.NoError(t, err)
 
 	expected := &epochData{
@@ -81,7 +80,7 @@ func TestInitiateEpoch_Epoch1(t *testing.T) {
 		Randomness:  [32]byte{9},
 	}
 
-	err = bs.epochState.(*state.EpochState).SetEpochData(2, edata)
+	err = babeService.epochState.(*state.EpochState).SetEpochData(2, edata)
 	require.NoError(t, err)
 
 	expected = &epochData{
@@ -91,7 +90,7 @@ func TestInitiateEpoch_Epoch1(t *testing.T) {
 		threshold:      ed.threshold,
 	}
 
-	ed, err = bs.initiateEpoch(2)
+	ed, err = babeService.initiateEpoch(2)
 	require.NoError(t, err)
 	require.Equal(t, expected.randomness, ed.randomness)
 	require.Equal(t, expected.authorityIndex, ed.authorityIndex)
@@ -111,7 +110,7 @@ func TestInitiateEpoch_Epoch1(t *testing.T) {
 		Randomness:  [32]byte{9},
 	}
 
-	err = bs.epochState.(*state.EpochState).SetEpochData(3, edata)
+	err = babeService.epochState.(*state.EpochState).SetEpochData(3, edata)
 	require.NoError(t, err)
 
 	cdata := &types.ConfigData{
@@ -119,7 +118,7 @@ func TestInitiateEpoch_Epoch1(t *testing.T) {
 		C2: 99,
 	}
 
-	err = bs.epochState.(*state.EpochState).SetConfigData(3, cdata)
+	err = babeService.epochState.(*state.EpochState).SetConfigData(3, cdata)
 	require.NoError(t, err)
 
 	threshold, err := CalculateThreshold(cdata.C1, cdata.C2, 1)
@@ -131,16 +130,14 @@ func TestInitiateEpoch_Epoch1(t *testing.T) {
 		authorityIndex: 0,
 		threshold:      threshold,
 	}
-	ed, err = bs.initiateEpoch(3)
+	ed, err = babeService.initiateEpoch(3)
 	require.NoError(t, err)
 	require.Equal(t, expected, ed)
 }
 
 func TestIncrementEpoch(t *testing.T) {
-	cfg := ServiceConfig{
-		Authority: true,
-	}
-	bs := createTestService(t, cfg)
+	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
+	bs := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader)
 
 	next, err := bs.incrementEpoch()
 	require.NoError(t, err)
@@ -156,27 +153,29 @@ func TestIncrementEpoch(t *testing.T) {
 }
 
 func TestService_getLatestEpochData_genesis(t *testing.T) {
-	s, _, genCfg := newTestServiceSetupParameters(t)
+	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
+	service, _, genesisCfg := newTestServiceSetupParameters(t, genesis, genesisTrie, genesisHeader)
 
-	ed, err := s.getLatestEpochData()
+	latestEpochData, err := service.getLatestEpochData()
 	require.NoError(t, err)
-	auths, err := types.BABEAuthorityRawToAuthority(genCfg.GenesisAuthorities)
+	auths, err := types.BABEAuthorityRawToAuthority(genesisCfg.GenesisAuthorities)
 	require.NoError(t, err)
-	threshold, err := CalculateThreshold(genCfg.C1, genCfg.C2, len(auths))
+	threshold, err := CalculateThreshold(genesisCfg.C1, genesisCfg.C2, len(auths))
 	require.NoError(t, err)
 
-	require.Equal(t, auths, ed.authorities)
-	require.Equal(t, threshold, ed.threshold)
-	require.Equal(t, genCfg.Randomness, ed.randomness)
+	require.Equal(t, auths, latestEpochData.authorities)
+	require.Equal(t, threshold, latestEpochData.threshold)
+	require.Equal(t, genesisCfg.Randomness, latestEpochData.randomness)
 }
 
 func TestService_getLatestEpochData_epochData(t *testing.T) {
-	s, epochState, genCfg := newTestServiceSetupParameters(t)
+	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
+	service, epochState, genesisCfg := newTestServiceSetupParameters(t, genesis, genesisTrie, genesisHeader)
 
 	err := epochState.SetCurrentEpoch(1)
 	require.NoError(t, err)
 
-	auths, err := types.BABEAuthorityRawToAuthority(genCfg.GenesisAuthorities)
+	auths, err := types.BABEAuthorityRawToAuthority(genesisCfg.GenesisAuthorities)
 	require.NoError(t, err)
 
 	data := &types.EpochData{
@@ -186,9 +185,9 @@ func TestService_getLatestEpochData_epochData(t *testing.T) {
 	err = epochState.SetEpochData(1, data)
 	require.NoError(t, err)
 
-	ed, err := s.getLatestEpochData()
+	ed, err := service.getLatestEpochData()
 	require.NoError(t, err)
-	threshold, err := CalculateThreshold(genCfg.C1, genCfg.C2, len(data.Authorities))
+	threshold, err := CalculateThreshold(genesisCfg.C1, genesisCfg.C2, len(data.Authorities))
 	require.NoError(t, err)
 	require.Equal(t, data.Authorities, ed.authorities)
 	require.Equal(t, data.Randomness, ed.randomness)
@@ -196,12 +195,13 @@ func TestService_getLatestEpochData_epochData(t *testing.T) {
 }
 
 func TestService_getLatestEpochData_configData(t *testing.T) {
-	s, epochState, genCfg := newTestServiceSetupParameters(t)
+	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
+	service, epochState, genesisCfg := newTestServiceSetupParameters(t, genesis, genesisTrie, genesisHeader)
 
 	err := epochState.SetCurrentEpoch(7)
 	require.NoError(t, err)
 
-	auths, err := types.BABEAuthorityRawToAuthority(genCfg.GenesisAuthorities)
+	auths, err := types.BABEAuthorityRawToAuthority(genesisCfg.GenesisAuthorities)
 	require.NoError(t, err)
 
 	data := &types.EpochData{
@@ -218,7 +218,7 @@ func TestService_getLatestEpochData_configData(t *testing.T) {
 	err = epochState.SetConfigData(1, cfgData) // set config data for a previous epoch, ensure latest config data is used
 	require.NoError(t, err)
 
-	ed, err := s.getLatestEpochData()
+	ed, err := service.getLatestEpochData()
 	require.NoError(t, err)
 	threshold, err := CalculateThreshold(cfgData.C1, cfgData.C2, len(data.Authorities))
 	require.NoError(t, err)

@@ -75,6 +75,12 @@ jobs:
       - name: Run unit tests
         run: go test -coverprofile=coverage.out -covermode=atomic -timeout=45m ./...
 
+      - name: Trie memory test
+        run: |
+          sed -i 's/const skip = true/const skip = false/g' ./lib/trie/mem_test.go
+          go test -run ^Test_Trie_MemoryUsage$ ./lib/trie
+          sed -i 's/const skip = false/const skip = true/g' ./lib/trie/mem_test.go
+
       - name: Test State - Race
         run: make test-state-race
 

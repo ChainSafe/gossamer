@@ -247,23 +247,12 @@ func gossamerAction(ctx *cli.Context) error {
 	}
 
 	ks := keystore.NewGlobalKeystore()
-	// load built-in test keys if specified by `cfg.Account.Key`
-	err = keystore.LoadKeystore(cfg.Account.Key, ks.Acco)
-	if err != nil {
-		logger.Errorf("failed to load account keystore: %s", err)
-		return err
-	}
 
-	err = keystore.LoadKeystore(cfg.Account.Key, ks.Babe)
-	if err != nil {
-		logger.Errorf("failed to load BABE keystore: %s", err)
-		return err
-	}
-
-	err = keystore.LoadKeystore(cfg.Account.Key, ks.Gran)
-	if err != nil {
-		logger.Errorf("failed to load grandpa keystore: %s", err)
-		return err
+	if cfg.Account.Key != "" {
+		err = loadBuiltInTestKeys(cfg.Account.Key, *ks)
+		if err != nil {
+			return fmt.Errorf("loading built-in test keys: %s", err)
+		}
 	}
 
 	// load user keys if specified
@@ -297,6 +286,35 @@ func gossamerAction(ctx *cli.Context) error {
 	err = node.Start()
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func loadBuiltInTestKeys(accountKey string, ks keystore.GlobalKeystore) (err error) {
+	sr25519keyRing, err := keystore.NewSr25519Keyring()
+	if err != nil {
+		return fmt.Errorf("creating sr22519 keyring: %s", err)
+	}
+
+	ed25519keyRing, err := keystore.NewEd25519Keyring()
+	if err != nil {
+		return fmt.Errorf("creating ed25519 keyring: %s", err)
+	}
+
+	err = keystore.LoadKeystore(accountKey, ks.Acco, sr25519keyRing)
+	if err != nil {
+		return fmt.Errorf("loading account keystore: %w", err)
+	}
+
+	err = keystore.LoadKeystore(accountKey, ks.Babe, sr25519keyRing)
+	if err != nil {
+		return fmt.Errorf("loading babe keystore: %w", err)
+	}
+
+	err = keystore.LoadKeystore(accountKey, ks.Gran, ed25519keyRing)
+	if err != nil {
+		return fmt.Errorf("loading grandpa keystore: %w", err)
 	}
 
 	return nil
