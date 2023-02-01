@@ -37,7 +37,10 @@ var (
 func loadConfigFile(ctx *cli.Context, cfg *ctoml.Config) (err error) {
 	cfgPath := ctx.String(ConfigFlag.Name)
 	if cfgPath == "" {
-		return loadConfig(cfg, defaultPolkadotConfigPath)
+		//TODO ed, change to polkadot config
+		cfg = gssmr.DefaultTomlConfig
+		return nil
+		//return loadConfig(cfg, defaultGssmrConfigPath)
 	}
 
 	logger.Info("loading toml configuration from " + cfgPath + "...")
