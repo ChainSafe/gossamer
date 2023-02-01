@@ -456,7 +456,7 @@ func setDotGlobalConfigFromToml(tomlCfg *ctoml.Config, cfg *dot.GlobalConfig) {
 // setDotGlobalConfigFromFlags sets dot.GlobalConfig using flag values from the cli context
 func setDotGlobalConfigFromFlags(ctx *cli.Context, cfg *dot.GlobalConfig) error {
 	// check --basepath flag and update node configuration
-	if basepath := ctx.GlobalString(BasePathFlag.Name); basepath != "" {
+	if basepath := ctx.GlobalString(strings.Split(BasePathFlag.Name, ",")[0]); basepath != "" {
 		cfg.BasePath = basepath
 	}
 
@@ -668,7 +668,7 @@ func setDotNetworkConfig(ctx *cli.Context, tomlCfg ctoml.NetworkConfig, cfg *dot
 	}
 
 	// check --nomdns flag and update node configuration
-	if nomdns := ctx.GlobalBool(NoMDNSFlag.Name); nomdns {
+	if nomdns := ctx.GlobalBool(strings.Split(NoMDNSFlag.Name, ",")[0]); nomdns {
 		cfg.NoMDNS = true
 	}
 

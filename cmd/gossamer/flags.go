@@ -99,7 +99,7 @@ var (
 	}
 	// BasePathFlag data directory for node
 	BasePathFlag = cli.StringFlag{
-		Name:  "basepath",
+		Name:  "base-path,basepath", // base-path is argument used by polkadot node
 		Usage: "Data directory for the node",
 	}
 	PprofServerFlag = cli.BoolFlag{
@@ -218,7 +218,7 @@ var (
 	}
 	// NoMDNSFlag Disables network mDNS
 	NoMDNSFlag = cli.BoolFlag{
-		Name:  "nomdns,no-mdns",
+		Name:  "nomdns,no-mdns", // no-mdns is argument used by polkadot node
 		Usage: "Disables network mDNS discovery",
 	}
 	// PublicIPFlag uses the supplied IP for broadcasting
