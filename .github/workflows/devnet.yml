@@ -6,7 +6,7 @@ on:
 
 jobs:
   update:
-    runs-on: ubuntu-latest
+    runs-on: buildjet-4vcpu-ubuntu-2204
     steps:
       - uses: actions/checkout@v3
 
@@ -38,7 +38,7 @@ jobs:
           docker build --progress=plain \
           -t=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t=$ECR_REGISTRY/$ECR_REPOSITORY:latest \
           --build-arg DD_API_KEY=$DD_API_KEY --build-arg METRICS_NAMESPACE=gossamer.ecs.devnet \
-          -f=devnet/alice.Dockerfile . 
+          -f=devnet/alice.Dockerfile .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
@@ -53,7 +53,7 @@ jobs:
           docker build --progress=plain \
           -t=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t=$ECR_REGISTRY/$ECR_REPOSITORY:latest \
           --build-arg key=bob --build-arg DD_API_KEY=$DD_API_KEY --build-arg METRICS_NAMESPACE=gossamer.ecs.devnet \
-          -f=devnet/bob.Dockerfile . 
+          -f=devnet/bob.Dockerfile .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 

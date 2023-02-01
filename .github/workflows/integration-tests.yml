@@ -35,7 +35,7 @@ jobs:
             github.com/ChainSafe/gossamer/lib/babe,
             github.com/ChainSafe/gossamer/lib/grandpa,
           ]
-    runs-on: ubuntu-latest
+    runs-on: buildjet-4vcpu-ubuntu-2204
     steps:
       - uses: actions/setup-go@v3
         with:

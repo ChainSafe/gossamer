@@ -20,7 +20,7 @@ name: unit-tests
 jobs:
   unit-tests:
     timeout-minutes: 60
-    runs-on: ubuntu-latest
+    runs-on: buildjet-4vcpu-ubuntu-2204
     steps:
       - uses: actions/setup-go@v3
         with:
