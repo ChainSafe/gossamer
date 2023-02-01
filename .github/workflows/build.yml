@@ -27,7 +27,7 @@ jobs:
     timeout-minutes: 60
     strategy:
       matrix:
-        platform: [macos-latest, ubuntu-latest]
+        platform: [macos-latest, buildjet-4vcpu-ubuntu-2204]
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/setup-go@v3
@@ -63,7 +63,7 @@ jobs:
 
   publish-code-coverage:
     timeout-minutes: 60
-    runs-on: ubuntu-latest
+    runs-on: buildjet-4vcpu-ubuntu-2204
     steps:
       - uses: actions/setup-go@v3
         with:
@@ -111,7 +111,7 @@ jobs:
           verbose: true
 
   docker-build-n-push:
-    runs-on: ubuntu-latest
+    runs-on: buildjet-4vcpu-ubuntu-2204
     env:
       DOCKER_BUILDKIT: "1"
     steps:
