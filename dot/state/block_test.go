@@ -250,7 +250,8 @@ func TestGetAllDescendants(t *testing.T) {
 	err = bs.SetFinalisedHash(block2.Header.Hash(), 1, 1)
 	require.NoError(t, err)
 
-	// can't fetch given block's descendants since the given block get removed from memory after being finalised, using blocktree.GetAllDescendants
+	// can't fetch given block's descendants since the given block get removed from memory after
+	// being finalised, using blocktree.GetAllDescendants
 	_, err = bs.bt.GetAllDescendants(block.Header.Hash())
 	require.ErrorIs(t, err, blocktree.ErrNodeNotFound)
 
