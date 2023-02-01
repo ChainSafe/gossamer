@@ -11,25 +11,36 @@ import (
 	"reflect"
 	"unicode"
 
-	"github.com/naoina/toml"
-
+	"github.com/ChainSafe/gossamer"
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
+	"github.com/naoina/toml"
 )
 
-// loadConfig loads the values from the toml configuration file into the provided configuration
-func loadConfig(cfg *ctoml.Config, fp string) error {
+func loadConfigFromResource(cfg *ctoml.Config, resourcePath string) error {
+	file, err := gossamer.DefaultConfigTomlFiles.Open(resourcePath)
+	if err != nil {
+		logger.Errorf("failed to open toml configuration file: %s", err)
+		return err
+	}
+	return loadConfig(cfg, file)
+}
+
+func loadConfigFromFile(cfg *ctoml.Config, fp string) error {
 	fp, err := filepath.Abs(fp)
 	if err != nil {
 		logger.Errorf("failed to create absolute path for toml configuration file: %s", err)
 		return err
 	}
-
 	file, err := os.Open(filepath.Clean(fp))
 	if err != nil {
 		logger.Errorf("failed to open toml configuration file: %s", err)
 		return err
 	}
+	return loadConfig(cfg, file)
+}
 
+// loadConfig loads the values from the toml configuration file into the provided configuration
+func loadConfig(cfg *ctoml.Config, file fs.File) error {
 	var tomlSettings = toml.Config{
 		NormFieldName: func(rt reflect.Type, key string) string {
 			return key
@@ -46,7 +57,7 @@ func loadConfig(cfg *ctoml.Config, fp string) error {
 		},
 	}
 
-	if err = tomlSettings.NewDecoder(file).Decode(cfg); err != nil {
+	if err := tomlSettings.NewDecoder(file).Decode(cfg); err != nil {
 		logger.Errorf("failed to decode configuration: %s", err)
 		return err
 	}

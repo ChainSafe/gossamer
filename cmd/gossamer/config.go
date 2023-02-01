@@ -29,7 +29,6 @@ var (
 	defaultKusamaConfigPath     = "./chain/kusama/config.toml"
 	defaultPolkadotConfigPath   = "./chain/polkadot/config.toml"
 	defaultWestendDevConfigPath = "./chain/westend-dev/config.toml"
-	defaultWestendConfigPath    = "./chain/westend/config.toml"
 )
 
 // loadConfigFile loads a default config file if --chain is specified, a specific
@@ -37,10 +36,7 @@ var (
 func loadConfigFile(ctx *cli.Context, cfg *ctoml.Config) (err error) {
 	cfgPath := ctx.String(ConfigFlag.Name)
 	if cfgPath == "" {
-		//TODO ed, change to polkadot config
-		cfg = gssmr.DefaultTomlConfig
-		return nil
-		//return loadConfig(cfg, defaultGssmrConfigPath)
+		return loadConfigFromResource(cfg, defaultPolkadotConfigPath)
 	}
 
 	logger.Info("loading toml configuration from " + cfgPath + "...")
@@ -51,7 +47,7 @@ func loadConfigFile(ctx *cli.Context, cfg *ctoml.Config) (err error) {
 			"overwriting default configuration with id " + cfg.Global.ID +
 				" with toml configuration values from " + cfgPath)
 	}
-	return loadConfig(cfg, cfgPath)
+	return loadConfigFromFile(cfg, cfgPath)
 }
 
 func setupConfigFromChain(ctx *cli.Context) (*ctoml.Config, *dot.Config, error) {
@@ -71,17 +67,17 @@ func setupConfigFromChain(ctx *cli.Context) (*ctoml.Config, *dot.Config, error) 
 			logger.Info("loading toml configuration from " + defaultKusamaConfigPath + "...")
 			tomlCfg = &ctoml.Config{}
 			cfg = dot.KusamaConfig()
-			err = loadConfig(tomlCfg, defaultKusamaConfigPath)
+			err = loadConfigFromResource(tomlCfg, defaultKusamaConfigPath)
 		case "polkadot":
 			logger.Info("loading toml configuration from " + defaultPolkadotConfigPath + "...")
 			tomlCfg = &ctoml.Config{}
 			cfg = dot.PolkadotConfig()
-			err = loadConfig(tomlCfg, defaultPolkadotConfigPath)
+			err = loadConfigFromResource(tomlCfg, defaultPolkadotConfigPath)
 		case "westend-dev":
 			logger.Info("loading toml configuration from " + defaultWestendDevConfigPath + "...")
 			tomlCfg = &ctoml.Config{}
 			cfg = dot.WestendDevConfig()
-			err = loadConfig(tomlCfg, defaultWestendDevConfigPath)
+			err = loadConfigFromResource(tomlCfg, defaultWestendDevConfigPath)
 		case "westend":
 			logger.Info("loading toml configuration from " + defaultWestendConfigPath + "...")
 			tomlCfg = &ctoml.Config{}
