@@ -198,6 +198,68 @@ func TestGetSlotForBlock(t *testing.T) {
 	require.Equal(t, expectedSlot, res)
 }
 
+func TestGetAllDescendants(t *testing.T) {
+	t.Parallel()
+
+	bs := newTestBlockState(t, newTriesEmpty())
+	slot := uint64(77)
+
+	babeHeader := types.NewBabeDigest()
+	err := babeHeader.Set(*types.NewBabePrimaryPreDigest(0, slot, [32]byte{}, [64]byte{}))
+	require.NoError(t, err)
+	data, err := scale.Marshal(babeHeader)
+	require.NoError(t, err)
+	preDigest := types.NewBABEPreRuntimeDigest(data)
+
+	digest := types.NewDigest()
+	err = digest.Add(*preDigest)
+	require.NoError(t, err)
+	block := &types.Block{
+		Header: types.Header{
+			ParentHash: testGenesisHeader.Hash(),
+			Number:     1,
+			Digest:     digest,
+		},
+		Body: sampleBlockBody,
+	}
+
+	err = bs.AddBlockWithArrivalTime(block, time.Now())
+	require.NoError(t, err)
+
+	babeHeader2 := types.NewBabeDigest()
+	err = babeHeader2.Set(*types.NewBabePrimaryPreDigest(1, slot+1, [32]byte{}, [64]byte{}))
+	require.NoError(t, err)
+	data2, err := scale.Marshal(babeHeader2)
+	require.NoError(t, err)
+	preDigest2 := types.NewBABEPreRuntimeDigest(data2)
+
+	digest2 := types.NewDigest()
+	err = digest2.Add(*preDigest2)
+	require.NoError(t, err)
+	block2 := &types.Block{
+		Header: types.Header{
+			ParentHash: block.Header.Hash(),
+			Number:     2,
+			Digest:     digest2,
+		},
+		Body: sampleBlockBody,
+	}
+	err = bs.AddBlockWithArrivalTime(block2, time.Now())
+	require.NoError(t, err)
+
+	err = bs.SetFinalisedHash(block2.Header.Hash(), 1, 1)
+	require.NoError(t, err)
+
+	// can't fetch given block's descendants since the given block get removed from memory after being finalised, using blocktree.GetAllDescendants
+	_, err = bs.bt.GetAllDescendants(block.Header.Hash())
+	require.ErrorIs(t, err, blocktree.ErrNodeNotFound)
+
+	// can fetch given finalised block's descendants using disk, using using blockstate.GetAllDescendants
+	blockHashes, err := bs.GetAllDescendants(block.Header.Hash())
+	require.NoError(t, err)
+	require.ElementsMatch(t, blockHashes, []common.Hash{block.Header.Hash(), block2.Header.Hash()})
+}
+
 func TestGetBlockHashesBySlot(t *testing.T) {
 	t.Parallel()
 

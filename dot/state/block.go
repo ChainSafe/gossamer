@@ -261,6 +261,9 @@ func (bs *BlockState) GetAllDescendants(hash common.Hash) ([]common.Hash, error)
 		return allDescendants, nil
 	}
 
+	// adding itself as descendant to keep this method similar to blocktree.GetAllDescendants
+	allDescendants = []common.Hash{hash}
+
 	header, err := bs.GetHeader(hash)
 	if err != nil {
 		return nil, fmt.Errorf("getting header from hash %s: %w", hash, err)
@@ -276,8 +279,6 @@ func (bs *BlockState) GetAllDescendants(hash common.Hash) ([]common.Hash, error)
 	if nextBlock.Header.ParentHash != hash {
 		return nil, nil
 	}
-
-	allDescendants = append(allDescendants, nextBlock.Header.Hash())
 
 	nextDescendants, err := bs.bt.GetAllDescendants(nextBlock.Header.Hash())
 	if err != nil && !errors.Is(err, blocktree.ErrNodeNotFound) {
