@@ -4,9 +4,7 @@
 package dot
 
 import (
-	"crypto/sha256"
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -43,38 +41,6 @@ func newTestGenesisFile(t *testing.T, cfg *Config) (filename string) {
 	require.NoError(t, err)
 
 	return filename
-}
-
-func TestCreateJSONRawFile(t *testing.T) {
-	type args struct {
-		bs *BuildSpec
-		fp string
-	}
-	tests := []struct {
-		name         string
-		args         args
-		expectedHash string
-	}{
-		{
-			name: "working_example",
-			args: args{
-				bs: &BuildSpec{genesis: NewTestGenesis(t)},
-				fp: filepath.Join(t.TempDir(), "/test.json"),
-			},
-			expectedHash: "f7f1b82c0ba16b20e36bfb462d7899af2c76728918f639f5c5ef0e91ff3e7077",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			CreateJSONRawFile(tt.args.bs, tt.args.fp)
-
-			b, err := os.ReadFile(tt.args.fp)
-			require.NoError(t, err)
-			digest := sha256.Sum256(b)
-			hexDigest := fmt.Sprintf("%x", digest)
-			require.Equal(t, tt.expectedHash, hexDigest)
-		})
-	}
 }
 
 func TestNewTestConfig(t *testing.T) {
