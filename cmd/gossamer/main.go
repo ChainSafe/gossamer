@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	_ "time/tzdata"
 
 	"github.com/ChainSafe/gossamer/dot"
@@ -438,13 +439,7 @@ func pruneState(ctx *cli.Context) error {
 		return err
 	}
 
-	inputDBPath := tomlCfg.Global.BasePath
-	prunedDBPath := ctx.GlobalString(DBPathFlag.Name)
-	if prunedDBPath == "" {
-		return fmt.Errorf("path not specified for badger db")
-	}
-
-	bloomSize := ctx.GlobalUint64(BloomFilterSizeFlag.Name)
+	inputDBPath := filepath.Join(tomlCfg.Global.BasePath, "db")
 
 	const uint32Max = ^uint32(0)
 	flagValue := ctx.GlobalUint64(RetainBlockNumberFlag.Name)
@@ -455,7 +450,7 @@ func pruneState(ctx *cli.Context) error {
 
 	retainBlocks := uint32(flagValue)
 
-	pruner, err := state.NewOfflinePruner(inputDBPath, prunedDBPath, bloomSize, retainBlocks)
+	pruner, err := state.NewOfflinePruner(inputDBPath, retainBlocks)
 	if err != nil {
 		return err
 	}

@@ -45,7 +45,7 @@ type StorageState struct {
 // NewStorageState creates a new StorageState backed by the given block state
 // and database located at basePath.
 func NewStorageState(db *chaindb.BadgerDB, blockState *BlockState,
-	tries *Tries, onlinePruner pruner.Config) (*StorageState, error) {
+	tries *Tries) (*StorageState, error) {
 	storageTable := chaindb.NewTable(db, storagePrefix)
 
 	return &StorageState{
