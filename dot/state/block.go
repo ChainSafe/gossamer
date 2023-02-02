@@ -250,7 +250,7 @@ func (bs *BlockState) GetHashByNumber(num uint) (common.Hash, error) {
 	return common.NewHash(bh), nil
 }
 
-// GetAllDescendants gets all the descendants for a given block hash, by first checking in memory
+// GetAllDescendants gets all the descendants for a given block hash (including itself), by first checking in memory
 // and, if not found, reading from the block state database.
 func (bs *BlockState) GetAllDescendants(hash common.Hash) ([]common.Hash, error) {
 	allDescendants, err := bs.bt.GetAllDescendants(hash)
@@ -262,7 +262,6 @@ func (bs *BlockState) GetAllDescendants(hash common.Hash) ([]common.Hash, error)
 		return allDescendants, nil
 	}
 
-	// adding itself as descendant to keep this method similar to blocktree.GetAllDescendants
 	allDescendants = []common.Hash{hash}
 
 	header, err := bs.GetHeader(hash)
