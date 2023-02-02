@@ -427,11 +427,11 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 	}
 
 	if has {
-		finalisedHeader, err := s.blockState.GetFinalisedHeader(fj.Round, setID)
+		storedFinalisedHash, err := s.blockState.GetFinalisedHash(fj.Round, setID)
 		if err != nil {
-			return nil, fmt.Errorf("getting finalised header: %w", err)
+			return nil, fmt.Errorf("getting finalised hash: %w", err)
 		}
-		if finalisedHeader.Hash() != hash {
+		if storedFinalisedHash != hash {
 			return nil, fmt.Errorf("already have finalised block with setID=%d and round=%d", setID, fj.Round)
 		}
 	}
