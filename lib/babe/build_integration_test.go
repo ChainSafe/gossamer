@@ -13,6 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -242,12 +243,13 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 }
 
 func TestBuildAndApplyExtrinsic_InvalidPayment(t *testing.T) {
+	kr, err := keystore.NewSr25519Keyring()
+	require.NoError(t, err)
+
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader)
 
-	parentHash := common.MustHexToHash("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
-	header := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, 1, types.NewDigest())
-
+	header := types.NewHeader(genesisHeader.Hash(), common.Hash{}, common.Hash{}, 1, types.NewDigest())
 	bestBlockHash := babeService.blockState.BestBlockHash()
 	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
@@ -266,18 +268,18 @@ func TestBuildAndApplyExtrinsic_InvalidPayment(t *testing.T) {
 	require.NoError(t, err)
 
 	rv := rt.Version()
-	bob, err := ctypes.NewMultiAddressFromHexAccountID(
-		"0x90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22")
+	charlie, err := ctypes.NewMultiAddressFromHexAccountID(
+		kr.KeyCharlie.Public().Hex())
 	require.NoError(t, err)
 
-	call, err := ctypes.NewCall(meta, "Balances.transfer", bob, ctypes.NewUCompactFromUInt(^uint64(0)))
+	call, err := ctypes.NewCall(meta, "Balances.transfer", charlie, ctypes.NewUCompactFromUInt(^uint64(0)))
 	require.NoError(t, err)
 
 	ext := ctypes.NewExtrinsic(call)
-	genHash, err := ctypes.NewHashFromHexString("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
+	genHash, err := ctypes.NewHashFromHexString(genesisHeader.Hash().String())
 	require.NoError(t, err)
 
-	o := ctypes.SignatureOptions{
+	so := ctypes.SignatureOptions{
 		BlockHash:          genHash,
 		Era:                ctypes.ExtrinsicEra{IsImmortalEra: true},
 		GenesisHash:        genHash,
@@ -287,7 +289,7 @@ func TestBuildAndApplyExtrinsic_InvalidPayment(t *testing.T) {
 		TransactionVersion: ctypes.U32(rv.TransactionVersion),
 	}
 
-	err = ext.Sign(signature.TestKeyringPairAlice, o)
+	err = ext.Sign(signature.TestKeyringPairAlice, so)
 	require.NoError(t, err)
 
 	extEnc := bytes.Buffer{}
@@ -300,7 +302,7 @@ func TestBuildAndApplyExtrinsic_InvalidPayment(t *testing.T) {
 	err = determineErr(res)
 	_, ok := err.(*TransactionValidityError)
 	require.True(t, ok)
-	require.Equal(t, err.Error(), "transaction validity error: invalid payment")
+	require.Equal(t, "transaction validity error: invalid payment", err.Error())
 }
 
 func TestDecodeExtrinsicBody(t *testing.T) {
