@@ -757,7 +757,7 @@ func setDotRPCConfig(ctx *cli.Context, tomlCfg ctoml.RPCConfig, cfg *dot.RPCConf
 	}
 
 	// check --rpcport flag and update node configuration
-	if port := ctx.GlobalUint(RPCPortFlag.Name); port != 0 {
+	if port := ctx.GlobalUint(strings.Split(RPCPortFlag.Name, ",")[0]); port != 0 {
 		cfg.Port = uint32(port)
 	}
 
@@ -771,7 +771,7 @@ func setDotRPCConfig(ctx *cli.Context, tomlCfg ctoml.RPCConfig, cfg *dot.RPCConf
 		cfg.Modules = strings.Split(ctx.GlobalString(RPCModulesFlag.Name), ",")
 	}
 
-	if wsport := ctx.GlobalUint(WSPortFlag.Name); wsport != 0 {
+	if wsport := ctx.GlobalUint(strings.Split(WSPortFlag.Name, ",")[0]); wsport != 0 {
 		cfg.WSPort = uint32(wsport)
 	}
 
