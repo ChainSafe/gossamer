@@ -960,6 +960,70 @@ func TestMessageHandler_VerifyBlockJustification_invalid(t *testing.T) {
 	require.EqualError(t, err, expectedErr)
 }
 
+func TestMessageHandler_VerifyBlockJustification_ErrFinalisedBlockMismatch(t *testing.T) {
+	t.Parallel()
+
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
+	auths := []types.GrandpaVoter{
+		{
+			Key: *kr.Alice().Public().(*ed25519.PublicKey),
+		},
+		{
+			Key: *kr.Bob().Public().(*ed25519.PublicKey),
+		},
+		{
+			Key: *kr.Charlie().Public().(*ed25519.PublicKey),
+		},
+	}
+
+	gs, st := newTestService(t, aliceKeyPair)
+	err = st.Grandpa.SetNextChange(auths, 1)
+	require.NoError(t, err)
+
+	body, err := types.NewBodyFromBytes([]byte{0})
+	require.NoError(t, err)
+
+	block := &types.Block{
+		Header: *testHeader,
+		Body:   *body,
+	}
+
+	err = st.Block.AddBlock(block)
+	require.NoError(t, err)
+
+	setID := uint64(0)
+	round := uint64(1)
+	number := uint32(1)
+
+	err = st.Block.SetFinalisedHash(block.Header.Hash(), round, setID)
+	require.NoError(t, err)
+
+	var testHeader2 = &types.Header{
+		ParentHash: testHeader.Hash(),
+		Number:     2,
+		Digest:     newTestDigest(),
+	}
+
+	var testHash = testHeader2.Hash()
+	block2 := &types.Block{
+		Header: *testHeader2,
+		Body:   *body,
+	}
+	err = st.Block.AddBlock(block2)
+	require.NoError(t, err)
+
+	// justification fails since there is already a block finalised in this round and set id
+	precommits := buildTestJustification(t, 18, round, setID, kr, precommit)
+	just := newJustification(round, testHash, number, precommits)
+	data, err := scale.Marshal(*just)
+	require.NoError(t, err)
+	_, err = gs.VerifyBlockJustification(testHash, data)
+	require.ErrorIs(t, err, errFinalisedBlocksMismatch)
+}
+
 func Test_getEquivocatoryVoters(t *testing.T) {
 	t.Parallel()
 

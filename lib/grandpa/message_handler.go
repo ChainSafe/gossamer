@@ -432,7 +432,7 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 			return nil, fmt.Errorf("getting finalised hash: %w", err)
 		}
 		if storedFinalisedHash != hash {
-			return nil, fmt.Errorf("already have finalised block with setID=%d and round=%d", setID, fj.Round)
+			return nil, fmt.Errorf("%w, setID=%d and round=%d", errFinalisedBlocksMismatch, setID, fj.Round)
 		}
 	}
 
