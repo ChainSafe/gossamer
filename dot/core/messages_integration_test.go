@@ -16,7 +16,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/state"
-	"github.com/ChainSafe/gossamer/dot/sync"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -165,7 +164,13 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 	require.NoError(t, err)
 	rt.SetContextStorage(ts)
 
-	block := sync.BuildBlock(t, rt, genHeader, nil)
+	babeConfig, err := rt.BabeConfiguration()
+	require.NoError(t, err)
+
+	currentTimestamp := uint64(time.Now().UnixMilli())
+	currentSlot := currentTimestamp / babeConfig.SlotDuration
+
+	block := buildTestBlockWithoutExtrinsics(t, rt, genHeader, currentSlot, currentTimestamp)
 
 	err = s.handleBlock(block, ts)
 	require.NoError(t, err)

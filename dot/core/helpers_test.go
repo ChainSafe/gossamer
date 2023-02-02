@@ -172,7 +172,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	var stateSrvc *state.Service
 	testDatadirPath := t.TempDir()
 
-	gen, genesisTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	gen, genesisTrie, genesisHeader := newWestendLocalWithTrieAndHeader(t)
 
 	if cfg.BlockState == nil || cfg.StorageState == nil ||
 		cfg.TransactionState == nil || cfg.CodeSubstitutedState == nil {
@@ -257,11 +257,11 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	return s
 }
 
-func newTestGenesisWithTrieAndHeader(t *testing.T) (
+func newWestendLocalWithTrieAndHeader(t *testing.T) (
 	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
 	t.Helper()
 
-	genesisPath := utils.GetGssmrV3SubstrateGenesisRawPathTest(t)
+	genesisPath := utils.GetWestendLocalRawGenesisPath(t)
 	genPtr, err := genesis.NewGenesisFromJSONRaw(genesisPath)
 	require.NoError(t, err)
 	gen = *genPtr
@@ -280,7 +280,7 @@ func newTestGenesisWithTrieAndHeader(t *testing.T) (
 	return gen, genesisTrie, genesisHeader
 }
 
-func getGssmrRuntimeCode(t *testing.T) (code []byte) {
+func getWestendDevRuntimeCode(t *testing.T) (code []byte) {
 	t.Helper()
 
 	path := utils.GetWestendDevRawGenesisPath(t)
