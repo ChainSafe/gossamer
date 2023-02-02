@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// NewTestGenesisRawFile returns a test genesis file using "westend_dev" raw data
+// NewTestGenesisRawFile returns a test genesis file using "westend-dev" raw data
 func NewTestGenesisRawFile(t *testing.T, cfg *Config) (filename string) {
 	filename = filepath.Join(t.TempDir(), "genesis.json")
 

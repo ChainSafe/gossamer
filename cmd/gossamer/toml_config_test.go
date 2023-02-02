@@ -28,7 +28,7 @@ func TestLoadConfig(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// TestLoadConfigWestendDev tests loading the toml configuration file for westend_dev
+// TestLoadConfigWestendDev tests loading the toml configuration file for westend-dev
 func TestLoadConfigWestendDev(t *testing.T) {
 	cfg := dot.WestendDevConfig()
 	require.NotNil(t, cfg)
@@ -40,7 +40,7 @@ func TestLoadConfigWestendDev(t *testing.T) {
 	require.NoError(t, err)
 
 	projectRootPath := utils.GetProjectRootPathTest(t)
-	configPath := filepath.Join(projectRootPath, "./chain/westend_dev/config.toml")
+	configPath := filepath.Join(projectRootPath, "./chain/westend-dev/config.toml")
 
 	err = loadConfig(dotConfigToToml(cfg), configPath)
 	require.NoError(t, err)

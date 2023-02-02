@@ -204,7 +204,7 @@ func TestMain(m *testing.M) {
 
 	defaultKusamaConfigPath = filepath.Join(rootPath, "./chain/kusama/config.toml")
 	defaultPolkadotConfigPath = filepath.Join(rootPath, "./chain/polkadot/config.toml")
-	defaultWestendDevConfigPath = filepath.Join(rootPath, "./chain/westend_dev/config.toml")
+	defaultWestendDevConfigPath = filepath.Join(rootPath, "./chain/westend-dev/config.toml")
 
 	os.Exit(m.Run())
 }

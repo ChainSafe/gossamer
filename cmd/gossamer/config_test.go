@@ -56,7 +56,7 @@ func TestConfigFromChainFlag(t *testing.T) {
 			dot.PolkadotConfig(),
 		},
 		{
-			"Test gossamer --chain westend_dev",
+			"Test gossamer --chain westend-dev",
 			[]string{"chain", "name", "pruning", "retain-blocks"},
 			[]interface{}{"dev", dot.WestendDevConfig().Global.Name, pruner.Archive, 512},
 			dot.WestendDevConfig(),

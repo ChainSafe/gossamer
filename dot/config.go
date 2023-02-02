@@ -189,7 +189,7 @@ func WestendDevConfig() *Config {
 	return &Config{
 		Global: GlobalConfig{
 			Name:           "Westend",
-			ID:             "westend_dev",
+			ID:             "westend-dev",
 			BasePath:       "~/.gossamer/westend-dev",
 			LogLvl:         log.Info,
 			MetricsAddress: "localhost:9876",
@@ -209,7 +209,7 @@ func WestendDevConfig() *Config {
 			FinalityGadgetLvl: log.Info,
 		},
 		Init: InitConfig{
-			Genesis: "./chain/westend_dev/westend-dev-spec-raw.json",
+			Genesis: "./chain/westend-dev/westend-dev-spec-raw.json",
 		},
 		Account: AccountConfig{
 			Key:    "",

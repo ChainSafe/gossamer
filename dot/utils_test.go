@@ -19,7 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// newTestGenesisFile returns a human-readable test genesis file using "westend_dev" human readable data
+// newTestGenesisFile returns a human-readable test genesis file using "westend-dev" human readable data
 func newTestGenesisFile(t *testing.T, cfg *Config) (filename string) {
 	t.Helper()
 
@@ -94,7 +94,7 @@ func TestNewTestConfig(t *testing.T) {
 			want: &Config{
 				Global: GlobalConfig{
 					Name:           "Westend",
-					ID:             "westend_dev",
+					ID:             "westend-dev",
 					BasePath:       incBasePath,
 					LogLvl:         3,
 					PublishMetrics: false,
@@ -115,7 +115,7 @@ func TestNewTestConfig(t *testing.T) {
 					BlockProducerLvl:  3,
 					FinalityGadgetLvl: 3,
 				},
-				Init: InitConfig{Genesis: "./chain/westend_dev/westend-dev-spec-raw.json"},
+				Init: InitConfig{Genesis: "./chain/westend-dev/westend-dev-spec-raw.json"},
 				Core: CoreConfig{
 					Roles:            4,
 					BabeAuthority:    true,
@@ -232,7 +232,7 @@ func NewWestendDevConfig(t *testing.T) *Config {
 	return cfg
 }
 
-// NewTestGenesis returns a test genesis instance using "westend_dev" raw data
+// NewTestGenesis returns a test genesis instance using "westend-dev" raw data
 func NewTestGenesis(t *testing.T) *genesis.Genesis {
 	fp := utils.GetWestendDevRawGenesisPath(t)
 

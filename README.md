@@ -135,13 +135,13 @@ First, initialize the directory that will be used by the Gossamer node to manage
 its state:
 
 ```sh
-./bin/gossamer init --force --config ./chain/westend_dev/config.toml
+./bin/gossamer init --force --config ./chain/westend-dev/config.toml
 ```
 
 Now, start Gossamer as a host for the local Westend development chain:
 
 ```sh
-./bin/gossamer --config ./chain/westend_dev/config.toml
+./bin/gossamer --config ./chain/westend-dev/config.toml
 ```
 
 ### Multi-Node Development Network
