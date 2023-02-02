@@ -1007,7 +1007,7 @@ func TestMessageHandler_VerifyBlockJustification_ErrFinalisedBlockMismatch(t *te
 		Digest:     newTestDigest(),
 	}
 
-	var testHash = testHeader2.Hash()
+	testHash = testHeader2.Hash()
 	block2 := &types.Block{
 		Header: *testHeader2,
 		Body:   *body,
