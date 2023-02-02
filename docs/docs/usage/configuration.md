@@ -6,7 +6,7 @@ permalink: /usage/configuration/
 
 # Configuration
 
-Gossamer consumes a `.toml` file containing predefined settings for the node from setting the genesis file, to the RPC/WS server, this file allows you to curated the functionality of the node instead of writing out the flags manually
+Gossamer consumes a `.toml` file containing predefined settings for the node from setting the genesis file, to the RPC/WS server, this file allows you to curate the functionality of the node instead of writing out the flags manually
 
 ## Full reference
 
