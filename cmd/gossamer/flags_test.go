@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot"
+	"github.com/ChainSafe/gossamer/internal/chain/dev"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v2"
 )

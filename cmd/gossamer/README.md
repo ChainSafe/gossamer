@@ -20,7 +20,7 @@ This is the default Gossamer execution method, which invokes the `gossamerAction
 blockchain client are [described below in the Client Components section](#client-components).
 
 - `--basepath` - the path to the directory where Gossamer will store its data
-- `--chain` - specifies the [chain configuration](../../chain) that the
+- `--chain` - specifies the [chain configuration](../../internal/chain) that the
   [Gossamer host node](https://chainsafe.github.io/gossamer/getting-started/overview/host-architecture/) should load
 - `--key` - specifies a test keyring account to use (e.g. `--key=alice`)
 - `--log` - supports levels `crit` (silent), `error`, `warn`, `info`, `debug`, and `trce` (detailed), default is `info`
@@ -86,7 +86,7 @@ The `importStateAction` function is defined in [`main.go`](main.go).
 The `export` subcommand transforms a genesis configuration and Gossamer state into a TOML configuration file. This
 subcommand invokes the `exportAction` function defined in [`export.go`](export.go).
 
-- `--config` - path to a TOML configuration file (e.g. those defined in [the `chain` directory](../../chain))
+- `--config` - path to a TOML configuration file (e.g. those defined in [the `chain` directory](../../internal/chain))
 - `--basepath` - path to the Gossamer data directory that defines the state to export
 
 ## Client Components

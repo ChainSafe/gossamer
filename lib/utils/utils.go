@@ -151,31 +151,31 @@ func KeystoreFilepaths(basepath string) ([]string, error) {
 // GetWestendDevHumanReadableGenesisPath gets the westend-dev human readable spec filepath
 func GetWestendDevHumanReadableGenesisPath(t *testing.T) string {
 	t.Helper()
-	return filepath.Join(GetProjectRootPathTest(t), "./chain/westend-dev/westend-dev-spec.json")
+	return filepath.Join(GetProjectRootPathTest(t), "./internal/chain/westend-dev/westend-dev-spec.json")
 }
 
 // GetWestendDevRawGenesisPath gets the westend-dev genesis raw path
 func GetWestendDevRawGenesisPath(t *testing.T) string {
 	t.Helper()
-	return filepath.Join(GetProjectRootPathTest(t), "./chain/westend-dev/westend-dev-spec-raw.json")
+	return filepath.Join(GetProjectRootPathTest(t), "./internal/chain/westend-dev/westend-dev-spec-raw.json")
 }
 
 // GetWestendLocalRawGenesisPath gets the westend-local genesis raw path
 func GetWestendLocalRawGenesisPath(t *testing.T) string {
 	t.Helper()
-	return filepath.Join(GetProjectRootPathTest(t), "./chain/westend-local/westend-local-spec-raw.json")
+	return filepath.Join(GetProjectRootPathTest(t), "./internal/chain/westend-local/westend-local-spec-raw.json")
 }
 
 // GetKusamaGenesisPath gets the Kusama genesis path
 func GetKusamaGenesisPath(t *testing.T) string {
 	t.Helper()
-	return filepath.Join(GetProjectRootPathTest(t), "./chain/kusama/genesis.json")
+	return filepath.Join(GetProjectRootPathTest(t), "./internal/chain/kusama/genesis.json")
 }
 
 // GetPolkadotGenesisPath gets the Polkadot genesis path
 func GetPolkadotGenesisPath(t *testing.T) string {
 	t.Helper()
-	return filepath.Join(GetProjectRootPathTest(t), "./chain/polkadot/genesis.json")
+	return filepath.Join(GetProjectRootPathTest(t), "./internal/chain/polkadot/genesis.json")
 }
 
 // GetProjectRootPathTest finds the root of the project where `go.mod` is
@@ -191,14 +191,15 @@ var (
 	ErrFindProjectRoot = errors.New("cannot find project root")
 )
 
-// GetProjectRootPath finds the root of the project where `go.mod` is
+// GetProjectRootPath finds the root of the project where directory `cmd`
+// and subdirectories `gossamer, testcases` are
 // and returns it as an absolute path.
 func GetProjectRootPath() (rootPath string, err error) {
 	_, fullpath, _, _ := runtime.Caller(0)
 	rootPath = path.Dir(fullpath)
 
-	const directoryToFind = "chain"
-	const subPathsToFind = "westend-dev,westend-local,kusama,polkadot"
+	const directoryToFind = "cmd"
+	const subPathsToFind = "gossamer,testcases"
 
 	subPaths := strings.Split(subPathsToFind, ",")
 
