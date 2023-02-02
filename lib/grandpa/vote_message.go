@@ -253,7 +253,7 @@ func (s *Service) checkAndReportEquivocation(voter *Voter, vote *SignedVote, sta
 
 		err := s.reportEquivocation(stage, existingVote, vote)
 		if err != nil {
-			logger.Errorf("failed reporting equivocation: %s", err)
+			logger.Errorf("reporting equivocation: %s", err)
 		}
 		return fmt.Errorf("%w: voter %s has existing vote %s and new vote %s",
 			ErrEquivocation, v, existingVote.Vote.Hash, vote.Vote.Hash)

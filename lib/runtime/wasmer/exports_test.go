@@ -1284,7 +1284,7 @@ func TestInstance_GrandpaGenerateKeyOwnershipProof(t *testing.T) {
 	instance := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
 	identity := common.MustHexToBytes("0x88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee")
 	identityPubKey, _ := ed25519.NewPublicKey(identity)
-	authorityID := ed25519PubKeyTo32BArray(*identityPubKey)
+	authorityID := identityPubKey.AsBytes()
 
 	encodedOpaqueKeyOwnershipProof, err := instance.GrandpaGenerateKeyOwnershipProof(uint64(0), authorityID)
 	require.NoError(t, err)
@@ -1315,16 +1315,15 @@ func TestInstance_GrandpaSubmitReportEquivocationUnsignedExtrinsic(t *testing.T)
 		Number: 10,
 	}
 
-	firstSignatureArray := mustHexTo64BArray(t, "0xd7292caacc62504365f179892a7399f233944bf261f8a3f66260f70e0016f2d"+
+	firstSignatureArray := common.MustHexTo64BArray(t, "0xd7292caacc62504365f179892a7399f233944bf261f8a3f66260f70e0016f2d"+
 		"b63922726b015c82dc7131f4730fbec61f71672a571453e51029bfb469070900f")
 
-	secondSignatureArray := mustHexTo64BArray(t, "0xb3c408b74905dfedfffa66f99f16fe8b938fd8df76a92225228a1ca07523"+
+	secondSignatureArray := common.MustHexTo64BArray(t, "0xb3c408b74905dfedfffa66f99f16fe8b938fd8df76a92225228a1ca07523"+
 		"0b99a2d9e173c561952e1e378b701915ca188d2c832ef92a3fab8e455f32570c0807")
 
-	authorityID := ed25519PubKeyTo32BArray(*identityPubKey)
 	grandpaEquivocation := types.GrandpaEquivocation{
 		RoundNumber:     1,
-		ID:              authorityID,
+		ID:              identityPubKey.AsBytes(),
 		FirstVote:       firstVote,
 		FirstSignature:  firstSignatureArray,
 		SecondVote:      secondVote,

@@ -198,6 +198,7 @@ func (v GrandpaVote) String() string {
 }
 
 // GrandpaEquivocation is used to create a proof of equivocation
+// https://github.com/paritytech/finality-grandpa/blob/19d251d0b0105d51a79d3c4532a9aae75a5035bd/src/lib.rs#L213 //nolint:lll
 type GrandpaEquivocation struct {
 	RoundNumber     uint64
 	ID              [32]byte
@@ -208,7 +209,8 @@ type GrandpaEquivocation struct {
 }
 
 // GrandpaEquivocationEnum is a wrapper object for GRANDPA equivocation proofs, useful for unifying prevote
-// / and precommit equivocations under a common type.
+// and precommit equivocations under a common type.
+// https://github.com/paritytech/substrate/blob/fb22096d2ec6bf38e67ce811ad2c31415237a9a5/primitives/finality-grandpa/src/lib.rs#L272 //nolint:lll
 type GrandpaEquivocationEnum scale.VaryingDataType
 
 // Set sets a VaryingDataTypeValue using the underlying VaryingDataType
@@ -248,9 +250,11 @@ type PreCommit GrandpaEquivocation
 func (PreCommit) Index() uint { return 1 }
 
 // GrandpaOpaqueKeyOwnershipProof contains a key ownership proof for reporting equivocations
+// https://github.com/paritytech/substrate/blob/fb22096d2ec6bf38e67ce811ad2c31415237a9a5/primitives/finality-grandpa/src/lib.rs#L533 //nolint:lll
 type GrandpaOpaqueKeyOwnershipProof []byte
 
 // GrandpaEquivocationProof is used to report grandpa equivocations
+// https://github.com/paritytech/substrate/blob/fb22096d2ec6bf38e67ce811ad2c31415237a9a5/primitives/finality-grandpa/src/lib.rs#L238 //nolint:lll
 type GrandpaEquivocationProof struct {
 	SetID        uint64
 	Equivocation GrandpaEquivocationEnum
