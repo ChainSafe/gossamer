@@ -4,12 +4,11 @@
 package state
 
 import (
-	"context"
+	"bytes"
 	"fmt"
-	"strings"
+	"os"
 
 	"github.com/ChainSafe/chaindb"
-	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
@@ -25,17 +24,16 @@ type OfflinePruner struct {
 	inputDB        *chaindb.BadgerDB
 	storageState   *StorageState
 	blockState     *BlockState
-	bloom          *bloomState
+	filterDatabase *chaindb.BadgerDB
 	bestBlockHash  common.Hash
 	retainBlockNum uint32
 
-	inputDBPath  string
-	prunedDBPath string
+	inputDBPath string
 }
 
 // NewOfflinePruner creates an instance of OfflinePruner.
-func NewOfflinePruner(inputDBPath, prunedDBPath string, bloomSize uint64,
-	retainBlockNum uint32) (*OfflinePruner, error) {
+func NewOfflinePruner(inputDBPath string,
+	retainBlockNum uint32) (pruner *OfflinePruner, err error) {
 	db, err := utils.LoadChainDB(inputDBPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load DB %w", err)
@@ -56,14 +54,28 @@ func NewOfflinePruner(inputDBPath, prunedDBPath string, bloomSize uint64,
 		return nil, fmt.Errorf("failed to get best finalised hash: %w", err)
 	}
 
-	// create bloom filter
-	bloom, err := newBloomState(bloomSize)
+	// Create temporary filter database to store database keys only
+	filterDatabaseDir, err := os.MkdirTemp("", "")
 	if err != nil {
-		return nil, fmt.Errorf("failed to create new bloom filter of size %d %w", bloomSize, err)
+		return nil, fmt.Errorf("creating filter database temp directory: %w", err)
+	}
+	defer func() {
+		removeErr := os.RemoveAll(filterDatabaseDir)
+		if err == nil {
+			err = removeErr
+		}
+	}()
+
+	filterDatabaseOptions := &chaindb.Config{
+		DataDir: filterDatabaseDir,
+	}
+	filterDatabase, err := chaindb.NewBadgerDB(filterDatabaseOptions)
+	if err != nil {
+		return nil, fmt.Errorf("creating badger filter database: %w", err)
 	}
 
 	// load storage state
-	storageState, err := NewStorageState(db, blockState, tries, pruner.Config{})
+	storageState, err := NewStorageState(db, blockState, tries)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new storage state %w", err)
 	}
@@ -72,10 +84,9 @@ func NewOfflinePruner(inputDBPath, prunedDBPath string, bloomSize uint64,
 		inputDB:        db,
 		storageState:   storageState,
 		blockState:     blockState,
-		bloom:          bloom,
+		filterDatabase: filterDatabase,
 		bestBlockHash:  bestHash,
 		retainBlockNum: retainBlockNum,
-		prunedDBPath:   prunedDBPath,
 		inputDBPath:    inputDBPath,
 	}, nil
 }
@@ -132,7 +143,7 @@ func (p *OfflinePruner) SetBloomFilter() (err error) {
 	}
 
 	for key := range merkleValues {
-		err = p.bloom.put([]byte(key))
+		err = p.filterDatabase.Put([]byte(key), nil)
 		if err != nil {
 			return err
 		}
@@ -160,54 +171,36 @@ func (p *OfflinePruner) Prune() error {
 		}
 	}()
 
-	prunedDB, err := utils.LoadBadgerDB(p.prunedDBPath)
-	if err != nil {
-		return fmt.Errorf("failed to load DB %w", err)
-	}
-	defer func() {
-		closeErr := prunedDB.Close()
-		switch {
-		case closeErr == nil:
-			return
-		case err == nil:
-			err = fmt.Errorf("cannot close pruned database: %w", closeErr)
-		default:
-			logger.Errorf("cannot close pruned database: %s", err)
-		}
-	}()
-
-	writer := prunedDB.NewStreamWriter()
-	if err = writer.Prepare(); err != nil {
-		return fmt.Errorf("cannot create stream writer in out DB at %s error %w", p.prunedDBPath, err)
-	}
-
-	// Stream contents of DB to the output DB.
+	storagePrefixBytes := []byte(storagePrefix)
 	stream := inputDB.NewStream()
-	stream.LogPrefix = fmt.Sprintf("Streaming DB to new DB at %s ", p.prunedDBPath)
-
 	stream.ChooseKey = func(item *badger.Item) bool {
-		key := string(item.Key())
-		// All the non storage keys will be streamed to new db.
-		if !strings.HasPrefix(key, storagePrefix) {
-			return true
+		key := item.Key()
+		if !bytes.HasPrefix(key, storagePrefixBytes) {
+			// Ignore non-storage keys
+			return false
 		}
 
-		// Only keys present in bloom filter will be streamed to new db
-		key = strings.TrimPrefix(key, storagePrefix)
-		exist := p.bloom.contain([]byte(key))
-		return exist
+		// Storage keys not found in filter database are deleted.
+		nodeHash := bytes.TrimPrefix(key, storagePrefixBytes)
+		_, err := p.filterDatabase.Get(nodeHash)
+		return err == nil
 	}
 
+	writeBatch := inputDB.NewWriteBatch()
 	stream.Send = func(l *pb.KVList) error {
-		return writer.Write(l)
+		keyValues := l.GetKv()
+		for _, keyValue := range keyValues {
+			err = writeBatch.Delete(keyValue.Key)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
 	}
 
-	if err = stream.Orchestrate(context.Background()); err != nil {
-		return fmt.Errorf("cannot stream DB to out DB at %s error %w", p.prunedDBPath, err)
-	}
-
-	if err = writer.Flush(); err != nil {
-		return fmt.Errorf("cannot flush writer, error %w", err)
+	err = writeBatch.Flush()
+	if err != nil {
+		return fmt.Errorf("flushing write batch: %w", err)
 	}
 
 	return nil
