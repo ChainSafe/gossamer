@@ -16,10 +16,10 @@ import (
 
 	"github.com/ChainSafe/gossamer/chain/kusama"
 	"github.com/ChainSafe/gossamer/chain/polkadot"
-	"github.com/ChainSafe/gossamer/chain/westend_dev"
 	"github.com/ChainSafe/gossamer/dot"
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -58,7 +58,7 @@ func TestConfigFromChainFlag(t *testing.T) {
 		{
 			"Test gossamer --chain westend_dev",
 			[]string{"chain", "name", "pruning", "retain-blocks"},
-			[]interface{}{"dev", dot.WestendDevConfig().Global.Name, westend_dev.DefaultPruningMode, westend_dev.DefaultRetainBlocks},
+			[]interface{}{"dev", dot.WestendDevConfig().Global.Name, pruner.Archive, 512},
 			dot.WestendDevConfig(),
 		},
 	}
@@ -92,7 +92,7 @@ func TestInitConfigFromFlags(t *testing.T) {
 		{
 			"Test gossamer --genesis",
 			[]string{"config", "genesis", "pruning", "retain-blocks"},
-			[]interface{}{testCfgFile, "test_genesis", westend_dev.DefaultPruningMode, westend_dev.DefaultRetainBlocks},
+			[]interface{}{testCfgFile, "test_genesis", pruner.Archive, 512},
 			dot.InitConfig{
 				Genesis: "test_genesis",
 			},

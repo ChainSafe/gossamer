@@ -10,13 +10,13 @@ import (
 
 	"github.com/ChainSafe/gossamer/chain/kusama"
 	"github.com/ChainSafe/gossamer/chain/polkadot"
-	"github.com/ChainSafe/gossamer/chain/westend_dev"
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/pprof"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 )
 
 // TODO: update config to have toml rules and perhaps un-export some fields, since we don't want to expose all
@@ -188,54 +188,56 @@ func (p PprofConfig) String() string {
 func WestendDevConfig() *Config {
 	return &Config{
 		Global: GlobalConfig{
-			Name:           westend_dev.DefaultName,
-			ID:             westend_dev.DefaultID,
-			BasePath:       westend_dev.DefaultBasePath,
-			LogLvl:         westend_dev.DefaultLvl,
-			MetricsAddress: westend_dev.DefaultMetricsAddress,
-			RetainBlocks:   westend_dev.DefaultRetainBlocks,
-			Pruning:        pruner.Mode(westend_dev.DefaultPruningMode),
-			TelemetryURLs:  westend_dev.DefaultTelemetryURLs,
+			Name:           "Westend",
+			ID:             "westend_dev",
+			BasePath:       "~/.gossamer/westend-dev",
+			LogLvl:         log.Info,
+			MetricsAddress: "localhost:9876",
+			RetainBlocks:   512,
+			Pruning:        pruner.Archive,
+			TelemetryURLs:  []genesis.TelemetryEndpoint{},
 		},
 		Log: LogConfig{
-			CoreLvl:           westend_dev.DefaultLvl,
-			DigestLvl:         westend_dev.DefaultLvl,
-			SyncLvl:           westend_dev.DefaultLvl,
-			NetworkLvl:        westend_dev.DefaultLvl,
-			RPCLvl:            westend_dev.DefaultLvl,
-			StateLvl:          westend_dev.DefaultLvl,
-			RuntimeLvl:        westend_dev.DefaultLvl,
-			BlockProducerLvl:  westend_dev.DefaultLvl,
-			FinalityGadgetLvl: westend_dev.DefaultLvl,
+			CoreLvl:           log.Info,
+			DigestLvl:         log.Info,
+			SyncLvl:           log.Info,
+			NetworkLvl:        log.Info,
+			RPCLvl:            log.Info,
+			StateLvl:          log.Info,
+			RuntimeLvl:        log.Info,
+			BlockProducerLvl:  log.Info,
+			FinalityGadgetLvl: log.Info,
 		},
 		Init: InitConfig{
-			Genesis: westend_dev.DefaultGenesis,
+			Genesis: "./chain/westend_dev/westend-dev-spec-raw.json",
 		},
 		Account: AccountConfig{
-			Key:    westend_dev.DefaultKey,
-			Unlock: westend_dev.DefaultUnlock,
+			Key:    "",
+			Unlock: "",
 		},
 		Core: CoreConfig{
-			Roles:           westend_dev.DefaultRoles,
-			WasmInterpreter: westend_dev.DefaultWasmInterpreter,
+			Roles:           common.FullNodeRole,
+			WasmInterpreter: wasmer.Name,
 		},
 		Network: NetworkConfig{
-			Port:        westend_dev.DefaultNetworkPort,
-			Bootnodes:   westend_dev.DefaultNetworkBootnodes,
-			NoBootstrap: westend_dev.DefaultNoBootstrap,
-			NoMDNS:      westend_dev.DefaultNoMDNS,
+			Port:        7001,
+			Bootnodes:   []string(nil),
+			NoBootstrap: false,
+			NoMDNS:      false,
 		},
 		RPC: RPCConfig{
-			Port:    westend_dev.DefaultRPCHTTPPort,
-			Host:    westend_dev.DefaultRPCHTTPHost,
-			Modules: westend_dev.DefaultRPCModules,
-			WSPort:  westend_dev.DefaultRPCWSPort,
+			Port: 8545,
+			Host: "localhost",
+			Modules: []string{
+				"system", "author", "chain", "state", "rpc",
+				"grandpa", "offchain", "childstate", "syncstate", "payment"},
+			WSPort: 8546,
 		},
 		Pprof: PprofConfig{
 			Settings: pprof.Settings{
-				ListeningAddress: westend_dev.DefaultPprofListeningAddress,
-				BlockProfileRate: westend_dev.DefaultPprofBlockRate,
-				MutexProfileRate: westend_dev.DefaultPprofMutexRate,
+				ListeningAddress: "localhost:6060",
+				BlockProfileRate: 0,
+				MutexProfileRate: 0,
 			},
 		},
 	}
