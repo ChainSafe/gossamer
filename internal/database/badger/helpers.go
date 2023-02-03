@@ -11,6 +11,8 @@ import (
 	badger "github.com/dgraph-io/badger/v3"
 )
 
+func ptrTo[T any](value T) *T { return &value }
+
 func newPrefixedKey(prefix, key []byte) (prefixedKey []byte) {
 	// WARNING: Do not use:
 	// return append(prefix, key...)

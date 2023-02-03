@@ -13,8 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func ptrTo[T any](value T) *T { return &value }
-
 func assertDBValue(t *testing.T, db *Database, key, expectedValue []byte) {
 	t.Helper()
 

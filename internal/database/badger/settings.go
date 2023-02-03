@@ -4,6 +4,7 @@
 package badger
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 )
@@ -11,28 +12,54 @@ import (
 // Settings is the database settings.
 type Settings struct {
 	// Path is the database directory path to use.
-	// It defaults to the current directory if left unset.
-	Path string
+	// Note it should be the empty string if InMemory is true.
+	// It defaults to the empty string if left unset.
+	Path *string
 	// InMemory is whether to use an in-memory database.
 	InMemory *bool
 }
 
+// WithPath returns the settings with the path set.
+// Note it does not modify the receiver settings.
+func (s Settings) WithPath(path string) Settings {
+	s.Path = ptrTo(path)
+	return s
+}
+
+// WithInMemory returns the settings with the in-memory flag set.
+// Note it does not modify the receiver settings.
+func (s Settings) WithInMemory(inMemory bool) Settings {
+	s.InMemory = ptrTo(inMemory)
+	return s
+}
+
 // SetDefaults sets the default values on the settings.
 func (s *Settings) SetDefaults() {
-	if s.Path == "" {
-		s.Path = "."
+	if s.Path == nil {
+		s.Path = ptrTo("")
 	}
 
 	if s.InMemory == nil {
-		s.InMemory = new(bool)
+		s.InMemory = ptrTo(false)
 	}
 }
 
+var (
+	ErrPathSetInMemory = errors.New("path set with database in-memory")
+)
+
 // Validate validates the settings.
 func (s Settings) Validate() (err error) { //skipcq: GO-W1029
-	_, err = filepath.Abs(s.Path)
-	if err != nil {
-		return fmt.Errorf("changing path to absolute path: %w", err)
+	if *s.InMemory {
+		if *s.Path != "" {
+			// Note badger v3 enforces the path is not set in this case.
+			return fmt.Errorf("%w: %q", ErrPathSetInMemory, *s.Path)
+		}
+	} else {
+		_, err = filepath.Abs(*s.Path)
+		if err != nil {
+			return fmt.Errorf("changing path to absolute path: %w", err)
+		}
 	}
 
 	return nil

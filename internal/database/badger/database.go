@@ -27,7 +27,7 @@ func New(settings Settings) (database *Database, err error) {
 		return nil, fmt.Errorf("validating settings: %w", err)
 	}
 
-	badgerOptions := badger.DefaultOptions(settings.Path)
+	badgerOptions := badger.DefaultOptions(*settings.Path)
 	badgerOptions = badgerOptions.WithLogger(nil)
 	badgerOptions = badgerOptions.WithInMemory(*settings.InMemory)
 	// TODO enable once we share the same instance

@@ -18,17 +18,17 @@ func Test_Settings_SetDefaults(t *testing.T) {
 	}{
 		"empty settings": {
 			expectedSettings: Settings{
-				Path:     ".",
+				Path:     ptrTo(""),
 				InMemory: ptrTo(false),
 			},
 		},
 		"non-empty settings": {
 			originalSettings: Settings{
-				Path:     "x",
+				Path:     ptrTo("x"),
 				InMemory: ptrTo(true),
 			},
 			expectedSettings: Settings{
-				Path:     "x",
+				Path:     ptrTo("x"),
 				InMemory: ptrTo(true),
 			},
 		},
@@ -51,13 +51,23 @@ func Test_Settings_Validate(t *testing.T) {
 
 	testCases := map[string]struct {
 		settings   Settings
+		errWrapped error
 		errMessage string
 	}{
+		"path set in-memory": {
+			settings: Settings{
+				Path:     ptrTo("."),
+				InMemory: ptrTo(true),
+			},
+			errWrapped: ErrPathSetInMemory,
+			errMessage: "path set with database in-memory: \".\"",
+		},
 		// Note we cannot test for a bad path since we would
 		// need os.Getcwd() to fail.
 		"valid settings": {
 			settings: Settings{
-				Path: ".",
+				Path:     ptrTo("."),
+				InMemory: ptrTo(false),
 			},
 		},
 	}

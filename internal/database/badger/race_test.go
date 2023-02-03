@@ -45,7 +45,7 @@ func Test_Database_threadSafety(t *testing.T) {
 	}
 
 	settings := Settings{
-		Path: t.TempDir(),
+		InMemory: ptrTo(true),
 	}
 	database, err := New(settings)
 	require.NoError(t, err)
