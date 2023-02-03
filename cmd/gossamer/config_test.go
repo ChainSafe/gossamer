@@ -46,13 +46,15 @@ func TestConfigFromChainFlag(t *testing.T) {
 		{
 			"Test gossamer --chain kusama",
 			[]string{"chain", "name", "pruning", "retain-blocks"},
-			[]interface{}{"kusama", dot.KusamaConfig().Global.Name, kusama.DefaultPruningMode, kusama.DefaultRetainBlocks},
+			[]interface{}{"kusama", dot.KusamaConfig().Global.Name,
+				kusama.DefaultPruningMode, kusama.DefaultRetainBlocks},
 			dot.KusamaConfig(),
 		},
 		{
 			"Test gossamer --chain polkadot",
 			[]string{"chain", "name", "pruning", "retain-blocks"},
-			[]interface{}{"polkadot", dot.PolkadotConfig().Global.Name, polkadot.DefaultPruningMode, polkadot.DefaultRetainBlocks},
+			[]interface{}{"polkadot", dot.PolkadotConfig().Global.Name,
+				polkadot.DefaultPruningMode, polkadot.DefaultRetainBlocks},
 			dot.PolkadotConfig(),
 		},
 		{
