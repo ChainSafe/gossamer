@@ -130,13 +130,8 @@ func (s *Service) Start() (err error) {
 	stateRoot := bestHeader.StateRoot
 	logger.Debugf("start with latest state root: %s", stateRoot)
 
-	pr, err := s.Base.loadPruningData()
-	if err != nil {
-		return err
-	}
-
 	// create storage state
-	s.Storage, err = NewStorageState(s.db, s.Block, tries, pr)
+	s.Storage, err = NewStorageState(s.db, s.Block, tries)
 	if err != nil {
 		return fmt.Errorf("failed to create storage state: %w", err)
 	}
