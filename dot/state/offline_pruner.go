@@ -149,7 +149,7 @@ func (p *OfflinePruner) SetBloomFilter() (err error) {
 		}
 	}
 
-	logger.Infof("Total keys added in bloom filter: %d", len(nodeHashes))
+	logger.Infof("Total keys added in filter database: %d", len(nodeHashes))
 	return nil
 }
 

@@ -308,7 +308,9 @@ func (t *Trie) writeDirtyNode(db Putter, n *Node) (err error) {
 	}
 
 	if len(merkleValue) < 32 {
-		// Inlined node, there is no need to write it to database.
+		// Merkle value is the node encoding which is less than 32 bytes.
+		// That means this node encoding is inlined in its parent node encoding,
+		// and so it is not needed to write it in the database.
 		n.SetClean()
 		return nil
 	}

@@ -71,7 +71,7 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) 
 
 		err = s.pruner.StoreJournalRecord(deletedNodeHashes, insertedNodeHashes, header.Hash(), int64(header.Number))
 		if err != nil {
-			return err
+			return fmt.Errorf("storing journal record: %w", err)
 		}
 	}
 
