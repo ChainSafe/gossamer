@@ -59,8 +59,8 @@ func TestPruneState(t *testing.T) {
 	// Run Prune command
 	ctx, err := newTestContext(
 		"Test state trie offline pruning  --prune-state",
-		[]string{"config", "pruned-db-path", "bloom-size", "retain-blocks"},
-		[]interface{}{configFile, prunedDBPath, "256", int64(5)},
+		[]string{"config", "retain-blocks"},
+		[]interface{}{configFile, int64(5)},
 	)
 	require.NoError(t, err)
 

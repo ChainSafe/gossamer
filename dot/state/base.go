@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 )
@@ -154,27 +153,4 @@ func (s *BaseState) loadSlotDuration() (uint64, error) {
 	}
 
 	return binary.LittleEndian.Uint64(data), nil
-}
-
-// storePruningData stores the pruner configuration.
-func (s *BaseState) storePruningData(mode pruner.Config) error {
-	encMode, err := json.Marshal(mode)
-	if err != nil {
-		return fmt.Errorf("cannot scale encode pruning mode: %s", err)
-	}
-
-	return s.db.Put(common.PruningKey, encMode)
-}
-
-// loadPruningData retrieves pruner configuration from db.
-func (s *BaseState) loadPruningData() (pruner.Config, error) {
-	data, err := s.db.Get(common.PruningKey)
-	if err != nil {
-		return pruner.Config{}, err
-	}
-
-	var mode pruner.Config
-	err = json.Unmarshal(data, &mode)
-
-	return mode, err
 }
