@@ -163,7 +163,7 @@ func GetWestendDevRawGenesisPath(t *testing.T) string {
 // GetWestendLocalRawGenesisPath gets the westend-local genesis raw path
 func GetWestendLocalRawGenesisPath(t *testing.T) string {
 	t.Helper()
-	return filepath.Join(GetProjectRootPathTest(t), "./chain/westend_local/westend-local-spec-raw.json")
+	return filepath.Join(GetProjectRootPathTest(t), "./chain/westend-local/westend-local-spec-raw.json")
 }
 
 // GetKusamaGenesisPath gets the Kusama genesis path
@@ -198,7 +198,7 @@ func GetProjectRootPath() (rootPath string, err error) {
 	rootPath = path.Dir(fullpath)
 
 	const directoryToFind = "chain"
-	const subPathsToFind = "westend-dev,westend_local,kusama,polkadot"
+	const subPathsToFind = "westend-dev,westend-local,kusama,polkadot"
 
 	subPaths := strings.Split(subPathsToFind, ",")
 

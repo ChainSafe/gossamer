@@ -216,8 +216,9 @@ func WestendDevConfig() *Config {
 			Unlock: "",
 		},
 		Core: CoreConfig{
-			Roles:           common.FullNodeRole,
+			Roles:           common.AuthorityRole,
 			WasmInterpreter: wasmer.Name,
+			BabeAuthority:   true,
 		},
 		Network: NetworkConfig{
 			Port:        7001,

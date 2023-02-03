@@ -151,29 +151,29 @@ and Charlie test accounts. In three separate terminals, initialize the data
 directories for the three Gossamer instances:
 
 ```sh
-./bin/gossamer init --force --config ./chain/westend_local/config-alice.toml
+./bin/gossamer init --force --config ./chain/westend-local/config-alice.toml
 ```
 
 ```sh
-./bin/gossamer init --force --config ./chain/westend_local/config-bob.toml
+./bin/gossamer init --force --config ./chain/westend-local/config-bob.toml
 ```
 
 ```sh
-./bin/gossamer init --force --config ./chain/westend_local/config-charlie.toml
+./bin/gossamer init --force --config ./chain/westend-local/config-charlie.toml
 ```
 
 Then start the three hosts:
 
 ```sh
-./bin/gossamer --config ./chain/westend_local/config-alice.toml
+./bin/gossamer --config ./chain/westend-local/config-alice.toml
 ```
 
 ```sh
-./bin/gossamer --config ./chain/westend_local/config-bob.toml
+./bin/gossamer --config ./chain/westend-local/config-bob.toml
 ```
 
 ```sh
-./bin/gossamer --config ./chain/westend_local/config-charlie.toml
+./bin/gossamer --config ./chain/westend-local/config-charlie.toml
 ```
 
 ## Contribute
