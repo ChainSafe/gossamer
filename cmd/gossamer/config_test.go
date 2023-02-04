@@ -14,8 +14,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/chain/kusama"
-	"github.com/ChainSafe/gossamer/chain/polkadot"
+	"github.com/ChainSafe/gossamer/chain/dev"
+	"github.com/ChainSafe/gossamer/chain/gssmr"
 	"github.com/ChainSafe/gossamer/dot"
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -24,7 +24,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -118,135 +117,109 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 	testCfg, testCfgFile := newTestConfigWithFile(t, polkadotConfig)
 
 	testApp := cli.NewApp()
-	testApp.Writer = io.Discard
+	testApp.Flags = RootFlags
 
-	testcases := []struct {
-		description string
-		flags       []string
-		values      []interface{}
-		expected    dot.GlobalConfig
+	testcases := map[string]struct {
+		args     []string
+		expected dot.GlobalConfig
 	}{
-		{
-			"Test gossamer --config",
-			[]string{"config", "name"},
-			[]interface{}{testCfgFile, testCfg.Global.Name},
+		"Test gossamer default": {
+			[]string{"app"},
 			dot.GlobalConfig{
-				Name:           testCfg.Global.Name,
-				ID:             testCfg.Global.ID,
-				BasePath:       testCfg.Global.BasePath,
-				LogLvl:         log.Info,
-				PublishMetrics: testCfg.Global.PublishMetrics,
-				MetricsAddress: testCfg.Global.MetricsAddress,
+				Name:           defaultGlobalConfig.Name,
+				ID:             defaultGlobalConfig.ID,
+				BasePath:       defaultGlobalConfig.BasePath,
+				LogLvl:         defaultGlobalConfig.LogLvl,
+				MetricsAddress: defaultGlobalConfig.MetricsAddress,
 			},
 		},
-		{
-			"Test kusama --chain",
-			[]string{"config", "chain", "name"},
-			[]interface{}{testCfgFile, "kusama", dot.KusamaConfig().Global.Name},
+		"Test kusama --chain": {
+			[]string{"app", "--chain", "kusama", "--name", dot.KusamaConfig().Global.Name},
 			dot.GlobalConfig{
 				Name:           dot.KusamaConfig().Global.Name,
 				ID:             "ksmcc3",
 				BasePath:       dot.KusamaConfig().Global.BasePath,
-				LogLvl:         log.Info,
-				PublishMetrics: false,
-				MetricsAddress: "localhost:9876",
+				LogLvl:         defaultGlobalConfig.LogLvl,
+				PublishMetrics: defaultGlobalConfig.PublishMetrics,
+				MetricsAddress: defaultGlobalConfig.MetricsAddress,
 			},
 		},
-		{
-			"Test gossamer --name",
-			[]string{"config", "name"},
-			[]interface{}{testCfgFile, "test_name"},
+		"Test gossamer --name": {
+			[]string{"app", "--name", "test_name"},
 			dot.GlobalConfig{
 				Name:           "test_name",
-				ID:             testCfg.Global.ID,
-				BasePath:       testCfg.Global.BasePath,
-				LogLvl:         log.Info,
-				PublishMetrics: testCfg.Global.PublishMetrics,
-				MetricsAddress: testCfg.Global.MetricsAddress,
+				ID:             defaultGlobalConfig.ID,
+				BasePath:       defaultGlobalConfig.BasePath,
+				LogLvl:         defaultGlobalConfig.LogLvl,
+				PublishMetrics: defaultGlobalConfig.PublishMetrics,
+				MetricsAddress: defaultGlobalConfig.MetricsAddress,
 			},
 		},
-		{
-			"Test gossamer --basepath",
-			[]string{"config", "basepath", "name"},
-			[]interface{}{testCfgFile, "test_basepath", testCfg.Global.Name},
+		"Test gossamer --basepath": {
+			[]string{"app", "--basepath", "test_basepath", "--name", "testname"},
 			dot.GlobalConfig{
-				Name:           testCfg.Global.Name,
-				ID:             testCfg.Global.ID,
+				Name:           "testname",
+				ID:             defaultGlobalConfig.ID,
 				BasePath:       "test_basepath",
-				LogLvl:         log.Info,
-				PublishMetrics: testCfg.Global.PublishMetrics,
-				MetricsAddress: testCfg.Global.MetricsAddress,
+				LogLvl:         defaultGlobalConfig.LogLvl,
+				PublishMetrics: defaultGlobalConfig.PublishMetrics,
+				MetricsAddress: defaultGlobalConfig.MetricsAddress,
 			},
 		},
-		{
-			"Test gossamer --roles",
-			[]string{"config", "roles", "name"},
-			[]interface{}{testCfgFile, "1", testCfg.Global.Name},
+		"Test gossamer --base-path": {
+			[]string{"app", "--base-path", "test_basepath", "--name", "testname"},
 			dot.GlobalConfig{
-				Name:           testCfg.Global.Name,
-				ID:             testCfg.Global.ID,
-				BasePath:       testCfg.Global.BasePath,
-				LogLvl:         log.Info,
-				PublishMetrics: testCfg.Global.PublishMetrics,
-				MetricsAddress: testCfg.Global.MetricsAddress,
+				Name:           "testname",
+				ID:             defaultGlobalConfig.ID,
+				BasePath:       "test_basepath",
+				LogLvl:         defaultGlobalConfig.LogLvl,
+				PublishMetrics: defaultGlobalConfig.PublishMetrics,
+				MetricsAddress: defaultGlobalConfig.MetricsAddress,
 			},
 		},
-		{
-			"Test gossamer --publish-metrics",
-			[]string{"config", "publish-metrics", "name"},
-			[]interface{}{testCfgFile, true, testCfg.Global.Name},
+		"Test gossamer --publish-metrics": {
+			[]string{"app", "--publish-metrics"},
 			dot.GlobalConfig{
-				Name:           testCfg.Global.Name,
-				ID:             testCfg.Global.ID,
-				BasePath:       testCfg.Global.BasePath,
-				LogLvl:         log.Info,
+				Name:           defaultGlobalConfig.Name,
+				ID:             defaultGlobalConfig.ID,
+				BasePath:       defaultGlobalConfig.BasePath,
+				LogLvl:         defaultGlobalConfig.LogLvl,
 				PublishMetrics: true,
-				MetricsAddress: testCfg.Global.MetricsAddress,
+				MetricsAddress: defaultGlobalConfig.MetricsAddress,
 			},
 		},
-		{
-			"Test gossamer --metrics-address",
-			[]string{"config", "metrics-address", "name"},
-			[]interface{}{testCfgFile, ":9871", testCfg.Global.Name},
+		"Test gossamer --metrics-address": {
+			[]string{"app", "--metrics-address", ":9871"},
 			dot.GlobalConfig{
-				Name:           testCfg.Global.Name,
-				ID:             testCfg.Global.ID,
-				BasePath:       testCfg.Global.BasePath,
-				LogLvl:         log.Info,
-				PublishMetrics: testCfg.Global.PublishMetrics,
+				Name:           defaultGlobalConfig.Name,
+				ID:             defaultGlobalConfig.ID,
+				BasePath:       defaultGlobalConfig.BasePath,
+				LogLvl:         defaultGlobalConfig.LogLvl,
+				PublishMetrics: defaultGlobalConfig.PublishMetrics,
 				MetricsAddress: ":9871",
 			},
 		},
-		{
-			"Test gossamer --no-telemetry",
-			[]string{"config", "no-telemetry", "name"},
-			[]interface{}{testCfgFile, true, testCfg.Global.Name},
+		"Test gossamer --no-telemetry": {
+			[]string{"app", "--no-telemetry"},
 			dot.GlobalConfig{
-				Name:           testCfg.Global.Name,
-				ID:             testCfg.Global.ID,
-				BasePath:       testCfg.Global.BasePath,
-				LogLvl:         log.Info,
-				PublishMetrics: testCfg.Global.PublishMetrics,
-				MetricsAddress: testCfg.Global.MetricsAddress,
+				Name:           defaultGlobalConfig.Name,
+				ID:             defaultGlobalConfig.ID,
+				BasePath:       defaultGlobalConfig.BasePath,
+				LogLvl:         defaultGlobalConfig.LogLvl,
+				PublishMetrics: defaultGlobalConfig.PublishMetrics,
+				MetricsAddress: defaultGlobalConfig.MetricsAddress,
 				NoTelemetry:    true,
 			},
 		},
-		{
-			"Test gossamer --telemetry-url",
-			[]string{"config", "telemetry-url", "name"},
-			[]interface{}{
-				testCfgFile,
-				[]string{"ws://localhost:8001/submit 0", "ws://foo/bar 0"},
-				testCfg.Global.Name,
-			},
+		"Test gossamer --telemetry-url": {
+			[]string{"config", "--telemetry-url", "ws://localhost:8001/submit 0", "--telemetry-url", "ws://foo/bar 0"},
 			dot.GlobalConfig{
-				Name:           testCfg.Global.Name,
-				ID:             testCfg.Global.ID,
-				BasePath:       testCfg.Global.BasePath,
-				LogLvl:         log.Info,
-				PublishMetrics: testCfg.Global.PublishMetrics,
-				MetricsAddress: testCfg.Global.MetricsAddress,
-				NoTelemetry:    false,
+				Name:           defaultGlobalConfig.Name,
+				ID:             defaultGlobalConfig.ID,
+				BasePath:       defaultGlobalConfig.BasePath,
+				LogLvl:         defaultGlobalConfig.LogLvl,
+				PublishMetrics: defaultGlobalConfig.PublishMetrics,
+				MetricsAddress: defaultGlobalConfig.MetricsAddress,
 				TelemetryURLs: []genesis.TelemetryEndpoint{
 					{Endpoint: "ws://localhost:8001/submit", Verbosity: 0},
 					{Endpoint: "ws://foo/bar", Verbosity: 0},
@@ -255,15 +228,16 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 		},
 	}
 
-	for _, c := range testcases {
+	for key, c := range testcases {
 		c := c // bypass scopelint false positive
-		t.Run(c.description, func(t *testing.T) {
-			ctx, err := newTestContext(c.description, c.flags, c.values)
-			require.NoError(t, err)
-			cfg, err := createDotConfig(ctx)
-			require.NoError(t, err)
-
-			require.Equal(t, c.expected, cfg.Global)
+		t.Run(key, func(t *testing.T) {
+			testApp.Action = func(ctx *cli.Context) error {
+				cfg, err := createDotConfig(ctx)
+				require.NoError(t, err)
+				require.Equal(t, c.expected, cfg.Global)
+				return nil
+			}
+			testApp.Run(c.args)
 		})
 	}
 }
@@ -422,131 +396,113 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 	testCfg, testCfgFile := newTestConfigWithFile(t, westendDevConfig)
 
 	testApp := cli.NewApp()
-	testApp.Writer = io.Discard
+	testApp.Flags = StartupFlags
 
-	testcases := []struct {
-		description string
-		flags       []string
-		values      []interface{}
-		expected    dot.NetworkConfig
+	testcases := map[string]struct {
+		args     []string
+		expected dot.NetworkConfig
 	}{
-		{
-			"Test gossamer --port",
-			[]string{"config", "port"},
-			[]interface{}{testCfgFile, "1234"},
+		"Test gossamer --port": {
+			[]string{"app", "--port", "1234"},
 			dot.NetworkConfig{
 				Port:              1234,
-				Bootnodes:         testCfg.Network.Bootnodes,
-				ProtocolID:        testCfg.Network.ProtocolID,
-				NoBootstrap:       testCfg.Network.NoBootstrap,
-				NoMDNS:            testCfg.Network.NoMDNS,
-				DiscoveryInterval: time.Second * 10,
-				MinPeers:          testCfg.Network.MinPeers,
-				MaxPeers:          testCfg.Network.MaxPeers,
+				DiscoveryInterval: defaultNetworkCfg.DiscoveryInterval,
+				MinPeers:          defaultNetworkCfg.MinPeers,
+				MaxPeers:          defaultNetworkCfg.MaxPeers,
 			},
 		},
-		{
-			"Test gossamer --bootnodes",
-			[]string{"config", "bootnodes"},
-			[]interface{}{testCfgFile, "peer1,peer2"},
+		"Test gossamer --bootnodes": {
+			[]string{"app", "--bootnodes", "peer1,peer2"},
 			dot.NetworkConfig{
-				Port:              testCfg.Network.Port,
+				Port:              defaultNetworkCfg.Port,
 				Bootnodes:         []string{"peer1", "peer2"},
-				ProtocolID:        testCfg.Network.ProtocolID,
-				NoBootstrap:       testCfg.Network.NoBootstrap,
-				NoMDNS:            testCfg.Network.NoMDNS,
-				DiscoveryInterval: time.Second * 10,
-				MinPeers:          testCfg.Network.MinPeers,
-				MaxPeers:          testCfg.Network.MaxPeers,
+				DiscoveryInterval: defaultNetworkCfg.DiscoveryInterval,
+				MinPeers:          defaultNetworkCfg.MinPeers,
+				MaxPeers:          defaultNetworkCfg.MaxPeers,
 			},
 		},
-		{
-			"Test gossamer --protocol",
-			[]string{"config", "protocol"},
-			[]interface{}{testCfgFile, "/gossamer/test/0"},
+		"Test gossamer --protocol": {
+			[]string{"app", "--protocol", "/gossamer/test/0"},
 			dot.NetworkConfig{
-				Port:              testCfg.Network.Port,
-				Bootnodes:         testCfg.Network.Bootnodes,
+				Port:              defaultNetworkCfg.Port,
 				ProtocolID:        "/gossamer/test/0",
-				NoBootstrap:       testCfg.Network.NoBootstrap,
-				NoMDNS:            testCfg.Network.NoMDNS,
-				DiscoveryInterval: time.Second * 10,
-				MinPeers:          testCfg.Network.MinPeers,
-				MaxPeers:          testCfg.Network.MaxPeers,
+				DiscoveryInterval: defaultNetworkCfg.DiscoveryInterval,
+				MinPeers:          defaultNetworkCfg.MinPeers,
+				MaxPeers:          defaultNetworkCfg.MaxPeers,
 			},
 		},
-		{
-			"Test gossamer --nobootstrap",
-			[]string{"config", "nobootstrap"},
-			[]interface{}{testCfgFile, "true"},
+		"Test gossamer --nobootstrap": {
+			[]string{"app", "--nobootstrap"},
 			dot.NetworkConfig{
-				Port:              testCfg.Network.Port,
-				Bootnodes:         testCfg.Network.Bootnodes,
-				ProtocolID:        testCfg.Network.ProtocolID,
+				Port:              defaultNetworkCfg.Port,
 				NoBootstrap:       true,
-				NoMDNS:            testCfg.Network.NoMDNS,
-				DiscoveryInterval: time.Second * 10,
-				MinPeers:          testCfg.Network.MinPeers,
-				MaxPeers:          testCfg.Network.MaxPeers,
+				DiscoveryInterval: defaultNetworkCfg.DiscoveryInterval,
+				MinPeers:          defaultNetworkCfg.MinPeers,
+				MaxPeers:          defaultNetworkCfg.MaxPeers,
 			},
 		},
-		{
-			"Test gossamer --nomdns",
-			[]string{"config", "nomdns"},
-			[]interface{}{testCfgFile, "true"},
+		"Test gossamer --nomdns": {
+			[]string{"app", "--nomdns"},
 			dot.NetworkConfig{
-				Port:              testCfg.Network.Port,
-				Bootnodes:         testCfg.Network.Bootnodes,
-				ProtocolID:        testCfg.Network.ProtocolID,
-				NoBootstrap:       testCfg.Network.NoBootstrap,
+				Port:              defaultNetworkCfg.Port,
 				NoMDNS:            true,
-				DiscoveryInterval: time.Second * 10,
-				MinPeers:          testCfg.Network.MinPeers,
-				MaxPeers:          testCfg.Network.MaxPeers,
+				DiscoveryInterval: defaultNetworkCfg.DiscoveryInterval,
+				MinPeers:          defaultNetworkCfg.MinPeers,
+				MaxPeers:          defaultNetworkCfg.MaxPeers,
 			},
 		},
-		{
-			"Test gossamer --pubip",
-			[]string{"config", "pubip"},
-			[]interface{}{testCfgFile, "10.0.5.2"},
+		"Test gossamer --no-mdns": {
+			[]string{"app", "--no-mdns"},
 			dot.NetworkConfig{
-				Port:              testCfg.Network.Port,
-				Bootnodes:         testCfg.Network.Bootnodes,
-				ProtocolID:        testCfg.Network.ProtocolID,
-				NoBootstrap:       testCfg.Network.NoBootstrap,
-				NoMDNS:            false,
-				DiscoveryInterval: time.Second * 10,
-				MinPeers:          testCfg.Network.MinPeers,
-				MaxPeers:          testCfg.Network.MaxPeers,
+				Port:              defaultNetworkCfg.Port,
+				NoMDNS:            true,
+				DiscoveryInterval: defaultNetworkCfg.DiscoveryInterval,
+				MinPeers:          defaultNetworkCfg.MinPeers,
+				MaxPeers:          defaultNetworkCfg.MaxPeers,
+			},
+		},
+		"Test gossamer --pubip": {
+			[]string{"app", "--pubip", "10.0.5.2"},
+			dot.NetworkConfig{
+				Port:              defaultNetworkCfg.Port,
+				DiscoveryInterval: defaultNetworkCfg.DiscoveryInterval,
+				MinPeers:          defaultNetworkCfg.MinPeers,
+				MaxPeers:          defaultNetworkCfg.MaxPeers,
 				PublicIP:          "10.0.5.2",
 			},
 		},
-		{
-			"Test gossamer --pubdns",
-			[]string{"config", "pubdns"},
-			[]interface{}{testCfgFile, "alice"},
+		"Test gossamer --pubdns": {
+			[]string{"app", "--pubdns", "alice"},
 			dot.NetworkConfig{
-				Port:              testCfg.Network.Port,
-				Bootnodes:         testCfg.Network.Bootnodes,
-				ProtocolID:        testCfg.Network.ProtocolID,
-				NoBootstrap:       testCfg.Network.NoBootstrap,
-				NoMDNS:            false,
-				DiscoveryInterval: time.Second * 10,
-				MinPeers:          testCfg.Network.MinPeers,
-				MaxPeers:          testCfg.Network.MaxPeers,
+				Port:              defaultNetworkCfg.Port,
+				DiscoveryInterval: defaultNetworkCfg.DiscoveryInterval,
+				MinPeers:          defaultNetworkCfg.MinPeers,
+				MaxPeers:          defaultNetworkCfg.MaxPeers,
 				PublicDNS:         "alice",
+			},
+		},
+		"Test gossamer --node-key": {
+			[]string{"app", "--node-key", "testkey"},
+			dot.NetworkConfig{
+				Port:              defaultNetworkCfg.Port,
+				DiscoveryInterval: defaultNetworkCfg.DiscoveryInterval,
+				MinPeers:          defaultNetworkCfg.MinPeers,
+				MaxPeers:          defaultNetworkCfg.MaxPeers,
+				NodeKey:           "testkey",
 			},
 		},
 	}
 
-	for _, c := range testcases {
+	for key, c := range testcases {
 		c := c // bypass scopelint false positive
-		t.Run(c.description, func(t *testing.T) {
-			ctx, err := newTestContext(c.description, c.flags, c.values)
-			require.NoError(t, err)
-			cfg, err := createDotConfig(ctx)
-			require.NoError(t, err)
-			require.Equal(t, c.expected, cfg.Network)
+		t.Run(key, func(t *testing.T) {
+			testApp.Action = func(ctx *cli.Context) error {
+				cfg, err := createDotConfig(ctx)
+				require.NoError(t, err)
+				require.Equal(t, c.expected, cfg.Network)
+				return nil
+			}
+			testApp.Run(c.args)
 		})
 	}
 }
@@ -557,204 +513,162 @@ func TestRPCConfigFromFlags(t *testing.T) {
 	testCfg, testCfgFile := newTestConfigWithFile(t, polkadotConfig)
 
 	testApp := cli.NewApp()
-	testApp.Writer = io.Discard
+	testApp.Flags = StartupFlags
 
-	testcases := []struct {
-		description string
-		flags       []string
-		values      []interface{}
-		expected    dot.RPCConfig
+	testcases := map[string]struct {
+		args     []string
+		expected dot.RPCConfig
 	}{
-		{
-			"Test gossamer --rpc",
-			[]string{"config", "rpc"},
-			[]interface{}{testCfgFile, "true"},
+		"Test gossamer --rpc": {
+			[]string{"", "--rpc"},
 			dot.RPCConfig{
-				Enabled:    true,
-				External:   testCfg.RPC.External,
-				Port:       testCfg.RPC.Port,
-				Host:       testCfg.RPC.Host,
-				Modules:    testCfg.RPC.Modules,
-				WSPort:     testCfg.RPC.WSPort,
-				WS:         testCfg.RPC.WS,
-				WSExternal: testCfg.RPC.WSExternal,
+				Enabled: true,
+				Port:    defaultCfg.Port,
+				Host:    defaultCfg.Host,
+				Modules: defaultCfg.Modules,
+				WSPort:  defaultCfg.WSPort,
 			},
 		},
-		{
-			"Test gossamer --rpc false",
-			[]string{"config", "rpc"},
-			[]interface{}{testCfgFile, "false"},
+		"Test gossamer --rpc false": {
+			[]string{""},
 			dot.RPCConfig{
-				Enabled:    false,
-				External:   testCfg.RPC.External,
-				Port:       testCfg.RPC.Port,
-				Host:       testCfg.RPC.Host,
-				Modules:    testCfg.RPC.Modules,
-				WSPort:     testCfg.RPC.WSPort,
-				WS:         testCfg.RPC.WS,
-				WSExternal: testCfg.RPC.WSExternal,
+				Enabled: false,
+				Port:    defaultCfg.Port,
+				Host:    defaultCfg.Host,
+				Modules: defaultCfg.Modules,
+				WSPort:  defaultCfg.WSPort,
 			},
 		},
-		{
-			"Test gossamer --rpc-external",
-			[]string{"config", "rpc-external"},
-			[]interface{}{testCfgFile, "true"},
+		"Test gossamer --rpc-external": {
+			[]string{"", "--rpc-external"},
 			dot.RPCConfig{
-				Enabled:    true,
-				External:   true,
-				Port:       testCfg.RPC.Port,
-				Host:       testCfg.RPC.Host,
-				Modules:    testCfg.RPC.Modules,
-				WSPort:     testCfg.RPC.WSPort,
-				WS:         testCfg.RPC.WS,
-				WSExternal: testCfg.RPC.WSExternal,
+				Enabled:  true,
+				External: true,
+				Port:     defaultCfg.Port,
+				Host:     defaultCfg.Host,
+				Modules:  defaultCfg.Modules,
+				WSPort:   defaultCfg.WSPort,
 			},
 		},
-		{
-			"Test gossamer --rpc-external false",
-			[]string{"config", "rpc-external"},
-			[]interface{}{testCfgFile, "false"},
+		"Test gossamer --rpc-external false": {
+			[]string{"", "--rpc"},
 			dot.RPCConfig{
-				Enabled:    true,
-				External:   false,
-				Port:       testCfg.RPC.Port,
-				Host:       testCfg.RPC.Host,
-				Modules:    testCfg.RPC.Modules,
-				WSPort:     testCfg.RPC.WSPort,
-				WS:         testCfg.RPC.WS,
-				WSExternal: testCfg.RPC.WSExternal,
+				Enabled:  true,
+				External: false,
+				Port:     defaultCfg.Port,
+				Host:     defaultCfg.Host,
+				Modules:  defaultCfg.Modules,
+				WSPort:   defaultCfg.WSPort,
 			},
 		},
-		{
-			"Test gossamer --rpchost",
-			[]string{"config", "rpchost"},
-			[]interface{}{testCfgFile, "testhost"}, // rpc must be enabled
+		"Test gossamer --rpchost": {
+			[]string{"", "--rpchost", "testhost"},
 			dot.RPCConfig{
-				Enabled:    testCfg.RPC.Enabled,
-				External:   testCfg.RPC.External,
-				Port:       testCfg.RPC.Port,
-				Host:       "testhost",
-				Modules:    testCfg.RPC.Modules,
-				WSPort:     testCfg.RPC.WSPort,
-				WS:         testCfg.RPC.WS,
-				WSExternal: testCfg.RPC.WSExternal,
+				Port:    defaultCfg.Port,
+				Host:    "testhost",
+				Modules: defaultCfg.Modules,
+				WSPort:  defaultCfg.WSPort,
 			},
 		},
-		{
-			"Test gossamer --rpcport",
-			[]string{"config", "rpcport"},
-			[]interface{}{testCfgFile, "5678"}, // rpc must be enabled
+		"Test gossamer --rpcport": {
+			[]string{"", "--rpcport", "5678"},
 			dot.RPCConfig{
-				Enabled:    testCfg.RPC.Enabled,
-				External:   testCfg.RPC.External,
-				Port:       5678,
-				Host:       testCfg.RPC.Host,
-				Modules:    testCfg.RPC.Modules,
-				WSPort:     testCfg.RPC.WSPort,
-				WS:         testCfg.RPC.WS,
-				WSExternal: testCfg.RPC.WSExternal,
+				Port:    5678,
+				Host:    defaultCfg.Host,
+				Modules: defaultCfg.Modules,
+				WSPort:  defaultCfg.WSPort,
 			},
 		},
-		{
-			"Test gossamer --rpcsmods",
-			[]string{"config", "rpcmods"},
-			[]interface{}{testCfgFile, "mod1,mod2"}, // rpc must be enabled
+		"Test gossamer --rpc-port": {
+			[]string{"", "--rpc-port", "5678"},
 			dot.RPCConfig{
-				Enabled:    testCfg.RPC.Enabled,
-				External:   testCfg.RPC.External,
-				Port:       testCfg.RPC.Port,
-				Host:       testCfg.RPC.Host,
-				Modules:    []string{"mod1", "mod2"},
-				WSPort:     testCfg.RPC.WSPort,
-				WS:         testCfg.RPC.WS,
-				WSExternal: testCfg.RPC.WSExternal,
+				Port:    5678,
+				Host:    defaultCfg.Host,
+				Modules: defaultCfg.Modules,
+				WSPort:  defaultCfg.WSPort,
 			},
 		},
-		{
-			"Test gossamer --wsport",
-			[]string{"config", "wsport"},
-			[]interface{}{testCfgFile, "7070"},
+		"Test gossamer --rpcsmods": {
+			[]string{"", "--rpcmods", "mod1,mod2"},
 			dot.RPCConfig{
-				Enabled:    testCfg.RPC.Enabled,
-				External:   testCfg.RPC.External,
-				Port:       testCfg.RPC.Port,
-				Host:       testCfg.RPC.Host,
-				Modules:    testCfg.RPC.Modules,
-				WSPort:     7070,
-				WS:         testCfg.RPC.WS,
-				WSExternal: testCfg.RPC.WSExternal,
+				Port:    defaultCfg.Port,
+				Host:    defaultCfg.Host,
+				Modules: []string{"mod1", "mod2"},
+				WSPort:  defaultCfg.WSPort,
 			},
 		},
-		{
-			"Test gossamer --ws",
-			[]string{"config", "ws"},
-			[]interface{}{testCfgFile, true},
+		"Test gossamer --wsport": {
+			[]string{"", "--wsport", "7070"},
 			dot.RPCConfig{
-				Enabled:    testCfg.RPC.Enabled,
-				External:   testCfg.RPC.External,
-				Port:       testCfg.RPC.Port,
-				Host:       testCfg.RPC.Host,
-				Modules:    testCfg.RPC.Modules,
-				WSPort:     testCfg.RPC.WSPort,
-				WS:         true,
-				WSExternal: testCfg.RPC.WSExternal,
+				Port:    defaultCfg.Port,
+				Host:    defaultCfg.Host,
+				Modules: defaultCfg.Modules,
+				WSPort:  7070,
 			},
 		},
-		{
-			"Test gossamer --ws false",
-			[]string{"config", "ws"},
-			[]interface{}{testCfgFile, false},
+		"Test gossamer --ws-port": {
+			[]string{"", "--ws-port", "7071"},
 			dot.RPCConfig{
-				Enabled:    testCfg.RPC.Enabled,
-				External:   testCfg.RPC.External,
-				Port:       testCfg.RPC.Port,
-				Host:       testCfg.RPC.Host,
-				Modules:    testCfg.RPC.Modules,
-				WSPort:     testCfg.RPC.WSPort,
-				WS:         false,
-				WSExternal: testCfg.RPC.WSExternal,
+				Port:    defaultCfg.Port,
+				Host:    defaultCfg.Host,
+				Modules: defaultCfg.Modules,
+				WSPort:  7071,
 			},
 		},
-		{
-			"Test gossamer --ws-external",
-			[]string{"config", "ws-external"},
-			[]interface{}{testCfgFile, true},
+		"Test gossamer --ws": {
+			[]string{"config", "--ws"},
 			dot.RPCConfig{
-				Enabled:    testCfg.RPC.Enabled,
-				External:   testCfg.RPC.External,
-				Port:       testCfg.RPC.Port,
-				Host:       testCfg.RPC.Host,
-				Modules:    testCfg.RPC.Modules,
-				WSPort:     testCfg.RPC.WSPort,
+				Port:    defaultCfg.Port,
+				Host:    defaultCfg.Host,
+				Modules: defaultCfg.Modules,
+				WSPort:  defaultCfg.WSPort,
+				WS:      true,
+			},
+		},
+		"Test gossamer --ws false": {
+			[]string{""},
+			dot.RPCConfig{
+				Port:    defaultCfg.Port,
+				Host:    defaultCfg.Host,
+				Modules: defaultCfg.Modules,
+				WSPort:  defaultCfg.WSPort,
+				WS:      false,
+			},
+		},
+		"Test gossamer --ws-external": {
+			[]string{"", "--ws-external"},
+			dot.RPCConfig{
+				Port:       defaultCfg.Port,
+				Host:       defaultCfg.Host,
+				Modules:    defaultCfg.Modules,
+				WSPort:     defaultCfg.WSPort,
 				WS:         true,
 				WSExternal: true,
 			},
 		},
-		{
-			"Test gossamer --ws-external false",
-			[]string{"config", "ws-external"},
-			[]interface{}{testCfgFile, false},
+		"Test gossamer --ws-external false": {
+			[]string{""},
+			//[]interface{}{testCfgFile, false},
 			dot.RPCConfig{
-				Enabled:    testCfg.RPC.Enabled,
-				External:   testCfg.RPC.External,
-				Port:       testCfg.RPC.Port,
-				Host:       testCfg.RPC.Host,
-				Modules:    testCfg.RPC.Modules,
-				WSPort:     testCfg.RPC.WSPort,
-				WS:         true,
+				Port:       defaultCfg.Port,
+				Host:       defaultCfg.Host,
+				Modules:    defaultCfg.Modules,
+				WSPort:     defaultCfg.WSPort,
 				WSExternal: false,
 			},
 		},
 	}
 
-	for _, c := range testcases {
+	for key, c := range testcases {
 		c := c // bypass scopelint false positive
-		t.Run(c.description, func(t *testing.T) {
-			ctx, err := newTestContext(c.description, c.flags, c.values)
-			require.NoError(t, err)
-			cfg, err := createDotConfig(ctx)
-			require.NoError(t, err)
-			require.Equal(t, c.expected, cfg.RPC)
+		t.Run(key, func(t *testing.T) {
+			testApp.Action = func(ctx *cli.Context) error {
+				cfg, err := createDotConfig(ctx)
+				require.NoError(t, err)
+				require.Equal(t, c.expected, cfg.RPC)
+				return nil
+			}
+			testApp.Run(c.args)
 		})
 	}
 }
