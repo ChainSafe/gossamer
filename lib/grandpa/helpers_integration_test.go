@@ -134,8 +134,9 @@ func newTestState(t *testing.T) *state.Service {
 
 	testDatadirPath := t.TempDir()
 
-	db, err := badger.New(badger.Settings{}.
-		WithPath(filepath.Join(testDatadirPath, "db")))
+	var settings badger.Settings
+	settings.WithPath(filepath.Join(testDatadirPath, "db"))
+	db, err := badger.New(settings)
 	require.NoError(t, err)
 
 	t.Cleanup(func() {

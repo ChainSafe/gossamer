@@ -165,7 +165,9 @@ func TestStorage_StoreTrie_NotSyncing(t *testing.T) {
 }
 
 func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
-	db, err := badger.New(badger.Settings{}.WithPath(t.TempDir()))
+	var settings badger.Settings
+	settings.WithPath(t.TempDir())
+	db, err := badger.New(settings)
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		err = db.Close()

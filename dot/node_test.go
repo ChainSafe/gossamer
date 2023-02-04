@@ -54,8 +54,9 @@ func TestLoadGlobalNodeName(t *testing.T) {
 	t.Parallel()
 
 	basePath := t.TempDir()
-	db, err := badger.New(badger.Settings{}.
-		WithPath(filepath.Join(basePath, "db")))
+	var settings badger.Settings
+	settings.WithPath(filepath.Join(basePath, "db"))
+	db, err := badger.New(settings)
 	require.NoError(t, err)
 
 	basestate := state.NewBaseState(db)

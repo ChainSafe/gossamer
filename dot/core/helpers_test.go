@@ -226,8 +226,9 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		if stateSrvc != nil {
 			nodeStorage.BaseDB = stateSrvc.Base
 		} else {
-			nodeStorage.BaseDB, err = badger.New(badger.Settings{}.
-				WithPath(filepath.Join(testDatadirPath, "offline_storage", "db")))
+			var settings badger.Settings
+			settings.WithPath(filepath.Join(testDatadirPath, "offline_storage", "db"))
+			nodeStorage.BaseDB, err = badger.New(settings)
 			require.NoError(t, err)
 		}
 

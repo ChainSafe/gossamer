@@ -33,7 +33,9 @@ func Test_Generate_Verify(t *testing.T) {
 	rootHash, err := trie.Hash()
 	require.NoError(t, err)
 
-	database, err := badger.New(badger.Settings{}.WithInMemory(true))
+	var settings badger.Settings
+	settings.WithInMemory(true)
+	database, err := badger.New(settings)
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		err := database.Close()

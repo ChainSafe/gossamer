@@ -92,7 +92,9 @@ func (s *Service) SetupBase() error {
 		return err
 	}
 
-	db, err := badger.New(badger.Settings{}.WithPath(filepath.Join(basepath, "db")))
+	var settings badger.Settings
+	settings.WithPath(filepath.Join(basepath, "db"))
+	db, err := badger.New(settings)
 	if err != nil {
 		return err
 	}
@@ -254,7 +256,9 @@ func (s *Service) Stop() error {
 // to it. Additionally, it uses the first slot to correctly set the epoch number of the block.
 func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) (err error) {
 	if !s.isMemDB {
-		s.db, err = badger.New(badger.Settings{}.WithPath(filepath.Join(s.dbPath, "db")))
+		var settings badger.Settings
+		settings.WithPath(filepath.Join(s.dbPath, "db"))
+		s.db, err = badger.New(settings)
 		if err != nil {
 			return fmt.Errorf("failed to create database: %w", err)
 		}

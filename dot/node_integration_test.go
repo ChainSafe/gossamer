@@ -196,8 +196,9 @@ func TestInitNode_Integration(t *testing.T) {
 	require.NoError(t, err)
 
 	// confirm database was setup
-	db, err := badger.New(badger.Settings{}.
-		WithPath(filepath.Join(cfg.Global.BasePath, "db")))
+	var settings badger.Settings
+	settings.WithPath(filepath.Join(cfg.Global.BasePath, "db"))
+	db, err := badger.New(settings)
 	require.NoError(t, err)
 	require.NotNil(t, db)
 	err = db.Close()
@@ -214,8 +215,9 @@ func TestInitNode_GenesisSpec(t *testing.T) {
 	err := InitNode(cfg)
 	require.NoError(t, err)
 	// confirm database was setup
-	db, err := badger.New(badger.Settings{}.
-		WithPath(filepath.Join(cfg.Global.BasePath, "db")))
+	var settings badger.Settings
+	settings.WithPath(filepath.Join(cfg.Global.BasePath, "db"))
+	db, err := badger.New(settings)
 	require.NoError(t, err)
 	require.NotNil(t, db)
 	err = db.Close()

@@ -19,18 +19,14 @@ type Settings struct {
 	InMemory *bool
 }
 
-// WithPath returns the settings with the path set.
-// Note it does not modify the receiver settings.
-func (s Settings) WithPath(path string) Settings {
+// WithPath sets the path in the settings.
+func (s *Settings) WithPath(path string) {
 	s.Path = ptrTo(path)
-	return s
 }
 
-// WithInMemory returns the settings with the in-memory flag set.
-// Note it does not modify the receiver settings.
-func (s Settings) WithInMemory(inMemory bool) Settings {
+// WithInMemory sets the in memory flag in the settings.
+func (s *Settings) WithInMemory(inMemory bool) {
 	s.InMemory = ptrTo(inMemory)
-	return s
 }
 
 // SetDefaults sets the default values on the settings.
@@ -49,7 +45,7 @@ var (
 )
 
 // Validate validates the settings.
-func (s Settings) Validate() (err error) { //skipcq: GO-W1029
+func (s *Settings) Validate() (err error) { //skipcq: GO-W1029
 	if *s.InMemory {
 		if *s.Path != "" {
 			// Note badger v3 enforces the path is not set in this case.

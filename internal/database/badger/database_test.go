@@ -15,7 +15,8 @@ import (
 func Test_New(t *testing.T) {
 	t.Parallel()
 
-	settings := Settings{}.WithPath(t.TempDir())
+	var settings Settings
+	settings.WithPath(t.TempDir())
 	database, err := New(settings)
 	require.NoError(t, err)
 
@@ -29,7 +30,9 @@ func Test_Database_Get(t *testing.T) {
 	t.Run("get error", func(t *testing.T) {
 		t.Parallel()
 
-		db, err := New(Settings{}.WithPath(t.TempDir()))
+		var settings Settings
+		settings.WithPath(t.TempDir())
+		db, err := New(settings)
 		require.NoError(t, err)
 		t.Cleanup(func() {
 			err := db.Close()
@@ -44,7 +47,9 @@ func Test_Database_Get(t *testing.T) {
 	t.Run("key not found", func(t *testing.T) {
 		t.Parallel()
 
-		db, err := New(Settings{}.WithPath(t.TempDir()))
+		var settings Settings
+		settings.WithPath(t.TempDir())
+		db, err := New(settings)
 		require.NoError(t, err)
 		t.Cleanup(func() {
 			err := db.Close()
@@ -59,7 +64,9 @@ func Test_Database_Get(t *testing.T) {
 	t.Run("key found", func(t *testing.T) {
 		t.Parallel()
 
-		db, err := New(Settings{}.WithPath(t.TempDir()))
+		var settings Settings
+		settings.WithPath(t.TempDir())
+		db, err := New(settings)
 		require.NoError(t, err)
 		t.Cleanup(func() {
 			err := db.Close()
@@ -95,7 +102,9 @@ func Test_Database_Set(t *testing.T) {
 	t.Run("set error", func(t *testing.T) {
 		t.Parallel()
 
-		db, err := New(Settings{}.WithPath(t.TempDir()))
+		var settings Settings
+		settings.WithPath(t.TempDir())
+		db, err := New(settings)
 		require.NoError(t, err)
 		t.Cleanup(func() {
 			err := db.Close()
@@ -110,7 +119,9 @@ func Test_Database_Set(t *testing.T) {
 	t.Run("set new key", func(t *testing.T) {
 		t.Parallel()
 
-		db, err := New(Settings{}.WithPath(t.TempDir()))
+		var settings Settings
+		settings.WithPath(t.TempDir())
+		db, err := New(settings)
 		require.NoError(t, err)
 		t.Cleanup(func() {
 			err := db.Close()
@@ -128,7 +139,9 @@ func Test_Database_Set(t *testing.T) {
 	t.Run("override at existing key", func(t *testing.T) {
 		t.Parallel()
 
-		db, err := New(Settings{}.WithPath(t.TempDir()))
+		var settings Settings
+		settings.WithPath(t.TempDir())
+		db, err := New(settings)
 		require.NoError(t, err)
 		t.Cleanup(func() {
 			err := db.Close()
@@ -163,7 +176,9 @@ func Test_Database_Delete(t *testing.T) {
 	t.Run("delete error", func(t *testing.T) {
 		t.Parallel()
 
-		db, err := New(Settings{}.WithPath(t.TempDir()))
+		var settings Settings
+		settings.WithPath(t.TempDir())
+		db, err := New(settings)
 		require.NoError(t, err)
 		t.Cleanup(func() {
 			err := db.Close()
@@ -178,7 +193,9 @@ func Test_Database_Delete(t *testing.T) {
 	t.Run("key not found", func(t *testing.T) {
 		t.Parallel()
 
-		db, err := New(Settings{}.WithPath(t.TempDir()))
+		var settings Settings
+		settings.WithPath(t.TempDir())
+		db, err := New(settings)
 		require.NoError(t, err)
 		t.Cleanup(func() {
 			err := db.Close()
@@ -192,7 +209,9 @@ func Test_Database_Delete(t *testing.T) {
 	t.Run("delete existing key", func(t *testing.T) {
 		t.Parallel()
 
-		db, err := New(Settings{}.WithPath(t.TempDir()))
+		var settings Settings
+		settings.WithPath(t.TempDir())
+		db, err := New(settings)
 		require.NoError(t, err)
 		t.Cleanup(func() {
 			err := db.Close()
@@ -215,7 +234,9 @@ func Test_Database_Delete(t *testing.T) {
 func Test_Database_NewWriteBatch(t *testing.T) {
 	t.Parallel()
 
-	db, err := New(Settings{}.WithPath(t.TempDir()))
+	var settings Settings
+	settings.WithPath(t.TempDir())
+	db, err := New(settings)
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		err := db.Close()
@@ -250,7 +271,9 @@ func Test_Database_NewWriteBatch(t *testing.T) {
 func Test_Database_NewTable(t *testing.T) {
 	t.Parallel()
 
-	db, err := New(Settings{}.WithPath(t.TempDir()))
+	var settings Settings
+	settings.WithPath(t.TempDir())
+	db, err := New(settings)
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		err := db.Close()

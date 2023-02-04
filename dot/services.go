@@ -93,7 +93,9 @@ func startStateService(cfg *Config, stateSrvc *state.Service) error {
 
 func (nodeBuilder) createRuntimeStorage(base, persistentStorage basicStorage) (
 	*runtime.NodeStorage, error) {
-	localStorage, err := badger.New(badger.Settings{}.WithInMemory(true))
+	var settings badger.Settings
+	settings.WithInMemory(true)
+	localStorage, err := badger.New(settings)
 	if err != nil {
 		return nil, err
 	}

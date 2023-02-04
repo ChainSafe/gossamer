@@ -542,7 +542,9 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 	err := stateService.Initialise(&genesis, &genesisHeader, &trie)
 	require.NoError(t, err)
 
-	inMemoryDB, err := badger.New(badger.Settings{}.WithInMemory(true))
+	var settings badger.Settings
+	settings.WithInMemory(true)
+	inMemoryDB, err := badger.New(settings)
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		err := inMemoryDB.Close()

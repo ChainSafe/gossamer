@@ -32,7 +32,9 @@ type OfflinePruner struct {
 // NewOfflinePruner creates an instance of OfflinePruner.
 func NewOfflinePruner(inputDBPath string,
 	retainBlockNum uint32) (pruner *OfflinePruner, err error) {
-	db, err := badger.New(badger.Settings{}.WithPath(inputDBPath))
+	var settings badger.Settings
+	settings.WithPath(inputDBPath)
+	db, err := badger.New(settings)
 	if err != nil {
 		return nil, fmt.Errorf("creating badger database: %w", err)
 	}
@@ -66,7 +68,8 @@ func NewOfflinePruner(inputDBPath string,
 		}
 	}()
 
-	filterDatabaseSettings := badger.Settings{}.WithPath(filterDatabaseDir)
+	var filterDatabaseSettings badger.Settings
+	filterDatabaseSettings.WithPath(filterDatabaseDir)
 	filterDatabase, err := badger.New(filterDatabaseSettings)
 	if err != nil {
 		return nil, fmt.Errorf("creating badger filter database: %w", err)
@@ -153,7 +156,9 @@ func (p *OfflinePruner) SetBloomFilter() (err error) {
 
 // Prune starts streaming the data from input db to the pruned db.
 func (p *OfflinePruner) Prune() error {
-	inputDB, err := badger.New(badger.Settings{}.WithPath(p.inputDBPath))
+	var settings badger.Settings
+	settings.WithPath(p.inputDBPath)
+	inputDB, err := badger.New(settings)
 	if err != nil {
 		return fmt.Errorf("opening input database: %w", err)
 	}

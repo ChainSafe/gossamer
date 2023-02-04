@@ -821,8 +821,9 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 
 	cfg.Init.Genesis = genFile
 
-	db, err := badger.New(badger.Settings{}.
-		WithPath(filepath.Join(cfg.Global.BasePath, "db")))
+	var settings badger.Settings
+	settings.WithPath(filepath.Join(cfg.Global.BasePath, "db"))
+	db, err := badger.New(settings)
 	require.NoError(t, err)
 
 	gen, err := genesis.NewGenesisFromJSONRaw(genFile)

@@ -70,8 +70,9 @@ func newTestSyncer(t *testing.T) *Service {
 	if stateSrvc != nil {
 		rtCfg.NodeStorage.BaseDB = stateSrvc.Base
 	} else {
-		rtCfg.NodeStorage.BaseDB, err = badger.New(badger.Settings{}.
-			WithPath(filepath.Join(testDatadirPath, "offline_storage", "db")))
+		var settings badger.Settings
+		settings.WithPath(filepath.Join(testDatadirPath, "offline_storage", "db"))
+		rtCfg.NodeStorage.BaseDB, err = badger.New(settings)
 		require.NoError(t, err)
 	}
 

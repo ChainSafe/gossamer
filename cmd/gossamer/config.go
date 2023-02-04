@@ -899,8 +899,9 @@ func updateDotConfigFromGenesisJSONRaw(tomlCfg ctoml.Config, cfg *dot.Config) {
 
 // updateDotConfigFromGenesisData updates the configuration from genesis data of an initialised node
 func updateDotConfigFromGenesisData(ctx *cli.Context, cfg *dot.Config) error {
-	db, err := badger.New(badger.Settings{}.
-		WithPath(filepath.Join(cfg.Global.BasePath, "db")))
+	var settings badger.Settings
+	settings.WithPath(filepath.Join(cfg.Global.BasePath, "db"))
+	db, err := badger.New(settings)
 	if err != nil {
 		return fmt.Errorf("failed to create database: %s", err)
 	}

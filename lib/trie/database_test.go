@@ -13,7 +13,9 @@ import (
 )
 
 func newTestDB(t *testing.T) *badger.Database {
-	database, err := badger.New(badger.Settings{}.WithInMemory(true))
+	var settings badger.Settings
+	settings.WithInMemory(true)
+	database, err := badger.New(settings)
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		err := database.Close()

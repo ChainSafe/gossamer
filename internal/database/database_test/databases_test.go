@@ -33,7 +33,8 @@ func Test_Databases(t *testing.T) {
 	databaseBuilders := []func() Database{
 		func() Database { return memory.New() },
 		func() Database {
-			settings := badger.Settings{}.WithInMemory(true)
+			var settings badger.Settings
+			settings.WithInMemory(true)
 			database, err := badger.New(settings)
 			require.NoError(t, err)
 			return database

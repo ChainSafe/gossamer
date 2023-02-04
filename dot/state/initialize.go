@@ -28,9 +28,9 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 	}
 
 	var databaseSettings badger.Settings
-	databaseSettings = databaseSettings.WithInMemory(s.isMemDB)
+	databaseSettings.WithInMemory(s.isMemDB)
 	if !*databaseSettings.InMemory {
-		databaseSettings = databaseSettings.WithPath(filepath.Join(basepath, "db"))
+		databaseSettings.WithPath(filepath.Join(basepath, "db"))
 	}
 	db, err := badger.New(databaseSettings)
 	if err != nil {

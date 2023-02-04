@@ -11,7 +11,8 @@ import (
 )
 
 func Test_table(t *testing.T) {
-	settings := Settings{}.WithPath(t.TempDir())
+	var settings Settings
+	settings.WithPath(t.TempDir())
 	db, err := New(settings)
 	require.NoError(t, err)
 	t.Cleanup(func() {
