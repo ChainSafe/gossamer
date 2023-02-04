@@ -83,7 +83,7 @@ func buildTrie(encodedProofNodes [][]byte, rootHash []byte) (t *trie.Trie, err e
 		buffer.Reset()
 		err = node.MerkleValueRoot(encodedProofNode, buffer)
 		if err != nil {
-			return nil, fmt.Errorf("calculating Merkle value: %w", err)
+			return nil, fmt.Errorf("calculating node hash: %w", err)
 		}
 		digest := buffer.Bytes()
 
