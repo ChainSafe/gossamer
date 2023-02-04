@@ -28,7 +28,7 @@ func newTestHandler(t *testing.T) (*Handler, *state.Service) {
 	testDatadirPath := t.TempDir()
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockTelemetry(ctrl)
+	telemetryMock := NewMocktelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	config := state.Config{
