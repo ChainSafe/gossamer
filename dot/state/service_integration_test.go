@@ -356,10 +356,10 @@ func TestService_Rewind(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = serv.Grandpa.GetSetIDChange(2)
-	require.Equal(t, database.ErrKeyNotFound, err)
+	require.ErrorIs(t, err, database.ErrKeyNotFound)
 
 	_, err = serv.Grandpa.GetSetIDChange(3)
-	require.Equal(t, database.ErrKeyNotFound, err)
+	require.ErrorIs(t, err, database.ErrKeyNotFound)
 }
 
 func TestService_Import(t *testing.T) {
