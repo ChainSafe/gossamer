@@ -192,14 +192,13 @@ var (
 )
 
 // GetProjectRootPath finds the root of the project where directory `cmd`
-// and subdirectories `gossamer, testcases` are
-// and returns it as an absolute path.
+// and subdirectory `gossamer` is and returns it as an absolute path.
 func GetProjectRootPath() (rootPath string, err error) {
 	_, fullpath, _, _ := runtime.Caller(0)
 	rootPath = path.Dir(fullpath)
 
 	const directoryToFind = "cmd"
-	const subPathsToFind = "gossamer,testcases"
+	const subPathsToFind = "gossamer"
 
 	subPaths := strings.Split(subPathsToFind, ",")
 

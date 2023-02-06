@@ -19,8 +19,7 @@ import (
 func loadConfigFromResource(cfg *ctoml.Config, resourcePath string) error {
 	file, err := internal.DefaultConfigTomlFiles.Open(resourcePath)
 	if err != nil {
-		logger.Errorf("opening toml configuration file: %w", err)
-		return err
+		return fmt.Errorf("opening toml configuration file: %w", err)
 	}
 	return loadConfig(cfg, file)
 }
@@ -40,7 +39,7 @@ func loadConfigFromFile(cfg *ctoml.Config, fp string) error {
 }
 
 // loadConfig loads the values from the toml configuration file into the provided configuration
-func loadConfig(cfg *ctoml.Config, file fs.File) error {
+func loadConfig(cfg *ctoml.Config, file fs.File) (err error) {
 	var tomlSettings = toml.Config{
 		NormFieldName: func(rt reflect.Type, key string) string {
 			return key
@@ -57,7 +56,7 @@ func loadConfig(cfg *ctoml.Config, file fs.File) error {
 		},
 	}
 
-	if err := tomlSettings.NewDecoder(file).Decode(cfg); err != nil {
+	if err = tomlSettings.NewDecoder(file).Decode(cfg); err != nil {
 		logger.Errorf("failed to decode configuration: %s", err)
 		return err
 	}
