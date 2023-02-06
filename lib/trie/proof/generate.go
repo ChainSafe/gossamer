@@ -40,7 +40,7 @@ func Generate(rootHash []byte, fullKeys [][]byte, database Database) (
 	buffer := pools.DigestBuffers.Get().(*bytes.Buffer)
 	defer pools.DigestBuffers.Put(buffer)
 
-	merkleValuesSeen := make(map[string]struct{})
+	nodeHashesSeen := make(map[common.Hash]struct{})
 	for _, fullKey := range fullKeys {
 		fullKeyNibbles := codec.KeyLEToNibbles(fullKey)
 		newEncodedProofNodes, err := walkRoot(rootNode, fullKeyNibbles)
@@ -56,13 +56,16 @@ func Generate(rootHash []byte, fullKeys [][]byte, database Database) (
 			if err != nil {
 				return nil, fmt.Errorf("blake2b hash: %w", err)
 			}
-			merkleValueString := buffer.String()
+			// Note: all encoded proof nodes are larger than 32B so their
+			// merkle value is the encoding hash digest (32B) and never the
+			// encoding itself.
+			nodeHash := common.NewHash(buffer.Bytes())
 
-			_, seen := merkleValuesSeen[merkleValueString]
+			_, seen := nodeHashesSeen[nodeHash]
 			if seen {
 				continue
 			}
-			merkleValuesSeen[merkleValueString] = struct{}{}
+			nodeHashesSeen[nodeHash] = struct{}{}
 
 			encodedProofNodes = append(encodedProofNodes, encodedProofNode)
 		}
