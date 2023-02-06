@@ -19,6 +19,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"golang.org/x/exp/slices"
 
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
@@ -251,21 +252,34 @@ func (bs *BlockState) GetHashByNumber(num uint) (common.Hash, error) {
 }
 
 // GetHashesByNumber returns the block hash on our best chain with the given number
-func (bs *BlockState) GetHashesByNumber(num uint) (common.Hash, error) {
+func (bs *BlockState) GetHashesByNumber(num uint) ([]common.Hash, error) {
+	blockHashes := []common.Hash{}
+	block, err := bs.GetBlockByNumber(num)
+	if err == nil {
+		blockHashes = bs.bt.GetAllBlocksAtNumber(block.Header.ParentHash)
+	}
+
 	hash, err := bs.bt.GetHashByNumber(num)
 	if err == nil {
-		return hash, nil
+		if !slices.Contains(blockHashes, hash) {
+			blockHashes = append(blockHashes, hash)
+		}
+		return blockHashes, nil
 	} else if !errors.Is(err, blocktree.ErrNumLowerThanRoot) {
-		return common.Hash{}, fmt.Errorf("failed to get hash from blocktree: %w", err)
+		return blockHashes, fmt.Errorf("failed to get hash from blocktree: %w", err)
 	}
 
 	// if error is ErrNumLowerThanRoot, number has already been finalised, so check db
 	bh, err := bs.db.Get(headerHashKey(uint64(num)))
 	if err != nil {
-		return common.Hash{}, fmt.Errorf("cannot get block %d: %w", num, err)
+		return blockHashes, fmt.Errorf("cannot get block %d: %w", num, err)
 	}
 
-	return common.NewHash(bh), nil
+	if !slices.Contains(blockHashes, hash) {
+		blockHashes = append(blockHashes, common.NewHash(bh))
+	}
+
+	return blockHashes, nil
 }
 
 // GetBlockHashesBySlot gets all block hashes that were produced in the given slot.
@@ -311,21 +325,6 @@ func (bs *BlockState) GetHeaderByNumber(num uint) (*types.Header, error) {
 
 // GetBlockByNumber returns the block on our best chain with the given number
 func (bs *BlockState) GetBlockByNumber(num uint) (*types.Block, error) {
-	hash, err := bs.GetHashByNumber(num)
-	if err != nil {
-		return nil, err
-	}
-
-	block, err := bs.GetBlockByHash(hash)
-	if err != nil {
-		return nil, err
-	}
-
-	return block, nil
-}
-
-// GetBlocksByNumber returns all the blocks we have with the given number
-func (bs *BlockState) GetBlocksByNumber(num uint) (*types.Block, error) {
 	hash, err := bs.GetHashByNumber(num)
 	if err != nil {
 		return nil, err
