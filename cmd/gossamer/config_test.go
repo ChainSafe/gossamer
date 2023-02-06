@@ -648,7 +648,6 @@ func TestRPCConfigFromFlags(t *testing.T) {
 		},
 		"Test gossamer --ws-external false": {
 			[]string{""},
-			//[]interface{}{testCfgFile, false},
 			dot.RPCConfig{
 				Port:       defaultCfg.Port,
 				Host:       defaultCfg.Host,
