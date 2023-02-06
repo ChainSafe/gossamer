@@ -490,7 +490,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 				expectedBlockDataHeaderHash := expectedBlockDataHeader.Hash()
 				finalityGadget.EXPECT().
 					VerifyBlockJustification(expectedBlockDataHeaderHash, []byte{1, 2, 3}).
-					Return(nil, mockError)
+					Return(mockError)
 
 				mockChainSync := NewMockChainSync(ctrl)
 				mockChainSync.EXPECT().syncState().Return(bootstrap)
@@ -660,7 +660,7 @@ func Test_chainProcessor_processBlockDataWithStateHeaderAndBody(t *testing.T) {
 				finalityGadget := NewMockFinalityGadget(ctrl)
 				finalityGadget.EXPECT().
 					VerifyBlockJustification(blockHeaderHash, []byte{3}).
-					Return(nil, errTest)
+					Return(errTest)
 
 				return chainProcessor{
 					blockState:     blockState,
