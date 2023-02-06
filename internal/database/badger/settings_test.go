@@ -16,13 +16,13 @@ func Test_Settings_SetDefaults(t *testing.T) {
 		originalSettings Settings
 		expectedSettings Settings
 	}{
-		"empty settings": {
+		"empty_settings": {
 			expectedSettings: Settings{
 				Path:     ptrTo(""),
 				InMemory: ptrTo(false),
 			},
 		},
-		"non-empty settings": {
+		"non-empty_settings": {
 			originalSettings: Settings{
 				Path:     ptrTo("x"),
 				InMemory: ptrTo(true),
@@ -54,7 +54,7 @@ func Test_Settings_Validate(t *testing.T) {
 		errWrapped error
 		errMessage string
 	}{
-		"path set in-memory": {
+		"path_set_in-memory": {
 			settings: Settings{
 				Path:     ptrTo("."),
 				InMemory: ptrTo(true),
@@ -64,7 +64,7 @@ func Test_Settings_Validate(t *testing.T) {
 		},
 		// Note we cannot test for a bad path since we would
 		// need os.Getcwd() to fail.
-		"valid settings": {
+		"valid_settings": {
 			settings: Settings{
 				Path:     ptrTo("."),
 				InMemory: ptrTo(false),

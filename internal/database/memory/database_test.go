@@ -28,14 +28,14 @@ func Test_Database_Get(t *testing.T) {
 		errWrapped error
 		errMessage string
 	}{
-		"database closed": {
+		"database_closed": {
 			db: &Database{
 				closed: atomicTrue(),
 			},
 			errWrapped: database.ErrClosed,
 			errMessage: "database closed",
 		},
-		"key not found": {
+		"key_not_found": {
 			db: &Database{
 				closed:    new(atomic.Bool),
 				keyValues: map[string][]byte{},
@@ -44,7 +44,7 @@ func Test_Database_Get(t *testing.T) {
 			errWrapped: database.ErrKeyNotFound,
 			errMessage: "key not found: 0x01",
 		},
-		"key found": {
+		"key_found": {
 			db: &Database{
 				closed: new(atomic.Bool),
 				keyValues: map[string][]byte{
@@ -83,7 +83,7 @@ func Test_Database_Set(t *testing.T) {
 		errMessage string
 		expectedDB *Database
 	}{
-		"database is closed": {
+		"database_is_closed": {
 			db: &Database{
 				closed: atomicTrue(),
 			},
@@ -93,7 +93,7 @@ func Test_Database_Set(t *testing.T) {
 				closed: atomicTrue(),
 			},
 		},
-		"set at new key": {
+		"set_at_new_key": {
 			db: &Database{
 				closed:    new(atomic.Bool),
 				keyValues: map[string][]byte{},
@@ -107,7 +107,7 @@ func Test_Database_Set(t *testing.T) {
 				},
 			},
 		},
-		"override value at key": {
+		"override_value_at_key": {
 			db: &Database{
 				closed: new(atomic.Bool),
 				keyValues: map[string][]byte{
@@ -168,7 +168,7 @@ func Test_Database_Delete(t *testing.T) {
 		errWrapped error
 		expectedDB *Database
 	}{
-		"database closed": {
+		"database_closed": {
 			db: &Database{
 				closed: atomicTrue(),
 			},
@@ -177,7 +177,7 @@ func Test_Database_Delete(t *testing.T) {
 				closed: atomicTrue(),
 			},
 		},
-		"key not found": {
+		"key_not_found": {
 			db: &Database{
 				closed:    new(atomic.Bool),
 				keyValues: map[string][]byte{},
@@ -188,7 +188,7 @@ func Test_Database_Delete(t *testing.T) {
 				keyValues: map[string][]byte{},
 			},
 		},
-		"key deleted": {
+		"key_deleted": {
 			db: &Database{
 				closed: new(atomic.Bool),
 				keyValues: map[string][]byte{
