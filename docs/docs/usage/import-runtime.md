@@ -12,7 +12,7 @@ Once you have your runtime ready and compiled into a wasm binary, it is ready to
 
 ### 1. Create genesis spec file with custom runtime
 
-You can use the `gossamer import-runtime` subcommand to create a genesis file containin g your custom runtime. The rest of the file is based off the `gssmr` `genesis.json` file.
+You can use the `gossamer import-runtime` subcommand to create a genesis file containing your custom runtime. The rest of the file is based off the `gssmr` `genesis.json` file.
 
 ```
 make gossamer

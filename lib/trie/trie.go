@@ -69,8 +69,8 @@ func (t *Trie) Snapshot() (newTrie *Trie) {
 	}
 }
 
-// handleTrackedDeltas sets the pending deleted Merkle values in
-// the trie deleted merkle values set if and only if success is true.
+// handleTrackedDeltas sets the pending deleted node hashes in
+// the trie deltas tracker if and only if success is true.
 func (t *Trie) handleTrackedDeltas(success bool, pendingDeltas DeltaDeletedGetter) {
 	if !success || t.generation == 0 {
 		// Do not persist tracked deleted node hashes if the operation failed or
@@ -90,7 +90,7 @@ func (t *Trie) prepForMutation(currentNode *Node,
 		// update the node generation.
 		newNode = currentNode
 	} else {
-		err = t.registerDeletedMerkleValue(currentNode, pendingDeltas)
+		err = t.registerDeletedNodeHash(currentNode, pendingDeltas)
 		if err != nil {
 			return nil, fmt.Errorf("registering deleted node: %w", err)
 		}
@@ -101,7 +101,7 @@ func (t *Trie) prepForMutation(currentNode *Node,
 	return newNode, nil
 }
 
-func (t *Trie) registerDeletedMerkleValue(node *Node,
+func (t *Trie) registerDeletedNodeHash(node *Node,
 	pendingDeltas DeltaRecorder) (err error) {
 	err = t.ensureMerkleValueIsCalculated(node)
 	if err != nil {
@@ -796,10 +796,10 @@ func (t *Trie) clearPrefixLimitAtNode(parent *Node, prefix []byte,
 		// TODO check this is the same behaviour as in substrate
 		const allDeleted = true
 		if bytes.HasPrefix(parent.PartialKey, prefix) {
-			err = t.registerDeletedMerkleValue(parent, pendingDeltas)
+			err = t.registerDeletedNodeHash(parent, pendingDeltas)
 			if err != nil {
 				return nil, 0, 0, false,
-					fmt.Errorf("registering deleted Merkle value: %w", err)
+					fmt.Errorf("registering deleted node hash: %w", err)
 			}
 
 			valuesDeleted, nodesRemoved = 1, 1
@@ -938,9 +938,9 @@ func (t *Trie) deleteNodesLimit(parent *Node, limit uint32,
 	}
 
 	if parent.Kind() == node.Leaf {
-		err = t.registerDeletedMerkleValue(parent, pendingDeltas)
+		err = t.registerDeletedNodeHash(parent, pendingDeltas)
 		if err != nil {
-			return nil, 0, 0, fmt.Errorf("registering deleted merkle value: %w", err)
+			return nil, 0, 0, fmt.Errorf("registering deleted node hash: %w", err)
 		}
 		valuesDeleted, nodesRemoved = 1, 1
 		return nil, valuesDeleted, nodesRemoved, nil
@@ -1086,9 +1086,9 @@ func (t *Trie) clearPrefixAtNode(parent *Node, prefix []byte,
 			return nil, 0, fmt.Errorf("preparing branch for mutation: %w", err)
 		}
 
-		err = t.registerDeletedMerkleValue(child, pendingDeltas)
+		err = t.registerDeletedNodeHash(child, pendingDeltas)
 		if err != nil {
-			return nil, 0, fmt.Errorf("registering deleted merkle value for child: %w", err)
+			return nil, 0, fmt.Errorf("registering deleted node hash for child: %w", err)
 		}
 
 		branch.Children[childIndex] = nil
@@ -1203,9 +1203,9 @@ func (t *Trie) deleteLeaf(parent *Node, key []byte,
 
 	newParent = nil
 
-	err = t.registerDeletedMerkleValue(parent, pendingDeltas)
+	err = t.registerDeletedNodeHash(parent, pendingDeltas)
 	if err != nil {
-		return nil, fmt.Errorf("registering deleted merkle value: %w", err)
+		return nil, fmt.Errorf("registering deleted node hash: %w", err)
 	}
 
 	return newParent, nil
@@ -1324,9 +1324,9 @@ func (t *Trie) handleDeletion(branch *Node, key []byte,
 		const branchChildMerged = true
 		childIndex := firstChildIndex
 		child := branch.Children[firstChildIndex]
-		err = t.registerDeletedMerkleValue(child, pendingDeltas)
+		err = t.registerDeletedNodeHash(child, pendingDeltas)
 		if err != nil {
-			return nil, false, fmt.Errorf("registering deleted merkle value: %w", err)
+			return nil, false, fmt.Errorf("registering deleted node hash: %w", err)
 		}
 
 		if child.Kind() == node.Leaf {
@@ -1364,7 +1364,7 @@ func (t *Trie) handleDeletion(branch *Node, key []byte,
 	}
 }
 
-// ensureMerkleValueIsCalculated is used before calling PopulateMerkleValues
+// ensureMerkleValueIsCalculated is used before calling PopulateNodeHashes
 // to ensure the parent node and all its descendant nodes have their Merkle
 // value computed and ready to be used. This has a close to zero performance
 // impact if the parent node Merkle value is already computed.

@@ -33,7 +33,7 @@ type Config struct {
 
 // Pruner is implemented by FullNode and ArchiveNode.
 type Pruner interface {
-	StoreJournalRecord(deletedMerkleValues, insertedMerkleValues map[string]struct{},
+	StoreJournalRecord(deletedNodeHashes, insertedNodeHashes map[common.Hash]struct{},
 		blockHash common.Hash, blockNum int64) error
 }
 
@@ -41,7 +41,7 @@ type Pruner interface {
 type ArchiveNode struct{}
 
 // StoreJournalRecord for archive node doesn't do anything.
-func (*ArchiveNode) StoreJournalRecord(_, _ map[string]struct{},
+func (*ArchiveNode) StoreJournalRecord(_, _ map[common.Hash]struct{},
 	_ common.Hash, _ int64) error {
 	return nil
 }
