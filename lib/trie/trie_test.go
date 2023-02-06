@@ -265,7 +265,7 @@ func Test_Trie_prepForMutation(t *testing.T) {
 	}
 }
 
-func Test_Trie_registerDeletedMerkleValue(t *testing.T) {
+func Test_Trie_registerDeletedNodeHash(t *testing.T) {
 	t.Parallel()
 
 	someSmallNode := &Node{
@@ -327,7 +327,7 @@ func Test_Trie_registerDeletedMerkleValue(t *testing.T) {
 
 			trie := testCase.trie
 
-			err := trie.registerDeletedMerkleValue(testCase.node,
+			err := trie.registerDeletedNodeHash(testCase.node,
 				testCase.pendingDeltas)
 
 			require.NoError(t, err)

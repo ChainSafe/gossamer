@@ -292,7 +292,7 @@ func (s *TrieState) LoadCodeHash() (common.Hash, error) {
 
 // GetChangedNodeHashes returns the two sets of hashes for all nodes
 // inserted and deleted in the state trie since the last block produced (trie snapshot).
-func (s *TrieState) GetChangedNodeHashes() (inserted, deleted map[string]struct{}, err error) {
+func (s *TrieState) GetChangedNodeHashes() (inserted, deleted map[common.Hash]struct{}, err error) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 	return s.t.GetChangedNodeHashes()
