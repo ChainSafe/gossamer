@@ -251,7 +251,7 @@ func (bs *BlockState) GetHashByNumber(num uint) (common.Hash, error) {
 	return common.NewHash(bh), nil
 }
 
-// GetHashesByNumber returns the block hash on our best chain with the given number
+// GetHashesByNumber returns the block hashes with the given number
 func (bs *BlockState) GetHashesByNumber(num uint) ([]common.Hash, error) {
 	blockHashes := []common.Hash{}
 	block, err := bs.GetBlockByNumber(num)
