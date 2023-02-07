@@ -472,7 +472,7 @@ func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 	const granPubK = "0x88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee"
 
 	const sr25519Seed = "0xe5be9a5092b81bca64be81d212e7f2f9eba183bb7a90954f7b76361f6edb5c0a"
-	const sr25519Pubk = "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
+	const sr25519AlicePubkey = "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
 
 	insertSessionKeys := []struct {
 		ktype      []string
@@ -486,7 +486,7 @@ func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 		{
 			ktype: []string{"babe", "imon", "para", "asgn", "audi"},
 			seed:  sr25519Seed,
-			pubk:  sr25519Pubk,
+			pubk:  sr25519AlicePubkey,
 		},
 	}
 
