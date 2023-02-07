@@ -123,7 +123,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 		args     []string
 		expected dot.GlobalConfig
 	}{
-		"Test gossamer default": {
+		"Test_gossamer_default": {
 			[]string{"app", "--name", defaultGlobalConfig.Name},
 			dot.GlobalConfig{
 				Name:           defaultGlobalConfig.Name,
@@ -133,7 +133,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				MetricsAddress: defaultGlobalConfig.MetricsAddress,
 			},
 		},
-		"Test kusama --chain": {
+		"Test_kusama_--chain": {
 			[]string{"app", "--chain", "kusama", "--name", dot.KusamaConfig().Global.Name},
 			dot.GlobalConfig{
 				Name:           dot.KusamaConfig().Global.Name,
@@ -144,7 +144,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				MetricsAddress: defaultGlobalConfig.MetricsAddress,
 			},
 		},
-		"Test gossamer --name": {
+		"Test_gossamer_--name": {
 			[]string{"app", "--name", "test_name"},
 			dot.GlobalConfig{
 				Name:           "test_name",
@@ -155,7 +155,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				MetricsAddress: defaultGlobalConfig.MetricsAddress,
 			},
 		},
-		"Test gossamer --basepath": {
+		"Test_gossamer_--basepath": {
 			[]string{"app", "--basepath", "test_basepath", "--name", "testname"},
 			dot.GlobalConfig{
 				Name:           "testname",
@@ -166,7 +166,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				MetricsAddress: defaultGlobalConfig.MetricsAddress,
 			},
 		},
-		"Test gossamer --base-path": {
+		"Test_gossamer_--base-path": {
 			[]string{"app", "--base-path", "test_basepath", "--name", "testname"},
 			dot.GlobalConfig{
 				Name:           "testname",
@@ -177,7 +177,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				MetricsAddress: defaultGlobalConfig.MetricsAddress,
 			},
 		},
-		"Test gossamer --publish-metrics": {
+		"Test_gossamer_--publish-metrics": {
 			[]string{"app", "--publish-metrics", "--name", defaultGlobalConfig.Name},
 			dot.GlobalConfig{
 				Name:           defaultGlobalConfig.Name,
@@ -188,7 +188,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				MetricsAddress: defaultGlobalConfig.MetricsAddress,
 			},
 		},
-		"Test gossamer --metrics-address": {
+		"Test_gossamer_--metrics-address": {
 			[]string{"app", "--metrics-address", ":9871", "--name", defaultGlobalConfig.Name},
 			dot.GlobalConfig{
 				Name:           defaultGlobalConfig.Name,
@@ -199,7 +199,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				MetricsAddress: ":9871",
 			},
 		},
-		"Test gossamer --no-telemetry": {
+		"Test_gossamer_--no-telemetry": {
 			[]string{"app", "--no-telemetry", "--name", defaultGlobalConfig.Name},
 			dot.GlobalConfig{
 				Name:           defaultGlobalConfig.Name,
@@ -211,7 +211,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				NoTelemetry:    true,
 			},
 		},
-		"Test gossamer --telemetry-url": {
+		"Test_gossamer_--telemetry-url": {
 			[]string{"config", "--telemetry-url", "ws://localhost:8001/submit 0", "--telemetry-url",
 				"ws://foo/bar 0", "--name", defaultGlobalConfig.Name},
 			dot.GlobalConfig{
