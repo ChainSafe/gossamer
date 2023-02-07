@@ -243,7 +243,7 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 }
 
 func TestBuildAndApplyExtrinsic_InvalidPayment(t *testing.T) {
-	kr, err := keystore.NewSr25519Keyring()
+	keyRing, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
@@ -259,42 +259,43 @@ func TestBuildAndApplyExtrinsic_InvalidPayment(t *testing.T) {
 
 	rawMeta, err := rt.Metadata()
 	require.NoError(t, err)
-	var decoded []byte
-	err = scale.Unmarshal(rawMeta, &decoded)
+	var metadataBytes []byte
+	err = scale.Unmarshal(rawMeta, &metadataBytes)
 	require.NoError(t, err)
 
 	meta := &ctypes.Metadata{}
-	err = codec.Decode(decoded, meta)
+	err = codec.Decode(metadataBytes, meta)
 	require.NoError(t, err)
 
-	rv := rt.Version()
+	runtimeVersion := rt.Version()
 	charlie, err := ctypes.NewMultiAddressFromHexAccountID(
-		kr.KeyCharlie.Public().Hex())
+		keyRing.KeyCharlie.Public().Hex())
 	require.NoError(t, err)
 
 	call, err := ctypes.NewCall(meta, "Balances.transfer", charlie, ctypes.NewUCompactFromUInt(^uint64(0)))
 	require.NoError(t, err)
 
-	ext := ctypes.NewExtrinsic(call)
-	genHash, err := ctypes.NewHashFromHexString(genesisHeader.Hash().String())
+	extrinsic := ctypes.NewExtrinsic(call)
+	genesisHash, err := ctypes.NewHashFromHexString(genesisHeader.Hash().String())
 	require.NoError(t, err)
 
 	so := ctypes.SignatureOptions{
-		BlockHash:          genHash,
+		BlockHash:          genesisHash,
 		Era:                ctypes.ExtrinsicEra{IsImmortalEra: true},
-		GenesisHash:        genHash,
+		GenesisHash:        genesisHash,
 		Nonce:              ctypes.NewUCompactFromUInt(uint64(0)),
-		SpecVersion:        ctypes.U32(rv.SpecVersion),
+		SpecVersion:        ctypes.U32(runtimeVersion.SpecVersion),
 		Tip:                ctypes.NewUCompactFromUInt(^uint64(0)),
-		TransactionVersion: ctypes.U32(rv.TransactionVersion),
+		TransactionVersion: ctypes.U32(runtimeVersion.TransactionVersion),
 	}
 
-	err = ext.Sign(signature.TestKeyringPairAlice, so)
+	err = extrinsic.Sign(signature.TestKeyringPairAlice, so)
 	require.NoError(t, err)
 
-	extEnc := bytes.Buffer{}
-	encoder := cscale.NewEncoder(&extEnc)
-	ext.Encode(*encoder)
+	extEnc := bytes.NewBuffer(nil)
+	encoder := cscale.NewEncoder(extEnc)
+	err = extrinsic.Encode(*encoder)
+	require.NoError(t, err)
 
 	res, err := rt.ApplyExtrinsic(extEnc.Bytes())
 	require.NoError(t, err)
