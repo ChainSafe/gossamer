@@ -124,7 +124,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 		expected dot.GlobalConfig
 	}{
 		"Test gossamer default": {
-			[]string{"app"},
+			[]string{"app", "--name", defaultGlobalConfig.Name},
 			dot.GlobalConfig{
 				Name:           defaultGlobalConfig.Name,
 				ID:             defaultGlobalConfig.ID,
