@@ -434,6 +434,8 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 		if storedFinalisedHash != hash {
 			return fmt.Errorf("%w, setID=%d and round=%d", errFinalisedBlocksMismatch, setID, fj.Round)
 		}
+
+		return nil
 	}
 
 	isDescendant, err := isDescendantOfHighestFinalisedBlock(s.blockState, fj.Commit.Hash)
