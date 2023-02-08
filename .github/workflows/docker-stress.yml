@@ -22,7 +22,7 @@ jobs:
     env:
       DOCKER_BUILDKIT: "1"
     steps:
-      - uses: docker/build-push-action@v3
+      - uses: docker/build-push-action@v4
         with:
           load: true
           target: builder
