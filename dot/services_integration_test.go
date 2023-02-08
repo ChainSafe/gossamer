@@ -726,6 +726,7 @@ func TestNewWebSocketServer(t *testing.T) {
 	cfg.Init.Genesis = genFile
 	cfg.RPC.External = false
 	cfg.RPC.WS = true
+	cfg.RPC.Port = 9545
 	cfg.RPC.WSPort = 9546
 	cfg.RPC.WSExternal = false
 	cfg.System.SystemName = "gossamer"
