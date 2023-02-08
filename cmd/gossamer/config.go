@@ -712,10 +712,12 @@ func setDotRPCConfig(ctx *cli.Context, tomlCfg ctoml.RPCConfig, cfg *dot.RPCConf
 	cfg.WSUnsafeExternal = tomlCfg.WSUnsafeExternal
 
 	// check --rpc flag and update node configuration
-	if enabled := ctx.GlobalBool(RPCEnabledFlag.Name); enabled || cfg.Enabled {
-		cfg.Enabled = true
-	} else if ctx.IsSet(RPCEnabledFlag.Name) && !enabled {
-		cfg.Enabled = false
+	rpcFlagIsSet := ctx.IsSet(RPCEnabledFlag.Name)
+
+	// if rpc flag is set then set its value otherwise keep
+	// cfg.Enabled as it is
+	if rpcFlagIsSet {
+		cfg.Enabled = ctx.GlobalBool(RPCEnabledFlag.Name)
 	}
 
 	// check --rpc-external flag and update node configuration
