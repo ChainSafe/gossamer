@@ -289,8 +289,10 @@ func (bt *BlockTree) Prune(finalised Hash) (pruned []Hash) {
 	}
 
 	for _, hash := range pruned {
-		instance := bt.runtimes.get(hash)
-		instance.Stop()
+		runtimeFromFork := bt.runtimes.get(hash)
+		if runtimeFromFork != finalisedBlockRuntime {
+			runtimeFromFork.Stop()
+		}
 		bt.runtimes.delete(hash)
 	}
 
