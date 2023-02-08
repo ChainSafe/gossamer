@@ -27,7 +27,7 @@ var (
 	DefaultCfg                  = dot.WestendDevConfig
 	defaultKusamaConfigPath     = "./chain/kusama/config.toml"
 	defaultPolkadotConfigPath   = "./chain/polkadot/config.toml"
-	defaultWestendDevConfigPath = "./chain/westen_dev/config.toml"
+	defaultWestendDevConfigPath = "./chain/westen-dev/config.toml"
 
 	kusamaName     = "kusama"
 	polkadotName   = "polkadot"

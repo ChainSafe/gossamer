@@ -81,7 +81,7 @@ func TestExportCommand(t *testing.T) {
 			[]string{"config", "genesis", "bootnodes", "name", "force", "pruning", "retain-blocks"},
 			[]interface{}{
 				testConfig, genFile, testBootnode,
-				"Gossamer", "true", "archive", 512},
+				"Westend", "true", "archive", uint32(512)},
 			&dot.Config{
 				Global: testCfg.Global,
 				Init: dot.InitConfig{
@@ -118,7 +118,7 @@ func TestExportCommand(t *testing.T) {
 			[]string{"config", "genesis", "protocol", "force", "name", "pruning", "retain-blocks"},
 			[]interface{}{
 				testConfig, genFile, testProtocol,
-				"true", "Gossamer", "archive", 512},
+				"true", "Westend", "archive", uint32(512)},
 			&dot.Config{
 				Global: testCfg.Global,
 				Init: dot.InitConfig{

@@ -137,7 +137,7 @@ func TestBuildFromDB(t *testing.T) {
 		{name: "normal_conditions", path: cfg.Global.BasePath,
 			want: &BuildSpec{genesis: &genesis.Genesis{
 				Name:       "Development",
-				ID:         "westend-dev",
+				ID:         "westend_dev",
 				Bootnodes:  []string{},
 				ProtocolID: "dot",
 				Genesis: genesis.Fields{

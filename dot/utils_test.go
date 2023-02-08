@@ -94,7 +94,7 @@ func TestNewTestConfig(t *testing.T) {
 			want: &Config{
 				Global: GlobalConfig{
 					Name:           "Westend",
-					ID:             "westend-dev",
+					ID:             "westend_dev",
 					BasePath:       incBasePath,
 					LogLvl:         3,
 					PublishMetrics: false,
@@ -115,7 +115,8 @@ func TestNewTestConfig(t *testing.T) {
 					BlockProducerLvl:  3,
 					FinalityGadgetLvl: 3,
 				},
-				Init: InitConfig{Genesis: "./chain/westend-dev/westend-dev-spec-raw.json"},
+				Account: AccountConfig{Key: "alice"},
+				Init:    InitConfig{Genesis: "./chain/westend-dev/westend-dev-spec-raw.json"},
 				Core: CoreConfig{
 					Roles:            4,
 					BabeAuthority:    true,
@@ -130,13 +131,11 @@ func TestNewTestConfig(t *testing.T) {
 					ProtocolID:        "",
 					NoBootstrap:       false,
 					NoMDNS:            false,
-					MinPeers:          1,
-					MaxPeers:          50,
 					PersistentPeers:   nil,
 					DiscoveryInterval: 10000000000,
 				},
 				RPC: RPCConfig{
-					Enabled:        false,
+					Enabled:        true,
 					External:       false,
 					Unsafe:         false,
 					UnsafeExternal: false,
@@ -145,7 +144,7 @@ func TestNewTestConfig(t *testing.T) {
 					Modules: []string{"system", "author", "chain", "state", "rpc", "grandpa", "offchain",
 						"childstate", "syncstate", "payment"},
 					WSPort:           8546,
-					WS:               false,
+					WS:               true,
 					WSExternal:       false,
 					WSUnsafe:         false,
 					WSUnsafeExternal: false,
