@@ -689,7 +689,7 @@ func TestCreateGrandpaService(t *testing.T) {
 }
 
 func TestNewWebSocketServer(t *testing.T) {
-	const addr = "localhost:8546"
+	const addr = "localhost:9546"
 	testCalls := []struct {
 		call     []byte
 		expected []byte
@@ -726,6 +726,7 @@ func TestNewWebSocketServer(t *testing.T) {
 	cfg.Init.Genesis = genFile
 	cfg.RPC.External = false
 	cfg.RPC.WS = true
+	cfg.RPC.WSPort = 9546
 	cfg.RPC.WSExternal = false
 	cfg.System.SystemName = "gossamer"
 
