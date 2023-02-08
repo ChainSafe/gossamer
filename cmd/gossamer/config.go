@@ -770,10 +770,12 @@ func setDotRPCConfig(ctx *cli.Context, tomlCfg ctoml.RPCConfig, cfg *dot.RPCConf
 		cfg.WSPort = uint32(wsport)
 	}
 
-	if WS := ctx.GlobalBool(WSFlag.Name); WS || cfg.WS {
-		cfg.WS = true
-	} else if ctx.IsSet(WSFlag.Name) && !WS {
-		cfg.WS = false
+	wsFlagIsSet := ctx.IsSet(WSFlag.Name)
+
+	// if ws flag is set then set its value otherwise keep
+	// cfg.WS as it is
+	if wsFlagIsSet {
+		cfg.WS = ctx.GlobalBool(WSFlag.Name)
 	}
 
 	if wsExternal := ctx.GlobalBool(WSExternalFlag.Name); wsExternal {

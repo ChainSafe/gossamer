@@ -695,7 +695,7 @@ func TestRPCConfigFromFlags(t *testing.T) {
 		},
 		{
 			"Test gossamer --ws false",
-			[]string{"config", "w"},
+			[]string{"config", "ws"},
 			[]interface{}{testCfgFile, false},
 			dot.RPCConfig{
 				Enabled:    testCfg.RPC.Enabled,
