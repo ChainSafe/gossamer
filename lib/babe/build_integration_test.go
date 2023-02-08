@@ -54,9 +54,6 @@ func TestSeal(t *testing.T) {
 	require.True(t, ok, "could not verify seal")
 }
 
-// TODO see if there can be better assertions on block body #3060
-// Are extrinsics correct, what are the extrinsics now that there are 2 instead of 1, is one the same?
-// Does order matter?
 func TestBuildBlock_ok(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader)
@@ -66,15 +63,16 @@ func TestBuildBlock_ok(t *testing.T) {
 	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	epochData, err := babeService.initiateEpoch(testEpochIndex)
+	testEpochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
 	slot := getSlot(t, rt, time.Now())
-	ext := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0, signature.TestKeyringPairAlice,
+	extrinsic := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0, signature.TestKeyringPairAlice,
 		"System.remark", []byte{0xab, 0xcd})
-	block := createTestBlockWithSlot(t, babeService, emptyHeader, [][]byte{common.MustHexToBytes(ext)},
-		testEpochIndex, epochData, slot)
+	block := createTestBlockWithSlot(t, babeService, emptyHeader, [][]byte{common.MustHexToBytes(extrinsic)},
+		testEpochIndex, testEpochData, slot)
 
+	expectedSecondExtrinsic := "0x042d000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000" //nolint:lll
 	expectedBlockHeader := &types.Header{
 		ParentHash: emptyHeader.Hash(),
 		Number:     1,
@@ -89,6 +87,10 @@ func TestBuildBlock_ok(t *testing.T) {
 	// confirm block body is correct
 	extsBytes := types.ExtrinsicsArrayToBytesArray(block.Body)
 	require.Equal(t, 2, len(extsBytes))
+	// The first extrinsic is based on timestamp so is not consistent, but since the second is based on
+	// Parachn0 and Newheads inherents this can be asserted against. This works for now since we don't support real
+	// parachain data in these inherents currently, but when we do this will need to be updated
+	require.Equal(t, expectedSecondExtrinsic, common.BytesToHex(extsBytes[1]))
 }
 
 func TestApplyExtrinsicAfterFirstBlockFinalized(t *testing.T) {
