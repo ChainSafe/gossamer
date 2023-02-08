@@ -546,7 +546,7 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 }
 
 // TestRPCConfigFromFlags tests createDotRPCConfig using relevant rpc flags
-func x(t *testing.T) {
+func TestRPCConfigFromFlags(t *testing.T) {
 	testCfg, testCfgFile := newTestConfigWithFile(t)
 
 	testApp := cli.NewApp()
