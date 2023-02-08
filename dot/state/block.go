@@ -253,32 +253,34 @@ func (bs *BlockState) GetHashByNumber(num uint) (common.Hash, error) {
 
 // GetHashesByNumber returns the block hashes with the given number
 func (bs *BlockState) GetHashesByNumber(num uint) ([]common.Hash, error) {
-	blockHashes := []common.Hash{}
 	block, err := bs.GetBlockByNumber(num)
-	if err == nil {
-		blockHashes = bs.bt.GetAllBlocksAtNumber(block.Header.ParentHash)
+	if err != nil {
+		return []common.Hash{}, fmt.Errorf("getting block by number %w", err)
 	}
+	blockHashes := bs.bt.GetAllBlocksAtNumber(block.Header.ParentHash)
 
 	hash, err := bs.bt.GetHashByNumber(num)
-	if err == nil {
-		if !slices.Contains(blockHashes, hash) {
-			blockHashes = append(blockHashes, hash)
-		}
-		return blockHashes, nil
-	} else if !errors.Is(err, blocktree.ErrNumLowerThanRoot) {
-		return blockHashes, fmt.Errorf("failed to get hash from blocktree: %w", err)
-	}
-
-	// if error is ErrNumLowerThanRoot, number has already been finalised, so check db
-	bh, err := bs.db.Get(headerHashKey(uint64(num)))
 	if err != nil {
-		return blockHashes, fmt.Errorf("cannot get block %d: %w", num, err)
+		if !errors.Is(err, blocktree.ErrNumLowerThanRoot) {
+			return blockHashes, fmt.Errorf("failed to get hash from blocktree: %w", err)
+		}
+
+		// if error is ErrNumLowerThanRoot, number has already been finalised, so check db
+		bh, err := bs.db.Get(headerHashKey(uint64(num)))
+		if err != nil {
+			return blockHashes, fmt.Errorf("cannot get block %d: %w", num, err)
+		}
+
+		if !slices.Contains(blockHashes, hash) {
+			blockHashes = append(blockHashes, common.NewHash(bh))
+		}
+
+		return blockHashes, nil
 	}
 
 	if !slices.Contains(blockHashes, hash) {
-		blockHashes = append(blockHashes, common.NewHash(bh))
+		blockHashes = append(blockHashes, hash)
 	}
-
 	return blockHashes, nil
 }
 
