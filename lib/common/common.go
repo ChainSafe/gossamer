@@ -11,14 +11,10 @@ import (
 	"io"
 	"strconv"
 	"strings"
-	"testing"
 )
 
 // ErrNoPrefix is returned when trying to convert a hex-encoded string with no 0x prefix
 var ErrNoPrefix = errors.New("could not byteify non 0x prefixed string")
-
-// Signature represents a [64]byte signature
-type Signature [64]byte
 
 // StringToInts turns a string consisting of ints separated by commas into an int array
 func StringToInts(in string) (res []int, err error) {
@@ -88,14 +84,6 @@ func MustHexToBytes(in string) []byte {
 	}
 
 	return out
-}
-
-// MustHexTo64BArray turns a 0x prefixed hex string into a Signature
-// it panic if it cannot decode the string
-func MustHexTo64BArray(t *testing.T, inputHex string) (outputArray Signature) {
-	t.Helper()
-	copy(outputArray[:], MustHexToBytes(inputHex))
-	return outputArray
 }
 
 // BytesToHex turns a byte slice into a 0x prefixed hex string
