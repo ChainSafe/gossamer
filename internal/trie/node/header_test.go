@@ -226,7 +226,7 @@ func Test_encodeHeader(t *testing.T) {
 		})
 	}
 
-	t.Run("partial key length is too big", func(t *testing.T) {
+	t.Run("partial_key_length_is_too_big", func(t *testing.T) {
 		t.Parallel()
 
 		const keyLength = uint(maxPartialKeyLength) + 1
