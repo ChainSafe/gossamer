@@ -113,8 +113,14 @@ func TestInitConfigFromFlags(t *testing.T) {
 
 // TestGlobalConfigFromFlags tests createDotGlobalConfig using relevant global flags
 func TestGlobalConfigFromFlags(t *testing.T) {
-	polkadotConfig := dot.PolkadotConfig()
-	testCfg, testCfgFile := newTestConfigWithFile(t, polkadotConfig)
+	t.Parallel()
+	defaultGlobalConfig := dot.GlobalConfig{
+		Name:           "carpet-drill-8904",
+		ID:             "gssmr",
+		BasePath:       "~/.gossamer/gssmr",
+		LogLvl:         log.Info,
+		MetricsAddress: "localhost:9876",
+	}
 
 	testcases := map[string]struct {
 		args     []string
@@ -394,6 +400,13 @@ func TestCoreConfigFromFlags(t *testing.T) {
 
 // TestNetworkConfigFromFlags tests createDotNetworkConfig using relevant network flags
 func TestNetworkConfigFromFlags(t *testing.T) {
+	t.Parallel()
+	defaultNetworkCfg := dot.NetworkConfig{
+		Port:              7001,
+		MinPeers:          1,
+		MaxPeers:          50,
+		DiscoveryInterval: 10 * time.Second,
+	}
 	westendDevConfig := dot.WestendDevConfig()
 	testCfg, testCfgFile := newTestConfigWithFile(t, westendDevConfig)
 
@@ -488,6 +501,16 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 				MinPeers:          defaultNetworkCfg.MinPeers,
 				MaxPeers:          defaultNetworkCfg.MaxPeers,
 				NodeKey:           "testkey",
+			},
+		},
+		"Test_gossamer_--listen-addr": {
+			[]string{"app", "--listen-addr", "/ip4/0.0.0.0/tcp/1234/ws"},
+			dot.NetworkConfig{
+				Port:              defaultNetworkCfg.Port,
+				DiscoveryInterval: defaultNetworkCfg.DiscoveryInterval,
+				MinPeers:          defaultNetworkCfg.MinPeers,
+				MaxPeers:          defaultNetworkCfg.MaxPeers,
+				ListenAddress:     "/ip4/0.0.0.0/tcp/1234/ws",
 			},
 		},
 	}

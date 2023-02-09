@@ -84,6 +84,8 @@ type Config struct {
 	NoBootstrap bool
 	// NoMDNS disables MDNS discovery
 	NoMDNS bool
+	// ListenAddress multiaddress to listen on
+	ListenAddress string
 
 	MinPeers int
 	MaxPeers int

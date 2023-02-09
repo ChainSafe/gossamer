@@ -239,6 +239,11 @@ var (
 		Name:  "node-key",
 		Usage: "Overrides the secret Ed25519 key to use for libp2p",
 	}
+	// ListenAddressFlag uses the supplied multiaddress string as the address to listen on
+	ListenAddressFlag = cli.StringFlag{
+		Name:  "listen-addr",
+		Usage: "Listen on this multiaddress",
+	}
 )
 
 // RPC service configuration flags
@@ -418,6 +423,7 @@ var (
 		&PublicIPFlag,
 		&PublicDNSFlag,
 		&NodeKeyFlag,
+		&ListenAddressFlag,
 
 		// rpc flags
 		&RPCEnabledFlag,

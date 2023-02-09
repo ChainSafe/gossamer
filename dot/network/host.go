@@ -82,7 +82,11 @@ type host struct {
 
 func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	// create multiaddress (without p2p identity)
-	addr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", cfg.Port))
+	addrString := fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", cfg.Port)
+	if cfg.ListenAddress != "" {
+		addrString = cfg.ListenAddress
+	}
+	addr, err := ma.NewMultiaddr(addrString)
 	if err != nil {
 		return nil, err
 	}

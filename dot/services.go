@@ -308,6 +308,7 @@ func (nodeBuilder) createNetworkService(cfg *Config, stateSrvc *state.Service,
 		PublicDNS:         cfg.Network.PublicDNS,
 		Metrics:           metrics.NewIntervalConfig(cfg.Global.PublishMetrics),
 		NodeKey:           cfg.Network.NodeKey,
+		ListenAddress:     cfg.Network.ListenAddress,
 	}
 
 	networkSrvc, err := network.NewService(&networkConfig)

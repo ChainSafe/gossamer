@@ -643,6 +643,8 @@ func setDotNetworkConfig(ctx *cli.Context, tomlCfg ctoml.NetworkConfig, cfg *dot
 	cfg.MaxPeers = tomlCfg.MaxPeers
 	cfg.PersistentPeers = tomlCfg.PersistentPeers
 	cfg.DiscoveryInterval = time.Second * time.Duration(tomlCfg.DiscoveryInterval)
+	cfg.NodeKey = tomlCfg.NodeKey
+	cfg.ListenAddress = tomlCfg.ListenAddress
 
 	// check --port flag and update node configuration
 	if port := ctx.Uint(PortFlag.Name); port != 0 {
@@ -687,6 +689,11 @@ func setDotNetworkConfig(ctx *cli.Context, tomlCfg ctoml.NetworkConfig, cfg *dot
 	// check --node-key flag and update node configuration
 	if nodekey := ctx.String(NodeKeyFlag.Name); nodekey != "" {
 		cfg.NodeKey = nodekey
+	}
+
+	// checx --listen-addr flag and update node configuration
+	if listenAddress := ctx.String(ListenAddressFlag.Name); listenAddress != "" {
+		cfg.ListenAddress = listenAddress
 	}
 
 	if len(cfg.PersistentPeers) == 0 {
