@@ -27,8 +27,10 @@ var (
 	DefaultCfg                  = dot.WestendDevConfig
 	defaultKusamaConfigPath     = "./chain/kusama/config.toml"
 	defaultPolkadotConfigPath   = "./chain/polkadot/config.toml"
-	defaultWestendDevConfigPath = "./chain/westen-dev/config.toml"
+	defaultWestendDevConfigPath = "./chain/westend-dev/config.toml"
+)
 
+const (
 	kusamaName     = "kusama"
 	polkadotName   = "polkadot"
 	westendDevName = "westend-dev"
@@ -153,10 +155,10 @@ func createInitConfig(ctx *cli.Context) (*dot.Config, error) {
 		return nil, fmt.Errorf("--%s must be %s", PruningFlag.Name, pruner.Archive)
 	}
 
-	const defaultRetainBlocks = uint32(512)
+	const minRetainBlocks = uint32(512)
 
-	if cfg.Global.RetainBlocks < defaultRetainBlocks {
-		return nil, fmt.Errorf("--%s cannot be less than %d", RetainBlockNumberFlag.Name, defaultRetainBlocks)
+	if cfg.Global.RetainBlocks < minRetainBlocks {
+		return nil, fmt.Errorf("--%s cannot be less than %d", RetainBlockNumberFlag.Name, minRetainBlocks)
 	}
 
 	// set log config
@@ -617,8 +619,6 @@ func setDotCoreConfig(ctx *cli.Context, tomlCfg ctoml.CoreConfig, cfg *dot.CoreC
 
 	switch tomlCfg.WasmInterpreter {
 	case wasmer.Name:
-		cfg.WasmInterpreter = wasmer.Name
-	case "":
 		cfg.WasmInterpreter = wasmer.Name
 	default:
 		cfg.WasmInterpreter = wasmer.Name

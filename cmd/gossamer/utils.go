@@ -70,17 +70,18 @@ func confirmMessage(msg string) bool {
 func newTestConfig(t *testing.T) *dot.Config {
 	dir := t.TempDir()
 
+	westendDevConfig := dot.WestendDevConfig()
 	cfg := &dot.Config{
 		Global: dot.GlobalConfig{
-			Name:           dot.WestendDevConfig().Global.Name,
-			ID:             dot.WestendDevConfig().Global.ID,
+			Name:           westendDevConfig.Global.Name,
+			ID:             westendDevConfig.Global.ID,
 			BasePath:       dir,
 			LogLvl:         log.Info,
-			PublishMetrics: dot.WestendDevConfig().Global.PublishMetrics,
-			MetricsAddress: dot.WestendDevConfig().Global.MetricsAddress,
-			RetainBlocks:   dot.WestendDevConfig().Global.RetainBlocks,
-			Pruning:        dot.WestendDevConfig().Global.Pruning,
-			TelemetryURLs:  dot.WestendDevConfig().Global.TelemetryURLs,
+			PublishMetrics: westendDevConfig.Global.PublishMetrics,
+			MetricsAddress: westendDevConfig.Global.MetricsAddress,
+			RetainBlocks:   westendDevConfig.Global.RetainBlocks,
+			Pruning:        westendDevConfig.Global.Pruning,
+			TelemetryURLs:  westendDevConfig.Global.TelemetryURLs,
 		},
 		Log: dot.LogConfig{
 			CoreLvl:           log.Info,
@@ -93,13 +94,13 @@ func newTestConfig(t *testing.T) *dot.Config {
 			BlockProducerLvl:  log.Info,
 			FinalityGadgetLvl: log.Info,
 		},
-		Init:    dot.WestendDevConfig().Init,
-		Account: dot.WestendDevConfig().Account,
-		Core:    dot.WestendDevConfig().Core,
-		Network: dot.WestendDevConfig().Network,
-		RPC:     dot.WestendDevConfig().RPC,
-		System:  dot.WestendDevConfig().System,
-		Pprof:   dot.WestendDevConfig().Pprof,
+		Init:    westendDevConfig.Init,
+		Account: westendDevConfig.Account,
+		Core:    westendDevConfig.Core,
+		Network: westendDevConfig.Network,
+		RPC:     westendDevConfig.RPC,
+		System:  westendDevConfig.System,
+		Pprof:   westendDevConfig.Pprof,
 	}
 
 	return cfg

@@ -184,7 +184,7 @@ func (p PprofConfig) String() string {
 	return p.Settings.String()
 }
 
-// WestendDevConfig returns a kusama node configuration
+// WestendDevConfig returns a westend node configuration
 func WestendDevConfig() *Config {
 	return &Config{
 		Global: GlobalConfig{
@@ -195,7 +195,6 @@ func WestendDevConfig() *Config {
 			MetricsAddress: ":9876",
 			RetainBlocks:   512,
 			Pruning:        pruner.Archive,
-			TelemetryURLs:  []genesis.TelemetryEndpoint(nil),
 		},
 		Log: LogConfig{
 			CoreLvl:           log.Info,
