@@ -13,7 +13,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -658,8 +657,6 @@ func TestMessageHandler_VerifyPreVoteJustification(t *testing.T) {
 }
 
 func TestMessageHandler_VerifyPreCommitJustification(t *testing.T) {
-	t.Parallel()
-
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -736,8 +733,6 @@ func TestMessageHandler_HandleCatchUpResponse(t *testing.T) {
 }
 
 func TestMessageHandler_VerifyBlockJustification_WithEquivocatoryVotes(t *testing.T) {
-	t.Parallel()
-
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -802,7 +797,6 @@ func TestMessageHandler_VerifyBlockJustification_WithEquivocatoryVotes(t *testin
 }
 
 func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
-	t.Parallel()
 
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
@@ -835,11 +829,30 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	err = st.Block.AddBlock(block)
 	require.NoError(t, err)
 
+	digest2 := types.NewDigest()
+	prd2, _ := types.NewBabeSecondaryPlainPreDigest(0, 2).ToPreRuntimeDigest()
+	digest2.Add(*prd2)
+
+	testHeader2 := types.Header{
+		ParentHash: testGenesisHeader.Hash(),
+		Number:     1,
+		Digest:     digest2,
+	}
+
+	block2 := &types.Block{
+		Header: testHeader2,
+		Body:   *body,
+	}
+
+	err = st.Block.AddBlock(block2)
+	require.NoError(t, err)
+
+	err = st.Block.SetHeader(&testHeader2)
+	require.NoError(t, err)
+
 	setID, err := st.Grandpa.IncrementSetID()
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), setID)
-
-	genhash := st.Block.GenesisHash()
 
 	round := uint64(1)
 	number := uint32(1)
@@ -853,16 +866,14 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	// use wrong hash, shouldn't verify
 	precommits = buildTestJustification(t, 2, round+1, setID, kr, precommit)
 	just = newJustification(round+1, testHash, number, precommits)
-	just.Commit.Precommits[0].Vote.Hash = genhash
+	just.Commit.Precommits[0].Vote.Hash = testHeader2.Hash()
 	data, err = scale.Marshal(*just)
 	require.NoError(t, err)
 	err = gs.VerifyBlockJustification(testHash, data)
-	require.Equal(t, blocktree.ErrEndNodeNotFound, err)
+	require.Equal(t, ErrPrecommitBlockMismatch, err)
 }
 
 func TestMessageHandler_VerifyBlockJustification_invalid(t *testing.T) {
-	t.Parallel()
-
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -1481,8 +1492,6 @@ func signFakeFullVote(
 }
 
 func TestService_VerifyBlockJustification(t *testing.T) {
-	t.Parallel()
-
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 

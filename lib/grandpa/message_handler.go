@@ -356,7 +356,7 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) erro
 
 	isDescendant, err := isDescendantOfHighestFinalisedBlock(h.blockState, msg.Hash)
 	if err != nil {
-		return err
+		return fmt.Errorf("checking if descendant of highest block: %w", err)
 	}
 	if !isDescendant {
 		return errVoteBlockMismatch
@@ -376,7 +376,7 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) erro
 				logger.Infof("we might not have synced to the given block %s yet: %s", just.Vote.Hash, err)
 				continue
 			}
-			return err
+			return fmt.Errorf("verifying block hash against block number: %w", err)
 		}
 
 		err := verifyJustification(just, msg.Round, msg.SetID, precommit, h.grandpa.authorityKeySet())
@@ -423,7 +423,7 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 
 	has, err := s.blockState.HasFinalisedBlock(fj.Round, setID)
 	if err != nil {
-		return err
+		return fmt.Errorf("checking if round and set id has finalised block: %w", err)
 	}
 
 	if has {
@@ -440,7 +440,7 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 
 	isDescendant, err := isDescendantOfHighestFinalisedBlock(s.blockState, fj.Commit.Hash)
 	if err != nil {
-		return err
+		return fmt.Errorf("checking if descendant of highest block: %w", err)
 	}
 
 	if !isDescendant {
@@ -526,19 +526,19 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 
 	err = verifyBlockHashAgainstBlockNumber(s.blockState, fj.Commit.Hash, uint(fj.Commit.Number))
 	if err != nil {
-		return err
+		return fmt.Errorf("verifying block hash against block number: %w", err)
 	}
 
 	for _, preCommit := range fj.Commit.Precommits {
 		err := verifyBlockHashAgainstBlockNumber(s.blockState, preCommit.Vote.Hash, uint(preCommit.Vote.Number))
 		if err != nil {
-			return err
+			return fmt.Errorf("verifying block hash against block number: %w", err)
 		}
 	}
 
 	err = s.blockState.SetFinalisedHash(hash, fj.Round, setID)
 	if err != nil {
-		return err
+		return fmt.Errorf("setting finalised hash: %w", err)
 	}
 
 	logger.Debugf(
