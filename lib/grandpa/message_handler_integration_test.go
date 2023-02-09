@@ -1491,7 +1491,7 @@ func signFakeFullVote(
 	return sig
 }
 
-func TestService_VerifyBlockJustification(t *testing.T) {
+func TestService_VerifyBlockJustification(t *testing.T) { //nolint
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
