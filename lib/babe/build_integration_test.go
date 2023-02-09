@@ -170,73 +170,76 @@ func TestApplyExtrinsicAfterFirstBlockFinalized(t *testing.T) {
 }
 
 func TestBuildAndApplyExtrinsic(t *testing.T) {
+	keyRing, err := keystore.NewSr25519Keyring()
+	require.NoError(t, err)
+
 	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader)
 
-	parentHash := common.MustHexToHash("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
-	header := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, 1, types.NewDigest())
-
+	header := types.NewHeader(genesisHeader.Hash(), common.Hash{}, common.Hash{}, 1, types.NewDigest())
 	bestBlockHash := babeService.blockState.BestBlockHash()
-	runtime, err := babeService.blockState.GetRuntime(bestBlockHash)
+	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
 	//initialise block header
-	err = runtime.InitializeBlock(header)
+	err = rt.InitializeBlock(header)
 	require.NoError(t, err)
 
 	// build extrinsic
-	rawMeta, err := runtime.Metadata()
+	rawMeta, err := rt.Metadata()
 	require.NoError(t, err)
-	var decoded []byte
-	err = scale.Unmarshal(rawMeta, &decoded)
+	var metadataBytes []byte
+	err = scale.Unmarshal(rawMeta, &metadataBytes)
 	require.NoError(t, err)
 
 	meta := &ctypes.Metadata{}
-	err = codec.Decode(decoded, meta)
+	err = codec.Decode(metadataBytes, meta)
 	require.NoError(t, err)
 
-	rv := runtime.Version()
+	runtimeVersion := rt.Version()
 
-	bob, err := ctypes.NewMultiAddressFromHexAccountID(
-		"0x90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22")
+	charlie, err := ctypes.NewMultiAddressFromHexAccountID(
+		keyRing.KeyCharlie.Public().Hex())
 	require.NoError(t, err)
 
-	call, err := ctypes.NewCall(meta, "Balances.transfer", bob, ctypes.NewUCompactFromUInt(12345))
+	call, err := ctypes.NewCall(meta, "Balances.transfer", charlie, ctypes.NewUCompactFromUInt(12345))
 	require.NoError(t, err)
 
 	// Create the extrinsic
-	ext := ctypes.NewExtrinsic(call)
-	genHash, err := ctypes.NewHashFromHexString("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
+	extrinsic := ctypes.NewExtrinsic(call)
+	genesisHash, err := ctypes.NewHashFromHexString(genesisHeader.Hash().String())
 	require.NoError(t, err)
 
-	o := ctypes.SignatureOptions{
-		BlockHash:          genHash,
+	so := ctypes.SignatureOptions{
+		BlockHash:          genesisHash,
 		Era:                ctypes.ExtrinsicEra{IsImmortalEra: true},
-		GenesisHash:        genHash,
+		GenesisHash:        genesisHash,
 		Nonce:              ctypes.NewUCompactFromUInt(uint64(0)),
-		SpecVersion:        ctypes.U32(rv.SpecVersion),
+		SpecVersion:        ctypes.U32(runtimeVersion.SpecVersion),
 		Tip:                ctypes.NewUCompactFromUInt(0),
-		TransactionVersion: ctypes.U32(rv.TransactionVersion),
+		TransactionVersion: ctypes.U32(runtimeVersion.TransactionVersion),
 	}
 
 	// Sign the transaction using Alice's default account
-	err = ext.Sign(signature.TestKeyringPairAlice, o)
+	err = extrinsic.Sign(signature.TestKeyringPairAlice, so)
 	require.NoError(t, err)
 
-	extEnc := bytes.Buffer{}
-	encoder := cscale.NewEncoder(&extEnc)
-	ext.Encode(*encoder)
-
-	externalExtrinsic := buildLocalTransaction(t, runtime, extEnc.Bytes(), bestBlockHash)
-
-	txVal, err := runtime.ValidateTransaction(externalExtrinsic)
+	extEnc := bytes.NewBuffer(nil)
+	encoder := cscale.NewEncoder(extEnc)
+	err = extrinsic.Encode(*encoder)
 	require.NoError(t, err)
 
-	vtx := transaction.NewValidTransaction(extEnc.Bytes(), txVal)
-	babeService.transactionState.Push(vtx)
+	externalExtrinsic := buildLocalTransaction(t, rt, extEnc.Bytes(), bestBlockHash)
+
+	txVal, err := rt.ValidateTransaction(externalExtrinsic)
+	require.NoError(t, err)
+
+	validTransaction := transaction.NewValidTransaction(extEnc.Bytes(), txVal)
+	_, err = babeService.transactionState.Push(validTransaction)
+	require.NoError(t, err)
 
 	// apply extrinsic
-	res, err := runtime.ApplyExtrinsic(extEnc.Bytes())
+	res, err := rt.ApplyExtrinsic(extEnc.Bytes())
 	require.NoError(t, err)
 	// Expected result for valid ApplyExtrinsic is 0, 0
 	require.Equal(t, []byte{0, 0}, res)
