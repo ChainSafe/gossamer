@@ -27,7 +27,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 // TestConfigFromChainFlag tests createDotConfig using the --chain flag
@@ -115,9 +115,6 @@ func TestInitConfigFromFlags(t *testing.T) {
 func TestGlobalConfigFromFlags(t *testing.T) {
 	polkadotConfig := dot.PolkadotConfig()
 	testCfg, testCfgFile := newTestConfigWithFile(t, polkadotConfig)
-
-	testApp := cli.NewApp()
-	testApp.Flags = RootFlags
 
 	testcases := map[string]struct {
 		args     []string
@@ -230,8 +227,12 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 	}
 
 	for key, c := range testcases {
-		c := c // bypass scopelint false positive
+		c := c
 		t.Run(key, func(t *testing.T) {
+			t.Parallel()
+			testApp := cli.NewApp()
+			testApp.Writer = io.Discard
+			testApp.Flags = RootFlags
 			testApp.Action = func(ctx *cli.Context) error {
 				cfg, err := createDotConfig(ctx)
 				require.NoError(t, err)
@@ -396,9 +397,6 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 	westendDevConfig := dot.WestendDevConfig()
 	testCfg, testCfgFile := newTestConfigWithFile(t, westendDevConfig)
 
-	testApp := cli.NewApp()
-	testApp.Flags = StartupFlags
-
 	testcases := map[string]struct {
 		args     []string
 		expected dot.NetworkConfig
@@ -495,8 +493,12 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 	}
 
 	for key, c := range testcases {
-		c := c // bypass scopelint false positive
+		c := c
 		t.Run(key, func(t *testing.T) {
+			t.Parallel()
+			testApp := cli.NewApp()
+			testApp.Writer = io.Discard
+			testApp.Flags = StartupFlags
 			testApp.Action = func(ctx *cli.Context) error {
 				cfg, err := createDotConfig(ctx)
 				require.NoError(t, err)

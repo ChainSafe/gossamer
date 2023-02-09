@@ -11,7 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 // accountAction executes the action for the "account" subcommand

@@ -96,7 +96,7 @@ type Config struct {
 	// privateKey the private key for the network p2p identity
 	privateKey crypto.PrivKey
 
-	//NodeKey is the private hex encoded Ed25519 key to build the p2p identity
+	// NodeKey is the private hex encoded Ed25519 key to build the p2p identity
 	NodeKey string
 
 	// telemetryInterval how often to send telemetry metrics
@@ -179,6 +179,7 @@ func (c *Config) buildIdentity() error {
 		c.privateKey = privateKey
 		return nil
 	}
+
 	if c.RandSeed == 0 {
 
 		// attempt to load existing key

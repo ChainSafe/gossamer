@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ChainSafe/gossamer/chain/dev"
+	"github.com/ChainSafe/gossamer/chain/gssmr"
 	"github.com/ChainSafe/gossamer/dot"
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -19,7 +21,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/utils"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 var (
@@ -34,7 +36,7 @@ var (
 // loadConfigFile loads a default config file if --chain is specified, a specific
 // config if --config is specified, or the default gossamer config otherwise.
 func loadConfigFile(ctx *cli.Context, cfg *ctoml.Config) (err error) {
-	cfgPath := ctx.GlobalString(ConfigFlag.Name)
+	cfgPath := ctx.String(ConfigFlag.Name)
 	if cfgPath == "" {
 		return loadConfig(cfg, defaultPolkadotConfigPath)
 	}
@@ -61,7 +63,7 @@ func setupConfigFromChain(ctx *cli.Context) (*ctoml.Config, *dot.Config, error) 
 	}
 
 	// check --chain flag and load configuration from defaults.go
-	if id := ctx.GlobalString(ChainFlag.Name); id != "" {
+	if id := ctx.String(ChainFlag.Name); id != "" {
 		switch id {
 		case "kusama":
 			logger.Info("loading toml configuration from " + defaultKusamaConfigPath + "...")
@@ -456,7 +458,7 @@ func setDotGlobalConfigFromToml(tomlCfg *ctoml.Config, cfg *dot.GlobalConfig) {
 // setDotGlobalConfigFromFlags sets dot.GlobalConfig using flag values from the cli context
 func setDotGlobalConfigFromFlags(ctx *cli.Context, cfg *dot.GlobalConfig) error {
 	// check --basepath flag and update node configuration
-	if basepath := ctx.GlobalString(strings.Split(BasePathFlag.Name, ",")[0]); basepath != "" {
+	if basepath := ctx.String(BasePathFlag.Name); basepath != "" {
 		cfg.BasePath = basepath
 	}
 
@@ -474,7 +476,7 @@ func setDotGlobalConfigFromFlags(ctx *cli.Context, cfg *dot.GlobalConfig) error 
 	cfg.PublishMetrics = ctx.Bool("publish-metrics")
 
 	// check --metrics-address flag and update node configuration
-	if metricsAddress := ctx.GlobalString(MetricsAddressFlag.Name); metricsAddress != "" {
+	if metricsAddress := ctx.String(MetricsAddressFlag.Name); metricsAddress != "" {
 		cfg.MetricsAddress = metricsAddress
 	}
 
@@ -490,7 +492,7 @@ func setDotGlobalConfigFromFlags(ctx *cli.Context, cfg *dot.GlobalConfig) error 
 	cfg.NoTelemetry = ctx.Bool("no-telemetry")
 
 	var telemetryEndpoints []genesis.TelemetryEndpoint
-	for _, telemetryURL := range ctx.GlobalStringSlice(TelemetryURLFlag.Name) {
+	for _, telemetryURL := range ctx.StringSlice(TelemetryURLFlag.Name) {
 		splits := strings.Split(telemetryURL, " ")
 		if len(splits) != 2 {
 			return fmt.Errorf("%s must be in the format 'URL VERBOSITY'", TelemetryURLFlag.Name)
@@ -517,8 +519,8 @@ func setDotGlobalConfigName(ctx *cli.Context, tomlCfg *ctoml.Config, cfg *dot.Gl
 	initialised := dot.IsNodeInitialised(globalBasePath)
 
 	// consider the --name flag as higher priority
-	if ctx.GlobalString(NameFlag.Name) != "" {
-		cfg.Name = ctx.GlobalString(NameFlag.Name)
+	if ctx.String(NameFlag.Name) != "" {
+		cfg.Name = ctx.String(NameFlag.Name)
 		return nil
 	}
 
@@ -556,12 +558,12 @@ func setDotAccountConfig(ctx *cli.Context, tomlCfg ctoml.AccountConfig, cfg *dot
 	}
 
 	// check --key flag and update node configuration
-	if key := ctx.GlobalString(KeyFlag.Name); key != "" {
+	if key := ctx.String(KeyFlag.Name); key != "" {
 		cfg.Key = key
 	}
 
 	// check --unlock flag and update node configuration
-	if unlock := ctx.GlobalString(UnlockFlag.Name); unlock != "" {
+	if unlock := ctx.String(UnlockFlag.Name); unlock != "" {
 		cfg.Unlock = unlock
 	}
 
@@ -578,11 +580,11 @@ func setDotCoreConfig(ctx *cli.Context, tomlCfg ctoml.CoreConfig, cfg *dot.CoreC
 
 	cfg.BABELead = tomlCfg.BABELead
 	if ctx.IsSet(BABELeadFlag.Name) {
-		cfg.BABELead = ctx.GlobalBool(BABELeadFlag.Name)
+		cfg.BABELead = ctx.Bool(BABELeadFlag.Name)
 	}
 
 	// check --roles flag and update node configuration
-	if roles := ctx.GlobalString(RolesFlag.Name); roles != "" {
+	if roles := ctx.String(RolesFlag.Name); roles != "" {
 		// convert string to byte
 		n, err := strconv.Atoi(roles)
 		b := common.Roles(n)
@@ -643,13 +645,13 @@ func setDotNetworkConfig(ctx *cli.Context, tomlCfg ctoml.NetworkConfig, cfg *dot
 	cfg.DiscoveryInterval = time.Second * time.Duration(tomlCfg.DiscoveryInterval)
 
 	// check --port flag and update node configuration
-	if port := ctx.GlobalUint(PortFlag.Name); port != 0 {
+	if port := ctx.Uint(PortFlag.Name); port != 0 {
 		cfg.Port = uint16(port)
 	}
 
 	// check --bootnodes flag and update node configuration
-	if bootnodes := ctx.GlobalString(BootnodesFlag.Name); bootnodes != "" {
-		cfg.Bootnodes = strings.Split(ctx.GlobalString(BootnodesFlag.Name), ",")
+	if bootnodes := ctx.String(BootnodesFlag.Name); bootnodes != "" {
+		cfg.Bootnodes = strings.Split(ctx.String(BootnodesFlag.Name), ",")
 	}
 
 	// format bootnodes
@@ -658,32 +660,32 @@ func setDotNetworkConfig(ctx *cli.Context, tomlCfg ctoml.NetworkConfig, cfg *dot
 	}
 
 	// check --protocol flag and update node configuration
-	if protocol := ctx.GlobalString(ProtocolFlag.Name); protocol != "" {
+	if protocol := ctx.String(ProtocolFlag.Name); protocol != "" {
 		cfg.ProtocolID = protocol
 	}
 
 	// check --nobootstrap flag and update node configuration
-	if nobootstrap := ctx.GlobalBool(NoBootstrapFlag.Name); nobootstrap {
+	if nobootstrap := ctx.Bool(NoBootstrapFlag.Name); nobootstrap {
 		cfg.NoBootstrap = true
 	}
 
 	// check --nomdns flag and update node configuration
-	if nomdns := ctx.GlobalBool(strings.Split(NoMDNSFlag.Name, ",")[0]); nomdns {
+	if nomdns := ctx.Bool(NoMDNSFlag.Name); nomdns {
 		cfg.NoMDNS = true
 	}
 
 	// check --pubip flag and update node configuration
-	if pubip := ctx.GlobalString(PublicIPFlag.Name); pubip != "" {
+	if pubip := ctx.String(PublicIPFlag.Name); pubip != "" {
 		cfg.PublicIP = pubip
 	}
 
 	// check --pubdns flag and update node configuration
-	if pubdns := ctx.GlobalString(PublicDNSFlag.Name); pubdns != "" {
+	if pubdns := ctx.String(PublicDNSFlag.Name); pubdns != "" {
 		cfg.PublicDNS = pubdns
 	}
 
 	// check --node-key flag and update node configuration
-	if nodekey := ctx.GlobalString(NodeKeyFlag.Name); nodekey != "" {
+	if nodekey := ctx.String(NodeKeyFlag.Name); nodekey != "" {
 		cfg.NodeKey = nodekey
 	}
 
@@ -717,16 +719,14 @@ func setDotRPCConfig(ctx *cli.Context, tomlCfg ctoml.RPCConfig, cfg *dot.RPCConf
 	cfg.WSUnsafeExternal = tomlCfg.WSUnsafeExternal
 
 	// check --rpc flag and update node configuration
-	rpcFlagIsSet := ctx.IsSet(RPCEnabledFlag.Name)
-
-	// if rpc flag is set then set its value otherwise keep
-	// cfg.Enabled as it is
-	if rpcFlagIsSet {
-		cfg.Enabled = ctx.GlobalBool(RPCEnabledFlag.Name)
+	if enabled := ctx.Bool(RPCEnabledFlag.Name); enabled || cfg.Enabled {
+		cfg.Enabled = true
+	} else if ctx.IsSet(RPCEnabledFlag.Name) && !enabled {
+		cfg.Enabled = false
 	}
 
 	// check --rpc-external flag and update node configuration
-	if external := ctx.GlobalBool(RPCExternalFlag.Name); external {
+	if external := ctx.Bool(RPCExternalFlag.Name); external {
 		cfg.Enabled = true
 		cfg.External = true
 	} else if ctx.IsSet(RPCExternalFlag.Name) && !external {
@@ -735,46 +735,50 @@ func setDotRPCConfig(ctx *cli.Context, tomlCfg ctoml.RPCConfig, cfg *dot.RPCConf
 	}
 
 	// check --rpc-unsafe flag value
-	if rpcUnsafe := ctx.GlobalBool(RPCUnsafeEnabledFlag.Name); rpcUnsafe {
+	if rpcUnsafe := ctx.Bool(RPCUnsafeEnabledFlag.Name); rpcUnsafe {
 		cfg.Unsafe = true
 	}
 
 	// check --rpc-unsafe-external flag value
-	if externalUnsafe := ctx.GlobalBool(RPCUnsafeExternalFlag.Name); externalUnsafe {
+	if externalUnsafe := ctx.Bool(RPCUnsafeExternalFlag.Name); externalUnsafe {
 		cfg.Unsafe = true
 		cfg.UnsafeExternal = true
 	}
 
 	// check --ws-unsafe flag value
-	if wsUnsafe := ctx.GlobalBool(WSUnsafeEnabledFlag.Name); wsUnsafe {
+	if wsUnsafe := ctx.Bool(WSUnsafeEnabledFlag.Name); wsUnsafe {
 		cfg.WSUnsafe = true
 	}
 
 	// check --ws-unsafe-external flag value
-	if wsExternalUnsafe := ctx.GlobalBool(WSUnsafeExternalFlag.Name); wsExternalUnsafe {
+	if wsExternalUnsafe := ctx.Bool(WSUnsafeExternalFlag.Name); wsExternalUnsafe {
 		cfg.WSUnsafe = true
 		cfg.WSUnsafeExternal = true
 	}
 
 	// check --rpcport flag and update node configuration
-	if port := ctx.GlobalUint(strings.Split(RPCPortFlag.Name, ",")[0]); port != 0 {
+	if port := ctx.Uint(RPCPortFlag.Name); port != 0 {
 		cfg.Port = uint32(port)
 	}
 
 	// check --rpchost flag and update node configuration
-	if host := ctx.GlobalString(RPCHostFlag.Name); host != "" {
+	if host := ctx.String(RPCHostFlag.Name); host != "" {
 		cfg.Host = host
 	}
 
 	// check --rpcmods flag and update node configuration
-	if modules := ctx.GlobalString(RPCModulesFlag.Name); modules != "" {
-		cfg.Modules = strings.Split(ctx.GlobalString(RPCModulesFlag.Name), ",")
+	if modules := ctx.String(RPCModulesFlag.Name); modules != "" {
+		cfg.Modules = strings.Split(ctx.String(RPCModulesFlag.Name), ",")
 	}
 
-	if wsport := ctx.GlobalUint(strings.Split(WSPortFlag.Name, ",")[0]); wsport != 0 {
+	if wsport := ctx.Uint(WSPortFlag.Name); wsport != 0 {
 		cfg.WSPort = uint32(wsport)
 	}
 
+	if WS := ctx.Bool(WSFlag.Name); WS || cfg.WS {
+		cfg.WS = true
+	} else if ctx.IsSet(WSFlag.Name) && !WS {
+		cfg.WS = false
 	wsFlagIsSet := ctx.IsSet(WSFlag.Name)
 
 	// if ws flag is set then set its value otherwise keep
@@ -783,7 +787,7 @@ func setDotRPCConfig(ctx *cli.Context, tomlCfg ctoml.RPCConfig, cfg *dot.RPCConf
 		cfg.WS = ctx.GlobalBool(WSFlag.Name)
 	}
 
-	if wsExternal := ctx.GlobalBool(WSExternalFlag.Name); wsExternal {
+	if wsExternal := ctx.Bool(WSExternalFlag.Name); wsExternal {
 		cfg.WS = true
 		cfg.WSExternal = true
 	} else if ctx.IsSet(WSExternalFlag.Name) && !wsExternal {
@@ -861,17 +865,17 @@ func updateDotConfigFromGenesisData(ctx *cli.Context, cfg *dot.Config) error {
 	}
 
 	// check genesis id and use genesis id if --chain flag not set
-	if !ctx.GlobalIsSet(ChainFlag.Name) {
+	if !ctx.IsSet(ChainFlag.Name) {
 		cfg.Global.ID = gen.ID
 	}
 
 	// check genesis bootnodes and use genesis --bootnodes if name flag not set
-	if !ctx.GlobalIsSet(BootnodesFlag.Name) {
+	if !ctx.IsSet(BootnodesFlag.Name) {
 		cfg.Network.Bootnodes = common.BytesToStringArray(gen.Bootnodes)
 	}
 
 	// check genesis protocol and use genesis --protocol if name flag not set
-	if !ctx.GlobalIsSet(ProtocolFlag.Name) {
+	if !ctx.IsSet(ProtocolFlag.Name) {
 		cfg.Network.ProtocolID = gen.ProtocolID
 	}
 
@@ -894,8 +898,8 @@ func updateDotConfigFromGenesisData(ctx *cli.Context, cfg *dot.Config) error {
 
 func setDotPprofConfig(ctx *cli.Context, tomlCfg ctoml.PprofConfig, cfg *dot.PprofConfig) {
 	// Flag takes precedence over TOML config, default is ignored.
-	if ctx.GlobalIsSet(PprofServerFlag.Name) {
-		cfg.Enabled = ctx.GlobalBool(PprofServerFlag.Name)
+	if ctx.IsSet(PprofServerFlag.Name) {
+		cfg.Enabled = ctx.Bool(PprofServerFlag.Name)
 	} else {
 		cfg.Enabled = tomlCfg.Enabled
 	}
@@ -917,15 +921,15 @@ func setDotPprofConfig(ctx *cli.Context, tomlCfg ctoml.PprofConfig, cfg *dot.Ppr
 	}
 
 	// check --pprofaddress flag and update node configuration
-	if address := ctx.GlobalString(PprofAddressFlag.Name); address != "" {
+	if address := ctx.String(PprofAddressFlag.Name); address != "" {
 		cfg.Settings.ListeningAddress = address
 	}
 
-	if rate := ctx.GlobalInt(PprofBlockRateFlag.Name); rate > 0 {
+	if rate := ctx.Int(PprofBlockRateFlag.Name); rate > 0 {
 		cfg.Settings.BlockProfileRate = rate
 	}
 
-	if rate := ctx.GlobalInt(PprofMutexRateFlag.Name); rate > 0 {
+	if rate := ctx.Int(PprofMutexRateFlag.Name); rate > 0 {
 		cfg.Settings.MutexProfileRate = rate
 	}
 
@@ -933,8 +937,8 @@ func setDotPprofConfig(ctx *cli.Context, tomlCfg ctoml.PprofConfig, cfg *dot.Ppr
 }
 
 func setStateConfig(ctx *cli.Context, tomlCfg ctoml.StateConfig, cfg *dot.StateConfig) {
-	if ctx.GlobalIsSet(RewindFlag.Name) {
-		cfg.Rewind = ctx.GlobalUint(RewindFlag.Name)
+	if ctx.IsSet(RewindFlag.Name) {
+		cfg.Rewind = ctx.Uint(RewindFlag.Name)
 	} else if tomlCfg.Rewind > 0 {
 		cfg.Rewind = tomlCfg.Rewind
 	}

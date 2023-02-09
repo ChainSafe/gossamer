@@ -15,7 +15,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/utils"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 
 	_ "github.com/breml/rootcerts"
 )
@@ -133,16 +133,16 @@ func init() {
 	app.Copyright = "Copyright 2019 ChainSafe Systems Authors"
 	app.Name = "gossamer"
 	app.Usage = "Official gossamer command-line interface"
-	app.Author = "ChainSafe Systems 2019"
+	app.Authors = []*cli.Author{{Name: "ChainSafe Systems"}}
 	app.Version = "0.3.2"
-	app.Commands = []cli.Command{
-		exportCommand,
-		initCommand,
-		accountCommand,
-		buildSpecCommand,
-		importRuntimeCommand,
-		importStateCommand,
-		pruningCommand,
+	app.Commands = []*cli.Command{
+		&exportCommand,
+		&initCommand,
+		&accountCommand,
+		&buildSpecCommand,
+		&importRuntimeCommand,
+		&importStateCommand,
+		&pruningCommand,
 	}
 	app.Flags = RootFlags
 }
@@ -186,12 +186,12 @@ func importStateAction(ctx *cli.Context) error {
 // importRuntimeAction generates a genesis file given a .wasm runtime binary.
 func importRuntimeAction(ctx *cli.Context) error {
 	arguments := ctx.Args()
-	if len(arguments) != 2 {
+	if arguments.Len() != 2 {
 		return fmt.Errorf("please provide a wasm file and the genesis spec file")
 	}
 
-	fp := arguments[0]
-	genesisChainSpec := arguments[1]
+	fp := arguments.Get(0)
+	genesisChainSpec := arguments.Get(1)
 
 	out, err := createGenesisWithRuntime(fp, genesisChainSpec)
 	if err != nil {
@@ -207,8 +207,8 @@ func importRuntimeAction(ctx *cli.Context) error {
 // then creates and starts the node and node services
 func gossamerAction(ctx *cli.Context) error {
 	// check for unknown command arguments
-	if arguments := ctx.Args(); len(arguments) > 0 {
-		return fmt.Errorf("failed to read command argument: %q", arguments[0])
+	if arguments := ctx.Args(); arguments.Len() > 0 {
+		return fmt.Errorf("failed to read command argument: %q", arguments.Get(0))
 	}
 
 	// setup gossamer logger
@@ -442,7 +442,7 @@ func pruneState(ctx *cli.Context) error {
 	inputDBPath := filepath.Join(tomlCfg.Global.BasePath, "db")
 
 	const uint32Max = ^uint32(0)
-	flagValue := ctx.GlobalUint64(RetainBlockNumberFlag.Name)
+	flagValue := ctx.Uint64(RetainBlockNumberFlag.Name)
 
 	if uint64(uint32Max) < flagValue {
 		return fmt.Errorf("retain blocks value overflows uint32 boundaries, must be less than or equal to: %d", uint32Max)
