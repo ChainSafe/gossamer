@@ -296,7 +296,7 @@ func Test_chainProcessor_handleJustification(t *testing.T) {
 			chainProcessorBuilder: func(ctrl *gomock.Controller) chainProcessor {
 				mockFinalityGadget := NewMockFinalityGadget(ctrl)
 				mockFinalityGadget.EXPECT().VerifyBlockJustification(headerHash,
-					[]byte(`x`)).Return(nil, errTest)
+					[]byte(`x`)).Return(errTest)
 				return chainProcessor{
 					finalityGadget: mockFinalityGadget,
 				}
@@ -313,7 +313,7 @@ func Test_chainProcessor_handleJustification(t *testing.T) {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().SetJustification(headerHash, []byte(`xx`)).Return(errTest)
 				mockFinalityGadget := NewMockFinalityGadget(ctrl)
-				mockFinalityGadget.EXPECT().VerifyBlockJustification(headerHash, []byte(`xx`)).Return([]byte(`xx`), nil)
+				mockFinalityGadget.EXPECT().VerifyBlockJustification(headerHash, []byte(`xx`)).Return(nil)
 				return chainProcessor{
 					blockState:     mockBlockState,
 					finalityGadget: mockFinalityGadget,
@@ -331,7 +331,7 @@ func Test_chainProcessor_handleJustification(t *testing.T) {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().SetJustification(headerHash, []byte(`1234`)).Return(nil)
 				mockFinalityGadget := NewMockFinalityGadget(ctrl)
-				mockFinalityGadget.EXPECT().VerifyBlockJustification(headerHash, []byte(`1234`)).Return([]byte(`1234`), nil)
+				mockFinalityGadget.EXPECT().VerifyBlockJustification(headerHash, []byte(`1234`)).Return(nil)
 				return chainProcessor{
 					blockState:     mockBlockState,
 					finalityGadget: mockFinalityGadget,
@@ -430,7 +430,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 				mockFinalityGadget := NewMockFinalityGadget(ctrl)
 				mockFinalityGadget.EXPECT().VerifyBlockJustification(common.MustHexToHash(
 					"0x6443a0b46e0412e626363028115a9f2cf963eeed526b8b33e5316f08b50d0dc3"), []byte{1, 2,
-					3}).Return([]byte{1, 2, 3}, nil)
+					3}).Return(nil)
 				mockStorageState := NewMockStorageState(ctrl)
 				mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(nil, nil)
 
@@ -490,7 +490,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 				expectedBlockDataHeaderHash := expectedBlockDataHeader.Hash()
 				finalityGadget.EXPECT().
 					VerifyBlockJustification(expectedBlockDataHeaderHash, []byte{1, 2, 3}).
-					Return(nil, mockError)
+					Return(mockError)
 
 				mockChainSync := NewMockChainSync(ctrl)
 				mockChainSync.EXPECT().syncState().Return(bootstrap)
@@ -564,7 +564,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 				mockFinalityGadget := NewMockFinalityGadget(ctrl)
 				mockFinalityGadget.EXPECT().VerifyBlockJustification(
 					common.MustHexToHash("0xdcdd89927d8a348e00257e1ecc8617f45edb5118efff3ea2f9961b2ad9b7690a"),
-					[]byte{1, 2, 3}).Return([]byte{1, 2, 3}, nil)
+					[]byte{1, 2, 3}).Return(nil)
 				return chainProcessor{
 					chainSync:          mockChainSync,
 					blockState:         mockBlockState,
@@ -660,7 +660,7 @@ func Test_chainProcessor_processBlockDataWithStateHeaderAndBody(t *testing.T) {
 				finalityGadget := NewMockFinalityGadget(ctrl)
 				finalityGadget.EXPECT().
 					VerifyBlockJustification(blockHeaderHash, []byte{3}).
-					Return(nil, errTest)
+					Return(errTest)
 
 				return chainProcessor{
 					blockState:     blockState,
