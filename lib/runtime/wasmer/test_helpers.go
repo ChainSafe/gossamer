@@ -21,6 +21,12 @@ import (
 // DefaultTestLogLvl is the log level used for test runtime instances
 var DefaultTestLogLvl = log.Info
 
+func mustHexTo64BArray(t *testing.T, inputHex string) (outputArray [64]byte) {
+	t.Helper()
+	copy(outputArray[:], common.MustHexToBytes(inputHex))
+	return outputArray
+}
+
 // NewTestInstance will create a new runtime instance using the given target runtime
 func NewTestInstance(t *testing.T, targetRuntime string) *Instance {
 	t.Helper()

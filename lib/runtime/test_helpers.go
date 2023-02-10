@@ -289,6 +289,11 @@ type Instance interface {
 	BabeGenerateKeyOwnershipProof(slot uint64, offenderPublicKey [32]byte) (types.OpaqueKeyOwnershipProof, error)
 	BabeSubmitReportEquivocationUnsignedExtrinsic(types.BabeEquivocationProof, types.OpaqueKeyOwnershipProof) error
 	CheckInherents()
+	GrandpaGenerateKeyOwnershipProof(authSetID uint64, authorityID ed25519.PublicKeyBytes) (
+		types.GrandpaOpaqueKeyOwnershipProof, error)
+	GrandpaSubmitReportEquivocationUnsignedExtrinsic(
+		equivocationProof types.GrandpaEquivocationProof, keyOwnershipProof types.GrandpaOpaqueKeyOwnershipProof,
+	) error
 	RandomSeed()
 	OffchainWorker()
 	GenerateSessionKeys()

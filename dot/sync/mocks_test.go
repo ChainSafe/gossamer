@@ -536,12 +536,11 @@ func (m *MockFinalityGadget) EXPECT() *MockFinalityGadgetMockRecorder {
 }
 
 // VerifyBlockJustification mocks base method.
-func (m *MockFinalityGadget) VerifyBlockJustification(arg0 common.Hash, arg1 []byte) ([]byte, error) {
+func (m *MockFinalityGadget) VerifyBlockJustification(arg0 common.Hash, arg1 []byte) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "VerifyBlockJustification", arg0, arg1)
-	ret0, _ := ret[0].([]byte)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // VerifyBlockJustification indicates an expected call of VerifyBlockJustification.
