@@ -86,9 +86,10 @@ var (
 	// errFinalisedBlocksMismatch is returned when we find another block finalised in the same set id and round
 	errFinalisedBlocksMismatch = errors.New("already have finalised block with the same setID and round")
 
-	errVoteToSignatureMismatch = errors.New("votes and authority count mismatch")
-	errVoteBlockMismatch       = errors.New("block in vote is not descendant of previously finalised block")
-	errVoteFromSelf            = errors.New("got vote from ourselves")
-	errRoundOutOfBounds        = errors.New("round out of bounds")
-	errRoundsMismatch          = errors.New("rounds mismatch")
+	errVoteToSignatureMismatch  = errors.New("votes and authority count mismatch")
+	errVoteBlockMismatch        = errors.New("block in vote is not descendant of previously finalised block")
+	errVoteFromSelf             = errors.New("got vote from ourselves")
+	errRoundOutOfBounds         = errors.New("round out of bounds")
+	errRoundsMismatch           = errors.New("rounds mismatch")
+	errInvalidEquivocationStage = errors.New("invalid stage for equivocating")
 )

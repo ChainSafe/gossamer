@@ -8,6 +8,7 @@ import (
 	reflect "reflect"
 
 	network "github.com/ChainSafe/gossamer/dot/network"
+	state "github.com/ChainSafe/gossamer/dot/state"
 	types "github.com/ChainSafe/gossamer/dot/types"
 	common "github.com/ChainSafe/gossamer/lib/common"
 	gomock "github.com/golang/mock/gomock"
@@ -36,6 +37,20 @@ func NewMockBlockState(ctrl *gomock.Controller) *MockBlockState {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockBlockState) EXPECT() *MockBlockStateMockRecorder {
 	return m.recorder
+}
+
+// BestBlockHash mocks base method.
+func (m *MockBlockState) BestBlockHash() common.Hash {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BestBlockHash")
+	ret0, _ := ret[0].(common.Hash)
+	return ret0
+}
+
+// BestBlockHash indicates an expected call of BestBlockHash.
+func (mr *MockBlockStateMockRecorder) BestBlockHash() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BestBlockHash", reflect.TypeOf((*MockBlockState)(nil).BestBlockHash))
 }
 
 // BestBlockHeader mocks base method.
@@ -223,6 +238,21 @@ func (m *MockBlockState) GetImportedBlockNotifierChannel() chan *types.Block {
 func (mr *MockBlockStateMockRecorder) GetImportedBlockNotifierChannel() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetImportedBlockNotifierChannel", reflect.TypeOf((*MockBlockState)(nil).GetImportedBlockNotifierChannel))
+}
+
+// GetRuntime mocks base method.
+func (m *MockBlockState) GetRuntime(arg0 common.Hash) (state.Runtime, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRuntime", arg0)
+	ret0, _ := ret[0].(state.Runtime)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetRuntime indicates an expected call of GetRuntime.
+func (mr *MockBlockStateMockRecorder) GetRuntime(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRuntime", reflect.TypeOf((*MockBlockState)(nil).GetRuntime), arg0)
 }
 
 // HasFinalisedBlock mocks base method.
