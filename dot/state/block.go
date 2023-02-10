@@ -287,32 +287,38 @@ func (bs *BlockState) GetAllDescendants(hash common.Hash) ([]common.Hash, error)
 		return nil, fmt.Errorf("getting header: %w", err)
 	}
 
-	// TODO: Use GetBlocksByNumber after https://github.com/ChainSafe/gossamer/issues/2748 is done
-	nextBlock, err := bs.GetBlockByNumber(header.Number + 1)
+	nextBlockHashes, err := bs.GetHashesByNumber(header.Number + 1)
 	if err != nil {
-		return nil, fmt.Errorf("getting block by number: %w", err)
+		return nil, fmt.Errorf("getting hashes by number: %w", err)
 	}
 
-	// next block is not a descendant of the block for the given hash
-	if nextBlock.Header.ParentHash != hash {
-		return nil, nil
-	}
+	for _, nextBlockHash := range nextBlockHashes {
 
-	nextDescendants, err := bs.bt.GetAllDescendants(nextBlock.Header.Hash())
-	if err != nil && !errors.Is(err, blocktree.ErrNodeNotFound) {
-		return nil, fmt.Errorf("getting all descendants: %w", err)
-	}
-	if err == nil {
+		nextHeader, err := bs.GetHeader(nextBlockHash)
+		if err != nil {
+			return nil, fmt.Errorf("getting header from block hash %s: %w", nextBlockHash, err)
+		}
+		// next block is not a descendant of the block for the given hash
+		if nextHeader.ParentHash != hash {
+			return nil, nil
+		}
+
+		nextDescendants, err := bs.bt.GetAllDescendants(nextBlockHash)
+		if err != nil && !errors.Is(err, blocktree.ErrNodeNotFound) {
+			return nil, fmt.Errorf("getting all descendants: %w", err)
+		}
+		if err == nil {
+			allDescendants = append(allDescendants, nextDescendants...)
+			return allDescendants, nil
+		}
+
+		nextDescendants, err = bs.GetAllDescendants(nextBlockHash)
+		if err != nil {
+			return nil, err
+		}
+
 		allDescendants = append(allDescendants, nextDescendants...)
-		return allDescendants, nil
 	}
-
-	nextDescendants, err = bs.GetAllDescendants(nextBlock.Header.Hash())
-	if err != nil {
-		return nil, err
-	}
-
-	allDescendants = append(allDescendants, nextDescendants...)
 
 	return allDescendants, nil
 }
