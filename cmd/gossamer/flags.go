@@ -101,7 +101,7 @@ var (
 	// BasePathFlag data directory for node
 	BasePathFlag = cli.StringFlag{
 		Name:    "basepath",
-		Aliases: []string{"base-bath"}, // base-path is argument used by polkadot node
+		Aliases: []string{"base-path"}, // base-path is argument used by polkadot node
 		Usage:   "Data directory for the node",
 	}
 	PprofServerFlag = cli.BoolFlag{
