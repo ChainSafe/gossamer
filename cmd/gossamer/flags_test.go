@@ -14,7 +14,8 @@ import (
 
 // TestFixFlagOrder tests the FixFlagOrder method
 func TestFixFlagOrder(t *testing.T) {
-	testCfg, testConfig := newTestConfigWithFile(t)
+	polkadotConfig := dot.PolkadotConfig()
+	testCfg, testConfig := newTestConfigWithFile(t, polkadotConfig)
 	genFile := dot.NewTestGenesisRawFile(t, testCfg)
 
 	testApp := cli.NewApp()

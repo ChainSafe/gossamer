@@ -17,7 +17,8 @@ import (
 
 // TestExportCommand test "gossamer export --config"
 func TestExportCommand(t *testing.T) {
-	testCfg, testConfig := newTestConfigWithFile(t)
+	westendDevConfig := dot.WestendDevConfig()
+	testCfg, testConfig := newTestConfigWithFile(t, westendDevConfig)
 	testDir := testCfg.Global.BasePath
 	genFile := dot.NewTestGenesisRawFile(t, testCfg)
 

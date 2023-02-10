@@ -78,7 +78,8 @@ func TestConfigFromChainFlag(t *testing.T) {
 
 // TestInitConfigFromFlags tests createDotInitConfig using relevant init flags
 func TestInitConfigFromFlags(t *testing.T) {
-	_, testCfgFile := newTestConfigWithFile(t)
+	polkadotConfig := dot.PolkadotConfig()
+	_, testCfgFile := newTestConfigWithFile(t, polkadotConfig)
 
 	testApp := cli.NewApp()
 	testApp.Writer = io.Discard
@@ -113,7 +114,8 @@ func TestInitConfigFromFlags(t *testing.T) {
 
 // TestGlobalConfigFromFlags tests createDotGlobalConfig using relevant global flags
 func TestGlobalConfigFromFlags(t *testing.T) {
-	testCfg, testCfgFile := newTestConfigWithFile(t)
+	polkadotConfig := dot.PolkadotConfig()
+	testCfg, testCfgFile := newTestConfigWithFile(t, polkadotConfig)
 
 	testApp := cli.NewApp()
 	testApp.Writer = io.Discard
@@ -267,7 +269,8 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 }
 
 func TestGlobalConfigFromFlagsFails(t *testing.T) {
-	testCfg, testCfgFile := newTestConfigWithFile(t)
+	polkadotConfig := dot.PolkadotConfig()
+	testCfg, testCfgFile := newTestConfigWithFile(t, polkadotConfig)
 
 	testApp := cli.NewApp()
 	testApp.Writer = io.Discard
@@ -317,7 +320,8 @@ func TestGlobalConfigFromFlagsFails(t *testing.T) {
 
 // TestAccountConfigFromFlags tests createDotAccountConfig using relevant account flags
 func TestAccountConfigFromFlags(t *testing.T) {
-	testCfg, testCfgFile := newTestConfigWithFile(t)
+	polkadotConfig := dot.PolkadotConfig()
+	testCfg, testCfgFile := newTestConfigWithFile(t, polkadotConfig)
 
 	testApp := cli.NewApp()
 	testApp.Writer = io.Discard
@@ -362,7 +366,8 @@ func TestAccountConfigFromFlags(t *testing.T) {
 
 // TestCoreConfigFromFlags tests createDotCoreConfig using relevant core flags
 func TestCoreConfigFromFlags(t *testing.T) {
-	testCfg, testCfgFile := newTestConfigWithFile(t)
+	westendDevConfig := dot.WestendDevConfig()
+	testCfg, testCfgFile := newTestConfigWithFile(t, westendDevConfig)
 
 	testApp := cli.NewApp()
 	testApp.Writer = io.Discard
@@ -413,7 +418,8 @@ func TestCoreConfigFromFlags(t *testing.T) {
 
 // TestNetworkConfigFromFlags tests createDotNetworkConfig using relevant network flags
 func TestNetworkConfigFromFlags(t *testing.T) {
-	testCfg, testCfgFile := newTestConfigWithFile(t)
+	westendDevConfig := dot.WestendDevConfig()
+	testCfg, testCfgFile := newTestConfigWithFile(t, westendDevConfig)
 
 	testApp := cli.NewApp()
 	testApp.Writer = io.Discard
@@ -547,7 +553,8 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 
 // TestRPCConfigFromFlags tests createDotRPCConfig using relevant rpc flags
 func TestRPCConfigFromFlags(t *testing.T) {
-	testCfg, testCfgFile := newTestConfigWithFile(t)
+	polkadotConfig := dot.PolkadotConfig()
+	testCfg, testCfgFile := newTestConfigWithFile(t, polkadotConfig)
 
 	testApp := cli.NewApp()
 	testApp.Writer = io.Discard
@@ -754,7 +761,8 @@ func TestRPCConfigFromFlags(t *testing.T) {
 
 // TestUpdateConfigFromGenesisJSON tests updateDotConfigFromGenesisJSON
 func TestUpdateConfigFromGenesisJSON(t *testing.T) {
-	testCfg, testCfgFile := newTestConfigWithFile(t)
+	polkadotConfig := dot.PolkadotConfig()
+	testCfg, testCfgFile := newTestConfigWithFile(t, polkadotConfig)
 	genFile := dot.NewTestGenesisRawFile(t, testCfg)
 
 	ctx, err := newTestContext(
@@ -809,7 +817,8 @@ func TestUpdateConfigFromGenesisJSON(t *testing.T) {
 // using the default genesis path if no genesis path is provided (ie, an empty
 // genesis value provided in the toml configuration file or with --genesis "")
 func TestUpdateConfigFromGenesisJSON_Default(t *testing.T) {
-	testCfg, testCfgFile := newTestConfigWithFile(t)
+	polkadotConfig := dot.PolkadotConfig()
+	testCfg, testCfgFile := newTestConfigWithFile(t, polkadotConfig)
 
 	ctx, err := newTestContext(
 		t.Name(),
@@ -858,7 +867,8 @@ func TestUpdateConfigFromGenesisJSON_Default(t *testing.T) {
 }
 
 func TestUpdateConfigFromGenesisData(t *testing.T) {
-	testCfg, testCfgFile := newTestConfigWithFile(t)
+	polkadotConfig := dot.PolkadotConfig()
+	testCfg, testCfgFile := newTestConfigWithFile(t, polkadotConfig)
 	genFile := dot.NewTestGenesisRawFile(t, testCfg)
 
 	ctx, err := newTestContext(
@@ -935,8 +945,8 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 func TestGlobalNodeName_WhenNodeAlreadyHasStoredName(t *testing.T) {
 	// Initialise a node with a random name
 	globalName := dot.RandomNodeName()
-
-	cfg := newTestConfig(t)
+	westendDevConfig := dot.WestendDevConfig()
+	cfg := newTestConfig(t, westendDevConfig)
 	cfg.Global.Name = globalName
 
 	runtimeFilePath, err := runtime.GetRuntime(context.Background(), runtime.NODE_RUNTIME)
@@ -1016,7 +1026,8 @@ func TestGlobalNodeName_WhenNodeAlreadyHasStoredName(t *testing.T) {
 }
 
 func TestGlobalNodeNamePriorityOrder(t *testing.T) {
-	cfg, testCfgFile := newTestConfigWithFile(t)
+	polkadotConfig := dot.PolkadotConfig()
+	cfg, testCfgFile := newTestConfigWithFile(t, polkadotConfig)
 
 	// call another command and test the name
 	testApp := cli.NewApp()

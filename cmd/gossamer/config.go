@@ -24,7 +24,7 @@ import (
 
 var (
 	// DefaultCfg is the default configuration for the node.
-	DefaultCfg                  = dot.WestendDevConfig
+	DefaultCfg                  = dot.PolkadotConfig
 	defaultKusamaConfigPath     = "./chain/kusama/config.toml"
 	defaultPolkadotConfigPath   = "./chain/polkadot/config.toml"
 	defaultWestendDevConfigPath = "./chain/westend-dev/config.toml"

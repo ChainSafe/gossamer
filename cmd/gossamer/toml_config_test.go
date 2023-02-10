@@ -15,7 +15,8 @@ import (
 
 // TestLoadConfig tests loading a toml configuration file
 func TestLoadConfig(t *testing.T) {
-	cfg, cfgFile := newTestConfigWithFile(t)
+	polkadotConfig := dot.PolkadotConfig()
+	cfg, cfgFile := newTestConfigWithFile(t, polkadotConfig)
 
 	genFile := dot.NewTestGenesisRawFile(t, cfg)
 
