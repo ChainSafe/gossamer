@@ -19,6 +19,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"golang.org/x/exp/slices"
 
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
@@ -248,6 +249,23 @@ func (bs *BlockState) GetHashByNumber(num uint) (common.Hash, error) {
 	}
 
 	return common.NewHash(bh), nil
+}
+
+// GetHashesByNumber returns the block hashes with the given number
+func (bs *BlockState) GetHashesByNumber(blockNumber uint) ([]common.Hash, error) {
+	block, err := bs.GetBlockByNumber(blockNumber)
+	if err != nil {
+		return nil, fmt.Errorf("getting block by number: %w", err)
+	}
+
+	blockHashes := bs.bt.GetAllBlocksAtNumber(block.Header.ParentHash)
+
+	hash := block.Header.Hash()
+	if !slices.Contains(blockHashes, hash) {
+		blockHashes = append(blockHashes, hash)
+	}
+
+	return blockHashes, nil
 }
 
 // GetAllDescendants gets all the descendants for a given block hash (including itself), by first checking in memory
@@ -733,12 +751,33 @@ func (bs *BlockState) RangeInMemory(start, end common.Hash) ([]common.Hash, erro
 
 // IsDescendantOf returns true if child is a descendant of parent, false otherwise.
 // it returns an error if parent or child are not in the blocktree.
-func (bs *BlockState) IsDescendantOf(parent, child common.Hash) (bool, error) {
+func (bs *BlockState) IsDescendantOf(ancestor, descendant common.Hash) (bool, error) {
 	if bs.bt == nil {
 		return false, fmt.Errorf("%w", errNilBlockTree)
 	}
 
-	return bs.bt.IsDescendantOf(parent, child)
+	isDescendant, err := bs.bt.IsDescendantOf(ancestor, descendant)
+	if err != nil {
+		descendantHeader, err2 := bs.GetHeader(descendant)
+		if err2 != nil {
+			return false, fmt.Errorf("getting header: %w", err2)
+		}
+
+		ancestorHeader, err2 := bs.GetHeader(ancestor)
+		if err2 != nil {
+			return false, fmt.Errorf("getting header: %w", err2)
+		}
+
+		for current := descendantHeader; descendantHeader.Number < ancestorHeader.Number; {
+			if current.ParentHash == ancestor {
+				return true, nil
+			}
+		}
+
+		return false, nil
+	}
+
+	return isDescendant, nil
 }
 
 // LowestCommonAncestor returns the lowest common ancestor between two blocks in the tree.

@@ -331,17 +331,22 @@ func (bt *BlockTree) BestBlockHash() Hash {
 
 // IsDescendantOf returns true if the child is a descendant of parent, false otherwise.
 // it returns an error if either the child or parent are not in the blocktree.
+// If parent and child are the same, we return true.
 func (bt *BlockTree) IsDescendantOf(parent, child Hash) (bool, error) {
+	if parent == child {
+		return true, nil
+	}
+
 	bt.RLock()
 	defer bt.RUnlock()
 
 	pn := bt.getNode(parent)
 	if pn == nil {
-		return false, ErrStartNodeNotFound
+		return false, fmt.Errorf("%w: node hash %s", ErrStartNodeNotFound, parent)
 	}
 	cn := bt.getNode(child)
 	if cn == nil {
-		return false, ErrEndNodeNotFound
+		return false, fmt.Errorf("%w: node hash %s", ErrEndNodeNotFound, child)
 	}
 	return cn.isDescendantOf(pn), nil
 }
@@ -514,7 +519,7 @@ func (bt *BlockTree) StoreRuntime(hash common.Hash, in Runtime) {
 func (bt *BlockTree) GetBlockRuntime(hash common.Hash) (Runtime, error) {
 	ins := bt.runtimes.get(hash)
 	if ins == nil {
-		return nil, ErrFailedToGetRuntime
+		return nil, fmt.Errorf("%w for hash %s", ErrFailedToGetRuntime, hash)
 	}
 	return ins, nil
 }

@@ -4,6 +4,7 @@
 package grandpa
 
 import (
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
 
@@ -21,7 +22,8 @@ type BlockState interface {
 	IsDescendantOf(parent, child common.Hash) (bool, error)
 	LowestCommonAncestor(a, b common.Hash) (common.Hash, error)
 	HasFinalisedBlock(round, setID uint64) (bool, error)
-	GetFinalisedHeader(uint64, uint64) (*types.Header, error)
+	GetFinalisedHeader(round, setID uint64) (*types.Header, error)
+	GetFinalisedHash(round, setID uint64) (common.Hash, error)
 	SetFinalisedHash(common.Hash, uint64, uint64) error
 	BestBlockHeader() (*types.Header, error)
 	GetHighestFinalisedHeader() (*types.Header, error)
@@ -32,6 +34,8 @@ type BlockState interface {
 	SetJustification(hash common.Hash, data []byte) error
 	BestBlockNumber() (blockNumber uint, err error)
 	GetHighestRoundAndSetID() (uint64, uint64, error)
+	BestBlockHash() common.Hash
+	GetRuntime(blockHash common.Hash) (instance state.Runtime, err error)
 }
 
 // GrandpaState is the interface required by grandpa into the grandpa state
