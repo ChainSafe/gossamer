@@ -252,10 +252,10 @@ func (bs *BlockState) GetHashByNumber(num uint) (common.Hash, error) {
 }
 
 // GetHashesByNumber returns the block hashes with the given number
-func (bs *BlockState) GetHashesByNumber(num uint) ([]common.Hash, error) {
-	block, err := bs.GetBlockByNumber(num)
+func (bs *BlockState) GetHashesByNumber(blockNumber uint) ([]common.Hash, error) {
+	block, err := bs.GetBlockByNumber(blockNumber)
 	if err != nil {
-		return []common.Hash{}, fmt.Errorf("getting block by number %w", err)
+		return nil, fmt.Errorf("getting block by number: %w", err)
 	}
 
 	blockHashes := bs.bt.GetAllBlocksAtNumber(block.Header.ParentHash)
