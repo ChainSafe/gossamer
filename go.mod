@@ -42,7 +42,7 @@ require (
 	golang.org/x/crypto v0.5.0
 	golang.org/x/exp v0.0.0-20230127140709-cafedaf64729
 	golang.org/x/term v0.4.0
-	golang.org/x/text v0.6.0
+	golang.org/x/text v0.7.0
 	google.golang.org/protobuf v1.28.1
 )
 
