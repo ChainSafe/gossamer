@@ -224,6 +224,7 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 	require.NoError(t, err)
 	cfg.BlockState.(*state.BlockState).StoreRuntime(cfg.BlockState.BestBlockHash(), runtime)
 
+	cfg.Authority = true
 	cfg.IsDev = true
 	cfg.LogLvl = defaultTestLogLvl
 	babeService, err := NewService(&cfg)

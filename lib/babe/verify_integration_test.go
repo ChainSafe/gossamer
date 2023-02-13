@@ -226,12 +226,13 @@ func TestVerificationManager_VerifyBlock_Secondary(t *testing.T) {
 
 // TODO this test should also be part of babe testing cleanup #3060
 func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
-	t.Skip()
-	serviceConfig := ServiceConfig{
-		Authority: true,
-	}
+	//t.Skip()
+
+	/*
+		TODO: rewrite this test, first with one epoch, then add another
+	*/
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, serviceConfig, genesis, genesisTrie, genesisHeader)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader)
 	vm := NewVerificationManager(babeService.blockState, babeService.epochState)
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
@@ -241,9 +242,12 @@ func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 	epochData, err := babeService.initiateEpoch(0)
 	require.NoError(t, err)
 
+	babeService.epochHandler, err = babeService.initiateAndGetEpochHandler(0)
+	require.NoError(t, err)
+
 	futureEpoch := uint64(5)
 
-	err = vm.epochState.(*state.EpochState).SetEpochData(futureEpoch, &types.EpochData{
+	err = babeService.epochState.SetEpochData(futureEpoch, &types.EpochData{
 		Authorities: epochData.authorities,
 		Randomness:  epochData.randomness,
 	})
@@ -252,22 +256,27 @@ func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 	futureEpochData, err := babeService.initiateEpoch(futureEpoch)
 	require.NoError(t, err)
 
+	futureEpochSlotNumber := int64(babeService.EpochLength()*futureEpoch+1) * 6
+	futureTimestamp := time.Unix(futureEpochSlotNumber, 0)
+
 	// create block in future epoch
-	slot1 := getSlot(t, runtime, time.Now())
-	//slot1.number = babeCfg.EpochLength*futureEpoch + 1
+	slot1 := getSlot(t, runtime, futureTimestamp)
+	slot1.number = babeService.EpochLength()*futureEpoch + 1
 	block1 := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, futureEpoch, futureEpochData, slot1)
 
-	slot2 := getSlot(t, runtime, time.Now())
+	slot2 := getSlot(t, runtime, futureTimestamp.Add(time.Second*6))
+	slot2.number = babeService.EpochLength()*futureEpoch + 2
 	//slot2.number = babeCfg.EpochLength*futureEpoch + 2
 	block2 := createTestBlockWithSlot(t, babeService, &block1.Header, [][]byte{}, futureEpoch, futureEpochData, slot2)
 
+	// Get to here now and get: failed to verify pre-runtime digest: could not verify slot claim VRF proof
 	err = vm.VerifyBlock(&block2.Header)
 	require.NoError(t, err)
 
 	// create block in epoch 1
 	slot := getSlot(t, runtime, time.Now())
 	//slot1.number = babeCfg.EpochLength-10
-	block := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, futureEpoch, futureEpochData, slot)
+	block := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, 0, epochData, slot)
 
 	err = vm.VerifyBlock(&block.Header)
 	require.NoError(t, err)
