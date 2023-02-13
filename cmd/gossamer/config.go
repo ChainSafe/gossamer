@@ -73,7 +73,7 @@ func setupConfigFromChain(ctx *cli.Context) (*ctoml.Config, *dot.Config, error) 
 			tomlCfg = &ctoml.Config{}
 			cfg = dot.KusamaConfig()
 			err = loadConfig(tomlCfg, defaultKusamaConfigPath)
-		case "polkadot":
+		case polkadotName:
 			logger.Info("loading toml configuration from " + defaultPolkadotConfigPath + "...")
 			tomlCfg = &ctoml.Config{}
 			cfg = dot.PolkadotConfig()
