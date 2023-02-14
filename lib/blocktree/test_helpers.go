@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var zeroHash, _ = common.HexToHash("0x00")
+var zeroHash = common.MustHexToHash("0x00")
 var testHeader = &types.Header{
 	ParentHash: zeroHash,
 	Number:     0,
