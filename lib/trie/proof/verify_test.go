@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/trie/node"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -564,8 +565,8 @@ func Test_loadProof(t *testing.T) {
 			},
 			errWrapped: node.ErrVariantUnknown,
 			errMessage: "decoding child node for hash digest " +
-				"0x6888b9403129c11350c6054b46875292c0ffedcfd581e66b79bdf350b775ebf2: " +
-				"decoding header: decoding header byte: node variant is unknown: " +
+				common.BytesToHex(blake2bNode(t, leafLarge)) +
+				": decoding header: decoding header byte: node variant is unknown: " +
 				"for header byte 00000001",
 		},
 	}

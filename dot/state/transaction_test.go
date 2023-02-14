@@ -91,15 +91,15 @@ func TestTransactionState_NotifierChannels(t *testing.T) {
 	// meant to check that notifier channels work as expected.
 	randN, err := crand.Int(crand.Reader, big.NewInt(10))
 	require.NoError(t, err)
-	expectedFutureCount := randN.Int64()
+	expectedFutureCount := int(randN.Int64()) + 10
 
-	randN, err = crand.Int(crand.Reader, big.NewInt(10))
+	randN, err = crand.Int(crand.Reader, big.NewInt(5))
 	require.NoError(t, err)
-	expectedReadyCount := randN.Int64()
+	expectedReadyCount := int(randN.Int64()) + 5
 
 	dummyTransactions := make([]*transaction.ValidTransaction, expectedFutureCount)
 
-	for i := 0; i < int(expectedFutureCount); i++ {
+	for i := 0; i < expectedFutureCount; i++ {
 		dummyTransactions[i] = &transaction.ValidTransaction{
 			Extrinsic: ext,
 			Validity:  transaction.NewValidity(0, [][]byte{{}}, [][]byte{{}}, 0, false),
@@ -108,7 +108,7 @@ func TestTransactionState_NotifierChannels(t *testing.T) {
 		ts.AddToPool(dummyTransactions[i])
 	}
 
-	for i := 0; i < int(expectedReadyCount); i++ {
+	for i := 0; i < expectedReadyCount; i++ {
 		ts.Push(dummyTransactions[i])
 	}
 
