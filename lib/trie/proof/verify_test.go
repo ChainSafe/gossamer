@@ -21,10 +21,11 @@ func Test_Verify(t *testing.T) {
 		StorageValue: []byte{1},
 	}
 
+	randomBytes := generateBytes(t, 40)
 	// leafB is a leaf encoding to more than 32 bytes
 	leafB := node.Node{
 		PartialKey:   []byte{2},
-		StorageValue: generateBytes(t, 40),
+		StorageValue: randomBytes,
 	}
 	assertLongEncoding(t, leafB)
 
@@ -65,7 +66,7 @@ func Test_Verify(t *testing.T) {
 			errWrapped: ErrKeyNotFoundInProofTrie,
 			errMessage: "key not found in proof trie: " +
 				"0x0101 in proof trie for root hash " +
-				"0xec4bb0acfcf778ae8746d3ac3325fc73c3d9b376eb5f8d638dbf5eb462f5e703",
+				common.BytesToHex(blake2bNode(t, branch)),
 		},
 		"key_found_with_nil_search_value": {
 			encodedProofNodes: [][]byte{
@@ -97,7 +98,7 @@ func Test_Verify(t *testing.T) {
 			},
 			rootHash: blake2bNode(t, branch),
 			keyLE:    []byte{0x34, 0x32}, // large hash-referenced leaf of branch
-			value:    generateBytes(t, 40),
+			value:    randomBytes,
 		},
 	}
 
