@@ -286,6 +286,7 @@ func (s *chainProcessor) handleJustification(header *types.Header, justification
 	headerHash := header.Hash()
 	returnedJustification, err := s.finalityGadget.VerifyBlockJustification(headerHash, justification)
 	if err != nil {
+		//here
 		return fmt.Errorf("verifying block number %d justification: %w", header.Number, err)
 	}
 

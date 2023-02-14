@@ -449,6 +449,7 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 	threshold := (2 * len(auths) / 3)
 
 	if len(fj.Commit.Precommits) < threshold {
+		// here
 		return nil, ErrMinVotesNotMet
 	}
 
@@ -513,6 +514,7 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 	}
 
 	if count+len(equivocatoryVoters) < threshold {
+		// here
 		return nil, ErrMinVotesNotMet
 	}
 
