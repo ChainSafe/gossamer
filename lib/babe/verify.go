@@ -31,7 +31,7 @@ type onDisabledInfo struct {
 }
 
 // VerificationManager deals with verification that a BABE block producer was authorized to produce a given block.
-// It trakcs the BABE epoch data that is needed for verification.
+// It tracks the BABE epoch data that is needed for verification.
 type VerificationManager struct {
 	lock       sync.RWMutex
 	blockState BlockState
@@ -177,6 +177,9 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 
 		v.epochInfo[epoch] = info
 	}
+
+	fmt.Println("info for epoch: ", epoch)
+	fmt.Println(info)
 
 	v.lock.Unlock()
 

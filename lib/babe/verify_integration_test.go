@@ -224,6 +224,86 @@ func TestVerificationManager_VerifyBlock_Secondary(t *testing.T) {
 	require.EqualError(t, err, "failed to verify pre-runtime digest: block producer is not in authority set")
 }
 
+func TestVerificationManager_VerifyBlock_MultipleEpochsNew(t *testing.T) {
+	// TODO Initially lets just do with one epoch
+	//genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
+	//babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader)
+	//vm := NewVerificationManager(babeService.blockState, babeService.epochState)
+	//
+	//bestBlockHash := babeService.blockState.BestBlockHash()
+	//runtime, err := babeService.blockState.GetRuntime(bestBlockHash)
+	//require.NoError(t, err)
+	//
+	//epochData, err := babeService.initiateEpoch(0)
+	//require.NoError(t, err)
+	//
+	//// create block in epoch 0
+	//slot := getSlot(t, runtime, time.Unix(6, 0))
+	//block := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, 0, epochData, slot)
+	//
+	//err = vm.VerifyBlock(&block.Header)
+	//require.NoError(t, err)
+
+	// TODO okay so the above works, lets try claiming in a future epoch
+	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader)
+	vm := NewVerificationManager(babeService.blockState, babeService.epochState)
+
+	bestBlockHash := babeService.blockState.BestBlockHash()
+	runtime, err := babeService.blockState.GetRuntime(bestBlockHash)
+	require.NoError(t, err)
+
+	futureEpoch := uint64(2)
+
+	//_, err = babeService.initiateEpoch(0)
+	//require.NoError(t, err)
+
+	aliceAuth := types.Authority{
+		Key: keyring.Alice().(*sr25519.Keypair).Public(),
+	}
+
+	err = babeService.epochState.SetEpochData(futureEpoch, &types.EpochData{
+		Authorities: []types.Authority{aliceAuth},
+		//Randomness: epochData.randomness,
+	})
+	require.NoError(t, err)
+
+	futureEpochData, err := babeService.initiateEpoch(futureEpoch)
+	require.NoError(t, err)
+
+	futureEpochSlotNumber := int64(babeService.EpochLength()*futureEpoch+1) * 6
+	futureTimestamp := time.Unix(futureEpochSlotNumber, 0)
+
+	slot := getSlot(t, runtime, futureTimestamp)
+	slot.number = babeService.EpochLength()*futureEpoch + 1
+
+	// For some reason we are claiming a secondary slot
+	block := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, futureEpoch, futureEpochData, slot)
+	//block.Header.Number = uint(babeService.EpochLength()*futureEpoch + 1)
+
+	// Epoch is zero unless i set it here, in which case both babeService and vm say epoch is 2, yet
+	// in vm.VerifyBlock the epoch from the header is 0
+
+	err = vm.epochState.SetCurrentEpoch(2)
+	require.NoError(t, err)
+
+	// So e is two here!
+	_, err = babeService.epochState.GetCurrentEpoch()
+	require.NoError(t, err)
+
+	e, err := vm.epochState.GetCurrentEpoch()
+	require.NoError(t, err)
+	fmt.Println(e)
+
+	// THink i need to update genesisBABEConfig and use at least the logic of newVM to set epoch data
+	// Can prob add this line to createTestService
+	// dbSrv.Epoch, err = state.NewEpochStateFromGenesis(dbSrv.DB(), dbSrv.Block, genCfg)
+
+	// Authority here is not alice it doesn't seem, and epoch returned is wrong
+	err = vm.VerifyBlock(&block.Header)
+	require.NoError(t, err)
+}
+
 // TODO this test should also be part of babe testing cleanup #3060
 func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 	//t.Skip()

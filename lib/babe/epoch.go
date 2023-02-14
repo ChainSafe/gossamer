@@ -43,6 +43,7 @@ func (b *Service) initiateEpoch(epoch uint64) (*epochData, error) {
 	// by checking when we will be able to produce block 1.
 	// note that this assumes there will only be one producer of block 1
 	if bestBlockHeader.Hash() == b.blockState.GenesisHash() {
+
 		startSlot, err = b.getFirstAuthoringSlot(epoch, epochData)
 		if err != nil {
 			return nil, fmt.Errorf("cannot get first authoring slot: %w", err)

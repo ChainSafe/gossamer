@@ -5,6 +5,7 @@ package babe
 
 import (
 	"bytes"
+	"fmt"
 	"path/filepath"
 	"testing"
 	"time"
@@ -175,6 +176,7 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 			Key:    cfg.Keypair.Public().(*sr25519.PublicKey),
 			Weight: 1,
 		}
+		fmt.Println("authority: ", auth.Key)
 		cfg.AuthData = []types.Authority{auth}
 	}
 
@@ -204,10 +206,15 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 		_ = dbSrv.Stop()
 	})
 
+	//dbSrv.Epoch, err = state.NewEpochStateFromGenesis(dbSrv.DB(), dbSrv.Block, genCfg)
+	//require.NoError(t, err)
+
 	cfg.BlockState = dbSrv.Block
 	cfg.StorageState = dbSrv.Storage
 	cfg.EpochState = dbSrv.Epoch
 	cfg.TransactionState = dbSrv.Transaction
+
+	fmt.Println(cfg.EpochState)
 
 	var rtCfg wasmer.Config
 	rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
