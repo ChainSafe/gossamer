@@ -8,7 +8,7 @@ jobs:
   update:
     strategy:
       matrix:
-        chain: [polkadot, kusama]
+        chain: [polkadot, kusama, westend]
     runs-on: buildjet-4vcpu-ubuntu-2204
     steps:
       - uses: actions/checkout@v3
