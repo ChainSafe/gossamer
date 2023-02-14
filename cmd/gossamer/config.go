@@ -30,12 +30,6 @@ var (
 	defaultWestendDevConfigPath = "./chain/westend-dev/config.toml"
 )
 
-const (
-	kusamaName     = "kusama"
-	polkadotName   = "polkadot"
-	westendDevName = "westend-dev"
-)
-
 // loadConfigFile loads a default config file if --chain is specified, a specific
 // config if --config is specified, or the default gossamer config otherwise.
 func loadConfigFile(ctx *cli.Context, cfg *ctoml.Config) (err error) {
@@ -68,17 +62,17 @@ func setupConfigFromChain(ctx *cli.Context) (*ctoml.Config, *dot.Config, error) 
 	// check --chain flag and load configuration from defaults.go
 	if id := ctx.GlobalString(ChainFlag.Name); id != "" {
 		switch id {
-		case kusamaName:
+		case "kusama":
 			logger.Info("loading toml configuration from " + defaultKusamaConfigPath + "...")
 			tomlCfg = &ctoml.Config{}
 			cfg = dot.KusamaConfig()
 			err = loadConfig(tomlCfg, defaultKusamaConfigPath)
-		case polkadotName:
+		case "polkadot":
 			logger.Info("loading toml configuration from " + defaultPolkadotConfigPath + "...")
 			tomlCfg = &ctoml.Config{}
 			cfg = dot.PolkadotConfig()
 			err = loadConfig(tomlCfg, defaultPolkadotConfigPath)
-		case westendDevName:
+		case "westend-dev":
 			logger.Info("loading toml configuration from " + defaultWestendDevConfigPath + "...")
 			tomlCfg = &ctoml.Config{}
 			cfg = dot.WestendDevConfig()
