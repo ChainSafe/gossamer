@@ -50,7 +50,6 @@ func createTestBlockTree(t *testing.T, header *types.Header, number uint) (*Bloc
 
 	// branch tree randomly
 	var branches []testBranch
-	//nolint
 	r := rand.New(rand.NewSource(time.Now().UnixNano())) // skipcq
 
 	at := int64(0)
