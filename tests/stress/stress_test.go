@@ -5,9 +5,10 @@ package stress
 
 import (
 	"context"
+	crand "crypto/rand"
 	"fmt"
 	"math/big"
-	"math/rand"
+
 	"os"
 	"path/filepath"
 	"strings"
@@ -405,7 +406,9 @@ func TestSync_Restart(t *testing.T) {
 		for {
 			select {
 			case <-time.After(time.Second * 10):
-				idx := rand.Intn(numNodes)
+				randN, err := crand.Int(crand.Reader, big.NewInt(int64(numNodes)))
+				require.NoError(t, err)
+				idx := randN.Int64()
 
 				// Stop node
 				nodeCancels[idx]()

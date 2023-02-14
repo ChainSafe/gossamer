@@ -7,8 +7,9 @@ package grandpa
 
 import (
 	"context"
+	crand "crypto/rand"
 	"fmt"
-	"math/rand"
+	"math/big"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -41,7 +42,10 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 		gs = setupGrandpa(t, kr.Keys[i])
 		gss[i] = gs
 
-		r := uint(rand.Intn(2)) // 0 or 1
+		randN, err := crand.Int(crand.Reader, big.NewInt(int64(2)))
+		require.NoError(t, err)
+		r := uint(randN.Uint64()) // 0 or 1
+
 		state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 4+r, false)
 		pv, err := gs.determinePreVote()
 		require.NoError(t, err)
@@ -118,12 +122,14 @@ func TestPlayGrandpaRound(t *testing.T) {
 			},
 			defineBlockTree: func(t *testing.T, blockState BlockState, neighbourServices []*Service) {
 				const diff = 5
-				rand := uint(rand.Intn(diff))
+				randN, err := crand.Int(crand.Reader, big.NewInt(int64(diff)))
+				require.NoError(t, err)
+				r := uint(randN.Uint64())
 
 				const withBranches = false
 				const baseLength = 4
 				headers, _ := state.AddBlocksToState(t, blockState.(*state.BlockState),
-					baseLength+rand, withBranches)
+					baseLength+r, withBranches)
 
 				// sync the created blocks with the neighbour services
 				// letting them know about those blocks

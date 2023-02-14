@@ -4,10 +4,10 @@
 package state
 
 import (
-	"math/rand"
+	crand "crypto/rand"
+	"math/big"
 	"sort"
 	"testing"
-	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -87,16 +87,19 @@ func TestTransactionState_NotifierChannels(t *testing.T) {
 	// number of "ready" status updates
 	var readyCount int
 
-	rand.Seed(time.Now().UnixNano())
-
 	// In practice, one won't see ready and future in this order. This is merely
 	// meant to check that notifier channels work as expected.
-	expectedFutureCount := rand.Intn(10) + 10
-	expectedReadyCount := rand.Intn(5) + 5
+	randN, err := crand.Int(crand.Reader, big.NewInt(10))
+	require.NoError(t, err)
+	expectedFutureCount := randN.Int64()
+
+	randN, err = crand.Int(crand.Reader, big.NewInt(10))
+	require.NoError(t, err)
+	expectedReadyCount := randN.Int64()
 
 	dummyTransactions := make([]*transaction.ValidTransaction, expectedFutureCount)
 
-	for i := 0; i < expectedFutureCount; i++ {
+	for i := 0; i < int(expectedFutureCount); i++ {
 		dummyTransactions[i] = &transaction.ValidTransaction{
 			Extrinsic: ext,
 			Validity:  transaction.NewValidity(0, [][]byte{{}}, [][]byte{{}}, 0, false),
@@ -105,7 +108,7 @@ func TestTransactionState_NotifierChannels(t *testing.T) {
 		ts.AddToPool(dummyTransactions[i])
 	}
 
-	for i := 0; i < expectedReadyCount; i++ {
+	for i := 0; i < int(expectedReadyCount); i++ {
 		ts.Push(dummyTransactions[i])
 	}
 

@@ -4,9 +4,9 @@
 package state
 
 import (
-	"math/rand"
+	crand "crypto/rand"
+	"math/big"
 	"testing"
-	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -26,34 +26,25 @@ func newTriesEmpty() *Tries {
 	}
 }
 
-// newGenerator creates a new PRNG seeded with the
-// unix nanoseconds value of the current time.
-func newGenerator() (prng *rand.Rand) {
-	seed := time.Now().UnixNano()
-	source := rand.NewSource(seed)
-	return rand.New(source) //skipcq: GSC-G404
-}
-
-func generateKeyValues(tb testing.TB, generator *rand.Rand, size int) (kv map[string][]byte) {
+func generateKeyValues(tb testing.TB, size int) (kv map[string][]byte) {
 	tb.Helper()
 
 	kv = make(map[string][]byte, size)
 
 	const maxKeySize, maxValueSize = 510, 128
 	for i := 0; i < size; i++ {
-		populateKeyValueMap(tb, kv, generator, maxKeySize, maxValueSize)
+		populateKeyValueMap(tb, kv, maxKeySize, maxValueSize)
 	}
 
 	return kv
 }
 
-func populateKeyValueMap(tb testing.TB, kv map[string][]byte,
-	generator *rand.Rand, maxKeySize, maxValueSize int) {
+func populateKeyValueMap(tb testing.TB, kv map[string][]byte, maxKeySize, maxValueSize int) {
 	tb.Helper()
 
 	for {
 		const minKeySize = 2
-		key := generateRandBytesMinMax(tb, minKeySize, maxKeySize, generator)
+		key := generateRandBytesMinMax(tb, minKeySize, maxKeySize)
 
 		keyString := string(key)
 
@@ -64,7 +55,7 @@ func populateKeyValueMap(tb testing.TB, kv map[string][]byte,
 		}
 
 		const minValueSize = 0
-		value := generateRandBytesMinMax(tb, minValueSize, maxValueSize, generator)
+		value := generateRandBytesMinMax(tb, minValueSize, maxValueSize)
 
 		kv[keyString] = value
 
@@ -72,19 +63,18 @@ func populateKeyValueMap(tb testing.TB, kv map[string][]byte,
 	}
 }
 
-func generateRandBytesMinMax(tb testing.TB, minSize, maxSize int,
-	generator *rand.Rand) (b []byte) {
+func generateRandBytesMinMax(tb testing.TB, minSize, maxSize int) (b []byte) {
 	tb.Helper()
-	size := minSize +
-		generator.Intn(maxSize-minSize)
-	return generateRandBytes(tb, size, generator)
+	randN, err := crand.Int(crand.Reader, big.NewInt(int64(maxSize-minSize)))
+	require.NoError(tb, err)
+	size := minSize + int(randN.Int64())
+	return generateRandBytes(tb, size)
 }
 
-func generateRandBytes(tb testing.TB, size int,
-	generator *rand.Rand) (b []byte) {
+func generateRandBytes(tb testing.TB, size int) (b []byte) {
 	tb.Helper()
 	b = make([]byte, size)
-	_, err := generator.Read(b)
+	_, err := crand.Read(b)
 	require.NoError(tb, err)
 	return b
 }

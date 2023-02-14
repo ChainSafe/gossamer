@@ -5,8 +5,9 @@ package rpc
 
 import (
 	"context"
+	crand "crypto/rand"
 	"fmt"
-	"math/rand"
+	"math/big"
 	"testing"
 	"time"
 
@@ -330,7 +331,10 @@ func callAndSubscribeWebsocket(ctx context.Context, t *testing.T,
 	defer connection.Close() // in case of failed required assertion
 
 	const maxid = 100000 // otherwise it becomes a float64
-	id := rand.Intn(maxid)
+	randN, err := crand.Int(crand.Reader, big.NewInt(int64(maxid)))
+	require.NoError(t, err)
+	id := randN.Int64()
+
 	messageData := fmt.Sprintf(`{
     "jsonrpc": "2.0",
     "method": %q,

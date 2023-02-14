@@ -5,8 +5,9 @@ package blocktree
 
 import (
 	"bytes"
+	crand "crypto/rand"
 	"fmt"
-	"math/rand"
+	"math/big"
 	"testing"
 	"time"
 
@@ -60,7 +61,6 @@ func createTestBlockTree(t *testing.T, header *types.Header, number uint) (*Bloc
 
 	// branch tree randomly
 	var branches []testBranch
-	r := rand.New(rand.NewSource(time.Now().UnixNano())) //skipcq: GSC-G404
 
 	at := int64(0)
 
@@ -78,7 +78,10 @@ func createTestBlockTree(t *testing.T, header *types.Header, number uint) (*Bloc
 
 		previousHash = hash
 
-		isBranch := r.Intn(2)
+		randN, err := crand.Int(crand.Reader, big.NewInt(2))
+		require.NoError(t, err)
+		isBranch := randN.Uint64()
+
 		if isBranch == 1 {
 			branches = append(branches, testBranch{
 				hash:        hash,
@@ -87,7 +90,9 @@ func createTestBlockTree(t *testing.T, header *types.Header, number uint) (*Bloc
 			})
 		}
 
-		at += int64(r.Intn(8))
+		randN, err = crand.Int(crand.Reader, big.NewInt(8))
+		require.NoError(t, err)
+		at += randN.Int64()
 	}
 
 	// create tree branches
@@ -108,8 +113,10 @@ func createTestBlockTree(t *testing.T, header *types.Header, number uint) (*Bloc
 			require.NoError(t, err)
 
 			previousHash = hash
-			at += int64(r.Intn(8))
 
+			randN, err := crand.Int(crand.Reader, big.NewInt(8))
+			require.NoError(t, err)
+			at += randN.Int64()
 		}
 	}
 
