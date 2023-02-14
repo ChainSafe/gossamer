@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	mrand "math/rand"
 	"os"
 	"path"
 	"path/filepath"
@@ -62,9 +63,13 @@ func stringsToAddrInfos(peers []string) ([]peer.AddrInfo, error) {
 // generateKey generates an ed25519 private key and writes it to the data directory
 // If the seed is zero, we use real cryptographic randomness. Otherwise, we use a
 // deterministic randomness source to make keys the same across multiple runs.
-// TODO : See if I can remove crand
 func generateKey(seed int64, fp string) (crypto.PrivKey, error) {
-	r := crand.Reader
+	var r io.Reader
+	if seed == 0 {
+		r = crand.Reader
+	} else {
+		r = mrand.New(mrand.NewSource(seed)) //nolint:gosec
+	}
 	key, _, err := crypto.GenerateEd25519Key(r)
 	if err != nil {
 		return nil, err
