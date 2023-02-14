@@ -300,7 +300,7 @@ func (bs *BlockState) GetAllDescendants(hash common.Hash) ([]common.Hash, error)
 		}
 		// next block is not a descendant of the block for the given hash
 		if nextHeader.ParentHash != hash {
-			return nil, nil
+			return []common.Hash{hash}, nil
 		}
 
 		nextDescendants, err := bs.bt.GetAllDescendants(nextBlockHash)
