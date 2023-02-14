@@ -293,14 +293,13 @@ func (bs *BlockState) GetAllDescendants(hash common.Hash) ([]common.Hash, error)
 	}
 
 	for _, nextBlockHash := range nextBlockHashes {
-
 		nextHeader, err := bs.GetHeader(nextBlockHash)
 		if err != nil {
 			return nil, fmt.Errorf("getting header from block hash %s: %w", nextBlockHash, err)
 		}
 		// next block is not a descendant of the block for the given hash
 		if nextHeader.ParentHash != hash {
-			return nil, nil
+			return []common.Hash{hash}, nil
 		}
 
 		nextDescendants, err := bs.bt.GetAllDescendants(nextBlockHash)
