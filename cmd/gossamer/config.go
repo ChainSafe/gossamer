@@ -31,11 +31,7 @@ var (
 	defaultKusamaConfigPath   = "./chain/kusama/config.toml"
 	defaultPolkadotConfigPath = "./chain/polkadot/config.toml"
 	defaultDevConfigPath      = "./chain/dev/config.toml"
-
-	gossamerName = "gssmr"
-	kusamaName   = "kusama"
-	polkadotName = "polkadot"
-	devName      = "dev"
+	defaultWestendConfigPath  = "./chain/westend/config.toml"
 )
 
 // loadConfigFile loads a default config file if --chain is specified, a specific
@@ -70,25 +66,30 @@ func setupConfigFromChain(ctx *cli.Context) (*ctoml.Config, *dot.Config, error) 
 	// check --chain flag and load configuration from defaults.go
 	if id := ctx.GlobalString(ChainFlag.Name); id != "" {
 		switch id {
-		case gossamerName:
+		case "gssmr":
 			logger.Info("loading toml configuration from " + defaultGssmrConfigPath + "...")
 			tomlCfg = &ctoml.Config{}
 			err = loadConfig(tomlCfg, defaultGssmrConfigPath)
-		case kusamaName:
+		case "kusama":
 			logger.Info("loading toml configuration from " + defaultKusamaConfigPath + "...")
 			tomlCfg = &ctoml.Config{}
 			cfg = dot.KusamaConfig()
 			err = loadConfig(tomlCfg, defaultKusamaConfigPath)
-		case polkadotName:
+		case "polkadot":
 			logger.Info("loading toml configuration from " + defaultPolkadotConfigPath + "...")
 			tomlCfg = &ctoml.Config{}
 			cfg = dot.PolkadotConfig()
 			err = loadConfig(tomlCfg, defaultPolkadotConfigPath)
-		case devName:
+		case "dev":
 			logger.Info("loading toml configuration from " + defaultDevConfigPath + "...")
 			tomlCfg = &ctoml.Config{}
 			cfg = dot.DevConfig()
 			err = loadConfig(tomlCfg, defaultDevConfigPath)
+		case "westend":
+			logger.Info("loading toml configuration from " + defaultWestendConfigPath + "...")
+			tomlCfg = &ctoml.Config{}
+			cfg = dot.WestendConfig()
+			err = loadConfig(tomlCfg, defaultWestendConfigPath)
 		default:
 			return nil, nil, fmt.Errorf("unknown chain id provided: %s", id)
 		}
