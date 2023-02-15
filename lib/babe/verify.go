@@ -178,9 +178,6 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 		v.epochInfo[epoch] = info
 	}
 
-	fmt.Println("info for epoch: ", epoch)
-	fmt.Println(info)
-
 	v.lock.Unlock()
 
 	verifier := newVerifier(v.blockState, epoch, info)

@@ -225,9 +225,6 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 			slotNumber = d.SlotNumber
 		}
 
-		fmt.Println(slotNumber)
-		fmt.Println(firstSlot)
-
 		if slotNumber < firstSlot {
 			return 0, nil
 		}

@@ -210,7 +210,6 @@ func claimSlot(epochNumber uint64, slotNumber uint64, epochData *epochData, keyp
 	)
 
 	if err == nil {
-		fmt.Println("primary")
 		babePrimaryPreDigest := types.NewBabePrimaryPreDigest(epochData.authorityIndex, slotNumber, proof.output, proof.proof)
 		preRuntimeDigest, err := babePrimaryPreDigest.ToPreRuntimeDigest()
 		if err != nil {
@@ -226,7 +225,6 @@ func claimSlot(epochNumber uint64, slotNumber uint64, epochData *epochData, keyp
 	case types.PrimarySlots:
 		return nil, errNotOurTurnToPropose
 	case types.PrimaryAndSecondaryVRFSlots:
-		fmt.Println("secondary")
 		proof, err := claimSecondarySlotVRF(
 			epochData.randomness, slotNumber, epochNumber, epochData.authorities, keypair, epochData.authorityIndex)
 		if err != nil {
