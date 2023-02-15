@@ -5,7 +5,6 @@ package babe
 
 import (
 	"bytes"
-	"fmt"
 	"path/filepath"
 	"testing"
 	"time"
@@ -52,6 +51,16 @@ var (
 		GenesisAuthorities: []types.AuthorityRaw{},
 		Randomness:         [32]byte{},
 		SecondarySlots:     0,
+	}
+
+	westendBABEConfig = &types.BabeConfiguration{
+		SlotDuration:       6000,
+		EpochLength:        600,
+		C1:                 1,
+		C2:                 4,
+		GenesisAuthorities: []types.AuthorityRaw{},
+		Randomness:         [32]byte{},
+		SecondarySlots:     1,
 	}
 )
 
@@ -164,7 +173,7 @@ func NewTestService(t *testing.T, cfg *core.Config, genesis genesis.Genesis,
 }
 
 func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
-	genesisTrie trie.Trie, genesisHeader types.Header) *Service {
+	genesisTrie trie.Trie, genesisHeader types.Header, babeConfig *types.BabeConfiguration) *Service {
 	wasmer.DefaultTestLogLvl = log.Error
 
 	if cfg.Keypair == nil {
@@ -176,7 +185,6 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 			Key:    cfg.Keypair.Public().(*sr25519.PublicKey),
 			Weight: 1,
 		}
-		fmt.Println("authority: ", auth.Key)
 		cfg.AuthData = []types.Authority{auth}
 	}
 
@@ -206,15 +214,15 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 		_ = dbSrv.Stop()
 	})
 
-	//dbSrv.Epoch, err = state.NewEpochStateFromGenesis(dbSrv.DB(), dbSrv.Block, genCfg)
-	//require.NoError(t, err)
-
+	// Allow for epoch state to be made from custom babe config
+	if babeConfig != nil {
+		dbSrv.Epoch, err = state.NewEpochStateFromGenesis(dbSrv.DB(), dbSrv.Block, babeConfig)
+		require.NoError(t, err)
+	}
 	cfg.BlockState = dbSrv.Block
 	cfg.StorageState = dbSrv.Storage
 	cfg.EpochState = dbSrv.Epoch
 	cfg.TransactionState = dbSrv.Transaction
-
-	fmt.Println(cfg.EpochState)
 
 	var rtCfg wasmer.Config
 	rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)

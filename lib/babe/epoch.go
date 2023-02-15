@@ -221,8 +221,6 @@ func claimSlot(epochNumber uint64, slotNumber uint64, epochData *epochData, keyp
 		return nil, fmt.Errorf("error running slot lottery at slot %d: %w", slotNumber, err)
 	}
 
-	fmt.Println("err not nil")
-
 	switch epochData.allowedSlots {
 	case types.PrimarySlots:
 		return nil, errNotOurTurnToPropose
