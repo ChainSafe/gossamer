@@ -6,7 +6,6 @@
 package babe
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -47,7 +46,7 @@ func TestService_ProducesBlocks(t *testing.T) {
 	}
 
 	gen, genTrie, genHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, cfg, gen, genTrie, genHeader, nil)
+	babeService := createTestService(t, cfg, gen, genTrie, genHeader, nil, true)
 
 	err := babeService.Start()
 	require.NoError(t, err)
@@ -92,19 +91,16 @@ func TestService_GetAuthorityIndex(t *testing.T) {
 
 func TestStartAndStop(t *testing.T) {
 	gen, genTrie, genHeader := newWestendLocalGenesisWithTrieAndHeader(t)
-	bs := createTestService(t, ServiceConfig{}, gen, genTrie, genHeader, nil)
-	fmt.Println("created test service")
+	bs := createTestService(t, ServiceConfig{}, gen, genTrie, genHeader, nil, true)
 	err := bs.Start()
 	require.NoError(t, err)
-	fmt.Println("started")
 	err = bs.Stop()
 	require.NoError(t, err)
-	fmt.Println("stopped")
 }
 
 func TestService_PauseAndResume(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil, true)
 	err := babeService.Start()
 	require.NoError(t, err)
 	time.Sleep(time.Second)
@@ -140,7 +136,7 @@ func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
 	}
 
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, cfg, genesis, genesisTrie, genesisHeader, nil)
+	babeService := createTestService(t, cfg, genesis, genesisTrie, genesisHeader, nil, true)
 
 	err := babeService.Start()
 	require.NoError(t, err)
@@ -242,7 +238,7 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 	}
 
 	genBob, genTrieBob, genHeaderBob := newWestendDevGenesisWithTrieAndHeader(t)
-	babeServiceBob := createTestService(t, cfgBob, genBob, genTrieBob, genHeaderBob, nil)
+	babeServiceBob := createTestService(t, cfgBob, genBob, genTrieBob, genHeaderBob, nil, true)
 
 	err := babeServiceBob.Start()
 	require.NoError(t, err)
@@ -263,7 +259,7 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 	time.Sleep(babeServiceBob.constants.slotDuration)
 
 	genAlice, genTrieAlice, genHeaderAlice := newWestendDevGenesisWithTrieAndHeader(t)
-	babeServiceAlice := createTestService(t, cfgAlice, genAlice, genTrieAlice, genHeaderAlice, nil)
+	babeServiceAlice := createTestService(t, cfgAlice, genAlice, genTrieAlice, genHeaderAlice, nil, true)
 
 	// Add block created by Bob to Alice
 	err = babeServiceAlice.blockState.AddBlock(block)

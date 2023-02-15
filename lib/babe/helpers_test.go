@@ -173,7 +173,7 @@ func NewTestService(t *testing.T, cfg *core.Config, genesis genesis.Genesis,
 }
 
 func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
-	genesisTrie trie.Trie, genesisHeader types.Header, babeConfig *types.BabeConfiguration) *Service {
+	genesisTrie trie.Trie, genesisHeader types.Header, babeConfig *types.BabeConfiguration, isLead bool) *Service {
 	wasmer.DefaultTestLogLvl = log.Error
 
 	if cfg.Keypair == nil {
@@ -241,6 +241,7 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 
 	cfg.Authority = true
 	cfg.IsDev = true
+	cfg.Lead = isLead
 	cfg.LogLvl = defaultTestLogLvl
 	babeService, err := NewService(&cfg)
 	require.NoError(t, err)
