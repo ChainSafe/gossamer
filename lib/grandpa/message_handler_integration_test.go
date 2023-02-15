@@ -13,7 +13,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -293,8 +292,6 @@ func TestMessageHandler_VerifyJustification_InvalidSig(t *testing.T) {
 }
 
 func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
-	t.Parallel()
-
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -658,8 +655,6 @@ func TestMessageHandler_VerifyPreVoteJustification(t *testing.T) {
 }
 
 func TestMessageHandler_VerifyPreCommitJustification(t *testing.T) {
-	t.Parallel()
-
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -736,8 +731,6 @@ func TestMessageHandler_HandleCatchUpResponse(t *testing.T) {
 }
 
 func TestMessageHandler_VerifyBlockJustification_WithEquivocatoryVotes(t *testing.T) {
-	t.Parallel()
-
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -797,13 +790,11 @@ func TestMessageHandler_VerifyBlockJustification_WithEquivocatoryVotes(t *testin
 	just := newJustification(round, testHash, number, precommits)
 	data, err := scale.Marshal(*just)
 	require.NoError(t, err)
-	returnedJust, err := gs.VerifyBlockJustification(testHash, data)
+	err = gs.VerifyBlockJustification(testHash, data)
 	require.NoError(t, err)
-	require.Equal(t, data, returnedJust)
 }
 
 func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
-	t.Parallel()
 
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
@@ -836,11 +827,30 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	err = st.Block.AddBlock(block)
 	require.NoError(t, err)
 
+	digest2 := types.NewDigest()
+	prd2, _ := types.NewBabeSecondaryPlainPreDigest(0, 2).ToPreRuntimeDigest()
+	digest2.Add(*prd2)
+
+	testHeader2 := types.Header{
+		ParentHash: testGenesisHeader.Hash(),
+		Number:     1,
+		Digest:     digest2,
+	}
+
+	block2 := &types.Block{
+		Header: testHeader2,
+		Body:   *body,
+	}
+
+	err = st.Block.AddBlock(block2)
+	require.NoError(t, err)
+
+	err = st.Block.SetHeader(&testHeader2)
+	require.NoError(t, err)
+
 	setID, err := st.Grandpa.IncrementSetID()
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), setID)
-
-	genhash := st.Block.GenesisHash()
 
 	round := uint64(1)
 	number := uint32(1)
@@ -848,25 +858,20 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	just := newJustification(round, testHash, number, precommits)
 	data, err := scale.Marshal(*just)
 	require.NoError(t, err)
-	returnedJust, err := gs.VerifyBlockJustification(testHash, data)
+	err = gs.VerifyBlockJustification(testHash, data)
 	require.NoError(t, err)
-	require.Equal(t, data, returnedJust)
 
 	// use wrong hash, shouldn't verify
 	precommits = buildTestJustification(t, 2, round+1, setID, kr, precommit)
 	just = newJustification(round+1, testHash, number, precommits)
-	just.Commit.Precommits[0].Vote.Hash = genhash
+	just.Commit.Precommits[0].Vote.Hash = testHeader2.Hash()
 	data, err = scale.Marshal(*just)
 	require.NoError(t, err)
-	returnedJust, err = gs.VerifyBlockJustification(testHash, data)
-	require.NotNil(t, err)
-	require.Equal(t, blocktree.ErrEndNodeNotFound, err)
-	require.Nil(t, returnedJust)
+	err = gs.VerifyBlockJustification(testHash, data)
+	require.Equal(t, ErrPrecommitBlockMismatch, err)
 }
 
 func TestMessageHandler_VerifyBlockJustification_invalid(t *testing.T) {
-	t.Parallel()
-
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
@@ -912,38 +917,32 @@ func TestMessageHandler_VerifyBlockJustification_invalid(t *testing.T) {
 	just.Commit.Precommits[0].Vote.Hash = genhash
 	data, err := scale.Marshal(*just)
 	require.NoError(t, err)
-	returnedJust, err := gs.VerifyBlockJustification(testHash, data)
-	require.NotNil(t, err)
+	err = gs.VerifyBlockJustification(testHash, data)
 	require.Equal(t, ErrPrecommitBlockMismatch, err)
-	require.Nil(t, returnedJust)
 
 	// use wrong round, shouldn't verify
 	precommits = buildTestJustification(t, 2, round+1, setID, kr, precommit)
 	just = newJustification(round+2, testHash, number, precommits)
 	data, err = scale.Marshal(*just)
 	require.NoError(t, err)
-	returnedJust, err = gs.VerifyBlockJustification(testHash, data)
-	require.NotNil(t, err)
+	err = gs.VerifyBlockJustification(testHash, data)
 	require.Equal(t, ErrInvalidSignature, err)
-	require.Nil(t, returnedJust)
 
 	// add authority not in set, shouldn't verify
 	precommits = buildTestJustification(t, len(auths)+1, round+1, setID, kr, precommit)
 	just = newJustification(round+1, testHash, number, precommits)
 	data, err = scale.Marshal(*just)
 	require.NoError(t, err)
-	returnedJust, err = gs.VerifyBlockJustification(testHash, data)
+	err = gs.VerifyBlockJustification(testHash, data)
 	require.Equal(t, ErrAuthorityNotInSet, err)
-	require.Nil(t, returnedJust)
 
 	// not enough signatures, shouldn't verify
 	precommits = buildTestJustification(t, 1, round+1, setID, kr, precommit)
 	just = newJustification(round+1, testHash, number, precommits)
 	data, err = scale.Marshal(*just)
 	require.NoError(t, err)
-	returnedJust, err = gs.VerifyBlockJustification(testHash, data)
+	err = gs.VerifyBlockJustification(testHash, data)
 	require.Equal(t, ErrMinVotesNotMet, err)
-	require.Nil(t, returnedJust)
 
 	// mismatch justification header and block header
 	precommits = buildTestJustification(t, 1, round+1, setID, kr, precommit)
@@ -951,13 +950,77 @@ func TestMessageHandler_VerifyBlockJustification_invalid(t *testing.T) {
 	data, err = scale.Marshal(*just)
 	require.NoError(t, err)
 	otherHeader := types.NewEmptyHeader()
-	_, err = gs.VerifyBlockJustification(otherHeader.Hash(), data)
+	err = gs.VerifyBlockJustification(otherHeader.Hash(), data)
 	require.ErrorIs(t, err, ErrJustificationMismatch)
 
 	expectedErr := fmt.Sprintf("%s: justification %s and block hash %s", ErrJustificationMismatch,
 		testHash.Short(), otherHeader.Hash().Short())
 	assert.ErrorIs(t, err, ErrJustificationMismatch)
 	require.EqualError(t, err, expectedErr)
+}
+
+func TestMessageHandler_VerifyBlockJustification_ErrFinalisedBlockMismatch(t *testing.T) {
+	t.Parallel()
+
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
+
+	auths := []types.GrandpaVoter{
+		{
+			Key: *kr.Alice().Public().(*ed25519.PublicKey),
+		},
+		{
+			Key: *kr.Bob().Public().(*ed25519.PublicKey),
+		},
+		{
+			Key: *kr.Charlie().Public().(*ed25519.PublicKey),
+		},
+	}
+
+	gs, st := newTestService(t, aliceKeyPair)
+	err = st.Grandpa.SetNextChange(auths, 1)
+	require.NoError(t, err)
+
+	body, err := types.NewBodyFromBytes([]byte{0})
+	require.NoError(t, err)
+
+	block := &types.Block{
+		Header: *testHeader,
+		Body:   *body,
+	}
+
+	err = st.Block.AddBlock(block)
+	require.NoError(t, err)
+
+	setID := uint64(0)
+	round := uint64(1)
+	number := uint32(1)
+
+	err = st.Block.SetFinalisedHash(block.Header.Hash(), round, setID)
+	require.NoError(t, err)
+
+	var testHeader2 = &types.Header{
+		ParentHash: testHeader.Hash(),
+		Number:     2,
+		Digest:     newTestDigest(),
+	}
+
+	testHash = testHeader2.Hash()
+	block2 := &types.Block{
+		Header: *testHeader2,
+		Body:   *body,
+	}
+	err = st.Block.AddBlock(block2)
+	require.NoError(t, err)
+
+	// justification fails since there is already a block finalised in this round and set id
+	precommits := buildTestJustification(t, 18, round, setID, kr, precommit)
+	just := newJustification(round, testHash, number, precommits)
+	data, err := scale.Marshal(*just)
+	require.NoError(t, err)
+	err = gs.VerifyBlockJustification(testHash, data)
+	require.ErrorIs(t, err, errFinalisedBlocksMismatch)
 }
 
 func Test_getEquivocatoryVoters(t *testing.T) {
@@ -1426,9 +1489,7 @@ func signFakeFullVote(
 	return sig
 }
 
-func TestService_VerifyBlockJustification(t *testing.T) {
-	t.Parallel()
-
+func TestService_VerifyBlockJustification(t *testing.T) { //nolint
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
@@ -1538,13 +1599,12 @@ func TestService_VerifyBlockJustification(t *testing.T) {
 				blockState:   tt.fields.blockStateBuilder(ctrl),
 				grandpaState: tt.fields.grandpaStateBuilder(ctrl),
 			}
-			got, err := s.VerifyBlockJustification(tt.args.hash, tt.args.justification)
+			err := s.VerifyBlockJustification(tt.args.hash, tt.args.justification)
 			if tt.wantErr != nil {
 				assert.ErrorContains(t, err, tt.wantErr.Error())
 			} else {
 				require.NoError(t, err)
 			}
-			assert.Equalf(t, tt.want, got, "VerifyBlockJustification(%v, %v)", tt.args.hash, tt.args.justification)
 		})
 	}
 }
