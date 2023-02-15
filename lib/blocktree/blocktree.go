@@ -262,19 +262,15 @@ func (bt *BlockTree) Prune(finalised Hash) (pruned []Hash) {
 
 	// Cleanup in-memory runtimes from the canonical chain.
 	// The runtime used in the newly finalised block is kept
-	// instantiated in memory, and other runtimes from the
-	// previous finalised block to the newly finalised block
-	// included are stopped and removed from memory. Note
-	// these are still accessible through the storage as WASM blob.
-	finalisedBlockRuntime := bt.runtimes.get(finalised)
-	canonicalChainBlock := n
+	// instantiated in memory, and all other runtimes are
+	// stopped and removed from memory. Note these are still
+	// accessible through the storage as WASM blob.
 	previousFinalisedBlock := bt.root
-	for canonicalChainBlock != previousFinalisedBlock.parent {
-		runtime := bt.runtimes.get(canonicalChainBlock.hash)
-		if runtime != finalisedBlockRuntime {
-			runtime.Stop()
-			bt.runtimes.delete(canonicalChainBlock.hash)
-		}
+	newCanonicalChainBlocksCount := n.number - previousFinalisedBlock.number
+	canonicalChainBlock := n
+	newCanonicalChainBlockHashes := make([]Hash, newCanonicalChainBlocksCount)
+	for i := int(newCanonicalChainBlocksCount) - 1; i >= 0; i-- {
+		newCanonicalChainBlockHashes[i] = canonicalChainBlock.hash
 		canonicalChainBlock = canonicalChainBlock.parent
 	}
 
@@ -288,13 +284,7 @@ func (bt *BlockTree) Prune(finalised Hash) (pruned []Hash) {
 		bt.leaves.store(leaf.hash, leaf)
 	}
 
-	for _, hash := range pruned {
-		runtimeFromFork := bt.runtimes.get(hash)
-		if runtimeFromFork != finalisedBlockRuntime {
-			runtimeFromFork.Stop()
-		}
-		bt.runtimes.delete(hash)
-	}
+	bt.runtimes.onFinalisation(newCanonicalChainBlockHashes, pruned)
 
 	leavesGauge.Set(float64(len(bt.leaves.nodes())))
 	return pruned
