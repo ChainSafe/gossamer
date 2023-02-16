@@ -14,13 +14,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// NewTestGenesisRawFile returns a test genesis file using "gssmr" raw data
+// NewTestGenesisRawFile returns a test genesis file using "westend-dev" raw data
 func NewTestGenesisRawFile(t *testing.T, cfg *Config) (filename string) {
 	filename = filepath.Join(t.TempDir(), "genesis.json")
 
 	fp := utils.GetWestendDevRawGenesisPath(t)
 
-	gssmrGen, err := genesis.NewGenesisFromJSONRaw(fp)
+	westendDevGenesis, err := genesis.NewGenesisFromJSONRaw(fp)
 	require.NoError(t, err)
 
 	gen := &genesis.Genesis{
@@ -28,7 +28,7 @@ func NewTestGenesisRawFile(t *testing.T, cfg *Config) (filename string) {
 		ID:         cfg.Global.ID,
 		Bootnodes:  cfg.Network.Bootnodes,
 		ProtocolID: cfg.Network.ProtocolID,
-		Genesis:    gssmrGen.GenesisFields(),
+		Genesis:    westendDevGenesis.GenesisFields(),
 	}
 
 	b, err := json.Marshal(gen)

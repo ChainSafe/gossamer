@@ -14,7 +14,7 @@ import (
 )
 
 func TestTrieSnapshot(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	genRawFile := NewTestGenesisRawFile(t, cfg)
 
