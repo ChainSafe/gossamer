@@ -12,10 +12,9 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 
-	"github.com/ChainSafe/gossamer/chain/dev"
-	"github.com/ChainSafe/gossamer/chain/gssmr"
+	"github.com/ChainSafe/gossamer/chain/kusama"
+	"github.com/ChainSafe/gossamer/chain/polkadot"
 	"github.com/ChainSafe/gossamer/dot"
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -24,6 +23,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -401,14 +401,8 @@ func TestCoreConfigFromFlags(t *testing.T) {
 // TestNetworkConfigFromFlags tests createDotNetworkConfig using relevant network flags
 func TestNetworkConfigFromFlags(t *testing.T) {
 	t.Parallel()
-	defaultNetworkCfg := dot.NetworkConfig{
-		Port:              7001,
-		MinPeers:          1,
-		MaxPeers:          50,
-		DiscoveryInterval: 10 * time.Second,
-	}
 	westendDevConfig := dot.WestendDevConfig()
-	testCfg, testCfgFile := newTestConfigWithFile(t, westendDevConfig)
+	testCfg, _ := newTestConfigWithFile(t, westendDevConfig)
 
 	testcases := map[string]struct {
 		args     []string
@@ -418,29 +412,29 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 			[]string{"app", "--port", "1234"},
 			dot.NetworkConfig{
 				Port:              1234,
-				DiscoveryInterval: defaultNetworkCfg.DiscoveryInterval,
-				MinPeers:          defaultNetworkCfg.MinPeers,
-				MaxPeers:          defaultNetworkCfg.MaxPeers,
+				DiscoveryInterval: testCfg.DiscoveryInterval,
+				MinPeers:          testCfg.MinPeers,
+				MaxPeers:          testCfg.MaxPeers,
 			},
 		},
 		"Test_gossamer_--bootnodes": {
 			[]string{"app", "--bootnodes", "peer1,peer2"},
 			dot.NetworkConfig{
-				Port:              defaultNetworkCfg.Port,
+				Port:              testCfg.Port,
 				Bootnodes:         []string{"peer1", "peer2"},
-				DiscoveryInterval: defaultNetworkCfg.DiscoveryInterval,
-				MinPeers:          defaultNetworkCfg.MinPeers,
-				MaxPeers:          defaultNetworkCfg.MaxPeers,
+				DiscoveryInterval: testCfg.DiscoveryInterval,
+				MinPeers:          testCfg.MinPeers,
+				MaxPeers:          testCfg.MaxPeers,
 			},
 		},
 		"Test_gossamer_--protocol": {
 			[]string{"app", "--protocol", "/gossamer/test/0"},
 			dot.NetworkConfig{
-				Port:              defaultNetworkCfg.Port,
+				Port:              testCfg.Port,
 				ProtocolID:        "/gossamer/test/0",
-				DiscoveryInterval: defaultNetworkCfg.DiscoveryInterval,
-				MinPeers:          defaultNetworkCfg.MinPeers,
-				MaxPeers:          defaultNetworkCfg.MaxPeers,
+				DiscoveryInterval: testCfg.DiscoveryInterval,
+				MinPeers:          testCfg.MinPeers,
+				MaxPeers:          testCfg.MaxPeers,
 			},
 		},
 		"Test_gossamer_--nobootstrap": {

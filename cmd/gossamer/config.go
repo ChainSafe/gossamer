@@ -6,13 +6,11 @@ package main
 import (
 	"errors"
 	"fmt"
+	"github.com/ChainSafe/gossamer/dot"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/ChainSafe/gossamer/chain/dev"
-	"github.com/ChainSafe/gossamer/chain/gssmr"
-	"github.com/ChainSafe/gossamer/dot"
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
@@ -782,16 +780,12 @@ func setDotRPCConfig(ctx *cli.Context, tomlCfg ctoml.RPCConfig, cfg *dot.RPCConf
 		cfg.WSPort = uint32(wsport)
 	}
 
-	if WS := ctx.Bool(WSFlag.Name); WS || cfg.WS {
-		cfg.WS = true
-	} else if ctx.IsSet(WSFlag.Name) && !WS {
-		cfg.WS = false
 	wsFlagIsSet := ctx.IsSet(WSFlag.Name)
 
 	// if ws flag is set then set its value otherwise keep
 	// cfg.WS as it is
 	if wsFlagIsSet {
-		cfg.WS = ctx.GlobalBool(WSFlag.Name)
+		cfg.WS = ctx.Bool(WSFlag.Name)
 	}
 
 	if wsExternal := ctx.Bool(WSExternalFlag.Name); wsExternal {

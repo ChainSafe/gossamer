@@ -4,7 +4,6 @@
 package main
 
 import (
-	"github.com/ChainSafe/gossamer/chain/dev"
 	"github.com/urfave/cli/v2"
 )
 
