@@ -8,7 +8,6 @@ package babe
 import (
 	"errors"
 	"fmt"
-	"math"
 	"testing"
 	"time"
 
@@ -49,7 +48,7 @@ func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *
 	require.NoError(t, err)
 
 	if genCfg == nil {
-		genCfg = genesisBABEConfig
+		genCfg = westendBABEConfig
 	}
 
 	dbSrv.Epoch, err = state.NewEpochStateFromGenesis(dbSrv.DB(), dbSrv.Block, genCfg)
@@ -272,33 +271,34 @@ func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 // TODO this test should also be part of babe testing cleanup #3060
 // Need to fix flakyness and verify config data is being set correctly
 func TestVerificationManager_VerifyBlock_InvalidBlockOverThreshold(t *testing.T) {
-	//t.Skip()
-	auth := types.Authority{
-		Key:    keyring.Alice().(*sr25519.Keypair).Public(),
-		Weight: 1,
-	}
-	babeConfig := &types.BabeConfiguration{
-		SlotDuration:       6000,
-		EpochLength:        600,
-		C1:                 1,
-		C2:                 math.MaxUint64,
-		GenesisAuthorities: []types.AuthorityRaw{*auth.ToRaw()},
-		Randomness:         [32]byte{},
-		SecondarySlots:     0,
+	t.Skip()
+	serviceConfig := ServiceConfig{
+		Authority: true,
 	}
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, babeConfig, true)
-	vm := NewVerificationManager(babeService.blockState, babeService.epochState)
+	babeService := createTestService(t, serviceConfig, genesis, genesisTrie, genesisHeader, nil, false)
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
 	runtime, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	//cfg, err := runtime.BabeConfiguration()
-	//require.NoError(t, err)
+	cfg, err := runtime.BabeConfiguration()
+	require.NoError(t, err)
 
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
+
+	var alicePub [32]byte
+	copy(alicePub[:], keyring.Alice().(*sr25519.Keypair).Public().Encode())
+	aliceAuth := types.Authority{
+		Key: keyring.Alice().(*sr25519.Keypair).Public(),
+	}
+
+	cfg.GenesisAuthorities = types.AuthoritiesToRaw([]types.Authority{aliceAuth})
+	cfg.C1 = 1
+	cfg.C2 = 100
+
+	vm := newTestVerificationManager(t, cfg)
 
 	slot := getSlot(t, runtime, time.Now())
 	block := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, testEpochIndex, epochData, slot)

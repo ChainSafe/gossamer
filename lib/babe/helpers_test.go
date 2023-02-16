@@ -43,7 +43,7 @@ var (
 		Digest: types.NewDigest(),
 	}
 
-	genesisBABEConfig = &types.BabeConfiguration{
+	westendBABEConfig = &types.BabeConfiguration{
 		SlotDuration:       1000,
 		EpochLength:        200,
 		C1:                 1,
@@ -51,16 +51,6 @@ var (
 		GenesisAuthorities: []types.AuthorityRaw{},
 		Randomness:         [32]byte{},
 		SecondarySlots:     0,
-	}
-
-	westendBABEConfig = &types.BabeConfiguration{
-		SlotDuration:       6000,
-		EpochLength:        600,
-		C1:                 1,
-		C2:                 4,
-		GenesisAuthorities: []types.AuthorityRaw{},
-		Randomness:         [32]byte{},
-		SecondarySlots:     1,
 	}
 )
 

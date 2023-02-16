@@ -57,7 +57,7 @@ func TestInitiateEpoch_Epoch1(t *testing.T) {
 	require.NoError(t, err)
 
 	expected := &epochData{
-		randomness:     genesisBABEConfig.Randomness,
+		randomness:     westendBABEConfig.Randomness,
 		authorities:    []types.Authority{auth},
 		authorityIndex: 0,
 		threshold:      ed.threshold,
