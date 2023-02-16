@@ -401,7 +401,7 @@ func (nem nextEpochMap[T]) Retrieve(blockState *BlockState, epoch uint64, header
 		// is not fully imported by the blocktree, in this case we will use
 		// its parent header which migth be already imported.
 		if errors.Is(err, blocktree.ErrEndNodeNotFound) || errors.Is(err, trieproof.ErrKeyNotFound) ||
-			errors.Is(err, blocktree.ErrKeyNotFound) {
+			errors.Is(err, blocktree.ErrKeyNotFound) || errors.Is(err, chaindb.ErrKeyNotFound) {
 			parentHeader, err := blockState.GetHeader(header.ParentHash)
 			if err != nil {
 				return nil, fmt.Errorf("cannot get parent header: %w", err)
