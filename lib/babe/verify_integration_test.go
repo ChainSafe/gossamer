@@ -384,15 +384,22 @@ func TestVerificationManager_VerifyBlock_InvalidBlockAuthority(t *testing.T) {
 	require.Equal(t, ErrInvalidBlockProducerIndex, errors.Unwrap(err))
 }
 
-func TestVerifyPimarySlotWinner(t *testing.T) {
-	kp, err := sr25519.GenerateKeypair()
-	require.NoError(t, err)
-
-	cfg := ServiceConfig{
-		Keypair: kp,
+func TestVerifyPrimarySlotWinner(t *testing.T) {
+	auth := types.Authority{
+		Key:    keyring.Alice().(*sr25519.Keypair).Public(),
+		Weight: 1,
+	}
+	babeConfig := &types.BabeConfiguration{
+		SlotDuration:       6000,
+		EpochLength:        600,
+		C1:                 1,
+		C2:                 4,
+		GenesisAuthorities: []types.AuthorityRaw{*auth.ToRaw()},
+		Randomness:         [32]byte{},
+		SecondarySlots:     1,
 	}
 	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, cfg, genesis, genesisTrie, genesisHeader, nil, true)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, babeConfig, true)
 	epochData, err := babeService.initiateEpoch(0)
 	require.NoError(t, err)
 
@@ -410,12 +417,6 @@ func TestVerifyPimarySlotWinner(t *testing.T) {
 
 	digest, ok := babePreDigest.(types.BabePrimaryPreDigest)
 	require.True(t, ok)
-
-	Authorities := make([]types.Authority, 1)
-	Authorities[0] = types.Authority{
-		Key: kp.Public().(*sr25519.PublicKey),
-	}
-	epochData.authorities = Authorities
 
 	verifier := newVerifier(babeService.blockState, testEpochIndex, &verifierInfo{
 		authorities: epochData.authorities,
