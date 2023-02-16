@@ -6,11 +6,11 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/ChainSafe/gossamer/dot"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot"
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/state/pruner"

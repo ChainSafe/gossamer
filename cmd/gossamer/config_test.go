@@ -114,13 +114,7 @@ func TestInitConfigFromFlags(t *testing.T) {
 // TestGlobalConfigFromFlags tests createDotGlobalConfig using relevant global flags
 func TestGlobalConfigFromFlags(t *testing.T) {
 	t.Parallel()
-	defaultGlobalConfig := dot.GlobalConfig{
-		Name:           "carpet-drill-8904",
-		ID:             "gssmr",
-		BasePath:       "~/.gossamer/gssmr",
-		LogLvl:         log.Info,
-		MetricsAddress: "localhost:9876",
-	}
+	defaultGlobalConfig := dot.PolkadotConfig().Global
 
 	testcases := map[string]struct {
 		args     []string
@@ -402,7 +396,6 @@ func TestCoreConfigFromFlags(t *testing.T) {
 func TestNetworkConfigFromFlags(t *testing.T) {
 	t.Parallel()
 	westendDevConfig := dot.WestendDevConfig()
-	testCfg, _ := newTestConfigWithFile(t, westendDevConfig)
 
 	testcases := map[string]struct {
 		args     []string
@@ -411,100 +404,70 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 		"Test_gossamer_--port": {
 			[]string{"app", "--port", "1234"},
 			dot.NetworkConfig{
-				Port:              1234,
-				DiscoveryInterval: testCfg.DiscoveryInterval,
-				MinPeers:          testCfg.MinPeers,
-				MaxPeers:          testCfg.MaxPeers,
+				Port: 1234,
 			},
 		},
 		"Test_gossamer_--bootnodes": {
 			[]string{"app", "--bootnodes", "peer1,peer2"},
 			dot.NetworkConfig{
-				Port:              testCfg.Port,
-				Bootnodes:         []string{"peer1", "peer2"},
-				DiscoveryInterval: testCfg.DiscoveryInterval,
-				MinPeers:          testCfg.MinPeers,
-				MaxPeers:          testCfg.MaxPeers,
+				Port:      westendDevConfig.Network.Port,
+				Bootnodes: []string{"peer1", "peer2"},
 			},
 		},
 		"Test_gossamer_--protocol": {
 			[]string{"app", "--protocol", "/gossamer/test/0"},
 			dot.NetworkConfig{
-				Port:              testCfg.Port,
-				ProtocolID:        "/gossamer/test/0",
-				DiscoveryInterval: testCfg.DiscoveryInterval,
-				MinPeers:          testCfg.MinPeers,
-				MaxPeers:          testCfg.MaxPeers,
+				Port:       westendDevConfig.Network.Port,
+				ProtocolID: "/gossamer/test/0",
 			},
 		},
 		"Test_gossamer_--nobootstrap": {
 			[]string{"app", "--nobootstrap"},
 			dot.NetworkConfig{
-				Port:              defaultNetworkCfg.Port,
-				NoBootstrap:       true,
-				DiscoveryInterval: defaultNetworkCfg.DiscoveryInterval,
-				MinPeers:          defaultNetworkCfg.MinPeers,
-				MaxPeers:          defaultNetworkCfg.MaxPeers,
+				Port:        westendDevConfig.Network.Port,
+				NoBootstrap: true,
 			},
 		},
 		"Test_gossamer_--nomdns": {
 			[]string{"app", "--nomdns"},
 			dot.NetworkConfig{
-				Port:              defaultNetworkCfg.Port,
-				NoMDNS:            true,
-				DiscoveryInterval: defaultNetworkCfg.DiscoveryInterval,
-				MinPeers:          defaultNetworkCfg.MinPeers,
-				MaxPeers:          defaultNetworkCfg.MaxPeers,
+				Port:   westendDevConfig.Network.Port,
+				NoMDNS: true,
 			},
 		},
 		"Test_gossamer_--no-mdns": {
 			[]string{"app", "--no-mdns"},
 			dot.NetworkConfig{
-				Port:              defaultNetworkCfg.Port,
-				NoMDNS:            true,
-				DiscoveryInterval: defaultNetworkCfg.DiscoveryInterval,
-				MinPeers:          defaultNetworkCfg.MinPeers,
-				MaxPeers:          defaultNetworkCfg.MaxPeers,
+				Port:   westendDevConfig.Network.Port,
+				NoMDNS: true,
 			},
 		},
 		"Test_gossamer_--pubip": {
 			[]string{"app", "--pubip", "10.0.5.2"},
 			dot.NetworkConfig{
-				Port:              defaultNetworkCfg.Port,
-				DiscoveryInterval: defaultNetworkCfg.DiscoveryInterval,
-				MinPeers:          defaultNetworkCfg.MinPeers,
-				MaxPeers:          defaultNetworkCfg.MaxPeers,
-				PublicIP:          "10.0.5.2",
+				Port:     westendDevConfig.Network.Port,
+				PublicIP: "10.0.5.2",
 			},
 		},
 		"Test_gossamer_--pubdns": {
 			[]string{"app", "--pubdns", "alice"},
 			dot.NetworkConfig{
-				Port:              defaultNetworkCfg.Port,
-				DiscoveryInterval: defaultNetworkCfg.DiscoveryInterval,
-				MinPeers:          defaultNetworkCfg.MinPeers,
-				MaxPeers:          defaultNetworkCfg.MaxPeers,
-				PublicDNS:         "alice",
+				Port:      westendDevConfig.Network.Port,
+				PublicDNS: "alice",
 			},
 		},
 		"Test_gossamer_--node-key": {
 			[]string{"app", "--node-key", "testkey"},
 			dot.NetworkConfig{
-				Port:              defaultNetworkCfg.Port,
-				DiscoveryInterval: defaultNetworkCfg.DiscoveryInterval,
-				MinPeers:          defaultNetworkCfg.MinPeers,
-				MaxPeers:          defaultNetworkCfg.MaxPeers,
-				NodeKey:           "testkey",
+				Port:    westendDevConfig.Network.Port,
+				NodeKey: "testkey",
 			},
 		},
 		"Test_gossamer_--listen-addr": {
 			[]string{"app", "--listen-addr", "/ip4/0.0.0.0/tcp/1234/ws"},
 			dot.NetworkConfig{
-				Port:              defaultNetworkCfg.Port,
-				DiscoveryInterval: defaultNetworkCfg.DiscoveryInterval,
-				MinPeers:          defaultNetworkCfg.MinPeers,
-				MaxPeers:          defaultNetworkCfg.MaxPeers,
-				ListenAddress:     "/ip4/0.0.0.0/tcp/1234/ws",
+				Port:          westendDevConfig.Network.Port,
+				ListenAddress: "/ip4/0.0.0.0/tcp/1234/ws",
 			},
 		},
 	}
@@ -530,7 +493,7 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 // TestRPCConfigFromFlags tests createDotRPCConfig using relevant rpc flags
 func TestRPCConfigFromFlags(t *testing.T) {
 	polkadotConfig := dot.PolkadotConfig()
-	testCfg, testCfgFile := newTestConfigWithFile(t, polkadotConfig)
+	testCfg, _ := newTestConfigWithFile(t, polkadotConfig)
 
 	testApp := cli.NewApp()
 	testApp.Flags = StartupFlags
@@ -543,20 +506,20 @@ func TestRPCConfigFromFlags(t *testing.T) {
 			[]string{"", "--rpc"},
 			dot.RPCConfig{
 				Enabled: true,
-				Port:    defaultCfg.Port,
-				Host:    defaultCfg.Host,
-				Modules: defaultCfg.Modules,
-				WSPort:  defaultCfg.WSPort,
+				Port:    testCfg.RPC.Port,
+				Host:    testCfg.RPC.Host,
+				Modules: testCfg.RPC.Modules,
+				WSPort:  testCfg.RPC.WSPort,
 			},
 		},
 		"Test_gossamer_--rpc_false": {
 			[]string{""},
 			dot.RPCConfig{
 				Enabled: false,
-				Port:    defaultCfg.Port,
-				Host:    defaultCfg.Host,
-				Modules: defaultCfg.Modules,
-				WSPort:  defaultCfg.WSPort,
+				Port:    testCfg.RPC.Port,
+				Host:    testCfg.RPC.Host,
+				Modules: testCfg.RPC.Modules,
+				WSPort:  testCfg.RPC.WSPort,
 			},
 		},
 		"Test_gossamer_--rpc-external": {
@@ -564,10 +527,10 @@ func TestRPCConfigFromFlags(t *testing.T) {
 			dot.RPCConfig{
 				Enabled:  true,
 				External: true,
-				Port:     defaultCfg.Port,
-				Host:     defaultCfg.Host,
-				Modules:  defaultCfg.Modules,
-				WSPort:   defaultCfg.WSPort,
+				Port:     testCfg.RPC.Port,
+				Host:     testCfg.RPC.Host,
+				Modules:  testCfg.RPC.Modules,
+				WSPort:   testCfg.RPC.WSPort,
 			},
 		},
 		"Test_gossamer_--rpc-external_false": {
@@ -575,93 +538,93 @@ func TestRPCConfigFromFlags(t *testing.T) {
 			dot.RPCConfig{
 				Enabled:  true,
 				External: false,
-				Port:     defaultCfg.Port,
-				Host:     defaultCfg.Host,
-				Modules:  defaultCfg.Modules,
-				WSPort:   defaultCfg.WSPort,
+				Port:     testCfg.RPC.Port,
+				Host:     testCfg.RPC.Host,
+				Modules:  testCfg.RPC.Modules,
+				WSPort:   testCfg.RPC.WSPort,
 			},
 		},
 		"Test_gossamer_--rpchost": {
 			[]string{"", "--rpchost", "testhost"},
 			dot.RPCConfig{
-				Port:    defaultCfg.Port,
+				Port:    testCfg.RPC.Port,
 				Host:    "testhost",
-				Modules: defaultCfg.Modules,
-				WSPort:  defaultCfg.WSPort,
+				Modules: testCfg.RPC.Modules,
+				WSPort:  testCfg.RPC.WSPort,
 			},
 		},
 		"Test_gossamer_--rpcport": {
 			[]string{"", "--rpcport", "5678"},
 			dot.RPCConfig{
 				Port:    5678,
-				Host:    defaultCfg.Host,
-				Modules: defaultCfg.Modules,
-				WSPort:  defaultCfg.WSPort,
+				Host:    testCfg.RPC.Host,
+				Modules: testCfg.RPC.Modules,
+				WSPort:  testCfg.RPC.WSPort,
 			},
 		},
 		"Test_gossamer_--rpc-port": {
 			[]string{"", "--rpc-port", "5678"},
 			dot.RPCConfig{
 				Port:    5678,
-				Host:    defaultCfg.Host,
-				Modules: defaultCfg.Modules,
-				WSPort:  defaultCfg.WSPort,
+				Host:    testCfg.RPC.Host,
+				Modules: testCfg.RPC.Modules,
+				WSPort:  testCfg.RPC.WSPort,
 			},
 		},
 		"Test_gossamer_--rpcsmods": {
 			[]string{"", "--rpcmods", "mod1,mod2"},
 			dot.RPCConfig{
-				Port:    defaultCfg.Port,
-				Host:    defaultCfg.Host,
+				Port:    testCfg.RPC.Port,
+				Host:    testCfg.RPC.Host,
 				Modules: []string{"mod1", "mod2"},
-				WSPort:  defaultCfg.WSPort,
+				WSPort:  testCfg.RPC.WSPort,
 			},
 		},
 		"Test_gossamer_--wsport": {
 			[]string{"", "--wsport", "7070"},
 			dot.RPCConfig{
-				Port:    defaultCfg.Port,
-				Host:    defaultCfg.Host,
-				Modules: defaultCfg.Modules,
+				Port:    testCfg.RPC.Port,
+				Host:    testCfg.RPC.Host,
+				Modules: testCfg.RPC.Modules,
 				WSPort:  7070,
 			},
 		},
 		"Test_gossamer_--ws-port": {
 			[]string{"", "--ws-port", "7071"},
 			dot.RPCConfig{
-				Port:    defaultCfg.Port,
-				Host:    defaultCfg.Host,
-				Modules: defaultCfg.Modules,
+				Port:    testCfg.RPC.Port,
+				Host:    testCfg.RPC.Host,
+				Modules: testCfg.RPC.Modules,
 				WSPort:  7071,
 			},
 		},
 		"Test_gossamer_--ws": {
 			[]string{"config", "--ws"},
 			dot.RPCConfig{
-				Port:    defaultCfg.Port,
-				Host:    defaultCfg.Host,
-				Modules: defaultCfg.Modules,
-				WSPort:  defaultCfg.WSPort,
+				Port:    testCfg.RPC.Port,
+				Host:    testCfg.RPC.Host,
+				Modules: testCfg.RPC.Modules,
+				WSPort:  testCfg.RPC.WSPort,
 				WS:      true,
 			},
 		},
 		"Test_gossamer_--ws_false": {
 			[]string{""},
 			dot.RPCConfig{
-				Port:    defaultCfg.Port,
-				Host:    defaultCfg.Host,
-				Modules: defaultCfg.Modules,
-				WSPort:  defaultCfg.WSPort,
+				Port:    testCfg.RPC.Port,
+				Host:    testCfg.RPC.Host,
+				Modules: testCfg.RPC.Modules,
+				WSPort:  testCfg.RPC.WSPort,
 				WS:      false,
 			},
 		},
 		"Test_gossamer_--ws-external": {
 			[]string{"", "--ws-external"},
 			dot.RPCConfig{
-				Port:       defaultCfg.Port,
-				Host:       defaultCfg.Host,
-				Modules:    defaultCfg.Modules,
-				WSPort:     defaultCfg.WSPort,
+				Port:       testCfg.RPC.Port,
+				Host:       testCfg.RPC.Host,
+				Modules:    testCfg.RPC.Modules,
+				WSPort:     testCfg.RPC.WSPort,
 				WS:         true,
 				WSExternal: true,
 			},
@@ -669,10 +632,10 @@ func TestRPCConfigFromFlags(t *testing.T) {
 		"Test_gossamer_--ws-external_false": {
 			[]string{""},
 			dot.RPCConfig{
-				Port:       defaultCfg.Port,
-				Host:       defaultCfg.Host,
-				Modules:    defaultCfg.Modules,
-				WSPort:     defaultCfg.WSPort,
+				Port:       testCfg.RPC.Port,
+				Host:       testCfg.RPC.Host,
+				Modules:    testCfg.RPC.Modules,
+				WSPort:     testCfg.RPC.WSPort,
 				WSExternal: false,
 			},
 		},
