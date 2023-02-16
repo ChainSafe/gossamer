@@ -8,6 +8,7 @@ package babe
 import (
 	"errors"
 	"fmt"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"testing"
 	"time"
 
@@ -150,6 +151,52 @@ func TestVerificationManager_OnDisabled_DuplicateDigest(t *testing.T) {
 
 	err = vm.SetOnDisabled(0, &block2.Header)
 	require.Equal(t, ErrAuthorityAlreadyDisabled, err)
+}
+
+// TODO Rather than test error, test happy path #3060
+func TestVerificationManager_VerifyBlock_Secondary(t *testing.T) {
+	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil, true)
+	vm := NewVerificationManager(babeService.blockState, babeService.epochState)
+
+	secondaryDigest := createSecondaryVRFPreDigest(t, keyring.Alice().(*sr25519.Keypair),
+		0, uint64(0), uint64(0), Randomness{})
+	babeDigest := types.NewBabeDigest()
+	err := babeDigest.Set(secondaryDigest)
+	require.NoError(t, err)
+
+	encodedBabeDigest, err := scale.Marshal(babeDigest)
+	require.NoError(t, err)
+
+	// create pre-digest
+	preDigest := &types.PreRuntimeDigest{
+		ConsensusEngineID: types.BabeEngineID,
+		Data:              encodedBabeDigest,
+	}
+
+	// create new block header
+	const number uint = 1
+	digest := types.NewDigest()
+	err = digest.Add(*preDigest)
+	require.NoError(t, err)
+
+	// create seal and add to digest
+	seal := &types.SealDigest{
+		ConsensusEngineID: types.BabeEngineID,
+		Data:              []byte{0},
+	}
+	require.NoError(t, err)
+
+	err = digest.Add(*seal)
+	require.NoError(t, err)
+
+	header := types.NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, number, digest)
+	block := types.Block{
+		Header: *header,
+		Body:   nil,
+	}
+	err = vm.VerifyBlock(&block.Header)
+	require.EqualError(t, err, "failed to verify pre-runtime digest: block producer is not in authority set")
 }
 
 func TestVerificationManager_VerifyBlock_CurrentEpoch(t *testing.T) {
