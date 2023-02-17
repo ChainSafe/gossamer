@@ -15,8 +15,6 @@ import (
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
-	"github.com/ChainSafe/gossamer/internal/chain/dev"
-	"github.com/ChainSafe/gossamer/internal/chain/gssmr"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -28,9 +26,9 @@ import (
 var (
 	// DefaultCfg is the default configuration for the node.
 	DefaultCfg                  = dot.PolkadotConfig
-	defaultKusamaConfigPath     = "./chain/kusama/config.toml"
-	defaultPolkadotConfigPath   = "./chain/polkadot/config.toml"
-	defaultWestendDevConfigPath = "./chain/westend-dev/config.toml"
+	defaultKusamaConfigPath     = "chain/kusama/config.toml"
+	defaultPolkadotConfigPath   = "chain/polkadot/config.toml"
+	defaultWestendDevConfigPath = "chain/westend-dev/config.toml"
 )
 
 // loadConfigFile loads a default config file if --chain is specified, a specific

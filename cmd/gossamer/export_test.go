@@ -9,7 +9,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot"
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
-	"github.com/ChainSafe/gossamer/internal/chain/gssmr"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v2"
