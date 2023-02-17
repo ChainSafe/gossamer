@@ -84,7 +84,7 @@ type Config struct {
 	NoBootstrap bool
 	// NoMDNS disables MDNS discovery
 	NoMDNS bool
-	// ListenAddress multiaddress to listen on
+	// ListenAddress is the multiaddress to listen on
 	ListenAddress string
 
 	MinPeers int
@@ -95,11 +95,11 @@ type Config struct {
 	// PersistentPeers is a list of multiaddrs which the node should remain connected to
 	PersistentPeers []string
 
-	// privateKey the private key for the network p2p identity
-	privateKey crypto.PrivKey
-
 	// NodeKey is the private hex encoded Ed25519 key to build the p2p identity
 	NodeKey string
+
+	// privateKey the private key for the network p2p identity
+	privateKey crypto.PrivKey
 
 	// telemetryInterval how often to send telemetry metrics
 	telemetryInterval time.Duration
